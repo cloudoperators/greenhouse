@@ -1,0 +1,4 @@
+_vendor/**
+resources/_gen/**
+content/docs/**
+public/**

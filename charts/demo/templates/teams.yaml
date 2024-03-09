@@ -1,0 +1,24 @@
+{{ $chartName := .Chart.Name }}
+{{ $demoUser := .Values.demoUser }}
+{{ range $teamName, $team := .Values.teams }}
+---
+apiVersion: greenhouse.sap/v1alpha1
+kind: Team
+metadata:
+  name: {{ required "Team name missing" $teamName | lower }}
+  namespace: {{ $chartName }}
+spec:
+  description: {{ $team.description | default (printf "Team %s" $teamName) }}
+---
+apiVersion: greenhouse.sap/v1alpha1
+kind: TeamMembership
+metadata:
+  name: {{ required "Team name missing" $teamName | lower }}
+  namespace: {{ $chartName }}
+spec:
+  members:
+    - email: {{ required ".Values.demoUser.email missing" $demoUser.email }}
+      id: {{ required ".Values.demoUser.id missing" $demoUser.id }}
+      firstName: {{ required ".Values.demoUser.firstName missing" $demoUser.firstName }}
+      lastName: {{ required ".Values.demoUser.lastName missing" $demoUser.lastName }}
+{{- end }}

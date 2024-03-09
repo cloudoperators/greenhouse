@@ -1,0 +1,21 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": [
+    "config:recommended"
+  ],
+  "constraints": {
+    "go": "1.21"
+  },
+  "packageRules": [
+    {
+      "groupName": "npm dependencies",
+      "matchDatasources": [
+        "npm"
+      ]
+    }
+  ],
+  "postUpdateOptions": [
+    "gomodTidy",
+    "gomodUpdateImportPaths"
+  ]
+}

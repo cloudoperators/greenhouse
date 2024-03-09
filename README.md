@@ -1,35 +1,35 @@
-# SAP Repository Template
+Greenhouse
+==========
 
-Default templates for SAP open source repositories, including LICENSE, .reuse/dep5, Code of Conduct, etc... All repositories on github.com/SAP will be created based on this template.
+<a href="https://github.com/cloudoperators/greenhouse"><img align="left" width="150" height="170" src="./docs/assets/greenhouse.svg"></a>
 
-## To-Do
+Greenhouse is a cloud operations platform designed to streamline and simplify the management of a large-scale, distributed infrastructure.
 
-In case you are the maintainer of a new SAP open source project, these are the steps to do with the template files:
+It offers a unified interface for organizations to manage various operational aspects efficiently and transparently and operate their cloud infrastructure in compliance with industry standards.  
+The platform addresses common challenges such as the fragmentation of tools, visibility of application-specific permission concepts and the management of organizational groups.
+It also emphasizes the harmonization and standardization of authorization concepts to enhance security and scalability.
+With its operator-friendly dashboard, features and extensive automation capabilities, Greenhouse empowers organizations to optimize their cloud operations, reduce manual efforts, and achieve greater operational efficiency.
 
-- Check if the default license (Apache 2.0) also applies to your project. A license change should only be required in exceptional cases. If this is the case, please change the [license file](LICENSE).
-- Enter the correct metadata for the REUSE tool. See our [wiki page](https://wiki.one.int.sap/wiki/display/ospodocs/Using+the+Reuse+Tool+of+FSFE+for+Copyright+and+License+Information) for details how to do it. You can find an initial .reuse/dep5 file to build on. Please replace the parts inside the single angle quotation marks < > by the specific information for your repository and be sure to run the REUSE tool to validate that the metadata is correct.
-- Adjust the contribution guidelines (e.g. add coding style guidelines, pull request checklists, different license if needed etc.)
-- Add information about your project to this README (name, description, requirements etc). Especially take care for the <your-project> placeholders - those ones need to be replaced with your project name. See the sections below the horizontal line and [our guidelines on our wiki page](https://wiki.one.int.sap/wiki/pages/viewpage.action?pageId=3564976048#GuidelinesforGitHubHealthfiles(Readme,Contributing,CodeofConduct)-Readme.md) what is required and recommended.
-- Remove all content in this README above and including the horizontal line ;)
+## Value propositions
 
-***
+![Greenhouse value propositions](./docs/assets/value-propositions.png)
 
-# Our new open source project
+## Community
 
-## About this project
+Greenhouse holds bi-weekly community calls in Microsoft Teams.
 
-*Insert a short description of your project here...*
+## Roadmap
 
-## Requirements and Setup
+The [Roadmap 2023 Kanban board](https://github.com/cloudoperators/greenhouse/projects/2) provides an overview of ongoing and planned efforts.
 
-*Insert a short description what is required to get your project running...*
+## Architecture & Design
 
-## Support, Feedback, Contributing
+The [Greenhouse design and architecture document](docs/architecture/product_design.md) describes the various use-cases and user stories.
 
-This project is open to feature requests/suggestions, bug reports etc. via [GitHub issues](https://github.com/SAP/<your-project>/issues). Contribution and feedback are encouraged and always welcome. For more information about how to contribute, the project structure, as well as additional contribution information, see our [Contribution Guidelines](CONTRIBUTING.md).
+### API resources
 
-## Security / Disclosure
-If you find any bug that may be a security problem, please follow our instructions at [in our security policy](https://github.com/SAP/<your-project>/security/policy) on how to report it. Please do not create GitHub issues for security-related doubts or problems.
+Greenhouse extends Kubernetes using Custom Resource Definitions(CRD).  
+See the [API resources documentation](https://github.com/pages/cloudoperators/greenhouse/docs/reference/api/index.html) for more details.
 
 ## Code of Conduct
 
@@ -37,4 +37,4 @@ We as members, contributors, and leaders pledge to make participation in our com
 
 ## Licensing
 
-Copyright (20xx-)20xx SAP SE or an SAP affiliate company and <your-project> contributors. Please see our [LICENSE](LICENSE) for copyright and license information. Detailed information including third-party components and their licensing/copyright information is available [via the REUSE tool](https://api.reuse.software/info/github.com/SAP/<your-project>).
+Copyright 2024-2026 SAP SE or an SAP affiliate company and Greenhouse contributors. Please see our [LICENSE](LICENSE) for copyright and license information. Detailed information including third-party components and their licensing/copyright information is available [via the REUSE tool](https://api.reuse.software/info/github.com/cloudoperators/greenhouse).

@@ -1,0 +1,40 @@
+nameOverride: greenhouse
+
+# TODO: Move to globals to share with headscale chart
+headscale:
+  enabled: false
+  apiURL:
+  apiKeySecret: tailscale-auth
+  proxyURL: socks5://greenhouse-tailscale-proxy.greenhouse.svc.cluster.local:1055
+
+controllerManager:
+  containerSecurityContext:
+    allowPrivilegeEscalation: false
+    capabilities:
+      drop:
+        - ALL
+  image:
+    repository: ghcr.io/cloudoperators/greenhouse
+    tag: latest
+
+  resources:
+    requests:
+      cpu: 10m
+      memory: 128Mi
+
+  args: []
+  replicas: 3
+  serviceAccount:
+    annotations: {}
+
+kubeWebhookCertgen:
+  image:
+    repository: registry.k8s.io/ingress-nginx/kube-webhook-certgen
+    tag: v20221220-controller-v1.5.1-58-g787ea74b6
+
+webhookService:
+  type: ClusterIP
+  ports:
+    - port: 443
+      protocol: TCP
+      targetPort: 9443

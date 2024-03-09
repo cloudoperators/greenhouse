@@ -1,0 +1,100 @@
+global:
+  dns:
+    # THe DNS domain to be used for all Greenhouse components.
+    domain:
+
+  # OIDC configuration for Greenhouse.
+  oidc:
+    issuer:
+    redirectURL:
+    clientID:
+    clientSecret:
+
+# OIDC configuration for Greenhouse.
+# Remove this section after migration to above globals.
+oidc:
+  issuer:
+  redirectURL:
+  clientID:
+  clientSecret:
+
+# Configures core Greenhouse teams.
+teams:
+  # An admin team must be specified. Additional teams are optional.
+  admin:
+    description: Greenhouse admin team
+    mappedIdPGroup: CCloud Greenhouse Admin
+
+# toggles logshipping subchart
+logshipping:
+  enabled: false
+
+### Configure several Plugins for the Greenhouse organization below.
+
+# Configures the DigiCert issuer for the Greenhouse organization,
+# which enables obtaining DigiCert certificates via the cert-manager.
+digicertIssuer:
+  enabled: false
+  apiToken:
+  organizationID:
+  organizationUnits:
+  caCertID:
+
+# Configures the DISCO, Designate Ingress CNAME operator, for the Greenhouse organization,
+# which enables automated management of DNS records with OpenStack Designate.
+disco:
+  enabled: false
+  record:
+  zoneName:
+  authURL:
+  regionName:
+  username:
+  userDomainName:
+  password:
+  projectName:
+  projectDomainName:
+
+# Configures the NGINX ingress for the Greenhouse organization, which enables external access.
+ingress:
+  enabled: true
+  # Specify the loadBalancer IP for the ingress service.
+  # loadBalancerIP:
+
+monitoring:
+  enabled: false
+  alertmanager:
+    enabled: false
+
+tailscale-proxy:
+  enabled: true
+  image:
+    tag: 1.50.1
+  preauthkeyProvosioner:
+    image:
+      tag: 0.2
+
+alerts:
+  enabled: false
+  # Supernova options.
+  endpoint:
+
+  slack:
+    channel:
+    webhookURL:
+
+  ingress:
+    host:
+
+  filterLabels:
+    - app
+    - service
+    - severity
+    - organization
+  silenceExcludedLabels:
+    - pod
+    - pod_name
+    - instance
+  # Alertmanager options.
+  alertmanager:
+    # Whether to deploy the alertmanager.
+    enabled: false

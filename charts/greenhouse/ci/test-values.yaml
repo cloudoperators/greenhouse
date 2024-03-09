@@ -1,0 +1,24 @@
+digicertIssuer:
+  enabled: true
+  apiToken: topSecret!
+  organizationID: 1
+  organizationUnits: Me
+  caCertID: 1
+
+oidc:
+  enabled: true
+  issuer: https://top.secret
+  redirectURL: https://top.secret/redirect
+  clientID: topSecret!
+  clientSecret: topSecret!
+
+alerts:
+  enabled: true
+  tlsConfig:
+    externalCASecretName: topSecret!
+    internalCASecretName: top-secret
+    cert: topSecret!
+    key: topSecret!
+  ingress:
+    host: topSecret!
+  endpoint: topSecret!

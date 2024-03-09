@@ -1,0 +1,48 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: {{ required ".Values.demoUser.firstName missing" .Values.demoUser.firstName }}
+  namespace: {{ .Chart.Name }}
+---
+{{- $secret := (lookup "v1" "Secret" .Chart.Name (include "demoUserSecretName" .)) | default dict -}}
+{{- $secretData := (get $secret "data") | default dict }}
+apiVersion: v1
+kind: Secret
+metadata:
+  name: {{ include "demoUserSecretName" . }}
+  namespace: {{ .Chart.Name }}
+  annotations:
+    kubernetes.io/service-account.name: {{ required ".Values.demoUser.firstName missing" .Values.demoUser.firstName }}
+    helm.sh/resource-policy: "keep"
+type: kubernetes.io/service-account-token
+data:
+  ca.crt: {{ get $secretData "ca.crt" | quote }}
+  namespace: {{ get $secretData "namespace" | quote }}
+  token: {{ get $secretData "token" | quote }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: {{ required ".Values.demoUser.firstName missing" .Values.demoUser.firstName }}
+  namespace: {{ .Chart.Name }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: organization:{{ .Chart.Name }}
+subjects:
+  - kind: ServiceAccount
+    name: {{ required ".Values.demoUser.firstName missing" .Values.demoUser.firstName }}
+    namespace: {{ .Chart.Name }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: {{ required ".Values.demoUser.firstName missing" .Values.demoUser.firstName }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: organization:demo
+subjects:
+  - kind: ServiceAccount
+    name: {{ required ".Values.demoUser.firstName missing" .Values.demoUser.firstName }}
+    namespace: {{ .Chart.Name }}

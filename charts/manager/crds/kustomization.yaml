@@ -1,0 +1,10 @@
+resources:
+- greenhouse.sap_organizations.yaml
+- greenhouse.sap_teams.yaml
+- greenhouse.sap_plugins.yaml
+- greenhouse.sap_pluginconfigs.yaml
+- greenhouse.sap_clusters.yaml
+- greenhouse.sap_teammemberships.yaml
+- extensions.greenhouse.sap_roles.yaml
+- extensions.greenhouse.sap_rolebindings.yaml
+#+kubebuilder:scaffold:crdkustomizeresource

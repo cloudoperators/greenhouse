@@ -1,0 +1,28 @@
+apiVersion: greenhouse.sap/v1alpha1
+kind: Team
+metadata:
+  name: test-team-1
+  namespace: test-org
+spec:
+  description: Test Team 1
+  mappedIdPGroup: TEST_TEAM_1
+---
+apiVersion: greenhouse.sap/v1alpha1
+kind: TeamMembership
+metadata:
+  name: test-team-1
+  namespace: test-org
+spec:
+  members:
+  - id:        "01234"
+    firstName: "Jane"
+    lastName:  "Doe"
+    email:     "jane.doe@example.com"
+  - id:        "12345"
+    firstName: "John"
+    lastName:  "Doe"
+    email:     "john.doe@example.com"
+  - id:        "23456"
+    firstName: "Max"    
+    lastName:  "Mustermann"
+    email:     "max.mustermann@example.com"

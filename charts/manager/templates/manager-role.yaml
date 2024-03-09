@@ -1,0 +1,293 @@
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: {{ include "manager.fullname" . }}-manager-role
+rules:
+- apiGroups:
+  - ""
+  resources:
+  - events
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - ""
+  resources:
+  - namespaces
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - ""
+  resources:
+  - secrets
+  verbs:
+  - create
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - ""
+  resources:
+  - serviceaccounts
+  verbs:
+  - create
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - '*'
+  resources:
+  - '*'
+  verbs:
+  - '*'
+- apiGroups:
+  - dex.coreos.com
+  resources:
+  - connectors
+  verbs:
+  - create
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - extensions.greenhouse.sap
+  resources:
+  - rolebindings
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - extensions.greenhouse.sap
+  resources:
+  - rolebindings/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - extensions.greenhouse.sap
+  resources:
+  - rolebindings/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - extensions.greenhouse.sap
+  resources:
+  - roles
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - greenhouse.sap
+  resources:
+  - clusters
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - greenhouse.sap
+  resources:
+  - clusters
+  - teams
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - greenhouse.sap
+  resources:
+  - clusters/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - greenhouse.sap
+  resources:
+  - clusters/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - greenhouse.sap
+  resources:
+  - organizations
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - greenhouse.sap
+  resources:
+  - organizations/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - greenhouse.sap
+  resources:
+  - organizations/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - greenhouse.sap
+  resources:
+  - pluginconfigs
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - greenhouse.sap
+  resources:
+  - pluginconfigs/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - greenhouse.sap
+  resources:
+  - pluginconfigs/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - greenhouse.sap
+  resources:
+  - plugins
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - greenhouse.sap
+  resources:
+  - plugins/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - greenhouse.sap
+  resources:
+  - plugins/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - greenhouse.sap
+  resources:
+  - teammemberships
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - greenhouse.sap
+  resources:
+  - teammemberships/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - greenhouse.sap
+  resources:
+  - teammemberships/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - greenhouse.sap
+  resources:
+  - teams
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - greenhouse.sap
+  resources:
+  - teams/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - greenhouse.sap
+  resources:
+  - teams/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - rbac
+  resources:
+  - clusterrolebindings
+  verbs:
+  - create
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - rbac.authorization.k8s.io
+  resources:
+  - clusterrolebindings
+  - clusterroles
+  - rolebindings
+  - roles
+  verbs:
+  - create
+  - get
+  - list
+  - patch
+  - update
+  - watch

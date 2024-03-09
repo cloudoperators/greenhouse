@@ -1,0 +1,30 @@
+{{ if .Values.grpc.ingress.enabled }}
+{{- $fullName := include "headscale.fullname" . -}}
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ $fullName }}-grpc
+  labels:
+    {{- include "headscale.labels" . | nindent 4 }}
+  {{- with .Values.grpc.ingress.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  ingressClassName: {{ required ".Values.grpc.ingress.className missing" .Values.grpc.ingress.className }}
+  tls:
+    - hosts:
+        - {{ .Values.grpc.ingress.host }}
+      secretName: "tls-{{ $fullName }}-grpc"
+  rules:
+    - host: {{ .Values.grpc.ingress.host }}
+      http:
+        paths:
+          - path: /
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: {{ $fullName }}
+                port:
+                  name: grpc
+{{- end }}

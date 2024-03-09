@@ -1,0 +1,17 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "tailscale-proxy.fullname" . }}
+  labels:
+    {{- include "tailscale-proxy.labels" . | nindent 4 }}
+spec:
+  type: {{ .Values.serviceType }}
+  ports:
+    {{- range $name, $x := $.Values.service }}
+    - name: {{ $name }}
+      port: {{ $x.port }}
+      targetPort: {{ $x.port }}
+      protocol: TCP
+    {{- end }}
+  selector:
+    {{- include "tailscale-proxy.selectorLabels" . | nindent 4 }}

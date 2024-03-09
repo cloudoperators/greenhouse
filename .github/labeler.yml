@@ -1,0 +1,47 @@
+# Add 'helm-charts' label to any charts change.
+helm-charts:
+- changed-files:
+  - any-glob-to-any-file: charts/**
+
+core-apis:
+- changed-files:
+  - any-glob-to-any-file: 
+    - pkg/apis/**
+    - config/crd/**
+
+documentation:
+- changed-files:
+  - any-glob-to-any-file:
+    - README.md
+    - docs/**
+
+headscale:
+- changed-files:
+  - any-glob-to-any-file:
+    - charts/headscale/**
+    - pkg/headscale/**
+    - pkg/headscalectl/**
+
+idproxy:
+- changed-files:
+  - any-glob-to-any-file:
+    - charts/idproxy/**
+    - pkg/idproxy/**
+    - pkg/dex/**
+
+ui:
+- changed-files:
+  - any-glob-to-any-file:
+    - ui/**
+    - charts/ui/**
+
+dependencies:
+- changed-files:
+  - any-glob-to-any-file:
+    - go.mod
+    - go.sum
+    - charts/**/requirements.yaml
+    - charts/**/Chart.yaml
+
+feature:
+ - head-branch: ['^feature', '^feat']

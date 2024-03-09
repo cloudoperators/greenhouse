@@ -1,0 +1,87 @@
+#!/usr/bin/env bash
+
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+set -o errexit
+set -o nounset
+set -o pipefail
+
+# Require binaries.
+if ! command -v kubectl &> /dev/null
+then
+    echo "kubectl could not be found"
+    exit 1
+fi
+
+if ! command -v helm &> /dev/null
+then
+    echo "helm could not be found"
+    exit 1
+fi
+
+# Directories.
+REPO_ROOT="${REPO_ROOT:-$(cd "$(dirname "$0")/.." && pwd)}"
+NAMESPACE=greenhouse
+KUSTOMIZE_DIR=config/default
+HELM_DIR=charts/greenhouse
+_spacer=$(printf -- '#%.0s' {1..100})
+
+# Start the installation.
+echo -e "${_spacer}
+
+Minimal installer for Greenhouse, the PlusOne operations platform.
+
+Namespace:\t${NAMESPACE}
+Kustomize:\t${REPO_ROOT}/${KUSTOMIZE_DIR}
+Helm:\t\t${REPO_ROOT}/${HELM_DIR}
+
+${_spacer}
+"
+
+echo -e "\nEnsuring namespace ${NAMESPACE} exists."
+kubectl create namespace $NAMESPACE || true
+
+echo -e "\nApplying Kustomize from ${REPO_ROOT}/${KUSTOMIZE_DIR}"
+kubectl --namespace $NAMESPACE apply --kustomize "${REPO_ROOT}/${KUSTOMIZE_DIR}"
+
+echo -e "\nApplying Helm from ${REPO_ROOT}/${HELM_DIR}"
+helm dependency update "${REPO_ROOT}/${HELM_DIR}"
+helm upgrade greenhouse "${REPO_ROOT}/${HELM_DIR}" \
+  --namespace greenhouse \
+  --reset-values \
+  --install \
+  --set ccloud.enabled=false \
+  --set team-membership.enabled=false \
+  --set-string image.tag=latest --set-string team-membership.image.tag=latest --set-string idproxy.image.tag=latest --set-string cors-proxy.image.tag=latest
+  # TODO: Handle additional values files.
+
+# Configure ServiceAccount-based auth for CI.
+echo -e "\nConfiguring serviceaccount for CI usage"
+kubectl --namespace $NAMESPACE create serviceaccount ci
+kubectl --namespace $NAMESPACE apply -f - <<EOF
+apiVersion: v1
+kind: Secret
+metadata:
+  name: ci-token
+  annotations:
+    kubernetes.io/service-account.name: ci
+type: kubernetes.io/service-account-token
+EOF
+kubectl create clusterrolebinding "${NAMESPACE}:ci" \
+  --clusterrole=cluster-admin \
+  --serviceaccount=$NAMESPACE:ci
+
+echo -e "
+Persisted serviceaccount token in secret ${NAMESPACE}/ci-token.
+It can be obtained using: k get secret ci-token -o jsonpath='{.data.token}' | base64 -D
+"

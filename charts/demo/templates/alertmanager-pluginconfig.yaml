@@ -1,0 +1,73 @@
+{{- if .Values.alerts.enabled }}
+apiVersion: greenhouse.sap/v1alpha1
+kind: PluginConfig
+metadata:
+  name: alerts
+  namespace: {{ .Chart.Name }}
+spec:
+  plugin: alerts
+  disabled: false
+  displayName: Alerts
+  optionValues:
+    - name: alerts.alertmanager.enabled
+      value: {{ .Values.alerts.enabled }}
+    - name: alerts.alertmanager.ingress.enabled
+      value: {{ .Values.alerts.enabled }}
+    - name: alerts.defaultRules.create
+      value: false
+    - name: endpoint
+      value: {{ required ".Values.alerts.endpoint missing" .Values.alerts.endpoint }}
+    - name: filterLabels
+      value:
+        {{ .Values.alerts.filterLabels | toYaml | nindent 8 }}
+    - name: silenceExcludedLabels
+      value:
+        {{ .Values.alerts.silenceExcludedLabels | toYaml | nindent 8 }}
+    - name: alerts.alertmanager.ingress.hosts
+      value:
+      - {{ required ".Values.alerts.ingress.host missing" .Values.alerts.ingress.host }}
+    - name: alerts.alertmanager.ingress.tls
+      value:
+      - hosts:
+        - {{ required ".Values.alerts.ingress.host missing" .Values.alerts.ingress.host }}
+        secretName: tls-{{ .Values.alerts.ingress.host | replace "." "-" }}
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: alertmanager-demo-data-provider
+  namespace: {{ .Chart.Name }}
+spec:
+  # Alertmanager has a 5 min resolve timeout configured.
+  schedule: "*/4 * * * *"
+  successfulJobsHistoryLimit: 5
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          restartPolicy: OnFailure
+          containers:
+            - name: curl
+              image: quay.io/curl/curl:8.2.1
+              imagePullPolicy: IfNotPresent
+              command:
+                - /bin/sh
+                - -ec
+                - 'curl -H "Content-Type: application/json" -X POST -d @/data/alerts.json "http://{{ .Values.alerts.generator.endpoint }}/api/v2/alerts"'
+              volumeMounts:
+                - mountPath: /data
+                  name: alertmanager-demo-data
+          volumes:
+            - name: alertmanager-demo-data
+              configMap:
+                name: alertmanager-demo-data
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: alertmanager-demo-data
+  namespace: {{ .Chart.Name }}
+data:
+  alerts.json: |
+    {{- .Files.Get "data/alerts.json" | nindent 4 }}
+{{ end }}

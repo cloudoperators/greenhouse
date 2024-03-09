@@ -1,0 +1,32 @@
+name: 'Kustomize lint'
+on:
+  pull_request:
+    paths:
+      - 'charts/**'
+
+jobs:
+  kustomize:
+    runs-on: [ self-hosted ]
+    steps:
+      - uses: actions/checkout@v4
+        #with:
+        #  token: ${{ secrets.SAPCC_BOT_TOKEN }}
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: 'go.mod'
+          token: ${{ secrets.SAPCC_BOT_TOKEN }}
+      - name: Setup Controller-gen
+        run: make controller-gen
+      - name: Setup Kustomize
+        env:
+          GH_TOKEN: ${{ secrets.SAPCC_BOT_TOKEN }}
+        run: |
+          curl --request GET \
+          --url "https://raw.githubusercontent.com/kubernetes-sigs/kustomize/master/hack/install_kustomize.sh" \
+          --header "Authorization: Bearer $GH_TOKEN"
+      - name: Setup API documentation generator
+        run: docker pull ghcr.io/srfrnk/crd-api-doc-gen:latest
+      - name: lint
+        run: make kustomize-build-crds

@@ -1,0 +1,22 @@
+apiVersion: greenhouse.sap/v1alpha1
+kind: Plugin
+metadata:
+  name: test-plugin
+spec:
+  description: some test plugin
+  version: "1.0.0"
+  uiApplication:
+    name: test-plugin-ui
+    version: "latest"
+
+---
+apiVersion: greenhouse.sap/v1alpha1
+kind: Plugin
+metadata:
+  name: test-plugin-2
+spec:
+  description: some test plugin 2
+  version: "1.0.0"
+  uiApplication:
+    name: test-plugin-ui
+    version: "latest"

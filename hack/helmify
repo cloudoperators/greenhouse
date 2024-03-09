@@ -1,0 +1,55 @@
+#!/usr/bin/env bash
+
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+set -o errexit
+set -o nounset
+set -o pipefail
+
+# Darwin workaround.
+SED_CMD="sed -i"
+if [[ "$OSTYPE" == "darwin"* ]]; then
+  SED_CMD="sed -i.bak"
+fi
+
+TEMPLATES_DIR=$1
+PREFIX="{{ include \"manager.fullname\" . }}"
+
+function rename() {
+  files=$(git grep --recursive --files-with-matches -e "name: $1" "$TEMPLATES_DIR" | sort | uniq) || true
+  for f in $files; do
+    echo "renaming $1 -> ${PREFIX}-$1 in $f";
+    $SED_CMD "s/name: $1/name: $PREFIX-$1/g" "$f";
+  done
+}
+
+function rename-file-if-exists() {
+  if test -f "$1"; then
+      mv "$1" "$2"
+  fi
+}
+
+# Helmify webhooks.
+rename-file-if-exists "$TEMPLATES_DIR/manifests.yaml" "$TEMPLATES_DIR/webhooks.yaml"
+$SED_CMD 's/namespace: system/namespace: greenhouse/g' "$TEMPLATES_DIR/webhooks.yaml"
+PREFIX="greenhouse" rename "mutating-webhook-configuration"
+PREFIX="greenhouse" rename "validating-webhook-configuration"
+PREFIX="greenhouse" rename "webhook-service"
+
+# Helmify RBAC.
+rename-file-if-exists "$TEMPLATES_DIR/role.yaml" "$TEMPLATES_DIR/manager-role.yaml"
+$SED_CMD 's/namespace: system/namespace: {{ .Release.Namespace}}/g' "$TEMPLATES_DIR/manager-role.yaml"
+rename "manager-role"
+
+# Cleanup.
+find "$TEMPLATES_DIR" -type f -name '*.bak' -exec rm {} \;

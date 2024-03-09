@@ -1,0 +1,42 @@
+apiVersion: v2
+name: greenhouse
+description: A Helm chart for deploying greenhouse
+
+type: application
+version: 0.1.2
+appVersion: "0.1.0"
+
+dependencies:
+  - condition: logshipping.enabled
+    name: logshipping
+    repository: "file://../logshipping"
+    version: 0.0.2
+  - condition: idproxy.enabled
+    name: idproxy
+    repository: "file://../idproxy"
+    version: 0.1.0
+  - condition: team-membership.enabled
+    name: team-membership
+    repository: "file://../team-membership"
+    version: 0.1.1
+  - condition: cors-proxy.enabled
+    name: cors-proxy
+    repository: "file://../cors-proxy"
+    version: 0.1.0
+  - condition: headscale.enabled
+    name: headscale
+    version: 0.1.1
+    repository: "file://../headscale"
+  - condition: tailscale-proxy.enabled
+    name: tailscale-proxy
+    version: 0.1.0
+    repository: "file://../tailscale-proxy"
+  - name: manager
+    version: 0.1.0
+    repository: "file://../manager"
+  - name: ui
+    version: 0.1.0
+    repository: "file://../ui"
+  - name: demo
+    version: 0.1.0
+    repository: "file://../demo"

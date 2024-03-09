@@ -1,0 +1,4 @@
+host: dashboard.greenhouse.tld
+oidcIssuerUrl: https://auth.greenhouse.tld
+oidcClientId: topSecret!
+k8sApiEndpoint: https://api.greenhouse.tld

@@ -1,0 +1,151 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "tailscale-proxy.fullname" . }}
+  labels:
+    {{- include "tailscale-proxy.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "tailscale-proxy.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      {{- with .Values.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      labels:
+        {{- include "tailscale-proxy.selectorLabels" . | nindent 8 }}
+    spec:
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              podAffinityTerm:
+                labelSelector:
+                  matchExpressions:
+                    - key: app.kubernetes.io/name
+                      operator: In
+                      values:
+                        - {{ include "tailscale-proxy.name" . }}
+                topologyKey: "kubernetes.io/hostname"
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "tailscale-proxy.serviceAccountName" . }}
+      initContainers:
+        - name: preauthkey-provisioner
+          image: "{{ .Values.preauthkeyProvosioner.image.repository }}:{{ .Values.preauthkeyProvosioner.image.tag}}"
+          imagePullPolicy: {{ .Values.preauthkeyProvosioner.image.pullPolicy }}
+          args:
+            - "preauthkey"
+            - "create" 
+            {{- with .Values.preauthkeyProvosioner.ephemeral }}
+            - "--ephemeral"
+            {{- end }}
+            {{- with .Values.preauthkeyProvosioner.reusable }}
+            - "--reusable"
+            {{- end }}
+            {{- with .Values.preauthkeyProvosioner.force }}
+            - "--force"
+            {{- end }}
+            {{- with .Values.preauthkeyProvosioner.keyExpiration }}
+            - "--expiration"
+            - "{{ $.Values.preauthkeyProvosioner.keyExpiration }}"
+            {{- end }}
+            {{- with .Values.preauthkeyProvosioner.tags }}
+            - "--tags"
+            - "{{ $.Values.preauthkeyProvosioner.tags }}"
+            {{- end }}
+            - "-u"
+            - "{{ required ".Values.preauthkeyProvosioner.userName missing" .Values.preauthkeyProvosioner.userName }}" 
+            - "--file"
+            - "/preauthkey/key"
+          env:
+            - name: POD_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            - name: HEADSCALE_CLI_ADDRESS
+              value: {{ .Values.preauthkeyProvosioner.uri }}
+            - name: HEADSCALE_CLI_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  key: HEADSCALE_CLI_API_KEY
+                  name: {{ .Values.headscale.authkeySecret }}
+          volumeMounts:
+            - mountPath: /preauthkey
+              name: preauthkey
+              readOnly: false
+      containers:
+      - env:
+        - name: POD_NAMESPACE
+          valueFrom:
+            fieldRef:
+              apiVersion: v1
+              fieldPath: metadata.namespace
+        - name: TS_ACCEPT_DNS
+          value: "false"
+        # Store the state in memory instead of a secret            
+        - name: TS_KUBE_SECRET
+          value: ""
+        - name: TS_STATE_DIR
+          value: /preauthkey/state
+        - name: TS_USERSPACE
+          value: "true"
+        - name: TS_EXTRA_ARGS
+          value: --login-server {{ .Values.headscale.uri }}
+        - name: TS_TAILSCALED_EXTRA_ARGS
+          value: '--state=mem: --no-logs-no-support --debug=:8080'
+        - name: TS_SOCKS5_SERVER
+          value: :{{ .Values.service.socks5.port }}
+        - name: TS_OUTBOUND_HTTP_PROXY_LISTEN
+          value: :{{ .Values.service.httpproxy.port }}
+        args:
+        - --socket
+        - /tmp/tailscaled.sock
+        image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+        imagePullPolicy: {{ .Values.image.pullPolicy }}
+        name: {{ .Chart.Name }}
+        securityContext:
+          {{- toYaml .Values.securityContext | nindent 12 }}
+        ports:
+        {{- range $name, $v := .Values.service }}
+        - name: {{ $name }}
+          protocol: TCP
+          containerPort: {{ $v.port }}
+        {{- end }}
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: 8090
+          initialDelaySeconds: 10
+          periodSeconds: 5
+          timeoutSeconds: 5
+          failureThreshold: 5
+          successThreshold: 1
+        volumeMounts:
+          - mountPath: /preauthkey
+            name: preauthkey
+            readOnly: false
+        terminationMessagePath: /dev/termination-log
+        resources:
+          {{- toYaml .Values.resources | nindent 12 }}
+      dnsPolicy: ClusterFirst
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      terminationGracePeriodSeconds: 10
+      volumes:
+        - name: preauthkey
+          emptyDir:
+            medium: Memory
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}

@@ -1,0 +1,58 @@
+#!/usr/bin/env bash
+
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+set -o errexit
+set -o nounset
+set -o pipefail
+
+SOURCE_DOCS_DIR="docs"
+DESTINATION_DIR="content/docs"
+STATIC_ASSET_DIR="static"
+
+# Darwin workaround.
+SED_ARGS=(-i'' -e)
+FIND_DEPTH_ARG="-maxdepth"
+if [[ "$OSTYPE" == "darwin"* ]]; then
+  SED_ARGS=(-i '' -e)
+  FIND_DEPTH_ARG="-depth"
+fi
+
+# Create documentation index page.
+mkdir -p "${DESTINATION_DIR}"
+echo -e "---
+title: Greenhouse documentation
+landingSectionIndex: false
+linkTitle: "Overview"
+---" > "${DESTINATION_DIR}/_index.md"
+
+# Find directories containing and index.md
+script_dir=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
+script_dir="${script_dir}/../../"
+
+found_directories=$(find "${script_dir}${SOURCE_DOCS_DIR}" $FIND_DEPTH_ARG 2 -type f -name '_index.md' | sed -r 's|/[^/]+$||' | sort | uniq) || true
+for dir in $found_directories; do
+  relative_target_dir=${dir#"$script_dir"}
+  echo "copying directory ${relative_target_dir}";
+  cp -R "$dir" "content/${relative_target_dir}"
+done
+
+# Copy assets.
+echo "copying assets"
+mkdir -p "$STATIC_ASSET_DIR"
+cp -R "${script_dir}${SOURCE_DOCS_DIR}/assets" "$STATIC_ASSET_DIR"
+
+echo "fixing links to static assets"
+export LC_CTYPE="${LC_CTYPE:=C}"
+export LC_ALL="${LC_ALL:=C}"
+find "$DESTINATION_DIR" -type f -exec sed "${SED_ARGS[@]}" 's/[.\/]*..\/assets/\/assets/g' {} +

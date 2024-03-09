@@ -1,0 +1,5 @@
+secretProps.json
+public/build/
+node_modules/
+webhook-certs/
+envtest/

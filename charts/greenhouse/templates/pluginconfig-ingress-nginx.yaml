@@ -1,0 +1,20 @@
+{{- if .Values.ingress.enabled }}
+apiVersion: greenhouse.sap/v1alpha1
+kind: PluginConfig
+metadata:
+  name: ingress-nginx
+  namespace: {{ .Chart.Name }}
+spec:
+  plugin: ingress-nginx
+  disabled: false
+  optionValues:
+    # Remove after all components were moved to greenhouse namespace.
+    - name: controller.ingressClassResource.default
+      value: true
+    - name: controller.scope.enabled
+      value: false
+    {{ if .Values.ingress.loadBalancerIP }}
+    - name: controller.service.loadBalancerIP
+      value: {{ .Values.ingress.loadBalancerIP | quote }}
+    {{ end }}
+{{- end }}

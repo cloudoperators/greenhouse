@@ -1,0 +1,5 @@
+apiVersion: v2
+name: demo
+description: Helm chart for the Greenhouse demo setup.
+type: application
+version: 0.1.0

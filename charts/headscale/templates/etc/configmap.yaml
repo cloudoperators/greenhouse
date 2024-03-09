@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "headscale.fullname" . }}-config
+  labels:
+    {{- include "headscale.labels" . | nindent 4 }}
+
+data:
+  config.yaml: |
+    {{ include (print $.Template.BasePath "/etc/_config.yaml") . | nindent 4 }}
+
+  acl.policy: |
+    {{ include (print $.Template.BasePath "/etc/_acl_policy.yaml") . | nindent 4 }}
+  
+  derp.yaml: |
+    {{ include (print $.Template.BasePath "/etc/_derp.yaml") . | nindent 4 }}

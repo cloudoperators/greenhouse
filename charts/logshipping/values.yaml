@@ -1,0 +1,26 @@
+# Configures logshipping
+fluent-bit:
+  extraVolumeMounts:
+    - mountPath: /fluent-bit/etc/labelmap.json
+      name: config
+      subPath: labelmap.json
+  env:
+    - name: OPENSEARCH_GREENHOUSE_PWD
+      valueFrom:
+        secretKeyRef:
+          name: fluent-bit-secrets
+          key: OPENSEARCH_GREENHOUSE_PWD
+  backend:
+    opensearch:
+      enabled: false
+      host: DEFINED-IN-SECRETS
+      http_user: DEFINED-IN-SECRETS
+      http_passwd: DEFINED-IN-SECRETS
+      port: DEFINED-IN-SECRETS
+      logstash_prefix: greenhouse
+      tls:
+        enabled: "On"
+        verify: "Off"
+        debug: '1'
+  filter:
+    additionalValues: {}

@@ -1,0 +1,335 @@
+---
+apiVersion: admissionregistration.k8s.io/v1
+kind: MutatingWebhookConfiguration
+metadata:
+  name: greenhouse-mutating-webhook-configuration
+webhooks:
+- admissionReviewVersions:
+  - v1
+  clientConfig:
+    service:
+      name: greenhouse-webhook-service
+      namespace: greenhouse
+      path: /mutate-greenhouse-sap-v1alpha1-cluster
+  failurePolicy: Fail
+  name: mcluster.kb.io
+  rules:
+  - apiGroups:
+    - greenhouse.sap
+    apiVersions:
+    - v1alpha1
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - clusters
+  sideEffects: None
+- admissionReviewVersions:
+  - v1
+  clientConfig:
+    service:
+      name: greenhouse-webhook-service
+      namespace: greenhouse
+      path: /mutate-greenhouse-sap-v1alpha1-organization
+  failurePolicy: Fail
+  name: morganization.kb.io
+  rules:
+  - apiGroups:
+    - greenhouse.sap
+    apiVersions:
+    - v1alpha1
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - organizations
+  sideEffects: None
+- admissionReviewVersions:
+  - v1
+  clientConfig:
+    service:
+      name: greenhouse-webhook-service
+      namespace: greenhouse
+      path: /mutate-greenhouse-sap-v1alpha1-plugin
+  failurePolicy: Fail
+  name: mplugin.kb.io
+  rules:
+  - apiGroups:
+    - greenhouse.sap
+    apiVersions:
+    - v1alpha1
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - plugins
+  sideEffects: None
+- admissionReviewVersions:
+  - v1
+  clientConfig:
+    service:
+      name: greenhouse-webhook-service
+      namespace: greenhouse
+      path: /mutate-greenhouse-sap-v1alpha1-pluginconfig
+  failurePolicy: Fail
+  name: mpluginconfig.kb.io
+  rules:
+  - apiGroups:
+    - greenhouse.sap
+    apiVersions:
+    - v1alpha1
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - pluginconfigs
+  sideEffects: None
+- admissionReviewVersions:
+  - v1
+  clientConfig:
+    service:
+      name: greenhouse-webhook-service
+      namespace: greenhouse
+      path: /mutate-extensions-greenhouse-sap-v1alpha1-role
+  failurePolicy: Fail
+  name: mrole.kb.io
+  rules:
+  - apiGroups:
+    - extensions.greenhouse.sap
+    apiVersions:
+    - v1alpha1
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - roles
+  sideEffects: None
+- admissionReviewVersions:
+  - v1
+  clientConfig:
+    service:
+      name: webhook-service
+      namespace: greenhouse
+      path: /mutate-extensions-greenhouse-sap-v1alpha1-rolebinding
+  failurePolicy: Fail
+  name: mrolebinding.kb.io
+  rules:
+  - apiGroups:
+    - extensions.greenhouse.sap
+    apiVersions:
+    - v1alpha1
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - rolebindings
+  sideEffects: None
+- admissionReviewVersions:
+  - v1
+  clientConfig:
+    service:
+      name: webhook-service
+      namespace: greenhouse
+      path: /mutate--v1-secret
+  failurePolicy: Ignore
+  matchPolicy: Exact
+  name: msecret.kb.io
+  rules:
+  - apiGroups:
+    - ""
+    apiVersions:
+    - v1
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - secrets
+  sideEffects: None
+- admissionReviewVersions:
+  - v1
+  clientConfig:
+    service:
+      name: greenhouse-webhook-service
+      namespace: greenhouse
+      path: /mutate-greenhouse-sap-v1alpha1-team
+  failurePolicy: Fail
+  name: mteam.kb.io
+  rules:
+  - apiGroups:
+    - greenhouse.sap
+    apiVersions:
+    - v1alpha1
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - teams
+  sideEffects: None
+---
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingWebhookConfiguration
+metadata:
+  name: greenhouse-validating-webhook-configuration
+webhooks:
+- admissionReviewVersions:
+  - v1
+  clientConfig:
+    service:
+      name: greenhouse-webhook-service
+      namespace: greenhouse
+      path: /validate-greenhouse-sap-v1alpha1-cluster
+  failurePolicy: Fail
+  name: vcluster.kb.io
+  rules:
+  - apiGroups:
+    - greenhouse.sap
+    apiVersions:
+    - v1alpha1
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - clusters
+  sideEffects: None
+- admissionReviewVersions:
+  - v1
+  clientConfig:
+    service:
+      name: greenhouse-webhook-service
+      namespace: greenhouse
+      path: /validate-greenhouse-sap-v1alpha1-organization
+  failurePolicy: Fail
+  name: vorganization.kb.io
+  rules:
+  - apiGroups:
+    - greenhouse.sap
+    apiVersions:
+    - v1alpha1
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - organizations
+  sideEffects: None
+- admissionReviewVersions:
+  - v1
+  clientConfig:
+    service:
+      name: greenhouse-webhook-service
+      namespace: greenhouse
+      path: /validate-greenhouse-sap-v1alpha1-plugin
+  failurePolicy: Fail
+  name: vplugin.kb.io
+  rules:
+  - apiGroups:
+    - greenhouse.sap
+    apiVersions:
+    - v1alpha1
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - plugins
+  sideEffects: None
+- admissionReviewVersions:
+  - v1
+  clientConfig:
+    service:
+      name: greenhouse-webhook-service
+      namespace: greenhouse
+      path: /validate-greenhouse-sap-v1alpha1-pluginconfig
+  failurePolicy: Fail
+  name: vpluginconfig.kb.io
+  rules:
+  - apiGroups:
+    - greenhouse.sap
+    apiVersions:
+    - v1alpha1
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - pluginconfigs
+  sideEffects: None
+- admissionReviewVersions:
+  - v1
+  clientConfig:
+    service:
+      name: greenhouse-webhook-service
+      namespace: greenhouse
+      path: /validate-extensions-greenhouse-sap-v1alpha1-role
+  failurePolicy: Fail
+  name: vrole.kb.io
+  rules:
+  - apiGroups:
+    - extensions.greenhouse.sap
+    apiVersions:
+    - v1alpha1
+    operations:
+    - CREATE
+    - UPDATE
+    - DELETE
+    resources:
+    - roles
+  sideEffects: None
+- admissionReviewVersions:
+  - v1
+  clientConfig:
+    service:
+      name: webhook-service
+      namespace: greenhouse
+      path: /validate-extensions-greenhouse-sap-v1alpha1-rolebinding
+  failurePolicy: Fail
+  name: vrolebinding.kb.io
+  rules:
+  - apiGroups:
+    - extensions.greenhouse.sap
+    apiVersions:
+    - v1alpha1
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - rolebindings
+  sideEffects: None
+- admissionReviewVersions:
+  - v1
+  clientConfig:
+    service:
+      name: webhook-service
+      namespace: greenhouse
+      path: /validate--v1-secret
+  failurePolicy: Ignore
+  matchPolicy: Exact
+  name: vsecret.kb.io
+  rules:
+  - apiGroups:
+    - ""
+    apiVersions:
+    - v1
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - secrets
+  sideEffects: None
+- admissionReviewVersions:
+  - v1
+  clientConfig:
+    service:
+      name: greenhouse-webhook-service
+      namespace: greenhouse
+      path: /validate-greenhouse-sap-v1alpha1-team
+  failurePolicy: Fail
+  name: vteam.kb.io
+  rules:
+  - apiGroups:
+    - greenhouse.sap
+    apiVersions:
+    - v1alpha1
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - teams
+  sideEffects: None

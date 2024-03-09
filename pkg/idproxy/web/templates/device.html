@@ -1,0 +1,39 @@
+<!--
+ Copyright 2024-2026 SAP SE or an SAP affiliate company and Greenhouse contributors.
+
+ Licensed under the Apache License, Version 2.0 (the "License");
+ you may not use this file except in compliance with the License.
+ You may obtain a copy of the License at
+
+     http://www.apache.org/licenses/LICENSE-2.0
+
+ Unless required by applicable law or agreed to in writing, software
+ distributed under the License is distributed on an "AS IS" BASIS,
+ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ See the License for the specific language governing permissions and
+ limitations under the License.
+-->
+
+{{ template "header.html" . }}
+
+<div class="theme-panel">
+  <h2 class="theme-heading">Enter User Code</h2>
+  <form method="post" action="{{ .PostURL }}" method="get">
+    <div class="theme-form-row">
+      {{ if( .UserCode  )}}
+      <input tabindex="2" required id="user_code" name="user_code" type="text" class="theme-form-input" autocomplete="off" value="{{.UserCode}}" {{ if .Invalid }} autofocus {{ end }}/>
+      {{ else }}
+      <input tabindex="2" required id="user_code" name="user_code" type="text" class="theme-form-input" placeholder="XXXX-XXXX" autocomplete="off"  {{ if .Invalid }} autofocus {{ end }}/>
+      {{ end }}
+    </div>
+
+    {{ if .Invalid }}
+    <div id="login-error" class="dex-error-box">
+      Invalid or Expired User Code
+    </div>
+    {{ end }}
+    <button tabindex="3" id="submit-login" type="submit" class="dex-btn theme-btn--primary">Submit</button>
+  </form>
+</div>
+
+{{ template "footer.html" . }}

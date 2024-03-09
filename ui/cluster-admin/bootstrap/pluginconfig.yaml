@@ -1,0 +1,52 @@
+apiVersion: greenhouse.sap/v1alpha1
+kind: PluginConfig
+metadata:
+  name: test-pluginconfig-cluster-1
+  namespace: test-org
+spec:
+  plugin: test-plugin
+  disabled: false
+  clusterName: "cluster-1"
+---
+apiVersion: greenhouse.sap/v1alpha1
+kind: PluginConfig
+metadata:
+  name: test-pluginconfig-cluster-2
+  namespace: test-org
+spec:
+  plugin: test-plugin
+  disabled: false
+  clusterName: "cluster-2"
+
+---
+apiVersion: greenhouse.sap/v1alpha1
+kind: PluginConfig
+metadata:
+  name: test-pluginconfig-2-cluster-2
+  namespace: test-org
+spec:
+  plugin: test-plugin-2
+  disabled: false
+  clusterName: "cluster-2"
+
+---
+apiVersion: greenhouse.sap/v1alpha1
+kind: PluginConfig
+metadata:
+  name: test-pluginconfig-cluster-3
+  namespace: test-org
+spec:
+  plugin: test-plugin
+  disabled: false
+  clusterName: "cluster-3"
+
+---
+apiVersion: greenhouse.sap/v1alpha1
+kind: PluginConfig
+metadata:
+  name: test-pluginconfig-2-cluster-3
+  namespace: test-org
+spec:
+  plugin: test-plugin-2
+  disabled: false
+  clusterName: "cluster-3"

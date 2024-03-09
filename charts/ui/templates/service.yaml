@@ -1,0 +1,14 @@
+kind: Service
+apiVersion: v1
+
+metadata:
+  name: {{ .Release.Name }}-ui
+
+spec:
+  selector:
+    app: dashboard
+  ports:
+    - name: dashboard
+      port: 80
+      protocol: TCP
+      targetPort: dashboard

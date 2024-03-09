@@ -1,0 +1,22 @@
+image:
+  repository: nginx
+  tag: 1.25.0-alpine
+  pullPolicy: IfNotPresent
+
+# TODO: Migrate to ingress.host
+host:
+
+ingress:
+  className: nginx
+
+juno:
+  assetServerURL: https://assets.juno.global.cloud.sap
+  # version of the juno greenhouse app
+  greenhouse:
+    version: latest
+
+# The user for demonstration purposes.
+demoUser:
+  token: demo
+
+environment: "prod"

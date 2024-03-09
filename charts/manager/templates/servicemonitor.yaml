@@ -1,0 +1,22 @@
+{{- if .Capabilities.APIVersions.Has "monitoring.coreos.com/v1/ServiceMonitor" }}
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: {{ include "manager.fullname" . }}-controller-manager
+  labels:
+    pluginconfig: kube-monitoring
+spec:
+  endpoints:
+    - honorLabels: true
+      interval: 30s
+      port: metrics
+      scheme: http
+      path: /metrics
+  namespaceSelector:
+    matchNames:
+      - {{ .Release.Namespace }}
+  selector:
+    matchLabels:
+      app: greenhouse
+      {{- include "manager.selectorLabels" . | nindent 6 }}
+{{ end }}

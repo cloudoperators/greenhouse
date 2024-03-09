@@ -1,0 +1,17 @@
+apiVersion: greenhouse.sap/v1alpha1
+kind: PluginConfig
+metadata:
+  name: cert-manager
+  namespace: {{ .Chart.Name }}
+spec:
+  plugin: cert-manager
+  disabled: false
+{{ if .Values.digicertIssuer.enabled }}
+  optionValues:
+    - name: cert-manager.ingressShim.defaultIssuerName
+      value: digicert-issuer
+    - name: cert-manager.ingressShim.defaultIssuerKind
+      value: DigicertIssuer
+    - name: cert-manager.ingressShim.defaultIssuerGroup
+      value: certmanager.cloud.sap
+{{ end }}

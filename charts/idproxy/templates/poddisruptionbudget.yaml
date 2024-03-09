@@ -1,0 +1,9 @@
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: {{ include "idproxy.fullname" . }}
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      {{- include "idproxy.selectorLabels" . | nindent 6 }}

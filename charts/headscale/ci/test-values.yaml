@@ -1,0 +1,20 @@
+ingress:
+  enabled: true
+  host: headscale.example.com
+
+grpc:
+  insecure: true
+  ingress:
+    enabled: true
+    host: headscale-grpc.example.com
+
+postgres:
+  password: topSecret!
+
+oidc:
+  enabled: true
+  issuer: https://auth.greenhouse.com
+  clientID: topSecret!
+  clientSecret: topSecret!
+  allowedGroups:
+    - role:greenhouse:admin

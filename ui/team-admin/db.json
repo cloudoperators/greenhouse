@@ -1,0 +1,251 @@
+{
+  "teammemberships": [
+    {
+      "metadata": {
+        "name": "team1",
+        "namespace": "ns1"
+      },
+      "spec": {
+        "members": [
+          {
+            "email": "new1@example.com",
+            "firstName": "Maximilian",
+            "id": "abc123",
+            "lastName": "Müller"
+          },
+          {
+            "email": "new2@example.com",
+            "firstName": "Sophie",
+            "id": "def456",
+            "lastName": "Schmidt"
+          }
+        ]
+      }
+    },
+    {
+      "metadata": {
+        "name": "team2",
+        "namespace": "ns1"
+      },
+      "spec": {
+        "members": [
+          {
+            "email": "new3@example.com",
+            "firstName": "Felix",
+            "id": "ghi789",
+            "lastName": "Schulz"
+          },
+          {
+            "email": "new4@example.com",
+            "firstName": "Emilia",
+            "id": "jkl012",
+            "lastName": "Becker"
+          },
+          {
+            "email": "new5@example.com",
+            "firstName": "Lukas",
+            "id": "mno345",
+            "lastName": "Koch"
+          },
+          {
+            "email": "new6@example.com",
+            "firstName": "Julia",
+            "id": "pqr678",
+            "lastName": "Wagner"
+          },
+          {
+            "email": "new7@example.com",
+            "firstName": "Leonie",
+            "id": "stu901",
+            "lastName": "Hoffmann"
+          }
+        ]
+      }
+    },
+    {
+      "metadata": {
+        "name": "team3",
+        "namespace": "ns1"
+      },
+      "spec": {
+        "members": [
+          {
+            "email": "new8@example.com",
+            "firstName": "Matthias",
+            "id": "vwx234",
+            "lastName": "Schäfer"
+          },
+          {
+            "email": "new9@example.com",
+            "firstName": "Laura",
+            "id": "yza567",
+            "lastName": "Bauer"
+          },
+          {
+            "email": "new10@example.com",
+            "firstName": "Tim",
+            "id": "bcd890",
+            "lastName": "Hofmann"
+          },
+          {
+            "email": "new11@example.com",
+            "firstName": "Nina",
+            "id": "efg123",
+            "lastName": "Lehmann"
+          },
+          {
+            "email": "new12@example.com",
+            "firstName": "Sebastian",
+            "id": "hij456",
+            "lastName": "Krause"
+          },
+          {
+            "email": "new13@example.com",
+            "firstName": "Vanessa",
+            "id": "klm789",
+            "lastName": "Richter"
+          },
+          {
+            "email": "new14@example.com",
+            "firstName": "Max",
+            "id": "nop012",
+            "lastName": "Fischer"
+          },
+          {
+            "email": "new15@example.com",
+            "firstName": "Carolin",
+            "id": "qrs345",
+            "lastName": "Schneider"
+          },
+          {
+            "email": "new16@example.com",
+            "firstName": "Tobias",
+            "id": "tuv678",
+            "lastName": "Gluch"
+          },
+          {
+            "email": "new17@example.com",
+            "firstName": "Elena",
+            "id": "wxy901",
+            "lastName": "Beck"
+          },
+          {
+            "email": "new18@example.com",
+            "firstName": "Lars",
+            "id": "zab234",
+            "lastName": "Lorenz"
+          },
+          {
+            "email": "new19@example.com",
+            "firstName": "Julian",
+            "id": "cde567",
+            "lastName": "Vogel"
+          },
+          {
+            "email": "new20@example.com",
+            "firstName": "Johanna",
+            "id": "efg890",
+            "lastName": "Schwarz"
+          },
+          {
+            "email": "new21@example.com",
+            "firstName": "Dominik",
+            "id": "hij123",
+            "lastName": "Wolf"
+          },
+          {
+            "email": "new22@example.com",
+            "firstName": "Marie",
+            "id": "klm456",
+            "lastName": "Roth"
+          },
+          {
+            "email": "new23@example.com",
+            "firstName": "Moritz",
+            "id": "nop789",
+            "lastName": "Walter"
+          },
+          {
+            "email": "new24@example.com",
+            "firstName": "Lisa",
+            "id": "qrs012",
+            "lastName": "Kühn"
+          }
+        ]
+      }
+    },
+    {
+      "apiVersion": "greenhouse.sap/v1alpha1",
+      "kind": "TeamMembership",
+      "metadata": {
+        "name": "team4",
+        "namespace": "ns1"
+      },
+      "spec": {
+        "members": [
+          {
+            "email": "new25@example.com",
+            "firstName": "Jonathan",
+            "id": "tuv123",
+            "lastName": "Fuchs"
+          },
+          {
+            "email": "new26@example.com",
+            "firstName": "Hannah",
+            "id": "wxy456",
+            "lastName": "Herrmann"
+          },
+          {
+            "email": "new27@example.com",
+            "firstName": "Muhammad",
+            "id": "zab789",
+            "lastName": "Salz"
+          },
+          {
+            "email": "new28@example.com",
+            "firstName": "Laura",
+            "id": "cde012",
+            "lastName": "Günther"
+          },
+          {
+            "email": "new29@example.com",
+            "firstName": "Maximilian",
+            "id": "efg345",
+            "lastName": "Wenzel"
+          },
+          {
+            "email": "new30@example.com",
+            "firstName": "Sophia",
+            "id": "hij678",
+            "lastName": "Krüger"
+          },
+          {
+            "email": "new31@example.com",
+            "firstName": "Lukas",
+            "id": "klm901",
+            "lastName": "Hein"
+          },
+          {
+            "email": "new32@example.com",
+            "firstName": "Marie",
+            "id": "nop234",
+            "lastName": "Sauer"
+          },
+          {
+            "email": "new33@example.com",
+            "firstName": "Tim",
+            "id": "qrs567",
+            "lastName": "Schubert"
+          },
+          {
+            "email": "new34@example.com",
+            "firstName": "Vanessa",
+            "id": "tuv890",
+            "lastName": "Hahn"
+          }
+        ]
+      }
+    }
+  ]
+}
+

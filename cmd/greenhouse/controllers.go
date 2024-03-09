@@ -1,0 +1,133 @@
+// Copyright 2024-2026 SAP SE or an SAP affiliate company and Greenhouse contributors.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+package main
+
+import (
+	"os"
+	"sort"
+	"time"
+
+	ctrl "sigs.k8s.io/controller-runtime"
+
+	clustercontrollers "github.com/cloudoperators/greenhouse/pkg/controllers/cluster"
+	organizationcontrollers "github.com/cloudoperators/greenhouse/pkg/controllers/organization"
+	pluginconfigcontrollers "github.com/cloudoperators/greenhouse/pkg/controllers/pluginconfig"
+	teamcontrollers "github.com/cloudoperators/greenhouse/pkg/controllers/team"
+	teammembershipcontrollers "github.com/cloudoperators/greenhouse/pkg/controllers/teammembership"
+)
+
+// knownControllers contains all controllers to be registered when starting the operator.
+var knownControllers = map[string]func(controllerName string, mgr ctrl.Manager) error{
+	// Organization controllers.
+	"organizationNamespace":    (&organizationcontrollers.NamespaceReconciler{}).SetupWithManager,
+	"organizationRBAC":         (&organizationcontrollers.RBACReconciler{}).SetupWithManager,
+	"organizationDEX":          startOrganizationDexReconciler,
+	"organizationServiceProxy": (&organizationcontrollers.ServiceProxyReconciler{}).SetupWithManager,
+
+	// Team controllers.
+	"teamCAM":         (&teamcontrollers.CAMReconciler{}).SetupWithManager,
+	"teamPropagation": (&teamcontrollers.TeamPropagationReconciler{}).SetupWithManager,
+
+	// TeamMembership controllers.
+	"teamMembershipPropagation": (&teammembershipcontrollers.TeamMembershipPropagationReconciler{}).SetupWithManager,
+
+	// // RBAC controllers.
+	// "roleBindingController": (&rbaccontrollers.RoleBindingReconciler{}).SetupWithManager,
+
+	// Plugin controllers.
+	// "pluginPropagation": (&plugincontrollers.PluginPropagationReconciler{}).SetupWithManager,
+
+	// PluginConfig controllers.
+	"pluginConfigHelm": (&pluginconfigcontrollers.HelmReconciler{
+		KubeRuntimeOpts: kubeClientOpts,
+	}).SetupWithManager,
+
+	// Cluster controllers
+	"bootStrap":           (&clustercontrollers.BootstrapReconciler{}).SetupWithManager,
+	"clusterDirectAccess": startClusterDirectAccessReconciler,
+	// "clusterPropagation":     (&clustercontrollers.ClusterPropagationReconciler{}).SetupWithManager,
+	"clusterHeadscaleAccess": startClusterHeadscaleAccessReconciler,
+	"clusterStatus":          (&clustercontrollers.ClusterStatusReconciler{}).SetupWithManager,
+}
+
+// knownControllers lists the name of known controllers.
+func knownControllersNames() []string {
+	controllerStringSlice := make([]string, 0)
+	for controllerName := range knownControllers {
+		controllerStringSlice = append(controllerStringSlice, controllerName)
+	}
+	sort.Strings(controllerStringSlice)
+	return controllerStringSlice
+}
+
+// isControllerEnabled checks whether the given controller or regex is enabled
+func isControllerEnabled(controllerName string) bool {
+	for _, c := range enabledControllers {
+		if controllerName == "*" || controllerName == c {
+			return true
+		}
+	}
+	return false
+}
+
+func startOrganizationDexReconciler(name string, mgr ctrl.Manager) error {
+	namespace := "greenhouse"
+	if v, ok := os.LookupEnv("POD_NAMESPACE"); ok {
+		namespace = v
+	}
+	return (&organizationcontrollers.DexReconciler{
+		Namespace: namespace,
+	}).SetupWithManager(name, mgr)
+}
+
+func startClusterDirectAccessReconciler(name string, mgr ctrl.Manager) error {
+	if renewRemoteClusterBearerTokenAfter > remoteClusterBearerTokenValidity {
+		setupLog.Info("WARN: remoteClusterBearerTokenValidity is less than renewRemoteClusterBearerTokenAfter")
+		setupLog.Info("Setting renewRemoteClusterBearerTokenAfter to half of remoteClusterBearerTokenValidity")
+		renewRemoteClusterBearerTokenAfter = remoteClusterBearerTokenValidity / 2
+	}
+	return (&clustercontrollers.DirectAccessReconciler{
+		RemoteClusterBearerTokenValidity:   remoteClusterBearerTokenValidity,
+		RenewRemoteClusterBearerTokenAfter: renewRemoteClusterBearerTokenAfter,
+	}).SetupWithManager(name, mgr)
+}
+
+func startClusterHeadscaleAccessReconciler(name string, mgr ctrl.Manager) error {
+	if renewRemoteClusterBearerTokenAfter > remoteClusterBearerTokenValidity {
+		setupLog.Info("WARN: remoteClusterBearerTokenValidity is less than renewRemoteClusterBearerTokenAfter")
+		setupLog.Info("Setting renewRemoteClusterBearerTokenAfter to half of remoteClusterBearerTokenValidity")
+		renewRemoteClusterBearerTokenAfter = remoteClusterBearerTokenValidity / 2
+	}
+	if headscaleAPIKey == "" || headscaleAPIURL == "" {
+		setupLog.Info("WARN: headscaleApiKey or headscaleApiUrl is not set")
+		setupLog.Info("Skipping headscale access reconciler")
+		return nil
+	}
+
+	if tailscaleProxy == "" {
+		setupLog.Info("WARN: tailscaleProxy is not set")
+		setupLog.Info("Skipping headscale access reconciler")
+		return nil
+	}
+
+	return (&clustercontrollers.HeadscaleAccessReconciler{
+		HeadscaleAPIKey:                          headscaleAPIKey,
+		HeadscaleGRPCURL:                         headscaleAPIURL,
+		TailscaleProxy:                           tailscaleProxy,
+		HeadscalePreAuthenticationKeyMinValidity: 8 * time.Hour,
+		RemoteClusterBearerTokenValidity:         remoteClusterBearerTokenValidity,
+		RenewRemoteClusterBearerTokenAfter:       renewRemoteClusterBearerTokenAfter,
+	}).SetupWithManager(name, mgr)
+}

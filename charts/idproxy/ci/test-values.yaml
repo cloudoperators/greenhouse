@@ -1,0 +1,22 @@
+host: auth.example.com
+ingress:
+  enabled: false
+
+connectors:
+- id: admin
+  name: Greenhouse Admin
+  type: greenhouse-oidc
+  config: |
+    issuer: https://example.com
+    clientID: nase
+    clientSecret: hase
+    redirectURI: https://{{ required "host missing" .Values.host }}/callback
+    insecureEnableGroups: true
+    userNameKey: login_name
+
+clients:
+- id: "greenhouse-ui"
+  name: "Greenhouse UI"
+  public: true
+  redirectURIs:
+    - https://dashboard.example.com

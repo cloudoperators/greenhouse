@@ -1,0 +1,81 @@
+# Headscale coordination server.
+server:
+  image:
+    repository: juanfont/headscale
+    pullPolicy: IfNotPresent
+
+  # Services with a path will be included in the ingress routes.
+  service:
+    http:
+      port: 8080
+      path: /
+    grpc:
+      port: 50443
+    derp:
+      port: 3478
+    metrics:
+      port: 9090
+
+  pvc:
+    storage: 1Gi
+
+ui:
+  image:
+    repository: gurucomputing/headscale-ui
+    tag: 2023.01.30-beta-1
+    pullPolicy: IfNotPresent
+  service:
+    port: 80
+    path: /web
+
+headscalectl:
+  image:
+    repository: ghcr.io/cloudoperators/headscalectl
+    tag: 0.2
+    pullPolicy: IfNotPresent
+  secret:
+    name: tailscale-auth
+
+ingress:
+  enabled: true
+  host:
+  className: nginx
+  annotations:
+    disco: "true"
+    kubernetes.io/tls-acme: "true"
+
+grpc:
+  insecure: false
+  ingress:
+    enabled: false
+    host:
+    className: nginx
+    annotations:
+      disco: "true"
+      kubernetes.io/tls-acme: "true"
+      nginx.ingress.kubernetes.io/backend-protocol: "GRPC"
+      nginx.ingress.kubernetes.io/ssl-redirect: "true"
+
+postgres:
+  username: headscale
+  # Mandatory password to be supplied via secrets.
+  password:
+
+  service:
+    port: 5432
+
+  image:
+    repository: postgres
+    tag: 15.5
+    pullPolicy: IfNotPresent
+
+  pvc:
+    storage: 1Gi
+
+oidc:
+  enabled: false
+  issuer:
+  clientID:
+  clientSecret:
+  allowedGroups:
+    - role:greenhouse:admin

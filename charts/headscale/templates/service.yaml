@@ -1,0 +1,21 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "headscale.fullname" . }}
+  labels:
+    {{- include "headscale.labels" . | nindent 4 }}
+spec:
+  type: ClusterIP
+  ports:
+    {{- range $name, $v := .Values.server.service }}
+    - name: {{ $name }}
+      port: {{ $v.port }}
+      targetPort: {{ $v.port }}
+      protocol: TCP
+    {{- end }}
+    - name: ui
+      port: {{ required ".Values.ui.service.port missing" .Values.ui.service.port }}
+      targetPort: {{ required ".Values.ui.service.port missing" .Values.ui.service.port }}
+      protocol: TCP
+  selector:
+    {{- include "headscale.selectorLabels" . | nindent 4 }}

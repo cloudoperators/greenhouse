@@ -1,0 +1,11 @@
+{{ range $connector := .Values.connectors }}
+---
+apiVersion: dex.coreos.com/v1
+kind: Connector
+metadata:
+  name: {{ $connector.id }}
+config: {{ tpl $connector.config $ | fromYaml | toJson | b64enc }}
+id: {{ $connector.id }}
+name: {{ $connector.name }}
+type: {{ $connector.type }}
+{{ end }}

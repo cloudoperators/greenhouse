@@ -1,0 +1,14 @@
+{{ $links := .Site.Params.links }}
+<footer class="d-print-none">
+    <div>
+        <a class="footer-hero-link" href="https://dashboard.greenhouse.global.cloud.sap/" target="_blank">Greenhouse dashboard</a>
+    </div>
+    <div
+            class="footer-ccloud-shape"
+    >
+        {{ with resources.Get "icons/ccloud_shape.svg" }}{{ ( . | minify
+        ).Content | safeHTML }}{{ end }}
+    </div>
+
+</footer>
+{{ define "footer-links-block" }} {{ end }}

@@ -1,0 +1,40 @@
+{
+  "Groups":{
+    "group:admin":[
+      "manager"
+    ]
+  },
+  "TagOwners":{
+    "tag:greenhouse":[
+      "group:admin"
+    ],
+    "tag:client":[
+      "group:admin"
+    ]
+  },
+  "Hosts":{
+    "client-subnet":"100.126.0.0/15"
+  },
+  "ACLs":[
+    {
+      "action":"accept",
+      "src":[
+        "group:admin"
+      ],
+      "dst":[
+        "*:{{ required ".Values.server.service.http.port missing" .Values.server.service.http.port }}",
+        "*:53",
+        "*:443"
+      ]
+    },
+    {
+      "action":"accept",
+      "src":[
+        "*"
+      ],
+      "dst":[
+        "*:53",
+      ]
+    }
+  ]
+}

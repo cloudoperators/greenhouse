@@ -1,0 +1,81 @@
+# Default values for tailscale-proxy
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+replicaCount: 2
+
+image:
+  repository: ghcr.io/cloudoperators/tailscale
+  pullPolicy: IfNotPresent
+  tag: latest
+
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+
+serviceAccount:
+  # Specifies whether a service account should be created
+  create: false
+  # Annotations to add to the service account
+  annotations: {}
+  # The name of the service account to use.
+  # If not set and create is true, a name is generated using the fullname template
+  name: ""
+
+podAnnotations: {}
+
+podSecurityContext: {}
+  # fsGroup: 2000
+
+securityContext: {}
+  # capabilities:
+  #   drop:
+  #   - ALL
+  # readOnlyRootFilesystem: true
+  # runAsNonRoot: true
+  # runAsUser: 1000
+
+serviceType: ClusterIP
+
+service:
+  socks5:
+    port: 1055
+  httpproxy:
+    port: 1066
+  metrics:
+    port: 8080
+
+resources: {}
+  # We usually recommend not to specify default resources and to leave this as a conscious
+  # choice for the user. This also increases chances charts run on environments with little
+  # resources, such as Minikube. If you do want to specify resources, uncomment the following
+  # lines, adjust them as necessary, and remove the curly braces after 'resources:'.
+  # limits:
+  #   cpu: 100m
+  #   memory: 128Mi
+  # requests:
+  #   cpu: 100m
+  #   memory: 128Mi
+
+nodeSelector: {}
+
+tolerations: []
+
+headscale:
+  # uri: headscale controller url with http:// or https://
+  uri:
+  authkeySecret: tailscale-auth
+
+preauthkeyProvosioner:
+  uri:
+  userName:
+  # tags: comma separated list of tags
+  tags:
+  # keyExpiration: 1h, 1d, ...
+  keyExpiration:
+  ephemeral: true
+  reusable: false
+  image:
+    repository: ghcr.io/cloudoperators/headscalectl
+    pullPolicy: IfNotPresent
+    tag: 0.2

@@ -1,0 +1,16 @@
+<section class="jumbotron jumbotron-lp bg-dark text-center">
+    <div class="container">
+        <h1>{{ .Params.heroTitle}}</h1>
+        <p class="lead">{{ .Params.heroSubtitle}}</p>
+        <a href="/docs/getting-started/overview" class="btn btn-primary">
+            <i class="fas fa-book"></i>
+            Documentation
+        </a>
+    </div>
+</section>
+<div class="container mb-5">
+    {{ partial "landing-page-section-overview" . }}
+</div>
+<div class="container pt-5">
+    {{ partial "landing-page-section-footer" . }}
+</div>

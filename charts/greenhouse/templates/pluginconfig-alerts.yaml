@@ -1,0 +1,43 @@
+{{- if.Values.alerts.enabled }}
+apiVersion: greenhouse.sap/v1alpha1
+kind: PluginConfig
+metadata:
+  name: alerts
+  namespace: {{ .Chart.Name }}
+spec:
+  plugin: alerts
+  disabled: false
+  displayName: Alerts
+  optionValues:
+    - name: alerts.alertmanager.enabled
+      value: {{ .Values.alerts.enabled }}
+    - name: alerts.alertmanager.ingress.enabled
+      value: {{ .Values.alerts.enabled }}
+    - name: alerts.defaultRules.create
+      value: {{ .Values.alerts.enabled }}
+    - name: endpoint
+      value: {{ required ".Values.alerts.endpoint missing" .Values.alerts.endpoint }}
+    - name: filterLabels
+      value:
+        {{ .Values.alerts.filterLabels | toYaml | nindent 8 }}
+    - name: silenceExcludedLabels
+      value:
+        {{ .Values.alerts.silenceExcludedLabels | toYaml | nindent 8 }}
+    - name: alerts.alertmanager.ingress.hosts
+      value:
+      - {{ required ".Values.alerts.ingress.host missing" .Values.alerts.ingress.host }}
+    - name: alerts.alertmanager.ingress.tls
+      value:
+      - hosts:
+        - {{ required ".Values.alerts.ingress.host missing" .Values.alerts.ingress.host }}
+        secretName: tls-{{ .Values.alerts.ingress.host | replace "." "-" }}
+    - name: alerts.alertmanager.alertmanagerSpec.alertmanagerConfigMatcherStrategy
+      value:
+        type: None
+{{- if and .Values.alerts.slack.webhookURL .Values.alerts.slack.channel }}
+    - name: alerts.alertmanagerConfig.slack.webhookURL
+      value: {{ .Values.alerts.slack.webhookURL }}
+    - name: alerts.alertmanagerConfig.slack.channel
+      value: {{ .Values.alerts.slack.channel }}
+{{- end }}
+{{- end }}

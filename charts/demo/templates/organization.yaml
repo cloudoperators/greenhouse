@@ -1,0 +1,6 @@
+apiVersion: greenhouse.sap/v1alpha1
+kind: Organization
+metadata:
+  name: {{ .Chart.Name }}
+spec:
+  description: Demo organization

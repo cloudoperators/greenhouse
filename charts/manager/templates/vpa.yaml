@@ -1,0 +1,26 @@
+{{- if .Capabilities.APIVersions.Has "autoscaling.k8s.io/v1"}}
+apiVersion: autoscaling.k8s.io/v1
+kind: VerticalPodAutoscaler
+metadata:
+  name: {{ include "manager.fullname" . }}-controller-manager
+  namespace: greenhouse
+  labels:
+    app: greenhouse
+  {{- include "manager.labels" . | nindent 4 }}
+spec:
+  resourcePolicy:
+    containerPolicies:
+      - containerName: '*'
+        controlledValues: RequestsOnly
+        controlledResources:
+          - cpu
+          - memory
+        minAllowed:
+          {{- toYaml .Values.controllerManager.resources.requests | nindent 10 }}
+  targetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: {{ include "manager.fullname" . }}-controller-manager
+  updatePolicy:
+    updateMode: Auto
+{{ end }}

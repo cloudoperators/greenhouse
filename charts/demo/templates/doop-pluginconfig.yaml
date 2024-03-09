@@ -1,0 +1,16 @@
+{{- if .Values.doop.enabled }}
+apiVersion: greenhouse.sap/v1alpha1
+kind: PluginConfig
+metadata:
+  name: doop
+  namespace: {{ .Chart.Name }}
+spec:
+  disabled: false
+  plugin: doop
+  displayName: {{ required ".Values.doop.displayName missing" .Values.doop.displayName }}
+  optionValues:
+    - name: apiEndpoint
+      value: "https://demo.greenhouse.cloud.sap" # Mandatory URL. Not used in demo mode.
+    - name: mock
+      value: true
+{{ end }}

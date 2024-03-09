@@ -1,0 +1,26 @@
+image:
+  repository: ghcr.io/cloudoperators/greenhouse
+  pullPolicy: IfNotPresent
+  # Overrides the image tag whose default is the chart appVersion.
+  tag: latest
+
+env:
+  SCIM_BASE_URL:   # base url for scim api
+  SCIM_BASIC_AUTH_USER:   # basic auth user for scim api
+  SCIM_BASIC_AUTH_PW:   # basic auth password for scim api
+
+organization: ccloud
+
+resources:
+  limits:
+    cpu: 500m
+    memory: 256Mi
+  requests:
+    cpu: 500m
+    memory: 256Mi
+
+# owner-info:
+#   support-group: containers
+#   maintainers:
+#     - "Uwe Mayer"
+#   helm-chart-url: "https://github.com/cloudoperators/greenhouse/tree/main/charts/team-membership"

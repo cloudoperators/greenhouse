@@ -1,0 +1,9 @@
+# See https://github.com/helm/chart-testing#configuration
+remote: origin
+target-branch: main
+validate-maintainers: false
+check-version-increment: false
+chart-dirs:
+  - charts
+chart-repos:
+  - fluent=https://fluent.github.io/helm-charts

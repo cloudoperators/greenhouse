@@ -1,0 +1,69 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ include "manager.fullname" . }}-kube-webhook-certgen
+  namespace: greenhouse
+  labels:
+  {{- include "manager.labels" . | nindent 4 }}
+spec:
+  ttlSecondsAfterFinished: 30
+  template:
+    spec:
+      restartPolicy: Never
+      serviceAccountName: {{ include "manager.fullname" . }}-kube-webhook-certgen
+      initContainers:
+        - name: create
+          image: {{ required ".Values.kubeWebhookCertgen.image.repository missing" .Values.kubeWebhookCertgen.image.repository }}:{{ required ".Values.kubeWebhookCertgen.image.tag missing" .Values.kubeWebhookCertgen.image.tag }}
+          env:
+            - name: SERVICE_NAME
+              value: greenhouse-webhook-service
+            - name: SECRET_NAME
+              value: {{ include "manager.fullname" . }}-webhook-server-cert
+            - name: NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+          args:
+            - create
+            - --host=$(SERVICE_NAME).$(NAMESPACE).svc,$(SERVICE_NAME).$(NAMESPACE).svc.cluster.local
+            - --namespace=$(NAMESPACE)
+            - --secret-name=$(SECRET_NAME)
+            - --cert-name=tls.crt
+            - --key-name=tls.key
+      containers:
+        - name: patch-mutating-webhook
+          image: {{ required ".Values.kubeWebhookCertgen.image.repository missing" .Values.kubeWebhookCertgen.image.repository }}:{{ required ".Values.kubeWebhookCertgen.image.tag missing" .Values.kubeWebhookCertgen.image.tag }}
+          env:
+            - name: MUTATING_WEBHOOK_NAME
+              value: {{ include "manager.fullname" . }}-mutating-webhook-configuration
+            - name: SECRET_NAME
+              value: {{ include "manager.fullname" . }}-webhook-server-cert
+            - name: NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+          args:
+            - patch
+            - --patch-mutating=true
+            - --patch-validating=false
+            - --webhook-name=$(MUTATING_WEBHOOK_NAME)
+            - --namespace=$(NAMESPACE)
+            - --secret-name=$(SECRET_NAME)
+        - name: patch-validating-webhook
+          image: {{ required ".Values.kubeWebhookCertgen.image.repository missing" .Values.kubeWebhookCertgen.image.repository }}:{{ required ".Values.kubeWebhookCertgen.image.tag missing" .Values.kubeWebhookCertgen.image.tag }}
+          env:
+            - name: VALIDATING_WEBHOOK_NAME
+              value: {{ include "manager.fullname" . }}-validating-webhook-configuration
+            - name: SECRET_NAME
+              value: {{ include "manager.fullname" . }}-webhook-server-cert
+            - name: NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+          args:
+            - patch
+            - --patch-mutating=false
+            - --patch-validating=true
+            - --webhook-name=$(VALIDATING_WEBHOOK_NAME)
+            - --namespace=$(NAMESPACE)
+            - --secret-name=$(SECRET_NAME)

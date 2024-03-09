@@ -1,0 +1,32 @@
+name: "UI Test"
+on:
+  pull_request:
+    paths:
+      - 'ui/**'
+
+jobs:
+  build_test:
+    runs-on: [ self-hosted ]
+    strategy:
+      matrix:
+        node-version: [ node ]
+    steps:
+      - uses: actions/checkout@v4
+        #with:
+        #  token: ${{ secrets.SAPCC_BOT_TOKEN }}
+
+      - name: Use Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          token: ${{ secrets.SAPCC_BOT_TOKEN }}
+      - name: test cluster-admin
+        run: |
+          npm ci
+          npm test
+        working-directory: ./ui/cluster-admin
+      - name: test team-admin
+        run: |
+          npm ci
+          npm test
+        working-directory: ./ui/team-admin
