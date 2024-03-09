@@ -20,7 +20,7 @@ Greenhouse holds bi-weekly community calls in Microsoft Teams.
 
 ## Roadmap
 
-The [Roadmap 2023 Kanban board](https://github.com/cloudoperators/greenhouse/projects/2) provides an overview of ongoing and planned efforts.
+The [Roadmap Kanban board](https://github.com/orgs/cloudoperators/projects/1) provides an overview of ongoing and planned efforts.
 
 ## Architecture & Design
 
