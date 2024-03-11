@@ -23,7 +23,9 @@ header:
     - '.github/**'
     - 'charts/**'
     - '.reuse/**'
-    - 'LICENSES/**'
+    - 'LICENSES'
+    - 'grafana/*.json'
+    - 'hack/**'
     - 'docs/**'
     - '**/*.md'
     - 'LICENSE'
@@ -32,6 +34,10 @@ header:
     - '**/go.mod'
     - '**/go.sum'
     - '**/*.yaml'
+    - '**/*.lock'
+    - '**/*.json'
+    - '**/.gitkeep'
+    - '**/*.jsx'
     
 
   comment: on-failure
