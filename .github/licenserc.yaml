@@ -38,6 +38,9 @@ header:
     - '**/*.json'
     - '**/.gitkeep'
     - '**/*.jsx'
+    - 'Dockerfile.*'
+    - 'Dockerfile'
+    - 'Makefile'
     
 
   comment: on-failure
