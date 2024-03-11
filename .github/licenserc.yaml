@@ -40,9 +40,9 @@ header:
     - '**/.gitkeep'
     - '**/*.jsx'
     - '**/*.txt'
-    - 'Dockerfile.*'
-    - 'Dockerfile'
+    - '*Dockerfile*'
     - 'Makefile'
+    - '**/*.svg'
     
 
   comment: on-failure
