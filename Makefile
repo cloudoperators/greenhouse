@@ -62,7 +62,7 @@ test: generate-manifests generate envtest ## Run tests.
 fmt: goimports golint
 	GOBIN=$(LOCALBIN) go fmt ./...
 	$(GOIMPORTS) -w -local github.com/cloudoperators/greenhouse .
-	$(GOLINT) run -v
+	$(GOLINT) run -v --timeout 5m
 
 .PHONY: check
 check: fmt test
