@@ -6,17 +6,17 @@ on: workflow_dispatch
 
 jobs:
   build:
-    runs-on: [ self-hosted ]
+    runs-on: [ default ]
 
     steps:
       - uses: actions/checkout@v4
-        #with:
-        #  token: ${{ secrets.SAPCC_BOT_TOKEN }}
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Run GitHub Actions Version Updater
         uses: saadmk11/github-actions-version-updater@v0.8.1
         with:
-          token: ${{ secrets.SAPCC_BOT_TOKEN }}
+          token: ${{ secrets.GITHUB_TOKEN }}
           pull_request_title: 'Update GitHub Action Versions'
           update_version_with: 'release-tag'
           release_types: "major"
