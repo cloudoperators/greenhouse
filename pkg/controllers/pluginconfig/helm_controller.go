@@ -149,9 +149,9 @@ func (r *HelmReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.
 		return ctrl.Result{}, fmt.Errorf("plugin not found: %s", helmReconcileFailedCondition.Message)
 	}
 
-	conditions, success := r.reconcileHelmRelease(ctx, restClientGetter, pluginConfig, plugin, pluginConfigStatus)
-	pluginConfigStatus.StatusConditions.SetConditions(conditions...)
-	if !success {
+	driftDetectedCondition, reconcileFailedCondition := r.reconcileHelmRelease(ctx, restClientGetter, pluginConfig, plugin, pluginConfigStatus)
+	pluginConfigStatus.StatusConditions.SetConditions(driftDetectedCondition, reconcileFailedCondition)
+	if reconcileFailedCondition.IsTrue() {
 		return ctrl.Result{}, fmt.Errorf("helm reconcile failed: %s", helmReconcileFailedCondition.Message)
 	}
 	statusReconcileCompleteCondition := r.reconcileStatus(ctx, restClientGetter, pluginConfig, plugin, &pluginConfigStatus)
@@ -279,59 +279,57 @@ func (r *HelmReconciler) reconcileHelmRelease(
 	pluginConfig *greenhousev1alpha1.PluginConfig,
 	plugin *greenhousev1alpha1.Plugin,
 	pluginConfigStatus greenhousev1alpha1.PluginConfigStatus,
-) (conditions []greenhousev1alpha1.Condition, success bool) {
+) (driftDetectedCondition, reconcileFailedCondition greenhousev1alpha1.Condition) {
 
-	helmReconcileFailedCondition := *pluginConfigStatus.GetConditionByType(greenhousev1alpha1.HelmReconcileFailedCondition)
+	driftDetectedCondition = *pluginConfigStatus.GetConditionByType(greenhousev1alpha1.HelmDriftDetectedCondition)
+	reconcileFailedCondition = *pluginConfigStatus.GetConditionByType(greenhousev1alpha1.HelmReconcileFailedCondition)
 
 	// Not a HelmChart plugin. Ignore it.
 	if plugin.Spec.HelmChart == nil {
-		helmReconcileFailedCondition.Status = metav1.ConditionFalse
-		helmReconcileFailedCondition.Message = "Plugin is not backed by HelmChart"
-		return append(conditions, helmReconcileFailedCondition), false
+		reconcileFailedCondition.Status = metav1.ConditionFalse
+		reconcileFailedCondition.Message = "Plugin is not backed by HelmChart"
+		return driftDetectedCondition, reconcileFailedCondition
 	}
 
 	// Validate before attempting the installation/upgrade.
 	// Any error is reflected in the status of the PluginConfig.
 	if _, err := helm.TemplateHelmChartFromPlugin(ctx, r.Client, restClientGetter, plugin, pluginConfig); err != nil {
-		helmReconcileFailedCondition.Status = metav1.ConditionTrue
-		helmReconcileFailedCondition.Message = fmt.Sprintf("Helm template failed: %s", err.Error())
-		return append(conditions, helmReconcileFailedCondition), false
+		reconcileFailedCondition.Status = metav1.ConditionTrue
+		reconcileFailedCondition.Message = fmt.Sprintf("Helm template failed: %s", err.Error())
+		return driftDetectedCondition, reconcileFailedCondition
 	}
 
 	// Check whether the deployed resources match the ones we expect.
 	diffObjects, isHelmDrift, err := helm.DiffChartToDeployedResources(ctx, r.Client, restClientGetter, plugin, pluginConfig)
 	if err != nil {
-		helmReconcileFailedCondition.Status = metav1.ConditionTrue
-		helmReconcileFailedCondition.Message = fmt.Sprintf("Helm diff failed: %s", err.Error())
-		return append(conditions, helmReconcileFailedCondition), false
+		reconcileFailedCondition.Status = metav1.ConditionTrue
+		reconcileFailedCondition.Message = fmt.Sprintf("Helm diff failed: %s", err.Error())
+		return driftDetectedCondition, reconcileFailedCondition
 	}
-	helmDriftDetectedCondition := pluginConfigStatus.StatusConditions.GetConditionByType(greenhousev1alpha1.HelmDriftDetectedCondition)
+
 	switch isHelmDrift {
 	case true:
-		helmDriftDetectedCondition.Status = metav1.ConditionTrue
-		helmDriftDetectedCondition.LastTransitionTime = metav1.Now()
-		conditions = append(conditions, *helmDriftDetectedCondition)
+		driftDetectedCondition.Status = metav1.ConditionTrue
+		driftDetectedCondition.LastTransitionTime = metav1.Now()
 	case false:
-		helmDriftDetectedCondition.Status = metav1.ConditionFalse
-		helmDriftDetectedCondition.LastTransitionTime = metav1.Now()
-		conditions = append(conditions, *helmDriftDetectedCondition)
+		driftDetectedCondition.Status = metav1.ConditionFalse
+		driftDetectedCondition.LastTransitionTime = metav1.Now()
 
-		helmReconcileFailedCondition.Status = metav1.ConditionFalse
-		helmReconcileFailedCondition.Message = "Release for pluginconfig is up-to-date"
+		reconcileFailedCondition.Status = metav1.ConditionFalse
+		reconcileFailedCondition.Message = "Release for pluginconfig is up-to-date"
 		// TODO: remove unnecessary log?
 		log.FromContext(ctx).Info("release for pluginconfig is up-to-date")
-		return append(conditions, helmReconcileFailedCondition, *helmDriftDetectedCondition), true
+		return driftDetectedCondition, reconcileFailedCondition
 	}
 	log.FromContext(ctx).Info("drift between deployed resources and manifest detected", "resources", diffObjects.String())
 	if err := helm.InstallOrUpgradeHelmChartFromPlugin(ctx, r.Client, restClientGetter, plugin, pluginConfig); err != nil {
-		helmReconcileFailedCondition.Status = metav1.ConditionTrue
-		helmReconcileFailedCondition.Message = fmt.Sprintf("Helm install/upgrade failed: %s", err.Error())
-		return append(conditions, helmReconcileFailedCondition), false
+		reconcileFailedCondition.Status = metav1.ConditionTrue
+		reconcileFailedCondition.Message = fmt.Sprintf("Helm install/upgrade failed: %s", err.Error())
+		return driftDetectedCondition, reconcileFailedCondition
 	}
-	helmReconcileFailedCondition.Status = metav1.ConditionFalse
-	helmReconcileFailedCondition.Message = "Helm install/upgrade successful"
-
-	return append(conditions, helmReconcileFailedCondition), true
+	reconcileFailedCondition.Status = metav1.ConditionFalse
+	reconcileFailedCondition.Message = "Helm install/upgrade successful"
+	return driftDetectedCondition, reconcileFailedCondition
 }
 
 func (r *HelmReconciler) reconcileStatus(ctx context.Context,
