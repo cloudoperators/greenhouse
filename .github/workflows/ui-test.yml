@@ -6,20 +6,20 @@ on:
 
 jobs:
   build_test:
-    runs-on: [ self-hosted ]
+    runs-on: [ default ]
     strategy:
       matrix:
         node-version: [ node ]
     steps:
       - uses: actions/checkout@v4
-        #with:
-        #  token: ${{ secrets.SAPCC_BOT_TOKEN }}
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Use Node.js ${{ matrix.node-version }}
         uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node-version }}
-          token: ${{ secrets.SAPCC_BOT_TOKEN }}
+          token: ${{ secrets.GITHUB_TOKEN }}
       - name: test cluster-admin
         run: |
           npm ci
