@@ -32,6 +32,7 @@ header:
     - 'LICENSE'
     - 'NOTICE'
     - 'PROJECT'
+    - '**/*.gitignore'
     - '**/go.mod'
     - '**/go.sum'
     - '**/*.yaml'
