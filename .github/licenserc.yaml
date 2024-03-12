@@ -43,6 +43,7 @@ header:
     - '*Dockerfile*'
     - 'Makefile'
     - '**/*.svg'
+    - 'pkg/apis/scheme_builder.go' # Belongs to the Kubernetes authors
     
 
   comment: on-failure
