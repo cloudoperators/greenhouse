@@ -44,6 +44,8 @@ header:
     - 'Makefile'
     - '**/*.svg'
     - 'pkg/apis/scheme_builder.go' # Belongs to the Kubernetes authors
+    - 'cmd/tcp-proxy/main.go' # MIT License
+    - 'pkg/tcp-proxy/proxy/*.go' # MIT License
     
 
   comment: on-failure
