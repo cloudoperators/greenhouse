@@ -630,6 +630,67 @@ var _ = Describe("HelmControllerTest", Serial, func() {
 
 })
 
+var _ = When("the plugin is UI only", func() {
+	var uiPlugin *greenhousev1alpha1.Plugin
+	var uiPluginConfig *greenhousev1alpha1.PluginConfig
+	BeforeEach(func() {
+		uiPlugin = &greenhousev1alpha1.Plugin{
+			TypeMeta: metav1.TypeMeta{
+				Kind:       "Plugin",
+				APIVersion: greenhousev1alpha1.GroupVersion.String(),
+			},
+			ObjectMeta: metav1.ObjectMeta{
+				Name: "myuiplugin",
+			},
+			Spec: greenhousev1alpha1.PluginSpec{
+				Description: "Testplugin with UI only",
+				Version:     "1.0.0",
+				UIApplication: &greenhousev1alpha1.UIApplicationReference{
+					Name:    "myapp",
+					Version: "1.0.0",
+					URL:     "http://myapp.com",
+				},
+			},
+		}
+		uiPluginConfig = &greenhousev1alpha1.PluginConfig{
+			TypeMeta: metav1.TypeMeta{
+				Kind:       "PluginConfig",
+				APIVersion: greenhousev1alpha1.GroupVersion.String(),
+			},
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "uipluginconfig",
+				Namespace: "default",
+			},
+			Spec: greenhousev1alpha1.PluginConfigSpec{
+				Plugin: "myuiplugin",
+			},
+		}
+
+		Expect(test.K8sClient.Create(test.Ctx, uiPlugin)).Should(Succeed())
+		Expect(test.K8sClient.Create(test.Ctx, uiPluginConfig)).Should(Succeed())
+	})
+
+	AfterEach(func() {
+		Expect(test.K8sClient.Delete(test.Ctx, uiPlugin)).Should(Succeed())
+		Expect(test.K8sClient.Delete(test.Ctx, uiPluginConfig)).Should(Succeed())
+	})
+
+	It("should skip the helm reconciliation without errors", func() {
+		pluginConfigID := types.NamespacedName{Name: "uipluginconfig", Namespace: "default"}
+		Eventually(func(g Gomega) bool {
+			err := test.K8sClient.Get(test.Ctx, pluginConfigID, uiPluginConfig)
+			if err != nil {
+				return false
+			}
+			g.Expect(uiPluginConfig.Status.GetConditionByType(greenhousev1alpha1.ReadyCondition)).ToNot(BeNil())
+			g.Expect(uiPluginConfig.Status.GetConditionByType(greenhousev1alpha1.ReadyCondition).Status).To(Equal(metav1.ConditionTrue))
+			g.Expect(uiPluginConfig.Status.GetConditionByType(greenhousev1alpha1.HelmReconcileFailedCondition).Status).To(Equal(metav1.ConditionFalse))
+			g.Expect(uiPluginConfig.Status.GetConditionByType(greenhousev1alpha1.HelmReconcileFailedCondition).Message).To(Equal("Plugin is not backed by HelmChart"))
+			return true
+		}).Should(BeTrue())
+	})
+})
+
 var _ = AfterSuite(func() {
 	By("tearing down the test environment")
 	test.TestAfterSuite()
