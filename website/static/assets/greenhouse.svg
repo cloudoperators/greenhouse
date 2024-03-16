@@ -1,3 +1,8 @@
+<!--
+  ~ SPDX-FileCopyrightText: 2024-2026 SAP SE or an SAP affiliate company and Greenhouse contributors
+  ~ SPDX-License-Identifier: Apache-2.0
+-->
+
 <svg xmlns="http://www.w3.org/2000/svg" width="51" height="92" fill="none" viewBox="0 0 51 92">
   <path fill="#000" fill-rule="evenodd" d="M24.655.153a1.491 1.491 0 0 1 1.316 0L49.79 11.828c.74.364 1.073.93.71 1.672-.363.741-1.285 1.376-2.026 1.012L25.314 3.16 2.988 14.102v36.15h22.324a1.495 1.495 0 0 1 0 2.99H1.495c-.826 0-1.495-.67-1.495-1.495V13.17c0-.57.325-1.09.837-1.342L24.655.153Z" clip-rule="evenodd"/>
   <path fill="#000" fill-rule="evenodd" d="M24.655.153a1.491 1.491 0 0 1 1.316 0L49.79 11.828c.74.364 1.073.93.71 1.672-.363.741-1.285 1.376-2.026 1.012L25.314 3.16 2.988 14.102v36.15h22.324a1.495 1.495 0 0 1 0 2.99H1.495c-.826 0-1.495-.67-1.495-1.495V13.17c0-.57.325-1.09.837-1.342L24.655.153Z" clip-rule="evenodd"/>

@@ -1,3 +1,8 @@
+<!--
+  ~ SPDX-FileCopyrightText: 2024-2026 SAP SE or an SAP affiliate company and Greenhouse contributors
+  ~ SPDX-License-Identifier: Apache-2.0
+-->
+
 {{ $cover := and (.HasShortcode "blocks/cover") (not .Site.Params.ui.navbar_translucent_over_cover_disable) }}
 <nav class="js-navbar-scroll {{ if $cover}} td-navbar-cover {{ end }} td-navbar">
     <div class="nav-header theme-dark">

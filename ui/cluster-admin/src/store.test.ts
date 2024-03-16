@@ -1,3 +1,8 @@
+/*
+ * SPDX-FileCopyrightText: 2024-2026 SAP SE or an SAP affiliate company and Greenhouse contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
 import useStore from "./store"
 import { act, renderHook } from "@testing-library/react"
 import { Cluster, UpdateClusterAction } from "./types/types"
