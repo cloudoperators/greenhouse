@@ -323,7 +323,7 @@ p {
             <p><h1>Greenhouse</h1></p>
             <p>PlusOne operations platform</p>
             <p>
-                <div class="app-desc">Version: 8aac416</div>
+                <div class="app-desc">Version: b868a09</div>
             </p>
           </div>
         </div>
@@ -1623,15 +1623,18 @@ g,0<c.length&&(c=Aa[c[0]])&&(a.c[e]=c))}a.c[e]||(c=Aa[e])&&(a.c[e]=c);for(c=0;c<
     },
     "namespaces" : {
       "type" : "array",
+      "description" : "Namespaces is the list of namespaces in the Greenhouse Clusters to apply the RoleBinding to",
       "items" : {
         "type" : "string"
       }
     },
     "roleRef" : {
-      "type" : "string"
+      "type" : "string",
+      "description" : "RoleRef references a Greenhouse Role by name"
     },
     "teamRef" : {
-      "type" : "string"
+      "type" : "string",
+      "description" : "TeamRef references a Greenhouse Team by name"
     }
   },
   "description" : "RoleBindingSpec defines the desired state of RoleBinding"
@@ -1654,7 +1657,7 @@ g,0<c.length&&(c=Aa[c[0]])&&(a.c[e]=c))}a.c[e]||(c=Aa[e])&&(a.c[e]=c);for(c=0;c<
       "description" : "matchLabels is a map of {key,value} pairs. A single {key,value} in the matchLabels map is equivalent to an element of matchExpressions, whose key field is \"key\", the operator is \"In\", and the values array contains only \"value\". The requirements are ANDed."
     }
   },
-  "description" : "A label selector is a label query over a set of resources. The result of matchLabels and matchExpressions are ANDed. An empty label selector matches all objects. A null label selector matches no objects.",
+  "description" : "ClusterSelector is the immutable selector to deterimine the Greenhouse Clusters to apply the RoleBinding to",
   "x-kubernetes-map-type" : "atomic"
 };
     defs["RoleBinding_spec_clusterSelector_matchExpressions"] = {
@@ -1684,6 +1687,7 @@ g,0<c.length&&(c=Aa[c[0]])&&(a.c[e]=c))}a.c[e]||(c=Aa[e])&&(a.c[e]=c);for(c=0;c<
   "properties" : {
     "rules" : {
       "type" : "array",
+      "description" : "Rules is a list of rbacv1.PolicyRules used on a managed RBAC (Cluster)Role",
       "items" : {
         "$ref" : "#/components/schemas/Role_spec_rules"
       }
