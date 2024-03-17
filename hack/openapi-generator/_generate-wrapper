@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
 
+# SPDX-FileCopyrightText: 2024-2026 SAP SE or an SAP affiliate company and Greenhouse contributors
+# SPDX-License-Identifier: Apache-2.0
+
 # Wrapper for https://github.com/srfrnk/crd-api-doc-gen preserving the openapi.yaml.
 # Call this using generate-openapi-spec-from-crds
 

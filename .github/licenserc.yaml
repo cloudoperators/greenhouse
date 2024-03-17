@@ -15,6 +15,7 @@ header:
     - 'LICENSES/*.txt'
     - 'grafana/*.json'
     - 'website/scripts/**'
+    - 'hack/**'
     - 'hack/openapi-generator/openapi-info.yaml'
     - 'hack/boilerplate.go.txt'
     - 'docs/**'
