@@ -1,13 +1,3 @@
-regions:
-  900:
-    regionid: 900
-    regioncode: EU-NL-1
-    regionname: CCLOUD-DEV
-    nodes:
-      - name: 900a
-        regionid: 900
-        hostname: derp.davidg.c.eu-nl-1.cloud.sap
-        ipv4: 147.204.33.50
-        stunport: 3478
-        stunonly: false
-        derpport: 443
+{{- if .Values.derp.enabled }}
+{{ toYaml .Values.derp}}
+{{ end }}

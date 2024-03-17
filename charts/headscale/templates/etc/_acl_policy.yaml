@@ -13,7 +13,7 @@
     ]
   },
   "Hosts":{
-    "client-subnet":"100.126.0.0/15"
+    "client-subnet":{{ required ".Values.clientSubnet missing" .Values.clientSubnet | quote }}
   },
   "ACLs":[
     {

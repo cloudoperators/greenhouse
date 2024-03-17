@@ -11,6 +11,8 @@ data:
 
   acl.policy: |
     {{ include (print $.Template.BasePath "/etc/_acl_policy.yaml") . | nindent 4 }}
-  
+
+{{- if .Values.derp.enabled }}
   derp.yaml: |
     {{ include (print $.Template.BasePath "/etc/_derp.yaml") . | nindent 4 }}
+{{ end }}
