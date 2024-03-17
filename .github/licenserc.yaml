@@ -11,7 +11,7 @@ header:
   paths-ignore:
     - '.github/**'
     - 'charts/**'
-    - '.reuse /dep5'
+    - '.reuse/dep5'
     - 'LICENSES/*.txt'
     - 'grafana/*.json'
     - 'website/scripts/**'

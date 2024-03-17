@@ -79,3 +79,17 @@ oidc:
   clientSecret:
   allowedGroups:
     - role:greenhouse:admin
+
+derp:
+  enabled: false
+
+# IP prefixes to allocate tailaddresses from.
+clientSubnet: 1.2.3.4/5
+
+# Headscale DNS configuration.
+dnsConfig:
+  nameservers: []
+    # - 1.1.1.1
+  restrictedNameservers: {}
+    # nameserver1:
+    #  - 1.1.1.1

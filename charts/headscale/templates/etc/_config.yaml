@@ -13,21 +13,15 @@ grpc_allow_insecure: {{ .Values.grpc.insecure }}
 dns_config:
   base_domain: {{ required ".Values.ingress.host missing" .Values.ingress.host }}
   magic_dns: false
-  nameservers: 
-    - 100.104.0.10
-    - 100.106.213.48
   override_local_dns: true
+  {{- if and .Values.dnsConfig .Values.dnsConfig.nameservers }}
+  nameservers:
+  {{- toYaml .Values.dnsConfig.nameservers | nindent 4 }}
+  {{ end }}
+  {{- if and .Values.dnsConfig .Values.dnsConfig.restrictedNameservers }}
   restricted_nameservers:
-    sap:
-      - 147.204.9.200
-      - 147.204.9.201
-      - 10.17.220.75
-      - 10.17.122.22
-    sap.corp:
-      - 147.204.9.200
-      - 147.204.9.201
-      - 10.17.220.75
-      - 10.17.122.22
+  {{- toYaml .Values.dnsConfig.restrictedNameservers | nindent 4 }}
+  {{ end }}
 
   # Search domains to inject.
   domains: [sap,sap.corp,svc,svc.cluster.local,cluster.local]
@@ -88,7 +82,7 @@ derp:
 # IPv4: https://github.com/tailscale/tailscale/blob/22ebb25e833264f58d7c3f534a8b166894a89536/net/tsaddr/tsaddr.go#L33
 # Any other range is NOT supported, and it will cause unexpected issues.
 ip_prefixes:
-  - 100.126.0.0/15
+  - {{ required ".Values.clientSubnet missing" .Values.clientSubnet | quote }}
 # Period to check for node updates within the tailnet. A value too low will severely affect
 # CPU consumption of Headscale. A value too high (over 60s) will cause problems
 # for the nodes, as they won't get updates or keep alive messages frequently enough.
