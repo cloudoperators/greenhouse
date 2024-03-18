@@ -108,7 +108,7 @@ webhooks:
   - v1
   clientConfig:
     service:
-      name: webhook-service
+      name: greenhouse-webhook-service
       namespace: greenhouse
       path: /mutate-extensions-greenhouse-sap-v1alpha1-rolebinding
   failurePolicy: Fail
@@ -128,7 +128,7 @@ webhooks:
   - v1
   clientConfig:
     service:
-      name: webhook-service
+      name: greenhouse-webhook-service
       namespace: greenhouse
       path: /mutate--v1-secret
   failurePolicy: Ignore
@@ -276,7 +276,7 @@ webhooks:
   - v1
   clientConfig:
     service:
-      name: webhook-service
+      name: greenhouse-webhook-service
       namespace: greenhouse
       path: /validate-extensions-greenhouse-sap-v1alpha1-rolebinding
   failurePolicy: Fail
@@ -296,7 +296,7 @@ webhooks:
   - v1
   clientConfig:
     service:
-      name: webhook-service
+      name: greenhouse-webhook-service
       namespace: greenhouse
       path: /validate--v1-secret
   failurePolicy: Ignore
