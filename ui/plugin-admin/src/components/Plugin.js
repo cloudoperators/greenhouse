@@ -2,6 +2,8 @@ import React from "react"
 import { DataGridRow, DataGridCell } from "juno-ui-components"
 import { useGlobalsActions } from "./StoreProvider"
 
+import { Icon } from "juno-ui-components"
+
 const Plugin = (props) => {
   const plugin = props.plugin
   const { setShowDetailsFor } = useGlobalsActions()
@@ -49,7 +51,13 @@ const Plugin = (props) => {
         })}
       </DataGridCell>
       <DataGridCell>
-        <p> TRUE</p>
+        <p>
+          {console.log(plugin.readyStatus)}
+          <Icon
+            icon={plugin.readyStatus?.icon}
+            color={plugin.readyStatus?.color}
+          />
+        </p>
       </DataGridCell>
     </DataGridRow>
   )

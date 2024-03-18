@@ -3,10 +3,11 @@ import useClient from "./useClient"
 import { useAuthData, usePluginConfig } from "../components/StoreProvider"
 import { useGlobalsActions } from "../components/StoreProvider"
 
+import { getResourceStatusFromKubernetesConditions } from "../../../utils/resourceStatus"
+
 export const useAPI = () => {
   const { client } = useClient()
   const authData = useAuthData()
-  const pluginConfig = usePluginConfig()
 
   const { setPluginConfig } = useGlobalsActions()
 
@@ -50,8 +51,6 @@ export const useAPI = () => {
         let allPlugins = []
 
         items?.items?.forEach((item) => {
-          console.log("jjoooo", JSON.stringify(item.status?.exposedServices))
-
           const name = item.spec?.displayName
             ? item.spec.displayName
             : item.metadata?.name
@@ -61,11 +60,11 @@ export const useAPI = () => {
           const externalServicesUrls = buildExternalServicesUrls(
             item.status?.exposedServices
           )
-          const statusConditions = item.status?.statusConditions?.conditions
+          const statusConditions = item.status?.statusConditions.conditions
+          const readyStatus =
+            getResourceStatusFromKubernetesConditions(statusConditions)
           const optionValues = item.spec?.optionValues
           const raw = item
-
-          console.log("jjoooo", JSON.stringify(externalServicesUrls))
 
           if (!disabled) {
             allPlugins.push({
@@ -74,6 +73,7 @@ export const useAPI = () => {
               clusterName,
               externalServicesUrls,
               statusConditions,
+              readyStatus,
               optionValues,
               raw,
             })

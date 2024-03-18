@@ -71,7 +71,7 @@ const PluginDetail = () => {
                   <DataGridHeadCell>Conditions</DataGridHeadCell>
                   <DataGridCell>
                     <Stack gap="2" alignment="start" wrap={true}>
-                      {plugin?.statusConditions.map((condition) => {
+                      {plugin?.statusConditions?.map((condition) => {
                         return (
                           <Pill
                             pillKey={condition.type}
