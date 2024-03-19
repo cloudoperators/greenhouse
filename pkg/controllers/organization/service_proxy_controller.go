@@ -50,7 +50,7 @@ func (r *ServiceProxyReconciler) SetupWithManager(name string, mgr ctrl.Manager)
 	return ctrl.NewControllerManagedBy(mgr).
 		Named(name).
 		For(&greenhousesapv1alpha1.Organization{}).
-		Owns(&greenhousesapv1alpha1.PluginConfig{}).
+		Owns(&greenhousesapv1alpha1.Plugin{}).
 		Complete(r)
 }
 
@@ -80,13 +80,13 @@ func (r *ServiceProxyReconciler) reconcileServiceProxy(ctx context.Context, org 
 		return fmt.Errorf("failed to marshal version.GitCommit: %w", err)
 	}
 
-	pluginConfig := &greenhousesapv1alpha1.PluginConfig{
+	pluginConfig := &greenhousesapv1alpha1.Plugin{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "service-proxy",
 			Namespace: org.Name,
 		},
-		Spec: greenhousesapv1alpha1.PluginConfigSpec{
-			Plugin: "service-proxy",
+		Spec: greenhousesapv1alpha1.PluginSpec{
+			PluginDefinition: "service-proxy",
 		},
 	}
 

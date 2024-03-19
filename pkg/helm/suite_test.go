@@ -31,8 +31,8 @@ func TestHelm(t *testing.T) {
 }
 
 var _ = BeforeSuite(func() {
-	test.RegisterWebhook("pluginWebhook", admission.SetupPluginWebhookWithManager)
-	test.RegisterWebhook("pluginConfigWebhook", admission.SetupPluginConfigWebhookWithManager)
+	test.RegisterWebhook("pluginWebhook", admission.SetupPluginDefinitionWebhookWithManager)
+	test.RegisterWebhook("pluginConfigWebhook", admission.SetupPluginWebhookWithManager)
 	test.RegisterWebhook("teamWebhook", admission.SetupTeamWebhookWithManager)
 	test.RegisterWebhook("secretsWebhook", admission.SetupSecretWebhookWithManager)
 	test.TestBeforeSuite()
@@ -60,12 +60,12 @@ var (
 		},
 	}
 
-	testPluginWithoutHelmChart = &greenhousesapv1alpha1.Plugin{
+	testPluginWithoutHelmChart = &greenhousesapv1alpha1.PluginDefinition{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: "test-org",
 			Name:      "test-plugin",
 		},
-		Spec: greenhousesapv1alpha1.PluginSpec{
+		Spec: greenhousesapv1alpha1.PluginDefinitionSpec{
 			Options: []greenhousesapv1alpha1.PluginOption{
 				{
 					Name:        "key1",
@@ -78,12 +78,12 @@ var (
 		},
 	}
 
-	testPluginWithHelmChart = &greenhousesapv1alpha1.Plugin{
+	testPluginWithHelmChart = &greenhousesapv1alpha1.PluginDefinition{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: "test-org",
 			Name:      "test-plugin",
 		},
-		Spec: greenhousesapv1alpha1.PluginSpec{
+		Spec: greenhousesapv1alpha1.PluginDefinitionSpec{
 			HelmChart: &greenhousesapv1alpha1.HelmChartReference{
 				Name:       "./../test/fixtures/myChart",
 				Repository: "dummy",
@@ -101,12 +101,12 @@ var (
 		},
 	}
 
-	testPluginWithHelmChartOCI = &greenhousesapv1alpha1.Plugin{
+	testPluginWithHelmChartOCI = &greenhousesapv1alpha1.PluginDefinition{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: "test-org",
 			Name:      "test-plugin",
 		},
-		Spec: greenhousesapv1alpha1.PluginSpec{
+		Spec: greenhousesapv1alpha1.PluginDefinitionSpec{
 			HelmChart: &greenhousesapv1alpha1.HelmChartReference{
 				Name:       "dummy",
 				Repository: "oci://greenhouse/helm-charts",
@@ -124,15 +124,15 @@ var (
 		},
 	}
 
-	pluginConfig = &greenhousesapv1alpha1.PluginConfig{
+	pluginConfig = &greenhousesapv1alpha1.Plugin{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: "test-org",
 			Name:      "test-plugin-config",
 		},
-		Spec: greenhousesapv1alpha1.PluginConfigSpec{
-			Plugin:       "test-plugin",
-			ClusterName:  "test-cluster",
-			OptionValues: []greenhousesapv1alpha1.PluginOptionValue{},
+		Spec: greenhousesapv1alpha1.PluginSpec{
+			PluginDefinition: "test-plugin",
+			ClusterName:      "test-cluster",
+			OptionValues:     []greenhousesapv1alpha1.PluginOptionValue{},
 		},
 	}
 

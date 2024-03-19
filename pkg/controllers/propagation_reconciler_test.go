@@ -35,7 +35,7 @@ import (
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/pkg/apis/greenhouse/v1alpha1"
 	"github.com/cloudoperators/greenhouse/pkg/controllers/cluster"
 	"github.com/cloudoperators/greenhouse/pkg/controllers/fixtures"
-	"github.com/cloudoperators/greenhouse/pkg/controllers/plugin"
+	"github.com/cloudoperators/greenhouse/pkg/controllers/plugindefinition"
 	"github.com/cloudoperators/greenhouse/pkg/controllers/team"
 	"github.com/cloudoperators/greenhouse/pkg/controllers/teammembership"
 	"github.com/cloudoperators/greenhouse/pkg/test"
@@ -177,7 +177,7 @@ var _ = Describe("Propagation reconciler", Ordered, func() {
 				AccessMode: greenhousev1alpha1.ClusterAccessModeDirect,
 			},
 		}, &cluster.ClusterPropagationReconciler{}, false, ""),
-		Entry("plugin", &greenhousev1alpha1.Plugin{
+		Entry("plugin", &greenhousev1alpha1.PluginDefinition{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:        "test-plugin",
 				Namespace:   test.TestNamespace,
@@ -188,7 +188,7 @@ var _ = Describe("Propagation reconciler", Ordered, func() {
 				Kind:       "Plugin",
 				APIVersion: greenhousev1alpha1.GroupVersion.String(),
 			},
-			Spec: greenhousev1alpha1.PluginSpec{
+			Spec: greenhousev1alpha1.PluginDefinitionSpec{
 				Description: "test description",
 				Version:     "v1.1.1",
 				HelmChart: &greenhousev1alpha1.HelmChartReference{
@@ -197,7 +197,7 @@ var _ = Describe("Propagation reconciler", Ordered, func() {
 					Version:    "1.0.0",
 				},
 			},
-		}, &plugin.PluginPropagationReconciler{}, false, ""),
+		}, &plugindefinition.PluginDefinitionPropagationReconciler{}, false, ""),
 		Entry("team", &greenhousev1alpha1.Team{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:        "test-team",
@@ -413,12 +413,12 @@ func expectObjectsToMatch(source, target client.Object) {
 	case *greenhousev1alpha1.Cluster:
 		Expect(source.(*greenhousev1alpha1.Cluster).Spec).To(Equal(v.Spec), "stripped cluster should have the same spec")
 		Expect(source).To(BeAssignableToTypeOf(target.(*greenhousev1alpha1.Cluster)), "stripped cluster should have underlying cluster type")
+	case *greenhousev1alpha1.PluginDefinition:
+		Expect(source.(*greenhousev1alpha1.PluginDefinition).Spec).To(Equal(v.Spec), "stripped plugin should have the same spec")
+		Expect(source).To(BeAssignableToTypeOf(target.(*greenhousev1alpha1.PluginDefinition)), "stripped plugin should have underlying plugin type")
 	case *greenhousev1alpha1.Plugin:
-		Expect(source.(*greenhousev1alpha1.Plugin).Spec).To(Equal(v.Spec), "stripped plugin should have the same spec")
-		Expect(source).To(BeAssignableToTypeOf(target.(*greenhousev1alpha1.Plugin)), "stripped plugin should have underlying plugin type")
-	case *greenhousev1alpha1.PluginConfig:
-		Expect(source.(*greenhousev1alpha1.PluginConfig).Spec).To(Equal(v.Spec), "stripped plugin config should have the same spec")
-		Expect(source).To(BeAssignableToTypeOf(target.(*greenhousev1alpha1.PluginConfig)), "stripped plugin config should have underlying plugin config type")
+		Expect(source.(*greenhousev1alpha1.Plugin).Spec).To(Equal(v.Spec), "stripped plugin config should have the same spec")
+		Expect(source).To(BeAssignableToTypeOf(target.(*greenhousev1alpha1.Plugin)), "stripped plugin config should have underlying plugin config type")
 	case *greenhousev1alpha1.Team:
 		Expect(source.(*greenhousev1alpha1.Team).Spec).To(Equal(v.Spec), "stripped team should have the same spec")
 		Expect(source).To(BeAssignableToTypeOf(target.(*greenhousev1alpha1.Team)), "stripped team should have underlying team type")

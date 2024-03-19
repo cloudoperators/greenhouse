@@ -100,7 +100,7 @@ func (o *pluginValidateOptions) run() error {
 }
 
 // validateOptions validates that all required options are set and that the values are valid.
-func validateOptions(plugin *greenhousev1alpha1.Plugin, pluginConfig *greenhousev1alpha1.PluginConfig) error {
+func validateOptions(plugin *greenhousev1alpha1.PluginDefinition, pluginConfig *greenhousev1alpha1.Plugin) error {
 	// Validate that all required options are set.
 	errList := []error{}
 	for _, option := range plugin.Spec.Options {
@@ -129,7 +129,7 @@ func validateOptions(plugin *greenhousev1alpha1.Plugin, pluginConfig *greenhouse
 	}
 }
 
-func validateHelmChart(plugin *greenhousev1alpha1.Plugin, pluginConfig *greenhousev1alpha1.PluginConfig) error {
+func validateHelmChart(plugin *greenhousev1alpha1.PluginDefinition, pluginConfig *greenhousev1alpha1.Plugin) error {
 	if plugin.Spec.HelmChart == nil {
 		return nil
 	}
@@ -147,14 +147,14 @@ func validateHelmChart(plugin *greenhousev1alpha1.Plugin, pluginConfig *greenhou
 	return err
 }
 
-func loadPlugin(path string) (*greenhousev1alpha1.Plugin, error) {
-	var plugin *greenhousev1alpha1.Plugin
+func loadPlugin(path string) (*greenhousev1alpha1.PluginDefinition, error) {
+	var plugin *greenhousev1alpha1.PluginDefinition
 	err := loadAndUnmarshalObject(path, &plugin)
 	return plugin, err
 }
 
-func loadPluginConfig(path string) (*greenhousev1alpha1.PluginConfig, error) {
-	var pluginConfig *greenhousev1alpha1.PluginConfig
+func loadPluginConfig(path string) (*greenhousev1alpha1.Plugin, error) {
+	var pluginConfig *greenhousev1alpha1.Plugin
 	err := loadAndUnmarshalObject(path, &pluginConfig)
 	return pluginConfig, err
 }

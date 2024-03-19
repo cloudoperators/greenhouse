@@ -112,15 +112,15 @@ func TestReconcile(t *testing.T) {
 
 	pm := NewProxyManager()
 	pm.client = fake.NewClientBuilder().WithScheme(scheme).WithObjects(
-		&greenhousev1alpha1.PluginConfig{
+		&greenhousev1alpha1.Plugin{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "plugin1",
 				Namespace: "namespace",
 			},
-			Spec: greenhousev1alpha1.PluginConfigSpec{
+			Spec: greenhousev1alpha1.PluginSpec{
 				ClusterName: "cluster",
 			},
-			Status: greenhousev1alpha1.PluginConfigStatus{
+			Status: greenhousev1alpha1.PluginStatus{
 				ExposedServices: map[string]greenhousev1alpha1.Service{
 					"https://service--namespace--cluster.org.basedomain": {
 						Namespace: "namespace",

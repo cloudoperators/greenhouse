@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package plugin
+package plugindefinition
 
 import (
 	"context"
@@ -27,19 +27,19 @@ import (
 	"github.com/cloudoperators/greenhouse/pkg/controllers"
 )
 
-//+kubebuilder:rbac:groups=greenhouse.sap,resources=plugins,verbs=get;list;watch;create;update;patch;delete
-//+kubebuilder:rbac:groups=greenhouse.sap,resources=plugins/status,verbs=get;update;patch
-//+kubebuilder:rbac:groups=greenhouse.sap,resources=plugins/finalizers,verbs=update
+//+kubebuilder:rbac:groups=greenhouse.sap,resources=plugindefinitions,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups=greenhouse.sap,resources=plugindefinitions/status,verbs=get;update;patch
+//+kubebuilder:rbac:groups=greenhouse.sap,resources=plugindefinitions/finalizers,verbs=update
 //+kubebuilder:rbac:groups="",resources=events,verbs=get;list;watch;create;update;patch
 //+kubebuilder:rbac:groups="",resources=secrets,verbs=get;list;watch;create;update;patch
 
-type PluginPropagationReconciler struct {
+type PluginDefinitionPropagationReconciler struct {
 	controllers.PropagationReconciler
 }
 
-func (r *PluginPropagationReconciler) SetupWithManager(name string, mgr ctrl.Manager) error {
-	r.EmptyObj = &greenhousev1alpha1.Plugin{}
-	r.EmptyObjList = &greenhousev1alpha1.PluginList{}
+func (r *PluginDefinitionPropagationReconciler) SetupWithManager(name string, mgr ctrl.Manager) error {
+	r.EmptyObj = &greenhousev1alpha1.PluginDefinition{}
+	r.EmptyObjList = &greenhousev1alpha1.PluginDefinitionList{}
 	r.CRDName = "plugins.greenhouse.sap"
 	r.StripObjectWrapper = r.StripObject
 	r.HandlerFunc = r.ListObjectsAsReconcileRequests
@@ -47,10 +47,10 @@ func (r *PluginPropagationReconciler) SetupWithManager(name string, mgr ctrl.Man
 	return r.BaseSetupWithManager(name, mgr)
 }
 
-func (r *PluginPropagationReconciler) ListObjectsAsReconcileRequests(ctx context.Context, _ client.Object) []ctrl.Request {
+func (r *PluginDefinitionPropagationReconciler) ListObjectsAsReconcileRequests(ctx context.Context, _ client.Object) []ctrl.Request {
 	res := []ctrl.Request{}
 
-	objList, ok := r.ListObjects(ctx).(*greenhousev1alpha1.PluginList)
+	objList, ok := r.ListObjects(ctx).(*greenhousev1alpha1.PluginDefinitionList)
 	if !ok {
 		log.FromContext(ctx).Error(fmt.Errorf("object %T is not a greenhousev1alpha1.PluginList", objList), "failed to list objects")
 		return res
@@ -63,8 +63,8 @@ func (r *PluginPropagationReconciler) ListObjectsAsReconcileRequests(ctx context
 	return res
 }
 
-func (r *PluginPropagationReconciler) StripObject(in client.Object) (client.Object, error) {
-	obj, ok := in.(*greenhousev1alpha1.Plugin)
+func (r *PluginDefinitionPropagationReconciler) StripObject(in client.Object) (client.Object, error) {
+	obj, ok := in.(*greenhousev1alpha1.PluginDefinition)
 	if !ok {
 		return nil, fmt.Errorf("error: %T is not a plugin", in)
 	}
@@ -80,7 +80,7 @@ func (r *PluginPropagationReconciler) StripObject(in client.Object) (client.Obje
 		Annotations: in.GetAnnotations(),
 	}
 
-	return &greenhousev1alpha1.Plugin{
+	return &greenhousev1alpha1.PluginDefinition{
 		TypeMeta:   typeMeta,
 		ObjectMeta: objectMeta,
 		Spec:       obj.Spec,

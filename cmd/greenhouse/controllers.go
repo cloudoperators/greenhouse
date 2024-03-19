@@ -23,7 +23,7 @@ import (
 
 	clustercontrollers "github.com/cloudoperators/greenhouse/pkg/controllers/cluster"
 	organizationcontrollers "github.com/cloudoperators/greenhouse/pkg/controllers/organization"
-	pluginconfigcontrollers "github.com/cloudoperators/greenhouse/pkg/controllers/pluginconfig"
+	plugincontrollers "github.com/cloudoperators/greenhouse/pkg/controllers/plugin"
 	teamcontrollers "github.com/cloudoperators/greenhouse/pkg/controllers/team"
 	teammembershipcontrollers "github.com/cloudoperators/greenhouse/pkg/controllers/teammembership"
 )
@@ -46,11 +46,11 @@ var knownControllers = map[string]func(controllerName string, mgr ctrl.Manager) 
 	// // RBAC controllers.
 	// "roleBindingController": (&rbaccontrollers.RoleBindingReconciler{}).SetupWithManager,
 
-	// Plugin controllers.
-	// "pluginPropagation": (&plugincontrollers.PluginPropagationReconciler{}).SetupWithManager,
+	// PluginDefinition controllers.
+	// "pluginDefinitionPropagation": (&plugindefinitioncontrollers.PluginDefinitionPropagationReconciler{}).SetupWithManager,
 
-	// PluginConfig controllers.
-	"pluginConfigHelm": (&pluginconfigcontrollers.HelmReconciler{
+	// Plugin controllers.
+	"pluginHelm": (&plugincontrollers.HelmReconciler{
 		KubeRuntimeOpts: kubeClientOpts,
 	}).SetupWithManager,
 

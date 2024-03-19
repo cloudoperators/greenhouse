@@ -78,7 +78,7 @@ func ValidateDeleteTeam(_ context.Context, _ client.Client, _ runtime.Object) (a
 }
 
 func validateGreenhouseLabels(team *greenhousev1alpha1.Team, ctx context.Context, c client.Client) error {
-	plugins := greenhousev1alpha1.PluginList{}
+	plugins := greenhousev1alpha1.PluginDefinitionList{}
 	if err := c.List(ctx, &plugins); !apierrors.IsNotFound(err) && err != nil {
 		return err
 	}

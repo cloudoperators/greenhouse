@@ -5,7 +5,7 @@ metadata:
   name: ingress-nginx
   namespace: {{ .Chart.Name }}
 spec:
-  plugin: ingress-nginx
+  pluginDefinition: ingress-nginx
   disabled: false
   optionValues:
     # Remove after all components were moved to greenhouse namespace.

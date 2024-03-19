@@ -24,12 +24,12 @@ import (
 )
 
 var _ = Describe("Validate Plugin against PluginConfig ", func() {
-	plugin := &greenhousev1alpha1.Plugin{
+	plugin := &greenhousev1alpha1.PluginDefinition{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: "greenhouse",
 			Name:      "testPlugin",
 		},
-		Spec: greenhousev1alpha1.PluginSpec{
+		Spec: greenhousev1alpha1.PluginDefinitionSpec{
 			Options: []greenhousev1alpha1.PluginOption{
 				{
 					Name:    "stringWithDefault",
@@ -51,10 +51,10 @@ var _ = Describe("Validate Plugin against PluginConfig ", func() {
 
 	When("pluginConfig is missing required OptionValues", func() {
 		It("should raise an validation error", func() {
-			pluginConfig := &greenhousev1alpha1.PluginConfig{
-				Spec: greenhousev1alpha1.PluginConfigSpec{
-					Plugin:       "testPlugin",
-					OptionValues: []greenhousev1alpha1.PluginOptionValue{},
+			pluginConfig := &greenhousev1alpha1.Plugin{
+				Spec: greenhousev1alpha1.PluginSpec{
+					PluginDefinition: "testPlugin",
+					OptionValues:     []greenhousev1alpha1.PluginOptionValue{},
 				},
 			}
 			err := validateOptions(plugin, pluginConfig)
@@ -64,9 +64,9 @@ var _ = Describe("Validate Plugin against PluginConfig ", func() {
 
 	When("pluginConfig has OptionValues for all required Options", func() {
 		It("should not return an error", func() {
-			pluginConfig := &greenhousev1alpha1.PluginConfig{
-				Spec: greenhousev1alpha1.PluginConfigSpec{
-					Plugin: "testPlugin",
+			pluginConfig := &greenhousev1alpha1.Plugin{
+				Spec: greenhousev1alpha1.PluginSpec{
+					PluginDefinition: "testPlugin",
 					OptionValues: []greenhousev1alpha1.PluginOptionValue{
 						{
 							Name:  "stringRequired",
@@ -82,9 +82,9 @@ var _ = Describe("Validate Plugin against PluginConfig ", func() {
 
 	When("pluginConfig has OptionValues with wrong types", func() {
 		It("should raise an validation error", func() {
-			pluginConfig := &greenhousev1alpha1.PluginConfig{
-				Spec: greenhousev1alpha1.PluginConfigSpec{
-					Plugin: "testPlugin",
+			pluginConfig := &greenhousev1alpha1.Plugin{
+				Spec: greenhousev1alpha1.PluginSpec{
+					PluginDefinition: "testPlugin",
 					OptionValues: []greenhousev1alpha1.PluginOptionValue{
 						{
 							Name:  "stringRequired",
@@ -100,9 +100,9 @@ var _ = Describe("Validate Plugin against PluginConfig ", func() {
 
 	When("pluginConfig has OptionValues with type secret", func() {
 		It("should raise an validation error if there is no secret reference", func() {
-			pluginConfig := &greenhousev1alpha1.PluginConfig{
-				Spec: greenhousev1alpha1.PluginConfigSpec{
-					Plugin: "testPlugin",
+			pluginConfig := &greenhousev1alpha1.Plugin{
+				Spec: greenhousev1alpha1.PluginSpec{
+					PluginDefinition: "testPlugin",
 					OptionValues: []greenhousev1alpha1.PluginOptionValue{
 						{
 							Name:  "secret",
@@ -115,9 +115,9 @@ var _ = Describe("Validate Plugin against PluginConfig ", func() {
 			Expect(err).To(HaveOccurred(), "expected an error, got nil")
 		})
 		It("should reference a secret", func() {
-			pluginConfig := &greenhousev1alpha1.PluginConfig{
-				Spec: greenhousev1alpha1.PluginConfigSpec{
-					Plugin: "testPlugin",
+			pluginConfig := &greenhousev1alpha1.Plugin{
+				Spec: greenhousev1alpha1.PluginSpec{
+					PluginDefinition: "testPlugin",
 					OptionValues: []greenhousev1alpha1.PluginOptionValue{
 						{
 							Name: "secret",

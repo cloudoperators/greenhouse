@@ -137,7 +137,7 @@ func (pm *ProxyManager) SetupWithManager(name string, mgr ctrl.Manager) error {
 			clientutil.PredicateFilterBySecretType(greenhouseapis.SecretTypeKubeConfig),
 		)).
 		// Watch pluginconfigs to be notified about exposed services
-		Watches(&greenhousev1alpha1.PluginConfig{}, handler.EnqueueRequestsFromMapFunc(enqueuePluginConfigForCluster)).
+		Watches(&greenhousev1alpha1.Plugin{}, handler.EnqueueRequestsFromMapFunc(enqueuePluginConfigForCluster)).
 		Complete(pm)
 }
 
@@ -222,12 +222,12 @@ func (pm *ProxyManager) errorHandler(rw http.ResponseWriter, req *http.Request, 
 	rw.WriteHeader(http.StatusBadGateway)
 }
 
-func (pm *ProxyManager) pluginConfigsForCluster(ctx context.Context, cluster, namespace string) ([]greenhousev1alpha1.PluginConfig, error) {
-	pluginConfigs := new(greenhousev1alpha1.PluginConfigList)
+func (pm *ProxyManager) pluginConfigsForCluster(ctx context.Context, cluster, namespace string) ([]greenhousev1alpha1.Plugin, error) {
+	pluginConfigs := new(greenhousev1alpha1.PluginList)
 	if err := pm.client.List(ctx, pluginConfigs, &client.ListOptions{Namespace: namespace}); err != nil {
 		return nil, fmt.Errorf("failed to list plugin configs: %w", err)
 	}
-	configs := make([]greenhousev1alpha1.PluginConfig, 0)
+	configs := make([]greenhousev1alpha1.Plugin, 0)
 	for _, cfg := range pluginConfigs.Items {
 		//ignore deleted configs
 		if cfg.DeletionTimestamp != nil {
@@ -241,7 +241,7 @@ func (pm *ProxyManager) pluginConfigsForCluster(ctx context.Context, cluster, na
 }
 
 func enqueuePluginConfigForCluster(_ context.Context, o client.Object) []ctrl.Request {
-	pluginConfig, ok := o.(*greenhousev1alpha1.PluginConfig)
+	pluginConfig, ok := o.(*greenhousev1alpha1.Plugin)
 	if !ok {
 		return nil
 	}

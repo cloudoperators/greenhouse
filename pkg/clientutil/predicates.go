@@ -27,7 +27,7 @@ import (
 // PredicatePluginWithHelmSpec filters Plugins without an HelmChart specification.
 var PredicatePluginWithHelmSpec = func() predicate.Funcs {
 	return predicate.NewPredicateFuncs(func(o client.Object) bool {
-		if plugin, ok := o.(*greenhousev1alpha1.Plugin); ok {
+		if plugin, ok := o.(*greenhousev1alpha1.PluginDefinition); ok {
 			return plugin.Spec.HelmChart != nil
 		}
 		return false

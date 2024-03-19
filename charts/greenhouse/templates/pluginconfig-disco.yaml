@@ -5,7 +5,7 @@ metadata:
   name: disco
   namespace: {{ .Chart.Name }}
 spec:
-  plugin: disco
+  pluginDefinition: disco
   disabled: false
   optionValues:
     - name: record

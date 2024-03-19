@@ -32,7 +32,7 @@ import (
 	"github.com/cloudoperators/greenhouse/pkg/test"
 )
 
-var testPluginConfig = &greenhousev1alpha1.PluginConfig{
+var testPluginConfig = &greenhousev1alpha1.Plugin{
 	TypeMeta: metav1.TypeMeta{
 		Kind:       "PluginConfig",
 		APIVersion: greenhousev1alpha1.GroupVersion.String(),
@@ -41,12 +41,12 @@ var testPluginConfig = &greenhousev1alpha1.PluginConfig{
 		Name:      "test-plugin",
 		Namespace: test.TestNamespace,
 	},
-	Spec: greenhousev1alpha1.PluginConfigSpec{
-		Plugin: "test-plugin",
+	Spec: greenhousev1alpha1.PluginSpec{
+		PluginDefinition: "test-plugin",
 	},
 }
 
-var testPCwithSR = &greenhousev1alpha1.PluginConfig{
+var testPCwithSR = &greenhousev1alpha1.Plugin{
 	TypeMeta: metav1.TypeMeta{
 		Kind:       "PluginConfig",
 		APIVersion: greenhousev1alpha1.GroupVersion.String(),
@@ -55,8 +55,8 @@ var testPCwithSR = &greenhousev1alpha1.PluginConfig{
 		Name:      "test-pluginconfig-secretref",
 		Namespace: test.TestNamespace,
 	},
-	Spec: greenhousev1alpha1.PluginConfigSpec{
-		Plugin: "test-plugin",
+	Spec: greenhousev1alpha1.PluginSpec{
+		PluginDefinition: "test-plugin",
 		OptionValues: []greenhousev1alpha1.PluginOptionValue{
 			{
 				Name: "secretValue",
@@ -85,7 +85,7 @@ var testSecret = corev1.Secret{
 	},
 }
 
-var testPlugin = &greenhousev1alpha1.Plugin{
+var testPlugin = &greenhousev1alpha1.PluginDefinition{
 	TypeMeta: metav1.TypeMeta{
 		Kind:       "Plugin",
 		APIVersion: greenhousev1alpha1.GroupVersion.String(),
@@ -94,7 +94,7 @@ var testPlugin = &greenhousev1alpha1.Plugin{
 		Name:      "test-plugin",
 		Namespace: corev1.NamespaceDefault,
 	},
-	Spec: greenhousev1alpha1.PluginSpec{
+	Spec: greenhousev1alpha1.PluginDefinitionSpec{
 		Description: "Testplugin",
 		Version:     "1.0.0",
 		HelmChart: &greenhousev1alpha1.HelmChartReference{

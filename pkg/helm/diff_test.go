@@ -40,17 +40,17 @@ var (
 
 var _ = Describe("ensure helm diff against the release manifest works as expected", func() {
 	var (
-		pluginUT       *greenhousev1alpha1.Plugin
-		pluginConfigUT *greenhousev1alpha1.PluginConfig
+		pluginUT       *greenhousev1alpha1.PluginDefinition
+		pluginConfigUT *greenhousev1alpha1.Plugin
 	)
 
 	BeforeEach(func() {
-		pluginUT = &greenhousev1alpha1.Plugin{
+		pluginUT = &greenhousev1alpha1.PluginDefinition{
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: namespace,
 				Name:      "test-plugin",
 			},
-			Spec: greenhousev1alpha1.PluginSpec{
+			Spec: greenhousev1alpha1.PluginDefinitionSpec{
 				Description: "Testplugin",
 				Version:     "1.0.0",
 				HelmChart: &greenhousev1alpha1.HelmChartReference{
@@ -60,13 +60,13 @@ var _ = Describe("ensure helm diff against the release manifest works as expecte
 				},
 			},
 		}
-		pluginConfigUT = &greenhousev1alpha1.PluginConfig{
+		pluginConfigUT = &greenhousev1alpha1.Plugin{
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: namespace,
 				Name:      "test-plugin-config",
 			},
-			Spec: greenhousev1alpha1.PluginConfigSpec{
-				Plugin: "test-plugin",
+			Spec: greenhousev1alpha1.PluginSpec{
+				PluginDefinition: "test-plugin",
 				OptionValues: []greenhousev1alpha1.PluginOptionValue{
 					{
 						Name:  "enabled",

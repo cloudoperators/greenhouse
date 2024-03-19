@@ -4,7 +4,7 @@ metadata:
   name: cert-manager
   namespace: {{ .Chart.Name }}
 spec:
-  plugin: cert-manager
+  pluginDefinition: cert-manager
   disabled: false
 {{ if .Values.digicertIssuer.enabled }}
   optionValues:

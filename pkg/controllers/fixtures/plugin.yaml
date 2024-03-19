@@ -23,7 +23,7 @@ metadata:
 spec:
   group: greenhouse.sap
   names:
-    kind: Plugin
+    kind: PluginDefinition
     listKind: PluginList
     plural: plugins
     singular: plugin

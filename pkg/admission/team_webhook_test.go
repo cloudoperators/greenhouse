@@ -36,12 +36,12 @@ var _ = Describe("Validate Team Creation", func() {
 	}
 
 	BeforeEach(func() {
-		plugin := greenhousev1alpha1.Plugin{
+		plugin := greenhousev1alpha1.PluginDefinition{
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: "test-org",
 				Name:      "test-plugin-1",
 			},
-			Spec: greenhousev1alpha1.PluginSpec{
+			Spec: greenhousev1alpha1.PluginDefinitionSpec{
 				Description: "Test Plugin 1",
 				HelmChart: &greenhousev1alpha1.HelmChartReference{
 					Name:       "./../../test/fixtures/myChart",
@@ -53,12 +53,12 @@ var _ = Describe("Validate Team Creation", func() {
 		err := test.K8sClient.Create(test.Ctx, &plugin)
 		Expect(err).ToNot(HaveOccurred(), "There should be no error when creating a plugin")
 
-		plugin2 := greenhousev1alpha1.Plugin{
+		plugin2 := greenhousev1alpha1.PluginDefinition{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "test-plugin-2",
 				Namespace: "test-org",
 			},
-			Spec: greenhousev1alpha1.PluginSpec{
+			Spec: greenhousev1alpha1.PluginDefinitionSpec{
 				Description: "Test Plugin 2",
 				HelmChart: &greenhousev1alpha1.HelmChartReference{
 					Name:       "./../../test/fixtures/myChart",

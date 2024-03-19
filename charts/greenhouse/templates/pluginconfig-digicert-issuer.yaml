@@ -5,7 +5,7 @@ metadata:
   name: digicert-issuer
   namespace: {{ .Chart.Name }}
 spec:
-  plugin: digicert-issuer
+  pluginDefinition: digicert-issuer
   disabled: false
   optionValues:
     - name: provisioner.apiToken

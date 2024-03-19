@@ -191,7 +191,7 @@ rules:
 - apiGroups:
   - greenhouse.sap
   resources:
-  - plugins
+  - plugindefinitions
   verbs:
   - create
   - delete
@@ -203,13 +203,13 @@ rules:
 - apiGroups:
   - greenhouse.sap
   resources:
-  - plugins/finalizers
+  - plugindefinitions/finalizers
   verbs:
   - update
 - apiGroups:
   - greenhouse.sap
   resources:
-  - plugins/status
+  - plugindefinitions/status
   verbs:
   - get
   - patch

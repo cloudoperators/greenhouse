@@ -6,7 +6,7 @@ metadata:
   namespace: {{ .Chart.Name }}
 spec:
   disabled: false
-  plugin: doop
+  pluginDefinition: doop
   displayName: {{ required ".Values.doop.displayName missing" .Values.doop.displayName }}
   optionValues:
     - name: apiEndpoint

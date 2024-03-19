@@ -60,7 +60,7 @@ type HelmReconciler struct {
 	kubeClientOpts  []clientutil.KubeClientOption
 }
 
-//+kubebuilder:rbac:groups=greenhouse.sap,resources=plugins,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups=greenhouse.sap,resources=plugindefinitions,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=greenhouse.sap,resources=pluginconfigs,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=greenhouse.sap,resources=pluginconfigs/status;,verbs=get;update;patch
 //+kubebuilder:rbac:groups=greenhouse.sap,resources=pluginconfigs/finalizers,verbs=update
@@ -84,14 +84,14 @@ func (r *HelmReconciler) SetupWithManager(name string, mgr ctrl.Manager) error {
 			RateLimiter: workqueue.NewMaxOfRateLimiter(
 				workqueue.NewItemExponentialFailureRateLimiter(30*time.Second, 1*time.Hour),
 				&workqueue.BucketRateLimiter{Limiter: rate.NewLimiter(rate.Limit(10), 100)})}).
-		For(&greenhousev1alpha1.PluginConfig{}).
+		For(&greenhousev1alpha1.Plugin{}).
 		// If the release was (manually) modified the secret would have been modified. Reconcile it.
 		Watches(&corev1.Secret{},
 			handler.EnqueueRequestsFromMapFunc(enqueuePluginConfigForReleaseSecret),
 			builder.WithPredicates(clientutil.PredicateFilterBySecretType(helmReleaseSecretType), predicate.GenerationChangedPredicate{}),
 		).
 		// If a Plugin was changed, reconcile relevant PluginConfigs.
-		Watches(&greenhousev1alpha1.Plugin{}, handler.EnqueueRequestsFromMapFunc(r.enqueueAllPluginConfigsForPlugin),
+		Watches(&greenhousev1alpha1.PluginDefinition{}, handler.EnqueueRequestsFromMapFunc(r.enqueueAllPluginConfigsForPlugin),
 			builder.WithPredicates(predicate.GenerationChangedPredicate{})).
 		// Clusters and teams are passed as values to each Helm operation. Reconcile on change.
 		Watches(&greenhousev1alpha1.Cluster{}, handler.EnqueueRequestsFromMapFunc(r.enqueueAllPluginConfigs),
@@ -101,7 +101,7 @@ func (r *HelmReconciler) SetupWithManager(name string, mgr ctrl.Manager) error {
 }
 
 func (r *HelmReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	var pluginConfig = new(greenhousev1alpha1.PluginConfig)
+	var pluginConfig = new(greenhousev1alpha1.Plugin)
 	if err := r.Get(ctx, req.NamespacedName, pluginConfig); err != nil {
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
@@ -160,7 +160,7 @@ func (r *HelmReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.
 	return ctrl.Result{}, nil
 }
 
-func initPluginConfigStatus(pluginConfig *greenhousev1alpha1.PluginConfig) greenhousev1alpha1.PluginConfigStatus {
+func initPluginConfigStatus(pluginConfig *greenhousev1alpha1.Plugin) greenhousev1alpha1.PluginStatus {
 	pluginConfigStatus := pluginConfig.Status.DeepCopy()
 	for _, t := range exposedConditions {
 		if pluginConfigStatus.GetConditionByType(t) == nil {
@@ -178,8 +178,8 @@ func initPluginConfigStatus(pluginConfig *greenhousev1alpha1.PluginConfig) green
 // Otherwise, the RestClientGetter is initialized with in-cluster config
 func (r *HelmReconciler) initClientGetter(
 	ctx context.Context,
-	pluginConfig greenhousev1alpha1.PluginConfig,
-	pluginConfigStatus greenhousev1alpha1.PluginConfigStatus,
+	pluginConfig greenhousev1alpha1.Plugin,
+	pluginConfigStatus greenhousev1alpha1.PluginStatus,
 ) (
 	clusterAccessReadyCondition greenhousev1alpha1.Condition,
 	restClientGetter genericclioptions.RESTClientGetter,
@@ -235,7 +235,7 @@ func (r *HelmReconciler) initClientGetter(
 	return clusterAccessReadyCondition, restClientGetter
 }
 
-func (r *HelmReconciler) setStatus(ctx context.Context, pluginConfig *greenhousev1alpha1.PluginConfig, pluginConfigStatus greenhousev1alpha1.PluginConfigStatus) error {
+func (r *HelmReconciler) setStatus(ctx context.Context, pluginConfig *greenhousev1alpha1.Plugin, pluginConfigStatus greenhousev1alpha1.PluginStatus) error {
 	readyCondition := r.computeReadyCondition(pluginConfigStatus.StatusConditions)
 	pluginConfigStatus.StatusConditions.SetConditions(readyCondition)
 	_, err := clientutil.PatchStatus(ctx, r.Client, pluginConfig, func() error {
@@ -247,24 +247,24 @@ func (r *HelmReconciler) setStatus(ctx context.Context, pluginConfig *greenhouse
 
 func (r *HelmReconciler) getPlugin(
 	ctx context.Context,
-	pluginConfig *greenhousev1alpha1.PluginConfig,
+	pluginConfig *greenhousev1alpha1.Plugin,
 ) (
 	helmReconcileFailedCondition greenhousev1alpha1.Condition,
-	plugin *greenhousev1alpha1.Plugin,
+	plugin *greenhousev1alpha1.PluginDefinition,
 ) {
 
 	var err error
-	plugin = new(greenhousev1alpha1.Plugin)
+	plugin = new(greenhousev1alpha1.PluginDefinition)
 	helmReconcileFailedCondition = greenhousev1alpha1.UnknownCondition(greenhousev1alpha1.HelmReconcileFailedCondition, "", "")
 
-	if err = r.Get(ctx, types.NamespacedName{Namespace: pluginConfig.GetNamespace(), Name: pluginConfig.Spec.Plugin}, plugin); err != nil {
+	if err = r.Get(ctx, types.NamespacedName{Namespace: pluginConfig.GetNamespace(), Name: pluginConfig.Spec.PluginDefinition}, plugin); err != nil {
 		helmReconcileFailedCondition.Status = metav1.ConditionTrue
 		helmReconcileFailedCondition.Reason = greenhousev1alpha1.PluginNotFoundReason
 		if apierrors.IsNotFound(err) {
-			helmReconcileFailedCondition.Message = fmt.Sprintf("Plugin %s does not exist", pluginConfig.Spec.Plugin)
+			helmReconcileFailedCondition.Message = fmt.Sprintf("Plugin %s does not exist", pluginConfig.Spec.PluginDefinition)
 			return helmReconcileFailedCondition, nil
 		}
-		helmReconcileFailedCondition.Message = fmt.Sprintf("Failed to get plugin %s: %s", pluginConfig.Spec.Plugin, err.Error())
+		helmReconcileFailedCondition.Message = fmt.Sprintf("Failed to get plugin %s: %s", pluginConfig.Spec.PluginDefinition, err.Error())
 		return helmReconcileFailedCondition, nil
 	}
 	helmReconcileFailedCondition.Status = metav1.ConditionFalse
@@ -276,9 +276,9 @@ func (r *HelmReconciler) getPlugin(
 func (r *HelmReconciler) reconcileHelmRelease(
 	ctx context.Context,
 	restClientGetter genericclioptions.RESTClientGetter,
-	pluginConfig *greenhousev1alpha1.PluginConfig,
-	plugin *greenhousev1alpha1.Plugin,
-	pluginConfigStatus greenhousev1alpha1.PluginConfigStatus,
+	pluginConfig *greenhousev1alpha1.Plugin,
+	plugin *greenhousev1alpha1.PluginDefinition,
+	pluginConfigStatus greenhousev1alpha1.PluginStatus,
 ) (driftDetectedCondition, reconcileFailedCondition greenhousev1alpha1.Condition) {
 
 	driftDetectedCondition = *pluginConfigStatus.GetConditionByType(greenhousev1alpha1.HelmDriftDetectedCondition)
@@ -334,9 +334,9 @@ func (r *HelmReconciler) reconcileHelmRelease(
 
 func (r *HelmReconciler) reconcileStatus(ctx context.Context,
 	restClientGetter genericclioptions.RESTClientGetter,
-	pluginConfig *greenhousev1alpha1.PluginConfig,
-	plugin *greenhousev1alpha1.Plugin,
-	pluginConfigStatus *greenhousev1alpha1.PluginConfigStatus,
+	pluginConfig *greenhousev1alpha1.Plugin,
+	plugin *greenhousev1alpha1.PluginDefinition,
+	pluginConfigStatus *greenhousev1alpha1.PluginStatus,
 ) (
 	statusReconcileCondition greenhousev1alpha1.Condition,
 ) {
@@ -434,7 +434,7 @@ func (r *HelmReconciler) enqueueAllPluginConfigsForPlugin(ctx context.Context, o
 }
 
 func listPluginConfigsAsReconcileRequests(ctx context.Context, c client.Client, listOpts ...client.ListOption) []ctrl.Request {
-	var pluginConfigList = new(greenhousev1alpha1.PluginConfigList)
+	var pluginConfigList = new(greenhousev1alpha1.PluginList)
 	if err := c.List(ctx, pluginConfigList, listOpts...); err != nil {
 		return nil
 	}
@@ -458,7 +458,7 @@ func enqueuePluginConfigForReleaseSecret(_ context.Context, o client.Object) []c
 
 // getExposedServicesForPluginConfigFromHelmRelease returns a map of exposed services for a plugin config from a Helm release.
 // The exposed services are collected from Helm release manifest and not from the template to make sure they are deployed.
-func getExposedServicesForPluginConfigFromHelmRelease(restClientGetter genericclioptions.RESTClientGetter, helmRelease *release.Release, pluginConfig *greenhousev1alpha1.PluginConfig) (map[string]greenhousev1alpha1.Service, error) {
+func getExposedServicesForPluginConfigFromHelmRelease(restClientGetter genericclioptions.RESTClientGetter, helmRelease *release.Release, pluginConfig *greenhousev1alpha1.Plugin) (map[string]greenhousev1alpha1.Service, error) {
 	// Collect exposed services from the manifest.
 	exposedServiceList, err := helm.ObjectMapFromRelease(restClientGetter, helmRelease, &helm.ManifestObjectFilter{
 		APIVersion: "v1",

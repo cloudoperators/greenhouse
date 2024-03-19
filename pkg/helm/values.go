@@ -26,9 +26,9 @@ import (
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/pkg/apis/greenhouse/v1alpha1"
 )
 
-func GetPluginOptionValuesForPluginConfig(ctx context.Context, c client.Client, pluginConfig *greenhousev1alpha1.PluginConfig) ([]greenhousev1alpha1.PluginOptionValue, error) {
-	var plugin = new(greenhousev1alpha1.Plugin)
-	if err := c.Get(ctx, types.NamespacedName{Namespace: "", Name: pluginConfig.Spec.Plugin}, plugin); err != nil {
+func GetPluginOptionValuesForPlugin(ctx context.Context, c client.Client, pluginConfig *greenhousev1alpha1.Plugin) ([]greenhousev1alpha1.PluginOptionValue, error) {
+	var plugin = new(greenhousev1alpha1.PluginDefinition)
+	if err := c.Get(ctx, types.NamespacedName{Namespace: "", Name: pluginConfig.Spec.PluginDefinition}, plugin); err != nil {
 		return nil, err
 	}
 	values := mergePluginAndPluginConfigOptionValueSlice(plugin.Spec.Options, pluginConfig.Spec.OptionValues)
@@ -84,7 +84,7 @@ greenhouse:
 	teams:
 	  - <name>
 */
-func getGreenhouseValues(ctx context.Context, c client.Client, pc greenhousev1alpha1.PluginConfig) ([]greenhousev1alpha1.PluginOptionValue, error) {
+func getGreenhouseValues(ctx context.Context, c client.Client, pc greenhousev1alpha1.Plugin) ([]greenhousev1alpha1.PluginOptionValue, error) {
 	greenhouseValues := make([]greenhousev1alpha1.PluginOptionValue, 0)
 	// TODO: RBAC restriction to allowed clusters for organization.
 	var clusterList = new(greenhousev1alpha1.ClusterList)
