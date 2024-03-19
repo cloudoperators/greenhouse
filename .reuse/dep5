@@ -1,9 +1,7 @@
 Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
-
 Upstream-Name: Greenhouse
 Upstream-Contact: Arno Uhlig <arno.uhlig@sap.com>
 Source: https://github.com/cloudoperators/greenhouse
-
 Disclaimer: The code in this project may include calls to APIs ("API Calls") of
  SAP or third-party products or services developed outside of this project
  ("External Products").
@@ -26,7 +24,6 @@ Disclaimer: The code in this project may include calls to APIs ("API Calls") of
  you any rights to use or access any SAP External Product, or provide any third
  parties the right to use of access any SAP External Product, through API Calls.
 
-Files: *.*
-
+Files: *
 Copyright: 2024-2026 SAP SE or an SAP affiliate company and Greenhouse contributors
 License: Apache-2.0
