@@ -5,6 +5,7 @@ const createGlobalsSlice = (set, get) => ({
     loggedIn: false,
     authData: null,
     pluginConfig: null,
+    showDetailsFor: null,
 
     actions: {
       setUrlStateKey: (newUrlStateKey) =>

@@ -29,7 +29,6 @@ const PluginDetail = () => {
   const [plugin, setPlugin] = useState(null)
 
   useEffect(() => {
-    console.log(showDetailsFor)
     if (!showDetailsFor || !pluginConfig) {
       return
     }

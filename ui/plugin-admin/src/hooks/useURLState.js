@@ -1,22 +1,22 @@
 import { useLayoutEffect, useEffect, useState } from "react"
 import { registerConsumer } from "url-state-provider"
 import {
-  useAuthLoggedIn,
+  useLoggedIn,
   useAuthData,
   useGlobalsActions,
   useShowDetailsFor,
-} from "./useAppStore"
+} from "../components/StoreProvider"
 
 const urlStateManager = registerConsumer("plugin-admin")
 const DETAILS_FOR = "d"
 
 const useUrlState = () => {
   const [isURLRead, setIsURLRead] = useState(false)
-  const loggedIn = useAuthLoggedIn()
+  const loggedIn = useLoggedIn()
   const authData = useAuthData()
 
   const { setPluginConfig, setShowDetailsFor } = useGlobalsActions()
-  const useShowDetailsFor = useShowDetailsFor()
+  const detailsFor = useShowDetailsFor()
 
   // Set initial state from URL (on login)
   // useLayoutEffect so this is done before rendering anything
