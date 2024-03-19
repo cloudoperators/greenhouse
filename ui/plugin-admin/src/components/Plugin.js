@@ -50,7 +50,6 @@ const Plugin = (props) => {
       </DataGridCell>
       <DataGridCell>
         <p>
-          {console.log(plugin.readyStatus)}
           <Icon
             icon={plugin.readyStatus?.icon}
             color={plugin.readyStatus?.color}

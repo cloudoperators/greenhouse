@@ -1,0 +1,44 @@
+[
+  {
+    "metadata": {
+      "name": "test"
+    },
+    "spec": {
+      "clusterName": "monitoring",
+      "disabled": false,
+      "displayName": "Test",
+      "optionValues": [
+        { "name": "value1", "value": true },
+        {
+          "name": "greenhouse.value2",
+          "value": "hidden"
+        }
+      ]
+    },
+    "status": {
+      "exposedServices": {
+        "https://exposed-service-monitoring--ccloud--monitoring.ccloud.greenhouse-qa.eu-nl-1.cloud.sap": {
+          "name": "exposed-service-monitoring",
+          "namespace": "ccloud",
+          "port": 8080
+        }
+      },
+      "statusConditions": {
+        "conditions": [
+          {
+            "lastTransitionTime": "2024-03-06T13:38:23Z",
+            "message": "ready",
+            "status": "True",
+            "type": "Ready"
+          },
+          {
+            "lastTransitionTime": "2024-03-06T13:38:23Z",
+            "status": "True",
+            "type": "ClusterAccessReady"
+          }
+        ]
+      },
+      "version": "1.6.0"
+    }
+  }
+]

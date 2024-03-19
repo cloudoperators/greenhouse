@@ -5,6 +5,59 @@ import { useGlobalsActions } from "../components/StoreProvider"
 
 import { getResourceStatusFromKubernetesConditions } from "../../../utils/resourceStatus"
 
+export const buildExternalServicesUrls = (exposedServices) => {
+  // extract url and the name from the object and create a link
+  if (!exposedServices) return null
+
+  const links = []
+  for (const url in exposedServices) {
+    const currentObject = exposedServices[url]
+
+    links.push({
+      url: url,
+      name: currentObject.name ? currentObject.name : url,
+    })
+  }
+
+  return links
+}
+
+export const createPluginConfig = (items) => {
+  let allPlugins = []
+  items.forEach((item) => {
+    const id = item.metadata.name
+    const name = item.spec?.displayName
+      ? item.spec.displayName
+      : item.metadata?.name
+    const disabled = item.spec?.disabled
+    const version = item.status?.version
+    const clusterName = item.spec?.clusterName
+    const externalServicesUrls = buildExternalServicesUrls(
+      item.status?.exposedServices
+    )
+    const statusConditions = item.status?.statusConditions.conditions
+    const readyStatus =
+      getResourceStatusFromKubernetesConditions(statusConditions)
+    const optionValues = item.spec?.optionValues
+    const raw = item
+
+    if (!disabled) {
+      allPlugins.push({
+        id,
+        name,
+        version,
+        clusterName,
+        externalServicesUrls,
+        statusConditions,
+        readyStatus,
+        optionValues,
+        raw,
+      })
+    }
+  })
+  return allPlugins
+}
+
 export const useAPI = () => {
   const { client } = useClient()
   const authData = useAuthData()
@@ -19,23 +72,6 @@ export const useAPI = () => {
     return orgString.split(":")[1]
   }, [authData?.raw?.groups])
 
-  const buildExternalServicesUrls = (exposedServices) => {
-    // extract url and the name from the object and create a link
-    if (!exposedServices) return null
-
-    const links = []
-    for (const url in exposedServices) {
-      const currentObject = exposedServices[url]
-
-      links.push({
-        url: url,
-        name: currentObject.name ? currentObject.name : url,
-      })
-    }
-
-    return links
-  }
-
   const getPlugins = useCallback(() => {
     if (!client || !namespace) return
 
@@ -47,40 +83,7 @@ export const useAPI = () => {
         }
       )
       .then((items) => {
-        let allPlugins = []
-
-        items?.items?.forEach((item) => {
-          const id = item.metadata.name
-          const name = item.spec?.displayName
-            ? item.spec.displayName
-            : item.metadata?.name
-          const disabled = item.spec?.disabled
-          const version = item.status?.version
-          const clusterName = item.spec?.clusterName
-          const externalServicesUrls = buildExternalServicesUrls(
-            item.status?.exposedServices
-          )
-          const statusConditions = item.status?.statusConditions.conditions
-          const readyStatus =
-            getResourceStatusFromKubernetesConditions(statusConditions)
-          const optionValues = item.spec?.optionValues
-          const raw = item
-
-          if (!disabled) {
-            allPlugins.push({
-              id,
-              name,
-              version,
-              clusterName,
-              externalServicesUrls,
-              statusConditions,
-              readyStatus,
-              optionValues,
-              raw,
-            })
-          }
-        })
-        setPluginConfig(allPlugins)
+        setPluginConfig(createPluginConfig(items?.items))
       })
       .catch((e) => {
         console.error("ERROR: Failed to get resource", e)
