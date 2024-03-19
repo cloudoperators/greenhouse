@@ -1,5 +1,9 @@
-import React from "react"
-import { useShowDetailsFor, useGlobalsActions } from "./StoreProvider"
+import React, { useEffect, useState } from "react"
+import {
+  useShowDetailsFor,
+  useGlobalsActions,
+  usePluginConfig,
+} from "./StoreProvider"
 import {
   CodeBlock,
   Container,
@@ -19,15 +23,25 @@ import {
 } from "juno-ui-components"
 
 const PluginDetail = () => {
-  const plugin = useShowDetailsFor()
+  const pluginConfig = usePluginConfig()
   const { setShowDetailsFor } = useGlobalsActions()
+  const showDetailsFor = useShowDetailsFor()
+  const [plugin, setPlugin] = useState(null)
+
+  useEffect(() => {
+    console.log(showDetailsFor)
+    if (!showDetailsFor || !pluginConfig) {
+      return
+    }
+    setPlugin(pluginConfig.find((p) => p.id === showDetailsFor))
+  }, [showDetailsFor, pluginConfig])
 
   const onPanelClose = () => {
     setShowDetailsFor(null)
   }
 
   return (
-    <Panel opened={!!plugin} onClose={onPanelClose} size="large">
+    <Panel opened={!!showDetailsFor} onClose={onPanelClose} size="large">
       <PanelBody>
         <Tabs>
           <TabList>
@@ -84,7 +98,7 @@ const PluginDetail = () => {
                     </Stack>
                   </DataGridCell>
                 </DataGridRow>
-                {plugin?.optionValues.map((option) => {
+                {plugin?.optionValues?.map((option) => {
                   if (option?.name.startsWith("greenhouse.")) return null
 
                   return (

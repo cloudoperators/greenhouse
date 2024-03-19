@@ -25,7 +25,7 @@ const PluginList = () => {
       )}
       {pluginConfig?.length > 0 ? (
         pluginConfig?.map((plugin) => {
-          return <Plugin key={plugin.name} plugin={plugin} />
+          return <Plugin key={plugin.id} plugin={plugin} />
         })
       ) : (
         <DataGridRow className="no-hover">

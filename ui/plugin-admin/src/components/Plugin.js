@@ -1,6 +1,6 @@
 import React from "react"
 import { DataGridRow, DataGridCell } from "juno-ui-components"
-import { useGlobalsActions } from "./StoreProvider"
+import { useGlobalsActions, usePluginConfig } from "./StoreProvider"
 
 import { Icon } from "juno-ui-components"
 
@@ -9,7 +9,7 @@ const Plugin = (props) => {
   const { setShowDetailsFor } = useGlobalsActions()
 
   const showDetails = () => {
-    setShowDetailsFor(plugin)
+    setShowDetailsFor(plugin.id)
   }
 
   const buildExternalServicesUrls = () => {
@@ -42,11 +42,9 @@ const Plugin = (props) => {
       <DataGridCell>
         {plugin.externalServicesUrls?.map((url) => {
           return (
-            <p>
-              <a href={url.url} target="_blank" rel="noreferrer">
-                {url.name}
-              </a>
-            </p>
+            <a href={url.url} target="_blank" rel="noreferrer">
+              {url.name}
+            </a>
           )
         })}
       </DataGridCell>

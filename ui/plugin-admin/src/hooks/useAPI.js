@@ -1,6 +1,6 @@
 import { useCallback, useMemo } from "react"
 import useClient from "./useClient"
-import { useAuthData, usePluginConfig } from "../components/StoreProvider"
+import { useAuthData } from "../components/StoreProvider"
 import { useGlobalsActions } from "../components/StoreProvider"
 
 import { getResourceStatusFromKubernetesConditions } from "../../../utils/resourceStatus"
@@ -8,7 +8,6 @@ import { getResourceStatusFromKubernetesConditions } from "../../../utils/resour
 export const useAPI = () => {
   const { client } = useClient()
   const authData = useAuthData()
-
   const { setPluginConfig } = useGlobalsActions()
 
   const namespace = useMemo(() => {
@@ -51,6 +50,7 @@ export const useAPI = () => {
         let allPlugins = []
 
         items?.items?.forEach((item) => {
+          const id = item.metadata.name
           const name = item.spec?.displayName
             ? item.spec.displayName
             : item.metadata?.name
@@ -68,6 +68,7 @@ export const useAPI = () => {
 
           if (!disabled) {
             allPlugins.push({
+              id,
               name,
               version,
               clusterName,
