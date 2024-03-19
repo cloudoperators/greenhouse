@@ -84,14 +84,20 @@ const PluginDetail = () => {
                     </Stack>
                   </DataGridCell>
                 </DataGridRow>
-                <DataGridRow>
-                  <DataGridHeadCell>optionValues</DataGridHeadCell>
-                  <DataGridCell>
-                    <CodeBlock>
-                      <JsonViewer data={plugin?.optionValues} expanded={true} />
-                    </CodeBlock>
-                  </DataGridCell>
-                </DataGridRow>
+                {plugin?.optionValues.map((option) => {
+                  if (option?.name.startsWith("greenhouse.")) return null
+
+                  return (
+                    <DataGridRow>
+                      <DataGridHeadCell>{option?.name}</DataGridHeadCell>
+                      <DataGridCell>
+                        <CodeBlock>
+                          <JsonViewer data={option?.value} expanded={true} />
+                        </CodeBlock>
+                      </DataGridCell>
+                    </DataGridRow>
+                  )
+                })}
               </DataGrid>
             </Container>
           </TabPanel>
