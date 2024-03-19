@@ -29,7 +29,6 @@ header:
     - '**/*.lock'
     - '**/*.json'
     - '**/.gitkeep'
-    - '**/*.jsx'
     - '**/*.txt'
     - '*Dockerfile*'
     - 'Makefile'
