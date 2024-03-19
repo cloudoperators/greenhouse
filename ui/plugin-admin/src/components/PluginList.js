@@ -14,7 +14,12 @@ const PluginList = () => {
   const pluginConfig = usePluginConfig()
 
   return (
-    <DataGrid columns={4} cellVerticalAlignment="top" className="plugins">
+    <DataGrid
+      columns={4}
+      cellVerticalAlignment="top"
+      className="plugins"
+      minContentColumns={[3]}
+    >
       {pluginConfig && (
         <DataGridRow>
           <DataGridHeadCell>Name</DataGridHeadCell>
