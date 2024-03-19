@@ -13,6 +13,9 @@ import (
 
 // PluginSpec defines the desired state of Plugin
 type PluginSpec struct {
+	// DisplayName provides a human-readable label for the plugin
+	DisplayName string `json:"displayName,omitempty"`
+
 	// Description provides additional details of the plugin.
 	Description string `json:"description,omitempty"`
 
@@ -31,6 +34,16 @@ type PluginSpec struct {
 	// Weight configures the order in which Plugins are shown in the Greenhouse UI.
 	// Defaults to alphabetical sorting if not provided or on conflict.
 	Weight *int32 `json:"weight,omitempty"`
+
+	// Icon specifies the icon to be used for this plugin in the Greenhouse UI.
+	// Icons can be either:
+	// - A string representing a juno icon in camel case from this list: https://github.com/sapcc/juno/blob/main/libs/juno-ui-components/src/components/Icon/Icon.component.js#L6-L52
+	// - A publicly accessable image reference to a .png, .jpg or .jpeg file. Will be displayed 100x100px
+	Icon string `json:"icon,omitempty"`
+
+	// DocMarkDownUrl specifies the URL to the markdown documentation file for this plugin.
+	// Source needs to allow all CORS origins.
+	DocMarkDownUrl string `json:"docMarkDownUrl,omitempty"`
 }
 
 // PluginOptionType specifies the type of PluginOption.
