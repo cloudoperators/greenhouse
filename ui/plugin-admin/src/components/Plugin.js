@@ -43,7 +43,7 @@ const Plugin = (props) => {
         {plugin.externalServicesUrls?.map((url) => {
           return (
             <a href={url.url} target="_blank" rel="noreferrer">
-              {url.name}
+              {url.name + " "}
             </a>
           )
         })}

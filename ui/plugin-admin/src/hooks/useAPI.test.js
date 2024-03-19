@@ -3,11 +3,18 @@ import { describe, expect, test } from "@jest/globals"
 import { createPluginConfig } from "./useAPI"
 
 describe("useAPI", () => {
-  test("createPluginConfig", () => {
+  test("createPluginConfig with all important fields", () => {
     const items = db1
-
     const result = createPluginConfig(items)
     expect(result).toEqual(res1)
+  })
+})
+
+describe("useAPI", () => {
+  test("createPluginConfig ith just metadata name", () => {
+    const items = db2
+    const result = createPluginConfig(items)
+    expect(result).toEqual(res2)
   })
 })
 
@@ -32,6 +39,9 @@ const db1 = [
       exposedServices: {
         "https://example.com": {
           name: "exposed-service",
+        },
+        "https://example.org": {
+          a: "b",
         },
       },
       statusConditions: {
@@ -62,6 +72,10 @@ const res1 = [
       {
         url: "https://example.com",
         name: "exposed-service",
+      },
+      {
+        url: "https://example.org",
+        name: "https://example.org",
       },
     ],
     statusConditions: [
@@ -101,6 +115,10 @@ const res1 = [
           "https://example.com": {
             name: "exposed-service",
           },
+
+          "https://example.org": {
+            a: "b",
+          },
         },
         statusConditions: {
           conditions: [
@@ -118,5 +136,31 @@ const res1 = [
         version: "1.6.0",
       },
     },
+  },
+]
+
+const db2 = [
+  {
+    metadata: {
+      name: "test",
+    },
+  },
+]
+
+const res2 = [
+  {
+    clusterName: undefined,
+    externalServicesUrls: null,
+    id: "test",
+    name: "test",
+    optionValues: undefined,
+    raw: {
+      metadata: {
+        name: "test",
+      },
+    },
+    readyStatus: null,
+    statusConditions: undefined,
+    version: undefined,
   },
 ]

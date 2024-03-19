@@ -36,8 +36,9 @@ export const createPluginConfig = (items) => {
       item.status?.exposedServices
     )
     const statusConditions = item.status?.statusConditions.conditions
-    const readyStatus =
-      getResourceStatusFromKubernetesConditions(statusConditions)
+    const readyStatus = statusConditions
+      ? getResourceStatusFromKubernetesConditions(statusConditions)
+      : null
     const optionValues = item.spec?.optionValues
     const raw = item
 
