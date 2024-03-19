@@ -1,0 +1,37 @@
+import { components } from "./schema"
+
+export type Cluster = components["schemas"]["Cluster"]
+export type Plugin = components["schemas"]["Plugin"]
+export type PluginConfig = components["schemas"]["PluginConfig"]
+export type UpdateClusterInput = {
+  clusters: Cluster[]
+  action: UpdateObjectAction
+}
+export type UpdatePluginInput = {
+  plugins: Plugin[]
+  action: UpdateObjectAction
+}
+export enum UpdateObjectAction {
+  "add",
+  "delete",
+}
+
+export type ResourceStatus = {
+  state: string
+  color: string
+  icon: string
+  message?: string
+}
+
+export enum ResourceStatusCondition {
+  "ready",
+  "unkown",
+  "notReady",
+}
+
+export type KubernetesCondition = {
+  type: string
+  status: string
+  message?: string
+  lastTransitionTime?: string
+}

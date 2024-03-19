@@ -1,0 +1,7 @@
+apiVersion: greenhouse.sap/v1alpha1
+kind: Organization
+metadata:
+  name: test-org
+spec:
+  description: Test organization
+  mappedOrgAdminIdPGroup: TEST_ORG_ADMIN

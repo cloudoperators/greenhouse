@@ -1,0 +1,102 @@
+apiVersion: greenhouse.sap/v1alpha1
+kind: PluginConfig
+metadata:
+  name: test-pluginconfig-cluster-1
+  namespace: test-org
+spec:
+  plugin: test-plugin
+  disabled: false
+  clusterName: "cluster-1"
+  optionValues:
+    - name: requiredValue
+      value: myRequiredStringValue
+    - name: notRequiredValue
+      value: 
+      - myNotRequiredValue
+    - name: notRequiredButDefaultedValue
+      value: myNotRequiredButDefaultedValue
+    - name: requiredBool
+      value: true
+---
+apiVersion: greenhouse.sap/v1alpha1
+kind: PluginConfig
+metadata:
+  name: test-pluginconfig-cluster-2
+  namespace: test-org
+spec:
+  plugin: test-plugin
+  disabled: false
+  clusterName: "cluster-2"
+  optionValues:
+    - name: requiredValue
+      value: myRequiredStringValue
+    - name: notRequiredValue
+      value: 
+      - myNotRequiredValue
+    - name: notRequiredButDefaultedValue
+      value: myNotRequiredButDefaultedValue
+    - name: requiredBool
+      value: true
+
+---
+apiVersion: greenhouse.sap/v1alpha1
+kind: PluginConfig
+metadata:
+  name: test-pluginconfig-2-cluster-2
+  namespace: test-org
+spec:
+  plugin: test-plugin-with-markdown
+  disabled: false
+  clusterName: "cluster-2"
+  optionValues:
+    - name: requiredValue
+      value: myRequiredStringValue
+    - name: notRequiredValue
+      value: 
+      - myNotRequiredValue
+    - name: notRequiredButDefaultedValue
+      value: myNotRequiredButDefaultedValue
+    - name: requiredBool
+      value: true
+
+---
+apiVersion: greenhouse.sap/v1alpha1
+kind: PluginConfig
+metadata:
+  name: test-pluginconfig-cluster-3
+  namespace: test-org
+spec:
+  plugin: test-plugin
+  disabled: false
+  clusterName: "cluster-3"
+  optionValues:
+    - name: requiredValue
+      value: myRequiredStringValue
+    - name: notRequiredValue
+      value: 
+      - myNotRequiredValue
+    - name: notRequiredButDefaultedValue
+      value: myNotRequiredButDefaultedValue
+    - name: requiredBool
+      value: true
+
+---
+apiVersion: greenhouse.sap/v1alpha1
+kind: PluginConfig
+metadata:
+  name: test-pluginconfig-2-cluster-3
+  namespace: test-org
+spec:
+  plugin: test-plugin-with-markdown
+  disabled: false
+  clusterName: "cluster-3"
+  optionValues:
+    - name: requiredValue
+      value: myRequiredStringValue
+    - name: notRequiredValue
+      value: 
+      - myNotRequiredValue
+    - name: notRequiredButDefaultedValue
+      value: myNotRequiredButDefaultedValue
+    - name: requiredBool
+      value: true 

@@ -1,0 +1,102 @@
+{
+  "name": "greenhouse-plugin-admin",
+  "version": "0.0.1",
+  "author": "Services-Team",
+  "contributors": [
+    "Uwe Mayer"
+  ],
+  "repository": "https://github.com/cloudoperators/greenhouse/tree/main/ui/plugin-admin",
+  "appPreview": true,
+  "source": "src/index.js",
+  "module": "build/index.js",
+  "license": "Apache-2.0",
+  "private": true,
+  "devDependencies": {
+    "@babel/core": "^7.20.2",
+    "@babel/preset-env": "^7.20.2",
+    "@babel/preset-react": "^7.18.6",
+    "@babel/preset-typescript": "^7.23.2",
+    "@svgr/core": "^7.0.0",
+    "@svgr/plugin-jsx": "^7.0.0",
+    "@tanstack/react-query": "4.28.0",
+    "@testing-library/dom": "^8.19.0",
+    "@testing-library/jest-dom": "^5.16.5",
+    "@testing-library/react": "^13.4.0",
+    "@testing-library/user-event": "^14.4.3",
+    "assert": "^2.0.0",
+    "autoprefixer": "^10.4.2",
+    "babel-jest": "^29.3.1",
+    "babel-plugin-transform-import-meta": "^2.2.0",
+    "communicator": "https://assets.juno.global.cloud.sap/libs/communicator@2.2.5/package.tgz",
+    "esbuild": "^0.17.19",
+    "eslint-plugin-react-hooks": "^4.6.0",
+    "jest": "^29.7.0",
+    "jest-environment-jsdom": "^29.3.1",
+    "juno-ui-components": "https://assets.juno.global.cloud.sap/libs/juno-ui-components@latest/package.tgz",
+    "postcss": "^8.4.21",
+    "postcss-url": "^10.1.3",
+    "prop-types": "^15.8.1",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "react-test-renderer": "^18.2.0",
+    "sapcc-k8sclient": "^1.0.2",
+    "sass": "^1.60.0",
+    "shadow-dom-testing-library": "^1.7.1",
+    "tailwindcss": "^3.3.1",
+    "url-state-provider": "https://assets.juno.global.cloud.sap/libs/url-state-provider@latest/package.tgz",
+    "util": "^0.12.4",
+    "zustand": "^4.1.1"
+  },
+  "peerDependencies": {
+    "@tanstack/react-query": "^4.28.0",
+    "juno-ui-components": "*",
+    "prop-types": "^15.8.1",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "url-state-provider": "*",
+    "zustand": "^4.1.1"
+  },
+  "importmapExtras": {
+    "react/jsx-runtime": "*"
+  },
+  "scripts": {
+    "test": "jest",
+    "manifests": "./scripts/manifests.sh",
+    "start": "NODE_ENV=development node esbuild.config.js --serve --watch",
+    "build": "NODE_ENV=production node esbuild.config.js"
+  },
+  "appProps": {
+    "theme": {
+      "value": "theme-dark",
+      "type": "optional",
+      "description": "Override the default theme. Possible values are theme-light or theme-dark (default)"
+    },
+    "endpoint": {
+      "value": "",
+      "type": "required",
+      "description": "Endpoint URL of the API"
+    },
+    "embedded": {
+      "value": "false",
+      "type": "optional",
+      "description": "Set to true if app is to be embedded in another existing app or page, like e.g. Elektra.  If set to true the app won't render a page header/footer and instead render only the content. The default value is false."
+    }
+  },
+  "dependencies": {
+    "@types/jest": "^27.5.2",
+    "@types/node": "^16.18.58",
+    "@types/react": "^18.2.27",
+    "@types/react-dom": "^18.2.12",
+    "interweave": "^13.1.0",
+    "postcss-url": "^10.1.3",
+    "react-accessible-accordion": "^5.0.0",
+    "react-markdown": "^9.0.1",
+    "react-svg": "^16.1.33",
+    "rehype-raw": "^7.0.0",
+    "ts-luxon": "^4.4.0",
+    "typescript": "^5.2.2"
+  },
+  "appDependencies": {
+    "auth": "latest"
+  }
+}

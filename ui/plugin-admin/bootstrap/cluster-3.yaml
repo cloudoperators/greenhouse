@@ -1,0 +1,23 @@
+apiVersion: greenhouse.sap/v1alpha1
+kind: Cluster
+metadata:
+  name: cluster-2
+  namespace: test-org
+  labels:
+    cluster: cluster-2
+    regions: test-region
+spec:
+  accessMode: direct
+
+---
+
+apiVersion: greenhouse.sap/v1alpha1
+kind: Cluster
+metadata:
+  name: cluster-4
+  namespace: test-org
+  labels:
+    cluster: cluster-4
+    regions: test-region
+spec:
+  accessMode: direct

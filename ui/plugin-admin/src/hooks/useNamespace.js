@@ -1,0 +1,16 @@
+import React, { useMemo } from "react"
+import useStore from "../store"
+
+export const useNamespace = () => {
+  const authData = useStore((state) => state.auth)
+
+  const namespace = useMemo(() => {
+    const orgString = authData?.parsed?.organizations
+    if (!orgString) return null
+    return orgString
+  }, [authData?.parsed?.organizations])
+
+  return { namespace }
+}
+
+export default useNamespace
