@@ -85,61 +85,59 @@ func (r *RoleBindingReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 	_ = log.FromContext(ctx)
 
 	if roleBinding.DeletionTimestamp != nil && controllerutil.ContainsFinalizer(roleBinding, extensionsgreenhouse.FinalizerCleanupRoleBinding) {
-		deletionSuccessful := true
-		clusters, err := getClusters(ctx, r.Client, roleBinding)
+		deletionSuccessful := false
+		cluster, err := getCluster(ctx, r.Client, roleBinding)
 		if err != nil {
-			r.recorder.Eventf(roleBinding, corev1.EventTypeNormal, extensionsgreenhousev1alpha1.ClusterNotFoundReason, "Error listing clusters for RoleBinding %s", roleBinding.GetName)
+			r.recorder.Eventf(roleBinding, corev1.EventTypeNormal, extensionsgreenhousev1alpha1.ClusterNotFoundReason, "Error retrieving cluster for RoleBinding %s", roleBinding.GetName)
 			return ctrl.Result{}, err
 		}
 
-		for _, cluster := range clusters {
-			cluster := cluster
-			remoteRestClient, err := getK8sClient(ctx, r.Client, &cluster)
-			if err != nil {
-				log.FromContext(ctx).Error(err, "Error getting client for cluster %s to delete RoleBinding %s", cluster.GetName(), roleBinding.GetName())
-			}
+		remoteRestClient, err := getK8sClient(ctx, r.Client, cluster)
+		if err != nil {
+			log.FromContext(ctx).Error(err, "Error getting client for cluster %s to delete RoleBinding %s", cluster.GetName(), roleBinding.GetName())
+		}
 
-			switch len(roleBinding.Spec.Namespaces) > 0 {
-			case true:
-				for _, namespace := range roleBinding.Spec.Namespaces {
-					remoteObjectKey := types.NamespacedName{Name: roleBinding.GetName(), Namespace: namespace}
-					remoteObject := &rbacv1.RoleBinding{}
-					err := remoteRestClient.Get(ctx, remoteObjectKey, remoteObject)
-					switch {
-					case apierrors.IsNotFound(err):
-						continue
-					case !apierrors.IsNotFound(err) && err != nil:
-						r.recorder.Eventf(roleBinding, corev1.EventTypeWarning, extensionsgreenhousev1alpha1.FailedDeleteRoleBindingReason, "Error retrieving RoleBinding %s for cluster %s in namespace %s", roleBinding.GetName(), cluster.GetName(), namespace)
-						// TODO(d059176): collect errors and return them
-						deletionSuccessful = false
-						continue
-					}
-					if err := remoteRestClient.Delete(ctx, remoteObject); err != nil {
-						r.recorder.Eventf(roleBinding, corev1.EventTypeWarning, extensionsgreenhousev1alpha1.FailedDeleteRoleBindingReason, "Error deleting RoleBinding %s for cluster %s in namespace %s", roleBinding.GetName(), cluster.GetName(), namespace)
-						// TODO(d059176): collect errors and return them
-						deletionSuccessful = false
-					}
-				}
-			case false:
-				remoteObjectKey := types.NamespacedName{Name: roleBinding.GetName()}
-				remoteObject := &rbacv1.ClusterRoleBinding{}
+		switch len(roleBinding.Spec.Namespaces) > 0 {
+		case true:
+			for _, namespace := range roleBinding.Spec.Namespaces {
+				remoteObjectKey := types.NamespacedName{Name: roleBinding.GetName(), Namespace: namespace}
+				remoteObject := &rbacv1.RoleBinding{}
 				err := remoteRestClient.Get(ctx, remoteObjectKey, remoteObject)
 				switch {
 				case apierrors.IsNotFound(err):
-					continue
+					return ctrl.Result{}, err
 				case !apierrors.IsNotFound(err) && err != nil:
-					r.recorder.Eventf(roleBinding, corev1.EventTypeWarning, extensionsgreenhousev1alpha1.FailedDeleteRoleBindingReason, "Error retrieving ClusterRoleBinding %s for cluster %s", roleBinding.GetName, cluster.GetName())
+					r.recorder.Eventf(roleBinding, corev1.EventTypeWarning, extensionsgreenhousev1alpha1.FailedDeleteRoleBindingReason, "Error retrieving RoleBinding %s for cluster %s in namespace %s", roleBinding.GetName(), cluster.GetName(), namespace)
 					// TODO(d059176): collect errors and return them
-					deletionSuccessful = false
-					continue
+					return ctrl.Result{}, err
 				}
 				if err := remoteRestClient.Delete(ctx, remoteObject); err != nil {
-					r.recorder.Eventf(roleBinding, corev1.EventTypeWarning, extensionsgreenhousev1alpha1.FailedDeleteClusterRoleBindingReason, "Error deleting ClusterRoleBinding %s for cluster %s", roleBinding.GetName, cluster.GetName())
+					r.recorder.Eventf(roleBinding, corev1.EventTypeWarning, extensionsgreenhousev1alpha1.FailedDeleteRoleBindingReason, "Error deleting RoleBinding %s for cluster %s in namespace %s", roleBinding.GetName(), cluster.GetName(), namespace)
 					// TODO(d059176): collect errors and return them
-					deletionSuccessful = false
+					return ctrl.Result{}, err
 				}
 			}
+			deletionSuccessful = true
+		case false:
+			remoteObjectKey := types.NamespacedName{Name: roleBinding.GetName()}
+			remoteObject := &rbacv1.ClusterRoleBinding{}
+			err := remoteRestClient.Get(ctx, remoteObjectKey, remoteObject)
+			switch {
+			case apierrors.IsNotFound(err):
+				return ctrl.Result{}, err
+			case !apierrors.IsNotFound(err) && err != nil:
+				r.recorder.Eventf(roleBinding, corev1.EventTypeWarning, extensionsgreenhousev1alpha1.FailedDeleteRoleBindingReason, "Error retrieving ClusterRoleBinding %s for cluster %s", roleBinding.GetName, cluster.GetName())
+				// TODO(d059176): collect errors and return them
+			}
+			if err := remoteRestClient.Delete(ctx, remoteObject); err != nil {
+				r.recorder.Eventf(roleBinding, corev1.EventTypeWarning, extensionsgreenhousev1alpha1.FailedDeleteClusterRoleBindingReason, "Error deleting ClusterRoleBinding %s for cluster %s", roleBinding.GetName, cluster.GetName())
+				// TODO(d059176): collect errors and return them
+				return ctrl.Result{}, err
+			} else {
+				deletionSuccessful = true
+			}
 		}
+
 		if deletionSuccessful {
 			if err := clientutil.RemoveFinalizer(ctx, r.Client, roleBinding, extensionsgreenhouse.FinalizerCleanupRoleBinding); err != nil {
 				return ctrl.Result{}, err
@@ -156,9 +154,9 @@ func (r *RoleBindingReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 		return ctrl.Result{}, err
 	}
 
-	clusters, err := getClusters(ctx, r.Client, roleBinding)
+	cluster, err := getCluster(ctx, r.Client, roleBinding)
 	if err != nil {
-		r.recorder.Eventf(roleBinding, corev1.EventTypeNormal, extensionsgreenhousev1alpha1.ClusterNotFoundReason, "Error listing clusters for RoleBinding %s", roleBinding.GetName)
+		r.recorder.Eventf(roleBinding, corev1.EventTypeNormal, extensionsgreenhousev1alpha1.ClusterNotFoundReason, "Error retrieving cluster for RoleBinding %s", roleBinding.GetName)
 		return ctrl.Result{}, err
 	}
 
@@ -172,37 +170,32 @@ func (r *RoleBindingReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 
 	cr := initRBACClusterRole(role)
 
-	for _, cluster := range clusters {
-		cluster := cluster
-		remoteRestClient, err := getK8sClient(ctx, r.Client, &cluster)
-		if err != nil {
-			r.recorder.Eventf(roleBinding, corev1.EventTypeWarning, "ClusterClientError", "Error getting client for cluster %s to replicate %s", cluster.GetName(), roleBinding.GetName())
-			continue
-		}
+	remoteRestClient, err := getK8sClient(ctx, r.Client, cluster)
+	if err != nil {
+		r.recorder.Eventf(roleBinding, corev1.EventTypeWarning, "ClusterClientError", "Error getting client for cluster %s to replicate %s", cluster.GetName(), roleBinding.GetName())
+	}
 
-		if err := reconcileClusterRole(ctx, remoteRestClient, &cluster, cr); err != nil {
-			r.recorder.Eventf(roleBinding, corev1.EventTypeWarning, extensionsgreenhousev1alpha1.FailedReconcileClusterRoleReason, "Error reconciling ClusterRole %s in cluster %s", cr.GetName(), cluster.GetName())
-			continue
-		}
+	if err := reconcileClusterRole(ctx, remoteRestClient, cluster, cr); err != nil {
+		r.recorder.Eventf(roleBinding, corev1.EventTypeWarning, extensionsgreenhousev1alpha1.FailedReconcileClusterRoleReason, "Error reconciling ClusterRole %s in cluster %s", cr.GetName(), cluster.GetName())
+		return ctrl.Result{}, err
+	}
 
-		switch len(roleBinding.Spec.Namespaces) == 0 {
-		case true:
-			crb := initRBACClusterRoleBinding(roleBinding, cr, team)
-			if err := reconcileClusterRoleBinding(ctx, remoteRestClient, &cluster, crb); err != nil {
-				r.recorder.Eventf(roleBinding, corev1.EventTypeWarning, extensionsgreenhousev1alpha1.FailedReconcileClusterRoleBindingReason, "Error reconciling ClusterRoleBinding %s in cluster %s: %s", crb.GetName(), cluster.GetName(), err.Error())
-			}
-		default:
-			for _, namespace := range roleBinding.Spec.Namespaces {
-				rbacRoleBinding := initRBACRoleBinding(roleBinding, cr, team, namespace)
-				if err := reconcileRoleBinding(ctx, remoteRestClient, &cluster, rbacRoleBinding); err != nil {
-					r.recorder.Eventf(roleBinding, corev1.EventTypeWarning, extensionsgreenhousev1alpha1.FailedReconcileRoleBindingReason, "Error reconciling RoleBinding %s in cluster %s: %s", rbacRoleBinding.GetName(), cluster.GetName(), err.Error())
-				}
+	switch len(roleBinding.Spec.Namespaces) == 0 {
+	case true:
+		crb := initRBACClusterRoleBinding(roleBinding, cr, team)
+		if err := reconcileClusterRoleBinding(ctx, remoteRestClient, cluster, crb); err != nil {
+			r.recorder.Eventf(roleBinding, corev1.EventTypeWarning, extensionsgreenhousev1alpha1.FailedReconcileClusterRoleBindingReason, "Error reconciling ClusterRoleBinding %s in cluster %s: %s", crb.GetName(), cluster.GetName(), err.Error())
+		}
+	default:
+		for _, namespace := range roleBinding.Spec.Namespaces {
+			rbacRoleBinding := initRBACRoleBinding(roleBinding, cr, team, namespace)
+			if err := reconcileRoleBinding(ctx, remoteRestClient, cluster, rbacRoleBinding); err != nil {
+				r.recorder.Eventf(roleBinding, corev1.EventTypeWarning, extensionsgreenhousev1alpha1.FailedReconcileRoleBindingReason, "Error reconciling RoleBinding %s in cluster %s: %s", rbacRoleBinding.GetName(), cluster.GetName(), err.Error())
 			}
 		}
 	}
 
 	// TODO(d059176): add status update logic here
-	// - [ ] Status of Role/RoleBinding w.r.t. Cluster??
 	return ctrl.Result{}, nil
 }
 
@@ -295,20 +288,13 @@ func getTeam(ctx context.Context, c client.Client, roleBinding *extensionsgreenh
 	return team, nil
 }
 
-// getClusters returns a List of Clusters that match the ClusterSelector of the given RoleBinding in the RoleBinding's Namespace
-func getClusters(ctx context.Context, c client.Client, roleBinding *extensionsgreenhousev1alpha1.RoleBinding) ([]greenhousev1alpha1.Cluster, error) {
-	selector, err := metav1.LabelSelectorAsSelector(&roleBinding.Spec.ClusterSelector)
-	if err != nil {
-		return nil, fmt.Errorf("error converting ClusterSelector: %w", err)
+// getCluster returns the Cluster referenced by Name in the given RoleBinding in the RoleBinding's Namespace
+func getCluster(ctx context.Context, c client.Client, roleBinding *extensionsgreenhousev1alpha1.RoleBinding) (*greenhousev1alpha1.Cluster, error) {
+	cluster := &greenhousev1alpha1.Cluster{}
+	if err := c.Get(ctx, types.NamespacedName{Namespace: roleBinding.Namespace, Name: roleBinding.Spec.ClusterName}, cluster); err != nil {
+		return nil, fmt.Errorf("error finding cluster: %w", err)
 	}
-
-	listOpts := &client.ListOptions{LabelSelector: selector, Namespace: roleBinding.GetNamespace()}
-
-	clusterList := &greenhousev1alpha1.ClusterList{}
-	if err := c.List(ctx, clusterList, listOpts); err != nil {
-		return nil, fmt.Errorf("error listing clusters: %w", err)
-	}
-	return clusterList.Items, nil
+	return cluster, nil
 }
 
 // getK8sClient returns a client.Client for the given Cluster

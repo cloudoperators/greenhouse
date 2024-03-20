@@ -9,68 +9,45 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	extensionsgreenhousev1alpha1 "github.com/cloudoperators/greenhouse/pkg/apis/extensions.greenhouse/v1alpha1"
+	"github.com/cloudoperators/greenhouse/pkg/test"
 )
+
+var _ = Describe("Validate Create RoleBinding", func() {
+	Context("deny create if the role does not exist", func() {
+		It("should return an error if the role does not exist", func() {
+			rb := &extensionsgreenhousev1alpha1.RoleBinding{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: "greenhouse",
+					Name:      "testBinding",
+				},
+				Spec: extensionsgreenhousev1alpha1.RoleBindingSpec{
+					RoleRef: "nonExistentRole",
+				},
+			}
+
+			warns, err := ValidateCreateRoleBinding(test.Ctx, test.K8sClient, rb)
+			Expect(warns).To(BeNil(), "expected no warnings")
+			Expect(err).To(HaveOccurred(), "expected an error")
+		})
+	})
+})
 
 var _ = Describe("Validate Update Rolebinding", func() {
 	Context("ensures that changes to the immutable ClusterSelector are detected", func() {
-		defaultSelector := metav1.LabelSelector{
-			MatchLabels: map[string]string{
-				"test.greenhouse.sap/cluster": "test-cluster",
-			},
-			MatchExpressions: []metav1.LabelSelectorRequirement{
-				{
-					Key:      "test.greenhouse.sap/zone",
-					Operator: metav1.LabelSelectorOpIn,
-					Values:   []string{"test-zone"}},
-			},
-		}
-		emptySelector := metav1.LabelSelector{}
-		editedSelectorLabels := metav1.LabelSelector{
-			MatchLabels: map[string]string{
-				"test.greenhouse.sap/cluster": "edited-cluster",
-			},
-			MatchExpressions: []metav1.LabelSelectorRequirement{
-				{
-					Key:      "test.greenhouse.sap/zone",
-					Operator: metav1.LabelSelectorOpIn,
-					Values:   []string{"test-zone"}},
-			},
-		}
-		editedSelectorExpression := metav1.LabelSelector{
-			MatchLabels: map[string]string{
-				"test.greenhouse.sap/cluster": "test-cluster",
-			},
-			MatchExpressions: []metav1.LabelSelectorRequirement{
-				{
-					Key:      "test.greenhouse.sap/zone",
-					Operator: metav1.LabelSelectorOpIn,
-					Values:   []string{"edited-zone"}},
-			},
-		}
-		deletedSelectorLabels := metav1.LabelSelector{
-			MatchExpressions: []metav1.LabelSelectorRequirement{
-				{
-					Key:      "test.greenhouse.sap/zone",
-					Operator: metav1.LabelSelectorOpIn,
-					Values:   []string{"test-zone"}},
-			},
-		}
-		deletedSelectorExpressions := metav1.LabelSelector{
-			MatchLabels: map[string]string{
-				"test.greenhouse.sap/cluster": "test-cluster",
-			},
-		}
+		defaultClusterName := "test-cluster"
+		emptyClusterName := ""
+		editedClusterName := "edited-cluster"
 
-		DescribeTable("Validate that adding, removing, or editing ClusterSelector is detected", func(oldSelector, curSelector metav1.LabelSelector, expChange bool) {
+		DescribeTable("Validate that adding, removing, or editing ClusterSelector is detected", func(oldCluster, curName string, expChange bool) {
 			oldRB := &extensionsgreenhousev1alpha1.RoleBinding{
 				ObjectMeta: metav1.ObjectMeta{
 					Namespace: "greenhouse",
 					Name:      "testBinding",
 				},
 				Spec: extensionsgreenhousev1alpha1.RoleBindingSpec{
-					RoleRef:         "testRole",
-					Namespaces:      []string{"testNamespace"},
-					ClusterSelector: oldSelector,
+					RoleRef:     "testRole",
+					Namespaces:  []string{"testNamespace"},
+					ClusterName: oldCluster,
 				},
 			}
 
@@ -80,26 +57,23 @@ var _ = Describe("Validate Update Rolebinding", func() {
 					Name:      "testBinding",
 				},
 				Spec: extensionsgreenhousev1alpha1.RoleBindingSpec{
-					RoleRef:         "testRole",
-					Namespaces:      []string{"testNamespace"},
-					ClusterSelector: curSelector,
+					RoleRef:     "testRole",
+					Namespaces:  []string{"testNamespace"},
+					ClusterName: curName,
 				},
 			}
 
-			switch hasChanged := hasClusterSelectorChanged(oldRB, curRB); hasChanged {
+			switch hasChanged := hasClusterChanged(oldRB, curRB); hasChanged {
 			case true:
-				Expect(expChange).To(BeTrue(), "expected ClusterSelector changes, but none found")
+				Expect(expChange).To(Equal(hasChanged), "expected Cluster changes, but none found")
 			default:
-				Expect(expChange).To(BeFalse(), "unexpected ClusterSelector change detected")
+				Expect(expChange).To(Equal(hasChanged), "unexpected Cluster change detected")
 			}
 		},
-			Entry("No Changes, all good", defaultSelector, defaultSelector, false),
-			Entry("New selector added", emptySelector, defaultSelector, true),
-			Entry("ClusterSelector removed", defaultSelector, emptySelector, true),
-			Entry("Label Selector edited", defaultSelector, editedSelectorLabels, true),
-			Entry("Expression Selector edited", defaultSelector, editedSelectorExpression, true),
-			Entry("Label Selector deleted", defaultSelector, deletedSelectorLabels, true),
-			Entry("Expression Selector deleted", defaultSelector, deletedSelectorExpressions, true),
+			Entry("No Changes, all good", defaultClusterName, defaultClusterName, false),
+			Entry("New selector added", emptyClusterName, defaultClusterName, true),
+			Entry("ClusterSelector removed", defaultClusterName, emptyClusterName, true),
+			Entry("Label Selector edited", defaultClusterName, editedClusterName, true),
 		)
 	})
 

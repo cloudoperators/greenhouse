@@ -53,9 +53,10 @@ var testRoleBinding = &extensionsgreenhousev1alpha1.RoleBinding{
 		Namespace: test.TestNamespace,
 	},
 	Spec: extensionsgreenhousev1alpha1.RoleBindingSpec{
-		RoleRef:    "test-role",
-		TeamRef:    testTeamName,
-		Namespaces: []string{test.TestNamespace},
+		RoleRef:     "test-role",
+		TeamRef:     testTeamName,
+		ClusterName: testCluster.Name,
+		Namespaces:  []string{test.TestNamespace},
 	},
 }
 
@@ -69,8 +70,9 @@ var testClusterRoleBinding = &extensionsgreenhousev1alpha1.RoleBinding{
 		Namespace: test.TestNamespace,
 	},
 	Spec: extensionsgreenhousev1alpha1.RoleBindingSpec{
-		RoleRef: "test-role",
-		TeamRef: testTeamName,
+		RoleRef:     "test-role",
+		TeamRef:     testTeamName,
+		ClusterName: testCluster.Name,
 	},
 }
 

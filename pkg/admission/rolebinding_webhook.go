@@ -40,8 +40,19 @@ func DefaultRoleBinding(_ context.Context, _ client.Client, _ runtime.Object) er
 
 //+kubebuilder:webhook:path=/validate-extensions-greenhouse-sap-v1alpha1-rolebinding,mutating=false,failurePolicy=fail,sideEffects=None,groups=extensions.greenhouse.sap,resources=rolebindings,verbs=create;update,versions=v1alpha1,name=vrolebinding.kb.io,admissionReviewVersions=v1
 
-func ValidateCreateRoleBinding(_ context.Context, _ client.Client, _ runtime.Object) (admission.Warnings, error) {
-	// TODO(D059176): Handle RoleBinding created where the referenced Role does not exist.
+func ValidateCreateRoleBinding(ctx context.Context, c client.Client, o runtime.Object) (admission.Warnings, error) {
+	rb, ok := o.(*extensionsgreenhousev1alpha1.RoleBinding)
+	if !ok {
+		return nil, nil
+	}
+
+	var r extensionsgreenhousev1alpha1.Role
+	if err := c.Get(ctx, client.ObjectKey{Namespace: rb.Namespace, Name: rb.Spec.RoleRef}, &r); err != nil {
+		if apierrors.IsNotFound(err) {
+			return nil, apierrors.NewInvalid(rb.GroupVersionKind().GroupKind(), rb.Name, field.ErrorList{field.Invalid(field.NewPath("spec", "roleRef"), rb.Spec.RoleRef, "role does not exist")})
+		}
+		return nil, apierrors.NewInternalError(err)
+	}
 	return nil, nil
 }
 
@@ -55,12 +66,12 @@ func ValidateUpdateRoleBinding(ctx context.Context, c client.Client, old, cur ru
 		return nil, nil
 	}
 	switch {
-	case hasClusterSelectorChanged(oldRB, curRB):
+	case hasClusterChanged(oldRB, curRB):
 		return nil, apierrors.NewForbidden(
 			schema.GroupResource{
 				Group:    oldRB.GroupVersionKind().Group,
 				Resource: oldRB.Kind,
-			}, oldRB.Name, field.Forbidden(field.NewPath("spec", "clusterSelector"), "cannot be changed"))
+			}, oldRB.Name, field.Forbidden(field.NewPath("spec", "clusterName"), "cannot be changed"))
 	case hasNamespacesChanged(oldRB, curRB):
 		return nil, apierrors.NewForbidden(schema.GroupResource{Group: oldRB.GroupVersionKind().Group, Resource: oldRB.Kind}, oldRB.Name, field.Forbidden(field.NewPath("spec", "namespaces"), "cannot be changed"))
 	default:
@@ -72,9 +83,9 @@ func ValidateDeleteRoleBinding(_ context.Context, _ client.Client, _ runtime.Obj
 	return nil, nil
 }
 
-// hasClusterSelectorChanged returns true if the clusterSelector in the old and current RoleBinding are different.
-func hasClusterSelectorChanged(old, cur *extensionsgreenhousev1alpha1.RoleBinding) bool {
-	return !reflect.DeepEqual(old.Spec.ClusterSelector, cur.Spec.ClusterSelector)
+// hasClusterChanged returns true if the clusterSelector in the old and current RoleBinding are different.
+func hasClusterChanged(old, cur *extensionsgreenhousev1alpha1.RoleBinding) bool {
+	return old.Spec.ClusterName != cur.Spec.ClusterName
 }
 
 // hasNamespacesChanged returns true if the namespaces in the old and current RoleBinding are different.
