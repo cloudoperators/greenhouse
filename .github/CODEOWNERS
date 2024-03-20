@@ -16,7 +16,7 @@
 /hack/                  @auhlig @ivogoman @kengou @onuryilmaz @uwe-mayer
 /pkg/                   @auhlig @ivogoman @kengou @onuryilmaz @uwe-mayer
 ct.yaml                 @auhlig @ivogoman @kengou @onuryilmaz @uwe-mayer
-*.Dockerfile            @auhlig @ivogoman @kengou @onuryilmaz @uwe-mayer
+Dockerfile              @auhlig @ivogoman @kengou @onuryilmaz @uwe-mayer
 Dockerfile.*            @auhlig @ivogoman @kengou @onuryilmaz @uwe-mayer
 Makefile                @auhlig @ivogoman @kengou @onuryilmaz @uwe-mayer
 PROJECT                 @auhlig @ivogoman @kengou @onuryilmaz @uwe-mayer
