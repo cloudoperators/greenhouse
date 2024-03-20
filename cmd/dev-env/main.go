@@ -36,8 +36,8 @@ var (
 	kubeProxyPort     string
 	graceFullShutDown bool
 	userData          = map[string][]string{
-		"test-org-admin":  {rbac.GetOrganizationRoleName("test-org"), rbac.GetAdminRoleNameForOrganization("test-org"), rbac.GetTeamRoleName("test-team-1")},
-		"test-org-member": {rbac.GetOrganizationRoleName("test-org"), rbac.GetTeamRoleName("test-team-1")},
+		"test-org-admin":  {rbac.OrganizationRoleName("test-org"), rbac.OrganizationAdminRoleName("test-org"), rbac.GetTeamRoleName("test-team-1")},
+		"test-org-member": {rbac.OrganizationRoleName("test-org"), rbac.GetTeamRoleName("test-team-1")},
 	}
 )
 

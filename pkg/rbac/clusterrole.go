@@ -9,8 +9,8 @@ import (
 	greenhouseapisv1alpha1 "github.com/cloudoperators/greenhouse/pkg/apis/greenhouse/v1alpha1"
 )
 
-// MakePolicyRulesForOrganizationAdminClusterRole returns the cluster-scoped PolicyRules for an organization admin.
-func MakePolicyRulesForOrganizationAdminClusterRole(organizationName string) []rbacv1.PolicyRule {
+// OrganizationAdminClusterRolePolicyRules returns the cluster-scoped PolicyRules for an organization admin.
+func OrganizationAdminClusterRolePolicyRules(organizationName string) []rbacv1.PolicyRule {
 	orgAdminPolicyRules := []rbacv1.PolicyRule{
 		// Grant extensive permissions for this Organization to its administrators.
 		// Creation and deletion is only permitted for Greenhouse administrators though.
@@ -21,11 +21,11 @@ func MakePolicyRulesForOrganizationAdminClusterRole(organizationName string) []r
 			ResourceNames: []string{organizationName},
 		},
 	}
-	return append(MakePolicyRulesForOrganizationMemberClusterRole(organizationName), orgAdminPolicyRules...)
+	return append(OrganizationMemberClusterRolePolicyRules(organizationName), orgAdminPolicyRules...)
 }
 
-// MakePolicyRulesForOrganizationMemberClusterRole returns the cluster-scoped PolicyRules for an organization member.
-func MakePolicyRulesForOrganizationMemberClusterRole(organizationName string) []rbacv1.PolicyRule {
+// OrganizationMemberClusterRolePolicyRules returns the cluster-scoped PolicyRules for an organization member.
+func OrganizationMemberClusterRolePolicyRules(organizationName string) []rbacv1.PolicyRule {
 	return []rbacv1.PolicyRule{
 		// Grant read permissions for this Organization to its members.
 		{
