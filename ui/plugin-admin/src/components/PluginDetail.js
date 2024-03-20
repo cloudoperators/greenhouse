@@ -40,7 +40,12 @@ const PluginDetail = () => {
   }
 
   return (
-    <Panel opened={!!showDetailsFor} onClose={onPanelClose} size="large">
+    <Panel
+      opened={!!showDetailsFor}
+      onClose={onPanelClose}
+      size="large"
+      heading={plugin?.name}
+    >
       <PanelBody>
         <Tabs>
           <TabList>

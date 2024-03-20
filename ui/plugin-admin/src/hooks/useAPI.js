@@ -25,21 +25,19 @@ export const buildExternalServicesUrls = (exposedServices) => {
 export const createPluginConfig = (items) => {
   let allPlugins = []
   items.forEach((item) => {
-    const id = item.metadata.name
-    const name = item.spec?.displayName
-      ? item.spec.displayName
-      : item.metadata?.name
-    const disabled = item.spec?.disabled
-    const version = item.status?.version
-    const clusterName = item.spec?.clusterName
+    const id = item?.metadata?.name ? item.metadata?.name : "Unknown"
+    const name = item?.spec?.displayName ? item.spec.displayName : id
+    const disabled = item?.spec?.disabled
+    const version = item?.status?.version
+    const clusterName = item?.spec?.clusterName
     const externalServicesUrls = buildExternalServicesUrls(
-      item.status?.exposedServices
+      item?.status?.exposedServices
     )
-    const statusConditions = item.status?.statusConditions.conditions
+    const statusConditions = item?.status?.statusConditions?.conditions
     const readyStatus = statusConditions
       ? getResourceStatusFromKubernetesConditions(statusConditions)
       : null
-    const optionValues = item.spec?.optionValues
+    const optionValues = item?.spec?.optionValues
     const raw = item
 
     if (!disabled) {
