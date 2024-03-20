@@ -49,7 +49,11 @@ const PluginDetail = () => {
           </TabList>
           <TabPanel>
             <Container px={false} py>
-              <DataGrid columns={2} cellVerticalAlignment="top">
+              <DataGrid
+                columns={2}
+                cellVerticalAlignment="top"
+                gridColumnTemplate="35% auto"
+              >
                 <DataGridRow>
                   <DataGridHeadCell>Name</DataGridHeadCell>
                   <DataGridCell>{plugin?.name}</DataGridCell>
@@ -102,7 +106,9 @@ const PluginDetail = () => {
 
                   return (
                     <DataGridRow>
-                      <DataGridHeadCell>{option?.name}</DataGridHeadCell>
+                      <DataGridHeadCell style={{ overflowWrap: "break-word" }}>
+                        {option?.name}
+                      </DataGridHeadCell>
                       <DataGridCell>
                         <CodeBlock>
                           <JsonViewer data={option?.value} expanded={true} />
