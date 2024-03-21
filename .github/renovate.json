@@ -11,11 +11,42 @@
       "groupName": "npm dependencies",
       "matchDatasources": [
         "npm"
+      ],
+      "minimumReleaseAge": "14 days"
+    },
+    {
+      "groupName": "golang",
+      "matchDatasources": ["docker", "go-version"],
+      "matchPackagePatterns": ["golang"],
+      "minimumReleaseAge": "14 days"
+    },
+    {
+      // Update only patchlevels of major dependencies like kubernetes, controller-runtime and istio.
+      // Minor and major upgrades most likely require manual adaptations of the code.
+      "matchDatasources": ["go"],
+      // https://docs.renovatebot.com/configuration-options/#matchupdatetypes
+      "matchUpdateTypes": ["major", "minor"],
+      "matchPackagePatterns": [
+        "k8s\\.io\/.+",
+        "sigs\\.k8s\\.io\/controller-runtime"
       ]
     }
   ],
   "postUpdateOptions": [
     "gomodTidy",
     "gomodUpdateImportPaths"
+  ],
+  // https://docs.renovatebot.com/configuration-options/#separateminorpatch
+  "separateMinorPatch": true,
+  "customManagers": [
+    {
+      // Update `_VERSION` and `_version` variables in Makefiles and scripts.
+      // Inspired by `regexManagers:dockerfileVersions` preset.
+      "customType": "regex",
+      "fileMatch": ["Makefile$", "\\.sh$"],
+      "matchStrings": [
+        "# renovate: datasource=(?<datasource>[a-z-.]+?) depName=(?<depName>[^\\s]+?)(?: (lookupName|packageName)=(?<packageName>[^\\s]+?))?(?: versioning=(?<versioning>[^\\s]+?))?(?: extractVersion=(?<extractVersion>[^\\s]+?))?(?: registryUrl=(?<registryUrl>[^\\s]+?))?\\s.+?_(VERSION|version) *[?:]?= *\"?(?<currentValue>.+?)\"?\\s"
+      ]
+    }
   ]
 }
