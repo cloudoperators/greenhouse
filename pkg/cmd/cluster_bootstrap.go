@@ -83,7 +83,6 @@ type newClusterBootstrapOptions struct {
 	customerKubeConfig string
 	onBehafOfUser      string
 	freeAccessMode     bool
-	noClusterCheck     bool
 }
 
 func init() {
@@ -122,7 +121,6 @@ func newClusterBootstrapCmd() *cobra.Command {
 	bootstrapCmd.Flags().StringVar(&o.tailscaleImage, "tailscale-image", clientutil.GetEnvOrDefault("TAILSCALE_IMAGE", "ghcr.io/cloudoperators/tailscale"), "The tailscale image to use. Can be set via TAILSCALE_IMAGE env var")
 	bootstrapCmd.Flags().StringVar(&o.tailscaleImageTag, "tailscale-image-tag", clientutil.GetEnvOrDefault("TAILSCALE_IMAGE_TAG", "1.50.1"), "The tailscale image tag to use. Can be set via TAILSCALE_IMAGE_TAG env var")
 	bootstrapCmd.Flags().StringVar(&o.customerKubeConfig, "bootstrap-kubeconfig", "", "The kubeconfig of the cluster to bootstrap")
-	bootstrapCmd.Flags().BoolVar(&o.noClusterCheck, "no-cluster-check", false, "Check if the cluster is a Greenhouse cluster")
 	bootstrapCmd.Flags().BoolVar(&o.freeAccessMode, "free-access-mode", true, "Let the cluster bootstrap controller decide the access mode for the cluster")
 	bootstrapCmd.Flags().StringVar(&o.onBehafOfUser, "as", "", "The user to impersonate for the operation")
 
@@ -149,9 +147,6 @@ func newClusterBootstrapCmd() *cobra.Command {
 func (o *newClusterBootstrapOptions) permissionCheck() (err error) {
 	greenhouseRestConfig := getKubeconfigOrDie(o.kubecontext)
 	o.ghConfig = *greenhouseRestConfig
-	if !isGreenHouseCluster(o.ghConfig.Host) && !o.noClusterCheck {
-		return errors.New("this command can only be run against a Greenhouse cluster")
-	}
 	o.ghClient, err = clientutil.NewK8sClient(&o.ghConfig)
 	if err != nil {
 		return err
@@ -561,7 +556,7 @@ func (o *newClusterBootstrapOptions) deployTailscaleInRemoteCluster(ctx context.
 								ProbeHandler: corev1.ProbeHandler{
 									HTTPGet: &corev1.HTTPGetAction{
 										Path: "/healthz",
-										Port: intstr.FromInt(8090),
+										Port: intstr.FromInt32(8090),
 									},
 								},
 							},
@@ -608,19 +603,6 @@ func (o *newClusterBootstrapOptions) deployTailscaleInRemoteCluster(ctx context.
 		setupLog.Info("updated deployment", "name", tailscaleDeployment.Name)
 	}
 	return nil
-}
-
-func isGreenHouseCluster(apiURL string) bool {
-	return isAPIHostAccepted(apiURL, []string{"api.p-eu-de-1.greenhouse", "api.greenhouse.global", "api.qa.greenhouse", "api.greenhouse-qa", "api.dev-david.greenhouse"})
-}
-
-func isAPIHostAccepted(apiURL string, APIEndpoint []string) bool {
-	for _, endpoint := range APIEndpoint {
-		if strings.Contains(apiURL, endpoint) {
-			return true
-		}
-	}
-	return false
 }
 
 func canI(kubeClient client.Client, Namespace, User, Verb, Group, Resource string) bool {
