@@ -21,6 +21,7 @@ import {
   Tab,
   TabPanel,
 } from "juno-ui-components"
+import { o } from "juno-ui-components/build/floating-ui.dom-a8dd2d87"
 
 const PluginDetail = () => {
   const pluginConfig = usePluginConfig()
@@ -115,9 +116,11 @@ const PluginDetail = () => {
                         {option?.name}
                       </DataGridHeadCell>
                       <DataGridCell>
-                        <CodeBlock>
-                          <JsonViewer data={option?.value} expanded={true} />
-                        </CodeBlock>
+                        {option?.value && typeof option.value === "object" ? (
+                          <JsonViewer data={option?.value} />
+                        ) : (
+                          <p>{String(option?.value)}</p>
+                        )}
                       </DataGridCell>
                     </DataGridRow>
                   )
