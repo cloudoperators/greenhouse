@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2024 SAP SE or an SAP affiliate company and Greenhouse contributors
+# SPDX-License-Identifier: Apache-2.0
+
 apiVersion: v2
 name: idproxy
 description: A Helm chart for the greenhouse IdP Proxy

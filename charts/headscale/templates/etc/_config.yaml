@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2024 SAP SE or an SAP affiliate company and Greenhouse contributors
+# SPDX-License-Identifier: Apache-2.0
+
 server_url: http://{{ required ".Values.ingress.host missing" .Values.ingress.host }}
 listen_addr: "0.0.0.0:{{ required ".Values.server.service.http.port missing" .Values.server.service.http.port }}"
 metrics_listen_addr: "127.0.0.1:{{ required ".Values.server.service.metrics.port missing" .Values.server.service.metrics.port }}"
