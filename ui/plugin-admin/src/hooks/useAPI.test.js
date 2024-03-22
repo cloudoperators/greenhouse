@@ -11,7 +11,7 @@ describe("useAPI", () => {
 })
 
 describe("useAPI", () => {
-  test("createPluginConfig ith just metadata name", () => {
+  test("createPluginConfig with just metadata name", () => {
     const items = db2
     const result = createPluginConfig(items)
     expect(result).toEqual(res2)

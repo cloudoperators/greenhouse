@@ -30,7 +30,6 @@ const App = (props = {}) => {
   useEffect(() => {
     // set to empty string to fetch local test data in dev mode
     setEndpoint(props.endpoint || "")
-    console.log("props.endpoint", props.endpoint)
     setUrlStateKey(URL_STATE_KEY)
   }, [])
 

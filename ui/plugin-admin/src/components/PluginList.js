@@ -34,10 +34,10 @@ const PluginList = () => {
         })
       ) : (
         <DataGridRow className="no-hover">
-          <DataGridCell colSpan={3}>
+          <DataGridCell colSpan={4}>
             <Stack gap="3">
               <Icon icon="info" color="text-theme-info" />
-              <div>We couldn't find anything.</div>
+              <div>No plugins found.</div>
             </Stack>
           </DataGridCell>
         </DataGridRow>

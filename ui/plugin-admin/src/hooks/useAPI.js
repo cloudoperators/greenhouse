@@ -40,19 +40,17 @@ export const createPluginConfig = (items) => {
     const optionValues = item?.spec?.optionValues
     const raw = item
 
-    if (!disabled) {
-      allPlugins.push({
-        id,
-        name,
-        version,
-        clusterName,
-        externalServicesUrls,
-        statusConditions,
-        readyStatus,
-        optionValues,
-        raw,
-      })
-    }
+    allPlugins.push({
+      id,
+      name,
+      version,
+      clusterName,
+      externalServicesUrls,
+      statusConditions,
+      readyStatus,
+      optionValues,
+      raw,
+    })
   })
   return allPlugins
 }

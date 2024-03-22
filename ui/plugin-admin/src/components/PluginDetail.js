@@ -97,10 +97,9 @@ const PluginDetail = () => {
                       {plugin?.statusConditions?.map((condition) => {
                         return (
                           <Pill
+                            key={condition.type}
                             pillKey={condition.type}
-                            pillKeyLabel={condition.type}
                             pillValue={condition.status}
-                            pillValueLabel={condition.status}
                           />
                         )
                       })}

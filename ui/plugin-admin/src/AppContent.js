@@ -1,13 +1,11 @@
 import React, { useEffect } from "react"
 import { Container } from "juno-ui-components"
 import useAPI from "./hooks/useAPI"
-import { usePluginConfig } from "./components/StoreProvider"
 import PluginList from "./components/PluginList"
 import PluginDetail from "./components/PluginDetail"
 
-const AppContent = (props) => {
+const AppContent = () => {
   const { getPlugins } = useAPI()
-  const pluginConfig = usePluginConfig()
 
   useEffect(() => {
     if (!getPlugins) return

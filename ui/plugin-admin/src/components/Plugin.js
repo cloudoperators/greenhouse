@@ -10,26 +10,9 @@ const Plugin = (props) => {
   const showDetailsFor = useShowDetailsFor()
 
   const showDetails = () => {
-    setShowDetailsFor(plugin.id)
-  }
-
-  const buildExternalServicesUrls = () => {
-    // extract url and the name from the object and create a link
-    if (!plugin.externalServicesUrls) return null
-
-    const links = []
-    for (const url in plugin.externalServicesUrls) {
-      const currentObject = plugin.externalServicesUrls[url]
-
-      links.push(
-        <p>
-          <a href={url} target="_blank" rel="noreferrer">
-            {currentObject.name ? currentObject.name : url}
-          </a>
-        </p>
-      )
-    }
-    return links
+    showDetailsFor === plugin.id
+      ? setShowDetailsFor(null)
+      : setShowDetailsFor(plugin.id)
   }
 
   return (
