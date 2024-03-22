@@ -102,7 +102,7 @@ ifndef ignore-not-found
 endif
 
 .PHONY: kustomize-build-crds
-kustomize-build-crds: manifests kustomize
+kustomize-build-crds: generate-manifests kustomize
 	$(KUSTOMIZE) build $(CRD_MANIFESTS_PATH)
 	
 ##@ Build Dependencies
