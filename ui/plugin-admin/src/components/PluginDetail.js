@@ -80,8 +80,13 @@ const PluginDetail = () => {
                   <DataGridCell>
                     {plugin?.externalServicesUrls?.map((url) => {
                       return (
-                        <p>
-                          <a href={url.url} target="_blank" rel="noreferrer">
+                        <p key={url.url}>
+                          <a
+                            href={url.url}
+                            target="_blank"
+                            rel="noreferrer"
+                            key={url.url}
+                          >
                             {url.name}
                           </a>
                         </p>
@@ -115,11 +120,20 @@ const PluginDetail = () => {
                         {option?.name}
                       </DataGridHeadCell>
                       <DataGridCell>
-                        {option?.value && typeof option.value === "object" ? (
-                          <JsonViewer data={option?.value} />
-                        ) : (
-                          <p>{String(option?.value)}</p>
-                        )}
+                        {typeof option.value != "undefined" &&
+                          (typeof option.value === "object" ? (
+                            Array.isArray(option.value) ? (
+                              <ol>
+                                {option?.value?.map((value, index) => {
+                                  return <li key={index}>{value}</li>
+                                })}
+                              </ol>
+                            ) : (
+                              <JsonViewer data={option?.value} />
+                            )
+                          ) : (
+                            <p>{String(option?.value)}</p>
+                          ))}
                       </DataGridCell>
                     </DataGridRow>
                   )

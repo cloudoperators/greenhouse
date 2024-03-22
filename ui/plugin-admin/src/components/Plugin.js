@@ -27,16 +27,20 @@ const Plugin = (props) => {
         <p>{plugin.name}</p>
       </DataGridCell>
       <DataGridCell>
-        <p>{plugin.clusterName}</p>
+        {plugin.clusterName ? <p>{plugin.clusterName}</p> : <p>&mdash;</p>}
       </DataGridCell>
       <DataGridCell>
-        {plugin.externalServicesUrls?.map((url) => {
-          return (
-            <a href={url.url} target="_blank" rel="noreferrer" key={url.url}>
-              {url.name + " "}
-            </a>
-          )
-        })}
+        {plugin.externalServicesUrls ? (
+          plugin.externalServicesUrls?.map((url) => {
+            return (
+              <a href={url.url} target="_blank" rel="noreferrer" key={url.url}>
+                {url.name + " "}
+              </a>
+            )
+          })
+        ) : (
+          <p>&mdash;</p>
+        )}
       </DataGridCell>
       <DataGridCell>
         <p>
