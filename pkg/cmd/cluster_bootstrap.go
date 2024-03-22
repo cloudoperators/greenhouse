@@ -157,13 +157,7 @@ func (o *newClusterBootstrapOptions) permissionCheck() (err error) {
 	if err != nil {
 		return err
 	}
-
-	err = o.ghClient.Get(ctx, client.ObjectKey{Name: o.orgName}, &greenhouseapisv1alpha1.Organization{})
-	if err != nil {
-		setupLog.Info("Missing permissions: getOrganization", "clusterName", o.ghConfig.Host)
-		setupLog.Error(err, "", "clusterName", o.ghConfig.Host)
-		return err
-	}
+	
 	clientErr := o.customerClient.Get(ctx, client.ObjectKey{Name: corev1.NamespaceDefault}, &corev1.Namespace{})
 	if clientErr != nil {
 		setupLog.Info("Missing permissions: getNamespace", "clusterName", o.customerConfig.Host)
