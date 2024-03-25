@@ -10,6 +10,7 @@ import {
 import { usePluginConfig } from "./StoreProvider"
 import Plugin from "./Plugin"
 
+// Renders the list of plugins
 const PluginList = () => {
   const pluginConfig = usePluginConfig()
 

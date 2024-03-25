@@ -5,8 +5,8 @@ import { useGlobalsActions } from "../components/StoreProvider"
 
 import { getResourceStatusFromKubernetesConditions } from "../../../utils/resourceStatus"
 
+// Extracts the external services from the object and creates links which are used in the plugin list / detail
 export const buildExternalServicesUrls = (exposedServices) => {
-  // extract url and the name from the object and create a link
   if (!exposedServices) return null
 
   const links = []
@@ -22,19 +22,22 @@ export const buildExternalServicesUrls = (exposedServices) => {
   return links
 }
 
+// Creates a flat object from the plugin config data
 export const createPluginConfig = (items) => {
   let allPlugins = []
-
   items.forEach((item) => {
+    // unknown is used as a last fallback, should not happen
     const id = item?.metadata?.name ? item.metadata?.name : "Unknown"
     const name = item?.spec?.displayName ? item.spec.displayName : id
     const disabled = item?.spec?.disabled
     const version = item?.status?.version
     const clusterName = item?.spec?.clusterName
+    // build urls and name in a array of objects
     const externalServicesUrls = buildExternalServicesUrls(
       item?.status?.exposedServices
     )
     const statusConditions = item?.status?.statusConditions?.conditions
+    // get a status object with icon and text for the plugin from imported function
     const readyStatus = statusConditions
       ? getResourceStatusFromKubernetesConditions(statusConditions)
       : null

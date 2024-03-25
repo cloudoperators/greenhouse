@@ -4,6 +4,7 @@ import { useGlobalsActions, useShowDetailsFor } from "./StoreProvider"
 
 import { Icon } from "juno-ui-components"
 
+// renders a single plugin row
 const Plugin = (props) => {
   const plugin = props.plugin
   const { setShowDetailsFor } = useGlobalsActions()

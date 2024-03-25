@@ -22,6 +22,7 @@ import {
   TabPanel,
 } from "juno-ui-components"
 
+// Renders the plugin details panel
 const PluginDetail = () => {
   const pluginConfig = usePluginConfig()
   const { setShowDetailsFor } = useGlobalsActions()
