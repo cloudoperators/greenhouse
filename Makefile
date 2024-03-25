@@ -33,7 +33,7 @@ help: ## Display this help.
 ##@ Development
 
 .PHONY: generate-all
-generate-all: manifests ## Generate code, manifests and documentation.
+generate-all: generate generate-manifests generate-documentation  ## Generate code, manifests and documentation.
 
 .PHONY: manifests
 manifests: generate-manifests generate-documentation

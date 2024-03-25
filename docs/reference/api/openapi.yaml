@@ -1,34 +1,39 @@
 openapi: 3.0.0
 info:
   title: Greenhouse
-  version: b868a09
+  version: 5b94d03
   description: PlusOne operations platform
 paths:
-  /Role:
-    post:
-      responses:
-        default:
-          description: Role
-  /Organization:
-    post:
-      responses:
-        default:
-          description: Organization
   /RoleBinding:
     post:
       responses:
         default:
           description: RoleBinding
+  /Role:
+    post:
+      responses:
+        default:
+          description: Role
   /Cluster:
     post:
       responses:
         default:
           description: Cluster
+  /Organization:
+    post:
+      responses:
+        default:
+          description: Organization
   /PluginConfig:
     post:
       responses:
         default:
           description: PluginConfig
+  /Plugin:
+    post:
+      responses:
+        default:
+          description: Plugin
   /TeamMembership:
     post:
       responses:
@@ -39,13 +44,73 @@ paths:
       responses:
         default:
           description: Team
-  /Plugin:
-    post:
-      responses:
-        default:
-          description: Plugin
 components:
   schemas:
+    RoleBinding:
+      xml:
+        name: extensions.greenhouse.sap
+        namespace: v1alpha1
+      title: RoleBinding
+      description: RoleBinding is the Schema for the rolebindings API
+      properties:
+        apiVersion:
+          description: 'APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+          type: string
+        kind:
+          description: 'Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+          type: string
+        metadata:
+          type: object
+        spec:
+          description: RoleBindingSpec defines the desired state of RoleBinding
+          properties:
+            clusterSelector:
+              description: ClusterSelector is the immutable selector to deterimine the Greenhouse Clusters to apply the RoleBinding to
+              properties:
+                matchExpressions:
+                  description: matchExpressions is a list of label selector requirements. The requirements are ANDed.
+                  items:
+                    description: A label selector requirement is a selector that contains values, a key, and an operator that relates the key and values.
+                    properties:
+                      key:
+                        description: key is the label key that the selector applies to.
+                        type: string
+                      operator:
+                        description: operator represents a key's relationship to a set of values. Valid operators are In, NotIn, Exists and DoesNotExist.
+                        type: string
+                      values:
+                        description: values is an array of string values. If the operator is In or NotIn, the values array must be non-empty. If the operator is Exists or DoesNotExist, the values array must be empty. This array is replaced during a strategic merge patch.
+                        items:
+                          type: string
+                        type: array
+                    required:
+                      - key
+                      - operator
+                    type: object
+                  type: array
+                matchLabels:
+                  additionalProperties:
+                    type: string
+                  description: matchLabels is a map of {key,value} pairs. A single {key,value} in the matchLabels map is equivalent to an element of matchExpressions, whose key field is "key", the operator is "In", and the values array contains only "value". The requirements are ANDed.
+                  type: object
+              type: object
+              x-kubernetes-map-type: atomic
+            namespaces:
+              description: Namespaces is the immutable list of namespaces in the Greenhouse Clusters to apply the RoleBinding to
+              items:
+                type: string
+              type: array
+            roleRef:
+              description: RoleRef references a Greenhouse Role by name
+              type: string
+            teamRef:
+              description: TeamRef references a Greenhouse Team by name
+              type: string
+          type: object
+        status:
+          description: RoleBindingStatus defines the observed state of RoleBinding
+          type: object
+      type: object
     Role:
       xml:
         name: extensions.greenhouse.sap
@@ -101,147 +166,6 @@ components:
           type: object
         status:
           description: RoleStatus defines the observed state of Role
-          type: object
-      type: object
-    Organization:
-      xml:
-        name: greenhouse.sap
-        namespace: v1alpha1
-      title: Organization
-      description: Organization is the Schema for the organizations API
-      properties:
-        apiVersion:
-          description: 'APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
-          type: string
-        kind:
-          description: 'Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
-          type: string
-        metadata:
-          type: object
-        spec:
-          description: OrganizationSpec defines the desired state of Organization
-          properties:
-            authentication:
-              description: Authentication configures the organizations authentication mechanism.
-              properties:
-                oidc:
-                  description: OIDConfig configures the OIDC provider.
-                  properties:
-                    clientIDReference:
-                      description: ClientIDReference references the Kubernetes secret containing the client id.
-                      properties:
-                        key:
-                          description: Key in the secret to select the value from.
-                          type: string
-                        name:
-                          description: Name of the secret in the same namespace.
-                          type: string
-                      required:
-                        - key
-                        - name
-                      type: object
-                    clientSecretReference:
-                      description: ClientSecretReference references the Kubernetes secret containing the client secret.
-                      properties:
-                        key:
-                          description: Key in the secret to select the value from.
-                          type: string
-                        name:
-                          description: Name of the secret in the same namespace.
-                          type: string
-                      required:
-                        - key
-                        - name
-                      type: object
-                    issuer:
-                      description: Issuer is the URL of the identity service.
-                      type: string
-                    redirectURI:
-                      description: RedirectURI is the redirect URI. If none is specified, the Greenhouse ID proxy will be used.
-                      type: string
-                  required:
-                    - clientIDReference
-                    - clientSecretReference
-                    - issuer
-                  type: object
-              type: object
-            description:
-              description: Description provides additional details of the organization.
-              type: string
-            displayName:
-              description: DisplayName is an optional name for the organization to be displayed in the Greenhouse UI. Defaults to a normalized version of metadata.name.
-              type: string
-            mappedOrgAdminIdPGroup:
-              description: MappedOrgAdminIDPGroup is the IDP group ID identifying org admins
-              type: string
-          type: object
-        status:
-          description: OrganizationStatus defines the observed state of an Organization
-          type: object
-      type: object
-    RoleBinding:
-      xml:
-        name: extensions.greenhouse.sap
-        namespace: v1alpha1
-      title: RoleBinding
-      description: RoleBinding is the Schema for the rolebindings API
-      properties:
-        apiVersion:
-          description: 'APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
-          type: string
-        kind:
-          description: 'Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
-          type: string
-        metadata:
-          type: object
-        spec:
-          description: RoleBindingSpec defines the desired state of RoleBinding
-          properties:
-            clusterSelector:
-              description: ClusterSelector is the immutable selector to deterimine the Greenhouse Clusters to apply the RoleBinding to
-              properties:
-                matchExpressions:
-                  description: matchExpressions is a list of label selector requirements. The requirements are ANDed.
-                  items:
-                    description: A label selector requirement is a selector that contains values, a key, and an operator that relates the key and values.
-                    properties:
-                      key:
-                        description: key is the label key that the selector applies to.
-                        type: string
-                      operator:
-                        description: operator represents a key's relationship to a set of values. Valid operators are In, NotIn, Exists and DoesNotExist.
-                        type: string
-                      values:
-                        description: values is an array of string values. If the operator is In or NotIn, the values array must be non-empty. If the operator is Exists or DoesNotExist, the values array must be empty. This array is replaced during a strategic merge patch.
-                        items:
-                          type: string
-                        type: array
-                    required:
-                      - key
-                      - operator
-                    type: object
-                  type: array
-                matchLabels:
-                  additionalProperties:
-                    type: string
-                  description: matchLabels is a map of {key,value} pairs. A single {key,value} in the matchLabels map is equivalent to an element of matchExpressions, whose key field is "key", the operator is "In", and the values array contains only "value". The requirements are ANDed.
-                  type: object
-              type: object
-              x-kubernetes-map-type: atomic
-            namespaces:
-              description: Namespaces is the list of namespaces in the Greenhouse Clusters to apply the RoleBinding to
-              items:
-                type: string
-              type: array
-            roleRef:
-              description: RoleRef references a Greenhouse Role by name
-              type: string
-            teamRef:
-              description: TeamRef references a Greenhouse Team by name
-              type: string
-          type: object
-        status:
-          description: RoleBindingStatus defines the observed state of RoleBinding
           type: object
       type: object
     Cluster:
@@ -401,6 +325,82 @@ components:
                     - type
                   x-kubernetes-list-type: map
               type: object
+          type: object
+      type: object
+    Organization:
+      xml:
+        name: greenhouse.sap
+        namespace: v1alpha1
+      title: Organization
+      description: Organization is the Schema for the organizations API
+      properties:
+        apiVersion:
+          description: 'APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+          type: string
+        kind:
+          description: 'Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+          type: string
+        metadata:
+          type: object
+        spec:
+          description: OrganizationSpec defines the desired state of Organization
+          properties:
+            authentication:
+              description: Authentication configures the organizations authentication mechanism.
+              properties:
+                oidc:
+                  description: OIDConfig configures the OIDC provider.
+                  properties:
+                    clientIDReference:
+                      description: ClientIDReference references the Kubernetes secret containing the client id.
+                      properties:
+                        key:
+                          description: Key in the secret to select the value from.
+                          type: string
+                        name:
+                          description: Name of the secret in the same namespace.
+                          type: string
+                      required:
+                        - key
+                        - name
+                      type: object
+                    clientSecretReference:
+                      description: ClientSecretReference references the Kubernetes secret containing the client secret.
+                      properties:
+                        key:
+                          description: Key in the secret to select the value from.
+                          type: string
+                        name:
+                          description: Name of the secret in the same namespace.
+                          type: string
+                      required:
+                        - key
+                        - name
+                      type: object
+                    issuer:
+                      description: Issuer is the URL of the identity service.
+                      type: string
+                    redirectURI:
+                      description: RedirectURI is the redirect URI. If none is specified, the Greenhouse ID proxy will be used.
+                      type: string
+                  required:
+                    - clientIDReference
+                    - clientSecretReference
+                    - issuer
+                  type: object
+              type: object
+            description:
+              description: Description provides additional details of the organization.
+              type: string
+            displayName:
+              description: DisplayName is an optional name for the organization to be displayed in the Greenhouse UI. Defaults to a normalized version of metadata.name.
+              type: string
+            mappedOrgAdminIdPGroup:
+              description: MappedOrgAdminIDPGroup is the IDP group ID identifying org admins
+              type: string
+          type: object
+        status:
+          description: OrganizationStatus defines the observed state of an Organization
           type: object
       type: object
     PluginConfig:
@@ -591,91 +591,6 @@ components:
               type: integer
           type: object
       type: object
-    TeamMembership:
-      xml:
-        name: greenhouse.sap
-        namespace: v1alpha1
-      title: TeamMembership
-      description: TeamMembership is the Schema for the teammemberships API
-      properties:
-        apiVersion:
-          description: 'APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
-          type: string
-        kind:
-          description: 'Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
-          type: string
-        metadata:
-          type: object
-        spec:
-          description: TeamMembershipSpec defines the desired state of TeamMembership
-          properties:
-            members:
-              description: Members list users that are part of a team.
-              items:
-                description: User specifies a human person.
-                properties:
-                  email:
-                    description: Email of the user.
-                    type: string
-                  firstName:
-                    description: FirstName of the user.
-                    type: string
-                  id:
-                    description: ID is the unique identifier of the user.
-                    type: string
-                  lastName:
-                    description: LastName of the user.
-                    type: string
-                required:
-                  - email
-                  - firstName
-                  - id
-                  - lastName
-                type: object
-              type: array
-          type: object
-        status:
-          description: TeamMembershipStatus defines the observed state of TeamMembership
-          properties:
-            lastSyncedTime:
-              description: LastSyncedTime is the information when was the last time the membership was synced
-              format: date-time
-              type: string
-            lastUpdateTime:
-              description: LastChangedTime is the information when was the last time the membership was actually changed
-              format: date-time
-              type: string
-          type: object
-      type: object
-    Team:
-      xml:
-        name: greenhouse.sap
-        namespace: v1alpha1
-      title: Team
-      description: Team is the Schema for the teams API
-      properties:
-        apiVersion:
-          description: 'APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
-          type: string
-        kind:
-          description: 'Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
-          type: string
-        metadata:
-          type: object
-        spec:
-          description: TeamSpec defines the desired state of Team
-          properties:
-            description:
-              description: Description provides additional details of the team.
-              type: string
-            mappedIdPGroup:
-              description: IdP group id matching team.
-              type: string
-          type: object
-        status:
-          description: TeamStatus defines the observed state of Team
-          type: object
-      type: object
     Plugin:
       xml:
         name: greenhouse.sap
@@ -780,5 +695,90 @@ components:
           type: object
         status:
           description: PluginStatus defines the observed state of Plugin
+          type: object
+      type: object
+    TeamMembership:
+      xml:
+        name: greenhouse.sap
+        namespace: v1alpha1
+      title: TeamMembership
+      description: TeamMembership is the Schema for the teammemberships API
+      properties:
+        apiVersion:
+          description: 'APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+          type: string
+        kind:
+          description: 'Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+          type: string
+        metadata:
+          type: object
+        spec:
+          description: TeamMembershipSpec defines the desired state of TeamMembership
+          properties:
+            members:
+              description: Members list users that are part of a team.
+              items:
+                description: User specifies a human person.
+                properties:
+                  email:
+                    description: Email of the user.
+                    type: string
+                  firstName:
+                    description: FirstName of the user.
+                    type: string
+                  id:
+                    description: ID is the unique identifier of the user.
+                    type: string
+                  lastName:
+                    description: LastName of the user.
+                    type: string
+                required:
+                  - email
+                  - firstName
+                  - id
+                  - lastName
+                type: object
+              type: array
+          type: object
+        status:
+          description: TeamMembershipStatus defines the observed state of TeamMembership
+          properties:
+            lastSyncedTime:
+              description: LastSyncedTime is the information when was the last time the membership was synced
+              format: date-time
+              type: string
+            lastUpdateTime:
+              description: LastChangedTime is the information when was the last time the membership was actually changed
+              format: date-time
+              type: string
+          type: object
+      type: object
+    Team:
+      xml:
+        name: greenhouse.sap
+        namespace: v1alpha1
+      title: Team
+      description: Team is the Schema for the teams API
+      properties:
+        apiVersion:
+          description: 'APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+          type: string
+        kind:
+          description: 'Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+          type: string
+        metadata:
+          type: object
+        spec:
+          description: TeamSpec defines the desired state of Team
+          properties:
+            description:
+              description: Description provides additional details of the team.
+              type: string
+            mappedIdPGroup:
+              description: IdP group id matching team.
+              type: string
+          type: object
+        status:
+          description: TeamStatus defines the observed state of Team
           type: object
       type: object
