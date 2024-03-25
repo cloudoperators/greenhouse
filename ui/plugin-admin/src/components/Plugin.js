@@ -21,7 +21,7 @@ const Plugin = (props) => {
       onClick={showDetails}
       className={`cursor-pointer ${
         showDetailsFor === plugin.id ? "active" : ""
-      }`}
+      } ${plugin?.disabled ? "text-theme-disabled" : ""} `}
     >
       <DataGridCell>
         <p>{plugin.name}</p>
@@ -33,7 +33,15 @@ const Plugin = (props) => {
         {plugin.externalServicesUrls ? (
           plugin.externalServicesUrls?.map((url) => {
             return (
-              <a href={url.url} target="_blank" rel="noreferrer" key={url.url}>
+              <a
+                href={url.url}
+                target="_blank"
+                rel="noreferrer"
+                key={url.url}
+                className={`${
+                  plugin?.disabled ? "text-theme-link text-opacity-50" : ""
+                } `}
+              >
                 {url.name + " "}
               </a>
             )
@@ -44,10 +52,14 @@ const Plugin = (props) => {
       </DataGridCell>
       <DataGridCell>
         <p>
-          <Icon
-            icon={plugin.readyStatus?.icon}
-            color={plugin.readyStatus?.color}
-          />
+          {plugin.disabled ? (
+            <Icon color="jn-global-text" icon="error" title="disabled" />
+          ) : (
+            <Icon
+              icon={plugin.readyStatus?.icon}
+              color={plugin.readyStatus?.color}
+            />
+          )}
         </p>
       </DataGridCell>
     </DataGridRow>

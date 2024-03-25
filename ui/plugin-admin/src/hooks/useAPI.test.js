@@ -99,6 +99,7 @@ const res1 = [
       { name: "value1", value: true },
       { name: "greenhouse.value2", value: "hidden" },
     ],
+    disabled: false,
     raw: {
       metadata: { name: "test" },
       spec: {
@@ -154,6 +155,7 @@ const res2 = [
     id: "test",
     name: "test",
     optionValues: undefined,
+    disabled: undefined,
     raw: {
       metadata: {
         name: "test",

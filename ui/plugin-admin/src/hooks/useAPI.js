@@ -24,6 +24,7 @@ export const buildExternalServicesUrls = (exposedServices) => {
 
 export const createPluginConfig = (items) => {
   let allPlugins = []
+
   items.forEach((item) => {
     const id = item?.metadata?.name ? item.metadata?.name : "Unknown"
     const name = item?.spec?.displayName ? item.spec.displayName : id
@@ -50,6 +51,7 @@ export const createPluginConfig = (items) => {
       readyStatus,
       optionValues,
       raw,
+      disabled,
     })
   })
   return allPlugins

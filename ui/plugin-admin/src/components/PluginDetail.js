@@ -21,7 +21,6 @@ import {
   Tab,
   TabPanel,
 } from "juno-ui-components"
-import { o } from "juno-ui-components/build/floating-ui.dom-a8dd2d87"
 
 const PluginDetail = () => {
   const pluginConfig = usePluginConfig()
@@ -45,7 +44,7 @@ const PluginDetail = () => {
       opened={!!showDetailsFor}
       onClose={onPanelClose}
       size="large"
-      heading={plugin?.name}
+      heading={plugin?.disabled ? plugin?.name + " DISABLED" : plugin?.name}
     >
       <PanelBody>
         <Tabs>
@@ -65,6 +64,13 @@ const PluginDetail = () => {
                   <DataGridCell>{plugin?.name}</DataGridCell>
                 </DataGridRow>
 
+                {plugin?.disabled && (
+                  <DataGridRow>
+                    <DataGridHeadCell>Disabled</DataGridHeadCell>
+                    <DataGridCell>{plugin?.disabled.toString()}</DataGridCell>
+                  </DataGridRow>
+                )}
+
                 <DataGridRow>
                   <DataGridHeadCell>Version</DataGridHeadCell>
                   <DataGridCell>{plugin?.version}</DataGridCell>
@@ -80,16 +86,14 @@ const PluginDetail = () => {
                   <DataGridCell>
                     {plugin?.externalServicesUrls?.map((url) => {
                       return (
-                        <p key={url.url}>
-                          <a
-                            href={url.url}
-                            target="_blank"
-                            rel="noreferrer"
-                            key={url.url}
-                          >
-                            {url.name}
-                          </a>
-                        </p>
+                        <a
+                          href={url.url}
+                          target="_blank"
+                          rel="noreferrer"
+                          key={url.url}
+                        >
+                          {url.name}{" "}
+                        </a>
                       )
                     })}{" "}
                   </DataGridCell>
