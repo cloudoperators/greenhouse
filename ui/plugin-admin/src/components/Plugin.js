@@ -29,11 +29,9 @@ const Plugin = (props) => {
         showDetailsFor === plugin.id ? "active" : ""
       } ${plugin?.disabled ? "text-theme-disabled" : ""} `}
     >
+      <DataGridCell>{plugin.name}</DataGridCell>
       <DataGridCell>
-        <p>{plugin.name}</p>
-      </DataGridCell>
-      <DataGridCell>
-        {plugin.clusterName ? <p>{plugin.clusterName}</p> : <p>&mdash;</p>}
+        {plugin.clusterName ? plugin.clusterName : <>&mdash;</>}
       </DataGridCell>
       <DataGridCell>
         {plugin.externalServicesUrls ? (
@@ -44,29 +42,27 @@ const Plugin = (props) => {
                 target="_blank"
                 rel="noreferrer"
                 key={url.url}
-                className={`${
+                className={`mr-3 ${
                   plugin?.disabled ? "text-theme-link text-opacity-50" : ""
-                } `}
+                }`}
               >
-                {url.name + " "}
+                {url.name}
               </a>
             )
           })
         ) : (
-          <p>&mdash;</p>
+          <>&mdash;</>
         )}
       </DataGridCell>
       <DataGridCell>
-        <p>
-          {plugin.disabled ? (
-            <Icon color="jn-global-text" icon="error" title="disabled" />
-          ) : (
-            <Icon
-              icon={plugin.readyStatus?.icon}
-              color={plugin.readyStatus?.color}
-            />
-          )}
-        </p>
+        {plugin.disabled ? (
+          <Icon color="jn-global-text" icon="error" title="disabled" />
+        ) : (
+          <Icon
+            icon={plugin.readyStatus?.icon}
+            color={plugin.readyStatus?.color}
+          />
+        )}
       </DataGridCell>
     </DataGridRow>
   )

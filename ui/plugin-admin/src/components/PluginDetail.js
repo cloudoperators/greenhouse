@@ -96,12 +96,13 @@ const PluginDetail = () => {
                           href={url.url}
                           target="_blank"
                           rel="noreferrer"
+                          className="mr-3"
                           key={url.url}
                         >
-                          {url.name}{" "}
+                          {url.name}
                         </a>
                       )
-                    })}{" "}
+                    })}
                   </DataGridCell>
                 </DataGridRow>
 
@@ -142,7 +143,7 @@ const PluginDetail = () => {
                               <JsonViewer data={option?.value} />
                             )
                           ) : (
-                            <p>{String(option?.value)}</p>
+                            String(option?.value)
                           ))}
                       </DataGridCell>
                     </DataGridRow>
