@@ -1,6 +1,7 @@
 name: Build Docker images and push to registry
 
 on:
+  workflow_dispatch: {}
   push:
     branches:
         - main
@@ -13,32 +14,29 @@ on:
     tags:
       - v*.*.*
     
-
 env:
   REGISTRY: ghcr.io
-  IMAGE_NAME: ${{ github.repository }}
-
 
 jobs:
   build:
     name: Build
     runs-on: [ default ]
     strategy:
+      max-parallel: 3
       matrix:
-        Dockerfiles: 
-          - Dockerfile
-          - Dockerfile.dev-env
-          - Dockerfile.headscalectl
-          - Dockerfile.tailscale
-          - Dockerfile.tcp-proxy
-          - Dockerfile.website
-        Imagename:
-          - greenhouse
-          - greenhouse-dev-env
-          - greenhouse-headscalectl
-          - greenhouse-tailscale
-          - greenhouse-tcp-proxy
-          - greenhouse-website
+        include:
+          - Dockerfiles: Dockerfile
+            Imagename: greenhouse
+          - Dockerfiles: Dockerfile.dev-env
+            Imagename: greenhouse-dev-env
+          - Dockerfiles: Dockerfile.headscalectl
+            Imagename: greenhouse-headscalectl
+          - Dockerfiles: Dockerfile.tailscale
+            Imagename: greenhouse-tailscale
+          - Dockerfiles: Dockerfile.tcp-proxy
+            Imagename: greenhouse-tcp-proxy
+          - Dockerfiles: Dockerfile.website
+            Imagename: greenhouse-website
 
     permissions:
       contents: read
@@ -88,7 +86,7 @@ jobs:
         id: meta
         uses: docker/metadata-action@v5 # v5.0.0
         with:
-          images: ${{ env.REGISTRY }}/${{ matrix.Imagename }}
+          images: ${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ matrix.Imagename }}
           tags: |
             type=semver,pattern={{version}},prefix=v
             type=semver,pattern={{major}}.{{minor}},prefix=v
@@ -138,21 +136,22 @@ jobs:
       packages: read
       security-events: write
     strategy:
+      max-parallel: 3
       matrix:
-        Dockerfiles: 
-            - Dockerfile
-            - Dockerfile.dev-env
-            - Dockerfile.headscalectl
-            - Dockerfile.tailscale
-            - Dockerfile.tcp-proxy
-            - Dockerfile.website
-        Imagename:
-            - greenhouse
-            - greenhouse-dev-env
-            - greenhouse-headscalectl
-            - greenhouse-tailscale
-            - greenhouse-tcp-proxy
-            - greenhouse-website
+        include:
+          - Dockerfiles: Dockerfile
+            Imagename: greenhouse
+          - Dockerfiles: Dockerfile.dev-env
+            Imagename: greenhouse-dev-env
+          - Dockerfiles: Dockerfile.headscalectl
+            Imagename: greenhouse-headscalectl
+          - Dockerfiles: Dockerfile.tailscale
+            Imagename: greenhouse-tailscale
+          - Dockerfiles: Dockerfile.tcp-proxy
+            Imagename: greenhouse-tcp-proxy
+          - Dockerfiles: Dockerfile.website
+            Imagename: greenhouse-website
+
     name: Vulnerability Scan
     needs: build
     runs-on: [ default ]
@@ -160,7 +159,7 @@ jobs:
       - name: Run Trivy vulnerability scanner
         uses: aquasecurity/trivy-action@master
         with:
-          image-ref: ${{ env.REGISTRY }}/${{ matrix.Imagename }}:${{ github.sha }}
+          image-ref: ${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ matrix.Imagename }}:${{ github.sha }}
           ignore-unfixed: true
           exit-code: '1'
           format: template
