@@ -71,6 +71,8 @@ var _ = Describe("HelmControllerTest", Serial, func() {
 		PluginConfigName                = "mypluginconfig"
 		PluginConfigRequiredOptionValue = "required"
 
+		ClusterName = "test-cluster"
+
 		Namespace               = "default"
 		HelmRepo                = "dummy"
 		HelmChart               = "./../../test/fixtures/myChart"
@@ -155,7 +157,8 @@ var _ = Describe("HelmControllerTest", Serial, func() {
 				Namespace: Namespace,
 			},
 			Spec: greenhousev1alpha1.PluginConfigSpec{
-				Plugin: PluginName,
+				Plugin:      PluginName,
+				ClusterName: ClusterName,
 				OptionValues: []greenhousev1alpha1.PluginOptionValue{
 					{
 						Name:  PluginOptionRequired,
