@@ -7,12 +7,22 @@ import (
 	"fmt"
 )
 
-// GetAdminRoleNameForOrganization returns the name of the admin role for an organization.
-func GetAdminRoleNameForOrganization(orgName string) string {
+// OrganizationAdminRoleName returns the name of the admin role for an organization.
+func OrganizationAdminRoleName(orgName string) string {
 	return fmt.Sprintf("role:%s:admin", orgName)
 }
 
-// GetOrganizationRoleName returns the name of the role for an organization.
-func GetOrganizationRoleName(orgName string) string {
+// OrganizationClusterAdminRoleName returns the name of the cluster admin role for an organization.
+func OrganizationClusterAdminRoleName(orgName string) string {
+	return fmt.Sprintf("role:%s:cluster-admin", orgName)
+}
+
+// GetOrganizationPluginAdminRoleName returns the name of the plugin admin role for an organization.
+func OrganizationPluginAdminRoleName(orgName string) string {
+	return fmt.Sprintf("role:%s:plugin-admin", orgName)
+}
+
+// OrganizationRoleName returns the name of the role for an organization.
+func OrganizationRoleName(orgName string) string {
 	return fmt.Sprintf("organization:%s", orgName)
 }

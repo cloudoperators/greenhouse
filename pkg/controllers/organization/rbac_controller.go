@@ -25,6 +25,8 @@ type userGroup int
 const (
 	admin userGroup = iota
 	member
+	clusterAdmin
+	pluginAdmin
 )
 
 // RBACReconciler reconciles an Organization object and manages RBAC permissions based on organization and team membership.
@@ -93,6 +95,16 @@ func (r *RBACReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.
 		return ctrl.Result{}, err
 	}
 
+	// RBAC roles for organization cluster admins to access namespace-scoped resources.
+	if err := r.reconcileRole(ctx, org, clusterAdmin); err != nil {
+		return ctrl.Result{}, err
+	}
+
+	// RBAC roles for organization plugin admins to access namespace-scoped resources.
+	if err := r.reconcileRole(ctx, org, pluginAdmin); err != nil {
+		return ctrl.Result{}, err
+	}
+
 	return ctrl.Result{}, nil
 }
 
@@ -102,11 +114,11 @@ func (r *RBACReconciler) reconcileClusterRole(ctx context.Context, org *greenhou
 
 	switch group {
 	case admin:
-		clusterRoleName = rbac.GetAdminRoleNameForOrganization(org.GetName())
-		clusterRoleRules = rbac.MakePolicyRulesForOrganizationAdminClusterRole(org.GetName())
+		clusterRoleName = rbac.OrganizationAdminRoleName(org.GetName())
+		clusterRoleRules = rbac.OrganizationAdminClusterRolePolicyRules(org.GetName())
 	case member:
-		clusterRoleName = rbac.GetOrganizationRoleName(org.GetName())
-		clusterRoleRules = rbac.MakePolicyRulesForOrganizationMemberClusterRole(org.GetName())
+		clusterRoleName = rbac.OrganizationRoleName(org.GetName())
+		clusterRoleRules = rbac.OrganizationMemberClusterRolePolicyRules(org.GetName())
 	default:
 		return fmt.Errorf("unknown userRole %d", group)
 	}
@@ -139,9 +151,9 @@ func (r *RBACReconciler) reconcileClusterRoleBinding(ctx context.Context, org *g
 
 	switch group {
 	case admin:
-		clusterRoleBindingName = rbac.GetAdminRoleNameForOrganization(org.GetName())
+		clusterRoleBindingName = rbac.OrganizationAdminRoleName(org.GetName())
 	case member:
-		clusterRoleBindingName = rbac.GetOrganizationRoleName(org.GetName())
+		clusterRoleBindingName = rbac.OrganizationRoleName(org.GetName())
 	default:
 		return fmt.Errorf("unknown role %d", group)
 	}
@@ -185,11 +197,17 @@ func (r *RBACReconciler) reconcileRole(ctx context.Context, org *greenhouseapisv
 
 	switch group {
 	case admin:
-		roleName = rbac.GetAdminRoleNameForOrganization(org.GetName())
-		roleRules = rbac.MakePolicyRulesForOrganizationAdminRole()
+		roleName = rbac.OrganizationAdminRoleName(org.GetName())
+		roleRules = rbac.OrganizationAdminPolicyRules()
 	case member:
-		roleName = rbac.GetOrganizationRoleName(org.GetName())
-		roleRules = rbac.MakePolicyRulesForOrganizationMemberRole()
+		roleName = rbac.OrganizationRoleName(org.GetName())
+		roleRules = rbac.OrganizationMemberPolicyRules()
+	case clusterAdmin:
+		roleName = rbac.OrganizationClusterAdminRoleName(org.GetName())
+		roleRules = rbac.OrganizationClusterAdminPolicyRules()
+	case pluginAdmin:
+		roleName = rbac.OrganizationPluginAdminRoleName(org.GetName())
+		roleRules = rbac.OrganizationPluginAdminPolicyRules()
 	default:
 		return fmt.Errorf("unknown userRole %d", group)
 	}
@@ -221,9 +239,9 @@ func (r *RBACReconciler) reconcileRoleBinding(ctx context.Context, org *greenhou
 
 	switch group {
 	case admin:
-		roleBindingName = rbac.GetAdminRoleNameForOrganization(org.GetName())
+		roleBindingName = rbac.OrganizationAdminRoleName(org.GetName())
 	case member:
-		roleBindingName = rbac.GetOrganizationRoleName(org.GetName())
+		roleBindingName = rbac.OrganizationRoleName(org.GetName())
 	default:
 		return fmt.Errorf("unknown userRole %d", group)
 	}
