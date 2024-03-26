@@ -12,9 +12,9 @@ const createPluginSlice = (set, get) => ({
       setPluginConfig: (pluginConfig) => {
         // Sort plugins by id alphabetically, but put disabled plugins at the end
         let sortedPlugins = pluginConfig.sort((a, b) => {
-          if (a.disabled && !b.disabled) {
+          if (a?.disabled && !b?.disabled) {
             return 1
-          } else if (!a.disabled && b.disabled) {
+          } else if (!a?.disabled && b?.disabled) {
             return -1
           } else {
             return a.id.localeCompare(b.id)
