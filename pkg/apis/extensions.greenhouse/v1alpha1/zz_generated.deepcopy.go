@@ -9,7 +9,7 @@
 package v1alpha1
 
 import (
-	"k8s.io/api/rbac/v1"
+	v1 "k8s.io/api/rbac/v1"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 )
 

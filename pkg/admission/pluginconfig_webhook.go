@@ -12,6 +12,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/validation/field"
+	"k8s.io/utils/strings/slices"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
@@ -24,7 +25,7 @@ import (
 // pluginsAllowedInCentralCluster is a list of plugins that are allowed to be installed in the central cluster.
 // TODO: Make this configurable on plugin level (AdminPlugin discussion) instead of maintaining a list here.
 var pluginsAllowedInCentralCluster = []string{
-	"alerts", "doop", "service-proxy", "teams2slack",
+	"alerts", "doop", "service-proxy", "teams2slack", "kubeconfig-generator",
 }
 
 // SetupPluginConfigWebhookWithManager configures the webhook for the PluginConfig custom resource.
@@ -88,7 +89,7 @@ func ValidateCreatePluginConfig(ctx context.Context, c client.Client, obj runtim
 	if err := validatePluginConfigOptionValues(pluginConfig, plugin); err != nil {
 		return nil, err
 	}
-	if err := validatePluginConfigForCluster(ctx, pluginConfig, c); err != nil {
+	if err := validatePluginConfigForCluster(ctx, c, pluginConfig, plugin); err != nil {
 		return nil, err
 	}
 	return nil, nil
@@ -114,7 +115,7 @@ func ValidateUpdatePluginConfig(ctx context.Context, c client.Client, old, obj r
 	if err := validatePluginConfigOptionValues(pluginConfig, plugin); err != nil {
 		return nil, err
 	}
-	if err := validatePluginConfigForCluster(ctx, pluginConfig, c); err != nil {
+	if err := validatePluginConfigForCluster(ctx, c, pluginConfig, plugin); err != nil {
 		return nil, err
 	}
 	if err := validateImmutableField(oldPluginConfig.Spec.ClusterName, pluginConfig.Spec.ClusterName,
@@ -193,9 +194,9 @@ func validatePluginConfigOptionValues(pluginConfig *greenhousev1alpha1.PluginCon
 	return apierrors.NewInvalid(pluginConfig.GroupVersionKind().GroupKind(), pluginConfig.Name, allErrs)
 }
 
-func validatePluginConfigForCluster(ctx context.Context, pluginConfig *greenhousev1alpha1.PluginConfig, c client.Client) error {
-	// Exclude whitelisted PluginConfigs and the greenhouse namespace from the below check.
-	if isStringSliceContains(pluginsAllowedInCentralCluster, pluginConfig.Spec.Plugin) || pluginConfig.GetNamespace() == "greenhouse" {
+func validatePluginConfigForCluster(ctx context.Context, c client.Client, pluginConfig *greenhousev1alpha1.PluginConfig, plugin *greenhousev1alpha1.Plugin) error {
+	// Exclude whitelisted and front-end only PluginConfigs as well as the greenhouse namespace from the below check.
+	if slices.Contains(pluginsAllowedInCentralCluster, pluginConfig.Spec.Plugin) || plugin.Spec.HelmChart == nil || pluginConfig.GetNamespace() == "greenhouse" {
 		return nil
 	}
 
