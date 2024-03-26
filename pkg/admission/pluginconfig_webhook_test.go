@@ -339,20 +339,11 @@ var _ = Describe("Validate pluginConfig clusterName", Ordered, func() {
 		expectClusterNotFoundError(err)
 	})
 
-	It("should allow deletion of the clusterName reference in existing pluginConfig", func() {
+	It("should not allow deletion of the clusterName reference in existing pluginConfig", func() {
 		testPluginConfig.Spec.ClusterName = ""
 		err := test.K8sClient.Update(test.Ctx, testPluginConfig)
-		Expect(err).ToNot(HaveOccurred(), "there should be no error updating the pluginConfig")
-
-		By("checking the label on the pluginConfig")
-		actPluginConfig := &greenhousev1alpha1.PluginConfig{}
-		err = test.K8sClient.Get(test.Ctx, types.NamespacedName{Name: testPluginConfig.Name, Namespace: testPluginConfig.Namespace}, actPluginConfig)
-		Expect(err).ToNot(HaveOccurred(), "there should be no error getting the pluginConfig")
-		Eventually(func() map[string]string {
-			return actPluginConfig.GetLabels()
-		}).Should(HaveKeyWithValue(greenhouseapis.LabelKeyCluster, ""), "the pluginConfig should have an empty cluster label")
+		expectClusterMustBeSetError(err)
 	})
-
 })
 
 func expectClusterNotFoundError(err error) {

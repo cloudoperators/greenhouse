@@ -7,6 +7,7 @@ import (
 	"context"
 
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/util/validation/field"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
@@ -99,4 +100,11 @@ func isStringSliceContains(theStringSlice []string, theString string) bool {
 		}
 	}
 	return false
+}
+
+func validateImmutableField(oldValue, newValue string, path *field.Path) error {
+	if oldValue != newValue {
+		return field.Invalid(path, newValue, "field is immutable")
+	}
+	return nil
 }

@@ -94,7 +94,11 @@ func ValidateCreatePluginConfig(ctx context.Context, c client.Client, obj runtim
 	return nil, nil
 }
 
-func ValidateUpdatePluginConfig(ctx context.Context, c client.Client, _, obj runtime.Object) (admission.Warnings, error) {
+func ValidateUpdatePluginConfig(ctx context.Context, c client.Client, old, obj runtime.Object) (admission.Warnings, error) {
+	oldPluginConfig, ok := obj.(*greenhousev1alpha1.PluginConfig)
+	if !ok {
+		return nil, nil
+	}
 	pluginConfig, ok := obj.(*greenhousev1alpha1.PluginConfig)
 	if !ok {
 		return nil, nil
@@ -111,6 +115,11 @@ func ValidateUpdatePluginConfig(ctx context.Context, c client.Client, _, obj run
 		return nil, err
 	}
 	if err := validatePluginConfigForCluster(ctx, pluginConfig, c); err != nil {
+		return nil, err
+	}
+	if err := validateImmutableField(oldPluginConfig.Spec.ClusterName, pluginConfig.Spec.ClusterName,
+		field.NewPath("spec", "clusterName"),
+	); err != nil {
 		return nil, err
 	}
 	return nil, nil
