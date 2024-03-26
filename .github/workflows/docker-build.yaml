@@ -162,9 +162,8 @@ jobs:
           image-ref: ${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ matrix.Imagename }}:${{ github.sha }}
           ignore-unfixed: true
           exit-code: '1'
-          format: template
-          template: '@/contrib/sarif.tpl'
-          output: trivy-results.sarif
+          format: 'sarif'
+          output: 'trivy-results.sarif'
           severity: 'CRITICAL,HIGH'
 
       - name: Upload Trivy scan results to GitHub Security tab
