@@ -41,12 +41,8 @@ var testRoleBinding = &extensionsgreenhousev1alpha1.RoleBinding{
 		Name:      "test-rolebinding",
 	},
 	Spec: extensionsgreenhousev1alpha1.RoleBindingSpec{
-		ClusterSelector: metav1.LabelSelector{
-			MatchLabels: map[string]string{
-				"test.greenhouse.sap/cluster": "test-cluster",
-			},
-		},
-		RoleRef: "test-role",
+		ClusterName: "test-cluster",
+		RoleRef:     "test-role",
 	},
 }
 
