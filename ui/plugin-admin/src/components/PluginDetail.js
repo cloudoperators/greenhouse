@@ -6,7 +6,7 @@
 import React, { useEffect, useState } from "react"
 import {
   useShowDetailsFor,
-  useGlobalsActions,
+  usePluginActions,
   usePluginConfig,
 } from "./StoreProvider"
 import {
@@ -30,7 +30,7 @@ import {
 // Renders the plugin details panel
 const PluginDetail = () => {
   const pluginConfig = usePluginConfig()
-  const { setShowDetailsFor } = useGlobalsActions()
+  const { setShowDetailsFor } = usePluginActions()
   const showDetailsFor = useShowDetailsFor()
   const [plugin, setPlugin] = useState(null)
 
@@ -123,6 +123,9 @@ const PluginDetail = () => {
                   </DataGridCell>
                 </DataGridRow>
                 {plugin?.optionValues?.map((option) => {
+                  {
+                    /* Every optionValue which not starts with greenhouse is shown */
+                  }
                   if (option?.name.startsWith("greenhouse.")) return null
 
                   return (

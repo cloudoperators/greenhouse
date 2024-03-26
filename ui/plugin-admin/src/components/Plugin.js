@@ -5,14 +5,14 @@
 
 import React from "react"
 import { DataGridRow, DataGridCell } from "juno-ui-components"
-import { useGlobalsActions, useShowDetailsFor } from "./StoreProvider"
+import { usePluginActions, useShowDetailsFor } from "./StoreProvider"
 
 import { Icon } from "juno-ui-components"
 
 // renders a single plugin row
 const Plugin = (props) => {
   const plugin = props.plugin
-  const { setShowDetailsFor } = useGlobalsActions()
+  const { setShowDetailsFor } = usePluginActions()
   const showDetailsFor = useShowDetailsFor()
 
   const showDetails = () => {

@@ -9,8 +9,6 @@ const createGlobalsSlice = (set, get) => ({
     apiEndpoint: null,
     loggedIn: false,
     authData: null,
-    pluginConfig: null,
-    showDetailsFor: null,
 
     actions: {
       setUrlStateKey: (newUrlStateKey) =>
@@ -29,30 +27,6 @@ const createGlobalsSlice = (set, get) => ({
       setEndpoint: (apiEndpoint) =>
         set((state) => ({
           globals: { ...state.globals, apiEndpoint: apiEndpoint },
-        })),
-
-      setPluginConfig: (pluginConfig) => {
-        // Sort plugins by id alphabetically, but put disabled plugins at the end
-        let sortedPlugins = pluginConfig.sort((a, b) => {
-          if (a.disabled && !b.disabled) {
-            return 1
-          } else if (!a.disabled && b.disabled) {
-            return -1
-          } else {
-            return a.id.localeCompare(b.id)
-          }
-        })
-        set((state) => ({
-          globals: {
-            ...state.globals,
-            pluginConfig: sortedPlugins,
-          },
-        }))
-      },
-
-      setShowDetailsFor: (showDetailsFor) =>
-        set((state) => ({
-          globals: { ...state.globals, showDetailsFor: showDetailsFor },
         })),
     },
   },

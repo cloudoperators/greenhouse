@@ -8,7 +8,7 @@ import { registerConsumer } from "url-state-provider"
 import {
   useLoggedIn,
   useAuthData,
-  useGlobalsActions,
+  usePluginActions,
   useShowDetailsFor,
 } from "../components/StoreProvider"
 
@@ -20,7 +20,7 @@ const useUrlState = () => {
   const loggedIn = useLoggedIn()
   const authData = useAuthData()
 
-  const { setPluginConfig, setShowDetailsFor } = useGlobalsActions()
+  const { setShowDetailsFor } = usePluginActions()
   const detailsFor = useShowDetailsFor()
 
   // Set initial state from URL (on login)

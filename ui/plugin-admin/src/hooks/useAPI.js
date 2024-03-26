@@ -6,7 +6,7 @@
 import { useCallback, useMemo } from "react"
 import useClient from "./useClient"
 import { useAuthData } from "../components/StoreProvider"
-import { useGlobalsActions } from "../components/StoreProvider"
+import { usePluginActions } from "../components/StoreProvider"
 
 import { getResourceStatusFromKubernetesConditions } from "../../../utils/resourceStatus"
 
@@ -68,7 +68,7 @@ export const createPluginConfig = (items) => {
 export const useAPI = () => {
   const { client } = useClient()
   const authData = useAuthData()
-  const { setPluginConfig } = useGlobalsActions()
+  const { setPluginConfig } = usePluginActions()
 
   const namespace = useMemo(() => {
     if (!authData?.raw?.groups) return null
