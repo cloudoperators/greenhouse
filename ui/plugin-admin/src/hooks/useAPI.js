@@ -12,6 +12,8 @@ import { getResourceStatusFromKubernetesConditions } from "../../../utils/resour
 
 // Extracts the external services from the object and creates links which are used in the plugin list / detail
 export const buildExternalServicesUrls = (exposedServices) => {
+  // logs the stringified object
+
   if (!exposedServices) return null
 
   const links = []

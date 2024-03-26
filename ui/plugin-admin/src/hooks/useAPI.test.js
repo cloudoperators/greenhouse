@@ -5,23 +5,60 @@
 
 // test of useAPI hook
 import { describe, expect, test } from "@jest/globals"
-import { createPluginConfig } from "./useAPI"
+import { createPluginConfig, buildExternalServicesUrls } from "./useAPI"
 
-describe("useAPI", () => {
+describe("createPluginConfig", () => {
+  // checks if all fields are created correctly
   test("createPluginConfig with all important fields", () => {
     const items = db1
     const result = createPluginConfig(items)
     expect(result).toEqual(res1)
   })
-})
 
-describe("useAPI", () => {
+  // checks if the function works with just metadata name
   test("createPluginConfig with just metadata name", () => {
     const items = db2
     const result = createPluginConfig(items)
     expect(result).toEqual(res2)
   })
 })
+
+describe("buildExternalServicesUrls", () => {
+  // checks if the function works with no external services
+  test("buildExternalServicesUrls with no external services", () => {
+    const items = undefined
+    const result = buildExternalServicesUrls(items)
+    expect(result).toEqual(null)
+  })
+
+  // checks if the function works with URLs with and without a name in Data
+  test("buildExternalServicesUrls with external services", () => {
+    const items = {
+      "https://example.com": {
+        name: "exposed-service",
+        port: 80,
+        namespace: "default",
+      },
+      "https://example.org": {
+        a: "b",
+      },
+    }
+
+    const result = buildExternalServicesUrls(items)
+    expect(result).toEqual([
+      {
+        url: "https://example.com",
+        name: "exposed-service",
+      },
+      {
+        url: "https://example.org",
+        name: "https://example.org",
+      },
+    ])
+  })
+})
+
+// mock data
 
 const db1 = [
   {
