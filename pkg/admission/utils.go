@@ -91,3 +91,12 @@ func (c *customValidator) ValidateDelete(ctx context.Context, obj runtime.Object
 	}
 	return c.validateDelete(ctx, c.Client, obj)
 }
+
+func isStringSliceContains(theStringSlice []string, theString string) bool {
+	for _, s := range theStringSlice {
+		if s == theString {
+			return true
+		}
+	}
+	return false
+}

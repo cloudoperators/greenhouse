@@ -21,6 +21,12 @@ import (
 	"github.com/cloudoperators/greenhouse/pkg/helm"
 )
 
+// pluginsAllowedInCentralCluster is a list of plugins that are allowed to be installed in the central cluster.
+// TODO: Make this configurable on plugin level (AdminPlugin discussion) instead of maintaining a list here.
+var pluginsAllowedInCentralCluster = []string{
+	"alerts", "doop", "service-proxy", "teams2slack",
+}
+
 // SetupPluginConfigWebhookWithManager configures the webhook for the PluginConfig custom resource.
 func SetupPluginConfigWebhookWithManager(mgr ctrl.Manager) error {
 	return setupWebhook(mgr,
@@ -82,7 +88,7 @@ func ValidateCreatePluginConfig(ctx context.Context, c client.Client, obj runtim
 	if err := validatePluginConfigOptionValues(pluginConfig, plugin); err != nil {
 		return nil, err
 	}
-	if err := validatePluginConfigClusterExists(ctx, pluginConfig, c); err != nil {
+	if err := validatePluginConfigForCluster(ctx, pluginConfig, c); err != nil {
 		return nil, err
 	}
 	return nil, nil
@@ -104,7 +110,7 @@ func ValidateUpdatePluginConfig(ctx context.Context, c client.Client, _, obj run
 	if err := validatePluginConfigOptionValues(pluginConfig, plugin); err != nil {
 		return nil, err
 	}
-	if err := validatePluginConfigClusterExists(ctx, pluginConfig, c); err != nil {
+	if err := validatePluginConfigForCluster(ctx, pluginConfig, c); err != nil {
 		return nil, err
 	}
 	return nil, nil
@@ -178,15 +184,18 @@ func validatePluginConfigOptionValues(pluginConfig *greenhousev1alpha1.PluginCon
 	return apierrors.NewInvalid(pluginConfig.GroupVersionKind().GroupKind(), pluginConfig.Name, allErrs)
 }
 
-func validatePluginConfigClusterExists(ctx context.Context, pluginConfig *greenhousev1alpha1.PluginConfig, c client.Client) error {
-	// TODO: Enforce clusterName on Plugins with backend.
-	//  We allow PluginConfigs without cluster reference during migration.
-	//  Later a PluginConfig with a backend must have a clusterName configured. Frontend-only plugins are allowed without a clusterName.
-	if pluginConfig.Spec.ClusterName == "" {
+func validatePluginConfigForCluster(ctx context.Context, pluginConfig *greenhousev1alpha1.PluginConfig, c client.Client) error {
+	// Exclude whitelisted PluginConfigs and the greenhouse namespace from the below check.
+	if isStringSliceContains(pluginsAllowedInCentralCluster, pluginConfig.Spec.Plugin) || pluginConfig.GetNamespace() == "greenhouse" {
 		return nil
 	}
 
+	// If the Plugin is not allowed in the central cluster, the PluginConfig must have a spec.clusterName set.
 	clusterName := pluginConfig.Spec.ClusterName
+	if clusterName == "" {
+		return field.Required(field.NewPath("spec").Child("clusterName"), "the clusterName must be set")
+	}
+	// Verify that the cluster exists.
 	var cluster = new(greenhousev1alpha1.Cluster)
 	if err := c.Get(ctx, types.NamespacedName{Namespace: pluginConfig.ObjectMeta.Namespace, Name: clusterName}, cluster); err != nil {
 		switch {
