@@ -90,6 +90,7 @@ var _ = Describe("HelmControllerTest", Serial, func() {
 		PluginOptionMap         = "myMapOption"
 		PluginOptionMapDefault  = map[string]any{"myMapKey1": "myMapValue1", "myMapKey2": "myMapValue2"}
 
+		testCluster      *greenhousev1alpha1.Cluster
 		testPlugin       *greenhousev1alpha1.Plugin
 		testPluginConfig *greenhousev1alpha1.PluginConfig
 		pluginID         = types.NamespacedName{Name: PluginName, Namespace: ""}
@@ -98,6 +99,18 @@ var _ = Describe("HelmControllerTest", Serial, func() {
 	)
 
 	BeforeEach(func() {
+		testCluster = &greenhousev1alpha1.Cluster{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      ClusterName,
+				Namespace: Namespace,
+			},
+			Spec: greenhousev1alpha1.ClusterSpec{
+				AccessMode: greenhousev1alpha1.ClusterAccessModeDirect,
+			},
+		}
+		Expect(test.K8sClient.Create(test.Ctx, testCluster)).
+			To(Succeed(), "creation of the cluster must be successful")
+
 		testPlugin = &greenhousev1alpha1.Plugin{
 			TypeMeta: metav1.TypeMeta{
 				Kind:       "Plugin",
@@ -199,6 +212,9 @@ var _ = Describe("HelmControllerTest", Serial, func() {
 		Eventually(func() bool {
 			return apierrors.IsNotFound(test.K8sClient.Get(test.Ctx, pluginID, actPlugin))
 		}).Should(BeTrue())
+
+		Expect(client.IgnoreNotFound(test.K8sClient.Delete(test.Ctx, testCluster))).
+			To(Succeed(), "error deleting cluster")
 
 		// revert to original chart loader
 		helm.ChartLoader = tempChartLoader
