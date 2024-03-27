@@ -22,7 +22,8 @@ var _ = Describe("Validate PluginConfig OptionValues", func() {
 	DescribeTable("Validate PluginConfigType contains either Value or ValueFrom", func(value *apiextensionsv1.JSON, valueFrom *greenhousev1alpha1.ValueFromSource, expErr bool) {
 		pluginConfig := &greenhousev1alpha1.PluginConfig{
 			Spec: greenhousev1alpha1.PluginConfigSpec{
-				Plugin: "test",
+				Plugin:      "test",
+				ClusterName: "test-cluster",
 				OptionValues: []greenhousev1alpha1.PluginOptionValue{
 					{
 						Name:      "test",
@@ -93,8 +94,12 @@ var _ = Describe("Validate PluginConfig OptionValues", func() {
 		}
 
 		pluginConfig := &greenhousev1alpha1.PluginConfig{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: "greenhouse",
+			},
 			Spec: greenhousev1alpha1.PluginConfigSpec{
-				Plugin: "test",
+				Plugin:      "test",
+				ClusterName: "test-cluster",
 				OptionValues: []greenhousev1alpha1.PluginOptionValue{
 					{
 						Name:  "test",
@@ -145,6 +150,9 @@ var _ = Describe("Validate PluginConfig OptionValues", func() {
 		}
 
 		pluginConfig := &greenhousev1alpha1.PluginConfig{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: "greenhouse",
+			},
 			Spec: greenhousev1alpha1.PluginConfigSpec{
 				Plugin: "test",
 				OptionValues: []greenhousev1alpha1.PluginOptionValue{
@@ -197,7 +205,8 @@ var _ = Describe("Validate PluginConfig OptionValues", func() {
 					Namespace: test.TestNamespace,
 				},
 				Spec: greenhousev1alpha1.PluginConfigSpec{
-					Plugin: "test",
+					Plugin:      "test",
+					ClusterName: "test-cluster",
 				},
 			}
 			err := validatePluginConfigOptionValues(pluginConfig, plugin)
@@ -214,7 +223,8 @@ var _ = Describe("Validate PluginConfig OptionValues", func() {
 					Namespace: test.TestNamespace,
 				},
 				Spec: greenhousev1alpha1.PluginConfigSpec{
-					Plugin: "test",
+					Plugin:      "test",
+					ClusterName: "test-cluster",
 					OptionValues: []greenhousev1alpha1.PluginOptionValue{
 						{
 							Name:  "test",
@@ -291,12 +301,8 @@ var _ = Describe("Validate pluginConfig clusterName", Ordered, func() {
 	})
 
 	It("should accept a pluginConfig without a clusterName", func() {
-
 		err := test.K8sClient.Create(test.Ctx, testPluginConfig)
-		Expect(err).ToNot(HaveOccurred(), "there should be no error creating the pluginConfig")
-
-		err = test.K8sClient.Delete(test.Ctx, testPluginConfig)
-		Expect(err).ToNot(HaveOccurred(), "there should be no error deleting the pluginConfig")
+		expectClusterMustBeSetError(err)
 	})
 
 	It("should reject the pluginConfig when the cluster with clusterName does not exist", func() {
@@ -333,20 +339,11 @@ var _ = Describe("Validate pluginConfig clusterName", Ordered, func() {
 		expectClusterNotFoundError(err)
 	})
 
-	It("should allow deletion of the clusterName reference in existing pluginConfig", func() {
+	It("should not allow deletion of the clusterName reference in existing pluginConfig", func() {
 		testPluginConfig.Spec.ClusterName = ""
 		err := test.K8sClient.Update(test.Ctx, testPluginConfig)
-		Expect(err).ToNot(HaveOccurred(), "there should be no error updating the pluginConfig")
-
-		By("checking the label on the pluginConfig")
-		actPluginConfig := &greenhousev1alpha1.PluginConfig{}
-		err = test.K8sClient.Get(test.Ctx, types.NamespacedName{Name: testPluginConfig.Name, Namespace: testPluginConfig.Namespace}, actPluginConfig)
-		Expect(err).ToNot(HaveOccurred(), "there should be no error getting the pluginConfig")
-		Eventually(func() map[string]string {
-			return actPluginConfig.GetLabels()
-		}).Should(HaveKeyWithValue(greenhouseapis.LabelKeyCluster, ""), "the pluginConfig should have an empty cluster label")
+		expectClusterMustBeSetError(err)
 	})
-
 })
 
 func expectClusterNotFoundError(err error) {
@@ -356,4 +353,16 @@ func expectClusterNotFoundError(err error) {
 	Expect(ok).To(BeTrue(), "error should be a status error")
 	Expect(statusErr.ErrStatus.Reason).To(Equal(metav1.StatusReasonForbidden), "the error should be a status forbidden error")
 	Expect(statusErr.ErrStatus.Message).To(ContainSubstring("spec.clusterName: Not found"), "the error message should reflect clustername not found")
+}
+
+func expectClusterMustBeSetError(err error) {
+	Expect(err).To(HaveOccurred(), "there should be an error updating the pluginConfig")
+	var statusErr *apierrors.StatusError
+	ok := errors.As(err, &statusErr)
+	Expect(ok).To(BeTrue(), "error should be a status error")
+	Expect(statusErr.ErrStatus.Reason).To(Equal(metav1.StatusReasonForbidden), "the error should be a status forbidden error")
+	Expect(statusErr.ErrStatus.Message).To(
+		ContainSubstring("spec.clusterName: Required value: the clusterName must be set"),
+		"the error message should reflect that the clusterName must be set",
+	)
 }

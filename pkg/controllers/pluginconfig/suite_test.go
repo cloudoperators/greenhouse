@@ -71,7 +71,7 @@ var _ = Describe("HelmControllerTest", Serial, func() {
 		PluginConfigName                = "mypluginconfig"
 		PluginConfigRequiredOptionValue = "required"
 
-		Namespace               = "default"
+		Namespace               = "greenhouse"
 		HelmRepo                = "dummy"
 		HelmChart               = "./../../test/fixtures/myChart"
 		HelmChartUpdated        = "./../../test/fixtures/myChartV2"
@@ -96,6 +96,12 @@ var _ = Describe("HelmControllerTest", Serial, func() {
 	)
 
 	BeforeEach(func() {
+		Expect(client.IgnoreAlreadyExists(test.K8sClient.Create(test.Ctx, &corev1.Namespace{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: Namespace,
+			},
+		}))).To(Succeed(), "there must be no error creating the test namespace")
+
 		testPlugin = &greenhousev1alpha1.Plugin{
 			TypeMeta: metav1.TypeMeta{
 				Kind:       "Plugin",

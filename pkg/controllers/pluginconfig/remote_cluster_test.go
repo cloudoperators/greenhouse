@@ -31,7 +31,8 @@ var testPluginConfig = &greenhousev1alpha1.PluginConfig{
 		Namespace: test.TestNamespace,
 	},
 	Spec: greenhousev1alpha1.PluginConfigSpec{
-		Plugin: "test-plugin",
+		ClusterName: "test-cluster",
+		Plugin:      "test-plugin",
 	},
 }
 
@@ -45,7 +46,8 @@ var testPCwithSR = &greenhousev1alpha1.PluginConfig{
 		Namespace: test.TestNamespace,
 	},
 	Spec: greenhousev1alpha1.PluginConfigSpec{
-		Plugin: "test-plugin",
+		Plugin:      "test-plugin",
+		ClusterName: "test-cluster",
 		OptionValues: []greenhousev1alpha1.PluginOptionValue{
 			{
 				Name: "secretValue",
