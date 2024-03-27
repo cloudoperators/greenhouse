@@ -46,6 +46,16 @@
     "util": "^0.12.4",
     "zustand": "4.3.7"
   },
+  "peerDependencies": {
+    "juno-ui-components": "*",
+    "luxon": "^2.3.0",
+    "prop-types": "^15.8.1",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "url-state-provider": "*",
+    "utils": "*",
+    "zustand": "4.3.7"
+  },
   "scripts": {
     "test": "jest",
     "start": "NODE_ENV=development node esbuild.config.js --serve --watch",
