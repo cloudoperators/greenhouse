@@ -1,6 +1,6 @@
 {
   "name": "greenhouse-plugin-admin",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "author": "UI-Team",
   "contributors": [
     "Tilman Haupt"
@@ -30,7 +30,7 @@
     "esbuild": "^0.19.5",
     "jest": "^29.3.1",
     "jest-environment-jsdom": "^29.3.1",
-    "juno-ui-components": "https://assets.juno.global.cloud.sap/libs/juno-ui-components@latest/package.tgz",
+    "juno-ui-components": "https://assets.juno.global.cloud.sap/libs/juno-ui-components@2.12.1/package.tgz",
     "luxon": "^2.3.0",
     "postcss": "^8.4.21",
     "postcss-url": "^10.1.3",
