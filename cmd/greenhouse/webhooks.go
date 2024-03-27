@@ -15,7 +15,7 @@ var knownWebhooks = map[string]func(mgr ctrl.Manager) error{
 	"organization": admission.SetupOrganizationWebhookWithManager,
 	"plugin":       admission.SetupPluginWebhookWithManager,
 	"pluginconfig": admission.SetupPluginConfigWebhookWithManager,
-	// "role":         admission.SetupRoleWebhookWithManager,
-	// "rolebinding":  admission.SetupRoleBindingWebhookWithManager,
-	"team": admission.SetupTeamWebhookWithManager,
+	"role":         admission.SetupRoleWebhookWithManager,
+	"rolebinding":  admission.SetupRoleBindingWebhookWithManager,
+	"team":         admission.SetupTeamWebhookWithManager,
 }
