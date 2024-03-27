@@ -63,12 +63,9 @@
     "gomodTidy",
     "gomodUpdateImportPaths"
   ],
-  // https://docs.renovatebot.com/configuration-options/#separateminorpatch
   "separateMinorPatch": true,
   "customManagers": [
     {
-      // Update `_VERSION` and `_version` variables in Makefiles and scripts.
-      // Inspired by `regexManagers:dockerfileVersions` preset.
       "customType": "regex",
       "fileMatch": ["Makefile$", "\\.sh$"],
       "matchStrings": [
