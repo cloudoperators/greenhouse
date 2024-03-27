@@ -32,3 +32,6 @@ testbin/*
 
 # gorleaser artifacts
 dist/**
+
+# Apple files 
+.DS_Store
