@@ -105,36 +105,38 @@ func (r *RoleBindingReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 				err := remoteRestClient.Get(ctx, remoteObjectKey, remoteObject)
 				switch {
 				case apierrors.IsNotFound(err):
-					return ctrl.Result{}, err
+					continue
 				case !apierrors.IsNotFound(err) && err != nil:
 					r.recorder.Eventf(roleBinding, corev1.EventTypeWarning, extensionsgreenhousev1alpha1.FailedDeleteRoleBindingReason, "Error retrieving RoleBinding %s for cluster %s in namespace %s", roleBinding.GetName(), cluster.GetName(), namespace)
-					// TODO(d059176): collect errors and return them
+					// TODO: collect errors and return them
 					return ctrl.Result{}, err
+				default:
+					if err := remoteRestClient.Delete(ctx, remoteObject); err != nil {
+						r.recorder.Eventf(roleBinding, corev1.EventTypeWarning, extensionsgreenhousev1alpha1.FailedDeleteRoleBindingReason, "Error deleting RoleBinding %s for cluster %s in namespace %s", roleBinding.GetName(), cluster.GetName(), namespace)
+						// TODO: collect errors and return them
+						return ctrl.Result{}, err
+					}
 				}
-				if err := remoteRestClient.Delete(ctx, remoteObject); err != nil {
-					r.recorder.Eventf(roleBinding, corev1.EventTypeWarning, extensionsgreenhousev1alpha1.FailedDeleteRoleBindingReason, "Error deleting RoleBinding %s for cluster %s in namespace %s", roleBinding.GetName(), cluster.GetName(), namespace)
-					// TODO(d059176): collect errors and return them
-					return ctrl.Result{}, err
-				}
+				deletionSuccessful = true
 			}
-			deletionSuccessful = true
 		case false:
 			remoteObjectKey := types.NamespacedName{Name: roleBinding.GetName()}
 			remoteObject := &rbacv1.ClusterRoleBinding{}
 			err := remoteRestClient.Get(ctx, remoteObjectKey, remoteObject)
 			switch {
 			case apierrors.IsNotFound(err):
-				return ctrl.Result{}, err
-			case !apierrors.IsNotFound(err) && err != nil:
-				r.recorder.Eventf(roleBinding, corev1.EventTypeWarning, extensionsgreenhousev1alpha1.FailedDeleteRoleBindingReason, "Error retrieving ClusterRoleBinding %s for cluster %s", roleBinding.GetName, cluster.GetName())
-				// TODO(d059176): collect errors and return them
-			}
-			if err := remoteRestClient.Delete(ctx, remoteObject); err != nil {
-				r.recorder.Eventf(roleBinding, corev1.EventTypeWarning, extensionsgreenhousev1alpha1.FailedDeleteClusterRoleBindingReason, "Error deleting ClusterRoleBinding %s for cluster %s", roleBinding.GetName, cluster.GetName())
-				// TODO(d059176): collect errors and return them
-				return ctrl.Result{}, err
-			} else {
 				deletionSuccessful = true
+			case err != nil:
+				r.recorder.Eventf(roleBinding, corev1.EventTypeWarning, extensionsgreenhousev1alpha1.FailedDeleteRoleBindingReason, "Error retrieving ClusterRoleBinding %s for cluster %s", roleBinding.GetName, cluster.GetName())
+				// TODO: collect errors and return them
+			default:
+				if err := remoteRestClient.Delete(ctx, remoteObject); err != nil {
+					r.recorder.Eventf(roleBinding, corev1.EventTypeWarning, extensionsgreenhousev1alpha1.FailedDeleteClusterRoleBindingReason, "Error deleting ClusterRoleBinding %s for cluster %s", roleBinding.GetName, cluster.GetName())
+					// TODO: collect errors and return them
+					return ctrl.Result{}, err
+				} else {
+					deletionSuccessful = true
+				}
 			}
 		}
 
@@ -195,7 +197,7 @@ func (r *RoleBindingReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 		}
 	}
 
-	// TODO(d059176): add status update logic here
+	// TODO: add status update logic here
 	return ctrl.Result{}, nil
 }
 
@@ -243,7 +245,7 @@ func initRBACClusterRoleBinding(roleBinding *extensionsgreenhousev1alpha1.RoleBi
 	return &rbacv1.ClusterRoleBinding{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: roleBinding.GetName(),
-			// TODO(d059176): add label to indicate this ClusterRoleBinding is managed by Greenhouse
+			// TODO: add label to indicate this ClusterRoleBinding is managed by Greenhouse
 			// Labels: []string{"extensions.greenhouse.sap.com/clusterrolebinding": roleBinding.GetName()
 		},
 		RoleRef: rbacv1.RoleRef{
