@@ -9,6 +9,14 @@
   },
   "packageRules": [
     {
+      "groupName": "github actions",
+      "matchManagers": ["github-actions"],
+      "matchUpdateTypes": ["major", "minor"],
+      "extends": [
+        "helpers:pinGitHubActionDigests"
+      ]
+    },
+    {
       "groupName": "npm dependencies",
       "matchDatasources": [
         "npm"
