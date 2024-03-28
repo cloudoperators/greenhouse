@@ -157,7 +157,7 @@ func (o *newClusterBootstrapOptions) permissionCheck() (err error) {
 	if err != nil {
 		return err
 	}
-	
+
 	clientErr := o.customerClient.Get(ctx, client.ObjectKey{Name: corev1.NamespaceDefault}, &corev1.Namespace{})
 	if clientErr != nil {
 		setupLog.Info("Missing permissions: getNamespace", "clusterName", o.customerConfig.Host)

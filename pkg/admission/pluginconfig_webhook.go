@@ -12,6 +12,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/validation/field"
+	"k8s.io/utils/strings/slices"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
@@ -20,6 +21,12 @@ import (
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/pkg/apis/greenhouse/v1alpha1"
 	"github.com/cloudoperators/greenhouse/pkg/helm"
 )
+
+// pluginsAllowedInCentralCluster is a list of plugins that are allowed to be installed in the central cluster.
+// TODO: Make this configurable on plugin level (AdminPlugin discussion) instead of maintaining a list here.
+var pluginsAllowedInCentralCluster = []string{
+	"alerts", "doop", "service-proxy", "teams2slack", "kubeconfig-generator",
+}
 
 // SetupPluginConfigWebhookWithManager configures the webhook for the PluginConfig custom resource.
 func SetupPluginConfigWebhookWithManager(mgr ctrl.Manager) error {
@@ -82,13 +89,17 @@ func ValidateCreatePluginConfig(ctx context.Context, c client.Client, obj runtim
 	if err := validatePluginConfigOptionValues(pluginConfig, plugin); err != nil {
 		return nil, err
 	}
-	if err := validatePluginConfigClusterExists(ctx, pluginConfig, c); err != nil {
+	if err := validatePluginConfigForCluster(ctx, c, pluginConfig, plugin); err != nil {
 		return nil, err
 	}
 	return nil, nil
 }
 
-func ValidateUpdatePluginConfig(ctx context.Context, c client.Client, _, obj runtime.Object) (admission.Warnings, error) {
+func ValidateUpdatePluginConfig(ctx context.Context, c client.Client, old, obj runtime.Object) (admission.Warnings, error) {
+	oldPluginConfig, ok := obj.(*greenhousev1alpha1.PluginConfig)
+	if !ok {
+		return nil, nil
+	}
 	pluginConfig, ok := obj.(*greenhousev1alpha1.PluginConfig)
 	if !ok {
 		return nil, nil
@@ -104,7 +115,12 @@ func ValidateUpdatePluginConfig(ctx context.Context, c client.Client, _, obj run
 	if err := validatePluginConfigOptionValues(pluginConfig, plugin); err != nil {
 		return nil, err
 	}
-	if err := validatePluginConfigClusterExists(ctx, pluginConfig, c); err != nil {
+	if err := validatePluginConfigForCluster(ctx, c, pluginConfig, plugin); err != nil {
+		return nil, err
+	}
+	if err := validateImmutableField(oldPluginConfig.Spec.ClusterName, pluginConfig.Spec.ClusterName,
+		field.NewPath("spec", "clusterName"),
+	); err != nil {
 		return nil, err
 	}
 	return nil, nil
@@ -178,15 +194,18 @@ func validatePluginConfigOptionValues(pluginConfig *greenhousev1alpha1.PluginCon
 	return apierrors.NewInvalid(pluginConfig.GroupVersionKind().GroupKind(), pluginConfig.Name, allErrs)
 }
 
-func validatePluginConfigClusterExists(ctx context.Context, pluginConfig *greenhousev1alpha1.PluginConfig, c client.Client) error {
-	// TODO: Enforce clusterName on Plugins with backend.
-	//  We allow PluginConfigs without cluster reference during migration.
-	//  Later a PluginConfig with a backend must have a clusterName configured. Frontend-only plugins are allowed without a clusterName.
-	if pluginConfig.Spec.ClusterName == "" {
+func validatePluginConfigForCluster(ctx context.Context, c client.Client, pluginConfig *greenhousev1alpha1.PluginConfig, plugin *greenhousev1alpha1.Plugin) error {
+	// Exclude whitelisted and front-end only PluginConfigs as well as the greenhouse namespace from the below check.
+	if slices.Contains(pluginsAllowedInCentralCluster, pluginConfig.Spec.Plugin) || plugin.Spec.HelmChart == nil || pluginConfig.GetNamespace() == "greenhouse" {
 		return nil
 	}
 
+	// If the Plugin is not allowed in the central cluster, the PluginConfig must have a spec.clusterName set.
 	clusterName := pluginConfig.Spec.ClusterName
+	if clusterName == "" {
+		return field.Required(field.NewPath("spec").Child("clusterName"), "the clusterName must be set")
+	}
+	// Verify that the cluster exists.
 	var cluster = new(greenhousev1alpha1.Cluster)
 	if err := c.Get(ctx, types.NamespacedName{Namespace: pluginConfig.ObjectMeta.Namespace, Name: clusterName}, cluster); err != nil {
 		switch {
