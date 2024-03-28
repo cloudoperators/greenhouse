@@ -3,7 +3,7 @@
 
 image:
   repository: nginx
-  tag: 1.25.0-alpine
+  tag: 1.25.4-alpine
   pullPolicy: IfNotPresent
 
 # TODO: Migrate to ingress.host
