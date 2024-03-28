@@ -15,15 +15,15 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
-	extensionsgreenhouse "github.com/cloudoperators/greenhouse/pkg/apis/extensions.greenhouse"
-	extensionsgreenhousev1alpha1 "github.com/cloudoperators/greenhouse/pkg/apis/extensions.greenhouse/v1alpha1"
+	greenhouseapis "github.com/cloudoperators/greenhouse/pkg/apis"
+	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/pkg/apis/greenhouse/v1alpha1"
 )
 
 // Webhook for the Role custom resource.
 
-func SetupRoleWebhookWithManager(mgr ctrl.Manager) error {
+func SetupTeamRoleWebhookWithManager(mgr ctrl.Manager) error {
 	return setupWebhook(mgr,
-		&extensionsgreenhousev1alpha1.Role{},
+		&greenhousev1alpha1.TeamRole{},
 		webhookFuncs{
 			defaultFunc:        DefaultRole,
 			validateCreateFunc: ValidateCreateRole,
@@ -33,13 +33,13 @@ func SetupRoleWebhookWithManager(mgr ctrl.Manager) error {
 	)
 }
 
-//+kubebuilder:webhook:path=/mutate-extensions-greenhouse-sap-v1alpha1-role,mutating=true,failurePolicy=fail,sideEffects=None,groups=extensions.greenhouse.sap,resources=roles,verbs=create;update,versions=v1alpha1,name=mrole.kb.io,admissionReviewVersions=v1
+//+kubebuilder:webhook:path=/mutate-greenhouse-sap-v1alpha1-teamrole,mutating=true,failurePolicy=fail,sideEffects=None,groups=greenhouse.sap,resources=teamroles,verbs=create;update,versions=v1alpha1,name=mrole.kb.io,admissionReviewVersions=v1
 
 func DefaultRole(_ context.Context, _ client.Client, _ runtime.Object) error {
 	return nil
 }
 
-//+kubebuilder:webhook:path=/validate-extensions-greenhouse-sap-v1alpha1-role,mutating=false,failurePolicy=fail,sideEffects=None,groups=extensions.greenhouse.sap,resources=roles,verbs=create;update;delete,versions=v1alpha1,name=vrole.kb.io,admissionReviewVersions=v1
+//+kubebuilder:webhook:path=/validate-greenhouse-sap-v1alpha1-teamrole,mutating=false,failurePolicy=fail,sideEffects=None,groups=greenhouse.sap,resources=teamroles,verbs=create;update;delete,versions=v1alpha1,name=vrole.kb.io,admissionReviewVersions=v1
 
 func ValidateCreateRole(_ context.Context, _ client.Client, _ runtime.Object) (admission.Warnings, error) {
 	return nil, nil
@@ -50,7 +50,7 @@ func ValidateUpdateRole(_ context.Context, _ client.Client, _, _ runtime.Object)
 }
 
 func ValidateDeleteRole(ctx context.Context, c client.Client, o runtime.Object) (admission.Warnings, error) {
-	r, ok := o.(*extensionsgreenhousev1alpha1.Role)
+	r, ok := o.(*greenhousev1alpha1.TeamRole)
 	if !ok {
 		return nil, nil
 	}
@@ -69,10 +69,10 @@ func ValidateDeleteRole(ctx context.Context, c client.Client, o runtime.Object) 
 }
 
 // isRoleReferenced returns true if there are any rolebindings referencing the given role.
-func isRoleReferenced(ctx context.Context, c client.Client, r *extensionsgreenhousev1alpha1.Role) (bool, error) {
-	l := &extensionsgreenhousev1alpha1.RoleBindingList{}
+func isRoleReferenced(ctx context.Context, c client.Client, r *greenhousev1alpha1.TeamRole) (bool, error) {
+	l := &greenhousev1alpha1.TeamRoleBindingList{}
 	listOpts := &client.ListOptions{
-		FieldSelector: fields.OneTermEqualSelector(extensionsgreenhouse.RolebindingRoleRefField, r.GetName()),
+		FieldSelector: fields.OneTermEqualSelector(greenhouseapis.RolebindingRoleRefField, r.GetName()),
 		Namespace:     r.GetNamespace(),
 	}
 

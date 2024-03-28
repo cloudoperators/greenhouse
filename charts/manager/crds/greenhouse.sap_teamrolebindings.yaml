@@ -7,20 +7,20 @@ kind: CustomResourceDefinition
 metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.12.1
-  name: rolebindings.extensions.greenhouse.sap
+  name: teamrolebindings.greenhouse.sap
 spec:
-  group: extensions.greenhouse.sap
+  group: greenhouse.sap
   names:
-    kind: RoleBinding
-    listKind: RoleBindingList
-    plural: rolebindings
-    singular: rolebinding
+    kind: TeamRoleBinding
+    listKind: TeamRoleBindingList
+    plural: teamrolebindings
+    singular: teamrolebinding
   scope: Namespaced
   versions:
   - name: v1alpha1
     schema:
       openAPIV3Schema:
-        description: RoleBinding is the Schema for the rolebindings API
+        description: TeamRoleBinding is the Schema for the rolebindings API
         properties:
           apiVersion:
             description: 'APIVersion defines the versioned schema of this representation
@@ -35,7 +35,7 @@ spec:
           metadata:
             type: object
           spec:
-            description: RoleBindingSpec defines the desired state of RoleBinding
+            description: TeamRoleBindingSpec defines the desired state of a TeamRoleBinding
             properties:
               clusterName:
                 description: ClusterName is the name of the cluster the pluginConfig
@@ -47,15 +47,15 @@ spec:
                 items:
                   type: string
                 type: array
-              roleRef:
-                description: RoleRef references a Greenhouse Role by name
-                type: string
               teamRef:
                 description: TeamRef references a Greenhouse Team by name
                 type: string
+              teamRoleRef:
+                description: TeamRoleRef references a Greenhouse TeamRole by name
+                type: string
             type: object
           status:
-            description: RoleBindingStatus defines the observed state of RoleBinding
+            description: TeamRoleBindingStatus defines the observed state of the TeamRoleBinding
             type: object
         type: object
     served: true

@@ -8,6 +8,6 @@ resources:
 - greenhouse.sap_pluginconfigs.yaml
 - greenhouse.sap_clusters.yaml
 - greenhouse.sap_teammemberships.yaml
-- extensions.greenhouse.sap_roles.yaml
-- extensions.greenhouse.sap_rolebindings.yaml
+- greenhouse.sap_teamroles.yaml
+- greenhouse.sap_teamrolebindings.yaml
 #+kubebuilder:scaffold:crdkustomizeresource

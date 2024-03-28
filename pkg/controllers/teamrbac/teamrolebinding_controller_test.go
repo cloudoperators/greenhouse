@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2024 SAP SE or an SAP affiliate company and Greenhouse contributors
 // SPDX-License-Identifier: Apache-2.0
 
-package rbac
+package teamrbac
 
 import (
 	"context"
@@ -16,22 +16,20 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 
 	greenhouseapis "github.com/cloudoperators/greenhouse/pkg/apis"
-	extensionsgreenhouse "github.com/cloudoperators/greenhouse/pkg/apis/extensions.greenhouse"
-	extentionsgreenhouse "github.com/cloudoperators/greenhouse/pkg/apis/extensions.greenhouse"
-	extensionsgreenhousev1alpha1 "github.com/cloudoperators/greenhouse/pkg/apis/extensions.greenhouse/v1alpha1"
+	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/pkg/apis/greenhouse/v1alpha1"
 	"github.com/cloudoperators/greenhouse/pkg/test"
 )
 
-var testRole = &extensionsgreenhousev1alpha1.Role{
+var testRole = &greenhousev1alpha1.TeamRole{
 	TypeMeta: metav1.TypeMeta{
-		Kind:       "Role",
-		APIVersion: extensionsgreenhousev1alpha1.GroupVersion.String(),
+		Kind:       "TeamRole",
+		APIVersion: greenhousev1alpha1.GroupVersion.String(),
 	},
 	ObjectMeta: metav1.ObjectMeta{
-		Name:      "test-role",
+		Name:      "test-teamrole",
 		Namespace: test.TestNamespace,
 	},
-	Spec: extensionsgreenhousev1alpha1.RoleSpec{
+	Spec: greenhousev1alpha1.TeamRoleSpec{
 		Rules: []rbacv1.PolicyRule{
 			{
 				APIGroups: []string{"*"},
@@ -42,36 +40,36 @@ var testRole = &extensionsgreenhousev1alpha1.Role{
 	},
 }
 
-var roleUT *extensionsgreenhousev1alpha1.Role
+var roleUT *greenhousev1alpha1.TeamRole
 
-var testRoleBinding = &extensionsgreenhousev1alpha1.RoleBinding{
+var testRoleBinding = &greenhousev1alpha1.TeamRoleBinding{
 	TypeMeta: metav1.TypeMeta{
-		Kind:       "RoleBinding",
-		APIVersion: extensionsgreenhousev1alpha1.GroupVersion.String(),
+		Kind:       "TeamRoleBinding",
+		APIVersion: greenhousev1alpha1.GroupVersion.String(),
 	},
 	ObjectMeta: metav1.ObjectMeta{
-		Name:      "test-rolebinding",
+		Name:      "test-teamrolebinding",
 		Namespace: test.TestNamespace,
 	},
-	Spec: extensionsgreenhousev1alpha1.RoleBindingSpec{
-		RoleRef:     "test-role",
+	Spec: greenhousev1alpha1.TeamRoleBindingSpec{
+		TeamRoleRef: "test-teamrole",
 		TeamRef:     testTeamName,
 		ClusterName: testCluster.Name,
 		Namespaces:  []string{test.TestNamespace},
 	},
 }
 
-var testClusterRoleBinding = &extensionsgreenhousev1alpha1.RoleBinding{
+var testClusterRoleBinding = &greenhousev1alpha1.TeamRoleBinding{
 	TypeMeta: metav1.TypeMeta{
-		Kind:       "RoleBinding",
-		APIVersion: extensionsgreenhousev1alpha1.GroupVersion.String(),
+		Kind:       "TeamRoleBinding",
+		APIVersion: greenhousev1alpha1.GroupVersion.String(),
 	},
 	ObjectMeta: metav1.ObjectMeta{
 		Name:      "test-clusterrolebinding",
 		Namespace: test.TestNamespace,
 	},
-	Spec: extensionsgreenhousev1alpha1.RoleBindingSpec{
-		RoleRef:     "test-role",
+	Spec: greenhousev1alpha1.TeamRoleBindingSpec{
+		TeamRoleRef: "test-teamrole",
 		TeamRef:     testTeamName,
 		ClusterName: testCluster.Name,
 	},
@@ -105,11 +103,11 @@ var _ = Describe("Validate ClusterRole & RoleBinding on Remote Cluster", Ordered
 		Expect(err).NotTo(HaveOccurred())
 	})
 
-	// Delete all RoleBindings and Roles after each test, ensure that Remote Cluster is cleaned up
+	// Delete all TeamRoleBindings and TeamRoles after each test, ensure that Remote Cluster is cleaned up
 	// This ensures the deletion of the Remote Resources is working correctly.
 	AfterEach(func() {
-		// get and delete all RoleBindings on the central cluster
-		rbList := &extensionsgreenhousev1alpha1.RoleBindingList{}
+		// get and delete all TeamRoleBindings on the central cluster
+		rbList := &greenhousev1alpha1.TeamRoleBindingList{}
 		err := k8sClient.List(test.Ctx, rbList)
 		Expect(err).NotTo(HaveOccurred())
 		for _, rb := range rbList.Items {
@@ -123,12 +121,12 @@ var _ = Describe("Validate ClusterRole & RoleBinding on Remote Cluster", Ordered
 				return false
 			}
 			return true
-		}).Should(BeTrue(), "there should be no RoleBindings left to list on the central cluster")
+		}).Should(BeTrue(), "there should be no TeamRoleBindings left to list on the central cluster")
 
 		// check that all ClusterRoleBindings are eventually deleted on the remote cluster
 		remoteCRBList := &rbacv1.ClusterRoleBindingList{}
 		listOpts := []client.ListOption{
-			client.HasLabels{extentionsgreenhouse.LabelKeyRoleBinding},
+			client.HasLabels{greenhouseapis.LabelKeyRoleBinding},
 		}
 		Eventually(func() bool {
 			err := remoteK8sClient.List(test.Ctx, remoteCRBList, listOpts...)
@@ -148,8 +146,8 @@ var _ = Describe("Validate ClusterRole & RoleBinding on Remote Cluster", Ordered
 			return true
 		}).Should(BeTrue(), "there should be no RoleBindings left to list on the remote cluster")
 
-		// get and delete all Roles on the central cluster
-		rList := &extensionsgreenhousev1alpha1.RoleList{}
+		// get and delete all TeamRoles on the central cluster
+		rList := &greenhousev1alpha1.TeamRoleList{}
 		err = k8sClient.List(test.Ctx, rList)
 		Expect(err).NotTo(HaveOccurred())
 		for _, r := range rList.Items {
@@ -163,12 +161,12 @@ var _ = Describe("Validate ClusterRole & RoleBinding on Remote Cluster", Ordered
 				return false
 			}
 			return true
-		}).Should(BeTrue(), "there should be no Roles left to list on the central cluster")
+		}).Should(BeTrue(), "there should be no TeamRoles left to list on the central cluster")
 
 		// check that all ClusterRoles are eventually deleted on the remote cluster
 		remoteList := &rbacv1.ClusterRoleList{}
 		listOpts = []client.ListOption{
-			client.HasLabels{extentionsgreenhouse.LabelKeyRole},
+			client.HasLabels{greenhouseapis.LabelKeyRole},
 		}
 		Eventually(func() bool {
 			err := remoteK8sClient.List(test.Ctx, remoteList, listOpts...)
@@ -179,16 +177,16 @@ var _ = Describe("Validate ClusterRole & RoleBinding on Remote Cluster", Ordered
 		}).Should(BeTrue(), "there should be no ClusterRoles left to list on the remote cluster")
 	})
 
-	Context("When creating a Greenhouse RoleBinding with namespaces on the central cluster", func() {
+	Context("When creating a Greenhouse TeamRoleBinding with namespaces on the central cluster", func() {
 		It("Should create a ClusterRole and RoleBinding on the remote cluster", func() {
-			By("creating a RoleBinding on the central cluster")
+			By("creating a TeamRoleBinding on the central cluster")
 			err := k8sClient.Create(test.Ctx, testRoleBinding.DeepCopy())
 			Expect(err).NotTo(HaveOccurred())
 
 			By("validating the RoleBinding created on the remote cluster")
 			remoteRoleBinding := &rbacv1.RoleBinding{}
 			remoteRoleBindingName := types.NamespacedName{
-				Name:      extensionsgreenhouse.RoleAndBindingNamePrefix + testRoleBinding.Name,
+				Name:      greenhouseapis.RoleAndBindingNamePrefix + testRoleBinding.Name,
 				Namespace: testRoleBinding.Namespace,
 			}
 			Eventually(func() bool {
@@ -198,13 +196,13 @@ var _ = Describe("Validate ClusterRole & RoleBinding on Remote Cluster", Ordered
 				}
 				return !remoteRoleBinding.CreationTimestamp.IsZero()
 			}).Should(BeTrue(), "there should be no error getting the RoleBinding")
-			Expect(remoteRoleBinding.RoleRef.Name).To(HavePrefix(extensionsgreenhouse.RoleAndBindingNamePrefix))
+			Expect(remoteRoleBinding.RoleRef.Name).To(HavePrefix(greenhouseapis.RoleAndBindingNamePrefix))
 			Expect(remoteRoleBinding.RoleRef.Name).To(ContainSubstring(testRole.Name))
 
 			By("validating the ClusterRole created on the remote cluster")
 			remoteClusterRole := &rbacv1.ClusterRole{}
 			remoteClusterRoleName := types.NamespacedName{
-				Name: extensionsgreenhouse.RoleAndBindingNamePrefix + testRole.Name,
+				Name: greenhouseapis.RoleAndBindingNamePrefix + testRole.Name,
 			}
 			Eventually(func() bool {
 				err = remoteK8sClient.Get(test.Ctx, remoteClusterRoleName, remoteClusterRole)
@@ -213,22 +211,22 @@ var _ = Describe("Validate ClusterRole & RoleBinding on Remote Cluster", Ordered
 				}
 				return !remoteClusterRole.CreationTimestamp.IsZero()
 			}).Should(BeTrue(), "there should be no error getting the ClusterRole")
-			Expect(remoteClusterRole.Name).To(HavePrefix(extensionsgreenhouse.RoleAndBindingNamePrefix))
+			Expect(remoteClusterRole.Name).To(HavePrefix(greenhouseapis.RoleAndBindingNamePrefix))
 			Expect(remoteClusterRole.Name).To(ContainSubstring(testRole.Name))
 			Expect(remoteClusterRole.Rules).To(Equal(testRole.Spec.Rules))
 		})
 	})
 
-	Context("When creating a Greenhouse RoleBinding without namespaces on the central cluster", func() {
+	Context("When creating a Greenhouse TeamRoleBinding without namespaces on the central cluster", func() {
 		It("Should create a ClusterRole and ClusterRoleBinding on the remote cluster", func() {
-			By("creating a RoleBinding without Namespaces on the central cluster")
+			By("creating a TeamRoleBinding without Namespaces on the central cluster")
 			err := k8sClient.Create(test.Ctx, testClusterRoleBinding.DeepCopy())
 			Expect(err).NotTo(HaveOccurred())
 
 			By("validating the ClusterRoleBinding created on the remote cluster")
 			remoteClusterRoleBinding := &rbacv1.ClusterRoleBinding{}
 			remoteRoleBindingName := types.NamespacedName{
-				Name:      extensionsgreenhouse.RoleAndBindingNamePrefix + testClusterRoleBinding.Name,
+				Name:      greenhouseapis.RoleAndBindingNamePrefix + testClusterRoleBinding.Name,
 				Namespace: testClusterRoleBinding.Namespace,
 			}
 			Eventually(func() bool {
@@ -238,13 +236,13 @@ var _ = Describe("Validate ClusterRole & RoleBinding on Remote Cluster", Ordered
 				}
 				return !remoteClusterRoleBinding.CreationTimestamp.IsZero()
 			}).Should(BeTrue(), "there should be no error getting the ClusterRoleBinding")
-			Expect(remoteClusterRoleBinding.RoleRef.Name).To(HavePrefix(extensionsgreenhouse.RoleAndBindingNamePrefix))
+			Expect(remoteClusterRoleBinding.RoleRef.Name).To(HavePrefix(greenhouseapis.RoleAndBindingNamePrefix))
 			Expect(remoteClusterRoleBinding.RoleRef.Name).To(ContainSubstring(testRole.Name))
 
 			By("validating the ClusterRole created on the remote cluster")
 			remoteClusterRole := &rbacv1.ClusterRole{}
 			remoteClusterRoleName := types.NamespacedName{
-				Name: extensionsgreenhouse.RoleAndBindingNamePrefix + testRole.Name,
+				Name: greenhouseapis.RoleAndBindingNamePrefix + testRole.Name,
 			}
 			Eventually(func() bool {
 				err = remoteK8sClient.Get(test.Ctx, remoteClusterRoleName, remoteClusterRole)
@@ -253,22 +251,22 @@ var _ = Describe("Validate ClusterRole & RoleBinding on Remote Cluster", Ordered
 				}
 				return !remoteClusterRole.CreationTimestamp.IsZero()
 			}).Should(BeTrue(), "there should be no error getting the ClusterRole")
-			Expect(remoteClusterRole.Name).To(HavePrefix(extensionsgreenhouse.RoleAndBindingNamePrefix))
+			Expect(remoteClusterRole.Name).To(HavePrefix(greenhouseapis.RoleAndBindingNamePrefix))
 			Expect(remoteClusterRole.Name).To(ContainSubstring(testRole.Name))
 			Expect(remoteClusterRole.Rules).To(Equal(testRole.Spec.Rules))
 		})
 	})
 
-	Context("When creating a Greenhouse RoleBinding with and without namespaces on the central cluster", func() {
-		It("Should create a ClusterRole, ClusterRoleBinding and RoleBinding on the remote cluster", func() {
-			By("creating a RoleBinding without Namespaces on the central cluster")
+	Context("When creating a Greenhouse TeamRoleBinding with and without namespaces on the central cluster", func() {
+		It("Should create a ClusterRole, ClusterRoleBinding and TeamRoleBinding on the remote cluster", func() {
+			By("creating a TeamRoleBinding without Namespaces on the central cluster")
 			err := k8sClient.Create(test.Ctx, testClusterRoleBinding.DeepCopy())
 			Expect(err).NotTo(HaveOccurred())
 
 			By("validating the ClusterRoleBinding created on the remote cluster")
 			remoteClusterRoleBinding := &rbacv1.ClusterRoleBinding{}
 			remoteClusterRoleBindingName := types.NamespacedName{
-				Name:      extensionsgreenhouse.RoleAndBindingNamePrefix + testClusterRoleBinding.Name,
+				Name:      greenhouseapis.RoleAndBindingNamePrefix + testClusterRoleBinding.Name,
 				Namespace: testClusterRoleBinding.Namespace,
 			}
 			Eventually(func() bool {
@@ -278,13 +276,13 @@ var _ = Describe("Validate ClusterRole & RoleBinding on Remote Cluster", Ordered
 				}
 				return !remoteClusterRoleBinding.CreationTimestamp.IsZero()
 			}).Should(BeTrue(), "there should be no error getting the ClusterRoleBinding")
-			Expect(remoteClusterRoleBinding.RoleRef.Name).To(HavePrefix(extensionsgreenhouse.RoleAndBindingNamePrefix))
+			Expect(remoteClusterRoleBinding.RoleRef.Name).To(HavePrefix(greenhouseapis.RoleAndBindingNamePrefix))
 			Expect(remoteClusterRoleBinding.RoleRef.Name).To(ContainSubstring(testRole.Name))
 
 			By("validating the ClusterRole created on the remote cluster")
 			remoteClusterRole := &rbacv1.ClusterRole{}
 			remoteClusterRoleName := types.NamespacedName{
-				Name: extensionsgreenhouse.RoleAndBindingNamePrefix + testRole.Name,
+				Name: greenhouseapis.RoleAndBindingNamePrefix + testRole.Name,
 			}
 			Eventually(func() bool {
 				err = remoteK8sClient.Get(test.Ctx, remoteClusterRoleName, remoteClusterRole)
@@ -293,18 +291,18 @@ var _ = Describe("Validate ClusterRole & RoleBinding on Remote Cluster", Ordered
 				}
 				return !remoteClusterRole.CreationTimestamp.IsZero()
 			}).Should(BeTrue(), "there should be no error getting the ClusterRole")
-			Expect(remoteClusterRole.Name).To(HavePrefix(extensionsgreenhouse.RoleAndBindingNamePrefix))
+			Expect(remoteClusterRole.Name).To(HavePrefix(greenhouseapis.RoleAndBindingNamePrefix))
 			Expect(remoteClusterRole.Name).To(ContainSubstring(testRole.Name))
 			Expect(remoteClusterRole.Rules).To(Equal(testRole.Spec.Rules))
 
-			By("creating a RoleBinding on the central cluster")
+			By("creating a TeamRoleBinding on the central cluster")
 			err = k8sClient.Create(test.Ctx, testRoleBinding.DeepCopy())
 			Expect(err).NotTo(HaveOccurred())
 
 			By("validating the RoleBinding created on the remote cluster")
 			remoteRoleBinding := &rbacv1.RoleBinding{}
 			remoteRoleBindingName := types.NamespacedName{
-				Name:      extensionsgreenhouse.RoleAndBindingNamePrefix + testRoleBinding.Name,
+				Name:      greenhouseapis.RoleAndBindingNamePrefix + testRoleBinding.Name,
 				Namespace: testRoleBinding.Namespace,
 			}
 			Eventually(func() bool {
@@ -314,22 +312,22 @@ var _ = Describe("Validate ClusterRole & RoleBinding on Remote Cluster", Ordered
 				}
 				return !remoteRoleBinding.CreationTimestamp.IsZero()
 			}).Should(BeTrue(), "there should be no error getting the RoleBinding")
-			Expect(remoteRoleBinding.RoleRef.Name).To(HavePrefix(extensionsgreenhouse.RoleAndBindingNamePrefix))
+			Expect(remoteRoleBinding.RoleRef.Name).To(HavePrefix(greenhouseapis.RoleAndBindingNamePrefix))
 			Expect(remoteRoleBinding.RoleRef.Name).To(ContainSubstring(testRole.Name))
 		})
 	})
 
-	Context("When updating Greenhouse Role & RoleBinding w/wo Namespaces on the central cluster", func() {
+	Context("When updating Greenhouse TeamRole & TeamRoleBinding w/wo Namespaces on the central cluster", func() {
 		It("Should reconcile the ClusterRole, ClusterRoleBinding and RoleBinding on the remote cluster", func() {
 			clusterRoleBindingUT := testClusterRoleBinding.DeepCopy()
-			By("creating a RoleBinding without Namespaces on the central cluster")
+			By("creating a TeamRoleBinding without Namespaces on the central cluster")
 			err := k8sClient.Create(test.Ctx, clusterRoleBindingUT)
 			Expect(err).NotTo(HaveOccurred())
 
 			By("validating the ClusterRoleBinding created on the remote cluster")
 			remoteClusterRoleBinding := &rbacv1.ClusterRoleBinding{}
 			remoteClusterRoleBindingName := types.NamespacedName{
-				Name:      extensionsgreenhouse.RoleAndBindingNamePrefix + testClusterRoleBinding.Name,
+				Name:      greenhouseapis.RoleAndBindingNamePrefix + testClusterRoleBinding.Name,
 				Namespace: testClusterRoleBinding.Namespace,
 			}
 			Eventually(func() bool {
@@ -339,13 +337,13 @@ var _ = Describe("Validate ClusterRole & RoleBinding on Remote Cluster", Ordered
 				}
 				return !remoteClusterRoleBinding.CreationTimestamp.IsZero()
 			}).Should(BeTrue(), "there should be no error getting the ClusterRoleBinding")
-			Expect(remoteClusterRoleBinding.RoleRef.Name).To(HavePrefix(extensionsgreenhouse.RoleAndBindingNamePrefix))
+			Expect(remoteClusterRoleBinding.RoleRef.Name).To(HavePrefix(greenhouseapis.RoleAndBindingNamePrefix))
 			Expect(remoteClusterRoleBinding.RoleRef.Name).To(ContainSubstring(testRole.Name))
 
 			By("validating the ClusterRole created on the remote cluster")
 			remoteClusterRole := &rbacv1.ClusterRole{}
 			remoteClusterRoleName := types.NamespacedName{
-				Name: extensionsgreenhouse.RoleAndBindingNamePrefix + testRole.Name,
+				Name: greenhouseapis.RoleAndBindingNamePrefix + testRole.Name,
 			}
 			Eventually(func() bool {
 				err = remoteK8sClient.Get(test.Ctx, remoteClusterRoleName, remoteClusterRole)
@@ -354,19 +352,19 @@ var _ = Describe("Validate ClusterRole & RoleBinding on Remote Cluster", Ordered
 				}
 				return !remoteClusterRole.CreationTimestamp.IsZero()
 			}).Should(BeTrue(), "there should be no error getting the ClusterRole")
-			Expect(remoteClusterRole.Name).To(HavePrefix(extensionsgreenhouse.RoleAndBindingNamePrefix))
+			Expect(remoteClusterRole.Name).To(HavePrefix(greenhouseapis.RoleAndBindingNamePrefix))
 			Expect(remoteClusterRole.Name).To(ContainSubstring(testRole.Name))
 			Expect(remoteClusterRole.Rules).To(Equal(testRole.Spec.Rules))
 
-			By("creating a RoleBinding on the central cluster")
+			By("creating a TeamRoleBinding on the central cluster")
 			roleBindingUT := testRoleBinding.DeepCopy()
 			err = k8sClient.Create(test.Ctx, roleBindingUT)
 			Expect(err).NotTo(HaveOccurred())
 
-			By("validating the RoleBinding created on the remote cluster")
+			By("validating the TeamRoleBinding created on the remote cluster")
 			remoteRoleBinding := &rbacv1.RoleBinding{}
 			remoteRoleBindingName := types.NamespacedName{
-				Name:      extensionsgreenhouse.RoleAndBindingNamePrefix + testRoleBinding.Name,
+				Name:      greenhouseapis.RoleAndBindingNamePrefix + testRoleBinding.Name,
 				Namespace: testRoleBinding.Namespace,
 			}
 			Eventually(func() bool {
@@ -375,11 +373,11 @@ var _ = Describe("Validate ClusterRole & RoleBinding on Remote Cluster", Ordered
 					return false
 				}
 				return !remoteRoleBinding.CreationTimestamp.IsZero()
-			}).Should(BeTrue(), "there should be no error getting the RoleBinding")
-			Expect(remoteRoleBinding.RoleRef.Name).To(HavePrefix(extensionsgreenhouse.RoleAndBindingNamePrefix))
+			}).Should(BeTrue(), "there should be no error getting the TeamRoleBinding")
+			Expect(remoteRoleBinding.RoleRef.Name).To(HavePrefix(greenhouseapis.RoleAndBindingNamePrefix))
 			Expect(remoteRoleBinding.RoleRef.Name).To(ContainSubstring(testRole.Name))
 
-			By("updating the Greenhouse Role on the central cluster")
+			By("updating the Greenhouse TeamRole on the central cluster")
 			roleUT.Spec.Rules[0].Verbs = []string{"get"}
 			err = k8sClient.Update(test.Ctx, roleUT)
 			Expect(err).NotTo(HaveOccurred())
@@ -394,7 +392,7 @@ var _ = Describe("Validate ClusterRole & RoleBinding on Remote Cluster", Ordered
 	})
 	Context("When tampering with a RoleBinding on the Remote Cluster", func() {
 		It("should reconcile the remote RoleBinding", func() {
-			By("creating a RoleBinding without Namespaces on the central cluster")
+			By("creating a TeamRoleBinding without Namespaces on the central cluster")
 			roleBindingUT := testClusterRoleBinding.DeepCopy()
 			err := k8sClient.Create(test.Ctx, roleBindingUT)
 			Expect(err).NotTo(HaveOccurred())
@@ -402,7 +400,7 @@ var _ = Describe("Validate ClusterRole & RoleBinding on Remote Cluster", Ordered
 			By("validating the ClusterRoleBinding created on the remote cluster")
 			remoteClusterRoleBinding := &rbacv1.ClusterRoleBinding{}
 			remoteClusterRoleBindingName := types.NamespacedName{
-				Name:      extensionsgreenhouse.RoleAndBindingNamePrefix + roleBindingUT.Name,
+				Name:      greenhouseapis.RoleAndBindingNamePrefix + roleBindingUT.Name,
 				Namespace: roleBindingUT.Namespace,
 			}
 			Eventually(func() bool {
@@ -412,13 +410,13 @@ var _ = Describe("Validate ClusterRole & RoleBinding on Remote Cluster", Ordered
 				}
 				return !remoteClusterRoleBinding.CreationTimestamp.IsZero()
 			}).Should(BeTrue(), "there should be no error getting the ClusterRoleBinding")
-			Expect(remoteClusterRoleBinding.RoleRef.Name).To(HavePrefix(extensionsgreenhouse.RoleAndBindingNamePrefix))
+			Expect(remoteClusterRoleBinding.RoleRef.Name).To(HavePrefix(greenhouseapis.RoleAndBindingNamePrefix))
 			Expect(remoteClusterRoleBinding.RoleRef.Name).To(ContainSubstring(testRole.Name))
 
 			By("validating the ClusterRole created on the remote cluster")
 			remoteClusterRole := &rbacv1.ClusterRole{}
 			remoteClusterRoleName := types.NamespacedName{
-				Name: extensionsgreenhouse.RoleAndBindingNamePrefix + testRole.Name,
+				Name: greenhouseapis.RoleAndBindingNamePrefix + testRole.Name,
 			}
 			Eventually(func(g Gomega) bool {
 				err = remoteK8sClient.Get(test.Ctx, remoteClusterRoleName, remoteClusterRole)
@@ -428,7 +426,7 @@ var _ = Describe("Validate ClusterRole & RoleBinding on Remote Cluster", Ordered
 				return g.Expect(remoteClusterRole.Rules).To(Equal(testRole.Spec.Rules)) &&
 					!remoteClusterRole.CreationTimestamp.IsZero()
 			}).Should(BeTrue(), "there should be no error getting the ClusterRole")
-			Expect(remoteClusterRole.Name).To(HavePrefix(extensionsgreenhouse.RoleAndBindingNamePrefix))
+			Expect(remoteClusterRole.Name).To(HavePrefix(greenhouseapis.RoleAndBindingNamePrefix))
 			Expect(remoteClusterRole.Name).To(ContainSubstring(testRole.Name))
 			Expect(remoteClusterRole.Rules).To(Equal(testRole.Spec.Rules))
 
@@ -440,13 +438,13 @@ var _ = Describe("Validate ClusterRole & RoleBinding on Remote Cluster", Ordered
 			err = remoteK8sClient.Update(test.Ctx, remoteClusterRoleBinding)
 			Expect(err).NotTo(HaveOccurred(), "there should be no error updating the ClusterRoleBinding on the remote cluster")
 
-			By("triggering the reconcile of the central cluster RoleBinding with a noop update")
+			By("triggering the reconcile of the central cluster TeamRoleBinding with a noop update")
 			err = k8sClient.Get(test.Ctx, types.NamespacedName{Name: roleBindingUT.Name, Namespace: roleBindingUT.Namespace}, roleBindingUT)
-			Expect(err).NotTo(HaveOccurred(), "there should be no error getting the RoleBinding from the central cluster")
+			Expect(err).NotTo(HaveOccurred(), "there should be no error getting the TeamRoleBinding from the central cluster")
 			// changing the labels to trigger the reconciliation in this test.
 			roleBindingUT.SetLabels(map[string]string{"foo": "bar"})
 			err = k8sClient.Update(test.Ctx, roleBindingUT)
-			Expect(err).NotTo(HaveOccurred(), "there should be no error updating the RoleBinding on the central cluster")
+			Expect(err).NotTo(HaveOccurred(), "there should be no error updating the TeamRoleBinding on the central cluster")
 
 			Eventually(func(g Gomega) bool {
 				err = remoteK8sClient.Get(test.Ctx, remoteClusterRoleBindingName, remoteClusterRoleBinding)

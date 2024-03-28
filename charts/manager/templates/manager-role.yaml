@@ -1,8 +1,3 @@
-{{/* 
-SPDX-FileCopyrightText: 2024 SAP SE or an SAP affiliate company and Greenhouse contributors
-SPDX-License-Identifier: Apache-2.0
-*/}}
-
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
@@ -71,40 +66,6 @@ rules:
   - list
   - patch
   - update
-  - watch
-- apiGroups:
-  - extensions.greenhouse.sap
-  resources:
-  - rolebindings
-  verbs:
-  - create
-  - delete
-  - get
-  - list
-  - patch
-  - update
-  - watch
-- apiGroups:
-  - extensions.greenhouse.sap
-  resources:
-  - rolebindings/finalizers
-  verbs:
-  - update
-- apiGroups:
-  - extensions.greenhouse.sap
-  resources:
-  - rolebindings/status
-  verbs:
-  - get
-  - patch
-  - update
-- apiGroups:
-  - extensions.greenhouse.sap
-  resources:
-  - roles
-  verbs:
-  - get
-  - list
   - watch
 - apiGroups:
   - greenhouse.sap
@@ -245,6 +206,40 @@ rules:
   - get
   - patch
   - update
+- apiGroups:
+  - greenhouse.sap
+  resources:
+  - teamrolebindings
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - greenhouse.sap
+  resources:
+  - teamrolebindings/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - greenhouse.sap
+  resources:
+  - teamrolebindings/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - greenhouse.sap
+  resources:
+  - teamroles
+  verbs:
+  - get
+  - list
+  - watch
 - apiGroups:
   - greenhouse.sap
   resources:

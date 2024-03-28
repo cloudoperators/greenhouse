@@ -14,17 +14,17 @@ import (
 	rbacv1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	extensionsgreenhouse "github.com/cloudoperators/greenhouse/pkg/apis/extensions.greenhouse"
-	extensionsgreenhousev1alpha1 "github.com/cloudoperators/greenhouse/pkg/apis/extensions.greenhouse/v1alpha1"
+	greenhouseapis "github.com/cloudoperators/greenhouse/pkg/apis"
+	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/pkg/apis/greenhouse/v1alpha1"
 	"github.com/cloudoperators/greenhouse/pkg/test"
 )
 
-var testRole = &extensionsgreenhousev1alpha1.Role{
+var testRole = &greenhousev1alpha1.TeamRole{
 	ObjectMeta: metav1.ObjectMeta{
 		Namespace: test.TestNamespace,
 		Name:      "test-role",
 	},
-	Spec: extensionsgreenhousev1alpha1.RoleSpec{
+	Spec: greenhousev1alpha1.TeamRoleSpec{
 		Rules: []rbacv1.PolicyRule{
 			{
 				Verbs:     []string{"get"},
@@ -35,14 +35,14 @@ var testRole = &extensionsgreenhousev1alpha1.Role{
 	},
 }
 
-var testRoleBinding = &extensionsgreenhousev1alpha1.RoleBinding{
+var testRoleBinding = &greenhousev1alpha1.TeamRoleBinding{
 	ObjectMeta: metav1.ObjectMeta{
 		Namespace: test.TestNamespace,
 		Name:      "test-rolebinding",
 	},
-	Spec: extensionsgreenhousev1alpha1.RoleBindingSpec{
+	Spec: greenhousev1alpha1.TeamRoleBindingSpec{
 		ClusterName: testclustername,
-		RoleRef:     "test-role",
+		TeamRoleRef: "test-role",
 		TeamRef:     testteamname,
 	},
 }
@@ -63,14 +63,14 @@ var _ = Describe("Validate Role Deletion", Ordered, func() {
 // we can't add this to the webhook setup because it's already indexed by the controller and indexing the field twice is not possible.
 // This is to have the webhook tests run independently of the controller.
 func setupRoleBindingWebhookForTest(mgr manager.Manager) error {
-	err := mgr.GetFieldIndexer().IndexField(context.Background(), &extensionsgreenhousev1alpha1.RoleBinding{}, extensionsgreenhouse.RolebindingRoleRefField, func(rawObj client.Object) []string {
+	err := mgr.GetFieldIndexer().IndexField(context.Background(), &greenhousev1alpha1.TeamRoleBinding{}, greenhouseapis.RolebindingRoleRefField, func(rawObj client.Object) []string {
 		// Extract the Role name from the RoleBinding Spec, if one is provided
-		roleBinding, ok := rawObj.(*extensionsgreenhousev1alpha1.RoleBinding)
-		if roleBinding.Spec.RoleRef == "" || !ok {
+		roleBinding, ok := rawObj.(*greenhousev1alpha1.TeamRoleBinding)
+		if roleBinding.Spec.TeamRoleRef == "" || !ok {
 			return nil
 		}
-		return []string{roleBinding.Spec.RoleRef}
+		return []string{roleBinding.Spec.TeamRoleRef}
 	})
 	Expect(err).ToNot(HaveOccurred(), "there should be no error indexing the rolebindings by roleRef")
-	return SetupRoleBindingWebhookWithManager(mgr)
+	return SetupTeamRoleBindingWebhookWithManager(mgr)
 }

@@ -1,8 +1,3 @@
-{{/* 
-SPDX-FileCopyrightText: 2024 SAP SE or an SAP affiliate company and Greenhouse contributors
-SPDX-License-Identifier: Apache-2.0
-*/}}
-
 ---
 apiVersion: admissionregistration.k8s.io/v1
 kind: MutatingWebhookConfiguration
@@ -95,19 +90,19 @@ webhooks:
     service:
       name: greenhouse-webhook-service
       namespace: greenhouse
-      path: /mutate-extensions-greenhouse-sap-v1alpha1-role
+      path: /mutate-greenhouse-sap-v1alpha1-teamrole
   failurePolicy: Fail
   name: mrole.kb.io
   rules:
   - apiGroups:
-    - extensions.greenhouse.sap
+    - greenhouse.sap
     apiVersions:
     - v1alpha1
     operations:
     - CREATE
     - UPDATE
     resources:
-    - roles
+    - teamroles
   sideEffects: None
 - admissionReviewVersions:
   - v1
@@ -115,19 +110,19 @@ webhooks:
     service:
       name: greenhouse-webhook-service
       namespace: greenhouse
-      path: /mutate-extensions-greenhouse-sap-v1alpha1-rolebinding
+      path: /mutate-greenhouse-sap-v1alpha1-teamrolebinding
   failurePolicy: Fail
   name: mrolebinding.kb.io
   rules:
   - apiGroups:
-    - extensions.greenhouse.sap
+    - greenhouse.sap
     apiVersions:
     - v1alpha1
     operations:
     - CREATE
     - UPDATE
     resources:
-    - rolebindings
+    - teamrolebindings
   sideEffects: None
 - admissionReviewVersions:
   - v1
@@ -262,12 +257,12 @@ webhooks:
     service:
       name: greenhouse-webhook-service
       namespace: greenhouse
-      path: /validate-extensions-greenhouse-sap-v1alpha1-role
+      path: /validate-greenhouse-sap-v1alpha1-teamrole
   failurePolicy: Fail
   name: vrole.kb.io
   rules:
   - apiGroups:
-    - extensions.greenhouse.sap
+    - greenhouse.sap
     apiVersions:
     - v1alpha1
     operations:
@@ -275,7 +270,7 @@ webhooks:
     - UPDATE
     - DELETE
     resources:
-    - roles
+    - teamroles
   sideEffects: None
 - admissionReviewVersions:
   - v1
@@ -283,19 +278,19 @@ webhooks:
     service:
       name: greenhouse-webhook-service
       namespace: greenhouse
-      path: /validate-extensions-greenhouse-sap-v1alpha1-rolebinding
+      path: /validate-greenhouse-sap-v1alpha1-teamrolebinding
   failurePolicy: Fail
   name: vrolebinding.kb.io
   rules:
   - apiGroups:
-    - extensions.greenhouse.sap
+    - greenhouse.sap
     apiVersions:
     - v1alpha1
     operations:
     - CREATE
     - UPDATE
     resources:
-    - rolebindings
+    - teamrolebindings
   sideEffects: None
 - admissionReviewVersions:
   - v1

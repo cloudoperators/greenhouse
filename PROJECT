@@ -88,9 +88,9 @@ resources:
     namespaced: true
   controller: true
   domain: sap
-  group: extensions.greenhouse
-  kind: Role
-  path: github.com/cloudoperators/greenhouse/pkg/apis/extensions.greenhouse/v1alpha1
+  group: greenhouse
+  kind: TeamRole
+  path: github.com/cloudoperators/greenhouse/pkg/apis/greenhouse/v1alpha1
   version: v1alpha1
   webhooks:
     defaulting: true
@@ -100,9 +100,9 @@ resources:
     crdVersion: v1
     namespaced: true
   domain: sap
-  group: extensions.greenhouse
-  kind: RoleBinding
-  path: github.com/cloudoperators/greenhouse/pkg/apis/extensions.greenhouse/v1alpha1
+  group: greenhouse
+  kind: TeamRoleBinding
+  path: github.com/cloudoperators/greenhouse/pkg/apis/greenhouse/v1alpha1
   version: v1alpha1
   webhooks:
     defaulting: true
