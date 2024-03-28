@@ -1,0 +1,38 @@
+name: "💡 Feature Request"
+description: Create a ticket requesting a new feature
+title: "[FEAT] - <title>"
+labels: [
+  "feature"
+]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for requesting an awesome new feature!
+        
+        Your input means a lot to us, and we're excited to explore the possibilities and see how we can make it happen.
+  - type: dropdown
+    id: priority
+    attributes:
+      label: Priority
+      description: Let us know how the lack of this feature is affecting you
+      options:
+        - (Low) Something is a little off
+        - (Medium) I'm annoyed but I'll live
+        - (Urgent) I can't use the Greenhouse without
+  - type: textarea
+    id: description
+    attributes:
+      label: "Description"
+      description: Provide a clear and concise description of the feature you're requesting
+      placeholder: Short and explicit description of your feature. 
+    validations:
+      required: true
+  - type: textarea
+    id: reference_issues
+    attributes:
+      label: "Reference Issues"
+      description: Common issues
+      placeholder: "#Issues IDs"
+    validations:
+      required: false
