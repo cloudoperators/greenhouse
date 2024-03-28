@@ -15,10 +15,10 @@
 /grafana/               @auhlig @ivogoman @kengou @onuryilmaz @uwe-mayer
 /hack/                  @auhlig @ivogoman @kengou @onuryilmaz @uwe-mayer
 /pkg/                   @auhlig @ivogoman @kengou @onuryilmaz @uwe-mayer
-ct.yaml                 @auhlig @ivogoman @kengou @onuryilmaz @uwe-mayer
-Dockerfile              @auhlig @ivogoman @kengou @onuryilmaz @uwe-mayer
-Dockerfile.*            @auhlig @ivogoman @kengou @onuryilmaz @uwe-mayer
-Makefile                @auhlig @ivogoman @kengou @onuryilmaz @uwe-mayer
-PROJECT                 @auhlig @ivogoman @kengou @onuryilmaz @uwe-mayer
-README.md               @auhlig @ivogoman @kengou @onuryilmaz @uwe-mayer
-go.*                    @auhlig @ivogoman @kengou @onuryilmaz @uwe-mayer
+/ct.yaml                 @auhlig @ivogoman @kengou @onuryilmaz @uwe-mayer
+/Dockerfile              @auhlig @ivogoman @kengou @onuryilmaz @uwe-mayer
+/Dockerfile.*            @auhlig @ivogoman @kengou @onuryilmaz @uwe-mayer
+/Makefile                @auhlig @ivogoman @kengou @onuryilmaz @uwe-mayer
+/PROJECT                 @auhlig @ivogoman @kengou @onuryilmaz @uwe-mayer
+/README.md              @auhlig @ivogoman @kengou @onuryilmaz @uwe-mayer
+/go.*                    @auhlig @ivogoman @kengou @onuryilmaz @uwe-mayer
