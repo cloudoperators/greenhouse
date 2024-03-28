@@ -273,22 +273,7 @@ var testPlugin = &greenhousev1alpha1.Plugin{
 	},
 }
 
-var testCluster = &greenhousev1alpha1.Cluster{
-	TypeMeta: metav1.TypeMeta{
-		Kind:       "Cluster",
-		APIVersion: greenhousev1alpha1.GroupVersion.String(),
-	},
-	ObjectMeta: metav1.ObjectMeta{
-		Name:      "test-cluster",
-		Namespace: test.TestNamespace,
-	},
-	Spec: greenhousev1alpha1.ClusterSpec{
-		AccessMode: greenhousev1alpha1.ClusterAccessModeDirect,
-	},
-}
-
 var _ = Describe("Validate pluginConfig clusterName", Ordered, func() {
-
 	BeforeAll(func() {
 		err := test.K8sClient.Create(test.Ctx, testPlugin)
 		Expect(err).ToNot(HaveOccurred(), "there should be no error creating the plugin")
@@ -307,20 +292,17 @@ var _ = Describe("Validate pluginConfig clusterName", Ordered, func() {
 
 	It("should reject the pluginConfig when the cluster with clusterName does not exist", func() {
 		By("creating the pluginConfig")
-		testPluginConfig.Spec.ClusterName = "test-cluster"
+		testPluginConfig.Spec.ClusterName = "non-existent-cluster"
 		err := test.K8sClient.Create(test.Ctx, testPluginConfig)
 		expectClusterNotFoundError(err)
 	})
 
 	It("should accept the pluginConfig when the cluster with clusterName exists", func() {
-		By("creating the cluster")
-		err := test.K8sClient.Create(test.Ctx, testCluster)
-		Expect(err).ToNot(HaveOccurred(), "there should be no error creating the cluster")
-
 		By("creating the pluginConfig")
 		//reset resourceVersion to avoid conflict, still using same struct
 		testPluginConfig.ResourceVersion = ""
-		err = test.K8sClient.Create(test.Ctx, testPluginConfig)
+		testPluginConfig.Spec.ClusterName = "test-cluster"
+		err := test.K8sClient.Create(test.Ctx, testPluginConfig)
 		Expect(err).ToNot(HaveOccurred(), "there should be no error creating the pluginConfig")
 
 		By("checking the label on the pluginConfig")

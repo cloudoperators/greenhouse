@@ -16,6 +16,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
 	extensionsgreenhousev1alpha1 "github.com/cloudoperators/greenhouse/pkg/apis/extensions.greenhouse/v1alpha1"
+	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/pkg/apis/greenhouse/v1alpha1"
 )
 
 // Webhook for the RoleBinding custom resource.
@@ -46,10 +47,29 @@ func ValidateCreateRoleBinding(ctx context.Context, c client.Client, o runtime.O
 		return nil, nil
 	}
 
+	// check if the referenced role exists
 	var r extensionsgreenhousev1alpha1.Role
 	if err := c.Get(ctx, client.ObjectKey{Namespace: rb.Namespace, Name: rb.Spec.RoleRef}, &r); err != nil {
 		if apierrors.IsNotFound(err) {
 			return nil, apierrors.NewInvalid(rb.GroupVersionKind().GroupKind(), rb.Name, field.ErrorList{field.Invalid(field.NewPath("spec", "roleRef"), rb.Spec.RoleRef, "role does not exist")})
+		}
+		return nil, apierrors.NewInternalError(err)
+	}
+
+	// check if the referenced team exists
+	var t greenhousev1alpha1.Team
+	if err := c.Get(ctx, client.ObjectKey{Namespace: rb.Namespace, Name: rb.Spec.TeamRef}, &t); err != nil {
+		if apierrors.IsNotFound(err) {
+			return nil, apierrors.NewInvalid(rb.GroupVersionKind().GroupKind(), rb.Name, field.ErrorList{field.Invalid(field.NewPath("spec", "teamRef"), rb.Spec.TeamRef, "team does not exist")})
+		}
+		return nil, apierrors.NewInternalError(err)
+	}
+
+	// check if the referenced cluster exists
+	var cluster greenhousev1alpha1.Cluster
+	if err := c.Get(ctx, client.ObjectKey{Namespace: rb.Namespace, Name: rb.Spec.ClusterName}, &cluster); err != nil {
+		if apierrors.IsNotFound(err) {
+			return nil, apierrors.NewInvalid(rb.GroupVersionKind().GroupKind(), rb.Name, field.ErrorList{field.Invalid(field.NewPath("spec", "clusterName"), rb.Spec.ClusterName, "cluster does not exist")})
 		}
 		return nil, apierrors.NewInternalError(err)
 	}

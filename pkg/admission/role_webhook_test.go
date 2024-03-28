@@ -41,8 +41,9 @@ var testRoleBinding = &extensionsgreenhousev1alpha1.RoleBinding{
 		Name:      "test-rolebinding",
 	},
 	Spec: extensionsgreenhousev1alpha1.RoleBindingSpec{
-		ClusterName: "test-cluster",
+		ClusterName: testclustername,
 		RoleRef:     "test-role",
+		TeamRef:     testteamname,
 	},
 }
 
