@@ -1,0 +1,66 @@
+name: "🐛 Bug Report"
+description: Create a new ticket for a bug experienced in Greenhouse.
+title: "🐛 [BUG] - <title>"
+labels: [
+  "bug",
+]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting an issue you experienced with the Greenhouse platform.
+
+        Please complete the below form to ensure we have the necessary details to assist you.
+  - type: dropdown
+    id: priority
+    attributes:
+      label: Priority
+      description: Let us know how this issue is affecting you
+      options:
+        - (Low) Something is a little off
+        - (Medium) I'm annoyed but I'll live
+        - (Urgent) I can't use Greenhouse
+  - type: textarea
+    id: description
+    attributes:
+      label: "Description"
+      description: Please enter an explicit description of your issue
+      placeholder: Short and explicit description of your incident...
+    validations:
+      required: true
+  - type: textarea
+    id: reprod
+    attributes:
+      label: "Reproduction steps"
+      description: Please enter an explicit description of your issue
+      value: |
+        1. Go to '...'
+        2. Click on '....'
+        3. Scroll down to '....'
+        4. See error
+      render: bash
+    validations:
+      required: true
+  - type: textarea
+    id: manifests
+    attributes:
+      label: "Manifests"
+      description: If applicable, add manifests to help reproduce your problem.
+      value: | 
+        ```yaml 
+          apiVersion: greenhouse.sap/v1alpha1
+          kind: ...
+        ```
+      render: yaml
+    validations:
+      required: false
+  - type: textarea
+    id: screenshot
+    attributes:
+      label: "Screenshots"
+      description: If applicable, add screenshots to help explain your problem.
+      value: |
+        ![DESCRIPTION](LINK.png)
+      render: bash
+    validations:
+      required: false
