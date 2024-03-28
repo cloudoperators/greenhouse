@@ -16,6 +16,9 @@ const (
 	// LabelKeyRole is the key of the label that is used to identify the Role.
 	LabelKeyRole = "extensionsgreenhouse.sap/role"
 
+	// RoleAndBindingNamePrefix is the prefix for the Role and RoleBinding names.
+	RoleAndBindingNamePrefix = "greenhouse:"
+
 	// RolebindingRoleRefField is the field in the RoleBinding spec that references the Role.
 	RolebindingRoleRefField = ".spec.roleRef"
 

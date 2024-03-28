@@ -117,8 +117,8 @@ func (r *RoleBindingReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 						return ctrl.Result{}, err
 					}
 				}
-				deletionSuccessful = true
 			}
+			deletionSuccessful = true
 		case false:
 			remoteObjectKey := types.NamespacedName{Name: roleBinding.GetName()}
 			remoteObject := &rbacv1.ClusterRoleBinding{}
@@ -209,7 +209,7 @@ func initRBACClusterRole(role *extensionsgreenhousev1alpha1.Role) *rbacv1.Cluste
 			APIVersion: rbacv1.SchemeGroupVersion.String(),
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name:   role.GetName(),
+			Name:   extensionsgreenhouse.RoleAndBindingNamePrefix + role.GetName(),
 			Labels: map[string]string{extensionsgreenhouse.LabelKeyRole: role.GetName()},
 		},
 		Rules: role.DeepCopy().Spec.Rules,
@@ -221,7 +221,7 @@ func initRBACClusterRole(role *extensionsgreenhousev1alpha1.Role) *rbacv1.Cluste
 func initRBACRoleBinding(roleBinding *extensionsgreenhousev1alpha1.RoleBinding, clusterRole *rbacv1.ClusterRole, team *greenhousev1alpha1.Team, namespace string) *rbacv1.RoleBinding {
 	return &rbacv1.RoleBinding{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      roleBinding.GetName(),
+			Name:      extensionsgreenhouse.RoleAndBindingNamePrefix + roleBinding.GetName(),
 			Namespace: namespace,
 			Labels:    map[string]string{extensionsgreenhouse.LabelKeyRoleBinding: roleBinding.GetName()},
 		},
@@ -244,9 +244,8 @@ func initRBACRoleBinding(roleBinding *extensionsgreenhousev1alpha1.RoleBinding, 
 func initRBACClusterRoleBinding(roleBinding *extensionsgreenhousev1alpha1.RoleBinding, clusterRole *rbacv1.ClusterRole, team *greenhousev1alpha1.Team) *rbacv1.ClusterRoleBinding {
 	return &rbacv1.ClusterRoleBinding{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: roleBinding.GetName(),
-			// TODO: add label to indicate this ClusterRoleBinding is managed by Greenhouse
-			// Labels: []string{"extensions.greenhouse.sap.com/clusterrolebinding": roleBinding.GetName()
+			Name:   extensionsgreenhouse.RoleAndBindingNamePrefix + roleBinding.GetName(),
+			Labels: map[string]string{extensionsgreenhouse.LabelKeyRoleBinding: roleBinding.GetName()},
 		},
 		RoleRef: rbacv1.RoleRef{
 			APIGroup: clusterRole.GroupVersionKind().Group,

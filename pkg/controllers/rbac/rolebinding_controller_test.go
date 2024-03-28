@@ -16,6 +16,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 
 	greenhouseapis "github.com/cloudoperators/greenhouse/pkg/apis"
+	extensionsgreenhouse "github.com/cloudoperators/greenhouse/pkg/apis/extensions.greenhouse"
 	extentionsgreenhouse "github.com/cloudoperators/greenhouse/pkg/apis/extensions.greenhouse"
 	extensionsgreenhousev1alpha1 "github.com/cloudoperators/greenhouse/pkg/apis/extensions.greenhouse/v1alpha1"
 	"github.com/cloudoperators/greenhouse/pkg/test"
@@ -187,7 +188,7 @@ var _ = Describe("Validate ClusterRole & RoleBinding on Remote Cluster", Ordered
 			By("validating the RoleBinding created on the remote cluster")
 			remoteRoleBinding := &rbacv1.RoleBinding{}
 			remoteRoleBindingName := types.NamespacedName{
-				Name:      testRoleBinding.Name,
+				Name:      extensionsgreenhouse.RoleAndBindingNamePrefix + testRoleBinding.Name,
 				Namespace: testRoleBinding.Namespace,
 			}
 			Eventually(func() bool {
@@ -197,12 +198,13 @@ var _ = Describe("Validate ClusterRole & RoleBinding on Remote Cluster", Ordered
 				}
 				return !remoteRoleBinding.CreationTimestamp.IsZero()
 			}).Should(BeTrue(), "there should be no error getting the RoleBinding")
-			Expect(remoteRoleBinding.RoleRef.Name).To(Equal(testRole.Name))
+			Expect(remoteRoleBinding.RoleRef.Name).To(HavePrefix(extensionsgreenhouse.RoleAndBindingNamePrefix))
+			Expect(remoteRoleBinding.RoleRef.Name).To(ContainSubstring(testRole.Name))
 
 			By("validating the ClusterRole created on the remote cluster")
 			remoteClusterRole := &rbacv1.ClusterRole{}
 			remoteClusterRoleName := types.NamespacedName{
-				Name: testRole.Name,
+				Name: extensionsgreenhouse.RoleAndBindingNamePrefix + testRole.Name,
 			}
 			Eventually(func() bool {
 				err = remoteK8sClient.Get(test.Ctx, remoteClusterRoleName, remoteClusterRole)
@@ -211,7 +213,8 @@ var _ = Describe("Validate ClusterRole & RoleBinding on Remote Cluster", Ordered
 				}
 				return !remoteClusterRole.CreationTimestamp.IsZero()
 			}).Should(BeTrue(), "there should be no error getting the ClusterRole")
-			Expect(remoteClusterRole.Name).To(Equal(testRole.Name))
+			Expect(remoteClusterRole.Name).To(HavePrefix(extensionsgreenhouse.RoleAndBindingNamePrefix))
+			Expect(remoteClusterRole.Name).To(ContainSubstring(testRole.Name))
 			Expect(remoteClusterRole.Rules).To(Equal(testRole.Spec.Rules))
 		})
 	})
@@ -225,7 +228,7 @@ var _ = Describe("Validate ClusterRole & RoleBinding on Remote Cluster", Ordered
 			By("validating the ClusterRoleBinding created on the remote cluster")
 			remoteClusterRoleBinding := &rbacv1.ClusterRoleBinding{}
 			remoteRoleBindingName := types.NamespacedName{
-				Name:      testClusterRoleBinding.Name,
+				Name:      extensionsgreenhouse.RoleAndBindingNamePrefix + testClusterRoleBinding.Name,
 				Namespace: testClusterRoleBinding.Namespace,
 			}
 			Eventually(func() bool {
@@ -235,12 +238,13 @@ var _ = Describe("Validate ClusterRole & RoleBinding on Remote Cluster", Ordered
 				}
 				return !remoteClusterRoleBinding.CreationTimestamp.IsZero()
 			}).Should(BeTrue(), "there should be no error getting the ClusterRoleBinding")
-			Expect(remoteClusterRoleBinding.RoleRef.Name).To(Equal(testRole.Name))
+			Expect(remoteClusterRoleBinding.RoleRef.Name).To(HavePrefix(extensionsgreenhouse.RoleAndBindingNamePrefix))
+			Expect(remoteClusterRoleBinding.RoleRef.Name).To(ContainSubstring(testRole.Name))
 
 			By("validating the ClusterRole created on the remote cluster")
 			remoteClusterRole := &rbacv1.ClusterRole{}
 			remoteClusterRoleName := types.NamespacedName{
-				Name: testRole.Name,
+				Name: extensionsgreenhouse.RoleAndBindingNamePrefix + testRole.Name,
 			}
 			Eventually(func() bool {
 				err = remoteK8sClient.Get(test.Ctx, remoteClusterRoleName, remoteClusterRole)
@@ -249,7 +253,8 @@ var _ = Describe("Validate ClusterRole & RoleBinding on Remote Cluster", Ordered
 				}
 				return !remoteClusterRole.CreationTimestamp.IsZero()
 			}).Should(BeTrue(), "there should be no error getting the ClusterRole")
-			Expect(remoteClusterRole.Name).To(Equal(testRole.Name))
+			Expect(remoteClusterRole.Name).To(HavePrefix(extensionsgreenhouse.RoleAndBindingNamePrefix))
+			Expect(remoteClusterRole.Name).To(ContainSubstring(testRole.Name))
 			Expect(remoteClusterRole.Rules).To(Equal(testRole.Spec.Rules))
 		})
 	})
@@ -263,7 +268,7 @@ var _ = Describe("Validate ClusterRole & RoleBinding on Remote Cluster", Ordered
 			By("validating the ClusterRoleBinding created on the remote cluster")
 			remoteClusterRoleBinding := &rbacv1.ClusterRoleBinding{}
 			remoteClusterRoleBindingName := types.NamespacedName{
-				Name:      testClusterRoleBinding.Name,
+				Name:      extensionsgreenhouse.RoleAndBindingNamePrefix + testClusterRoleBinding.Name,
 				Namespace: testClusterRoleBinding.Namespace,
 			}
 			Eventually(func() bool {
@@ -273,12 +278,13 @@ var _ = Describe("Validate ClusterRole & RoleBinding on Remote Cluster", Ordered
 				}
 				return !remoteClusterRoleBinding.CreationTimestamp.IsZero()
 			}).Should(BeTrue(), "there should be no error getting the ClusterRoleBinding")
-			Expect(remoteClusterRoleBinding.RoleRef.Name).To(Equal(testRole.Name))
+			Expect(remoteClusterRoleBinding.RoleRef.Name).To(HavePrefix(extensionsgreenhouse.RoleAndBindingNamePrefix))
+			Expect(remoteClusterRoleBinding.RoleRef.Name).To(ContainSubstring(testRole.Name))
 
 			By("validating the ClusterRole created on the remote cluster")
 			remoteClusterRole := &rbacv1.ClusterRole{}
 			remoteClusterRoleName := types.NamespacedName{
-				Name: testRole.Name,
+				Name: extensionsgreenhouse.RoleAndBindingNamePrefix + testRole.Name,
 			}
 			Eventually(func() bool {
 				err = remoteK8sClient.Get(test.Ctx, remoteClusterRoleName, remoteClusterRole)
@@ -287,7 +293,8 @@ var _ = Describe("Validate ClusterRole & RoleBinding on Remote Cluster", Ordered
 				}
 				return !remoteClusterRole.CreationTimestamp.IsZero()
 			}).Should(BeTrue(), "there should be no error getting the ClusterRole")
-			Expect(remoteClusterRole.Name).To(Equal(testRole.Name))
+			Expect(remoteClusterRole.Name).To(HavePrefix(extensionsgreenhouse.RoleAndBindingNamePrefix))
+			Expect(remoteClusterRole.Name).To(ContainSubstring(testRole.Name))
 			Expect(remoteClusterRole.Rules).To(Equal(testRole.Spec.Rules))
 
 			By("creating a RoleBinding on the central cluster")
@@ -297,7 +304,7 @@ var _ = Describe("Validate ClusterRole & RoleBinding on Remote Cluster", Ordered
 			By("validating the RoleBinding created on the remote cluster")
 			remoteRoleBinding := &rbacv1.RoleBinding{}
 			remoteRoleBindingName := types.NamespacedName{
-				Name:      testRoleBinding.Name,
+				Name:      extensionsgreenhouse.RoleAndBindingNamePrefix + testRoleBinding.Name,
 				Namespace: testRoleBinding.Namespace,
 			}
 			Eventually(func() bool {
@@ -307,7 +314,8 @@ var _ = Describe("Validate ClusterRole & RoleBinding on Remote Cluster", Ordered
 				}
 				return !remoteRoleBinding.CreationTimestamp.IsZero()
 			}).Should(BeTrue(), "there should be no error getting the RoleBinding")
-			Expect(remoteRoleBinding.RoleRef.Name).To(Equal(testRole.Name))
+			Expect(remoteRoleBinding.RoleRef.Name).To(HavePrefix(extensionsgreenhouse.RoleAndBindingNamePrefix))
+			Expect(remoteRoleBinding.RoleRef.Name).To(ContainSubstring(testRole.Name))
 		})
 	})
 
@@ -321,7 +329,7 @@ var _ = Describe("Validate ClusterRole & RoleBinding on Remote Cluster", Ordered
 			By("validating the ClusterRoleBinding created on the remote cluster")
 			remoteClusterRoleBinding := &rbacv1.ClusterRoleBinding{}
 			remoteClusterRoleBindingName := types.NamespacedName{
-				Name:      testClusterRoleBinding.Name,
+				Name:      extensionsgreenhouse.RoleAndBindingNamePrefix + testClusterRoleBinding.Name,
 				Namespace: testClusterRoleBinding.Namespace,
 			}
 			Eventually(func() bool {
@@ -331,12 +339,13 @@ var _ = Describe("Validate ClusterRole & RoleBinding on Remote Cluster", Ordered
 				}
 				return !remoteClusterRoleBinding.CreationTimestamp.IsZero()
 			}).Should(BeTrue(), "there should be no error getting the ClusterRoleBinding")
-			Expect(remoteClusterRoleBinding.RoleRef.Name).To(Equal(testRole.Name))
+			Expect(remoteClusterRoleBinding.RoleRef.Name).To(HavePrefix(extensionsgreenhouse.RoleAndBindingNamePrefix))
+			Expect(remoteClusterRoleBinding.RoleRef.Name).To(ContainSubstring(testRole.Name))
 
 			By("validating the ClusterRole created on the remote cluster")
 			remoteClusterRole := &rbacv1.ClusterRole{}
 			remoteClusterRoleName := types.NamespacedName{
-				Name: testRole.Name,
+				Name: extensionsgreenhouse.RoleAndBindingNamePrefix + testRole.Name,
 			}
 			Eventually(func() bool {
 				err = remoteK8sClient.Get(test.Ctx, remoteClusterRoleName, remoteClusterRole)
@@ -345,7 +354,8 @@ var _ = Describe("Validate ClusterRole & RoleBinding on Remote Cluster", Ordered
 				}
 				return !remoteClusterRole.CreationTimestamp.IsZero()
 			}).Should(BeTrue(), "there should be no error getting the ClusterRole")
-			Expect(remoteClusterRole.Name).To(Equal(testRole.Name))
+			Expect(remoteClusterRole.Name).To(HavePrefix(extensionsgreenhouse.RoleAndBindingNamePrefix))
+			Expect(remoteClusterRole.Name).To(ContainSubstring(testRole.Name))
 			Expect(remoteClusterRole.Rules).To(Equal(testRole.Spec.Rules))
 
 			By("creating a RoleBinding on the central cluster")
@@ -356,7 +366,7 @@ var _ = Describe("Validate ClusterRole & RoleBinding on Remote Cluster", Ordered
 			By("validating the RoleBinding created on the remote cluster")
 			remoteRoleBinding := &rbacv1.RoleBinding{}
 			remoteRoleBindingName := types.NamespacedName{
-				Name:      testRoleBinding.Name,
+				Name:      extensionsgreenhouse.RoleAndBindingNamePrefix + testRoleBinding.Name,
 				Namespace: testRoleBinding.Namespace,
 			}
 			Eventually(func() bool {
@@ -366,7 +376,8 @@ var _ = Describe("Validate ClusterRole & RoleBinding on Remote Cluster", Ordered
 				}
 				return !remoteRoleBinding.CreationTimestamp.IsZero()
 			}).Should(BeTrue(), "there should be no error getting the RoleBinding")
-			Expect(remoteRoleBinding.RoleRef.Name).To(Equal(testRole.Name))
+			Expect(remoteRoleBinding.RoleRef.Name).To(HavePrefix(extensionsgreenhouse.RoleAndBindingNamePrefix))
+			Expect(remoteRoleBinding.RoleRef.Name).To(ContainSubstring(testRole.Name))
 
 			By("updating the Greenhouse Role on the central cluster")
 			roleUT.Spec.Rules[0].Verbs = []string{"get"}
@@ -391,7 +402,7 @@ var _ = Describe("Validate ClusterRole & RoleBinding on Remote Cluster", Ordered
 			By("validating the ClusterRoleBinding created on the remote cluster")
 			remoteClusterRoleBinding := &rbacv1.ClusterRoleBinding{}
 			remoteClusterRoleBindingName := types.NamespacedName{
-				Name:      roleBindingUT.Name,
+				Name:      extensionsgreenhouse.RoleAndBindingNamePrefix + roleBindingUT.Name,
 				Namespace: roleBindingUT.Namespace,
 			}
 			Eventually(func() bool {
@@ -401,21 +412,24 @@ var _ = Describe("Validate ClusterRole & RoleBinding on Remote Cluster", Ordered
 				}
 				return !remoteClusterRoleBinding.CreationTimestamp.IsZero()
 			}).Should(BeTrue(), "there should be no error getting the ClusterRoleBinding")
-			Expect(remoteClusterRoleBinding.RoleRef.Name).To(Equal(testRole.Name))
+			Expect(remoteClusterRoleBinding.RoleRef.Name).To(HavePrefix(extensionsgreenhouse.RoleAndBindingNamePrefix))
+			Expect(remoteClusterRoleBinding.RoleRef.Name).To(ContainSubstring(testRole.Name))
 
 			By("validating the ClusterRole created on the remote cluster")
 			remoteClusterRole := &rbacv1.ClusterRole{}
 			remoteClusterRoleName := types.NamespacedName{
-				Name: testRole.Name,
+				Name: extensionsgreenhouse.RoleAndBindingNamePrefix + testRole.Name,
 			}
-			Eventually(func() bool {
+			Eventually(func(g Gomega) bool {
 				err = remoteK8sClient.Get(test.Ctx, remoteClusterRoleName, remoteClusterRole)
 				if err != nil {
 					return false
 				}
-				return !remoteClusterRole.CreationTimestamp.IsZero()
+				return g.Expect(remoteClusterRole.Rules).To(Equal(testRole.Spec.Rules)) &&
+					!remoteClusterRole.CreationTimestamp.IsZero()
 			}).Should(BeTrue(), "there should be no error getting the ClusterRole")
-			Expect(remoteClusterRole.Name).To(Equal(testRole.Name))
+			Expect(remoteClusterRole.Name).To(HavePrefix(extensionsgreenhouse.RoleAndBindingNamePrefix))
+			Expect(remoteClusterRole.Name).To(ContainSubstring(testRole.Name))
 			Expect(remoteClusterRole.Rules).To(Equal(testRole.Spec.Rules))
 
 			By("altering the RoleBinding on the remote cluster")
