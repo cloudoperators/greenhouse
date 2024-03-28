@@ -11,7 +11,7 @@ RUN --mount=type=cache,target=/go/pkg/mod \
 	--mount=type=cache,target=/root/.cache/go-build \
 	make build-tailscale-starter CGO_ENABLED=0 GOOS=linux GOARCH=amd64
 
-FROM ghcr.io/tailscale/tailscale:v1.61.11
+FROM ghcr.io/tailscale/tailscale:v1.62.1
 LABEL source_repository="https://github.com/cloudoperators/greenhouse"
 
 COPY --from=builder /workspace/bin/* .
