@@ -33,9 +33,9 @@ ui:
 
 headscalectl:
   image:
-    repository: ghcr.io/cloudoperators/headscalectl
-    tag: 0.2
-    pullPolicy: IfNotPresent
+    repository: ghcr.io/cloudoperators/greenhouse-headscalectl
+    tag: main
+    pullPolicy: Always
   secret:
     name: tailscale-auth
 
