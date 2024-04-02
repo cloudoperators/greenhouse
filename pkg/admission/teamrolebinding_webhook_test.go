@@ -6,28 +6,88 @@ package admission
 import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	rbacv1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	extensionsgreenhousev1alpha1 "github.com/cloudoperators/greenhouse/pkg/apis/extensions.greenhouse/v1alpha1"
+	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/pkg/apis/greenhouse/v1alpha1"
 	"github.com/cloudoperators/greenhouse/pkg/test"
 )
 
-var _ = Describe("Validate Create RoleBinding", func() {
-	Context("deny create if the role does not exist", func() {
+var _ = Describe("Validate Create RoleBinding", Ordered, func() {
+	const (
+		testrolename = "test-role-create-admission"
+	)
+	BeforeAll(func() {
+		testrole := &greenhousev1alpha1.TeamRole{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: test.TestNamespace,
+				Name:      testrolename,
+			},
+			Spec: greenhousev1alpha1.TeamRoleSpec{
+				Rules: []rbacv1.PolicyRule{
+					{
+						Verbs:     []string{"get"},
+						APIGroups: []string{""},
+						Resources: []string{"pods"},
+					},
+				},
+			},
+		}
+		Expect(test.K8sClient.Create(test.Ctx, testrole)).To(Succeed())
+	})
+
+	Context("deny create if referenced resources do not exist", func() {
 		It("should return an error if the role does not exist", func() {
-			rb := &extensionsgreenhousev1alpha1.RoleBinding{
+			rb := &greenhousev1alpha1.TeamRoleBinding{
 				ObjectMeta: metav1.ObjectMeta{
-					Namespace: "greenhouse",
+					Namespace: test.TestNamespace,
 					Name:      "testBinding",
 				},
-				Spec: extensionsgreenhousev1alpha1.RoleBindingSpec{
-					RoleRef: "nonExistentRole",
+				Spec: greenhousev1alpha1.TeamRoleBindingSpec{
+					TeamRoleRef: "non-existent-role",
+					TeamRef:     testteamname,
+					ClusterName: testclustername,
 				},
 			}
 
 			warns, err := ValidateCreateRoleBinding(test.Ctx, test.K8sClient, rb)
 			Expect(warns).To(BeNil(), "expected no warnings")
 			Expect(err).To(HaveOccurred(), "expected an error")
+			Expect(err).To(MatchError(ContainSubstring("role does not exist")))
+		})
+		It("should return an error if the team does not exist", func() {
+			rb := &greenhousev1alpha1.TeamRoleBinding{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: test.TestNamespace,
+					Name:      "testBinding",
+				},
+				Spec: greenhousev1alpha1.TeamRoleBindingSpec{
+					TeamRoleRef: testrolename,
+					TeamRef:     "non-existent-team",
+					ClusterName: testclustername,
+				},
+			}
+			warns, err := ValidateCreateRoleBinding(test.Ctx, test.K8sClient, rb)
+			Expect(warns).To(BeNil(), "expected no warnings")
+			Expect(err).To(HaveOccurred(), "expected an error")
+			Expect(err).To(MatchError(ContainSubstring("team does not exist")))
+		})
+		It("should return an error if the cluster does not exist", func() {
+			rb := &greenhousev1alpha1.TeamRoleBinding{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: test.TestNamespace,
+					Name:      "testBinding",
+				},
+				Spec: greenhousev1alpha1.TeamRoleBindingSpec{
+					TeamRoleRef: testrolename,
+					TeamRef:     testteamname,
+					ClusterName: "non-existent-cluster",
+				},
+			}
+			warns, err := ValidateCreateRoleBinding(test.Ctx, test.K8sClient, rb)
+			Expect(warns).To(BeNil(), "expected no warnings")
+			Expect(err).To(HaveOccurred(), "expected an error")
+			Expect(err).To(MatchError(ContainSubstring("cluster does not exist")))
 		})
 	})
 })
@@ -39,25 +99,25 @@ var _ = Describe("Validate Update Rolebinding", func() {
 		editedClusterName := "edited-cluster"
 
 		DescribeTable("Validate that adding, removing, or editing ClusterSelector is detected", func(oldCluster, curName string, expChange bool) {
-			oldRB := &extensionsgreenhousev1alpha1.RoleBinding{
+			oldRB := &greenhousev1alpha1.TeamRoleBinding{
 				ObjectMeta: metav1.ObjectMeta{
 					Namespace: "greenhouse",
 					Name:      "testBinding",
 				},
-				Spec: extensionsgreenhousev1alpha1.RoleBindingSpec{
-					RoleRef:     "testRole",
+				Spec: greenhousev1alpha1.TeamRoleBindingSpec{
+					TeamRoleRef: "testRole",
 					Namespaces:  []string{"testNamespace"},
 					ClusterName: oldCluster,
 				},
 			}
 
-			curRB := &extensionsgreenhousev1alpha1.RoleBinding{
+			curRB := &greenhousev1alpha1.TeamRoleBinding{
 				ObjectMeta: metav1.ObjectMeta{
 					Namespace: "greenhouse",
 					Name:      "testBinding",
 				},
-				Spec: extensionsgreenhousev1alpha1.RoleBindingSpec{
-					RoleRef:     "testRole",
+				Spec: greenhousev1alpha1.TeamRoleBindingSpec{
+					TeamRoleRef: "testRole",
 					Namespaces:  []string{"testNamespace"},
 					ClusterName: curName,
 				},
@@ -84,25 +144,25 @@ var _ = Describe("Validate Update Rolebinding", func() {
 		deletedNamespaces := []string{"demoNamespace"}
 
 		DescribeTable("Validate that adding, removing, or editing Namespaces is detected", func(oldNamespaces, curNamespaces []string, expChange bool) {
-			oldRB := &extensionsgreenhousev1alpha1.RoleBinding{
+			oldRB := &greenhousev1alpha1.TeamRoleBinding{
 				ObjectMeta: metav1.ObjectMeta{
 					Namespace: "greenhouse",
 					Name:      "testBinding",
 				},
-				Spec: extensionsgreenhousev1alpha1.RoleBindingSpec{
-					RoleRef:    "testRole",
-					Namespaces: oldNamespaces,
+				Spec: greenhousev1alpha1.TeamRoleBindingSpec{
+					TeamRoleRef: "testRole",
+					Namespaces:  oldNamespaces,
 				},
 			}
 
-			curRB := &extensionsgreenhousev1alpha1.RoleBinding{
+			curRB := &greenhousev1alpha1.TeamRoleBinding{
 				ObjectMeta: metav1.ObjectMeta{
 					Namespace: "greenhouse",
 					Name:      "testBinding",
 				},
-				Spec: extensionsgreenhousev1alpha1.RoleBindingSpec{
-					RoleRef:    "testRole",
-					Namespaces: curNamespaces,
+				Spec: greenhousev1alpha1.TeamRoleBindingSpec{
+					TeamRoleRef: "testRole",
+					Namespaces:  curNamespaces,
 				},
 			}
 

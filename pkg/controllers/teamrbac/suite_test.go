@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2024 SAP SE or an SAP affiliate company and Greenhouse contributors
 // SPDX-License-Identifier: Apache-2.0
 
-package rbac
+package teamrbac
 
 import (
 	"testing"
@@ -82,11 +82,11 @@ func TestRBACController(t *testing.T) {
 }
 
 var _ = BeforeSuite(func() {
-	test.RegisterController("roleBindingController", (&RoleBindingReconciler{}).SetupWithManager)
+	test.RegisterController("roleBindingController", (&TeamRoleBindingReconciler{}).SetupWithManager)
 	test.RegisterWebhook("clusterWebhook", admission.SetupClusterWebhookWithManager)
 	test.RegisterWebhook("teamsWebhook", admission.SetupTeamWebhookWithManager)
-	test.RegisterWebhook("roleBindingWebhook", admission.SetupRoleBindingWebhookWithManager)
-	test.RegisterWebhook("roleWebhook", admission.SetupRoleWebhookWithManager)
+	test.RegisterWebhook("teamRoleBindingWebhook", admission.SetupTeamRoleBindingWebhookWithManager)
+	test.RegisterWebhook("teamRoleWebhook", admission.SetupTeamRoleWebhookWithManager)
 	test.TestBeforeSuite()
 	k8sClient = test.K8sClient
 	bootstrapRemoteCluster()

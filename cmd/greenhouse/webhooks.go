@@ -10,12 +10,12 @@ import (
 )
 
 var knownWebhooks = map[string]func(mgr ctrl.Manager) error{
-	"cluster":      admission.SetupClusterWebhookWithManager,
-	"secrets":      admission.SetupSecretWebhookWithManager,
-	"organization": admission.SetupOrganizationWebhookWithManager,
-	"plugin":       admission.SetupPluginWebhookWithManager,
-	"pluginconfig": admission.SetupPluginConfigWebhookWithManager,
-	"role":         admission.SetupRoleWebhookWithManager,
-	"rolebinding":  admission.SetupRoleBindingWebhookWithManager,
-	"team":         admission.SetupTeamWebhookWithManager,
+	"cluster":         admission.SetupClusterWebhookWithManager,
+	"secrets":         admission.SetupSecretWebhookWithManager,
+	"organization":    admission.SetupOrganizationWebhookWithManager,
+	"plugin":          admission.SetupPluginWebhookWithManager,
+	"pluginconfig":    admission.SetupPluginConfigWebhookWithManager,
+	"teamrole":        admission.SetupTeamRoleWebhookWithManager,
+	"teamrolebinding": admission.SetupTeamRoleBindingWebhookWithManager,
+	"team":            admission.SetupTeamWebhookWithManager,
 }

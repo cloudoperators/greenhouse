@@ -7,20 +7,20 @@ kind: CustomResourceDefinition
 metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.12.1
-  name: roles.extensions.greenhouse.sap
+  name: teamroles.greenhouse.sap
 spec:
-  group: extensions.greenhouse.sap
+  group: greenhouse.sap
   names:
-    kind: Role
-    listKind: RoleList
-    plural: roles
-    singular: role
+    kind: TeamRole
+    listKind: TeamRoleList
+    plural: teamroles
+    singular: teamrole
   scope: Namespaced
   versions:
   - name: v1alpha1
     schema:
       openAPIV3Schema:
-        description: Role is the Schema for the roles API
+        description: TeamRole is the Schema for the TeamRoles API
         properties:
           apiVersion:
             description: 'APIVersion defines the versioned schema of this representation
@@ -35,7 +35,7 @@ spec:
           metadata:
             type: object
           spec:
-            description: RoleSpec defines the desired state of Role
+            description: TeamRoleSpec defines the desired state of a TeamRole
             properties:
               rules:
                 description: Rules is a list of rbacv1.PolicyRules used on a managed
@@ -90,7 +90,7 @@ spec:
                 type: array
             type: object
           status:
-            description: RoleStatus defines the observed state of Role
+            description: TeamRoleStatus defines the observed state of a TeamRole
             type: object
         type: object
     served: true

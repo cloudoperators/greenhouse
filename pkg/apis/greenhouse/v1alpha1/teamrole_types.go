@@ -8,36 +8,36 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// RoleSpec defines the desired state of Role
-type RoleSpec struct {
+// TeamRoleSpec defines the desired state of a TeamRole
+type TeamRoleSpec struct {
 	// Rules is a list of rbacv1.PolicyRules used on a managed RBAC (Cluster)Role
 	Rules []rbacv1.PolicyRule `json:"rules,omitempty"`
 }
 
-// RoleStatus defines the observed state of Role
-type RoleStatus struct{}
+// TeamRoleStatus defines the observed state of a TeamRole
+type TeamRoleStatus struct{}
 
 //+kubebuilder:object:root=true
 //+kubebuilder:subresource:status
 
-// Role is the Schema for the roles API
-type Role struct {
+// TeamRole is the Schema for the TeamRoles API
+type TeamRole struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec   RoleSpec   `json:"spec,omitempty"`
-	Status RoleStatus `json:"status,omitempty"`
+	Spec   TeamRoleSpec   `json:"spec,omitempty"`
+	Status TeamRoleStatus `json:"status,omitempty"`
 }
 
 //+kubebuilder:object:root=true
 
-// RoleList contains a list of Role
-type RoleList struct {
+// TeamRoleList contains a list of Role
+type TeamRoleList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
-	Items           []Role `json:"items"`
+	Items           []TeamRole `json:"items"`
 }
 
 func init() {
-	SchemeBuilder.Register(&Role{}, &RoleList{})
+	SchemeBuilder.Register(&TeamRole{}, &TeamRoleList{})
 }
