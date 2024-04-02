@@ -22,16 +22,16 @@ import (
 	"github.com/cloudoperators/greenhouse/pkg/helm"
 )
 
-// pluginsAllowedInCentralCluster is a list of plugins that are allowed to be installed in the central cluster.
-// TODO: Make this configurable on plugin level (AdminPlugin discussion) instead of maintaining a list here.
+// pluginsAllowedInCentralCluster is a list of PluginDefinitions that are allowed to be installed in the central cluster.
+// TODO: Make this configurable on pluginDefinition level (AdminPlugin discussion) instead of maintaining a list here.
 var pluginsAllowedInCentralCluster = []string{
 	"alerts", "doop", "service-proxy", "teams2slack", "kubeconfig-generator",
 }
 
-// SetupPluginConfigWebhookWithManager configures the webhook for the PluginConfig custom resource.
+// SetupPluginConfigWebhookWithManager configures the webhook for the Plugin custom resource.
 func SetupPluginConfigWebhookWithManager(mgr ctrl.Manager) error {
 	return setupWebhook(mgr,
-		&greenhousev1alpha1.PluginConfig{},
+		&greenhousev1alpha1.Plugin{},
 		webhookFuncs{
 			defaultFunc:        DefaultPluginConfig,
 			validateCreateFunc: ValidateCreatePluginConfig,
@@ -41,84 +41,84 @@ func SetupPluginConfigWebhookWithManager(mgr ctrl.Manager) error {
 	)
 }
 
-//+kubebuilder:webhook:path=/mutate-greenhouse-sap-v1alpha1-pluginconfig,mutating=true,failurePolicy=fail,sideEffects=None,groups=greenhouse.sap,resources=pluginconfigs,verbs=create;update,versions=v1alpha1,name=mpluginconfig.kb.io,admissionReviewVersions=v1
+//+kubebuilder:webhook:path=/mutate-greenhouse-sap-v1alpha1-plugin,mutating=true,failurePolicy=fail,sideEffects=None,groups=greenhouse.sap,resources=plugins,verbs=create;update,versions=v1alpha1,name=mpluginconfig.kb.io,admissionReviewVersions=v1
 
 func DefaultPluginConfig(ctx context.Context, c client.Client, obj runtime.Object) error {
-	pluginConfig, ok := obj.(*greenhousev1alpha1.PluginConfig)
+	plugin, ok := obj.(*greenhousev1alpha1.Plugin)
 	if !ok {
 		return nil
 	}
-	if pluginConfig.Labels == nil {
-		pluginConfig.Labels = make(map[string]string, 0)
+	if plugin.Labels == nil {
+		plugin.Labels = make(map[string]string, 0)
 	}
-	// The label is used to help identifying PluginConfigs, e.g. if a Plugin changes.
-	pluginConfig.Labels[greenhouseapis.LabelKeyPlugin] = pluginConfig.Spec.Plugin
-	pluginConfig.Labels[greenhouseapis.LabelKeyCluster] = pluginConfig.Spec.ClusterName
+	// The label is used to help identifying Plugins, e.g. if a PluginDefinition changes.
+	plugin.Labels[greenhouseapis.LabelKeyPlugin] = plugin.Spec.PluginDefinition
+	plugin.Labels[greenhouseapis.LabelKeyCluster] = plugin.Spec.ClusterName
 
 	// Default the displayName to a normalized version of metadata.name.
-	if pluginConfig.Spec.DisplayName == "" {
-		normalizedName := strings.ReplaceAll(pluginConfig.GetName(), "-", " ")
+	if plugin.Spec.DisplayName == "" {
+		normalizedName := strings.ReplaceAll(plugin.GetName(), "-", " ")
 		normalizedName = strings.TrimSpace(normalizedName)
-		pluginConfig.Spec.DisplayName = normalizedName
+		plugin.Spec.DisplayName = normalizedName
 	}
 
-	// Default option values and merge with Plugin values.
-	optionValues, err := helm.GetPluginOptionValuesForPluginConfig(ctx, c, pluginConfig)
+	// Default option values and merge with PluginDefinition values.
+	optionValues, err := helm.GetPluginOptionValuesForPluginConfig(ctx, c, plugin)
 	if err != nil {
 		return err
 	}
-	pluginConfig.Spec.OptionValues = optionValues
+	plugin.Spec.OptionValues = optionValues
 	return nil
 }
 
-//+kubebuilder:webhook:path=/validate-greenhouse-sap-v1alpha1-pluginconfig,mutating=false,failurePolicy=fail,sideEffects=None,groups=greenhouse.sap,resources=pluginconfigs,verbs=create;update,versions=v1alpha1,name=vpluginconfig.kb.io,admissionReviewVersions=v1
+//+kubebuilder:webhook:path=/validate-greenhouse-sap-v1alpha1-plugin,mutating=false,failurePolicy=fail,sideEffects=None,groups=greenhouse.sap,resources=plugins,verbs=create;update,versions=v1alpha1,name=vpluginconfig.kb.io,admissionReviewVersions=v1
 
 func ValidateCreatePluginConfig(ctx context.Context, c client.Client, obj runtime.Object) (admission.Warnings, error) {
-	pluginConfig, ok := obj.(*greenhousev1alpha1.PluginConfig)
+	plugin, ok := obj.(*greenhousev1alpha1.Plugin)
 	if !ok {
 		return nil, nil
 	}
 
-	plugin := new(greenhousev1alpha1.Plugin)
-	err := c.Get(ctx, client.ObjectKey{Namespace: "", Name: pluginConfig.Spec.Plugin}, plugin)
+	pluginDefinition := new(greenhousev1alpha1.PluginDefinition)
+	err := c.Get(ctx, client.ObjectKey{Namespace: "", Name: plugin.Spec.PluginDefinition}, pluginDefinition)
 	if err != nil {
 		// TODO: provide actual APIError
 		return nil, err
 	}
 
-	if err := validatePluginConfigOptionValues(pluginConfig, plugin); err != nil {
+	if err := validatePluginConfigOptionValues(plugin, pluginDefinition); err != nil {
 		return nil, err
 	}
-	if err := validatePluginConfigForCluster(ctx, c, pluginConfig, plugin); err != nil {
+	if err := validatePluginConfigForCluster(ctx, c, plugin, pluginDefinition); err != nil {
 		return nil, err
 	}
 	return nil, nil
 }
 
 func ValidateUpdatePluginConfig(ctx context.Context, c client.Client, old, obj runtime.Object) (admission.Warnings, error) {
-	oldPluginConfig, ok := obj.(*greenhousev1alpha1.PluginConfig)
+	oldPluginConfig, ok := obj.(*greenhousev1alpha1.Plugin)
 	if !ok {
 		return nil, nil
 	}
-	pluginConfig, ok := obj.(*greenhousev1alpha1.PluginConfig)
+	plugin, ok := obj.(*greenhousev1alpha1.Plugin)
 	if !ok {
 		return nil, nil
 	}
 
-	plugin := new(greenhousev1alpha1.Plugin)
-	err := c.Get(ctx, client.ObjectKey{Namespace: "", Name: pluginConfig.Spec.Plugin}, plugin)
+	pluginDefinition := new(greenhousev1alpha1.PluginDefinition)
+	err := c.Get(ctx, client.ObjectKey{Namespace: "", Name: plugin.Spec.PluginDefinition}, pluginDefinition)
 	if err != nil {
 		// TODO: provide actual APIError
 		return nil, err
 	}
 
-	if err := validatePluginConfigOptionValues(pluginConfig, plugin); err != nil {
+	if err := validatePluginConfigOptionValues(plugin, pluginDefinition); err != nil {
 		return nil, err
 	}
-	if err := validatePluginConfigForCluster(ctx, c, pluginConfig, plugin); err != nil {
+	if err := validatePluginConfigForCluster(ctx, c, plugin, pluginDefinition); err != nil {
 		return nil, err
 	}
-	if err := validateImmutableField(oldPluginConfig.Spec.ClusterName, pluginConfig.Spec.ClusterName,
+	if err := validateImmutableField(oldPluginConfig.Spec.ClusterName, plugin.Spec.ClusterName,
 		field.NewPath("spec", "clusterName"),
 	); err != nil {
 		return nil, err
@@ -130,12 +130,12 @@ func ValidateDeletePluginConfig(_ context.Context, _ client.Client, _ runtime.Ob
 	return nil, nil
 }
 
-func validatePluginConfigOptionValues(pluginConfig *greenhousev1alpha1.PluginConfig, plugin *greenhousev1alpha1.Plugin) error {
+func validatePluginConfigOptionValues(plugin *greenhousev1alpha1.Plugin, pluginDefinition *greenhousev1alpha1.PluginDefinition) error {
 	var allErrs field.ErrorList
 	var isOptionValueSet bool
-	for _, pluginOption := range plugin.Spec.Options {
+	for _, pluginOption := range pluginDefinition.Spec.Options {
 		isOptionValueSet = false
-		for idx, val := range pluginConfig.Spec.OptionValues {
+		for idx, val := range plugin.Spec.OptionValues {
 			if pluginOption.Name != val.Name {
 				continue
 			}
@@ -174,7 +174,7 @@ func validatePluginConfigOptionValues(pluginConfig *greenhousev1alpha1.PluginCon
 				continue
 			}
 
-			// validate that the PluginConfig.OptionValue matches the type of the Plugin.Option
+			// validate that the Plugin.OptionValue matches the type of the PluginDefinition.Option
 			if val.Value != nil {
 				if err := pluginOption.IsValidValue(val.Value); err != nil {
 					allErrs = append(allErrs, field.Invalid(
@@ -185,29 +185,29 @@ func validatePluginConfigOptionValues(pluginConfig *greenhousev1alpha1.PluginCon
 		}
 		if pluginOption.Required && !isOptionValueSet {
 			allErrs = append(allErrs, field.Required(field.NewPath("spec").Child("optionValues"),
-				fmt.Sprintf("Option '%s' is required by Plugin '%s'", pluginOption.Name, pluginConfig.Spec.Plugin)))
+				fmt.Sprintf("Option '%s' is required by PluginDefinition '%s'", pluginOption.Name, plugin.Spec.PluginDefinition)))
 		}
 	}
 	if len(allErrs) == 0 {
 		return nil
 	}
-	return apierrors.NewInvalid(pluginConfig.GroupVersionKind().GroupKind(), pluginConfig.Name, allErrs)
+	return apierrors.NewInvalid(plugin.GroupVersionKind().GroupKind(), plugin.Name, allErrs)
 }
 
-func validatePluginConfigForCluster(ctx context.Context, c client.Client, pluginConfig *greenhousev1alpha1.PluginConfig, plugin *greenhousev1alpha1.Plugin) error {
-	// Exclude whitelisted and front-end only PluginConfigs as well as the greenhouse namespace from the below check.
-	if slices.Contains(pluginsAllowedInCentralCluster, pluginConfig.Spec.Plugin) || plugin.Spec.HelmChart == nil || pluginConfig.GetNamespace() == "greenhouse" {
+func validatePluginConfigForCluster(ctx context.Context, c client.Client, plugin *greenhousev1alpha1.Plugin, pluginDefinition *greenhousev1alpha1.PluginDefinition) error {
+	// Exclude whitelisted and front-end only Plugins as well as the greenhouse namespace from the below check.
+	if slices.Contains(pluginsAllowedInCentralCluster, plugin.Spec.PluginDefinition) || pluginDefinition.Spec.HelmChart == nil || plugin.GetNamespace() == "greenhouse" {
 		return nil
 	}
 
-	// If the Plugin is not allowed in the central cluster, the PluginConfig must have a spec.clusterName set.
-	clusterName := pluginConfig.Spec.ClusterName
+	// If the PluginDefinition is not allowed in the central cluster, the Plugin must have a spec.clusterName set.
+	clusterName := plugin.Spec.ClusterName
 	if clusterName == "" {
 		return field.Required(field.NewPath("spec").Child("clusterName"), "the clusterName must be set")
 	}
 	// Verify that the cluster exists.
 	var cluster = new(greenhousev1alpha1.Cluster)
-	if err := c.Get(ctx, types.NamespacedName{Namespace: pluginConfig.ObjectMeta.Namespace, Name: clusterName}, cluster); err != nil {
+	if err := c.Get(ctx, types.NamespacedName{Namespace: plugin.ObjectMeta.Namespace, Name: clusterName}, cluster); err != nil {
 		switch {
 		case apierrors.IsNotFound(err):
 			return field.NotFound(field.NewPath("spec").Child("clusterName"), clusterName)

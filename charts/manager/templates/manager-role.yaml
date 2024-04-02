@@ -136,7 +136,7 @@ rules:
 - apiGroups:
   - greenhouse.sap
   resources:
-  - pluginconfigs
+  - plugindefinitions
   verbs:
   - create
   - delete
@@ -148,13 +148,13 @@ rules:
 - apiGroups:
   - greenhouse.sap
   resources:
-  - pluginconfigs/finalizers
+  - plugindefinitions/finalizers
   verbs:
   - update
 - apiGroups:
   - greenhouse.sap
   resources:
-  - pluginconfigs/status
+  - plugindefinitions/status
   verbs:
   - get
   - patch

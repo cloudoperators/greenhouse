@@ -8,14 +8,14 @@ metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.11.3
   creationTimestamp: null
-  name: plugins.greenhouse.sap
+  name: plugindefinitions.greenhouse.sap
 spec:
   group: greenhouse.sap
   names:
-    kind: Plugin
+    kind: PluginDefinition
     listKind: PluginList
-    plural: plugins
-    singular: plugin
+    plural: plugindefinitions
+    singular: pluginDefinition
   scope: Cluster
   versions:
   - additionalPrinterColumns:
@@ -31,7 +31,7 @@ spec:
     name: v1alpha1
     schema:
       openAPIV3Schema:
-        description: Plugin is the Schema for the plugins API
+        description: PluginDefinition is the Schema for the plugindefinitions API
         properties:
           apiVersion:
             description: 'APIVersion defines the versioned schema of this representation
@@ -46,13 +46,13 @@ spec:
           metadata:
             type: object
           spec:
-            description: PluginSpec defines the desired state of Plugin
+            description: PluginSpec defines the desired state of PluginDefinition
             properties:
               description:
-                description: Description provides additional details of the plugin.
+                description: Description provides additional details of the pluginDefinition.
                 type: string
               helmChart:
-                description: HelmChart specifies where the Helm Chart for this plugin
+                description: HelmChart specifies where the Helm Chart for this pluginDefinition
                   can be found.
                 properties:
                   name:
@@ -71,7 +71,7 @@ spec:
                 type: object
               options:
                 description: RequiredValues is a list of values required to create
-                  an instance of this Plugin.
+                  an instance of this PluginDefinition.
                 items:
                   properties:
                     default:
@@ -130,10 +130,10 @@ spec:
                 - version
                 type: object
               version:
-                description: Version of this plugin
+                description: Version of this pluginDefinition
                 type: string
               weight:
-                description: Weight configures the order in which Plugins are shown
+                description: Weight configures the order in which PluginDefinitions are shown
                   in the Greenhouse UI. Defaults to alphabetical sorting if not provided
                   or on conflict.
                 format: int32
@@ -142,7 +142,7 @@ spec:
             - version
             type: object
           status:
-            description: PluginStatus defines the observed state of Plugin
+            description: PluginStatus defines the observed state of PluginDefinition
             type: object
         type: object
     served: true

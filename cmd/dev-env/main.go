@@ -81,7 +81,7 @@ func main() {
 	envTest.ControlPlane.GetAPIServer().SecureServing.ListenAddr.Address = "127.0.0.1"
 	envTest.ControlPlane.GetAPIServer().SecureServing.ListenAddr.Port = "6884"
 	envTest.ControlPlane.GetAPIServer().Configure().Append("cors-allowed-origins", ".*")
-	envTest.ControlPlane.GetAPIServer().Configure().Append("enable-admission-plugins", "MutatingAdmissionWebhook", "ValidatingAdmissionWebhook")
+	envTest.ControlPlane.GetAPIServer().Configure().Append("enable-admission-plugindefinitions", "MutatingAdmissionWebhook", "ValidatingAdmissionWebhook")
 
 	//starting dev env
 	logger.Info("Starting apiserver & etcd")

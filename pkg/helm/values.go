@@ -15,14 +15,14 @@ import (
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/pkg/apis/greenhouse/v1alpha1"
 )
 
-func GetPluginOptionValuesForPluginConfig(ctx context.Context, c client.Client, pluginConfig *greenhousev1alpha1.PluginConfig) ([]greenhousev1alpha1.PluginOptionValue, error) {
-	var plugin = new(greenhousev1alpha1.Plugin)
-	if err := c.Get(ctx, types.NamespacedName{Namespace: "", Name: pluginConfig.Spec.Plugin}, plugin); err != nil {
+func GetPluginOptionValuesForPluginConfig(ctx context.Context, c client.Client, plugin *greenhousev1alpha1.Plugin) ([]greenhousev1alpha1.PluginOptionValue, error) {
+	var pluginDefinition = new(greenhousev1alpha1.PluginDefinition)
+	if err := c.Get(ctx, types.NamespacedName{Namespace: "", Name: plugin.Spec.PluginDefinition}, pluginDefinition); err != nil {
 		return nil, err
 	}
-	values := mergePluginAndPluginConfigOptionValueSlice(plugin.Spec.Options, pluginConfig.Spec.OptionValues)
+	values := mergePluginAndPluginConfigOptionValueSlice(pluginDefinition.Spec.Options, plugin.Spec.OptionValues)
 	// Enrich with default greenhouse values.
-	greenhouseValues, err := getGreenhouseValues(ctx, c, *pluginConfig)
+	greenhouseValues, err := getGreenhouseValues(ctx, c, *plugin)
 	if err != nil {
 		return nil, err
 	}
@@ -38,7 +38,7 @@ func mergePluginAndPluginConfigOptionValueSlice(pluginOptions []greenhousev1alph
 			return out[i].Name < out[j].Name
 		})
 	}()
-	// If the Plugin doesn't define values, we're done.
+	// If the PluginDefinition doesn't define values, we're done.
 	if pluginOptions == nil {
 		return pluginConfigOptionValues
 	}
@@ -73,7 +73,7 @@ greenhouse:
 	teams:
 	  - <name>
 */
-func getGreenhouseValues(ctx context.Context, c client.Client, pc greenhousev1alpha1.PluginConfig) ([]greenhousev1alpha1.PluginOptionValue, error) {
+func getGreenhouseValues(ctx context.Context, c client.Client, pc greenhousev1alpha1.Plugin) ([]greenhousev1alpha1.PluginOptionValue, error) {
 	greenhouseValues := make([]greenhousev1alpha1.PluginOptionValue, 0)
 	// TODO: RBAC restriction to allowed clusters for organization.
 	var clusterList = new(greenhousev1alpha1.ClusterList)

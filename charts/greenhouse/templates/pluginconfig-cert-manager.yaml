@@ -4,12 +4,12 @@ SPDX-License-Identifier: Apache-2.0
 */}}
 
 apiVersion: greenhouse.sap/v1alpha1
-kind: PluginConfig
+kind: Plugin
 metadata:
   name: cert-manager
   namespace: {{ .Chart.Name }}
 spec:
-  plugin: cert-manager
+  pluginDefinition: cert-manager
   disabled: false
 {{ if .Values.digicertIssuer.enabled }}
   optionValues:

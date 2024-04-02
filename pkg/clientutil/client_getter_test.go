@@ -60,10 +60,10 @@ var _ = Describe("Testing the RestClientGetter", func() {
 		mapper, err := cut.ToRESTMapper()
 		Expect(err).ToNot(HaveOccurred(), "there should be no error creating a rest mapper")
 
-		kinds, err := mapper.KindsFor(greenhousev1alpha1.GroupVersion.WithResource("plugins"))
+		kinds, err := mapper.KindsFor(greenhousev1alpha1.GroupVersion.WithResource("plugindefinitions"))
 		Expect(err).ToNot(HaveOccurred(), "there should be no error getting the kinds for the resource")
 		Expect(kinds).ToNot(BeEmpty(), "the kinds should not be empty")
-		Expect(kinds).To(ContainElement(schema.GroupVersionKind{Group: greenhousev1alpha1.GroupVersion.Group, Version: greenhousev1alpha1.GroupVersion.Version, Kind: "Plugin"}), "the kinds should contain the Plugin kind")
+		Expect(kinds).To(ContainElement(schema.GroupVersionKind{Group: greenhousev1alpha1.GroupVersion.Group, Version: greenhousev1alpha1.GroupVersion.Version, Kind: "PluginDefinition"}), "the kinds should contain the PluginDefinition kind")
 	})
 
 	It("should create a RestClientGetter from InCluster config and retrieve cluster version", func() {

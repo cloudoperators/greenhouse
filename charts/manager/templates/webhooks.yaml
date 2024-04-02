@@ -57,7 +57,7 @@ webhooks:
       namespace: greenhouse
       path: /mutate-greenhouse-sap-v1alpha1-plugin
   failurePolicy: Fail
-  name: mplugin.kb.io
+  name: mpluginconfig.kb.io
   rules:
   - apiGroups:
     - greenhouse.sap
@@ -75,9 +75,9 @@ webhooks:
     service:
       name: greenhouse-webhook-service
       namespace: greenhouse
-      path: /mutate-greenhouse-sap-v1alpha1-pluginconfig
+      path: /mutate-greenhouse-sap-v1alpha1-plugindefinition
   failurePolicy: Fail
-  name: mpluginconfig.kb.io
+  name: mplugindefinition.kb.io
   rules:
   - apiGroups:
     - greenhouse.sap
@@ -87,7 +87,7 @@ webhooks:
     - CREATE
     - UPDATE
     resources:
-    - pluginconfigs
+    - plugindefinitions
   sideEffects: None
 - admissionReviewVersions:
   - v1
@@ -224,7 +224,7 @@ webhooks:
       namespace: greenhouse
       path: /validate-greenhouse-sap-v1alpha1-plugin
   failurePolicy: Fail
-  name: vplugin.kb.io
+  name: vpluginconfig.kb.io
   rules:
   - apiGroups:
     - greenhouse.sap
@@ -242,9 +242,9 @@ webhooks:
     service:
       name: greenhouse-webhook-service
       namespace: greenhouse
-      path: /validate-greenhouse-sap-v1alpha1-pluginconfig
+      path: /validate-greenhouse-sap-v1alpha1-plugindefinition
   failurePolicy: Fail
-  name: vpluginconfig.kb.io
+  name: vplugindefinition.kb.io
   rules:
   - apiGroups:
     - greenhouse.sap
@@ -254,7 +254,7 @@ webhooks:
     - CREATE
     - UPDATE
     resources:
-    - pluginconfigs
+    - plugindefinitions
   sideEffects: None
 - admissionReviewVersions:
   - v1

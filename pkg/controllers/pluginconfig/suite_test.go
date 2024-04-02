@@ -88,8 +88,8 @@ var _ = Describe("HelmControllerTest", Serial, func() {
 		PluginOptionMap         = "myMapOption"
 		PluginOptionMapDefault  = map[string]any{"myMapKey1": "myMapValue1", "myMapKey2": "myMapValue2"}
 
-		testPlugin       *greenhousev1alpha1.Plugin
-		testPluginConfig *greenhousev1alpha1.PluginConfig
+		testPlugin       *greenhousev1alpha1.PluginDefinition
+		testPluginConfig *greenhousev1alpha1.Plugin
 		pluginID         = types.NamespacedName{Name: PluginName, Namespace: ""}
 		pluginConfigID   = types.NamespacedName{Name: PluginConfigName, Namespace: Namespace}
 		tempChartLoader  helm.ChartLoaderFunc
@@ -102,15 +102,15 @@ var _ = Describe("HelmControllerTest", Serial, func() {
 			},
 		}))).To(Succeed(), "there must be no error creating the test namespace")
 
-		testPlugin = &greenhousev1alpha1.Plugin{
+		testPlugin = &greenhousev1alpha1.PluginDefinition{
 			TypeMeta: metav1.TypeMeta{
-				Kind:       "Plugin",
+				Kind:       "PluginDefinition",
 				APIVersion: greenhousev1alpha1.GroupVersion.String(),
 			},
 			ObjectMeta: metav1.ObjectMeta{
 				Name: PluginName,
 			},
-			Spec: greenhousev1alpha1.PluginSpec{
+			Spec: greenhousev1alpha1.PluginDefinitionSpec{
 				Description: "Testplugin",
 				Version:     PluginVersion,
 				HelmChart: &greenhousev1alpha1.HelmChartReference{
@@ -142,7 +142,7 @@ var _ = Describe("HelmControllerTest", Serial, func() {
 			},
 		}
 		Expect(test.K8sClient.Create(test.Ctx, testPlugin)).Should(Succeed())
-		actPlugin := &greenhousev1alpha1.Plugin{}
+		actPlugin := &greenhousev1alpha1.PluginDefinition{}
 		Eventually(func() bool {
 			err := test.K8sClient.Get(test.Ctx, pluginID, actPlugin)
 			if err != nil {
@@ -151,17 +151,17 @@ var _ = Describe("HelmControllerTest", Serial, func() {
 			return actPlugin.Spec.Version == PluginVersion
 		}).Should(BeTrue())
 
-		testPluginConfig = &greenhousev1alpha1.PluginConfig{
+		testPluginConfig = &greenhousev1alpha1.Plugin{
 			TypeMeta: metav1.TypeMeta{
-				Kind:       "PluginConfig",
+				Kind:       "Plugin",
 				APIVersion: greenhousev1alpha1.GroupVersion.String(),
 			},
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      PluginConfigName,
 				Namespace: Namespace,
 			},
-			Spec: greenhousev1alpha1.PluginConfigSpec{
-				Plugin: PluginName,
+			Spec: greenhousev1alpha1.PluginSpec{
+				PluginDefinition: PluginName,
 				OptionValues: []greenhousev1alpha1.PluginOptionValue{
 					{
 						Name:  PluginOptionRequired,
@@ -172,7 +172,7 @@ var _ = Describe("HelmControllerTest", Serial, func() {
 		}
 		Expect(test.K8sClient.Create(test.Ctx, testPluginConfig)).Should(Succeed())
 
-		actPluginConfig := &greenhousev1alpha1.PluginConfig{}
+		actPluginConfig := &greenhousev1alpha1.Plugin{}
 		Eventually(func(g Gomega) bool {
 			err := test.K8sClient.Get(test.Ctx, pluginConfigID, actPluginConfig)
 			if err != nil {
@@ -190,15 +190,15 @@ var _ = Describe("HelmControllerTest", Serial, func() {
 
 	AfterEach(func() {
 		err := client.IgnoreNotFound(test.K8sClient.Delete(test.Ctx, testPluginConfig))
-		Expect(err).ToNot(HaveOccurred(), "error deleting pluginConfig")
-		actPluginConfig := &greenhousev1alpha1.PluginConfig{}
+		Expect(err).ToNot(HaveOccurred(), "error deleting plugin")
+		actPluginConfig := &greenhousev1alpha1.Plugin{}
 		Eventually(func() bool {
 			return apierrors.IsNotFound(test.K8sClient.Get(test.Ctx, pluginConfigID, actPluginConfig))
 		}).Should(BeTrue())
 
 		err = test.K8sClient.Delete(test.Ctx, testPlugin)
-		Expect(err).ToNot(HaveOccurred(), "error deleting plugin")
-		actPlugin := &greenhousev1alpha1.Plugin{}
+		Expect(err).ToNot(HaveOccurred(), "error deleting pluginDefinition")
+		actPlugin := &greenhousev1alpha1.PluginDefinition{}
 		Eventually(func() bool {
 			return apierrors.IsNotFound(test.K8sClient.Get(test.Ctx, pluginID, actPlugin))
 		}).Should(BeTrue())
@@ -207,29 +207,29 @@ var _ = Describe("HelmControllerTest", Serial, func() {
 		helm.ChartLoader = tempChartLoader
 	})
 
-	When("a plugin and its chart were updated", func() {
-		It("should reconcile the PluginConfig to a newer Plugin version", func() {
+	When("a pluginDefinition and its chart were updated", func() {
+		It("should reconcile the Plugin to a newer PluginDefinition version", func() {
 
 			testPlugin.Spec.HelmChart.Name = HelmChartUpdated
 			testPlugin.Spec.Version = PluginVersionUpdated
 			Expect(test.K8sClient.Update(test.Ctx, testPlugin)).Should(Succeed())
 
-			actPlugin := &greenhousev1alpha1.Plugin{}
+			actPlugin := &greenhousev1alpha1.PluginDefinition{}
 			Eventually(func() bool {
 				err := test.K8sClient.Get(test.Ctx, pluginID, actPlugin)
 				if err != nil {
-					Expect(err).ToNot(HaveOccurred(), "error getting plugin")
+					Expect(err).ToNot(HaveOccurred(), "error getting pluginDefinition")
 					return false
 				}
 				return actPlugin.Spec.Version == PluginVersionUpdated
 			}).Should(BeTrue())
 
-			By("verifying the PluginConfig was reconciled")
-			actPluginConfig := &greenhousev1alpha1.PluginConfig{}
+			By("verifying the Plugin was reconciled")
+			actPluginConfig := &greenhousev1alpha1.Plugin{}
 			Eventually(func(g Gomega) bool {
 				err := test.K8sClient.Get(test.Ctx, pluginConfigID, actPluginConfig)
 				if err != nil {
-					Expect(err).ToNot(HaveOccurred(), "error getting pluginConfig")
+					Expect(err).ToNot(HaveOccurred(), "error getting plugin")
 					return false
 				}
 				g.Expect(actPluginConfig.Status.Version).To(Equal(PluginVersionUpdated))
@@ -256,27 +256,27 @@ var _ = Describe("HelmControllerTest", Serial, func() {
 		})
 	})
 
-	When("the plugin version was increased", func() {
-		It("should reconcile the PluginConfig", func() {
-			By("increasing the plugin version")
+	When("the pluginDefinition version was increased", func() {
+		It("should reconcile the Plugin", func() {
+			By("increasing the pluginDefinition version")
 			testPlugin.Spec.Version = PluginVersionUpdated
 			Expect(test.K8sClient.Update(test.Ctx, testPlugin)).Should(Succeed())
-			actPlugin := &greenhousev1alpha1.Plugin{}
+			actPlugin := &greenhousev1alpha1.PluginDefinition{}
 			Eventually(func() bool {
 				err := test.K8sClient.Get(test.Ctx, pluginID, actPlugin)
 				if err != nil {
-					Expect(err).ToNot(HaveOccurred(), "error getting plugin")
+					Expect(err).ToNot(HaveOccurred(), "error getting pluginDefinition")
 					return false
 				}
 				return actPlugin.Spec.Version == PluginVersionUpdated
 			}).Should(BeTrue())
 
-			By("verifying the PluginConfig was reconciled")
-			actPluginConfig := &greenhousev1alpha1.PluginConfig{}
+			By("verifying the Plugin was reconciled")
+			actPluginConfig := &greenhousev1alpha1.Plugin{}
 			Eventually(func(g Gomega) bool {
 				err := test.K8sClient.Get(test.Ctx, pluginConfigID, actPluginConfig)
 				if err != nil {
-					Expect(err).ToNot(HaveOccurred(), "error getting pluginConfig")
+					Expect(err).ToNot(HaveOccurred(), "error getting plugin")
 					return false
 				}
 				g.Expect(actPluginConfig.Status.Version).To(Equal(PluginVersionUpdated))
@@ -288,8 +288,8 @@ var _ = Describe("HelmControllerTest", Serial, func() {
 		})
 	})
 
-	When("the plugin version was increased but the chart was changed without increasing the version", func() {
-		It("should verify the PluginConfig was reconciled", func() {
+	When("the pluginDefinition version was increased but the chart was changed without increasing the version", func() {
+		It("should verify the Plugin was reconciled", func() {
 			By("injecting different helm values for the same chart version")
 			helm.ChartLoader = helm.ChartLoaderFunc(func(name string) (*chart.Chart, error) {
 				values := map[string]interface{}{
@@ -302,25 +302,25 @@ var _ = Describe("HelmControllerTest", Serial, func() {
 				chart.Values = values
 				return chart, nil
 			})
-			By("increasing the plugin version")
+			By("increasing the pluginDefinition version")
 			testPlugin.Spec.Version = PluginVersionUpdated
 			Expect(test.K8sClient.Update(test.Ctx, testPlugin)).Should(Succeed())
-			actPlugin := &greenhousev1alpha1.Plugin{}
+			actPlugin := &greenhousev1alpha1.PluginDefinition{}
 			Eventually(func() bool {
 				err := test.K8sClient.Get(test.Ctx, pluginID, actPlugin)
 				if err != nil {
-					Expect(err).ToNot(HaveOccurred(), "error getting plugin")
+					Expect(err).ToNot(HaveOccurred(), "error getting pluginDefinition")
 					return false
 				}
 				return actPlugin.Spec.Version == PluginVersionUpdated
 			}).Should(BeTrue())
 
-			By("verifying the PluginConfig was reconciled")
-			actPluginConfig := &greenhousev1alpha1.PluginConfig{}
+			By("verifying the Plugin was reconciled")
+			actPluginConfig := &greenhousev1alpha1.Plugin{}
 			Eventually(func(g Gomega) bool {
 				err := test.K8sClient.Get(test.Ctx, pluginConfigID, actPluginConfig)
 				if err != nil {
-					Expect(err).ToNot(HaveOccurred(), "error getting pluginConfig")
+					Expect(err).ToNot(HaveOccurred(), "error getting plugin")
 					return false
 				}
 				g.Expect(actPluginConfig.Status.Version).To(Equal(PluginVersionUpdated))
@@ -343,8 +343,8 @@ var _ = Describe("HelmControllerTest", Serial, func() {
 		})
 	})
 
-	When("the plugin has a chart depending on an older version of kubernetes", func() {
-		It("should not reconcile the PluginConfig", func() {
+	When("the pluginDefinition has a chart depending on an older version of kubernetes", func() {
+		It("should not reconcile the Plugin", func() {
 
 			By("injecting an old kubernetes version for the chart")
 			helm.ChartLoader = helm.ChartLoaderFunc(func(name string) (*chart.Chart, error) {
@@ -356,25 +356,25 @@ var _ = Describe("HelmControllerTest", Serial, func() {
 				return chart, nil
 			})
 
-			By("increasing the plugin version")
+			By("increasing the pluginDefinition version")
 			testPlugin.Spec.Version = PluginVersionUpdated
 			Expect(test.K8sClient.Update(test.Ctx, testPlugin)).Should(Succeed())
-			actPlugin := &greenhousev1alpha1.Plugin{}
+			actPlugin := &greenhousev1alpha1.PluginDefinition{}
 			Eventually(func() bool {
 				err := test.K8sClient.Get(test.Ctx, pluginID, actPlugin)
 				if err != nil {
-					Expect(err).ToNot(HaveOccurred(), "error getting plugin")
+					Expect(err).ToNot(HaveOccurred(), "error getting pluginDefinition")
 					return false
 				}
 				return actPlugin.Spec.Version == PluginVersionUpdated
 			}).Should(BeTrue())
 
-			By("verifying the PluginConfig was not reconciled")
-			actPluginConfig := &greenhousev1alpha1.PluginConfig{}
+			By("verifying the Plugin was not reconciled")
+			actPluginConfig := &greenhousev1alpha1.Plugin{}
 			Eventually(func(g Gomega) bool {
 				err := test.K8sClient.Get(test.Ctx, pluginConfigID, actPluginConfig)
 				if err != nil {
-					Expect(err).ToNot(HaveOccurred(), "error getting pluginConfig")
+					Expect(err).ToNot(HaveOccurred(), "error getting plugin")
 					return false
 				}
 				helmReconcileFailedCondition := actPluginConfig.Status.GetConditionByType(greenhousev1alpha1.HelmReconcileFailedCondition)
@@ -386,10 +386,10 @@ var _ = Describe("HelmControllerTest", Serial, func() {
 			}).Should(BeTrue())
 		})
 	})
-	When("the pluginconfig was deleted", func() {
+	When("the plugin was deleted", func() {
 		It("should delete the helm release", func() {
-			By("deleting the pluginconfig")
-			Expect(test.K8sClient.Delete(test.Ctx, testPluginConfig)).Should(Succeed(), "errored deleting pluginConfig")
+			By("deleting the plugin")
+			Expect(test.K8sClient.Delete(test.Ctx, testPluginConfig)).Should(Succeed(), "errored deleting plugin")
 			Eventually(func() bool {
 				err := test.K8sClient.Get(test.Ctx, pluginConfigID, testPluginConfig)
 				return err != nil
@@ -404,14 +404,14 @@ var _ = Describe("HelmControllerTest", Serial, func() {
 		})
 	})
 
-	It("should correctly get a default value from the plugin spec", func() {
-		actPlugin := &greenhousev1alpha1.Plugin{}
+	It("should correctly get a default value from the pluginDefinition spec", func() {
+		actPlugin := &greenhousev1alpha1.PluginDefinition{}
 		Eventually(func() error {
 			return test.K8sClient.Get(test.Ctx, pluginID, actPlugin)
 		}).Should(Succeed())
 		Expect(actPlugin.Spec.Options).To(ContainElement(gstruct.MatchFields(gstruct.IgnoreExtras, gstruct.Fields{"Name": Equal(PluginOptionDefault), "Default": Equal(asAPIextensionJSON(PluginOptionDefaultValue))})))
 
-		actPluginConfig := &greenhousev1alpha1.PluginConfig{}
+		actPluginConfig := &greenhousev1alpha1.Plugin{}
 		Eventually(func() error {
 			return test.K8sClient.Get(test.Ctx, pluginConfigID, actPluginConfig)
 		}).Should(Succeed())
@@ -419,11 +419,11 @@ var _ = Describe("HelmControllerTest", Serial, func() {
 		Expect(actPluginConfig.Spec.OptionValues).To(ContainElement(gstruct.MatchFields(gstruct.IgnoreExtras, gstruct.Fields{"Name": Equal(PluginOptionDefault), "Value": Equal(asAPIextensionJSON(PluginOptionDefaultValue))})))
 	})
 
-	It("should successfully create a PluginConfig with every type of OptionValue", func() {
+	It("should successfully create a Plugin with every type of OptionValue", func() {
 		const pluginWithEveryOption = "mytestpluginwitheveryoption"
 		var (
-			complexPlugin         *greenhousev1alpha1.Plugin
-			complexPluginConfig   *greenhousev1alpha1.PluginConfig
+			complexPlugin         *greenhousev1alpha1.PluginDefinition
+			complexPluginConfig   *greenhousev1alpha1.Plugin
 			pluginConfigName      = "mypluginconfigwitheveryoption"
 			complexPluginConfigID = types.NamespacedName{Name: pluginConfigName, Namespace: Namespace}
 
@@ -434,17 +434,17 @@ var _ = Describe("HelmControllerTest", Serial, func() {
 			mapVal    = map[string]any{"myMapKey1": "myMapValue1", "myMapKey2": "myMapValue2"}
 		)
 
-		By("creating a plugin with every type of option", func() {
-			complexPlugin = &greenhousev1alpha1.Plugin{
+		By("creating a pluginDefinition with every type of option", func() {
+			complexPlugin = &greenhousev1alpha1.PluginDefinition{
 				TypeMeta: metav1.TypeMeta{
-					Kind:       "Plugin",
+					Kind:       "PluginDefinition",
 					APIVersion: greenhousev1alpha1.GroupVersion.String(),
 				},
 				ObjectMeta: metav1.ObjectMeta{
 					Name: pluginWithEveryOption,
 				},
-				Spec: greenhousev1alpha1.PluginSpec{
-					Description: "Test Plugin with all possible Option types",
+				Spec: greenhousev1alpha1.PluginDefinitionSpec{
+					Description: "Test PluginDefinition with all possible Option types",
 					Version:     PluginVersion,
 					HelmChart: &greenhousev1alpha1.HelmChartReference{
 						Name:       HelmChartWithAllOptions,
@@ -493,7 +493,7 @@ var _ = Describe("HelmControllerTest", Serial, func() {
 
 			Expect(test.K8sClient.Create(test.Ctx, complexPlugin)).Should(Succeed())
 			complexPluginID := types.NamespacedName{Name: complexPlugin.Name, Namespace: ""}
-			actComplexPlugin := &greenhousev1alpha1.Plugin{}
+			actComplexPlugin := &greenhousev1alpha1.PluginDefinition{}
 			Eventually(func() bool {
 				err := test.K8sClient.Get(test.Ctx, complexPluginID, actComplexPlugin)
 				if err != nil {
@@ -503,18 +503,18 @@ var _ = Describe("HelmControllerTest", Serial, func() {
 			}).Should(BeTrue())
 		})
 
-		By("creating a PluginConfig with every type of OptionValue", func() {
-			complexPluginConfig = &greenhousev1alpha1.PluginConfig{
+		By("creating a Plugin with every type of OptionValue", func() {
+			complexPluginConfig = &greenhousev1alpha1.Plugin{
 				TypeMeta: metav1.TypeMeta{
-					Kind:       "PluginConfig",
+					Kind:       "Plugin",
 					APIVersion: greenhousev1alpha1.GroupVersion.String(),
 				},
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      pluginConfigName,
 					Namespace: Namespace,
 				},
-				Spec: greenhousev1alpha1.PluginConfigSpec{
-					Plugin: pluginWithEveryOption,
+				Spec: greenhousev1alpha1.PluginSpec{
+					PluginDefinition: pluginWithEveryOption,
 					OptionValues: []greenhousev1alpha1.PluginOptionValue{
 						{
 							Name:  PluginOptionDefault,
@@ -541,7 +541,7 @@ var _ = Describe("HelmControllerTest", Serial, func() {
 			}
 
 			Expect(test.K8sClient.Create(test.Ctx, complexPluginConfig)).Should(Succeed())
-			actComplexPluginConfig := &greenhousev1alpha1.PluginConfig{}
+			actComplexPluginConfig := &greenhousev1alpha1.Plugin{}
 			Eventually(func() bool {
 				err := test.K8sClient.Get(test.Ctx, complexPluginConfigID, actComplexPluginConfig)
 				if err != nil {
@@ -551,12 +551,12 @@ var _ = Describe("HelmControllerTest", Serial, func() {
 			}).Should(BeTrue())
 		})
 
-		By("successfully reconciling the PluginConfig", func() {
-			actPluginConfig := &greenhousev1alpha1.PluginConfig{}
+		By("successfully reconciling the Plugin", func() {
+			actPluginConfig := &greenhousev1alpha1.Plugin{}
 			Eventually(func(g Gomega) bool {
 				err := test.K8sClient.Get(test.Ctx, complexPluginConfigID, actPluginConfig)
 				if err != nil {
-					Expect(err).ToNot(HaveOccurred(), "error getting pluginConfig")
+					Expect(err).ToNot(HaveOccurred(), "error getting plugin")
 					return false
 				}
 				g.Expect(actPluginConfig.Status.GetConditionByType(greenhousev1alpha1.ReadyCondition)).ToNot(BeNil())
@@ -577,10 +577,10 @@ var _ = Describe("HelmControllerTest", Serial, func() {
 		})
 	})
 
-	DescribeTable("creating of PluginConfigs with wrong OptionValues", func(option string, value any) {
-		pluginConfig := &greenhousev1alpha1.PluginConfig{
-			Spec: greenhousev1alpha1.PluginConfigSpec{
-				Plugin: "testPlugin",
+	DescribeTable("creating of Plugins with wrong OptionValues", func(option string, value any) {
+		plugin := &greenhousev1alpha1.Plugin{
+			Spec: greenhousev1alpha1.PluginSpec{
+				PluginDefinition: "testPlugin",
 				OptionValues: []greenhousev1alpha1.PluginOptionValue{
 					{
 						Name:  option,
@@ -589,7 +589,7 @@ var _ = Describe("HelmControllerTest", Serial, func() {
 				},
 			},
 		}
-		Expect(test.K8sClient.Create(test.Ctx, pluginConfig)).Should(Not(Succeed()), "creating a pluginConfig with wrong types should not be successful")
+		Expect(test.K8sClient.Create(test.Ctx, plugin)).Should(Not(Succeed()), "creating a plugin with wrong types should not be successful")
 	},
 		Entry("string with wrong type", PluginOptionRequired, 1),
 		Entry("bool with wrong type", PluginOptionBool, "true"),
@@ -600,21 +600,21 @@ var _ = Describe("HelmControllerTest", Serial, func() {
 
 	// TODO: Revisit after https://github.com/cloudoperators/greenhouse/issues/489 is resolved
 
-	// It("should correctly set PluginFoundCondition if corresponding plugin was not found", func() {
-	// 	By("deleting the plugin")
+	// It("should correctly set PluginFoundCondition if corresponding pluginDefinition was not found", func() {
+	// 	By("deleting the pluginDefinition")
 	// 	Expect(test.K8sClient.Delete(test.Ctx, testPlugin)).Should(Succeed())
-	// 	actPlugin := &greenhousev1alpha1.Plugin{}
+	// 	actPlugin := &greenhousev1alpha1.PluginDefinition{}
 	// 	Eventually(func() bool {
 	// 		err := test.K8sClient.Get(test.Ctx, pluginID, actPlugin)
 	// 		return apierrors.IsNotFound(err)
 	// 	}).Should(BeTrue())
 
-	// 	By("verifying the PluginConfig was not reconciled")
-	// 	actPluginConfig := &greenhousev1alpha1.PluginConfig{}
+	// 	By("verifying the Plugin was not reconciled")
+	// 	actPluginConfig := &greenhousev1alpha1.Plugin{}
 	// 	Eventually(func(g Gomega) bool {
 	// 		err := test.K8sClient.Get(test.Ctx, pluginConfigID, actPluginConfig)
 	// 		if err != nil {
-	// 			Expect(err).ToNot(HaveOccurred(), "error getting pluginConfig")
+	// 			Expect(err).ToNot(HaveOccurred(), "error getting plugin")
 	// 			return false
 	// 		}
 	// 		g.Expect(actPluginConfig.Status.State).To(Equal(greenhousev1alpha1.PluginConfigStatusError))
@@ -625,19 +625,19 @@ var _ = Describe("HelmControllerTest", Serial, func() {
 
 })
 
-var _ = When("the plugin is UI only", func() {
-	var uiPlugin *greenhousev1alpha1.Plugin
-	var uiPluginConfig *greenhousev1alpha1.PluginConfig
+var _ = When("the pluginDefinition is UI only", func() {
+	var uiPlugin *greenhousev1alpha1.PluginDefinition
+	var uiPluginConfig *greenhousev1alpha1.Plugin
 	BeforeEach(func() {
-		uiPlugin = &greenhousev1alpha1.Plugin{
+		uiPlugin = &greenhousev1alpha1.PluginDefinition{
 			TypeMeta: metav1.TypeMeta{
-				Kind:       "Plugin",
+				Kind:       "PluginDefinition",
 				APIVersion: greenhousev1alpha1.GroupVersion.String(),
 			},
 			ObjectMeta: metav1.ObjectMeta{
 				Name: "myuiplugin",
 			},
-			Spec: greenhousev1alpha1.PluginSpec{
+			Spec: greenhousev1alpha1.PluginDefinitionSpec{
 				Description: "Testplugin with UI only",
 				Version:     "1.0.0",
 				UIApplication: &greenhousev1alpha1.UIApplicationReference{
@@ -647,17 +647,17 @@ var _ = When("the plugin is UI only", func() {
 				},
 			},
 		}
-		uiPluginConfig = &greenhousev1alpha1.PluginConfig{
+		uiPluginConfig = &greenhousev1alpha1.Plugin{
 			TypeMeta: metav1.TypeMeta{
-				Kind:       "PluginConfig",
+				Kind:       "Plugin",
 				APIVersion: greenhousev1alpha1.GroupVersion.String(),
 			},
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "uipluginconfig",
 				Namespace: "default",
 			},
-			Spec: greenhousev1alpha1.PluginConfigSpec{
-				Plugin: "myuiplugin",
+			Spec: greenhousev1alpha1.PluginSpec{
+				PluginDefinition: "myuiplugin",
 			},
 		}
 
@@ -680,7 +680,7 @@ var _ = When("the plugin is UI only", func() {
 			g.Expect(uiPluginConfig.Status.GetConditionByType(greenhousev1alpha1.ReadyCondition)).ToNot(BeNil())
 			g.Expect(uiPluginConfig.Status.GetConditionByType(greenhousev1alpha1.ReadyCondition).Status).To(Equal(metav1.ConditionTrue))
 			g.Expect(uiPluginConfig.Status.GetConditionByType(greenhousev1alpha1.HelmReconcileFailedCondition).Status).To(Equal(metav1.ConditionFalse))
-			g.Expect(uiPluginConfig.Status.GetConditionByType(greenhousev1alpha1.HelmReconcileFailedCondition).Message).To(Equal("Plugin is not backed by HelmChart"))
+			g.Expect(uiPluginConfig.Status.GetConditionByType(greenhousev1alpha1.HelmReconcileFailedCondition).Message).To(Equal("PluginDefinition is not backed by HelmChart"))
 			return true
 		}).Should(BeTrue())
 	})

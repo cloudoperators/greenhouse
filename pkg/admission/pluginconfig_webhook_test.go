@@ -18,12 +18,12 @@ import (
 	"github.com/cloudoperators/greenhouse/pkg/test"
 )
 
-var _ = Describe("Validate PluginConfig OptionValues", func() {
+var _ = Describe("Validate Plugin OptionValues", func() {
 	DescribeTable("Validate PluginConfigType contains either Value or ValueFrom", func(value *apiextensionsv1.JSON, valueFrom *greenhousev1alpha1.ValueFromSource, expErr bool) {
-		pluginConfig := &greenhousev1alpha1.PluginConfig{
-			Spec: greenhousev1alpha1.PluginConfigSpec{
-				Plugin:      "test",
-				ClusterName: "test-cluster",
+		plugin := &greenhousev1alpha1.Plugin{
+			Spec: greenhousev1alpha1.PluginSpec{
+				PluginDefinition: "test",
+				ClusterName:      "test-cluster",
 				OptionValues: []greenhousev1alpha1.PluginOptionValue{
 					{
 						Name:      "test",
@@ -45,12 +45,12 @@ var _ = Describe("Validate PluginConfig OptionValues", func() {
 			optionType = greenhousev1alpha1.PluginOptionTypeSecret
 		}
 
-		plugin := &greenhousev1alpha1.Plugin{
+		pluginDefinition := &greenhousev1alpha1.PluginDefinition{
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: "greenhouse",
 				Name:      "testPlugin",
 			},
-			Spec: greenhousev1alpha1.PluginSpec{
+			Spec: greenhousev1alpha1.PluginDefinitionSpec{
 				Options: []greenhousev1alpha1.PluginOption{
 					{
 						Name:    "test",
@@ -61,7 +61,7 @@ var _ = Describe("Validate PluginConfig OptionValues", func() {
 			},
 		}
 
-		err := validatePluginConfigOptionValues(pluginConfig, plugin)
+		err := validatePluginConfigOptionValues(plugin, pluginDefinition)
 		switch expErr {
 		case true:
 			Expect(err).To(HaveOccurred(), "expected an error, got nil")
@@ -76,13 +76,12 @@ var _ = Describe("Validate PluginConfig OptionValues", func() {
 	)
 
 	DescribeTable("Validate PluginOptionValue is consistent with PluginOption Type", func(defaultValue any, defaultType greenhousev1alpha1.PluginOptionType, actValue any, expErr bool) {
-
-		plugin := &greenhousev1alpha1.Plugin{
+		pluginDefinition := &greenhousev1alpha1.PluginDefinition{
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: "greenhouse",
 				Name:      "testPlugin",
 			},
-			Spec: greenhousev1alpha1.PluginSpec{
+			Spec: greenhousev1alpha1.PluginDefinitionSpec{
 				Options: []greenhousev1alpha1.PluginOption{
 					{
 						Name:    "test",
@@ -93,13 +92,13 @@ var _ = Describe("Validate PluginConfig OptionValues", func() {
 			},
 		}
 
-		pluginConfig := &greenhousev1alpha1.PluginConfig{
+		plugin := &greenhousev1alpha1.Plugin{
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: "greenhouse",
 			},
-			Spec: greenhousev1alpha1.PluginConfigSpec{
-				Plugin:      "test",
-				ClusterName: "test-cluster",
+			Spec: greenhousev1alpha1.PluginSpec{
+				PluginDefinition: "test",
+				ClusterName:      "test-cluster",
 				OptionValues: []greenhousev1alpha1.PluginOptionValue{
 					{
 						Name:  "test",
@@ -109,7 +108,7 @@ var _ = Describe("Validate PluginConfig OptionValues", func() {
 			},
 		}
 
-		err := validatePluginConfigOptionValues(pluginConfig, plugin)
+		err := validatePluginConfigOptionValues(plugin, pluginDefinition)
 		switch expErr {
 		case true:
 			Expect(err).To(HaveOccurred(), "expected an error, got nil")
@@ -134,12 +133,12 @@ var _ = Describe("Validate PluginConfig OptionValues", func() {
 	)
 
 	DescribeTable("Validate PluginOptionValue references a Secret", func(actValue *greenhousev1alpha1.ValueFromSource, expErr bool) {
-		plugin := &greenhousev1alpha1.Plugin{
+		pluginDefinition := &greenhousev1alpha1.PluginDefinition{
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: "greenhouse",
 				Name:      "testPlugin",
 			},
-			Spec: greenhousev1alpha1.PluginSpec{
+			Spec: greenhousev1alpha1.PluginDefinitionSpec{
 				Options: []greenhousev1alpha1.PluginOption{
 					{
 						Name: "test",
@@ -149,12 +148,12 @@ var _ = Describe("Validate PluginConfig OptionValues", func() {
 			},
 		}
 
-		pluginConfig := &greenhousev1alpha1.PluginConfig{
+		plugin := &greenhousev1alpha1.Plugin{
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: "greenhouse",
 			},
-			Spec: greenhousev1alpha1.PluginConfigSpec{
-				Plugin: "test",
+			Spec: greenhousev1alpha1.PluginSpec{
+				PluginDefinition: "test",
 				OptionValues: []greenhousev1alpha1.PluginOptionValue{
 					{
 						Name:      "test",
@@ -164,7 +163,7 @@ var _ = Describe("Validate PluginConfig OptionValues", func() {
 			},
 		}
 
-		err := validatePluginConfigOptionValues(pluginConfig, plugin)
+		err := validatePluginConfigOptionValues(plugin, pluginDefinition)
 		switch expErr {
 		case true:
 			Expect(err).To(HaveOccurred(), "expected an error, got nil")
@@ -178,13 +177,13 @@ var _ = Describe("Validate PluginConfig OptionValues", func() {
 		Entry("PluginOption ValueFrom does not contain a SecretReference", nil, true),
 	)
 
-	Describe("Validate PluginConfig specifies all required options", func() {
-		plugin := &greenhousev1alpha1.Plugin{
+	Describe("Validate Plugin specifies all required options", func() {
+		pluginDefinition := &greenhousev1alpha1.PluginDefinition{
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: "greenhouse",
 				Name:      "testPlugin",
 			},
-			Spec: greenhousev1alpha1.PluginSpec{
+			Spec: greenhousev1alpha1.PluginDefinitionSpec{
 				Options: []greenhousev1alpha1.PluginOption{
 					{
 						Name:     "test",
@@ -194,37 +193,37 @@ var _ = Describe("Validate PluginConfig OptionValues", func() {
 				},
 			},
 		}
-		It("should reject a PluginConfig with missing required options", func() {
-			pluginConfig := &greenhousev1alpha1.PluginConfig{
+		It("should reject a Plugin with missing required options", func() {
+			plugin := &greenhousev1alpha1.Plugin{
 				TypeMeta: metav1.TypeMeta{
-					Kind:       "PluginConfig",
+					Kind:       "Plugin",
 					APIVersion: greenhousev1alpha1.GroupVersion.String(),
 				},
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      "test-plugin-config",
+					Name:      "test-plugin",
 					Namespace: test.TestNamespace,
 				},
-				Spec: greenhousev1alpha1.PluginConfigSpec{
-					Plugin:      "test",
-					ClusterName: "test-cluster",
+				Spec: greenhousev1alpha1.PluginSpec{
+					PluginDefinition: "test",
+					ClusterName:      "test-cluster",
 				},
 			}
-			err := validatePluginConfigOptionValues(pluginConfig, plugin)
+			err := validatePluginConfigOptionValues(plugin, pluginDefinition)
 			Expect(err).To(HaveOccurred(), "expected an error, got nil")
 		})
-		It("should accept a PluginConfig with supplied required options", func() {
-			pluginConfig := &greenhousev1alpha1.PluginConfig{
+		It("should accept a Plugin with supplied required options", func() {
+			plugin := &greenhousev1alpha1.Plugin{
 				TypeMeta: metav1.TypeMeta{
-					Kind:       "PluginConfig",
+					Kind:       "Plugin",
 					APIVersion: greenhousev1alpha1.GroupVersion.String(),
 				},
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      "test-plugin-config",
+					Name:      "test-plugin",
 					Namespace: test.TestNamespace,
 				},
-				Spec: greenhousev1alpha1.PluginConfigSpec{
-					Plugin:      "test",
-					ClusterName: "test-cluster",
+				Spec: greenhousev1alpha1.PluginSpec{
+					PluginDefinition: "test",
+					ClusterName:      "test-cluster",
 					OptionValues: []greenhousev1alpha1.PluginOptionValue{
 						{
 							Name:  "test",
@@ -233,27 +232,13 @@ var _ = Describe("Validate PluginConfig OptionValues", func() {
 					},
 				},
 			}
-			err := validatePluginConfigOptionValues(pluginConfig, plugin)
+			err := validatePluginConfigOptionValues(plugin, pluginDefinition)
 			Expect(err).ToNot(HaveOccurred(), "unexpected error")
 		})
 	})
 })
 
-var testPluginConfig = &greenhousev1alpha1.PluginConfig{
-	TypeMeta: metav1.TypeMeta{
-		Kind:       "PluginConfig",
-		APIVersion: greenhousev1alpha1.GroupVersion.String(),
-	},
-	ObjectMeta: metav1.ObjectMeta{
-		Name:      "test-plugin-config",
-		Namespace: test.TestNamespace,
-	},
-	Spec: greenhousev1alpha1.PluginConfigSpec{
-		Plugin: "test-plugin",
-	},
-}
-
-var testPlugin = &greenhousev1alpha1.Plugin{
+var testPluginConfig = &greenhousev1alpha1.Plugin{
 	TypeMeta: metav1.TypeMeta{
 		Kind:       "Plugin",
 		APIVersion: greenhousev1alpha1.GroupVersion.String(),
@@ -263,7 +248,21 @@ var testPlugin = &greenhousev1alpha1.Plugin{
 		Namespace: test.TestNamespace,
 	},
 	Spec: greenhousev1alpha1.PluginSpec{
-		Description: "Testplugin",
+		PluginDefinition: "test-plugindefinition",
+	},
+}
+
+var testPlugin = &greenhousev1alpha1.PluginDefinition{
+	TypeMeta: metav1.TypeMeta{
+		Kind:       "PluginDefinition",
+		APIVersion: greenhousev1alpha1.GroupVersion.String(),
+	},
+	ObjectMeta: metav1.ObjectMeta{
+		Name:      "test-plugindefinition",
+		Namespace: test.TestNamespace,
+	},
+	Spec: greenhousev1alpha1.PluginDefinitionSpec{
+		Description: "TestPluginDefinition",
 		Version:     "1.0.0",
 		HelmChart: &greenhousev1alpha1.HelmChartReference{
 			Name:       "./../../test/fixtures/myChart",
@@ -276,16 +275,16 @@ var testPlugin = &greenhousev1alpha1.Plugin{
 var _ = Describe("Validate pluginConfig clusterName", Ordered, func() {
 	BeforeAll(func() {
 		err := test.K8sClient.Create(test.Ctx, testPlugin)
-		Expect(err).ToNot(HaveOccurred(), "there should be no error creating the plugin")
+		Expect(err).ToNot(HaveOccurred(), "there should be no error creating the pluginDefinition")
 
 	})
 
 	AfterAll(func() {
 		err := test.K8sClient.Delete(test.Ctx, testPlugin)
-		Expect(err).ToNot(HaveOccurred(), "there should be no error deleting the plugin")
+		Expect(err).ToNot(HaveOccurred(), "there should be no error deleting the pluginDefinition")
 	})
 
-	It("should accept a pluginConfig without a clusterName", func() {
+	It("should accept a plugin without a clusterName", func() {
 		err := test.K8sClient.Create(test.Ctx, testPluginConfig)
 		expectClusterMustBeSetError(err)
 	})
@@ -305,23 +304,23 @@ var _ = Describe("Validate pluginConfig clusterName", Ordered, func() {
 		err := test.K8sClient.Create(test.Ctx, testPluginConfig)
 		Expect(err).ToNot(HaveOccurred(), "there should be no error creating the pluginConfig")
 
-		By("checking the label on the pluginConfig")
-		actPluginConfig := &greenhousev1alpha1.PluginConfig{}
+		By("checking the label on the plugin")
+		actPluginConfig := &greenhousev1alpha1.Plugin{}
 		err = test.K8sClient.Get(test.Ctx, types.NamespacedName{Name: testPluginConfig.Name, Namespace: testPluginConfig.Namespace}, actPluginConfig)
-		Expect(err).ToNot(HaveOccurred(), "there should be no error getting the pluginConfig")
+		Expect(err).ToNot(HaveOccurred(), "there should be no error getting the plugin")
 		Eventually(func() map[string]string {
 			return actPluginConfig.GetLabels()
-		}).Should(HaveKeyWithValue(greenhouseapis.LabelKeyCluster, "test-cluster"), "the pluginConfig should have a matching cluster label")
+		}).Should(HaveKeyWithValue(greenhouseapis.LabelKeyCluster, "test-cluster"), "the plugin should have a matching cluster label")
 	})
 
-	It("should reject a pluginConfig update with a wrong cluster name reference", func() {
+	It("should reject a plugin update with a wrong cluster name reference", func() {
 		testPluginConfig.Spec.ClusterName = "wrong-cluster-name"
 		err := test.K8sClient.Update(test.Ctx, testPluginConfig)
 
 		expectClusterNotFoundError(err)
 	})
 
-	It("should not allow deletion of the clusterName reference in existing pluginConfig", func() {
+	It("should not allow deletion of the clusterName reference in existing plugin", func() {
 		testPluginConfig.Spec.ClusterName = ""
 		err := test.K8sClient.Update(test.Ctx, testPluginConfig)
 		expectClusterMustBeSetError(err)
@@ -329,7 +328,7 @@ var _ = Describe("Validate pluginConfig clusterName", Ordered, func() {
 })
 
 func expectClusterNotFoundError(err error) {
-	Expect(err).To(HaveOccurred(), "there should be an error updating the pluginConfig")
+	Expect(err).To(HaveOccurred(), "there should be an error updating the plugin")
 	var statusErr *apierrors.StatusError
 	ok := errors.As(err, &statusErr)
 	Expect(ok).To(BeTrue(), "error should be a status error")
@@ -338,7 +337,7 @@ func expectClusterNotFoundError(err error) {
 }
 
 func expectClusterMustBeSetError(err error) {
-	Expect(err).To(HaveOccurred(), "there should be an error updating the pluginConfig")
+	Expect(err).To(HaveOccurred(), "there should be an error updating the plugin")
 	var statusErr *apierrors.StatusError
 	ok := errors.As(err, &statusErr)
 	Expect(ok).To(BeTrue(), "error should be a status error")

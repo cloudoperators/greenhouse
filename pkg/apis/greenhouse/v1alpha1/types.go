@@ -36,7 +36,7 @@ type SecretKeyReference struct {
 	Key string `json:"key"`
 }
 
-// UIApplicationReference references the UI plugin to use.
+// UIApplicationReference references the UI pluginDefinition to use.
 type UIApplicationReference struct {
 	// URL specifies the url to a built javascript asset.
 	// By default, assets are loaded from the Juno asset server using the provided name and version.

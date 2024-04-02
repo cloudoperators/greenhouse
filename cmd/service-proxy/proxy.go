@@ -98,7 +98,7 @@ func (pm *ProxyManager) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.R
 
 	configs, err := pm.pluginConfigsForCluster(ctx, req.Name, req.Namespace)
 	if err != nil {
-		return ctrl.Result{}, fmt.Errorf("failed to get plugin configs for cluster %s: %w", req.Name, err)
+		return ctrl.Result{}, fmt.Errorf("failed to get plugins for cluster %s: %w", req.Name, err)
 	}
 	for _, cfg := range configs {
 		for url, svc := range cfg.Status.ExposedServices {
@@ -126,7 +126,7 @@ func (pm *ProxyManager) SetupWithManager(name string, mgr ctrl.Manager) error {
 			clientutil.PredicateFilterBySecretType(greenhouseapis.SecretTypeKubeConfig),
 		)).
 		// Watch pluginconfigs to be notified about exposed services
-		Watches(&greenhousev1alpha1.PluginConfig{}, handler.EnqueueRequestsFromMapFunc(enqueuePluginConfigForCluster)).
+		Watches(&greenhousev1alpha1.Plugin{}, handler.EnqueueRequestsFromMapFunc(enqueuePluginConfigForCluster)).
 		Complete(pm)
 }
 
@@ -211,13 +211,13 @@ func (pm *ProxyManager) errorHandler(rw http.ResponseWriter, req *http.Request, 
 	rw.WriteHeader(http.StatusBadGateway)
 }
 
-func (pm *ProxyManager) pluginConfigsForCluster(ctx context.Context, cluster, namespace string) ([]greenhousev1alpha1.PluginConfig, error) {
-	pluginConfigs := new(greenhousev1alpha1.PluginConfigList)
-	if err := pm.client.List(ctx, pluginConfigs, &client.ListOptions{Namespace: namespace}); err != nil {
-		return nil, fmt.Errorf("failed to list plugin configs: %w", err)
+func (pm *ProxyManager) pluginConfigsForCluster(ctx context.Context, cluster, namespace string) ([]greenhousev1alpha1.Plugin, error) {
+	plugins := new(greenhousev1alpha1.PluginList)
+	if err := pm.client.List(ctx, plugins, &client.ListOptions{Namespace: namespace}); err != nil {
+		return nil, fmt.Errorf("failed to list plugins: %w", err)
 	}
-	configs := make([]greenhousev1alpha1.PluginConfig, 0)
-	for _, cfg := range pluginConfigs.Items {
+	configs := make([]greenhousev1alpha1.Plugin, 0)
+	for _, cfg := range plugins.Items {
 		//ignore deleted configs
 		if cfg.DeletionTimestamp != nil {
 			continue
@@ -230,15 +230,15 @@ func (pm *ProxyManager) pluginConfigsForCluster(ctx context.Context, cluster, na
 }
 
 func enqueuePluginConfigForCluster(_ context.Context, o client.Object) []ctrl.Request {
-	pluginConfig, ok := o.(*greenhousev1alpha1.PluginConfig)
+	plugin, ok := o.(*greenhousev1alpha1.Plugin)
 	if !ok {
 		return nil
 	}
-	//ignore plugin configs not tied to a cluster
-	if pluginConfig.Spec.ClusterName == "" {
+	//ignore plugins not tied to a cluster
+	if plugin.Spec.ClusterName == "" {
 		return nil
 	}
-	return []ctrl.Request{{NamespacedName: types.NamespacedName{Namespace: pluginConfig.Namespace, Name: pluginConfig.Spec.ClusterName}}}
+	return []ctrl.Request{{NamespacedName: types.NamespacedName{Namespace: plugin.Namespace, Name: plugin.Spec.ClusterName}}}
 }
 
 // SplitHost splits a host into its name, namespace and cluster parts

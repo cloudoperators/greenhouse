@@ -11,21 +11,21 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// PluginSpec defines the desired state of Plugin
-type PluginSpec struct {
-	// Description provides additional details of the plugin.
+// PluginDefinitionSpec defines the desired state of PluginDefinitionSpec
+type PluginDefinitionSpec struct {
+	// Description provides additional details of the pluginDefinition.
 	Description string `json:"description,omitempty"`
 
-	// HelmChart specifies where the Helm Chart for this plugin can be found.
+	// HelmChart specifies where the Helm Chart for this pluginDefinition can be found.
 	HelmChart *HelmChartReference `json:"helmChart,omitempty"`
 
 	// UIApplication specifies a reference to a UI application
 	UIApplication *UIApplicationReference `json:"uiApplication,omitempty"`
 
-	// RequiredValues is a list of values required to create an instance of this Plugin.
+	// RequiredValues is a list of values required to create an instance of this PluginDefinition.
 	Options []PluginOption `json:"options,omitempty"`
 
-	// Version of this plugin
+	// Version of this pluginDefinition
 	Version string `json:"version"`
 
 	// Weight configures the order in which Plugins are shown in the Greenhouse UI.
@@ -179,8 +179,8 @@ func (p *PluginOption) DefaultValue() (any, error) {
 	}
 }
 
-// PluginStatus defines the observed state of Plugin
-type PluginStatus struct{}
+// PluginDefinitionStatus defines the observed state of PluginDefinition
+type PluginDefinitionStatus struct{}
 
 //+kubebuilder:object:root=true
 //+kubebuilder:subresource:status
@@ -189,24 +189,24 @@ type PluginStatus struct{}
 //+kubebuilder:printcolumn:name="Description",type=string,JSONPath=`.spec.description`
 // +kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp"
 
-// Plugin is the Schema for the plugins API
-type Plugin struct {
+// PluginDefinition is the Schema for the PluginDefinitions API
+type PluginDefinition struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec   PluginSpec   `json:"spec,omitempty"`
-	Status PluginStatus `json:"status,omitempty"`
+	Spec   PluginDefinitionSpec   `json:"spec,omitempty"`
+	Status PluginDefinitionStatus `json:"status,omitempty"`
 }
 
 //+kubebuilder:object:root=true
 
-// PluginList contains a list of Plugin
-type PluginList struct {
+// PluginDefinitionList contains a list of PluginDefinition
+type PluginDefinitionList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
-	Items           []Plugin `json:"items"`
+	Items           []PluginDefinition `json:"items"`
 }
 
 func init() {
-	SchemeBuilder.Register(&Plugin{}, &PluginList{})
+	SchemeBuilder.Register(&PluginDefinition{}, &PluginDefinitionList{})
 }

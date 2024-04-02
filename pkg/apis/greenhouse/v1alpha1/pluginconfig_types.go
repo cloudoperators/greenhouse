@@ -8,23 +8,23 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// PluginConfigSpec defines the desired state of PluginConfig
-type PluginConfigSpec struct {
-	// Plugin is the name of the plugin this instance is for.
-	Plugin string `json:"plugin"`
+// PluginSpec defines the desired state of Plugin
+type PluginSpec struct {
+	// PluginDefinition is the name of the PluginDefinition this instance is for.
+	PluginDefinition string `json:"plugin"`
 
-	// DisplayName is an optional name for the plugin to be displayed in the Greenhouse UI.
-	// This is especially helpful to distinguish multiple instances of a Plugin in the same context.
+	// DisplayName is an optional name for the Plugin to be displayed in the Greenhouse UI.
+	// This is especially helpful to distinguish multiple instances of a PluginDefinition in the same context.
 	// Defaults to a normalized version of metadata.name.
 	DisplayName string `json:"displayName,omitempty"`
 
-	// Disabled indicates that the plugin config is administratively disabled.
+	// Disabled indicates that the plugin is administratively disabled.
 	Disabled bool `json:"disabled"`
 
-	// Values are the values for a plugin instance.
+	// Values are the values for a PluginDefinition instance.
 	OptionValues []PluginOptionValue `json:"optionValues,omitempty"`
 
-	// ClusterName is the name of the cluster the pluginConfig is deployed to. If not set, the pluginConfig is deployed to the greenhouse cluster.
+	// ClusterName is the name of the cluster the plugin is deployed to. If not set, the plugin is deployed to the greenhouse cluster.
 	ClusterName string `json:"clusterName,omitempty"`
 }
 
@@ -48,7 +48,7 @@ func (v *PluginOptionValue) ValueJSON() (string, error) {
 
 const (
 
-	// ClusterAccessReadyCondition reflects if we can access the cluster a PluginConfig is to be deployed to.
+	// ClusterAccessReadyCondition reflects if we can access the cluster a Plugin is to be deployed to.
 	ClusterAccessReadyCondition ConditionType = "ClusterAccessReady"
 
 	// HelmReconcileFailedCondition reflects the failed reconciliation of the corresponding helm release.
@@ -57,29 +57,29 @@ const (
 	// HelmDriftDetectedCondition reflects the last time a drift between Release and Deployed Resources was detected.
 	HelmDriftDetectedCondition ConditionType = "HelmDriftDetected"
 
-	// StatusUpToDateCondition reflects the failed reconciliation of the PluginConfig.
+	// StatusUpToDateCondition reflects the failed reconciliation of the Plugin.
 	StatusUpToDateCondition ConditionType = "StatusUpToDate"
 
-	// PluginNotFoundReason is set when the plugin is not found.
-	PluginNotFoundReason ConditionReason = "PluginNotFound"
+	// PluginDefinitionNotFoundReason is set when the pluginDefinition is not found.
+	PluginDefinitionNotFoundReason ConditionReason = "PluginDefinitionNotFound"
 
 	// HelmUninstallFailedReason is set when the helm release could not be uninstalled.
 	HelmUninstallFailedReason ConditionReason = "HelmUninstallFailed"
 )
 
-// PluginConfigStatus defines the observed state of PluginConfig
-type PluginConfigStatus struct {
+// PluginStatus defines the observed state of Plugin
+type PluginStatus struct {
 	// HelmReleaseStatus reflects the status of the latest HelmChart release.
-	// This is only configured if the plugin is backed by HelmChart.
+	// This is only configured if the pluginDefinition is backed by HelmChart.
 	HelmReleaseStatus *HelmReleaseStatus `json:"helmReleaseStatus,omitempty"`
 
-	// Version contains the latest plugin version the config was last applied with successfully.
+	// Version contains the latest pluginDefinition version the config was last applied with successfully.
 	Version string `json:"version,omitempty"`
 
-	// HelmChart contains a reference the helm chart used for the deployed plugin version.
+	// HelmChart contains a reference the helm chart used for the deployed pluginDefinition version.
 	HelmChart *HelmChartReference `json:"helmChart,omitempty"`
 
-	// UIApplication contains a reference to the frontend that is used for the deployed plugin version.
+	// UIApplication contains a reference to the frontend that is used for the deployed pluginDefinition version.
 	UIApplication *UIApplicationReference `json:"uiApplication,omitempty"`
 
 	// Weight configures the order in which Plugins are shown in the Greenhouse UI.
@@ -88,15 +88,15 @@ type PluginConfigStatus struct {
 	// Description provides additional details of the plugin.
 	Description string `json:"description,omitempty"`
 
-	// ExposedServices provides an overview of the PluginConfigs services that are centrally exposed.
+	// ExposedServices provides an overview of the Plugins services that are centrally exposed.
 	// It maps the exposed URL to the service found in the manifest.
 	ExposedServices map[string]Service `json:"exposedServices,omitempty"`
 
-	// StatusConditions contain the different conditions that constitute the status of the PluginConfig.
+	// StatusConditions contain the different conditions that constitute the status of the Plugin.
 	StatusConditions `json:"statusConditions,omitempty"`
 }
 
-// Service references a Kubernetes service of a PluginConfig.
+// Service references a Kubernetes service of a Plugin.
 type Service struct {
 	// Namespace is the namespace of the service in the target cluster.
 	Namespace string `json:"namespace"`
@@ -121,31 +121,31 @@ type HelmReleaseStatus struct {
 //+kubebuilder:object:root=true
 //+kubebuilder:subresource:status
 //+kubebuilder:printcolumn:name="Display name",type=string,JSONPath=`.spec.displayName`
-//+kubebuilder:printcolumn:name="Plugin",type=string,JSONPath=`.spec.plugin`
+//+kubebuilder:printcolumn:name="PluginDefinition",type=string,JSONPath=`.spec.pluginDefinition`
 //+kubebuilder:printcolumn:name="Cluster",type=string,JSONPath=`.spec.clusterName`
 //+kubebuilder:printcolumn:name="Disabled",type=boolean,JSONPath=`.spec.disabled`
 //+kubebuilder:printcolumn:name="Ready",type="string",JSONPath=`.status.statusConditions.conditions[?(@.type == "Ready")].status`
 //+kubebuilder:printcolumn:name="Version",type=string,JSONPath=`.status.version`
 //+kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp"
 
-// PluginConfig is the Schema for the pluginconfigs API
-type PluginConfig struct {
+// Plugin is the Schema for the plugins API
+type Plugin struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec   PluginConfigSpec   `json:"spec,omitempty"`
-	Status PluginConfigStatus `json:"status,omitempty"`
+	Spec   PluginSpec   `json:"spec,omitempty"`
+	Status PluginStatus `json:"status,omitempty"`
 }
 
 //+kubebuilder:object:root=true
 
-// PluginConfigList contains a list of PluginConfig
-type PluginConfigList struct {
+// PluginList contains a list of Plugin
+type PluginList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
-	Items           []PluginConfig `json:"items"`
+	Items           []Plugin `json:"items"`
 }
 
 func init() {
-	SchemeBuilder.Register(&PluginConfig{}, &PluginConfigList{})
+	SchemeBuilder.Register(&Plugin{}, &PluginList{})
 }

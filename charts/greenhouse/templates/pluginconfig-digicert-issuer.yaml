@@ -5,12 +5,12 @@ SPDX-License-Identifier: Apache-2.0
 
 {{- if .Values.digicertIssuer.enabled }}
 apiVersion: greenhouse.sap/v1alpha1
-kind: PluginConfig
+kind: Plugin
 metadata:
   name: digicert-issuer
   namespace: {{ .Chart.Name }}
 spec:
-  plugin: digicert-issuer
+  pluginDefinition: digicert-issuer
   disabled: false
   optionValues:
     - name: provisioner.apiToken

@@ -42,7 +42,7 @@ resources:
   controller: true
   domain: sap
   group: greenhouse
-  kind: Plugin
+  kind: PluginDefinition
   path: github.com/cloudoperators/greenhouse/pkg/apis/greenhouse/v1alpha1
   version: v1alpha1
   webhooks:
@@ -55,7 +55,7 @@ resources:
   controller: true
   domain: sap
   group: greenhouse
-  kind: PluginConfig
+  kind: Plugin
   path: github.com/cloudoperators/greenhouse/pkg/apis/greenhouse/v1alpha1
   version: v1alpha1
   webhooks:

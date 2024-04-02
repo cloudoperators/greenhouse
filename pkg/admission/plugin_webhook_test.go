@@ -17,8 +17,8 @@ import (
 
 var _ = DescribeTable("Validate PluginOption Type and Value are consistent", func(expectedType greenhousev1alpha1.PluginOptionType, defaultValue any, expErr bool) {
 
-	plugin := &greenhousev1alpha1.Plugin{
-		Spec: greenhousev1alpha1.PluginSpec{
+	pluginDefinition := &greenhousev1alpha1.PluginDefinition{
+		Spec: greenhousev1alpha1.PluginDefinitionSpec{
 			Options: []greenhousev1alpha1.PluginOption{
 				{
 					Name:    "test",
@@ -28,7 +28,7 @@ var _ = DescribeTable("Validate PluginOption Type and Value are consistent", fun
 			},
 		},
 	}
-	actErr := validatePluginOptionValueAndType(plugin)
+	actErr := validatePluginOptionValueAndType(pluginDefinition)
 	switch expErr {
 	case false:
 		Expect(actErr).ToNot(HaveOccurred(), "unexpected error occurred")

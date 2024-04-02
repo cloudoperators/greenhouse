@@ -16,9 +16,9 @@ import (
 	"github.com/cloudoperators/greenhouse/pkg/controllers"
 )
 
-//+kubebuilder:rbac:groups=greenhouse.sap,resources=plugins,verbs=get;list;watch;create;update;patch;delete
-//+kubebuilder:rbac:groups=greenhouse.sap,resources=plugins/status,verbs=get;update;patch
-//+kubebuilder:rbac:groups=greenhouse.sap,resources=plugins/finalizers,verbs=update
+//+kubebuilder:rbac:groups=greenhouse.sap,resources=plugindefinitions,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups=greenhouse.sap,resources=plugindefinitions/status,verbs=get;update;patch
+//+kubebuilder:rbac:groups=greenhouse.sap,resources=plugindefinitions/finalizers,verbs=update
 //+kubebuilder:rbac:groups="",resources=events,verbs=get;list;watch;create;update;patch
 //+kubebuilder:rbac:groups="",resources=secrets,verbs=get;list;watch;create;update;patch
 
@@ -27,9 +27,9 @@ type PluginPropagationReconciler struct {
 }
 
 func (r *PluginPropagationReconciler) SetupWithManager(name string, mgr ctrl.Manager) error {
-	r.EmptyObj = &greenhousev1alpha1.Plugin{}
-	r.EmptyObjList = &greenhousev1alpha1.PluginList{}
-	r.CRDName = "plugins.greenhouse.sap"
+	r.EmptyObj = &greenhousev1alpha1.PluginDefinition{}
+	r.EmptyObjList = &greenhousev1alpha1.PluginDefinitionList{}
+	r.CRDName = "plugindefinitions.greenhouse.sap"
 	r.StripObjectWrapper = r.StripObject
 	r.HandlerFunc = r.ListObjectsAsReconcileRequests
 
@@ -39,23 +39,23 @@ func (r *PluginPropagationReconciler) SetupWithManager(name string, mgr ctrl.Man
 func (r *PluginPropagationReconciler) ListObjectsAsReconcileRequests(ctx context.Context, _ client.Object) []ctrl.Request {
 	res := []ctrl.Request{}
 
-	objList, ok := r.ListObjects(ctx).(*greenhousev1alpha1.PluginList)
+	objList, ok := r.ListObjects(ctx).(*greenhousev1alpha1.PluginDefinitionList)
 	if !ok {
 		log.FromContext(ctx).Error(fmt.Errorf("object %T is not a greenhousev1alpha1.PluginList", objList), "failed to list objects")
 		return res
 	}
 
-	for _, plugin := range objList.Items {
-		res = append(res, ctrl.Request{NamespacedName: client.ObjectKeyFromObject(plugin.DeepCopy())})
+	for _, pluginDefinition := range objList.Items {
+		res = append(res, ctrl.Request{NamespacedName: client.ObjectKeyFromObject(pluginDefinition.DeepCopy())})
 	}
 
 	return res
 }
 
 func (r *PluginPropagationReconciler) StripObject(in client.Object) (client.Object, error) {
-	obj, ok := in.(*greenhousev1alpha1.Plugin)
+	obj, ok := in.(*greenhousev1alpha1.PluginDefinition)
 	if !ok {
-		return nil, fmt.Errorf("error: %T is not a plugin", in)
+		return nil, fmt.Errorf("error: %T is not a pluginDefinition", in)
 	}
 
 	typeMeta := metav1.TypeMeta{
@@ -69,7 +69,7 @@ func (r *PluginPropagationReconciler) StripObject(in client.Object) (client.Obje
 		Annotations: in.GetAnnotations(),
 	}
 
-	return &greenhousev1alpha1.Plugin{
+	return &greenhousev1alpha1.PluginDefinition{
 		TypeMeta:   typeMeta,
 		ObjectMeta: objectMeta,
 		Spec:       obj.Spec,

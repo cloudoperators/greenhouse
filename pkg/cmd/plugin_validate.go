@@ -19,7 +19,7 @@ import (
 	"github.com/cloudoperators/greenhouse/pkg/helm"
 )
 
-var pluginValidateCmdUsage = "validate [plugin.yaml path] [pluginConfig.yaml path]"
+var pluginDefinitionValidateCmdUsage = "validate [pluginDefinition.yaml path] [plugin.yaml path]"
 
 func init() {
 	pluginCmd.AddCommand(newPluginValidateCmd())
@@ -32,8 +32,8 @@ type pluginValidateOptions struct {
 func newPluginValidateCmd() *cobra.Command {
 	o := &pluginValidateOptions{}
 	return &cobra.Command{
-		Use:   pluginValidateCmdUsage,
-		Short: "Validate a Plugin",
+		Use:   pluginDefinitionValidateCmdUsage,
+		Short: "Validate a PluginDefinition",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if err := o.validate(args); err != nil {
 				return err
@@ -48,7 +48,7 @@ func newPluginValidateCmd() *cobra.Command {
 
 func (o *pluginValidateOptions) validate(args []string) error {
 	if len(args) != 2 {
-		return errors.New(pluginValidateCmdUsage)
+		return errors.New(pluginDefinitionValidateCmdUsage)
 	}
 	return nil
 }
@@ -64,37 +64,37 @@ func (o *pluginValidateOptions) complete(args []string) error {
 }
 
 func (o *pluginValidateOptions) run() error {
-	fmt.Printf("validating plugin %s with pluginconfig %s\n", o.pathToPlugin, o.pathToPluginConfig)
-	// Load both the Plugin and PluginConfig from the provided files.
-	plugin, err := loadPlugin(o.pathToPlugin)
+	fmt.Printf("validating pluginDefinition %s with plugin %s\n", o.pathToPlugin, o.pathToPluginConfig)
+	// Load both the PluginDefinition and Plugin from the provided files.
+	pluginDefinition, err := loadPlugin(o.pathToPlugin)
 	if err != nil {
 		return err
 	}
-	pluginConfig, err := loadPluginConfig(o.pathToPluginConfig)
+	plugin, err := loadPluginConfig(o.pathToPluginConfig)
 	if err != nil {
 		return err
 	}
 
-	// Validate the PluginConfig against the Plugin.
-	if err = validateOptions(plugin, pluginConfig); err != nil {
+	// Validate the Plugin against the PluginDefinition.
+	if err = validateOptions(pluginDefinition, plugin); err != nil {
 		return err
 	}
 
 	// Start validation of Helm Chart
-	if err = validateHelmChart(plugin, pluginConfig); err != nil {
+	if err = validateHelmChart(pluginDefinition, plugin); err != nil {
 		return err
 	}
-	fmt.Printf("successfully validated plugin %s\n", plugin.GetName())
+	fmt.Printf("successfully validated pluginDefinition %s\n", pluginDefinition.GetName())
 	return nil
 }
 
 // validateOptions validates that all required options are set and that the values are valid.
-func validateOptions(plugin *greenhousev1alpha1.Plugin, pluginConfig *greenhousev1alpha1.PluginConfig) error {
+func validateOptions(pluginDefinition *greenhousev1alpha1.PluginDefinition, plugin *greenhousev1alpha1.Plugin) error {
 	// Validate that all required options are set.
 	errList := []error{}
-	for _, option := range plugin.Spec.Options {
+	for _, option := range pluginDefinition.Spec.Options {
 		var isSet = false
-		for _, optionValue := range pluginConfig.Spec.OptionValues {
+		for _, optionValue := range plugin.Spec.OptionValues {
 			if optionValue.Name == option.Name {
 				isSet = true
 				if err := option.IsValidValue(optionValue.Value); err != nil {
@@ -114,16 +114,16 @@ func validateOptions(plugin *greenhousev1alpha1.Plugin, pluginConfig *greenhouse
 		for _, err := range errList {
 			errString += err.Error() + "\n"
 		}
-		return fmt.Errorf("plugin %v and pluginConfig %v are not compatible: %v", plugin.GetName(), pluginConfig.GetName(), errString)
+		return fmt.Errorf("pluginDefinition %v and plugin %v are not compatible: %v", pluginDefinition.GetName(), plugin.GetName(), errString)
 	}
 }
 
-func validateHelmChart(plugin *greenhousev1alpha1.Plugin, pluginConfig *greenhousev1alpha1.PluginConfig) error {
-	if plugin.Spec.HelmChart == nil {
+func validateHelmChart(pluginDefinition *greenhousev1alpha1.PluginDefinition, plugin *greenhousev1alpha1.Plugin) error {
+	if pluginDefinition.Spec.HelmChart == nil {
 		return nil
 	}
 
-	restClientGetter := clientutil.NewRestClientGetterFromRestConfig(ctrl.GetConfigOrDie(), pluginConfig.Namespace)
+	restClientGetter := clientutil.NewRestClientGetterFromRestConfig(ctrl.GetConfigOrDie(), plugin.Namespace)
 
 	local, err := clientutil.NewK8sClientFromRestClientGetter(restClientGetter)
 
@@ -131,21 +131,21 @@ func validateHelmChart(plugin *greenhousev1alpha1.Plugin, pluginConfig *greenhou
 		return err
 	}
 
-	fmt.Printf("rendering helm chart %s\n", plugin.Spec.HelmChart.String())
-	_, err = helm.TemplateHelmChartFromPlugin(context.Background(), local, restClientGetter, plugin, pluginConfig)
+	fmt.Printf("rendering helm chart %s\n", pluginDefinition.Spec.HelmChart.String())
+	_, err = helm.TemplateHelmChartFromPlugin(context.Background(), local, restClientGetter, pluginDefinition, plugin)
 	return err
 }
 
-func loadPlugin(path string) (*greenhousev1alpha1.Plugin, error) {
+func loadPlugin(path string) (*greenhousev1alpha1.PluginDefinition, error) {
+	var pluginDefinition *greenhousev1alpha1.PluginDefinition
+	err := loadAndUnmarshalObject(path, &pluginDefinition)
+	return pluginDefinition, err
+}
+
+func loadPluginConfig(path string) (*greenhousev1alpha1.Plugin, error) {
 	var plugin *greenhousev1alpha1.Plugin
 	err := loadAndUnmarshalObject(path, &plugin)
 	return plugin, err
-}
-
-func loadPluginConfig(path string) (*greenhousev1alpha1.PluginConfig, error) {
-	var pluginConfig *greenhousev1alpha1.PluginConfig
-	err := loadAndUnmarshalObject(path, &pluginConfig)
-	return pluginConfig, err
 }
 
 func loadAndUnmarshalObject(path string, o interface{}) error {

@@ -14,11 +14,11 @@ paths:
       responses:
         default:
           description: Cluster
-  /PluginConfig:
+  /PluginDefinition:
     post:
       responses:
         default:
-          description: PluginConfig
+          description: PluginDefinition
   /TeamRole:
     post:
       responses:
@@ -285,8 +285,8 @@ components:
       xml:
         name: greenhouse.sap
         namespace: v1alpha1
-      title: PluginConfig
-      description: PluginConfig is the Schema for the pluginconfigs API
+      title: Plugin
+      description: Plugin is the Schema for the plugins API
       properties:
         apiVersion:
           description: 'APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
@@ -297,19 +297,19 @@ components:
         metadata:
           type: object
         spec:
-          description: PluginConfigSpec defines the desired state of PluginConfig
+          description: PluginSpec defines the desired state of Plugin
           properties:
             clusterName:
-              description: ClusterName is the name of the cluster the pluginConfig is deployed to. If not set, the pluginConfig is deployed to the greenhouse cluster.
+              description: ClusterName is the name of the cluster the plugin is deployed to. If not set, the plugin is deployed to the greenhouse cluster.
               type: string
             disabled:
-              description: Disabled indicates that the plugin config is administratively disabled.
+              description: Disabled indicates that the plugin is administratively disabled.
               type: boolean
             displayName:
-              description: DisplayName is an optional name for the plugin to be displayed in the Greenhouse UI. This is especially helpful to distinguish multiple instances of a Plugin in the same context. Defaults to a normalized version of metadata.name.
+              description: DisplayName is an optional name for the Plugin to be displayed in the Greenhouse UI. This is especially helpful to distinguish multiple instances of a PluginDefinition in the same context. Defaults to a normalized version of metadata.name.
               type: string
             optionValues:
-              description: Values are the values for a plugin instance.
+              description: Values are the values for a PluginDefinition instance.
               items:
                 description: PluginOptionValue is the value for a PluginOption.
                 properties:
@@ -340,22 +340,25 @@ components:
                   - name
                 type: object
               type: array
+            pluginDefinition:
+              description: PluginDefinition is the name of the plugin this instance is for.
+              type: string
             plugin:
-              description: Plugin is the name of the plugin this instance is for.
+              description: PluginDefinition is the name of the PluginDefinition this instance is for.
               type: string
           required:
             - disabled
             - plugin
           type: object
         status:
-          description: PluginConfigStatus defines the observed state of PluginConfig
+          description: PluginStatus defines the observed state of Plugin
           properties:
             description:
               description: Description provides additional details of the plugin.
               type: string
             exposedServices:
               additionalProperties:
-                description: Service references a Kubernetes service of a PluginConfig.
+                description: Service references a Kubernetes service of a Plugin.
                 properties:
                   name:
                     description: Name is the name of the service in the target cluster.
@@ -375,10 +378,10 @@ components:
                   - namespace
                   - port
                 type: object
-              description: ExposedServices provides an overview of the PluginConfigs services that are centrally exposed. It maps the exposed URL to the service found in the manifest.
+              description: ExposedServices provides an overview of the Plugins services that are centrally exposed. It maps the exposed URL to the service found in the manifest.
               type: object
             helmChart:
-              description: HelmChart contains a reference the helm chart used for the deployed plugin version.
+              description: HelmChart contains a reference the helm chart used for the deployed pluginDefinition version.
               properties:
                 name:
                   description: Name of the HelmChart chart.
@@ -395,7 +398,7 @@ components:
                 - version
               type: object
             helmReleaseStatus:
-              description: HelmReleaseStatus reflects the status of the latest HelmChart release. This is only configured if the plugin is backed by HelmChart.
+              description: HelmReleaseStatus reflects the status of the latest HelmChart release. This is only configured if the pluginDefinition is backed by HelmChart.
               properties:
                 firstDeployed:
                   description: FirstDeployed is the timestamp of the first deployment of the release.
@@ -412,7 +415,7 @@ components:
                 - status
               type: object
             statusConditions:
-              description: StatusConditions contain the different conditions that constitute the status of the PluginConfig.
+              description: StatusConditions contain the different conditions that constitute the status of the Plugin.
               properties:
                 conditions:
                   items:
@@ -445,7 +448,7 @@ components:
                   x-kubernetes-list-type: map
               type: object
             uiApplication:
-              description: UIApplication contains a reference to the frontend that is used for the deployed plugin version.
+              description: UIApplication contains a reference to the frontend that is used for the deployed pluginDefinition version.
               properties:
                 name:
                   description: Name of the UI application.
@@ -461,7 +464,7 @@ components:
                 - version
               type: object
             version:
-              description: Version contains the latest plugin version the config was last applied with successfully.
+              description: Version contains the latest pluginDefinition version the config was last applied with successfully.
               type: string
             weight:
               description: Weight configures the order in which Plugins are shown in the Greenhouse UI.
@@ -652,8 +655,8 @@ components:
       xml:
         name: greenhouse.sap
         namespace: v1alpha1
-      title: Plugin
-      description: Plugin is the Schema for the plugins API
+      title: PluginDefinition
+      description: PluginDefinition is the Schema for the PluginDefinitions API
       properties:
         apiVersion:
           description: 'APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
@@ -664,13 +667,13 @@ components:
         metadata:
           type: object
         spec:
-          description: PluginSpec defines the desired state of Plugin
+          description: PluginDefinitionSpec defines the desired state of PluginDefinitionSpec
           properties:
             description:
-              description: Description provides additional details of the plugin.
+              description: Description provides additional details of the pluginDefinition.
               type: string
             helmChart:
-              description: HelmChart specifies where the Helm Chart for this plugin can be found.
+              description: HelmChart specifies where the Helm Chart for this pluginDefinition can be found.
               properties:
                 name:
                   description: Name of the HelmChart chart.
@@ -687,7 +690,7 @@ components:
                 - version
               type: object
             options:
-              description: RequiredValues is a list of values required to create an instance of this Plugin.
+              description: RequiredValues is a list of values required to create an instance of this PluginDefinition.
               items:
                 properties:
                   default:
@@ -741,7 +744,7 @@ components:
                 - version
               type: object
             version:
-              description: Version of this plugin
+              description: Version of this pluginDefinition
               type: string
             weight:
               description: Weight configures the order in which Plugins are shown in the Greenhouse UI. Defaults to alphabetical sorting if not provided or on conflict.
@@ -751,6 +754,6 @@ components:
             - version
           type: object
         status:
-          description: PluginStatus defines the observed state of Plugin
+          description: PluginDefinitionStatus defines the observed state of PluginDefinition
           type: object
       type: object

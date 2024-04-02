@@ -22,33 +22,33 @@ import (
 	"github.com/cloudoperators/greenhouse/pkg/test"
 )
 
-var testPluginConfig = &greenhousev1alpha1.PluginConfig{
+var testPluginConfig = &greenhousev1alpha1.Plugin{
 	TypeMeta: metav1.TypeMeta{
-		Kind:       "PluginConfig",
+		Kind:       "Plugin",
 		APIVersion: greenhousev1alpha1.GroupVersion.String(),
 	},
 	ObjectMeta: metav1.ObjectMeta{
-		Name:      "test-plugin",
+		Name:      "test-plugindefinition",
 		Namespace: test.TestNamespace,
 	},
-	Spec: greenhousev1alpha1.PluginConfigSpec{
-		ClusterName: "test-cluster",
-		Plugin:      "test-plugin",
+	Spec: greenhousev1alpha1.PluginSpec{
+		ClusterName:      "test-cluster",
+		PluginDefinition: "test-plugindefinition",
 	},
 }
 
-var testPCwithSR = &greenhousev1alpha1.PluginConfig{
+var testPCwithSR = &greenhousev1alpha1.Plugin{
 	TypeMeta: metav1.TypeMeta{
-		Kind:       "PluginConfig",
+		Kind:       "Plugin",
 		APIVersion: greenhousev1alpha1.GroupVersion.String(),
 	},
 	ObjectMeta: metav1.ObjectMeta{
-		Name:      "test-pluginconfig-secretref",
+		Name:      "test-plugin-secretref",
 		Namespace: test.TestNamespace,
 	},
-	Spec: greenhousev1alpha1.PluginConfigSpec{
-		Plugin:      "test-plugin",
-		ClusterName: "test-cluster",
+	Spec: greenhousev1alpha1.PluginSpec{
+		PluginDefinition: "test-plugindefinition",
+		ClusterName:      "test-cluster",
 		OptionValues: []greenhousev1alpha1.PluginOptionValue{
 			{
 				Name: "secretValue",
@@ -77,16 +77,16 @@ var testSecret = corev1.Secret{
 	},
 }
 
-var testPlugin = &greenhousev1alpha1.Plugin{
+var testPlugin = &greenhousev1alpha1.PluginDefinition{
 	TypeMeta: metav1.TypeMeta{
-		Kind:       "Plugin",
+		Kind:       "PluginDefinition",
 		APIVersion: greenhousev1alpha1.GroupVersion.String(),
 	},
 	ObjectMeta: metav1.ObjectMeta{
-		Name:      "test-plugin",
+		Name:      "test-plugindefinition",
 		Namespace: corev1.NamespaceDefault,
 	},
-	Spec: greenhousev1alpha1.PluginSpec{
+	Spec: greenhousev1alpha1.PluginDefinitionSpec{
 		Description: "Testplugin",
 		Version:     "1.0.0",
 		HelmChart: &greenhousev1alpha1.HelmChartReference{
@@ -129,11 +129,11 @@ var (
 	remoteK8sClient  client.Client
 )
 
-var _ = Describe("Validate pluginConfig clusterName", Ordered, func() {
+var _ = Describe("Validate plugin clusterName", Ordered, func() {
 
 	BeforeAll(func() {
 		err := test.K8sClient.Create(test.Ctx, testPlugin)
-		Expect(err).ToNot(HaveOccurred(), "there should be no error creating the plugin")
+		Expect(err).ToNot(HaveOccurred(), "there should be no error creating the pluginDefinition")
 
 		By("bootstrapping remote cluster")
 		bootstrapRemoteCluster()
@@ -164,17 +164,17 @@ var _ = Describe("Validate pluginConfig clusterName", Ordered, func() {
 
 	})
 
-	It("should correctly handle the pluginConfig on a referenced cluster", func() {
+	It("should correctly handle the plugin on a referenced cluster", func() {
 		remoteRestClientGetter := clientutil.NewRestClientGetterFromBytes(remoteKubeConfig, testPluginConfig.Namespace, clientutil.WithPersistentConfig())
 
-		By("creating a pluginconfig referencing the cluster")
+		By("creating a plugin referencing the cluster")
 		testPluginConfig.Spec.ClusterName = "test-cluster"
-		Expect(test.K8sClient.Create(test.Ctx, testPluginConfig)).Should(Succeed(), "there should be no error updating the pluginConfig")
+		Expect(test.K8sClient.Create(test.Ctx, testPluginConfig)).Should(Succeed(), "there should be no error updating the plugin")
 
-		By("checking the ClusterAccessReadyCondition on the pluginConfig")
+		By("checking the ClusterAccessReadyCondition on the plugin")
 		Eventually(func(g Gomega) bool {
 			err := test.K8sClient.Get(test.Ctx, types.NamespacedName{Name: testPluginConfig.Name, Namespace: testPluginConfig.Namespace}, testPluginConfig)
-			g.Expect(err).ShouldNot(HaveOccurred(), "there should be no error getting the pluginConfig")
+			g.Expect(err).ShouldNot(HaveOccurred(), "there should be no error getting the plugin")
 			clusterAccessReadyCondition := testPluginConfig.Status.GetConditionByType(greenhousev1alpha1.ClusterAccessReadyCondition)
 			readyCondition := testPluginConfig.Status.GetConditionByType(greenhousev1alpha1.ReadyCondition)
 			g.Expect(clusterAccessReadyCondition).ToNot(BeNil(), "the ClusterAccessReadyCondition should not be nil")
@@ -188,14 +188,14 @@ var _ = Describe("Validate pluginConfig clusterName", Ordered, func() {
 		testCluster.Status.StatusConditions.SetConditions(greenhousev1alpha1.TrueCondition(greenhousev1alpha1.ReadyCondition, "", ""))
 		Expect(test.K8sClient.Status().Update(test.Ctx, testCluster)).Should(Succeed(), "there should be no error updating the cluster resource")
 
-		By("triggering setting a label on the pluginConfig to trigger reconciliation")
+		By("triggering setting a label on the plugin to trigger reconciliation")
 		testPluginConfig.Labels = map[string]string{"test": "label"}
-		Expect(test.K8sClient.Update(test.Ctx, testPluginConfig)).Should(Succeed(), "there should be no error updating the pluginConfig")
+		Expect(test.K8sClient.Update(test.Ctx, testPluginConfig)).Should(Succeed(), "there should be no error updating the plugin")
 
-		By("checking the ClusterAccessReadyCondition on the pluginConfig")
+		By("checking the ClusterAccessReadyCondition on the plugin")
 		Eventually(func(g Gomega) bool {
 			err := test.K8sClient.Get(test.Ctx, types.NamespacedName{Name: testPluginConfig.Name, Namespace: testPluginConfig.Namespace}, testPluginConfig)
-			g.Expect(err).ShouldNot(HaveOccurred(), "there should be no error getting the pluginConfig")
+			g.Expect(err).ShouldNot(HaveOccurred(), "there should be no error getting the plugin")
 			g.Expect(testPluginConfig.Status.GetConditionByType(greenhousev1alpha1.ClusterAccessReadyCondition).IsTrue()).Should(BeTrue(), "the ClusterAccessReadyCondition should be true")
 			g.Expect(testPluginConfig.Status.GetConditionByType(greenhousev1alpha1.ReadyCondition).IsTrue()).Should(BeTrue(), "the ReadyCondition should be true")
 			return true
@@ -210,9 +210,9 @@ var _ = Describe("Validate pluginConfig clusterName", Ordered, func() {
 			releases, err := listAction.Run()
 			Expect(err).ShouldNot(HaveOccurred(), "there should be no error listing helm releases")
 			return releases
-		}).Should(ContainElement(gstruct.PointTo(gstruct.MatchFields(gstruct.IgnoreExtras, gstruct.Fields{"Name": Equal("test-plugin")}))), "the helm release should be deployed to the remote cluster")
+		}).Should(ContainElement(gstruct.PointTo(gstruct.MatchFields(gstruct.IgnoreExtras, gstruct.Fields{"Name": Equal("test-plugindefinition")}))), "the helm release should be deployed to the remote cluster")
 
-		By("updating the pluginConfig")
+		By("updating the plugin")
 		_, err = clientutil.CreateOrPatch(test.Ctx, test.K8sClient, testPluginConfig, func() error {
 			// this value enables the template of another pod
 			testPluginConfig.Spec.OptionValues = append(testPluginConfig.Spec.OptionValues, greenhousev1alpha1.PluginOptionValue{Name: "enabled", Value: test.MustReturnJSONFor("true")})
@@ -243,15 +243,15 @@ var _ = Describe("Validate pluginConfig clusterName", Ordered, func() {
 		}).Should(BeEmpty(), "the helm release should be deleted from the remote cluster")
 	})
 
-	It("should correctly handle the pluginConfig on a referenced cluster with a secret reference", func() {
+	It("should correctly handle the plugin on a referenced cluster with a secret reference", func() {
 		remoteRestClientGetter := clientutil.NewRestClientGetterFromBytes(remoteKubeConfig, testPluginConfig.Namespace, clientutil.WithPersistentConfig())
 
-		By("creating a secret holding the OptionValue referenced by the PluginConfig")
+		By("creating a secret holding the OptionValue referenced by the Plugin")
 		Expect(test.K8sClient.Create(test.Ctx, &testSecret)).Should(Succeed())
 
-		By("creating a pluginconfig referencing the cluster")
+		By("creating a plugin referencing the cluster")
 		testPCwithSR.Spec.ClusterName = "test-cluster"
-		Expect(test.K8sClient.Create(test.Ctx, testPCwithSR)).Should(Succeed(), "there should be no error updating the pluginConfig")
+		Expect(test.K8sClient.Create(test.Ctx, testPCwithSR)).Should(Succeed(), "there should be no error updating the plugin")
 
 		By("checking the helm releases deployed to the remote cluster")
 		helmConfig, err := helm.ExportNewHelmAction(remoteRestClientGetter, testPCwithSR.Namespace)
@@ -266,11 +266,11 @@ var _ = Describe("Validate pluginConfig clusterName", Ordered, func() {
 			gstruct.PointTo(
 				gstruct.MatchFields(
 					gstruct.IgnoreExtras, gstruct.Fields{
-						"Name":   Equal("test-pluginconfig-secretref"),
+						"Name":   Equal("test-plugin-secretref"),
 						"Config": gstruct.MatchKeys(gstruct.IgnoreExtras, gstruct.Keys{"secretValue": Equal("secret-value")})}))), "the helm release should be deployed to the remote cluster")
 
-		By("deleting the pluginConfig")
-		Expect(test.K8sClient.Delete(test.Ctx, testPCwithSR)).Should(Succeed(), "there should be no error deleting the pluginConfig")
+		By("deleting the plugin")
+		Expect(test.K8sClient.Delete(test.Ctx, testPCwithSR)).Should(Succeed(), "there should be no error deleting the plugin")
 
 		By("checking the helm releases deployed to the remote cluster")
 		Eventually(func(g Gomega) []*release.Release {
