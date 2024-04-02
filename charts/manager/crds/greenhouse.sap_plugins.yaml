@@ -105,13 +105,13 @@ spec:
                   - name
                   type: object
                 type: array
-              plugin:
+              pluginDefinition:
                 description: PluginDefinition is the name of the PluginDefinition
                   this instance is for.
                 type: string
             required:
             - disabled
-            - plugin
+            - pluginDefinition
             type: object
           status:
             description: PluginStatus defines the observed state of Plugin
