@@ -12,7 +12,7 @@ import (
 
 	clustercontrollers "github.com/cloudoperators/greenhouse/pkg/controllers/cluster"
 	organizationcontrollers "github.com/cloudoperators/greenhouse/pkg/controllers/organization"
-	pluginconfigcontrollers "github.com/cloudoperators/greenhouse/pkg/controllers/pluginconfig"
+	plugincontrollers "github.com/cloudoperators/greenhouse/pkg/controllers/plugin"
 	teamcontrollers "github.com/cloudoperators/greenhouse/pkg/controllers/team"
 	teammembershipcontrollers "github.com/cloudoperators/greenhouse/pkg/controllers/teammembership"
 	teamrbaccontrollers "github.com/cloudoperators/greenhouse/pkg/controllers/teamrbac"
@@ -41,7 +41,7 @@ var knownControllers = map[string]func(controllerName string, mgr ctrl.Manager) 
 	// "pluginPropagation": (&plugincontrollers.PluginPropagationReconciler{}).SetupWithManager,
 
 	// Plugin controllers.
-	"pluginHelm": (&pluginconfigcontrollers.HelmReconciler{
+	"pluginHelm": (&plugincontrollers.HelmReconciler{
 		KubeRuntimeOpts: kubeClientOpts,
 	}).SetupWithManager,
 

@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2024 SAP SE or an SAP affiliate company and Greenhouse contributors
 // SPDX-License-Identifier: Apache-2.0
 
-package plugin
+package plugindefinition
 
 import (
 	"context"
@@ -22,11 +22,11 @@ import (
 //+kubebuilder:rbac:groups="",resources=events,verbs=get;list;watch;create;update;patch
 //+kubebuilder:rbac:groups="",resources=secrets,verbs=get;list;watch;create;update;patch
 
-type PluginPropagationReconciler struct {
+type PluginDefinitionPropagationReconciler struct {
 	controllers.PropagationReconciler
 }
 
-func (r *PluginPropagationReconciler) SetupWithManager(name string, mgr ctrl.Manager) error {
+func (r *PluginDefinitionPropagationReconciler) SetupWithManager(name string, mgr ctrl.Manager) error {
 	r.EmptyObj = &greenhousev1alpha1.PluginDefinition{}
 	r.EmptyObjList = &greenhousev1alpha1.PluginDefinitionList{}
 	r.CRDName = "plugindefinitions.greenhouse.sap"
@@ -36,12 +36,12 @@ func (r *PluginPropagationReconciler) SetupWithManager(name string, mgr ctrl.Man
 	return r.BaseSetupWithManager(name, mgr)
 }
 
-func (r *PluginPropagationReconciler) ListObjectsAsReconcileRequests(ctx context.Context, _ client.Object) []ctrl.Request {
+func (r *PluginDefinitionPropagationReconciler) ListObjectsAsReconcileRequests(ctx context.Context, _ client.Object) []ctrl.Request {
 	res := []ctrl.Request{}
 
 	objList, ok := r.ListObjects(ctx).(*greenhousev1alpha1.PluginDefinitionList)
 	if !ok {
-		log.FromContext(ctx).Error(fmt.Errorf("object %T is not a greenhousev1alpha1.PluginList", objList), "failed to list objects")
+		log.FromContext(ctx).Error(fmt.Errorf("object %T is not a greenhousev1alpha1.PluginDefinitionList", objList), "failed to list objects")
 		return res
 	}
 
@@ -52,7 +52,7 @@ func (r *PluginPropagationReconciler) ListObjectsAsReconcileRequests(ctx context
 	return res
 }
 
-func (r *PluginPropagationReconciler) StripObject(in client.Object) (client.Object, error) {
+func (r *PluginDefinitionPropagationReconciler) StripObject(in client.Object) (client.Object, error) {
 	obj, ok := in.(*greenhousev1alpha1.PluginDefinition)
 	if !ok {
 		return nil, fmt.Errorf("error: %T is not a pluginDefinition", in)

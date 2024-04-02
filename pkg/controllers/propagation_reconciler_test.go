@@ -24,7 +24,7 @@ import (
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/pkg/apis/greenhouse/v1alpha1"
 	"github.com/cloudoperators/greenhouse/pkg/controllers/cluster"
 	"github.com/cloudoperators/greenhouse/pkg/controllers/fixtures"
-	"github.com/cloudoperators/greenhouse/pkg/controllers/plugin"
+	"github.com/cloudoperators/greenhouse/pkg/controllers/plugindefinition"
 	"github.com/cloudoperators/greenhouse/pkg/controllers/team"
 	"github.com/cloudoperators/greenhouse/pkg/controllers/teammembership"
 	"github.com/cloudoperators/greenhouse/pkg/test"
@@ -186,7 +186,7 @@ var _ = Describe("Propagation reconciler", Ordered, func() {
 					Version:    "1.0.0",
 				},
 			},
-		}, &plugin.PluginPropagationReconciler{}, false, ""),
+		}, &plugindefinition.PluginDefinitionPropagationReconciler{}, false, ""),
 		Entry("team", &greenhousev1alpha1.Team{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:        "test-team",
