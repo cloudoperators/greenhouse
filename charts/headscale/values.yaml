@@ -25,7 +25,7 @@ server:
 ui:
   image:
     repository: ghcr.io/gurucomputing/headscale-ui
-    tag: 2024.02.24-beta1
+    tag: 2023.01.30-beta-1
     pullPolicy: IfNotPresent
   service:
     port: 80
