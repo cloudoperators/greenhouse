@@ -61,7 +61,7 @@ var _ = Describe("Validate Plugin OptionValues", func() {
 			},
 		}
 
-		err := validatePluginConfigOptionValues(plugin, pluginDefinition)
+		err := validatePluginOptionValues(plugin, pluginDefinition)
 		switch expErr {
 		case true:
 			Expect(err).To(HaveOccurred(), "expected an error, got nil")
@@ -108,7 +108,7 @@ var _ = Describe("Validate Plugin OptionValues", func() {
 			},
 		}
 
-		err := validatePluginConfigOptionValues(plugin, pluginDefinition)
+		err := validatePluginOptionValues(plugin, pluginDefinition)
 		switch expErr {
 		case true:
 			Expect(err).To(HaveOccurred(), "expected an error, got nil")
@@ -163,7 +163,7 @@ var _ = Describe("Validate Plugin OptionValues", func() {
 			},
 		}
 
-		err := validatePluginConfigOptionValues(plugin, pluginDefinition)
+		err := validatePluginOptionValues(plugin, pluginDefinition)
 		switch expErr {
 		case true:
 			Expect(err).To(HaveOccurred(), "expected an error, got nil")
@@ -208,7 +208,7 @@ var _ = Describe("Validate Plugin OptionValues", func() {
 					ClusterName:      "test-cluster",
 				},
 			}
-			err := validatePluginConfigOptionValues(plugin, pluginDefinition)
+			err := validatePluginOptionValues(plugin, pluginDefinition)
 			Expect(err).To(HaveOccurred(), "expected an error, got nil")
 		})
 		It("should accept a Plugin with supplied required options", func() {
@@ -232,7 +232,7 @@ var _ = Describe("Validate Plugin OptionValues", func() {
 					},
 				},
 			}
-			err := validatePluginConfigOptionValues(plugin, pluginDefinition)
+			err := validatePluginOptionValues(plugin, pluginDefinition)
 			Expect(err).ToNot(HaveOccurred(), "unexpected error")
 		})
 	})

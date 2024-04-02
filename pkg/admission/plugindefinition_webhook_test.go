@@ -28,7 +28,7 @@ var _ = DescribeTable("Validate PluginOption Type and Value are consistent", fun
 			},
 		},
 	}
-	actErr := validatePluginOptionValueAndType(pluginDefinition)
+	actErr := validatePluginDefinitionOptionValueAndType(pluginDefinition)
 	switch expErr {
 	case false:
 		Expect(actErr).ToNot(HaveOccurred(), "unexpected error occurred")

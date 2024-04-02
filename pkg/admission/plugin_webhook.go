@@ -28,14 +28,14 @@ var pluginsAllowedInCentralCluster = []string{
 	"alerts", "doop", "service-proxy", "teams2slack", "kubeconfig-generator",
 }
 
-// SetupPluginConfigWebhookWithManager configures the webhook for the Plugin custom resource.
-func SetupPluginConfigWebhookWithManager(mgr ctrl.Manager) error {
+// SetupPluginWebhookWithManager configures the webhook for the Plugin custom resource.
+func SetupPluginWebhookWithManager(mgr ctrl.Manager) error {
 	return setupWebhook(mgr,
 		&greenhousev1alpha1.Plugin{},
 		webhookFuncs{
-			defaultFunc:        DefaultPluginConfig,
-			validateCreateFunc: ValidateCreatePluginConfig,
-			validateUpdateFunc: ValidateUpdatePluginConfig,
+			defaultFunc:        DefaultPlugin,
+			validateCreateFunc: ValidateCreatePlugin,
+			validateUpdateFunc: ValidateUpdatePlugin,
 			validateDeleteFunc: ValidateDeletePluginConfig,
 		},
 	)
@@ -43,7 +43,7 @@ func SetupPluginConfigWebhookWithManager(mgr ctrl.Manager) error {
 
 //+kubebuilder:webhook:path=/mutate-greenhouse-sap-v1alpha1-plugin,mutating=true,failurePolicy=fail,sideEffects=None,groups=greenhouse.sap,resources=plugins,verbs=create;update,versions=v1alpha1,name=mpluginconfig.kb.io,admissionReviewVersions=v1
 
-func DefaultPluginConfig(ctx context.Context, c client.Client, obj runtime.Object) error {
+func DefaultPlugin(ctx context.Context, c client.Client, obj runtime.Object) error {
 	plugin, ok := obj.(*greenhousev1alpha1.Plugin)
 	if !ok {
 		return nil
@@ -73,7 +73,7 @@ func DefaultPluginConfig(ctx context.Context, c client.Client, obj runtime.Objec
 
 //+kubebuilder:webhook:path=/validate-greenhouse-sap-v1alpha1-plugin,mutating=false,failurePolicy=fail,sideEffects=None,groups=greenhouse.sap,resources=plugins,verbs=create;update,versions=v1alpha1,name=vpluginconfig.kb.io,admissionReviewVersions=v1
 
-func ValidateCreatePluginConfig(ctx context.Context, c client.Client, obj runtime.Object) (admission.Warnings, error) {
+func ValidateCreatePlugin(ctx context.Context, c client.Client, obj runtime.Object) (admission.Warnings, error) {
 	plugin, ok := obj.(*greenhousev1alpha1.Plugin)
 	if !ok {
 		return nil, nil
@@ -86,16 +86,16 @@ func ValidateCreatePluginConfig(ctx context.Context, c client.Client, obj runtim
 		return nil, err
 	}
 
-	if err := validatePluginConfigOptionValues(plugin, pluginDefinition); err != nil {
+	if err := validatePluginOptionValues(plugin, pluginDefinition); err != nil {
 		return nil, err
 	}
-	if err := validatePluginConfigForCluster(ctx, c, plugin, pluginDefinition); err != nil {
+	if err := validatePluginForCluster(ctx, c, plugin, pluginDefinition); err != nil {
 		return nil, err
 	}
 	return nil, nil
 }
 
-func ValidateUpdatePluginConfig(ctx context.Context, c client.Client, old, obj runtime.Object) (admission.Warnings, error) {
+func ValidateUpdatePlugin(ctx context.Context, c client.Client, old, obj runtime.Object) (admission.Warnings, error) {
 	oldPluginConfig, ok := obj.(*greenhousev1alpha1.Plugin)
 	if !ok {
 		return nil, nil
@@ -112,10 +112,10 @@ func ValidateUpdatePluginConfig(ctx context.Context, c client.Client, old, obj r
 		return nil, err
 	}
 
-	if err := validatePluginConfigOptionValues(plugin, pluginDefinition); err != nil {
+	if err := validatePluginOptionValues(plugin, pluginDefinition); err != nil {
 		return nil, err
 	}
-	if err := validatePluginConfigForCluster(ctx, c, plugin, pluginDefinition); err != nil {
+	if err := validatePluginForCluster(ctx, c, plugin, pluginDefinition); err != nil {
 		return nil, err
 	}
 	if err := validateImmutableField(oldPluginConfig.Spec.ClusterName, plugin.Spec.ClusterName,
@@ -130,7 +130,7 @@ func ValidateDeletePluginConfig(_ context.Context, _ client.Client, _ runtime.Ob
 	return nil, nil
 }
 
-func validatePluginConfigOptionValues(plugin *greenhousev1alpha1.Plugin, pluginDefinition *greenhousev1alpha1.PluginDefinition) error {
+func validatePluginOptionValues(plugin *greenhousev1alpha1.Plugin, pluginDefinition *greenhousev1alpha1.PluginDefinition) error {
 	var allErrs field.ErrorList
 	var isOptionValueSet bool
 	for _, pluginOption := range pluginDefinition.Spec.Options {
@@ -194,7 +194,7 @@ func validatePluginConfigOptionValues(plugin *greenhousev1alpha1.Plugin, pluginD
 	return apierrors.NewInvalid(plugin.GroupVersionKind().GroupKind(), plugin.Name, allErrs)
 }
 
-func validatePluginConfigForCluster(ctx context.Context, c client.Client, plugin *greenhousev1alpha1.Plugin, pluginDefinition *greenhousev1alpha1.PluginDefinition) error {
+func validatePluginForCluster(ctx context.Context, c client.Client, plugin *greenhousev1alpha1.Plugin, pluginDefinition *greenhousev1alpha1.PluginDefinition) error {
 	// Exclude whitelisted and front-end only Plugins as well as the greenhouse namespace from the below check.
 	if slices.Contains(pluginsAllowedInCentralCluster, plugin.Spec.PluginDefinition) || pluginDefinition.Spec.HelmChart == nil || plugin.GetNamespace() == "greenhouse" {
 		return nil

@@ -36,9 +36,9 @@ func TestHelmController(t *testing.T) {
 }
 
 var _ = BeforeSuite(func() {
-	test.RegisterController("pluginConfigHelm", (&HelmReconciler{KubeRuntimeOpts: clientutil.RuntimeOptions{QPS: 5, Burst: 10}}).SetupWithManager)
+	test.RegisterController("pluginHelm", (&HelmReconciler{KubeRuntimeOpts: clientutil.RuntimeOptions{QPS: 5, Burst: 10}}).SetupWithManager)
+	test.RegisterWebhook("pluginDefinitionWebhook", admission.SetupPluginDefinitionWebhookWithManager)
 	test.RegisterWebhook("pluginWebhook", admission.SetupPluginWebhookWithManager)
-	test.RegisterWebhook("pluginConfigWebhook", admission.SetupPluginConfigWebhookWithManager)
 	test.RegisterWebhook("clusterWebhook", admission.SetupClusterWebhookWithManager)
 	test.RegisterWebhook("secretsWebhook", admission.SetupSecretWebhookWithManager)
 	test.TestBeforeSuite()

@@ -1351,7 +1351,7 @@ g,0<c.length&&(c=Aa[c[0]])&&(a.c[e]=c))}a.c[e]||(c=Aa[e])&&(a.c[e]=c);for(c=0;c<
   "description" : "UIApplication specifies a reference to a UI application"
 };
     defs["Plugin_spec"] = {
-  "required" : [ "disabled", "plugin" ],
+  "required" : [ "disabled", "pluginDefinition" ],
   "type" : "object",
   "properties" : {
     "clusterName" : {
@@ -1374,10 +1374,6 @@ g,0<c.length&&(c=Aa[c[0]])&&(a.c[e]=c))}a.c[e]||(c=Aa[e])&&(a.c[e]=c);for(c=0;c<
       }
     },
     "pluginDefinition" : {
-      "type" : "string",
-      "description" : "PluginDefinition is the name of the plugin this instance is for."
-    },
-    "plugin" : {
       "type" : "string",
       "description" : "PluginDefinition is the name of the PluginDefinition this instance is for."
     }

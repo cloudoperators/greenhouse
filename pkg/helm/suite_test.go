@@ -20,8 +20,8 @@ func TestHelm(t *testing.T) {
 }
 
 var _ = BeforeSuite(func() {
+	test.RegisterWebhook("pluginDefinitionWebhook", admission.SetupPluginDefinitionWebhookWithManager)
 	test.RegisterWebhook("pluginWebhook", admission.SetupPluginWebhookWithManager)
-	test.RegisterWebhook("pluginConfigWebhook", admission.SetupPluginConfigWebhookWithManager)
 	test.RegisterWebhook("teamWebhook", admission.SetupTeamWebhookWithManager)
 	test.RegisterWebhook("secretsWebhook", admission.SetupSecretWebhookWithManager)
 	test.TestBeforeSuite()

@@ -341,14 +341,11 @@ components:
                 type: object
               type: array
             pluginDefinition:
-              description: PluginDefinition is the name of the plugin this instance is for.
-              type: string
-            plugin:
               description: PluginDefinition is the name of the PluginDefinition this instance is for.
               type: string
           required:
             - disabled
-            - plugin
+            - pluginDefinition
           type: object
         status:
           description: PluginStatus defines the observed state of Plugin
