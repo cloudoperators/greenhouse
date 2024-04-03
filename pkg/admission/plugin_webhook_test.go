@@ -19,7 +19,7 @@ import (
 )
 
 var _ = Describe("Validate Plugin OptionValues", func() {
-	DescribeTable("Validate PluginConfigType contains either Value or ValueFrom", func(value *apiextensionsv1.JSON, valueFrom *greenhousev1alpha1.ValueFromSource, expErr bool) {
+	DescribeTable("Validate PluginType contains either Value or ValueFrom", func(value *apiextensionsv1.JSON, valueFrom *greenhousev1alpha1.ValueFromSource, expErr bool) {
 		plugin := &greenhousev1alpha1.Plugin{
 			Spec: greenhousev1alpha1.PluginSpec{
 				PluginDefinition: "test",
@@ -238,7 +238,7 @@ var _ = Describe("Validate Plugin OptionValues", func() {
 	})
 })
 
-var testPluginConfig = &greenhousev1alpha1.Plugin{
+var testPlugin = &greenhousev1alpha1.Plugin{
 	TypeMeta: metav1.TypeMeta{
 		Kind:       "Plugin",
 		APIVersion: greenhousev1alpha1.GroupVersion.String(),
@@ -252,7 +252,7 @@ var testPluginConfig = &greenhousev1alpha1.Plugin{
 	},
 }
 
-var testPlugin = &greenhousev1alpha1.PluginDefinition{
+var testPluginDefinition = &greenhousev1alpha1.PluginDefinition{
 	TypeMeta: metav1.TypeMeta{
 		Kind:       "PluginDefinition",
 		APIVersion: greenhousev1alpha1.GroupVersion.String(),
@@ -274,18 +274,18 @@ var testPlugin = &greenhousev1alpha1.PluginDefinition{
 
 var _ = Describe("Validate pluginConfig clusterName", Ordered, func() {
 	BeforeAll(func() {
-		err := test.K8sClient.Create(test.Ctx, testPlugin)
+		err := test.K8sClient.Create(test.Ctx, testPluginDefinition)
 		Expect(err).ToNot(HaveOccurred(), "there should be no error creating the pluginDefinition")
 
 	})
 
 	AfterAll(func() {
-		err := test.K8sClient.Delete(test.Ctx, testPlugin)
+		err := test.K8sClient.Delete(test.Ctx, testPluginDefinition)
 		Expect(err).ToNot(HaveOccurred(), "there should be no error deleting the pluginDefinition")
 	})
 
 	It("should accept a plugin without a clusterName", func() {
-		err := test.K8sClient.Create(test.Ctx, testPluginConfig)
+		err := test.K8sClient.Create(test.Ctx, testPlugin)
 		expectClusterMustBeSetError(err)
 	})
 
@@ -305,24 +305,24 @@ var _ = Describe("Validate pluginConfig clusterName", Ordered, func() {
 		Expect(err).ToNot(HaveOccurred(), "there should be no error creating the pluginConfig")
 
 		By("checking the label on the plugin")
-		actPluginConfig := &greenhousev1alpha1.Plugin{}
-		err = test.K8sClient.Get(test.Ctx, types.NamespacedName{Name: testPluginConfig.Name, Namespace: testPluginConfig.Namespace}, actPluginConfig)
+		actPlugin := &greenhousev1alpha1.Plugin{}
+		err = test.K8sClient.Get(test.Ctx, types.NamespacedName{Name: testPlugin.Name, Namespace: testPlugin.Namespace}, actPlugin)
 		Expect(err).ToNot(HaveOccurred(), "there should be no error getting the plugin")
 		Eventually(func() map[string]string {
-			return actPluginConfig.GetLabels()
+			return actPlugin.GetLabels()
 		}).Should(HaveKeyWithValue(greenhouseapis.LabelKeyCluster, "test-cluster"), "the plugin should have a matching cluster label")
 	})
 
 	It("should reject a plugin update with a wrong cluster name reference", func() {
-		testPluginConfig.Spec.ClusterName = "wrong-cluster-name"
-		err := test.K8sClient.Update(test.Ctx, testPluginConfig)
+		testPlugin.Spec.ClusterName = "wrong-cluster-name"
+		err := test.K8sClient.Update(test.Ctx, testPlugin)
 
 		expectClusterNotFoundError(err)
 	})
 
 	It("should not allow deletion of the clusterName reference in existing plugin", func() {
-		testPluginConfig.Spec.ClusterName = ""
-		err := test.K8sClient.Update(test.Ctx, testPluginConfig)
+		testPlugin.Spec.ClusterName = ""
+		err := test.K8sClient.Update(test.Ctx, testPlugin)
 		expectClusterMustBeSetError(err)
 	})
 })

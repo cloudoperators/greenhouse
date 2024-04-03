@@ -61,7 +61,7 @@ var _ = Describe("helm package test", func() {
 				Should(Succeed(), "creating a pluginDefinition should be successful")
 			Expect(test.K8sClient.Create(test.Ctx, team)).
 				Should(Succeed(), "creating a team should be successful")
-			pluginOptionValues, err := helm.GetPluginOptionValuesForPluginConfig(test.Ctx, test.K8sClient, plugin)
+			pluginOptionValues, err := helm.GetPluginOptionValuesForPlugin(test.Ctx, test.K8sClient, plugin)
 			Expect(err).ShouldNot(HaveOccurred(), "there should be no error getting the pluginDefinition option values")
 			Expect(pluginOptionValues).To(
 				ContainElement(greenhousesapv1alpha1.PluginOptionValue{Name: "key1", Value: test.MustReturnJSONFor("pluginValue1"), ValueFrom: nil}), "the pluginDefinition option values should contain default from pluginDefinition spec")
@@ -136,7 +136,7 @@ var _ = DescribeTable("getting helm values from Plugin", func(defaultValue any, 
 		Values: make(map[string]interface{}, 0),
 	}
 
-	pluginConfigWithOptionValue := &greenhousesapv1alpha1.Plugin{
+	pluginWithOptionValue := &greenhousesapv1alpha1.Plugin{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: "green",
 			Name:      "house",
@@ -152,7 +152,7 @@ var _ = DescribeTable("getting helm values from Plugin", func(defaultValue any, 
 		},
 	}
 
-	helmValues, err := helm.ExportGetValuesForHelmChart(context.Background(), test.K8sClient, helmChart, pluginConfigWithOptionValue, true)
+	helmValues, err := helm.ExportGetValuesForHelmChart(context.Background(), test.K8sClient, helmChart, pluginWithOptionValue, true)
 	Expect(err).ShouldNot(HaveOccurred(),
 		"there should be no error getting the values")
 	Expect(helmValues).ShouldNot(BeNil(),

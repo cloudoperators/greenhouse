@@ -36,12 +36,12 @@ func SetupPluginWebhookWithManager(mgr ctrl.Manager) error {
 			defaultFunc:        DefaultPlugin,
 			validateCreateFunc: ValidateCreatePlugin,
 			validateUpdateFunc: ValidateUpdatePlugin,
-			validateDeleteFunc: ValidateDeletePluginConfig,
+			validateDeleteFunc: ValidateDeletePlugin,
 		},
 	)
 }
 
-//+kubebuilder:webhook:path=/mutate-greenhouse-sap-v1alpha1-plugin,mutating=true,failurePolicy=fail,sideEffects=None,groups=greenhouse.sap,resources=plugins,verbs=create;update,versions=v1alpha1,name=mpluginconfig.kb.io,admissionReviewVersions=v1
+//+kubebuilder:webhook:path=/mutate-greenhouse-sap-v1alpha1-plugin,mutating=true,failurePolicy=fail,sideEffects=None,groups=greenhouse.sap,resources=plugins,verbs=create;update,versions=v1alpha1,name=mplugin.kb.io,admissionReviewVersions=v1
 
 func DefaultPlugin(ctx context.Context, c client.Client, obj runtime.Object) error {
 	plugin, ok := obj.(*greenhousev1alpha1.Plugin)
@@ -63,7 +63,7 @@ func DefaultPlugin(ctx context.Context, c client.Client, obj runtime.Object) err
 	}
 
 	// Default option values and merge with PluginDefinition values.
-	optionValues, err := helm.GetPluginOptionValuesForPluginConfig(ctx, c, plugin)
+	optionValues, err := helm.GetPluginOptionValuesForPlugin(ctx, c, plugin)
 	if err != nil {
 		return err
 	}
@@ -71,7 +71,7 @@ func DefaultPlugin(ctx context.Context, c client.Client, obj runtime.Object) err
 	return nil
 }
 
-//+kubebuilder:webhook:path=/validate-greenhouse-sap-v1alpha1-plugin,mutating=false,failurePolicy=fail,sideEffects=None,groups=greenhouse.sap,resources=plugins,verbs=create;update,versions=v1alpha1,name=vpluginconfig.kb.io,admissionReviewVersions=v1
+//+kubebuilder:webhook:path=/validate-greenhouse-sap-v1alpha1-plugin,mutating=false,failurePolicy=fail,sideEffects=None,groups=greenhouse.sap,resources=plugins,verbs=create;update,versions=v1alpha1,name=vplugin.kb.io,admissionReviewVersions=v1
 
 func ValidateCreatePlugin(ctx context.Context, c client.Client, obj runtime.Object) (admission.Warnings, error) {
 	plugin, ok := obj.(*greenhousev1alpha1.Plugin)
@@ -96,7 +96,7 @@ func ValidateCreatePlugin(ctx context.Context, c client.Client, obj runtime.Obje
 }
 
 func ValidateUpdatePlugin(ctx context.Context, c client.Client, old, obj runtime.Object) (admission.Warnings, error) {
-	oldPluginConfig, ok := obj.(*greenhousev1alpha1.Plugin)
+	oldPlugin, ok := obj.(*greenhousev1alpha1.Plugin)
 	if !ok {
 		return nil, nil
 	}
@@ -118,7 +118,7 @@ func ValidateUpdatePlugin(ctx context.Context, c client.Client, old, obj runtime
 	if err := validatePluginForCluster(ctx, c, plugin, pluginDefinition); err != nil {
 		return nil, err
 	}
-	if err := validateImmutableField(oldPluginConfig.Spec.ClusterName, plugin.Spec.ClusterName,
+	if err := validateImmutableField(oldPlugin.Spec.ClusterName, plugin.Spec.ClusterName,
 		field.NewPath("spec", "clusterName"),
 	); err != nil {
 		return nil, err
@@ -126,7 +126,7 @@ func ValidateUpdatePlugin(ctx context.Context, c client.Client, old, obj runtime
 	return nil, nil
 }
 
-func ValidateDeletePluginConfig(_ context.Context, _ client.Client, _ runtime.Object) (admission.Warnings, error) {
+func ValidateDeletePlugin(_ context.Context, _ client.Client, _ runtime.Object) (admission.Warnings, error) {
 	return nil, nil
 }
 

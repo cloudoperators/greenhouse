@@ -94,7 +94,7 @@ We aim to provide helper methods and libraries for other clients to ease develop
 
 If we need to provide more differentiated resources states than only `Ready == true/false/unkown` we will introduce a typed `State` within the resource `Status`. This `State` should also be computed only by combining condition status.
 
-Refer to the [pluginconfig.Status.State](./../../pkg/apis/greenhouse/v1alpha1/pluginconfig_types.go#64) as a reference.
+Refer to the [plugin.Status.State](./../../pkg/apis/greenhouse/v1alpha1/pluginconfig_types.go#64) as a reference.
 
 ### HowTos and best practices
 

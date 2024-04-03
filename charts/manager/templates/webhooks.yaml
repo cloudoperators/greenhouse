@@ -57,7 +57,7 @@ webhooks:
       namespace: greenhouse
       path: /mutate-greenhouse-sap-v1alpha1-plugin
   failurePolicy: Fail
-  name: mpluginconfig.kb.io
+  name: mplugin.kb.io
   rules:
   - apiGroups:
     - greenhouse.sap
@@ -224,7 +224,7 @@ webhooks:
       namespace: greenhouse
       path: /validate-greenhouse-sap-v1alpha1-plugin
   failurePolicy: Fail
-  name: vpluginconfig.kb.io
+  name: vplugin.kb.io
   rules:
   - apiGroups:
     - greenhouse.sap

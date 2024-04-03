@@ -99,10 +99,10 @@ func (r *ServiceProxyReconciler) reconcileServiceProxy(ctx context.Context, org 
 	switch result {
 	case clientutil.OperationResultCreated:
 		log.FromContext(ctx).Info("created service-proxy Plugin", "name", plugin.Name)
-		r.recorder.Eventf(org, corev1.EventTypeNormal, "CreatedPluginConfig", "Created Plugin %s", plugin.Name)
+		r.recorder.Eventf(org, corev1.EventTypeNormal, "CreatedPlugin", "Created Plugin %s", plugin.Name)
 	case clientutil.OperationResultUpdated:
 		log.FromContext(ctx).Info("updated service-proxy Plugin", "name", plugin.Name)
-		r.recorder.Eventf(org, corev1.EventTypeNormal, "UpdatedPluginConfig", "Updated Plugin %s", plugin.Name)
+		r.recorder.Eventf(org, corev1.EventTypeNormal, "UpdatedPlugin", "Updated Plugin %s", plugin.Name)
 	}
 	return nil
 }

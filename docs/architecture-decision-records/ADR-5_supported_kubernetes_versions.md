@@ -48,7 +48,7 @@ With this decision, Greenhouse will follow the version skew policy of the Helm p
 
 It must also be clear how Greenhouse interacts with Clusters running on a Kubernetes Version not yet supported, or on a Kubernetes Version that is no longer supported.
 
-Greenhouse should not reconcile Clusters that are running on a newer Kubernetes Version than currently supported by the pulled in dependencies for Kubernetes and Helm. It should be made clear in the Status of the Cluster CRD and in the PluginConfig CRD, that the Cluster is running an unsupported version. The Greenhouse UI should also visualise that a Cluster is running on a version that is not yet supported. Organisation Admins should also be informed about this situation.
+Greenhouse should not reconcile Clusters that are running on a newer Kubernetes Version than currently supported by the pulled in dependencies for Kubernetes and Helm. It should be made clear in the Status of the Cluster CRD and in the Plugin CRD, that the Cluster is running an unsupported version. The Greenhouse UI should also visualise that a Cluster is running on a version that is not yet supported. Organisation Admins should also be informed about this situation.
 
 The other case is when a Cluster is running on a Kubernetes Version that is no longer supported by the Helm dependencies. In this case the reconciliation of this Cluster should not be stopped. The UI should however visualise that the Cluster is running on an EOL Kubernetes release. Prior to the EOL Date, Organisation Admins should be informed about the upcoming EOL Date and the implications for their Clusters.
 

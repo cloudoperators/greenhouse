@@ -12,8 +12,8 @@ import (
 // DNSDomain is the DNS domain under which all services shall be exposed.
 var DNSDomain string
 
-// URLForExposedServiceInPluginConfig returns the URL that shall be used to expose a service centrally via Greenhouse.
-func URLForExposedServiceInPluginConfig(serviceName string, plugin *greenhousev1alpha1.Plugin) string {
+// URLForExposedServiceInPlugin returns the URL that shall be used to expose a service centrally via Greenhouse.
+func URLForExposedServiceInPlugin(serviceName string, plugin *greenhousev1alpha1.Plugin) string {
 	return fmt.Sprintf(
 		// The pattern shall be $https://$service-$namespace-$cluster.$organisation.$basedomain .
 		"https://%s--%s--%s.%s.%s",

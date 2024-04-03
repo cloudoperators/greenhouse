@@ -26,7 +26,7 @@ func init() {
 }
 
 type pluginValidateOptions struct {
-	pathToPlugin, pathToPluginConfig string
+	pathToPluginDefinition, pathToPlugin string
 }
 
 func newPluginValidateCmd() *cobra.Command {
@@ -55,22 +55,22 @@ func (o *pluginValidateOptions) validate(args []string) error {
 
 func (o *pluginValidateOptions) complete(args []string) error {
 	var err error
-	o.pathToPlugin, err = filepath.Abs(args[0])
+	o.pathToPluginDefinition, err = filepath.Abs(args[0])
 	if err != nil {
 		return err
 	}
-	o.pathToPluginConfig, err = filepath.Abs(args[1])
+	o.pathToPlugin, err = filepath.Abs(args[1])
 	return err
 }
 
 func (o *pluginValidateOptions) run() error {
-	fmt.Printf("validating pluginDefinition %s with plugin %s\n", o.pathToPlugin, o.pathToPluginConfig)
+	fmt.Printf("validating pluginDefinition %s with plugin %s\n", o.pathToPluginDefinition, o.pathToPlugin)
 	// Load both the PluginDefinition and Plugin from the provided files.
-	pluginDefinition, err := loadPlugin(o.pathToPlugin)
+	pluginDefinition, err := loadPluginDefinition(o.pathToPluginDefinition)
 	if err != nil {
 		return err
 	}
-	plugin, err := loadPluginConfig(o.pathToPluginConfig)
+	plugin, err := loadPlugin(o.pathToPlugin)
 	if err != nil {
 		return err
 	}
@@ -136,13 +136,13 @@ func validateHelmChart(pluginDefinition *greenhousev1alpha1.PluginDefinition, pl
 	return err
 }
 
-func loadPlugin(path string) (*greenhousev1alpha1.PluginDefinition, error) {
+func loadPluginDefinition(path string) (*greenhousev1alpha1.PluginDefinition, error) {
 	var pluginDefinition *greenhousev1alpha1.PluginDefinition
 	err := loadAndUnmarshalObject(path, &pluginDefinition)
 	return pluginDefinition, err
 }
 
-func loadPluginConfig(path string) (*greenhousev1alpha1.Plugin, error) {
+func loadPlugin(path string) (*greenhousev1alpha1.Plugin, error) {
 	var plugin *greenhousev1alpha1.Plugin
 	err := loadAndUnmarshalObject(path, &plugin)
 	return plugin, err

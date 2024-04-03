@@ -96,7 +96,7 @@ func (pm *ProxyManager) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.R
 		return ctrl.Result{}, fmt.Errorf("failed to parse api url: %w", err)
 	}
 
-	configs, err := pm.pluginConfigsForCluster(ctx, req.Name, req.Namespace)
+	configs, err := pm.pluginsForCluster(ctx, req.Name, req.Namespace)
 	if err != nil {
 		return ctrl.Result{}, fmt.Errorf("failed to get plugins for cluster %s: %w", req.Name, err)
 	}
@@ -125,8 +125,8 @@ func (pm *ProxyManager) SetupWithManager(name string, mgr ctrl.Manager) error {
 		For(&v1.Secret{}, builder.WithPredicates(
 			clientutil.PredicateFilterBySecretType(greenhouseapis.SecretTypeKubeConfig),
 		)).
-		// Watch pluginconfigs to be notified about exposed services
-		Watches(&greenhousev1alpha1.Plugin{}, handler.EnqueueRequestsFromMapFunc(enqueuePluginConfigForCluster)).
+		// Watch plugins to be notified about exposed services
+		Watches(&greenhousev1alpha1.Plugin{}, handler.EnqueueRequestsFromMapFunc(enqueuePluginForCluster)).
 		Complete(pm)
 }
 
@@ -211,7 +211,7 @@ func (pm *ProxyManager) errorHandler(rw http.ResponseWriter, req *http.Request, 
 	rw.WriteHeader(http.StatusBadGateway)
 }
 
-func (pm *ProxyManager) pluginConfigsForCluster(ctx context.Context, cluster, namespace string) ([]greenhousev1alpha1.Plugin, error) {
+func (pm *ProxyManager) pluginsForCluster(ctx context.Context, cluster, namespace string) ([]greenhousev1alpha1.Plugin, error) {
 	plugins := new(greenhousev1alpha1.PluginList)
 	if err := pm.client.List(ctx, plugins, &client.ListOptions{Namespace: namespace}); err != nil {
 		return nil, fmt.Errorf("failed to list plugins: %w", err)
@@ -229,7 +229,7 @@ func (pm *ProxyManager) pluginConfigsForCluster(ctx context.Context, cluster, na
 	return configs, nil
 }
 
-func enqueuePluginConfigForCluster(_ context.Context, o client.Object) []ctrl.Request {
+func enqueuePluginForCluster(_ context.Context, o client.Object) []ctrl.Request {
 	plugin, ok := o.(*greenhousev1alpha1.Plugin)
 	if !ok {
 		return nil

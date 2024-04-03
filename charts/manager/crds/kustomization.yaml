@@ -5,7 +5,7 @@ resources:
 - greenhouse.sap_organizations.yaml
 - greenhouse.sap_teams.yaml
 - greenhouse.sap_plugins.yaml
-- greenhouse.sap_pluginconfigs.yaml
+- greenhouse.sap_plugindefinitions.yaml
 - greenhouse.sap_clusters.yaml
 - greenhouse.sap_teammemberships.yaml
 - greenhouse.sap_teamroles.yaml

@@ -55,7 +55,7 @@ func InstallOrUpgradeHelmChartFromPlugin(ctx context.Context, local client.Clien
 	if pluginDefinition.Spec.HelmChart == nil {
 		return fmt.Errorf("no helm chart defined in pluginDefinition.Spec.HelmChart for pluginDefinition %s", plugin.Spec.PluginDefinition)
 	}
-	latestRelease, isReleaseExists, err := isReleaseExistsForPluginConfig(ctx, restClientGetter, plugin)
+	latestRelease, isReleaseExists, err := isReleaseExistsForPlugin(ctx, restClientGetter, plugin)
 	if err != nil {
 		return err
 	}
@@ -99,7 +99,7 @@ func UninstallHelmRelease(ctx context.Context, restClientGetter genericclioption
 	if err != nil {
 		return false, err
 	}
-	_, isReleaseExists, err := isReleaseExistsForPluginConfig(ctx, restClientGetter, plugin)
+	_, isReleaseExists, err := isReleaseExistsForPlugin(ctx, restClientGetter, plugin)
 	if err != nil {
 		return false, err
 	}
@@ -116,16 +116,16 @@ func UninstallHelmRelease(ctx context.Context, restClientGetter genericclioption
 // DiffChartToDeployedResources returns whether the Kubernetes objects, as specified in the Helm chart manifest, differ from the deployed state.
 func DiffChartToDeployedResources(ctx context.Context, local client.Client, restClientGetter genericclioptions.RESTClientGetter, pluginDefinition *greenhousev1alpha1.PluginDefinition, plugin *greenhousev1alpha1.Plugin) (diffs DiffObjectList, isDrift bool, err error) {
 	// Shortcut: If the Helm chart was changed we can skip below templating and diffing.
-	var pluginConfigStatusHelmChart string
+	var pluginStatusHelmChart string
 	if plugin.Status.HelmReleaseStatus != nil && plugin.Status.HelmChart != nil {
-		pluginConfigStatusHelmChart = plugin.Status.HelmChart.String()
+		pluginStatusHelmChart = plugin.Status.HelmChart.String()
 	}
-	if pluginDefinition.Spec.HelmChart.String() != pluginConfigStatusHelmChart {
-		log.FromContext(ctx).Info("observed helm chart differs from pluginDefinition helm chart", "pluginDefinition", pluginDefinition.Spec.HelmChart.String(), "plugin", pluginConfigStatusHelmChart)
+	if pluginDefinition.Spec.HelmChart.String() != pluginStatusHelmChart {
+		log.FromContext(ctx).Info("observed helm chart differs from pluginDefinition helm chart", "pluginDefinition", pluginDefinition.Spec.HelmChart.String(), "plugin", pluginStatusHelmChart)
 		return nil, true, nil
 	}
 
-	helmRelease, exists, err := isReleaseExistsForPluginConfig(ctx, restClientGetter, plugin)
+	helmRelease, exists, err := isReleaseExistsForPlugin(ctx, restClientGetter, plugin)
 	switch {
 	case err != nil:
 		return nil, false, err
@@ -218,9 +218,9 @@ func getLatestUpgradeableRelease(restClientGetter genericclioptions.RESTClientGe
 	return latest, nil
 }
 
-// isReleaseExistsForPluginConfig checks whether a Helm release exists for the given Plugin.
-func isReleaseExistsForPluginConfig(ctx context.Context, restClientGetter genericclioptions.RESTClientGetter, plugin *greenhousev1alpha1.Plugin) (*release.Release, bool, error) {
-	helmRelease, err := GetReleaseForHelmChartFromPluginConfig(ctx, restClientGetter, plugin)
+// isReleaseExistsForPlugin checks whether a Helm release exists for the given Plugin.
+func isReleaseExistsForPlugin(ctx context.Context, restClientGetter genericclioptions.RESTClientGetter, plugin *greenhousev1alpha1.Plugin) (*release.Release, bool, error) {
+	helmRelease, err := GetReleaseForHelmChartFromPlugin(ctx, restClientGetter, plugin)
 	if err != nil {
 		switch errors.Is(err, driver.ErrReleaseNotFound) {
 		case true:
@@ -232,8 +232,8 @@ func isReleaseExistsForPluginConfig(ctx context.Context, restClientGetter generi
 	return helmRelease, true, nil
 }
 
-// GetReleaseForHelmChartFromPluginConfig returns the Helm release for the given Plugin or an error.
-func GetReleaseForHelmChartFromPluginConfig(_ context.Context, restClientGetter genericclioptions.RESTClientGetter, plugin *greenhousev1alpha1.Plugin) (*release.Release, error) {
+// GetReleaseForHelmChartFromPlugin returns the Helm release for the given Plugin or an error.
+func GetReleaseForHelmChartFromPlugin(_ context.Context, restClientGetter genericclioptions.RESTClientGetter, plugin *greenhousev1alpha1.Plugin) (*release.Release, error) {
 	cfg, err := newHelmAction(restClientGetter, plugin.Namespace)
 	if err != nil {
 		return nil, err
@@ -461,19 +461,19 @@ func getValuesForHelmChart(ctx context.Context, c client.Client, helmChart *char
 	// Copy the values from the Helm chart ensuring a non-nil map.
 	helmValues := mergeMaps(make(map[string]interface{}, 0), helmChart.Values)
 	// Get values defined in plugin.
-	pluginConfigValues, err := getValuesFromPluginConfig(ctx, c, plugin)
+	pluginValues, err := getValuesFromPlugin(ctx, c, plugin)
 	if err != nil {
 		return nil, err
 	}
-	helmPluginConfigValues, err := convertFlatValuesToHelmValues(pluginConfigValues)
+	helmPluginValues, err := convertFlatValuesToHelmValues(pluginValues)
 	if err != nil {
 		return nil, err
 	}
-	helmValues = mergeMaps(helmValues, helmPluginConfigValues)
+	helmValues = mergeMaps(helmValues, helmPluginValues)
 	return helmValues, nil
 }
 
-func getValuesFromPluginConfig(ctx context.Context, c client.Client, plugin *greenhousev1alpha1.Plugin) ([]greenhousev1alpha1.PluginOptionValue, error) {
+func getValuesFromPlugin(ctx context.Context, c client.Client, plugin *greenhousev1alpha1.Plugin) ([]greenhousev1alpha1.PluginOptionValue, error) {
 	namedValues := make([]greenhousev1alpha1.PluginOptionValue, len(plugin.Spec.OptionValues))
 	copy(namedValues, plugin.Spec.OptionValues)
 	for idx, val := range namedValues {
