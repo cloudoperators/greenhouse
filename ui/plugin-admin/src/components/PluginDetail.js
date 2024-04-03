@@ -25,6 +25,7 @@ import {
   TabList,
   Tab,
   TabPanel,
+  Icon,
 } from "juno-ui-components"
 
 // Renders the plugin details panel
@@ -50,7 +51,22 @@ const PluginDetail = () => {
       opened={!!showDetailsFor}
       onClose={onPanelClose}
       size="large"
-      heading={plugin?.disabled ? plugin?.name + " DISABLED" : plugin?.name}
+      heading={
+        plugin?.disabled ? (
+          <Stack gap="2">
+            <Icon color="jn-global-text" icon="error" title="disabled" />
+            <span>{plugin?.name}</span>
+          </Stack>
+        ) : (
+          <Stack gap="2">
+            <Icon
+              icon={plugin?.readyStatus?.icon}
+              color={plugin?.readyStatus?.color}
+            />
+            <span>{plugin?.name}</span>
+          </Stack>
+        )
+      }
     >
       <PanelBody>
         <Tabs>
