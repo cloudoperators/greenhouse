@@ -25,7 +25,9 @@ import {
   TabList,
   Tab,
   TabPanel,
+  Icon,
 } from "juno-ui-components"
+import { PluginConditionIcon } from "./PluginConditionIcon"
 
 // Renders the plugin details panel
 const PluginDetail = () => {
@@ -50,7 +52,12 @@ const PluginDetail = () => {
       opened={!!showDetailsFor}
       onClose={onPanelClose}
       size="large"
-      heading={plugin?.disabled ? plugin?.name + " DISABLED" : plugin?.name}
+      heading={
+        <Stack gap="2">
+          <PluginConditionIcon plugin={plugin} />
+          <span>{plugin?.name}</span>
+        </Stack>
+      }
     >
       <PanelBody>
         <Tabs>
@@ -103,6 +110,13 @@ const PluginDetail = () => {
                         </a>
                       )
                     })}
+                  </DataGridCell>
+                </DataGridRow>
+
+                <DataGridRow>
+                  <DataGridHeadCell>Condition</DataGridHeadCell>
+                  <DataGridCell>
+                    <PluginConditionIcon plugin={plugin} />
                   </DataGridCell>
                 </DataGridRow>
 

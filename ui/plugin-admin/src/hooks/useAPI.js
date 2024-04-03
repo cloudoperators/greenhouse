@@ -32,6 +32,7 @@ export const buildExternalServicesUrls = (exposedServices) => {
 // Creates a flat object from the plugin config data
 export const createPluginConfig = (items) => {
   let allPlugins = []
+
   items.forEach((item) => {
     // unknown is used as a last fallback, should not happen
     const id = item?.metadata?.name ? item.metadata?.name : "Unknown"

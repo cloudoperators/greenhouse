@@ -7,7 +7,7 @@ import React from "react"
 import { DataGridRow, DataGridCell } from "juno-ui-components"
 import { usePluginActions, useShowDetailsFor } from "./StoreProvider"
 
-import { Icon } from "juno-ui-components"
+import { PluginConditionIcon } from "./PluginConditionIcon"
 
 // renders a single plugin row
 const Plugin = (props) => {
@@ -29,6 +29,9 @@ const Plugin = (props) => {
         showDetailsFor === plugin.id ? "active" : ""
       } ${plugin?.disabled ? "text-theme-disabled" : ""} `}
     >
+      <DataGridCell>
+        <PluginConditionIcon plugin={plugin} />
+      </DataGridCell>
       <DataGridCell>{plugin.name}</DataGridCell>
       <DataGridCell>
         {plugin.clusterName ? plugin.clusterName : <>&mdash;</>}
@@ -52,16 +55,6 @@ const Plugin = (props) => {
           })
         ) : (
           <>&mdash;</>
-        )}
-      </DataGridCell>
-      <DataGridCell>
-        {plugin.disabled ? (
-          <Icon color="jn-global-text" icon="error" title="disabled" />
-        ) : (
-          <Icon
-            icon={plugin.readyStatus?.icon}
-            color={plugin.readyStatus?.color}
-          />
         )}
       </DataGridCell>
     </DataGridRow>
