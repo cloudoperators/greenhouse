@@ -34,9 +34,7 @@ type TeamRoleSeederReconciler struct {
 	recorder record.EventRecorder
 }
 
-//+kubebuilder:rbac:groups=greenhouse.sap,resources=organizations,verbs=get;list;watch;create;update;patch;delete
-//+kubebuilder:rbac:groups=greenhouse.sap,resources=organizations/status,verbs=get;update;patch
-//+kubebuilder:rbac:groups=greenhouse.sap,resources=organizations/finalizers,verbs=update
+//+kubebuilder:rbac:groups=greenhouse.sap,resources=organizations,verbs=get;list;watch
 //+kubebuilder:rbac:groups=greenhouse.sap,resources=teamroles,verbs=get;list;watch;create;update;patch
 //+kubebuilder:rbac:groups="",resources=events,verbs=create;patch
 
