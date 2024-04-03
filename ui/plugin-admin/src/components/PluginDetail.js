@@ -53,17 +53,10 @@ const PluginDetail = () => {
       onClose={onPanelClose}
       size="large"
       heading={
-        plugin?.disabled ? (
-          <Stack gap="2">
-            <Icon color="jn-global-text" icon="error" title="disabled" />
-            <span>{plugin?.name}</span>
-          </Stack>
-        ) : (
-          <Stack gap="2">
-            <PluginConditionIcon plugin={plugin} />
-            <span>{plugin?.name}</span>
-          </Stack>
-        )
+        <Stack gap="2">
+          <PluginConditionIcon plugin={plugin} />
+          <span>{plugin?.name}</span>
+        </Stack>
       }
     >
       <PanelBody>
