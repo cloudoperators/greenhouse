@@ -27,6 +27,7 @@ import {
   TabPanel,
   Icon,
 } from "juno-ui-components"
+import { PluginConditionIcon } from "./PluginConditionIcon"
 
 // Renders the plugin details panel
 const PluginDetail = () => {
@@ -59,10 +60,7 @@ const PluginDetail = () => {
           </Stack>
         ) : (
           <Stack gap="2">
-            <Icon
-              icon={plugin?.readyStatus?.icon}
-              color={plugin?.readyStatus?.color}
-            />
+            <PluginConditionIcon plugin={plugin} />
             <span>{plugin?.name}</span>
           </Stack>
         )
@@ -119,6 +117,13 @@ const PluginDetail = () => {
                         </a>
                       )
                     })}
+                  </DataGridCell>
+                </DataGridRow>
+
+                <DataGridRow>
+                  <DataGridHeadCell>Condition</DataGridHeadCell>
+                  <DataGridCell>
+                    <PluginConditionIcon plugin={plugin} />
                   </DataGridCell>
                 </DataGridRow>
 
