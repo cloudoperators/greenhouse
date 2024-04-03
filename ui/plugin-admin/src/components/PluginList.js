@@ -31,7 +31,9 @@ const PluginList = () => {
           <DataGridHeadCell>Name</DataGridHeadCell>
           <DataGridHeadCell>Cluster</DataGridHeadCell>
           <DataGridHeadCell>External Links</DataGridHeadCell>
-          <DataGridHeadCell>Ready</DataGridHeadCell>
+          <DataGridHeadCell>
+            <Icon icon="monitorHeart" />
+          </DataGridHeadCell>
         </DataGridRow>
       )}
       {pluginConfig?.length > 0 ? (
