@@ -1,5 +1,5 @@
 ---
-title: "Role based access control"
+title: "Role-based access control"
 description: >
    Creating and managing roles and permissions in Greenhouse.
 ---
