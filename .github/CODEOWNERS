@@ -10,6 +10,7 @@
 /website/               @andypf @artiereus @auhlig @edda @hodanoori @ivogoman @kengou @onuryilmaz @tilmanhaupt @uwe-mayer
 .gitignore              @andypf @artiereus @auhlig @edda @hodanoori @ivogoman @kengou @onuryilmaz @tilmanhaupt @uwe-mayer
 
+/docs/reference/api     @auhlig @ivogoman @kengou @onuryilmaz @uwe-mayer
 /charts/                @auhlig @ivogoman @kengou @onuryilmaz @uwe-mayer
 /cmd/                   @auhlig @ivogoman @kengou @onuryilmaz @uwe-mayer
 /grafana/               @auhlig @ivogoman @kengou @onuryilmaz @uwe-mayer
