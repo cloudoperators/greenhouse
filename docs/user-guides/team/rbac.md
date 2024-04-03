@@ -22,7 +22,7 @@ Greenhouse utilizes custom RBAC configurations with `TeamRole` and `TeamRoleBind
 
 ## Defining Team Roles
 
-Team Roles define what actions a team can perform within the Kubernetes cluster.  
+`TeamRoles` define what actions a team can perform within the Kubernetes cluster.  
 Common roles including the below `cluster-admin` are pre-defined within each organization.
 
 ### Cluster administrator 
