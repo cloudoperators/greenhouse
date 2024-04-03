@@ -38,7 +38,7 @@ type TeamRoleSeederReconciler struct {
 //+kubebuilder:rbac:groups=greenhouse.sap,resources=organizations/status,verbs=get;update;patch
 //+kubebuilder:rbac:groups=greenhouse.sap,resources=organizations/finalizers,verbs=update
 //+kubebuilder:rbac:groups=greenhouse.sap,resources=teamroles,verbs=get;list;watch;create;update;patch
-//+kubebuilder:rbac:groups="",resources=events,verbs=get;list;watch;create;update;patch
+//+kubebuilder:rbac:groups="",resources=events,verbs=create;patch
 
 // SetupWithManager sets up the controller with the Manager.
 func (r *TeamRoleSeederReconciler) SetupWithManager(name string, mgr ctrl.Manager) error {
