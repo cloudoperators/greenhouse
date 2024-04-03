@@ -32,6 +32,7 @@ const PluginTile: React.FC<PluginTileProps> = (props: PluginTileProps) => {
       alignment="center"
       distribution="between"
       className="org-info-item bg-theme-background-lvl-1 p-4"
+      style={{ cursor: "pointer" }}
       onClick={openPluginDetails}
     >
       <h2 className="text-lg font-bold">

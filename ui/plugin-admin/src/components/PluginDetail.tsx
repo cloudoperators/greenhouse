@@ -7,6 +7,10 @@ import {
   Panel,
   PanelBody,
   Stack,
+  DataGridToolbar,
+  ButtonRow,
+  Button,
+  Icon,
 } from "juno-ui-components";
 import React, { useEffect } from "react";
 import Markdown from "react-markdown";
@@ -28,6 +32,12 @@ const PluginDetail: React.FC<PluginDetailProps> = (
   const setShowPluginDetails = useStore((state) => state.setShowPluginDetails);
   const onPanelClose = () => {
     setShowPluginDetails(false);
+  };
+
+  const setShowPluginEdit = useStore((state) => state.setShowPluginEdit);
+  const openEditPlugin = () => {
+    setShowPluginDetails(false);
+    setShowPluginEdit(true);
   };
 
   const [deployedPlugins, setDeployedPlugins] = React.useState<PluginConfig[]>(
@@ -98,6 +108,16 @@ const PluginDetail: React.FC<PluginDetailProps> = (
     >
       <PanelBody>
         <Container px={false} py>
+          <DataGridToolbar>
+            <ButtonRow>
+              <Button
+                icon="addCircle"
+                label="Configure Plugin"
+                onClick={() => openEditPlugin()}
+              />
+            </ButtonRow>
+          </DataGridToolbar>
+          <h2 className="text-xl font-bold mb-2 mt-8">General</h2>
           <DataGrid columns={2}>
             <DataGridRow>
               <DataGridHeadCell>Description</DataGridHeadCell>
@@ -154,9 +174,20 @@ const PluginDetail: React.FC<PluginDetailProps> = (
         )}
         {markDown !== "" && (
           <Container px={false} py>
-            <h2 className="text-xl text-center font-bold mb-2 mt-8">
-              Documentation
-            </h2>
+            <Stack
+              direction="horizontal"
+              alignment="center"
+              distribution="center"
+            >
+              <h2 className="text-xl text-center font-bold mb-2 mt-8">
+                Documentation{" "}
+              </h2>
+              <Icon
+                target="_blank"
+                href={props.plugin.spec!.docMarkDownUrl}
+                icon="openInNew"
+              />
+            </Stack>
 
             <Markdown
               rehypePlugins={[rehypeRaw]}

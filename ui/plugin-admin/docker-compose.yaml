@@ -1,15 +1,6 @@
 version: "2.1"
 
 services:
-  ui:
-    image: ghcr.io/cloudoperators/greenhouse-dev-ui:latest
-    # uncomment to mount your folder:
-    volumes:
-      - ./:/app
-    environment:
-      - APP_PORT=3001
-    ports:
-      - "3001:3001"
   envtest:
     image: ghcr.io/cloudoperators/greenhouse-dev-env:dev-latest
     volumes:

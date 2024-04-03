@@ -83,6 +83,7 @@
     }
   },
   "dependencies": {
+    "@mantine/core": "^7.6.2",
     "@types/jest": "^27.5.2",
     "@types/node": "^16.18.58",
     "@types/react": "^18.2.27",

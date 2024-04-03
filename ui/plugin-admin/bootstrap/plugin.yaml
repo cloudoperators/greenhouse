@@ -35,14 +35,19 @@ kind: Plugin
 metadata:
   name: test-plugin-with-markdown
 spec:
-  displayName: Test Plugin with Markdown
+  displayName: Test Plugin with Markdown and Values
   description: some test plugin with markdown
   version: "1.0.0"
   docMarkDownUrl: https://gist.githubusercontent.com/rt2zz/e0a1d6ab2682d2c47746950b84c0b6ee/raw/83b8b4814c3417111b9b9bef86a552608506603e/markdown-sample.md
-  icon: download
+  icon: home
   uiApplication:
     name: test-plugin-ui
     version: "latest"
+    url: "https://some-frontend-url"
+  helmChart:
+    name: someHelmChart
+    repository: oci://some-helmchart
+    version: "1.0.0"
   options:
     - name: requiredValue
       description: This is some very important required value
@@ -86,12 +91,48 @@ kind: Plugin
 metadata:
   name: test-plugin-4
 spec:
+  displayName: Test Plugin with all option types
   description: some test plugin 2
   version: "1.0.0"
   icon: description
   uiApplication:
     name: test-plugin-ui
     version: "latest"
+  options:
+    - name: StringValue
+      description: To be filled with a string
+      required: false
+      default: "defaultText"
+      type: string
+    - name: secretValue
+      description: To be filled with a secret
+      required: false
+      default: "defaultSecret"
+      type: secret
+    - name: boolValue
+      description: To be filled with a bool
+      required: false
+      default: true
+      type: bool
+    - name: intValue
+      description: To be filled with an int
+      required: false
+      default: 123
+      type: int
+    - name: listValue
+      description: To be filled with a list
+      required: false
+      default: 
+        - "defaultListValue1"
+        - "defaultListValue2"
+      type: list
+    - name: mapValue
+      description: To be filled with a map
+      required: false
+      default: 
+        key1: "value1"
+        key2: "value2"
+      type: map  
 ---
 apiVersion: greenhouse.sap/v1alpha1
 kind: Plugin
@@ -105,6 +146,11 @@ spec:
   uiApplication:
     name: test-plugin-ui
     version: "latest"
+    url: "https://some-frontend-url"
+  helmChart:
+    name: someHelmChart
+    repository: oci://some-helmchart
+    version: "1.0.0"
 
 ---
 apiVersion: greenhouse.sap/v1alpha1
@@ -118,6 +164,11 @@ spec:
   uiApplication:
     name: test-plugin-ui
     version: "latest"
+    url: "https://some-frontend-url"
+  helmChart:
+    name: someHelmChart
+    repository: oci://some-helmchart
+    version: "1.0.0"
   options:
     - name: requiredValue
       description: This is some very important required value

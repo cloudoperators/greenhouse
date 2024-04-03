@@ -23,6 +23,8 @@ export interface State {
   setShowPluginDetails: (showPluginDetails: boolean) => void
   pluginDetail: Plugin | null
   setPluginDetail: (plugin: Plugin) => void
+  showPluginEdit: boolean
+  setShowPluginEdit: (showPluginEdit: boolean) => void
 }
 
 // global zustand store. See how this works here: https://github.com/pmndrs/zustand
@@ -75,6 +77,10 @@ const useStore = create<State>((set) => ({
 
   pluginDetail: null,
   setPluginDetail: (plugin) => set((state) => ({ pluginDetail: plugin  })),
+
+  showPluginEdit: false,
+  setShowPluginEdit: (showPluginEdit) =>
+    set((state) => ({ showPluginEdit: showPluginEdit}))
 }))
 
 export default useStore

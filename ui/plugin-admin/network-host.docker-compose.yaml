@@ -1,14 +1,6 @@
 version: "2.1"
 
 services:
-  ui:
-    image: ghcr.io/cloudoperators/greenhouse-dev-ui:latest
-    # uncomment to mount your folder:
-    volumes:
-      - ./:/app
-    environment:
-      - APP_PORT=3001
-    network_mode: host
   envtest:
     image: ghcr.io/cloudoperators/greenhouse-dev-env:dev-latest
     volumes:
@@ -26,7 +18,7 @@ services:
       timeout: 10s
       retries: 5
   cmanager:
-    image: ghcr.io/cloudoperators/greenhouse:dev-latest
+    image: keppel.eu-de-1.cloud.sap/ccloud/greenhouse:dev-latest
     environment:
       - KUBECONFIG=/envtest/internal.kubeconfig
       - HEADSCALE_API_URL=mock_empty
@@ -41,7 +33,7 @@ services:
     network_mode: service:envtest
     command: --dns-domain localhost
   bootstrap:
-    image: ghcr.io/cloudoperators/greenhouse-dev-env:dev-latest
+    image: keppel.eu-de-1.cloud.sap/ccloud/greenhouse-dev-env:dev-latest
     environment:
       - KUBECONFIG=/envtest/internal.kubeconfig
     volumes:
