@@ -2,7 +2,7 @@ header:
   license:
     spdx-id: Apache-2.0
     content: |
-      SPDX-FileCopyrightText: 2024-2026 SAP SE or an SAP affiliate company and Greenhouse contributors
+      SPDX-FileCopyrightText: 2024 SAP SE or an SAP affiliate company and Greenhouse contributors
       SPDX-License-Identifier: Apache-2.0
 
   paths: # `paths` are the path list that will be checked (and fixed) by license-eye, default is ['**'].
@@ -10,7 +10,6 @@ header:
 
   paths-ignore:
     - '.github/**'
-    - 'charts/**'
     - '.reuse/dep5'
     - 'LICENSES/*.txt'
     - 'grafana/*.json'
@@ -24,12 +23,13 @@ header:
     - 'NOTICE'
     - 'PROJECT'
     - '**/*.gitignore'
+    - '**/*.helmignore'
+    - '**/*.tpl'
     - '**/go.mod'
     - '**/go.sum'
     - '**/*.lock'
     - '**/*.json'
     - '**/.gitkeep'
-    - '**/*.jsx'
     - '**/*.txt'
     - '*Dockerfile*'
     - 'Makefile'
@@ -45,3 +45,9 @@ header:
   # license-location-threshold specifies the index threshold where the license header can be located,
   # after all, a "header" cannot be TOO far from the file start.
   license-location-threshold: 80
+
+  language:
+    JSX: 
+      extensions:
+        - ".jsx"
+      comment_style_id: SlashAsterisk

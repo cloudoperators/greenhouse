@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2024-2026 SAP SE or an SAP affiliate company and Greenhouse contributors
+// SPDX-FileCopyrightText: 2024 SAP SE or an SAP affiliate company and Greenhouse contributors
 // SPDX-License-Identifier: Apache-2.0
 
 package admission
@@ -7,6 +7,7 @@ import (
 	"context"
 
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/util/validation/field"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
@@ -90,4 +91,11 @@ func (c *customValidator) ValidateDelete(ctx context.Context, obj runtime.Object
 		return nil, nil
 	}
 	return c.validateDelete(ctx, c.Client, obj)
+}
+
+func validateImmutableField(oldValue, newValue string, path *field.Path) error {
+	if oldValue != newValue {
+		return field.Invalid(path, newValue, "field is immutable")
+	}
+	return nil
 }

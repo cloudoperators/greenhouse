@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2024 SAP SE or an SAP affiliate company and Greenhouse contributors
+# SPDX-License-Identifier: Apache-2.0
+
 # Headscale coordination server.
 server:
   image:
@@ -21,7 +24,7 @@ server:
 
 ui:
   image:
-    repository: gurucomputing/headscale-ui
+    repository: ghcr.io/gurucomputing/headscale-ui
     tag: 2023.01.30-beta-1
     pullPolicy: IfNotPresent
   service:
@@ -30,9 +33,9 @@ ui:
 
 headscalectl:
   image:
-    repository: ghcr.io/cloudoperators/headscalectl
-    tag: 0.2
-    pullPolicy: IfNotPresent
+    repository: ghcr.io/cloudoperators/greenhouse-headscalectl
+    tag: main
+    pullPolicy: Always
   secret:
     name: tailscale-auth
 

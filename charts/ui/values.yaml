@@ -1,6 +1,9 @@
+# SPDX-FileCopyrightText: 2024 SAP SE or an SAP affiliate company and Greenhouse contributors
+# SPDX-License-Identifier: Apache-2.0
+
 image:
   repository: nginx
-  tag: 1.25.0-alpine
+  tag: 1.25.4-alpine
   pullPolicy: IfNotPresent
 
 # TODO: Migrate to ingress.host

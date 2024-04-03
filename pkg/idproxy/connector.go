@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2024-2026 SAP SE or an SAP affiliate company and Greenhouse contributors
+// SPDX-FileCopyrightText: 2024 SAP SE or an SAP affiliate company and Greenhouse contributors
 // SPDX-License-Identifier: Apache-2.0
 
 package idproxy
@@ -108,7 +108,7 @@ func (c *oidcConnector) Refresh(ctx context.Context, s connector.Scopes, identit
 
 func (c *oidcConnector) getGroups(organization string, upstreamGroups []string, ctx context.Context) ([]string, error) {
 	var groups []string
-	groups = append(groups, rbac.GetOrganizationRoleName(c.id))
+	groups = append(groups, rbac.OrganizationRoleName(c.id))
 
 	teamNamesByIDPGroups := make(map[string][]string)
 	roleNamesByIDPGroups := make(map[string]string)
@@ -136,7 +136,7 @@ func (c *oidcConnector) getGroups(organization string, upstreamGroups []string, 
 	if err != nil {
 		return nil, err
 	}
-	roleNamesByIDPGroups[org.Spec.MappedOrgAdminIDPGroup] = rbac.GetAdminRoleNameForOrganization(organization)
+	roleNamesByIDPGroups[org.Spec.MappedOrgAdminIDPGroup] = rbac.OrganizationAdminRoleName(organization)
 
 	for _, group := range upstreamGroups {
 		teamNameGroup, ok := teamNamesByIDPGroups[group]

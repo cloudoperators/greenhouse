@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2024-2026 SAP SE or an SAP affiliate company and Greenhouse contributors
+// SPDX-FileCopyrightText: 2024 SAP SE or an SAP affiliate company and Greenhouse contributors
 // SPDX-License-Identifier: Apache-2.0
 
 package main
@@ -15,15 +15,17 @@ import (
 	pluginconfigcontrollers "github.com/cloudoperators/greenhouse/pkg/controllers/pluginconfig"
 	teamcontrollers "github.com/cloudoperators/greenhouse/pkg/controllers/team"
 	teammembershipcontrollers "github.com/cloudoperators/greenhouse/pkg/controllers/teammembership"
+	teamrbaccontrollers "github.com/cloudoperators/greenhouse/pkg/controllers/teamrbac"
 )
 
 // knownControllers contains all controllers to be registered when starting the operator.
 var knownControllers = map[string]func(controllerName string, mgr ctrl.Manager) error{
 	// Organization controllers.
-	"organizationNamespace":    (&organizationcontrollers.NamespaceReconciler{}).SetupWithManager,
-	"organizationRBAC":         (&organizationcontrollers.RBACReconciler{}).SetupWithManager,
-	"organizationDEX":          startOrganizationDexReconciler,
-	"organizationServiceProxy": (&organizationcontrollers.ServiceProxyReconciler{}).SetupWithManager,
+	"organizationNamespace":      (&organizationcontrollers.NamespaceReconciler{}).SetupWithManager,
+	"organizationRBAC":           (&organizationcontrollers.RBACReconciler{}).SetupWithManager,
+	"organizationDEX":            startOrganizationDexReconciler,
+	"organizationServiceProxy":   (&organizationcontrollers.ServiceProxyReconciler{}).SetupWithManager,
+	"organizationTeamRoleSeeder": (&organizationcontrollers.TeamRoleSeederReconciler{}).SetupWithManager,
 
 	// Team controllers.
 	"teamCAM":         (&teamcontrollers.CAMReconciler{}).SetupWithManager,
@@ -32,8 +34,8 @@ var knownControllers = map[string]func(controllerName string, mgr ctrl.Manager) 
 	// TeamMembership controllers.
 	"teamMembershipPropagation": (&teammembershipcontrollers.TeamMembershipPropagationReconciler{}).SetupWithManager,
 
-	// // RBAC controllers.
-	// "roleBindingController": (&rbaccontrollers.RoleBindingReconciler{}).SetupWithManager,
+	// Team RBAC controllers.
+	"teamRoleBindingController": (&teamrbaccontrollers.TeamRoleBindingReconciler{}).SetupWithManager,
 
 	// Plugin controllers.
 	// "pluginPropagation": (&plugincontrollers.PluginPropagationReconciler{}).SetupWithManager,

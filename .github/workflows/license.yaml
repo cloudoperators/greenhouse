@@ -1,6 +1,5 @@
 name: Check & Fix License Header
 on:
-  workflow_dispatch: {}
   pull_request:
     types: [opened, synchronize, reopened]
 

@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2024-2026 SAP SE or an SAP affiliate company and Greenhouse contributors
+// SPDX-FileCopyrightText: 2024 SAP SE or an SAP affiliate company and Greenhouse contributors
 // SPDX-License-Identifier: Apache-2.0
 
 package clientutil
@@ -15,7 +15,6 @@ import (
 	"k8s.io/client-go/rest"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	extensionsgreenhousev1alpha1 "github.com/cloudoperators/greenhouse/pkg/apis/extensions.greenhouse/v1alpha1"
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/pkg/apis/greenhouse/v1alpha1"
 	dexapi "github.com/cloudoperators/greenhouse/pkg/dex/api"
 )
@@ -27,7 +26,6 @@ func init() {
 		clientgoscheme.AddToScheme,
 		apiextensionsv1.AddToScheme,
 		greenhousev1alpha1.AddToScheme,
-		extensionsgreenhousev1alpha1.AddToScheme,
 		dexapi.AddToScheme,
 	} {
 		utilruntime.Must(addToSchemeFunc(Scheme))

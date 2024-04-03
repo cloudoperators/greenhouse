@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2024-2026 SAP SE or an SAP affiliate company and Greenhouse contributors
+// SPDX-FileCopyrightText: 2024 SAP SE or an SAP affiliate company and Greenhouse contributors
 // SPDX-License-Identifier: Apache-2.0
 
 package main
@@ -36,8 +36,8 @@ var (
 	kubeProxyPort     string
 	graceFullShutDown bool
 	userData          = map[string][]string{
-		"test-org-admin":  {rbac.GetOrganizationRoleName("test-org"), rbac.GetAdminRoleNameForOrganization("test-org"), rbac.GetTeamRoleName("test-team-1")},
-		"test-org-member": {rbac.GetOrganizationRoleName("test-org"), rbac.GetTeamRoleName("test-team-1")},
+		"test-org-admin":  {rbac.OrganizationRoleName("test-org"), rbac.OrganizationAdminRoleName("test-org"), rbac.GetTeamRoleName("test-team-1")},
+		"test-org-member": {rbac.OrganizationRoleName("test-org"), rbac.GetTeamRoleName("test-team-1")},
 	}
 )
 

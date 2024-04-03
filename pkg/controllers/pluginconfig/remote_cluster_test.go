@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2024-2026 SAP SE or an SAP affiliate company and Greenhouse contributors
+// SPDX-FileCopyrightText: 2024 SAP SE or an SAP affiliate company and Greenhouse contributors
 // SPDX-License-Identifier: Apache-2.0
 
 package pluginconfig_test
@@ -31,7 +31,8 @@ var testPluginConfig = &greenhousev1alpha1.PluginConfig{
 		Namespace: test.TestNamespace,
 	},
 	Spec: greenhousev1alpha1.PluginConfigSpec{
-		Plugin: "test-plugin",
+		ClusterName: "test-cluster",
+		Plugin:      "test-plugin",
 	},
 }
 
@@ -45,7 +46,8 @@ var testPCwithSR = &greenhousev1alpha1.PluginConfig{
 		Namespace: test.TestNamespace,
 	},
 	Spec: greenhousev1alpha1.PluginConfigSpec{
-		Plugin: "test-plugin",
+		Plugin:      "test-plugin",
+		ClusterName: "test-cluster",
 		OptionValues: []greenhousev1alpha1.PluginOptionValue{
 			{
 				Name: "secretValue",

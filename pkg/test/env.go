@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2024-2026 SAP SE or an SAP affiliate company and Greenhouse contributors
+// SPDX-FileCopyrightText: 2024 SAP SE or an SAP affiliate company and Greenhouse contributors
 // SPDX-License-Identifier: Apache-2.0
 
 package test
@@ -28,7 +28,6 @@ import (
 	metricsserver "sigs.k8s.io/controller-runtime/pkg/metrics/server"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 
-	extensionsgreenhousesapv1alpha1 "github.com/cloudoperators/greenhouse/pkg/apis/extensions.greenhouse/v1alpha1"
 	greenhousesapv1alpha1 "github.com/cloudoperators/greenhouse/pkg/apis/greenhouse/v1alpha1"
 	"github.com/cloudoperators/greenhouse/pkg/clientutil"
 )
@@ -214,8 +213,6 @@ func StartControlPlane(port string, installCRDs, installWebhooks bool) (*rest.Co
 		NotTo(BeNil(), "the configuration of the test environment must not be nil")
 	Expect(greenhousesapv1alpha1.AddToScheme(scheme.Scheme)).
 		To(Succeed(), "there must be no error adding the greenhouse api to the scheme")
-	Expect(extensionsgreenhousesapv1alpha1.AddToScheme(scheme.Scheme)).
-		To(Succeed(), "there must be no error adding the extensions.greenhouse api to the scheme")
 	Expect(clientgoscheme.AddToScheme(scheme.Scheme)).
 		To(Succeed(), "there must no error adding the clientgo api to the scheme")
 	Expect(apiextensionsv1.AddToScheme(scheme.Scheme)).

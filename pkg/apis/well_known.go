@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2024-2026 SAP SE or an SAP affiliate company and Greenhouse contributors
+// SPDX-FileCopyrightText: 2024 SAP SE or an SAP affiliate company and Greenhouse contributors
 // SPDX-License-Identifier: Apache-2.0
 
 package apis
@@ -45,4 +45,28 @@ const (
 
 	// LabelKeyExposeService is applied to services that are part of a plugins Helm chart to expose them via the central Greenhouse infrastructure.
 	LabelKeyExposeService = "greenhouse.sap/expose"
+)
+
+// TeamRole and TeamRoleBinding constants
+const (
+	// FinalizerCleanupTeamRoleBinding is used to invoke the RoleBinding release cleanup logic.
+	FinalizerCleanupTeamRoleBinding = "greenhouse.sap/rolebinding"
+
+	// FinalizerCleanupRole is used to invoke the Role release cleanup logic.
+	FinalizerCleanupRole = "greenhouse.sap/role"
+
+	// LabelKeyRoleBinding is the key of the label that is used to identify the RoleBinding.
+	LabelKeyRoleBinding = "greenhouse.sap/rolebinding"
+
+	// LabelKeyRole is the key of the label that is used to identify the Role.
+	LabelKeyRole = "greenhouse.sap/role"
+
+	// RoleAndBindingNamePrefix is the prefix for the Role and RoleBinding names.
+	RoleAndBindingNamePrefix = "greenhouse:"
+
+	// RolebindingRoleRefField is the field in the RoleBinding spec that references the Role.
+	RolebindingRoleRefField = ".spec.roleRef"
+
+	// RolebindingTeamRefField is the field in the RoleBinding spec that references the Team.
+	RolebindingTeamRefField = ".spec.teamRef"
 )
