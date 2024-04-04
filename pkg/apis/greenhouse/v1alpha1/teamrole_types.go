@@ -6,6 +6,8 @@ package v1alpha1
 import (
 	rbacv1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
+	greenhouseapis "github.com/cloudoperators/greenhouse/pkg/apis"
 )
 
 // TeamRoleSpec defines the desired state of a TeamRole
@@ -40,4 +42,9 @@ type TeamRoleList struct {
 
 func init() {
 	SchemeBuilder.Register(&TeamRole{}, &TeamRoleList{})
+}
+
+// GetRBACName returns the name of the rbacv1.ClusterRole that will be created on the remote cluster
+func (tr *TeamRole) GetRBACName() string {
+	return greenhouseapis.RBACPrefix + tr.GetName()
 }
