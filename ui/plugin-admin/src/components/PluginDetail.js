@@ -143,22 +143,14 @@ const PluginDetail = () => {
                   if (option?.name.startsWith("greenhouse.")) return null
 
                   return (
-                    <DataGridRow>
+                    <DataGridRow key={option?.name}>
                       <DataGridHeadCell style={{ overflowWrap: "break-word" }}>
                         {option?.name}
                       </DataGridHeadCell>
                       <DataGridCell>
-                        {typeof option.value != "undefined" &&
-                          (typeof option.value === "object" ? (
-                            Array.isArray(option.value) ? (
-                              <ol>
-                                {option?.value?.map((value, index) => {
-                                  return <li key={index}>{value}</li>
-                                })}
-                              </ol>
-                            ) : (
-                              <JsonViewer data={option?.value} />
-                            )
+                        {typeof option?.value != "undefined" &&
+                          (typeof option?.value === "object" ? (
+                            <JsonViewer data={option?.value} />
                           ) : (
                             String(option?.value)
                           ))}
