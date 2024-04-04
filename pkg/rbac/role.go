@@ -79,7 +79,7 @@ func OrganizationPluginAdminPolicyRules() []rbacv1.PolicyRule {
 		{
 			Verbs:     []string{"get", "list", "watch", "update", "patch", "delete", "create"},
 			APIGroups: []string{greenhouseapisv1alpha1.GroupVersion.Group},
-			Resources: []string{"plugins"},
+			Resources: []string{"pluginconfigs"},
 		},
 		// Grant permissions for secrets referenced by other resources, e.g. PluginConfigs for storing sensitive values.
 		// Retrieving these secrets is not permitted to the user.
