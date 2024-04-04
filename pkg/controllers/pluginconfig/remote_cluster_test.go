@@ -210,6 +210,27 @@ var _ = Describe("Validate pluginConfig clusterName", Ordered, func() {
 			return releases
 		}).Should(ContainElement(gstruct.PointTo(gstruct.MatchFields(gstruct.IgnoreExtras, gstruct.Fields{"Name": Equal("test-plugin")}))), "the helm release should be deployed to the remote cluster")
 
+		By("updating the pluginConfig")
+		_, err = clientutil.CreateOrPatch(test.Ctx, test.K8sClient, testPluginConfig, func() error {
+			// this value enables the template of another pod
+			testPluginConfig.Spec.OptionValues = append(testPluginConfig.Spec.OptionValues, greenhousev1alpha1.PluginOptionValue{Name: "enabled", Value: test.MustReturnJSONFor("true")})
+			return nil
+		})
+		Expect(err).ShouldNot(HaveOccurred(), "there should be no error updating the pluginConfig")
+		By("checkind the resources deployed to the remote cluster")
+		remoteK8sClient, err := clientutil.NewK8sClientFromRestClientGetter(remoteRestClientGetter)
+		Expect(err).ShouldNot(HaveOccurred(), "there should be no error creating the k8s client")
+		podID := types.NamespacedName{Name: "alpine-flag", Namespace: test.TestNamespace}
+		pod := &corev1.Pod{}
+		Eventually(func(g Gomega) bool {
+			err := remoteK8sClient.Get(test.Ctx, podID, pod)
+			if err != nil {
+				g.Expect(err).ShouldNot(HaveOccurred(), "there should be no error retrieving the pod")
+				return false
+			}
+			return true
+		}).Should(BeTrue(), "the pod should have been created on the remote cluster")
+
 		By("deleting the pluginConfig")
 		Expect(test.K8sClient.Delete(test.Ctx, testPluginConfig)).Should(Succeed(), "there should be no error deleting the pluginConfig")
 
