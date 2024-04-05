@@ -70,6 +70,26 @@ webhooks:
     service:
       name: greenhouse-webhook-service
       namespace: greenhouse
+      path: /mutate-greenhouse-sap-v1alpha1-pluginbundle
+  failurePolicy: Fail
+  name: mpluginbundle.kb.io
+  rules:
+  - apiGroups:
+    - greenhouse.sap
+    apiVersions:
+    - v1alpha1
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - pluginbundles
+  sideEffects: None
+- admissionReviewVersions:
+  - v1
+  clientConfig:
+    service:
+      name: greenhouse-webhook-service
+      namespace: greenhouse
       path: /mutate-greenhouse-sap-v1alpha1-plugindefinition
   failurePolicy: Fail
   name: mplugindefinition.kb.io
@@ -230,6 +250,26 @@ webhooks:
     - UPDATE
     resources:
     - plugins
+  sideEffects: None
+- admissionReviewVersions:
+  - v1
+  clientConfig:
+    service:
+      name: greenhouse-webhook-service
+      namespace: greenhouse
+      path: /validate-greenhouse-sap-v1alpha1-pluginbundle
+  failurePolicy: Fail
+  name: vpluginbundle.kb.io
+  rules:
+  - apiGroups:
+    - greenhouse.sap
+    apiVersions:
+    - v1alpha1
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - pluginbundles
   sideEffects: None
 - admissionReviewVersions:
   - v1
