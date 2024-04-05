@@ -217,7 +217,7 @@ var _ = Describe("Validate pluginConfig clusterName", Ordered, func() {
 			return nil
 		})
 		Expect(err).ShouldNot(HaveOccurred(), "there should be no error updating the pluginConfig")
-		By("checkind the resources deployed to the remote cluster")
+		By("checking the resources deployed to the remote cluster")
 		remoteK8sClient, err := clientutil.NewK8sClientFromRestClientGetter(remoteRestClientGetter)
 		Expect(err).ShouldNot(HaveOccurred(), "there should be no error creating the k8s client")
 		podID := types.NamespacedName{Name: "alpine-flag", Namespace: test.TestNamespace}
