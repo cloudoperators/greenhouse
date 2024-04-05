@@ -3,10 +3,9 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useMemo } from "react"
+import { useMemo } from "react"
 import { createClient } from "sapcc-k8sclient"
-import { useApiEndpoint } from "../components/StoreProvider"
-import { useAuthData } from "../components/StoreProvider"
+import { useApiEndpoint, useAuthData } from "../components/StoreProvider"
 
 export const useClient = () => {
   const apiEndpoint = useApiEndpoint()
