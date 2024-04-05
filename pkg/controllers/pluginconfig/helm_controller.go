@@ -296,11 +296,16 @@ func (r *HelmReconciler) reconcileHelmRelease(
 		return driftDetectedCondition, reconcileFailedCondition
 	}
 
-	switch isHelmDrift {
-	case true:
+	switch {
+	case isHelmDrift: // drift was detected
 		driftDetectedCondition.Status = metav1.ConditionTrue
 		driftDetectedCondition.LastTransitionTime = metav1.Now()
-	case false:
+		log.FromContext(ctx).Info("drift between deployed resources and manifest detected", "resources", diffObjects.String())
+	case len(diffObjects) > 0: // diff detected
+		driftDetectedCondition.Status = metav1.ConditionFalse
+		driftDetectedCondition.LastTransitionTime = metav1.Now()
+		log.FromContext(ctx).Info("diff between deployed release and manifest detected", "resources", diffObjects.String())
+	default: // no diff detected and no drift detected
 		driftDetectedCondition.Status = metav1.ConditionFalse
 		driftDetectedCondition.LastTransitionTime = metav1.Now()
 
@@ -310,7 +315,7 @@ func (r *HelmReconciler) reconcileHelmRelease(
 		log.FromContext(ctx).Info("release for pluginconfig is up-to-date")
 		return driftDetectedCondition, reconcileFailedCondition
 	}
-	log.FromContext(ctx).Info("drift between deployed resources and manifest detected", "resources", diffObjects.String())
+
 	if err := helm.InstallOrUpgradeHelmChartFromPlugin(ctx, r.Client, restClientGetter, plugin, pluginConfig); err != nil {
 		reconcileFailedCondition.Status = metav1.ConditionTrue
 		reconcileFailedCondition.Message = fmt.Sprintf("Helm install/upgrade failed: %s", err.Error())
