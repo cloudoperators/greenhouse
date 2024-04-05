@@ -7,7 +7,7 @@ properties:
     type: string
   namespace:
     type: string
-  uid: 
+  uid:
     type: string
     format: uuid
   resourceVersion:
@@ -21,7 +21,7 @@ properties:
   labels:
     type: object
     additionalProperties:
-      type: string  
+      type: string
   annotations:
     type: object
     additionalProperties:

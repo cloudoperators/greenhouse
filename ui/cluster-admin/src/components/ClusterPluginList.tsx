@@ -11,40 +11,40 @@ import {
   Stack,
 } from "juno-ui-components"
 import React from "react"
-import { PluginConfig } from "../types/types"
+import { Plugin } from "../types/types"
 
-interface ClusterPluginConfigListProps {
+interface ClusterPluginListProps {
   // cluster: Cluster;
-  pluginConfigs: PluginConfig[]
+  plugins: Plugin[]
 }
 
-const ClusterPluginConfigList: React.FC<ClusterPluginConfigListProps> = (
-  props: ClusterPluginConfigListProps
+const ClusterPluginList: React.FC<ClusterPluginListProps> = (
+  props: ClusterPluginListProps
 ) => {
-  let pluginConfigNames = ""
+  let pluginNames = ""
 
-  props.pluginConfigs.map((pluginConfig: any) => {
-    pluginConfigNames += pluginConfig.metadata.name + ", "
+  props.plugins.map((plugin: Plugin) => {
+    pluginNames += plugin.metadata!.name + ", "
   })
   return (
-    props.pluginConfigs.length > 0 && (
+    props.plugins.length > 0 && (
       <DataGridRow>
         <DataGridHeadCell>Enabled Plugins</DataGridHeadCell>
         <DataGridCell>
           <Stack gap="2" alignment="start" wrap={true}>
-            {props.pluginConfigs.map((pluginConfig: any) => {
+            {props.plugins.map((plugin: Plugin) => {
               return (
                 <Button
+                  key={plugin.metadata!.name}
                   style={{ cursor: "default" }}
                   size="small"
                   onClick={() =>
                     console.log(
-                      "go to plugin config page of " +
-                        pluginConfig.metadata.name
+                      "go to plugin config page of " + plugin.metadata!.name
                     )
                   }
                 >
-                  {pluginConfig.metadata.name}
+                  {plugin.metadata!.name}
                 </Button>
               )
             })}
@@ -55,4 +55,4 @@ const ClusterPluginConfigList: React.FC<ClusterPluginConfigListProps> = (
   )
 }
 
-export default ClusterPluginConfigList
+export default ClusterPluginList

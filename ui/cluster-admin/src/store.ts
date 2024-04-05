@@ -7,7 +7,7 @@ import { create } from "zustand"
 import { getResourceStatusFromKubernetesConditions } from "./lib/utils/resourceStatus"
 import {
   Cluster,
-  PluginConfig,
+  Plugin,
   ResourceStatus,
   UpdateClusterAction,
   UpdateClusterInput,
@@ -31,10 +31,10 @@ export interface State {
   clusterDetails: {
     cluster: Cluster | null
     clusterStatus: ResourceStatus | null
-    pluginConfigs?: PluginConfig[]
+    plugins?: Plugin[]
   }
   setClusterDetails: (cluster: Cluster | null) => void
-  setClusterDetailPluginConfigs: (pluginConfigs: PluginConfig[]) => void
+  setClusterDetailPlugins: (plugins: Plugin[]) => void
   showClusterDetails: boolean
   setShowClusterDetails: (showClusterDetails: boolean) => void
   showOnBoardCluster: boolean
@@ -92,7 +92,7 @@ const useStore = create<State>((set) => ({
   clusterDetails: {
     cluster: null,
     clusterStatus: null,
-    pluginConfigs: [],
+    plugins: [],
   },
   setClusterDetails: (cluster: Cluster | null) =>
     set((state) => {
@@ -102,7 +102,7 @@ const useStore = create<State>((set) => ({
           clusterDetails: {
             cluster: null,
             clusterStatus: null,
-            pluginConfigs: [],
+            plugins: [],
           },
         }
       }
@@ -116,18 +116,18 @@ const useStore = create<State>((set) => ({
         clusterDetails: {
           cluster: cluster,
           clusterStatus: clusterStatus,
-          pluginConfigs: [],
+          plugins: [],
         },
       }
     }),
 
-  setClusterDetailPluginConfigs: (pluginConfigs: PluginConfig[]) =>
+  setClusterDetailPlugins: (plugins: Plugin[]) =>
     set((state) => {
       return {
         ...state,
         clusterDetails: {
           ...state.clusterDetails,
-          pluginConfigs: pluginConfigs,
+          plugins: plugins,
         },
       }
     }),
