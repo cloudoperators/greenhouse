@@ -35,8 +35,8 @@ spec:
             description: TeamRoleBindingSpec defines the desired state of a TeamRoleBinding
             properties:
               clusterName:
-                description: ClusterName is the name of the cluster the plugin is
-                  deployed to.
+                description: ClusterName is the name of the cluster the rbacv1 resources
+                  are created on.
                 type: string
               namespaces:
                 description: Namespaces is the immutable list of namespaces in the

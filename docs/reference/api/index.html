@@ -323,7 +323,7 @@ p {
             <p><h1>Greenhouse</h1></p>
             <p>PlusOne operations platform</p>
             <p>
-                <div class="app-desc">Version: f91d940</div>
+                <div class="app-desc">Version: 372ccc4</div>
             </p>
           </div>
         </div>
@@ -1557,144 +1557,6 @@ g,0<c.length&&(c=Aa[c[0]])&&(a.c[e]=c))}a.c[e]||(c=Aa[e])&&(a.c[e]=c);for(c=0;c<
   },
   "description" : "UIApplication contains a reference to the frontend that is used for the deployed pluginDefinition version."
 };
-    defs["Role"] = {
-  "title" : "Role",
-  "type" : "object",
-  "properties" : {
-    "apiVersion" : {
-      "type" : "string",
-      "description" : "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources"
-    },
-    "kind" : {
-      "type" : "string",
-      "description" : "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds"
-    },
-    "metadata" : {
-      "type" : "object"
-    },
-    "spec" : {
-      "$ref" : "#/components/schemas/Role_spec"
-    },
-    "status" : {
-      "type" : "object",
-      "description" : "RoleStatus defines the observed state of Role"
-    }
-  },
-  "description" : "Role is the Schema for the roles API",
-  "xml" : {
-    "name" : "extensions.greenhouse.sap",
-    "namespace" : "v1alpha1"
-  }
-};
-    defs["RoleBinding"] = {
-  "title" : "RoleBinding",
-  "type" : "object",
-  "properties" : {
-    "apiVersion" : {
-      "type" : "string",
-      "description" : "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources"
-    },
-    "kind" : {
-      "type" : "string",
-      "description" : "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds"
-    },
-    "metadata" : {
-      "type" : "object"
-    },
-    "spec" : {
-      "$ref" : "#/components/schemas/RoleBinding_spec"
-    },
-    "status" : {
-      "type" : "object",
-      "description" : "RoleBindingStatus defines the observed state of RoleBinding"
-    }
-  },
-  "description" : "RoleBinding is the Schema for the rolebindings API",
-  "xml" : {
-    "name" : "extensions.greenhouse.sap",
-    "namespace" : "v1alpha1"
-  }
-};
-    defs["RoleBinding_spec"] = {
-  "type" : "object",
-  "properties" : {
-    "clusterName" : {
-      "type" : "string",
-      "description" : "ClusterName is the name of the cluster the plugin is deployed to."
-    },
-    "namespaces" : {
-      "type" : "array",
-      "description" : "Namespaces is the immutable list of namespaces in the Greenhouse Clusters to apply the RoleBinding to",
-      "items" : {
-        "type" : "string"
-      }
-    },
-    "roleRef" : {
-      "type" : "string",
-      "description" : "RoleRef references a Greenhouse Role by name"
-    },
-    "teamRef" : {
-      "type" : "string",
-      "description" : "TeamRef references a Greenhouse Team by name"
-    }
-  },
-  "description" : "RoleBindingSpec defines the desired state of RoleBinding"
-};
-    defs["Role_spec"] = {
-  "type" : "object",
-  "properties" : {
-    "rules" : {
-      "type" : "array",
-      "description" : "Rules is a list of rbacv1.PolicyRules used on a managed RBAC (Cluster)Role",
-      "items" : {
-        "$ref" : "#/components/schemas/Role_spec_rules"
-      }
-    }
-  },
-  "description" : "RoleSpec defines the desired state of Role"
-};
-    defs["Role_spec_rules"] = {
-  "required" : [ "verbs" ],
-  "type" : "object",
-  "properties" : {
-    "apiGroups" : {
-      "type" : "array",
-      "description" : "APIGroups is the name of the APIGroup that contains the resources.  If multiple API groups are specified, any action requested against one of the enumerated resources in any API group will be allowed. \"\" represents the core API group and \"*\" represents all API groups.",
-      "items" : {
-        "type" : "string"
-      }
-    },
-    "nonResourceURLs" : {
-      "type" : "array",
-      "description" : "NonResourceURLs is a set of partial urls that a user should have access to.  *s are allowed, but only as the full, final step in the path Since non-resource URLs are not namespaced, this field is only applicable for ClusterRoles referenced from a ClusterRoleBinding. Rules can either apply to API resources (such as \"pods\" or \"secrets\") or non-resource URL paths (such as \"/api\"),  but not both.",
-      "items" : {
-        "type" : "string"
-      }
-    },
-    "resourceNames" : {
-      "type" : "array",
-      "description" : "ResourceNames is an optional white list of names that the rule applies to.  An empty set means that everything is allowed.",
-      "items" : {
-        "type" : "string"
-      }
-    },
-    "resources" : {
-      "type" : "array",
-      "description" : "Resources is a list of resources this rule applies to. '*' represents all resources.",
-      "items" : {
-        "type" : "string"
-      }
-    },
-    "verbs" : {
-      "type" : "array",
-      "description" : "Verbs is a list of Verbs that apply to ALL the ResourceKinds contained in this rule. '*' represents all verbs.",
-      "items" : {
-        "type" : "string"
-      }
-    }
-  },
-  "description" : "PolicyRule holds information that describes a policy rule, but does not contain information about who the rule applies to or which namespace the rule applies to."
-};
     defs["Team"] = {
   "title" : "Team",
   "type" : "object",
@@ -1867,7 +1729,7 @@ g,0<c.length&&(c=Aa[c[0]])&&(a.c[e]=c))}a.c[e]||(c=Aa[e])&&(a.c[e]=c);for(c=0;c<
   "properties" : {
     "clusterName" : {
       "type" : "string",
-      "description" : "ClusterName is the name of the cluster the pluginConfig is deployed to."
+      "description" : "ClusterName is the name of the cluster the rbacv1 resources are created on."
     },
     "namespaces" : {
       "type" : "array",
