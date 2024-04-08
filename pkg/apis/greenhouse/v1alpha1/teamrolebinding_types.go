@@ -13,7 +13,7 @@ type TeamRoleBindingSpec struct {
 	TeamRoleRef string `json:"teamRoleRef,omitempty"`
 	// TeamRef references a Greenhouse Team by name
 	TeamRef string `json:"teamRef,omitempty"`
-	// ClusterName is the name of the cluster the pluginConfig is deployed to.
+	// ClusterName is the name of the cluster the rbacv1 resources are created on.
 	ClusterName string `json:"clusterName,omitempty"`
 	// Namespaces is the immutable list of namespaces in the Greenhouse Clusters to apply the RoleBinding to
 	Namespaces []string `json:"namespaces,omitempty"`

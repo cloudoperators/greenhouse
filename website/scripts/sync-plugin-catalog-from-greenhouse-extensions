@@ -20,8 +20,8 @@ script_dir=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 GREENHOUSE_EXTENSIONS_GIT_DIR="${script_dir}/../../../greenhouse-extensions"
 DESTINATION_DIR="${script_dir}/../content/docs/reference/catalog"
 
-echo "collecting plugin descriptions from ${GREENHOUSE_EXTENSIONS_GIT_DIR}"
-all_files=$(git -C $GREENHOUSE_EXTENSIONS_GIT_DIR grep --recursive --files-with-matches -e "kind: Plugin" -- '*plugin.yaml')
+echo "collecting pluginDefinition descriptions from ${GREENHOUSE_EXTENSIONS_GIT_DIR}"
+all_files=$(git -C $GREENHOUSE_EXTENSIONS_GIT_DIR grep --recursive --files-with-matches -e "kind: PluginDefinition" -- '*plugin.yaml')
 for f in $all_files; do
   d=$(dirname $f)
   echo "copying ${GREENHOUSE_EXTENSIONS_GIT_DIR}/${d}/README.md" "${DESTINATION_DIR}/${d}.md";

@@ -31,7 +31,7 @@ const (
 	// HeadscalePreAuthKey is the key for the Headscale pre-authentication key in a secret of type greenhouse.sap/kubeconfig.
 	HeadscalePreAuthKey = "headscalePreAuthKey"
 
-	// LabelKeyPlugin is used to identify corresponding Plugin for the resource.
+	// LabelKeyPlugin is used to identify corresponding PluginDefinition for the resource.
 	LabelKeyPlugin = "greenhouse.sap/plugin"
 
 	// LabelKeyCluster is used to identify corresponding Cluster for the resource.
@@ -43,7 +43,7 @@ const (
 	// LabelAccessMode is used to force the access mode to headscale for a cluster.
 	LabelAccessMode = "greenhouse.sap/access-mode"
 
-	// LabelKeyExposeService is applied to services that are part of a plugins Helm chart to expose them via the central Greenhouse infrastructure.
+	// LabelKeyExposeService is applied to services that are part of a PluginDefinitions Helm chart to expose them via the central Greenhouse infrastructure.
 	LabelKeyExposeService = "greenhouse.sap/expose"
 )
 

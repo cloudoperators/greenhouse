@@ -13,11 +13,11 @@ import (
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/pkg/apis/greenhouse/v1alpha1"
 )
 
-// PredicatePluginWithHelmSpec filters Plugins without an HelmChart specification.
+// PredicatePluginWithHelmSpec filters PluginDefinitions without an HelmChart specification.
 var PredicatePluginWithHelmSpec = func() predicate.Funcs {
 	return predicate.NewPredicateFuncs(func(o client.Object) bool {
-		if plugin, ok := o.(*greenhousev1alpha1.Plugin); ok {
-			return plugin.Spec.HelmChart != nil
+		if pluginDefinition, ok := o.(*greenhousev1alpha1.PluginDefinition); ok {
+			return pluginDefinition.Spec.HelmChart != nil
 		}
 		return false
 	})

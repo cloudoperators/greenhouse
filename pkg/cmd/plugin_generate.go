@@ -36,7 +36,7 @@ func newPluginGenerateCmd() *cobra.Command {
 	o := &pluginGenerateOptions{}
 	return &cobra.Command{
 		Use:   pluginGenerateCmdUsage,
-		Short: "Create a Greenhouse Plugin based on an existing Helm Chart",
+		Short: "Create a Greenhouse PluginDefinition based on an existing Helm Chart",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if err := o.validate(args); err != nil {
 				return err
@@ -82,11 +82,11 @@ func (o *pluginGenerateOptions) run() error {
 		return err
 	}
 	// Write output.
-	plugin, err := helmChartToPlugin(helmChart)
+	pluginDefinition, err := helmChartToPlugin(helmChart)
 	if err != nil {
 		return err
 	}
-	jsonBytes, err := json.Marshal(plugin)
+	jsonBytes, err := json.Marshal(pluginDefinition)
 	if err != nil {
 		return err
 	}
@@ -94,13 +94,13 @@ func (o *pluginGenerateOptions) run() error {
 	if err != nil {
 		return err
 	}
-	if err := os.WriteFile(filepath.Join(pluginDirectory, "plugin.yaml"), yamlBytes, 0755); err != nil {
+	if err := os.WriteFile(filepath.Join(pluginDirectory, "pluginDefinition.yaml"), yamlBytes, 0755); err != nil {
 		return err
 	}
 	return nil
 }
 
-func helmChartToPlugin(helmChart *chart.Chart) (*greenhousev1alpha1.Plugin, error) {
+func helmChartToPlugin(helmChart *chart.Chart) (*greenhousev1alpha1.PluginDefinition, error) {
 	pluginVersion := "1.0.0"
 	if helmChart.Metadata != nil && helmChart.Metadata.Version != "" {
 		pluginVersion = helmChart.Metadata.Version
@@ -109,15 +109,15 @@ func helmChartToPlugin(helmChart *chart.Chart) (*greenhousev1alpha1.Plugin, erro
 	if err != nil {
 		return nil, err
 	}
-	return &greenhousev1alpha1.Plugin{
+	return &greenhousev1alpha1.PluginDefinition{
 		TypeMeta: metav1.TypeMeta{
-			Kind:       "Plugin",
+			Kind:       "PluginDefinition",
 			APIVersion: greenhousev1alpha1.GroupVersion.String(),
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name: fmt.Sprintf("%s-%s", helmChart.Name(), helmChart.Metadata.Version),
 		},
-		Spec: greenhousev1alpha1.PluginSpec{
+		Spec: greenhousev1alpha1.PluginDefinitionSpec{
 			Version:     pluginVersion,
 			Description: helmChart.Name(),
 			HelmChart: &greenhousev1alpha1.HelmChartReference{

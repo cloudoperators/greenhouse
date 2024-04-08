@@ -5,7 +5,7 @@
 
 import { DataGridCell, DataGridRow } from "juno-ui-components"
 import React from "react"
-import useGetPluginConfigs from "../hooks/useGetPluginConfig"
+import useGetPlugins from "../hooks/useGetPlugin"
 import { getResourceStatusFromKubernetesConditions } from "../lib/utils/resourceStatus"
 import useStore from "../store"
 import { Cluster } from "../types/types"
@@ -19,12 +19,11 @@ const ClusterListItem: React.FC<ClusterListItemProps> = (
   props: ClusterListItemProps
 ) => {
   const setClusterDetails = useStore((state) => state.setClusterDetails)
-  const setClusterDetailPluginConfigs = useStore(
-    (state) => state.setClusterDetailPluginConfigs
+  const setClusterDetailPlugins = useStore(
+    (state) => state.setClusterDetailPlugins
   )
   const setShowOnBoardCluster = useStore((state) => state.setShowOnBoardCluster)
-  const { getPluginConfigsforCluster: getPluginConfigsforCluster } =
-    useGetPluginConfigs()
+  const { getPluginsforCluster: getPluginsforCluster } = useGetPlugins()
 
   const setShowClusterDetails = useStore((state) => state.setShowClusterDetails)
 
@@ -40,9 +39,9 @@ const ClusterListItem: React.FC<ClusterListItemProps> = (
     setShowOnBoardCluster(false)
 
     // only get plugin configs on click
-    const pluginConfigs = getPluginConfigsforCluster(props.cluster)
-    pluginConfigs.then((pluginConfigs) => {
-      setClusterDetailPluginConfigs(pluginConfigs)
+    const plugins = getPluginsforCluster(props.cluster)
+    plugins.then((plugins) => {
+      setClusterDetailPlugins(plugins)
     })
   }
 

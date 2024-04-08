@@ -4,190 +4,129 @@
 package v1alpha1
 
 import (
-	"encoding/json"
-	"fmt"
-
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 // PluginSpec defines the desired state of Plugin
 type PluginSpec struct {
+	// PluginDefinition is the name of the PluginDefinition this instance is for.
+	PluginDefinition string `json:"pluginDefinition"`
+
+	// DisplayName is an optional name for the Plugin to be displayed in the Greenhouse UI.
+	// This is especially helpful to distinguish multiple instances of a PluginDefinition in the same context.
+	// Defaults to a normalized version of metadata.name.
+	DisplayName string `json:"displayName,omitempty"`
+
+	// Disabled indicates that the plugin is administratively disabled.
+	Disabled bool `json:"disabled"`
+
+	// Values are the values for a PluginDefinition instance.
+	OptionValues []PluginOptionValue `json:"optionValues,omitempty"`
+
+	// ClusterName is the name of the cluster the plugin is deployed to. If not set, the plugin is deployed to the greenhouse cluster.
+	ClusterName string `json:"clusterName,omitempty"`
+}
+
+// PluginOptionValue is the value for a PluginOption.
+type PluginOptionValue struct {
+	// Name of the values.
+	Name string `json:"name"`
+	// Value is the actual value in plain text.
+	Value *apiextensionsv1.JSON `json:"value,omitempty"`
+	// ValueFrom references a potentially confidential value in another source.
+	ValueFrom *ValueFromSource `json:"valueFrom,omitempty"`
+}
+
+// ValueJSON returns the value as JSON.
+func (v *PluginOptionValue) ValueJSON() (string, error) {
+	if v.Value == nil {
+		return "", nil
+	}
+	return string(v.Value.Raw), nil
+}
+
+const (
+
+	// ClusterAccessReadyCondition reflects if we can access the cluster a Plugin is to be deployed to.
+	ClusterAccessReadyCondition ConditionType = "ClusterAccessReady"
+
+	// HelmReconcileFailedCondition reflects the failed reconciliation of the corresponding helm release.
+	HelmReconcileFailedCondition ConditionType = "HelmReconcileFailed"
+
+	// HelmDriftDetectedCondition reflects the last time a drift between Release and Deployed Resources was detected.
+	HelmDriftDetectedCondition ConditionType = "HelmDriftDetected"
+
+	// StatusUpToDateCondition reflects the failed reconciliation of the Plugin.
+	StatusUpToDateCondition ConditionType = "StatusUpToDate"
+
+	// PluginDefinitionNotFoundReason is set when the pluginDefinition is not found.
+	PluginDefinitionNotFoundReason ConditionReason = "PluginDefinitionNotFound"
+
+	// HelmUninstallFailedReason is set when the helm release could not be uninstalled.
+	HelmUninstallFailedReason ConditionReason = "HelmUninstallFailed"
+)
+
+// PluginStatus defines the observed state of Plugin
+type PluginStatus struct {
+	// HelmReleaseStatus reflects the status of the latest HelmChart release.
+	// This is only configured if the pluginDefinition is backed by HelmChart.
+	HelmReleaseStatus *HelmReleaseStatus `json:"helmReleaseStatus,omitempty"`
+
+	// Version contains the latest pluginDefinition version the config was last applied with successfully.
+	Version string `json:"version,omitempty"`
+
+	// HelmChart contains a reference the helm chart used for the deployed pluginDefinition version.
+	HelmChart *HelmChartReference `json:"helmChart,omitempty"`
+
+	// UIApplication contains a reference to the frontend that is used for the deployed pluginDefinition version.
+	UIApplication *UIApplicationReference `json:"uiApplication,omitempty"`
+
+	// Weight configures the order in which Plugins are shown in the Greenhouse UI.
+	Weight *int32 `json:"weight,omitempty"`
+
 	// Description provides additional details of the plugin.
 	Description string `json:"description,omitempty"`
 
-	// HelmChart specifies where the Helm Chart for this plugin can be found.
-	HelmChart *HelmChartReference `json:"helmChart,omitempty"`
+	// ExposedServices provides an overview of the Plugins services that are centrally exposed.
+	// It maps the exposed URL to the service found in the manifest.
+	ExposedServices map[string]Service `json:"exposedServices,omitempty"`
 
-	// UIApplication specifies a reference to a UI application
-	UIApplication *UIApplicationReference `json:"uiApplication,omitempty"`
-
-	// RequiredValues is a list of values required to create an instance of this Plugin.
-	Options []PluginOption `json:"options,omitempty"`
-
-	// Version of this plugin
-	Version string `json:"version"`
-
-	// Weight configures the order in which Plugins are shown in the Greenhouse UI.
-	// Defaults to alphabetical sorting if not provided or on conflict.
-	Weight *int32 `json:"weight,omitempty"`
+	// StatusConditions contain the different conditions that constitute the status of the Plugin.
+	StatusConditions `json:"statusConditions,omitempty"`
 }
 
-// PluginOptionType specifies the type of PluginOption.
-// +kubebuilder:validation:Enum=string;secret;bool;int;list;map
-type PluginOptionType string
-
-const (
-	// PluginOptionTypeString is a valid value for PluginOptionType.
-	PluginOptionTypeString PluginOptionType = "string"
-	// PluginOptionTypeSecret is a valid value for PluginOptionType.
-	PluginOptionTypeSecret PluginOptionType = "secret"
-	// PluginOptionTypeBool is a valid value for PluginOptionType.
-	PluginOptionTypeBool PluginOptionType = "bool"
-	// PluginOptionTypeInt is a valid value for PluginOptionType.
-	PluginOptionTypeInt PluginOptionType = "int"
-	// PluginOptionTypeList is a valid value for PluginOptionType.
-	PluginOptionTypeList PluginOptionType = "list"
-	// PluginOptionTypeMap is a valid value for PluginOptionType.
-	PluginOptionTypeMap PluginOptionType = "map"
-)
-
-type PluginOption struct {
-	// Name/Key of the config option.
+// Service references a Kubernetes service of a Plugin.
+type Service struct {
+	// Namespace is the namespace of the service in the target cluster.
+	Namespace string `json:"namespace"`
+	// Name is the name of the service in the target cluster.
 	Name string `json:"name"`
-
-	// Default provides a default value for the option
-	// +optional
-	Default *apiextensionsv1.JSON `json:"default,omitempty"`
-
-	// Description provides a human-readable text for the value as shown in the UI.
-	Description string `json:"description,omitempty"`
-
-	// DisplayName provides a human-readable label for the configuration option
-	DisplayName string `json:"displayName,omitempty"`
-
-	// Required indicates that this config option is required
-	Required bool `json:"required"`
-
-	// Type of this configuration option.
-	Type PluginOptionType `json:"type"`
-
-	// Regex specifies a match rule for validating configuration options.
-	Regex string `json:"regex,omitempty"`
+	// Port is the port of the service.
+	Port int32 `json:"port"`
+	// Protocol is the protocol of the service.
+	Protocol *string `json:"protocol,omitempty"`
 }
 
-// IsValid returns nil if the PluginOption is valid.
-// An error is returned for unknown types or if type and value of the option do not match.
-func (p *PluginOption) IsValid() error {
-	if p.Default == nil {
-		return nil
-	}
-	switch p.Type {
-	case PluginOptionTypeBool:
-		var b bool
-		return json.Unmarshal(p.Default.Raw, &b)
-	case PluginOptionTypeInt:
-		var i int
-		return json.Unmarshal(p.Default.Raw, &i)
-	case PluginOptionTypeString, PluginOptionTypeSecret:
-		var s string
-		return json.Unmarshal(p.Default.Raw, &s)
-	case PluginOptionTypeList:
-		var l []any
-		return json.Unmarshal(p.Default.Raw, &l)
-	case PluginOptionTypeMap:
-		var m map[string]any
-		return json.Unmarshal(p.Default.Raw, &m)
-	default:
-		return fmt.Errorf("unknown type %s", p.Type)
-	}
+// HelmReleaseStatus reflects the status of a Helm release.
+type HelmReleaseStatus struct {
+	// Status is the status of a HelmChart release.
+	Status string `json:"status"`
+	// FirstDeployed is the timestamp of the first deployment of the release.
+	FirstDeployed metav1.Time `json:"firstDeployed,omitempty"`
+	// LastDeployed is the timestamp of the last deployment of the release.
+	LastDeployed metav1.Time `json:"lastDeployed,omitempty"`
 }
-
-// IsValidValue returns nil if the given value is valid for this PluginOption.
-// An error is returned if val does not match the type of the PluginOption.
-func (p *PluginOption) IsValidValue(val *apiextensionsv1.JSON) error {
-	var actVal any
-	if err := json.Unmarshal(val.Raw, &actVal); err != nil {
-		return err
-	}
-	switch p.Type {
-	case PluginOptionTypeBool:
-		if _, ok := actVal.(bool); !ok {
-			return fmt.Errorf("option %s is a bool value, got %T", p.Name, actVal)
-		}
-	case PluginOptionTypeInt:
-		switch actVal.(type) {
-		case int, float64:
-			// json.Decoder unmarshals numbers as float64, so we need to check for float64 as well
-			// known Bug in k8s & helm: e.g. https://github.com/kubernetes-sigs/yaml/issues/45
-			return nil
-		default:
-			return fmt.Errorf("option %s is an int value, got %T", p.Name, actVal)
-		}
-	case PluginOptionTypeString:
-		if _, ok := actVal.(string); !ok {
-			return fmt.Errorf("option %s is a string value, got %T", p.Name, actVal)
-		}
-	case PluginOptionTypeList:
-		if _, ok := actVal.([]any); !ok {
-			return fmt.Errorf("option %s is a list value, got %T", p.Name, actVal)
-		}
-	case PluginOptionTypeMap:
-		if _, ok := actVal.(map[string]any); !ok {
-			return fmt.Errorf("option %s is a map value, got %T", p.Name, actVal)
-		}
-	case PluginOptionTypeSecret:
-		return fmt.Errorf("option %s is a secret value, that should be derived from a secret reference", p.Name)
-	default:
-		return fmt.Errorf("option %s has unknown type, got %T", p.Name, actVal)
-	}
-	return nil
-}
-
-// GetDefault returns the default value for this option.
-func (p *PluginOption) DefaultValue() (any, error) {
-	if p == nil {
-		return nil, nil
-	}
-	switch p.Type {
-	case PluginOptionTypeBool:
-		var b bool
-		if err := json.Unmarshal(p.Default.Raw, &b); err != nil {
-			return nil, err
-		}
-		return b, nil
-	case PluginOptionTypeInt:
-		var i int
-		if err := json.Unmarshal(p.Default.Raw, &i); err != nil {
-			return nil, err
-		}
-		return i, nil
-	case PluginOptionTypeSecret, PluginOptionTypeString:
-		var s string
-		if err := json.Unmarshal(p.Default.Raw, &s); err != nil {
-			return nil, err
-		}
-		return s, nil
-	case PluginOptionTypeList:
-		var l []any
-		if err := json.Unmarshal(p.Default.Raw, &l); err != nil {
-			return nil, err
-		}
-		return l, nil
-	default:
-		return nil, fmt.Errorf("unknown type %s", p.Type)
-	}
-}
-
-// PluginStatus defines the observed state of Plugin
-type PluginStatus struct{}
 
 //+kubebuilder:object:root=true
 //+kubebuilder:subresource:status
-//+kubebuilder:resource:scope=Cluster
-//+kubebuilder:printcolumn:name="Version",type=string,JSONPath=`.spec.version`
-//+kubebuilder:printcolumn:name="Description",type=string,JSONPath=`.spec.description`
-// +kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp"
+//+kubebuilder:printcolumn:name="Display name",type=string,JSONPath=`.spec.displayName`
+//+kubebuilder:printcolumn:name="PluginDefinition",type=string,JSONPath=`.spec.pluginDefinition`
+//+kubebuilder:printcolumn:name="Cluster",type=string,JSONPath=`.spec.clusterName`
+//+kubebuilder:printcolumn:name="Disabled",type=boolean,JSONPath=`.spec.disabled`
+//+kubebuilder:printcolumn:name="Ready",type="string",JSONPath=`.status.statusConditions.conditions[?(@.type == "Ready")].status`
+//+kubebuilder:printcolumn:name="Version",type=string,JSONPath=`.status.version`
+//+kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp"
 
 // Plugin is the Schema for the plugins API
 type Plugin struct {

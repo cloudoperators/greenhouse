@@ -23,14 +23,14 @@ import (
 	"github.com/cloudoperators/greenhouse/pkg/version"
 )
 
-// ServiceProxyReconciler reconciles a ServiceProxy PluginConfig for a Organization object
+// ServiceProxyReconciler reconciles a ServiceProxy Plugin for a Organization object
 type ServiceProxyReconciler struct {
 	client.Client
 	recorder record.EventRecorder
 }
 
 //+kubebuilder:rbac:groups=greenhouse.sap,resources=organizations,verbs=get;list;watch
-//+kubebuilder:rbac:groups=greenhouse.sap,resources=pluginconfigs,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups=greenhouse.sap,resources=plugins,verbs=get;list;watch;create;update;patch;delete
 
 // SetupWithManager sets up the controller with the Manager.
 func (r *ServiceProxyReconciler) SetupWithManager(name string, mgr ctrl.Manager) error {
@@ -39,7 +39,7 @@ func (r *ServiceProxyReconciler) SetupWithManager(name string, mgr ctrl.Manager)
 	return ctrl.NewControllerManagedBy(mgr).
 		Named(name).
 		For(&greenhousesapv1alpha1.Organization{}).
-		Owns(&greenhousesapv1alpha1.PluginConfig{}).
+		Owns(&greenhousesapv1alpha1.Plugin{}).
 		Complete(r)
 }
 
@@ -69,19 +69,19 @@ func (r *ServiceProxyReconciler) reconcileServiceProxy(ctx context.Context, org 
 		return fmt.Errorf("failed to marshal version.GitCommit: %w", err)
 	}
 
-	pluginConfig := &greenhousesapv1alpha1.PluginConfig{
+	plugin := &greenhousesapv1alpha1.Plugin{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "service-proxy",
 			Namespace: org.Name,
 		},
-		Spec: greenhousesapv1alpha1.PluginConfigSpec{
-			Plugin: "service-proxy",
+		Spec: greenhousesapv1alpha1.PluginSpec{
+			PluginDefinition: "service-proxy",
 		},
 	}
 
-	result, err := clientutil.CreateOrPatch(ctx, r.Client, pluginConfig, func() error {
-		pluginConfig.Spec.DisplayName = "Remote service proxy"
-		pluginConfig.Spec.OptionValues = []greenhousesapv1alpha1.PluginOptionValue{
+	result, err := clientutil.CreateOrPatch(ctx, r.Client, plugin, func() error {
+		plugin.Spec.DisplayName = "Remote service proxy"
+		plugin.Spec.OptionValues = []greenhousesapv1alpha1.PluginOptionValue{
 			{
 				Name:  "domain",
 				Value: &apiextensionsv1.JSON{Raw: domainJSON},
@@ -91,18 +91,18 @@ func (r *ServiceProxyReconciler) reconcileServiceProxy(ctx context.Context, org 
 				Value: &apiextensionsv1.JSON{Raw: versionJSON},
 			},
 		}
-		return controllerutil.SetControllerReference(org, pluginConfig, r.Scheme())
+		return controllerutil.SetControllerReference(org, plugin, r.Scheme())
 	})
 	if err != nil {
 		return err
 	}
 	switch result {
 	case clientutil.OperationResultCreated:
-		log.FromContext(ctx).Info("created service-proxy PluginConfig", "name", pluginConfig.Name)
-		r.recorder.Eventf(org, corev1.EventTypeNormal, "CreatedPluginConfig", "Created PluginConfig %s", pluginConfig.Name)
+		log.FromContext(ctx).Info("created service-proxy Plugin", "name", plugin.Name)
+		r.recorder.Eventf(org, corev1.EventTypeNormal, "CreatedPlugin", "Created Plugin %s", plugin.Name)
 	case clientutil.OperationResultUpdated:
-		log.FromContext(ctx).Info("updated service-proxy PluginConfig", "name", pluginConfig.Name)
-		r.recorder.Eventf(org, corev1.EventTypeNormal, "UpdatedPluginConfig", "Updated PluginConfig %s", pluginConfig.Name)
+		log.FromContext(ctx).Info("updated service-proxy Plugin", "name", plugin.Name)
+		r.recorder.Eventf(org, corev1.EventTypeNormal, "UpdatedPlugin", "Updated Plugin %s", plugin.Name)
 	}
 	return nil
 }

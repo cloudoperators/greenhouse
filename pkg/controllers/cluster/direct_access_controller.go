@@ -69,7 +69,7 @@ func (r *DirectAccessReconciler) Reconcile(ctx context.Context, req ctrl.Request
 
 	// Cleanup logic
 	if cluster.DeletionTimestamp != nil && controllerutil.ContainsFinalizer(cluster, greenhouseapis.FinalizerCleanupCluster) {
-		// TODO: Delete the plugins first then the rest of the resources.
+		// TODO: Delete the pluginDefinitions first then the rest of the resources.
 		var kubeConfigSecret = new(corev1.Secret)
 		if err := r.Client.Get(ctx, types.NamespacedName{Namespace: cluster.GetNamespace(), Name: cluster.GetSecretName()}, kubeConfigSecret); err != nil {
 			return ctrl.Result{}, err

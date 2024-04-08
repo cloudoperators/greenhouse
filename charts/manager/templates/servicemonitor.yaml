@@ -9,7 +9,7 @@ kind: ServiceMonitor
 metadata:
   name: {{ include "manager.fullname" . }}-controller-manager
   labels:
-    pluginconfig: kube-monitoring
+    plugin: kube-monitoring
 spec:
   endpoints:
     - honorLabels: true

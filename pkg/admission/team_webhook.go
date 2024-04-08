@@ -67,12 +67,12 @@ func ValidateDeleteTeam(_ context.Context, _ client.Client, _ runtime.Object) (a
 }
 
 func validateGreenhouseLabels(team *greenhousev1alpha1.Team, ctx context.Context, c client.Client) error {
-	plugins := greenhousev1alpha1.PluginList{}
-	if err := c.List(ctx, &plugins); !apierrors.IsNotFound(err) && err != nil {
+	pluginDefinitions := greenhousev1alpha1.PluginDefinitionList{}
+	if err := c.List(ctx, &pluginDefinitions); !apierrors.IsNotFound(err) && err != nil {
 		return err
 	}
-	for _, plugin := range plugins.Items {
-		labelsWhiteList[plugin.GetName()] = struct{}{}
+	for _, pluginDefinition := range pluginDefinitions.Items {
+		labelsWhiteList[pluginDefinition.GetName()] = struct{}{}
 	}
 
 	labels := team.GetLabels()
@@ -84,7 +84,7 @@ func validateGreenhouseLabels(team *greenhousev1alpha1.Team, ctx context.Context
 			if !ok {
 				return apierrors.NewInvalid(team.GroupVersionKind().GroupKind(), team.GetName(), field.ErrorList{
 					field.Forbidden(field.NewPath("metadata").Child("labels").Child(labelKey),
-						"Only plugin names as greenhouse labels allowed."),
+						"Only pluginDefinition names as greenhouse labels allowed."),
 				})
 			}
 		}
