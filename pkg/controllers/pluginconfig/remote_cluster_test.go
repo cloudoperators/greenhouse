@@ -12,6 +12,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
 
 	greenhouseapis "github.com/cloudoperators/greenhouse/pkg/apis"
@@ -125,6 +126,7 @@ var testClusterK8sSecret = corev1.Secret{
 var (
 	remoteKubeConfig []byte
 	remoteEnvTest    *envtest.Environment
+	remoteK8sClient  client.Client
 )
 
 var _ = Describe("Validate pluginConfig clusterName", Ordered, func() {
@@ -210,6 +212,26 @@ var _ = Describe("Validate pluginConfig clusterName", Ordered, func() {
 			return releases
 		}).Should(ContainElement(gstruct.PointTo(gstruct.MatchFields(gstruct.IgnoreExtras, gstruct.Fields{"Name": Equal("test-plugin")}))), "the helm release should be deployed to the remote cluster")
 
+		By("updating the pluginConfig")
+		_, err = clientutil.CreateOrPatch(test.Ctx, test.K8sClient, testPluginConfig, func() error {
+			// this value enables the template of another pod
+			testPluginConfig.Spec.OptionValues = append(testPluginConfig.Spec.OptionValues, greenhousev1alpha1.PluginOptionValue{Name: "enabled", Value: test.MustReturnJSONFor("true")})
+			return nil
+		})
+		Expect(err).ShouldNot(HaveOccurred(), "there should be no error updating the pluginConfig")
+		By("checking the resources deployed to the remote cluster")
+		Expect(err).ShouldNot(HaveOccurred(), "there should be no error creating the k8s client")
+		podID := types.NamespacedName{Name: "alpine-flag", Namespace: test.TestNamespace}
+		pod := &corev1.Pod{}
+		Eventually(func(g Gomega) bool {
+			err := remoteK8sClient.Get(test.Ctx, podID, pod)
+			if err != nil {
+				g.Expect(err).ShouldNot(HaveOccurred(), "there should be no error retrieving the pod")
+				return false
+			}
+			return true
+		}).Should(BeTrue(), "the pod should have been created on the remote cluster")
+
 		By("deleting the pluginConfig")
 		Expect(test.K8sClient.Delete(test.Ctx, testPluginConfig)).Should(Succeed(), "there should be no error deleting the pluginConfig")
 
@@ -236,9 +258,9 @@ var _ = Describe("Validate pluginConfig clusterName", Ordered, func() {
 		Expect(err).ShouldNot(HaveOccurred(), "there should be no error creating helm config")
 		listAction := action.NewList(helmConfig)
 
-		Eventually(func() []*release.Release {
+		Eventually(func(g Gomega) []*release.Release {
 			releases, err := listAction.Run()
-			Expect(err).ShouldNot(HaveOccurred(), "there should be no error listing helm releases")
+			g.Expect(err).ShouldNot(HaveOccurred(), "there should be no error listing helm releases")
 			return releases
 		}).Should(ContainElement(
 			gstruct.PointTo(
@@ -251,9 +273,9 @@ var _ = Describe("Validate pluginConfig clusterName", Ordered, func() {
 		Expect(test.K8sClient.Delete(test.Ctx, testPCwithSR)).Should(Succeed(), "there should be no error deleting the pluginConfig")
 
 		By("checking the helm releases deployed to the remote cluster")
-		Eventually(func() []*release.Release {
+		Eventually(func(g Gomega) []*release.Release {
 			releases, err := listAction.Run()
-			Expect(err).ShouldNot(HaveOccurred(), "there should be no error listing helm releases")
+			g.Expect(err).ShouldNot(HaveOccurred(), "there should be no error listing helm releases")
 			return releases
 		}).Should(BeEmpty(), "the helm release should be deleted from the remote cluster")
 	})
@@ -261,5 +283,5 @@ var _ = Describe("Validate pluginConfig clusterName", Ordered, func() {
 })
 
 func bootstrapRemoteCluster() {
-	_, _, remoteEnvTest, remoteKubeConfig = test.StartControlPlane("6885", false, false)
+	_, remoteK8sClient, remoteEnvTest, remoteKubeConfig = test.StartControlPlane("6885", false, false)
 }

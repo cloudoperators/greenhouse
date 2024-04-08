@@ -24,14 +24,16 @@ const PluginList = () => {
       columns={4}
       cellVerticalAlignment="top"
       className="plugins"
-      minContentColumns={[3]}
+      minContentColumns={[0]}
     >
       {pluginConfig && (
         <DataGridRow>
+          <DataGridHeadCell>
+            <Icon icon="monitorHeart" />
+          </DataGridHeadCell>
           <DataGridHeadCell>Name</DataGridHeadCell>
           <DataGridHeadCell>Cluster</DataGridHeadCell>
           <DataGridHeadCell>External Links</DataGridHeadCell>
-          <DataGridHeadCell>Ready</DataGridHeadCell>
         </DataGridRow>
       )}
       {pluginConfig?.length > 0 ? (

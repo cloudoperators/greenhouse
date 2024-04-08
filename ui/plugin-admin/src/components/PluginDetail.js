@@ -25,7 +25,9 @@ import {
   TabList,
   Tab,
   TabPanel,
+  Icon,
 } from "juno-ui-components"
+import { PluginConditionIcon } from "./PluginConditionIcon"
 
 // Renders the plugin details panel
 const PluginDetail = () => {
@@ -50,7 +52,12 @@ const PluginDetail = () => {
       opened={!!showDetailsFor}
       onClose={onPanelClose}
       size="large"
-      heading={plugin?.disabled ? plugin?.name + " DISABLED" : plugin?.name}
+      heading={
+        <Stack gap="2">
+          <PluginConditionIcon plugin={plugin} />
+          <span>{plugin?.name}</span>
+        </Stack>
+      }
     >
       <PanelBody>
         <Tabs>
@@ -107,6 +114,13 @@ const PluginDetail = () => {
                 </DataGridRow>
 
                 <DataGridRow>
+                  <DataGridHeadCell>Condition</DataGridHeadCell>
+                  <DataGridCell>
+                    <PluginConditionIcon plugin={plugin} />
+                  </DataGridCell>
+                </DataGridRow>
+
+                <DataGridRow>
                   <DataGridHeadCell>Conditions</DataGridHeadCell>
                   <DataGridCell>
                     <Stack gap="2" alignment="start" wrap={true}>
@@ -129,22 +143,14 @@ const PluginDetail = () => {
                   if (option?.name.startsWith("greenhouse.")) return null
 
                   return (
-                    <DataGridRow>
+                    <DataGridRow key={option?.name}>
                       <DataGridHeadCell style={{ overflowWrap: "break-word" }}>
                         {option?.name}
                       </DataGridHeadCell>
                       <DataGridCell>
-                        {typeof option.value != "undefined" &&
-                          (typeof option.value === "object" ? (
-                            Array.isArray(option.value) ? (
-                              <ol>
-                                {option?.value?.map((value, index) => {
-                                  return <li key={index}>{value}</li>
-                                })}
-                              </ol>
-                            ) : (
-                              <JsonViewer data={option?.value} />
-                            )
+                        {typeof option?.value != "undefined" &&
+                          (typeof option?.value === "object" ? (
+                            <JsonViewer data={option?.value} />
                           ) : (
                             String(option?.value)
                           ))}
