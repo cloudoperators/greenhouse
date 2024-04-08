@@ -291,17 +291,17 @@ var _ = Describe("Validate pluginConfig clusterName", Ordered, func() {
 
 	It("should reject the pluginConfig when the cluster with clusterName does not exist", func() {
 		By("creating the pluginConfig")
-		testPluginConfig.Spec.ClusterName = "non-existent-cluster"
-		err := test.K8sClient.Create(test.Ctx, testPluginConfig)
+		testPlugin.Spec.ClusterName = "non-existent-cluster"
+		err := test.K8sClient.Create(test.Ctx, testPlugin)
 		expectClusterNotFoundError(err)
 	})
 
 	It("should accept the pluginConfig when the cluster with clusterName exists", func() {
 		By("creating the pluginConfig")
 		//reset resourceVersion to avoid conflict, still using same struct
-		testPluginConfig.ResourceVersion = ""
-		testPluginConfig.Spec.ClusterName = "test-cluster"
-		err := test.K8sClient.Create(test.Ctx, testPluginConfig)
+		testPlugin.ResourceVersion = ""
+		testPlugin.Spec.ClusterName = "test-cluster"
+		err := test.K8sClient.Create(test.Ctx, testPlugin)
 		Expect(err).ToNot(HaveOccurred(), "there should be no error creating the pluginConfig")
 
 		By("checking the label on the plugin")
