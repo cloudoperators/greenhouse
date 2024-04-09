@@ -39,13 +39,13 @@ const AppContent = () => {
 
   const openOnBoardCluster = () => {
     setShowOnBoardCluster(true)
-    setShowClusterDetails(false)
+    setShowClusterDetails(undefined)
     setShowDownloadKubeConfig(false)
   }
 
   const openShowDownloadKubeConfig = () => {
     setShowOnBoardCluster(false)
-    setShowClusterDetails(false)
+    setShowClusterDetails(undefined)
     setShowDownloadKubeConfig(true)
   }
 
