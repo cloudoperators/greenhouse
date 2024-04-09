@@ -4,7 +4,6 @@ ENV ENVTEST_K8S_VERSION=1.24.1
 WORKDIR /workspace
 
 COPY . .
-RUN make generate-manifests
 
 # Build dev-env and setup-envtest
 RUN --mount=type=cache,target=/go/pkg/mod \
