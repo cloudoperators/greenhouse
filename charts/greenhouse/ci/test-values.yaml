@@ -34,4 +34,3 @@ alerts:
         severity: info
       editable_labels:
         - region
-
