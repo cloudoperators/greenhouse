@@ -25,3 +25,13 @@ alerts:
   ingress:
     host: topSecret!
   endpoint: topSecret!
+  silenceTemplates:
+    - status: active
+      title: Test
+      description: This a test silence template
+      fixed_labels:
+        service: limes
+        severity: info
+      editable_labels:
+        - region
+
