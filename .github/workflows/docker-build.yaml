@@ -98,6 +98,7 @@ jobs:
             type=ref,event=pr
             type=schedule
             type=raw,value=${{ github.sha }}
+            type=raw,value=${{ sha }}
             type=edge,branch=master
 
       # Build and push Docker image with Buildx (don't push on PR)
