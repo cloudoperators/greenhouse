@@ -37,7 +37,7 @@ const ClusterDetail: React.FC<any> = () => {
   }, [clusterDetails.cluster?.metadata?.creationTimestamp])
 
   const onPanelClose = () => {
-    setShowClusterDetails(undefined)
+    setShowClusterDetails(false)
   }
 
   return (
