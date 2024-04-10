@@ -97,7 +97,7 @@ alerts:
     - pod
     - pod_name
     - instance
-  silenceTemplates:
+  silenceTemplates: []
 
   # Alertmanager options.
   alertmanager:
