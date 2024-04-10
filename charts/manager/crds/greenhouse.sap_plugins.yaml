@@ -112,6 +112,11 @@ spec:
                 description: PluginDefinition is the name of the PluginDefinition
                   this instance is for.
                 type: string
+              releaseNamespace:
+                description: ReleaseNamespace is the namespace in the remote cluster
+                  to which the backend is deployed. Defaults to the Greenhouse managed
+                  namespace if not set.
+                type: string
             required:
             - disabled
             - pluginDefinition
