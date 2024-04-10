@@ -1,5 +1,5 @@
 /*
- * SPDX-FileCopyrightText: 2024-2026 SAP SE or an SAP affiliate company and Greenhouse contributors
+ * SPDX-FileCopyrightText: 2024 SAP SE or an SAP affiliate company and Greenhouse contributors
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -9,22 +9,22 @@ import {
   DataGridHeadCell,
   DataGridRow,
   Stack,
-} from "juno-ui-components";
-import React from "react";
-import { PluginConfig } from "../types/types";
+} from "juno-ui-components"
+import React from "react"
+import { PluginConfig } from "../types/types"
 
 interface PluginConfigListProps {
-  pluginConfigs: PluginConfig[];
+  pluginConfigs: PluginConfig[]
 }
 
 const PluginConfigList: React.FC<PluginConfigListProps> = (
   props: PluginConfigListProps
 ) => {
-  let pluginConfigNames = "";
+  let pluginConfigNames = ""
 
   props.pluginConfigs.map((pluginConfig: any) => {
-    pluginConfigNames += pluginConfig.metadata.name + ", ";
-  });
+    pluginConfigNames += pluginConfig.metadata.name + ", "
+  })
   return (
     props.pluginConfigs.length > 0 && (
       <DataGridRow>
@@ -46,13 +46,13 @@ const PluginConfigList: React.FC<PluginConfigListProps> = (
                 >
                   {pluginConfig.metadata.name}
                 </Button>
-              );
+              )
             })}
           </Stack>
         </DataGridCell>
       </DataGridRow>
     )
-  );
-};
+  )
+}
 
-export default PluginConfigList;
+export default PluginConfigList
