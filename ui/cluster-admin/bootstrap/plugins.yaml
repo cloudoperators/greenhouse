@@ -2,54 +2,54 @@
 # SPDX-License-Identifier: Apache-2.0
 
 apiVersion: greenhouse.sap/v1alpha1
-kind: PluginConfig
+kind: Plugin
 metadata:
-  name: test-pluginconfig-cluster-1
+  name: test-plugin-cluster-1
   namespace: test-org
 spec:
-  plugin: test-plugin
+  pluginDefinition: test-plugin
   disabled: false
   clusterName: "cluster-1"
 ---
 apiVersion: greenhouse.sap/v1alpha1
-kind: PluginConfig
+kind: Plugin
 metadata:
-  name: test-pluginconfig-cluster-2
+  name: test-plugin-cluster-2
   namespace: test-org
 spec:
-  plugin: test-plugin
+  pluginDefinition: test-plugin
   disabled: false
   clusterName: "cluster-2"
 
 ---
 apiVersion: greenhouse.sap/v1alpha1
-kind: PluginConfig
+kind: Plugin
 metadata:
-  name: test-pluginconfig-2-cluster-2
+  name: test-plugin-2-cluster-2
   namespace: test-org
 spec:
-  plugin: test-plugin-2
+  pluginDefinition: test-plugin-2
   disabled: false
   clusterName: "cluster-2"
 
 ---
 apiVersion: greenhouse.sap/v1alpha1
-kind: PluginConfig
+kind: Plugin
 metadata:
-  name: test-pluginconfig-cluster-3
+  name: test-plugin-cluster-3
   namespace: test-org
 spec:
-  plugin: test-plugin
+  pluginDefinition: test-plugin
   disabled: false
   clusterName: "cluster-3"
 
 ---
 apiVersion: greenhouse.sap/v1alpha1
-kind: PluginConfig
+kind: Plugin
 metadata:
-  name: test-pluginconfig-2-cluster-3
+  name: test-plugin-2-cluster-3
   namespace: test-org
 spec:
-  plugin: test-plugin-2
+  pluginDefinition: test-plugin-2
   disabled: false
   clusterName: "cluster-3"

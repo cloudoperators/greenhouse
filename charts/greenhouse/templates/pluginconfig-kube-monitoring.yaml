@@ -5,13 +5,13 @@ SPDX-License-Identifier: Apache-2.0
 
 {{- if .Values.monitoring.enabled }}
 apiVersion: greenhouse.sap/v1alpha1
-kind: PluginConfig
+kind: Plugin
 metadata:
   name: kube-monitoring
   namespace: {{ .Chart.Name }}
 spec:
   disabled: false
-  plugin: kube-monitoring
+  pluginDefinition: kube-monitoring
   optionValues:
   - name: kubeMonitoring.prometheus.prometheusSpec.externalLabels
     value:

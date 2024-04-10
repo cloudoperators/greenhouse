@@ -12,13 +12,13 @@ import (
 	"github.com/cloudoperators/greenhouse/pkg/test"
 )
 
-var _ = Describe("Validate Plugin against PluginConfig ", func() {
-	plugin := &greenhousev1alpha1.Plugin{
+var _ = Describe("Validate PluginDefinition against Plugin ", func() {
+	pluginDefinition := &greenhousev1alpha1.PluginDefinition{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: "greenhouse",
 			Name:      "testPlugin",
 		},
-		Spec: greenhousev1alpha1.PluginSpec{
+		Spec: greenhousev1alpha1.PluginDefinitionSpec{
 			Options: []greenhousev1alpha1.PluginOption{
 				{
 					Name:    "stringWithDefault",
@@ -38,24 +38,24 @@ var _ = Describe("Validate Plugin against PluginConfig ", func() {
 		},
 	}
 
-	When("pluginConfig is missing required OptionValues", func() {
+	When("plugin is missing required OptionValues", func() {
 		It("should raise an validation error", func() {
-			pluginConfig := &greenhousev1alpha1.PluginConfig{
-				Spec: greenhousev1alpha1.PluginConfigSpec{
-					Plugin:       "testPlugin",
-					OptionValues: []greenhousev1alpha1.PluginOptionValue{},
+			plugin := &greenhousev1alpha1.Plugin{
+				Spec: greenhousev1alpha1.PluginSpec{
+					PluginDefinition: "testPlugin",
+					OptionValues:     []greenhousev1alpha1.PluginOptionValue{},
 				},
 			}
-			err := validateOptions(plugin, pluginConfig)
+			err := validateOptions(pluginDefinition, plugin)
 			Expect(err).To(HaveOccurred(), "expected an error, got nil")
 		})
 	})
 
-	When("pluginConfig has OptionValues for all required Options", func() {
+	When("plugin has OptionValues for all required Options", func() {
 		It("should not return an error", func() {
-			pluginConfig := &greenhousev1alpha1.PluginConfig{
-				Spec: greenhousev1alpha1.PluginConfigSpec{
-					Plugin: "testPlugin",
+			plugin := &greenhousev1alpha1.Plugin{
+				Spec: greenhousev1alpha1.PluginSpec{
+					PluginDefinition: "testPlugin",
 					OptionValues: []greenhousev1alpha1.PluginOptionValue{
 						{
 							Name:  "stringRequired",
@@ -64,16 +64,16 @@ var _ = Describe("Validate Plugin against PluginConfig ", func() {
 					},
 				},
 			}
-			err := validateOptions(plugin, pluginConfig)
+			err := validateOptions(pluginDefinition, plugin)
 			Expect(err).NotTo(HaveOccurred(), "expected no error, got ", err)
 		})
 	})
 
-	When("pluginConfig has OptionValues with wrong types", func() {
+	When("plugin has OptionValues with wrong types", func() {
 		It("should raise an validation error", func() {
-			pluginConfig := &greenhousev1alpha1.PluginConfig{
-				Spec: greenhousev1alpha1.PluginConfigSpec{
-					Plugin: "testPlugin",
+			plugin := &greenhousev1alpha1.Plugin{
+				Spec: greenhousev1alpha1.PluginSpec{
+					PluginDefinition: "testPlugin",
 					OptionValues: []greenhousev1alpha1.PluginOptionValue{
 						{
 							Name:  "stringRequired",
@@ -82,16 +82,16 @@ var _ = Describe("Validate Plugin against PluginConfig ", func() {
 					},
 				},
 			}
-			err := validateOptions(plugin, pluginConfig)
+			err := validateOptions(pluginDefinition, plugin)
 			Expect(err).To(HaveOccurred(), "expected an error, got nil")
 		})
 	})
 
-	When("pluginConfig has OptionValues with type secret", func() {
+	When("plugin has OptionValues with type secret", func() {
 		It("should raise an validation error if there is no secret reference", func() {
-			pluginConfig := &greenhousev1alpha1.PluginConfig{
-				Spec: greenhousev1alpha1.PluginConfigSpec{
-					Plugin: "testPlugin",
+			plugin := &greenhousev1alpha1.Plugin{
+				Spec: greenhousev1alpha1.PluginSpec{
+					PluginDefinition: "testPlugin",
 					OptionValues: []greenhousev1alpha1.PluginOptionValue{
 						{
 							Name:  "secret",
@@ -100,13 +100,13 @@ var _ = Describe("Validate Plugin against PluginConfig ", func() {
 					},
 				},
 			}
-			err := validateOptions(plugin, pluginConfig)
+			err := validateOptions(pluginDefinition, plugin)
 			Expect(err).To(HaveOccurred(), "expected an error, got nil")
 		})
 		It("should reference a secret", func() {
-			pluginConfig := &greenhousev1alpha1.PluginConfig{
-				Spec: greenhousev1alpha1.PluginConfigSpec{
-					Plugin: "testPlugin",
+			plugin := &greenhousev1alpha1.Plugin{
+				Spec: greenhousev1alpha1.PluginSpec{
+					PluginDefinition: "testPlugin",
 					OptionValues: []greenhousev1alpha1.PluginOptionValue{
 						{
 							Name: "secret",
@@ -120,7 +120,7 @@ var _ = Describe("Validate Plugin against PluginConfig ", func() {
 					},
 				},
 			}
-			err := validateOptions(plugin, pluginConfig)
+			err := validateOptions(pluginDefinition, plugin)
 			Expect(err).To(HaveOccurred(), "expected an error, got nil")
 		})
 	})

@@ -26,8 +26,8 @@ const useUrlState = (key: string): void => {
   const setShowOnboardCluster = useStore((state) => state.setShowOnBoardCluster)
   const clusterDetails = useStore((state) => state.clusterDetails)
   const setClusterDetails = useStore((state) => state.setClusterDetails)
-  const setClusterDetailPluginConfigs = useStore(
-    (state) => state.setClusterDetailPluginConfigs
+  const setClusterDetailPlugins = useStore(
+    (state) => state.setClusterDetailPlugins
   )
 
   // Set initial state from URL (on login)
@@ -54,7 +54,7 @@ const useUrlState = (key: string): void => {
     if (newShowOnboardCluster) setShowOnboardCluster(newShowOnboardCluster)
     if (newClusterDetail) {
       setClusterDetails(newClusterDetail.cluster)
-      setClusterDetailPluginConfigs(newClusterDetail.pluginConfigs)
+      setClusterDetailPlugins(newClusterDetail.plugins)
     }
     setIsURLRead(true)
   }, [

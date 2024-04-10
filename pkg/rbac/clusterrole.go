@@ -34,11 +34,11 @@ func OrganizationMemberClusterRolePolicyRules(organizationName string) []rbacv1.
 			Resources:     []string{"organizations"},
 			ResourceNames: []string{organizationName},
 		},
-		// Grant read permissions for Plugins.
+		// Grant read permissions for PluginDefinitions.
 		{
 			Verbs:     []string{"get", "list", "watch"},
 			APIGroups: []string{greenhouseapisv1alpha1.GroupVersion.Group},
-			Resources: []string{"plugins"},
+			Resources: []string{"plugindefinitions"},
 		},
 	}
 }

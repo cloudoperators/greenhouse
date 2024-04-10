@@ -15,13 +15,13 @@ import (
 // OrganizationAdminPolicyRules returns the namespace-scoped PolicyRules for an organization admin.
 func OrganizationAdminPolicyRules() []rbacv1.PolicyRule {
 	orgAdminPolicyRules := []rbacv1.PolicyRule{
-		// Grant read permissions for Clusters, PluginConfigs to organization admins.
+		// Grant read permissions for Clusters, Plugins to organization admins.
 		{
 			Verbs:     []string{"get", "list", "watch", "update", "patch", "delete", "create"},
 			APIGroups: []string{greenhouseapisv1alpha1.GroupVersion.Group},
 			Resources: []string{"teams", "teammemberships"},
 		},
-		// Grant permissions for secrets referenced by other resources, e.g. PluginConfigs for storing sensitive values.
+		// Grant permissions for secrets referenced by other resources, e.g. Plugins for storing sensitive values.
 		// Retrieving these secrets is not permitted to the user.
 		{
 			Verbs:     []string{"create", "update", "patch"},
@@ -55,7 +55,7 @@ func OrganizationClusterAdminPolicyRules() []rbacv1.PolicyRule {
 			APIGroups: []string{greenhouseapisv1alpha1.GroupVersion.Group},
 			Resources: []string{"clusters"},
 		},
-		// Grant permissions for secrets referenced by other resources, e.g. PluginConfigs for storing sensitive values.
+		// Grant permissions for secrets referenced by other resources, e.g. Plugins for storing sensitive values.
 		// Retrieving these secrets is not permitted to the user.
 		{
 			Verbs:     []string{"create", "update", "patch"},
@@ -75,13 +75,13 @@ func OrganizationClusterAdminPolicyRules() []rbacv1.PolicyRule {
 // OrganizationPluginAdminPolicyRules returns the namespace-scoped PolicyRules for an organization plugin admin.
 func OrganizationPluginAdminPolicyRules() []rbacv1.PolicyRule {
 	policyRules := []rbacv1.PolicyRule{
-		// Grant read permissions for Plugins to organization cluster admins.
+		// Grant read permissions for PluginDefinitions to organization cluster admins.
 		{
 			Verbs:     []string{"get", "list", "watch", "update", "patch", "delete", "create"},
 			APIGroups: []string{greenhouseapisv1alpha1.GroupVersion.Group},
-			Resources: []string{"pluginconfigs"},
+			Resources: []string{"plugins"},
 		},
-		// Grant permissions for secrets referenced by other resources, e.g. PluginConfigs for storing sensitive values.
+		// Grant permissions for secrets referenced by other resources, e.g. Plugins for storing sensitive values.
 		// Retrieving these secrets is not permitted to the user.
 		{
 			Verbs:     []string{"create", "update", "patch"},
@@ -95,11 +95,11 @@ func OrganizationPluginAdminPolicyRules() []rbacv1.PolicyRule {
 // OrganizationMemberPolicyRules returns the namespace-scoped PolicyRules for an organization member.
 func OrganizationMemberPolicyRules() []rbacv1.PolicyRule {
 	return []rbacv1.PolicyRule{
-		// Grant read permissions for Clusters, PluginConfigs, Teams, TeamMemberships to organization members.
+		// Grant read permissions for Clusters, Plugins, Teams, TeamMemberships to organization members.
 		{
 			Verbs:     []string{"get", "list", "watch"},
 			APIGroups: []string{greenhouseapisv1alpha1.GroupVersion.Group},
-			Resources: []string{"clusters", "pluginconfigs", "teams", "teammemberships"},
+			Resources: []string{"clusters", "plugins", "teams", "teammemberships"},
 		},
 	}
 }

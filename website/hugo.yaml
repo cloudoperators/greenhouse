@@ -42,7 +42,7 @@ menu:
      url: "https://dashboard.greenhouse.global.cloud.sap"
      pre: "<i class='fa-solid fa-cloud'></i>"
      weight: 1
-   - name: "Plugins"
+   - name: "PluginDefinitions"
      pre: "<i class='fab fa-github'></i>"
      url: "https://github.com/cloudoperators/greenhouse"
      weight: 0

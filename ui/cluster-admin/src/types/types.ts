@@ -6,7 +6,7 @@
 import { components } from "./schema"
 
 export type Cluster = components["schemas"]["Cluster"]
-export type PluginConfig = components["schemas"]["PluginConfig"]
+export type Plugin = components["schemas"]["Plugin"]
 export type UpdateClusterInput = {
   clusters: Cluster[]
   action: UpdateClusterAction

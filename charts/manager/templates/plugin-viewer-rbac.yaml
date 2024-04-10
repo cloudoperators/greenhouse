@@ -6,7 +6,7 @@ SPDX-License-Identifier: Apache-2.0
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
-  name: {{ include "manager.fullname" . }}-plugin-viewer-role
+  name: {{ include "manager.fullname" . }}-plugindefinition-viewer-role
   namespace: greenhouse
   labels:
     app.kubernetes.io/component: rbac
@@ -18,7 +18,7 @@ rules:
 - apiGroups:
   - greenhouse.sap
   resources:
-  - plugins
+  - plugindefinitions
   verbs:
   - get
   - list
@@ -26,6 +26,6 @@ rules:
 - apiGroups:
   - greenhouse.sap
   resources:
-  - plugins/status
+  - plugindefinitions/status
   verbs:
   - get

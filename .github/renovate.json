@@ -14,7 +14,8 @@
       "matchUpdateTypes": ["major", "minor"],
       "extends": [
         "helpers:pinGitHubActionDigests"
-      ]
+      ],
+      "minimumReleaseAge": "14 days"
     },
     {
       "groupName": "npm dependencies",
@@ -64,7 +65,8 @@
         "k8s.io/sample-cli-plugin",
         "k8s.io/sample-controller",
         "sigs.k8s.io/controller-runtime"
-      ]
+      ],
+      "minimumReleaseAge": "14 days"
     }
   ],
   "postUpdateOptions": [

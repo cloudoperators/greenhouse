@@ -17,7 +17,7 @@ import {
 import React, { useMemo } from "react"
 import humanizedTimePeriodToNow from "../lib/utils/humanizedTimePeriodToNow"
 import useStore from "../store"
-import ClusterPluginConfigList from "./ClusterPluginConfigList"
+import ClusterPluginList from "./ClusterPluginList"
 import ConditionList from "./ConditionList"
 import NodeList from "./NodeList"
 import ResourceStatusIcon from "./ResourceStatusIcon"
@@ -99,6 +99,7 @@ const ClusterDetail: React.FC<any> = () => {
                           clusterDetails.cluster?.metadata?.labels![labelKey]
                         return (
                           <Pill
+                            key={labelKey}
                             pillKeyLabel={labelKey}
                             pillKey={labelKey}
                             pillKeyValue={labelValue}
@@ -123,10 +124,8 @@ const ClusterDetail: React.FC<any> = () => {
                   </DataGridCell>
                 </DataGridRow>
               )}
-              {clusterDetails.pluginConfigs && (
-                <ClusterPluginConfigList
-                  pluginConfigs={clusterDetails.pluginConfigs}
-                />
+              {clusterDetails.plugins && (
+                <ClusterPluginList plugins={clusterDetails.plugins} />
               )}
             </DataGrid>
 

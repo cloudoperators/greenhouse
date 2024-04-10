@@ -92,7 +92,7 @@ func TestRewrite(t *testing.T) {
 
 // TestReconcile tests the reconcile function of the proxy manager.
 // It injects a client from  sigs.k8s.io/controller-runtime/pkg/client/fake into the proxy manager and
-// sets up a cluster and a pluginconfig with an exposed service in the fake client.
+// sets up a cluster and a plugin with an exposed service in the fake client.
 // The test checks if the route is properly added to the cluster.
 func TestReconcile(t *testing.T) {
 	scheme := runtime.NewScheme()
@@ -101,15 +101,15 @@ func TestReconcile(t *testing.T) {
 
 	pm := NewProxyManager()
 	pm.client = fake.NewClientBuilder().WithScheme(scheme).WithObjects(
-		&greenhousev1alpha1.PluginConfig{
+		&greenhousev1alpha1.Plugin{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "plugin1",
 				Namespace: "namespace",
 			},
-			Spec: greenhousev1alpha1.PluginConfigSpec{
+			Spec: greenhousev1alpha1.PluginSpec{
 				ClusterName: "cluster",
 			},
-			Status: greenhousev1alpha1.PluginConfigStatus{
+			Status: greenhousev1alpha1.PluginStatus{
 				ExposedServices: map[string]greenhousev1alpha1.Service{
 					"https://service--namespace--cluster.org.basedomain": {
 						Namespace: "namespace",

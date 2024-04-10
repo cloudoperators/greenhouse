@@ -7,22 +7,23 @@ description: >
 
 ## Before you begin
 
-This guides describes how to explore the catalog of Greenhouse plugins. 
+This guides describes how to explore the catalog of Greenhouse _PluginDefinitions_.
 
-While all members of an organization can see the plugin catalog, enabling, disabling and configuration plugins for an organization requires **organization admin privileges**. 
+While all members of an organization can see the plugin catalog, enabling, disabling and configuration _PluginDefinitions_ for an organization requires **organization admin privileges**.
 
-## Exploring the plugin catalog
+## Exploring the _PluginDefinition_ catalog
 
-The plugin resource describes the backend and frontend components as well as mandatory configuration options of a Greenhouse extension.  
-While the plugin catalog is managed by the Greenhouse administrators and the respective domain experts, administrators of an organization can configure and tailor plugins to their specific requirements.
+The _PluginDefinition_ resource describes the backend and frontend components as well as mandatory configuration options of a Greenhouse extension.  
+While the plugindefinition catalog is managed by the Greenhouse administrators and the respective domain experts, administrators of an organization can configure and tailor plugins to their specific requirements.
 
-```
+```text
 NOTE: The UI is currently in development. For now this guides describes workflow via command line.
 ```
 
-1. Run the following command to see all available plugins.
-   ```
-   $ kubectl get plugin
+1. Run the following command to see all available _PluginDefinitions_.
+
+   ```bash
+   $ kubectl get plugindefinition
    
    NAME                      VERSION   DESCRIPTION                                                                                                  AGE
    cert-manager              1.1.0     Automated certificate management in Kubernetes                                                               182d

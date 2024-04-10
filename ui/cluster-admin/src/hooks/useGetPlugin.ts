@@ -4,28 +4,28 @@
  */
 
 import { useCallback } from "react"
-import { Cluster, PluginConfig } from "../types/types"
+import { Cluster, Plugin } from "../types/types"
 import useClient from "./useClient"
 import useNamespace from "./useNamespace"
 
-export const useGetPluginConfigs = () => {
+export const useGetPlugins = () => {
   const { namespace } = useNamespace()
   const { client: client } = useClient()
-  const getPluginConfigsforCluster = useCallback(
-    async (cluster: Cluster): Promise<PluginConfig[]> => {
-      let pluginConfigs: PluginConfig[] = []
+  const getPluginsforCluster = useCallback(
+    async (cluster: Cluster): Promise<Plugin[]> => {
+      let plugins: Plugin[] = []
       const greenhouseClusterLabelKey = "greenhouse.sap/cluster"
 
       if (!client || !namespace || !cluster?.metadata?.namespace) {
-        return pluginConfigs
+        return plugins
       }
       const labelselector = `${greenhouseClusterLabelKey}=${
         cluster.metadata!.name
       }`
 
-      pluginConfigs = await client
+      plugins = await client
         .get(
-          `/apis/greenhouse.sap/v1alpha1/namespaces/${namespace}/pluginconfigs`,
+          `/apis/greenhouse.sap/v1alpha1/namespaces/${namespace}/plugins`,
           {
             params: {
               labelSelector: labelselector,
@@ -33,23 +33,23 @@ export const useGetPluginConfigs = () => {
           }
         )
         .then((res) => {
-          if (res.kind !== "PluginConfigList") {
+          if (res.kind !== "PluginList") {
             console.log(
-              "ERROR: Failed to get PluginConfigs for cluster, did not get PluginConfigList"
+              "ERROR: Failed to get Plugins for cluster, did not get PluginList"
             )
-            return [] as PluginConfig[]
+            return [] as Plugin[]
           }
-          return res.items as PluginConfig[]
+          return res.items as Plugin[]
         })
 
-      return pluginConfigs
+      return plugins
     },
     [client, namespace]
   )
 
   return {
-    getPluginConfigsforCluster: getPluginConfigsforCluster,
+    getPluginsforCluster: getPluginsforCluster,
   }
 }
 
-export default useGetPluginConfigs
+export default useGetPlugins

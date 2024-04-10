@@ -24,7 +24,7 @@ const ConditionList: React.FC<ConditionPillListProps> = (
     <Stack gap="2" alignment="start" wrap={true}>
       {props.conditionArray.map((condition: KubernetesCondition) => {
         return (
-          <Tooltip triggerEvent="hover">
+          <Tooltip triggerEvent="hover" key={condition.type}>
             <TooltipTrigger>
               <Pill
                 pillKeyLabel={condition.type}

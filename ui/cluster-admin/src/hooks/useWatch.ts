@@ -5,7 +5,7 @@
 
 import { useCallback } from "react"
 import useStore from "../store"
-import { Cluster, PluginConfig, UpdateClusterAction } from "../types/types"
+import { Cluster, UpdateClusterAction } from "../types/types"
 import useClient from "./useClient"
 import useNamespace from "./useNamespace"
 

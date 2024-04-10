@@ -15,14 +15,26 @@ spec:
     listKind: PluginList
     plural: plugins
     singular: plugin
-  scope: Cluster
+  scope: Namespaced
   versions:
   - additionalPrinterColumns:
-    - jsonPath: .spec.version
-      name: Version
+    - jsonPath: .spec.displayName
+      name: Display name
       type: string
-    - jsonPath: .spec.description
-      name: Description
+    - jsonPath: .spec.pluginDefinition
+      name: PluginDefinition
+      type: string
+    - jsonPath: .spec.clusterName
+      name: Cluster
+      type: string
+    - jsonPath: .spec.disabled
+      name: Disabled
+      type: boolean
+    - jsonPath: .status.statusConditions.conditions[?(@.type == "Ready")].status
+      name: Ready
+      type: string
+    - jsonPath: .status.version
+      name: Version
       type: string
     - jsonPath: .metadata.creationTimestamp
       name: Age
@@ -47,19 +59,99 @@ spec:
           spec:
             description: PluginSpec defines the desired state of Plugin
             properties:
+              clusterName:
+                description: ClusterName is the name of the cluster the plugin is
+                  deployed to. If not set, the plugin is deployed to the greenhouse
+                  cluster.
+                type: string
+              disabled:
+                description: Disabled indicates that the plugin is administratively
+                  disabled.
+                type: boolean
+              displayName:
+                description: DisplayName is an optional name for the Plugin to be
+                  displayed in the Greenhouse UI. This is especially helpful to distinguish
+                  multiple instances of a PluginDefinition in the same context. Defaults
+                  to a normalized version of metadata.name.
+                type: string
+              optionValues:
+                description: Values are the values for a PluginDefinition instance.
+                items:
+                  description: PluginOptionValue is the value for a PluginOption.
+                  properties:
+                    name:
+                      description: Name of the values.
+                      type: string
+                    value:
+                      description: Value is the actual value in plain text.
+                      x-kubernetes-preserve-unknown-fields: true
+                    valueFrom:
+                      description: ValueFrom references a potentially confidential
+                        value in another source.
+                      properties:
+                        secret:
+                          description: Secret references the secret containing the
+                            value.
+                          properties:
+                            key:
+                              description: Key in the secret to select the value from.
+                              type: string
+                            name:
+                              description: Name of the secret in the same namespace.
+                              type: string
+                          required:
+                          - key
+                          - name
+                          type: object
+                      type: object
+                  required:
+                  - name
+                  type: object
+                type: array
+              pluginDefinition:
+                description: PluginDefinition is the name of the PluginDefinition
+                  this instance is for.
+                type: string
+            required:
+            - disabled
+            - pluginDefinition
+            type: object
+          status:
+            description: PluginStatus defines the observed state of Plugin
+            properties:
               description:
                 description: Description provides additional details of the plugin.
                 type: string
-              displayName:
-                description: DisplayName provides a human-readable label for the plugin
-                type: string
-              docMarkDownUrl:
-                description: DocMarkDownUrl specifies the URL to the markdown documentation
-                  file for this plugin. Source needs to allow all CORS origins.
-                type: string
+              exposedServices:
+                additionalProperties:
+                  description: Service references a Kubernetes service of a Plugin.
+                  properties:
+                    name:
+                      description: Name is the name of the service in the target cluster.
+                      type: string
+                    namespace:
+                      description: Namespace is the namespace of the service in the
+                        target cluster.
+                      type: string
+                    port:
+                      description: Port is the port of the service.
+                      format: int32
+                      type: integer
+                    protocol:
+                      description: Protocol is the protocol of the service.
+                      type: string
+                  required:
+                  - name
+                  - namespace
+                  - port
+                  type: object
+                description: ExposedServices provides an overview of the Plugins services
+                  that are centrally exposed. It maps the exposed URL to the service
+                  found in the manifest.
+                type: object
               helmChart:
-                description: HelmChart specifies where the Helm Chart for this plugin
-                  can be found.
+                description: HelmChart contains a reference the helm chart used for
+                  the deployed pluginDefinition version.
                 properties:
                   name:
                     description: Name of the HelmChart chart.
@@ -75,57 +167,68 @@ spec:
                 - repository
                 - version
                 type: object
-              icon:
-                description: 'Icon specifies the icon to be used for this plugin in
-                  the Greenhouse UI. Icons can be either: - A string representing
-                  a juno icon in camel case from this list: https://github.com/sapcc/juno/blob/main/libs/juno-ui-components/src/components/Icon/Icon.component.js#L6-L52
-                  - A publicly accessable image reference to a .png, .jpg or .jpeg
-                  file. Will be displayed 100x100px'
-                type: string
-              options:
-                description: RequiredValues is a list of values required to create
-                  an instance of this Plugin.
-                items:
-                  properties:
-                    default:
-                      description: Default provides a default value for the option
-                      x-kubernetes-preserve-unknown-fields: true
-                    description:
-                      description: Description provides a human-readable text for
-                        the value as shown in the UI.
-                      type: string
-                    displayName:
-                      description: DisplayName provides a human-readable label for
-                        the configuration option
-                      type: string
-                    name:
-                      description: Name/Key of the config option.
-                      type: string
-                    regex:
-                      description: Regex specifies a match rule for validating configuration
-                        options.
-                      type: string
-                    required:
-                      description: Required indicates that this config option is required
-                      type: boolean
-                    type:
-                      description: Type of this configuration option.
-                      enum:
-                      - string
-                      - secret
-                      - bool
-                      - int
-                      - list
-                      - map
-                      type: string
-                  required:
-                  - name
-                  - required
-                  - type
-                  type: object
-                type: array
+              helmReleaseStatus:
+                description: HelmReleaseStatus reflects the status of the latest HelmChart
+                  release. This is only configured if the pluginDefinition is backed
+                  by HelmChart.
+                properties:
+                  firstDeployed:
+                    description: FirstDeployed is the timestamp of the first deployment
+                      of the release.
+                    format: date-time
+                    type: string
+                  lastDeployed:
+                    description: LastDeployed is the timestamp of the last deployment
+                      of the release.
+                    format: date-time
+                    type: string
+                  status:
+                    description: Status is the status of a HelmChart release.
+                    type: string
+                required:
+                - status
+                type: object
+              statusConditions:
+                description: StatusConditions contain the different conditions that
+                  constitute the status of the Plugin.
+                properties:
+                  conditions:
+                    items:
+                      description: Condition contains additional information on the
+                        state of a resource.
+                      properties:
+                        lastTransitionTime:
+                          description: LastTransitionTime is the last time the condition
+                            transitioned from one status to another.
+                          format: date-time
+                          type: string
+                        message:
+                          description: Message is an optional human readable message
+                            indicating details about the last transition.
+                          type: string
+                        reason:
+                          description: Reason is a one-word, CamelCase reason for
+                            the condition's last transition.
+                          type: string
+                        status:
+                          description: Status of the condition.
+                          type: string
+                        type:
+                          description: Type of the condition.
+                          type: string
+                      required:
+                      - lastTransitionTime
+                      - status
+                      - type
+                      type: object
+                    type: array
+                    x-kubernetes-list-map-keys:
+                    - type
+                    x-kubernetes-list-type: map
+                type: object
               uiApplication:
-                description: UIApplication specifies a reference to a UI application
+                description: UIApplication contains a reference to the frontend that
+                  is used for the deployed pluginDefinition version.
                 properties:
                   name:
                     description: Name of the UI application.
@@ -143,19 +246,14 @@ spec:
                 - version
                 type: object
               version:
-                description: Version of this plugin
+                description: Version contains the latest pluginDefinition version
+                  the config was last applied with successfully.
                 type: string
               weight:
                 description: Weight configures the order in which Plugins are shown
-                  in the Greenhouse UI. Defaults to alphabetical sorting if not provided
-                  or on conflict.
+                  in the Greenhouse UI.
                 format: int32
                 type: integer
-            required:
-            - version
-            type: object
-          status:
-            description: PluginStatus defines the observed state of Plugin
             type: object
         type: object
     served: true

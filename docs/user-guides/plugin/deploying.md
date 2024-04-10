@@ -11,7 +11,7 @@ This guides describes how to configure and deploy a Greenhouse plugin.
 
 ```yaml
     apiVersion: greenhouse.sap/v1alpha1
-    kind: PluginConfig
+    kind: Plugin
     metadata:
       name: kube-monitoring-martin
       namespace: <organization namespace> # same namespace in remote cluster for resources
@@ -19,7 +19,7 @@ This guides describes how to configure and deploy a Greenhouse plugin.
       clusterName: <name of the remote cluster > # k get cluster 
       disabled: false
       displayName: <any human readable name>
-      plugin: <plugin name> # k get plugin
+      pluginDefinition: <plugin name> # k get plugin
       optionValues:
         - name: <from the plugin options>
           value: <from the plugin options> 
@@ -29,11 +29,13 @@ This guides describes how to configure and deploy a Greenhouse plugin.
 ## Deploy plugin
 
 Create the plugin config resource via the command:
+
+```bash
+   kubectl --namespace=<organization name> create -f plugin.yaml
 ```
-   kubectl --namespace=<organization name> create -f plugin_config.yaml
-```
+
 ## After deployment
 
-1. Check with `kubectl --namespace=<organization name> get pluginconfig` has been properly created. When all components of the plugin are successfully created, the plugonconfig should show the state **configured**.  
+1. Check with `kubectl --namespace=<organization name> get plugin` has been properly created. When all components of the plugin are successfully created, the plugin should show the state **configured**.
 
 2. Check in the remote cluster that all plugin resources are created in the organization namespace.
