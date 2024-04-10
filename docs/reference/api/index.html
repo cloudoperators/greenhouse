@@ -323,7 +323,7 @@ p {
             <p><h1>Greenhouse</h1></p>
             <p>PlusOne operations platform</p>
             <p>
-                <div class="app-desc">Version: 372ccc4</div>
+                <div class="app-desc">Version: a1376f7</div>
             </p>
           </div>
         </div>
@@ -1027,7 +1027,7 @@ g,0<c.length&&(c=Aa[c[0]])&&(a.c[e]=c))}a.c[e]||(c=Aa[e])&&(a.c[e]=c);for(c=0;c<
     "conditions" : {
       "type" : "array",
       "items" : {
-        "$ref" : "#/components/schemas/PluginConfig_status_statusConditions_conditions"
+        "$ref" : "#/components/schemas/Plugin_status_statusConditions_conditions"
       },
       "x-kubernetes-list-map-keys" : [ "type" ],
       "x-kubernetes-list-type" : "map"
@@ -1041,7 +1041,7 @@ g,0<c.length&&(c=Aa[c[0]])&&(a.c[e]=c))}a.c[e]||(c=Aa[e])&&(a.c[e]=c);for(c=0;c<
     "conditions" : {
       "type" : "array",
       "items" : {
-        "$ref" : "#/components/schemas/PluginConfig_status_statusConditions_conditions"
+        "$ref" : "#/components/schemas/Plugin_status_statusConditions_conditions"
       },
       "x-kubernetes-list-map-keys" : [ "type" ],
       "x-kubernetes-list-type" : "map"
@@ -1217,15 +1217,27 @@ g,0<c.length&&(c=Aa[c[0]])&&(a.c[e]=c))}a.c[e]||(c=Aa[e])&&(a.c[e]=c);for(c=0;c<
   }
 };
     defs["PluginDefinition_spec"] = {
-  "required" : [ "version" ],
+  "required" : [ "displayName", "version" ],
   "type" : "object",
   "properties" : {
     "description" : {
       "type" : "string",
       "description" : "Description provides additional details of the pluginDefinition."
     },
+    "displayName" : {
+      "type" : "string",
+      "description" : "DisplayName provides a human-readable label for the pluginDefinition."
+    },
+    "docMarkDownUrl" : {
+      "type" : "string",
+      "description" : "DocMarkDownUrl specifies the URL to the markdown documentation file for this plugin. Source needs to allow all CORS origins."
+    },
     "helmChart" : {
       "$ref" : "#/components/schemas/PluginDefinition_spec_helmChart"
+    },
+    "icon" : {
+      "type" : "string",
+      "description" : "Icon specifies the icon to be used for this plugin in the Greenhouse UI. Icons can be either: - A string representing a juno icon in camel case from this list: https://github.com/sapcc/juno/blob/main/libs/juno-ui-components/src/components/Icon/Icon.component.js#L6-L52 - A publicly accessable image reference to a .png, .jpg or .jpeg file. Will be displayed 100x100px"
     },
     "options" : {
       "type" : "array",
@@ -1502,13 +1514,41 @@ g,0<c.length&&(c=Aa[c[0]])&&(a.c[e]=c))}a.c[e]||(c=Aa[e])&&(a.c[e]=c);for(c=0;c<
     "conditions" : {
       "type" : "array",
       "items" : {
-        "$ref" : "#/components/schemas/PluginConfig_status_statusConditions_conditions"
+        "$ref" : "#/components/schemas/Plugin_status_statusConditions_conditions"
       },
       "x-kubernetes-list-map-keys" : [ "type" ],
       "x-kubernetes-list-type" : "map"
     }
   },
   "description" : "StatusConditions contain the different conditions that constitute the status of the Plugin."
+};
+    defs["Plugin_status_statusConditions_conditions"] = {
+  "required" : [ "lastTransitionTime", "status", "type" ],
+  "type" : "object",
+  "properties" : {
+    "lastTransitionTime" : {
+      "type" : "string",
+      "description" : "LastTransitionTime is the last time the condition transitioned from one status to another.",
+      "format" : "date-time"
+    },
+    "message" : {
+      "type" : "string",
+      "description" : "Message is an optional human readable message indicating details about the last transition."
+    },
+    "reason" : {
+      "type" : "string",
+      "description" : "Reason is a one-word, CamelCase reason for the condition's last transition."
+    },
+    "status" : {
+      "type" : "string",
+      "description" : "Status of the condition."
+    },
+    "type" : {
+      "type" : "string",
+      "description" : "Type of the condition."
+    }
+  },
+  "description" : "Condition contains additional information on the state of a resource."
 };
     defs["Plugin_status_uiApplication"] = {
   "required" : [ "name", "version" ],
