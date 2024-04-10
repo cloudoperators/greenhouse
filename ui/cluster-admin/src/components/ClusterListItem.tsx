@@ -40,7 +40,8 @@ const ClusterListItem: React.FC<ClusterListItemProps> = (
     setClusterDetails(props.cluster)
 
     // set showClusterDetails to false if the same cluster is clicked again.
-    clusterDetails?.cluster?.metadata?.name === props?.cluster?.metadata?.name
+    clusterDetails?.cluster?.metadata?.name ===
+      props?.cluster?.metadata?.name && showClusterDetails
       ? setShowClusterDetails(false)
       : setShowClusterDetails(true)
 
