@@ -14,7 +14,7 @@ import useCommunication from "./hooks/useCommunication"
 import AsyncWorker from "./components/AsyncWorker"
 
 /* IMPORTANT: Replace this with your app's name */
-const URL_STATE_KEY = "greenhouse-plugin-admin"
+const URL_STATE_KEY = "greenhouse-plugindefinition-admin"
 /* --------------------------- */
 
 const App = (props = {}) => {
@@ -37,7 +37,7 @@ const App = (props = {}) => {
     <QueryClientProvider client={queryClient}>
       <AsyncWorker consumerId={URL_STATE_KEY} />
       <AppShell
-        pageHeader="Greenhouse | Plugins"
+        pageHeader="Greenhouse | PluginDefinitions"
         embedded={props.embedded === "true" || props.embedded === true}
       >
         <AppContent props={props} />

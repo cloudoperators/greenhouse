@@ -3,26 +3,26 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { useEffect } from "react";
-import useUrlState from "../hooks/useUrlState";
-import useWatch from "../hooks/useWatch";
+import { useEffect } from "react"
+import useUrlState from "../hooks/useUrlState"
+import useWatch from "../hooks/useWatch"
 
 interface AsyncWorkerProps {
-  consumerId: string;
+  consumerId: string
 }
 
 const AsyncWorker: React.FC<AsyncWorkerProps> = (props: AsyncWorkerProps) => {
-  useUrlState(props.consumerId);
+  useUrlState(props.consumerId)
 
-  const { watchPlugins: watchPlugins } = useWatch();
+  const { watchPluginDefinitions: watchPluginDefinitions } = useWatch()
 
   useEffect(() => {
-    if (!watchPlugins) return;
-    const unwatch = watchPlugins();
-    return unwatch;
-  }, [watchPlugins]);
+    if (!watchPluginDefinitions) return
+    const unwatch = watchPluginDefinitions()
+    return unwatch
+  }, [watchPluginDefinitions])
 
-  return null;
-};
+  return null
+}
 
-export default AsyncWorker;
+export default AsyncWorker

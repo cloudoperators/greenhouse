@@ -30,20 +30,10 @@ export interface paths {
       };
     };
   };
-  "/PluginConfig": {
+  "/TeamRole": {
     post: {
       responses: {
-        /** @description PluginConfig */
-        default: {
-          content: never;
-        };
-      };
-    };
-  };
-  "/RoleBinding": {
-    post: {
-      responses: {
-        /** @description RoleBinding */
+        /** @description TeamRole */
         default: {
           content: never;
         };
@@ -54,6 +44,16 @@ export interface paths {
     post: {
       responses: {
         /** @description Cluster */
+        default: {
+          content: never;
+        };
+      };
+    };
+  };
+  "/PluginDefinition": {
+    post: {
+      responses: {
+        /** @description PluginDefinition */
         default: {
           content: never;
         };
@@ -80,10 +80,10 @@ export interface paths {
       };
     };
   };
-  "/Role": {
+  "/TeamRoleBinding": {
     post: {
       responses: {
-        /** @description Role */
+        /** @description TeamRoleBinding */
         default: {
           content: never;
         };
@@ -124,13 +124,53 @@ export interface components {
       };
       /** @description PluginSpec defines the desired state of Plugin */
       spec?: {
+        /** @description ClusterName is the name of the cluster the plugin is deployed to. If not set, the plugin is deployed to the greenhouse cluster. */
+        clusterName?: string;
+        /** @description Disabled indicates that the plugin is administratively disabled. */
+        disabled: boolean;
+        /** @description DisplayName is an optional name for the Plugin to be displayed in the Greenhouse UI. This is especially helpful to distinguish multiple instances of a PluginDefinition in the same context. Defaults to a normalized version of metadata.name. */
+        displayName?: string;
+        /** @description Values are the values for a PluginDefinition instance. */
+        optionValues?: {
+            /** @description Name of the values. */
+            name: string;
+            /** @description Value is the actual value in plain text. */
+            value?: unknown;
+            /** @description ValueFrom references a potentially confidential value in another source. */
+            valueFrom?: {
+              /** @description Secret references the secret containing the value. */
+              secret?: {
+                /** @description Key in the secret to select the value from. */
+                key: string;
+                /** @description Name of the secret in the same namespace. */
+                name: string;
+              };
+            };
+          }[];
+        /** @description PluginDefinition is the name of the PluginDefinition this instance is for. */
+        pluginDefinition: string;
+      };
+      /** @description PluginStatus defines the observed state of Plugin */
+      status?: {
         /** @description Description provides additional details of the plugin. */
         description?: string;
-        /** @description DisplayName provides a human-readable label for the plugin */
-        displayName?: string;
-        /** @description DocMarkDownUrl specifies the URL to the markdown documentation file for this plugin. Source needs to allow all CORS origins. */
-        docMarkDownUrl?: string;
-        /** @description HelmChart specifies where the Helm Chart for this plugin can be found. */
+        /** @description ExposedServices provides an overview of the Plugins services that are centrally exposed. It maps the exposed URL to the service found in the manifest. */
+        exposedServices?: {
+          [key: string]: {
+            /** @description Name is the name of the service in the target cluster. */
+            name: string;
+            /** @description Namespace is the namespace of the service in the target cluster. */
+            namespace: string;
+            /**
+             * Format: int32
+             * @description Port is the port of the service.
+             */
+            port: number;
+            /** @description Protocol is the protocol of the service. */
+            protocol?: string;
+          };
+        };
+        /** @description HelmChart contains a reference the helm chart used for the deployed pluginDefinition version. */
         helmChart?: {
           /** @description Name of the HelmChart chart. */
           name: string;
@@ -139,29 +179,40 @@ export interface components {
           /** @description Version of the HelmChart chart. */
           version: string;
         };
-        /** @description Icon specifies the icon to be used for this plugin in the Greenhouse UI. Icons can be either: - A string representing a juno icon in camel case from this list: https://github.com/sapcc/juno/blob/main/libs/juno-ui-components/src/components/Icon/Icon.component.js#L6-L52 - A publicly accessable image reference to a .png, .jpg or .jpeg file. Will be displayed 100x100px */
-        icon?: string;
-        /** @description RequiredValues is a list of values required to create an instance of this Plugin. */
-        options?: ({
-            /** @description Default provides a default value for the option */
-            default?: unknown;
-            /** @description Description provides a human-readable text for the value as shown in the UI. */
-            description?: string;
-            /** @description DisplayName provides a human-readable label for the configuration option */
-            displayName?: string;
-            /** @description Name/Key of the config option. */
-            name: string;
-            /** @description Regex specifies a match rule for validating configuration options. */
-            regex?: string;
-            /** @description Required indicates that this config option is required */
-            required: boolean;
-            /**
-             * @description Type of this configuration option.
-             * @enum {string}
-             */
-            type: "string" | "secret" | "bool" | "int" | "list" | "map";
-          })[];
-        /** @description UIApplication specifies a reference to a UI application */
+        /** @description HelmReleaseStatus reflects the status of the latest HelmChart release. This is only configured if the pluginDefinition is backed by HelmChart. */
+        helmReleaseStatus?: {
+          /**
+           * Format: date-time
+           * @description FirstDeployed is the timestamp of the first deployment of the release.
+           */
+          firstDeployed?: string;
+          /**
+           * Format: date-time
+           * @description LastDeployed is the timestamp of the last deployment of the release.
+           */
+          lastDeployed?: string;
+          /** @description Status is the status of a HelmChart release. */
+          status: string;
+        };
+        /** @description StatusConditions contain the different conditions that constitute the status of the Plugin. */
+        statusConditions?: {
+          conditions?: {
+              /**
+               * Format: date-time
+               * @description LastTransitionTime is the last time the condition transitioned from one status to another.
+               */
+              lastTransitionTime: string;
+              /** @description Message is an optional human readable message indicating details about the last transition. */
+              message?: string;
+              /** @description Reason is a one-word, CamelCase reason for the condition's last transition. */
+              reason?: string;
+              /** @description Status of the condition. */
+              status: string;
+              /** @description Type of the condition. */
+              type: string;
+            }[];
+        };
+        /** @description UIApplication contains a reference to the frontend that is used for the deployed pluginDefinition version. */
         uiApplication?: {
           /** @description Name of the UI application. */
           name: string;
@@ -170,16 +221,14 @@ export interface components {
           /** @description Version of the frontend application. */
           version: string;
         };
-        /** @description Version of this plugin */
-        version: string;
+        /** @description Version contains the latest pluginDefinition version the config was last applied with successfully. */
+        version?: string;
         /**
          * Format: int32
-         * @description Weight configures the order in which Plugins are shown in the Greenhouse UI. Defaults to alphabetical sorting if not provided or on conflict.
+         * @description Weight configures the order in which Plugins are shown in the Greenhouse UI.
          */
         weight?: number;
       };
-      /** @description PluginStatus defines the observed state of Plugin */
-      status?: Record<string, never>;
     };
     /**
      * Organization
@@ -244,10 +293,10 @@ export interface components {
       status?: Record<string, never>;
     };
     /**
-     * PluginConfig
-     * @description PluginConfig is the Schema for the pluginconfigs API
+     * TeamRole
+     * @description TeamRole is the Schema for the TeamRoles API
      */
-    PluginConfig: {
+    TeamRole: {
       /** @description APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources */
       apiVersion?: string;
       /** @description Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds */
@@ -269,166 +318,23 @@ export interface components {
           [key: string]: string;
         };
       };
-      /** @description PluginConfigSpec defines the desired state of PluginConfig */
+      /** @description TeamRoleSpec defines the desired state of a TeamRole */
       spec?: {
-        /** @description ClusterName is the name of the cluster the pluginConfig is deployed to. If not set, the pluginConfig is deployed to the greenhouse cluster. */
-        clusterName?: string;
-        /** @description Disabled indicates that the plugin config is administratively disabled. */
-        disabled: boolean;
-        /** @description DisplayName is an optional name for the plugin to be displayed in the Greenhouse UI. This is especially helpful to distinguish multiple instances of a Plugin in the same context. Defaults to a normalized version of metadata.name. */
-        displayName?: string;
-        /** @description Values are the values for a plugin instance. */
-        optionValues?: {
-            /** @description Name of the values. */
-            name: string;
-            /** @description Value is the actual value in plain text. */
-            value?: unknown;
-            /** @description ValueFrom references a potentially confidential value in another source. */
-            valueFrom?: {
-              /** @description Secret references the secret containing the value. */
-              secret?: {
-                /** @description Key in the secret to select the value from. */
-                key: string;
-                /** @description Name of the secret in the same namespace. */
-                name: string;
-              };
-            };
+        /** @description Rules is a list of rbacv1.PolicyRules used on a managed RBAC (Cluster)Role */
+        rules?: {
+            /** @description APIGroups is the name of the APIGroup that contains the resources.  If multiple API groups are specified, any action requested against one of the enumerated resources in any API group will be allowed. "" represents the core API group and "*" represents all API groups. */
+            apiGroups?: string[];
+            /** @description NonResourceURLs is a set of partial urls that a user should have access to.  *s are allowed, but only as the full, final step in the path Since non-resource URLs are not namespaced, this field is only applicable for ClusterRoles referenced from a ClusterRoleBinding. Rules can either apply to API resources (such as "pods" or "secrets") or non-resource URL paths (such as "/api"),  but not both. */
+            nonResourceURLs?: string[];
+            /** @description ResourceNames is an optional white list of names that the rule applies to.  An empty set means that everything is allowed. */
+            resourceNames?: string[];
+            /** @description Resources is a list of resources this rule applies to. '*' represents all resources. */
+            resources?: string[];
+            /** @description Verbs is a list of Verbs that apply to ALL the ResourceKinds contained in this rule. '*' represents all verbs. */
+            verbs: string[];
           }[];
-        /** @description Plugin is the name of the plugin this instance is for. */
-        plugin: string;
       };
-      /** @description PluginConfigStatus defines the observed state of PluginConfig */
-      status?: {
-        /** @description Description provides additional details of the plugin. */
-        description?: string;
-        /** @description ExposedServices provides an overview of the PluginConfigs services that are centrally exposed. It maps the exposed URL to the service found in the manifest. */
-        exposedServices?: {
-          [key: string]: {
-            /** @description Name is the name of the service in the target cluster. */
-            name: string;
-            /** @description Namespace is the namespace of the service in the target cluster. */
-            namespace: string;
-            /**
-             * Format: int32
-             * @description Port is the port of the service.
-             */
-            port: number;
-            /** @description Protocol is the protocol of the service. */
-            protocol?: string;
-          };
-        };
-        /** @description HelmChart contains a reference the helm chart used for the deployed plugin version. */
-        helmChart?: {
-          /** @description Name of the HelmChart chart. */
-          name: string;
-          /** @description Repository of the HelmChart chart. */
-          repository: string;
-          /** @description Version of the HelmChart chart. */
-          version: string;
-        };
-        /** @description HelmReleaseStatus reflects the status of the latest HelmChart release. This is only configured if the plugin is backed by HelmChart. */
-        helmReleaseStatus?: {
-          /**
-           * Format: date-time
-           * @description FirstDeployed is the timestamp of the first deployment of the release.
-           */
-          firstDeployed?: string;
-          /**
-           * Format: date-time
-           * @description LastDeployed is the timestamp of the last deployment of the release.
-           */
-          lastDeployed?: string;
-          /** @description Status is the status of a HelmChart release. */
-          status: string;
-        };
-        /** @description StatusConditions contain the different conditions that constitute the status of the PluginConfig. */
-        statusConditions?: {
-          conditions?: {
-              /**
-               * Format: date-time
-               * @description LastTransitionTime is the last time the condition transitioned from one status to another.
-               */
-              lastTransitionTime: string;
-              /** @description Message is an optional human readable message indicating details about the last transition. */
-              message?: string;
-              /** @description Reason is a one-word, CamelCase reason for the condition's last transition. */
-              reason?: string;
-              /** @description Status of the condition. */
-              status: string;
-              /** @description Type of the condition. */
-              type: string;
-            }[];
-        };
-        /** @description UIApplication contains a reference to the frontend that is used for the deployed plugin version. */
-        uiApplication?: {
-          /** @description Name of the UI application. */
-          name: string;
-          /** @description URL specifies the url to a built javascript asset. By default, assets are loaded from the Juno asset server using the provided name and version. */
-          url?: string;
-          /** @description Version of the frontend application. */
-          version: string;
-        };
-        /** @description Version contains the latest plugin version the config was last applied with successfully. */
-        version?: string;
-        /**
-         * Format: int32
-         * @description Weight configures the order in which Plugins are shown in the Greenhouse UI.
-         */
-        weight?: number;
-      };
-    };
-    /**
-     * RoleBinding
-     * @description RoleBinding is the Schema for the rolebindings API
-     */
-    RoleBinding: {
-      /** @description APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources */
-      apiVersion?: string;
-      /** @description Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds */
-      kind?: string;
-      metadata?: {
-        name?: string;
-        namespace?: string;
-        /** Format: uuid */
-        uid?: string;
-        resourceVersion?: string;
-        /** Format: date-time */
-        creationTimestamp?: string;
-        /** Format: date-time */
-        deletionTimestamp?: string;
-        labels?: {
-          [key: string]: string;
-        };
-        annotations?: {
-          [key: string]: string;
-        };
-      };
-      /** @description RoleBindingSpec defines the desired state of RoleBinding */
-      spec?: {
-        /** @description ClusterSelector is the immutable selector to deterimine the Greenhouse Clusters to apply the RoleBinding to */
-        clusterSelector?: {
-          /** @description matchExpressions is a list of label selector requirements. The requirements are ANDed. */
-          matchExpressions?: {
-              /** @description key is the label key that the selector applies to. */
-              key: string;
-              /** @description operator represents a key's relationship to a set of values. Valid operators are In, NotIn, Exists and DoesNotExist. */
-              operator: string;
-              /** @description values is an array of string values. If the operator is In or NotIn, the values array must be non-empty. If the operator is Exists or DoesNotExist, the values array must be empty. This array is replaced during a strategic merge patch. */
-              values?: string[];
-            }[];
-          /** @description matchLabels is a map of {key,value} pairs. A single {key,value} in the matchLabels map is equivalent to an element of matchExpressions, whose key field is "key", the operator is "In", and the values array contains only "value". The requirements are ANDed. */
-          matchLabels?: {
-            [key: string]: string;
-          };
-        };
-        /** @description Namespaces is the immutable list of namespaces in the Greenhouse Clusters to apply the RoleBinding to */
-        namespaces?: string[];
-        /** @description RoleRef references a Greenhouse Role by name */
-        roleRef?: string;
-        /** @description TeamRef references a Greenhouse Team by name */
-        teamRef?: string;
-      };
-      /** @description RoleBindingStatus defines the observed state of RoleBinding */
+      /** @description TeamRoleStatus defines the observed state of a TeamRole */
       status?: Record<string, never>;
     };
     /**
@@ -545,6 +451,91 @@ export interface components {
       };
     };
     /**
+     * PluginDefinition
+     * @description PluginDefinition is the Schema for the PluginDefinitions API
+     */
+    PluginDefinition: {
+      /** @description APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources */
+      apiVersion?: string;
+      /** @description Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds */
+      kind?: string;
+      metadata?: {
+        name?: string;
+        namespace?: string;
+        /** Format: uuid */
+        uid?: string;
+        resourceVersion?: string;
+        /** Format: date-time */
+        creationTimestamp?: string;
+        /** Format: date-time */
+        deletionTimestamp?: string;
+        labels?: {
+          [key: string]: string;
+        };
+        annotations?: {
+          [key: string]: string;
+        };
+      };
+      /** @description PluginDefinitionSpec defines the desired state of PluginDefinitionSpec */
+      spec?: {
+        /** @description Description provides additional details of the pluginDefinition. */
+        description?: string;
+        /** @description DisplayName provides a human-readable label for the pluginDefinition. */
+        displayName?: string;
+        /** @description DocMarkDownUrl specifies the URL to the markdown documentation file for this plugin. Source needs to allow all CORS origins. */
+        docMarkDownUrl?: string;
+        /** @description HelmChart specifies where the Helm Chart for this pluginDefinition can be found. */
+        helmChart?: {
+          /** @description Name of the HelmChart chart. */
+          name: string;
+          /** @description Repository of the HelmChart chart. */
+          repository: string;
+          /** @description Version of the HelmChart chart. */
+          version: string;
+        };
+        /** @description Icon specifies the icon to be used for this plugin in the Greenhouse UI. Icons can be either: - A string representing a juno icon in camel case from this list: https://github.com/sapcc/juno/blob/main/libs/juno-ui-components/src/components/Icon/Icon.component.js#L6-L52 - A publicly accessable image reference to a .png, .jpg or .jpeg file. Will be displayed 100x100px */
+        icon?: string;
+        /** @description RequiredValues is a list of values required to create an instance of this PluginDefinition. */
+        options?: ({
+            /** @description Default provides a default value for the option */
+            default?: unknown;
+            /** @description Description provides a human-readable text for the value as shown in the UI. */
+            description?: string;
+            /** @description DisplayName provides a human-readable label for the configuration option */
+            displayName?: string;
+            /** @description Name/Key of the config option. */
+            name: string;
+            /** @description Regex specifies a match rule for validating configuration options. */
+            regex?: string;
+            /** @description Required indicates that this config option is required */
+            required: boolean;
+            /**
+             * @description Type of this configuration option.
+             * @enum {string}
+             */
+            type: "string" | "secret" | "bool" | "int" | "list" | "map";
+          })[];
+        /** @description UIApplication specifies a reference to a UI application */
+        uiApplication?: {
+          /** @description Name of the UI application. */
+          name: string;
+          /** @description URL specifies the url to a built javascript asset. By default, assets are loaded from the Juno asset server using the provided name and version. */
+          url?: string;
+          /** @description Version of the frontend application. */
+          version: string;
+        };
+        /** @description Version of this pluginDefinition */
+        version: string;
+        /**
+         * Format: int32
+         * @description Weight configures the order in which Plugins are shown in the Greenhouse UI. Defaults to alphabetical sorting if not provided or on conflict.
+         */
+        weight?: number;
+      };
+      /** @description PluginDefinitionStatus defines the observed state of PluginDefinition */
+      status?: Record<string, never>;
+    };
+    /**
      * Team
      * @description Team is the Schema for the teams API
      */
@@ -635,10 +626,10 @@ export interface components {
       };
     };
     /**
-     * Role
-     * @description Role is the Schema for the roles API
+     * TeamRoleBinding
+     * @description TeamRoleBinding is the Schema for the rolebindings API
      */
-    Role: {
+    TeamRoleBinding: {
       /** @description APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources */
       apiVersion?: string;
       /** @description Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds */
@@ -660,23 +651,18 @@ export interface components {
           [key: string]: string;
         };
       };
-      /** @description RoleSpec defines the desired state of Role */
+      /** @description TeamRoleBindingSpec defines the desired state of a TeamRoleBinding */
       spec?: {
-        /** @description Rules is a list of rbacv1.PolicyRules used on a managed RBAC (Cluster)Role */
-        rules?: {
-            /** @description APIGroups is the name of the APIGroup that contains the resources.  If multiple API groups are specified, any action requested against one of the enumerated resources in any API group will be allowed. "" represents the core API group and "*" represents all API groups. */
-            apiGroups?: string[];
-            /** @description NonResourceURLs is a set of partial urls that a user should have access to.  *s are allowed, but only as the full, final step in the path Since non-resource URLs are not namespaced, this field is only applicable for ClusterRoles referenced from a ClusterRoleBinding. Rules can either apply to API resources (such as "pods" or "secrets") or non-resource URL paths (such as "/api"),  but not both. */
-            nonResourceURLs?: string[];
-            /** @description ResourceNames is an optional white list of names that the rule applies to.  An empty set means that everything is allowed. */
-            resourceNames?: string[];
-            /** @description Resources is a list of resources this rule applies to. '*' represents all resources. */
-            resources?: string[];
-            /** @description Verbs is a list of Verbs that apply to ALL the ResourceKinds contained in this rule. '*' represents all verbs. */
-            verbs: string[];
-          }[];
+        /** @description ClusterName is the name of the cluster the rbacv1 resources are created on. */
+        clusterName?: string;
+        /** @description Namespaces is the immutable list of namespaces in the Greenhouse Clusters to apply the RoleBinding to */
+        namespaces?: string[];
+        /** @description TeamRef references a Greenhouse Team by name */
+        teamRef?: string;
+        /** @description TeamRoleRef references a Greenhouse TeamRole by name */
+        teamRoleRef?: string;
       };
-      /** @description RoleStatus defines the observed state of Role */
+      /** @description TeamRoleBindingStatus defines the observed state of the TeamRoleBinding */
       status?: Record<string, never>;
     };
   };

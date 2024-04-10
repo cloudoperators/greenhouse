@@ -5,9 +5,9 @@
 
 import { create } from "zustand"
 import {
-  Plugin,
+  PluginDefinition,
   UpdateObjectAction,
-  UpdatePluginInput
+  UpdatePluginInput as UpdatePluginDefinitionInput
 } from "./types/types"
 
 export interface State {
@@ -22,14 +22,14 @@ export interface State {
   setLoggedIn: (loggedIn: boolean) => void
   logout: any
 
-  plugins: Plugin[]
-  updatePlugins: (input: UpdatePluginInput) => void
-  showPluginDetails: boolean
-  setShowPluginDetails: (showPluginDetails: boolean) => void
-  pluginDetail: Plugin | null
-  setPluginDetail: (plugin: Plugin) => void
-  showPluginEdit: boolean
-  setShowPluginEdit: (showPluginEdit: boolean) => void
+  pluginDefinitions: PluginDefinition[]
+  updatePluginDefinitions: (input: UpdatePluginDefinitionInput) => void
+  showPluginDefinitionDetails: boolean
+  setShowPluginDefinitionDetails: (showPluginDefinitionDetails: boolean) => void
+  pluginDefinitionDetail: PluginDefinition | null
+  setPluginDefinitionDetail: (pluginDefinition: PluginDefinition) => void
+  showPluginDefinitionEdit: boolean
+  setShowPluginEdit: (showPluginDefinitionEdit: boolean) => void
 }
 
 // global zustand store. See how this works here: https://github.com/pmndrs/zustand
@@ -46,46 +46,46 @@ const useStore = create<State>((set) => ({
   setLoggedIn: (loggedIn) => set((state) => ({ loggedIn: loggedIn })),
   logout: null,
 
-  plugins: [],
-  updatePlugins: (input: UpdatePluginInput) =>
+  pluginDefinitions: [],
+  updatePluginDefinitions: (input: UpdatePluginDefinitionInput) =>
     set((state) => {
-      let plugins = [...state.plugins]
+      let pluginDefinitions = [...state.pluginDefinitions]
       // validate plugins: only accept input.plugins that have metadata.name set
-      input.plugins = input.plugins.filter((plugin) => {
-        return plugin.metadata?.name ?? undefined !== undefined
+      input.pluginDefinitions = input.pluginDefinitions.filter((pluginDefinition) => {
+        return pluginDefinition.metadata?.name ?? undefined !== undefined
       })
 
       if (input.action === UpdateObjectAction.delete) {
-        plugins = plugins.filter((knownPlugin) => {
-          return input.plugins.some((inputPlugin) => {
-            return knownPlugin.metadata!.name !== inputPlugin.metadata!.name
+        pluginDefinitions = pluginDefinitions.filter((knownPluginDefinition) => {
+          return input.pluginDefinitions.some((inputPluginDefinition) => {
+            return knownPluginDefinition.metadata!.name !== inputPluginDefinition.metadata!.name
           })
         })
-        return { ...state, plugins: plugins }
+        return { ...state, pluginDefinitions: pluginDefinitions }
       }
 
-      input.plugins.forEach((inputPlugin) => {
-        const index = plugins.findIndex((knownPlugin) => {
-          return knownPlugin.metadata!.name === inputPlugin.metadata!.name
+      input.pluginDefinitions.forEach((inputPluginDefinition) => {
+        const index = pluginDefinitions.findIndex((knownPluginDefinition) => {
+          return knownPluginDefinition.metadata!.name === inputPluginDefinition.metadata!.name
         })
         if (index >= 0) {
-          plugins[index] = inputPlugin
+          pluginDefinitions[index] = inputPluginDefinition
         } else {
-          plugins.push(inputPlugin)
+          pluginDefinitions.push(inputPluginDefinition)
         }
       })
-      return { ...state, plugins: plugins }
+      return { ...state, pluginDefinitions: pluginDefinitions }
     }),
-  showPluginDetails: false,
-  setShowPluginDetails: (showPluginDetails) =>
-    set((state) => ({ ...state, showPluginDetails: showPluginDetails })),
+  showPluginDefinitionDetails: false,
+  setShowPluginDefinitionDetails: (showPluginDefinitionDetails) =>
+    set((state) => ({ ...state, showPluginDefinitionDetails: showPluginDefinitionDetails })),
 
-  pluginDetail: null,
-  setPluginDetail: (plugin) => set((state) => ({ pluginDetail: plugin  })),
+  pluginDefinitionDetail: null,
+  setPluginDefinitionDetail: (pluginDefinition) => set((state) => ({ pluginDefinitionDetail: pluginDefinition  })),
 
-  showPluginEdit: false,
-  setShowPluginEdit: (showPluginEdit) =>
-    set((state) => ({ showPluginEdit: showPluginEdit}))
+  showPluginDefinitionEdit: false,
+  setShowPluginEdit: (showPluginDefinitionEdit) =>
+    set((state) => ({ showPluginDefinitionEdit: showPluginDefinitionEdit}))
 }))
 
 export default useStore

@@ -11,40 +11,32 @@ import {
   Stack,
 } from "juno-ui-components"
 import React from "react"
-import { PluginConfig } from "../types/types"
+import { Plugin } from "../types/types"
 
-interface PluginConfigListProps {
-  pluginConfigs: PluginConfig[]
+interface PluginListProps {
+  plugins: Plugin[]
 }
 
-const PluginConfigList: React.FC<PluginConfigListProps> = (
-  props: PluginConfigListProps
-) => {
-  let pluginConfigNames = ""
-
-  props.pluginConfigs.map((pluginConfig: any) => {
-    pluginConfigNames += pluginConfig.metadata.name + ", "
-  })
+const PluginList: React.FC<PluginListProps> = (props: PluginListProps) => {
   return (
-    props.pluginConfigs.length > 0 && (
+    props.plugins.length > 0 && (
       <DataGridRow>
         <DataGridHeadCell>Enabled Plugins</DataGridHeadCell>
         <DataGridCell>
           <Stack gap="2" alignment="start" wrap={true}>
-            {props.pluginConfigs.map((pluginConfig: any) => {
+            {props.plugins.map((plugin: Plugin) => {
               return (
                 <Button
-                  key={pluginConfig.metadata.name}
+                  key={plugin.metadata!.name}
                   style={{ cursor: "default" }}
                   size="small"
                   onClick={() =>
                     console.log(
-                      "go to plugin config page of " +
-                        pluginConfig.metadata.name
+                      "go to plugin config page of " + plugin.metadata!.name
                     )
                   }
                 >
-                  {pluginConfig.metadata.name}
+                  {plugin.metadata!.name}
                 </Button>
               )
             })}
@@ -55,4 +47,4 @@ const PluginConfigList: React.FC<PluginConfigListProps> = (
   )
 }
 
-export default PluginConfigList
+export default PluginList

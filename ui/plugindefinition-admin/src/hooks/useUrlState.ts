@@ -18,8 +18,8 @@ const useUrlState = (key: string): void => {
   const loggedIn = useStore((state) => state.loggedIn)
 
   // globals
-  const showPluginDetails = useStore((state) => state.showPluginDetails)
-  const setShowPluginDetails = useStore((state) => state.setShowPluginDetails)
+  const showPluginDetails = useStore((state) => state.showPluginDefinitionDetails)
+  const setShowPluginDetails = useStore((state) => state.setShowPluginDefinitionDetails)
 
   // Set initial state from URL (on login)
   useEffect(() => {

@@ -5,39 +5,39 @@
 
 import { useCallback } from "react"
 import useStore from "../store"
-import { Plugin, UpdateObjectAction } from "../types/types"
+import { PluginDefinition, UpdateObjectAction } from "../types/types"
 import useClient from "./useClient"
 import useNamespace from "./useNamespace"
 
 export const useWatch = () => {
   const { namespace } = useNamespace()
   const { client: client } = useClient()
-  const updatePlugins = useStore((state) => state.updatePlugins)
+  const updatePluginDefinitions = useStore((state) => state.updatePluginDefinitions)
 
-  const watchPlugins = useCallback(() => {
+  const watchPluginDefinitions = useCallback(() => {
     console.log(client)
     if (!client || !namespace) return
     const watch = client
-      .watch(`/apis/greenhouse.sap/v1alpha1/plugins`)
+      .watch(`/apis/greenhouse.sap/v1alpha1/plugindefinitions`)
       .on(client.WATCH_ERROR, () =>
         console.log("ERROR: Failed to watch resource")
       )
       .on(client.WATCH_ADDED, (items) => {
         console.log("watch added", items)
-        updatePlugins({
-          plugins: items as Plugin[],
+        updatePluginDefinitions({
+          pluginDefinitions: items as PluginDefinition[],
           action: UpdateObjectAction.add,
         })
       })
       .on(client.WATCH_MODIFIED, (items) => {
-        updatePlugins({
-          plugins: items as Plugin[],
+        updatePluginDefinitions({
+          pluginDefinitions: items as PluginDefinition[],
           action: UpdateObjectAction.add,
         })
       })
       .on(client.WATCH_DELETED, (items) => {
-        updatePlugins({
-          plugins: items as Plugin[],
+        updatePluginDefinitions({
+          pluginDefinitions: items as PluginDefinition[],
           action: UpdateObjectAction.delete,
         })
       })
@@ -46,7 +46,7 @@ export const useWatch = () => {
   }, [client, namespace])
 
   return {
-    watchPlugins: watchPlugins,
+    watchPluginDefinitions: watchPluginDefinitions,
   }
 }
 

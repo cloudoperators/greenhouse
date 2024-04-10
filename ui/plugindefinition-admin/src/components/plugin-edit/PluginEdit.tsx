@@ -15,155 +15,155 @@ import {
   Stack,
   TextInput,
   Textarea,
-} from "juno-ui-components";
-import React from "react";
-import { Plugin, PluginConfig } from "../../../../shared/types/types";
-import useClient from "../../hooks/useClient";
-import useNamespace from "../../hooks/useNamespace";
-import useStore from "../../store";
+} from "juno-ui-components"
+import React from "react"
+import { Plugin, PluginDefinition } from "../../types/types"
+import useClient from "../../hooks/useClient"
+import useNamespace from "../../hooks/useNamespace"
+import useStore from "../../store"
 
 interface PluginEditProps {
-  plugin: Plugin;
+  pluginDefinition: PluginDefinition
 }
 
 const PluginEdit: React.FC<PluginEditProps> = (props: PluginEditProps) => {
-  const { client: client } = useClient();
-  const { namespace } = useNamespace();
-  const setShowPluginEdit = useStore((state) => state.setShowPluginEdit);
+  const { client: client } = useClient()
+  const { namespace } = useNamespace()
+  const setShowPluginEdit = useStore((state) => state.setShowPluginEdit)
   const onPanelClose = () => {
-    setShowPluginEdit(false);
-  };
+    setShowPluginEdit(false)
+  }
   // instantiate new empty PluginConfig from Plugin
-  let initPluginConfig: PluginConfig = {
+  let initPlugin: Plugin = {
     metadata: {
-      name: props.plugin.metadata!.name!,
+      name: props.pluginDefinition.metadata!.name!,
       namespace: "",
       labels: {},
     },
     kind: "PluginConfig",
     apiVersion: "greenhouse.sap/v1alpha1",
     spec: {
-      plugin: props.plugin.metadata!.name!,
+      pluginDefinition: props.pluginDefinition.metadata!.name!,
       displayName:
-        props.plugin.spec?.displayName ?? props.plugin.metadata?.name,
+        props.pluginDefinition.spec?.displayName ??
+        props.pluginDefinition.metadata?.name,
       clusterName: "",
       disabled: false,
       optionValues: [],
     },
-  };
-  props.plugin.spec?.options?.forEach((option) => {
+  }
+  props.pluginDefinition.spec?.options?.forEach((option) => {
     if (
       option.default &&
-      !initPluginConfig.spec?.optionValues!.some((o) => o.name == option.name)
+      !initPlugin.spec?.optionValues!.some((o) => o.name == option.name)
     ) {
-      initPluginConfig.spec?.optionValues!.push({
+      initPlugin.spec?.optionValues!.push({
         name: option.name,
         value: option.default,
-      });
+      })
     }
-  });
+  })
 
   // TODO: We are overwriting empty fields with defaults!!
   // Anyhow need to add logic for editing PluginConfigs instead of creating
-  const [pluginConfig, setPluginConfig] =
-    React.useState<PluginConfig>(initPluginConfig);
+  const [plugin, setPlugin] = React.useState<Plugin>(initPlugin)
 
-  const [errorMessage, setErrorMessage] = React.useState<string>("");
+  const [errorMessage, setErrorMessage] = React.useState<string>("")
 
   const onSubmit = () => {
-    console.log(pluginConfig);
+    console.log(plugin)
     client
       .post(
-        `/apis/greenhouse.sap/v1alpha1/namespaces/${namespace}/pluginconfigs/${
-          pluginConfig.metadata!.name
+        `/apis/greenhouse.sap/v1alpha1/namespaces/${namespace}/plugins/${
+          plugin.metadata!.name
         }`,
-        { ...pluginConfig }
+        { ...plugin }
       )
       .then((res) => {
-        console.log(res);
-        setErrorMessage("Success!");
+        console.log(res)
+        setErrorMessage("Success!")
       })
       .catch((err) => {
-        console.log(err);
-        setErrorMessage(err.message);
-      });
-  };
+        console.log(err)
+        setErrorMessage(err.message)
+      })
+  }
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    let value: string | boolean | number;
-    console.log(e.target.type);
+    let value: string | boolean | number
+    console.log(e.target.type)
     if (e.target.type == "checkbox") {
-      value = e.target.checked ? true : false;
+      value = e.target.checked ? true : false
     } else if (e.target.type == "number") {
-      value = parseInt(e.target.value);
+      value = parseInt(e.target.value)
     } else if (e.target.type == "textarea") {
-      value = JSON.parse(e.target.value);
+      value = JSON.parse(e.target.value)
     } else {
-      value = e.target.value;
+      value = e.target.value
     }
-    console.log(e.target.id + " " + value);
+    console.log(e.target.id + " " + value)
 
     if (e.target.id.startsWith("metadata.")) {
-      setPluginConfig({
-        ...pluginConfig,
+      setPlugin({
+        ...plugin,
         metadata: {
-          ...pluginConfig.metadata!,
+          ...plugin.metadata!,
           [e.target.id.split(".")[1]]: value,
         },
-      });
+      })
     } else if (e.target.id.startsWith("spec.")) {
-      setPluginConfig({
-        ...pluginConfig,
+      setPlugin({
+        ...plugin,
         spec: {
-          ...pluginConfig.spec!,
+          ...plugin.spec!,
           [e.target.id.split(".")[1]]: value,
         },
-      });
+      })
     } else if (e.target.id.startsWith("optionValues.")) {
       // delete from pluginConfig.spec.optionValues by matching name property if value is empty
       // does not work yet!!
       if (value == "") {
-        setPluginConfig({
-          ...pluginConfig,
+        setPlugin({
+          ...plugin,
           spec: {
-            ...pluginConfig.spec!,
-            optionValues: pluginConfig.spec!.optionValues!.filter(
+            ...plugin.spec!,
+            optionValues: plugin.spec!.optionValues!.filter(
               (option) => option.name != e.target.id.split(".")[1]
             ),
           },
-        });
-        console.log(pluginConfig.spec!.optionValues!);
+        })
+        console.log(plugin.spec!.optionValues!)
       }
       //   replace in pluginConfig.spec.optionValues by matching name property or push if not found
-      let wasFound = false;
+      let wasFound = false
 
-      setPluginConfig({
-        ...pluginConfig,
+      setPlugin({
+        ...plugin,
         spec: {
-          ...pluginConfig.spec!,
-          optionValues: pluginConfig.spec!.optionValues!.map((option) => {
+          ...plugin.spec!,
+          optionValues: plugin.spec!.optionValues!.map((option) => {
             if (option.name == e.target.id.split(".")[1]) {
-              wasFound = true;
-              return { name: option.name, value: value };
+              wasFound = true
+              return { name: option.name, value: value }
             } else {
-              return option;
+              return option
             }
           }),
         },
-      });
+      })
       if (!wasFound) {
-        setPluginConfig({
-          ...pluginConfig,
+        setPlugin({
+          ...plugin,
           spec: {
-            ...pluginConfig.spec!,
+            ...plugin.spec!,
             optionValues: [
-              ...pluginConfig.spec!.optionValues!,
+              ...plugin.spec!.optionValues!,
               { name: e.target.id.split(".")[1], value: value },
             ],
           },
-        });
+        })
       }
     }
-  };
+  }
   return (
     <Panel
       heading={
@@ -171,13 +171,16 @@ const PluginEdit: React.FC<PluginEditProps> = (props: PluginEditProps) => {
           <span>Configure Plugin</span>
         </Stack>
       }
-      opened={!!props.plugin}
+      opened={!!props.pluginDefinition}
       onClose={onPanelClose}
       size="large"
     >
       <PanelBody>
         <Form
-          title={props.plugin.spec?.displayName ?? props.plugin.metadata?.name}
+          title={
+            props.pluginDefinition.spec?.displayName ??
+            props.pluginDefinition.metadata?.name
+          }
         >
           <FormSection title="General">
             <FormRow>
@@ -185,7 +188,7 @@ const PluginEdit: React.FC<PluginEditProps> = (props: PluginEditProps) => {
                 id="spec.displayName"
                 label="Display Name"
                 placeholder="The Display Name for this Plugin Instance"
-                value={pluginConfig.spec!.displayName}
+                value={plugin.spec!.displayName}
                 onBlur={handleChange}
               />
             </FormRow>
@@ -194,7 +197,7 @@ const PluginEdit: React.FC<PluginEditProps> = (props: PluginEditProps) => {
                 id="metadata.name"
                 label="Name"
                 placeholder="Name of this Plugin Instance"
-                value={pluginConfig.metadata!.name}
+                value={plugin.metadata!.name}
                 onBlur={handleChange}
               />
             </FormRow>
@@ -204,18 +207,18 @@ const PluginEdit: React.FC<PluginEditProps> = (props: PluginEditProps) => {
                 id="spec.clusterName"
                 label="Cluster"
                 placeholder="this is going to be a select of ready clusters"
-                value={pluginConfig.spec!.clusterName}
+                value={plugin.spec!.clusterName}
                 onBlur={handleChange}
               />
             </FormRow>
           </FormSection>
 
-          {props.plugin.spec?.options?.length && (
+          {props.pluginDefinition.spec?.options?.length && (
             <FormSection title="Options">
-              {props.plugin.spec?.options?.map((option, index) => {
-                let value = pluginConfig.spec?.optionValues?.find(
+              {props.pluginDefinition.spec?.options?.map((option, index) => {
+                let value = plugin.spec?.optionValues?.find(
                   (o) => o.name == option.name
-                )?.value;
+                )?.value
                 return (
                   <FormRow key={index}>
                     <p>{option.description}</p>
@@ -275,7 +278,7 @@ const PluginEdit: React.FC<PluginEditProps> = (props: PluginEditProps) => {
                       ></Textarea>
                     )}
                   </FormRow>
-                );
+                )
               })}
             </FormSection>
           )}
@@ -289,7 +292,7 @@ const PluginEdit: React.FC<PluginEditProps> = (props: PluginEditProps) => {
         </Form>
       </PanelBody>
     </Panel>
-  );
-};
+  )
+}
 
-export default PluginEdit;
+export default PluginEdit
