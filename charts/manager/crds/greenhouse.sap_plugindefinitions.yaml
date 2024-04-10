@@ -152,7 +152,6 @@ spec:
                 format: int32
                 type: integer
             required:
-            - displayName
             - version
             type: object
           status:

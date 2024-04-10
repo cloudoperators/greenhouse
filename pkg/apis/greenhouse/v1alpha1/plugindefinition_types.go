@@ -14,7 +14,7 @@ import (
 // PluginDefinitionSpec defines the desired state of PluginDefinitionSpec
 type PluginDefinitionSpec struct {
 	// DisplayName provides a human-readable label for the pluginDefinition.
-	DisplayName string `json:"displayName"`
+	DisplayName string `json:"displayName,omitempty"`
 
 	// Description provides additional details of the pluginDefinition.
 	Description string `json:"description,omitempty"`

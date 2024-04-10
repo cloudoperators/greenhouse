@@ -1,7 +1,7 @@
 openapi: 3.0.0
 info:
   title: Greenhouse
-  version: a1376f7
+  version: 1156172
   description: PlusOne operations platform
 paths:
   /Plugin:
@@ -635,7 +635,6 @@ components:
               format: int32
               type: integer
           required:
-            - displayName
             - version
           type: object
         status:
