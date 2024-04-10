@@ -40,9 +40,9 @@ const ClusterListItem: React.FC<ClusterListItemProps> = (
     setClusterDetails(props.cluster)
 
     // set showClusterDetails to false if the same cluster is clicked again.
-    showClusterDetails === props?.cluster?.metadata?.name
-      ? setShowClusterDetails(undefined)
-      : setShowClusterDetails(props?.cluster?.metadata?.name)
+    clusterDetails?.cluster?.metadata?.name === props?.cluster?.metadata?.name
+      ? setShowClusterDetails(false)
+      : setShowClusterDetails(true)
 
     setShowOnBoardCluster(false)
 
@@ -56,7 +56,10 @@ const ClusterListItem: React.FC<ClusterListItemProps> = (
   return (
     <DataGridRow
       className={`cursor-pointer ${
-        showClusterDetails === props?.cluster?.metadata?.name ? "active" : ""
+        clusterDetails?.cluster?.metadata?.name ===
+          props?.cluster?.metadata?.name && showClusterDetails
+          ? "active"
+          : ""
       }`}
       onClick={() => openDetails()}
     >

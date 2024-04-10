@@ -35,8 +35,8 @@ export interface State {
   }
   setClusterDetails: (cluster: Cluster | null) => void
   setClusterDetailPlugins: (plugins: Plugin[]) => void
-  showClusterDetails: string | undefined
-  setShowClusterDetails: (showClusterDetails: string | undefined) => void
+  showClusterDetails: boolean
+  setShowClusterDetails: (showClusterDetails: boolean) => void
   showOnBoardCluster: boolean
   setShowOnBoardCluster: (showOnBoardCluster: boolean) => void
   showDownloadKubeConfig: boolean
@@ -132,7 +132,7 @@ const useStore = create<State>((set) => ({
       }
     }),
 
-  showClusterDetails: undefined,
+  showClusterDetails: false,
   setShowClusterDetails: (showClusterDetails) =>
     set((state) => ({ ...state, showClusterDetails: showClusterDetails })),
   showOnBoardCluster: false,
