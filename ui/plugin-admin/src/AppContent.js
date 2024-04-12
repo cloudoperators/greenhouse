@@ -5,9 +5,9 @@
 
 import React, { useEffect } from "react"
 import { Container } from "juno-ui-components"
-import useAPI from "./hooks/useAPI"
-import PluginList from "./components/PluginList"
-import PluginDetail from "./components/PluginDetail"
+import useAPI from "./plugins/hooks/useAPI"
+import PluginList from "./plugins/components/PluginList"
+import PluginDetail from "./plugins/components/PluginDetail"
 
 const AppContent = () => {
   const { getPlugins } = useAPI()

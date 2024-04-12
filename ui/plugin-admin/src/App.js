@@ -6,12 +6,12 @@
 import React, { useEffect } from "react"
 
 import { AppShell, AppShellProvider } from "juno-ui-components"
-import StoreProvider, { useGlobalsActions } from "./components/StoreProvider"
+import StoreProvider, { useGlobalsActions } from "./plugins/components/StoreProvider"
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 import AppContent from "./AppContent"
 import styles from "./styles.scss"
-import AsyncWorker from "./components/AsyncWorker"
-import Auth from "./components/Auth"
+import AsyncWorker from "./plugins/components/AsyncWorker"
+import Auth from "./plugins/components/Auth"
 
 const URL_STATE_KEY = "plugin-admin"
 

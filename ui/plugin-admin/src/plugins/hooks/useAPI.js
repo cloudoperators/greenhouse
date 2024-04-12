@@ -8,7 +8,7 @@ import useClient from "./useClient"
 import { useAuthData } from "../components/StoreProvider"
 import { usePluginActions } from "../components/StoreProvider"
 
-import { getResourceStatusFromKubernetesConditions } from "../../../utils/resourceStatus"
+import { getResourceStatusFromKubernetesConditions } from "../../../../utils/resourceStatus"
 
 // Extracts the external services from the object and creates links which are used in the plugin list / detail
 export const buildExternalServicesUrls = (exposedServices) => {
