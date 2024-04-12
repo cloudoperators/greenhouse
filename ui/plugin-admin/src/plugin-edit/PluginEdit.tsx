@@ -22,6 +22,8 @@ import useClient from "../plugindefinitions/hooks/useClient"
 import useNamespace from "../plugindefinitions/hooks/useNamespace"
 import useStore from "../plugindefinitions/store"
 import initPlugin from "./lib/utils/initPlugin"
+import postPlugin from "./lib/utils/postPlugin"
+import ClusterSelect from "./ClusterSelect"
 
 interface PluginEditProps {
   pluginDefinition: PluginDefinition
@@ -45,39 +47,32 @@ const PluginEdit: React.FC<PluginEditProps> = (props: PluginEditProps) => {
 
   const [plugin, setPlugin] = React.useState<Plugin>(editedPlugin!)
 
-  const [errorMessage, setErrorMessage] = React.useState<string>("")
+  const [submitMessage, setSubmitResultMessage] = React.useState<string>("")
 
-  const onSubmit = () => {
-    console.log(plugin)
-    client
-      .post(
-        `/apis/greenhouse.sap/v1alpha1/namespaces/${namespace}/plugins/${
-          plugin.metadata!.name
-        }`,
-        { ...plugin }
-      )
-      .then((res) => {
-        console.log(res)
-        setErrorMessage("Success!")
-      })
-      .catch((err) => {
-        console.log(err)
-        setErrorMessage(err.message)
-      })
+  const onSubmit = async () => {
+    let message = await postPlugin(plugin, namespace, client)
+    setSubmitResultMessage(message)
   }
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     let value: string | boolean | number
-    console.log(e.target.type)
-    if (e.target.type == "checkbox") {
-      value = e.target.checked ? true : false
-    } else if (e.target.type == "number") {
-      value = parseInt(e.target.value)
-    } else if (e.target.type == "textarea") {
-      value = JSON.parse(e.target.value)
-    } else {
-      value = e.target.value
+    if (e.target?.type != undefined) {
+      console.error("Unexpected form change event: " + e)
     }
-    console.log(e.target.id + " " + value)
+    switch (e.target.type) {
+      case "checkbox":
+        value = e.target.checked ? true : false
+        break
+      case "number":
+        value = parseInt(e.target.value)
+        break
+      case "textarea":
+        value = JSON.parse(e.target.value)
+        break
+      default:
+        value = e.target.value
+        break
+    }
 
     if (e.target.id.startsWith("metadata.")) {
       setPlugin({
@@ -179,13 +174,10 @@ const PluginEdit: React.FC<PluginEditProps> = (props: PluginEditProps) => {
               />
             </FormRow>
             <FormRow>
-              {/* TODO: Add Cluster Selector from available Clusters in Ready state */}
-              <TextInput
+              <ClusterSelect
                 id="spec.clusterName"
                 label="Cluster"
-                placeholder="this is going to be a select of ready clusters"
-                value={plugin.spec!.clusterName}
-                onBlur={handleChange}
+                onChange={handleChange}
               />
             </FormRow>
           </FormSection>
@@ -261,7 +253,7 @@ const PluginEdit: React.FC<PluginEditProps> = (props: PluginEditProps) => {
           )}
 
           <ButtonRow>
-            {errorMessage != "" && <p>{errorMessage}</p>}
+            {submitMessage != "" && <p>{submitMessage}</p>}
             <Button onClick={onSubmit} variant="primary">
               Submit
             </Button>
