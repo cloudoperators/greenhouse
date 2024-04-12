@@ -6,12 +6,17 @@
 import { components } from "./schema"
 
 export type Cluster = components["schemas"]["Cluster"]
-export type PluginConfig = components["schemas"]["PluginConfig"]
+export type PluginDefinition = components["schemas"]["PluginDefinition"]
+export type Plugin = components["schemas"]["Plugin"]
 export type UpdateClusterInput = {
   clusters: Cluster[]
-  action: UpdateClusterAction
+  action: UpdateObjectAction
 }
-export enum UpdateClusterAction {
+export type UpdatePluginInput = {
+  pluginDefinitions: PluginDefinition[]
+  action: UpdateObjectAction
+}
+export enum UpdateObjectAction {
   "add",
   "delete",
 }

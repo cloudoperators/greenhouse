@@ -12,11 +12,14 @@ import AppContent from "./AppContent"
 import styles from "./styles.scss"
 import AsyncWorker from "./plugins/components/AsyncWorker"
 import Auth from "./plugins/components/Auth"
+import useCommunication from "./plugindefinitions/hooks/useCommunication"
+import usePluginDefinitionsStore from "./plugindefinitions/store"
 
 const URL_STATE_KEY = "plugin-admin"
 
 const App = (props = {}) => {
   const { setUrlStateKey, setEndpoint } = useGlobalsActions()
+  const setPluginDefinitionEndpoint = usePluginDefinitionsStore((state) => state.setEndpoint)
 
   // Create query client which it can be used from overall in the app
   // set default endpoint to fetch data
@@ -29,12 +32,14 @@ const App = (props = {}) => {
       },
     },
   })
+  useCommunication()
 
   // on app initial load save Endpoint and URL_STATE_KEY so it can be
   // used from overall in the application
   useEffect(() => {
     // set to empty string to fetch local test data in dev mode
     setEndpoint(props.endpoint || "")
+    setPluginDefinitionEndpoint(props.endpoint || "")
     setUrlStateKey(URL_STATE_KEY)
   }, [])
 

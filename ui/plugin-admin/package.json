@@ -84,5 +84,9 @@
   "appDependencies": {
     "auth": "latest"
   },
-  "appPreview": true
+  "appPreview": true,
+  "dependencies": {
+    "react-markdown": "^9.0.1",
+    "rehype-raw": "^7.0.0"
+  }
 }
