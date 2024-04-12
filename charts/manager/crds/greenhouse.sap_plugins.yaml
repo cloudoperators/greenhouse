@@ -27,6 +27,9 @@ spec:
     - jsonPath: .spec.clusterName
       name: Cluster
       type: string
+    - jsonPath: .spec.releaseNamespace
+      name: ReleaseNamespace
+      type: string
     - jsonPath: .spec.disabled
       name: Disabled
       type: boolean
