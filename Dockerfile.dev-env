@@ -1,5 +1,9 @@
 # Build the manager binary
-FROM golang:1.21 as builder
+FROM --platform=${BUILDPLATFORM:-linux/amd64} golang:1.21 as builder
+
+ARG TARGETOS
+ARG TARGETARCH
+ENV CGO_ENABLED=0
 ENV ENVTEST_K8S_VERSION=1.24.1
 WORKDIR /workspace
 
@@ -8,13 +12,13 @@ COPY . .
 # Build dev-env and setup-envtest
 RUN --mount=type=cache,target=/go/pkg/mod \
 	--mount=type=cache,target=/root/.cache/go-build \
-	make generate build-dev-env GO_ENABLED=0 GOOS=linux GOARCH=amd64 \
+	make generate build-dev-env CGO_ENABLED=${CGO_ENABLED} GOOS=${TARGETOS} GOARCH=${TARGETARCH} \
 	&& GOBIN=/workspace/bin go install sigs.k8s.io/controller-runtime/tools/setup-envtest@bf15e44028f908c790721fc8fe67c7bf2d06a611 \
 	&& cp $(/workspace/bin/setup-envtest use ${ENVTEST_K8S_VERSION} -p path)/* /usr/local/bin
 
 
 # final image 
-FROM alpine:3.19.1
+FROM --platform=${BUILDPLATFORM:-linux/amd64} alpine:3.19.1
 LABEL source_repository="https://github.com/cloudoperators/greenhouse"
 ENV KUBEBUILDER_ASSETS=/usr/local/bin
 WORKDIR /
