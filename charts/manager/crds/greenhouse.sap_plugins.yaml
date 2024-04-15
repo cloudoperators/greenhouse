@@ -22,13 +22,13 @@ spec:
       name: Display name
       type: string
     - jsonPath: .spec.pluginDefinition
-      name: PluginDefinition
+      name: Plugin Definition
       type: string
     - jsonPath: .spec.clusterName
       name: Cluster
       type: string
     - jsonPath: .spec.releaseNamespace
-      name: ReleaseNamespace
+      name: Release Namespace
       type: string
     - jsonPath: .spec.disabled
       name: Disabled
