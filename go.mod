@@ -35,7 +35,7 @@ require (
 	golang.org/x/text v0.14.0
 	gopkg.in/yaml.v3 v3.0.1
 	gotest.tools/v3 v3.5.1
-	helm.sh/helm/v3 v3.14.2
+	helm.sh/helm/v3 v3.14.4
 	k8s.io/api v0.29.2
 	k8s.io/apiextensions-apiserver v0.29.2
 	k8s.io/apimachinery v0.29.2
@@ -99,14 +99,14 @@ require (
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/cespare/xxhash/v2 v2.2.0 // indirect
 	github.com/chai2010/gettext-go v1.0.2 // indirect
-	github.com/containerd/containerd v1.7.11 // indirect
+	github.com/containerd/containerd v1.7.12 // indirect
 	github.com/coreos/go-oidc/v3 v3.9.0 // indirect
 	github.com/cyphar/filepath-securejoin v0.2.4 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/dexidp/dex/api/v2 v2.1.0 // indirect
 	github.com/docker/cli v24.0.6+incompatible // indirect
 	github.com/docker/distribution v2.8.2+incompatible // indirect
-	github.com/docker/docker v24.0.7+incompatible // indirect
+	github.com/docker/docker v24.0.9+incompatible // indirect
 	github.com/docker/docker-credential-helpers v0.7.0 // indirect
 	github.com/docker/go-connections v0.4.0 // indirect
 	github.com/docker/go-metrics v0.0.1 // indirect
@@ -214,7 +214,7 @@ require (
 	google.golang.org/appengine v1.6.8 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20240123012728-ef4313101c80 // indirect
 	google.golang.org/grpc v1.62.0
-	google.golang.org/protobuf v1.32.0
+	google.golang.org/protobuf v1.33.0
 	gopkg.in/inf.v0 v0.9.1 // indirect
 	gopkg.in/square/go-jose.v2 v2.6.0 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
