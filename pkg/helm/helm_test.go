@@ -89,7 +89,7 @@ var _ = Describe("helm package test", func() {
 			Expect(err).ShouldNot(HaveOccurred(),
 				"there should be no error for plugindefinitions with helm chart")
 
-			cfg, err := helm.ExportNewHelmAction(test.RestClientGetter, plugin.Namespace)
+			cfg, err := helm.ExportNewHelmAction(test.RestClientGetter, plugin.GetReleaseNamespace())
 			Expect(err).ShouldNot(HaveOccurred(), "there should be no error creating helm config")
 			listAction := action.NewList(cfg)
 			releases, err := listAction.Run()
@@ -104,7 +104,7 @@ var _ = Describe("helm package test", func() {
 			// We expect the release from the previous test to be found
 			Expect(releaseNotFound).To(BeFalse(), "the release should have been found before deleting")
 
-			cfg, err := helm.ExportNewHelmAction(test.RestClientGetter, plugin.Namespace)
+			cfg, err := helm.ExportNewHelmAction(test.RestClientGetter, plugin.GetReleaseNamespace())
 			Expect(err).ShouldNot(HaveOccurred(), "there should be no error creating helm config")
 			listAction := action.NewList(cfg)
 			releases, err := listAction.Run()

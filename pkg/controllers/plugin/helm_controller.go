@@ -181,7 +181,7 @@ func (r *HelmReconciler) initClientGetter(
 
 	// early return if spec.clusterName is not set
 	if plugin.Spec.ClusterName == "" {
-		restClientGetter, err = clientutil.NewRestClientGetterForInCluster(plugin.GetNamespace(), r.kubeClientOpts...)
+		restClientGetter, err = clientutil.NewRestClientGetterForInCluster(plugin.GetReleaseNamespace(), r.kubeClientOpts...)
 		if err != nil {
 			clusterAccessReadyCondition.Status = metav1.ConditionFalse
 			clusterAccessReadyCondition.Message = fmt.Sprintf("cannot access greenhouse cluster: %s", err.Error())

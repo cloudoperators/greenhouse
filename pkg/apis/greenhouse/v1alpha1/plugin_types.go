@@ -26,6 +26,10 @@ type PluginSpec struct {
 
 	// ClusterName is the name of the cluster the plugin is deployed to. If not set, the plugin is deployed to the greenhouse cluster.
 	ClusterName string `json:"clusterName,omitempty"`
+
+	// ReleaseNamespace is the namespace in the remote cluster to which the backend is deployed.
+	// Defaults to the Greenhouse managed namespace if not set.
+	ReleaseNamespace string `json:"releaseNamespace,omitempty"`
 }
 
 // PluginOptionValue is the value for a PluginOption.
@@ -123,6 +127,7 @@ type HelmReleaseStatus struct {
 //+kubebuilder:printcolumn:name="Display name",type=string,JSONPath=`.spec.displayName`
 //+kubebuilder:printcolumn:name="PluginDefinition",type=string,JSONPath=`.spec.pluginDefinition`
 //+kubebuilder:printcolumn:name="Cluster",type=string,JSONPath=`.spec.clusterName`
+//+kubebuilder:printcolumn:name="ReleaseNamespace",type=string,JSONPath=`.spec.releaseNamespace`
 //+kubebuilder:printcolumn:name="Disabled",type=boolean,JSONPath=`.spec.disabled`
 //+kubebuilder:printcolumn:name="Ready",type="string",JSONPath=`.status.statusConditions.conditions[?(@.type == "Ready")].status`
 //+kubebuilder:printcolumn:name="Version",type=string,JSONPath=`.status.version`
@@ -135,6 +140,15 @@ type Plugin struct {
 
 	Spec   PluginSpec   `json:"spec,omitempty"`
 	Status PluginStatus `json:"status,omitempty"`
+}
+
+// GetReleaseNamespace returns the release namespace of the Plugin.
+func (p *Plugin) GetReleaseNamespace() string {
+	// TODO: Replace this method with a Defaulter in the webhook once all Plugins have the ReleaseNamespace set.
+	if p.Spec.ReleaseNamespace == "" {
+		return p.GetNamespace()
+	}
+	return p.Spec.ReleaseNamespace
 }
 
 //+kubebuilder:object:root=true
