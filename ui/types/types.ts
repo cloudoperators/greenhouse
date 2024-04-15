@@ -40,3 +40,9 @@ export type KubernetesCondition = {
   message?: string
   lastTransitionTime?: string
 }
+
+export type PluginDefinitionOptions = NonNullable<PluginDefinition["spec"]>["options"]
+export type PluginDefinitionOption = NonNullable<PluginDefinitionOptions>[number]
+export type PluginOptionValues = NonNullable<Plugin["spec"]>["optionValues"]
+export type PluginOptionValue = NonNullable<PluginOptionValues>[number]
+

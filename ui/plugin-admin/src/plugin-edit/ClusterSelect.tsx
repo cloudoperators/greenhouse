@@ -7,6 +7,7 @@ import { Select, SelectOption } from "juno-ui-components"
 interface ClusterSelectProps {
   id?: string
   label?: string
+  placeholder?: string
   onChange?: (e: React.ChangeEvent<HTMLInputElement>) => void
 }
 
@@ -44,7 +45,12 @@ const ClusterSelect: React.FC<ClusterSelectProps> = (
   }
 
   return (
-    <Select id={props.id} label={props.label} onChange={handleChange}>
+    <Select
+      id={props.id}
+      placeholder={props.placeholder}
+      label={props.label}
+      onChange={handleChange}
+    >
       {availableClusters.map((cluster) => {
         return (
           <SelectOption
