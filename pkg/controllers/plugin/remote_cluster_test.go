@@ -160,10 +160,10 @@ var _ = Describe("Validate plugin clusterName", Ordered, func() {
 
 		// kubeConfigController ensures the namespace within the remote cluster -- we have to create it
 		By("creating the namespace on the cluster")
-		remoteRestClientGetter := clientutil.NewRestClientGetterFromBytes(remoteKubeConfig, testPlugin.Namespace, clientutil.WithPersistentConfig())
+		remoteRestClientGetter := clientutil.NewRestClientGetterFromBytes(remoteKubeConfig, testPlugin.GetReleaseNamespace(), clientutil.WithPersistentConfig())
 		remoteK8sClient, err := clientutil.NewK8sClientFromRestClientGetter(remoteRestClientGetter)
 		Expect(err).ShouldNot(HaveOccurred(), "there should be no error creating the k8s client")
-		err = remoteK8sClient.Create(test.Ctx, &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: testPlugin.Namespace}})
+		err = remoteK8sClient.Create(test.Ctx, &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: testPlugin.GetReleaseNamespace()}})
 		Expect(err).ShouldNot(HaveOccurred(), "there should be no error creating the namespace")
 
 		By("creating a secret with a valid kubeconfig for a remote cluster")
@@ -180,7 +180,7 @@ var _ = Describe("Validate plugin clusterName", Ordered, func() {
 	})
 
 	It("should correctly handle the plugin on a referenced cluster", func() {
-		remoteRestClientGetter := clientutil.NewRestClientGetterFromBytes(remoteKubeConfig, testPlugin.Namespace, clientutil.WithPersistentConfig())
+		remoteRestClientGetter := clientutil.NewRestClientGetterFromBytes(remoteKubeConfig, testPlugin.GetReleaseNamespace(), clientutil.WithPersistentConfig())
 
 		By("creating a plugin referencing the cluster")
 		testPlugin.Spec.ClusterName = "test-cluster"
@@ -217,7 +217,7 @@ var _ = Describe("Validate plugin clusterName", Ordered, func() {
 		}).Should(BeTrue(), "the ClusterAccessReadyCondition should be true")
 
 		By("checking the helm releases deployed to the remote cluster")
-		helmConfig, err := helm.ExportNewHelmAction(remoteRestClientGetter, testPlugin.Namespace)
+		helmConfig, err := helm.ExportNewHelmAction(remoteRestClientGetter, testPlugin.GetReleaseNamespace())
 		Expect(err).ShouldNot(HaveOccurred(), "there should be no error creating helm config")
 		listAction := action.NewList(helmConfig)
 
@@ -259,7 +259,7 @@ var _ = Describe("Validate plugin clusterName", Ordered, func() {
 	})
 
 	It("should correctly handle the plugin on a referenced cluster with a secret reference", func() {
-		remoteRestClientGetter := clientutil.NewRestClientGetterFromBytes(remoteKubeConfig, testPlugin.Namespace, clientutil.WithPersistentConfig())
+		remoteRestClientGetter := clientutil.NewRestClientGetterFromBytes(remoteKubeConfig, testPlugin.GetReleaseNamespace(), clientutil.WithPersistentConfig())
 
 		By("creating a secret holding the OptionValue referenced by the Plugin")
 		Expect(test.K8sClient.Create(test.Ctx, &testSecret)).Should(Succeed())
