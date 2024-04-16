@@ -10,10 +10,6 @@ version: 0.1.2
 appVersion: "0.1.0"
 
 dependencies:
-  - condition: logshipping.enabled
-    name: logshipping
-    repository: "file://../logshipping"
-    version: 0.0.2
   - condition: idproxy.enabled
     name: idproxy
     repository: "file://../idproxy"
