@@ -2,14 +2,11 @@ import { Plugin, PluginDefinition } from "../../../../../types/types"
 
 const handleFormChange = (
   e: React.ChangeEvent<HTMLInputElement>,
-  plugin: Plugin,
-  setPlugin: React.Dispatch<React.SetStateAction<Plugin>>
-  ) => {
+  plugin: Plugin
+  ): Plugin => {
   let value: string | boolean | number
   if (e.target?.type == undefined) {
-    console.error("Unexpected form change event: " )
-    console.error(e)
-    return
+    throw new Error("Unexpected form change event: "+JSON.stringify(e) )
   }
   switch (e.target.type) {
     case "checkbox":
@@ -26,27 +23,28 @@ const handleFormChange = (
       break
   }
 
+  // the incoming id consists of the path to the property in the plugin object separated by dots
   if (e.target.id.startsWith("metadata.")) {
-    setPlugin({
+    return {
       ...plugin,
       metadata: {
         ...plugin.metadata!,
-        [e.target.id.split(".")[1]]: value,
+        [e.target.id.split(".")[1]]: value ,
       },
-    })
+    }
   } else if (e.target.id.startsWith("spec.")) {
-    setPlugin({
+    return {
       ...plugin,
       spec: {
         ...plugin.spec!,
         [e.target.id.split(".")[1]]: value,
       },
-    })
+    }
   } else if (e.target.id.startsWith("optionValues.")) {
-    // delete from pluginConfig.spec.optionValues by matching name property if value is empty
-    // does not work yet!!
+    
+    // delete from plugin.spec.optionValues by matching name property if value is empty
     if (value == "") {
-      setPlugin({
+      return {
         ...plugin,
         spec: {
           ...plugin.spec!,
@@ -54,13 +52,12 @@ const handleFormChange = (
             (option) => option.name != e.target.id.split(".")[1]
           ),
         },
-      })
-      console.log(plugin.spec!.optionValues!)
+      }
     }
-    //   replace in pluginConfig.spec.optionValues by matching name property or push if not found
+    //   replace in plugin.spec.optionValues by matching name property or push if not found
     let wasFound = false
-
-    setPlugin({
+    let changedPlugin: Plugin
+    changedPlugin ={
       ...plugin,
       spec: {
         ...plugin.spec!,
@@ -73,9 +70,9 @@ const handleFormChange = (
           }
         }),
       },
-    })
+    }
     if (!wasFound) {
-      setPlugin({
+      changedPlugin ={
         ...plugin,
         spec: {
           ...plugin.spec!,
@@ -84,9 +81,11 @@ const handleFormChange = (
             { name: e.target.id.split(".")[1], value: value },
           ],
         },
-      })
+      }
     }
+    return changedPlugin
   }
+  return plugin
 }
 
 export default handleFormChange

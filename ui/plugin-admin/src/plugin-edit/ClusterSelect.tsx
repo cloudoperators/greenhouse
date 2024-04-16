@@ -8,6 +8,7 @@ interface ClusterSelectProps {
   id?: string
   label?: string
   placeholder?: string
+  defaultValue?: string
   onChange?: (e: React.ChangeEvent<HTMLInputElement>) => void
 }
 
@@ -49,6 +50,7 @@ const ClusterSelect: React.FC<ClusterSelectProps> = (
       id={props.id}
       placeholder={props.placeholder}
       label={props.label}
+      defaultValue={props.defaultValue}
       onChange={handleChange}
     >
       {availableClusters.map((cluster) => {

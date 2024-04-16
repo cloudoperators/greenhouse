@@ -6,6 +6,7 @@
 import { create } from "zustand"
 import {
   PluginDefinition,
+  Plugin,
   UpdateObjectAction,
   UpdatePluginInput as UpdatePluginDefinitionInput
 } from "../../../types/types"
@@ -30,6 +31,10 @@ export interface State {
   setPluginDefinitionDetail: (pluginDefinition: PluginDefinition) => void
   showPluginDefinitionEdit: boolean
   setShowPluginEdit: (showPluginDefinitionEdit: boolean) => void
+  pluginToEdit?: Plugin
+  setPluginToEdit: (plugin?: Plugin) => void
+  isEditMode: boolean
+  setIsEditMode: (isEditMode: boolean) => void
 }
 
 // global zustand store. See how this works here: https://github.com/pmndrs/zustand
@@ -86,7 +91,14 @@ const usePluginDefinitionsStore = create<State>((set) => ({
 
   showPluginDefinitionEdit: false,
   setShowPluginEdit: (showPluginDefinitionEdit) =>
-    set((state) => ({ showPluginDefinitionEdit: showPluginDefinitionEdit}))
+    set((state) => ({ showPluginDefinitionEdit: showPluginDefinitionEdit})),
+
+  pluginToEdit: undefined,
+  setPluginToEdit: (plugin) => set((state) => ({ pluginToEdit: plugin})),
+
+  isEditMode: false,
+  setIsEditMode: (isEditMode) => set((state) => ({ isEditMode: isEditMode}))
+
 }))
 
 export default usePluginDefinitionsStore

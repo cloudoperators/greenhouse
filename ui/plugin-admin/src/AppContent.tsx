@@ -3,16 +3,16 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useEffect } from "react"
-import { Container, MainTabs, TabList, Tab, TabPanel } from "juno-ui-components"
-import useAPI from "./plugins/hooks/useAPI"
-import PluginList from "./plugins/components/PluginList"
-import PluginDetail from "./plugins/components/PluginDetail"
-import usePluginDefinitionsStore from "./plugindefinitions/store"
-import PluginDefinitionGrid from "./plugindefinitions/components/PluginDefinitionGrid"
-import PluginDefinitionDetail from "./plugindefinitions/components/PluginDefinitionDetail"
-import WelcomeView from "./plugindefinitions/components/WelcomeView"
+import { Container, MainTabs, Tab, TabList, TabPanel } from "juno-ui-components"
+import { useEffect } from "react"
 import PluginEdit from "./plugin-edit/PluginEdit"
+import PluginDefinitionDetail from "./plugindefinitions/components/PluginDefinitionDetail"
+import PluginDefinitionGrid from "./plugindefinitions/components/PluginDefinitionGrid"
+import WelcomeView from "./plugindefinitions/components/WelcomeView"
+import usePluginDefinitionsStore from "./plugindefinitions/store"
+import PluginDetail from "./plugins/components/PluginDetail"
+import PluginList from "./plugins/components/PluginList"
+import useAPI from "./plugins/hooks/useAPI"
 
 const AppContent = () => {
   const { getPlugins } = useAPI()
@@ -29,6 +29,7 @@ const AppContent = () => {
   const showPluginEdit = usePluginDefinitionsStore(
     (state) => state.showPluginDefinitionEdit
   )
+
   const auth = usePluginDefinitionsStore((state) => state.auth)
   const authError = auth?.error
   const loggedIn = usePluginDefinitionsStore((state) => state.loggedIn)
