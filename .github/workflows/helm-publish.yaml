@@ -1,6 +1,7 @@
 name: Package Helm Chart and publish to GitHub Packages
 
 on:
+  workflow_dispatch: {}
   push:
     branches:
         - main
