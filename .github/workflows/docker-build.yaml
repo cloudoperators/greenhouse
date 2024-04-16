@@ -27,18 +27,8 @@ jobs:
       max-parallel: 6
       matrix:
         include:
-          - Dockerfiles: Dockerfile
-            Imagename: greenhouse
           - Dockerfiles: Dockerfile.dev-env
             Imagename: greenhouse-dev-env
-          - Dockerfiles: Dockerfile.headscalectl
-            Imagename: greenhouse-headscalectl
-          - Dockerfiles: Dockerfile.tailscale
-            Imagename: greenhouse-tailscale
-          - Dockerfiles: Dockerfile.tcp-proxy
-            Imagename: greenhouse-tcp-proxy
-          - Dockerfiles: Dockerfile.website
-            Imagename: greenhouse-website
 
     permissions:
       contents: read
@@ -143,18 +133,8 @@ jobs:
       max-parallel: 6
       matrix:
         include:
-          - Dockerfiles: Dockerfile
-            Imagename: greenhouse
           - Dockerfiles: Dockerfile.dev-env
             Imagename: greenhouse-dev-env
-          - Dockerfiles: Dockerfile.headscalectl
-            Imagename: greenhouse-headscalectl
-          - Dockerfiles: Dockerfile.tailscale
-            Imagename: greenhouse-tailscale
-          - Dockerfiles: Dockerfile.tcp-proxy
-            Imagename: greenhouse-tcp-proxy
-          - Dockerfiles: Dockerfile.website
-            Imagename: greenhouse-website
 
     name: Vulnerability Scan
     needs: build
