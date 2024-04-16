@@ -20,7 +20,7 @@ spec:
     - name: fluent-bit.backend.opensearch.host
       value: {{ required "opensearch host missing" .Values.logshipping.opensearch.host }}
     - name: fluent-bit.backend.opensearch.port
-      value: {{ default "9200" .Values.logshipping.opensearch.port }}
+      value: {{ default "9200" .Values.logshipping.opensearch.port | quote }}
     - name: fluent-bit.backend.opensearch.http_user
       valueFrom:
         secret:
