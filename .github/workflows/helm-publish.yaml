@@ -38,6 +38,7 @@ jobs:
         id: list-changed
         run: |
             changed=$(ct list-changed --config ct.yaml --target-branch ${{ github.event.repository.default_branch }})
+            echo $changed
             if [[ -n "$changed" ]]; then
             echo "changed=true" >> "$GITHUB_OUTPUT"
             fi
@@ -62,7 +63,8 @@ jobs:
             do
               chart_name=$(yq .name "${chart}/Chart.yaml")
               chart_version=$(yq .version "${chart}/Chart.yaml")
-            
+              echo ${chart_name}
+              echo ${chart_version}
               if $(helm pull "oci://${{ env.REGISTRY }}/${chart_name}" --version $chart_version); then
                 echo "Chart ${chart_name}:${chart_version} already exists in OCI registry. Skipping upload. Please increment the chart version."
                 echo "neesdBump=true" >> "$GITHUB_OUTPUT"
@@ -71,7 +73,7 @@ jobs:
             done
 
       - name: Run chart-testing (lint)
-        if: steps.check-changed.outputs.neesdBump == 'true'
+        if: steps.check-chart.outputs.neesdBump == 'true'
         run: |
             exit 1
 
