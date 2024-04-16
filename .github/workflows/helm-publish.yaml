@@ -13,7 +13,7 @@ env:
 
 jobs:
   helm-push:
-    runs-on: [ oci-runner ]
+    runs-on: [ default ]
     steps:
       - uses: actions/checkout@v4
         with:
