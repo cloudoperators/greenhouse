@@ -43,7 +43,7 @@ jobs:
             chartName: ui
           - chartDir: charts/website
             chartName: website
-            
+
     steps:
       - uses: actions/checkout@v4
         with:
