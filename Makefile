@@ -146,7 +146,7 @@ $(CONTROLLER_GEN): $(LOCALBIN)
 
 .PHONY: docker-controller-gen
 docker-controller-gen: $(CONTROLLER_GEN) ## Download controller-gen locally if necessary.
-$(CONTROLLER_GEN): ${GOPATH}/bin
+$(CONTROLLER_GEN): ${HOME}/go/bin
 	go install sigs.k8s.io/controller-tools/cmd/controller-gen@$(CONTROLLER_TOOLS_VERSION)
 
 .PHONY: envtest
