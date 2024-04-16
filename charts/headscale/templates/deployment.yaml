@@ -88,7 +88,7 @@ spec:
             - name: http
               protocol: TCP
               containerPort: {{ required ".Values.ui.service.port missing" .Values.ui.service.port }}
-        - name: headscalectl
+        - name: headscalectL
           image: "{{ required ".Values.headscalectl.image.repository missing" .Values.headscalectl.image.repository }}:{{ required ".Values.headscalectl.image.tag missing" .Values.headscalectl.image.tag }}"
           imagePullPolicy: {{ required ".Values.headscalectl.image.pullPolicy missing" .Values.headscalectl.image.pullPolicy }}
           args:
