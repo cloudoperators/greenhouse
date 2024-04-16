@@ -83,13 +83,18 @@ jobs:
             do
             helm package $chart -d $chart
             done
+    
+      - name: set lower case owner name
+        run: |
+            echo "OWNER_LC=${OWNER,,}" >>${GITHUB_ENV}
+        env:
+            OWNER: '${{ github.repository_owner }}'
 
       - name: Helm publish
         id: helm-publish
         run: |
-            REPO_OWNER=`echo "${{ github.repository_owner }}" | tr '[:upper:]' '[:lower:]'
             for chart in $(ct list-changed --config ct.yaml)
             do
             PKG_NAME=`ls $chart/*.tgz`
-            helm push $PKG_NAME oci://${{ env.REGISTRY }}/${REPO_OWNER}/charts/$(basename $chart)
+            helm push $PKG_NAME oci://${{ env.REGISTRY }}/${{ env.OWNER_LC }}/charts/$(basename $chart)
             done
