@@ -31,8 +31,6 @@ jobs:
             chartName: headscale
           - chartDir: charts/idproxy
             chartName: idproxy
-          - chartDir: charts/logshipping
-            chartName: logshipping 
           - chartDir: charts/manager
             chartName: manager
           - chartDir: charts/tailscale-proxy
@@ -92,7 +90,7 @@ jobs:
           chartName=$(yq .name "${{ matrix.chartDir }}/Chart.yaml")
           chartVersion=$(yq .version "${{ matrix.chartDir }}/Chart.yaml")
           echo "chart_version=${chartVersion}" >> "$GITHUB_OUTPUT"
-          if $(helm pull "oci://${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ matrix.chartDir }}" --version $chartVersion); then
+          if $(helm pull "oci://${{ env.REGISTRY }}/${{ github.repository }}/${{ matrix.chartDir }}" --version $chartVersion); then
             echo "bump=true" >> "$GITHUB_OUTPUT"
           fi
 
@@ -109,4 +107,4 @@ jobs:
         run: |
           helm package ${{ matrix.chartDir }} -d ${{ matrix.chartDir }}
           PKG_NAME=`ls ${{ matrix.chartDir }}/*.tgz`
-          helm push ${PKG_NAME} oci://${{ env.REGISTRY }}/${{ github.repository_owner }}/charts/
+          helm push ${PKG_NAME} oci://${{ env.REGISTRY }}/${{ github.repository }}/charts/
