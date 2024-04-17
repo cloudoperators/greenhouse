@@ -1,0 +1,110 @@
+name: Package Helm Chart and publish to GitHub Packages
+
+on:
+  push:
+    branches:
+        - main
+    paths:
+        - 'charts/**'
+
+permissions:
+  contents: write
+  packages: write
+
+env:
+  REGISTRY: ghcr.io
+
+jobs:
+  helm-release:
+    runs-on: [ default ]
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - chartDir: charts/cors-proxy
+            chartName: cors-proxy
+          - chartDir: charts/demo
+            chartName: demo
+          - chartDir: charts/greenhouse
+            chartName: greenhouse
+          - chartDir: charts/headscale
+            chartName: headscale
+          - chartDir: charts/idproxy
+            chartName: idproxy
+          - chartDir: charts/manager
+            chartName: manager
+          - chartDir: charts/tailscale-proxy
+            chartName: tailscale-proxy
+          - chartDir: charts/team-membership
+            chartName: team-membership  
+          - chartDir: charts/ui
+            chartName: ui
+          - chartDir: charts/website
+            chartName: website
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+            fetch-depth: 0
+            token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Configure Git
+        run: |
+          git config user.name "$GITHUB_ACTOR"
+          git config user.email "$GITHUB_ACTOR@users.noreply.github.com"
+
+      - name: Set up Helm
+        uses: azure/setup-helm@v4.1.0
+        with:
+            version: v3.12.1
+
+      - uses: actions/setup-python@v5
+        with:
+            python-version: 3.9
+            check-latest: true
+            token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Log into registry ${{ env.REGISTRY }}
+        if: github.event_name != 'pull_request'
+        uses: docker/login-action@v3
+        with:
+            registry: ${{ env.REGISTRY }}
+            username: ${{ github.actor }}
+            password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Get changed files
+        id: changed-files
+        uses: tj-actions/changed-files@v44
+        with:
+          files: |
+            ${{ matrix.chartDir }}/**
+    
+      - name: Check if Helm chart with same version already exists
+        id: check-chart
+        if: steps.changed-files.outputs.all_changed_files != ''
+        env:
+          ALL_CHANGED_FILES: ${{ steps.changed-files.outputs.all_changed_files }}
+        run: |
+          # List all changed
+          echo "All changed files: $ALL_CHANGED_FILES"
+          chartName=$(yq .name "${{ matrix.chartDir }}/Chart.yaml")
+          chartVersion=$(yq .version "${{ matrix.chartDir }}/Chart.yaml")
+          echo "chart_version=${chartVersion}" >> "$GITHUB_OUTPUT"
+          if $(helm pull "oci://${{ env.REGISTRY }}/${{ github.repository }}/${{ matrix.chartDir }}" --version $chartVersion); then
+            echo "bump=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Chart needs version bump
+        if: steps.check-chart.outputs.bump == 'true'
+        env:
+          CHART_VERSION: ${{ steps.check-chart.outputs.chart_version }}
+        run: |
+          echo "Chart ${{ matrix.chartDir }}:${{ env.CHART_VERSION }} already exists in OCI registry. Skipping upload. Please increment the chart version."
+          exit 1
+
+      - name: Push Charts to GHCR
+        if: steps.changed-files.outputs.all_changed_files != '' && steps.check-chart.outputs.bump != 'true'
+        run: |
+          helm package ${{ matrix.chartDir }} -d ${{ matrix.chartDir }}
+          PKG_NAME=`ls ${{ matrix.chartDir }}/*.tgz`
+          helm push ${PKG_NAME} oci://${{ env.REGISTRY }}/${{ github.repository }}/charts/
