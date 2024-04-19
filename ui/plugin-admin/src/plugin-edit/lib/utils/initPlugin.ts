@@ -8,7 +8,7 @@ const initPlugin = (pluginDefinition: PluginDefinition) => {
       namespace: "",
       labels: {},
     },
-    kind: "PluginConfig",
+    kind: "Plugin",
     apiVersion: "greenhouse.sap/v1alpha1",
     spec: {
       pluginDefinition: pluginDefinition.metadata!.name!,
