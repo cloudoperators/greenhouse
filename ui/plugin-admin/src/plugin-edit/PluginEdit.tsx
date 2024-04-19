@@ -13,6 +13,7 @@ import {
   PanelBody,
   Stack,
   TextInput,
+  Message,
 } from "juno-ui-components"
 import React from "react"
 import { PluginDefinition } from "../../../types/types"
@@ -27,6 +28,11 @@ import { getPlugin, postPlugin, updatePlugin } from "./lib/utils/pluginApi"
 
 interface PluginEditProps {
   pluginDefinition: PluginDefinition
+}
+
+type SubmitMessage = {
+  message: string
+  ok: boolean
 }
 
 const PluginEdit: React.FC<PluginEditProps> = (props: PluginEditProps) => {
@@ -51,17 +57,20 @@ const PluginEdit: React.FC<PluginEditProps> = (props: PluginEditProps) => {
 
   const { client: client } = useClient()
   const { namespace } = useNamespace()
-  const [submitMessage, setSubmitResultMessage] = React.useState<string>("")
+  const [submitMessage, setSubmitResultMessage] = React.useState<SubmitMessage>(
+    { message: "", ok: false }
+  )
 
   const onSubmit = async () => {
+    setSubmitResultMessage({ message: "", ok: false })
     let res = isEditMode
       ? updatePlugin(pluginToEdit!, namespace, client)
       : postPlugin(pluginToEdit!, namespace, client)
 
     await res.then(async (res) => {
-      setSubmitResultMessage(res.message)
-
+      console.log("submit result", res)
       if (res.ok) {
+        setSubmitResultMessage({ message: res.message, ok: true })
         // get the plugin again to update it's state (e.g. resourceVersion)
         let pluginRequest = getPlugin(pluginToEdit!, namespace, client)
         await pluginRequest.then((pluginResponse) => {
@@ -69,11 +78,15 @@ const PluginEdit: React.FC<PluginEditProps> = (props: PluginEditProps) => {
             setPluginToEdit(pluginResponse.plugin)
             setIsEditMode(true)
           } else {
-            setSubmitResultMessage(
-              "Failed to get plugin after update: " + pluginResponse.message
-            )
+            setSubmitResultMessage({
+              ok: false,
+              message:
+                "Failed to get plugin after update: " + pluginResponse.message,
+            })
           }
         })
+      } else {
+        setSubmitResultMessage({ message: res.message, ok: false })
       }
     })
   }
@@ -157,7 +170,14 @@ const PluginEdit: React.FC<PluginEditProps> = (props: PluginEditProps) => {
             )}
 
             <ButtonRow>
-              {submitMessage != "" && <p>{submitMessage}</p>}
+              {submitMessage.message != "" && (
+                <Message
+                  autoDismissTimeout={5000}
+                  autoDismiss={submitMessage.ok}
+                  variant={submitMessage.ok ? "success" : "error"}
+                  text={submitMessage.message}
+                />
+              )}
               <Button onClick={onSubmit} variant="primary">
                 Submit
               </Button>
