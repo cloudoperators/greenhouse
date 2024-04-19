@@ -12,14 +12,12 @@ import {
   DataGridHeadCell,
   DataGridRow,
   DataGridToolbar,
-  Icon,
   Panel,
   PanelBody,
   Stack,
 } from "juno-ui-components"
 import React, { useEffect } from "react"
 import ReactMarkDown from "react-markdown"
-import rehypeRaw from "rehype-raw"
 import remarkGfm from "remark-gfm"
 import { Plugin, PluginDefinition } from "../../../../types/types"
 import useFetchMarkDown from "../hooks/useFetchMarkDown"
@@ -175,20 +173,7 @@ const PluginDefinitionDetail: React.FC<PluginDefinitionDetailProps> = (
         )}
         {markDown !== "" && (
           <Container px={false} py>
-            <Stack
-              direction="horizontal"
-              alignment="center"
-              distribution="center"
-            >
-              <h2 className="text-xl text-center font-bold mb-2 mt-8">
-                Documentation{" "}
-              </h2>
-              <Icon
-                target="_blank"
-                href={props.pluginDefinition.spec!.docMarkDownUrl}
-                icon="openInNew"
-              />
-            </Stack>
+            <h2 className="text-xl font-bold mb-2 mt-8">Documentation </h2>
             <article className="markdown-body">
               <ReactMarkDown
                 rehypePlugins={[remarkGfm]}

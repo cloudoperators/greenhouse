@@ -41,7 +41,6 @@ const PluginEdit: React.FC<PluginEditProps> = (props: PluginEditProps) => {
   const pluginToEdit = useStore((state) => state.pluginToEdit)
   const isEditMode = useStore((state) => state.isEditMode)
   const setIsEditMode = useStore((state) => state.setIsEditMode)
-
   const { postPlugin, updatePlugin, getPlugin } = usePluginApi()
 
   //init plugin only if it is not already initialized
@@ -56,10 +55,10 @@ const PluginEdit: React.FC<PluginEditProps> = (props: PluginEditProps) => {
     setShowPluginEdit(false)
     setIsEditMode(false)
   }
+
   const [submitMessage, setSubmitResultMessage] = React.useState<SubmitMessage>(
     { message: "", ok: false }
   )
-
   const onSubmit = async () => {
     setSubmitResultMessage({ message: "", ok: false })
     let res = isEditMode
@@ -90,13 +89,23 @@ const PluginEdit: React.FC<PluginEditProps> = (props: PluginEditProps) => {
     })
   }
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const onMessageDismiss = (ok: boolean) => {
+    if (ok) {
+      setShowPluginEdit(false)
+      setPluginToEdit(undefined)
+      setIsEditMode(false)
+      console.log("I want to open the details for my plugin now :)")
+    }
+  }
+
+  const handleFormElementChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     try {
       setPluginToEdit(handleFormChange(e, pluginToEdit!))
     } catch (e) {
       console.error(e)
     }
   }
+
   return (
     <Panel
       heading={
@@ -123,7 +132,7 @@ const PluginEdit: React.FC<PluginEditProps> = (props: PluginEditProps) => {
                   label="Display Name"
                   placeholder="The Display Name for this Plugin Instance"
                   value={pluginToEdit!.spec!.displayName}
-                  onBlur={handleChange}
+                  onBlur={handleFormElementChange}
                 />
               </FormRow>
               <FormRow>
@@ -133,7 +142,7 @@ const PluginEdit: React.FC<PluginEditProps> = (props: PluginEditProps) => {
                   placeholder="Name of this Plugin Instance"
                   {...(isEditMode && { disabled: true })}
                   value={pluginToEdit!.metadata!.name}
-                  onBlur={handleChange}
+                  onBlur={handleFormElementChange}
                 />
               </FormRow>
               <FormRow>
@@ -142,7 +151,7 @@ const PluginEdit: React.FC<PluginEditProps> = (props: PluginEditProps) => {
                   placeholder="The Cluster this Plugin is to be deployed to."
                   label="Cluster"
                   defaultValue={pluginToEdit!.spec!.clusterName}
-                  onChange={handleChange}
+                  onChange={handleFormElementChange}
                 />
               </FormRow>
             </FormSection>
@@ -160,7 +169,7 @@ const PluginEdit: React.FC<PluginEditProps> = (props: PluginEditProps) => {
                         pluginDefinitionOption={option}
                         pluginOptionValue={optionValue}
                         isEditMode={isEditMode}
-                        onChange={handleChange}
+                        onChange={handleFormElementChange}
                       />
                     </FormRow>
                   )
@@ -171,8 +180,9 @@ const PluginEdit: React.FC<PluginEditProps> = (props: PluginEditProps) => {
             <ButtonRow>
               {submitMessage.message != "" && (
                 <Message
-                  autoDismissTimeout={5000}
+                  autoDismissTimeout={3000}
                   autoDismiss={submitMessage.ok}
+                  onDismiss={() => onMessageDismiss(submitMessage.ok)}
                   variant={submitMessage.ok ? "success" : "error"}
                   text={submitMessage.message}
                 />
