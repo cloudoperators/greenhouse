@@ -9,20 +9,20 @@ import {
   DataGridCell,
   DataGridHeadCell,
   DataGridRow,
-} from "juno-ui-components";
+} from "juno-ui-components"
 
 type OptionValues = {
-  default?: unknown;
-  description?: string | undefined;
-  displayName?: string | undefined;
-  name: string;
-  regex?: string | undefined;
-  required: boolean;
-  type: "string" | "secret" | "bool" | "int" | "list" | "map";
-}[];
+  default?: unknown
+  description?: string | undefined
+  displayName?: string | undefined
+  name: string
+  regex?: string | undefined
+  required: boolean
+  type: "string" | "secret" | "bool" | "int" | "list" | "map"
+}[]
 
 interface OptionValueTableProps {
-  optionValues: OptionValues;
+  optionValues: OptionValues
 }
 
 const OptionValueTable: React.FC<OptionValueTableProps> = (
@@ -41,12 +41,12 @@ const OptionValueTable: React.FC<OptionValueTableProps> = (
         </DataGridRow>
         {props.optionValues
           .sort((a, b) => {
-            if ((a.required ?? false) && (!b.required ?? false)) {
-              return -1;
-            } else if ((!a.required ?? false) && (b.required ?? false)) {
-              return 1;
+            if (!!a.required && !b.required) {
+              return -1
+            } else if (!a.required && !!b.required) {
+              return 1
             }
-            return 0;
+            return 0
           })
           .map((option) => {
             return (
@@ -63,11 +63,11 @@ const OptionValueTable: React.FC<OptionValueTableProps> = (
                   {option.default && JSON.stringify(option.default)}
                 </DataGridCell>
               </DataGridRow>
-            );
+            )
           })}
       </DataGrid>
     </Container>
-  );
-};
+  )
+}
 
-export default OptionValueTable;
+export default OptionValueTable
