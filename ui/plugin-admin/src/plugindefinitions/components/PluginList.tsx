@@ -42,7 +42,6 @@ const PluginList: React.FC<PluginListProps> = (props: PluginListProps) => {
               return (
                 <Button
                   key={plugin.metadata!.name}
-                  style={{ cursor: "default" }}
                   size="small"
                   onClick={() => onPluginClick(plugin)}
                 >
