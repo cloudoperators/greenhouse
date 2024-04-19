@@ -9,22 +9,20 @@ import {
   Form,
   FormRow,
   FormSection,
+  Message,
   Panel,
   PanelBody,
   Stack,
   TextInput,
-  Message,
 } from "juno-ui-components"
 import React from "react"
 import { PluginDefinition } from "../../../types/types"
-import useClient from "../plugindefinitions/hooks/useClient"
-import useNamespace from "../plugindefinitions/hooks/useNamespace"
+import usePluginApi from "../plugindefinitions/hooks/usePluginApi"
 import useStore from "../plugindefinitions/store"
 import ClusterSelect from "./ClusterSelect"
 import { OptionInput } from "./OptionInput"
 import handleFormChange from "./lib/utils/handleFormChange"
 import initPlugin from "./lib/utils/initPlugin"
-import { getPlugin, postPlugin, updatePlugin } from "./lib/utils/pluginApi"
 
 interface PluginEditProps {
   pluginDefinition: PluginDefinition
@@ -35,12 +33,16 @@ type SubmitMessage = {
   ok: boolean
 }
 
+// TODO: Hickup observed with resource states -- check for latest version on plugin update
+// TODO: Validate JSON on list/map inputs
 const PluginEdit: React.FC<PluginEditProps> = (props: PluginEditProps) => {
   const setShowPluginEdit = useStore((state) => state.setShowPluginEdit)
   const setPluginToEdit = useStore((state) => state.setPluginToEdit)
   const pluginToEdit = useStore((state) => state.pluginToEdit)
   const isEditMode = useStore((state) => state.isEditMode)
   const setIsEditMode = useStore((state) => state.setIsEditMode)
+
+  const { postPlugin, updatePlugin, getPlugin } = usePluginApi()
 
   //init plugin only if it is not already initialized
   React.useEffect(() => {
@@ -54,9 +56,6 @@ const PluginEdit: React.FC<PluginEditProps> = (props: PluginEditProps) => {
     setShowPluginEdit(false)
     setIsEditMode(false)
   }
-
-  const { client: client } = useClient()
-  const { namespace } = useNamespace()
   const [submitMessage, setSubmitResultMessage] = React.useState<SubmitMessage>(
     { message: "", ok: false }
   )
@@ -64,15 +63,15 @@ const PluginEdit: React.FC<PluginEditProps> = (props: PluginEditProps) => {
   const onSubmit = async () => {
     setSubmitResultMessage({ message: "", ok: false })
     let res = isEditMode
-      ? updatePlugin(pluginToEdit!, namespace, client)
-      : postPlugin(pluginToEdit!, namespace, client)
+      ? updatePlugin(pluginToEdit!)
+      : postPlugin(pluginToEdit!)
 
     await res.then(async (res) => {
       console.log("submit result", res)
       if (res.ok) {
         setSubmitResultMessage({ message: res.message, ok: true })
         // get the plugin again to update it's state (e.g. resourceVersion)
-        let pluginRequest = getPlugin(pluginToEdit!, namespace, client)
+        let pluginRequest = getPlugin(pluginToEdit!.metadata!.name!)
         await pluginRequest.then((pluginResponse) => {
           if (pluginResponse.ok) {
             setPluginToEdit(pluginResponse.plugin)
@@ -179,7 +178,7 @@ const PluginEdit: React.FC<PluginEditProps> = (props: PluginEditProps) => {
                 />
               )}
               <Button onClick={onSubmit} variant="primary">
-                Submit
+                {isEditMode ? "Update Plugin" : "Create Plugin"}
               </Button>
             </ButtonRow>
           </Form>

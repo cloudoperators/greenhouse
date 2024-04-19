@@ -4,26 +4,27 @@
  */
 
 import {
+  Button,
+  ButtonRow,
   Container,
   DataGrid,
   DataGridCell,
   DataGridHeadCell,
   DataGridRow,
+  DataGridToolbar,
+  Icon,
   Panel,
   PanelBody,
   Stack,
-  DataGridToolbar,
-  ButtonRow,
-  Button,
-  Icon,
 } from "juno-ui-components"
 import React, { useEffect } from "react"
-import Markdown from "react-markdown"
+import ReactMarkDown from "react-markdown"
 import rehypeRaw from "rehype-raw"
-import useClient from "../hooks/useClient"
-import useNamespace from "../hooks/useNamespace"
+import remarkGfm from "remark-gfm"
+import { Plugin, PluginDefinition } from "../../../../types/types"
+import useFetchMarkDown from "../hooks/useFetchMarkDown"
+import usePluginApi from "../hooks/usePluginApi"
 import useStore from "../store"
-import { PluginDefinition, Plugin } from "../../../../types/types"
 import OptionValueTable from "./OptionValueTable"
 import PluginList from "./PluginList"
 
@@ -47,6 +48,11 @@ const PluginDefinitionDetail: React.FC<PluginDefinitionDetailProps> = (
   const setShowPluginDefinitionEdit = useStore(
     (state) => state.setShowPluginEdit
   )
+  const { getPluginsByLabelSelector: getPluginsByLabelSelector } =
+    usePluginApi()
+
+  const { fetchMarkDown: fetchMarkDown } = useFetchMarkDown()
+
   const openEditPluginDefinition = () => {
     setShowPluginDefinitionDetails(false)
     setShowPluginDefinitionEdit(true)
@@ -54,46 +60,22 @@ const PluginDefinitionDetail: React.FC<PluginDefinitionDetailProps> = (
 
   const [deployedPlugins, setDeployedPlugins] = React.useState<Plugin[]>([])
   const greenhousePluginLabelKey = "greenhouse.sap/plugin"
-  const labelSelector = `${greenhousePluginLabelKey}=${
-    props.pluginDefinition.metadata!.name
-  }`
-  const { client: client } = useClient()
-  const { namespace } = useNamespace()
-  useEffect(() => {
-    client
-      .get(`/apis/greenhouse.sap/v1alpha1/namespaces/${namespace}/plugins`, {
-        params: {
-          labelSelector: labelSelector,
-        },
-      })
-      .then((res) => {
-        if (res.kind !== "PluginList") {
-          console.log("ERROR: Failed to get Plugins for label " + labelSelector)
-        } else {
-          setDeployedPlugins(res.items as Plugin[])
-        }
-      })
-  }, [client, namespace])
+
+  const plugins = getPluginsByLabelSelector(
+    greenhousePluginLabelKey,
+    props.pluginDefinition.metadata!.name!
+  )
+  plugins.then((plugins) => {
+    setDeployedPlugins(plugins)
+  })
 
   const [markDown, setMarkDown] = React.useState<string>("")
   if (props.pluginDefinition.spec?.docMarkDownUrl) {
     useEffect(() => {
-      fetch(props.pluginDefinition.spec!.docMarkDownUrl!)
-        .then((response) => {
-          if (!response.ok) {
-            console.log(
-              `failed fetching plugin ${
-                props.pluginDefinition.metadata!.name
-              } readme from ${props.pluginDefinition.spec!.docMarkDownUrl}.`
-            )
-          }
-          response.text().then((text) => {
-            setMarkDown(text)
-          })
-        })
-        .catch((error) => {
-          console.error(error)
-        })
+      let getMD = fetchMarkDown(props.pluginDefinition.spec!.docMarkDownUrl!)
+      getMD.then((markDown) => {
+        setMarkDown(markDown)
+      })
     }, [props.pluginDefinition.spec.docMarkDownUrl])
   }
 
@@ -138,7 +120,7 @@ const PluginDefinitionDetail: React.FC<PluginDefinitionDetailProps> = (
             </DataGridRow>
             {props.pluginDefinition.spec?.helmChart && (
               <DataGridRow>
-                <DataGridHeadCell>UI Application</DataGridHeadCell>
+                <DataGridHeadCell>Helm Chart</DataGridHeadCell>
                 <DataGridCell>
                   {props.pluginDefinition.spec?.helmChart?.name && (
                     <p>Name: {props.pluginDefinition.spec?.helmChart?.name}</p>
@@ -207,11 +189,14 @@ const PluginDefinitionDetail: React.FC<PluginDefinitionDetailProps> = (
                 icon="openInNew"
               />
             </Stack>
-
-            <Markdown
-              rehypePlugins={[rehypeRaw]}
-              children={markDown}
-            ></Markdown>
+            <article className="markdown-body">
+              <ReactMarkDown
+                rehypePlugins={[remarkGfm]}
+                // children={markDown}
+              >
+                {markDown}
+              </ReactMarkDown>
+            </article>
           </Container>
         )}
       </PanelBody>

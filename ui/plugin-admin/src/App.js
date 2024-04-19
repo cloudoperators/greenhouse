@@ -14,6 +14,9 @@ import AsyncWorker from "./plugins/components/AsyncWorker"
 import Auth from "./plugins/components/Auth"
 import useCommunication from "./plugindefinitions/hooks/useCommunication"
 import usePluginDefinitionsStore from "./plugindefinitions/store"
+import markdown from "github-markdown-css/github-markdown.css"
+import markdownDark from "github-markdown-css/github-markdown-dark.css"
+import markdownLight from "github-markdown-css/github-markdown-light.css"
 
 const URL_STATE_KEY = "plugin-admin"
 
@@ -58,11 +61,30 @@ const App = (props = {}) => {
   )
 }
 
+// the list styles are being reseted bei juno
+// add them back so it works within a markdown container
+const fixMarkdownLists = `
+  ol {
+      list-style: decimal;
+  }
+  ul {
+    list-style: disc;
+}
+`
+
 const StyledApp = (props) => {
+  const theme = props.theme ? props.theme : "theme-dark"
   return (
     <AppShellProvider theme={`${props.theme ? props.theme : "theme-dark"}`}>
       {/* load styles inside the shadow dom */}
       <style>{styles.toString()}</style>
+      <style>{markdown.toString()}</style>
+      <style>
+        {theme === "theme-dark"
+          ? markdownDark.toString()
+          : markdownLight.toString()}
+      </style>
+      <style>{fixMarkdownLists}</style>
       <StoreProvider>
         <App {...props} />
       </StoreProvider>

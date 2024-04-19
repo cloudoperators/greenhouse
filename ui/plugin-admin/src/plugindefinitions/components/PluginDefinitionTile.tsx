@@ -5,7 +5,7 @@
 
 import { Icon, Stack } from "juno-ui-components"
 import React from "react"
-import { PluginDefinition } from "../types/types"
+import { PluginDefinition } from "../../../../types/types"
 import useStore from "../store"
 
 interface PluginDefinitionTileProps {
