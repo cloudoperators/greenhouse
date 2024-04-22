@@ -4,7 +4,7 @@ go 1.21
 
 replace (
 	// DEX import matches version v2.38.0.
-	github.com/dexidp/dex => github.com/dexidp/dex v0.0.0-20240125142631-9451d87ca0c9
+	github.com/dexidp/dex => github.com/dexidp/dex v0.6.1
 	github.com/dexidp/dex/api/v2 => github.com/dexidp/dex/api/v2 v2.1.1-0.20240125142631-9451d87ca0c9
 	// Keep k8s dependencies in sync.
 	k8s.io/api => k8s.io/api v0.29.4
@@ -18,7 +18,7 @@ replace (
 )
 
 require (
-	github.com/dexidp/dex v0.0.0-20240125142631-9451d87ca0c9
+	github.com/dexidp/dex v0.6.1
 	github.com/ghodss/yaml v1.0.0
 	github.com/jeremywohl/flatten/v2 v2.0.0-20211013061545-07e4a09fb8e4
 	github.com/juanfont/headscale v0.22.3
