@@ -19,6 +19,7 @@ import (
 
 	greenhouseapis "github.com/cloudoperators/greenhouse/pkg/apis"
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/pkg/apis/greenhouse/v1alpha1"
+	"github.com/cloudoperators/greenhouse/pkg/clientutil"
 	"github.com/cloudoperators/greenhouse/pkg/helm"
 )
 
@@ -102,6 +103,7 @@ func ValidateCreatePlugin(ctx context.Context, c client.Client, obj runtime.Obje
 }
 
 func ValidateUpdatePlugin(ctx context.Context, c client.Client, old, obj runtime.Object) (admission.Warnings, error) {
+	var allWarns admission.Warnings
 	oldPlugin, ok := obj.(*greenhousev1alpha1.Plugin)
 	if !ok {
 		return nil, nil
@@ -111,29 +113,40 @@ func ValidateUpdatePlugin(ctx context.Context, c client.Client, old, obj runtime
 		return nil, nil
 	}
 
+	allWarns = append(allWarns, validateOwnerReference(oldPlugin)...)
+
 	pluginDefinition := new(greenhousev1alpha1.PluginDefinition)
 	err := c.Get(ctx, client.ObjectKey{Namespace: "", Name: plugin.Spec.PluginDefinition}, pluginDefinition)
 	if err != nil {
 		// TODO: provide actual APIError
-		return nil, err
+		return allWarns, err
 	}
 
 	if err := validatePluginOptionValues(plugin, pluginDefinition); err != nil {
-		return nil, err
+		return allWarns, err
 	}
 	if err := validatePluginForCluster(ctx, c, plugin, pluginDefinition); err != nil {
-		return nil, err
+		return allWarns, err
 	}
 	if err := validateImmutableField(oldPlugin.Spec.ClusterName, plugin.Spec.ClusterName,
 		field.NewPath("spec", "clusterName"),
 	); err != nil {
-		return nil, err
+		return allWarns, err
 	}
-	return nil, nil
+	return allWarns, nil
 }
 
 func ValidateDeletePlugin(_ context.Context, _ client.Client, _ runtime.Object) (admission.Warnings, error) {
 	return nil, nil
+}
+
+// validateOwnerRefernce returns a Warning if the Plugin is managed by a PluginPreset
+// The user is warned that the Plugin will be reconciled to the desired state specified in the PluginPreset.
+func validateOwnerReference(plugin *greenhousev1alpha1.Plugin) admission.Warnings {
+	if ref := clientutil.GetOwnerReference(plugin, greenhousev1alpha1.PluginBundleKind); ref != nil {
+		return admission.Warnings{fmt.Sprintf("Plugin is managed by PluginBundle '%s'. Plugin will be reconciled to the desired state specified in the PluginBundle.", ref.Name)}
+	}
+	return nil
 }
 
 func validatePluginOptionValues(plugin *greenhousev1alpha1.Plugin, pluginDefinition *greenhousev1alpha1.PluginDefinition) error {

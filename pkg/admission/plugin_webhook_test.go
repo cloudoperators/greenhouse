@@ -12,6 +12,7 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/utils/ptr"
 
 	greenhouseapis "github.com/cloudoperators/greenhouse/pkg/apis"
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/pkg/apis/greenhouse/v1alpha1"
@@ -349,3 +350,38 @@ func expectClusterMustBeSetError(err error) {
 		"the error message should reflect that the clusterName must be set",
 	)
 }
+
+var _ = Describe("Validate Plugin with OwnerReference from PluginPresets", func() {
+	var testPlugin = &greenhousev1alpha1.Plugin{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "Plugin",
+			APIVersion: greenhousev1alpha1.GroupVersion.String(),
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "test-plugin",
+			Namespace: test.TestNamespace,
+		},
+		Spec: greenhousev1alpha1.PluginSpec{
+			PluginDefinition: "test-plugindefinition",
+			ClusterName:      "test-cluster",
+		},
+	}
+
+	var ownerReference = metav1.OwnerReference{
+		APIVersion: "greenhouse.cloud.sap/v1alpha1",
+		Kind:       "PluginBundle",
+		Name:       "test-preset",
+		Controller: ptr.To(false),
+	}
+
+	It("should return a warning if the Plugin has an OwnerReference from a PluginPreset", func() {
+		cut := testPlugin.DeepCopy()
+		cut.SetOwnerReferences([]metav1.OwnerReference{ownerReference})
+		warnings := validateOwnerReference(cut)
+		Expect(warnings).NotTo(BeNil(), "expected a warning, got nil")
+	})
+	It("should return no warning if the Plugin has no OwnerReference from a PluginPreset", func() {
+		warnings := validateOwnerReference(testPlugin)
+		Expect(warnings).To(BeNil(), "expected no warning, got %v", warnings)
+	})
+})
