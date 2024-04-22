@@ -1,27 +1,27 @@
 dependencies:
 - name: idproxy
-  repository: file://../idproxy
+  repository: oci://ghcr.io/cloudoperators/greenhouse/charts
   version: 0.1.0
 - name: team-membership
-  repository: file://../team-membership
+  repository: oci://ghcr.io/cloudoperators/greenhouse/charts
   version: 0.1.1
 - name: cors-proxy
-  repository: file://../cors-proxy
+  repository: oci://ghcr.io/cloudoperators/greenhouse/charts
   version: 0.1.0
 - name: headscale
-  repository: file://../headscale
+  repository: oci://ghcr.io/cloudoperators/greenhouse/charts
   version: 0.1.1
 - name: tailscale-proxy
-  repository: file://../tailscale-proxy
+  repository: oci://ghcr.io/cloudoperators/greenhouse/charts
   version: 0.1.0
 - name: manager
-  repository: file://../manager
+  repository: oci://ghcr.io/cloudoperators/greenhouse/charts
   version: 0.1.0
 - name: ui
-  repository: file://../ui
+  repository: oci://ghcr.io/cloudoperators/greenhouse/charts
   version: 0.1.0
 - name: demo
-  repository: file://../demo
+  repository: oci://ghcr.io/cloudoperators/greenhouse/charts
   version: 0.1.0
-digest: sha256:eb14bec366afff9175a402156c73fa74a8329f785c490b593230ee9a48c757ee
-generated: "2024-04-16T12:14:06.90569+02:00"
+digest: sha256:11b9a0e89f2d35dee194882101587ea44e571efb787b7dbf8e1358a43982632c
+generated: "2024-04-22T13:26:48.105364+02:00"
