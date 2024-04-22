@@ -143,8 +143,8 @@ func ValidateDeletePlugin(_ context.Context, _ client.Client, _ runtime.Object) 
 // validateOwnerRefernce returns a Warning if the Plugin is managed by a PluginPreset
 // The user is warned that the Plugin will be reconciled to the desired state specified in the PluginPreset.
 func validateOwnerReference(plugin *greenhousev1alpha1.Plugin) admission.Warnings {
-	if ref := clientutil.GetOwnerReference(plugin, greenhousev1alpha1.PluginBundleKind); ref != nil {
-		return admission.Warnings{fmt.Sprintf("Plugin is managed by PluginBundle '%s'. Plugin will be reconciled to the desired state specified in the PluginBundle.", ref.Name)}
+	if ref := clientutil.GetOwnerReference(plugin, greenhousev1alpha1.PluginPresetKind); ref != nil {
+		return admission.Warnings{fmt.Sprintf("Plugin is managed by PluginPreset '%s'. Plugin will be reconciled to the desired state specified in the PluginPreset.", ref.Name)}
 	}
 	return nil
 }

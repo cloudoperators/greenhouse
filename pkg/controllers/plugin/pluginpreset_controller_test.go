@@ -19,7 +19,9 @@ import (
 )
 
 const (
-	pluginBundleName = "test-pluginbundle"
+	pluginPresetName           = "test-pluginpreset"
+	pluginPresetDefinitionName = "test-plugindefinition"
+
 	releaseNamespace = "test-namespace"
 
 	clusterA = "cluster-a"
@@ -27,20 +29,47 @@ const (
 )
 
 var (
-	pluginBundleRemoteKubeConfig []byte
-	pluginBundleK8sClient        client.Client
-	pluginBundleRemote           *envtest.Environment
+	pluginPresetRemoteKubeConfig []byte
+	pluginPresetK8sClient        client.Client
+	pluginPresetRemote           *envtest.Environment
 
-	testPluginBundle = &greenhousev1alpha1.PluginBundle{
+	pluginPresetDefinition = &greenhousev1alpha1.PluginDefinition{
 		TypeMeta: metav1.TypeMeta{
-			Kind:       greenhousev1alpha1.PluginBundleKind,
+			Kind:       "PluginDefinition",
 			APIVersion: greenhousev1alpha1.GroupVersion.String(),
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      pluginBundleName,
+			Name: pluginPresetDefinitionName,
+		},
+		Spec: greenhousev1alpha1.PluginDefinitionSpec{
+			Description: "Testplugin",
+			Version:     "1.0.0",
+			HelmChart: &greenhousev1alpha1.HelmChartReference{
+				Name:       "./../../test/fixtures/myChart",
+				Repository: "dummy",
+				Version:    "1.0.0",
+			},
+			Options: []greenhousev1alpha1.PluginOption{
+				{
+					Name:        "myRequiredOption",
+					Description: "This is my required test plugin option",
+					Required:    true,
+					Type:        greenhousev1alpha1.PluginOptionTypeString,
+				},
+			},
+		},
+	}
+
+	testPluginPreset = &greenhousev1alpha1.PluginPreset{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       greenhousev1alpha1.PluginPresetKind,
+			APIVersion: greenhousev1alpha1.GroupVersion.String(),
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      pluginPresetName,
 			Namespace: test.TestNamespace,
 		},
-		Spec: greenhousev1alpha1.PluginBundleSpec{
+		Spec: greenhousev1alpha1.PluginPresetSpec{
 			PluginDefinition: testPluginDefinition.Name,
 			ReleaseNamespace: releaseNamespace,
 			ClusterSelector: metav1.LabelSelector{
@@ -52,18 +81,18 @@ var (
 	}
 )
 
-var _ = Describe("PluginBundle Controller", Ordered, func() {
+var _ = Describe("PluginPreset Controller", Ordered, func() {
 	BeforeAll(func() {
 		By("creating a test PluginDefinition")
-		err := test.K8sClient.Create(test.Ctx, testPluginDefinition)
+		err := test.K8sClient.Create(test.Ctx, pluginPresetDefinition)
 		Expect(err).ToNot(HaveOccurred(), "failed to create test PluginDefinition")
 
 		By("bootstrapping the remote cluster")
-		_, pluginBundleK8sClient, pluginBundleRemote, pluginBundleRemoteKubeConfig = test.StartControlPlane("6886", false, false)
+		_, pluginPresetK8sClient, pluginPresetRemote, pluginPresetRemoteKubeConfig = test.StartControlPlane("6886", false, false)
 
 		// kubeConfigController ensures the namespace within the remote cluster -- we have to create it
 		By("creating the namespace on the cluster")
-		remoteRestClientGetter := clientutil.NewRestClientGetterFromBytes(pluginBundleRemoteKubeConfig, releaseNamespace, clientutil.WithPersistentConfig())
+		remoteRestClientGetter := clientutil.NewRestClientGetterFromBytes(pluginPresetRemoteKubeConfig, releaseNamespace, clientutil.WithPersistentConfig())
 		remoteK8sClient, err := clientutil.NewK8sClientFromRestClientGetter(remoteRestClientGetter)
 		Expect(err).ShouldNot(HaveOccurred(), "there should be no error creating the k8s client")
 		err = remoteK8sClient.Create(test.Ctx, &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: releaseNamespace}})
@@ -77,22 +106,22 @@ var _ = Describe("PluginBundle Controller", Ordered, func() {
 			By("creating a secret with a valid kubeconfig for a remote cluster")
 			secretObj := clusterSecret(clusterName)
 			secretObj.Data = map[string][]byte{
-				greenhouseapis.KubeConfigKey: pluginBundleRemoteKubeConfig,
+				greenhouseapis.KubeConfigKey: pluginPresetRemoteKubeConfig,
 			}
 			Expect(test.K8sClient.Create(test.Ctx, secretObj)).Should(Succeed())
 		}
 	})
 
 	AfterAll(func() {
-		err := pluginBundleRemote.Stop()
+		err := pluginPresetRemote.Stop()
 		Expect(err).
 			NotTo(HaveOccurred(), "there must be no error stopping the remote environment")
 	})
 
-	It("should reconcile a PluginBundle", func() {
-		By("creating a PluginBundle")
-		err := test.K8sClient.Create(test.Ctx, testPluginBundle)
-		Expect(err).ToNot(HaveOccurred(), "failed to create test PluginBundle")
+	It("should reconcile a PluginPreset", func() {
+		By("creating a PluginPreset")
+		err := test.K8sClient.Create(test.Ctx, testPluginPreset)
+		Expect(err).ToNot(HaveOccurred(), "failed to create test PluginPreset")
 
 		By("ensuring a Plugin has been created")
 		expPluginName := types.NamespacedName{Name: testPluginDefinition.Name + "-" + clusterA, Namespace: test.TestNamespace}
@@ -101,7 +130,7 @@ var _ = Describe("PluginBundle Controller", Ordered, func() {
 			return test.K8sClient.Get(test.Ctx, expPluginName, expPlugin)
 		}).Should(Succeed(), "the Plugin should be created")
 
-		Expect(expPlugin.Labels).To(HaveKeyWithValue(greenhouseapis.LabelKeyPluginBundle, pluginBundleName), "the Plugin should be labeled as managed by the PluginBundle")
+		Expect(expPlugin.Labels).To(HaveKeyWithValue(greenhouseapis.LabelKeyPluginPreset, pluginPresetName), "the Plugin should be labeled as managed by the PluginPreset")
 
 		By("modifying the Plugin and ensuring it is reconciled")
 		expPlugin.Spec.OptionValues = []greenhousev1alpha1.PluginOptionValue{
@@ -131,7 +160,7 @@ var _ = Describe("PluginBundle Controller", Ordered, func() {
 				Name:      "test-plugin-" + clusterB,
 				Namespace: test.TestNamespace,
 				Labels: map[string]string{
-					greenhouseapis.LabelKeyPluginBundle: pluginBundleName,
+					greenhouseapis.LabelKeyPluginPreset: pluginPresetName,
 				},
 				OwnerReferences: expPlugin.OwnerReferences, // copy the OwnerReference to ensure same behavior
 			},
@@ -149,8 +178,8 @@ var _ = Describe("PluginBundle Controller", Ordered, func() {
 			return client.IgnoreNotFound(err)
 		}).Should(Succeed(), "the Plugin should be deleted")
 
-		By("deleting the PluginBundle to ensure all Plugins are deleted")
-		Expect(test.K8sClient.Delete(test.Ctx, testPluginBundle)).Should(Succeed(), "failed to delete test PluginBundle")
+		By("deleting the PluginPreset to ensure all Plugins are deleted")
+		Expect(test.K8sClient.Delete(test.Ctx, testPluginPreset)).Should(Succeed(), "failed to delete test PluginPreset")
 		Eventually(func(g Gomega) error {
 			err := test.K8sClient.Get(test.Ctx, expPluginName, pluginNotExp)
 			g.Expect(err).To(HaveOccurred(), "there should be an error getting the Plugin")

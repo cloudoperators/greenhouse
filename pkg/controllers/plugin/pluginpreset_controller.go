@@ -23,39 +23,39 @@ import (
 	"github.com/cloudoperators/greenhouse/pkg/clientutil"
 )
 
-// PluginBundleReconciler reconciles a PluginBundle object
-type PluginBundleReconciler struct {
+// PluginPresetReconciler reconciles a PluginPreset object
+type PluginPresetReconciler struct {
 	client.Client
 	recorder record.EventRecorder
 }
 
-//+kubebuilder:rbac:groups=greenhouse.sap,resources=pluginbundles,verbs=get;list;watch;update
-//+kubebuilder:rbac:groups=greenhouse.sap,resources=pluginbundles/status,verbs=get;update;patch
-//+kubebuilder:rbac:groups=greenhouse.sap,resources=pluginbundles/finalizers,verbs=update
+//+kubebuilder:rbac:groups=greenhouse.sap,resources=pluginpresets,verbs=get;list;watch;update
+//+kubebuilder:rbac:groups=greenhouse.sap,resources=pluginpresets/status,verbs=get;update;patch
+//+kubebuilder:rbac:groups=greenhouse.sap,resources=pluginpresets/finalizers,verbs=update
 //+kubebuilder:rbac:groups=greenhouse.sap,resources=plugins,verbs=get;list;watch;create;update;patch;delete
 
 // SetupWithManager sets up the controller with the Manager.
-func (r *PluginBundleReconciler) SetupWithManager(name string, mgr ctrl.Manager) error {
+func (r *PluginPresetReconciler) SetupWithManager(name string, mgr ctrl.Manager) error {
 	r.Client = mgr.GetClient()
 	r.recorder = mgr.GetEventRecorderFor(name)
 	return ctrl.NewControllerManagedBy(mgr).
 		Named(name).
-		For(&greenhousev1alpha1.PluginBundle{}).
+		For(&greenhousev1alpha1.PluginPreset{}).
 		Owns(&greenhousev1alpha1.Plugin{}).
 		Complete(r)
 }
 
-func (r *PluginBundleReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
+func (r *PluginPresetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	_ = log.FromContext(ctx)
 
-	var pluginBundle = new(greenhousev1alpha1.PluginBundle)
-	if err := r.Get(ctx, req.NamespacedName, pluginBundle); err != nil {
+	var pluginPreset = new(greenhousev1alpha1.PluginPreset)
+	if err := r.Get(ctx, req.NamespacedName, pluginPreset); err != nil {
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
 
-	if pluginBundle.DeletionTimestamp != nil && controllerutil.ContainsFinalizer(pluginBundle, greenhouseapis.FinalizerCleanupPluginPreset) {
-		// Cleanup the plugins that are managed by this PluginBundle.
-		plugins, err := r.listPlugins(ctx, pluginBundle)
+	if pluginPreset.DeletionTimestamp != nil && controllerutil.ContainsFinalizer(pluginPreset, greenhouseapis.FinalizerCleanupPluginPreset) {
+		// Cleanup the plugins that are managed by this PluginPreset.
+		plugins, err := r.listPlugins(ctx, pluginPreset)
 		if err != nil {
 			return ctrl.Result{}, err
 		}
@@ -68,26 +68,26 @@ func (r *PluginBundleReconciler) Reconcile(ctx context.Context, req ctrl.Request
 
 		// If there are still plugins left, requeue the deletion.
 		if len(allErrs) > 0 {
-			return ctrl.Result{}, fmt.Errorf("failed to delete plugins for %s/%s: %v", pluginBundle.Namespace, pluginBundle.Name, errors.Join(allErrs...))
+			return ctrl.Result{}, fmt.Errorf("failed to delete plugins for %s/%s: %v", pluginPreset.Namespace, pluginPreset.Name, errors.Join(allErrs...))
 		}
 
 		// Remove the finalizer to allow for deletion.
-		if err := clientutil.RemoveFinalizer(ctx, r.Client, pluginBundle, greenhouseapis.FinalizerCleanupPluginPreset); err != nil {
+		if err := clientutil.RemoveFinalizer(ctx, r.Client, pluginPreset, greenhouseapis.FinalizerCleanupPluginPreset); err != nil {
 			return ctrl.Result{}, err
 		}
 		return ctrl.Result{}, nil
 
 	}
-	if err := clientutil.EnsureFinalizer(ctx, r.Client, pluginBundle, greenhouseapis.FinalizerCleanupPluginPreset); err != nil {
+	if err := clientutil.EnsureFinalizer(ctx, r.Client, pluginPreset, greenhouseapis.FinalizerCleanupPluginPreset); err != nil {
 		return ctrl.Result{}, err
 	}
 
-	clusters, err := r.listClusters(ctx, pluginBundle)
+	clusters, err := r.listClusters(ctx, pluginPreset)
 	if err != nil {
 		return ctrl.Result{}, err
 	}
 	// TODO: GC plugins that are not in the list of clusters anymore
-	plugins, err := r.listPlugins(ctx, pluginBundle)
+	plugins, err := r.listPlugins(ctx, pluginPreset)
 	if err != nil {
 		return ctrl.Result{}, err
 	}
@@ -96,7 +96,7 @@ func (r *PluginBundleReconciler) Reconcile(ctx context.Context, req ctrl.Request
 		return ctrl.Result{}, err
 	}
 
-	if err := r.reconcilePluginBundle(ctx, pluginBundle, clusters); err != nil {
+	if err := r.reconcilePluginPreset(ctx, pluginPreset, clusters); err != nil {
 		return ctrl.Result{}, err
 	}
 
@@ -104,7 +104,7 @@ func (r *PluginBundleReconciler) Reconcile(ctx context.Context, req ctrl.Request
 }
 
 // cleanupPlugins deletes all plugins where the clusterName is not included in the ClusterList.
-func (r *PluginBundleReconciler) cleanupPlugins(ctx context.Context, clusters *greenhousev1alpha1.ClusterList, plugins *greenhousev1alpha1.PluginList) error {
+func (r *PluginPresetReconciler) cleanupPlugins(ctx context.Context, clusters *greenhousev1alpha1.ClusterList, plugins *greenhousev1alpha1.PluginList) error {
 	var allErrs = make([]error, 0)
 	for _, plugin := range plugins.Items {
 		if !slices.ContainsFunc(clusters.Items, func(cluster greenhousev1alpha1.Cluster) bool {
@@ -118,7 +118,7 @@ func (r *PluginBundleReconciler) cleanupPlugins(ctx context.Context, clusters *g
 	return errors.Join(allErrs...)
 }
 
-func (r *PluginBundleReconciler) reconcilePluginBundle(ctx context.Context, pb *greenhousev1alpha1.PluginBundle, clusters *greenhousev1alpha1.ClusterList) error {
+func (r *PluginPresetReconciler) reconcilePluginPreset(ctx context.Context, pb *greenhousev1alpha1.PluginPreset, clusters *greenhousev1alpha1.ClusterList) error {
 	var allErrs = make([]error, 0)
 
 	for _, cluster := range clusters.Items {
@@ -129,9 +129,9 @@ func (r *PluginBundleReconciler) reconcilePluginBundle(ctx context.Context, pb *
 			},
 		}
 		result, err := clientutil.CreateOrPatch(ctx, r.Client, plugin, func() error {
-			// Label the plugin with the managed resource label to identify it as managed by the PluginBundle.
-			plugin.SetLabels(map[string]string{greenhouseapis.LabelKeyPluginBundle: pb.Name})
-			// Set the owner reference to the PluginBundle. This is used to trigger reconciliation, if the managed Plugin is modified.
+			// Label the plugin with the managed resource label to identify it as managed by the PluginPreset.
+			plugin.SetLabels(map[string]string{greenhouseapis.LabelKeyPluginPreset: pb.Name})
+			// Set the owner reference to the PluginPreset. This is used to trigger reconciliation, if the managed Plugin is modified.
 			if err := controllerutil.SetControllerReference(pb, plugin, r.Scheme()); err != nil {
 				return err
 			}
@@ -157,15 +157,15 @@ func generatePluginName(pluginDefinition string, cluster *greenhousev1alpha1.Clu
 }
 
 // listPlugins returns the list of plugins for the given PluginPreset
-func (r *PluginBundleReconciler) listPlugins(ctx context.Context, pb *greenhousev1alpha1.PluginBundle) (*greenhousev1alpha1.PluginList, error) {
+func (r *PluginPresetReconciler) listPlugins(ctx context.Context, pb *greenhousev1alpha1.PluginPreset) (*greenhousev1alpha1.PluginList, error) {
 	var plugins = new(greenhousev1alpha1.PluginList)
-	if err := r.List(ctx, plugins, client.InNamespace(pb.GetNamespace()), client.MatchingLabels{greenhouseapis.LabelKeyPluginBundle: pb.Name}); err != nil {
+	if err := r.List(ctx, plugins, client.InNamespace(pb.GetNamespace()), client.MatchingLabels{greenhouseapis.LabelKeyPluginPreset: pb.Name}); err != nil {
 		return nil, err
 	}
 	return plugins, nil
 }
 
-func (r *PluginBundleReconciler) listClusters(ctx context.Context, pb *greenhousev1alpha1.PluginBundle) (*greenhousev1alpha1.ClusterList, error) {
+func (r *PluginPresetReconciler) listClusters(ctx context.Context, pb *greenhousev1alpha1.PluginPreset) (*greenhousev1alpha1.ClusterList, error) {
 	clusterSelector, err := v1.LabelSelectorAsSelector(&pb.Spec.ClusterSelector)
 	if err != nil {
 		return nil, err

@@ -34,8 +34,8 @@ const (
 	// HeadscalePreAuthKey is the key for the Headscale pre-authentication key in a secret of type greenhouse.sap/kubeconfig.
 	HeadscalePreAuthKey = "headscalePreAuthKey"
 
-	// LabelKeyPluginBundle is used to identify the PluginBundle managing the plugin.
-	LabelKeyPluginBundle = "greenhouse.sap/pluginbundle"
+	// LabelKeyPluginPreset is used to identify the PluginPreset managing the plugin.
+	LabelKeyPluginPreset = "greenhouse.sap/pluginpreset"
 
 	// LabelKeyPlugin is used to identify corresponding PluginDefinition for the resource.
 	LabelKeyPlugin = "greenhouse.sap/plugin"

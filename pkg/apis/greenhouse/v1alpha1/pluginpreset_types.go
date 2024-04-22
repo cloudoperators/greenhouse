@@ -8,12 +8,12 @@ import (
 )
 
 const (
-	// PluginBundleKind is the kind of the PluginBundle resource
-	PluginBundleKind = "PluginBundle"
+	// PluginPresetKind is the kind of the PluginPreset resource
+	PluginPresetKind = "PluginPreset"
 )
 
-// PluginBundleSpec defines the desired state of PluginBundle
-type PluginBundleSpec struct {
+// PluginPresetSpec defines the desired state of PluginPreset
+type PluginPresetSpec struct {
 	// DisplayName is an optional name for the Plugin to be displayed in the Greenhouse UI.
 	// This is especially helpful to distinguish multiple instances of a PluginDefinition in the same context.
 	// Defaults to a normalized version of metadata.name.
@@ -33,30 +33,30 @@ type PluginBundleSpec struct {
 	ReleaseNamespace string `json:"releaseNamespace,omitempty"`
 }
 
-// PluginBundleStatus defines the observed state of PluginBundle
-type PluginBundleStatus struct{}
+// PluginPresetStatus defines the observed state of PluginPreset
+type PluginPresetStatus struct{}
 
 //+kubebuilder:object:root=true
 //+kubebuilder:subresource:status
 
-// PluginBundle is the Schema for the pluginbundles API
-type PluginBundle struct {
+// PluginPreset is the Schema for the PluginPresets API
+type PluginPreset struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec   PluginBundleSpec   `json:"spec,omitempty"`
-	Status PluginBundleStatus `json:"status,omitempty"`
+	Spec   PluginPresetSpec   `json:"spec,omitempty"`
+	Status PluginPresetStatus `json:"status,omitempty"`
 }
 
 //+kubebuilder:object:root=true
 
-// PluginBundleList contains a list of PluginBundle
-type PluginBundleList struct {
+// PluginPresetList contains a list of PluginPresets
+type PluginPresetList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
-	Items           []PluginBundle `json:"items"`
+	Items           []PluginPreset `json:"items"`
 }
 
 func init() {
-	SchemeBuilder.Register(&PluginBundle{}, &PluginBundleList{})
+	SchemeBuilder.Register(&PluginPreset{}, &PluginPresetList{})
 }

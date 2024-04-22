@@ -14,12 +14,12 @@ import (
 )
 
 const (
-	pluginbundleDefinition = "pluginbundle-admission"
-	pluginBundleUpdate     = "pluginbundle-update"
-	pluginBundleCreate     = "pluginbundle-create"
+	pluginPresetDefinition = "pluginpreset-admission"
+	pluginPresetUpdate     = "pluginpreset-update"
+	pluginPresetCreate     = "pluginpreset-create"
 )
 
-var _ = Describe("PluginBundleAdmission", Ordered, func() {
+var _ = Describe("PluginPreset Admission Tests", Ordered, func() {
 	BeforeAll(func() {
 		pluginDefinition := &greenhousev1alpha1.PluginDefinition{
 			TypeMeta: metav1.TypeMeta{
@@ -27,7 +27,7 @@ var _ = Describe("PluginBundleAdmission", Ordered, func() {
 				APIVersion: greenhousev1alpha1.GroupVersion.String(),
 			},
 			ObjectMeta: metav1.ObjectMeta{
-				Name: pluginbundleDefinition,
+				Name: pluginPresetDefinition,
 			},
 			Spec: greenhousev1alpha1.PluginDefinitionSpec{
 				Description: "Testplugin",
@@ -45,19 +45,19 @@ var _ = Describe("PluginBundleAdmission", Ordered, func() {
 	AfterAll(func() {
 		pluginDefinition := &greenhousev1alpha1.PluginDefinition{
 			ObjectMeta: metav1.ObjectMeta{
-				Name: pluginbundleDefinition,
+				Name: pluginPresetDefinition,
 			},
 		}
 		Expect(test.K8sClient.Delete(test.Ctx, pluginDefinition)).To(Succeed(), "failed to delete test PluginDefinition")
 	})
 
-	It("should reject PluginBundle without PluginDefinition", func() {
-		cut := &greenhousev1alpha1.PluginBundle{
+	It("should reject PluginPreset without PluginDefinition", func() {
+		cut := &greenhousev1alpha1.PluginPreset{
 			ObjectMeta: metav1.ObjectMeta{
-				Name:      pluginBundleCreate,
+				Name:      pluginPresetCreate,
 				Namespace: test.TestNamespace,
 			},
-			Spec: greenhousev1alpha1.PluginBundleSpec{
+			Spec: greenhousev1alpha1.PluginPresetSpec{
 				ClusterSelector: metav1.LabelSelector{MatchLabels: map[string]string{"foo": "bar"}},
 			},
 		}
@@ -68,13 +68,13 @@ var _ = Describe("PluginBundleAdmission", Ordered, func() {
 	})
 
 	It("should reject PluginBundle without ClusterSelector", func() {
-		cut := &greenhousev1alpha1.PluginBundle{
+		cut := &greenhousev1alpha1.PluginPreset{
 			ObjectMeta: metav1.ObjectMeta{
-				Name:      pluginBundleCreate,
+				Name:      pluginPresetCreate,
 				Namespace: test.TestNamespace,
 			},
-			Spec: greenhousev1alpha1.PluginBundleSpec{
-				PluginDefinition: pluginbundleDefinition,
+			Spec: greenhousev1alpha1.PluginPresetSpec{
+				PluginDefinition: pluginPresetDefinition,
 			},
 		}
 
@@ -83,13 +83,13 @@ var _ = Describe("PluginBundleAdmission", Ordered, func() {
 		Expect(err.Error()).To(ContainSubstring("ClusterSelector must be set"))
 	})
 
-	It("should reject PluginBundle with non-existing PluginDefinition", func() {
-		cut := &greenhousev1alpha1.PluginBundle{
+	It("should reject PluginPreset with non-existing PluginDefinition", func() {
+		cut := &greenhousev1alpha1.PluginPreset{
 			ObjectMeta: metav1.ObjectMeta{
-				Name:      pluginBundleCreate,
+				Name:      pluginPresetCreate,
 				Namespace: test.TestNamespace,
 			},
-			Spec: greenhousev1alpha1.PluginBundleSpec{
+			Spec: greenhousev1alpha1.PluginPresetSpec{
 				PluginDefinition: "non-existing",
 				ClusterSelector:  metav1.LabelSelector{MatchLabels: map[string]string{"foo": "bar"}},
 			},
@@ -100,14 +100,14 @@ var _ = Describe("PluginBundleAdmission", Ordered, func() {
 		Expect(err.Error()).To(ContainSubstring("PluginDefinition non-existing does not exist"))
 	})
 
-	It("should reject updates to Immutable Fields of a PluginBundle", func() {
-		cut := &greenhousev1alpha1.PluginBundle{
+	It("should reject updates to Immutable Fields of a PluginPreset", func() {
+		cut := &greenhousev1alpha1.PluginPreset{
 			ObjectMeta: metav1.ObjectMeta{
-				Name:      pluginBundleUpdate,
+				Name:      pluginPresetUpdate,
 				Namespace: test.TestNamespace,
 			},
-			Spec: greenhousev1alpha1.PluginBundleSpec{
-				PluginDefinition: pluginbundleDefinition,
+			Spec: greenhousev1alpha1.PluginPresetSpec{
+				PluginDefinition: pluginPresetDefinition,
 				ClusterSelector:  metav1.LabelSelector{MatchLabels: map[string]string{"foo": "bar"}},
 			},
 		}
