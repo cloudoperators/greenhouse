@@ -94,11 +94,15 @@ func ValidateUpdatePluginPreset(ctx context.Context, c client.Client, oldObj, cu
 
 	var allErrs field.ErrorList
 
-	if err := validateImmutableField(oldPluginPreset.Spec.Plugin.PluginDefinition, pluginPreset.Spec.Plugin.PluginDefinition, field.NewPath("spec", "pluginDefinition")); err != nil {
+	if err := validateImmutableField(oldPluginPreset.Spec.Plugin.PluginDefinition, pluginPreset.Spec.Plugin.PluginDefinition, field.NewPath("spec", "plugin", "pluginDefinition")); err != nil {
 		allErrs = append(allErrs, err)
 	}
 
 	if err := validateImmutableField(oldPluginPreset.Spec.ClusterSelector.String(), pluginPreset.Spec.ClusterSelector.String(), field.NewPath("spec", "clusterSelector")); err != nil {
+		allErrs = append(allErrs, err)
+	}
+
+	if err := validateImmutableField(oldPluginPreset.Spec.ClusterSelector.String(), pluginPreset.Spec.ClusterSelector.String(), field.NewPath("spec", "plugin", "clusterName")); err != nil {
 		allErrs = append(allErrs, err)
 	}
 
