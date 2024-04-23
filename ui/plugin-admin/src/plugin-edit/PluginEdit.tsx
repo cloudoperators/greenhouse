@@ -33,7 +33,7 @@ type SubmitMessage = {
   ok: boolean
 }
 
-// TODO: Hickup observed with resource states -- check for latest version on plugin update
+// TODO: Hickup observed with resource states: Try getting plugin from server after failed post/put
 // TODO: Validate JSON on list/map inputs
 const PluginEdit: React.FC<PluginEditProps> = (props: PluginEditProps) => {
   const setShowPluginEdit = useStore((state) => state.setShowPluginEdit)
@@ -41,7 +41,7 @@ const PluginEdit: React.FC<PluginEditProps> = (props: PluginEditProps) => {
   const pluginToEdit = useStore((state) => state.pluginToEdit)
   const isEditMode = useStore((state) => state.isEditMode)
   const setIsEditMode = useStore((state) => state.setIsEditMode)
-  const { postPlugin, updatePlugin, getPlugin } = usePluginApi()
+  const { postPlugin, updatePlugin, getPlugin, deletePlugin } = usePluginApi()
 
   //init plugin only if it is not already initialized
   React.useEffect(() => {
@@ -60,33 +60,19 @@ const PluginEdit: React.FC<PluginEditProps> = (props: PluginEditProps) => {
     { message: "", ok: false }
   )
   const onSubmit = async () => {
-    setSubmitResultMessage({ message: "", ok: false })
     let res = isEditMode
       ? updatePlugin(pluginToEdit!)
       : postPlugin(pluginToEdit!)
 
     await res.then(async (res) => {
-      console.log("submit result", res)
-      if (res.ok) {
-        setSubmitResultMessage({ message: res.message, ok: true })
-        // get the plugin again to update it's state (e.g. resourceVersion)
-        let pluginRequest = getPlugin(pluginToEdit!.metadata!.name!)
-        await pluginRequest.then((pluginResponse) => {
-          if (pluginResponse.ok) {
-            setPluginToEdit(pluginResponse.plugin)
-            setIsEditMode(true)
-          } else {
-            setSubmitResultMessage({
-              ok: false,
-              message:
-                "Failed to get plugin after update: " + pluginResponse.message,
-            })
-          }
-        })
-      } else {
-        setSubmitResultMessage({ message: res.message, ok: false })
-      }
+      setSubmitResultMessage({ message: res.message, ok: res.ok })
     })
+  }
+
+  // TODO: Implement second confirmation dialog for delete
+  const onDelete = async () => {
+    let res = await deletePlugin(pluginToEdit!.metadata!.name!)
+    setSubmitResultMessage({ message: res.message, ok: res.ok })
   }
 
   const onMessageDismiss = (ok: boolean) => {
@@ -94,6 +80,7 @@ const PluginEdit: React.FC<PluginEditProps> = (props: PluginEditProps) => {
       setShowPluginEdit(false)
       setPluginToEdit(undefined)
       setIsEditMode(false)
+      // TODO: Implement a way to open the details for the plugin
       console.log("I want to open the details for my plugin now :)")
     }
   }
@@ -177,7 +164,10 @@ const PluginEdit: React.FC<PluginEditProps> = (props: PluginEditProps) => {
               </FormSection>
             )}
 
-            <ButtonRow>
+            <Stack distribution="between">
+              <Button onClick={onDelete} variant="primary-danger">
+                Delete Plugin
+              </Button>
               {submitMessage.message != "" && (
                 <Message
                   autoDismissTimeout={3000}
@@ -190,7 +180,7 @@ const PluginEdit: React.FC<PluginEditProps> = (props: PluginEditProps) => {
               <Button onClick={onSubmit} variant="primary">
                 {isEditMode ? "Update Plugin" : "Create Plugin"}
               </Button>
-            </ButtonRow>
+            </Stack>
           </Form>
         </PanelBody>
       )}

@@ -8,16 +8,24 @@ import { Plugin } from "../../../../types/types"
 import useClient from "./useClient"
 import useNamespace from "./useNamespace"
 
-export enum ResponseFailReasons {
-  RESOURCE_VERSION_MISMATCH = "resourceVersionMismatch",
-  UNKOWN = "unkown",
-}
 
 export type PluginApiResponse = {
   ok: boolean,
   message: string
-  reason?: ResponseFailReasons
   plugin?: Plugin
+}
+
+// ENUM for Plugin API response message strings
+enum PluginApiResponseMessage {
+  CLIENT_OR_NAMESPACE_NOT_AVAILABLE = "Client or namespace not available",
+  FAILED_GETTING_PLUGIN = "Failed getting Plugin",
+  FAILED_CREATING_PLUGIN = "Failed creating Plugin",
+  FAILED_UPDATING_PLUGIN = "Failed updating Plugin",
+  FAILED_DELETING_PLUGIN = "Failed deleting Plugin",
+  SUCCESS_GETTING_PLUGIN = "Successfully got Plugin",
+  SUCCESSFULLY_CREATED_PLUGIN = "Successfully created Plugin",
+  SUCCESSFULLY_UPDATED_PLUGIN = "Successfully updated Plugin",
+  SUCCESSFULLY_DELETED_PLUGIN = "Successfully deleted Plugin",
 }
 
 export const usePluginApi = () => {
@@ -64,7 +72,7 @@ export const usePluginApi = () => {
   const getPlugin = useCallback(
     async (pluginName: string): Promise<PluginApiResponse> => {
       if (!client || !namespace) {
-        return { ok: false, message: "Client or namespace not available" }
+        return { ok: false, message: PluginApiResponseMessage.CLIENT_OR_NAMESPACE_NOT_AVAILABLE }
       }
 
       return await client
@@ -73,12 +81,12 @@ export const usePluginApi = () => {
         )
         .then((res) => {
           if (res.kind !== "Plugin") {
-            return { ok: false, message: "Failed getting plugin" }
+            return { ok: false, message: PluginApiResponseMessage.FAILED_GETTING_PLUGIN + ": " + JSON.stringify(res) }
           }
-          return { ok: true, message: "Success getting plugin", plugin: res }
+          return { ok: true, message: PluginApiResponseMessage.SUCCESS_GETTING_PLUGIN, plugin: res }
         })
         .catch((err) => {
-          return { ok: false, message: "Failed getting plugin: " + err.message }
+          return { ok: false, message: PluginApiResponseMessage.FAILED_GETTING_PLUGIN + ": " + err.message }
         })
     },
     [client, namespace]
@@ -87,7 +95,7 @@ export const usePluginApi = () => {
   // postPlugin creates a new plugin
   const postPlugin = async (plugin: Plugin): Promise<PluginApiResponse> => {
     if (!client || !namespace) {
-      return { ok: false, message: "Client or namespace not available" }
+      return { ok: false, message: PluginApiResponseMessage.CLIENT_OR_NAMESPACE_NOT_AVAILABLE }
     }
 
     return client
@@ -97,19 +105,19 @@ export const usePluginApi = () => {
       )
       .then((res) => {
         if (res.kind !== "Plugin") {
-          return { ok: false, message: "Failed creating plugin: " + JSON.stringify(res) }
+          return { ok: false, message: PluginApiResponseMessage.FAILED_CREATING_PLUGIN+": " + JSON.stringify(res) }
         }
-        return { ok: true, message: "Success creating plugin", plugin: res }
+        return { ok: true, message: PluginApiResponseMessage.SUCCESSFULLY_CREATED_PLUGIN, plugin: res }
       })
       .catch((err) => {
-        return { ok: false, message: "Failed creating plugin: " + err.message }
+        return { ok: false, message: PluginApiResponseMessage.FAILED_CREATING_PLUGIN+": " + err.message }
       })
   }
 
   // updatePlugin updates an existing plugin
   const updatePlugin = async (plugin: Plugin): Promise<PluginApiResponse> => {
     if (!client || !namespace) {
-      return { ok: false, message: "Client or namespace not available" }
+      return { ok: false, message: PluginApiResponseMessage.CLIENT_OR_NAMESPACE_NOT_AVAILABLE }
     }
 
     return client
@@ -119,12 +127,37 @@ export const usePluginApi = () => {
       )
       .then((res) => {
         if (res.kind !== "Plugin") {
-          return { ok: false, message: "Failed updating plugin: " + JSON.stringify(res) }
+          return { ok: false, message: PluginApiResponseMessage.FAILED_UPDATING_PLUGIN+ ": " + JSON.stringify(res) }
         }
-        return { ok: true, message: "Success updating plugin", plugin: res }
+        return { ok: true, message: PluginApiResponseMessage.SUCCESSFULLY_UPDATED_PLUGIN, plugin: res }
       })
       .catch((err) => {
-        return { ok: false, message: "Failed updating plugin: " + err.message }
+        return { ok: false, message: PluginApiResponseMessage.FAILED_UPDATING_PLUGIN+": " + err.message }
+      })
+  }
+
+  // deletePlugin deletes an existing plugin
+  // Attention: ambiguous response type from api server
+  // See: https://github.com/kubernetes/kubernetes/issues/59501
+  const deletePlugin = async (pluginName: string): Promise<PluginApiResponse> => {
+    if (!client || !namespace) {
+      return { ok: false, message: PluginApiResponseMessage.CLIENT_OR_NAMESPACE_NOT_AVAILABLE }
+    }
+
+    return client
+      .delete(
+        `/apis/greenhouse.sap/v1alpha1/namespaces/${namespace}/plugins/${pluginName}`
+      )
+      .then((res) => {
+        if((res.kind == "Plugin") || (res.kind == "Status" && res.status == "Success")){
+          return { ok: true, message: PluginApiResponseMessage.SUCCESSFULLY_DELETED_PLUGIN }
+        }
+        else{
+          return { ok: false, message: PluginApiResponseMessage.FAILED_DELETING_PLUGIN+": " + JSON.stringify(res) }
+        }
+      })
+      .catch((err) => {
+        return { ok: false, message: PluginApiResponseMessage.FAILED_DELETING_PLUGIN+": " + err.message }
       })
   }
 
@@ -134,6 +167,7 @@ export const usePluginApi = () => {
     getPlugin: getPlugin,
     postPlugin: postPlugin,
     updatePlugin: updatePlugin,
+    deletePlugin: deletePlugin,
   }
 }
 
