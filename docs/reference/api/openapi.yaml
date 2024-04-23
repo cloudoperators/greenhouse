@@ -234,12 +234,12 @@ components:
               type: integer
           type: object
       type: object
-    Organization:
+    TeamRole:
       xml:
         name: greenhouse.sap
         namespace: v1alpha1
-      title: Organization
-      description: Organization is the Schema for the organizations API
+      title: TeamRole
+      description: TeamRole is the Schema for the TeamRoles API
       properties:
         apiVersion:
           description: 'APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
@@ -250,64 +250,45 @@ components:
         metadata:
           type: object
         spec:
-          description: OrganizationSpec defines the desired state of Organization
+          description: TeamRoleSpec defines the desired state of a TeamRole
           properties:
-            authentication:
-              description: Authentication configures the organizations authentication mechanism.
-              properties:
-                oidc:
-                  description: OIDConfig configures the OIDC provider.
-                  properties:
-                    clientIDReference:
-                      description: ClientIDReference references the Kubernetes secret containing the client id.
-                      properties:
-                        key:
-                          description: Key in the secret to select the value from.
-                          type: string
-                        name:
-                          description: Name of the secret in the same namespace.
-                          type: string
-                      required:
-                        - key
-                        - name
-                      type: object
-                    clientSecretReference:
-                      description: ClientSecretReference references the Kubernetes secret containing the client secret.
-                      properties:
-                        key:
-                          description: Key in the secret to select the value from.
-                          type: string
-                        name:
-                          description: Name of the secret in the same namespace.
-                          type: string
-                      required:
-                        - key
-                        - name
-                      type: object
-                    issuer:
-                      description: Issuer is the URL of the identity service.
+            rules:
+              description: Rules is a list of rbacv1.PolicyRules used on a managed RBAC (Cluster)Role
+              items:
+                description: PolicyRule holds information that describes a policy rule, but does not contain information about who the rule applies to or which namespace the rule applies to.
+                properties:
+                  apiGroups:
+                    description: APIGroups is the name of the APIGroup that contains the resources.  If multiple API groups are specified, any action requested against one of the enumerated resources in any API group will be allowed. "" represents the core API group and "*" represents all API groups.
+                    items:
                       type: string
-                    redirectURI:
-                      description: RedirectURI is the redirect URI. If none is specified, the Greenhouse ID proxy will be used.
+                    type: array
+                  nonResourceURLs:
+                    description: NonResourceURLs is a set of partial urls that a user should have access to.  *s are allowed, but only as the full, final step in the path Since non-resource URLs are not namespaced, this field is only applicable for ClusterRoles referenced from a ClusterRoleBinding. Rules can either apply to API resources (such as "pods" or "secrets") or non-resource URL paths (such as "/api"),  but not both.
+                    items:
                       type: string
-                  required:
-                    - clientIDReference
-                    - clientSecretReference
-                    - issuer
-                  type: object
-              type: object
-            description:
-              description: Description provides additional details of the organization.
-              type: string
-            displayName:
-              description: DisplayName is an optional name for the organization to be displayed in the Greenhouse UI. Defaults to a normalized version of metadata.name.
-              type: string
-            mappedOrgAdminIdPGroup:
-              description: MappedOrgAdminIDPGroup is the IDP group ID identifying org admins
-              type: string
+                    type: array
+                  resourceNames:
+                    description: ResourceNames is an optional white list of names that the rule applies to.  An empty set means that everything is allowed.
+                    items:
+                      type: string
+                    type: array
+                  resources:
+                    description: Resources is a list of resources this rule applies to. '*' represents all resources.
+                    items:
+                      type: string
+                    type: array
+                  verbs:
+                    description: Verbs is a list of Verbs that apply to ALL the ResourceKinds contained in this rule. '*' represents all verbs.
+                    items:
+                      type: string
+                    type: array
+                required:
+                  - verbs
+                type: object
+              type: array
           type: object
         status:
-          description: OrganizationStatus defines the observed state of an Organization
+          description: TeamRoleStatus defines the observed state of a TeamRole
           type: object
       type: object
     TeamRole:
@@ -542,7 +523,7 @@ components:
         metadata:
           type: object
         spec:
-          description: PluginDefinitionSpec defines the desired state of PluginDefinitionSpec
+          description: TeamMembershipSpec defines the desired state of TeamMembership
           properties:
             description:
               description: Description provides additional details of the pluginDefinition.
@@ -576,69 +557,39 @@ components:
             options:
               description: RequiredValues is a list of values required to create an instance of this PluginDefinition.
               items:
+                description: User specifies a human person.
                 properties:
-                  default:
-                    description: Default provides a default value for the option
-                    x-kubernetes-preserve-unknown-fields: true
-                  description:
-                    description: Description provides a human-readable text for the value as shown in the UI.
+                  email:
+                    description: Email of the user.
                     type: string
-                  displayName:
-                    description: DisplayName provides a human-readable label for the configuration option
+                  firstName:
+                    description: FirstName of the user.
                     type: string
-                  name:
-                    description: Name/Key of the config option.
+                  id:
+                    description: ID is the unique identifier of the user.
                     type: string
-                  regex:
-                    description: Regex specifies a match rule for validating configuration options.
-                    type: string
-                  required:
-                    description: Required indicates that this config option is required
-                    type: boolean
-                  type:
-                    description: Type of this configuration option.
-                    enum:
-                      - string
-                      - secret
-                      - bool
-                      - int
-                      - list
-                      - map
+                  lastName:
+                    description: LastName of the user.
                     type: string
                 required:
-                  - name
-                  - required
-                  - type
+                  - email
+                  - firstName
+                  - id
+                  - lastName
                 type: object
               type: array
-            uiApplication:
-              description: UIApplication specifies a reference to a UI application
-              properties:
-                name:
-                  description: Name of the UI application.
-                  type: string
-                url:
-                  description: URL specifies the url to a built javascript asset. By default, assets are loaded from the Juno asset server using the provided name and version.
-                  type: string
-                version:
-                  description: Version of the frontend application.
-                  type: string
-              required:
-                - name
-                - version
-              type: object
-            version:
-              description: Version of this pluginDefinition
-              type: string
-            weight:
-              description: Weight configures the order in which Plugins are shown in the Greenhouse UI. Defaults to alphabetical sorting if not provided or on conflict.
-              format: int32
-              type: integer
-          required:
-            - version
           type: object
         status:
-          description: PluginDefinitionStatus defines the observed state of PluginDefinition
+          description: TeamMembershipStatus defines the observed state of TeamMembership
+          properties:
+            lastSyncedTime:
+              description: LastSyncedTime is the information when was the last time the membership was synced
+              format: date-time
+              type: string
+            lastUpdateTime:
+              description: LastChangedTime is the information when was the last time the membership was actually changed
+              format: date-time
+              type: string
           type: object
       type: object
     Team:
@@ -670,12 +621,12 @@ components:
           description: TeamStatus defines the observed state of Team
           type: object
       type: object
-    TeamMembership:
+    TeamRoleBinding:
       xml:
         name: greenhouse.sap
         namespace: v1alpha1
-      title: TeamMembership
-      description: TeamMembership is the Schema for the teammemberships API
+      title: TeamRoleBinding
+      description: TeamRoleBinding is the Schema for the rolebindings API
       properties:
         apiVersion:
           description: 'APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
@@ -686,24 +637,125 @@ components:
         metadata:
           type: object
         spec:
-          description: TeamMembershipSpec defines the desired state of TeamMembership
+          description: TeamRoleBindingSpec defines the desired state of a TeamRoleBinding
           properties:
-            members:
-              description: Members list users that are part of a team.
+            clusterName:
+              description: ClusterName is the name of the cluster the rbacv1 resources are created on.
+              type: string
+            namespaces:
+              description: Namespaces is the immutable list of namespaces in the Greenhouse Clusters to apply the RoleBinding to
               items:
-                description: User specifies a human person.
+                type: string
+              type: array
+            teamRef:
+              description: TeamRef references a Greenhouse Team by name
+              type: string
+            teamRoleRef:
+              description: TeamRoleRef references a Greenhouse TeamRole by name
+              type: string
+          type: object
+        status:
+          description: TeamRoleBindingStatus defines the observed state of the TeamRoleBinding
+          type: object
+      type: object
+    Team:
+      xml:
+        name: greenhouse.sap
+        namespace: v1alpha1
+      title: Team
+      description: Team is the Schema for the teams API
+      properties:
+        apiVersion:
+          description: 'APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+          type: string
+        kind:
+          description: 'Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+          type: string
+        metadata:
+          type: object
+        spec:
+          description: TeamSpec defines the desired state of Team
+          properties:
+            description:
+              description: Description provides additional details of the team.
+              type: string
+            mappedIdPGroup:
+              description: IdP group id matching team.
+              type: string
+          type: object
+        status:
+          description: TeamStatus defines the observed state of Team
+          type: object
+      type: object
+    PluginDefinition:
+      xml:
+        name: greenhouse.sap
+        namespace: v1alpha1
+      title: PluginDefinition
+      description: PluginDefinition is the Schema for the PluginDefinitions API
+      properties:
+        apiVersion:
+          description: 'APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+          type: string
+        kind:
+          description: 'Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+          type: string
+        metadata:
+          type: object
+        spec:
+          description: PluginDefinitionSpec defines the desired state of PluginDefinitionSpec
+          properties:
+            description:
+              description: Description provides additional details of the pluginDefinition.
+              type: string
+            helmChart:
+              description: HelmChart specifies where the Helm Chart for this pluginDefinition can be found.
+              properties:
+                name:
+                  description: Name of the HelmChart chart.
+                  type: string
+                repository:
+                  description: Repository of the HelmChart chart.
+                  type: string
+                version:
+                  description: Version of the HelmChart chart.
+                  type: string
+              required:
+                - name
+                - repository
+                - version
+              type: object
+            options:
+              description: RequiredValues is a list of values required to create an instance of this PluginDefinition.
+              items:
                 properties:
-                  email:
-                    description: Email of the user.
+                  default:
+                    description: Default provides a default value for the option
+                    x-kubernetes-preserve-unknown-fields: true
+                  description:
+                    description: Description provides a human-readable text for the value as shown in the UI.
                     type: string
-                  firstName:
-                    description: FirstName of the user.
+                  displayName:
+                    description: DisplayName provides a human-readable label for the configuration option
                     type: string
-                  id:
-                    description: ID is the unique identifier of the user.
+                  name:
+                    description: Name/Key of the config option.
                     type: string
-                  lastName:
-                    description: LastName of the user.
+                  regex:
+                    description: Regex specifies a match rule for validating configuration options.
+                    type: string
+                  required:
+                    description: Required indicates that this config option is required
+                    type: boolean
+                  type:
+                    description: Type of this configuration option.
+                    enum:
+                      - string
+                      - secret
+                      - bool
+                      - int
+                      - list
+                      - map
                     type: string
                 required:
                   - email

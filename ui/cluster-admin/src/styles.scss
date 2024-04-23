@@ -8,4 +8,16 @@
 
 /* If necessary, app styles can be added below */
 
+.clusters {
+  .juno-datagrid-row:hover {
+    .juno-datagrid-cell {
+      @apply bg-theme-background-lvl-1;
+    }
+  }
 
+  .juno-datagrid-row.active {
+    .juno-datagrid-cell {
+      @apply bg-theme-background-lvl-2;
+    }
+  }
+}

@@ -78,7 +78,7 @@ var testTeam = &greenhousev1alpha1.Team{
 
 func TestRBACController(t *testing.T) {
 	RegisterFailHandler(Fail)
-	RunSpecs(t, "RBAC Controller Suite")
+	RunSpecs(t, "Team RBAC Controller Suite")
 }
 
 var _ = BeforeSuite(func() {

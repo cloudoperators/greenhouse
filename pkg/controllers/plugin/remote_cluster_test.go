@@ -22,115 +22,132 @@ import (
 	"github.com/cloudoperators/greenhouse/pkg/test"
 )
 
-var testPlugin = &greenhousev1alpha1.Plugin{
-	TypeMeta: metav1.TypeMeta{
-		Kind:       "Plugin",
-		APIVersion: greenhousev1alpha1.GroupVersion.String(),
-	},
-	ObjectMeta: metav1.ObjectMeta{
-		Name:      "test-plugindefinition",
-		Namespace: test.TestNamespace,
-	},
-	Spec: greenhousev1alpha1.PluginSpec{
-		ClusterName:      "test-cluster",
-		PluginDefinition: "test-plugindefinition",
-	},
-}
-
-var testPluginwithSR = &greenhousev1alpha1.Plugin{
-	TypeMeta: metav1.TypeMeta{
-		Kind:       "Plugin",
-		APIVersion: greenhousev1alpha1.GroupVersion.String(),
-	},
-	ObjectMeta: metav1.ObjectMeta{
-		Name:      "test-plugin-secretref",
-		Namespace: test.TestNamespace,
-	},
-	Spec: greenhousev1alpha1.PluginSpec{
-		PluginDefinition: "test-plugindefinition",
-		ClusterName:      "test-cluster",
-		OptionValues: []greenhousev1alpha1.PluginOptionValue{
-			{
-				Name: "secretValue",
-				ValueFrom: &greenhousev1alpha1.ValueFromSource{
-					Secret: &greenhousev1alpha1.SecretKeyReference{
-						Name: "test-secret",
-						Key:  "test-key",
-					},
-				},
-			},
-		},
-	},
-}
-
-var testSecret = corev1.Secret{
-	TypeMeta: metav1.TypeMeta{
-		Kind:       "Secret",
-		APIVersion: corev1.GroupName,
-	},
-	ObjectMeta: metav1.ObjectMeta{
-		Name:      "test-secret",
-		Namespace: test.TestNamespace,
-	},
-	Data: map[string][]byte{
-		"test-key": []byte("secret-value"),
-	},
-}
-
-var testPluginDefinition = &greenhousev1alpha1.PluginDefinition{
-	TypeMeta: metav1.TypeMeta{
-		Kind:       "PluginDefinition",
-		APIVersion: greenhousev1alpha1.GroupVersion.String(),
-	},
-	ObjectMeta: metav1.ObjectMeta{
-		Name:      "test-plugindefinition",
-		Namespace: corev1.NamespaceDefault,
-	},
-	Spec: greenhousev1alpha1.PluginDefinitionSpec{
-		Description: "Testplugin",
-		Version:     "1.0.0",
-		HelmChart: &greenhousev1alpha1.HelmChartReference{
-			Name:       "./../../test/fixtures/myChart",
-			Repository: "dummy",
-			Version:    "1.0.0",
-		},
-	},
-}
-
-var testCluster = &greenhousev1alpha1.Cluster{
-	TypeMeta: metav1.TypeMeta{
-		Kind:       "Cluster",
-		APIVersion: greenhousev1alpha1.GroupVersion.String(),
-	},
-	ObjectMeta: metav1.ObjectMeta{
-		Name:      "test-cluster",
-		Namespace: test.TestNamespace,
-	},
-	Spec: greenhousev1alpha1.ClusterSpec{
-		AccessMode: greenhousev1alpha1.ClusterAccessModeDirect,
-	},
-}
-
-var testClusterK8sSecret = corev1.Secret{
-	TypeMeta: metav1.TypeMeta{
-		Kind:       "Secret",
-		APIVersion: corev1.GroupName,
-	},
-	ObjectMeta: metav1.ObjectMeta{
-		Name:      "test-cluster",
-		Namespace: test.TestNamespace,
-	},
-	Type: greenhouseapis.SecretTypeKubeConfig,
-}
-
+// Test environment.
 var (
 	remoteKubeConfig []byte
 	remoteEnvTest    *envtest.Environment
 	remoteK8sClient  client.Client
 )
 
-var _ = Describe("Validate plugin clusterName", Ordered, func() {
+// Test stimuli.
+var (
+	testPlugin = &greenhousev1alpha1.Plugin{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "Plugin",
+			APIVersion: greenhousev1alpha1.GroupVersion.String(),
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "test-plugindefinition",
+			Namespace: test.TestNamespace,
+		},
+		Spec: greenhousev1alpha1.PluginSpec{
+			ClusterName:      "test-cluster",
+			PluginDefinition: "test-plugindefinition",
+		},
+	}
 
+	testPluginwithSR = &greenhousev1alpha1.Plugin{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "Plugin",
+			APIVersion: greenhousev1alpha1.GroupVersion.String(),
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "test-plugin-secretref",
+			Namespace: test.TestNamespace,
+		},
+		Spec: greenhousev1alpha1.PluginSpec{
+			PluginDefinition: "test-plugindefinition",
+			ClusterName:      "test-cluster",
+			OptionValues: []greenhousev1alpha1.PluginOptionValue{
+				{
+					Name: "secretValue",
+					ValueFrom: &greenhousev1alpha1.ValueFromSource{
+						Secret: &greenhousev1alpha1.SecretKeyReference{
+							Name: "test-secret",
+							Key:  "test-key",
+						},
+					},
+				},
+			},
+		},
+	}
+
+	// A PluginConfig in the central cluster, test namespace with a release in the remote cluster, made-up-namespace.
+	testPluginInDifferentNamespace = &greenhousev1alpha1.Plugin{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "test-plugin-in-made-up-namespace",
+			Namespace: test.TestNamespace,
+		},
+		Spec: greenhousev1alpha1.PluginSpec{
+			PluginDefinition: testPluginDefinition.GetName(),
+			ClusterName:      testCluster.GetName(),
+			ReleaseNamespace: "made-up-namespace",
+		},
+	}
+
+	testSecret = corev1.Secret{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "Secret",
+			APIVersion: corev1.GroupName,
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "test-secret",
+			Namespace: test.TestNamespace,
+		},
+		Data: map[string][]byte{
+			"test-key": []byte("secret-value"),
+		},
+	}
+
+	testPluginDefinition = &greenhousev1alpha1.PluginDefinition{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "PluginDefinition",
+			APIVersion: greenhousev1alpha1.GroupVersion.String(),
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "test-plugindefinition",
+			Namespace: corev1.NamespaceDefault,
+		},
+		Spec: greenhousev1alpha1.PluginDefinitionSpec{
+			Description: "Testplugin",
+			Version:     "1.0.0",
+			HelmChart: &greenhousev1alpha1.HelmChartReference{
+				Name:       "./../../test/fixtures/myChart",
+				Repository: "dummy",
+				Version:    "1.0.0",
+			},
+		},
+	}
+
+	testCluster = &greenhousev1alpha1.Cluster{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "Cluster",
+			APIVersion: greenhousev1alpha1.GroupVersion.String(),
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "test-cluster",
+			Namespace: test.TestNamespace,
+		},
+		Spec: greenhousev1alpha1.ClusterSpec{
+			AccessMode: greenhousev1alpha1.ClusterAccessModeDirect,
+		},
+	}
+
+	testClusterK8sSecret = corev1.Secret{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "Secret",
+			APIVersion: corev1.GroupName,
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "test-cluster",
+			Namespace: test.TestNamespace,
+		},
+		Type: greenhouseapis.SecretTypeKubeConfig,
+	}
+)
+
+// Tests
+var _ = Describe("Validate plugin clusterName", Ordered, func() {
 	BeforeAll(func() {
 		err := test.K8sClient.Create(test.Ctx, testPluginDefinition)
 		Expect(err).ToNot(HaveOccurred(), "there should be no error creating the pluginDefinition")
@@ -143,10 +160,10 @@ var _ = Describe("Validate plugin clusterName", Ordered, func() {
 
 		// kubeConfigController ensures the namespace within the remote cluster -- we have to create it
 		By("creating the namespace on the cluster")
-		remoteRestClientGetter := clientutil.NewRestClientGetterFromBytes(remoteKubeConfig, testPlugin.Namespace, clientutil.WithPersistentConfig())
+		remoteRestClientGetter := clientutil.NewRestClientGetterFromBytes(remoteKubeConfig, testPlugin.GetReleaseNamespace(), clientutil.WithPersistentConfig())
 		remoteK8sClient, err := clientutil.NewK8sClientFromRestClientGetter(remoteRestClientGetter)
 		Expect(err).ShouldNot(HaveOccurred(), "there should be no error creating the k8s client")
-		err = remoteK8sClient.Create(test.Ctx, &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: testPlugin.Namespace}})
+		err = remoteK8sClient.Create(test.Ctx, &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: testPlugin.GetReleaseNamespace()}})
 		Expect(err).ShouldNot(HaveOccurred(), "there should be no error creating the namespace")
 
 		By("creating a secret with a valid kubeconfig for a remote cluster")
@@ -154,18 +171,16 @@ var _ = Describe("Validate plugin clusterName", Ordered, func() {
 			greenhouseapis.KubeConfigKey: remoteKubeConfig,
 		}
 		Expect(test.K8sClient.Create(test.Ctx, &testClusterK8sSecret)).Should(Succeed())
-
 	})
 
 	AfterAll(func() {
 		err := remoteEnvTest.Stop()
 		Expect(err).
 			NotTo(HaveOccurred(), "there must be no error stopping the remote environment")
-
 	})
 
 	It("should correctly handle the plugin on a referenced cluster", func() {
-		remoteRestClientGetter := clientutil.NewRestClientGetterFromBytes(remoteKubeConfig, testPlugin.Namespace, clientutil.WithPersistentConfig())
+		remoteRestClientGetter := clientutil.NewRestClientGetterFromBytes(remoteKubeConfig, testPlugin.GetReleaseNamespace(), clientutil.WithPersistentConfig())
 
 		By("creating a plugin referencing the cluster")
 		testPlugin.Spec.ClusterName = "test-cluster"
@@ -202,7 +217,7 @@ var _ = Describe("Validate plugin clusterName", Ordered, func() {
 		}).Should(BeTrue(), "the ClusterAccessReadyCondition should be true")
 
 		By("checking the helm releases deployed to the remote cluster")
-		helmConfig, err := helm.ExportNewHelmAction(remoteRestClientGetter, testPlugin.Namespace)
+		helmConfig, err := helm.ExportNewHelmAction(remoteRestClientGetter, testPlugin.GetReleaseNamespace())
 		Expect(err).ShouldNot(HaveOccurred(), "there should be no error creating helm config")
 		listAction := action.NewList(helmConfig)
 
@@ -218,7 +233,7 @@ var _ = Describe("Validate plugin clusterName", Ordered, func() {
 			testPlugin.Spec.OptionValues = append(testPlugin.Spec.OptionValues, greenhousev1alpha1.PluginOptionValue{Name: "enabled", Value: test.MustReturnJSONFor("true")})
 			return nil
 		})
-		Expect(err).ShouldNot(HaveOccurred(), "there should be no error updating the pluginConfig")
+		Expect(err).ShouldNot(HaveOccurred(), "there should be no error updating the plugin")
 		By("checking the resources deployed to the remote cluster")
 		Expect(err).ShouldNot(HaveOccurred(), "there should be no error creating the k8s client")
 		podID := types.NamespacedName{Name: "alpine-flag", Namespace: test.TestNamespace}
@@ -232,8 +247,8 @@ var _ = Describe("Validate plugin clusterName", Ordered, func() {
 			return true
 		}).Should(BeTrue(), "the pod should have been created on the remote cluster")
 
-		By("deleting the pluginConfig")
-		Expect(test.K8sClient.Delete(test.Ctx, testPlugin)).Should(Succeed(), "there should be no error deleting the pluginConfig")
+		By("deleting the plugin")
+		Expect(test.K8sClient.Delete(test.Ctx, testPlugin)).Should(Succeed(), "there should be no error deleting the plugin")
 
 		By("checking the helm releases deployed to the remote cluster")
 		Eventually(func() []*release.Release {
@@ -244,7 +259,7 @@ var _ = Describe("Validate plugin clusterName", Ordered, func() {
 	})
 
 	It("should correctly handle the plugin on a referenced cluster with a secret reference", func() {
-		remoteRestClientGetter := clientutil.NewRestClientGetterFromBytes(remoteKubeConfig, testPlugin.Namespace, clientutil.WithPersistentConfig())
+		remoteRestClientGetter := clientutil.NewRestClientGetterFromBytes(remoteKubeConfig, testPlugin.GetReleaseNamespace(), clientutil.WithPersistentConfig())
 
 		By("creating a secret holding the OptionValue referenced by the Plugin")
 		Expect(test.K8sClient.Create(test.Ctx, &testSecret)).Should(Succeed())
@@ -280,6 +295,46 @@ var _ = Describe("Validate plugin clusterName", Ordered, func() {
 		}).Should(BeEmpty(), "the helm release should be deleted from the remote cluster")
 	})
 
+	It("should correctly handle the plugin on a referenced cluster with a different namespace", func() {
+		Expect(testPluginInDifferentNamespace.GetNamespace()).
+			Should(Equal(test.TestNamespace), "the namespace should be the test namespace")
+		Expect(testPluginInDifferentNamespace.GetReleaseNamespace()).
+			Should(Equal("made-up-namespace"), "the release namespace should be the made-up-namespace")
+
+		By("creating a pluginconfig referencing the cluster")
+		Expect(test.K8sClient.Create(test.Ctx, testPluginInDifferentNamespace)).
+			Should(Succeed(), "there should be no error creating the plugin")
+
+		By("checking the helm releases deployed to the remote cluster in a different namespace")
+		remoteRestClientGetter := clientutil.NewRestClientGetterFromBytes(
+			remoteKubeConfig, testPluginInDifferentNamespace.GetReleaseNamespace(), clientutil.WithPersistentConfig(),
+		)
+		helmConfig, err := helm.ExportNewHelmAction(remoteRestClientGetter, testPluginInDifferentNamespace.GetReleaseNamespace())
+		Expect(err).
+			ShouldNot(HaveOccurred(), "there should be no error creating helm config")
+
+		Eventually(func(g Gomega) string {
+			release, err := action.NewGet(helmConfig).Run(testPluginInDifferentNamespace.GetName())
+			g.Expect(err).ShouldNot(HaveOccurred(), "there should be no error listing helm releases")
+			return release.Namespace
+		}).Should(
+			Equal(testPluginInDifferentNamespace.GetReleaseNamespace()),
+			"the helm release should be deployed to the remote cluster in a different namespace",
+		)
+
+		By("deleting the plugin")
+		Expect(test.K8sClient.Delete(test.Ctx, testPluginInDifferentNamespace)).
+			Should(Succeed(), "there should be no error deleting the plugin")
+
+		By("checking the helm releases deployed to the remote cluster")
+		Eventually(func(g Gomega) []*release.Release {
+			releases, err := action.NewList(helmConfig).Run()
+			g.Expect(err).
+				ShouldNot(HaveOccurred(), "there should be no error listing helm releases")
+			return releases
+		}).Should(BeEmpty(), "the helm release should be deleted from the remote cluster")
+
+	})
 })
 
 func bootstrapRemoteCluster() {

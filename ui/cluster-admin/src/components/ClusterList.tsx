@@ -20,7 +20,7 @@ interface ClusterListProps {
 const ClusterList: React.FC<ClusterListProps> = (props: ClusterListProps) => {
   return (
     <>
-      <DataGrid columns={5}>
+      <DataGrid columns={5} minContentColumns={[0]} className="clusters">
         <DataGridRow>
           <DataGridHeadCell>
             <Icon icon="monitorHeart" />

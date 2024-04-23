@@ -22,10 +22,13 @@ spec:
       name: Display name
       type: string
     - jsonPath: .spec.pluginDefinition
-      name: PluginDefinition
+      name: Plugin Definition
       type: string
     - jsonPath: .spec.clusterName
       name: Cluster
+      type: string
+    - jsonPath: .spec.releaseNamespace
+      name: Release Namespace
       type: string
     - jsonPath: .spec.disabled
       name: Disabled
@@ -111,6 +114,11 @@ spec:
               pluginDefinition:
                 description: PluginDefinition is the name of the PluginDefinition
                   this instance is for.
+                type: string
+              releaseNamespace:
+                description: ReleaseNamespace is the namespace in the remote cluster
+                  to which the backend is deployed. Defaults to the Greenhouse managed
+                  namespace if not set.
                 type: string
             required:
             - disabled

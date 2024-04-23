@@ -1,4 +1,4 @@
-FROM klakegg/hugo:0.111.3-ext-debian
+FROM floryn90/hugo:0.125.2-ext-debian
 LABEL source_repository="https://github.com/cloudoperators/greenhouse"
 
 COPY docs /docs

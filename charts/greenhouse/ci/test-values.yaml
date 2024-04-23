@@ -1,6 +1,9 @@
 # SPDX-FileCopyrightText: 2024 SAP SE or an SAP affiliate company and Greenhouse contributors
 # SPDX-License-Identifier: Apache-2.0
 
+global:
+  dnsDomain: foo.global
+
 digicertIssuer:
   enabled: true
   apiToken: topSecret!
@@ -25,3 +28,44 @@ alerts:
   ingress:
     host: topSecret!
   endpoint: topSecret!
+
+headscale:
+  ingress:
+    host: "foo.bar"
+  postgres:
+    password: topSecret!
+
+tailscale-proxy:
+  preauthkeyProvosioner:
+    userName: topSecret!
+
+cors-proxy:
+  host: "foo.bar"
+
+ui:
+  host: "foo.bar"
+  oidcIssuerUrl: "foo.bar/oidc"
+  oidcClientId: topSecret!
+  k8sApiEndpoint: "api.k8s.foo.bar"
+
+team-membership:
+  env:
+    SCIM_BASIC_AUTH_USER: topSecret!
+    SCIM_BASIC_AUTH_PW: topSecret!
+    SCIM_BASE_URL: "foo.bar"
+
+logshipping:
+  enabled: true
+  opensearch:
+    host: opensearch.foo.bar
+    port: 9200
+    logstashPrefix: "greenhouse"
+    username: topSecret!
+    password: topSecret!
+  fluent-bit:
+    additionalValues:
+      - key: foo
+        value: bar
+  prometheus:
+    enabled: true
+    prometheusName: "myPrometheus"

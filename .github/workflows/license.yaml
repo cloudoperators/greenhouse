@@ -17,7 +17,7 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Check License Header
-        uses: apache/skywalking-eyes/header@v0.5.0
+        uses: apache/skywalking-eyes/header@v0.6.0
         with:
             config: .github/licenserc.yaml
             mode: fix

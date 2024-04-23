@@ -19,6 +19,8 @@ const ClusterListItem: React.FC<ClusterListItemProps> = (
   props: ClusterListItemProps
 ) => {
   const setClusterDetails = useStore((state) => state.setClusterDetails)
+  const clusterDetails = useStore((state) => state.clusterDetails)
+
   const setClusterDetailPlugins = useStore(
     (state) => state.setClusterDetailPlugins
   )
@@ -26,6 +28,7 @@ const ClusterListItem: React.FC<ClusterListItemProps> = (
   const { getPluginsforCluster: getPluginsforCluster } = useGetPlugins()
 
   const setShowClusterDetails = useStore((state) => state.setShowClusterDetails)
+  const showClusterDetails = useStore((state) => state.showClusterDetails)
 
   let clusterStatus = getResourceStatusFromKubernetesConditions(
     props.cluster.status?.statusConditions?.conditions ?? []
@@ -35,7 +38,13 @@ const ClusterListItem: React.FC<ClusterListItemProps> = (
 
   const openDetails = () => {
     setClusterDetails(props.cluster)
-    setShowClusterDetails(true)
+
+    // set showClusterDetails to false if the same cluster is clicked again.
+    clusterDetails?.cluster?.metadata?.name ===
+      props?.cluster?.metadata?.name && showClusterDetails
+      ? setShowClusterDetails(false)
+      : setShowClusterDetails(true)
+
     setShowOnBoardCluster(false)
 
     // only get plugin configs on click
@@ -46,7 +55,15 @@ const ClusterListItem: React.FC<ClusterListItemProps> = (
   }
 
   return (
-    <DataGridRow style={{ cursor: "pointer" }} onClick={() => openDetails()}>
+    <DataGridRow
+      className={`cursor-pointer ${
+        clusterDetails?.cluster?.metadata?.name ===
+          props?.cluster?.metadata?.name && showClusterDetails
+          ? "active"
+          : ""
+      }`}
+      onClick={() => openDetails()}
+    >
       <DataGridCell>
         <ResourceStatusIcon status={clusterStatus} />
       </DataGridCell>

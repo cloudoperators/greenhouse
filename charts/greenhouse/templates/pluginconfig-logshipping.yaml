@@ -1,0 +1,45 @@
+{{/* 
+SPDX-FileCopyrightText: 2024 SAP SE or an SAP affiliate company and Greenhouse contributors
+SPDX-License-Identifier: Apache-2.0
+*/}}
+
+{{- if .Values.logshipping.enabled }}
+apiVersion: greenhouse.sap/v1alpha1
+kind: Plugin
+metadata:
+  name: logshipper-greenhouse
+  namespace: {{ .Chart.Name }}
+spec:
+  pluginDefinition: logshipper
+  disabled: false
+  optionValues:
+    - name: fluent-bit.parser
+      value: "cri"
+    - name: fluent-bit.backend.opensearch.enabled
+      value: true
+    - name: fluent-bit.backend.opensearch.host
+      value: {{ required "opensearch host missing" .Values.logshipping.opensearch.host }}
+    - name: fluent-bit.backend.opensearch.port
+      value: {{ default "9200" .Values.logshipping.opensearch.port | quote }}
+    - name: fluent-bit.backend.opensearch.http_user
+      valueFrom:
+        secret:
+          name: greenhouse-opensearch
+          key: username
+    - name: fluent-bit.backend.opensearch.http_password
+      valueFrom:
+        secret:
+          name: greenhouse-opensearch
+          key: password
+    - name: fluent-bit.backend.opensearch.logstash_prefix
+      value: {{ index .Values "logshipping" "opensearch" "logstashPrefix" }}
+    - name: prometheusName
+      value: "kube-monitoring"
+    - name: fluent-bit.image.repository
+      value: {{ index .Values "logshipping" "fluent-bit" "image" "repository" }}
+    - name: fluent-bit.hotReload.image.repository
+      value: {{ index .Values "logshipping" "fluent-bit" "hotReload" "image" "repository" }}
+    - name: fluent-bit.filter.additionalValues
+      value:
+        {{- index .Values "logshipping" "fluent-bit" "additionalValues" | toYaml | nindent 8 }}
+{{- end -}}

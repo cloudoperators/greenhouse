@@ -5,6 +5,8 @@ package v1alpha1
 
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
+	greenhouseapis "github.com/cloudoperators/greenhouse/pkg/apis"
 )
 
 // TeamRoleBindingSpec defines the desired state of a TeamRoleBinding
@@ -45,6 +47,11 @@ type TeamRoleBindingList struct {
 
 func init() {
 	SchemeBuilder.Register(&TeamRoleBinding{}, &TeamRoleBindingList{})
+}
+
+// GetRBACName returns the name of the rbacv1.RoleBinding or rbacv1.ClusterRoleBinding that will be created on the remote cluster
+func (trb *TeamRoleBinding) GetRBACName() string {
+	return greenhouseapis.RBACPrefix + trb.GetName()
 }
 
 const (

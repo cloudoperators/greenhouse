@@ -91,7 +91,7 @@ docker-build:
 
 .PHONY: docker-build-dev-env
 docker-build-dev-env:
-	docker build --platform linux/amd64 -t ${IMG_DEV_ENV} -f dev-env.Dockerfile .
+	docker build --platform linux/amd64 -t ${IMG_DEV_ENV} -f Dockerfile.dev-env .
 
 .PHONY: docker-push
 docker-push: ## Push docker image with the manager.

@@ -68,6 +68,11 @@ func DefaultPlugin(ctx context.Context, c client.Client, obj runtime.Object) err
 		return err
 	}
 	plugin.Spec.OptionValues = optionValues
+
+	// Default the ReleaseNamespace to the organization namespace if not set.
+	if plugin.Spec.ReleaseNamespace == "" {
+		plugin.Spec.ReleaseNamespace = plugin.GetNamespace()
+	}
 	return nil
 }
 
