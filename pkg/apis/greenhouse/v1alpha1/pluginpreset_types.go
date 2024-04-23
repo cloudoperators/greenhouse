@@ -14,23 +14,12 @@ const (
 
 // PluginPresetSpec defines the desired state of PluginPreset
 type PluginPresetSpec struct {
-	// DisplayName is an optional name for the Plugin to be displayed in the Greenhouse UI.
-	// This is especially helpful to distinguish multiple instances of a PluginDefinition in the same context.
-	// Defaults to a normalized version of metadata.name.
-	DisplayName string `json:"displayName,omitempty"`
 
-	// PluginDefinition is the name of the PluginDefinition this instance is for.
-	PluginDefinition string `json:"pluginDefinition"`
-
-	// OptionValues are the defaults for the Plugins deployed for this PluginPreset.
-	OptionValues []PluginOptionValue `json:"optionValues,omitempty"`
+	// PluginSpec is the spec of the plugin to be deployed by the PluginPreset.
+	Plugin PluginSpec `json:"plugin"`
 
 	// ClusterSelector is a label selector to select the clusters the plugin bundle should be deployed to.
 	ClusterSelector metav1.LabelSelector `json:"clusterSelector"`
-
-	// ReleaseNamespace is the namespace in the remote cluster to which the plugin is deployed.
-	// Defaults to the Greenhouse managed namespace if not set.
-	ReleaseNamespace string `json:"releaseNamespace,omitempty"`
 }
 
 // PluginPresetStatus defines the observed state of PluginPreset

@@ -47,26 +47,31 @@ func ValidateCreatePluginPreset(ctx context.Context, c client.Client, o runtime.
 	var allErrs field.ErrorList
 
 	// ensure PluginDefinition and ClusterSelector are set
-	if pluginPreset.Spec.PluginDefinition == "" {
-		allErrs = append(allErrs, field.Invalid(field.NewPath("spec").Child("pluginDefinition"), pluginPreset.Spec.PluginDefinition, "PluginDefinition must be set"))
+	if pluginPreset.Spec.Plugin.PluginDefinition == "" {
+		allErrs = append(allErrs, field.Invalid(field.NewPath("spec").Child("plugin").Child("pluginDefinition"), pluginPreset.Spec.Plugin.PluginDefinition, "PluginDefinition must be set"))
 	}
 
 	if pluginPreset.Spec.ClusterSelector.Size() == 0 {
 		allErrs = append(allErrs, field.Invalid(field.NewPath("spec").Child("clusterSelector"), pluginPreset.Spec.ClusterSelector, "ClusterSelector must be set"))
 	}
 
+	// ensure ClusterName is not set
+	if pluginPreset.Spec.Plugin.ClusterName != "" {
+		allErrs = append(allErrs, field.Invalid(field.NewPath("spec").Child("plugin").Child("clusterName"), pluginPreset.Spec.Plugin.ClusterName, "ClusterName must not be set"))
+	}
+
 	// ensure PluginDefinition exists
 	pluginDefinition := new(greenhousev1alpha1.PluginDefinition)
-	err := c.Get(ctx, client.ObjectKey{Namespace: "", Name: pluginPreset.Spec.PluginDefinition}, pluginDefinition)
+	err := c.Get(ctx, client.ObjectKey{Namespace: "", Name: pluginPreset.Spec.Plugin.PluginDefinition}, pluginDefinition)
 	switch {
 	case err != nil && apierrors.IsNotFound(err):
-		allErrs = append(allErrs, field.Invalid(field.NewPath("spec").Child("pluginDefinition"), pluginPreset.Spec.PluginDefinition, fmt.Sprintf("PluginDefinition %s does not exist", pluginPreset.Spec.PluginDefinition)))
+		allErrs = append(allErrs, field.Invalid(field.NewPath("spec").Child("plugin").Child("pluginDefinition"), pluginPreset.Spec.Plugin.PluginDefinition, fmt.Sprintf("PluginDefinition %s does not exist", pluginPreset.Spec.Plugin.PluginDefinition)))
 	case err != nil:
-		allErrs = append(allErrs, field.Invalid(field.NewPath("spec").Child("pluginDefinition"), pluginPreset.Spec.PluginDefinition, "PluginDefinition could not be retrieved: "+err.Error()))
+		allErrs = append(allErrs, field.Invalid(field.NewPath("spec").Child("plugin").Child("pluginDefinition"), pluginPreset.Spec.Plugin.PluginDefinition, "PluginDefinition could not be retrieved: "+err.Error()))
 	}
 
 	// validate OptionValues defined by the Preset
-	if errList := validatePluginOptionValues(pluginPreset.Spec.OptionValues, pluginDefinition); len(errList) > 0 {
+	if errList := validatePluginOptionValues(pluginPreset.Spec.Plugin.OptionValues, pluginDefinition); len(errList) > 0 {
 		allErrs = append(allErrs, errList...)
 	}
 
@@ -89,7 +94,7 @@ func ValidateUpdatePluginPreset(ctx context.Context, c client.Client, oldObj, cu
 
 	var allErrs field.ErrorList
 
-	if err := validateImmutableField(oldPluginPreset.Spec.PluginDefinition, pluginPreset.Spec.PluginDefinition, field.NewPath("spec", "pluginDefinition")); err != nil {
+	if err := validateImmutableField(oldPluginPreset.Spec.Plugin.PluginDefinition, pluginPreset.Spec.Plugin.PluginDefinition, field.NewPath("spec", "pluginDefinition")); err != nil {
 		allErrs = append(allErrs, err)
 	}
 

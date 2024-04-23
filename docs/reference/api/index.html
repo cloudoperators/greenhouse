@@ -1385,30 +1385,14 @@ g,0<c.length&&(c=Aa[c[0]])&&(a.c[e]=c))}a.c[e]||(c=Aa[e])&&(a.c[e]=c);for(c=0;c<
   }
 };
     defs["PluginPreset_spec"] = {
-  "required" : [ "clusterSelector", "pluginDefinition" ],
+  "required" : [ "clusterSelector", "plugin" ],
   "type" : "object",
   "properties" : {
     "clusterSelector" : {
       "$ref" : "#/components/schemas/PluginPreset_spec_clusterSelector"
     },
-    "displayName" : {
-      "type" : "string",
-      "description" : "DisplayName is an optional name for the Plugin to be displayed in the Greenhouse UI.\\nThis is especially helpful to distinguish multiple instances of a PluginDefinition in the same context.\\nDefaults to a normalized version of metadata.name."
-    },
-    "optionValues" : {
-      "type" : "array",
-      "description" : "OptionValues are the defaults for the Plugins deployed for this PluginPreset.",
-      "items" : {
-        "$ref" : "#/components/schemas/PluginPreset_spec_optionValues"
-      }
-    },
-    "pluginDefinition" : {
-      "type" : "string",
-      "description" : "PluginDefinition is the name of the PluginDefinition this instance is for."
-    },
-    "releaseNamespace" : {
-      "type" : "string",
-      "description" : "ReleaseNamespace is the namespace in the remote cluster to which the plugin is deployed.\\nDefaults to the Greenhouse managed namespace if not set."
+    "plugin" : {
+      "$ref" : "#/components/schemas/PluginPreset_spec_plugin"
     }
   },
   "description" : "PluginPresetSpec defines the desired state of PluginPreset"
@@ -1456,7 +1440,41 @@ g,0<c.length&&(c=Aa[c[0]])&&(a.c[e]=c))}a.c[e]||(c=Aa[e])&&(a.c[e]=c);for(c=0;c<
   },
   "description" : "A label selector requirement is a selector that contains values, a key, and an operator that\\nrelates the key and values."
 };
-    defs["PluginPreset_spec_optionValues"] = {
+    defs["PluginPreset_spec_plugin"] = {
+  "required" : [ "disabled", "pluginDefinition" ],
+  "type" : "object",
+  "properties" : {
+    "clusterName" : {
+      "type" : "string",
+      "description" : "ClusterName is the name of the cluster the plugin is deployed to. If not set, the plugin is deployed to the greenhouse cluster."
+    },
+    "disabled" : {
+      "type" : "boolean",
+      "description" : "Disabled indicates that the plugin is administratively disabled."
+    },
+    "displayName" : {
+      "type" : "string",
+      "description" : "DisplayName is an optional name for the Plugin to be displayed in the Greenhouse UI.\\nThis is especially helpful to distinguish multiple instances of a PluginDefinition in the same context.\\nDefaults to a normalized version of metadata.name."
+    },
+    "optionValues" : {
+      "type" : "array",
+      "description" : "Values are the values for a PluginDefinition instance.",
+      "items" : {
+        "$ref" : "#/components/schemas/PluginPreset_spec_plugin_optionValues"
+      }
+    },
+    "pluginDefinition" : {
+      "type" : "string",
+      "description" : "PluginDefinition is the name of the PluginDefinition this instance is for."
+    },
+    "releaseNamespace" : {
+      "type" : "string",
+      "description" : "ReleaseNamespace is the namespace in the remote cluster to which the backend is deployed.\\nDefaults to the Greenhouse managed namespace if not set."
+    }
+  },
+  "description" : "PluginSpec is the spec of the plugin to be deployed by the PluginPreset."
+};
+    defs["PluginPreset_spec_plugin_optionValues"] = {
   "required" : [ "name" ],
   "type" : "object",
   "properties" : {
@@ -1469,21 +1487,21 @@ g,0<c.length&&(c=Aa[c[0]])&&(a.c[e]=c))}a.c[e]||(c=Aa[e])&&(a.c[e]=c);for(c=0;c<
       "x-kubernetes-preserve-unknown-fields" : true
     },
     "valueFrom" : {
-      "$ref" : "#/components/schemas/PluginPreset_spec_valueFrom"
+      "$ref" : "#/components/schemas/PluginPreset_spec_plugin_valueFrom"
     }
   },
   "description" : "PluginOptionValue is the value for a PluginOption."
 };
-    defs["PluginPreset_spec_valueFrom"] = {
+    defs["PluginPreset_spec_plugin_valueFrom"] = {
   "type" : "object",
   "properties" : {
     "secret" : {
-      "$ref" : "#/components/schemas/PluginPreset_spec_valueFrom_secret"
+      "$ref" : "#/components/schemas/PluginPreset_spec_plugin_valueFrom_secret"
     }
   },
   "description" : "ValueFrom references a potentially confidential value in another source."
 };
-    defs["PluginPreset_spec_valueFrom_secret"] = {
+    defs["PluginPreset_spec_plugin_valueFrom_secret"] = {
   "required" : [ "key", "name" ],
   "type" : "object",
   "properties" : {
@@ -1518,7 +1536,7 @@ g,0<c.length&&(c=Aa[c[0]])&&(a.c[e]=c))}a.c[e]||(c=Aa[e])&&(a.c[e]=c);for(c=0;c<
       "type" : "array",
       "description" : "Values are the values for a PluginDefinition instance.",
       "items" : {
-        "$ref" : "#/components/schemas/PluginPreset_spec_optionValues"
+        "$ref" : "#/components/schemas/PluginPreset_spec_plugin_optionValues"
       }
     },
     "pluginDefinition" : {

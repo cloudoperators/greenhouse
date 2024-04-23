@@ -74,7 +74,9 @@ var _ = Describe("PluginPreset Admission Tests", Ordered, func() {
 				Namespace: test.TestNamespace,
 			},
 			Spec: greenhousev1alpha1.PluginPresetSpec{
-				PluginDefinition: pluginPresetDefinition,
+				Plugin: greenhousev1alpha1.PluginSpec{
+					PluginDefinition: pluginPresetDefinition,
+				},
 			},
 		}
 
@@ -90,8 +92,10 @@ var _ = Describe("PluginPreset Admission Tests", Ordered, func() {
 				Namespace: test.TestNamespace,
 			},
 			Spec: greenhousev1alpha1.PluginPresetSpec{
-				PluginDefinition: "non-existing",
-				ClusterSelector:  metav1.LabelSelector{MatchLabels: map[string]string{"foo": "bar"}},
+				Plugin: greenhousev1alpha1.PluginSpec{
+					PluginDefinition: "non-existing",
+				},
+				ClusterSelector: metav1.LabelSelector{MatchLabels: map[string]string{"foo": "bar"}},
 			},
 		}
 
@@ -107,8 +111,10 @@ var _ = Describe("PluginPreset Admission Tests", Ordered, func() {
 				Namespace: test.TestNamespace,
 			},
 			Spec: greenhousev1alpha1.PluginPresetSpec{
-				PluginDefinition: pluginPresetDefinition,
-				ClusterSelector:  metav1.LabelSelector{MatchLabels: map[string]string{"foo": "bar"}},
+				Plugin: greenhousev1alpha1.PluginSpec{
+					PluginDefinition: pluginPresetDefinition,
+				},
+				ClusterSelector: metav1.LabelSelector{MatchLabels: map[string]string{"foo": "bar"}},
 			},
 		}
 
@@ -122,7 +128,7 @@ var _ = Describe("PluginPreset Admission Tests", Ordered, func() {
 		Expect(err.Error()).To(ContainSubstring("field is immutable"))
 
 		_, err = clientutil.CreateOrPatch(test.Ctx, test.K8sClient, cut, func() error {
-			cut.Spec.PluginDefinition = "new-definition"
+			cut.Spec.Plugin.PluginDefinition = "new-definition"
 			return nil
 		})
 		Expect(err).To(HaveOccurred())

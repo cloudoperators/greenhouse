@@ -70,17 +70,19 @@ var (
 			Namespace: test.TestNamespace,
 		},
 		Spec: greenhousev1alpha1.PluginPresetSpec{
-			PluginDefinition: pluginPresetDefinitionName,
-			ReleaseNamespace: releaseNamespace,
+			Plugin: greenhousev1alpha1.PluginSpec{
+				PluginDefinition: pluginPresetDefinitionName,
+				ReleaseNamespace: releaseNamespace,
+				OptionValues: []greenhousev1alpha1.PluginOptionValue{
+					{
+						Name:  "myRequiredOption",
+						Value: test.MustReturnJSONFor("myValue"),
+					},
+				},
+			},
 			ClusterSelector: metav1.LabelSelector{
 				MatchLabels: map[string]string{
 					"cluster": clusterA,
-				},
-			},
-			OptionValues: []greenhousev1alpha1.PluginOptionValue{
-				{
-					Name:  "myRequiredOption",
-					Value: test.MustReturnJSONFor("myValue"),
 				},
 			},
 		},

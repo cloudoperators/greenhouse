@@ -124,7 +124,7 @@ func (r *PluginPresetReconciler) reconcilePluginPreset(ctx context.Context, pb *
 	for _, cluster := range clusters.Items {
 		plugin := &greenhousev1alpha1.Plugin{
 			ObjectMeta: v1.ObjectMeta{
-				Name:      generatePluginName(pb.Spec.PluginDefinition, &cluster),
+				Name:      generatePluginName(pb.Spec.Plugin.PluginDefinition, &cluster),
 				Namespace: pb.GetNamespace(),
 			},
 		}
@@ -135,12 +135,9 @@ func (r *PluginPresetReconciler) reconcilePluginPreset(ctx context.Context, pb *
 			if err := controllerutil.SetControllerReference(pb, plugin, r.Scheme()); err != nil {
 				return err
 			}
-			plugin.Spec.PluginDefinition = pb.Spec.PluginDefinition
-			plugin.Spec.DisplayName = pb.Spec.DisplayName
-			plugin.Spec.OptionValues = pb.Spec.OptionValues
-			plugin.Spec.Disabled = false
+			plugin.Spec = pb.Spec.Plugin
+			// Set the cluster name to the name of the cluster. The PluginSpec contained in the PluginPreset does not have a cluster name.
 			plugin.Spec.ClusterName = cluster.GetName()
-			plugin.Spec.ReleaseNamespace = pb.Spec.ReleaseNamespace
 			return nil
 		})
 		switch result {

@@ -19,6 +19,11 @@ paths:
       responses:
         default:
           description: PluginDefinition
+  /PluginPreset:
+    post:
+      responses:
+        default:
+          description: PluginPreset
   /Plugin:
     post:
       responses:
@@ -385,6 +390,117 @@ components:
           type: object
         status:
           description: PluginDefinitionStatus defines the observed state of PluginDefinition
+          type: object
+      type: object
+    PluginPreset:
+      xml:
+        name: greenhouse.sap
+        namespace: v1alpha1
+      title: PluginPreset
+      description: PluginPreset is the Schema for the PluginPresets API
+      properties:
+        apiVersion:
+          description: 'APIVersion defines the versioned schema of this representation of an object.\nServers should convert recognized schemas to the latest internal value, and\nmay reject unrecognized values.\nMore info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+          type: string
+        kind:
+          description: 'Kind is a string value representing the REST resource this object represents.\nServers may infer this from the endpoint the client submits requests to.\nCannot be updated.\nIn CamelCase.\nMore info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+          type: string
+        metadata:
+          type: object
+        spec:
+          description: PluginPresetSpec defines the desired state of PluginPreset
+          properties:
+            clusterSelector:
+              description: ClusterSelector is a label selector to select the clusters the plugin bundle should be deployed to.
+              properties:
+                matchExpressions:
+                  description: matchExpressions is a list of label selector requirements. The requirements are ANDed.
+                  items:
+                    description: A label selector requirement is a selector that contains values, a key, and an operator that\nrelates the key and values.
+                    properties:
+                      key:
+                        description: key is the label key that the selector applies to.
+                        type: string
+                      operator:
+                        description: operator represents a key's relationship to a set of values.\nValid operators are In, NotIn, Exists and DoesNotExist.
+                        type: string
+                      values:
+                        description: values is an array of string values. If the operator is In or NotIn,\nthe values array must be non-empty. If the operator is Exists or DoesNotExist,\nthe values array must be empty. This array is replaced during a strategic\nmerge patch.
+                        items:
+                          type: string
+                        type: array
+                    required:
+                      - key
+                      - operator
+                    type: object
+                  type: array
+                matchLabels:
+                  additionalProperties:
+                    type: string
+                  description: matchLabels is a map of {key,value} pairs. A single {key,value} in the matchLabels\nmap is equivalent to an element of matchExpressions, whose key field is "key", the\noperator is "In", and the values array contains only "value". The requirements are ANDed.
+                  type: object
+              type: object
+              x-kubernetes-map-type: atomic
+            plugin:
+              description: PluginSpec is the spec of the plugin to be deployed by the PluginPreset.
+              properties:
+                clusterName:
+                  description: ClusterName is the name of the cluster the plugin is deployed to. If not set, the plugin is deployed to the greenhouse cluster.
+                  type: string
+                disabled:
+                  description: Disabled indicates that the plugin is administratively disabled.
+                  type: boolean
+                displayName:
+                  description: DisplayName is an optional name for the Plugin to be displayed in the Greenhouse UI.\nThis is especially helpful to distinguish multiple instances of a PluginDefinition in the same context.\nDefaults to a normalized version of metadata.name.
+                  type: string
+                optionValues:
+                  description: Values are the values for a PluginDefinition instance.
+                  items:
+                    description: PluginOptionValue is the value for a PluginOption.
+                    properties:
+                      name:
+                        description: Name of the values.
+                        type: string
+                      value:
+                        description: Value is the actual value in plain text.
+                        x-kubernetes-preserve-unknown-fields: true
+                      valueFrom:
+                        description: ValueFrom references a potentially confidential value in another source.
+                        properties:
+                          secret:
+                            description: Secret references the secret containing the value.
+                            properties:
+                              key:
+                                description: Key in the secret to select the value from.
+                                type: string
+                              name:
+                                description: Name of the secret in the same namespace.
+                                type: string
+                            required:
+                              - key
+                              - name
+                            type: object
+                        type: object
+                    required:
+                      - name
+                    type: object
+                  type: array
+                pluginDefinition:
+                  description: PluginDefinition is the name of the PluginDefinition this instance is for.
+                  type: string
+                releaseNamespace:
+                  description: ReleaseNamespace is the namespace in the remote cluster to which the backend is deployed.\nDefaults to the Greenhouse managed namespace if not set.
+                  type: string
+              required:
+                - disabled
+                - pluginDefinition
+              type: object
+          required:
+            - clusterSelector
+            - plugin
+          type: object
+        status:
+          description: PluginPresetStatus defines the observed state of PluginPreset
           type: object
       type: object
     Plugin:
