@@ -62,12 +62,12 @@ var _ = Describe("Validate Plugin OptionValues", func() {
 			},
 		}
 
-		err := validatePluginOptionValues(plugin, pluginDefinition)
+		errList := validatePluginOptionValues(plugin.Spec.OptionValues, pluginDefinition)
 		switch expErr {
 		case true:
-			Expect(err).To(HaveOccurred(), "expected an error, got nil")
+			Expect(errList).ToNot(BeEmpty(), "expected an error, got nil")
 		default:
-			Expect(err).ToNot(HaveOccurred(), "expected no error, got %v", err)
+			Expect(errList).To(BeEmpty(), "expected no error, got %v", errList)
 		}
 	},
 		Entry("Value and ValueFrom nil", nil, nil, true),
@@ -109,12 +109,12 @@ var _ = Describe("Validate Plugin OptionValues", func() {
 			},
 		}
 
-		err := validatePluginOptionValues(plugin, pluginDefinition)
+		errList := validatePluginOptionValues(plugin.Spec.OptionValues, pluginDefinition)
 		switch expErr {
 		case true:
-			Expect(err).To(HaveOccurred(), "expected an error, got nil")
+			Expect(errList).ToNot(BeEmpty(), "expected an error, got nil")
 		default:
-			Expect(err).ToNot(HaveOccurred(), "expected no error, got %v", err)
+			Expect(errList).To(BeEmpty(), "expected no error, got %v", errList)
 		}
 
 	},
@@ -164,12 +164,12 @@ var _ = Describe("Validate Plugin OptionValues", func() {
 			},
 		}
 
-		err := validatePluginOptionValues(plugin, pluginDefinition)
+		errList := validatePluginOptionValues(plugin.Spec.OptionValues, pluginDefinition)
 		switch expErr {
 		case true:
-			Expect(err).To(HaveOccurred(), "expected an error, got nil")
+			Expect(errList).ToNot(BeEmpty(), "expected an error, got nil")
 		default:
-			Expect(err).ToNot(HaveOccurred(), "expected no error, got %v", err)
+			Expect(errList).To(BeEmpty(), "expected no error, got %v", errList)
 		}
 	},
 		Entry("PluginOption ValueFrom has a valid SecretReference", &greenhousev1alpha1.ValueFromSource{Secret: &greenhousev1alpha1.SecretKeyReference{Name: "secret", Key: "key"}}, false),
@@ -209,8 +209,8 @@ var _ = Describe("Validate Plugin OptionValues", func() {
 					ClusterName:      "test-cluster",
 				},
 			}
-			err := validatePluginOptionValues(plugin, pluginDefinition)
-			Expect(err).To(HaveOccurred(), "expected an error, got nil")
+			errList := validatePluginOptionValues(plugin.Spec.OptionValues, pluginDefinition)
+			Expect(errList).NotTo(BeEmpty(), "expected an error, got nil")
 		})
 		It("should accept a Plugin with supplied required options", func() {
 			plugin := &greenhousev1alpha1.Plugin{
@@ -233,8 +233,8 @@ var _ = Describe("Validate Plugin OptionValues", func() {
 					},
 				},
 			}
-			err := validatePluginOptionValues(plugin, pluginDefinition)
-			Expect(err).ToNot(HaveOccurred(), "unexpected error")
+			errList := validatePluginOptionValues(plugin.Spec.OptionValues, pluginDefinition)
+			Expect(errList).To(BeEmpty(), "unexpected error")
 		})
 	})
 })
@@ -369,7 +369,7 @@ var _ = Describe("Validate Plugin with OwnerReference from PluginPresets", func(
 
 	var ownerReference = metav1.OwnerReference{
 		APIVersion: "greenhouse.cloud.sap/v1alpha1",
-		Kind:       "PluginBundle",
+		Kind:       "PluginPreset",
 		Name:       "test-preset",
 		Controller: ptr.To(false),
 	}

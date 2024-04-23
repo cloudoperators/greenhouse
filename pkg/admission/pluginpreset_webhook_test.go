@@ -67,7 +67,7 @@ var _ = Describe("PluginPreset Admission Tests", Ordered, func() {
 		Expect(err.Error()).To(ContainSubstring("PluginDefinition must be set"))
 	})
 
-	It("should reject PluginBundle without ClusterSelector", func() {
+	It("should reject PluginPreset without ClusterSelector", func() {
 		cut := &greenhousev1alpha1.PluginPreset{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      pluginPresetCreate,

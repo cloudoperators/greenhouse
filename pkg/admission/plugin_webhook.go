@@ -93,8 +93,8 @@ func ValidateCreatePlugin(ctx context.Context, c client.Client, obj runtime.Obje
 		return nil, err
 	}
 
-	if err := validatePluginOptionValues(plugin, pluginDefinition); err != nil {
-		return nil, err
+	if errList := validatePluginOptionValues(plugin.Spec.OptionValues, pluginDefinition); len(errList) > 0 {
+		return nil, apierrors.NewInvalid(plugin.GroupVersionKind().GroupKind(), plugin.Name, errList)
 	}
 	if err := validatePluginForCluster(ctx, c, plugin, pluginDefinition); err != nil {
 		return nil, err
@@ -122,8 +122,8 @@ func ValidateUpdatePlugin(ctx context.Context, c client.Client, old, obj runtime
 		return allWarns, err
 	}
 
-	if err := validatePluginOptionValues(plugin, pluginDefinition); err != nil {
-		return allWarns, err
+	if errList := validatePluginOptionValues(plugin.Spec.OptionValues, pluginDefinition); len(errList) > 0 {
+		return allWarns, apierrors.NewInvalid(plugin.GroupVersionKind().GroupKind(), plugin.Name, errList)
 	}
 	if err := validatePluginForCluster(ctx, c, plugin, pluginDefinition); err != nil {
 		return allWarns, err
@@ -149,12 +149,12 @@ func validateOwnerReference(plugin *greenhousev1alpha1.Plugin) admission.Warning
 	return nil
 }
 
-func validatePluginOptionValues(plugin *greenhousev1alpha1.Plugin, pluginDefinition *greenhousev1alpha1.PluginDefinition) error {
+func validatePluginOptionValues(optionValues []greenhousev1alpha1.PluginOptionValue, pluginDefinition *greenhousev1alpha1.PluginDefinition) field.ErrorList {
 	var allErrs field.ErrorList
 	var isOptionValueSet bool
 	for _, pluginOption := range pluginDefinition.Spec.Options {
 		isOptionValueSet = false
-		for idx, val := range plugin.Spec.OptionValues {
+		for idx, val := range optionValues {
 			if pluginOption.Name != val.Name {
 				continue
 			}
@@ -204,13 +204,13 @@ func validatePluginOptionValues(plugin *greenhousev1alpha1.Plugin, pluginDefinit
 		}
 		if pluginOption.Required && !isOptionValueSet {
 			allErrs = append(allErrs, field.Required(field.NewPath("spec").Child("optionValues"),
-				fmt.Sprintf("Option '%s' is required by PluginDefinition '%s'", pluginOption.Name, plugin.Spec.PluginDefinition)))
+				fmt.Sprintf("Option '%s' is required by PluginDefinition '%s'", pluginOption.Name, pluginDefinition.Name)))
 		}
 	}
 	if len(allErrs) == 0 {
 		return nil
 	}
-	return apierrors.NewInvalid(plugin.GroupVersionKind().GroupKind(), plugin.Name, allErrs)
+	return allErrs
 }
 
 func validatePluginForCluster(ctx context.Context, c client.Client, plugin *greenhousev1alpha1.Plugin, pluginDefinition *greenhousev1alpha1.PluginDefinition) error {

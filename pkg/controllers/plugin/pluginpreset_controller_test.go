@@ -20,7 +20,7 @@ import (
 
 const (
 	pluginPresetName           = "test-pluginpreset"
-	pluginPresetDefinitionName = "test-plugindefinition"
+	pluginPresetDefinitionName = "preset-plugindefinition"
 
 	releaseNamespace = "test-namespace"
 
@@ -70,11 +70,17 @@ var (
 			Namespace: test.TestNamespace,
 		},
 		Spec: greenhousev1alpha1.PluginPresetSpec{
-			PluginDefinition: testPluginDefinition.Name,
+			PluginDefinition: pluginPresetDefinitionName,
 			ReleaseNamespace: releaseNamespace,
 			ClusterSelector: metav1.LabelSelector{
 				MatchLabels: map[string]string{
 					"cluster": clusterA,
+				},
+			},
+			OptionValues: []greenhousev1alpha1.PluginOptionValue{
+				{
+					Name:  "myRequiredOption",
+					Value: test.MustReturnJSONFor("myValue"),
 				},
 			},
 		},
@@ -124,7 +130,7 @@ var _ = Describe("PluginPreset Controller", Ordered, func() {
 		Expect(err).ToNot(HaveOccurred(), "failed to create test PluginPreset")
 
 		By("ensuring a Plugin has been created")
-		expPluginName := types.NamespacedName{Name: testPluginDefinition.Name + "-" + clusterA, Namespace: test.TestNamespace}
+		expPluginName := types.NamespacedName{Name: pluginPresetDefinitionName + "-" + clusterA, Namespace: test.TestNamespace}
 		expPlugin := &greenhousev1alpha1.Plugin{}
 		Eventually(func() error {
 			return test.K8sClient.Get(test.Ctx, expPluginName, expPlugin)
@@ -133,13 +139,10 @@ var _ = Describe("PluginPreset Controller", Ordered, func() {
 		Expect(expPlugin.Labels).To(HaveKeyWithValue(greenhouseapis.LabelKeyPluginPreset, pluginPresetName), "the Plugin should be labeled as managed by the PluginPreset")
 
 		By("modifying the Plugin and ensuring it is reconciled")
-		expPlugin.Spec.OptionValues = []greenhousev1alpha1.PluginOptionValue{
-			{Name: "option1", Value: test.MustReturnJSONFor("value1")},
-		}
 		_, err = clientutil.CreateOrPatch(test.Ctx, test.K8sClient, expPlugin, func() error {
-			expPlugin.Spec.OptionValues = []greenhousev1alpha1.PluginOptionValue{
-				{Name: "option1", Value: test.MustReturnJSONFor("value1")},
-			}
+			// add a new option value that is not specified by the PluginPreset
+			opt := greenhousev1alpha1.PluginOptionValue{Name: "option1", Value: test.MustReturnJSONFor("value1")}
+			expPlugin.Spec.OptionValues = append(expPlugin.Spec.OptionValues, opt)
 			return nil
 		})
 		Expect(err).NotTo(HaveOccurred(), "failed to update Plugin")
@@ -166,7 +169,13 @@ var _ = Describe("PluginPreset Controller", Ordered, func() {
 			},
 			Spec: greenhousev1alpha1.PluginSpec{
 				ClusterName:      clusterB,
-				PluginDefinition: testPluginDefinition.Name,
+				PluginDefinition: pluginPresetDefinitionName,
+				OptionValues: []greenhousev1alpha1.PluginOptionValue{
+					{
+						Name:  "myRequiredOption",
+						Value: test.MustReturnJSONFor("myValue"),
+					},
+				},
 			},
 		}
 		Expect(test.K8sClient.Create(test.Ctx, pluginNotExp)).Should(Succeed(), "failed to create test Plugin")

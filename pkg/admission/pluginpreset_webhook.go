@@ -65,6 +65,11 @@ func ValidateCreatePluginPreset(ctx context.Context, c client.Client, o runtime.
 		allErrs = append(allErrs, field.Invalid(field.NewPath("spec").Child("pluginDefinition"), pluginPreset.Spec.PluginDefinition, "PluginDefinition could not be retrieved: "+err.Error()))
 	}
 
+	// validate OptionValues defined by the Preset
+	if errList := validatePluginOptionValues(pluginPreset.Spec.OptionValues, pluginDefinition); len(errList) > 0 {
+		allErrs = append(allErrs, errList...)
+	}
+
 	if len(allErrs) > 0 {
 		return nil, apierrors.NewInvalid(pluginPreset.GroupVersionKind().GroupKind(), pluginPreset.Name, allErrs)
 	}
