@@ -14,9 +14,12 @@ import (
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/client-go/tools/record"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
+	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/log"
+	"sigs.k8s.io/controller-runtime/pkg/predicate"
 
 	greenhouseapis "github.com/cloudoperators/greenhouse/pkg/apis"
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/pkg/apis/greenhouse/v1alpha1"
@@ -42,6 +45,9 @@ func (r *PluginPresetReconciler) SetupWithManager(name string, mgr ctrl.Manager)
 		Named(name).
 		For(&greenhousev1alpha1.PluginPreset{}).
 		Owns(&greenhousev1alpha1.Plugin{}).
+		// Clusters and teams are passed as values to each Helm operation. Reconcile on change.
+		Watches(&greenhousev1alpha1.Cluster{}, handler.EnqueueRequestsFromMapFunc(r.enqueueAllPluginPresetsInNamespace),
+			builder.WithPredicates(predicate.GenerationChangedPredicate{})).
 		Complete(r)
 }
 
@@ -172,4 +178,22 @@ func (r *PluginPresetReconciler) listClusters(ctx context.Context, pb *greenhous
 		return nil, err
 	}
 	return clusters, nil
+}
+
+// enqueueAllPluginPresets returns a list of reconcile requests for all PluginPresets in the same namespace as obj.
+func (r *PluginPresetReconciler) enqueueAllPluginPresetsInNamespace(ctx context.Context, obj client.Object) []ctrl.Request {
+	return listPluginsAsReconcileRequests(ctx, r.Client, client.InNamespace(obj.GetNamespace()))
+}
+
+// listPluginsAsReconcileRequests returns a list of reconcile requests for all PluginPresets that match the given list options.
+func listPluginPresetAsReconcileEvents(ctx context.Context, c client.Client, listOpts ...client.ListOption) []ctrl.Request {
+	var allPluginPresets = new(greenhousev1alpha1.PluginPresetList)
+	if err := c.List(ctx, allPluginPresets); err != nil {
+		return nil
+	}
+	requests := make([]ctrl.Request, len(allPluginPresets.Items))
+	for i, pluginPreset := range allPluginPresets.Items {
+		requests[i] = ctrl.Request{NamespacedName: client.ObjectKeyFromObject(pluginPreset.DeepCopy())}
+	}
+	return requests
 }
