@@ -69,7 +69,7 @@ postgres:
 
   image:
     repository: postgres
-    tag: 15.6
+    tag: 16.2
     pullPolicy: IfNotPresent
 
   pvc:
