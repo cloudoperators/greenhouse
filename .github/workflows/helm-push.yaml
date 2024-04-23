@@ -103,6 +103,7 @@ jobs:
       - name: Push Charts to GHCR
         if: steps.changed-files.outputs.all_changed_files != '' && steps.check-chart.outputs.bump != 'true'
         run: |
+          helm dependency update ${{ matrix.chartDir }}
           helm package ${{ matrix.chartDir }} -d ${{ matrix.chartDir }}
           PKG_NAME=`ls ${{ matrix.chartDir }}/*.tgz`
           helm push ${PKG_NAME} oci://${{ env.REGISTRY }}/${{ github.repository }}/charts/
