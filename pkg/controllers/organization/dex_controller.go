@@ -5,7 +5,11 @@ package organization
 
 import (
 	"context"
+	"encoding/base32"
 	"encoding/json"
+	"fmt"
+	"hash/fnv"
+	"slices"
 	"strings"
 
 	"github.com/dexidp/dex/connector/oidc"
@@ -24,6 +28,7 @@ import (
 
 	greenhousesapv1alpha1 "github.com/cloudoperators/greenhouse/pkg/apis/greenhouse/v1alpha1"
 	"github.com/cloudoperators/greenhouse/pkg/clientutil"
+	"github.com/cloudoperators/greenhouse/pkg/common"
 	dexapi "github.com/cloudoperators/greenhouse/pkg/dex/api"
 )
 
@@ -41,7 +46,7 @@ type DexReconciler struct {
 //+kubebuilder:rbac:groups=greenhouse.sap,resources=organizations/finalizers,verbs=update
 //+kubebuilder:rbac:groups="",resources=events,verbs=get;list;watch;create;update;patch
 //+kubebuilder:rbac:groups="",resources=namespaces,verbs=get;list;watch;create;update;patch
-//+kubebuilder:rbac:groups=dex.coreos.com,resources=connectors,verbs=get;list;watch;create;update;patch
+//+kubebuilder:rbac:groups=dex.coreos.com,resources=connectors;oauth2clients,verbs=get;list;watch;create;update;patch
 //+kubebuilder:rbac:groups="",resources=secrets,verbs=get;list;watch
 
 // SetupWithManager sets up the controller with the Manager.
@@ -55,6 +60,7 @@ func (r *DexReconciler) SetupWithManager(name string, mgr ctrl.Manager) error {
 		Named(name).
 		For(&greenhousesapv1alpha1.Organization{}).
 		Owns(&dexapi.Connector{}).
+		Owns(&dexapi.OAuth2Client{}).
 		// Watch secrets referenced by organizations for confidential values.
 		Watches(&corev1.Secret{}, handler.EnqueueRequestsFromMapFunc(r.enqueueOrganizationForReferencedSecret)).
 		Complete(r)
@@ -72,6 +78,10 @@ func (r *DexReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.R
 	}
 
 	if err := r.reconcileDexConnector(ctx, org); err != nil {
+		return ctrl.Result{}, err
+	}
+
+	if err := r.reconcileOAuth2Client(ctx, org); err != nil {
 		return ctrl.Result{}, err
 	}
 
@@ -155,6 +165,41 @@ func (r *DexReconciler) discoverOIDCRedirectURL(ctx context.Context, org *greenh
 	return "", errors.New("oidc redirect URL not provided and cannot be discovered")
 }
 
+func (r *DexReconciler) reconcileOAuth2Client(ctx context.Context, org *greenhousesapv1alpha1.Organization) error {
+	var oAuth2Client = new(dexapi.OAuth2Client)
+	oAuth2Client.ObjectMeta.Name = encodedOAuth2ClientNameForOrganization(org.Name)
+	oAuth2Client.Namespace = r.Namespace
+
+	result, err := clientutil.CreateOrPatch(ctx, r.Client, oAuth2Client, func() error {
+		oAuth2Client.Public = true
+		oAuth2Client.ID = org.Name
+		if oAuth2Client.RedirectURIs == nil {
+			oAuth2Client.RedirectURIs = make([]string, 0)
+		}
+		// Ensure the required redirect URLs are present.
+		// Additional ones can be added by the user.
+		for _, requiredRedirectURL := range []string{
+			fmt.Sprintf("https://dashboard.%s", common.DNSDomain),
+			fmt.Sprintf("https://%s.dashboard.%s", org.Name, common.DNSDomain),
+		} {
+			oAuth2Client.RedirectURIs = appendStringToSliceIfNotContains(requiredRedirectURL, oAuth2Client.RedirectURIs)
+		}
+		return controllerutil.SetControllerReference(org, oAuth2Client, r.Scheme())
+	})
+	if err != nil {
+		return err
+	}
+	switch result {
+	case clientutil.OperationResultCreated:
+		log.FromContext(ctx).Info("created oauth2client", "namespace", oAuth2Client.Namespace, "name", oAuth2Client.GetName())
+		r.recorder.Eventf(org, corev1.EventTypeNormal, "CreatedOAuth2Client", "Created oauth2client %s/%s", oAuth2Client.Namespace, oAuth2Client.GetName())
+	case clientutil.OperationResultUpdated:
+		log.FromContext(ctx).Info("updated oauth2client", "namespace", oAuth2Client.Namespace, "name", oAuth2Client.GetName())
+		r.recorder.Eventf(org, corev1.EventTypeNormal, "UpdatedOAuth2Client", "Updated oauth2client %s/%s", oAuth2Client.Namespace, oAuth2Client.GetName())
+	}
+	return nil
+}
+
 func ensureCallbackURL(url string) string {
 	prefix := "https://"
 	if !strings.HasPrefix(url, prefix) {
@@ -165,4 +210,19 @@ func ensureCallbackURL(url string) string {
 		url = url + suffix
 	}
 	return url
+}
+
+func encodedOAuth2ClientNameForOrganization(orgName string) string {
+	// See https://github.com/dexidp/dex/issues/1606 for encoding.
+	return strings.TrimRight(base32.
+		NewEncoding("abcdefghijklmnopqrstuvwxyz234567").
+		EncodeToString(fnv.New64().Sum([]byte(orgName))), "=",
+	)
+}
+
+func appendStringToSliceIfNotContains(theString string, theSlice []string) []string {
+	if !slices.Contains(theSlice, theString) {
+		theSlice = append(theSlice, theString)
+	}
+	return theSlice
 }
