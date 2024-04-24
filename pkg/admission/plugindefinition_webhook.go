@@ -13,6 +13,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
+	greenhouseapis "github.com/cloudoperators/greenhouse/pkg/apis"
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/pkg/apis/greenhouse/v1alpha1"
 )
 
@@ -60,7 +61,19 @@ func ValidateUpdatePluginDefinition(_ context.Context, _ client.Client, _, o run
 	return nil, validatePluginDefinitionOptionValueAndType(pluginDefinition)
 }
 
-func ValidateDeletePluginDefinition(_ context.Context, _ client.Client, _ runtime.Object) (admission.Warnings, error) {
+func ValidateDeletePluginDefinition(ctx context.Context, c client.Client, o runtime.Object) (admission.Warnings, error) {
+	pluginDefinition, ok := o.(*greenhousev1alpha1.PluginDefinition)
+	if !ok {
+		return nil, nil
+	}
+	list := &greenhousev1alpha1.PluginList{}
+	opt := client.MatchingLabels{greenhouseapis.LabelKeyPluginDefinition: pluginDefinition.Name}
+	if err := c.List(ctx, list, opt); err != nil {
+		return nil, nil
+	}
+	if len(list.Items) > 0 {
+		return nil, apierrors.NewBadRequest("PluginDefinition is still in use by Plugins")
+	}
 	return nil, nil
 }
 

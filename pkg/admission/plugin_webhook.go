@@ -52,7 +52,8 @@ func DefaultPlugin(ctx context.Context, c client.Client, obj runtime.Object) err
 		plugin.Labels = make(map[string]string, 0)
 	}
 	// The label is used to help identifying Plugins, e.g. if a PluginDefinition changes.
-	plugin.Labels[greenhouseapis.LabelKeyPlugin] = plugin.Spec.PluginDefinition
+	delete(plugin.Labels, greenhouseapis.LabelKeyPlugin)
+	plugin.Labels[greenhouseapis.LabelKeyPluginDefinition] = plugin.Spec.PluginDefinition
 	plugin.Labels[greenhouseapis.LabelKeyCluster] = plugin.Spec.ClusterName
 
 	// Default the displayName to a normalized version of metadata.name.

@@ -15,6 +15,9 @@ import (
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/apimachinery/pkg/runtime"
+	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
+	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/pkg/apis/greenhouse/v1alpha1"
@@ -92,4 +95,12 @@ var ClientObjectMatcherByName = func(name string) gomegaTypes.GomegaMatcher {
 		gstruct.IgnoreExtras, gstruct.Fields{"ObjectMeta": gstruct.MatchFields(
 			gstruct.IgnoreExtras, gstruct.Fields{"Name": Equal(
 				name)})})
+}
+
+// GreenhouseV1Alpha1Scheme returns a new runtime.Scheme with the Greenhouse v1alpha1 scheme added.
+func GreenhouseV1Alpha1Scheme() *runtime.Scheme {
+	scheme := runtime.NewScheme()
+	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
+	utilruntime.Must(greenhousev1alpha1.AddToScheme(scheme))
+	return scheme
 }

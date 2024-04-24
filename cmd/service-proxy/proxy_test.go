@@ -14,15 +14,13 @@ import (
 	"github.com/go-logr/logr"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
-	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
-	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	greenhouseapis "github.com/cloudoperators/greenhouse/pkg/apis"
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/pkg/apis/greenhouse/v1alpha1"
+	"github.com/cloudoperators/greenhouse/pkg/test"
 )
 
 // TestRewrite tests the rewrite function of the proxy manager.
@@ -95,12 +93,8 @@ func TestRewrite(t *testing.T) {
 // sets up a cluster and a plugin with an exposed service in the fake client.
 // The test checks if the route is properly added to the cluster.
 func TestReconcile(t *testing.T) {
-	scheme := runtime.NewScheme()
-	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
-	utilruntime.Must(greenhousev1alpha1.AddToScheme(scheme))
-
 	pm := NewProxyManager()
-	pm.client = fake.NewClientBuilder().WithScheme(scheme).WithObjects(
+	pm.client = fake.NewClientBuilder().WithScheme(test.GreenhouseV1Alpha1Scheme()).WithObjects(
 		&greenhousev1alpha1.Plugin{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "plugin1",
