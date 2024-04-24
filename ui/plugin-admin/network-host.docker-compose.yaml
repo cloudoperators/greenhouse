@@ -5,7 +5,7 @@ version: "2.1"
 
 services:
   envtest:
-    image: ghcr.io/cloudoperators/greenhouse-dev-env:plugindefinition-admin
+    image: ghcr.io/cloudoperators/greenhouse-dev-env:test-host
     volumes:
       - ./envtest:/envtest
       - ./webhook-certs:/webhook-certs

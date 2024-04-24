@@ -10,7 +10,7 @@ services:
       - ./envtest:/envtest
       - ./webhook-certs:/webhook-certs
     ports:
-      - "8090:8090"
+      - "3005:8090"
     environment:
       # one of ["test-org-admin", "test-org-member"] - leave unset for "cluster-admin"
       - DEV_ENV_CONTEXT
