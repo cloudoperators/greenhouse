@@ -51,11 +51,10 @@ jobs:
               echo "chart=$(basename $chart)" >> "$GITHUB_OUTPUT"
               echo "chart_version=${chart_version}" >> "$GITHUB_OUTPUT"
               echo "needsbump=true" >> "$GITHUB_OUTPUT"
-              exit 1
             fi
           done
       
-      - uses: actions/github-script@v6
+      - uses: actions/github-script@v7
         if: steps.check-bump.outputs.needsbump == 'true'
         with:
           script: |
@@ -65,3 +64,4 @@ jobs:
               repo: context.repo.repo,
               body: ':warning: Chart `oci://${{ env.REGISTRY }}/${{ github.repository }}/charts/${{ steps.check-bump.outputs.chart }}:${{ steps.check-bump.outputs.chart_version }}` already exists in OCI registry. Please increment the chart version.'
             })
+            core.setFailed(`Action failed with error: Chart version bump required`);
