@@ -9,7 +9,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"hash/fnv"
-	"slices"
 	"strings"
 
 	"github.com/dexidp/dex/connector/oidc"
@@ -30,6 +29,7 @@ import (
 	"github.com/cloudoperators/greenhouse/pkg/clientutil"
 	"github.com/cloudoperators/greenhouse/pkg/common"
 	dexapi "github.com/cloudoperators/greenhouse/pkg/dex/api"
+	"github.com/cloudoperators/greenhouse/pkg/util"
 )
 
 const dexConnectorTypeGreenhouse = "greenhouse-oidc"
@@ -167,7 +167,7 @@ func (r *DexReconciler) discoverOIDCRedirectURL(ctx context.Context, org *greenh
 
 func (r *DexReconciler) reconcileOAuth2Client(ctx context.Context, org *greenhousesapv1alpha1.Organization) error {
 	var oAuth2Client = new(dexapi.OAuth2Client)
-	oAuth2Client.ObjectMeta.Name = encodedOAuth2ClientNameForOrganization(org.Name)
+	oAuth2Client.ObjectMeta.Name = encodedOAuth2ClientName(org.Name)
 	oAuth2Client.ObjectMeta.Namespace = r.Namespace
 
 	result, err := clientutil.CreateOrPatch(ctx, r.Client, oAuth2Client, func() error {
@@ -183,7 +183,7 @@ func (r *DexReconciler) reconcileOAuth2Client(ctx context.Context, org *greenhou
 			fmt.Sprintf("https://dashboard.%s", common.DNSDomain),
 			fmt.Sprintf("https://%s.dashboard.%s", org.Name, common.DNSDomain),
 		} {
-			oAuth2Client.Client.RedirectURIs = appendStringToSliceIfNotContains(requiredRedirectURL, oAuth2Client.RedirectURIs)
+			oAuth2Client.Client.RedirectURIs = util.AppendStringToSliceIfNotContains(requiredRedirectURL, oAuth2Client.RedirectURIs)
 		}
 		return controllerutil.SetControllerReference(org, oAuth2Client, r.Scheme())
 	})
@@ -213,17 +213,10 @@ func ensureCallbackURL(url string) string {
 	return url
 }
 
-func encodedOAuth2ClientNameForOrganization(orgName string) string {
+func encodedOAuth2ClientName(orgName string) string {
 	// See https://github.com/dexidp/dex/issues/1606 for encoding.
 	return strings.TrimRight(base32.
 		NewEncoding("abcdefghijklmnopqrstuvwxyz234567").
 		EncodeToString(fnv.New64().Sum([]byte(orgName))), "=",
 	)
-}
-
-func appendStringToSliceIfNotContains(theString string, theSlice []string) []string {
-	if !slices.Contains(theSlice, theString) {
-		theSlice = append(theSlice, theString)
-	}
-	return theSlice
 }
