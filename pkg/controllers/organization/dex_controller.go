@@ -175,7 +175,7 @@ func (r *DexReconciler) reconcileOAuth2Client(ctx context.Context, org *greenhou
 		oAuth2Client.Client.ID = org.Name
 		oAuth2Client.Client.Name = org.Name
 		if oAuth2Client.RedirectURIs == nil {
-			oAuth2Client.RedirectURIs = make([]string, 0)
+			oAuth2Client.RedirectURIs = make([]string, 2)
 		}
 		// Ensure the required redirect URLs are present.
 		// Additional ones can be added by the user.
