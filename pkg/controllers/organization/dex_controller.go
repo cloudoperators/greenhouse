@@ -168,11 +168,12 @@ func (r *DexReconciler) discoverOIDCRedirectURL(ctx context.Context, org *greenh
 func (r *DexReconciler) reconcileOAuth2Client(ctx context.Context, org *greenhousesapv1alpha1.Organization) error {
 	var oAuth2Client = new(dexapi.OAuth2Client)
 	oAuth2Client.ObjectMeta.Name = encodedOAuth2ClientNameForOrganization(org.Name)
-	oAuth2Client.Namespace = r.Namespace
+	oAuth2Client.ObjectMeta.Namespace = r.Namespace
 
 	result, err := clientutil.CreateOrPatch(ctx, r.Client, oAuth2Client, func() error {
-		oAuth2Client.Public = true
-		oAuth2Client.ID = org.Name
+		oAuth2Client.Client.Public = true
+		oAuth2Client.Client.ID = org.Name
+		oAuth2Client.Client.Name = org.Name
 		if oAuth2Client.RedirectURIs == nil {
 			oAuth2Client.RedirectURIs = make([]string, 0)
 		}
@@ -182,7 +183,7 @@ func (r *DexReconciler) reconcileOAuth2Client(ctx context.Context, org *greenhou
 			fmt.Sprintf("https://dashboard.%s", common.DNSDomain),
 			fmt.Sprintf("https://%s.dashboard.%s", org.Name, common.DNSDomain),
 		} {
-			oAuth2Client.RedirectURIs = appendStringToSliceIfNotContains(requiredRedirectURL, oAuth2Client.RedirectURIs)
+			oAuth2Client.Client.RedirectURIs = appendStringToSliceIfNotContains(requiredRedirectURL, oAuth2Client.RedirectURIs)
 		}
 		return controllerutil.SetControllerReference(org, oAuth2Client, r.Scheme())
 	})
