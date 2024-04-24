@@ -10,6 +10,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
 
 	greenhouseapis "github.com/cloudoperators/greenhouse/pkg/apis"
@@ -26,6 +27,7 @@ const (
 
 	clusterA = "cluster-a"
 	clusterB = "cluster-b"
+	clusterC = "cluster-c"
 )
 
 var (
@@ -60,33 +62,7 @@ var (
 		},
 	}
 
-	testPluginPreset = &greenhousev1alpha1.PluginPreset{
-		TypeMeta: metav1.TypeMeta{
-			Kind:       greenhousev1alpha1.PluginPresetKind,
-			APIVersion: greenhousev1alpha1.GroupVersion.String(),
-		},
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      pluginPresetName,
-			Namespace: test.TestNamespace,
-		},
-		Spec: greenhousev1alpha1.PluginPresetSpec{
-			Plugin: greenhousev1alpha1.PluginSpec{
-				PluginDefinition: pluginPresetDefinitionName,
-				ReleaseNamespace: releaseNamespace,
-				OptionValues: []greenhousev1alpha1.PluginOptionValue{
-					{
-						Name:  "myRequiredOption",
-						Value: test.MustReturnJSONFor("myValue"),
-					},
-				},
-			},
-			ClusterSelector: metav1.LabelSelector{
-				MatchLabels: map[string]string{
-					"cluster": clusterA,
-				},
-			},
-		},
-	}
+	testPluginPreset = pluginPreset(pluginPresetName, clusterA)
 )
 
 var _ = Describe("PluginPreset Controller", Ordered, func() {
@@ -107,7 +83,7 @@ var _ = Describe("PluginPreset Controller", Ordered, func() {
 		Expect(err).ShouldNot(HaveOccurred(), "there should be no error creating the namespace")
 
 		By("creating two test clusters for the same remote environment")
-		for _, clusterName := range []string{clusterA, clusterB} {
+		for _, clusterName := range []string{clusterA, clusterB, clusterC} {
 			err := test.K8sClient.Create(test.Ctx, cluster(clusterName))
 			Expect(err).Should(Succeed(), "failed to create test cluster: "+clusterName)
 
@@ -132,7 +108,7 @@ var _ = Describe("PluginPreset Controller", Ordered, func() {
 		Expect(err).ToNot(HaveOccurred(), "failed to create test PluginPreset")
 
 		By("ensuring a Plugin has been created")
-		expPluginName := types.NamespacedName{Name: pluginPresetDefinitionName + "-" + clusterA, Namespace: test.TestNamespace}
+		expPluginName := types.NamespacedName{Name: pluginPresetName + "-" + clusterA, Namespace: test.TestNamespace}
 		expPlugin := &greenhousev1alpha1.Plugin{}
 		Eventually(func() error {
 			return test.K8sClient.Get(test.Ctx, expPluginName, expPlugin)
@@ -156,38 +132,34 @@ var _ = Describe("PluginPreset Controller", Ordered, func() {
 		}).Should(Succeed(), "the Plugin should be reconciled")
 
 		By("manually creating a Plugin with OwnerReference but cluster not matching the selector")
-		pluginNotExp := &greenhousev1alpha1.Plugin{
-			TypeMeta: metav1.TypeMeta{
-				Kind:       "Plugin",
-				APIVersion: greenhousev1alpha1.GroupVersion.String(),
-			},
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      "test-plugin-" + clusterB,
-				Namespace: test.TestNamespace,
-				Labels: map[string]string{
-					greenhouseapis.LabelKeyPluginPreset: pluginPresetName,
-				},
-				OwnerReferences: expPlugin.OwnerReferences, // copy the OwnerReference to ensure same behavior
-			},
-			Spec: greenhousev1alpha1.PluginSpec{
-				ClusterName:      clusterB,
-				PluginDefinition: pluginPresetDefinitionName,
-				OptionValues: []greenhousev1alpha1.PluginOptionValue{
-					{
-						Name:  "myRequiredOption",
-						Value: test.MustReturnJSONFor("myValue"),
-					},
-				},
-			},
-		}
+		pluginNotExp := plugin(clusterB, expPlugin.OwnerReferences)
 		Expect(test.K8sClient.Create(test.Ctx, pluginNotExp)).Should(Succeed(), "failed to create test Plugin")
 
-		By("ensuring the Plugin is deleted")
 		Eventually(func(g Gomega) error {
 			err := test.K8sClient.Get(test.Ctx, types.NamespacedName{Name: pluginNotExp.Name, Namespace: pluginNotExp.Namespace}, pluginNotExp)
 			g.Expect(err).To(HaveOccurred(), "there should be an error getting the Plugin")
 			return client.IgnoreNotFound(err)
 		}).Should(Succeed(), "the Plugin should be deleted")
+
+		By("removing the preset label from the Plugin")
+		_, err = clientutil.CreateOrPatch(test.Ctx, test.K8sClient, expPlugin, func() error {
+			delete(expPlugin.Labels, greenhouseapis.LabelKeyPluginPreset)
+			return controllerutil.RemoveControllerReference(testPluginPreset, expPlugin, test.K8sClient.Scheme())
+		})
+		Expect(err).NotTo(HaveOccurred(), "failed to update Plugin")
+
+		Eventually(func(g Gomega) bool {
+			err := test.K8sClient.Get(test.Ctx, types.NamespacedName{Namespace: testPluginPreset.Namespace, Name: testPluginPreset.Name}, testPluginPreset)
+			g.Expect(err).ShouldNot(HaveOccurred(), "unexpected error getting PluginPreset")
+			return testPluginPreset.Status.StatusConditions.GetConditionByType(greenhousev1alpha1.PluginSkippedCondition).IsTrue()
+		}).Should(BeTrue(), "PluginPreset should have the SkippedCondition set to true")
+
+		By("re-adding the preset label to the Plugin")
+		_, err = clientutil.CreateOrPatch(test.Ctx, test.K8sClient, expPlugin, func() error {
+			expPlugin.Labels[greenhouseapis.LabelKeyPluginPreset] = testPluginPreset.Name
+			return controllerutil.SetControllerReference(testPluginPreset, expPlugin, test.K8sClient.Scheme())
+		})
+		Expect(err).NotTo(HaveOccurred(), "failed to update Plugin")
 
 		By("deleting the PluginPreset to ensure all Plugins are deleted")
 		Expect(test.K8sClient.Delete(test.Ctx, testPluginPreset)).Should(Succeed(), "failed to delete test PluginPreset")
@@ -196,6 +168,20 @@ var _ = Describe("PluginPreset Controller", Ordered, func() {
 			g.Expect(err).To(HaveOccurred(), "there should be an error getting the Plugin")
 			return client.IgnoreNotFound(err)
 		}).Should(Succeed(), "the Plugin should be deleted")
+	})
+
+	It("should set the Status NotReady if ClusterSelector does not match", func() {
+		// Create a PluginPreset with a ClusterSelector that does not match any cluster
+		pluginPreset := pluginPreset("not-ready", "non-existing-cluster")
+		Expect(test.K8sClient.Create(test.Ctx, pluginPreset)).Should(Succeed(), "failed to create test PluginPreset")
+
+		Eventually(func(g Gomega) {
+			err := test.K8sClient.Get(test.Ctx, types.NamespacedName{Name: "not-ready", Namespace: pluginPreset.Namespace}, pluginPreset)
+			g.Expect(err).ShouldNot(HaveOccurred(), "unexpected error getting PluginPreset")
+			g.Expect(pluginPreset.Status.StatusConditions.Conditions).NotTo(BeNil(), "the PluginPreset should have a StatusConditions")
+			g.Expect(pluginPreset.Status.StatusConditions.GetConditionByType(greenhousev1alpha1.ClusterListEmpty).IsTrue()).Should(BeTrue(), "PluginPreset should have the ClusterListEmptyCondition set to true")
+			g.Expect(pluginPreset.Status.StatusConditions.GetConditionByType(greenhousev1alpha1.ReadyCondition).IsFalse()).Should(BeTrue(), "PluginPreset should have the ReadyCondition set to false")
+		}).Should(Succeed(), "the PluginPreset should be reconciled")
 	})
 })
 
@@ -215,21 +201,78 @@ func clusterSecret(clusterName string) *corev1.Secret {
 }
 
 // cluster returns a cluster object with the given name.
-func cluster(clusterName string) *greenhousev1alpha1.Cluster {
+func cluster(name string) *greenhousev1alpha1.Cluster {
 	return &greenhousev1alpha1.Cluster{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "Cluster",
 			APIVersion: greenhousev1alpha1.GroupVersion.String(),
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      clusterName,
+			Name:      name,
 			Namespace: test.TestNamespace,
 			Labels: map[string]string{
-				"cluster": clusterName,
+				"cluster": name,
 			},
 		},
 		Spec: greenhousev1alpha1.ClusterSpec{
 			AccessMode: greenhousev1alpha1.ClusterAccessModeDirect,
+		},
+	}
+}
+
+func plugin(clusterName string, ownerRefs []metav1.OwnerReference) *greenhousev1alpha1.Plugin {
+	return &greenhousev1alpha1.Plugin{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "Plugin",
+			APIVersion: greenhousev1alpha1.GroupVersion.String(),
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      pluginPresetName + "-" + clusterName,
+			Namespace: test.TestNamespace,
+			Labels: map[string]string{
+				greenhouseapis.LabelKeyPluginPreset: pluginPresetName,
+			},
+			OwnerReferences: ownerRefs,
+		},
+		Spec: greenhousev1alpha1.PluginSpec{
+			ClusterName:      clusterB,
+			PluginDefinition: pluginPresetDefinitionName,
+			OptionValues: []greenhousev1alpha1.PluginOptionValue{
+				{
+					Name:  "myRequiredOption",
+					Value: test.MustReturnJSONFor("myValue"),
+				},
+			},
+		},
+	}
+}
+
+func pluginPreset(name, selectorValue string) *greenhousev1alpha1.PluginPreset {
+	return &greenhousev1alpha1.PluginPreset{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       greenhousev1alpha1.PluginPresetKind,
+			APIVersion: greenhousev1alpha1.GroupVersion.String(),
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      name,
+			Namespace: test.TestNamespace,
+		},
+		Spec: greenhousev1alpha1.PluginPresetSpec{
+			Plugin: greenhousev1alpha1.PluginSpec{
+				PluginDefinition: pluginPresetDefinitionName,
+				ReleaseNamespace: releaseNamespace,
+				OptionValues: []greenhousev1alpha1.PluginOptionValue{
+					{
+						Name:  "myRequiredOption",
+						Value: test.MustReturnJSONFor("myValue"),
+					},
+				},
+			},
+			ClusterSelector: metav1.LabelSelector{
+				MatchLabels: map[string]string{
+					"cluster": selectorValue,
+				},
+			},
 		},
 	}
 }

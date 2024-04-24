@@ -22,8 +22,20 @@ type PluginPresetSpec struct {
 	ClusterSelector metav1.LabelSelector `json:"clusterSelector"`
 }
 
+const (
+	// PluginSkippedCondition is set when the pluginPreset encounters a non-managed plugin.
+	PluginSkippedCondition ConditionType = "PluginSkipped"
+	// PluginFailedCondition is set when the pluginPreset encounters a failure during the reconciliation of a plugin.
+	PluginFailedCondition ConditionType = "PluginFailed"
+	// ClusterListEmpty is set when the PluginPreset's selector results in an empty ClusterList.
+	ClusterListEmpty ConditionType = "ClusterListEmpty"
+)
+
 // PluginPresetStatus defines the observed state of PluginPreset
-type PluginPresetStatus struct{}
+type PluginPresetStatus struct {
+	// StatusConditions contain the different conditions that constitute the status of the PluginPreset.
+	StatusConditions `json:"statusConditions,omitempty"`
+}
 
 //+kubebuilder:object:root=true
 //+kubebuilder:subresource:status

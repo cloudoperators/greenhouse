@@ -1374,8 +1374,7 @@ g,0<c.length&&(c=Aa[c[0]])&&(a.c[e]=c))}a.c[e]||(c=Aa[e])&&(a.c[e]=c);for(c=0;c<
       "$ref" : "#/components/schemas/PluginPreset_spec"
     },
     "status" : {
-      "type" : "object",
-      "description" : "PluginPresetStatus defines the observed state of PluginPreset"
+      "$ref" : "#/components/schemas/PluginPreset_status"
     }
   },
   "description" : "PluginPreset is the Schema for the PluginPresets API",
@@ -1515,6 +1514,29 @@ g,0<c.length&&(c=Aa[c[0]])&&(a.c[e]=c))}a.c[e]||(c=Aa[e])&&(a.c[e]=c);for(c=0;c<
     }
   },
   "description" : "Secret references the secret containing the value."
+};
+    defs["PluginPreset_status"] = {
+  "type" : "object",
+  "properties" : {
+    "statusConditions" : {
+      "$ref" : "#/components/schemas/PluginPreset_status_statusConditions"
+    }
+  },
+  "description" : "PluginPresetStatus defines the observed state of PluginPreset"
+};
+    defs["PluginPreset_status_statusConditions"] = {
+  "type" : "object",
+  "properties" : {
+    "conditions" : {
+      "type" : "array",
+      "items" : {
+        "$ref" : "#/components/schemas/Cluster_status_statusConditions_conditions"
+      },
+      "x-kubernetes-list-map-keys" : [ "type" ],
+      "x-kubernetes-list-type" : "map"
+    }
+  },
+  "description" : "StatusConditions contain the different conditions that constitute the status of the PluginPreset."
 };
     defs["Plugin_spec"] = {
   "required" : [ "disabled", "pluginDefinition" ],
