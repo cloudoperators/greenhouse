@@ -21,24 +21,8 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - chartDir: charts/cors-proxy
-            chartName: cors-proxy
-          - chartDir: charts/demo
-            chartName: demo
           - chartDir: charts/greenhouse
             chartName: greenhouse
-          - chartDir: charts/headscale
-            chartName: headscale
-          - chartDir: charts/idproxy
-            chartName: idproxy
-          - chartDir: charts/manager
-            chartName: manager
-          - chartDir: charts/tailscale-proxy
-            chartName: tailscale-proxy
-          - chartDir: charts/team-membership
-            chartName: team-membership  
-          - chartDir: charts/ui
-            chartName: ui
           - chartDir: charts/website
             chartName: website
 
