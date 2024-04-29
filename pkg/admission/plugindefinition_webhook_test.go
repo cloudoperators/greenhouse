@@ -4,13 +4,16 @@
 package admission
 
 import (
+	"context"
 	"errors"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
+	greenhouseapis "github.com/cloudoperators/greenhouse/pkg/apis"
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/pkg/apis/greenhouse/v1alpha1"
 	"github.com/cloudoperators/greenhouse/pkg/test"
 )
@@ -54,3 +57,46 @@ var _ = DescribeTable("Validate PluginOption Type and Value are consistent", fun
 	Entry("PluginOptionTypeSecret Consistent", greenhousev1alpha1.PluginOptionTypeSecret, "secret", false),
 	Entry("PluginOptionTypeSecret Inconsistent", greenhousev1alpha1.PluginOptionTypeSecret, []string{"one", "two"}, true),
 )
+
+var _ = Describe("Validate PluginDefinition Deletion", func() {
+
+	It("should allow deletion of PluginDefinition without Plugin", func() {
+		pluginDefinition := &greenhousev1alpha1.PluginDefinition{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: "test",
+			},
+		}
+		pluginList := &greenhousev1alpha1.PluginList{}
+
+		c := fake.NewClientBuilder().WithScheme(test.GreenhouseV1Alpha1Scheme()).WithLists(pluginList).Build()
+
+		_, err := ValidateDeletePluginDefinition(context.TODO(), c, pluginDefinition)
+		Expect(err).ToNot(HaveOccurred(), "there should be no error deleting the PluginDefinition")
+	})
+
+	It("should prevent deletion of PluginDefinition with Plugin", func() {
+		pluginDefinition := &greenhousev1alpha1.PluginDefinition{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: "test",
+			},
+		}
+		pluginList := &greenhousev1alpha1.PluginList{
+			Items: []greenhousev1alpha1.Plugin{
+				{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "test-plugin",
+						Namespace: "default",
+						Labels: map[string]string{
+							greenhouseapis.LabelKeyPluginDefinition: "test",
+						},
+					},
+				},
+			},
+		}
+
+		c := fake.NewClientBuilder().WithScheme(test.GreenhouseV1Alpha1Scheme()).WithLists(pluginList).Build()
+
+		_, err := ValidateDeletePluginDefinition(context.TODO(), c, pluginDefinition)
+		Expect(err).To(HaveOccurred(), "there should be an error deleting the PluginDefinition when Plugins still exist")
+	})
+})
