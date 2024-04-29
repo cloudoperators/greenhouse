@@ -356,10 +356,10 @@ components:
       description: Cluster is the Schema for the clusters API
       properties:
         apiVersion:
-          description: 'APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+          description: 'APIVersion defines the versioned schema of this representation of an object.\nServers should convert recognized schemas to the latest internal value, and\nmay reject unrecognized values.\nMore info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
           type: string
         kind:
-          description: 'Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+          description: 'Kind is a string value representing the REST resource this object represents.\nServers may infer this from the endpoint the client submits requests to.\nCannot be updated.\nIn CamelCase.\nMore info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
           type: string
         metadata:
           type: object
@@ -515,15 +515,15 @@ components:
       description: PluginDefinition is the Schema for the PluginDefinitions API
       properties:
         apiVersion:
-          description: 'APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+          description: 'APIVersion defines the versioned schema of this representation of an object.\nServers should convert recognized schemas to the latest internal value, and\nmay reject unrecognized values.\nMore info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
           type: string
         kind:
-          description: 'Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+          description: 'Kind is a string value representing the REST resource this object represents.\nServers may infer this from the endpoint the client submits requests to.\nCannot be updated.\nIn CamelCase.\nMore info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
           type: string
         metadata:
           type: object
         spec:
-          description: TeamMembershipSpec defines the desired state of TeamMembership
+          description: PluginDefinitionSpec defines the desired state of PluginDefinitionSpec
           properties:
             description:
               description: Description provides additional details of the pluginDefinition.
@@ -557,177 +557,6 @@ components:
             options:
               description: RequiredValues is a list of values required to create an instance of this PluginDefinition.
               items:
-                description: User specifies a human person.
-                properties:
-                  email:
-                    description: Email of the user.
-                    type: string
-                  firstName:
-                    description: FirstName of the user.
-                    type: string
-                  id:
-                    description: ID is the unique identifier of the user.
-                    type: string
-                  lastName:
-                    description: LastName of the user.
-                    type: string
-                required:
-                  - email
-                  - firstName
-                  - id
-                  - lastName
-                type: object
-              type: array
-          type: object
-        status:
-          description: TeamMembershipStatus defines the observed state of TeamMembership
-          properties:
-            lastSyncedTime:
-              description: LastSyncedTime is the information when was the last time the membership was synced
-              format: date-time
-              type: string
-            lastUpdateTime:
-              description: LastChangedTime is the information when was the last time the membership was actually changed
-              format: date-time
-              type: string
-          type: object
-      type: object
-    Team:
-      xml:
-        name: greenhouse.sap
-        namespace: v1alpha1
-      title: Team
-      description: Team is the Schema for the teams API
-      properties:
-        apiVersion:
-          description: 'APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
-          type: string
-        kind:
-          description: 'Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
-          type: string
-        metadata:
-          type: object
-        spec:
-          description: TeamSpec defines the desired state of Team
-          properties:
-            description:
-              description: Description provides additional details of the team.
-              type: string
-            mappedIdPGroup:
-              description: IdP group id matching team.
-              type: string
-          type: object
-        status:
-          description: TeamStatus defines the observed state of Team
-          type: object
-      type: object
-    TeamRoleBinding:
-      xml:
-        name: greenhouse.sap
-        namespace: v1alpha1
-      title: TeamRoleBinding
-      description: TeamRoleBinding is the Schema for the rolebindings API
-      properties:
-        apiVersion:
-          description: 'APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
-          type: string
-        kind:
-          description: 'Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
-          type: string
-        metadata:
-          type: object
-        spec:
-          description: TeamRoleBindingSpec defines the desired state of a TeamRoleBinding
-          properties:
-            clusterName:
-              description: ClusterName is the name of the cluster the rbacv1 resources are created on.
-              type: string
-            namespaces:
-              description: Namespaces is the immutable list of namespaces in the Greenhouse Clusters to apply the RoleBinding to
-              items:
-                type: string
-              type: array
-            teamRef:
-              description: TeamRef references a Greenhouse Team by name
-              type: string
-            teamRoleRef:
-              description: TeamRoleRef references a Greenhouse TeamRole by name
-              type: string
-          type: object
-        status:
-          description: TeamRoleBindingStatus defines the observed state of the TeamRoleBinding
-          type: object
-      type: object
-    Team:
-      xml:
-        name: greenhouse.sap
-        namespace: v1alpha1
-      title: Team
-      description: Team is the Schema for the teams API
-      properties:
-        apiVersion:
-          description: 'APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
-          type: string
-        kind:
-          description: 'Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
-          type: string
-        metadata:
-          type: object
-        spec:
-          description: TeamSpec defines the desired state of Team
-          properties:
-            description:
-              description: Description provides additional details of the team.
-              type: string
-            mappedIdPGroup:
-              description: IdP group id matching team.
-              type: string
-          type: object
-        status:
-          description: TeamStatus defines the observed state of Team
-          type: object
-      type: object
-    PluginDefinition:
-      xml:
-        name: greenhouse.sap
-        namespace: v1alpha1
-      title: PluginDefinition
-      description: PluginDefinition is the Schema for the PluginDefinitions API
-      properties:
-        apiVersion:
-          description: 'APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
-          type: string
-        kind:
-          description: 'Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
-          type: string
-        metadata:
-          type: object
-        spec:
-          description: PluginDefinitionSpec defines the desired state of PluginDefinitionSpec
-          properties:
-            description:
-              description: Description provides additional details of the pluginDefinition.
-              type: string
-            helmChart:
-              description: HelmChart specifies where the Helm Chart for this pluginDefinition can be found.
-              properties:
-                name:
-                  description: Name of the HelmChart chart.
-                  type: string
-                repository:
-                  description: Repository of the HelmChart chart.
-                  type: string
-                version:
-                  description: Version of the HelmChart chart.
-                  type: string
-              required:
-                - name
-                - repository
-                - version
-              type: object
-            options:
-              description: RequiredValues is a list of values required to create an instance of this PluginDefinition.
-              items:
                 properties:
                   default:
                     description: Default provides a default value for the option
@@ -756,6 +585,106 @@ components:
                       - int
                       - list
                       - map
+                    type: string
+                required:
+                  - name
+                  - required
+                  - type
+                type: object
+              type: array
+            uiApplication:
+              description: UIApplication specifies a reference to a UI application
+              properties:
+                name:
+                  description: Name of the UI application.
+                  type: string
+                url:
+                  description: URL specifies the url to a built javascript asset.\nBy default, assets are loaded from the Juno asset server using the provided name and version.
+                  type: string
+                version:
+                  description: Version of the frontend application.
+                  type: string
+              required:
+                - name
+                - version
+              type: object
+            version:
+              description: Version of this pluginDefinition
+              type: string
+            weight:
+              description: Weight configures the order in which Plugins are shown in the Greenhouse UI.\nDefaults to alphabetical sorting if not provided or on conflict.
+              format: int32
+              type: integer
+          required:
+            - version
+          type: object
+        status:
+          description: PluginDefinitionStatus defines the observed state of PluginDefinition
+          type: object
+      type: object
+    Team:
+      xml:
+        name: greenhouse.sap
+        namespace: v1alpha1
+      title: Team
+      description: Team is the Schema for the teams API
+      properties:
+        apiVersion:
+          description: 'APIVersion defines the versioned schema of this representation of an object.\nServers should convert recognized schemas to the latest internal value, and\nmay reject unrecognized values.\nMore info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+          type: string
+        kind:
+          description: 'Kind is a string value representing the REST resource this object represents.\nServers may infer this from the endpoint the client submits requests to.\nCannot be updated.\nIn CamelCase.\nMore info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+          type: string
+        metadata:
+          type: object
+        spec:
+          description: TeamSpec defines the desired state of Team
+          properties:
+            description:
+              description: Description provides additional details of the team.
+              type: string
+            mappedIdPGroup:
+              description: IdP group id matching team.
+              type: string
+          type: object
+        status:
+          description: TeamStatus defines the observed state of Team
+          type: object
+      type: object
+    TeamMembership:
+      xml:
+        name: greenhouse.sap
+        namespace: v1alpha1
+      title: TeamMembership
+      description: TeamMembership is the Schema for the teammemberships API
+      properties:
+        apiVersion:
+          description: 'APIVersion defines the versioned schema of this representation of an object.\nServers should convert recognized schemas to the latest internal value, and\nmay reject unrecognized values.\nMore info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+          type: string
+        kind:
+          description: 'Kind is a string value representing the REST resource this object represents.\nServers may infer this from the endpoint the client submits requests to.\nCannot be updated.\nIn CamelCase.\nMore info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+          type: string
+        metadata:
+          type: object
+        spec:
+          description: TeamMembershipSpec defines the desired state of TeamMembership
+          properties:
+            members:
+              description: Members list users that are part of a team.
+              items:
+                description: User specifies a human person.
+                properties:
+                  email:
+                    description: Email of the user.
+                    type: string
+                  firstName:
+                    description: FirstName of the user.
+                    type: string
+                  id:
+                    description: ID is the unique identifier of the user.
+                    type: string
+                  lastName:
+                    description: LastName of the user.
                     type: string
                 required:
                   - email

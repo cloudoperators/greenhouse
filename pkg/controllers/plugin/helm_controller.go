@@ -80,7 +80,10 @@ func (r *HelmReconciler) SetupWithManager(name string, mgr ctrl.Manager) error {
 			builder.WithPredicates(clientutil.PredicateFilterBySecretType(helmReleaseSecretType), predicate.GenerationChangedPredicate{}),
 		).
 		// If a PluginDefinition was changed, reconcile relevant Plugins.
-		Watches(&greenhousev1alpha1.PluginDefinition{}, handler.EnqueueRequestsFromMapFunc(r.enqueueAllPluginsForPlugin),
+		Watches(&greenhousev1alpha1.PluginDefinition{}, handler.EnqueueRequestsFromMapFunc(r.enqueueAllPluginsForPluginDefinition),
+			builder.WithPredicates(predicate.GenerationChangedPredicate{})).
+		// If a PluginDefinition was changed, temporarily also watch for the deprecated plugin label.
+		Watches(&greenhousev1alpha1.PluginDefinition{}, handler.EnqueueRequestsFromMapFunc(r.enqueueAllPluginsForPluginDefinitionTemp),
 			builder.WithPredicates(predicate.GenerationChangedPredicate{})).
 		// Clusters and teams are passed as values to each Helm operation. Reconcile on change.
 		Watches(&greenhousev1alpha1.Cluster{}, handler.EnqueueRequestsFromMapFunc(r.enqueueAllPlugins),
@@ -423,8 +426,12 @@ func (r *HelmReconciler) enqueueAllPluginsInNamespace(ctx context.Context, o cli
 	return listPluginsAsReconcileRequests(ctx, r.Client, client.InNamespace(o.GetNamespace()))
 }
 
-func (r *HelmReconciler) enqueueAllPluginsForPlugin(ctx context.Context, o client.Object) []ctrl.Request {
+func (r *HelmReconciler) enqueueAllPluginsForPluginDefinitionTemp(ctx context.Context, o client.Object) []ctrl.Request {
 	return listPluginsAsReconcileRequests(ctx, r.Client, client.MatchingLabels{greenhouseapis.LabelKeyPlugin: o.GetName()})
+}
+
+func (r *HelmReconciler) enqueueAllPluginsForPluginDefinition(ctx context.Context, o client.Object) []ctrl.Request {
+	return listPluginsAsReconcileRequests(ctx, r.Client, client.MatchingLabels{greenhouseapis.LabelKeyPluginDefinition: o.GetName()})
 }
 
 func listPluginsAsReconcileRequests(ctx context.Context, c client.Client, listOpts ...client.ListOption) []ctrl.Request {

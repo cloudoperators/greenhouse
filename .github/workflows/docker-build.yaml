@@ -37,8 +37,6 @@ jobs:
             Imagename: greenhouse-tailscale
           - Dockerfiles: Dockerfile.tcp-proxy
             Imagename: greenhouse-tcp-proxy
-          - Dockerfiles: Dockerfile.website
-            Imagename: greenhouse-website
 
     permissions:
       contents: read
@@ -153,8 +151,6 @@ jobs:
             Imagename: greenhouse-tailscale
           - Dockerfiles: Dockerfile.tcp-proxy
             Imagename: greenhouse-tcp-proxy
-          - Dockerfiles: Dockerfile.website
-            Imagename: greenhouse-website
 
     name: Vulnerability Scan
     needs: build

@@ -18,8 +18,6 @@ jobs:
 
       - name: Set up Helm
         uses: azure/setup-helm@v4.2.0
-        with:
-          version: v3.12.1
 
       - uses: actions/setup-python@v5
         with:
@@ -45,11 +43,25 @@ jobs:
       - name: Check version bump
         id: check-bump
         if: steps.list-changed.outputs.changed == 'true'
+        continue-on-error: true
         run: |
           for chart in $(ct list-changed --config ct.yaml --target-branch ${{ github.event.repository.default_branch }}); do
             chart_version=$(yq .version "$chart/Chart.yaml")
             if helm pull "oci://${{ env.REGISTRY }}/${{ github.repository }}/charts/$(basename $chart)" --version $chart_version; then
-              echo "Chart $(basename $chart):${chart_version} already exists in OCI registry. Skipping upload. Please increment the chart version."
-              exit 1
+              echo "chart=$(basename $chart)" >> "$GITHUB_OUTPUT"
+              echo "chart_version=${chart_version}" >> "$GITHUB_OUTPUT"
+              echo "needsbump=true" >> "$GITHUB_OUTPUT"
             fi
           done
+      
+      - uses: actions/github-script@v7
+        if: steps.check-bump.outputs.needsbump == 'true'
+        with:
+          script: |
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: ':warning: Chart `oci://${{ env.REGISTRY }}/${{ github.repository }}/charts/${{ steps.check-bump.outputs.chart }}:${{ steps.check-bump.outputs.chart_version }}` already exists in OCI registry. Please increment the chart version.'
+            })
+            core.setFailed(`Action failed with error: Chart version bump required`);

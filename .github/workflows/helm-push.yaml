@@ -21,24 +21,8 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - chartDir: charts/cors-proxy
-            chartName: cors-proxy
-          - chartDir: charts/demo
-            chartName: demo
           - chartDir: charts/greenhouse
             chartName: greenhouse
-          - chartDir: charts/headscale
-            chartName: headscale
-          - chartDir: charts/idproxy
-            chartName: idproxy
-          - chartDir: charts/manager
-            chartName: manager
-          - chartDir: charts/tailscale-proxy
-            chartName: tailscale-proxy
-          - chartDir: charts/team-membership
-            chartName: team-membership  
-          - chartDir: charts/ui
-            chartName: ui
           - chartDir: charts/website
             chartName: website
 
@@ -55,8 +39,6 @@ jobs:
 
       - name: Set up Helm
         uses: azure/setup-helm@v4.2.0
-        with:
-            version: v3.12.1
 
       - uses: actions/setup-python@v5
         with:
@@ -105,6 +87,7 @@ jobs:
       - name: Push Charts to GHCR
         if: steps.changed-files.outputs.all_changed_files != '' && steps.check-chart.outputs.bump != 'true'
         run: |
+          helm dependency update ${{ matrix.chartDir }}
           helm package ${{ matrix.chartDir }} -d ${{ matrix.chartDir }}
           PKG_NAME=`ls ${{ matrix.chartDir }}/*.tgz`
           helm push ${PKG_NAME} oci://${{ env.REGISTRY }}/${{ github.repository }}/charts/
