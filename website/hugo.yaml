@@ -16,7 +16,7 @@ params:
         - label: "Dashboard"
           path: "https://dashboard.greenhouse.global.cloud.sap"
         - label: "Roadmap"
-          path: "https://github.com/cloudoperators/greenhouse/projects/2"
+          path: "https://github.com/orgs/cloudoperators/projects/1"
         - label: "Plugin catalog"
           path: "https://github.com/cloudoperators/greenhouse-extensions"
 
@@ -24,11 +24,11 @@ params:
       icon: "fa-solid fa-book"
       links:
         - label: "Value propositions"
-          path: "/docs/getting-started/overview/#value-propositions"
+          path: "docs/getting-started/overview/#value-propositions"
         - label: "High-level architecture"
-          path: "/docs/architecture/high-level"
+          path: "docs/architecture/high-level"
         - label: "Product design"
-          path: "/docs/architecture/product_design"
+          path: "docs/architecture/product_design"
 
     - label: "Community"
       icon: "fa-solid fa-users"
