@@ -1,0 +1,121 @@
+{
+  "name": "greenhouse",
+  "version": "0.1.19",
+  "managementVersion": "1.1.11",
+  "author": "UI-Team",
+  "contributors": [
+    "Andreas Pfau",
+    "Arturo Reuschenbach Puncernau",
+    "Esther Schmitz"
+  ],
+  "repository": "https://github.com/sapcc/juno/tree/main/apps/greenhouse",
+  "license": "Apache-2.0",
+  "source": "src/index.js",
+  "module": "build/index.js",
+  "private": true,
+  "devDependencies": {
+    "@babel/core": "^7.20.2",
+    "@babel/preset-env": "^7.20.2",
+    "@babel/preset-react": "^7.18.6",
+    "@svgr/core": "^7.0.0",
+    "@svgr/plugin-jsx": "^7.0.0",
+    "@tailwindui/react": "^0.1.1",
+    "@testing-library/dom": "^8.19.0",
+    "@testing-library/jest-dom": "^5.16.5",
+    "@testing-library/react": "^13.4.0",
+    "@testing-library/user-event": "^14.4.3",
+    "assert": "^2.0.0",
+    "autoprefixer": "^10.4.2",
+    "babel-jest": "^29.3.1",
+    "babel-plugin-transform-import-meta": "^2.2.0",
+    "communicator": "*",
+    "jest": "^29.3.1",
+    "jest-environment-jsdom": "^29.3.1",
+    "juno-ui-components": "*",
+    "messages-provider": "*",
+    "immer": "^9.0.21",
+    "postcss": "^8.4.21",
+    "postcss-url": "^10.1.3",
+    "prop-types": "^15.8.1",
+    "react": "18.2.0",
+    "react-dom": "^18.2.0",
+    "react-test-renderer": "^18.2.0",
+    "sapcc-k8sclient": "^1.0.2",
+    "sass": "^1.60.0",
+    "shadow-dom-testing-library": "^1.7.1",
+    "tailwindcss": "^3.3.1",
+    "url-state-provider": "*",
+    "util": "^0.12.4",
+    "utils": "*",
+    "zustand": "4.3.7"
+  },
+  "scripts": {
+    "test": "jest",
+    "start": "NODE_ENV=development node esbuild.config.js --serve --watch",
+    "build": "NODE_ENV=production node esbuild.config.js"
+  },
+  "peerDependencies": {
+    "juno-ui-components": "*",
+    "messages-provider": "*",
+    "prop-types": "^15.8.1",
+    "react": "18.2.0",
+    "react-dom": "^18.2.0",
+    "url-state-provider": "*",
+    "utils": "*",
+    "zustand": "4.3.7"
+  },
+  "importmapExtras": {
+    "zustand/middleware": "4.3.7"
+  },
+  "appProps": {
+    "authIssuerUrl": {
+      "value": "https://endpoint_url_of_the_openid_provider.com",
+      "type": "required",
+      "description": "Endpoint URL of the OpenID provider"
+    },
+    "authClientId": {
+      "value": "tbd",
+      "type": "required",
+      "description": "OIDC client id. "
+    },
+    "theme": {
+      "value": "theme-dark",
+      "description": "Override the default theme. Possible values are theme-light or theme-dark (default)"
+    },
+    "embedded": {
+      "value": "false",
+      "description": "Set to true if app is to be embedded in another existing app or page, like e.g. Elektra.  If set to true the app won't render a page header/footer and instead render only the content"
+    },
+    "currentHost": {
+      "value": "URL TO ASSETS SERVER",
+      "type": "required",
+      "description": "This value is usually set by the Widget Loader. However, if this app is loaded via import or importShim, then this props parameter should be set."
+    },
+    "apiEndpoint": {
+      "value": "URL TO K8S API",
+      "type": "required",
+      "description": "This value is necessary to communicate with the Kubernetes API. All the information you need comes from this API."
+    },
+    "mockAuth": {
+      "value": false,
+      "type": "optional",
+      "description": "mock the OIDC data, allowed values are 'true', 'false' (default), or json (pure or base64 encoded)"
+    },
+    "demoOrg": {
+      "value": "demo",
+      "type": "optional",
+      "description": "if organization name is equal to this value, then the app will be in demo mode. That means that the authentication will be mocked and plugins are loaded from demo org."
+    },
+    "demoUserToken": {
+      "value": "token for demo user",
+      "type": "optional",
+      "description": "if both demoOrg and demoUserToken are set and organization name is equal to demoOrg, then this token will be used for authentication."
+    },
+    "environment": {
+      "value": "production",
+      "type": "optional",
+      "description": "environment name, e.g. production, qa, development, etc. This property can be used to load different plugins for different environments."
+    }
+  },
+  "appPreview": true
+}
