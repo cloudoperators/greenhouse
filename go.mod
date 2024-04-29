@@ -5,7 +5,7 @@ go 1.21
 replace (
 	// DEX import matches version v2.38.0.
 	github.com/dexidp/dex => github.com/dexidp/dex v0.0.0-20240125142631-9451d87ca0c9
-	github.com/dexidp/dex/api/v2 => github.com/dexidp/dex/api/v2 v2.1.1-0.20240125142631-9451d87ca0c9
+	github.com/dexidp/dex/api/v2 => github.com/dexidp/dex/api/v2 v2.1.1-0.20240415171109-677ab3602040
 	// Keep k8s dependencies in sync.
 	k8s.io/api => k8s.io/api v0.29.4
 	k8s.io/apiextensions-apiserver => k8s.io/apiextensions-apiserver v0.29.4
