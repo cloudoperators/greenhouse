@@ -37,7 +37,7 @@ func DefaultPluginDefinition(_ context.Context, _ client.Client, _ runtime.Objec
 	return nil
 }
 
-//+kubebuilder:webhook:path=/validate-greenhouse-sap-v1alpha1-plugindefinition,mutating=false,failurePolicy=fail,sideEffects=None,groups=greenhouse.sap,resources=plugindefinitions,verbs=create;update,versions=v1alpha1,name=vplugindefinition.kb.io,admissionReviewVersions=v1
+//+kubebuilder:webhook:path=/validate-greenhouse-sap-v1alpha1-plugindefinition,mutating=false,failurePolicy=fail,sideEffects=None,groups=greenhouse.sap,resources=plugindefinitions,verbs=create;update;delete,versions=v1alpha1,name=vplugindefinition.kb.io,admissionReviewVersions=v1
 
 func ValidateCreatePluginDefinition(_ context.Context, _ client.Client, o runtime.Object) (admission.Warnings, error) {
 	pluginDefinition, ok := o.(*greenhousev1alpha1.PluginDefinition)
