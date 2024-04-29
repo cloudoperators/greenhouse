@@ -7,6 +7,9 @@
   "constraints": {
     "go": "1.21"
   },
+  "ignoreDeps": [
+    "github.com/dexidp/dex"
+  ],
   "packageRules": [
     {
       "groupName": "github actions",
