@@ -93,7 +93,7 @@ func (c *customValidator) ValidateDelete(ctx context.Context, obj runtime.Object
 	return c.validateDelete(ctx, c.Client, obj)
 }
 
-func validateImmutableField(oldValue, newValue string, path *field.Path) error {
+func validateImmutableField(oldValue, newValue string, path *field.Path) *field.Error {
 	if oldValue != newValue {
 		return field.Invalid(path, newValue, "field is immutable")
 	}

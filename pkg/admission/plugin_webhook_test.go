@@ -12,6 +12,7 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/utils/ptr"
 
 	greenhouseapis "github.com/cloudoperators/greenhouse/pkg/apis"
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/pkg/apis/greenhouse/v1alpha1"
@@ -61,12 +62,12 @@ var _ = Describe("Validate Plugin OptionValues", func() {
 			},
 		}
 
-		err := validatePluginOptionValues(plugin, pluginDefinition)
+		errList := validatePluginOptionValues(plugin.Spec.OptionValues, pluginDefinition)
 		switch expErr {
 		case true:
-			Expect(err).To(HaveOccurred(), "expected an error, got nil")
+			Expect(errList).ToNot(BeEmpty(), "expected an error, got nil")
 		default:
-			Expect(err).ToNot(HaveOccurred(), "expected no error, got %v", err)
+			Expect(errList).To(BeEmpty(), "expected no error, got %v", errList)
 		}
 	},
 		Entry("Value and ValueFrom nil", nil, nil, true),
@@ -108,12 +109,12 @@ var _ = Describe("Validate Plugin OptionValues", func() {
 			},
 		}
 
-		err := validatePluginOptionValues(plugin, pluginDefinition)
+		errList := validatePluginOptionValues(plugin.Spec.OptionValues, pluginDefinition)
 		switch expErr {
 		case true:
-			Expect(err).To(HaveOccurred(), "expected an error, got nil")
+			Expect(errList).ToNot(BeEmpty(), "expected an error, got nil")
 		default:
-			Expect(err).ToNot(HaveOccurred(), "expected no error, got %v", err)
+			Expect(errList).To(BeEmpty(), "expected no error, got %v", errList)
 		}
 
 	},
@@ -163,12 +164,12 @@ var _ = Describe("Validate Plugin OptionValues", func() {
 			},
 		}
 
-		err := validatePluginOptionValues(plugin, pluginDefinition)
+		errList := validatePluginOptionValues(plugin.Spec.OptionValues, pluginDefinition)
 		switch expErr {
 		case true:
-			Expect(err).To(HaveOccurred(), "expected an error, got nil")
+			Expect(errList).ToNot(BeEmpty(), "expected an error, got nil")
 		default:
-			Expect(err).ToNot(HaveOccurred(), "expected no error, got %v", err)
+			Expect(errList).To(BeEmpty(), "expected no error, got %v", errList)
 		}
 	},
 		Entry("PluginOption ValueFrom has a valid SecretReference", &greenhousev1alpha1.ValueFromSource{Secret: &greenhousev1alpha1.SecretKeyReference{Name: "secret", Key: "key"}}, false),
@@ -208,8 +209,8 @@ var _ = Describe("Validate Plugin OptionValues", func() {
 					ClusterName:      "test-cluster",
 				},
 			}
-			err := validatePluginOptionValues(plugin, pluginDefinition)
-			Expect(err).To(HaveOccurred(), "expected an error, got nil")
+			errList := validatePluginOptionValues(plugin.Spec.OptionValues, pluginDefinition)
+			Expect(errList).NotTo(BeEmpty(), "expected an error, got nil")
 		})
 		It("should accept a Plugin with supplied required options", func() {
 			plugin := &greenhousev1alpha1.Plugin{
@@ -232,8 +233,8 @@ var _ = Describe("Validate Plugin OptionValues", func() {
 					},
 				},
 			}
-			err := validatePluginOptionValues(plugin, pluginDefinition)
-			Expect(err).ToNot(HaveOccurred(), "unexpected error")
+			errList := validatePluginOptionValues(plugin.Spec.OptionValues, pluginDefinition)
+			Expect(errList).To(BeEmpty(), "unexpected error")
 		})
 	})
 })
@@ -349,3 +350,38 @@ func expectClusterMustBeSetError(err error) {
 		"the error message should reflect that the clusterName must be set",
 	)
 }
+
+var _ = Describe("Validate Plugin with OwnerReference from PluginPresets", func() {
+	var testPlugin = &greenhousev1alpha1.Plugin{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "Plugin",
+			APIVersion: greenhousev1alpha1.GroupVersion.String(),
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "test-plugin",
+			Namespace: test.TestNamespace,
+		},
+		Spec: greenhousev1alpha1.PluginSpec{
+			PluginDefinition: "test-plugindefinition",
+			ClusterName:      "test-cluster",
+		},
+	}
+
+	var ownerReference = metav1.OwnerReference{
+		APIVersion: "greenhouse.cloud.sap/v1alpha1",
+		Kind:       "PluginPreset",
+		Name:       "test-preset",
+		Controller: ptr.To(false),
+	}
+
+	It("should return a warning if the Plugin has an OwnerReference from a PluginPreset", func() {
+		cut := testPlugin.DeepCopy()
+		cut.SetOwnerReferences([]metav1.OwnerReference{ownerReference})
+		warnings := validateOwnerReference(cut)
+		Expect(warnings).NotTo(BeNil(), "expected a warning, got nil")
+	})
+	It("should return no warning if the Plugin has no OwnerReference from a PluginPreset", func() {
+		warnings := validateOwnerReference(testPlugin)
+		Expect(warnings).To(BeNil(), "expected no warning, got %v", warnings)
+	})
+})

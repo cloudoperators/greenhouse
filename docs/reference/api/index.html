@@ -303,6 +303,9 @@ p {
                           <a href="#crd-Plugin">Plugin</a>
                         </li>
                         <li class="">
+                          <a href="#crd-PluginPreset">PluginPreset</a>
+                        </li>
+                        <li class="">
                           <a href="#crd-TeamMembership">TeamMembership</a>
                         </li>
                         <li class="">
@@ -323,7 +326,7 @@ p {
             <p><h1>Greenhouse</h1></p>
             <p>PlusOne operations platform</p>
             <p>
-                <div class="app-desc">Version: 507c3c6</div>
+                <div class="app-desc">Version: 5327967</div>
             </p>
           </div>
         </div>
@@ -336,6 +339,8 @@ p {
                         <section id="crd-PluginDefinition" class="crd" data="PluginDefinition">
                         </section>
                         <section id="crd-Plugin" class="crd" data="Plugin">
+                        </section>
+                        <section id="crd-PluginPreset" class="crd" data="PluginPreset">
                         </section>
                         <section id="crd-TeamMembership" class="crd" data="TeamMembership">
                         </section>
@@ -1350,6 +1355,189 @@ g,0<c.length&&(c=Aa[c[0]])&&(a.c[e]=c))}a.c[e]||(c=Aa[e])&&(a.c[e]=c);for(c=0;c<
   },
   "description" : "UIApplication specifies a reference to a UI application"
 };
+    defs["PluginPreset"] = {
+  "title" : "PluginPreset",
+  "type" : "object",
+  "properties" : {
+    "apiVersion" : {
+      "type" : "string",
+      "description" : "APIVersion defines the versioned schema of this representation of an object.\\nServers should convert recognized schemas to the latest internal value, and\\nmay reject unrecognized values.\\nMore info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources"
+    },
+    "kind" : {
+      "type" : "string",
+      "description" : "Kind is a string value representing the REST resource this object represents.\\nServers may infer this from the endpoint the client submits requests to.\\nCannot be updated.\\nIn CamelCase.\\nMore info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds"
+    },
+    "metadata" : {
+      "type" : "object"
+    },
+    "spec" : {
+      "$ref" : "#/components/schemas/PluginPreset_spec"
+    },
+    "status" : {
+      "$ref" : "#/components/schemas/PluginPreset_status"
+    }
+  },
+  "description" : "PluginPreset is the Schema for the PluginPresets API",
+  "xml" : {
+    "name" : "greenhouse.sap",
+    "namespace" : "v1alpha1"
+  }
+};
+    defs["PluginPreset_spec"] = {
+  "required" : [ "clusterSelector", "plugin" ],
+  "type" : "object",
+  "properties" : {
+    "clusterSelector" : {
+      "$ref" : "#/components/schemas/PluginPreset_spec_clusterSelector"
+    },
+    "plugin" : {
+      "$ref" : "#/components/schemas/PluginPreset_spec_plugin"
+    }
+  },
+  "description" : "PluginPresetSpec defines the desired state of PluginPreset"
+};
+    defs["PluginPreset_spec_clusterSelector"] = {
+  "type" : "object",
+  "properties" : {
+    "matchExpressions" : {
+      "type" : "array",
+      "description" : "matchExpressions is a list of label selector requirements. The requirements are ANDed.",
+      "items" : {
+        "$ref" : "#/components/schemas/PluginPreset_spec_clusterSelector_matchExpressions"
+      }
+    },
+    "matchLabels" : {
+      "type" : "object",
+      "additionalProperties" : {
+        "type" : "string"
+      },
+      "description" : "matchLabels is a map of {key,value} pairs. A single {key,value} in the matchLabels\\nmap is equivalent to an element of matchExpressions, whose key field is \"key\", the\\noperator is \"In\", and the values array contains only \"value\". The requirements are ANDed."
+    }
+  },
+  "description" : "ClusterSelector is a label selector to select the clusters the plugin bundle should be deployed to.",
+  "x-kubernetes-map-type" : "atomic"
+};
+    defs["PluginPreset_spec_clusterSelector_matchExpressions"] = {
+  "required" : [ "key", "operator" ],
+  "type" : "object",
+  "properties" : {
+    "key" : {
+      "type" : "string",
+      "description" : "key is the label key that the selector applies to."
+    },
+    "operator" : {
+      "type" : "string",
+      "description" : "operator represents a key's relationship to a set of values.\\nValid operators are In, NotIn, Exists and DoesNotExist."
+    },
+    "values" : {
+      "type" : "array",
+      "description" : "values is an array of string values. If the operator is In or NotIn,\\nthe values array must be non-empty. If the operator is Exists or DoesNotExist,\\nthe values array must be empty. This array is replaced during a strategic\\nmerge patch.",
+      "items" : {
+        "type" : "string"
+      }
+    }
+  },
+  "description" : "A label selector requirement is a selector that contains values, a key, and an operator that\\nrelates the key and values."
+};
+    defs["PluginPreset_spec_plugin"] = {
+  "required" : [ "disabled", "pluginDefinition" ],
+  "type" : "object",
+  "properties" : {
+    "clusterName" : {
+      "type" : "string",
+      "description" : "ClusterName is the name of the cluster the plugin is deployed to. If not set, the plugin is deployed to the greenhouse cluster."
+    },
+    "disabled" : {
+      "type" : "boolean",
+      "description" : "Disabled indicates that the plugin is administratively disabled."
+    },
+    "displayName" : {
+      "type" : "string",
+      "description" : "DisplayName is an optional name for the Plugin to be displayed in the Greenhouse UI.\\nThis is especially helpful to distinguish multiple instances of a PluginDefinition in the same context.\\nDefaults to a normalized version of metadata.name."
+    },
+    "optionValues" : {
+      "type" : "array",
+      "description" : "Values are the values for a PluginDefinition instance.",
+      "items" : {
+        "$ref" : "#/components/schemas/PluginPreset_spec_plugin_optionValues"
+      }
+    },
+    "pluginDefinition" : {
+      "type" : "string",
+      "description" : "PluginDefinition is the name of the PluginDefinition this instance is for."
+    },
+    "releaseNamespace" : {
+      "type" : "string",
+      "description" : "ReleaseNamespace is the namespace in the remote cluster to which the backend is deployed.\\nDefaults to the Greenhouse managed namespace if not set."
+    }
+  },
+  "description" : "PluginSpec is the spec of the plugin to be deployed by the PluginPreset."
+};
+    defs["PluginPreset_spec_plugin_optionValues"] = {
+  "required" : [ "name" ],
+  "type" : "object",
+  "properties" : {
+    "name" : {
+      "type" : "string",
+      "description" : "Name of the values."
+    },
+    "value" : {
+      "description" : "Value is the actual value in plain text.",
+      "x-kubernetes-preserve-unknown-fields" : true
+    },
+    "valueFrom" : {
+      "$ref" : "#/components/schemas/PluginPreset_spec_plugin_valueFrom"
+    }
+  },
+  "description" : "PluginOptionValue is the value for a PluginOption."
+};
+    defs["PluginPreset_spec_plugin_valueFrom"] = {
+  "type" : "object",
+  "properties" : {
+    "secret" : {
+      "$ref" : "#/components/schemas/PluginPreset_spec_plugin_valueFrom_secret"
+    }
+  },
+  "description" : "ValueFrom references a potentially confidential value in another source."
+};
+    defs["PluginPreset_spec_plugin_valueFrom_secret"] = {
+  "required" : [ "key", "name" ],
+  "type" : "object",
+  "properties" : {
+    "key" : {
+      "type" : "string",
+      "description" : "Key in the secret to select the value from."
+    },
+    "name" : {
+      "type" : "string",
+      "description" : "Name of the secret in the same namespace."
+    }
+  },
+  "description" : "Secret references the secret containing the value."
+};
+    defs["PluginPreset_status"] = {
+  "type" : "object",
+  "properties" : {
+    "statusConditions" : {
+      "$ref" : "#/components/schemas/PluginPreset_status_statusConditions"
+    }
+  },
+  "description" : "PluginPresetStatus defines the observed state of PluginPreset"
+};
+    defs["PluginPreset_status_statusConditions"] = {
+  "type" : "object",
+  "properties" : {
+    "conditions" : {
+      "type" : "array",
+      "items" : {
+        "$ref" : "#/components/schemas/Cluster_status_statusConditions_conditions"
+      },
+      "x-kubernetes-list-map-keys" : [ "type" ],
+      "x-kubernetes-list-type" : "map"
+    }
+  },
+  "description" : "StatusConditions contain the different conditions that constitute the status of the PluginPreset."
+};
     defs["Plugin_spec"] = {
   "required" : [ "disabled", "pluginDefinition" ],
   "type" : "object",
@@ -1370,7 +1558,7 @@ g,0<c.length&&(c=Aa[c[0]])&&(a.c[e]=c))}a.c[e]||(c=Aa[e])&&(a.c[e]=c);for(c=0;c<
       "type" : "array",
       "description" : "Values are the values for a PluginDefinition instance.",
       "items" : {
-        "$ref" : "#/components/schemas/Plugin_spec_optionValues"
+        "$ref" : "#/components/schemas/PluginPreset_spec_plugin_optionValues"
       }
     },
     "pluginDefinition" : {
@@ -1383,48 +1571,6 @@ g,0<c.length&&(c=Aa[c[0]])&&(a.c[e]=c))}a.c[e]||(c=Aa[e])&&(a.c[e]=c);for(c=0;c<
     }
   },
   "description" : "PluginSpec defines the desired state of Plugin"
-};
-    defs["Plugin_spec_optionValues"] = {
-  "required" : [ "name" ],
-  "type" : "object",
-  "properties" : {
-    "name" : {
-      "type" : "string",
-      "description" : "Name of the values."
-    },
-    "value" : {
-      "description" : "Value is the actual value in plain text.",
-      "x-kubernetes-preserve-unknown-fields" : true
-    },
-    "valueFrom" : {
-      "$ref" : "#/components/schemas/Plugin_spec_valueFrom"
-    }
-  },
-  "description" : "PluginOptionValue is the value for a PluginOption."
-};
-    defs["Plugin_spec_valueFrom"] = {
-  "type" : "object",
-  "properties" : {
-    "secret" : {
-      "$ref" : "#/components/schemas/Plugin_spec_valueFrom_secret"
-    }
-  },
-  "description" : "ValueFrom references a potentially confidential value in another source."
-};
-    defs["Plugin_spec_valueFrom_secret"] = {
-  "required" : [ "key", "name" ],
-  "type" : "object",
-  "properties" : {
-    "key" : {
-      "type" : "string",
-      "description" : "Key in the secret to select the value from."
-    },
-    "name" : {
-      "type" : "string",
-      "description" : "Name of the secret in the same namespace."
-    }
-  },
-  "description" : "Secret references the secret containing the value."
 };
     defs["Plugin_status"] = {
   "type" : "object",

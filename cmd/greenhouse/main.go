@@ -142,7 +142,6 @@ func main() {
 		setupLog.Info("registering webhook", "name", webhookName)
 		handleError(hookFunc(mgr), "unable to create webhook", "name", webhookName)
 	}
-
 	//+kubebuilder:scaffold:builder
 
 	handleError(mgr.AddHealthzCheck("healthz", healthz.Ping), "unable to set up health check")

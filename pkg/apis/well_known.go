@@ -12,6 +12,9 @@ const (
 	// FinalizerCleanupHelmRelease is used to invoke the Helm release cleanup logic.
 	FinalizerCleanupHelmRelease = "greenhouse.sap/helm"
 
+	// FinalizerCleanupPluginPreset is used to invoke the PluginPreset cleanup logic.
+	FinalizerCleanupPluginPreset = "greenhouse.sap/pluginpreset"
+
 	// FinalizerCleanupCluster is used to invoke the cleanup of a registered cluster.
 	FinalizerCleanupCluster = "greenhouse.sap/cluster"
 
@@ -30,6 +33,9 @@ const (
 
 	// HeadscalePreAuthKey is the key for the Headscale pre-authentication key in a secret of type greenhouse.sap/kubeconfig.
 	HeadscalePreAuthKey = "headscalePreAuthKey"
+
+	// LabelKeyPluginPreset is used to identify the PluginPreset managing the plugin.
+	LabelKeyPluginPreset = "greenhouse.sap/pluginpreset"
 
 	// LabelKeyPlugin is used to identify corresponding PluginDefinition for the resource.
 	LabelKeyPlugin = "greenhouse.sap/plugin"
