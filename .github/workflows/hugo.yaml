@@ -119,7 +119,7 @@ jobs:
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
-    runs-on: [ self-hosted ]
+    runs-on: [ default ]
     needs: build
     steps:
       - name: Deploy to GitHub Pages
