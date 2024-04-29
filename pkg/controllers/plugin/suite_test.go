@@ -666,8 +666,10 @@ var _ = When("the pluginDefinition is UI only", func() {
 	})
 
 	AfterEach(func() {
-		Expect(test.K8sClient.Delete(test.Ctx, uiPluginDefinition)).Should(Succeed())
 		Expect(test.K8sClient.Delete(test.Ctx, uiPlugin)).Should(Succeed())
+		Eventually(func(g Gomega) {
+			g.Expect(test.K8sClient.Delete(test.Ctx, uiPluginDefinition)).Should(Succeed())
+		}).Should(Succeed(), "error deleting uiPluginDefinition")
 	})
 
 	It("should skip the helm reconciliation without errors", func() {

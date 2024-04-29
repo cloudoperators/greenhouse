@@ -280,8 +280,10 @@ var _ = Describe("Validate pluginConfig clusterName", Ordered, func() {
 	})
 
 	AfterAll(func() {
-		err := test.K8sClient.Delete(test.Ctx, testPluginDefinition)
-		Expect(err).ToNot(HaveOccurred(), "there should be no error deleting the pluginDefinition")
+		Expect(test.K8sClient.Delete(test.Ctx, testPlugin)).To(Succeed(), "there should be no error deleting the plugin")
+		Eventually(func(g Gomega) {
+			g.Expect(test.K8sClient.Delete(test.Ctx, testPluginDefinition)).To(Succeed(), "there should be no error deleting the pluginDefinition")
+		}).Should(Succeed(), "there should be plugindefinition should be deleted eventually")
 	})
 
 	It("should accept a plugin without a clusterName", func() {
