@@ -23,8 +23,8 @@
     "Arturo Reuschenbach Puncernau",
     "Tillman Haupt"
   ],
-  "repository": "https://github.com/sapcc/juno/tree/main/apps/greenhouse-management",
-  "license": "MIT",
+  "repository": "https://github.com/cloudoperators/greenhouse/tree/main/ui/greenhouse-management",
+  "license": "Apache-2.0",
   "source": "src/index.js",
   "module": "build/index.js",
   "private": true,
