@@ -3,11 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-/*
- * SPDX-FileCopyrightText: 2024 SAP SE or an SAP affiliate company and Juno contributors
- * SPDX-License-Identifier: Apache-2.0
- */
-
 import { createStore } from "zustand"
 import { devtools } from "zustand/middleware"
 import { managementPluginConfig } from "../../package.json"
@@ -34,7 +29,10 @@ export default (options) => {
   // set the endpoint and embedded props for the management plugin coming from the package.json
   Object.keys(configs).forEach((key) => {
     // pull latest version in dev and qa
-    configs[key].version = options.environment =='qa' || options.environment == 'development' ? 'latest' : configs[key].version
+    configs[key].version =
+      options.environment == "qa" || options.environment == "development"
+        ? "latest"
+        : configs[key].version
     configs[key].props = {
       endpoint: options.apiEndpoint,
       embedded: true,

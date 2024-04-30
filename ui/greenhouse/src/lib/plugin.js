@@ -3,11 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-/*
- * SPDX-FileCopyrightText: 2024 SAP SE or an SAP affiliate company and Juno contributors
- * SPDX-License-Identifier: Apache-2.0
- */
-
 import { useStore, createStore } from "zustand"
 import { devtools } from "zustand/middleware"
 import produce from "immer"
@@ -93,7 +88,10 @@ const Plugin = ({ environment, apiEndpoint, currentHost }) => {
           id: "greenhouse-management",
           name: "greenhouse-management",
           displayName: "Organization",
-          version: environment =='qa' || environment == 'development' ? 'latest' : managementVersion, // pull latest version in dev and qa
+          version:
+            environment == "qa" || environment == "development"
+              ? "latest"
+              : managementVersion, // pull latest version in dev and qa
           navType: NAV_TYPES.MNG,
           props: {
             assetsUrl: currentHost,

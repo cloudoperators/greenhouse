@@ -3,11 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-/*
- * SPDX-FileCopyrightText: 2024 SAP SE or an SAP affiliate company and Juno contributors
- * SPDX-License-Identifier: Apache-2.0
- */
-
 import React, { useEffect, useMemo, useRef, useState } from "react"
 import { useAppLoader } from "utils"
 import { useAssetsUrl, usePluginActive } from "./StoreProvider"
