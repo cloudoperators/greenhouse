@@ -67,6 +67,25 @@ var _ = Describe("PluginPreset Admission Tests", Ordered, func() {
 		Expect(err.Error()).To(ContainSubstring("PluginDefinition must be set"))
 	})
 
+	It("should reject PluginPreset with a PluginSpec containing a ClusterName", func() {
+		cut := &greenhousev1alpha1.PluginPreset{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      pluginPresetCreate,
+				Namespace: test.TestNamespace,
+			},
+			Spec: greenhousev1alpha1.PluginPresetSpec{
+				ClusterSelector: metav1.LabelSelector{MatchLabels: map[string]string{"foo": "bar"}},
+				Plugin: greenhousev1alpha1.PluginSpec{
+					ClusterName: "cluster",
+				},
+			},
+		}
+
+		err := test.K8sClient.Create(test.Ctx, cut)
+		Expect(err).To(HaveOccurred(), "there should be an error creating the PluginPreset with invalid fields")
+		Expect(err.Error()).To(ContainSubstring("ClusterName must not be set"), "the error message should reflect that plugin.clusterName should not be set")
+	})
+
 	It("should reject PluginPreset without ClusterSelector", func() {
 		cut := &greenhousev1alpha1.PluginPreset{
 			ObjectMeta: metav1.ObjectMeta{
@@ -104,7 +123,7 @@ var _ = Describe("PluginPreset Admission Tests", Ordered, func() {
 		Expect(err.Error()).To(ContainSubstring("PluginDefinition non-existing does not exist"))
 	})
 
-	It("should reject updates to Immutable Fields of a PluginPreset", func() {
+	It("should accept and reject updates to the PluginPreset", func() {
 		cut := &greenhousev1alpha1.PluginPreset{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      pluginPresetUpdate,
@@ -118,22 +137,35 @@ var _ = Describe("PluginPreset Admission Tests", Ordered, func() {
 			},
 		}
 
-		Expect(test.K8sClient.Create(test.Ctx, cut)).To(Succeed())
+		Expect(test.K8sClient.Create(test.Ctx, cut)).
+			To(Succeed(), "there must be no error creating the PluginPreset")
 
 		_, err := clientutil.CreateOrPatch(test.Ctx, test.K8sClient, cut, func() error {
 			cut.Spec.ClusterSelector.MatchLabels["foo"] = "baz"
 			return nil
 		})
-		Expect(err).To(HaveOccurred())
-		Expect(err.Error()).To(ContainSubstring("field is immutable"))
+		Expect(err).
+			NotTo(HaveOccurred(), "there must be no error updating the PluginPreset clusterSelector")
 
 		_, err = clientutil.CreateOrPatch(test.Ctx, test.K8sClient, cut, func() error {
 			cut.Spec.Plugin.PluginDefinition = "new-definition"
 			return nil
 		})
-		Expect(err).To(HaveOccurred())
-		Expect(err.Error()).To(ContainSubstring("field is immutable"))
+		Expect(err).
+			To(HaveOccurred(), "there must be an error updating the PluginPreset pluginDefinition")
+		Expect(err.Error()).
+			To(ContainSubstring("field is immutable"), "the error must reflect the field is immutable")
 
-		Expect(test.K8sClient.Delete(test.Ctx, cut)).To(Succeed())
+		_, err = clientutil.CreateOrPatch(test.Ctx, test.K8sClient, cut, func() error {
+			cut.Spec.Plugin.ClusterName = "foo"
+			return nil
+		})
+		Expect(err).
+			To(HaveOccurred(), "there must be an error updating the PluginPreset clusterName")
+		Expect(err.Error()).
+			To(ContainSubstring("field is immutable"), "the error must reflect the field is immutable")
+
+		Expect(test.K8sClient.Delete(test.Ctx, cut)).
+			To(Succeed(), "there must be no error deleting the PluginPreset")
 	})
 })
