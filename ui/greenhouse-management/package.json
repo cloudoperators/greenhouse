@@ -43,6 +43,7 @@
     "autoprefixer": "^10.4.2",
     "babel-jest": "^29.3.1",
     "babel-plugin-transform-import-meta": "^2.2.0",
+    "communicator": "https://assets.juno.global.cloud.sap/libs/communicator@2.2.6/package.tgz",
     "jest": "^29.3.1",
     "jest-environment-jsdom": "^29.3.1",
     "juno-ui-components": "https://assets.juno.global.cloud.sap/libs/juno-ui-components@2.13.8/package.tgz",

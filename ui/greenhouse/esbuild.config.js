@@ -11,7 +11,7 @@ const sass = require("sass")
 const { transform } = require("@svgr/core")
 const url = require("postcss-url")
 // this function generates app props based on package.json and propSecrets.json
-const appProps = require("../../helpers/appProps")
+const appProps = require("../helpers/appProps")
 
 if (!/.+\/.+\.js/.test(pkg.module))
   throw new Error(
