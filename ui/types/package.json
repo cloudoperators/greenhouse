@@ -1,0 +1,5 @@
+{
+  "dependencies": {
+    "kubernetes-types": "^1.29.0"
+  }
+}

@@ -39,9 +39,11 @@ const PluginEdit: React.FC<PluginEditProps> = (props: PluginEditProps) => {
   const setShowPluginEdit = useStore((state) => state.setShowPluginEdit)
   const setPluginToEdit = useStore((state) => state.setPluginToEdit)
   const pluginToEdit = useStore((state) => state.pluginToEdit)
+  const secretsToEdit = useStore((state) => state.secretsToEdit)
+  const setSecretsToEdit = useStore((state) => state.setSecretsToEdit)
   const isEditMode = useStore((state) => state.isEditMode)
   const setIsEditMode = useStore((state) => state.setIsEditMode)
-  const { postPlugin, updatePlugin, getPlugin, deletePlugin } = usePluginApi()
+  const { postPlugin, updatePlugin, deletePlugin } = usePluginApi()
 
   //init plugin only if it is not already initialized
   React.useEffect(() => {

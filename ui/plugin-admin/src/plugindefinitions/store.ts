@@ -8,6 +8,7 @@ import {
   PluginDefinition,
   Plugin,
   UpdateObjectAction,
+  Secret,
   UpdatePluginInput as UpdatePluginDefinitionInput
 } from "../../../types/types"
 
@@ -33,6 +34,8 @@ export interface State {
   setShowPluginEdit: (showPluginDefinitionEdit: boolean) => void
   pluginToEdit?: Plugin
   setPluginToEdit: (plugin?: Plugin) => void
+  secretsToEdit?: Secret[]
+  setSecretsToEdit: (secrets?: Secret[]) => void
   isEditMode: boolean
   setIsEditMode: (isEditMode: boolean) => void
 }
@@ -95,6 +98,9 @@ const usePluginDefinitionsStore = create<State>((set) => ({
 
   pluginToEdit: undefined,
   setPluginToEdit: (plugin) => set((state) => ({ pluginToEdit: plugin})),
+
+  secretsToEdit: undefined,
+  setSecretsToEdit: (secrets) => set((state) => ({ secretsToEdit: secrets})),
 
   isEditMode: false,
   setIsEditMode: (isEditMode) => set((state) => ({ isEditMode: isEditMode}))

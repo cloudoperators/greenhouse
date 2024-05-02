@@ -4,7 +4,10 @@
  */
 
 import { components } from "./schema"
+import {Secret as k8sSecret} from 'kubernetes-types/core/v1'
 
+
+export type Secret = k8sSecret
 export type Cluster = components["schemas"]["Cluster"]
 export type PluginDefinition = components["schemas"]["PluginDefinition"]
 export type Plugin = components["schemas"]["Plugin"]
