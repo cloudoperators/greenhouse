@@ -13,5 +13,5 @@ import App from "./App"
 test("renders app", async () => {
   await act(() => render(<App />))
 
-  expect(screen.getByShadowTestId("greenhouse-management")).toBeInTheDocument()
+  expect(screen.getByShadowTestId("greenhouse-org-admin")).toBeInTheDocument()
 })

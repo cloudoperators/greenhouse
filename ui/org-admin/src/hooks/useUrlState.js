@@ -13,7 +13,7 @@ import {
 } from "../components/StoreProvider"
 
 // url state manager
-const URL_APP_STATE_KEY = "greenhouse-management"
+const URL_APP_STATE_KEY = "greenhouse-org-admin"
 const ACTIVE_APP_KEY = "a"
 const urlStateManager = registerConsumer(URL_APP_STATE_KEY)
 

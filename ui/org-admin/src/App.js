@@ -41,7 +41,7 @@ const App = (props = {}) => {
   return (
     <QueryClientProvider client={queryClient}>
       <AsyncWorker />
-      <AppBody data-testid="greenhouse-management">
+      <AppBody data-testid="greenhouse-org-admin">
         <Messages className="mb-4" />
         <Auth>
           <UrlState>
