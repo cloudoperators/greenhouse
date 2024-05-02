@@ -1,5 +1,5 @@
 /*
- * SPDX-FileCopyrightText: 2024 SAP SE or an SAP affiliate company and Greenhouse contributors
+ * SPDX-FileCopyrightText: 2024 SAP SE or an SAP affiliate company and Juno contributors
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -19,21 +19,37 @@ module.exports = ({ appPath = "" } = {}) => {
     secrets = {}
   }
 
-  const appProps = pkg.appProps || {}
-  const props = {}
-  for (let propName in appProps) {
-    let value = appProps[propName]
-    if (typeof value !== "string") value = appProps[propName].value
-    props[propName] = value
+  const pkgAppProps = pkg.appProps || {}
+  const pkgDependencyProps = pkg.appDependencies || {}
+  const appProps = {}
+  const dependencyProps = {}
+  for (let propName in pkgAppProps) {
+    // skip appDependencies
+    if (propName === "appDependencies") return
+    let value = pkgAppProps[propName]
+    if (typeof value !== "string") value = pkgAppProps[propName].value
+    appProps[propName] = value
   }
 
+  // map pkg app props with the secret props
   for (let propName in secrets) {
-    if (!props.hasOwnProperty(propName))
+    if (propName === "appDependencies") continue
+    if (!appProps.hasOwnProperty(propName))
       throw Error(
         `Secret property ${propName} is not defined in package.json -> appProps`
       )
-    props[propName] = secrets[propName]
+    appProps[propName] = secrets[propName]
   }
 
-  return props
+  if (secrets.appDependencies) {
+    for (let propName in secrets.appDependencies) {
+      if (!pkgDependencyProps.hasOwnProperty(propName))
+        throw Error(
+          `Secret property ${propName} is not defined in package.json -> appDependencies`
+        )
+      dependencyProps[propName] = secrets.appDependencies[propName]
+    }
+  }
+
+  return { appProps, dependencyProps }
 }
