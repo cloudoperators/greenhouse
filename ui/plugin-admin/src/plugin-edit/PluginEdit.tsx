@@ -43,7 +43,7 @@ const PluginEdit: React.FC<PluginEditProps> = (props: PluginEditProps) => {
   const setSecretsToEdit = useStore((state) => state.setSecretsToEdit)
   const isEditMode = useStore((state) => state.isEditMode)
   const setIsEditMode = useStore((state) => state.setIsEditMode)
-  const { postPlugin, updatePlugin, deletePlugin } = usePluginApi()
+  const { createPlugin, updatePlugin, deletePlugin } = usePluginApi()
 
   //init plugin only if it is not already initialized
   React.useEffect(() => {
@@ -62,9 +62,39 @@ const PluginEdit: React.FC<PluginEditProps> = (props: PluginEditProps) => {
     { message: "", ok: false }
   )
   const onSubmit = async () => {
+    // if secrets are not empty, then first create/update the secrets, then create/update the plugin
+    // if (secretsToEdit && secretsToEdit.length > 0) {
+    //   let secretPromises = secretsToEdit.map((secret) => {
+    //     if (isEditMode) {
+    //       return updateSecret(secret)
+    //     } else {
+    //       return postSecret(secret)
+    //     }
+    //   })
+
+    //   await Promise.all(secretPromises).then(async (res) => {
+    //     let allOk = res.every((r) => r.ok)
+    //     if (allOk) {
+    //       let res = isEditMode
+    //         ? updatePlugin(pluginToEdit!)
+    //         : createPlugin(pluginToEdit!)
+
+    //       await res.then(async (res) => {
+    //         setSubmitResultMessage({ message: res.message, ok: res.ok })
+    //       })
+    //     } else {
+    //       // get first not ok message
+    //       let firstNotOk = res.find((r) => !r.ok)
+    //       setSubmitResultMessage({
+    //         message: "Failed to create/update secrets + " + firstNotOk?.message,
+    //         ok: false,
+    //       })
+    //     }
+    //   })
+    // }
     let res = isEditMode
       ? updatePlugin(pluginToEdit!)
-      : postPlugin(pluginToEdit!)
+      : createPlugin(pluginToEdit!)
 
     await res.then(async (res) => {
       setSubmitResultMessage({ message: res.message, ok: res.ok })
@@ -73,7 +103,7 @@ const PluginEdit: React.FC<PluginEditProps> = (props: PluginEditProps) => {
 
   // TODO: Implement second confirmation dialog for delete
   const onDelete = async () => {
-    let res = await deletePlugin(pluginToEdit!.metadata!.name!)
+    let res = await deletePlugin(pluginToEdit!)
     setSubmitResultMessage({ message: res.message, ok: res.ok })
   }
 
