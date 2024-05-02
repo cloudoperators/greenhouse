@@ -6,7 +6,7 @@
 import { useStore, createStore } from "zustand"
 import { devtools } from "zustand/middleware"
 import produce from "immer"
-import { managementVersion } from "../../package.json"
+import { orgAdminVersion } from "../../package.json"
 
 export const NAV_TYPES = {
   APP: "app",
@@ -84,14 +84,14 @@ const Plugin = ({ environment, apiEndpoint, currentHost }) => {
     devtools((set, get) => ({
       active: [],
       config: {
-        [`greenhouse-management`]: createPluginConfig({
-          id: "greenhouse-management",
-          name: "greenhouse-management",
+        [`greenhouse-org-admin`]: createPluginConfig({
+          id: "greenhouse-org-admin",
+          name: "greenhouse-org-admin",
           displayName: "Organization",
           version:
             environment == "qa" || environment == "development"
               ? "latest"
-              : managementVersion, // pull latest version in dev and qa
+              : orgAdminVersion, // pull latest version in dev and qa
           navType: NAV_TYPES.MNG,
           props: {
             assetsUrl: currentHost,

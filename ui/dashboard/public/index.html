@@ -43,7 +43,19 @@
       import("./build/index.js").then((app) => {
         app.mount(document.getElementById("root"), { props: allProps.appProps })
       })
+      
+      const authScript = document.createElement("script")
+      authScript.src =
+        "https://assets.juno.qa-de-1.cloud.sap/apps/widget-loader@latest/build/app.js"
+      authScript.setAttribute("data-name", "auth")
+      authScript.setAttribute("data-version", "latest")
+      authScript.setAttribute("data-props-debug", "true")
+      authScript.setAttribute("data-props-initial-login", "true")
+      authScript.setAttribute("data-props-issuerUrl", allProps.authIssuerUrl)
+      authScript.setAttribute("data-props-clientId", allProps.authClientId)
+      document.body.appendChild(authScript)
     </script>
-    <div id="root" data-juno-app="greenhouse"></div>
+
+    <div id="root" data-juno-app="greenhouse-dashboard"></div>
   </body>
 </html>

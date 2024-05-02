@@ -3,20 +3,19 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { useEffect, useCallback } from "react"
 import { broadcast, get, watch } from "communicator"
+import { useCallback, useEffect } from "react"
 import {
+  useAuthActions,
   useAuthAppLoaded,
   useAuthIsProcessing,
-  useAuthError,
-  useAuthLoggedIn,
   useAuthLastAction,
-  useAuthActions,
   useDemoMode,
-  useDemoUserToken,
+  useDemoUserToken
 } from "../components/StoreProvider"
 
 const useCommunication = () => {
+  const CONSUMER_ID = "greenhouse-dashboard"
   const authAppLoaded = useAuthAppLoaded()
   const authIsProcessing = useAuthIsProcessing()
   const authLastAction = useAuthLastAction()
@@ -43,12 +42,12 @@ const useCommunication = () => {
     if (authLastAction?.name === "signOn") {
       broadcast("AUTH_LOGIN", "greenhouse", {
         debug: true,
-        consumerID: "greenhouse",
+        consumerID: CONSUMER_ID,
       })
     } else if (authLastAction?.name === "signOut") {
       broadcast("AUTH_LOGOUT", "greenhouse", {
         debug: true,
-        consumerID: "greenhouse",
+        consumerID: CONSUMER_ID,
       })
     }
   }, [authAppLoaded, authIsProcessing, authLastAction])
@@ -56,18 +55,18 @@ const useCommunication = () => {
   useEffect(() => {
     if (!authSetData || !authSetAppLoaded) return
     get("AUTH_APP_LOADED", authSetAppLoaded, {
-      consumerID: "greenhouse",
+      consumerID: CONSUMER_ID,
       debug: true,
     })
     const unwatchLoaded = watch("AUTH_APP_LOADED", authSetAppLoaded, {
       debug: true,
-      consumerID: "greenhouse",
+      consumerID: CONSUMER_ID,
     })
 
-    get("AUTH_GET_DATA", setAuthData, { consumerID: "greenhouse", debug: true })
+    get("AUTH_GET_DATA", setAuthData, { consumerID: CONSUMER_ID, debug: true })
     const unwatchUpdate = watch("AUTH_UPDATE_DATA", setAuthData, {
       debug: true,
-      consumerID: "greenhouse",
+      consumerID: CONSUMER_ID,
     })
 
     return () => {
