@@ -21,7 +21,7 @@ data:
       <body style="height: 100vh; flex-grow: 1; margin: 0; padding: 0;">
         <script
           src="{{ required ".Values.juno.assetServerURL missing" .Values.juno.assetServerURL }}/apps/widget-loader@latest/build/app.js" 
-          data-name="greenhouse"
+          data-name="greenhouse-dashboard"
           data-version="{{ default "latest" .Values.juno.greenhouse.version }}"
           data-props-auth-issuer-url={{ required ".Values.oidcIssuerUrl" .Values.oidcIssuerUrl| quote }}
           data-props-auth-client-id={{ required ".Values.oidcClientId" .Values.oidcClientId | quote }}
