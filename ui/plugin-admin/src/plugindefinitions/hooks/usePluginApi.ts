@@ -11,19 +11,19 @@ export const usePluginApi = () => {
   const {client} = useClient()
 
   const getPlugin= (plugin: Plugin): Promise<ApiResponse> => {
-    return get<Plugin>(`/api/v1/namespaces/${namespace}/plugins`, plugin)
+    return get<Plugin>(`/apis/greenhouse.sap/v1alpha1/namespaces/${namespace}/plugins`, plugin)
   }
 
   const createPlugin = (plugin: Plugin): Promise<ApiResponse> => {
-    return create<Plugin>(`/api/v1/namespaces/${namespace}/plugins`, plugin)
+    return create<Plugin>(`/apis/greenhouse.sap/v1alpha1/namespaces/${namespace}/plugins`, plugin)
   }
 
   const updatePlugin = (plugin: Plugin): Promise<ApiResponse> => {
-    return update<Plugin>(`/api/v1/namespaces/${namespace}/plugins`, plugin)
+    return update<Plugin>(`/apis/greenhouse.sap/v1alpha1/namespaces/${namespace}/plugins`, plugin)
   }
 
   const deletePlugin = (plugin: Plugin): Promise<ApiResponse> => {
-    return deleteObject <Plugin>(`/api/v1/namespaces/${namespace}/plugins`, plugin)
+    return deleteObject <Plugin>(`/apis/greenhouse.sap/v1alpha1/namespaces/${namespace}/plugins`, plugin)
   }
 
   const getPluginsByLabelSelector = useCallback(

@@ -109,8 +109,7 @@ spec:
       type: string
     - name: secretValue
       description: To be filled with a secret
-      required: false
-      default: "defaultSecret"
+      required: true
       type: secret
     - name: boolValue
       description: To be filled with a bool
@@ -190,3 +189,30 @@ spec:
       description: This is some very important required bool
       required: true
       type: bool
+
+---
+apiVersion: greenhouse.sap/v1alpha1
+kind: PluginDefinition
+metadata:
+  name: test-plugin-secrets
+spec:
+  displayName: Test Plugin with a lot of secrets
+  description: Test Plugin with a lot of secrets
+  version: "1.0.0"
+  icon: description
+  uiApplication:
+    name: test-plugin-ui
+    version: "latest"
+  options:
+    - name: requiredSecretValue
+      description: To be filled with a secret
+      required: true
+      type: secret
+    - name: notRequiredSecretValue
+      description: To be filled with a secret
+      required: false
+      type: secret
+    - name: notRequiredSecretValue2
+      description: To be filled with a secret
+      required: false
+      type: secret

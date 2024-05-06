@@ -21,9 +21,12 @@ const initPlugin = (pluginDefinition: PluginDefinition) => {
     },
   }
   pluginDefinition.spec?.options?.forEach((option) => {
+    // if we have a default value, add it to the plugin
+    // we do not default secrets
     if (
+      option.type != "secret" &&
       option.default &&
-      !initPlugin.spec?.optionValues!.some((o) => o.name == option.name)
+      !initPlugin.spec?.optionValues!.some((o) => o.name == option.name) 
     ) {
       initPlugin.spec?.optionValues!.push({
         name: option.name,

@@ -51,7 +51,7 @@ const get = useCallback(
 
       return await client
         .post(
-          url+"/"+object.metadata!.name!,
+          url,
           object
         )
         .then((res) => {

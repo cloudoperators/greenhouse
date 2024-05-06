@@ -17,14 +17,14 @@ export const OptionInput: React.FC<OptionInputProps> = (
     }
   }
   const id = "optionValues." + props.pluginDefinitionOption.name
-  const label = props.pluginDefinitionOption.displayName
+  const label =
+    props.pluginDefinitionOption.displayName ??
+    props.pluginDefinitionOption.name
   const helptext = props.pluginDefinitionOption.type
   const required = props.pluginDefinitionOption.required
 
-  // not completely true. We might also create the plugin and change the default value
-  let value = props.isEditMode
-    ? props.pluginOptionValue?.value
-    : props.pluginDefinitionOption.default
+  // values have already been defaulted on initPlugin
+  let value = props.pluginOptionValue?.value
 
   let type = "text"
 

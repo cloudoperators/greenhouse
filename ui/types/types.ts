@@ -49,3 +49,5 @@ export type PluginDefinitionOption = NonNullable<PluginDefinitionOptions>[number
 export type PluginOptionValues = NonNullable<Plugin["spec"]>["optionValues"]
 export type PluginOptionValue = NonNullable<PluginOptionValues>[number]
 
+export type SecretDataEntry = NonNullable<Secret["data"]>
+

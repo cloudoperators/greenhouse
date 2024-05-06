@@ -34,10 +34,12 @@ export interface State {
   setShowPluginEdit: (showPluginDefinitionEdit: boolean) => void
   pluginToEdit?: Plugin
   setPluginToEdit: (plugin?: Plugin) => void
-  secretsToEdit?: Secret[]
-  setSecretsToEdit: (secrets?: Secret[]) => void
+  secretToEdit?: Secret
+  setSecretToEdit: (secret?: Secret) => void
   isEditMode: boolean
   setIsEditMode: (isEditMode: boolean) => void
+  isSecretEditMode: boolean
+  setIsSecretEditMode: (isSecretEditMode: boolean) => void
 }
 
 // global zustand store. See how this works here: https://github.com/pmndrs/zustand
@@ -99,11 +101,14 @@ const usePluginDefinitionsStore = create<State>((set) => ({
   pluginToEdit: undefined,
   setPluginToEdit: (plugin) => set((state) => ({ pluginToEdit: plugin})),
 
-  secretsToEdit: undefined,
-  setSecretsToEdit: (secrets) => set((state) => ({ secretsToEdit: secrets})),
+  secretToEdit: undefined,
+  setSecretToEdit: (secret) => set((state) => ({ secretToEdit: secret})),
 
   isEditMode: false,
-  setIsEditMode: (isEditMode) => set((state) => ({ isEditMode: isEditMode}))
+  setIsEditMode: (isEditMode) => set((state) => ({ isEditMode: isEditMode})),
+
+  isSecretEditMode: false,
+  setIsSecretEditMode: (isSecretEditMode) => set((state) => ({ isSecretEditMode: isSecretEditMode})),
 
 }))
 
