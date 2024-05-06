@@ -82,6 +82,9 @@ func ObjectMapFromManifest(restClientGetter genericclioptions.RESTClientGetter, 
 		if f != nil && !f.Matches(info) {
 			return nil
 		}
+		if info.Namespace == "" {
+			info.Namespace = namespace
+		}
 		key := ObjectKey{
 			GVK:       info.Mapping.GroupVersionKind,
 			Namespace: info.Namespace,
