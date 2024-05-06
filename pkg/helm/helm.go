@@ -141,7 +141,7 @@ func DiffChartToDeployedResources(ctx context.Context, local client.Client, rest
 		return nil, false, err
 	}
 
-	diffObjects, err := diffAgainstRelease(restClientGetter, plugin.GetNamespace(), manifest, helmRelease)
+	diffObjects, err := diffAgainstRelease(restClientGetter, plugin.GetReleaseNamespace(), manifest, helmRelease)
 	if err != nil {
 		return nil, false, err
 	}
@@ -162,7 +162,7 @@ func DiffChartToDeployedResources(ctx context.Context, local client.Client, rest
 		return nil, false, nil
 	}
 
-	diffObjects, err = diffAgainstLiveObjects(restClientGetter, plugin.GetNamespace(), manifest)
+	diffObjects, err = diffAgainstLiveObjects(restClientGetter, plugin.GetReleaseNamespace(), manifest)
 	if err != nil {
 		return nil, false, err
 	}
