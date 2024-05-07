@@ -134,7 +134,6 @@ func (r *HelmReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.
 		return ctrl.Result{}, err
 	}
 
-	// TODO: https://github.com/cloudoperators/greenhouse/issues/489
 	helmReconcileFailedCondition, pluginDefinition := r.getPlugin(ctx, plugin)
 	pluginStatus.StatusConditions.SetConditions(helmReconcileFailedCondition)
 	if pluginDefinition == nil {
@@ -216,7 +215,7 @@ func (r *HelmReconciler) initClientGetter(
 		clusterAccessReadyCondition.Message = fmt.Sprintf("Failed to get secret for cluster %s: %s", plugin.Spec.ClusterName, err.Error())
 		return clusterAccessReadyCondition, nil
 	}
-	restClientGetter, err = clientutil.NewRestClientGetterFromSecret(&secret, plugin.GetNamespace(), r.kubeClientOpts...)
+	restClientGetter, err = clientutil.NewRestClientGetterFromSecret(&secret, plugin.GetReleaseNamespace(), r.kubeClientOpts...)
 	if err != nil {
 		clusterAccessReadyCondition.Status = metav1.ConditionFalse
 		clusterAccessReadyCondition.Message = fmt.Sprintf("cannot access cluster %s: %s", plugin.Spec.ClusterName, err.Error())
