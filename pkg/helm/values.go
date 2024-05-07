@@ -64,20 +64,18 @@ func mergePluginOptionValues(dst, src []greenhousev1alpha1.PluginOptionValue) []
 	return dst
 }
 
-/*
-getGreenhouseValues generate values for greenhouse core resources in the form:
-greenhouse:
-
-	clusterNames:
-	  - <name>
-	teams:
-	  - <name>
-*/
-func getGreenhouseValues(ctx context.Context, c client.Client, pc greenhousev1alpha1.Plugin) ([]greenhousev1alpha1.PluginOptionValue, error) {
+// getGreenhouseValues generate values for greenhouse core resources in the form:
+//
+//	global:
+//	  greenhouse:
+//	    clusterNames:
+//		  - <name>
+//		teams:
+//		  - <name>
+func getGreenhouseValues(ctx context.Context, c client.Client, p greenhousev1alpha1.Plugin) ([]greenhousev1alpha1.PluginOptionValue, error) {
 	greenhouseValues := make([]greenhousev1alpha1.PluginOptionValue, 0)
-	// TODO: RBAC restriction to allowed clusters for organization.
 	var clusterList = new(greenhousev1alpha1.ClusterList)
-	if err := c.List(ctx, clusterList); err != nil {
+	if err := c.List(ctx, clusterList, &client.ListOptions{Namespace: p.GetNamespace()}); err != nil {
 		return nil, err
 	}
 	clusterNames := make([]string, len(clusterList.Items))
@@ -89,14 +87,16 @@ func getGreenhouseValues(ctx context.Context, c client.Client, pc greenhousev1al
 	if err != nil {
 		return nil, err
 	}
+
 	greenhouseValues = append(greenhouseValues, greenhousev1alpha1.PluginOptionValue{
-		Name:      "greenhouse.clusterNames",
+		Name:      "global.greenhouse.clusterNames",
 		Value:     clusterNamesVal,
 		ValueFrom: nil,
 	})
+
 	// Teams within the organization.
 	var teamList = new(greenhousev1alpha1.TeamList)
-	if err := c.List(ctx, teamList, client.InNamespace(pc.GetNamespace())); err != nil {
+	if err := c.List(ctx, teamList, client.InNamespace(p.GetNamespace())); err != nil {
 		return nil, err
 	}
 	teamNames := make([]string, len(teamList.Items))
@@ -108,31 +108,34 @@ func getGreenhouseValues(ctx context.Context, c client.Client, pc greenhousev1al
 	if err != nil {
 		return nil, err
 	}
+
 	greenhouseValues = append(greenhouseValues, greenhousev1alpha1.PluginOptionValue{
-		Name:      "greenhouse.teamNames",
+		Name:      "global.greenhouse.teamNames",
 		Value:     teamNamesVal,
 		ValueFrom: nil,
 	})
 
 	// append orgName
-	orgNameVal, err := json.Marshal(pc.GetNamespace())
+	orgNameVal, err := json.Marshal(p.GetNamespace())
 	if err != nil {
 		return nil, err
 	}
+
 	greenhouseValues = append(greenhouseValues, greenhousev1alpha1.PluginOptionValue{
-		Name:      "greenhouse.organizationName",
+		Name:      "global.greenhouse.organizationName",
 		Value:     &apiextensionsv1.JSON{Raw: orgNameVal},
 		ValueFrom: nil,
 	})
 
 	// append clusterName if set
-	if pc.Spec.ClusterName != "" {
-		clusterNameVal, err := json.Marshal(pc.Spec.ClusterName)
+	if p.Spec.ClusterName != "" {
+		clusterNameVal, err := json.Marshal(p.Spec.ClusterName)
 		if err != nil {
 			return nil, err
 		}
+
 		greenhouseValues = append(greenhouseValues, greenhousev1alpha1.PluginOptionValue{
-			Name:      "greenhouse.clusterName",
+			Name:      "global.greenhouse.clusterName",
 			Value:     &apiextensionsv1.JSON{Raw: clusterNameVal},
 			ValueFrom: nil,
 		})

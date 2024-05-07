@@ -66,11 +66,11 @@ var _ = Describe("helm package test", func() {
 			Expect(pluginOptionValues).To(
 				ContainElement(greenhousesapv1alpha1.PluginOptionValue{Name: "key1", Value: test.MustReturnJSONFor("pluginValue1"), ValueFrom: nil}), "the pluginDefinition option values should contain default from pluginDefinition spec")
 			Expect(pluginOptionValues).To(
-				ContainElement(greenhousesapv1alpha1.PluginOptionValue{Name: "greenhouse.teamNames", Value: test.MustReturnJSONFor([]string{"test-team-1"}), ValueFrom: nil}), "the pluginDefinition option values should contain greenhouse values")
+				ContainElement(greenhousesapv1alpha1.PluginOptionValue{Name: "global.greenhouse.teamNames", Value: test.MustReturnJSONFor([]string{"test-team-1"}), ValueFrom: nil}), "the pluginDefinition option values should contain greenhouse values")
 			Expect(pluginOptionValues).To(
-				ContainElement(greenhousesapv1alpha1.PluginOptionValue{Name: "greenhouse.clusterName", Value: test.MustReturnJSONFor(plugin.Spec.ClusterName), ValueFrom: nil}), "the pluginDefinition option values should contain the clusterName from the plugin")
+				ContainElement(greenhousesapv1alpha1.PluginOptionValue{Name: "global.greenhouse.clusterName", Value: test.MustReturnJSONFor(plugin.Spec.ClusterName), ValueFrom: nil}), "the pluginDefinition option values should contain the clusterName from the plugin")
 			Expect(pluginOptionValues).To(
-				ContainElement(greenhousesapv1alpha1.PluginOptionValue{Name: "greenhouse.organizationName", Value: test.MustReturnJSONFor(plugin.GetNamespace()), ValueFrom: nil}), "the pluginDefinition option values should contain the orgName from the plugin namspace")
+				ContainElement(greenhousesapv1alpha1.PluginOptionValue{Name: "global.greenhouse.organizationName", Value: test.MustReturnJSONFor(plugin.GetNamespace()), ValueFrom: nil}), "the pluginDefinition option values should contain the orgName from the plugin namspace")
 		})
 	})
 
