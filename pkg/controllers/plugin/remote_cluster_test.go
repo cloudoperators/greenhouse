@@ -301,7 +301,7 @@ var _ = Describe("Validate plugin clusterName", Ordered, func() {
 		Expect(testPluginInDifferentNamespace.GetReleaseNamespace()).
 			Should(Equal("made-up-namespace"), "the release namespace should be the made-up-namespace")
 
-		By("creating a pluginconfig referencing the cluster")
+		By("creating a plugin referencing the cluster")
 		Expect(test.K8sClient.Create(test.Ctx, testPluginInDifferentNamespace)).
 			Should(Succeed(), "there should be no error creating the plugin")
 
@@ -320,6 +320,17 @@ var _ = Describe("Validate plugin clusterName", Ordered, func() {
 		}).Should(
 			Equal(testPluginInDifferentNamespace.GetReleaseNamespace()),
 			"the helm release should be deployed to the remote cluster in a different namespace",
+		)
+
+		By("checking the pod template without explicit namespace is deployed to the releaseNamespace")
+		podName := types.NamespacedName{Name: "alpine", Namespace: testPluginInDifferentNamespace.GetReleaseNamespace()}
+		Eventually(func(g Gomega) {
+			pod := &corev1.Pod{}
+			err := remoteK8sClient.Get(test.Ctx, podName, pod)
+			g.Expect(err).NotTo(HaveOccurred(), "there should be no error getting the pod")
+		}).Should(
+			Succeed(),
+			"the pod template without explicit namespace should be deployed to the releaseNamespace",
 		)
 
 		By("deleting the plugin")
