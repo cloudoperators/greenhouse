@@ -1,29 +1,46 @@
-
 import useApi, { ApiResponse } from "./useApi"
 import { Plugin } from "../../../../types/types"
 import useNamespace from "./useNamespace"
 import useClient from "./useClient"
 import { useCallback } from "react"
 
+export type PluginApiResponse = {
+  ok: boolean
+  message: string
+  response?: Plugin
+}
+
 export const usePluginApi = () => {
-  const {get, create,  update, deleteObject } = useApi()
+  const { get, create, update, deleteObject } = useApi()
   const { namespace } = useNamespace()
-  const {client} = useClient()
+  const { client } = useClient()
 
-  const getPlugin= (plugin: Plugin): Promise<ApiResponse> => {
-    return get<Plugin>(`/apis/greenhouse.sap/v1alpha1/namespaces/${namespace}/plugins`, plugin)
+  const getPlugin = (plugin: Plugin): Promise<PluginApiResponse> => {
+    return get<Plugin>(
+      `/apis/greenhouse.sap/v1alpha1/namespaces/${namespace}/plugins`,
+      plugin
+    ) as Promise<PluginApiResponse>
   }
 
-  const createPlugin = (plugin: Plugin): Promise<ApiResponse> => {
-    return create<Plugin>(`/apis/greenhouse.sap/v1alpha1/namespaces/${namespace}/plugins`, plugin)
+  const createPlugin = (plugin: Plugin): Promise<PluginApiResponse> => {
+    return create<Plugin>(
+      `/apis/greenhouse.sap/v1alpha1/namespaces/${namespace}/plugins`,
+      plugin
+    ) as Promise<PluginApiResponse>
   }
 
-  const updatePlugin = (plugin: Plugin): Promise<ApiResponse> => {
-    return update<Plugin>(`/apis/greenhouse.sap/v1alpha1/namespaces/${namespace}/plugins`, plugin)
+  const updatePlugin = (plugin: Plugin): Promise<PluginApiResponse> => {
+    return update<Plugin>(
+      `/apis/greenhouse.sap/v1alpha1/namespaces/${namespace}/plugins`,
+      plugin
+    ) as Promise<PluginApiResponse>
   }
 
-  const deletePlugin = (plugin: Plugin): Promise<ApiResponse> => {
-    return deleteObject <Plugin>(`/apis/greenhouse.sap/v1alpha1/namespaces/${namespace}/plugins`, plugin)
+  const deletePlugin = (plugin: Plugin): Promise<PluginApiResponse> => {
+    return deleteObject<Plugin>(
+      `/apis/greenhouse.sap/v1alpha1/namespaces/${namespace}/plugins`,
+      plugin
+    ) as Promise<PluginApiResponse>
   }
 
   const getPluginsByLabelSelector = useCallback(
@@ -33,24 +50,17 @@ export const usePluginApi = () => {
       if (!client || !namespace) {
         return plugins
       }
-      const labelselector = `${labelSelectorKey}=${
-        labelSelectorValue
-      }`
+      const labelselector = `${labelSelectorKey}=${labelSelectorValue}`
 
       plugins = await client
-        .get(
-          `/apis/greenhouse.sap/v1alpha1/namespaces/${namespace}/plugins`,
-          {
-            params: {
-              labelSelector: labelselector,
-            },
-          }
-        )
+        .get(`/apis/greenhouse.sap/v1alpha1/namespaces/${namespace}/plugins`, {
+          params: {
+            labelSelector: labelselector,
+          },
+        })
         .then((res) => {
           if (res.kind !== "PluginList") {
-            console.log(
-              "ERROR: Failed to get Plugins, did not get PluginList"
-            )
+            console.log("ERROR: Failed to get Plugins, did not get PluginList")
             return [] as Plugin[]
           }
           return res.items as Plugin[]
@@ -61,7 +71,13 @@ export const usePluginApi = () => {
     [client, namespace]
   )
 
-  return { getPlugin, createPlugin, updatePlugin, deletePlugin, getPluginsByLabelSelector }
+  return {
+    getPlugin,
+    createPlugin,
+    updatePlugin,
+    deletePlugin,
+    getPluginsByLabelSelector,
+  }
 }
 
 export default usePluginApi
