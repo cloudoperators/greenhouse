@@ -24,7 +24,7 @@ const PluginList: React.FC<PluginListProps> = (props: PluginListProps) => {
   const setShowPluginDefinitionDetails = useStore(
     (state) => state.setShowPluginDefinitionDetails
   )
-  const setIsEditMode = useStore((state) => state.setIsEditMode)
+  const setIsEditMode = useStore((state) => state.setIsPluginEditMode)
 
   const onPluginClick = (plugin: Plugin) => {
     setPluginToEdit(plugin)

@@ -3,7 +3,15 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { Container, MainTabs, Tab, TabList, TabPanel } from "juno-ui-components"
+import {
+  Container,
+  MainTabs,
+  Message,
+  Stack,
+  Tab,
+  TabList,
+  TabPanel,
+} from "juno-ui-components"
 import { useEffect } from "react"
 import PluginEdit from "./plugin-edit/PluginEdit"
 import PluginDefinitionDetail from "./plugindefinitions/components/PluginDefinitionDetail"
@@ -13,6 +21,8 @@ import usePluginDefinitionsStore from "./plugindefinitions/store"
 import PluginDetail from "./plugins/components/PluginDetail"
 import PluginList from "./plugins/components/PluginList"
 import useAPI from "./plugins/hooks/useAPI"
+import SecretEdit from "./secrets/SecretEdit"
+import SecretList from "./secrets/SecretList"
 
 const AppContent = () => {
   const { getPlugins } = useAPI()
@@ -29,6 +39,10 @@ const AppContent = () => {
   const showPluginEdit = usePluginDefinitionsStore(
     (state) => state.showPluginDefinitionEdit
   )
+  const secrets = usePluginDefinitionsStore((state) => state.secrets)
+  const showSecretEdit = usePluginDefinitionsStore(
+    (state) => state.showSecretEdit
+  )
 
   const auth = usePluginDefinitionsStore((state) => state.auth)
   const authError = auth?.error
@@ -43,10 +57,18 @@ const AppContent = () => {
   return (
     <Container>
       <MainTabs>
-        <TabList>
-          <Tab>Available Plugins</Tab>
-          <Tab>Enabled Plugins</Tab>
-        </TabList>
+        <Stack distribution="between">
+          <TabList>
+            <Tab>Available Plugins</Tab>
+            <Tab>Enabled Plugins</Tab>
+            <Tab>Secrets</Tab>
+          </TabList>
+          <Message
+            variant={"warning"}
+            text="feature in beta, please use with caution."
+          />
+        </Stack>
+
         <TabPanel>
           {loggedIn && !authError ? (
             <>
@@ -69,6 +91,16 @@ const AppContent = () => {
         <TabPanel>
           <PluginDetail />
           <PluginList />
+        </TabPanel>
+        <TabPanel>
+          {loggedIn && !authError ? (
+            <>
+              {secrets.length > 0 && <SecretList secrets={secrets} />}
+              {showSecretEdit && <SecretEdit />}
+            </>
+          ) : (
+            <WelcomeView />
+          )}
         </TabPanel>
       </MainTabs>
     </Container>

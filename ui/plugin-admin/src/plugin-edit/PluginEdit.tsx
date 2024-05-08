@@ -15,22 +15,17 @@ import {
   TextInput,
 } from "juno-ui-components"
 import React from "react"
-import { Plugin, PluginDefinition, SecretDataEntry } from "../../../types/types"
+import { PluginDefinition } from "../../../types/types"
 import usePluginApi from "../plugindefinitions/hooks/usePluginApi"
-import useSecretApi from "../plugindefinitions/hooks/useSecretApi"
 import useStore from "../plugindefinitions/store"
 import ClusterSelect from "./ClusterSelect"
 import { OptionInput } from "./OptionInput"
 import handleFormChange from "./lib/utils/handleFormChange"
 import initPlugin from "./lib/utils/initPlugin"
+import SubmitResultMessage, { SubmitMessage } from "./SubmitResultMessage"
 
 interface PluginEditProps {
   pluginDefinition: PluginDefinition
-}
-
-type SubmitMessage = {
-  message: string
-  ok: boolean
 }
 
 // TODO: Hickup observed with resource states: Try getting plugin from server after failed post/put
@@ -41,21 +36,11 @@ const PluginEdit: React.FC<PluginEditProps> = (props: PluginEditProps) => {
   const pluginToEdit = useStore((state) => state.pluginToEdit)
   const setPluginToEdit = useStore((state) => state.setPluginToEdit)
 
-  // TODO: Need to get the secret from the server if it exists
-  // to be able to fill the value in the UI
-  const secretToEdit = useStore((state) => state.secretToEdit)
-  const setSecretToEdit = useStore((state) => state.setSecretToEdit)
-
-  const isEditMode = useStore((state) => state.isEditMode)
-  const setIsEditMode = useStore((state) => state.setIsEditMode)
-
-  const isSecretEditMode = useStore((state) => state.isSecretEditMode)
-  const setIsSecretEditMode = useStore((state) => state.setIsSecretEditMode)
+  const isEditMode = useStore((state) => state.isPluginEditMode)
+  const setIsEditMode = useStore((state) => state.setIsPluginEditMode)
 
   const { createPlugin, updatePlugin, deletePlugin } = usePluginApi()
-  const { createSecret, updateSecret } = useSecretApi()
 
-  //init plugin only if it is not already initialized
   React.useEffect(() => {
     if (!pluginToEdit) {
       setPluginToEdit(initPlugin(props.pluginDefinition))
@@ -64,49 +49,21 @@ const PluginEdit: React.FC<PluginEditProps> = (props: PluginEditProps) => {
 
   const onPanelClose = () => {
     setPluginToEdit(undefined)
-    setSecretToEdit(undefined)
     setShowPluginEdit(false)
     setIsEditMode(false)
-    setIsSecretEditMode(false)
   }
 
   const [submitMessage, setSubmitResultMessage] = React.useState<SubmitMessage>(
     { message: "", ok: false }
   )
   const onSubmit = async () => {
-    // if we have secret values, then first create/update the secrets, then create/update the plugin
-    if (secretToEdit) {
-      let secretCreatePromise = isSecretEditMode
-        ? createSecret(secretToEdit!)
-        : updateSecret(secretToEdit!)
+    let pluginCreatePromise = isEditMode
+      ? updatePlugin(pluginToEdit!)
+      : createPlugin(pluginToEdit!)
 
-      await secretCreatePromise.then(async (res) => {
-        if (!res.ok) {
-          setSubmitResultMessage({
-            message: "Failed to create/update plugin + " + res.message,
-            ok: res.ok,
-          })
-          return
-        }
-        setIsSecretEditMode(true)
-        let pluginCreatePromise = isEditMode
-          ? updatePlugin(pluginToEdit!)
-          : createPlugin(pluginToEdit!)
-
-        await pluginCreatePromise.then(async (res) => {
-          setSubmitResultMessage({ message: res.message, ok: res.ok })
-          return
-        })
-      })
-    } else {
-      let pluginCreatePromise = isEditMode
-        ? updatePlugin(pluginToEdit!)
-        : createPlugin(pluginToEdit!)
-
-      await pluginCreatePromise.then(async (res) => {
-        setSubmitResultMessage({ message: res.message, ok: res.ok })
-      })
-    }
+    await pluginCreatePromise.then(async (res) => {
+      setSubmitResultMessage({ message: res.message, ok: res.ok })
+    })
   }
 
   // TODO: Implement second confirmation dialog for delete
@@ -120,7 +77,6 @@ const PluginEdit: React.FC<PluginEditProps> = (props: PluginEditProps) => {
       setShowPluginEdit(false)
       setPluginToEdit(undefined)
       setIsEditMode(false)
-      setIsSecretEditMode(false)
       // TODO: Implement a way to open the details for the plugin
       console.log("I want to open the details for my plugin now :)")
     }
@@ -128,33 +84,7 @@ const PluginEdit: React.FC<PluginEditProps> = (props: PluginEditProps) => {
 
   const handleFormElementChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     try {
-      let changedPlugin: Plugin
-      let changedSecretEntry: SecretDataEntry | undefined
-      ;[changedPlugin, changedSecretEntry] = handleFormChange(e, pluginToEdit!)
-      setPluginToEdit(changedPlugin)
-
-      if (changedSecretEntry != undefined) {
-        // if secretToEdit is not set, then create a new secret object
-        if (!secretToEdit) {
-          setSecretToEdit({
-            apiVersion: "v1",
-            kind: "Secret",
-            metadata: {
-              name: pluginToEdit!.metadata!.name,
-            },
-            stringData: changedSecretEntry,
-          })
-        } else {
-          // update secretToEdit.data with changedSecretEntry
-          setSecretToEdit({
-            ...secretToEdit,
-            stringData: {
-              ...secretToEdit.stringData,
-              ...changedSecretEntry,
-            },
-          })
-        }
-      }
+      setPluginToEdit(handleFormChange(e, pluginToEdit!))
     } catch (e) {
       console.error(e)
     }
@@ -222,7 +152,6 @@ const PluginEdit: React.FC<PluginEditProps> = (props: PluginEditProps) => {
                       <OptionInput
                         pluginDefinitionOption={option}
                         pluginOptionValue={optionValue}
-                        isEditMode={isEditMode}
                         onChange={handleFormElementChange}
                       />
                     </FormRow>
@@ -236,12 +165,9 @@ const PluginEdit: React.FC<PluginEditProps> = (props: PluginEditProps) => {
                 Delete Plugin
               </Button>
               {submitMessage.message != "" && (
-                <Message
-                  autoDismissTimeout={3000}
-                  autoDismiss={submitMessage.ok}
-                  onDismiss={() => onMessageDismiss(submitMessage.ok)}
-                  variant={submitMessage.ok ? "success" : "error"}
-                  text={submitMessage.message}
+                <SubmitResultMessage
+                  submitMessage={submitMessage}
+                  onMessageDismiss={() => onMessageDismiss(submitMessage.ok)}
                 />
               )}
               <Button onClick={onSubmit} variant="primary">

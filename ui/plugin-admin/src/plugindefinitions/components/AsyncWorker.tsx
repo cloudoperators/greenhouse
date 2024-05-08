@@ -6,6 +6,7 @@
 import { useEffect } from "react"
 import useUrlState from "../hooks/useUrlState"
 import useWatch from "../hooks/useWatch"
+import useCommunication from "../hooks/useCommunication"
 
 interface AsyncWorkerProps {
   consumerId: string
@@ -13,14 +14,23 @@ interface AsyncWorkerProps {
 
 const AsyncWorker: React.FC<AsyncWorkerProps> = (props: AsyncWorkerProps) => {
   useUrlState(props.consumerId)
+  useCommunication()
 
-  const { watchPluginDefinitions: watchPluginDefinitions } = useWatch()
+  const { watchPluginDefinitions, watchSecrets } = useWatch()
 
   useEffect(() => {
     if (!watchPluginDefinitions) return
+    console.log("watching plugin definitions")
     const unwatch = watchPluginDefinitions()
     return unwatch
   }, [watchPluginDefinitions])
+
+  useEffect(() => {
+    if (!watchSecrets) return
+    console.log("watching secrets")
+    const unwatch = watchSecrets()
+    return unwatch
+  }, [watchSecrets])
 
   return null
 }

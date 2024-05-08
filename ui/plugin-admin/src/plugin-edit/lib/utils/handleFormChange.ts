@@ -1,15 +1,22 @@
-import { Plugin, PluginOptionValue, Secret, SecretDataEntry } from "../../../../../types/types"
+import {
+  Plugin,
+  PluginOptionValue,
+  Secret,
+  SecretDataEntry,
+} from "../../../../../types/types"
 
 const handleFormChange = (
   e: React.ChangeEvent<HTMLInputElement>,
   plugin: Plugin
-  ): [Plugin, SecretDataEntry?] => {
+): Plugin => {
   let value: string | boolean | number | undefined = undefined
   let secretDataEntry: SecretDataEntry | undefined
   let valueFrom: PluginOptionValue["valueFrom"] | undefined = undefined
 
+  console.log("e.target", e.target)
+
   if (e.target?.type == undefined) {
-    throw new Error("Unexpected form change event: "+JSON.stringify(e) )
+    throw new Error("Unexpected form change event: " + JSON.stringify(e))
   }
   const optionId = e.target.id.split(".")[1]
   switch (e.target.type) {
@@ -22,16 +29,8 @@ const handleFormChange = (
     case "textarea":
       value = JSON.parse(e.target.value)
       break
-    case "password":
-      valueFrom = {
-        secret: {
-          key: optionId,
-          name: plugin.metadata!.name!,
-        },
-      }
-      secretDataEntry = {
-        [optionId]:  e.target.value,
-      }
+    case "secret-select":
+      valueFrom = JSON.parse(e.target.value)
       break
     default:
       value = e.target.value
@@ -40,26 +39,25 @@ const handleFormChange = (
 
   // the incoming id consists of the path to the property in the plugin object separated by dots
   if (e.target.id.startsWith("metadata.")) {
-    return [{
+    return {
       ...plugin,
       metadata: {
         ...plugin.metadata!,
-        [optionId]: value ,
+        [optionId]: value,
       },
-    }, secretDataEntry]
+    }
   } else if (e.target.id.startsWith("spec.")) {
-    return [{
+    return {
       ...plugin,
       spec: {
         ...plugin.spec!,
         [optionId]: value,
       },
-    }, secretDataEntry]
+    }
   } else if (e.target.id.startsWith("optionValues.")) {
-    
     // delete from plugin.spec.optionValues by matching name property if value is empty
     if (value == "" && valueFrom == undefined) {
-      return [{
+      return {
         ...plugin,
         spec: {
           ...plugin.spec!,
@@ -67,7 +65,7 @@ const handleFormChange = (
             (option) => option.name != optionId
           ),
         },
-      }, secretDataEntry]
+      }
     }
     //   replace in plugin.spec.optionValues by matching name property or push if not found
     let wasFound = false
@@ -78,8 +76,9 @@ const handleFormChange = (
     if (valueFrom != undefined) {
       optionValueToSet.valueFrom = valueFrom
     }
+    console.log("optionValueToSet", optionValueToSet)
     let changedPlugin: Plugin
-    changedPlugin ={
+    changedPlugin = {
       ...plugin,
       spec: {
         ...plugin.spec!,
@@ -94,21 +93,17 @@ const handleFormChange = (
       },
     }
     if (!wasFound) {
-      changedPlugin ={
+      changedPlugin = {
         ...plugin,
         spec: {
           ...plugin.spec!,
-          optionValues: [
-            ...plugin.spec!.optionValues!,
-            optionValueToSet,
-          ],
+          optionValues: [...plugin.spec!.optionValues!, optionValueToSet],
         },
       }
     }
-    return [changedPlugin, secretDataEntry]
+    return changedPlugin
   }
-  return [plugin, secretDataEntry]
+  return plugin
 }
-
 
 export default handleFormChange

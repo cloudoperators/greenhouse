@@ -1,9 +1,9 @@
-import { TextInput, Textarea, Checkbox } from "juno-ui-components"
+import { Checkbox, TextInput, Textarea } from "juno-ui-components"
 import { PluginDefinitionOption, PluginOptionValue } from "../../../types/types"
+import SecretKeySelect from "./SecretKeySelect"
 
 interface OptionInputProps {
   pluginDefinitionOption: PluginDefinitionOption
-  isEditMode: boolean
   pluginOptionValue?: PluginOptionValue
   onChange?: (e: React.ChangeEvent<HTMLInputElement>) => void
 }
@@ -25,6 +25,7 @@ export const OptionInput: React.FC<OptionInputProps> = (
 
   // values have already been defaulted on initPlugin
   let value = props.pluginOptionValue?.value
+  let valueFrom = props.pluginOptionValue?.valueFrom
 
   let type = "text"
 
@@ -53,8 +54,16 @@ export const OptionInput: React.FC<OptionInputProps> = (
         ></Textarea>
       )
     case "secret":
-      type = "password"
-      break
+      return (
+        <SecretKeySelect
+          id={id}
+          label={label}
+          required={required}
+          helptext={helptext}
+          value={valueFrom}
+          onChange={handleBlur}
+        />
+      )
     case "int":
       type = "number"
       break

@@ -12,13 +12,20 @@ const AsyncWorker = () => {
   useCommunication()
   useUrlState()
 
-  const { watchPluginDefinitions: watchPluginDefinitions } = useWatch()
+  const { watchPluginDefinitions, watchSecrets } = useWatch()
 
   useEffect(() => {
     if (!watchPluginDefinitions) return
     const unwatch = watchPluginDefinitions()
     return unwatch
   }, [watchPluginDefinitions])
+
+  useEffect(() => {
+    if (!watchSecrets) return
+    console.log("watching secrets")
+    const unwatch = watchSecrets()
+    return unwatch
+  }, [watchSecrets])
 
 
   return null

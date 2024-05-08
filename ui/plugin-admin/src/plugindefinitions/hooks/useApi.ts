@@ -1,133 +1,176 @@
 import { useCallback } from "react"
-import { Secret, Plugin, Cluster, PluginDefinition } from "../../../../types/types"
+import {
+  Secret,
+  Plugin,
+  Cluster,
+  PluginDefinition,
+} from "../../../../types/types"
 import useClient from "./useClient"
 import useNamespace from "./useNamespace"
 
 export type AllowedApiObject = Plugin | Cluster | Secret | PluginDefinition
 
 export type ApiResponse = {
-  ok: boolean,
+  ok: boolean
   message: string
   response?: AllowedApiObject
 }
+
+// Big TODO: correctly check for correct "kind" on results, e.g. update calls
 
 export const useApi = () => {
   const { namespace } = useNamespace()
   const { client: client } = useClient()
 
-const get = useCallback(
-  async <T extends AllowedApiObject>(url: string, object: T): Promise<ApiResponse> => { 
-  let response: T
+  const get = useCallback(
+    async <T extends AllowedApiObject>(
+      url: string,
+      object: T
+    ): Promise<ApiResponse> => {
+      let response: T
 
-  if (!client || !namespace) {
-    return { ok: false, message: "Client or namespace not available" }
-  }
-
-  return await client
-    .get(
-      url+"/"+object.metadata!.name!,
-    )
-    .then((res) => {
-      if (res.kind !== object.kind) {
-        console.log(
-          `ERROR: Failed to get ${object.kind}, did not get ${object.kind}`
-        )
-        return {ok: false, message: `Failed getting ${object.kind}`}
-      }
-      return {ok: true, response: res as T, message: `Successfully got ${object.kind}`}
-    })
-    .catch((error) => {
-      console.log(`ERROR: Failed to get ${object.kind}`, error)
-      return {ok: false, message: `Failed getting ${object.kind}: ${error}`}
-    })
-  }, [client, namespace]
-  )
-
-  const create = useCallback(
-    async <T extends AllowedApiObject>(url: string, object: T): Promise<ApiResponse> => {
       if (!client || !namespace) {
         return { ok: false, message: "Client or namespace not available" }
       }
 
       return await client
-        .post(
-          url,
-          object
-        )
+        .get(url + "/" + object.metadata!.name!)
+        .then((res) => {
+          if (res.kind !== object.kind) {
+            console.log(
+              `ERROR: Failed to get ${object.kind}, did not get ${object.kind}`
+            )
+            return { ok: false, message: `Failed getting ${object.kind}` }
+          }
+          return {
+            ok: true,
+            response: res as T,
+            message: `Successfully got ${object.kind}`,
+          }
+        })
+        .catch((error) => {
+          console.log(`ERROR: Failed to get ${object.kind}`, error)
+          return {
+            ok: false,
+            message: `Failed getting ${object.kind}: ${error}`,
+          }
+        })
+    },
+    [client, namespace]
+  )
+
+  const create = useCallback(
+    async <T extends AllowedApiObject>(
+      url: string,
+      object: T
+    ): Promise<ApiResponse> => {
+      if (!client || !namespace) {
+        return { ok: false, message: "Client or namespace not available" }
+      }
+
+      return await client
+        .post(url, object)
         .then((res) => {
           if (res.kind !== object.kind) {
             console.log(
               `ERROR: Failed to create ${object.kind}, did not get ${object.kind}`
             )
-            return {ok: false, message: `Failed creating ${object.kind}`}
+            return { ok: false, message: `Failed creating ${object.kind}` }
           }
-          return {ok: true, response: res as T, message: `Successfully created ${object.kind}`}
+          return {
+            ok: true,
+            response: res as T,
+            message: `Successfully created ${object.kind}`,
+          }
         })
         .catch((error) => {
           console.log(`ERROR: Failed to create ${object.kind}`, error)
-          return {ok: false, message: `Failed creating ${object.kind}: ${error}`}
+          return {
+            ok: false,
+            message: `Failed creating ${object.kind}: ${error}`,
+          }
         })
-    }, [client, namespace]
+    },
+    [client, namespace]
   )
 
   const update = useCallback(
-    async <T extends AllowedApiObject>(url: string, object: T): Promise<ApiResponse> => {
+    async <T extends AllowedApiObject>(
+      url: string,
+      object: T
+    ): Promise<ApiResponse> => {
       if (!client || !namespace) {
         return { ok: false, message: "Client or namespace not available" }
       }
+      console.log(typeof object)
 
       return await client
-        .put(
-          url+"/"+object.metadata!.name!,
-          object
-        )
+        .put(url + "/" + object.metadata!.name!, object)
         .then((res) => {
           if (res.kind !== object.kind) {
             console.log(
-              `ERROR: Failed to update ${object.kind}, did not get ${object.kind}`
+              `ERROR: Failed to update ${object.kind}, did not get ${
+                object.kind
+              }: ${JSON.stringify(res)}`
             )
-            return {ok: false, message: `Failed updating ${object.kind}`}
+            return { ok: false, message: `Failed updating ${object.kind}` }
           }
-          return {ok: true, response: res as T, message: `Successfully updated ${object.kind}`}
+          return {
+            ok: true,
+            response: res as T,
+            message: `Successfully updated ${object.kind}`,
+          }
         })
         .catch((error) => {
           console.log(`ERROR: Failed to update ${object.kind}`, error)
-          return {ok: false, message: `Failed updating ${object.kind}: ${error}`}
+          return {
+            ok: false,
+            message: `Failed updating ${object.kind}: ${error}`,
+          }
         })
-    }, [client, namespace]
+    },
+    [client, namespace]
   )
 
   const deleteObject = useCallback(
-    async <T extends AllowedApiObject>(url: string, object: T): Promise<ApiResponse> => {
+    async <T extends AllowedApiObject>(
+      url: string,
+      object: T
+    ): Promise<ApiResponse> => {
       if (!client || !namespace) {
         return { ok: false, message: "Client or namespace not available" }
       }
 
       return await client
-        .delete(
-          url+"/"+object.metadata!.name!,
-        )
+        .delete(url + "/" + object.metadata!.name!)
         .then((res) => {
-          if((res.kind == "Plugin") || (res.kind == "Status" && res.status == "Success")){
-            return {ok: true, message: `Successfully deleted ${object.kind}`}
+          if (
+            res.kind == "Plugin" ||
+            (res.kind == "Status" && res.status == "Success")
+          ) {
+            return { ok: true, message: `Successfully deleted ${object.kind}` }
           }
           console.log(
             `ERROR: Failed to delete ${object.kind}, did not get ${object.kind}`
           )
-          return {ok: false, message: `Failed deleting ${object.kind}`}
+          return { ok: false, message: `Failed deleting ${object.kind}` }
         })
         .catch((error) => {
           console.log(`ERROR: Failed to delete ${object.kind}`, error)
-          return {ok: false, message: `Failed deleting ${object.kind}: ${error}`}
+          return {
+            ok: false,
+            message: `Failed deleting ${object.kind}: ${error}`,
+          }
         })
-    }, [client, namespace]
+    },
+    [client, namespace]
   )
 
-  return { 
-    get: get ,
+  return {
+    get: get,
     create: create,
     update: update,
-    deleteObject: deleteObject
+    deleteObject: deleteObject,
   }
 }
 
