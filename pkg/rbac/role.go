@@ -40,6 +40,12 @@ func OrganizationAdminPolicyRules() []rbacv1.PolicyRule {
 			APIGroups: []string{greenhouseapisv1alpha1.GroupVersion.Group},
 			Resources: []string{"teamroles"},
 		},
+		// Grant permission to view Alertmanager and AlertmanagerConfig resources
+		{
+			Verbs:     []string{"get", "list", "watch"},
+			APIGroups: []string{"monitoring.coreos.com"},
+			Resources: []string{"alertmanagers", "alertmanagerconfigs"},
+		},
 	}
 	orgAdminPolicyRules = append(orgAdminPolicyRules,
 		OrganizationClusterAdminPolicyRules()...)
