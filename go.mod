@@ -5,7 +5,7 @@ go 1.21
 replace (
 	// DEX import matches version v2.39.1.
 	github.com/dexidp/dex => github.com/dexidp/dex v0.0.0-20240409110506-3705207f0190
-	github.com/dexidp/dex/api/v2 => github.com/dexidp/dex/api/v2 v2.1.1-0.20240409110506-3705207f0190
+	github.com/dexidp/dex/api/v2 => github.com/dexidp/dex/api/v2 v2.1.1-0.20240513190105-347bebafad42
 	// Keep k8s dependencies in sync.
 	k8s.io/api => k8s.io/api v0.29.4
 	k8s.io/apiextensions-apiserver => k8s.io/apiextensions-apiserver v0.29.4
@@ -213,7 +213,7 @@ require (
 	google.golang.org/appengine v1.6.8 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20240318140521-94a12d6c2237 // indirect
 	google.golang.org/grpc v1.63.2
-	google.golang.org/protobuf v1.33.0
+	google.golang.org/protobuf v1.34.1
 	gopkg.in/inf.v0 v0.9.1 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	k8s.io/apiserver v0.29.4 // indirect

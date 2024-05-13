@@ -95,8 +95,8 @@ github.com/davecgh/go-spew v1.1.1 h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c
 github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/dexidp/dex v0.0.0-20240409110506-3705207f0190 h1:FS08LMNgvz3E6n7nnvREY89waYUxtRRGwOoIcE40X84=
 github.com/dexidp/dex v0.0.0-20240409110506-3705207f0190/go.mod h1:X8qNmuonABp/IwN1BCFy8VYJeEf3eqtCHviaRm1YkAw=
-github.com/dexidp/dex/api/v2 v2.1.1-0.20240409110506-3705207f0190 h1:yX1m0LPe72Go7z8414Bb6xcwBURxF9epVbN0aCCPu8w=
-github.com/dexidp/dex/api/v2 v2.1.1-0.20240409110506-3705207f0190/go.mod h1:8gHqlHI7Go6RtemwGSTPbUX5rkEV72gIdK6/fcFQcZ8=
+github.com/dexidp/dex/api/v2 v2.1.1-0.20240513190105-347bebafad42 h1:Jn7pkM9nccC6ujQdvZxkMshe682S9drrGKTT2cVdGgk=
+github.com/dexidp/dex/api/v2 v2.1.1-0.20240513190105-347bebafad42/go.mod h1:TR6zwDN3z8EtSAd0NLZiKJRpnZn+dGOZKOJupIMKt+Q=
 github.com/distribution/distribution/v3 v3.0.0-20221208165359-362910506bc2 h1:aBfCb7iqHmDEIp6fBvC/hQUddQfg+3qdYjwzaiP9Hnc=
 github.com/distribution/distribution/v3 v3.0.0-20221208165359-362910506bc2/go.mod h1:WHNsWjnIn2V1LYOrME7e8KxSeKunYHsxEm4am0BUtcI=
 github.com/docker/cli v24.0.6+incompatible h1:fF+XCQCgJjjQNIMjzaSmiKJSCcfcXb3TWTcc7GAneOY=
@@ -673,8 +673,8 @@ google.golang.org/protobuf v1.23.1-0.20200526195155-81db48ad09cc/go.mod h1:EGpAD
 google.golang.org/protobuf v1.25.0/go.mod h1:9JNX74DMeImyA3h4bdi1ymwjUzf21/xIlbajtzgsN7c=
 google.golang.org/protobuf v1.26.0-rc.1/go.mod h1:jlhhOSvTdKEhbULTjvd4ARK9grFBp09yW+WbY/TyQbw=
 google.golang.org/protobuf v1.26.0/go.mod h1:9q0QmTI4eRPtz6boOQmLYwt+qCgq0jsYwAQnmE0givc=
-google.golang.org/protobuf v1.33.0 h1:uNO2rsAINq/JlFpSdYEKIZ0uKD/R9cpdv0T+yoGwGmI=
-google.golang.org/protobuf v1.33.0/go.mod h1:c6P6GXX6sHbq/GpV6MGZEdwhWPcYBgnhAHhKbcUYpos=
+google.golang.org/protobuf v1.34.1 h1:9ddQBjfCyZPOHPUiPxpYESBLc+T8P3E+Vo4IbKZgFWg=
+google.golang.org/protobuf v1.34.1/go.mod h1:c6P6GXX6sHbq/GpV6MGZEdwhWPcYBgnhAHhKbcUYpos=
 gopkg.in/alecthomas/kingpin.v2 v2.2.6/go.mod h1:FMv+mEhP44yOT+4EoQTLFTRgOQ1FBLkstjWtayDeSgw=
 gopkg.in/check.v1 v0.0.0-20161208181325-20d25e280405/go.mod h1:Co6ibVJAznAaIkqp8huTwlJQCZ016jof/cbN4VW5Yz0=
 gopkg.in/check.v1 v1.0.0-20180628173108-788fd7840127/go.mod h1:Co6ibVJAznAaIkqp8huTwlJQCZ016jof/cbN4VW5Yz0=
