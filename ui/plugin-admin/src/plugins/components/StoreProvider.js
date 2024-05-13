@@ -22,6 +22,8 @@ export const useApiEndpoint = () =>
   useAppStore((state) => state.globals.apiEndpoint)
 export const useLoggedIn = () => useAppStore((state) => state.globals.loggedIn)
 export const useAuthData = () => useAppStore((state) => state.globals.authData)
+export const useShowDefinitionPanel = () =>
+  useAppStore((state) => state.globals.showDefinitionPanel)
 
 export const useGlobalsActions = () =>
   useAppStore((state) => state.globals.actions)

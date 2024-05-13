@@ -13,36 +13,17 @@ import {
   TabPanel,
 } from "juno-ui-components"
 import { useEffect } from "react"
-import PluginEdit from "./plugin-edit/PluginEdit"
-import PluginDefinitionDetail from "./plugindefinitions/components/PluginDefinitionDetail"
-import PluginDefinitionGrid from "./plugindefinitions/components/PluginDefinitionGrid"
 import WelcomeView from "./plugindefinitions/components/WelcomeView"
 import usePluginDefinitionsStore from "./plugindefinitions/store"
 import PluginDetail from "./plugins/components/PluginDetail"
 import PluginList from "./plugins/components/PluginList"
+import PluginDefinitionPanel from "./plugindefinitions/components/PluginDefinitionPanel"
 import useAPI from "./plugins/hooks/useAPI"
 import SecretEdit from "./secrets/SecretEdit"
 import SecretList from "./secrets/SecretList"
 
 const AppContent = () => {
   const { getPlugins } = useAPI()
-
-  const pluginDefinitions = usePluginDefinitionsStore(
-    (state) => state.pluginDefinitions
-  )
-  const showPluginDefinitionDetails = usePluginDefinitionsStore(
-    (state) => state.showPluginDefinitionDetails
-  )
-  const pluginDefinitionDetail = usePluginDefinitionsStore(
-    (state) => state.pluginDefinitionDetail
-  )
-  const showPluginEdit = usePluginDefinitionsStore(
-    (state) => state.showPluginDefinitionEdit
-  )
-  const secrets = usePluginDefinitionsStore((state) => state.secrets)
-  const showSecretEdit = usePluginDefinitionsStore(
-    (state) => state.showSecretEdit
-  )
 
   const auth = usePluginDefinitionsStore((state) => state.auth)
   const authError = auth?.error
@@ -56,53 +37,15 @@ const AppContent = () => {
 
   return (
     <Container>
-      <MainTabs>
-        <Stack distribution="between">
-          <TabList>
-            <Tab>Available Plugins</Tab>
-            <Tab>Enabled Plugins</Tab>
-            <Tab>Secrets</Tab>
-          </TabList>
-          <Message
-            variant={"warning"}
-            text="feature in beta, please use with caution."
-          />
-        </Stack>
-
-        <TabPanel>
-          {loggedIn && !authError ? (
-            <>
-              {pluginDefinitions?.length > 0 && (
-                <PluginDefinitionGrid pluginDefinitions={pluginDefinitions} />
-              )}
-              {showPluginDefinitionDetails && pluginDefinitionDetail && (
-                <PluginDefinitionDetail
-                  pluginDefinition={pluginDefinitionDetail}
-                />
-              )}
-              {showPluginEdit && pluginDefinitionDetail && (
-                <PluginEdit pluginDefinition={pluginDefinitionDetail} />
-              )}
-            </>
-          ) : (
-            <WelcomeView />
-          )}
-        </TabPanel>
-        <TabPanel>
+      {loggedIn && !authError ? (
+        <>
+          <PluginDefinitionPanel />
           <PluginDetail />
           <PluginList />
-        </TabPanel>
-        <TabPanel>
-          {loggedIn && !authError ? (
-            <>
-              {secrets.length > 0 && <SecretList secrets={secrets} />}
-              {showSecretEdit && <SecretEdit />}
-            </>
-          ) : (
-            <WelcomeView />
-          )}
-        </TabPanel>
-      </MainTabs>
+        </>
+      ) : (
+        <WelcomeView />
+      )}
     </Container>
   )
 }

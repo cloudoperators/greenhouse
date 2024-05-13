@@ -9,6 +9,7 @@ const createGlobalsSlice = (set, get) => ({
     apiEndpoint: null,
     loggedIn: false,
     authData: null,
+    showDefinitionPanel: false,
 
     actions: {
       setUrlStateKey: (newUrlStateKey) =>
@@ -27,6 +28,14 @@ const createGlobalsSlice = (set, get) => ({
       setEndpoint: (apiEndpoint) =>
         set((state) => ({
           globals: { ...state.globals, apiEndpoint: apiEndpoint },
+        })),
+
+      setShowDefinitionPanel: (showDefinitionPanel) =>
+        set((state) => ({
+          globals: {
+            ...state.globals,
+            showDefinitionPanel: showDefinitionPanel,
+          },
         })),
     },
   },
