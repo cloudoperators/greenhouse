@@ -104,7 +104,7 @@ func ValidateCreatePlugin(ctx context.Context, c client.Client, obj runtime.Obje
 
 func ValidateUpdatePlugin(ctx context.Context, c client.Client, old, obj runtime.Object) (admission.Warnings, error) {
 	var allWarns admission.Warnings
-	oldPlugin, ok := obj.(*greenhousev1alpha1.Plugin)
+	oldPlugin, ok := old.(*greenhousev1alpha1.Plugin)
 	if !ok {
 		return nil, nil
 	}
@@ -130,6 +130,11 @@ func ValidateUpdatePlugin(ctx context.Context, c client.Client, old, obj runtime
 	}
 	if err := validateImmutableField(oldPlugin.Spec.ClusterName, plugin.Spec.ClusterName,
 		field.NewPath("spec", "clusterName"),
+	); err != nil {
+		return allWarns, err
+	}
+	if err := validateImmutableField(oldPlugin.Spec.ReleaseNamespace, plugin.Spec.ReleaseNamespace,
+		field.NewPath("spec", "releaseNamespace"),
 	); err != nil {
 		return allWarns, err
 	}
