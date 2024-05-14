@@ -8,10 +8,10 @@ import {
   Form,
   FormRow,
   FormSection,
-  Message,
   Panel,
   PanelBody,
   Stack,
+  Switch,
   TextInput,
 } from "juno-ui-components"
 import React from "react"
@@ -20,9 +20,9 @@ import usePluginApi from "../plugindefinitions/hooks/usePluginApi"
 import useStore from "../plugindefinitions/store"
 import ClusterSelect from "./ClusterSelect"
 import { OptionInput } from "./OptionInput"
+import SubmitResultMessage, { SubmitMessage } from "./SubmitResultMessage"
 import handleFormChange from "./lib/utils/handleFormChange"
 import initPlugin from "./lib/utils/initPlugin"
-import SubmitResultMessage, { SubmitMessage } from "./SubmitResultMessage"
 
 interface PluginEditProps {
   pluginDefinition: PluginDefinition
@@ -40,6 +40,11 @@ const PluginEdit: React.FC<PluginEditProps> = (props: PluginEditProps) => {
   const setIsEditMode = useStore((state) => state.setIsPluginEditMode)
 
   const { createPlugin, updatePlugin, deletePlugin } = usePluginApi()
+
+  const [isPluginPreset, setIsPluginPreset] = React.useState(false)
+  const isPluginPresetChange = () => {
+    setIsPluginPreset(!isPluginPreset)
+  }
 
   React.useEffect(() => {
     if (!pluginToEdit) {
@@ -94,7 +99,11 @@ const PluginEdit: React.FC<PluginEditProps> = (props: PluginEditProps) => {
     <Panel
       heading={
         <Stack gap="2">
-          <span>Configure Plugin</span>
+          {isPluginPreset ? (
+            <span>Configure Plugin Preset</span>
+          ) : (
+            <span>Configure Plugin</span>
+          )}
         </Stack>
       }
       opened={!!props.pluginDefinition}
@@ -110,6 +119,14 @@ const PluginEdit: React.FC<PluginEditProps> = (props: PluginEditProps) => {
             }
           >
             <FormSection title="General">
+              <FormRow>
+                <Switch
+                  id="switch-plugin-preset"
+                  label="Make Plugin Preset"
+                  onChange={isPluginPresetChange}
+                  onClick={isPluginPresetChange}
+                />
+              </FormRow>
               <FormRow>
                 <TextInput
                   id="spec.displayName"

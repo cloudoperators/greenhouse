@@ -10,6 +10,7 @@ export type Secret = k8sSecret
 export type Cluster = components["schemas"]["Cluster"]
 export type PluginDefinition = components["schemas"]["PluginDefinition"]
 export type Plugin = components["schemas"]["Plugin"]
+export type PluginPreset = components["schemas"]["PluginPreset"]
 export type UpdateClusterInput = {
   clusters: Cluster[]
   action: UpdateObjectAction
