@@ -20,6 +20,7 @@ import SubmitResultMessage, {
 import useSecretApi from "../plugindefinitions/hooks/useSecretApi"
 import useStore from "../plugindefinitions/store"
 import useSecretEditForm from "./handleSecretFormChange"
+import KeyValueInput from "./KeyValueInput"
 
 const SecretEdit: React.FC<any> = () => {
   const setShowSecretEdit = useStore((state) => state.setShowSecretEdit)
@@ -28,21 +29,33 @@ const SecretEdit: React.FC<any> = () => {
   const isSecreEditMode = useStore((state) => state.isSecretEditMode)
   const setIsSecretEditMode = useStore((state) => state.setIsSecretEditMode)
 
-  const { handleSecretFormChange, deleteDataEntry } = useSecretEditForm()
-
   const { createSecret, updateSecret, deleteSecret } = useSecretApi()
 
   const [submitMessage, setSubmitResultMessage] = React.useState<SubmitMessage>(
     { message: "", ok: false }
   )
 
-  const handleFormElementChange = (key, value: string) => {
-    handleSecretFormChange(key, value)
+  const handleNameChange = (value: string) => {
+    setSecretDetail({
+      ...secretDetail,
+      metadata: {
+        ...secretDetail?.metadata,
+        name: value,
+      },
+    })
   }
 
-  const deleteData = (key, value: string) => {
-    deleteDataEntry(key)
+  const setSecretData = (data: { [key: string]: string }) => {
+    setSecretDetail({
+      ...secretDetail,
+      data: data,
+    })
   }
+
+  const base64Endcode = (value: string) => {
+    return btoa(value)
+  }
+
   const onPanelClose = () => {
     setShowSecretEdit(false)
     setSecretDetail(undefined)
@@ -64,16 +77,6 @@ const SecretEdit: React.FC<any> = () => {
     })
   }
 
-  const addData = () => {
-    setSecretDetail({
-      ...secretDetail,
-      data: {
-        ...secretDetail?.data,
-        "": "",
-      },
-    })
-  }
-  console.log("secretDetail", secretDetail)
   return (
     <Panel
       heading={
@@ -95,54 +98,15 @@ const SecretEdit: React.FC<any> = () => {
                 placeholder="Name of this secret"
                 {...(isSecreEditMode && { disabled: true })}
                 value={secretDetail?.metadata!.name}
-                onBlur={(e) => handleFormElementChange("name", e.target.value)}
+                onBlur={(e) => handleNameChange(e.target.value)}
               />
             </FormRow>
           </FormSection>
-
-          <FormSection title="Data">
-            {secretDetail!.data &&
-              Object.keys(secretDetail!.data!).length > 0 &&
-              Object.keys(secretDetail!.data!).map((dataKey) => (
-                <Stack key={dataKey} distribution="evenly">
-                  <TextInput
-                    id={"dataKey." + dataKey}
-                    label="Data Key"
-                    placeholder="Key of this secret data entry"
-                    value={dataKey}
-                    onBlur={(e) =>
-                      handleFormElementChange(
-                        "dataKey." + dataKey,
-                        e.target.value
-                      )
-                    }
-                  />
-
-                  <TextInput
-                    id={"dataValue" + dataKey}
-                    type="password"
-                    label="Data Value"
-                    placeholder="Value of this secret data entry"
-                    value={secretDetail!.data![dataKey]}
-                    onBlur={(e) =>
-                      handleFormElementChange(
-                        "dataValue." + dataKey,
-                        e.target.value
-                      )
-                    }
-                  />
-                  <Button
-                    icon="deleteForever"
-                    label="Remove entry"
-                    onClick={() =>
-                      deleteData(dataKey, secretDetail!.data![dataKey])
-                    }
-                  />
-                </Stack>
-              ))}
-            <Button icon="addCircle" label="Add Data" onClick={addData} />
-          </FormSection>
-
+          <KeyValueInput
+            data={secretDetail!.data}
+            setData={setSecretData}
+            mutateValue={base64Endcode}
+          ></KeyValueInput>
           <Stack distribution="between">
             <Button onClick={onDelete} variant="primary-danger">
               Delete Secret
