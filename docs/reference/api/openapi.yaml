@@ -1,7 +1,7 @@
 openapi: 3.0.0
 info:
   title: Greenhouse
-  version: 53a9716
+  version: 5195a82
   description: PlusOne operations platform
 paths:
   /Plugin:
@@ -19,6 +19,11 @@ paths:
       responses:
         default:
           description: TeamRole
+  /PluginPreset:
+    post:
+      responses:
+        default:
+          description: PluginPreset
   /Cluster:
     post:
       responses:
@@ -107,6 +112,9 @@ components:
               type: array
             pluginDefinition:
               description: PluginDefinition is the name of the PluginDefinition this instance is for.
+              type: string
+            releaseNamespace:
+              description: ReleaseNamespace is the namespace in the remote cluster to which the backend is deployed. Defaults to the Greenhouse managed namespace if not set.
               type: string
           required:
             - disabled
@@ -234,12 +242,12 @@ components:
               type: integer
           type: object
       type: object
-    TeamRole:
+    Organization:
       xml:
         name: greenhouse.sap
         namespace: v1alpha1
-      title: TeamRole
-      description: TeamRole is the Schema for the TeamRoles API
+      title: Organization
+      description: Organization is the Schema for the organizations API
       properties:
         apiVersion:
           description: 'APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
@@ -250,45 +258,64 @@ components:
         metadata:
           type: object
         spec:
-          description: TeamRoleSpec defines the desired state of a TeamRole
+          description: OrganizationSpec defines the desired state of Organization
           properties:
-            rules:
-              description: Rules is a list of rbacv1.PolicyRules used on a managed RBAC (Cluster)Role
-              items:
-                description: PolicyRule holds information that describes a policy rule, but does not contain information about who the rule applies to or which namespace the rule applies to.
-                properties:
-                  apiGroups:
-                    description: APIGroups is the name of the APIGroup that contains the resources.  If multiple API groups are specified, any action requested against one of the enumerated resources in any API group will be allowed. "" represents the core API group and "*" represents all API groups.
-                    items:
+            authentication:
+              description: Authentication configures the organizations authentication mechanism.
+              properties:
+                oidc:
+                  description: OIDConfig configures the OIDC provider.
+                  properties:
+                    clientIDReference:
+                      description: ClientIDReference references the Kubernetes secret containing the client id.
+                      properties:
+                        key:
+                          description: Key in the secret to select the value from.
+                          type: string
+                        name:
+                          description: Name of the secret in the same namespace.
+                          type: string
+                      required:
+                        - key
+                        - name
+                      type: object
+                    clientSecretReference:
+                      description: ClientSecretReference references the Kubernetes secret containing the client secret.
+                      properties:
+                        key:
+                          description: Key in the secret to select the value from.
+                          type: string
+                        name:
+                          description: Name of the secret in the same namespace.
+                          type: string
+                      required:
+                        - key
+                        - name
+                      type: object
+                    issuer:
+                      description: Issuer is the URL of the identity service.
                       type: string
-                    type: array
-                  nonResourceURLs:
-                    description: NonResourceURLs is a set of partial urls that a user should have access to.  *s are allowed, but only as the full, final step in the path Since non-resource URLs are not namespaced, this field is only applicable for ClusterRoles referenced from a ClusterRoleBinding. Rules can either apply to API resources (such as "pods" or "secrets") or non-resource URL paths (such as "/api"),  but not both.
-                    items:
+                    redirectURI:
+                      description: RedirectURI is the redirect URI. If none is specified, the Greenhouse ID proxy will be used.
                       type: string
-                    type: array
-                  resourceNames:
-                    description: ResourceNames is an optional white list of names that the rule applies to.  An empty set means that everything is allowed.
-                    items:
-                      type: string
-                    type: array
-                  resources:
-                    description: Resources is a list of resources this rule applies to. '*' represents all resources.
-                    items:
-                      type: string
-                    type: array
-                  verbs:
-                    description: Verbs is a list of Verbs that apply to ALL the ResourceKinds contained in this rule. '*' represents all verbs.
-                    items:
-                      type: string
-                    type: array
-                required:
-                  - verbs
-                type: object
-              type: array
+                  required:
+                    - clientIDReference
+                    - clientSecretReference
+                    - issuer
+                  type: object
+              type: object
+            description:
+              description: Description provides additional details of the organization.
+              type: string
+            displayName:
+              description: DisplayName is an optional name for the organization to be displayed in the Greenhouse UI. Defaults to a normalized version of metadata.name.
+              type: string
+            mappedOrgAdminIdPGroup:
+              description: MappedOrgAdminIDPGroup is the IDP group ID identifying org admins
+              type: string
           type: object
         status:
-          description: TeamRoleStatus defines the observed state of a TeamRole
+          description: OrganizationStatus defines the observed state of an Organization
           type: object
       type: object
     TeamRole:
@@ -346,6 +373,151 @@ components:
           type: object
         status:
           description: TeamRoleStatus defines the observed state of a TeamRole
+          type: object
+      type: object
+    PluginPreset:
+      xml:
+        name: greenhouse.sap
+        namespace: v1alpha1
+      title: PluginPreset
+      description: PluginPreset is the Schema for the PluginPresets API
+      properties:
+        apiVersion:
+          description: 'APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+          type: string
+        kind:
+          description: 'Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+          type: string
+        metadata:
+          type: object
+        spec:
+          description: PluginPresetSpec defines the desired state of PluginPreset
+          properties:
+            clusterSelector:
+              description: ClusterSelector is a label selector to select the clusters the plugin bundle should be deployed to.
+              properties:
+                matchExpressions:
+                  description: matchExpressions is a list of label selector requirements. The requirements are ANDed.
+                  items:
+                    description: A label selector requirement is a selector that contains values, a key, and an operator that relates the key and values.
+                    properties:
+                      key:
+                        description: key is the label key that the selector applies to.
+                        type: string
+                      operator:
+                        description: operator represents a key's relationship to a set of values. Valid operators are In, NotIn, Exists and DoesNotExist.
+                        type: string
+                      values:
+                        description: values is an array of string values. If the operator is In or NotIn, the values array must be non-empty. If the operator is Exists or DoesNotExist, the values array must be empty. This array is replaced during a strategic merge patch.
+                        items:
+                          type: string
+                        type: array
+                    required:
+                      - key
+                      - operator
+                    type: object
+                  type: array
+                matchLabels:
+                  additionalProperties:
+                    type: string
+                  description: matchLabels is a map of {key,value} pairs. A single {key,value} in the matchLabels map is equivalent to an element of matchExpressions, whose key field is "key", the operator is "In", and the values array contains only "value". The requirements are ANDed.
+                  type: object
+              type: object
+              x-kubernetes-map-type: atomic
+            plugin:
+              description: PluginSpec is the spec of the plugin to be deployed by the PluginPreset.
+              properties:
+                clusterName:
+                  description: ClusterName is the name of the cluster the plugin is deployed to. If not set, the plugin is deployed to the greenhouse cluster.
+                  type: string
+                disabled:
+                  description: Disabled indicates that the plugin is administratively disabled.
+                  type: boolean
+                displayName:
+                  description: DisplayName is an optional name for the Plugin to be displayed in the Greenhouse UI. This is especially helpful to distinguish multiple instances of a PluginDefinition in the same context. Defaults to a normalized version of metadata.name.
+                  type: string
+                optionValues:
+                  description: Values are the values for a PluginDefinition instance.
+                  items:
+                    description: PluginOptionValue is the value for a PluginOption.
+                    properties:
+                      name:
+                        description: Name of the values.
+                        type: string
+                      value:
+                        description: Value is the actual value in plain text.
+                        x-kubernetes-preserve-unknown-fields: true
+                      valueFrom:
+                        description: ValueFrom references a potentially confidential value in another source.
+                        properties:
+                          secret:
+                            description: Secret references the secret containing the value.
+                            properties:
+                              key:
+                                description: Key in the secret to select the value from.
+                                type: string
+                              name:
+                                description: Name of the secret in the same namespace.
+                                type: string
+                            required:
+                              - key
+                              - name
+                            type: object
+                        type: object
+                    required:
+                      - name
+                    type: object
+                  type: array
+                pluginDefinition:
+                  description: PluginDefinition is the name of the PluginDefinition this instance is for.
+                  type: string
+                releaseNamespace:
+                  description: ReleaseNamespace is the namespace in the remote cluster to which the backend is deployed. Defaults to the Greenhouse managed namespace if not set.
+                  type: string
+              required:
+                - disabled
+                - pluginDefinition
+              type: object
+          required:
+            - clusterSelector
+            - plugin
+          type: object
+        status:
+          description: PluginPresetStatus defines the observed state of PluginPreset
+          properties:
+            statusConditions:
+              description: StatusConditions contain the different conditions that constitute the status of the PluginPreset.
+              properties:
+                conditions:
+                  items:
+                    description: Condition contains additional information on the state of a resource.
+                    properties:
+                      lastTransitionTime:
+                        description: LastTransitionTime is the last time the condition transitioned from one status to another.
+                        format: date-time
+                        type: string
+                      message:
+                        description: Message is an optional human readable message indicating details about the last transition.
+                        type: string
+                      reason:
+                        description: Reason is a one-word, CamelCase reason for the condition's last transition.
+                        type: string
+                      status:
+                        description: Status of the condition.
+                        type: string
+                      type:
+                        description: Type of the condition.
+                        type: string
+                    required:
+                      - lastTransitionTime
+                      - status
+                      - type
+                    type: object
+                  type: array
+                  x-kubernetes-list-map-keys:
+                    - type
+                  x-kubernetes-list-type: map
+              type: object
           type: object
       type: object
     Cluster:
@@ -356,10 +528,10 @@ components:
       description: Cluster is the Schema for the clusters API
       properties:
         apiVersion:
-          description: 'APIVersion defines the versioned schema of this representation of an object.\nServers should convert recognized schemas to the latest internal value, and\nmay reject unrecognized values.\nMore info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+          description: 'APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
           type: string
         kind:
-          description: 'Kind is a string value representing the REST resource this object represents.\nServers may infer this from the endpoint the client submits requests to.\nCannot be updated.\nIn CamelCase.\nMore info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+          description: 'Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
           type: string
         metadata:
           type: object
@@ -515,10 +687,10 @@ components:
       description: PluginDefinition is the Schema for the PluginDefinitions API
       properties:
         apiVersion:
-          description: 'APIVersion defines the versioned schema of this representation of an object.\nServers should convert recognized schemas to the latest internal value, and\nmay reject unrecognized values.\nMore info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+          description: 'APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
           type: string
         kind:
-          description: 'Kind is a string value representing the REST resource this object represents.\nServers may infer this from the endpoint the client submits requests to.\nCannot be updated.\nIn CamelCase.\nMore info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+          description: 'Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
           type: string
         metadata:
           type: object
@@ -599,7 +771,7 @@ components:
                   description: Name of the UI application.
                   type: string
                 url:
-                  description: URL specifies the url to a built javascript asset.\nBy default, assets are loaded from the Juno asset server using the provided name and version.
+                  description: URL specifies the url to a built javascript asset. By default, assets are loaded from the Juno asset server using the provided name and version.
                   type: string
                 version:
                   description: Version of the frontend application.
@@ -612,7 +784,7 @@ components:
               description: Version of this pluginDefinition
               type: string
             weight:
-              description: Weight configures the order in which Plugins are shown in the Greenhouse UI.\nDefaults to alphabetical sorting if not provided or on conflict.
+              description: Weight configures the order in which Plugins are shown in the Greenhouse UI. Defaults to alphabetical sorting if not provided or on conflict.
               format: int32
               type: integer
           required:
@@ -630,10 +802,10 @@ components:
       description: Team is the Schema for the teams API
       properties:
         apiVersion:
-          description: 'APIVersion defines the versioned schema of this representation of an object.\nServers should convert recognized schemas to the latest internal value, and\nmay reject unrecognized values.\nMore info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+          description: 'APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
           type: string
         kind:
-          description: 'Kind is a string value representing the REST resource this object represents.\nServers may infer this from the endpoint the client submits requests to.\nCannot be updated.\nIn CamelCase.\nMore info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+          description: 'Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
           type: string
         metadata:
           type: object
@@ -659,10 +831,10 @@ components:
       description: TeamMembership is the Schema for the teammemberships API
       properties:
         apiVersion:
-          description: 'APIVersion defines the versioned schema of this representation of an object.\nServers should convert recognized schemas to the latest internal value, and\nmay reject unrecognized values.\nMore info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+          description: 'APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
           type: string
         kind:
-          description: 'Kind is a string value representing the REST resource this object represents.\nServers may infer this from the endpoint the client submits requests to.\nCannot be updated.\nIn CamelCase.\nMore info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+          description: 'Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
           type: string
         metadata:
           type: object

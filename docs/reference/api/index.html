@@ -303,6 +303,9 @@ p {
                           <a href="#crd-Plugin">Plugin</a>
                         </li>
                         <li class="">
+                          <a href="#crd-PluginPreset">PluginPreset</a>
+                        </li>
+                        <li class="">
                           <a href="#crd-TeamMembership">TeamMembership</a>
                         </li>
                         <li class="">
@@ -323,7 +326,7 @@ p {
             <p><h1>Greenhouse</h1></p>
             <p>PlusOne operations platform</p>
             <p>
-                <div class="app-desc">Version: 507c3c6</div>
+                <div class="app-desc">Version: 5195a82</div>
             </p>
           </div>
         </div>
@@ -336,6 +339,8 @@ p {
                         <section id="crd-PluginDefinition" class="crd" data="PluginDefinition">
                         </section>
                         <section id="crd-Plugin" class="crd" data="Plugin">
+                        </section>
+                        <section id="crd-PluginPreset" class="crd" data="PluginPreset">
                         </section>
                         <section id="crd-TeamMembership" class="crd" data="TeamMembership">
                         </section>
@@ -879,11 +884,11 @@ g,0<c.length&&(c=Aa[c[0]])&&(a.c[e]=c))}a.c[e]||(c=Aa[e])&&(a.c[e]=c);for(c=0;c<
   "properties" : {
     "apiVersion" : {
       "type" : "string",
-      "description" : "APIVersion defines the versioned schema of this representation of an object.\\nServers should convert recognized schemas to the latest internal value, and\\nmay reject unrecognized values.\\nMore info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources"
+      "description" : "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources"
     },
     "kind" : {
       "type" : "string",
-      "description" : "Kind is a string value representing the REST resource this object represents.\\nServers may infer this from the endpoint the client submits requests to.\\nCannot be updated.\\nIn CamelCase.\\nMore info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds"
+      "description" : "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds"
     },
     "metadata" : {
       "type" : "object"
@@ -1055,11 +1060,11 @@ g,0<c.length&&(c=Aa[c[0]])&&(a.c[e]=c))}a.c[e]||(c=Aa[e])&&(a.c[e]=c);for(c=0;c<
   "properties" : {
     "apiVersion" : {
       "type" : "string",
-      "description" : "APIVersion defines the versioned schema of this representation of an object.\\nServers should convert recognized schemas to the latest internal value, and\\nmay reject unrecognized values.\\nMore info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources"
+      "description" : "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources"
     },
     "kind" : {
       "type" : "string",
-      "description" : "Kind is a string value representing the REST resource this object represents.\\nServers may infer this from the endpoint the client submits requests to.\\nCannot be updated.\\nIn CamelCase.\\nMore info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds"
+      "description" : "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds"
     },
     "metadata" : {
       "type" : "object"
@@ -1090,7 +1095,7 @@ g,0<c.length&&(c=Aa[c[0]])&&(a.c[e]=c))}a.c[e]||(c=Aa[e])&&(a.c[e]=c);for(c=0;c<
     },
     "displayName" : {
       "type" : "string",
-      "description" : "DisplayName is an optional name for the organization to be displayed in the Greenhouse UI.\\nDefaults to a normalized version of metadata.name."
+      "description" : "DisplayName is an optional name for the organization to be displayed in the Greenhouse UI. Defaults to a normalized version of metadata.name."
     },
     "mappedOrgAdminIdPGroup" : {
       "type" : "string",
@@ -1124,7 +1129,7 @@ g,0<c.length&&(c=Aa[c[0]])&&(a.c[e]=c))}a.c[e]||(c=Aa[e])&&(a.c[e]=c);for(c=0;c<
     },
     "redirectURI" : {
       "type" : "string",
-      "description" : "RedirectURI is the redirect URI.\\nIf none is specified, the Greenhouse ID proxy will be used."
+      "description" : "RedirectURI is the redirect URI. If none is specified, the Greenhouse ID proxy will be used."
     }
   },
   "description" : "OIDConfig configures the OIDC provider."
@@ -1165,11 +1170,11 @@ g,0<c.length&&(c=Aa[c[0]])&&(a.c[e]=c))}a.c[e]||(c=Aa[e])&&(a.c[e]=c);for(c=0;c<
   "properties" : {
     "apiVersion" : {
       "type" : "string",
-      "description" : "APIVersion defines the versioned schema of this representation of an object.\\nServers should convert recognized schemas to the latest internal value, and\\nmay reject unrecognized values.\\nMore info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources"
+      "description" : "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources"
     },
     "kind" : {
       "type" : "string",
-      "description" : "Kind is a string value representing the REST resource this object represents.\\nServers may infer this from the endpoint the client submits requests to.\\nCannot be updated.\\nIn CamelCase.\\nMore info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds"
+      "description" : "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds"
     },
     "metadata" : {
       "type" : "object"
@@ -1193,11 +1198,11 @@ g,0<c.length&&(c=Aa[c[0]])&&(a.c[e]=c))}a.c[e]||(c=Aa[e])&&(a.c[e]=c);for(c=0;c<
   "properties" : {
     "apiVersion" : {
       "type" : "string",
-      "description" : "APIVersion defines the versioned schema of this representation of an object.\\nServers should convert recognized schemas to the latest internal value, and\\nmay reject unrecognized values.\\nMore info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources"
+      "description" : "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources"
     },
     "kind" : {
       "type" : "string",
-      "description" : "Kind is a string value representing the REST resource this object represents.\\nServers may infer this from the endpoint the client submits requests to.\\nCannot be updated.\\nIn CamelCase.\\nMore info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds"
+      "description" : "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds"
     },
     "metadata" : {
       "type" : "object"
@@ -1255,7 +1260,7 @@ g,0<c.length&&(c=Aa[c[0]])&&(a.c[e]=c))}a.c[e]||(c=Aa[e])&&(a.c[e]=c);for(c=0;c<
     },
     "weight" : {
       "type" : "integer",
-      "description" : "Weight configures the order in which Plugins are shown in the Greenhouse UI.\\nDefaults to alphabetical sorting if not provided or on conflict.",
+      "description" : "Weight configures the order in which Plugins are shown in the Greenhouse UI. Defaults to alphabetical sorting if not provided or on conflict.",
       "format" : "int32"
     }
   },
@@ -1325,7 +1330,7 @@ g,0<c.length&&(c=Aa[c[0]])&&(a.c[e]=c))}a.c[e]||(c=Aa[e])&&(a.c[e]=c);for(c=0;c<
     },
     "url" : {
       "type" : "string",
-      "description" : "URL specifies the url to a built javascript asset.\\nBy default, assets are loaded from the Juno asset server using the provided name and version."
+      "description" : "URL specifies the url to a built javascript asset. By default, assets are loaded from the Juno asset server using the provided name and version."
     },
     "version" : {
       "type" : "string",
@@ -1333,6 +1338,147 @@ g,0<c.length&&(c=Aa[c[0]])&&(a.c[e]=c))}a.c[e]||(c=Aa[e])&&(a.c[e]=c);for(c=0;c<
     }
   },
   "description" : "UIApplication specifies a reference to a UI application"
+};
+    defs["PluginPreset"] = {
+  "title" : "PluginPreset",
+  "type" : "object",
+  "properties" : {
+    "apiVersion" : {
+      "type" : "string",
+      "description" : "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources"
+    },
+    "kind" : {
+      "type" : "string",
+      "description" : "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds"
+    },
+    "metadata" : {
+      "type" : "object"
+    },
+    "spec" : {
+      "$ref" : "#/components/schemas/PluginPreset_spec"
+    },
+    "status" : {
+      "$ref" : "#/components/schemas/PluginPreset_status"
+    }
+  },
+  "description" : "PluginPreset is the Schema for the PluginPresets API",
+  "xml" : {
+    "name" : "greenhouse.sap",
+    "namespace" : "v1alpha1"
+  }
+};
+    defs["PluginPreset_spec"] = {
+  "required" : [ "clusterSelector", "plugin" ],
+  "type" : "object",
+  "properties" : {
+    "clusterSelector" : {
+      "$ref" : "#/components/schemas/PluginPreset_spec_clusterSelector"
+    },
+    "plugin" : {
+      "$ref" : "#/components/schemas/PluginPreset_spec_plugin"
+    }
+  },
+  "description" : "PluginPresetSpec defines the desired state of PluginPreset"
+};
+    defs["PluginPreset_spec_clusterSelector"] = {
+  "type" : "object",
+  "properties" : {
+    "matchExpressions" : {
+      "type" : "array",
+      "description" : "matchExpressions is a list of label selector requirements. The requirements are ANDed.",
+      "items" : {
+        "$ref" : "#/components/schemas/PluginPreset_spec_clusterSelector_matchExpressions"
+      }
+    },
+    "matchLabels" : {
+      "type" : "object",
+      "additionalProperties" : {
+        "type" : "string"
+      },
+      "description" : "matchLabels is a map of {key,value} pairs. A single {key,value} in the matchLabels map is equivalent to an element of matchExpressions, whose key field is \"key\", the operator is \"In\", and the values array contains only \"value\". The requirements are ANDed."
+    }
+  },
+  "description" : "ClusterSelector is a label selector to select the clusters the plugin bundle should be deployed to.",
+  "x-kubernetes-map-type" : "atomic"
+};
+    defs["PluginPreset_spec_clusterSelector_matchExpressions"] = {
+  "required" : [ "key", "operator" ],
+  "type" : "object",
+  "properties" : {
+    "key" : {
+      "type" : "string",
+      "description" : "key is the label key that the selector applies to."
+    },
+    "operator" : {
+      "type" : "string",
+      "description" : "operator represents a key's relationship to a set of values. Valid operators are In, NotIn, Exists and DoesNotExist."
+    },
+    "values" : {
+      "type" : "array",
+      "description" : "values is an array of string values. If the operator is In or NotIn, the values array must be non-empty. If the operator is Exists or DoesNotExist, the values array must be empty. This array is replaced during a strategic merge patch.",
+      "items" : {
+        "type" : "string"
+      }
+    }
+  },
+  "description" : "A label selector requirement is a selector that contains values, a key, and an operator that relates the key and values."
+};
+    defs["PluginPreset_spec_plugin"] = {
+  "required" : [ "disabled", "pluginDefinition" ],
+  "type" : "object",
+  "properties" : {
+    "clusterName" : {
+      "type" : "string",
+      "description" : "ClusterName is the name of the cluster the plugin is deployed to. If not set, the plugin is deployed to the greenhouse cluster."
+    },
+    "disabled" : {
+      "type" : "boolean",
+      "description" : "Disabled indicates that the plugin is administratively disabled."
+    },
+    "displayName" : {
+      "type" : "string",
+      "description" : "DisplayName is an optional name for the Plugin to be displayed in the Greenhouse UI. This is especially helpful to distinguish multiple instances of a PluginDefinition in the same context. Defaults to a normalized version of metadata.name."
+    },
+    "optionValues" : {
+      "type" : "array",
+      "description" : "Values are the values for a PluginDefinition instance.",
+      "items" : {
+        "$ref" : "#/components/schemas/Plugin_spec_optionValues"
+      }
+    },
+    "pluginDefinition" : {
+      "type" : "string",
+      "description" : "PluginDefinition is the name of the PluginDefinition this instance is for."
+    },
+    "releaseNamespace" : {
+      "type" : "string",
+      "description" : "ReleaseNamespace is the namespace in the remote cluster to which the backend is deployed. Defaults to the Greenhouse managed namespace if not set."
+    }
+  },
+  "description" : "PluginSpec is the spec of the plugin to be deployed by the PluginPreset."
+};
+    defs["PluginPreset_status"] = {
+  "type" : "object",
+  "properties" : {
+    "statusConditions" : {
+      "$ref" : "#/components/schemas/PluginPreset_status_statusConditions"
+    }
+  },
+  "description" : "PluginPresetStatus defines the observed state of PluginPreset"
+};
+    defs["PluginPreset_status_statusConditions"] = {
+  "type" : "object",
+  "properties" : {
+    "conditions" : {
+      "type" : "array",
+      "items" : {
+        "$ref" : "#/components/schemas/Plugin_status_statusConditions_conditions"
+      },
+      "x-kubernetes-list-map-keys" : [ "type" ],
+      "x-kubernetes-list-type" : "map"
+    }
+  },
+  "description" : "StatusConditions contain the different conditions that constitute the status of the PluginPreset."
 };
     defs["Plugin_spec"] = {
   "required" : [ "disabled", "pluginDefinition" ],
@@ -1348,7 +1494,7 @@ g,0<c.length&&(c=Aa[c[0]])&&(a.c[e]=c))}a.c[e]||(c=Aa[e])&&(a.c[e]=c);for(c=0;c<
     },
     "displayName" : {
       "type" : "string",
-      "description" : "DisplayName is an optional name for the Plugin to be displayed in the Greenhouse UI.\\nThis is especially helpful to distinguish multiple instances of a PluginDefinition in the same context.\\nDefaults to a normalized version of metadata.name."
+      "description" : "DisplayName is an optional name for the Plugin to be displayed in the Greenhouse UI. This is especially helpful to distinguish multiple instances of a PluginDefinition in the same context. Defaults to a normalized version of metadata.name."
     },
     "optionValues" : {
       "type" : "array",
@@ -1363,7 +1509,7 @@ g,0<c.length&&(c=Aa[c[0]])&&(a.c[e]=c))}a.c[e]||(c=Aa[e])&&(a.c[e]=c);for(c=0;c<
     },
     "releaseNamespace" : {
       "type" : "string",
-      "description" : "ReleaseNamespace is the namespace in the remote cluster to which the backend is deployed.\\nDefaults to the Greenhouse managed namespace if not set."
+      "description" : "ReleaseNamespace is the namespace in the remote cluster to which the backend is deployed. Defaults to the Greenhouse managed namespace if not set."
     }
   },
   "description" : "PluginSpec defines the desired state of Plugin"
@@ -1422,7 +1568,7 @@ g,0<c.length&&(c=Aa[c[0]])&&(a.c[e]=c))}a.c[e]||(c=Aa[e])&&(a.c[e]=c);for(c=0;c<
       "additionalProperties" : {
         "$ref" : "#/components/schemas/Plugin_status_exposedServices"
       },
-      "description" : "ExposedServices provides an overview of the Plugins services that are centrally exposed.\\nIt maps the exposed URL to the service found in the manifest."
+      "description" : "ExposedServices provides an overview of the Plugins services that are centrally exposed. It maps the exposed URL to the service found in the manifest."
     },
     "helmChart" : {
       "$ref" : "#/components/schemas/Plugin_status_helmChart"
@@ -1510,7 +1656,7 @@ g,0<c.length&&(c=Aa[c[0]])&&(a.c[e]=c))}a.c[e]||(c=Aa[e])&&(a.c[e]=c);for(c=0;c<
       "description" : "Status is the status of a HelmChart release."
     }
   },
-  "description" : "HelmReleaseStatus reflects the status of the latest HelmChart release.\\nThis is only configured if the pluginDefinition is backed by HelmChart."
+  "description" : "HelmReleaseStatus reflects the status of the latest HelmChart release. This is only configured if the pluginDefinition is backed by HelmChart."
 };
     defs["Plugin_status_statusConditions"] = {
   "type" : "object",
@@ -1564,7 +1710,7 @@ g,0<c.length&&(c=Aa[c[0]])&&(a.c[e]=c))}a.c[e]||(c=Aa[e])&&(a.c[e]=c);for(c=0;c<
     },
     "url" : {
       "type" : "string",
-      "description" : "URL specifies the url to a built javascript asset.\\nBy default, assets are loaded from the Juno asset server using the provided name and version."
+      "description" : "URL specifies the url to a built javascript asset. By default, assets are loaded from the Juno asset server using the provided name and version."
     },
     "version" : {
       "type" : "string",
@@ -1579,11 +1725,11 @@ g,0<c.length&&(c=Aa[c[0]])&&(a.c[e]=c))}a.c[e]||(c=Aa[e])&&(a.c[e]=c);for(c=0;c<
   "properties" : {
     "apiVersion" : {
       "type" : "string",
-      "description" : "APIVersion defines the versioned schema of this representation of an object.\\nServers should convert recognized schemas to the latest internal value, and\\nmay reject unrecognized values.\\nMore info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources"
+      "description" : "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources"
     },
     "kind" : {
       "type" : "string",
-      "description" : "Kind is a string value representing the REST resource this object represents.\\nServers may infer this from the endpoint the client submits requests to.\\nCannot be updated.\\nIn CamelCase.\\nMore info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds"
+      "description" : "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds"
     },
     "metadata" : {
       "type" : "object"
@@ -1608,11 +1754,11 @@ g,0<c.length&&(c=Aa[c[0]])&&(a.c[e]=c))}a.c[e]||(c=Aa[e])&&(a.c[e]=c);for(c=0;c<
   "properties" : {
     "apiVersion" : {
       "type" : "string",
-      "description" : "APIVersion defines the versioned schema of this representation of an object.\\nServers should convert recognized schemas to the latest internal value, and\\nmay reject unrecognized values.\\nMore info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources"
+      "description" : "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources"
     },
     "kind" : {
       "type" : "string",
-      "description" : "Kind is a string value representing the REST resource this object represents.\\nServers may infer this from the endpoint the client submits requests to.\\nCannot be updated.\\nIn CamelCase.\\nMore info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds"
+      "description" : "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds"
     },
     "metadata" : {
       "type" : "object"
@@ -1688,11 +1834,11 @@ g,0<c.length&&(c=Aa[c[0]])&&(a.c[e]=c))}a.c[e]||(c=Aa[e])&&(a.c[e]=c);for(c=0;c<
   "properties" : {
     "apiVersion" : {
       "type" : "string",
-      "description" : "APIVersion defines the versioned schema of this representation of an object.\\nServers should convert recognized schemas to the latest internal value, and\\nmay reject unrecognized values.\\nMore info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources"
+      "description" : "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources"
     },
     "kind" : {
       "type" : "string",
-      "description" : "Kind is a string value representing the REST resource this object represents.\\nServers may infer this from the endpoint the client submits requests to.\\nCannot be updated.\\nIn CamelCase.\\nMore info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds"
+      "description" : "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds"
     },
     "metadata" : {
       "type" : "object"
@@ -1717,11 +1863,11 @@ g,0<c.length&&(c=Aa[c[0]])&&(a.c[e]=c))}a.c[e]||(c=Aa[e])&&(a.c[e]=c);for(c=0;c<
   "properties" : {
     "apiVersion" : {
       "type" : "string",
-      "description" : "APIVersion defines the versioned schema of this representation of an object.\\nServers should convert recognized schemas to the latest internal value, and\\nmay reject unrecognized values.\\nMore info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources"
+      "description" : "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources"
     },
     "kind" : {
       "type" : "string",
-      "description" : "Kind is a string value representing the REST resource this object represents.\\nServers may infer this from the endpoint the client submits requests to.\\nCannot be updated.\\nIn CamelCase.\\nMore info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds"
+      "description" : "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds"
     },
     "metadata" : {
       "type" : "object"
@@ -1784,14 +1930,14 @@ g,0<c.length&&(c=Aa[c[0]])&&(a.c[e]=c))}a.c[e]||(c=Aa[e])&&(a.c[e]=c);for(c=0;c<
   "properties" : {
     "apiGroups" : {
       "type" : "array",
-      "description" : "APIGroups is the name of the APIGroup that contains the resources.  If multiple API groups are specified, any action requested against one of\\nthe enumerated resources in any API group will be allowed. \"\" represents the core API group and \"*\" represents all API groups.",
+      "description" : "APIGroups is the name of the APIGroup that contains the resources.  If multiple API groups are specified, any action requested against one of the enumerated resources in any API group will be allowed. \"\" represents the core API group and \"*\" represents all API groups.",
       "items" : {
         "type" : "string"
       }
     },
     "nonResourceURLs" : {
       "type" : "array",
-      "description" : "NonResourceURLs is a set of partial urls that a user should have access to.  *s are allowed, but only as the full, final step in the path\\nSince non-resource URLs are not namespaced, this field is only applicable for ClusterRoles referenced from a ClusterRoleBinding.\\nRules can either apply to API resources (such as \"pods\" or \"secrets\") or non-resource URL paths (such as \"/api\"),  but not both.",
+      "description" : "NonResourceURLs is a set of partial urls that a user should have access to.  *s are allowed, but only as the full, final step in the path Since non-resource URLs are not namespaced, this field is only applicable for ClusterRoles referenced from a ClusterRoleBinding. Rules can either apply to API resources (such as \"pods\" or \"secrets\") or non-resource URL paths (such as \"/api\"),  but not both.",
       "items" : {
         "type" : "string"
       }
@@ -1818,7 +1964,7 @@ g,0<c.length&&(c=Aa[c[0]])&&(a.c[e]=c))}a.c[e]||(c=Aa[e])&&(a.c[e]=c);for(c=0;c<
       }
     }
   },
-  "description" : "PolicyRule holds information that describes a policy rule, but does not contain information\\nabout who the rule applies to or which namespace the rule applies to."
+  "description" : "PolicyRule holds information that describes a policy rule, but does not contain information about who the rule applies to or which namespace the rule applies to."
 };
     defs["Team_spec"] = {
   "type" : "object",

@@ -6,7 +6,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.14.0
+    controller-gen.kubebuilder.io/version: v0.12.1
   name: plugins.greenhouse.sap
 spec:
   group: greenhouse.sap
@@ -48,19 +48,14 @@ spec:
         description: Plugin is the Schema for the plugins API
         properties:
           apiVersion:
-            description: |-
-              APIVersion defines the versioned schema of this representation of an object.
-              Servers should convert recognized schemas to the latest internal value, and
-              may reject unrecognized values.
-              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+            description: 'APIVersion defines the versioned schema of this representation
+              of an object. Servers should convert recognized schemas to the latest
+              internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
             type: string
           kind:
-            description: |-
-              Kind is a string value representing the REST resource this object represents.
-              Servers may infer this from the endpoint the client submits requests to.
-              Cannot be updated.
-              In CamelCase.
-              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+            description: 'Kind is a string value representing the REST resource this
+              object represents. Servers may infer this from the endpoint the client
+              submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
             type: string
           metadata:
             type: object
@@ -77,10 +72,10 @@ spec:
                   disabled.
                 type: boolean
               displayName:
-                description: |-
-                  DisplayName is an optional name for the Plugin to be displayed in the Greenhouse UI.
-                  This is especially helpful to distinguish multiple instances of a PluginDefinition in the same context.
-                  Defaults to a normalized version of metadata.name.
+                description: DisplayName is an optional name for the Plugin to be
+                  displayed in the Greenhouse UI. This is especially helpful to distinguish
+                  multiple instances of a PluginDefinition in the same context. Defaults
+                  to a normalized version of metadata.name.
                 type: string
               optionValues:
                 description: Values are the values for a PluginDefinition instance.
@@ -121,9 +116,9 @@ spec:
                   this instance is for.
                 type: string
               releaseNamespace:
-                description: |-
-                  ReleaseNamespace is the namespace in the remote cluster to which the backend is deployed.
-                  Defaults to the Greenhouse managed namespace if not set.
+                description: ReleaseNamespace is the namespace in the remote cluster
+                  to which the backend is deployed. Defaults to the Greenhouse managed
+                  namespace if not set.
                 type: string
             required:
             - disabled
@@ -158,9 +153,9 @@ spec:
                   - namespace
                   - port
                   type: object
-                description: |-
-                  ExposedServices provides an overview of the Plugins services that are centrally exposed.
-                  It maps the exposed URL to the service found in the manifest.
+                description: ExposedServices provides an overview of the Plugins services
+                  that are centrally exposed. It maps the exposed URL to the service
+                  found in the manifest.
                 type: object
               helmChart:
                 description: HelmChart contains a reference the helm chart used for
@@ -181,9 +176,9 @@ spec:
                 - version
                 type: object
               helmReleaseStatus:
-                description: |-
-                  HelmReleaseStatus reflects the status of the latest HelmChart release.
-                  This is only configured if the pluginDefinition is backed by HelmChart.
+                description: HelmReleaseStatus reflects the status of the latest HelmChart
+                  release. This is only configured if the pluginDefinition is backed
+                  by HelmChart.
                 properties:
                   firstDeployed:
                     description: FirstDeployed is the timestamp of the first deployment
@@ -247,9 +242,9 @@ spec:
                     description: Name of the UI application.
                     type: string
                   url:
-                    description: |-
-                      URL specifies the url to a built javascript asset.
-                      By default, assets are loaded from the Juno asset server using the provided name and version.
+                    description: URL specifies the url to a built javascript asset.
+                      By default, assets are loaded from the Juno asset server using
+                      the provided name and version.
                     type: string
                   version:
                     description: Version of the frontend application.

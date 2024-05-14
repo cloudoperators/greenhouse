@@ -90,6 +90,26 @@ webhooks:
     service:
       name: greenhouse-webhook-service
       namespace: greenhouse
+      path: /mutate-greenhouse-sap-v1alpha1-pluginpreset
+  failurePolicy: Fail
+  name: mpluginpreset.kb.io
+  rules:
+  - apiGroups:
+    - greenhouse.sap
+    apiVersions:
+    - v1alpha1
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - pluginpresets
+  sideEffects: None
+- admissionReviewVersions:
+  - v1
+  clientConfig:
+    service:
+      name: greenhouse-webhook-service
+      namespace: greenhouse
       path: /mutate-greenhouse-sap-v1alpha1-teamrole
   failurePolicy: Fail
   name: mrole.kb.io
@@ -251,6 +271,26 @@ webhooks:
     - DELETE
     resources:
     - plugindefinitions
+  sideEffects: None
+- admissionReviewVersions:
+  - v1
+  clientConfig:
+    service:
+      name: greenhouse-webhook-service
+      namespace: greenhouse
+      path: /validate-greenhouse-sap-v1alpha1-pluginpreset
+  failurePolicy: Fail
+  name: vpluginpreset.kb.io
+  rules:
+  - apiGroups:
+    - greenhouse.sap
+    apiVersions:
+    - v1alpha1
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - pluginpresets
   sideEffects: None
 - admissionReviewVersions:
   - v1

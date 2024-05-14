@@ -63,7 +63,7 @@ jobs:
 
       - name: Setup Pages
         id: pages
-        uses: actions/configure-pages@v4
+        uses: actions/configure-pages@v5
       
       - name: Custom steps
         env:
@@ -119,7 +119,7 @@ jobs:
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
-    runs-on: [ self-hosted ]
+    runs-on: [ default ]
     needs: build
     steps:
       - name: Deploy to GitHub Pages

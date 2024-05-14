@@ -141,7 +141,7 @@ func DiffChartToDeployedResources(ctx context.Context, local client.Client, rest
 		return nil, false, err
 	}
 
-	diffObjects, err := diffAgainstRelease(restClientGetter, plugin.GetNamespace(), manifest, helmRelease)
+	diffObjects, err := diffAgainstRelease(restClientGetter, plugin.GetReleaseNamespace(), manifest, helmRelease)
 	if err != nil {
 		return nil, false, err
 	}
@@ -153,13 +153,16 @@ func DiffChartToDeployedResources(ctx context.Context, local client.Client, rest
 
 	c := plugin.Status.StatusConditions.GetConditionByType(greenhousev1alpha1.HelmDriftDetectedCondition)
 	// Skip the drift detection if last DriftDetection Status Change or last Deployment was less than driftDetectionInterval ago
-	if c != nil && c.Status != metav1.ConditionUnknown &&
-		time.Since(c.LastTransitionTime.Time) < driftDetectionInterval &&
-		time.Since(plugin.Status.HelmReleaseStatus.LastDeployed.Time) < driftDetectionInterval {
+	switch {
+	case c == nil: // HelmDriftDetectedCondition is not set
+		return nil, false, nil
+	case time.Since(plugin.Status.HelmReleaseStatus.LastDeployed.Time) < driftDetectionInterval: // Skip as last deployment was less than driftDetectionInterval ago
+		return nil, false, nil
+	case c.Status != metav1.ConditionUnknown && time.Since(c.LastTransitionTime.Time) < driftDetectionInterval: // Skip as HelmDriftDetectedCondition transitioned less than driftDetectionInterval ago
 		return nil, false, nil
 	}
 
-	diffObjects, err = diffAgainstLiveObjects(restClientGetter, plugin.GetNamespace(), manifest)
+	diffObjects, err = diffAgainstLiveObjects(restClientGetter, plugin.GetReleaseNamespace(), manifest)
 	if err != nil {
 		return nil, false, err
 	}

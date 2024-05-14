@@ -1,3 +1,8 @@
+/*
+ * SPDX-FileCopyrightText: 2024 SAP SE or an SAP affiliate company and Greenhouse contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
 import useNamespace from "../plugindefinitions/hooks/useNamespace"
 import useClient from "../plugindefinitions/hooks/useClient"
 import React, { useEffect } from "react"

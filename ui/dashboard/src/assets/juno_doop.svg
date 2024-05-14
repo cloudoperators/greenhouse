@@ -1,0 +1,17 @@
+<!--
+  ~ SPDX-FileCopyrightText: 2024 SAP SE or an SAP affiliate company and Greenhouse contributors
+  ~ SPDX-License-Identifier: Apache-2.0
+-->
+
+
+
+<svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" fill="currentColor" viewBox="0 0 36 36">
+  <g clip-path="url(#a)">
+    <path d="M18.812 1.861a2 2 0 0 0-1.624 0l-11.5 5.111A2 2 0 0 0 4.5 8.8v7.7c0 8.155 5.527 15.791 13.027 17.877.31.085.637.085.946 0C25.973 32.29 31.5 24.655 31.5 16.5V8.8a2 2 0 0 0-1.188-1.828l-11.5-5.111Zm-3.105 22.932a1 1 0 0 1-1.414 0l-4.586-4.586a1 1 0 0 1 0-1.414l.702-.702a1 1 0 0 1 1.413-.002L15 21.255l9.175-9.175a1 1 0 0 1 1.417.002l.706.71a1 1 0 0 1-.003 1.413L15.707 24.793Z"/>
+  </g>
+  <defs>
+    <clipPath id="a">
+      <path d="M0 0h36v36H0z"/>
+    </clipPath>
+  </defs>
+</svg>

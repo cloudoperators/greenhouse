@@ -60,6 +60,7 @@ rules:
   - dex.coreos.com
   resources:
   - connectors
+  - oauth2clients
   verbs:
   - create
   - get
@@ -150,6 +151,29 @@ rules:
   - greenhouse.sap
   resources:
   - plugindefinitions/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - greenhouse.sap
+  resources:
+  - pluginpresets
+  verbs:
+  - get
+  - list
+  - update
+  - watch
+- apiGroups:
+  - greenhouse.sap
+  resources:
+  - pluginpresets/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - greenhouse.sap
+  resources:
+  - pluginpresets/status
   verbs:
   - get
   - patch

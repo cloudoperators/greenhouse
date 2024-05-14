@@ -37,10 +37,12 @@ func TestHelmController(t *testing.T) {
 
 var _ = BeforeSuite(func() {
 	test.RegisterController("pluginHelm", (&HelmReconciler{KubeRuntimeOpts: clientutil.RuntimeOptions{QPS: 5, Burst: 10}}).SetupWithManager)
+	test.RegisterController("pluginPreset", (&PluginPresetReconciler{}).SetupWithManager)
 	test.RegisterWebhook("pluginDefinitionWebhook", admission.SetupPluginDefinitionWebhookWithManager)
 	test.RegisterWebhook("pluginWebhook", admission.SetupPluginWebhookWithManager)
 	test.RegisterWebhook("clusterWebhook", admission.SetupClusterWebhookWithManager)
 	test.RegisterWebhook("secretsWebhook", admission.SetupSecretWebhookWithManager)
+	test.RegisterWebhook("pluginPresetWebhook", admission.SetupPluginPresetWebhookWithManager)
 	test.TestBeforeSuite()
 
 	// return the test.Cfg, as the in-cluster config is not available

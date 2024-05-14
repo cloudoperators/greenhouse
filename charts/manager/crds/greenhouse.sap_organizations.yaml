@@ -6,7 +6,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.14.0
+    controller-gen.kubebuilder.io/version: v0.12.1
   name: organizations.greenhouse.sap
 spec:
   group: greenhouse.sap
@@ -35,19 +35,14 @@ spec:
         description: Organization is the Schema for the organizations API
         properties:
           apiVersion:
-            description: |-
-              APIVersion defines the versioned schema of this representation of an object.
-              Servers should convert recognized schemas to the latest internal value, and
-              may reject unrecognized values.
-              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+            description: 'APIVersion defines the versioned schema of this representation
+              of an object. Servers should convert recognized schemas to the latest
+              internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
             type: string
           kind:
-            description: |-
-              Kind is a string value representing the REST resource this object represents.
-              Servers may infer this from the endpoint the client submits requests to.
-              Cannot be updated.
-              In CamelCase.
-              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+            description: 'Kind is a string value representing the REST resource this
+              object represents. Servers may infer this from the endpoint the client
+              submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
             type: string
           metadata:
             type: object
@@ -93,9 +88,8 @@ spec:
                         description: Issuer is the URL of the identity service.
                         type: string
                       redirectURI:
-                        description: |-
-                          RedirectURI is the redirect URI.
-                          If none is specified, the Greenhouse ID proxy will be used.
+                        description: RedirectURI is the redirect URI. If none is specified,
+                          the Greenhouse ID proxy will be used.
                         type: string
                     required:
                     - clientIDReference
@@ -107,9 +101,9 @@ spec:
                 description: Description provides additional details of the organization.
                 type: string
               displayName:
-                description: |-
-                  DisplayName is an optional name for the organization to be displayed in the Greenhouse UI.
-                  Defaults to a normalized version of metadata.name.
+                description: DisplayName is an optional name for the organization
+                  to be displayed in the Greenhouse UI. Defaults to a normalized version
+                  of metadata.name.
                 type: string
               mappedOrgAdminIdPGroup:
                 description: MappedOrgAdminIDPGroup is the IDP group ID identifying
