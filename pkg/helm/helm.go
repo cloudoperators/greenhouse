@@ -129,9 +129,13 @@ func DiffChartToDeployedResources(ctx context.Context, local client.Client, rest
 	switch {
 	case err != nil:
 		return nil, false, err
+	case !exists:
+		// the release should exist if the Status.HelmReleaseStatus was set
+		// early return if the release was deleted
+		return nil, true, nil
 		// check if the release has the current pluginDefinition version set as description
 		// this description is used to reconcile the version of the Plugin
-	case exists && helmRelease.Info.Description != pluginDefinition.Spec.Version:
+	case helmRelease.Info.Description != pluginDefinition.Spec.Version:
 		log.FromContext(ctx).Info("deployed helm chart version differs from pluginDefinition helm chart", "pluginDefinition", helmRelease.Info.Description, "plugin", pluginDefinition.Spec.Version)
 		return nil, true, nil
 	}
