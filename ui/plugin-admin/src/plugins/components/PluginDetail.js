@@ -28,6 +28,7 @@ import {
   Icon,
 } from "juno-ui-components"
 import { PluginConditionIcon } from "./PluginConditionIcon"
+import { buildExternalServicesUrls } from "./buildExternalServicesUrls"
 
 // Renders the plugin details panel
 const PluginDetail = () => {
@@ -40,7 +41,7 @@ const PluginDetail = () => {
     if (!showDetailsFor || !pluginConfig) {
       return
     }
-    setPlugin(pluginConfig.find((p) => p.id === showDetailsFor))
+    setPlugin(pluginConfig.find((p) => p.metadata.uid === showDetailsFor))
   }, [showDetailsFor, pluginConfig])
 
   const onPanelClose = () => {
@@ -55,7 +56,7 @@ const PluginDetail = () => {
       heading={
         <Stack gap="2">
           <PluginConditionIcon plugin={plugin} />
-          <span>{plugin?.name}</span>
+          <span>{plugin?.spec?.displayName}</span>
         </Stack>
       }
     >
@@ -74,42 +75,47 @@ const PluginDetail = () => {
               >
                 <DataGridRow>
                   <DataGridHeadCell>Name</DataGridHeadCell>
-                  <DataGridCell>{plugin?.name}</DataGridCell>
+                  <DataGridCell>{plugin?.spec?.displayName}</DataGridCell>
                 </DataGridRow>
 
-                {plugin?.disabled && (
+                {plugin?.spec?.disabled && (
                   <DataGridRow>
                     <DataGridHeadCell>Disabled</DataGridHeadCell>
-                    <DataGridCell>{plugin?.disabled.toString()}</DataGridCell>
+                    <DataGridCell>
+                      {plugin?.spec?.disabled.toString()}
+                    </DataGridCell>
                   </DataGridRow>
                 )}
 
                 <DataGridRow>
                   <DataGridHeadCell>Version</DataGridHeadCell>
-                  <DataGridCell>{plugin?.version}</DataGridCell>
+                  <DataGridCell>{plugin?.status?.version}</DataGridCell>
                 </DataGridRow>
 
                 <DataGridRow>
                   <DataGridHeadCell>Cluster</DataGridHeadCell>
-                  <DataGridCell>{plugin?.clusterName}</DataGridCell>
+                  <DataGridCell>{plugin?.spec?.clusterName}</DataGridCell>
                 </DataGridRow>
 
                 <DataGridRow>
                   <DataGridHeadCell>External Links</DataGridHeadCell>
                   <DataGridCell>
-                    {plugin?.externalServicesUrls?.map((url) => {
-                      return (
-                        <a
-                          href={url.url}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="mr-3"
-                          key={url.url}
-                        >
-                          {url.name}
-                        </a>
-                      )
-                    })}
+                    {plugin?.status?.exposedServices &&
+                      buildExternalServicesUrls(
+                        plugin.status.exposedServices
+                      ).map((url) => {
+                        return (
+                          <a
+                            href={url.url}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="mr-3"
+                            key={url.url}
+                          >
+                            {url.name}
+                          </a>
+                        )
+                      })}
                   </DataGridCell>
                 </DataGridRow>
 
@@ -124,19 +130,21 @@ const PluginDetail = () => {
                   <DataGridHeadCell>Conditions</DataGridHeadCell>
                   <DataGridCell>
                     <Stack gap="2" alignment="start" wrap={true}>
-                      {plugin?.statusConditions?.map((condition) => {
-                        return (
-                          <Pill
-                            key={condition.type}
-                            pillKey={condition.type}
-                            pillValue={condition.status}
-                          />
-                        )
-                      })}
+                      {plugin?.status?.statusConditions?.conditions?.map(
+                        (condition) => {
+                          return (
+                            <Pill
+                              key={condition.type}
+                              pillKey={condition.type}
+                              pillValue={condition.status}
+                            />
+                          )
+                        }
+                      )}
                     </Stack>
                   </DataGridCell>
                 </DataGridRow>
-                {plugin?.optionValues?.map((option) => {
+                {plugin?.spec?.optionValues?.map((option) => {
                   {
                     /* Every optionValue which not starts with greenhouse is shown */
                   }
@@ -149,11 +157,11 @@ const PluginDetail = () => {
                       </DataGridHeadCell>
                       <DataGridCell>
                         {typeof option?.value != "undefined" &&
-                          (typeof option?.value === "object" ? (
-                            <JsonViewer data={option?.value} />
-                          ) : (
-                            String(option?.value)
-                          ))}
+                          (typeof option?.value === "object"
+                            ? option?.value && (
+                                <JsonViewer data={option?.value} />
+                              )
+                            : String(option?.value))}
                       </DataGridCell>
                     </DataGridRow>
                   )
@@ -165,7 +173,7 @@ const PluginDetail = () => {
           <TabPanel>
             <Container px={false} py>
               <CodeBlock>
-                <JsonViewer data={plugin?.raw} expanded={true} />
+                {plugin && <JsonViewer data={plugin} expanded={true} />}
               </CodeBlock>
             </Container>
           </TabPanel>

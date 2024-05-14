@@ -11,6 +11,7 @@ import {
   Message,
   Panel,
   PanelBody,
+  PanelFooter,
   Stack,
   TextInput,
 } from "juno-ui-components"
@@ -18,6 +19,9 @@ import React from "react"
 import { PluginDefinition } from "../../../types/types"
 import usePluginApi from "../plugindefinitions/hooks/usePluginApi"
 import useStore from "../plugindefinitions/store"
+
+import { useGlobalsActions } from "../plugins/components/StoreProvider"
+
 import ClusterSelect from "./ClusterSelect"
 import { OptionInput } from "./OptionInput"
 import handleFormChange from "./lib/utils/handleFormChange"
@@ -41,6 +45,12 @@ const PluginEdit: React.FC<PluginEditProps> = (props: PluginEditProps) => {
 
   const { createPlugin, updatePlugin, deletePlugin } = usePluginApi()
 
+  const { setShowDefinitionPanel } = useGlobalsActions()
+
+  const setShowPluginDefinitionDetails = useStore(
+    (state) => state.setShowPluginDefinitionDetails
+  )
+
   React.useEffect(() => {
     if (!pluginToEdit) {
       setPluginToEdit(initPlugin(props.pluginDefinition))
@@ -51,6 +61,8 @@ const PluginEdit: React.FC<PluginEditProps> = (props: PluginEditProps) => {
     setPluginToEdit(undefined)
     setShowPluginEdit(false)
     setIsEditMode(false)
+    setShowDefinitionPanel(false)
+    setShowPluginDefinitionDetails(false)
   }
 
   const [submitMessage, setSubmitResultMessage] = React.useState<SubmitMessage>(
@@ -101,6 +113,12 @@ const PluginEdit: React.FC<PluginEditProps> = (props: PluginEditProps) => {
       onClose={onPanelClose}
       size="large"
     >
+      {submitMessage.message != "" && (
+        <SubmitResultMessage
+          submitMessage={submitMessage}
+          onMessageDismiss={() => onMessageDismiss(submitMessage.ok)}
+        />
+      )}
       {pluginToEdit && (
         <PanelBody>
           <Form
@@ -159,22 +177,20 @@ const PluginEdit: React.FC<PluginEditProps> = (props: PluginEditProps) => {
                 })}
               </FormSection>
             )}
+          </Form>
 
-            <Stack distribution="between">
+          <PanelFooter>
+            {isEditMode ? (
               <Button onClick={onDelete} variant="primary-danger">
                 Delete Plugin
               </Button>
-              {submitMessage.message != "" && (
-                <SubmitResultMessage
-                  submitMessage={submitMessage}
-                  onMessageDismiss={() => onMessageDismiss(submitMessage.ok)}
-                />
-              )}
-              <Button onClick={onSubmit} variant="primary">
-                {isEditMode ? "Update Plugin" : "Create Plugin"}
-              </Button>
-            </Stack>
-          </Form>
+            ) : (
+              <></>
+            )}
+            <Button onClick={onSubmit} variant="primary">
+              {isEditMode ? "Update Plugin" : "Create Plugin"}
+            </Button>
+          </PanelFooter>
         </PanelBody>
       )}
     </Panel>

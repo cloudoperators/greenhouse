@@ -11,23 +11,6 @@ import { usePluginActions } from "../components/StoreProvider"
 import { getResourceStatusFromKubernetesConditions } from "../../../../utils/resourceStatus"
 
 // Extracts the external services from the object and creates links which are used in the plugin list / detail
-export const buildExternalServicesUrls = (exposedServices) => {
-  // logs the stringified object
-
-  if (!exposedServices) return null
-
-  const links = []
-  for (const url in exposedServices) {
-    const currentObject = exposedServices[url]
-
-    links.push({
-      url: url,
-      name: currentObject.name ? currentObject.name : url,
-    })
-  }
-
-  return links
-}
 
 // Creates a flat object from the plugin config data
 export const createPluginConfig = (items) => {
@@ -71,7 +54,11 @@ export const createPluginConfig = (items) => {
 export const useAPI = () => {
   const { client } = useClient()
   const authData = useAuthData()
-  const { setPluginConfig } = usePluginActions()
+  const {
+    addPluginConfigItems,
+    modifyPluginConfigItems,
+    deletePluginConfigItems,
+  } = usePluginActions()
 
   const namespace = useMemo(() => {
     if (!authData?.raw?.groups) return null
@@ -85,23 +72,38 @@ export const useAPI = () => {
   const getPlugins = useCallback(() => {
     if (!client || !namespace) return
 
-    const getPromise = client
-      .get(
-        `/apis/greenhouse.sap/v1alpha1/namespaces/${namespace}/plugins`,
-        {
-          limit: 500,
-        }
-      )
-      .then((items) => {
-        setPluginConfig(createPluginConfig(items?.items))
+    // const getPromise = client
+    //   .get(
+    //     `/apis/greenhouse.sap/v1alpha1/namespaces/${namespace}/plugins`,
+    //     {
+    //       limit: 500,
+    //     }
+    //   )
+    //   .then((items) => {
+    //     setPluginConfig(createPluginConfig(items?.items))
+    //   })
+    //   .catch((e) => {
+    //     console.error("ERROR: Failed to get resource", e)
+    //   })
+
+    // return () => {
+    //   return getPromise
+    // }
+    const watch = client
+      .watch(`/apis/greenhouse.sap/v1alpha1/namespaces/${namespace}/plugins`)
+      .on(client.WATCH_ERROR, () => console.log("ERROR"))
+      .on(client.WATCH_ADDED, (items) => {
+        addPluginConfigItems(items)
       })
-      .catch((e) => {
-        console.error("ERROR: Failed to get resource", e)
+      .on(client.WATCH_MODIFIED, (items) => {
+        modifyPluginConfigItems(items)
+      })
+      .on(client.WATCH_DELETED, (items) => {
+        deletePluginConfigItems(items)
       })
 
-    return () => {
-      return getPromise
-    }
+    watch.start()
+    return watch.cancel
   }, [client])
 
   return { getPlugins }

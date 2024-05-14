@@ -6,6 +6,7 @@
 import React from "react"
 import { PluginDefinition } from "../../../../types/types"
 import PluginDefinitionTile from "./PluginDefinitionTile"
+import { Container } from "juno-ui-components"
 
 interface PluginDefinitionGridProps {
   pluginDefinitions: PluginDefinition[]
@@ -16,8 +17,8 @@ const PluginDefinitionGrid: React.FC<PluginDefinitionGridProps> = (
 ) => {
   return (
     <>
-      <div className="org-info p-8 mb-8 bg-theme-background-lvl-0">
-        <div className="grid grid-cols-[repeat(auto-fit,_minmax(20rem,_1fr))] auto-rows-[minmax(8rem,_1fr)] gap-6 pt-8">
+      <Container px={false} py>
+        <div className="card-container grid gap-4 grid-cols-3">
           {props.pluginDefinitions.map((plugin) => (
             <PluginDefinitionTile
               key={plugin.metadata!.name!}
@@ -25,7 +26,7 @@ const PluginDefinitionGrid: React.FC<PluginDefinitionGridProps> = (
             />
           ))}
         </div>
-      </div>
+      </Container>
     </>
   )
 }

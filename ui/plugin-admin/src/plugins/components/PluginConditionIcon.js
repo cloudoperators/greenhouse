@@ -6,12 +6,20 @@
 import React from "react"
 import { Icon } from "juno-ui-components"
 
+import { getResourceStatusFromKubernetesConditions } from "../../../../utils/resourceStatus"
+
 // PluginConditionIcon renders an icon based on the plugin status
 export const PluginConditionIcon = ({ plugin }) => {
+  const readyStatus = plugin?.status?.statusConditions?.conditions
+    ? getResourceStatusFromKubernetesConditions(
+        plugin?.status?.statusConditions?.conditions
+      )
+    : null
+
   return (
     <Icon
-      icon={plugin?.disabled ? "error" : plugin?.readyStatus?.icon}
-      color={plugin?.disabled ? "" : plugin?.readyStatus?.color}
+      icon={plugin?.spec.disabled ? "error" : readyStatus?.icon}
+      color={plugin?.spec.disabled ? "" : readyStatus?.color}
     />
   )
 }

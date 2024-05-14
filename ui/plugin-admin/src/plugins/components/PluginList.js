@@ -35,10 +35,10 @@ const PluginList = () => {
         </ButtonRow>
       </DataGridToolbar>
       <DataGrid
-        columns={4}
+        columns={5}
         cellVerticalAlignment="top"
         className="plugins"
-        minContentColumns={[0]}
+        minContentColumns={[0, 4]}
       >
         {pluginConfig && (
           <DataGridRow>
@@ -48,11 +48,12 @@ const PluginList = () => {
             <DataGridHeadCell>Name</DataGridHeadCell>
             <DataGridHeadCell>Cluster</DataGridHeadCell>
             <DataGridHeadCell>External Links</DataGridHeadCell>
+            <DataGridHeadCell>Edit</DataGridHeadCell>
           </DataGridRow>
         )}
         {pluginConfig?.length > 0 ? (
           pluginConfig?.map((plugin) => {
-            return <Plugin key={plugin.id} plugin={plugin} />
+            return <Plugin key={plugin?.metadata?.uid} plugin={plugin} />
           })
         ) : (
           <DataGridRow className="no-hover">

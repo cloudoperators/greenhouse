@@ -19,8 +19,6 @@ import PluginDetail from "./plugins/components/PluginDetail"
 import PluginList from "./plugins/components/PluginList"
 import PluginDefinitionPanel from "./plugindefinitions/components/PluginDefinitionPanel"
 import useAPI from "./plugins/hooks/useAPI"
-import SecretEdit from "./secrets/SecretEdit"
-import SecretList from "./secrets/SecretList"
 
 const AppContent = () => {
   const { getPlugins } = useAPI()

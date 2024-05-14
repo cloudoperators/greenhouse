@@ -29,6 +29,8 @@ import PluginDefinitionGrid from "./PluginDefinitionGrid"
 
 import usePluginDefinitionsStore from "../store"
 
+import useStore from "../store"
+
 import {
   useShowDefinitionPanel,
   useGlobalsActions,
@@ -52,19 +54,24 @@ const PluginDefinitionPanel = () => {
   const showDefinitionPanel = useShowDefinitionPanel()
   const { setShowDefinitionPanel } = useGlobalsActions()
 
+  const setShowPluginDefinitionDetails = useStore(
+    (state) => state.setShowPluginDefinitionDetails
+  )
+
   const onShowDefinitionPanel = () => {
     setShowDefinitionPanel(false)
+    setShowPluginDefinitionDetails(false)
   }
 
   return (
     <Panel
-      opened={showDefinitionPanel}
+      opened={showDefinitionPanel || showPluginDefinitionDetails}
       onClose={onShowDefinitionPanel}
       size="large"
-      heading="hi"
+      heading="Add Plugin"
     >
       <PanelBody>
-        {pluginDefinitions?.length > 0 && (
+        {!showPluginDefinitionDetails && pluginDefinitions?.length > 0 && (
           <PluginDefinitionGrid pluginDefinitions={pluginDefinitions} />
         )}
         {showPluginDefinitionDetails && pluginDefinitionDetail && (
@@ -79,3 +86,15 @@ const PluginDefinitionPanel = () => {
 }
 
 export default PluginDefinitionPanel
+
+/*
+
+
+        <Stack gap="2">
+          <span>
+            {props.pluginDefinition.spec?.displayName ??
+              (props.pluginDefinition.metadata?.name || "Not found")}
+          </span>
+        </Stack>
+
+        */

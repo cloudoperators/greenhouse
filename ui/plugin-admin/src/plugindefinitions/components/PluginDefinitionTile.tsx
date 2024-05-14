@@ -37,41 +37,55 @@ const PluginDefinitionTile: React.FC<PluginDefinitionTileProps> = (
     setShowPluginDefinitionDetails(true)
     setPluginDefinitionDetail(props.pluginDefinition)
   }
+
+  const cardHeaderCss = `
+  font-bold
+  text-lg
+  `
+
+  const cardCss = `
+  card
+  bg-theme-background-lvl-1
+  hover:bg-theme-background-lvl-2
+  rounded
+  p-8
+  h-full
+  w-full
+  cursor-pointer
+  `
+
   return (
-    <Stack
-      direction="vertical"
-      alignment="center"
-      distribution="between"
-      className="org-info-item bg-theme-background-lvl-1 p-4"
-      style={{ cursor: "pointer" }}
-      onClick={openPluginDefinitionDetails}
-    >
-      <h2 className="text-lg font-bold">
-        {props.pluginDefinition.spec?.displayName ??
-          props.pluginDefinition.metadata?.name}
-      </h2>
+    <div className={cardCss} onClick={openPluginDefinitionDetails}>
+      <Stack direction="vertical" alignment="start" className="h-full w-full">
+        <div className={cardHeaderCss}>
+          {props.pluginDefinition.spec?.displayName ??
+            props.pluginDefinition.metadata?.name}
+        </div>
+        <div className="mt-4">{props.pluginDefinition.spec?.description}</div>
 
-      {!iconUrl && (
-        <Icon
-          icon={props.pluginDefinition.spec?.icon ?? "autoAwesomeMosaic"}
-          size="100"
-        />
-      )}
-      {iconUrl && (
-        <img
-          className="filtered"
-          src={iconUrl}
-          alt="icon"
-          width="100"
-          height="100"
-        />
-      )}
-      <p>{props.pluginDefinition.spec?.description}</p>
+        <div className="mt-auto w-full">
+          <Stack alignment="center">
+            <div className="w-full">{props.pluginDefinition.spec?.version}</div>
 
-      <div className="bg-theme-background-lvl-4 py-2 px-3 inline-flex">
-        {props.pluginDefinition.spec?.version}
-      </div>
-    </Stack>
+            {!iconUrl && (
+              <Icon
+                icon={props.pluginDefinition.spec?.icon ?? "autoAwesomeMosaic"}
+                className="filtered fill-current text-theme-high"
+                size="50"
+              />
+            )}
+            {iconUrl && (
+              <img
+                className="filtered fill-current "
+                src={iconUrl}
+                alt="icon"
+                width="50"
+              />
+            )}
+          </Stack>
+        </div>
+      </Stack>
+    </div>
   )
 }
 
