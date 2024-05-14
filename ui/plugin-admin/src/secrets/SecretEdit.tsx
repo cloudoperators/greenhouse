@@ -73,7 +73,7 @@ const SecretEdit: React.FC<any> = () => {
     <Panel
       heading={
         <Stack gap="2">
-          <span>Configure Plugin</span>
+          <span>Edit Secret</span>
         </Stack>
       }
       opened={!!secretDetail}

@@ -2,6 +2,7 @@ import { Secret } from "../../../types/types"
 
 export const initSecret = (): Secret => {
   return {
+    kind: "Secret",
     metadata: {
       name: "",
       namespace: "",

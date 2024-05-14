@@ -31,19 +31,21 @@ export const useWatch = () => {
         console.log("ERROR: Failed to watch resource")
       )
       .on(client.WATCH_ADDED, (items) => {
-        console.log("watch pd added", items)
+        addKind(items, "PluginDefinition")
         updatePluginDefinitions({
           pluginDefinitions: items as PluginDefinition[],
           action: UpdateObjectAction.add,
         })
       })
       .on(client.WATCH_MODIFIED, (items) => {
+        addKind(items, "PluginDefinition")
         updatePluginDefinitions({
           pluginDefinitions: items as PluginDefinition[],
           action: UpdateObjectAction.add,
         })
       })
       .on(client.WATCH_DELETED, (items) => {
+        addKind(items, "PluginDefinition")
         updatePluginDefinitions({
           pluginDefinitions: items as PluginDefinition[],
           action: UpdateObjectAction.delete,
@@ -61,19 +63,21 @@ export const useWatch = () => {
         console.log("ERROR: Failed to watch resource")
       )
       .on(client.WATCH_ADDED, (items) => {
-        console.log("watch s added", items)
+        addKind(items, "Secret")
         updateSecrets({
           secrets: items as Secret[],
           action: UpdateObjectAction.add,
         })
       })
       .on(client.WATCH_MODIFIED, (items) => {
+        addKind(items, "Secret")
         updateSecrets({
           secrets: items as Secret[],
           action: UpdateObjectAction.add,
         })
       })
       .on(client.WATCH_DELETED, (items) => {
+        addKind(items, "Secret")
         updateSecrets({
           secrets: items as Secret[],
           action: UpdateObjectAction.delete,
@@ -82,6 +86,12 @@ export const useWatch = () => {
     watch.start()
     return watch.cancel
   }, [client, namespace])
+
+  const addKind = (items: any, kind: string) => {
+    items.forEach((item: any) => {
+      item.kind = kind
+    })
+  }
 
   return {
     watchPluginDefinitions: watchPluginDefinitions,

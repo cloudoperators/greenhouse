@@ -59,13 +59,15 @@ const PluginDefinitionDetail: React.FC<PluginDefinitionDetailProps> = (
   const [deployedPlugins, setDeployedPlugins] = React.useState<Plugin[]>([])
   const greenhousePluginLabelKey = "greenhouse.sap/plugin"
 
-  const plugins = getPluginsByLabelSelector(
-    greenhousePluginLabelKey,
-    props.pluginDefinition.metadata!.name!
-  )
-  plugins.then((plugins) => {
-    setDeployedPlugins(plugins)
-  })
+  useEffect(() => {
+    const plugins = getPluginsByLabelSelector(
+      greenhousePluginLabelKey,
+      props.pluginDefinition.metadata!.name!
+    )
+    plugins.then((plugins) => {
+      setDeployedPlugins(plugins)
+    })
+  }, [props.pluginDefinition.metadata?.name])
 
   const [markDown, setMarkDown] = React.useState<string>("")
   if (props.pluginDefinition.spec?.docMarkDownUrl) {

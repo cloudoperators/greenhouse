@@ -63,10 +63,7 @@ const AppContent = () => {
             <Tab>Enabled Plugins</Tab>
             <Tab>Secrets</Tab>
           </TabList>
-          <Message
-            variant={"warning"}
-            text="feature in beta, please use with caution."
-          />
+          <Message variant={"warning"} text="feature in beta" />
         </Stack>
 
         <TabPanel>

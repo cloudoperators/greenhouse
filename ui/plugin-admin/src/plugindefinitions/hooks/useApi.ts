@@ -102,7 +102,6 @@ export const useApi = () => {
       if (!client || !namespace) {
         return { ok: false, message: "Client or namespace not available" }
       }
-      console.log(typeof object)
 
       return await client
         .put(url + "/" + object.metadata!.name!, object)
