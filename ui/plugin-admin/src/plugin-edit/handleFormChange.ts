@@ -18,8 +18,6 @@ const handleFormChange = (
   let secretDataEntry: SecretDataEntry | undefined
   let valueFrom: PluginOptionValue["valueFrom"] | undefined = undefined
 
-  console.log("e.target", e.target)
-
   if (e.target?.type == undefined) {
     throw new Error("Unexpected form change event: " + JSON.stringify(e))
   }
@@ -81,7 +79,6 @@ const handleFormChange = (
     if (valueFrom != undefined) {
       optionValueToSet.valueFrom = valueFrom
     }
-    console.log("optionValueToSet", optionValueToSet)
     let changedPlugin: Plugin
     changedPlugin = {
       ...plugin,

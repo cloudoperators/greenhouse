@@ -47,12 +47,14 @@ const PluginEdit: React.FC<PluginEditProps> = (props: PluginEditProps) => {
   const setIsEditMode = useStore((state) => state.setIsPluginEditMode)
 
   const { createPlugin, updatePlugin, deletePlugin } = usePluginApi()
-  const { createPluginPreset, updatePluginPreset } = usePluginPresetApi()
+  const { createPluginPreset, updatePluginPreset, deletePluginPreset } =
+    usePluginPresetApi()
 
   const [isPluginPreset, setIsPluginPreset] = React.useState(false)
-  const isPluginPresetChange = () => {
+  const changeIsPluginPreset = () => {
     setIsPluginPreset(!isPluginPreset)
   }
+  const kindName = isPluginPreset ? "Plugin Preset" : "Plugin"
 
   const emptyLabelSelector: LabelSelector = {
     "": "",
@@ -100,8 +102,13 @@ const PluginEdit: React.FC<PluginEditProps> = (props: PluginEditProps) => {
 
   // TODO: Implement second confirmation dialog for delete
   const onDelete = async () => {
-    let res = await deletePlugin(pluginToEdit!)
-    setSubmitResultMessage({ message: res.message, ok: res.ok })
+    if (isPluginPreset) {
+      let res = await deletePluginPreset(initPluginPreset(pluginToEdit!))
+      setSubmitResultMessage({ message: res.message, ok: res.ok })
+    } else {
+      let res = await deletePlugin(pluginToEdit!)
+      setSubmitResultMessage({ message: res.message, ok: res.ok })
+    }
   }
 
   const onMessageDismiss = (ok: boolean) => {
@@ -126,11 +133,7 @@ const PluginEdit: React.FC<PluginEditProps> = (props: PluginEditProps) => {
     <Panel
       heading={
         <Stack gap="2">
-          {isPluginPreset ? (
-            <span>Configure Plugin Preset</span>
-          ) : (
-            <span>Configure Plugin</span>
-          )}
+          <span>Configure {kindName}</span>
         </Stack>
       }
       opened={!!props.pluginDefinition}
@@ -150,8 +153,8 @@ const PluginEdit: React.FC<PluginEditProps> = (props: PluginEditProps) => {
                 <Switch
                   id="switch-plugin-preset"
                   label="Make Plugin Preset"
-                  onChange={isPluginPresetChange}
-                  onClick={isPluginPresetChange}
+                  onChange={changeIsPluginPreset}
+                  onClick={changeIsPluginPreset}
                 />
               </FormRow>
               <FormRow>
@@ -216,7 +219,7 @@ const PluginEdit: React.FC<PluginEditProps> = (props: PluginEditProps) => {
 
             <Stack distribution="between">
               <Button onClick={onDelete} variant="primary-danger">
-                Delete Plugin
+                Delete {kindName}
               </Button>
               {submitMessage.message != "" && (
                 <SubmitResultMessage
@@ -225,7 +228,7 @@ const PluginEdit: React.FC<PluginEditProps> = (props: PluginEditProps) => {
                 />
               )}
               <Button onClick={onSubmit} variant="primary">
-                {isEditMode ? "Update Plugin" : "Create Plugin"}
+                {isEditMode ? `Update ${kindName}` : `Create ${kindName}`}
               </Button>
             </Stack>
           </Form>
