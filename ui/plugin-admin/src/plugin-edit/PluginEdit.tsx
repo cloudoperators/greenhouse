@@ -54,6 +54,29 @@ const PluginEdit: React.FC<PluginEditProps> = (props: PluginEditProps) => {
   const changeIsPluginPreset = () => {
     setIsPluginPreset(!isPluginPreset)
   }
+
+  const [pluginPresetName, setPluginPresetName] = React.useState("")
+  // if plugin metadata labels contain a label with key greenhouse.sap/pluginpreset
+  // we assume this plugin is a plugin preset
+  React.useEffect(() => {
+    if (
+      pluginToEdit &&
+      pluginToEdit.metadata!.labels &&
+      pluginToEdit.metadata!.labels["greenhouse.sap/pluginpreset"]
+    ) {
+      setIsPluginPreset(true)
+      setSubmitResultMessage({
+        message: "This Plugin is part of a Preset. Can only edit Preset!",
+        ok: false,
+      })
+      setPluginPresetName(
+        pluginToEdit.metadata!.labels["greenhouse.sap/pluginpreset"]
+      )
+    } else {
+      setPluginPresetName(pluginToEdit?.metadata?.name ?? "")
+    }
+  }, [pluginToEdit])
+
   const kindName = isPluginPreset ? "Plugin Preset" : "Plugin"
 
   const emptyLabelSelector: LabelSelector = {
@@ -78,9 +101,11 @@ const PluginEdit: React.FC<PluginEditProps> = (props: PluginEditProps) => {
   )
   const onSubmit = async () => {
     if (isPluginPreset) {
-      let pluginPreset: PluginPreset = initPluginPreset(pluginToEdit!, {
-        matchLabels: labelSelector,
-      })
+      let pluginPreset: PluginPreset = initPluginPreset(
+        pluginPresetName,
+        pluginToEdit!
+      )
+      pluginPreset.spec!.clusterSelector.matchLabels = labelSelector
 
       let pluginPresetCreatePromise = isEditMode
         ? updatePluginPreset(pluginPreset)
@@ -103,7 +128,9 @@ const PluginEdit: React.FC<PluginEditProps> = (props: PluginEditProps) => {
   // TODO: Implement second confirmation dialog for delete
   const onDelete = async () => {
     if (isPluginPreset) {
-      let res = await deletePluginPreset(initPluginPreset(pluginToEdit!))
+      let res = await deletePluginPreset(
+        initPluginPreset(pluginPresetName, pluginToEdit!)
+      )
       setSubmitResultMessage({ message: res.message, ok: res.ok })
     } else {
       let res = await deletePlugin(pluginToEdit!)
@@ -153,6 +180,7 @@ const PluginEdit: React.FC<PluginEditProps> = (props: PluginEditProps) => {
                 <Switch
                   id="switch-plugin-preset"
                   label="Make Plugin Preset"
+                  on={isPluginPreset}
                   onChange={changeIsPluginPreset}
                   onClick={changeIsPluginPreset}
                 />
@@ -172,7 +200,11 @@ const PluginEdit: React.FC<PluginEditProps> = (props: PluginEditProps) => {
                   label="Name"
                   placeholder="Name of this Plugin Instance"
                   {...(isEditMode && { disabled: true })}
-                  value={pluginToEdit!.metadata!.name}
+                  value={
+                    isPluginPreset
+                      ? pluginPresetName
+                      : pluginToEdit!.metadata!.name
+                  }
                   onBlur={handleFormElementChange}
                 />
               </FormRow>

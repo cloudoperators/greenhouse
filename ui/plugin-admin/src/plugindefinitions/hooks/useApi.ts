@@ -49,7 +49,9 @@ export const useApi = () => {
         .then((res) => {
           if (res.kind !== object.kind) {
             console.log(
-              `ERROR: Failed to get ${object.kind}, did not get ${object.kind}`
+              `ERROR: Failed to get ${object.kind}, did not get ${
+                object.kind
+              }: ${JSON.stringify(res)}`
             )
             return { ok: false, message: `Failed getting ${object.kind}` }
           }
@@ -84,7 +86,9 @@ export const useApi = () => {
         .then((res) => {
           if (res.kind !== object.kind) {
             console.log(
-              `ERROR: Failed to create ${object.kind}, did not get ${object.kind}`
+              `ERROR: Failed to create ${object.kind}, did not get ${
+                object.kind
+              }: ${JSON.stringify(res)}`
             )
             return { ok: false, message: `Failed creating ${object.kind}` }
           }
@@ -155,13 +159,15 @@ export const useApi = () => {
         .delete(url + "/" + object.metadata!.name!)
         .then((res) => {
           if (
-            res.kind == "Plugin" ||
+            res.kind == object.kind ||
             (res.kind == "Status" && res.status == "Success")
           ) {
             return { ok: true, message: `Successfully deleted ${object.kind}` }
           }
           console.log(
-            `ERROR: Failed to delete ${object.kind}, did not get ${object.kind}`
+            `ERROR: Failed to delete ${object.kind} did not get ${
+              object.kind
+            }: ${JSON.stringify(res)}`
           )
           return { ok: false, message: `Failed deleting ${object.kind}` }
         })

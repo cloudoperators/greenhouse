@@ -6,19 +6,19 @@
 import { ClusterSelector, Plugin, PluginPreset } from "../../../types/types"
 
 const initPluginPreset = (
-  plugin: Plugin,
-  clusterSelector: ClusterSelector
+  pluginPresetName: string,
+  plugin: Plugin
 ): PluginPreset => {
   delete plugin.spec!.clusterName
   let pluginPreset: PluginPreset = {
     metadata: {
-      name: plugin.metadata!.name,
+      name: pluginPresetName,
     },
     kind: "PluginPreset",
     apiVersion: "greenhouse.sap/v1alpha1",
     spec: {
       plugin: plugin.spec!,
-      clusterSelector: clusterSelector,
+      clusterSelector: {},
     },
   }
   return pluginPreset
