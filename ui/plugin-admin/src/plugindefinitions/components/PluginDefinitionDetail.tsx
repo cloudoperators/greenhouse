@@ -57,7 +57,7 @@ const PluginDefinitionDetail: React.FC<PluginDefinitionDetailProps> = (
   }
 
   const [deployedPlugins, setDeployedPlugins] = React.useState<Plugin[]>([])
-  const greenhousePluginLabelKey = "greenhouse.sap/plugin"
+  const greenhousePluginLabelKey = "greenhouse.sap/plugindefinition"
 
   useEffect(() => {
     const plugins = getPluginsByLabelSelector(

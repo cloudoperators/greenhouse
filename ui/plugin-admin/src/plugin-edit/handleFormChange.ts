@@ -8,7 +8,7 @@ import {
   PluginOptionValue,
   Secret,
   SecretDataEntry,
-} from "../../../../../types/types"
+} from "../../../types/types"
 
 const handleFormChange = (
   e: React.ChangeEvent<HTMLInputElement>,

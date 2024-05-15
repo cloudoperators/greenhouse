@@ -19,7 +19,6 @@ import SubmitResultMessage, {
 } from "../plugin-edit/SubmitResultMessage"
 import useSecretApi from "../plugindefinitions/hooks/useSecretApi"
 import useStore from "../plugindefinitions/store"
-import useSecretEditForm from "./handleSecretFormChange"
 import KeyValueInput from "./KeyValueInput"
 
 const SecretEdit: React.FC<any> = () => {
@@ -106,6 +105,7 @@ const SecretEdit: React.FC<any> = () => {
             data={secretDetail!.data}
             setData={setSecretData}
             mutateValue={base64Endcode}
+            isSecret={true}
           ></KeyValueInput>
           <Stack distribution="between">
             <Button onClick={onDelete} variant="primary-danger">

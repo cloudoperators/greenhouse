@@ -48,6 +48,7 @@ export type KubernetesCondition = {
   lastTransitionTime?: string
 }
 
+// some subtypes
 export type PluginDefinitionOptions = NonNullable<
   PluginDefinition["spec"]
 >["options"]
@@ -56,5 +57,9 @@ export type PluginDefinitionOption =
 export type PluginOptionValues = NonNullable<Plugin["spec"]>["optionValues"]
 export type PluginOptionValue = NonNullable<PluginOptionValues>[number]
 export type PluginOptionValueFrom = NonNullable<PluginOptionValue>["valueFrom"]
+
+export type PluginPresetSpec = NonNullable<PluginPreset["spec"]>
+export type ClusterSelector = NonNullable<PluginPresetSpec["clusterSelector"]>
+export type LabelSelector = NonNullable<ClusterSelector["matchLabels"]>
 
 export type SecretDataEntry = NonNullable<Secret["data"]>

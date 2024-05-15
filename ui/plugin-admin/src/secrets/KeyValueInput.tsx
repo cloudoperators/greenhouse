@@ -1,14 +1,29 @@
+/*
+ * SPDX-FileCopyrightText: 2024 SAP SE or an SAP affiliate company and Greenhouse contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
 import React from "react"
 import { Button, Stack, TextInput, FormSection } from "juno-ui-components"
+/*
+ * This Element provides a form section for entering and editing key-value pairs.
+ * The key-value data and the setData function are passed as props.
+ * A mutateValue function can be passed as a prop to modify the value before it is stored.
+ */
 
 export interface KeyValueInputProps {
   data?: { [key: string]: string }
   setData: (data: { [key: string]: string }) => void
   mutateValue?: (value: string) => string
+  title?: string
+  dataName?: string
+  isSecret?: boolean
 }
 const KeyValueInput: React.FC<KeyValueInputProps> = (
   props: KeyValueInputProps
 ) => {
+  const dataName = props.dataName ? props.dataName : "Data"
+  const isSecret = props.isSecret ? props.isSecret : false
   const handleDataEntryChange = (key, value: string) => {
     // key is in format dataKey.key or dataValue.key
     let keyInfo = key.split(".")
@@ -45,7 +60,7 @@ const KeyValueInput: React.FC<KeyValueInputProps> = (
     props.setData(data)
   }
 
-  const addData = () => {
+  const addNewDataEntry = () => {
     props.setData({
       ...props.data,
       "": "",
@@ -53,15 +68,14 @@ const KeyValueInput: React.FC<KeyValueInputProps> = (
   }
 
   return (
-    <FormSection title="Data">
+    <FormSection title={props.title}>
       {props.data &&
         Object.keys(props.data).length > 0 &&
         Object.keys(props.data).map((dataKey) => (
           <Stack key={dataKey} distribution="evenly">
             <TextInput
               id={"dataKey." + dataKey}
-              label="Data Key"
-              placeholder="Key of this secret data entry"
+              label={`${dataName} Key`}
               value={dataKey}
               onBlur={(e) =>
                 handleDataEntryChange("dataKey." + dataKey, e.target.value)
@@ -70,9 +84,8 @@ const KeyValueInput: React.FC<KeyValueInputProps> = (
 
             <TextInput
               id={"dataValue" + dataKey}
-              type="password"
-              label="Data Value"
-              placeholder="Value of this secret data entry"
+              type={isSecret ? "password" : "text"}
+              label={`${dataName} Value`}
               value={props.data![dataKey]}
               onBlur={(e) =>
                 handleDataEntryChange("dataValue." + dataKey, e.target.value)
@@ -80,12 +93,15 @@ const KeyValueInput: React.FC<KeyValueInputProps> = (
             />
             <Button
               icon="deleteForever"
-              label="Remove entry"
               onClick={() => deleteDataEntry(dataKey)}
             />
           </Stack>
         ))}
-      <Button icon="addCircle" label="Add Data" onClick={addData} />
+      <Button
+        icon="addCircle"
+        label={`Add ${dataName}`}
+        onClick={addNewDataEntry}
+      />
     </FormSection>
   )
 }

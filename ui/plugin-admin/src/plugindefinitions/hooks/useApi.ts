@@ -9,11 +9,17 @@ import {
   Plugin,
   Cluster,
   PluginDefinition,
+  PluginPreset,
 } from "../../../../types/types"
 import useClient from "./useClient"
 import useNamespace from "./useNamespace"
 
-export type AllowedApiObject = Plugin | Cluster | Secret | PluginDefinition
+export type AllowedApiObject =
+  | Plugin
+  | Cluster
+  | Secret
+  | PluginDefinition
+  | PluginPreset
 
 export type ApiResponse = {
   ok: boolean

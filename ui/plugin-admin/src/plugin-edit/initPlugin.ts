@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { Plugin, PluginDefinition } from "../../../../../types/types"
+import { Plugin, PluginDefinition } from "../../../types/types"
 
 const initPlugin = (pluginDefinition: PluginDefinition) => {
   // instantiate new empty PluginConfig from Plugin
@@ -18,8 +18,7 @@ const initPlugin = (pluginDefinition: PluginDefinition) => {
     spec: {
       pluginDefinition: pluginDefinition.metadata!.name!,
       displayName:
-        pluginDefinition.spec?.displayName ??
-        pluginDefinition.metadata?.name,
+        pluginDefinition.spec?.displayName ?? pluginDefinition.metadata?.name,
       clusterName: "",
       disabled: false,
       optionValues: [],
@@ -31,7 +30,7 @@ const initPlugin = (pluginDefinition: PluginDefinition) => {
     if (
       option.type != "secret" &&
       option.default &&
-      !initPlugin.spec?.optionValues!.some((o) => o.name == option.name) 
+      !initPlugin.spec?.optionValues!.some((o) => o.name == option.name)
     ) {
       initPlugin.spec?.optionValues!.push({
         name: option.name,

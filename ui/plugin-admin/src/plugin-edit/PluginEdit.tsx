@@ -15,20 +15,27 @@ import {
   TextInput,
 } from "juno-ui-components"
 import React from "react"
-import { PluginDefinition } from "../../../types/types"
+import {
+  LabelSelector,
+  PluginDefinition,
+  PluginPreset,
+} from "../../../types/types"
 import usePluginApi from "../plugindefinitions/hooks/usePluginApi"
+import usePluginPresetApi from "../plugindefinitions/hooks/usePluginPresetApi"
 import useStore from "../plugindefinitions/store"
+import KeyValueInput from "../secrets/KeyValueInput"
 import ClusterSelect from "./ClusterSelect"
 import { OptionInput } from "./OptionInput"
 import SubmitResultMessage, { SubmitMessage } from "./SubmitResultMessage"
-import handleFormChange from "./lib/utils/handleFormChange"
-import initPlugin from "./lib/utils/initPlugin"
+import handleFormChange from "./handleFormChange"
+import initPlugin from "./initPlugin"
+import initPluginPreset from "./initPluginPreset"
 
 interface PluginEditProps {
   pluginDefinition: PluginDefinition
 }
 
-// TODO: Hickup observed with resource states: Try getting plugin from server after failed post/put
+// TODO: Properly distinguish between **editing** a plugin and a plugin preset
 // TODO: Validate JSON on list/map inputs
 const PluginEdit: React.FC<PluginEditProps> = (props: PluginEditProps) => {
   const setShowPluginEdit = useStore((state) => state.setShowPluginEdit)
@@ -40,11 +47,17 @@ const PluginEdit: React.FC<PluginEditProps> = (props: PluginEditProps) => {
   const setIsEditMode = useStore((state) => state.setIsPluginEditMode)
 
   const { createPlugin, updatePlugin, deletePlugin } = usePluginApi()
+  const { createPluginPreset, updatePluginPreset } = usePluginPresetApi()
 
   const [isPluginPreset, setIsPluginPreset] = React.useState(false)
   const isPluginPresetChange = () => {
     setIsPluginPreset(!isPluginPreset)
   }
+
+  const emptyLabelSelector: LabelSelector = {
+    "": "",
+  }
+  const [labelSelector, setLabelSelector] = React.useState(emptyLabelSelector)
 
   React.useEffect(() => {
     if (!pluginToEdit) {
@@ -62,13 +75,27 @@ const PluginEdit: React.FC<PluginEditProps> = (props: PluginEditProps) => {
     { message: "", ok: false }
   )
   const onSubmit = async () => {
-    let pluginCreatePromise = isEditMode
-      ? updatePlugin(pluginToEdit!)
-      : createPlugin(pluginToEdit!)
+    if (isPluginPreset) {
+      let pluginPreset: PluginPreset = initPluginPreset(pluginToEdit!, {
+        matchLabels: labelSelector,
+      })
 
-    await pluginCreatePromise.then(async (res) => {
-      setSubmitResultMessage({ message: res.message, ok: res.ok })
-    })
+      let pluginPresetCreatePromise = isEditMode
+        ? updatePluginPreset(pluginPreset)
+        : createPluginPreset(pluginPreset)
+
+      await pluginPresetCreatePromise.then(async (res) => {
+        setSubmitResultMessage({ message: res.message, ok: res.ok })
+      })
+    } else {
+      let pluginCreatePromise = isEditMode
+        ? updatePlugin(pluginToEdit!)
+        : createPlugin(pluginToEdit!)
+
+      await pluginCreatePromise.then(async (res) => {
+        setSubmitResultMessage({ message: res.message, ok: res.ok })
+      })
+    }
   }
 
   // TODO: Implement second confirmation dialog for delete
@@ -82,7 +109,7 @@ const PluginEdit: React.FC<PluginEditProps> = (props: PluginEditProps) => {
       setShowPluginEdit(false)
       setPluginToEdit(undefined)
       setIsEditMode(false)
-      // TODO: Implement a way to open the details for the plugin
+      // TODO: Implement a way to open the details for the plugin --> just show a button!
       console.log("I want to open the details for my plugin now :)")
     }
   }
@@ -147,13 +174,23 @@ const PluginEdit: React.FC<PluginEditProps> = (props: PluginEditProps) => {
                 />
               </FormRow>
               <FormRow>
-                <ClusterSelect
-                  id="spec.clusterName"
-                  placeholder="The Cluster this Plugin is to be deployed to."
-                  label="Cluster"
-                  defaultValue={pluginToEdit!.spec!.clusterName}
-                  onChange={handleFormElementChange}
-                />
+                {isPluginPreset && (
+                  <KeyValueInput
+                    data={labelSelector}
+                    setData={setLabelSelector}
+                    title="Cluster Label Selector"
+                    dataName="Label"
+                  ></KeyValueInput>
+                )}
+                {!isPluginPreset && (
+                  <ClusterSelect
+                    id="spec.clusterName"
+                    placeholder="The Cluster this Plugin is to be deployed to."
+                    label="Cluster"
+                    defaultValue={pluginToEdit!.spec!.clusterName}
+                    onChange={handleFormElementChange}
+                  />
+                )}
               </FormRow>
             </FormSection>
 
