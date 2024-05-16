@@ -51,6 +51,16 @@ const SecretEdit: React.FC<any> = () => {
     })
   }
 
+  const setSecretLabels = (labels: { [key: string]: string }) => {
+    setSecretDetail({
+      ...secretDetail,
+      metadata: {
+        ...secretDetail?.metadata,
+        labels: labels,
+      },
+    })
+  }
+
   const base64Endcode = (value: string) => {
     return btoa(value)
   }
@@ -102,6 +112,13 @@ const SecretEdit: React.FC<any> = () => {
             </FormRow>
           </FormSection>
           <KeyValueInput
+            title="Labels"
+            dataName="Label"
+            data={secretDetail!.metadata!.labels}
+            setData={setSecretLabels}
+          ></KeyValueInput>
+          <KeyValueInput
+            title="Data"
             data={secretDetail!.data}
             setData={setSecretData}
             mutateValue={base64Endcode}

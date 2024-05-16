@@ -27,8 +27,6 @@ export type ApiResponse = {
   response?: AllowedApiObject
 }
 
-// Big TODO: correctly check for correct "kind" on results, e.g. update calls
-
 export const useApi = () => {
   const { namespace } = useNamespace()
   const { client: client } = useClient()
