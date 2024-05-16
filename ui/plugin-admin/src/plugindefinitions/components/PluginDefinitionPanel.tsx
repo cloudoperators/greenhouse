@@ -30,6 +30,7 @@ import PluginDefinitionGrid from "./PluginDefinitionGrid"
 import usePluginDefinitionsStore from "../store"
 
 import useStore from "../store"
+import { usePluginActions } from "../../plugins/components/StoreProvider"
 
 import {
   useShowDefinitionPanel,
@@ -58,15 +59,18 @@ const PluginDefinitionPanel = () => {
     (state) => state.setShowPluginDefinitionDetails
   )
 
-  const onShowDefinitionPanel = () => {
+  const { setShowDetailsFor } = usePluginActions()
+
+  const onCloseDefinitionPanel = () => {
     setShowDefinitionPanel(false)
     setShowPluginDefinitionDetails(false)
+    setShowDetailsFor(false)
   }
 
   return (
     <Panel
       opened={showDefinitionPanel || showPluginDefinitionDetails}
-      onClose={onShowDefinitionPanel}
+      onClose={onCloseDefinitionPanel}
       size="large"
       heading="Add Plugin"
     >

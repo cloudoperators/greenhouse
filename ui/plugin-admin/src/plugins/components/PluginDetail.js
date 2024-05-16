@@ -29,6 +29,7 @@ import {
 } from "juno-ui-components"
 import { PluginConditionIcon } from "./PluginConditionIcon"
 import { buildExternalServicesUrls } from "./buildExternalServicesUrls"
+import usePluginDefinitionsStore from "../../plugindefinitions/store"
 
 // Renders the plugin details panel
 const PluginDetail = () => {
@@ -36,6 +37,10 @@ const PluginDetail = () => {
   const { setShowDetailsFor } = usePluginActions()
   const showDetailsFor = useShowDetailsFor()
   const [plugin, setPlugin] = useState(null)
+
+  const showPluginEdit = usePluginDefinitionsStore(
+    (state) => state.showPluginDefinitionEdit
+  )
 
   useEffect(() => {
     if (!showDetailsFor || !pluginConfig) {
@@ -50,7 +55,7 @@ const PluginDetail = () => {
 
   return (
     <Panel
-      opened={!!showDetailsFor}
+      opened={!!showDetailsFor && !showPluginEdit}
       onClose={onPanelClose}
       size="large"
       heading={

@@ -45,7 +45,7 @@ const createPluginSlice = (set, get) => ({
       },
 
       addPluginConfigItems: (pluginConfigItems) => {
-        const items = get().plugin.pluginConfig || []
+        const items = (get().plugin.pluginConfig || []).slice()
         let newItems = uniqPluginConfigItems([...items, ...pluginConfigItems])
         newItems = sortPluginConfigItems(newItems)
 
@@ -55,58 +55,43 @@ const createPluginSlice = (set, get) => ({
             pluginConfig: newItems,
           },
         }))
-
-        // const items = {get(pluginConfig), pluginConfigItems}
-        // // Sort plugins by id alphabetically, but put disabled plugins at the end
-        // let sortedPlugins = pluginConfig.sort((a, b) => {
-        //   if (a?.disabled && !b?.disabled) {
-        //     return 1
-        //   } else if (!a?.disabled && b?.disabled) {
-        //     return -1
-        //   } else {
-        //     return a.id.localeCompare(b.id)
-        //   }
-        // })
-        // set((state) => ({
-        //   plugin: {
-        //     ...state.plugin,
-        //     pluginConfig: sortedPlugins,
-        //   },
-        // }))
       },
-      modifyPluginConfigItems: (pluginConfig) => {
-        // Sort plugins by id alphabetically, but put disabled plugins at the end
-        let sortedPlugins = pluginConfig.sort((a, b) => {
-          if (a?.disabled && !b?.disabled) {
-            return 1
-          } else if (!a?.disabled && b?.disabled) {
-            return -1
-          } else {
-            return a.id.localeCompare(b.id)
-          }
+      modifyPluginConfigItems: (modifiedItems) => {
+        const items = (get().plugin.pluginConfig || []).slice()
+
+        const updatedItems = items.map((item) => {
+          const matchingModifiedItem = modifiedItems.find(
+            (modifiedItem) => modifiedItem.metadata.uid === item.metadata.uid
+          )
+          return matchingModifiedItem || item
         })
+
+        let newItems = uniqPluginConfigItems(updatedItems)
+        newItems = sortPluginConfigItems(updatedItems)
+
         set((state) => ({
           plugin: {
             ...state.plugin,
-            pluginConfig: sortedPlugins,
+            pluginConfig: newItems,
           },
         }))
       },
-      deletePluginConfigItems: (pluginConfig) => {
-        // Sort plugins by id alphabetically, but put disabled plugins at the end
-        let sortedPlugins = pluginConfig.sort((a, b) => {
-          if (a?.disabled && !b?.disabled) {
-            return 1
-          } else if (!a?.disabled && b?.disabled) {
-            return -1
-          } else {
-            return a.id.localeCompare(b.id)
-          }
+      deletePluginConfigItems: (pluginConfigItems) => {
+        const items = (get().plugin.pluginConfig || []).slice() // Get items
+
+        let updatedItems = items.filter((item) => {
+          return !pluginConfigItems.find(
+            (pci) => pci.metadata.uid === item.metadata.uid
+          )
         })
+
+        let newItems = uniqPluginConfigItems(updatedItems)
+        newItems = sortPluginConfigItems(updatedItems)
+
         set((state) => ({
           plugin: {
             ...state.plugin,
-            pluginConfig: sortedPlugins,
+            pluginConfig: newItems,
           },
         }))
       },

@@ -32,7 +32,7 @@ const Plugin = (props) => {
 
   const onPluginClick = () => {
     setPluginToEdit(plugin)
-    setShowPluginDefinitionDetails(false)
+    setShowPluginDefinitionDetails(true)
     setShowPluginEdit(true)
     setIsEditMode(true)
   }

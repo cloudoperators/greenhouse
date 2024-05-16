@@ -28,6 +28,8 @@ import handleFormChange from "./lib/utils/handleFormChange"
 import initPlugin from "./lib/utils/initPlugin"
 import SubmitResultMessage, { SubmitMessage } from "./SubmitResultMessage"
 
+import { usePluginActions } from "../plugins/components/StoreProvider"
+
 interface PluginEditProps {
   pluginDefinition: PluginDefinition
 }
@@ -51,6 +53,8 @@ const PluginEdit: React.FC<PluginEditProps> = (props: PluginEditProps) => {
     (state) => state.setShowPluginDefinitionDetails
   )
 
+  const { setShowDetailsFor } = usePluginActions()
+
   React.useEffect(() => {
     if (!pluginToEdit) {
       setPluginToEdit(initPlugin(props.pluginDefinition))
@@ -63,6 +67,7 @@ const PluginEdit: React.FC<PluginEditProps> = (props: PluginEditProps) => {
     setIsEditMode(false)
     setShowDefinitionPanel(false)
     setShowPluginDefinitionDetails(false)
+    setShowDetailsFor(false)
   }
 
   const [submitMessage, setSubmitResultMessage] = React.useState<SubmitMessage>(
