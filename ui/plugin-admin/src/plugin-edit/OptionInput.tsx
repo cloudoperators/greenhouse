@@ -23,9 +23,9 @@ export const OptionInput: React.FC<OptionInputProps> = (
   }
   const id = "optionValues." + props.pluginDefinitionOption.name
   const label =
-    props.pluginDefinitionOption.displayName ??
-    props.pluginDefinitionOption.name
-  const helptext = props.pluginDefinitionOption.type
+    (props.pluginDefinitionOption.displayName ??
+      props.pluginDefinitionOption.name) +
+    ` (${props.pluginDefinitionOption.type})`
   const required = props.pluginDefinitionOption.required
 
   // values have already been defaulted on initPlugin
@@ -41,7 +41,6 @@ export const OptionInput: React.FC<OptionInputProps> = (
           id={id}
           label={label}
           required={required}
-          helptext={helptext}
           checked={value}
           onBlur={handleBlur}
         />
@@ -53,7 +52,6 @@ export const OptionInput: React.FC<OptionInputProps> = (
           id={id}
           label={label}
           required={required}
-          helptext={helptext}
           value={JSON.stringify(value)}
           onBlur={handleBlur}
         ></Textarea>
@@ -64,7 +62,6 @@ export const OptionInput: React.FC<OptionInputProps> = (
           id={id}
           label={label}
           required={required}
-          helptext={helptext}
           value={valueFrom}
           onChange={handleBlur}
         />
@@ -80,7 +77,6 @@ export const OptionInput: React.FC<OptionInputProps> = (
       label={label}
       value={value}
       required={required}
-      helptext={helptext}
       onBlur={handleBlur}
     />
   )

@@ -30,14 +30,18 @@ import SubmitResultMessage, { SubmitMessage } from "./SubmitResultMessage"
 import handleFormChange from "./handleFormChange"
 import initPlugin from "./initPlugin"
 import initPluginPreset from "./initPluginPreset"
+import useNamespace from "../plugindefinitions/hooks/useNamespace"
 
 interface PluginEditProps {
   pluginDefinition: PluginDefinition
 }
 
+// TODO: If editing existing plugin, we currently cant create preset from it
+
 // TODO: Properly distinguish between **editing** a plugin and a plugin preset
 // TODO: Validate JSON on list/map inputs
 const PluginEdit: React.FC<PluginEditProps> = (props: PluginEditProps) => {
+  const { namespace } = useNamespace()
   const setShowPluginEdit = useStore((state) => state.setShowPluginEdit)
 
   const pluginToEdit = useStore((state) => state.pluginToEdit)
@@ -66,8 +70,9 @@ const PluginEdit: React.FC<PluginEditProps> = (props: PluginEditProps) => {
     ) {
       setIsPluginPreset(true)
       setSubmitResultMessage({
-        message: "This Plugin is part of a Preset. Can only edit Preset!",
+        message: "This Plugin is part of a Preset. You are editing the Preset!",
         ok: false,
+        variant: "warning",
       })
       setPluginPresetName(
         pluginToEdit.metadata!.labels["greenhouse.sap/pluginpreset"]
@@ -227,6 +232,15 @@ const PluginEdit: React.FC<PluginEditProps> = (props: PluginEditProps) => {
                   />
                 )}
               </FormRow>
+              <FormRow>
+                <TextInput
+                  id="spec.releaseNamespace"
+                  label="Release Namespace"
+                  placeholder={`The namespace in the remote cluster to which the backend is deployed to. Defaults to ${namespace}.`}
+                  value={pluginToEdit!.spec!.releaseNamespace}
+                  onBlur={handleFormElementChange}
+                ></TextInput>
+              </FormRow>
             </FormSection>
 
             {props.pluginDefinition.spec?.options?.length && (
@@ -237,7 +251,9 @@ const PluginEdit: React.FC<PluginEditProps> = (props: PluginEditProps) => {
                   )
                   return (
                     <FormRow key={index}>
-                      <p>{option.description}</p>
+                      <p style={{ color: "text-theme-light" }}>
+                        {option.description}
+                      </p>
                       <OptionInput
                         pluginDefinitionOption={option}
                         pluginOptionValue={optionValue}

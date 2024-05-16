@@ -7,25 +7,26 @@ import { Message } from "juno-ui-components"
 export type SubmitMessage = {
   message: string
   ok: boolean
+  variant?: "warning" | "success" | "error"
 }
 
 interface SubmitResultMessageProps {
-  submitMessage: {
-    message: string
-    ok: boolean
-  }
+  submitMessage: SubmitMessage
   onMessageDismiss?: () => void
 }
 
 const SubmitResultMessage: React.FC<SubmitResultMessageProps> = (
   props: SubmitResultMessageProps
 ) => {
+  // if variant is not set, we deduct from ok
+  if (!props.submitMessage.variant)
+    props.submitMessage.variant = props.submitMessage.ok ? "success" : "error"
   return (
     <Message
       autoDismissTimeout={3000}
       autoDismiss={props.submitMessage.ok}
       onDismiss={props.onMessageDismiss}
-      variant={props.submitMessage.ok ? "success" : "error"}
+      variant={props.submitMessage.variant}
       text={props.submitMessage.message}
     />
   )

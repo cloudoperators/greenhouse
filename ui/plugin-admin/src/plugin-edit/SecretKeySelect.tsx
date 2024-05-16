@@ -15,7 +15,7 @@ interface SecretKeySelectProps {
   id: string
   label: string
   required: boolean
-  helptext: string
+  helptext?: string
   value: PluginOptionValueFrom
   onChange: (e: React.ChangeEvent<HTMLInputElement>) => void
 }
