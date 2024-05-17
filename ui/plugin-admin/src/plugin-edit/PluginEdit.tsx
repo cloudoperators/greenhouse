@@ -8,7 +8,7 @@ import {
   Form,
   FormRow,
   FormSection,
-  Message,
+  Container,
   Panel,
   PanelBody,
   PanelFooter,
@@ -20,15 +20,16 @@ import { PluginDefinition } from "../../../types/types"
 import usePluginApi from "../plugindefinitions/hooks/usePluginApi"
 import useStore from "../plugindefinitions/store"
 
-import { useGlobalsActions } from "../plugins/components/StoreProvider"
+import {
+  useGlobalsActions,
+  usePanel,
+} from "../plugins/components/StoreProvider"
 
 import ClusterSelect from "./ClusterSelect"
 import { OptionInput } from "./OptionInput"
 import handleFormChange from "./lib/utils/handleFormChange"
 import initPlugin from "./lib/utils/initPlugin"
 import SubmitResultMessage, { SubmitMessage } from "./SubmitResultMessage"
-
-import { usePluginActions } from "../plugins/components/StoreProvider"
 
 interface PluginEditProps {
   pluginDefinition: PluginDefinition
@@ -47,28 +48,11 @@ const PluginEdit: React.FC<PluginEditProps> = (props: PluginEditProps) => {
 
   const { createPlugin, updatePlugin, deletePlugin } = usePluginApi()
 
-  const { setShowDefinitionPanel } = useGlobalsActions()
-
-  const setShowPluginDefinitionDetails = useStore(
-    (state) => state.setShowPluginDefinitionDetails
-  )
-
-  const { setShowDetailsFor } = usePluginActions()
-
   React.useEffect(() => {
     if (!pluginToEdit) {
       setPluginToEdit(initPlugin(props.pluginDefinition))
     }
   }, [props.pluginDefinition])
-
-  const onPanelClose = () => {
-    setPluginToEdit(undefined)
-    setShowPluginEdit(false)
-    setIsEditMode(false)
-    setShowDefinitionPanel(false)
-    setShowPluginDefinitionDetails(false)
-    setShowDetailsFor(false)
-  }
 
   const [submitMessage, setSubmitResultMessage] = React.useState<SubmitMessage>(
     { message: "", ok: false }
@@ -108,24 +92,17 @@ const PluginEdit: React.FC<PluginEditProps> = (props: PluginEditProps) => {
   }
 
   return (
-    <Panel
-      heading={
-        <Stack gap="2">
-          <span>Configure Plugin</span>
-        </Stack>
-      }
-      opened={!!props.pluginDefinition}
-      onClose={onPanelClose}
-      size="large"
-    >
+    <Container px={false} py>
       {submitMessage.message != "" && (
-        <SubmitResultMessage
-          submitMessage={submitMessage}
-          onMessageDismiss={() => onMessageDismiss(submitMessage.ok)}
-        />
+        <FormRow>
+          <SubmitResultMessage
+            submitMessage={submitMessage}
+            onMessageDismiss={() => onMessageDismiss(submitMessage.ok)}
+          />
+        </FormRow>
       )}
       {pluginToEdit && (
-        <PanelBody>
+        <>
           <Form
             title={
               props.pluginDefinition.spec?.displayName ??
@@ -196,9 +173,9 @@ const PluginEdit: React.FC<PluginEditProps> = (props: PluginEditProps) => {
               {isEditMode ? "Update Plugin" : "Create Plugin"}
             </Button>
           </PanelFooter>
-        </PanelBody>
+        </>
       )}
-    </Panel>
+    </Container>
   )
 }
 

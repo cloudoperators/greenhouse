@@ -29,12 +29,9 @@ import PluginDefinitionGrid from "./PluginDefinitionGrid"
 
 import usePluginDefinitionsStore from "../store"
 
-import useStore from "../store"
-import { usePluginActions } from "../../plugins/components/StoreProvider"
-
 import {
-  useShowDefinitionPanel,
   useGlobalsActions,
+  usePanel,
 } from "../../plugins/components/StoreProvider"
 
 // Renders the plugin details panel
@@ -42,46 +39,37 @@ const PluginDefinitionPanel = () => {
   const pluginDefinitions = usePluginDefinitionsStore(
     (state) => state.pluginDefinitions
   )
-  const showPluginDefinitionDetails = usePluginDefinitionsStore(
-    (state) => state.showPluginDefinitionDetails
-  )
+  const panel = usePanel()
+
   const pluginDefinitionDetail = usePluginDefinitionsStore(
     (state) => state.pluginDefinitionDetail
   )
-  const showPluginEdit = usePluginDefinitionsStore(
-    (state) => state.showPluginDefinitionEdit
-  )
 
-  const showDefinitionPanel = useShowDefinitionPanel()
-  const { setShowDefinitionPanel } = useGlobalsActions()
-
-  const setShowPluginDefinitionDetails = useStore(
-    (state) => state.setShowPluginDefinitionDetails
-  )
-
-  const { setShowDetailsFor } = usePluginActions()
+  const { setPanel } = useGlobalsActions()
 
   const onCloseDefinitionPanel = () => {
-    setShowDefinitionPanel(false)
-    setShowPluginDefinitionDetails(false)
-    setShowDetailsFor(false)
+    setPanel(null)
   }
 
   return (
     <Panel
-      opened={showDefinitionPanel || showPluginDefinitionDetails}
+      opened={[
+        "showPluginDefinition",
+        "showPluginDefinitionDetail",
+        "editPlugin",
+      ].includes(panel)}
       onClose={onCloseDefinitionPanel}
       size="large"
       heading="Add Plugin"
     >
       <PanelBody>
-        {!showPluginDefinitionDetails && pluginDefinitions?.length > 0 && (
+        {panel === "showPluginDefinition" && pluginDefinitions?.length > 0 && (
           <PluginDefinitionGrid pluginDefinitions={pluginDefinitions} />
         )}
-        {showPluginDefinitionDetails && pluginDefinitionDetail && (
+        {panel === "showPluginDefinitionDetail" && pluginDefinitionDetail && (
           <PluginDefinitionDetail pluginDefinition={pluginDefinitionDetail} />
         )}
-        {showPluginEdit && pluginDefinitionDetail && (
+        {panel === "editPlugin" && pluginDefinitionDetail && (
           <PluginEdit pluginDefinition={pluginDefinitionDetail} />
         )}
       </PanelBody>

@@ -5,7 +5,11 @@
 
 import React from "react"
 import { DataGridRow, DataGridCell, Icon } from "juno-ui-components"
-import { usePluginActions, useShowDetailsFor } from "./StoreProvider"
+import {
+  usePluginActions,
+  useGlobalsActions,
+  useShowDetailsFor,
+} from "./StoreProvider"
 import useStore from "../../plugindefinitions/store"
 import { buildExternalServicesUrls } from "./buildExternalServicesUrls"
 
@@ -16,6 +20,7 @@ const Plugin = (props) => {
   const plugin = props.plugin
   const { setShowDetailsFor } = usePluginActions()
   const showDetailsFor = useShowDetailsFor()
+  const { setPanel } = useGlobalsActions()
 
   const setPluginToEdit = useStore((state) => state.setPluginToEdit)
   const setShowPluginEdit = useStore((state) => state.setShowPluginEdit)
@@ -25,6 +30,7 @@ const Plugin = (props) => {
   const setIsEditMode = useStore((state) => state.setIsPluginEditMode)
 
   const showDetails = () => {
+    setPanel("showPlugin")
     showDetailsFor === plugin.metadata.uid
       ? setShowDetailsFor(null)
       : setShowDetailsFor(plugin.metadata.uid)
@@ -35,6 +41,7 @@ const Plugin = (props) => {
     setShowPluginDefinitionDetails(true)
     setShowPluginEdit(true)
     setIsEditMode(true)
+    setPanel("editPlugin")
   }
 
   return (

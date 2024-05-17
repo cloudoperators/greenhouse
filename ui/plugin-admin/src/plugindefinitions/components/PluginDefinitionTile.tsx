@@ -7,6 +7,7 @@ import { Icon, Stack } from "juno-ui-components"
 import React from "react"
 import { PluginDefinition } from "../../../../types/types"
 import useStore from "../store"
+import { useGlobalsActions } from "../../plugins/components/StoreProvider"
 
 interface PluginDefinitionTileProps {
   pluginDefinition: PluginDefinition
@@ -15,9 +16,8 @@ const allowedIconFileEndings = [".png"]
 const PluginDefinitionTile: React.FC<PluginDefinitionTileProps> = (
   props: PluginDefinitionTileProps
 ) => {
-  const setShowPluginDefinitionDetails = useStore(
-    (state) => state.setShowPluginDefinitionDetails
-  )
+  const { setPanel } = useGlobalsActions()
+
   const setPluginDefinitionDetail = useStore(
     (state) => state.setPluginDefinitionDetail
   )
@@ -34,7 +34,7 @@ const PluginDefinitionTile: React.FC<PluginDefinitionTileProps> = (
   }
 
   const openPluginDefinitionDetails = () => {
-    setShowPluginDefinitionDetails(true)
+    setPanel("showPluginDefinitionDetail")
     setPluginDefinitionDetail(props.pluginDefinition)
   }
 

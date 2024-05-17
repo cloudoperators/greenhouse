@@ -7,7 +7,9 @@ import React, { useEffect, useState } from "react"
 import {
   useShowDetailsFor,
   usePluginActions,
+  useGlobalsActions,
   usePluginConfig,
+  usePanel,
 } from "./StoreProvider"
 import {
   CodeBlock,
@@ -35,12 +37,10 @@ import usePluginDefinitionsStore from "../../plugindefinitions/store"
 const PluginDetail = () => {
   const pluginConfig = usePluginConfig()
   const { setShowDetailsFor } = usePluginActions()
+  const { setPanel } = useGlobalsActions()
+  const panel = usePanel()
   const showDetailsFor = useShowDetailsFor()
   const [plugin, setPlugin] = useState(null)
-
-  const showPluginEdit = usePluginDefinitionsStore(
-    (state) => state.showPluginDefinitionEdit
-  )
 
   useEffect(() => {
     if (!showDetailsFor || !pluginConfig) {
@@ -51,11 +51,12 @@ const PluginDetail = () => {
 
   const onPanelClose = () => {
     setShowDetailsFor(null)
+    setPanel(null)
   }
 
   return (
     <Panel
-      opened={!!showDetailsFor && !showPluginEdit}
+      opened={!!showDetailsFor && panel === "showPlugin"}
       onClose={onPanelClose}
       size="large"
       heading={

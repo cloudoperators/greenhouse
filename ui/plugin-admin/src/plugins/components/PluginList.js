@@ -21,17 +21,17 @@ import Plugin from "./Plugin"
 // Renders the list of plugins
 const PluginList = () => {
   const pluginConfig = usePluginConfig()
-  const { setShowDefinitionPanel } = useGlobalsActions()
+  const { setPanel } = useGlobalsActions()
 
-  const onShowDefinitionPanel = () => {
-    setShowDefinitionPanel(true)
+  const onShowPluginDefinition = () => {
+    setPanel("showPluginDefinition")
   }
 
   return (
     <>
       <DataGridToolbar>
         <ButtonRow>
-          <Button onClick={onShowDefinitionPanel}>Add Plugin</Button>
+          <Button onClick={onShowPluginDefinition}>Add Plugin</Button>
         </ButtonRow>
       </DataGridToolbar>
       <DataGrid
@@ -62,7 +62,7 @@ const PluginList = () => {
                 <Icon icon="info" color="text-theme-info" />
                 <div>
                   It seems that no plugins have been created yet. Do you want to
-                  <a onClick={onShowDefinitionPanel}> create</a> a new one?
+                  <a onClick={onShowPluginDefinition}> create</a> a new one?
                 </div>
               </Stack>
             </DataGridCell>

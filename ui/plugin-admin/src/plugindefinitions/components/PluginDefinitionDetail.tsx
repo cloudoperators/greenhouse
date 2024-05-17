@@ -22,7 +22,7 @@ import remarkGfm from "remark-gfm"
 import { Plugin, PluginDefinition } from "../../../../types/types"
 import useFetchMarkDown from "../hooks/useFetchMarkDown"
 import usePluginApi from "../hooks/usePluginApi"
-import useStore from "../store"
+import { useGlobalsActions } from "../../plugins/components/StoreProvider"
 import OptionValueTable from "./OptionValueTable"
 import PluginList from "./PluginList"
 
@@ -33,21 +33,14 @@ interface PluginDefinitionDetailProps {
 const PluginDefinitionDetail: React.FC<PluginDefinitionDetailProps> = (
   props: PluginDefinitionDetailProps
 ) => {
-  const setShowPluginDefinitionDetails = useStore(
-    (state) => state.setShowPluginDefinitionDetails
-  )
-
-  const setShowPluginDefinitionEdit = useStore(
-    (state) => state.setShowPluginEdit
-  )
+  const { setPanel } = useGlobalsActions()
   const { getPluginsByLabelSelector: getPluginsByLabelSelector } =
     usePluginApi()
 
   const { fetchMarkDown: fetchMarkDown } = useFetchMarkDown()
 
   const openEditPluginDefinition = () => {
-    setShowPluginDefinitionDetails(false)
-    setShowPluginDefinitionEdit(true)
+    setPanel("editPlugin")
   }
 
   const [deployedPlugins, setDeployedPlugins] = React.useState<Plugin[]>([])
