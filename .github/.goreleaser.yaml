@@ -8,9 +8,9 @@ env:
   - LDFLAGS=-s -w -X github.com/cloudoperators/greenhouse/pkg/version.GitBranch=$(GIT_BRANCH) -X github.com/cloudoperators/greenhouse/pkg/version.GitCommit=$(GIT_COMMIT) -X github.com/cloudoperators/greenhouse/pkg/version.GitState=$(GIT_STATE) -X github.com/cloudoperators/greenhouse/pkg/version.BuildDate=$(BUILD_DATE)
 
 github_urls:
-  api: https://gitub.com/api/v3/
-  upload: https://gitub.com/api/uploads/
-  download: https://gitub.com
+  api: https://github.com/api/v3/
+  upload: https://github.com/api/uploads/
+  download: https://github.com
 
 builds:
   - id: linux-amd64
