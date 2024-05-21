@@ -25,8 +25,8 @@ import usePluginApi from "../hooks/usePluginApi"
 import { useGlobalsActions } from "../../plugins/components/StoreProvider"
 import OptionValueTable from "./OptionValueTable"
 import PluginList from "./PluginList"
-
 import useStore from "../store"
+import { PANEL } from "../../constants"
 
 interface PluginDefinitionDetailProps {
   pluginDefinition: PluginDefinition
@@ -44,7 +44,7 @@ const PluginDefinitionDetail: React.FC<PluginDefinitionDetailProps> = (
 
   const openEditPluginDefinition = () => {
     setIsEditMode(false)
-    setPanel("editPlugin")
+    setPanel(PANEL.EDIT_PLUGIN)
   }
 
   const [deployedPlugins, setDeployedPlugins] = React.useState<Plugin[]>([])

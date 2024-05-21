@@ -9,21 +9,14 @@ import {
   FormRow,
   FormSection,
   Container,
-  Panel,
-  PanelBody,
   PanelFooter,
-  Stack,
+  Modal,
   TextInput,
 } from "juno-ui-components"
-import React from "react"
+import React, { useState } from "react"
 import { PluginDefinition } from "../../../types/types"
 import usePluginApi from "../plugindefinitions/hooks/usePluginApi"
 import useStore from "../plugindefinitions/store"
-
-import {
-  useGlobalsActions,
-  usePanel,
-} from "../plugins/components/StoreProvider"
 
 import ClusterSelect from "./ClusterSelect"
 import { OptionInput } from "./OptionInput"
@@ -48,6 +41,8 @@ const PluginEdit: React.FC<PluginEditProps> = (props: PluginEditProps) => {
 
   const { createPlugin, updatePlugin, deletePlugin } = usePluginApi()
 
+  const [showConfirmationDialog, setConfirmationDialog] = useState(false)
+
   React.useEffect(() => {
     if (!pluginToEdit) {
       setPluginToEdit(initPlugin(props.pluginDefinition))
@@ -67,8 +62,12 @@ const PluginEdit: React.FC<PluginEditProps> = (props: PluginEditProps) => {
     })
   }
 
-  // TODO: Implement second confirmation dialog for delete
+  const clickDelete = () => {
+    setConfirmationDialog(true)
+  }
+
   const onDelete = async () => {
+    setConfirmationDialog(false)
     let res = await deletePlugin(pluginToEdit!)
     setSubmitResultMessage({ message: res.message, ok: res.ok })
   }
@@ -78,8 +77,6 @@ const PluginEdit: React.FC<PluginEditProps> = (props: PluginEditProps) => {
       setShowPluginEdit(false)
       setPluginToEdit(undefined)
       setIsEditMode(false)
-      // TODO: Implement a way to open the details for the plugin
-      console.log("I want to open the details for my plugin now :)")
     }
   }
 
@@ -163,9 +160,26 @@ const PluginEdit: React.FC<PluginEditProps> = (props: PluginEditProps) => {
 
           <PanelFooter>
             {isEditMode ? (
-              <Button onClick={onDelete} variant="primary-danger">
-                Delete Plugin
-              </Button>
+              <>
+                <Button onClick={clickDelete} variant="primary-danger">
+                  Delete Plugin
+                </Button>
+                {showConfirmationDialog && (
+                  <Modal
+                    cancelButtonLabel="Cancel"
+                    confirmButtonLabel="Proceed irreversible deletion"
+                    onCancel={() => setConfirmationDialog(false)}
+                    onConfirm={onDelete}
+                    open={true}
+                    title="Confirmation needed"
+                  >
+                    <p>
+                      Proceeding will result in the permanent loss of the
+                      plugin.
+                    </p>
+                  </Modal>
+                )}
+              </>
             ) : (
               <></>
             )}

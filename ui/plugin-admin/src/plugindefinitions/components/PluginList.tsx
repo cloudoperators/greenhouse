@@ -21,12 +21,14 @@ interface PluginListProps {
 
 const PluginList: React.FC<PluginListProps> = (props: PluginListProps) => {
   const setPluginToEdit = useStore((state) => state.setPluginToEdit)
+  const setIsEditMode = useStore((state) => state.setIsPluginEditMode)
 
   const { setPanel } = useGlobalsActions()
 
   const onPluginClick = React.useCallback(
     (plugin: Plugin) => {
       setPluginToEdit(plugin)
+      setIsEditMode(true)
       setPanel("editPlugin")
     },
     [setPluginToEdit, setPanel]
