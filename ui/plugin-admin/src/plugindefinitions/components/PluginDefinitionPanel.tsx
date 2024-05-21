@@ -45,6 +45,10 @@ const PluginDefinitionPanel = () => {
     (state) => state.pluginDefinitionDetail
   )
 
+  const isEditMode = usePluginDefinitionsStore(
+    (state) => state.isPluginEditMode
+  )
+
   const { setPanel } = useGlobalsActions()
 
   const onCloseDefinitionPanel = () => {
@@ -60,7 +64,7 @@ const PluginDefinitionPanel = () => {
       ].includes(panel)}
       onClose={onCloseDefinitionPanel}
       size="large"
-      heading="Add Plugin"
+      heading={isEditMode ? "Edit Plugin" : "Add Plugin"}
     >
       <PanelBody>
         {panel === "showPluginDefinition" && pluginDefinitions?.length > 0 && (

@@ -26,6 +26,8 @@ import { useGlobalsActions } from "../../plugins/components/StoreProvider"
 import OptionValueTable from "./OptionValueTable"
 import PluginList from "./PluginList"
 
+import useStore from "../store"
+
 interface PluginDefinitionDetailProps {
   pluginDefinition: PluginDefinition
 }
@@ -38,21 +40,25 @@ const PluginDefinitionDetail: React.FC<PluginDefinitionDetailProps> = (
     usePluginApi()
 
   const { fetchMarkDown: fetchMarkDown } = useFetchMarkDown()
+  const setIsEditMode = useStore((state) => state.setIsPluginEditMode)
 
   const openEditPluginDefinition = () => {
+    setIsEditMode(false)
     setPanel("editPlugin")
   }
 
   const [deployedPlugins, setDeployedPlugins] = React.useState<Plugin[]>([])
   const greenhousePluginLabelKey = "greenhouse.sap/plugin"
 
-  const plugins = getPluginsByLabelSelector(
-    greenhousePluginLabelKey,
-    props.pluginDefinition.metadata!.name!
-  )
-  plugins.then((plugins) => {
-    setDeployedPlugins(plugins)
-  })
+  useEffect(() => {
+    const plugins = getPluginsByLabelSelector(
+      greenhousePluginLabelKey,
+      props.pluginDefinition.metadata!.name!
+    )
+    plugins.then((plugins) => {
+      setDeployedPlugins(plugins)
+    })
+  }, [setDeployedPlugins])
 
   const [markDown, setMarkDown] = React.useState<string>("")
   if (props.pluginDefinition.spec?.docMarkDownUrl) {

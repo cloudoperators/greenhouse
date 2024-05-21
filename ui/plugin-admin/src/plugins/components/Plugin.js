@@ -23,23 +23,26 @@ const Plugin = (props) => {
   const { setPanel } = useGlobalsActions()
 
   const setPluginToEdit = useStore((state) => state.setPluginToEdit)
-  const setShowPluginEdit = useStore((state) => state.setShowPluginEdit)
-  const setShowPluginDefinitionDetails = useStore(
-    (state) => state.setShowPluginDefinitionDetails
+  const setPluginDefinitionDetail = useStore(
+    (state) => state.setPluginDefinitionDetail
   )
   const setIsEditMode = useStore((state) => state.setIsPluginEditMode)
 
-  const showDetails = () => {
+  const showDetails = (e) => {
+    e.stopPropagation()
+    e.preventDefault()
+
     setPanel("showPlugin")
     showDetailsFor === plugin.metadata.uid
       ? setShowDetailsFor(null)
       : setShowDetailsFor(plugin.metadata.uid)
   }
 
-  const onPluginClick = () => {
+  const onPluginClick = (e) => {
+    e.stopPropagation()
+    e.preventDefault()
+    setPluginDefinitionDetail(plugin)
     setPluginToEdit(plugin)
-    setShowPluginDefinitionDetails(true)
-    setShowPluginEdit(true)
     setIsEditMode(true)
     setPanel("editPlugin")
   }

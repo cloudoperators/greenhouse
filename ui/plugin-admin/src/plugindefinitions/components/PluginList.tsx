@@ -13,6 +13,7 @@ import {
 import React from "react"
 import { Plugin } from "../../../../types/types"
 import useStore from "../store"
+import { useGlobalsActions } from "../../plugins/components/StoreProvider"
 
 interface PluginListProps {
   plugins: Plugin[]
@@ -20,18 +21,17 @@ interface PluginListProps {
 
 const PluginList: React.FC<PluginListProps> = (props: PluginListProps) => {
   const setPluginToEdit = useStore((state) => state.setPluginToEdit)
-  const setShowPluginEdit = useStore((state) => state.setShowPluginEdit)
-  const setShowPluginDefinitionDetails = useStore(
-    (state) => state.setShowPluginDefinitionDetails
-  )
-  const setIsEditMode = useStore((state) => state.setIsPluginEditMode)
 
-  const onPluginClick = (plugin: Plugin) => {
-    setPluginToEdit(plugin)
-    setShowPluginDefinitionDetails(false)
-    setShowPluginEdit(true)
-    setIsEditMode(true)
-  }
+  const { setPanel } = useGlobalsActions()
+
+  const onPluginClick = React.useCallback(
+    (plugin: Plugin) => {
+      setPluginToEdit(plugin)
+      setPanel("editPlugin")
+    },
+    [setPluginToEdit, setPanel]
+  )
+
   return (
     props.plugins.length > 0 && (
       <DataGridRow>
@@ -43,7 +43,9 @@ const PluginList: React.FC<PluginListProps> = (props: PluginListProps) => {
                 <Button
                   key={plugin.metadata!.name}
                   size="small"
-                  onClick={() => onPluginClick(plugin)}
+                  onClick={() => {
+                    onPluginClick(plugin)
+                  }}
                 >
                   {plugin.metadata!.name}
                 </Button>
