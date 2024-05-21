@@ -9,13 +9,13 @@ import {
   Secret,
   SecretDataEntry,
 } from "../../../types/types"
+import { EditFormData } from "../plugindefinitions/store"
 
 const handleFormChange = (
   e: React.ChangeEvent<HTMLInputElement>,
-  plugin: Plugin
-): Plugin => {
+  editFormData: EditFormData
+): EditFormData => {
   let value: string | boolean | number | undefined = undefined
-  let secretDataEntry: SecretDataEntry | undefined
   let valueFrom: PluginOptionValue["valueFrom"] | undefined = undefined
 
   if (e.target?.type == undefined) {
@@ -43,17 +43,17 @@ const handleFormChange = (
   // the incoming id consists of the path to the property in the plugin object separated by dots
   if (e.target.id.startsWith("metadata.")) {
     return {
-      ...plugin,
+      ...editFormData,
       metadata: {
-        ...plugin.metadata!,
+        ...editFormData.metadata!,
         [optionId]: value,
       },
     }
   } else if (e.target.id.startsWith("spec.")) {
     return {
-      ...plugin,
+      ...editFormData,
       spec: {
-        ...plugin.spec!,
+        ...editFormData.spec!,
         [optionId]: value,
       },
     }
@@ -61,10 +61,10 @@ const handleFormChange = (
     // delete from plugin.spec.optionValues by matching name property if value is empty
     if (value == "" && valueFrom == undefined) {
       return {
-        ...plugin,
+        ...editFormData,
         spec: {
-          ...plugin.spec!,
-          optionValues: plugin.spec!.optionValues!.filter(
+          ...editFormData.spec!,
+          optionValues: editFormData.spec!.optionValues!.filter(
             (option) => option.name != optionId
           ),
         },
@@ -81,10 +81,10 @@ const handleFormChange = (
     }
     let changedPlugin: Plugin
     changedPlugin = {
-      ...plugin,
+      ...editFormData,
       spec: {
-        ...plugin.spec!,
-        optionValues: plugin.spec!.optionValues!.map((option) => {
+        ...editFormData.spec!,
+        optionValues: editFormData.spec!.optionValues!.map((option) => {
           if (option.name == optionValueToSet.name) {
             wasFound = true
             return optionValueToSet
@@ -96,16 +96,16 @@ const handleFormChange = (
     }
     if (!wasFound) {
       changedPlugin = {
-        ...plugin,
+        ...editFormData,
         spec: {
-          ...plugin.spec!,
-          optionValues: [...plugin.spec!.optionValues!, optionValueToSet],
+          ...editFormData.spec!,
+          optionValues: [...editFormData.spec!.optionValues!, optionValueToSet],
         },
       }
     }
     return changedPlugin
   }
-  return plugin
+  return editFormData
 }
 
 export default handleFormChange

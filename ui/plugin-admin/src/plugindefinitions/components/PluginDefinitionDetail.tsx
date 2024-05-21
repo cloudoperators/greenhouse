@@ -22,9 +22,10 @@ import remarkGfm from "remark-gfm"
 import { Plugin, PluginDefinition } from "../../../../types/types"
 import useFetchMarkDown from "../hooks/useFetchMarkDown"
 import usePluginApi from "../hooks/usePluginApi"
-import useStore from "../store"
+import useStore, { EditFormState } from "../store"
 import OptionValueTable from "./OptionValueTable"
 import PluginList from "./PluginList"
+import { initMetadata, initPluginSpec } from "../../plugin-edit/initPlugin"
 
 interface PluginDefinitionDetailProps {
   pluginDefinition: PluginDefinition
@@ -43,17 +44,22 @@ const PluginDefinitionDetail: React.FC<PluginDefinitionDetailProps> = (
     setShowPluginDefinitionDetails(false)
   }
 
-  const setShowPluginDefinitionEdit = useStore(
-    (state) => state.setShowPluginEdit
-  )
+  const setShowPluginDefinitionEdit = useStore((state) => state.setShowEditForm)
   const { getPluginsByLabelSelector: getPluginsByLabelSelector } =
     usePluginApi()
 
   const { fetchMarkDown: fetchMarkDown } = useFetchMarkDown()
 
+  const setEditFormData = useStore((state) => state.setEditFormData)
+  const setEditFormState = useStore((state) => state.setEditFormState)
   const openEditPluginDefinition = () => {
     setShowPluginDefinitionDetails(false)
     setShowPluginDefinitionEdit(true)
+    setEditFormData({
+      metadata: initMetadata(props.pluginDefinition),
+      spec: initPluginSpec(props.pluginDefinition),
+    })
+    setEditFormState(EditFormState.PLUGIN_CREATE)
   }
 
   const [deployedPlugins, setDeployedPlugins] = React.useState<Plugin[]>([])

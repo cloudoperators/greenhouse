@@ -12,25 +12,28 @@ import {
 } from "juno-ui-components"
 import React from "react"
 import { Plugin } from "../../../../types/types"
-import useStore from "../store"
+import useStore, { EditFormState } from "../store"
 
 interface PluginListProps {
   plugins: Plugin[]
 }
 
 const PluginList: React.FC<PluginListProps> = (props: PluginListProps) => {
-  const setPluginToEdit = useStore((state) => state.setPluginToEdit)
-  const setShowPluginEdit = useStore((state) => state.setShowPluginEdit)
+  const setShowPluginEdit = useStore((state) => state.setShowEditForm)
   const setShowPluginDefinitionDetails = useStore(
     (state) => state.setShowPluginDefinitionDetails
   )
-  const setIsEditMode = useStore((state) => state.setIsPluginEditMode)
+  const setEditFormState = useStore((state) => state.setEditFormState)
+  const setEditFormData = useStore((state) => state.setEditFormData)
 
   const onPluginClick = (plugin: Plugin) => {
-    setPluginToEdit(plugin)
+    setEditFormData({
+      metadata: plugin.metadata!,
+      spec: plugin.spec!,
+    })
     setShowPluginDefinitionDetails(false)
     setShowPluginEdit(true)
-    setIsEditMode(true)
+    setEditFormState(EditFormState.PLUGIN_EDIT)
   }
   return (
     props.plugins.length > 0 && (

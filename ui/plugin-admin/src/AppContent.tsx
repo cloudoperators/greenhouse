@@ -36,9 +36,7 @@ const AppContent = () => {
   const pluginDefinitionDetail = usePluginDefinitionsStore(
     (state) => state.pluginDefinitionDetail
   )
-  const showPluginEdit = usePluginDefinitionsStore(
-    (state) => state.showPluginDefinitionEdit
-  )
+  const showEditForm = usePluginDefinitionsStore((state) => state.showEditForm)
   const secrets = usePluginDefinitionsStore((state) => state.secrets)
   const showSecretEdit = usePluginDefinitionsStore(
     (state) => state.showSecretEdit
@@ -77,7 +75,7 @@ const AppContent = () => {
                   pluginDefinition={pluginDefinitionDetail}
                 />
               )}
-              {showPluginEdit && pluginDefinitionDetail && (
+              {showEditForm && pluginDefinitionDetail && (
                 <PluginEdit pluginDefinition={pluginDefinitionDetail} />
               )}
             </>

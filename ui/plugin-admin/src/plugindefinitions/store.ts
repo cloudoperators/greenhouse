@@ -11,7 +11,21 @@ import {
   Secret,
   UpdatePluginDefinitionInput,
   UpdateSecretInput,
+  LabelSelector,
 } from "../../../types/types"
+
+export type EditFormData = {
+  metadata?: Plugin["metadata"]
+  spec?: Plugin["spec"]
+  labelSelector?: LabelSelector
+}
+
+export enum EditFormState {
+  "PLUGIN_CREATE",
+  "PLUGIN_EDIT",
+  "PLUGIN_PRESET_CREATE",
+  "PLUGIN_PRESET_EDIT",
+}
 
 export interface State {
   endpoint: string
@@ -31,10 +45,20 @@ export interface State {
   setShowPluginDefinitionDetails: (showPluginDefinitionDetails: boolean) => void
   pluginDefinitionDetail: PluginDefinition | null
   setPluginDefinitionDetail: (pluginDefinition: PluginDefinition) => void
-  showPluginDefinitionEdit: boolean
-  setShowPluginEdit: (showPluginDefinitionEdit: boolean) => void
+  showEditForm: boolean
+  setShowEditForm: (showEditForm: boolean) => void
   pluginToEdit?: Plugin
   setPluginToEdit: (plugin?: Plugin) => void
+
+  editFormData: EditFormData
+  setEditFormData: (editFormData: EditFormData) => void
+  editFormState: EditFormState
+  setEditFormState: (editFormState: EditFormState) => void
+  isFormEditMode: boolean
+  setIsFormEditMode: (isEditMode: boolean) => void
+  isFormPluginPresetMode: boolean
+  setIsFormPluginPresetMode: (isEditMode: boolean) => void
+
   isPluginEditMode: boolean
   setIsPluginEditMode: (isEditMode: boolean) => void
   secrets: Secret[]
@@ -113,12 +137,32 @@ const usePluginDefinitionsStore = create<State>((set) => ({
   setPluginDefinitionDetail: (pluginDefinition) =>
     set((state) => ({ pluginDefinitionDetail: pluginDefinition })),
 
-  showPluginDefinitionEdit: false,
-  setShowPluginEdit: (showPluginDefinitionEdit) =>
-    set((state) => ({ showPluginDefinitionEdit: showPluginDefinitionEdit })),
+  showEditForm: false,
+  setShowEditForm: (showEditForm) =>
+    set((state) => ({ showEditForm: showEditForm })),
+
+  editFormState: EditFormState.PLUGIN_CREATE,
+  setEditFormState: (editFormState) =>
+    set((state) => ({ editFormState: editFormState })),
 
   pluginToEdit: undefined,
   setPluginToEdit: (plugin) => set((state) => ({ pluginToEdit: plugin })),
+
+  editFormData: {
+    metadata: undefined,
+    spec: undefined,
+    labelSelector: undefined,
+  },
+  setEditFormData: (editFormData) =>
+    set((state) => ({ editFormData: editFormData })),
+
+  isFormEditMode: false,
+  setIsFormEditMode: (isEditMode) =>
+    set((state) => ({ isFormEditMode: isEditMode })),
+
+  isFormPluginPresetMode: false,
+  setIsFormPluginPresetMode: (isEditMode) =>
+    set((state) => ({ isFormPluginPresetMode: isEditMode })),
 
   isPluginEditMode: false,
   setIsPluginEditMode: (isEditMode) =>

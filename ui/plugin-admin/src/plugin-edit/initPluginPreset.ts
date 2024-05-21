@@ -3,25 +3,23 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { ClusterSelector, Plugin, PluginPreset } from "../../../types/types"
+import { PluginPreset } from "../../../types/types"
+import { EditFormData } from "../plugindefinitions/store"
 
-const initPluginPreset = (
-  pluginPresetName: string,
-  plugin: Plugin
-): PluginPreset => {
-  delete plugin.spec!.clusterName
+export const initPluginPreset = (formData: EditFormData): PluginPreset => {
+  if (!!formData.spec?.clusterName) {
+    delete formData.spec.clusterName
+  }
   let pluginPreset: PluginPreset = {
-    metadata: {
-      name: pluginPresetName,
-    },
+    metadata: formData.metadata!,
     kind: "PluginPreset",
     apiVersion: "greenhouse.sap/v1alpha1",
     spec: {
-      plugin: plugin.spec!,
-      clusterSelector: {},
+      plugin: formData.spec!,
+      clusterSelector: {
+        matchLabels: formData.labelSelector!,
+      },
     },
   }
   return pluginPreset
 }
-
-export default initPluginPreset

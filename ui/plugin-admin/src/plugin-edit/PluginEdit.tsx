@@ -19,18 +19,30 @@ import {
   LabelSelector,
   PluginDefinition,
   PluginPreset,
+  Plugin,
 } from "../../../types/types"
 import usePluginApi from "../plugindefinitions/hooks/usePluginApi"
-import usePluginPresetApi from "../plugindefinitions/hooks/usePluginPresetApi"
-import useStore from "../plugindefinitions/store"
+import usePluginPresetApi, {
+  PluginPresetApiResponse,
+} from "../plugindefinitions/hooks/usePluginPresetApi"
+import useStore, { EditFormState } from "../plugindefinitions/store"
 import KeyValueInput from "../secrets/KeyValueInput"
 import ClusterSelect from "./ClusterSelect"
 import { OptionInput } from "./OptionInput"
 import SubmitResultMessage, { SubmitMessage } from "./SubmitResultMessage"
 import handleFormChange from "./handleFormChange"
-import initPlugin from "./initPlugin"
-import initPluginPreset from "./initPluginPreset"
 import useNamespace from "../plugindefinitions/hooks/useNamespace"
+import { initPluginPreset } from "./initPluginPreset"
+import { initPluginFromFormData } from "./initPlugin"
+
+/**
+ * This Form Component is used to edit a Plugin or Plugin Preset.
+ * We hold state for the following partial components:
+ * - metadata
+ * - pluginSpec
+ * - labelSelectors
+ * and construct a Plugin or Plugin Preset object from these states on submit / delete.
+ */
 
 interface PluginEditProps {
   pluginDefinition: PluginDefinition
@@ -42,63 +54,126 @@ interface PluginEditProps {
 // TODO: Validate JSON on list/map inputs
 const PluginEdit: React.FC<PluginEditProps> = (props: PluginEditProps) => {
   const { namespace } = useNamespace()
-  const setShowPluginEdit = useStore((state) => state.setShowPluginEdit)
+  const showEditForm = useStore((state) => state.showEditForm)
+  const setShowEditForm = useStore((state) => state.setShowEditForm)
 
-  const pluginToEdit = useStore((state) => state.pluginToEdit)
-  const setPluginToEdit = useStore((state) => state.setPluginToEdit)
+  const editFormState = useStore((state) => state.editFormState)
+  const setEditFormState = useStore((state) => state.setEditFormState)
 
-  const isEditMode = useStore((state) => state.isPluginEditMode)
-  const setIsEditMode = useStore((state) => state.setIsPluginEditMode)
+  const isEditMode =
+    editFormState == EditFormState.PLUGIN_EDIT ||
+    editFormState == EditFormState.PLUGIN_PRESET_EDIT
+
+  const isPluginPreset =
+    editFormState == EditFormState.PLUGIN_PRESET_CREATE ||
+    editFormState == EditFormState.PLUGIN_PRESET_EDIT
+
+  const editFormData = useStore((state) => state.editFormData)
+  const setEditFormData = useStore((state) => state.setEditFormData)
 
   const { createPlugin, updatePlugin, deletePlugin } = usePluginApi()
-  const { createPluginPreset, updatePluginPreset, deletePluginPreset } =
-    usePluginPresetApi()
+  const {
+    getPluginPreset,
+    createPluginPreset,
+    updatePluginPreset,
+    deletePluginPreset,
+  } = usePluginPresetApi()
 
-  const [isPluginPreset, setIsPluginPreset] = React.useState(false)
   const changeIsPluginPreset = () => {
-    setIsPluginPreset(!isPluginPreset)
+    if (isPluginPreset) {
+      setEditFormState(
+        isEditMode ? EditFormState.PLUGIN_EDIT : EditFormState.PLUGIN_CREATE
+      )
+    } else {
+      if (
+        editFormData.metadata!.labels &&
+        editFormData.metadata!.labels["greenhouse.sap/pluginpreset"]
+      ) {
+        setEditFormState(EditFormState.PLUGIN_PRESET_EDIT)
+      } else {
+        setEditFormState(EditFormState.PLUGIN_PRESET_CREATE)
+      }
+    }
   }
 
-  const [pluginPresetName, setPluginPresetName] = React.useState("")
-  // if plugin metadata labels contain a label with key greenhouse.sap/pluginpreset
-  // we assume this plugin is a plugin preset
+  // initialize labelselector in formData if it is not set
+  React.useEffect(() => {
+    if (isPluginPreset && !editFormData.labelSelector) {
+      setEditFormData({
+        ...editFormData,
+        labelSelector: {
+          "": "",
+        },
+      })
+    }
+  }, [isPluginPreset, editFormData.labelSelector])
+
+  // if metadata labels contain a label with key greenhouse.sap/pluginpreset
+  // make sure isPluginPreset is set to true
   React.useEffect(() => {
     if (
-      pluginToEdit &&
-      pluginToEdit.metadata!.labels &&
-      pluginToEdit.metadata!.labels["greenhouse.sap/pluginpreset"]
+      editFormData.metadata!.labels &&
+      editFormData.metadata!.labels["greenhouse.sap/pluginpreset"]
     ) {
-      setIsPluginPreset(true)
       setSubmitResultMessage({
-        message: "This Plugin is part of a Preset. You are editing the Preset!",
+        message:
+          "This Plugin is part of a Preset. You are now editing the Preset!",
         ok: false,
         variant: "warning",
       })
-      setPluginPresetName(
-        pluginToEdit.metadata!.labels["greenhouse.sap/pluginpreset"]
-      )
-    } else {
-      setPluginPresetName(pluginToEdit?.metadata?.name ?? "")
+
+      setEditFormState(EditFormState.PLUGIN_PRESET_EDIT)
+
+      // get the kubernetes resource
+      let pluginPresetPromise = getPluginPreset({
+        metadata: {
+          name: editFormData.metadata!.labels["greenhouse.sap/pluginpreset"],
+          namespace: namespace,
+        },
+        kind: "PluginPreset",
+      })
+      pluginPresetPromise
+        .then((res) => {
+          if (res.ok) {
+            setEditFormData({
+              metadata: res.response!.metadata,
+              spec: res.response!.spec!.plugin,
+              labelSelector: res.response!.spec!.clusterSelector.matchLabels,
+            })
+          } else {
+            setEditFormState(EditFormState.PLUGIN_PRESET_CREATE)
+            setSubmitResultMessage({
+              message:
+                "This Plugin seems to be part of a Preset, but the Preset could not be found. You are now creating a new Preset!",
+              ok: false,
+              variant: "warning",
+            })
+          }
+          return
+        })
+        .catch((e) => {
+          setSubmitResultMessage({
+            message: e.message,
+            ok: false,
+            variant: "error",
+          })
+          return
+        })
+      // make sure to set metadata.name to the name of the plugin preset
+      setEditFormData({
+        ...editFormData,
+        metadata: {
+          ...editFormData.metadata,
+          name: editFormData.metadata!.labels["greenhouse.sap/pluginpreset"],
+        },
+      })
     }
-  }, [pluginToEdit])
+  }, [editFormData.metadata!.labels])
 
   const kindName = isPluginPreset ? "Plugin Preset" : "Plugin"
 
-  const emptyLabelSelector: LabelSelector = {
-    "": "",
-  }
-  const [labelSelector, setLabelSelector] = React.useState(emptyLabelSelector)
-
-  React.useEffect(() => {
-    if (!pluginToEdit) {
-      setPluginToEdit(initPlugin(props.pluginDefinition))
-    }
-  }, [props.pluginDefinition])
-
   const onPanelClose = () => {
-    setPluginToEdit(undefined)
-    setShowPluginEdit(false)
-    setIsEditMode(false)
+    setShowEditForm(false)
   }
 
   const [submitMessage, setSubmitResultMessage] = React.useState<SubmitMessage>(
@@ -106,23 +181,28 @@ const PluginEdit: React.FC<PluginEditProps> = (props: PluginEditProps) => {
   )
   const onSubmit = async () => {
     if (isPluginPreset) {
-      let pluginPreset: PluginPreset = initPluginPreset(
-        pluginPresetName,
-        pluginToEdit!
-      )
-      pluginPreset.spec!.clusterSelector.matchLabels = labelSelector
+      let pluginPreset: PluginPreset = initPluginPreset(editFormData)
 
-      let pluginPresetCreatePromise = isEditMode
-        ? updatePluginPreset(pluginPreset)
-        : createPluginPreset(pluginPreset)
+      let pluginPresetCreatePromise: Promise<PluginPresetApiResponse>
+      if (editFormState == EditFormState.PLUGIN_PRESET_CREATE) {
+        pluginPresetCreatePromise = createPluginPreset({
+          ...pluginPreset,
+          metadata: {
+            name: pluginPreset.metadata!.name,
+          },
+        })
+      } else {
+        pluginPresetCreatePromise = updatePluginPreset(pluginPreset)
+      }
 
       await pluginPresetCreatePromise.then(async (res) => {
         setSubmitResultMessage({ message: res.message, ok: res.ok })
       })
     } else {
+      let plugin = initPluginFromFormData(editFormData)
       let pluginCreatePromise = isEditMode
-        ? updatePlugin(pluginToEdit!)
-        : createPlugin(pluginToEdit!)
+        ? updatePlugin(plugin)
+        : createPlugin(plugin)
 
       await pluginCreatePromise.then(async (res) => {
         setSubmitResultMessage({ message: res.message, ok: res.ok })
@@ -133,21 +213,17 @@ const PluginEdit: React.FC<PluginEditProps> = (props: PluginEditProps) => {
   // TODO: Implement second confirmation dialog for delete
   const onDelete = async () => {
     if (isPluginPreset) {
-      let res = await deletePluginPreset(
-        initPluginPreset(pluginPresetName, pluginToEdit!)
-      )
+      let res = await deletePluginPreset(initPluginPreset(editFormData))
       setSubmitResultMessage({ message: res.message, ok: res.ok })
     } else {
-      let res = await deletePlugin(pluginToEdit!)
+      let res = await deletePlugin(initPluginFromFormData(editFormData))
       setSubmitResultMessage({ message: res.message, ok: res.ok })
     }
   }
 
   const onMessageDismiss = (ok: boolean) => {
     if (ok) {
-      setShowPluginEdit(false)
-      setPluginToEdit(undefined)
-      setIsEditMode(false)
+      setShowEditForm(false)
       // TODO: Implement a way to open the details for the plugin --> just show a button!
       console.log("I want to open the details for my plugin now :)")
     }
@@ -155,10 +231,17 @@ const PluginEdit: React.FC<PluginEditProps> = (props: PluginEditProps) => {
 
   const handleFormElementChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     try {
-      setPluginToEdit(handleFormChange(e, pluginToEdit!))
+      setEditFormData(handleFormChange(e, editFormData))
     } catch (e) {
       console.error(e)
     }
+  }
+
+  const setLabelSelector = (labelSelector: LabelSelector) => {
+    setEditFormData({
+      ...editFormData,
+      labelSelector: labelSelector,
+    })
   }
 
   return (
@@ -168,16 +251,15 @@ const PluginEdit: React.FC<PluginEditProps> = (props: PluginEditProps) => {
           <span>Configure {kindName}</span>
         </Stack>
       }
-      opened={!!props.pluginDefinition}
+      opened={!!showEditForm}
       onClose={onPanelClose}
       size="large"
     >
-      {pluginToEdit && (
+      {editFormData && (
         <PanelBody>
           <Form
             title={
-              props.pluginDefinition.spec?.displayName ??
-              props.pluginDefinition.metadata?.name
+              editFormData.spec?.displayName ?? editFormData.metadata?.name
             }
           >
             <FormSection title="General">
@@ -195,7 +277,7 @@ const PluginEdit: React.FC<PluginEditProps> = (props: PluginEditProps) => {
                   id="spec.displayName"
                   label="Display Name"
                   placeholder="The Display Name for this Plugin Instance"
-                  value={pluginToEdit!.spec!.displayName}
+                  value={editFormData!.spec!.displayName}
                   onBlur={handleFormElementChange}
                 />
               </FormRow>
@@ -205,18 +287,14 @@ const PluginEdit: React.FC<PluginEditProps> = (props: PluginEditProps) => {
                   label="Name"
                   placeholder="Name of this Plugin Instance"
                   {...(isEditMode && { disabled: true })}
-                  value={
-                    isPluginPreset
-                      ? pluginPresetName
-                      : pluginToEdit!.metadata!.name
-                  }
+                  value={editFormData.metadata!.name}
                   onBlur={handleFormElementChange}
                 />
               </FormRow>
               <FormRow>
                 {isPluginPreset && (
                   <KeyValueInput
-                    data={labelSelector}
+                    data={editFormData.labelSelector}
                     setData={setLabelSelector}
                     title="Cluster Label Selector"
                     dataName="Label"
@@ -227,7 +305,7 @@ const PluginEdit: React.FC<PluginEditProps> = (props: PluginEditProps) => {
                     id="spec.clusterName"
                     placeholder="The Cluster this Plugin is to be deployed to."
                     label="Cluster"
-                    defaultValue={pluginToEdit!.spec!.clusterName}
+                    defaultValue={editFormData.spec!.clusterName}
                     onChange={handleFormElementChange}
                   />
                 )}
@@ -237,7 +315,7 @@ const PluginEdit: React.FC<PluginEditProps> = (props: PluginEditProps) => {
                   id="spec.releaseNamespace"
                   label="Release Namespace"
                   placeholder={`The namespace in the remote cluster to which the backend is deployed to. Defaults to ${namespace}.`}
-                  value={pluginToEdit!.spec!.releaseNamespace}
+                  value={editFormData.spec!.releaseNamespace}
                   onBlur={handleFormElementChange}
                 ></TextInput>
               </FormRow>
@@ -246,7 +324,7 @@ const PluginEdit: React.FC<PluginEditProps> = (props: PluginEditProps) => {
             {props.pluginDefinition.spec?.options?.length && (
               <FormSection title="Options">
                 {props.pluginDefinition.spec?.options?.map((option, index) => {
-                  let optionValue = pluginToEdit!.spec?.optionValues?.find(
+                  let optionValue = editFormData.spec?.optionValues?.find(
                     (o) => o.name == option.name
                   )
                   return (
