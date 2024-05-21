@@ -17,8 +17,7 @@ const SubmitResultMessage: React.FC<SubmitResultMessageProps> = (
 ) => {
   return (
     <Message
-      autoDismissTimeout={3000}
-      autoDismiss={props.submitMessage.ok}
+      dismissible
       onDismiss={props.onMessageDismiss}
       variant={props.submitMessage.ok ? "success" : "error"}
       text={props.submitMessage.message}

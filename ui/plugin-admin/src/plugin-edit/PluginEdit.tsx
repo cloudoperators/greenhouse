@@ -17,6 +17,7 @@ import React, { useState } from "react"
 import { PluginDefinition } from "../../../types/types"
 import usePluginApi from "../plugindefinitions/hooks/usePluginApi"
 import useStore from "../plugindefinitions/store"
+import { useGlobalsActions } from "../plugins/components/StoreProvider"
 
 import ClusterSelect from "./ClusterSelect"
 import { OptionInput } from "./OptionInput"
@@ -32,7 +33,7 @@ interface PluginEditProps {
 // TODO: Validate JSON on list/map inputs
 const PluginEdit: React.FC<PluginEditProps> = (props: PluginEditProps) => {
   const setShowPluginEdit = useStore((state) => state.setShowPluginEdit)
-
+  const { setPanel } = useGlobalsActions()
   const pluginToEdit = useStore((state) => state.pluginToEdit)
   const setPluginToEdit = useStore((state) => state.setPluginToEdit)
 
@@ -98,7 +99,7 @@ const PluginEdit: React.FC<PluginEditProps> = (props: PluginEditProps) => {
           />
         </FormRow>
       )}
-      {pluginToEdit && (
+      {pluginToEdit && !submitMessage.ok && (
         <>
           <Form
             title={
@@ -188,6 +189,11 @@ const PluginEdit: React.FC<PluginEditProps> = (props: PluginEditProps) => {
             </Button>
           </PanelFooter>
         </>
+      )}
+      {submitMessage.ok && (
+        <PanelFooter>
+          <Button onClick={() => setPanel(null)}>Close</Button>
+        </PanelFooter>
       )}
     </Container>
   )
