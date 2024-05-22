@@ -36,7 +36,7 @@ export interface State {
 const useStore = create<State>((set) => ({
   endpoint: "",
   setEndpoint: (newEndpoint) => set((state) => ({ endpoint: newEndpoint })),
-  urlStateKey: "",
+  urlStateKey: "secret-admin",
   setUrlStateKey: (newUrlStateKey) =>
     set((state) => ({ urlStateKey: newUrlStateKey })),
 

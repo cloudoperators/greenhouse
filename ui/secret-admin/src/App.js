@@ -13,11 +13,8 @@ import styles from "./styles.scss"
 import AsyncWorker from "./components/AsyncWorker"
 import useStore from "./store"
 
-const URL_STATE_KEY = "secret-admin"
-
 const App = (props = {}) => {
   const setEndpoint = useStore((state) => state.setEndpoint)
-  const setUrlStateKey = useStore((state) => state.setUrlStateKey)
 
   // Create query client which it can be used from overall in the app
   // set default endpoint to fetch data
@@ -31,11 +28,10 @@ const App = (props = {}) => {
     },
   })
 
-  // on app initial load save Endpoint and URL_STATE_KEY so it can be
+  // on app initial load save Endpoint
   // used from overall in the application
   useEffect(() => {
     setEndpoint(props.endpoint)
-    setUrlStateKey(URL_STATE_KEY)
   }, [])
 
   return (
