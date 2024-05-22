@@ -85,7 +85,7 @@ func OrganizationPluginAdminPolicyRules() []rbacv1.PolicyRule {
 		{
 			Verbs:     []string{"get", "list", "watch", "update", "patch", "delete", "create"},
 			APIGroups: []string{greenhouseapisv1alpha1.GroupVersion.Group},
-			Resources: []string{"plugins"},
+			Resources: []string{"plugins", "pluginpresets"},
 		},
 		// Grant permissions for secrets referenced by other resources, e.g. Plugins for storing sensitive values.
 		// Retrieving these secrets is not permitted to the user.
@@ -105,7 +105,7 @@ func OrganizationMemberPolicyRules() []rbacv1.PolicyRule {
 		{
 			Verbs:     []string{"get", "list", "watch"},
 			APIGroups: []string{greenhouseapisv1alpha1.GroupVersion.Group},
-			Resources: []string{"clusters", "plugins", "teams", "teammemberships"},
+			Resources: []string{"clusters", "plugins", "pluginpresets", "teams", "teammemberships"},
 		},
 	}
 }
