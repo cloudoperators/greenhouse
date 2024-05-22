@@ -4,7 +4,13 @@
  */
 
 import React from "react"
-import { Button, Stack, TextInput, FormSection } from "juno-ui-components"
+import {
+  Button,
+  Stack,
+  TextInput,
+  FormSection,
+  Textarea,
+} from "juno-ui-components"
 /*
  * This Element provides a form section for entering and editing key-value pairs.
  * The key-value data and the setData function are passed as props.
@@ -82,7 +88,7 @@ const KeyValueInput: React.FC<KeyValueInputProps> = (
               }
             />
 
-            <TextInput
+            <Textarea
               id={"dataValue" + dataKey}
               type={isSecret ? "password" : "text"}
               label={`${dataName} Value`}
