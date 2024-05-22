@@ -13,6 +13,7 @@ import {
 import React from "react"
 import { Plugin } from "../../../../types/types"
 import useStore, { EditFormState } from "../store"
+import { useGlobalsActions } from "../../plugins/components/StoreProvider"
 
 interface PluginListProps {
   plugins: Plugin[]
@@ -26,6 +27,8 @@ const PluginList: React.FC<PluginListProps> = (props: PluginListProps) => {
   const setEditFormState = useStore((state) => state.setEditFormState)
   const setEditFormData = useStore((state) => state.setEditFormData)
 
+  const { setPanel } = useGlobalsActions()
+
   const onPluginClick = (plugin: Plugin) => {
     setEditFormData({
       metadata: plugin.metadata!,
@@ -34,6 +37,7 @@ const PluginList: React.FC<PluginListProps> = (props: PluginListProps) => {
     setShowPluginDefinitionDetails(false)
     setShowPluginEdit(true)
     setEditFormState(EditFormState.PLUGIN_EDIT)
+    setPanel("editPlugin")
   }
   return (
     props.plugins.length > 0 && (
@@ -46,7 +50,9 @@ const PluginList: React.FC<PluginListProps> = (props: PluginListProps) => {
                 <Button
                   key={plugin.metadata!.name}
                   size="small"
-                  onClick={() => onPluginClick(plugin)}
+                  onClick={() => {
+                    onPluginClick(plugin)
+                  }}
                 >
                   {plugin.metadata!.name}
                 </Button>

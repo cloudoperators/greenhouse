@@ -5,7 +5,7 @@
 
 import { createStore } from "zustand"
 import { devtools } from "zustand/middleware"
-import createGlobalsSlice from "./createGlobalsSlice"
+import createGlobalsSlice from "../../../plugins/lib/store/createGlobalsSlice"
 
 export default () =>
   createStore(

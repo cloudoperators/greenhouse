@@ -3,11 +3,10 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import useApi, { ApiResponse } from "./useApi"
-import { Plugin, PluginPreset } from "../../../../types/types"
-import useNamespace from "./useNamespace"
+import { PluginPreset } from "../../../../types/types"
+import useApi from "./useApi"
 import useClient from "./useClient"
-import { useCallback } from "react"
+import useNamespace from "./useNamespace"
 
 export type PluginPresetApiResponse = {
   ok: boolean

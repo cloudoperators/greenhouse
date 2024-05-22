@@ -5,12 +5,12 @@
 
 import {
   Button,
+  Container,
   Form,
   FormRow,
   FormSection,
-  Panel,
-  PanelBody,
-  Stack,
+  Modal,
+  PanelFooter,
   Switch,
   TextInput,
 } from "juno-ui-components"
@@ -19,21 +19,21 @@ import {
   LabelSelector,
   PluginDefinition,
   PluginPreset,
-  Plugin,
 } from "../../../types/types"
+import useNamespace from "../plugindefinitions/hooks/useNamespace"
 import usePluginApi from "../plugindefinitions/hooks/usePluginApi"
 import usePluginPresetApi, {
   PluginPresetApiResponse,
 } from "../plugindefinitions/hooks/usePluginPresetApi"
 import useStore, { EditFormState } from "../plugindefinitions/store"
+import { useGlobalsActions } from "../plugins/components/StoreProvider"
 import KeyValueInput from "../secrets/KeyValueInput"
 import ClusterSelect from "./ClusterSelect"
 import { OptionInput } from "./OptionInput"
 import SubmitResultMessage, { SubmitMessage } from "./SubmitResultMessage"
 import handleFormChange from "./handleFormChange"
-import useNamespace from "../plugindefinitions/hooks/useNamespace"
-import { initPluginPreset } from "./initPluginPreset"
 import { initPluginFromFormData } from "./initPlugin"
+import { initPluginPreset } from "./initPluginPreset"
 
 /**
  * This Form Component is used to edit a Plugin or Plugin Preset.
@@ -53,6 +53,7 @@ interface PluginEditProps {
 // TODO: Properly distinguish between **editing** a plugin and a plugin preset
 // TODO: Validate JSON on list/map inputs
 const PluginEdit: React.FC<PluginEditProps> = (props: PluginEditProps) => {
+  console.log(props.pluginDefinition.spec)
   const { namespace } = useNamespace()
   const showEditForm = useStore((state) => state.showEditForm)
   const setShowEditForm = useStore((state) => state.setShowEditForm)
@@ -63,6 +64,7 @@ const PluginEdit: React.FC<PluginEditProps> = (props: PluginEditProps) => {
   const isEditMode =
     editFormState == EditFormState.PLUGIN_EDIT ||
     editFormState == EditFormState.PLUGIN_PRESET_EDIT
+  const { setPanel } = useGlobalsActions()
 
   const isPluginPreset =
     editFormState == EditFormState.PLUGIN_PRESET_CREATE ||
@@ -96,6 +98,8 @@ const PluginEdit: React.FC<PluginEditProps> = (props: PluginEditProps) => {
     }
   }
 
+  const [showConfirmationDialog, setConfirmationDialog] = React.useState(false)
+
   // initialize labelselector in formData if it is not set
   React.useEffect(() => {
     if (isPluginPreset && !editFormData.labelSelector) {
@@ -111,6 +115,7 @@ const PluginEdit: React.FC<PluginEditProps> = (props: PluginEditProps) => {
   // if metadata labels contain a label with key greenhouse.sap/pluginpreset
   // make sure isPluginPreset is set to true
   React.useEffect(() => {
+    if (!editFormData.metadata) return
     if (
       editFormData.metadata!.labels &&
       editFormData.metadata!.labels["greenhouse.sap/pluginpreset"]
@@ -168,7 +173,7 @@ const PluginEdit: React.FC<PluginEditProps> = (props: PluginEditProps) => {
         },
       })
     }
-  }, [editFormData.metadata!.labels])
+  }, [editFormData.metadata?.labels])
 
   const kindName = isPluginPreset ? "Plugin Preset" : "Plugin"
 
@@ -202,7 +207,7 @@ const PluginEdit: React.FC<PluginEditProps> = (props: PluginEditProps) => {
       let plugin = initPluginFromFormData(editFormData)
       let pluginCreatePromise = isEditMode
         ? updatePlugin(plugin)
-        : createPlugin(plugin)
+        : createPlugin({ ...plugin, metadata: { name: plugin.metadata!.name } })
 
       await pluginCreatePromise.then(async (res) => {
         setSubmitResultMessage({ message: res.message, ok: res.ok })
@@ -210,8 +215,12 @@ const PluginEdit: React.FC<PluginEditProps> = (props: PluginEditProps) => {
     }
   }
 
-  // TODO: Implement second confirmation dialog for delete
+  const clickDelete = () => {
+    setConfirmationDialog(true)
+  }
+
   const onDelete = async () => {
+    setConfirmationDialog(false)
     if (isPluginPreset) {
       let res = await deletePluginPreset(initPluginPreset(editFormData))
       setSubmitResultMessage({ message: res.message, ok: res.ok })
@@ -245,18 +254,17 @@ const PluginEdit: React.FC<PluginEditProps> = (props: PluginEditProps) => {
   }
 
   return (
-    <Panel
-      heading={
-        <Stack gap="2">
-          <span>Configure {kindName}</span>
-        </Stack>
-      }
-      opened={!!showEditForm}
-      onClose={onPanelClose}
-      size="large"
-    >
-      {editFormData && (
-        <PanelBody>
+    <Container px={false} py>
+      {submitMessage.message != "" && (
+        <FormRow>
+          <SubmitResultMessage
+            submitMessage={submitMessage}
+            onMessageDismiss={() => onMessageDismiss(submitMessage.ok)}
+          />
+        </FormRow>
+      )}
+      {editFormData && !submitMessage.ok && (
+        <>
           <Form
             title={
               editFormData.spec?.displayName ?? editFormData.metadata?.name
@@ -277,7 +285,7 @@ const PluginEdit: React.FC<PluginEditProps> = (props: PluginEditProps) => {
                   id="spec.displayName"
                   label="Display Name"
                   placeholder="The Display Name for this Plugin Instance"
-                  value={editFormData!.spec!.displayName}
+                  value={editFormData?.spec?.displayName}
                   onBlur={handleFormElementChange}
                 />
               </FormRow>
@@ -287,7 +295,7 @@ const PluginEdit: React.FC<PluginEditProps> = (props: PluginEditProps) => {
                   label="Name"
                   placeholder="Name of this Plugin Instance"
                   {...(isEditMode && { disabled: true })}
-                  value={editFormData.metadata!.name}
+                  value={editFormData.metadata?.name}
                   onBlur={handleFormElementChange}
                 />
               </FormRow>
@@ -305,7 +313,7 @@ const PluginEdit: React.FC<PluginEditProps> = (props: PluginEditProps) => {
                     id="spec.clusterName"
                     placeholder="The Cluster this Plugin is to be deployed to."
                     label="Cluster"
-                    defaultValue={editFormData.spec!.clusterName}
+                    defaultValue={editFormData.spec?.clusterName}
                     onChange={handleFormElementChange}
                   />
                 )}
@@ -315,7 +323,7 @@ const PluginEdit: React.FC<PluginEditProps> = (props: PluginEditProps) => {
                   id="spec.releaseNamespace"
                   label="Release Namespace"
                   placeholder={`The namespace in the remote cluster to which the backend is deployed to. Defaults to ${namespace}.`}
-                  value={editFormData.spec!.releaseNamespace}
+                  value={editFormData.spec?.releaseNamespace}
                   onBlur={handleFormElementChange}
                 ></TextInput>
               </FormRow>
@@ -342,25 +350,45 @@ const PluginEdit: React.FC<PluginEditProps> = (props: PluginEditProps) => {
                 })}
               </FormSection>
             )}
-
-            <Stack distribution="between">
-              <Button onClick={onDelete} variant="primary-danger">
-                Delete {kindName}
-              </Button>
-              {submitMessage.message != "" && (
-                <SubmitResultMessage
-                  submitMessage={submitMessage}
-                  onMessageDismiss={() => onMessageDismiss(submitMessage.ok)}
-                />
-              )}
-              <Button onClick={onSubmit} variant="primary">
-                {isEditMode ? `Update ${kindName}` : `Create ${kindName}`}
-              </Button>
-            </Stack>
           </Form>
-        </PanelBody>
+
+          <PanelFooter>
+            {isEditMode ? (
+              <>
+                <Button onClick={clickDelete} variant="primary-danger">
+                  Delete {kindName}
+                </Button>
+                {showConfirmationDialog && (
+                  <Modal
+                    cancelButtonLabel="Cancel"
+                    confirmButtonLabel="Proceed irreversible deletion"
+                    onCancel={() => setConfirmationDialog(false)}
+                    onConfirm={onDelete}
+                    open={true}
+                    title="Confirmation needed"
+                  >
+                    <p>
+                      Proceeding will result in the permanent loss of the
+                      plugin.
+                    </p>
+                  </Modal>
+                )}
+              </>
+            ) : (
+              <></>
+            )}
+            <Button onClick={onSubmit} variant="primary">
+              {isEditMode ? `Update ${kindName}` : `Create ${kindName}`}
+            </Button>
+          </PanelFooter>
+        </>
       )}
-    </Panel>
+      {submitMessage.ok && (
+        <PanelFooter>
+          <Button onClick={() => setPanel(null)}>Close</Button>
+        </PanelFooter>
+      )}
+    </Container>
   )
 }
 
