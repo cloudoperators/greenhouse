@@ -14,7 +14,7 @@ import {
   ButtonRow,
   Icon,
   Stack,
-  Message
+  Message,
 } from "juno-ui-components"
 import { usePluginConfig, useGlobalsActions } from "./StoreProvider"
 import Plugin from "./Plugin"
@@ -31,8 +31,7 @@ const PluginList = () => {
   return (
     <>
       <DataGridToolbar>
-        <ButtonRow >
-          <Message variant={"warning"} text="feature in beta" />
+        <ButtonRow>
           <Button onClick={onShowPluginDefinition}>Add Plugin</Button>
         </ButtonRow>
       </DataGridToolbar>

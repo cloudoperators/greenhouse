@@ -34,7 +34,7 @@ const AppContent = () => {
   }, [getPlugins])
 
   return (
-    <Container>
+    <Container py>
       {loggedIn && !authError ? (
         <>
           <PluginDefinitionPanel />

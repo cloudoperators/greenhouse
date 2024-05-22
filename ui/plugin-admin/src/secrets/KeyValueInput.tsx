@@ -4,7 +4,14 @@
  */
 
 import React from "react"
-import { Button, Stack, TextInput, FormSection } from "juno-ui-components"
+import {
+  Button,
+  Stack,
+  TextInput,
+  FormSection,
+  InputGroup,
+  FormRow,
+} from "juno-ui-components"
 /*
  * This Element provides a form section for entering and editing key-value pairs.
  * The key-value data and the setData function are passed as props.
@@ -72,30 +79,32 @@ const KeyValueInput: React.FC<KeyValueInputProps> = (
       {props.data &&
         Object.keys(props.data).length > 0 &&
         Object.keys(props.data).map((dataKey) => (
-          <Stack key={dataKey} distribution="evenly">
-            <TextInput
-              id={"dataKey." + dataKey}
-              label={`${dataName} Key`}
-              value={dataKey}
-              onBlur={(e) =>
-                handleDataEntryChange("dataKey." + dataKey, e.target.value)
-              }
-            />
+          <FormRow>
+            <InputGroup>
+              <TextInput
+                id={"dataKey." + dataKey}
+                label={`${dataName} Key`}
+                value={dataKey}
+                onBlur={(e) =>
+                  handleDataEntryChange("dataKey." + dataKey, e.target.value)
+                }
+              />
 
-            <TextInput
-              id={"dataValue" + dataKey}
-              type={isSecret ? "password" : "text"}
-              label={`${dataName} Value`}
-              value={props.data![dataKey]}
-              onBlur={(e) =>
-                handleDataEntryChange("dataValue." + dataKey, e.target.value)
-              }
-            />
-            <Button
-              icon="deleteForever"
-              onClick={() => deleteDataEntry(dataKey)}
-            />
-          </Stack>
+              <TextInput
+                id={"dataValue" + dataKey}
+                type={isSecret ? "password" : "text"}
+                label={`${dataName} Value`}
+                value={props.data![dataKey]}
+                onBlur={(e) =>
+                  handleDataEntryChange("dataValue." + dataKey, e.target.value)
+                }
+              />
+              <Button
+                icon="deleteForever"
+                onClick={() => deleteDataEntry(dataKey)}
+              />
+            </InputGroup>
+          </FormRow>
         ))}
       <Button
         icon="addCircle"
