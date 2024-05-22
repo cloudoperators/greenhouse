@@ -133,6 +133,12 @@ func ValidateUpdatePlugin(ctx context.Context, c client.Client, old, obj runtime
 	); err != nil {
 		return allWarns, err
 	}
+
+	// temporary: allow changing the release namespace to the plugin namespace for the migration to releaseNamespaces
+	if oldPlugin.Spec.ReleaseNamespace == "" && plugin.Spec.ReleaseNamespace == plugin.Namespace {
+		return allWarns, nil
+	}
+
 	if err := validateImmutableField(oldPlugin.Spec.ReleaseNamespace, plugin.Spec.ReleaseNamespace,
 		field.NewPath("spec", "releaseNamespace"),
 	); err != nil {
