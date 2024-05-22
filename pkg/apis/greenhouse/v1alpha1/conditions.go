@@ -17,6 +17,9 @@ const (
 	// ReadyCondition reflects the overall readiness status of a resource.
 	ReadyCondition ConditionType = "Ready"
 
+	// ClusterListEmpty is set when the resources ClusterSelector results in an empty ClusterList.
+	ClusterListEmpty ConditionType = "ClusterListEmpty"
+
 	// Mirroring corev1.NodeConditionType values
 	// NodeMemoryPressure means the kubelet is under pressure due to insufficient available memory.
 	NodeMemoryPressure ConditionType = "MemoryPressure"

@@ -48,8 +48,18 @@ func NewTestSetup(ctx context.Context, c client.Client, name string) *TestSetup 
 	return t
 }
 
+// WithLabel sets a label on a Cluster
+func WithLabel(key, value string) func(*greenhousev1alpha1.Cluster) {
+	return func(c *greenhousev1alpha1.Cluster) {
+		if c.Labels == nil {
+			c.Labels = map[string]string{}
+		}
+		c.Labels[key] = value
+	}
+}
+
 // OnboardCluster creates a new Cluster and Kubernetes secret for a remote cluster and creates the namespace used for TestSetup on the remote cluster
-func (t *TestSetup) OnboardCluster(ctx context.Context, name string, kubeCfg []byte) *greenhousev1alpha1.Cluster {
+func (t *TestSetup) OnboardCluster(ctx context.Context, name string, kubeCfg []byte, clusterOpts ...func(*greenhousev1alpha1.Cluster)) *greenhousev1alpha1.Cluster {
 	GinkgoHelper()
 	clusterName := t.RandomizeName(name)
 	cluster := &greenhousev1alpha1.Cluster{
@@ -65,6 +75,11 @@ func (t *TestSetup) OnboardCluster(ctx context.Context, name string, kubeCfg []b
 			AccessMode: greenhousev1alpha1.ClusterAccessModeDirect,
 		},
 	}
+
+	for _, o := range clusterOpts {
+		o(cluster)
+	}
+
 	Expect(t.Create(ctx, cluster)).To(Succeed(), "there should be no error creating the cluster during onboarding")
 
 	var testClusterK8sSecret = &corev1.Secret{
@@ -149,6 +164,12 @@ func WithTeamRef(teamRef string) func(*greenhousev1alpha1.TeamRoleBinding) {
 func WithClusterName(clusterName string) func(*greenhousev1alpha1.TeamRoleBinding) {
 	return func(trb *greenhousev1alpha1.TeamRoleBinding) {
 		trb.Spec.ClusterName = clusterName
+	}
+}
+
+func WithClusterSelector(selector metav1.LabelSelector) func(*greenhousev1alpha1.TeamRoleBinding) {
+	return func(trb *greenhousev1alpha1.TeamRoleBinding) {
+		trb.Spec.ClusterSelector = selector
 	}
 }
 
