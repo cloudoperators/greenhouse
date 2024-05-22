@@ -1,0 +1,32 @@
+// SPDX-FileCopyrightText: 2024 SAP SE or an SAP affiliate company and Greenhouse contributors
+// SPDX-License-Identifier: Apache-2.0
+
+/* Do not remove these tailwind directives. Without them styles won't work as expected */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* If necessary, app styles can be added below */
+
+.plugins {
+  .juno-datagrid-row:hover {
+    .juno-datagrid-cell {
+      @apply bg-theme-background-lvl-1;
+    }
+  }
+
+  .juno-datagrid-row.active {
+    .juno-datagrid-cell {
+      @apply bg-theme-background-lvl-2;
+    }
+  }
+}
+
+.filtered {
+  -webkit-filter: grayscale(100%);
+  filter: grayscale(100%);
+}
+
+.markdown-body {
+  background-color: transparent !important;
+}

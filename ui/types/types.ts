@@ -4,14 +4,20 @@
  */
 
 import { components } from "./schema"
+import { Secret as k8sSecret } from "kubernetes-types/core/v1"
 
+export type Secret = k8sSecret
 export type Cluster = components["schemas"]["Cluster"]
-export type PluginConfig = components["schemas"]["PluginConfig"]
+export type Plugin = components["schemas"]["Plugin"]
 export type UpdateClusterInput = {
   clusters: Cluster[]
-  action: UpdateClusterAction
+  action: UpdateObjectAction
 }
-export enum UpdateClusterAction {
+export type UpdateSecretInput = {
+  secrets: Secret[]
+  action: UpdateObjectAction
+}
+export enum UpdateObjectAction {
   "add",
   "delete",
 }
@@ -35,3 +41,5 @@ export type KubernetesCondition = {
   message?: string
   lastTransitionTime?: string
 }
+
+export type SecretDataEntry = NonNullable<Secret["data"]>
