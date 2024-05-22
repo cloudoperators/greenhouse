@@ -9,6 +9,8 @@ on:
 
 jobs:
   build:
+    permissions:
+      contents: write # required to create a release
     runs-on: [ default ]
     steps:
       - uses: actions/checkout@v4
