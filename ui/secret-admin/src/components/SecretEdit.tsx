@@ -14,10 +14,10 @@ import {
   TextInput,
 } from "juno-ui-components"
 import React from "react"
-import ResultMessage, { ResultMessageComponent } from "./SubmitResultMessage"
 import useSecretApi from "../hooks/useSecretApi"
 import useStore from "../store"
 import KeyValueInput from "./KeyValueInput"
+import ResultMessageComponent, { ResultMessage } from "./SubmitResultMessage"
 
 const SecretEdit: React.FC<any> = () => {
   const setShowSecretEdit = useStore((state) => state.setShowSecretEdit)
@@ -32,6 +32,7 @@ const SecretEdit: React.FC<any> = () => {
     { message: "", ok: false }
   )
 
+  console.log(secretDetail)
   const handleNameChange = (value: string) => {
     setSecretDetail({
       ...secretDetail,
@@ -145,7 +146,7 @@ const SecretEdit: React.FC<any> = () => {
               Delete Secret
             </Button>
             {submitMessage.message != "" && (
-              <ResultMessage submitMessage={submitMessage} />
+              <ResultMessageComponent submitMessage={submitMessage} />
             )}
             <Button onClick={onSubmit} variant="primary">
               {isSecreEditMode ? "Update Secret" : "Create Secret"}

@@ -16,9 +16,11 @@ export type ApiResponse = {
   response?: AllowedApiObject
 }
 
-export const useApi = () => {
+export const useApi = (debug?: boolean) => {
   const { namespace } = useNamespace()
   const { client: client } = useClient()
+
+  const isDebug = debug ?? true
 
   const get = useCallback(
     async <T extends AllowedApiObject>(
@@ -35,11 +37,12 @@ export const useApi = () => {
         .get(url + "/" + object.metadata!.name!)
         .then((res) => {
           if (res.kind !== object.kind) {
-            console.log(
-              `ERROR: Failed to get ${object.kind}, did not get ${
-                object.kind
-              }: ${JSON.stringify(res)}`
-            )
+            isDebug &&
+              console.log(
+                `ERROR: Failed to get ${object.kind}, did not get ${
+                  object.kind
+                }: ${JSON.stringify(res)}`
+              )
             return {
               ok: false,
               message: `Failed getting ${object.kind}`,
@@ -53,7 +56,7 @@ export const useApi = () => {
           }
         })
         .catch((error) => {
-          console.log(`ERROR: Failed to get ${object.kind}`, error)
+          isDebug && console.log(`ERROR: Failed to get ${object.kind}`, error)
           return {
             ok: false,
             message: `Failed getting ${object.kind}: ${error}`,
@@ -76,11 +79,12 @@ export const useApi = () => {
         .post(url, object)
         .then((res) => {
           if (res.kind !== object.kind) {
-            console.log(
-              `ERROR: Failed to create ${object.kind}, did not get ${
-                object.kind
-              }: ${JSON.stringify(res)}`
-            )
+            isDebug &&
+              console.log(
+                `ERROR: Failed to create ${object.kind}, did not get ${
+                  object.kind
+                }: ${JSON.stringify(res)}`
+              )
             return { ok: false, message: `Failed creating ${object.kind}` }
           }
           return {
@@ -90,7 +94,8 @@ export const useApi = () => {
           }
         })
         .catch((error) => {
-          console.log(`ERROR: Failed to create ${object.kind}`, error)
+          isDebug &&
+            console.log(`ERROR: Failed to create ${object.kind}`, error)
           return {
             ok: false,
             message: `Failed creating ${object.kind}: ${error}`,
@@ -113,11 +118,12 @@ export const useApi = () => {
         .put(url + "/" + object.metadata!.name!, object)
         .then((res) => {
           if (res.kind !== object.kind) {
-            console.log(
-              `ERROR: Failed to update ${object.kind}, did not get ${
-                object.kind
-              }: ${JSON.stringify(res)}`
-            )
+            isDebug &&
+              console.log(
+                `ERROR: Failed to update ${object.kind}, did not get ${
+                  object.kind
+                }: ${JSON.stringify(res)}`
+              )
             return { ok: false, message: `Failed updating ${object.kind}` }
           }
           return {
@@ -127,7 +133,8 @@ export const useApi = () => {
           }
         })
         .catch((error) => {
-          console.log(`ERROR: Failed to update ${object.kind}`, error)
+          isDebug &&
+            console.log(`ERROR: Failed to update ${object.kind}`, error)
           return {
             ok: false,
             message: `Failed updating ${object.kind}: ${error}`,
@@ -155,15 +162,17 @@ export const useApi = () => {
           ) {
             return { ok: true, message: `Successfully deleted ${object.kind}` }
           }
-          console.log(
-            `ERROR: Failed to delete ${object.kind} did not get ${
-              object.kind
-            }: ${JSON.stringify(res)}`
-          )
+          isDebug &&
+            console.log(
+              `ERROR: Failed to delete ${object.kind} did not get ${
+                object.kind
+              }: ${JSON.stringify(res)}`
+            )
           return { ok: false, message: `Failed deleting ${object.kind}` }
         })
         .catch((error) => {
-          console.log(`ERROR: Failed to delete ${object.kind}`, error)
+          isDebug &&
+            console.log(`ERROR: Failed to delete ${object.kind}`, error)
           return {
             ok: false,
             message: `Failed deleting ${object.kind}: ${error}`,

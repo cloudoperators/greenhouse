@@ -20,7 +20,7 @@ export type SecretListApiResponse = {
 }
 
 export const useSecretApi = () => {
-  const { get, create, update, deleteObject } = useApi()
+  const { get, create, update, deleteObject } = useApi(false) // No debug logs on secrets
   const { namespace } = useNamespace()
 
   const getSecret = (secret: Secret): Promise<SecretApiResponse> => {

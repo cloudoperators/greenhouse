@@ -11,15 +11,13 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 import AppContent from "./AppContent"
 import styles from "./styles.scss"
 import AsyncWorker from "./components/AsyncWorker"
-import Auth from "./components/Auth"
-import useCommunication from "./hooks/useCommunication"
 import useStore from "./store"
 
 const URL_STATE_KEY = "secret-admin"
 
 const App = (props = {}) => {
-  const { setUrlStateKey, setEndpoint } = useGlobalsActions()
-  const setPluginDefinitionEndpoint = useStore((state) => state.setEndpoint)
+  const setEndpoint = useStore((state) => state.setEndpoint)
+  const setUrlStateKey = useStore((state) => state.setUrlStateKey)
 
   // Create query client which it can be used from overall in the app
   // set default endpoint to fetch data
@@ -32,12 +30,11 @@ const App = (props = {}) => {
       },
     },
   })
-  useCommunication()
 
   // on app initial load save Endpoint and URL_STATE_KEY so it can be
   // used from overall in the application
   useEffect(() => {
-    setPluginDefinitionEndpoint(props.endpoint)
+    setEndpoint(props.endpoint)
     setUrlStateKey(URL_STATE_KEY)
   }, [])
 
