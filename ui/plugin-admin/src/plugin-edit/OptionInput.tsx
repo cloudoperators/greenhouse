@@ -6,6 +6,7 @@
 import { Checkbox, TextInput, Textarea } from "juno-ui-components"
 import { PluginDefinitionOption, PluginOptionValue } from "../../../types/types"
 import SecretKeySelect from "./SecretKeySelect"
+import { useState } from "react"
 
 interface OptionInputProps {
   pluginDefinitionOption: PluginDefinitionOption
@@ -16,6 +17,22 @@ interface OptionInputProps {
 export const OptionInput: React.FC<OptionInputProps> = (
   props: OptionInputProps
 ) => {
+  const [valid, setValid] = useState<boolean>(true)
+  const [errortext, setErrorText] = useState<string>("")
+
+  const handleJsonValidation = (value: string) => {
+    let object
+    try {
+      object = JSON.parse(value)
+    } catch (e) {
+      setValid(false)
+      setErrorText("Invalid JSON")
+      return
+    }
+    setValid(true)
+    setErrorText("")
+  }
+
   const handleBlur = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (props.onChange) {
       props.onChange(e)
@@ -51,8 +68,12 @@ export const OptionInput: React.FC<OptionInputProps> = (
         <Textarea
           id={id}
           label={label}
+          valid={valid}
+          invalid={!valid}
+          errortext={errortext}
           required={required}
           value={JSON.stringify(value)}
+          onChange={(e) => handleJsonValidation(e.target.value)}
           onBlur={handleBlur}
         ></Textarea>
       )

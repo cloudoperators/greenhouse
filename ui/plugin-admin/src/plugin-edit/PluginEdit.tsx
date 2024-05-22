@@ -53,7 +53,6 @@ interface PluginEditProps {
 // TODO: Properly distinguish between **editing** a plugin and a plugin preset
 // TODO: Validate JSON on list/map inputs
 const PluginEdit: React.FC<PluginEditProps> = (props: PluginEditProps) => {
-  console.log(props.pluginDefinition.spec)
   const { namespace } = useNamespace()
   const showEditForm = useStore((state) => state.showEditForm)
   const setShowEditForm = useStore((state) => state.setShowEditForm)
@@ -233,7 +232,6 @@ const PluginEdit: React.FC<PluginEditProps> = (props: PluginEditProps) => {
   const onMessageDismiss = (ok: boolean) => {
     if (ok) {
       setShowEditForm(false)
-      // TODO: Implement a way to open the details for the plugin --> just show a button!
       console.log("I want to open the details for my plugin now :)")
     }
   }
