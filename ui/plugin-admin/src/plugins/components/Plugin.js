@@ -23,14 +23,13 @@ const Plugin = (props) => {
   const showDetailsFor = useShowDetailsFor()
   const { setPanel } = useGlobalsActions()
 
-  const setPluginToEdit = useStore((state) => state.setPluginToEdit)
   const setPluginDefinitionDetail = useStore(
     (state) => state.setPluginDefinitionDetail
   )
   const setEditFormState = useStore((state) => state.setEditFormState)
   const setEditFormData = useStore((state) => state.setEditFormData)
 
-  const { getPluginDefinition } = usePluginDefinitionApi()
+  const pluginDefinitions  = useStore((state) => state.pluginDefinitions)
 
   const showDetails = (e) => {
     e.stopPropagation()
@@ -45,18 +44,27 @@ const Plugin = (props) => {
   const onPluginClick = (e) => {
     e.stopPropagation()
     e.preventDefault()
-    getPluginDefinition({ metadata: {name: plugin.spec.pluginDefinition}, kind: "PluginDefinition" })
-    .then((res) => {
-      if (res.ok) {
-        setPluginDefinitionDetail(res.response)
-        setPanel("editPlugin")
-        setEditFormData({
-          metadata: plugin.metadata,
-          spec: plugin.spec,
-        })
-        setEditFormState(EditFormState.PLUGIN_EDIT)
+    let pluginDefinition
+    pluginDefinitions.some((pd) => {
+      if (pd.metadata.name === plugin.spec.pluginDefinition) {
+        pluginDefinition = pd
+        return true
       }
+      return false    
     })
+    if (pluginDefinition) {
+      setPluginDefinitionDetail(pluginDefinition)
+      setPanel("editPlugin")
+      setEditFormData({
+        metadata: plugin.metadata,
+        spec: plugin.spec,
+      })
+      setEditFormState(EditFormState.PLUGIN_EDIT)
+    } else {
+      console.error(
+        `Plugin definition not found for plugin ${plugin.metadata.name} could not open edit screen`
+      )
+    }
     
   }
 

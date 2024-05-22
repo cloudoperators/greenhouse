@@ -5,8 +5,6 @@
 
 import { PluginDefinition } from "../../../../types/types"
 import useApi from "./useApi"
-import useClient from "./useClient"
-import useNamespace from "./useNamespace"
 
 export type PluginDefinitionApiResponse = {
   ok: boolean
