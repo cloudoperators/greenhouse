@@ -21,10 +21,11 @@ const handleFormChange = (
   if (e.target?.type == undefined) {
     throw new Error("Unexpected form change event: " + JSON.stringify(e))
   }
-  const optionId = e.target.id.split(".")[1]
+  // remove everything before the first dot
+  const optionId = e.target.id.split(".").slice(1).join(".")
   switch (e.target.type) {
     case "checkbox":
-      value = e.target.checked ? true : false
+      value = e.target.checked
       break
     case "number":
       value = parseInt(e.target.value)
@@ -58,18 +59,6 @@ const handleFormChange = (
       },
     }
   } else if (e.target.id.startsWith("optionValues.")) {
-    // delete from plugin.spec.optionValues by matching name property if value is empty
-    if (value == "" && valueFrom == undefined) {
-      return {
-        ...editFormData,
-        spec: {
-          ...editFormData.spec!,
-          optionValues: editFormData.spec!.optionValues!.filter(
-            (option) => option.name != optionId
-          ),
-        },
-      }
-    }
     //   replace in plugin.spec.optionValues by matching name property or push if not found
     let wasFound = false
     let optionValueToSet: PluginOptionValue = { name: optionId }
@@ -79,8 +68,8 @@ const handleFormChange = (
     if (valueFrom != undefined) {
       optionValueToSet.valueFrom = valueFrom
     }
-    let changedPlugin: Plugin
-    changedPlugin = {
+    let changedEditFormData: EditFormData
+    changedEditFormData = {
       ...editFormData,
       spec: {
         ...editFormData.spec!,
@@ -95,7 +84,7 @@ const handleFormChange = (
       },
     }
     if (!wasFound) {
-      changedPlugin = {
+      changedEditFormData = {
         ...editFormData,
         spec: {
           ...editFormData.spec!,
@@ -103,7 +92,7 @@ const handleFormChange = (
         },
       }
     }
-    return changedPlugin
+    return changedEditFormData
   }
   return editFormData
 }
