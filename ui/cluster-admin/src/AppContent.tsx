@@ -5,11 +5,12 @@
 
 import {
   Button,
+  ButtonRow,
   Container,
   DataGridToolbar,
-  ButtonRow,
 } from "juno-ui-components"
 import ClusterDetail from "./components/ClusterDetail"
+import ClusterEdit from "./components/ClusterEdit"
 import ClusterList from "./components/ClusterList"
 import DownloadKubeConfig from "./components/DownloadKubeConfig"
 import OnBoardCluster from "./components/OnBoardCluster"
@@ -25,6 +26,7 @@ const AppContent = () => {
   const showDownloadKubeConfig = useStore(
     (state) => state.showDownloadKubeConfig
   )
+  const clusterInEdit = useStore((state) => state.clusterInEdit)
   const auth = useStore((state) => state.auth)
   const authError = auth?.error
   const expiryTimestamp = auth?.parsed.expiresAt
@@ -79,6 +81,7 @@ const AppContent = () => {
           )}
           {clusters.length > 0 && <ClusterList clusters={clusters} />}
           {showClusterDetails && clusterDetails.cluster && <ClusterDetail />}
+          {clusterInEdit && <ClusterEdit />}
         </>
       ) : (
         <WelcomeView />
