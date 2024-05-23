@@ -6,7 +6,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.12.1
+    controller-gen.kubebuilder.io/version: v0.14.0
   name: plugindefinitions.greenhouse.sap
 spec:
   group: greenhouse.sap
@@ -33,14 +33,19 @@ spec:
         description: PluginDefinition is the Schema for the PluginDefinitions API
         properties:
           apiVersion:
-            description: 'APIVersion defines the versioned schema of this representation
-              of an object. Servers should convert recognized schemas to the latest
-              internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
             type: string
           kind:
-            description: 'Kind is a string value representing the REST resource this
-              object represents. Servers may infer this from the endpoint the client
-              submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
             type: string
           metadata:
             type: object
@@ -54,8 +59,9 @@ spec:
                 description: DisplayName provides a human-readable label for the pluginDefinition.
                 type: string
               docMarkDownUrl:
-                description: DocMarkDownUrl specifies the URL to the markdown documentation
-                  file for this plugin. Source needs to allow all CORS origins.
+                description: |-
+                  DocMarkDownUrl specifies the URL to the markdown documentation file for this plugin.
+                  Source needs to allow all CORS origins.
                 type: string
               helmChart:
                 description: HelmChart specifies where the Helm Chart for this pluginDefinition
@@ -76,11 +82,11 @@ spec:
                 - version
                 type: object
               icon:
-                description: 'Icon specifies the icon to be used for this plugin in
-                  the Greenhouse UI. Icons can be either: - A string representing
-                  a juno icon in camel case from this list: https://github.com/sapcc/juno/blob/main/libs/juno-ui-components/src/components/Icon/Icon.component.js#L6-L52
-                  - A publicly accessable image reference to a .png file. Will be
-                  displayed 100x100px'
+                description: |-
+                  Icon specifies the icon to be used for this plugin in the Greenhouse UI.
+                  Icons can be either:
+                  - A string representing a juno icon in camel case from this list: https://github.com/sapcc/juno/blob/main/libs/juno-ui-components/src/components/Icon/Icon.component.js#L6-L52
+                  - A publicly accessable image reference to a .png file. Will be displayed 100x100px
                 type: string
               options:
                 description: RequiredValues is a list of values required to create
@@ -131,9 +137,9 @@ spec:
                     description: Name of the UI application.
                     type: string
                   url:
-                    description: URL specifies the url to a built javascript asset.
-                      By default, assets are loaded from the Juno asset server using
-                      the provided name and version.
+                    description: |-
+                      URL specifies the url to a built javascript asset.
+                      By default, assets are loaded from the Juno asset server using the provided name and version.
                     type: string
                   version:
                     description: Version of the frontend application.
@@ -146,9 +152,9 @@ spec:
                 description: Version of this pluginDefinition
                 type: string
               weight:
-                description: Weight configures the order in which Plugins are shown
-                  in the Greenhouse UI. Defaults to alphabetical sorting if not provided
-                  or on conflict.
+                description: |-
+                  Weight configures the order in which Plugins are shown in the Greenhouse UI.
+                  Defaults to alphabetical sorting if not provided or on conflict.
                 format: int32
                 type: integer
             required:
