@@ -37,12 +37,16 @@ export default (options) => {
       endpoint: options.apiEndpoint,
       embedded: true,
     }
-    // remove attribute releaseState from the plugin config if it is different from "alpha" or "beta" or "stable"
-    if (!["alpha", "beta", "stable"].includes(configs[key].releaseState)) {
+    // remove attribute releaseState from the plugin config if it set and it is different from "alpha" or "beta" or "stable"
+    if (
+      configs[key].releaseState &&
+      !["alpha", "beta", "stable"].includes(configs[key].releaseState)
+    ) {
       delete configs[key].releaseState
-      console.warn(
-        `The releaseState for plugin ${configs[key].name} is not set to "alpha", "beta" or "stable". It will be removed from the config.`
-      )
+      addMessage({
+        variant: "warning",
+        text: `The releaseState attribute in the plugin config ${configs[key].name} is not valid. It should be "alpha", "beta" or "stable"`,
+      })
     }
   })
 
