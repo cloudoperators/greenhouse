@@ -250,6 +250,7 @@ var testPlugin = &greenhousev1alpha1.Plugin{
 	},
 	Spec: greenhousev1alpha1.PluginSpec{
 		PluginDefinition: "test-plugindefinition",
+		ReleaseNamespace: "test-namespace",
 	},
 }
 
@@ -327,6 +328,15 @@ var _ = Describe("Validate pluginConfig clusterName", Ordered, func() {
 		testPlugin.Spec.ClusterName = ""
 		err := test.K8sClient.Update(test.Ctx, testPlugin)
 		expectClusterMustBeSetError(err)
+		// reset the clusterName for following tests to pass
+		testPlugin.Spec.ClusterName = "test-cluster"
+	})
+
+	It("should reject a plugin update where the releaseNamespace changes", func() {
+		testPlugin.Spec.ReleaseNamespace = "foo-bar"
+		err := test.K8sClient.Update(test.Ctx, testPlugin)
+		Expect(err).ToNot(BeNil(), "there should be an error changing the plugin's releaseNamespace")
+		Expect(err.Error()).To(ContainSubstring("field is immutable"))
 	})
 })
 

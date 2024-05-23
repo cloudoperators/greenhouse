@@ -26,7 +26,7 @@ export default (options) => {
     })
   }
 
-  // set the endpoint and embedded props for the management plugin coming from the package.json
+  // set the endpoint and embedded props to the admin plugin comming package.json
   Object.keys(configs).forEach((key) => {
     // pull latest version in dev and qa
     configs[key].version =
@@ -36,6 +36,13 @@ export default (options) => {
     configs[key].props = {
       endpoint: options.apiEndpoint,
       embedded: true,
+    }
+    // remove attribute releaseState from the plugin config if it is different from "alpha" or "beta" or "stable"
+    if (!["alpha", "beta", "stable"].includes(configs[key].releaseState)) {
+      delete configs[key].releaseState
+      console.warn(
+        `The releaseState for plugin ${configs[key].name} is not set to "alpha", "beta" or "stable". It will be removed from the config.`
+      )
     }
   })
 

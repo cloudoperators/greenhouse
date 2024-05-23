@@ -55,6 +55,9 @@ func (r *PluginPresetReconciler) SetupWithManager(name string, mgr ctrl.Manager)
 		Named(name).
 		For(&greenhousev1alpha1.PluginPreset{}).
 		Owns(&greenhousev1alpha1.Plugin{}).
+		// Enqueue PluginPreset if the Plugin has a label with the pluginpreset key.
+		Watches(&greenhousev1alpha1.Plugin{}, handler.EnqueueRequestsFromMapFunc(r.enqueuePresetForLabelledPlugin),
+			builder.WithPredicates(predicate.LabelChangedPredicate{})).
 		// Clusters and teams are passed as values to each Helm operation. Reconcile on change.
 		Watches(&greenhousev1alpha1.Cluster{}, handler.EnqueueRequestsFromMapFunc(r.enqueueAllPluginPresetsInNamespace),
 			builder.WithPredicates(predicate.LabelChangedPredicate{})).
@@ -296,7 +299,19 @@ func (r *PluginPresetReconciler) listClusters(ctx context.Context, pb *greenhous
 	return clusters, nil
 }
 
-// enqueueAllPluginPresets returns a list of reconcile requests for all PluginPresets in the same namespace as obj.
+// enqueuePresetForLabelledPlugin returns the reconcile request for the PluginPreset referenced in the Plugins labels.
+func (r *PluginPresetReconciler) enqueuePresetForLabelledPlugin(ctx context.Context, obj client.Object) []ctrl.Request {
+	plugin, ok := obj.(*greenhousev1alpha1.Plugin)
+	if !ok {
+		return nil
+	}
+	if val := plugin.GetLabels()[greenhouseapis.LabelKeyPluginPreset]; val != "" {
+		return []ctrl.Request{{NamespacedName: client.ObjectKey{Namespace: plugin.GetNamespace(), Name: val}}}
+	}
+	return nil
+}
+
+// enqueueAllPluginPresetsInNamespace returns a list of reconcile requests for all PluginPresets in the same namespace as obj.
 func (r *PluginPresetReconciler) enqueueAllPluginPresetsInNamespace(ctx context.Context, obj client.Object) []ctrl.Request {
 	return listPluginPresetAsReconcileRequests(ctx, r.Client, client.InNamespace(obj.GetNamespace()))
 }
