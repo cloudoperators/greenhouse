@@ -30,7 +30,6 @@ const SideNav = () => {
             {pluginConfig[key]?.releaseState && (
               <Badge
                 className="ml-1"
-                icon
                 text={pluginConfig[key]?.releaseState}
                 variant="info"
               />
