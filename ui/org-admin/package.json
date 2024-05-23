@@ -1,6 +1,6 @@
 {
   "name": "greenhouse-org-admin",
-  "version": "1.1.16",
+  "version": "1.1.17",
   "managementPluginConfig": {
     "clusters": {
       "label": "Clusters",
@@ -21,7 +21,7 @@
     "secrets": {
       "label": "Secrets",
       "name": "greenhouse-secret-admin",
-      "version": "1.0.0",
+      "version": "1.0.1",
       "releaseState": "beta"
     }
   },
