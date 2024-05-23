@@ -21,3 +21,12 @@
     }
   }
 }
+
+.filtered {
+  -webkit-filter: grayscale(100%);
+  filter: grayscale(100%);
+}
+
+.markdown-body {
+  background-color: transparent !important;
+}
