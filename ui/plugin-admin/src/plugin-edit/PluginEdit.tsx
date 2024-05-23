@@ -47,11 +47,6 @@ import { initPluginPreset } from "./initPluginPreset"
 interface PluginEditProps {
   pluginDefinition: PluginDefinition
 }
-
-// TODO: If editing existing plugin, we currently cant create preset from it
-
-// TODO: Properly distinguish between **editing** a plugin and a plugin preset
-// TODO: Validate JSON on list/map inputs
 const PluginEdit: React.FC<PluginEditProps> = (props: PluginEditProps) => {
   const { namespace } = useNamespace()
   const showEditForm = useStore((state) => state.showEditForm)
