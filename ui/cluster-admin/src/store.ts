@@ -41,6 +41,9 @@ export interface State {
   setShowOnBoardCluster: (showOnBoardCluster: boolean) => void
   showDownloadKubeConfig: boolean
   setShowDownloadKubeConfig: (showDownloadKubeConfig: boolean) => void
+
+  clusterInEdit?: Cluster
+  setClusterInEdit: (cluster?: Cluster) => void
 }
 
 // global zustand store. See how this works here: https://github.com/pmndrs/zustand
@@ -146,6 +149,9 @@ const useStore = create<State>((set) => ({
       showDownloadKubeConfig: showDownloadKubeConfig,
     }))
   },
+
+  clusterInEdit: undefined,
+  setClusterInEdit: (cluster) => set((state) => ({ clusterInEdit: cluster })),
 }))
 
 export default useStore
