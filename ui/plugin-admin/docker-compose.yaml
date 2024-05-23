@@ -5,7 +5,7 @@ version: "2.1"
 
 services:
   envtest:
-    image: ghcr.io/cloudoperators/greenhouse-dev-env:plugindefinition-admin
+    image: ghcr.io/cloudoperators/greenhouse-dev-env:main
     volumes:
       - ./envtest:/envtest
       - ./webhook-certs:/webhook-certs
@@ -22,7 +22,7 @@ services:
       timeout: 10s
       retries: 5
   cmanager:
-    image: ghcr.io/cloudoperators/greenhouse:plugindefinition-admin
+    image: ghcr.io/cloudoperators/greenhouse:main
     environment:
       - KUBECONFIG=/envtest/internal.kubeconfig
       - HEADSCALE_API_URL=mock_empty
@@ -37,7 +37,7 @@ services:
     network_mode: service:envtest
     command: --dns-domain localhost
   bootstrap:
-    image: ghcr.io/cloudoperators/greenhouse-dev-env:plugindefinition-admin
+    image: ghcr.io/cloudoperators/greenhouse-dev-env:main
     environment:
       - KUBECONFIG=/envtest/internal.kubeconfig
     volumes:
