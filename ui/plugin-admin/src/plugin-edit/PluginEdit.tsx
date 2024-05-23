@@ -27,7 +27,7 @@ import usePluginPresetApi, {
 } from "../plugindefinitions/hooks/usePluginPresetApi"
 import useStore, { EditFormState } from "../plugindefinitions/store"
 import { useGlobalsActions } from "../plugins/components/StoreProvider"
-import KeyValueInput from "../secrets/KeyValueInput"
+import KeyValueInput from "./KeyValueInput"
 import ClusterSelect from "./ClusterSelect"
 import { OptionInput } from "./OptionInput"
 import SubmitResultMessage, { SubmitMessage } from "./SubmitResultMessage"
