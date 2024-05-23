@@ -11,7 +11,6 @@ import { MessagesProvider } from "messages-provider"
 
 const PluginContainer = () => {
   const pluginConfig = usePluginConfig()
-
   return (
     <>
       {Object.keys(pluginConfig).map((key, index) => (
