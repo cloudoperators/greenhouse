@@ -3,12 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import {
-  Plugin,
-  PluginOptionValue,
-  Secret,
-  SecretDataEntry,
-} from "../../../types/types"
+import { PluginOptionValue } from "../../../types/types"
 import { EditFormData } from "../plugindefinitions/store"
 
 const handleFormChange = (

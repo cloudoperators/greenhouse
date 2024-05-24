@@ -32,7 +32,6 @@ const SecretEdit: React.FC<any> = () => {
     { message: "", ok: false }
   )
 
-  console.log(secretDetail)
   const handleNameChange = (value: string) => {
     setSecretDetail({
       ...secretDetail,
@@ -81,9 +80,17 @@ const SecretEdit: React.FC<any> = () => {
     setSubmitResultMessage({ message: res.message, ok: res.ok })
   }
   const onSubmit = () => {
+    let base64EncodedSecret = { ...secretDetail }
+    if (base64EncodedSecret.data) {
+      let data = {}
+      Object.keys(base64EncodedSecret.data).forEach((key) => {
+        data[key] = base64Endcode(base64EncodedSecret.data![key])
+      })
+      base64EncodedSecret.data = data
+    }
     let secretCreatePromise = isSecreEditMode
-      ? updateSecret(secretDetail!)
-      : createSecret(secretDetail!)
+      ? updateSecret(base64EncodedSecret)
+      : createSecret(base64EncodedSecret)
 
     secretCreatePromise.then(async (res) => {
       setSubmitResultMessage({ message: res.message, ok: res.ok })
@@ -138,7 +145,6 @@ const SecretEdit: React.FC<any> = () => {
             title="Data"
             data={secretDetail!.data}
             setData={setSecretData}
-            mutateValue={base64Endcode}
             isSecret={true}
           ></KeyValueInput>
           <Stack distribution="between">

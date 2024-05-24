@@ -19,7 +19,16 @@ const SecretListItem: React.FC<SecretListItemProps> = (
   const setShowSecretEdit = useStore((state) => state.setShowSecretEdit)
   const setIsSecretEditMode = useStore((state) => state.setIsSecretEditMode)
   const openDetails = () => {
-    setSecretDetail(props.secret)
+    // base64 decode secret data before showing it
+    let secretDetail = { ...props.secret }
+    if (secretDetail.data) {
+      let data = {}
+      Object.keys(secretDetail.data).forEach((key) => {
+        data[key] = atob(secretDetail.data![key])
+      })
+      secretDetail.data = data
+    }
+    setSecretDetail(secretDetail)
     setIsSecretEditMode(true)
     setShowSecretEdit(true)
   }

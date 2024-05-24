@@ -12,7 +12,6 @@ import SecretList from "./components/SecretList"
 import WelcomeView from "./components/WelcomeView"
 import useClient from "./hooks/useClient"
 import useNamespace from "./hooks/useNamespace"
-import useSecretApi from "./hooks/useSecretApi"
 import useStore from "./store"
 import ResultMessageComponent, {
   ResultMessage,
@@ -45,9 +44,6 @@ const AppContent = () => {
 
   return (
     <Container>
-      <Stack distribution="end">
-        <Message variant={"warning"} text="feature in beta" />
-      </Stack>
       {authMessage.message && (
         <Stack>
           <ResultMessageComponent
