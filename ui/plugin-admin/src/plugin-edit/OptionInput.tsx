@@ -68,7 +68,6 @@ export const OptionInput: React.FC<OptionInputProps> = (
         <Textarea
           id={id}
           label={label}
-          valid={valid}
           invalid={!valid}
           errortext={errortext}
           required={required}
