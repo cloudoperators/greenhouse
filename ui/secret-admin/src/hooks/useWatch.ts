@@ -14,10 +14,19 @@ export const useWatch = () => {
   const { client: client } = useClient()
   const updateSecrets = useStore((state) => state.updateSecrets)
 
+  // exclude helm secrets from watch
+  const fieldSelectorKey = "type"
+  const isHelmSecretValue = "helm.sh/release.v1"
+  const fieldSelector = `${fieldSelectorKey}!=${isHelmSecretValue}`
+
   const watchSecrets = useCallback(() => {
     if (!client || !namespace) return
     const watch = client
-      .watch(`/api/v1/namespaces/${namespace}/secrets`)
+      .watch(`/api/v1/namespaces/${namespace}/secrets`, {
+        params: {
+          fieldSelector: fieldSelector,
+        },
+      })
       .on(client.WATCH_ERROR, (e) => {
         console.log("ERROR: Failed to watch resource")
       })

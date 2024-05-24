@@ -12,11 +12,13 @@ import {
   DataGridToolbar,
   ButtonRow,
 } from "juno-ui-components"
-import React from "react"
+import React, { useEffect, useState } from "react"
 import { Secret } from "../../../types/types"
 import SecretListItem from "./SecretListItem"
 import useStore from "../store"
 import { initSecret } from "./initSecret"
+import useCheckAuthorized from "../hooks/useIsAuthorized"
+import ResultMessageComponent, { ResultMessage } from "./SubmitResultMessage"
 
 interface SecretListProps {
   secrets: Secret[]
@@ -29,6 +31,19 @@ const SecretList: React.FC<SecretListProps> = (props: SecretListProps) => {
     setShowSecretEdit(true)
     setSecretDetail(initSecret())
   }
+  const { canListSecrets } = useCheckAuthorized()
+  const auth = useStore((state) => state.auth)
+
+  const [authMessage, setAuthMessage] = useState<ResultMessage>({
+    ok: false,
+    message: "",
+  })
+
+  useEffect(() => {
+    canListSecrets().then((res) => {
+      setAuthMessage(res)
+    })
+  }, [auth])
   return (
     <>
       <Container>
@@ -51,6 +66,11 @@ const SecretList: React.FC<SecretListProps> = (props: SecretListProps) => {
             <SecretListItem key={secret.metadata!.name!} secret={secret} />
           ))}
         </DataGrid>
+        {authMessage.message && (
+          <ResultMessageComponent
+            submitMessage={authMessage}
+          ></ResultMessageComponent>
+        )}
       </Container>
     </>
   )
