@@ -160,7 +160,7 @@ func main() {
 	}
 
 	// Deploy Greenhouse manager
-	err = installChart("./../../../charts/manager", "greenhouse", kubeconfig, "greenhouse")
+	err = installChart("./../../../charts/manager", greenhouseControllerManagerRelease, kubeconfig, greenhouseControllerManagerNamespace)
 	if err != nil {
 		klog.Fatal(err)
 	}
