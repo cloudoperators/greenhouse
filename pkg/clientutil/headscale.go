@@ -28,7 +28,7 @@ func NewHeadscaleGRPCClient(url, apiKey string) (v1.HeadscaleServiceClient, erro
 		grpc.WithTransportCredentials(credentials.NewClientTLSFromCert(nil, "")),
 	}
 
-	cc, err := grpc.DialContext(context.TODO(), url, grpcOptions...)
+	cc, err := grpc.NewClient(url, grpcOptions...)
 	if err != nil {
 		return nil, err
 	}
@@ -39,9 +39,7 @@ func NewHeadscaleGRPCClient(url, apiKey string) (v1.HeadscaleServiceClient, erro
 
 func NewHeadscaleGRPCSocketClient(socketPath string) (v1.HeadscaleServiceClient, error) {
 	// Call the headscale agent socket
-	grpcOptions := []grpc.DialOption{
-		grpc.WithBlock(),
-	}
+	grpcOptions := []grpc.DialOption{}
 
 	socket, err := os.OpenFile(socketPath, os.O_WRONLY, SocketWritePermissions)
 	if err != nil {
@@ -62,7 +60,7 @@ func NewHeadscaleGRPCSocketClient(socketPath string) (v1.HeadscaleServiceClient,
 		grpc.WithContextDialer(grpcDialer),
 	)
 
-	cc, err := grpc.DialContext(context.Background(), socketPath, grpcOptions...)
+	cc, err := grpc.NewClient(socketPath, grpcOptions...)
 	if err != nil {
 		return nil, err
 	}
