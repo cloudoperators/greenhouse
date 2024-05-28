@@ -2,6 +2,8 @@
 IMG ?= ghcr.io/cloudoperators/greenhouse:dev-$(USER)
 IMG_DEV_ENV ?= ghcr.io/cloudoperators/greenhouse-dev-env:dev-$(USER)
 IMG_LICENSE_EYE ?= ghcr.io/apache/skywalking-eyes/license-eye
+PLATFORM ?=linux/arm64
+
 # ENVTEST_K8S_VERSION refers to the version of kubebuilder assets to be downloaded by envtest binary.
 ENVTEST_K8S_VERSION = 1.29.3
 
@@ -87,11 +89,11 @@ run: manifests generate fmt vet ## Run a controller from your host.
 
 .PHONY: docker-build
 docker-build:
-	docker build --platform linux/amd64 -t ${IMG} .
+	docker build --platform ${PLATFORM} -t ${IMG} .
 
 .PHONY: docker-build-dev-env
 docker-build-dev-env:
-	docker build --platform linux/amd64 -t ${IMG_DEV_ENV} -f Dockerfile.dev-env .
+	docker build --platform ${PLATFORM} -t ${IMG_DEV_ENV} -f Dockerfile.dev-env .
 
 .PHONY: docker-push
 docker-push: ## Push docker image with the manager.
