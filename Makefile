@@ -156,3 +156,18 @@ golint: $(GOLINT)
 $(GOLINT): $(LOCALBIN)
 	GOBIN=$(LOCALBIN) go install github.com/golangci/golangci-lint/cmd/golangci-lint@$(GOLINT_VERSION)
 	GOBIN=$(LOCALBIN) go install github.com/nunnatsa/ginkgolinter/cmd/ginkgolinter@$(GINKGOLINTER_VERSION)
+
+## E2E tests
+.PHONY: e2e-local-cluster-create
+e2e-local-cluster-create:
+	cd test/e2e/local-cluster && go run .
+
+.PHONY: run-e2e-local-cluster
+run-e2e-local-cluster: e2e-local-cluster-create
+	export KUBECONFIG=$(shell pwd)/test/e2e/local-cluster/e2e.kubeconfig && \
+	export TEST_E2E_KUBECONFIG_INTERNAL_DOCKER_NETWORK=$(shell pwd)/test/e2e/local-cluster/e2e.internal.kubeconfig && \
+	go test ./test/e2e -v
+	
+.PHONY: run-e2e
+run-e2e:
+	go test ./test/e2e -v

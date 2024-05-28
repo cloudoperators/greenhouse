@@ -35,3 +35,6 @@ dist/**
 
 # Apple files 
 .DS_Store
+
+# e2e local cluster kubeconfig files
+test/e2e/local-cluster/*.kubeconfig
