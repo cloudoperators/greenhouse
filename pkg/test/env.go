@@ -30,6 +30,8 @@ import (
 
 	greenhousesapv1alpha1 "github.com/cloudoperators/greenhouse/pkg/apis/greenhouse/v1alpha1"
 	"github.com/cloudoperators/greenhouse/pkg/clientutil"
+
+	_ "k8s.io/client-go/plugin/pkg/client/auth/oidc"
 )
 
 func init() {
@@ -103,6 +105,13 @@ var (
 
 		installCRDs := clientutil.GetEnvOrDefault("TEST_INSTALL_CRDS", "true") == "true"
 		installWebhooks := len(allRegisterWebhookFuncs) > 0 && os.Getenv("TEST_INSTALL_WEBHOOKS") != "false"
+		useExistingGreenhouseCluster := clientutil.GetEnvOrDefault("TEST_USE_EXISTING_GREENHOUSE_CLUSTER", "false") == "true"
+		if useExistingGreenhouseCluster {
+			// we are making use of https://pkg.go.dev/sigs.k8s.io/controller-runtime/pkg/envtest#pkg-constants to prevent starting a new control plane
+			os.Setenv("USE_EXISTING_CLUSTER", "true")
+			installCRDs = false
+			installWebhooks = false
+		}
 
 		Cfg, K8sClient, testEnv, KubeConfig = StartControlPlane("", installCRDs, installWebhooks)
 		_ = K8sClient
@@ -171,6 +180,9 @@ var (
 
 	// TestAfterSuite configures the test suite.
 	TestAfterSuite = func() {
+		// By deleting the test-namespace, this is especially for USE_EXISTING_GREENHOUSE_CLUSTER=true
+		err := K8sClient.Delete(Ctx, &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: TestNamespace}})
+		Expect(err).NotTo(HaveOccurred(), "there should be no error deleting the test namespace")
 		cancel()
 		By("tearing down the test environment")
 		Eventually(func() error {
@@ -226,13 +238,23 @@ func StartControlPlane(port string, installCRDs, installWebhooks bool) (*rest.Co
 		NotTo(BeNil(), "the kubernetes client must not be nil")
 
 	// create raw kubeconfig
-	user, err := testEnv.ControlPlane.AddUser(envtest.User{
-		Name:   "test-admin",
-		Groups: []string{"system:masters"},
-	}, nil)
-	Expect(err).NotTo(HaveOccurred())
-	kubeConfig, err := user.KubeConfig()
-	Expect(err).NotTo(HaveOccurred())
+	var kubeConfig []byte
+	if testEnv.UseExistingCluster != nil && *testEnv.UseExistingCluster {
+		user, err := testEnv.ControlPlane.AddUser(envtest.User{
+			Name:   "test-admin",
+			Groups: []string{"system:masters"},
+		}, nil)
+		Expect(err).NotTo(HaveOccurred())
+		kubeConfig, err = user.KubeConfig()
+		Expect(err).NotTo(HaveOccurred())
+	} else {
+		// TODO: need to at least also consider --kubeconfig flag, as the testEnv uses config.GetConfig()
+		kubeConfigLocation := os.Getenv("KUBECONFIG")
+		Expect(kubeConfigLocation).NotTo(BeEmpty(), "the environment variable KUBECONFIG must be set")
+		kubeConfig, err = os.ReadFile(kubeConfigLocation)
+		Expect(err).NotTo(HaveOccurred())
+
+	}
 
 	// utility to export kubeconfig and use it e.g. on a breakpoint to inspect resources during testing
 	if os.Getenv("TEST_EXPORT_KUBECONFIG") == "true" {
