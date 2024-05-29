@@ -126,8 +126,8 @@ HELMIFY ?= $(LOCALBIN)/helmify
 
 ## Tool Versions
 KUSTOMIZE_VERSION ?= v5.4.2
-CONTROLLER_TOOLS_VERSION ?= v0.14.0
-GOLINT_VERSION ?= v1.55.2
+CONTROLLER_TOOLS_VERSION ?= v0.15.0
+GOLINT_VERSION ?= v1.59.0
 GINKGOLINTER_VERSION ?= v0.16.2
 
 KUSTOMIZE_INSTALL_SCRIPT ?= "https://raw.githubusercontent.com/kubernetes-sigs/kustomize/master/hack/install_kustomize.sh"

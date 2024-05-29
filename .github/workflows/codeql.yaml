@@ -29,7 +29,7 @@ jobs:
         # Use only 'javascript-typescript' to analyze code written in JavaScript, TypeScript or both
         # Learn more about CodeQL language support at https://aka.ms/codeql-docs/language-support
         # node-version: [ node ]
-        go-version: [ '1.21' ]
+        go-version: [ '1.22' ]
 
     steps:
     - name: Checkout repository
