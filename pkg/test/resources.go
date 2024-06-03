@@ -44,8 +44,7 @@ func NewTestSetup(ctx context.Context, c client.Client, name string) *TestSetup 
 	}
 
 	// Create test namespace
-	err := K8sClient.Create(Ctx, &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: t.namespace}})
-	Expect(err).NotTo(HaveOccurred(), "there should be no error creating the test case namespace")
+	Expect(t.Create(Ctx, &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: t.namespace}})).To(Succeed(), "there should be no error creating the test case namespace")
 	return t
 }
 
