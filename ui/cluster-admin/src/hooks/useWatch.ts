@@ -5,7 +5,7 @@
 
 import { useCallback } from "react"
 import useStore from "../store"
-import { Cluster, UpdateClusterAction } from "../types/types"
+import { Cluster, UpdateObjectAction } from "../../../types/types"
 import useClient from "./useClient"
 import useNamespace from "./useNamespace"
 
@@ -24,19 +24,19 @@ export const useWatch = () => {
       .on(client.WATCH_ADDED, (items) => {
         updateClusters({
           clusters: items as Cluster[],
-          action: UpdateClusterAction.add,
+          action: UpdateObjectAction.add,
         })
       })
       .on(client.WATCH_MODIFIED, (items) => {
         updateClusters({
           clusters: items as Cluster[],
-          action: UpdateClusterAction.add,
+          action: UpdateObjectAction.add,
         })
       })
       .on(client.WATCH_DELETED, (items) => {
         updateClusters({
           clusters: items as Cluster[],
-          action: UpdateClusterAction.delete,
+          action: UpdateObjectAction.delete,
         })
       })
     watch.start()
