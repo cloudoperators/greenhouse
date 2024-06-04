@@ -17,6 +17,7 @@ header:
     - 'hack/**'
     - 'hack/openapi-generator/openapi-info.yaml'
     - 'hack/boilerplate.go.txt'
+    - 'hack/typescript/metadata.yaml'
     - 'docs/**'
     - '**/*.md'
     - 'LICENSE'

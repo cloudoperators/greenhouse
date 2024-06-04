@@ -39,7 +39,7 @@ help: ## Display this help.
 generate-all: generate generate-manifests generate-documentation  ## Generate code, manifests and documentation.
 
 .PHONY: manifests
-manifests: generate-manifests generate-documentation
+manifests: generate-manifests generate-documentation generate-types
 
 .PHONY: generate-manifests
 generate-manifests: controller-gen ## Generate WebhookConfiguration, ClusterRole and CustomResourceDefinition objects.
@@ -47,6 +47,10 @@ generate-manifests: controller-gen ## Generate WebhookConfiguration, ClusterRole
 	$(CONTROLLER_GEN) rbac:roleName=manager-role webhook paths="./pkg/admission/..." paths="./pkg/controllers/..." output:artifacts:config=$(TEMPLATES_MANIFESTS_PATH)
 	hack/helmify $(TEMPLATES_MANIFESTS_PATH)
 	docker run --rm -v $(shell pwd):/github/workspace $(IMG_LICENSE_EYE) -c .github/licenserc.yaml header fix
+
+.PHONY: generate-types
+generate-types: ## Generate typescript types from CRDs.
+	hack/typescript/create-types $(CURDIR)/docs/reference/api/openapi.yaml $(CURDIR)/hack/typescript/metadata.yaml $(CURDIR)/ui/types/ 
 
 .PHONY: generate
 generate: controller-gen ## Generate code containing DeepCopy, DeepCopyInto, and DeepCopyObject method implementations.

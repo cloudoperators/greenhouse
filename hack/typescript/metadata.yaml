@@ -1,0 +1,25 @@
+type: object
+properties:
+  name:
+    type: string
+  namespace:
+    type: string
+  uid:
+    type: string
+    format: uuid
+  resourceVersion:
+    type: string
+  creationTimestamp:
+    type: string
+    format: date-time
+  deletionTimestamp:
+    type: string
+    format: date-time
+  labels:
+    type: object
+    additionalProperties:
+      type: string
+  annotations:
+    type: object
+    additionalProperties:
+      type: string
