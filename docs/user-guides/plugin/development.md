@@ -13,8 +13,8 @@ This guide will walk you through the process of spinning up the local developmen
 
 At the end of the guide you will have spun up the local development environment, onboarded a Cluster, created a _PluginDefinition_ and deployed it as a _Plugin_ to the onboarded Cluster.
 
-[!NOTE]
-This guide assumes you already have a working Helm chart and will not cover how to create a Helm Chart from scratch. For more information on how to create a Helm Chart, please refer to the [Helm documentation](https://helm.sh/docs/topics/charts/).
+>[!NOTE]
+>This guide assumes you already have a working Helm chart and will not cover how to create a Helm Chart from scratch. For more information on how to create a Helm Chart, please refer to the [Helm documentation](https://helm.sh/docs/topics/charts/).
 
 ## Requirements
 
@@ -75,6 +75,9 @@ For the bitnami nginx Helm Chart this would be `oci://registry-1.docker.io/bitna
 ### Specify the UI application
 
 A _PluginDefinition_ may specify a UI application that will be integrated into the Greenhouse UI. This tutorial does not cover how to create a UI application. Therefore the section `.spec.uiApplication` in the `pluginDefinition.yaml` should be removed.
+
+>[!INFORMATION]
+> The [UI](https://github.com/cloudoperators/greenhouse-extensions/tree/main/dev-env#ui) section of the dev-env readme provides a brief introduction developing a frontend application for Greenhouse.
 
 ### Modify the Options
 
