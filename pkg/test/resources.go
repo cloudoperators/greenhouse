@@ -107,6 +107,7 @@ func WithRules(rules []rbacv1.PolicyRule) func(*greenhousev1alpha1.TeamRole) {
 
 // CreateTeamRole returns a TeamRole object. Opts can be used to set the desired state of the TeamRole.
 func (t *TestSetup) CreateTeamRole(ctx context.Context, name string, opts ...func(*greenhousev1alpha1.TeamRole)) *greenhousev1alpha1.TeamRole {
+        GinkgoHelper()
 	tr := &greenhousev1alpha1.TeamRole{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "TeamRole",
@@ -159,6 +160,7 @@ func WithNamespaces(namespaces ...string) func(*greenhousev1alpha1.TeamRoleBindi
 
 // CreateTeamRoleBinding returns a TeamRoleBinding object. Opts can be used to set the desired state of the TeamRoleBinding.
 func (t *TestSetup) CreateTeamRoleBinding(ctx context.Context, name string, opts ...func(*greenhousev1alpha1.TeamRoleBinding)) *greenhousev1alpha1.TeamRoleBinding {
+        GinkgoHelper()
 	trb := &greenhousev1alpha1.TeamRoleBinding{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "TeamRoleBinding",
