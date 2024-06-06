@@ -5,13 +5,10 @@ package e2e
 
 import (
 	"testing"
-	"time"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
-	"github.com/cloudoperators/greenhouse/pkg/admission"
-	clusterpkg "github.com/cloudoperators/greenhouse/pkg/controllers/cluster"
 	"github.com/cloudoperators/greenhouse/pkg/test"
 )
 
@@ -21,14 +18,15 @@ func TestE2E(t *testing.T) {
 }
 
 var _ = BeforeSuite(func() {
-	test.RegisterController("clusterBootstrap", (&clusterpkg.BootstrapReconciler{}).SetupWithManager)
-	test.RegisterController("clusterDirectAccess", (&clusterpkg.DirectAccessReconciler{
-		RemoteClusterBearerTokenValidity:   10 * time.Minute,
-		RenewRemoteClusterBearerTokenAfter: 9 * time.Minute,
-	}).SetupWithManager)
-	test.RegisterController("clusterStatus", (&clusterpkg.ClusterStatusReconciler{}).SetupWithManager)
-	test.RegisterWebhook("clusterValidation", admission.SetupClusterWebhookWithManager)
-	test.RegisterWebhook("secretsWebhook", admission.SetupSecretWebhookWithManager)
+	// Register all known controllers and webhooks if we run the e2e tests locally
+	// Register controllers.
+	for controllerName, hookFunc := range knownControllers {
+		test.RegisterController(controllerName, hookFunc)
+	}
+	// register webhooks
+	for webhookName, hookFunc := range knownWebhooks {
+		test.RegisterWebhook(webhookName, hookFunc)
+	}
 
 	test.TestBeforeSuite()
 })
