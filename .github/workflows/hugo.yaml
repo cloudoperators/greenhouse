@@ -33,7 +33,7 @@ jobs:
     runs-on: [ default ]
 
     env:
-      HUGO_VERSION: 0.125.3
+      HUGO_VERSION: 0.124.1
 
     steps:
       - name: Install Hugo CLI
