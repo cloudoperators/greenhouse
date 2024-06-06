@@ -34,7 +34,7 @@
   "license": "Apache-2.0",
   "source": "src/index.js",
   "module": "build/index.js",
-  "private": true,
+  "private": false,
   "devDependencies": {
     "@babel/core": "^7.20.2",
     "@babel/preset-env": "^7.20.2",
@@ -79,18 +79,18 @@
   },
   "peerDependencies": {
     "@tanstack/react-query": "4.28.0",
-    "juno-ui-components": "*",
+    "juno-ui-components": "https://assets.juno.global.cloud.sap/libs/juno-ui-components@2.13.8/package.tgz",
     "luxon": "^2.3.0",
-    "messages-provider": "*",
+    "messages-provider": "https://assets.juno.global.cloud.sap/libs/messages-provider@0.1.12/package.tgz",
     "prop-types": "^15.8.1",
     "react": "18.2.0",
-    "react-dom": "^18.2.0",
-    "url-state-provider": "*",
-    "utils": "*",
-    "zustand": "4.3.7"
+    "react-dom": "18.2.0",
+    "url-state-provider": "https://assets.juno.global.cloud.sap/libs/url-state-provider@1.3.2/package.tgz",
+    "utils": "https://assets.juno.global.cloud.sap/libs/utils@1.1.6/package.tgz",
+    "zustand": "4.5.2"
   },
   "importmapExtras": {
-    "zustand/middleware": "4.3.7"
+    "zustand/middleware": "4.5.2"
   },
   "appProps": {
     "theme": {
@@ -111,12 +111,12 @@
     "embedded": {
       "value": "false",
       "type": "optional",
-      "description": "Set to true if app is to be embedded in another existing app or page, like e.g. Elektra.  If set to true the app won't render a page header/footer and instead render only the content. The default value is false."
+      "description": "Set to true if app is to be embedded in another existing app or page, like.  If set to true the app won't render a page header/footer and instead render only the content. The default value is false."
     },
     "environment": {
       "value": "production",
       "type": "optional",
-      "description": "environment name, e.g. production, qa, development, etc. This property can be used to load different plugins for different environments."
+      "description": "Environment name, e.g. production, qa, development, etc. This property can be used to load different plugins for different environments."
     }
   },
   "appDependencies": {
