@@ -1,6 +1,6 @@
 {
   "name": "greenhouse-secret-admin",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "author": "greenhouse",
   "contributors": [
     "Uwe Mayer"
@@ -9,7 +9,7 @@
   "source": "src/index.js",
   "module": "build/index.js",
   "license": "Apache-2.0",
-  "private": true,
+  "private": false,
   "devDependencies": {
     "@babel/core": "^7.20.2",
     "@babel/preset-env": "^7.20.2",
@@ -51,7 +51,6 @@
     "prop-types": "^15.8.1",
     "react": "18.2.0",
     "react-dom": "18.2.0",
-    "utils": "https://assets.juno.global.cloud.sap/libs/utils@1.1.6/package.tgz",
     "zustand": "4.3.7"
   },
   "scripts": {
