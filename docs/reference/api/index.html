@@ -326,7 +326,7 @@ p {
             <p><h1>Greenhouse</h1></p>
             <p>PlusOne operations platform</p>
             <p>
-                <div class="app-desc">Version: 8a9c90c</div>
+                <div class="app-desc">Version: 479ed6d</div>
             </p>
           </div>
         </div>
@@ -1257,8 +1257,20 @@ g,0<c.length&&(c=Aa[c[0]])&&(a.c[e]=c))}a.c[e]||(c=Aa[e])&&(a.c[e]=c);for(c=0;c<
       "type" : "string",
       "description" : "Description provides additional details of the pluginDefinition."
     },
+    "displayName" : {
+      "type" : "string",
+      "description" : "DisplayName provides a human-readable label for the pluginDefinition."
+    },
+    "docMarkDownUrl" : {
+      "type" : "string",
+      "description" : "DocMarkDownUrl specifies the URL to the markdown documentation file for this plugin.\\nSource needs to allow all CORS origins."
+    },
     "helmChart" : {
       "$ref" : "#/components/schemas/PluginDefinition_spec_helmChart"
+    },
+    "icon" : {
+      "type" : "string",
+      "description" : "Icon specifies the icon to be used for this plugin in the Greenhouse UI.\\nIcons can be either:\\n- A string representing a juno icon in camel case from this list: https://github.com/sapcc/juno/blob/main/libs/juno-ui-components/src/components/Icon/Icon.component.js#L6-L52\\n- A publicly accessable image reference to a .png file. Will be displayed 100x100px"
     },
     "options" : {
       "type" : "array",

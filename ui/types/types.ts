@@ -4,14 +4,26 @@
  */
 
 import { components } from "./schema"
+import { Secret as k8sSecret } from "kubernetes-types/core/v1"
 
+export type Secret = k8sSecret
 export type Cluster = components["schemas"]["Cluster"]
-export type PluginConfig = components["schemas"]["PluginConfig"]
+export type PluginDefinition = components["schemas"]["PluginDefinition"]
+export type Plugin = components["schemas"]["Plugin"]
+export type PluginPreset = components["schemas"]["PluginPreset"]
 export type UpdateClusterInput = {
   clusters: Cluster[]
-  action: UpdateClusterAction
+  action: UpdateObjectAction
 }
-export enum UpdateClusterAction {
+export type UpdatePluginDefinitionInput = {
+  pluginDefinitions: PluginDefinition[]
+  action: UpdateObjectAction
+}
+export type UpdateSecretInput = {
+  secrets: Secret[]
+  action: UpdateObjectAction
+}
+export enum UpdateObjectAction {
   "add",
   "delete",
 }
@@ -35,3 +47,19 @@ export type KubernetesCondition = {
   message?: string
   lastTransitionTime?: string
 }
+
+// some subtypes
+export type PluginDefinitionOptions = NonNullable<
+  PluginDefinition["spec"]
+>["options"]
+export type PluginDefinitionOption =
+  NonNullable<PluginDefinitionOptions>[number]
+export type PluginOptionValues = NonNullable<Plugin["spec"]>["optionValues"]
+export type PluginOptionValue = NonNullable<PluginOptionValues>[number]
+export type PluginOptionValueFrom = NonNullable<PluginOptionValue>["valueFrom"]
+
+export type PluginPresetSpec = NonNullable<PluginPreset["spec"]>
+export type ClusterSelector = NonNullable<PluginPresetSpec["clusterSelector"]>
+export type LabelSelector = NonNullable<ClusterSelector["matchLabels"]>
+
+export type SecretDataEntry = NonNullable<Secret["data"]>

@@ -1,11 +1,11 @@
 {
   "name": "greenhouse-org-admin",
-  "version": "1.1.13",
+  "version": "1.1.17",
   "managementPluginConfig": {
     "clusters": {
       "label": "Clusters",
       "name": "greenhouse-cluster-admin",
-      "version": "1.6.7"
+      "version": "1.6.8"
     },
     "teams": {
       "label": "Teams",
@@ -15,7 +15,14 @@
     "plugins": {
       "label": "Plugins",
       "name": "greenhouse-plugin-admin",
-      "version": "1.0.7"
+      "version": "1.0.8",
+      "releaseState": "beta"
+    },
+    "secrets": {
+      "label": "Secrets",
+      "name": "greenhouse-secret-admin",
+      "version": "1.0.1",
+      "releaseState": "beta"
     }
   },
   "author": "UI-Team",

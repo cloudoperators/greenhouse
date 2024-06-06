@@ -53,28 +53,7 @@ export const useAPI = () => {
     })
 
     watch.start()
-
-    const getPromise = client
-      .get(
-        `/apis/greenhouse.sap/v1alpha1/namespaces/${namespace}/teammemberships`
-      )
-      .then((items) => {
-        updateTeamMemberships(teamMemberships, setTeamMemberships, {
-          added: items,
-        })
-      })
-      .catch((e) => {
-        console.error("ERROR: Failed to get resource", e)
-        addMessage({
-          variant: "error",
-          text: parseError(e.message),
-        })
-      })
-
-    return () => {
-      watch.cancel()
-      return getPromise
-    }
+    return watch.cancel()
   }, [
     client,
     namespace,

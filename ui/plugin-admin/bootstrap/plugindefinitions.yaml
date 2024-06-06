@@ -1,0 +1,218 @@
+# SPDX-FileCopyrightText: 2024 SAP SE or an SAP affiliate company and Greenhouse contributors
+# SPDX-License-Identifier: Apache-2.0
+
+apiVersion: greenhouse.sap/v1alpha1
+kind: PluginDefinition
+metadata:
+  name: test-plugin
+spec:
+  displayName: Test Plugin with Values
+  description: some test plugin 
+  icon: download
+  version: "1.0.0"
+  uiApplication:
+    name: test-plugin-ui
+    version: "latest"
+  options:
+    - name: requiredValue
+      description: This is some very important required value
+      required: true
+      type: string
+    - name: notRequiredValue
+      description: This is some not so important value
+      required: false
+      type: list
+    - name: notRequiredButDefaultedValue
+      description: This is some not so important value with a default
+      required: false
+      default: "default"
+      type: string
+    - name: requiredBool
+      description: This is some very important required bool
+      required: true
+      type: bool
+
+---
+apiVersion: greenhouse.sap/v1alpha1
+kind: PluginDefinition
+metadata:
+  name: test-plugin-with-markdown
+spec:
+  displayName: Test Plugin with Markdown and Values
+  description: some test plugin with markdown
+  version: "1.0.0"
+  docMarkDownUrl: https://gist.githubusercontent.com/rt2zz/e0a1d6ab2682d2c47746950b84c0b6ee/raw/83b8b4814c3417111b9b9bef86a552608506603e/markdown-sample.md
+  icon: home
+  uiApplication:
+    name: test-plugin-ui
+    version: "latest"
+    url: "https://some-frontend-url"
+  helmChart:
+    name: someHelmChart
+    repository: oci://some-helmchart
+    version: "1.0.0"
+  options:
+    - name: requiredValue
+      description: This is some very important required value
+      required: true
+      type: string
+    - name: notRequiredValue
+      description: This is some not so important value
+      required: false
+      type: list
+    - name: notRequiredButDefaultedValue
+      description: This is some not so important value with a default
+      required: false
+      default: "default"
+      type: string
+    - name: requiredBool
+      description: This is some very important required bool
+      required: true
+      type: bool
+
+---
+apiVersion: greenhouse.sap/v1alpha1
+kind: PluginDefinition
+metadata:
+  name: test-plugin-3
+spec:
+  displayName: Plugin with Helm Chart and UI
+  description: some test plugin
+  version: "1.0.0"
+  icon: autoAwesomeMotion
+  uiApplication:
+    name: test-plugin-ui
+    version: "latest"
+  helmChart:
+    name: someHelmChart
+    repository: oci://some-helmchart
+    version: "1.0.0"
+
+---
+apiVersion: greenhouse.sap/v1alpha1
+kind: PluginDefinition
+metadata:
+  name: test-plugin-4
+spec:
+  displayName: Test Plugin with all option types
+  description: some test plugin 2
+  version: "1.0.0"
+  icon: description
+  uiApplication:
+    name: test-plugin-ui
+    version: "latest"
+  options:
+    - name: StringValue
+      description: To be filled with a string
+      required: false
+      default: "defaultText"
+      type: string
+    - name: secretValue
+      description: To be filled with a secret
+      required: true
+      type: secret
+    - name: boolValue
+      description: To be filled with a bool
+      required: false
+      default: true
+      type: bool
+    - name: intValue
+      description: To be filled with an int
+      required: false
+      default: 123
+      type: int
+    - name: listValue
+      description: To be filled with a list
+      required: false
+      default: 
+        - "defaultListValue1"
+        - "defaultListValue2"
+      type: list
+    - name: mapValue
+      description: To be filled with a map
+      required: false
+      default: 
+        key1: "value1"
+        key2: "value2"
+      type: map  
+---
+apiVersion: greenhouse.sap/v1alpha1
+kind: PluginDefinition
+metadata:
+  name: test-plugin-5
+spec:
+  icon: https://upload.wikimedia.org/wikipedia/commons/thumb/5/58/Instagram-Icon.png/1024px-Instagram-Icon.png
+  displayName: Plugin with greyscaled icon
+  description: some test plugin
+  version: "1.0.0"
+  uiApplication:
+    name: test-plugin-ui
+    version: "latest"
+    url: "https://some-frontend-url"
+  helmChart:
+    name: someHelmChart
+    repository: oci://some-helmchart
+    version: "1.0.0"
+
+---
+apiVersion: greenhouse.sap/v1alpha1
+kind: PluginDefinition
+metadata:
+  name: test-plugin-6
+spec:
+  description: some test plugin 2
+  version: "1.0.0"
+  icon: https://cdn-icons-png.flaticon.com/128/3916/3916979.png
+  uiApplication:
+    name: test-plugin-ui
+    version: "latest"
+    url: "https://some-frontend-url"
+  helmChart:
+    name: someHelmChart
+    repository: oci://some-helmchart
+    version: "1.0.0"
+  options:
+    - name: requiredValue
+      description: This is some very important required value
+      required: true
+      type: string
+    - name: notRequiredValue
+      description: This is some not so important value
+      required: false
+      type: list
+    - name: notRequiredButDefaultedValue
+      description: This is some not so important value with a default
+      required: false
+      default: "default"
+      type: string
+    - name: requiredBool
+      description: This is some very important required bool
+      required: true
+      type: bool
+
+---
+apiVersion: greenhouse.sap/v1alpha1
+kind: PluginDefinition
+metadata:
+  name: test-plugin-secrets
+spec:
+  displayName: Test Plugin with a lot of secrets
+  description: Test Plugin with a lot of secrets
+  version: "1.0.0"
+  icon: description
+  uiApplication:
+    name: test-plugin-ui
+    version: "latest"
+  options:
+    - name: requiredSecretValue
+      description: To be filled with a secret
+      required: true
+      type: secret
+    - name: notRequiredSecretValue
+      description: To be filled with a secret
+      required: false
+      type: secret
+    - name: notRequiredSecretValue2
+      description: To be filled with a secret
+      required: false
+      type: secret

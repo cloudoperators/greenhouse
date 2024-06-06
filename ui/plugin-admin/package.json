@@ -1,6 +1,6 @@
 {
   "name": "greenhouse-plugin-admin",
-  "version": "1.0.7",
+  "version": "1.0.8",
   "author": "UI-Team",
   "contributors": [
     "Tilman Haupt"
@@ -84,5 +84,11 @@
   "appDependencies": {
     "auth": "latest"
   },
-  "appPreview": true
+  "appPreview": true,
+  "dependencies": {
+    "github-markdown-css": "^5.5.1",
+    "react-markdown": "^9.0.1",
+    "rehype-raw": "^7.0.0",
+    "remark-gfm": "^4.0.0"
+  }
 }
