@@ -196,6 +196,7 @@ func (r *TeamRoleBindingReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 	remoteRestClient, err := getK8sClient(ctx, r.Client, cluster)
 	if err != nil {
 		r.recorder.Eventf(teamRoleBinding, corev1.EventTypeWarning, "ClusterClientError", "Error getting client for cluster %s to replicate %s", cluster.GetName(), teamRoleBinding.GetName())
+		return ctrl.Result{}, err
 	}
 
 	if err := reconcileClusterRole(ctx, remoteRestClient, cluster, cr); err != nil {
@@ -208,12 +209,14 @@ func (r *TeamRoleBindingReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 		crb := rbacClusterRoleBinding(teamRoleBinding, cr, team)
 		if err := reconcileClusterRoleBinding(ctx, remoteRestClient, cluster, crb); err != nil {
 			r.recorder.Eventf(teamRoleBinding, corev1.EventTypeWarning, greenhousev1alpha1.FailedReconcileClusterRoleBindingReason, "Error reconciling ClusterRoleBinding %s in cluster %s: %s", crb.GetName(), cluster.GetName(), err.Error())
+			return ctrl.Result{}, err
 		}
 	default:
 		for _, namespace := range teamRoleBinding.Spec.Namespaces {
 			rbacRoleBinding := rbacRoleBinding(teamRoleBinding, cr, team, namespace)
 			if err := reconcileRoleBinding(ctx, remoteRestClient, cluster, rbacRoleBinding); err != nil {
 				r.recorder.Eventf(teamRoleBinding, corev1.EventTypeWarning, greenhousev1alpha1.FailedReconcileRoleBindingReason, "Error reconciling RoleBinding %s in cluster %s: %s", rbacRoleBinding.GetName(), cluster.GetName(), err.Error())
+				return ctrl.Result{}, err
 			}
 		}
 	}
