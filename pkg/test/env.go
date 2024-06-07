@@ -46,7 +46,7 @@ type (
 var (
 	allRegisterControllerFuncs   = make(map[string]registerControllerFunc, 0)
 	allRegisterWebhookFuncs      = make(map[string]registerWebhookFunc, 0)
-	useExistingGreenhouseCluster = clientutil.GetEnvOrDefault("TEST_USE_EXISTING_GREENHOUSE_CLUSTER", "false") == "true"
+	useExistingGreenhouseCluster = clientutil.GetEnvOrDefault("USE_EXISTING_CLUSTER", "false") == "true"
 )
 
 // RegisterController registers a controller for the testbed.
@@ -108,11 +108,16 @@ var (
 		installWebhooks := len(allRegisterWebhookFuncs) > 0 && os.Getenv("TEST_INSTALL_WEBHOOKS") != "false"
 		if useExistingGreenhouseCluster {
 			// we are making use of https://pkg.go.dev/sigs.k8s.io/controller-runtime/pkg/envtest#pkg-constants to prevent starting a new control plane
-			os.Setenv("USE_EXISTING_CLUSTER", "true")
 			kubeconfig := os.Getenv("KUBECONFIG")
+			Expect(kubeconfig).NotTo(BeEmpty(), "the environment variable KUBECONFIG must be set to run the tests against a remote cluster")
 			fmt.Printf("using existing cluster with kubeconfig: %s\n", kubeconfig)
 			installCRDs = false
 			installWebhooks = false
+		} else {
+			// ensure envtest is setup correctly, also see Makefile --> make envtest
+			_, isHasEnvKubebuilderAssets := os.LookupEnv("KUBEBUILDER_ASSETS")
+			Expect(isHasEnvKubebuilderAssets).
+				To(BeTrue(), "the environment variable KUBEBUILDER_ASSETS must be set to run the tests against local envtest")
 		}
 
 		Cfg, K8sClient, testEnv, KubeConfig = StartControlPlane("", installCRDs, installWebhooks)
@@ -177,7 +182,7 @@ var (
 				}, updateTimeout, pollInterval).Should(Succeed(), "there should be no error dialing the webhook server")
 			}
 		}
-		// Create test namespace
+		// Create test namespace and thereby test connection to the cluster
 		err := K8sClient.Create(Ctx, &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: TestNamespace}})
 		Expect(err).NotTo(HaveOccurred(), "there should be no error creating the test namespace")
 	}
@@ -197,11 +202,6 @@ var (
 
 // Starts a envTest control plane and returns the config, client, envtest.Environment and raw kubeconfig.
 func StartControlPlane(port string, installCRDs, installWebhooks bool) (*rest.Config, client.Client, *envtest.Environment, []byte) {
-	// ensure envtest is setup correctly, also see Makefile --> make envtest
-	_, isHasEnvKubebuilderAssets := os.LookupEnv("KUBEBUILDER_ASSETS")
-	Expect(isHasEnvKubebuilderAssets).
-		To(BeTrue(), "the environment variable KUBEBUILDER_ASSETS must be set")
-
 	// Configure control plane
 	var testEnv = &envtest.Environment{}
 	absPathConfigBasePath, err := clientutil.FindDirUpwards(".", "charts", 10)
