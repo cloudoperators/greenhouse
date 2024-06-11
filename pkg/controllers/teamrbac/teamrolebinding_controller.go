@@ -122,7 +122,7 @@ func (r *TeamRoleBindingReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 	// list the clusters that either match the ClusterName or the ClusterSelector
 	clusters, err := r.listClusters(ctx, trb)
 	if err != nil {
-		r.recorder.Eventf(trb, corev1.EventTypeNormal, greenhousev1alpha1.ClusterNotFoundReason, "Error retrieving clusters for TeamRoleBinding %s", trb.GetName)
+		r.recorder.Eventf(trb, corev1.EventTypeNormal, greenhousev1alpha1.ReconcileFailedReason, "Failed to list clusters", trb.GetName)
 		return ctrl.Result{}, err
 	}
 
@@ -134,7 +134,7 @@ func (r *TeamRoleBindingReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 	team, err := getTeam(ctx, r.Client, trb)
 	if err != nil {
 		if apierrors.IsNotFound(err) {
-			r.recorder.Eventf(trb, corev1.EventTypeNormal, greenhousev1alpha1.TeamNotFoundReason, "Team %s not found in Namespace %s for TeamRoleBinding %s", trb.Spec.TeamRef, trb.GetNamespace(), trb.GetName())
+			r.recorder.Eventf(trb, corev1.EventTypeNormal, greenhousev1alpha1.ReconcileFailedReason, "Failed to get team %s in namespace %s", trb.Spec.TeamRef, trb.GetNamespace())
 		}
 		return ctrl.Result{}, err
 	}
@@ -156,7 +156,7 @@ func (r *TeamRoleBindingReconciler) doReconcile(ctx context.Context, teamRole *g
 		}
 
 		if err := reconcileClusterRole(ctx, remoteRestClient, &cluster, cr); err != nil {
-			r.recorder.Eventf(trb, corev1.EventTypeWarning, greenhousev1alpha1.FailedReconcileClusterRoleReason, "Error reconciling ClusterRole %s in cluster %s", cr.GetName(), cluster.GetName())
+			r.recorder.Eventf(trb, corev1.EventTypeWarning, greenhousev1alpha1.ReconcileFailedReason, "Failed to reconcile rbacv1.ClusterRole %s in cluster %s", cr.GetName(), cluster.GetName())
 			setPropagationStatus(&trbStatus, cluster.GetName(), metav1.ConditionFalse, greenhousev1alpha1.ClusterRoleFailed)
 			failedClusters = append(failedClusters, cluster.GetName())
 			continue
@@ -166,7 +166,7 @@ func (r *TeamRoleBindingReconciler) doReconcile(ctx context.Context, teamRole *g
 		case true:
 			crb := rbacClusterRoleBinding(trb, cr, team)
 			if err := reconcileClusterRoleBinding(ctx, remoteRestClient, &cluster, crb); err != nil {
-				r.recorder.Eventf(trb, corev1.EventTypeWarning, greenhousev1alpha1.FailedReconcileClusterRoleBindingReason, "Error reconciling ClusterRoleBinding %s in cluster %s: %s", crb.GetName(), cluster.GetName(), err.Error())
+				r.recorder.Eventf(trb, corev1.EventTypeWarning, greenhousev1alpha1.ReconcileFailedReason, "Failed to reconcile ClusterRoleBinding %s in cluster %s", crb.GetName(), cluster.GetName())
 				setPropagationStatus(&trbStatus, cluster.GetName(), metav1.ConditionFalse, greenhousev1alpha1.RoleBindingFailed)
 				failedClusters = append(failedClusters, cluster.GetName())
 				continue
@@ -178,7 +178,7 @@ func (r *TeamRoleBindingReconciler) doReconcile(ctx context.Context, teamRole *g
 				rbacRoleBinding := rbacRoleBinding(trb, cr, team, namespace)
 
 				if err := reconcileRoleBinding(ctx, remoteRestClient, &cluster, rbacRoleBinding); err != nil {
-					r.recorder.Eventf(trb, corev1.EventTypeWarning, greenhousev1alpha1.FailedReconcileRoleBindingReason, "Error reconciling RoleBinding %s in cluster %s: %s", rbacRoleBinding.GetName(), cluster.GetName(), err.Error())
+					r.recorder.Eventf(trb, corev1.EventTypeWarning, greenhousev1alpha1.ReconcileFailedReason, "Failed to reconcile RoleBinding %s in cluster %s", rbacRoleBinding.GetName(), cluster.GetName())
 					setPropagationStatus(&trbStatus, cluster.GetName(), metav1.ConditionFalse, greenhousev1alpha1.RoleBindingFailed)
 					if !hasFailed {
 						hasFailed = true
@@ -206,7 +206,7 @@ func (r *TeamRoleBindingReconciler) doReconcile(ctx context.Context, teamRole *g
 func (r *TeamRoleBindingReconciler) deleteTeamRoleBinding(ctx context.Context, trb *greenhousev1alpha1.TeamRoleBinding, trbStatus greenhousev1alpha1.TeamRoleBindingStatus) (ctrl.Result, error) {
 	clusters, err := r.listClusters(ctx, trb)
 	if err != nil {
-		r.recorder.Eventf(trb, corev1.EventTypeNormal, greenhousev1alpha1.ClusterNotFoundReason, "Error retrieving cluster for TeamRoleBinding %s", trb.GetName)
+		r.recorder.Eventf(trb, corev1.EventTypeNormal, greenhousev1alpha1.ReconcileFailedReason, "Failed to list clusters")
 		return ctrl.Result{}, err
 	}
 
@@ -494,44 +494,58 @@ func reconcileRoleBinding(ctx context.Context, cl client.Client, c *greenhousev1
 
 func (r TeamRoleBindingReconciler) deleteRoleBindings(ctx context.Context, cl client.Client, trb *greenhousev1alpha1.TeamRoleBinding, cluster *greenhousev1alpha1.Cluster) error {
 	for _, namespace := range trb.Spec.Namespaces {
-		remoteObjectKey := types.NamespacedName{Name: trb.GetRBACName(), Namespace: namespace}
-		remoteObject := &rbacv1.RoleBinding{}
-		err := cl.Get(ctx, remoteObjectKey, remoteObject)
-		switch {
-		case apierrors.IsNotFound(err):
-			continue
-		case err != nil:
-			r.recorder.Eventf(trb, corev1.EventTypeWarning, greenhousev1alpha1.FailedDeleteRoleBindingReason, "Error retrieving RoleBinding %s for cluster %s in namespace %s", trb.GetRBACName(), cluster.GetName(), namespace)
-			// TODO: collect errors and return them
-			return err
+		remoteObject := &rbacv1.RoleBinding{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      trb.GetRBACName(),
+				Namespace: trb.GetNamespace(),
+			},
 		}
-		if err := cl.Delete(ctx, remoteObject); err != nil {
-			r.recorder.Eventf(trb, corev1.EventTypeWarning, greenhousev1alpha1.FailedDeleteRoleBindingReason, "Error deleting RoleBinding %s for cluster %s in namespace %s", trb.GetRBACName(), cluster.GetName(), namespace)
-			// TODO: collect errors and return them
+		result, err := clientutil.Delete(ctx, cl, remoteObject)
+
+		switch {
+		case err != nil:
+			r.recorder.Eventf(trb, corev1.EventTypeWarning, greenhousev1alpha1.DeleteFailedReason, "Failed to delete RoleBinding %s for cluster %s in namespace %s", trb.GetRBACName(), cluster.GetName(), namespace)
 			return err
+		case result == clientutil.DeletionResultDeleted:
+			r.recorder.Eventf(trb, corev1.EventTypeNormal, greenhousev1alpha1.DeletedReason, "Deleted RoleBinding %s in cluster %s in namespace %s", trb.GetRBACName(), cluster.GetName(), namespace)
 		}
 	}
 	return nil
 }
 
 func (r TeamRoleBindingReconciler) deleteClusterRoleBinding(ctx context.Context, cl client.Client, trb *greenhousev1alpha1.TeamRoleBinding, cluster *greenhousev1alpha1.Cluster) error {
-	remoteObjectKey := types.NamespacedName{Name: trb.GetRBACName()}
-	remoteObject := &rbacv1.ClusterRoleBinding{}
-	err := cl.Get(ctx, remoteObjectKey, remoteObject)
-	switch {
-	case apierrors.IsNotFound(err):
-		return nil
-	case err != nil:
-		r.recorder.Eventf(trb, corev1.EventTypeWarning, greenhousev1alpha1.FailedDeleteRoleBindingReason, "Error retrieving ClusterRoleBinding %s for cluster %s", trb.GetRBACName(), cluster.GetName())
-		// TODO: collect errors and return them
-		return err
-	}
-	if err := cl.Delete(ctx, remoteObject); err != nil {
-		r.recorder.Eventf(trb, corev1.EventTypeWarning, greenhousev1alpha1.FailedDeleteClusterRoleBindingReason, "Error deleting ClusterRoleBinding %s for cluster %s", trb.GetRBACName(), cluster.GetName())
-		// TODO: collect errors and return them
-		return err
+	remoteObject := &rbacv1.ClusterRoleBinding{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: greenhouseapis.RBACPrefix + trb.Spec.TeamRoleRef,
+		},
 	}
 
+	result, err := clientutil.Delete(ctx, cl, remoteObject)
+	switch {
+	case err != nil:
+		r.recorder.Eventf(trb, corev1.EventTypeWarning, greenhousev1alpha1.DeleteFailedReason, "Failed to delete ClusterRoleBinding %s for cluster %s", trb.GetRBACName(), cluster.GetName())
+		return err
+	case result == clientutil.DeletionResultDeleted:
+		r.recorder.Eventf(trb, corev1.EventTypeNormal, greenhousev1alpha1.DeletedReason, "ClusterRoleBinding %s deleted from cluster %s", trb.GetRBACName(), cluster.GetName())
+	}
+	return nil
+}
+
+func (r TeamRoleBindingReconciler) deleteClusterRole(ctx context.Context, cl client.Client, trb *greenhousev1alpha1.TeamRoleBinding, cluster *greenhousev1alpha1.Cluster) error {
+	remoteObject := &rbacv1.ClusterRole{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: trb.GetRBACName(),
+		},
+	}
+	result, err := clientutil.Delete(ctx, cl, remoteObject)
+	switch {
+	case err != nil:
+		r.recorder.Eventf(trb, corev1.EventTypeWarning, greenhousev1alpha1.DeleteFailedReason, "Error deleting ClusterRole %s for cluster %s", trb.GetRBACName(), cluster.GetName())
+		return err
+	case result == clientutil.DeletionResultDeleted:
+		r.recorder.Eventf(trb, corev1.EventTypeNormal, greenhousev1alpha1.DeletedReason, "ClusterRole %s deleted from cluster %s", trb.GetRBACName(), cluster.GetName())
+
+	}
 	return nil
 }
 
