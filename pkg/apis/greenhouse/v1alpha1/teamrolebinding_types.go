@@ -19,7 +19,8 @@ type TeamRoleBindingSpec struct {
 	ClusterName string `json:"clusterName,omitempty"`
 	// ClusterSelector is a label selector to select the Clusters the TeamRoleBinding should be deployed to.
 	ClusterSelector metav1.LabelSelector `json:"clusterSelector,omitempty"`
-	// Namespaces is the immutable list of namespaces in the Greenhouse Clusters to apply the RoleBinding to
+	// Namespaces is the immutable list of namespaces in the Greenhouse Clusters to apply the RoleBinding to.
+	// If empty, a ClusterRoleBinding will be created on the remote cluster, otherwise a RoleBinding per namespace.
 	Namespaces []string `json:"namespaces,omitempty"`
 }
 
