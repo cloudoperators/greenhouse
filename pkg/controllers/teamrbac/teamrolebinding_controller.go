@@ -688,11 +688,6 @@ func computeReadyCondition(status greenhousev1alpha1.TeamRoleBindingStatus) gree
 		return readyCondition
 	}
 
-	if status.GetConditionByType(greenhousev1alpha1.ClusterListEmpty).IsTrue() {
-		readyCondition.Status = metav1.ConditionFalse
-		readyCondition.Message = "No cluster matches ClusterSelector or ClusterName"
-		return readyCondition
-	}
 	readyCondition.Status = metav1.ConditionTrue
 	readyCondition.Message = "ready"
 	return readyCondition
