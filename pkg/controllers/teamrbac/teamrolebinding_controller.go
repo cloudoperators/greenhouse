@@ -139,11 +139,13 @@ func (r *TeamRoleBindingReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 		return ctrl.Result{}, err
 	}
 
-	return ctrl.Result{}, r.doReconcile(ctx, teamRole, clusters, trb, trbStatus, team)
+	trbStatus, err = r.doReconcile(ctx, teamRole, clusters, trb, trbStatus, team)
+	return ctrl.Result{}, err
+
 }
 
 // doReconcile reconciles the TeamRoleBinding's rbacv1 resources on all relevant clusters
-func (r *TeamRoleBindingReconciler) doReconcile(ctx context.Context, teamRole *greenhousev1alpha1.TeamRole, clusters *greenhousev1alpha1.ClusterList, trb *greenhousev1alpha1.TeamRoleBinding, trbStatus greenhousev1alpha1.TeamRoleBindingStatus, team *greenhousev1alpha1.Team) error {
+func (r *TeamRoleBindingReconciler) doReconcile(ctx context.Context, teamRole *greenhousev1alpha1.TeamRole, clusters *greenhousev1alpha1.ClusterList, trb *greenhousev1alpha1.TeamRoleBinding, trbStatus greenhousev1alpha1.TeamRoleBindingStatus, team *greenhousev1alpha1.Team) (greenhousev1alpha1.TeamRoleBindingStatus, error) {
 	failedClusters := []string{}
 	cr := initRBACClusterRole(teamRole)
 	for _, cluster := range clusters.Items {
@@ -195,11 +197,11 @@ func (r *TeamRoleBindingReconciler) doReconcile(ctx context.Context, teamRole *g
 
 	if len(failedClusters) > 0 {
 		trbStatus.SetConditions(greenhousev1alpha1.FalseCondition(greenhousev1alpha1.RBACReady, greenhousev1alpha1.RBACReconcileFailed, "Error reconciling TeamRoleBindiding for clusters: "+strings.Join(failedClusters, ", ")))
-		return fmt.Errorf("error reconciling TeamRoleBinding for clusters: %v", strings.Join(failedClusters, ", "))
+		return trbStatus, fmt.Errorf("error reconciling TeamRoleBinding for clusters: %v", strings.Join(failedClusters, ", "))
 	}
 
 	trbStatus.SetConditions(greenhousev1alpha1.TrueCondition(greenhousev1alpha1.RBACReady, greenhousev1alpha1.RBACReconciled, ""))
-	return nil
+	return trbStatus, nil
 }
 
 // deleteTeamRoleBinding removes the TeamRoleBinding's rbacv1 resources from all clusters and removes the finalizer if all resources have been deleted
@@ -308,19 +310,7 @@ func (r *TeamRoleBindingReconciler) cleanupCluster(ctx context.Context, trb *gre
 	}
 
 	// ClusterRole is no longer referenced, delete the ClusterRole
-	remoteObject := &rbacv1.ClusterRole{}
-	remoteObjectKey := types.NamespacedName{Name: greenhouseapis.RBACPrefix + trb.Spec.TeamRoleRef}
-	err = cl.Get(ctx, remoteObjectKey, remoteObject)
-	switch {
-	case apierrors.IsNotFound(err):
-		return nil
-	case err != nil:
-		return err
-	}
-	if err = cl.Delete(ctx, remoteObject); err != nil {
-		return err
-	}
-	return nil
+	return r.deleteClusterRole(ctx, cl, trb, cluster)
 }
 
 // initRBACClusterRole returns a ClusterRole that matches the spec defined by the Greenhouse Role
@@ -497,7 +487,7 @@ func (r TeamRoleBindingReconciler) deleteRoleBindings(ctx context.Context, cl cl
 		remoteObject := &rbacv1.RoleBinding{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      trb.GetRBACName(),
-				Namespace: trb.GetNamespace(),
+				Namespace: namespace,
 			},
 		}
 		result, err := clientutil.Delete(ctx, cl, remoteObject)
@@ -516,7 +506,7 @@ func (r TeamRoleBindingReconciler) deleteRoleBindings(ctx context.Context, cl cl
 func (r TeamRoleBindingReconciler) deleteClusterRoleBinding(ctx context.Context, cl client.Client, trb *greenhousev1alpha1.TeamRoleBinding, cluster *greenhousev1alpha1.Cluster) error {
 	remoteObject := &rbacv1.ClusterRoleBinding{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: greenhouseapis.RBACPrefix + trb.Spec.TeamRoleRef,
+			Name: trb.GetRBACName(),
 		},
 	}
 
@@ -534,7 +524,7 @@ func (r TeamRoleBindingReconciler) deleteClusterRoleBinding(ctx context.Context,
 func (r TeamRoleBindingReconciler) deleteClusterRole(ctx context.Context, cl client.Client, trb *greenhousev1alpha1.TeamRoleBinding, cluster *greenhousev1alpha1.Cluster) error {
 	remoteObject := &rbacv1.ClusterRole{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: trb.GetRBACName(),
+			Name: greenhouseapis.RBACPrefix + trb.Spec.TeamRoleRef,
 		},
 	}
 	result, err := clientutil.Delete(ctx, cl, remoteObject)
