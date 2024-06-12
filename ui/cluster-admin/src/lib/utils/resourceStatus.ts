@@ -7,7 +7,7 @@ import {
   KubernetesCondition,
   ResourceStatus,
   ResourceStatusCondition,
-} from "../../types/types"
+} from "../../../../types/types"
 
 const resourceStatusUnknown: ResourceStatus = {
   state: ResourceStatusCondition[ResourceStatusCondition.unkown],

@@ -1,0 +1,30 @@
+#!/usr/bin/env bash
+# SPDX-FileCopyrightText: 2024 SAP SE or an SAP affiliate company and Greenhouse contributors
+# SPDX-License-Identifier: Apache-2.0
+
+set -o errexit
+set -o nounset
+set -o pipefail
+
+# Check arguments.
+if [[ $# -ne 3 ]]; then
+    echo "usage: create-types </path/to/openapi.yaml> </path/to/metadata.yaml> </output/directory>" >&2
+    exit 2
+fi
+OPENAPI_FILE=$1
+METADATA_FILE=$2
+OUTPUT_DIRECTORY=$3
+
+# linux network host workaround.
+DOCKER_RUN="docker run"
+if [[ "$OSTYPE" == "linux-gnu"* ]]; then
+  DOCKER_RUN="docker run --network host"
+fi
+
+$DOCKER_RUN --rm -it -v "${OPENAPI_FILE}":/api/openapi.yaml -v "${OUTPUT_DIRECTORY}":/workdir -v "${METADATA_FILE}":/api/metadata.yaml mikefarah/yq -e 'with(.components.schemas[]; .properties.metadata |= load("/api/metadata.yaml"))' /api/openapi.yaml -M > "${OUTPUT_DIRECTORY}"/temp && echo "successfully injected metadata into open api specs" || cat "${OUTPUT_DIRECTORY}"/temp
+$DOCKER_RUN --rm -it -v "${OUTPUT_DIRECTORY}":/workdir  node npx -y openapi-typescript /workdir/temp -o /workdir/schema.d.ts && echo "successfully generated typescript types" || echo "failed generating typescript types"
+rm "${OUTPUT_DIRECTORY}"/temp && echo "successfully removed temp file" || echo "failed removing temp file"
+
+
+
+
