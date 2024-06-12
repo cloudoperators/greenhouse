@@ -30,6 +30,8 @@ import (
 
 	greenhousesapv1alpha1 "github.com/cloudoperators/greenhouse/pkg/apis/greenhouse/v1alpha1"
 	"github.com/cloudoperators/greenhouse/pkg/clientutil"
+
+	_ "k8s.io/client-go/plugin/pkg/client/auth/oidc"
 )
 
 func init() {
@@ -42,8 +44,9 @@ type (
 )
 
 var (
-	allRegisterControllerFuncs = make(map[string]registerControllerFunc, 0)
-	allRegisterWebhookFuncs    = make(map[string]registerWebhookFunc, 0)
+	allRegisterControllerFuncs   = make(map[string]registerControllerFunc, 0)
+	allRegisterWebhookFuncs      = make(map[string]registerWebhookFunc, 0)
+	useExistingGreenhouseCluster = clientutil.GetEnvOrDefault("USE_EXISTING_CLUSTER", "false") == "true"
 )
 
 // RegisterController registers a controller for the testbed.
@@ -103,6 +106,19 @@ var (
 
 		installCRDs := clientutil.GetEnvOrDefault("TEST_INSTALL_CRDS", "true") == "true"
 		installWebhooks := len(allRegisterWebhookFuncs) > 0 && os.Getenv("TEST_INSTALL_WEBHOOKS") != "false"
+		if useExistingGreenhouseCluster {
+			// we are making use of https://pkg.go.dev/sigs.k8s.io/controller-runtime/pkg/envtest#pkg-constants to prevent starting a new control plane
+			kubeconfig := os.Getenv("KUBECONFIG")
+			Expect(kubeconfig).NotTo(BeEmpty(), "the environment variable KUBECONFIG must be set to run the tests against a remote cluster")
+			fmt.Printf("using existing cluster with kubeconfig: %s\n", kubeconfig)
+			installCRDs = false
+			installWebhooks = false
+		} else {
+			// ensure envtest is setup correctly, also see Makefile --> make envtest
+			_, isHasEnvKubebuilderAssets := os.LookupEnv("KUBEBUILDER_ASSETS")
+			Expect(isHasEnvKubebuilderAssets).
+				To(BeTrue(), "the environment variable KUBEBUILDER_ASSETS must be set to run the tests against local envtest")
+		}
 
 		Cfg, K8sClient, testEnv, KubeConfig = StartControlPlane("", installCRDs, installWebhooks)
 		_ = K8sClient
@@ -110,67 +126,72 @@ var (
 		RestClientGetter = clientutil.NewRestClientGetterFromRestConfig(Cfg, TestNamespace, clientutil.WithPersistentConfig())
 		Expect(RestClientGetter).ToNot(BeNil(), "the RestClientGetter should not be nil")
 
-		//+kubebuilder:scaffold:scheme
-		var err error
-		K8sManager, err = ctrl.NewManager(Cfg, ctrl.Options{
-			Scheme: scheme.Scheme,
-			Metrics: metricsserver.Options{
-				BindAddress: "0",
-			},
-			WebhookServer: webhook.NewServer(webhook.Options{
-				Host:    testEnv.WebhookInstallOptions.LocalServingHost,
-				Port:    testEnv.WebhookInstallOptions.LocalServingPort,
-				CertDir: testEnv.WebhookInstallOptions.LocalServingCertDir,
-			}),
-			LeaderElection: false,
-		})
-		Expect(err).
-			ToNot(HaveOccurred(), "there must be no error creating a manager")
-		Expect(K8sManager).
-			NotTo(BeNil(), "the manager must not be nil")
-
-		// Register webhooks.
-		for webhookName, registerFunc := range allRegisterWebhookFuncs {
-			logf.FromContext(Ctx, "message", "registering webhook", "name", webhookName)
-			Expect(registerFunc(K8sManager)).To(Succeed(), "there must be no error registering the webhook", "name", webhookName)
-		}
-
-		// Register controllers.
-		for controllerName, registerFunc := range allRegisterControllerFuncs {
-			Expect(registerFunc(controllerName, K8sManager)).
-				To(Succeed(), "there must be no error registering the controller", "name", controllerName)
-		}
-
-		// Start Manager
 		Ctx, cancel = context.WithCancel(context.TODO())
-		go func() {
-			defer GinkgoRecover()
-			err = K8sManager.Start(Ctx)
+		// Only start the local manager and webhook server if we are not using an existing cluster
+		if !useExistingGreenhouseCluster {
+			//+kubebuilder:scaffold:scheme
+			var err error
+			K8sManager, err = ctrl.NewManager(Cfg, ctrl.Options{
+				Scheme: scheme.Scheme,
+				Metrics: metricsserver.Options{
+					BindAddress: "0",
+				},
+				WebhookServer: webhook.NewServer(webhook.Options{
+					Host:    testEnv.WebhookInstallOptions.LocalServingHost,
+					Port:    testEnv.WebhookInstallOptions.LocalServingPort,
+					CertDir: testEnv.WebhookInstallOptions.LocalServingCertDir,
+				}),
+				LeaderElection: false,
+			})
 			Expect(err).
-				ToNot(HaveOccurred(), "there must be no error starting the manager")
-		}()
+				ToNot(HaveOccurred(), "there must be no error creating a manager")
+			Expect(K8sManager).
+				NotTo(BeNil(), "the manager must not be nil")
 
-		if len(allRegisterWebhookFuncs) > 0 {
-			// wait for the webhook server to get ready
-			dialer := &net.Dialer{Timeout: time.Second}
-			addrPort := fmt.Sprintf("%s:%d", testEnv.WebhookInstallOptions.LocalServingHost, testEnv.WebhookInstallOptions.LocalServingPort)
-			Eventually(func() error {
-				conn, err := tls.DialWithDialer(dialer, "tcp", addrPort, &tls.Config{InsecureSkipVerify: true}) //nolint:gosec
-				if err != nil {
-					return err
-				}
-				conn.Close()
-				return nil
-			}, updateTimeout, pollInterval).Should(Succeed(), "there should be no error dialing the webhook server")
+			// Register webhooks.
+			for webhookName, registerFunc := range allRegisterWebhookFuncs {
+				logf.FromContext(Ctx, "message", "registering webhook", "name", webhookName)
+				Expect(registerFunc(K8sManager)).To(Succeed(), "there must be no error registering the webhook", "name", webhookName)
+			}
+
+			// Register controllers.
+			for controllerName, registerFunc := range allRegisterControllerFuncs {
+				Expect(registerFunc(controllerName, K8sManager)).
+					To(Succeed(), "there must be no error registering the controller", "name", controllerName)
+			}
+
+			// Start Manager
+			go func() {
+				defer GinkgoRecover()
+				err = K8sManager.Start(Ctx)
+				Expect(err).
+					ToNot(HaveOccurred(), "there must be no error starting the manager")
+			}()
+
+			if len(allRegisterWebhookFuncs) > 0 {
+				// wait for the webhook server to get ready
+				dialer := &net.Dialer{Timeout: time.Second}
+				addrPort := fmt.Sprintf("%s:%d", testEnv.WebhookInstallOptions.LocalServingHost, testEnv.WebhookInstallOptions.LocalServingPort)
+				Eventually(func() error {
+					conn, err := tls.DialWithDialer(dialer, "tcp", addrPort, &tls.Config{InsecureSkipVerify: true}) //nolint:gosec
+					if err != nil {
+						return err
+					}
+					conn.Close()
+					return nil
+				}, updateTimeout, pollInterval).Should(Succeed(), "there should be no error dialing the webhook server")
+			}
 		}
-
-		// Create test namespace
-		err = K8sClient.Create(Ctx, &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: TestNamespace}})
+		// Create test namespace and thereby test connection to the cluster
+		err := K8sClient.Create(Ctx, &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: TestNamespace}})
 		Expect(err).NotTo(HaveOccurred(), "there should be no error creating the test namespace")
 	}
 
 	// TestAfterSuite configures the test suite.
 	TestAfterSuite = func() {
+		// By deleting the test-namespace, this is especially for USE_EXISTING_GREENHOUSE_CLUSTER=true
+		err := K8sClient.Delete(Ctx, &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: TestNamespace}})
+		Expect(err).NotTo(HaveOccurred(), "there should be no error deleting the test namespace")
 		cancel()
 		By("tearing down the test environment")
 		Eventually(func() error {
@@ -181,11 +202,6 @@ var (
 
 // Starts a envTest control plane and returns the config, client, envtest.Environment and raw kubeconfig.
 func StartControlPlane(port string, installCRDs, installWebhooks bool) (*rest.Config, client.Client, *envtest.Environment, []byte) {
-	// ensure envtest is setup correctly, also see Makefile --> make envtest
-	_, isHasEnvKubebuilderAssets := os.LookupEnv("KUBEBUILDER_ASSETS")
-	Expect(isHasEnvKubebuilderAssets).
-		To(BeTrue(), "the environment variable KUBEBUILDER_ASSETS must be set")
-
 	// Configure control plane
 	var testEnv = &envtest.Environment{}
 	absPathConfigBasePath, err := clientutil.FindDirUpwards(".", "charts", 10)
@@ -226,13 +242,23 @@ func StartControlPlane(port string, installCRDs, installWebhooks bool) (*rest.Co
 		NotTo(BeNil(), "the kubernetes client must not be nil")
 
 	// create raw kubeconfig
-	user, err := testEnv.ControlPlane.AddUser(envtest.User{
-		Name:   "test-admin",
-		Groups: []string{"system:masters"},
-	}, nil)
-	Expect(err).NotTo(HaveOccurred())
-	kubeConfig, err := user.KubeConfig()
-	Expect(err).NotTo(HaveOccurred())
+	var kubeConfig []byte
+	// we extract the kubeconfig from env var if we are using an existing cluster
+	if useExistingGreenhouseCluster {
+		kubeConfigLocation := os.Getenv("KUBECONFIG")
+		Expect(kubeConfigLocation).NotTo(BeEmpty(), "the environment variable KUBECONFIG must be set")
+		kubeConfig, err = os.ReadFile(kubeConfigLocation)
+		Expect(err).NotTo(HaveOccurred())
+	} else {
+		// we add a user to the control plane to easily get a kubeconfig
+		user, err := testEnv.ControlPlane.AddUser(envtest.User{
+			Name:   "test-admin",
+			Groups: []string{"system:masters"},
+		}, nil)
+		Expect(err).NotTo(HaveOccurred())
+		kubeConfig, err = user.KubeConfig()
+		Expect(err).NotTo(HaveOccurred())
+	}
 
 	// utility to export kubeconfig and use it e.g. on a breakpoint to inspect resources during testing
 	if os.Getenv("TEST_EXPORT_KUBECONFIG") == "true" {

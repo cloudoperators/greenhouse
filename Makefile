@@ -62,6 +62,19 @@ generate-documentation:
 test: generate-manifests generate envtest ## Run tests.
 	KUBEBUILDER_ASSETS="$(shell $(ENVTEST) use $(ENVTEST_K8S_VERSION) -p path)" go test ./... -coverprofile cover.out -v
 
+.PHONY: e2e
+e2e: 
+	go test ./test/e2e/... -coverprofile cover.out -v
+
+.PHONY: e2e-local
+e2e-local: generate-manifests generate envtest ## Run e2e tests.
+	unset USE_EXISTING_CLUSTER && KUBEBUILDER_ASSETS="$(shell $(ENVTEST) use $(ENVTEST_K8S_VERSION) -p path)" go test ./test/e2e/... -coverprofile cover.out -v
+
+.PHONY: e2e-remote
+e2e-remote: 
+	USE_EXISTING_CLUSTER=true go test ./test/e2e/... -coverprofile cover.out -v
+
+
 .PHONY: fmt
 fmt: goimports golint
 	GOBIN=$(LOCALBIN) go fmt ./...
