@@ -35,3 +35,8 @@ dist/**
 
 # Apple files 
 .DS_Store
+
+# act artifacts needed for testing workflows
+.secrets
+.env
+act_*.json
