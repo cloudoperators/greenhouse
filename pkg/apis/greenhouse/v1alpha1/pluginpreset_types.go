@@ -27,8 +27,6 @@ const (
 	PluginSkippedCondition ConditionType = "PluginSkipped"
 	// PluginFailedCondition is set when the pluginPreset encounters a failure during the reconciliation of a plugin.
 	PluginFailedCondition ConditionType = "PluginFailed"
-	// ClusterListEmpty is set when the PluginPreset's selector results in an empty ClusterList.
-	ClusterListEmpty ConditionType = "ClusterListEmpty"
 )
 
 // PluginPresetStatus defines the observed state of PluginPreset

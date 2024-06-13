@@ -17,12 +17,30 @@ type TeamRoleBindingSpec struct {
 	TeamRef string `json:"teamRef,omitempty"`
 	// ClusterName is the name of the cluster the rbacv1 resources are created on.
 	ClusterName string `json:"clusterName,omitempty"`
-	// Namespaces is the immutable list of namespaces in the Greenhouse Clusters to apply the RoleBinding to
+	// ClusterSelector is a label selector to select the Clusters the TeamRoleBinding should be deployed to.
+	ClusterSelector metav1.LabelSelector `json:"clusterSelector,omitempty"`
+	// Namespaces is the immutable list of namespaces in the Greenhouse Clusters to apply the RoleBinding to.
+	// If empty, a ClusterRoleBinding will be created on the remote cluster, otherwise a RoleBinding per namespace.
 	Namespaces []string `json:"namespaces,omitempty"`
 }
 
 // TeamRoleBindingStatus defines the observed state of the TeamRoleBinding
-type TeamRoleBindingStatus struct{}
+type TeamRoleBindingStatus struct {
+	// StatusConditions contain the different conditions that constitute the status of the TeamRoleBinding.
+	StatusConditions `json:"statusConditions,omitempty"`
+	// PropagationStatus is the list of clusters the TeamRoleBinding is applied to
+	// +listType="map"
+	// +listMapKey=clusterName
+	PropagationStatus []PropagationStatus `json:"clusters,omitempty"`
+}
+
+// PropagationStatus defines the observed state of the TeamRoleBinding's associated rbacv1 resources  on a Cluster
+type PropagationStatus struct {
+	// ClusterName is the name of the cluster the rbacv1 resources are created on.
+	ClusterName string `json:"clusterName"`
+	// Condition is the overall Status of the rbacv1 resources created on the cluster
+	Condition `json:"condition,omitempty"`
+}
 
 //+kubebuilder:object:root=true
 //+kubebuilder:subresource:status
@@ -55,27 +73,30 @@ func (trb *TeamRoleBinding) GetRBACName() string {
 }
 
 const (
-	// ClusterNotFoundReason is the event type if the cluster for a RoleBinding was not found
-	ClusterNotFoundReason = "ClusterNotFound"
+	// RBACReady is the condition type for the TeamRoleBinding when the rbacv1 resources are ready
+	RBACReady ConditionType = "RBACReady"
 
-	// TeamNotFoundReason is the event type if the team for a RoleBinding was not found
-	TeamNotFoundReason = "TeamNotFound"
+	// RBACReconciled is the condition reason for the TeamRoleBinding when the rbacv1 resources are successfully reconciled
+	RBACReconciled ConditionReason = "RBACReconciled"
 
-	// FailedDeleteRoleBindingReason is the event type if the deletion of a RoleBinding in the remote cluster failed
-	FailedDeleteRoleBindingReason = "FailedDeleteRoleBinding"
+	// RBACReconcileFailed is the condition reason for the TeamRoleBinding when not all of the rbacv1 resources have been successfully reconciled
+	RBACReconcileFailed ConditionReason = "RBACReconcileFailed"
 
-	// FailedDeleteClusterRoleBindingReason is the event type if the deletion of a RoleBinding in the remote cluster failed
-	FailedDeleteClusterRoleBindingReason = "FailedDeleteClusterRoleBinding"
+	// ClusterConnectionFailed is the condition reason for the TeamRoleBinding when the connection to the cluster failed
+	ClusterConnectionFailed ConditionReason = "ClusterConnectionFailed"
 
-	// FailedReconcileRoleReason is the event type if the reconciliation of a ClusterRole in the remote cluster failed
-	FailedReconcileClusterRoleReason = "FailedReconcileClusterRole"
+	// ClusterRoleFailed is the condition reason for the TeamRoleBinding when the ClusterRole could not be created
+	ClusterRoleFailed ConditionReason = "ClusterRoleFailed"
 
-	// FailedReconcileRoleReason is the event type if the reconciliation of a Role in the remote cluster failed
-	FailedReconcileRoleReason = "FailedReconcileRole"
+	// RoleBindingFailed is the condition reason for the TeamRoleBinding when the RoleBinding could not be created
+	RoleBindingFailed ConditionReason = "RoleBindingFailed"
+)
 
-	// FailedReconcileRoleBindingReason is the event type if the reconciliation of a RoleBinding in the remote cluster failed
-	FailedReconcileRoleBindingReason = "FailedReconcileRoleBinding"
-
-	// FailedReconcileClusterRoleBindingReason is the event type if the reconciliation of a ClusterRoleBinding in the remote cluster failed
-	FailedReconcileClusterRoleBindingReason = "FailedReconcileClusterRoleBinding"
+const (
+	// ReconcileFailedReason is used if the reconcile failed
+	ReconcileFailedReason = "FailedReconcile"
+	// DeletedReason is used if the resource was deleted
+	DeletedReason = "Deleted"
+	// FailedDeleteFailedReason is used if the delete failed
+	DeleteFailedReason = "FailedDelete"
 )

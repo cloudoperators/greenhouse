@@ -64,13 +64,9 @@ func ValidateCreateRoleBinding(ctx context.Context, c client.Client, o runtime.O
 		return nil, apierrors.NewInternalError(err)
 	}
 
-	// check if the referenced cluster exists
-	var cluster greenhousev1alpha1.Cluster
-	if err := c.Get(ctx, client.ObjectKey{Namespace: rb.Namespace, Name: rb.Spec.ClusterName}, &cluster); err != nil {
-		if apierrors.IsNotFound(err) {
-			return nil, apierrors.NewInvalid(rb.GroupVersionKind().GroupKind(), rb.Name, field.ErrorList{field.Invalid(field.NewPath("spec", "clusterName"), rb.Spec.ClusterName, "cluster does not exist")})
-		}
-		return nil, apierrors.NewInternalError(err)
+	err := validateClusterNameOrSelector(ctx, c, rb)
+	if err != nil {
+		return nil, err
 	}
 	return nil, nil
 }
@@ -85,12 +81,12 @@ func ValidateUpdateRoleBinding(ctx context.Context, c client.Client, old, cur ru
 		return nil, nil
 	}
 	switch {
-	case hasClusterChanged(oldRB, curRB):
+	case validateClusterNameOrSelector(ctx, c, curRB) != nil:
 		return nil, apierrors.NewForbidden(
 			schema.GroupResource{
 				Group:    oldRB.GroupVersionKind().Group,
 				Resource: oldRB.Kind,
-			}, oldRB.Name, field.Forbidden(field.NewPath("spec", "clusterName"), "cannot be changed"))
+			}, oldRB.Name, field.Forbidden(field.NewPath("spec"), "must contain either spec.clusterName or spec.clusterSelector"))
 	case hasNamespacesChanged(oldRB, curRB):
 		return nil, apierrors.NewForbidden(schema.GroupResource{Group: oldRB.GroupVersionKind().Group, Resource: oldRB.Kind}, oldRB.Name, field.Forbidden(field.NewPath("spec", "namespaces"), "cannot be changed"))
 	default:
@@ -102,12 +98,31 @@ func ValidateDeleteRoleBinding(_ context.Context, _ client.Client, _ runtime.Obj
 	return nil, nil
 }
 
-// hasClusterChanged returns true if the clusterSelector in the old and current RoleBinding are different.
-func hasClusterChanged(old, cur *greenhousev1alpha1.TeamRoleBinding) bool {
-	return old.Spec.ClusterName != cur.Spec.ClusterName
-}
-
 // hasNamespacesChanged returns true if the namespaces in the old and current RoleBinding are different.
 func hasNamespacesChanged(old, cur *greenhousev1alpha1.TeamRoleBinding) bool {
 	return !reflect.DeepEqual(old.Spec.Namespaces, cur.Spec.Namespaces)
+}
+
+// validateClusterNameOrSelector checks if the TeamRoleBinding has a valid clusterName or clusterSelector but not both.
+func validateClusterNameOrSelector(ctx context.Context, c client.Client, rb *greenhousev1alpha1.TeamRoleBinding) error {
+	if rb.Spec.ClusterName != "" && (len(rb.Spec.ClusterSelector.MatchLabels) > 0 || len(rb.Spec.ClusterSelector.MatchExpressions) > 0) {
+		return apierrors.NewInvalid(rb.GroupVersionKind().GroupKind(), rb.Name, field.ErrorList{field.Invalid(field.NewPath("spec", "clusterName"), rb.Spec.ClusterName, "cannot specify both spec.clusterName and spec.clusterSelector")})
+	}
+
+	if rb.Spec.ClusterName == "" && (len(rb.Spec.ClusterSelector.MatchLabels) == 0 && len(rb.Spec.ClusterSelector.MatchExpressions) == 0) {
+		return apierrors.NewInvalid(rb.GroupVersionKind().GroupKind(), rb.Name, field.ErrorList{field.Invalid(field.NewPath("spec", "clusterName"), rb.Spec.ClusterName, "must specify either spec.clusterName or spec.clusterSelector")})
+	}
+
+	if rb.Spec.ClusterName != "" {
+
+		// check if the referenced cluster exists
+		var cluster greenhousev1alpha1.Cluster
+		if err := c.Get(ctx, client.ObjectKey{Namespace: rb.Namespace, Name: rb.Spec.ClusterName}, &cluster); err != nil {
+			if apierrors.IsNotFound(err) {
+				return apierrors.NewInvalid(rb.GroupVersionKind().GroupKind(), rb.Name, field.ErrorList{field.Invalid(field.NewPath("spec", "clusterName"), rb.Spec.ClusterName, "cluster does not exist")})
+			}
+			return apierrors.NewInternalError(err)
+		}
+	}
+	return nil
 }
