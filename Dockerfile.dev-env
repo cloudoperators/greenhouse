@@ -27,7 +27,11 @@ COPY --from=builder /workspace/charts/manager/crds ./config/crd/bases
 COPY --from=builder /workspace/charts/idproxy/crds ./charts/idproxy/crds
 COPY --from=builder /workspace/charts/manager/templates/webhooks.yaml ./config/webhook/webhooks.yaml
 COPY --from=builder /usr/local/bin ./usr/local/bin
-RUN apk add --no-cache libc6-compat
+
+# upgrade all installed packages to fix potential CVEs in advance
+RUN apk upgrade --no-cache --no-progress \
+  && apk add --no-cache --no-progress libc6-compat \
+  && apk del --no-cache --no-progress apk-tools alpine-keys
 
 CMD /dev-env && \
   echo "proxying ${DEV_ENV_CONTEXT:-cluster-admin}" && \
