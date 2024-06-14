@@ -44,6 +44,10 @@ type PropagationStatus struct {
 
 //+kubebuilder:object:root=true
 //+kubebuilder:subresource:status
+//+kubebuilder:printcolumn:name="Team Role",type=string,JSONPath=`.spec.teamRoleRef`
+//+kubebuilder:printcolumn:name="Team",type=string,JSONPath=`.spec.teamRef`
+//+kubebuilder:printcolumn:name="Ready",type="string",JSONPath=`.status.statusConditions.conditions[?(@.type == "Ready")].status`
+//+kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp"
 
 // TeamRoleBinding is the Schema for the rolebindings API
 type TeamRoleBinding struct {
