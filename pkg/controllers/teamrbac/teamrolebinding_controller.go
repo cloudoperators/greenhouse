@@ -125,6 +125,12 @@ func (r *TeamRoleBindingReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 		r.recorder.Eventf(trb, corev1.EventTypeNormal, greenhousev1alpha1.ReconcileFailedReason, "Failed to list clusters", trb.GetName)
 		return ctrl.Result{}, err
 	}
+	switch len(clusters.Items) {
+	case 0:
+		trbStatus.SetConditions(greenhousev1alpha1.TrueCondition(greenhousev1alpha1.ClusterListEmpty, "No clusters found for TeamRoleBinding", ""))
+	default:
+		trbStatus.SetConditions(greenhousev1alpha1.FalseCondition(greenhousev1alpha1.ClusterListEmpty, "", ""))
+	}
 
 	trbStatus, err = r.cleanupResources(ctx, trbStatus, trb, clusters)
 	if err != nil {
