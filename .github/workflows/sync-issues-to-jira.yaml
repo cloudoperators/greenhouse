@@ -1,0 +1,19 @@
+name: Sync GitHub issues to Jira example
+on: [issues]
+
+jobs:
+  sync-issues:
+    name: Sync issues to Jira
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: cloudoperators/sync-issues-github-jira@main
+        with:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          JIRA_URL: ${{ secrets.JIRA_URL }}
+          JIRA_USERNAME: ${{ secrets.JIRA_USERNAME }}
+          JIRA_API_TOKEN: ${{ secrets.JIRA_API_TOKEN }}
+          JIRA_COMPONENT: ${{ secrets.JIRA_COMPONENT }}
+          JIRA_PROJECT_KEY: ${{ secrets.JIRA_PROJECT_KEY }}
+          JIRA_EPIC_KEY: ${{ secrets.JIRA_EPIC_KEY }}
+          JIRA_AUTHORIZATION: ${{ secrets.JIRA_AUTHORIZATION }}
