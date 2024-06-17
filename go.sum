@@ -95,8 +95,8 @@ github.com/davecgh/go-spew v1.1.1 h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c
 github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/dexidp/dex v0.0.0-20240409110506-3705207f0190 h1:FS08LMNgvz3E6n7nnvREY89waYUxtRRGwOoIcE40X84=
 github.com/dexidp/dex v0.0.0-20240409110506-3705207f0190/go.mod h1:X8qNmuonABp/IwN1BCFy8VYJeEf3eqtCHviaRm1YkAw=
-github.com/dexidp/dex/api/v2 v2.1.1-0.20240409110506-3705207f0190 h1:yX1m0LPe72Go7z8414Bb6xcwBURxF9epVbN0aCCPu8w=
-github.com/dexidp/dex/api/v2 v2.1.1-0.20240409110506-3705207f0190/go.mod h1:8gHqlHI7Go6RtemwGSTPbUX5rkEV72gIdK6/fcFQcZ8=
+github.com/dexidp/dex/api/v2 v2.1.1-0.20240617192533-17a9c1c24299 h1:N8okhCNk8UZRI8GgbBYb679akQaUG9DWDrImuhMGvd8=
+github.com/dexidp/dex/api/v2 v2.1.1-0.20240617192533-17a9c1c24299/go.mod h1:hkhC95C14dFyB1C6ZyR7daLqJKVsANHZchozJLZ7xpI=
 github.com/distribution/distribution/v3 v3.0.0-20221208165359-362910506bc2 h1:aBfCb7iqHmDEIp6fBvC/hQUddQfg+3qdYjwzaiP9Hnc=
 github.com/distribution/distribution/v3 v3.0.0-20221208165359-362910506bc2/go.mod h1:WHNsWjnIn2V1LYOrME7e8KxSeKunYHsxEm4am0BUtcI=
 github.com/docker/cli v24.0.6+incompatible h1:fF+XCQCgJjjQNIMjzaSmiKJSCcfcXb3TWTcc7GAneOY=
