@@ -7,6 +7,7 @@ import { DataGridCell, DataGridRow } from "juno-ui-components"
 import React from "react"
 import { Secret } from "../../../types/types"
 import useStore from "../store"
+import { base64DecodeSecretData } from "./secretUtils"
 
 interface SecretListItemProps {
   secret: Secret
@@ -20,14 +21,7 @@ const SecretListItem: React.FC<SecretListItemProps> = (
   const setIsSecretEditMode = useStore((state) => state.setIsSecretEditMode)
   const openDetails = () => {
     // base64 decode secret data before showing it
-    let secretDetail = { ...props.secret }
-    if (secretDetail.data) {
-      let data = {}
-      Object.keys(secretDetail.data).forEach((key) => {
-        data[key] = atob(secretDetail.data![key])
-      })
-      secretDetail.data = data
-    }
+    let secretDetail = base64DecodeSecretData(props.secret)
     setSecretDetail(secretDetail)
     setIsSecretEditMode(true)
     setShowSecretEdit(true)
