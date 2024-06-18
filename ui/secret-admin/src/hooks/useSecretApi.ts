@@ -3,19 +3,15 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { Secret } from "../../../types/types"
+import { ResultMessage, Secret } from "../../../types/types"
 import useApi, { ApiResponse } from "./useApi"
 import useNamespace from "./useNamespace"
 
-export type SecretApiResponse = {
-  ok: boolean
-  message: string
+export type SecretApiResponse = ResultMessage & {
   response?: Secret
 }
 
-export type SecretListApiResponse = {
-  ok: boolean
-  message: string
+export type SecretListApiResponse = ResultMessage & {
   response?: Secret[]
 }
 

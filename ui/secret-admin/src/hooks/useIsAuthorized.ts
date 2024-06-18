@@ -4,10 +4,10 @@
  */
 
 import { useCallback } from "react"
-import { ResultMessage } from "../components/SubmitResultMessage"
 import useClient from "./useClient"
 import useNamespace from "./useNamespace"
 import useSecretApi from "./useSecretApi"
+import { ResultMessage } from "../../../types/types"
 
 export const useCheckAuthorized = () => {
   const { namespace } = useNamespace()
