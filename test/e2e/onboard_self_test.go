@@ -4,14 +4,12 @@
 package e2e
 
 import (
-	"context"
-
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	greenhouseapis "github.com/cloudoperators/greenhouse/pkg/apis"
-
+	"github.com/cloudoperators/greenhouse/pkg/test"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -22,10 +20,7 @@ import (
 
 var _ = Describe("OnboardSelf", Ordered, func() {
 	Context("When onboarding itself as a cluster resource", func() {
-
-		namespacedName := types.NamespacedName{Name: "greenhouse-self", Namespace: centralClusterNamespace}
-
-		It("Should create a cluster resource for itself", func(ctx context.Context) {
+		It("Should create a cluster resource for itself", func() {
 			By("Creating a secret with a valid kubeconfig for a remote cluster")
 			validKubeConfigSecret := corev1.Secret{
 				TypeMeta: metav1.TypeMeta{
@@ -34,45 +29,42 @@ var _ = Describe("OnboardSelf", Ordered, func() {
 				},
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "greenhouse-self",
-					Namespace: centralClusterNamespace,
+					Namespace: test.TestNamespace,
 				},
 				Data: map[string][]byte{
-					greenhouseapis.KubeConfigKey: centralClusterKubeconfigData,
+					greenhouseapis.KubeConfigKey: test.KubeConfig,
 				},
 				Type: greenhouseapis.SecretTypeKubeConfig,
 			}
-			Expect(centralClusterClient.Create(ctx, &validKubeConfigSecret, &client.CreateOptions{})).Should(Succeed())
+			Expect(test.K8sClient.Create(test.Ctx, &validKubeConfigSecret, &client.CreateOptions{})).Should(Succeed())
 
-			By("Checking the resource is created")
-			Eventually(func() error {
-				greenhouseCluster := &greenhousev1alpha1.Cluster{}
-				return centralClusterClient.Get(ctx, namespacedName, greenhouseCluster)
-			}, timeout, interval).ShouldNot(HaveOccurred(), "the cluster should have been created")
-
-			By("Checking the status ready")
-			Eventually(func() bool {
-				greenhouseCluster := &greenhousev1alpha1.Cluster{}
-				Expect(centralClusterClient.Get(ctx, namespacedName, greenhouseCluster)).Should(Succeed(), "the cluster should have been created")
-				Expect(greenhouseCluster.Spec.AccessMode).To(Equal(greenhousev1alpha1.ClusterAccessModeDirect), "the cluster accessmode should be set to direct")
+			By("Checking the resource exists and is ready")
+			greenhouseCluster := &greenhousev1alpha1.Cluster{}
+			id := types.NamespacedName{Name: "greenhouse-self", Namespace: test.TestNamespace}
+			Eventually(func(g Gomega) bool {
+				g.Expect(test.K8sClient.Get(test.Ctx, id, greenhouseCluster)).Should(Succeed(), "the cluster should have been created")
+				g.Expect(greenhouseCluster.Spec.AccessMode).To(Equal(greenhousev1alpha1.ClusterAccessModeDirect), "the cluster accessmode should be set to direct")
 				readyCondition := greenhouseCluster.Status.GetConditionByType(greenhousev1alpha1.ReadyCondition)
-				Expect(readyCondition).ToNot(BeNil())
-				Expect(readyCondition.Status).To(Equal(metav1.ConditionTrue))
+				g.Expect(readyCondition).ToNot(BeNil())
+				g.Expect(readyCondition.Status).To(Equal(metav1.ConditionTrue))
 				return true
-			}, timeout, interval).Should(BeTrue(), "getting the cluster should succeed eventually and the cluster accessmode and status should be set correctly")
+			}).Should(BeTrue(), "getting the cluster should succeed eventually and the cluster accessmode and status should be set correctly")
 		})
 
-		It("Should delete the cluster resource correctly", func(ctx context.Context) {
+		It("Should delete the cluster resource correctly", func() {
 			By("Deleting the cluster resource")
 			greenhouseCluster := &greenhousev1alpha1.Cluster{}
-			Expect(centralClusterClient.Get(ctx, namespacedName, greenhouseCluster)).Should(Succeed())
-			Expect(centralClusterClient.Delete(ctx, greenhouseCluster)).Should(Succeed())
+			Expect(test.K8sClient.Get(test.Ctx, types.NamespacedName{Name: "greenhouse-self", Namespace: test.TestNamespace}, greenhouseCluster)).Should(Succeed())
+			id := types.NamespacedName{Name: "greenhouse-self", Namespace: test.TestNamespace}
+			Expect(test.K8sClient.Delete(test.Ctx, greenhouseCluster, &client.DeleteOptions{})).Should(Succeed())
 
 			By("Checking the resource is deleted")
-			Eventually(func() bool {
-				err := centralClusterClient.Get(ctx, namespacedName, greenhouseCluster)
-				return err != nil && apierrors.IsNotFound(err)
-			}, timeout, interval).Should(BeTrue(), "getting the cluster should fail eventually")
-
+			Eventually(func(g Gomega) bool {
+				err := test.K8sClient.Get(test.Ctx, id, greenhouseCluster)
+				g.Expect(err).To(HaveOccurred())
+				g.Expect(apierrors.IsNotFound(err)).To(BeTrue())
+				return true
+			}).Should(BeTrue(), "getting the cluster should fail eventually")
 		})
 	})
 })

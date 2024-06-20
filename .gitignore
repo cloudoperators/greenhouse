@@ -38,3 +38,8 @@ dist/**
 
 # e2e local cluster kubeconfig files
 test/e2e/local-cluster/*.kubeconfig
+
+# act artifacts needed for testing workflows
+.secrets
+.env
+act_*.json

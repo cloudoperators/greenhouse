@@ -9,9 +9,9 @@ import {
   Cluster,
   Plugin,
   ResourceStatus,
-  UpdateClusterAction,
+  UpdateObjectAction,
   UpdateClusterInput,
-} from "./types/types"
+} from "../../types/types"
 
 export interface State {
   endpoint: string
@@ -69,7 +69,7 @@ const useStore = create<State>((set) => ({
         return cluster.metadata?.name ?? undefined !== undefined
       })
 
-      if (input.action === UpdateClusterAction.delete) {
+      if (input.action === UpdateObjectAction.delete) {
         clusters = clusters.filter((knownCluster) => {
           return input.clusters.some((inputCluster) => {
             return knownCluster.metadata!.name !== inputCluster.metadata!.name

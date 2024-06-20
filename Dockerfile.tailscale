@@ -15,8 +15,12 @@ RUN --mount=type=cache,target=/go/pkg/mod \
 	--mount=type=cache,target=/root/.cache/go-build \
 	make build-tailscale-starter CGO_ENABLED=${CGO_ENABLED} GOOS=${TARGETOS} GOARCH=${TARGETARCH}
 
-FROM --platform=${BUILDPLATFORM:-linux/amd64} ghcr.io/tailscale/tailscale:v1.66.3
+FROM --platform=${BUILDPLATFORM:-linux/amd64} ghcr.io/tailscale/tailscale:v1.66.4
 LABEL source_repository="https://github.com/cloudoperators/greenhouse"
+
+# upgrade all installed packages to fix potential CVEs in advance
+RUN apk upgrade --no-cache --no-progress \
+  && apk del --no-cache --no-progress apk-tools alpine-keys
 
 COPY --from=builder /workspace/bin/* .
 

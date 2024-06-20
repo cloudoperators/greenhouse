@@ -4,11 +4,14 @@
 package clientutil
 
 import (
+	"context"
 	"net/http"
 	"net/url"
 
+	corev1 "k8s.io/api/core/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
@@ -57,4 +60,23 @@ func NewHeadscaleK8sClientFromRestClientGetter(restClientGetter genericclioption
 		return url.Parse(proxy)
 	}
 	return NewK8sClient(cfg)
+}
+
+// NewK8sClientFromCluster returns a client.Client based on the given clusters kubeconfig secret.
+func NewK8sClientFromCluster(ctx context.Context, c client.Client, cluster *greenhousev1alpha1.Cluster) (client.Client, error) {
+	secret := new(corev1.Secret)
+	if err := c.Get(ctx, types.NamespacedName{Name: cluster.GetSecretName(), Namespace: cluster.GetNamespace()}, secret); err != nil {
+		return nil, err
+	}
+
+	restClientGetter, err := NewRestClientGetterFromSecret(secret, cluster.GetNamespace(), WithPersistentConfig())
+	if err != nil {
+		return nil, err
+	}
+
+	remoteRestClient, err := NewK8sClientFromRestClientGetter(restClientGetter)
+	if err != nil {
+		return nil, err
+	}
+	return remoteRestClient, nil
 }

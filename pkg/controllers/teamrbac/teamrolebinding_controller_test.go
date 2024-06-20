@@ -10,126 +10,51 @@ import (
 	. "github.com/onsi/gomega"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 
 	greenhouseapis "github.com/cloudoperators/greenhouse/pkg/apis"
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/pkg/apis/greenhouse/v1alpha1"
+	"github.com/cloudoperators/greenhouse/pkg/clientutil"
 	"github.com/cloudoperators/greenhouse/pkg/test"
 )
 
-var testRole = &greenhousev1alpha1.TeamRole{
-	TypeMeta: metav1.TypeMeta{
-		Kind:       "TeamRole",
-		APIVersion: greenhousev1alpha1.GroupVersion.String(),
-	},
-	ObjectMeta: metav1.ObjectMeta{
-		Name:      "test-teamrole",
-		Namespace: test.TestNamespace,
-	},
-	Spec: greenhousev1alpha1.TeamRoleSpec{
-		Rules: []rbacv1.PolicyRule{
-			{
-				APIGroups: []string{"*"},
-				Resources: []string{"*"},
-				Verbs:     []string{"*"},
-			},
-		},
-	},
-}
-
-var roleUT *greenhousev1alpha1.TeamRole
-
-var testRoleBinding = &greenhousev1alpha1.TeamRoleBinding{
-	TypeMeta: metav1.TypeMeta{
-		Kind:       "TeamRoleBinding",
-		APIVersion: greenhousev1alpha1.GroupVersion.String(),
-	},
-	ObjectMeta: metav1.ObjectMeta{
-		Name:      "test-teamrolebinding",
-		Namespace: test.TestNamespace,
-	},
-	Spec: greenhousev1alpha1.TeamRoleBindingSpec{
-		TeamRoleRef: "test-teamrole",
-		TeamRef:     testTeamName,
-		ClusterName: testCluster.Name,
-		Namespaces:  []string{test.TestNamespace},
-	},
-}
-
-var testClusterRoleBinding = &greenhousev1alpha1.TeamRoleBinding{
-	TypeMeta: metav1.TypeMeta{
-		Kind:       "TeamRoleBinding",
-		APIVersion: greenhousev1alpha1.GroupVersion.String(),
-	},
-	ObjectMeta: metav1.ObjectMeta{
-		Name:      "test-clusterrolebinding",
-		Namespace: test.TestNamespace,
-	},
-	Spec: greenhousev1alpha1.TeamRoleBindingSpec{
-		TeamRoleRef: "test-teamrole",
-		TeamRef:     testTeamName,
-		ClusterName: testCluster.Name,
-	},
-}
+var (
+	setup      *test.TestSetup
+	clusterA   *greenhousev1alpha1.Cluster
+	clusterB   *greenhousev1alpha1.Cluster
+	teamUT     *greenhousev1alpha1.Team
+	teamRoleUT *greenhousev1alpha1.TeamRole
+)
 
 var _ = Describe("Validate ClusterRole & RoleBinding on Remote Cluster", Ordered, func() {
-	BeforeAll(func() {
-		By("creating a cluster")
-		Expect(test.K8sClient.Create(test.Ctx, testCluster)).Should(Succeed(), "there should be no error creating the cluster resource")
-
-		// kubeConfigController ensures the namespace within the remote cluster -- we have to create it
-		By("creating the namespace on the cluster")
-		err := remoteK8sClient.Create(test.Ctx, &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: test.TestNamespace}})
-		Expect(err).ShouldNot(HaveOccurred(), "there should be no error creating the namespace")
-
-		By("creating a secret with a valid kubeconfig for a remote cluster")
-		testClusterK8sSecret.Data = map[string][]byte{
-			greenhouseapis.KubeConfigKey: remoteKubeConfig,
-		}
-		Expect(test.K8sClient.Create(test.Ctx, testClusterK8sSecret)).Should(Succeed())
-
-		By("creating a team")
-		Expect(test.K8sClient.Create(test.Ctx, testTeam)).Should(Succeed())
-	})
-
 	BeforeEach(func() {
-		// create updates the object with the latest version. deepcopy to avoid failures due to existing resource version
-		roleUT = testRole.DeepCopy()
-		// create Role on the central cluster"
-		err := k8sClient.Create(test.Ctx, roleUT)
-		Expect(err).NotTo(HaveOccurred())
+		setup = test.NewTestSetup(test.Ctx, test.K8sClient, "teamrbac")
+		clusterA = setup.OnboardCluster(test.Ctx, "test-cluster-a", clusterAKubeConfig, test.WithLabel("cluster", "a"), test.WithLabel("rbac", "true"))
+		clusterB = setup.OnboardCluster(test.Ctx, "test-cluster-b", clusterBKubeConfig, test.WithLabel("cluster", "b"), test.WithLabel("rbac", "true"))
+
+		teamUT = setup.CreateTeam(test.Ctx, "test-team", test.WithMappedIDPGroup(testTeamIDPGroup))
+
+		By("creating a TeamRole on the central cluster")
+		teamRoleUT = setup.CreateTeamRole(test.Ctx, "test-role")
 	})
 
-	// Delete all TeamRoleBindings and TeamRoles after each test, ensure that Remote Cluster is cleaned up
-	// This ensures the deletion of the Remote Resources is working correctly.
 	AfterEach(func() {
-		// get and delete all TeamRoleBindings on the central cluster
-		rbList := &greenhousev1alpha1.TeamRoleBindingList{}
-		err := k8sClient.List(test.Ctx, rbList)
-		Expect(err).NotTo(HaveOccurred())
-		for _, rb := range rbList.Items {
-			rb := rb
-			err := k8sClient.Delete(test.Ctx, &rb)
-			Expect(err).NotTo(HaveOccurred())
-		}
-		Eventually(func() bool {
-			err := k8sClient.List(test.Ctx, rbList)
-			if err != nil || len(rbList.Items) > 0 {
-				return false
-			}
-			return true
-		}).Should(BeTrue(), "there should be no TeamRoleBindings left to list on the central cluster")
+		test.EventuallyDeleted(test.Ctx, test.K8sClient, teamRoleUT)
+	})
 
+	// After all tests are run ensure there are no resources left behind on the remote cluster
+	// This ensures the deletion of the Remote Resources is working correctly.
+	AfterAll(func() {
 		// check that all ClusterRoleBindings are eventually deleted on the remote cluster
 		remoteCRBList := &rbacv1.ClusterRoleBindingList{}
 		listOpts := []client.ListOption{
 			client.HasLabels{greenhouseapis.LabelKeyRoleBinding},
 		}
 		Eventually(func() bool {
-			err := remoteK8sClient.List(test.Ctx, remoteCRBList, listOpts...)
+			err := clusterAKubeClient.List(test.Ctx, remoteCRBList, listOpts...)
 			if err != nil || len(remoteCRBList.Items) > 0 {
 				return false
 			}
@@ -139,29 +64,12 @@ var _ = Describe("Validate ClusterRole & RoleBinding on Remote Cluster", Ordered
 		// check that all RoleBindings are eventually deleted on the remote cluster
 		remoteRBList := &rbacv1.RoleBindingList{}
 		Eventually(func() bool {
-			err := remoteK8sClient.List(test.Ctx, remoteRBList, listOpts...)
+			err := clusterAKubeClient.List(test.Ctx, remoteRBList, listOpts...)
 			if err != nil || len(remoteRBList.Items) > 0 {
 				return false
 			}
 			return true
 		}).Should(BeTrue(), "there should be no RoleBindings left to list on the remote cluster")
-
-		// get and delete all TeamRoles on the central cluster
-		rList := &greenhousev1alpha1.TeamRoleList{}
-		err = k8sClient.List(test.Ctx, rList)
-		Expect(err).NotTo(HaveOccurred())
-		for _, r := range rList.Items {
-			r := r
-			err := k8sClient.Delete(test.Ctx, &r)
-			Expect(err).NotTo(HaveOccurred())
-		}
-		Eventually(func() bool {
-			err := k8sClient.List(test.Ctx, rList)
-			if err != nil || len(rList.Items) > 0 {
-				return false
-			}
-			return true
-		}).Should(BeTrue(), "there should be no TeamRoles left to list on the central cluster")
 
 		// check that all ClusterRoles are eventually deleted on the remote cluster
 		remoteList := &rbacv1.ClusterRoleList{}
@@ -169,7 +77,7 @@ var _ = Describe("Validate ClusterRole & RoleBinding on Remote Cluster", Ordered
 			client.HasLabels{greenhouseapis.LabelKeyRole},
 		}
 		Eventually(func() bool {
-			err := remoteK8sClient.List(test.Ctx, remoteList, listOpts...)
+			err := clusterAKubeClient.List(test.Ctx, remoteList, listOpts...)
 			if err != nil || len(remoteList.Items) > 0 {
 				return false
 			}
@@ -177,282 +85,496 @@ var _ = Describe("Validate ClusterRole & RoleBinding on Remote Cluster", Ordered
 		}).Should(BeTrue(), "there should be no ClusterRoles left to list on the remote cluster")
 	})
 
+	Context("When editing clusterName or clusterSelctor on a TeamRoleBinding", func() {
+		It("should remove the RoleBinding on the cluster that is no longer referenced by clusterName and reconcile the clusters referenced by clusterSelector", func() {
+			By("creating a TeamRoleBinding on the central cluster")
+			trb := setup.CreateTeamRoleBinding(test.Ctx, "test-rolebinding",
+				test.WithTeamRoleRef(teamRoleUT.Name),
+				test.WithTeamRef(teamUT.Name),
+				test.WithClusterName(clusterA.Name))
+			trbKey := types.NamespacedName{Name: trb.Name, Namespace: trb.Namespace}
+			By("validating the RoleBinding created on the remote clusterA")
+			remoteRoleBinding := &rbacv1.ClusterRoleBinding{}
+			remoteRoleBindingName := types.NamespacedName{
+				Name: trb.GetRBACName(),
+			}
+			Eventually(func(g Gomega) bool {
+				g.Expect(clusterAKubeClient.Get(context.TODO(), remoteRoleBindingName, remoteRoleBinding)).To(Succeed(), "there should be no error getting the RoleBinding from the Remote Cluster")
+				return !remoteRoleBinding.CreationTimestamp.IsZero()
+			}).Should(BeTrue(), "there should be no error getting the RoleBinding")
+			Expect(remoteRoleBinding.RoleRef.Name).To(HavePrefix(greenhouseapis.RBACPrefix))
+			Expect(remoteRoleBinding.RoleRef.Name).To(ContainSubstring(teamRoleUT.Name))
+			By("validating the TeamRoleBinding's status is updated")
+			Eventually(func(g Gomega) {
+				g.Expect(k8sClient.Get(test.Ctx, trbKey, trb)).To(Succeed(), "there should be no error getting the TeamRoleBinding")
+				g.Expect(trb.Status.PropagationStatus).To(HaveLen(1), "the TeamRoleBinding should be propagated to one cluster")
+				g.Expect(trb.Status.PropagationStatus).Should(ContainElement(And(HaveField("ClusterName", clusterA.Name), HaveField("Condition.Status", Equal(metav1.ConditionTrue)))))
+			}).Should(Succeed(), "the TeamRoleBindings status should reflect the current status")
+
+			By("updating the TeamRoleBinding with to a selector matching clusterB")
+			trb.Spec.ClusterSelector = metav1.LabelSelector{MatchLabels: map[string]string{"cluster": "b"}}
+			_, err := clientutil.CreateOrPatch(test.Ctx, k8sClient, trb, func() error {
+				trb.Spec.ClusterName = ""
+				trb.Spec.ClusterSelector = metav1.LabelSelector{MatchLabels: map[string]string{"cluster": "b"}}
+				return nil
+			})
+			Expect(err).ToNot(HaveOccurred(), "there should be no error updating the TeamRoleBinding")
+			By("validating the RoleBinding is removed from the remote clusterA and created on the remote clusterB")
+			Eventually(func() bool {
+				err := clusterAKubeClient.Get(context.TODO(), remoteRoleBindingName, remoteRoleBinding)
+				return apierrors.IsNotFound(err)
+			}).Should(BeTrue(), "the RoleBinding should be removed from the remote clusterA")
+			remoteRoleBinding = &rbacv1.ClusterRoleBinding{}
+			Eventually(func(g Gomega) bool {
+				g.Expect(clusterBKubeClient.Get(context.TODO(), remoteRoleBindingName, remoteRoleBinding)).To(Succeed(), "there should be no error getting the RoleBinding from the Remote clusterB")
+				return !remoteRoleBinding.CreationTimestamp.IsZero()
+			}).Should(BeTrue(), "there should be no error getting the RoleBinding from ClusterB")
+			Expect(remoteRoleBinding.RoleRef.Name).To(HavePrefix(greenhouseapis.RBACPrefix))
+			Expect(remoteRoleBinding.RoleRef.Name).To(ContainSubstring(teamRoleUT.Name))
+
+			By("validating the TeamRoleBinding's status is updated")
+			Eventually(func(g Gomega) {
+				g.Expect(k8sClient.Get(test.Ctx, trbKey, trb)).To(Succeed(), "there should be no error getting the TeamRoleBinding")
+				g.Expect(trb.Status.PropagationStatus).To(HaveLen(1), "the TeamRoleBinding should be propagated to one cluster")
+				g.Expect(trb.Status.PropagationStatus).To(ContainElement(And(HaveField("ClusterName", clusterB.Name), HaveField("Condition.Status", metav1.ConditionTrue))))
+			}).Should(Succeed(), "the TeamRoleBindings status should reflect the current status")
+
+			By("cleaning up the test")
+			test.EventuallyDeleted(test.Ctx, test.K8sClient, trb)
+		})
+
+		It("should remove the RoleBinding on the cluster that is no longer referenced by the clusterSelector", func() {
+			By("creating a TeamRoleBinding on the central cluster")
+			trb := setup.CreateTeamRoleBinding(test.Ctx, "test-rolebinding",
+				test.WithTeamRoleRef(teamRoleUT.Name),
+				test.WithTeamRef(teamUT.Name),
+				test.WithClusterSelector(metav1.LabelSelector{MatchLabels: map[string]string{"rbac": "true"}}))
+			trbKey := types.NamespacedName{Name: trb.Name, Namespace: trb.Namespace}
+			By("validating the RoleBinding created on the remote clusterA")
+			remoteRoleBinding := &rbacv1.ClusterRoleBinding{}
+			remoteRoleBindingName := types.NamespacedName{
+				Name: trb.GetRBACName(),
+			}
+			Eventually(func(g Gomega) bool {
+				g.Expect(clusterAKubeClient.Get(context.TODO(), remoteRoleBindingName, remoteRoleBinding)).To(Succeed(), "there should be no error getting the RoleBinding from the Remote Cluster")
+				return !remoteRoleBinding.CreationTimestamp.IsZero()
+			}).Should(BeTrue(), "there should be no error getting the RoleBinding")
+			Expect(remoteRoleBinding.RoleRef.Name).To(HavePrefix(greenhouseapis.RBACPrefix))
+			Expect(remoteRoleBinding.RoleRef.Name).To(ContainSubstring(teamRoleUT.Name))
+
+			By("validating the RoleBinding created on the remote clusterB")
+			Eventually(func(g Gomega) bool {
+				g.Expect(clusterBKubeClient.Get(context.TODO(), remoteRoleBindingName, remoteRoleBinding)).To(Succeed(), "there should be no error getting the RoleBinding from the Remote Cluster")
+				return !remoteRoleBinding.CreationTimestamp.IsZero()
+			}).Should(BeTrue(), "there should be no error getting the RoleBinding")
+			Expect(remoteRoleBinding.RoleRef.Name).To(HavePrefix(greenhouseapis.RBACPrefix))
+			Expect(remoteRoleBinding.RoleRef.Name).To(ContainSubstring(teamRoleUT.Name))
+
+			By("validating the TeamRoleBinding's status is updated")
+			Eventually(func(g Gomega) {
+				g.Expect(k8sClient.Get(test.Ctx, trbKey, trb)).To(Succeed(), "there should be no error getting the TeamRoleBinding")
+				g.Expect(trb.Status.PropagationStatus).To(HaveLen(2), "the TeamRoleBinding should be propagated to one cluster")
+				g.Expect(trb.Status.PropagationStatus).Should(ContainElement(And(HaveField("ClusterName", clusterA.Name), HaveField("Condition.Status", Equal(metav1.ConditionTrue)))))
+				g.Expect(trb.Status.PropagationStatus).Should(ContainElement(And(HaveField("ClusterName", clusterB.Name), HaveField("Condition.Status", Equal(metav1.ConditionTrue)))))
+			}).Should(Succeed(), "the TeamRoleBindings status should reflect the current status")
+
+			By("updating the TeamRoleBinding with to a selector matching clusterB")
+			trb.Spec.ClusterSelector = metav1.LabelSelector{MatchLabels: map[string]string{"cluster": "b"}}
+			_, err := clientutil.CreateOrPatch(test.Ctx, k8sClient, trb, func() error {
+				trb.Spec.ClusterName = ""
+				trb.Spec.ClusterSelector = metav1.LabelSelector{MatchLabels: map[string]string{"cluster": "b"}}
+				return nil
+			})
+			Expect(err).ToNot(HaveOccurred(), "there should be no error updating the TeamRoleBinding")
+			By("validating the RoleBinding is removed from the remote clusterA and created on the remote clusterB")
+			Eventually(func() bool {
+				err := clusterAKubeClient.Get(context.TODO(), remoteRoleBindingName, remoteRoleBinding)
+				return apierrors.IsNotFound(err)
+			}).Should(BeTrue(), "the RoleBinding should be removed from the remote clusterA")
+			remoteRoleBinding = &rbacv1.ClusterRoleBinding{}
+			Eventually(func(g Gomega) bool {
+				g.Expect(clusterBKubeClient.Get(context.TODO(), remoteRoleBindingName, remoteRoleBinding)).To(Succeed(), "there should be no error getting the RoleBinding from the Remote clusterB")
+				return !remoteRoleBinding.CreationTimestamp.IsZero()
+			}).Should(BeTrue(), "there should be no error getting the RoleBinding from ClusterB")
+			Expect(remoteRoleBinding.RoleRef.Name).To(HavePrefix(greenhouseapis.RBACPrefix))
+			Expect(remoteRoleBinding.RoleRef.Name).To(ContainSubstring(teamRoleUT.Name))
+
+			By("validating the TeamRoleBinding's status is updated")
+			Eventually(func(g Gomega) {
+				g.Expect(k8sClient.Get(test.Ctx, trbKey, trb)).To(Succeed(), "there should be no error getting the TeamRoleBinding")
+				g.Expect(trb.Status.PropagationStatus).To(HaveLen(1), "the TeamRoleBinding should be propagated to one cluster")
+				g.Expect(trb.Status.PropagationStatus).To(ContainElement(And(HaveField("ClusterName", clusterB.Name), HaveField("Condition.Status", metav1.ConditionTrue))))
+			}).Should(Succeed(), "the TeamRoleBindings status should reflect the current status")
+
+			By("cleaning up the test")
+			test.EventuallyDeleted(test.Ctx, test.K8sClient, trb)
+		})
+
+		It("should remove the RoleBinding on the cluster when the label matching the clusterSelector is removed from the cluster", func() {
+			By("labelling the clusters")
+			_, err := clientutil.CreateOrPatch(test.Ctx, k8sClient, clusterA, func() error {
+				clusterA.Labels["foo"] = "bar"
+				return nil
+			})
+			Expect(err).NotTo(HaveOccurred(), "there should be no error labelling clusterA")
+
+			_, err = clientutil.CreateOrPatch(test.Ctx, k8sClient, clusterB, func() error {
+				clusterB.Labels["foo"] = "bar"
+				return nil
+			})
+			Expect(err).NotTo(HaveOccurred(), "there should be no error labelling clusterB")
+
+			By("creating a TeamRoleBinding on the central cluster")
+			trb := setup.CreateTeamRoleBinding(test.Ctx, "test-rolebinding",
+				test.WithTeamRoleRef(teamRoleUT.Name),
+				test.WithTeamRef(teamUT.Name),
+				test.WithClusterSelector(metav1.LabelSelector{MatchLabels: map[string]string{"foo": "bar"}}))
+			trbKey := types.NamespacedName{Name: trb.Name, Namespace: trb.Namespace}
+			By("validating the RoleBinding created on the remote clusterA")
+			remoteRoleBinding := &rbacv1.ClusterRoleBinding{}
+			remoteRoleBindingName := types.NamespacedName{
+				Name: trb.GetRBACName(),
+			}
+			Eventually(func(g Gomega) bool {
+				g.Expect(clusterAKubeClient.Get(context.TODO(), remoteRoleBindingName, remoteRoleBinding)).To(Succeed(), "there should be no error getting the RoleBinding from the Remote Cluster")
+				return !remoteRoleBinding.CreationTimestamp.IsZero()
+			}).Should(BeTrue(), "there should be no error getting the RoleBinding")
+			Expect(remoteRoleBinding.RoleRef.Name).To(HavePrefix(greenhouseapis.RBACPrefix))
+			Expect(remoteRoleBinding.RoleRef.Name).To(ContainSubstring(teamRoleUT.Name))
+
+			By("validating the RoleBinding created on the remote clusterB")
+			Eventually(func(g Gomega) bool {
+				g.Expect(clusterBKubeClient.Get(context.TODO(), remoteRoleBindingName, remoteRoleBinding)).To(Succeed(), "there should be no error getting the RoleBinding from the Remote Cluster")
+				return !remoteRoleBinding.CreationTimestamp.IsZero()
+			}).Should(BeTrue(), "there should be no error getting the RoleBinding")
+			Expect(remoteRoleBinding.RoleRef.Name).To(HavePrefix(greenhouseapis.RBACPrefix))
+			Expect(remoteRoleBinding.RoleRef.Name).To(ContainSubstring(teamRoleUT.Name))
+
+			By("validating the TeamRoleBinding's status is updated")
+			Eventually(func(g Gomega) {
+				g.Expect(k8sClient.Get(test.Ctx, trbKey, trb)).To(Succeed(), "there should be no error getting the TeamRoleBinding")
+				g.Expect(trb.Status.PropagationStatus).To(HaveLen(2), "the TeamRoleBinding should be propagated to one cluster")
+				g.Expect(trb.Status.PropagationStatus).Should(ContainElement(And(HaveField("ClusterName", clusterA.Name), HaveField("Condition.Status", Equal(metav1.ConditionTrue)))))
+				g.Expect(trb.Status.PropagationStatus).Should(ContainElement(And(HaveField("ClusterName", clusterB.Name), HaveField("Condition.Status", Equal(metav1.ConditionTrue)))))
+			}).Should(Succeed(), "the TeamRoleBindings status should reflect the current status")
+
+			By("updating the ClusterB to remove the label that matches the clusterSelector")
+			_, err = clientutil.CreateOrPatch(test.Ctx, k8sClient, clusterB, func() error {
+				delete(clusterB.Labels, "foo")
+				return nil
+			})
+			Expect(err).ToNot(HaveOccurred(), "there should be no error removing the label from clusterB")
+
+			By("validating the RoleBinding is removed from the remote clusterB")
+			Eventually(func() bool {
+				err := clusterBKubeClient.Get(context.TODO(), remoteRoleBindingName, remoteRoleBinding)
+				return apierrors.IsNotFound(err)
+			}).Should(BeTrue(), "the RoleBinding should be removed from the remote clusterB")
+			remoteRoleBinding = &rbacv1.ClusterRoleBinding{}
+			Eventually(func(g Gomega) bool {
+				g.Expect(clusterAKubeClient.Get(context.TODO(), remoteRoleBindingName, remoteRoleBinding)).To(Succeed(), "there should be no error getting the RoleBinding from the Remote clusterA")
+				return !remoteRoleBinding.CreationTimestamp.IsZero()
+			}).Should(BeTrue(), "there should be no error getting the RoleBinding from ClusterB")
+			Expect(remoteRoleBinding.RoleRef.Name).To(HavePrefix(greenhouseapis.RBACPrefix))
+			Expect(remoteRoleBinding.RoleRef.Name).To(ContainSubstring(teamRoleUT.Name))
+
+			By("validating the TeamRoleBinding's status is updated")
+			Eventually(func(g Gomega) {
+				g.Expect(k8sClient.Get(test.Ctx, trbKey, trb)).To(Succeed(), "there should be no error getting the TeamRoleBinding")
+				g.Expect(trb.Status.PropagationStatus).To(HaveLen(1), "the TeamRoleBinding should be propagated to one cluster")
+				g.Expect(trb.Status.PropagationStatus).To(ContainElement(And(HaveField("ClusterName", clusterA.Name), HaveField("Condition.Status", metav1.ConditionTrue))))
+			}).Should(Succeed(), "the TeamRoleBindings status should reflect the current status")
+
+			By("cleaning up the test")
+			test.EventuallyDeleted(test.Ctx, test.K8sClient, trb)
+		})
+	})
+
 	Context("When creating a Greenhouse TeamRoleBinding with namespaces on the central cluster", func() {
 		It("Should create a ClusterRole and RoleBinding on the remote cluster", func() {
 			By("creating a TeamRoleBinding on the central cluster")
-			err := k8sClient.Create(test.Ctx, testRoleBinding.DeepCopy())
-			Expect(err).NotTo(HaveOccurred())
+			trb := setup.CreateTeamRoleBinding(test.Ctx, "test-rolebinding",
+				test.WithTeamRoleRef(teamRoleUT.Name),
+				test.WithTeamRef(teamUT.Name),
+				test.WithClusterName(clusterA.Name),
+				test.WithNamespaces(setup.Namespace()))
 
 			By("validating the RoleBinding created on the remote cluster")
 			remoteRoleBinding := &rbacv1.RoleBinding{}
 			remoteRoleBindingName := types.NamespacedName{
-				Name:      testRoleBinding.GetRBACName(),
-				Namespace: testRoleBinding.Namespace,
+				Name:      trb.GetRBACName(),
+				Namespace: trb.Namespace,
 			}
-			Eventually(func() bool {
-				err = remoteK8sClient.Get(context.TODO(), remoteRoleBindingName, remoteRoleBinding)
-				if err != nil {
-					return false
-				}
+			Eventually(func(g Gomega) bool {
+				g.Expect(clusterAKubeClient.Get(context.TODO(), remoteRoleBindingName, remoteRoleBinding)).To(Succeed(), "there should be no error getting the RoleBinding from the Remote Cluster")
 				return !remoteRoleBinding.CreationTimestamp.IsZero()
 			}).Should(BeTrue(), "there should be no error getting the RoleBinding")
 			Expect(remoteRoleBinding.RoleRef.Name).To(HavePrefix(greenhouseapis.RBACPrefix))
-			Expect(remoteRoleBinding.RoleRef.Name).To(ContainSubstring(testRole.Name))
+			Expect(remoteRoleBinding.RoleRef.Name).To(ContainSubstring(teamRoleUT.Name))
 
 			By("validating the ClusterRole created on the remote cluster")
 			remoteClusterRole := &rbacv1.ClusterRole{}
 			remoteClusterRoleName := types.NamespacedName{
-				Name: testRole.GetRBACName(),
+				Name: teamRoleUT.GetRBACName(),
 			}
-			Eventually(func() bool {
-				err = remoteK8sClient.Get(test.Ctx, remoteClusterRoleName, remoteClusterRole)
-				if err != nil {
-					return false
-				}
+			Eventually(func(g Gomega) bool {
+				g.Expect(clusterAKubeClient.Get(test.Ctx, remoteClusterRoleName, remoteClusterRole)).To(Succeed(), "there should be no error getting the ClusterRole from the Remote Cluster")
 				return !remoteClusterRole.CreationTimestamp.IsZero()
 			}).Should(BeTrue(), "there should be no error getting the ClusterRole")
 			Expect(remoteClusterRole.Name).To(HavePrefix(greenhouseapis.RBACPrefix))
-			Expect(remoteClusterRole.Name).To(ContainSubstring(testRole.Name))
-			Expect(remoteClusterRole.Rules).To(Equal(testRole.Spec.Rules))
+			Expect(remoteClusterRole.Name).To(ContainSubstring(teamRoleUT.Name))
+			Expect(remoteClusterRole.Rules).To(Equal(teamRoleUT.Spec.Rules))
+
+			By("cleaning up the test")
+			test.EventuallyDeleted(test.Ctx, test.K8sClient, trb)
 		})
 	})
 
 	Context("When creating a Greenhouse TeamRoleBinding without namespaces on the central cluster", func() {
 		It("Should create a ClusterRole and ClusterRoleBinding on the remote cluster", func() {
 			By("creating a TeamRoleBinding without Namespaces on the central cluster")
-			err := k8sClient.Create(test.Ctx, testClusterRoleBinding.DeepCopy())
-			Expect(err).NotTo(HaveOccurred())
+			trb := setup.CreateTeamRoleBinding(test.Ctx, "test-teamrolebinding",
+				test.WithTeamRoleRef(teamRoleUT.Name),
+				test.WithTeamRef(teamUT.Name),
+				test.WithClusterName(clusterA.Name))
 
 			By("validating the ClusterRoleBinding created on the remote cluster")
 			remoteClusterRoleBinding := &rbacv1.ClusterRoleBinding{}
 			remoteRoleBindingName := types.NamespacedName{
-				Name:      greenhouseapis.RBACPrefix + testClusterRoleBinding.Name,
-				Namespace: testClusterRoleBinding.Namespace,
+				Name:      greenhouseapis.RBACPrefix + trb.Name,
+				Namespace: trb.Namespace,
 			}
-			Eventually(func() bool {
-				err = remoteK8sClient.Get(context.TODO(), remoteRoleBindingName, remoteClusterRoleBinding)
-				if err != nil {
-					return false
-				}
+			Eventually(func(g Gomega) bool {
+				g.Expect(clusterAKubeClient.Get(context.TODO(), remoteRoleBindingName, remoteClusterRoleBinding)).To(Succeed(), "there should be no error getting the ClusterRoleBinding from the Remote Cluster")
 				return !remoteClusterRoleBinding.CreationTimestamp.IsZero()
 			}).Should(BeTrue(), "there should be no error getting the ClusterRoleBinding")
 			Expect(remoteClusterRoleBinding.RoleRef.Name).To(HavePrefix(greenhouseapis.RBACPrefix))
-			Expect(remoteClusterRoleBinding.RoleRef.Name).To(ContainSubstring(testRole.Name))
+			Expect(remoteClusterRoleBinding.RoleRef.Name).To(ContainSubstring(teamRoleUT.Name))
 
 			By("validating the ClusterRole created on the remote cluster")
 			remoteClusterRole := &rbacv1.ClusterRole{}
 			remoteClusterRoleName := types.NamespacedName{
-				Name: testRole.GetRBACName(),
+				Name: teamRoleUT.GetRBACName(),
 			}
-			Eventually(func() bool {
-				err = remoteK8sClient.Get(test.Ctx, remoteClusterRoleName, remoteClusterRole)
-				if err != nil {
-					return false
-				}
+			Eventually(func(g Gomega) bool {
+				g.Expect(clusterAKubeClient.Get(test.Ctx, remoteClusterRoleName, remoteClusterRole)).To(Succeed(), "there should be no error getting the ClusterRole from the Remote Cluster")
 				return !remoteClusterRole.CreationTimestamp.IsZero()
 			}).Should(BeTrue(), "there should be no error getting the ClusterRole")
 			Expect(remoteClusterRole.Name).To(HavePrefix(greenhouseapis.RBACPrefix))
-			Expect(remoteClusterRole.Name).To(ContainSubstring(testRole.Name))
-			Expect(remoteClusterRole.Rules).To(Equal(testRole.Spec.Rules))
+			Expect(remoteClusterRole.Name).To(ContainSubstring(teamRoleUT.Name))
+			Expect(remoteClusterRole.Rules).To(Equal(teamRoleUT.Spec.Rules))
+
+			By("cleaning up the test")
+			test.EventuallyDeleted(test.Ctx, test.K8sClient, trb)
 		})
 	})
 
-	Context("When creating a Greenhouse TeamRoleBinding with and without namespaces on the central cluster", func() {
+	Context("When creating Greenhouse TeamRoleBindings with and without namespaces on the central cluster", func() {
 		It("Should create a ClusterRole, ClusterRoleBinding and TeamRoleBinding on the remote cluster", func() {
 			By("creating a TeamRoleBinding without Namespaces on the central cluster")
-			err := k8sClient.Create(test.Ctx, testClusterRoleBinding.DeepCopy())
-			Expect(err).NotTo(HaveOccurred())
+			trb := setup.CreateTeamRoleBinding(test.Ctx, "test-teamrolebinding",
+				test.WithTeamRoleRef(teamRoleUT.Name),
+				test.WithTeamRef(teamUT.Name),
+				test.WithClusterName(clusterA.Name))
 
 			By("validating the ClusterRoleBinding created on the remote cluster")
 			remoteClusterRoleBinding := &rbacv1.ClusterRoleBinding{}
 			remoteClusterRoleBindingName := types.NamespacedName{
-				Name:      greenhouseapis.RBACPrefix + testClusterRoleBinding.Name,
-				Namespace: testClusterRoleBinding.Namespace,
+				Name:      greenhouseapis.RBACPrefix + trb.Name,
+				Namespace: trb.Namespace,
 			}
-			Eventually(func() bool {
-				err = remoteK8sClient.Get(context.TODO(), remoteClusterRoleBindingName, remoteClusterRoleBinding)
-				if err != nil {
-					return false
-				}
+			Eventually(func(g Gomega) bool {
+				g.Expect(clusterAKubeClient.Get(context.TODO(), remoteClusterRoleBindingName, remoteClusterRoleBinding)).To(Succeed(), "there should be no error getting the ClusterRoleBinding from the Remote Cluster")
 				return !remoteClusterRoleBinding.CreationTimestamp.IsZero()
 			}).Should(BeTrue(), "there should be no error getting the ClusterRoleBinding")
 			Expect(remoteClusterRoleBinding.RoleRef.Name).To(HavePrefix(greenhouseapis.RBACPrefix))
-			Expect(remoteClusterRoleBinding.RoleRef.Name).To(ContainSubstring(testRole.Name))
+			Expect(remoteClusterRoleBinding.RoleRef.Name).To(ContainSubstring(teamRoleUT.Name))
 
 			By("validating the ClusterRole created on the remote cluster")
 			remoteClusterRole := &rbacv1.ClusterRole{}
 			remoteClusterRoleName := types.NamespacedName{
-				Name: testRole.GetRBACName(),
+				Name: teamRoleUT.GetRBACName(),
 			}
-			Eventually(func() bool {
-				err = remoteK8sClient.Get(test.Ctx, remoteClusterRoleName, remoteClusterRole)
-				if err != nil {
-					return false
-				}
+			Eventually(func(g Gomega) bool {
+				g.Expect(clusterAKubeClient.Get(test.Ctx, remoteClusterRoleName, remoteClusterRole)).To(Succeed(), "there should be no error getting the ClusterRole from the Remote Cluster")
 				return !remoteClusterRole.CreationTimestamp.IsZero()
 			}).Should(BeTrue(), "there should be no error getting the ClusterRole")
 			Expect(remoteClusterRole.Name).To(HavePrefix(greenhouseapis.RBACPrefix))
-			Expect(remoteClusterRole.Name).To(ContainSubstring(testRole.Name))
-			Expect(remoteClusterRole.Rules).To(Equal(testRole.Spec.Rules))
+			Expect(remoteClusterRole.Name).To(ContainSubstring(teamRoleUT.Name))
+			Expect(remoteClusterRole.Rules).To(Equal(teamRoleUT.Spec.Rules))
 
 			By("creating a TeamRoleBinding on the central cluster")
-			err = k8sClient.Create(test.Ctx, testRoleBinding.DeepCopy())
-			Expect(err).NotTo(HaveOccurred())
+			trbNoNamespaces := setup.CreateTeamRoleBinding(test.Ctx, "teamrolebinding",
+				test.WithTeamRoleRef(teamRoleUT.Name),
+				test.WithTeamRef(teamUT.Name),
+				test.WithClusterName(clusterA.Name),
+				test.WithNamespaces(setup.Namespace()))
 
 			By("validating the RoleBinding created on the remote cluster")
 			remoteRoleBinding := &rbacv1.RoleBinding{}
 			remoteRoleBindingName := types.NamespacedName{
-				Name:      testRoleBinding.GetRBACName(),
-				Namespace: testRoleBinding.Namespace,
+				Name:      trbNoNamespaces.GetRBACName(),
+				Namespace: trbNoNamespaces.Namespace,
 			}
-			Eventually(func() bool {
-				err = remoteK8sClient.Get(context.TODO(), remoteRoleBindingName, remoteRoleBinding)
-				if err != nil {
-					return false
-				}
+			Eventually(func(g Gomega) bool {
+				g.Expect(clusterAKubeClient.Get(context.TODO(), remoteRoleBindingName, remoteRoleBinding)).To(Succeed(), "there should be no error getting the RoleBinding from the Remote Cluster")
 				return !remoteRoleBinding.CreationTimestamp.IsZero()
 			}).Should(BeTrue(), "there should be no error getting the RoleBinding")
 			Expect(remoteRoleBinding.RoleRef.Name).To(HavePrefix(greenhouseapis.RBACPrefix))
-			Expect(remoteRoleBinding.RoleRef.Name).To(ContainSubstring(testRole.Name))
+			Expect(remoteRoleBinding.RoleRef.Name).To(ContainSubstring(teamRoleUT.Name))
+
+			By("cleaning up the test")
+			test.EventuallyDeleted(test.Ctx, test.K8sClient, trb)
+			test.EventuallyDeleted(test.Ctx, test.K8sClient, trbNoNamespaces)
 		})
 	})
 
 	Context("When updating Greenhouse TeamRole & TeamRoleBinding w/wo Namespaces on the central cluster", func() {
-		It("Should reconcile the ClusterRole, ClusterRoleBinding and RoleBinding on the remote cluster", func() {
-			clusterRoleBindingUT := testClusterRoleBinding.DeepCopy()
+		It("Should reconcile the ClusterRole, ClusterRoleBinding for a TeamRoleBinding without Namespaces on the remote cluster", func() {
 			By("creating a TeamRoleBinding without Namespaces on the central cluster")
-			err := k8sClient.Create(test.Ctx, clusterRoleBindingUT)
-			Expect(err).NotTo(HaveOccurred())
+			trb := setup.CreateTeamRoleBinding(test.Ctx, "test-teamrolebinding",
+				test.WithTeamRoleRef(teamRoleUT.Name),
+				test.WithTeamRef(teamUT.Name),
+				test.WithClusterName(clusterA.Name))
 
 			By("validating the ClusterRoleBinding created on the remote cluster")
 			remoteClusterRoleBinding := &rbacv1.ClusterRoleBinding{}
 			remoteClusterRoleBindingName := types.NamespacedName{
-				Name:      greenhouseapis.RBACPrefix + testClusterRoleBinding.Name,
-				Namespace: testClusterRoleBinding.Namespace,
+				Name:      trb.GetRBACName(),
+				Namespace: trb.Namespace,
 			}
-			Eventually(func() bool {
-				err = remoteK8sClient.Get(context.TODO(), remoteClusterRoleBindingName, remoteClusterRoleBinding)
-				if err != nil {
-					return false
-				}
+			Eventually(func(g Gomega) bool {
+				g.Expect(clusterAKubeClient.Get(context.TODO(), remoteClusterRoleBindingName, remoteClusterRoleBinding)).To(Succeed(), "there should be no error getting the ClusterRoleBinding from the Remote Cluster")
 				return !remoteClusterRoleBinding.CreationTimestamp.IsZero()
 			}).Should(BeTrue(), "there should be no error getting the ClusterRoleBinding")
 			Expect(remoteClusterRoleBinding.RoleRef.Name).To(HavePrefix(greenhouseapis.RBACPrefix))
-			Expect(remoteClusterRoleBinding.RoleRef.Name).To(ContainSubstring(testRole.Name))
+			Expect(remoteClusterRoleBinding.RoleRef.Name).To(ContainSubstring(teamRoleUT.Name))
 
 			By("validating the ClusterRole created on the remote cluster")
 			remoteClusterRole := &rbacv1.ClusterRole{}
 			remoteClusterRoleName := types.NamespacedName{
-				Name: testRole.GetRBACName(),
+				Name: teamRoleUT.GetRBACName(),
 			}
-			Eventually(func() bool {
-				err = remoteK8sClient.Get(test.Ctx, remoteClusterRoleName, remoteClusterRole)
-				if err != nil {
-					return false
-				}
+			Eventually(func(g Gomega) bool {
+				g.Expect(clusterAKubeClient.Get(test.Ctx, remoteClusterRoleName, remoteClusterRole)).To(Succeed(), "there should be no error getting the ClusterRole from the Remote Cluster")
 				return !remoteClusterRole.CreationTimestamp.IsZero()
 			}).Should(BeTrue(), "there should be no error getting the ClusterRole")
 			Expect(remoteClusterRole.Name).To(HavePrefix(greenhouseapis.RBACPrefix))
-			Expect(remoteClusterRole.Name).To(ContainSubstring(testRole.Name))
-			Expect(remoteClusterRole.Rules).To(Equal(testRole.Spec.Rules))
+			Expect(remoteClusterRole.Name).To(ContainSubstring(teamRoleUT.Name))
+			Expect(remoteClusterRole.Rules).To(Equal(teamRoleUT.Spec.Rules))
 
-			By("creating a TeamRoleBinding on the central cluster")
-			roleBindingUT := testRoleBinding.DeepCopy()
-			err = k8sClient.Create(test.Ctx, roleBindingUT)
-			Expect(err).NotTo(HaveOccurred())
+			By("updating the Greenhouse TeamRole on the central cluster")
+			teamRoleUT.Spec.Rules[0].Verbs = []string{"get"}
+			Expect(k8sClient.Update(test.Ctx, teamRoleUT)).To(Succeed(), "there should be no error updating the TeamRole on the central cluster")
+			Eventually(func(g Gomega) bool {
+				g.Expect(clusterAKubeClient.Get(test.Ctx, remoteClusterRoleName, remoteClusterRole)).To(Succeed(), "there should be no error getting the ClusterRole from the remote cluster")
+				return g.Expect(remoteClusterRole.Rules).To(Equal(teamRoleUT.Spec.Rules))
+			}).Should(BeTrue(), "there should be no error getting the ClusterRole from the remote cluster")
 
-			By("validating the TeamRoleBinding created on the remote cluster")
+			By("cleaning up the test")
+			test.EventuallyDeleted(test.Ctx, test.K8sClient, trb)
+		})
+		It("Should reconcile the ClusterRole, RoleBindings for a TeamRoleBinding with Namespaces on the remote cluster", func() {
+			By("creating a TeamRoleBinding with Namespaces on the central cluster")
+			trb := setup.CreateTeamRoleBinding(test.Ctx, "test-teamrolebinding",
+				test.WithTeamRoleRef(teamRoleUT.Name),
+				test.WithTeamRef(teamUT.Name),
+				test.WithClusterName(clusterA.Name),
+				test.WithNamespaces(setup.Namespace()))
+
+			By("validating the ClusterRole created on the remote cluster")
+			remoteClusterRole := &rbacv1.ClusterRole{}
+			remoteClusterRoleName := types.NamespacedName{
+				Name: teamRoleUT.GetRBACName(),
+			}
+			Eventually(func(g Gomega) bool {
+				g.Expect(clusterAKubeClient.Get(test.Ctx, remoteClusterRoleName, remoteClusterRole)).To(Succeed(), "there should be no error getting the ClusterRole from the Remote Cluster")
+				return !remoteClusterRole.CreationTimestamp.IsZero()
+			}).Should(BeTrue(), "there should be no error getting the ClusterRole")
+			Expect(remoteClusterRole.Name).To(HavePrefix(greenhouseapis.RBACPrefix))
+			Expect(remoteClusterRole.Name).To(ContainSubstring(teamRoleUT.Name))
+			Expect(remoteClusterRole.Rules).To(Equal(teamRoleUT.Spec.Rules))
+
+			By("validating the RoleBindings are created on the remote cluster")
 			remoteRoleBinding := &rbacv1.RoleBinding{}
 			remoteRoleBindingName := types.NamespacedName{
-				Name:      testRoleBinding.GetRBACName(),
-				Namespace: testRoleBinding.Namespace,
+				Name:      trb.GetRBACName(),
+				Namespace: trb.Namespace,
 			}
-			Eventually(func() bool {
-				err = remoteK8sClient.Get(context.TODO(), remoteRoleBindingName, remoteRoleBinding)
-				if err != nil {
-					return false
-				}
+			Eventually(func(g Gomega) bool {
+				g.Expect(clusterAKubeClient.Get(context.TODO(), remoteRoleBindingName, remoteRoleBinding)).To(Succeed(), "there should be no error getting the RoleBinding from the Remote Cluster")
 				return !remoteRoleBinding.CreationTimestamp.IsZero()
 			}).Should(BeTrue(), "there should be no error getting the TeamRoleBinding")
 			Expect(remoteRoleBinding.RoleRef.Name).To(HavePrefix(greenhouseapis.RBACPrefix))
-			Expect(remoteRoleBinding.RoleRef.Name).To(ContainSubstring(testRole.Name))
+			Expect(remoteRoleBinding.RoleRef.Name).To(ContainSubstring(teamRoleUT.Name))
 
 			By("updating the Greenhouse TeamRole on the central cluster")
-			roleUT.Spec.Rules[0].Verbs = []string{"get"}
-			err = k8sClient.Update(test.Ctx, roleUT)
+			teamRoleUT.Spec.Rules[0].Verbs = []string{"get"}
+			err := k8sClient.Update(test.Ctx, teamRoleUT)
 			Expect(err).NotTo(HaveOccurred())
 			Eventually(func(g Gomega) bool {
-				err = remoteK8sClient.Get(test.Ctx, remoteClusterRoleName, remoteClusterRole)
-				if err != nil {
-					return false
-				}
-				return g.Expect(remoteClusterRole.Rules).To(Equal(roleUT.Spec.Rules))
+				g.Expect(clusterAKubeClient.Get(test.Ctx, remoteClusterRoleName, remoteClusterRole)).To(Succeed(), "there should be no error getting the ClusterRole from the remote cluster")
+				return g.Expect(remoteClusterRole.Rules).To(Equal(teamRoleUT.Spec.Rules))
 			}).Should(BeTrue(), "there should be no error getting the ClusterRole from the remote cluster")
+
+			By("cleaning up the test")
+			test.EventuallyDeleted(test.Ctx, test.K8sClient, trb)
 		})
 	})
 	Context("When tampering with a RoleBinding on the Remote Cluster", func() {
 		It("should reconcile the remote RoleBinding", func() {
 			By("creating a TeamRoleBinding without Namespaces on the central cluster")
-			roleBindingUT := testClusterRoleBinding.DeepCopy()
-			err := k8sClient.Create(test.Ctx, roleBindingUT)
-			Expect(err).NotTo(HaveOccurred())
+			trb := setup.CreateTeamRoleBinding(test.Ctx, "test-teamrolebinding",
+				test.WithTeamRoleRef(teamRoleUT.Name),
+				test.WithTeamRef(teamUT.Name),
+				test.WithClusterName(clusterA.Name))
 
 			By("validating the ClusterRoleBinding created on the remote cluster")
 			remoteClusterRoleBinding := &rbacv1.ClusterRoleBinding{}
 			remoteClusterRoleBindingName := types.NamespacedName{
-				Name:      greenhouseapis.RBACPrefix + roleBindingUT.Name,
-				Namespace: roleBindingUT.Namespace,
+				Name:      greenhouseapis.RBACPrefix + trb.Name,
+				Namespace: trb.Namespace,
 			}
-			Eventually(func() bool {
-				err = remoteK8sClient.Get(context.TODO(), remoteClusterRoleBindingName, remoteClusterRoleBinding)
-				if err != nil {
-					return false
-				}
+			Eventually(func(g Gomega) bool {
+				g.Expect(clusterAKubeClient.Get(context.TODO(), remoteClusterRoleBindingName, remoteClusterRoleBinding)).To(Succeed(), "there should be no error getting the ClusterRoleBinding from the Remote Cluster")
 				return !remoteClusterRoleBinding.CreationTimestamp.IsZero()
 			}).Should(BeTrue(), "there should be no error getting the ClusterRoleBinding")
 			Expect(remoteClusterRoleBinding.RoleRef.Name).To(HavePrefix(greenhouseapis.RBACPrefix))
-			Expect(remoteClusterRoleBinding.RoleRef.Name).To(ContainSubstring(testRole.Name))
+			Expect(remoteClusterRoleBinding.RoleRef.Name).To(ContainSubstring(teamRoleUT.Name))
 
 			By("validating the ClusterRole created on the remote cluster")
 			remoteClusterRole := &rbacv1.ClusterRole{}
 			remoteClusterRoleName := types.NamespacedName{
-				Name: testRole.GetRBACName(),
+				Name: teamRoleUT.GetRBACName(),
 			}
 			Eventually(func(g Gomega) bool {
-				err = remoteK8sClient.Get(test.Ctx, remoteClusterRoleName, remoteClusterRole)
-				if err != nil {
-					return false
-				}
-				return g.Expect(remoteClusterRole.Rules).To(Equal(testRole.Spec.Rules)) &&
+				g.Expect(clusterAKubeClient.Get(test.Ctx, remoteClusterRoleName, remoteClusterRole)).To(Succeed(), "there should be no error getting the ClusterRole from the Remote Cluster")
+				return g.Expect(remoteClusterRole.Rules).To(Equal(teamRoleUT.Spec.Rules)) &&
 					!remoteClusterRole.CreationTimestamp.IsZero()
 			}).Should(BeTrue(), "there should be no error getting the ClusterRole")
 			Expect(remoteClusterRole.Name).To(HavePrefix(greenhouseapis.RBACPrefix))
-			Expect(remoteClusterRole.Name).To(ContainSubstring(testRole.Name))
-			Expect(remoteClusterRole.Rules).To(Equal(testRole.Spec.Rules))
+			Expect(remoteClusterRole.Name).To(ContainSubstring(teamRoleUT.Name))
+			Expect(remoteClusterRole.Rules).To(Equal(teamRoleUT.Spec.Rules))
 
 			By("altering the RoleBinding on the remote cluster")
-			err = remoteK8sClient.Get(test.Ctx, remoteClusterRoleBindingName, remoteClusterRoleBinding)
-			Expect(err).NotTo(HaveOccurred(), "there should be no error getting the ClusterRoleBinding from the remote cluster")
+			Expect(clusterAKubeClient.Get(test.Ctx, remoteClusterRoleBindingName, remoteClusterRoleBinding)).To(Succeed(), "there should be no error getting the ClusterRoleBinding from the remote cluster")
 			expected := remoteClusterRoleBinding.DeepCopy().Subjects
 			remoteClusterRoleBinding.Subjects = append(remoteClusterRoleBinding.Subjects, rbacv1.Subject{Kind: "User", Name: "foobar", APIGroup: "rbac.authorization.k8s.io"})
-			err = remoteK8sClient.Update(test.Ctx, remoteClusterRoleBinding)
-			Expect(err).NotTo(HaveOccurred(), "there should be no error updating the ClusterRoleBinding on the remote cluster")
+			Expect(clusterAKubeClient.Update(test.Ctx, remoteClusterRoleBinding)).To(Succeed(), "there should be no error updating the ClusterRoleBinding on the remote cluster")
 
 			By("triggering the reconcile of the central cluster TeamRoleBinding with a noop update")
-			err = k8sClient.Get(test.Ctx, types.NamespacedName{Name: roleBindingUT.Name, Namespace: roleBindingUT.Namespace}, roleBindingUT)
-			Expect(err).NotTo(HaveOccurred(), "there should be no error getting the TeamRoleBinding from the central cluster")
+			Expect(k8sClient.Get(test.Ctx, types.NamespacedName{Name: trb.Name, Namespace: trb.Namespace}, trb)).To(Succeed(), "there should be no error getting the TeamRoleBinding from the central cluster")
 			// changing the labels to trigger the reconciliation in this test.
-			roleBindingUT.SetLabels(map[string]string{"foo": "bar"})
-			err = k8sClient.Update(test.Ctx, roleBindingUT)
-			Expect(err).NotTo(HaveOccurred(), "there should be no error updating the TeamRoleBinding on the central cluster")
+			trb.SetLabels(map[string]string{"foo": "bar"})
+			Expect(k8sClient.Update(test.Ctx, trb)).To(Succeed(), "there should be no error updating the TeamRoleBinding on the central cluster")
 
 			Eventually(func(g Gomega) bool {
-				err = remoteK8sClient.Get(test.Ctx, remoteClusterRoleBindingName, remoteClusterRoleBinding)
-				if err != nil {
-					return false
-				}
+				g.Expect(clusterAKubeClient.Get(test.Ctx, remoteClusterRoleBindingName, remoteClusterRoleBinding)).To(Succeed(), "there should be no error getting the ClusterRoleBinding from the remote cluster")
 				return g.Expect(remoteClusterRoleBinding.Subjects).To(Equal(expected))
 			}).Should(BeTrue(), "the remote RoleBinding should eventually be reconciled")
+
+			By("cleaning up the test")
+			test.EventuallyDeleted(test.Ctx, test.K8sClient, trb)
 		})
 	})
 })

@@ -4,46 +4,30 @@
  */
 
 import {
+  Button,
+  ButtonRow,
+  Container,
   DataGrid,
   DataGridHeadCell,
   DataGridRow,
-  Container,
-  Button,
   DataGridToolbar,
-  ButtonRow,
 } from "juno-ui-components"
-import React, { useEffect, useState } from "react"
-import { Secret } from "../../../types/types"
-import SecretListItem from "./SecretListItem"
+import { Messages } from "messages-provider"
+import React from "react"
 import useStore from "../store"
-import { initSecret } from "./initSecret"
-import useCheckAuthorized from "../hooks/useIsAuthorized"
-import ResultMessageComponent, { ResultMessage } from "./SubmitResultMessage"
+import SecretListItem from "./SecretListItem"
+import { initSecret } from "./secretUtils"
 
-interface SecretListProps {
-  secrets: Secret[]
-}
-
-const SecretList: React.FC<SecretListProps> = (props: SecretListProps) => {
+const SecretList: React.FC = () => {
   const setShowSecretEdit = useStore((state) => state.setShowSecretEdit)
   const setSecretDetail = useStore((state) => state.setSecretDetail)
   const openEditSecret = () => {
     setShowSecretEdit(true)
     setSecretDetail(initSecret())
   }
-  const { canListSecrets } = useCheckAuthorized()
-  const auth = useStore((state) => state.auth)
 
-  const [authMessage, setAuthMessage] = useState<ResultMessage>({
-    ok: false,
-    message: "",
-  })
+  const secrets = useStore((state) => state.secrets)
 
-  useEffect(() => {
-    canListSecrets().then((res) => {
-      setAuthMessage(res)
-    })
-  }, [auth])
   return (
     <>
       <Container>
@@ -62,15 +46,11 @@ const SecretList: React.FC<SecretListProps> = (props: SecretListProps) => {
             <DataGridHeadCell>Keys</DataGridHeadCell>
           </DataGridRow>
 
-          {props.secrets.map((secret) => (
+          {secrets.map((secret) => (
             <SecretListItem key={secret.metadata!.name!} secret={secret} />
           ))}
         </DataGrid>
-        {authMessage.message && (
-          <ResultMessageComponent
-            submitMessage={authMessage}
-          ></ResultMessageComponent>
-        )}
+        <Messages />
       </Container>
     </>
   )

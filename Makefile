@@ -39,7 +39,7 @@ help: ## Display this help.
 generate-all: generate generate-manifests generate-documentation  ## Generate code, manifests and documentation.
 
 .PHONY: manifests
-manifests: generate-manifests generate-documentation
+manifests: generate-manifests generate-documentation generate-types
 
 .PHONY: generate-manifests
 generate-manifests: controller-gen ## Generate WebhookConfiguration, ClusterRole and CustomResourceDefinition objects.
@@ -47,6 +47,10 @@ generate-manifests: controller-gen ## Generate WebhookConfiguration, ClusterRole
 	$(CONTROLLER_GEN) rbac:roleName=manager-role webhook paths="./pkg/admission/..." paths="./pkg/controllers/..." output:artifacts:config=$(TEMPLATES_MANIFESTS_PATH)
 	hack/helmify $(TEMPLATES_MANIFESTS_PATH)
 	docker run --rm -v $(shell pwd):/github/workspace $(IMG_LICENSE_EYE) -c .github/licenserc.yaml header fix
+
+.PHONY: generate-types
+generate-types: ## Generate typescript types from CRDs.
+	hack/typescript/create-types $(CURDIR)/docs/reference/api/openapi.yaml $(CURDIR)/hack/typescript/metadata.yaml $(CURDIR)/ui/types/ 
 
 .PHONY: generate
 generate: controller-gen ## Generate code containing DeepCopy, DeepCopyInto, and DeepCopyObject method implementations.
@@ -61,6 +65,19 @@ generate-documentation:
 .PHONY: test
 test: generate-manifests generate envtest ## Run tests.
 	KUBEBUILDER_ASSETS="$(shell $(ENVTEST) use $(ENVTEST_K8S_VERSION) -p path)" go test ./... -coverprofile cover.out -v
+
+.PHONY: e2e
+e2e: 
+	go test ./test/e2e/... -coverprofile cover.out -v
+
+.PHONY: e2e-local
+e2e-local: generate-manifests generate envtest ## Run e2e tests.
+	unset USE_EXISTING_CLUSTER && KUBEBUILDER_ASSETS="$(shell $(ENVTEST) use $(ENVTEST_K8S_VERSION) -p path)" go test ./test/e2e/... -coverprofile cover.out -v
+
+.PHONY: e2e-remote
+e2e-remote: 
+	USE_EXISTING_CLUSTER=true go test ./test/e2e/... -coverprofile cover.out -v
+
 
 .PHONY: fmt
 fmt: goimports golint

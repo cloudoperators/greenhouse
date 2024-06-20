@@ -7,11 +7,12 @@ import { Container } from "juno-ui-components"
 import SecretEdit from "./components/SecretEdit"
 import SecretList from "./components/SecretList"
 
+import { MessagesProvider } from "messages-provider"
+
 import WelcomeView from "./components/WelcomeView"
 import useStore from "./store"
 
 const AppContent = () => {
-  const secrets = useStore((state) => state.secrets)
   const showSecretEdit = useStore((state) => state.showSecretEdit)
 
   const auth = useStore((state) => state.auth)
@@ -22,8 +23,12 @@ const AppContent = () => {
     <Container>
       {loggedIn && !authError ? (
         <>
-          <SecretList secrets={secrets} />
-          {showSecretEdit && <SecretEdit />}
+          <SecretList />
+          {showSecretEdit && (
+            <MessagesProvider>
+              <SecretEdit />
+            </MessagesProvider>
+          )}
         </>
       ) : (
         <WelcomeView />
