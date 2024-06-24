@@ -16,21 +16,38 @@ on:
     types: [opened, synchronize, reopened]
     paths:
       - "ui/**"
+      # avoid triggering the pipeline if the changes are only in the following directories
       - "!ui/helpers/**"
       - "!ui/types/**"
       - "!ui/utils/**"
-
 jobs:
   run-detect-changes:
     uses: cloudoperators/juno/.github/workflows/check-changes-npm-package.yaml@main
     with:
       paths: "ui"
 
-  run-pipeline:
+  filter-changes:
+    runs-on: ubuntu-latest
     needs: [run-detect-changes]
+    outputs:
+      filtered-changes: ${{ steps.filter.outputs.filtered_changes }}
+    steps:
+      - name: Filter changes to avoid triggering the pipeline for specific directories
+        id: filter
+        run: |
+          changes='${{ needs.run-detect-changes.outputs.changes }}'
+          filtered_changes=$(echo $changes | jq -c 'map(select(. != "ui/helpers" and . != "ui/types" and . != "ui/utils"))')
+          echo "===="
+          echo "changes=$changes"
+          echo "filtered_changes=$filtered_changes"
+          echo "==="
+          echo "filtered_changes=$filtered_changes" >> $GITHUB_OUTPUT
+
+  run-pipeline:
+    needs: [filter-changes]
     strategy:
       matrix:
-        change: ${{fromJson(needs.run-detect-changes.outputs.changes)}}
+        change: ${{ fromJson(needs.filter-changes.outputs.filtered_changes) }}
         node: [20.x]
       fail-fast: false # Allow other jobs to continue if one fails
     uses: cloudoperators/juno/.github/workflows/pipeline-npm-package.yaml@main
