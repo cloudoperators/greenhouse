@@ -1,6 +1,6 @@
-[![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
-
 # greenhouse-plugin-admin
+
+[![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
 
 This is the ui for the greenhouse plugin admin screen.
 

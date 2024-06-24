@@ -1,6 +1,6 @@
-[![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
-
 # greenhouse-team-admin
+
+[![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
 
 This is the ui for the greenhouse team admin screen.
 
