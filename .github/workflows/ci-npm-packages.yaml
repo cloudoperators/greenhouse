@@ -30,7 +30,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: [run-detect-changes]
     outputs:
-      filtered-changes: ${{ steps.filter.outputs.filtered_changes }}
+      filtered-changes: ${{ steps.filter.outputs.filtered-changes }}
     steps:
       - name: Filter changes to avoid triggering the pipeline for specific directories
         id: filter
@@ -39,15 +39,15 @@ jobs:
           filtered_changes=$(echo $changes | jq -c 'map(select(. != "ui/helpers" and . != "ui/types" and . != "ui/utils"))')
           echo "===="
           echo "changes=$changes"
-          echo "filtered_changes=$filtered_changes"
+          echo "filtered-changes=$filtered_changes"
           echo "==="
-          echo "filtered_changes=$filtered_changes" >> $GITHUB_OUTPUT
+          echo "filtered-changes=$filtered_changes" >> $GITHUB_OUTPUT
 
   run-pipeline:
     needs: [filter-changes]
     strategy:
       matrix:
-        change: ${{ fromJson(needs.filter-changes.outputs.filtered_changes) }}
+        change: ${{ fromJson(needs.filter-changes.outputs.filtered-changes) }}
         node: [20.x]
       fail-fast: false # Allow other jobs to continue if one fails
     uses: cloudoperators/juno/.github/workflows/pipeline-npm-package.yaml@main
