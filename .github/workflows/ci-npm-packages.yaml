@@ -16,6 +16,9 @@ on:
     types: [opened, synchronize, reopened]
     paths:
       - "ui/**"
+      - "!ui/helpers/**"
+      - "!ui/types/**"
+      - "!ui/utils/**"
 
 jobs:
   run-detect-changes:
