@@ -3,7 +3,7 @@
 *                       @cloudoperators/Administrators
 
 /.github/               @cloudoperators/Administrators
-/.github/workflows/     @cloudoperators/greenhouse-backend
+/.github/workflows/     @cloudoperators/greenhouse-core
 /.github/labeler.yml    @cloudoperators/greenhouse-backend
 /.github/licenserc.yaml @cloudoperators/greenhouse-backend
 /.github/renovate.json  @cloudoperators/greenhouse-backend
