@@ -54,6 +54,9 @@ const (
 
 	// LabelKeyExposeService is applied to services that are part of a PluginDefinitions Helm chart to expose them via the central Greenhouse infrastructure.
 	LabelKeyExposeService = "greenhouse.sap/expose"
+
+	// LabelKeyExposePortName is specifying the port to be exposed by name. LabelKeyExposeService needs to be set. By default the first port is always exposed.
+	LabelKeyExposePortName = "greenhouse.sap/exposePortName"
 )
 
 // TeamRole and TeamRoleBinding constants
