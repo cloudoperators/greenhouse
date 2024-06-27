@@ -5,13 +5,12 @@ package plugin
 
 import (
 	"fmt"
+	"regexp"
 
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
-
-	greenhouseapis "github.com/cloudoperators/greenhouse/pkg/apis"
 )
 
 func getPortForExposedService(o runtime.Object) (*corev1.ServicePort, error) {
@@ -23,10 +22,19 @@ func getPortForExposedService(o runtime.Object) (*corev1.ServicePort, error) {
 	if svc.Spec.Ports == nil || len(svc.Spec.Ports) == 0 {
 		return nil, errors.New("service has no ports")
 	}
-	// Check for matching of named port set by label
-	if greenhouseapis.LabelKeyExposePortName != "" {
+
+	//Check for matching of named port set by label
+	r, _ := regexp.Compile("/exposeNamedPort")
+	var namedPort string
+	for labelName, labelValue := range svc.Labels {
+		if r.MatchString(labelName) {
+			namedPort = labelValue
+		}
+	}
+
+	if namedPort != "" {
 		for _, port := range svc.Spec.Ports {
-			if port.Name == greenhouseapis.LabelKeyExposePortName {
+			if port.Name == namedPort {
 				return port.DeepCopy(), nil
 			}
 		}
