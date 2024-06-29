@@ -158,21 +158,20 @@ func installChart(ctx context.Context, dir, release, kubeconfig string, namespac
 		return err
 	}
 
-	//TODO(onur): make a separate function to edit values
+	// These values are the minimal set of required values to deploy manager helm chart
 	globalDNS := map[string]interface{}{"dnsDomain": "greenhouse.cloudoperators"}
 	chart.Values["global"] = globalDNS
 
 	controllerManagerImage := map[string]interface{}{"repository": dockerImageRepository, "tag": dockerImageTag}
-
 	controllerManager, ok := chart.Values["controllerManager"].(map[string]interface{})
 	if !ok {
 		l.Error(err, "value merge")
 		os.Exit(1)
 	}
-
 	controllerManager["image"] = controllerManagerImage
 	controllerManager["replicas"] = "1"
 	chart.Values["controllerManager"] = controllerManager
+	// These values are the minimal set of required values to deploy manager helm chart
 
 	get := action.NewGet(actionConfig)
 	_, err = get.Run(release)
