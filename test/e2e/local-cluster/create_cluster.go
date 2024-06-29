@@ -90,7 +90,7 @@ func main() {
 	cluster.SetDefaults()
 	kubeconfig, err := cluster.Create(ctx)
 	if err != nil {
-		l.Error(err, "state", "cluster creation")
+		l.Error(err, "cluster creation")
 		os.Exit(1)
 	}
 	l.Info("cluster created successfully")
@@ -98,26 +98,26 @@ func main() {
 	// Export kubeconfig
 	f, err := os.Create(kubeconfigName)
 	if err != nil {
-		l.Error(err, "state", "kubeconfig creation")
+		l.Error(err, "kubeconfig creation")
 		os.Exit(1)
 	}
 	args := []string{"export", "kubeconfig", "--name", kindClusterName, "--kubeconfig", f.Name()}
 	cmd := exec.Command("kind", args...)
 	_, err = cmd.Output()
 	if err != nil {
-		l.Error(err, "state", "kubeconfig export")
+		l.Error(err, "kubeconfig export")
 		os.Exit(1)
 	}
 	f, err = os.Create(kubeconfigInternalName)
 	if err != nil {
-		l.Error(err, "state", "kubeconfig creation")
+		l.Error(err, "kubeconfig creation")
 		os.Exit(1)
 	}
 	args = []string{"export", "kubeconfig", "--name", kindClusterName, "--internal", "--kubeconfig", f.Name()}
 	cmd = exec.Command("kind", args...)
 	_, err = cmd.Output()
 	if err != nil {
-		l.Error(err, "state", "kubeconfig export")
+		l.Error(err, "kubeconfig export")
 		os.Exit(1)
 	}
 
@@ -128,7 +128,7 @@ func main() {
 	if !dockerImageBuildSkip {
 		err = dockerImageBuild("./../../../", image)
 		if err != nil {
-			l.Error(err, "state", "image build")
+			l.Error(err, "image build")
 			os.Exit(1)
 		}
 		l.Info("Docker image built successfully")
@@ -137,7 +137,7 @@ func main() {
 	// Load image
 	err = cluster.LoadImage(ctx, image)
 	if err != nil {
-		l.Error(err, "state", "image load")
+		l.Error(err, "image load")
 		os.Exit(1)
 	}
 	l.Info("Docker image loaded to the cluster successfully")
@@ -145,7 +145,7 @@ func main() {
 	// Deploy Greenhouse manager
 	err = installChart(ctx, "./../../../charts/manager", greenhouseControllerManagerRelease, kubeconfig, greenhouseControllerManagerNamespace)
 	if err != nil {
-		l.Error(err, "state", "deploy greenhouse")
+		l.Error(err, "deploy greenhouse")
 		os.Exit(1)
 	}
 	l.Info("Greenhouse manager is deployed successfully")
@@ -182,9 +182,10 @@ func installChart(ctx context.Context, dir, release, kubeconfig string, namespac
 
 	controllerManager, ok := chart.Values["controllerManager"].(map[string]interface{})
 	if !ok {
-		l.Error(err, "state", "value merge")
+		l.Error(err, "value merge")
 		os.Exit(1)
 	}
+
 	controllerManager["image"] = controllerManagerImage
 	controllerManager["replicas"] = "1"
 	chart.Values["controllerManager"] = controllerManager
@@ -201,7 +202,7 @@ func installChart(ctx context.Context, dir, release, kubeconfig string, namespac
 			client.Timeout = TEST_TIMEOUT
 
 			if _, err := client.Run(chart, chart.Values); err != nil {
-				l.Error(err, "state", "chart install")
+				l.Error(err, "chart install")
 				return err
 			}
 		}
@@ -211,7 +212,7 @@ func installChart(ctx context.Context, dir, release, kubeconfig string, namespac
 		client.Wait = true
 		client.Timeout = TEST_TIMEOUT
 		if _, err := client.Run(release, chart, chart.Values); err != nil {
-			l.Error(err, "state", "chart upgrade")
+			l.Error(err, "chart upgrade")
 			return err
 		}
 	}
