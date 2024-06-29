@@ -4,6 +4,7 @@ package main
 
 import (
 	"context"
+	"flag"
 	"fmt"
 	"os"
 	"os/exec"
@@ -22,26 +23,18 @@ import (
 )
 
 var (
-	kindClusterNameEnvVar = "TEST_E2E_KIND_CLUSTER_NAME"
-	kindClusterName       = "greenhouse-e2e"
+	kindClusterName string
 
-	kubeconfigNameEnvVar = "TEST_E2E_KUBECONFIG"
-	kubeconfigName       = "e2e.kubeconfig"
+	kubeconfigName         string
+	kubeconfigInternalName string
 
-	kubeconfigInternalNameEnvVar = "TEST_E2E_DOCKER_INTERNAL_NETWORK_KUBECONFIG"
-	kubeconfigInternalName       = "e2e.internal.kubeconfig"
+	dockerImageRepository string
+	dockerImageTag        string
 
-	dockerImageRepositoryEnvVar = "TEST_E2E_DOCKER_IMAGE_REPOSITORY"
-	dockerImageRepository       = "greenhouse"
+	dockerImageBuildSkip = false
 
-	dockerImageTagEnvVar = "TEST_E2E_DOCKER_IMAGE_TAG"
-	dockerImageTag       = "e2e-latest"
-
-	dockerImageBuildSkipEnvVar = "TEST_E2E_DOCKER_IMAGE_BUILD_SKIP"
-	dockerImageBuildSkip       = false
-
-	greenhouseControllerManagerNamespace = "greenhouse"
-	greenhouseControllerManagerRelease   = "greenhouse"
+	greenhouseControllerManagerNamespace string
+	greenhouseControllerManagerRelease   string
 )
 
 const (
@@ -53,28 +46,19 @@ func init() {
 
 	l := log.FromContext(context.Background())
 
-	if os.Getenv(kindClusterNameEnvVar) != "" {
-		kindClusterName = os.Getenv(kindClusterNameEnvVar)
-	}
+	flag.StringVar(&kindClusterName, "kindClusterName", "greenhouse-e2e", "Cluster name for creating a new kind cluster")
 
-	if os.Getenv(dockerImageRepositoryEnvVar) != "" {
-		dockerImageRepository = os.Getenv(dockerImageRepositoryEnvVar)
-	}
+	flag.StringVar(&kubeconfigName, "kubeconfigName", "e2e.kubeconfig", "kubeconfig file name for connecting to the e2e clusters")
+	flag.StringVar(&kubeconfigInternalName, "kubeconfigInternalName", "e2e.internal.kubeconfig", "kubeconfig file name for connecting to the e2e clusters from the same Docker network")
 
-	if os.Getenv(dockerImageTagEnvVar) != "" {
-		dockerImageTag = os.Getenv(dockerImageTagEnvVar)
-	}
+	flag.StringVar(&dockerImageRepository, "dockerImageRepository", "greenhouse", "Docker image repository  for Greenhouse manager")
+	flag.StringVar(&dockerImageTag, "dockerImageTag", "e2e-latest", "Docker image tag for Greenhouse manager")
+	flag.BoolVar(&dockerImageBuildSkip, "dockerImageBuildSkip", false, "Skip building the docker image for Greenhouse manager")
 
-	if os.Getenv(dockerImageBuildSkipEnvVar) != "" {
-		dockerImageBuildSkip = true
-	}
-	if os.Getenv(kubeconfigNameEnvVar) != "" {
-		kubeconfigName = os.Getenv(kubeconfigNameEnvVar)
-	}
+	flag.StringVar(&greenhouseControllerManagerNamespace, "greenhouseControllerManagerNamespace", "greenhouse", "Namespace for deploying Greenhouse manager")
+	flag.StringVar(&greenhouseControllerManagerRelease, "greenhouseControllerManagerRelease", "greenhouse", "Helm release name for deploying Greenhouse manager")
 
-	if os.Getenv(kubeconfigInternalNameEnvVar) != "" {
-		kubeconfigInternalName = os.Getenv(kubeconfigInternalNameEnvVar)
-	}
+	flag.Parse()
 
 	l.Info("configuration loaded", "kindClusterName", kindClusterName, "dockerImageRepository", dockerImageRepository, "dockerImageTag", dockerImageTag, "dockerImageBuildSkip", dockerImageBuildSkip, "kubeconfigName", kubeconfigName, "kubeconfigInternalName", kubeconfigInternalName)
 
