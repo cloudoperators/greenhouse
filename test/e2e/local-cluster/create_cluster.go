@@ -42,7 +42,6 @@ var (
 
 	greenhouseControllerManagerNamespace = "greenhouse"
 	greenhouseControllerManagerRelease   = "greenhouse"
-	greenhouseOrganizationName           = "e2e-org"
 )
 
 const (
