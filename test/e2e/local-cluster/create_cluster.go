@@ -19,12 +19,9 @@ import (
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 	"k8s.io/client-go/tools/clientcmd"
 	kubernetesClient "sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/e2e-framework/klient/wait"
 
 	"sigs.k8s.io/e2e-framework/support/kind"
 
-	corev1 "k8s.io/api/core/v1"
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"sigs.k8s.io/controller-runtime/pkg/log"
@@ -299,26 +296,6 @@ func deployTestOrganization(ctx context.Context, client kubernetesClient.Client)
 			l.Error(err, "state", "organization creation")
 			return err
 		}
-	}
-
-	if err := wait.For(
-		func(context.Context) (done bool, err error) {
-			namespace := &corev1.Namespace{}
-			err = client.Get(ctx, kubernetesTypes.NamespacedName{Name: greenhouseOrganizationName}, namespace)
-			if apierrors.IsNotFound(err) {
-				l.Info("Waiting for namespace creation for organization...")
-				return false, nil
-			} else if err != nil {
-				l.Error(err, "state", "namespace creation")
-				return false, err
-			}
-			l.Info("Namespace is created automatically for organization")
-			return true, nil
-		},
-		wait.WithTimeout(TEST_TIMEOUT),
-		wait.WithInterval(TEST_RETRY_INTERVAL),
-	); err != nil {
-		return err
 	}
 	return nil
 }
