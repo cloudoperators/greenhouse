@@ -106,7 +106,6 @@ var (
 
 		installCRDs := clientutil.GetEnvOrDefault("TEST_INSTALL_CRDS", "true") == "true"
 		installWebhooks := len(allRegisterWebhookFuncs) > 0 && os.Getenv("TEST_INSTALL_WEBHOOKS") != "false"
-
 		if useExistingGreenhouseCluster {
 			// we are making use of https://pkg.go.dev/sigs.k8s.io/controller-runtime/pkg/envtest#pkg-constants to prevent starting a new control plane
 			kubeconfig := os.Getenv("KUBECONFIG")
