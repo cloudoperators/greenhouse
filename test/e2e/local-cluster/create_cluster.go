@@ -18,7 +18,6 @@ import (
 	kubernetesTypes "k8s.io/apimachinery/pkg/types"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 	"k8s.io/client-go/tools/clientcmd"
-	"k8s.io/klog/v2"
 	kubernetesClient "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/e2e-framework/klient/wait"
 
@@ -27,6 +26,8 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
+	"sigs.k8s.io/controller-runtime/pkg/log"
 
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/pkg/apis/greenhouse/v1alpha1"
 )
@@ -61,6 +62,9 @@ const (
 )
 
 func init() {
+
+	l := log.FromContext(context.Background())
+
 	if os.Getenv(kindClusterNameEnvVar) != "" {
 		kindClusterName = os.Getenv(kindClusterNameEnvVar)
 	}
@@ -84,98 +88,106 @@ func init() {
 		kubeconfigInternalName = os.Getenv(kubeconfigInternalNameEnvVar)
 	}
 
-	klog.Info("========== CONFIGURATION ==========")
-	klog.Infof("Cluster name: %s", kindClusterName)
-	klog.Infof("Greenhouse manager container image: %s:%s", dockerImageRepository, dockerImageTag)
-	if dockerImageBuildSkip {
-		klog.Infof("Docker build will be skipped..")
-	}
-	klog.Infof("kubeconfig will be exported to the files: %s %s", kubeconfigName, kubeconfigInternalName)
-	klog.Info("========== CONFIGURATION ==========")
+	l.Info("configuration loaded", "kindClusterName", kindClusterName, "dockerImageRepository", dockerImageRepository, "dockerImageTag", dockerImageTag, "dockerImageBuildSkip", dockerImageBuildSkip, "kubeconfigName", kubeconfigName, "kubeconfigInternalName", kubeconfigInternalName)
 
 }
 
 func main() {
 
 	ctx := context.Background()
+	l := log.FromContext(ctx)
 
 	// Create cluster
 	cluster := kind.NewCluster(kindClusterName)
 	cluster.SetDefaults()
 	kubeconfig, err := cluster.Create(ctx)
 	if err != nil {
-		klog.Fatal("Error during cluster creation:", err)
+		l.Error(err, "state", "cluster creation")
+		os.Exit(1)
 	}
-	klog.Info("cluster created successfully")
+	l.Info("cluster created successfully")
 
 	// Export kubeconfig
 	f, err := os.Create(kubeconfigName)
 	if err != nil {
-		klog.Fatal("Error during file creation:", err)
+		l.Error(err, "state", "kubeconfig creation")
+		os.Exit(1)
 	}
 	args := []string{"export", "kubeconfig", "--name", kindClusterName, "--kubeconfig", f.Name()}
 	cmd := exec.Command("kind", args...)
 	_, err = cmd.Output()
 	if err != nil {
-		klog.Fatal("Error during kubeconfig export:", err)
+		l.Error(err, "state", "kubeconfig export")
+		os.Exit(1)
 	}
 	f, err = os.Create(kubeconfigInternalName)
 	if err != nil {
-		klog.Fatal("Error during file creation:", err)
+		l.Error(err, "state", "kubeconfig creation")
+		os.Exit(1)
 	}
 	args = []string{"export", "kubeconfig", "--name", kindClusterName, "--internal", "--kubeconfig", f.Name()}
 	cmd = exec.Command("kind", args...)
 	_, err = cmd.Output()
 	if err != nil {
-		klog.Fatal("Error during kubeconfig export:", err)
+		l.Error(err, "state", "kubeconfig export")
+		os.Exit(1)
 	}
 
-	klog.Info("kubeconfig exported successfully")
+	l.Info("kubeconfig exported successfully")
 
 	// Build image
 	image := fmt.Sprintf("%s:%s", dockerImageRepository, dockerImageTag)
 	if !dockerImageBuildSkip {
 		err = dockerImageBuild("./../../../", image)
 		if err != nil {
-			klog.Fatal("Error during build image: ", err)
+			l.Error(err, "state", "image build")
+			os.Exit(1)
 		}
-		klog.Info("Docker image built successfully")
+		l.Info("Docker image built successfully")
 	}
 
 	// Load image
 	err = cluster.LoadImage(ctx, image)
 	if err != nil {
-		klog.Fatal("Error during load image: ", err)
+		l.Error(err, "state", "image load")
+		os.Exit(1)
 	}
-	klog.Info("Docker image loaded to the cluster successfully")
+	l.Info("Docker image loaded to the cluster successfully")
 
 	// Create Kubernetes client
 	config, err := clientcmd.BuildConfigFromFlags("", kubeconfigName)
 	if err != nil {
-		klog.Fatal("Error during creating config:", err)
+		l.Error(err, "state", "client config")
+		os.Exit(1)
 	}
 	k8sClient, err := clientutil.NewK8sClient(config)
 	if err != nil {
-		klog.Fatal("Error during creating Kubernetes client:", err)
+		l.Error(err, "state", "k8s client")
+		os.Exit(1)
 	}
 
 	// Deploy Greenhouse manager
-	err = installChart("./../../../charts/manager", greenhouseControllerManagerRelease, kubeconfig, greenhouseControllerManagerNamespace)
+	err = installChart(ctx, "./../../../charts/manager", greenhouseControllerManagerRelease, kubeconfig, greenhouseControllerManagerNamespace)
 	if err != nil {
-		klog.Fatal(err)
+		l.Error(err, "state", "deploy greenhouse")
+		os.Exit(1)
 	}
-	klog.Infof("Greenhouse manager is deployed successfully")
+	l.Info("Greenhouse manager is deployed successfully")
 
 	// Deploy test org
 	err = deployTestOrganization(context.TODO(), k8sClient)
 	if err != nil {
-		klog.Fatal(err)
+		l.Error(err, "state", "deploy test org")
+		os.Exit(1)
 	}
-	klog.Infof("Test organization is deployed and checked successfully")
+	l.Info("Test organization is deployed and checked successfully")
 
 }
 
-func installChart(dir, release, kubeconfig string, namespace string) error {
+func installChart(ctx context.Context, dir, release, kubeconfig string, namespace string) error {
+
+	l := log.FromContext(ctx)
+
 	chart, err := loader.Load(dir)
 	if err != nil {
 		return err
@@ -189,7 +201,7 @@ func installChart(dir, release, kubeconfig string, namespace string) error {
 		},
 		namespace,
 		"secret",
-		klog.V(10).Infof, //TODO(onur) debug log
+		l.V(10).Info,
 	); err != nil {
 		return err
 	}
@@ -202,7 +214,8 @@ func installChart(dir, release, kubeconfig string, namespace string) error {
 
 	controllerManager, ok := chart.Values["controllerManager"].(map[string]interface{})
 	if !ok {
-		klog.Fatal("failed in value merge")
+		l.Error(err, "state", "value merge")
+		os.Exit(1)
 	}
 	controllerManager["image"] = controllerManagerImage
 	controllerManager["replicas"] = "1"
@@ -220,6 +233,7 @@ func installChart(dir, release, kubeconfig string, namespace string) error {
 			client.Timeout = TEST_TIMEOUT
 
 			if _, err := client.Run(chart, chart.Values); err != nil {
+				l.Error(err, "state", "chart install")
 				return err
 			}
 		}
@@ -229,6 +243,7 @@ func installChart(dir, release, kubeconfig string, namespace string) error {
 		client.Wait = true
 		client.Timeout = TEST_TIMEOUT
 		if _, err := client.Run(release, chart, chart.Values); err != nil {
+			l.Error(err, "state", "chart upgrade")
 			return err
 		}
 	}
@@ -263,6 +278,8 @@ func dockerImageBuild(path string, repoAndtag string) error {
 
 func deployTestOrganization(ctx context.Context, client kubernetesClient.Client) error {
 
+	l := log.FromContext(ctx)
+
 	org := &greenhousev1alpha1.Organization{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      greenhouseOrganizationName,
@@ -275,10 +292,11 @@ func deployTestOrganization(ctx context.Context, client kubernetesClient.Client)
 	}
 	err := client.Get(ctx, kubernetesTypes.NamespacedName{Namespace: org.Namespace, Name: org.Name}, org)
 	if err == nil { //it exists already
-		klog.Info("Organization already exists")
+		l.Info("Organization already exists")
 	} else {
 		err := client.Create(ctx, org)
 		if err != nil {
+			l.Error(err, "state", "organization creation")
 			return err
 		}
 	}
@@ -288,12 +306,13 @@ func deployTestOrganization(ctx context.Context, client kubernetesClient.Client)
 			namespace := &corev1.Namespace{}
 			err = client.Get(ctx, kubernetesTypes.NamespacedName{Name: greenhouseOrganizationName}, namespace)
 			if apierrors.IsNotFound(err) {
-				klog.Info("Waiting for namespace creation for organization...")
+				l.Info("Waiting for namespace creation for organization...")
 				return false, nil
 			} else if err != nil {
+				l.Error(err, "state", "namespace creation")
 				return false, err
 			}
-			klog.Info("Namespace is created automatically for organization")
+			l.Info("Namespace is created automatically for organization")
 			return true, nil
 		},
 		wait.WithTimeout(TEST_TIMEOUT),
