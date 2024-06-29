@@ -178,13 +178,3 @@ $(GOLINT): $(LOCALBIN)
 .PHONY: e2e-local-cluster-create
 e2e-local-cluster-create:
 	cd test/e2e/local-cluster && go run .
-
-.PHONY: run-e2e-local-cluster
-run-e2e-local-cluster: e2e-local-cluster-create
-	export KUBECONFIG=$(shell pwd)/test/e2e/local-cluster/e2e.kubeconfig && \
-	export TEST_E2E_KUBECONFIG_INTERNAL_DOCKER_NETWORK=$(shell pwd)/test/e2e/local-cluster/e2e.internal.kubeconfig && \
-	go test ./test/e2e -v
-	
-.PHONY: run-e2e
-run-e2e:
-	go test ./test/e2e -v
