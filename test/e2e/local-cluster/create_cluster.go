@@ -9,24 +9,16 @@ import (
 	"os/exec"
 	"time"
 
-	"github.com/cloudoperators/greenhouse/pkg/clientutil"
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/client"
 	"github.com/docker/docker/pkg/archive"
 	"helm.sh/helm/v3/pkg/action"
 	"helm.sh/helm/v3/pkg/chart/loader"
-	kubernetesTypes "k8s.io/apimachinery/pkg/types"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
-	"k8s.io/client-go/tools/clientcmd"
-	kubernetesClient "sigs.k8s.io/controller-runtime/pkg/client"
 
 	"sigs.k8s.io/e2e-framework/support/kind"
 
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-
 	"sigs.k8s.io/controller-runtime/pkg/log"
-
-	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/pkg/apis/greenhouse/v1alpha1"
 )
 
 var (
@@ -151,18 +143,6 @@ func main() {
 	}
 	l.Info("Docker image loaded to the cluster successfully")
 
-	// Create Kubernetes client
-	config, err := clientcmd.BuildConfigFromFlags("", kubeconfigName)
-	if err != nil {
-		l.Error(err, "state", "client config")
-		os.Exit(1)
-	}
-	k8sClient, err := clientutil.NewK8sClient(config)
-	if err != nil {
-		l.Error(err, "state", "k8s client")
-		os.Exit(1)
-	}
-
 	// Deploy Greenhouse manager
 	err = installChart(ctx, "./../../../charts/manager", greenhouseControllerManagerRelease, kubeconfig, greenhouseControllerManagerNamespace)
 	if err != nil {
@@ -170,14 +150,6 @@ func main() {
 		os.Exit(1)
 	}
 	l.Info("Greenhouse manager is deployed successfully")
-
-	// Deploy test org
-	err = deployTestOrganization(context.TODO(), k8sClient)
-	if err != nil {
-		l.Error(err, "state", "deploy test org")
-		os.Exit(1)
-	}
-	l.Info("Test organization is deployed and checked successfully")
 
 }
 
@@ -271,31 +243,4 @@ func dockerImageBuild(path string, repoAndtag string) error {
 	}
 	_, err = dockerClient.ImageBuild(ctx, tar, opts)
 	return err
-}
-
-func deployTestOrganization(ctx context.Context, client kubernetesClient.Client) error {
-
-	l := log.FromContext(ctx)
-
-	org := &greenhousev1alpha1.Organization{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      greenhouseOrganizationName,
-			Namespace: "default",
-		},
-		Spec: greenhousev1alpha1.OrganizationSpec{
-			DisplayName: greenhouseOrganizationName,
-			Description: "Organization created for the e2e tests",
-		},
-	}
-	err := client.Get(ctx, kubernetesTypes.NamespacedName{Namespace: org.Namespace, Name: org.Name}, org)
-	if err == nil { //it exists already
-		l.Info("Organization already exists")
-	} else {
-		err := client.Create(ctx, org)
-		if err != nil {
-			l.Error(err, "state", "organization creation")
-			return err
-		}
-	}
-	return nil
 }
