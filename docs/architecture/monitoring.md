@@ -28,4 +28,4 @@ This section provides an overview of the Greenhouse monitoring components.
 
 The Greenhouse monitoring components and their interactions are illustrated below.
 
-![Monitoring architecture](assets/monitoring-architecture.png)
+![Monitoring architecture](../../assets/monitoring-architecture.png)
