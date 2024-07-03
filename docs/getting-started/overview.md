@@ -16,7 +16,7 @@ With its operator-friendly dashboard, features and extensive automation capabili
 
 ## Value Propositions
 
-![](./../assets/value-propositions.png)
+![](https://github.com/cloudoperators/greenhouse/blob/main/docs/assets/value-propositions.png)
 
 ## Roadmap
 
