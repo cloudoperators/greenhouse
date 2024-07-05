@@ -1,4 +1,7 @@
 #!/usr/bin/bash
+# SPDX-FileCopyrightText: 2024 SAP SE or an SAP affiliate company and Greenhouse contributors
+# SPDX-License-Identifier: Apache-2.0
+
 
 function log(){
 	ts=$(date +"%Y-%m-%d %H:%M:%S")
