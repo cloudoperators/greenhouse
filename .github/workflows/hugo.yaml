@@ -90,6 +90,13 @@ jobs:
           make -C website content
           rm -rf /docs
 
+      - name: Copy assets to public directory
+        env:
+          GREENHOUSE_GIT_DIR: "${{ github.workspace }}/greenhouse"
+        run: |
+          mkdir -p $GREENHOUSE_GIT_DIR/website/public/docs/assets
+          cp -r $GREENHOUSE_GIT_DIR/docs/assets/* $GREENHOUSE_GIT_DIR/website/public/docs/assets/
+
       - name: Install Node.js dependencies
         run: "[[ -f package-lock.json || -f npm-shrinkwrap.json ]] && npm ci || true"
 
@@ -113,7 +120,7 @@ jobs:
         uses: actions/upload-pages-artifact@v3
         with:
           path: ./greenhouse/website/public/
-  
+
   # Deployment job
   deploy:
     environment:
