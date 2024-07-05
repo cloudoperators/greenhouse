@@ -29,3 +29,24 @@ npm start
 ```
 
 Frontend is served on [localhost:3000](http://localhost:3000)
+
+Use the following template to point this MFE to a running greenhouse installation:
+
+```json
+{
+  "endpoint": "https://your-greenhouse-k8s-api-endpoint",
+  "environment": "development",
+  "appDependencies": {
+    "auth": {
+      "authIssuerUrl": "https://your-greenhouse-idproxy-url",
+      "authClientId": "your-oidc-client-id"
+    }
+  }
+}
+```
+
+Start the app on a `port` different to `3000`:
+
+```bash
+APP_PORT=<your-port> npm start
+```

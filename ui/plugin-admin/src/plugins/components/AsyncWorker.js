@@ -6,26 +6,37 @@
 import {useEffect} from "react"
 import useCommunication from "../hooks/useCommunication"
 import useUrlState from "../hooks/useUrlState"
-import useWatch from "../../plugindefinitions/hooks/useWatch"
+import useSecretApi from "../../plugindefinitions/hooks/useSecretApi"
+import usePluginDefinitionApi from "../../plugindefinitions/hooks/usePluginDefinitionApi"
+import useStore from "../../plugindefinitions/store"
+import { useActions } from "messages-provider"
 
 const AsyncWorker = () => {
   useCommunication()
   useUrlState()
-
-  const { watchPluginDefinitions, watchSecrets } = useWatch()
-
-  useEffect(() => {
-    if (!watchPluginDefinitions) return
-    const unwatch = watchPluginDefinitions()
-    return unwatch
-  }, [watchPluginDefinitions])
+  const { watchSecretsWithoutHelm } = useSecretApi()
+  const { watchPluginDefinitions } = usePluginDefinitionApi()
+  const auth = useStore((state) => state.auth)
+  const { addMessage } = useActions()
 
   useEffect(() => {
-    if (!watchSecrets) return
-    console.log("watching secrets")
-    const unwatch = watchSecrets()
-    return unwatch
-  }, [watchSecrets])
+    watchPluginDefinitions()
+  }, [auth])
+
+  useEffect(() => {
+    watchSecretsWithoutHelm().then((res) => {
+      // we bubble up a warning, if user is not authorized to watch secrets.
+      // UI will still work for plugins, but user will not see secrets
+      if (!res.ok) {
+        if (res.message && res.status == 403) {
+          addMessage({
+            variant: "warning",
+            text: res.message,
+          })
+        }
+      }
+    })
+  }, [auth])
 
 
   return null

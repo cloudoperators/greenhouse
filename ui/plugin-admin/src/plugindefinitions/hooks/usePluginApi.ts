@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import useApi, { ApiResponse } from "./useApi"
+import useApi from "./useApi"
 import { Plugin } from "../../../../types/types"
 import useNamespace from "./useNamespace"
 import useClient from "./useClient"

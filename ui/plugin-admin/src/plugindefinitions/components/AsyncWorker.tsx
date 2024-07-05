@@ -20,14 +20,12 @@ const AsyncWorker: React.FC<AsyncWorkerProps> = (props: AsyncWorkerProps) => {
 
   useEffect(() => {
     if (!watchPluginDefinitions) return
-    console.log("watching plugin definitions")
     const unwatch = watchPluginDefinitions()
     return unwatch
   }, [watchPluginDefinitions])
 
   useEffect(() => {
     if (!watchSecrets) return
-    console.log("watching secrets")
     const unwatch = watchSecrets()
     return unwatch
   }, [watchSecrets])

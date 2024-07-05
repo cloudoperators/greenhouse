@@ -29,6 +29,38 @@ export enum UpdateObjectAction {
   "delete",
 }
 
+export type AllowedApiObject =
+  | Plugin
+  | Cluster
+  | Secret
+  | PluginDefinition
+  | PluginPreset
+
+export type AllowedApiObjectKind =
+  | "Plugin"
+  | "Cluster"
+  | "Secret"
+  | "PluginDefinition"
+  | "PluginPreset"
+
+/**
+ * ApiResponse
+ * @description ApiResponse object is used to return the result of an k8s API call through our client wrapper methods.
+ * We intent to simplify and wrap the fetch api response object: https://developer.mozilla.org/en-US/docs/Web/API/Response
+ * and add some convenience properties.
+ *
+ */
+export type ApiResponse = {
+  /** @description Overall ok of the response, true indicates no error happened */
+  ok: boolean
+  /** @description Message of the response */
+  message: string
+  /** @description The response object */
+  response?: AllowedApiObject
+  /** @description The status of the response */
+  status?: number
+}
+
 export type ResourceStatus = {
   state: string
   color: string

@@ -40,7 +40,8 @@ export interface State {
   logout: any
 
   pluginDefinitions: PluginDefinition[]
-  updatePluginDefinitions: (input: UpdatePluginDefinitionInput) => void
+  modifyPluginDefinitions: (pds: PluginDefinition[]) => void
+  deletePluginDefinitions: (pds: PluginDefinition[]) => void
   showPluginDefinitionDetails: boolean
   setShowPluginDefinitionDetails: (showPluginDefinitionDetails: boolean) => void
   pluginDefinitionDetail: PluginDefinition | null
@@ -62,7 +63,8 @@ export interface State {
   isPluginEditMode: boolean
   setIsPluginEditMode: (isEditMode: boolean) => void
   secrets: Secret[]
-  updateSecrets: (input: UpdateSecretInput) => void
+  modifySecrets: (secrets: Secret[]) => void
+  deleteSecrets: (secrets: Secret[]) => void
   secretDetail?: Secret
   setSecretDetail: (secret?: Secret) => void
   showSecretEdit: boolean
@@ -86,45 +88,39 @@ const usePluginDefinitionsStore = create<State>((set) => ({
   logout: null,
 
   pluginDefinitions: [],
-  updatePluginDefinitions: (input: UpdatePluginDefinitionInput) =>
+  modifyPluginDefinitions: (pds) =>
     set((state) => {
-      console.log("updatePluginDefinitions", input)
-      let pluginDefinitions = [...state.pluginDefinitions]
-      // validate plugins: only accept input.plugins that have metadata.name set
-      input.pluginDefinitions = input.pluginDefinitions.filter(
-        (pluginDefinition) => {
-          return pluginDefinition.metadata?.name ?? undefined !== undefined
-        }
-      )
-
-      if (input.action === UpdateObjectAction.delete) {
-        pluginDefinitions = pluginDefinitions.filter(
+      let newPluginDefinitions = [...state.pluginDefinitions]
+      pds.forEach((inputPluginDefinition) => {
+        const index = newPluginDefinitions.findIndex(
           (knownPluginDefinition) => {
-            return input.pluginDefinitions.some((inputPluginDefinition) => {
-              return (
-                knownPluginDefinition.metadata!.name !==
-                inputPluginDefinition.metadata!.name
-              )
-            })
+            return (
+              knownPluginDefinition.metadata!.name ===
+              inputPluginDefinition.metadata!.name
+            )
           }
         )
-        return { ...state, pluginDefinitions: pluginDefinitions }
-      }
-
-      input.pluginDefinitions.forEach((inputPluginDefinition) => {
-        const index = pluginDefinitions.findIndex((knownPluginDefinition) => {
-          return (
-            knownPluginDefinition.metadata!.name ===
-            inputPluginDefinition.metadata!.name
-          )
-        })
         if (index >= 0) {
-          pluginDefinitions[index] = inputPluginDefinition
+          newPluginDefinitions[index] = inputPluginDefinition
         } else {
-          pluginDefinitions.push(inputPluginDefinition)
+          newPluginDefinitions.push(inputPluginDefinition)
         }
       })
-      return { ...state, pluginDefinitions: pluginDefinitions }
+      return { pluginDefinitions: newPluginDefinitions }
+    }),
+  deletePluginDefinitions: (pds) =>
+    set((state) => {
+      const newPluginDefinitions = state.pluginDefinitions.filter(
+        (knownPluginDefinition) => {
+          return !pds.some((inputPluginDefinition) => {
+            return (
+              knownPluginDefinition.metadata!.name ===
+              inputPluginDefinition.metadata!.name
+            )
+          })
+        }
+      )
+      return { pluginDefinitions: newPluginDefinitions }
     }),
   showPluginDefinitionDetails: false,
   setShowPluginDefinitionDetails: (showPluginDefinitionDetails) =>
@@ -169,32 +165,30 @@ const usePluginDefinitionsStore = create<State>((set) => ({
     set((state) => ({ isPluginEditMode: isEditMode })),
 
   secrets: [],
-  updateSecrets: (input: UpdateSecretInput) =>
+  modifySecrets: (secrets) =>
     set((state) => {
-      let secrets = [...state.secrets]
-
-      if (input.action === UpdateObjectAction.delete) {
-        secrets = secrets.filter((knownSecret) => {
-          return input.secrets.some((inputSecret) => {
-            return knownSecret.metadata!.name !== inputSecret.metadata!.name
-          })
-        })
-        return { ...state, secrets: secrets }
-      }
-
-      input.secrets.forEach((inputSecret) => {
-        const index = secrets.findIndex((knownSecret) => {
+      let newSecrets = [...state.secrets]
+      secrets.forEach((inputSecret) => {
+        const index = newSecrets.findIndex((knownSecret) => {
           return knownSecret.metadata!.name === inputSecret.metadata!.name
         })
         if (index >= 0) {
-          secrets[index] = inputSecret
+          newSecrets[index] = inputSecret
         } else {
-          secrets.push(inputSecret)
+          newSecrets.push(inputSecret)
         }
       })
-      return { ...state, secrets: secrets }
+      return { ...state, secrets: newSecrets }
     }),
-
+  deleteSecrets: (secrets) =>
+    set((state) => {
+      const newSecrets = state.secrets.filter((knownSecret) => {
+        return !secrets.some((inputSecret) => {
+          return knownSecret.metadata!.name === inputSecret.metadata!.name
+        })
+      })
+      return { secrets: newSecrets }
+    }),
   secretDetail: undefined,
   setSecretDetail: (secret) => set((state) => ({ secretDetail: secret })),
   showSecretEdit: false,

@@ -4,8 +4,9 @@
  */
 
 import { useEffect } from "react"
+import { useClusterApi } from "../hooks/useClusterApi"
 import useUrlState from "../hooks/useUrlState"
-import useWatch from "../hooks/useWatch"
+import useStore from "../store"
 
 interface AsyncWorkerProps {
   consumerId: string
@@ -13,14 +14,12 @@ interface AsyncWorkerProps {
 
 const AsyncWorker: React.FC<AsyncWorkerProps> = (props: AsyncWorkerProps) => {
   useUrlState(props.consumerId)
-
-  const { watchClusters: watchClusters } = useWatch()
+  const auth = useStore((state) => state.auth)
+  const { watchClusters } = useClusterApi()
 
   useEffect(() => {
-    if (!watchClusters) return
-    const unwatch = watchClusters()
-    return unwatch
-  }, [watchClusters])
+    watchClusters()
+  }, [auth])
 
   return null
 }

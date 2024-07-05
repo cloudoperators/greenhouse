@@ -23,7 +23,8 @@ export interface State {
   logout: any
 
   secrets: Secret[]
-  updateSecrets: (input: UpdateSecretInput) => void
+  deleteSecrets: (secrets: Secret[]) => void
+  modifySecrets: (secrets: Secret[]) => void
   secretDetail?: Secret
   setSecretDetail: (secret?: Secret) => void
   showSecretEdit: boolean
@@ -47,30 +48,29 @@ const useStore = create<State>((set) => ({
   logout: null,
 
   secrets: [],
-  updateSecrets: (input: UpdateSecretInput) =>
+  modifySecrets: (secrets) =>
     set((state) => {
-      let secrets = [...state.secrets]
-
-      if (input.action === UpdateObjectAction.delete) {
-        secrets = secrets.filter((knownSecret) => {
-          return input.secrets.some((inputSecret) => {
-            return knownSecret.metadata!.name !== inputSecret.metadata!.name
-          })
-        })
-        return { ...state, secrets: secrets }
-      }
-
-      input.secrets.forEach((inputSecret) => {
-        const index = secrets.findIndex((knownSecret) => {
+      let newSecrets = [...state.secrets]
+      secrets.forEach((inputSecret) => {
+        const index = newSecrets.findIndex((knownSecret) => {
           return knownSecret.metadata!.name === inputSecret.metadata!.name
         })
         if (index >= 0) {
-          secrets[index] = inputSecret
+          newSecrets[index] = inputSecret
         } else {
-          secrets.push(inputSecret)
+          newSecrets.push(inputSecret)
         }
       })
-      return { ...state, secrets: secrets }
+      return { ...state, secrets: newSecrets }
+    }),
+  deleteSecrets: (secrets) =>
+    set((state) => {
+      const newSecrets = state.secrets.filter((knownSecret) => {
+        return !secrets.some((inputSecret) => {
+          return knownSecret.metadata!.name === inputSecret.metadata!.name
+        })
+      })
+      return { secrets: newSecrets }
     }),
 
   secretDetail: undefined,
@@ -83,5 +83,23 @@ const useStore = create<State>((set) => ({
   setIsSecretEditMode: (isEditMode) =>
     set((state) => ({ isSecretEditMode: isEditMode })),
 }))
+
+const updateSecrets = (
+  existingSecrets: Secret[],
+  newSecrets: Secret[]
+): Secret[] => {
+  let returnSecrets = existingSecrets
+  newSecrets.forEach((inputSecret) => {
+    const index = existingSecrets.findIndex((knownSecret) => {
+      return knownSecret.metadata!.name === inputSecret.metadata!.name
+    })
+    if (index >= 0) {
+      returnSecrets[index] = inputSecret
+    } else {
+      returnSecrets.push(inputSecret)
+    }
+  })
+  return returnSecrets
+}
 
 export default useStore
