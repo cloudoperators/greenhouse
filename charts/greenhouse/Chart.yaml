@@ -6,7 +6,7 @@ name: greenhouse
 description: A Helm chart for deploying greenhouse
 
 type: application
-version: 0.1.5
+version: 0.1.6
 appVersion: "0.1.0"
 
 dependencies:
