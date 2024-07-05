@@ -56,5 +56,5 @@ spec:
             - /team-membership
             resources:
               {{- toYaml .Values.resources | nindent 14 }}
-          restartPolicy: "Never"
+          restartPolicy: "OnFailure"
       
