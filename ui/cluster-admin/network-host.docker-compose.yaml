@@ -12,7 +12,7 @@ services:
     network_mode: host
     environment:
       # one of ["test-org-admin", "test-org-member"] - leave unset for "cluster-admin"
-      - DEV_ENV_CONTEXT=test-org-member
+      - DEV_ENV_CONTEXT
       # set to true for control plane output
       - KUBEBUILDER_ATTACH_CONTROL_PLANE_OUTPUT=false
     healthcheck:

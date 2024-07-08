@@ -6,9 +6,8 @@
 import { useActions } from "messages-provider"
 import { useEffect } from "react"
 import useCommunication from "../hooks/useCommunication"
-import useCheckAuthorized from "../hooks/useIsAuthorized"
+import useSecretApi from "../hooks/useSecretApi"
 import useUrlState from "../hooks/useUrlState"
-import useWatch from "../hooks/useWatch"
 import useStore from "../store"
 
 interface AsyncWorkerProps {
@@ -18,24 +17,20 @@ interface AsyncWorkerProps {
 const AsyncWorker: React.FC<AsyncWorkerProps> = (props: AsyncWorkerProps) => {
   useUrlState(props.consumerId)
   useCommunication()
-  const { canListSecrets } = useCheckAuthorized()
   const { addMessage } = useActions()
   const auth = useStore((state) => state.auth)
-  const { watchSecrets } = useWatch()
+  const { watchSecretsWithoutHelm } = useSecretApi()
 
   useEffect(() => {
-    canListSecrets().then((res) => {
+    watchSecretsWithoutHelm().then((res) => {
+      // we bubble up the error message, if user is not authorized
       if (!res.ok) {
-        if (res.message) {
+        if (res.message && res.status == 403) {
           addMessage({
             variant: "error",
             text: res.message,
           })
         }
-      } else {
-        if (!watchSecrets) return
-        const unwatch = watchSecrets()
-        return unwatch
       }
     })
   }, [auth])

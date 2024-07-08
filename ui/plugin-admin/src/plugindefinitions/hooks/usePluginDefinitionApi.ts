@@ -5,6 +5,7 @@
 
 import { PluginDefinition } from "../../../../types/types"
 import useApi from "./useApi"
+import useStore from "../store"
 
 export type PluginDefinitionApiResponse = {
   ok: boolean
@@ -13,7 +14,13 @@ export type PluginDefinitionApiResponse = {
 }
 
 export const usePluginDefinitionApi = () => {
-  const { get, create, update, deleteObject } = useApi()
+  const { get, create, update, deleteObject, watch } = useApi()
+  const modifyPluginDefinitions = useStore(
+    (state) => state.modifyPluginDefinitions
+  )
+  const deletePluginDefinitions = useStore(
+    (state) => state.deletePluginDefinitions
+  )
 
   const getPluginDefinition = (
     pluginDefinition: PluginDefinition
@@ -51,10 +58,23 @@ export const usePluginDefinitionApi = () => {
     ) as Promise<PluginDefinitionApiResponse>
   }
 
+  const watchPluginDefinitions = () => {
+    return watch<PluginDefinition>(
+      `/apis/greenhouse.sap/v1alpha1/plugindefinitions`,
+      "PluginDefinition",
+      modifyPluginDefinitions,
+      modifyPluginDefinitions,
+      deletePluginDefinitions
+    )
+  }
+
   return {
     getPluginDefinition,
     createPluginDefinition,
     updatePluginDefinition,
     deletePluginDefinition,
+    watchPluginDefinitions,
   }
 }
+
+export default usePluginDefinitionApi

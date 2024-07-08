@@ -4,7 +4,8 @@
  */
 
 import { Cluster } from "../../../types/types"
-import useApi, { ApiResponse } from "./useApi"
+import useStore from "../store"
+import useApi from "./useApi"
 import useNamespace from "./useNamespace"
 
 export type ClusterApiResponse = {
@@ -14,8 +15,10 @@ export type ClusterApiResponse = {
 }
 
 export const useClusterApi = () => {
-  const { get, create, update, deleteObject } = useApi()
+  const { get, create, update, deleteObject, watch } = useApi()
   const { namespace } = useNamespace()
+  const modifyClusters = useStore((state) => state.modifyClusters)
+  const deleteClusters = useStore((state) => state.deleteClusters)
 
   const getCluster = (cluster: Cluster): Promise<ClusterApiResponse> => {
     return get<Cluster>(
@@ -45,5 +48,23 @@ export const useClusterApi = () => {
     ) as Promise<ClusterApiResponse>
   }
 
-  return { getCluster, createCluster, updateCluster, deleteCluster }
+  const watchClusters = () => {
+    return watch<Cluster>(
+      `/apis/greenhouse.sap/v1alpha1/namespaces/${namespace}/clusters`,
+      "Cluster",
+      modifyClusters,
+      modifyClusters,
+      deleteClusters
+    )
+  }
+
+  return {
+    getCluster,
+    createCluster,
+    updateCluster,
+    deleteCluster,
+    watchClusters,
+  }
 }
+
+export default useClusterApi

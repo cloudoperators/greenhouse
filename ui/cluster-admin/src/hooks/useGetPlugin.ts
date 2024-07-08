@@ -4,9 +4,10 @@
  */
 
 import { useCallback } from "react"
-import { Cluster, Plugin } from "../types/types"
+
 import useClient from "./useClient"
 import useNamespace from "./useNamespace"
+import { Cluster, Plugin } from "../../../types/types"
 
 export const useGetPlugins = () => {
   const { namespace } = useNamespace()
@@ -24,14 +25,11 @@ export const useGetPlugins = () => {
       }`
 
       plugins = await client
-        .get(
-          `/apis/greenhouse.sap/v1alpha1/namespaces/${namespace}/plugins`,
-          {
-            params: {
-              labelSelector: labelselector,
-            },
-          }
-        )
+        .get(`/apis/greenhouse.sap/v1alpha1/namespaces/${namespace}/plugins`, {
+          params: {
+            labelSelector: labelselector,
+          },
+        })
         .then((res) => {
           if (res.kind !== "PluginList") {
             console.log(

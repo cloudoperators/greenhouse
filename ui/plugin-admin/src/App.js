@@ -3,22 +3,22 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useEffect } from "react"
-
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
+import { MessagesProvider } from "messages-provider"
+import markdownDark from "github-markdown-css/github-markdown-dark.css"
+import markdownLight from "github-markdown-css/github-markdown-light.css"
+import markdown from "github-markdown-css/github-markdown.css"
 import { AppShell, AppShellProvider } from "juno-ui-components"
+import { useEffect } from "react"
+import AppContent from "./AppContent"
+import useCommunication from "./plugindefinitions/hooks/useCommunication"
+import usePluginDefinitionsStore from "./plugindefinitions/store"
+import AsyncWorker from "./plugins/components/AsyncWorker"
+import Auth from "./plugins/components/Auth"
 import StoreProvider, {
   useGlobalsActions,
 } from "./plugins/components/StoreProvider"
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
-import AppContent from "./AppContent"
 import styles from "./styles.scss"
-import AsyncWorker from "./plugins/components/AsyncWorker"
-import Auth from "./plugins/components/Auth"
-import useCommunication from "./plugindefinitions/hooks/useCommunication"
-import usePluginDefinitionsStore from "./plugindefinitions/store"
-import markdown from "github-markdown-css/github-markdown.css"
-import markdownDark from "github-markdown-css/github-markdown-dark.css"
-import markdownLight from "github-markdown-css/github-markdown-light.css"
 
 const URL_STATE_KEY = "plugin-admin"
 
@@ -56,10 +56,12 @@ const App = (props = {}) => {
         pageHeader="Converged Cloud | Plugins"
         embedded={props.embedded === "true" || props.embedded === true}
       >
+      <MessagesProvider >
         <AsyncWorker />
         <Auth>
           <AppContent props={props} />
         </Auth>
+        </MessagesProvider>
       </AppShell>
     </QueryClientProvider>
   )
