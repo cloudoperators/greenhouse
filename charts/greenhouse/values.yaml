@@ -3,8 +3,9 @@
 
 global:
   dns:
-    # THe DNS domain to be used for all Greenhouse components.
+    # The DNS domain to be used for all Greenhouse components.
     domain:
+  dockerHubMirror:
 
   # OIDC configuration for Greenhouse.
   oidc:
