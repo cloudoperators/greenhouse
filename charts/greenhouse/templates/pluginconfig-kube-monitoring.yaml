@@ -28,11 +28,8 @@ spec:
       cluster: {{ .Values.monitoring.extLabels.cluster }}
       region: {{ .Values.monitoring.extLabels.region }}
 {{- end }}
-  - name: kubeMonitoring.prometheus.tlsConfig.caCert
-    valueFrom:
-      secret:
-        key: "ca.crt"
-        name: kube-monitoring-ingress-ca
+  - name: kubeMonitoring.prometheus.annotations.nginx\.ingress\.kubernetes\.io/auth-tls-secret
+    value: greenhouse/kube-monitoring-ingress-ca
   - name: kubeMonitoring.prometheus.ingress.enabled
     value: true
   - name: kubeMonitoring.prometheus.ingress.hosts
