@@ -35,7 +35,7 @@ subjects:
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: cotnainer-image-retainer
+  name: container-image-retainer
 data:
   retain.sh: |
     {{- .Files.Get "etc/retain.sh" | nindent 4 }}
