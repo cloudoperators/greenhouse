@@ -125,9 +125,7 @@ func ValidateUpdatePlugin(ctx context.Context, c client.Client, old, obj runtime
 	if errList := validatePluginOptionValues(plugin.Spec.OptionValues, pluginDefinition); len(errList) > 0 {
 		return allWarns, apierrors.NewInvalid(plugin.GroupVersionKind().GroupKind(), plugin.Name, errList)
 	}
-	if err := validatePluginForCluster(ctx, c, plugin, pluginDefinition); err != nil {
-		return allWarns, err
-	}
+
 	if err := validateImmutableField(oldPlugin.Spec.ClusterName, plugin.Spec.ClusterName,
 		field.NewPath("spec", "clusterName"),
 	); err != nil {
