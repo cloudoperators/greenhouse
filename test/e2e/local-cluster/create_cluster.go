@@ -3,9 +3,13 @@
 package main
 
 import (
+	"bufio"
 	"context"
+	"encoding/json"
+	"errors"
 	"flag"
 	"fmt"
+	"io"
 	"os"
 	"os/exec"
 	"time"
@@ -226,6 +230,42 @@ func dockerImageBuild(path string, repoAndtag string) error {
 		Platform:       dockerImagePlatform,
 		SuppressOutput: true,
 	}
-	_, err = dockerClient.ImageBuild(ctx, tar, opts)
-	return err
+	response, err := dockerClient.ImageBuild(ctx, tar, opts)
+	if err != nil {
+		return err
+	}
+
+	defer response.Body.Close()
+	return dockerResponseErrorFinder(response.Body)
+
+}
+
+func dockerResponseErrorFinder(rd io.Reader) error {
+	var lastLine string
+
+	scanner := bufio.NewScanner(rd)
+	for scanner.Scan() {
+		lastLine = scanner.Text()
+	}
+
+	errLine := &ErrorLine{}
+	json.Unmarshal([]byte(lastLine), errLine)
+	if errLine.Error != "" {
+		return errors.New(errLine.Error)
+	}
+
+	if err := scanner.Err(); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+type ErrorLine struct {
+	Error       string      `json:"error"`
+	ErrorDetail ErrorDetail `json:"errorDetail"`
+}
+
+type ErrorDetail struct {
+	Message string `json:"message"`
 }
