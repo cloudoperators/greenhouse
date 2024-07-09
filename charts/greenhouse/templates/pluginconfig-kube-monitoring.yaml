@@ -30,7 +30,7 @@ spec:
       cluster: {{ .Values.monitoring.extLabels.cluster }}
       region: {{ .Values.monitoring.extLabels.region }}
 {{- end }}
-  - name: kubeMonitoring.prometheus.annotations.nginx\.ingress\.kubernetes\.io/auth-tls-secret
+  - name: kubeMonitoring.prometheus.ingress.annotations.nginx\.ingress\.kubernetes\.io/auth-tls-secret
     value: greenhouse/kube-monitoring-ingress-ca
   - name: kubeMonitoring.prometheus.ingress.enabled
     value: true
