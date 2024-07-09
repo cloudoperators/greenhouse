@@ -1,20 +1,22 @@
 module github.com/cloudoperators/greenhouse
 
-go 1.22
+go 1.22.0
+
+toolchain go1.22.3
 
 replace (
 	// DEX import matches version v2.39.1.
 	github.com/dexidp/dex => github.com/dexidp/dex v0.0.0-20240409110506-3705207f0190
 	github.com/dexidp/dex/api/v2 => github.com/dexidp/dex/api/v2 v2.1.1-0.20240409110506-3705207f0190
 	// Keep k8s dependencies in sync.
-	k8s.io/api => k8s.io/api v0.29.5
-	k8s.io/apiextensions-apiserver => k8s.io/apiextensions-apiserver v0.29.5
-	k8s.io/apimachinery => k8s.io/apimachinery v0.29.5
-	k8s.io/cli-runtime => k8s.io/cli-runtime v0.29.5
-	k8s.io/client-go => k8s.io/client-go v0.29.5
-	k8s.io/component-base => k8s.io/component-base v0.29.5
-	k8s.io/kubectl => k8s.io/kubectl v0.29.5
-	sigs.k8s.io/controller-runtime => sigs.k8s.io/controller-runtime v0.17.5
+	k8s.io/api => k8s.io/api v0.30.2
+	k8s.io/apiextensions-apiserver => k8s.io/apiextensions-apiserver v0.30.2
+	k8s.io/apimachinery => k8s.io/apimachinery v0.30.2
+	k8s.io/cli-runtime => k8s.io/cli-runtime v0.30.2
+	k8s.io/client-go => k8s.io/client-go v0.30.2
+	k8s.io/component-base => k8s.io/component-base v0.30.2
+	k8s.io/kubectl => k8s.io/kubectl v0.30.2
+	sigs.k8s.io/controller-runtime => sigs.k8s.io/controller-runtime v0.18.4
 )
 
 require (
@@ -35,15 +37,15 @@ require (
 	golang.org/x/text v0.15.0
 	gopkg.in/yaml.v3 v3.0.1
 	gotest.tools/v3 v3.5.1
-	helm.sh/helm/v3 v3.14.4
-	k8s.io/api v0.29.5
-	k8s.io/apiextensions-apiserver v0.29.5
-	k8s.io/apimachinery v0.29.5
-	k8s.io/cli-runtime v0.29.5
-	k8s.io/client-go v0.29.5
-	k8s.io/kubectl v0.29.5
+	helm.sh/helm/v3 v3.15.2
+	k8s.io/api v0.30.2
+	k8s.io/apiextensions-apiserver v0.30.2
+	k8s.io/apimachinery v0.30.2
+	k8s.io/cli-runtime v0.30.2
+	k8s.io/client-go v0.30.2
+	k8s.io/kubectl v0.30.2
 	k8s.io/utils v0.0.0-20240502163921-fe8a2dddb1d0
-	sigs.k8s.io/controller-runtime v0.15.3
+	sigs.k8s.io/controller-runtime v0.18.4
 	sigs.k8s.io/yaml v1.4.0
 	tailscale.com v1.38.4
 )
@@ -55,7 +57,8 @@ require (
 	github.com/akutz/memconn v0.1.0 // indirect
 	github.com/alexbrainman/sspi v0.0.0-20210105120005-909beea2cc74 // indirect
 	github.com/containerd/log v0.1.0 // indirect
-	github.com/fxamacker/cbor/v2 v2.4.0 // indirect
+	github.com/distribution/reference v0.5.0 // indirect
+	github.com/fxamacker/cbor/v2 v2.6.0 // indirect
 	github.com/go-jose/go-jose/v4 v4.0.1 // indirect
 	github.com/go-task/slim-sprig/v3 v3.0.0 // indirect
 	github.com/google/gnostic-models v0.6.8 // indirect
@@ -105,16 +108,15 @@ require (
 	github.com/cyphar/filepath-securejoin v0.2.4 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/dexidp/dex/api/v2 v2.1.1-0.20240409110506-3705207f0190 // indirect
-	github.com/docker/cli v24.0.6+incompatible // indirect
-	github.com/docker/distribution v2.8.2+incompatible // indirect
-	github.com/docker/docker v24.0.9+incompatible // indirect
+	github.com/docker/cli v25.0.1+incompatible // indirect
+	github.com/docker/distribution v2.8.3+incompatible // indirect
+	github.com/docker/docker v25.0.5+incompatible // indirect
 	github.com/docker/docker-credential-helpers v0.7.0 // indirect
-	github.com/docker/go-connections v0.4.0 // indirect
+	github.com/docker/go-connections v0.5.0 // indirect
 	github.com/docker/go-metrics v0.0.1 // indirect
-	github.com/docker/go-units v0.5.0 // indirect
 	github.com/emicklei/go-restful/v3 v3.11.0 // indirect
 	github.com/evanphx/json-patch v5.7.0+incompatible // indirect
-	github.com/evanphx/json-patch/v5 v5.8.0 // indirect
+	github.com/evanphx/json-patch/v5 v5.9.0 // indirect
 	github.com/exponent-io/jsonpath v0.0.0-20210407135951-1de76d718b3f // indirect
 	github.com/fatih/color v1.15.0 // indirect
 	github.com/felixge/httpsnoop v1.0.4 // indirect
@@ -174,10 +176,9 @@ require (
 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
 	github.com/modern-go/reflect2 v1.0.2 // indirect
 	github.com/monochromegane/go-gitignore v0.0.0-20200626010858-205db1a8cc00 // indirect
-	github.com/morikuni/aec v1.0.0 // indirect
 	github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 // indirect
 	github.com/opencontainers/go-digest v1.0.0 // indirect
-	github.com/opencontainers/image-spec v1.1.0-rc5 // indirect
+	github.com/opencontainers/image-spec v1.1.0-rc6 // indirect
 	github.com/otiai10/copy v1.14.0
 	github.com/peterbourgon/diskv v2.0.1+incompatible // indirect
 	github.com/prometheus/client_model v0.6.0 // indirect
@@ -216,11 +217,11 @@ require (
 	google.golang.org/protobuf v1.34.1
 	gopkg.in/inf.v0 v0.9.1 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
-	k8s.io/apiserver v0.29.5 // indirect
-	k8s.io/component-base v0.29.5 // indirect
+	k8s.io/apiserver v0.30.2 // indirect
+	k8s.io/component-base v0.30.2 // indirect
 	k8s.io/klog/v2 v2.120.1
-	k8s.io/kube-openapi v0.0.0-20231010175941-2dd684a91f00 // indirect
-	oras.land/oras-go v1.2.4 // indirect
+	k8s.io/kube-openapi v0.0.0-20240228011516-70dd3763d340 // indirect
+	oras.land/oras-go v1.2.5 // indirect
 	sigs.k8s.io/json v0.0.0-20221116044647-bc3834ca7abd // indirect
 	sigs.k8s.io/kustomize/api v0.13.5-0.20230601165947-6ce0bf390ce3 // indirect
 	sigs.k8s.io/kustomize/kyaml v0.14.3-0.20230601165947-6ce0bf390ce3 // indirect
