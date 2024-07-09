@@ -10,8 +10,7 @@ metadata:
   name: kube-monitoring-ingress-ca
   namespace: {{ .Chart.Name }}
 data:
-  ca.crt: {{ required ".Values.monitoring.ingress.tlsClientAuth.cacrt missing" .Values.kubeMonitoring.tlsClientAuth.cacrt | b64enc | quote }}
----
+  ca.crt: {{ required ".Values.monitoring.ingress.tlsClientAuth.cacrt missing" .Values.monitoring.tlsClientAuth.cacrt | b64enc | quote }}
 apiVersion: greenhouse.sap/v1alpha1
 kind: Plugin
 metadata:
