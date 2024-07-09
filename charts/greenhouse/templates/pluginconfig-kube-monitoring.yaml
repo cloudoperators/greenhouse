@@ -4,6 +4,14 @@ SPDX-License-Identifier: Apache-2.0
 */}}
 
 {{- if .Values.monitoring.enabled }}
+apiVersion: v1
+kind: Secret
+metadata:
+  name: kube-monitoring-ingress-ca
+  namespace: {{ .Chart.Name }}
+data:
+  ca.crt: {{ required ".Values.monitoring.ingress.tlsClientAuth.cacrt missing" .Values.kubeMonitoring.tlsClientAuth.cacrt | b64enc | quote }}
+---
 apiVersion: greenhouse.sap/v1alpha1
 kind: Plugin
 metadata:
@@ -20,6 +28,8 @@ spec:
       cluster: {{ .Values.monitoring.extLabels.cluster }}
       region: {{ .Values.monitoring.extLabels.region }}
 {{- end }}
+  - name: kubeMonitoring.prometheus.annotations.nginx\.ingress\.kubernetes\.io/auth-tls-secret
+    value: greenhouse/kube-monitoring-ingress-ca
   - name: kubeMonitoring.prometheus.ingress.enabled
     value: true
   - name: kubeMonitoring.prometheus.ingress.hosts
