@@ -30,6 +30,7 @@ var (
 
 	dockerImageRepository string
 	dockerImageTag        string
+	dockerImagePlatform   string
 
 	dockerImageBuildSkip = false
 
@@ -53,6 +54,7 @@ func init() {
 
 	flag.StringVar(&dockerImageRepository, "dockerImageRepository", "greenhouse", "Docker image repository  for Greenhouse manager")
 	flag.StringVar(&dockerImageTag, "dockerImageTag", "e2e-latest", "Docker image tag for Greenhouse manager")
+	flag.StringVar(&dockerImagePlatform, "dockerImagePlatform", "linux/amd64", "Docker image platform for Greenhouse manager")
 	flag.BoolVar(&dockerImageBuildSkip, "dockerImageBuildSkip", false, "Skip building the docker image for Greenhouse manager")
 
 	flag.StringVar(&greenhouseControllerManagerNamespace, "greenhouseControllerManagerNamespace", "greenhouse", "Namespace for deploying Greenhouse manager")
@@ -221,7 +223,7 @@ func dockerImageBuild(path string, repoAndtag string) error {
 		Dockerfile:     "Dockerfile",
 		Tags:           []string{repoAndtag},
 		Version:        types.BuilderBuildKit,
-		Platform:       "linux/amd64",
+		Platform:       dockerImagePlatform,
 		SuppressOutput: true,
 	}
 	_, err = dockerClient.ImageBuild(ctx, tar, opts)
