@@ -11,6 +11,9 @@ metadata:
   namespace: {{ .Chart.Name }}
 data:
   ca.crt: {{ required ".Values.monitoring.ingress.tlsClientAuth.cacrt missing" .Values.monitoring.ingress.tlsClientAuth.cacrt | b64enc | quote }}
+
+---
+
 apiVersion: greenhouse.sap/v1alpha1
 kind: Plugin
 metadata:
