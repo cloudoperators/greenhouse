@@ -32,7 +32,7 @@ require (
 	github.com/sirupsen/logrus v1.9.3
 	github.com/spf13/cobra v1.8.1
 	github.com/spf13/pflag v1.0.5
-	github.com/wI2L/jsondiff v0.5.2
+	github.com/wI2L/jsondiff v0.6.0
 	go.uber.org/zap v1.27.0
 	golang.org/x/text v0.16.0
 	gopkg.in/yaml.v3 v3.0.1
