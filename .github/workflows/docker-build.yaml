@@ -11,6 +11,8 @@ on:
         - website/**
         - Dockerfile
         - Dockerfile.*
+        - go.mod
+        - go.sum
     tags:
       - v*.*.*
     
