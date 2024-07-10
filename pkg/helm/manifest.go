@@ -109,12 +109,7 @@ func loadManifest(restClientGetter genericclioptions.RESTClientGetter, namespace
 		Flatten().
 		Do().
 		IgnoreErrors(func(err error) bool {
-			// Ignore unknown schema errors if the CRD is not yet present.
-			// this does not work as the error is not wrapped see: https://github.com/kubernetes/kubernetes/issues/119505
-			// return meta.IsNoMatchError(err)
-			// Instead we check the error message for the string
-			return strings.Contains(err.Error(), "ensure CRDs are installed first") ||
-				strings.Contains(err.Error(), "no matches for")
+			return meta.IsNoMatchError(err)
 		})
 	if err := r.Err(); err != nil {
 		return nil, err
