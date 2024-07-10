@@ -40,6 +40,8 @@ spec:
       port: metrics
       scheme: http
       path: /metrics
+  namespaceSelector:
+    any: true
   selector:
     matchLabels:
       app.kubernetes.io/instance: service-proxy
