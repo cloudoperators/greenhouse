@@ -13,8 +13,8 @@ This guide will walk you through the process of spinning up the local developmen
 
 At the end of the guide you will have spun up the local development environment, onboarded a Cluster, created a _PluginDefinition_ and deployed it as a _Plugin_ to the onboarded Cluster.
 
->[!NOTE]
->This guide assumes you already have a working Helm chart and will not cover how to create a Helm Chart from scratch. For more information on how to create a Helm Chart, please refer to the [Helm documentation](https://helm.sh/docs/topics/charts/).
+> [!NOTE]
+> This guide assumes you already have a working Helm chart and will not cover how to create a Helm Chart from scratch. For more information on how to create a Helm Chart, please refer to the [Helm documentation](https://helm.sh/docs/topics/charts/).
 
 ## Requirements
 
@@ -24,13 +24,9 @@ At the end of the guide you will have spun up the local development environment,
 - [kubectl](https://kubernetes.io/docs/reference/kubectl/)
 - [Greenhousectl](https://github.com/cloudoperators/greenhouse/releases)
 
-## Initializing the local development environment
-
-First, let's initialize the local development environment by cloning the [Greenhouse Extensions repository](https://github.com/cloudoperators/greenhouse-extensions/). This repository contains already existing Greenhouse _PluginDefinitions_ as well as the local development environment setup.
-
 ### Starting the local develoment environment
 
-Follow the [Get started](https://github.com/cloudoperators/greenhouse-extensions/tree/main/dev-env#get-started) section of the dev-env README to spin up the local Greenhouse development environment.
+Follow the [Local Development](./../../contribute/local-dev.md) documentation to spin up the local Greenhouse development environment.
 
 This will provide you with a local Greenhouse instance running, filled with some example Greenhouse resources and the Greenhouse UI running on `http://localhost:3000`.
 
@@ -76,7 +72,7 @@ For the bitnami nginx Helm Chart this would be `oci://registry-1.docker.io/bitna
 
 A _PluginDefinition_ may specify a UI application that will be integrated into the Greenhouse UI. This tutorial does not cover how to create a UI application. Therefore the section `.spec.uiApplication` in the `pluginDefinition.yaml` should be removed.
 
->[!INFORMATION]
+> [!INFORMATION]
 > The [UI](https://github.com/cloudoperators/greenhouse-extensions/tree/main/dev-env#ui) section of the dev-env readme provides a brief introduction developing a frontend application for Greenhouse.
 
 ### Modify the Options
@@ -86,13 +82,13 @@ The _PluginDefinition_ contains a section `.spec.options` which defines options 
 In general the options are defined as follows:
 
 ```yaml
-    options:
-        - default: true
-          value: abcd123
-          description: automountServiceAccountToken
-          name: automountServiceAccountToken
-          required: false
-          type: ""
+options:
+  - default: true
+    value: abcd123
+    description: automountServiceAccountToken
+    name: automountServiceAccountToken
+    required: false
+    type: ""
 ```
 
 _default_ specifies if the option should provide a default value. If this is set to true, the value specified will be used as the default value. The _Plugin_ can still provide a different value for this option.

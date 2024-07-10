@@ -4,16 +4,16 @@ linkTitle: "Local development setup"
 landingSectionIndex: true
 weight: 100
 description: >
-  How to run a local greenhouse setup for development
+  How to run a local Greenhouse setup for development
 ---
 
 # What is Greenhouse?
 
-Greenhouse is a [kubernetes operator](https://kubernetes.io/docs/concepts/extend-kubernetes/operator/) build with [kubebuilder](https://book.kubebuilder.io/introduction) and a UI on top of the k8s API.
+Greenhouse is a [Kubernetes operator](https://Kubernetes.io/docs/concepts/extend-Kubernetes/operator/) build with [Kubebuilder](https://book.kubebuilder.io/introduction) and a UI on top of the k8s API.
 
-It expands the kubernetes API via CustomResourceDefinitions. The different aspects of the CRDs are reconciled by several [controllers](https://book.kubebuilder.io/cronjob-tutorial/controller-overview.html). It also acts as [an admission webhook](https://book.kubebuilder.io/reference/admission-webhook.html).
+It expands the Kubernetes API via CustomResourceDefinitions. The different aspects of the CRDs are reconciled by several [controllers](https://book.kubebuilder.io/cronjob-tutorial/controller-overview.html). It also acts as [an admission webhook](https://book.kubebuilder.io/reference/admission-webhook.html).
 
-The Greenhouse Dashboard is a UI acting on the k8s apiserver of the cluster greenhouse is running in. It includes a dashboard and an organization admin consisting of several [Juno](https://github.com/cloudoperators/juno) micro frontends.
+The Greenhouse Dashboard is a UI acting on the k8s apiserver of the cluster Greenhouse is running in. It includes a dashboard and an Organization admin consisting of several [Juno](https://github.com/cloudoperators/juno) micro frontends.
 
 This guide provides the following:
 
@@ -41,7 +41,7 @@ Quick start the local setup with [docker compose](#docker-compose)
 
 ### Mock k8s Server, a.k.a. `envtest`
 
-The greenhouse controller needs a kubernetes API to run it's reconciliation against. This k8s API needs to know about the greenhouse CRDs to maintain the state of their respective resources. It also needs to know about any running admission/validation webhooks.
+The Greenhouse controller needs a Kubernetes API to run it's reconciliation against. This k8s API needs to know about the Greenhouse CRDs to maintain the state of their respective resources. It also needs to know about any running admission/validation webhooks.
 
 We provide a local mock k8s apiserver and etcd leveraging the [envtest](https://pkg.go.dev/sigs.k8s.io/controller-runtime/pkg/envtest) package of SIG controller-runtime. This comes with the CRDs and MutatingWebhookConfiguration installed and provides a little bit of utility. Find the [docker image on our registry](https://github.com/cloudoperators/greenhouse/pkgs/container/greenhouse-dev-env).
 
@@ -99,7 +99,7 @@ docker run --network host -e KUBECONFIG=/envtest/kubeconfig -v ./envtest:/envtes
 
 ## Greenhouse UI
 
-To run the greenhouse UI locally you can either run the docker image exposing port `3000` or in `host` network:
+To run the Greenhouse UI locally you can either run the docker image exposing port `3000` or in `host` network:
 
 ```bash
 docker run --network host ghcr.io/cloudoperators/greenhouse-dev-ui:main
@@ -115,7 +115,7 @@ npm start --prefix ./ui/dashboard
 
 As you might have noticed we inject a [props template prepared for dev-env](https://github.com/cloudoperators/greenhouse/tree/main/dev-env/build/greenhouse-ui/secretProps.json) expecting the k8s api to run on `127.0.0.1:8090`, which is the default exported by the [mock api server image](#mock-k8s-server-aka-dev-env). Also authentication will be mocked.
 
-Have a look at the [props template](https://github.com/cloudoperators/greenhouse/blob/main/ui/dashboard/secretProps.template.json) to point your local UI to other running greenhouse instances.
+Have a look at the [props template](https://github.com/cloudoperators/greenhouse/blob/main/ui/dashboard/secretProps.template.json) to point your local UI to other running Greenhouse instances.
 
 Access the UI on [localhost:3000](http://localhost:3000/).
 
@@ -129,7 +129,7 @@ APP_PORT=<your-port> npm start --prefix ./ui/dashboard
 
 ## docker compose
 
-If you do not need or want to run your local code but want to run a set of greenhouse images we provide a setup with [docker compose](https://github.com/cloudoperators/greenhouse/blob/main/dev-env/docker-compose.yaml) and can be started via
+If you do not need or want to run your local code but want to run a set of Greenhouse images we provide a setup with [docker compose](https://github.com/cloudoperators/greenhouse/blob/main/dev-env/docker-compose.yaml) and can be started via
 
 ```bash
 docker compose up
@@ -141,11 +141,20 @@ The [network-host.docker-compose.yaml](https://github.com/cloudoperators/greenho
 
 ## Bootstrap
 
-The [docker compose](#docker-compose) setup bootstraps [a couple of resources](https://github.com/cloudoperators/greenhouse/tree/main/dev-env/bootstrap) to the mock api server:
+The [docker-compose](#docker-compose) setup per default bootstraps an Organization [test-org](https://github.com/cloudoperators/greenhouse/tree/main/dev-env/bootstrap/test-org.yaml) to your cluster, which is the bare minimum to get the `dev-env` working.
 
-- organization [test-org](https://github.com/cloudoperators/greenhouse/tree/main/dev-env/bootstrap/test-org.yaml)
-- [test-team-1 through test-team-3](https://github.com/cloudoperators/greenhouse/tree/main/dev-env/bootstrap/teams.yaml) within organization `test-org`
+Running
+
+```bash
+docker compose run bootstrap kubectl apply -f /bootstrap/additional_resources
+```
+
+or uncommenting the additional resources in the command of the bootstrap container on the [docker-compose](https://github.com/cloudoperators/greenhouse/blob/main/dev-env/docker-compose.yaml#L50) file will additionally deploy the following:
+
+- [test-team-1 through test-team-3](https://github.com/cloudoperators/greenhouse/tree/main/dev-env/bootstrap/teams.yaml) within Organization `test-org`
 - respective dummy teammemberships for both teams
 - [cluster-1 through cluster-3 and self](https://github.com/cloudoperators/greenhouse/tree/main/dev-env/bootstrap/clusters.yaml) with different conditions and states
 - some [dummy nodes](https://github.com/cloudoperators/greenhouse/tree/main/dev-env/bootstrap/nodes.yaml) for clusters
 - some [plugindefinitions with plugins](https://github.com/cloudoperators/greenhouse/tree/main/dev-env/bootstrap/plugins.yamls) across the clusters
+
+> Note: These resources are intended to showcase the UI and produce a lot of _"noise"_ on the Greenhouse controller.

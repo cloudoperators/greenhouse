@@ -10,7 +10,7 @@ services:
     network_mode: host
     environment:
       # one of ["test-org-admin", "test-org-member", "test-org-cluster-admin", "test-org-plugin-admin"] - leave unset for "cluster-admin"
-      - DEV_ENV_CONTEXT=test-org-member
+      - DEV_ENV_CONTEXT
       # set to true for control plane output
       - KUBEBUILDER_ATTACH_CONTROL_PLANE_OUTPUT=false
     healthcheck:
@@ -45,7 +45,7 @@ services:
     volumes:
       - ./envtest:/envtest
       - ./bootstrap:/bootstrap
-    command: kubectl apply -f /bootstrap
+    command: kubectl apply -f /bootstrap #-f /bootstrap/additional_resources
     depends_on:
       - greenhouse
     network_mode: service:envtest
