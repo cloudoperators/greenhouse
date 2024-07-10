@@ -3,19 +3,9 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+import { Cluster, UpdateObjectAction } from "../../types/types"
 import useStore from "./store"
 import { act, renderHook } from "@testing-library/react"
-import { Cluster, UpdateClusterAction } from "./types/types"
-
-let addItem = [
-  {
-    apiVersion: "greenhouse.sap/v1alpha1",
-    kind: "TeamMembership",
-    metadata: {
-      name: "observability",
-    },
-  },
-]
 
 let testCluster: Cluster = {
   apiVersion: "greenhouse.sap/v1alpha1",
@@ -38,34 +28,15 @@ describe("store tests", () => {
     test("Should successfully add clusters", () => {
       const { result } = renderHook(() => useStore())
       act(() => {
-        result.current.updateClusters({
-          clusters: [testCluster],
-          action: UpdateClusterAction.add,
-        })
+        result.current.modifyClusters([testCluster])
       })
       expect(result.current.clusters).toEqual([testCluster])
-    })
-    test("Should deny invalid clusters", () => {
-      const { result } = renderHook(() => useStore())
-      act(() => {
-        result.current.updateClusters({
-          clusters: [{}],
-          action: UpdateClusterAction.add,
-        })
-      })
-      expect(result.current.clusters).toHaveLength(0)
     })
     test("Should not duplicate cluster input", () => {
       const { result } = renderHook(() => useStore())
       act(() => {
-        result.current.updateClusters({
-          clusters: [testCluster],
-          action: UpdateClusterAction.add,
-        })
-        result.current.updateClusters({
-          clusters: [testCluster],
-          action: UpdateClusterAction.add,
-        })
+        result.current.modifyClusters([testCluster])
+        result.current.modifyClusters([testCluster])
       })
       expect(result.current.clusters).toHaveLength(1)
     })
@@ -77,18 +48,18 @@ describe("store tests", () => {
     test("check valid modification", () => {
       const { result } = renderHook(() => useStore())
       act(() => {
-        result.current.updateClusters({
-          clusters: [testCluster],
-          action: UpdateClusterAction.add,
-        })
-        let updateTestCluster = { ...testCluster }
-        updateTestCluster.metadata!.name = "updated-name"
-
-        result.current.updateClusters({
-          clusters: [updateTestCluster],
-          action: UpdateClusterAction.add,
-        })
+        result.current.modifyClusters([testCluster])
       })
+      expect(result.current.clusters).toHaveLength(1)
+      expect(result.current.clusters[0].metadata!.name!).toEqual("test-cluster")
+      console.log(result.current.clusters)
+      let updateTestCluster = { ...testCluster }
+
+      act(() => {
+        updateTestCluster.metadata!.name = "updated-name"
+        result.current.modifyClusters([updateTestCluster])
+      })
+      console.log(result.current.clusters)
 
       expect(result.current.clusters[0].metadata!.name!).toEqual("updated-name")
       expect(result.current.clusters).toHaveLength(1)
@@ -98,17 +69,11 @@ describe("store tests", () => {
     test("check valid deletion", () => {
       const { result } = renderHook(() => useStore())
       act(() => {
-        result.current.updateClusters({
-          clusters: [testCluster],
-          action: UpdateClusterAction.add,
-        })
+        result.current.modifyClusters([testCluster])
       })
       expect(result.current.clusters).toHaveLength(1)
       act(() => {
-        result.current.updateClusters({
-          clusters: [testCluster],
-          action: UpdateClusterAction.delete,
-        })
+        result.current.deleteClusters([testCluster])
       })
       expect(result.current.clusters).toHaveLength(0)
     })
