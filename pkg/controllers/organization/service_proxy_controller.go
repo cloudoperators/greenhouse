@@ -20,7 +20,6 @@ import (
 	greenhousesapv1alpha1 "github.com/cloudoperators/greenhouse/pkg/apis/greenhouse/v1alpha1"
 	"github.com/cloudoperators/greenhouse/pkg/clientutil"
 	"github.com/cloudoperators/greenhouse/pkg/common"
-	"github.com/cloudoperators/greenhouse/pkg/version"
 )
 
 // ServiceProxyReconciler reconciles a ServiceProxy Plugin for a Organization object
@@ -64,10 +63,6 @@ func (r *ServiceProxyReconciler) reconcileServiceProxy(ctx context.Context, org 
 	if err != nil {
 		return fmt.Errorf("failed to marshal domain: %w", err)
 	}
-	versionJSON, err := json.Marshal(version.GitCommit)
-	if err != nil {
-		return fmt.Errorf("failed to marshal version.GitCommit: %w", err)
-	}
 
 	plugin := &greenhousesapv1alpha1.Plugin{
 		ObjectMeta: metav1.ObjectMeta{
@@ -85,10 +80,6 @@ func (r *ServiceProxyReconciler) reconcileServiceProxy(ctx context.Context, org 
 			{
 				Name:  "domain",
 				Value: &apiextensionsv1.JSON{Raw: domainJSON},
-			},
-			{
-				Name:  "image.tag",
-				Value: &apiextensionsv1.JSON{Raw: versionJSON},
 			},
 		}
 		return controllerutil.SetControllerReference(org, plugin, r.Scheme())
