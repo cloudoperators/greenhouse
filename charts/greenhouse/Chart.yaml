@@ -5,7 +5,7 @@ apiVersion: v2
 name: greenhouse
 description: A Helm chart for deploying greenhouse
 type: application
-version: 0.1.13
+version: 0.1.14
 appVersion: "0.1.0"
 
 dependencies:
@@ -36,5 +36,5 @@ dependencies:
     version: 0.1.2
     repository: "file://../ui"
   - name: demo
-    version: 0.1.0
+    version: 0.1.1
     repository: "file://../demo"

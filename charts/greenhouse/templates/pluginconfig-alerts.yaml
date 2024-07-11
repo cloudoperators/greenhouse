@@ -43,9 +43,10 @@ spec:
       value:
         type: None
 {{- if and .Values.alerts.slack.webhookURL .Values.alerts.slack.channel }}
-    - name: alerts.alertmanagerConfig.slack.webhookURL
-      value: {{ .Values.alerts.slack.webhookURL }}
-    - name: alerts.alertmanagerConfig.slack.channel
-      value: {{ .Values.alerts.slack.channel }}
+    - name: alerts.alertmanagerConfig.slack.routes
+      value:
+        - channel: {{ printf "#%s" .Values.alerts.slack.channel | quote }}
+          name: {{ .Values.alerts.slack.channel }}
+          webhookURL: {{ .Values.alerts.slack.webhookURL }}
 {{- end }}
 {{- end }}

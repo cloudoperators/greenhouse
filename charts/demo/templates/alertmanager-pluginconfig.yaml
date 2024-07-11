@@ -7,7 +7,7 @@ SPDX-License-Identifier: Apache-2.0
 apiVersion: greenhouse.sap/v1alpha1
 kind: Plugin
 metadata:
-  name: alerts
+  name: alerts-demo
   namespace: {{ .Chart.Name }}
 spec:
   pluginDefinition: alerts
