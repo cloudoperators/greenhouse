@@ -64,4 +64,42 @@ spec:
 		Ω(manifestObjectMap[key].Object).
 			ShouldNot(BeNil(), "the object should not be nil")
 	})
+
+	It("should not throw any error for missing CRDs", func() {
+		helmReleaseWithManifest := &release.Release{
+			Manifest: `
+---
+# Source: some file0.yaml
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: greenhouse
+---
+# Source: some file1.yaml
+apiVersion: v3
+kind: ImaginaryCRD
+metadata:
+  name: exposed-service
+  namespace: greenhouse
+  labels:
+    greenhouse.sap/expose: "true"
+spec:
+  selector:
+    app: some-app
+  type: ClusterIP
+  ports:
+  - name: http
+    port: 80
+---
+`,
+		}
+
+		manifestObjectMap, err := helm.ObjectMapFromRelease(clientutil.NewRestClientGetterFromRestConfig(test.Cfg, "greenhouse", clientutil.WithPersistentConfig()), helmReleaseWithManifest, nil)
+		Ω(err).
+			ShouldNot(HaveOccurred(), "there should be no error getting the objects from the helm release")
+		Ω(manifestObjectMap).
+			ShouldNot(BeNil(), "the manifest object list should not be nil")
+		Ω(manifestObjectMap).
+			Should(HaveLen(1), "there should be one object in the manifest object list ignoring the missing CRD")
+	})
 })

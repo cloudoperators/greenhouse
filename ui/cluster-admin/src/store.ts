@@ -26,7 +26,8 @@ export interface State {
   logout: any
 
   clusters: Cluster[]
-  updateClusters: (input: UpdateClusterInput) => void
+  modifyClusters: (clusters: Cluster[]) => void
+  deleteClusters: (clusters: Cluster[]) => void
 
   clusterDetails: {
     cluster: Cluster | null
@@ -61,35 +62,29 @@ const useStore = create<State>((set) => ({
   logout: null,
 
   clusters: [],
-  updateClusters: (input: UpdateClusterInput) =>
+  modifyClusters: (clusters: Cluster[]) =>
     set((state) => {
-      let clusters = [...state.clusters]
-      // validate clusters: only accept input.clusters that have metadata.name set
-      input.clusters = input.clusters.filter((cluster) => {
-        return cluster.metadata?.name ?? undefined !== undefined
-      })
-
-      if (input.action === UpdateObjectAction.delete) {
-        clusters = clusters.filter((knownCluster) => {
-          return input.clusters.some((inputCluster) => {
-            return knownCluster.metadata!.name !== inputCluster.metadata!.name
-          })
-        })
-        return { ...state, clusters: clusters }
-      }
-
-      input.clusters.forEach((inputCluster) => {
-        // replace existing cluster with new one or add new cluster
-        const index = clusters.findIndex((knownCluster) => {
+      let newClusters = [...state.clusters]
+      clusters.forEach((inputCluster) => {
+        const index = newClusters.findIndex((knownCluster) => {
           return knownCluster.metadata!.name === inputCluster.metadata!.name
         })
         if (index >= 0) {
-          clusters[index] = inputCluster
+          newClusters[index] = inputCluster
         } else {
-          clusters.push(inputCluster)
+          newClusters.push(inputCluster)
         }
       })
-      return { ...state, clusters: clusters }
+      return { ...state, clusters: newClusters }
+    }),
+  deleteClusters: (clusters: Cluster[]) =>
+    set((state) => {
+      const newClusters = state.clusters.filter((knownCluster) => {
+        return !clusters.some((inputCluster) => {
+          return knownCluster.metadata!.name === inputCluster.metadata!.name
+        })
+      })
+      return { clusters: newClusters }
     }),
 
   clusterDetails: {

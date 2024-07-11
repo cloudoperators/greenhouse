@@ -317,17 +317,19 @@ var _ = Describe("Validate pluginConfig clusterName", Ordered, func() {
 		}).Should(HaveKeyWithValue(greenhouseapis.LabelKeyCluster, "test-cluster"), "the plugin should have a matching cluster label")
 	})
 
-	It("should reject a plugin update with a wrong cluster name reference", func() {
+	It("should reject a plugin update where the clusterName changes", func() {
 		testPlugin.Spec.ClusterName = "wrong-cluster-name"
 		err := test.K8sClient.Update(test.Ctx, testPlugin)
 
-		expectClusterNotFoundError(err)
+		Expect(err).ToNot(BeNil(), "there should be an error changing the plugin's clusterName")
+		Expect(err.Error()).To(ContainSubstring("field is immutable"))
 	})
 
 	It("should not allow deletion of the clusterName reference in existing plugin", func() {
 		testPlugin.Spec.ClusterName = ""
 		err := test.K8sClient.Update(test.Ctx, testPlugin)
-		expectClusterMustBeSetError(err)
+		Expect(err).ToNot(BeNil(), "there should be an error changing the plugin's clusterName")
+		Expect(err.Error()).To(ContainSubstring("field is immutable"))
 		// reset the clusterName for following tests to pass
 		testPlugin.Spec.ClusterName = "test-cluster"
 	})

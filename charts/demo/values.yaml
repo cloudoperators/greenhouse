@@ -40,7 +40,7 @@ alerts:
 
   # endpoint for the CronJob to send the dummy alerts to
   generator:
-    endpoint: "alerts-alertmanager.demo.svc:9093"
+    endpoint: "alerts-demo-alertmanager.demo.svc:9093"
 
 doop:
   enabled: true

@@ -61,7 +61,9 @@
       authScript.setAttribute("data-props-initial-login", "true")
       authScript.setAttribute("data-props-issuerUrl", authProps?.authIssuerUrl)
       authScript.setAttribute("data-props-clientId", authProps?.authClientId)
-      authScript.setAttribute("data-props-mock", authProps?.mock)
+      if (authProps?.mock) {
+        authScript.setAttribute("data-props-mock", authProps?.mock)
+      }
       document.body.appendChild(authScript)
     </script>
     <div id="root" data-juno-app="plugin-admin"></div>

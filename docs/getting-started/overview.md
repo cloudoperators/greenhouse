@@ -5,7 +5,7 @@ weight: 1
 
 ## What is Greenhouse?
 
-<a href="https://github.com/cloudoperators/greenhouse"><img align="left" width="150" height="170" src="./../assets/greenhouse.svg"></a>
+![](../greenhouse.svg) 
 
 Greenhouse is a cloud operations platform designed to streamline and simplify the management of a large-scale, distributed infrastructure.  
 
@@ -16,7 +16,7 @@ With its operator-friendly dashboard, features and extensive automation capabili
 
 ## Value Propositions
 
-![](./../assets/value-propositions.png)
+![](../value-propositions.png)
 
 ## Roadmap
 
@@ -24,4 +24,4 @@ The [Roadmap Kanban board](https://github.com/orgs/cloudoperators/projects/1) pr
 
 ## Architecture & Design
 
-The [Greenhouse design and architecture document](docs/design/product_design.md) describes the various use-cases and user stories.
+The [Greenhouse design and architecture document](../../architecture/product_design) describes the various use-cases and user stories.

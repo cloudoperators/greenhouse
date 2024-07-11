@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useMemo } from "react"
+import { useMemo } from "react"
 import useStore from "../store"
 
 export const useNamespace = () => {

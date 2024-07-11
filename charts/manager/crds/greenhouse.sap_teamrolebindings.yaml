@@ -17,7 +17,20 @@ spec:
     singular: teamrolebinding
   scope: Namespaced
   versions:
-  - name: v1alpha1
+  - additionalPrinterColumns:
+    - jsonPath: .spec.teamRoleRef
+      name: Team Role
+      type: string
+    - jsonPath: .spec.teamRef
+      name: Team
+      type: string
+    - jsonPath: .status.statusConditions.conditions[?(@.type == "Ready")].status
+      name: Ready
+      type: string
+    - jsonPath: .metadata.creationTimestamp
+      name: Age
+      type: date
+    name: v1alpha1
     schema:
       openAPIV3Schema:
         description: TeamRoleBinding is the Schema for the rolebindings API
@@ -76,11 +89,13 @@ spec:
                           items:
                             type: string
                           type: array
+                          x-kubernetes-list-type: atomic
                       required:
                       - key
                       - operator
                       type: object
                     type: array
+                    x-kubernetes-list-type: atomic
                   matchLabels:
                     additionalProperties:
                       type: string

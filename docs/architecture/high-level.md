@@ -28,4 +28,4 @@ Conceptually, the Greenhouse platform consists of 2 types of Kubernetes cluster 
 
 A simplified architecture of the Greenhouse platform is illustrated below. 
 
-![Simplified architecture](./../assets/simplified-architecture.png)
+![Simplified architecture](../simplified-architecture.png)

@@ -1,6 +1,7 @@
-[![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
-
 # greenhouse-plugin-admin
+
+[![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
+[![Built with Juno](https://cloudoperators.github.io/juno/built-with-juno.svg)](https://github.com/cloudoperators/juno)
 
 This is the ui for the greenhouse plugin admin screen.
 
@@ -28,3 +29,24 @@ npm start
 ```
 
 Frontend is served on [localhost:3000](http://localhost:3000)
+
+Use the following template to point this MFE to a running greenhouse installation:
+
+```json
+{
+  "endpoint": "https://your-greenhouse-k8s-api-endpoint",
+  "environment": "development",
+  "appDependencies": {
+    "auth": {
+      "authIssuerUrl": "https://your-greenhouse-idproxy-url",
+      "authClientId": "your-oidc-client-id"
+    }
+  }
+}
+```
+
+Start the app on a `port` different to `3000`:
+
+```bash
+APP_PORT=<your-port> npm start
+```

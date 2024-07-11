@@ -17,7 +17,11 @@ spec:
     singular: teamrole
   scope: Namespaced
   versions:
-  - name: v1alpha1
+  - additionalPrinterColumns:
+    - jsonPath: .metadata.creationTimestamp
+      name: Age
+      type: date
+    name: v1alpha1
     schema:
       openAPIV3Schema:
         description: TeamRole is the Schema for the TeamRoles API
@@ -57,6 +61,7 @@ spec:
                       items:
                         type: string
                       type: array
+                      x-kubernetes-list-type: atomic
                     nonResourceURLs:
                       description: |-
                         NonResourceURLs is a set of partial urls that a user should have access to.  *s are allowed, but only as the full, final step in the path
@@ -65,6 +70,7 @@ spec:
                       items:
                         type: string
                       type: array
+                      x-kubernetes-list-type: atomic
                     resourceNames:
                       description: ResourceNames is an optional white list of names
                         that the rule applies to.  An empty set means that everything
@@ -72,18 +78,21 @@ spec:
                       items:
                         type: string
                       type: array
+                      x-kubernetes-list-type: atomic
                     resources:
                       description: Resources is a list of resources this rule applies
                         to. '*' represents all resources.
                       items:
                         type: string
                       type: array
+                      x-kubernetes-list-type: atomic
                     verbs:
                       description: Verbs is a list of Verbs that apply to ALL the
                         ResourceKinds contained in this rule. '*' represents all verbs.
                       items:
                         type: string
                       type: array
+                      x-kubernetes-list-type: atomic
                   required:
                   - verbs
                   type: object

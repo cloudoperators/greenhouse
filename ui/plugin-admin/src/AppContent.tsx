@@ -3,21 +3,14 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import {
-  Container,
-  MainTabs,
-  Message,
-  Stack,
-  Tab,
-  TabList,
-  TabPanel,
-} from "juno-ui-components"
+import { Container } from "juno-ui-components"
+import { Messages } from "messages-provider"
 import { useEffect } from "react"
+import PluginDefinitionPanel from "./plugindefinitions/components/PluginDefinitionPanel"
 import WelcomeView from "./plugindefinitions/components/WelcomeView"
 import usePluginDefinitionsStore from "./plugindefinitions/store"
 import PluginDetail from "./plugins/components/PluginDetail"
 import PluginList from "./plugins/components/PluginList"
-import PluginDefinitionPanel from "./plugindefinitions/components/PluginDefinitionPanel"
 import useAPI from "./plugins/hooks/useAPI"
 
 const AppContent = () => {
@@ -30,7 +23,6 @@ const AppContent = () => {
   useEffect(() => {
     if (!getPlugins) return
     const plugins = getPlugins()
-    console.log("getPlugins", plugins)
   }, [getPlugins])
 
   return (
@@ -39,6 +31,7 @@ const AppContent = () => {
         <>
           <PluginDefinitionPanel />
           <PluginDetail />
+          <Messages />
           <PluginList />
         </>
       ) : (

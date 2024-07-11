@@ -10,6 +10,8 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
+
+	greenhouseapis "github.com/cloudoperators/greenhouse/pkg/apis"
 )
 
 func getPortForExposedService(o runtime.Object) (*corev1.ServicePort, error) {
@@ -17,10 +19,23 @@ func getPortForExposedService(o runtime.Object) (*corev1.ServicePort, error) {
 	if err != nil {
 		return nil, err
 	}
-	// For now, always use the first port.
+
 	if svc.Spec.Ports == nil || len(svc.Spec.Ports) == 0 {
 		return nil, errors.New("service has no ports")
 	}
+
+	//Check for matching of named port set by label
+	var namedPort string = svc.Labels[greenhouseapis.LabelKeyExposeNamedPort]
+
+	if namedPort != "" {
+		for _, port := range svc.Spec.Ports {
+			if port.Name == namedPort {
+				return port.DeepCopy(), nil
+			}
+		}
+	}
+
+	// Default to first port
 	return svc.Spec.Ports[0].DeepCopy(), nil
 }
 
