@@ -17,6 +17,7 @@ import (
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/client"
 	"github.com/docker/docker/pkg/archive"
+	"gopkg.in/yaml.v3"
 	"helm.sh/helm/v3/pkg/action"
 	"helm.sh/helm/v3/pkg/chart/loader"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
@@ -40,6 +41,12 @@ var (
 
 	greenhouseControllerManagerNamespace string
 	greenhouseControllerManagerRelease   string
+
+	greenhouseControllerManagerValuesFilename string
+
+	idProxyNamespace      string
+	idProxyRelease        string
+	idProxyValuesFilename string
 )
 
 const (
@@ -63,6 +70,12 @@ func init() {
 
 	flag.StringVar(&greenhouseControllerManagerNamespace, "greenhouseControllerManagerNamespace", "greenhouse", "Namespace for deploying Greenhouse manager")
 	flag.StringVar(&greenhouseControllerManagerRelease, "greenhouseControllerManagerRelease", "greenhouse", "Helm release name for deploying Greenhouse manager")
+
+	flag.StringVar(&greenhouseControllerManagerValuesFilename, "greenhouseControllerManagerValuesFile", "./manager.values.yaml", "path to the values file for greenhouse controller manager")
+
+	flag.StringVar(&idProxyNamespace, "gidProxyNamespace", "greenhouse", "Namespace for deploying idproxy")
+	flag.StringVar(&idProxyRelease, "idProxyRelease", "idproxy", "Helm release name for deploying idproxy")
+	flag.StringVar(&idProxyValuesFilename, "idProxyValuesFilename", "./idproxy.values.yaml", "path to the values file for idproxy")
 
 	flag.Parse()
 
@@ -132,8 +145,16 @@ func main() {
 	}
 	l.Info("Docker image loaded to the cluster successfully")
 
+	// Deploy idproxy chart
+	err = installChart(ctx, "./../../../charts/idproxy", idProxyRelease, kubeconfig, idProxyNamespace, idProxyValuesFilename)
+	if err != nil {
+		l.Error(err, "deploy idproxy")
+		os.Exit(1)
+	}
+	l.Info("idproxy is deployed successfully")
+
 	// Deploy Greenhouse manager
-	err = installChart(ctx, "./../../../charts/manager", greenhouseControllerManagerRelease, kubeconfig, greenhouseControllerManagerNamespace)
+	err = installChart(ctx, "./../../../charts/manager", greenhouseControllerManagerRelease, kubeconfig, greenhouseControllerManagerNamespace, greenhouseControllerManagerValuesFilename)
 	if err != nil {
 		l.Error(err, "deploy greenhouse")
 		os.Exit(1)
@@ -142,7 +163,7 @@ func main() {
 
 }
 
-func installChart(ctx context.Context, dir, release, kubeconfig string, namespace string) error {
+func installChart(ctx context.Context, dir, release, kubeconfig string, namespace string, valuesFilename string) error {
 
 	l := log.FromContext(ctx)
 
@@ -164,20 +185,15 @@ func installChart(ctx context.Context, dir, release, kubeconfig string, namespac
 		return err
 	}
 
-	// These values are the minimal set of required values to deploy manager helm chart
-	globalDNS := map[string]interface{}{"dnsDomain": "greenhouse.cloudoperators"}
-	chart.Values["global"] = globalDNS
-
-	controllerManagerImage := map[string]interface{}{"repository": dockerImageRepository, "tag": dockerImageTag}
-	controllerManager, ok := chart.Values["controllerManager"].(map[string]interface{})
-	if !ok {
-		l.Error(err, "value merge")
-		os.Exit(1)
+	values := map[string]interface{}{}
+	valuesFile, err := os.ReadFile(valuesFilename)
+	if err != nil {
+		return err
 	}
-	controllerManager["image"] = controllerManagerImage
-	controllerManager["replicas"] = "1"
-	chart.Values["controllerManager"] = controllerManager
-	// These values are the minimal set of required values to deploy manager helm chart
+	err = yaml.Unmarshal(valuesFile, &values)
+	if err != nil {
+		return err
+	}
 
 	get := action.NewGet(actionConfig)
 	_, err = get.Run(release)
@@ -190,7 +206,7 @@ func installChart(ctx context.Context, dir, release, kubeconfig string, namespac
 			client.Wait = true
 			client.Timeout = TEST_TIMEOUT
 
-			if _, err := client.Run(chart, chart.Values); err != nil {
+			if _, err := client.RunWithContext(ctx, chart, values); err != nil {
 				l.Error(err, "chart install")
 				return err
 			}
@@ -200,7 +216,7 @@ func installChart(ctx context.Context, dir, release, kubeconfig string, namespac
 		client.Namespace = namespace
 		client.Wait = true
 		client.Timeout = TEST_TIMEOUT
-		if _, err := client.Run(release, chart, chart.Values); err != nil {
+		if _, err := client.RunWithContext(ctx, release, chart, values); err != nil {
 			l.Error(err, "chart upgrade")
 			return err
 		}
