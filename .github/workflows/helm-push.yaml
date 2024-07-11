@@ -23,8 +23,6 @@ jobs:
         include:
           - chartDir: charts/greenhouse
             chartName: greenhouse
-          - chartDir: charts/website
-            chartName: website
 
     steps:
       - uses: actions/checkout@v4
