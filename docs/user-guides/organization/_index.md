@@ -2,7 +2,7 @@
 title: "Organization management"
 linkTitle: "Organization management"
 weight: 1
-landingSectionIndex: true
+landingSectionIndex: false
 description: >
   Manage your organization in Greenhouse.
 ---

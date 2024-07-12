@@ -1,7 +1,7 @@
 ---
 title: "Architecture"
 linkTitle: "Architecture"
-landingSectionIndex: true
+landingSectionIndex: false
 weight: 3
 description: >
   Explore the architecture and design of Greenhouse.

@@ -3,7 +3,7 @@ title: "API reference"
 linkTitle: "API reference"
 weight: 1
 type: swagger
-landingSectionIndex: true
+landingSectionIndex: false
 description: >
   API reference
 ---
