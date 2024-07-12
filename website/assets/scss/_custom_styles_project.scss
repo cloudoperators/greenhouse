@@ -1,0 +1,33 @@
+footer {
+  .footer-hero-link {
+    font-weight: 700;
+    font-size: 1.125rem;
+    line-height: 1.75rem;
+    padding-left: 1rem;
+    text-decoration: none;
+  }
+}
+
+.nav-header {
+  .nav-header-buttons {
+    margin-left: auto;
+    padding-inline-start: 1rem;
+  }
+}
+
+.btn {
+  &.btn-greenhouse {
+    background: var(--color-white) url("../assets/greenhouse_logo.svg")
+      no-repeat;
+    background-size: 27px;
+    background-position: right 5px bottom 5px;
+    color: #000;
+    border: none;
+    display: inline-block;
+    padding-right: 45px;
+
+    &:hover {
+      text-decoration: underline;
+    }
+  }
+}
