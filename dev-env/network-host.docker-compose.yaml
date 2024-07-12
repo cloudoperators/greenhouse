@@ -45,7 +45,7 @@ services:
     volumes:
       - ./envtest:/envtest
       - ./bootstrap:/bootstrap
-    command: kubectl apply -f /bootstrap #-f /bootstrap/additional_resources
+    command: kubectl apply -f /core-bootstrap -f /bootstrap #-f /bootstrap/additional_resources
     depends_on:
       - greenhouse
     network_mode: service:envtest

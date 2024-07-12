@@ -29,6 +29,8 @@ This guide provides the following:
 
    1.5 [Bootstrap](#bootstrap)
 
+2. [Run the tests](#run-the-tests)
+
 ## Local Setup
 
 Quick start the local setup with [docker compose](#docker-compose)
@@ -97,6 +99,10 @@ Or run our [greenhouse image](https://github.com/cloudoperators/greenhouse/pkgs/
 docker run --network host -e KUBECONFIG=/envtest/kubeconfig -v ./envtest:/envtest -v /tmp/k8s-webhook-server/serving-certs:/tmp/k8s-webhook-server/serving-certs ghcr.io/cloudoperators/greenhouse:main --dns-domain localhost
 ```
 
+See all available flags [here](https://github.com/cloudoperators/greenhouse/blob/main/cmd/greenhouse/main.go#L59-L87).
+
+Note that not setting `headscaleAPIURL`, `headscaleAPIKey` or `tailscaleProxy` will prevent running the [headscale access controller](https://github.com/cloudoperators/greenhouse/blob/main/pkg/controllers/cluster/headscale_access_controller.go).
+
 ## Greenhouse UI
 
 To run the Greenhouse UI locally you can either run the docker image exposing port `3000` or in `host` network:
@@ -158,3 +164,31 @@ or uncommenting the additional resources in the command of the bootstrap contain
 - some [plugindefinitions with plugins](https://github.com/cloudoperators/greenhouse/tree/main/dev-env/bootstrap/plugins.yamls) across the clusters
 
 > Note: These resources are intended to showcase the UI and produce a lot of _"noise"_ on the Greenhouse controller.
+
+Add any additional resources you need to the `./bootstrap` folder.
+
+## Run the tests
+
+For running `e2e` tests see [here](https://github.com/cloudoperators/greenhouse/blob/main/test/e2e/README.md).
+
+Same as the local setup our `unit` tests run against an `envtest` mock cluster. To install [the setup-envtest tool](https://pkg.go.dev/sigs.k8s.io/controller-runtime/tools/setup-envtest) run
+
+```bash
+make envtest
+```
+
+which will install `setup-envtest` to your `$(LOCALBIN)`, usually `./bin`.
+
+To run all tests from cli:
+
+```bash
+make test
+```
+
+To run tests independently make sure the `$(KUBEBUILDER_ASSETS)` env var is set. This variable contains the path to the binary to use for starting up the mock controlplane with the respective k8s version on your architecture.
+
+Print the path by executing:
+
+```bash
+./bin/setup-envtest use <your-preferred-k8s-version> -p path
+```
