@@ -173,3 +173,15 @@ golint: $(GOLINT)
 $(GOLINT): $(LOCALBIN)
 	GOBIN=$(LOCALBIN) go install github.com/golangci/golangci-lint/cmd/golangci-lint@$(GOLINT_VERSION)
 	GOBIN=$(LOCALBIN) go install github.com/nunnatsa/ginkgolinter/cmd/ginkgolinter@$(GINKGOLINTER_VERSION)
+
+## docs
+REPO_ROOT		= $(CURDIR)
+TMP_DIR			= ${REPO_ROOT}/tmp
+TOOLS_BIN_DIR	= ${TMP_DIR}/bin
+$(TOOLS_BIN_DIR):
+	mkdir -p $(TOOLS_BIN_DIR)
+
+.PHONY: doc-gen	
+doc-gen: $(TOOLS_BIN_DIR)
+	GOBIN=$(TOOLS_BIN_DIR) go install -tags=tools github.com/ahmetb/gen-crd-api-reference-docs@latest
+	DOC_GEN=$(TOOLS_BIN_DIR)/gen-crd-api-reference-docs
