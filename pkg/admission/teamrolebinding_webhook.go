@@ -112,17 +112,5 @@ func validateClusterNameOrSelector(ctx context.Context, c client.Client, rb *gre
 	if rb.Spec.ClusterName == "" && (len(rb.Spec.ClusterSelector.MatchLabels) == 0 && len(rb.Spec.ClusterSelector.MatchExpressions) == 0) {
 		return apierrors.NewInvalid(rb.GroupVersionKind().GroupKind(), rb.Name, field.ErrorList{field.Invalid(field.NewPath("spec", "clusterName"), rb.Spec.ClusterName, "must specify either spec.clusterName or spec.clusterSelector")})
 	}
-
-	if rb.Spec.ClusterName != "" {
-
-		// check if the referenced cluster exists
-		var cluster greenhousev1alpha1.Cluster
-		if err := c.Get(ctx, client.ObjectKey{Namespace: rb.Namespace, Name: rb.Spec.ClusterName}, &cluster); err != nil {
-			if apierrors.IsNotFound(err) {
-				return apierrors.NewInvalid(rb.GroupVersionKind().GroupKind(), rb.Name, field.ErrorList{field.Invalid(field.NewPath("spec", "clusterName"), rb.Spec.ClusterName, "cluster does not exist")})
-			}
-			return apierrors.NewInternalError(err)
-		}
-	}
 	return nil
 }
