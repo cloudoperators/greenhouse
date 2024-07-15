@@ -4,6 +4,7 @@
 package main
 
 import (
+	"context"
 	"crypto/tls"
 	"crypto/x509"
 	"fmt"
@@ -15,8 +16,13 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"syscall"
 	"time"
 
+	"github.com/oklog/run"
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/collectors"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/spf13/pflag"
 )
 
@@ -26,15 +32,15 @@ var (
 )
 
 var (
-	targetURL      string
-	targetCAFile   string
-	host           string
-	port           uint64
-	origin         string
-	serverLogging  bool
-	version        bool
-	allowedHeaders []string
-	allowedMethods []string
+	targetURL         string
+	targetCAFile      string
+	host              string
+	port, metricsPort uint64
+	origin            string
+	serverLogging     bool
+	version           bool
+	allowedHeaders    []string
+	allowedMethods    []string
 )
 
 func init() {
@@ -69,6 +75,7 @@ func init() {
 
 	pflag.StringVar(&host, "host", envHost, "")
 	pflag.Uint64Var(&port, "port", portParsed, "")
+	pflag.Uint64Var(&metricsPort, "metrics-addr", 6543, "port for metrics")
 	pflag.StringVar(&origin, "origin", envOrigin, "")
 	pflag.BoolVar(&serverLogging, "server-logging", serverLoggingEnabled, "")
 	pflag.BoolVarP(&version, "version", "v", false, "")
@@ -76,7 +83,7 @@ func init() {
 	pflag.StringSliceVar(&allowedMethods, "allowed-methods", []string{"GET,HEAD,PUT,PATCH,POST,DELETE"}, "Which methods are allowed for CORS requests")
 }
 
-func run(targetURL string) error {
+func doRun(targetURL string) error {
 	target, err := url.Parse(targetURL)
 	if err != nil {
 		return err
@@ -118,16 +125,49 @@ func run(targetURL string) error {
 		TLSClientConfig: tlsConfig,
 	}
 	reverseProxy.ModifyResponse = modifyCORSResponse
-	mux := http.NewServeMux()
-	mux.Handle("/", reverseProxy)
+
+	registry := prometheus.NewRegistry()
+	registry.MustRegister(collectors.NewProcessCollector(collectors.ProcessCollectorOpts{}))
+	registry.MustRegister(collectors.NewGoCollector())
+	instrumentedProxy := instrumentHandler(reverseProxy, registry)
+
+	var g run.Group
+
+	// Add signal handler
+	g.Add(run.SignalHandler(context.Background(), syscall.SIGINT, syscall.SIGTERM))
 
 	server := &http.Server{
 		Addr:         host + ":" + strconv.FormatUint(port, 10),
 		ReadTimeout:  10 * time.Second,
 		WriteTimeout: 10 * time.Second,
-		Handler:      mux,
+		Handler:      instrumentedProxy,
 	}
-	return server.ListenAndServe()
+	g.Add(
+		func() error {
+			return server.ListenAndServe()
+		}, func(_ error) {
+			timeoutCtx, c := context.WithTimeout(context.Background(), 5*time.Second)
+			defer c()
+			if err := server.Shutdown(timeoutCtx); err != nil {
+				log.Printf("failed to shutdown server: %v", err)
+			}
+		})
+
+	// metrics server
+	metricsServer := &http.Server{
+		Addr:    host + ":" + strconv.FormatUint(metricsPort, 10),
+		Handler: promhttp.HandlerFor(registry, promhttp.HandlerOpts{Registry: registry})}
+	g.Add(func() error {
+		return metricsServer.ListenAndServe()
+	}, func(_ error) {
+		timeoutCtx, c := context.WithTimeout(context.Background(), 5*time.Second)
+		defer c()
+		if err := metricsServer.Shutdown(timeoutCtx); err != nil {
+			log.Printf("failed to shutdown metrics server: %v", err)
+		}
+	})
+
+	return g.Run()
 }
 
 func printHeader() {
@@ -155,7 +195,7 @@ func main() {
 
 	printHeader()
 
-	if err := run(targetURL); err != nil {
+	if err := doRun(targetURL); err != nil {
 		log.Fatal(err)
 	}
 }
