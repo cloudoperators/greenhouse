@@ -3,20 +3,13 @@
 package main
 
 import (
-	"bufio"
 	"context"
-	"encoding/json"
-	"errors"
 	"flag"
 	"fmt"
-	"io"
 	"os"
 	"os/exec"
 	"time"
 
-	"github.com/docker/docker/api/types"
-	"github.com/docker/docker/client"
-	"github.com/docker/docker/pkg/archive"
 	"gopkg.in/yaml.v3"
 	"helm.sh/helm/v3/pkg/action"
 	"helm.sh/helm/v3/pkg/chart/loader"
@@ -129,11 +122,13 @@ func main() {
 	// Build image
 	image := fmt.Sprintf("%s:%s", dockerImageRepository, dockerImageTag)
 	if !dockerImageBuildSkip {
-		err = dockerImageBuild("./../../../", image)
+		cmdArgs := []string{"build", "-t", fmt.Sprintf("%s:%s", dockerImageRepository, dockerImageTag), "./../../../"}
+		out, err := exec.Command("docker", cmdArgs...).Output()
 		if err != nil {
-			l.Error(err, "image build")
+			l.Error(err, "docker image build")
 			os.Exit(1)
 		}
+		l.V(10).Info(string(out))
 		l.Info("Docker image built successfully")
 	}
 
@@ -223,68 +218,4 @@ func installChart(ctx context.Context, dir, release, kubeconfig string, namespac
 	}
 
 	return nil
-}
-
-func dockerImageBuild(path string, repoAndtag string) error {
-
-	dockerClient, err := client.NewClientWithOpts(client.FromEnv, client.WithAPIVersionNegotiation())
-	if err != nil {
-		return err
-	}
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second*120)
-	defer cancel()
-
-	tar, err := archive.TarWithOptions(path, &archive.TarOptions{})
-	if err != nil {
-		return err
-	}
-
-	opts := types.ImageBuildOptions{
-		Dockerfile:     "Dockerfile",
-		Tags:           []string{repoAndtag},
-		Version:        types.BuilderBuildKit,
-		Platform:       dockerImagePlatform,
-		SuppressOutput: true,
-	}
-	response, err := dockerClient.ImageBuild(ctx, tar, opts)
-	if err != nil {
-		return err
-	}
-
-	defer response.Body.Close()
-	return dockerResponseErrorFinder(response.Body)
-
-}
-
-func dockerResponseErrorFinder(rd io.Reader) error {
-	var lastLine string
-
-	scanner := bufio.NewScanner(rd)
-	for scanner.Scan() {
-		lastLine = scanner.Text()
-	}
-
-	errLine := &ErrorLine{}
-	err := json.Unmarshal([]byte(lastLine), errLine)
-	if err != nil {
-		return err
-	}
-	if errLine.Error != "" {
-		return errors.New(errLine.Error)
-	}
-
-	if err := scanner.Err(); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-type ErrorLine struct {
-	Error       string      `json:"error"`
-	ErrorDetail ErrorDetail `json:"errorDetail"`
-}
-
-type ErrorDetail struct {
-	Message string `json:"message"`
 }
