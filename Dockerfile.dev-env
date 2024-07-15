@@ -16,7 +16,7 @@ RUN --mount=type=cache,target=/go/pkg/mod \
   && GOBIN=/workspace/bin go install sigs.k8s.io/controller-runtime/tools/setup-envtest@latest \
   && cp $(/workspace/bin/setup-envtest use ${ENVTEST_K8S_VERSION} -p path)/* /usr/local/bin
 
-# Get AdminPluginDefinitions from https://github.com/cloudoperators/greenhouse-extensions
+# Get PluginDefinitions from https://github.com/cloudoperators/greenhouse-extensions
 FROM alpine/git:2.45.2 as git
 RUN git clone https://github.com/cloudoperators/greenhouse-extensions.git /greenhouse-extensions
 
