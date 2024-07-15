@@ -3,6 +3,7 @@
 package main
 
 import (
+	"bufio"
 	"context"
 	"flag"
 	"fmt"
@@ -82,79 +83,105 @@ func main() {
 	l := log.FromContext(ctx)
 
 	// Create cluster
+	l.Info("[START] Create kind cluster")
 	cluster := kind.NewCluster(kindClusterName)
 	cluster.SetDefaults()
 	kubeconfig, err := cluster.Create(ctx)
 	if err != nil {
-		l.Error(err, "cluster creation")
+		l.Error(err, "Failed in cluster creation")
 		os.Exit(1)
 	}
-	l.Info("cluster created successfully")
+	l.Info("[SUCCESS] Create kind cluster")
 
 	// Export kubeconfig
+	l.Info("[START] Export kubeconfig files")
 	f, err := os.Create(kubeconfigName)
 	if err != nil {
-		l.Error(err, "kubeconfig creation")
+		l.Error(err, "Failed in kubeconfig creation")
 		os.Exit(1)
 	}
 	args := []string{"export", "kubeconfig", "--name", kindClusterName, "--kubeconfig", f.Name()}
 	cmd := exec.Command("kind", args...)
 	_, err = cmd.Output()
 	if err != nil {
-		l.Error(err, "kubeconfig export")
+		l.Error(err, "Failed in kubeconfig export")
 		os.Exit(1)
 	}
 	f, err = os.Create(kubeconfigInternalName)
 	if err != nil {
-		l.Error(err, "kubeconfig creation")
+		l.Error(err, "Failed in kubeconfig creation")
 		os.Exit(1)
 	}
 	args = []string{"export", "kubeconfig", "--name", kindClusterName, "--internal", "--kubeconfig", f.Name()}
 	cmd = exec.Command("kind", args...)
 	_, err = cmd.Output()
 	if err != nil {
-		l.Error(err, "kubeconfig export")
+		l.Error(err, "Failed in kubeconfig export")
 		os.Exit(1)
 	}
 
-	l.Info("kubeconfig exported successfully")
+	l.Info("[SUCCESS] Export kubeconfig files")
 
 	// Build image
+	l.Info("[START] Docker image build")
 	image := fmt.Sprintf("%s:%s", dockerImageRepository, dockerImageTag)
 	if !dockerImageBuildSkip {
-		cmdArgs := []string{"build", "-t", fmt.Sprintf("%s:%s", dockerImageRepository, dockerImageTag), "./../../../"}
-		out, err := exec.Command("docker", cmdArgs...).Output()
+		cmdArgs := []string{"build", "-t", fmt.Sprintf("%s:%s", dockerImageRepository, dockerImageTag), "--platform", dockerImagePlatform, "--no-cache", "./../../../"}
+		cmd := exec.Command("docker", cmdArgs...)
+		stderr, err := cmd.StderrPipe()
 		if err != nil {
-			l.Error(err, "docker image build")
+			l.Error(err, "Failed in docker image build")
 			os.Exit(1)
 		}
-		l.V(10).Info(string(out))
-		l.Info("Docker image built successfully")
+
+		err = cmd.Start()
+		if err != nil {
+			l.Error(err, "Failed in docker image build")
+			os.Exit(1)
+		}
+
+		scanner := bufio.NewScanner(stderr)
+		for scanner.Scan() {
+			m := scanner.Text()
+			l.Info("[DOCKER BUILD]", m)
+		}
+		cmd.Wait()
+
+		if err != nil {
+			l.Error(err, "Failed in docker image build")
+			os.Exit(1)
+		}
+		l.Info("[SUCCESS] Docker image build")
+	} else {
+		l.Info("[SKIP] Docker image build")
 	}
 
 	// Load image
+	l.Info("[START] Docker image load")
 	err = cluster.LoadImage(ctx, image)
 	if err != nil {
-		l.Error(err, "image load")
+		l.Error(err, "Failed in image load")
 		os.Exit(1)
 	}
-	l.Info("Docker image loaded to the cluster successfully")
+	l.Info("[SUCCESS] Docker image load")
 
 	// Deploy idproxy chart
+	l.Info("[START] Deploy idproxy chart")
 	err = installChart(ctx, "./../../../charts/idproxy", idProxyRelease, kubeconfig, idProxyNamespace, idProxyValuesFilename)
 	if err != nil {
-		l.Error(err, "deploy idproxy")
+		l.Error(err, "Failed in deploy idproxy")
 		os.Exit(1)
 	}
-	l.Info("idproxy is deployed successfully")
+	l.Info("[SUCCESS] Deploy idproxy chart")
 
 	// Deploy Greenhouse manager
+	l.Info("[START] Deploy greenhouse manager chart")
 	err = installChart(ctx, "./../../../charts/manager", greenhouseControllerManagerRelease, kubeconfig, greenhouseControllerManagerNamespace, greenhouseControllerManagerValuesFilename)
 	if err != nil {
-		l.Error(err, "deploy greenhouse")
+		l.Error(err, "Failed in deploy greenhouse")
 		os.Exit(1)
 	}
-	l.Info("Greenhouse manager is deployed successfully")
+	l.Info("[SUCCESS] Deploy greenhouse manager chart")
 
 }
 
