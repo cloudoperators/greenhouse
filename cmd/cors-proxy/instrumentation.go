@@ -40,7 +40,7 @@ func instrumentHandler(next http.Handler, registry *prometheus.Registry) http.Ha
 	// Register all of the metrics in the standard registry.
 	registry.MustRegister(requestsTotal, requestDuration, responseSize)
 
-	intrumentedHandler := promhttp.InstrumentHandlerCounter(
+	return promhttp.InstrumentHandlerCounter(
 		requestsTotal, promhttp.InstrumentHandlerDuration(
 			requestDuration,
 			promhttp.InstrumentHandlerResponseSize(
@@ -49,5 +49,4 @@ func instrumentHandler(next http.Handler, registry *prometheus.Registry) http.Ha
 			),
 		),
 	)
-	return intrumentedHandler
 }
