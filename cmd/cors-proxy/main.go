@@ -75,7 +75,7 @@ func init() {
 
 	pflag.StringVar(&host, "host", envHost, "")
 	pflag.Uint64Var(&port, "port", portParsed, "")
-	pflag.Uint64Var(&metricsPort, "metrics-addr", 6543, "port for metrics")
+	pflag.Uint64Var(&metricsPort, "metrics-port", 6543, "port for metrics")
 	pflag.StringVar(&origin, "origin", envOrigin, "")
 	pflag.BoolVar(&serverLogging, "server-logging", serverLoggingEnabled, "")
 	pflag.BoolVarP(&version, "version", "v", false, "")
