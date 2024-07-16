@@ -112,7 +112,11 @@ func (p *PluginOption) IsValid() error {
 		var m map[string]any
 		return json.Unmarshal(p.Default.Raw, &m)
 	case PluginOptionTypeSecret:
-		if len(p.Default.Raw) != 0 {
+		var s string
+		if err := json.Unmarshal(p.Default.Raw, &s); err != nil {
+			return err
+		}
+		if s != "" {
 			return fmt.Errorf("option %s is a secret value, no default is allowed", p.Name)
 		}
 		return nil

@@ -82,7 +82,7 @@ var _ = Describe("Validate PluginDefinition Creation", func() {
 
 		_, err := ValidateCreatePluginDefinition(context.TODO(), c, pluginDefinition)
 		Expect(err).To(HaveOccurred(), "there should be an error creating the PluginDefinition")
-		Expect(err.Error()).To(ContainSubstring("no defaults are allowed in PluginOptions of Type Secret."))
+		Expect(err.Error()).To(ContainSubstring("defaults are not allowed in PluginOptions of the 'Secret' type"))
 	})
 })
 
