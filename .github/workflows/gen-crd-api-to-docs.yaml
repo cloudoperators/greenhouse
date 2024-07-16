@@ -75,11 +75,6 @@ jobs:
           echo "====${{ github.workflow }} Outputs===="
           head -10  ${{ inputs.out-file }}
           echo "===="
-          ls -la
-          echo "===="
-          ls -la ./docs/reference/api
-          echo "===="
-          git status
 
       - name: Apply Changes
         uses: EndBug/add-and-commit@v9
