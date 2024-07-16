@@ -25,4 +25,4 @@ jobs:
       api-dir: "./pkg/apis/greenhouse/v1alpha1"
       config: "./hack/gen-crd-api-reference-docs/config.json"
       template-dir: "./hack/gen-crd-api-reference-docs/templates"
-      out-file: "./website/content/docs/reference/api/crds.md"
+      out-file: "./docs/reference/api/crds.md"
