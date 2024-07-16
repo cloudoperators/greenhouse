@@ -65,16 +65,16 @@ This will create a new folder `nginx-plugin` containing the _PluginDefinition_ i
 
 ## Modifying the PluginDefinition
 
-The generated _PluginDefinition_ contains a `plugin.yaml` file which defines the _PluginDefinition_. But there are still a few steps required to make it work.
+The generated _PluginDefinition_ contains a `plugindefinition.yaml` file which defines the _PluginDefinition_. But there are still a few steps required to make it work.
 
 ### Specify the Helm Chart repository
 
-After generating the _PluginDefinition_ the `.spec.helmChart.repository` field in the `pluginDefinition.yaml` contains a TODO comment. This field should be set to the repository where the Helm Chart is stored.
+After generating the _PluginDefinition_ the `.spec.helmChart.repository` field in the `plugindefinition.yaml` contains a TODO comment. This field should be set to the repository where the Helm Chart is stored.
 For the bitnami nginx Helm Chart this would be `oci://registry-1.docker.io/bitnamicharts`.
 
 ### Specify the UI application
 
-A _PluginDefinition_ may specify a UI application that will be integrated into the Greenhouse UI. This tutorial does not cover how to create a UI application. Therefore the section `.spec.uiApplication` in the `pluginDefinition.yaml` should be removed.
+A _PluginDefinition_ may specify a UI application that will be integrated into the Greenhouse UI. This tutorial does not cover how to create a UI application. Therefore the section `.spec.uiApplication` in the `plugindefinition.yaml` should be removed.
 
 >[!INFORMATION]
 > The [UI](https://github.com/cloudoperators/greenhouse-extensions/tree/main/dev-env#ui) section of the dev-env readme provides a brief introduction developing a frontend application for Greenhouse.
@@ -108,7 +108,7 @@ For this tutorial we will remove all options.
 After modifying the _PluginDefinition_ we can deploy it to the local Greenhouse cluster and create a _Plugin_ that will deploy the `nginx` to the onboarded cluster.
 
 ```bash
-  kubectl --kubeconfig=./envtest/kubeconfig apply -f ./nginx-plugin/nginx/17.3.2/pluginDefinition.yaml
+  kubectl --kubeconfig=./envtest/kubeconfig apply -f ./nginx-plugin/nginx/17.3.2/plugindefinition.yaml
   plugindefinition.greenhouse.sap/nginx-17.3.2 created
 ```
 
