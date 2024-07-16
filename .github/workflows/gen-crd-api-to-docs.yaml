@@ -69,7 +69,7 @@ jobs:
       - name: Output Changes
         run: |
           echo "====${{ github.workflow }} Outputs===="
-          cat ${{ inputs.out-file }}
+          head -10  ${{ inputs.out-file }}
           echo "===="
           git status
           echo "===="
