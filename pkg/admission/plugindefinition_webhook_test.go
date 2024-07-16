@@ -54,7 +54,8 @@ var _ = DescribeTable("Validate PluginOption Type and Value are consistent", fun
 	Entry("PluginOptionTypeMap Consistent", greenhousev1alpha1.PluginOptionTypeMap, map[string]any{"key": "value"}, false),
 	Entry("PluginOptionTypeMap Inconsistent", greenhousev1alpha1.PluginOptionTypeMap, "one", true),
 	Entry("PluginOptionTypeMap Consistent Nested Map", greenhousev1alpha1.PluginOptionTypeMap, map[string]any{"key": map[string]any{"nestedKey": "value"}}, false),
-	Entry("PluginOptionTypeSecret Consistent", greenhousev1alpha1.PluginOptionTypeSecret, nil, false),
+	Entry("PluginOptionTypeSecret Consistent Nil", greenhousev1alpha1.PluginOptionTypeSecret, nil, false),
+	Entry("PluginOptionTypeSecret Consistent Empty", greenhousev1alpha1.PluginOptionTypeSecret, "", false),
 	Entry("PluginOptionTypeSecret Defaulted", greenhousev1alpha1.PluginOptionTypeSecret, "secret", true),
 	Entry("PluginOptionTypeSecret Inconsistent", greenhousev1alpha1.PluginOptionTypeSecret, []string{"one", "two"}, true),
 )
