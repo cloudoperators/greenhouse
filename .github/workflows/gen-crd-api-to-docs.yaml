@@ -66,6 +66,16 @@ jobs:
         run: |
           gen-crd-api-reference-docs -api-dir=${{ inputs.api-dir }} -config=${{ inputs.config }} -template-dir=${{ inputs.template-dir }} -out-file=${{ inputs.out-file }}
 
+      - name: Output Changes
+        run: |
+          echo "====${{ github.workflow }} Outputs===="
+          cat ${{ inputs.out-file }}
+          echo "===="
+          git status
+          echo "===="
+          ls -la
+          echo "===="
+
       - name: Apply Changes
         uses: EndBug/add-and-commit@v9
         env:
