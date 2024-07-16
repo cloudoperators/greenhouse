@@ -19,7 +19,7 @@ on:
 
 jobs:
   run-generate-docs:
-    uses: cloudoperators/greenhouse/.github/workflows/gen-crd-api-to-docs.yaml@workflows-website
+    uses: cloudoperators/greenhouse/.github/workflows/gen-crd-api-to-docs.yaml@main
     with:
       runs-on: ubuntu-latest
       api-dir: "./pkg/apis/greenhouse/v1alpha1"
