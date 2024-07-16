@@ -66,6 +66,7 @@ type PreAuthKey struct {
 	Used       bool        `json:"used,omitempty"`
 	CreatedAt  metav1.Time `json:"createdAt,omitempty"`
 	Expiration metav1.Time `json:"expiration,omitempty"`
+	Test       bool        `json:"test,omitempty"`
 }
 
 // ClusterConditionType is a valid condition of a cluster.
