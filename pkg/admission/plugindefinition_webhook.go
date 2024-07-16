@@ -93,7 +93,7 @@ func validatePluginDefinitionOptionValueAndType(pluginDefinition *greenhousev1al
 		if err := option.IsValid(); err != nil {
 			return apierrors.NewInvalid(pluginDefinition.GroupVersionKind().GroupKind(), pluginDefinition.GetName(), field.ErrorList{
 				field.Invalid(field.NewPath("spec").Child("options").Child("name"), option.Name,
-					"A PluginOption Default must match the specified Type and no defaults are allowed in PluginOptions of Type Secret."),
+					"A PluginOption Default must match the specified Type, and defaults are not allowed in PluginOptions of the 'Secret' type."),
 			})
 		}
 	}
