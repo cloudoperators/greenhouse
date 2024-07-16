@@ -1,0 +1,28 @@
+# Run it locally with act (https://github.com/nektos/act)
+#  1. Install act:
+#     `brew install act`
+#  2. Create a .secret file with the following content:
+#     `GITHUB_TOKEN=your_github_token`
+#  PULL REQUEST
+#  1. Create a act_pull_request.json file in case of a pull request with the following content:
+#     `{"pull_request": {"number": <PR number>, "head": {"ref": "<PR branch name>", "sha": "PR commit sha"}, "base": {"ref": "main"}}, "repository": {"name": "juno", "owner": {"login": "cloudoperators"}}}`
+#  2. Run the following command:
+#     `act pull_request -j run-pipeline -e act_pull_request.json -W .github/workflows/ci-npm-packages.yaml`
+
+name: Detect CRD API Changes and Trigger gen-crd-api-to-docs
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    paths:
+      - "pkg/apis/greenhouse/v1alpha1/**"
+
+jobs:
+  run-generate-docs:
+    uses: cloudoperators/greenhouse/.github/workflows/gen-crd-api-to-docs.yaml@main
+    with:
+      runs-on: ubuntu-latest
+      api-dir: "./pkg/apis/greenhouse/v1alpha1"
+      config: "./hack/gen-crd-api-reference-docs/config.json"
+      template-dir: "./hack/gen-crd-api-reference-docs/templates"
+      out-file: "./website/content/docs/reference/api/crds.md"
