@@ -40,6 +40,9 @@ services:
       - PORT=3000
     ports:
       - "3000:3000"
+    build:
+      context: ./../
+      dockerfile: Dockerfile.dev-ui
   bootstrap:
     image: ghcr.io/cloudoperators/greenhouse-dev-env:main
     environment:

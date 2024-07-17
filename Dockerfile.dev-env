@@ -32,7 +32,7 @@ COPY --from=builder /workspace/charts/manager/templates/webhooks.yaml ./config/w
 COPY --from=builder /usr/local/bin ./usr/local/bin
 # some resources that are bootstrapped by default
 COPY --from=builder /workspace/dev-env/bootstrap/core /core-bootstrap
-COPY --from=git /greenhouse-extensions/service-proxy/plugin.yaml /core-bootstrap
+COPY --from=git /greenhouse-extensions/service-proxy/plugindefinition.yaml /core-bootstrap
 
 # upgrade all installed packages to fix potential CVEs in advance
 RUN apk upgrade --no-cache --no-progress \

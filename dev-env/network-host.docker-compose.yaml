@@ -38,6 +38,9 @@ services:
     environment:
       - PORT=3000
     network_mode: host
+    build:
+      context: ./../
+      dockerfile: Dockerfile.dev-ui
   bootstrap:
     image: ghcr.io/cloudoperators/greenhouse-dev-env:main
     environment:
