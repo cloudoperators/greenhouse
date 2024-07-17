@@ -60,7 +60,7 @@ module:
       extended: true
       min: 0.111.0
   imports:
-      - path: github.com/sapcc/hugo-documentation-templater
+      - path: github.com/sapcc/hugo-documentation-templater/v2
         disable: false
 
 outputs:
