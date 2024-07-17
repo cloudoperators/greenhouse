@@ -122,6 +122,7 @@ func (r *TeamRoleBindingReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 	// list the clusters that either match the ClusterName or the ClusterSelector
 	clusters, err := r.listClusters(ctx, trb)
 	if err != nil {
+		trbStatus.SetConditions(greenhousev1alpha1.TrueCondition(greenhousev1alpha1.ReconcileFailedReason, "Failed to get cluster for TeamRoleBinding", ""))
 		r.recorder.Eventf(trb, corev1.EventTypeNormal, greenhousev1alpha1.ReconcileFailedReason, "Failed to list clusters", trb.GetName)
 		return ctrl.Result{}, err
 	}
@@ -629,10 +630,15 @@ func isRoleReferenced(ctx context.Context, c client.Client, teamRoleBinding *gre
 }
 
 // listClusters returns the list of Clusters that match the TeamRoleBinding's ClusterSelector or ClusterName
+// If the ClusterName or ClusterSelector does not return any cluster, an empty ClusterList is returned without error
 func (r *TeamRoleBindingReconciler) listClusters(ctx context.Context, trb *greenhousev1alpha1.TeamRoleBinding) (*greenhousev1alpha1.ClusterList, error) {
 	if trb.Spec.ClusterName != "" {
 		cluster := new(greenhousev1alpha1.Cluster)
-		if err := r.Get(ctx, types.NamespacedName{Name: trb.Spec.ClusterName, Namespace: trb.GetNamespace()}, cluster); err != nil {
+		err := r.Get(ctx, types.NamespacedName{Name: trb.Spec.ClusterName, Namespace: trb.GetNamespace()}, cluster)
+		if err != nil {
+			if apierrors.IsNotFound(err) {
+				return &greenhousev1alpha1.ClusterList{}, nil
+			}
 			return nil, err
 		}
 		return &greenhousev1alpha1.ClusterList{Items: []greenhousev1alpha1.Cluster{*cluster}}, nil
