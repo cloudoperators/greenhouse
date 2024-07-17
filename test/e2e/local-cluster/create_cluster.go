@@ -41,6 +41,8 @@ var (
 	idProxyNamespace      string
 	idProxyRelease        string
 	idProxyValuesFilename string
+
+	verbose bool
 )
 
 const (
@@ -71,9 +73,11 @@ func init() {
 	flag.StringVar(&idProxyRelease, "idProxyRelease", "idproxy", "Helm release name for deploying idproxy")
 	flag.StringVar(&idProxyValuesFilename, "idProxyValuesFilename", "./idproxy.values.yaml", "path to the values file for idproxy")
 
+	flag.BoolVar(&verbose, "v", false, "enable verbose logging")
+
 	flag.Parse()
 
-	l.Info("configuration loaded", "kindClusterName", kindClusterName, "dockerImageRepository", dockerImageRepository, "dockerImageTag", dockerImageTag, "dockerImageBuildSkip", dockerImageBuildSkip, "kubeconfigName", kubeconfigName, "kubeconfigInternalName", kubeconfigInternalName)
+	l.Info("configuration loaded", "kindClusterName", kindClusterName, "dockerImageRepository", dockerImageRepository, "dockerImageTag", dockerImageTag, "dockerImageBuildSkip", dockerImageBuildSkip, "kubeconfigName", kubeconfigName, "kubeconfigInternalName", kubeconfigInternalName, "verbose", verbose)
 
 }
 
@@ -140,11 +144,15 @@ func main() {
 			os.Exit(1)
 		}
 
-		scanner := bufio.NewScanner(stderr)
-		for scanner.Scan() {
-			m := scanner.Text()
-			l.Info("[DOCKER BUILD]", m)
+		if verbose {
+			scanner := bufio.NewScanner(stderr)
+
+			for scanner.Scan() {
+				m := scanner.Text()
+				l.Info("[DOCKER BUILD]", m)
+			}
 		}
+
 		cmd.Wait()
 
 		if err != nil {
