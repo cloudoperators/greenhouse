@@ -105,6 +105,12 @@ Note that not setting `headscaleAPIURL`, `headscaleAPIKey` or `tailscaleProxy` w
 
 ## Greenhouse UI
 
+Build the latest `dev-ui` image by running:
+
+```bash
+$ docker build --platform linux/amd64 -t ghcr.io/cloudoperators/greenhouse-dev-ui:main -f Dockerfile.dev-ui  .
+```
+
 To run the Greenhouse UI locally you can either run the docker image exposing port `3000` or in `host` network:
 
 ```bash
@@ -142,6 +148,12 @@ docker compose up
 ```
 
 from the `./dev-env` folder.
+
+You might need to build the `dev-ui` image by hand:
+
+```bash
+docker compose build greenhouse-ui
+```
 
 The [network-host.docker-compose.yaml](https://github.com/cloudoperators/greenhouse/blob/main/dev-env/network-host.docker-compose.yaml) provides the same setup starting all containers in host network mode.
 
