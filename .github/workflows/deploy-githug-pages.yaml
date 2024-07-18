@@ -8,8 +8,8 @@ on:
     branches:
       - main
     paths:
-      - 'docs/**'
-      - 'website/**'
+      - "docs/**"
+      - "website/**"
 
 # Sets permissions of the GITHUB_TOKEN to allow deployment to GitHub Pages
 permissions:
@@ -30,7 +30,7 @@ defaults:
 
 jobs:
   build:
-    runs-on: [ default ]
+    runs-on: [default]
 
     env:
       HUGO_VERSION: 0.124.1
@@ -40,7 +40,7 @@ jobs:
         run: |
           wget -O ${{ runner.temp }}/hugo.deb https://github.com/gohugoio/hugo/releases/download/v${HUGO_VERSION}/hugo_extended_${HUGO_VERSION}_linux-amd64.deb \
           && sudo dpkg -i ${{ runner.temp }}/hugo.deb
-      
+
       - name: Install Dart Sass
         run: sudo snap install dart-sass
 
@@ -51,7 +51,7 @@ jobs:
           path: greenhouse
           submodules: true
           fetch-depth: 0
-      
+
       - name: Checkout greenhouse-extensions repository
         uses: actions/checkout@v4
         with:
@@ -64,7 +64,7 @@ jobs:
       - name: Setup Pages
         id: pages
         uses: actions/configure-pages@v5
-      
+
       - name: Custom steps
         env:
           GREENHOUSE_GIT_DIR: "${{ github.workspace }}/greenhouse"
@@ -87,16 +87,6 @@ jobs:
             cp $filename "${DESTINATION_DIR}/${d}.md";
           done
 
-          make -C website content
-          rm -rf /docs
-
-      - name: Copy assets to public directory
-        env:
-          GREENHOUSE_GIT_DIR: "${{ github.workspace }}/greenhouse"
-        run: |
-          mkdir -p $GREENHOUSE_GIT_DIR/website/public/docs/assets
-          cp -r $GREENHOUSE_GIT_DIR/docs/assets/* $GREENHOUSE_GIT_DIR/website/public/docs/assets/
-
       - name: Install Node.js dependencies
         run: "[[ -f package-lock.json || -f npm-shrinkwrap.json ]] && npm ci || true"
 
@@ -115,7 +105,7 @@ jobs:
             --gc \
             --minify \
             --baseURL "${{ steps.pages.outputs.base_url }}/"
-      
+
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
@@ -126,10 +116,9 @@ jobs:
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
-    runs-on: [ default ]
+    runs-on: [default]
     needs: build
     steps:
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
- 
