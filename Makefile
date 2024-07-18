@@ -48,8 +48,13 @@ generate-manifests: controller-gen ## Generate WebhookConfiguration, ClusterRole
 	hack/helmify $(TEMPLATES_MANIFESTS_PATH)
 	docker run --rm -v $(shell pwd):/github/workspace $(IMG_LICENSE_EYE) -c .github/licenserc.yaml header fix
 
+.PHONY: generate-open-api-spec
+generate-generate-open-api-spec: VERSION = $(shell git rev-parse --short HEAD)
+generate-generate-open-api-spec:
+	hack/openapi-generator/generate-openapi-spec-from-crds $(CRD_MANIFESTS_PATH) $(VERSION) docs/reference/api
+
 .PHONY: generate-types
-generate-types: ## Generate typescript types from CRDs.
+generate-types: generate-open-api-spec## Generate typescript types from CRDs.
 	hack/typescript/create-types $(CURDIR)/docs/reference/api/openapi.yaml $(CURDIR)/hack/typescript/metadata.yaml $(CURDIR)/ui/types/ 
 
 .PHONY: generate
