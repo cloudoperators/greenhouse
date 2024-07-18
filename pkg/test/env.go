@@ -86,16 +86,24 @@ const (
 )
 
 var (
-	Cfg              *rest.Config
+	//Cfg is the rest.Config to access the cluster the tests are running against.
+	Cfg *rest.Config
+	//RestClientGetter is the clientutil.RestClientGetter to access the cluster the tests are running against.
 	RestClientGetter *clientutil.RestClientGetter
-	K8sClient        client.Client
-	K8sManager       ctrl.Manager
-	KubeConfig       []byte
-	testEnv          *envtest.Environment
-	Ctx              context.Context
-	cancel           context.CancelFunc
-	pollInterval     = 1 * time.Second
-	updateTimeout    = 30 * time.Second
+	//K8sClient is the client.Client to access the cluster the tests are running against.
+	K8sClient client.Client
+	//K8sManager is the ctrl.Manager the controllers are run by.
+	K8sManager ctrl.Manager
+	//KubeConfig is the raw kubeconfig to access the cluster the tests are running against.
+	KubeConfig []byte
+	//Ctx is the context to use for the tests.
+	Ctx context.Context
+	//IsUseExistingCluster is true if the tests are running against an existing cluster.
+	IsUseExistingCluster = useExistingGreenhouseCluster
+	testEnv              *envtest.Environment
+	cancel               context.CancelFunc
+	pollInterval         = 1 * time.Second
+	updateTimeout        = 30 * time.Second
 
 	// TestBeforeSuite configures the test suite.
 	TestBeforeSuite = func() {
@@ -245,9 +253,7 @@ func StartControlPlane(port string, installCRDs, installWebhooks bool) (*rest.Co
 	var kubeConfig []byte
 	// we extract the kubeconfig from env var if we are using an existing cluster
 	if useExistingGreenhouseCluster {
-		kubeConfigLocation := os.Getenv("KUBECONFIG")
-		Expect(kubeConfigLocation).NotTo(BeEmpty(), "the environment variable KUBECONFIG must be set")
-		kubeConfig, err = os.ReadFile(kubeConfigLocation)
+		kubeConfig, err = KubeconfigFromEnvVar("KUBECONFIG")
 		Expect(err).NotTo(HaveOccurred())
 	} else {
 		// we add a user to the control plane to easily get a kubeconfig

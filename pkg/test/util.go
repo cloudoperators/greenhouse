@@ -6,6 +6,8 @@ package test
 import (
 	"context"
 	"encoding/json"
+	"fmt"
+	"os"
 	"time"
 
 	. "github.com/onsi/gomega"
@@ -103,4 +105,17 @@ func GreenhouseV1Alpha1Scheme() *runtime.Scheme {
 	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
 	utilruntime.Must(greenhousev1alpha1.AddToScheme(scheme))
 	return scheme
+}
+
+// KubeconfigFromEnvVar returns the kubeconfig []byte from the path specified in the environment variable
+func KubeconfigFromEnvVar(envVar string) ([]byte, error) {
+	kubeconfigPath := os.Getenv(envVar)
+	if kubeconfigPath == "" {
+		return nil, fmt.Errorf("kubeconfig path is empty")
+	}
+	kubeconfig, err := os.ReadFile(kubeconfigPath)
+	if err != nil {
+		return nil, err
+	}
+	return kubeconfig, nil
 }

@@ -12,9 +12,14 @@ make e2e
 
 will run the e2e test suite without making assumptions on the infrastructure to test against.
 
-Leveraging envtest, we will have basically two different test scenarios:
+Leveraging envtest, we will basically have three different test scenarios. The following env vars steer these:
 
-## Run everything local
+| Env Var                | Meaning                                                                                                                                                                                                                                                                                                                                                       |
+| ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `USE_EXISTING_CLUSTER` | If set to `true`, the e2e test suite will not spin up a local apiserver and etcd. Instead, it will expect an existing greenhouse installation on the cluster inferred from the `KUBECONFIG` environment variable.                                                                                                                                             |
+| `INTERNAL_KUBECONFIG`  | The path to the kubeconfig file for accessing the Greenhouse cluster itself from the running instance. This is used when `USE_EXISTING_CLUSTER` is set to `true`. KIND makes it necessary to set this separately to the `KUBECONFIG` as the internal api server adress differs to the external. Other setups may not use this. If unset `KUBECONFIG` is used. |
+
+## Run everything local a.k.a. `USE_EXISTING_CLUSTER = false` or unset
 
 Just running the tests via:
 
@@ -24,7 +29,7 @@ make e2e-local
 
 will spin up a local apiserver and etcd together with a local greenhouse controller. The e2e test suite will assert against this setup.
 
-## Run against an existing greenhouse installation
+## Run against an existing greenhouse installation a.k.a. `USE_EXISTING_CLUSTER = true`
 
 We can run our e2e test suite against a running greenhouse installation by exposing some env vars (also see [envtest package](https://pkg.go.dev/sigs.k8s.io/controller-runtime/pkg/envtest#pkg-constants)):
 
@@ -46,7 +51,7 @@ make e2e-remote
 
 Test setup asserts `KUBECONFIG` is set and working and will fail otherwise.
 
-### Under construction:
+### Run against a local Greenhouse installation in KIND cluster a.k.a. `USE_EXISTING_CLUSTER = true` and `INTERNAL_KUBECONFIG` set
 
 We provide a convenience method to run the e2e test suite against a local KIND cluster with a greenhouse installation by running:
 
