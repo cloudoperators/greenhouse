@@ -1,7 +1,7 @@
 ---
 title: "Contribute"
 linkTitle: "Contribute"
-landingSectionIndex: true
+landingSectionIndex: false
 weight: 5
 description: >
   Contribute to the Greenhouse platform.

@@ -40,3 +40,6 @@ dist/**
 .secrets
 .env
 act_*.json
+
+# gen-crd-api-reference-docs artifacts
+*/gen-crd-api-reference-docs/tmp
