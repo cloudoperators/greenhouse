@@ -88,7 +88,9 @@ jobs:
           done
 
       - name: Install Node.js dependencies
-        run: "[[ -f package-lock.json || -f npm-shrinkwrap.json ]] && npm ci || true"
+        env:
+          GREENHOUSE_GIT_DIR: "${{ github.workspace }}/greenhouse"
+        run: cd ${{ env.GREENHOUSE_GIT_DIR }}/website && [[ -f package-lock.json || -f npm-shrinkwrap.json ]] && npm ci || true
 
       - name: Build with Hugo
         env:
