@@ -36,8 +36,10 @@ var (
 	kubeProxyPort     string
 	graceFullShutDown bool
 	userData          = map[string][]string{
-		"test-org-admin":  {rbac.OrganizationRoleName("test-org"), rbac.OrganizationAdminRoleName("test-org"), rbac.GetTeamRoleName("test-team-1")},
-		"test-org-member": {rbac.OrganizationRoleName("test-org"), rbac.GetTeamRoleName("test-team-1")},
+		"test-org-admin":         {rbac.OrganizationRoleName("test-org"), rbac.OrganizationAdminRoleName("test-org"), rbac.GetTeamRoleName("test-team-1")},
+		"test-org-member":        {rbac.OrganizationRoleName("test-org"), rbac.GetTeamRoleName("test-team-1")},
+		"test-org-cluster-admin": {rbac.OrganizationRoleName("test-org"), rbac.OrganizationClusterAdminRoleName("test-org"), rbac.GetTeamRoleName("test-team-1")},
+		"test-org-plugin-admin":  {rbac.OrganizationRoleName("test-org"), rbac.OrganizationPluginAdminRoleName("test-org"), rbac.GetTeamRoleName("test-team-1")},
 	}
 )
 
@@ -184,8 +186,9 @@ func createAdditionalKubeConfigFiles(logger *logrus.Logger) {
 				}},
 			Contexts: map[string]*api.Context{
 				"default": {
-					Cluster:  "default",
-					AuthInfo: "default",
+					Cluster:   "default",
+					AuthInfo:  "default",
+					Namespace: "test-org",
 				},
 			},
 			AuthInfos: map[string]*api.AuthInfo{

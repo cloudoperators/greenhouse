@@ -64,7 +64,7 @@ func ValidateCreateRoleBinding(ctx context.Context, c client.Client, o runtime.O
 		return nil, apierrors.NewInternalError(err)
 	}
 
-	err := validateClusterNameOrSelector(ctx, c, rb)
+	err := validateClusterNameOrSelector(rb)
 	if err != nil {
 		return nil, err
 	}
@@ -81,7 +81,7 @@ func ValidateUpdateRoleBinding(ctx context.Context, c client.Client, old, cur ru
 		return nil, nil
 	}
 	switch {
-	case validateClusterNameOrSelector(ctx, c, curRB) != nil:
+	case validateClusterNameOrSelector(curRB) != nil:
 		return nil, apierrors.NewForbidden(
 			schema.GroupResource{
 				Group:    oldRB.GroupVersionKind().Group,
@@ -104,25 +104,13 @@ func hasNamespacesChanged(old, cur *greenhousev1alpha1.TeamRoleBinding) bool {
 }
 
 // validateClusterNameOrSelector checks if the TeamRoleBinding has a valid clusterName or clusterSelector but not both.
-func validateClusterNameOrSelector(ctx context.Context, c client.Client, rb *greenhousev1alpha1.TeamRoleBinding) error {
+func validateClusterNameOrSelector(rb *greenhousev1alpha1.TeamRoleBinding) error {
 	if rb.Spec.ClusterName != "" && (len(rb.Spec.ClusterSelector.MatchLabels) > 0 || len(rb.Spec.ClusterSelector.MatchExpressions) > 0) {
 		return apierrors.NewInvalid(rb.GroupVersionKind().GroupKind(), rb.Name, field.ErrorList{field.Invalid(field.NewPath("spec", "clusterName"), rb.Spec.ClusterName, "cannot specify both spec.clusterName and spec.clusterSelector")})
 	}
 
 	if rb.Spec.ClusterName == "" && (len(rb.Spec.ClusterSelector.MatchLabels) == 0 && len(rb.Spec.ClusterSelector.MatchExpressions) == 0) {
 		return apierrors.NewInvalid(rb.GroupVersionKind().GroupKind(), rb.Name, field.ErrorList{field.Invalid(field.NewPath("spec", "clusterName"), rb.Spec.ClusterName, "must specify either spec.clusterName or spec.clusterSelector")})
-	}
-
-	if rb.Spec.ClusterName != "" {
-
-		// check if the referenced cluster exists
-		var cluster greenhousev1alpha1.Cluster
-		if err := c.Get(ctx, client.ObjectKey{Namespace: rb.Namespace, Name: rb.Spec.ClusterName}, &cluster); err != nil {
-			if apierrors.IsNotFound(err) {
-				return apierrors.NewInvalid(rb.GroupVersionKind().GroupKind(), rb.Name, field.ErrorList{field.Invalid(field.NewPath("spec", "clusterName"), rb.Spec.ClusterName, "cluster does not exist")})
-			}
-			return apierrors.NewInternalError(err)
-		}
 	}
 	return nil
 }

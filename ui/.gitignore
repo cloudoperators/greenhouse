@@ -1,5 +1,5 @@
 **/node_modules
-**/secretProps.json
+**/secretProps.json*
 **/build
 **/public/build/
 **/webhook-certs/

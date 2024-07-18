@@ -17,7 +17,7 @@ export const useApi = (debug?: boolean) => {
   const { client: client } = useClient()
 
   // toggle verbosity
-  const isDebug = debug ?? true
+  const isDebug = debug ?? false
 
   const get = useCallback(
     async <T extends AllowedApiObject>(
