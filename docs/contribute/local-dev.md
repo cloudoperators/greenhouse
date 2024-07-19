@@ -1,7 +1,7 @@
 ---
 title: "Local development setup"
 linkTitle: "Local development setup"
-landingSectionIndex: true
+landingSectionIndex: false
 weight: 100
 description: >
   How to run a local Greenhouse setup for development
