@@ -18,11 +18,35 @@ on:
       - "pkg/apis/greenhouse/v1alpha1/**"
 
 jobs:
-  run-generate-docs:
-    uses: cloudoperators/greenhouse/.github/workflows/gen-crd-api-to-docs.yaml@main
-    with:
-      runs-on: ubuntu-latest
-      api-dir: "./pkg/apis/greenhouse/v1alpha1"
-      config: "./hack/gen-crd-api-reference-docs/config.json"
-      template-dir: "./hack/gen-crd-api-reference-docs/templates"
-      out-file: "./docs/reference/api/index.html"
+  generate-docs-types-specs:
+    runs-on: [default]
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          repository: ${{ github.event.pull_request.head.repo.full_name }}
+          ref: ${{ github.event.pull_request.head.ref }}
+
+      - name: Generate CRD API Reference Docs
+        run: |
+          make generate-documentation
+
+      - name: Generate typescript types from CRDs
+        run: |
+          make generate-types
+
+      - name: Generate OpenAPI specs from CRDs
+        run: |
+          make generate-openapi-specs
+
+      - name: Apply Changes
+        uses: EndBug/add-and-commit@v9
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          author_name: CRD API Docs Bot
+          author_email: crd_api_docs_bot@github.com
+          message: "Automatic genaration of CRD API Docs"
