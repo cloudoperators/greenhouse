@@ -178,3 +178,4 @@ golint: $(GOLINT)
 $(GOLINT): $(LOCALBIN)
 	GOBIN=$(LOCALBIN) go install github.com/golangci/golangci-lint/cmd/golangci-lint@$(GOLINT_VERSION)
 	GOBIN=$(LOCALBIN) go install github.com/nunnatsa/ginkgolinter/cmd/ginkgolinter@$(GINKGOLINTER_VERSION)
+	

@@ -26,9 +26,9 @@ This guides describes how to configure and deploy a Greenhouse plugin.
         - ...
 ```
 
-## Deploy plugin
+## Deploying a Plugin
 
-Create the plugin config resource via the command:
+Create the Plugin resource via the command:
 
 ```bash
    kubectl --namespace=<organization name> create -f plugin.yaml

@@ -1,5 +1,6 @@
 # Vendor
 vendor/**
+node_modules
 
 # Binaries for programs and plugins
 *.exe
@@ -40,3 +41,6 @@ dist/**
 .secrets
 .env
 act_*.json
+
+# gen-crd-api-reference-docs artifacts
+*/gen-crd-api-reference-docs/tmp

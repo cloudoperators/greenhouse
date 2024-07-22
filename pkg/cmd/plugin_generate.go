@@ -94,7 +94,7 @@ func (o *pluginGenerateOptions) run() error {
 	if err != nil {
 		return err
 	}
-	if err := os.WriteFile(filepath.Join(pluginDirectory, "pluginDefinition.yaml"), yamlBytes, 0755); err != nil {
+	if err := os.WriteFile(filepath.Join(pluginDirectory, "plugindefinition.yaml"), yamlBytes, 0755); err != nil {
 		return err
 	}
 	return nil

@@ -6,9 +6,9 @@ description: Technical reference documentation for Greenhouse API resources
 ---
 <p>Packages:</p>
 <ul class="simple">
-<li>
-<a href="#greenhouse.sap%2fv1alpha1">greenhouse.sap/v1alpha1</a>
-</li>
+  <li>
+    <a href="#greenhouse.sap%2fv1alpha1">greenhouse.sap/v1alpha1</a>
+  </li>
 </ul>
 <h2 id="greenhouse.sap/v1alpha1">greenhouse.sap/v1alpha1</h2>
 <p>Package v1alpha1 contains API Schema definitions for the autoscaling v1alpha1 API group</p>
@@ -18,112 +18,111 @@ Resource Types:
 </h3>
 <p>
 (<em>Appears on:</em>
-<a href="#greenhouse.sap/v1alpha1.OrganizationSpec">OrganizationSpec</a>)
+  <a href="#greenhouse.sap/v1alpha1.OrganizationSpec">OrganizationSpec</a>)
 </p>
 <div class="md-typeset__scrollwrap">
-<div class="md-typeset__table">
-<table>
-<thead>
-<tr>
-<th>Field</th>
-<th>Description</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>
-<code>oidc</code><br>
-<em>
-<a href="#greenhouse.sap/v1alpha1.OIDCConfig">
+  <div class="md-typeset__table">
+    <table>
+      <thead>
+        <tr>
+          <th>Field</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>
+            <code>oidc</code><br>
+            <em>
+              <a href="#greenhouse.sap/v1alpha1.OIDCConfig">
 OIDCConfig
 </a>
-</em>
-</td>
-<td>
-<p>OIDConfig configures the OIDC provider.</p>
-</td>
-</tr>
-</tbody>
-</table>
-</div>
+            </em>
+          </td>
+          <td>
+            <p>OIDConfig configures the OIDC provider.</p>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
 </div>
 <h3 id="greenhouse.sap/v1alpha1.Cluster">Cluster
 </h3>
 <p>Cluster is the Schema for the clusters API</p>
 <div class="md-typeset__scrollwrap">
-<div class="md-typeset__table">
-<table>
-<thead>
-<tr>
-<th>Field</th>
-<th>Description</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>
-<code>metadata</code><br>
-<em>
-<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.24/#objectmeta-v1-meta">
+  <div class="md-typeset__table">
+    <table>
+      <thead>
+        <tr>
+          <th>Field</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>
+            <code>metadata</code><br>
+            <em>
+              <a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.24/#objectmeta-v1-meta">
 Kubernetes meta/v1.ObjectMeta
 </a>
-</em>
-</td>
-<td>
+            </em>
+          </td>
+          <td>
 Refer to the Kubernetes API documentation for the fields of the
 <code>metadata</code> field.
 </td>
-</tr>
-<tr>
-<td>
-<code>spec</code><br>
-<em>
-<a href="#greenhouse.sap/v1alpha1.ClusterSpec">
+        </tr>
+        <tr>
+          <td>
+            <code>spec</code><br>
+            <em>
+              <a href="#greenhouse.sap/v1alpha1.ClusterSpec">
 ClusterSpec
 </a>
-</em>
-</td>
-<td>
-<br/>
-<br/>
-<table>
-<tr>
-<td>
-<code>accessMode</code><br>
-<em>
-<a href="#greenhouse.sap/v1alpha1.ClusterAccessMode">
+            </em>
+          </td>
+          <td>
+            <br/>
+            <br/>
+            <table>
+              <tr>
+                <td>
+                  <code>accessMode</code><br>
+                  <em>
+                    <a href="#greenhouse.sap/v1alpha1.ClusterAccessMode">
 ClusterAccessMode
 </a>
-</em>
-</td>
-<td>
-<p>AccessMode configures how the cluster is accessed from the Greenhouse operator.</p>
-</td>
-</tr>
-</table>
-</td>
-</tr>
-<tr>
-<td>
-<code>status</code><br>
-<em>
-<a href="#greenhouse.sap/v1alpha1.ClusterStatus">
+                  </em>
+                </td>
+                <td>
+                  <p>AccessMode configures how the cluster is accessed from the Greenhouse operator.</p>
+                </td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+        <tr>
+          <td>
+            <code>status</code><br>
+            <em>
+              <a href="#greenhouse.sap/v1alpha1.ClusterStatus">
 ClusterStatus
 </a>
-</em>
-</td>
-<td>
-</td>
-</tr>
-</tbody>
-</table>
-</div>
+            </em>
+          </td>
+          <td></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
 </div>
 <h3 id="greenhouse.sap/v1alpha1.ClusterAccessMode">ClusterAccessMode
 (<code>string</code> alias)</h3>
 <p>
 (<em>Appears on:</em>
-<a href="#greenhouse.sap/v1alpha1.ClusterSpec">ClusterSpec</a>)
+  <a href="#greenhouse.sap/v1alpha1.ClusterSpec">ClusterSpec</a>)
 </p>
 <p>ClusterAccessMode configures the access mode to the customer cluster.</p>
 <h3 id="greenhouse.sap/v1alpha1.ClusterConditionType">ClusterConditionType
@@ -133,1967 +132,1948 @@ ClusterStatus
 </h3>
 <p>
 (<em>Appears on:</em>
-<a href="#greenhouse.sap/v1alpha1.Cluster">Cluster</a>)
+  <a href="#greenhouse.sap/v1alpha1.Cluster">Cluster</a>)
 </p>
 <p>ClusterSpec defines the desired state of the Cluster.</p>
 <div class="md-typeset__scrollwrap">
-<div class="md-typeset__table">
-<table>
-<thead>
-<tr>
-<th>Field</th>
-<th>Description</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>
-<code>accessMode</code><br>
-<em>
-<a href="#greenhouse.sap/v1alpha1.ClusterAccessMode">
+  <div class="md-typeset__table">
+    <table>
+      <thead>
+        <tr>
+          <th>Field</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>
+            <code>accessMode</code><br>
+            <em>
+              <a href="#greenhouse.sap/v1alpha1.ClusterAccessMode">
 ClusterAccessMode
 </a>
-</em>
-</td>
-<td>
-<p>AccessMode configures how the cluster is accessed from the Greenhouse operator.</p>
-</td>
-</tr>
-</tbody>
-</table>
-</div>
+            </em>
+          </td>
+          <td>
+            <p>AccessMode configures how the cluster is accessed from the Greenhouse operator.</p>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
 </div>
 <h3 id="greenhouse.sap/v1alpha1.ClusterStatus">ClusterStatus
 </h3>
 <p>
 (<em>Appears on:</em>
-<a href="#greenhouse.sap/v1alpha1.Cluster">Cluster</a>)
+  <a href="#greenhouse.sap/v1alpha1.Cluster">Cluster</a>)
 </p>
 <p>ClusterStatus defines the observed state of Cluster</p>
 <div class="md-typeset__scrollwrap">
-<div class="md-typeset__table">
-<table>
-<thead>
-<tr>
-<th>Field</th>
-<th>Description</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>
-<code>kubernetesVersion</code><br>
-<em>
+  <div class="md-typeset__table">
+    <table>
+      <thead>
+        <tr>
+          <th>Field</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>
+            <code>kubernetesVersion</code><br>
+            <em>
 string
 </em>
-</td>
-<td>
-<p>KubernetesVersion reflects the detected Kubernetes version of the cluster.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>bearerTokenExpirationTimestamp</code><br>
-<em>
-<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.24/#time-v1-meta">
+          </td>
+          <td>
+            <p>KubernetesVersion reflects the detected Kubernetes version of the cluster.</p>
+          </td>
+        </tr>
+        <tr>
+          <td>
+            <code>bearerTokenExpirationTimestamp</code><br>
+            <em>
+              <a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.24/#time-v1-meta">
 Kubernetes meta/v1.Time
 </a>
-</em>
-</td>
-<td>
-<p>BearerTokenExpirationTimestamp reflects the expiration timestamp of the bearer token used to access the cluster.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>headScaleStatus</code><br>
-<em>
-<a href="#greenhouse.sap/v1alpha1.HeadScaleMachineStatus">
+            </em>
+          </td>
+          <td>
+            <p>BearerTokenExpirationTimestamp reflects the expiration timestamp of the bearer token used to access the cluster.</p>
+          </td>
+        </tr>
+        <tr>
+          <td>
+            <code>headScaleStatus</code><br>
+            <em>
+              <a href="#greenhouse.sap/v1alpha1.HeadScaleMachineStatus">
 HeadScaleMachineStatus
 </a>
-</em>
-</td>
-<td>
-<p>HeadScaleStatus contains the current status of the headscale client.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>statusConditions</code><br>
-<em>
-<a href="#greenhouse.sap/v1alpha1.StatusConditions">
+            </em>
+          </td>
+          <td>
+            <p>HeadScaleStatus contains the current status of the headscale client.</p>
+          </td>
+        </tr>
+        <tr>
+          <td>
+            <code>statusConditions</code><br>
+            <em>
+              <a href="#greenhouse.sap/v1alpha1.StatusConditions">
 StatusConditions
 </a>
-</em>
-</td>
-<td>
-<p>StatusConditions contain the different conditions that constitute the status of the Cluster.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>nodes</code><br>
-<em>
-<a href="#greenhouse.sap/v1alpha1.NodeStatus">
-map[string]./pkg/apis/greenhouse/v1alpha1.NodeStatus
+            </em>
+          </td>
+          <td>
+            <p>StatusConditions contain the different conditions that constitute the status of the Cluster.</p>
+          </td>
+        </tr>
+        <tr>
+          <td>
+            <code>nodes</code><br>
+            <em>
+              <a href="#greenhouse.sap/v1alpha1.NodeStatus">
+map[string]../../pkg/apis/greenhouse/v1alpha1.NodeStatus
 </a>
-</em>
-</td>
-<td>
-<p>Nodes provides a map of cluster node names to node statuses</p>
-</td>
-</tr>
-</tbody>
-</table>
-</div>
+            </em>
+          </td>
+          <td>
+            <p>Nodes provides a map of cluster node names to node statuses</p>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
 </div>
 <h3 id="greenhouse.sap/v1alpha1.Condition">Condition
 </h3>
 <p>
 (<em>Appears on:</em>
-<a href="#greenhouse.sap/v1alpha1.PropagationStatus">PropagationStatus</a>, 
+  <a href="#greenhouse.sap/v1alpha1.PropagationStatus">PropagationStatus</a>, 
 <a href="#greenhouse.sap/v1alpha1.StatusConditions">StatusConditions</a>)
 </p>
 <p>Condition contains additional information on the state of a resource.</p>
 <div class="md-typeset__scrollwrap">
-<div class="md-typeset__table">
-<table>
-<thead>
-<tr>
-<th>Field</th>
-<th>Description</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>
-<code>type</code><br>
-<em>
-<a href="#greenhouse.sap/v1alpha1.ConditionType">
+  <div class="md-typeset__table">
+    <table>
+      <thead>
+        <tr>
+          <th>Field</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>
+            <code>type</code><br>
+            <em>
+              <a href="#greenhouse.sap/v1alpha1.ConditionType">
 ConditionType
 </a>
-</em>
-</td>
-<td>
-<p>Type of the condition.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>status</code><br>
-<em>
-<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.24/#conditionstatus-v1-meta">
+            </em>
+          </td>
+          <td>
+            <p>Type of the condition.</p>
+          </td>
+        </tr>
+        <tr>
+          <td>
+            <code>status</code><br>
+            <em>
+              <a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.24/#conditionstatus-v1-meta">
 Kubernetes meta/v1.ConditionStatus
 </a>
-</em>
-</td>
-<td>
-<p>Status of the condition.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>reason</code><br>
-<em>
-<a href="#greenhouse.sap/v1alpha1.ConditionReason">
+            </em>
+          </td>
+          <td>
+            <p>Status of the condition.</p>
+          </td>
+        </tr>
+        <tr>
+          <td>
+            <code>reason</code><br>
+            <em>
+              <a href="#greenhouse.sap/v1alpha1.ConditionReason">
 ConditionReason
 </a>
-</em>
-</td>
-<td>
-<p>Reason is a one-word, CamelCase reason for the condition&rsquo;s last transition.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>lastTransitionTime</code><br>
-<em>
-<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.24/#time-v1-meta">
+            </em>
+          </td>
+          <td>
+            <p>Reason is a one-word, CamelCase reason for the condition&rsquo;s last transition.</p>
+          </td>
+        </tr>
+        <tr>
+          <td>
+            <code>lastTransitionTime</code><br>
+            <em>
+              <a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.24/#time-v1-meta">
 Kubernetes meta/v1.Time
 </a>
-</em>
-</td>
-<td>
-<p>LastTransitionTime is the last time the condition transitioned from one status to another.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>message</code><br>
-<em>
+            </em>
+          </td>
+          <td>
+            <p>LastTransitionTime is the last time the condition transitioned from one status to another.</p>
+          </td>
+        </tr>
+        <tr>
+          <td>
+            <code>message</code><br>
+            <em>
 string
 </em>
-</td>
-<td>
-<p>Message is an optional human readable message indicating details about the last transition.</p>
-</td>
-</tr>
-</tbody>
-</table>
-</div>
+          </td>
+          <td>
+            <p>Message is an optional human readable message indicating details about the last transition.</p>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
 </div>
 <h3 id="greenhouse.sap/v1alpha1.ConditionReason">ConditionReason
 (<code>string</code> alias)</h3>
 <p>
 (<em>Appears on:</em>
-<a href="#greenhouse.sap/v1alpha1.Condition">Condition</a>)
+  <a href="#greenhouse.sap/v1alpha1.Condition">Condition</a>)
 </p>
 <p>ConditionReason is a valid reason for a condition of a resource.</p>
 <h3 id="greenhouse.sap/v1alpha1.ConditionType">ConditionType
 (<code>string</code> alias)</h3>
 <p>
 (<em>Appears on:</em>
-<a href="#greenhouse.sap/v1alpha1.Condition">Condition</a>)
+  <a href="#greenhouse.sap/v1alpha1.Condition">Condition</a>)
 </p>
 <p>ConditionType is a valid condition of a resource.</p>
 <h3 id="greenhouse.sap/v1alpha1.HeadScaleMachineStatus">HeadScaleMachineStatus
 </h3>
 <p>
 (<em>Appears on:</em>
-<a href="#greenhouse.sap/v1alpha1.ClusterStatus">ClusterStatus</a>)
+  <a href="#greenhouse.sap/v1alpha1.ClusterStatus">ClusterStatus</a>)
 </p>
 <p>HeadScaleMachineStatus is the status of a Headscale machine.</p>
 <div class="md-typeset__scrollwrap">
-<div class="md-typeset__table">
-<table>
-<thead>
-<tr>
-<th>Field</th>
-<th>Description</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>
-<code>id</code><br>
-<em>
+  <div class="md-typeset__table">
+    <table>
+      <thead>
+        <tr>
+          <th>Field</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>
+            <code>id</code><br>
+            <em>
 uint64
 </em>
-</td>
-<td>
-</td>
-</tr>
-<tr>
-<td>
-<code>ipAddresses</code><br>
-<em>
+          </td>
+          <td></td>
+        </tr>
+        <tr>
+          <td>
+            <code>ipAddresses</code><br>
+            <em>
 []string
 </em>
-</td>
-<td>
-</td>
-</tr>
-<tr>
-<td>
-<code>name</code><br>
-<em>
+          </td>
+          <td></td>
+        </tr>
+        <tr>
+          <td>
+            <code>name</code><br>
+            <em>
 string
 </em>
-</td>
-<td>
-</td>
-</tr>
-<tr>
-<td>
-<code>expiry</code><br>
-<em>
-<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.24/#time-v1-meta">
+          </td>
+          <td></td>
+        </tr>
+        <tr>
+          <td>
+            <code>expiry</code><br>
+            <em>
+              <a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.24/#time-v1-meta">
 Kubernetes meta/v1.Time
 </a>
-</em>
-</td>
-<td>
-</td>
-</tr>
-<tr>
-<td>
-<code>createdAt</code><br>
-<em>
-<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.24/#time-v1-meta">
+            </em>
+          </td>
+          <td></td>
+        </tr>
+        <tr>
+          <td>
+            <code>createdAt</code><br>
+            <em>
+              <a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.24/#time-v1-meta">
 Kubernetes meta/v1.Time
 </a>
-</em>
-</td>
-<td>
-</td>
-</tr>
-<tr>
-<td>
-<code>forcedTags</code><br>
-<em>
+            </em>
+          </td>
+          <td></td>
+        </tr>
+        <tr>
+          <td>
+            <code>forcedTags</code><br>
+            <em>
 []string
 </em>
-</td>
-<td>
-</td>
-</tr>
-<tr>
-<td>
-<code>preAuthKey</code><br>
-<em>
-<a href="#greenhouse.sap/v1alpha1.PreAuthKey">
+          </td>
+          <td></td>
+        </tr>
+        <tr>
+          <td>
+            <code>preAuthKey</code><br>
+            <em>
+              <a href="#greenhouse.sap/v1alpha1.PreAuthKey">
 PreAuthKey
 </a>
-</em>
-</td>
-<td>
-</td>
-</tr>
-<tr>
-<td>
-<code>online</code><br>
-<em>
+            </em>
+          </td>
+          <td></td>
+        </tr>
+        <tr>
+          <td>
+            <code>online</code><br>
+            <em>
 bool
 </em>
-</td>
-<td>
-</td>
-</tr>
-</tbody>
-</table>
-</div>
+          </td>
+          <td></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
 </div>
 <h3 id="greenhouse.sap/v1alpha1.HelmChartReference">HelmChartReference
 </h3>
 <p>
 (<em>Appears on:</em>
-<a href="#greenhouse.sap/v1alpha1.PluginDefinitionSpec">PluginDefinitionSpec</a>, 
+  <a href="#greenhouse.sap/v1alpha1.PluginDefinitionSpec">PluginDefinitionSpec</a>, 
 <a href="#greenhouse.sap/v1alpha1.PluginStatus">PluginStatus</a>)
 </p>
 <p>HelmChartReference references a Helm Chart in a chart repository.</p>
 <div class="md-typeset__scrollwrap">
-<div class="md-typeset__table">
-<table>
-<thead>
-<tr>
-<th>Field</th>
-<th>Description</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>
-<code>name</code><br>
-<em>
+  <div class="md-typeset__table">
+    <table>
+      <thead>
+        <tr>
+          <th>Field</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>
+            <code>name</code><br>
+            <em>
 string
 </em>
-</td>
-<td>
-<p>Name of the HelmChart chart.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>repository</code><br>
-<em>
+          </td>
+          <td>
+            <p>Name of the HelmChart chart.</p>
+          </td>
+        </tr>
+        <tr>
+          <td>
+            <code>repository</code><br>
+            <em>
 string
 </em>
-</td>
-<td>
-<p>Repository of the HelmChart chart.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>version</code><br>
-<em>
+          </td>
+          <td>
+            <p>Repository of the HelmChart chart.</p>
+          </td>
+        </tr>
+        <tr>
+          <td>
+            <code>version</code><br>
+            <em>
 string
 </em>
-</td>
-<td>
-<p>Version of the HelmChart chart.</p>
-</td>
-</tr>
-</tbody>
-</table>
-</div>
+          </td>
+          <td>
+            <p>Version of the HelmChart chart.</p>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
 </div>
 <h3 id="greenhouse.sap/v1alpha1.HelmReleaseStatus">HelmReleaseStatus
 </h3>
 <p>
 (<em>Appears on:</em>
-<a href="#greenhouse.sap/v1alpha1.PluginStatus">PluginStatus</a>)
+  <a href="#greenhouse.sap/v1alpha1.PluginStatus">PluginStatus</a>)
 </p>
 <p>HelmReleaseStatus reflects the status of a Helm release.</p>
 <div class="md-typeset__scrollwrap">
-<div class="md-typeset__table">
-<table>
-<thead>
-<tr>
-<th>Field</th>
-<th>Description</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>
-<code>status</code><br>
-<em>
+  <div class="md-typeset__table">
+    <table>
+      <thead>
+        <tr>
+          <th>Field</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>
+            <code>status</code><br>
+            <em>
 string
 </em>
-</td>
-<td>
-<p>Status is the status of a HelmChart release.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>firstDeployed</code><br>
-<em>
-<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.24/#time-v1-meta">
+          </td>
+          <td>
+            <p>Status is the status of a HelmChart release.</p>
+          </td>
+        </tr>
+        <tr>
+          <td>
+            <code>firstDeployed</code><br>
+            <em>
+              <a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.24/#time-v1-meta">
 Kubernetes meta/v1.Time
 </a>
-</em>
-</td>
-<td>
-<p>FirstDeployed is the timestamp of the first deployment of the release.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>lastDeployed</code><br>
-<em>
-<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.24/#time-v1-meta">
+            </em>
+          </td>
+          <td>
+            <p>FirstDeployed is the timestamp of the first deployment of the release.</p>
+          </td>
+        </tr>
+        <tr>
+          <td>
+            <code>lastDeployed</code><br>
+            <em>
+              <a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.24/#time-v1-meta">
 Kubernetes meta/v1.Time
 </a>
-</em>
-</td>
-<td>
-<p>LastDeployed is the timestamp of the last deployment of the release.</p>
-</td>
-</tr>
-</tbody>
-</table>
-</div>
+            </em>
+          </td>
+          <td>
+            <p>LastDeployed is the timestamp of the last deployment of the release.</p>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
 </div>
 <h3 id="greenhouse.sap/v1alpha1.NodeStatus">NodeStatus
 </h3>
 <p>
 (<em>Appears on:</em>
-<a href="#greenhouse.sap/v1alpha1.ClusterStatus">ClusterStatus</a>)
+  <a href="#greenhouse.sap/v1alpha1.ClusterStatus">ClusterStatus</a>)
 </p>
 <div class="md-typeset__scrollwrap">
-<div class="md-typeset__table">
-<table>
-<thead>
-<tr>
-<th>Field</th>
-<th>Description</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>
-<code>statusConditions</code><br>
-<em>
-<a href="#greenhouse.sap/v1alpha1.StatusConditions">
+  <div class="md-typeset__table">
+    <table>
+      <thead>
+        <tr>
+          <th>Field</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>
+            <code>statusConditions</code><br>
+            <em>
+              <a href="#greenhouse.sap/v1alpha1.StatusConditions">
 StatusConditions
 </a>
-</em>
-</td>
-<td>
-<p>We mirror the node conditions here for faster reference</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>ready</code><br>
-<em>
+            </em>
+          </td>
+          <td>
+            <p>We mirror the node conditions here for faster reference</p>
+          </td>
+        </tr>
+        <tr>
+          <td>
+            <code>ready</code><br>
+            <em>
 bool
 </em>
-</td>
-<td>
-<p>Fast track to the node ready condition.</p>
-</td>
-</tr>
-</tbody>
-</table>
-</div>
+          </td>
+          <td>
+            <p>Fast track to the node ready condition.</p>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
 </div>
 <h3 id="greenhouse.sap/v1alpha1.OIDCConfig">OIDCConfig
 </h3>
 <p>
 (<em>Appears on:</em>
-<a href="#greenhouse.sap/v1alpha1.Authentication">Authentication</a>)
+  <a href="#greenhouse.sap/v1alpha1.Authentication">Authentication</a>)
 </p>
 <div class="md-typeset__scrollwrap">
-<div class="md-typeset__table">
-<table>
-<thead>
-<tr>
-<th>Field</th>
-<th>Description</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>
-<code>issuer</code><br>
-<em>
+  <div class="md-typeset__table">
+    <table>
+      <thead>
+        <tr>
+          <th>Field</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>
+            <code>issuer</code><br>
+            <em>
 string
 </em>
-</td>
-<td>
-<p>Issuer is the URL of the identity service.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>redirectURI</code><br>
-<em>
+          </td>
+          <td>
+            <p>Issuer is the URL of the identity service.</p>
+          </td>
+        </tr>
+        <tr>
+          <td>
+            <code>redirectURI</code><br>
+            <em>
 string
 </em>
-</td>
-<td>
-<p>RedirectURI is the redirect URI.
+          </td>
+          <td>
+            <p>RedirectURI is the redirect URI.
 If none is specified, the Greenhouse ID proxy will be used.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>clientIDReference</code><br>
-<em>
-<a href="#greenhouse.sap/v1alpha1.SecretKeyReference">
+          </td>
+        </tr>
+        <tr>
+          <td>
+            <code>clientIDReference</code><br>
+            <em>
+              <a href="#greenhouse.sap/v1alpha1.SecretKeyReference">
 SecretKeyReference
 </a>
-</em>
-</td>
-<td>
-<p>ClientIDReference references the Kubernetes secret containing the client id.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>clientSecretReference</code><br>
-<em>
-<a href="#greenhouse.sap/v1alpha1.SecretKeyReference">
+            </em>
+          </td>
+          <td>
+            <p>ClientIDReference references the Kubernetes secret containing the client id.</p>
+          </td>
+        </tr>
+        <tr>
+          <td>
+            <code>clientSecretReference</code><br>
+            <em>
+              <a href="#greenhouse.sap/v1alpha1.SecretKeyReference">
 SecretKeyReference
 </a>
-</em>
-</td>
-<td>
-<p>ClientSecretReference references the Kubernetes secret containing the client secret.</p>
-</td>
-</tr>
-</tbody>
-</table>
-</div>
+            </em>
+          </td>
+          <td>
+            <p>ClientSecretReference references the Kubernetes secret containing the client secret.</p>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
 </div>
 <h3 id="greenhouse.sap/v1alpha1.Organization">Organization
 </h3>
 <p>Organization is the Schema for the organizations API</p>
 <div class="md-typeset__scrollwrap">
-<div class="md-typeset__table">
-<table>
-<thead>
-<tr>
-<th>Field</th>
-<th>Description</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>
-<code>metadata</code><br>
-<em>
-<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.24/#objectmeta-v1-meta">
+  <div class="md-typeset__table">
+    <table>
+      <thead>
+        <tr>
+          <th>Field</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>
+            <code>metadata</code><br>
+            <em>
+              <a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.24/#objectmeta-v1-meta">
 Kubernetes meta/v1.ObjectMeta
 </a>
-</em>
-</td>
-<td>
+            </em>
+          </td>
+          <td>
 Refer to the Kubernetes API documentation for the fields of the
 <code>metadata</code> field.
 </td>
-</tr>
-<tr>
-<td>
-<code>spec</code><br>
-<em>
-<a href="#greenhouse.sap/v1alpha1.OrganizationSpec">
+        </tr>
+        <tr>
+          <td>
+            <code>spec</code><br>
+            <em>
+              <a href="#greenhouse.sap/v1alpha1.OrganizationSpec">
 OrganizationSpec
 </a>
-</em>
-</td>
-<td>
-<br/>
-<br/>
-<table>
-<tr>
-<td>
-<code>displayName</code><br>
-<em>
+            </em>
+          </td>
+          <td>
+            <br/>
+            <br/>
+            <table>
+              <tr>
+                <td>
+                  <code>displayName</code><br>
+                  <em>
 string
 </em>
-</td>
-<td>
-<p>DisplayName is an optional name for the organization to be displayed in the Greenhouse UI.
+                </td>
+                <td>
+                  <p>DisplayName is an optional name for the organization to be displayed in the Greenhouse UI.
 Defaults to a normalized version of metadata.name.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>authentication</code><br>
-<em>
-<a href="#greenhouse.sap/v1alpha1.Authentication">
+                </td>
+              </tr>
+              <tr>
+                <td>
+                  <code>authentication</code><br>
+                  <em>
+                    <a href="#greenhouse.sap/v1alpha1.Authentication">
 Authentication
 </a>
-</em>
-</td>
-<td>
-<p>Authentication configures the organizations authentication mechanism.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>description</code><br>
-<em>
+                  </em>
+                </td>
+                <td>
+                  <p>Authentication configures the organizations authentication mechanism.</p>
+                </td>
+              </tr>
+              <tr>
+                <td>
+                  <code>description</code><br>
+                  <em>
 string
 </em>
-</td>
-<td>
-<p>Description provides additional details of the organization.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>mappedOrgAdminIdPGroup</code><br>
-<em>
+                </td>
+                <td>
+                  <p>Description provides additional details of the organization.</p>
+                </td>
+              </tr>
+              <tr>
+                <td>
+                  <code>mappedOrgAdminIdPGroup</code><br>
+                  <em>
 string
 </em>
-</td>
-<td>
-<p>MappedOrgAdminIDPGroup is the IDP group ID identifying org admins</p>
-</td>
-</tr>
-</table>
-</td>
-</tr>
-<tr>
-<td>
-<code>status</code><br>
-<em>
-<a href="#greenhouse.sap/v1alpha1.OrganizationStatus">
+                </td>
+                <td>
+                  <p>MappedOrgAdminIDPGroup is the IDP group ID identifying org admins</p>
+                </td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+        <tr>
+          <td>
+            <code>status</code><br>
+            <em>
+              <a href="#greenhouse.sap/v1alpha1.OrganizationStatus">
 OrganizationStatus
 </a>
-</em>
-</td>
-<td>
-</td>
-</tr>
-</tbody>
-</table>
-</div>
+            </em>
+          </td>
+          <td></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
 </div>
 <h3 id="greenhouse.sap/v1alpha1.OrganizationSpec">OrganizationSpec
 </h3>
 <p>
 (<em>Appears on:</em>
-<a href="#greenhouse.sap/v1alpha1.Organization">Organization</a>)
+  <a href="#greenhouse.sap/v1alpha1.Organization">Organization</a>)
 </p>
 <p>OrganizationSpec defines the desired state of Organization</p>
 <div class="md-typeset__scrollwrap">
-<div class="md-typeset__table">
-<table>
-<thead>
-<tr>
-<th>Field</th>
-<th>Description</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>
-<code>displayName</code><br>
-<em>
+  <div class="md-typeset__table">
+    <table>
+      <thead>
+        <tr>
+          <th>Field</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>
+            <code>displayName</code><br>
+            <em>
 string
 </em>
-</td>
-<td>
-<p>DisplayName is an optional name for the organization to be displayed in the Greenhouse UI.
+          </td>
+          <td>
+            <p>DisplayName is an optional name for the organization to be displayed in the Greenhouse UI.
 Defaults to a normalized version of metadata.name.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>authentication</code><br>
-<em>
-<a href="#greenhouse.sap/v1alpha1.Authentication">
+          </td>
+        </tr>
+        <tr>
+          <td>
+            <code>authentication</code><br>
+            <em>
+              <a href="#greenhouse.sap/v1alpha1.Authentication">
 Authentication
 </a>
-</em>
-</td>
-<td>
-<p>Authentication configures the organizations authentication mechanism.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>description</code><br>
-<em>
+            </em>
+          </td>
+          <td>
+            <p>Authentication configures the organizations authentication mechanism.</p>
+          </td>
+        </tr>
+        <tr>
+          <td>
+            <code>description</code><br>
+            <em>
 string
 </em>
-</td>
-<td>
-<p>Description provides additional details of the organization.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>mappedOrgAdminIdPGroup</code><br>
-<em>
+          </td>
+          <td>
+            <p>Description provides additional details of the organization.</p>
+          </td>
+        </tr>
+        <tr>
+          <td>
+            <code>mappedOrgAdminIdPGroup</code><br>
+            <em>
 string
 </em>
-</td>
-<td>
-<p>MappedOrgAdminIDPGroup is the IDP group ID identifying org admins</p>
-</td>
-</tr>
-</tbody>
-</table>
-</div>
+          </td>
+          <td>
+            <p>MappedOrgAdminIDPGroup is the IDP group ID identifying org admins</p>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
 </div>
 <h3 id="greenhouse.sap/v1alpha1.OrganizationStatus">OrganizationStatus
 </h3>
 <p>
 (<em>Appears on:</em>
-<a href="#greenhouse.sap/v1alpha1.Organization">Organization</a>)
+  <a href="#greenhouse.sap/v1alpha1.Organization">Organization</a>)
 </p>
 <p>OrganizationStatus defines the observed state of an Organization</p>
 <h3 id="greenhouse.sap/v1alpha1.Plugin">Plugin
 </h3>
 <p>Plugin is the Schema for the plugins API</p>
 <div class="md-typeset__scrollwrap">
-<div class="md-typeset__table">
-<table>
-<thead>
-<tr>
-<th>Field</th>
-<th>Description</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>
-<code>metadata</code><br>
-<em>
-<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.24/#objectmeta-v1-meta">
+  <div class="md-typeset__table">
+    <table>
+      <thead>
+        <tr>
+          <th>Field</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>
+            <code>metadata</code><br>
+            <em>
+              <a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.24/#objectmeta-v1-meta">
 Kubernetes meta/v1.ObjectMeta
 </a>
-</em>
-</td>
-<td>
+            </em>
+          </td>
+          <td>
 Refer to the Kubernetes API documentation for the fields of the
 <code>metadata</code> field.
 </td>
-</tr>
-<tr>
-<td>
-<code>spec</code><br>
-<em>
-<a href="#greenhouse.sap/v1alpha1.PluginSpec">
+        </tr>
+        <tr>
+          <td>
+            <code>spec</code><br>
+            <em>
+              <a href="#greenhouse.sap/v1alpha1.PluginSpec">
 PluginSpec
 </a>
-</em>
-</td>
-<td>
-<br/>
-<br/>
-<table>
-<tr>
-<td>
-<code>pluginDefinition</code><br>
-<em>
+            </em>
+          </td>
+          <td>
+            <br/>
+            <br/>
+            <table>
+              <tr>
+                <td>
+                  <code>pluginDefinition</code><br>
+                  <em>
 string
 </em>
-</td>
-<td>
-<p>PluginDefinition is the name of the PluginDefinition this instance is for.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>displayName</code><br>
-<em>
+                </td>
+                <td>
+                  <p>PluginDefinition is the name of the PluginDefinition this instance is for.</p>
+                </td>
+              </tr>
+              <tr>
+                <td>
+                  <code>displayName</code><br>
+                  <em>
 string
 </em>
-</td>
-<td>
-<p>DisplayName is an optional name for the Plugin to be displayed in the Greenhouse UI.
+                </td>
+                <td>
+                  <p>DisplayName is an optional name for the Plugin to be displayed in the Greenhouse UI.
 This is especially helpful to distinguish multiple instances of a PluginDefinition in the same context.
 Defaults to a normalized version of metadata.name.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>disabled</code><br>
-<em>
+                </td>
+              </tr>
+              <tr>
+                <td>
+                  <code>disabled</code><br>
+                  <em>
 bool
 </em>
-</td>
-<td>
-<p>Disabled indicates that the plugin is administratively disabled.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>optionValues</code><br>
-<em>
-<a href="#greenhouse.sap/v1alpha1.PluginOptionValue">
+                </td>
+                <td>
+                  <p>Disabled indicates that the plugin is administratively disabled.</p>
+                </td>
+              </tr>
+              <tr>
+                <td>
+                  <code>optionValues</code><br>
+                  <em>
+                    <a href="#greenhouse.sap/v1alpha1.PluginOptionValue">
 []PluginOptionValue
 </a>
-</em>
-</td>
-<td>
-<p>Values are the values for a PluginDefinition instance.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>clusterName</code><br>
-<em>
+                  </em>
+                </td>
+                <td>
+                  <p>Values are the values for a PluginDefinition instance.</p>
+                </td>
+              </tr>
+              <tr>
+                <td>
+                  <code>clusterName</code><br>
+                  <em>
 string
 </em>
-</td>
-<td>
-<p>ClusterName is the name of the cluster the plugin is deployed to. If not set, the plugin is deployed to the greenhouse cluster.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>releaseNamespace</code><br>
-<em>
+                </td>
+                <td>
+                  <p>ClusterName is the name of the cluster the plugin is deployed to. If not set, the plugin is deployed to the greenhouse cluster.</p>
+                </td>
+              </tr>
+              <tr>
+                <td>
+                  <code>releaseNamespace</code><br>
+                  <em>
 string
 </em>
-</td>
-<td>
-<p>ReleaseNamespace is the namespace in the remote cluster to which the backend is deployed.
+                </td>
+                <td>
+                  <p>ReleaseNamespace is the namespace in the remote cluster to which the backend is deployed.
 Defaults to the Greenhouse managed namespace if not set.</p>
-</td>
-</tr>
-</table>
-</td>
-</tr>
-<tr>
-<td>
-<code>status</code><br>
-<em>
-<a href="#greenhouse.sap/v1alpha1.PluginStatus">
+                </td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+        <tr>
+          <td>
+            <code>status</code><br>
+            <em>
+              <a href="#greenhouse.sap/v1alpha1.PluginStatus">
 PluginStatus
 </a>
-</em>
-</td>
-<td>
-</td>
-</tr>
-</tbody>
-</table>
-</div>
+            </em>
+          </td>
+          <td></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
 </div>
 <h3 id="greenhouse.sap/v1alpha1.PluginDefinition">PluginDefinition
 </h3>
 <p>PluginDefinition is the Schema for the PluginDefinitions API</p>
 <div class="md-typeset__scrollwrap">
-<div class="md-typeset__table">
-<table>
-<thead>
-<tr>
-<th>Field</th>
-<th>Description</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>
-<code>metadata</code><br>
-<em>
-<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.24/#objectmeta-v1-meta">
+  <div class="md-typeset__table">
+    <table>
+      <thead>
+        <tr>
+          <th>Field</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>
+            <code>metadata</code><br>
+            <em>
+              <a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.24/#objectmeta-v1-meta">
 Kubernetes meta/v1.ObjectMeta
 </a>
-</em>
-</td>
-<td>
+            </em>
+          </td>
+          <td>
 Refer to the Kubernetes API documentation for the fields of the
 <code>metadata</code> field.
 </td>
-</tr>
-<tr>
-<td>
-<code>spec</code><br>
-<em>
-<a href="#greenhouse.sap/v1alpha1.PluginDefinitionSpec">
+        </tr>
+        <tr>
+          <td>
+            <code>spec</code><br>
+            <em>
+              <a href="#greenhouse.sap/v1alpha1.PluginDefinitionSpec">
 PluginDefinitionSpec
 </a>
-</em>
-</td>
-<td>
-<br/>
-<br/>
-<table>
-<tr>
-<td>
-<code>displayName</code><br>
-<em>
+            </em>
+          </td>
+          <td>
+            <br/>
+            <br/>
+            <table>
+              <tr>
+                <td>
+                  <code>displayName</code><br>
+                  <em>
 string
 </em>
-</td>
-<td>
-<p>DisplayName provides a human-readable label for the pluginDefinition.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>description</code><br>
-<em>
+                </td>
+                <td>
+                  <p>DisplayName provides a human-readable label for the pluginDefinition.</p>
+                </td>
+              </tr>
+              <tr>
+                <td>
+                  <code>description</code><br>
+                  <em>
 string
 </em>
-</td>
-<td>
-<p>Description provides additional details of the pluginDefinition.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>helmChart</code><br>
-<em>
-<a href="#greenhouse.sap/v1alpha1.HelmChartReference">
+                </td>
+                <td>
+                  <p>Description provides additional details of the pluginDefinition.</p>
+                </td>
+              </tr>
+              <tr>
+                <td>
+                  <code>helmChart</code><br>
+                  <em>
+                    <a href="#greenhouse.sap/v1alpha1.HelmChartReference">
 HelmChartReference
 </a>
-</em>
-</td>
-<td>
-<p>HelmChart specifies where the Helm Chart for this pluginDefinition can be found.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>uiApplication</code><br>
-<em>
-<a href="#greenhouse.sap/v1alpha1.UIApplicationReference">
+                  </em>
+                </td>
+                <td>
+                  <p>HelmChart specifies where the Helm Chart for this pluginDefinition can be found.</p>
+                </td>
+              </tr>
+              <tr>
+                <td>
+                  <code>uiApplication</code><br>
+                  <em>
+                    <a href="#greenhouse.sap/v1alpha1.UIApplicationReference">
 UIApplicationReference
 </a>
-</em>
-</td>
-<td>
-<p>UIApplication specifies a reference to a UI application</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>options</code><br>
-<em>
-<a href="#greenhouse.sap/v1alpha1.PluginOption">
+                  </em>
+                </td>
+                <td>
+                  <p>UIApplication specifies a reference to a UI application</p>
+                </td>
+              </tr>
+              <tr>
+                <td>
+                  <code>options</code><br>
+                  <em>
+                    <a href="#greenhouse.sap/v1alpha1.PluginOption">
 []PluginOption
 </a>
-</em>
-</td>
-<td>
-<p>RequiredValues is a list of values required to create an instance of this PluginDefinition.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>version</code><br>
-<em>
+                  </em>
+                </td>
+                <td>
+                  <p>RequiredValues is a list of values required to create an instance of this PluginDefinition.</p>
+                </td>
+              </tr>
+              <tr>
+                <td>
+                  <code>version</code><br>
+                  <em>
 string
 </em>
-</td>
-<td>
-<p>Version of this pluginDefinition</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>weight</code><br>
-<em>
+                </td>
+                <td>
+                  <p>Version of this pluginDefinition</p>
+                </td>
+              </tr>
+              <tr>
+                <td>
+                  <code>weight</code><br>
+                  <em>
 int32
 </em>
-</td>
-<td>
-<p>Weight configures the order in which Plugins are shown in the Greenhouse UI.
+                </td>
+                <td>
+                  <p>Weight configures the order in which Plugins are shown in the Greenhouse UI.
 Defaults to alphabetical sorting if not provided or on conflict.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>icon</code><br>
-<em>
+                </td>
+              </tr>
+              <tr>
+                <td>
+                  <code>icon</code><br>
+                  <em>
 string
 </em>
-</td>
-<td>
-<p>Icon specifies the icon to be used for this plugin in the Greenhouse UI.
+                </td>
+                <td>
+                  <p>Icon specifies the icon to be used for this plugin in the Greenhouse UI.
 Icons can be either:
 - A string representing a juno icon in camel case from this list: <a href="https://github.com/sapcc/juno/blob/main/libs/juno-ui-components/src/components/Icon/Icon.component.js#L6-L52">https://github.com/sapcc/juno/blob/main/libs/juno-ui-components/src/components/Icon/Icon.component.js#L6-L52</a>
 - A publicly accessable image reference to a .png file. Will be displayed 100x100px</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>docMarkDownUrl</code><br>
-<em>
+                </td>
+              </tr>
+              <tr>
+                <td>
+                  <code>docMarkDownUrl</code><br>
+                  <em>
 string
 </em>
-</td>
-<td>
-<p>DocMarkDownUrl specifies the URL to the markdown documentation file for this plugin.
+                </td>
+                <td>
+                  <p>DocMarkDownUrl specifies the URL to the markdown documentation file for this plugin.
 Source needs to allow all CORS origins.</p>
-</td>
-</tr>
-</table>
-</td>
-</tr>
-<tr>
-<td>
-<code>status</code><br>
-<em>
-<a href="#greenhouse.sap/v1alpha1.PluginDefinitionStatus">
+                </td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+        <tr>
+          <td>
+            <code>status</code><br>
+            <em>
+              <a href="#greenhouse.sap/v1alpha1.PluginDefinitionStatus">
 PluginDefinitionStatus
 </a>
-</em>
-</td>
-<td>
-</td>
-</tr>
-</tbody>
-</table>
-</div>
+            </em>
+          </td>
+          <td></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
 </div>
 <h3 id="greenhouse.sap/v1alpha1.PluginDefinitionSpec">PluginDefinitionSpec
 </h3>
 <p>
 (<em>Appears on:</em>
-<a href="#greenhouse.sap/v1alpha1.PluginDefinition">PluginDefinition</a>)
+  <a href="#greenhouse.sap/v1alpha1.PluginDefinition">PluginDefinition</a>)
 </p>
 <p>PluginDefinitionSpec defines the desired state of PluginDefinitionSpec</p>
 <div class="md-typeset__scrollwrap">
-<div class="md-typeset__table">
-<table>
-<thead>
-<tr>
-<th>Field</th>
-<th>Description</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>
-<code>displayName</code><br>
-<em>
+  <div class="md-typeset__table">
+    <table>
+      <thead>
+        <tr>
+          <th>Field</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>
+            <code>displayName</code><br>
+            <em>
 string
 </em>
-</td>
-<td>
-<p>DisplayName provides a human-readable label for the pluginDefinition.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>description</code><br>
-<em>
+          </td>
+          <td>
+            <p>DisplayName provides a human-readable label for the pluginDefinition.</p>
+          </td>
+        </tr>
+        <tr>
+          <td>
+            <code>description</code><br>
+            <em>
 string
 </em>
-</td>
-<td>
-<p>Description provides additional details of the pluginDefinition.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>helmChart</code><br>
-<em>
-<a href="#greenhouse.sap/v1alpha1.HelmChartReference">
+          </td>
+          <td>
+            <p>Description provides additional details of the pluginDefinition.</p>
+          </td>
+        </tr>
+        <tr>
+          <td>
+            <code>helmChart</code><br>
+            <em>
+              <a href="#greenhouse.sap/v1alpha1.HelmChartReference">
 HelmChartReference
 </a>
-</em>
-</td>
-<td>
-<p>HelmChart specifies where the Helm Chart for this pluginDefinition can be found.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>uiApplication</code><br>
-<em>
-<a href="#greenhouse.sap/v1alpha1.UIApplicationReference">
+            </em>
+          </td>
+          <td>
+            <p>HelmChart specifies where the Helm Chart for this pluginDefinition can be found.</p>
+          </td>
+        </tr>
+        <tr>
+          <td>
+            <code>uiApplication</code><br>
+            <em>
+              <a href="#greenhouse.sap/v1alpha1.UIApplicationReference">
 UIApplicationReference
 </a>
-</em>
-</td>
-<td>
-<p>UIApplication specifies a reference to a UI application</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>options</code><br>
-<em>
-<a href="#greenhouse.sap/v1alpha1.PluginOption">
+            </em>
+          </td>
+          <td>
+            <p>UIApplication specifies a reference to a UI application</p>
+          </td>
+        </tr>
+        <tr>
+          <td>
+            <code>options</code><br>
+            <em>
+              <a href="#greenhouse.sap/v1alpha1.PluginOption">
 []PluginOption
 </a>
-</em>
-</td>
-<td>
-<p>RequiredValues is a list of values required to create an instance of this PluginDefinition.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>version</code><br>
-<em>
+            </em>
+          </td>
+          <td>
+            <p>RequiredValues is a list of values required to create an instance of this PluginDefinition.</p>
+          </td>
+        </tr>
+        <tr>
+          <td>
+            <code>version</code><br>
+            <em>
 string
 </em>
-</td>
-<td>
-<p>Version of this pluginDefinition</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>weight</code><br>
-<em>
+          </td>
+          <td>
+            <p>Version of this pluginDefinition</p>
+          </td>
+        </tr>
+        <tr>
+          <td>
+            <code>weight</code><br>
+            <em>
 int32
 </em>
-</td>
-<td>
-<p>Weight configures the order in which Plugins are shown in the Greenhouse UI.
+          </td>
+          <td>
+            <p>Weight configures the order in which Plugins are shown in the Greenhouse UI.
 Defaults to alphabetical sorting if not provided or on conflict.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>icon</code><br>
-<em>
+          </td>
+        </tr>
+        <tr>
+          <td>
+            <code>icon</code><br>
+            <em>
 string
 </em>
-</td>
-<td>
-<p>Icon specifies the icon to be used for this plugin in the Greenhouse UI.
+          </td>
+          <td>
+            <p>Icon specifies the icon to be used for this plugin in the Greenhouse UI.
 Icons can be either:
 - A string representing a juno icon in camel case from this list: <a href="https://github.com/sapcc/juno/blob/main/libs/juno-ui-components/src/components/Icon/Icon.component.js#L6-L52">https://github.com/sapcc/juno/blob/main/libs/juno-ui-components/src/components/Icon/Icon.component.js#L6-L52</a>
 - A publicly accessable image reference to a .png file. Will be displayed 100x100px</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>docMarkDownUrl</code><br>
-<em>
+          </td>
+        </tr>
+        <tr>
+          <td>
+            <code>docMarkDownUrl</code><br>
+            <em>
 string
 </em>
-</td>
-<td>
-<p>DocMarkDownUrl specifies the URL to the markdown documentation file for this plugin.
+          </td>
+          <td>
+            <p>DocMarkDownUrl specifies the URL to the markdown documentation file for this plugin.
 Source needs to allow all CORS origins.</p>
-</td>
-</tr>
-</tbody>
-</table>
-</div>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
 </div>
 <h3 id="greenhouse.sap/v1alpha1.PluginDefinitionStatus">PluginDefinitionStatus
 </h3>
 <p>
 (<em>Appears on:</em>
-<a href="#greenhouse.sap/v1alpha1.PluginDefinition">PluginDefinition</a>)
+  <a href="#greenhouse.sap/v1alpha1.PluginDefinition">PluginDefinition</a>)
 </p>
 <p>PluginDefinitionStatus defines the observed state of PluginDefinition</p>
 <h3 id="greenhouse.sap/v1alpha1.PluginOption">PluginOption
 </h3>
 <p>
 (<em>Appears on:</em>
-<a href="#greenhouse.sap/v1alpha1.PluginDefinitionSpec">PluginDefinitionSpec</a>)
+  <a href="#greenhouse.sap/v1alpha1.PluginDefinitionSpec">PluginDefinitionSpec</a>)
 </p>
 <div class="md-typeset__scrollwrap">
-<div class="md-typeset__table">
-<table>
-<thead>
-<tr>
-<th>Field</th>
-<th>Description</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>
-<code>name</code><br>
-<em>
+  <div class="md-typeset__table">
+    <table>
+      <thead>
+        <tr>
+          <th>Field</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>
+            <code>name</code><br>
+            <em>
 string
 </em>
-</td>
-<td>
-<p>Name/Key of the config option.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>default</code><br>
-<em>
+          </td>
+          <td>
+            <p>Name/Key of the config option.</p>
+          </td>
+        </tr>
+        <tr>
+          <td>
+            <code>default</code><br>
+            <em>
 k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1.JSON
 </em>
-</td>
-<td>
-<em>(Optional)</em>
-<p>Default provides a default value for the option</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>description</code><br>
-<em>
+          </td>
+          <td>
+            <em>(Optional)</em>
+            <p>Default provides a default value for the option</p>
+          </td>
+        </tr>
+        <tr>
+          <td>
+            <code>description</code><br>
+            <em>
 string
 </em>
-</td>
-<td>
-<p>Description provides a human-readable text for the value as shown in the UI.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>displayName</code><br>
-<em>
+          </td>
+          <td>
+            <p>Description provides a human-readable text for the value as shown in the UI.</p>
+          </td>
+        </tr>
+        <tr>
+          <td>
+            <code>displayName</code><br>
+            <em>
 string
 </em>
-</td>
-<td>
-<p>DisplayName provides a human-readable label for the configuration option</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>required</code><br>
-<em>
+          </td>
+          <td>
+            <p>DisplayName provides a human-readable label for the configuration option</p>
+          </td>
+        </tr>
+        <tr>
+          <td>
+            <code>required</code><br>
+            <em>
 bool
 </em>
-</td>
-<td>
-<p>Required indicates that this config option is required</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>type</code><br>
-<em>
-<a href="#greenhouse.sap/v1alpha1.PluginOptionType">
+          </td>
+          <td>
+            <p>Required indicates that this config option is required</p>
+          </td>
+        </tr>
+        <tr>
+          <td>
+            <code>type</code><br>
+            <em>
+              <a href="#greenhouse.sap/v1alpha1.PluginOptionType">
 PluginOptionType
 </a>
-</em>
-</td>
-<td>
-<p>Type of this configuration option.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>regex</code><br>
-<em>
+            </em>
+          </td>
+          <td>
+            <p>Type of this configuration option.</p>
+          </td>
+        </tr>
+        <tr>
+          <td>
+            <code>regex</code><br>
+            <em>
 string
 </em>
-</td>
-<td>
-<p>Regex specifies a match rule for validating configuration options.</p>
-</td>
-</tr>
-</tbody>
-</table>
-</div>
+          </td>
+          <td>
+            <p>Regex specifies a match rule for validating configuration options.</p>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
 </div>
 <h3 id="greenhouse.sap/v1alpha1.PluginOptionType">PluginOptionType
 (<code>string</code> alias)</h3>
 <p>
 (<em>Appears on:</em>
-<a href="#greenhouse.sap/v1alpha1.PluginOption">PluginOption</a>)
+  <a href="#greenhouse.sap/v1alpha1.PluginOption">PluginOption</a>)
 </p>
 <p>PluginOptionType specifies the type of PluginOption.</p>
 <h3 id="greenhouse.sap/v1alpha1.PluginOptionValue">PluginOptionValue
 </h3>
 <p>
 (<em>Appears on:</em>
-<a href="#greenhouse.sap/v1alpha1.PluginSpec">PluginSpec</a>)
+  <a href="#greenhouse.sap/v1alpha1.PluginSpec">PluginSpec</a>)
 </p>
 <p>PluginOptionValue is the value for a PluginOption.</p>
 <div class="md-typeset__scrollwrap">
-<div class="md-typeset__table">
-<table>
-<thead>
-<tr>
-<th>Field</th>
-<th>Description</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>
-<code>name</code><br>
-<em>
+  <div class="md-typeset__table">
+    <table>
+      <thead>
+        <tr>
+          <th>Field</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>
+            <code>name</code><br>
+            <em>
 string
 </em>
-</td>
-<td>
-<p>Name of the values.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>value</code><br>
-<em>
+          </td>
+          <td>
+            <p>Name of the values.</p>
+          </td>
+        </tr>
+        <tr>
+          <td>
+            <code>value</code><br>
+            <em>
 k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1.JSON
 </em>
-</td>
-<td>
-<p>Value is the actual value in plain text.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>valueFrom</code><br>
-<em>
-<a href="#greenhouse.sap/v1alpha1.ValueFromSource">
+          </td>
+          <td>
+            <p>Value is the actual value in plain text.</p>
+          </td>
+        </tr>
+        <tr>
+          <td>
+            <code>valueFrom</code><br>
+            <em>
+              <a href="#greenhouse.sap/v1alpha1.ValueFromSource">
 ValueFromSource
 </a>
-</em>
-</td>
-<td>
-<p>ValueFrom references a potentially confidential value in another source.</p>
-</td>
-</tr>
-</tbody>
-</table>
-</div>
+            </em>
+          </td>
+          <td>
+            <p>ValueFrom references a potentially confidential value in another source.</p>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
 </div>
 <h3 id="greenhouse.sap/v1alpha1.PluginPreset">PluginPreset
 </h3>
 <p>PluginPreset is the Schema for the PluginPresets API</p>
 <div class="md-typeset__scrollwrap">
-<div class="md-typeset__table">
-<table>
-<thead>
-<tr>
-<th>Field</th>
-<th>Description</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>
-<code>metadata</code><br>
-<em>
-<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.24/#objectmeta-v1-meta">
+  <div class="md-typeset__table">
+    <table>
+      <thead>
+        <tr>
+          <th>Field</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>
+            <code>metadata</code><br>
+            <em>
+              <a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.24/#objectmeta-v1-meta">
 Kubernetes meta/v1.ObjectMeta
 </a>
-</em>
-</td>
-<td>
+            </em>
+          </td>
+          <td>
 Refer to the Kubernetes API documentation for the fields of the
 <code>metadata</code> field.
 </td>
-</tr>
-<tr>
-<td>
-<code>spec</code><br>
-<em>
-<a href="#greenhouse.sap/v1alpha1.PluginPresetSpec">
+        </tr>
+        <tr>
+          <td>
+            <code>spec</code><br>
+            <em>
+              <a href="#greenhouse.sap/v1alpha1.PluginPresetSpec">
 PluginPresetSpec
 </a>
-</em>
-</td>
-<td>
-<br/>
-<br/>
-<table>
-<tr>
-<td>
-<code>plugin</code><br>
-<em>
-<a href="#greenhouse.sap/v1alpha1.PluginSpec">
+            </em>
+          </td>
+          <td>
+            <br/>
+            <br/>
+            <table>
+              <tr>
+                <td>
+                  <code>plugin</code><br>
+                  <em>
+                    <a href="#greenhouse.sap/v1alpha1.PluginSpec">
 PluginSpec
 </a>
-</em>
-</td>
-<td>
-<p>PluginSpec is the spec of the plugin to be deployed by the PluginPreset.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>clusterSelector</code><br>
-<em>
-<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.24/#labelselector-v1-meta">
+                  </em>
+                </td>
+                <td>
+                  <p>PluginSpec is the spec of the plugin to be deployed by the PluginPreset.</p>
+                </td>
+              </tr>
+              <tr>
+                <td>
+                  <code>clusterSelector</code><br>
+                  <em>
+                    <a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.24/#labelselector-v1-meta">
 Kubernetes meta/v1.LabelSelector
 </a>
-</em>
-</td>
-<td>
-<p>ClusterSelector is a label selector to select the clusters the plugin bundle should be deployed to.</p>
-</td>
-</tr>
-</table>
-</td>
-</tr>
-<tr>
-<td>
-<code>status</code><br>
-<em>
-<a href="#greenhouse.sap/v1alpha1.PluginPresetStatus">
+                  </em>
+                </td>
+                <td>
+                  <p>ClusterSelector is a label selector to select the clusters the plugin bundle should be deployed to.</p>
+                </td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+        <tr>
+          <td>
+            <code>status</code><br>
+            <em>
+              <a href="#greenhouse.sap/v1alpha1.PluginPresetStatus">
 PluginPresetStatus
 </a>
-</em>
-</td>
-<td>
-</td>
-</tr>
-</tbody>
-</table>
-</div>
+            </em>
+          </td>
+          <td></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
 </div>
 <h3 id="greenhouse.sap/v1alpha1.PluginPresetSpec">PluginPresetSpec
 </h3>
 <p>
 (<em>Appears on:</em>
-<a href="#greenhouse.sap/v1alpha1.PluginPreset">PluginPreset</a>)
+  <a href="#greenhouse.sap/v1alpha1.PluginPreset">PluginPreset</a>)
 </p>
 <p>PluginPresetSpec defines the desired state of PluginPreset</p>
 <div class="md-typeset__scrollwrap">
-<div class="md-typeset__table">
-<table>
-<thead>
-<tr>
-<th>Field</th>
-<th>Description</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>
-<code>plugin</code><br>
-<em>
-<a href="#greenhouse.sap/v1alpha1.PluginSpec">
+  <div class="md-typeset__table">
+    <table>
+      <thead>
+        <tr>
+          <th>Field</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>
+            <code>plugin</code><br>
+            <em>
+              <a href="#greenhouse.sap/v1alpha1.PluginSpec">
 PluginSpec
 </a>
-</em>
-</td>
-<td>
-<p>PluginSpec is the spec of the plugin to be deployed by the PluginPreset.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>clusterSelector</code><br>
-<em>
-<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.24/#labelselector-v1-meta">
+            </em>
+          </td>
+          <td>
+            <p>PluginSpec is the spec of the plugin to be deployed by the PluginPreset.</p>
+          </td>
+        </tr>
+        <tr>
+          <td>
+            <code>clusterSelector</code><br>
+            <em>
+              <a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.24/#labelselector-v1-meta">
 Kubernetes meta/v1.LabelSelector
 </a>
-</em>
-</td>
-<td>
-<p>ClusterSelector is a label selector to select the clusters the plugin bundle should be deployed to.</p>
-</td>
-</tr>
-</tbody>
-</table>
-</div>
+            </em>
+          </td>
+          <td>
+            <p>ClusterSelector is a label selector to select the clusters the plugin bundle should be deployed to.</p>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
 </div>
 <h3 id="greenhouse.sap/v1alpha1.PluginPresetStatus">PluginPresetStatus
 </h3>
 <p>
 (<em>Appears on:</em>
-<a href="#greenhouse.sap/v1alpha1.PluginPreset">PluginPreset</a>)
+  <a href="#greenhouse.sap/v1alpha1.PluginPreset">PluginPreset</a>)
 </p>
 <p>PluginPresetStatus defines the observed state of PluginPreset</p>
 <div class="md-typeset__scrollwrap">
-<div class="md-typeset__table">
-<table>
-<thead>
-<tr>
-<th>Field</th>
-<th>Description</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>
-<code>statusConditions</code><br>
-<em>
-<a href="#greenhouse.sap/v1alpha1.StatusConditions">
+  <div class="md-typeset__table">
+    <table>
+      <thead>
+        <tr>
+          <th>Field</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>
+            <code>statusConditions</code><br>
+            <em>
+              <a href="#greenhouse.sap/v1alpha1.StatusConditions">
 StatusConditions
 </a>
-</em>
-</td>
-<td>
-<p>StatusConditions contain the different conditions that constitute the status of the PluginPreset.</p>
-</td>
-</tr>
-</tbody>
-</table>
-</div>
+            </em>
+          </td>
+          <td>
+            <p>StatusConditions contain the different conditions that constitute the status of the PluginPreset.</p>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
 </div>
 <h3 id="greenhouse.sap/v1alpha1.PluginSpec">PluginSpec
 </h3>
 <p>
 (<em>Appears on:</em>
-<a href="#greenhouse.sap/v1alpha1.Plugin">Plugin</a>, 
+  <a href="#greenhouse.sap/v1alpha1.Plugin">Plugin</a>, 
 <a href="#greenhouse.sap/v1alpha1.PluginPresetSpec">PluginPresetSpec</a>)
 </p>
 <p>PluginSpec defines the desired state of Plugin</p>
 <div class="md-typeset__scrollwrap">
-<div class="md-typeset__table">
-<table>
-<thead>
-<tr>
-<th>Field</th>
-<th>Description</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>
-<code>pluginDefinition</code><br>
-<em>
+  <div class="md-typeset__table">
+    <table>
+      <thead>
+        <tr>
+          <th>Field</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>
+            <code>pluginDefinition</code><br>
+            <em>
 string
 </em>
-</td>
-<td>
-<p>PluginDefinition is the name of the PluginDefinition this instance is for.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>displayName</code><br>
-<em>
+          </td>
+          <td>
+            <p>PluginDefinition is the name of the PluginDefinition this instance is for.</p>
+          </td>
+        </tr>
+        <tr>
+          <td>
+            <code>displayName</code><br>
+            <em>
 string
 </em>
-</td>
-<td>
-<p>DisplayName is an optional name for the Plugin to be displayed in the Greenhouse UI.
+          </td>
+          <td>
+            <p>DisplayName is an optional name for the Plugin to be displayed in the Greenhouse UI.
 This is especially helpful to distinguish multiple instances of a PluginDefinition in the same context.
 Defaults to a normalized version of metadata.name.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>disabled</code><br>
-<em>
+          </td>
+        </tr>
+        <tr>
+          <td>
+            <code>disabled</code><br>
+            <em>
 bool
 </em>
-</td>
-<td>
-<p>Disabled indicates that the plugin is administratively disabled.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>optionValues</code><br>
-<em>
-<a href="#greenhouse.sap/v1alpha1.PluginOptionValue">
+          </td>
+          <td>
+            <p>Disabled indicates that the plugin is administratively disabled.</p>
+          </td>
+        </tr>
+        <tr>
+          <td>
+            <code>optionValues</code><br>
+            <em>
+              <a href="#greenhouse.sap/v1alpha1.PluginOptionValue">
 []PluginOptionValue
 </a>
-</em>
-</td>
-<td>
-<p>Values are the values for a PluginDefinition instance.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>clusterName</code><br>
-<em>
+            </em>
+          </td>
+          <td>
+            <p>Values are the values for a PluginDefinition instance.</p>
+          </td>
+        </tr>
+        <tr>
+          <td>
+            <code>clusterName</code><br>
+            <em>
 string
 </em>
-</td>
-<td>
-<p>ClusterName is the name of the cluster the plugin is deployed to. If not set, the plugin is deployed to the greenhouse cluster.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>releaseNamespace</code><br>
-<em>
+          </td>
+          <td>
+            <p>ClusterName is the name of the cluster the plugin is deployed to. If not set, the plugin is deployed to the greenhouse cluster.</p>
+          </td>
+        </tr>
+        <tr>
+          <td>
+            <code>releaseNamespace</code><br>
+            <em>
 string
 </em>
-</td>
-<td>
-<p>ReleaseNamespace is the namespace in the remote cluster to which the backend is deployed.
+          </td>
+          <td>
+            <p>ReleaseNamespace is the namespace in the remote cluster to which the backend is deployed.
 Defaults to the Greenhouse managed namespace if not set.</p>
-</td>
-</tr>
-</tbody>
-</table>
-</div>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
 </div>
 <h3 id="greenhouse.sap/v1alpha1.PluginStatus">PluginStatus
 </h3>
 <p>
 (<em>Appears on:</em>
-<a href="#greenhouse.sap/v1alpha1.Plugin">Plugin</a>)
+  <a href="#greenhouse.sap/v1alpha1.Plugin">Plugin</a>)
 </p>
 <p>PluginStatus defines the observed state of Plugin</p>
 <div class="md-typeset__scrollwrap">
-<div class="md-typeset__table">
-<table>
-<thead>
-<tr>
-<th>Field</th>
-<th>Description</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>
-<code>helmReleaseStatus</code><br>
-<em>
-<a href="#greenhouse.sap/v1alpha1.HelmReleaseStatus">
+  <div class="md-typeset__table">
+    <table>
+      <thead>
+        <tr>
+          <th>Field</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>
+            <code>helmReleaseStatus</code><br>
+            <em>
+              <a href="#greenhouse.sap/v1alpha1.HelmReleaseStatus">
 HelmReleaseStatus
 </a>
-</em>
-</td>
-<td>
-<p>HelmReleaseStatus reflects the status of the latest HelmChart release.
+            </em>
+          </td>
+          <td>
+            <p>HelmReleaseStatus reflects the status of the latest HelmChart release.
 This is only configured if the pluginDefinition is backed by HelmChart.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>version</code><br>
-<em>
+          </td>
+        </tr>
+        <tr>
+          <td>
+            <code>version</code><br>
+            <em>
 string
 </em>
-</td>
-<td>
-<p>Version contains the latest pluginDefinition version the config was last applied with successfully.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>helmChart</code><br>
-<em>
-<a href="#greenhouse.sap/v1alpha1.HelmChartReference">
+          </td>
+          <td>
+            <p>Version contains the latest pluginDefinition version the config was last applied with successfully.</p>
+          </td>
+        </tr>
+        <tr>
+          <td>
+            <code>helmChart</code><br>
+            <em>
+              <a href="#greenhouse.sap/v1alpha1.HelmChartReference">
 HelmChartReference
 </a>
-</em>
-</td>
-<td>
-<p>HelmChart contains a reference the helm chart used for the deployed pluginDefinition version.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>uiApplication</code><br>
-<em>
-<a href="#greenhouse.sap/v1alpha1.UIApplicationReference">
+            </em>
+          </td>
+          <td>
+            <p>HelmChart contains a reference the helm chart used for the deployed pluginDefinition version.</p>
+          </td>
+        </tr>
+        <tr>
+          <td>
+            <code>uiApplication</code><br>
+            <em>
+              <a href="#greenhouse.sap/v1alpha1.UIApplicationReference">
 UIApplicationReference
 </a>
-</em>
-</td>
-<td>
-<p>UIApplication contains a reference to the frontend that is used for the deployed pluginDefinition version.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>weight</code><br>
-<em>
+            </em>
+          </td>
+          <td>
+            <p>UIApplication contains a reference to the frontend that is used for the deployed pluginDefinition version.</p>
+          </td>
+        </tr>
+        <tr>
+          <td>
+            <code>weight</code><br>
+            <em>
 int32
 </em>
-</td>
-<td>
-<p>Weight configures the order in which Plugins are shown in the Greenhouse UI.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>description</code><br>
-<em>
+          </td>
+          <td>
+            <p>Weight configures the order in which Plugins are shown in the Greenhouse UI.</p>
+          </td>
+        </tr>
+        <tr>
+          <td>
+            <code>description</code><br>
+            <em>
 string
 </em>
-</td>
-<td>
-<p>Description provides additional details of the plugin.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>exposedServices</code><br>
-<em>
-<a href="#greenhouse.sap/v1alpha1.Service">
-map[string]./pkg/apis/greenhouse/v1alpha1.Service
+          </td>
+          <td>
+            <p>Description provides additional details of the plugin.</p>
+          </td>
+        </tr>
+        <tr>
+          <td>
+            <code>exposedServices</code><br>
+            <em>
+              <a href="#greenhouse.sap/v1alpha1.Service">
+map[string]../../pkg/apis/greenhouse/v1alpha1.Service
 </a>
-</em>
-</td>
-<td>
-<p>ExposedServices provides an overview of the Plugins services that are centrally exposed.
+            </em>
+          </td>
+          <td>
+            <p>ExposedServices provides an overview of the Plugins services that are centrally exposed.
 It maps the exposed URL to the service found in the manifest.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>statusConditions</code><br>
-<em>
-<a href="#greenhouse.sap/v1alpha1.StatusConditions">
+          </td>
+        </tr>
+        <tr>
+          <td>
+            <code>statusConditions</code><br>
+            <em>
+              <a href="#greenhouse.sap/v1alpha1.StatusConditions">
 StatusConditions
 </a>
-</em>
-</td>
-<td>
-<p>StatusConditions contain the different conditions that constitute the status of the Plugin.</p>
-</td>
-</tr>
-</tbody>
-</table>
-</div>
+            </em>
+          </td>
+          <td>
+            <p>StatusConditions contain the different conditions that constitute the status of the Plugin.</p>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
 </div>
 <h3 id="greenhouse.sap/v1alpha1.PreAuthKey">PreAuthKey
 </h3>
 <p>
 (<em>Appears on:</em>
-<a href="#greenhouse.sap/v1alpha1.HeadScaleMachineStatus">HeadScaleMachineStatus</a>)
+  <a href="#greenhouse.sap/v1alpha1.HeadScaleMachineStatus">HeadScaleMachineStatus</a>)
 </p>
 <p>PreAuthKey reflects the status of the pre-authentication key used by the Headscale machine.</p>
 <div class="md-typeset__scrollwrap">
-<div class="md-typeset__table">
-<table>
-<thead>
-<tr>
-<th>Field</th>
-<th>Description</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>
-<code>id</code><br>
-<em>
+  <div class="md-typeset__table">
+    <table>
+      <thead>
+        <tr>
+          <th>Field</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>
+            <code>id</code><br>
+            <em>
 string
 </em>
-</td>
-<td>
-</td>
-</tr>
-<tr>
-<td>
-<code>user</code><br>
-<em>
+          </td>
+          <td></td>
+        </tr>
+        <tr>
+          <td>
+            <code>user</code><br>
+            <em>
 string
 </em>
-</td>
-<td>
-</td>
-</tr>
-<tr>
-<td>
-<code>reusable</code><br>
-<em>
+          </td>
+          <td></td>
+        </tr>
+        <tr>
+          <td>
+            <code>reusable</code><br>
+            <em>
 bool
 </em>
-</td>
-<td>
-</td>
-</tr>
-<tr>
-<td>
-<code>ephemeral</code><br>
-<em>
+          </td>
+          <td></td>
+        </tr>
+        <tr>
+          <td>
+            <code>ephemeral</code><br>
+            <em>
 bool
 </em>
-</td>
-<td>
-</td>
-</tr>
-<tr>
-<td>
-<code>used</code><br>
-<em>
+          </td>
+          <td></td>
+        </tr>
+        <tr>
+          <td>
+            <code>used</code><br>
+            <em>
 bool
 </em>
-</td>
-<td>
-</td>
-</tr>
-<tr>
-<td>
-<code>createdAt</code><br>
-<em>
-<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.24/#time-v1-meta">
+          </td>
+          <td></td>
+        </tr>
+        <tr>
+          <td>
+            <code>createdAt</code><br>
+            <em>
+              <a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.24/#time-v1-meta">
 Kubernetes meta/v1.Time
 </a>
-</em>
-</td>
-<td>
-</td>
-</tr>
-<tr>
-<td>
-<code>expiration</code><br>
-<em>
-<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.24/#time-v1-meta">
+            </em>
+          </td>
+          <td></td>
+        </tr>
+        <tr>
+          <td>
+            <code>expiration</code><br>
+            <em>
+              <a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.24/#time-v1-meta">
 Kubernetes meta/v1.Time
 </a>
-</em>
-</td>
-<td>
-</td>
-</tr>
-</tbody>
-</table>
-</div>
+            </em>
+          </td>
+          <td></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
 </div>
 <h3 id="greenhouse.sap/v1alpha1.PropagationStatus">PropagationStatus
 </h3>
 <p>
 (<em>Appears on:</em>
-<a href="#greenhouse.sap/v1alpha1.TeamRoleBindingStatus">TeamRoleBindingStatus</a>)
+  <a href="#greenhouse.sap/v1alpha1.TeamRoleBindingStatus">TeamRoleBindingStatus</a>)
 </p>
 <p>PropagationStatus defines the observed state of the TeamRoleBinding&rsquo;s associated rbacv1 resources  on a Cluster</p>
 <div class="md-typeset__scrollwrap">
-<div class="md-typeset__table">
-<table>
-<thead>
-<tr>
-<th>Field</th>
-<th>Description</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>
-<code>clusterName</code><br>
-<em>
+  <div class="md-typeset__table">
+    <table>
+      <thead>
+        <tr>
+          <th>Field</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>
+            <code>clusterName</code><br>
+            <em>
 string
 </em>
-</td>
-<td>
-<p>ClusterName is the name of the cluster the rbacv1 resources are created on.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>condition</code><br>
-<em>
-<a href="#greenhouse.sap/v1alpha1.Condition">
+          </td>
+          <td>
+            <p>ClusterName is the name of the cluster the rbacv1 resources are created on.</p>
+          </td>
+        </tr>
+        <tr>
+          <td>
+            <code>condition</code><br>
+            <em>
+              <a href="#greenhouse.sap/v1alpha1.Condition">
 Condition
 </a>
-</em>
-</td>
-<td>
-<p>Condition is the overall Status of the rbacv1 resources created on the cluster</p>
-</td>
-</tr>
-</tbody>
-</table>
-</div>
+            </em>
+          </td>
+          <td>
+            <p>Condition is the overall Status of the rbacv1 resources created on the cluster</p>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
 </div>
 <h3 id="greenhouse.sap/v1alpha1.SecretKeyReference">SecretKeyReference
 </h3>
 <p>
 (<em>Appears on:</em>
-<a href="#greenhouse.sap/v1alpha1.OIDCConfig">OIDCConfig</a>, 
+  <a href="#greenhouse.sap/v1alpha1.OIDCConfig">OIDCConfig</a>, 
 <a href="#greenhouse.sap/v1alpha1.ValueFromSource">ValueFromSource</a>)
 </p>
 <p>SecretKeyReference specifies the secret and key containing the value.</p>
 <div class="md-typeset__scrollwrap">
-<div class="md-typeset__table">
-<table>
-<thead>
-<tr>
-<th>Field</th>
-<th>Description</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>
-<code>name</code><br>
-<em>
+  <div class="md-typeset__table">
+    <table>
+      <thead>
+        <tr>
+          <th>Field</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>
+            <code>name</code><br>
+            <em>
 string
 </em>
-</td>
-<td>
-<p>Name of the secret in the same namespace.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>key</code><br>
-<em>
+          </td>
+          <td>
+            <p>Name of the secret in the same namespace.</p>
+          </td>
+        </tr>
+        <tr>
+          <td>
+            <code>key</code><br>
+            <em>
 string
 </em>
-</td>
-<td>
-<p>Key in the secret to select the value from.</p>
-</td>
-</tr>
-</tbody>
-</table>
-</div>
+          </td>
+          <td>
+            <p>Key in the secret to select the value from.</p>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
 </div>
 <h3 id="greenhouse.sap/v1alpha1.Service">Service
 </h3>
 <p>
 (<em>Appears on:</em>
-<a href="#greenhouse.sap/v1alpha1.PluginStatus">PluginStatus</a>)
+  <a href="#greenhouse.sap/v1alpha1.PluginStatus">PluginStatus</a>)
 </p>
 <p>Service references a Kubernetes service of a Plugin.</p>
 <div class="md-typeset__scrollwrap">
-<div class="md-typeset__table">
-<table>
-<thead>
-<tr>
-<th>Field</th>
-<th>Description</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>
-<code>namespace</code><br>
-<em>
+  <div class="md-typeset__table">
+    <table>
+      <thead>
+        <tr>
+          <th>Field</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>
+            <code>namespace</code><br>
+            <em>
 string
 </em>
-</td>
-<td>
-<p>Namespace is the namespace of the service in the target cluster.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>name</code><br>
-<em>
+          </td>
+          <td>
+            <p>Namespace is the namespace of the service in the target cluster.</p>
+          </td>
+        </tr>
+        <tr>
+          <td>
+            <code>name</code><br>
+            <em>
 string
 </em>
-</td>
-<td>
-<p>Name is the name of the service in the target cluster.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>port</code><br>
-<em>
+          </td>
+          <td>
+            <p>Name is the name of the service in the target cluster.</p>
+          </td>
+        </tr>
+        <tr>
+          <td>
+            <code>port</code><br>
+            <em>
 int32
 </em>
-</td>
-<td>
-<p>Port is the port of the service.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>protocol</code><br>
-<em>
+          </td>
+          <td>
+            <p>Port is the port of the service.</p>
+          </td>
+        </tr>
+        <tr>
+          <td>
+            <code>protocol</code><br>
+            <em>
 string
 </em>
-</td>
-<td>
-<p>Protocol is the protocol of the service.</p>
-</td>
-</tr>
-</tbody>
-</table>
-</div>
+          </td>
+          <td>
+            <p>Protocol is the protocol of the service.</p>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
 </div>
 <h3 id="greenhouse.sap/v1alpha1.StatusConditions">StatusConditions
 </h3>
 <p>
 (<em>Appears on:</em>
-<a href="#greenhouse.sap/v1alpha1.ClusterStatus">ClusterStatus</a>, 
+  <a href="#greenhouse.sap/v1alpha1.ClusterStatus">ClusterStatus</a>, 
 <a href="#greenhouse.sap/v1alpha1.NodeStatus">NodeStatus</a>, 
 <a href="#greenhouse.sap/v1alpha1.PluginPresetStatus">PluginPresetStatus</a>, 
 <a href="#greenhouse.sap/v1alpha1.PluginStatus">PluginStatus</a>, 
@@ -2102,831 +2082,826 @@ string
 <p>A StatusConditions contains a list of conditions.
 Only one condition of a given type may exist in the list.</p>
 <div class="md-typeset__scrollwrap">
-<div class="md-typeset__table">
-<table>
-<thead>
-<tr>
-<th>Field</th>
-<th>Description</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>
-<code>conditions</code><br>
-<em>
-<a href="#greenhouse.sap/v1alpha1.Condition">
+  <div class="md-typeset__table">
+    <table>
+      <thead>
+        <tr>
+          <th>Field</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>
+            <code>conditions</code><br>
+            <em>
+              <a href="#greenhouse.sap/v1alpha1.Condition">
 []Condition
 </a>
-</em>
-</td>
-<td>
-</td>
-</tr>
-</tbody>
-</table>
-</div>
+            </em>
+          </td>
+          <td></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
 </div>
 <h3 id="greenhouse.sap/v1alpha1.Team">Team
 </h3>
 <p>Team is the Schema for the teams API</p>
 <div class="md-typeset__scrollwrap">
-<div class="md-typeset__table">
-<table>
-<thead>
-<tr>
-<th>Field</th>
-<th>Description</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>
-<code>metadata</code><br>
-<em>
-<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.24/#objectmeta-v1-meta">
+  <div class="md-typeset__table">
+    <table>
+      <thead>
+        <tr>
+          <th>Field</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>
+            <code>metadata</code><br>
+            <em>
+              <a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.24/#objectmeta-v1-meta">
 Kubernetes meta/v1.ObjectMeta
 </a>
-</em>
-</td>
-<td>
+            </em>
+          </td>
+          <td>
 Refer to the Kubernetes API documentation for the fields of the
 <code>metadata</code> field.
 </td>
-</tr>
-<tr>
-<td>
-<code>spec</code><br>
-<em>
-<a href="#greenhouse.sap/v1alpha1.TeamSpec">
+        </tr>
+        <tr>
+          <td>
+            <code>spec</code><br>
+            <em>
+              <a href="#greenhouse.sap/v1alpha1.TeamSpec">
 TeamSpec
 </a>
-</em>
-</td>
-<td>
-<br/>
-<br/>
-<table>
-<tr>
-<td>
-<code>description</code><br>
-<em>
+            </em>
+          </td>
+          <td>
+            <br/>
+            <br/>
+            <table>
+              <tr>
+                <td>
+                  <code>description</code><br>
+                  <em>
 string
 </em>
-</td>
-<td>
-<p>Description provides additional details of the team.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>mappedIdPGroup</code><br>
-<em>
+                </td>
+                <td>
+                  <p>Description provides additional details of the team.</p>
+                </td>
+              </tr>
+              <tr>
+                <td>
+                  <code>mappedIdPGroup</code><br>
+                  <em>
 string
 </em>
-</td>
-<td>
-<p>IdP group id matching team.</p>
-</td>
-</tr>
-</table>
-</td>
-</tr>
-<tr>
-<td>
-<code>status</code><br>
-<em>
-<a href="#greenhouse.sap/v1alpha1.TeamStatus">
+                </td>
+                <td>
+                  <p>IdP group id matching team.</p>
+                </td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+        <tr>
+          <td>
+            <code>status</code><br>
+            <em>
+              <a href="#greenhouse.sap/v1alpha1.TeamStatus">
 TeamStatus
 </a>
-</em>
-</td>
-<td>
-</td>
-</tr>
-</tbody>
-</table>
-</div>
+            </em>
+          </td>
+          <td></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
 </div>
 <h3 id="greenhouse.sap/v1alpha1.TeamMembership">TeamMembership
 </h3>
 <p>TeamMembership is the Schema for the teammemberships API</p>
 <div class="md-typeset__scrollwrap">
-<div class="md-typeset__table">
-<table>
-<thead>
-<tr>
-<th>Field</th>
-<th>Description</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>
-<code>metadata</code><br>
-<em>
-<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.24/#objectmeta-v1-meta">
+  <div class="md-typeset__table">
+    <table>
+      <thead>
+        <tr>
+          <th>Field</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>
+            <code>metadata</code><br>
+            <em>
+              <a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.24/#objectmeta-v1-meta">
 Kubernetes meta/v1.ObjectMeta
 </a>
-</em>
-</td>
-<td>
+            </em>
+          </td>
+          <td>
 Refer to the Kubernetes API documentation for the fields of the
 <code>metadata</code> field.
 </td>
-</tr>
-<tr>
-<td>
-<code>spec</code><br>
-<em>
-<a href="#greenhouse.sap/v1alpha1.TeamMembershipSpec">
+        </tr>
+        <tr>
+          <td>
+            <code>spec</code><br>
+            <em>
+              <a href="#greenhouse.sap/v1alpha1.TeamMembershipSpec">
 TeamMembershipSpec
 </a>
-</em>
-</td>
-<td>
-<br/>
-<br/>
-<table>
-<tr>
-<td>
-<code>members</code><br>
-<em>
-<a href="#greenhouse.sap/v1alpha1.User">
+            </em>
+          </td>
+          <td>
+            <br/>
+            <br/>
+            <table>
+              <tr>
+                <td>
+                  <code>members</code><br>
+                  <em>
+                    <a href="#greenhouse.sap/v1alpha1.User">
 []User
 </a>
-</em>
-</td>
-<td>
-<em>(Optional)</em>
-<p>Members list users that are part of a team.</p>
-</td>
-</tr>
-</table>
-</td>
-</tr>
-<tr>
-<td>
-<code>status</code><br>
-<em>
-<a href="#greenhouse.sap/v1alpha1.TeamMembershipStatus">
+                  </em>
+                </td>
+                <td>
+                  <em>(Optional)</em>
+                  <p>Members list users that are part of a team.</p>
+                </td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+        <tr>
+          <td>
+            <code>status</code><br>
+            <em>
+              <a href="#greenhouse.sap/v1alpha1.TeamMembershipStatus">
 TeamMembershipStatus
 </a>
-</em>
-</td>
-<td>
-</td>
-</tr>
-</tbody>
-</table>
-</div>
+            </em>
+          </td>
+          <td></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
 </div>
 <h3 id="greenhouse.sap/v1alpha1.TeamMembershipSpec">TeamMembershipSpec
 </h3>
 <p>
 (<em>Appears on:</em>
-<a href="#greenhouse.sap/v1alpha1.TeamMembership">TeamMembership</a>)
+  <a href="#greenhouse.sap/v1alpha1.TeamMembership">TeamMembership</a>)
 </p>
 <p>TeamMembershipSpec defines the desired state of TeamMembership</p>
 <div class="md-typeset__scrollwrap">
-<div class="md-typeset__table">
-<table>
-<thead>
-<tr>
-<th>Field</th>
-<th>Description</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>
-<code>members</code><br>
-<em>
-<a href="#greenhouse.sap/v1alpha1.User">
+  <div class="md-typeset__table">
+    <table>
+      <thead>
+        <tr>
+          <th>Field</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>
+            <code>members</code><br>
+            <em>
+              <a href="#greenhouse.sap/v1alpha1.User">
 []User
 </a>
-</em>
-</td>
-<td>
-<em>(Optional)</em>
-<p>Members list users that are part of a team.</p>
-</td>
-</tr>
-</tbody>
-</table>
-</div>
+            </em>
+          </td>
+          <td>
+            <em>(Optional)</em>
+            <p>Members list users that are part of a team.</p>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
 </div>
 <h3 id="greenhouse.sap/v1alpha1.TeamMembershipStatus">TeamMembershipStatus
 </h3>
 <p>
 (<em>Appears on:</em>
-<a href="#greenhouse.sap/v1alpha1.TeamMembership">TeamMembership</a>)
+  <a href="#greenhouse.sap/v1alpha1.TeamMembership">TeamMembership</a>)
 </p>
 <p>TeamMembershipStatus defines the observed state of TeamMembership</p>
 <div class="md-typeset__scrollwrap">
-<div class="md-typeset__table">
-<table>
-<thead>
-<tr>
-<th>Field</th>
-<th>Description</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>
-<code>lastSyncedTime</code><br>
-<em>
-<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.24/#time-v1-meta">
+  <div class="md-typeset__table">
+    <table>
+      <thead>
+        <tr>
+          <th>Field</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>
+            <code>lastSyncedTime</code><br>
+            <em>
+              <a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.24/#time-v1-meta">
 Kubernetes meta/v1.Time
 </a>
-</em>
-</td>
-<td>
-<em>(Optional)</em>
-<p>LastSyncedTime is the information when was the last time the membership was synced</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>lastUpdateTime</code><br>
-<em>
-<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.24/#time-v1-meta">
+            </em>
+          </td>
+          <td>
+            <em>(Optional)</em>
+            <p>LastSyncedTime is the information when was the last time the membership was synced</p>
+          </td>
+        </tr>
+        <tr>
+          <td>
+            <code>lastUpdateTime</code><br>
+            <em>
+              <a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.24/#time-v1-meta">
 Kubernetes meta/v1.Time
 </a>
-</em>
-</td>
-<td>
-<em>(Optional)</em>
-<p>LastChangedTime is the information when was the last time the membership was actually changed</p>
-</td>
-</tr>
-</tbody>
-</table>
-</div>
+            </em>
+          </td>
+          <td>
+            <em>(Optional)</em>
+            <p>LastChangedTime is the information when was the last time the membership was actually changed</p>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
 </div>
 <h3 id="greenhouse.sap/v1alpha1.TeamRole">TeamRole
 </h3>
 <p>TeamRole is the Schema for the TeamRoles API</p>
 <div class="md-typeset__scrollwrap">
-<div class="md-typeset__table">
-<table>
-<thead>
-<tr>
-<th>Field</th>
-<th>Description</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>
-<code>metadata</code><br>
-<em>
-<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.24/#objectmeta-v1-meta">
+  <div class="md-typeset__table">
+    <table>
+      <thead>
+        <tr>
+          <th>Field</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>
+            <code>metadata</code><br>
+            <em>
+              <a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.24/#objectmeta-v1-meta">
 Kubernetes meta/v1.ObjectMeta
 </a>
-</em>
-</td>
-<td>
+            </em>
+          </td>
+          <td>
 Refer to the Kubernetes API documentation for the fields of the
 <code>metadata</code> field.
 </td>
-</tr>
-<tr>
-<td>
-<code>spec</code><br>
-<em>
-<a href="#greenhouse.sap/v1alpha1.TeamRoleSpec">
+        </tr>
+        <tr>
+          <td>
+            <code>spec</code><br>
+            <em>
+              <a href="#greenhouse.sap/v1alpha1.TeamRoleSpec">
 TeamRoleSpec
 </a>
-</em>
-</td>
-<td>
-<br/>
-<br/>
-<table>
-<tr>
-<td>
-<code>rules</code><br>
-<em>
-<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.24/#policyrule-v1-rbac">
+            </em>
+          </td>
+          <td>
+            <br/>
+            <br/>
+            <table>
+              <tr>
+                <td>
+                  <code>rules</code><br>
+                  <em>
+                    <a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.24/#policyrule-v1-rbac">
 []Kubernetes rbac/v1.PolicyRule
 </a>
-</em>
-</td>
-<td>
-<p>Rules is a list of rbacv1.PolicyRules used on a managed RBAC (Cluster)Role</p>
-</td>
-</tr>
-</table>
-</td>
-</tr>
-<tr>
-<td>
-<code>status</code><br>
-<em>
-<a href="#greenhouse.sap/v1alpha1.TeamRoleStatus">
+                  </em>
+                </td>
+                <td>
+                  <p>Rules is a list of rbacv1.PolicyRules used on a managed RBAC (Cluster)Role</p>
+                </td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+        <tr>
+          <td>
+            <code>status</code><br>
+            <em>
+              <a href="#greenhouse.sap/v1alpha1.TeamRoleStatus">
 TeamRoleStatus
 </a>
-</em>
-</td>
-<td>
-</td>
-</tr>
-</tbody>
-</table>
-</div>
+            </em>
+          </td>
+          <td></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
 </div>
 <h3 id="greenhouse.sap/v1alpha1.TeamRoleBinding">TeamRoleBinding
 </h3>
 <p>TeamRoleBinding is the Schema for the rolebindings API</p>
 <div class="md-typeset__scrollwrap">
-<div class="md-typeset__table">
-<table>
-<thead>
-<tr>
-<th>Field</th>
-<th>Description</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>
-<code>metadata</code><br>
-<em>
-<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.24/#objectmeta-v1-meta">
+  <div class="md-typeset__table">
+    <table>
+      <thead>
+        <tr>
+          <th>Field</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>
+            <code>metadata</code><br>
+            <em>
+              <a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.24/#objectmeta-v1-meta">
 Kubernetes meta/v1.ObjectMeta
 </a>
-</em>
-</td>
-<td>
+            </em>
+          </td>
+          <td>
 Refer to the Kubernetes API documentation for the fields of the
 <code>metadata</code> field.
 </td>
-</tr>
-<tr>
-<td>
-<code>spec</code><br>
-<em>
-<a href="#greenhouse.sap/v1alpha1.TeamRoleBindingSpec">
+        </tr>
+        <tr>
+          <td>
+            <code>spec</code><br>
+            <em>
+              <a href="#greenhouse.sap/v1alpha1.TeamRoleBindingSpec">
 TeamRoleBindingSpec
 </a>
-</em>
-</td>
-<td>
-<br/>
-<br/>
-<table>
-<tr>
-<td>
-<code>teamRoleRef</code><br>
-<em>
+            </em>
+          </td>
+          <td>
+            <br/>
+            <br/>
+            <table>
+              <tr>
+                <td>
+                  <code>teamRoleRef</code><br>
+                  <em>
 string
 </em>
-</td>
-<td>
-<p>TeamRoleRef references a Greenhouse TeamRole by name</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>teamRef</code><br>
-<em>
+                </td>
+                <td>
+                  <p>TeamRoleRef references a Greenhouse TeamRole by name</p>
+                </td>
+              </tr>
+              <tr>
+                <td>
+                  <code>teamRef</code><br>
+                  <em>
 string
 </em>
-</td>
-<td>
-<p>TeamRef references a Greenhouse Team by name</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>clusterName</code><br>
-<em>
+                </td>
+                <td>
+                  <p>TeamRef references a Greenhouse Team by name</p>
+                </td>
+              </tr>
+              <tr>
+                <td>
+                  <code>clusterName</code><br>
+                  <em>
 string
 </em>
-</td>
-<td>
-<p>ClusterName is the name of the cluster the rbacv1 resources are created on.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>clusterSelector</code><br>
-<em>
-<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.24/#labelselector-v1-meta">
+                </td>
+                <td>
+                  <p>ClusterName is the name of the cluster the rbacv1 resources are created on.</p>
+                </td>
+              </tr>
+              <tr>
+                <td>
+                  <code>clusterSelector</code><br>
+                  <em>
+                    <a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.24/#labelselector-v1-meta">
 Kubernetes meta/v1.LabelSelector
 </a>
-</em>
-</td>
-<td>
-<p>ClusterSelector is a label selector to select the Clusters the TeamRoleBinding should be deployed to.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>namespaces</code><br>
-<em>
+                  </em>
+                </td>
+                <td>
+                  <p>ClusterSelector is a label selector to select the Clusters the TeamRoleBinding should be deployed to.</p>
+                </td>
+              </tr>
+              <tr>
+                <td>
+                  <code>namespaces</code><br>
+                  <em>
 []string
 </em>
-</td>
-<td>
-<p>Namespaces is the immutable list of namespaces in the Greenhouse Clusters to apply the RoleBinding to.
+                </td>
+                <td>
+                  <p>Namespaces is the immutable list of namespaces in the Greenhouse Clusters to apply the RoleBinding to.
 If empty, a ClusterRoleBinding will be created on the remote cluster, otherwise a RoleBinding per namespace.</p>
-</td>
-</tr>
-</table>
-</td>
-</tr>
-<tr>
-<td>
-<code>status</code><br>
-<em>
-<a href="#greenhouse.sap/v1alpha1.TeamRoleBindingStatus">
+                </td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+        <tr>
+          <td>
+            <code>status</code><br>
+            <em>
+              <a href="#greenhouse.sap/v1alpha1.TeamRoleBindingStatus">
 TeamRoleBindingStatus
 </a>
-</em>
-</td>
-<td>
-</td>
-</tr>
-</tbody>
-</table>
-</div>
+            </em>
+          </td>
+          <td></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
 </div>
 <h3 id="greenhouse.sap/v1alpha1.TeamRoleBindingSpec">TeamRoleBindingSpec
 </h3>
 <p>
 (<em>Appears on:</em>
-<a href="#greenhouse.sap/v1alpha1.TeamRoleBinding">TeamRoleBinding</a>)
+  <a href="#greenhouse.sap/v1alpha1.TeamRoleBinding">TeamRoleBinding</a>)
 </p>
 <p>TeamRoleBindingSpec defines the desired state of a TeamRoleBinding</p>
 <div class="md-typeset__scrollwrap">
-<div class="md-typeset__table">
-<table>
-<thead>
-<tr>
-<th>Field</th>
-<th>Description</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>
-<code>teamRoleRef</code><br>
-<em>
+  <div class="md-typeset__table">
+    <table>
+      <thead>
+        <tr>
+          <th>Field</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>
+            <code>teamRoleRef</code><br>
+            <em>
 string
 </em>
-</td>
-<td>
-<p>TeamRoleRef references a Greenhouse TeamRole by name</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>teamRef</code><br>
-<em>
+          </td>
+          <td>
+            <p>TeamRoleRef references a Greenhouse TeamRole by name</p>
+          </td>
+        </tr>
+        <tr>
+          <td>
+            <code>teamRef</code><br>
+            <em>
 string
 </em>
-</td>
-<td>
-<p>TeamRef references a Greenhouse Team by name</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>clusterName</code><br>
-<em>
+          </td>
+          <td>
+            <p>TeamRef references a Greenhouse Team by name</p>
+          </td>
+        </tr>
+        <tr>
+          <td>
+            <code>clusterName</code><br>
+            <em>
 string
 </em>
-</td>
-<td>
-<p>ClusterName is the name of the cluster the rbacv1 resources are created on.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>clusterSelector</code><br>
-<em>
-<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.24/#labelselector-v1-meta">
+          </td>
+          <td>
+            <p>ClusterName is the name of the cluster the rbacv1 resources are created on.</p>
+          </td>
+        </tr>
+        <tr>
+          <td>
+            <code>clusterSelector</code><br>
+            <em>
+              <a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.24/#labelselector-v1-meta">
 Kubernetes meta/v1.LabelSelector
 </a>
-</em>
-</td>
-<td>
-<p>ClusterSelector is a label selector to select the Clusters the TeamRoleBinding should be deployed to.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>namespaces</code><br>
-<em>
+            </em>
+          </td>
+          <td>
+            <p>ClusterSelector is a label selector to select the Clusters the TeamRoleBinding should be deployed to.</p>
+          </td>
+        </tr>
+        <tr>
+          <td>
+            <code>namespaces</code><br>
+            <em>
 []string
 </em>
-</td>
-<td>
-<p>Namespaces is the immutable list of namespaces in the Greenhouse Clusters to apply the RoleBinding to.
+          </td>
+          <td>
+            <p>Namespaces is the immutable list of namespaces in the Greenhouse Clusters to apply the RoleBinding to.
 If empty, a ClusterRoleBinding will be created on the remote cluster, otherwise a RoleBinding per namespace.</p>
-</td>
-</tr>
-</tbody>
-</table>
-</div>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
 </div>
 <h3 id="greenhouse.sap/v1alpha1.TeamRoleBindingStatus">TeamRoleBindingStatus
 </h3>
 <p>
 (<em>Appears on:</em>
-<a href="#greenhouse.sap/v1alpha1.TeamRoleBinding">TeamRoleBinding</a>)
+  <a href="#greenhouse.sap/v1alpha1.TeamRoleBinding">TeamRoleBinding</a>)
 </p>
 <p>TeamRoleBindingStatus defines the observed state of the TeamRoleBinding</p>
 <div class="md-typeset__scrollwrap">
-<div class="md-typeset__table">
-<table>
-<thead>
-<tr>
-<th>Field</th>
-<th>Description</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>
-<code>statusConditions</code><br>
-<em>
-<a href="#greenhouse.sap/v1alpha1.StatusConditions">
+  <div class="md-typeset__table">
+    <table>
+      <thead>
+        <tr>
+          <th>Field</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>
+            <code>statusConditions</code><br>
+            <em>
+              <a href="#greenhouse.sap/v1alpha1.StatusConditions">
 StatusConditions
 </a>
-</em>
-</td>
-<td>
-<p>StatusConditions contain the different conditions that constitute the status of the TeamRoleBinding.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>clusters</code><br>
-<em>
-<a href="#greenhouse.sap/v1alpha1.PropagationStatus">
+            </em>
+          </td>
+          <td>
+            <p>StatusConditions contain the different conditions that constitute the status of the TeamRoleBinding.</p>
+          </td>
+        </tr>
+        <tr>
+          <td>
+            <code>clusters</code><br>
+            <em>
+              <a href="#greenhouse.sap/v1alpha1.PropagationStatus">
 []PropagationStatus
 </a>
-</em>
-</td>
-<td>
-<p>PropagationStatus is the list of clusters the TeamRoleBinding is applied to</p>
-</td>
-</tr>
-</tbody>
-</table>
-</div>
+            </em>
+          </td>
+          <td>
+            <p>PropagationStatus is the list of clusters the TeamRoleBinding is applied to</p>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
 </div>
 <h3 id="greenhouse.sap/v1alpha1.TeamRoleSpec">TeamRoleSpec
 </h3>
 <p>
 (<em>Appears on:</em>
-<a href="#greenhouse.sap/v1alpha1.TeamRole">TeamRole</a>)
+  <a href="#greenhouse.sap/v1alpha1.TeamRole">TeamRole</a>)
 </p>
 <p>TeamRoleSpec defines the desired state of a TeamRole</p>
 <div class="md-typeset__scrollwrap">
-<div class="md-typeset__table">
-<table>
-<thead>
-<tr>
-<th>Field</th>
-<th>Description</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>
-<code>rules</code><br>
-<em>
-<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.24/#policyrule-v1-rbac">
+  <div class="md-typeset__table">
+    <table>
+      <thead>
+        <tr>
+          <th>Field</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>
+            <code>rules</code><br>
+            <em>
+              <a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.24/#policyrule-v1-rbac">
 []Kubernetes rbac/v1.PolicyRule
 </a>
-</em>
-</td>
-<td>
-<p>Rules is a list of rbacv1.PolicyRules used on a managed RBAC (Cluster)Role</p>
-</td>
-</tr>
-</tbody>
-</table>
-</div>
+            </em>
+          </td>
+          <td>
+            <p>Rules is a list of rbacv1.PolicyRules used on a managed RBAC (Cluster)Role</p>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
 </div>
 <h3 id="greenhouse.sap/v1alpha1.TeamRoleStatus">TeamRoleStatus
 </h3>
 <p>
 (<em>Appears on:</em>
-<a href="#greenhouse.sap/v1alpha1.TeamRole">TeamRole</a>)
+  <a href="#greenhouse.sap/v1alpha1.TeamRole">TeamRole</a>)
 </p>
 <p>TeamRoleStatus defines the observed state of a TeamRole</p>
 <h3 id="greenhouse.sap/v1alpha1.TeamSpec">TeamSpec
 </h3>
 <p>
 (<em>Appears on:</em>
-<a href="#greenhouse.sap/v1alpha1.Team">Team</a>)
+  <a href="#greenhouse.sap/v1alpha1.Team">Team</a>)
 </p>
 <p>TeamSpec defines the desired state of Team</p>
 <div class="md-typeset__scrollwrap">
-<div class="md-typeset__table">
-<table>
-<thead>
-<tr>
-<th>Field</th>
-<th>Description</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>
-<code>description</code><br>
-<em>
+  <div class="md-typeset__table">
+    <table>
+      <thead>
+        <tr>
+          <th>Field</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>
+            <code>description</code><br>
+            <em>
 string
 </em>
-</td>
-<td>
-<p>Description provides additional details of the team.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>mappedIdPGroup</code><br>
-<em>
+          </td>
+          <td>
+            <p>Description provides additional details of the team.</p>
+          </td>
+        </tr>
+        <tr>
+          <td>
+            <code>mappedIdPGroup</code><br>
+            <em>
 string
 </em>
-</td>
-<td>
-<p>IdP group id matching team.</p>
-</td>
-</tr>
-</tbody>
-</table>
-</div>
+          </td>
+          <td>
+            <p>IdP group id matching team.</p>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
 </div>
 <h3 id="greenhouse.sap/v1alpha1.TeamStatus">TeamStatus
 </h3>
 <p>
 (<em>Appears on:</em>
-<a href="#greenhouse.sap/v1alpha1.Team">Team</a>)
+  <a href="#greenhouse.sap/v1alpha1.Team">Team</a>)
 </p>
 <p>TeamStatus defines the observed state of Team</p>
 <h3 id="greenhouse.sap/v1alpha1.UIApplicationReference">UIApplicationReference
 </h3>
 <p>
 (<em>Appears on:</em>
-<a href="#greenhouse.sap/v1alpha1.PluginDefinitionSpec">PluginDefinitionSpec</a>, 
+  <a href="#greenhouse.sap/v1alpha1.PluginDefinitionSpec">PluginDefinitionSpec</a>, 
 <a href="#greenhouse.sap/v1alpha1.PluginStatus">PluginStatus</a>)
 </p>
 <p>UIApplicationReference references the UI pluginDefinition to use.</p>
 <div class="md-typeset__scrollwrap">
-<div class="md-typeset__table">
-<table>
-<thead>
-<tr>
-<th>Field</th>
-<th>Description</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>
-<code>url</code><br>
-<em>
+  <div class="md-typeset__table">
+    <table>
+      <thead>
+        <tr>
+          <th>Field</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>
+            <code>url</code><br>
+            <em>
 string
 </em>
-</td>
-<td>
-<p>URL specifies the url to a built javascript asset.
+          </td>
+          <td>
+            <p>URL specifies the url to a built javascript asset.
 By default, assets are loaded from the Juno asset server using the provided name and version.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>name</code><br>
-<em>
+          </td>
+        </tr>
+        <tr>
+          <td>
+            <code>name</code><br>
+            <em>
 string
 </em>
-</td>
-<td>
-<p>Name of the UI application.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>version</code><br>
-<em>
+          </td>
+          <td>
+            <p>Name of the UI application.</p>
+          </td>
+        </tr>
+        <tr>
+          <td>
+            <code>version</code><br>
+            <em>
 string
 </em>
-</td>
-<td>
-<p>Version of the frontend application.</p>
-</td>
-</tr>
-</tbody>
-</table>
-</div>
+          </td>
+          <td>
+            <p>Version of the frontend application.</p>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
 </div>
 <h3 id="greenhouse.sap/v1alpha1.User">User
 </h3>
 <p>
 (<em>Appears on:</em>
-<a href="#greenhouse.sap/v1alpha1.TeamMembershipSpec">TeamMembershipSpec</a>)
+  <a href="#greenhouse.sap/v1alpha1.TeamMembershipSpec">TeamMembershipSpec</a>)
 </p>
 <p>User specifies a human person.</p>
 <div class="md-typeset__scrollwrap">
-<div class="md-typeset__table">
-<table>
-<thead>
-<tr>
-<th>Field</th>
-<th>Description</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>
-<code>id</code><br>
-<em>
+  <div class="md-typeset__table">
+    <table>
+      <thead>
+        <tr>
+          <th>Field</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>
+            <code>id</code><br>
+            <em>
 string
 </em>
-</td>
-<td>
-<p>ID is the unique identifier of the user.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>firstName</code><br>
-<em>
+          </td>
+          <td>
+            <p>ID is the unique identifier of the user.</p>
+          </td>
+        </tr>
+        <tr>
+          <td>
+            <code>firstName</code><br>
+            <em>
 string
 </em>
-</td>
-<td>
-<p>FirstName of the user.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>lastName</code><br>
-<em>
+          </td>
+          <td>
+            <p>FirstName of the user.</p>
+          </td>
+        </tr>
+        <tr>
+          <td>
+            <code>lastName</code><br>
+            <em>
 string
 </em>
-</td>
-<td>
-<p>LastName of the user.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>email</code><br>
-<em>
+          </td>
+          <td>
+            <p>LastName of the user.</p>
+          </td>
+        </tr>
+        <tr>
+          <td>
+            <code>email</code><br>
+            <em>
 string
 </em>
-</td>
-<td>
-<p>Email of the user.</p>
-</td>
-</tr>
-</tbody>
-</table>
-</div>
+          </td>
+          <td>
+            <p>Email of the user.</p>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
 </div>
 <h3 id="greenhouse.sap/v1alpha1.ValueFromSource">ValueFromSource
 </h3>
 <p>
 (<em>Appears on:</em>
-<a href="#greenhouse.sap/v1alpha1.PluginOptionValue">PluginOptionValue</a>)
+  <a href="#greenhouse.sap/v1alpha1.PluginOptionValue">PluginOptionValue</a>)
 </p>
 <p>ValueFromSource is a valid source for a value.</p>
 <div class="md-typeset__scrollwrap">
-<div class="md-typeset__table">
-<table>
-<thead>
-<tr>
-<th>Field</th>
-<th>Description</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>
-<code>secret</code><br>
-<em>
-<a href="#greenhouse.sap/v1alpha1.SecretKeyReference">
+  <div class="md-typeset__table">
+    <table>
+      <thead>
+        <tr>
+          <th>Field</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>
+            <code>secret</code><br>
+            <em>
+              <a href="#greenhouse.sap/v1alpha1.SecretKeyReference">
 SecretKeyReference
 </a>
-</em>
-</td>
-<td>
-<p>Secret references the secret containing the value.</p>
-</td>
-</tr>
-</tbody>
-</table>
-</div>
+            </em>
+          </td>
+          <td>
+            <p>Secret references the secret containing the value.</p>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
 </div>
 <div class="admonition note">
-<p class="last">This page was automatically generated with <code>gen-crd-api-reference-docs</code>
-</p>
+  <p class="last">This page was automatically generated with <code>gen-crd-api-reference-docs</code>
+  </p>
 </div>
