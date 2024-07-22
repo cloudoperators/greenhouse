@@ -67,8 +67,17 @@ GEN_DOCS_API_DIR ?= "./pkg/apis/greenhouse/v1alpha1" ## -app-dir should be Canon
 GEN_DOCS_CONFIG ?= "$(CURDIR)/hack/docs-generator/config.json"
 GEN_DOCS_TEMPLATE_DIR ?= "$(CURDIR)/hack/docs-generator/templates"
 GEN_DOCS_OUT_FILE ?= "$(CURDIR)/docs/reference/api/index.html"
+GEN_CRD_API_REFERENCE_DOCS := $(CURDIR)/hack/docs-generator/gen-crd-api-reference-docs # Define the path to the gen-crd-api-reference-docs binary
+
+.PHONY: check-gen-crd-api-reference-docs
+check-gen-crd-api-reference-docs:
+	@if [ ! -f $(GEN_CRD_API_REFERENCE_DOCS) ]; then \
+		echo "gen-crd-api-reference-docs not found, installing..."; \
+		GOBIN=$(CURDIR)/hack/docs-generator go install github.com/ahmetb/gen-crd-api-reference-docs@latest; \
+	fi
+
 .PHONY: generate-documentation
-generate-documentation: 
+generate-documentation: check-gen-crd-api-reference-docs
 	hack/docs-generator/gen-crd-api-reference-docs -api-dir=$(GEN_DOCS_API_DIR) -config=$(GEN_DOCS_CONFIG) -template-dir=$(GEN_DOCS_TEMPLATE_DIR) -out-file=$(GEN_DOCS_OUT_FILE)
 
 .PHONY: test
