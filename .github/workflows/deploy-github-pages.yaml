@@ -1,4 +1,4 @@
-name: Hugo
+name: Deploy Hugo to GitHub Pages
 
 on:
   workflow_dispatch: {}
@@ -33,7 +33,7 @@ jobs:
     runs-on: [default]
 
     env:
-      HUGO_VERSION: 0.124.1
+      HUGO_VERSION: 0.128.0
 
     steps:
       - name: Install Hugo CLI
@@ -75,7 +75,7 @@ jobs:
           mkdir -p ${DESTINATION_DIR}
 
           echo "collecting PluginDefinition descriptions from ${GREENHOUSE_EXTENSIONS_GIT_DIR}"
-          all_files=$(git -C $GREENHOUSE_EXTENSIONS_GIT_DIR grep --recursive --files-with-matches -e "kind: PluginDefinition" -- '*plugin.yaml')
+          all_files=$(git -C $GREENHOUSE_EXTENSIONS_GIT_DIR grep --recursive --files-with-matches -e "kind: PluginDefinition" -- '*plugindefinition.yaml')
           for f in $all_files; do
             d=$(dirname $f)
             filename="${GREENHOUSE_EXTENSIONS_GIT_DIR}/${d}/README.md"
@@ -88,7 +88,9 @@ jobs:
           done
 
       - name: Install Node.js dependencies
-        run: "[[ -f package-lock.json || -f npm-shrinkwrap.json ]] && npm ci || true"
+        env:
+          GREENHOUSE_GIT_DIR: "${{ github.workspace }}/greenhouse"
+        run: cd ${{ env.GREENHOUSE_GIT_DIR }}/website && [[ -f package-lock.json || -f npm-shrinkwrap.json ]] && npm ci || true
 
       - name: Build with Hugo
         env:
@@ -97,7 +99,6 @@ jobs:
           HUGO_ENV: production
         run: |
           cd $GREENHOUSE_GIT_DIR/website
-          npm install postcss-cli autoprefixer
           hugo mod clean
           hugo mod vendor
           hugo \
