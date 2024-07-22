@@ -9,7 +9,7 @@
 #  2. Run the following command:
 #     `act pull_request -j run-pipeline -e act_pull_request.json -W .github/workflows/ci-npm-packages.yaml`
 
-name: Detect CRD API Changes and Trigger gen-crd-api-to-docs
+name: Detect CRD API Changes and Trigger Generate Docs, Types and Specs
 
 on:
   pull_request:
@@ -40,7 +40,7 @@ jobs:
 
       - name: Generate OpenAPI specs from CRDs
         run: |
-          make generate-openapi-specs
+          make generate-open-api-spec
 
       - name: Apply Changes
         uses: EndBug/add-and-commit@v9
