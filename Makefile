@@ -62,10 +62,14 @@ generate: controller-gen ## Generate code containing DeepCopy, DeepCopyInto, and
 	$(CONTROLLER_GEN) object:headerFile="hack/boilerplate.go.txt" paths="./pkg/apis/..."
 	$(CONTROLLER_GEN) object:headerFile="hack/boilerplate.go.txt" paths="./pkg/dex/..."
 
+# Default values
+GEN_DOCS_API_DIR ?= "./pkg/apis/greenhouse/v1alpha1" ## -app-dir should be Canonical Path Format so absolute path doesn't work. That's why we don't use $(CURDIR) here.
+GEN_DOCS_CONFIG ?= "$(CURDIR)/hack/docs-generator/config.json"
+GEN_DOCS_TEMPLATE_DIR ?= "$(CURDIR)/hack/docs-generator/templates"
+GEN_DOCS_OUT_FILE ?= "$(CURDIR)/docs/reference/api/index.html"
 .PHONY: generate-documentation
-generate-documentation: VERSION = $(shell git rev-parse --short HEAD)
-generate-documentation:
-	hack/openapi-generator/generate-openapi-spec-from-crds $(CRD_MANIFESTS_PATH) $(VERSION) docs/reference/api
+generate-documentation: 
+	hack/docs-generator/gen-crd-api-reference-docs -api-dir=$(GEN_DOCS_API_DIR) -config=$(GEN_DOCS_CONFIG) -template-dir=$(GEN_DOCS_TEMPLATE_DIR) -out-file=$(GEN_DOCS_OUT_FILE)
 
 .PHONY: test
 test: generate-manifests generate envtest ## Run tests.
