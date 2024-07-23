@@ -86,6 +86,12 @@ const (
 	// RBACReconcileFailed is the condition reason for the TeamRoleBinding when not all of the rbacv1 resources have been successfully reconciled
 	RBACReconcileFailed ConditionReason = "RBACReconcileFailed"
 
+	// EmptyClusterList is the condition reason for a resource when the clusterSelector and clusterName do not provide any existing cluster
+	EmptyClusterList ConditionReason = "EmptyClusterList"
+
+	// TeamNotFound is the condition reason when the resources refers to a non-existing Team
+	TeamNotFound ConditionReason = "TeamNotFound"
+
 	// ClusterConnectionFailed is the condition reason for the TeamRoleBinding when the connection to the cluster failed
 	ClusterConnectionFailed ConditionReason = "ClusterConnectionFailed"
 
@@ -94,13 +100,4 @@ const (
 
 	// RoleBindingFailed is the condition reason for the TeamRoleBinding when the RoleBinding could not be created
 	RoleBindingFailed ConditionReason = "RoleBindingFailed"
-)
-
-const (
-	// ReconcileFailedReason is used if the reconcile failed
-	ReconcileFailedReason = "FailedReconcile"
-	// DeletedReason is used if the resource was deleted
-	DeletedReason = "Deleted"
-	// FailedDeleteFailedReason is used if the delete failed
-	DeleteFailedReason = "FailedDelete"
 )
