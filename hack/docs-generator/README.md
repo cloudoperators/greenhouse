@@ -18,5 +18,5 @@ Or, you can use the `make` target:
 
 ```bash
 # Generate CRD API reference documentation
-make docs
+make generate-documentation
 ```
