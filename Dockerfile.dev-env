@@ -21,7 +21,7 @@ FROM alpine/git:2.45.2 as git
 RUN git clone https://github.com/cloudoperators/greenhouse-extensions.git /greenhouse-extensions
 
 # final image 
-FROM --platform=${BUILDPLATFORM:-linux/amd64} alpine:3.20.1
+FROM --platform=${BUILDPLATFORM:-linux/amd64} alpine:3.20.2
 LABEL source_repository="https://github.com/cloudoperators/greenhouse"
 ENV KUBEBUILDER_ASSETS=/usr/local/bin
 WORKDIR /
