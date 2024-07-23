@@ -2,7 +2,7 @@
 title: "Plugin catalog"
 linkTitle: "Plugin catalog"
 weight: 1
-landingSectionIndex: true
+landingSectionIndex: false
 description: >
   Plugin catalog overview
 ---

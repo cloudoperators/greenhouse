@@ -16,5 +16,9 @@ spec:
       targetPort: http
       protocol: TCP
       name: http
+    - port: 6543
+      targetPort: metrics
+      protocol: TCP
+      name: metrics
   selector:
     {{- include "cors-proxy.selectorLabels" . | nindent 4 }}

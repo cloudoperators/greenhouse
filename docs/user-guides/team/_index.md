@@ -1,7 +1,7 @@
 ---
 title: "Team management"
 linkTitle: "Team management"
-landingSectionIndex: true
+landingSectionIndex: false
 description: >
   Manage teams of your organization via Greenhouse.
 ---

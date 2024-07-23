@@ -19,7 +19,7 @@ import (
 	"github.com/cloudoperators/greenhouse/pkg/helm"
 )
 
-var pluginDefinitionValidateCmdUsage = "validate [pluginDefinition.yaml path] [plugin.yaml path]"
+var pluginDefinitionValidateCmdUsage = "validate [plugindefinition.yaml path] [plugin.yaml path]"
 
 func init() {
 	pluginCmd.AddCommand(newPluginValidateCmd())

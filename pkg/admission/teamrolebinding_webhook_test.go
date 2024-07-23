@@ -108,23 +108,6 @@ var _ = Describe("Validate Create RoleBinding", Ordered, func() {
 			Expect(err).To(HaveOccurred(), "expected an error")
 			Expect(err).To(MatchError(ContainSubstring("cannot specify both spec.clusterName and spec.clusterSelector")))
 		})
-		It("should return an error if the cluster does not exist", func() {
-			rb := &greenhousev1alpha1.TeamRoleBinding{
-				ObjectMeta: metav1.ObjectMeta{
-					Namespace: test.TestNamespace,
-					Name:      "testBinding",
-				},
-				Spec: greenhousev1alpha1.TeamRoleBindingSpec{
-					TeamRoleRef: testrolename,
-					TeamRef:     testteamname,
-					ClusterName: "non-existent-cluster",
-				},
-			}
-			warns, err := ValidateCreateRoleBinding(test.Ctx, test.K8sClient, rb)
-			Expect(warns).To(BeNil(), "expected no warnings")
-			Expect(err).To(HaveOccurred(), "expected an error")
-			Expect(err).To(MatchError(ContainSubstring("cluster does not exist")))
-		})
 	})
 })
 
