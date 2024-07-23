@@ -8,7 +8,7 @@ services:
       - ./envtest:/envtest
       - ./webhook-certs:/webhook-certs
     ports:
-      - "3005:8090"
+      - "8090:8090"
     environment:
       # one of ["test-org-admin", "test-org-member"] - leave unset for "cluster-admin"
       - DEV_ENV_CONTEXT
@@ -50,7 +50,7 @@ services:
     volumes:
       - ./envtest:/envtest
       - ./bootstrap:/bootstrap
-    command: kubectl apply -f /core-bootstrap -f /bootstrap #-f /bootstrap/additional_resources
+    command: kubectl apply -f /core-bootstrap #-f /bootstrap/additional_resources
     depends_on:
       - greenhouse
     network_mode: service:envtest
