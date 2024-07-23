@@ -49,8 +49,8 @@ generate-manifests: controller-gen ## Generate WebhookConfiguration, ClusterRole
 	docker run --rm -v $(shell pwd):/github/workspace $(IMG_LICENSE_EYE) -c .github/licenserc.yaml header fix
 
 .PHONY: generate-open-api-spec
-generate-generate-open-api-spec: VERSION = $(shell git rev-parse --short HEAD)
-generate-generate-open-api-spec:
+generate-open-api-spec: VERSION = $(shell git rev-parse --short HEAD)
+generate-open-api-spec:
 	hack/openapi-generator/generate-openapi-spec-from-crds $(CRD_MANIFESTS_PATH) $(VERSION) docs/reference/api
 
 .PHONY: generate-types
