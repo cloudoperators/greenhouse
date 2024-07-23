@@ -153,8 +153,7 @@ func main() {
 			}
 		}
 
-		cmd.Wait()
-
+		err = cmd.Wait()
 		if err != nil {
 			l.Error(err, "Failed in docker image build")
 			os.Exit(1)
