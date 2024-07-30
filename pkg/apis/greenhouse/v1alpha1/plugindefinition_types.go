@@ -87,6 +87,9 @@ type PluginOption struct {
 
 	// Regex specifies a match rule for validating configuration options.
 	Regex string `json:"regex,omitempty"`
+
+	// ReadOnly indicates that the default value of the field cannot be overridden.
+	ReadOnly bool `json:"readOnly,omitempty"`
 }
 
 // IsValid returns nil if the PluginOption default is valid.
@@ -132,6 +135,11 @@ func (p *PluginOption) IsValidValue(val *apiextensionsv1.JSON) error {
 	if err := json.Unmarshal(val.Raw, &actVal); err != nil {
 		return err
 	}
+
+	if p.ReadOnly && actVal != nil {
+		return fmt.Errorf("option %s is a read-only value, cannot be overwritten", p.Name)
+	}
+
 	switch p.Type {
 	case PluginOptionTypeBool:
 		if _, ok := actVal.(bool); !ok {
