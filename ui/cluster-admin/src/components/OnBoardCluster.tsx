@@ -4,7 +4,7 @@
  */
 
 import { Markup } from "interweave"
-import { Container, Panel, PanelBody, Stack } from "juno-ui-components"
+import { Container, Panel, PanelBody, Stack } from "@cloudoperators/juno-ui-components"
 import React from "react"
 import useStore from "../store"
 import useNamespace from "../hooks/useNamespace"

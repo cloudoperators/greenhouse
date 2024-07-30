@@ -4,7 +4,7 @@
  */
 
 import React from "react"
-import { Icon } from "juno-ui-components"
+import { Icon } from "@cloudoperators/juno-ui-components"
 
 import { getResourceStatusFromKubernetesConditions } from "../../../../utils/resourceStatus"
 

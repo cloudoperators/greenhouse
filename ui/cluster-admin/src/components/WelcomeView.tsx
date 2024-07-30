@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { Button, Spinner, Stack } from "juno-ui-components"
+import { Button, Spinner, Stack } from "@cloudoperators/juno-ui-components"
 import React from "react"
 import useStore from "../store"
 

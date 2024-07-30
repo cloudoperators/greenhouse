@@ -16,7 +16,7 @@ import {
   PanelBody,
   Pill,
   Stack,
-} from "juno-ui-components"
+} from "@cloudoperators/juno-ui-components"
 import React, { useMemo } from "react"
 import humanizedTimePeriodToNow from "../lib/utils/humanizedTimePeriodToNow"
 import useStore from "../store"

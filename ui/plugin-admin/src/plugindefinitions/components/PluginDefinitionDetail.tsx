@@ -15,7 +15,7 @@ import {
   Panel,
   PanelBody,
   Stack,
-} from "juno-ui-components"
+} from "@cloudoperators/juno-ui-components"
 import React, { useEffect } from "react"
 import ReactMarkDown from "react-markdown"
 import remarkGfm from "remark-gfm"

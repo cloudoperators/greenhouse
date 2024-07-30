@@ -8,7 +8,7 @@ import {
   Secret,
   SecretDataEntry,
 } from "../../../types/types"
-import { Stack, Select, SelectOption } from "juno-ui-components"
+import { Stack, Select, SelectOption } from "@cloudoperators/juno-ui-components"
 import usePluginDefinitionsStore from "../plugindefinitions/store"
 
 interface SecretKeySelectProps {

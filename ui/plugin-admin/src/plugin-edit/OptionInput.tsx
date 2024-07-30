@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { Checkbox, TextInput, Textarea } from "juno-ui-components"
+import { Checkbox, TextInput, Textarea } from "@cloudoperators/juno-ui-components"
 import { PluginDefinitionOption, PluginOptionValue } from "../../../types/types"
 import SecretKeySelect from "./SecretKeySelect"
 import { useState } from "react"

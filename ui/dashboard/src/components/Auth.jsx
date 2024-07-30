@@ -4,7 +4,12 @@
  */
 
 import React, { useEffect, useState, createRef } from "react"
-import { Button, LoadingIndicator, Spinner, Stack } from "juno-ui-components"
+import {
+  Button,
+  LoadingIndicator,
+  Spinner,
+  Stack,
+} from "@cloudoperators/juno-ui-components"
 import {
   useAuthAppLoaded,
   useAuthLoggedIn,
@@ -14,8 +19,8 @@ import {
   useGlobalsActions,
   useGlobalsAssetsHost,
 } from "../components/StoreProvider"
-import { useAppLoader } from "utils"
-import { useActions } from "messages-provider"
+import { useAppLoader } from "@cloudoperators/juno-utils"
+import { useActions } from "@cloudoperators/juno-messages-provider"
 
 const currentUrl = new URL(window.location.href)
 let match = currentUrl.host.match(/^(.+)\.dashboard\..+/)

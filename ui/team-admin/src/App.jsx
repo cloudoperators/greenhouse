@@ -4,14 +4,14 @@
  */
 
 import React, { useEffect, useMemo, useLayoutEffect } from "react"
-import { AppShell, AppShellProvider } from "juno-ui-components"
+import { AppShell, AppShellProvider } from "@cloudoperators/juno-ui-components"
 import AppContent from "./AppContent"
 import styles from "./styles.scss"
 import useCommunication from "./hooks/useCommunication"
 import AsyncWorker from "./components/AsyncWorker"
-import { MessagesProvider } from "messages-provider"
+import { MessagesProvider } from "@cloudoperators/juno-messages-provider"
 import StoreProvider, { useStoreActions } from "./components/StoreProvider"
-import { fetchProxyInitDB } from "utils"
+import { fetchProxyInitDB } from "@cloudoperators/juno-utils"
 import db from "../db.json"
 
 const App = (props = {}) => {
@@ -45,7 +45,7 @@ const App = (props = {}) => {
 
   return (
     <MessagesProvider>
-      <AsyncWorker/>
+      <AsyncWorker />
       <AppShell
         pageHeader="Converged Cloud | Team Members"
         embedded={props.embedded === "true" || props.embedded === true}

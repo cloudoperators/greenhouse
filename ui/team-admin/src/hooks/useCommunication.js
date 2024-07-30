@@ -4,7 +4,7 @@
  */
 
 import React, { useEffect } from "react"
-import { get, watch } from "communicator"
+import { get, watch } from "@cloudoperators/juno-communicator"
 import { useStoreActions } from "../components/StoreProvider"
 
 const useCommunication = () => {

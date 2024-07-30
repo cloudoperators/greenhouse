@@ -4,7 +4,7 @@
  */
 
 import { useLayoutEffect, useEffect, useState } from "react"
-import { registerConsumer } from "url-state-provider"
+import { registerConsumer } from "@cloudoperators/juno-url-state-provider-v1"
 import {
   useLoggedIn,
   useAuthData,

@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { useActions } from "messages-provider"
+import { useActions } from "@cloudoperators/juno-messages-provider"
 import { useEffect } from "react"
 import useCommunication from "../hooks/useCommunication"
 import useSecretApi from "../hooks/useSecretApi"

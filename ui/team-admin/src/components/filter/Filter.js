@@ -4,7 +4,7 @@
  */
 
 import React, { useEffect } from "react"
-import { Stack, Select, SelectOption } from "juno-ui-components"
+import { Stack, Select, SelectOption } from "@cloudoperators/juno-ui-components"
 import {
   useAuth,
   useDefaultTeam,
