@@ -14,10 +14,11 @@ will run the e2e test suite without making assumptions on the infrastructure to 
 
 Leveraging envtest, we will basically have three different test scenarios. The following env vars steer these:
 
-| Env Var                | Meaning                                                                                                                                                                                                                                                                                                                                                       |
-| ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `USE_EXISTING_CLUSTER` | If set to `true`, the e2e test suite will not spin up a local apiserver and etcd. Instead, it will expect an existing greenhouse installation on the cluster inferred from the `KUBECONFIG` environment variable.                                                                                                                                             |
-| `INTERNAL_KUBECONFIG`  | The path to the kubeconfig file for accessing the Greenhouse cluster itself from the running instance. This is used when `USE_EXISTING_CLUSTER` is set to `true`. KIND makes it necessary to set this separately to the `KUBECONFIG` as the internal api server adress differs to the external. Other setups may not use this. If unset `KUBECONFIG` is used. |
+| Env Var                | Meaning                                                                                                                                                                                                                                                                                                                                                               |
+| ---------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --- |
+| `USE_EXISTING_CLUSTER` | If set to `true`, the e2e test suite will not spin up a local apiserver and etcd. Instead, it will expect an existing greenhouse installation on the cluster inferred from the `E2E_KUBECONFIG` environment variable.                                                                                                                                                 |
+| `E2E_KUBECONFIG`       | Required when `USE_EXISTING_CLUSTER` is `true`. Points to the remote cluster the e2e test suite is running against.                                                                                                                                                                                                                                                   |     |
+| `INTERNAL_KUBECONFIG`  | The path to the kubeconfig file for accessing the Greenhouse cluster itself from the running instance. This is used when `USE_EXISTING_CLUSTER` is set to `true`. KIND makes it necessary to set this separately to the `E2E_KUBECONFIG` as the internal api server adress differs to the external. Other setups may not use this. If unset `E2E_KUBECONFIG` is used. |
 
 ## Run everything local a.k.a. `USE_EXISTING_CLUSTER = false` or unset
 
@@ -37,10 +38,10 @@ We can run our e2e test suite against a running greenhouse installation by expos
 export USE_EXISTING_CLUSTER=true
 ```
 
-This will stop envtest from spinning up a local apiserver and etcd and expect an existing greenhouse installation on the cluster infered from the set `KUBECONFIG` environment variable:
+This will stop envtest from spinning up a local apiserver and etcd and expect an existing greenhouse installation on the cluster infered from the set `E2E_KUBECONFIG` environment variable:
 
 ```bash
-export KUBECONFIG=/path/to/greenhouse.kubeconfig
+export E2E_KUBECONFIG=/path/to/greenhouse.kubeconfig
 ```
 
 To run the e2e test suite against a remote installation:
@@ -49,7 +50,7 @@ To run the e2e test suite against a remote installation:
 make e2e-remote
 ```
 
-Test setup asserts `KUBECONFIG` is set and working and will fail otherwise.
+Test setup asserts `E2E_KUBECONFIG` is set and working and will fail otherwise.
 
 ### Run against a local Greenhouse installation in KIND cluster a.k.a. `USE_EXISTING_CLUSTER = true` and `INTERNAL_KUBECONFIG` set
 

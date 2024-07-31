@@ -105,6 +105,8 @@ var (
 	pollInterval         = 1 * time.Second
 	updateTimeout        = 30 * time.Second
 
+	persisted_kubeconfig = os.Getenv("KUBECONFIG")
+
 	// TestBeforeSuite configures the test suite.
 	TestBeforeSuite = func() {
 		logf.SetLogger(zap.New(zap.WriteTo(GinkgoWriter), zap.UseDevMode(true)))
@@ -116,9 +118,11 @@ var (
 		installWebhooks := len(allRegisterWebhookFuncs) > 0 && os.Getenv("TEST_INSTALL_WEBHOOKS") != "false"
 		if useExistingGreenhouseCluster {
 			// we are making use of https://pkg.go.dev/sigs.k8s.io/controller-runtime/pkg/envtest#pkg-constants to prevent starting a new control plane
-			kubeconfig := os.Getenv("KUBECONFIG")
-			Expect(kubeconfig).NotTo(BeEmpty(), "the environment variable KUBECONFIG must be set to run the tests against a remote cluster")
-			fmt.Printf("using existing cluster with kubeconfig: %s\n", kubeconfig)
+			e2e_kubeconfig := os.Getenv("E2E_KUBECONFIG")
+			Expect(e2e_kubeconfig).NotTo(BeEmpty(), "the environment variable E2E_KUBECONFIG must be set to run the tests against a remote cluster")
+			// we overwrite the KUBECONFIG env var expected by envtest to make sure tests are not accidentally running against existing k8s context
+			os.Setenv("KUBECONFIG", e2e_kubeconfig)
+			fmt.Printf("Running tests against existing cluster with kubeconfig: %s\n", e2e_kubeconfig)
 			installCRDs = false
 			installWebhooks = false
 		} else {
@@ -205,6 +209,11 @@ var (
 		Eventually(func() error {
 			return testEnv.Stop()
 		}).Should(Succeed(), "there should be no error stopping the test environment")
+
+		if useExistingGreenhouseCluster {
+			// we reset the KUBECONFIG env var to its original value
+			os.Setenv("KUBECONFIG", persisted_kubeconfig)
+		}
 	}
 )
 
