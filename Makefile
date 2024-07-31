@@ -84,7 +84,7 @@ e2e-local-cluster: e2e-local-cluster-create  ## Run e2e tests on a local KIND cl
 
 .PHONY: e2e-local-cluster-create
 e2e-local-cluster-create:
-	cd test/e2e/local-cluster && go run . -v
+	cd test/e2e/local-cluster && go run . -v --dockerImagePlatform=$(PLATFORM)
 
 
 .PHONY: fmt
