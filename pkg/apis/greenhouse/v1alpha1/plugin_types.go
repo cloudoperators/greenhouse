@@ -61,6 +61,9 @@ const (
 	// HelmDriftDetectedCondition reflects the last time a drift between Release and Deployed Resources was detected.
 	HelmDriftDetectedCondition ConditionType = "HelmDriftDetected"
 
+	// WorkloadReadyCondition reflects the readiness of the payload belongs to the Plugin.
+	WorkloadReadyCondition ConditionType = "WorkLoadReady"
+
 	// StatusUpToDateCondition reflects the failed reconciliation of the Plugin.
 	StatusUpToDateCondition ConditionType = "StatusUpToDate"
 
