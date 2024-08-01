@@ -118,8 +118,8 @@ var (
 		installWebhooks := len(allRegisterWebhookFuncs) > 0 && os.Getenv("TEST_INSTALL_WEBHOOKS") != "false"
 		if useExistingGreenhouseCluster {
 			// we are making use of https://pkg.go.dev/sigs.k8s.io/controller-runtime/pkg/envtest#pkg-constants to prevent starting a new control plane
-			e2e_kubeconfig := os.Getenv("E2E_KUBECONFIG")
-			Expect(e2e_kubeconfig).NotTo(BeEmpty(), "the environment variable E2E_KUBECONFIG must be set to run the tests against a remote cluster")
+			e2e_kubeconfig := os.Getenv("TEST_KUBECONFIG")
+			Expect(e2e_kubeconfig).NotTo(BeEmpty(), "the environment variable TEST_KUBECONFIG must be set to run the tests against a remote cluster")
 			// we overwrite the KUBECONFIG env var expected by envtest to make sure tests are not accidentally running against existing k8s context
 			os.Setenv("KUBECONFIG", e2e_kubeconfig)
 			fmt.Printf("Running tests against existing cluster with kubeconfig: %s\n", e2e_kubeconfig)
