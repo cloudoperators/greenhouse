@@ -32,7 +32,7 @@ var knownControllers = map[string]func(controllerName string, mgr ctrl.Manager) 
 	"teamPropagation": (&teamcontrollers.TeamPropagationReconciler{}).SetupWithManager,
 
 	// TeamMembership controllers.
-	"teamMembershipUpdater":     (&teammembershipcontrollers.TeamMembershipUpdaterController{}).SetupWithManager,
+	"teamMembershipUpdater":     startTeamMembersipUpdaterReconciler,
 	"teamMembershipPropagation": (&teammembershipcontrollers.TeamMembershipPropagationReconciler{}).SetupWithManager,
 
 	// Team RBAC controllers.
@@ -122,5 +122,17 @@ func startClusterHeadscaleAccessReconciler(name string, mgr ctrl.Manager) error 
 		HeadscalePreAuthenticationKeyMinValidity: 8 * time.Hour,
 		RemoteClusterBearerTokenValidity:         remoteClusterBearerTokenValidity,
 		RenewRemoteClusterBearerTokenAfter:       renewRemoteClusterBearerTokenAfter,
+	}).SetupWithManager(name, mgr)
+}
+
+func startTeamMembersipUpdaterReconciler(name string, mgr ctrl.Manager) error {
+	scimBaseURL := os.Getenv(scimBaseURLEnvKey)
+	if scimBaseURL == "" {
+		setupLog.Error(nil, "%s env needs to be set for running the scim client", scimBaseURLEnvKey)
+		return nil
+	}
+
+	return (&teammembershipcontrollers.TeamMembershipUpdaterController{
+		ScimBaseURLEnvKey: scimBaseURL,
 	}).SetupWithManager(name, mgr)
 }

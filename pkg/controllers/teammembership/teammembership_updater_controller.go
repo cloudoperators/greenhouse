@@ -12,7 +12,8 @@ import (
 
 type TeamMembershipUpdaterController struct {
 	client.Client
-	recorder record.EventRecorder
+	recorder          record.EventRecorder
+	ScimBaseURLEnvKey string
 }
 
 //+kubebuilder:rbac:groups=greenhouse.sap,resources=teammemberships,verbs=get;list;watch;create;update;patch
