@@ -32,6 +32,7 @@ var knownControllers = map[string]func(controllerName string, mgr ctrl.Manager) 
 	"teamPropagation": (&teamcontrollers.TeamPropagationReconciler{}).SetupWithManager,
 
 	// TeamMembership controllers.
+	"teamMembershipUpdater":     (&teammembershipcontrollers.TeamMembershipUpdaterController{}).SetupWithManager,
 	"teamMembershipPropagation": (&teammembershipcontrollers.TeamMembershipPropagationReconciler{}).SetupWithManager,
 
 	// Team RBAC controllers.
