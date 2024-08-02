@@ -70,7 +70,7 @@ For the bitnami nginx Helm Chart this would be `oci://registry-1.docker.io/bitna
 
 #### Specify a local Helm Chart
 
-Instead of using a chart repository hosted on a server, you can also utilize a local chart in a `*.tgz` format and place it under `dev-env/helm-charts`. You then only need to run `docker compose up` again to mount the chart to the respective folder and source it as following: 
+Instead of using a chart repository hosted on a server, you can also utilize a local chart in a `*.tgz` format and place it under `dev-env/helm-charts`. While `docker compose up` running, docker will mount the chart to the respective folder and you can source it as following: 
 ```yaml
  helmChart:
         name: helm-charts/{filename}.tgz
