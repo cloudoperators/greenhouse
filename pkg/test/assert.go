@@ -21,3 +21,11 @@ func EventuallyDeleted(ctx context.Context, c client.Client, obj client.Object) 
 		return apierrors.IsNotFound(c.Get(ctx, client.ObjectKeyFromObject(obj), obj))
 	}).Should(BeTrue(), "there should be no error deleting the object")
 }
+
+// EventuallyGet gets the object and retries until it is available.
+func EventuallyCreated(ctx context.Context, c client.Client, obj client.Object) {
+	GinkgoHelper()
+	Eventually(func() bool {
+		return c.Get(ctx, client.ObjectKeyFromObject(obj), obj) == nil
+	}).Should(BeTrue(), "there should be no error getting the object")
+}
