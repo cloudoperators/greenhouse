@@ -1,6 +1,6 @@
 ---
 title: "Plugin deployment"
-linkTitle: "deploying"
+linkTitle: "Plugin Deployment"
 description: >
   Deploy a Greenhouse plugin to an existing Kubernetes cluster.
 ---
