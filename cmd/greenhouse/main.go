@@ -33,6 +33,12 @@ const (
 	defaultRemoteClusterBearerTokenValidity   = 24 * time.Hour
 	defaultRenewRemoteClusterBearerTokenAfter = 20 * time.Hour
 )
+const (
+	scimBasicAuthUserEnvKey string = "SCIM_BASIC_AUTH_USER"
+	scimBasicAuthPwEnvKey   string = "SCIM_BASIC_AUTH_PW" //nolint:gosec
+	scimBaseURLEnvKey       string = "SCIM_BASE_URL"      //nolint:gosec
+	namespaceEnvKey         string = "NAMESPACE"
+)
 
 var (
 	scheme   = runtime.NewScheme()

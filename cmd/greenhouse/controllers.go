@@ -32,7 +32,7 @@ var knownControllers = map[string]func(controllerName string, mgr ctrl.Manager) 
 	"teamPropagation": (&teamcontrollers.TeamPropagationReconciler{}).SetupWithManager,
 
 	// TeamMembership controllers.
-	"teamMembershipUpdater":     startTeamMembersipUpdaterReconciler,
+	"teamMembershipUpdater":     startTeamMembershipUpdaterReconciler,
 	"teamMembershipPropagation": (&teammembershipcontrollers.TeamMembershipPropagationReconciler{}).SetupWithManager,
 
 	// Team RBAC controllers.
@@ -125,14 +125,33 @@ func startClusterHeadscaleAccessReconciler(name string, mgr ctrl.Manager) error 
 	}).SetupWithManager(name, mgr)
 }
 
-func startTeamMembersipUpdaterReconciler(name string, mgr ctrl.Manager) error {
+func startTeamMembershipUpdaterReconciler(name string, mgr ctrl.Manager) error {
 	scimBaseURL := os.Getenv(scimBaseURLEnvKey)
 	if scimBaseURL == "" {
 		setupLog.Error(nil, "%s env needs to be set for running the scim client", scimBaseURLEnvKey)
 		return nil
 	}
+	scimBasicAuthUser := os.Getenv(scimBasicAuthUserEnvKey)
+	if scimBaseURL == "" {
+		setupLog.Error(nil, "%s env needs to be set for running the scim client", scimBasicAuthUserEnvKey)
+		return nil
+	}
+	scimBasicAuthPw := os.Getenv(scimBasicAuthPwEnvKey)
+	if scimBaseURL == "" {
+		setupLog.Error(nil, "%s env needs to be set for running the scim client", scimBasicAuthPwEnvKey)
+		return nil
+	}
+
+	namespace := os.Getenv("NAMESPACE")
+	if namespace == "" {
+		setupLog.Info("no namespace provided, setting TeamMembershipUpdater to 'default' namespace")
+		namespace = "default"
+	}
 
 	return (&teammembershipcontrollers.TeamMembershipUpdaterController{
-		ScimBaseURLEnvKey: scimBaseURL,
+		ScimBaseURL:       scimBaseURL,
+		ScimBasicAuthUser: scimBasicAuthUser,
+		ScimBasicAuthPw:   scimBasicAuthPw,
+		Namespace:         namespace,
 	}).SetupWithManager(name, mgr)
 }
