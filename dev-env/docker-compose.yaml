@@ -29,6 +29,7 @@ services:
     volumes:
       - ./envtest:/envtest
       - ./webhook-certs:/tmp/k8s-webhook-server/serving-certs
+      - ./helm-charts:/helm-charts
     depends_on:
       envtest:
         condition: service_healthy
