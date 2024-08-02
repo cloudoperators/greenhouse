@@ -1,29 +1,30 @@
 ---
 title: "Plugin deployment"
 linkTitle: "deploying"
+weight: 1
 description: >
   Deploy a Greenhouse plugin to an existing Kubernetes cluster.
 ---
 
 ## Before you begin
 
-This guides describes how to configure and deploy a Greenhouse plugin.  
+This guides describes how to configure and deploy a Greenhouse plugin.
 
 ```yaml
-    apiVersion: greenhouse.sap/v1alpha1
-    kind: Plugin
-    metadata:
-      name: kube-monitoring-martin
-      namespace: <organization namespace> # same namespace in remote cluster for resources
-    spec:
-      clusterName: <name of the remote cluster > # k get cluster 
-      disabled: false
-      displayName: <any human readable name>
-      pluginDefinition: <plugin name> # k get plugin
-      optionValues:
-        - name: <from the plugin options>
-          value: <from the plugin options> 
-        - ...
+apiVersion: greenhouse.sap/v1alpha1
+kind: Plugin
+metadata:
+  name: kube-monitoring-martin
+  namespace: <organization namespace> # same namespace in remote cluster for resources
+spec:
+  clusterName: <name of the remote cluster > # k get cluster
+  disabled: false
+  displayName: <any human readable name>
+  pluginDefinition: <plugin name> # k get plugin
+  optionValues:
+    - name: <from the plugin options>
+      value: <from the plugin options>
+    - ...
 ```
 
 ## Deploying a Plugin

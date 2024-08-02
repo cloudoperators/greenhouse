@@ -1,6 +1,7 @@
 ---
 title: "Plugin development"
 linkTitle: "development"
+weight: 2
 description: >
   Develop a new Greenhouse Plugin against a local development environment.
 ---

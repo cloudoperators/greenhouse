@@ -1,8 +1,9 @@
 ---
 title: "Plugin catalog"
 linkTitle: "Plugin catalog"
+weight: 4
 description: >
-  Explore the catalog of Greenhouse plugins 
+  Explore the catalog of Greenhouse plugins
 ---
 
 ## Before you begin
@@ -24,7 +25,7 @@ NOTE: The UI is currently in development. For now this guides describes workflow
 
    ```bash
    $ kubectl get plugindefinition
-   
+
    NAME                      VERSION   DESCRIPTION                                                                                                  AGE
    cert-manager              1.1.0     Automated certificate management in Kubernetes                                                               182d
    digicert-issuer           1.2.0     Extensions to the cert-manager for DigiCert support                                                          182d

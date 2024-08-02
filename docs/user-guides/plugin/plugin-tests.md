@@ -1,6 +1,6 @@
 ---
 title: "Testing a Plugin"
-linkTitle: "Plugin Test"
+linkTitle: "Testing"
 landingSectionIndex: false
 weight: 3
 description: >
@@ -9,7 +9,7 @@ description: >
 
 ## Plugin Testing Requirements
 
-All plugins contributed to this repository MUST include comprehensive [Helm Chart Tests](https://helm.sh/docs/topics/chart_tests/) using the `bats/bats-detik` testing framework in conjunction with standard Helm chart tests. This ensures our plugins are robust, deployable, and catch potential issues early in the development cycle.
+All plugins contributed to this repository should include comprehensive [Helm Chart Tests](https://helm.sh/docs/topics/chart_tests/) using the `bats/bats-detik` testing framework in conjunction with standard Helm Chart Tests. This ensures our plugins are robust, deployable, and catch potential issues early in the development cycle.
 
 **What is bats/bats-detik?**
 
@@ -17,14 +17,12 @@ The [bats/bats-detik](https://github.com/bats-core/bats-detik) framework simplif
 
 **Implementing Tests**
 
-1. **Create a `tests` Directory:** In your Helm chart directory, create a `tests` subdirectory. This directory will contain all the necessary files for your plugin tests.
+1. Create a **tests** folder inside your plugin's `templates` folder to store your test resources.
 
 2. **ConfigMap defnition**:
 
    - Create a `test-<plugin-name>-config.yaml` file in the `templates/tests` directory to define a ConfigMap that will hold your test script.
    - This `ConfigMap` contains the test script `run.sh` that will be executed by the test Pod to run your tests.
-
-Example:
 
 ```yaml
 {{- if .Values.testFramework.enabled -}}
@@ -63,10 +61,6 @@ data:
         try "at most 3 times every 5s to get prometheuses named '{{ .Release.Name }}' and verify that '.status.availableReplicas' is more than '0'"
     }
 
-    @test "Verify creation of the prometheus-{{ .Release.Name }} statefulset" {
-        verify "there is 1 statefulset named 'prometheus-{{ .Release.Name }}'"
-    }
-
     @test "Verify creation of required custom resource definitions (CRDs) for {{ .Release.Name }}" {
         verify "there is 1 customresourcedefinition named 'prometheuses'"
         verify "there is 1 customresourcedefinition named 'podmonitors'"
@@ -74,14 +68,12 @@ data:
 {{- end -}}
 ```
 
-**Note:** You can use [this guide](https://github.com/bats-core/bats-detik/blob/master/examples/bats/test_kubectl_and_oc.sh) for reference when writing your test assertions.
+> **Note:** You can use [this guide](https://github.com/bats-core/bats-detik/blob/master/examples/bats/test_kubectl_and_oc.sh) for reference when writing your test assertions.
 
 3. **Test Pod Definition**:
 
    - Create a `test-<plugin-name>.yaml` file in the `templates/tests` directory to define a `Pod` that will run your tests.
    - This test `Pod` will mount the `ConfigMap` created in the previous step and will execute the test script `run.sh`.
-
-Example:
 
 ```yaml
  {{- if .Values.testFramework.enabled -}}
@@ -116,10 +108,10 @@ Example:
 
 4. **RBAC Permissions**:
 
-- Create a `test-permissions.yaml` file in the `templates/tests` directory to define the `ServiceAccount` and necessary RBAC permissions for the test Pod .
+- Create a `test-permissions.yaml` file in the `templates/tests` folder to define the `ServiceAccount` and necessary RBAC permissions for the test Pod.
 - You can use [test-permissions.yaml](https://github.com/cloudoperators/greenhouse-extensions/blob/main/kube-monitoring/charts/templates/tests/test-permissions.yaml) from the `kube-monitoring` as a reference to configure RBAC permissions for your test Pod.
 
-5. **Configure the Test Framework in Plugin `values.yaml`**:
+5. **Configure the Test Framework in Plugin's `values.yaml`**:
    - Add the following configuration to your plugin's `values.yaml` file:
 
 ```yaml

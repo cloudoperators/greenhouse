@@ -1,6 +1,7 @@
 ---
 title: "Managing Plugins for multiple clusters"
 linkTitle: "plugin-management"
+weight: 5
 description: >
   Deploy a Greenhouse Plugin with the same configuration into multiple clusters.
 ---
@@ -23,21 +24,21 @@ If a _Plugin_ already existed with the same name as the _PluginPreset_ would cre
 ## Example _PluginPreset_
 
 ```yaml
-    apiVersion: greenhouse.sap/v1alpha1
-    kind: PluginPreset
-    metadata:
-      name: kube-monitoring-preset
-      namespace: <organization namespace>
-    spec:
-      plugin: # this embeds the PluginSpec
-        displayName: <any human readable name>
-        pluginDefinition: <PluginDefinition name> # k get plugindefinition
-        releaseNamespace: <namespace> # namespace where the plugin is deployed to on the remote cluster. Will be created if not exists
-        optionValues:
-          - name: <from the PluginDefinition options>
-            value: <from the PluginDefinition options> 
-          - ..
-      clusterSelector: # LabelSelector for the clusters the Plugin should be deployed to
-        matchLabels:
-          <label-key>: <label-value>
+apiVersion: greenhouse.sap/v1alpha1
+kind: PluginPreset
+metadata:
+  name: kube-monitoring-preset
+  namespace: <organization namespace>
+spec:
+  plugin: # this embeds the PluginSpec
+    displayName: <any human readable name>
+    pluginDefinition: <PluginDefinition name> # k get plugindefinition
+    releaseNamespace: <namespace> # namespace where the plugin is deployed to on the remote cluster. Will be created if not exists
+    optionValues:
+      - name: <from the PluginDefinition options>
+        value: <from the PluginDefinition options>
+      - ..
+  clusterSelector: # LabelSelector for the clusters the Plugin should be deployed to
+    matchLabels:
+      <label-key>: <label-value>
 ```
