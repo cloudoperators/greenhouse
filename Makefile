@@ -71,12 +71,20 @@ e2e:
 	go test ./test/e2e/... -coverprofile cover.out -v
 
 .PHONY: e2e-local
-e2e-local: generate-manifests generate envtest ## Run e2e tests.
+e2e-local: generate-manifests generate envtest ## Run e2e tests against mock api.
 	unset USE_EXISTING_CLUSTER && KUBEBUILDER_ASSETS="$(shell $(ENVTEST) use $(ENVTEST_K8S_VERSION) -p path)" go test ./test/e2e/... -coverprofile cover.out -v
 
 .PHONY: e2e-remote
-e2e-remote: 
+e2e-remote: ## Run e2e tests against a remote Greenhouse cluster. TEST_KUBECONFIG must be set.
 	USE_EXISTING_CLUSTER=true go test ./test/e2e/... -coverprofile cover.out -v
+
+.PHONY: e2e-local-cluster
+e2e-local-cluster: e2e-local-cluster-create  ## Run e2e tests on a local KIND cluster.
+	USE_EXISTING_CLUSTER=true TEST_KUBECONFIG=$(shell pwd)/test/e2e/local-cluster/e2e.kubeconfig INTERNAL_KUBECONFIG=$(shell pwd)/test/e2e/local-cluster/e2e.internal.kubeconfig go test ./test/e2e/... -coverprofile cover.out -v
+
+.PHONY: e2e-local-cluster-create
+e2e-local-cluster-create:
+	cd test/e2e/local-cluster && go run . --dockerImagePlatform=$(PLATFORM)
 
 
 .PHONY: fmt
@@ -182,4 +190,3 @@ else
 	cd website && hugo server
 endif
 
-	

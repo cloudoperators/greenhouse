@@ -4,6 +4,8 @@
 package e2e
 
 import (
+	"fmt"
+
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -20,9 +22,22 @@ import (
 )
 
 var _ = Describe("OnboardSelf", Ordered, func() {
-	Context("When onboarding itself as a cluster resource", func() {
-		It("Should create a cluster resource for itself", func() {
+	Context("When onboarding the Greenhouse cluster as a cluster resource", func() {
+		It("Should create a cluster resource for the Greenhouse cluster", func() {
 			By("Creating a secret with a valid kubeconfig for a remote cluster")
+
+			selfKubeConfig := test.KubeConfig
+			// We allow to override the kubeconfig used to access the Greenhouse cluster from itself.
+			// This is necessary for the setup with KIND, as we need to use a different kubeconfig to access the Api Server from within the cluster
+			if test.IsUseExistingCluster {
+				internalKubeConfig, err := test.KubeconfigFromEnvVar("INTERNAL_KUBECONFIG")
+				if err != nil {
+					fmt.Print("Onboarding self without INTERNAL_KUBECONFIG --> set when using setup with KIND")
+				} else {
+					selfKubeConfig = internalKubeConfig
+				}
+			}
+
 			validKubeConfigSecret := corev1.Secret{
 				TypeMeta: metav1.TypeMeta{
 					Kind:       "Secret",
@@ -33,7 +48,7 @@ var _ = Describe("OnboardSelf", Ordered, func() {
 					Namespace: test.TestNamespace,
 				},
 				Data: map[string][]byte{
-					greenhouseapis.KubeConfigKey: test.KubeConfig,
+					greenhouseapis.KubeConfigKey: selfKubeConfig,
 				},
 				Type: greenhouseapis.SecretTypeKubeConfig,
 			}
