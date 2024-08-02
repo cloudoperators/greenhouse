@@ -51,4 +51,3 @@ act_*.json
 # Hugo
 public
 .hugo_build.lock
-
