@@ -116,12 +116,12 @@ data:
 
 ```yaml
 testFramework:
-enabled: true
-image:
-  registry: ghcr.io
-  repository: cloudoperators/greenhouse-extensions-integration-test
-  tag: main
-imagePullPolicy: IfNotPresent
+  enabled: true
+  image:
+    registry: ghcr.io
+    repository: cloudoperators/greenhouse-extensions-integration-test
+    tag: main
+  imagePullPolicy: IfNotPresent
 ```
 
 **Contribution Checklist**
