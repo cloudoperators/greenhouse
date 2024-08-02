@@ -1,3 +1,12 @@
+---
+title: "Testing a Plugin"
+linkTitle: "Plugin Test"
+landingSectionIndex: false
+weight: 3
+description: >
+  Guidelines for testing plugins contributed to the Greenhouse project.
+---
+
 ## Plugin Testing Requirements
 
 All plugins contributed to this repository MUST include comprehensive [Helm Chart Tests](https://helm.sh/docs/topics/chart_tests/) using the `bats/bats-detik` testing framework in conjunction with standard Helm chart tests. This ensures our plugins are robust, deployable, and catch potential issues early in the development cycle.
