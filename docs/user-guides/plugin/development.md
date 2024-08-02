@@ -77,7 +77,6 @@ Instead of using a chart repository hosted on a server, you can also utilize a l
         repository: 
 ```
 
-
 ### Specify the UI application
 
 A _PluginDefinition_ may specify a UI application that will be integrated into the Greenhouse UI. This tutorial does not cover how to create a UI application. Therefore the section `.spec.uiApplication` in the `plugindefinition.yaml` should be removed.
