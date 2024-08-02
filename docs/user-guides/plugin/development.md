@@ -68,6 +68,16 @@ The generated _PluginDefinition_ contains a `plugindefinition.yaml` file which d
 After generating the _PluginDefinition_ the `.spec.helmChart.repository` field in the `plugindefinition.yaml` contains a TODO comment. This field should be set to the repository where the Helm Chart is stored.
 For the bitnami nginx Helm Chart this would be `oci://registry-1.docker.io/bitnamicharts`.
 
+#### Specify a local Helm Chart
+
+Instead of using a chart repository hosted on a server, you can also utilize a local chart in a `*.tgz` format and place it under `dev-env/helm-charts`. You then only need to run `docker compose up` again to mount the chart to the respective folder and source it as following: 
+```yaml
+ helmChart:
+        name: helm-charts/{filename}.tgz
+        repository: 
+```
+
+
 ### Specify the UI application
 
 A _PluginDefinition_ may specify a UI application that will be integrated into the Greenhouse UI. This tutorial does not cover how to create a UI application. Therefore the section `.spec.uiApplication` in the `plugindefinition.yaml` should be removed.
