@@ -27,7 +27,7 @@ At the end of the guide you will have spun up the local development environment,
 
 ### Starting the local develoment environment
 
-Follow the [Local Development](../../contribute/local-dev.md) documentation to spin up the local Greenhouse development environment.
+Follow the [Local Development](/docs/contribute/local-dev) documentation to spin up the local Greenhouse development environment.
 
 This will provide you with a local Greenhouse instance running, filled with some example Greenhouse resources and the Greenhouse UI running on `http://localhost:3000`.
 
