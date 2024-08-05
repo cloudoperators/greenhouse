@@ -7,7 +7,7 @@ description: >
   How to run a local Greenhouse setup for development
 ---
 
-# What is Greenhouse?
+## What is Greenhouse?
 
 Greenhouse is a [Kubernetes operator](https://Kubernetes.io/docs/concepts/extend-Kubernetes/operator/) build with [Kubebuilder](https://book.kubebuilder.io/introduction) and a UI on top of the k8s API.
 
