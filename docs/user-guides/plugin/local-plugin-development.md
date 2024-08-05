@@ -1,6 +1,7 @@
 ---
 title: "Local Plugin Development"
 linkTitle: "Local Plugin Development"
+weight: 1
 description: >
   Develop a new Greenhouse Plugin against a local development environment.
 ---
@@ -130,6 +131,7 @@ k get pods -n test-org
 NAME                                    READY   STATUS    RESTARTS   AGE
 nginx-remote-cluster-758bf47c77-pz72l   1/1     Running   0          2m11s
 ```
+
 ## Development Tips
 
 ### Local Helm Charts
@@ -137,8 +139,9 @@ nginx-remote-cluster-758bf47c77-pz72l   1/1     Running   0          2m11s
 Instead of uploading the Helm Chart to a chart repository, it is possible to load it from the filesystem of the Greenhouse container.
 This can be especially useful if you are developing your own chart for a PluginDefinition, as it speeds up the testing loop.
 The Docker compose setup mounts the `dev-env/helm-charts` directory and watches for any changes. This means you can point to this local chart in your `plugindefinition.yaml` as such:
+
 ```yaml
- helmChart:
-        name: helm-charts/{filename}.tgz
-        repository: 
+helmChart:
+  name: helm-charts/{filename}.tgz
+  repository:
 ```

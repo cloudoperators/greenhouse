@@ -1,6 +1,7 @@
 ---
 title: "Managing Plugins for multiple clusters"
 linkTitle: "Plugin Management for multiple clusters"
+weight: 4
 description: >
   Deploy a Greenhouse Plugin with the same configuration into multiple clusters.
 ---

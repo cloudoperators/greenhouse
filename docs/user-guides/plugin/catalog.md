@@ -1,8 +1,9 @@
 ---
 title: "Plugin Catalog"
 linkTitle: "Plugin Catalog"
+weight: 5
 description: >
-  Explore the catalog of Greenhouse PluginDefinitions 
+  Explore the catalog of Greenhouse PluginDefinitions
 ---
 
 ## Before you begin
