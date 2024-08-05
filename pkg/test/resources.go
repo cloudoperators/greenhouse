@@ -113,6 +113,22 @@ func (t *TestSetup) OnboardCluster(ctx context.Context, name string, kubeCfg []b
 	return cluster
 }
 
+// CreateOrganization creates a Organization within the TestSetup and returns the created Organization resource.
+func (t *TestSetup) CreateOrganization(ctx context.Context, name string) *greenhousev1alpha1.Organization {
+	GinkgoHelper()
+	org := &greenhousev1alpha1.Organization{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "Organization",
+			APIVersion: greenhousev1alpha1.GroupVersion.String(),
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name: name,
+		},
+	}
+	Expect(t.Create(ctx, org)).Should(Succeed(), "there should be no error creating the Organization")
+	return org
+}
+
 // WithRules overrides the default rules of a TeamRole
 func WithRules(rules []rbacv1.PolicyRule) func(*greenhousev1alpha1.TeamRole) {
 	return func(tr *greenhousev1alpha1.TeamRole) {
