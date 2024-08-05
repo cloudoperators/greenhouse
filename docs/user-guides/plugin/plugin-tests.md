@@ -19,7 +19,7 @@ The [bats/bats-detik](https://github.com/bats-core/bats-detik) framework simplif
 
 1. Create a **tests** folder inside your Plugin's Helm Chart `templates` folder to store your test resources.
 
-2. **ConfigMap defnition**:
+2. **ConfigMap definition**:
 
    - Create a `test-<plugin-name>-config.yaml` file in the `templates/tests` directory to define a ConfigMap that will hold your test script.
    - This `ConfigMap` contains the test script `run.sh` that will be executed by the test Pod to run your tests.
