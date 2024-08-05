@@ -32,7 +32,7 @@ spec:
 Create the Plugin resource via the command:
 
 ```bash
-   kubectl --namespace=<organization name> create -f plugin.yaml
+kubectl --namespace=<organization name> create -f plugin.yaml
 ```
 
 ## After deployment
