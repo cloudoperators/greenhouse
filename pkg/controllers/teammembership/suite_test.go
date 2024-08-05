@@ -1,0 +1,42 @@
+package teammembership_test
+
+import (
+	"net/http/httptest"
+	"testing"
+
+	"github.com/cloudoperators/greenhouse/pkg/controllers/teammembership"
+	"github.com/cloudoperators/greenhouse/pkg/scim"
+	"github.com/cloudoperators/greenhouse/pkg/test"
+	. "github.com/onsi/ginkgo/v2"
+	. "github.com/onsi/gomega"
+)
+
+var (
+	groupsServer *httptest.Server
+)
+
+func TestTeammembership(t *testing.T) {
+	RegisterFailHandler(Fail)
+	RunSpecs(t, "Teammembership Suite")
+}
+
+var _ = BeforeSuite(func() {
+	By("mocking SCIM server")
+	groupsServer = scim.ReturnDefaultGroupResponseMockServer()
+
+	test.RegisterController("teammembershipUpdaterController",
+		(&teammembership.TeamMembershipUpdaterController{
+			ScimBaseURL:       groupsServer.URL,
+			ScimBasicAuthUser: "user",
+			ScimBasicAuthPw:   "pw",
+			Namespace:         test.TestNamespace,
+		}).SetupWithManager)
+	test.TestBeforeSuite()
+})
+
+var _ = AfterSuite(func() {
+	By("tearing down the test environment")
+	groupsServer.Close()
+
+	test.TestAfterSuite()
+})

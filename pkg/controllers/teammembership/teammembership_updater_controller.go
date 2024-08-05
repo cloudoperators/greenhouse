@@ -6,7 +6,7 @@ import (
 	"sync"
 	"time"
 
-	greenhouseapisv1alpha1 "github.com/cloudoperators/greenhouse/pkg/apis/greenhouse/v1alpha1"
+	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/pkg/apis/greenhouse/v1alpha1"
 	"github.com/cloudoperators/greenhouse/pkg/scim"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -25,7 +25,7 @@ type TeamMembershipUpdaterController struct {
 	ScimBasicAuthPw   string
 	Namespace         string
 	scimClient        *scim.ScimClient
-	teamsByName       map[string]greenhouseapisv1alpha1.Team
+	teamsByName       map[string]greenhousev1alpha1.Team
 }
 
 //+kubebuilder:rbac:groups=greenhouse.sap,resources=teammemberships,verbs=get;list;watch;create;update;patch
@@ -65,15 +65,17 @@ func (r *TeamMembershipUpdaterController) SetupWithManager(name string, mgr ctrl
 	}
 	r.scimClient = scimClient
 
+	r.teamsByName = make(map[string]greenhousev1alpha1.Team)
+
 	return ctrl.NewControllerManagedBy(mgr).
 		Named(name).
-		For(&greenhouseapisv1alpha1.TeamMembership{}).
+		For(&greenhousev1alpha1.TeamMembership{}).
 		Complete(r)
 }
 
 // Lists all available teams und updates or creates respective teamMemberships if team.Spec.MappedIDPGroup is present
 func (r *TeamMembershipUpdaterController) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	teamList := greenhouseapisv1alpha1.TeamList{}
+	teamList := greenhousev1alpha1.TeamList{}
 	err := r.List(ctx, &teamList, &client.ListOptions{Namespace: r.Namespace})
 	if err != nil {
 		return ctrl.Result{}, err
@@ -82,7 +84,7 @@ func (r *TeamMembershipUpdaterController) Reconcile(ctx context.Context, req ctr
 	// create org admin team from org spec
 	orgAdminTeam, err := r.getOrgAdminTeam(ctx)
 	if err != nil {
-		log.FromContext(ctx).Info(`[INFO] failed creating org-admin team for organization %s: %s`, r.Namespace, err)
+		log.FromContext(ctx).Info("[INFO] failed creating org-admin team", "organization", r.Namespace, "error", err)
 	} else {
 		teamList.Items = append(teamList.Items, orgAdminTeam)
 	}
@@ -93,11 +95,11 @@ func (r *TeamMembershipUpdaterController) Reconcile(ctx context.Context, req ctr
 	for _, team := range teamList.Items {
 		r.teamsByName[team.Name] = team
 
-		go func(team greenhouseapisv1alpha1.Team) {
+		go func(team greenhousev1alpha1.Team) {
 			defer wg.Done()
 			err = r.processTeamMembership(ctx, team)
 			if err != nil {
-				log.FromContext(ctx).Info(`[Info] failed processing team-membership for team: %s`, err)
+				log.FromContext(ctx).Info("[Info] failed processing team-membership for team", "error", err)
 			}
 		}(team)
 	}
@@ -111,19 +113,19 @@ func (r *TeamMembershipUpdaterController) Reconcile(ctx context.Context, req ctr
 	return ctrl.Result{RequeueAfter: defaultRequeueInterval}, nil
 }
 
-func (r *TeamMembershipUpdaterController) getOrgAdminTeam(ctx context.Context) (greenhouseapisv1alpha1.Team, error) {
-	org := new(greenhouseapisv1alpha1.Organization)
+func (r *TeamMembershipUpdaterController) getOrgAdminTeam(ctx context.Context) (greenhousev1alpha1.Team, error) {
+	org := new(greenhousev1alpha1.Organization)
 	err := r.Get(ctx, types.NamespacedName{Name: r.Namespace}, org)
 	if err != nil {
-		return greenhouseapisv1alpha1.Team{}, err
+		return greenhousev1alpha1.Team{}, err
 	}
 
-	orgAdminTeam := greenhouseapisv1alpha1.Team{
+	orgAdminTeam := greenhousev1alpha1.Team{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: org.Name,
 			Name:      org.Name + "-admin",
 		},
-		Spec: greenhouseapisv1alpha1.TeamSpec{
+		Spec: greenhousev1alpha1.TeamSpec{
 			MappedIDPGroup: org.Spec.MappedOrgAdminIDPGroup,
 		},
 	}
@@ -131,8 +133,8 @@ func (r *TeamMembershipUpdaterController) getOrgAdminTeam(ctx context.Context) (
 	return orgAdminTeam, nil
 }
 
-func (r *TeamMembershipUpdaterController) processTeamMembership(ctx context.Context, team greenhouseapisv1alpha1.Team) error {
-	teamMembership := new(greenhouseapisv1alpha1.TeamMembership)
+func (r *TeamMembershipUpdaterController) processTeamMembership(ctx context.Context, team greenhousev1alpha1.Team) error {
+	teamMembership := new(greenhousev1alpha1.TeamMembership)
 
 	err := r.Get(ctx, types.NamespacedName{Namespace: team.Namespace, Name: team.Name}, teamMembership)
 	if !apierrors.IsNotFound(err) && err != nil {
@@ -156,7 +158,7 @@ func (r *TeamMembershipUpdaterController) processTeamMembership(ctx context.Cont
 	return r.updateTeamMembership(ctx, teamMembership, team)
 }
 
-func (r *TeamMembershipUpdaterController) createTeamMembership(ctx context.Context, team greenhouseapisv1alpha1.Team) error {
+func (r *TeamMembershipUpdaterController) createTeamMembership(ctx context.Context, team greenhousev1alpha1.Team) error {
 	members, err := r.scimClient.GetTeamMembers(team.Spec.MappedIDPGroup)
 	if err != nil {
 		return err
@@ -164,7 +166,7 @@ func (r *TeamMembershipUpdaterController) createTeamMembership(ctx context.Conte
 	users := r.scimClient.GetUsers(members)
 	now := metav1.NewTime(time.Now())
 
-	teamMembership := new(greenhouseapisv1alpha1.TeamMembership)
+	teamMembership := new(greenhousev1alpha1.TeamMembership)
 	teamMembership.Namespace = team.Namespace
 	teamMembership.Name = team.Name
 	teamMembership.Spec.Members = users
@@ -173,12 +175,21 @@ func (r *TeamMembershipUpdaterController) createTeamMembership(ctx context.Conte
 	if err != nil {
 		return err
 	}
-	log.FromContext(ctx).Info("created team-membership: %s", team.Name)
-	team.ObjectMeta.OwnerReferences = []metav1.OwnerReference{{APIVersion: greenhouseapisv1alpha1.GroupVersion.String(), Kind: "TeamMembership", Name: teamMembership.GetName(), UID: teamMembership.GetUID(), Controller: nil, BlockOwnerDeletion: nil}}
+	log.FromContext(ctx).Info("created team-membership", "team", team.Name)
+	team.ObjectMeta.OwnerReferences = []metav1.OwnerReference{
+		{
+			APIVersion:         greenhousev1alpha1.GroupVersion.String(),
+			Kind:               "TeamMembership",
+			Name:               teamMembership.GetName(),
+			UID:                teamMembership.GetUID(),
+			Controller:         nil,
+			BlockOwnerDeletion: nil,
+		},
+	}
 	return r.Update(ctx, &team, &client.UpdateOptions{})
 }
 
-func (r *TeamMembershipUpdaterController) updateTeamMembership(ctx context.Context, teamMembership *greenhouseapisv1alpha1.TeamMembership, team greenhouseapisv1alpha1.Team) error {
+func (r *TeamMembershipUpdaterController) updateTeamMembership(ctx context.Context, teamMembership *greenhousev1alpha1.TeamMembership, team greenhousev1alpha1.Team) error {
 	members, err := r.scimClient.GetTeamMembers(team.Spec.MappedIDPGroup)
 	if err != nil {
 		return err
@@ -191,13 +202,22 @@ func (r *TeamMembershipUpdaterController) updateTeamMembership(ctx context.Conte
 	if err != nil {
 		return err
 	}
-	log.FromContext(ctx).Info("updated team-membership: %s", team.Name)
-	team.ObjectMeta.OwnerReferences = []metav1.OwnerReference{{APIVersion: greenhouseapisv1alpha1.GroupVersion.String(), Kind: "TeamMembership", Name: teamMembership.GetName(), UID: teamMembership.GetUID(), Controller: nil, BlockOwnerDeletion: nil}}
+	log.FromContext(ctx).Info("updated team-membership", "team", team.Name)
+	team.ObjectMeta.OwnerReferences = []metav1.OwnerReference{
+		{
+			APIVersion:         greenhousev1alpha1.GroupVersion.String(),
+			Kind:               "TeamMembership",
+			Name:               teamMembership.GetName(),
+			UID:                teamMembership.GetUID(),
+			Controller:         nil,
+			BlockOwnerDeletion: nil,
+		},
+	}
 	return r.Update(ctx, &team, &client.UpdateOptions{})
 }
 
 func (r *TeamMembershipUpdaterController) deleteOrphanedTeamMemberships(ctx context.Context) error {
-	teamMembershipList := greenhouseapisv1alpha1.TeamMembershipList{}
+	teamMembershipList := greenhousev1alpha1.TeamMembershipList{}
 	err := r.List(ctx, &teamMembershipList, &client.ListOptions{Namespace: r.Namespace})
 	if err != nil {
 		return err
@@ -209,9 +229,9 @@ func (r *TeamMembershipUpdaterController) deleteOrphanedTeamMemberships(ctx cont
 			teamMembership := teamMembership
 			err = r.Delete(ctx, &teamMembership, &client.DeleteOptions{})
 			if err != nil {
-				log.FromContext(ctx).Info(`[Info] failed deleting orphaned teamMembership: %s`, err)
+				log.FromContext(ctx).Info("[Info] failed deleting orphaned teamMembership", "error", err)
 			}
-			log.FromContext(ctx).Info("deleted team-membership: %s", teamMembership.Name)
+			log.FromContext(ctx).Info("deleted team-membership", "team-membership", teamMembership.Name)
 		}
 	}
 	return nil
