@@ -108,7 +108,7 @@ data:
 
 4. **RBAC Permissions**:
 
-- Create a `test-permissions.yaml` file in the `templates/tests` folder to define the `ServiceAccount` and necessary RBAC permissions for the test Pod.
+- Create the necessary RBAC resources in the `templates/tests` folder with a dedicated `ServiceAccount` and role authorisations so that the test `Pod` can cover test the cases. 
 - You can use [test-permissions.yaml](https://github.com/cloudoperators/greenhouse-extensions/blob/main/kube-monitoring/charts/templates/tests/test-permissions.yaml) from the `kube-monitoring` as a reference to configure RBAC permissions for your test Pod.
 
 5. **Configure the Test Framework in Plugin's `values.yaml`**:
