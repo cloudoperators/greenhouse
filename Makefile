@@ -78,12 +78,12 @@ GEN_CRD_API_REFERENCE_DOCS := $(CURDIR)/hack/docs-generator/gen-crd-api-referenc
 check-gen-crd-api-reference-docs:
 	@if [ ! -f $(GEN_CRD_API_REFERENCE_DOCS) ]; then \
 		echo "gen-crd-api-reference-docs not found, installing..."; \
-		GOBIN=$(LOCALBIN)/hack/docs-generator go install github.com/ahmetb/gen-crd-api-reference-docs@latest; \
+		GOBIN=$(LOCALBIN) go install github.com/ahmetb/gen-crd-api-reference-docs@latest; \
 	fi
 
 .PHONY: generate-documentation
 generate-documentation: check-gen-crd-api-reference-docs
-	hack/docs-generator/gen-crd-api-reference-docs -api-dir=$(GEN_DOCS_API_DIR) -config=$(GEN_DOCS_CONFIG) -template-dir=$(GEN_DOCS_TEMPLATE_DIR) -out-file=$(GEN_DOCS_OUT_FILE)
+	gen-crd-api-reference-docs -api-dir=$(GEN_DOCS_API_DIR) -config=$(GEN_DOCS_CONFIG) -template-dir=$(GEN_DOCS_TEMPLATE_DIR) -out-file=$(GEN_DOCS_OUT_FILE)
 
 .PHONY: test
 test: generate-manifests generate envtest ## Run tests.
