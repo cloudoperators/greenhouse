@@ -75,9 +75,10 @@ func main() {
 		CRDDirectoryPaths:     crdPaths,
 		ErrorIfCRDPathMissing: true,
 		WebhookInstallOptions: envtest.WebhookInstallOptions{
-			Paths:            webhookPaths,
-			LocalServingPort: webhookPort,
-			LocalServingHost: webhookHost,
+			LocalServingHostExternalName: "host.docker.internal",
+			Paths:                        webhookPaths,
+			LocalServingPort:             webhookPort,
+			LocalServingHost:             webhookHost,
 		},
 	}
 	envTest.ControlPlane.GetAPIServer().SecureServing.ListenAddr.Address = "127.0.0.1"

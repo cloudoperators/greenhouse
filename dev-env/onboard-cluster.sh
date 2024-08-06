@@ -16,7 +16,7 @@ function prepare_cluster(){
 	kind create cluster --name "${REMOTE_CLUSTER_NAME}" --kubeconfig="${REMOTE_CLUSTER_KUBECONFIG}" --image ${KIND_CLUSTER_VERSION}
 
   KIND_SERVER="https://${REMOTE_CLUSTER_NAME}-control-plane:6443"
-	kubectl --kubeconfig="${REMOTE_CLUSTER_KUBECONFIG}" config set-cluster "kind-${REMOTE_CLUSTER_NAME}" --server="${KIND_SERVER}"
+	# kubectl --kubeconfig="${REMOTE_CLUSTER_KUBECONFIG}" config set-cluster "kind-${REMOTE_CLUSTER_NAME}" --server="${KIND_SERVER}"
 
   echo "connecting ${REMOTE_CLUSTER_NAME} to dev-env_default network"
   docker network connect "dev-env_default" "${REMOTE_CLUSTER_NAME}-control-plane"

@@ -7,10 +7,7 @@ webhooks:
 - admissionReviewVersions:
   - v1
   clientConfig:
-    service:
-      name: greenhouse-webhook-service
-      namespace: greenhouse
-      path: /mutate-greenhouse-sap-v1alpha1-cluster
+    url: https://host.docker.internal:9443/mutate-greenhouse-sap-v1alpha1-cluster
   failurePolicy: Fail
   name: mcluster.kb.io
   rules:
@@ -27,10 +24,7 @@ webhooks:
 - admissionReviewVersions:
   - v1
   clientConfig:
-    service:
-      name: greenhouse-webhook-service
-      namespace: greenhouse
-      path: /mutate-greenhouse-sap-v1alpha1-organization
+    url: https://host.docker.internal:9443/mutate-greenhouse-sap-v1alpha1-organization
   failurePolicy: Fail
   name: morganization.kb.io
   rules:
@@ -47,10 +41,7 @@ webhooks:
 - admissionReviewVersions:
   - v1
   clientConfig:
-    service:
-      name: greenhouse-webhook-service
-      namespace: greenhouse
-      path: /mutate-greenhouse-sap-v1alpha1-plugin
+    url: https://host.docker.internal:9443/mutate-greenhouse-sap-v1alpha1-plugin
   failurePolicy: Fail
   name: mplugin.kb.io
   rules:
@@ -67,10 +58,7 @@ webhooks:
 - admissionReviewVersions:
   - v1
   clientConfig:
-    service:
-      name: greenhouse-webhook-service
-      namespace: greenhouse
-      path: /mutate-greenhouse-sap-v1alpha1-plugindefinition
+    url: https://host.docker.internal:9443/mutate-greenhouse-sap-v1alpha1-plugindefinition
   failurePolicy: Fail
   name: mplugindefinition.kb.io
   rules:
@@ -87,10 +75,7 @@ webhooks:
 - admissionReviewVersions:
   - v1
   clientConfig:
-    service:
-      name: greenhouse-webhook-service
-      namespace: greenhouse
-      path: /mutate-greenhouse-sap-v1alpha1-pluginpreset
+    url: https://host.docker.internal:9443/mutate-greenhouse-sap-v1alpha1-pluginpreset
   failurePolicy: Fail
   name: mpluginpreset.kb.io
   rules:
@@ -107,10 +92,7 @@ webhooks:
 - admissionReviewVersions:
   - v1
   clientConfig:
-    service:
-      name: greenhouse-webhook-service
-      namespace: greenhouse
-      path: /mutate-greenhouse-sap-v1alpha1-teamrole
+    url: https://host.docker.internal:9443/mutate-greenhouse-sap-v1alpha1-teamrole
   failurePolicy: Fail
   name: mrole.kb.io
   rules:
@@ -127,10 +109,7 @@ webhooks:
 - admissionReviewVersions:
   - v1
   clientConfig:
-    service:
-      name: greenhouse-webhook-service
-      namespace: greenhouse
-      path: /mutate-greenhouse-sap-v1alpha1-teamrolebinding
+    url: https://host.docker.internal:9443/mutate-greenhouse-sap-v1alpha1-teamrolebinding
   failurePolicy: Fail
   name: mrolebinding.kb.io
   rules:
@@ -147,10 +126,7 @@ webhooks:
 - admissionReviewVersions:
   - v1
   clientConfig:
-    service:
-      name: greenhouse-webhook-service
-      namespace: greenhouse
-      path: /mutate--v1-secret
+    url: https://host.docker.internal:9443/mutate--v1-secret
   failurePolicy: Ignore
   matchPolicy: Exact
   name: msecret.kb.io
@@ -168,10 +144,7 @@ webhooks:
 - admissionReviewVersions:
   - v1
   clientConfig:
-    service:
-      name: greenhouse-webhook-service
-      namespace: greenhouse
-      path: /mutate-greenhouse-sap-v1alpha1-team
+    url: https://host.docker.internal:9443/mutate-greenhouse-sap-v1alpha1-team
   failurePolicy: Fail
   name: mteam.kb.io
   rules:
@@ -194,10 +167,7 @@ webhooks:
 - admissionReviewVersions:
   - v1
   clientConfig:
-    service:
-      name: greenhouse-webhook-service
-      namespace: greenhouse
-      path: /validate-greenhouse-sap-v1alpha1-cluster
+    url: https://host.docker.internal:9443/validate-greenhouse-sap-v1alpha1-cluster
   failurePolicy: Fail
   name: vcluster.kb.io
   rules:
@@ -214,10 +184,7 @@ webhooks:
 - admissionReviewVersions:
   - v1
   clientConfig:
-    service:
-      name: greenhouse-webhook-service
-      namespace: greenhouse
-      path: /validate-greenhouse-sap-v1alpha1-organization
+    url: https://host.docker.internal:9443/validate-greenhouse-sap-v1alpha1-organization
   failurePolicy: Fail
   name: vorganization.kb.io
   rules:
@@ -234,10 +201,7 @@ webhooks:
 - admissionReviewVersions:
   - v1
   clientConfig:
-    service:
-      name: greenhouse-webhook-service
-      namespace: greenhouse
-      path: /validate-greenhouse-sap-v1alpha1-plugin
+    url: https://host.docker.internal:9443/validate-greenhouse-sap-v1alpha1-plugin
   failurePolicy: Fail
   name: vplugin.kb.io
   rules:
@@ -254,10 +218,7 @@ webhooks:
 - admissionReviewVersions:
   - v1
   clientConfig:
-    service:
-      name: greenhouse-webhook-service
-      namespace: greenhouse
-      path: /validate-greenhouse-sap-v1alpha1-plugindefinition
+    url: https://host.docker.internal:9443/validate-greenhouse-sap-v1alpha1-plugindefinition
   failurePolicy: Fail
   name: vplugindefinition.kb.io
   rules:
@@ -275,10 +236,7 @@ webhooks:
 - admissionReviewVersions:
   - v1
   clientConfig:
-    service:
-      name: greenhouse-webhook-service
-      namespace: greenhouse
-      path: /validate-greenhouse-sap-v1alpha1-pluginpreset
+    url: https://host.docker.internal:9443/validate-greenhouse-sap-v1alpha1-pluginpreset
   failurePolicy: Fail
   name: vpluginpreset.kb.io
   rules:
@@ -295,10 +253,7 @@ webhooks:
 - admissionReviewVersions:
   - v1
   clientConfig:
-    service:
-      name: greenhouse-webhook-service
-      namespace: greenhouse
-      path: /validate-greenhouse-sap-v1alpha1-teamrole
+    url: https://host.docker.internal:9443/validate-greenhouse-sap-v1alpha1-teamrole
   failurePolicy: Fail
   name: vrole.kb.io
   rules:
@@ -316,10 +271,7 @@ webhooks:
 - admissionReviewVersions:
   - v1
   clientConfig:
-    service:
-      name: greenhouse-webhook-service
-      namespace: greenhouse
-      path: /validate-greenhouse-sap-v1alpha1-teamrolebinding
+    url: https://host.docker.internal:9443/validate-greenhouse-sap-v1alpha1-teamrolebinding
   failurePolicy: Fail
   name: vrolebinding.kb.io
   rules:
@@ -336,10 +288,7 @@ webhooks:
 - admissionReviewVersions:
   - v1
   clientConfig:
-    service:
-      name: greenhouse-webhook-service
-      namespace: greenhouse
-      path: /validate--v1-secret
+    url: https://host.docker.internal:9443/validate--v1-secret
   failurePolicy: Ignore
   matchPolicy: Exact
   name: vsecret.kb.io
@@ -357,10 +306,7 @@ webhooks:
 - admissionReviewVersions:
   - v1
   clientConfig:
-    service:
-      name: greenhouse-webhook-service
-      namespace: greenhouse
-      path: /validate-greenhouse-sap-v1alpha1-team
+    url: https://host.docker.internal:9443/validate-greenhouse-sap-v1alpha1-team
   failurePolicy: Fail
   name: vteam.kb.io
   rules:

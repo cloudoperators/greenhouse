@@ -3,7 +3,7 @@
 
 services:
   envtest:
-    image: ghcr.io/cloudoperators/greenhouse-dev-env:main
+    image: ghcr.io/cloudoperators/greenhouse-dev-env:dev-d059176
     volumes:
       - ./envtest:/envtest
       - ./webhook-certs:/webhook-certs
