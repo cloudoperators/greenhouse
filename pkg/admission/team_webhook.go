@@ -18,12 +18,6 @@ import (
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/pkg/apis/greenhouse/v1alpha1"
 )
 
-var (
-	labelsWhiteList = map[string]struct{}{
-		"support-group": {},
-	}
-)
-
 // Webhook for the Team custom resource.
 
 func SetupTeamWebhookWithManager(mgr ctrl.Manager) error {
@@ -67,6 +61,10 @@ func ValidateDeleteTeam(_ context.Context, _ client.Client, _ runtime.Object) (a
 }
 
 func validateGreenhouseLabels(team *greenhousev1alpha1.Team, ctx context.Context, c client.Client) error {
+	labelsWhiteList := map[string]struct{}{
+		"support-group": {},
+	}
+
 	pluginDefinitions := greenhousev1alpha1.PluginDefinitionList{}
 	if err := c.List(ctx, &pluginDefinitions); !apierrors.IsNotFound(err) && err != nil {
 		return err

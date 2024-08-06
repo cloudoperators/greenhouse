@@ -19,6 +19,7 @@ func TestOrganization(t *testing.T) {
 }
 
 var _ = BeforeSuite(func() {
+	test.RegisterController("namespaceController", (&NamespaceReconciler{}).SetupWithManager)
 	test.RegisterController("organizationController", (&RBACReconciler{}).SetupWithManager)
 	test.RegisterWebhook("orgWebhook", admission.SetupOrganizationWebhookWithManager)
 	test.TestBeforeSuite()

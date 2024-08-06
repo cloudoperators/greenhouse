@@ -37,6 +37,9 @@ dist/**
 # Apple files 
 .DS_Store
 
+# e2e local cluster kubeconfig files
+test/e2e/local-cluster/*.kubeconfig
+
 # act artifacts needed for testing workflows
 .secrets
 .env
