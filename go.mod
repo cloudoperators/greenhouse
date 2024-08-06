@@ -1,8 +1,6 @@
 module github.com/cloudoperators/greenhouse
 
-go 1.22.3
-
-toolchain go1.22.5
+go 1.22.0
 
 replace (
 	// DEX import matches version v2.39.1.
