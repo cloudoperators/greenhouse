@@ -25,8 +25,8 @@ require (
 	github.com/jeremywohl/flatten/v2 v2.0.0-20211013061545-07e4a09fb8e4
 	github.com/juanfont/headscale v0.22.3
 	github.com/oklog/run v1.1.1-0.20240127200640-eee6e044b77c
-	github.com/onsi/ginkgo/v2 v2.19.0
-	github.com/onsi/gomega v1.33.1
+	github.com/onsi/ginkgo/v2 v2.19.1
+	github.com/onsi/gomega v1.34.0
 	github.com/pkg/errors v0.9.1
 	github.com/prometheus/client_golang v1.19.1
 	github.com/sirupsen/logrus v1.9.3
@@ -37,14 +37,14 @@ require (
 	golang.org/x/text v0.16.0
 	gopkg.in/yaml.v3 v3.0.1
 	gotest.tools/v3 v3.5.1
-	helm.sh/helm/v3 v3.15.2
+	helm.sh/helm/v3 v3.15.3
 	k8s.io/api v0.30.2
 	k8s.io/apiextensions-apiserver v0.30.2
 	k8s.io/apimachinery v0.30.2
 	k8s.io/cli-runtime v0.30.2
 	k8s.io/client-go v0.30.2
 	k8s.io/kubectl v0.30.2
-	k8s.io/utils v0.0.0-20240502163921-fe8a2dddb1d0
+	k8s.io/utils v0.0.0-20240711033017-18e509b52bc8
 	sigs.k8s.io/controller-runtime v0.18.4
 	sigs.k8s.io/e2e-framework v0.4.0
 	sigs.k8s.io/yaml v1.4.0
@@ -208,7 +208,7 @@ require (
 	golang.org/x/sync v0.7.0 // indirect
 	golang.org/x/sys v0.21.0 // indirect
 	golang.org/x/term v0.21.0 // indirect
-	golang.org/x/time v0.5.0
+	golang.org/x/time v0.6.0
 	golang.org/x/tools v0.21.1-0.20240508182429-e35e4ccd0d2d // indirect
 	gomodules.xyz/jsonpatch/v2 v2.4.0 // indirect
 	google.golang.org/api v0.172.0 // indirect
