@@ -23,7 +23,6 @@ type TeamMembershipUpdaterController struct {
 	ScimBaseURL       string
 	ScimBasicAuthUser string
 	ScimBasicAuthPw   string
-	Namespace         string
 	scimClient        *scim.ScimClient
 	teamsByName       map[string]greenhousev1alpha1.Team
 }
@@ -46,9 +45,6 @@ func (r *TeamMembershipUpdaterController) SetupWithManager(name string, mgr ctrl
 	}
 	if r.ScimBasicAuthPw == "" {
 		return errors.New("scim basic auth pw required but not provided")
-	}
-	if r.Namespace == "" {
-		return errors.New("namespace required but not provided")
 	}
 
 	scimConfig := scim.Config{
@@ -76,15 +72,15 @@ func (r *TeamMembershipUpdaterController) SetupWithManager(name string, mgr ctrl
 // Lists all available teams und updates or creates respective teamMemberships if team.Spec.MappedIDPGroup is present
 func (r *TeamMembershipUpdaterController) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	teamList := greenhousev1alpha1.TeamList{}
-	err := r.List(ctx, &teamList, &client.ListOptions{Namespace: r.Namespace})
+	err := r.List(ctx, &teamList, &client.ListOptions{Namespace: req.Namespace})
 	if err != nil {
 		return ctrl.Result{}, err
 	}
 
 	// create org admin team from org spec
-	orgAdminTeam, err := r.getOrgAdminTeam(ctx)
+	orgAdminTeam, err := r.getOrgAdminTeam(ctx, req.Namespace)
 	if err != nil {
-		log.FromContext(ctx).Info("[INFO] failed creating org-admin team", "organization", r.Namespace, "error", err)
+		log.FromContext(ctx).Info("[INFO] failed creating org-admin team", "organization", req.Namespace, "error", err)
 	} else {
 		teamList.Items = append(teamList.Items, orgAdminTeam)
 	}
@@ -105,7 +101,7 @@ func (r *TeamMembershipUpdaterController) Reconcile(ctx context.Context, req ctr
 	}
 	wg.Wait()
 
-	err = r.deleteOrphanedTeamMemberships(ctx)
+	err = r.deleteOrphanedTeamMemberships(ctx, req.Namespace)
 	if err != nil {
 		return ctrl.Result{}, err
 	}
@@ -113,9 +109,9 @@ func (r *TeamMembershipUpdaterController) Reconcile(ctx context.Context, req ctr
 	return ctrl.Result{RequeueAfter: defaultRequeueInterval}, nil
 }
 
-func (r *TeamMembershipUpdaterController) getOrgAdminTeam(ctx context.Context) (greenhousev1alpha1.Team, error) {
+func (r *TeamMembershipUpdaterController) getOrgAdminTeam(ctx context.Context, namespace string) (greenhousev1alpha1.Team, error) {
 	org := new(greenhousev1alpha1.Organization)
-	err := r.Get(ctx, types.NamespacedName{Name: r.Namespace}, org)
+	err := r.Get(ctx, types.NamespacedName{Name: namespace}, org)
 	if err != nil {
 		return greenhousev1alpha1.Team{}, err
 	}
@@ -175,7 +171,7 @@ func (r *TeamMembershipUpdaterController) createTeamMembership(ctx context.Conte
 	if err != nil {
 		return err
 	}
-	log.FromContext(ctx).Info("created team-membership", "team", team.Name)
+	log.FromContext(ctx).Info("created team-membership")
 	team.ObjectMeta.OwnerReferences = []metav1.OwnerReference{
 		{
 			APIVersion:         greenhousev1alpha1.GroupVersion.String(),
@@ -202,7 +198,7 @@ func (r *TeamMembershipUpdaterController) updateTeamMembership(ctx context.Conte
 	if err != nil {
 		return err
 	}
-	log.FromContext(ctx).Info("updated team-membership", "team", team.Name)
+	log.FromContext(ctx).Info("updated team-membership")
 	team.ObjectMeta.OwnerReferences = []metav1.OwnerReference{
 		{
 			APIVersion:         greenhousev1alpha1.GroupVersion.String(),
@@ -216,9 +212,9 @@ func (r *TeamMembershipUpdaterController) updateTeamMembership(ctx context.Conte
 	return r.Update(ctx, &team, &client.UpdateOptions{})
 }
 
-func (r *TeamMembershipUpdaterController) deleteOrphanedTeamMemberships(ctx context.Context) error {
+func (r *TeamMembershipUpdaterController) deleteOrphanedTeamMemberships(ctx context.Context, namespace string) error {
 	teamMembershipList := greenhousev1alpha1.TeamMembershipList{}
-	err := r.List(ctx, &teamMembershipList, &client.ListOptions{Namespace: r.Namespace})
+	err := r.List(ctx, &teamMembershipList, &client.ListOptions{Namespace: namespace})
 	if err != nil {
 		return err
 	}

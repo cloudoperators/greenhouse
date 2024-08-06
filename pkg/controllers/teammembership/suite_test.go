@@ -29,7 +29,6 @@ var _ = BeforeSuite(func() {
 			ScimBaseURL:       groupsServer.URL,
 			ScimBasicAuthUser: "user",
 			ScimBasicAuthPw:   "pw",
-			Namespace:         test.TestNamespace,
 		}).SetupWithManager)
 	test.TestBeforeSuite()
 })
