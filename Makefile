@@ -24,6 +24,11 @@ endif
 SHELL = /usr/bin/env bash -o pipefail
 .SHELLFLAGS = -ec
 
+## Location to install dependencies an GO binaries
+LOCALBIN ?= $(shell pwd)/bin
+$(LOCALBIN):
+	mkdir -p $(LOCALBIN)
+
 .PHONY: all
 all: build
 
@@ -73,7 +78,7 @@ GEN_CRD_API_REFERENCE_DOCS := $(CURDIR)/hack/docs-generator/gen-crd-api-referenc
 check-gen-crd-api-reference-docs:
 	@if [ ! -f $(GEN_CRD_API_REFERENCE_DOCS) ]; then \
 		echo "gen-crd-api-reference-docs not found, installing..."; \
-		GOBIN=$(CURDIR)/hack/docs-generator go install github.com/ahmetb/gen-crd-api-reference-docs@latest; \
+		GOBIN=$(LOCALBIN)/hack/docs-generator go install github.com/ahmetb/gen-crd-api-reference-docs@latest; \
 	fi
 
 .PHONY: generate-documentation
@@ -145,11 +150,6 @@ kustomize-build-crds: generate-manifests kustomize
 	$(KUSTOMIZE) build $(CRD_MANIFESTS_PATH)
 	
 ##@ Build Dependencies
-
-## Location to install dependencies to
-LOCALBIN ?= $(shell pwd)/bin
-$(LOCALBIN):
-	mkdir -p $(LOCALBIN)
 
 ## Tool Binaries
 KUSTOMIZE ?= $(LOCALBIN)/kustomize
