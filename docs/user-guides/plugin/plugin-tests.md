@@ -9,7 +9,7 @@ description: >
 
 ## Plugin Testing Requirements
 
-All plugins contributed to this repository should include comprehensive [Helm Chart Tests](https://helm.sh/docs/topics/chart_tests/) using the `bats/bats-detik` testing framework in conjunction with standard Helm Chart Tests. This ensures our plugins are robust, deployable, and catch potential issues early in the development cycle.
+All plugins contributed to [plugin-extensions](https://github.com/cloudoperators/greenhouse-extensions) repository should include comprehensive [Helm Chart Tests](https://helm.sh/docs/topics/chart_tests/) using the `bats/bats-detik` testing framework. This ensures our plugins are robust, deployable, and catch potential issues early in the development cycle.
 
 **What is bats/bats-detik?**
 
