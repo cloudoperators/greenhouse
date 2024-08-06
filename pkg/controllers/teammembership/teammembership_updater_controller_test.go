@@ -55,6 +55,7 @@ var _ = Describe("TeammembershipUpdaterController", func() {
 				g.Expect(err).ShouldNot(HaveOccurred(), "unexpected error getting TeamMemberships")
 				g.Expect(len(teamMemberships.Items)).To(Equal(1), "there should be exactly one TeamMembership")
 				g.Expect(len(teamMemberships.Items[0].Spec.Members)).To(Equal(2), "the TeamMembership should have exactly two Members")
+				g.Expect(teamMemberships.Items[0].Status.LastChangedTime).ToNot(BeNil(), "TeamMembership status should have updated LastChangedTime")
 			}).Should(Succeed(), "the TeamMembership should be reconciled")
 		})
 
@@ -95,6 +96,7 @@ var _ = Describe("TeammembershipUpdaterController", func() {
 				g.Expect(err).ShouldNot(HaveOccurred(), "unexpected error getting TeamMemberships")
 				g.Expect(len(teamMemberships.Items)).To(Equal(1), "there should be exactly one TeamMembership")
 				g.Expect(len(teamMemberships.Items[0].Spec.Members)).To(Equal(2), "the TeamMembership should have exactly two Members")
+				g.Expect(teamMemberships.Items[0].Status.LastChangedTime).ToNot(BeNil(), "TeamMembership status should have updated LastChangedTime")
 			}).Should(Succeed(), "the TeamMembership should be reconciled")
 		})
 	})

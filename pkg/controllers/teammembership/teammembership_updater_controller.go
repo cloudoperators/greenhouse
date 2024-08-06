@@ -191,14 +191,20 @@ func (r *TeamMembershipUpdaterController) updateTeamMembership(ctx context.Conte
 		return err
 	}
 	users := r.scimClient.GetUsers(members)
-	now := metav1.NewTime(time.Now())
 	teamMembership.Spec.Members = users
-	teamMembership.Status.LastChangedTime = &now
 	err = r.Update(ctx, teamMembership, &client.UpdateOptions{})
 	if err != nil {
 		return err
 	}
 	log.FromContext(ctx).Info("updated team-membership")
+	now := metav1.NewTime(time.Now())
+	teamMembership.Status.LastChangedTime = &now
+	err = r.Status().Update(ctx, teamMembership)
+	if err != nil {
+		return err
+	}
+	log.Log.Info("updated team-membership status")
+
 	team.ObjectMeta.OwnerReferences = []metav1.OwnerReference{
 		{
 			APIVersion:         greenhousev1alpha1.GroupVersion.String(),
