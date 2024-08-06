@@ -128,7 +128,7 @@ testFramework:
 
 Before submitting a pull request:
 
-- Ensure your plugin's Helm chart includes a `tests` directory.
+- Ensure your plugin's Helm chart includes a `/tests` directory.
 - Verify the presence of `test-<plugin-name>.yaml`, `test-<plugin-name>-config.yaml`, and `test-permissions.yaml` files.
 - Test your plugin thoroughly using `helm test <release-name>` and confirm that all tests pass against a test Kubernetes cluster.
 - Include a brief description of the tests in your pull request.
