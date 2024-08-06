@@ -35,7 +35,7 @@ metadata:
     type: integration-test
   annotations:
     "helm.sh/hook": test
-    "helm.sh/hook-weight": "-5" # Run before the test pod
+    "helm.sh/hook-weight": "-5" # Installed and upgraded before the test pod
     "helm.sh/hook-delete-policy": "before-hook-creation,hook-succeeded"
 data:
   run.sh: |-
