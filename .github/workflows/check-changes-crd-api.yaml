@@ -36,6 +36,7 @@ jobs:
 
       - name: Generate OpenAPI specs and typescript types from CRDs
         run: |
+          chmod o+rw docs/reference/api/openapi.yaml
           make generate-types
 
       - name: Apply Changes
