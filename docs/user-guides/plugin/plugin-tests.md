@@ -17,7 +17,7 @@ The [bats/bats-detik](https://github.com/bats-core/bats-detik) framework simplif
 
 **Implementing Tests**
 
-1. Create a **tests** folder inside your Plugin's Helm Chart `templates` folder to store your test resources.
+1. Create a `/tests` folder inside your Plugin's Helm Chart `templates` folder to store your test resources.
 
 2. **ConfigMap definition**:
 
