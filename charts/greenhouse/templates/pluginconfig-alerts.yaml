@@ -31,6 +31,9 @@ spec:
     - name: silenceTemplates
       value:
         {{ .Values.alerts.silenceTemplates | toYaml | nindent 8 }}
+    - name: predefinedFilters
+      value:
+        {{ .Values.alerts.predefinedFilters | toYaml | nindent 8 }}
     - name: alerts.alertmanager.ingress.hosts
       value:
       - {{ required ".Values.alerts.ingress.host missing" .Values.alerts.ingress.host }}
