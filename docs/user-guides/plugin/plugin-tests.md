@@ -22,7 +22,7 @@ The [bats/bats-detik](https://github.com/bats-core/bats-detik) framework simplif
 2. **ConfigMap definition**:
 
    - Create a `test-<plugin-name>-config.yaml` file in the `templates/tests` directory to define a `ConfigMap` that will hold your test script.
-   - This `ConfigMap` contains the test script `run.sh` that will be executed by the test Pod to run your tests.
+   - This `ConfigMap` contains the test script `run.sh` that will be executed by the test `Pod` to run your tests.
 
 ```yaml
 {{- if .Values.testFramework.enabled -}}
