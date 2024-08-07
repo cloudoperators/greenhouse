@@ -5,7 +5,6 @@ package plugin
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"time"
 
@@ -21,14 +20,22 @@ import (
 	"k8s.io/client-go/tools/record"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
+	greenhouseapis "github.com/cloudoperators/greenhouse/pkg/apis"
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/pkg/apis/greenhouse/v1alpha1"
 	"github.com/cloudoperators/greenhouse/pkg/clientutil"
 	"github.com/cloudoperators/greenhouse/pkg/helm"
 )
 
-const StatusRequeueInterval = 2 * time.Minute
+const (
+	StatusRequeueInterval          = 2 * time.Minute
+	helmReleaseNameAnnotation      = "meta.helm.sh/release-name"
+	helmReleaseNamespaceAnnotation = "meta.helm.sh/release-namespace"
+	jobNameLabel                   = "batch.kubernetes.io/job-name"
+	monitoringAPIGroupName         = "monitoring.coreos.com"
+)
 
 type ReleaseStatus struct {
 	ReleaseName         string       `json:"releaseName,omitempty" protobuf:"bytes,1,opt,name=releaseName"`
@@ -42,6 +49,7 @@ type ReleaseStatus struct {
 	UnavailableReplicas int32        `json:"unavailableReplicas,omitempty" protobuf:"varint,5,opt,name=unavailableReplicas"`
 	ReleaseOK           bool         `json:"releaseOK,omitempty"`
 	PodStatus           *[]PodStatus `json:"podStatus,omitempty"`
+	Message             string       `json:"message,omitempty"`
 }
 
 type PodStatus struct {
@@ -88,11 +96,13 @@ func (r *WorkLoadStatusReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 		return ctrl.Result{}, err
 	}
 
-	if plugin.DeletionTimestamp != nil {
+	if plugin.DeletionTimestamp != nil && controllerutil.ContainsFinalizer(plugin, greenhouseapis.FinalizerCleanupHelmRelease) {
 		return ctrl.Result{}, nil
 	}
 
+	pluginStatus := initPluginStatus(plugin)
 	clusterAccessReadyCondition, restClientGetter := r.initClientGetter(ctx, *plugin, plugin.Status)
+	pluginStatus.StatusConditions.SetConditions(clusterAccessReadyCondition)
 	if !clusterAccessReadyCondition.IsTrue() {
 		return ctrl.Result{RequeueAfter: 10 * time.Minute}, fmt.Errorf("cannot access cluster: %s", clusterAccessReadyCondition.Message)
 	}
@@ -105,7 +115,6 @@ func (r *WorkLoadStatusReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 	helmRelease, err := helm.GetReleaseForHelmChartFromPlugin(ctx, restClientGetter, plugin)
 	// Skipping plugins that don't have a helm release, it could happen if the plugin is UI only
 	if err == nil && plugin.Status.GetConditionByType(greenhousev1alpha1.HelmReconcileFailedCondition).Status == metav1.ConditionFalse {
-		//pluginStatus := initPluginStatus(plugin)
 		releaseStatus.ReleaseName = plugin.Name
 		releaseStatus.ReleaseNamespace = plugin.Spec.ReleaseNamespace
 		switch {
@@ -123,19 +132,15 @@ func (r *WorkLoadStatusReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 		for key := range objectMap {
 			if key.GVK.Version == "v1" &&
 				(key.GVK.Group == "apps" || key.GVK.Group == "batch") ||
-				(key.GVK.Group == "monitoring.coreos.com" && key.GVK.Kind == "Alertmanager") {
+				(key.GVK.Group == monitoringAPIGroupName && key.GVK.Kind == "Alertmanager") {
 				getStatusPayload(ctx, releaseStatus, objClient, key.Name, releaseStatus.ReleaseNamespace, key.GVK)
 			}
 		}
 
-		marshaled, err := json.Marshal(releaseStatus)
-		if err != nil {
-			log.FromContext(ctx).Error(err, "releaseStatus marshaling error")
+		if statusErr := r.setStatus(ctx, plugin, releaseStatus, pluginStatus); statusErr != nil {
+			log.FromContext(ctx).Error(statusErr, "failed to set status")
 		}
-		//setPluginStatus(plugin, releaseStatus)
-		if releaseStatus.ReleaseOK {
-			log.FromContext(ctx).Info("Release is OK", "pluginName", releaseStatus.ReleaseName, "Details", string(marshaled))
-		}
+		logPluginStatus(ctx, releaseStatus)
 	}
 	return ctrl.Result{RequeueAfter: StatusRequeueInterval}, nil
 }
@@ -202,6 +207,16 @@ func (r *WorkLoadStatusReconciler) initClientGetter(
 	return clusterAccessReadyCondition, restClientGetter
 }
 
+func (r *WorkLoadStatusReconciler) setStatus(ctx context.Context, plugin *greenhousev1alpha1.Plugin, release *ReleaseStatus, pluginStatus greenhousev1alpha1.PluginStatus) error {
+	readyCondition := computeReadyCondition(pluginStatus, release)
+	pluginStatus.StatusConditions.SetConditions(readyCondition)
+	_, err := clientutil.PatchStatus(ctx, r.Client, plugin, func() error {
+		plugin.Status = pluginStatus
+		return nil
+	})
+	return err
+}
+
 // getStatusPayload fetches the status of the object and updates the ReleaseStatus object
 func getStatusPayload(ctx context.Context, releaseStatus *ReleaseStatus, cl client.Client, objName, objNamespace string, GVK schema.GroupVersionKind) {
 	releaseStatus.ReleaseOK = true
@@ -220,6 +235,8 @@ func getStatusPayload(ctx context.Context, releaseStatus *ReleaseStatus, cl clie
 		if !isPayloadReadyRunning(remoteObject) {
 			releaseStatus.ReleaseOK = false
 			releaseStatus.PodStatus = fetchPodList(remoteObject.Spec.Selector.MatchLabels, objNamespace, cl)
+			releaseStatus.Message = "Not all pods are running in the Deployment"
+			releaseStatus.Message = composeMessage(releaseStatus.PodStatus)
 		}
 	case "StatefulSet":
 		remoteObject := &appsv1.StatefulSet{}
@@ -235,6 +252,8 @@ func getStatusPayload(ctx context.Context, releaseStatus *ReleaseStatus, cl clie
 		if !isPayloadReadyRunning(remoteObject) {
 			releaseStatus.ReleaseOK = false
 			releaseStatus.PodStatus = fetchPodList(remoteObject.Spec.Selector.MatchLabels, objNamespace, cl)
+			releaseStatus.Message = "Not all pods are running in the StatefulSet"
+			releaseStatus.Message = composeMessage(releaseStatus.PodStatus)
 		}
 
 	case "DaemonSet":
@@ -252,6 +271,8 @@ func getStatusPayload(ctx context.Context, releaseStatus *ReleaseStatus, cl clie
 		if !isPayloadReadyRunning(remoteObject) {
 			releaseStatus.ReleaseOK = false
 			releaseStatus.PodStatus = fetchPodList(remoteObject.Spec.Selector.MatchLabels, objNamespace, cl)
+			releaseStatus.Message = "Not all pods are running in the DaemonSet"
+			releaseStatus.Message = composeMessage(releaseStatus.PodStatus)
 		}
 
 	case "ReplicaSet":
@@ -267,6 +288,8 @@ func getStatusPayload(ctx context.Context, releaseStatus *ReleaseStatus, cl clie
 		if !isPayloadReadyRunning(remoteObject) {
 			releaseStatus.ReleaseOK = false
 			releaseStatus.PodStatus = fetchPodList(remoteObject.Spec.Selector.MatchLabels, objNamespace, cl)
+			releaseStatus.Message = "Not all pods are running in the ReplicaSet"
+			releaseStatus.Message = composeMessage(releaseStatus.PodStatus)
 		}
 
 	case "CronJob":
@@ -277,6 +300,7 @@ func getStatusPayload(ctx context.Context, releaseStatus *ReleaseStatus, cl clie
 		}
 		if !isPayloadReadyRunning(remoteObject) {
 			releaseStatus.ReleaseOK = false
+			releaseStatus.Message = "Job scheduled by CronJob did not run successfully"
 		}
 	case "Alertmanager":
 		remoteObject := &corev1.PodList{}
@@ -284,8 +308,9 @@ func getStatusPayload(ctx context.Context, releaseStatus *ReleaseStatus, cl clie
 			LabelSelector: labels.NewSelector(),
 			Namespace:     objNamespace,
 		}
-		listOptions.LabelSelector.Matches(labels.Set{"meta.helm.sh/release-name": objName, "meta.helm.sh/release-namespace": objNamespace})
-		notFromCronJob, err := labels.NewRequirement("batch.kubernetes.io/job-name", selection.DoesNotExist, []string{})
+
+		listOptions.LabelSelector.Matches(labels.Set{helmReleaseNameAnnotation: objName, helmReleaseNamespaceAnnotation: objNamespace})
+		notFromCronJob, err := labels.NewRequirement(jobNameLabel, selection.DoesNotExist, []string{})
 		if err != nil {
 			log.FromContext(ctx).Error(err, "Error creating label selector", "name", objName, "pluginName", releaseStatus.ReleaseName)
 		}
@@ -296,6 +321,7 @@ func getStatusPayload(ctx context.Context, releaseStatus *ReleaseStatus, cl clie
 		}
 		if !isPayloadReadyRunning(remoteObject) {
 			releaseStatus.ReleaseOK = false
+			releaseStatus.Message = "Alertmanager is not running"
 		}
 	}
 }
