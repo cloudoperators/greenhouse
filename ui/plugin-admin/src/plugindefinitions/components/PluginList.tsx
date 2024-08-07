@@ -9,7 +9,7 @@ import {
   DataGridHeadCell,
   DataGridRow,
   Stack,
-} from "juno-ui-components"
+} from "@cloudoperators/juno-ui-components"
 import React from "react"
 import { Plugin } from "../../../../types/types"
 import useStore, { EditFormState } from "../store"

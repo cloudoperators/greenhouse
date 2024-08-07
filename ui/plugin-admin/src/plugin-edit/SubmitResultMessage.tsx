@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { Message } from "juno-ui-components"
+import { Message } from "@cloudoperators/juno-ui-components"
 export type SubmitMessage = {
   message: string
   ok: boolean

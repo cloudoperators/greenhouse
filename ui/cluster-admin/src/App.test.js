@@ -9,7 +9,7 @@ import { act, render } from "@testing-library/react"
 import { screen } from "shadow-dom-testing-library"
 import App from "./App"
 
-jest.mock("communicator")
+jest.mock("@cloudoperators/juno-communicator")
 
 test("renders app", async () => {
   await act(() => render(<App />))

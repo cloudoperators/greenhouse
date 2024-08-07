@@ -4,7 +4,7 @@
  */
 
 import { useEffect, useState } from "react"
-import { registerConsumer } from "url-state-provider"
+import { registerConsumer } from "@cloudoperators/juno-url-state-provider-v1"
 import useStore from "../store"
 
 const DEFAULT_KEY = "greenhouse-plugin-admin"
@@ -18,8 +18,12 @@ const useUrlState = (key: string): void => {
   const loggedIn = useStore((state) => state.loggedIn)
 
   // globals
-  const showPluginDetails = useStore((state) => state.showPluginDefinitionDetails)
-  const setShowPluginDetails = useStore((state) => state.setShowPluginDefinitionDetails)
+  const showPluginDetails = useStore(
+    (state) => state.showPluginDefinitionDetails
+  )
+  const setShowPluginDetails = useStore(
+    (state) => state.setShowPluginDefinitionDetails
+  )
 
   // Set initial state from URL (on login)
   useEffect(() => {
@@ -40,10 +44,7 @@ const useUrlState = (key: string): void => {
     // SAVE the state
     if (newShowPluginDetail) setShowPluginDetails(newShowPluginDetail)
     setIsURLRead(true)
-  }, [
-    loggedIn,
-    setShowPluginDetails,
-  ])
+  }, [loggedIn, setShowPluginDetails])
 
   // SYNC states to URL state
   useEffect(() => {

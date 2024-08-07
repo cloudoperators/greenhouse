@@ -6,7 +6,7 @@
 import React from "react"
 import { PluginDefinition } from "../../../../types/types"
 import PluginDefinitionTile from "./PluginDefinitionTile"
-import { Container } from "juno-ui-components"
+import { Container } from "@cloudoperators/juno-ui-components"
 
 interface PluginDefinitionGridProps {
   pluginDefinitions: PluginDefinition[]

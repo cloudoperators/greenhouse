@@ -9,14 +9,14 @@ import {
   DataGridRow,
   DataGridCell,
   DataGridHeadCell,
-} from "juno-ui-components"
+} from "@cloudoperators/juno-ui-components"
 import TeamListItem from "./TeamListItem"
 import {
   useCurrentTeam,
   useDefaultTeam,
   useTeamMemberships,
 } from "../StoreProvider"
-import { useEndlessScrollList } from "utils"
+import { useEndlessScrollList } from "@cloudoperators/juno-utils"
 
 const TeamList = () => {
   const currentTeam = useCurrentTeam()

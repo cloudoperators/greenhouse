@@ -10,7 +10,7 @@ import {
   TextInput,
   FormSection,
   Textarea,
-} from "juno-ui-components"
+} from "@cloudoperators/juno-ui-components"
 /*
  * This Element provides a form section for entering and editing key-value pairs.
  * The key-value data and the setData function are passed as props.

@@ -9,7 +9,7 @@ import {
   SideNavigationItem,
   Badge,
   Stack,
-} from "juno-ui-components"
+} from "@cloudoperators/juno-ui-components"
 import { usePluginConfig, usePluginActive, useActions } from "./StoreProvider"
 
 const SideNav = () => {

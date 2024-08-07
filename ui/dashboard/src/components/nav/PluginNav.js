@@ -9,7 +9,7 @@ import GreenhouseLogo from "../../assets/greenhouse_logo.svg"
 import SupernovaIcon from "../../assets/juno_supernova.svg"
 import DoopIcon from "../../assets/juno_doop.svg"
 import HeurekaIcon from "../../assets/juno_heureka.svg"
-import { Icon, Stack, Button } from "juno-ui-components"
+import { Icon, Stack, Button } from "@cloudoperators/juno-ui-components"
 import {
   useAuthData,
   useAuthLoggedIn,

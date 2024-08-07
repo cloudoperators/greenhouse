@@ -3,13 +3,13 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import {useEffect} from "react"
+import { useEffect } from "react"
 import useCommunication from "../hooks/useCommunication"
 import useUrlState from "../hooks/useUrlState"
 import useSecretApi from "../../plugindefinitions/hooks/useSecretApi"
 import usePluginDefinitionApi from "../../plugindefinitions/hooks/usePluginDefinitionApi"
 import useStore from "../../plugindefinitions/store"
-import { useActions } from "messages-provider"
+import { useActions } from "@cloudoperators/juno-messages-provider"
 
 const AsyncWorker = () => {
   useCommunication()
@@ -37,7 +37,6 @@ const AsyncWorker = () => {
       }
     })
   }, [auth])
-
 
   return null
 }

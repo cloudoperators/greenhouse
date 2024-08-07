@@ -15,7 +15,7 @@ import {
   Icon,
   Stack,
   Message,
-} from "juno-ui-components"
+} from "@cloudoperators/juno-ui-components"
 import { usePluginConfig, useGlobalsActions } from "./StoreProvider"
 import Plugin from "./Plugin"
 
