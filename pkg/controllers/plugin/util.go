@@ -155,7 +155,7 @@ func checkPodStatusCondition(podCondition []corev1.PodCondition) bool {
 func composeMessage(podStatusList *[]PodStatus) string {
 	var message string
 	for _, pod := range *podStatusList {
-		if pod.Conditions == false {
+		if !pod.Conditions {
 			message = message + ",Pod Name: " + pod.Name + " on Node: " + pod.NodeName + "\n"
 		}
 	}
@@ -164,9 +164,6 @@ func composeMessage(podStatusList *[]PodStatus) string {
 
 func computeReadyCondition(pluginStatus greenhousev1alpha1.PluginStatus, release *ReleaseStatus) greenhousev1alpha1.Condition {
 	WorkloadReadyStatus := *pluginStatus.GetConditionByType(greenhousev1alpha1.WorkloadReadyCondition)
-	if pluginStatus.GetConditionByType(greenhousev1alpha1.WorkloadReadyCondition) == nil {
-		pluginStatus.SetConditions(greenhousev1alpha1.UnknownCondition(greenhousev1alpha1.WorkloadReadyCondition, "", ""))
-	}
 
 	if release.ReleaseOK {
 		WorkloadReadyStatus.Status = metav1.ConditionTrue
