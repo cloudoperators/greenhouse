@@ -1,0 +1,49 @@
+groups:
+  - name: greenhouse-operator.rules
+    rules:
+    - alert: GreenhouseOperatorReconcileErrorsHigh
+      annotations:
+        description: '{{ $value | humanizePercentage }} of reconciling operations failed for {{ $labels.controller }} controller'
+        summary: 'Errors while reconciling {{$labels.controller}}'
+      expr: |
+        (sum by (controller) (rate(controller_runtime_reconcile_errors_total{job="greenhouse-controller-manager-metrics-service"}[5m]))) / (sum by (controller) (rate(controller_runtime_reconcile_total{job="greenhouse-controller-manager-metrics-service"}[5m]))) > 0.1
+      for: 15m
+      labels:
+        severity: warning
+    - alert: GreenhouseOperatorReconcileDurationHigher10Min
+      annotations:
+        description: "Greenhouse Operator reconciliation takes longer than ({{ $value | humanizeDuration }})."
+        summary: 'Reconcile duration higher than 10m while reconciling {{ $labels.controller }}'
+      expr: |
+        (sum by (controller) (rate(controller_runtime_reconcile_time_seconds_sum{service="greenhouse-controller-manager-metrics-service"}[5m]))) / (sum by (controller) (rate(controller_runtime_reconcile_time_seconds_count{service="greenhouse-controller-manager-metrics-service"}[5m]))) > 600
+      for: 10m
+      labels:
+        severity: warning
+    - alert: GreenhouseOperatorWorkqueueNotDrained
+      annotations:
+        description:  The workqueue backlog of Greenhuse Operator controller - {{ $labels.name }} is not getting drained.
+        summary: Greenhouse Operator controller - {{ $labels.name }}'s backlog is not being drained.
+      expr: |
+        sum by (name) (rate(workqueue_depth{job="greenhouse-controller-manager-metrics-service"}[5m]))
+      for: 15m
+      labels:
+        severity: warning
+  - name: greenhouse-webhooks.rules
+    rules:
+    - alert: GreenhouseWebhookLatencyHigh
+      annotations:
+        description: The 90th percentile latency of Greenhouse Operator webhook - {{ $labels.webhook }} is {{ $value }}
+        summary: Greenhouse Operator webhook - {{ $labels.webhook }}'s latency is high.
+      expr: |
+        histogram_quantile(0.9, avg(rate(controller_runtime_webhook_latency_seconds_bucket{job="greenhouse-controller-manager-metrics-service"}[5m])) by (webhook, le)) > 0.2 
+      for: 15m
+      labels:
+        severity: warning
+    - alert: GreenhouseWebhookErrorsHigh
+      annotations:
+        description: '{{ $value | humanizePercentage }} of webhook operations failed for {{ $labels.webhook }} webhook'
+        summary: 'Errors while reconciling {{ $labels.webhook }}'
+      expr: |
+        (sum by (webhook) (rate(controller_runtime_webhook_requests_total{code!="200", job="greenhouse-controller-manager-metrics-service"}[5m]))) / (sum by (webhook) (rate(controller_runtime_webhook_requests_total{code="200", job="greenhouse-controller-manager-metrics-service"}[5m]))) > 0.1
+      labels:
+        severity: warning

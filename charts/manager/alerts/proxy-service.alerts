@@ -1,0 +1,21 @@
+groups:
+  - name: greenhouse-proxy.rules
+    rules:
+    - alert: GreenhouseProxyRequestErrorsHigh
+      annotations:
+        description: '{{ $value | humanizePercentage }} of {{ $labels.method }} requests failed for {{ $labels.service }}'
+        summary: 'Errors high for proxy {{$labels.service}}'
+      expr: |
+        (sum by (service, method) (rate(http_requests_total{code!="200"}[5m])))/(sum by (service, method) (rate(http_requests_total{code="200"}[5m]))) > 0.1
+      for: 15m
+      labels:
+        severity: warning
+    - alert: GreenhouseProxyRequestDurationHigh
+      annotations:
+        description: The 90th percentile latency of Greenhouse proxy - {{ $labels.service }} is {{ $value }}
+        summary: Greenhouse proxy service - {{ $labels.service }}'s latency is high.
+      expr: |
+        histogram_quantile(0.9, avg(rate(request_duration_seconds_bucket{code="200"}[5m])) by (service, le)) > 0.5 
+      for: 15m
+      labels:
+        severity: warning
