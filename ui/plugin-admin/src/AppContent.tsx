@@ -3,8 +3,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { Container } from "juno-ui-components"
-import { Messages } from "messages-provider"
+import { Container } from "@cloudoperators/juno-ui-components"
+import { Messages } from "@cloudoperators/juno-messages-provider"
 import { useEffect } from "react"
 import PluginDefinitionPanel from "./plugindefinitions/components/PluginDefinitionPanel"
 import WelcomeView from "./plugindefinitions/components/WelcomeView"

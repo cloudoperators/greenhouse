@@ -16,7 +16,7 @@ import {
   FormSection,
   Stack,
   Button,
-} from "juno-ui-components"
+} from "@cloudoperators/juno-ui-components"
 import KeyValueInput from "./KeyValueInput"
 import ResultMessageComponent, { ResultMessage } from "./ResultMessage"
 import React from "react"

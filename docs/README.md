@@ -17,5 +17,5 @@ description: >
 You can execute the following command to serve the documentation locally:
 
 ```bash
-make docs
+make serve-docs
 ```

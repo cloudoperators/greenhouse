@@ -4,11 +4,11 @@
  */
 
 import React, { useEffect, useState, useMemo, useRef } from "react"
-import { useAppLoader } from "utils"
+import { useAppLoader } from "@cloudoperators/juno-utils"
 import { usePlugin, useGlobalsAssetsHost } from "../components/StoreProvider"
-import { Messages, useActions } from "messages-provider"
+import { Messages, useActions } from "@cloudoperators/juno-messages-provider"
 import { parseError } from "../lib/helpers"
-import { Stack, Button } from "juno-ui-components"
+import { Stack, Button } from "@cloudoperators/juno-ui-components"
 
 const Plugin = ({ id }) => {
   const assetsHost = useGlobalsAssetsHost()

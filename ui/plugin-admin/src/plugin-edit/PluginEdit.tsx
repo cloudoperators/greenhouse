@@ -13,7 +13,7 @@ import {
   PanelFooter,
   Switch,
   TextInput,
-} from "juno-ui-components"
+} from "@cloudoperators/juno-ui-components"
 import React from "react"
 import {
   LabelSelector,
