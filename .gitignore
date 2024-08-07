@@ -47,3 +47,8 @@ act_*.json
 
 # gen-crd-api-reference-docs artifacts
 */gen-crd-api-reference-docs/tmp
+
+# Hugo
+public
+.hugo_build.lock
+

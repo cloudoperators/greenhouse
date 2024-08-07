@@ -1,8 +1,9 @@
 ---
 title: "Plugin Catalog"
 linkTitle: "Plugin Catalog"
+weight: 5
 description: >
-  Explore the catalog of Greenhouse PluginDefinitions 
+  Explore the catalog of Greenhouse PluginDefinitions
 ---
 
 ## Before you begin
@@ -24,7 +25,7 @@ NOTE: The UI also provides a preliminary catalog of Plugins under Organization> 
 
    ```bash
    $ kubectl get plugindefinition
-   
+
    NAME                      VERSION   DESCRIPTION                                                                                                  AGE
    cert-manager              1.1.0     Automated certificate management in Kubernetes                                                               182d
    digicert-issuer           1.2.0     Extensions to the cert-manager for DigiCert support                                                          182d
