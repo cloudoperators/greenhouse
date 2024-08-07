@@ -167,7 +167,7 @@ func computeReadyCondition(pluginStatus greenhousev1alpha1.PluginStatus, release
 
 	if release.ReleaseOK {
 		WorkloadReadyStatus.Status = metav1.ConditionTrue
-		WorkloadReadyStatus.Message = release.Message
+		WorkloadReadyStatus.Message = "Workload is running"
 	} else {
 		WorkloadReadyStatus.Status = metav1.ConditionFalse
 		WorkloadReadyStatus.Message = release.Message
