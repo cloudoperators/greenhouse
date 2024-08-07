@@ -144,6 +144,7 @@ rules:
   verbs:
   - get
   - list
+  - patch
   - watch
 - apiGroups:
   - greenhouse.sap

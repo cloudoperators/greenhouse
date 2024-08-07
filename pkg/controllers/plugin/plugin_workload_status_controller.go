@@ -69,10 +69,8 @@ type WorkLoadStatusReconciler struct {
 
 //+kubebuilder:rbac:groups=greenhouse.sap,resources=plugindefinitions,verbs=get;list;watch
 //+kubebuilder:rbac:groups=greenhouse.sap,resources=plugin,verbs=get;list;watch
-//+kubebuilder:rbac:groups=greenhouse.sap,resources=plugin/status,verbs=get;list;watch
+//+kubebuilder:rbac:groups=greenhouse.sap,resources=plugin/status,verbs=get;patch;list;watch
 //+kubebuilder:rbac:groups=greenhouse.sap,resources=clusters;teams,verbs=get;list;watch
-//+kubebuilder:rbac:groups="",resources=secrets,verbs=get;list;watch
-//+kubebuilder:rbac:groups="",resources=events,verbs=get;list;watch;create;patch;update
 
 // SetupWithManager sets up the controller with the Manager.
 func (r *WorkLoadStatusReconciler) SetupWithManager(name string, mgr ctrl.Manager) error {
