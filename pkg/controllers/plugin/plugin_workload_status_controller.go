@@ -68,8 +68,8 @@ type WorkLoadStatusReconciler struct {
 }
 
 //+kubebuilder:rbac:groups=greenhouse.sap,resources=plugindefinitions,verbs=get;list;watch
-//+kubebuilder:rbac:groups=greenhouse.sap,resources=plugin,verbs=get;list;watch
-//+kubebuilder:rbac:groups=greenhouse.sap,resources=plugin/status,verbs=get;patch;list;watch
+//+kubebuilder:rbac:groups=greenhouse.sap,resources=plugins,verbs=get;list;watch
+//+kubebuilder:rbac:groups=greenhouse.sap,resources=plugins/status,verbs=get;patch;list;watch
 //+kubebuilder:rbac:groups=greenhouse.sap,resources=clusters;teams,verbs=get;list;watch
 
 // SetupWithManager sets up the controller with the Manager.
