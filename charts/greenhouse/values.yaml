@@ -107,6 +107,8 @@ alerts:
     - instance
   silenceTemplates: []
 
+  predefinedFilters: []
+
   # Alertmanager options.
   alertmanager:
     # Whether to deploy the alertmanager.
