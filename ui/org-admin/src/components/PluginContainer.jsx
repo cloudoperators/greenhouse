@@ -4,10 +4,10 @@
  */
 
 import React, { useState } from "react"
-import { Container } from "juno-ui-components"
+import { Container } from "@cloudoperators/juno-ui-components"
 import { usePluginConfig } from "./StoreProvider"
 import Plugin from "./Plugin"
-import { MessagesProvider } from "messages-provider"
+import { MessagesProvider } from "@cloudoperators/juno-messages-provider"
 
 const PluginContainer = () => {
   const pluginConfig = usePluginConfig()

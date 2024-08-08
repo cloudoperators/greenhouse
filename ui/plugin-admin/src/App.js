@@ -4,11 +4,11 @@
  */
 
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
-import { MessagesProvider } from "messages-provider"
+import { MessagesProvider } from "@cloudoperators/juno-messages-provider"
 import markdownDark from "github-markdown-css/github-markdown-dark.css"
 import markdownLight from "github-markdown-css/github-markdown-light.css"
 import markdown from "github-markdown-css/github-markdown.css"
-import { AppShell, AppShellProvider } from "juno-ui-components"
+import { AppShell, AppShellProvider } from "@cloudoperators/juno-ui-components"
 import { useEffect } from "react"
 import AppContent from "./AppContent"
 import useCommunication from "./plugindefinitions/hooks/useCommunication"
@@ -56,11 +56,11 @@ const App = (props = {}) => {
         pageHeader="Converged Cloud | Plugins"
         embedded={props.embedded === "true" || props.embedded === true}
       >
-      <MessagesProvider >
-        <AsyncWorker />
-        <Auth>
-          <AppContent props={props} />
-        </Auth>
+        <MessagesProvider>
+          <AsyncWorker />
+          <Auth>
+            <AppContent props={props} />
+          </Auth>
         </MessagesProvider>
       </AppShell>
     </QueryClientProvider>

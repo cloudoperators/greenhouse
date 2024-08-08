@@ -10,9 +10,9 @@ import { render, act, renderHook } from "@testing-library/react"
 import { screen } from "shadow-dom-testing-library"
 import ShellLayout from "./ShellLayout"
 import StoreProvider from "../StoreProvider"
-import { MessagesProvider } from "messages-provider"
+import { MessagesProvider } from "@cloudoperators/juno-messages-provider"
 
-jest.mock("communicator")
+jest.mock("@cloudoperators/juno-communicator")
 
 test("renders app", async () => {
   await act(() =>

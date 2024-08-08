@@ -4,7 +4,7 @@
  */
 
 import React from "react"
-import { Stack, Spinner } from "juno-ui-components"
+import { Stack, Spinner } from "@cloudoperators/juno-ui-components"
 
 const HintLoading = ({ text }) => {
   return (

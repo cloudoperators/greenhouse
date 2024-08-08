@@ -10,7 +10,10 @@ import useApi from "../hooks/useApi"
 import { useLayoutEffect } from "react"
 import HintLoading from "./shared/HintLoading"
 import { parseError } from "../lib/helpers"
-import { useActions, MessagesProvider } from "messages-provider"
+import {
+  useActions,
+  MessagesProvider,
+} from "@cloudoperators/juno-messages-provider"
 
 const PluginContainer = () => {
   const { getPluginConfigs } = useApi()

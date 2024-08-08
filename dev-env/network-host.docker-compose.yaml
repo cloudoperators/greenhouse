@@ -22,9 +22,6 @@ services:
     image: ghcr.io/cloudoperators/greenhouse:main
     environment:
       - KUBECONFIG=/envtest/internal.kubeconfig
-      - HEADSCALE_API_URL=mock_empty
-      - HEADSCALE_API_KEY=mock_empty
-      - TAILSCALE_PROXY=mock_empty
     volumes:
       - ./envtest:/envtest
       - ./webhook-certs:/tmp/k8s-webhook-server/serving-certs

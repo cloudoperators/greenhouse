@@ -16,12 +16,12 @@ dependencies:
   version: 0.1.0
 - name: manager
   repository: file://../manager
-  version: 0.1.4
+  version: 0.1.5
 - name: ui
   repository: file://../ui
   version: 0.1.2
 - name: demo
   repository: file://../demo
   version: 0.1.1
-digest: sha256:f296638a84dfeebce93dd7ce21c9c9daf6ff79ff61a1e33521a06f37c4cdc4b8
-generated: "2024-07-16T09:34:31.884014+02:00"
+digest: sha256:407268efe1a3435d589aa29596878c5a6541d1c8c3ed56cbec19e40c584aef13
+generated: "2024-08-07T17:11:17.08787+02:00"

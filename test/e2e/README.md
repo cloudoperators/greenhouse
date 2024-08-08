@@ -14,10 +14,11 @@ will run the e2e test suite without making assumptions on the infrastructure to 
 
 Leveraging envtest, we will basically have three different test scenarios. The following env vars steer these:
 
-| Env Var                | Meaning                                                                                                                                                                                                                                                                                                                                                                  |
-| ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | --- |
-| `USE_EXISTING_CLUSTER` | If set to `true`, the e2e test suite will not spin up a local apiserver and etcd. Instead, it will expect an existing greenhouse installation on the cluster inferred from the `TEST_KUBECONFIG` environment variable.                                                                                                                                                   |
-| `TEST_KUBECONFIG`      | Required when `USE_EXISTING_CLUSTER` is `true`. Points to the remote cluster the e2e test suite is running against.                                                                                                                                                                                                                                                      |     |
+
+| Env Var | Meaning |
+| --- | --- | 
+| `USE_EXISTING_CLUSTER` | If set to `true`, the e2e test suite will not spin up a local apiserver and etcd. Instead, it will expect an existing greenhouse installation on the cluster inferred from the `TEST_KUBECONFIG` environment variable. |
+| `TEST_KUBECONFIG`      | Required when `USE_EXISTING_CLUSTER` is `true`. Points to the remote cluster the e2e test suite is running against. |
 | `INTERNAL_KUBECONFIG`  | The path to the kubeconfig file for accessing the Greenhouse cluster itself from the running instance. This is used when `USE_EXISTING_CLUSTER` is set to `true`. KIND makes it necessary to set this separately to the `TEST_KUBECONFIG` as the internal api server address differs to the external. Other setups may not use this. If unset `TEST_KUBECONFIG` is used. |
 
 ## Run everything local a.k.a. `USE_EXISTING_CLUSTER = false` or unset

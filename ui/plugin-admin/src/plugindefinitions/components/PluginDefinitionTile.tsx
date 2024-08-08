@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { Icon, Stack } from "juno-ui-components"
+import { Icon, Stack } from "@cloudoperators/juno-ui-components"
 import React from "react"
 import { PluginDefinition } from "../../../../types/types"
 import useStore from "../store"

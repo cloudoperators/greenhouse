@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { broadcast, get, watch } from "communicator"
+import { broadcast, get, watch } from "@cloudoperators/juno-communicator"
 import { useCallback, useEffect } from "react"
 import {
   useAuthActions,
@@ -11,7 +11,7 @@ import {
   useAuthIsProcessing,
   useAuthLastAction,
   useDemoMode,
-  useDemoUserToken
+  useDemoUserToken,
 } from "../components/StoreProvider"
 
 const useCommunication = () => {
