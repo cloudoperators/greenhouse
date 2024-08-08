@@ -9,7 +9,7 @@ import {
   DataGridCell,
   DataGridHeadCell,
   DataGridRow,
-} from "juno-ui-components"
+} from "@cloudoperators/juno-ui-components"
 
 type OptionValues = {
   default?: unknown

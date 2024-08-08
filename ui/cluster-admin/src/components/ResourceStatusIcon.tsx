@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { Icon } from "juno-ui-components"
+import { Icon } from "@cloudoperators/juno-ui-components"
 import React from "react"
 import { ResourceStatus } from "../types/types"
 

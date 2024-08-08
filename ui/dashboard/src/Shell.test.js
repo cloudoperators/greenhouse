@@ -12,7 +12,7 @@ import Shell from "./Shell"
 import Auth from "./components/Auth"
 import StoreProvider from "./components/StoreProvider"
 
-jest.mock("communicator")
+jest.mock("@cloudoperators/juno-communicator")
 jest.mock("./components/Auth")
 
 test("renders app", async () => {

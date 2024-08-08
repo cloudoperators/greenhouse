@@ -21,7 +21,7 @@ import {
   Tab,
   TabPanel,
   Icon,
-} from "juno-ui-components"
+} from "@cloudoperators/juno-ui-components"
 
 import PluginEdit from "../../plugin-edit/PluginEdit"
 import PluginDefinitionDetail from "./PluginDefinitionDetail"

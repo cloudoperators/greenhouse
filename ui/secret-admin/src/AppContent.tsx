@@ -3,11 +3,11 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 import React from "react"
-import { Container } from "juno-ui-components"
+import { Container } from "@cloudoperators/juno-ui-components"
 import SecretEdit from "./components/SecretEdit"
 import SecretList from "./components/SecretList"
 
-import { MessagesProvider } from "messages-provider"
+import { MessagesProvider } from "@cloudoperators/juno-messages-provider"
 
 import WelcomeView from "./components/WelcomeView"
 import useStore from "./store"

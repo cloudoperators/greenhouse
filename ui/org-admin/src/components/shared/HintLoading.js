@@ -4,7 +4,7 @@
  */
 
 import React, { useMemo } from "react"
-import { Stack, Spinner } from "juno-ui-components"
+import { Stack, Spinner } from "@cloudoperators/juno-ui-components"
 
 const centeredProps = {
   alignment: "center",

@@ -4,7 +4,7 @@
  */
 
 import React from "react"
-import { Messages } from "messages-provider"
+import { Messages } from "@cloudoperators/juno-messages-provider"
 import { useDemoMode } from "./StoreProvider"
 
 const NotificationsContainer = () => {

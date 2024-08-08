@@ -4,7 +4,7 @@
  */
 
 import React from "react"
-import { Stack } from "juno-ui-components"
+import { Stack } from "@cloudoperators/juno-ui-components"
 
 const avatarCss = `
 h-8

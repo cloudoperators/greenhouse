@@ -11,7 +11,7 @@ import {
   PanelBody,
   Stack,
   Code,
-} from "juno-ui-components"
+} from "@cloudoperators/juno-ui-components"
 import React from "react"
 import {
   ENDPOINT_IDENTIFIER,

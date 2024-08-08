@@ -8,59 +8,58 @@ import (
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
-	"sigs.k8s.io/controller-runtime/pkg/client"
+	client "sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/envtest"
 
 	greenhouseapis "github.com/cloudoperators/greenhouse/pkg/apis"
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/pkg/apis/greenhouse/v1alpha1"
 	"github.com/cloudoperators/greenhouse/pkg/test"
 )
 
-const bootstrapClusterNamespace = "bootstrap"
-
 var _ = Describe("Bootstrap controller", Ordered, func() {
+	const bootstrapTestCase = "bootstrap"
+	var (
+		remoteEnvTest    *envtest.Environment
+		remoteKubeConfig []byte
+		setup            *test.TestSetup
+	)
 
 	BeforeAll(func() {
-		Expect(test.K8sClient.Create(test.Ctx, &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: bootstrapClusterNamespace}})).NotTo(HaveOccurred(), "there should be no error creating the test namespace")
+		_, _, remoteEnvTest, remoteKubeConfig = test.StartControlPlane("6888", false, false)
+		setup = test.NewTestSetup(test.Ctx, test.K8sClient, bootstrapTestCase)
 	})
+
+	AfterAll(func() {
+		Expect(remoteEnvTest.Stop()).To(Succeed(), "there should be no error stopping the remote environment")
+	})
+
 	Context("When reconciling a kubeConfig secret", func() {
 
 		It("Should correctly set cluster.Spec.AccessMode and cluster.Status with valid remote kubeconfig and if remote api server is reachable",
 			func() {
 				By("Creating a secret with a valid kubeconfig for a remote cluster")
-				validKubeConfigSecret := corev1.Secret{
-					TypeMeta: metav1.TypeMeta{
-						Kind:       "Secret",
-						APIVersion: corev1.GroupName,
-					},
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      "test-boostrap",
-						Namespace: bootstrapClusterNamespace,
-						Labels: map[string]string{
-							"greenhouse/test": "bootstrap",
-						},
-					},
-					Data: map[string][]byte{
-						greenhouseapis.KubeConfigKey: remoteKubeConfig,
-					},
-					Type: greenhouseapis.SecretTypeKubeConfig,
-				}
-				Expect(test.K8sClient.Create(test.Ctx, &validKubeConfigSecret, &client.CreateOptions{})).Should(Succeed())
+
+				validKubeConfigSecret := setup.CreateSecret(test.Ctx, bootstrapTestCase,
+					test.WithSecretType(greenhouseapis.SecretTypeKubeConfig),
+					test.WithSecretData(map[string][]byte{greenhouseapis.KubeConfigKey: remoteKubeConfig}))
 
 				By("Checking the accessmode is set correctly")
-				getCluster := &greenhousev1alpha1.Cluster{}
-				id := types.NamespacedName{Name: "test-boostrap", Namespace: bootstrapClusterNamespace}
+				cluster := &greenhousev1alpha1.Cluster{}
+				id := types.NamespacedName{Name: validKubeConfigSecret.Name, Namespace: setup.Namespace()}
 				Eventually(func(g Gomega) bool {
-					g.Expect(test.K8sClient.Get(test.Ctx, id, getCluster)).Should(Succeed(), "the cluster should have been created")
-					g.Expect(getCluster.Spec.AccessMode).To(Equal(greenhousev1alpha1.ClusterAccessModeDirect), "the cluster accessmode should be set to direct")
-					readyCondition := getCluster.Status.GetConditionByType(greenhousev1alpha1.ReadyCondition)
+					g.Expect(test.K8sClient.Get(test.Ctx, id, cluster)).Should(Succeed(), "the cluster should have been created")
+					g.Expect(cluster.Spec.AccessMode).To(Equal(greenhousev1alpha1.ClusterAccessModeDirect), "the cluster accessmode should be set to direct")
+					readyCondition := cluster.Status.GetConditionByType(greenhousev1alpha1.ReadyCondition)
 					g.Expect(readyCondition).ToNot(BeNil())
 					g.Expect(readyCondition.Type).To(Equal(greenhousev1alpha1.ReadyCondition))
 					g.Expect(readyCondition.Status).To(Equal(metav1.ConditionTrue))
 					return true
 				}).Should(BeTrue(), "getting the cluster should succeed eventually and the cluster accessmode and status should be set correctly")
+
+				By("Deleting the valid cluster")
+				test.MustDeleteCluster(test.Ctx, test.K8sClient, client.ObjectKeyFromObject(cluster))
 			})
 
 		It("Should correctly set cluster.Spec.AccessMode and cluster.Status with invalid remote kubeconfig",
@@ -69,40 +68,25 @@ var _ = Describe("Bootstrap controller", Ordered, func() {
 				kubeConfigString := string(remoteKubeConfig)
 				//invalidate host
 				invalidKubeConfigString := strings.Replace(kubeConfigString, "127", "128", -1)
-				invalidKubeConfigSecret := corev1.Secret{
-					TypeMeta: metav1.TypeMeta{
-						Kind:       "Secret",
-						APIVersion: corev1.GroupName,
-					},
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      "test-invalid-bootstrap",
-						Namespace: bootstrapClusterNamespace,
-						Labels: map[string]string{
-							"greenhouse/test": "bootstrap",
-						},
-					},
-					Data: map[string][]byte{
-						greenhouseapis.KubeConfigKey: []byte(invalidKubeConfigString),
-					},
-					Type: greenhouseapis.SecretTypeKubeConfig,
-				}
-				Expect(test.K8sClient.Create(test.Ctx, &invalidKubeConfigSecret, &client.CreateOptions{})).Should(Succeed())
+				invalidKubeConfigSecret := setup.CreateSecret(test.Ctx, bootstrapTestCase+"-invalid",
+					test.WithSecretType(greenhouseapis.SecretTypeKubeConfig),
+					test.WithSecretData(map[string][]byte{greenhouseapis.KubeConfigKey: []byte(invalidKubeConfigString)}))
 
 				By("Checking the accessmode is set correctly")
-				getCluster := &greenhousev1alpha1.Cluster{}
-				id := types.NamespacedName{Name: "test-invalid-bootstrap", Namespace: bootstrapClusterNamespace}
+				cluster := &greenhousev1alpha1.Cluster{}
+				id := types.NamespacedName{Name: invalidKubeConfigSecret.Name, Namespace: setup.Namespace()}
 				Eventually(func(g Gomega) bool {
-					g.Expect(test.K8sClient.Get(test.Ctx, id, getCluster)).Should(Succeed(), "the cluster should have been created")
-					g.Expect(getCluster.Spec.AccessMode).To(Equal(greenhousev1alpha1.ClusterAccessModeHeadscale), "the cluster accessmode should be set to headscale")
-					g.Expect(getCluster.Status.Conditions).ToNot(BeNil(), "status conditions should be present")
-					readyCondition := getCluster.Status.GetConditionByType(greenhousev1alpha1.ReadyCondition)
+					g.Expect(test.K8sClient.Get(test.Ctx, id, cluster)).Should(Succeed(), "the cluster should have been created")
+					g.Expect(cluster.Spec.AccessMode).To(Equal(greenhousev1alpha1.ClusterAccessModeHeadscale), "the cluster accessmode should be set to headscale")
+					g.Expect(cluster.Status.Conditions).ToNot(BeNil(), "status conditions should be present")
+					readyCondition := cluster.Status.GetConditionByType(greenhousev1alpha1.ReadyCondition)
 					g.Expect(readyCondition).ToNot(BeNil())
 					g.Expect(readyCondition.Status).To(Equal(metav1.ConditionFalse), "the ready condition should be set to false")
 					return true
 				}).Should(BeTrue(), "getting the cluster should succeed eventually and the cluster accessmode and status should be set correctly")
 
 				By("Deleting the invalid cluster")
-				Expect(test.K8sClient.Delete(test.Ctx, getCluster)).To(Succeed(), "There should be no error deleting the invalid cluster resource")
+				test.MustDeleteCluster(test.Ctx, test.K8sClient, client.ObjectKeyFromObject(cluster))
 			})
 	})
 })

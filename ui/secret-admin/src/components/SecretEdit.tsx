@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { Panel, PanelBody, Stack } from "juno-ui-components"
+import { Panel, PanelBody, Stack } from "@cloudoperators/juno-ui-components"
 import React from "react"
 import useStore from "../store"
 import SecretFormBody from "./SecretFormBody"

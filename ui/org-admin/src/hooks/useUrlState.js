@@ -4,7 +4,7 @@
  */
 
 import { useEffect, useLayoutEffect } from "react"
-import { registerConsumer } from "url-state-provider"
+import { registerConsumer } from "@cloudoperators/juno-url-state-provider-v1"
 import {
   useActions,
   useIsUrlStateSetup,

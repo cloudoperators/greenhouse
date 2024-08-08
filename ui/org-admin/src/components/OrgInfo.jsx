@@ -6,7 +6,7 @@
 import React, { useMemo, useEffect, useState } from "react"
 import { createClient } from "sapcc-k8sclient"
 import { useApiEndpoint, useAuthData } from "./StoreProvider"
-import { useActions } from "messages-provider"
+import { useActions } from "@cloudoperators/juno-messages-provider"
 
 // Shows organization info
 

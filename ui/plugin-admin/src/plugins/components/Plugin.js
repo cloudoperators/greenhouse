@@ -4,7 +4,11 @@
  */
 
 import React from "react"
-import { DataGridRow, DataGridCell, Icon } from "juno-ui-components"
+import {
+  DataGridRow,
+  DataGridCell,
+  Icon,
+} from "@cloudoperators/juno-ui-components"
 import {
   usePluginActions,
   useGlobalsActions,
@@ -29,7 +33,7 @@ const Plugin = (props) => {
   const setEditFormState = useStore((state) => state.setEditFormState)
   const setEditFormData = useStore((state) => state.setEditFormData)
 
-  const pluginDefinitions  = useStore((state) => state.pluginDefinitions)
+  const pluginDefinitions = useStore((state) => state.pluginDefinitions)
 
   const showDetails = (e) => {
     e.stopPropagation()
@@ -50,7 +54,7 @@ const Plugin = (props) => {
         pluginDefinition = pd
         return true
       }
-      return false    
+      return false
     })
     if (pluginDefinition) {
       setPluginDefinitionDetail(pluginDefinition)
@@ -65,7 +69,6 @@ const Plugin = (props) => {
         `Plugin definition not found for plugin ${plugin.metadata.name} could not open edit screen`
       )
     }
-    
   }
 
   return (

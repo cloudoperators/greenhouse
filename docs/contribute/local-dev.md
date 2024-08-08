@@ -2,7 +2,7 @@
 title: "Local development setup"
 linkTitle: "Local development setup"
 landingSectionIndex: false
-weight: 100
+weight: 1
 description: >
   How to run a local Greenhouse setup for development
 ---
@@ -29,7 +29,9 @@ This guide provides the following:
 
    1.5 [Bootstrap](#bootstrap)
 
-2. [Run the tests](#run-the-tests)
+2. [Run And Debug The Code](#run-and-debug-the-code)
+
+3. [Run The Tests](#run-the-tests)
 
 ## Local Setup
 
@@ -40,6 +42,13 @@ Quick start the local setup with [docker compose](#docker-compose)
 > ```bash
 > export DOCKER_DEFAULT_PLATFORM=linux/amd64
 > ```
+
+### Env Var Overview
+
+| Env Var | Meaning |
+| --- | --- |
+| `KUBEBUILDER_ATTACH_CONTROL_PLANE_OUTPUT` | If set to `true`, the mock server will additionally log apiserver and etcd logs |
+| `DEV_ENV_CONTEXT` | Mocks permissions on the mock api server, see [Mock k8s Server](#mock-k8s-server-aka-envtest) for details |
 
 ### Mock k8s Server, a.k.a. `envtest`
 
@@ -179,7 +188,25 @@ or uncommenting the additional resources in the command of the bootstrap contain
 
 Add any additional resources you need to the `./bootstrap` folder.
 
-## Run the tests
+## Run And Debug The Code
+
+Spin up the `envtest` container only, e.g. via:
+
+```bash
+docker compose up envtest
+```
+
+Reuse the certs created by `envtest` for locally serving the webhooks by copying them to the default location kubebuilder expects webhook certs at:
+
+```
+cp ./webhook-certs/* /tmp/k8s-webhook-server/serving-certs
+```
+
+> Note: use `$TMPDIR` on MacOS for `/tmp`
+
+Start your debugging process in respective IDE exposing the `envtest` kubeconfig at `./envtest/kubeconfig`. Do not forget to pass the `--dns-domain=localhost` flag.
+
+## Run The Tests
 
 For running `e2e` tests see [here](https://github.com/cloudoperators/greenhouse/blob/main/test/e2e/README.md).
 
@@ -204,3 +231,9 @@ Print the path by executing:
 ```bash
 ./bin/setup-envtest use <your-preferred-k8s-version> -p path
 ```
+
+### Env Vars Overview In Testing
+
+| Env Var | Meaning |
+| --- | --- |
+| `TEST_EXPORT_KUBECONFIG` | If set to `true`, the kubeconfigs of the envtest controlplanes will be written to temporary files and their location will be printed on screen. Usefull for accessing the mock clusters when setting break points in tests. |

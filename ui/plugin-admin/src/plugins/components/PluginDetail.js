@@ -28,7 +28,7 @@ import {
   Tab,
   TabPanel,
   Icon,
-} from "juno-ui-components"
+} from "@cloudoperators/juno-ui-components"
 import { PluginConditionIcon } from "./PluginConditionIcon"
 import { buildExternalServicesUrls } from "./buildExternalServicesUrls"
 import usePluginDefinitionsStore from "../../plugindefinitions/store"

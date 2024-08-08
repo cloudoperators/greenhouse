@@ -12,6 +12,8 @@ import (
 	rbacv1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+	client "sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/envtest"
 
 	greenhouseapis "github.com/cloudoperators/greenhouse/pkg/apis"
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/pkg/apis/greenhouse/v1alpha1"
@@ -22,59 +24,59 @@ import (
 
 var _ = Describe("Reconciling a Headscale Cluster with mocked Headscale GRPC client and swapped client getter", Ordered, func() {
 	const (
-		headscaleClusterName      = "headscale-cluster"
-		headscaleClusterNamespace = "headscale"
+		headscaleTestCase = "headscale-access"
 	)
 
 	var (
-		cluster = &greenhousev1alpha1.Cluster{}
-		secret  = &corev1.Secret{}
+		cluster *greenhousev1alpha1.Cluster
+
+		remoteEnvTest *envtest.Environment
+		remoteClient  client.Client
+		setup         *test.TestSetup
 	)
 
 	BeforeAll(func() {
-		// Mitigate https://book.kubebuilder.io/reference/envtest.html#:~:text=EnvTest%20does%20not%20support%20namespace,and%20never%20actually%20be%20reclaimed
-		// CRBs and SAs are bound by owner-reference to the namespace which is never really deleted...
-		Expect(test.K8sClient.Create(test.Ctx, &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: headscaleClusterNamespace}})).NotTo(HaveOccurred(), "there should be no error creating the test namespace")
-		Expect(remoteClient.DeleteAllOf(test.Ctx, &rbacv1.ClusterRoleBinding{})).To(Succeed(), "All CRBs should clean up before the tests")
+		var remoteKubeConfig []byte
+		_, remoteClient, remoteEnvTest, remoteKubeConfig = test.StartControlPlane("6887", false, false)
 
-		cluster = &greenhousev1alpha1.Cluster{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      headscaleClusterName,
-				Namespace: headscaleClusterNamespace,
-			},
-			Spec: greenhousev1alpha1.ClusterSpec{
-				AccessMode: greenhousev1alpha1.ClusterAccessModeHeadscale,
-			},
-		}
-		Expect(test.K8sClient.Create(test.Ctx, cluster)).Should(Succeed(), "creating a cluster should be successful")
+		// inject the fake headscale client getter
+		clusterpkg.ExportSetRestClientGetterFunc(headscaleReconciler, newFakeHeadscaleClientGetter(remoteClient))
 
-		secret = &corev1.Secret{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      headscaleClusterName,
-				Namespace: headscaleClusterNamespace,
-				Labels: map[string]string{
-					"greenhouse/test": "headscale",
-				},
-			},
-			Type: greenhouseapis.SecretTypeKubeConfig,
-			Data: map[string][]byte{
-				greenhouseapis.KubeConfigKey:           remoteKubeConfig,
-				greenhouseapis.GreenHouseKubeConfigKey: remoteKubeConfig,
-			},
+		setup = test.NewTestSetup(test.Ctx, test.K8sClient, headscaleTestCase)
+
+		// create a greenhouse cluster with headscale access type
+		cluster = setup.CreateCluster(test.Ctx, headscaleTestCase, test.WithAccessMode(greenhousev1alpha1.ClusterAccessModeHeadscale))
+
+		setup.CreateSecret(test.Ctx, headscaleTestCase,
+			test.WithSecretType(greenhouseapis.SecretTypeKubeConfig),
+			test.WithSecretData(map[string][]byte{greenhouseapis.KubeConfigKey: remoteKubeConfig}))
+
+		expectedOwnerReference := metav1.OwnerReference{
+			Kind:       "Cluster",
+			APIVersion: "greenhouse.sap/v1alpha1",
+			UID:        cluster.UID,
+			Name:       cluster.Name,
 		}
-		Expect(test.K8sClient.Create(test.Ctx, secret)).Should(Succeed(), "creating a secret should be successful")
+		secret := corev1.Secret{}
+		Eventually(func(g Gomega) bool {
+			g.Expect(test.K8sClient.Get(test.Ctx, types.NamespacedName{Name: cluster.Name, Namespace: setup.Namespace()}, &secret)).To(Succeed())
+			g.Expect(secret.ObjectMeta.OwnerReferences).To(ContainElement(expectedOwnerReference), "the kubeconfig secret should have an owner reference to the cluster")
+			return true
+		}).Should(BeTrue(), "eventually the secret should have an owner reference to the cluster")
 
 	})
 	AfterAll(func() {
-		test.MustDeleteCluster(test.Ctx, test.K8sClient, types.NamespacedName{Name: headscaleClusterName, Namespace: headscaleClusterNamespace})
-		test.MustDeleteSecretWithLabel(test.Ctx, test.K8sClient, "headscale")
+		test.MustDeleteCluster(test.Ctx, test.K8sClient, types.NamespacedName{Name: cluster.Name, Namespace: setup.Namespace()})
+		Expect(remoteEnvTest.Stop()).To(Succeed(), "there must be no error stopping the remote environment")
 	})
+
 	It("should reconcile headscale cluster", func() {
 		By("Checking the Headscale Status is being set in the local cluster")
 		getCluster := &greenhousev1alpha1.Cluster{}
-		id := types.NamespacedName{Name: headscaleClusterName, Namespace: headscaleClusterNamespace}
+		id := types.NamespacedName{Name: cluster.Name, Namespace: setup.Namespace()}
 		Eventually(func(g Gomega) bool {
 			g.Expect(test.K8sClient.Get(test.Ctx, id, getCluster)).To(Succeed(), "There should be no error getting the cluster")
+			g.Expect(getCluster.Spec.AccessMode).To(Equal(greenhousev1alpha1.ClusterAccessModeHeadscale), "The cluster access mode should be set to headscale")
 			g.Expect(getCluster.Status.HeadScaleStatus).ToNot(BeNil(), "headscale status should be set")
 			headscaleCondition := getCluster.Status.GetConditionByType(greenhousev1alpha1.HeadscaleReady)
 			g.Expect(headscaleCondition).ToNot(BeNil(), "The HeadscaleReady condition should be present")
@@ -85,21 +87,21 @@ var _ = Describe("Reconciling a Headscale Cluster with mocked Headscale GRPC cli
 
 		By("Checking the Namespace is created in the Remote Cluster")
 		getNamespace := &corev1.Namespace{}
-		id = types.NamespacedName{Name: headscaleClusterNamespace}
+		id = types.NamespacedName{Name: setup.Namespace()}
 		Eventually(func(g Gomega) bool {
 			g.Expect(remoteClient.Get(test.Ctx, id, getNamespace)).To(Succeed(), "There should be no error getting the remote namespace")
-			g.Expect(getNamespace.GetName()).To(Equal(headscaleClusterNamespace), "The remote namespace name should be correct")
+			g.Expect(getNamespace.GetName()).To(Equal(setup.Namespace()), "The remote namespace name should be correct")
 			g.Expect(getNamespace.Status.Phase).To(Equal(corev1.NamespaceActive), "The remote namespace should be active")
 			return true
 		}).Should(BeTrue(), "getting the namespace should succeed eventually")
 
 		By("Checking the Service Account is created in the Remote Cluster")
 		getServiceAccount := &corev1.ServiceAccount{}
-		id = types.NamespacedName{Name: clusterpkg.ExportServiceAccountName, Namespace: headscaleClusterNamespace}
+		id = types.NamespacedName{Name: clusterpkg.ExportServiceAccountName, Namespace: setup.Namespace()}
 		Eventually(func(g Gomega) bool {
 			g.Expect(remoteClient.Get(test.Ctx, id, getServiceAccount)).To(Succeed(), "There should be no error getting the remote service account")
 			g.Expect(getServiceAccount.GetName()).To(Equal(clusterpkg.ExportServiceAccountName), "The SA name should be correct")
-			g.Expect(getServiceAccount.Namespace).To(Equal(headscaleClusterNamespace), "The SA should be deployed to the correct namespace")
+			g.Expect(getServiceAccount.Namespace).To(Equal(setup.Namespace()), "The SA should be deployed to the correct namespace")
 			return true
 		}).Should(BeTrue(), "getting the service account should succeed eventually")
 
@@ -109,14 +111,14 @@ var _ = Describe("Reconciling a Headscale Cluster with mocked Headscale GRPC cli
 		Eventually(func(g Gomega) bool {
 			g.Expect(remoteClient.Get(test.Ctx, id, getClusterRoleBinding)).To(Succeed(), "There should be no error getting the remote crb")
 			g.Expect(getClusterRoleBinding.RoleRef.Name).To(Equal("cluster-admin"), "crb should bind cluster-admin")
-			g.Expect(getClusterRoleBinding.Subjects[0].Namespace).To(Equal(headscaleClusterNamespace), "crb should be deployed to correct namespace")
-			g.Expect(getClusterRoleBinding.OwnerReferences[0].Name).To(Equal(headscaleClusterNamespace), "crb should have owner-reference to namespace")
+			g.Expect(getClusterRoleBinding.Subjects[0].Namespace).To(Equal(setup.Namespace()), "crb should be deployed to correct namespace")
+			g.Expect(getClusterRoleBinding.OwnerReferences[0].Name).To(Equal(setup.Namespace()), "crb should have owner-reference to namespace")
 			return true
 		}).Should(BeTrue(), "getting the cluster role binding should succeed eventually")
 
 		By("Checking the Service Account Token is updated in the Local Cluster")
 		getSecret := &corev1.Secret{}
-		id = types.NamespacedName{Name: headscaleClusterName, Namespace: headscaleClusterNamespace}
+		id = types.NamespacedName{Name: cluster.Name, Namespace: setup.Namespace()}
 		Eventually(func(g Gomega) bool {
 			g.Expect(test.K8sClient.Get(test.Ctx, id, getSecret)).To(Succeed(), "There should be no error getting the cluster secret")
 			actConfig, ok := getSecret.Data[greenhouseapis.GreenHouseKubeConfigKey]
@@ -129,7 +131,7 @@ var _ = Describe("Reconciling a Headscale Cluster with mocked Headscale GRPC cli
 
 		By("Checking the Headscale PreAuthKey is set in the secret in the remote cluster")
 		getSecret = &corev1.Secret{}
-		id = types.NamespacedName{Name: "tailscale-auth", Namespace: headscaleClusterNamespace}
+		id = types.NamespacedName{Name: "tailscale-auth", Namespace: setup.Namespace()}
 		Eventually(func(g Gomega) bool {
 			g.Expect(remoteClient.Get(test.Ctx, id, getSecret)).To(Succeed(), "There should be no error getting the remote secret")
 			actConfig, ok := getSecret.Data[clusterpkg.ExportTailscaleAuthorizationKey]
@@ -146,12 +148,12 @@ var _ = Describe("Reconciling a Headscale Cluster with mocked Headscale GRPC cli
 		Expect(err).ToNot(HaveOccurred(), "There should be no error instantiating the original grpc client")
 		clusterpkg.ExportSetHeadscaleGRPCClientOnHAR(headscaleReconciler, grpcClient)
 		// trigger cluster reconcile
-		Expect(test.K8sClient.Get(test.Ctx, types.NamespacedName{Name: headscaleClusterName, Namespace: headscaleClusterNamespace}, getCluster)).Should(Succeed(), "There should be no error getting the cluster")
+		Expect(test.K8sClient.Get(test.Ctx, types.NamespacedName{Name: cluster.Name, Namespace: setup.Namespace()}, getCluster)).Should(Succeed(), "There should be no error getting the cluster")
 		getCluster.SetLabels(map[string]string{"reconcile-me": "true"})
 		Expect(test.K8sClient.Update(test.Ctx, getCluster)).Should(Succeed(), "There should be no error updating the cluster")
 
 		Eventually(func(g Gomega) bool {
-			g.Expect(test.K8sClient.Get(test.Ctx, types.NamespacedName{Name: getCluster.Name, Namespace: headscaleClusterNamespace}, getCluster)).To(Succeed(), "There should be no error getting the cluster")
+			g.Expect(test.K8sClient.Get(test.Ctx, types.NamespacedName{Name: getCluster.Name, Namespace: setup.Namespace()}, getCluster)).To(Succeed(), "There should be no error getting the cluster")
 			g.Expect(getCluster.Status.HeadScaleStatus).ToNot(BeNil(), "headscale status should be set")
 			headscaleCondition := getCluster.Status.GetConditionByType(greenhousev1alpha1.HeadscaleReady)
 			g.Expect(headscaleCondition).ToNot(BeNil(), "The HeadscaleReady condition should be present")

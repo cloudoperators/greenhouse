@@ -4,7 +4,7 @@
  */
 
 import { useEffect, useState } from "react"
-import { registerConsumer } from "url-state-provider"
+import { registerConsumer } from "@cloudoperators/juno-url-state-provider-v1"
 import useStore from "../store"
 
 const DEFAULT_KEY = "greenhouse-cluster-admin"
