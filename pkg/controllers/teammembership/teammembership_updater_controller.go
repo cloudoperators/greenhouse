@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2024 SAP SE or an SAP affiliate company and Greenhouse contributors
+// SPDX-License-Identifier: Apache-2.0
+
 package teammembership
 
 import (
@@ -13,8 +16,13 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/record"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/event"
+	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/log"
+	"sigs.k8s.io/controller-runtime/pkg/predicate"
+	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
 type TeamMembershipUpdaterController struct {
@@ -30,6 +38,8 @@ type TeamMembershipUpdaterController struct {
 //+kubebuilder:rbac:groups=greenhouse.sap,resources=teammemberships,verbs=get;list;watch;create;update;patch
 //+kubebuilder:rbac:groups=greenhouse.sap,resources=teammemberships/status,verbs=get;update;patch
 //+kubebuilder:rbac:groups=greenhouse.sap,resources=teammemberships/finalizers,verbs=update
+//+kubebuilder:rbac:groups=greenhouse.sap,resources=organizations,verbs=create;update;patch;delete
+//+kubebuilder:rbac:groups=greenhouse.sap,resources=teams,verbs=create;update;patch;delete
 //+kubebuilder:rbac:groups="",resources=events,verbs=get;list;watch;update;patch
 
 // SetupWithManager sets up the controller with the Manager.
@@ -66,7 +76,90 @@ func (r *TeamMembershipUpdaterController) SetupWithManager(name string, mgr ctrl
 	return ctrl.NewControllerManagedBy(mgr).
 		Named(name).
 		For(&greenhousev1alpha1.TeamMembership{}).
+		Watches(&greenhousev1alpha1.Organization{},
+			handler.EnqueueRequestsFromMapFunc(r.enqueueTeamMembershipsForOrganization),
+			builder.WithPredicates(r.getPredicateFuncsForOrganization()),
+		).
+		Watches(&greenhousev1alpha1.Team{},
+			handler.EnqueueRequestsFromMapFunc(r.enqueueTeamMembershipsForTeam),
+			builder.WithPredicates(r.getPredicateFuncsForTeam()),
+		).
 		Complete(r)
+}
+
+func (r *TeamMembershipUpdaterController) enqueueTeamMembershipsForOrganization(ctx context.Context, obj client.Object) []reconcile.Request {
+	request := reconcile.Request{
+		NamespacedName: types.NamespacedName{
+			Name: obj.GetName(),
+			// Organization is cluster-scoped, it doesn't exist in namespaces.
+			Namespace: obj.GetName(),
+		},
+	}
+	return []reconcile.Request{request}
+}
+
+func (r *TeamMembershipUpdaterController) enqueueTeamMembershipsForTeam(ctx context.Context, obj client.Object) []reconcile.Request {
+	request := reconcile.Request{
+		NamespacedName: types.NamespacedName{
+			Name:      obj.GetName(),
+			Namespace: obj.GetNamespace(),
+		},
+	}
+	return []reconcile.Request{request}
+}
+
+func (r *TeamMembershipUpdaterController) getPredicateFuncsForOrganization() predicate.TypedFuncs[client.Object] {
+	return predicate.Funcs{
+		CreateFunc: func(e event.CreateEvent) bool {
+			organization, ok := e.Object.(*greenhousev1alpha1.Organization)
+			if !ok {
+				return false
+			}
+			return organization.Spec.MappedOrgAdminIDPGroup != ""
+		},
+		UpdateFunc: func(e event.UpdateEvent) bool {
+			organizationOld, ok := e.ObjectOld.(*greenhousev1alpha1.Organization)
+			if !ok {
+				return false
+			}
+			organizationNew, ok := e.ObjectNew.(*greenhousev1alpha1.Organization)
+			if !ok {
+				return false
+			}
+			return organizationOld.Spec.MappedOrgAdminIDPGroup !=
+				organizationNew.Spec.MappedOrgAdminIDPGroup
+		},
+		DeleteFunc: func(e event.DeleteEvent) bool {
+			return true
+		},
+	}
+}
+
+func (r *TeamMembershipUpdaterController) getPredicateFuncsForTeam() predicate.TypedFuncs[client.Object] {
+	return predicate.Funcs{
+		CreateFunc: func(e event.CreateEvent) bool {
+			team, ok := e.Object.(*greenhousev1alpha1.Team)
+			if !ok {
+				return false
+			}
+			return team.Spec.MappedIDPGroup != ""
+		},
+		UpdateFunc: func(e event.UpdateEvent) bool {
+			teamOld, ok := e.ObjectOld.(*greenhousev1alpha1.Team)
+			if !ok {
+				return false
+			}
+			teamNew, ok := e.ObjectNew.(*greenhousev1alpha1.Team)
+			if !ok {
+				return false
+			}
+			return teamOld.Spec.MappedIDPGroup !=
+				teamNew.Spec.MappedIDPGroup
+		},
+		DeleteFunc: func(e event.DeleteEvent) bool {
+			return true
+		},
+	}
 }
 
 // Lists all available teams und updates or creates respective teamMemberships if team.Spec.MappedIDPGroup is present
@@ -171,7 +264,7 @@ func (r *TeamMembershipUpdaterController) createTeamMembership(ctx context.Conte
 	if err != nil {
 		return err
 	}
-	log.FromContext(ctx).Info("created team-membership")
+	log.FromContext(ctx).Info("created team-membership", "name", teamMembership.Name)
 	team.ObjectMeta.OwnerReferences = []metav1.OwnerReference{
 		{
 			APIVersion:         greenhousev1alpha1.GroupVersion.String(),
@@ -196,14 +289,13 @@ func (r *TeamMembershipUpdaterController) updateTeamMembership(ctx context.Conte
 	if err != nil {
 		return err
 	}
-	log.FromContext(ctx).Info("updated team-membership")
 	now := metav1.NewTime(time.Now())
 	teamMembership.Status.LastChangedTime = &now
 	err = r.Status().Update(ctx, teamMembership)
 	if err != nil {
 		return err
 	}
-	log.Log.Info("updated team-membership status")
+	log.FromContext(ctx).Info("updated team-membership and its status", "name", teamMembership.Name)
 
 	team.ObjectMeta.OwnerReferences = []metav1.OwnerReference{
 		{

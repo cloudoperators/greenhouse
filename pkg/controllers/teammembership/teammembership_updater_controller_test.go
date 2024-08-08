@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2024 SAP SE or an SAP affiliate company and Greenhouse contributors
+// SPDX-License-Identifier: Apache-2.0
+
 package teammembership_test
 
 import (
@@ -12,8 +15,11 @@ import (
 )
 
 const (
-	teamName     = "test-team-1"
-	idpGroupName = "SOME_IDP_GROUP_NAME"
+	firstTeamName          = "test-team-1"
+	secondTeamName         = "test-team-2"
+	validIdpGroupName      = "SOME_IDP_GROUP_NAME"
+	otherValidIdpGroupName = "SOME_OTHER_IDP_GROUP_NAME"
+	nonExistingGroupName   = "NON_EXISTING_GROUP_NAME"
 )
 
 var (
@@ -29,8 +35,7 @@ var _ = Describe("TeammembershipUpdaterController", func() {
 
 		It("should update existing TM without users", func() {
 			By("creating a test Team")
-
-			team := setup.CreateTeam(test.Ctx, teamName, test.WithMappedIDPGroup(idpGroupName))
+			team := setup.CreateTeam(test.Ctx, firstTeamName, test.WithMappedIDPGroup(validIdpGroupName))
 
 			By("creating a test TeamMembership")
 			err := setup.Create(test.Ctx, &greenhousev1alpha1.TeamMembership{
@@ -48,7 +53,7 @@ var _ = Describe("TeammembershipUpdaterController", func() {
 			By("ensuring the TeamMembership has been created")
 			ensureTeamMembershipHasBeenCreated(team.Name)
 
-			By("ensuring Team users have been reconciled")
+			By("ensuring the TeamMembership has been reconciled")
 			Eventually(func(g Gomega) {
 				teamMemberships := &greenhousev1alpha1.TeamMembershipList{}
 				err := setup.List(test.Ctx, teamMemberships, &client.ListOptions{Namespace: setup.Namespace()})
@@ -61,7 +66,7 @@ var _ = Describe("TeammembershipUpdaterController", func() {
 
 		It("should update existing TM with users", func() {
 			By("creating a test Team")
-			team := setup.CreateTeam(test.Ctx, teamName, test.WithMappedIDPGroup(idpGroupName))
+			team := setup.CreateTeam(test.Ctx, firstTeamName, test.WithMappedIDPGroup(validIdpGroupName))
 
 			By("creating a test TeamMembership with 1 existing user")
 			err := setup.Create(test.Ctx, &greenhousev1alpha1.TeamMembership{
@@ -89,7 +94,7 @@ var _ = Describe("TeammembershipUpdaterController", func() {
 			By("ensuring the TeamMembership has been created")
 			ensureTeamMembershipHasBeenCreated(team.Name)
 
-			By("ensuring TeamMembership users have been reconciled")
+			By("ensuring the TeamMembership has been reconciled")
 			Eventually(func(g Gomega) {
 				teamMemberships := &greenhousev1alpha1.TeamMembershipList{}
 				err := setup.List(test.Ctx, teamMemberships, &client.ListOptions{Namespace: setup.Namespace()})
@@ -98,6 +103,179 @@ var _ = Describe("TeammembershipUpdaterController", func() {
 				g.Expect(len(teamMemberships.Items[0].Spec.Members)).To(Equal(2), "the TeamMembership should have exactly two Members")
 				g.Expect(teamMemberships.Items[0].Status.LastChangedTime).ToNot(BeNil(), "TeamMembership status should have updated LastChangedTime")
 			}).Should(Succeed(), "the TeamMembership should be reconciled")
+		})
+
+		It("should update multiple TMs", func() {
+			By("creating two test Teams")
+			team1 := setup.CreateTeam(test.Ctx, firstTeamName, test.WithMappedIDPGroup(validIdpGroupName))
+			setup.CreateTeam(test.Ctx, secondTeamName, test.WithMappedIDPGroup(otherValidIdpGroupName))
+
+			By("creating a test TeamMembership with 1 existing user")
+			err := setup.Create(test.Ctx, &greenhousev1alpha1.TeamMembership{
+				TypeMeta: metav1.TypeMeta{
+					APIVersion: greenhousev1alpha1.GroupVersion.Group,
+					Kind:       "TeamMembership",
+				},
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      team1.Name,
+					Namespace: setup.Namespace(),
+				},
+				Spec: greenhousev1alpha1.TeamMembershipSpec{
+					Members: []greenhousev1alpha1.User{
+						{
+							ID:        "I12345",
+							FirstName: "John",
+							LastName:  "Doe",
+							Email:     "john.doe@example.com",
+						},
+					},
+				},
+			})
+			Expect(err).NotTo(HaveOccurred(), "there must be no error creating a TeamMembership")
+
+			By("ensuring two TeamMemberships have been created")
+			teamMemberships := &greenhousev1alpha1.TeamMembershipList{}
+			Eventually(func(g Gomega) {
+				err := setup.List(test.Ctx, teamMemberships, &client.ListOptions{Namespace: setup.Namespace()})
+				g.Expect(err).ShouldNot(HaveOccurred(), "unexpected error getting TeamMemberships")
+				g.Expect(len(teamMemberships.Items)).To(Equal(2), "there should be exactly two TeamMemberships")
+			}).Should(Succeed(), "two TeamMemberships should have been created")
+
+			By("ensuring both TeamMemberships have been reconciled")
+			Eventually(func(g Gomega) {
+				g.Expect(len(teamMemberships.Items[0].Spec.Members)).To(Equal(2), "first Team should have 2 users")
+				g.Expect(len(teamMemberships.Items[1].Spec.Members)).To(Equal(3), "second Team should have 3 users")
+				teams := &greenhousev1alpha1.TeamList{}
+				err := setup.List(test.Ctx, teams, &client.ListOptions{Namespace: setup.Namespace()})
+				g.Expect(err).ShouldNot(HaveOccurred(), "unexpected error getting Teams")
+				g.Expect(teams.Items[0].GetOwnerReferences()).ToNot(BeNil(), "first Team should have set owner reference")
+				g.Expect(teams.Items[1].GetOwnerReferences()).ToNot(BeNil(), "first Team should have set owner reference")
+			}).Should(Succeed(), "both TeamMemberships should be reconciled")
+		})
+
+		It("should do nothing if Team has no mappedIdpGroup", func() {
+			By("creating a test Team without mappedIdpGroup")
+			setup.CreateTeam(test.Ctx, firstTeamName)
+
+			By("ensuring there are no TeamMemberships")
+			Eventually(func(g Gomega) {
+				teamMemberships := &greenhousev1alpha1.TeamMembershipList{}
+				err := setup.List(test.Ctx, teamMemberships, &client.ListOptions{Namespace: setup.Namespace()})
+				g.Expect(err).ShouldNot(HaveOccurred(), "unexpected error getting TeamMemberships")
+				g.Expect(len(teamMemberships.Items)).To(Equal(0), "there should be exactly zero TeamMemberships")
+			}).Should(Succeed(), "there should be no TeamMemberships")
+		})
+
+		It("should delete existing TM if team has no mappedIDPGroup", func() {
+			By("creating a test Team without mappedIdpGroup")
+			team := setup.CreateTeam(test.Ctx, firstTeamName)
+
+			By("creating a test TeamMembership")
+			err := setup.Create(test.Ctx, &greenhousev1alpha1.TeamMembership{
+				TypeMeta: metav1.TypeMeta{
+					APIVersion: greenhousev1alpha1.GroupVersion.Group,
+					Kind:       "TeamMembership",
+				},
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      team.Name,
+					Namespace: setup.Namespace(),
+				},
+			})
+			Expect(err).NotTo(HaveOccurred(), "there must be no error creating a TeamMembership")
+
+			By("ensuring the TeamMembership has been created")
+			ensureTeamMembershipHasBeenCreated(team.Name)
+
+			By("ensuring the TeamMembership has been deleted")
+			Eventually(func(g Gomega) {
+				teamMemberships := &greenhousev1alpha1.TeamMembershipList{}
+				err := setup.List(test.Ctx, teamMemberships, &client.ListOptions{Namespace: setup.Namespace()})
+				g.Expect(err).ShouldNot(HaveOccurred(), "unexpected error getting TeamMemberships")
+				g.Expect(len(teamMemberships.Items)).To(Equal(0), "there should be exactly zero TeamMemberships")
+			}).Should(Succeed(), "TeamMembership should have been deleted")
+		})
+
+		It("should delete orphaned TMs", func() {
+			By("creating a test Team 1")
+			team := setup.CreateTeam(test.Ctx, firstTeamName, test.WithMappedIDPGroup(validIdpGroupName))
+
+			By("creating a test TeamMembership for Team 1")
+			err := setup.Create(test.Ctx, &greenhousev1alpha1.TeamMembership{
+				TypeMeta: metav1.TypeMeta{
+					APIVersion: greenhousev1alpha1.GroupVersion.Group,
+					Kind:       "TeamMembership",
+				},
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      team.Name,
+					Namespace: setup.Namespace(),
+				},
+			})
+			Expect(err).NotTo(HaveOccurred(), "there must be no error creating a TeamMembership")
+
+			By("creating a test TeamMembership for non existing Team")
+			err = setup.Create(test.Ctx, &greenhousev1alpha1.TeamMembership{
+				TypeMeta: metav1.TypeMeta{
+					APIVersion: greenhousev1alpha1.GroupVersion.Group,
+					Kind:       "TeamMembership",
+				},
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      secondTeamName,
+					Namespace: setup.Namespace(),
+				},
+			})
+			Expect(err).NotTo(HaveOccurred(), "there must be no error creating a TeamMembership")
+
+			By("ensuring two TeamMemberships have been created")
+			teamMemberships := &greenhousev1alpha1.TeamMembershipList{}
+			Eventually(func(g Gomega) {
+				err := setup.List(test.Ctx, teamMemberships, &client.ListOptions{Namespace: setup.Namespace()})
+				g.Expect(err).ShouldNot(HaveOccurred(), "unexpected error getting TeamMemberships")
+				g.Expect(len(teamMemberships.Items)).To(Equal(2), "there should be exactly two TeamMemberships")
+			}).Should(Succeed(), "two TeamMemberships should have been created")
+
+			By("ensuring the TeamMemberships have been reconciled")
+			Eventually(func(g Gomega) {
+				teamMemberships := &greenhousev1alpha1.TeamMembershipList{}
+				err := setup.List(test.Ctx, teamMemberships, &client.ListOptions{Namespace: setup.Namespace()})
+				g.Expect(err).ShouldNot(HaveOccurred(), "unexpected error getting TeamMemberships")
+				g.Expect(len(teamMemberships.Items)).To(Equal(1), "there should be exactly one TeamMembership")
+				g.Expect(teamMemberships.Items[0].ObjectMeta.Name).To(Equal(team.Name), "the remaining TeamMembership should be for Team 1")
+			}).Should(Succeed(), "the TeamMemberships should be reconciled")
+		})
+
+		It("should create TM for Organization admins", func() {
+			testOrganizationName := setup.Namespace()
+
+			By("creating a test Organization")
+			err := setup.Create(test.Ctx, &greenhousev1alpha1.Organization{
+				TypeMeta: metav1.TypeMeta{
+					Kind:       "Organization",
+					APIVersion: greenhousev1alpha1.GroupVersion.String(),
+				},
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      testOrganizationName,
+					Namespace: setup.Namespace(),
+				},
+				Spec: greenhousev1alpha1.OrganizationSpec{
+					Description:            "Test Org",
+					MappedOrgAdminIDPGroup: validIdpGroupName,
+				},
+			})
+			Expect(err).ToNot(HaveOccurred(), "there must be no error creating the Organization")
+
+			By("ensuring organization has been created")
+			organization := &greenhousev1alpha1.Organization{}
+			err = setup.Get(test.Ctx, types.NamespacedName{Name: testOrganizationName, Namespace: setup.Namespace()}, organization)
+			Expect(err).ToNot(HaveOccurred(), "the Organization should be created")
+
+			By("ensuring a TeamMembership has been created for Organization")
+			Eventually(func(g Gomega) {
+				teamMemberships := &greenhousev1alpha1.TeamMembershipList{}
+				err := setup.List(test.Ctx, teamMemberships, &client.ListOptions{Namespace: setup.Namespace()})
+				g.Expect(err).ShouldNot(HaveOccurred(), "unexpected error getting TeamMemberships")
+				g.Expect(len(teamMemberships.Items)).To(Equal(1), "there should be exactly one TeamMembership")
+				g.Expect(len(teamMemberships.Items[0].Spec.Members)).To(Equal(2), "the TeamMembership should have exactly two Members")
+			}).Should(Succeed(), "TeamMembership should be created for Organization")
 		})
 	})
 })
