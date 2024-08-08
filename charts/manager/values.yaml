@@ -3,6 +3,9 @@
 
 nameOverride: greenhouse
 
+alerts:
+  enabled: true
+
 # TODO: Move to globals to share with headscale chart
 headscale:
   enabled: false

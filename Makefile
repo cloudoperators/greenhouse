@@ -24,6 +24,11 @@ endif
 SHELL = /usr/bin/env bash -o pipefail
 .SHELLFLAGS = -ec
 
+## Location to install dependencies an GO binaries
+LOCALBIN ?= $(shell pwd)/bin
+$(LOCALBIN):
+	mkdir -p $(LOCALBIN)
+
 .PHONY: all
 all: build
 
@@ -48,8 +53,13 @@ generate-manifests: controller-gen ## Generate WebhookConfiguration, ClusterRole
 	hack/helmify $(TEMPLATES_MANIFESTS_PATH)
 	docker run --rm -v $(shell pwd):/github/workspace $(IMG_LICENSE_EYE) -c .github/licenserc.yaml header fix
 
+.PHONY: generate-open-api-spec
+generate-open-api-spec: VERSION = $(shell git rev-parse --short HEAD)
+generate-open-api-spec:
+	hack/openapi-generator/generate-openapi-spec-from-crds $(CRD_MANIFESTS_PATH) $(VERSION) docs/reference/api
+
 .PHONY: generate-types
-generate-types: ## Generate typescript types from CRDs.
+generate-types: generate-open-api-spec## Generate typescript types from CRDs.
 	hack/typescript/create-types $(CURDIR)/docs/reference/api/openapi.yaml $(CURDIR)/hack/typescript/metadata.yaml $(CURDIR)/ui/types/ 
 
 .PHONY: generate
@@ -57,10 +67,23 @@ generate: controller-gen ## Generate code containing DeepCopy, DeepCopyInto, and
 	$(CONTROLLER_GEN) object:headerFile="hack/boilerplate.go.txt" paths="./pkg/apis/..."
 	$(CONTROLLER_GEN) object:headerFile="hack/boilerplate.go.txt" paths="./pkg/dex/..."
 
+# Default values
+GEN_DOCS_API_DIR ?= "./pkg/apis/greenhouse/v1alpha1" ## -app-dir should be Canonical Path Format so absolute path doesn't work. That's why we don't use $(CURDIR) here.
+GEN_DOCS_CONFIG ?= "$(CURDIR)/hack/docs-generator/config.json"
+GEN_DOCS_TEMPLATE_DIR ?= "$(CURDIR)/hack/docs-generator/templates"
+GEN_DOCS_OUT_FILE ?= "$(CURDIR)/docs/reference/api/index.html"
+GEN_CRD_API_REFERENCE_DOCS := $(CURDIR)/hack/docs-generator/gen-crd-api-reference-docs # Define the path to the gen-crd-api-reference-docs binary
+.PHONY: check-gen-crd-api-reference-docs
+check-gen-crd-api-reference-docs:
+	@if [ ! -f $(GEN_CRD_API_REFERENCE_DOCS) ]; then \
+		echo "gen-crd-api-reference-docs not found, installing..."; \
+		GOBIN=$(LOCALBIN) go install github.com/ahmetb/gen-crd-api-reference-docs@latest; \
+	fi
+
+GEN_DOCS ?= $(LOCALBIN)/gen-crd-api-reference-docs
 .PHONY: generate-documentation
-generate-documentation: VERSION = $(shell git rev-parse --short HEAD)
-generate-documentation:
-	hack/openapi-generator/generate-openapi-spec-from-crds $(CRD_MANIFESTS_PATH) $(VERSION) docs/reference/api
+generate-documentation: check-gen-crd-api-reference-docs
+	$(GEN_DOCS) -api-dir=$(GEN_DOCS_API_DIR) -config=$(GEN_DOCS_CONFIG) -template-dir=$(GEN_DOCS_TEMPLATE_DIR) -out-file=$(GEN_DOCS_OUT_FILE)
 
 .PHONY: test
 test: generate-manifests generate envtest ## Run tests.
@@ -135,11 +158,6 @@ kustomize-build-crds: generate-manifests kustomize
 	$(KUSTOMIZE) build $(CRD_MANIFESTS_PATH)
 	
 ##@ Build Dependencies
-
-## Location to install dependencies to
-LOCALBIN ?= $(shell pwd)/bin
-$(LOCALBIN):
-	mkdir -p $(LOCALBIN)
 
 ## Tool Binaries
 KUSTOMIZE ?= $(LOCALBIN)/kustomize

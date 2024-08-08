@@ -20,4 +20,4 @@ OUTPUT_DIR=$3
 
 echo "generating openapi specification from manifests ${MANIFESTS_DIR} to ${OUTPUT_DIR}"
 REPO_ROOT="${REPO_ROOT:-$(cd "$(dirname "$0")/../.." && pwd)}"
-docker run --user 1001 --rm -v "${MANIFESTS_DIR}:/manifests" -v "${REPO_ROOT}":/src --entrypoint "/src/hack/openapi-generator/_generate-wrapper" --env VERSION="${VERSION}" ghcr.io/srfrnk/crd-api-doc-gen:latest "/manifests" "/src/${OUTPUT_DIR}" "/src/hack/openapi-generator/openapi-info.yaml"
+docker run --platform linux/amd64 --user 1001 --rm -v "${MANIFESTS_DIR}:/manifests" -v "${REPO_ROOT}":/src --entrypoint "/src/hack/openapi-generator/_generate-wrapper" --env VERSION="${VERSION}" ghcr.io/srfrnk/crd-api-doc-gen:latest "/manifests" "/src/${OUTPUT_DIR}" "/src/hack/openapi-generator/openapi-info.yaml"
