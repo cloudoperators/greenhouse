@@ -12,7 +12,7 @@ groups:
         severity: warning
     - alert: GreenhouseProxyRequestDurationHigh
       annotations:
-        description: The 90th percentile latency of Greenhouse proxy - {{ $labels.service }} is {{ $value }}
+        description: The 90th percentile latency of Greenhouse proxy - {{ $labels.service }} is {{ $value | humanizeDuration }}
         summary: Greenhouse proxy service - {{ $labels.service }}'s latency is high.
       expr: |
         histogram_quantile(0.9, avg(rate(request_duration_seconds_bucket{code="200"}[5m])) by (service, le)) > 0.5 

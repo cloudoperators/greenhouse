@@ -24,7 +24,7 @@ groups:
         description:  The workqueue backlog of Greenhuse Operator controller - {{ $labels.name }} is not getting drained.
         summary: Greenhouse Operator controller - {{ $labels.name }}'s backlog is not being drained.
       expr: |
-        sum by (name) (rate(workqueue_depth{job="greenhouse-controller-manager-metrics-service"}[5m]))
+        sum by (name) (rate(workqueue_depth{job="greenhouse-controller-manager-metrics-service"}[5m])) > 0
       for: 15m
       labels:
         severity: warning
@@ -32,7 +32,7 @@ groups:
     rules:
     - alert: GreenhouseWebhookLatencyHigh
       annotations:
-        description: The 90th percentile latency of Greenhouse Operator webhook - {{ $labels.webhook }} is {{ $value }}
+        description: The 90th percentile latency of Greenhouse Operator webhook - {{ $labels.webhook }} is {{ $value | humanizeDuration }}
         summary: Greenhouse Operator webhook - {{ $labels.webhook }}'s latency is high.
       expr: |
         histogram_quantile(0.9, avg(rate(controller_runtime_webhook_latency_seconds_bucket{job="greenhouse-controller-manager-metrics-service"}[5m])) by (webhook, le)) > 0.2 
