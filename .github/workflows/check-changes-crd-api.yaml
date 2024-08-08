@@ -1,0 +1,49 @@
+# Run it locally with act (https://github.com/nektos/act)
+#  1. Install act:
+#     `brew install act`
+#  2. Create a .secret file with the following content:
+#     `GITHUB_TOKEN=your_github_token`
+#  PULL REQUEST
+#  1. Create a act_pull_request.json file in case of a pull request with the following content:
+#     `{"pull_request": {"number": <PR number>, "head": {"ref": "<PR branch name>", "sha": "PR commit sha"}, "base": {"ref": "main"}}, "repository": {"name": "juno", "owner": {"login": "cloudoperators"}}}`
+#  2. Run the following command:
+#     `act pull_request -j run-pipeline -e act_pull_request.json -W .github/workflows/ci-npm-packages.yaml`
+
+name: Detect CRD API Changes and Generate Docs, Types and Specs
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    paths:
+      - "pkg/apis/greenhouse/v1alpha1/**"
+
+jobs:
+  generate-docs-types-specs:
+    runs-on: [default]
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          repository: ${{ github.event.pull_request.head.repo.full_name }}
+          ref: ${{ github.event.pull_request.head.ref }}
+
+      - name: Generate CRD API Reference Docs
+        run: |
+          make generate-documentation
+
+      - name: Generate OpenAPI specs and typescript types from CRDs
+        run: |
+          chmod o+rw docs/reference/api/openapi.yaml
+          make generate-types
+
+      - name: Apply Changes
+        uses: EndBug/add-and-commit@v9
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          author_name: CRD API Docs Bot
+          author_email: crd_api_docs_bot@github.com
+          message: "Automatic genaration of CRD API Docs"

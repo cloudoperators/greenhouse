@@ -46,9 +46,8 @@ test/e2e/local-cluster/*.kubeconfig
 act_*.json
 
 # gen-crd-api-reference-docs artifacts
-*/gen-crd-api-reference-docs/tmp
+gen-crd-api-reference-docs
 
 # Hugo
 public
 .hugo_build.lock
-
