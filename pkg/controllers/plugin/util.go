@@ -98,7 +98,7 @@ func isPayloadReadyRunning(o interface{}) bool {
 	return false
 }
 
-func fetchPodList(labelSelector map[string]string, nameSpace string, cl client.Client) *[]PodStatus {
+func fetchPodList(labelSelector map[string]string, namespace string, cl client.Client) *[]PodStatus {
 	var podList = new(corev1.PodList)
 	var podStatusList = new([]PodStatus)
 	listOptions := &client.ListOptions{
