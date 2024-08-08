@@ -45,5 +45,17 @@ func (r *HelmChartTestReconciler) SetupWithManager(name string, mgr ctrl.Manager
 func (r *HelmChartTestReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	// logic goes here
 	fmt.Printf("Reconciling Plugin from HelmChartTestReconciler: %s\n", req.NamespacedName)
+	var plugin greenhousev1alpha1.Plugin
+	if err := r.Get(ctx, req.NamespacedName, &plugin); err != nil {
+		fmt.Printf("Error getting plugin: %v", err)
+	}
+
+	if plugin.Status.HelmReleaseStatus == nil || plugin.Status.HelmReleaseStatus.Status == "unknown" {
+		fmt.Printf("The plugin status is unknown or not set %v is %v\n", plugin.Name, plugin.Status.HelmReleaseStatus.Status)
+		return ctrl.Result{}, nil
+	}
+
+	fmt.Printf("The plugin status of %v is %v\n", plugin.Name, plugin.Status.HelmReleaseStatus.Status)
+
 	return ctrl.Result{}, nil
 }

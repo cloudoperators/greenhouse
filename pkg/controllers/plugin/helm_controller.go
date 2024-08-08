@@ -40,7 +40,9 @@ var exposedConditions = []greenhousev1alpha1.ConditionType{
 	greenhousev1alpha1.ClusterAccessReadyCondition,
 	greenhousev1alpha1.HelmDriftDetectedCondition,
 	greenhousev1alpha1.HelmReconcileFailedCondition,
-	greenhousev1alpha1.StatusUpToDateCondition}
+	greenhousev1alpha1.StatusUpToDateCondition,
+	greenhousev1alpha1.HelmChartTestResultCondition,
+}
 
 // HelmReconciler reconciles a Plugin object.
 type HelmReconciler struct {
