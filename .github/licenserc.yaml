@@ -26,6 +26,7 @@ header:
     - '**/*.gitignore'
     - '**/*.helmignore'
     - '**/*.tpl'
+    - '**/*.alerts'
     - '**/go.mod'
     - '**/go.sum'
     - '**/*.lock'
