@@ -132,6 +132,23 @@ rules:
 - apiGroups:
   - greenhouse.sap
   resources:
+  - plugin
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - greenhouse.sap
+  resources:
+  - plugin/status
+  verbs:
+  - get
+  - list
+  - patch
+  - watch
+- apiGroups:
+  - greenhouse.sap
+  resources:
   - plugindefinitions
   verbs:
   - create
