@@ -6,6 +6,7 @@ package plugin
 import (
 	"context"
 	"fmt"
+	"reflect"
 	"time"
 
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/pkg/apis/greenhouse/v1alpha1"
@@ -55,6 +56,11 @@ func (r *HelmChartTestReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 		fmt.Printf("Error getting plugin: %v", err)
 	}
 
+	if reflect.DeepEqual(plugin.Status, greenhousev1alpha1.PluginStatus{}) {
+		fmt.Printf("Plugin status is empty. Skipping reconcile")
+		return ctrl.Result{}, nil
+	}
+
 	if plugin.Status.HelmReleaseStatus.Status != "deployed" {
 		// Helm Chart Test cannot be done as the Helm Chart is not yet deployed.
 		return ctrl.Result{}, nil
@@ -70,8 +76,7 @@ func (r *HelmChartTestReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 
 	err := helm.HelmChartTest(ctx, restClientGetter, &plugin)
 	if err != nil {
-		fmt.Println("Error testing helm chart: ", err)
-		return ctrl.Result{}, err
+		return ctrl.Result{RequeueAfter: time.Minute * 5}, err
 	}
 
 	return ctrl.Result{RequeueAfter: time.Minute}, nil

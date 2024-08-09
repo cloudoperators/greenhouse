@@ -104,7 +104,6 @@ func HelmChartTest(ctx context.Context, restClientGetter genericclioptions.RESTC
 	if err != nil {
 		return fmt.Errorf("failed when running Helm Chart Test for %v: %w", plugin.Name, err)
 	}
-
 	return nil
 }
 
