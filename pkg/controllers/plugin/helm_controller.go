@@ -13,6 +13,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 	"k8s.io/client-go/util/workqueue"
@@ -67,6 +68,19 @@ func (r *HelmReconciler) SetupWithManager(name string, mgr ctrl.Manager) error {
 		clientutil.WithRuntimeOptions(r.KubeRuntimeOpts),
 		clientutil.WithPersistentConfig(),
 	}
+
+	// index Plugins by the ClusterName field for faster lookups
+	if err := mgr.GetFieldIndexer().IndexField(context.Background(), &greenhousev1alpha1.Plugin{}, greenhouseapis.PluginClusterNameField, func(rawObj client.Object) []string {
+		// Extract the TeamRole name from the TeamRoleBinding Spec, if one is provided
+		plugin, ok := rawObj.(*greenhousev1alpha1.Plugin)
+		if plugin.Spec.ClusterName == "" || !ok {
+			return nil
+		}
+		return []string{plugin.Spec.ClusterName}
+	}); err != nil {
+		return err
+	}
+
 	return ctrl.NewControllerManagedBy(mgr).
 		Named(name).
 		WithOptions(controller.Options{
@@ -83,7 +97,7 @@ func (r *HelmReconciler) SetupWithManager(name string, mgr ctrl.Manager) error {
 		Watches(&greenhousev1alpha1.PluginDefinition{}, handler.EnqueueRequestsFromMapFunc(r.enqueueAllPluginsForPluginDefinition),
 			builder.WithPredicates(predicate.GenerationChangedPredicate{})).
 		// Clusters and teams are passed as values to each Helm operation. Reconcile on change.
-		Watches(&greenhousev1alpha1.Cluster{}, handler.EnqueueRequestsFromMapFunc(r.enqueueAllPlugins),
+		Watches(&greenhousev1alpha1.Cluster{}, handler.EnqueueRequestsFromMapFunc(r.enqueueAllPluginsForCluster),
 			builder.WithPredicates(predicate.GenerationChangedPredicate{})).
 		Watches(&greenhousev1alpha1.Team{}, handler.EnqueueRequestsFromMapFunc(r.enqueueAllPluginsInNamespace), builder.WithPredicates(predicate.GenerationChangedPredicate{})).
 		Complete(r)
@@ -414,8 +428,13 @@ func (r *HelmReconciler) computeReadyCondition(
 	return readyCondition
 }
 
-func (r *HelmReconciler) enqueueAllPlugins(ctx context.Context, _ client.Object) []ctrl.Request {
-	return listPluginsAsReconcileRequests(ctx, r.Client)
+// enqueueAllPluginsForCluster enqueues all Plugins which have .spec.clusterName set to the name of the given Cluster.
+func (r *HelmReconciler) enqueueAllPluginsForCluster(ctx context.Context, o client.Object) []ctrl.Request {
+	listOpts := &client.ListOptions{
+		FieldSelector: fields.OneTermEqualSelector(greenhouseapis.PluginClusterNameField, o.GetName()),
+		Namespace:     o.GetNamespace(),
+	}
+	return listPluginsAsReconcileRequests(ctx, r.Client, listOpts)
 }
 
 func (r *HelmReconciler) enqueueAllPluginsInNamespace(ctx context.Context, o client.Object) []ctrl.Request {
