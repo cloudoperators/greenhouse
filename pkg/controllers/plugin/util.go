@@ -83,7 +83,7 @@ func isPayloadReadyRunning(o interface{}) bool {
 		}
 	case *batchv1.CronJob:
 		// CronJob does not have a status field just for the job, so we need to check the last successful time
-		if obj.Status.LastSuccessfulTime != nil {
+		if obj.Status.LastSuccessfulTime == obj.Status.LastScheduleTime {
 			return true
 		}
 	case *corev1.PodList:
@@ -103,7 +103,7 @@ func fetchPodList(labelSelector map[string]string, namespace string, cl client.C
 	var podStatusList = new([]PodStatus)
 	listOptions := &client.ListOptions{
 		LabelSelector: labels.SelectorFromSet(labelSelector),
-		Namespace:     nameSpace,
+		Namespace:     namespace,
 	}
 	if err := cl.List(context.Background(), podList, listOptions); err != nil {
 		return nil
