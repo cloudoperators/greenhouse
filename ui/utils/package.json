@@ -1,5 +1,5 @@
 {
   "dependencies": {
-    "ts-luxon": "^4.5.2"
+    "ts-luxon": "^5.0.0"
   }
 }
