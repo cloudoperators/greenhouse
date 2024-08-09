@@ -93,6 +93,21 @@ func InstallOrUpgradeHelmChartFromPlugin(ctx context.Context, local client.Clien
 	return upgradeRelease(ctx, local, restClientGetter, pluginDefinition, plugin)
 }
 
+// HelmChartTest to do helm test on the plugin
+func HelmChartTest(ctx context.Context, restClientGetter genericclioptions.RESTClientGetter, plugin *greenhousev1alpha1.Plugin) error {
+	cfg, err := newHelmAction(restClientGetter, plugin.GetReleaseNamespace())
+	if err != nil {
+		return err
+	}
+
+	_, err = action.NewReleaseTesting(cfg).Run(plugin.Name)
+	if err != nil {
+		return fmt.Errorf("failed when running Helm Chart Test for %v: %w", plugin.Name, err)
+	}
+
+	return nil
+}
+
 // UninstallHelmRelease removes the Helm release for the given Plugin.
 func UninstallHelmRelease(ctx context.Context, restClientGetter genericclioptions.RESTClientGetter, plugin *greenhousev1alpha1.Plugin) (releaseNotFound bool, err error) {
 	cfg, err := newHelmAction(restClientGetter, plugin.GetReleaseNamespace())
