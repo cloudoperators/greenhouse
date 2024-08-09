@@ -16,14 +16,11 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/selection"
 	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/cli-runtime/pkg/genericclioptions"
 	"k8s.io/client-go/tools/record"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
-	greenhouseapis "github.com/cloudoperators/greenhouse/pkg/apis"
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/pkg/apis/greenhouse/v1alpha1"
 	"github.com/cloudoperators/greenhouse/pkg/clientutil"
 	"github.com/cloudoperators/greenhouse/pkg/helm"
@@ -89,17 +86,21 @@ func (r *WorkLoadStatusReconciler) SetupWithManager(name string, mgr ctrl.Manage
 
 func (r *WorkLoadStatusReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	var plugin = new(greenhousev1alpha1.Plugin)
+	var pluginDefinition = new(greenhousev1alpha1.PluginDefinition)
 	var releaseStatus = new(ReleaseStatus)
 	if err := r.Client.Get(ctx, req.NamespacedName, plugin); err != nil {
 		return ctrl.Result{}, err
 	}
+	if err := r.Client.Get(ctx, types.NamespacedName{Name: plugin.Spec.PluginDefinition}, pluginDefinition); err != nil {
+		return ctrl.Result{}, err
+	}
 
-	if plugin.DeletionTimestamp != nil && controllerutil.ContainsFinalizer(plugin, greenhouseapis.FinalizerCleanupHelmRelease) {
+	if plugin.DeletionTimestamp != nil || pluginDefinition.Spec.HelmChart == nil {
 		return ctrl.Result{}, nil
 	}
 
 	pluginStatus := initPluginStatus(plugin)
-	clusterAccessReadyCondition, restClientGetter := r.initClientGetter(ctx, *plugin, plugin.Status)
+	clusterAccessReadyCondition, restClientGetter := initClientGetter(ctx, r.Client, r.kubeClientOpts, *plugin, plugin.Status)
 	pluginStatus.StatusConditions.SetConditions(clusterAccessReadyCondition)
 	if !clusterAccessReadyCondition.IsTrue() {
 		return ctrl.Result{RequeueAfter: 10 * time.Minute}, fmt.Errorf("cannot access cluster: %s", clusterAccessReadyCondition.Message)
@@ -113,16 +114,8 @@ func (r *WorkLoadStatusReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 	helmRelease, err := helm.GetReleaseForHelmChartFromPlugin(ctx, restClientGetter, plugin)
 	// Skipping plugins that don't have a helm release, it could happen if the plugin is UI only
 	if err == nil && plugin.Status.GetConditionByType(greenhousev1alpha1.HelmReconcileFailedCondition).Status == metav1.ConditionFalse {
-		releaseStatus.ReleaseName = plugin.Name
-		releaseStatus.ReleaseNamespace = plugin.Spec.ReleaseNamespace
-		switch {
-		// If the release namespace is not set, use the plugin namespace
-		case plugin.Spec.ReleaseNamespace == "":
-			releaseStatus.ReleaseNamespace = plugin.Namespace
-		// If the plugin namespace is not set, use the namespace from the plugin metadata
-		case plugin.Namespace == "":
-			releaseStatus.ReleaseNamespace = plugin.ObjectMeta.Namespace
-		}
+		releaseStatus.ReleaseName = helmRelease.Name
+		releaseStatus.ReleaseNamespace = helmRelease.Namespace
 		releaseStatus.ClusterName = plugin.Spec.ClusterName
 		releaseStatus.HelmStatus = helmRelease.Info.Status.String()
 		objectMap, _ := helm.ObjectMapFromManifest(restClientGetter, plugin.Namespace, helmRelease.Manifest, &helm.ManifestObjectFilter{})
@@ -141,68 +134,6 @@ func (r *WorkLoadStatusReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 		logPluginStatus(ctx, releaseStatus)
 	}
 	return ctrl.Result{RequeueAfter: StatusRequeueInterval}, nil
-}
-
-// initClientGetter returns a RestClientGetter for the given Plugin.
-// If the Plugin has a clusterName set, the RestClientGetter is initialized from the cluster secret.
-// Otherwise, the RestClientGetter is initialized with in-cluster config
-func (r *WorkLoadStatusReconciler) initClientGetter(
-	ctx context.Context,
-	plugin greenhousev1alpha1.Plugin,
-	pluginStatus greenhousev1alpha1.PluginStatus,
-) (
-	clusterAccessReadyCondition greenhousev1alpha1.Condition,
-	restClientGetter genericclioptions.RESTClientGetter,
-) {
-
-	clusterAccessReadyCondition = *pluginStatus.GetConditionByType(greenhousev1alpha1.ClusterAccessReadyCondition)
-	clusterAccessReadyCondition.Status = metav1.ConditionTrue
-
-	var err error
-
-	// early return if spec.clusterName is not set
-	if plugin.Spec.ClusterName == "" {
-		restClientGetter, err = clientutil.NewRestClientGetterForInCluster(plugin.GetReleaseNamespace(), r.kubeClientOpts...)
-		if err != nil {
-			clusterAccessReadyCondition.Status = metav1.ConditionFalse
-			clusterAccessReadyCondition.Message = fmt.Sprintf("cannot access greenhouse cluster: %s", err.Error())
-			return clusterAccessReadyCondition, nil
-		}
-		return clusterAccessReadyCondition, restClientGetter
-	}
-
-	cluster := new(greenhousev1alpha1.Cluster)
-	err = r.Get(ctx, types.NamespacedName{Namespace: plugin.Namespace, Name: plugin.Spec.ClusterName}, cluster)
-	if err != nil {
-		clusterAccessReadyCondition.Status = metav1.ConditionFalse
-		clusterAccessReadyCondition.Message = fmt.Sprintf("Failed to get cluster %s: %s", plugin.Spec.ClusterName, err.Error())
-		return clusterAccessReadyCondition, nil
-	}
-
-	readyConditionInCluster := cluster.Status.StatusConditions.GetConditionByType(greenhousev1alpha1.ReadyCondition)
-	if readyConditionInCluster == nil || readyConditionInCluster.Status != metav1.ConditionTrue {
-		clusterAccessReadyCondition.Status = metav1.ConditionFalse
-		clusterAccessReadyCondition.Message = fmt.Sprintf("cluster %s is not ready", plugin.Spec.ClusterName)
-		return clusterAccessReadyCondition, nil
-	}
-
-	// get restclientGetter from cluster if clusterName is set
-	secret := corev1.Secret{}
-	err = r.Get(ctx, types.NamespacedName{Namespace: plugin.Namespace, Name: plugin.Spec.ClusterName}, &secret)
-	if err != nil {
-		clusterAccessReadyCondition.Status = metav1.ConditionFalse
-		clusterAccessReadyCondition.Message = fmt.Sprintf("Failed to get secret for cluster %s: %s", plugin.Spec.ClusterName, err.Error())
-		return clusterAccessReadyCondition, nil
-	}
-	restClientGetter, err = clientutil.NewRestClientGetterFromSecret(&secret, plugin.GetReleaseNamespace(), r.kubeClientOpts...)
-	if err != nil {
-		clusterAccessReadyCondition.Status = metav1.ConditionFalse
-		clusterAccessReadyCondition.Message = fmt.Sprintf("cannot access cluster %s: %s", plugin.Spec.ClusterName, err.Error())
-		return clusterAccessReadyCondition, nil
-	}
-	clusterAccessReadyCondition.Status = metav1.ConditionTrue
-	clusterAccessReadyCondition.Message = ""
-	return clusterAccessReadyCondition, restClientGetter
 }
 
 func (r *WorkLoadStatusReconciler) setStatus(ctx context.Context, plugin *greenhousev1alpha1.Plugin, release *ReleaseStatus, pluginStatus greenhousev1alpha1.PluginStatus) error {
