@@ -7,6 +7,7 @@ import (
 	"context"
 	"fmt"
 	"reflect"
+	"strings"
 	"time"
 
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/pkg/apis/greenhouse/v1alpha1"
@@ -19,6 +20,7 @@ import (
 	"k8s.io/client-go/tools/record"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
 type HelmChartTestReconciler struct {
@@ -74,9 +76,43 @@ func (r *HelmChartTestReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 		return ctrl.Result{}, fmt.Errorf("cannot access cluster: %s", clusterAccessReadyCondition.Message)
 	}
 
-	err := helm.HelmChartTest(ctx, restClientGetter, &plugin)
+	helmChartTestResultCondition := *pluginStatus.GetConditionByType(greenhousev1alpha1.HelmChartTestResultCondition)
+	hasHelmChartTest, err := helm.HelmChartTest(ctx, restClientGetter, &plugin)
 	if err != nil {
-		return ctrl.Result{RequeueAfter: time.Minute * 5}, err
+		helmChartTestResultCondition.Status = metav1.ConditionFalse
+
+		errStr := fmt.Sprintf("Helm Chart Test failed: %s. Please check the logs of the failed test pod for more information", err.Error())
+		errStr = strings.ReplaceAll(errStr, "\n", "")
+		errStr = strings.ReplaceAll(errStr, "\t", " ")
+		errStr = strings.ReplaceAll(errStr, "*", "")
+		helmChartTestResultCondition.Message = errStr
+
+		_, err = clientutil.PatchStatus(ctx, r.Client, &plugin, func() error {
+			plugin.Status.StatusConditions.SetConditions(helmChartTestResultCondition)
+			return nil
+		})
+		if err != nil {
+			log.FromContext(ctx).Error(err, "failed to set status")
+			return ctrl.Result{}, err
+		}
+		return ctrl.Result{}, err
+	}
+
+	if !hasHelmChartTest {
+		helmChartTestResultCondition.Status = metav1.ConditionFalse
+		helmChartTestResultCondition.Message = "Helm Chart Test is not defined"
+	} else {
+		helmChartTestResultCondition.Status = metav1.ConditionTrue
+		helmChartTestResultCondition.Message = "Helm Chart Test is successful"
+	}
+
+	_, err = clientutil.PatchStatus(ctx, r.Client, &plugin, func() error {
+		plugin.Status.StatusConditions.SetConditions(helmChartTestResultCondition)
+		return nil
+	})
+	if err != nil {
+		log.FromContext(ctx).Error(err, "failed to set status")
+		return ctrl.Result{}, err
 	}
 
 	return ctrl.Result{RequeueAfter: time.Minute}, nil

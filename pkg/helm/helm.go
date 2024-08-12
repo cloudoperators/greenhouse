@@ -94,36 +94,36 @@ func InstallOrUpgradeHelmChartFromPlugin(ctx context.Context, local client.Clien
 }
 
 // HelmChartTest to do helm test on the plugin
-func HelmChartTest(ctx context.Context, restClientGetter genericclioptions.RESTClientGetter, plugin *greenhousev1alpha1.Plugin) error {
+func HelmChartTest(ctx context.Context, restClientGetter genericclioptions.RESTClientGetter, plugin *greenhousev1alpha1.Plugin) (bool, error) {
+	var hasTestHook bool
 	cfg, err := newHelmAction(restClientGetter, plugin.GetReleaseNamespace())
 	if err != nil {
-		return err
+		return hasTestHook, err
 	}
 
 	results, err := action.NewReleaseTesting(cfg).Run(plugin.Name)
 	if err != nil {
-		return fmt.Errorf("failed when running Helm Chart Test for %v: %w", plugin.Name, err)
+		return hasTestHook, err
 	}
 
-	var hasTestHooks bool
 	if results.Hooks != nil {
 	outer:
 		for _, hook := range results.Hooks {
 			for _, event := range hook.Events {
 				if event == release.HookTest {
-					hasTestHooks = true
+					hasTestHook = true
 					break outer // Break out of both loops when a test hook is found
 				}
 			}
 		}
 	}
 
-	if !hasTestHooks {
+	if !hasTestHook {
 		fmt.Printf("No test hooks found for %v", plugin.Name)
 	} else {
 		fmt.Printf("The test hooks for %v are: %v", plugin.Name, results.Hooks)
 	}
-	return nil
+	return hasTestHook, nil
 }
 
 // UninstallHelmRelease removes the Helm release for the given Plugin.
