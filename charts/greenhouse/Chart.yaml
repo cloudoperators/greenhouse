@@ -13,10 +13,6 @@ dependencies:
     name: idproxy
     repository: "file://../idproxy"
     version: 0.2.0
-  - condition: team-membership.enabled
-    name: team-membership
-    repository: "file://../team-membership"
-    version: 0.1.1
   - condition: cors-proxy.enabled
     name: cors-proxy
     repository: "file://../cors-proxy"
