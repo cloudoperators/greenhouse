@@ -36,9 +36,8 @@ var _ = BeforeSuite(func() {
 	}
 
 	if !test.IsUseExistingCluster {
-		remoteCfg, remoteClient, _, remoteKubeConfig = test.StartControlPlane("6885", true, false)
+		remoteCfg, remoteClient, _, remoteKubeConfig = test.StartControlPlane("6885", false, false)
 	} else {
-		test.TestBeforeSuite()
 		remoteCfg = test.Cfg
 		remoteClient = test.K8sClient
 		remoteKubeConfig = test.KubeConfig
