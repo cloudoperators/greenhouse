@@ -45,6 +45,16 @@ func InstrumentHandler(next http.Handler, registry prometheus.Registerer) http.H
 	)
 	registry.MustRegister(requestCounter)
 
+	requestDuration := prometheus.NewHistogramVec(
+		prometheus.HistogramOpts{
+			Name:    "http_request_duration_seconds",
+			Help:    "A histogram of latencies for requests.",
+			Buckets: []float64{.25, .5, 1, 2.5, 5, 10},
+		},
+		[]string{"code", "method", "cluster", "namespace", "name"},
+	)
+	registry.MustRegister(requestDuration)
+
 	responseSizeHistogram := prometheus.NewHistogramVec(
 		prometheus.HistogramOpts{
 			Name:    "http_response_size_bytes",
@@ -70,8 +80,11 @@ func InstrumentHandler(next http.Handler, registry prometheus.Registerer) http.H
 
 	return injector(
 		promhttp.InstrumentHandlerCounter(requestCounter,
-			promhttp.InstrumentHandlerResponseSize(responseSizeHistogram,
-				next,
+			promhttp.InstrumentHandlerDuration(requestDuration,
+				promhttp.InstrumentHandlerResponseSize(responseSizeHistogram,
+					next,
+					clusterFromContext, namespaceFromContext, nameFromContext,
+				),
 				clusterFromContext, namespaceFromContext, nameFromContext,
 			),
 			clusterFromContext, namespaceFromContext, nameFromContext,
