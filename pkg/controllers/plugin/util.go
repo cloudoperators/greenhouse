@@ -14,7 +14,6 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
@@ -163,70 +162,6 @@ func isPayloadReadyRunning(o interface{}) bool {
 		return true
 	}
 	return false
-}
-
-func fetchPodList(labelSelector map[string]string, namespace string, cl client.Client) *[]PodStatus {
-	var podList = new(corev1.PodList)
-	var podStatusList = new([]PodStatus)
-	listOptions := &client.ListOptions{
-		LabelSelector: labels.SelectorFromSet(labelSelector),
-		Namespace:     namespace,
-	}
-	if err := cl.List(context.Background(), podList, listOptions); err != nil {
-		return nil
-	}
-
-	for _, pod := range podList.Items {
-		podStatus := PodStatus{
-			Name:       pod.Name,
-			NodeName:   pod.Spec.NodeName,
-			Conditions: checkPodStatusCondition(pod.Status.Conditions),
-		}
-		switch pod.Status.Phase {
-		case corev1.PodRunning:
-			podStatus.Phase = true
-		case corev1.PodSucceeded:
-			podStatus.Phase = true
-		default:
-			podStatus.Phase = false
-		}
-		*podStatusList = append(*podStatusList, podStatus)
-	}
-	return podStatusList
-}
-
-func checkPodStatusCondition(podCondition []corev1.PodCondition) bool {
-	for _, condition := range podCondition {
-		switch condition.Type {
-		case corev1.PodInitialized:
-			if condition.Status != corev1.ConditionTrue {
-				return false
-			}
-		case corev1.PodReady:
-			if condition.Status != corev1.ConditionTrue {
-				return false
-			}
-		case corev1.ContainersReady:
-			if condition.Status != corev1.ConditionTrue {
-				return false
-			}
-		case corev1.PodScheduled:
-			if condition.Status != corev1.ConditionTrue {
-				return false
-			}
-		}
-	}
-	return true
-}
-
-func composeMessage(podStatusList *[]PodStatus) string {
-	var message string
-	for _, pod := range *podStatusList {
-		if !pod.Conditions {
-			message = message + ",Pod Name: " + pod.Name + " on Node: " + pod.NodeName + "\n"
-		}
-	}
-	return message
 }
 
 func computeReadyCondition(pluginStatus greenhousev1alpha1.PluginStatus, release *ReleaseStatus) greenhousev1alpha1.Condition {

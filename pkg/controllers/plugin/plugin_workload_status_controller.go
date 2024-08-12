@@ -35,25 +35,17 @@ const (
 )
 
 type ReleaseStatus struct {
-	ReleaseName         string       `json:"releaseName,omitempty" protobuf:"bytes,1,opt,name=releaseName"`
-	ReleaseNamespace    string       `json:"releaseNamespace,omitempty" protobuf:"bytes,3,opt,name=namespace"`
-	HelmStatus          string       `json:"helmStatus,omitempty"`
-	ClusterName         string       `json:"clusterName,omitempty"`
-	Replicas            int32        `json:"replicas,omitempty" protobuf:"varint,2,opt,name=replicas"`
-	UpdatedReplicas     int32        `json:"updatedReplicas,omitempty" protobuf:"varint,3,opt,name=updatedReplicas"`
-	ReadyReplicas       int32        `json:"readyReplicas,omitempty" protobuf:"varint,7,opt,name=readyReplicas"`
-	AvailableReplicas   int32        `json:"availableReplicas,omitempty" protobuf:"varint,4,opt,name=availableReplicas"`
-	UnavailableReplicas int32        `json:"unavailableReplicas,omitempty" protobuf:"varint,5,opt,name=unavailableReplicas"`
-	ReleaseOK           bool         `json:"releaseOK,omitempty"`
-	PodStatus           *[]PodStatus `json:"podStatus,omitempty"`
-	Message             string       `json:"message,omitempty"`
-}
-
-type PodStatus struct {
-	Name       string `json:"name,omitempty" protobuf:"bytes,1,opt,name=name"`
-	NodeName   string `json:"nodeName,omitempty" protobuf:"bytes,10,opt,name=nodeName"`
-	Phase      bool   `json:"phase,omitempty"`
-	Conditions bool   `json:"conditions,omitempty"`
+	ReleaseName         string `json:"releaseName,omitempty" protobuf:"bytes,1,opt,name=releaseName"`
+	ReleaseNamespace    string `json:"releaseNamespace,omitempty" protobuf:"bytes,3,opt,name=namespace"`
+	HelmStatus          string `json:"helmStatus,omitempty"`
+	ClusterName         string `json:"clusterName,omitempty"`
+	Replicas            int32  `json:"replicas,omitempty" protobuf:"varint,2,opt,name=replicas"`
+	UpdatedReplicas     int32  `json:"updatedReplicas,omitempty" protobuf:"varint,3,opt,name=updatedReplicas"`
+	ReadyReplicas       int32  `json:"readyReplicas,omitempty" protobuf:"varint,7,opt,name=readyReplicas"`
+	AvailableReplicas   int32  `json:"availableReplicas,omitempty" protobuf:"varint,4,opt,name=availableReplicas"`
+	UnavailableReplicas int32  `json:"unavailableReplicas,omitempty" protobuf:"varint,5,opt,name=unavailableReplicas"`
+	ReleaseOK           bool   `json:"releaseOK,omitempty"`
+	Message             string `json:"message,omitempty"`
 }
 
 // WorkLoadStatusReconciler reconciles a Plugin and cluster object.
@@ -163,9 +155,7 @@ func getStatusPayload(ctx context.Context, releaseStatus *ReleaseStatus, cl clie
 		releaseStatus.UnavailableReplicas += remoteObject.Status.UnavailableReplicas
 		if !isPayloadReadyRunning(remoteObject) {
 			releaseStatus.ReleaseOK = false
-			releaseStatus.PodStatus = fetchPodList(remoteObject.Spec.Selector.MatchLabels, objNamespace, cl)
 			releaseStatus.Message = "Not all pods are running in the Deployment"
-			releaseStatus.Message = composeMessage(releaseStatus.PodStatus)
 		}
 	case "StatefulSet":
 		remoteObject := &appsv1.StatefulSet{}
@@ -180,9 +170,7 @@ func getStatusPayload(ctx context.Context, releaseStatus *ReleaseStatus, cl clie
 
 		if !isPayloadReadyRunning(remoteObject) {
 			releaseStatus.ReleaseOK = false
-			releaseStatus.PodStatus = fetchPodList(remoteObject.Spec.Selector.MatchLabels, objNamespace, cl)
 			releaseStatus.Message = "Not all pods are running in the StatefulSet"
-			releaseStatus.Message = composeMessage(releaseStatus.PodStatus)
 		}
 
 	case "DaemonSet":
@@ -199,9 +187,7 @@ func getStatusPayload(ctx context.Context, releaseStatus *ReleaseStatus, cl clie
 
 		if !isPayloadReadyRunning(remoteObject) {
 			releaseStatus.ReleaseOK = false
-			releaseStatus.PodStatus = fetchPodList(remoteObject.Spec.Selector.MatchLabels, objNamespace, cl)
 			releaseStatus.Message = "Not all pods are running in the DaemonSet"
-			releaseStatus.Message = composeMessage(releaseStatus.PodStatus)
 		}
 
 	case "ReplicaSet":
@@ -216,9 +202,7 @@ func getStatusPayload(ctx context.Context, releaseStatus *ReleaseStatus, cl clie
 
 		if !isPayloadReadyRunning(remoteObject) {
 			releaseStatus.ReleaseOK = false
-			releaseStatus.PodStatus = fetchPodList(remoteObject.Spec.Selector.MatchLabels, objNamespace, cl)
 			releaseStatus.Message = "Not all pods are running in the ReplicaSet"
-			releaseStatus.Message = composeMessage(releaseStatus.PodStatus)
 		}
 
 	case "CronJob":
