@@ -100,9 +100,28 @@ func HelmChartTest(ctx context.Context, restClientGetter genericclioptions.RESTC
 		return err
 	}
 
-	_, err = action.NewReleaseTesting(cfg).Run(plugin.Name)
+	results, err := action.NewReleaseTesting(cfg).Run(plugin.Name)
 	if err != nil {
 		return fmt.Errorf("failed when running Helm Chart Test for %v: %w", plugin.Name, err)
+	}
+
+	var hasTestHooks bool
+	if results.Hooks != nil {
+	outer:
+		for _, hook := range results.Hooks {
+			for _, event := range hook.Events {
+				if event == release.HookTest {
+					hasTestHooks = true
+					break outer // Break out of both loops when a test hook is found
+				}
+			}
+		}
+	}
+
+	if !hasTestHooks {
+		fmt.Printf("No test hooks found for %v", plugin.Name)
+	} else {
+		fmt.Printf("The test hooks for %v are: %v", plugin.Name, results.Hooks)
 	}
 	return nil
 }
