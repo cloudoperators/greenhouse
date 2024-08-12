@@ -51,24 +51,35 @@ func (r *HelmChartTestReconciler) SetupWithManager(name string, mgr ctrl.Manager
 }
 
 func (r *HelmChartTestReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	// logic goes here
-	fmt.Printf("Reconciling Plugin from HelmChartTestReconciler: %s\n", req.NamespacedName)
+
 	var plugin greenhousev1alpha1.Plugin
 	if err := r.Get(ctx, req.NamespacedName, &plugin); err != nil {
-		fmt.Printf("Error getting plugin: %v", err)
+		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
 
+	// Nothing to do when the status of the plugin is empty
 	if reflect.DeepEqual(plugin.Status, greenhousev1alpha1.PluginStatus{}) {
-		fmt.Printf("Plugin status is empty. Skipping reconcile")
 		return ctrl.Result{}, nil
 	}
 
+	// Helm Chart Test cannot be done as the Helm Chart deployment is not successful
 	if plugin.Status.HelmReleaseStatus.Status != "deployed" {
-		// Helm Chart Test cannot be done as the Helm Chart is not yet deployed.
 		return ctrl.Result{}, nil
 	}
 
 	pluginStatus := initPluginStatus(&plugin)
+
+	helmChartTestResultCondition := *pluginStatus.GetConditionByType(greenhousev1alpha1.HelmChartTestResultCondition)
+
+	defer func() {
+		_, err := clientutil.PatchStatus(ctx, r.Client, &plugin, func() error {
+			plugin.Status.StatusConditions.SetConditions(helmChartTestResultCondition)
+			return nil
+		})
+		if err != nil {
+			log.FromContext(ctx).Error(err, "failed to set status")
+		}
+	}()
 
 	clusterAccessReadyCondition, restClientGetter := r.initClientGetter(ctx, plugin, plugin.Status)
 	pluginStatus.StatusConditions.SetConditions(clusterAccessReadyCondition)
@@ -76,26 +87,16 @@ func (r *HelmChartTestReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 		return ctrl.Result{}, fmt.Errorf("cannot access cluster: %s", clusterAccessReadyCondition.Message)
 	}
 
-	helmChartTestResultCondition := *pluginStatus.GetConditionByType(greenhousev1alpha1.HelmChartTestResultCondition)
 	hasHelmChartTest, err := helm.HelmChartTest(ctx, restClientGetter, &plugin)
 	if err != nil {
 		helmChartTestResultCondition.Status = metav1.ConditionFalse
-
 		errStr := fmt.Sprintf("Helm Chart Test failed: %s. Please check the logs of the failed test pod for more information", err.Error())
 		errStr = strings.ReplaceAll(errStr, "\n", "")
 		errStr = strings.ReplaceAll(errStr, "\t", " ")
 		errStr = strings.ReplaceAll(errStr, "*", "")
 		helmChartTestResultCondition.Message = errStr
 
-		_, err = clientutil.PatchStatus(ctx, r.Client, &plugin, func() error {
-			plugin.Status.StatusConditions.SetConditions(helmChartTestResultCondition)
-			return nil
-		})
-		if err != nil {
-			log.FromContext(ctx).Error(err, "failed to set status")
-			return ctrl.Result{}, err
-		}
-		return ctrl.Result{}, err
+		return ctrl.Result{RequeueAfter: 5 * time.Minute}, err
 	}
 
 	if !hasHelmChartTest {
@@ -106,16 +107,7 @@ func (r *HelmChartTestReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 		helmChartTestResultCondition.Message = "Helm Chart Test is successful"
 	}
 
-	_, err = clientutil.PatchStatus(ctx, r.Client, &plugin, func() error {
-		plugin.Status.StatusConditions.SetConditions(helmChartTestResultCondition)
-		return nil
-	})
-	if err != nil {
-		log.FromContext(ctx).Error(err, "failed to set status")
-		return ctrl.Result{}, err
-	}
-
-	return ctrl.Result{RequeueAfter: time.Minute}, nil
+	return ctrl.Result{RequeueAfter: 30 * time.Minute}, nil
 }
 
 // TODO: This is a duplicate. Move this as a "function" instead of a "method" to a common file in the same package
