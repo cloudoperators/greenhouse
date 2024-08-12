@@ -6,6 +6,7 @@ package teammembership
 import (
 	"context"
 	"errors"
+	"fmt"
 	"sync"
 	"time"
 
@@ -235,8 +236,10 @@ func (r *TeamMembershipUpdaterController) processTeamMembership(ctx context.Cont
 	// Delete existing TM for team without mapped idp group
 	if team.Spec.MappedIDPGroup == "" {
 		if err == nil {
+			log.FromContext(ctx).Info("deleting TeamMembership, Team does not have MappedIdpGroup set", "team-membership", teamMembership.Name)
 			return r.Delete(ctx, teamMembership, &client.DeleteOptions{})
 		}
+		log.FromContext(ctx).Info("TeamMembership not found, Team does not have MappedIdpGroup set", "team-membership", teamMembership.Name)
 		return nil
 	}
 
@@ -264,7 +267,8 @@ func (r *TeamMembershipUpdaterController) createTeamMembership(ctx context.Conte
 	if err != nil {
 		return err
 	}
-	log.FromContext(ctx).Info("created team-membership", "name", teamMembership.Name)
+	log.FromContext(ctx).Info("created team-membership",
+		"name", teamMembership.Name, "members count", len(teamMembership.Spec.Members))
 	team.ObjectMeta.OwnerReferences = []metav1.OwnerReference{
 		{
 			APIVersion:         greenhousev1alpha1.GroupVersion.String(),
@@ -284,6 +288,15 @@ func (r *TeamMembershipUpdaterController) updateTeamMembership(ctx context.Conte
 		return err
 	}
 	users := r.scimClient.GetUsers(members)
+	previousMembersCount := len(teamMembership.Spec.Members)
+	currentMembersCount := len(users)
+	if previousMembersCount != currentMembersCount {
+		log.FromContext(ctx).Info(
+			fmt.Sprintf("members count changed from %d to %d", previousMembersCount, currentMembersCount),
+			"team-membership", teamMembership.Name,
+		)
+	}
+
 	teamMembership.Spec.Members = users
 	err = r.Update(ctx, teamMembership, &client.UpdateOptions{})
 	if err != nil {
@@ -295,7 +308,8 @@ func (r *TeamMembershipUpdaterController) updateTeamMembership(ctx context.Conte
 	if err != nil {
 		return err
 	}
-	log.FromContext(ctx).Info("updated team-membership and its status", "name", teamMembership.Name)
+	log.FromContext(ctx).Info("updated team-membership and its status",
+		"name", teamMembership.Name, "members count", len(teamMembership.Spec.Members))
 
 	team.ObjectMeta.OwnerReferences = []metav1.OwnerReference{
 		{

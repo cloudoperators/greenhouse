@@ -4,10 +4,12 @@
 package teammembership_test
 
 import (
+	"fmt"
+
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	"github.com/onsi/gomega/gbytes"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/pkg/apis/greenhouse/v1alpha1"
@@ -50,9 +52,6 @@ var _ = Describe("TeammembershipUpdaterController", func() {
 			})
 			Expect(err).NotTo(HaveOccurred(), "there must be no error creating a TeamMembership")
 
-			By("ensuring the TeamMembership has been created")
-			ensureTeamMembershipHasBeenCreated(team.Name)
-
 			By("ensuring the TeamMembership has been reconciled")
 			Eventually(func(g Gomega) {
 				teamMemberships := &greenhousev1alpha1.TeamMembershipList{}
@@ -91,9 +90,6 @@ var _ = Describe("TeammembershipUpdaterController", func() {
 			})
 			Expect(err).NotTo(HaveOccurred(), "there must be no error creating a TeamMembership")
 
-			By("ensuring the TeamMembership has been created")
-			ensureTeamMembershipHasBeenCreated(team.Name)
-
 			By("ensuring the TeamMembership has been reconciled")
 			Eventually(func(g Gomega) {
 				teamMemberships := &greenhousev1alpha1.TeamMembershipList{}
@@ -106,9 +102,8 @@ var _ = Describe("TeammembershipUpdaterController", func() {
 		})
 
 		It("should update multiple TMs", func() {
-			By("creating two test Teams")
+			By("creating first test Team")
 			team1 := setup.CreateTeam(test.Ctx, firstTeamName, test.WithMappedIDPGroup(validIdpGroupName))
-			setup.CreateTeam(test.Ctx, secondTeamName, test.WithMappedIDPGroup(otherValidIdpGroupName))
 
 			By("creating a test TeamMembership with 1 existing user")
 			err := setup.Create(test.Ctx, &greenhousev1alpha1.TeamMembership{
@@ -133,6 +128,9 @@ var _ = Describe("TeammembershipUpdaterController", func() {
 			})
 			Expect(err).NotTo(HaveOccurred(), "there must be no error creating a TeamMembership")
 
+			By("creating second test Team")
+			setup.CreateTeam(test.Ctx, secondTeamName, test.WithMappedIDPGroup(otherValidIdpGroupName))
+
 			By("ensuring two TeamMemberships have been created")
 			teamMemberships := &greenhousev1alpha1.TeamMembershipList{}
 			Eventually(func(g Gomega) {
@@ -155,15 +153,31 @@ var _ = Describe("TeammembershipUpdaterController", func() {
 
 		It("should do nothing if Team has no mappedIdpGroup", func() {
 			By("creating a test Team without mappedIdpGroup")
-			setup.CreateTeam(test.Ctx, firstTeamName)
+			setup.CreateTeam(test.Ctx, secondTeamName)
 
-			By("ensuring there are no TeamMemberships")
+			By("creating a test Team with valid mappedIdpGroup")
+			team := setup.CreateTeam(test.Ctx, firstTeamName, test.WithMappedIDPGroup(validIdpGroupName))
+
+			By("creating a test TeamMembership for valid team")
+			err := setup.Create(test.Ctx, &greenhousev1alpha1.TeamMembership{
+				TypeMeta: metav1.TypeMeta{
+					APIVersion: greenhousev1alpha1.GroupVersion.Group,
+					Kind:       "TeamMembership",
+				},
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      team.Name,
+					Namespace: setup.Namespace(),
+				},
+			})
+			Expect(err).NotTo(HaveOccurred(), "there must be no error creating a TeamMembership")
+
+			By("ensuring there is only one TeamMembership")
 			Eventually(func(g Gomega) {
 				teamMemberships := &greenhousev1alpha1.TeamMembershipList{}
 				err := setup.List(test.Ctx, teamMemberships, &client.ListOptions{Namespace: setup.Namespace()})
 				g.Expect(err).ShouldNot(HaveOccurred(), "unexpected error getting TeamMemberships")
-				g.Expect(len(teamMemberships.Items)).To(Equal(0), "there should be exactly zero TeamMemberships")
-			}).Should(Succeed(), "there should be no TeamMemberships")
+				g.Expect(len(teamMemberships.Items)).To(Equal(1), "there should be exactly one TeamMembership")
+			}).Should(Succeed(), "there should be only one TeamMembership")
 		})
 
 		It("should delete existing TM if team has no mappedIDPGroup", func() {
@@ -182,9 +196,6 @@ var _ = Describe("TeammembershipUpdaterController", func() {
 				},
 			})
 			Expect(err).NotTo(HaveOccurred(), "there must be no error creating a TeamMembership")
-
-			By("ensuring the TeamMembership has been created")
-			ensureTeamMembershipHasBeenCreated(team.Name)
 
 			By("ensuring the TeamMembership has been deleted")
 			Eventually(func(g Gomega) {
@@ -263,11 +274,6 @@ var _ = Describe("TeammembershipUpdaterController", func() {
 			})
 			Expect(err).ToNot(HaveOccurred(), "there must be no error creating the Organization")
 
-			By("ensuring organization has been created")
-			organization := &greenhousev1alpha1.Organization{}
-			err = setup.Get(test.Ctx, types.NamespacedName{Name: testOrganizationName, Namespace: setup.Namespace()}, organization)
-			Expect(err).ToNot(HaveOccurred(), "the Organization should be created")
-
 			By("ensuring a TeamMembership has been created for Organization")
 			Eventually(func(g Gomega) {
 				teamMemberships := &greenhousev1alpha1.TeamMembershipList{}
@@ -277,13 +283,57 @@ var _ = Describe("TeammembershipUpdaterController", func() {
 				g.Expect(len(teamMemberships.Items[0].Spec.Members)).To(Equal(2), "the TeamMembership should have exactly two Members")
 			}).Should(Succeed(), "TeamMembership should be created for Organization")
 		})
+
+		It("should log error on update non existing idp group", func() {
+			By("teeing logger to a custom writer")
+			tee := gbytes.NewBuffer()
+			GinkgoWriter.TeeTo(tee)
+			defer GinkgoWriter.ClearTeeWriters()
+
+			By("creating a Team with non existing idp group")
+			setup.CreateTeam(test.Ctx, firstTeamName, test.WithMappedIDPGroup(nonExistingGroupName))
+
+			By("ensuring logger was called correctly")
+			failedProcessingLog := "[Info] failed processing team-membership for team"
+			reasonLog := fmt.Sprintf("no mapped group found for %s", nonExistingGroupName)
+			Eventually(func(g Gomega) {
+				g.Expect(tee.Contents()).To(ContainSubstring(failedProcessingLog), "logger should log failed processing")
+				g.Expect(tee.Contents()).To(ContainSubstring(reasonLog), "logger should log reason")
+			}).Should(Succeed(), "logger should be called correctly")
+
+			By("ensuring TeamMemberships have not been created")
+			Eventually(func(g Gomega) {
+				teamMemberships := &greenhousev1alpha1.TeamMembershipList{}
+				err := setup.List(test.Ctx, teamMemberships, &client.ListOptions{Namespace: setup.Namespace()})
+				g.Expect(err).ShouldNot(HaveOccurred(), "unexpected error getting TeamMemberships")
+				g.Expect(len(teamMemberships.Items)).To(Equal(0), "there should be exactly zero TeamMemberships")
+			}).Should(Succeed(), "the TeamMemberships should not have been created")
+		})
+
+		It("should log error on upstream error", func() {
+			By("teeing logger to a custom writer")
+			tee := gbytes.NewBuffer()
+			GinkgoWriter.TeeTo(tee)
+			defer GinkgoWriter.ClearTeeWriters()
+
+			By("creating a Team with faulty idp group")
+			setup.CreateTeam(test.Ctx, firstTeamName, test.WithMappedIDPGroup("GROUP_NAME_ERROR_404"))
+
+			By("ensuring logger was called correctly")
+			failedProcessingLog := "[Info] failed processing team-membership for team"
+			reasonLog := "could not retrieve TeamMembers from"
+			Eventually(func(g Gomega) {
+				g.Expect(tee.Contents()).To(ContainSubstring(failedProcessingLog), "logger should log failed processing")
+				g.Expect(tee.Contents()).To(ContainSubstring(reasonLog), "logger should log reason")
+			}).Should(Succeed(), "logger should be called correctly")
+
+			By("ensuring TeamMemberships have not been created")
+			Eventually(func(g Gomega) {
+				teamMemberships := &greenhousev1alpha1.TeamMembershipList{}
+				err := setup.List(test.Ctx, teamMemberships, &client.ListOptions{Namespace: setup.Namespace()})
+				g.Expect(err).ShouldNot(HaveOccurred(), "unexpected error getting TeamMemberships")
+				g.Expect(len(teamMemberships.Items)).To(Equal(0), "there should be exactly zero TeamMemberships")
+			}).Should(Succeed(), "the TeamMemberships should not have been created")
+		})
 	})
 })
-
-func ensureTeamMembershipHasBeenCreated(teamName string) {
-	testTeamMembershipName := types.NamespacedName{Name: teamName, Namespace: setup.Namespace()}
-	testTeamMembership := &greenhousev1alpha1.TeamMembership{}
-	Eventually(func() error {
-		return setup.Get(test.Ctx, testTeamMembershipName, testTeamMembership)
-	}).Should(Succeed(), "the TeamMembership should be created")
-}
