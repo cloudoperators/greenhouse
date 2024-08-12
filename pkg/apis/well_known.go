@@ -76,6 +76,9 @@ const (
 	// RBACPrefix is the prefix for the Role and RoleBinding names.
 	RBACPrefix = "greenhouse:"
 
+	// PluginClusterNameField is the field in the Plugin spec mapping it to a Cluster.
+	PluginClusterNameField = ".spec.clusterName"
+
 	// RolebindingRoleRefField is the field in the RoleBinding spec that references the Role.
 	RolebindingRoleRefField = ".spec.roleRef"
 
