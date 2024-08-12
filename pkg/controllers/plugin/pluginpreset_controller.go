@@ -54,7 +54,7 @@ func (r *PluginPresetReconciler) SetupWithManager(name string, mgr ctrl.Manager)
 	return ctrl.NewControllerManagedBy(mgr).
 		Named(name).
 		For(&greenhousev1alpha1.PluginPreset{}).
-		Owns(&greenhousev1alpha1.Plugin{}).
+		Owns(&greenhousev1alpha1.Plugin{}, builder.WithPredicates(predicate.GenerationChangedPredicate{})).
 		// Clusters and teams are passed as values to each Helm operation. Reconcile on change.
 		Watches(&greenhousev1alpha1.Cluster{}, handler.EnqueueRequestsFromMapFunc(r.enqueueAllPluginPresetsInNamespace),
 			builder.WithPredicates(predicate.LabelChangedPredicate{})).
