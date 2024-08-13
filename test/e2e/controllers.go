@@ -26,9 +26,9 @@ const (
 // knownControllers contains all controllers to be registered when starting the e2e test suite
 var knownControllers = map[string]func(controllerName string, mgr ctrl.Manager) error{
 	// Organization controllers.
-	"organizationNamespace":      (&organizationcontrollers.NamespaceReconciler{}).SetupWithManager,
-	"organizationRBAC":           (&organizationcontrollers.RBACReconciler{}).SetupWithManager,
-	"organizationDEX":            startOrganizationDexReconciler,
+	"organizationNamespace": (&organizationcontrollers.NamespaceReconciler{}).SetupWithManager,
+	"organizationRBAC":      (&organizationcontrollers.RBACReconciler{}).SetupWithManager,
+	//"organizationDEX":            startOrganizationDexReconciler, //Temporarily commented because it cannot deploy the Plugin
 	"organizationServiceProxy":   (&organizationcontrollers.ServiceProxyReconciler{}).SetupWithManager,
 	"organizationTeamRoleSeeder": (&organizationcontrollers.TeamRoleSeederReconciler{}).SetupWithManager,
 

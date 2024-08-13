@@ -4,6 +4,9 @@
 package e2e
 
 import (
+	"strings"
+	"time"
+
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	v1 "k8s.io/api/core/v1"
@@ -34,6 +37,7 @@ var _ = Describe("PluginLifecycle", Ordered, func() {
 		test.EventuallyCreated(test.Ctx, test.K8sClient, cluster)
 
 		testPluginDefinition := fixtures.NginxPluginDefinition
+		testPluginDefinition.ObjectMeta.Namespace = setup.Namespace() //namespace override
 
 		testPlugin := &greenhousev1alpha1.Plugin{
 			TypeMeta: metav1.TypeMeta{
@@ -50,20 +54,12 @@ var _ = Describe("PluginLifecycle", Ordered, func() {
 				ClusterName:      secret.Name,
 				OptionValues: []greenhousev1alpha1.PluginOptionValue{
 					{
-						Name:  "containerSecurityContext.enabled",
-						Value: &apiextensionsv1.JSON{Raw: []byte("false")},
-					},
-					{
-						Name:  "podSecurityContext.enabled",
-						Value: &apiextensionsv1.JSON{Raw: []byte("false")},
-					},
-					{
 						Name:  "autoscaling.minReplicas",
-						Value: &apiextensionsv1.JSON{Raw: []byte("\"2\"")},
+						Value: &apiextensionsv1.JSON{Raw: []byte("\"1\"")},
 					},
 					{
 						Name:  "autoscaling.maxReplicas",
-						Value: &apiextensionsv1.JSON{Raw: []byte("\"4\"")},
+						Value: &apiextensionsv1.JSON{Raw: []byte("\"1\"")},
 					},
 					{
 						Name:  "autoscaling.enabled",
@@ -71,6 +67,7 @@ var _ = Describe("PluginLifecycle", Ordered, func() {
 					},
 				},
 			},
+			Status: greenhousev1alpha1.PluginStatus{},
 		}
 
 		pluginDefinitionList := &greenhousev1alpha1.PluginDefinitionList{}
@@ -91,12 +88,33 @@ var _ = Describe("PluginLifecycle", Ordered, func() {
 		Expect(err).NotTo(HaveOccurred())
 		Expect(len(pluginList.Items)).To(BeEquivalentTo(1))
 
+		SetDefaultEventuallyTimeout(30 * time.Second)
 		Eventually(func(g Gomega) bool {
 			err = test.K8sClient.List(test.Ctx, podList, client.InNamespace(setup.Namespace()))
 			g.Expect(err).NotTo(HaveOccurred())
 			g.Expect(len(podList.Items) > 0).To(BeTrue())
 			return true
 		}).Should(BeTrue())
+
+		nginxPodExists := false
+		for _, pod := range podList.Items {
+			if strings.Contains(pod.Name, "nginx") {
+				nginxPodExists = true
+				break
+			}
+		}
+		Expect(nginxPodExists).To(BeTrue())
+
+		testPlugin.Spec.OptionValues[0].Value.Raw = []byte("\"2\"")
+		testPlugin.Spec.OptionValues[1].Value.Raw = []byte("\"2\"")
+		err = test.K8sClient.Update(test.Ctx, testPlugin)
+		count := 0
+		for _, pod := range podList.Items {
+			if strings.Contains(pod.Name, "nginx") {
+				count++
+			}
+		}
+		Expect(count).To(BeEquivalentTo(2))
 
 		err = test.K8sClient.Delete(test.Ctx, testPlugin)
 		Expect(err).NotTo(HaveOccurred())
