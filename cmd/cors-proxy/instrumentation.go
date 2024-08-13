@@ -21,7 +21,7 @@ func instrumentHandler(next http.Handler, registry *prometheus.Registry) http.Ha
 
 	requestDuration := prometheus.NewHistogramVec(
 		prometheus.HistogramOpts{
-			Name:    "request_duration_seconds",
+			Name:    "http_request_duration_seconds",
 			Help:    "A histogram of latencies for requests.",
 			Buckets: []float64{.25, .5, 1, 2.5, 5, 10},
 		},
@@ -30,7 +30,7 @@ func instrumentHandler(next http.Handler, registry *prometheus.Registry) http.Ha
 
 	responseSize := prometheus.NewHistogramVec(
 		prometheus.HistogramOpts{
-			Name:    "response_size_bytes",
+			Name:    "http_response_size_bytes",
 			Help:    "A histogram of response sizes for requests.",
 			Buckets: []float64{0, 512, 4096, 16384, 65536, 262144, 1048576, 4194304, 16777216},
 		},
