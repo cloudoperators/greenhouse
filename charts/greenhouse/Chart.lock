@@ -20,5 +20,5 @@ dependencies:
 - name: demo
   repository: file://../demo
   version: 0.1.1
-digest: sha256:efbfa40362965ec28d72791ad8f14c0567f333930a06004a7ac4cf5d1d07b532
-generated: "2024-08-13T11:02:38.126656545+02:00"
+digest: sha256:e10e156a78fd0b1122593a49158e20c46dc43926c8d76b67ef03c97fb7d3d19c
+generated: "2024-08-13T11:31:21.565115404+02:00"
