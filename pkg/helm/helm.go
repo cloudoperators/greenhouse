@@ -118,11 +118,6 @@ func HelmChartTest(ctx context.Context, restClientGetter genericclioptions.RESTC
 		}
 	}
 
-	if !hasTestHook {
-		fmt.Printf("No test hooks found for %v", plugin.Name)
-	} else {
-		fmt.Printf("The test hooks for %v are: %v", plugin.Name, results.Hooks)
-	}
 	return hasTestHook, nil
 }
 

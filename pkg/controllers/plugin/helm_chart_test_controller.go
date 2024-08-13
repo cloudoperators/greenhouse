@@ -96,11 +96,11 @@ func (r *HelmChartTestReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 		errStr = strings.ReplaceAll(errStr, "*", "")
 		helmChartTestResultCondition.Message = errStr
 
-		return ctrl.Result{RequeueAfter: 5 * time.Minute}, err
+		return ctrl.Result{RequeueAfter: 3 * time.Minute}, err
 	}
 
 	if !hasHelmChartTest {
-		helmChartTestResultCondition.Status = metav1.ConditionFalse
+		helmChartTestResultCondition.Status = metav1.ConditionTrue
 		helmChartTestResultCondition.Message = "Helm Chart Test is not defined"
 	} else {
 		helmChartTestResultCondition.Status = metav1.ConditionTrue
