@@ -10,7 +10,7 @@ services:
     ports:
       - "8090:8090"
     environment:
-      # one of ["test-org-admin", "test-org-member"] - leave unset for "cluster-admin"
+      # one of ["test-org-admin", "test-org-member", "test-org-cluster-admin", "test-org-plugin-admin"] - leave unset for "cluster-admin"
       - DEV_ENV_CONTEXT
       # set to true for control plane output
       - KUBEBUILDER_ATTACH_CONTROL_PLANE_OUTPUT=false
@@ -23,12 +23,10 @@ services:
     image: ghcr.io/cloudoperators/greenhouse:main
     environment:
       - KUBECONFIG=/envtest/internal.kubeconfig
-      - HEADSCALE_API_URL=mock_empty
-      - HEADSCALE_API_KEY=mock_empty
-      - TAILSCALE_PROXY=mock_empty
     volumes:
       - ./envtest:/envtest
       - ./webhook-certs:/tmp/k8s-webhook-server/serving-certs
+      - ./helm-charts:/helm-charts
     depends_on:
       envtest:
         condition: service_healthy

@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { Messages } from "messages-provider"
+import { Messages } from "@cloudoperators/juno-messages-provider"
 const SecretFormHeader: React.FC = () => {
   return <Messages />
 }

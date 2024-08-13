@@ -2,7 +2,7 @@
 title: "Contributing a Plugin"
 linkTitle: "Contributing a Plugin"
 landingSectionIndex: false
-weight: 100
+weight: 2
 description: >
   Contributing a Plugin to Greenhouse
 ---
@@ -56,6 +56,7 @@ Here's a high-level overview of how to develop a plugin for Greenhouse:
 
    - Test your plugin thoroughly to ensure it works as intended. Verify that both the frontend and backend components function correctly.
    - Implement validation for your plugin's configuration options. This helps prevent users from providing incorrect or incompatible values.
+   - Implement Helm Chart Tests for your plugin if it includes a Helm Chart. For more information on how to write Helm Chart Tests, please refer to [this guide](/docs/user-guides/plugin/plugin-tests).
 
 5. **Documentation**:
 

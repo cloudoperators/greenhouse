@@ -4,7 +4,7 @@
  */
 
 import React, { useEffect, useState } from "react"
-import { Container, Stack } from "juno-ui-components"
+import { Container, Stack } from "@cloudoperators/juno-ui-components"
 import { useAPI } from "./hooks/useAPI"
 import TeamList from "./components/team/TeamList"
 import Filter from "./components/filter/Filter"
@@ -15,8 +15,8 @@ import {
   useEndpoint,
   useStoreActions,
 } from "./components/StoreProvider"
-import { Messages, useActions } from "messages-provider"
-import { fetchProxy } from "utils"
+import { Messages, useActions } from "@cloudoperators/juno-messages-provider"
+import { fetchProxy } from "@cloudoperators/juno-utils"
 import { parseError } from "./lib/helpers"
 
 const AppContent = () => {

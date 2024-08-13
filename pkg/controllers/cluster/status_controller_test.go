@@ -12,23 +12,36 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/envtest"
 
 	greenhouseapis "github.com/cloudoperators/greenhouse/pkg/apis"
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/pkg/apis/greenhouse/v1alpha1"
 	"github.com/cloudoperators/greenhouse/pkg/test"
 )
 
-const (
-	statusClusterName          = "test-cluster-status"
-	statusClusterName2         = "test-cluster-status-2"
-	nodeStatusClusterNamespace = "cluster-status"
-)
-
-var statusCluster = greenhousev1alpha1.Cluster{}
-
 var _ = Describe("Cluster status controller", Ordered, func() {
+	const (
+		clusterStatusTestCase = "cluster-status"
+	)
+
+	var (
+		validCluster       = greenhousev1alpha1.Cluster{}
+		validClusterName   = "cluster-status-with-valid-kubeconfig"
+		invalidCluster     *greenhousev1alpha1.Cluster
+		invalidClusterName = "cluster-status-without-kubeconfig"
+
+		remoteEnv        *envtest.Environment
+		remoteClient     client.Client
+		remoteKubeConfig []byte
+
+		setup test.TestSetup
+	)
+
 	BeforeAll(func() {
-		Expect(test.K8sClient.Create(test.Ctx, &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: nodeStatusClusterNamespace}})).NotTo(HaveOccurred(), "there should be no error creating the test namespace")
+		_, remoteClient, remoteEnv, remoteKubeConfig = test.StartControlPlane("6886", false, false)
+
+		setup = *test.NewTestSetup(test.Ctx, test.K8sClient, clusterStatusTestCase)
+
 		By("Creating a node resource in the remote cluster")
 		node := corev1.Node{
 			TypeMeta: metav1.TypeMeta{
@@ -93,67 +106,47 @@ var _ = Describe("Cluster status controller", Ordered, func() {
 		Expect(remoteClient.Create(test.Ctx, &node3, &client.CreateOptions{})).
 			Should(Succeed(), "there should be no error creating the node")
 
-		By("Creating a secret with a valid kubeconfig for a remote cluster")
-		validKubeConfigSecret := corev1.Secret{
-			TypeMeta: metav1.TypeMeta{
-				Kind:       "Secret",
-				APIVersion: corev1.GroupName,
-			},
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      statusClusterName,
-				Namespace: nodeStatusClusterNamespace,
-				Labels: map[string]string{
-					"greenhouse/test": "kubeconfig",
-				},
-			},
-			Data: map[string][]byte{
-				greenhouseapis.KubeConfigKey: remoteKubeConfig,
-			},
-			Type: greenhouseapis.SecretTypeKubeConfig,
-		}
-		Expect(test.K8sClient.Create(test.Ctx, &validKubeConfigSecret, &client.CreateOptions{})).
-			Should(Succeed(), "there should be no error creating the kubeconfig secret")
+		By("Creating a Secret with a valid KubeConfig for the remote cluster")
+		secret := setup.CreateSecret(test.Ctx, validClusterName,
+			test.WithSecretType(greenhouseapis.SecretTypeKubeConfig),
+			test.WithSecretData(map[string][]byte{greenhouseapis.KubeConfigKey: remoteKubeConfig}))
 
 		By("Checking the cluster resource has been created")
 		Eventually(func() error {
-			return test.K8sClient.Get(test.Ctx, types.NamespacedName{Name: statusClusterName, Namespace: nodeStatusClusterNamespace}, &statusCluster)
-		}).Should(Succeed(), fmt.Sprintf("eventually the cluster %s should exist", statusClusterName))
+			return test.K8sClient.Get(test.Ctx, types.NamespacedName{Name: secret.Name, Namespace: setup.Namespace()}, &validCluster)
+		}).Should(Succeed(), fmt.Sprintf("eventually the cluster %s should exist", secret.Name))
 
 		By("Creating a cluster without a secret")
-		cluster := &greenhousev1alpha1.Cluster{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      statusClusterName2,
-				Namespace: nodeStatusClusterNamespace,
-			},
-			Spec: greenhousev1alpha1.ClusterSpec{
-				AccessMode: greenhousev1alpha1.ClusterAccessModeDirect,
-			},
-		}
-		Expect(test.K8sClient.Create(test.Ctx, cluster, &client.CreateOptions{})).Should(Succeed(), "there should be no error creating the cluster")
+		invalidCluster = setup.CreateCluster(test.Ctx, invalidClusterName, test.WithAccessMode(greenhousev1alpha1.ClusterAccessModeDirect))
+	})
 
+	AfterAll(func() {
+		test.MustDeleteCluster(test.Ctx, test.K8sClient, client.ObjectKeyFromObject(&validCluster))
+		test.MustDeleteCluster(test.Ctx, test.K8sClient, client.ObjectKeyFromObject(invalidCluster))
+		Expect(remoteEnv.Stop()).Should(Succeed(), "there should be no error stopping the remote environment")
 	})
 
 	It("should reconcile the status of a cluster", func() {
 		By("checking cluster ready condition")
 		Eventually(func(g Gomega) bool {
-			g.Expect(test.K8sClient.Get(test.Ctx, types.NamespacedName{Name: statusClusterName, Namespace: nodeStatusClusterNamespace}, &statusCluster)).ShouldNot(HaveOccurred(), "There should be no error getting the cluster resource")
-			g.Expect(statusCluster.Status.StatusConditions).ToNot(BeNil())
-			readyCondition := statusCluster.Status.GetConditionByType(greenhousev1alpha1.ReadyCondition)
+			g.Expect(test.K8sClient.Get(test.Ctx, types.NamespacedName{Name: validCluster.Name, Namespace: setup.Namespace()}, &validCluster)).ShouldNot(HaveOccurred(), "There should be no error getting the cluster resource")
+			g.Expect(validCluster.Status.StatusConditions).ToNot(BeNil())
+			readyCondition := validCluster.Status.GetConditionByType(greenhousev1alpha1.ReadyCondition)
 			g.Expect(readyCondition).ToNot(BeNil(), "The ClusterReady condition should be present")
 			g.Expect(readyCondition.Status).To(Equal(metav1.ConditionTrue))
-			g.Expect(statusCluster.Status.KubernetesVersion).ToNot(BeNil())
+			g.Expect(validCluster.Status.KubernetesVersion).ToNot(BeNil())
 			return true
 		}).Should(BeTrue())
 
 		By("checking cluster node status")
 		Eventually(func(g Gomega) bool {
-			g.Expect(test.K8sClient.Get(test.Ctx, types.NamespacedName{Name: statusClusterName, Namespace: nodeStatusClusterNamespace}, &statusCluster)).ShouldNot(HaveOccurred(), "There should be no error getting the cluster resource")
-			g.Expect(statusCluster.Status.GetConditionByType(greenhousev1alpha1.AllNodesReady)).ToNot(BeNil(), "The AllNodesReady condition should be present")
-			g.Expect(statusCluster.Status.GetConditionByType(greenhousev1alpha1.AllNodesReady).Status).To(Equal(metav1.ConditionFalse))
-			g.Expect(statusCluster.Status.GetConditionByType(greenhousev1alpha1.AllNodesReady).Message).To(ContainSubstring("test-node not ready, test-node-3 not ready"))
-			g.Expect(statusCluster.Status.Nodes).ToNot(BeEmpty())
-			g.Expect(statusCluster.Status.Nodes["test-node"].Conditions).ToNot(BeEmpty())
-			g.Expect(statusCluster.Status.Nodes["test-node"].Ready).To(BeFalse())
+			g.Expect(test.K8sClient.Get(test.Ctx, types.NamespacedName{Name: validCluster.Name, Namespace: setup.Namespace()}, &validCluster)).ShouldNot(HaveOccurred(), "There should be no error getting the cluster resource")
+			g.Expect(validCluster.Status.GetConditionByType(greenhousev1alpha1.AllNodesReady)).ToNot(BeNil(), "The AllNodesReady condition should be present")
+			g.Expect(validCluster.Status.GetConditionByType(greenhousev1alpha1.AllNodesReady).Status).To(Equal(metav1.ConditionFalse))
+			g.Expect(validCluster.Status.GetConditionByType(greenhousev1alpha1.AllNodesReady).Message).To(ContainSubstring("test-node not ready, test-node-3 not ready"))
+			g.Expect(validCluster.Status.Nodes).ToNot(BeEmpty())
+			g.Expect(validCluster.Status.Nodes["test-node"].Conditions).ToNot(BeEmpty())
+			g.Expect(validCluster.Status.Nodes["test-node"].Ready).To(BeFalse())
 			return true
 		}).Should(BeTrue())
 
@@ -190,18 +183,18 @@ var _ = Describe("Cluster status controller", Ordered, func() {
 		}).Should(BeTrue(), "we should see the condition change on the remote node")
 
 		By("Triggering a cluster reconcile by adding a label to speed up things. Requeue interval is set to 2min")
-		Expect(test.K8sClient.Get(test.Ctx, types.NamespacedName{Name: statusClusterName, Namespace: nodeStatusClusterNamespace}, &statusCluster)).ShouldNot(HaveOccurred(), "There should be no error getting the cluster resource")
-		statusCluster.SetLabels(map[string]string{"reconcile-me": "true"})
-		Expect(test.K8sClient.Update(test.Ctx, &statusCluster)).ShouldNot(HaveOccurred(), "There should be no error updating the cluster resource")
+		Expect(test.K8sClient.Get(test.Ctx, types.NamespacedName{Name: validCluster.Name, Namespace: setup.Namespace()}, &validCluster)).ShouldNot(HaveOccurred(), "There should be no error getting the cluster resource")
+		validCluster.SetLabels(map[string]string{"reconcile-me": "true"})
+		Expect(test.K8sClient.Update(test.Ctx, &validCluster)).ShouldNot(HaveOccurred(), "There should be no error updating the cluster resource")
 
 		Eventually(func(g Gomega) bool {
-			g.Expect(test.K8sClient.Get(test.Ctx, types.NamespacedName{Name: statusClusterName, Namespace: nodeStatusClusterNamespace}, &statusCluster)).ShouldNot(HaveOccurred(), "There should be no error getting the cluster resource")
-			g.Expect(statusCluster.Status.GetConditionByType(greenhousev1alpha1.AllNodesReady)).ToNot(BeNil(), "The AllNodesReady condition should be present")
-			g.Expect(statusCluster.Status.GetConditionByType(greenhousev1alpha1.AllNodesReady).Status).To(Equal(metav1.ConditionTrue), "The AllNodesReady condition should be true")
-			g.Expect(statusCluster.Status.GetConditionByType(greenhousev1alpha1.AllNodesReady).Message).To(BeEmpty())
-			g.Expect(statusCluster.Status.Nodes).ToNot(BeEmpty())
-			g.Expect(statusCluster.Status.Nodes["test-node"].Conditions).ToNot(BeEmpty())
-			g.Expect(statusCluster.Status.Nodes["test-node"].Ready).To(BeTrue())
+			g.Expect(test.K8sClient.Get(test.Ctx, types.NamespacedName{Name: validCluster.Name, Namespace: setup.Namespace()}, &validCluster)).ShouldNot(HaveOccurred(), "There should be no error getting the cluster resource")
+			g.Expect(validCluster.Status.GetConditionByType(greenhousev1alpha1.AllNodesReady)).ToNot(BeNil(), "The AllNodesReady condition should be present")
+			g.Expect(validCluster.Status.GetConditionByType(greenhousev1alpha1.AllNodesReady).Status).To(Equal(metav1.ConditionTrue), "The AllNodesReady condition should be true")
+			g.Expect(validCluster.Status.GetConditionByType(greenhousev1alpha1.AllNodesReady).Message).To(BeEmpty())
+			g.Expect(validCluster.Status.Nodes).ToNot(BeEmpty())
+			g.Expect(validCluster.Status.Nodes["test-node"].Conditions).ToNot(BeEmpty())
+			g.Expect(validCluster.Status.Nodes["test-node"].Ready).To(BeTrue())
 			return true
 		}).Should(BeTrue())
 
@@ -210,13 +203,13 @@ var _ = Describe("Cluster status controller", Ordered, func() {
 	It("should reconcile the status of a cluster without a secret", func() {
 		By("checking cluster conditions")
 		Eventually(func(g Gomega) bool {
-			g.Expect(test.K8sClient.Get(test.Ctx, types.NamespacedName{Name: statusClusterName2, Namespace: nodeStatusClusterNamespace}, &statusCluster)).ShouldNot(HaveOccurred(), "There should be no error getting the cluster resource")
-			g.Expect(statusCluster.Status.StatusConditions).ToNot(BeNil())
-			kubeConfigValidCondition := statusCluster.Status.GetConditionByType(greenhousev1alpha1.KubeConfigValid)
+			g.Expect(test.K8sClient.Get(test.Ctx, types.NamespacedName{Name: invalidCluster.Name, Namespace: setup.Namespace()}, &validCluster)).ShouldNot(HaveOccurred(), "There should be no error getting the cluster resource")
+			g.Expect(validCluster.Status.StatusConditions).ToNot(BeNil())
+			kubeConfigValidCondition := validCluster.Status.GetConditionByType(greenhousev1alpha1.KubeConfigValid)
 			g.Expect(kubeConfigValidCondition).ToNot(BeNil(), "The KubeConfigValid condition should be present")
 			g.Expect(kubeConfigValidCondition.Status).To(Equal(metav1.ConditionFalse))
-			g.Expect(kubeConfigValidCondition.Message).To(ContainSubstring("Secret \"test-cluster-status-2\" not found"))
-			readyCondition := statusCluster.Status.GetConditionByType(greenhousev1alpha1.ReadyCondition)
+			g.Expect(kubeConfigValidCondition.Message).To(ContainSubstring("Secret \"" + invalidCluster.Name + "\" not found"))
+			readyCondition := validCluster.Status.GetConditionByType(greenhousev1alpha1.ReadyCondition)
 			g.Expect(readyCondition).ToNot(BeNil(), "The ClusterReady condition should be present")
 			g.Expect(readyCondition.Status).To(Equal(metav1.ConditionFalse))
 			g.Expect(readyCondition.Message).To(ContainSubstring("kubeconfig not valid - cannot access cluster"))

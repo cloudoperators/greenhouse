@@ -5,9 +5,9 @@
 
 import React, { useEffect } from "react"
 
-import { AppShell, AppShellProvider } from "juno-ui-components"
+import { AppShell, AppShellProvider } from "@cloudoperators/juno-ui-components"
 import StoreProvider, { useGlobalsActions } from "./components/StoreProvider"
-import { MessagesProvider } from "messages-provider"
+import { MessagesProvider } from "@cloudoperators/juno-messages-provider"
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 import AppContent from "./AppContent"
 import styles from "./styles.scss"
@@ -36,20 +36,16 @@ const App = (props = {}) => {
   }, [])
 
   return (
-    <MessagesProvider >
-    <QueryClientProvider client={queryClient}>
-      <AppShell
-        pageHeader="Converged Cloud | Secrets"
-        embedded={props.embedded === "true" || props.embedded === true}
-      >
-        
+    <MessagesProvider>
+      <QueryClientProvider client={queryClient}>
+        <AppShell
+          pageHeader="Converged Cloud | Secrets"
+          embedded={props.embedded === "true" || props.embedded === true}
+        >
           <AsyncWorker />
           <AppContent props={props} />
-        
-        
-      
-      </AppShell>
-    </QueryClientProvider>
+        </AppShell>
+      </QueryClientProvider>
     </MessagesProvider>
   )
 }

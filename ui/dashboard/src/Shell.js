@@ -8,11 +8,11 @@ import React, { useLayoutEffect } from "react"
 import ShellLayout from "./components/layout/ShellLayout"
 import Auth from "./components/Auth"
 import styles from "./styles.scss"
-import { AppShellProvider } from "juno-ui-components"
+import { AppShellProvider } from "@cloudoperators/juno-ui-components"
 import PluginContainer from "./components/PluginContainer"
 import AsyncWorker from "./components/AsyncWorker"
 import StoreProvider, { useGlobalsActions } from "./components/StoreProvider"
-import { MessagesProvider } from "messages-provider"
+import { MessagesProvider } from "@cloudoperators/juno-messages-provider"
 
 const Shell = (props = {}) => {
   const { setApiEndpoint, setAssetsHost, setDemoUserToken, setEnvironment } =

@@ -24,7 +24,6 @@ import (
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/timestamppb"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
-	"k8s.io/client-go/rest"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
 
@@ -34,11 +33,6 @@ import (
 )
 
 var (
-	remoteCfg        *rest.Config
-	remoteClient     client.Client
-	remoteKubeConfig []byte
-	remoteEnvTest    *envtest.Environment
-
 	tailscaleProxyURL = "https://127.0.0.1:8080"
 
 	headscaleReconciler *clusterpkg.HeadscaleAccessReconciler
@@ -73,14 +67,8 @@ var _ = BeforeSuite(func() {
 
 	test.TestBeforeSuite()
 
-	// inject mocks
-	fakeHeadscaleGRPCClient := newFakeHeadscaleClient()
-	clusterpkg.ExportSetHeadscaleGRPCClientOnHAR(headscaleReconciler, fakeHeadscaleGRPCClient)
-	getterFunc := newFakeHeadscaleClientGetter
-	clusterpkg.ExportSetRestClientGetterFunc(headscaleReconciler, getterFunc)
-
-	By("bootstrapping remote cluster")
-	bootstrapRemoteCluster()
+	// inject fake headscale grpc client
+	clusterpkg.ExportSetHeadscaleGRPCClientOnHAR(headscaleReconciler, newFakeHeadscaleClient())
 
 	/*
 		This is commented as the access to the remote cluster requires a https proxy.
@@ -88,7 +76,6 @@ var _ = BeforeSuite(func() {
 		injecting custom transport in the client.Client is not supported when using TLS certificates (2).
 		(1) https://maelvls.dev/go-ignores-proxy-localhost,
 		(2) https://github.com/kubernetes/client-go/blob/master/transport/transport.go#L38-L40.
-
 		go func() {
 			if err := runReverseProxy(test.Ctx, tailscaleProxyURL, headscaleEnvTest); err != nil {
 				log.Fatalf("Server error: %v", err)
@@ -100,22 +87,16 @@ var _ = BeforeSuite(func() {
 var _ = AfterSuite(func() {
 	By("tearing down the test environment and remote cluster")
 	test.TestAfterSuite()
-	Expect(remoteEnvTest.Stop()).
-		NotTo(HaveOccurred(), "there must be no error stopping the remote environment")
 })
 
-func bootstrapRemoteCluster() {
-	remoteCfg, remoteClient, remoteEnvTest, remoteKubeConfig = test.StartControlPlane("6885", false, false)
-}
+func newFakeHeadscaleClientGetter(c client.Client) func(restClientGetter genericclioptions.RESTClientGetter, proxy string, headscaleAddress string) (client.Client, error) {
 
-func newFakeHeadscaleClientGetter(_ genericclioptions.RESTClientGetter, _, _ string) (client.Client, error) {
 	/*
 		This is commented as the access to the remote cluster requires a https proxy.
 			Though the proxy is in-place, golang does not account for a proxy on localhost (1) and
 		injecting custom transport in the client.Client is not supported when using TLS certificates (2).
 		(1) https://maelvls.dev/go-ignores-proxy-localhost,
 		(2) https://github.com/kubernetes/client-go/blob/master/transport/transport.go#L38-L40.
-
 		cfgTransportCfg, err := headscaleCfg.TransportConfig()
 		if err != nil {
 			return nil, err
@@ -140,7 +121,10 @@ func newFakeHeadscaleClientGetter(_ genericclioptions.RESTClientGetter, _, _ str
 			TLSHandshakeTimeout:   10 * time.Second,
 			ExpectContinueTimeout: 1 * time.Second,
 		}*/
-	return remoteClient, nil
+
+	return func(_ genericclioptions.RESTClientGetter, _, _ string) (client.Client, error) {
+		return c, nil
+	}
 }
 
 // newFakeHeadscaleClient mocks the Headscale GRPC client and returns the configured responses

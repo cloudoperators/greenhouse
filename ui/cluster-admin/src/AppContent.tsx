@@ -8,7 +8,7 @@ import {
   ButtonRow,
   Container,
   DataGridToolbar,
-} from "juno-ui-components"
+} from "@cloudoperators/juno-ui-components"
 import ClusterDetail from "./components/ClusterDetail"
 import ClusterEdit from "./components/ClusterEdit"
 import ClusterList from "./components/ClusterList"

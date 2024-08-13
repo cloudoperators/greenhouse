@@ -7,9 +7,7 @@ module.exports = {
   transform: { "\\.[jt]sx?$": "babel-jest" },
   testEnvironment: "jsdom",
   setupFilesAfterEnv: ["<rootDir>/setupTests.js"],
-  transformIgnorePatterns: [
-    "node_modules/(?!(juno-ui-components|url-state-router|communicator|oauth|url-state-provider|messages-provider|policy-engine)/)",
-  ],
+  transformIgnorePatterns: [],
   moduleNameMapper: {
     // Jest currently doesn't support resources with query parameters.
     // Therefore we add the optional query parameter matcher at the end

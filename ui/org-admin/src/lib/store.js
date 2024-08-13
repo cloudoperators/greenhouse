@@ -6,7 +6,7 @@
 import { createStore } from "zustand"
 import { devtools } from "zustand/middleware"
 import { managementPluginConfig } from "../../package.json"
-import { useActions as messageActions } from "messages-provider"
+import { useActions as messageActions } from "@cloudoperators/juno-messages-provider"
 
 export default (options) => {
   // check the managementPluginConfig is an object and not array or string

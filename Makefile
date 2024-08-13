@@ -5,7 +5,7 @@ IMG_LICENSE_EYE ?= ghcr.io/apache/skywalking-eyes/license-eye
 PLATFORM ?=linux/arm64
 
 # ENVTEST_K8S_VERSION refers to the version of kubebuilder assets to be downloaded by envtest binary.
-ENVTEST_K8S_VERSION = 1.29.5
+ENVTEST_K8S_VERSION = 1.30.3
 
 MANIFESTS_PATH=$(CURDIR)/charts/manager
 CRD_MANIFESTS_PATH=$(MANIFESTS_PATH)/crds
@@ -23,6 +23,11 @@ endif
 # Options are set to exit when a recipe line exits non-zero or a piped command fails.
 SHELL = /usr/bin/env bash -o pipefail
 .SHELLFLAGS = -ec
+
+## Location to install dependencies an GO binaries
+LOCALBIN ?= $(shell pwd)/bin
+$(LOCALBIN):
+	mkdir -p $(LOCALBIN)
 
 .PHONY: all
 all: build
@@ -48,8 +53,13 @@ generate-manifests: controller-gen ## Generate WebhookConfiguration, ClusterRole
 	hack/helmify $(TEMPLATES_MANIFESTS_PATH)
 	docker run --rm -v $(shell pwd):/github/workspace $(IMG_LICENSE_EYE) -c .github/licenserc.yaml header fix
 
+.PHONY: generate-open-api-spec
+generate-open-api-spec: VERSION = $(shell git rev-parse --short HEAD)
+generate-open-api-spec:
+	hack/openapi-generator/generate-openapi-spec-from-crds $(CRD_MANIFESTS_PATH) $(VERSION) docs/reference/api
+
 .PHONY: generate-types
-generate-types: ## Generate typescript types from CRDs.
+generate-types: generate-open-api-spec## Generate typescript types from CRDs.
 	hack/typescript/create-types $(CURDIR)/docs/reference/api/openapi.yaml $(CURDIR)/hack/typescript/metadata.yaml $(CURDIR)/ui/types/ 
 
 .PHONY: generate
@@ -57,10 +67,23 @@ generate: controller-gen ## Generate code containing DeepCopy, DeepCopyInto, and
 	$(CONTROLLER_GEN) object:headerFile="hack/boilerplate.go.txt" paths="./pkg/apis/..."
 	$(CONTROLLER_GEN) object:headerFile="hack/boilerplate.go.txt" paths="./pkg/dex/..."
 
+# Default values
+GEN_DOCS_API_DIR ?= "./pkg/apis/greenhouse/v1alpha1" ## -app-dir should be Canonical Path Format so absolute path doesn't work. That's why we don't use $(CURDIR) here.
+GEN_DOCS_CONFIG ?= "$(CURDIR)/hack/docs-generator/config.json"
+GEN_DOCS_TEMPLATE_DIR ?= "$(CURDIR)/hack/docs-generator/templates"
+GEN_DOCS_OUT_FILE ?= "$(CURDIR)/docs/reference/api/index.html"
+GEN_CRD_API_REFERENCE_DOCS := $(CURDIR)/hack/docs-generator/gen-crd-api-reference-docs # Define the path to the gen-crd-api-reference-docs binary
+.PHONY: check-gen-crd-api-reference-docs
+check-gen-crd-api-reference-docs:
+	@if [ ! -f $(GEN_CRD_API_REFERENCE_DOCS) ]; then \
+		echo "gen-crd-api-reference-docs not found, installing..."; \
+		GOBIN=$(LOCALBIN) go install github.com/ahmetb/gen-crd-api-reference-docs@latest; \
+	fi
+
+GEN_DOCS ?= $(LOCALBIN)/gen-crd-api-reference-docs
 .PHONY: generate-documentation
-generate-documentation: VERSION = $(shell git rev-parse --short HEAD)
-generate-documentation:
-	hack/openapi-generator/generate-openapi-spec-from-crds $(CRD_MANIFESTS_PATH) $(VERSION) docs/reference/api
+generate-documentation: check-gen-crd-api-reference-docs
+	$(GEN_DOCS) -api-dir=$(GEN_DOCS_API_DIR) -config=$(GEN_DOCS_CONFIG) -template-dir=$(GEN_DOCS_TEMPLATE_DIR) -out-file=$(GEN_DOCS_OUT_FILE)
 
 .PHONY: test
 test: generate-manifests generate envtest ## Run tests.
@@ -71,12 +94,20 @@ e2e:
 	go test ./test/e2e/... -coverprofile cover.out -v
 
 .PHONY: e2e-local
-e2e-local: generate-manifests generate envtest ## Run e2e tests.
+e2e-local: generate-manifests generate envtest ## Run e2e tests against mock api.
 	unset USE_EXISTING_CLUSTER && KUBEBUILDER_ASSETS="$(shell $(ENVTEST) use $(ENVTEST_K8S_VERSION) -p path)" go test ./test/e2e/... -coverprofile cover.out -v
 
 .PHONY: e2e-remote
-e2e-remote: 
+e2e-remote: ## Run e2e tests against a remote Greenhouse cluster. TEST_KUBECONFIG must be set.
 	USE_EXISTING_CLUSTER=true go test ./test/e2e/... -coverprofile cover.out -v
+
+.PHONY: e2e-local-cluster
+e2e-local-cluster: e2e-local-cluster-create  ## Run e2e tests on a local KIND cluster.
+	USE_EXISTING_CLUSTER=true TEST_KUBECONFIG=$(shell pwd)/test/e2e/local-cluster/e2e.kubeconfig INTERNAL_KUBECONFIG=$(shell pwd)/test/e2e/local-cluster/e2e.internal.kubeconfig go test ./test/e2e/... -coverprofile cover.out -v
+
+.PHONY: e2e-local-cluster-create
+e2e-local-cluster-create:
+	cd test/e2e/local-cluster && go run . --dockerImagePlatform=$(PLATFORM)
 
 
 .PHONY: fmt
@@ -128,11 +159,6 @@ kustomize-build-crds: generate-manifests kustomize
 	
 ##@ Build Dependencies
 
-## Location to install dependencies to
-LOCALBIN ?= $(shell pwd)/bin
-$(LOCALBIN):
-	mkdir -p $(LOCALBIN)
-
 ## Tool Binaries
 KUSTOMIZE ?= $(LOCALBIN)/kustomize
 CONTROLLER_GEN ?= $(LOCALBIN)/controller-gen
@@ -173,4 +199,12 @@ golint: $(GOLINT)
 $(GOLINT): $(LOCALBIN)
 	GOBIN=$(LOCALBIN) go install github.com/golangci/golangci-lint/cmd/golangci-lint@$(GOLINT_VERSION)
 	GOBIN=$(LOCALBIN) go install github.com/nunnatsa/ginkgolinter/cmd/ginkgolinter@$(GINKGOLINTER_VERSION)
-	
+
+.PHONY: serve-docs
+serve-docs: generate-manifests
+ifeq (, $(shell which hugo))
+	@echo "Hugo is not installed in your machine. Please install it to serve the documentation locally. Please refer to https://gohugo.io/installation/ for installation instructions."
+else
+	cd website && hugo server
+endif
+

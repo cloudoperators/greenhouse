@@ -48,39 +48,27 @@ func NewTestSetup(ctx context.Context, c client.Client, name string) *TestSetup 
 	return t
 }
 
-// WithLabel sets a label on a Cluster
+// WithAccessMode sets the ClusterAccessMode on a Cluster
+func WithAccessMode(mode greenhousev1alpha1.ClusterAccessMode) func(*greenhousev1alpha1.Cluster) {
+	return func(c *greenhousev1alpha1.Cluster) {
+		c.Spec.AccessMode = mode
+	}
+}
+
+// WithLabel sets the label on a Cluster
 func WithLabel(key, value string) func(*greenhousev1alpha1.Cluster) {
 	return func(c *greenhousev1alpha1.Cluster) {
 		if c.Labels == nil {
-			c.Labels = map[string]string{}
+			c.Labels = make(map[string]string, 1)
 		}
 		c.Labels[key] = value
 	}
 }
 
 // OnboardCluster creates a new Cluster and Kubernetes secret for a remote cluster and creates the namespace used for TestSetup on the remote cluster
-func (t *TestSetup) OnboardCluster(ctx context.Context, name string, kubeCfg []byte, clusterOpts ...func(*greenhousev1alpha1.Cluster)) *greenhousev1alpha1.Cluster {
+func (t *TestSetup) OnboardCluster(ctx context.Context, name string, kubeCfg []byte, opts ...func(*greenhousev1alpha1.Cluster)) *greenhousev1alpha1.Cluster {
 	GinkgoHelper()
-	clusterName := t.RandomizeName(name)
-	cluster := &greenhousev1alpha1.Cluster{
-		TypeMeta: metav1.TypeMeta{
-			Kind:       "Cluster",
-			APIVersion: greenhousev1alpha1.GroupVersion.String(),
-		},
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      clusterName,
-			Namespace: t.Namespace(),
-		},
-		Spec: greenhousev1alpha1.ClusterSpec{
-			AccessMode: greenhousev1alpha1.ClusterAccessModeDirect,
-		},
-	}
-
-	for _, o := range clusterOpts {
-		o(cluster)
-	}
-
-	Expect(t.Create(ctx, cluster)).To(Succeed(), "there should be no error creating the cluster during onboarding")
+	cluster := t.CreateCluster(ctx, name, opts...)
 
 	var testClusterK8sSecret = &corev1.Secret{
 		TypeMeta: metav1.TypeMeta{
@@ -88,7 +76,7 @@ func (t *TestSetup) OnboardCluster(ctx context.Context, name string, kubeCfg []b
 			APIVersion: corev1.GroupName,
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      clusterName,
+			Name:      cluster.Name,
 			Namespace: t.Namespace(),
 		},
 		Type: greenhouseapis.SecretTypeKubeConfig,
@@ -111,6 +99,47 @@ func (t *TestSetup) OnboardCluster(ctx context.Context, name string, kubeCfg []b
 	Expect(k8sClientForRemoteCluster.Create(ctx, namespace)).To(Succeed(), "there should be no error creating the namespace during onboarding")
 
 	return cluster
+}
+
+// CreateCluster creates a new Cluster resource without creating a Secret
+func (t *TestSetup) CreateCluster(ctx context.Context, name string, opts ...func(*greenhousev1alpha1.Cluster)) *greenhousev1alpha1.Cluster {
+	GinkgoHelper()
+	cluster := &greenhousev1alpha1.Cluster{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "Cluster",
+			APIVersion: greenhousev1alpha1.GroupVersion.String(),
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      name,
+			Namespace: t.Namespace(),
+		},
+		Spec: greenhousev1alpha1.ClusterSpec{
+			AccessMode: greenhousev1alpha1.ClusterAccessModeDirect,
+		},
+	}
+
+	for _, o := range opts {
+		o(cluster)
+	}
+
+	Expect(t.Create(ctx, cluster)).To(Succeed(), "there should be no error creating the cluster during onboarding")
+	return cluster
+}
+
+// CreateOrganization creates a Organization within the TestSetup and returns the created Organization resource.
+func (t *TestSetup) CreateOrganization(ctx context.Context, name string) *greenhousev1alpha1.Organization {
+	GinkgoHelper()
+	org := &greenhousev1alpha1.Organization{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "Organization",
+			APIVersion: greenhousev1alpha1.GroupVersion.String(),
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name: name,
+		},
+	}
+	Expect(t.Create(ctx, org)).Should(Succeed(), "there should be no error creating the Organization")
+	return org
 }
 
 // WithRules overrides the default rules of a TeamRole
@@ -225,4 +254,38 @@ func (t *TestSetup) CreateTeam(ctx context.Context, name string, opts ...func(*g
 	}
 	Expect(t.Create(ctx, team)).Should(Succeed(), "there should be no error creating the Team")
 	return team
+}
+
+// WithSecretType sets the type of the Secret
+func WithSecretType(secretType corev1.SecretType) func(*corev1.Secret) {
+	return func(s *corev1.Secret) {
+		s.Type = secretType
+	}
+}
+
+// WithSecretData sets the data of the Secret
+func WithSecretData(data map[string][]byte) func(*corev1.Secret) {
+	return func(s *corev1.Secret) {
+		s.Data = data
+	}
+}
+
+// CreateSecret returns a Secret object. Opts can be used to set the desired state of the Secret.
+func (t *TestSetup) CreateSecret(ctx context.Context, name string, opts ...func(*corev1.Secret)) *corev1.Secret {
+	GinkgoHelper()
+	secret := &corev1.Secret{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "Secret",
+			APIVersion: corev1.GroupName,
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      name,
+			Namespace: t.Namespace(),
+		},
+	}
+	for _, opt := range opts {
+		opt(secret)
+	}
+	Expect(t.Create(ctx, secret)).Should(Succeed(), "there should be no error creating the Secret")
+	return secret
 }

@@ -6,7 +6,7 @@
 import React, { useEffect } from "react"
 import { useGlobalsActions } from "../components/StoreProvider"
 
-import { get, watch } from "communicator"
+import { get, watch } from "@cloudoperators/juno-communicator"
 
 const useCommunication = () => {
   const { setAuthData, setLoggedIn } = useGlobalsActions()

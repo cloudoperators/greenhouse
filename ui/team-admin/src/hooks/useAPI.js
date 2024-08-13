@@ -10,7 +10,7 @@ import {
   useTeamMemberships,
 } from "../components/StoreProvider"
 import useClient from "./useClient"
-import { useActions } from "messages-provider"
+import { useActions } from "@cloudoperators/juno-messages-provider"
 import { parseError } from "../lib/helpers"
 import updateTeamMemberships from "./helper/updateTeamMemberships"
 

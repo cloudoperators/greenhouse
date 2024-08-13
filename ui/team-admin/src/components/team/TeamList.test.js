@@ -49,7 +49,7 @@ describe("TeamList Component", () => {
       { metadata: { name: "someTeam" }, spec: { members: mockTeamMembers } },
     ])
 
-    jest.mock("utils", () => ({
+    jest.mock("@cloudoperators/juno-utils", () => ({
       useEndlessScrollList: jest.fn(() => ({
         scrollListItems: mockTeamMembers,
         iterator: mockTeamMembers,

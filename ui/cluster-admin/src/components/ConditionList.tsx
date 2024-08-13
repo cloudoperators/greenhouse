@@ -10,7 +10,7 @@ import {
   Tooltip,
   TooltipTrigger,
   TooltipContent,
-} from "juno-ui-components"
+} from "@cloudoperators/juno-ui-components"
 import { KubernetesCondition } from "../types/types"
 import humanizedTimePeriodToNow from "../lib/utils/humanizedTimePeriodToNow"
 

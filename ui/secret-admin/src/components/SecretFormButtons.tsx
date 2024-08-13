@@ -3,8 +3,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { Button, Stack } from "juno-ui-components"
-import { useActions } from "messages-provider"
+import { Button, Stack } from "@cloudoperators/juno-ui-components"
+import { useActions } from "@cloudoperators/juno-messages-provider"
 import useSecretApi from "../hooks/useSecretApi"
 import useStore from "../store"
 import { Secret } from "../../../types/types"

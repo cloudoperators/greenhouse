@@ -6,8 +6,8 @@
 import React, { useLayoutEffect } from "react"
 import PluginContainer from "./components/PluginContainer"
 import { useApiEndpoint, useAssetsUrl } from "./components/StoreProvider"
-import { useActions as messageActions } from "messages-provider"
-import { Container } from "juno-ui-components"
+import { useActions as messageActions } from "@cloudoperators/juno-messages-provider"
+import { Container } from "@cloudoperators/juno-ui-components"
 
 const AppContent = () => {
   const { addMessage } = messageActions()

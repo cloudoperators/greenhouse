@@ -11,7 +11,7 @@ import {
   MainContainer,
   MainContainerInner,
   ContentContainer,
-} from "juno-ui-components"
+} from "@cloudoperators/juno-ui-components"
 import StoreProvider from "./components/StoreProvider"
 import UrlState from "./components/UrlState"
 
@@ -21,7 +21,10 @@ import styles from "./styles.scss"
 import OrgInfo from "./components/OrgInfo"
 import SideNav from "./components/SideNav"
 import AsyncWorker from "./components/AsyncWorker"
-import { MessagesProvider, Messages } from "messages-provider"
+import {
+  MessagesProvider,
+  Messages,
+} from "@cloudoperators/juno-messages-provider"
 import Auth from "./components/Auth"
 
 const App = (props = {}) => {

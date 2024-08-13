@@ -8,7 +8,7 @@ import {
   DataGridHeadCell,
   DataGridRow,
   Icon,
-} from "juno-ui-components"
+} from "@cloudoperators/juno-ui-components"
 import React from "react"
 import { Cluster } from "../types/types"
 import ClusterListItem from "./ClusterListItem"
