@@ -107,7 +107,7 @@ func (r *HelmChartTestReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 		helmChartTestResultCondition.Message = "Helm Chart Test is successful"
 	}
 
-	return ctrl.Result{RequeueAfter: 30 * time.Minute}, nil
+	return ctrl.Result{}, nil
 }
 
 // TODO: This is a duplicate. Move this as a "function" instead of a "method" to a common file in the same package
