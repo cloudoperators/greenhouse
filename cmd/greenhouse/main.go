@@ -7,6 +7,7 @@ import (
 	goflag "flag"
 	"fmt"
 	"os"
+	"strconv"
 	"time"
 
 	flag "github.com/spf13/pflag"
@@ -32,6 +33,8 @@ import (
 const (
 	defaultRemoteClusterBearerTokenValidity   = 24 * time.Hour
 	defaultRenewRemoteClusterBearerTokenAfter = 20 * time.Hour
+	webhookOnlyModeEnv                        = "WEBHOOK_ONLY"    // used to deploy the operator in webhook only mode no controllers will run in this mode.
+	disableWebhookEnv                         = "DISABLE_WEBHOOK" // used to disable webhooks when running locally or in debug mode.
 )
 
 var (
@@ -127,20 +130,24 @@ func main() {
 	handleError(err, "unable to start manager")
 
 	// Register controllers.
-	for controllerName, hookFunc := range knownControllers {
-		if !isControllerEnabled(controllerName) {
-			setupLog.Info("skipping controller", "name", controllerName)
+	if !isWebhookMode(webhookOnlyModeEnv) {
+		for controllerName, hookFunc := range knownControllers {
+			if !isControllerEnabled(controllerName) {
+				setupLog.Info("skipping controller", "name", controllerName)
+				continue
+			}
+			setupLog.Info("registering controller", "name", controllerName)
+			handleError(hookFunc(controllerName, mgr), "unable to create controller", "name", controllerName)
 			continue
 		}
-		setupLog.Info("registering controller", "name", controllerName)
-		handleError(hookFunc(controllerName, mgr), "unable to create controller", "name", controllerName)
-		continue
 	}
 
 	// Register webhooks.
-	for webhookName, hookFunc := range knownWebhooks {
-		setupLog.Info("registering webhook", "name", webhookName)
-		handleError(hookFunc(mgr), "unable to create webhook", "name", webhookName)
+	if !isWebhookMode(disableWebhookEnv) {
+		for webhookName, hookFunc := range knownWebhooks {
+			setupLog.Info("registering webhook", "name", webhookName)
+			handleError(hookFunc(mgr), "unable to create webhook", "name", webhookName)
+		}
 	}
 	//+kubebuilder:scaffold:builder
 
@@ -156,4 +163,18 @@ func handleError(err error, msg string, keysAndValues ...interface{}) {
 		setupLog.Error(err, msg, keysAndValues...)
 		os.Exit(1)
 	}
+}
+
+func isWebhookMode(key string) bool {
+	mode, ok := os.LookupEnv(key)
+	if !ok {
+		setupLog.Info(fmt.Sprintf("%s not set, defaulting to false", key))
+		return false
+	}
+	enabled, err := strconv.ParseBool(mode)
+	if err != nil {
+		setupLog.Error(err, fmt.Sprintf("unable to parse %s", key))
+		return false
+	}
+	return enabled
 }
