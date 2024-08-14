@@ -54,9 +54,9 @@ func processCreateCluster(_ *cobra.Command, _ []string) error {
 	return setup.Setup()
 }
 func init() {
-	createClusterCmd.Flags().StringVarP(&clusterName, "name", "c", "", "create a kind cluster with a name, e.g. localenv cluster create --name <my-cluster>")
-	createClusterCmd.Flags().StringVarP(&namespaceName, "namespace", "n", "", "create a namespace in the cluster, e.g. localenv cluster create --name <my-cluster> --namespace <my-namespace>")
-	deleteClusterCmd.Flags().StringVarP(&clusterName, "name", "c", "", "delete the kind cluster, e.g. localenv cluster delete --name <my-cluster>")
+	createClusterCmd.Flags().StringVarP(&clusterName, "name", "c", "", "create a kind cluster with a name - e.g. -c <my-cluster>")
+	createClusterCmd.Flags().StringVarP(&namespaceName, "namespace", "n", "", "create a namespace in the cluster - e.g. -c <my-cluster> -n <my-namespace>")
+	deleteClusterCmd.Flags().StringVarP(&clusterName, "name", "c", "", "delete the kind cluster - e.g. -c <my-cluster>")
 	cobra.CheckErr(createClusterCmd.MarkFlagRequired("name"))
 	cobra.CheckErr(deleteClusterCmd.MarkFlagRequired("name"))
 	clusterCmd.AddCommand(createClusterCmd)

@@ -10,7 +10,7 @@ var webhookCmd = &cobra.Command{
 	Use:               "webhook",
 	Short:             "Setup webhooks for Greenhouse (Validating and Mutating webhooks)",
 	Long:              "Setup Validating and Mutating webhooks for Greenhouse controller development convenience",
-	Example:           `local env webhook -c my-kind-cluster-name -p path/to/greenhouse/manager/chart`,
+	Example:           `localenv setup webhook -c my-kind-cluster-name -n my-namespace -p path/to/chart -f path/to/Dockerfile`,
 	DisableAutoGenTag: true,
 	RunE:              processWebhook,
 }
@@ -51,11 +51,11 @@ func processWebhook(cmd *cobra.Command, _ []string) error {
 
 func init() {
 	setupCmd.AddCommand(webhookCmd)
-	webhookCmd.Flags().StringVarP(&clusterName, "name", "c", "", "Name of the kind cluster - ex: greenhouse-123 (without the kind prefix)")
+	webhookCmd.Flags().StringVarP(&clusterName, "name", "c", "", "Name of the kind cluster - e.g. my-cluster (without the kind prefix)")
 	webhookCmd.Flags().StringVarP(&kubeConfigPath, "kubeconfig", "k", "", "Path to the kubeconfig file")
 	webhookCmd.Flags().StringVarP(&namespaceName, "namespace", "n", "", "namespace to install the resources")
-	webhookCmd.Flags().StringVarP(&chartPath, "chartPath", "p", "", "local absolute chart path where manifests are located - ex: <path>/charts/manager")
-	webhookCmd.Flags().StringVarP(&dockerFile, "dockerfile", "f", "", "local absolute path to the Dockerfile of greenhouse manager")
+	webhookCmd.Flags().StringVarP(&chartPath, "chartPath", "p", "", "local chart path where manifests are located - e.g. <path>/<to>/charts/manager")
+	webhookCmd.Flags().StringVarP(&dockerFile, "dockerfile", "f", "", "local path to the Dockerfile of greenhouse manager")
 	webhookCmd.Flags().BoolVarP(&currentContext, "current-context", "x", false, "Use your current kubectl context")
 
 	webhookCmd.MarkFlagsMutuallyExclusive("current-context", "kubeconfig")

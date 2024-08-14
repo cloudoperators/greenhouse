@@ -8,11 +8,12 @@ import (
 var (
 	setupConfigFile string
 	setupCmd        = &cobra.Command{
-		Use:     "setup",
-		Short:   "setup Greenhouse",
-		Long:    "setup Greenhouse dev environment with a configuration file",
-		Example: `localenv setup -f path/to/config/file`,
-		RunE:    processSetup,
+		Use:               "setup",
+		Short:             "setup Greenhouse",
+		Long:              "setup Greenhouse dev environment with a configuration file",
+		Example:           `localenv setup -f path/to/config/file`,
+		DisableAutoGenTag: true,
+		RunE:              processSetup,
 	}
 )
 
@@ -32,7 +33,7 @@ func processSetup(cmd *cobra.Command, _ []string) error {
 }
 
 func init() {
-	setupCmd.Flags().StringVarP(&setupConfigFile, "config", "f", "", "configuration file path")
+	setupCmd.Flags().StringVarP(&setupConfigFile, "config", "f", "", "configuration file path - e.g. -f <path/to/config/file>")
 	cobra.CheckErr(setupCmd.MarkFlagRequired("config"))
 	rootCmd.AddCommand(setupCmd)
 }
