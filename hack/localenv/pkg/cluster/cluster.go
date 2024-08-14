@@ -13,6 +13,8 @@ type Cluster struct {
 
 type IClusterSetup interface {
 	Setup() error
+	Delete() error
+	List() error
 }
 
 func NewCmdCluster(name, namespaceName string) IClusterSetup {
@@ -34,4 +36,19 @@ func (c *Cluster) Setup() error {
 		return nil
 	}
 	return kind.CreateNamespace(*c.Namespace)
+}
+
+func (c *Cluster) Delete() error {
+	return kind.DeleteCluster(c.Name)
+}
+
+func (c *Cluster) List() error {
+	clusters, err := kind.GetClusters()
+	if err != nil {
+		return err
+	}
+	for _, c := range clusters {
+		utils.Logf("cluster: %s", c)
+	}
+	return nil
 }

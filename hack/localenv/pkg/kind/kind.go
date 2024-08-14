@@ -34,6 +34,24 @@ func CreateKindCluster(clusterName string) error {
 	return nil
 }
 
+func DeleteCluster(clusterName string) error {
+	exists, err := ClusterExists(clusterName)
+	if err != nil {
+		return err
+	} else if !exists {
+		utils.Logf("kind cluster with name %s does not exist", clusterName)
+		return nil
+	}
+	exec.SetVar("name", clusterName)
+	proc := exec.RunProc("kind delete cluster --name ${name}")
+	if err := proc.Err(); err != nil {
+		return err
+	}
+	utils.Logf("%s", proc.Result())
+	utils.Logf("kind cluster with name %s deleted", clusterName)
+	return nil
+}
+
 func ClusterExists(clusterName string) (bool, error) {
 	clusters, err := GetClusters()
 	if err != nil {
