@@ -107,3 +107,15 @@ func GetKubeCfg(clusterName string, internal bool) (string, error) {
 	}
 	return proc.Result(), nil
 }
+
+func LoadImage(image string, clusterName string) error {
+	exec.SetVar("image", image)
+	exec.SetVar("cluster", clusterName)
+	utils.Logf("loading docker image %s into %s cluster", image, clusterName)
+	cmd := exec.RunProc("kind load docker-image ${image} --name ${cluster}")
+	if err := cmd.Err(); err != nil {
+		return err
+	}
+	utils.Logf("%s", cmd.Result())
+	return nil
+}

@@ -1,14 +1,22 @@
 package utils
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"github.com/go-logr/logr"
 	"gopkg.in/yaml.v3"
 	"io"
+	kruntime "k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/runtime/serializer"
 	kyaml "k8s.io/apimachinery/pkg/util/yaml"
+	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/klog/v2"
 	"os"
+	"runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+	syaml "sigs.k8s.io/yaml"
 	"slices"
 	"strings"
 )
@@ -28,6 +36,10 @@ func LogErr(format string, args ...any) {
 
 func NewKLog(ctx context.Context) logr.Logger {
 	return klog.FromContext(ctx)
+}
+
+func Int32P(i int32) *int32 {
+	return &i
 }
 
 func StringP(s string) *string {
@@ -102,4 +114,60 @@ func Stringify(data []map[string]interface{}) (string, error) {
 		stringSources = append(stringSources, s)
 	}
 	return strings.Join(stringSources, "\n---\n"), nil
+}
+
+func FromYamlToK8sObject(doc string, resources ...any) error {
+	yamlBytes := []byte(doc)
+	dec := kyaml.NewDocumentDecoder(io.NopCloser(bytes.NewReader(yamlBytes)))
+	buffer := make([]byte, len(yamlBytes))
+
+	for _, resource := range resources {
+		n, err := dec.Read(buffer)
+		if err != nil {
+			return err
+		}
+		err = kyaml.Unmarshal(buffer[:n], resource)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func FromK8sObjectToYaml(obj client.Object, gvk schema.GroupVersion) ([]byte, error) {
+	scheme := kruntime.NewScheme()
+	err := clientgoscheme.AddToScheme(scheme)
+	if err != nil {
+		return nil, err
+	}
+	codec := serializer.NewCodecFactory(scheme).LegacyCodec(gvk)
+	jsonBytes, err := kruntime.Encode(codec, obj)
+	if err != nil {
+		return nil, fmt.Errorf("error encoding object to JSON bytes: %w", err)
+	}
+
+	yamlBytes, err := syaml.JSONToYAML(jsonBytes)
+	if err != nil {
+		return nil, fmt.Errorf("error marshalling as YAML bytes: %w", err)
+	}
+
+	return yamlBytes, nil
+}
+
+func CheckIfFileExists(f string) bool {
+	_, err := os.Stat(f)
+	return !os.IsNotExist(err)
+}
+
+func GetHostPlatform() string {
+	var platform string
+	switch runtime.GOARCH {
+	case "amd64":
+		platform = "linux/amd64"
+	case "arm64":
+		platform = "linux/arm64"
+	default:
+		platform = "linux/amd64"
+	}
+	return platform
 }

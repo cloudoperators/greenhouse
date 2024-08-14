@@ -13,15 +13,45 @@ type manifests struct {
 	hc           klient.IHelm
 	excludeKinds []string
 	crdOnly      bool
+	webhook      *Webhook
+}
+
+type ISetup interface {
+	Setup(ctx context.Context) error
 }
 
 type IManifest interface {
 	GenerateManifests(ctx context.Context) ([]map[string]interface{}, error)
 	ApplyManifests(resources []map[string]interface{}) error
+	SetupWebhookManifest(resources []map[string]interface{}) (map[string]interface{}, error)
+}
+
+func NewManifestsSetup(hc klient.IHelm, webhook *Webhook, excludeKinds []string, crdOnly bool) ISetup {
+	return &manifests{hc: hc, webhook: webhook, excludeKinds: excludeKinds, crdOnly: crdOnly}
 }
 
 func NewCmdManifests(hc klient.IHelm, excludeKinds []string, crdOnly bool) IManifest {
 	return &manifests{hc: hc, excludeKinds: excludeKinds, crdOnly: crdOnly}
+}
+
+func (m *manifests) Setup(ctx context.Context) error {
+	resources, err := m.generateAllManifests(ctx)
+	if err != nil {
+		return err
+	}
+	excluded := m.resourceExclusion(resources)
+	filtered := m.filterCustomResources(excluded)
+	if m.webhook == nil {
+		utils.Log("no webhook configuration provided, skipping webhook kustomization")
+		noWbManifests := excludeResources(filtered, []string{"MutatingWebhookConfiguration", "ValidatingWebhookConfiguration"})
+		return m.ApplyManifests(noWbManifests)
+	}
+	webHookManifest, err := m.SetupWebhookManifest(resources)
+	if err != nil {
+		return err
+	}
+	filtered = append(filtered, webHookManifest)
+	return m.ApplyManifests(filtered)
 }
 
 func (m *manifests) GenerateManifests(ctx context.Context) ([]map[string]interface{}, error) {
