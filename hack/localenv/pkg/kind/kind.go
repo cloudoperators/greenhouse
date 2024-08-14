@@ -95,3 +95,15 @@ func CreateNamespace(namespaceName string) error {
 	utils.Logf("%s", pipe.LastProc().Result())
 	return nil
 }
+
+func GetKubeCfg(clusterName string, internal bool) (string, error) {
+	cmd := fmt.Sprintf("kind get kubeconfig --name %s", clusterName)
+	if internal {
+		cmd += " --internal"
+	}
+	proc := exec.RunProc(cmd)
+	if err := proc.Err(); err != nil {
+		return "", fmt.Errorf("failed to get kubeconfig: %w", err)
+	}
+	return proc.Result(), nil
+}
