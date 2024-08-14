@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"reflect"
 	"strings"
-	"time"
 
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/pkg/apis/greenhouse/v1alpha1"
 	"github.com/cloudoperators/greenhouse/pkg/clientutil"
@@ -64,16 +63,16 @@ func (r *HelmChartTestReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 
 	// Helm Chart Test cannot be done as the Helm Chart deployment is not successful
 	if plugin.Status.HelmReleaseStatus.Status != "deployed" {
-		return ctrl.Result{}, nil
+		return ctrl.Result{Requeue: true}, nil
 	}
 
 	pluginStatus := initPluginStatus(&plugin)
 
-	helmChartTestResultCondition := *pluginStatus.GetConditionByType(greenhousev1alpha1.HelmChartTestResultCondition)
+	noHelmChartTestFailuresCondition := *pluginStatus.GetConditionByType(greenhousev1alpha1.NoHelmChartTestFailuresCondition)
 
 	defer func() {
 		_, err := clientutil.PatchStatus(ctx, r.Client, &plugin, func() error {
-			plugin.Status.StatusConditions.SetConditions(helmChartTestResultCondition)
+			plugin.Status.StatusConditions.SetConditions(noHelmChartTestFailuresCondition)
 			return nil
 		})
 		if err != nil {
@@ -89,22 +88,22 @@ func (r *HelmChartTestReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 
 	hasHelmChartTest, err := helm.HelmChartTest(ctx, restClientGetter, &plugin)
 	if err != nil {
-		helmChartTestResultCondition.Status = metav1.ConditionFalse
-		errStr := fmt.Sprintf("Helm Chart Test failed: %s. Please check the logs of the failed test pod for more information", err.Error())
+		noHelmChartTestFailuresCondition.Status = metav1.ConditionFalse
+		errStr := fmt.Sprintf("Helm Chart testing failed: %s. To debug, please run `helm test %s`command in your remote cluster %s.", err.Error(), plugin.Name, plugin.Spec.ClusterName)
 		errStr = strings.ReplaceAll(errStr, "\n", "")
 		errStr = strings.ReplaceAll(errStr, "\t", " ")
 		errStr = strings.ReplaceAll(errStr, "*", "")
-		helmChartTestResultCondition.Message = errStr
+		noHelmChartTestFailuresCondition.Message = errStr
 
-		return ctrl.Result{RequeueAfter: 3 * time.Minute}, err
+		return ctrl.Result{}, err
 	}
 
 	if !hasHelmChartTest {
-		helmChartTestResultCondition.Status = metav1.ConditionTrue
-		helmChartTestResultCondition.Message = "Helm Chart Test is not defined"
+		noHelmChartTestFailuresCondition.Status = metav1.ConditionTrue
+		noHelmChartTestFailuresCondition.Message = "Helm Chart Test is not defined"
 	} else {
-		helmChartTestResultCondition.Status = metav1.ConditionTrue
-		helmChartTestResultCondition.Message = "Helm Chart Test is successful"
+		noHelmChartTestFailuresCondition.Status = metav1.ConditionTrue
+		noHelmChartTestFailuresCondition.Message = "Helm Chart Test is successful"
 	}
 
 	return ctrl.Result{}, nil

@@ -41,7 +41,7 @@ var exposedConditions = []greenhousev1alpha1.ConditionType{
 	greenhousev1alpha1.HelmDriftDetectedCondition,
 	greenhousev1alpha1.HelmReconcileFailedCondition,
 	greenhousev1alpha1.StatusUpToDateCondition,
-	greenhousev1alpha1.HelmChartTestResultCondition,
+	greenhousev1alpha1.NoHelmChartTestFailuresCondition,
 }
 
 // HelmReconciler reconciles a Plugin object.
@@ -412,6 +412,11 @@ func (r *HelmReconciler) computeReadyCondition(
 	if conditions.GetConditionByType(greenhousev1alpha1.HelmReconcileFailedCondition).IsTrue() {
 		readyCondition.Status = metav1.ConditionFalse
 		readyCondition.Message = "Helm reconcile failed"
+		return readyCondition
+	}
+	if conditions.GetConditionByType(greenhousev1alpha1.NoHelmChartTestFailuresCondition).IsFalse() {
+		readyCondition.Status = metav1.ConditionFalse
+		readyCondition.Message = "Helm Chart Test failed"
 		return readyCondition
 	}
 	readyCondition.Status = metav1.ConditionTrue
