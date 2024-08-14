@@ -11,6 +11,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/clientcmd"
+	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
 	"k8s.io/client-go/tools/record"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
@@ -162,21 +163,27 @@ func (r *RemoteClusterReconciler) EnsureDeleted(ctx context.Context, resource li
 
 // generateNewClientKubeConfig generates a kubeconfig for the client to access the cluster from REST config coming from the secret
 func generateNewClientKubeConfig(_ context.Context, restConfigGetter *clientutil.RestClientGetter, bearerToken string, cluster *greenhousev1alpha1.Cluster) ([]byte, error) {
-	restConfig, err := restConfigGetter.ToRawKubeConfigLoader().ClientConfig()
+	apiConfig, err := restConfigGetter.ToRawKubeConfigLoader().RawConfig()
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to load kube clientConfig for cluster %s", cluster.GetName())
 	}
-	// TODO: replace overwrite with https://github.com/kubernetes/kubernetes/pull/119398 after 1.30 upgrade
-	kubeConfigGenerator := &KubeConfigHelper{
-		Host:        restConfig.Host,
-		CAData:      restConfig.CAData,
-		BearerToken: bearerToken,
-		Username:    serviceAccountName,
-		Namespace:   cluster.GetNamespace(),
-	}
-	kubeconfigByte, err := clientcmd.Write(kubeConfigGenerator.RestConfigToAPIConfig(cluster.Name))
+	newConfig := clientcmd.NewDefaultClientConfig(apiConfig, &clientcmd.ConfigOverrides{
+		Context: clientcmdapi.Context{
+			Cluster:  cluster.GetName(),
+			AuthInfo: serviceAccountName,
+		},
+		AuthInfo: clientcmdapi.AuthInfo{
+			Username: serviceAccountName,
+			Token:    bearerToken,
+		}})
+
+	mergedKubeConfig, err := newConfig.MergedRawConfig()
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to generate kubeconfig for cluster %s", cluster.GetName())
+	}
+	kubeconfigByte, err := clientcmd.Write(mergedKubeConfig)
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to write kubeconfig for cluster %s", cluster.GetName())
 	}
 	return kubeconfigByte, nil
 }

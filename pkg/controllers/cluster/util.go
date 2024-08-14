@@ -16,7 +16,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes"
-	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
 	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
@@ -50,18 +49,6 @@ const (
 	CRoleRef  = "cluster-admin"
 )
 
-type KubeConfigHelper struct {
-	Host           string
-	CAData         []byte
-	BearerToken    string
-	Username       string
-	Namespace      string
-	TLSServerName  string
-	ProxyURL       string
-	ClientCertData []byte
-	ClientKeyData  []byte
-}
-
 type claims struct {
 	Issuer     string           `json:"iss,omitempty"`
 	Subject    string           `json:"sub,omitempty"`
@@ -85,35 +72,6 @@ type kubernetesClaims struct {
 type ref struct {
 	Name string `json:"name,omitempty"`
 	UID  string `json:"uid,omitempty"`
-}
-
-// RestConfigToAPIConfig converts a rest config to a clientcmdapi.Config
-func (kubeconfig *KubeConfigHelper) RestConfigToAPIConfig(clusterName string) clientcmdapi.Config {
-	clientConfig := clientcmdapi.NewConfig()
-	clientConfig.Clusters[clusterName] = &clientcmdapi.Cluster{
-		Server:                   kubeconfig.Host,
-		CertificateAuthorityData: kubeconfig.CAData,
-		TLSServerName:            kubeconfig.TLSServerName,
-		ProxyURL:                 kubeconfig.ProxyURL,
-	}
-	clientConfig.Contexts[clusterName] = &clientcmdapi.Context{
-		Cluster:   clusterName,
-		AuthInfo:  kubeconfig.Username,
-		Namespace: kubeconfig.Namespace,
-	}
-	clientConfig.CurrentContext = clusterName
-	if kubeconfig.BearerToken != "" {
-		clientConfig.AuthInfos[kubeconfig.Username] = &clientcmdapi.AuthInfo{
-			Token: kubeconfig.BearerToken,
-		}
-	}
-	if kubeconfig.ClientCertData != nil && kubeconfig.ClientKeyData != nil {
-		clientConfig.AuthInfos[kubeconfig.Username] = &clientcmdapi.AuthInfo{
-			ClientCertificateData: kubeconfig.ClientCertData,
-			ClientKeyData:         kubeconfig.ClientKeyData,
-		}
-	}
-	return *clientConfig
 }
 
 func reconcileNamespaceInRemoteCluster(ctx context.Context, k8sClient client.Client, cluster *greenhousev1alpha1.Cluster) error {
