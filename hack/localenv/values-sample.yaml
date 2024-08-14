@@ -1,0 +1,4 @@
+global:
+  dnsDomain: green.house
+alerts:
+  enabled: false

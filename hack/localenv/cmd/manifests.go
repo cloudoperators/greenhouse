@@ -6,22 +6,13 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var (
-	releaseName    string
-	chartPath      string
-	valuesPath     string
-	kubeConfigPath string
-	currentContext bool
-	crdOnly        bool
-	excludeKinds   []string
-)
-
 var manifestsCmd = &cobra.Command{
-	Use:     "manifests",
-	Short:   "install manifests for Greenhouse",
-	Long:    "install CRDs, Webhook definitions, RBACs, Certs, etc... for Greenhouse into the target cluster",
-	Example: `ghd manifests -x -n greenhouse -r greenhouse -p path/to/greenhouse/charts`,
-	RunE:    processManifests,
+	Use:               "manifests",
+	Short:             "install manifests for Greenhouse",
+	Long:              "install CRDs, Webhook definitions, RBACs, Certs, etc... for Greenhouse into the target cluster",
+	Example:           `localenv manifests -x -n greenhouse -r greenhouse -p path/to/greenhouse/charts`,
+	RunE:              processManifests,
+	DisableAutoGenTag: true,
 }
 
 func processManifests(cmd *cobra.Command, _ []string) error {

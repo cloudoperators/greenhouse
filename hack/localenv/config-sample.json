@@ -1,0 +1,41 @@
+{
+  "config": [
+    {
+      "cluster": {
+        "name": "greenhouse-admin",
+        "namespace": "greenhouse"
+      },
+      "dependencies": [
+        {
+          "helm": {
+            "releaseName": "greenhouse-manager",
+            "chartPath": "../../charts/manager",
+            "valuesPath": "values-sample.yaml",
+            "crdOnly": false
+          },
+          "webhook": {
+            "dockerFile": "../../",
+            "envs": [
+              {
+                "name": "WEBHOOK_ONLY",
+                "value": "true"
+              }
+            ]
+          }
+        },
+        {
+          "helm": {
+            "releaseName": "greenhouse-idproxy",
+            "chartPath": "../../charts/idproxy",
+            "crdOnly": true
+          }
+        }
+      ]
+    },
+    {
+      "cluster": {
+        "name": "greenhouse-remote"
+      }
+    }
+  ]
+}

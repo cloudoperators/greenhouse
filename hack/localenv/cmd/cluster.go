@@ -6,32 +6,36 @@ import (
 )
 
 var clusterCmd = &cobra.Command{
-	Use:   "cluster",
-	Short: "Create, List and Delete kinD clusters",
+	Use:               "cluster",
+	Short:             "Create, List and Delete kinD clusters",
+	DisableAutoGenTag: true,
 }
 
 // sub commands
 var (
 	createClusterCmd = &cobra.Command{
-		Use:     "create",
-		Short:   "Create a kinD cluster",
-		Long:    "Create a kinD cluster and setup the greenhouse namespace optionally",
-		Example: `localenv cluster create --name <my-cluster> --namespace <my-namespace>`,
-		RunE:    processCreateCluster,
+		Use:               "create",
+		Short:             "Create a kinD cluster",
+		Long:              "Create a kinD cluster and setup the greenhouse namespace optionally",
+		Example:           `localenv cluster create --name <my-cluster> --namespace <my-namespace>`,
+		DisableAutoGenTag: true,
+		RunE:              processCreateCluster,
 	}
 	listClusterCmd = &cobra.Command{
-		Use:     "list",
-		Short:   "List kinD clusters",
-		Long:    "List all kinD clusters",
-		Example: `localenv cluster list`,
-		RunE:    processListClusters,
+		Use:               "list",
+		Short:             "List kinD clusters",
+		Long:              "List all kinD clusters",
+		Example:           `localenv cluster list`,
+		DisableAutoGenTag: true,
+		RunE:              processListClusters,
 	}
 	deleteClusterCmd = &cobra.Command{
-		Use:     "delete",
-		Short:   "Delete a kinD cluster",
-		Long:    "Delete a specific kinD cluster",
-		Example: `localenv cluster delete --name my-cluster`,
-		RunE:    processDeleteCluster,
+		Use:               "delete",
+		Short:             "Delete a kinD cluster",
+		Long:              "Delete a specific kinD cluster",
+		Example:           `localenv cluster delete --name my-cluster`,
+		DisableAutoGenTag: true,
+		RunE:              processDeleteCluster,
 	}
 )
 

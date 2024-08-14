@@ -24,6 +24,11 @@ func NewCmdCluster(name, namespaceName string) IClusterSetup {
 	}
 }
 
+func Configure(config *Cluster, skipCreate bool) *Cluster {
+	config.skipCreate = skipCreate
+	return config
+}
+
 func (c *Cluster) Setup() error {
 	if c.skipCreate {
 		return nil
