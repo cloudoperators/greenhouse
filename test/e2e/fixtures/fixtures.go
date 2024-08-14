@@ -19,6 +19,7 @@ var NginxPluginDefinition = &greenhousev1alpha1.PluginDefinition{
 	},
 	Spec: greenhousev1alpha1.PluginDefinitionSpec{
 		Description: "nginx",
+		Version:     "18.1.7",
 		HelmChart: &greenhousev1alpha1.HelmChartReference{
 			Name:       "bitnamicharts/nginx",
 			Repository: "oci://registry-1.docker.io",

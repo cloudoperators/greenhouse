@@ -9,7 +9,7 @@ import (
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	v1 "k8s.io/api/core/v1"
+	appsv1 "k8s.io/api/apps/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -54,16 +54,8 @@ var _ = Describe("PluginLifecycle", Ordered, func() {
 				ClusterName:      secret.Name,
 				OptionValues: []greenhousev1alpha1.PluginOptionValue{
 					{
-						Name:  "autoscaling.minReplicas",
-						Value: &apiextensionsv1.JSON{Raw: []byte("\"1\"")},
-					},
-					{
-						Name:  "autoscaling.maxReplicas",
-						Value: &apiextensionsv1.JSON{Raw: []byte("\"1\"")},
-					},
-					{
-						Name:  "autoscaling.enabled",
-						Value: &apiextensionsv1.JSON{Raw: []byte("true")},
+						Name:  "replicaCount",
+						Value: &apiextensionsv1.JSON{Raw: []byte("1")},
 					},
 				},
 			},
@@ -72,69 +64,92 @@ var _ = Describe("PluginLifecycle", Ordered, func() {
 
 		pluginDefinitionList := &greenhousev1alpha1.PluginDefinitionList{}
 		pluginList := &greenhousev1alpha1.PluginList{}
-		podList := &v1.PodList{}
+		deploymentList := &appsv1.DeploymentList{}
+		ctx := test.Ctx
 
-		err := test.K8sClient.Create(test.Ctx, testPluginDefinition)
+		//Creating plugin definition
+		err := test.K8sClient.Create(ctx, testPluginDefinition)
 		Expect(err).NotTo(HaveOccurred())
-
-		err = test.K8sClient.List(test.Ctx, pluginDefinitionList)
+		err = test.K8sClient.List(ctx, pluginDefinitionList)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(len(pluginDefinitionList.Items)).To(BeEquivalentTo(1))
 
-		err = test.K8sClient.Create(test.Ctx, testPlugin)
+		//Creating plugin
+		err = test.K8sClient.Create(ctx, testPlugin)
 		Expect(err).NotTo(HaveOccurred())
-
-		err = test.K8sClient.List(test.Ctx, pluginList)
+		err = test.K8sClient.List(ctx, pluginList)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(len(pluginList.Items)).To(BeEquivalentTo(1))
 
-		SetDefaultEventuallyTimeout(30 * time.Second)
+		//Checking deployment
+		err = remoteClient.List(ctx, deploymentList, client.InNamespace(setup.Namespace()))
+		Expect(err).NotTo(HaveOccurred())
+		SetDefaultEventuallyTimeout(60 * time.Second)
 		Eventually(func(g Gomega) bool {
-			err = test.K8sClient.List(test.Ctx, podList, client.InNamespace(setup.Namespace()))
+			err = remoteClient.List(ctx, deploymentList, client.InNamespace(setup.Namespace()))
 			g.Expect(err).NotTo(HaveOccurred())
-			g.Expect(len(podList.Items) > 0).To(BeTrue())
+			g.Expect(len(deploymentList.Items) > 0).To(BeTrue())
 			return true
 		}).Should(BeTrue())
 
-		nginxPodExists := false
-		for _, pod := range podList.Items {
-			if strings.Contains(pod.Name, "nginx") {
-				nginxPodExists = true
+		//Checking the name of deployment
+		nginxDeploymentExists := false
+		for _, deployment := range deploymentList.Items {
+			if strings.Contains(deployment.Name, "nginx") {
+				nginxDeploymentExists = true
+				Expect(deployment.Spec.Replicas).To(BeEquivalentTo(ptr[int32](1)))
 				break
 			}
 		}
-		Expect(nginxPodExists).To(BeTrue())
+		Expect(nginxDeploymentExists).To(BeTrue())
 
-		testPlugin.Spec.OptionValues[0].Value.Raw = []byte("\"2\"")
-		testPlugin.Spec.OptionValues[1].Value.Raw = []byte("\"2\"")
-		err = test.K8sClient.Update(test.Ctx, testPlugin)
-		count := 0
-		for _, pod := range podList.Items {
-			if strings.Contains(pod.Name, "nginx") {
-				count++
+		//Updating replicas
+		err = test.K8sClient.List(ctx, pluginList)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(len(pluginList.Items)).To(BeEquivalentTo(1))
+		testPlugin = &pluginList.Items[0]
+		testPlugin.Spec.OptionValues[9].Value.Raw = []byte("2")
+		err = test.K8sClient.Update(ctx, testPlugin)
+		Expect(err).NotTo(HaveOccurred())
+		Eventually(func(g Gomega) bool {
+			err = remoteClient.List(ctx, deploymentList, client.InNamespace(setup.Namespace()))
+			g.Expect(err).NotTo(HaveOccurred())
+			for _, deployment := range deploymentList.Items {
+				if strings.Contains(deployment.Name, "nginx") {
+					g.Expect(deployment.Spec.Replicas).To(BeEquivalentTo(ptr[int32](2)))
+				}
 			}
-		}
-		Expect(count).To(BeEquivalentTo(2))
+			return true
+		}).Should(BeTrue())
 
-		err = test.K8sClient.Delete(test.Ctx, testPlugin)
+		//Deleting plugin
+		err = test.K8sClient.Delete(ctx, testPlugin)
 		Expect(err).NotTo(HaveOccurred())
+		Eventually(func(g Gomega) bool {
+			err = test.K8sClient.List(ctx, pluginList)
+			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(len(pluginList.Items)).To(BeEquivalentTo(0))
+			return true
+		}).Should(BeTrue())
 
-		err = test.K8sClient.List(test.Ctx, pluginList)
+		//Check, is deployment deleted
+		Eventually(func(g Gomega) bool {
+			err = remoteClient.List(ctx, deploymentList, client.InNamespace(setup.Namespace()))
+			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(len(deploymentList.Items)).To(BeEquivalentTo(0))
+			return true
+		}).Should(BeTrue())
+
+		//Deleting plugin definition
+		err = test.K8sClient.Delete(ctx, testPluginDefinition)
 		Expect(err).NotTo(HaveOccurred())
-		Expect(len(pluginList.Items)).To(BeEquivalentTo(0))
-
-		err = test.K8sClient.Delete(test.Ctx, testPluginDefinition)
-		Expect(err).NotTo(HaveOccurred())
-
-		err = test.K8sClient.List(test.Ctx, pluginDefinitionList)
+		err = test.K8sClient.List(ctx, pluginDefinitionList)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(len(pluginDefinitionList.Items)).To(BeEquivalentTo(0))
 
-		Eventually(func(g Gomega) bool {
-			err = remoteClient.List(test.Ctx, podList, client.InNamespace(setup.Namespace()))
-			g.Expect(err).NotTo(HaveOccurred())
-			g.Expect(len(podList.Items)).To(BeEquivalentTo(0))
-			return true
-		}).Should(BeTrue())
 	})
 })
+
+func ptr[T any](value T) *T {
+	return &value
+}
