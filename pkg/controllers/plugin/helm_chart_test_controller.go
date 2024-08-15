@@ -12,6 +12,7 @@ import (
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/pkg/apis/greenhouse/v1alpha1"
 	"github.com/cloudoperators/greenhouse/pkg/clientutil"
 	"github.com/cloudoperators/greenhouse/pkg/helm"
+	"github.com/prometheus/client_golang/prometheus"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -20,7 +21,21 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
+	"sigs.k8s.io/controller-runtime/pkg/metrics"
 )
+
+var (
+	chartTestRunsTotal = prometheus.NewCounterVec(
+		prometheus.CounterOpts{
+			Name: "greenhouse_plugin_chart_test_runs_total",
+			Help: "Total number of Helm Chart test runs with their results",
+		},
+		[]string{"cluster", "plugin", "namespace", "result"})
+)
+
+func init() {
+	metrics.Registry.MustRegister(chartTestRunsTotal)
+}
 
 type HelmChartTestReconciler struct {
 	client.Client
@@ -87,6 +102,11 @@ func (r *HelmChartTestReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 	}
 
 	hasHelmChartTest, err := helm.HelmChartTest(ctx, restClientGetter, &plugin)
+	prometheusLabels := prometheus.Labels{
+		"cluster":   plugin.Spec.ClusterName,
+		"plugin":    plugin.Name,
+		"namespace": plugin.Namespace,
+	}
 	if err != nil {
 		noHelmChartTestFailuresCondition.Status = metav1.ConditionFalse
 		errStr := fmt.Sprintf("Helm Chart testing failed: %s. To debug, please run `helm test %s`command in your remote cluster %s.", err.Error(), plugin.Name, plugin.Spec.ClusterName)
@@ -95,15 +115,23 @@ func (r *HelmChartTestReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 		errStr = strings.ReplaceAll(errStr, "*", "")
 		noHelmChartTestFailuresCondition.Message = errStr
 
+		prometheusLabels["result"] = "Error"
+		chartTestRunsTotal.With(prometheusLabels).Inc()
+
 		return ctrl.Result{}, err
 	}
 
 	if !hasHelmChartTest {
 		noHelmChartTestFailuresCondition.Status = metav1.ConditionTrue
 		noHelmChartTestFailuresCondition.Message = "Helm Chart Test is not defined"
+
+		prometheusLabels["result"] = "NoTests"
 	} else {
 		noHelmChartTestFailuresCondition.Status = metav1.ConditionTrue
 		noHelmChartTestFailuresCondition.Message = "Helm Chart Test is successful"
+
+		prometheusLabels["result"] = "Success"
+		chartTestRunsTotal.With(prometheusLabels).Inc()
 	}
 
 	return ctrl.Result{}, nil
