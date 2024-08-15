@@ -26,7 +26,6 @@ jobs:
       - name: ReviewDog Lint
         env:
           GOGC: 10
-        continue-on-error: true
         timeout-minutes: 11
         uses: reviewdog/action-golangci-lint@v2
         with:
