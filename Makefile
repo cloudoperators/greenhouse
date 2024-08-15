@@ -29,6 +29,8 @@ LOCALBIN ?= $(shell pwd)/bin
 $(LOCALBIN):
 	mkdir -p $(LOCALBIN)
 
+CLI ?= $(LOCALBIN)/greenhousectl
+
 .PHONY: all
 all: build
 
@@ -85,7 +87,7 @@ GEN_DOCS ?= $(LOCALBIN)/gen-crd-api-reference-docs
 generate-documentation: check-gen-crd-api-reference-docs
 	$(GEN_DOCS) -api-dir=$(GEN_DOCS_API_DIR) -config=$(GEN_DOCS_CONFIG) -template-dir=$(GEN_DOCS_TEMPLATE_DIR) -out-file=$(GEN_DOCS_OUT_FILE)
 
-.PHONY: test
+.PHONY: fmt test
 test: generate-manifests generate envtest ## Run tests.
 	KUBEBUILDER_ASSETS="$(shell $(ENVTEST) use $(ENVTEST_K8S_VERSION) -p path)" go test ./... -coverprofile cover.out -v
 
@@ -111,13 +113,9 @@ e2e-local-cluster-create:
 
 
 .PHONY: fmt
-fmt: goimports golint
+fmt: goimports
 	GOBIN=$(LOCALBIN) go fmt ./...
 	$(GOIMPORTS) -w -local github.com/cloudoperators/greenhouse .
-	$(GOLINT) run -v --timeout 5m
-
-.PHONY: check
-check: fmt test
 
 ##@ Build
 
@@ -208,3 +206,19 @@ else
 	cd website && hugo server
 endif
 
+.PHONY: cli
+cli: $(CLI)
+$(CLI): $(LOCALBIN)
+	test -s $(LOCALBIN)/greenhousectl || echo "Building Greenhouse CLI..." && make build-cli
+
+.PHONY: build-cli
+build-cli:
+	go build -ldflags "-s -w -X github.com/cloudoperators/greenhouse/pkg/version.GitBranch=$(GIT_BRANCH) -X github.com/cloudoperators/greenhouse/pkg/version.GitCommit=$(GIT_COMMIT) -X github.com/cloudoperators/greenhouse/pkg/version.GitState=$(GIT_STATE) -X github.com/cloudoperators/greenhouse/pkg/version.BuildDate=$(BUILD_DATE)" -o bin/greenhousectl ./cmd/greenhousectl
+
+.PHONY: setup-dev
+setup-dev: cli
+	$(CLI) dev setup -f hack/localenv/config-sample.json
+
+.PHONY: setup-webhook
+setup-webhook: cli
+	$(CLI) dev setup webhook -x -c greenhouse-admin -n greenhouse -p charts/manager -v hack/localenv/values-sample.yaml -f ./

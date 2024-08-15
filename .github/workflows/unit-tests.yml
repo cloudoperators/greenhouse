@@ -22,7 +22,23 @@ jobs:
         with:
           go-version-file: 'go.mod'
           token: ${{ secrets.GITHUB_TOKEN }}
-      - name: lint & test
-        run: make check
+
+      - name: ReviewDog Lint
+        env:
+          GOGC: 10
+        continue-on-error: true
+        timeout-minutes: 11
+        uses: reviewdog/action-golangci-lint@v2
+        with:
+          go_version_file: go.mod
+          reporter: github-pr-review
+          golangci_lint_flags: "--enable gofmt,revive -v --timeout 10m0s --print-resources-usage"
+          fail_on_error: true
+          level: info
+          cache: true
+
+      - name: test
+        run: make test
+
       - name: build
         run: make build

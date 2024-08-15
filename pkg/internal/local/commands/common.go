@@ -18,8 +18,6 @@ var (
 func GetLocalSetupCommands() []*cobra.Command {
 	return []*cobra.Command{
 		localClusterCmd,
-		createLocalClusterCmd,
-		deleteLocalClusterCmd,
 		manifestsCmd,
 		webhookCmd,
 		setupCmd,
