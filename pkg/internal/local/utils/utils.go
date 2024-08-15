@@ -73,7 +73,12 @@ func WriteToTmpFolder(fileName, content string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	defer file.Close()
+	defer func(file *os.File) {
+		err := file.Close()
+		if err != nil {
+			LogErr("failed to close file %s after write: %s", fileName, err.Error())
+		}
+	}(file)
 	if n, err := io.WriteString(file, content); n == 0 || err != nil {
 		return "", fmt.Errorf("kind kubecfg file: bytes copied: %d: %w]", n, err)
 	}
