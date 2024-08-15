@@ -27,7 +27,7 @@ jobs:
         env:
           GOGC: 10
         timeout-minutes: 11
-        uses: reviewdog/action-golangci-lint@v2
+        uses: reviewdog/action-golangci-lint@v6
         with:
           go_version_file: go.mod
           reporter: github-pr-review
