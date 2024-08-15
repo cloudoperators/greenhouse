@@ -9,12 +9,12 @@
         {
           "helm": {
             "releaseName": "greenhouse-manager",
-            "chartPath": "../../charts/manager",
-            "valuesPath": "values-sample.yaml",
+            "chartPath": "charts/manager",
+            "valuesPath": "hack/localenv/values-sample.yaml",
             "crdOnly": false
           },
           "webhook": {
-            "dockerFile": "../../",
+            "dockerFile": "./",
             "envs": [
               {
                 "name": "WEBHOOK_ONLY",
@@ -26,7 +26,7 @@
         {
           "helm": {
             "releaseName": "greenhouse-idproxy",
-            "chartPath": "../../charts/idproxy",
+            "chartPath": "charts/idproxy",
             "crdOnly": true
           }
         }

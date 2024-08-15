@@ -1,4 +1,4 @@
-package cmd
+package commands
 
 import "github.com/spf13/cobra"
 
@@ -15,12 +15,11 @@ var (
 	excludeKinds   []string
 )
 
-func GetCommands() []*cobra.Command {
+func GetLocalSetupCommands() []*cobra.Command {
 	return []*cobra.Command{
-		clusterCmd,
-		createClusterCmd,
-		deleteClusterCmd,
-		listClusterCmd,
+		localClusterCmd,
+		createLocalClusterCmd,
+		deleteLocalClusterCmd,
 		manifestsCmd,
 		webhookCmd,
 		setupCmd,

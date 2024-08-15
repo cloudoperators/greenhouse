@@ -1,8 +1,7 @@
-package cmd
+package commands
 
 import (
-	"github.com/cloudoperators/greenhouse/hack/localenv/pkg/klient"
-	"github.com/cloudoperators/greenhouse/hack/localenv/pkg/manifests"
+	"github.com/cloudoperators/greenhouse/pkg/internal/local/setup"
 	"github.com/spf13/cobra"
 )
 
@@ -10,38 +9,38 @@ var manifestsCmd = &cobra.Command{
 	Use:               "manifests",
 	Short:             "install manifests for Greenhouse",
 	Long:              "install CRDs, Webhook definitions, RBACs, Certs, etc... for Greenhouse into the target cluster",
-	Example:           `localenv manifests -x -n greenhouse -r greenhouse -p path/to/greenhouse/charts`,
+	Example:           `greenhousectl dev manifests --current-context --namespace greenhouse --release greenhouse --chart-path path/to/greenhouse/charts`,
 	DisableAutoGenTag: true,
 	RunE:              processManifests,
 }
 
 func processManifests(cmd *cobra.Command, _ []string) error {
 	ctx := cmd.Context()
-	opts := make([]klient.HelmClientOption, 0)
-	opts = append(opts, klient.WithChartPath(chartPath))
-	opts = append(opts, klient.WithNamespace(namespaceName))
-	opts = append(opts, klient.WithReleaseName(releaseName))
+	opts := make([]setup.HelmClientOption, 0)
+	opts = append(opts, setup.WithChartPath(chartPath))
+	opts = append(opts, setup.WithNamespace(namespaceName))
+	opts = append(opts, setup.WithReleaseName(releaseName))
 
 	if currentContext {
-		opts = append(opts, klient.WithCurrentContext(currentContext))
+		opts = append(opts, setup.WithCurrentContext(currentContext))
 	} else {
 		if kubeConfigPath != "" {
-			opts = append(opts, klient.WithKubeConfigPath(kubeConfigPath))
+			opts = append(opts, setup.WithKubeConfigPath(kubeConfigPath))
 		} else {
-			opts = append(opts, klient.WithClusterName(clusterName))
+			opts = append(opts, setup.WithClusterName(clusterName))
 		}
 	}
 
 	if valuesPath != "" {
-		opts = append(opts, klient.WithValuesPath(valuesPath))
+		opts = append(opts, setup.WithValuesPath(valuesPath))
 	}
 
-	helmClient, err := klient.NewHelmClient(ctx, opts...)
+	helmClient, err := setup.NewHelmClient(ctx, opts...)
 	if err != nil {
 		return err
 	}
 
-	m := manifests.NewCmdManifests(helmClient, excludeKinds, crdOnly)
+	m := setup.NewCmdManifests(helmClient, excludeKinds, crdOnly)
 	template, err := m.GenerateManifests(ctx)
 	if err != nil {
 		return err
@@ -50,13 +49,12 @@ func processManifests(cmd *cobra.Command, _ []string) error {
 }
 
 func init() {
-	rootCmd.AddCommand(manifestsCmd)
 	manifestsCmd.Flags().StringVarP(&namespaceName, "namespace", "n", "", "namespace to install the resources")
-	manifestsCmd.Flags().StringVarP(&chartPath, "chartPath", "p", "", "local absolute chart path where manifests are located - e.g. <path>/<to>/charts/manager")
+	manifestsCmd.Flags().StringVarP(&chartPath, "chart-path", "p", "", "local absolute chart path where manifests are located - e.g. <path>/<to>/charts/manager")
 	manifestsCmd.Flags().StringVarP(&releaseName, "releaseName", "r", "greenhouse", "Helm release name, Default value: greenhouse - e.g. your-release-name")
 	manifestsCmd.Flags().StringVarP(&clusterName, "name", "c", "", "Name of the kind cluster - e.g. greenhouse-123 (without the kind prefix)")
 	manifestsCmd.Flags().StringVarP(&kubeConfigPath, "kubeconfig", "k", "", "Path to the kubeconfig file")
-	manifestsCmd.Flags().StringVarP(&valuesPath, "valuesPath", "v", "", "local absolute values file path - e.g. <path>/<to>/my-values.yaml")
+	manifestsCmd.Flags().StringVarP(&valuesPath, "values-path", "v", "", "local absolute values file path - e.g. <path>/<to>/my-values.yaml")
 	manifestsCmd.Flags().BoolVarP(&currentContext, "current-context", "x", false, "Use your current kubectl context")
 	manifestsCmd.Flags().BoolVarP(&crdOnly, "crd-only", "d", false, "Install only CRDs")
 	manifestsCmd.Flags().StringArrayVarP(&excludeKinds, "excludeKinds", "e", []string{"Deployment"}, "Exclude kinds from the generated manifests")
@@ -65,7 +63,7 @@ func init() {
 	manifestsCmd.MarkFlagsMutuallyExclusive("name", "current-context")
 	manifestsCmd.MarkFlagsMutuallyExclusive("kubeconfig", "current-context")
 	cobra.CheckErr(manifestsCmd.MarkFlagRequired("namespace"))
-	cobra.CheckErr(manifestsCmd.MarkFlagRequired("chartPath"))
+	cobra.CheckErr(manifestsCmd.MarkFlagRequired("chart-path"))
 	cobra.CheckErr(manifestsCmd.MarkFlagRequired("releaseName"))
 
 }

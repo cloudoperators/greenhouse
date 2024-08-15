@@ -1,10 +1,9 @@
-package klient
+package setup
 
 import (
 	"context"
 	"errors"
-	"github.com/cloudoperators/greenhouse/hack/localenv/pkg/kind"
-	"github.com/cloudoperators/greenhouse/hack/localenv/pkg/utils"
+	"github.com/cloudoperators/greenhouse/pkg/internal/local/utils"
 	"gopkg.in/yaml.v3"
 	"helm.sh/helm/v3/pkg/action"
 	"helm.sh/helm/v3/pkg/chart"
@@ -157,7 +156,7 @@ func NewHelmClient(ctx context.Context, opts ...HelmClientOption) (IHelm, error)
 
 	if !hc.currentContext {
 		if hc.kubeconfigPath == nil {
-			configStr, err := kind.GetKubeCfg(*hc.clusterName, false)
+			configStr, err := GetKubeCfg(*hc.clusterName, false)
 			if err != nil {
 				return nil, err
 			}

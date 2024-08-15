@@ -1,7 +1,7 @@
-package klient
+package setup
 
 import (
-	"github.com/cloudoperators/greenhouse/hack/localenv/pkg/utils"
+	"github.com/cloudoperators/greenhouse/pkg/internal/local/utils"
 	"github.com/vladimirvivien/gexe"
 )
 

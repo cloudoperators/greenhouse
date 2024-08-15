@@ -1,10 +1,8 @@
-package manifests
+package setup
 
 import (
 	"fmt"
-	"github.com/cloudoperators/greenhouse/hack/localenv/pkg/kind"
-	"github.com/cloudoperators/greenhouse/hack/localenv/pkg/klient"
-	"github.com/cloudoperators/greenhouse/hack/localenv/pkg/utils"
+	"github.com/cloudoperators/greenhouse/pkg/internal/local/utils"
 	appsv1 "k8s.io/api/apps/v1"
 	"k8s.io/api/core/v1"
 	"strings"
@@ -35,11 +33,11 @@ func (m *manifests) SetupWebhookManifest(resources []map[string]interface{}) (ma
 	if !utils.CheckIfFileExists(m.webhook.DockerFile) {
 		return nil, fmt.Errorf("docker file not found: %s", m.webhook.DockerFile)
 	}
-	err := klient.BuildImage(MangerIMG, utils.GetHostPlatform(), m.webhook.DockerFile)
+	err := BuildImage(MangerIMG, utils.GetHostPlatform(), m.webhook.DockerFile)
 	if err != nil {
 		return nil, err
 	}
-	err = kind.LoadImage(MangerIMG, clusterName)
+	err = LoadImage(MangerIMG, clusterName)
 	if err != nil {
 		return nil, err
 	}

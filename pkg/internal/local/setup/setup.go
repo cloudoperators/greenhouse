@@ -4,10 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/cloudoperators/greenhouse/hack/localenv/pkg/cluster"
-	"github.com/cloudoperators/greenhouse/hack/localenv/pkg/klient"
-	"github.com/cloudoperators/greenhouse/hack/localenv/pkg/manifests"
-	"github.com/cloudoperators/greenhouse/hack/localenv/pkg/utils"
+	"github.com/cloudoperators/greenhouse/pkg/internal/local/utils"
 	"os"
 )
 
@@ -16,15 +13,15 @@ type Config struct {
 }
 
 type ClusterConfig struct {
-	Cluster        *cluster.Cluster     `json:"cluster"`
+	Cluster        *Cluster             `json:"cluster"`
 	CurrentContext *bool                `json:"currentContext"`
 	KubeConfigPath *string              `json:"kubeConfigPath"`
 	Dependencies   []*ClusterDependency `json:"dependencies"`
 }
 
 type ClusterDependency struct {
-	Helm    *HelmConfig        `json:"helm"`
-	Webhook *manifests.Webhook `json:"webhook"`
+	Helm    *HelmConfig `json:"helm"`
+	Webhook *Webhook    `json:"webhook"`
 }
 
 type HelmConfig struct {
@@ -33,7 +30,7 @@ type HelmConfig struct {
 	ValuesPath   *string `json:"valuesPath"`
 	CRDOnly      bool    `json:"crdOnly"`
 	excludeKinds []string
-	hc           klient.IHelm
+	hc           IHelm
 }
 
 type ISetup interface {
@@ -43,7 +40,7 @@ type ISetup interface {
 func (c *ClusterConfig) Setup(ctx context.Context) error {
 	// setup cluster
 	if c.CurrentContext != nil {
-		c.Cluster = cluster.Configure(c.Cluster, *c.CurrentContext)
+		c.Cluster = Configure(c.Cluster, *c.CurrentContext)
 	}
 	err := c.Cluster.Setup()
 	if err != nil {
@@ -58,7 +55,7 @@ func (c *ClusterConfig) Setup(ctx context.Context) error {
 		if dependency.Webhook != nil {
 			dependency.Helm.excludeKinds = append(dependency.Helm.excludeKinds, "Deployment")
 		}
-		manifest := manifests.NewManifestsSetup(dependency.Helm.hc, dependency.Webhook, dependency.Helm.excludeKinds, dependency.Helm.CRDOnly)
+		manifest := NewManifestsSetup(dependency.Helm.hc, dependency.Webhook, dependency.Helm.excludeKinds, dependency.Helm.CRDOnly)
 		err = manifest.Setup(ctx)
 		if err != nil {
 			return fmt.Errorf("failed to generate manifests: %w", err)
@@ -90,27 +87,27 @@ func (c *ClusterConfig) prepareDependencies(ctx context.Context) error {
 		utils.Log("warning: cluster configuration not provided, some functionalities will be skipped")
 	}
 	for _, dependency := range c.Dependencies {
-		opts := make([]klient.HelmClientOption, 0)
-		opts = append(opts, klient.WithChartPath(dependency.Helm.ChartPath))
-		opts = append(opts, klient.WithNamespace(*c.Cluster.Namespace))
-		opts = append(opts, klient.WithReleaseName(dependency.Helm.ReleaseName))
+		opts := make([]HelmClientOption, 0)
+		opts = append(opts, WithChartPath(dependency.Helm.ChartPath))
+		opts = append(opts, WithNamespace(*c.Cluster.Namespace))
+		opts = append(opts, WithReleaseName(dependency.Helm.ReleaseName))
 		if c.Cluster != nil {
-			opts = append(opts, klient.WithClusterName(c.Cluster.Name))
+			opts = append(opts, WithClusterName(c.Cluster.Name))
 		}
 
 		if c.CurrentContext != nil {
-			opts = append(opts, klient.WithCurrentContext(*c.CurrentContext))
+			opts = append(opts, WithCurrentContext(*c.CurrentContext))
 		} else {
 			if c.KubeConfigPath != nil {
-				opts = append(opts, klient.WithKubeConfigPath(*c.KubeConfigPath))
+				opts = append(opts, WithKubeConfigPath(*c.KubeConfigPath))
 			}
 		}
 
 		if dependency.Helm.ValuesPath != nil {
-			opts = append(opts, klient.WithValuesPath(*dependency.Helm.ValuesPath))
+			opts = append(opts, WithValuesPath(*dependency.Helm.ValuesPath))
 		}
 
-		helmClient, err := klient.NewHelmClient(ctx, opts...)
+		helmClient, err := NewHelmClient(ctx, opts...)
 		if err != nil {
 			return err
 		}

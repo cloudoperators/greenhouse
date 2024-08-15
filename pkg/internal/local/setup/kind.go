@@ -1,8 +1,8 @@
-package kind
+package setup
 
 import (
 	"fmt"
-	"github.com/cloudoperators/greenhouse/hack/localenv/pkg/utils"
+	"github.com/cloudoperators/greenhouse/pkg/internal/local/utils"
 	"github.com/vladimirvivien/gexe"
 	"strings"
 )

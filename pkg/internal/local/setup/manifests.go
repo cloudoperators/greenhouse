@@ -1,23 +1,18 @@
-package manifests
+package setup
 
 import (
 	"context"
 	"fmt"
-	"github.com/cloudoperators/greenhouse/hack/localenv/pkg/klient"
-	"github.com/cloudoperators/greenhouse/hack/localenv/pkg/utils"
+	"github.com/cloudoperators/greenhouse/pkg/internal/local/utils"
 	"github.com/vladimirvivien/gexe"
 	"strings"
 )
 
 type manifests struct {
-	hc           klient.IHelm
+	hc           IHelm
 	excludeKinds []string
 	crdOnly      bool
 	webhook      *Webhook
-}
-
-type ISetup interface {
-	Setup(ctx context.Context) error
 }
 
 type IManifest interface {
@@ -26,11 +21,11 @@ type IManifest interface {
 	SetupWebhookManifest(resources []map[string]interface{}) (map[string]interface{}, error)
 }
 
-func NewManifestsSetup(hc klient.IHelm, webhook *Webhook, excludeKinds []string, crdOnly bool) ISetup {
+func NewManifestsSetup(hc IHelm, webhook *Webhook, excludeKinds []string, crdOnly bool) ISetup {
 	return &manifests{hc: hc, webhook: webhook, excludeKinds: excludeKinds, crdOnly: crdOnly}
 }
 
-func NewCmdManifests(hc klient.IHelm, excludeKinds []string, crdOnly bool) IManifest {
+func NewCmdManifests(hc IHelm, excludeKinds []string, crdOnly bool) IManifest {
 	return &manifests{hc: hc, excludeKinds: excludeKinds, crdOnly: crdOnly}
 }
 
