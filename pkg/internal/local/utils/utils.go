@@ -66,7 +66,7 @@ func GetManagerHelmValues() map[string]interface{} {
 
 func SliceContains(slice []string, item string) bool {
 	return slices.ContainsFunc(slice, func(s string) bool {
-		return strings.ToLower(s) == strings.ToLower(item)
+		return strings.EqualFold(s, item)
 	})
 }
 
