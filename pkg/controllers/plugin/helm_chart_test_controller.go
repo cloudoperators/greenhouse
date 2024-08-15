@@ -56,8 +56,8 @@ func (r *HelmChartTestReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
 
-	// Nothing to do when the status of the plugin is empty
-	if reflect.DeepEqual(plugin.Status, greenhousev1alpha1.PluginStatus{}) {
+	// Nothing to do when the status of the plugin is empty and when the plugin does not have a Helm Chart
+	if reflect.DeepEqual(plugin.Status, greenhousev1alpha1.PluginStatus{}) || plugin.Status.HelmChart == nil {
 		return ctrl.Result{}, nil
 	}
 

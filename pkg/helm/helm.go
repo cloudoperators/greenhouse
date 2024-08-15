@@ -9,6 +9,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"slices"
 	"time"
 
 	"helm.sh/helm/v3/pkg/action"
@@ -107,15 +108,9 @@ func HelmChartTest(ctx context.Context, restClientGetter genericclioptions.RESTC
 	}
 
 	if results.Hooks != nil {
-	outer:
-		for _, hook := range results.Hooks {
-			for _, event := range hook.Events {
-				if event == release.HookTest {
-					hasTestHook = true
-					break outer // Break out of both loops when a test hook is found
-				}
-			}
-		}
+		hasTestHook = slices.ContainsFunc(results.Hooks, func(h *release.Hook) bool {
+			return slices.Contains(h.Events, release.HookTest)
+		})
 	}
 
 	return hasTestHook, nil
