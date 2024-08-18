@@ -123,7 +123,7 @@ func (r *HelmChartTestReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 
 	if !hasHelmChartTest {
 		noHelmChartTestFailuresCondition.Status = metav1.ConditionTrue
-		noHelmChartTestFailuresCondition.Message = "No Helm Chart Test found. It is strongly recommended to have Helm Chart Tests for your Helm Chart of the plugin."
+		noHelmChartTestFailuresCondition.Message = "No Helm Chart Tests defined by the PluginDefinition"
 
 		prometheusLabels["result"] = "NoTests"
 		chartTestRunsTotal.With(prometheusLabels).Inc()
