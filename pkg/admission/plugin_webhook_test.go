@@ -24,7 +24,7 @@ var _ = Describe("Validate Plugin OptionValues", func() {
 		plugin := &greenhousev1alpha1.Plugin{
 			Spec: greenhousev1alpha1.PluginSpec{
 				PluginDefinition: "test",
-				ClusterName:      "test-cluster",
+				ClusterName:      testclustername,
 				OptionValues: []greenhousev1alpha1.PluginOptionValue{
 					{
 						Name:      "test",
@@ -99,7 +99,7 @@ var _ = Describe("Validate Plugin OptionValues", func() {
 			},
 			Spec: greenhousev1alpha1.PluginSpec{
 				PluginDefinition: "test",
-				ClusterName:      "test-cluster",
+				ClusterName:      testclustername,
 				OptionValues: []greenhousev1alpha1.PluginOptionValue{
 					{
 						Name:  "test",
@@ -206,7 +206,7 @@ var _ = Describe("Validate Plugin OptionValues", func() {
 				},
 				Spec: greenhousev1alpha1.PluginSpec{
 					PluginDefinition: "test",
-					ClusterName:      "test-cluster",
+					ClusterName:      testclustername,
 				},
 			}
 			errList := validatePluginOptionValues(plugin.Spec.OptionValues, pluginDefinition)
@@ -224,7 +224,7 @@ var _ = Describe("Validate Plugin OptionValues", func() {
 				},
 				Spec: greenhousev1alpha1.PluginSpec{
 					PluginDefinition: "test",
-					ClusterName:      "test-cluster",
+					ClusterName:      testclustername,
 					OptionValues: []greenhousev1alpha1.PluginOptionValue{
 						{
 							Name:  "test",
@@ -304,7 +304,7 @@ var _ = Describe("Validate pluginConfig clusterName", Ordered, func() {
 		By("creating the pluginConfig")
 		//reset resourceVersion to avoid conflict, still using same struct
 		testPlugin.ResourceVersion = ""
-		testPlugin.Spec.ClusterName = "test-cluster"
+		testPlugin.Spec.ClusterName = testclustername
 		err := test.K8sClient.Create(test.Ctx, testPlugin)
 		Expect(err).ToNot(HaveOccurred(), "there should be no error creating the pluginConfig")
 
@@ -314,7 +314,7 @@ var _ = Describe("Validate pluginConfig clusterName", Ordered, func() {
 		Expect(err).ToNot(HaveOccurred(), "there should be no error getting the plugin")
 		Eventually(func() map[string]string {
 			return actPlugin.GetLabels()
-		}).Should(HaveKeyWithValue(greenhouseapis.LabelKeyCluster, "test-cluster"), "the plugin should have a matching cluster label")
+		}).Should(HaveKeyWithValue(greenhouseapis.LabelKeyCluster, testclustername), "the plugin should have a matching cluster label")
 	})
 
 	It("should reject a plugin update where the clusterName changes", func() {
@@ -331,7 +331,7 @@ var _ = Describe("Validate pluginConfig clusterName", Ordered, func() {
 		Expect(err).ToNot(BeNil(), "there should be an error changing the plugin's clusterName")
 		Expect(err.Error()).To(ContainSubstring("field is immutable"))
 		// reset the clusterName for following tests to pass
-		testPlugin.Spec.ClusterName = "test-cluster"
+		testPlugin.Spec.ClusterName = testclustername
 	})
 
 	It("should reject a plugin update where the releaseNamespace changes", func() {
@@ -375,7 +375,7 @@ var _ = Describe("Validate Plugin with OwnerReference from PluginPresets", func(
 		},
 		Spec: greenhousev1alpha1.PluginSpec{
 			PluginDefinition: "test-plugindefinition",
-			ClusterName:      "test-cluster",
+			ClusterName:      testclustername,
 		},
 	}
 
