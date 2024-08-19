@@ -14,6 +14,13 @@ import (
 type TeamRoleSpec struct {
 	// Rules is a list of rbacv1.PolicyRules used on a managed RBAC (Cluster)Role
 	Rules []rbacv1.PolicyRule `json:"rules,omitempty"`
+
+	// AggregationRule describes how to locate ClusterRoles to aggregate into the ClusterRole on the remote cluster
+	AggregationRule *rbacv1.AggregationRule `json:"aggregationRule,omitempty"`
+
+	// Labels are applied to the ClusterRole created on the remote cluster.
+	// This allows using TeamRoles as part of AggregationRules by other TeamRoles
+	Labels map[string]string `json:"labels,omitempty"`
 }
 
 // TeamRoleStatus defines the observed state of a TeamRole

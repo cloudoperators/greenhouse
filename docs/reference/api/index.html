@@ -2886,6 +2886,31 @@ TeamRoleSpec
 <p>Rules is a list of rbacv1.PolicyRules used on a managed RBAC (Cluster)Role</p>
 </td>
 </tr>
+<tr>
+<td>
+<code>aggregationRule</code><br>
+<em>
+<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.24/#aggregationrule-v1-rbac">
+Kubernetes rbac/v1.AggregationRule
+</a>
+</em>
+</td>
+<td>
+<p>AggregationRule describes how to locate ClusterRoles to aggregate into the ClusterRole on the remote cluster</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>labels</code><br>
+<em>
+map[string]string
+</em>
+</td>
+<td>
+<p>Labels are applied to the ClusterRole created on the remote cluster.
+This allows using TeamRoles as part of AggregationRules by other TeamRoles</p>
+</td>
+</tr>
 </table>
 </td>
 </tr>
@@ -3176,6 +3201,31 @@ StatusConditions
 </td>
 <td>
 <p>Rules is a list of rbacv1.PolicyRules used on a managed RBAC (Cluster)Role</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>aggregationRule</code><br>
+<em>
+<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.24/#aggregationrule-v1-rbac">
+Kubernetes rbac/v1.AggregationRule
+</a>
+</em>
+</td>
+<td>
+<p>AggregationRule describes how to locate ClusterRoles to aggregate into the ClusterRole on the remote cluster</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>labels</code><br>
+<em>
+map[string]string
+</em>
+</td>
+<td>
+<p>Labels are applied to the ClusterRole created on the remote cluster.
+This allows using TeamRoles as part of AggregationRules by other TeamRoles</p>
 </td>
 </tr>
 </tbody>

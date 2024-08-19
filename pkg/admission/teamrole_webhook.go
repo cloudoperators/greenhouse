@@ -41,11 +41,29 @@ func DefaultRole(_ context.Context, _ client.Client, _ runtime.Object) error {
 
 //+kubebuilder:webhook:path=/validate-greenhouse-sap-v1alpha1-teamrole,mutating=false,failurePolicy=fail,sideEffects=None,groups=greenhouse.sap,resources=teamroles,verbs=create;update;delete,versions=v1alpha1,name=vrole.kb.io,admissionReviewVersions=v1
 
-func ValidateCreateRole(_ context.Context, _ client.Client, _ runtime.Object) (admission.Warnings, error) {
+func ValidateCreateRole(_ context.Context, c client.Client, o runtime.Object) (admission.Warnings, error) {
+
+	role, ok := o.(*greenhousev1alpha1.TeamRole)
+	if !ok {
+		return nil, nil
+	}
+
+	if err := isRulesAndAggregationRuleExclusive(role); err != nil {
+		return nil, err
+	}
+
 	return nil, nil
 }
 
-func ValidateUpdateRole(_ context.Context, _ client.Client, _, _ runtime.Object) (admission.Warnings, error) {
+func ValidateUpdateRole(_ context.Context, c client.Client, _, new runtime.Object) (admission.Warnings, error) {
+	role, ok := new.(*greenhousev1alpha1.TeamRole)
+	if !ok {
+		return nil, nil
+	}
+
+	if err := isRulesAndAggregationRuleExclusive(role); err != nil {
+		return nil, err
+	}
 	return nil, nil
 }
 
@@ -80,4 +98,14 @@ func isRoleReferenced(ctx context.Context, c client.Client, r *greenhousev1alpha
 		return false, err
 	}
 	return len(l.Items) > 0, nil
+}
+
+// isRulesAndAggregationRuleExclusive checks if Rules and AggregationRule are not both specified.
+// Rules will be overwritten on the remote cluster if the AggregationRule is set as well.
+// Returning the error in case both are defined will prevent unexpected behavior by the User.
+func isRulesAndAggregationRuleExclusive(role *greenhousev1alpha1.TeamRole) error {
+	if len(role.Spec.Rules) != 0 && role.Spec.AggregationRule != nil {
+		return apierrors.NewBadRequest("aggregationRules and rules are mutually exclusive")
+	}
+	return nil
 }
