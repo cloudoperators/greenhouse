@@ -73,6 +73,7 @@ var (
 			Name:      "test-plugindefinition",
 		},
 		Spec: greenhousesapv1alpha1.PluginDefinitionSpec{
+			Version: "1.0.0",
 			HelmChart: &greenhousesapv1alpha1.HelmChartReference{
 				Name:       "./../test/fixtures/myChart",
 				Repository: "dummy",

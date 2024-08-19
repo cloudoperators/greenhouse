@@ -47,6 +47,9 @@ func ValidateCreatePluginDefinition(_ context.Context, _ client.Client, o runtim
 	if err := validatePluginDefinitionMustSpecifyHelmChartOrUIApplication(pluginDefinition); err != nil {
 		return nil, err
 	}
+	if err := validatePluginDefinitionMustSpecifyVersion(pluginDefinition); err != nil {
+		return nil, err
+	}
 	return nil, validatePluginDefinitionOptionValueAndType(pluginDefinition)
 }
 
@@ -56,6 +59,9 @@ func ValidateUpdatePluginDefinition(_ context.Context, _ client.Client, _, o run
 		return nil, nil
 	}
 	if err := validatePluginDefinitionMustSpecifyHelmChartOrUIApplication(pluginDefinition); err != nil {
+		return nil, err
+	}
+	if err := validatePluginDefinitionMustSpecifyVersion(pluginDefinition); err != nil {
 		return nil, err
 	}
 	return nil, validatePluginDefinitionOptionValueAndType(pluginDefinition)
@@ -75,6 +81,13 @@ func ValidateDeletePluginDefinition(ctx context.Context, c client.Client, o runt
 		return nil, apierrors.NewBadRequest("PluginDefinition is still in use by Plugins")
 	}
 	return nil, nil
+}
+
+func validatePluginDefinitionMustSpecifyVersion(pluginDefinition *greenhousev1alpha1.PluginDefinition) error {
+	if pluginDefinition.Spec.Version == "" {
+		return field.Required(field.NewPath("spec", "version"), "PluginDefinition without spec.version is invalid.")
+	}
+	return nil
 }
 
 func validatePluginDefinitionMustSpecifyHelmChartOrUIApplication(pluginDefinition *greenhousev1alpha1.PluginDefinition) error {
