@@ -225,7 +225,10 @@ func StartControlPlane(port string, installCRDs, installWebhooks bool) (*rest.Co
 	Expect(err).
 		NotTo(HaveOccurred(), "there must be no error finding the config directory")
 	if installCRDs {
-		crdPaths := []string{filepath.Join(absPathConfigBasePath, "manager", "crds")}
+		crdPaths := []string{
+			filepath.Join(absPathConfigBasePath, "manager", "crds"),
+			filepath.Join(absPathConfigBasePath, "idproxy", "crds"),
+		}
 		testEnv.CRDDirectoryPaths = crdPaths
 		testEnv.ErrorIfCRDPathMissing = true
 	}
