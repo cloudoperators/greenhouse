@@ -9,6 +9,7 @@ import (
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	. "github.com/onsi/gomega/gstruct"
 	appsv1 "k8s.io/api/apps/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -103,7 +104,7 @@ var _ = Describe("PluginLifecycle", Ordered, func() {
 		for _, deployment := range deploymentList.Items {
 			if strings.Contains(deployment.Name, "nginx") {
 				nginxDeploymentExists = true
-				Expect(deployment.Spec.Replicas).To(BeEquivalentTo(ptr[int32](1)))
+				Expect(deployment.Spec.Replicas).To(PointTo(Equal(int32(1))))
 				break
 			}
 		}
@@ -122,7 +123,7 @@ var _ = Describe("PluginLifecycle", Ordered, func() {
 			g.Expect(err).NotTo(HaveOccurred())
 			for _, deployment := range deploymentList.Items {
 				if strings.Contains(deployment.Name, "nginx") {
-					g.Expect(deployment.Spec.Replicas).To(BeEquivalentTo(ptr[int32](2)))
+					g.Expect(deployment.Spec.Replicas).To(PointTo(Equal(int32(2))))
 				}
 			}
 			return true
@@ -143,7 +144,3 @@ var _ = Describe("PluginLifecycle", Ordered, func() {
 		test.EventuallyDeleted(ctx, test.K8sClient, testPluginDefinition)
 	})
 })
-
-func ptr[T any](value T) *T {
-	return &value
-}
