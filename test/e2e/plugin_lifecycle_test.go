@@ -12,6 +12,7 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	greenhouseapis "github.com/cloudoperators/greenhouse/pkg/apis"
@@ -77,9 +78,14 @@ var _ = Describe("PluginLifecycle", Ordered, func() {
 		//Creating plugin
 		err = test.K8sClient.Create(ctx, testPlugin)
 		Expect(err).NotTo(HaveOccurred())
-		err = test.K8sClient.List(ctx, pluginList)
-		Expect(err).NotTo(HaveOccurred())
-		Expect(len(pluginList.Items)).To(BeEquivalentTo(1))
+		Eventually(func(g Gomega) bool {
+			err = test.K8sClient.List(ctx, pluginList)
+			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(len(pluginList.Items)).To(BeEquivalentTo(1))
+			g.Expect(pluginList.Items[0].Status.HelmReleaseStatus).ToNot(BeNil())
+			g.Expect(pluginList.Items[0].Status.HelmReleaseStatus.Status).To(BeEquivalentTo("deployed"))
+			return true
+		}).Should(BeTrue())
 
 		//Checking deployment
 		err = remoteClient.List(ctx, deploymentList, client.InNamespace(setup.Namespace()))
@@ -104,9 +110,9 @@ var _ = Describe("PluginLifecycle", Ordered, func() {
 		Expect(nginxDeploymentExists).To(BeTrue())
 
 		//Updating replicas
-		err = test.K8sClient.List(ctx, pluginList)
+		namespacedName := types.NamespacedName{Name: testPlugin.Name, Namespace: testPlugin.Namespace}
+		err = test.K8sClient.Get(ctx, namespacedName, testPlugin)
 		Expect(err).NotTo(HaveOccurred())
-		Expect(len(pluginList.Items)).To(BeEquivalentTo(1))
 		testPlugin = &pluginList.Items[0]
 		testPlugin.Spec.OptionValues[9].Value.Raw = []byte("2")
 		err = test.K8sClient.Update(ctx, testPlugin)
@@ -123,14 +129,7 @@ var _ = Describe("PluginLifecycle", Ordered, func() {
 		}).Should(BeTrue())
 
 		//Deleting plugin
-		err = test.K8sClient.Delete(ctx, testPlugin)
-		Expect(err).NotTo(HaveOccurred())
-		Eventually(func(g Gomega) bool {
-			err = test.K8sClient.List(ctx, pluginList)
-			g.Expect(err).NotTo(HaveOccurred())
-			g.Expect(len(pluginList.Items)).To(BeEquivalentTo(0))
-			return true
-		}).Should(BeTrue())
+		test.EventuallyDeleted(ctx, test.K8sClient, testPlugin)
 
 		//Check, is deployment deleted
 		Eventually(func(g Gomega) bool {
@@ -141,12 +140,7 @@ var _ = Describe("PluginLifecycle", Ordered, func() {
 		}).Should(BeTrue())
 
 		//Deleting plugin definition
-		err = test.K8sClient.Delete(ctx, testPluginDefinition)
-		Expect(err).NotTo(HaveOccurred())
-		err = test.K8sClient.List(ctx, pluginDefinitionList)
-		Expect(err).NotTo(HaveOccurred())
-		Expect(len(pluginDefinitionList.Items)).To(BeEquivalentTo(0))
-
+		test.EventuallyDeleted(ctx, test.K8sClient, testPluginDefinition)
 	})
 })
 
