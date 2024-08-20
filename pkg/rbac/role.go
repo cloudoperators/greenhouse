@@ -4,8 +4,6 @@
 package rbac
 
 import (
-	"fmt"
-
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 
@@ -112,5 +110,5 @@ func OrganizationMemberPolicyRules() []rbacv1.PolicyRule {
 
 // GetTeamRoleName returns the name of the role for a team.
 func GetTeamRoleName(teamName string) string {
-	return fmt.Sprintf("team:%s", teamName)
+	return "team:" + teamName
 }

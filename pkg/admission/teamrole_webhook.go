@@ -5,7 +5,7 @@ package admission
 
 import (
 	"context"
-	"fmt"
+	"errors"
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/fields"
@@ -63,7 +63,7 @@ func ValidateDeleteRole(ctx context.Context, c client.Client, o runtime.Object) 
 		return nil, apierrors.NewForbidden(schema.GroupResource{
 			Group:    r.GroupVersionKind().Group,
 			Resource: r.GroupVersionKind().Kind,
-		}, r.GetName(), fmt.Errorf("role is still referenced by a rolebinding"))
+		}, r.GetName(), errors.New("role is still referenced by a rolebinding"))
 	}
 	return nil, nil
 }

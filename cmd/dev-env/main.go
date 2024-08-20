@@ -85,7 +85,7 @@ func main() {
 	envTest.ControlPlane.GetAPIServer().Configure().Append("cors-allowed-origins", ".*")
 	envTest.ControlPlane.GetAPIServer().Configure().Append("enable-admission-plugins", "MutatingAdmissionWebhook", "ValidatingAdmissionWebhook")
 
-	//starting dev env
+	// starting dev env
 	logger.Info("Starting apiserver & etcd")
 	cfg, err := envTest.Start()
 	if err != nil {
@@ -146,7 +146,7 @@ func createInternalKubeConfigFile(logger *logrus.Logger, envTest *envtest.Enviro
 
 	internalKubeConfig.addUser("cluster-admin", cfg, "")
 
-	//create users for test-org and add to kubeConfig
+	// create users for test-org and add to kubeConfig
 	for name, groups := range userData {
 		user, err := envTest.ControlPlane.AddUser(envtest.User{
 			Name:   name,

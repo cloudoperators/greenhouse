@@ -77,7 +77,7 @@ func (p *Proxy) Start() {
 	defer p.lconn.Close()
 
 	var err error
-	//connect to remote
+	// connect to remote
 	if p.tlsUnwrapp {
 		p.rconn, err = tls.Dial("tcp", p.tlsAddress, nil)
 	} else {
@@ -93,14 +93,14 @@ func (p *Proxy) Start() {
 	metrics.IncrementActiveOutboundGauge()
 	defer p.rconn.Close()
 
-	//display both ends
+	// display both ends
 	klog.Infof("Opened %s >>> %s", p.laddr.String(), p.raddr.String())
 
-	//bidirectional copy
+	// bidirectional copy
 	go p.pipe(p.lconn, p.rconn)
 	go p.pipe(p.rconn, p.lconn)
 
-	//wait for close...
+	// wait for close...
 	<-p.errsig
 	klog.Infof("Closed (%d bytes sent, %d bytes received)", p.sentBytes, p.receivedBytes)
 	// Connection proxying complete, so update all metrics
@@ -138,7 +138,7 @@ func (p *Proxy) pipe(src, dst io.ReadWriter) {
 		byteFormat = "%s"
 	}
 
-	//directional copy (64k buffer)
+	// directional copy (64k buffer)
 	buff := make([]byte, 0xffff)
 	for {
 		n, err := src.Read(buff)
@@ -148,11 +148,11 @@ func (p *Proxy) pipe(src, dst io.ReadWriter) {
 		}
 		b := buff[:n]
 
-		//show output
+		// show output
 		klog.V(5).Infof(dataDirection, n, "")
 		klog.V(5).Infof(byteFormat, b)
 
-		//write out result
+		// write out result
 		n, err = dst.Write(b)
 		if err != nil {
 			p.err("Write failed '%s'\n", err)

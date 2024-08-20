@@ -302,7 +302,7 @@ var _ = Describe("Validate pluginConfig clusterName", Ordered, func() {
 
 	It("should accept the pluginConfig when the cluster with clusterName exists", func() {
 		By("creating the pluginConfig")
-		//reset resourceVersion to avoid conflict, still using same struct
+		// reset resourceVersion to avoid conflict, still using same struct
 		testPlugin.ResourceVersion = ""
 		testPlugin.Spec.ClusterName = "test-cluster"
 		err := test.K8sClient.Create(test.Ctx, testPlugin)
@@ -321,14 +321,14 @@ var _ = Describe("Validate pluginConfig clusterName", Ordered, func() {
 		testPlugin.Spec.ClusterName = "wrong-cluster-name"
 		err := test.K8sClient.Update(test.Ctx, testPlugin)
 
-		Expect(err).ToNot(BeNil(), "there should be an error changing the plugin's clusterName")
+		Expect(err).To(HaveOccurred(), "there should be an error changing the plugin's clusterName")
 		Expect(err.Error()).To(ContainSubstring("field is immutable"))
 	})
 
 	It("should not allow deletion of the clusterName reference in existing plugin", func() {
 		testPlugin.Spec.ClusterName = ""
 		err := test.K8sClient.Update(test.Ctx, testPlugin)
-		Expect(err).ToNot(BeNil(), "there should be an error changing the plugin's clusterName")
+		Expect(err).To(HaveOccurred(), "there should be an error changing the plugin's clusterName")
 		Expect(err.Error()).To(ContainSubstring("field is immutable"))
 		// reset the clusterName for following tests to pass
 		testPlugin.Spec.ClusterName = "test-cluster"
@@ -337,7 +337,7 @@ var _ = Describe("Validate pluginConfig clusterName", Ordered, func() {
 	It("should reject a plugin update where the releaseNamespace changes", func() {
 		testPlugin.Spec.ReleaseNamespace = "foo-bar"
 		err := test.K8sClient.Update(test.Ctx, testPlugin)
-		Expect(err).ToNot(BeNil(), "there should be an error changing the plugin's releaseNamespace")
+		Expect(err).To(HaveOccurred(), "there should be an error changing the plugin's releaseNamespace")
 		Expect(err.Error()).To(ContainSubstring("field is immutable"))
 	})
 })
