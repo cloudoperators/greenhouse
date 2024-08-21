@@ -31,6 +31,9 @@ spec:
     - name: silenceTemplates
       value:
         {{ .Values.alerts.silenceTemplates | toYaml | nindent 8 }}
+    - name: predefinedFilters
+      value:
+        {{ .Values.alerts.predefinedFilters | toYaml | nindent 8 }}
     - name: alerts.alertmanager.ingress.hosts
       value:
       - {{ required ".Values.alerts.ingress.host missing" .Values.alerts.ingress.host }}
@@ -42,11 +45,9 @@ spec:
     - name: alerts.alertmanager.alertmanagerSpec.alertmanagerConfigMatcherStrategy
       value:
         type: None
-{{- if and .Values.alerts.slack.webhookURL .Values.alerts.slack.channel }}
+    {{- if .Values.alerts.slack.routes }}
     - name: alerts.alertmanagerConfig.slack.routes
       value:
-        - channel: {{ printf "#%s" .Values.alerts.slack.channel | quote }}
-          name: {{ .Values.alerts.slack.channel }}
-          webhookURL: {{ .Values.alerts.slack.webhookURL }}
-{{- end }}
+        {{ .Values.alerts.slack.routes | toYaml | nindent 8 }}
+    {{- end }}
 {{- end }}

@@ -1,14 +1,13 @@
 # SPDX-FileCopyrightText: 2024 SAP SE or an SAP affiliate company and Greenhouse contributors
 # SPDX-License-Identifier: Apache-2.0
 
-baseURL: "http://documentation.greenhouse.global.cloud.sap"
+baseURL: "https://cloudoperators.github.io/greenhouse"
 languageCode: "en-us"
 title: "Greenhouse"
 
 params:
   github_repo: "https://github.com/cloudoperators/greenhouse"
   github_branch: "main"
-  landingPageContentTemplateName: "landing-page"
   overviewSection:
     - label: "Links"
       icon: "fa-regular fa-globe"
@@ -52,12 +51,17 @@ menu:
      weight: 0
 
 module:
-    hugoVersion:
-        extended: true
-        min: 0.111.0
-    imports:
-        - path: github.com/sapcc/hugo-documentation-templater
-          disable: false
+  mounts:
+    - source: content
+      target: content
+    - source: ../docs
+      target: content/docs
+  hugoVersion:
+      extended: true
+      min: 0.111.0
+  imports:
+      - path: github.com/sapcc/hugo-documentation-templater/v2
+        disable: false
 
 outputs:
   section:

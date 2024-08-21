@@ -20,9 +20,10 @@ cp "$3" /tmp/openapi-info.yaml
 yq e --inplace '.api-info.version = env(VERSION)' /tmp/openapi-info.yaml
 
 # Generate openapi spec and documentation.
-/generate.sh $1 $2 /tmp/openapi-info.yaml
+/generate.sh $1 /tmp /tmp/openapi-info.yaml
 
 # Cleanup.
 rm -rf $2/.openapi-generator $2/.openapi-generator-ignore || true
-# Preserve openapi.yaml.
+# Only update openapi.yaml, we do not create index.html with this tool.
 cp /tmp/data/api.yaml $2/openapi.yaml
+

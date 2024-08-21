@@ -2,7 +2,7 @@
 title: "Reference"
 linkTitle: "Reference"
 weight: 4
-landingSectionIndex: true
+landingSectionIndex: false
 description: >
   Technical reference documentation for Greenhouse resources
 ---

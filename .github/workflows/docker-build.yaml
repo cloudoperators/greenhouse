@@ -39,6 +39,8 @@ jobs:
             Imagename: greenhouse-tailscale
           - Dockerfiles: Dockerfile.tcp-proxy
             Imagename: greenhouse-tcp-proxy
+          # - Dockerfiles: Dockerfile.dev-ui
+          #   Imagename: greenhouse-dev-ui
 
     permissions:
       contents: read
@@ -55,7 +57,7 @@ jobs:
       # https://github.com/sigstore/cosign-installer
       - name: Install cosign
         if: github.event_name != 'pull_request'
-        uses: sigstore/cosign-installer@v3.5.0
+        uses: sigstore/cosign-installer@v3.6.0
         with:
           cosign-release: 'v2.2.3'
       
@@ -153,6 +155,8 @@ jobs:
             Imagename: greenhouse-tailscale
           - Dockerfiles: Dockerfile.tcp-proxy
             Imagename: greenhouse-tcp-proxy
+          # - Dockerfiles: Dockerfile.dev-ui
+          #   Imagename: greenhouse-dev-ui
 
     name: Vulnerability Scan
     needs: build

@@ -38,12 +38,12 @@ type PluginDefinitionSpec struct {
 	// Icon specifies the icon to be used for this plugin in the Greenhouse UI.
 	// Icons can be either:
 	// - A string representing a juno icon in camel case from this list: https://github.com/sapcc/juno/blob/main/libs/juno-ui-components/src/components/Icon/Icon.component.js#L6-L52
-	// - A publicly accessable image reference to a .png file. Will be displayed 100x100px
+	// - A publicly accessible image reference to a .png file. Will be displayed 100x100px
 	Icon string `json:"icon,omitempty"`
 
 	// DocMarkDownUrl specifies the URL to the markdown documentation file for this plugin.
 	// Source needs to allow all CORS origins.
-	DocMarkDownUrl string `json:"docMarkDownUrl,omitempty"`
+	DocMarkDownUrl string `json:"docMarkDownUrl,omitempty"` //nolint:stylecheck
 }
 
 // PluginOptionType specifies the type of PluginOption.
@@ -89,8 +89,8 @@ type PluginOption struct {
 	Regex string `json:"regex,omitempty"`
 }
 
-// IsValid returns nil if the PluginOption is valid.
-// An error is returned for unknown types or if type and value of the option do not match.
+// IsValid returns nil if the PluginOption default is valid.
+// An error is returned for unknown types or if type of the option and value of the default do not match.
 func (p *PluginOption) IsValid() error {
 	if p.Default == nil {
 		return nil
@@ -102,7 +102,7 @@ func (p *PluginOption) IsValid() error {
 	case PluginOptionTypeInt:
 		var i int
 		return json.Unmarshal(p.Default.Raw, &i)
-	case PluginOptionTypeString, PluginOptionTypeSecret:
+	case PluginOptionTypeString:
 		var s string
 		return json.Unmarshal(p.Default.Raw, &s)
 	case PluginOptionTypeList:
@@ -111,6 +111,15 @@ func (p *PluginOption) IsValid() error {
 	case PluginOptionTypeMap:
 		var m map[string]any
 		return json.Unmarshal(p.Default.Raw, &m)
+	case PluginOptionTypeSecret:
+		var s string
+		if err := json.Unmarshal(p.Default.Raw, &s); err != nil {
+			return err
+		}
+		if s != "" {
+			return fmt.Errorf("option %s is a secret value, no default is allowed", p.Name)
+		}
+		return nil
 	default:
 		return fmt.Errorf("unknown type %s", p.Type)
 	}

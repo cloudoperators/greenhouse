@@ -21,7 +21,7 @@ package healthz
 
 import (
 	"context"
-	"fmt"
+	"errors"
 	"net/http"
 	"time"
 
@@ -40,7 +40,7 @@ func NewCacheSyncHealthz(cacheSyncWaiter cacheSyncWaiter) healthz.Checker {
 		defer cancel()
 
 		if !cacheSyncWaiter.WaitForCacheSync(ctx) {
-			return fmt.Errorf("informers not synced yet")
+			return errors.New("informers not synced yet")
 		}
 		return nil
 	}

@@ -77,7 +77,7 @@ var _ = Describe("validate utility functions", Ordered, func() {
 		Ω(port).
 			ShouldNot(BeNil(), "the port should not be nil")
 		Ω(port).
-			ShouldNot(Equal(portNumber1), "the port should not be 80")
+			ShouldNot(HaveValue(BeEquivalentTo(portNumber1)), "the port should not be 80")
 		Ω(port.Port).
 			Should(Equal(portNumber2), "the port should be 443")
 	})

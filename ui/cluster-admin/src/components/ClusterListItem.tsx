@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { DataGridCell, DataGridRow } from "juno-ui-components"
+import { DataGridCell, DataGridRow } from "@cloudoperators/juno-ui-components"
 import React from "react"
 import useGetPlugins from "../hooks/useGetPlugin"
 import { getResourceStatusFromKubernetesConditions } from "../lib/utils/resourceStatus"

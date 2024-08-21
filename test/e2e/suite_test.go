@@ -6,10 +6,17 @@ package e2e
 import (
 	"testing"
 
+	"github.com/cloudoperators/greenhouse/pkg/test"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	"k8s.io/client-go/rest"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+)
 
-	"github.com/cloudoperators/greenhouse/pkg/test"
+var (
+	remoteCfg        *rest.Config
+	remoteKubeConfig []byte
+	remoteClient     client.Client
 )
 
 func TestE2E(t *testing.T) {
@@ -26,6 +33,14 @@ var _ = BeforeSuite(func() {
 	// register webhooks
 	for webhookName, hookFunc := range knownWebhooks {
 		test.RegisterWebhook(webhookName, hookFunc)
+	}
+
+	if !test.IsUseExistingCluster {
+		remoteCfg, remoteClient, _, remoteKubeConfig = test.StartControlPlane("6885", true, false)
+	} else {
+		remoteCfg = test.Cfg
+		remoteClient = test.K8sClient
+		remoteKubeConfig = test.KubeConfig
 	}
 
 	test.TestBeforeSuite()

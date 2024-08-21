@@ -28,7 +28,6 @@ var knownControllers = map[string]func(controllerName string, mgr ctrl.Manager) 
 	"organizationTeamRoleSeeder": (&organizationcontrollers.TeamRoleSeederReconciler{}).SetupWithManager,
 
 	// Team controllers.
-	"teamCAM":         (&teamcontrollers.CAMReconciler{}).SetupWithManager,
 	"teamPropagation": (&teamcontrollers.TeamPropagationReconciler{}).SetupWithManager,
 
 	// TeamMembership controllers.

@@ -416,7 +416,8 @@ func returnUserResponseMockServer(bodyMock string) *httptest.Server {
 func ReturnDefaultGroupResponseMockServer() *httptest.Server {
 	return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Add("Content-Type", "application/scim+json")
-		if r.URL.RawQuery == "filter=displayName+eq+%22SOME_IDP_GROUP_NAME%22" {
+		switch r.URL.RawQuery {
+		case "filter=displayName+eq+%22SOME_IDP_GROUP_NAME%22":
 			w.WriteHeader(http.StatusOK)
 			_, err := w.Write([]byte(fmt.Sprintf(GroupResponseBodyWith2MembersAndURLMock,
 				returnUserResponseMockServer(UserResponseBodyMock1).URL,
@@ -424,7 +425,7 @@ func ReturnDefaultGroupResponseMockServer() *httptest.Server {
 			if err != nil {
 				log.Printf("error creating mock server: %s", err)
 			}
-		} else if r.URL.RawQuery == "filter=displayName+eq+%22SOME_OTHER_IDP_GROUP_NAME%22" {
+		case "filter=displayName+eq+%22SOME_OTHER_IDP_GROUP_NAME%22":
 			w.WriteHeader(http.StatusOK)
 			_, err := w.Write([]byte(fmt.Sprintf(OtherGroupResponseBodyWith2MembersAndURLMock,
 				returnUserResponseMockServer(UserResponseBodyMock3).URL,
@@ -433,13 +434,13 @@ func ReturnDefaultGroupResponseMockServer() *httptest.Server {
 			if err != nil {
 				log.Printf("error creating mock server: %s", err)
 			}
-		} else if r.URL.RawQuery == "filter=displayName+eq+%22NON_EXISTING_GROUP_NAME%22" {
+		case "filter=displayName+eq+%22NON_EXISTING_GROUP_NAME%22":
 			w.WriteHeader(http.StatusOK)
 			_, err := w.Write([]byte(EmptyGroupResponseBodyMock))
 			if err != nil {
 				log.Printf("error creating mock server: %s", err)
 			}
-		} else {
+		default:
 			w.WriteHeader(http.StatusNotFound)
 			_, err := w.Write([]byte(`{}`))
 			if err != nil {

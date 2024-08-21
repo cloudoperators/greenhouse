@@ -1,5 +1,6 @@
 # Vendor
 vendor/**
+node_modules
 
 # Binaries for programs and plugins
 *.exe
@@ -36,7 +37,17 @@ dist/**
 # Apple files 
 .DS_Store
 
+# e2e local cluster kubeconfig files
+test/e2e/local-cluster/*.kubeconfig
+
 # act artifacts needed for testing workflows
 .secrets
 .env
 act_*.json
+
+# gen-crd-api-reference-docs artifacts
+gen-crd-api-reference-docs
+
+# Hugo
+public
+.hugo_build.lock

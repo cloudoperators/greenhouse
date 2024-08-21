@@ -56,6 +56,9 @@ spec:
             - name: http
               containerPort: 8081
               protocol: TCP
+            - name: metrics
+              containerPort: 6543
+              protocol: TCP
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
       {{- with .Values.nodeSelector }}

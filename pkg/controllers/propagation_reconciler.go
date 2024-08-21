@@ -185,7 +185,7 @@ func (r *PropagationReconciler) reconcileObject(ctx context.Context, restClient 
 		return nil, false
 	}
 
-	//create
+	// create
 	if err = restClient.Create(ctx, remoteObjectResource); err != nil {
 		return err, false
 	}

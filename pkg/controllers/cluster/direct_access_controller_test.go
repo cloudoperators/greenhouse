@@ -12,100 +12,100 @@ import (
 	rbacv1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/client-go/tools/clientcmd"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/envtest"
 
 	greenhouseapis "github.com/cloudoperators/greenhouse/pkg/apis"
+	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/pkg/apis/greenhouse/v1alpha1"
 	"github.com/cloudoperators/greenhouse/pkg/clientutil"
 	clusterpkg "github.com/cloudoperators/greenhouse/pkg/controllers/cluster"
 	"github.com/cloudoperators/greenhouse/pkg/test"
 )
 
-const (
-	directAccessClusterNamespace = "direct-access"
-	directAccessClusterName      = "test-direct-access"
-)
-
 var _ = Describe("KubeConfig controller", func() {
 	Context("When reconciling a cluster resource", func() {
+		const (
+			directAccessTestCase = "direct-access"
+		)
 
-		//delete all secrets and clusters
+		var (
+			cluster = greenhousev1alpha1.Cluster{}
+
+			remoteEnvTest    *envtest.Environment
+			remoteKubeConfig []byte
+			setup            *test.TestSetup
+		)
+
 		BeforeEach(func() {
-			// Restart pristine remote environment to mitigate https://book.kubebuilder.io/reference/envtest.html#:~:text=EnvTest%20does%20not%20support%20namespace,and%20never%20actually%20be%20reclaimed
-			err := remoteEnvTest.Stop()
-			Expect(err).
-				NotTo(HaveOccurred(), "there must be no error stopping the remote environment")
-			bootstrapRemoteCluster()
-
-			Expect(test.K8sClient.Create(test.Ctx, &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: directAccessClusterNamespace}})).NotTo(HaveOccurred(), "there should be no error creating the test namespace")
-
+			_, _, remoteEnvTest, remoteKubeConfig = test.StartControlPlane("6885", false, false)
+			setup = test.NewTestSetup(test.Ctx, test.K8sClient, directAccessTestCase)
 		})
 
 		AfterEach(func() {
-			test.MustDeleteCluster(test.Ctx, test.K8sClient, types.NamespacedName{Name: directAccessClusterName, Namespace: directAccessClusterNamespace})
-			test.MustDeleteSecretWithLabel(test.Ctx, test.K8sClient, "kubeconfig")
+			test.MustDeleteCluster(test.Ctx, test.K8sClient, types.NamespacedName{Name: cluster.Name, Namespace: setup.Namespace()})
+			Expect(remoteEnvTest.Stop()).To(Succeed(), "there should be no error stopping the remote environment")
 		})
 
 		It("Should correctly have created resources in remote cluster and provided a valid greenhouse kubeconfig secret",
 			func() {
 				By("Creating a secret with a valid kubeconfig for a remote cluster")
-				validKubeConfigSecret := corev1.Secret{
-					TypeMeta: metav1.TypeMeta{
-						Kind:       "Secret",
-						APIVersion: corev1.GroupName,
-					},
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      directAccessClusterName,
-						Namespace: directAccessClusterNamespace,
-						Labels: map[string]string{
-							"greenhouse/test": "kubeconfig",
-						},
-					},
-					Data: map[string][]byte{
-						greenhouseapis.KubeConfigKey: remoteKubeConfig,
-					},
-					Type: greenhouseapis.SecretTypeKubeConfig,
+
+				secret := setup.CreateSecret(test.Ctx, directAccessTestCase,
+					test.WithSecretType(greenhouseapis.SecretTypeKubeConfig),
+					test.WithSecretData(map[string][]byte{greenhouseapis.KubeConfigKey: remoteKubeConfig}))
+
+				By("Checking the cluster resource with the same name as the secret has been created")
+				Eventually(func() error {
+					return test.K8sClient.Get(test.Ctx, types.NamespacedName{Name: secret.Name, Namespace: setup.Namespace()}, &cluster)
+				}).Should(Succeed(), fmt.Sprintf("eventually the cluster %s should exist", secret.Name))
+
+				By("checking the cluster's secret has an owner reference to the cluster")
+				expectedOwnerReference := metav1.OwnerReference{
+					Kind:       "Cluster",
+					APIVersion: "greenhouse.sap/v1alpha1",
+					UID:        cluster.UID,
+					Name:       cluster.Name,
 				}
-				Expect(test.K8sClient.Create(test.Ctx, &validKubeConfigSecret, &client.CreateOptions{})).
-					Should(Succeed(), "there should be no error creating the kubeconfig secret")
+				secretUT := corev1.Secret{}
+				Eventually(func(g Gomega) bool {
+					g.Expect(test.K8sClient.Get(test.Ctx, types.NamespacedName{Name: cluster.Name, Namespace: setup.Namespace()}, &secretUT)).To(Succeed())
+					g.Expect(secretUT.ObjectMeta.OwnerReferences).To(ContainElement(expectedOwnerReference), "the kubeconfig secret should have an owner reference to the cluster")
+					return true
+				}).Should(BeTrue(), "eventually the secret should have an owner reference to the cluster")
 
 				By("Checking namespace has been created in remote cluster")
-				config, err := clientcmd.RESTConfigFromKubeConfig(validKubeConfigSecret.Data[greenhouseapis.KubeConfigKey])
-				Expect(err).
-					ShouldNot(HaveOccurred(), "there should be no error creating a restConfig from the kubeConfig")
-				remoteK8sClient, err := clientutil.NewK8sClient(config)
-				Expect(err).
-					ShouldNot(HaveOccurred(), "there should be no error creating a new k8s client from the restConfig")
+				remoteClient, err := clientutil.NewK8sClientFromCluster(test.Ctx, test.K8sClient, &cluster)
+				Expect(err).ToNot(HaveOccurred(), "there should be no error creating a new k8s client from the cluster")
 
 				Eventually(func() error {
 					var namespace = new(corev1.Namespace)
-					return remoteK8sClient.Get(test.Ctx, types.NamespacedName{Namespace: "", Name: directAccessClusterNamespace}, namespace)
-				}).Should(Succeed(), fmt.Sprintf("eventually the namespace %s should exist", directAccessClusterNamespace))
+					return remoteClient.Get(test.Ctx, types.NamespacedName{Namespace: "", Name: setup.Namespace()}, namespace)
+				}).Should(Succeed(), fmt.Sprintf("eventually the namespace %s should exist", setup.Namespace()))
 
 				By("Checking service account has been created in remote cluster")
 				Eventually(func() error {
 					var serviceAccount = new(corev1.ServiceAccount)
-					return remoteK8sClient.Get(test.Ctx, types.NamespacedName{Namespace: directAccessClusterNamespace, Name: clusterpkg.ExportServiceAccountName}, serviceAccount)
-				}).Should(Succeed(), fmt.Sprintf("eventually the service account %s/%s should exist", directAccessClusterNamespace, clusterpkg.ExportServiceAccountName))
+					return remoteClient.Get(test.Ctx, types.NamespacedName{Namespace: setup.Namespace(), Name: clusterpkg.ExportServiceAccountName}, serviceAccount)
+				}).Should(Succeed(), fmt.Sprintf("eventually the service account %s/%s should exist", setup.Namespace(), clusterpkg.ExportServiceAccountName))
 
 				By("Checking clusterRoleBinding has been created in remote cluster")
 				clusterRoleBindingName := "greenhouse"
 				Eventually(func() error {
 					var clusterRoleBinding = new(rbacv1.ClusterRoleBinding)
-					return remoteK8sClient.Get(test.Ctx, types.NamespacedName{Namespace: "", Name: clusterRoleBindingName}, clusterRoleBinding)
+					return remoteClient.Get(test.Ctx, types.NamespacedName{Namespace: "", Name: clusterRoleBindingName}, clusterRoleBinding)
 				}).Should(Succeed(), fmt.Sprintf("eventually the clusterRoleBinding %s should exist", clusterRoleBindingName))
 
 				By("Checking greenhouse kubeConfig has been created and verifying validity")
 				greenhouseKubeConfigSecret := corev1.Secret{}
 				Eventually(func() map[string][]byte {
-					err := test.K8sClient.Get(test.Ctx, client.ObjectKey{Name: directAccessClusterName, Namespace: directAccessClusterNamespace}, &greenhouseKubeConfigSecret)
+					err := test.K8sClient.Get(test.Ctx, client.ObjectKey{Name: cluster.Name, Namespace: setup.Namespace()}, &greenhouseKubeConfigSecret)
 					Expect(err).ToNot(HaveOccurred())
 					return greenhouseKubeConfigSecret.Data
 				}).Should(HaveKey(greenhouseapis.GreenHouseKubeConfigKey),
-					fmt.Sprintf("eventually the secret data should contain the key %s", greenhouseapis.GreenHouseKubeConfigKey),
+					"eventually the secret data should contain the key "+greenhouseapis.GreenHouseKubeConfigKey,
 				)
 
-				greenhouseRestClientGetter, err := clientutil.NewRestClientGetterFromSecret(&greenhouseKubeConfigSecret, directAccessClusterNamespace, clientutil.WithPersistentConfig())
+				greenhouseRestClientGetter, err := clientutil.NewRestClientGetterFromSecret(&greenhouseKubeConfigSecret, setup.Namespace(), clientutil.WithPersistentConfig())
 				Expect(err).NotTo(HaveOccurred(), "there should be no error getting the rest client getter from the secret")
 				greenhouseRemoteConfig, err := greenhouseRestClientGetter.ToRESTConfig()
 				Expect(err).NotTo(HaveOccurred(), "there should be no error creating a restConfig from a kubeConfig")

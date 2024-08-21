@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { Form, FormRow, FormSection, TextInput } from "juno-ui-components"
+import { Form, FormRow, FormSection, TextInput } from "@cloudoperators/juno-ui-components"
 import useStore from "../store"
 import KeyValueInput from "./KeyValueInput"
 

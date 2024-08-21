@@ -98,7 +98,7 @@ func main() {
 
 		oidcConfig := new(idproxy.OIDCConfig)
 		oidcConfig.AddClient(k8sClient)
-		oidcConfig.AddRedirectURI(fmt.Sprintf("%s/callback", issuer))
+		oidcConfig.AddRedirectURI(issuer + "/callback")
 
 		return oidcConfig
 	}

@@ -24,7 +24,7 @@ var _ = Describe("Validate Plugin OptionValues", func() {
 		plugin := &greenhousev1alpha1.Plugin{
 			Spec: greenhousev1alpha1.PluginSpec{
 				PluginDefinition: "test",
-				ClusterName:      "test-cluster",
+				ClusterName:      testclustername,
 				OptionValues: []greenhousev1alpha1.PluginOptionValue{
 					{
 						Name:      "test",
@@ -99,7 +99,7 @@ var _ = Describe("Validate Plugin OptionValues", func() {
 			},
 			Spec: greenhousev1alpha1.PluginSpec{
 				PluginDefinition: "test",
-				ClusterName:      "test-cluster",
+				ClusterName:      testclustername,
 				OptionValues: []greenhousev1alpha1.PluginOptionValue{
 					{
 						Name:  "test",
@@ -206,7 +206,7 @@ var _ = Describe("Validate Plugin OptionValues", func() {
 				},
 				Spec: greenhousev1alpha1.PluginSpec{
 					PluginDefinition: "test",
-					ClusterName:      "test-cluster",
+					ClusterName:      testclustername,
 				},
 			}
 			errList := validatePluginOptionValues(plugin.Spec.OptionValues, pluginDefinition)
@@ -224,7 +224,7 @@ var _ = Describe("Validate Plugin OptionValues", func() {
 				},
 				Spec: greenhousev1alpha1.PluginSpec{
 					PluginDefinition: "test",
-					ClusterName:      "test-cluster",
+					ClusterName:      testclustername,
 					OptionValues: []greenhousev1alpha1.PluginOptionValue{
 						{
 							Name:  "test",
@@ -302,9 +302,9 @@ var _ = Describe("Validate pluginConfig clusterName", Ordered, func() {
 
 	It("should accept the pluginConfig when the cluster with clusterName exists", func() {
 		By("creating the pluginConfig")
-		//reset resourceVersion to avoid conflict, still using same struct
+		// reset resourceVersion to avoid conflict, still using same struct
 		testPlugin.ResourceVersion = ""
-		testPlugin.Spec.ClusterName = "test-cluster"
+		testPlugin.Spec.ClusterName = testclustername
 		err := test.K8sClient.Create(test.Ctx, testPlugin)
 		Expect(err).ToNot(HaveOccurred(), "there should be no error creating the pluginConfig")
 
@@ -314,30 +314,30 @@ var _ = Describe("Validate pluginConfig clusterName", Ordered, func() {
 		Expect(err).ToNot(HaveOccurred(), "there should be no error getting the plugin")
 		Eventually(func() map[string]string {
 			return actPlugin.GetLabels()
-		}).Should(HaveKeyWithValue(greenhouseapis.LabelKeyCluster, "test-cluster"), "the plugin should have a matching cluster label")
+		}).Should(HaveKeyWithValue(greenhouseapis.LabelKeyCluster, testclustername), "the plugin should have a matching cluster label")
 	})
 
 	It("should reject a plugin update where the clusterName changes", func() {
 		testPlugin.Spec.ClusterName = "wrong-cluster-name"
 		err := test.K8sClient.Update(test.Ctx, testPlugin)
 
-		Expect(err).ToNot(BeNil(), "there should be an error changing the plugin's clusterName")
+		Expect(err).To(HaveOccurred(), "there should be an error changing the plugin's clusterName")
 		Expect(err.Error()).To(ContainSubstring("field is immutable"))
 	})
 
 	It("should not allow deletion of the clusterName reference in existing plugin", func() {
 		testPlugin.Spec.ClusterName = ""
 		err := test.K8sClient.Update(test.Ctx, testPlugin)
-		Expect(err).ToNot(BeNil(), "there should be an error changing the plugin's clusterName")
+		Expect(err).To(HaveOccurred(), "there should be an error changing the plugin's clusterName")
 		Expect(err.Error()).To(ContainSubstring("field is immutable"))
 		// reset the clusterName for following tests to pass
-		testPlugin.Spec.ClusterName = "test-cluster"
+		testPlugin.Spec.ClusterName = testclustername
 	})
 
 	It("should reject a plugin update where the releaseNamespace changes", func() {
 		testPlugin.Spec.ReleaseNamespace = "foo-bar"
 		err := test.K8sClient.Update(test.Ctx, testPlugin)
-		Expect(err).ToNot(BeNil(), "there should be an error changing the plugin's releaseNamespace")
+		Expect(err).To(HaveOccurred(), "there should be an error changing the plugin's releaseNamespace")
 		Expect(err.Error()).To(ContainSubstring("field is immutable"))
 	})
 })
@@ -375,7 +375,7 @@ var _ = Describe("Validate Plugin with OwnerReference from PluginPresets", func(
 		},
 		Spec: greenhousev1alpha1.PluginSpec{
 			PluginDefinition: "test-plugindefinition",
-			ClusterName:      "test-cluster",
+			ClusterName:      testclustername,
 		},
 	}
 

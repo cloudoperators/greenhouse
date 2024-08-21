@@ -9,6 +9,7 @@ package scim
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log"
 	"net/http"
@@ -53,10 +54,9 @@ func NewScimClient(scimConfig Config) (*ScimClient, error) {
 }
 
 func generateHTTPClient(scimConfig Config) (httpClient, error) {
-	switch scimConfig.AuthType {
-	case Basic:
+	if scimConfig.AuthType == Basic {
 		if scimConfig.BasicAuthConfig == nil {
-			return nil, fmt.Errorf("could not create http client, BasicAuthConfig missing")
+			return nil, errors.New("could not create http client, BasicAuthConfig missing")
 		}
 		basicAuthUser := scimConfig.BasicAuthConfig.BasicAuthUser
 		basicAuthPw := scimConfig.BasicAuthConfig.BasicAuthPw
@@ -126,7 +126,7 @@ func (s *ScimClient) GetUsers(members []Member) []greenhousev1alpha1.User {
 	}
 	wg.Wait()
 	users := []greenhousev1alpha1.User{}
-	for i := 0; i < cap(usersBuffer); i++ {
+	for range cap(usersBuffer) {
 		user := <-usersBuffer
 		if user != nil {
 			users = append(users, *user)

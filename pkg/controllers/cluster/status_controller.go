@@ -194,9 +194,9 @@ func (r *ClusterStatusReconciler) reconcileNodeStatus(
 		if !nodeReady {
 			allNodesReadyCondition.Status = metav1.ConditionFalse
 			if allNodesReadyCondition.Message != "" {
-				allNodesReadyCondition.Message = allNodesReadyCondition.Message + ", "
+				allNodesReadyCondition.Message += ", "
 			}
-			allNodesReadyCondition.Message = allNodesReadyCondition.Message + fmt.Sprintf("%s not ready", node.GetName())
+			allNodesReadyCondition.Message += node.GetName() + " not ready"
 		}
 	}
 	return

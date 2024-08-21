@@ -11,6 +11,7 @@
 /ui/                    @cloudoperators/greenhouse-frontend @uwe-mayer
 
 /docs/                  @cloudoperators/greenhouse-core
+/dev-env/               @cloudoperators/greenhouse-core
 /website/               @cloudoperators/greenhouse-core
 .gitignore              @cloudoperators/greenhouse-core
 /README.md              @cloudoperators/greenhouse-core
@@ -26,5 +27,6 @@
 /Dockerfile             @cloudoperators/greenhouse-backend
 /Dockerfile.*           @cloudoperators/greenhouse-backend
 /Makefile               @cloudoperators/greenhouse-backend
+/.golangci.yaml         @cloudoperators/greenhouse-backend
 /PROJECT                @cloudoperators/greenhouse-backend
 /go.*                   @cloudoperators/greenhouse-backend

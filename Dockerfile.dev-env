@@ -4,7 +4,7 @@ FROM --platform=${BUILDPLATFORM:-linux/amd64} golang:1.22 as builder
 ARG TARGETOS
 ARG TARGETARCH
 ENV CGO_ENABLED=0
-ENV ENVTEST_K8S_VERSION=1.30.0
+ENV ENVTEST_K8S_VERSION=1.30.3
 WORKDIR /workspace
 
 COPY . .
@@ -16,9 +16,12 @@ RUN --mount=type=cache,target=/go/pkg/mod \
   && GOBIN=/workspace/bin go install sigs.k8s.io/controller-runtime/tools/setup-envtest@latest \
   && cp $(/workspace/bin/setup-envtest use ${ENVTEST_K8S_VERSION} -p path)/* /usr/local/bin
 
+# Get PluginDefinitions from https://github.com/cloudoperators/greenhouse-extensions
+FROM alpine/git:2.45.2 as git
+RUN git clone https://github.com/cloudoperators/greenhouse-extensions.git /greenhouse-extensions
 
 # final image 
-FROM --platform=${BUILDPLATFORM:-linux/amd64} alpine:3.20.1
+FROM --platform=${BUILDPLATFORM:-linux/amd64} alpine:3.20.2
 LABEL source_repository="https://github.com/cloudoperators/greenhouse"
 ENV KUBEBUILDER_ASSETS=/usr/local/bin
 WORKDIR /
@@ -27,6 +30,9 @@ COPY --from=builder /workspace/charts/manager/crds ./config/crd/bases
 COPY --from=builder /workspace/charts/idproxy/crds ./charts/idproxy/crds
 COPY --from=builder /workspace/charts/manager/templates/webhooks.yaml ./config/webhook/webhooks.yaml
 COPY --from=builder /usr/local/bin ./usr/local/bin
+# some resources that are bootstrapped by default
+COPY --from=builder /workspace/dev-env/bootstrap/core /core-bootstrap
+COPY --from=git /greenhouse-extensions/service-proxy/plugindefinition.yaml /core-bootstrap
 
 # upgrade all installed packages to fix potential CVEs in advance
 RUN apk upgrade --no-cache --no-progress \

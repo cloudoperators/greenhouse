@@ -7,7 +7,7 @@ import useNamespace from "../plugindefinitions/hooks/useNamespace"
 import useClient from "../plugindefinitions/hooks/useClient"
 import React, { useEffect } from "react"
 import { Cluster } from "../../../types/types"
-import { Select, SelectOption } from "juno-ui-components"
+import { Select, SelectOption } from "@cloudoperators/juno-ui-components"
 
 interface ClusterSelectProps {
   id?: string

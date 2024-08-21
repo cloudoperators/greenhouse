@@ -4,7 +4,7 @@
  */
 
 import { Markup } from "interweave"
-import { Container, Panel, PanelBody, Stack } from "juno-ui-components"
+import { Container, Panel, PanelBody, Stack } from "@cloudoperators/juno-ui-components"
 import React from "react"
 import useStore from "../store"
 import useNamespace from "../hooks/useNamespace"
@@ -24,7 +24,7 @@ const ClusterDetail: React.FC<any> = () => {
   <p>Execute the following command to onboard your cluster: <br><br>
   <code>greenhousectl cluster bootstrap --org ${namespace} --bootstrap-kubeconfig /path/to/kubeconfig</code> </p>
   <br>
-  <p>For more information, visit <a target='blank' href='https://documentation.greenhouse.global.cloud.sap/docs/user-guides/cluster/onboarding/'>the docs</a> </p>
+  <p>For more information, visit <a target='blank' href='https://cloudoperators.github.io/greenhouse/docs/user-guides/cluster/onboarding/'>the docs</a> </p>
   `
 
   return (

@@ -54,9 +54,101 @@ var _ = DescribeTable("Validate PluginOption Type and Value are consistent", fun
 	Entry("PluginOptionTypeMap Consistent", greenhousev1alpha1.PluginOptionTypeMap, map[string]any{"key": "value"}, false),
 	Entry("PluginOptionTypeMap Inconsistent", greenhousev1alpha1.PluginOptionTypeMap, "one", true),
 	Entry("PluginOptionTypeMap Consistent Nested Map", greenhousev1alpha1.PluginOptionTypeMap, map[string]any{"key": map[string]any{"nestedKey": "value"}}, false),
-	Entry("PluginOptionTypeSecret Consistent", greenhousev1alpha1.PluginOptionTypeSecret, "secret", false),
+	Entry("PluginOptionTypeSecret Consistent Nil", greenhousev1alpha1.PluginOptionTypeSecret, nil, false),
+	Entry("PluginOptionTypeSecret Consistent Empty", greenhousev1alpha1.PluginOptionTypeSecret, "", false),
+	Entry("PluginOptionTypeSecret Defaulted", greenhousev1alpha1.PluginOptionTypeSecret, "secret", true),
 	Entry("PluginOptionTypeSecret Inconsistent", greenhousev1alpha1.PluginOptionTypeSecret, []string{"one", "two"}, true),
 )
+
+var _ = Describe("Validate PluginDefinition Creation", func() {
+	It("should deny creation of PluginDefinition with defaulted Secret OptionValue", func() {
+		pluginDefinition := &greenhousev1alpha1.PluginDefinition{
+			Spec: greenhousev1alpha1.PluginDefinitionSpec{
+				Version: "1.0.0",
+				UIApplication: &greenhousev1alpha1.UIApplicationReference{
+					Name:    "test-ui",
+					Version: "1.0.0",
+				},
+				Options: []greenhousev1alpha1.PluginOption{
+					{
+						Name:    "test-secret",
+						Default: test.MustReturnJSONFor("some-secret"),
+						Type:    greenhousev1alpha1.PluginOptionTypeSecret,
+					},
+				},
+			},
+		}
+
+		c := fake.NewClientBuilder().WithScheme(test.GreenhouseV1Alpha1Scheme()).Build()
+
+		_, err := ValidateCreatePluginDefinition(context.TODO(), c, pluginDefinition)
+		Expect(err).To(HaveOccurred(), "there should be an error creating the PluginDefinition")
+		Expect(err.Error()).To(ContainSubstring("defaults are not allowed in PluginOptions of the 'Secret' type"))
+	})
+
+	It("should deny creation of PluginDefinition without spec.Version", func() {
+		pluginDefinition := &greenhousev1alpha1.PluginDefinition{
+			Spec: greenhousev1alpha1.PluginDefinitionSpec{
+				UIApplication: &greenhousev1alpha1.UIApplicationReference{
+					Name: "test-no-version",
+				},
+				Options: []greenhousev1alpha1.PluginOption{},
+			},
+		}
+
+		c := fake.NewClientBuilder().WithScheme(test.GreenhouseV1Alpha1Scheme()).Build()
+
+		_, err := ValidateCreatePluginDefinition(context.TODO(), c, pluginDefinition)
+
+		Expect(err).To(HaveOccurred(), "there should be an error creating the PluginDefinition")
+		Expect(err.Error()).To(ContainSubstring("PluginDefinition without spec.version is invalid."))
+	})
+})
+
+var _ = Describe("Validate PluginDefinition Update", func() {
+	It("should deny updating PluginDefinition with defaulted Secret OptionValue", func() {
+		pluginDefinition := &greenhousev1alpha1.PluginDefinition{
+			Spec: greenhousev1alpha1.PluginDefinitionSpec{
+				Version: "1.0.0",
+				UIApplication: &greenhousev1alpha1.UIApplicationReference{
+					Name:    "test-ui",
+					Version: "1.0.0",
+				},
+				Options: []greenhousev1alpha1.PluginOption{
+					{
+						Name:    "test-secret",
+						Default: test.MustReturnJSONFor("some-secret"),
+						Type:    greenhousev1alpha1.PluginOptionTypeSecret,
+					},
+				},
+			},
+		}
+
+		c := fake.NewClientBuilder().WithScheme(test.GreenhouseV1Alpha1Scheme()).Build()
+
+		_, err := ValidateCreatePluginDefinition(context.TODO(), c, pluginDefinition)
+		Expect(err).To(HaveOccurred(), "there should be an error updating the PluginDefinition")
+		Expect(err.Error()).To(ContainSubstring("defaults are not allowed in PluginOptions of the 'Secret' type"))
+	})
+
+	It("should deny updating PluginDefinition without spec.Version", func() {
+		pluginDefinition := &greenhousev1alpha1.PluginDefinition{
+			Spec: greenhousev1alpha1.PluginDefinitionSpec{
+				UIApplication: &greenhousev1alpha1.UIApplicationReference{
+					Name: "test-no-version",
+				},
+				Options: []greenhousev1alpha1.PluginOption{},
+			},
+		}
+
+		c := fake.NewClientBuilder().WithScheme(test.GreenhouseV1Alpha1Scheme()).Build()
+
+		_, err := ValidateUpdatePluginDefinition(context.TODO(), c, nil, pluginDefinition)
+
+		Expect(err).To(HaveOccurred(), "there should be an error updating the PluginDefinition")
+		Expect(err.Error()).To(ContainSubstring("PluginDefinition without spec.version is invalid."))
+	})
+})
 
 var _ = Describe("Validate PluginDefinition Deletion", func() {
 

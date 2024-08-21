@@ -36,8 +36,10 @@ var (
 	kubeProxyPort     string
 	graceFullShutDown bool
 	userData          = map[string][]string{
-		"test-org-admin":  {rbac.OrganizationRoleName("test-org"), rbac.OrganizationAdminRoleName("test-org"), rbac.GetTeamRoleName("test-team-1")},
-		"test-org-member": {rbac.OrganizationRoleName("test-org"), rbac.GetTeamRoleName("test-team-1")},
+		"test-org-admin":         {rbac.OrganizationRoleName("test-org"), rbac.OrganizationAdminRoleName("test-org"), rbac.GetTeamRoleName("test-team-1")},
+		"test-org-member":        {rbac.OrganizationRoleName("test-org"), rbac.GetTeamRoleName("test-team-1")},
+		"test-org-cluster-admin": {rbac.OrganizationRoleName("test-org"), rbac.OrganizationClusterAdminRoleName("test-org"), rbac.GetTeamRoleName("test-team-1")},
+		"test-org-plugin-admin":  {rbac.OrganizationRoleName("test-org"), rbac.OrganizationPluginAdminRoleName("test-org"), rbac.GetTeamRoleName("test-team-1")},
 	}
 )
 
@@ -83,7 +85,7 @@ func main() {
 	envTest.ControlPlane.GetAPIServer().Configure().Append("cors-allowed-origins", ".*")
 	envTest.ControlPlane.GetAPIServer().Configure().Append("enable-admission-plugins", "MutatingAdmissionWebhook", "ValidatingAdmissionWebhook")
 
-	//starting dev env
+	// starting dev env
 	logger.Info("Starting apiserver & etcd")
 	cfg, err := envTest.Start()
 	if err != nil {
@@ -144,7 +146,7 @@ func createInternalKubeConfigFile(logger *logrus.Logger, envTest *envtest.Enviro
 
 	internalKubeConfig.addUser("cluster-admin", cfg, "")
 
-	//create users for test-org and add to kubeConfig
+	// create users for test-org and add to kubeConfig
 	for name, groups := range userData {
 		user, err := envTest.ControlPlane.AddUser(envtest.User{
 			Name:   name,
@@ -184,8 +186,9 @@ func createAdditionalKubeConfigFiles(logger *logrus.Logger) {
 				}},
 			Contexts: map[string]*api.Context{
 				"default": {
-					Cluster:  "default",
-					AuthInfo: "default",
+					Cluster:   "default",
+					AuthInfo:  "default",
+					Namespace: "test-org",
 				},
 			},
 			AuthInfos: map[string]*api.AuthInfo{

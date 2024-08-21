@@ -6,6 +6,7 @@ package organization
 import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -16,30 +17,26 @@ import (
 )
 
 const (
-	orgName = "test-org"
+	orgName = "test-org-rbac"
+)
+
+var (
+	setup *test.TestSetup
 )
 
 var ownerRef metav1.OwnerReference
 
 var _ = Describe("Test RBAC reconciliation", func() {
+	BeforeEach(func() {
+		setup = test.NewTestSetup(test.Ctx, test.K8sClient, "org-rbac-test")
+	})
+
 	When("reconciling an organization", func() {
 		It("should create the Organization successfully", func() {
-			testOrg := &greenhousev1alpha1.Organization{
-				TypeMeta: metav1.TypeMeta{
-					Kind:       "Organization",
-					APIVersion: greenhousev1alpha1.GroupVersion.String(),
-				},
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      orgName,
-					Namespace: test.TestNamespace,
-				},
-			}
-			Expect(test.K8sClient.Create(test.Ctx, testOrg)).Should(Succeed(), "must be able to create test organization")
-			orgID := types.NamespacedName{Name: orgName, Namespace: ""}
-			actOrg := &greenhousev1alpha1.Organization{}
-			Eventually(func() bool {
-				return test.K8sClient.Get(test.Ctx, orgID, actOrg) == nil
-			}).Should(BeTrue(), "test organization must be created")
+			testOrg := setup.CreateOrganization(test.Ctx, orgName)
+
+			// ensure the organization's namespace is created
+			test.EventuallyCreated(test.Ctx, test.K8sClient, &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: orgName}})
 
 			ownerRef = metav1.OwnerReference{
 				APIVersion: greenhousev1alpha1.GroupVersion.String(),
@@ -70,7 +67,7 @@ var _ = Describe("Test RBAC reconciliation", func() {
 		})
 
 		It("must create a Role for Org Admins", func() {
-			roleID := types.NamespacedName{Name: rbac.OrganizationAdminRoleName(orgName), Namespace: test.TestNamespace}
+			roleID := types.NamespacedName{Name: rbac.OrganizationAdminRoleName(orgName), Namespace: orgName}
 			actRole := &rbacv1.Role{}
 			Eventually(func() bool {
 				return test.K8sClient.Get(test.Ctx, roleID, actRole) == nil
@@ -80,7 +77,7 @@ var _ = Describe("Test RBAC reconciliation", func() {
 		})
 
 		It("must create a RoleBinding for org admins", func() {
-			roleBindingID := types.NamespacedName{Name: rbac.OrganizationAdminRoleName(orgName), Namespace: test.TestNamespace}
+			roleBindingID := types.NamespacedName{Name: rbac.OrganizationAdminRoleName(orgName), Namespace: orgName}
 			actRoleBinding := &rbacv1.RoleBinding{}
 			Eventually(func() bool {
 				return test.K8sClient.Get(test.Ctx, roleBindingID, actRoleBinding) == nil
@@ -110,7 +107,7 @@ var _ = Describe("Test RBAC reconciliation", func() {
 		})
 
 		It("must create a Role for Org Cluster Admins", func() {
-			roleID := types.NamespacedName{Name: rbac.OrganizationClusterAdminRoleName(orgName), Namespace: test.TestNamespace}
+			roleID := types.NamespacedName{Name: rbac.OrganizationClusterAdminRoleName(orgName), Namespace: orgName}
 			actRole := &rbacv1.Role{}
 			Eventually(func() bool {
 				return test.K8sClient.Get(test.Ctx, roleID, actRole) == nil
@@ -120,7 +117,7 @@ var _ = Describe("Test RBAC reconciliation", func() {
 		})
 
 		It("must create a Role for Org Plugin Admins", func() {
-			roleID := types.NamespacedName{Name: rbac.OrganizationPluginAdminRoleName(orgName), Namespace: test.TestNamespace}
+			roleID := types.NamespacedName{Name: rbac.OrganizationPluginAdminRoleName(orgName), Namespace: orgName}
 			actRole := &rbacv1.Role{}
 			Eventually(func() bool {
 				return test.K8sClient.Get(test.Ctx, roleID, actRole) == nil
@@ -130,7 +127,7 @@ var _ = Describe("Test RBAC reconciliation", func() {
 		})
 
 		It("must create a Role for Org Member", func() {
-			roleID := types.NamespacedName{Name: rbac.OrganizationRoleName(orgName), Namespace: test.TestNamespace}
+			roleID := types.NamespacedName{Name: rbac.OrganizationRoleName(orgName), Namespace: orgName}
 			actRole := &rbacv1.Role{}
 			Eventually(func() bool {
 				return test.K8sClient.Get(test.Ctx, roleID, actRole) == nil
@@ -140,7 +137,7 @@ var _ = Describe("Test RBAC reconciliation", func() {
 		})
 
 		It("must create a RoleBinding for org member", func() {
-			roleBindingID := types.NamespacedName{Name: rbac.OrganizationRoleName(orgName), Namespace: test.TestNamespace}
+			roleBindingID := types.NamespacedName{Name: rbac.OrganizationRoleName(orgName), Namespace: orgName}
 			actRoleBinding := &rbacv1.RoleBinding{}
 			Eventually(func() bool {
 				return test.K8sClient.Get(test.Ctx, roleBindingID, actRoleBinding) == nil

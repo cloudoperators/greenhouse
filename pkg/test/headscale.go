@@ -22,7 +22,7 @@ type FakeHeadscaleClient struct {
 	// IsUserDeleted is used to simulate the deletion of a user. If set to true, the GetUserFunc will return an error.
 	IsUserDeleted bool
 
-	CreateApiKeyFunc       func(context.Context, *v1.CreateApiKeyRequest, ...grpc.CallOption) (*v1.CreateApiKeyResponse, error) //no-lint:stylecheck
+	CreateApiKeyFunc       func(context.Context, *v1.CreateApiKeyRequest, ...grpc.CallOption) (*v1.CreateApiKeyResponse, error) // no-lint:stylecheck
 	CreatePreAuthKeyFunc   func(context.Context, *v1.CreatePreAuthKeyRequest, ...grpc.CallOption) (*v1.CreatePreAuthKeyResponse, error)
 	CreateUserFunc         func(context.Context, *v1.CreateUserRequest, ...grpc.CallOption) (*v1.CreateUserResponse, error)
 	DebugCreateMachineFunc func(context.Context, *v1.DebugCreateMachineRequest, ...grpc.CallOption) (*v1.DebugCreateMachineResponse, error)
@@ -31,7 +31,7 @@ type FakeHeadscaleClient struct {
 	DeleteUserFunc         func(context.Context, *v1.DeleteUserRequest, ...grpc.CallOption) (*v1.DeleteUserResponse, error)
 	DisableRouteFunc       func(context.Context, *v1.DisableRouteRequest, ...grpc.CallOption) (*v1.DisableRouteResponse, error)
 	EnableRouteFunc        func(context.Context, *v1.EnableRouteRequest, ...grpc.CallOption) (*v1.EnableRouteResponse, error)
-	ExpireApiKeyFunc       func(context.Context, *v1.ExpireApiKeyRequest, ...grpc.CallOption) (*v1.ExpireApiKeyResponse, error) //no-lint:stylecheck
+	ExpireApiKeyFunc       func(context.Context, *v1.ExpireApiKeyRequest, ...grpc.CallOption) (*v1.ExpireApiKeyResponse, error) // no-lint:stylecheck
 	ExpireMachineFunc      func(context.Context, *v1.ExpireMachineRequest, ...grpc.CallOption) (*v1.ExpireMachineResponse, error)
 	ExpirePreAuthKeyFunc   func(context.Context, *v1.ExpirePreAuthKeyRequest, ...grpc.CallOption) (*v1.ExpirePreAuthKeyResponse, error)
 	GetMachineFunc         func(context.Context, *v1.GetMachineRequest, ...grpc.CallOption) (*v1.GetMachineResponse, error)

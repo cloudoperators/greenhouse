@@ -11,8 +11,8 @@ import {
   DataGridHeadCell,
   DataGridRow,
   DataGridToolbar,
-} from "juno-ui-components"
-import { Messages } from "messages-provider"
+} from "@cloudoperators/juno-ui-components"
+import { Messages } from "@cloudoperators/juno-messages-provider"
 import React from "react"
 import useStore from "../store"
 import SecretListItem from "./SecretListItem"

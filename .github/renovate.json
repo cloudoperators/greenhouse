@@ -14,7 +14,7 @@
     {
       "groupName": "github actions",
       "matchManagers": ["github-actions"],
-      "matchUpdateTypes": ["major", "minor"],
+      "matchUpdateTypes": ["major", "minor", "patch"],
       "extends": [
         "helpers:pinGitHubActionDigests"
       ],
@@ -34,12 +34,24 @@
       "minimumReleaseAge": "14 days"
     },
     {
+      "groupName": "helm",
+      "groupSlug": "helm-go",
+      "matchDatasources": [
+        "go"
+      ],
+      "matchUpdateTypes": ["major", "minor", "patch"],
+      "matchPackagePrefixes": [
+        "helm.sh/helm/v3"
+      ],
+      "minimumReleaseAge": "14 days"
+    },
+    {
       "groupName": "kubernetes packages",
       "groupSlug": "kubernetes-go",
       "matchDatasources": [
         "go"
       ],
-      "matchUpdateTypes": ["major", "minor"],
+      "matchUpdateTypes": ["major", "minor", "patch"],
       "matchPackagePrefixes": [
         "k8s.io/api",
         "k8s.io/apiextensions-apiserver",

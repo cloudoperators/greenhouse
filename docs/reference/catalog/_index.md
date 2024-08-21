@@ -1,10 +1,10 @@
 ---
-title: "Plugin catalog"
-linkTitle: "Plugin catalog"
+title: "Plugin Catalog"
+linkTitle: "Plugin Catalog"
 weight: 1
-landingSectionIndex: true
+landingSectionIndex: false
 description: >
-  Plugin catalog overview
+  Plugin Catalog overview
 ---
 
-This section provides an overview of the available plugins in Greenhouse.
+This section provides an overview of the available PluginDefinitions in Greenhouse.

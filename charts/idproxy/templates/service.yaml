@@ -16,5 +16,9 @@ spec:
       targetPort: oidc
       protocol: TCP
       name: oidc
+    - port: 6543
+      targetPort: metrics
+      protocol: TCP
+      name: metrics
   selector:
     {{- include "idproxy.selectorLabels" . | nindent 4 }}
