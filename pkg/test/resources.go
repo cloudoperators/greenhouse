@@ -127,7 +127,7 @@ func (t *TestSetup) CreateCluster(ctx context.Context, name string, opts ...func
 }
 
 // CreateOrganization creates a Organization within the TestSetup and returns the created Organization resource.
-func (t *TestSetup) CreateOrganization(ctx context.Context, name string) *greenhousev1alpha1.Organization {
+func (t *TestSetup) CreateOrganization(ctx context.Context, name string, opts ...func(*greenhousev1alpha1.Organization)) *greenhousev1alpha1.Organization {
 	GinkgoHelper()
 	org := &greenhousev1alpha1.Organization{
 		TypeMeta: metav1.TypeMeta{
@@ -138,6 +138,11 @@ func (t *TestSetup) CreateOrganization(ctx context.Context, name string) *greenh
 			Name: name,
 		},
 	}
+
+	for _, opt := range opts {
+		opt(org)
+	}
+
 	Expect(t.Create(ctx, org)).Should(Succeed(), "there should be no error creating the Organization")
 	return org
 }

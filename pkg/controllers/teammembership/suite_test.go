@@ -28,11 +28,7 @@ var _ = BeforeSuite(func() {
 	groupsServer = scim.ReturnDefaultGroupResponseMockServer()
 
 	test.RegisterController("teammembershipUpdaterController",
-		(&teammembership.TeamMembershipUpdaterController{
-			ScimBaseURL:       groupsServer.URL,
-			ScimBasicAuthUser: "user",
-			ScimBasicAuthPw:   "pw",
-		}).SetupWithManager)
+		(&teammembership.TeamMembershipUpdaterController{}).SetupWithManager)
 	test.TestBeforeSuite()
 })
 

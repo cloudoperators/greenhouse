@@ -102,6 +102,20 @@ spec:
                     - clientSecretReference
                     - issuer
                     type: object
+                  scim:
+                    description: SCIMConfig configures the SCIM client.
+                    properties:
+                      baseURL:
+                        type: string
+                      basicAuthPw:
+                        type: string
+                      basicAuthUser:
+                        type: string
+                    required:
+                    - baseURL
+                    - basicAuthPw
+                    - basicAuthUser
+                    type: object
                 type: object
               description:
                 description: Description provides additional details of the organization.

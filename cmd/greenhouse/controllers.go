@@ -4,7 +4,6 @@
 package main
 
 import (
-	"fmt"
 	"os"
 	"sort"
 	"time"
@@ -32,7 +31,7 @@ var knownControllers = map[string]func(controllerName string, mgr ctrl.Manager) 
 	"teamPropagation": (&teamcontrollers.TeamPropagationReconciler{}).SetupWithManager,
 
 	// TeamMembership controllers.
-	"teamMembershipUpdater":     startTeamMembershipUpdaterReconciler,
+	"teamMembershipUpdater":     (&teammembershipcontrollers.TeamMembershipUpdaterController{}).SetupWithManager,
 	"teamMembershipPropagation": (&teammembershipcontrollers.TeamMembershipPropagationReconciler{}).SetupWithManager,
 
 	// Team RBAC controllers.
@@ -122,29 +121,5 @@ func startClusterHeadscaleAccessReconciler(name string, mgr ctrl.Manager) error 
 		HeadscalePreAuthenticationKeyMinValidity: 8 * time.Hour,
 		RemoteClusterBearerTokenValidity:         remoteClusterBearerTokenValidity,
 		RenewRemoteClusterBearerTokenAfter:       renewRemoteClusterBearerTokenAfter,
-	}).SetupWithManager(name, mgr)
-}
-
-func startTeamMembershipUpdaterReconciler(name string, mgr ctrl.Manager) error {
-	scimBaseURL := os.Getenv(scimBaseURLEnvKey)
-	if scimBaseURL == "" {
-		setupLog.Error(nil, fmt.Sprintf("%s env needs to be set for running the scim client", scimBaseURLEnvKey))
-		return nil
-	}
-	scimBasicAuthUser := os.Getenv(scimBasicAuthUserEnvKey)
-	if scimBaseURL == "" {
-		setupLog.Error(nil, fmt.Sprintf("%s env needs to be set for running the scim client", scimBasicAuthUserEnvKey))
-		return nil
-	}
-	scimBasicAuthPw := os.Getenv(scimBasicAuthPwEnvKey)
-	if scimBaseURL == "" {
-		setupLog.Error(nil, fmt.Sprintf("%s env needs to be set for running the scim client", scimBasicAuthPwEnvKey))
-		return nil
-	}
-
-	return (&teammembershipcontrollers.TeamMembershipUpdaterController{
-		ScimBaseURL:       scimBaseURL,
-		ScimBasicAuthUser: scimBasicAuthUser,
-		ScimBasicAuthPw:   scimBasicAuthPw,
 	}).SetupWithManager(name, mgr)
 }
