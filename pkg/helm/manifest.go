@@ -36,6 +36,25 @@ type ManifestObjectFilter struct {
 	Labels map[string]string
 }
 
+type ObjectList struct {
+	ObjectKey
+	*ManifestObject
+}
+
+type ManifestMultipleObjectFilter struct {
+	Filters []ManifestObjectFilter
+}
+
+// Matches returns true if the given object matches the filters.
+func (f *ManifestMultipleObjectFilter) Matches(obj *resource.Info) bool {
+	for _, filter := range f.Filters {
+		if filter.Matches(obj) {
+			return true
+		}
+	}
+	return false
+}
+
 // Matches returns true if the given object matches the filter.
 func (o *ManifestObjectFilter) Matches(obj *resource.Info) bool {
 	gvk := obj.Object.GetObjectKind().GroupVersionKind()
@@ -61,6 +80,45 @@ func (o *ManifestObjectFilter) Matches(obj *resource.Info) bool {
 		}
 	}
 	return true
+}
+
+// ObjectMapFromReleaseWithMultipleFilters returns a map of objects from the helm release manifest matching the filter or an error.
+func ObjectMapFromReleaseWithMultipleFilters(restClientGetter genericclioptions.RESTClientGetter, r *release.Release, f *ManifestMultipleObjectFilter) ([]ObjectList, error) {
+	return ObjectMapFromManifestWithMultipleFilters(restClientGetter, r.Namespace, r.Manifest, f)
+}
+
+// ObjectMapFromManifestWithMultipleFilters returns a map of objects from the manifests matching the filter or an error.
+func ObjectMapFromManifestWithMultipleFilters(restClientGetter genericclioptions.RESTClientGetter, namespace, manifest string, f *ManifestMultipleObjectFilter) ([]ObjectList, error) {
+	allObjects := ObjectList{}
+	filteredObjects := []ObjectList{}
+	r, err := loadManifest(restClientGetter, namespace, manifest)
+	if err != nil {
+		return nil, fmt.Errorf("error loading manifest: %w", err)
+	}
+	err = r.Visit(func(info *resource.Info, err error) error {
+		if err != nil {
+			return err
+		}
+		if f != nil {
+			for _, filter := range f.Filters {
+				if filter.Matches(info) {
+					allObjects.ObjectKey = ObjectKey{
+						GVK:       info.Mapping.GroupVersionKind,
+						Namespace: info.Namespace,
+						Name:      info.Name,
+					}
+					allObjects.ManifestObject = &ManifestObject{
+						Namespace: info.Namespace,
+						Name:      info.Name,
+						Object:    info.Object.DeepCopyObject(),
+					}
+					filteredObjects = append(filteredObjects, allObjects)
+				}
+			}
+		}
+		return nil
+	})
+	return filteredObjects, err
 }
 
 // ObjectMapFromRelease returns a map of objects from the helm release manifest matching the filter or an error.

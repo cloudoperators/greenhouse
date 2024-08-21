@@ -31,21 +31,37 @@ const (
 	helmReleaseNameAnnotation      = "meta.helm.sh/release-name"
 	helmReleaseNamespaceAnnotation = "meta.helm.sh/release-namespace"
 	jobNameLabel                   = "batch.kubernetes.io/job-name"
-	monitoringAPIGroupName         = "monitoring.coreos.com"
 )
 
-type ReleaseStatus struct {
-	ReleaseName         string `json:"releaseName,omitempty" protobuf:"bytes,1,opt,name=releaseName"`
-	ReleaseNamespace    string `json:"releaseNamespace,omitempty" protobuf:"bytes,3,opt,name=namespace"`
-	HelmStatus          string `json:"helmStatus,omitempty"`
-	ClusterName         string `json:"clusterName,omitempty"`
+var objectFilter = []helm.ManifestObjectFilter{
+	{APIVersion: "v1", Kind: "Pod"},
+	{APIVersion: "v1", Kind: "Deployment"},
+	{APIVersion: "v1", Kind: "StatefulSet"},
+	{APIVersion: "v1", Kind: "DaemonSet"},
+	{APIVersion: "v1", Kind: "ReplicaSet"},
+	{APIVersion: "v1", Kind: "Job"},
+	{APIVersion: "v1", Kind: "CronJob"},
+	{APIVersion: "monitoring.coreos.com/v1", Kind: "Alertmanager"},
+}
+
+type PayloadStatus struct {
+	Kind                string `json:"kind,omitempty"`
+	Name                string `json:"name,omitempty"`
 	Replicas            int32  `json:"replicas,omitempty" protobuf:"varint,2,opt,name=replicas"`
 	UpdatedReplicas     int32  `json:"updatedReplicas,omitempty" protobuf:"varint,3,opt,name=updatedReplicas"`
 	ReadyReplicas       int32  `json:"readyReplicas,omitempty" protobuf:"varint,7,opt,name=readyReplicas"`
 	AvailableReplicas   int32  `json:"availableReplicas,omitempty" protobuf:"varint,4,opt,name=availableReplicas"`
 	UnavailableReplicas int32  `json:"unavailableReplicas,omitempty" protobuf:"varint,5,opt,name=unavailableReplicas"`
-	ReleaseOK           bool   `json:"releaseOK,omitempty"`
+	Ready               bool   `json:"ready,omitempty"`
 	Message             string `json:"message,omitempty"`
+}
+
+type ReleaseStatus struct {
+	ReleaseName      string `json:"releaseName,omitempty" protobuf:"bytes,1,opt,name=releaseName"`
+	ReleaseNamespace string `json:"releaseNamespace,omitempty" protobuf:"bytes,3,opt,name=namespace"`
+	HelmStatus       string `json:"helmStatus,omitempty"`
+	ClusterName      string `json:"clusterName,omitempty"`
+	PayloadStatus    []PayloadStatus
 }
 
 // WorkLoadStatusReconciler reconciles a Plugin and cluster object.
@@ -110,20 +126,16 @@ func (r *WorkLoadStatusReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 		releaseStatus.ReleaseNamespace = helmRelease.Namespace
 		releaseStatus.ClusterName = plugin.Spec.ClusterName
 		releaseStatus.HelmStatus = helmRelease.Info.Status.String()
-		objectMap, _ := helm.ObjectMapFromManifest(restClientGetter, plugin.Namespace, helmRelease.Manifest, &helm.ManifestObjectFilter{})
-
-		for key := range objectMap {
-			if key.GVK.Version == "v1" &&
-				(key.GVK.Group == "apps" || key.GVK.Group == "batch") ||
-				(key.GVK.Group == monitoringAPIGroupName && key.GVK.Kind == "Alertmanager") {
-				getStatusPayload(ctx, releaseStatus, objClient, key.Name, releaseStatus.ReleaseNamespace, key.GVK)
-			}
+		fileteredObjectMap, _ := helm.ObjectMapFromManifestWithMultipleFilters(restClientGetter, plugin.Namespace, helmRelease.Manifest, &helm.ManifestMultipleObjectFilter{
+			Filters: objectFilter,
+		})
+		for _, key := range fileteredObjectMap {
+			getPayloadStatus(ctx, releaseStatus, objClient, key.ObjectKey.Name, releaseStatus.ReleaseNamespace, key.ObjectKey.GVK)
 		}
 
 		if statusErr := r.setStatus(ctx, plugin, releaseStatus, pluginStatus); statusErr != nil {
 			log.FromContext(ctx).Error(statusErr, "failed to set status")
 		}
-		logPluginStatus(ctx, releaseStatus)
 	}
 	return ctrl.Result{RequeueAfter: StatusRequeueInterval}, nil
 }
@@ -138,9 +150,10 @@ func (r *WorkLoadStatusReconciler) setStatus(ctx context.Context, plugin *greenh
 	return err
 }
 
-// getStatusPayload fetches the status of the object and updates the ReleaseStatus object
-func getStatusPayload(ctx context.Context, releaseStatus *ReleaseStatus, cl client.Client, objName, objNamespace string, GVK schema.GroupVersionKind) {
-	releaseStatus.ReleaseOK = true
+// getPayloadStatus fetches the status of the object and updates the ReleaseStatus object
+func getPayloadStatus(ctx context.Context, releaseStatus *ReleaseStatus, cl client.Client, objName, objNamespace string, GVK schema.GroupVersionKind) {
+	status := new(PayloadStatus)
+	status.Ready = true
 	switch GVK.Kind {
 	case "Deployment":
 		remoteObject := &appsv1.Deployment{}
@@ -148,14 +161,15 @@ func getStatusPayload(ctx context.Context, releaseStatus *ReleaseStatus, cl clie
 			log.FromContext(ctx).Error(err, "Error getting deployment", "name", objName, "pluginName", releaseStatus.ReleaseName)
 			return
 		}
-		releaseStatus.Replicas += remoteObject.Status.Replicas
-		releaseStatus.UpdatedReplicas += remoteObject.Status.UpdatedReplicas
-		releaseStatus.ReadyReplicas += remoteObject.Status.ReadyReplicas
-		releaseStatus.AvailableReplicas += remoteObject.Status.AvailableReplicas
-		releaseStatus.UnavailableReplicas += remoteObject.Status.UnavailableReplicas
+		status.Replicas += remoteObject.Status.Replicas
+		status.UpdatedReplicas += remoteObject.Status.UpdatedReplicas
+		status.ReadyReplicas += remoteObject.Status.ReadyReplicas
+		status.AvailableReplicas += remoteObject.Status.AvailableReplicas
+		status.UnavailableReplicas += remoteObject.Status.UnavailableReplicas
 		if !isPayloadReadyRunning(remoteObject) {
-			releaseStatus.ReleaseOK = false
-			releaseStatus.Message = "Not all pods are running in the Deployment"
+
+			status.Ready = false
+			status.Message = fmt.Sprintf("Following workload resources are not ready: %s/%s", GVK.Kind, objName)
 		}
 	case "StatefulSet":
 		remoteObject := &appsv1.StatefulSet{}
@@ -163,14 +177,14 @@ func getStatusPayload(ctx context.Context, releaseStatus *ReleaseStatus, cl clie
 			log.FromContext(ctx).Error(err, "Error getting statefulset", "name", objName, "pluginName", releaseStatus.ReleaseName)
 			return
 		}
-		releaseStatus.Replicas += remoteObject.Status.Replicas
-		releaseStatus.UpdatedReplicas += remoteObject.Status.UpdatedReplicas
-		releaseStatus.ReadyReplicas += remoteObject.Status.ReadyReplicas
-		releaseStatus.AvailableReplicas += remoteObject.Status.AvailableReplicas
+		status.Replicas += remoteObject.Status.Replicas
+		status.UpdatedReplicas += remoteObject.Status.UpdatedReplicas
+		status.ReadyReplicas += remoteObject.Status.ReadyReplicas
+		status.AvailableReplicas += remoteObject.Status.AvailableReplicas
 
 		if !isPayloadReadyRunning(remoteObject) {
-			releaseStatus.ReleaseOK = false
-			releaseStatus.Message = "Not all pods are running in the StatefulSet"
+			status.Ready = false
+			status.Message = fmt.Sprintf("Following workload resources are not ready: %s/%s", GVK.Kind, objName)
 		}
 
 	case "DaemonSet":
@@ -179,15 +193,15 @@ func getStatusPayload(ctx context.Context, releaseStatus *ReleaseStatus, cl clie
 			log.FromContext(ctx).Error(err, "Error getting daemonset", "name", objName, "pluginName", releaseStatus.ReleaseName)
 			return
 		}
-		releaseStatus.Replicas += remoteObject.Status.DesiredNumberScheduled
-		releaseStatus.UpdatedReplicas += remoteObject.Status.UpdatedNumberScheduled
-		releaseStatus.ReadyReplicas += remoteObject.Status.NumberReady
-		releaseStatus.AvailableReplicas += remoteObject.Status.NumberAvailable
-		releaseStatus.UnavailableReplicas += remoteObject.Status.NumberUnavailable
+		status.Replicas += remoteObject.Status.DesiredNumberScheduled
+		status.UpdatedReplicas += remoteObject.Status.UpdatedNumberScheduled
+		status.ReadyReplicas += remoteObject.Status.NumberReady
+		status.AvailableReplicas += remoteObject.Status.NumberAvailable
+		status.UnavailableReplicas += remoteObject.Status.NumberUnavailable
 
 		if !isPayloadReadyRunning(remoteObject) {
-			releaseStatus.ReleaseOK = false
-			releaseStatus.Message = "Not all pods are running in the DaemonSet"
+			status.Ready = false
+			status.Message = fmt.Sprintf("%s/%s", GVK.Kind, objName)
 		}
 
 	case "ReplicaSet":
@@ -196,15 +210,24 @@ func getStatusPayload(ctx context.Context, releaseStatus *ReleaseStatus, cl clie
 			log.FromContext(ctx).Error(err, "Error getting replicaset", "name", objName, "pluginName", releaseStatus.ReleaseName)
 			return
 		}
-		releaseStatus.Replicas += remoteObject.Status.Replicas
-		releaseStatus.ReadyReplicas += remoteObject.Status.ReadyReplicas
-		releaseStatus.AvailableReplicas += remoteObject.Status.AvailableReplicas
+		status.Replicas += remoteObject.Status.Replicas
+		status.ReadyReplicas += remoteObject.Status.ReadyReplicas
+		status.AvailableReplicas += remoteObject.Status.AvailableReplicas
 
 		if !isPayloadReadyRunning(remoteObject) {
-			releaseStatus.ReleaseOK = false
-			releaseStatus.Message = "Not all pods are running in the ReplicaSet"
+			status.Ready = false
+			status.Message = fmt.Sprintf("%s/%s", GVK.Kind, objName)
 		}
-
+	case "Job":
+		remoteObject := &batchv1.Job{}
+		if err := cl.Get(context.TODO(), types.NamespacedName{Name: objName, Namespace: objNamespace}, remoteObject); err != nil {
+			log.FromContext(ctx).Error(err, "Error getting job", "name", objName, "pluginName", releaseStatus.ReleaseName)
+			return
+		}
+		if !isPayloadReadyRunning(remoteObject) {
+			status.Ready = false
+			status.Message = fmt.Sprintf("%s/%s", GVK.Kind, objName)
+		}
 	case "CronJob":
 		remoteObject := &batchv1.CronJob{}
 		if err := cl.Get(context.TODO(), types.NamespacedName{Name: objName, Namespace: objNamespace}, remoteObject); err != nil {
@@ -212,8 +235,18 @@ func getStatusPayload(ctx context.Context, releaseStatus *ReleaseStatus, cl clie
 			return
 		}
 		if !isPayloadReadyRunning(remoteObject) {
-			releaseStatus.ReleaseOK = false
-			releaseStatus.Message = "Job scheduled by CronJob did not run successfully"
+			status.Ready = false
+			status.Message = fmt.Sprintf("%s/%s", GVK.Kind, objName)
+		}
+	case "Pod":
+		remoteObject := &corev1.Pod{}
+		if err := cl.Get(context.TODO(), types.NamespacedName{Name: objName, Namespace: objNamespace}, remoteObject); err != nil {
+			log.FromContext(ctx).Error(err, "Error getting pod", "name", objName, "pluginName", releaseStatus.ReleaseName)
+			return
+		}
+		if !isPayloadReadyRunning(remoteObject) {
+			status.Ready = false
+			status.Message = fmt.Sprintf("%s/%s", GVK.Kind, objName)
 		}
 	case "Alertmanager":
 		remoteObject := &corev1.PodList{}
@@ -233,8 +266,8 @@ func getStatusPayload(ctx context.Context, releaseStatus *ReleaseStatus, cl clie
 			return
 		}
 		if !isPayloadReadyRunning(remoteObject) {
-			releaseStatus.ReleaseOK = false
-			releaseStatus.Message = "Alertmanager is not running"
+			status.Ready = false
+			status.Message = fmt.Sprintf("%s/%s", GVK.Kind, objName)
 		}
 	}
 }
