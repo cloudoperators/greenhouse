@@ -143,9 +143,12 @@ func (r *WorkLoadStatusReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 		releaseStatus.ReleaseNamespace = helmRelease.Namespace
 		releaseStatus.ClusterName = plugin.Spec.ClusterName
 		releaseStatus.HelmStatus = helmRelease.Info.Status.String()
-		fileteredObjectMap, _ := helm.ObjectMapFromManifestWithMultipleFilters(restClientGetter, plugin.Namespace, helmRelease.Manifest, &helm.ManifestMultipleObjectFilter{
+		fileteredObjectMap, err := helm.ObjectMapFromManifestWithMultipleFilters(restClientGetter, plugin.Namespace, helmRelease.Manifest, &helm.ManifestMultipleObjectFilter{
 			Filters: objectFilter,
 		})
+		if err != nil {
+			log.FromContext(ctx).Error(err, "failed to get object map from manifest")
+		}
 		for _, key := range fileteredObjectMap {
 			getPayloadStatus(ctx, releaseStatus, objClient, key.ObjectKey.Name, releaseStatus.ReleaseNamespace, key.ObjectKey.GVK)
 		}
@@ -169,10 +172,10 @@ func (r *WorkLoadStatusReconciler) setStatus(ctx context.Context, plugin *greenh
 }
 
 // getPayloadStatus fetches the status of the object and updates the ReleaseStatus object
-func getPayloadStatus(ctx context.Context, releaseStatus *ReleaseStatus, cl client.Client, objName, objNamespace string, GVK schema.GroupVersionKind) {
+func getPayloadStatus(ctx context.Context, releaseStatus *ReleaseStatus, cl client.Client, objName, objNamespace string, gvk schema.GroupVersionKind) {
 	status := new(PayloadStatus)
 	status.Ready = true
-	switch GVK.Kind {
+	switch gvk.Kind {
 	case "Deployment":
 		remoteObject := &appsv1.Deployment{}
 		if err := cl.Get(context.TODO(), types.NamespacedName{Name: objName, Namespace: objNamespace}, remoteObject); err != nil {
@@ -185,9 +188,8 @@ func getPayloadStatus(ctx context.Context, releaseStatus *ReleaseStatus, cl clie
 		status.AvailableReplicas += remoteObject.Status.AvailableReplicas
 		status.UnavailableReplicas += remoteObject.Status.UnavailableReplicas
 		if !isPayloadReadyRunning(remoteObject) {
-
 			status.Ready = false
-			status.Message = fmt.Sprintf("Following workload resources are not ready: %s/%s", GVK.Kind, objName)
+			status.Message = fmt.Sprintf("Following workload resources are not ready: %s/%s", gvk.Kind, objName)
 		}
 	case "StatefulSet":
 		remoteObject := &appsv1.StatefulSet{}
@@ -202,7 +204,7 @@ func getPayloadStatus(ctx context.Context, releaseStatus *ReleaseStatus, cl clie
 
 		if !isPayloadReadyRunning(remoteObject) {
 			status.Ready = false
-			status.Message = fmt.Sprintf("Following workload resources are not ready: %s/%s", GVK.Kind, objName)
+			status.Message = fmt.Sprintf("Following workload resources are not ready: %s/%s", gvk.Kind, objName)
 		}
 
 	case "DaemonSet":
@@ -219,7 +221,7 @@ func getPayloadStatus(ctx context.Context, releaseStatus *ReleaseStatus, cl clie
 
 		if !isPayloadReadyRunning(remoteObject) {
 			status.Ready = false
-			status.Message = fmt.Sprintf("%s/%s", GVK.Kind, objName)
+			status.Message = fmt.Sprintf("%s/%s", gvk.Kind, objName)
 		}
 
 	case "ReplicaSet":
@@ -234,7 +236,7 @@ func getPayloadStatus(ctx context.Context, releaseStatus *ReleaseStatus, cl clie
 
 		if !isPayloadReadyRunning(remoteObject) {
 			status.Ready = false
-			status.Message = fmt.Sprintf("%s/%s", GVK.Kind, objName)
+			status.Message = fmt.Sprintf("%s/%s", gvk.Kind, objName)
 		}
 	case "Job":
 		remoteObject := &batchv1.Job{}
@@ -244,7 +246,7 @@ func getPayloadStatus(ctx context.Context, releaseStatus *ReleaseStatus, cl clie
 		}
 		if !isPayloadReadyRunning(remoteObject) {
 			status.Ready = false
-			status.Message = fmt.Sprintf("%s/%s", GVK.Kind, objName)
+			status.Message = fmt.Sprintf("%s/%s", gvk.Kind, objName)
 		}
 	case "CronJob":
 		remoteObject := &batchv1.CronJob{}
@@ -254,7 +256,7 @@ func getPayloadStatus(ctx context.Context, releaseStatus *ReleaseStatus, cl clie
 		}
 		if !isPayloadReadyRunning(remoteObject) {
 			status.Ready = false
-			status.Message = fmt.Sprintf("%s/%s", GVK.Kind, objName)
+			status.Message = fmt.Sprintf("%s/%s", gvk.Kind, objName)
 		}
 	case "Pod":
 		remoteObject := &corev1.Pod{}
@@ -264,7 +266,7 @@ func getPayloadStatus(ctx context.Context, releaseStatus *ReleaseStatus, cl clie
 		}
 		if !isPayloadReadyRunning(remoteObject) {
 			status.Ready = false
-			status.Message = fmt.Sprintf("%s/%s", GVK.Kind, objName)
+			status.Message = fmt.Sprintf("%s/%s", gvk.Kind, objName)
 		}
 	case "Alertmanager":
 		remoteObject := &corev1.PodList{}
@@ -285,7 +287,7 @@ func getPayloadStatus(ctx context.Context, releaseStatus *ReleaseStatus, cl clie
 		}
 		if !isPayloadReadyRunning(remoteObject) {
 			status.Ready = false
-			status.Message = fmt.Sprintf("%s/%s", GVK.Kind, objName)
+			status.Message = fmt.Sprintf("%s/%s", gvk.Kind, objName)
 		}
 	}
 }

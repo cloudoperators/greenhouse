@@ -28,7 +28,7 @@ import (
 // Otherwise, the RestClientGetter is initialized with in-cluster config
 func initClientGetter(
 	ctx context.Context,
-	client client.Client,
+	k8sclient client.Client,
 	kubeClientOpts []clientutil.KubeClientOption,
 	plugin greenhousev1alpha1.Plugin,
 	pluginStatus greenhousev1alpha1.PluginStatus,
@@ -47,14 +47,14 @@ func initClientGetter(
 		restClientGetter, err = clientutil.NewRestClientGetterForInCluster(plugin.GetReleaseNamespace(), kubeClientOpts...)
 		if err != nil {
 			clusterAccessReadyCondition.Status = metav1.ConditionFalse
-			clusterAccessReadyCondition.Message = fmt.Sprintf("cannot access greenhouse cluster: %s", err.Error())
+			clusterAccessReadyCondition.Message = "cannot access greenhouse cluster" + ": " + err.Error()
 			return clusterAccessReadyCondition, nil
 		}
 		return clusterAccessReadyCondition, restClientGetter
 	}
 
 	cluster := new(greenhousev1alpha1.Cluster)
-	err = client.Get(ctx, types.NamespacedName{Namespace: plugin.Namespace, Name: plugin.Spec.ClusterName}, cluster)
+	err = k8sclient.Get(ctx, types.NamespacedName{Namespace: plugin.Namespace, Name: plugin.Spec.ClusterName}, cluster)
 	if err != nil {
 		clusterAccessReadyCondition.Status = metav1.ConditionFalse
 		clusterAccessReadyCondition.Message = fmt.Sprintf("Failed to get cluster %s: %s", plugin.Spec.ClusterName, err.Error())
@@ -70,7 +70,7 @@ func initClientGetter(
 
 	// get restclientGetter from cluster if clusterName is set
 	secret := corev1.Secret{}
-	err = client.Get(ctx, types.NamespacedName{Namespace: plugin.Namespace, Name: plugin.Spec.ClusterName}, &secret)
+	err = k8sclient.Get(ctx, types.NamespacedName{Namespace: plugin.Namespace, Name: plugin.Spec.ClusterName}, &secret)
 	if err != nil {
 		clusterAccessReadyCondition.Status = metav1.ConditionFalse
 		clusterAccessReadyCondition.Message = fmt.Sprintf("Failed to get secret for cluster %s: %s", plugin.Spec.ClusterName, err.Error())
@@ -131,19 +131,19 @@ func convertRuntimeObjectToCoreV1Service(o interface{}) (*corev1.Service, error)
 func isPayloadReadyRunning(o interface{}) bool {
 	switch obj := o.(type) {
 	case *appsv1.Deployment:
-		if obj.Status.ReadyReplicas == obj.Status.Replicas && obj.Status.ReadyReplicas == obj.Status.AvailableReplicas {
+		if (obj.Status.ReadyReplicas == obj.Status.Replicas) && (obj.Status.Replicas == obj.Status.AvailableReplicas) {
 			return true
 		}
 	case *appsv1.StatefulSet:
-		if obj.Status.ReadyReplicas == obj.Status.Replicas && obj.Status.ReadyReplicas == obj.Status.AvailableReplicas {
+		if (obj.Status.ReadyReplicas == obj.Status.Replicas) && (obj.Status.Replicas == obj.Status.AvailableReplicas) {
 			return true
 		}
 	case *appsv1.DaemonSet:
-		if obj.Status.NumberReady == obj.Status.DesiredNumberScheduled && obj.Status.NumberReady == obj.Status.NumberAvailable {
+		if (obj.Status.NumberReady == obj.Status.DesiredNumberScheduled) && (obj.Status.DesiredNumberScheduled == obj.Status.NumberAvailable) {
 			return true
 		}
 	case *appsv1.ReplicaSet:
-		if obj.Status.ReadyReplicas == obj.Status.Replicas && obj.Status.ReadyReplicas == obj.Status.AvailableReplicas {
+		if (obj.Status.ReadyReplicas == obj.Status.Replicas) && (obj.Status.Replicas == obj.Status.AvailableReplicas) {
 			return true
 		}
 	case *batchv1.Job:

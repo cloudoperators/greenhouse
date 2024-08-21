@@ -6,11 +6,12 @@ package e2e
 import (
 	"testing"
 
-	"github.com/cloudoperators/greenhouse/pkg/test"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"k8s.io/client-go/rest"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+
+	"github.com/cloudoperators/greenhouse/pkg/test"
 )
 
 var (
