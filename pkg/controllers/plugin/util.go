@@ -5,7 +5,6 @@ package plugin
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -18,7 +17,6 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/log"
 
 	greenhouseapis "github.com/cloudoperators/greenhouse/pkg/apis"
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/pkg/apis/greenhouse/v1alpha1"
@@ -147,11 +145,20 @@ func isPayloadReadyRunning(o interface{}) bool {
 		if obj.Status.ReadyReplicas == obj.Status.Replicas && obj.Status.ReadyReplicas == obj.Status.AvailableReplicas {
 			return true
 		}
+	case *batchv1.Job:
+		if obj.Status.CompletionTime != nil {
+			return true
+		}
 	case *batchv1.CronJob:
 		// CronJob does not have a status field just for the job, so we need to check the last successful time
 		if obj.Status.LastSuccessfulTime == obj.Status.LastScheduleTime {
 			return true
 		}
+	case *corev1.Pod:
+		if obj.Status.Phase != corev1.PodRunning {
+			return false
+		}
+		return true
 	case *corev1.PodList:
 		// Check if all pods are running, if one of them is not running, return false
 		for _, pod := range obj.Items {
@@ -164,27 +171,31 @@ func isPayloadReadyRunning(o interface{}) bool {
 	return false
 }
 
+func allResourceReady(payloadStatus []PayloadStatus) bool {
+	for _, status := range payloadStatus {
+		if !status.Ready {
+			return false
+		}
+	}
+	return true
+}
+
 func computeReadyCondition(pluginStatus greenhousev1alpha1.PluginStatus, release *ReleaseStatus) greenhousev1alpha1.Condition {
 	WorkloadReadyStatus := *pluginStatus.GetConditionByType(greenhousev1alpha1.WorkloadReadyCondition)
 
-	if release.ReleaseOK {
-		WorkloadReadyStatus.Status = metav1.ConditionTrue
-		WorkloadReadyStatus.Message = "Workload is running"
-	} else {
+	WorkloadReadyStatus.Status = metav1.ConditionTrue
+	if !allResourceReady(release.PayloadStatus) {
 		WorkloadReadyStatus.Status = metav1.ConditionFalse
-		WorkloadReadyStatus.Message = release.Message
-	}
-	return WorkloadReadyStatus
-}
-
-func logPluginStatus(ctx context.Context, releaseStatus *ReleaseStatus) {
-	marshaled, err := json.Marshal(releaseStatus)
-	if err != nil {
-		log.FromContext(ctx).Info("releaseStatus marshaling error", "error", err)
-	}
-	if releaseStatus.ReleaseOK {
-		log.FromContext(ctx).Info("release is running", "pluginName", releaseStatus.ReleaseName, "Details", string(marshaled))
+		WorkloadReadyStatus.Message = "Following workload resources are not ready: [ "
+		for _, status := range release.PayloadStatus {
+			if !status.Ready {
+				WorkloadReadyStatus.Message += status.Message + ", "
+			}
+		}
+		WorkloadReadyStatus.Message += " ]"
 	} else {
-		log.FromContext(ctx).Info("release is not running", "pluginName", releaseStatus.ReleaseName, "Details", string(marshaled))
+		WorkloadReadyStatus.Message = "Workload is running"
 	}
+
+	return WorkloadReadyStatus
 }
