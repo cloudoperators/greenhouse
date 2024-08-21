@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/prometheus/client_golang/prometheus"
 	appsv1 "k8s.io/api/apps/v1"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -20,6 +21,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
+	"sigs.k8s.io/controller-runtime/pkg/metrics"
 
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/pkg/apis/greenhouse/v1alpha1"
 	"github.com/cloudoperators/greenhouse/pkg/clientutil"
@@ -43,6 +45,16 @@ var objectFilter = []helm.ManifestObjectFilter{
 	{APIVersion: "v1", Kind: "CronJob"},
 	{APIVersion: "monitoring.coreos.com/v1", Kind: "Alertmanager"},
 }
+
+var (
+	workloadStatus = prometheus.NewGaugeVec(
+		prometheus.GaugeOpts{
+			Name: "greenhouse_plugin_workload_status",
+			Help: "The workload status of the plugin",
+		},
+		[]string{"org", "plugin", "pluginDefinition"},
+	)
+)
 
 type PayloadStatus struct {
 	Kind                string `json:"kind,omitempty"`
@@ -70,6 +82,11 @@ type WorkLoadStatusReconciler struct {
 	recorder        record.EventRecorder
 	KubeRuntimeOpts clientutil.RuntimeOptions
 	kubeClientOpts  []clientutil.KubeClientOption
+}
+
+func init() {
+	// Register custom metrics with the global prometheus registry
+	metrics.Registry.MustRegister(workloadStatus)
 }
 
 //+kubebuilder:rbac:groups=greenhouse.sap,resources=plugindefinitions,verbs=get;list;watch
@@ -140,8 +157,9 @@ func (r *WorkLoadStatusReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 	return ctrl.Result{RequeueAfter: StatusRequeueInterval}, nil
 }
 
+// setStatus sets the status and metrics for the plugin
 func (r *WorkLoadStatusReconciler) setStatus(ctx context.Context, plugin *greenhousev1alpha1.Plugin, release *ReleaseStatus, pluginStatus greenhousev1alpha1.PluginStatus) error {
-	readyCondition := computeReadyCondition(pluginStatus, release)
+	readyCondition := computeReadyCondition(plugin, pluginStatus, release)
 	pluginStatus.StatusConditions.SetConditions(readyCondition)
 	_, err := clientutil.PatchStatus(ctx, r.Client, plugin, func() error {
 		plugin.Status = pluginStatus

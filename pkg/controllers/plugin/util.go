@@ -127,6 +127,7 @@ func convertRuntimeObjectToCoreV1Service(o interface{}) (*corev1.Service, error)
 	}
 }
 
+// isPayloadReadyRunning checking if the payload is ready and running
 func isPayloadReadyRunning(o interface{}) bool {
 	switch obj := o.(type) {
 	case *appsv1.Deployment:
@@ -171,6 +172,7 @@ func isPayloadReadyRunning(o interface{}) bool {
 	return false
 }
 
+// allResourceReady checks if all resources are ready
 func allResourceReady(payloadStatus []PayloadStatus) bool {
 	for _, status := range payloadStatus {
 		if !status.Ready {
@@ -180,12 +182,14 @@ func allResourceReady(payloadStatus []PayloadStatus) bool {
 	return true
 }
 
-func computeReadyCondition(pluginStatus greenhousev1alpha1.PluginStatus, release *ReleaseStatus) greenhousev1alpha1.Condition {
+// computeReadyCondition computes the ReadyCondition for the Plugin and sets the workload metrics and message
+func computeReadyCondition(plugin *greenhousev1alpha1.Plugin, pluginStatus greenhousev1alpha1.PluginStatus, release *ReleaseStatus) greenhousev1alpha1.Condition {
 	WorkloadReadyStatus := *pluginStatus.GetConditionByType(greenhousev1alpha1.WorkloadReadyCondition)
 
 	WorkloadReadyStatus.Status = metav1.ConditionTrue
 	if !allResourceReady(release.PayloadStatus) {
 		WorkloadReadyStatus.Status = metav1.ConditionFalse
+		setWorkloadMetrics(plugin, 0)
 		WorkloadReadyStatus.Message = "Following workload resources are not ready: [ "
 		for _, status := range release.PayloadStatus {
 			if !status.Ready {
@@ -194,8 +198,15 @@ func computeReadyCondition(pluginStatus greenhousev1alpha1.PluginStatus, release
 		}
 		WorkloadReadyStatus.Message += " ]"
 	} else {
+		setWorkloadMetrics(plugin, 1)
 		WorkloadReadyStatus.Message = "Workload is running"
 	}
 
 	return WorkloadReadyStatus
+}
+
+// setWorkloadMetrics sets the workload status metric to the given status
+func setWorkloadMetrics(plugin *greenhousev1alpha1.Plugin, status float64) {
+	workloadStatus.WithLabelValues(plugin.GetNamespace(), plugin.Name, plugin.Spec.PluginDefinition).Set(status)
+	workloadStatus.WithLabelValues(plugin.GetNamespace(), plugin.Name, plugin.Spec.PluginDefinition).SetToCurrentTime()
 }
