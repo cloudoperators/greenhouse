@@ -31,7 +31,7 @@ func SetupOrganizationWebhookWithManager(mgr ctrl.Manager) error {
 
 //+kubebuilder:webhook:path=/mutate-greenhouse-sap-v1alpha1-organization,mutating=true,failurePolicy=fail,sideEffects=None,groups=greenhouse.sap,resources=organizations,verbs=create;update,versions=v1alpha1,name=morganization.kb.io,admissionReviewVersions=v1
 
-func DefaultOrganization(ctx context.Context, _ client.Client, o runtime.Object) error {
+func DefaultOrganization(_ context.Context, _ client.Client, o runtime.Object) error {
 	org, ok := o.(*greenhousev1alpha1.Organization)
 	if !ok {
 		return nil
