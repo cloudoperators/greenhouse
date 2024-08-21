@@ -425,7 +425,7 @@ func ReturnDefaultGroupResponseMockServer() *httptest.Server {
 			if err != nil {
 				log.Printf("error creating mock server: %s", err)
 			}
-		case "filter=displayName+eq:+%22SOME_OTHER_IDP_GROUP_NAME%22":
+		case "filter=displayName+eq+%22SOME_OTHER_IDP_GROUP_NAME%22":
 			w.WriteHeader(http.StatusOK)
 			_, err := w.Write([]byte(fmt.Sprintf(OtherGroupResponseBodyWith2MembersAndURLMock,
 				returnUserResponseMockServer(UserResponseBodyMock3).URL,
