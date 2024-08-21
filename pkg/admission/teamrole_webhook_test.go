@@ -12,49 +12,51 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 
 	rbacv1 "k8s.io/api/rbac/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	greenhouseapis "github.com/cloudoperators/greenhouse/pkg/apis"
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/pkg/apis/greenhouse/v1alpha1"
 	"github.com/cloudoperators/greenhouse/pkg/test"
 )
 
-var testRole = &greenhousev1alpha1.TeamRole{
-	ObjectMeta: metav1.ObjectMeta{
-		Namespace: test.TestNamespace,
-		Name:      "test-role",
-	},
-	Spec: greenhousev1alpha1.TeamRoleSpec{
-		Rules: []rbacv1.PolicyRule{
-			{
-				Verbs:     []string{"get"},
-				APIGroups: []string{"*"},
-				Resources: []string{"*"},
-			},
+var _ = Describe("Validate Role Deletion", func() {
+	var (
+		setup           *test.TestSetup
+		teamRole        *greenhousev1alpha1.TeamRole
+		teamRoleBinding *greenhousev1alpha1.TeamRoleBinding
+
+		team    *greenhousev1alpha1.Team
+		cluster *greenhousev1alpha1.Cluster
+	)
+	rules := []rbacv1.PolicyRule{
+		{
+			Verbs:     []string{"get"},
+			APIGroups: []string{"*"},
+			Resources: []string{"*"},
 		},
-	},
-}
+	}
 
-var testRoleBinding = &greenhousev1alpha1.TeamRoleBinding{
-	ObjectMeta: metav1.ObjectMeta{
-		Namespace: test.TestNamespace,
-		Name:      "test-rolebinding",
-	},
-	Spec: greenhousev1alpha1.TeamRoleBindingSpec{
-		ClusterName: testclustername,
-		TeamRoleRef: "test-role",
-		TeamRef:     testteamname,
-	},
-}
+	BeforeEach(func() {
+		setup = test.NewTestSetup(test.Ctx, test.K8sClient, "role-deletion")
+		cluster = setup.CreateCluster(test.Ctx, "test-cluster")
+		team = setup.CreateTeam(test.Ctx, "test-team")
+	})
 
-var _ = Describe("Validate Role Deletion", Ordered, func() {
+	AfterEach(func() {
+		test.EventuallyDeleted(test.Ctx, test.K8sClient, teamRoleBinding)
+		test.EventuallyDeleted(test.Ctx, test.K8sClient, teamRole)
+		test.EventuallyDeleted(test.Ctx, test.K8sClient, team)
+		test.EventuallyDeleted(test.Ctx, test.K8sClient, cluster)
+	})
 	It("should not allow deleting a role with references", func() {
-		err := test.K8sClient.Create(test.Ctx, testRole)
-		Expect(err).ToNot(HaveOccurred(), "there should be no error creating the role")
-		err = test.K8sClient.Create(test.Ctx, testRoleBinding)
-		Expect(err).ToNot(HaveOccurred(), "there should be no error creating the rolebinding")
+		teamRole = setup.CreateTeamRole(test.Ctx, "test-delete-role", test.WithRules(rules))
 
-		err = test.K8sClient.Delete(test.Ctx, testRole)
+		teamRoleBinding = setup.CreateTeamRoleBinding(test.Ctx, "test-delete-rolebinding",
+			test.WithClusterName(cluster.Name),
+			test.WithTeamRef(team.Name),
+			test.WithTeamRoleRef(teamRole.Name),
+		)
+
+		err := test.K8sClient.Delete(test.Ctx, teamRole)
 		Expect(err).To(HaveOccurred(), "there should be an error deleting the role with references")
 	})
 })

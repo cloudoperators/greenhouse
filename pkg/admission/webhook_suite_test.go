@@ -38,7 +38,6 @@ var _ = AfterSuite(func() {
 })
 
 const (
-	testteamname    = "test-team"
 	testclustername = "test-cluster"
 )
 
@@ -49,32 +48,16 @@ var (
 			APIVersion: greenhousev1alpha1.GroupVersion.String(),
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      "test-cluster",
+			Name:      testclustername,
 			Namespace: test.TestNamespace,
 		},
 		Spec: greenhousev1alpha1.ClusterSpec{
 			AccessMode: greenhousev1alpha1.ClusterAccessModeDirect,
 		},
 	}
-
-	testteam = &greenhousev1alpha1.Team{
-		TypeMeta: metav1.TypeMeta{
-			Kind:       "Team",
-			APIVersion: greenhousev1alpha1.GroupVersion.String(),
-		},
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      testteamname,
-			Namespace: test.TestNamespace,
-		},
-		Spec: greenhousev1alpha1.TeamSpec{
-			Description:    "test team",
-			MappedIDPGroup: "foobar",
-		},
-	}
 )
 
 // setupOrgResources creates necessary static org resources for the tests
 func setupOrgResources() {
-	Expect(test.K8sClient.Create(test.Ctx, testteam)).To(Succeed())
 	Expect(test.K8sClient.Create(test.Ctx, testcluster)).To(Succeed())
 }

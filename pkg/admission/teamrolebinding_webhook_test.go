@@ -14,39 +14,47 @@ import (
 )
 
 var _ = Describe("Validate Create RoleBinding", Ordered, func() {
-	const (
-		testrolename = "test-role-create-admission"
+
+	var (
+		setup    *test.TestSetup
+		teamRole *greenhousev1alpha1.TeamRole
+
+		team    *greenhousev1alpha1.Team
+		cluster *greenhousev1alpha1.Cluster
 	)
+	rules := []rbacv1.PolicyRule{
+		{
+			Verbs:     []string{"get"},
+			APIGroups: []string{""},
+			Resources: []string{"pods"},
+		},
+	}
+
 	BeforeAll(func() {
-		testrole := &greenhousev1alpha1.TeamRole{
-			ObjectMeta: metav1.ObjectMeta{
-				Namespace: test.TestNamespace,
-				Name:      testrolename,
-			},
-			Spec: greenhousev1alpha1.TeamRoleSpec{
-				Rules: []rbacv1.PolicyRule{
-					{
-						Verbs:     []string{"get"},
-						APIGroups: []string{""},
-						Resources: []string{"pods"},
-					},
-				},
-			},
-		}
-		Expect(test.K8sClient.Create(test.Ctx, testrole)).To(Succeed())
+		setup = test.NewTestSetup(test.Ctx, test.K8sClient, "rolebinding-create")
+		team = setup.CreateTeam(test.Ctx, "test-team")
+		cluster = setup.CreateCluster(test.Ctx, "test-cluster")
+
+		teamRole = setup.CreateTeamRole(test.Ctx, "test-teamrole", test.WithRules(rules))
+	})
+
+	AfterAll(func() {
+		test.EventuallyDeleted(test.Ctx, test.K8sClient, teamRole)
+		test.EventuallyDeleted(test.Ctx, test.K8sClient, team)
+		test.EventuallyDeleted(test.Ctx, test.K8sClient, cluster)
 	})
 
 	Context("deny create if referenced resources do not exist", func() {
 		It("should return an error if the role does not exist", func() {
 			rb := &greenhousev1alpha1.TeamRoleBinding{
 				ObjectMeta: metav1.ObjectMeta{
-					Namespace: test.TestNamespace,
+					Namespace: setup.Namespace(),
 					Name:      "testBinding",
 				},
 				Spec: greenhousev1alpha1.TeamRoleBindingSpec{
 					TeamRoleRef: "non-existent-role",
-					TeamRef:     testteamname,
-					ClusterName: testclustername,
+					TeamRef:     team.Name,
+					ClusterName: cluster.Name,
 				},
 			}
 
@@ -58,13 +66,13 @@ var _ = Describe("Validate Create RoleBinding", Ordered, func() {
 		It("should return an error if the team does not exist", func() {
 			rb := &greenhousev1alpha1.TeamRoleBinding{
 				ObjectMeta: metav1.ObjectMeta{
-					Namespace: test.TestNamespace,
+					Namespace: setup.Namespace(),
 					Name:      "testBinding",
 				},
 				Spec: greenhousev1alpha1.TeamRoleBindingSpec{
-					TeamRoleRef: testrolename,
+					TeamRoleRef: teamRole.Name,
 					TeamRef:     "non-existent-team",
-					ClusterName: testclustername,
+					ClusterName: cluster.Name,
 				},
 			}
 			warns, err := ValidateCreateRoleBinding(test.Ctx, test.K8sClient, rb)
@@ -75,12 +83,12 @@ var _ = Describe("Validate Create RoleBinding", Ordered, func() {
 		It("should return an error if both clusterName and clusterSelector not specified", func() {
 			rb := &greenhousev1alpha1.TeamRoleBinding{
 				ObjectMeta: metav1.ObjectMeta{
-					Namespace: test.TestNamespace,
+					Namespace: setup.Namespace(),
 					Name:      "testBinding",
 				},
 				Spec: greenhousev1alpha1.TeamRoleBindingSpec{
-					TeamRoleRef: testrolename,
-					TeamRef:     testteamname,
+					TeamRoleRef: teamRole.Name,
+					TeamRef:     team.Name,
 				},
 			}
 			warns, err := ValidateCreateRoleBinding(test.Ctx, test.K8sClient, rb)
@@ -91,13 +99,13 @@ var _ = Describe("Validate Create RoleBinding", Ordered, func() {
 		It("should return an error if both clusterName and clusterSelector are specified", func() {
 			rb := &greenhousev1alpha1.TeamRoleBinding{
 				ObjectMeta: metav1.ObjectMeta{
-					Namespace: test.TestNamespace,
+					Namespace: setup.Namespace(),
 					Name:      "testBinding",
 				},
 				Spec: greenhousev1alpha1.TeamRoleBindingSpec{
-					TeamRoleRef: testrolename,
-					TeamRef:     testteamname,
-					ClusterName: testclustername,
+					TeamRoleRef: teamRole.Name,
+					TeamRef:     team.Name,
+					ClusterName: cluster.Name,
 					ClusterSelector: metav1.LabelSelector{
 						MatchLabels: map[string]string{"test": "test"},
 					},
