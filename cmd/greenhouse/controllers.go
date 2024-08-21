@@ -51,6 +51,7 @@ var knownControllers = map[string]func(controllerName string, mgr ctrl.Manager) 
 	// "clusterPropagation":     (&clustercontrollers.ClusterPropagationReconciler{}).SetupWithManager,
 	"clusterHeadscaleAccess": startClusterHeadscaleAccessReconciler,
 	"clusterStatus":          (&clustercontrollers.ClusterStatusReconciler{}).SetupWithManager,
+	"clusterMetrics":         (&clustercontrollers.ClusterMetricsReconciler{}).SetupWithManager,
 }
 
 // knownControllers lists the name of known controllers.
