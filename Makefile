@@ -117,8 +117,17 @@ fmt: goimports
 	GOBIN=$(LOCALBIN) go fmt ./...
 	$(GOIMPORTS) -w -local github.com/cloudoperators/greenhouse .
 
-##@ Build
+##@ Build CLI Locally
+.PHONY: cli
+cli: $(CLI)
+$(CLI): $(LOCALBIN)
+	test -s $(LOCALBIN)/greenhousectl || echo "Building Greenhouse CLI..." && make build-cli
 
+.PHONY: build-cli
+build-cli:
+	go build -ldflags "-s -w -X github.com/cloudoperators/greenhouse/pkg/version.GitBranch=$(GIT_BRANCH) -X github.com/cloudoperators/greenhouse/pkg/version.GitCommit=$(GIT_COMMIT) -X github.com/cloudoperators/greenhouse/pkg/version.GitState=$(GIT_STATE) -X github.com/cloudoperators/greenhouse/pkg/version.BuildDate=$(BUILD_DATE)" -o bin/greenhousectl ./cmd/greenhousectl
+
+##@ Build
 .PHONY: build
 build: generate build-greenhouse build-idproxy build-team-membership build-cors-proxy build-greenhousectl build-service-proxy
 
@@ -206,19 +215,6 @@ else
 	cd website && hugo server
 endif
 
-.PHONY: cli
-cli: $(CLI)
-$(CLI): $(LOCALBIN)
-	test -s $(LOCALBIN)/greenhousectl || echo "Building Greenhouse CLI..." && make build-cli
-
-.PHONY: build-cli
-build-cli:
-	go build -ldflags "-s -w -X github.com/cloudoperators/greenhouse/pkg/version.GitBranch=$(GIT_BRANCH) -X github.com/cloudoperators/greenhouse/pkg/version.GitCommit=$(GIT_COMMIT) -X github.com/cloudoperators/greenhouse/pkg/version.GitState=$(GIT_STATE) -X github.com/cloudoperators/greenhouse/pkg/version.BuildDate=$(BUILD_DATE)" -o bin/greenhousectl ./cmd/greenhousectl
-
 .PHONY: setup-dev
 setup-dev: cli
 	$(CLI) dev setup -f hack/localenv/config-sample.json
-
-.PHONY: setup-webhook
-setup-webhook: cli
-	$(CLI) dev setup webhook -x -c greenhouse-admin -n greenhouse -p charts/manager -v hack/localenv/values-sample.yaml -f ./
