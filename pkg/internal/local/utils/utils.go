@@ -26,7 +26,7 @@ import (
 )
 
 func Log(args ...any) {
-	args[0] = "===== 🤖 " + args[0].(string)
+	args[0] = "===== 🤖 " + args[0].(string) //nolint:errcheck
 	klog.InfoDepth(1, args...)
 }
 

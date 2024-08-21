@@ -392,6 +392,7 @@ func readCRDFromFile(crdFile string) (*apiextensionsv1.CustomResourceDefinition,
 	return crd, nil
 }
 
+//nolint:errcheck
 func expectObjectsToMatch(source, target client.Object) {
 	Expect(source.GetName()).To(Equal(target.GetName()), "stripped object should have the same name")
 	Expect(source.GetNamespace()).To(Equal(target.GetNamespace()), "stripped object should have the same namespace")
