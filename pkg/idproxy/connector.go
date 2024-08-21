@@ -115,13 +115,13 @@ func (c *oidcConnector) getGroups(organization string, upstreamGroups []string, 
 
 	teamList := greenhousesapv1alpha1.TeamList{}
 
-	//add team mappings
+	// add team mappings
 	err := c.client.List(ctx, &teamList, &client.ListOptions{Namespace: organization})
 	if err != nil {
 		return nil, err
 	}
 	for _, team := range teamList.Items {
-		teamNamesByIDPGroups[team.Spec.MappedIDPGroup] = append(teamNamesByIDPGroups[team.Spec.MappedIDPGroup], fmt.Sprintf("team:%s", team.Name))
+		teamNamesByIDPGroups[team.Spec.MappedIDPGroup] = append(teamNamesByIDPGroups[team.Spec.MappedIDPGroup], "team:"+team.Name)
 		for labelKey := range team.Labels {
 			if strings.HasPrefix(labelKey, greenhouseLabelKeyPrefix) {
 				teamCategoryName := strings.TrimPrefix(labelKey, greenhouseLabelKeyPrefix)
@@ -130,7 +130,7 @@ func (c *oidcConnector) getGroups(organization string, upstreamGroups []string, 
 		}
 	}
 
-	//add org admin role mapping
+	// add org admin role mapping
 	org := new(greenhousesapv1alpha1.Organization)
 	err = c.client.Get(ctx, types.NamespacedName{Namespace: "", Name: organization}, org)
 	if err != nil {

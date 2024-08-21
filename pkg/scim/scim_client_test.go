@@ -222,7 +222,7 @@ func (sc *ScimClientTests) TestGetUsers(t *testing.T) {
 	}))
 	defer server2.Close()
 
-	//valid user 2
+	// valid user 2
 	server3 := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 		w.Header().Add("Content-Type", "application/scim+json")

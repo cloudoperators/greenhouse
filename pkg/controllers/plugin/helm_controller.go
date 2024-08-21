@@ -197,7 +197,7 @@ func (r *HelmReconciler) initClientGetter(
 		restClientGetter, err = clientutil.NewRestClientGetterForInCluster(plugin.GetReleaseNamespace(), r.kubeClientOpts...)
 		if err != nil {
 			clusterAccessReadyCondition.Status = metav1.ConditionFalse
-			clusterAccessReadyCondition.Message = fmt.Sprintf("cannot access greenhouse cluster: %s", err.Error())
+			clusterAccessReadyCondition.Message = "cannot access greenhouse cluster: " + err.Error()
 			return clusterAccessReadyCondition, nil
 		}
 		return clusterAccessReadyCondition, restClientGetter
@@ -297,7 +297,7 @@ func (r *HelmReconciler) reconcileHelmRelease(
 	// Any error is reflected in the status of the Plugin.
 	if _, err := helm.TemplateHelmChartFromPlugin(ctx, r.Client, restClientGetter, pluginDefinition, plugin); err != nil {
 		reconcileFailedCondition.Status = metav1.ConditionTrue
-		reconcileFailedCondition.Message = fmt.Sprintf("Helm template failed: %s", err.Error())
+		reconcileFailedCondition.Message = "Helm template failed: " + err.Error()
 		return driftDetectedCondition, reconcileFailedCondition
 	}
 
@@ -305,7 +305,7 @@ func (r *HelmReconciler) reconcileHelmRelease(
 	diffObjects, isHelmDrift, err := helm.DiffChartToDeployedResources(ctx, r.Client, restClientGetter, pluginDefinition, plugin)
 	if err != nil {
 		reconcileFailedCondition.Status = metav1.ConditionTrue
-		reconcileFailedCondition.Message = fmt.Sprintf("Helm diff failed: %s", err.Error())
+		reconcileFailedCondition.Message = "Helm diff failed: " + err.Error()
 		return driftDetectedCondition, reconcileFailedCondition
 	}
 
@@ -331,7 +331,7 @@ func (r *HelmReconciler) reconcileHelmRelease(
 
 	if err := helm.InstallOrUpgradeHelmChartFromPlugin(ctx, r.Client, restClientGetter, pluginDefinition, plugin); err != nil {
 		reconcileFailedCondition.Status = metav1.ConditionTrue
-		reconcileFailedCondition.Message = fmt.Sprintf("Helm install/upgrade failed: %s", err.Error())
+		reconcileFailedCondition.Message = "Helm install/upgrade failed: " + err.Error()
 		return driftDetectedCondition, reconcileFailedCondition
 	}
 	reconcileFailedCondition.Status = metav1.ConditionFalse
@@ -367,7 +367,7 @@ func (r *HelmReconciler) reconcileStatus(ctx context.Context,
 			exposedServices = serviceList
 		} else {
 			statusReconcileCondition.Status = metav1.ConditionFalse
-			statusReconcileCondition.Message = fmt.Sprintf("failed to get exposed services: %s", err.Error())
+			statusReconcileCondition.Message = "failed to get exposed services: " + err.Error()
 		}
 
 		// Get the release status.
@@ -381,7 +381,7 @@ func (r *HelmReconciler) reconcileStatus(ctx context.Context,
 		}
 	} else {
 		statusReconcileCondition.Status = metav1.ConditionFalse
-		statusReconcileCondition.Message = fmt.Sprintf("failed to get Helm release: %s", err.Error())
+		statusReconcileCondition.Message = "failed to get Helm release: " + err.Error()
 	}
 	var (
 		uiApplication      *greenhousev1alpha1.UIApplicationReference

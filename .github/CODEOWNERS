@@ -27,5 +27,6 @@
 /Dockerfile             @cloudoperators/greenhouse-backend
 /Dockerfile.*           @cloudoperators/greenhouse-backend
 /Makefile               @cloudoperators/greenhouse-backend
+/.golangci.yaml         @cloudoperators/greenhouse-backend
 /PROJECT                @cloudoperators/greenhouse-backend
 /go.*                   @cloudoperators/greenhouse-backend
