@@ -35,7 +35,7 @@ require (
 	golang.org/x/text v0.17.0
 	gopkg.in/yaml.v3 v3.0.1
 	gotest.tools/v3 v3.5.1
-	helm.sh/helm/v3 v3.15.3
+	helm.sh/helm/v3 v3.15.4
 	k8s.io/api v0.30.3
 	k8s.io/apiextensions-apiserver v0.30.3
 	k8s.io/apimachinery v0.30.3
@@ -110,7 +110,7 @@ require (
 	github.com/dexidp/dex/api/v2 v2.1.1-0.20240409110506-3705207f0190 // indirect
 	github.com/docker/cli v25.0.1+incompatible // indirect
 	github.com/docker/distribution v2.8.3+incompatible // indirect
-	github.com/docker/docker v25.0.5+incompatible // indirect
+	github.com/docker/docker v25.0.6+incompatible // indirect
 	github.com/docker/docker-credential-helpers v0.8.1 // indirect
 	github.com/docker/go-connections v0.5.0 // indirect
 	github.com/docker/go-metrics v0.0.1 // indirect
