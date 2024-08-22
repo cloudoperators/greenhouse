@@ -21,8 +21,7 @@
   "editable": true,
   "gnetId": null,
   "graphTooltip": 0,
-  "id": 265,
-  "iteration": 1720533133148,
+  "iteration": 1724316365189,
   "links": [],
   "panels": [
     {
@@ -211,36 +210,24 @@
   "templating": {
     "list": [
       {
-        "allFormat": "glob",
-        "allValue": null,
         "current": {
           "selected": false,
-          "text": "greenhouse-controller-manager-metrics-service",
-          "value": "greenhouse-controller-manager-metrics-service"
+          "text": "kube-monitoring-prometheus",
+          "value": "kube-monitoring-prometheus"
         },
-        "datasource": "prometheus-greenhouse-qa",
-        "definition": "label_values(controller_runtime_reconcile_total{namespace=~\"$namespace\"}, job)",
         "description": null,
         "error": null,
         "hide": 0,
         "includeAll": false,
         "label": null,
         "multi": false,
-        "name": "job",
+        "name": "prometheus",
         "options": [],
-        "query": {
-          "query": "label_values(controller_runtime_reconcile_total{namespace=~\"$namespace\"}, job)",
-          "refId": "StandardVariableQuery"
-        },
-        "refresh": 2,
+        "query": "prometheus",
+        "refresh": 1,
         "regex": "",
         "skipUrlSync": false,
-        "sort": 0,
-        "tagValuesQuery": "",
-        "tags": [],
-        "tagsQuery": "",
-        "type": "query",
-        "useTags": false
+        "type": "datasource"
       },
       {
         "allFormat": "glob",
@@ -250,7 +237,7 @@
           "text": "greenhouse",
           "value": "greenhouse"
         },
-        "datasource": "prometheus-greenhouse-qa",
+        "datasource": "${prometheus}",
         "definition": "label_values(controller_runtime_reconcile_total, namespace)",
         "description": null,
         "error": null,
@@ -278,6 +265,38 @@
         "allFormat": "glob",
         "allValue": null,
         "current": {
+          "selected": false,
+          "text": "greenhouse-controller-manager-metrics-service",
+          "value": "greenhouse-controller-manager-metrics-service"
+        },
+        "datasource": "${prometheus}",
+        "definition": "label_values(controller_runtime_reconcile_total{namespace=~\"$namespace\"}, job)",
+        "description": null,
+        "error": null,
+        "hide": 0,
+        "includeAll": false,
+        "label": null,
+        "multi": false,
+        "name": "job",
+        "options": [],
+        "query": {
+          "query": "label_values(controller_runtime_reconcile_total{namespace=~\"$namespace\"}, job)",
+          "refId": "StandardVariableQuery"
+        },
+        "refresh": 2,
+        "regex": "",
+        "skipUrlSync": false,
+        "sort": 0,
+        "tagValuesQuery": "",
+        "tags": [],
+        "tagsQuery": "",
+        "type": "query",
+        "useTags": false
+      },
+      {
+        "allFormat": "glob",
+        "allValue": null,
+        "current": {
           "selected": true,
           "text": [
             "All"
@@ -286,7 +305,7 @@
             "$__all"
           ]
         },
-        "datasource": "prometheus-greenhouse-qa",
+        "datasource": "${prometheus}",
         "definition": "label_values(controller_runtime_reconcile_total{namespace=~\"$namespace\", job=~\"$job\"}, pod)",
         "description": null,
         "error": null,
@@ -309,26 +328,6 @@
         "tagsQuery": "",
         "type": "query",
         "useTags": false
-      },
-      {
-        "current": {
-          "selected": false,
-          "text": "prometheus-greenhouse-qa",
-          "value": "prometheus-greenhouse-qa"
-        },
-        "description": null,
-        "error": null,
-        "hide": 0,
-        "includeAll": false,
-        "label": null,
-        "multi": false,
-        "name": "prometheus",
-        "options": [],
-        "query": "prometheus",
-        "refresh": 1,
-        "regex": "/.*-greenhouse-.*/",
-        "skipUrlSync": false,
-        "type": "datasource"
       }
     ]
   },
@@ -340,5 +339,5 @@
   "timezone": "",
   "title": "Greenhouse Controller-Resources-Metrics",
   "uid": "JKH2Bh_Sz",
-  "version": 3
+  "version": 1
 }

@@ -21,8 +21,7 @@
   "editable": true,
   "gnetId": null,
   "graphTooltip": 0,
-  "id": 264,
-  "iteration": 1720796643513,
+  "iteration": 1724315300734,
   "links": [],
   "panels": [
     {
@@ -113,6 +112,7 @@
           "expr": "sum(rate(controller_runtime_reconcile_total{job=\"$job\", namespace=\"$namespace\"}[5m])) by (instance, controller)",
           "interval": "",
           "legendFormat": "{{instance}} {{controller}}",
+          "queryType": "randomWalk",
           "range": true,
           "refId": "A"
         }
@@ -798,573 +798,6 @@
       "repeat": "webhook",
       "repeatDirection": "h",
       "reverseYBuckets": false,
-      "scopedVars": {
-        "webhook": {
-          "selected": false,
-          "text": "/mutate--v1-secret",
-          "value": "/mutate--v1-secret"
-        }
-      },
-      "targets": [
-        {
-          "exemplar": true,
-          "expr": "sum by (webhook, le) (controller_runtime_webhook_latency_seconds_bucket{webhook=\"${webhook}\"})",
-          "format": "heatmap",
-          "instant": false,
-          "interval": "",
-          "legendFormat": "{{le}}",
-          "queryType": "randomWalk",
-          "refId": "A"
-        }
-      ],
-      "title": "Webhook Latency for ${webhook}",
-      "tooltip": {
-        "show": true,
-        "showHistogram": false
-      },
-      "type": "heatmap",
-      "xAxis": {
-        "show": true
-      },
-      "xBucketNumber": null,
-      "xBucketSize": null,
-      "yAxis": {
-        "decimals": null,
-        "format": "s",
-        "logBase": 1,
-        "max": null,
-        "min": null,
-        "show": true,
-        "splitFactor": null
-      },
-      "yBucketBound": "auto",
-      "yBucketNumber": null,
-      "yBucketSize": null
-    },
-    {
-      "cards": {
-        "cardPadding": null,
-        "cardRound": null
-      },
-      "color": {
-        "cardColor": "#b4ff00",
-        "colorScale": "sqrt",
-        "colorScheme": "interpolateRdYlGn",
-        "exponent": 0.5,
-        "mode": "spectrum"
-      },
-      "dataFormat": "tsbuckets",
-      "datasource": "${Prometheus}",
-      "fieldConfig": {
-        "defaults": {},
-        "overrides": []
-      },
-      "gridPos": {
-        "h": 7,
-        "w": 6,
-        "x": 6,
-        "y": 32
-      },
-      "heatmap": {},
-      "hideZeroBuckets": true,
-      "highlightCards": true,
-      "id": 28,
-      "legend": {
-        "show": true
-      },
-      "maxPerRow": 4,
-      "pluginVersion": "7.5.32",
-      "repeatDirection": "h",
-      "repeatIteration": 1720796643513,
-      "repeatPanelId": 27,
-      "reverseYBuckets": false,
-      "scopedVars": {
-        "webhook": {
-          "selected": false,
-          "text": "/mutate-greenhouse-sap-v1alpha1-plugin",
-          "value": "/mutate-greenhouse-sap-v1alpha1-plugin"
-        }
-      },
-      "targets": [
-        {
-          "exemplar": true,
-          "expr": "sum by (webhook, le) (controller_runtime_webhook_latency_seconds_bucket{webhook=\"${webhook}\"})",
-          "format": "heatmap",
-          "instant": false,
-          "interval": "",
-          "legendFormat": "{{le}}",
-          "queryType": "randomWalk",
-          "refId": "A"
-        }
-      ],
-      "title": "Webhook Latency for ${webhook}",
-      "tooltip": {
-        "show": true,
-        "showHistogram": false
-      },
-      "type": "heatmap",
-      "xAxis": {
-        "show": true
-      },
-      "xBucketNumber": null,
-      "xBucketSize": null,
-      "yAxis": {
-        "decimals": null,
-        "format": "s",
-        "logBase": 1,
-        "max": null,
-        "min": null,
-        "show": true,
-        "splitFactor": null
-      },
-      "yBucketBound": "auto",
-      "yBucketNumber": null,
-      "yBucketSize": null
-    },
-    {
-      "cards": {
-        "cardPadding": null,
-        "cardRound": null
-      },
-      "color": {
-        "cardColor": "#b4ff00",
-        "colorScale": "sqrt",
-        "colorScheme": "interpolateRdYlGn",
-        "exponent": 0.5,
-        "mode": "spectrum"
-      },
-      "dataFormat": "tsbuckets",
-      "datasource": "${Prometheus}",
-      "fieldConfig": {
-        "defaults": {},
-        "overrides": []
-      },
-      "gridPos": {
-        "h": 7,
-        "w": 6,
-        "x": 12,
-        "y": 32
-      },
-      "heatmap": {},
-      "hideZeroBuckets": true,
-      "highlightCards": true,
-      "id": 29,
-      "legend": {
-        "show": true
-      },
-      "maxPerRow": 4,
-      "pluginVersion": "7.5.32",
-      "repeatDirection": "h",
-      "repeatIteration": 1720796643513,
-      "repeatPanelId": 27,
-      "reverseYBuckets": false,
-      "scopedVars": {
-        "webhook": {
-          "selected": false,
-          "text": "/validate--v1-secret",
-          "value": "/validate--v1-secret"
-        }
-      },
-      "targets": [
-        {
-          "exemplar": true,
-          "expr": "sum by (webhook, le) (controller_runtime_webhook_latency_seconds_bucket{webhook=\"${webhook}\"})",
-          "format": "heatmap",
-          "instant": false,
-          "interval": "",
-          "legendFormat": "{{le}}",
-          "queryType": "randomWalk",
-          "refId": "A"
-        }
-      ],
-      "title": "Webhook Latency for ${webhook}",
-      "tooltip": {
-        "show": true,
-        "showHistogram": false
-      },
-      "type": "heatmap",
-      "xAxis": {
-        "show": true
-      },
-      "xBucketNumber": null,
-      "xBucketSize": null,
-      "yAxis": {
-        "decimals": null,
-        "format": "s",
-        "logBase": 1,
-        "max": null,
-        "min": null,
-        "show": true,
-        "splitFactor": null
-      },
-      "yBucketBound": "auto",
-      "yBucketNumber": null,
-      "yBucketSize": null
-    },
-    {
-      "cards": {
-        "cardPadding": null,
-        "cardRound": null
-      },
-      "color": {
-        "cardColor": "#b4ff00",
-        "colorScale": "sqrt",
-        "colorScheme": "interpolateRdYlGn",
-        "exponent": 0.5,
-        "mode": "spectrum"
-      },
-      "dataFormat": "tsbuckets",
-      "datasource": "${Prometheus}",
-      "fieldConfig": {
-        "defaults": {},
-        "overrides": []
-      },
-      "gridPos": {
-        "h": 7,
-        "w": 6,
-        "x": 18,
-        "y": 32
-      },
-      "heatmap": {},
-      "hideZeroBuckets": true,
-      "highlightCards": true,
-      "id": 30,
-      "legend": {
-        "show": true
-      },
-      "maxPerRow": 4,
-      "pluginVersion": "7.5.32",
-      "repeatDirection": "h",
-      "repeatIteration": 1720796643513,
-      "repeatPanelId": 27,
-      "reverseYBuckets": false,
-      "scopedVars": {
-        "webhook": {
-          "selected": false,
-          "text": "/validate-greenhouse-sap-v1alpha1-plugin",
-          "value": "/validate-greenhouse-sap-v1alpha1-plugin"
-        }
-      },
-      "targets": [
-        {
-          "exemplar": true,
-          "expr": "sum by (webhook, le) (controller_runtime_webhook_latency_seconds_bucket{webhook=\"${webhook}\"})",
-          "format": "heatmap",
-          "instant": false,
-          "interval": "",
-          "legendFormat": "{{le}}",
-          "queryType": "randomWalk",
-          "refId": "A"
-        }
-      ],
-      "title": "Webhook Latency for ${webhook}",
-      "tooltip": {
-        "show": true,
-        "showHistogram": false
-      },
-      "type": "heatmap",
-      "xAxis": {
-        "show": true
-      },
-      "xBucketNumber": null,
-      "xBucketSize": null,
-      "yAxis": {
-        "decimals": null,
-        "format": "s",
-        "logBase": 1,
-        "max": null,
-        "min": null,
-        "show": true,
-        "splitFactor": null
-      },
-      "yBucketBound": "auto",
-      "yBucketNumber": null,
-      "yBucketSize": null
-    },
-    {
-      "cards": {
-        "cardPadding": null,
-        "cardRound": null
-      },
-      "color": {
-        "cardColor": "#b4ff00",
-        "colorScale": "sqrt",
-        "colorScheme": "interpolateRdYlGn",
-        "exponent": 0.5,
-        "mode": "spectrum"
-      },
-      "dataFormat": "tsbuckets",
-      "datasource": "${Prometheus}",
-      "fieldConfig": {
-        "defaults": {},
-        "overrides": []
-      },
-      "gridPos": {
-        "h": 7,
-        "w": 6,
-        "x": 0,
-        "y": 39
-      },
-      "heatmap": {},
-      "hideZeroBuckets": true,
-      "highlightCards": true,
-      "id": 31,
-      "legend": {
-        "show": true
-      },
-      "maxPerRow": 4,
-      "pluginVersion": "7.5.32",
-      "repeatDirection": "h",
-      "repeatIteration": 1720796643513,
-      "repeatPanelId": 27,
-      "reverseYBuckets": false,
-      "scopedVars": {
-        "webhook": {
-          "selected": false,
-          "text": "/mutate-greenhouse-sap-v1alpha1-team",
-          "value": "/mutate-greenhouse-sap-v1alpha1-team"
-        }
-      },
-      "targets": [
-        {
-          "exemplar": true,
-          "expr": "sum by (webhook, le) (controller_runtime_webhook_latency_seconds_bucket{webhook=\"${webhook}\"})",
-          "format": "heatmap",
-          "instant": false,
-          "interval": "",
-          "legendFormat": "{{le}}",
-          "queryType": "randomWalk",
-          "refId": "A"
-        }
-      ],
-      "title": "Webhook Latency for ${webhook}",
-      "tooltip": {
-        "show": true,
-        "showHistogram": false
-      },
-      "type": "heatmap",
-      "xAxis": {
-        "show": true
-      },
-      "xBucketNumber": null,
-      "xBucketSize": null,
-      "yAxis": {
-        "decimals": null,
-        "format": "s",
-        "logBase": 1,
-        "max": null,
-        "min": null,
-        "show": true,
-        "splitFactor": null
-      },
-      "yBucketBound": "auto",
-      "yBucketNumber": null,
-      "yBucketSize": null
-    },
-    {
-      "cards": {
-        "cardPadding": null,
-        "cardRound": null
-      },
-      "color": {
-        "cardColor": "#b4ff00",
-        "colorScale": "sqrt",
-        "colorScheme": "interpolateRdYlGn",
-        "exponent": 0.5,
-        "mode": "spectrum"
-      },
-      "dataFormat": "tsbuckets",
-      "datasource": "${Prometheus}",
-      "fieldConfig": {
-        "defaults": {},
-        "overrides": []
-      },
-      "gridPos": {
-        "h": 7,
-        "w": 6,
-        "x": 6,
-        "y": 39
-      },
-      "heatmap": {},
-      "hideZeroBuckets": true,
-      "highlightCards": true,
-      "id": 32,
-      "legend": {
-        "show": true
-      },
-      "maxPerRow": 4,
-      "pluginVersion": "7.5.32",
-      "repeatDirection": "h",
-      "repeatIteration": 1720796643513,
-      "repeatPanelId": 27,
-      "reverseYBuckets": false,
-      "scopedVars": {
-        "webhook": {
-          "selected": false,
-          "text": "/validate-greenhouse-sap-v1alpha1-team",
-          "value": "/validate-greenhouse-sap-v1alpha1-team"
-        }
-      },
-      "targets": [
-        {
-          "exemplar": true,
-          "expr": "sum by (webhook, le) (controller_runtime_webhook_latency_seconds_bucket{webhook=\"${webhook}\"})",
-          "format": "heatmap",
-          "instant": false,
-          "interval": "",
-          "legendFormat": "{{le}}",
-          "queryType": "randomWalk",
-          "refId": "A"
-        }
-      ],
-      "title": "Webhook Latency for ${webhook}",
-      "tooltip": {
-        "show": true,
-        "showHistogram": false
-      },
-      "type": "heatmap",
-      "xAxis": {
-        "show": true
-      },
-      "xBucketNumber": null,
-      "xBucketSize": null,
-      "yAxis": {
-        "decimals": null,
-        "format": "s",
-        "logBase": 1,
-        "max": null,
-        "min": null,
-        "show": true,
-        "splitFactor": null
-      },
-      "yBucketBound": "auto",
-      "yBucketNumber": null,
-      "yBucketSize": null
-    },
-    {
-      "cards": {
-        "cardPadding": null,
-        "cardRound": null
-      },
-      "color": {
-        "cardColor": "#b4ff00",
-        "colorScale": "sqrt",
-        "colorScheme": "interpolateRdYlGn",
-        "exponent": 0.5,
-        "mode": "spectrum"
-      },
-      "dataFormat": "tsbuckets",
-      "datasource": "${Prometheus}",
-      "fieldConfig": {
-        "defaults": {},
-        "overrides": []
-      },
-      "gridPos": {
-        "h": 7,
-        "w": 6,
-        "x": 12,
-        "y": 39
-      },
-      "heatmap": {},
-      "hideZeroBuckets": true,
-      "highlightCards": true,
-      "id": 33,
-      "legend": {
-        "show": true
-      },
-      "maxPerRow": 4,
-      "pluginVersion": "7.5.32",
-      "repeatDirection": "h",
-      "repeatIteration": 1720796643513,
-      "repeatPanelId": 27,
-      "reverseYBuckets": false,
-      "scopedVars": {
-        "webhook": {
-          "selected": false,
-          "text": "/mutate-greenhouse-sap-v1alpha1-plugindefinition",
-          "value": "/mutate-greenhouse-sap-v1alpha1-plugindefinition"
-        }
-      },
-      "targets": [
-        {
-          "exemplar": true,
-          "expr": "sum by (webhook, le) (controller_runtime_webhook_latency_seconds_bucket{webhook=\"${webhook}\"})",
-          "format": "heatmap",
-          "instant": false,
-          "interval": "",
-          "legendFormat": "{{le}}",
-          "queryType": "randomWalk",
-          "refId": "A"
-        }
-      ],
-      "title": "Webhook Latency for ${webhook}",
-      "tooltip": {
-        "show": true,
-        "showHistogram": false
-      },
-      "type": "heatmap",
-      "xAxis": {
-        "show": true
-      },
-      "xBucketNumber": null,
-      "xBucketSize": null,
-      "yAxis": {
-        "decimals": null,
-        "format": "s",
-        "logBase": 1,
-        "max": null,
-        "min": null,
-        "show": true,
-        "splitFactor": null
-      },
-      "yBucketBound": "auto",
-      "yBucketNumber": null,
-      "yBucketSize": null
-    },
-    {
-      "cards": {
-        "cardPadding": null,
-        "cardRound": null
-      },
-      "color": {
-        "cardColor": "#b4ff00",
-        "colorScale": "sqrt",
-        "colorScheme": "interpolateRdYlGn",
-        "exponent": 0.5,
-        "mode": "spectrum"
-      },
-      "dataFormat": "tsbuckets",
-      "datasource": "${Prometheus}",
-      "fieldConfig": {
-        "defaults": {},
-        "overrides": []
-      },
-      "gridPos": {
-        "h": 7,
-        "w": 6,
-        "x": 18,
-        "y": 39
-      },
-      "heatmap": {},
-      "hideZeroBuckets": true,
-      "highlightCards": true,
-      "id": 34,
-      "legend": {
-        "show": true
-      },
-      "maxPerRow": 4,
-      "pluginVersion": "7.5.32",
-      "repeatDirection": "h",
-      "repeatIteration": 1720796643513,
-      "repeatPanelId": 27,
-      "reverseYBuckets": false,
-      "scopedVars": {
-        "webhook": {
-          "selected": false,
-          "text": "/validate-greenhouse-sap-v1alpha1-plugindefinition",
-          "value": "/validate-greenhouse-sap-v1alpha1-plugindefinition"
-        }
-      },
       "targets": [
         {
           "exemplar": true,
@@ -1409,6 +842,31 @@
   "templating": {
     "list": [
       {
+        "current": {
+          "selected": true,
+          "text": [
+            "kube-monitoring-prometheus"
+          ],
+          "value": [
+            "kube-monitoring-prometheus"
+          ]
+        },
+        "description": null,
+        "error": null,
+        "hide": 0,
+        "includeAll": false,
+        "label": null,
+        "multi": true,
+        "name": "Prometheus",
+        "options": [],
+        "query": "prometheus",
+        "queryValue": "",
+        "refresh": 1,
+        "regex": "",
+        "skipUrlSync": false,
+        "type": "datasource"
+      },
+      {
         "allFormat": "glob",
         "allValue": null,
         "current": {
@@ -1416,8 +874,8 @@
           "text": "greenhouse-controller-manager-metrics-service",
           "value": "greenhouse-controller-manager-metrics-service"
         },
-        "datasource": "prometheus-greenhouse-qa",
-        "definition": "label_values(controller_runtime_reconcile_total{namespace=~\"$namespace\"}, job)",
+        "datasource": "${Prometheus}",
+        "definition": "label_values(controller_runtime_reconcile_total{job=~\".*greenhouse-controller.*\"}, job)",
         "description": null,
         "error": null,
         "hide": 0,
@@ -1427,7 +885,7 @@
         "name": "job",
         "options": [],
         "query": {
-          "query": "label_values(controller_runtime_reconcile_total{namespace=~\"$namespace\"}, job)",
+          "query": "label_values(controller_runtime_reconcile_total{job=~\".*greenhouse-controller.*\"}, job)",
           "refId": "StandardVariableQuery"
         },
         "refresh": 2,
@@ -1448,8 +906,8 @@
           "text": "greenhouse",
           "value": "greenhouse"
         },
-        "datasource": "prometheus-greenhouse-qa",
-        "definition": "label_values(controller_runtime_reconcile_total, namespace)",
+        "datasource": "${Prometheus}",
+        "definition": "label_values(controller_runtime_reconcile_total{job=~\".*greenhouse-controller.*\"}, namespace)",
         "description": null,
         "error": null,
         "hide": 0,
@@ -1459,7 +917,7 @@
         "name": "namespace",
         "options": [],
         "query": {
-          "query": "label_values(controller_runtime_reconcile_total, namespace)",
+          "query": "label_values(controller_runtime_reconcile_total{job=~\".*greenhouse-controller.*\"}, namespace)",
           "refId": "StandardVariableQuery"
         },
         "refresh": 1,
@@ -1471,72 +929,11 @@
         "tagsQuery": "",
         "type": "query",
         "useTags": false
-      },
-      {
-        "allFormat": "glob",
-        "allValue": null,
-        "current": {
-          "selected": false,
-          "text": [
-            "All"
-          ],
-          "value": [
-            "$__all"
-          ]
-        },
-        "datasource": "prometheus-greenhouse-qa",
-        "definition": "label_values(controller_runtime_reconcile_total{namespace=~\"$namespace\", job=~\"$job\"}, pod)",
-        "description": null,
-        "error": null,
-        "hide": 2,
-        "includeAll": true,
-        "label": "pod",
-        "multi": true,
-        "name": "pod",
-        "options": [],
-        "query": {
-          "query": "label_values(controller_runtime_reconcile_total{namespace=~\"$namespace\", job=~\"$job\"}, pod)",
-          "refId": "StandardVariableQuery"
-        },
-        "refresh": 2,
-        "regex": "",
-        "skipUrlSync": false,
-        "sort": 0,
-        "tagValuesQuery": "",
-        "tags": [],
-        "tagsQuery": "",
-        "type": "query",
-        "useTags": false
-      },
-      {
-        "current": {
-          "selected": false,
-          "text": [
-            "prometheus-greenhouse-qa"
-          ],
-          "value": [
-            "prometheus-greenhouse-qa"
-          ]
-        },
-        "description": null,
-        "error": null,
-        "hide": 0,
-        "includeAll": false,
-        "label": null,
-        "multi": true,
-        "name": "Prometheus",
-        "options": [],
-        "query": "prometheus",
-        "queryValue": "",
-        "refresh": 1,
-        "regex": "/.*-greenhouse-.*/",
-        "skipUrlSync": false,
-        "type": "datasource"
       },
       {
         "allValue": "All",
         "current": {
-          "selected": false,
+          "selected": true,
           "text": [
             "All"
           ],
@@ -1578,5 +975,5 @@
   "timezone": "",
   "title": "Greenhouse Controller-Runtime-Metrics",
   "uid": "QbSeah_Ik",
-  "version": 10
+  "version": 1
 }
