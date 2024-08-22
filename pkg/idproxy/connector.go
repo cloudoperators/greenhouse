@@ -78,7 +78,7 @@ func (c *oidcConnector) HandleCallback(s connector.Scopes, r *http.Request) (con
 
 	groups, groupsErr := c.getGroups(c.id, identity.Groups, r.Context())
 	if groupsErr != nil {
-		c.logger.Infof("failed getting groups for %s: %s", c.id, groupsErr)
+		c.logger.Info("failed getting group", "groupID", c.id, "error", groupsErr)
 
 		if !c.keepUpstreamGroups {
 			identity.Groups = []string{}
@@ -87,7 +87,15 @@ func (c *oidcConnector) HandleCallback(s connector.Scopes, r *http.Request) (con
 		identity.Groups = groups
 	}
 
-	c.logger.Infof("create identity %#v", identity)
+	c.logger.Info("created identity", slog.Group("user",
+		"username", identity.Username,
+		"preferredUsername", identity.PreferredUsername,
+		"userID", identity.UserID,
+		"email", identity.Email,
+		"emailVerified", identity.EmailVerified,
+		"groups", strings.Join(identity.Groups, ","),
+	),
+	)
 	return identity, err
 }
 
@@ -96,13 +104,20 @@ func (c *oidcConnector) Refresh(ctx context.Context, s connector.Scopes, identit
 
 	groups, groupsErr := c.getGroups(c.id, identity.Groups, ctx)
 	if groupsErr != nil {
-		c.logger.Infof("failed getting groups for %s: %s", c.id, groupsErr)
+		c.logger.Info("failed getting groups", "connectorID", c.id, "error", groupsErr)
 		identity.Groups = []string{}
 	} else {
 		identity.Groups = groups
 	}
 
-	c.logger.Infof("refresh identity %#v", identity)
+	c.logger.Info("refreshed identity", slog.Group("user",
+		"username", identity.Username,
+		"preferredUsername", identity.PreferredUsername,
+		"userID", identity.UserID,
+		"email", identity.Email,
+		"emailVerified", identity.EmailVerified,
+		"groups", strings.Join(identity.Groups, ","),
+	))
 	return identity, err
 }
 
