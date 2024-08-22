@@ -208,5 +208,4 @@ func computeReadyCondition(plugin *greenhousev1alpha1.Plugin, pluginStatus green
 // setWorkloadMetrics sets the workload status metric to the given status
 func setWorkloadMetrics(plugin *greenhousev1alpha1.Plugin, status float64) {
 	workloadStatus.WithLabelValues(plugin.GetNamespace(), plugin.Name, plugin.Spec.PluginDefinition).Set(status)
-	workloadStatus.WithLabelValues(plugin.GetNamespace(), plugin.Name, plugin.Spec.PluginDefinition).SetToCurrentTime()
 }
