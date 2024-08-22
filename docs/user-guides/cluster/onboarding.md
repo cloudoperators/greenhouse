@@ -16,7 +16,7 @@ NOTE: The UI is currently in development. For now this guide describes the onboa
 
 ### Preparation
 
-Download the latest `greenhousectl` binary for from [here](https://github.com/cloudoperators/greenhouse/releases). 
+Download the latest `greenhousectl` binary from [here](https://github.com/cloudoperators/greenhouse/releases). 
 
 The command line tool requires access to both the Greenhouse **and** your Kubernetes cluster. 
 Hence, have the `kubeconfig` files for both clusters at hand. The `kubeconfig` file for the Greenhouse Kubernetes cluster can be downloaded via the Greenhouse dashboard: _Organization_ > _Clusters_ > _Access greenhouse cluster_. 
