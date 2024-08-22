@@ -3,9 +3,9 @@ module github.com/cloudoperators/greenhouse
 go 1.22.3
 
 replace (
-	// DEX import matches version v2.39.1.
-	github.com/dexidp/dex => github.com/dexidp/dex v0.0.0-20240409110506-3705207f0190
-	github.com/dexidp/dex/api/v2 => github.com/dexidp/dex/api/v2 v2.1.1-0.20240409110506-3705207f0190
+	// DEX import matches version v2.41.1.
+	github.com/dexidp/dex => github.com/dexidp/dex v0.0.0-20240807174518-43956db7fd75
+	github.com/dexidp/dex/api/v2 => github.com/dexidp/dex/api/v2 v2.1.1-0.20240807174518-43956db7fd75
 	// Keep k8s dependencies in sync.
 	k8s.io/api => k8s.io/api v0.30.3
 	k8s.io/apiextensions-apiserver => k8s.io/apiextensions-apiserver v0.30.3
@@ -18,7 +18,7 @@ replace (
 )
 
 require (
-	github.com/dexidp/dex v0.0.0-20240409110506-3705207f0190
+	github.com/dexidp/dex v0.0.0-20240807174518-43956db7fd75
 	github.com/ghodss/yaml v1.0.0
 	github.com/jeremywohl/flatten/v2 v2.0.0-20211013061545-07e4a09fb8e4
 	github.com/juanfont/headscale v0.22.3
