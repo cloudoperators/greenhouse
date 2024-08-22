@@ -178,7 +178,7 @@ func getPayloadStatus(ctx context.Context, releaseStatus *ReleaseStatus, cl clie
 	switch gvk.Kind {
 	case "Deployment":
 		remoteObject := &appsv1.Deployment{}
-		if err := cl.Get(context.TODO(), types.NamespacedName{Name: objName, Namespace: objNamespace}, remoteObject); err != nil {
+		if err := cl.Get(ctx, types.NamespacedName{Name: objName, Namespace: objNamespace}, remoteObject); err != nil {
 			log.FromContext(ctx).Error(err, "Error getting deployment", "name", objName, "pluginName", releaseStatus.ReleaseName)
 			return
 		}
@@ -193,7 +193,7 @@ func getPayloadStatus(ctx context.Context, releaseStatus *ReleaseStatus, cl clie
 		}
 	case "StatefulSet":
 		remoteObject := &appsv1.StatefulSet{}
-		if err := cl.Get(context.TODO(), types.NamespacedName{Name: objName, Namespace: objNamespace}, remoteObject); err != nil {
+		if err := cl.Get(ctx, types.NamespacedName{Name: objName, Namespace: objNamespace}, remoteObject); err != nil {
 			log.FromContext(ctx).Error(err, "Error getting statefulset", "name", objName, "pluginName", releaseStatus.ReleaseName)
 			return
 		}
@@ -209,7 +209,7 @@ func getPayloadStatus(ctx context.Context, releaseStatus *ReleaseStatus, cl clie
 
 	case "DaemonSet":
 		remoteObject := &appsv1.DaemonSet{}
-		if err := cl.Get(context.TODO(), types.NamespacedName{Name: objName, Namespace: objNamespace}, remoteObject); err != nil {
+		if err := cl.Get(ctx, types.NamespacedName{Name: objName, Namespace: objNamespace}, remoteObject); err != nil {
 			log.FromContext(ctx).Error(err, "Error getting daemonset", "name", objName, "pluginName", releaseStatus.ReleaseName)
 			return
 		}
@@ -226,7 +226,7 @@ func getPayloadStatus(ctx context.Context, releaseStatus *ReleaseStatus, cl clie
 
 	case "ReplicaSet":
 		remoteObject := &appsv1.ReplicaSet{}
-		if err := cl.Get(context.TODO(), types.NamespacedName{Name: objName, Namespace: objNamespace}, remoteObject); err != nil {
+		if err := cl.Get(ctx, types.NamespacedName{Name: objName, Namespace: objNamespace}, remoteObject); err != nil {
 			log.FromContext(ctx).Error(err, "Error getting replicaset", "name", objName, "pluginName", releaseStatus.ReleaseName)
 			return
 		}
@@ -240,7 +240,7 @@ func getPayloadStatus(ctx context.Context, releaseStatus *ReleaseStatus, cl clie
 		}
 	case "Job":
 		remoteObject := &batchv1.Job{}
-		if err := cl.Get(context.TODO(), types.NamespacedName{Name: objName, Namespace: objNamespace}, remoteObject); err != nil {
+		if err := cl.Get(ctx, types.NamespacedName{Name: objName, Namespace: objNamespace}, remoteObject); err != nil {
 			log.FromContext(ctx).Error(err, "Error getting job", "name", objName, "pluginName", releaseStatus.ReleaseName)
 			return
 		}
@@ -250,7 +250,7 @@ func getPayloadStatus(ctx context.Context, releaseStatus *ReleaseStatus, cl clie
 		}
 	case "CronJob":
 		remoteObject := &batchv1.CronJob{}
-		if err := cl.Get(context.TODO(), types.NamespacedName{Name: objName, Namespace: objNamespace}, remoteObject); err != nil {
+		if err := cl.Get(ctx, types.NamespacedName{Name: objName, Namespace: objNamespace}, remoteObject); err != nil {
 			log.FromContext(ctx).Error(err, "Error getting cronjob", "name", objName, "pluginName", releaseStatus.ReleaseName)
 			return
 		}
@@ -260,7 +260,7 @@ func getPayloadStatus(ctx context.Context, releaseStatus *ReleaseStatus, cl clie
 		}
 	case "Pod":
 		remoteObject := &corev1.Pod{}
-		if err := cl.Get(context.TODO(), types.NamespacedName{Name: objName, Namespace: objNamespace}, remoteObject); err != nil {
+		if err := cl.Get(ctx, types.NamespacedName{Name: objName, Namespace: objNamespace}, remoteObject); err != nil {
 			log.FromContext(ctx).Error(err, "Error getting pod", "name", objName, "pluginName", releaseStatus.ReleaseName)
 			return
 		}
@@ -281,7 +281,7 @@ func getPayloadStatus(ctx context.Context, releaseStatus *ReleaseStatus, cl clie
 			log.FromContext(ctx).Error(err, "Error creating label selector", "name", objName, "pluginName", releaseStatus.ReleaseName)
 		}
 		listOptions.LabelSelector.Add(*notFromCronJob)
-		if err := cl.List(context.TODO(), remoteObject, listOptions); err != nil {
+		if err := cl.List(ctx, remoteObject, listOptions); err != nil {
 			log.FromContext(ctx).Error(err, "Error getting alertmanager", "name", objName, "pluginName", releaseStatus.ReleaseName)
 			return
 		}
