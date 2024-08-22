@@ -12,7 +12,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/metrics"
 )
 
-const MetricsRequeueInterval = 2 * time.Minute
+const metricsRequeueInterval = 2 * time.Minute
 
 var (
 	kubernetesVersionsCounter = prometheus.NewCounterVec(
@@ -65,12 +65,12 @@ func (r *ClusterMetricsReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 	}
 	kubernetesVersionsCounter.With(kubernetesVersionLabels).Inc()
 
-	secondsToExpiry := time.Now().Unix() - cluster.Status.BearerTokenExpirationTimestamp.Unix()
+	secondsToExpiry := cluster.Status.BearerTokenExpirationTimestamp.Unix() - time.Now().Unix()
 	secondsToExpiryLabels := prometheus.Labels{
 		"cluster":   cluster.Name,
 		"namespace": cluster.Namespace,
 	}
 	secondsToTokenExpiryGauge.With(secondsToExpiryLabels).Set(float64(secondsToExpiry))
 
-	return ctrl.Result{RequeueAfter: MetricsRequeueInterval}, nil
+	return ctrl.Result{RequeueAfter: metricsRequeueInterval}, nil
 }
