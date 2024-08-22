@@ -49,7 +49,7 @@ var objectFilter = []helm.ManifestObjectFilter{
 var (
 	workloadStatus = prometheus.NewGaugeVec(
 		prometheus.GaugeOpts{
-			Name: "greenhouse_plugin_workload_status",
+			Name: "greenhouse_plugin_workload_status_up",
 			Help: "The workload status of the plugin",
 		},
 		[]string{"org", "plugin", "pluginDefinition"},
