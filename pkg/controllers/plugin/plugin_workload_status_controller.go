@@ -190,7 +190,9 @@ func getPayloadStatus(ctx context.Context, releaseStatus *ReleaseStatus, cl clie
 		if !isPayloadReadyRunning(remoteObject) {
 			status.Ready = false
 			status.Message = fmt.Sprintf("Following workload resources are not ready: %s/%s", gvk.Kind, objName)
+			releaseStatus.PayloadStatus = append(releaseStatus.PayloadStatus, *status)
 		}
+		releaseStatus.PayloadStatus = append(releaseStatus.PayloadStatus, *status)
 	case "StatefulSet":
 		remoteObject := &appsv1.StatefulSet{}
 		if err := cl.Get(ctx, types.NamespacedName{Name: objName, Namespace: objNamespace}, remoteObject); err != nil {
@@ -205,8 +207,9 @@ func getPayloadStatus(ctx context.Context, releaseStatus *ReleaseStatus, cl clie
 		if !isPayloadReadyRunning(remoteObject) {
 			status.Ready = false
 			status.Message = fmt.Sprintf("Following workload resources are not ready: %s/%s", gvk.Kind, objName)
+			releaseStatus.PayloadStatus = append(releaseStatus.PayloadStatus, *status)
 		}
-
+		releaseStatus.PayloadStatus = append(releaseStatus.PayloadStatus, *status)
 	case "DaemonSet":
 		remoteObject := &appsv1.DaemonSet{}
 		if err := cl.Get(ctx, types.NamespacedName{Name: objName, Namespace: objNamespace}, remoteObject); err != nil {
@@ -222,8 +225,9 @@ func getPayloadStatus(ctx context.Context, releaseStatus *ReleaseStatus, cl clie
 		if !isPayloadReadyRunning(remoteObject) {
 			status.Ready = false
 			status.Message = fmt.Sprintf("%s/%s", gvk.Kind, objName)
+			releaseStatus.PayloadStatus = append(releaseStatus.PayloadStatus, *status)
 		}
-
+		releaseStatus.PayloadStatus = append(releaseStatus.PayloadStatus, *status)
 	case "ReplicaSet":
 		remoteObject := &appsv1.ReplicaSet{}
 		if err := cl.Get(ctx, types.NamespacedName{Name: objName, Namespace: objNamespace}, remoteObject); err != nil {
@@ -237,7 +241,9 @@ func getPayloadStatus(ctx context.Context, releaseStatus *ReleaseStatus, cl clie
 		if !isPayloadReadyRunning(remoteObject) {
 			status.Ready = false
 			status.Message = fmt.Sprintf("%s/%s", gvk.Kind, objName)
+			releaseStatus.PayloadStatus = append(releaseStatus.PayloadStatus, *status)
 		}
+		releaseStatus.PayloadStatus = append(releaseStatus.PayloadStatus, *status)
 	case "Job":
 		remoteObject := &batchv1.Job{}
 		if err := cl.Get(ctx, types.NamespacedName{Name: objName, Namespace: objNamespace}, remoteObject); err != nil {
@@ -247,7 +253,9 @@ func getPayloadStatus(ctx context.Context, releaseStatus *ReleaseStatus, cl clie
 		if !isPayloadReadyRunning(remoteObject) {
 			status.Ready = false
 			status.Message = fmt.Sprintf("%s/%s", gvk.Kind, objName)
+			releaseStatus.PayloadStatus = append(releaseStatus.PayloadStatus, *status)
 		}
+		releaseStatus.PayloadStatus = append(releaseStatus.PayloadStatus, *status)
 	case "CronJob":
 		remoteObject := &batchv1.CronJob{}
 		if err := cl.Get(ctx, types.NamespacedName{Name: objName, Namespace: objNamespace}, remoteObject); err != nil {
@@ -257,7 +265,9 @@ func getPayloadStatus(ctx context.Context, releaseStatus *ReleaseStatus, cl clie
 		if !isPayloadReadyRunning(remoteObject) {
 			status.Ready = false
 			status.Message = fmt.Sprintf("%s/%s", gvk.Kind, objName)
+			releaseStatus.PayloadStatus = append(releaseStatus.PayloadStatus, *status)
 		}
+		releaseStatus.PayloadStatus = append(releaseStatus.PayloadStatus, *status)
 	case "Pod":
 		remoteObject := &corev1.Pod{}
 		if err := cl.Get(ctx, types.NamespacedName{Name: objName, Namespace: objNamespace}, remoteObject); err != nil {
@@ -267,7 +277,9 @@ func getPayloadStatus(ctx context.Context, releaseStatus *ReleaseStatus, cl clie
 		if !isPayloadReadyRunning(remoteObject) {
 			status.Ready = false
 			status.Message = fmt.Sprintf("%s/%s", gvk.Kind, objName)
+			releaseStatus.PayloadStatus = append(releaseStatus.PayloadStatus, *status)
 		}
+		releaseStatus.PayloadStatus = append(releaseStatus.PayloadStatus, *status)
 	case "Alertmanager":
 		remoteObject := &corev1.PodList{}
 		listOptions := &client.ListOptions{
@@ -288,6 +300,8 @@ func getPayloadStatus(ctx context.Context, releaseStatus *ReleaseStatus, cl clie
 		if !isPayloadReadyRunning(remoteObject) {
 			status.Ready = false
 			status.Message = fmt.Sprintf("%s/%s", gvk.Kind, objName)
+			releaseStatus.PayloadStatus = append(releaseStatus.PayloadStatus, *status)
 		}
+		releaseStatus.PayloadStatus = append(releaseStatus.PayloadStatus, *status)
 	}
 }
