@@ -9,6 +9,7 @@ import (
 
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/pkg/apis/greenhouse/v1alpha1"
 	"github.com/cloudoperators/greenhouse/pkg/scim"
+	"github.com/prometheus/client_golang/prometheus"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -16,9 +17,24 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
+	"sigs.k8s.io/controller-runtime/pkg/metrics"
 )
 
 const defaultRequeueInterval = 10 * time.Minute
+
+var (
+	membersCountMetric = prometheus.NewGaugeVec(
+		prometheus.GaugeOpts{
+			Name: "greenhouse_teammembership_members_count",
+			Help: "Members count in team membership",
+		},
+		[]string{"namespace", "team"},
+	)
+)
+
+func init() {
+	metrics.Registry.MustRegister(membersCountMetric)
+}
 
 type TeamMembershipUpdaterController struct {
 	client.Client
@@ -106,6 +122,11 @@ func (r *TeamMembershipUpdaterController) Reconcile(ctx context.Context, req ctr
 		return ctrl.Result{}, err
 	}
 
+	membersCountMetric.With(prometheus.Labels{
+		"namespace": team.Namespace,
+		"team":      team.Name,
+	}).Set(float64(len(users)))
+
 	if teamMembershipExists && len(teamMembership.Spec.Members) == len(users) {
 		// Requeue when nothing has changed.
 		return ctrl.Result{RequeueAfter: defaultRequeueInterval}, nil
@@ -148,12 +169,7 @@ func (r *TeamMembershipUpdaterController) createTeamMembershipForTeam(ctx contex
 	log.FromContext(ctx).Info("created team-membership",
 		"name", teamMembership.Name, "members count", len(teamMembership.Spec.Members))
 
-	err = r.updateOwnerReferenceForTeam(ctx, teamMembership, team)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return r.updateOwnerReferenceForTeam(ctx, teamMembership, team)
 }
 
 func (r *TeamMembershipUpdaterController) updateTeamMembership(ctx context.Context, team *greenhousev1alpha1.Team, teamMembership *greenhousev1alpha1.TeamMembership, users []greenhousev1alpha1.User) error {
@@ -171,12 +187,7 @@ func (r *TeamMembershipUpdaterController) updateTeamMembership(ctx context.Conte
 	log.FromContext(ctx).Info("updated team-membership and its status",
 		"name", teamMembership.Name, "members count", len(teamMembership.Spec.Members))
 
-	err = r.updateOwnerReferenceForTeam(ctx, teamMembership, team)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return r.updateOwnerReferenceForTeam(ctx, teamMembership, team)
 }
 
 func (r *TeamMembershipUpdaterController) updateOwnerReferenceForTeam(ctx context.Context, teamMembership *greenhousev1alpha1.TeamMembership, team *greenhousev1alpha1.Team) error {
