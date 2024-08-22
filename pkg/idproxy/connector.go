@@ -6,12 +6,12 @@ package idproxy
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"net/http"
 	"strings"
 
 	"github.com/dexidp/dex/connector"
 	"github.com/dexidp/dex/connector/oidc"
-	"github.com/dexidp/dex/pkg/log"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -42,7 +42,7 @@ func (c *OIDCConfig) AddRedirectURI(redirectURI string) {
 	c.redirectURIOverwrite = redirectURI
 }
 
-func (c *OIDCConfig) Open(id string, logger log.Logger) (connector.Connector, error) {
+func (c *OIDCConfig) Open(id string, logger *slog.Logger) (connector.Connector, error) {
 	// overwrite redirectURI for (e.g. local) dex server talking to deployed connector running with differing config
 	if c.redirectURIOverwrite != "" {
 		c.RedirectURI = c.redirectURIOverwrite
@@ -63,7 +63,7 @@ func (c *OIDCConfig) Open(id string, logger log.Logger) (connector.Connector, er
 
 type oidcConnector struct {
 	conn               connector.Connector
-	logger             log.Logger
+	logger             *slog.Logger
 	client             client.Client
 	id                 string
 	keepUpstreamGroups bool
