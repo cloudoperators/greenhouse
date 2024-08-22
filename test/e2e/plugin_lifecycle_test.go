@@ -39,7 +39,7 @@ var _ = Describe("PluginLifecycle", Ordered, func() {
 		test.EventuallyCreated(test.Ctx, test.K8sClient, cluster)
 
 		testPluginDefinition := fixtures.NginxPluginDefinition
-		testPluginDefinition.ObjectMeta.Namespace = setup.Namespace() //namespace override
+		testPluginDefinition.ObjectMeta.Namespace = setup.Namespace() // namespace override
 
 		testPlugin := &greenhousev1alpha1.Plugin{
 			TypeMeta: metav1.TypeMeta{
@@ -69,14 +69,14 @@ var _ = Describe("PluginLifecycle", Ordered, func() {
 		deploymentList := &appsv1.DeploymentList{}
 		ctx := test.Ctx
 
-		//Creating plugin definition
+		// Creating plugin definition
 		err := test.K8sClient.Create(ctx, testPluginDefinition)
 		Expect(err).NotTo(HaveOccurred())
 		err = test.K8sClient.List(ctx, pluginDefinitionList)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(len(pluginDefinitionList.Items)).To(BeEquivalentTo(1))
 
-		//Creating plugin
+		// Creating plugin
 		err = test.K8sClient.Create(ctx, testPlugin)
 		Expect(err).NotTo(HaveOccurred())
 		Eventually(func(g Gomega) bool {
@@ -88,18 +88,18 @@ var _ = Describe("PluginLifecycle", Ordered, func() {
 			return true
 		}).Should(BeTrue())
 
-		//Checking deployment
+		// Checking deployment
 		err = remoteClient.List(ctx, deploymentList, client.InNamespace(setup.Namespace()))
 		Expect(err).NotTo(HaveOccurred())
 		SetDefaultEventuallyTimeout(60 * time.Second)
 		Eventually(func(g Gomega) bool {
 			err = remoteClient.List(ctx, deploymentList, client.InNamespace(setup.Namespace()))
 			g.Expect(err).NotTo(HaveOccurred())
-			g.Expect(len(deploymentList.Items) > 0).To(BeTrue())
+			g.Expect(deploymentList.Items).ToNot(BeEmpty())
 			return true
 		}).Should(BeTrue())
 
-		//Checking the name of deployment
+		// Checking the name of deployment
 		nginxDeploymentExists := false
 		for _, deployment := range deploymentList.Items {
 			if strings.Contains(deployment.Name, "nginx") {
@@ -110,7 +110,7 @@ var _ = Describe("PluginLifecycle", Ordered, func() {
 		}
 		Expect(nginxDeploymentExists).To(BeTrue())
 
-		//Updating replicas
+		// Updating replicas
 		namespacedName := types.NamespacedName{Name: testPlugin.Name, Namespace: testPlugin.Namespace}
 		err = test.K8sClient.Get(ctx, namespacedName, testPlugin)
 		Expect(err).NotTo(HaveOccurred())
@@ -129,10 +129,10 @@ var _ = Describe("PluginLifecycle", Ordered, func() {
 			return true
 		}).Should(BeTrue())
 
-		//Deleting plugin
+		// Deleting plugin
 		test.EventuallyDeleted(ctx, test.K8sClient, testPlugin)
 
-		//Check, is deployment deleted
+		// Check, is deployment deleted
 		Eventually(func(g Gomega) bool {
 			err = remoteClient.List(ctx, deploymentList, client.InNamespace(setup.Namespace()))
 			g.Expect(err).NotTo(HaveOccurred())
@@ -140,7 +140,7 @@ var _ = Describe("PluginLifecycle", Ordered, func() {
 			return true
 		}).Should(BeTrue())
 
-		//Deleting plugin definition
+		// Deleting plugin definition
 		test.EventuallyDeleted(ctx, test.K8sClient, testPluginDefinition)
 	})
 })
