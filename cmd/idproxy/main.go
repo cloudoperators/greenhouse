@@ -16,6 +16,7 @@ import (
 	"time"
 
 	"github.com/dexidp/dex/server"
+	"github.com/go-logr/logr"
 	"github.com/oklog/run"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/collectors"
@@ -25,6 +26,7 @@ import (
 	_ "k8s.io/client-go/plugin/pkg/client/auth/oidc"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	ctrl "sigs.k8s.io/controller-runtime/pkg/client/config"
+	logk "sigs.k8s.io/controller-runtime/pkg/log"
 
 	greenhousesapv1alpha1 "github.com/cloudoperators/greenhouse/pkg/apis/greenhouse/v1alpha1"
 	"github.com/cloudoperators/greenhouse/pkg/idproxy"
@@ -38,7 +40,10 @@ func main() {
 	var listenAddr, metricsAddr string
 	var allowedOrigins []string
 	logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
+	// set default logger to be used by log
 	slog.SetDefault(logger)
+	// set default deferred logger to be used by controller-runtime
+	logk.SetLogger(logr.FromSlogHandler(logger.Handler()))
 
 	flag.StringVar(&kubeconfig, "kubeconfig", os.Getenv("KUBECONFIG"), "Use kubeconfig for authentication")
 	flag.StringVar(&kubecontext, "kubecontext", os.Getenv("KUBECONTEXT"), "Use context from kubeconfig")
