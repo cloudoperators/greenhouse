@@ -7,11 +7,12 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	. "github.com/onsi/ginkgo/v2"
+	. "github.com/onsi/gomega"
+
 	"github.com/cloudoperators/greenhouse/pkg/controllers/teammembership"
 	"github.com/cloudoperators/greenhouse/pkg/scim"
 	"github.com/cloudoperators/greenhouse/pkg/test"
-	. "github.com/onsi/ginkgo/v2"
-	. "github.com/onsi/gomega"
 )
 
 var (

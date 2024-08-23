@@ -4,8 +4,6 @@
 package teammembership_test
 
 import (
-	"fmt"
-
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
@@ -29,7 +27,7 @@ var (
 )
 
 func createTestOrg() {
-	By(fmt.Sprintf("Creating organization with name: %s", setup.Namespace()))
+	By("Creating organization with name: " + setup.Namespace())
 	setup.CreateOrganization(test.Ctx, setup.Namespace(), func(o *greenhousev1alpha1.Organization) {
 		o.Spec.Authentication = &greenhousev1alpha1.Authentication{
 			SCIMConfig: &greenhousev1alpha1.SCIMConfig{
@@ -253,7 +251,7 @@ var _ = Describe("TeammembershipUpdaterController", func() {
 				teamMemberships := &greenhousev1alpha1.TeamMembershipList{}
 				err := setup.List(test.Ctx, teamMemberships, &client.ListOptions{Namespace: setup.Namespace()})
 				g.Expect(err).ShouldNot(HaveOccurred(), "unexpected error getting TeamMemberships")
-				g.Expect(teamMemberships.Items).To(HaveLen(0), "there should be exactly zero TeamMemberships")
+				g.Expect(teamMemberships.Items).To(BeEmpty(), "there should be exactly zero TeamMemberships")
 			}).Should(Succeed(), "TeamMembership should have been deleted")
 		})
 
@@ -268,7 +266,7 @@ var _ = Describe("TeammembershipUpdaterController", func() {
 
 			By("ensuring logger was called correctly")
 			failedProcessingLog := "failed processing team-membership for team"
-			reasonLog := fmt.Sprintf("no mapped group found for %s", nonExistingGroupName)
+			reasonLog := "no mapped group found for " + nonExistingGroupName
 			Eventually(func(g Gomega) {
 				g.Expect(tee.Contents()).To(ContainSubstring(failedProcessingLog), "logger should log failed processing")
 				g.Expect(tee.Contents()).To(ContainSubstring(reasonLog), "logger should log reason")
@@ -279,7 +277,7 @@ var _ = Describe("TeammembershipUpdaterController", func() {
 				teamMemberships := &greenhousev1alpha1.TeamMembershipList{}
 				err := setup.List(test.Ctx, teamMemberships, &client.ListOptions{Namespace: setup.Namespace()})
 				g.Expect(err).ShouldNot(HaveOccurred(), "unexpected error getting TeamMemberships")
-				g.Expect(teamMemberships.Items).To(HaveLen(0), "there should be exactly zero TeamMemberships")
+				g.Expect(teamMemberships.Items).To(BeEmpty(), "there should be exactly zero TeamMemberships")
 			}).Should(Succeed(), "the TeamMemberships should not have been created")
 		})
 
@@ -305,7 +303,7 @@ var _ = Describe("TeammembershipUpdaterController", func() {
 				teamMemberships := &greenhousev1alpha1.TeamMembershipList{}
 				err := setup.List(test.Ctx, teamMemberships, &client.ListOptions{Namespace: setup.Namespace()})
 				g.Expect(err).ShouldNot(HaveOccurred(), "unexpected error getting TeamMemberships")
-				g.Expect(teamMemberships.Items).To(HaveLen(0), "there should be exactly zero TeamMemberships")
+				g.Expect(teamMemberships.Items).To(BeEmpty(), "there should be exactly zero TeamMemberships")
 			}).Should(Succeed(), "the TeamMemberships should not have been created")
 		})
 	})
