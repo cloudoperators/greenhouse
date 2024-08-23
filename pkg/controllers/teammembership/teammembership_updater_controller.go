@@ -20,7 +20,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/metrics"
 )
 
-const defaultRequeueInterval = 10 * time.Minute
+const TeamMembershipRequeueInterval = 10 * time.Minute
 
 var (
 	membersCountMetric = prometheus.NewGaugeVec(
@@ -58,22 +58,6 @@ func (r *TeamMembershipUpdaterController) SetupWithManager(name string, mgr ctrl
 		Complete(r)
 }
 
-func (r *TeamMembershipUpdaterController) createScimClient(scimConfig *greenhousev1alpha1.SCIMConfig) (*scim.ScimClient, error) {
-	clientConfig := scim.Config{
-		RawURL:   scimConfig.BaseURL,
-		AuthType: scim.Basic,
-		BasicAuthConfig: &scim.BasicAuthConfig{
-			BasicAuthUser: scimConfig.BasicAuthUser,
-			BasicAuthPw:   scimConfig.BasicAuthPw,
-		},
-	}
-	scimClient, err := scim.NewScimClient(clientConfig)
-	if err != nil {
-		return nil, err
-	}
-	return scimClient, nil
-}
-
 func (r *TeamMembershipUpdaterController) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	var organization = new(greenhousev1alpha1.Organization)
 	if err := r.Get(ctx, types.NamespacedName{Name: req.Namespace}, organization); err != nil {
@@ -82,7 +66,7 @@ func (r *TeamMembershipUpdaterController) Reconcile(ctx context.Context, req ctr
 
 	// Ignore organizations without SCIM configuration.
 	if organization.Spec.Authentication == nil || organization.Spec.Authentication.SCIMConfig == nil {
-		log.Log.Info("SCIM config is missing from org", "Name", req.NamespacedName)
+		log.FromContext(ctx).Info("SCIM config is missing from org", "Name", req.NamespacedName)
 		return ctrl.Result{}, nil
 	}
 
@@ -91,14 +75,13 @@ func (r *TeamMembershipUpdaterController) Reconcile(ctx context.Context, req ctr
 		return ctrl.Result{}, err
 	}
 
-	var team greenhousev1alpha1.Team
-	err = r.Get(ctx, req.NamespacedName, &team)
-	if err != nil {
+	var team = new(greenhousev1alpha1.Team)
+	if err := r.Get(ctx, req.NamespacedName, team); err != nil {
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
 
-	var teamMembership greenhousev1alpha1.TeamMembership
-	err = r.Get(ctx, types.NamespacedName{Name: team.Name, Namespace: team.Namespace}, &teamMembership)
+	var teamMembership = new(greenhousev1alpha1.TeamMembership)
+	err = r.Get(ctx, types.NamespacedName{Name: team.Name, Namespace: team.Namespace}, teamMembership)
 	if !apierrors.IsNotFound(err) && err != nil {
 		return ctrl.Result{}, err
 	}
@@ -108,7 +91,7 @@ func (r *TeamMembershipUpdaterController) Reconcile(ctx context.Context, req ctr
 	if team.Spec.MappedIDPGroup == "" {
 		if teamMembershipExists {
 			log.FromContext(ctx).Info("deleting TeamMembership, Team does not have MappedIdpGroup set", "team-membership", teamMembership.Name)
-			err = r.Delete(ctx, &teamMembership, &client.DeleteOptions{})
+			err = r.Delete(ctx, teamMembership, &client.DeleteOptions{})
 			return ctrl.Result{}, err
 		} else {
 			log.FromContext(ctx).Info("Team does not have MappedIdpGroup set", "team", team.Name)
@@ -118,7 +101,7 @@ func (r *TeamMembershipUpdaterController) Reconcile(ctx context.Context, req ctr
 
 	users, err := r.getUsersFromScim(scimClient, team.Spec.MappedIDPGroup)
 	if err != nil {
-		log.FromContext(ctx).Info("[Info] failed processing team-membership for team", "error", err)
+		log.FromContext(ctx).Info("failed processing team-membership for team", "error", err)
 		return ctrl.Result{}, err
 	}
 
@@ -129,20 +112,32 @@ func (r *TeamMembershipUpdaterController) Reconcile(ctx context.Context, req ctr
 
 	if teamMembershipExists && len(teamMembership.Spec.Members) == len(users) {
 		// Requeue when nothing has changed.
-		return ctrl.Result{RequeueAfter: defaultRequeueInterval}, nil
+		return ctrl.Result{RequeueAfter: TeamMembershipRequeueInterval}, nil
 	}
 
 	if teamMembershipExists {
-		err = r.updateTeamMembership(ctx, &team, &teamMembership, users)
+		err = r.updateTeamMembership(ctx, team, teamMembership, users)
 	} else {
-		err = r.createTeamMembershipForTeam(ctx, &team, users)
+		err = r.createTeamMembership(ctx, team, users)
 	}
 	if err != nil {
-		log.FromContext(ctx).Info("[Info] failed processing team-membership for team", "error", err)
+		log.FromContext(ctx).Info("failed processing team-membership for team", "error", err)
 		return ctrl.Result{}, err
 	}
 
-	return ctrl.Result{RequeueAfter: defaultRequeueInterval}, nil
+	return ctrl.Result{RequeueAfter: TeamMembershipRequeueInterval}, nil
+}
+
+func (r *TeamMembershipUpdaterController) createScimClient(scimConfig *greenhousev1alpha1.SCIMConfig) (*scim.ScimClient, error) {
+	clientConfig := scim.Config{
+		RawURL:   scimConfig.BaseURL,
+		AuthType: scim.Basic,
+		BasicAuthConfig: &scim.BasicAuthConfig{
+			BasicAuthUser: scimConfig.BasicAuthUser,
+			BasicAuthPw:   scimConfig.BasicAuthPw,
+		},
+	}
+	return scim.NewScimClient(clientConfig)
 }
 
 func (r *TeamMembershipUpdaterController) getUsersFromScim(scimClient *scim.ScimClient, mappedIDPGroup string) ([]greenhousev1alpha1.User, error) {
@@ -154,7 +149,7 @@ func (r *TeamMembershipUpdaterController) getUsersFromScim(scimClient *scim.Scim
 	return users, nil
 }
 
-func (r *TeamMembershipUpdaterController) createTeamMembershipForTeam(ctx context.Context, team *greenhousev1alpha1.Team, users []greenhousev1alpha1.User) error {
+func (r *TeamMembershipUpdaterController) createTeamMembership(ctx context.Context, team *greenhousev1alpha1.Team, users []greenhousev1alpha1.User) error {
 	now := metav1.NewTime(time.Now())
 
 	teamMembership := new(greenhousev1alpha1.TeamMembership)
@@ -174,14 +169,12 @@ func (r *TeamMembershipUpdaterController) createTeamMembershipForTeam(ctx contex
 
 func (r *TeamMembershipUpdaterController) updateTeamMembership(ctx context.Context, team *greenhousev1alpha1.Team, teamMembership *greenhousev1alpha1.TeamMembership, users []greenhousev1alpha1.User) error {
 	teamMembership.Spec.Members = users
-	err := r.Update(ctx, teamMembership, &client.UpdateOptions{})
-	if err != nil {
+	if err := r.Update(ctx, teamMembership, &client.UpdateOptions{}); err != nil {
 		return err
 	}
 	now := metav1.NewTime(time.Now())
 	teamMembership.Status.LastChangedTime = &now
-	err = r.Status().Update(ctx, teamMembership)
-	if err != nil {
+	if err := r.Status().Update(ctx, teamMembership); err != nil {
 		return err
 	}
 	log.FromContext(ctx).Info("updated team-membership and its status",

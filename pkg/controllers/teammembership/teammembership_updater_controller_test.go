@@ -267,7 +267,7 @@ var _ = Describe("TeammembershipUpdaterController", func() {
 			setup.CreateTeam(test.Ctx, firstTeamName, test.WithMappedIDPGroup(nonExistingGroupName))
 
 			By("ensuring logger was called correctly")
-			failedProcessingLog := "[Info] failed processing team-membership for team"
+			failedProcessingLog := "failed processing team-membership for team"
 			reasonLog := fmt.Sprintf("no mapped group found for %s", nonExistingGroupName)
 			Eventually(func(g Gomega) {
 				g.Expect(tee.Contents()).To(ContainSubstring(failedProcessingLog), "logger should log failed processing")
@@ -293,7 +293,7 @@ var _ = Describe("TeammembershipUpdaterController", func() {
 			setup.CreateTeam(test.Ctx, firstTeamName, test.WithMappedIDPGroup("GROUP_NAME_ERROR_404"))
 
 			By("ensuring logger was called correctly")
-			failedProcessingLog := "[Info] failed processing team-membership for team"
+			failedProcessingLog := "failed processing team-membership for team"
 			reasonLog := "could not retrieve TeamMembers from"
 			Eventually(func(g Gomega) {
 				g.Expect(tee.Contents()).To(ContainSubstring(failedProcessingLog), "logger should log failed processing")
