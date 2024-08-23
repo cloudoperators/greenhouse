@@ -84,8 +84,8 @@ var _ = Describe("TeammembershipUpdaterController", func() {
 				teamMemberships := &greenhousev1alpha1.TeamMembershipList{}
 				err := setup.List(test.Ctx, teamMemberships, &client.ListOptions{Namespace: setup.Namespace()})
 				g.Expect(err).ShouldNot(HaveOccurred(), "unexpected error getting TeamMemberships")
-				g.Expect(len(teamMemberships.Items)).To(Equal(1), "there should be exactly one TeamMembership")
-				g.Expect(len(teamMemberships.Items[0].Spec.Members)).To(Equal(2), "the TeamMembership should have exactly two Members")
+				g.Expect(teamMemberships.Items).To(HaveLen(1), "there should be exactly one TeamMembership")
+				g.Expect(teamMemberships.Items[0].Spec.Members).To(HaveLen(2), "the TeamMembership should have exactly two Members")
 				g.Expect(teamMemberships.Items[0].Status.LastChangedTime).ToNot(BeNil(), "TeamMembership status should have updated LastChangedTime")
 			}).Should(Succeed(), "the TeamMembership should be reconciled")
 		})
@@ -135,8 +135,8 @@ var _ = Describe("TeammembershipUpdaterController", func() {
 				teamMemberships := &greenhousev1alpha1.TeamMembershipList{}
 				err := setup.List(test.Ctx, teamMemberships, &client.ListOptions{Namespace: setup.Namespace()})
 				g.Expect(err).ShouldNot(HaveOccurred(), "unexpected error getting TeamMemberships")
-				g.Expect(len(teamMemberships.Items)).To(Equal(1), "there should be exactly one TeamMembership")
-				g.Expect(len(teamMemberships.Items[0].Spec.Members)).To(Equal(2), "the TeamMembership should have exactly two Members")
+				g.Expect(teamMemberships.Items).To(HaveLen(1), "there should be exactly one TeamMembership")
+				g.Expect(teamMemberships.Items[0].Spec.Members).To(HaveLen(2), "the TeamMembership should have exactly two Members")
 				g.Expect(teamMemberships.Items[0].Status.LastChangedTime).ToNot(BeNil(), "TeamMembership status should have updated LastChangedTime")
 			}).Should(Succeed(), "the TeamMembership should be reconciled")
 		})
@@ -189,13 +189,13 @@ var _ = Describe("TeammembershipUpdaterController", func() {
 			Eventually(func(g Gomega) {
 				err := setup.List(test.Ctx, teamMemberships, &client.ListOptions{Namespace: setup.Namespace()})
 				g.Expect(err).ShouldNot(HaveOccurred(), "unexpected error getting TeamMemberships")
-				g.Expect(len(teamMemberships.Items)).To(Equal(2), "there should be exactly two TeamMemberships")
+				g.Expect(teamMemberships.Items).To(HaveLen(2), "there should be exactly two TeamMemberships")
 			}).Should(Succeed(), "two TeamMemberships should have been created")
 
 			By("ensuring both TeamMemberships have been reconciled")
 			Eventually(func(g Gomega) {
-				g.Expect(len(teamMemberships.Items[0].Spec.Members)).To(Equal(2), "first Team should have 2 users")
-				g.Expect(len(teamMemberships.Items[1].Spec.Members)).To(Equal(3), "second Team should have 3 users")
+				g.Expect(teamMemberships.Items[0].Spec.Members).To(HaveLen(2), "first Team should have 2 users")
+				g.Expect(teamMemberships.Items[1].Spec.Members).To(HaveLen(3), "second Team should have 3 users")
 				teams := &greenhousev1alpha1.TeamList{}
 				err := setup.List(test.Ctx, teams, &client.ListOptions{Namespace: setup.Namespace()})
 				g.Expect(err).ShouldNot(HaveOccurred(), "unexpected error getting Teams")
@@ -216,7 +216,7 @@ var _ = Describe("TeammembershipUpdaterController", func() {
 				teamMemberships := &greenhousev1alpha1.TeamMembershipList{}
 				err := setup.List(test.Ctx, teamMemberships, &client.ListOptions{Namespace: setup.Namespace()})
 				g.Expect(err).ShouldNot(HaveOccurred(), "unexpected error getting TeamMemberships")
-				g.Expect(len(teamMemberships.Items)).To(Equal(1), "there should be exactly one TeamMembership")
+				g.Expect(teamMemberships.Items).To(HaveLen(1), "there should be exactly one TeamMembership")
 				g.Expect(teamMemberships.Items[0].Name).To(Equal(secondTeam.Name), "only second team should have created TeamMembership")
 			}).Should(Succeed(), "there should be only one TeamMembership")
 		})
@@ -253,7 +253,7 @@ var _ = Describe("TeammembershipUpdaterController", func() {
 				teamMemberships := &greenhousev1alpha1.TeamMembershipList{}
 				err := setup.List(test.Ctx, teamMemberships, &client.ListOptions{Namespace: setup.Namespace()})
 				g.Expect(err).ShouldNot(HaveOccurred(), "unexpected error getting TeamMemberships")
-				g.Expect(len(teamMemberships.Items)).To(Equal(0), "there should be exactly zero TeamMemberships")
+				g.Expect(teamMemberships.Items).To(HaveLen(0), "there should be exactly zero TeamMemberships")
 			}).Should(Succeed(), "TeamMembership should have been deleted")
 		})
 
@@ -279,7 +279,7 @@ var _ = Describe("TeammembershipUpdaterController", func() {
 				teamMemberships := &greenhousev1alpha1.TeamMembershipList{}
 				err := setup.List(test.Ctx, teamMemberships, &client.ListOptions{Namespace: setup.Namespace()})
 				g.Expect(err).ShouldNot(HaveOccurred(), "unexpected error getting TeamMemberships")
-				g.Expect(len(teamMemberships.Items)).To(Equal(0), "there should be exactly zero TeamMemberships")
+				g.Expect(teamMemberships.Items).To(HaveLen(0), "there should be exactly zero TeamMemberships")
 			}).Should(Succeed(), "the TeamMemberships should not have been created")
 		})
 
@@ -305,7 +305,7 @@ var _ = Describe("TeammembershipUpdaterController", func() {
 				teamMemberships := &greenhousev1alpha1.TeamMembershipList{}
 				err := setup.List(test.Ctx, teamMemberships, &client.ListOptions{Namespace: setup.Namespace()})
 				g.Expect(err).ShouldNot(HaveOccurred(), "unexpected error getting TeamMemberships")
-				g.Expect(len(teamMemberships.Items)).To(Equal(0), "there should be exactly zero TeamMemberships")
+				g.Expect(teamMemberships.Items).To(HaveLen(0), "there should be exactly zero TeamMemberships")
 			}).Should(Succeed(), "the TeamMemberships should not have been created")
 		})
 	})
