@@ -221,7 +221,7 @@ endif
 
 .PHONY: setup-dev
 setup-dev: cli
-	$(CLI) dev setup -f dev-env/localenv/config-sample.json
+	$(CLI) dev setup -f dev-env/localenv/sample.config.json
 
 .PHONY: dev-docs
 dev-docs:

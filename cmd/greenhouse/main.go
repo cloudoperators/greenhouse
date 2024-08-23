@@ -6,6 +6,7 @@ package main
 import (
 	"errors"
 	goflag "flag"
+	"fmt"
 	"os"
 	"strconv"
 	"time"
