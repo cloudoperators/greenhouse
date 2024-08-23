@@ -10,25 +10,6 @@ on:
       - '.golangci.yaml'
 
 jobs:
-  lint:
-    runs-on: [ default ]
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-      - name: ReviewDog Lint
-        env:
-          GOGC: 10
-        timeout-minutes: 11
-        uses: reviewdog/action-golangci-lint@v2
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          go_version_file: go.mod
-          reporter: github-pr-review
-          golangci_lint_flags: "--enable gofmt,revive -v --timeout 10m0s --print-resources-usage"
-          fail_on_error: true
-          level: info
-
   build:
     runs-on: [ default ]
     steps:
@@ -41,9 +22,7 @@ jobs:
         with:
           go-version-file: 'go.mod'
           token: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: test
-        run: make test
-
+      - name: lint & test
+        run: make check
       - name: build
         run: make build
