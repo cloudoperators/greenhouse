@@ -1,7 +1,7 @@
 openapi: 3.0.0
 info:
   title: Greenhouse
-  version: 68952b9
+  version: 57f6341
   description: PlusOne operations platform
 paths:
   /Team:
@@ -675,6 +675,23 @@ components:
                     - clientIDReference
                     - clientSecretReference
                     - issuer
+                  type: object
+                scim:
+                  description: SCIMConfig configures the SCIM client.
+                  properties:
+                    baseURL:
+                      description: URL to the SCIM server.
+                      type: string
+                    basicAuthPw:
+                      description: Password to be used for basic authentication.
+                      type: string
+                    basicAuthUser:
+                      description: User to be used for basic authentication.
+                      type: string
+                  required:
+                    - baseURL
+                    - basicAuthPw
+                    - basicAuthUser
                   type: object
               type: object
             description:
