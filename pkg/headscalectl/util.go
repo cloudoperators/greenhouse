@@ -78,7 +78,7 @@ func getKubeconfigOrDie(kubecontext string) *rest.Config {
 		return secret, true
 	}
 */
-func createOrUpdateSecretInCluster(APIkey, secretName, secretNamespace string) {
+func createOrUpdateSecretInCluster(apiKey, secretName, secretNamespace string) {
 	var kubeClient client.Client
 	restConfig := getKubeconfigOrDie("")
 	kubeClient, err := clientutil.NewK8sClient(restConfig)
@@ -90,7 +90,7 @@ func createOrUpdateSecretInCluster(APIkey, secretName, secretNamespace string) {
 	secret.Namespace = secretNamespace
 	result, err := clientutil.CreateOrPatch(context.Background(), kubeClient, secret, func() error {
 		secret.StringData = map[string]string{
-			secretKey: APIkey,
+			secretKey: apiKey,
 		}
 		return nil
 	})

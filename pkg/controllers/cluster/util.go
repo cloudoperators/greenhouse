@@ -308,7 +308,7 @@ func ReconcileHeadscaleUser(ctx context.Context, recorder record.EventRecorder, 
 }
 
 // ReconcilePreAuthorizationKey ensure a pre-authorization key exists for the given cluster.
-func ReconcilePreAuthorizationKey(ctx context.Context, cluster *greenhousev1alpha1.Cluster, headscaleGRPCClient headscalev1.HeadscaleServiceClient, HeadscalePreAuthenticationKeyMinValidity time.Duration) (*headscalev1.PreAuthKey, error) {
+func ReconcilePreAuthorizationKey(ctx context.Context, cluster *greenhousev1alpha1.Cluster, headscaleGRPCClient headscalev1.HeadscaleServiceClient, headscalePreAuthenticationKeyMinValidity time.Duration) (*headscalev1.PreAuthKey, error) {
 	// Check whether an existing pre-authorization key can be used.
 	resp, err := headscaleGRPCClient.ListPreAuthKeys(ctx, &headscalev1.ListPreAuthKeysRequest{
 		User: headscaleKeyForCluster(cluster),
@@ -317,7 +317,7 @@ func ReconcilePreAuthorizationKey(ctx context.Context, cluster *greenhousev1alph
 		return nil, err
 	}
 	for _, key := range resp.GetPreAuthKeys() {
-		if isPreAuthenticationKeyIsNotExpired(key, HeadscalePreAuthenticationKeyMinValidity) {
+		if isPreAuthenticationKeyIsNotExpired(key, headscalePreAuthenticationKeyMinValidity) {
 			return key, nil
 		}
 	}

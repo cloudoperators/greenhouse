@@ -4,8 +4,8 @@
 package main
 
 import (
+	"errors"
 	goflag "flag"
-	"fmt"
 	"os"
 	"strconv"
 	"time"
@@ -108,7 +108,7 @@ func main() {
 	)
 
 	if common.DNSDomain == "" {
-		handleError(fmt.Errorf("--dns-domain must not be empty"), "unable to start controller")
+		handleError(errors.New("--dns-domain must not be empty"), "unable to start controller")
 	}
 
 	// Disable leader election if not run within a cluster.

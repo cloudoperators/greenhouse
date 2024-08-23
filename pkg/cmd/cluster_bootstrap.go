@@ -599,15 +599,15 @@ func (o *newClusterBootstrapOptions) deployTailscaleInRemoteCluster(ctx context.
 	return nil
 }
 
-func canI(kubeClient client.Client, Namespace, User, Verb, Group, Resource string) bool {
-	if User == "" {
+func canI(kubeClient client.Client, namespace, user, verb, group, resourceType string) bool {
+	if user == "" {
 		accessReview := &authorizationv1.SelfSubjectAccessReview{
 			Spec: authorizationv1.SelfSubjectAccessReviewSpec{
 				ResourceAttributes: &authorizationv1.ResourceAttributes{
-					Namespace: Namespace,
-					Verb:      Verb,
-					Group:     Group,
-					Resource:  Resource,
+					Namespace: namespace,
+					Verb:      verb,
+					Group:     group,
+					Resource:  resourceType,
 				},
 			},
 		}
@@ -617,12 +617,12 @@ func canI(kubeClient client.Client, Namespace, User, Verb, Group, Resource strin
 		accessReview := &authorizationv1.SubjectAccessReview{
 			Spec: authorizationv1.SubjectAccessReviewSpec{
 				ResourceAttributes: &authorizationv1.ResourceAttributes{
-					Namespace: Namespace,
-					Verb:      Verb,
-					Group:     Group,
-					Resource:  Resource,
+					Namespace: namespace,
+					Verb:      verb,
+					Group:     group,
+					Resource:  resourceType,
 				},
-				User: User,
+				User: user,
 			},
 		}
 
@@ -630,9 +630,9 @@ func canI(kubeClient client.Client, Namespace, User, Verb, Group, Resource strin
 	}
 }
 
-func checkPermissionMap(kubeClient client.Client, permissionMap map[string][]string, User, nameSpace string) (missingPermission []string) {
+func checkPermissionMap(kubeClient client.Client, permissionMap map[string][]string, user, nameSpace string) (missingPermission []string) {
 	for permissionName, permission := range permissionMap {
-		if !canI(kubeClient, nameSpace, User, permission[0], permission[1], permission[2]) {
+		if !canI(kubeClient, nameSpace, user, permission[0], permission[1], permission[2]) {
 			missingPermission = append(missingPermission, permissionName)
 		}
 	}

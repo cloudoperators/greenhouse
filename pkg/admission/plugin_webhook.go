@@ -78,7 +78,7 @@ func DefaultPlugin(ctx context.Context, c client.Client, obj runtime.Object) err
 	return nil
 }
 
-//+kubebuilder:webhook:path=/validate-greenhouse-sap-v1alpha1-plugin,mutating=false,failurePolicy=fail,sideEffects=None,groups=greenhouse.sap,resources=plugins,verbs=create;update,versions=v1alpha1,name=vplugin.kb.io,admissionReviewVersions=v1
+//+kubebuilder:webhook:path=/validate-greenhouse-sap-v1alpha1-plugin,mutating=false,failurePolicy=fail,sideEffects=None,groups=greenhouse.sap,resources=plugins,verbs=create;update;delete,versions=v1alpha1,name=vplugin.kb.io,admissionReviewVersions=v1
 
 func ValidateCreatePlugin(ctx context.Context, c client.Client, obj runtime.Object) (admission.Warnings, error) {
 	plugin, ok := obj.(*greenhousev1alpha1.Plugin)
@@ -175,7 +175,7 @@ func validatePluginOptionValues(optionValues []greenhousev1alpha1.PluginOptionVa
 			if (val.Value == nil && val.ValueFrom == nil) || (val.Value != nil && val.ValueFrom != nil) {
 				allErrs = append(allErrs, field.Required(
 					fieldPathWithIndex,
-					fmt.Sprintf("must provide either value or valueFrom for value %s", val.Name),
+					"must provide either value or valueFrom for value "+val.Name,
 				))
 				continue
 			}

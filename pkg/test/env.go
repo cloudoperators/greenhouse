@@ -86,26 +86,26 @@ const (
 )
 
 var (
-	//Cfg is the rest.Config to access the cluster the tests are running against.
+	// Cfg is the rest.Config to access the cluster the tests are running against.
 	Cfg *rest.Config
-	//RestClientGetter is the clientutil.RestClientGetter to access the cluster the tests are running against.
+	// RestClientGetter is the clientutil.RestClientGetter to access the cluster the tests are running against.
 	RestClientGetter *clientutil.RestClientGetter
-	//K8sClient is the client.Client to access the cluster the tests are running against.
+	// K8sClient is the client.Client to access the cluster the tests are running against.
 	K8sClient client.Client
-	//K8sManager is the ctrl.Manager the controllers are run by.
+	// K8sManager is the ctrl.Manager the controllers are run by.
 	K8sManager ctrl.Manager
-	//KubeConfig is the raw kubeconfig to access the cluster the tests are running against.
+	// KubeConfig is the raw kubeconfig to access the cluster the tests are running against.
 	KubeConfig []byte
-	//Ctx is the context to use for the tests.
+	// Ctx is the context to use for the tests.
 	Ctx context.Context
-	//IsUseExistingCluster is true if the tests are running against an existing cluster.
+	// IsUseExistingCluster is true if the tests are running against an existing cluster.
 	IsUseExistingCluster = useExistingGreenhouseCluster
 	testEnv              *envtest.Environment
 	cancel               context.CancelFunc
 	pollInterval         = 1 * time.Second
 	updateTimeout        = 30 * time.Second
 
-	persisted_kubeconfig = os.Getenv("KUBECONFIG")
+	persistedKubeconfig = os.Getenv("KUBECONFIG")
 
 	// TestBeforeSuite configures the test suite.
 	TestBeforeSuite = func() {
@@ -118,11 +118,11 @@ var (
 		installWebhooks := len(allRegisterWebhookFuncs) > 0 && os.Getenv("TEST_INSTALL_WEBHOOKS") != "false"
 		if useExistingGreenhouseCluster {
 			// we are making use of https://pkg.go.dev/sigs.k8s.io/controller-runtime/pkg/envtest#pkg-constants to prevent starting a new control plane
-			e2e_kubeconfig := os.Getenv("TEST_KUBECONFIG")
-			Expect(e2e_kubeconfig).NotTo(BeEmpty(), "the environment variable TEST_KUBECONFIG must be set to run the tests against a remote cluster")
+			e2eKubeconfig := os.Getenv("TEST_KUBECONFIG")
+			Expect(e2eKubeconfig).NotTo(BeEmpty(), "the environment variable TEST_KUBECONFIG must be set to run the tests against a remote cluster")
 			// we overwrite the KUBECONFIG env var expected by envtest to make sure tests are not accidentally running against existing k8s context
-			os.Setenv("KUBECONFIG", e2e_kubeconfig)
-			fmt.Printf("Running tests against existing cluster with kubeconfig: %s\n", e2e_kubeconfig)
+			os.Setenv("KUBECONFIG", e2eKubeconfig)
+			fmt.Printf("Running tests against existing cluster with kubeconfig: %s\n", e2eKubeconfig)
 			installCRDs = false
 			installWebhooks = false
 		} else {
@@ -212,7 +212,7 @@ var (
 
 		if useExistingGreenhouseCluster {
 			// we reset the KUBECONFIG env var to its original value
-			os.Setenv("KUBECONFIG", persisted_kubeconfig)
+			os.Setenv("KUBECONFIG", persistedKubeconfig)
 		}
 	}
 )
@@ -225,7 +225,10 @@ func StartControlPlane(port string, installCRDs, installWebhooks bool) (*rest.Co
 	Expect(err).
 		NotTo(HaveOccurred(), "there must be no error finding the config directory")
 	if installCRDs {
-		crdPaths := []string{filepath.Join(absPathConfigBasePath, "manager", "crds")}
+		crdPaths := []string{
+			filepath.Join(absPathConfigBasePath, "manager", "crds"),
+			filepath.Join(absPathConfigBasePath, "idproxy", "crds"),
+		}
 		testEnv.CRDDirectoryPaths = crdPaths
 		testEnv.ErrorIfCRDPathMissing = true
 	}

@@ -583,7 +583,6 @@ func (tmTests *TeamMebershipUpdaterTests) cleanUpTests() error {
 		return err
 	}
 	for _, teamMembership := range teamMemberships.Items {
-		teamMembership := teamMembership
 		err = tmTests.k8sClient.Delete(context.TODO(), &teamMembership, &client.DeleteOptions{})
 		if err != nil {
 			return err
@@ -596,7 +595,6 @@ func (tmTests *TeamMebershipUpdaterTests) cleanUpTests() error {
 		return err
 	}
 	for _, team := range teams.Items {
-		team := team
 		err = tmTests.k8sClient.Delete(context.TODO(), &team, &client.DeleteOptions{})
 		if err != nil {
 			return err

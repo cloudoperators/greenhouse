@@ -108,9 +108,7 @@ func loadManifest(restClientGetter genericclioptions.RESTClientGetter, namespace
 		ContinueOnError().
 		Flatten().
 		Do().
-		IgnoreErrors(func(err error) bool {
-			return meta.IsNoMatchError(err)
-		})
+		IgnoreErrors(meta.IsNoMatchError)
 	if err := r.Err(); err != nil {
 		return nil, err
 	}

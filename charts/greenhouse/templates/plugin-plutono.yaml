@@ -1,0 +1,21 @@
+apiVersion: greenhouse.sap/v1alpha1
+kind: Plugin
+metadata:
+  name: plutono
+spec:
+  optionValues:
+    - name: plutono.ingress.enabled
+      value: true
+    - name: plutono.ingress.annotations
+      value:
+        disco: "true"
+        kubernetes.io/tls-acme: "true"
+    - name: plutono.ingress.hosts
+      value:
+        {{ .Values.plutono.ingress.hosts | toYaml | nindent 8 }}
+    - name: plutono.ingress.tls
+      value:
+        - hosts:
+            {{ .Values.plutono.ingress.hosts | toYaml | nindent 12 }}
+          secretName: {{ printf "%s-%s" "tls" (first .Values.plutono.ingress.hosts) | replace "." "-" }}
+  pluginDefinition: plutono

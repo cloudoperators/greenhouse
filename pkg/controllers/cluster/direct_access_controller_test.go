@@ -75,7 +75,7 @@ var _ = Describe("KubeConfig controller", func() {
 
 				By("Checking namespace has been created in remote cluster")
 				remoteClient, err := clientutil.NewK8sClientFromCluster(test.Ctx, test.K8sClient, &cluster)
-				Expect(err).To(BeNil(), "there should be no error creating a new k8s client from the cluster")
+				Expect(err).ToNot(HaveOccurred(), "there should be no error creating a new k8s client from the cluster")
 
 				Eventually(func() error {
 					var namespace = new(corev1.Namespace)
@@ -102,7 +102,7 @@ var _ = Describe("KubeConfig controller", func() {
 					Expect(err).ToNot(HaveOccurred())
 					return greenhouseKubeConfigSecret.Data
 				}).Should(HaveKey(greenhouseapis.GreenHouseKubeConfigKey),
-					fmt.Sprintf("eventually the secret data should contain the key %s", greenhouseapis.GreenHouseKubeConfigKey),
+					"eventually the secret data should contain the key "+greenhouseapis.GreenHouseKubeConfigKey,
 				)
 
 				greenhouseRestClientGetter, err := clientutil.NewRestClientGetterFromSecret(&greenhouseKubeConfigSecret, setup.Namespace(), clientutil.WithPersistentConfig())

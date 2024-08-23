@@ -5,16 +5,16 @@ package idproxy
 
 import (
 	"fmt"
+	"log/slog"
 	"os"
 
-	"github.com/dexidp/dex/pkg/log"
 	"github.com/dexidp/dex/storage"
 	"github.com/dexidp/dex/storage/kubernetes"
 	"github.com/dexidp/dex/storage/kubernetes/k8sapi"
 	"github.com/ghodss/yaml"
 )
 
-func NewKubernetesStorage(kubeconfig, kubecontext, namespace string, logger log.Logger) (storage.Storage, error) {
+func NewKubernetesStorage(kubeconfig, kubecontext, namespace string, logger *slog.Logger) (storage.Storage, error) {
 	var storageConfig = kubernetes.Config{InCluster: true}
 	if kubeconfig != "" {
 		k, err := generateKubeConfig(kubeconfig, kubecontext, namespace)
