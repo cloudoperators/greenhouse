@@ -42,7 +42,7 @@ menu:
      url: "https://github.com/cloudoperators/greenhouse"
      weight: 0
    - name: "Legal Disclosure"
-     pre: "<i class="fa-regular fa-section"></i>"
+     pre: "<i class='fa-regular fa-section'></i>"
      url: "https://www.sap.com/corporate/de/legal/impressum.html"
      weight: 0
 
