@@ -6,12 +6,12 @@ package idproxy
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"net/http"
 	"strings"
 
 	"github.com/dexidp/dex/connector"
 	"github.com/dexidp/dex/connector/oidc"
-	"github.com/dexidp/dex/pkg/log"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -42,7 +42,7 @@ func (c *OIDCConfig) AddRedirectURI(redirectURI string) {
 	c.redirectURIOverwrite = redirectURI
 }
 
-func (c *OIDCConfig) Open(id string, logger log.Logger) (connector.Connector, error) {
+func (c *OIDCConfig) Open(id string, logger *slog.Logger) (connector.Connector, error) {
 	// overwrite redirectURI for (e.g. local) dex server talking to deployed connector running with differing config
 	if c.redirectURIOverwrite != "" {
 		c.RedirectURI = c.redirectURIOverwrite
@@ -63,7 +63,7 @@ func (c *OIDCConfig) Open(id string, logger log.Logger) (connector.Connector, er
 
 type oidcConnector struct {
 	conn               connector.Connector
-	logger             log.Logger
+	logger             *slog.Logger
 	client             client.Client
 	id                 string
 	keepUpstreamGroups bool
@@ -78,7 +78,7 @@ func (c *oidcConnector) HandleCallback(s connector.Scopes, r *http.Request) (con
 
 	groups, groupsErr := c.getGroups(c.id, identity.Groups, r.Context())
 	if groupsErr != nil {
-		c.logger.Infof("failed getting groups for %s: %s", c.id, groupsErr)
+		c.logger.Info("failed getting group", "groupID", c.id, "error", groupsErr)
 
 		if !c.keepUpstreamGroups {
 			identity.Groups = []string{}
@@ -87,7 +87,15 @@ func (c *oidcConnector) HandleCallback(s connector.Scopes, r *http.Request) (con
 		identity.Groups = groups
 	}
 
-	c.logger.Infof("create identity %#v", identity)
+	c.logger.Info("created identity", slog.Group("user",
+		"username", identity.Username,
+		"preferredUsername", identity.PreferredUsername,
+		"userID", identity.UserID,
+		"email", identity.Email,
+		"emailVerified", identity.EmailVerified,
+		"groups", strings.Join(identity.Groups, ","),
+	),
+	)
 	return identity, err
 }
 
@@ -96,13 +104,20 @@ func (c *oidcConnector) Refresh(ctx context.Context, s connector.Scopes, identit
 
 	groups, groupsErr := c.getGroups(c.id, identity.Groups, ctx)
 	if groupsErr != nil {
-		c.logger.Infof("failed getting groups for %s: %s", c.id, groupsErr)
+		c.logger.Info("failed getting groups", "connectorID", c.id, "error", groupsErr)
 		identity.Groups = []string{}
 	} else {
 		identity.Groups = groups
 	}
 
-	c.logger.Infof("refresh identity %#v", identity)
+	c.logger.Info("refreshed identity", slog.Group("user",
+		"username", identity.Username,
+		"preferredUsername", identity.PreferredUsername,
+		"userID", identity.UserID,
+		"email", identity.Email,
+		"emailVerified", identity.EmailVerified,
+		"groups", strings.Join(identity.Groups, ","),
+	))
 	return identity, err
 }
 

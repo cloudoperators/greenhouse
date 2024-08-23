@@ -7,6 +7,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log"
+	"log/slog"
 	"net"
 	"net/http"
 	"os"
@@ -14,16 +16,17 @@ import (
 	"time"
 
 	"github.com/dexidp/dex/server"
+	"github.com/go-logr/logr"
 	"github.com/oklog/run"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/collectors"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
-	"github.com/sirupsen/logrus"
 	flag "github.com/spf13/pflag"
 	"k8s.io/apimachinery/pkg/runtime"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/oidc"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	ctrl "sigs.k8s.io/controller-runtime/pkg/client/config"
+	logk "sigs.k8s.io/controller-runtime/pkg/log"
 
 	greenhousesapv1alpha1 "github.com/cloudoperators/greenhouse/pkg/apis/greenhouse/v1alpha1"
 	"github.com/cloudoperators/greenhouse/pkg/idproxy"
@@ -36,7 +39,11 @@ func main() {
 	var idTokenValidity time.Duration
 	var listenAddr, metricsAddr string
 	var allowedOrigins []string
-	logger := logrus.New()
+	logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
+	// set default logger to be used by log
+	slog.SetDefault(logger)
+	// set default deferred logger to be used by controller-runtime
+	logk.SetLogger(logr.FromSlogHandler(logger.Handler()))
 
 	flag.StringVar(&kubeconfig, "kubeconfig", os.Getenv("KUBECONFIG"), "Use kubeconfig for authentication")
 	flag.StringVar(&kubecontext, "kubecontext", os.Getenv("KUBECONTEXT"), "Use context from kubeconfig")
@@ -49,17 +56,17 @@ func main() {
 	flag.Parse()
 
 	if issuer == "" {
-		logger.Fatal("No --issuer given")
+		log.Fatal("No --issuer given")
 	}
 
-	dexStorage, err := idproxy.NewKubernetesStorage(kubeconfig, kubecontext, kubenamespace, logger.WithField("component", "storage"))
+	dexStorage, err := idproxy.NewKubernetesStorage(kubeconfig, kubecontext, kubenamespace, logger.With("component", "storage"))
 	if err != nil {
-		logger.Fatalf("Failed to initialize kubernetes storage: %s", err)
+		log.Fatalf("Failed to initialize kubernetes storage: %s", err)
 	}
 
-	refreshPolicy, err := server.NewRefreshTokenPolicy(logger.WithField("component", "refreshtokenpolicy"), true, "24h", "24h", "5s")
+	refreshPolicy, err := server.NewRefreshTokenPolicy(logger.With("component", "refreshtokenpolicy"), true, "24h", "24h", "5s")
 	if err != nil {
-		logger.Fatalf("Failed to setup refresh token policy: %s", err)
+		log.Fatalf("Failed to setup refresh token policy: %s", err)
 	}
 
 	registry := prometheus.NewRegistry()
@@ -69,7 +76,7 @@ func main() {
 	config := server.Config{
 		Issuer:             issuer,
 		SkipApprovalScreen: true,
-		Logger:             logger.WithField("component", "server"),
+		Logger:             logger.With("component", "server"),
 		Storage:            dexStorage,
 		AllowedOrigins:     allowedOrigins,
 		IDTokensValidFor:   idTokenValidity,
@@ -83,17 +90,17 @@ func main() {
 	server.ConnectorsConfig["greenhouse-oidc"] = func() server.ConnectorConfig {
 		k8sConfig, err := ctrl.GetConfigWithContext(kubecontext)
 		if err != nil {
-			logger.Fatalf(`Failed to create k8s config: %s`, err)
+			log.Fatalf(`Failed to create k8s config: %s`, err)
 		}
 
 		scheme := runtime.NewScheme()
 		err = greenhousesapv1alpha1.AddToScheme(scheme)
 		if err != nil {
-			logger.Fatalf(`Failed to create scheme: %s`, err)
+			log.Fatalf(`Failed to create scheme: %s`, err)
 		}
 		k8sClient, err := client.New(k8sConfig, client.Options{Scheme: scheme})
 		if err != nil {
-			logger.Fatalf(`Failed to create k8s client: %s`, err)
+			log.Fatalf(`Failed to create k8s client: %s`, err)
 		}
 
 		oidcConfig := new(idproxy.OIDCConfig)
@@ -112,7 +119,7 @@ func main() {
 	ctx, cancel := context.WithCancel(context.Background())
 	serv, err := server.NewServer(ctx, config)
 	if err != nil {
-		logger.Fatalf("OIDC server setup failed: %s", err)
+		log.Fatalf("OIDC server setup failed: %s", err)
 	}
 	s := &http.Server{Handler: serv}
 	g.Add(func() error {
@@ -120,7 +127,7 @@ func main() {
 		if err != nil {
 			return fmt.Errorf("failed to listen on %s: %w", listenAddr, err)
 		}
-		logger.Info("OIDC server listening on ", listenAddr)
+		logger.Info("OIDC server listening ", "address", listenAddr)
 		return s.Serve(ln)
 	}, func(_ error) {
 		cancel()
@@ -136,7 +143,7 @@ func main() {
 		if err != nil {
 			return fmt.Errorf("failed to listen on %s: %w", metricsAddr, err)
 		}
-		logger.Info("Metrics server listing on ", metricsAddr)
+		logger.Info("Metrics server listing", "address", metricsAddr)
 		return ms.Serve(ln)
 	}, func(_ error) {
 		ms.Close()
@@ -147,5 +154,5 @@ func main() {
 	if ok := errors.As(err, &signalErr); ok {
 		return
 	}
-	logger.Fatal(err)
+	log.Fatal(err)
 }
