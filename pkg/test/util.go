@@ -6,7 +6,7 @@ package test
 import (
 	"context"
 	"encoding/json"
-	"fmt"
+	"errors"
 	"os"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -66,7 +66,7 @@ func GreenhouseV1Alpha1Scheme() *runtime.Scheme {
 func KubeconfigFromEnvVar(envVar string) ([]byte, error) {
 	kubeconfigPath := os.Getenv(envVar)
 	if kubeconfigPath == "" {
-		return nil, fmt.Errorf("kubeconfig path is empty")
+		return nil, errors.New("kubeconfig path is empty")
 	}
 	kubeconfig, err := os.ReadFile(kubeconfigPath)
 	if err != nil {

@@ -180,7 +180,7 @@ func (r *DexReconciler) reconcileOAuth2Client(ctx context.Context, org *greenhou
 		// Ensure the required redirect URLs are present.
 		// Additional ones can be added by the user.
 		for _, requiredRedirectURL := range []string{
-			fmt.Sprintf("https://dashboard.%s", common.DNSDomain),
+			"https://dashboard." + common.DNSDomain,
 			fmt.Sprintf("https://%s.dashboard.%s", org.Name, common.DNSDomain),
 		} {
 			oAuth2Client.Client.RedirectURIs = util.AppendStringToSliceIfNotContains(requiredRedirectURL, oAuth2Client.RedirectURIs)
@@ -208,7 +208,7 @@ func ensureCallbackURL(url string) string {
 	}
 	suffix := "/callback"
 	if !strings.HasSuffix(url, suffix) {
-		url = url + suffix
+		url += suffix
 	}
 	return url
 }

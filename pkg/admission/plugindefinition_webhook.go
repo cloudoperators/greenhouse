@@ -75,7 +75,10 @@ func ValidateDeletePluginDefinition(ctx context.Context, c client.Client, o runt
 	list := &greenhousev1alpha1.PluginList{}
 	opt := client.MatchingLabels{greenhouseapis.LabelKeyPluginDefinition: pluginDefinition.Name}
 	if err := c.List(ctx, list, opt); err != nil {
-		return nil, nil
+		if apierrors.IsNotFound(err) {
+			return nil, nil
+		}
+		return nil, err
 	}
 	if len(list.Items) > 0 {
 		return nil, apierrors.NewBadRequest("PluginDefinition is still in use by Plugins")

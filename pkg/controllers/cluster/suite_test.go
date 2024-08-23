@@ -90,7 +90,6 @@ var _ = AfterSuite(func() {
 })
 
 func newFakeHeadscaleClientGetter(c client.Client) func(restClientGetter genericclioptions.RESTClientGetter, proxy string, headscaleAddress string) (client.Client, error) {
-
 	/*
 		This is commented as the access to the remote cluster requires a https proxy.
 			Though the proxy is in-place, golang does not account for a proxy on localhost (1) and
@@ -207,7 +206,7 @@ func runReverseProxy(ctx context.Context, proxyAddress string, testEnv *envtest.
 	if testEnvAPIServerConfig == nil {
 		return errors.New("the test environment has no api server configured")
 	}
-	remote, err := url.Parse(fmt.Sprintf("http://%s", net.JoinHostPort(testEnvAPIServerConfig.SecureServing.Address, testEnvAPIServerConfig.SecureServing.Port)))
+	remote, err := url.Parse("http://" + net.JoinHostPort(testEnvAPIServerConfig.SecureServing.Address, testEnvAPIServerConfig.SecureServing.Port))
 	if err != nil {
 		return err
 	}
@@ -226,7 +225,7 @@ func runReverseProxy(ctx context.Context, proxyAddress string, testEnv *envtest.
 	}
 	certPool := x509.NewCertPool()
 	if !certPool.AppendCertsFromPEM(testEnvAPIServerConfig.CA) {
-		return fmt.Errorf("failed to append CA certs")
+		return errors.New("failed to append CA certs")
 	}
 	//nolint:gosec // I promise to not use that in production.
 	tlsConfig := &tls.Config{

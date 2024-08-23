@@ -61,7 +61,7 @@ func (pm *ProxyManager) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.R
 		return ctrl.Result{}, err
 	}
 	if err != nil || secret.DeletionTimestamp != nil {
-		//delete cache
+		// delete cache
 		logger.Info("Removing deleted cluster from cache")
 		pm.mu.Lock()
 		defer pm.mu.Unlock()
@@ -102,7 +102,7 @@ func (pm *ProxyManager) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.R
 	}
 	for _, cfg := range configs {
 		for url, svc := range cfg.Status.ExposedServices {
-			u := *k8sAPIURL //copy URL struct
+			u := *k8sAPIURL // copy URL struct
 			proto := "http"
 			if svc.Protocol != nil {
 				proto = *svc.Protocol
@@ -185,7 +185,7 @@ func (pm *ProxyManager) rewrite(req *httputil.ProxyRequest) {
 	if !found {
 		return
 	}
-	//set cluster in context
+	// set cluster in context
 	req.Out = req.Out.WithContext(context.WithValue(req.Out.Context(), contextClusterKey{}, cluster))
 
 	req.SetURL(backendURL)
@@ -218,7 +218,7 @@ func (pm *ProxyManager) pluginsForCluster(ctx context.Context, cluster, namespac
 	}
 	configs := make([]greenhousev1alpha1.Plugin, 0)
 	for _, cfg := range plugins.Items {
-		//ignore deleted configs
+		// ignore deleted configs
 		if cfg.DeletionTimestamp != nil {
 			continue
 		}
@@ -234,7 +234,7 @@ func enqueuePluginForCluster(_ context.Context, o client.Object) []ctrl.Request 
 	if !ok {
 		return nil
 	}
-	//ignore plugins not tied to a cluster
+	// ignore plugins not tied to a cluster
 	if plugin.Spec.ClusterName == "" {
 		return nil
 	}

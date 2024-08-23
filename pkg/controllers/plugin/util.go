@@ -20,12 +20,12 @@ func getPortForExposedService(o runtime.Object) (*corev1.ServicePort, error) {
 		return nil, err
 	}
 
-	if svc.Spec.Ports == nil || len(svc.Spec.Ports) == 0 {
+	if len(svc.Spec.Ports) == 0 {
 		return nil, errors.New("service has no ports")
 	}
 
-	//Check for matching of named port set by label
-	var namedPort string = svc.Labels[greenhouseapis.LabelKeyExposeNamedPort]
+	// Check for matching of named port set by label
+	var namedPort = svc.Labels[greenhouseapis.LabelKeyExposeNamedPort]
 
 	if namedPort != "" {
 		for _, port := range svc.Spec.Ports {

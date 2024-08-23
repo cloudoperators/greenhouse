@@ -6,7 +6,7 @@ package tailscalestarter
 import (
 	"context"
 	"encoding/json"
-	"fmt"
+	"errors"
 	"net/http"
 	"os"
 
@@ -44,7 +44,7 @@ func setPreAuthKey() error {
 		}
 		return nil
 	default:
-		return fmt.Errorf("no preauthkey found, stopping tailscale")
+		return errors.New("no preauthkey found, stopping tailscale")
 	}
 }
 
@@ -59,7 +59,7 @@ func isRunningOrStarting(status *ipnstate.Status) (description string, ok bool) 
 	case ipn.Running.String(), ipn.Starting.String():
 		return status.BackendState, true
 	default:
-		return fmt.Sprintf("unknown state: %s", status.BackendState), false
+		return "unknown state: " + status.BackendState, false
 	}
 }
 

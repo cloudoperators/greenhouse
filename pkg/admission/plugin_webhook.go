@@ -175,7 +175,7 @@ func validatePluginOptionValues(optionValues []greenhousev1alpha1.PluginOptionVa
 			if (val.Value == nil && val.ValueFrom == nil) || (val.Value != nil && val.ValueFrom != nil) {
 				allErrs = append(allErrs, field.Required(
 					fieldPathWithIndex,
-					fmt.Sprintf("must provide either value or valueFrom for value %s", val.Name),
+					"must provide either value or valueFrom for value "+val.Name,
 				))
 				continue
 			}
