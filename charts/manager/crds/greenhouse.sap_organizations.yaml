@@ -106,10 +106,13 @@ spec:
                     description: SCIMConfig configures the SCIM client.
                     properties:
                       baseURL:
+                        description: URL to the SCIM server.
                         type: string
                       basicAuthPw:
+                        description: Password to be used for basic authentication.
                         type: string
                       basicAuthUser:
+                        description: User to be used for basic authentication.
                         type: string
                     required:
                     - baseURL

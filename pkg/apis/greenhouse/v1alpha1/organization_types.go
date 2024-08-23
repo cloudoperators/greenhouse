@@ -43,9 +43,12 @@ type OIDCConfig struct {
 }
 
 type SCIMConfig struct {
-	BaseURL       string `json:"baseURL"`
+	// URL to the SCIM server.
+	BaseURL string `json:"baseURL"`
+	// User to be used for basic authentication.
 	BasicAuthUser string `json:"basicAuthUser"`
-	BasicAuthPw   string `json:"basicAuthPw"`
+	// Password to be used for basic authentication.
+	BasicAuthPw string `json:"basicAuthPw"`
 }
 
 // OrganizationStatus defines the observed state of an Organization
