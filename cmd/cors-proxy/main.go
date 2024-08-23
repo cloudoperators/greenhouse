@@ -98,7 +98,7 @@ func doRun(targetURL string) error {
 
 			if res.Request.Method == http.MethodOptions {
 				if res.Body != nil {
-					//Discard the result from upstream
+					// Discard the result from upstream
 					_, _ = io.ReadAll(res.Body) //nolint:errcheck
 				}
 				res.StatusCode = 200

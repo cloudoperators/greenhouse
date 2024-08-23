@@ -46,4 +46,4 @@ jobs:
         with:
           author_name: CRD API Docs Bot
           author_email: crd_api_docs_bot@github.com
-          message: "Automatic genaration of CRD API Docs"
+          message: "Automatic generation of CRD API Docs"

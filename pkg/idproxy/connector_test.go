@@ -5,13 +5,14 @@ package idproxy
 
 import (
 	"context"
+	"log/slog"
+	"os"
 	"testing"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
 	"github.com/dexidp/dex/connector"
-	"github.com/sirupsen/logrus"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -134,7 +135,7 @@ var _ = AfterSuite(func() {
 
 var _ = Describe("Getting groups for token", func() {
 	It("Should return the correct groups", func() {
-		logger := logrus.New()
+		logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
 		connectorOIDC := oidcConnector{conn: new(connector.Connector), logger: logger, client: test.K8sClient, id: test.TestNamespace}
 		groups, err := connectorOIDC.getGroups(test.TestNamespace, groupMock, context.TODO())
 		Expect(err).ToNot(HaveOccurred(), "There should be no error when getting groups")
