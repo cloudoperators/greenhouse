@@ -2,18 +2,31 @@
   "config": [
     {
       "cluster": {
+        "name": "greenhouse-remote"
+      }
+    },
+    {
+      "cluster": {
         "name": "greenhouse-admin",
         "namespace": "greenhouse"
       },
       "dependencies": [
         {
           "helm": {
-            "releaseName": "greenhouse-manager",
+            "release": "greenhouse",
+            "chartPath": "charts/idproxy",
+            "crdOnly": true
+          }
+        },
+        {
+          "helm": {
+            "release": "greenhouse",
             "chartPath": "charts/manager",
-            "valuesPath": "hack/localenv/values-sample.yaml",
+            "valuesPath": "dev-env/localenv/sample.values.yaml",
             "crdOnly": false
           },
           "webhook": {
+            "devMode": false,
             "dockerFile": "./",
             "envs": [
               {
@@ -22,20 +35,8 @@
               }
             ]
           }
-        },
-        {
-          "helm": {
-            "releaseName": "greenhouse-idproxy",
-            "chartPath": "charts/idproxy",
-            "crdOnly": true
-          }
         }
       ]
-    },
-    {
-      "cluster": {
-        "name": "greenhouse-remote"
-      }
     }
   ]
 }
