@@ -4,59 +4,56 @@
 package setup
 
 import (
+	"errors"
 	"fmt"
 	"github.com/cloudoperators/greenhouse/pkg/internal/local/utils"
-	"github.com/vladimirvivien/gexe"
 	"strings"
 )
 
-var exec = gexe.New()
-
-func CreateKindCluster(clusterName string) error {
-	exists, err := ClusterExists(clusterName)
+// createKindCluster - creates a kind cluster with the given name
+// if the cluster already exists, it sets the context to the existing cluster
+func createKindCluster(clusterName string) error {
+	exists, err := kindClusterExists(clusterName)
 	if err != nil {
 		return err
 	} else if exists {
 		utils.Logf("kind cluster with name %s already exists", clusterName)
-		exec.SetVar("name", clusterName)
-		proc := exec.RunProc("kubectl config set-context kind-${name}")
-		if err := proc.Err(); err != nil {
-			return err
-		}
-		utils.Logf("%s", proc.Result())
-		return nil
+		return utils.Shell{
+			Cmd: "kubectl config set-context kind-${name}",
+			Vars: map[string]string{
+				"name": clusterName,
+			},
+		}.Exec()
 	}
-
-	exec.SetVar("name", clusterName)
-	proc := exec.RunProc("kind create cluster --name ${name}")
-	if err := proc.Err(); err != nil {
-		return fmt.Errorf("failed to create kind cluster: %w", err)
-	}
-	utils.Logf("%s", proc.Result())
-	utils.Log("cluster is ready 🚀")
-	return nil
+	return utils.Shell{
+		Cmd: "kind create cluster --name ${name}",
+		Vars: map[string]string{
+			"name": clusterName,
+		},
+	}.Exec()
 }
 
-func DeleteCluster(clusterName string) error {
-	exists, err := ClusterExists(clusterName)
+// deleteKindCluster - deletes a kind cluster with the given name
+// if the cluster does not exist, it does nothing
+func deleteKindCluster(clusterName string) error {
+	exists, err := kindClusterExists(clusterName)
 	if err != nil {
 		return err
 	} else if !exists {
 		utils.Logf("kind cluster with name %s does not exist", clusterName)
 		return nil
 	}
-	exec.SetVar("name", clusterName)
-	proc := exec.RunProc("kind delete cluster --name ${name}")
-	if err := proc.Err(); err != nil {
-		return err
-	}
-	utils.Logf("%s", proc.Result())
-	utils.Logf("kind cluster with name %s deleted", clusterName)
-	return nil
+	return utils.Shell{
+		Cmd: "kind delete cluster --name ${name}",
+		Vars: map[string]string{
+			"name": clusterName,
+		},
+	}.Exec()
 }
 
-func ClusterExists(clusterName string) (bool, error) {
-	clusters, err := GetClusters()
+// kindClusterExists - checks if a kind cluster with the given name exists
+func kindClusterExists(clusterName string) (bool, error) {
+	clusters, err := getKindClusters()
 	if err != nil {
 		return false, fmt.Errorf("failed to check if cluster exists: %w", err)
 	}
@@ -69,56 +66,58 @@ func ClusterExists(clusterName string) (bool, error) {
 	return false, nil
 }
 
-func GetClusters() ([]string, error) {
-	proc := exec.RunProc("kind get clusters")
-	if err := proc.Err(); err != nil {
+// getKindClusters - returns a list of all kind clusters
+func getKindClusters() ([]string, error) {
+	result, err := utils.Shell{
+		Cmd: "kind get clusters",
+	}.ExecWithResult()
+	if err != nil {
 		return nil, err
 	}
-	return strings.FieldsFunc(proc.Result(), func(r rune) bool {
+	return strings.FieldsFunc(result, func(r rune) bool {
 		return r == '\n'
 	}), nil
 }
 
-func CreateNamespace(namespaceName string) error {
+// createNamespace - creates a namespace with the given name
+func createNamespace(namespaceName string) error {
 	if strings.TrimSpace(namespaceName) == "" {
-		return nil
+		return errors.New("namespace name cannot be empty")
 	}
-	utils.Logf("creating namespaceName %s", namespaceName)
-	errs := make([]string, 0)
-	exec.SetVar("namespace", namespaceName)
-	pipe := exec.Pipe("kubectl create namespace ${namespace} --dry-run=client -o yaml", "kubectl apply -f -")
-	for _, p := range pipe.Procs() {
-		if err := p.Err(); err != nil {
-			errs = append(errs, err.Error())
-		}
-	}
-	if len(errs) > 0 {
-		return fmt.Errorf("failed to create namespace: %s", strings.Join(errs, ", "))
-	}
-	utils.Logf("%s", pipe.LastProc().Result())
-	return nil
+	return utils.ShellPipe{
+		Shells: []utils.Shell{
+			{
+				Cmd: "kubectl create namespace ${namespace} --dry-run=client -o yaml",
+				Vars: map[string]string{
+					"namespace": namespaceName,
+				},
+			},
+			{
+				Cmd: "kubectl apply -f -",
+			},
+		},
+	}.Exec()
 }
 
-func GetKubeCfg(clusterName string, internal bool) (string, error) {
-	cmd := fmt.Sprintf("kind get kubeconfig --name %s", clusterName)
+// getKubeCfg - get kind cluster kubeconfig
+// if internal is true, it returns the internal kubeconfig of the cluster
+func getKubeCfg(clusterName string, internal bool) (string, error) {
+	sh := utils.Shell{}
+	sh.Cmd = fmt.Sprintf("kind get kubeconfig --name %s", clusterName)
 	if internal {
-		cmd += " --internal"
+		sh.Cmd += " --internal"
 	}
-	proc := exec.RunProc(cmd)
-	if err := proc.Err(); err != nil {
-		return "", fmt.Errorf("failed to get kubeconfig: %w", err)
-	}
-	return proc.Result(), nil
+	return sh.ExecWithResult()
 }
 
-func LoadImage(image string, clusterName string) error {
-	exec.SetVar("image", image)
-	exec.SetVar("cluster", clusterName)
-	utils.Logf("loading docker image %s into %s cluster", image, clusterName)
-	cmd := exec.RunProc("kind load docker-image ${image} --name ${cluster}")
-	if err := cmd.Err(); err != nil {
-		return err
+// loadImage - loads a docker image into a kind cluster
+func loadImage(image string, clusterName string) error {
+	sh := utils.Shell{
+		Cmd: "kind load docker-image ${image} --name ${cluster}",
+		Vars: map[string]string{
+			"image":   image,
+			"cluster": clusterName,
+		},
 	}
-	utils.Logf("%s", cmd.Result())
-	return nil
+	return sh.Exec()
 }

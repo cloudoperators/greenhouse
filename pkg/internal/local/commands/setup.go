@@ -8,13 +8,24 @@ import (
 	"github.com/spf13/cobra"
 )
 
+func setupExample() string {
+	return `
+# Setup Greenhouse dev environment with a configuration file
+greenhousectl dev setup -f hack/localenv/sample.config.json
+
+- This will create an admin and a remote cluster
+- Install CRDs, Webhook definitions, RBACs, Certs, etc... for Greenhouse into the target cluster
+- Depending on the devMode, it will install the webhook in-cluster or enable it for local development
+`
+}
+
 var (
 	setupConfigFile string
 	setupCmd        = &cobra.Command{
 		Use:               "setup",
 		Short:             "setup Greenhouse",
 		Long:              "setup Greenhouse dev environment with a configuration file",
-		Example:           `greenhousectl dev setup -f path/to/config/file`,
+		Example:           setupExample(),
 		DisableAutoGenTag: true,
 		RunE:              processSetup,
 	}
@@ -36,6 +47,6 @@ func processSetup(cmd *cobra.Command, _ []string) error {
 }
 
 func init() {
-	setupCmd.Flags().StringVarP(&setupConfigFile, "config", "f", "", "configuration file path - e.g. -f <path/to/config/file>")
+	setupCmd.Flags().StringVarP(&setupConfigFile, "config", "f", "", "configuration file path - e.g. -f hack/localenv/sample.config.json")
 	cobra.CheckErr(setupCmd.MarkFlagRequired("config"))
 }

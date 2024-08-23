@@ -8,13 +8,32 @@ import (
 	"github.com/spf13/cobra"
 )
 
+var devMode bool
+
+func webhookExample() string {
+	return `
+# Setup webhook for Greenhouse controller development convenience (Webhooks run in cluster)
+greenhousectl dev setup webhook --name kind-cluster-name --namespace greenhouse --release greenhouse --chart-path charts/manager --dockerfile ./
+
+# Setup webhook for Greenhouse webhook development convenience (Webhooks run local)
+greenhousectl dev setup webhook --name kind-cluster-name --namespace greenhouse --release greenhouse --chart-path charts/manager --dockerfile ./ --dev-mode
+
+# Additionally provide values file (defaults may not work since charts change over time)
+greenhousectl dev setup webhook --name kind-cluster-name --namespace greenhouse --release greenhouse --chart-path charts/manager --dockerfile ./ --values-path hack/localenv/sample.values.yaml
+
+`
+}
+
 var webhookCmd = &cobra.Command{
 	Use:               "webhook",
 	Short:             "Setup webhooks for Greenhouse (Validating and Mutating webhooks)",
 	Long:              "Setup Validating and Mutating webhooks for Greenhouse controller development convenience",
-	Example:           `greenhousectl dev setup webhook -c my-kind-cluster-name -n my-namespace -p path/to/chart -f path/to/Dockerfile`,
+	Example:           webhookExample(),
 	DisableAutoGenTag: true,
-	RunE:              processWebhook,
+	PreRunE: func(cmd *cobra.Command, _ []string) error {
+		return validateFlagInputs(cmd.Flags())
+	},
+	RunE: processWebhook,
 }
 
 func processWebhook(cmd *cobra.Command, _ []string) error {
@@ -22,19 +41,11 @@ func processWebhook(cmd *cobra.Command, _ []string) error {
 	opts := make([]setup.HelmClientOption, 0)
 	opts = append(opts, setup.WithChartPath(chartPath))
 	opts = append(opts, setup.WithNamespace(namespaceName))
-	opts = append(opts, setup.WithReleaseName("greenhouse-manager"))
+	opts = append(opts, setup.WithReleaseName(releaseName))
 	opts = append(opts, setup.WithClusterName(clusterName))
 
 	if valuesPath != "" {
 		opts = append(opts, setup.WithValuesPath(valuesPath))
-	}
-
-	if currentContext {
-		opts = append(opts, setup.WithCurrentContext(currentContext))
-	} else {
-		if kubeConfigPath != "" {
-			opts = append(opts, setup.WithKubeConfigPath(kubeConfigPath))
-		}
 	}
 
 	hookCfg := &setup.Webhook{
@@ -45,27 +56,27 @@ func processWebhook(cmd *cobra.Command, _ []string) error {
 				Value: "true",
 			},
 		},
+		DevMode: devMode,
 	}
 
 	helmClient, err := setup.NewHelmClient(ctx, opts...)
 	if err != nil {
 		return err
 	}
-	m := setup.NewManifestsSetup(helmClient, hookCfg, []string{"Deployment"}, false)
+	m := setup.NewManifestsSetup(helmClient, hookCfg, []string{"Deployment", "Job", "MutatingWebhookConfiguration", "ValidatingWebhookConfiguration"}, false, true)
 	return m.Setup(ctx)
 }
 
 func init() {
 	setupCmd.AddCommand(webhookCmd)
 	webhookCmd.Flags().StringVarP(&clusterName, "name", "c", "", "Name of the kind cluster - e.g. my-cluster (without the kind prefix)")
-	webhookCmd.Flags().StringVarP(&kubeConfigPath, "kubeconfig", "k", "", "Path to the kubeconfig file")
 	webhookCmd.Flags().StringVarP(&namespaceName, "namespace", "n", "", "namespace to install the resources")
 	webhookCmd.Flags().StringVarP(&chartPath, "chart-path", "p", "", "local chart path where manifests are located - e.g. <path>/<to>/charts/manager")
 	webhookCmd.Flags().StringVarP(&valuesPath, "values-path", "v", "", "local absolute values file path - e.g. <path>/<to>/my-values.yaml")
 	webhookCmd.Flags().StringVarP(&dockerFile, "dockerfile", "f", "", "local path to the Dockerfile of greenhouse manager")
-	webhookCmd.Flags().BoolVarP(&currentContext, "current-context", "x", false, "Use your current kubectl context")
+	webhookCmd.Flags().StringVarP(&releaseName, "release", "r", "greenhouse", "Helm release name, Default value: greenhouse - e.g. your-release-name")
+	webhookCmd.Flags().BoolVarP(&devMode, "dev-mode", "m", false, "Enable dev mode for webhook setup - Note: Admission Webhooks will be modified for local development")
 
-	webhookCmd.MarkFlagsMutuallyExclusive("current-context", "kubeconfig")
 	cobra.CheckErr(webhookCmd.MarkFlagRequired("name"))
 	cobra.CheckErr(webhookCmd.MarkFlagRequired("namespace"))
 	cobra.CheckErr(webhookCmd.MarkFlagRequired("chart-path"))

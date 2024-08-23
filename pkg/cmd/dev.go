@@ -4,16 +4,31 @@
 package cmd
 
 import (
+	"errors"
 	"github.com/cloudoperators/greenhouse/pkg/internal/local/commands"
 	"github.com/spf13/cobra"
+	"github.com/vladimirvivien/gexe"
+	"strings"
 )
 
 var devSetupCmd = &cobra.Command{
 	Use:   "dev",
 	Short: "Setup development environment",
+	PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
+		// check if KinD is installed
+		knd := gexe.ProgAvail("kind")
+		if strings.TrimSpace(knd) == "" {
+			return errors.New("please install KinD first, see https://kind.sigs.k8s.io/docs/user/quick-start/")
+		}
+		return nil
+	},
 }
 
 func init() {
 	rootCmd.AddCommand(devSetupCmd)
 	devSetupCmd.AddCommand(commands.GetLocalSetupCommands()...)
+}
+
+func GenerateDevDocs() []*cobra.Command {
+	return commands.GenerateDevCommandDocs()
 }

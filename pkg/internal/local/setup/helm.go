@@ -22,21 +22,11 @@ type HelmOptions struct {
 	Namespace      string
 	ChartPath      string
 	ValuesPath     *string
-	KubeConfigPath *string
 }
 
 type helmValues map[string]interface{}
 
 type HelmClientOption func(*HelmOptions)
-
-// WithKubeConfigPath - sets the kubeConfigPath flag for the helm client
-// kubeconfig path will be provided to helm action configuration
-// Note: Absolute paths are preferred
-func WithKubeConfigPath(kubeConfigPath string) HelmClientOption {
-	return func(h *HelmOptions) {
-		h.KubeConfigPath = utils.StringP(kubeConfigPath)
-	}
-}
 
 // WithChartPath - sets the chartPath flag for the helm client
 // Note: Absolute paths are preferred
@@ -48,7 +38,7 @@ func WithChartPath(chartPath string) HelmClientOption {
 
 // WithClusterName - sets the clusterName flag for the helm client
 // used in a kind cluster scenario. By providing a kind cluster name,
-// the kubeconfig will be fetched for the kind cluster using kind.GetKubeCfg(clusterName, false)
+// the kubeconfig will be fetched for the kind cluster using kind.getKubeCfg(clusterName, false)
 func WithClusterName(clusterName string) HelmClientOption {
 	return func(h *HelmOptions) {
 		h.ClusterName = utils.StringP(clusterName)
@@ -98,7 +88,6 @@ func apply(options *HelmOptions) *helmClient {
 		releaseName:    options.ReleaseName,
 		namespace:      options.Namespace,
 		valuesPath:     options.ValuesPath,
-		kubeconfigPath: options.KubeConfigPath,
 	}
 }
 
@@ -112,7 +101,6 @@ type helmClient struct {
 	chartPath         string
 	values            map[string]interface{}
 	valuesPath        *string
-	kubeconfigPath    *string
 	tmpKubeConfigPath *string
 }
 
@@ -121,6 +109,7 @@ type IHelm interface {
 	Install(ctx context.Context) (string, error)
 	Template(ctx context.Context) (string, error)
 	GetKubeconfigPath() *string
+	GetReleaseName() string
 	GetReleaseNamespace() string
 	GetClusterName() string
 }
@@ -135,8 +124,8 @@ func NewHelmClient(ctx context.Context, opts ...HelmClientOption) (IHelm, error)
 	}
 	hc := apply(options)
 
-	if hc.kubeconfigPath == nil && hc.clusterName == nil && !hc.currentContext {
-		return nil, errors.New("either kubeconfig or cluster name must be provided")
+	if hc.clusterName == nil && !hc.currentContext {
+		return nil, errors.New("either cluster name should be provided or current context must be set")
 	}
 
 	if hc.releaseName == "" {
@@ -155,24 +144,22 @@ func NewHelmClient(ctx context.Context, opts ...HelmClientOption) (IHelm, error)
 		hc.values = utils.GetManagerHelmValues()
 	}
 
-	flags := &genericclioptions.ConfigFlags{}
+	flags := &genericclioptions.ConfigFlags{
+		Namespace: &hc.namespace,
+	}
 
 	if !hc.currentContext {
-		if hc.kubeconfigPath == nil {
-			configStr, err := GetKubeCfg(*hc.clusterName, false)
-			if err != nil {
-				return nil, err
-			}
-			tmpKubeConfigPath, err := utils.WriteToTmpFolder(*hc.clusterName, configStr)
-			if err != nil {
-				return nil, err
-			}
-			hc.kubeconfigPath = &tmpKubeConfigPath
-			hc.tmpKubeConfigPath = &tmpKubeConfigPath
+		configStr, err := getKubeCfg(*hc.clusterName, false)
+		if err != nil {
+			return nil, err
 		}
-		flags.KubeConfig = hc.kubeconfigPath
+		tmpKubeConfigPath, err := utils.RandomWriteToTmpFolder(*hc.clusterName, configStr)
+		if err != nil {
+			return nil, err
+		}
+		hc.tmpKubeConfigPath = &tmpKubeConfigPath
+		flags.KubeConfig = &tmpKubeConfigPath
 	}
-	flags.Namespace = &hc.namespace
 
 	actionConfig := new(action.Configuration)
 	err := actionConfig.Init(
@@ -214,7 +201,7 @@ func (h *helmClient) Template(ctx context.Context) (string, error) {
 }
 
 func (h *helmClient) GetKubeconfigPath() *string {
-	return h.kubeconfigPath
+	return h.tmpKubeConfigPath
 }
 
 func (h *helmClient) GetReleaseNamespace() string {
@@ -226,6 +213,10 @@ func (h *helmClient) GetClusterName() string {
 		return *h.clusterName
 	}
 	return ""
+}
+
+func (h *helmClient) GetReleaseName() string {
+	return h.releaseName
 }
 
 // prepareChartAndValues - loads the chart from the given local path and values specified

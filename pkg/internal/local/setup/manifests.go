@@ -7,31 +7,34 @@ import (
 	"context"
 	"fmt"
 	"github.com/cloudoperators/greenhouse/pkg/internal/local/utils"
-	"github.com/vladimirvivien/gexe"
 	"strings"
 )
 
 type manifests struct {
-	hc           IHelm
-	excludeKinds []string
-	crdOnly      bool
-	webhook      *Webhook
+	hc               IHelm
+	excludeKinds     []string
+	crdOnly          bool
+	webhook          *Webhook
+	retainKubeConfig bool
 }
 
 type IManifest interface {
 	GenerateManifests(ctx context.Context) ([]map[string]interface{}, error)
 	ApplyManifests(resources []map[string]interface{}) error
-	SetupWebhookManifest(resources []map[string]interface{}) (map[string]interface{}, error)
+	SetupWebhookManifest(resources []map[string]interface{}) ([]map[string]interface{}, error)
 }
 
-func NewManifestsSetup(hc IHelm, webhook *Webhook, excludeKinds []string, crdOnly bool) ISetup {
-	return &manifests{hc: hc, webhook: webhook, excludeKinds: excludeKinds, crdOnly: crdOnly}
+func NewManifestsSetup(hc IHelm, webhook *Webhook, excludeKinds []string, crdOnly bool, retainKubeConfig bool) ISetup {
+	return &manifests{hc: hc, webhook: webhook, excludeKinds: excludeKinds, crdOnly: crdOnly, retainKubeConfig: retainKubeConfig}
 }
 
 func NewCmdManifests(hc IHelm, excludeKinds []string, crdOnly bool) IManifest {
 	return &manifests{hc: hc, excludeKinds: excludeKinds, crdOnly: crdOnly}
 }
 
+// Setup - generates and applies manifests to the cluster
+// if webhook configuration is provided, modified webhook manifests are generated and applied
+// if dev mode is enabled, webhook certs are extracted from the cluster and saved to the local filesystem
 func (m *manifests) Setup(ctx context.Context) error {
 	resources, err := m.generateAllManifests(ctx)
 	if err != nil {
@@ -44,14 +47,22 @@ func (m *manifests) Setup(ctx context.Context) error {
 		noWbManifests := excludeResources(filtered, []string{"MutatingWebhookConfiguration", "ValidatingWebhookConfiguration"})
 		return m.ApplyManifests(noWbManifests)
 	}
-	webHookManifest, err := m.SetupWebhookManifest(resources)
+	webHookManifests, err := m.SetupWebhookManifest(resources)
 	if err != nil {
 		return err
 	}
-	filtered = append(filtered, webHookManifest)
-	return m.ApplyManifests(filtered)
+	filtered = append(filtered, webHookManifests...)
+	err = m.ApplyManifests(filtered)
+	if err != nil {
+		return err
+	}
+	if m.webhook.DevMode {
+		return m.extractWebhookCerts(ctx)
+	}
+	return nil
 }
 
+// GenerateManifests - uses helm templating to explode the chart and returns the raw manifests
 func (m *manifests) GenerateManifests(ctx context.Context) ([]map[string]interface{}, error) {
 	resources, err := m.generateAllManifests(ctx)
 	if err != nil {
@@ -61,44 +72,8 @@ func (m *manifests) GenerateManifests(ctx context.Context) ([]map[string]interfa
 	return m.filterCustomResources(excluded), nil
 }
 
-func (m *manifests) ApplyManifests(resources []map[string]interface{}) error {
-	manifests, err := utils.Stringify(resources)
-	if err != nil {
-		return err
-	}
-	return m.apply(manifests)
-}
-
-func (m *manifests) apply(manifests string) error {
-	var cmd string
-	var exec = gexe.New()
-	tmpResourcePath, err := utils.WriteToTmpFolder("kind-resources", manifests)
-	if err != nil {
-		return err
-	}
-	kubeconfigPath := m.hc.GetKubeconfigPath()
-	releaseNamespace := m.hc.GetReleaseNamespace()
-	if kubeconfigPath != nil {
-		cmd = fmt.Sprintf("kubectl apply --kubeconfig=%s -f %s -n %s", *kubeconfigPath, tmpResourcePath, releaseNamespace)
-	} else {
-		cmd = fmt.Sprintf("kubectl apply -f %s -n %s", tmpResourcePath, releaseNamespace)
-	}
-	defer func() {
-		tmpFiles := []string{tmpResourcePath}
-		if kubeconfigPath != nil {
-			tmpFiles = append(tmpFiles, *kubeconfigPath)
-		}
-		cleanUp(tmpFiles...)
-	}()
-	proc := exec.RunProc(cmd)
-	if err := proc.Err(); err != nil {
-		return fmt.Errorf("failed to apply manifests: %s - %w", proc.Result(), err)
-	}
-	utils.Logf("%s", proc.Result())
-	return nil
-}
-
 func (m *manifests) generateAllManifests(ctx context.Context) ([]map[string]interface{}, error) {
+	utils.Log("generating manifests...")
 	templates, err := m.hc.Template(ctx)
 	if err != nil {
 		return nil, err
@@ -115,6 +90,39 @@ func (m *manifests) generateAllManifests(ctx context.Context) ([]map[string]inte
 		}
 	}
 	return resources, nil
+}
+
+// ApplyManifests - applies the given resources to the cluster using kubectl
+func (m *manifests) ApplyManifests(resources []map[string]interface{}) error {
+	manifests, err := utils.Stringify(resources)
+	if err != nil {
+		return err
+	}
+	return m.apply(manifests)
+}
+
+func (m *manifests) apply(manifests string) error {
+	utils.Log("applying manifests...")
+	sh := utils.Shell{}
+	tmpResourcePath, err := utils.RandomWriteToTmpFolder("kind-resources", manifests)
+	if err != nil {
+		return err
+	}
+	kubeconfigPath := m.hc.GetKubeconfigPath()
+	releaseNamespace := m.hc.GetReleaseNamespace()
+	if kubeconfigPath != nil {
+		sh.Cmd = fmt.Sprintf("kubectl apply --kubeconfig=%s -f %s -n %s", *kubeconfigPath, tmpResourcePath, releaseNamespace)
+	} else {
+		sh.Cmd = fmt.Sprintf("kubectl apply -f %s -n %s", tmpResourcePath, releaseNamespace)
+	}
+	defer func() {
+		tmpFiles := []string{tmpResourcePath}
+		if kubeconfigPath != nil && !m.retainKubeConfig {
+			tmpFiles = append(tmpFiles, *kubeconfigPath)
+		}
+		cleanUp(tmpFiles...)
+	}()
+	return sh.Exec()
 }
 
 func (m *manifests) resourceExclusion(resources []map[string]interface{}) []map[string]interface{} {

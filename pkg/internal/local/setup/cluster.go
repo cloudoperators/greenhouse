@@ -28,20 +28,22 @@ func Configure(config *Cluster, skipCreate bool) *Cluster {
 	return config
 }
 
+// Setup - creates a kind cluster with a given name and optionally creates a namespace if specified
 func (c *Cluster) Setup() error {
 	if c.skipCreate {
 		return nil
 	}
-	err := CreateKindCluster(c.Name)
+	err := createKindCluster(c.Name)
 	if err != nil {
 		return err
 	}
 	if c.Namespace == nil {
 		return nil
 	}
-	return CreateNamespace(*c.Namespace)
+	return createNamespace(*c.Namespace)
 }
 
+// Delete - deletes a kind cluster with a given name
 func (c *Cluster) Delete() error {
-	return DeleteCluster(c.Name)
+	return deleteKindCluster(c.Name)
 }

@@ -70,8 +70,30 @@ func SliceContains(slice []string, item string) bool {
 	})
 }
 
-// WriteToTmpFolder - writes the provided content to temp folder in OS
-func WriteToTmpFolder(fileName, content string) (string, error) {
+func WriteToPath(dir, fileName, content string) error {
+	if err := os.MkdirAll(dir, os.ModePerm); err != nil {
+		return fmt.Errorf("failed to create directory %s: %w", dir, err)
+	}
+	filePath := dir + "/" + fileName
+	file, err := os.Create(filePath)
+	if err != nil {
+		return err
+	}
+	defer func(file *os.File) {
+		err := file.Close()
+		if err != nil {
+			LogErr("failed to close file %s after write: %s", filePath, err.Error())
+		}
+	}(file)
+	if n, err := io.WriteString(file, content); n == 0 || err != nil {
+		return fmt.Errorf("kind kubecfg file: bytes copied: %d: %w]", n, err)
+	}
+	return nil
+}
+
+// RandomWriteToTmpFolder - writes the provided content to temp folder in OS
+// Concurrent writes do not conflict as the file name is appended with a random string
+func RandomWriteToTmpFolder(fileName, content string) (string, error) {
 	file, err := os.CreateTemp("", fmt.Sprintf("kind-cluster-%s", fileName))
 	if err != nil {
 		return "", err
@@ -95,6 +117,7 @@ func RemoveTmpFile(file string) error {
 	return nil
 }
 
+// RawK8sInterface - unmarshalls the provided YAML bytes into a map[string]interface{}
 func RawK8sInterface(yamlBytes []byte) (map[string]interface{}, error) {
 	var data map[string]interface{}
 	err := kyaml.Unmarshal(yamlBytes, &data)
@@ -124,6 +147,8 @@ func Stringify(data []map[string]interface{}) (string, error) {
 	return strings.Join(stringSources, "\n---\n"), nil
 }
 
+// FromYamlToK8sObject - Converts a YAML document to a Kubernetes object
+// if yaml contains multiple documents, then corresponding kubernetes objects should be provided
 func FromYamlToK8sObject(doc string, resources ...any) error {
 	yamlBytes := []byte(doc)
 	dec := kyaml.NewDocumentDecoder(io.NopCloser(bytes.NewReader(yamlBytes)))
@@ -142,6 +167,7 @@ func FromYamlToK8sObject(doc string, resources ...any) error {
 	return nil
 }
 
+// FromK8sObjectToYaml - Converts a Kubernetes object to a YAML document
 func FromK8sObjectToYaml(obj client.Object, gvk schema.GroupVersion) ([]byte, error) {
 	scheme := kruntime.NewScheme()
 	err := clientgoscheme.AddToScheme(scheme)
@@ -165,6 +191,17 @@ func FromK8sObjectToYaml(obj client.Object, gvk schema.GroupVersion) ([]byte, er
 func CheckIfFileExists(f string) bool {
 	_, err := os.Stat(f)
 	return !os.IsNotExist(err)
+}
+
+func GetFileContent(path string) (string, error) {
+	if !CheckIfFileExists(path) {
+		return "", nil
+	}
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return "", err
+	}
+	return string(data), nil
 }
 
 func GetHostPlatform() string {

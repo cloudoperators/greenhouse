@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/cloudoperators/greenhouse/pkg/internal/local/utils"
+	"github.com/pkg/errors"
 	"os"
 )
 
@@ -28,7 +29,7 @@ type ClusterDependency struct {
 }
 
 type HelmConfig struct {
-	ReleaseName  string  `json:"releaseName"`
+	ReleaseName  string  `json:"release"`
 	ChartPath    string  `json:"chartPath"`
 	ValuesPath   *string `json:"valuesPath"`
 	CRDOnly      bool    `json:"crdOnly"`
@@ -40,6 +41,7 @@ type ISetup interface {
 	Setup(ctx context.Context) error
 }
 
+// Setup - sets up the cluster and dependencies as defined in the config.json
 func (c *ClusterConfig) Setup(ctx context.Context) error {
 	// setup cluster
 	if c.CurrentContext != nil {
@@ -49,25 +51,27 @@ func (c *ClusterConfig) Setup(ctx context.Context) error {
 	if err != nil {
 		return fmt.Errorf("failed to setup cluster: %w", err)
 	}
+	// prepare helm client
 	err = c.prepareDependencies(ctx)
 	if err != nil {
 		return fmt.Errorf("failed to prepare dependencies: %w", err)
 	}
-	// setup manifests
+	// setup manifests + webhook (if provided)
 	for _, dependency := range c.Dependencies {
 		if dependency.Webhook != nil {
-			dependency.Helm.excludeKinds = append(dependency.Helm.excludeKinds, "Deployment")
+			dependency.Helm.excludeKinds = append(dependency.Helm.excludeKinds, "Deployment", "Job", "MutatingWebhookConfiguration", "ValidatingWebhookConfiguration")
 		}
-		manifest := NewManifestsSetup(dependency.Helm.hc, dependency.Webhook, dependency.Helm.excludeKinds, dependency.Helm.CRDOnly)
+		manifest := NewManifestsSetup(dependency.Helm.hc, dependency.Webhook, dependency.Helm.excludeKinds, dependency.Helm.CRDOnly, true)
+		// invokes manifest setup - install CRDs, modified manager deployment, cert job, webhook configurations...
 		err = manifest.Setup(ctx)
 		if err != nil {
 			return fmt.Errorf("failed to generate manifests: %w", err)
 		}
 	}
-	// setup webhook
 	return nil
 }
 
+// NewGreenHouseFromConfig - returns a config object from the given config file
 func NewGreenHouseFromConfig(configFile string) (*Config, error) {
 	_, err := os.Stat(configFile)
 	if err != nil {
@@ -94,16 +98,12 @@ func (c *ClusterConfig) prepareDependencies(ctx context.Context) error {
 		opts = append(opts, WithChartPath(dependency.Helm.ChartPath))
 		opts = append(opts, WithNamespace(*c.Cluster.Namespace))
 		opts = append(opts, WithReleaseName(dependency.Helm.ReleaseName))
-		if c.Cluster != nil {
-			opts = append(opts, WithClusterName(c.Cluster.Name))
+		if c.Cluster == nil {
+			return errors.New("cluster configuration not provided")
 		}
-
+		opts = append(opts, WithClusterName(c.Cluster.Name))
 		if c.CurrentContext != nil {
 			opts = append(opts, WithCurrentContext(*c.CurrentContext))
-		} else {
-			if c.KubeConfigPath != nil {
-				opts = append(opts, WithKubeConfigPath(*c.KubeConfigPath))
-			}
 		}
 
 		if dependency.Helm.ValuesPath != nil {

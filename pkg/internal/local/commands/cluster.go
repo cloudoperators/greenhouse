@@ -20,17 +20,23 @@ var (
 		Use:               "create",
 		Short:             "Create a kinD cluster",
 		Long:              "Create a kinD cluster and setup the greenhouse namespace optionally",
-		Example:           `greenhousectl dev cluster create --name <my-cluster> --namespace <my-namespace>`,
+		Example:           `greenhousectl dev cluster create --name <my-cluster-name> --namespace <my-namespace>`,
 		DisableAutoGenTag: true,
-		RunE:              processCreateLocalCluster,
+		PreRunE: func(cmd *cobra.Command, args []string) error {
+			return validateFlagInputs(cmd.Flags())
+		},
+		RunE: processCreateLocalCluster,
 	}
 	deleteLocalClusterCmd = &cobra.Command{
 		Use:               "delete",
 		Short:             "Delete a kinD cluster",
 		Long:              "Delete a specific kinD cluster",
-		Example:           `greenhousectl dev cluster delete --name my-cluster`,
+		Example:           `greenhousectl dev cluster delete --name <my-cluster-name>`,
 		DisableAutoGenTag: true,
-		RunE:              processDeleteLocalCluster,
+		PreRunE: func(cmd *cobra.Command, _ []string) error {
+			return validateFlagInputs(cmd.Flags())
+		},
+		RunE: processDeleteLocalCluster,
 	}
 )
 
@@ -43,6 +49,7 @@ func processCreateLocalCluster(_ *cobra.Command, _ []string) error {
 	s := setup.NewLocalCmdCluster(clusterName, namespaceName)
 	return s.Setup()
 }
+
 func init() {
 	createLocalClusterCmd.Flags().StringVarP(&clusterName, "name", "c", "", "create a kind cluster with a name - e.g. -c <my-cluster>")
 	createLocalClusterCmd.Flags().StringVarP(&namespaceName, "namespace", "n", "", "create a namespace in the cluster - e.g. -c <my-cluster> -n <my-namespace>")
