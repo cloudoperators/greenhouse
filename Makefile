@@ -87,7 +87,7 @@ GEN_DOCS ?= $(LOCALBIN)/gen-crd-api-reference-docs
 generate-documentation: check-gen-crd-api-reference-docs
 	$(GEN_DOCS) -api-dir=$(GEN_DOCS_API_DIR) -config=$(GEN_DOCS_CONFIG) -template-dir=$(GEN_DOCS_TEMPLATE_DIR) -out-file=$(GEN_DOCS_OUT_FILE)
 
-.PHONY: fmt test
+.PHONY: test
 test: generate-manifests generate envtest ## Run tests.
 	KUBEBUILDER_ASSETS="$(shell $(ENVTEST) use $(ENVTEST_K8S_VERSION) -p path)" go test ./... -coverprofile cover.out -v
 
@@ -113,9 +113,13 @@ e2e-local-cluster-create:
 
 
 .PHONY: fmt
-fmt: goimports
+fmt: goimports golint
 	GOBIN=$(LOCALBIN) go fmt ./...
 	$(GOIMPORTS) -w -local github.com/cloudoperators/greenhouse .
+	$(GOLINT) run -v --timeout 5m
+
+.PHONY: check
+check: fmt test
 
 ##@ Build CLI Locally
 .PHONY: cli
@@ -217,4 +221,8 @@ endif
 
 .PHONY: setup-dev
 setup-dev: cli
-	$(CLI) dev setup -f hack/localenv/config-sample.json
+	$(CLI) dev setup -f dev-env/localenv/config-sample.json
+
+.PHONY: dev-docs
+dev-docs:
+	go run -tags="dev" -mod=mod dev-env/localenv/docs.go
