@@ -143,14 +143,14 @@ func (r *WorkLoadStatusReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 		releaseStatus.ReleaseNamespace = helmRelease.Namespace
 		releaseStatus.ClusterName = plugin.Spec.ClusterName
 		releaseStatus.HelmStatus = helmRelease.Info.Status.String()
-		fileteredObjectMap, err := helm.ObjectMapFromManifestWithMultipleFilters(restClientGetter, plugin.Namespace, helmRelease.Manifest, &helm.ManifestMultipleObjectFilter{
+		fileteredObjectMap, err := helm.ObjectMapFromManifest(restClientGetter, plugin.Namespace, helmRelease.Manifest, &helm.ManifestMultipleObjectFilter{
 			Filters: objectFilter,
 		})
 		if err != nil {
 			log.FromContext(ctx).Error(err, "failed to get object map from manifest")
 		}
-		for _, key := range fileteredObjectMap {
-			getPayloadStatus(ctx, releaseStatus, objClient, key.ObjectKey.Name, releaseStatus.ReleaseNamespace, key.ObjectKey.GVK)
+		for key := range fileteredObjectMap {
+			getPayloadStatus(ctx, releaseStatus, objClient, key.Name, releaseStatus.ReleaseNamespace, key.GVK)
 		}
 
 		if statusErr := r.setStatus(ctx, plugin, releaseStatus, pluginStatus); statusErr != nil {

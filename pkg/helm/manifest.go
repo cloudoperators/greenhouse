@@ -41,6 +41,10 @@ type ObjectList struct {
 	*ManifestObject
 }
 
+type ManifestFilter interface {
+	Matches(obj *resource.Info) bool
+}
+
 type ManifestMultipleObjectFilter struct {
 	Filters []ManifestObjectFilter
 }
@@ -82,52 +86,13 @@ func (o *ManifestObjectFilter) Matches(obj *resource.Info) bool {
 	return true
 }
 
-// ObjectMapFromReleaseWithMultipleFilters returns a map of objects from the helm release manifest matching the filter or an error.
-func ObjectMapFromReleaseWithMultipleFilters(restClientGetter genericclioptions.RESTClientGetter, r *release.Release, f *ManifestMultipleObjectFilter) ([]ObjectList, error) {
-	return ObjectMapFromManifestWithMultipleFilters(restClientGetter, r.Namespace, r.Manifest, f)
-}
-
-// ObjectMapFromManifestWithMultipleFilters returns a map of objects from the manifests matching the filter or an error.
-func ObjectMapFromManifestWithMultipleFilters(restClientGetter genericclioptions.RESTClientGetter, namespace, manifest string, f *ManifestMultipleObjectFilter) ([]ObjectList, error) {
-	allObjects := ObjectList{}
-	filteredObjects := []ObjectList{}
-	r, err := loadManifest(restClientGetter, namespace, manifest)
-	if err != nil {
-		return nil, fmt.Errorf("error loading manifest: %w", err)
-	}
-	err = r.Visit(func(info *resource.Info, err error) error {
-		if err != nil {
-			return err
-		}
-		if f != nil {
-			for _, filter := range f.Filters {
-				if filter.Matches(info) {
-					allObjects.ObjectKey = ObjectKey{
-						GVK:       info.Mapping.GroupVersionKind,
-						Namespace: info.Namespace,
-						Name:      info.Name,
-					}
-					allObjects.ManifestObject = &ManifestObject{
-						Namespace: info.Namespace,
-						Name:      info.Name,
-						Object:    info.Object.DeepCopyObject(),
-					}
-					filteredObjects = append(filteredObjects, allObjects)
-				}
-			}
-		}
-		return nil
-	})
-	return filteredObjects, err
-}
-
 // ObjectMapFromRelease returns a map of objects from the helm release manifest matching the filter or an error.
-func ObjectMapFromRelease(restClientGetter genericclioptions.RESTClientGetter, r *release.Release, f *ManifestObjectFilter) (map[ObjectKey]*ManifestObject, error) {
+func ObjectMapFromRelease(restClientGetter genericclioptions.RESTClientGetter, r *release.Release, f ManifestFilter) (map[ObjectKey]*ManifestObject, error) {
 	return ObjectMapFromManifest(restClientGetter, r.Namespace, r.Manifest, f)
 }
 
 // ObjectMapFromManifest returns a map of objects from the manifests matching the filter or an error.
-func ObjectMapFromManifest(restClientGetter genericclioptions.RESTClientGetter, namespace, manifest string, f *ManifestObjectFilter) (map[ObjectKey]*ManifestObject, error) {
+func ObjectMapFromManifest(restClientGetter genericclioptions.RESTClientGetter, namespace, manifest string, f ManifestFilter) (map[ObjectKey]*ManifestObject, error) {
 	r, err := loadManifest(restClientGetter, namespace, manifest)
 	if err != nil {
 		return nil, fmt.Errorf("error loading manifest: %w", err)
