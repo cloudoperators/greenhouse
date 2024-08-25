@@ -94,7 +94,7 @@ func WriteToPath(dir, fileName, content string) error {
 // RandomWriteToTmpFolder - writes the provided content to temp folder in OS
 // Concurrent writes do not conflict as the file name is appended with a random string
 func RandomWriteToTmpFolder(fileName, content string) (string, error) {
-	file, err := os.CreateTemp("", fmt.Sprintf("kind-cluster-%s", fileName))
+	file, err := os.CreateTemp("", "kind-cluster-"+fileName)
 	if err != nil {
 		return "", err
 	}

@@ -102,8 +102,12 @@ func CreateNamespace(namespaceName string) error {
 // GetKubeCfg - get kind cluster kubeconfig
 // if internal is true, it returns the internal kubeconfig of the cluster
 func GetKubeCfg(clusterName string, internal bool) (string, error) {
-	sh := utils.Shell{}
-	sh.Cmd = fmt.Sprintf("kind get kubeconfig --name %s", clusterName)
+	sh := utils.Shell{
+		Cmd: "kind get kubeconfig --name ${name}",
+		Vars: map[string]string{
+			"name": clusterName,
+		},
+	}
 	if internal {
 		sh.Cmd += " --internal"
 	}

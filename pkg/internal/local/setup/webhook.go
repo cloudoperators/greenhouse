@@ -5,6 +5,7 @@ package setup
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"github.com/cloudoperators/greenhouse/pkg/internal/local/klient"
 	"github.com/cloudoperators/greenhouse/pkg/internal/local/utils"
@@ -112,7 +113,7 @@ func (m *Manifest) modifyManagerDeployment(deploymentResource map[string]interfa
 	}
 	index := getManagerContainerIndex(deployment)
 	if index == -1 {
-		return nil, fmt.Errorf("manager container not found in deployment")
+		return nil, errors.New("manager container not found in deployment")
 	}
 	for _, e := range m.Webhook.Envs {
 		deployment.Spec.Template.Spec.Containers[index].Env = append(deployment.Spec.Template.Spec.Containers[index].Env, v1.EnvVar{

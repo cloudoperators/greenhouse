@@ -12,14 +12,13 @@ import (
 )
 
 type Manifest struct {
-	ReleaseName      string   `json:"release"`
-	ChartPath        string   `json:"chartPath"`
-	ValuesPath       string   `json:"valuesPath"`
-	CRDOnly          bool     `json:"crdOnly"`
-	ExcludeKinds     []string `json:"excludeKinds"`
-	Webhook          *Webhook `json:"webhook"`
-	retainKubeConfig bool
-	hc               helm.IHelm
+	ReleaseName  string   `json:"release"`
+	ChartPath    string   `json:"chartPath"`
+	ValuesPath   string   `json:"valuesPath"`
+	CRDOnly      bool     `json:"crdOnly"`
+	ExcludeKinds []string `json:"excludeKinds"`
+	Webhook      *Webhook `json:"webhook"`
+	hc           helm.IHelm
 }
 
 func limitedManifestSetup(ctx context.Context, m *Manifest) Step {
