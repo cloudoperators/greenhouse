@@ -104,6 +104,7 @@ func generateMarkdown(content string) ([]byte, error) {
 				md.Code("charts/manager/templates/kube-webhook-certgen.yaml"),
 				md.Code("/tmp/k8s-webhook-server/serving-certs"),
 			),
+			fmt.Sprintf("%s of the created cluster(s) are saved to %s", md.Code("kubeconfig"), md.Code("/tmp/greenhouse/<clusterName>.kubeconfig")),
 		).LF().
 		PlainText("Below you will find a list of commands available for dev env setup").LF().
 		HorizontalRule().
