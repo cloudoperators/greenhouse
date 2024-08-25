@@ -17,7 +17,7 @@ import (
 var DefaultElapsedTime = 30 * time.Second
 
 // WaitUntilSecretCreated - waits until a secret is created in the given namespace with a backoff strategy
-func WaitUntilSecretCreated(ctx context.Context, k8sClient client.Client, namespace, name string) error {
+func WaitUntilSecretCreated(ctx context.Context, k8sClient client.Client, name, namespace string) error {
 	b := backoff.NewExponentialBackOff()
 	b.InitialInterval = 5 * time.Second
 	b.MaxElapsedTime = DefaultElapsedTime
@@ -36,7 +36,7 @@ func WaitUntilSecretCreated(ctx context.Context, k8sClient client.Client, namesp
 }
 
 // WaitUntilJobSucceeds - waits until a job succeeds in the given namespace with a backoff strategy
-func WaitUntilJobSucceeds(ctx context.Context, k8sClient client.Client, namespace, name string) error {
+func WaitUntilJobSucceeds(ctx context.Context, k8sClient client.Client, name, namespace string) error {
 	b := backoff.NewExponentialBackOff()
 	b.InitialInterval = 5 * time.Second
 	b.MaxElapsedTime = DefaultElapsedTime

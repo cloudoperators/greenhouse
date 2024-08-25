@@ -13,13 +13,13 @@ var devMode bool
 func webhookExample() string {
 	return `
 # Setup webhook for Greenhouse controller development convenience (Webhooks run in cluster)
-greenhousectl dev setup webhook --name kind-cluster-name --namespace greenhouse --release greenhouse --chart-path charts/manager --dockerfile ./
+greenhousectl dev setup webhook --name greenhouse-admin --namespace greenhouse --release greenhouse --chart-path charts/manager --dockerfile ./
 
 # Setup webhook for Greenhouse webhook development convenience (Webhooks run local)
-greenhousectl dev setup webhook --name kind-cluster-name --namespace greenhouse --release greenhouse --chart-path charts/manager --dockerfile ./ --dev-mode
+greenhousectl dev setup webhook --name greenhouse-admin --namespace greenhouse --release greenhouse --chart-path charts/manager --dockerfile ./ --dev-mode
 
 # Additionally provide values file (defaults may not work since charts change over time)
-greenhousectl dev setup webhook --name kind-cluster-name --namespace greenhouse --release greenhouse --chart-path charts/manager --dockerfile ./ --values-path hack/localenv/sample.values.yaml
+greenhousectl dev setup webhook --name greenhouse-admin --namespace greenhouse --release greenhouse --chart-path charts/manager --dockerfile ./ --values-path hack/localenv/sample.values.yaml
 
 `
 }
@@ -38,16 +38,6 @@ var webhookCmd = &cobra.Command{
 
 func processWebhook(cmd *cobra.Command, _ []string) error {
 	ctx := cmd.Context()
-	opts := make([]setup.HelmClientOption, 0)
-	opts = append(opts, setup.WithChartPath(chartPath))
-	opts = append(opts, setup.WithNamespace(namespaceName))
-	opts = append(opts, setup.WithReleaseName(releaseName))
-	opts = append(opts, setup.WithClusterName(clusterName))
-
-	if valuesPath != "" {
-		opts = append(opts, setup.WithValuesPath(valuesPath))
-	}
-
 	hookCfg := &setup.Webhook{
 		DockerFile: dockerFile,
 		Envs: []setup.WebhookEnv{
@@ -58,17 +48,26 @@ func processWebhook(cmd *cobra.Command, _ []string) error {
 		},
 		DevMode: devMode,
 	}
+	manifest := &setup.Manifest{
+		ReleaseName:  releaseName,
+		ChartPath:    chartPath,
+		ValuesPath:   valuesPath,
+		CRDOnly:      crdOnly,
+		ExcludeKinds: []string{"Deployment", "Job", "MutatingWebhookConfiguration", "ValidatingWebhookConfiguration"},
+		Webhook:      hookCfg,
+	}
 
-	helmClient, err := setup.NewHelmClient(ctx, opts...)
+	err := setup.NewExecutionEnv().
+		WithClusterSetup(clusterName, namespaceName).
+		WithWebhookDevelopment(ctx, manifest).
+		Run()
 	if err != nil {
 		return err
 	}
-	m := setup.NewManifestsSetup(helmClient, hookCfg, []string{"Deployment", "Job", "MutatingWebhookConfiguration", "ValidatingWebhookConfiguration"}, false, true)
-	return m.Setup(ctx)
+	return nil
 }
 
 func init() {
-	setupCmd.AddCommand(webhookCmd)
 	webhookCmd.Flags().StringVarP(&clusterName, "name", "c", "", "Name of the kind cluster - e.g. my-cluster (without the kind prefix)")
 	webhookCmd.Flags().StringVarP(&namespaceName, "namespace", "n", "", "namespace to install the resources")
 	webhookCmd.Flags().StringVarP(&chartPath, "chart-path", "p", "", "local chart path where manifests are located - e.g. <path>/<to>/charts/manager")
@@ -79,6 +78,9 @@ func init() {
 
 	cobra.CheckErr(webhookCmd.MarkFlagRequired("name"))
 	cobra.CheckErr(webhookCmd.MarkFlagRequired("namespace"))
+	cobra.CheckErr(webhookCmd.MarkFlagRequired("release"))
 	cobra.CheckErr(webhookCmd.MarkFlagRequired("chart-path"))
 	cobra.CheckErr(webhookCmd.MarkFlagRequired("dockerfile"))
+
+	setupCmd.AddCommand(webhookCmd)
 }

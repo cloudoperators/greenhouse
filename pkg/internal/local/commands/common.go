@@ -11,31 +11,27 @@ import (
 )
 
 var (
-	clusterName    string
-	namespaceName  string
-	dockerFile     string
-	releaseName    string
-	chartPath      string
-	valuesPath     string
-	currentContext bool
-	crdOnly        bool
-	excludeKinds   []string
+	clusterName   string
+	namespaceName string
+	dockerFile    string
+	releaseName   string
+	chartPath     string
+	valuesPath    string
+	crdOnly       bool
+	excludeKinds  []string
 )
 
 func GetLocalSetupCommands() []*cobra.Command {
 	return []*cobra.Command{
-		localClusterCmd,
-		manifestsCmd,
+		clusterCmd,
 		setupCmd,
 	}
 }
 
 func GenerateDevCommandDocs() []*cobra.Command {
 	return []*cobra.Command{
-		createLocalClusterCmd,
-		deleteLocalClusterCmd,
-		manifestsCmd,
-		webhookCmd,
+		createClusterCmd,
+		deleteClusterCmd,
 		setupCmd,
 	}
 }

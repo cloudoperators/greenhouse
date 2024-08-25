@@ -6,6 +6,7 @@ package setup
 import (
 	"context"
 	"fmt"
+	"github.com/cloudoperators/greenhouse/pkg/internal/local/klient"
 	"github.com/cloudoperators/greenhouse/pkg/internal/local/utils"
 	aregv1 "k8s.io/api/admissionregistration/v1"
 	appsv1 "k8s.io/api/apps/v1"
@@ -40,26 +41,28 @@ const (
 	JobNameSuffix                      = "-kube-webhook-certgen"
 	MutatingWebhookConfigurationKind   = "MutatingWebhookConfiguration"
 	ValidatingWebhookConfigurationKind = "ValidatingWebhookConfiguration"
-	webhookCertSecretSuffix            = "-webhook-server-cert"
+	webhookCertSecSuffix               = "-webhook-server-cert"
 )
 
-// SetupWebhookManifest - sets up the webhook manifests by modifying the manager deployment, cert job and webhook configurations
+// setupWebhookManifest - sets up the webhook manifest by modifying the manager deployment, cert job and webhook configurations
 // deploys manager in WEBHOOK_ONLY mode so that you don't need to run webhooks locally during controller development
 // modifies cert job (charts/manager/templates/kube-webhook-certgen.yaml) to include host.docker.internal
 // if devMode is enabled, modifies mutating and validating webhook configurations to use host.docker.internal URL and removes service from clientConfig
 // extracts the webhook certs from the secret and writes them to tmp/k8s-webhook-server/serving-certs directory
-func (m *manifests) SetupWebhookManifest(resources []map[string]interface{}) ([]map[string]interface{}, error) {
+func (m *Manifest) setupWebhookManifest(resources []map[string]interface{}, clusterName string) ([]map[string]interface{}, error) {
 	webhookManifests := make([]map[string]interface{}, 0)
-	releaseName := m.hc.GetReleaseName()
+	releaseName := m.ReleaseName
 	managerDeployment, err := extractResourceByNameKind(resources, releaseName+DeploymentNameSuffix, DeploymentKind)
 	if err != nil {
 		return nil, err
 	}
+
 	utils.Log("modifying manager deployment...")
 	managerDeployment, err = m.modifyManagerDeployment(managerDeployment)
 	if err != nil {
 		return nil, err
 	}
+
 	certJob, err := extractResourceByNameKind(resources, releaseName+JobNameSuffix, JobKind)
 	if err != nil {
 		return nil, err
@@ -70,9 +73,10 @@ func (m *manifests) SetupWebhookManifest(resources []map[string]interface{}) ([]
 	if err != nil {
 		return nil, err
 	}
+
 	webhookManifests = append(webhookManifests, managerDeployment, certJob)
 	webhookResources := extractResourcesByKinds(resources, MutatingWebhookConfigurationKind, ValidatingWebhookConfigurationKind)
-	if m.webhook.DevMode {
+	if m.Webhook.DevMode {
 		utils.Log("enabling webhook local development...")
 		if webhookURL != "" {
 			webhooks, err := m.modifyWebhooks(webhookResources, webhookURL)
@@ -86,7 +90,8 @@ func (m *manifests) SetupWebhookManifest(resources []map[string]interface{}) ([]
 	} else {
 		webhookManifests = append(webhookManifests, webhookResources...)
 	}
-	err = m.buildAndLoadImage()
+
+	err = m.buildAndLoadImage(clusterName)
 	if err != nil {
 		return nil, err
 	}
@@ -94,7 +99,7 @@ func (m *manifests) SetupWebhookManifest(resources []map[string]interface{}) ([]
 }
 
 // modifyManagerDeployment - appends the env in manager container by setting WEBHOOK_ONLY=true
-func (m *manifests) modifyManagerDeployment(deploymentResource map[string]interface{}) (map[string]interface{}, error) {
+func (m *Manifest) modifyManagerDeployment(deploymentResource map[string]interface{}) (map[string]interface{}, error) {
 	deployment := &appsv1.Deployment{}
 	deploymentStr, err := utils.Stringy(deploymentResource)
 	if err != nil {
@@ -109,7 +114,7 @@ func (m *manifests) modifyManagerDeployment(deploymentResource map[string]interf
 	if index == -1 {
 		return nil, fmt.Errorf("manager container not found in deployment")
 	}
-	for _, e := range m.webhook.Envs {
+	for _, e := range m.Webhook.Envs {
 		deployment.Spec.Template.Spec.Containers[index].Env = append(deployment.Spec.Template.Spec.Containers[index].Env, v1.EnvVar{
 			Name:  e.Name,
 			Value: e.Value,
@@ -126,7 +131,7 @@ func (m *manifests) modifyManagerDeployment(deploymentResource map[string]interf
 
 // modifyWebhooks - modifies the webhook configurations to use host.docker.internal URL and removes service from clientConfig
 // during local development of webhooks api server will forward the request to host machine where the webhook is running at port 9443
-func (m *manifests) modifyWebhooks(resources []map[string]interface{}, webhookURL string) ([]map[string]interface{}, error) {
+func (m *Manifest) modifyWebhooks(resources []map[string]interface{}, webhookURL string) ([]map[string]interface{}, error) {
 	modifiedWebhooks := make([]map[string]interface{}, 0)
 	for _, resource := range resources {
 		if k, ok := resource["kind"].(string); ok {
@@ -153,7 +158,7 @@ func (m *manifests) modifyWebhooks(resources []map[string]interface{}, webhookUR
 	return modifiedWebhooks, nil
 }
 
-func (m *manifests) modifyWebhook(resource map[string]interface{}, hook client.Object, webhookURL string) ([]byte, error) {
+func (m *Manifest) modifyWebhook(resource map[string]interface{}, hook client.Object, webhookURL string) ([]byte, error) {
 	resStr, err := utils.Stringy(resource)
 	if err != nil {
 		return nil, err
@@ -169,7 +174,7 @@ func (m *manifests) modifyWebhook(resource map[string]interface{}, hook client.O
 		utils.Logf("setting webhook client config to %s...", webhookURL)
 		for i, c := range modifiedHook.Webhooks {
 			if c.ClientConfig.Service.Path != nil {
-				url := fmt.Sprintf("https://%s:9443%s", webhookURL, *c.ClientConfig.Service.Path)
+				url := "https://" + net.JoinHostPort(webhookURL, "9443") + *c.ClientConfig.Service.Path
 				modifiedHook.Webhooks[i].ClientConfig.URL = utils.StringP(url)
 				modifiedHook.Webhooks[i].ClientConfig.Service = nil
 			}
@@ -181,7 +186,7 @@ func (m *manifests) modifyWebhook(resource map[string]interface{}, hook client.O
 		utils.Logf("setting webhook client config to %s...", webhookURL)
 		for i, c := range modifiedHook.Webhooks {
 			if c.ClientConfig.Service.Path != nil {
-				url := fmt.Sprintf("https://%s:9443%s", webhookURL, *c.ClientConfig.Service.Path)
+				url := "https://" + net.JoinHostPort(webhookURL, "9443") + *c.ClientConfig.Service.Path
 				modifiedHook.Webhooks[i].ClientConfig.URL = utils.StringP(url)
 				modifiedHook.Webhooks[i].ClientConfig.Service = nil
 			}
@@ -195,7 +200,7 @@ func (m *manifests) modifyWebhook(resource map[string]interface{}, hook client.O
 
 // modifyCertJob - appends host.docker.internal to the args in cert job
 // certs generated are valid only for a set of defined DNS names, adding host.docker.internal to hosts will prevent TLS errors
-func (m *manifests) modifyCertJob(resources map[string]interface{}, webhookURL string) (map[string]interface{}, error) {
+func (m *Manifest) modifyCertJob(resources map[string]interface{}, webhookURL string) (map[string]interface{}, error) {
 	job := &batchv1.Job{}
 	jobStr, err := utils.Stringy(resources)
 	if err != nil {
@@ -219,24 +224,18 @@ func (m *manifests) modifyCertJob(resources map[string]interface{}, webhookURL s
 	return utils.RawK8sInterface(jobBytes)
 }
 
-// buildAndLoadImage - builds the manager image as greenhouse/manager:local and loads it to the kind cluster
-func (m *manifests) buildAndLoadImage() error {
-	clusterName := strings.TrimSpace(m.hc.GetClusterName())
-	if clusterName == "" {
-		utils.Log("no cluster name provided, skipping webhook setup")
-		return nil
-	}
-
-	if !utils.CheckIfFileExists(m.webhook.DockerFile) {
-		return fmt.Errorf("docker file not found: %s", m.webhook.DockerFile)
+// buildAndLoadImage - builds the manager image as greenhouse/manager:local and loads it to the kind Cluster
+func (m *Manifest) buildAndLoadImage(clusterName string) error {
+	if !utils.CheckIfFileExists(m.Webhook.DockerFile) {
+		return fmt.Errorf("docker file not found: %s", m.Webhook.DockerFile)
 	}
 	utils.Log("building manager image...")
-	err := BuildImage(MangerIMG, utils.GetHostPlatform(), m.webhook.DockerFile)
+	err := klient.BuildImage(MangerIMG, utils.GetHostPlatform(), m.Webhook.DockerFile)
 	if err != nil {
 		return err
 	}
-	utils.Log("loading manager image to cluster...")
-	return loadImage(MangerIMG, clusterName)
+	utils.Log("loading manager image to Cluster...")
+	return klient.LoadImage(MangerIMG, clusterName)
 }
 
 func getManagerContainerIndex(deployment *appsv1.Deployment) int {
@@ -261,8 +260,8 @@ func extractResourceByNameKind(resources []map[string]interface{}, name, kind st
 
 func extractResourcesByKinds(resources []map[string]interface{}, kinds ...string) []map[string]interface{} {
 	extractedResources := make([]map[string]interface{}, 0)
-	for _, kind := range kinds {
-		resource := extractResourceByKind(resources, kind)
+	for _, k := range kinds {
+		resource := extractResourceByKind(resources, k)
 		if resource != nil {
 			extractedResources = append(extractedResources, resource)
 		}
@@ -280,37 +279,30 @@ func extractResourceByKind(resources []map[string]interface{}, kind string) map[
 }
 
 // extractWebhookCerts - extracts the webhook cert secret generated by the cert job and writes them to tmp/k8s-webhook-server/serving-certs directory
-func (m *manifests) extractWebhookCerts(ctx context.Context) error {
+func (m *Manifest) extractWebhookCerts(ctx context.Context, clusterName, namespace string) error {
 	var cl client.Client
 	var err error
-	jobName := m.hc.GetReleaseName() + JobNameSuffix
-	secretName := m.hc.GetReleaseName() + webhookCertSecretSuffix
-	kubeconfigPath := m.hc.GetKubeconfigPath()
-	if kubeconfigPath != nil {
-		cfg, err := utils.GetFileContent(*kubeconfigPath)
-		if err != nil {
-			return err
-		}
-		cl, err = NewKubeClientFromConfig(cfg)
-		if err != nil {
-			return err
-		}
-	} else {
-		cl, err = NewKubeClientFromContext()
-		if err != nil {
-			return err
-		}
-	}
-	if err = utils.WaitUntilJobSucceeds(ctx, cl, m.hc.GetReleaseNamespace(), jobName); err != nil {
+	jobName := m.ReleaseName + JobNameSuffix
+	secName := m.ReleaseName + webhookCertSecSuffix
+	kubeconfig, err := klient.GetKubeCfg(clusterName, false)
+	if err != nil {
 		return err
 	}
-	if err = utils.WaitUntilSecretCreated(ctx, cl, m.hc.GetReleaseNamespace(), secretName); err != nil {
+	cl, err = klient.NewKubeClientFromConfig(kubeconfig)
+	if err != nil {
 		return err
 	}
-	return writeCertsToTemp(ctx, cl, m.hc.GetReleaseNamespace(), secretName)
+
+	if err = utils.WaitUntilJobSucceeds(ctx, cl, jobName, namespace); err != nil {
+		return err
+	}
+	if err = utils.WaitUntilSecretCreated(ctx, cl, secName, namespace); err != nil {
+		return err
+	}
+	return writeCertsToTemp(ctx, cl, secName, namespace)
 }
 
-func writeCertsToTemp(ctx context.Context, cl client.Client, namespace, name string) error {
+func writeCertsToTemp(ctx context.Context, cl client.Client, name, namespace string) error {
 	secret := &v1.Secret{}
 	err := cl.Get(ctx, types.NamespacedName{
 		Namespace: namespace,
@@ -343,12 +335,13 @@ func writeCertsToTemp(ctx context.Context, cl client.Client, namespace, name str
 func getWebhookURL() string {
 	switch runtime.GOOS {
 	case "darwin":
-		utils.Log("detected macOS, using host.docker.internal")
+		utils.Log("detected macOS...")
 		return "host.docker.internal"
 	case "linux":
-		utils.Log("detected linux, using docker0 interface")
+		utils.Log("detected linux...")
 		return strings.TrimSpace(getHostIPFromInterface())
 	default:
+		utils.Logf("detected %s ...", runtime.GOOS)
 		return "host.docker.internal"
 	}
 }

@@ -8,7 +8,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var localClusterCmd = &cobra.Command{
+var clusterCmd = &cobra.Command{
 	Use:               "cluster",
 	Short:             "Create / Delete kinD clusters",
 	DisableAutoGenTag: true,
@@ -16,7 +16,7 @@ var localClusterCmd = &cobra.Command{
 
 // sub commands
 var (
-	createLocalClusterCmd = &cobra.Command{
+	createClusterCmd = &cobra.Command{
 		Use:               "create",
 		Short:             "Create a kinD cluster",
 		Long:              "Create a kinD cluster and setup the greenhouse namespace optionally",
@@ -27,7 +27,7 @@ var (
 		},
 		RunE: processCreateLocalCluster,
 	}
-	deleteLocalClusterCmd = &cobra.Command{
+	deleteClusterCmd = &cobra.Command{
 		Use:               "delete",
 		Short:             "Delete a kinD cluster",
 		Long:              "Delete a specific kinD cluster",
@@ -41,21 +41,27 @@ var (
 )
 
 func processDeleteLocalCluster(_ *cobra.Command, _ []string) error {
-	s := setup.NewLocalCmdCluster(clusterName, "")
-	return s.Delete()
+	err := setup.NewExecutionEnv().WithClusterDelete(clusterName).Run()
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 func processCreateLocalCluster(_ *cobra.Command, _ []string) error {
-	s := setup.NewLocalCmdCluster(clusterName, namespaceName)
-	return s.Setup()
+	err := setup.NewExecutionEnv().WithClusterSetup(clusterName, namespaceName).Run()
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 func init() {
-	createLocalClusterCmd.Flags().StringVarP(&clusterName, "name", "c", "", "create a kind cluster with a name - e.g. -c <my-cluster>")
-	createLocalClusterCmd.Flags().StringVarP(&namespaceName, "namespace", "n", "", "create a namespace in the cluster - e.g. -c <my-cluster> -n <my-namespace>")
-	deleteLocalClusterCmd.Flags().StringVarP(&clusterName, "name", "c", "", "delete the kind cluster - e.g. -c <my-cluster>")
-	cobra.CheckErr(createLocalClusterCmd.MarkFlagRequired("name"))
-	cobra.CheckErr(deleteLocalClusterCmd.MarkFlagRequired("name"))
-	localClusterCmd.AddCommand(createLocalClusterCmd)
-	localClusterCmd.AddCommand(deleteLocalClusterCmd)
+	createClusterCmd.Flags().StringVarP(&clusterName, "name", "c", "", "create a kind cluster with a name - e.g. -c <my-cluster>")
+	createClusterCmd.Flags().StringVarP(&namespaceName, "namespace", "n", "", "create a namespace in the cluster - e.g. -c <my-cluster> -n <my-namespace>")
+	deleteClusterCmd.Flags().StringVarP(&clusterName, "name", "c", "", "delete the kind cluster - e.g. -c <my-cluster>")
+	cobra.CheckErr(createClusterCmd.MarkFlagRequired("name"))
+	cobra.CheckErr(deleteClusterCmd.MarkFlagRequired("name"))
+	clusterCmd.AddCommand(createClusterCmd)
+	clusterCmd.AddCommand(deleteClusterCmd)
 }

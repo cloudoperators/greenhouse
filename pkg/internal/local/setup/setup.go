@@ -1,120 +1,69 @@
-// SPDX-FileCopyrightText: 2024 SAP SE or an SAP affiliate company and Greenhouse contributors
-// SPDX-License-Identifier: Apache-2.0
-
 package setup
 
 import (
 	"context"
-	"encoding/json"
-	"fmt"
 	"github.com/cloudoperators/greenhouse/pkg/internal/local/utils"
-	"github.com/pkg/errors"
-	"os"
+	"strings"
 )
 
-type Config struct {
-	Config []*ClusterConfig `json:"config"`
+type ExecutionEnv struct {
+	cluster *Cluster
+	steps   []Step
+	info    []string // info messages to be displayed at the end of run
 }
 
-type ClusterConfig struct {
-	Cluster        *Cluster             `json:"cluster"`
-	CurrentContext *bool                `json:"currentContext"`
-	KubeConfigPath *string              `json:"kubeConfigPath"`
-	Dependencies   []*ClusterDependency `json:"dependencies"`
+type Step func(builder *ExecutionEnv) error
+
+func NewExecutionEnv() *ExecutionEnv {
+	return &ExecutionEnv{
+		steps: make([]Step, 0),
+	}
 }
 
-type ClusterDependency struct {
-	Helm    *HelmConfig `json:"helm"`
-	Webhook *Webhook    `json:"webhook"`
+func (env *ExecutionEnv) WithClusterSetup(name, namespace string) *ExecutionEnv {
+	env.cluster = &Cluster{
+		Name:      name,
+		Namespace: nil,
+	}
+	if strings.TrimSpace(namespace) != "" {
+		env.cluster.Namespace = &namespace
+	}
+	env.steps = append(env.steps, clusterSetup)
+	return env
 }
 
-type HelmConfig struct {
-	ReleaseName  string  `json:"release"`
-	ChartPath    string  `json:"chartPath"`
-	ValuesPath   *string `json:"valuesPath"`
-	CRDOnly      bool    `json:"crdOnly"`
-	excludeKinds []string
-	hc           IHelm
+func (env *ExecutionEnv) WithClusterDelete(name string) *ExecutionEnv {
+	env.cluster = &Cluster{
+		Name: name,
+	}
+	env.steps = append(env.steps, clusterDelete)
+	return env
 }
 
-type ISetup interface {
-	Setup(ctx context.Context) error
+func (env *ExecutionEnv) WithAllManifests(ctx context.Context, manifest *Manifest) *ExecutionEnv {
+	env.steps = append(env.steps, allManifestSetup(ctx, manifest))
+	return env
 }
 
-// Setup - sets up the cluster and dependencies as defined in the config.json
-func (c *ClusterConfig) Setup(ctx context.Context) error {
-	// setup cluster
-	if c.CurrentContext != nil {
-		c.Cluster = Configure(c.Cluster, *c.CurrentContext)
-	}
-	err := c.Cluster.Setup()
-	if err != nil {
-		return fmt.Errorf("failed to setup cluster: %w", err)
-	}
-	// prepare helm client
-	err = c.prepareDependencies(ctx)
-	if err != nil {
-		return fmt.Errorf("failed to prepare dependencies: %w", err)
-	}
-	// setup manifests + webhook (if provided)
-	for _, dependency := range c.Dependencies {
-		if dependency.Webhook != nil {
-			dependency.Helm.excludeKinds = append(dependency.Helm.excludeKinds, "Deployment", "Job", "MutatingWebhookConfiguration", "ValidatingWebhookConfiguration")
-		}
-		manifest := NewManifestsSetup(dependency.Helm.hc, dependency.Webhook, dependency.Helm.excludeKinds, dependency.Helm.CRDOnly, true)
-		// invokes manifest setup - install CRDs, modified manager deployment, cert job, webhook configurations...
-		err = manifest.Setup(ctx)
-		if err != nil {
-			return fmt.Errorf("failed to generate manifests: %w", err)
-		}
-	}
-	return nil
+func (env *ExecutionEnv) WithLimitedManifests(ctx context.Context, manifest *Manifest) *ExecutionEnv {
+	env.steps = append(env.steps, limitedManifestSetup(ctx, manifest))
+	return env
 }
 
-// NewGreenHouseFromConfig - returns a config object from the given config file
-func NewGreenHouseFromConfig(configFile string) (*Config, error) {
-	_, err := os.Stat(configFile)
-	if err != nil {
-		return nil, fmt.Errorf("config file - %s not found: %w", configFile, err)
-	}
-	f, err := os.ReadFile(configFile)
-	if err != nil {
-		return nil, fmt.Errorf("failed to read config file - %s: %w", configFile, err)
-	}
-	cfg := &Config{}
-	err = json.Unmarshal(f, cfg)
-	if err != nil {
-		return nil, fmt.Errorf("failed to unmarshal config file - %s: %w", configFile, err)
-	}
-	return cfg, nil
+func (env *ExecutionEnv) WithWebhookDevelopment(ctx context.Context, manifest *Manifest) *ExecutionEnv {
+	env.steps = append(env.steps, webhookManifestSetup(ctx, manifest))
+	return env
 }
 
-func (c *ClusterConfig) prepareDependencies(ctx context.Context) error {
-	if c.Cluster == nil {
-		utils.Log("warning: cluster configuration not provided, some functionalities will be skipped")
-	}
-	for _, dependency := range c.Dependencies {
-		opts := make([]HelmClientOption, 0)
-		opts = append(opts, WithChartPath(dependency.Helm.ChartPath))
-		opts = append(opts, WithNamespace(*c.Cluster.Namespace))
-		opts = append(opts, WithReleaseName(dependency.Helm.ReleaseName))
-		if c.Cluster == nil {
-			return errors.New("cluster configuration not provided")
-		}
-		opts = append(opts, WithClusterName(c.Cluster.Name))
-		if c.CurrentContext != nil {
-			opts = append(opts, WithCurrentContext(*c.CurrentContext))
-		}
-
-		if dependency.Helm.ValuesPath != nil {
-			opts = append(opts, WithValuesPath(*dependency.Helm.ValuesPath))
-		}
-
-		helmClient, err := NewHelmClient(ctx, opts...)
+func (env *ExecutionEnv) Run() error {
+	for _, step := range env.steps {
+		err := step(env)
 		if err != nil {
 			return err
 		}
-		dependency.Helm.hc = helmClient
+	}
+	for _, i := range env.info {
+		utils.Log(i)
 	}
 	return nil
 }

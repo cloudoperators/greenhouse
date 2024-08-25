@@ -46,7 +46,10 @@ func (s ShellPipe) Exec() error {
 		if err := p.Err(); err != nil {
 			errs = append(errs, err.Error())
 		}
-		out, _ := io.ReadAll(p.Out())
+		out, err := io.ReadAll(p.Out())
+		if err != nil {
+			continue
+		}
 		if strings.TrimSpace(string(out)) != "" {
 			Log(string(out))
 		}

@@ -6,7 +6,6 @@ package main
 import (
 	"errors"
 	goflag "flag"
-	"fmt"
 	"os"
 	"strconv"
 	"time"
@@ -169,12 +168,12 @@ func handleError(err error, msg string, keysAndValues ...interface{}) {
 func isWebhookMode(key string) bool {
 	mode, ok := os.LookupEnv(key)
 	if !ok {
-		setupLog.Info(fmt.Sprintf("%s not set, defaulting to false", key))
+		setupLog.Info("env not set", key, "defaulting to false")
 		return false
 	}
 	enabled, err := strconv.ParseBool(mode)
 	if err != nil {
-		setupLog.Error(err, fmt.Sprintf("unable to parse %s", key))
+		setupLog.Error(err, "unable to parse env", key, "defaulting to false")
 		return false
 	}
 	return enabled

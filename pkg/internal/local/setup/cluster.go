@@ -3,47 +3,63 @@
 
 package setup
 
-import "github.com/cloudoperators/greenhouse/pkg/internal/local/utils"
+import (
+	"errors"
+	"fmt"
+	"github.com/cloudoperators/greenhouse/pkg/internal/local/klient"
+	"github.com/cloudoperators/greenhouse/pkg/internal/local/utils"
+	"os"
+	"path/filepath"
+)
 
 type Cluster struct {
-	Name       string  `json:"name"`
-	Namespace  *string `json:"namespace"`
-	skipCreate bool
+	Name           string  `json:"name"`
+	Namespace      *string `json:"namespace"`
+	kubeConfigPath string
 }
 
-type IClusterSetup interface {
-	Setup() error
-	Delete() error
-}
-
-func NewLocalCmdCluster(name, namespaceName string) IClusterSetup {
-	return &Cluster{
-		Name:      name,
-		Namespace: utils.StringP(namespaceName),
+// clusterSetup - creates a kind Cluster with a given name and optionally creates a namespace if specified
+func clusterSetup(env *ExecutionEnv) error {
+	if env.cluster == nil {
+		return errors.New("cluster configuration is missing")
 	}
-}
-
-func Configure(config *Cluster, skipCreate bool) *Cluster {
-	config.skipCreate = skipCreate
-	return config
-}
-
-// Setup - creates a kind cluster with a given name and optionally creates a namespace if specified
-func (c *Cluster) Setup() error {
-	if c.skipCreate {
-		return nil
-	}
-	err := createKindCluster(c.Name)
+	err := klient.CreateCluster(env.cluster.Name)
 	if err != nil {
 		return err
 	}
-	if c.Namespace == nil {
-		return nil
+	if env.cluster.Namespace != nil {
+		err = klient.CreateNamespace(*env.cluster.Namespace)
+		if err != nil {
+			return err
+		}
 	}
-	return createNamespace(*c.Namespace)
+	err = env.cluster.saveConfig()
+	if err != nil {
+		return err
+	}
+	env.info = append(env.info, fmt.Sprintf("cluster %s - kubeconfig: %s", env.cluster.Name, env.cluster.kubeConfigPath))
+	return nil
 }
 
-// Delete - deletes a kind cluster with a given name
-func (c *Cluster) Delete() error {
-	return deleteKindCluster(c.Name)
+// clusterDelete - deletes a kind Cluster with a given name
+func clusterDelete(env *ExecutionEnv) error {
+	if env.cluster == nil {
+		return errors.New("cluster configuration is missing")
+	}
+	return klient.DeleteCluster(env.cluster.Name)
+}
+
+func (c *Cluster) saveConfig() error {
+	kubeConfig, err := klient.GetKubeCfg(c.Name, false)
+	if err != nil {
+		return err
+	}
+	dir := filepath.Join(os.TempDir(), "greenhouse")
+	file := c.Name + ".kubeconfig"
+	err = utils.WriteToPath(dir, file, kubeConfig)
+	if err != nil {
+		return err
+	}
+	c.kubeConfigPath = filepath.Join(dir, file)
+	return nil
 }

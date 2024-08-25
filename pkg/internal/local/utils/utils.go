@@ -86,7 +86,7 @@ func WriteToPath(dir, fileName, content string) error {
 		}
 	}(file)
 	if n, err := io.WriteString(file, content); n == 0 || err != nil {
-		return fmt.Errorf("kind kubecfg file: bytes copied: %d: %w]", n, err)
+		return fmt.Errorf("error writing file %s: %w", file.Name(), err)
 	}
 	return nil
 }
@@ -108,13 +108,6 @@ func RandomWriteToTmpFolder(fileName, content string) (string, error) {
 		return "", fmt.Errorf("kind kubecfg file: bytes copied: %d: %w]", n, err)
 	}
 	return file.Name(), nil
-}
-
-func RemoveTmpFile(file string) error {
-	if err := os.Remove(file); err != nil {
-		return fmt.Errorf("failed to remove file %s: %w", file, err)
-	}
-	return nil
 }
 
 // RawK8sInterface - unmarshalls the provided YAML bytes into a map[string]interface{}
@@ -193,15 +186,13 @@ func CheckIfFileExists(f string) bool {
 	return !os.IsNotExist(err)
 }
 
-func GetFileContent(path string) (string, error) {
-	if !CheckIfFileExists(path) {
-		return "", nil
+func FileCleanUp(files ...string) {
+	// clean up the tmp files
+	for _, file := range files {
+		if err := os.Remove(file); err != nil {
+			LogErr("failed to remove file %s: %s", file, err.Error())
+		}
 	}
-	data, err := os.ReadFile(path)
-	if err != nil {
-		return "", err
-	}
-	return string(data), nil
 }
 
 func GetHostPlatform() string {

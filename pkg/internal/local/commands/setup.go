@@ -4,14 +4,31 @@
 package commands
 
 import (
+	"encoding/json"
+	"errors"
+	"fmt"
 	"github.com/cloudoperators/greenhouse/pkg/internal/local/setup"
 	"github.com/spf13/cobra"
+	"os"
 )
+
+type Config struct {
+	Config []*clusterConfig `json:"config"`
+}
+
+type clusterConfig struct {
+	Cluster      *setup.Cluster       `json:"cluster"`
+	Dependencies []*ClusterDependency `json:"dependencies"`
+}
+
+type ClusterDependency struct {
+	Manifest *setup.Manifest `json:"manifest"`
+}
 
 func setupExample() string {
 	return `
 # Setup Greenhouse dev environment with a configuration file
-greenhousectl dev setup -f hack/localenv/sample.config.json
+greenhousectl dev setup -f dev-env/localenv/sample.config.json
 
 - This will create an admin and a remote cluster
 - Install CRDs, Webhook definitions, RBACs, Certs, etc... for Greenhouse into the target cluster
@@ -23,8 +40,8 @@ var (
 	setupConfigFile string
 	setupCmd        = &cobra.Command{
 		Use:               "setup",
-		Short:             "setup Greenhouse",
-		Long:              "setup Greenhouse dev environment with a configuration file",
+		Short:             "setup dev environment",
+		Long:              "setup dev environment with a configuration file",
 		Example:           setupExample(),
 		DisableAutoGenTag: true,
 		RunE:              processSetup,
@@ -33,12 +50,49 @@ var (
 
 func processSetup(cmd *cobra.Command, _ []string) error {
 	ctx := cmd.Context()
-	config, err := setup.NewGreenHouseFromConfig(setupConfigFile)
+	_, err := os.Stat(setupConfigFile)
 	if err != nil {
-		return err
+		return fmt.Errorf("config file - %s not found: %w", setupConfigFile, err)
 	}
+	f, err := os.ReadFile(setupConfigFile)
+	if err != nil {
+		return fmt.Errorf("failed to read config file - %s: %w", setupConfigFile, err)
+	}
+	config := &Config{}
+	err = json.Unmarshal(f, config)
+	if err != nil {
+		return fmt.Errorf("failed to unmarshal config file - %s: %w", setupConfigFile, err)
+	}
+
 	for _, cfg := range config.Config {
-		err := cfg.Setup(ctx)
+		var clusterName, namespace string
+		if cfg.Cluster == nil {
+			return errors.New("cluster config is missing")
+		}
+		clusterName = cfg.Cluster.Name
+		if cfg.Cluster.Namespace == nil {
+			namespace = ""
+		} else {
+			namespace = *cfg.Cluster.Namespace
+		}
+		env := setup.NewExecutionEnv().
+			WithClusterSetup(clusterName, namespace)
+		for _, dep := range cfg.Dependencies {
+			if dep.Manifest != nil && dep.Manifest.Webhook == nil {
+				env = env.WithLimitedManifests(ctx, dep.Manifest)
+			}
+			if dep.Manifest != nil && dep.Manifest.Webhook != nil {
+				dep.Manifest.ExcludeKinds = append(
+					dep.Manifest.ExcludeKinds,
+					"Deployment",
+					"Job",
+					"MutatingWebhookConfiguration",
+					"ValidatingWebhookConfiguration",
+				)
+				env = env.WithWebhookDevelopment(ctx, dep.Manifest)
+			}
+		}
+		err = env.Run()
 		if err != nil {
 			return err
 		}
