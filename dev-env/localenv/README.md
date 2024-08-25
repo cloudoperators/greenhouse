@@ -86,7 +86,7 @@ greenhousectl dev cluster delete --name <my-cluster-name>
   -c, --name string   delete the kind cluster - e.g. -c <my-cluster>
 ```
 
-## greenhousectl dev manifests
+## greenhousectl dev setup manifest
 
 install manifests for Greenhouse
 
@@ -95,7 +95,7 @@ install manifests for Greenhouse
 install CRDs, Webhook definitions, RBACs, Certs, etc... for Greenhouse into the target cluster
 
 ```
-greenhousectl dev manifests [flags]
+greenhousectl dev setup manifest [flags]
 ```
 
 ### Examples
@@ -103,19 +103,16 @@ greenhousectl dev manifests [flags]
 ```
 
 # Install manifests for Greenhouse into the target cluster (All manifests except Deployment - recommended)
-greenhousectl dev manifests --name greenhouse-admin --namespace greenhouse --chart-path charts/manger
+greenhousectl dev setup manifest --name greenhouse-admin --namespace greenhouse --release greenhouse --chart-path charts/manager
 
 # Install only CRDs for Greenhouse into the target cluster
-greenhousectl dev manifests --current-context --namespace greenhouse --chart-path charts/idproxy --crd-only
+greenhousectl dev setup manifest --name greenhouse-admin --namespace greenhouse --release greenhouse --chart-path charts/idproxy --crd-only
 
 # Install manifests with excluded kinds for Greenhouse into the target cluster (Caution: Only exclude if you know what you are doing)
-greenhousectl dev manifests --current-context --namespace greenhouse --chart-path charts/manager --excludeKinds Deployment --excludeKinds Job
+greenhousectl dev setup manifest --name greenhouse-admin --namespace greenhouse --release greenhouse --chart-path charts/manager --excludeKinds Deployment --excludeKinds Job
 
 # Install manifests for Greenhouse into the target cluster with values file
-greenhousectl dev manifests --name greenhouse-admin --namespace greenhouse --chart-path charts/manager --values-path hack/localenv/sample.values.yaml
-
-# Note: Only one of
-	--name, --current-context can be used at a time
+greenhousectl dev setup manifest --name greenhouse-admin --namespace greenhouse --release greenhouse --chart-path charts/manager --values-path dev-env/localenv/sample.values.yaml
 
 ```
 
@@ -124,9 +121,8 @@ greenhousectl dev manifests --name greenhouse-admin --namespace greenhouse --cha
 ```
   -p, --chart-path string          local absolute chart path where manifests are located - e.g. <path>/<to>/charts/manager
   -d, --crd-only                   Install only CRDs
-  -x, --current-context            Use your current kubectl context
   -e, --excludeKinds stringArray   Exclude kinds from the generated manifests: ex: -e Deployment -e Job (default [Deployment])
-  -h, --help                       help for manifests
+  -h, --help                       help for manifest
   -c, --name string                Name of the kind cluster - e.g. greenhouse-123 (without the kind prefix)
   -n, --namespace string           namespace to install the resources
   -r, --release string             Helm release name, Default value: greenhouse - e.g. your-release-name (default "greenhouse")
@@ -150,13 +146,13 @@ greenhousectl dev setup webhook [flags]
 ```
 
 # Setup webhook for Greenhouse controller development convenience (Webhooks run in cluster)
-greenhousectl dev setup webhook --name kind-cluster-name --namespace greenhouse --release greenhouse --chart-path charts/manager --dockerfile ./
+greenhousectl dev setup webhook --name greenhouse-admin --namespace greenhouse --release greenhouse --chart-path charts/manager --dockerfile ./
 
 # Setup webhook for Greenhouse webhook development convenience (Webhooks run local)
-greenhousectl dev setup webhook --name kind-cluster-name --namespace greenhouse --release greenhouse --chart-path charts/manager --dockerfile ./ --dev-mode
+greenhousectl dev setup webhook --name greenhouse-admin --namespace greenhouse --release greenhouse --chart-path charts/manager --dockerfile ./ --dev-mode
 
 # Additionally provide values file (defaults may not work since charts change over time)
-greenhousectl dev setup webhook --name kind-cluster-name --namespace greenhouse --release greenhouse --chart-path charts/manager --dockerfile ./ --values-path hack/localenv/sample.values.yaml
+greenhousectl dev setup webhook --name greenhouse-admin --namespace greenhouse --release greenhouse --chart-path charts/manager --dockerfile ./ --values-path hack/localenv/sample.values.yaml
 
 
 ```
@@ -176,11 +172,11 @@ greenhousectl dev setup webhook --name kind-cluster-name --namespace greenhouse 
 
 ## greenhousectl dev setup
 
-setup Greenhouse
+setup dev environment
 
 ### Synopsis
 
-setup Greenhouse dev environment with a configuration file
+setup dev environment with a configuration file
 
 ```
 greenhousectl dev setup [flags]
@@ -191,7 +187,7 @@ greenhousectl dev setup [flags]
 ```
 
 # Setup Greenhouse dev environment with a configuration file
-greenhousectl dev setup -f hack/localenv/sample.config.json
+greenhousectl dev setup -f dev-env/localenv/sample.config.json
 
 - This will create an admin and a remote cluster
 - Install CRDs, Webhook definitions, RBACs, Certs, etc... for Greenhouse into the target cluster

@@ -32,6 +32,8 @@ func GenerateDevCommandDocs() []*cobra.Command {
 	return []*cobra.Command{
 		createClusterCmd,
 		deleteClusterCmd,
+		manifestCmd,
+		webhookCmd,
 		setupCmd,
 	}
 }
