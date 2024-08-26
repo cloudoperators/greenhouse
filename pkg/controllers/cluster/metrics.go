@@ -9,8 +9,8 @@ import (
 )
 
 var (
-	kubernetesVersionsCounter = prometheus.NewCounterVec(
-		prometheus.CounterOpts{
+	kubernetesVersionsGauge = prometheus.NewGaugeVec(
+		prometheus.GaugeOpts{
 			Name: "greenhouse_cluster_k8s_versions_total",
 		},
 		[]string{"cluster", "namespace", "version"})
@@ -23,19 +23,17 @@ var (
 )
 
 func init() {
-	metrics.Registry.MustRegister(kubernetesVersionsCounter)
+	metrics.Registry.MustRegister(kubernetesVersionsGauge)
 	metrics.Registry.MustRegister(secondsToTokenExpiryGauge)
 }
 
-//+kubebuilder:rbac:groups=greenhouse.sap,resources=clusters,verbs=get;list
-
-func UpdateMetrics(cluster *greenhousev1alpha1.Cluster) {
+func updateMetrics(cluster *greenhousev1alpha1.Cluster) {
 	kubernetesVersionLabels := prometheus.Labels{
 		"cluster":   cluster.Name,
 		"namespace": cluster.Namespace,
 		"version":   cluster.Status.KubernetesVersion,
 	}
-	kubernetesVersionsCounter.With(kubernetesVersionLabels).Inc()
+	kubernetesVersionsGauge.With(kubernetesVersionLabels).Set(float64(1))
 
 	secondsToExpiry := cluster.Status.BearerTokenExpirationTimestamp.Unix() - time.Now().Unix()
 	secondsToExpiryLabels := prometheus.Labels{

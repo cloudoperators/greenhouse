@@ -14,7 +14,6 @@ import (
 
 var _ = Describe("Metrics controller", Ordered, func() {
 	var (
-		//remoteClient     client.Client
 		remoteEnvTest *envtest.Environment
 	)
 
@@ -40,10 +39,9 @@ var _ = Describe("Metrics controller", Ordered, func() {
 			},
 		}
 
-		counterBefore := prometheusTest.CollectAndCount(kubernetesVersionsCounter)
-		UpdateMetrics(cluster)
-		counterAfter := prometheusTest.CollectAndCount(kubernetesVersionsCounter)
-		Expect(counterAfter).To(BeEquivalentTo(counterBefore + 1))
+		updateMetrics(cluster)
+		counterAfter := prometheusTest.ToFloat64(kubernetesVersionsGauge.WithLabelValues(cluster.Name, cluster.Namespace, cluster.Status.KubernetesVersion))
+		Expect(counterAfter).To(BeEquivalentTo(1))
 		tokenExpiry := prometheusTest.ToFloat64(secondsToTokenExpiryGauge.WithLabelValues(cluster.Name, cluster.Namespace))
 		Expect(tokenExpiry).To(BeNumerically(">=", 595))
 		Expect(tokenExpiry).To(BeNumerically("<=", 600))

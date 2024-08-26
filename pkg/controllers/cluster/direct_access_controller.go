@@ -135,7 +135,7 @@ func (r *DirectAccessReconciler) Reconcile(ctx context.Context, req ctrl.Request
 		return ctrl.Result{}, err
 	}
 
-	UpdateMetrics(cluster)
+	updateMetrics(cluster)
 	return ctrl.Result{RequeueAfter: defaultRequeueInterval}, nil
 }
 

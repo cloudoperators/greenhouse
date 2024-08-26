@@ -211,7 +211,7 @@ func (r *HeadscaleAccessReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 		return ctrl.Result{}, err
 	}
 
-	UpdateMetrics(cluster)
+	updateMetrics(cluster)
 	return ctrl.Result{RequeueAfter: defaultRequeueInterval}, nil
 }
 
