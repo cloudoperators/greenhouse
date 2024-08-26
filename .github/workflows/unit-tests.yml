@@ -22,7 +22,9 @@ jobs:
         with:
           go-version-file: 'go.mod'
           token: ${{ secrets.GITHUB_TOKEN }}
-      - name: lint & test
-        run: make check
+      - name: golangci-lint
+        run: make lint
+      - name: test
+        run: make test
       - name: build
         run: make build
