@@ -38,6 +38,9 @@ var knownControllers = map[string]func(controllerName string, mgr ctrl.Manager) 
 
 	// Plugin controllers.
 	// "pluginPropagation": (&plugincontrollers.PluginPropagationReconciler{}).SetupWithManager,
+	"pluginWorkLoadStatus": (&plugincontrollers.WorkLoadStatusReconciler{
+		KubeRuntimeOpts: kubeClientOpts,
+	}).SetupWithManager,
 
 	// Plugin controllers.
 	"pluginHelm": (&plugincontrollers.HelmReconciler{
