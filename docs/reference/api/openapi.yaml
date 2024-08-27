@@ -1,7 +1,7 @@
 openapi: 3.0.0
 info:
   title: Greenhouse
-  version: 676f7b5
+  version: 5a1cebd
   description: PlusOne operations platform
 paths:
   /Team:
@@ -39,6 +39,11 @@ paths:
       responses:
         default:
           description: Organization
+  /ClusterKubeconfig:
+    post:
+      responses:
+        default:
+          description: ClusterKubeconfig
   /PluginPreset:
     post:
       responses:
@@ -689,6 +694,110 @@ components:
           type: object
         status:
           description: OrganizationStatus defines the observed state of an Organization
+          type: object
+      type: object
+    ClusterKubeconfig:
+      xml:
+        name: greenhouse.sap
+        namespace: v1alpha1
+      title: ClusterKubeconfig
+      description: ClusterKubeconfig is the Schema for the clusterkubeconfigs API\nObjectMeta.OwnerReferences is used to link the ClusterKubeconfig to the Cluster\nObjectMeta.Generation is used to detect changes in the ClusterKubeconfig and sync local kubeconfig files\nObjectMeta.Name is designed to be the same with the Cluster name
+      properties:
+        apiVersion:
+          description: 'APIVersion defines the versioned schema of this representation of an object.\nServers should convert recognized schemas to the latest internal value, and\nmay reject unrecognized values.\nMore info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+          type: string
+        kind:
+          description: 'Kind is a string value representing the REST resource this object represents.\nServers may infer this from the endpoint the client submits requests to.\nCannot be updated.\nIn CamelCase.\nMore info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+          type: string
+        metadata:
+          type: object
+        spec:
+          description: ClusterKubeconfigSpec stores the kubeconfig data for the cluster\nThe idea is to use kubeconfig data locally with minimum effort (with local tools or plain kubectl):\nkubectl get cluster-kubeconfig $NAME -o yaml | yq -y .spec.kubeconfig
+          properties:
+            kubeconfig:
+              description: 'ClusterKubeconfigData stores the kubeconfig data ready to use kubectl or other local tooling\nIt is a simplified version of clientcmdapi.Config: https://pkg.go.dev/k8s.io/client-go/tools/clientcmd/api#Config'
+              properties:
+                apiVersion:
+                  type: string
+                clusters:
+                  items:
+                    properties:
+                      cluster:
+                        properties:
+                          certificate-authority-data:
+                            format: byte
+                            type: string
+                          server:
+                            type: string
+                        type: object
+                      name:
+                        type: string
+                    required:
+                      - cluster
+                      - name
+                    type: object
+                  type: array
+                contexts:
+                  items:
+                    properties:
+                      context:
+                        properties:
+                          cluster:
+                            type: string
+                          namespace:
+                            type: string
+                          user:
+                            type: string
+                        required:
+                          - cluster
+                          - user
+                        type: object
+                      name:
+                        type: string
+                    required:
+                      - name
+                    type: object
+                  type: array
+                current-context:
+                  type: string
+                kind:
+                  type: string
+                preferences:
+                  type: object
+                users:
+                  items:
+                    properties:
+                      name:
+                        type: string
+                      user:
+                        properties:
+                          auth-provider:
+                            description: AuthProviderConfig holds the configuration for a specified auth provider.
+                            properties:
+                              config:
+                                additionalProperties:
+                                  type: string
+                                type: object
+                              name:
+                                type: string
+                            required:
+                              - name
+                            type: object
+                          client-certificate-data:
+                            format: byte
+                            type: string
+                          client-key-data:
+                            format: byte
+                            type: string
+                        type: object
+                    required:
+                      - name
+                    type: object
+                  type: array
+              required:
+                - contexts
+                - users
+              type: object
           type: object
       type: object
     PluginPreset:
