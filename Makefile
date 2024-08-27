@@ -113,13 +113,16 @@ e2e-local-cluster-create:
 
 
 .PHONY: fmt
-fmt: goimports golint
+fmt: goimports
 	GOBIN=$(LOCALBIN) go fmt ./...
 	$(GOIMPORTS) -w -local github.com/cloudoperators/greenhouse .
-	$(GOLINT) run -v --timeout 5m
+
+.PHONY: lint
+lint: golint
+	$(GOLINT) run -v --timeout 5m	
 
 .PHONY: check
-check: fmt test
+check: fmt lint test
 
 ##@ Build CLI Locally
 .PHONY: cli
