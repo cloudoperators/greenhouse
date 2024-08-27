@@ -5,6 +5,7 @@ package headscalectl
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strings"
 	"time"
@@ -110,7 +111,7 @@ func (o *createAPIKeyCmdOptions) run() error {
 		case !ok:
 			return err
 		case strings.Contains(errStatus.Message(), "Unauthorized"):
-			return fmt.Errorf("headscale: unauthorized to create APIKey")
+			return errors.New("headscale: unauthorized to create APIKey")
 		default:
 			return err
 		}
@@ -175,7 +176,7 @@ func (o *listAPIKeyCmdOptions) run() error {
 		case !ok:
 			return err
 		case strings.Contains(errStatus.Message(), "Unauthorized"):
-			return fmt.Errorf("headscale: unauthorized to list APIKey")
+			return errors.New("headscale: unauthorized to list APIKey")
 		default:
 			return err
 		}
@@ -243,9 +244,9 @@ func (o *expireAPIKeyCmdOptions) run() error {
 		case !ok:
 			return err
 		case strings.Contains(errStatus.Message(), "Unauthorized"):
-			return fmt.Errorf("headscale: unauthorized to expire APIKey")
+			return errors.New("headscale: unauthorized to expire APIKey")
 		case strings.Contains(errStatus.Message(), "record not found"):
-			return fmt.Errorf("headscale: APIKey not found")
+			return errors.New("headscale: APIKey not found")
 		default:
 			return err
 		}

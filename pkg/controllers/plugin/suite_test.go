@@ -494,10 +494,10 @@ var _ = Describe("HelmControllerTest", Serial, func() {
 			}
 
 			Expect(test.K8sClient.Create(test.Ctx, complexPluginDefinition)).Should(Succeed())
-			complexPluginID := types.NamespacedName{Name: complexPluginDefinition.Name, Namespace: ""}
+			complexPluginDefinitionID := types.NamespacedName{Name: complexPluginDefinition.Name, Namespace: ""}
 			actComplexPluginDefinition := &greenhousev1alpha1.PluginDefinition{}
 			Eventually(func() bool {
-				err := test.K8sClient.Get(test.Ctx, complexPluginID, actComplexPluginDefinition)
+				err := test.K8sClient.Get(test.Ctx, complexPluginDefinitionID, actComplexPluginDefinition)
 				if err != nil {
 					return false
 				}

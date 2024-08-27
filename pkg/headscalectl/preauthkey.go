@@ -1,13 +1,11 @@
 // SPDX-FileCopyrightText: 2024 SAP SE or an SAP affiliate company and Greenhouse contributors
 // SPDX-License-Identifier: Apache-2.0
 
-//get
-//create
-
 package headscalectl
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"strings"
@@ -90,7 +88,7 @@ func createPreAuthKeyCmd() *cobra.Command {
 
 func (o *createPreAuthKeyCmdOptions) run() error {
 	if user == "" {
-		return fmt.Errorf("user is required to create preauthkeys")
+		return errors.New("user is required to create preauthkeys")
 	}
 	duration, err := model.ParseDuration(durationStr)
 	if err != nil {
@@ -178,7 +176,7 @@ func listPreAuthKeyCmd() *cobra.Command {
 
 func (o *listPreAuthKeyCmdOptions) run() error {
 	if user == "" {
-		return fmt.Errorf("user is required to list preauthkeys")
+		return errors.New("user is required to list preauthkeys")
 	}
 	listResp, err := o.headscaleGRPCClient.ListPreAuthKeys(context.Background(), &headscalev1.ListPreAuthKeysRequest{
 		User: user,
@@ -239,7 +237,7 @@ func expirePreAuthKeyCmd() *cobra.Command {
 
 func (o *expirePreAuthKeyCmdOptions) run() error {
 	if key == "" || user == "" {
-		return fmt.Errorf("user and key are required to expire preauthkeys")
+		return errors.New("user and key are required to expire preauthkeys")
 	}
 	delResp, err := o.headscaleGRPCClient.ExpirePreAuthKey(context.Background(), &headscalev1.ExpirePreAuthKeyRequest{
 		User: user,

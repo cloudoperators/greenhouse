@@ -111,13 +111,16 @@ e2e-local-cluster-create:
 
 
 .PHONY: fmt
-fmt: goimports golint
+fmt: goimports
 	GOBIN=$(LOCALBIN) go fmt ./...
 	$(GOIMPORTS) -w -local github.com/cloudoperators/greenhouse .
-	$(GOLINT) run -v --timeout 5m
+
+.PHONY: lint
+lint: golint
+	$(GOLINT) run -v --timeout 5m	
 
 .PHONY: check
-check: fmt test
+check: fmt lint test
 
 ##@ Build
 
@@ -170,7 +173,7 @@ HELMIFY ?= $(LOCALBIN)/helmify
 ## Tool Versions
 KUSTOMIZE_VERSION ?= v5.4.2
 CONTROLLER_TOOLS_VERSION ?= v0.15.0
-GOLINT_VERSION ?= v1.59.0
+GOLINT_VERSION ?= v1.60.1
 GINKGOLINTER_VERSION ?= v0.16.2
 
 KUSTOMIZE_INSTALL_SCRIPT ?= "https://raw.githubusercontent.com/kubernetes-sigs/kustomize/master/hack/install_kustomize.sh"

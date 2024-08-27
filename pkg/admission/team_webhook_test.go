@@ -31,6 +31,7 @@ var _ = Describe("Validate Team Creation", func() {
 				Name:      "test-plugindefinition-1",
 			},
 			Spec: greenhousev1alpha1.PluginDefinitionSpec{
+				Version:     "1.0.0",
 				Description: "Test PluginDefinition 1",
 				HelmChart: &greenhousev1alpha1.HelmChartReference{
 					Name:       "./../../test/fixtures/myChart",
@@ -48,6 +49,7 @@ var _ = Describe("Validate Team Creation", func() {
 				Namespace: "test-org",
 			},
 			Spec: greenhousev1alpha1.PluginDefinitionSpec{
+				Version:     "1.0.0",
 				Description: "Test PluginDefinition 2",
 				HelmChart: &greenhousev1alpha1.HelmChartReference{
 					Name:       "./../../test/fixtures/myChart",

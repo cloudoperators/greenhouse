@@ -5,6 +5,7 @@ package headscalectl
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strings"
 
@@ -234,9 +235,9 @@ func (o *listUserCmdOptions) run() error {
 		if !ok {
 			return err
 		}
-		switch {
-		case strings.Contains(errStatus.Message(), "Unauthorized"):
-			return fmt.Errorf("headscale: unauthorized to list users")
+
+		if strings.Contains(errStatus.Message(), "Unauthorized") {
+			return errors.New("headscale: unauthorized to list users")
 		}
 		return err
 	}

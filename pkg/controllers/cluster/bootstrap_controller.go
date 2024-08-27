@@ -136,7 +136,7 @@ func (r *BootstrapReconciler) createOrPatchCluster(
 	}
 
 	if err != nil {
-		readyCondition.Message = fmt.Sprintf("cluster not ready: %s", err.Error())
+		readyCondition.Message = "cluster not ready: " + err.Error()
 		readyCondition.Status = metav1.ConditionFalse
 		// Accessmode "headscale" when an error occurred.
 		accessMode = greenhousev1alpha1.ClusterAccessModeHeadscale

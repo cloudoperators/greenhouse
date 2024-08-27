@@ -38,12 +38,12 @@ type PluginDefinitionSpec struct {
 	// Icon specifies the icon to be used for this plugin in the Greenhouse UI.
 	// Icons can be either:
 	// - A string representing a juno icon in camel case from this list: https://github.com/sapcc/juno/blob/main/libs/juno-ui-components/src/components/Icon/Icon.component.js#L6-L52
-	// - A publicly accessable image reference to a .png file. Will be displayed 100x100px
+	// - A publicly accessible image reference to a .png file. Will be displayed 100x100px
 	Icon string `json:"icon,omitempty"`
 
 	// DocMarkDownUrl specifies the URL to the markdown documentation file for this plugin.
 	// Source needs to allow all CORS origins.
-	DocMarkDownUrl string `json:"docMarkDownUrl,omitempty"`
+	DocMarkDownUrl string `json:"docMarkDownUrl,omitempty"` //nolint:stylecheck
 }
 
 // PluginOptionType specifies the type of PluginOption.

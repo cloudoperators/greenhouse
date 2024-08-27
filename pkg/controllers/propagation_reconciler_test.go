@@ -81,7 +81,7 @@ var dummy = &fixtures.Dummy{
 var _ = Describe("Propagation reconciler", Ordered, func() {
 	BeforeAll(func() {
 		// create namespaces
-		//local
+		// local
 		err := test.K8sClient.Create(test.Ctx, &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: otherNamespace}})
 		Expect(err).ShouldNot(HaveOccurred(), "there should be no error creating the 2nd namespace in local cluster")
 		// remote
@@ -125,7 +125,7 @@ var _ = Describe("Propagation reconciler", Ordered, func() {
 		err = test.K8sClient.Create(test.Ctx, otherTestCluster)
 		Expect(err).ShouldNot(HaveOccurred(), "there should be no error creating the second cluster resource in the local cluster")
 
-		//create dummy crd
+		// create dummy crd
 		dummyCRD, err := readCRDFromFile("./fixtures/dummy_crd.yaml")
 		Expect(err).ShouldNot(HaveOccurred(), "there should be no error reading the dummy crd file")
 		err = test.K8sClient.Create(test.Ctx, dummyCRD)
