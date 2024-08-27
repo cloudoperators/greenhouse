@@ -6,8 +6,9 @@ package klient
 import (
 	"errors"
 	"fmt"
-	"github.com/cloudoperators/greenhouse/pkg/internal/local/utils"
 	"strings"
+
+	"github.com/cloudoperators/greenhouse/pkg/internal/local/utils"
 )
 
 // CreateCluster - creates a kind cluster with the given name

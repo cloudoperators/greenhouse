@@ -5,8 +5,9 @@ package setup
 
 import (
 	"context"
-	"github.com/cloudoperators/greenhouse/pkg/internal/local/utils"
 	"strings"
+
+	"github.com/cloudoperators/greenhouse/pkg/internal/local/utils"
 )
 
 type ExecutionEnv struct {

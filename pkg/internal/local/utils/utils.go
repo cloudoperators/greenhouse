@@ -7,21 +7,22 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"io"
+	"os"
+	"runtime"
+	"slices"
+	"strings"
+
 	"github.com/go-logr/logr"
 	"gopkg.in/yaml.v3"
-	"io"
 	kruntime "k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
 	kyaml "k8s.io/apimachinery/pkg/util/yaml"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/klog/v2"
-	"os"
-	"runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	syaml "sigs.k8s.io/yaml"
-	"slices"
-	"strings"
 )
 
 func Log(args ...any) {

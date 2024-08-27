@@ -7,9 +7,11 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/cloudoperators/greenhouse/pkg/internal/local/setup"
-	"github.com/spf13/cobra"
 	"os"
+
+	"github.com/spf13/cobra"
+
+	"github.com/cloudoperators/greenhouse/pkg/internal/local/setup"
 )
 
 type Config struct {

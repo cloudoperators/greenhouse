@@ -6,9 +6,10 @@ package setup
 import (
 	"context"
 	"fmt"
+	"strings"
+
 	"github.com/cloudoperators/greenhouse/pkg/internal/local/helm"
 	"github.com/cloudoperators/greenhouse/pkg/internal/local/utils"
-	"strings"
 )
 
 type Manifest struct {

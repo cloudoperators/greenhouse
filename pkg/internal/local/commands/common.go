@@ -5,9 +5,10 @@ package commands
 
 import (
 	"fmt"
+	"strings"
+
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
-	"strings"
 )
 
 var (

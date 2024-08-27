@@ -5,10 +5,12 @@ package cmd
 
 import (
 	"errors"
-	"github.com/cloudoperators/greenhouse/pkg/internal/local/commands"
+	"strings"
+
 	"github.com/spf13/cobra"
 	"github.com/vladimirvivien/gexe"
-	"strings"
+
+	"github.com/cloudoperators/greenhouse/pkg/internal/local/commands"
 )
 
 var devSetupCmd = &cobra.Command{

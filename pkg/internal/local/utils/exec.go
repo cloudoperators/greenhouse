@@ -6,10 +6,11 @@ package utils
 import (
 	"errors"
 	"fmt"
-	"github.com/vladimirvivien/gexe"
 	"io"
 	"os"
 	"strings"
+
+	"github.com/vladimirvivien/gexe"
 )
 
 type ShellPipe struct {

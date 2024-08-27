@@ -8,14 +8,16 @@ package main
 import (
 	"bytes"
 	"fmt"
-	"github.com/cloudoperators/greenhouse/pkg/cmd"
-	md "github.com/nao1215/markdown"
-	"github.com/spf13/cobra/doc"
 	"log"
 	"os"
 	"path/filepath"
 	"regexp"
 	"strings"
+
+	md "github.com/nao1215/markdown"
+	"github.com/spf13/cobra/doc"
+
+	"github.com/cloudoperators/greenhouse/pkg/cmd"
 )
 
 var removeLinks = regexp.MustCompile(`(?s)### SEE ALSO.*`)

@@ -5,11 +5,12 @@ package klient
 
 import (
 	"errors"
+	"os"
+	"path"
+
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/client-go/util/homedir"
-	"os"
-	"path"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 

@@ -4,8 +4,9 @@
 package commands
 
 import (
-	"github.com/cloudoperators/greenhouse/pkg/internal/local/setup"
 	"github.com/spf13/cobra"
+
+	"github.com/cloudoperators/greenhouse/pkg/internal/local/setup"
 )
 
 func manifestExample() string {
