@@ -10,6 +10,8 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
+	corev1 "k8s.io/api/core/v1"
+
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/pkg/apis/greenhouse/v1alpha1"
 	"github.com/cloudoperators/greenhouse/pkg/test"
 )
@@ -26,14 +28,42 @@ var (
 	setup *test.TestSetup
 )
 
-func createTestOrg() {
-	By("Creating organization with name: " + setup.Namespace())
-	setup.CreateOrganization(test.Ctx, setup.Namespace(), func(o *greenhousev1alpha1.Organization) {
+func createTestOrgWithSecret(namespace string) {
+	By("creating a secret")
+	testSecret := corev1.Secret{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "Secret",
+			APIVersion: corev1.GroupName,
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "test-secret",
+			Namespace: namespace,
+		},
+		Data: map[string][]byte{
+			"basicAuthUser": []byte("user"),
+			"basicAuthPw":   []byte("pw"),
+		},
+	}
+	err := setup.Client.Create(test.Ctx, &testSecret)
+	Expect(err).ToNot(HaveOccurred(), "there must be no error creating a secret")
+
+	By("creating organization with name: " + namespace)
+	setup.CreateOrganization(test.Ctx, namespace, func(o *greenhousev1alpha1.Organization) {
 		o.Spec.Authentication = &greenhousev1alpha1.Authentication{
 			SCIMConfig: &greenhousev1alpha1.SCIMConfig{
-				BaseURL:       groupsServer.URL,
-				BasicAuthUser: "user",
-				BasicAuthPw:   "pw",
+				BaseURL: groupsServer.URL,
+				BasicAuthUser: &greenhousev1alpha1.ValueFromSource{
+					Secret: &greenhousev1alpha1.SecretKeyReference{
+						Name: "test-secret",
+						Key:  "basicAuthUser",
+					},
+				},
+				BasicAuthPw: &greenhousev1alpha1.ValueFromSource{
+					Secret: &greenhousev1alpha1.SecretKeyReference{
+						Name: "test-secret",
+						Key:  "basicAuthPw",
+					},
+				},
 			},
 		}
 	})
@@ -44,7 +74,7 @@ var _ = Describe("TeammembershipUpdaterController", func() {
 		BeforeEach(func() {
 			By("creating new test setup")
 			setup = test.NewTestSetup(test.Ctx, test.K8sClient, test.TestNamespace)
-			createTestOrg()
+			createTestOrgWithSecret(setup.Namespace())
 		})
 
 		It("should update existing TM without users", func() {

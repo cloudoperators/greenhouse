@@ -110,14 +110,44 @@ spec:
                         type: string
                       basicAuthPw:
                         description: Password to be used for basic authentication.
-                        type: string
+                        properties:
+                          secret:
+                            description: Secret references the secret containing the
+                              value.
+                            properties:
+                              key:
+                                description: Key in the secret to select the value
+                                  from.
+                                type: string
+                              name:
+                                description: Name of the secret in the same namespace.
+                                type: string
+                            required:
+                            - key
+                            - name
+                            type: object
+                        type: object
                       basicAuthUser:
                         description: User to be used for basic authentication.
-                        type: string
+                        properties:
+                          secret:
+                            description: Secret references the secret containing the
+                              value.
+                            properties:
+                              key:
+                                description: Key in the secret to select the value
+                                  from.
+                                type: string
+                              name:
+                                description: Name of the secret in the same namespace.
+                                type: string
+                            required:
+                            - key
+                            - name
+                            type: object
+                        type: object
                     required:
                     - baseURL
-                    - basicAuthPw
-                    - basicAuthUser
                     type: object
                 type: object
               description:

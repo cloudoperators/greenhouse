@@ -18,6 +18,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/metrics"
 
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/pkg/apis/greenhouse/v1alpha1"
+	"github.com/cloudoperators/greenhouse/pkg/clientutil"
 	"github.com/cloudoperators/greenhouse/pkg/scim"
 )
 
@@ -71,7 +72,7 @@ func (r *TeamMembershipUpdaterController) Reconcile(ctx context.Context, req ctr
 		return ctrl.Result{}, nil
 	}
 
-	scimClient, err := r.createScimClient(organization.Spec.Authentication.SCIMConfig)
+	scimClient, err := r.createScimClient(ctx, req.Namespace, organization.Spec.Authentication.SCIMConfig)
 	if err != nil {
 		return ctrl.Result{}, err
 	}
@@ -129,13 +130,21 @@ func (r *TeamMembershipUpdaterController) Reconcile(ctx context.Context, req ctr
 	return ctrl.Result{RequeueAfter: TeamMembershipRequeueInterval}, nil
 }
 
-func (r *TeamMembershipUpdaterController) createScimClient(scimConfig *greenhousev1alpha1.SCIMConfig) (*scim.ScimClient, error) {
+func (r *TeamMembershipUpdaterController) createScimClient(ctx context.Context, namespace string, scimConfig *greenhousev1alpha1.SCIMConfig) (*scim.ScimClient, error) {
+	basicAuthUser, err := clientutil.GetSecretKeyFromSecretKeyReference(ctx, r.Client, namespace, *scimConfig.BasicAuthUser.Secret)
+	if err != nil {
+		return nil, err
+	}
+	basicAuthPw, err := clientutil.GetSecretKeyFromSecretKeyReference(ctx, r.Client, namespace, *scimConfig.BasicAuthPw.Secret)
+	if err != nil {
+		return nil, err
+	}
 	clientConfig := scim.Config{
 		RawURL:   scimConfig.BaseURL,
 		AuthType: scim.Basic,
 		BasicAuthConfig: &scim.BasicAuthConfig{
-			BasicAuthUser: scimConfig.BasicAuthUser,
-			BasicAuthPw:   scimConfig.BasicAuthPw,
+			BasicAuthUser: basicAuthUser,
+			BasicAuthPw:   basicAuthPw,
 		},
 	}
 	return scim.NewScimClient(clientConfig)
