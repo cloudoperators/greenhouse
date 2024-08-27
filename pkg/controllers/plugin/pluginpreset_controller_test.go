@@ -242,6 +242,260 @@ var _ = Describe("PluginPreset Controller Lifecycle", Ordered, func() {
 	})
 })
 
+var _ = Describe("Plugin Preset skip changes", Ordered, func() {
+	It("should skip when plugin preset name in plugin's labels is different then defined name in plugin preset", func() {
+		testPlugin := &greenhousev1alpha1.Plugin{
+			ObjectMeta: metav1.ObjectMeta{
+				Labels: map[string]string{
+					greenhouseapis.LabelKeyPluginPreset: pluginPresetName + "A",
+				},
+			},
+		}
+
+		testPresetCase := &greenhousev1alpha1.PluginPreset{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: pluginPresetName,
+			},
+		}
+
+		Expect(shouldSkipPlugin(testPlugin, testPresetCase)).To(BeTrue())
+	})
+
+	It("should not skip when plugin definition is different between plugin and plugin preset", func() {
+		testPlugin := &greenhousev1alpha1.Plugin{
+			ObjectMeta: metav1.ObjectMeta{
+				Labels: map[string]string{
+					greenhouseapis.LabelKeyPluginPreset: pluginPresetName,
+				},
+			},
+			Spec: greenhousev1alpha1.PluginSpec{PluginDefinition: pluginPresetDefinitionName + "A"},
+		}
+
+		testPresetCase := &greenhousev1alpha1.PluginPreset{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: pluginPresetName,
+			},
+			Spec: greenhousev1alpha1.PluginPresetSpec{
+				Plugin: greenhousev1alpha1.PluginSpec{
+					PluginDefinition: pluginPresetDefinitionName,
+				},
+			},
+		}
+
+		Expect(shouldSkipPlugin(testPlugin, testPresetCase)).To(BeFalse())
+	})
+
+	It("should not skip when plugin preset has option which does not exist in plugin", func() {
+		testPlugin := &greenhousev1alpha1.Plugin{
+			ObjectMeta: metav1.ObjectMeta{
+				Labels: map[string]string{
+					greenhouseapis.LabelKeyPluginPreset: pluginPresetName,
+				},
+			},
+			Spec: greenhousev1alpha1.PluginSpec{
+				PluginDefinition: pluginPresetDefinitionName,
+				OptionValues: []greenhousev1alpha1.PluginOptionValue{
+					{
+						Name:  greenhouseapis.GroupName + ".test_parameter",
+						Value: asAPIextensionJSON(2),
+					},
+				},
+			},
+		}
+
+		testPresetCase := &greenhousev1alpha1.PluginPreset{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: pluginPresetName,
+			},
+			Spec: greenhousev1alpha1.PluginPresetSpec{
+				Plugin: greenhousev1alpha1.PluginSpec{
+					PluginDefinition: pluginPresetDefinitionName,
+					OptionValues: []greenhousev1alpha1.PluginOptionValue{
+						{
+							Name:  "plugin_preset.test_parameter",
+							Value: asAPIextensionJSON(3),
+						},
+					},
+				},
+			},
+		}
+
+		Expect(shouldSkipPlugin(testPlugin, testPresetCase)).To(BeFalse())
+	})
+
+	It("should not skip when plugin preset has option with different value", func() {
+		testPlugin := &greenhousev1alpha1.Plugin{
+			ObjectMeta: metav1.ObjectMeta{
+				Labels: map[string]string{
+					greenhouseapis.LabelKeyPluginPreset: pluginPresetName,
+				},
+			},
+			Spec: greenhousev1alpha1.PluginSpec{
+				PluginDefinition: pluginPresetDefinitionName,
+				OptionValues: []greenhousev1alpha1.PluginOptionValue{
+					{
+						Name:  greenhouseapis.GroupName + ".test_parameter",
+						Value: asAPIextensionJSON(2),
+					},
+					{
+						Name:  "plugin_preset.test_parameter",
+						Value: asAPIextensionJSON(2),
+					},
+				},
+			},
+		}
+
+		testPresetCase := &greenhousev1alpha1.PluginPreset{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: pluginPresetName,
+			},
+			Spec: greenhousev1alpha1.PluginPresetSpec{
+				Plugin: greenhousev1alpha1.PluginSpec{
+					PluginDefinition: pluginPresetDefinitionName,
+					OptionValues: []greenhousev1alpha1.PluginOptionValue{
+						{
+							Name:  "plugin_preset.test_parameter",
+							Value: asAPIextensionJSON(3),
+						},
+					},
+				},
+			},
+		}
+
+		Expect(shouldSkipPlugin(testPlugin, testPresetCase)).To(BeFalse())
+	})
+
+	It("should skip when plugin preset has the same values like plugin", func() {
+		testPlugin := &greenhousev1alpha1.Plugin{
+			ObjectMeta: metav1.ObjectMeta{
+				Labels: map[string]string{
+					greenhouseapis.LabelKeyPluginPreset: pluginPresetName,
+				},
+			},
+			Spec: greenhousev1alpha1.PluginSpec{
+				PluginDefinition: pluginPresetDefinitionName,
+				OptionValues: []greenhousev1alpha1.PluginOptionValue{
+					{
+						Name:  "global.greenhouse.test_parameter",
+						Value: asAPIextensionJSON(2),
+					},
+					{
+						Name:  "plugin_preset.test_parameter",
+						Value: asAPIextensionJSON(3),
+					},
+				},
+			},
+		}
+
+		testPresetCase := &greenhousev1alpha1.PluginPreset{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: pluginPresetName,
+			},
+			Spec: greenhousev1alpha1.PluginPresetSpec{
+				Plugin: greenhousev1alpha1.PluginSpec{
+					PluginDefinition: pluginPresetDefinitionName,
+					OptionValues: []greenhousev1alpha1.PluginOptionValue{
+						{
+							Name:  "plugin_preset.test_parameter",
+							Value: asAPIextensionJSON(3),
+						},
+					},
+				},
+			},
+		}
+
+		Expect(shouldSkipPlugin(testPlugin, testPresetCase)).To(BeTrue())
+	})
+
+	It("should not skip when plugin has custom values", func() {
+		testPlugin := &greenhousev1alpha1.Plugin{
+			ObjectMeta: metav1.ObjectMeta{
+				Labels: map[string]string{
+					greenhouseapis.LabelKeyPluginPreset: pluginPresetName,
+				},
+			},
+			Spec: greenhousev1alpha1.PluginSpec{
+				PluginDefinition: pluginPresetDefinitionName,
+				OptionValues: []greenhousev1alpha1.PluginOptionValue{
+					{
+						Name:  "greenhouse.global.test_parameter",
+						Value: asAPIextensionJSON(2),
+					},
+					{
+						Name:  "plugin_preset.test_parameter",
+						Value: asAPIextensionJSON(3),
+					},
+					{
+						Name:  "custom_parameter",
+						Value: asAPIextensionJSON(123),
+					},
+				},
+			},
+		}
+
+		testPresetCase := &greenhousev1alpha1.PluginPreset{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: pluginPresetName,
+			},
+			Spec: greenhousev1alpha1.PluginPresetSpec{
+				Plugin: greenhousev1alpha1.PluginSpec{
+					PluginDefinition: pluginPresetDefinitionName,
+					OptionValues: []greenhousev1alpha1.PluginOptionValue{
+						{
+							Name:  "plugin_preset.test_parameter",
+							Value: asAPIextensionJSON(3),
+						},
+					},
+				},
+			},
+		}
+
+		Expect(shouldSkipPlugin(testPlugin, testPresetCase)).To(BeFalse())
+	})
+
+	It("should skip when plugin preset has the same values like plugin", func() {
+		testPlugin := &greenhousev1alpha1.Plugin{
+			ObjectMeta: metav1.ObjectMeta{
+				Labels: map[string]string{
+					greenhouseapis.LabelKeyPluginPreset: pluginPresetName,
+				},
+			},
+			Spec: greenhousev1alpha1.PluginSpec{
+				PluginDefinition: pluginPresetDefinitionName,
+				OptionValues: []greenhousev1alpha1.PluginOptionValue{
+					{
+						Name:  "global.greenhouse.test_parameter",
+						Value: asAPIextensionJSON(2),
+					},
+					{
+						Name:  "plugin_preset.test_parameter",
+						Value: asAPIextensionJSON(3),
+					},
+				},
+			},
+		}
+
+		testPresetCase := &greenhousev1alpha1.PluginPreset{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: pluginPresetName,
+			},
+			Spec: greenhousev1alpha1.PluginPresetSpec{
+				Plugin: greenhousev1alpha1.PluginSpec{
+					PluginDefinition: pluginPresetDefinitionName,
+					OptionValues: []greenhousev1alpha1.PluginOptionValue{
+						{
+							Name:  "plugin_preset.test_parameter",
+							Value: asAPIextensionJSON(3),
+						},
+					},
+				},
+			},
+		}
+
+		Expect(shouldSkipPlugin(testPlugin, testPresetCase)).To(BeTrue())
+	})
+})
+
 var _ = Describe("overridesPluginOptionValues", Ordered, func() {
 	DescribeTable("test cases", func(plugin *greenhousev1alpha1.Plugin, preset *greenhousev1alpha1.PluginPreset, expectedPlugin *greenhousev1alpha1.Plugin) {
 		overridesPluginOptionValues(plugin, preset)

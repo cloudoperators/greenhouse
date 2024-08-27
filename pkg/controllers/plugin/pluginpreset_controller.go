@@ -166,7 +166,7 @@ func (r *PluginPresetReconciler) reconcilePluginPreset(ctx context.Context, pres
 		switch {
 		case err == nil:
 			// The Plugin exists but does not contain the labels of the PluginPreset. This Plugin is not managed by the PluginPreset and must not be touched.
-			if plugin.Labels[greenhouseapis.LabelKeyPluginPreset] != preset.Name {
+			if shouldSkipPlugin(plugin, preset) {
 				skippedPlugins = append(skippedPlugins, plugin.Name)
 				continue
 			}
@@ -219,6 +219,51 @@ func (r *PluginPresetReconciler) reconcilePluginPreset(ctx context.Context, pres
 		failedCondition.Message = ""
 	}
 	return skippedCondition, failedCondition, utilerrors.NewAggregate(allErrs)
+}
+
+func shouldSkipPlugin(plugin *greenhousev1alpha1.Plugin, preset *greenhousev1alpha1.PluginPreset) bool {
+	if plugin.Labels[greenhouseapis.LabelKeyPluginPreset] != preset.Name {
+		return true
+	}
+
+	if preset.Spec.Plugin.PluginDefinition != plugin.Spec.PluginDefinition {
+		return false
+	}
+
+	for _, presetOptionValue := range preset.Spec.Plugin.OptionValues {
+		if !containsPluginOption(plugin.Spec.OptionValues, presetOptionValue) {
+			return false
+		}
+	}
+
+	if len(preset.Spec.Plugin.OptionValues) < countWithoutGlobalOption(plugin.Spec.OptionValues) {
+		return false
+	}
+
+	return true
+}
+
+func containsPluginOption(list []greenhousev1alpha1.PluginOptionValue, kv greenhousev1alpha1.PluginOptionValue) bool {
+	for _, item := range list {
+		if item.Name == kv.Name && string(item.Value.Raw) == string(kv.Value.Raw) {
+			return true
+		}
+	}
+
+	return false
+}
+
+func countWithoutGlobalOption(list []greenhousev1alpha1.PluginOptionValue) int {
+	count := 0
+	for _, item := range list {
+		if strings.HasPrefix(item.Name, "global.greenhouse") {
+			continue
+		}
+
+		count++
+	}
+
+	return count
 }
 
 func overridesPluginOptionValues(plugin *greenhousev1alpha1.Plugin, preset *greenhousev1alpha1.PluginPreset) {
