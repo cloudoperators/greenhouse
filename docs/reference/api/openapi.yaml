@@ -1,7 +1,7 @@
 openapi: 3.0.0
 info:
   title: Greenhouse
-  version: 5a1cebd
+  version: 1c9c25f
   description: PlusOne operations platform
 paths:
   /Team:
@@ -397,6 +397,39 @@ components:
               description: LastChangedTime is the information when was the last time the membership was actually changed
               format: date-time
               type: string
+            statusConditions:
+              description: StatusConditions contain the different conditions that constitute the status of the TeamRoleBinding.
+              properties:
+                conditions:
+                  items:
+                    description: Condition contains additional information on the state of a resource.
+                    properties:
+                      lastTransitionTime:
+                        description: LastTransitionTime is the last time the condition transitioned from one status to another.
+                        format: date-time
+                        type: string
+                      message:
+                        description: Message is an optional human readable message indicating details about the last transition.
+                        type: string
+                      reason:
+                        description: Reason is a one-word, CamelCase reason for the condition's last transition.
+                        type: string
+                      status:
+                        description: Status of the condition.
+                        type: string
+                      type:
+                        description: Type of the condition.
+                        type: string
+                    required:
+                      - lastTransitionTime
+                      - status
+                      - type
+                    type: object
+                  type: array
+                  x-kubernetes-list-map-keys:
+                    - type
+                  x-kubernetes-list-type: map
+              type: object
           type: object
       type: object
     Cluster:
@@ -689,14 +722,40 @@ components:
                       type: string
                     basicAuthPw:
                       description: Password to be used for basic authentication.
-                      type: string
+                      properties:
+                        secret:
+                          description: Secret references the secret containing the value.
+                          properties:
+                            key:
+                              description: Key in the secret to select the value from.
+                              type: string
+                            name:
+                              description: Name of the secret in the same namespace.
+                              type: string
+                          required:
+                            - key
+                            - name
+                          type: object
+                      type: object
                     basicAuthUser:
                       description: User to be used for basic authentication.
-                      type: string
+                      properties:
+                        secret:
+                          description: Secret references the secret containing the value.
+                          properties:
+                            key:
+                              description: Key in the secret to select the value from.
+                              type: string
+                            name:
+                              description: Name of the secret in the same namespace.
+                              type: string
+                          required:
+                            - key
+                            - name
+                          type: object
+                      type: object
                   required:
                     - baseURL
-                    - basicAuthPw
-                    - basicAuthUser
                   type: object
               type: object
             description:
