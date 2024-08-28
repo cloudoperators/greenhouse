@@ -130,7 +130,7 @@ spec:
       environment: production
 ```
 
-This TeamRole has an aggregationRule set. This aggregationRule will be added the ClusterRole created on the target clusters.
+This TeamRole has an aggregationRule set. This aggregationRule will be added to the ClusterRole created on the target clusters.
 
 ```yaml
 apiVersion: greenhouse.sap/v1alpha1
