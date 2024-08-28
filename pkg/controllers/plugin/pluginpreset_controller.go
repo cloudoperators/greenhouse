@@ -236,11 +236,7 @@ func shouldSkipPlugin(plugin *greenhousev1alpha1.Plugin, preset *greenhousev1alp
 		}
 	}
 
-	if len(preset.Spec.Plugin.OptionValues) < countWithoutGlobalOption(plugin.Spec.OptionValues) {
-		return false
-	}
-
-	return true
+	return len(preset.Spec.Plugin.OptionValues) >= countWithoutGlobalOption(plugin.Spec.OptionValues)
 }
 
 func containsPluginOption(list []greenhousev1alpha1.PluginOptionValue, kv greenhousev1alpha1.PluginOptionValue) bool {
