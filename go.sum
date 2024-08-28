@@ -102,8 +102,8 @@ github.com/dblohm7/wingoes v0.0.0-20240119213807-a09d6be7affa h1:h8TfIT1xc8FWbww
 github.com/dblohm7/wingoes v0.0.0-20240119213807-a09d6be7affa/go.mod h1:Nx87SkVqTKd8UtT+xu7sM/l+LgXs6c0aHrlKusR+2EQ=
 github.com/dexidp/dex v0.0.0-20240807174518-43956db7fd75 h1:rhJGxE3OIwZQmReo7UO/u+Qd/DsH4pZUBaUr2wrSxp0=
 github.com/dexidp/dex v0.0.0-20240807174518-43956db7fd75/go.mod h1:r4AnI+KSlse0g9cmP+swnmsJscyXlMwDOugBOt5yWcA=
-github.com/dexidp/dex/api/v2 v2.1.1-0.20240807174518-43956db7fd75 h1:+6yv8pY6NPzvEExj/rWp8xu9LZNNUQImWofqpcaW+Og=
-github.com/dexidp/dex/api/v2 v2.1.1-0.20240807174518-43956db7fd75/go.mod h1:wW7pJO4K9SxAgwjTWGv9jzBS6sbKcItdtbC25uJoZvg=
+github.com/dexidp/dex/api/v2 v2.1.1-0.20240828104440-14d31a75ec02 h1:tyR8e8SSEc18rj1nm2IRq/W+a9R4tQc84OHROCNzxno=
+github.com/dexidp/dex/api/v2 v2.1.1-0.20240828104440-14d31a75ec02/go.mod h1:wW7pJO4K9SxAgwjTWGv9jzBS6sbKcItdtbC25uJoZvg=
 github.com/distribution/distribution/v3 v3.0.0-20221208165359-362910506bc2 h1:aBfCb7iqHmDEIp6fBvC/hQUddQfg+3qdYjwzaiP9Hnc=
 github.com/distribution/distribution/v3 v3.0.0-20221208165359-362910506bc2/go.mod h1:WHNsWjnIn2V1LYOrME7e8KxSeKunYHsxEm4am0BUtcI=
 github.com/distribution/reference v0.6.0 h1:0IXCQ5g4/QMHHkarYzh5l+u8T3t73zM5QvfrDyIgxBk=
