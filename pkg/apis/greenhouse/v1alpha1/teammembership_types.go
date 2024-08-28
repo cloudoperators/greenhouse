@@ -7,6 +7,15 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+const (
+	// ScimAccessReadyCondition reflects if there is a connection to SCIM.
+	ScimAccessReadyCondition ConditionType = "ScimAccessReady"
+	// SecretNotFoundReason is set when the secret with credentials to SCIM is not found.
+	SecretNotFoundReason ConditionReason = "SecretNotFound"
+	// ScimRequestFailedReason is set when a request to SCIM failed.
+	ScimRequestFailedReason ConditionReason = "ScimRequestFailed"
+)
+
 // User specifies a human person.
 type User struct {
 	// ID is the unique identifier of the user.
@@ -34,6 +43,8 @@ type TeamMembershipStatus struct {
 	// LastChangedTime is the information when was the last time the membership was actually changed
 	// +optional
 	LastChangedTime *metav1.Time `json:"lastUpdateTime,omitempty"`
+	// StatusConditions contain the different conditions that constitute the status of the TeamRoleBinding.
+	StatusConditions `json:"statusConditions,omitempty"`
 }
 
 //+kubebuilder:object:root=true

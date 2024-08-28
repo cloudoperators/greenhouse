@@ -32,6 +32,11 @@ var (
 		},
 		[]string{"namespace", "team"},
 	)
+	// exposedConditions are the conditions that are exposed in the StatusConditions of the TeamMembership.
+	exposedConditions = []greenhousev1alpha1.ConditionType{
+		greenhousev1alpha1.ReadyCondition,
+		greenhousev1alpha1.ScimAccessReadyCondition,
+	}
 )
 
 func init() {
@@ -60,21 +65,46 @@ func (r *TeamMembershipUpdaterController) SetupWithManager(name string, mgr ctrl
 		Complete(r)
 }
 
+func initTeamMembershipStatus(teamMembership *greenhousev1alpha1.TeamMembership) greenhousev1alpha1.TeamMembershipStatus {
+	teamMembershipStatus := teamMembership.Status.DeepCopy()
+	for _, t := range exposedConditions {
+		if teamMembershipStatus.GetConditionByType(t) == nil {
+			teamMembershipStatus.SetConditions(greenhousev1alpha1.UnknownCondition(t, "", ""))
+		}
+	}
+	return *teamMembershipStatus
+}
+
+func (r *TeamMembershipUpdaterController) setStatus(ctx context.Context, teamMembership *greenhousev1alpha1.TeamMembership, teamMembershipStatus greenhousev1alpha1.TeamMembershipStatus) error {
+	readyCondition := r.computeReadyCondition(teamMembershipStatus.StatusConditions)
+	teamMembershipStatus.StatusConditions.SetConditions(readyCondition)
+	_, err := clientutil.PatchStatus(ctx, r.Client, teamMembership, func() error {
+		teamMembership.Status = teamMembershipStatus
+		return nil
+	})
+	return err
+}
+
+func (r *TeamMembershipUpdaterController) computeReadyCondition(
+	conditions greenhousev1alpha1.StatusConditions,
+) (readyCondition greenhousev1alpha1.Condition) {
+
+	readyCondition = *conditions.GetConditionByType(greenhousev1alpha1.ReadyCondition)
+
+	if conditions.GetConditionByType(greenhousev1alpha1.ScimAccessReadyCondition).IsFalse() {
+		readyCondition.Status = metav1.ConditionFalse
+		readyCondition.Message = "SCIM access not ready"
+		return readyCondition
+	}
+	readyCondition.Status = metav1.ConditionTrue
+	readyCondition.Message = "ready"
+	return readyCondition
+}
+
 func (r *TeamMembershipUpdaterController) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	var organization = new(greenhousev1alpha1.Organization)
 	if err := r.Get(ctx, types.NamespacedName{Name: req.Namespace}, organization); err != nil {
 		return ctrl.Result{}, client.IgnoreNotFound(err)
-	}
-
-	// Ignore organizations without SCIM configuration.
-	if organization.Spec.Authentication == nil || organization.Spec.Authentication.SCIMConfig == nil {
-		log.FromContext(ctx).Info("SCIM config is missing from org", "Name", req.NamespacedName)
-		return ctrl.Result{}, nil
-	}
-
-	scimClient, err := r.createScimClient(ctx, req.Namespace, organization.Spec.Authentication.SCIMConfig)
-	if err != nil {
-		return ctrl.Result{}, err
 	}
 
 	var team = new(greenhousev1alpha1.Team)
@@ -83,7 +113,7 @@ func (r *TeamMembershipUpdaterController) Reconcile(ctx context.Context, req ctr
 	}
 
 	var teamMembership = new(greenhousev1alpha1.TeamMembership)
-	err = r.Get(ctx, types.NamespacedName{Name: team.Name, Namespace: team.Namespace}, teamMembership)
+	err := r.Get(ctx, types.NamespacedName{Name: team.Name, Namespace: team.Namespace}, teamMembership)
 	if !apierrors.IsNotFound(err) && err != nil {
 		return ctrl.Result{}, err
 	}
@@ -101,11 +131,40 @@ func (r *TeamMembershipUpdaterController) Reconcile(ctx context.Context, req ctr
 		}
 	}
 
+	var teamMembershipStatus greenhousev1alpha1.TeamMembershipStatus
+	if teamMembershipExists {
+		teamMembershipStatus = initTeamMembershipStatus(teamMembership)
+
+		defer func() {
+			if statusErr := r.setStatus(ctx, teamMembership, teamMembershipStatus); statusErr != nil {
+				log.FromContext(ctx).Error(statusErr, "failed to set status")
+			}
+		}()
+	}
+
+	// Ignore organizations without SCIM configuration.
+	if organization.Spec.Authentication == nil || organization.Spec.Authentication.SCIMConfig == nil {
+		log.FromContext(ctx).Info("SCIM config is missing from org", "Name", req.NamespacedName)
+
+		c := greenhousev1alpha1.FalseCondition(greenhousev1alpha1.ScimAccessReadyCondition, greenhousev1alpha1.SecretNotFoundReason, "SCIM config is missing from organization")
+		teamMembershipStatus.SetConditions(c)
+
+		return ctrl.Result{}, nil
+	}
+
+	scimClient, err := r.createScimClient(ctx, req.Namespace, &teamMembershipStatus, organization.Spec.Authentication.SCIMConfig)
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+
 	users, err := r.getUsersFromScim(scimClient, team.Spec.MappedIDPGroup)
 	if err != nil {
 		log.FromContext(ctx).Info("failed processing team-membership for team", "error", err)
+		teamMembershipStatus.SetConditions(greenhousev1alpha1.FalseCondition(greenhousev1alpha1.ScimAccessReadyCondition, greenhousev1alpha1.ScimRequestFailedReason, ""))
 		return ctrl.Result{}, err
 	}
+
+	teamMembershipStatus.SetConditions(greenhousev1alpha1.TrueCondition(greenhousev1alpha1.ScimAccessReadyCondition, "", ""))
 
 	membersCountMetric.With(prometheus.Labels{
 		"namespace": team.Namespace,
@@ -119,24 +178,46 @@ func (r *TeamMembershipUpdaterController) Reconcile(ctx context.Context, req ctr
 
 	if teamMembershipExists {
 		err = r.updateTeamMembership(ctx, team, teamMembership, users)
+		if err != nil {
+			log.FromContext(ctx).Info("failed processing team-membership for team", "error", err)
+			return ctrl.Result{}, err
+		}
+		now := metav1.NewTime(time.Now())
+		teamMembershipStatus.LastChangedTime = &now
 	} else {
-		err = r.createTeamMembership(ctx, team, users)
-	}
-	if err != nil {
-		log.FromContext(ctx).Info("failed processing team-membership for team", "error", err)
-		return ctrl.Result{}, err
+		teamMembership, err = r.createTeamMembership(ctx, team, users)
+		if err != nil {
+			log.FromContext(ctx).Info("failed processing team-membership for team", "error", err)
+			return ctrl.Result{}, err
+		}
+
+		teamMembershipStatus = initTeamMembershipStatus(teamMembership)
+		now := metav1.NewTime(time.Now())
+		teamMembershipStatus.LastChangedTime = &now
+		teamMembershipStatus.SetConditions(greenhousev1alpha1.TrueCondition(greenhousev1alpha1.ScimAccessReadyCondition, "", ""))
+		if statusErr := r.setStatus(ctx, teamMembership, teamMembershipStatus); statusErr != nil {
+			log.FromContext(ctx).Error(statusErr, "failed to set status")
+		}
 	}
 
 	return ctrl.Result{RequeueAfter: TeamMembershipRequeueInterval}, nil
 }
 
-func (r *TeamMembershipUpdaterController) createScimClient(ctx context.Context, namespace string, scimConfig *greenhousev1alpha1.SCIMConfig) (*scim.ScimClient, error) {
+func (r *TeamMembershipUpdaterController) createScimClient(
+	ctx context.Context,
+	namespace string,
+	teamMembershipStatus *greenhousev1alpha1.TeamMembershipStatus,
+	scimConfig *greenhousev1alpha1.SCIMConfig,
+) (*scim.ScimClient, error) {
+
 	basicAuthUser, err := clientutil.GetSecretKeyFromSecretKeyReference(ctx, r.Client, namespace, *scimConfig.BasicAuthUser.Secret)
 	if err != nil {
+		teamMembershipStatus.SetConditions(greenhousev1alpha1.FalseCondition(greenhousev1alpha1.ScimAccessReadyCondition, greenhousev1alpha1.SecretNotFoundReason, "BasicAuthUser missing"))
 		return nil, err
 	}
 	basicAuthPw, err := clientutil.GetSecretKeyFromSecretKeyReference(ctx, r.Client, namespace, *scimConfig.BasicAuthPw.Secret)
 	if err != nil {
+		teamMembershipStatus.SetConditions(greenhousev1alpha1.FalseCondition(greenhousev1alpha1.ScimAccessReadyCondition, greenhousev1alpha1.SecretNotFoundReason, "BasicAuthPw missing"))
 		return nil, err
 	}
 	clientConfig := scim.Config{
@@ -159,35 +240,42 @@ func (r *TeamMembershipUpdaterController) getUsersFromScim(scimClient *scim.Scim
 	return users, nil
 }
 
-func (r *TeamMembershipUpdaterController) createTeamMembership(ctx context.Context, team *greenhousev1alpha1.Team, users []greenhousev1alpha1.User) error {
-	now := metav1.NewTime(time.Now())
+func (r *TeamMembershipUpdaterController) createTeamMembership(
+	ctx context.Context,
+	team *greenhousev1alpha1.Team,
+	users []greenhousev1alpha1.User,
+) (*greenhousev1alpha1.TeamMembership, error) {
 
 	teamMembership := new(greenhousev1alpha1.TeamMembership)
 	teamMembership.Namespace = team.Namespace
 	teamMembership.Name = team.Name
 	teamMembership.Spec.Members = users
-	teamMembership.Status.LastChangedTime = &now
 	err := r.Create(ctx, teamMembership, &client.CreateOptions{})
 	if err != nil {
-		return err
+		return nil, err
 	}
 	log.FromContext(ctx).Info("created team-membership",
 		"name", teamMembership.Name, "members count", len(teamMembership.Spec.Members))
 
-	return r.updateOwnerReferenceForTeam(ctx, teamMembership, team)
+	err = r.updateOwnerReferenceForTeam(ctx, teamMembership, team)
+	if err != nil {
+		return nil, err
+	}
+	return teamMembership, nil
 }
 
-func (r *TeamMembershipUpdaterController) updateTeamMembership(ctx context.Context, team *greenhousev1alpha1.Team, teamMembership *greenhousev1alpha1.TeamMembership, users []greenhousev1alpha1.User) error {
+func (r *TeamMembershipUpdaterController) updateTeamMembership(
+	ctx context.Context,
+	team *greenhousev1alpha1.Team,
+	teamMembership *greenhousev1alpha1.TeamMembership,
+	users []greenhousev1alpha1.User,
+) error {
+
 	teamMembership.Spec.Members = users
 	if err := r.Update(ctx, teamMembership, &client.UpdateOptions{}); err != nil {
 		return err
 	}
-	now := metav1.NewTime(time.Now())
-	teamMembership.Status.LastChangedTime = &now
-	if err := r.Status().Update(ctx, teamMembership); err != nil {
-		return err
-	}
-	log.FromContext(ctx).Info("updated team-membership and its status",
+	log.FromContext(ctx).Info("updated team-membership",
 		"name", teamMembership.Name, "members count", len(teamMembership.Spec.Members))
 
 	return r.updateOwnerReferenceForTeam(ctx, teamMembership, team)

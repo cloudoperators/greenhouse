@@ -8,6 +8,7 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	corev1 "k8s.io/api/core/v1"
@@ -113,8 +114,17 @@ var _ = Describe("TeammembershipUpdaterController", func() {
 				err := setup.List(test.Ctx, teamMemberships, &client.ListOptions{Namespace: setup.Namespace()})
 				g.Expect(err).ShouldNot(HaveOccurred(), "unexpected error getting TeamMemberships")
 				g.Expect(teamMemberships.Items).To(HaveLen(1), "there should be exactly one TeamMembership")
-				g.Expect(teamMemberships.Items[0].Spec.Members).To(HaveLen(2), "the TeamMembership should have exactly two Members")
-				g.Expect(teamMemberships.Items[0].Status.LastChangedTime).ToNot(BeNil(), "TeamMembership status should have updated LastChangedTime")
+				firstTeamMembership := teamMemberships.Items[0]
+				g.Expect(firstTeamMembership.Spec.Members).To(HaveLen(2), "the TeamMembership should have exactly two Members")
+				g.Expect(firstTeamMembership.Status.LastChangedTime).ToNot(BeNil(), "TeamMembership status should have updated LastChangedTime")
+				scimAccessReadyCondition := firstTeamMembership.Status.GetConditionByType(greenhousev1alpha1.ScimAccessReadyCondition)
+				g.Expect(scimAccessReadyCondition).ToNot(BeNil())
+				g.Expect(scimAccessReadyCondition.Type).To(Equal(greenhousev1alpha1.ScimAccessReadyCondition))
+				g.Expect(scimAccessReadyCondition.Status).To(Equal(metav1.ConditionTrue))
+				readyCondition := firstTeamMembership.Status.GetConditionByType(greenhousev1alpha1.ReadyCondition)
+				g.Expect(readyCondition).ToNot(BeNil())
+				g.Expect(readyCondition.Type).To(Equal(greenhousev1alpha1.ReadyCondition))
+				g.Expect(readyCondition.Status).To(Equal(metav1.ConditionTrue))
 			}).Should(Succeed(), "the TeamMembership should be reconciled")
 		})
 
@@ -335,6 +345,115 @@ var _ = Describe("TeammembershipUpdaterController", func() {
 				g.Expect(err).ShouldNot(HaveOccurred(), "unexpected error getting TeamMemberships")
 				g.Expect(teamMemberships.Items).To(BeEmpty(), "there should be exactly zero TeamMemberships")
 			}).Should(Succeed(), "the TeamMemberships should not have been created")
+		})
+
+		It("should set ready condition to false on missing secret", func() {
+			By("deleting the secret")
+			var secret corev1.Secret
+			err := setup.Get(test.Ctx, types.NamespacedName{Name: "test-secret", Namespace: setup.Namespace()}, &secret)
+			Expect(err).ToNot(HaveOccurred(), "there must be no error getting the secret")
+			err = setup.Delete(test.Ctx, &secret)
+			Expect(err).ToNot(HaveOccurred(), "there must be no error deleting the secret")
+
+			By("creating a test TeamMembership")
+			err = setup.Create(test.Ctx, &greenhousev1alpha1.TeamMembership{
+				TypeMeta: metav1.TypeMeta{
+					APIVersion: greenhousev1alpha1.GroupVersion.Group,
+					Kind:       "TeamMembership",
+				},
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      firstTeamName,
+					Namespace: setup.Namespace(),
+				},
+			})
+			Expect(err).NotTo(HaveOccurred(), "there must be no error creating a TeamMembership")
+
+			By("creating a test Team with valid MappedIdpGroup")
+			err = setup.Create(test.Ctx, &greenhousev1alpha1.Team{
+				TypeMeta: metav1.TypeMeta{
+					Kind:       "Team",
+					APIVersion: greenhousev1alpha1.GroupVersion.String(),
+				},
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      firstTeamName,
+					Namespace: setup.Namespace(),
+				},
+				Spec: greenhousev1alpha1.TeamSpec{
+					MappedIDPGroup: validIdpGroupName,
+				},
+			})
+			Expect(err).NotTo(HaveOccurred(), "there must be no error creating a Team")
+
+			By("ensuring TeamMemberships have been reconciled")
+			Eventually(func(g Gomega) {
+				teamMemberships := &greenhousev1alpha1.TeamMembershipList{}
+				err := setup.List(test.Ctx, teamMemberships, &client.ListOptions{Namespace: setup.Namespace()})
+				g.Expect(err).ShouldNot(HaveOccurred(), "unexpected error getting TeamMemberships")
+				g.Expect(teamMemberships.Items).To(HaveLen(1), "there should be exactly one TeamMembership")
+
+				firstTeamMembership := teamMemberships.Items[0]
+
+				scimAccessReadyCondition := firstTeamMembership.Status.GetConditionByType(greenhousev1alpha1.ScimAccessReadyCondition)
+				g.Expect(scimAccessReadyCondition).ToNot(BeNil())
+				g.Expect(scimAccessReadyCondition.Type).To(Equal(greenhousev1alpha1.ScimAccessReadyCondition))
+				g.Expect(scimAccessReadyCondition.Status).To(Equal(metav1.ConditionFalse))
+				g.Expect(scimAccessReadyCondition.Reason).To(Equal(greenhousev1alpha1.SecretNotFoundReason), "reason should be set to SecretNotFound")
+				readyCondition := firstTeamMembership.Status.GetConditionByType(greenhousev1alpha1.ReadyCondition)
+				g.Expect(readyCondition).ToNot(BeNil())
+				g.Expect(readyCondition.Type).To(Equal(greenhousev1alpha1.ReadyCondition))
+				g.Expect(readyCondition.Status).To(Equal(metav1.ConditionFalse))
+			}).Should(Succeed(), "TeamMemberships should have been reconciled")
+		})
+
+		It("should set ready condition to false on SCIM request failed", func() {
+			By("creating a test TeamMembership")
+			err := setup.Create(test.Ctx, &greenhousev1alpha1.TeamMembership{
+				TypeMeta: metav1.TypeMeta{
+					APIVersion: greenhousev1alpha1.GroupVersion.Group,
+					Kind:       "TeamMembership",
+				},
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      firstTeamName,
+					Namespace: setup.Namespace(),
+				},
+			})
+			Expect(err).NotTo(HaveOccurred(), "there must be no error creating a TeamMembership")
+
+			By("creating a test Team with invalid MappedIdpGroup")
+			err = setup.Create(test.Ctx, &greenhousev1alpha1.Team{
+				TypeMeta: metav1.TypeMeta{
+					Kind:       "Team",
+					APIVersion: greenhousev1alpha1.GroupVersion.String(),
+				},
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      firstTeamName,
+					Namespace: setup.Namespace(),
+				},
+				Spec: greenhousev1alpha1.TeamSpec{
+					MappedIDPGroup: nonExistingGroupName,
+				},
+			})
+			Expect(err).NotTo(HaveOccurred(), "there must be no error creating a Team")
+
+			By("ensuring TeamMemberships have been reconciled")
+			Eventually(func(g Gomega) {
+				teamMemberships := &greenhousev1alpha1.TeamMembershipList{}
+				err := setup.List(test.Ctx, teamMemberships, &client.ListOptions{Namespace: setup.Namespace()})
+				g.Expect(err).ShouldNot(HaveOccurred(), "unexpected error getting TeamMemberships")
+				g.Expect(teamMemberships.Items).To(HaveLen(1), "there should be exactly one TeamMembership")
+
+				firstTeamMembership := teamMemberships.Items[0]
+
+				scimAccessReadyCondition := firstTeamMembership.Status.GetConditionByType(greenhousev1alpha1.ScimAccessReadyCondition)
+				g.Expect(scimAccessReadyCondition).ToNot(BeNil())
+				g.Expect(scimAccessReadyCondition.Type).To(Equal(greenhousev1alpha1.ScimAccessReadyCondition))
+				g.Expect(scimAccessReadyCondition.Status).To(Equal(metav1.ConditionFalse))
+				g.Expect(scimAccessReadyCondition.Reason).To(Equal(greenhousev1alpha1.ScimRequestFailedReason), "reason should be set to ScimRequestFailed")
+				readyCondition := firstTeamMembership.Status.GetConditionByType(greenhousev1alpha1.ReadyCondition)
+				g.Expect(readyCondition).ToNot(BeNil())
+				g.Expect(readyCondition.Type).To(Equal(greenhousev1alpha1.ReadyCondition))
+				g.Expect(readyCondition.Status).To(Equal(metav1.ConditionFalse))
+			}).Should(Succeed(), "TeamMemberships should have been reconciled")
 		})
 	})
 })
