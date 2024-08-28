@@ -8,9 +8,7 @@ import (
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/pkg/apis/greenhouse/v1alpha1"
 	"github.com/cloudoperators/greenhouse/pkg/test"
 )
 
@@ -29,35 +27,8 @@ var _ = BeforeSuite(func() {
 	test.RegisterWebhook("roleWebhook", SetupTeamRoleWebhookWithManager)
 	test.RegisterWebhook("rolebindingWebhook", setupRoleBindingWebhookForTest)
 	test.TestBeforeSuite()
-
-	setupOrgResources()
 })
 
 var _ = AfterSuite(func() {
 	test.TestAfterSuite()
 })
-
-const (
-	testclustername = "test-cluster"
-)
-
-var (
-	testcluster = &greenhousev1alpha1.Cluster{
-		TypeMeta: metav1.TypeMeta{
-			Kind:       "Cluster",
-			APIVersion: greenhousev1alpha1.GroupVersion.String(),
-		},
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      testclustername,
-			Namespace: test.TestNamespace,
-		},
-		Spec: greenhousev1alpha1.ClusterSpec{
-			AccessMode: greenhousev1alpha1.ClusterAccessModeDirect,
-		},
-	}
-)
-
-// setupOrgResources creates necessary static org resources for the tests
-func setupOrgResources() {
-	Expect(test.K8sClient.Create(test.Ctx, testcluster)).To(Succeed())
-}

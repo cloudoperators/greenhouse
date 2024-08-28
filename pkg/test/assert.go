@@ -16,11 +16,13 @@ import (
 // EventuallyDeleted deletes the object and waits until it is gone. Early return if the delete fails with NotFound
 func EventuallyDeleted(ctx context.Context, c client.Client, obj client.Object) {
 	GinkgoHelper()
-	err := c.Delete(ctx, obj)
-	if apierrors.IsNotFound(err) {
-		return
-	}
-	Expect(err).Should(Succeed(), "there should be no error deleting the object")
+	Eventually(func() bool {
+		if err := c.Delete(ctx, obj); err != nil {
+			return apierrors.IsNotFound(err)
+		}
+		return true
+	}).Should(BeTrue(), "there should be no error deleting the object")
+
 	Eventually(func() bool {
 		return apierrors.IsNotFound(c.Get(ctx, client.ObjectKeyFromObject(obj), obj))
 	}).Should(BeTrue(), "there should be no error deleting the object")

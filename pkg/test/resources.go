@@ -142,6 +142,97 @@ func (t *TestSetup) CreateOrganization(ctx context.Context, name string) *greenh
 	return org
 }
 
+// WithVersion sets the version of a PluginDefinition
+func WithVersion(version string) func(*greenhousev1alpha1.PluginDefinition) {
+	return func(pd *greenhousev1alpha1.PluginDefinition) {
+		pd.Spec.Version = version
+	}
+}
+
+// WithHelmChart sets the HelmChart of a PluginDefinition
+func WithHelmChart(chart *greenhousev1alpha1.HelmChartReference) func(*greenhousev1alpha1.PluginDefinition) {
+	return func(pd *greenhousev1alpha1.PluginDefinition) {
+		pd.Spec.HelmChart = chart
+	}
+}
+
+// CreatePluginDefinition creates and returns a PluginDefinition object. Opts can be used to set the desired state of the PluginDefinition.
+func (t *TestSetup) CreatePluginDefinition(ctx context.Context, name string, opts ...func(*greenhousev1alpha1.PluginDefinition)) *greenhousev1alpha1.PluginDefinition {
+	GinkgoHelper()
+	pd := &greenhousev1alpha1.PluginDefinition{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "PluginDefinition",
+			APIVersion: greenhousev1alpha1.GroupVersion.String(),
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      t.RandomizeName(name),
+			Namespace: t.Namespace(),
+		},
+		Spec: greenhousev1alpha1.PluginDefinitionSpec{
+			Description: "TestPluginDefinition",
+			Version:     "1.0.0",
+			HelmChart: &greenhousev1alpha1.HelmChartReference{
+				Name:       "./../../test/fixtures/myChart",
+				Repository: "dummy",
+				Version:    "1.0.0",
+			},
+		},
+	}
+	for _, o := range opts {
+		o(pd)
+	}
+
+	Expect(t.Create(ctx, pd)).Should(Succeed(), "there should be no error creating the PluginDefinition")
+	return pd
+}
+
+// WithPluginDefinition sets the PluginDefinition of a Plugin
+func WithPluginDefinition(pluginDefinition string) func(*greenhousev1alpha1.Plugin) {
+	return func(p *greenhousev1alpha1.Plugin) {
+		p.Spec.PluginDefinition = pluginDefinition
+	}
+}
+
+// WithReleaseNamespace sets the ReleaseNamespace of a Plugin
+func WithReleaseNamespace(releaseNamespace string) func(*greenhousev1alpha1.Plugin) {
+	return func(p *greenhousev1alpha1.Plugin) {
+		p.Spec.ReleaseNamespace = releaseNamespace
+	}
+}
+
+// WithCluster sets the Cluster for a Plugin
+func WithCluster(cluster string) func(*greenhousev1alpha1.Plugin) {
+	return func(p *greenhousev1alpha1.Plugin) {
+		p.Spec.ClusterName = cluster
+	}
+}
+
+func (t *TestSetup) NewPlugin(ctx context.Context, name string, opts ...func(*greenhousev1alpha1.Plugin)) *greenhousev1alpha1.Plugin {
+	GinkgoHelper()
+	plugin := &greenhousev1alpha1.Plugin{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "Plugin",
+			APIVersion: greenhousev1alpha1.GroupVersion.String(),
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      t.RandomizeName(name),
+			Namespace: t.Namespace(),
+		},
+	}
+	for _, o := range opts {
+		o(plugin)
+	}
+	return plugin
+}
+
+// CreatePlugin creates and returns a Plugin object. Opts can be used to set the desired state of the Plugin.
+func (t *TestSetup) CreatePlugin(ctx context.Context, name string, opts ...func(*greenhousev1alpha1.Plugin)) *greenhousev1alpha1.Plugin {
+	GinkgoHelper()
+	plugin := t.NewPlugin(ctx, name, opts...)
+	Expect(t.Create(ctx, plugin)).Should(Succeed(), "there should be no error creating the Plugin")
+	return plugin
+}
+
 // WithRules overrides the default rules of a TeamRole
 func WithRules(rules []rbacv1.PolicyRule) func(*greenhousev1alpha1.TeamRole) {
 	return func(tr *greenhousev1alpha1.TeamRole) {
