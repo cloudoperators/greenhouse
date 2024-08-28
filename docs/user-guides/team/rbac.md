@@ -27,21 +27,22 @@ Common roles including the below `cluster-admin` are pre-defined within each org
 
 ### Cluster administrator
 
-This TeamRole named cluster-admin grants full access to all resources in all API groups.
+This TeamRole named `pod-read` grants read access to Pods!.
 
 ```yaml
 apiVersion: greenhouse.sap/v1alpha1
 kind: TeamRole
 metadata:
-  name: cluster-admin
+  name: pod-read
 spec:
   rules:
     - apiGroups:
-        - "*"
+        - ""
       resources:
-        - "*"
+        - "pods"
       verbs:
-        - "*"
+        - "get"
+        - "list"
 ```
 
 ## Defining TeamRoleBindings
@@ -54,7 +55,7 @@ The TeamRoleBinding Controller within Greenhouse deploys rbacv1 resources to the
 
 Roles are assigned to teams through the TeamRoleBinding configuration, which links teams to their respective roles within specific clusters.
 
-This TeamRoleBinding assigns the `cluster-admin` TeamRole to the Team named `my-team` in the Cluster named `my-cluster`.
+This TeamRoleBinding assigns the `pod-read` TeamRole to the Team named `my-team` in the Cluster named `my-cluster`.
 
 Example: `team-rolebindings.yaml`
 
@@ -62,10 +63,10 @@ Example: `team-rolebindings.yaml`
 apiVersion: greenhouse.sap/v1alpha1
 kind: TeamRoleBinding
 metadata:
-  name: my-cluster-admin
+  name: my-team-read-access
 spec:
   teamRef: my-team
-  roleRef: cluster-admin
+  roleRef: pod-read
   clusterName: my-cluster
 ```
 
@@ -73,7 +74,7 @@ spec:
 
 It is also possible to use a LabelSelector to assign TeamRoleBindings to multiple Clusters at once.
 
-This TeamRoleBinding assigns the `cluster-admin` TeamRole to the Team named `my-team` in all Clusters with the label `environment: production`.
+This TeamRoleBinding assigns the `pod-read` TeamRole to the Team named `my-team` in all Clusters with the label `environment: production`.
 
 ```yaml
 apiVersion: greenhouse.sap/v1alpha1
@@ -82,7 +83,7 @@ metadata:
   name: production-cluster-admins
 spec:
   teamRef: my-team
-  roleRef: cluster-admin
+  roleRef: pod-read
   clusterSelector:
     matchLabels:
       environment: production
@@ -92,45 +93,79 @@ spec:
 
 It is possible with RBAC to aggregate rbacv1.ClusterRoles. This is also supported for TeamRoles. By specifying `.spec.Labels` on a TeamRole the resulting ClusterRole on the target cluster will have the same labels set. Then it is possible to aggregate multiple ClusterRole resources by using a rbacv1.AggregationRule. This can be specified on a TeamRole by setting `.spec.aggregationRule`.
 
+More details on the concept of Aggregated ClusterRoles can be found in the Kubernetes documentation: [Aggregated ClusterRoles](https://kubernetes.io/docs/reference/access-authn-authz/rbac/#aggregated-clusterroles)
+
 [!NOTE] A TeamRole is only created on a cluster if it is referenced by a TeamRoleBinding. If a TeamRole is not referenced by a TeamRoleBinding it will not be created on any target cluster. A TeamRoleBinding referencing a TeamRole with an aggregationRule will only provide the correct access, if there is at least one TeamRoleBinding referencing a TeamRole with the corresponding label deployed to the same cluster.
 
 The following example shows how to an AggregationRule can be used with TeamRoles and TeamRoleBindings.
 
-This TeamRole has a label set. This label will be set on the resulting ClusterRole on the target cluster.
+This TeamRole specifies `.spec.Labels`. The labels will be applied to the resulting ClusterRole on the target cluster.
 
 ```yaml
 apiVersion: greenhouse.sap/v1alpha1
 kind: TeamRole
 metadata:
-  name: cluster-admin
+  name: pod-read
 spec:
   labels:
     aggregate: "true"
   rules:
     - apiGroups:
-        - "*"
+        - ""
       resources:
-        - "*"
+        - "pods"
       verbs:
-        - "*"
+        - "get"
+        - "list"
 ```
 
-This TeamRoleBinding assigns the `cluster-admin` TeamRole to the Team named `my-team` in all Clusters with the label `environment: production`.
+This TeamRoleBinding assigns the `pod-read` TeamRole to the Team named `my-team` in all Clusters with the label `environment: production`.
 
 ```yaml
 apiVersion: greenhouse.sap/v1alpha1
 kind: TeamRoleBinding
 metadata:
-  name: production-cluster-admins
+  name: production-pod-read
 spec:
   teamRef: my-team
-  roleRef: cluster-admin
+  roleRef: pod-read
   clusterSelector:
     matchLabels:
       environment: production
 ```
 
-This TeamRole has an aggregationRule set. This aggregationRule will be added to the ClusterRole created on the target clusters.
+This creates another TeamRole and TeamRoleBinding including the same labels as above.
+
+```yaml
+apiVersion: greenhouse.sap/v1alpha1
+kind: TeamRole
+metadata:
+  name: pod-edit
+spec:
+  labels:
+    aggregate: "true"
+  rules:
+    - apiGroups:
+        - ""
+      resources:
+        - "pod"
+      verbs:
+        - "update"
+        - "patch"
+---
+apiVersion: greenhouse.sap/v1alpha1
+kind: TeamRoleBinding
+metadata:
+  name: production-pod-edit
+spec:
+  teamRef: my-team
+  roleRef: pod-edit
+  clusterSelector:
+    matchLabels:
+      environment: production
+```
+
+This TeamRole has an aggregationRule set. This aggregationRule will be added to the ClusterRole created on the target clusters. With the aggregationRule set it will aggregate the ClusterRoles created by the TeamRoles with the label `aggregate: "true"`. The team will have the permissions of both TeamRoles and will be able to `get`, `list`, `update` and `patch` Pods.
 
 ```yaml
 apiVersion: greenhouse.sap/v1alpha1
@@ -150,7 +185,7 @@ kind: TeamRoleBinding
 metadata:
   name: aggregated-rolebinding
 spec:
-  teamRef: my-team
+  teamRef: operators
   roleRef: aggregated-role
   clusterSelector:
     matchLabels:
