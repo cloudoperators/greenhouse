@@ -187,7 +187,7 @@ func CheckIfFileExists(f string) bool {
 	return !os.IsNotExist(err)
 }
 
-func FileCleanUp(files ...string) {
+func CleanUp(files ...string) {
 	// clean up the tmp files
 	for _, file := range files {
 		if err := os.Remove(file); err != nil {

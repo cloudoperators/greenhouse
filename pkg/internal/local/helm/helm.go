@@ -6,6 +6,7 @@ package helm
 import (
 	"context"
 	"errors"
+	"helm.sh/helm/v3/pkg/release"
 	"os"
 
 	"gopkg.in/yaml.v3"
@@ -14,16 +15,16 @@ import (
 	"helm.sh/helm/v3/pkg/chart/loader"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 
-	"github.com/cloudoperators/greenhouse/pkg/internal/local/klient"
 	"github.com/cloudoperators/greenhouse/pkg/internal/local/utils"
 )
 
 type Options struct {
-	ClusterName string
-	ReleaseName string
-	Namespace   string
-	ChartPath   string
-	ValuesPath  *string
+	ClusterName    string
+	ReleaseName    string
+	Namespace      string
+	ChartPath      string
+	ValuesPath     *string
+	KubeConfigPath string
 }
 
 type helmValues map[string]interface{}
@@ -72,32 +73,40 @@ func WithValuesPath(valuesPath string) ClientOption {
 	}
 }
 
+// WithKubeConfigPath - sets the kubeConfigPath flag for the helm client
+func WithKubeConfigPath(kubeConfigPath string) ClientOption {
+	return func(h *Options) {
+		h.KubeConfigPath = kubeConfigPath
+	}
+}
+
 // apply - applies the Options to the client
 func apply(options *Options) *client {
 	return &client{
-		clusterName: options.ClusterName,
-		chartPath:   options.ChartPath,
-		releaseName: options.ReleaseName,
-		namespace:   options.Namespace,
-		valuesPath:  options.ValuesPath,
+		clusterName:    options.ClusterName,
+		chartPath:      options.ChartPath,
+		releaseName:    options.ReleaseName,
+		namespace:      options.Namespace,
+		valuesPath:     options.ValuesPath,
+		kubeConfigPath: options.KubeConfigPath,
 	}
 }
 
 type client struct {
-	install           *action.Install
-	upgrade           *action.Upgrade
-	clusterName       string
-	releaseName       string
-	namespace         string
-	chartPath         string
-	values            map[string]interface{}
-	valuesPath        *string
-	tmpKubeConfigPath string
+	install        *action.Install
+	upgrade        *action.Upgrade
+	clusterName    string
+	releaseName    string
+	namespace      string
+	chartPath      string
+	values         map[string]interface{}
+	valuesPath     *string
+	kubeConfigPath string
 }
 
 // IHelm - interface wrapper for an actual Helm client
 type IHelm interface {
-	Install(ctx context.Context) (string, error)
+	Install(ctx context.Context, dryRun bool) (*release.Release, error)
 	Template(ctx context.Context) (string, error)
 }
 
@@ -123,27 +132,20 @@ func NewClient(ctx context.Context, opts ...ClientOption) (IHelm, error) {
 	if hc.chartPath == "" {
 		return nil, errors.New("chart path must be provided")
 	}
+	if hc.kubeConfigPath == "" {
+		return nil, errors.New("missing kubeconfig path")
+	}
 	if hc.valuesPath == nil {
 		hc.values = utils.GetManagerHelmValues()
 	}
 
 	flags := &genericclioptions.ConfigFlags{
-		Namespace: &hc.namespace,
+		Namespace:  &hc.namespace,
+		KubeConfig: &hc.kubeConfigPath,
 	}
-
-	configStr, err := klient.GetKubeCfg(hc.clusterName, false)
-	if err != nil {
-		return nil, err
-	}
-	tmpKubeConfigPath, err := utils.RandomWriteToTmpFolder(hc.clusterName, configStr)
-	if err != nil {
-		return nil, err
-	}
-	hc.tmpKubeConfigPath = tmpKubeConfigPath
-	flags.KubeConfig = &tmpKubeConfigPath
 
 	actionConfig := new(action.Configuration)
-	err = actionConfig.Init(
+	err := actionConfig.Init(
 		flags,
 		hc.namespace,
 		"secret",
@@ -158,28 +160,27 @@ func NewClient(ctx context.Context, opts ...ClientOption) (IHelm, error) {
 }
 
 // Install - installs the helm chart
-func (c *client) Install(ctx context.Context) (string, error) {
+func (c *client) Install(ctx context.Context, dryRun bool) (*release.Release, error) {
+	c.install.ReleaseName = c.releaseName
+	c.install.Namespace = c.namespace
+	c.install.IncludeCRDs = true
+	c.install.DryRun = dryRun
 	localChart, vals, err := c.prepareChartAndValues()
 	if err != nil {
-		return "", err
+		return nil, err
 	}
-	rel, err := c.install.RunWithContext(ctx, localChart, vals)
-	if err != nil {
-		return "", err
-	}
-	return rel.Manifest, nil
+	return c.install.RunWithContext(ctx, localChart, vals)
 }
 
 // Template - returns the rendered template of the chart
 func (c *client) Template(ctx context.Context) (string, error) {
-	c.install.ReleaseName = c.releaseName
-	c.install.Namespace = c.namespace
-	c.install.DryRun = true
-	c.install.IncludeCRDs = true
-	c.install.IsUpgrade = true // need it during dryRun to avoid missing helm labels - validation err
-	c.install.Force = true
-	defer utils.FileCleanUp(c.tmpKubeConfigPath)
-	return c.Install(ctx)
+	c.install.Force = true     // only for template functionality
+	c.install.IsUpgrade = true // to avoid missing helm label validation error - ex: CRD doesn't carry helm label
+	rel, err := c.Install(ctx, true)
+	if err != nil {
+		return "", err
+	}
+	return rel.Manifest, nil
 }
 
 // prepareChartAndValues - loads the chart from the given local path and values specified

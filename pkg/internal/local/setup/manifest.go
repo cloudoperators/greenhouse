@@ -31,7 +31,7 @@ func limitedManifestSetup(ctx context.Context, m *Manifest) Step {
 		if env.cluster.Namespace != nil {
 			namespace = *env.cluster.Namespace
 		}
-		err := m.prepareHelmClient(ctx, m, clusterName, namespace)
+		err := m.prepareHelmClient(ctx, m, clusterName, namespace, env.cluster.kubeConfigPath)
 		if err != nil {
 			return err
 		}
@@ -52,7 +52,7 @@ func allManifestSetup(ctx context.Context, m *Manifest) Step {
 		if env.cluster.Namespace != nil {
 			namespace = *env.cluster.Namespace
 		}
-		err := m.prepareHelmClient(ctx, m, clusterName, namespace)
+		err := m.prepareHelmClient(ctx, m, clusterName, namespace, env.cluster.kubeConfigPath)
 		if err != nil {
 			return err
 		}
@@ -76,7 +76,7 @@ func webhookManifestSetup(ctx context.Context, m *Manifest) Step {
 		if env.cluster.Namespace != nil {
 			namespace = *env.cluster.Namespace
 		}
-		err := m.prepareHelmClient(ctx, m, clusterName, namespace)
+		err := m.prepareHelmClient(ctx, m, clusterName, namespace, env.cluster.kubeConfigPath)
 		if err != nil {
 			return err
 		}
@@ -107,13 +107,14 @@ func webhookManifestSetup(ctx context.Context, m *Manifest) Step {
 	}
 }
 
-func (m *Manifest) prepareHelmClient(ctx context.Context, manifest *Manifest, clusterName, namespace string) error {
+func (m *Manifest) prepareHelmClient(ctx context.Context, manifest *Manifest, clusterName, namespace, kubeConfigPath string) error {
 	opts := make([]helm.ClientOption, 0)
 	opts = append(opts, helm.WithChartPath(manifest.ChartPath))
 	opts = append(opts, helm.WithClusterName(clusterName))
 	opts = append(opts, helm.WithNamespace(namespace))
 	opts = append(opts, helm.WithReleaseName(manifest.ReleaseName))
 	opts = append(opts, helm.WithValuesPath(manifest.ValuesPath))
+	opts = append(opts, helm.WithKubeConfigPath(kubeConfigPath))
 	hc, err := helm.NewClient(ctx, opts...)
 	if err != nil {
 		return err
@@ -168,6 +169,7 @@ func (m *Manifest) apply(manifests, namespace, kubeConfigPath string) error {
 	if err != nil {
 		return err
 	}
+	defer utils.CleanUp(tmpResourcePath)
 	sh.Cmd = fmt.Sprintf("kubectl apply --kubeconfig=%s -f %s -n %s", kubeConfigPath, tmpResourcePath, namespace)
 	return sh.Exec()
 }
