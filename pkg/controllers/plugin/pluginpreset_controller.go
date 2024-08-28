@@ -226,10 +226,6 @@ func shouldSkipPlugin(plugin *greenhousev1alpha1.Plugin, preset *greenhousev1alp
 		return true
 	}
 
-	if preset.Spec.Plugin.PluginDefinition != plugin.Spec.PluginDefinition {
-		return false
-	}
-
 	for _, presetOptionValue := range preset.Spec.Plugin.OptionValues {
 		if !containsPluginOption(plugin.Spec.OptionValues, presetOptionValue) {
 			return false

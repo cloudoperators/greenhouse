@@ -269,27 +269,6 @@ var _ = Describe("Plugin Preset skip changes", Ordered, func() {
 						greenhouseapis.LabelKeyPluginPreset: pluginPresetName,
 					},
 				},
-				Spec: greenhousev1alpha1.PluginSpec{PluginDefinition: pluginPresetDefinitionName + "A"},
-			},
-			&greenhousev1alpha1.PluginPreset{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: pluginPresetName,
-				},
-				Spec: greenhousev1alpha1.PluginPresetSpec{
-					Plugin: greenhousev1alpha1.PluginSpec{
-						PluginDefinition: pluginPresetDefinitionName,
-					},
-				},
-			},
-			false,
-		),
-		Entry("should not skip when plugin definition is different between plugin and plugin preset",
-			&greenhousev1alpha1.Plugin{
-				ObjectMeta: metav1.ObjectMeta{
-					Labels: map[string]string{
-						greenhouseapis.LabelKeyPluginPreset: pluginPresetName,
-					},
-				},
 				Spec: greenhousev1alpha1.PluginSpec{
 					PluginDefinition: pluginPresetDefinitionName,
 					OptionValues: []greenhousev1alpha1.PluginOptionValue{
