@@ -67,6 +67,7 @@ var _ = Describe("Validate Role Admission", func() {
 
 		err := test.K8sClient.Create(test.Ctx, teamRole)
 		Expect(err).To(HaveOccurred(), "there should be an error creating the role with both rules and aggregation rule set")
+		Expect(err.Error()).To(ContainSubstring(errAggregationRuleAndRulesExclusive), "unexpected error message")
 	})
 
 	It("should not allow to add Rules to a TeamRole with AggregationRule set", func() {

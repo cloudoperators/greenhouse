@@ -555,6 +555,8 @@ var _ = Describe("Validate ClusterRole & RoleBinding on Remote Cluster", Ordered
 			aggregateClusterRoleName := types.NamespacedName{Name: trAggregate.GetRBACName()}
 			Eventually(func(g Gomega) bool {
 				g.Expect(clusterAKubeClient.Get(test.Ctx, aggregateClusterRoleName, aggregateClusterRole)).To(Succeed(), "there should be no error getting the ClusterRole from the Remote Cluster")
+				// The dev-env does not start the Kubernetes ControllerManager, thus the ClusterRoles are not reconciled and we can only check that it was
+				// created with the correct AggregationRule.
 				g.Expect(aggregateClusterRole.AggregationRule).To(Equal(trAggregate.Spec.AggregationRule), "the Aggregate ClusterRole should have the same AggregationRule as the Base ClusterRole")
 				return true
 			}).Should(BeTrue(), "the ClusterRole should exists and have the correct rules")

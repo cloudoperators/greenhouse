@@ -19,6 +19,8 @@ import (
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/pkg/apis/greenhouse/v1alpha1"
 )
 
+const errAggregationRuleAndRulesExclusive = ".spec.rules and .spec.aggregationRule are mutually exclusive"
+
 // Webhook for the Role custom resource.
 
 func SetupTeamRoleWebhookWithManager(mgr ctrl.Manager) error {
@@ -105,7 +107,7 @@ func isRoleReferenced(ctx context.Context, c client.Client, r *greenhousev1alpha
 // Returning the error in case both are defined will prevent unexpected behavior by the User.
 func isRulesAndAggregationRuleExclusive(role *greenhousev1alpha1.TeamRole) error {
 	if len(role.Spec.Rules) != 0 && role.Spec.AggregationRule != nil {
-		return apierrors.NewBadRequest("aggregationRules and rules are mutually exclusive")
+		return apierrors.NewBadRequest(errAggregationRuleAndRulesExclusive)
 	}
 	return nil
 }
