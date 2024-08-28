@@ -9,7 +9,7 @@ This handy CLI tool will help you to setup your development environment in no ti
   
 You can use `greenhousectl` either by downloading the latest binary from [here](https://github.com/cloudoperators/greenhouse/releases)
   
-Or you can build it from source by running the following command: `make build-cli`
+Or you can build it from source by running the following command: `build-greenhousectl`
   
 > [!NOTE]  
 > The CLI binary will be available in the `bin` folder
