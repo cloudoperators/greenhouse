@@ -193,7 +193,7 @@ func computeWorkloadCondition(plugin *greenhousev1alpha1.Plugin, pluginStatus gr
 		WorkloadReadyStatus.Message = "Following workload resources are not ready: [ "
 		for _, status := range release.PayloadStatus {
 			if !status.Ready {
-				WorkloadReadyStatus.Message += status.Message + ", "
+				WorkloadReadyStatus.Message += ", " + status.Message
 			}
 		}
 		WorkloadReadyStatus.Message += " ]"
