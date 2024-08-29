@@ -81,16 +81,17 @@ func getKindClusters() ([]string, error) {
 }
 
 // CreateNamespace - creates a namespace with the given name
-func CreateNamespace(namespaceName string) error {
+func CreateNamespace(namespaceName, kubeconfig string) error {
 	if strings.TrimSpace(namespaceName) == "" {
 		return errors.New("namespace name cannot be empty")
 	}
 	return utils.ShellPipe{
 		Shells: []utils.Shell{
 			{
-				Cmd: "kubectl create namespace ${namespace} --dry-run=client -o yaml",
+				Cmd: "kubectl create namespace ${namespace} --kubeconfig=${kubeconfig} --dry-run=client -o yaml",
 				Vars: map[string]string{
-					"namespace": namespaceName,
+					"namespace":  namespaceName,
+					"kubeconfig": kubeconfig,
 				},
 			},
 			{
