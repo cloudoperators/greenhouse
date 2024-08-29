@@ -1,7 +1,7 @@
 openapi: 3.0.0
 info:
   title: Greenhouse
-  version: 78b301e
+  version: e7f4fd6
   description: PlusOne operations platform
 paths:
   /Team:
