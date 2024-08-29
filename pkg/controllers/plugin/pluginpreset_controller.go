@@ -227,22 +227,14 @@ func shouldSkipPlugin(plugin *greenhousev1alpha1.Plugin, preset *greenhousev1alp
 	}
 
 	for _, presetOptionValue := range preset.Spec.Plugin.OptionValues {
-		if !containsPluginOption(plugin.Spec.OptionValues, presetOptionValue) {
+		if !slices.ContainsFunc(plugin.Spec.OptionValues, func(item greenhousev1alpha1.PluginOptionValue) bool {
+			return item.Name == presetOptionValue.Name && string(item.Value.Raw) == string(presetOptionValue.Value.Raw)
+		}) {
 			return false
 		}
 	}
 
 	return len(preset.Spec.Plugin.OptionValues) >= countWithoutGlobalOption(plugin.Spec.OptionValues)
-}
-
-func containsPluginOption(list []greenhousev1alpha1.PluginOptionValue, kv greenhousev1alpha1.PluginOptionValue) bool {
-	for _, item := range list {
-		if item.Name == kv.Name && string(item.Value.Raw) == string(kv.Value.Raw) {
-			return true
-		}
-	}
-
-	return false
 }
 
 func countWithoutGlobalOption(list []greenhousev1alpha1.PluginOptionValue) int {

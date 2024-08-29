@@ -336,6 +336,61 @@ var _ = Describe("Plugin Preset skip changes", Ordered, func() {
 			},
 			false,
 		),
+		Entry("should not skip when one of plugin preset option has different value",
+			&greenhousev1alpha1.Plugin{
+				ObjectMeta: metav1.ObjectMeta{
+					Labels: map[string]string{
+						greenhouseapis.LabelKeyPluginPreset: pluginPresetName,
+					},
+				},
+				Spec: greenhousev1alpha1.PluginSpec{
+					PluginDefinition: pluginPresetDefinitionName,
+					OptionValues: []greenhousev1alpha1.PluginOptionValue{
+						{
+							Name:  "global.greenhouse.test_parameter",
+							Value: asAPIextensionJSON(2),
+						},
+						{
+							Name:  "plugin_preset.test_parameter_1",
+							Value: asAPIextensionJSON(1),
+						},
+						{
+							Name:  "plugin_preset.test_parameter_2",
+							Value: asAPIextensionJSON(2),
+						},
+						{
+							Name:  "plugin_preset.test_parameter_4",
+							Value: asAPIextensionJSON(3),
+						},
+					},
+				},
+			},
+			&greenhousev1alpha1.PluginPreset{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: pluginPresetName,
+				},
+				Spec: greenhousev1alpha1.PluginPresetSpec{
+					Plugin: greenhousev1alpha1.PluginSpec{
+						PluginDefinition: pluginPresetDefinitionName,
+						OptionValues: []greenhousev1alpha1.PluginOptionValue{
+							{
+								Name:  "plugin_preset.test_parameter_1",
+								Value: asAPIextensionJSON(1),
+							},
+							{
+								Name:  "plugin_preset.test_parameter_2",
+								Value: asAPIextensionJSON(2),
+							},
+							{
+								Name:  "plugin_preset.test_parameter_4",
+								Value: asAPIextensionJSON(4),
+							},
+						},
+					},
+				},
+			},
+			false,
+		),
 		Entry("should skip when plugin preset has the same values like plugin",
 			&greenhousev1alpha1.Plugin{
 				ObjectMeta: metav1.ObjectMeta{
