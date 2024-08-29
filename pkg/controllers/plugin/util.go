@@ -210,7 +210,7 @@ func setWorkloadMetrics(plugin *greenhousev1alpha1.Plugin, status float64) {
 	workloadStatus.WithLabelValues(plugin.GetNamespace(), plugin.Name, plugin.Spec.PluginDefinition).Set(status)
 }
 
-func ComputeReadyCondition(
+func computeReadyCondition(
 	conditions greenhousev1alpha1.StatusConditions,
 ) (readyCondition greenhousev1alpha1.Condition) {
 
