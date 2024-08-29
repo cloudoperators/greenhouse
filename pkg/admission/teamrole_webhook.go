@@ -44,7 +44,6 @@ func DefaultRole(_ context.Context, _ client.Client, _ runtime.Object) error {
 //+kubebuilder:webhook:path=/validate-greenhouse-sap-v1alpha1-teamrole,mutating=false,failurePolicy=fail,sideEffects=None,groups=greenhouse.sap,resources=teamroles,verbs=create;update;delete,versions=v1alpha1,name=vrole.kb.io,admissionReviewVersions=v1
 
 func ValidateCreateRole(_ context.Context, c client.Client, o runtime.Object) (admission.Warnings, error) {
-
 	role, ok := o.(*greenhousev1alpha1.TeamRole)
 	if !ok {
 		return nil, nil
@@ -57,8 +56,8 @@ func ValidateCreateRole(_ context.Context, c client.Client, o runtime.Object) (a
 	return nil, nil
 }
 
-func ValidateUpdateRole(_ context.Context, c client.Client, _, new runtime.Object) (admission.Warnings, error) {
-	role, ok := new.(*greenhousev1alpha1.TeamRole)
+func ValidateUpdateRole(_ context.Context, c client.Client, _, o runtime.Object) (admission.Warnings, error) {
+	role, ok := o.(*greenhousev1alpha1.TeamRole)
 	if !ok {
 		return nil, nil
 	}

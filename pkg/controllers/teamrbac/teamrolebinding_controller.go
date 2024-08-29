@@ -328,11 +328,11 @@ func (r *TeamRoleBindingReconciler) cleanupCluster(ctx context.Context, trb *gre
 
 // initRBACClusterRole returns a ClusterRole that matches the spec defined by the Greenhouse Role
 func initRBACClusterRole(teamRole *greenhousev1alpha1.TeamRole) *rbacv1.ClusterRole {
-	labels := teamRole.Spec.Labels
-	if len(labels) == 0 {
-		labels = make(map[string]string, 1)
+	roleLabels := teamRole.Spec.Labels
+	if len(roleLabels) == 0 {
+		roleLabels = make(map[string]string, 1)
 	}
-	labels[greenhouseapis.LabelKeyRole] = teamRole.GetName()
+	roleLabels[greenhouseapis.LabelKeyRole] = teamRole.GetName()
 
 	clusterRole := &rbacv1.ClusterRole{
 		TypeMeta: metav1.TypeMeta{
@@ -341,7 +341,7 @@ func initRBACClusterRole(teamRole *greenhousev1alpha1.TeamRole) *rbacv1.ClusterR
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:   teamRole.GetRBACName(),
-			Labels: labels,
+			Labels: roleLabels,
 		},
 		Rules:           teamRole.DeepCopy().Spec.Rules,
 		AggregationRule: teamRole.Spec.AggregationRule.DeepCopy(),
