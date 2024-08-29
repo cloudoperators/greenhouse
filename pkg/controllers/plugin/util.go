@@ -196,6 +196,7 @@ func computeWorkloadCondition(plugin *greenhousev1alpha1.Plugin, pluginStatus gr
 				WorkloadReadyStatus.Message += ", " + status.Message
 			}
 		}
+                 WorkloadReadyStatus.Message = strings.TrimPrefix(WorkloadReadyStatus.Message, ", ")
 		WorkloadReadyStatus.Message += " ]"
 	} else {
 		setWorkloadMetrics(plugin, 1)
