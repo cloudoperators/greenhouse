@@ -67,18 +67,15 @@ func processSetup(cmd *cobra.Command, _ []string) error {
 	}
 
 	for _, cfg := range config.Config {
-		var cluster, namespace string
+		namespace := ""
 		if cfg.Cluster == nil {
 			return errors.New("cluster config is missing")
 		}
-		cluster = cfg.Cluster.Name
-		if cfg.Cluster.Namespace == nil {
-			namespace = ""
-		} else {
+		if cfg.Cluster.Namespace != nil {
 			namespace = *cfg.Cluster.Namespace
 		}
 		env := setup.NewExecutionEnv().
-			WithClusterSetup(cluster, namespace)
+			WithClusterSetup(cfg.Cluster.Name, namespace)
 		for _, dep := range cfg.Dependencies {
 			if dep.Manifest != nil && dep.Manifest.Webhook == nil {
 				env = env.WithLimitedManifests(ctx, dep.Manifest)
