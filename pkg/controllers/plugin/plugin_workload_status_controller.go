@@ -120,11 +120,18 @@ func (r *WorkLoadStatusReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 		return ctrl.Result{}, err
 	}
 
+	pluginStatus := initPluginStatus(plugin)
+
+	defer func() {
+		if statusErr := r.setStatus(ctx, plugin, pluginStatus); statusErr != nil {
+			log.FromContext(ctx).Error(statusErr, "failed to set status")
+		}
+	}()
+
 	if plugin.DeletionTimestamp != nil || pluginDefinition.Spec.HelmChart == nil {
 		return ctrl.Result{}, nil
 	}
 
-	pluginStatus := initPluginStatus(plugin)
 	clusterAccessReadyCondition, restClientGetter := initClientGetter(ctx, r.Client, r.kubeClientOpts, *plugin, plugin.Status)
 	pluginStatus.StatusConditions.SetConditions(clusterAccessReadyCondition)
 	if !clusterAccessReadyCondition.IsTrue() {
@@ -155,10 +162,6 @@ func (r *WorkLoadStatusReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 
 		workloadCondition := computeWorkloadCondition(plugin, pluginStatus, releaseStatus)
 		pluginStatus.StatusConditions.SetConditions(workloadCondition)
-
-		if statusErr := r.setStatus(ctx, plugin, pluginStatus); statusErr != nil {
-			log.FromContext(ctx).Error(statusErr, "failed to set status")
-		}
 	}
 	return ctrl.Result{RequeueAfter: StatusRequeueInterval}, nil
 }
@@ -193,7 +196,7 @@ func getPayloadStatus(ctx context.Context, releaseStatus *ReleaseStatus, cl clie
 		status.UnavailableReplicas += remoteObject.Status.UnavailableReplicas
 		if !isPayloadReadyRunning(remoteObject) {
 			status.Ready = false
-			status.Message = fmt.Sprintf("Following workload resources are not ready: %s/%s", gvk.Kind, objName)
+			status.Message = fmt.Sprintf("%s/%s", gvk.Kind, objName)
 			releaseStatus.PayloadStatus = append(releaseStatus.PayloadStatus, *status)
 		} else {
 			releaseStatus.PayloadStatus = append(releaseStatus.PayloadStatus, *status)
@@ -211,7 +214,7 @@ func getPayloadStatus(ctx context.Context, releaseStatus *ReleaseStatus, cl clie
 
 		if !isPayloadReadyRunning(remoteObject) {
 			status.Ready = false
-			status.Message = fmt.Sprintf("Following workload resources are not ready: %s/%s", gvk.Kind, objName)
+			status.Message = fmt.Sprintf("%s/%s", gvk.Kind, objName)
 			releaseStatus.PayloadStatus = append(releaseStatus.PayloadStatus, *status)
 		} else {
 			releaseStatus.PayloadStatus = append(releaseStatus.PayloadStatus, *status)
