@@ -27,15 +27,15 @@ import (
 
 func Log(args ...any) {
 	args[0] = "===== 🤖 " + args[0].(string)
-	klog.Info(args...)
+	klog.InfoDepth(1, args...)
 }
 
 func Logf(format string, args ...any) {
-	klog.Infof("===== 🤖 "+format, args...)
+	klog.InfofDepth(1, "===== 🤖 "+format, args...)
 }
 
 func LogErr(format string, args ...any) {
-	klog.Infof("===== 😵 "+format, args...)
+	klog.InfofDepth(1, "===== 😵 "+format, args...)
 }
 
 func NewKLog(ctx context.Context) logr.Logger {
