@@ -128,11 +128,7 @@ check: fmt lint test
 .PHONY: cli
 cli: $(CLI)
 $(CLI): $(LOCALBIN)
-	test -s $(LOCALBIN)/greenhousectl || echo "Building Greenhouse CLI..." && make build-cli
-
-.PHONY: build-cli
-build-cli:
-	go build -ldflags "-s -w -X github.com/cloudoperators/greenhouse/pkg/version.GitBranch=$(GIT_BRANCH) -X github.com/cloudoperators/greenhouse/pkg/version.GitCommit=$(GIT_COMMIT) -X github.com/cloudoperators/greenhouse/pkg/version.GitState=$(GIT_STATE) -X github.com/cloudoperators/greenhouse/pkg/version.BuildDate=$(BUILD_DATE)" -o bin/greenhousectl ./cmd/greenhousectl
+	test -s $(LOCALBIN)/greenhousectl || echo "Building Greenhouse CLI..." && make build-greenhousectl
 
 ##@ Build
 .PHONY: build
