@@ -149,9 +149,21 @@ func WithRules(rules []rbacv1.PolicyRule) func(*greenhousev1alpha1.TeamRole) {
 	}
 }
 
-// CreateTeamRole returns a TeamRole object. Opts can be used to set the desired state of the TeamRole.
-func (t *TestSetup) CreateTeamRole(ctx context.Context, name string, opts ...func(*greenhousev1alpha1.TeamRole)) *greenhousev1alpha1.TeamRole {
-	GinkgoHelper()
+// WithAggregationRule sets the AggregationRule on a TeamRole
+func WithAggregationRule(aggregationRule *rbacv1.AggregationRule) func(*greenhousev1alpha1.TeamRole) {
+	return func(tr *greenhousev1alpha1.TeamRole) {
+		tr.Spec.AggregationRule = aggregationRule
+	}
+}
+
+// WithLabels sets the .spec.Labels on a TeamRole
+func WithLabels(labels map[string]string) func(*greenhousev1alpha1.TeamRole) {
+	return func(tr *greenhousev1alpha1.TeamRole) {
+		tr.Spec.Labels = labels
+	}
+}
+
+func (t *TestSetup) NewTeamRole(ctx context.Context, name string, opts ...func(*greenhousev1alpha1.TeamRole)) *greenhousev1alpha1.TeamRole {
 	tr := &greenhousev1alpha1.TeamRole{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "TeamRole",
@@ -174,6 +186,13 @@ func (t *TestSetup) CreateTeamRole(ctx context.Context, name string, opts ...fun
 	for _, opt := range opts {
 		opt(tr)
 	}
+	return tr
+}
+
+// CreateTeamRole returns a TeamRole object. Opts can be used to set the desired state of the TeamRole.
+func (t *TestSetup) CreateTeamRole(ctx context.Context, name string, opts ...func(*greenhousev1alpha1.TeamRole)) *greenhousev1alpha1.TeamRole {
+	GinkgoHelper()
+	tr := t.NewTeamRole(ctx, name, opts...)
 	Expect(t.Create(ctx, tr)).Should(Succeed(), "there should be no error creating the TeamRole")
 	return tr
 }
