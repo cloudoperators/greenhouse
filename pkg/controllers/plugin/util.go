@@ -6,6 +6,7 @@ package plugin
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"github.com/pkg/errors"
 	appsv1 "k8s.io/api/apps/v1"
@@ -196,7 +197,7 @@ func computeWorkloadCondition(plugin *greenhousev1alpha1.Plugin, pluginStatus gr
 				WorkloadReadyStatus.Message += ", " + status.Message
 			}
 		}
-                 WorkloadReadyStatus.Message = strings.TrimPrefix(WorkloadReadyStatus.Message, ", ")
+		WorkloadReadyStatus.Message = strings.TrimPrefix(WorkloadReadyStatus.Message, ", ")
 		WorkloadReadyStatus.Message += " ]"
 	} else {
 		setWorkloadMetrics(plugin, 1)
@@ -211,29 +212,33 @@ func setWorkloadMetrics(plugin *greenhousev1alpha1.Plugin, status float64) {
 	workloadStatus.WithLabelValues(plugin.GetNamespace(), plugin.Name, plugin.Spec.PluginDefinition).Set(status)
 }
 
+// computeReadyCondition computes the ReadyCondition for the Plugin based on various status conditions
 func computeReadyCondition(
 	conditions greenhousev1alpha1.StatusConditions,
 ) (readyCondition greenhousev1alpha1.Condition) {
 
 	readyCondition = *conditions.GetConditionByType(greenhousev1alpha1.ReadyCondition)
 
+	// If the Cluster is not ready, the Plugin could not be ready
 	if conditions.GetConditionByType(greenhousev1alpha1.ClusterAccessReadyCondition).IsFalse() {
 		readyCondition.Status = metav1.ConditionFalse
 		readyCondition.Message = "cluster access not ready"
 		return readyCondition
 	}
+	// If the Helm reconcile failed, the Plugin is not up to date / ready
 	if conditions.GetConditionByType(greenhousev1alpha1.HelmReconcileFailedCondition).IsTrue() {
 		readyCondition.Status = metav1.ConditionFalse
 		readyCondition.Message = "Helm reconcile failed"
 		return readyCondition
 	}
+	// If the Workload deployed by the Plugin is not ready, the Plugin is not ready
 	workloadCondition := conditions.GetConditionByType(greenhousev1alpha1.WorkloadReadyCondition)
 	if workloadCondition.IsFalse() {
 		readyCondition.Status = metav1.ConditionFalse
 		readyCondition.Message = workloadCondition.Message
 		return readyCondition
 	}
-
+	// In other cases, the Plugin is ready
 	readyCondition.Status = metav1.ConditionTrue
 	readyCondition.Message = "ready"
 	return readyCondition
