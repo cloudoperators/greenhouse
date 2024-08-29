@@ -156,7 +156,7 @@ func (r *WorkLoadStatusReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 		workloadCondition := computeWorkloadCondition(plugin, pluginStatus, releaseStatus)
 		pluginStatus.StatusConditions.SetConditions(workloadCondition)
 
-		if statusErr := r.setStatus(ctx, plugin, releaseStatus, pluginStatus); statusErr != nil {
+		if statusErr := r.setStatus(ctx, plugin, pluginStatus); statusErr != nil {
 			log.FromContext(ctx).Error(statusErr, "failed to set status")
 		}
 	}
@@ -164,7 +164,7 @@ func (r *WorkLoadStatusReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 }
 
 // setStatus sets the status and metrics for the plugin
-func (r *WorkLoadStatusReconciler) setStatus(ctx context.Context, plugin *greenhousev1alpha1.Plugin, release *ReleaseStatus, pluginStatus greenhousev1alpha1.PluginStatus) error {
+func (r *WorkLoadStatusReconciler) setStatus(ctx context.Context, plugin *greenhousev1alpha1.Plugin, pluginStatus greenhousev1alpha1.PluginStatus) error {
 	readyCondition := ComputeReadyCondition(pluginStatus.StatusConditions)
 	pluginStatus.StatusConditions.SetConditions(readyCondition)
 	_, err := clientutil.PatchStatus(ctx, r.Client, plugin, func() error {
