@@ -38,7 +38,7 @@ var _ = Describe("Validate ClusterRole & RoleBinding on Remote Cluster", Ordered
 		teamUT = setup.CreateTeam(test.Ctx, "test-team", test.WithMappedIDPGroup(testTeamIDPGroup))
 
 		By("creating a TeamRole on the central cluster")
-		teamRoleUT = setup.CreateTeamRole(test.Ctx, "test-role")
+		teamRoleUT = setup.CreateTeamRole(test.Ctx, "test-role", test.WithLabels(map[string]string{"aggregate": "true"}))
 	})
 
 	AfterEach(func() {
@@ -521,6 +521,52 @@ var _ = Describe("Validate ClusterRole & RoleBinding on Remote Cluster", Ordered
 			test.EventuallyDeleted(test.Ctx, test.K8sClient, trb)
 		})
 	})
+
+	Context("When creating a Greenhouse TeamRoleBinding with AggregationRule", func() {
+		It("Should create a ClusterRole with Aggregation Rules and RoleBinding on the remote cluster", func() {
+			trbBase := setup.CreateTeamRoleBinding(test.Ctx, "test-teamrolebinding",
+				test.WithTeamRef(teamUT.Name),
+				test.WithTeamRoleRef(teamRoleUT.Name),
+				test.WithClusterName(clusterA.Name),
+			)
+			By("creating a TeamRoleBinding with AggregationRule on the central cluster")
+			trAggregate := setup.CreateTeamRole(test.Ctx, "test-aggregation-teamrole",
+				test.WithRules(nil),
+				test.WithAggregationRule(&rbacv1.AggregationRule{
+					ClusterRoleSelectors: []metav1.LabelSelector{
+						{MatchLabels: map[string]string{"aggregate": "true"}}},
+				}))
+			trbAggregate := setup.CreateTeamRoleBinding(test.Ctx, "test-aggregation-teamrolebinding",
+				test.WithTeamRef(teamUT.Name),
+				test.WithTeamRoleRef(trAggregate.Name),
+				test.WithClusterName(clusterA.Name),
+			)
+			By("validating the Base ClusterRole created on the remote cluster")
+			baseClusterRole := &rbacv1.ClusterRole{}
+			baseClusterRoleName := types.NamespacedName{Name: teamRoleUT.GetRBACName()}
+			Eventually(func(g Gomega) bool {
+				g.Expect(clusterAKubeClient.Get(test.Ctx, baseClusterRoleName, baseClusterRole)).To(Succeed(), "there should be no error getting the ClusterRole from the Remote Cluster")
+				g.Expect(baseClusterRole.Labels).To(HaveKeyWithValue("aggregate", "true"), "the Base ClusterRole should have the aggregate label")
+				return true
+			}).Should(BeTrue(), "there should be no error getting the ClusterRole")
+
+			By("validating the Aggregate ClusterRole created on the remote cluster")
+			aggregateClusterRole := &rbacv1.ClusterRole{}
+			aggregateClusterRoleName := types.NamespacedName{Name: trAggregate.GetRBACName()}
+			Eventually(func(g Gomega) bool {
+				g.Expect(clusterAKubeClient.Get(test.Ctx, aggregateClusterRoleName, aggregateClusterRole)).To(Succeed(), "there should be no error getting the ClusterRole from the Remote Cluster")
+				// The dev-env does not start the Kubernetes ControllerManager, thus the ClusterRoles are not reconciled and we can only check that it was
+				// created with the correct AggregationRule.
+				g.Expect(aggregateClusterRole.AggregationRule).To(Equal(trAggregate.Spec.AggregationRule), "the Aggregate ClusterRole should have the same AggregationRule as the Base ClusterRole")
+				return true
+			}).Should(BeTrue(), "the ClusterRole should exists and have the correct rules")
+			By("cleaning up the test")
+			test.EventuallyDeleted(test.Ctx, test.K8sClient, trbBase)
+			test.EventuallyDeleted(test.Ctx, test.K8sClient, trbAggregate)
+			test.EventuallyDeleted(test.Ctx, test.K8sClient, trAggregate)
+		})
+	})
+
 	Context("When tampering with a RoleBinding on the Remote Cluster", func() {
 		It("should reconcile the remote RoleBinding", func() {
 			By("creating a TeamRoleBinding without Namespaces on the central cluster")
@@ -532,7 +578,7 @@ var _ = Describe("Validate ClusterRole & RoleBinding on Remote Cluster", Ordered
 			By("validating the ClusterRoleBinding created on the remote cluster")
 			remoteClusterRoleBinding := &rbacv1.ClusterRoleBinding{}
 			remoteClusterRoleBindingName := types.NamespacedName{
-				Name:      greenhouseapis.RBACPrefix + trb.Name,
+				Name:      trb.GetRBACName(),
 				Namespace: trb.Namespace,
 			}
 			Eventually(func(g Gomega) bool {
