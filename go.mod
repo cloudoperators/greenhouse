@@ -7,13 +7,13 @@ replace (
 	github.com/dexidp/dex => github.com/dexidp/dex v0.0.0-20240807174518-43956db7fd75
 	github.com/dexidp/dex/api/v2 => github.com/dexidp/dex/api/v2 v2.1.1-0.20240807174518-43956db7fd75
 	// Keep k8s dependencies in sync.
-	k8s.io/api => k8s.io/api v0.30.3
-	k8s.io/apiextensions-apiserver => k8s.io/apiextensions-apiserver v0.30.3
+	k8s.io/api => k8s.io/api v0.30.4
+	k8s.io/apiextensions-apiserver => k8s.io/apiextensions-apiserver v0.30.4
 	k8s.io/apimachinery => k8s.io/apimachinery v0.30.4
-	k8s.io/cli-runtime => k8s.io/cli-runtime v0.30.3
-	k8s.io/client-go => k8s.io/client-go v0.30.3
-	k8s.io/component-base => k8s.io/component-base v0.30.3
-	k8s.io/kubectl => k8s.io/kubectl v0.30.3
+	k8s.io/cli-runtime => k8s.io/cli-runtime v0.30.4
+	k8s.io/client-go => k8s.io/client-go v0.30.4
+	k8s.io/component-base => k8s.io/component-base v0.30.4
+	k8s.io/kubectl => k8s.io/kubectl v0.30.4
 	sigs.k8s.io/controller-runtime => sigs.k8s.io/controller-runtime v0.18.5
 )
 
@@ -36,12 +36,12 @@ require (
 	gopkg.in/yaml.v3 v3.0.1
 	gotest.tools/v3 v3.5.1
 	helm.sh/helm/v3 v3.15.4
-	k8s.io/api v0.30.3
-	k8s.io/apiextensions-apiserver v0.30.3
+	k8s.io/api v0.30.4
+	k8s.io/apiextensions-apiserver v0.30.4
 	k8s.io/apimachinery v0.30.4
-	k8s.io/cli-runtime v0.30.3
-	k8s.io/client-go v0.30.3
-	k8s.io/kubectl v0.30.3
+	k8s.io/cli-runtime v0.30.4
+	k8s.io/client-go v0.30.4
+	k8s.io/kubectl v0.30.4
 	k8s.io/utils v0.0.0-20240821151609-f90d01438635
 	sigs.k8s.io/controller-runtime v0.18.5
 	sigs.k8s.io/e2e-framework v0.4.0
@@ -219,8 +219,8 @@ require (
 	google.golang.org/protobuf v1.34.2
 	gopkg.in/inf.v0 v0.9.1 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
-	k8s.io/apiserver v0.30.3 // indirect
-	k8s.io/component-base v0.30.3 // indirect
+	k8s.io/apiserver v0.30.4 // indirect
+	k8s.io/component-base v0.30.4 // indirect
 	k8s.io/klog/v2 v2.130.1
 	k8s.io/kube-openapi v0.0.0-20240228011516-70dd3763d340 // indirect
 	oras.land/oras-go v1.2.5 // indirect
