@@ -234,13 +234,43 @@ func initPluginPresetStatus(p *greenhousev1alpha1.PluginPreset) greenhousev1alph
 }
 
 func (r *PluginPresetReconciler) setStatus(ctx context.Context, p *greenhousev1alpha1.PluginPreset, status greenhousev1alpha1.PluginPresetStatus) error {
-	readyCondition := ComputeReadyCondition(status.StatusConditions)
+	readyCondition := r.computeReadyCondition(status.StatusConditions)
 	status.StatusConditions.SetConditions(readyCondition)
 	_, err := clientutil.PatchStatus(ctx, r.Client, p, func() error {
 		p.Status = status
 		return nil
 	})
 	return err
+}
+
+// computeReadyCondition computes the ReadyCondition based on the PluginPreset's StatusConditions.
+func (r *PluginPresetReconciler) computeReadyCondition(
+	conditions greenhousev1alpha1.StatusConditions,
+) (readyCondition greenhousev1alpha1.Condition) {
+
+	readyCondition = *conditions.GetConditionByType(greenhousev1alpha1.ReadyCondition)
+
+	if conditions.GetConditionByType(greenhousev1alpha1.PluginFailedCondition).IsTrue() {
+		readyCondition.Status = metav1.ConditionFalse
+		readyCondition.Message = "Plugin reconciliation failed"
+		return readyCondition
+	}
+
+	if conditions.GetConditionByType(greenhousev1alpha1.PluginSkippedCondition).IsTrue() {
+		readyCondition.Status = metav1.ConditionFalse
+		readyCondition.Message = "Existing plugins skipped"
+		return readyCondition
+	}
+
+	if conditions.GetConditionByType(greenhousev1alpha1.ClusterListEmpty).IsTrue() {
+		readyCondition.Status = metav1.ConditionFalse
+		readyCondition.Message = "No cluster matches ClusterSelector"
+		return readyCondition
+	}
+
+	readyCondition.Status = metav1.ConditionTrue
+	readyCondition.Message = "ready"
+	return readyCondition
 }
 
 // listPlugins returns the list of plugins for the given PluginPreset
