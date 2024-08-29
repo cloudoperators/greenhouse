@@ -23,7 +23,6 @@ require (
 	github.com/ghodss/yaml v1.0.0
 	github.com/jeremywohl/flatten/v2 v2.0.0-20211013061545-07e4a09fb8e4
 	github.com/juanfont/headscale v0.22.3
-	github.com/nao1215/markdown v0.5.0
 	github.com/oklog/run v1.1.1-0.20240127200640-eee6e044b77c
 	github.com/onsi/ginkgo/v2 v2.20.1
 	github.com/onsi/gomega v1.34.1
@@ -79,7 +78,6 @@ require (
 	github.com/mdlayher/socket v0.5.0 // indirect
 	github.com/mitchellh/go-ps v1.0.0 // indirect
 	github.com/mxk/go-flowrate v0.0.0-20140419014527-cca7078d478f // indirect
-	github.com/olekukonko/tablewriter v0.0.5 // indirect
 	github.com/tailscale/go-winio v0.0.0-20231025203758-c4f33415bf55 // indirect
 	github.com/tidwall/gjson v1.17.1 // indirect
 	github.com/tidwall/match v1.1.1 // indirect
