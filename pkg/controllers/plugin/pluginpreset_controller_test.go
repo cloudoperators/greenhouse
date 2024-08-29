@@ -7,6 +7,7 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
+	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -20,8 +21,9 @@ import (
 )
 
 const (
-	pluginPresetName           = "test-pluginpreset"
-	pluginPresetDefinitionName = "preset-plugindefinition"
+	pluginPresetName                 = "test-pluginpreset"
+	pluginPresetDefinitionName       = "preset-plugindefinition"
+	pluginDefinitionWithDefaultsName = "plugin-definition-with-defaults"
 
 	releaseNamespace = "test-namespace"
 
@@ -167,6 +169,37 @@ var _ = Describe("PluginPreset Controller Lifecycle", Ordered, func() {
 			g.Expect(err).To(HaveOccurred(), "there should be an error getting the Plugin")
 			return client.IgnoreNotFound(err)
 		}).Should(Succeed(), "the Plugin should be deleted")
+	})
+
+	It("should reconcile a PluginPreset with plugin definition defaults", func() {
+		By("ensuring a Plugin Definition has been created")
+		pluginDefinition := pluginDefinitionWithDefaults()
+		Expect(test.K8sClient.Create(test.Ctx, pluginDefinition)).ToNot(HaveOccurred())
+		test.EventuallyCreated(test.Ctx, test.K8sClient, pluginDefinition)
+
+		By("ensuring a Plugin Preset has been created")
+		pluginPreset := pluginPreset(pluginPresetName+"-2", clusterA)
+		pluginPreset.Spec.Plugin.PluginDefinition = pluginDefinition.Name
+		Expect(test.K8sClient.Create(test.Ctx, pluginPreset)).ToNot(HaveOccurred())
+		test.EventuallyCreated(test.Ctx, test.K8sClient, pluginPreset)
+
+		By("ensuring a Plugin has been created")
+		expPluginName := types.NamespacedName{Name: pluginPresetName + "-2-" + clusterA, Namespace: test.TestNamespace}
+		expPlugin := &greenhousev1alpha1.Plugin{}
+		Eventually(func() error {
+			return test.K8sClient.Get(test.Ctx, expPluginName, expPlugin)
+		}).Should(Succeed(), "the Plugin should be created")
+
+		By("checking plugin options with plugin definition defaults and plugin preset values")
+		Expect(expPlugin.Spec.OptionValues).To(ContainElement(pluginPreset.Spec.Plugin.OptionValues[0]))
+		Expect(expPlugin.Spec.OptionValues).To(ContainElement(greenhousev1alpha1.PluginOptionValue{
+			Name:  pluginDefinition.Spec.Options[0].Name,
+			Value: pluginDefinition.Spec.Options[0].Default,
+		}))
+
+		By("removing plugin preset")
+		Expect(test.K8sClient.Delete(test.Ctx, pluginPreset)).ToNot(HaveOccurred())
+		test.EventuallyDeleted(test.Ctx, test.K8sClient, pluginPreset)
 	})
 
 	It("should reconcile a PluginPreset on cluster changes", func() {
@@ -864,6 +897,34 @@ func pluginPreset(name, selectorValue string) *greenhousev1alpha1.PluginPreset {
 				},
 			},
 			ClusterOptionOverrides: []greenhousev1alpha1.ClusterOptionOverride{},
+		},
+	}
+}
+
+func pluginDefinitionWithDefaults() *greenhousev1alpha1.PluginDefinition {
+	return &greenhousev1alpha1.PluginDefinition{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "PluginDefinition",
+			APIVersion: greenhousev1alpha1.GroupVersion.String(),
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      pluginDefinitionWithDefaultsName,
+			Namespace: test.TestNamespace,
+		},
+		Spec: greenhousev1alpha1.PluginDefinitionSpec{
+			DisplayName: "test display name",
+			Version:     "1.0.0",
+			Options: []greenhousev1alpha1.PluginOption{
+				{
+					Name:    "test-plugin-definition-option-1",
+					Type:    "int",
+					Default: &apiextensionsv1.JSON{Raw: []byte("1")},
+				},
+			},
+			UIApplication: &greenhousev1alpha1.UIApplicationReference{
+				Name:    "test-ui-app",
+				Version: "0.0.1",
+			},
 		},
 	}
 }
