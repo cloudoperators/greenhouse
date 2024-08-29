@@ -40,7 +40,7 @@
     "sass": "^1.77.5",
     "shadow-dom-testing-library": "^1.7.1",
     "tailwindcss": "^3.3.1",
-    "zustand": "4.5.2"
+    "zustand": "4.5.5"
   },
   "dependencies": {
     "@cloudoperators/juno-communicator": "^2.2.11",
@@ -55,7 +55,7 @@
     "prop-types": "^15.8.1",
     "react": "18.2.0",
     "react-dom": "18.2.0",
-    "zustand": "4.5.2"
+    "zustand": "4.5.5"
   },
   "scripts": {
     "test": "jest",
