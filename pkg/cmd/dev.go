@@ -22,6 +22,14 @@ var devSetupCmd = &cobra.Command{
 		if strings.TrimSpace(knd) == "" {
 			return errors.New("please install KinD first, see https://kind.sigs.k8s.io/docs/user/quick-start/")
 		}
+		dock := gexe.ProgAvail("docker")
+		if strings.TrimSpace(dock) == "" {
+			return errors.New("please install Docker first, see https://docs.docker.com/get-docker/")
+		}
+		kc := gexe.ProgAvail("kubectl")
+		if strings.TrimSpace(kc) == "" {
+			return errors.New("please install kubectl first, see https://kubernetes.io/docs/tasks/tools/install-kubectl/")
+		}
 		return nil
 	},
 }
