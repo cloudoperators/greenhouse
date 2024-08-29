@@ -11,7 +11,7 @@ import (
 
 var clusterCmd = &cobra.Command{
 	Use:               "cluster",
-	Short:             "Create / Delete kinD clusters",
+	Short:             "Create / Delete KinD cluster",
 	DisableAutoGenTag: true,
 }
 

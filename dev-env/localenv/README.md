@@ -23,7 +23,7 @@ Charts needed for dev env setup for `KinD`
   
 When setting up dev env, certain resources are modified for development convenience
   
-`WEBHOOK_ONLY=true` env is added to manager `Deployment` to run the manager in-cluster where only webhooks run
+The manager `Deployment` has environment variable `WEBHOOK_ONLY=true` set to only run the webhooks.
   
 if `DevMode` is enabled for webhooks then depending on the OS the webhook manifests are altered by removing `clientConfig.service` and replacing it with `clientConfig.url`, allowing you to debug the code locally
   
@@ -38,7 +38,7 @@ Below you will find a list of commands available for dev env setup
 ---
 ## greenhousectl dev cluster create
 
-Create a kinD cluster
+Create a KinD cluster
 
 ### Synopsis
 
@@ -64,7 +64,7 @@ greenhousectl dev cluster create --name <my-cluster-name> --namespace <my-namesp
 
 ## greenhousectl dev cluster delete
 
-Delete a kinD cluster
+Delete a KinD cluster
 
 ### Synopsis
 

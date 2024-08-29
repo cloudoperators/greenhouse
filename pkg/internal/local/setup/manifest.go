@@ -108,12 +108,13 @@ func webhookManifestSetup(ctx context.Context, m *Manifest) Step {
 }
 
 func (m *Manifest) prepareHelmClient(ctx context.Context, manifest *Manifest, clusterName, namespace, kubeConfigPath string) error {
-	opts := make([]helm.ClientOption, 0)
-	opts = append(opts, helm.WithChartPath(manifest.ChartPath))
-	opts = append(opts, helm.WithClusterName(clusterName))
-	opts = append(opts, helm.WithNamespace(namespace))
-	opts = append(opts, helm.WithReleaseName(manifest.ReleaseName))
-	opts = append(opts, helm.WithValuesPath(manifest.ValuesPath))
+	opts := []helm.ClientOption{
+	  helm.WithChartPath(manifest.ChartPath),
+	  helm.WithClusterName(clusterName),
+	  helm.WithNamespace(namespace),
+	  helm.WithReleaseName(manifest.ReleaseName),
+          helm.WithValuesPath(manifest.ValuesPath),
+	}
 	opts = append(opts, helm.WithKubeConfigPath(kubeConfigPath))
 	hc, err := helm.NewClient(ctx, opts...)
 	if err != nil {
