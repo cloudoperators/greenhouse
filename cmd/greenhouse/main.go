@@ -6,8 +6,10 @@ package main
 import (
 	"errors"
 	goflag "flag"
+	"fmt"
 	"os"
 	"strconv"
+	"strings"
 	"time"
 
 	flag "github.com/spf13/pflag"
@@ -33,8 +35,11 @@ import (
 const (
 	defaultRemoteClusterBearerTokenValidity   = 24 * time.Hour
 	defaultRenewRemoteClusterBearerTokenAfter = 20 * time.Hour
-	webhookOnlyModeEnv                        = "WEBHOOK_ONLY"    // used to deploy the operator in webhook only mode no controllers will run in this mode.
-	disableWebhookEnv                         = "DISABLE_WEBHOOK" // used to disable webhooks when running locally or in debug mode.
+	disableControllersEnv                     = "WEBHOOK_ONLY"     // used to deploy the operator in webhook only mode no controllers will run in this mode.
+	disableWebhookEnv                         = "CONTROLLERS_ONLY" // used to disable webhooks when running locally or in debug mode.
+	regularMode                               = "regular"
+	webhookOnlyMode                           = "webhookOnly"
+	controllerOnlyMode                        = "controllerOnly"
 )
 
 var (
@@ -129,8 +134,13 @@ func main() {
 	})
 	handleError(err, "unable to start manager")
 
+	preset, err := calculateManagerPreset()
+	if err != nil {
+		handleError(err, "unable to calculate manager mode")
+	}
+
 	// Register controllers.
-	if !isWebhookMode(webhookOnlyModeEnv) {
+	if preset != webhookOnlyMode {
 		for controllerName, hookFunc := range knownControllers {
 			if !isControllerEnabled(controllerName) {
 				setupLog.Info("skipping controller", "name", controllerName)
@@ -143,7 +153,7 @@ func main() {
 	}
 
 	// Register webhooks.
-	if !isWebhookMode(disableWebhookEnv) {
+	if preset != controllerOnlyMode {
 		for webhookName, hookFunc := range knownWebhooks {
 			setupLog.Info("registering webhook", "name", webhookName)
 			handleError(hookFunc(mgr), "unable to create webhook", "name", webhookName)
@@ -165,16 +175,39 @@ func handleError(err error, msg string, keysAndValues ...interface{}) {
 	}
 }
 
-func isWebhookMode(key string) bool {
-	mode, ok := os.LookupEnv(key)
-	if !ok {
-		setupLog.Info("env not set", key, "defaulting to false")
-		return false
+// calculateManagerPreset - calculates in which mode the manager should run.
+func calculateManagerPreset() (string, error) {
+	webhookOnlyEnv := os.Getenv(disableControllersEnv)
+	controllersOnlyEnv := os.Getenv(disableWebhookEnv)
+
+	var webhookOnly, controllersOnly bool
+	var err error
+
+	if strings.TrimSpace(webhookOnlyEnv) != "" {
+		webhookOnly, err = strconv.ParseBool(webhookOnlyEnv)
+		if err != nil {
+			return "", fmt.Errorf("unable to parse %s: %w", disableControllersEnv, err)
+		}
 	}
-	enabled, err := strconv.ParseBool(mode)
-	if err != nil {
-		setupLog.Error(err, "unable to parse env", key, "defaulting to false")
-		return false
+
+	if strings.TrimSpace(controllersOnlyEnv) != "" {
+		controllersOnly, err = strconv.ParseBool(controllersOnlyEnv)
+		if err != nil {
+			return "", fmt.Errorf("unable to parse %s: %w", disableWebhookEnv, err)
+		}
 	}
-	return enabled
+
+	if webhookOnly && controllersOnly {
+		return "", errors.New("you can have only one of WEBHOOK_ONLY or CONTROLLERS_ONLY env be set to true")
+	}
+
+	if webhookOnly {
+		return webhookOnlyMode, nil
+	}
+
+	if controllersOnly {
+		return controllerOnlyMode, nil
+	}
+
+	return regularMode, nil
 }
