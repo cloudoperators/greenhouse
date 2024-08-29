@@ -182,8 +182,8 @@ func allResourceReady(payloadStatus []PayloadStatus) bool {
 	return true
 }
 
-// computeReadyCondition computes the ReadyCondition for the Plugin and sets the workload metrics and message
-func computeReadyCondition(plugin *greenhousev1alpha1.Plugin, pluginStatus greenhousev1alpha1.PluginStatus, release *ReleaseStatus) greenhousev1alpha1.Condition {
+// computeWorkloadCondition computes the ReadyCondition for the Plugin and sets the workload metrics and message
+func computeWorkloadCondition(plugin *greenhousev1alpha1.Plugin, pluginStatus greenhousev1alpha1.PluginStatus, release *ReleaseStatus) greenhousev1alpha1.Condition {
 	WorkloadReadyStatus := *pluginStatus.GetConditionByType(greenhousev1alpha1.WorkloadReadyCondition)
 
 	WorkloadReadyStatus.Status = metav1.ConditionTrue
@@ -208,4 +208,49 @@ func computeReadyCondition(plugin *greenhousev1alpha1.Plugin, pluginStatus green
 // setWorkloadMetrics sets the workload status metric to the given status
 func setWorkloadMetrics(plugin *greenhousev1alpha1.Plugin, status float64) {
 	workloadStatus.WithLabelValues(plugin.GetNamespace(), plugin.Name, plugin.Spec.PluginDefinition).Set(status)
+}
+
+func ComputeReadyCondition(
+	conditions greenhousev1alpha1.StatusConditions,
+) (readyCondition greenhousev1alpha1.Condition) {
+
+	readyCondition = *conditions.GetConditionByType(greenhousev1alpha1.ReadyCondition)
+
+	if conditions.GetConditionByType(greenhousev1alpha1.ClusterAccessReadyCondition).IsFalse() {
+		readyCondition.Status = metav1.ConditionFalse
+		readyCondition.Message = "cluster access not ready"
+		return readyCondition
+	}
+	if conditions.GetConditionByType(greenhousev1alpha1.HelmReconcileFailedCondition).IsTrue() {
+		readyCondition.Status = metav1.ConditionFalse
+		readyCondition.Message = "Helm reconcile failed"
+		return readyCondition
+	}
+	if conditions.GetConditionByType(greenhousev1alpha1.PluginFailedCondition).IsTrue() {
+		readyCondition.Status = metav1.ConditionFalse
+		readyCondition.Message = "Plugin reconciliation failed"
+		return readyCondition
+	}
+
+	if conditions.GetConditionByType(greenhousev1alpha1.PluginSkippedCondition).IsTrue() {
+		readyCondition.Status = metav1.ConditionFalse
+		readyCondition.Message = "Existing plugins skipped"
+		return readyCondition
+	}
+
+	if conditions.GetConditionByType(greenhousev1alpha1.ClusterListEmpty).IsTrue() {
+		readyCondition.Status = metav1.ConditionFalse
+		readyCondition.Message = "No cluster matches ClusterSelector"
+		return readyCondition
+	}
+	workloadCondition := conditions.GetConditionByType(greenhousev1alpha1.WorkloadReadyCondition)
+	if workloadCondition.IsFalse() {
+		readyCondition.Status = metav1.ConditionFalse
+		readyCondition.Message = workloadCondition.Message
+		return readyCondition
+	}
+
+	readyCondition.Status = metav1.ConditionTrue
+	readyCondition.Message = "ready"
+	return readyCondition
 }

@@ -178,7 +178,7 @@ func initPluginStatus(plugin *greenhousev1alpha1.Plugin) greenhousev1alpha1.Plug
 }
 
 func (r *HelmReconciler) setStatus(ctx context.Context, plugin *greenhousev1alpha1.Plugin, pluginStatus greenhousev1alpha1.PluginStatus) error {
-	readyCondition := r.computeReadyCondition(pluginStatus.StatusConditions)
+	readyCondition := ComputeReadyCondition(pluginStatus.StatusConditions)
 	pluginStatus.StatusConditions.SetConditions(readyCondition)
 	_, err := clientutil.PatchStatus(ctx, r.Client, plugin, func() error {
 		plugin.Status = pluginStatus
@@ -345,27 +345,6 @@ func (r *HelmReconciler) reconcileStatus(ctx context.Context,
 	pluginStatus.ExposedServices = exposedServices
 
 	return statusReconcileCondition
-}
-
-func (r *HelmReconciler) computeReadyCondition(
-	conditions greenhousev1alpha1.StatusConditions,
-) (readyCondition greenhousev1alpha1.Condition) {
-
-	readyCondition = *conditions.GetConditionByType(greenhousev1alpha1.ReadyCondition)
-
-	if conditions.GetConditionByType(greenhousev1alpha1.ClusterAccessReadyCondition).IsFalse() {
-		readyCondition.Status = metav1.ConditionFalse
-		readyCondition.Message = "cluster access not ready"
-		return readyCondition
-	}
-	if conditions.GetConditionByType(greenhousev1alpha1.HelmReconcileFailedCondition).IsTrue() {
-		readyCondition.Status = metav1.ConditionFalse
-		readyCondition.Message = "Helm reconcile failed"
-		return readyCondition
-	}
-	readyCondition.Status = metav1.ConditionTrue
-	readyCondition.Message = "ready"
-	return readyCondition
 }
 
 // enqueueAllPluginsForCluster enqueues all Plugins which have .spec.clusterName set to the name of the given Cluster.
