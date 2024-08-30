@@ -12,6 +12,7 @@ import (
 
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
+	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/rand"
 
@@ -204,6 +205,29 @@ func WithReleaseNamespace(releaseNamespace string) func(*greenhousev1alpha1.Plug
 func WithCluster(cluster string) func(*greenhousev1alpha1.Plugin) {
 	return func(p *greenhousev1alpha1.Plugin) {
 		p.Spec.ClusterName = cluster
+	}
+}
+
+// WithPluginOptionValue sets the value of a PluginOptionValue
+func WithPluginOptionValue(name string, value *apiextensionsv1.JSON, valueFrom *greenhousev1alpha1.ValueFromSource) func(*greenhousev1alpha1.Plugin) {
+	GinkgoHelper()
+	return func(p *greenhousev1alpha1.Plugin) {
+		if value != nil && valueFrom != nil {
+			Fail("value and valueFrom are mutually exclusive")
+		}
+		for i, v := range p.Spec.OptionValues {
+			if v.Name == name {
+				v.Value = value
+				v.ValueFrom = valueFrom
+				p.Spec.OptionValues[i] = v
+				return
+			}
+			p.Spec.OptionValues = append(p.Spec.OptionValues, greenhousev1alpha1.PluginOptionValue{
+				Name:      name,
+				Value:     value,
+				ValueFrom: valueFrom,
+			})
+		}
 	}
 }
 

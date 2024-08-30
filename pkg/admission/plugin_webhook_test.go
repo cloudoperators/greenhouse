@@ -22,17 +22,11 @@ import (
 
 var _ = Describe("Validate Plugin OptionValues", func() {
 	DescribeTable("Validate PluginType contains either Value or ValueFrom", func(value *apiextensionsv1.JSON, valueFrom *greenhousev1alpha1.ValueFromSource, expErr bool) {
-		plugin := &greenhousev1alpha1.Plugin{
-			Spec: greenhousev1alpha1.PluginSpec{
-				PluginDefinition: "test",
-				ClusterName:      "test-cluster",
-				OptionValues: []greenhousev1alpha1.PluginOptionValue{
-					{
-						Name:      "test",
-						Value:     value,
-						ValueFrom: valueFrom,
-					},
-				},
+		optionValues := []greenhousev1alpha1.PluginOptionValue{
+			{
+				Name:      "test",
+				Value:     value,
+				ValueFrom: valueFrom,
 			},
 		}
 
@@ -63,7 +57,7 @@ var _ = Describe("Validate Plugin OptionValues", func() {
 			},
 		}
 
-		errList := validatePluginOptionValues(plugin.Spec.OptionValues, pluginDefinition)
+		errList := validatePluginOptionValues(optionValues, pluginDefinition)
 		switch expErr {
 		case true:
 			Expect(errList).ToNot(BeEmpty(), "expected an error, got nil")
@@ -94,23 +88,14 @@ var _ = Describe("Validate Plugin OptionValues", func() {
 			},
 		}
 
-		plugin := &greenhousev1alpha1.Plugin{
-			ObjectMeta: metav1.ObjectMeta{
-				Namespace: "greenhouse",
-			},
-			Spec: greenhousev1alpha1.PluginSpec{
-				PluginDefinition: "test",
-				ClusterName:      "test-cluster",
-				OptionValues: []greenhousev1alpha1.PluginOptionValue{
-					{
-						Name:  "test",
-						Value: test.MustReturnJSONFor(actValue),
-					},
-				},
+		optionValues := []greenhousev1alpha1.PluginOptionValue{
+			{
+				Name:  "test",
+				Value: test.MustReturnJSONFor(actValue),
 			},
 		}
 
-		errList := validatePluginOptionValues(plugin.Spec.OptionValues, pluginDefinition)
+		errList := validatePluginOptionValues(optionValues, pluginDefinition)
 		switch expErr {
 		case true:
 			Expect(errList).ToNot(BeEmpty(), "expected an error, got nil")
@@ -150,22 +135,14 @@ var _ = Describe("Validate Plugin OptionValues", func() {
 			},
 		}
 
-		plugin := &greenhousev1alpha1.Plugin{
-			ObjectMeta: metav1.ObjectMeta{
-				Namespace: "greenhouse",
-			},
-			Spec: greenhousev1alpha1.PluginSpec{
-				PluginDefinition: "test",
-				OptionValues: []greenhousev1alpha1.PluginOptionValue{
-					{
-						Name:      "test",
-						ValueFrom: actValue,
-					},
-				},
+		optionValues := []greenhousev1alpha1.PluginOptionValue{
+			{
+				Name:      "test",
+				ValueFrom: actValue,
 			},
 		}
 
-		errList := validatePluginOptionValues(plugin.Spec.OptionValues, pluginDefinition)
+		errList := validatePluginOptionValues(optionValues, pluginDefinition)
 		switch expErr {
 		case true:
 			Expect(errList).ToNot(BeEmpty(), "expected an error, got nil")
@@ -214,27 +191,13 @@ var _ = Describe("Validate Plugin OptionValues", func() {
 			Expect(errList).NotTo(BeEmpty(), "expected an error, got nil")
 		})
 		It("should accept a Plugin with supplied required options", func() {
-			plugin := &greenhousev1alpha1.Plugin{
-				TypeMeta: metav1.TypeMeta{
-					Kind:       "Plugin",
-					APIVersion: greenhousev1alpha1.GroupVersion.String(),
-				},
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "test-plugin",
-					Namespace: test.TestNamespace,
-				},
-				Spec: greenhousev1alpha1.PluginSpec{
-					PluginDefinition: "test",
-					ClusterName:      "test-cluster",
-					OptionValues: []greenhousev1alpha1.PluginOptionValue{
-						{
-							Name:  "test",
-							Value: test.MustReturnJSONFor("test"),
-						},
-					},
+			optionValues := []greenhousev1alpha1.PluginOptionValue{
+				{
+					Name:  "test",
+					Value: test.MustReturnJSONFor("test"),
 				},
 			}
-			errList := validatePluginOptionValues(plugin.Spec.OptionValues, pluginDefinition)
+			errList := validatePluginOptionValues(optionValues, pluginDefinition)
 			Expect(errList).To(BeEmpty(), "unexpected error")
 		})
 	})
