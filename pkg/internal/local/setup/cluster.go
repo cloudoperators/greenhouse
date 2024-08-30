@@ -28,13 +28,11 @@ func clusterSetup(env *ExecutionEnv) error {
 	if err != nil {
 		return err
 	}
-	if env.cluster.Namespace != nil {
-		err = klient.CreateNamespace(*env.cluster.Namespace)
-		if err != nil {
-			return err
-		}
+	err = env.cluster.saveConfig() // save kubeconfig after cluster creation
+	if err != nil {
+		return err
 	}
-	err = env.cluster.saveConfig()
+	err = env.cluster.createNamespace() // create namespace if specified using kubeconfig
 	if err != nil {
 		return err
 	}
@@ -63,4 +61,11 @@ func (c *Cluster) saveConfig() error {
 	}
 	c.kubeConfigPath = filepath.Join(dir, file)
 	return nil
+}
+
+func (c *Cluster) createNamespace() error {
+	if c.Namespace == nil {
+		return nil
+	}
+	return klient.CreateNamespace(*c.Namespace, c.kubeConfigPath)
 }
