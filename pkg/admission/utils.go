@@ -111,8 +111,8 @@ func logAdmissionRequest(ctx context.Context) {
 	admissionRequest, err := admission.RequestFromContext(ctx)
 	if err != nil {
 		return
-
 	}
+
 	// Redact secret data from the log
 	if admissionRequest.Kind.Kind == "Secret" {
 		admissionRequest.Object.Raw = redactRawObject(admissionRequest.Object.Raw)
@@ -133,8 +133,8 @@ func redactRawObject(rawObject []byte) []byte {
 		for key := range secret.Data {
 			secret.Data[key] = []byte("REDACTED")
 		}
-		secretJson, _ := json.Marshal(secret)
-		return secretJson
+		secretJSON, _ := json.Marshal(secret)
+		return secretJSON
 	}
 	return rawObject
 }
