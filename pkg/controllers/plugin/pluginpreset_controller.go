@@ -192,6 +192,9 @@ func (r *PluginPresetReconciler) reconcilePluginPreset(ctx context.Context, pres
 			plugin.Spec = preset.Spec.Plugin
 			// Set the cluster name to the name of the cluster. The PluginSpec contained in the PluginPreset does not have a cluster name.
 			plugin.Spec.ClusterName = cluster.GetName()
+
+			// overrides options based on preset definition
+			overridesPluginOptionValues(plugin, preset)
 			return nil
 		})
 		if err != nil {
@@ -216,6 +219,30 @@ func (r *PluginPresetReconciler) reconcilePluginPreset(ctx context.Context, pres
 		failedCondition.Message = ""
 	}
 	return skippedCondition, failedCondition, utilerrors.NewAggregate(allErrs)
+}
+
+func overridesPluginOptionValues(plugin *greenhousev1alpha1.Plugin, preset *greenhousev1alpha1.PluginPreset) {
+	index := slices.IndexFunc(preset.Spec.ClusterOptionOverrides, func(override greenhousev1alpha1.ClusterOptionOverride) bool {
+		return override.ClusterName == plugin.Spec.ClusterName
+	})
+
+	// when plugin is running on different cluster then defined in
+	if index == -1 {
+		return
+	}
+
+	// overrides value
+	for _, overrideValue := range preset.Spec.ClusterOptionOverrides[index].Overrides {
+		valueIndex := slices.IndexFunc(plugin.Spec.OptionValues, func(value greenhousev1alpha1.PluginOptionValue) bool {
+			return true
+		})
+
+		if valueIndex == -1 {
+			plugin.Spec.OptionValues = append(plugin.Spec.OptionValues, overrideValue)
+		} else {
+			plugin.Spec.OptionValues[valueIndex] = overrideValue
+		}
+	}
 }
 
 // generatePluginName generates a name for a plugin based on the used PluginPreset's name and the Cluster.
