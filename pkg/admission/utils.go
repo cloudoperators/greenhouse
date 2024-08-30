@@ -5,9 +5,7 @@ package admission
 
 import (
 	"context"
-	"encoding/json"
 
-	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -113,28 +111,9 @@ func logAdmissionRequest(ctx context.Context) {
 		return
 	}
 
-	// Redact secret data from the log
-	if admissionRequest.Kind.Kind == "Secret" {
-		admissionRequest.Object.Raw = redactRawObject(admissionRequest.Object.Raw)
-		admissionRequest.OldObject.Raw = redactRawObject(admissionRequest.OldObject.Raw)
-	}
-	ctrl.Log.Info("AdmissionRequest", "Request", admissionRequest)
-}
+	// Remove all objects from the log
+	admissionRequest.Object.Raw = nil
+	admissionRequest.OldObject.Raw = nil
 
-// redactRawObject redacts secret data and annotations from the raw object
-func redactRawObject(rawObject []byte) []byte {
-	// Redact secret data from the log
-	secret := corev1.Secret{}
-	err := json.Unmarshal(rawObject, &secret)
-	if err == nil {
-		// delete annotations as they might have the last applied configuration
-		secret.Annotations = nil
-		// redact all secret data entries
-		for key := range secret.Data {
-			secret.Data[key] = []byte("REDACTED")
-		}
-		secretJSON, _ := json.Marshal(secret)
-		return secretJSON
-	}
-	return rawObject
+	ctrl.Log.Info("AdmissionRequest", "Request", admissionRequest)
 }
