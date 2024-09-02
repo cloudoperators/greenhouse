@@ -134,6 +134,8 @@ func (r *DirectAccessReconciler) Reconcile(ctx context.Context, req ctrl.Request
 	if err := reconcileRemoteAPIServerVersion(ctx, restClientGetter, r.Client, cluster); err != nil {
 		return ctrl.Result{}, err
 	}
+
+	updateMetrics(cluster)
 	return ctrl.Result{RequeueAfter: defaultRequeueInterval}, nil
 }
 

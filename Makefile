@@ -29,6 +29,8 @@ LOCALBIN ?= $(shell pwd)/bin
 $(LOCALBIN):
 	mkdir -p $(LOCALBIN)
 
+CLI ?= $(LOCALBIN)/greenhousectl
+
 .PHONY: all
 all: build
 
@@ -111,16 +113,24 @@ e2e-local-cluster-create:
 
 
 .PHONY: fmt
-fmt: goimports golint
+fmt: goimports
 	GOBIN=$(LOCALBIN) go fmt ./...
 	$(GOIMPORTS) -w -local github.com/cloudoperators/greenhouse .
-	$(GOLINT) run -v --timeout 5m
+
+.PHONY: lint
+lint: golint
+	$(GOLINT) run -v --timeout 5m	
 
 .PHONY: check
-check: fmt test
+check: fmt lint test
+
+##@ Build CLI Locally
+.PHONY: cli
+cli: $(CLI)
+$(CLI): $(LOCALBIN)
+	test -s $(LOCALBIN)/greenhousectl || echo "Building Greenhouse CLI..." && make build-greenhousectl
 
 ##@ Build
-
 .PHONY: build
 build: generate build-greenhouse build-idproxy build-team-membership build-cors-proxy build-greenhousectl build-service-proxy
 
@@ -207,3 +217,11 @@ ifeq (, $(shell which hugo))
 else
 	cd website && hugo server
 endif
+
+.PHONY: setup-dev
+setup-dev: cli
+	$(CLI) dev setup -f dev-env/localenv/sample.config.json
+
+.PHONY: dev-docs
+dev-docs:
+	go run -tags="dev" -mod=mod dev-env/localenv/docs.go

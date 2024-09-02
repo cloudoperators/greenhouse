@@ -73,6 +73,7 @@ func setupCustomValidatorWithManager(mgr ctrl.Manager, webhookFuncs webhookFuncs
 }
 
 func (c *customValidator) ValidateCreate(ctx context.Context, obj runtime.Object) (admission.Warnings, error) {
+	logAdmissionRequest(ctx)
 	if c.validateCreate == nil {
 		return nil, nil
 	}
@@ -80,6 +81,7 @@ func (c *customValidator) ValidateCreate(ctx context.Context, obj runtime.Object
 }
 
 func (c *customValidator) ValidateUpdate(ctx context.Context, oldObj, newObj runtime.Object) (admission.Warnings, error) {
+	logAdmissionRequest(ctx)
 	if c.validateUpdate == nil {
 		return nil, nil
 	}
@@ -87,6 +89,7 @@ func (c *customValidator) ValidateUpdate(ctx context.Context, oldObj, newObj run
 }
 
 func (c *customValidator) ValidateDelete(ctx context.Context, obj runtime.Object) (admission.Warnings, error) {
+	logAdmissionRequest(ctx)
 	if c.validateDelete == nil {
 		return nil, nil
 	}
@@ -98,4 +101,19 @@ func validateImmutableField(oldValue, newValue string, path *field.Path) *field.
 		return field.Invalid(path, newValue, "field is immutable")
 	}
 	return nil
+}
+
+// logAdmissionRequest logs the AdmissionRequest.
+// This is necessary to audit log the AdmissionRequest independently of the api server audit logs.
+func logAdmissionRequest(ctx context.Context) {
+	admissionRequest, err := admission.RequestFromContext(ctx)
+	if err != nil {
+		return
+	}
+
+	// Remove all objects from the log
+	admissionRequest.Object.Raw = nil
+	admissionRequest.OldObject.Raw = nil
+
+	ctrl.Log.Info("AdmissionRequest", "Request", admissionRequest)
 }
