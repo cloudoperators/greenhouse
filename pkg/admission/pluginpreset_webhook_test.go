@@ -58,7 +58,8 @@ var _ = Describe("PluginPreset Admission Tests", Ordered, func() {
 				Namespace: test.TestNamespace,
 			},
 			Spec: greenhousev1alpha1.PluginPresetSpec{
-				ClusterSelector: metav1.LabelSelector{MatchLabels: map[string]string{"foo": "bar"}},
+				ClusterSelector:        metav1.LabelSelector{MatchLabels: map[string]string{"foo": "bar"}},
+				ClusterOptionOverrides: []greenhousev1alpha1.ClusterOptionOverride{},
 			},
 		}
 
@@ -78,6 +79,7 @@ var _ = Describe("PluginPreset Admission Tests", Ordered, func() {
 				Plugin: greenhousev1alpha1.PluginSpec{
 					ClusterName: "cluster",
 				},
+				ClusterOptionOverrides: []greenhousev1alpha1.ClusterOptionOverride{},
 			},
 		}
 
@@ -96,6 +98,7 @@ var _ = Describe("PluginPreset Admission Tests", Ordered, func() {
 				Plugin: greenhousev1alpha1.PluginSpec{
 					PluginDefinition: pluginPresetDefinition,
 				},
+				ClusterOptionOverrides: []greenhousev1alpha1.ClusterOptionOverride{},
 			},
 		}
 
@@ -114,7 +117,8 @@ var _ = Describe("PluginPreset Admission Tests", Ordered, func() {
 				Plugin: greenhousev1alpha1.PluginSpec{
 					PluginDefinition: "non-existing",
 				},
-				ClusterSelector: metav1.LabelSelector{MatchLabels: map[string]string{"foo": "bar"}},
+				ClusterSelector:        metav1.LabelSelector{MatchLabels: map[string]string{"foo": "bar"}},
+				ClusterOptionOverrides: []greenhousev1alpha1.ClusterOptionOverride{},
 			},
 		}
 
@@ -133,7 +137,8 @@ var _ = Describe("PluginPreset Admission Tests", Ordered, func() {
 				Plugin: greenhousev1alpha1.PluginSpec{
 					PluginDefinition: pluginPresetDefinition,
 				},
-				ClusterSelector: metav1.LabelSelector{MatchLabels: map[string]string{"foo": "bar"}},
+				ClusterSelector:        metav1.LabelSelector{MatchLabels: map[string]string{"foo": "bar"}},
+				ClusterOptionOverrides: []greenhousev1alpha1.ClusterOptionOverride{},
 			},
 		}
 

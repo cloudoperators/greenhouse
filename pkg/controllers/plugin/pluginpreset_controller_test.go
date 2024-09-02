@@ -476,6 +476,7 @@ func pluginPreset(name, selectorValue string) *greenhousev1alpha1.PluginPreset {
 					"cluster": selectorValue,
 				},
 			},
+			ClusterOptionOverrides: []greenhousev1alpha1.ClusterOptionOverride{},
 		},
 	}
 }
