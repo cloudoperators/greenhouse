@@ -7,8 +7,6 @@ name: REUSE Compliance Check
 on: [pull_request,workflow_dispatch]
 
 jobs:
-  test:
-    runs-on: [ default ]
+  reuse:
     steps:
-    - name: REUSE Compliance Check
       uses: kengou4/common/.github/workflows/ci-reuse-check.yaml@main
