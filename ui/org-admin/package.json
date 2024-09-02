@@ -76,8 +76,7 @@
     "@cloudoperators/juno-communicator": "^2.2.11",
     "@cloudoperators/juno-messages-provider": "^0.1.17",
     "@cloudoperators/juno-ui-components": "^2.15.4",
-    "@cloudoperators/juno-url-state-provider-v1": "^1.3.2",
-    "@cloudoperators/juno-utils": "^1.1.12"
+    "@cloudoperators/juno-url-state-provider-v1": "^1.3.2"
   },
   "peerDependencies": {
     "@tanstack/react-query": "4.28.0",

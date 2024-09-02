@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html style="margin: 0; padding: 0; display: flex; flex-direction: column">
+  <head>
+    <title>Greenhouse</title>
+    <!-- <link rel="icon" sizes="any" href="/assets/favicon.ico" />
+    <link
+      rel="icon"
+      type="image/png"
+      sizes="16x16"
+      href="/assets/favicon-16x16.png"
+    />
+    <link
+      rel="icon"
+      type="image/png"
+      sizes="32x32"
+      href="/assets/favicon-32x32.png"
+    /> -->
+
+    <script type="importmap">
+      {
+        "imports": {
+          "@tanstack/react-query": "https://esm.sh/v135/*@tanstack/react-query@5.51.23",
+          "react-dom": "https://esm.sh/v135/*react-dom@18.3.1",
+          "react-dom/": "https://esm.sh/v135/*react-dom@18.3.1/",
+          "react": "https://esm.sh/v135/react@18.3.1",
+          "react/": "https://esm.sh/v135/react@18.3.1/",
+          "zustand": "https://esm.sh/v135/*zustand@4.5.4",
+          "zustand/": "https://esm.sh/v135/*zustand@4.5.4/",
+          "prop-types": "https://esm.sh/v135/*prop-types@15.8.1",
+          "luxon": "https://esm.sh/v135/luxon@3.5.0"
+        },
+        "scopes": {
+          "https://esm.sh/v135/": {
+            "@tanstack/query-core": "https://esm.sh/v135/@tanstack/query-core@5.51.21",
+            "loose-envify": "https://esm.sh/v135/loose-envify@1.4.0",
+            "scheduler": "https://esm.sh/v135/scheduler@0.23.2",
+            "use-sync-external-store": "https://esm.sh/v135/use-sync-external-store@1.2.2",
+            "use-sync-external-store/": "https://esm.sh/v135/use-sync-external-store@1.2.2/"
+          }
+        }
+      }
+    </script>
+  </head>
+  <body style="height: 100vh; flex-grow: 1; margin: 0; padding: 0">
+    <script type="module">
+      const manifest = await fetch("manifest.json").then((response) => {
+        return response.json()
+      })
+
+      if (!manifest["greenhouse-dashboard"]) {
+        console.error("No manifest found for greenhouse-dashboard")
+      }
+
+      const { mount } = await import(
+        manifest["greenhouse-dashboard"]["latest"].path
+      )
+
+      const root = document.createElement("div")
+      document.body.appendChild(root)
+      root.setAttribute("data-app", "greenhouse-dashboard")
+      mount(root, {
+        props: {
+          currentHost: window.location.origin,
+          apiEndpoint: "https://api.greenhouse-qa.eu-nl-1.cloud.sap",
+          environment: "qa",
+          authIssuerUrl: "https://auth.greenhouse-qa.eu-nl-1.cloud.sap",
+          authClientId: "greenhouse",
+        },
+      })
+
+      // import { mount } from "/apps/build/index.js"
+
+      // const authRoot = document.createElement("div")
+      // const root = document.createElement("div")
+
+      // document.body.appendChild(authRoot)
+      // document.body.appendChild(root)
+
+      // mountAuth(authRoot, {
+      //   props: {
+      //     issuerUrl: "OIDC_ISSUER_URL",
+      //     clientId: "OIDC_CLIENT_ID",
+      //     initialLogin: true,
+      //     embedded: false,
+      //   },
+      // })
+      // mount(root, { props: { endpoint: "API_ENDPOINT" } })
+    </script>
+  </body>
+</html>

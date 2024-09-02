@@ -19,8 +19,7 @@ import {
   useGlobalsActions,
   useGlobalsAssetsHost,
 } from "../components/StoreProvider"
-import { useAppLoader } from "@cloudoperators/juno-utils"
-import { useActions } from "@cloudoperators/juno-messages-provider"
+import { useAuthentication } from "../hooks/useAuthentication"
 
 const currentUrl = new URL(window.location.href)
 let match = currentUrl.host.match(/^(.+)\.dashboard\..+/)
@@ -35,10 +34,6 @@ let orgName = match ? match[1] : currentUrl.searchParams.get("org")
  * - issuerUrl: The URL of the authentication issuer.
  * - mock: A flag indicating whether to use mock authentication.
  * - children: The content to be displayed when the user is logged in.
- *
- * The component uses custom hooks to handle authentication states and data. It dynamically loads the authentication
- * app via the use of the useAppLoader hook. When mounted, the component connects to the authentication events,
- * allowing seamless authentication experiences.
  *
  * The Auth component renders three main sections:
  * 1. A div element with a data-app attribute set to "greenhouse-auth" and a ref for loading the authentication app.
@@ -57,27 +52,18 @@ const Auth = ({
   demoOrg,
   demoUserToken,
 }) => {
-  const assetsHost = useGlobalsAssetsHost()
   const authAppLoaded = useAuthAppLoaded()
   const authLoggedIn = useAuthLoggedIn()
   const authIsProcessing = useAuthIsProcessing()
   const authError = useAuthError()
   const { login } = useAuthActions()
   const { setDemoMode } = useGlobalsActions()
-  const { addMessage } = useActions()
 
   const ref = createRef()
-  const { mount } = useAppLoader(assetsHost)
   const [loading, setLoading] = useState(!authAppLoaded)
   const [longLoading, setLongLoading] = useState(false)
 
-  // in this useEffect we load the auth app via import (see mount)
-  // It should happen just once!
-  // The connection to the auth events happens in the useCommunication hook!
-  // wait until assetsHost is set to avoid a warning on mount
   useEffect(() => {
-    if (!assetsHost || !clientId || !issuerUrl) return
-
     // if current orgName is the demo org, we mock the auth app
     if (demoOrg === orgName) {
       // we mock the auth app with default groups
@@ -88,24 +74,18 @@ const Auth = ({
       // see in useCommunication hook, there we redefine  the authData.JWT wit demoUserToken if demo mode is set
       setDemoMode(true)
     }
+  }, [setDemoMode])
 
-    mount(ref.current, {
-      id: "auth",
-      name: "auth",
-      version: "latest",
-      props: {
-        issuerUrl: issuerUrl,
-        clientId: clientId,
-        mock: mock,
-        debug: true,
-        initialLogin: true,
-        requestParams: JSON.stringify({
-          connector_id: !orgName ? undefined : orgName,
-        }),
-      },
-    })
-    // add mount to the dependencies since it changes depending on the assetsHost
-  }, [mount, clientId, issuerUrl, assetsHost])
+  useAuthentication({
+    issuerURL: issuerUrl,
+    clientID: clientId,
+    mock,
+    debug: true,
+    initialLogin: true,
+    requestParams: JSON.stringify({
+      connector_id: !orgName ? undefined : orgName,
+    }),
+  })
 
   // timeout for waiting for auth
   useEffect(() => {

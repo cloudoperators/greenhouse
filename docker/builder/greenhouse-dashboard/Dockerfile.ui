@@ -1,0 +1,83 @@
+FROM node:20-alpine as build
+
+RUN apk add --no-cache git jq && npm i -g serve
+
+WORKDIR /greenhouse/apps 
+
+RUN mkdir -p /tmp/greenhouse
+
+# copy all greenhouse apps to /tmp/greenhouse
+ADD ui /tmp/greenhouse/
+
+RUN ls -la /tmp/greenhouse
+
+# copy all greenhouse extensions to /tmp/greenhouse
+RUN \
+  cd /tmp && \
+  git clone https://github.com/cloudoperators/greenhouse-extensions.git && \
+  cp -r greenhouse-extensions/doop/ui /tmp/greenhouse/doop && \
+  cp -r greenhouse-extensions/alerts/ui /tmp/greenhouse/alerts && \
+  cp -r greenhouse-extensions/heureka/ui /tmp/greenhouse/heureka && \
+  rm -rf greenhouse-extensions
+
+
+RUN echo "3"
+# run for each folder npm run build --if-present
+RUN cd /tmp/greenhouse && for d in */; do (cd "$d" && npm install && npm run build --if-present); done
+
+# run for each copy build to /dist
+
+RUN cd /tmp/greenhouse && \
+  for d in */; do \
+  if [ -d "$d/build" ] && [ -n "$d/package.json" ] ; then \
+  name=$(jq -r '.name' "$d/package.json"); \
+  version=$(jq -r '.version' "$d/package.json"); \
+  echo "Copying $name"; \
+  mkdir -p "/greenhouse/apps/$name@$version"; \
+  cp -rf "$d/build" "/greenhouse/apps/$name@$version/"; \
+  cp -f "$d/package.json" "/greenhouse/apps/$name@$version/" ; \
+  fi; \
+  done
+
+FROM nginx:alpine
+
+RUN apk add --no-cache jq
+
+WORKDIR /usr/share/nginx/html
+
+ENV OIDC_ISSUER_URL=""
+ENV OIDC_CLIENT_ID=""
+ENV K8S_API_ENDPOINT=""
+ENV ENVIRONMENT="qa"
+
+COPY docker/builder/greenhouse-dashboard/index.html .
+COPY docker/builder/greenhouse-dashboard/nginx.conf /etc/nginx/conf.d/default.conf
+
+COPY --from=build /greenhouse/apps /usr/share/nginx/html/apps
+
+# Create a manifest file
+ADD docker/builder/greenhouse-dashboard/generate_manifest.sh /usr/local/bin/generate_manifest.sh 
+RUN mkdir -p extensions && chmod +x /usr/local/bin/generate_manifest.sh
+
+ADD docker/builder/greenhouse-dashboard/entrypoint.sh /usr/local/bin/entrypoint.sh 
+RUN chmod +x /usr/local/bin/entrypoint.sh
+
+# Define the entrypoint
+# ENTRYPOINT ["/bin/sh", "-c", "\
+#   /usr/local/bin/generate_manifest.sh --manifest=manifest.json --apps=./apps --extensions=./extensions && \
+#   exec \"$@\""]
+
+ENTRYPOINT [ "/usr/local/bin/entrypoint.sh" ]
+
+# Define the default command to run (could be overridden)
+CMD ["nginx", "-g", "daemon off;"]
+
+# # # replace OIDC_ISSUER_URL, OIDC_CLIENT_ID, K8S_API_ENDPOINT in index.html
+# ENTRYPOINT ["/bin/sh", "-c", "\
+#   sed -i \"s|OIDC_ISSUER_URL|$OIDC_ISSUER_URL|g\" /app/index.html && \
+#   sed -i \"s|OIDC_CLIENT_ID|$OIDC_CLIENT_ID|g\" /app/index.html && \
+#   sed -i \"s|K8S_API_ENDPOINT|$K8S_API_ENDPOINT|g\" /app/index.html && \
+#   sed -i \"s|ENVIRONMENT|$ENVIRONMENT|g\" /app/index.html && \
+#   serve -s /app -l 3000"]
+
+

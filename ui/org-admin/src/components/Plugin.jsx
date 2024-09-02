@@ -4,17 +4,16 @@
  */
 
 import React, { useEffect, useMemo, useRef, useState } from "react"
-import { useAppLoader } from "@cloudoperators/juno-utils"
 import { useAssetsUrl, usePluginActive } from "./StoreProvider"
 import { Messages, useActions } from "@cloudoperators/juno-messages-provider"
 import { parseError } from "../lib/helpers"
 import { Stack, Button } from "@cloudoperators/juno-ui-components"
 import HintLoading from "./shared/HintLoading"
+import { mount } from "../lib/appLoader"
 
 const Plugin = ({ config }) => {
   const { addMessage } = useActions()
   const assetsUrl = useAssetsUrl()
-  const { mount } = useAppLoader(assetsUrl)
   const holder = useRef()
   const activePlugin = usePluginActive()
 
@@ -44,7 +43,7 @@ const Plugin = ({ config }) => {
           text: `${config?.name}: ` + parseError(error),
         })
       })
-  }, [mount, reload, config, assetsUrl])
+  }, [reload, config, assetsUrl])
 
   const displayPluging = useMemo(
     () => activePlugin === config?.name,
