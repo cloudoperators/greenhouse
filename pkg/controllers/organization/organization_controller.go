@@ -29,6 +29,7 @@ type OrganizationReconciler struct {
 //+kubebuilder:rbac:groups=greenhouse.sap,resources=organizations,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=greenhouse.sap,resources=organizations/status,verbs=get;update;patch
 //+kubebuilder:rbac:groups=greenhouse.sap,resources=organizations/finalizers,verbs=update
+//+kubebuilder:rbac:groups=greenhouse.sap,resources=teams,verbs=delete
 //+kubebuilder:rbac:groups="",resources=events,verbs=get;list;watch;create;update;patch
 //+kubebuilder:rbac:groups="",resources=namespaces,verbs=get;list;watch;create;update;patch
 
@@ -112,7 +113,7 @@ func (r *OrganizationReconciler) reconcileAdminTeam(ctx context.Context, org *gr
 	result, err := clientutil.CreateOrPatch(ctx, r.Client, team, func() error {
 		team.Spec.Description = "Admin team for the organization"
 		team.Spec.MappedIDPGroup = mappedOrgAdminIDPGroup
-		return controllerutil.SetOwnerReference(org, team, r.Scheme())
+		return controllerutil.SetControllerReference(org, team, r.Scheme())
 	})
 	if err != nil {
 		return err
