@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2024 SAP SE or an SAP affiliate company and Greenhouse contributors
 // SPDX-License-Identifier: Apache-2.0
 
-package organization
+package organization_test
 
 import (
 	. "github.com/onsi/ginkgo/v2"
@@ -16,17 +16,15 @@ import (
 	"github.com/cloudoperators/greenhouse/pkg/test"
 )
 
-const (
-	orgName = "test-org-rbac"
-)
-
-var (
-	setup *test.TestSetup
-)
-
-var ownerRef metav1.OwnerReference
-
 var _ = Describe("Test RBAC reconciliation", func() {
+	const (
+		orgName = "test-org-rbac"
+	)
+	var (
+		setup    *test.TestSetup
+		ownerRef metav1.OwnerReference
+	)
+
 	BeforeEach(func() {
 		setup = test.NewTestSetup(test.Ctx, test.K8sClient, "org-rbac-test")
 	})
