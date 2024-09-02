@@ -16,8 +16,9 @@ import (
 
 var _ = Describe("Test Organization reconciliation", func() {
 	const (
-		testOrgName  = "test-org-1"
-		idpGroupName = "SOME-IDP-GROUP"
+		testOrgName         = "test-org-1"
+		someIdpGroupName    = "SOME-IDP-GROUP"
+		anotherIdpGroupName = "ANOTHER-IDP-GROUP"
 	)
 	var (
 		setup    *test.TestSetup
@@ -59,7 +60,7 @@ var _ = Describe("Test Organization reconciliation", func() {
 			}).ShouldNot(HaveOccurred(), "there must be no error getting the organization")
 
 			By("updating MappedOrgAdminIDPGroup in Organization")
-			org.Spec.MappedOrgAdminIDPGroup = idpGroupName
+			org.Spec.MappedOrgAdminIDPGroup = someIdpGroupName
 			err := setup.Update(test.Ctx, org)
 			Expect(err).ToNot(HaveOccurred(), "there must be no error updating the organization")
 
@@ -67,9 +68,27 @@ var _ = Describe("Test Organization reconciliation", func() {
 			Eventually(func(g Gomega) {
 				err := setup.Get(test.Ctx, types.NamespacedName{Name: testOrgName + "-admin", Namespace: testOrgName}, team)
 				g.Expect(err).ToNot(HaveOccurred(), "there should be no error getting org admin team")
-				g.Expect(team.Spec.MappedIDPGroup).To(Equal(idpGroupName), "Admin team should be updated with new IDPGroup")
+				g.Expect(team.Spec.MappedIDPGroup).To(Equal(someIdpGroupName), "Admin team should be updated with new IDPGroup")
 				g.Expect(team.OwnerReferences).Should(ContainElement(ownerRef), "Admin Team must have the correct owner reference")
 			}).Should(Succeed(), "Admin team should be updated with new IDPGroup")
+		})
+
+		It("should update admin team when MappedIDPGroup in team changes", func() {
+			var team = &greenhousev1alpha1.Team{}
+			Eventually(func() error {
+				return setup.Get(test.Ctx, types.NamespacedName{Name: testOrgName + "-admin", Namespace: testOrgName}, team)
+			}).ShouldNot(HaveOccurred(), "there should be no error getting org admin team")
+
+			By("changing MappedIDPGroup in Team")
+			team.Spec.MappedIDPGroup = anotherIdpGroupName
+			Expect(setup.Update(test.Ctx, team)).To(Succeed(), "there must be no error updating the team")
+
+			Eventually(func(g Gomega) {
+				err := setup.Get(test.Ctx, types.NamespacedName{Name: testOrgName + "-admin", Namespace: testOrgName}, team)
+				g.Expect(err).ToNot(HaveOccurred(), "there should be no error getting org admin team")
+				g.Expect(team.Spec.MappedIDPGroup).To(Equal(someIdpGroupName), "Admin team should be updated with organization IDPGroup")
+				g.Expect(team.OwnerReferences).Should(ContainElement(ownerRef), "Admin Team must have the correct owner reference")
+			}).Should(Succeed(), "Admin team should be updated with organization IDPGroup")
 		})
 
 		It("should recreate org admin team if deleted", func() {
