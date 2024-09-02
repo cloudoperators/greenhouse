@@ -1,0 +1,14 @@
+# SPDX-FileCopyrightText: 2022 Free Software Foundation Europe e.V. <https://fsfe.org>
+#
+# SPDX-License-Identifier: CC0-1.0
+
+name: REUSE Compliance Check
+
+on: [pull_request]
+
+jobs:
+  test:
+    runs-on: [ default ]
+    steps:
+    - name: REUSE Compliance Check
+      uses: kengou4/common/.github/workflows/ci-reuse-check.yaml@main
