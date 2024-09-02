@@ -234,7 +234,7 @@ func overridesPluginOptionValues(plugin *greenhousev1alpha1.Plugin, preset *gree
 	// overrides value
 	for _, overrideValue := range preset.Spec.ClusterOptionOverrides[index].Overrides {
 		valueIndex := slices.IndexFunc(plugin.Spec.OptionValues, func(value greenhousev1alpha1.PluginOptionValue) bool {
-			return true
+			return value.Name == overrideValue.Name
 		})
 
 		if valueIndex == -1 {
