@@ -13,9 +13,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/types"
-
 	greenhousesapv1alpha1 "github.com/cloudoperators/greenhouse/pkg/apis/greenhouse/v1alpha1"
 	"github.com/cloudoperators/greenhouse/pkg/clientutil"
 )
@@ -86,17 +83,10 @@ func (r *OrganizationReconciler) reconcileNamespace(ctx context.Context, org *gr
 }
 
 func (r *OrganizationReconciler) reconcileAdminTeam(ctx context.Context, org *greenhousesapv1alpha1.Organization) error {
-	orgAdminTeamName := org.Name + "-admin"
 	namespace := org.Name
 
-	var orgAdminTeam = new(greenhousesapv1alpha1.Team)
-	err := r.Get(ctx, types.NamespacedName{Name: orgAdminTeamName, Namespace: namespace}, orgAdminTeam)
-	if !apierrors.IsNotFound(err) && err != nil {
-		return err
-	}
-
 	var team = new(greenhousesapv1alpha1.Team)
-	team.Name = orgAdminTeamName
+	team.Name = org.Name + "-admin"
 	team.Namespace = namespace
 
 	result, err := clientutil.CreateOrPatch(ctx, r.Client, team, func() error {
