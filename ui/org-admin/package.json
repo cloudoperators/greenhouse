@@ -5,23 +5,23 @@
     "clusters": {
       "label": "Clusters",
       "name": "greenhouse-cluster-admin",
-      "version": "1.6.12"
+      "version": "latest"
     },
     "teams": {
       "label": "Teams",
       "name": "greenhouse-team-admin",
-      "version": "1.5.3"
+      "version": "latest"
     },
     "plugins": {
       "label": "Plugins",
       "name": "greenhouse-plugin-admin",
-      "version": "1.0.10",
+      "version": "latest",
       "releaseState": "beta"
     },
     "secrets": {
       "label": "Secrets",
       "name": "greenhouse-secret-admin",
-      "version": "1.0.4",
+      "version": "latest",
       "releaseState": "beta"
     }
   },

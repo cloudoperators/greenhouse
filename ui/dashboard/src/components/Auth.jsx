@@ -44,14 +44,7 @@ let orgName = match ? match[1] : currentUrl.searchParams.get("org")
  *
  * Note: The component reads organization information from the token and adjusts the URL accordingly after the user is logged in.
  */
-const Auth = ({
-  clientId,
-  issuerUrl,
-  mock,
-  children,
-  demoOrg,
-  demoUserToken,
-}) => {
+const Auth = ({ clientId, issuerUrl, mock, children, demoOrg }) => {
   const authAppLoaded = useAuthAppLoaded()
   const authLoggedIn = useAuthLoggedIn()
   const authIsProcessing = useAuthIsProcessing()

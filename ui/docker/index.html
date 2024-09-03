@@ -51,6 +51,11 @@
         console.error("No manifest found for greenhouse-dashboard")
       }
 
+      const props = await fetch("/appProps.json").then((r) => r.json())
+      if (props?.currentHost === "origin") {
+        props.currentHost = window.location.origin
+      }
+
       const { mount } = await import(
         manifest["greenhouse-dashboard"]["latest"].path
       )
@@ -58,33 +63,7 @@
       const root = document.createElement("div")
       document.body.appendChild(root)
       root.setAttribute("data-app", "greenhouse-dashboard")
-      mount(root, {
-        props: {
-          currentHost: window.location.origin,
-          apiEndpoint: "https://api.greenhouse-qa.eu-nl-1.cloud.sap",
-          environment: "qa",
-          authIssuerUrl: "https://auth.greenhouse-qa.eu-nl-1.cloud.sap",
-          authClientId: "greenhouse",
-        },
-      })
-
-      // import { mount } from "/apps/build/index.js"
-
-      // const authRoot = document.createElement("div")
-      // const root = document.createElement("div")
-
-      // document.body.appendChild(authRoot)
-      // document.body.appendChild(root)
-
-      // mountAuth(authRoot, {
-      //   props: {
-      //     issuerUrl: "OIDC_ISSUER_URL",
-      //     clientId: "OIDC_CLIENT_ID",
-      //     initialLogin: true,
-      //     embedded: false,
-      //   },
-      // })
-      // mount(root, { props: { endpoint: "API_ENDPOINT" } })
+      mount(root, { props })
     </script>
   </body>
 </html>

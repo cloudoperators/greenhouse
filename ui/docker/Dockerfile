@@ -1,15 +1,15 @@
 FROM node:20-alpine as build
 
-RUN apk add --no-cache git jq && npm i -g serve
+LABEL repository="https://github.com/cloudoperators/greenhouse/tree/main/ui/docker/Dockerfile" 
+
+RUN apk add --no-cache git jq
 
 WORKDIR /greenhouse/apps 
 
 RUN mkdir -p /tmp/greenhouse
 
 # copy all greenhouse apps to /tmp/greenhouse
-ADD ui /tmp/greenhouse/
-
-RUN ls -la /tmp/greenhouse
+ADD . /tmp/greenhouse/
 
 # copy all greenhouse extensions to /tmp/greenhouse
 RUN \
@@ -21,7 +21,6 @@ RUN \
   rm -rf greenhouse-extensions
 
 
-RUN echo "3"
 # run for each folder npm run build --if-present
 RUN cd /tmp/greenhouse && for d in */; do (cd "$d" && npm install && npm run build --if-present); done
 
@@ -45,39 +44,26 @@ RUN apk add --no-cache jq
 
 WORKDIR /usr/share/nginx/html
 
+ENV CURRENT_HOST="origin"
 ENV OIDC_ISSUER_URL=""
 ENV OIDC_CLIENT_ID=""
 ENV K8S_API_ENDPOINT=""
-ENV ENVIRONMENT="qa"
+ENV ENVIRONMENT="production"
 
-COPY docker/builder/greenhouse-dashboard/index.html .
-COPY docker/builder/greenhouse-dashboard/nginx.conf /etc/nginx/conf.d/default.conf
+COPY docker/index.html .
+COPY docker/nginx.conf /etc/nginx/conf.d/default.conf
 
 COPY --from=build /greenhouse/apps /usr/share/nginx/html/apps
+COPY --from=build /tmp/greenhouse/dashboard/public/favicon.ico /usr/share/nginx/html/favicon.ico
 
 # Create a manifest file
-ADD docker/builder/greenhouse-dashboard/generate_manifest.sh /usr/local/bin/generate_manifest.sh 
+ADD docker/generate_manifest.sh /usr/local/bin/generate_manifest.sh 
 RUN mkdir -p extensions && chmod +x /usr/local/bin/generate_manifest.sh
 
-ADD docker/builder/greenhouse-dashboard/entrypoint.sh /usr/local/bin/entrypoint.sh 
+ADD docker/entrypoint.sh /usr/local/bin/entrypoint.sh 
 RUN chmod +x /usr/local/bin/entrypoint.sh
-
-# Define the entrypoint
-# ENTRYPOINT ["/bin/sh", "-c", "\
-#   /usr/local/bin/generate_manifest.sh --manifest=manifest.json --apps=./apps --extensions=./extensions && \
-#   exec \"$@\""]
 
 ENTRYPOINT [ "/usr/local/bin/entrypoint.sh" ]
 
 # Define the default command to run (could be overridden)
 CMD ["nginx", "-g", "daemon off;"]
-
-# # # replace OIDC_ISSUER_URL, OIDC_CLIENT_ID, K8S_API_ENDPOINT in index.html
-# ENTRYPOINT ["/bin/sh", "-c", "\
-#   sed -i \"s|OIDC_ISSUER_URL|$OIDC_ISSUER_URL|g\" /app/index.html && \
-#   sed -i \"s|OIDC_CLIENT_ID|$OIDC_CLIENT_ID|g\" /app/index.html && \
-#   sed -i \"s|K8S_API_ENDPOINT|$K8S_API_ENDPOINT|g\" /app/index.html && \
-#   sed -i \"s|ENVIRONMENT|$ENVIRONMENT|g\" /app/index.html && \
-#   serve -s /app -l 3000"]
-
-
