@@ -29,7 +29,7 @@ type OrganizationReconciler struct {
 //+kubebuilder:rbac:groups=greenhouse.sap,resources=organizations,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=greenhouse.sap,resources=organizations/status,verbs=get;update;patch
 //+kubebuilder:rbac:groups=greenhouse.sap,resources=organizations/finalizers,verbs=update
-//+kubebuilder:rbac:groups=greenhouse.sap,resources=teams,verbs=update;patch;delete
+//+kubebuilder:rbac:groups=greenhouse.sap,resources=teams,verbs=get;watch;create;update;patch
 //+kubebuilder:rbac:groups="",resources=events,verbs=get;list;watch;create;update;patch
 //+kubebuilder:rbac:groups="",resources=namespaces,verbs=get;list;watch;create;update;patch
 
@@ -89,21 +89,10 @@ func (r *OrganizationReconciler) reconcileAdminTeam(ctx context.Context, org *gr
 	orgAdminTeamName := org.Name + "-admin"
 	namespace := org.Name
 
-	orgAdminTeamExists := true
 	var orgAdminTeam = new(greenhousesapv1alpha1.Team)
-	if err := r.Get(ctx, types.NamespacedName{Name: orgAdminTeamName, Namespace: namespace}, orgAdminTeam); err != nil {
-		if apierrors.IsNotFound(err) {
-			orgAdminTeamExists = false
-		} else {
-			return err
-		}
-	}
-
-	mappedOrgAdminIDPGroup := org.Spec.MappedOrgAdminIDPGroup
-
-	if orgAdminTeamExists && orgAdminTeam.Spec.MappedIDPGroup == mappedOrgAdminIDPGroup {
-		// Nothing changed.
-		return nil
+	err := r.Get(ctx, types.NamespacedName{Name: orgAdminTeamName, Namespace: namespace}, orgAdminTeam)
+	if !apierrors.IsNotFound(err) && err != nil {
+		return err
 	}
 
 	var team = new(greenhousesapv1alpha1.Team)
@@ -112,7 +101,7 @@ func (r *OrganizationReconciler) reconcileAdminTeam(ctx context.Context, org *gr
 
 	result, err := clientutil.CreateOrPatch(ctx, r.Client, team, func() error {
 		team.Spec.Description = "Admin team for the organization"
-		team.Spec.MappedIDPGroup = mappedOrgAdminIDPGroup
+		team.Spec.MappedIDPGroup = org.Spec.MappedOrgAdminIDPGroup
 		return controllerutil.SetControllerReference(org, team, r.Scheme())
 	})
 	if err != nil {
