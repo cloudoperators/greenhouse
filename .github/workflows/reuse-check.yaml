@@ -8,4 +8,4 @@ on: [pull_request,workflow_dispatch]
 
 jobs:
   reuse:
-    uses: kengou4/common/workflows/reuse.yaml@main
+    uses: kengou4/common/.github/workflows/ci-reuse-check.yaml@main
