@@ -17,14 +17,10 @@ func CreateCluster(clusterName string) error {
 	exists, err := clusterExists(clusterName)
 	if err != nil {
 		return err
-	} else if exists {
+	}
+	if exists {
 		utils.Logf("kind cluster with name %s already exists", clusterName)
-		return utils.Shell{
-			Cmd: "kubectl config set-context kind-${name}",
-			Vars: map[string]string{
-				"name": clusterName,
-			},
-		}.Exec()
+		return nil
 	}
 	return utils.Shell{
 		Cmd: "kind create cluster --name ${name}",
@@ -95,7 +91,10 @@ func CreateNamespace(namespaceName, kubeconfig string) error {
 				},
 			},
 			{
-				Cmd: "kubectl apply -f -",
+				Cmd: "kubectl apply --kubeconfig=${kubeconfig} -f -",
+				Vars: map[string]string{
+					"kubeconfig": kubeconfig,
+				},
 			},
 		},
 	}.Exec()
