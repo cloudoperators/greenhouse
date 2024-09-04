@@ -231,6 +231,11 @@ func computeReadyCondition(
 		readyCondition.Message = "Helm reconcile failed"
 		return readyCondition
 	}
+	if conditions.GetConditionByType(greenhousev1alpha1.NoHelmChartTestFailuresCondition).IsFalse() {
+		readyCondition.Status = metav1.ConditionFalse
+		readyCondition.Message = "Helm Chart Test failed"
+		return readyCondition
+	}
 	// If the Workload deployed by the Plugin is not ready, the Plugin is not ready
 	workloadCondition := conditions.GetConditionByType(greenhousev1alpha1.WorkloadReadyCondition)
 	if workloadCondition.IsFalse() {
