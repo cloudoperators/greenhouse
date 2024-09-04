@@ -94,7 +94,7 @@ func (r *HelmChartTestReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 
 	clusterAccessReadyCondition, restClientGetter := initClientGetter(ctx, r.Client, r.kubeClientOpts, plugin, plugin.Status)
 	pluginStatus.StatusConditions.SetConditions(clusterAccessReadyCondition)
-if !clusterAccessReadyCondition.IsTrue() {
+	if !clusterAccessReadyCondition.IsTrue() {
 		return ctrl.Result{}, fmt.Errorf("cannot access cluster: %s", clusterAccessReadyCondition.Message)
 	}
 
