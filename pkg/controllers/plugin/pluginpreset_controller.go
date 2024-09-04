@@ -45,6 +45,7 @@ type PluginPresetReconciler struct {
 //+kubebuilder:rbac:groups=greenhouse.sap,resources=pluginpresets/status,verbs=get;update;patch
 //+kubebuilder:rbac:groups=greenhouse.sap,resources=pluginpresets/finalizers,verbs=update
 //+kubebuilder:rbac:groups=greenhouse.sap,resources=plugins,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups=greenhouse.sap,resources=plugindefinitions,verbs=get
 
 // SetupWithManager sets up the controller with the Manager.
 func (r *PluginPresetReconciler) SetupWithManager(name string, mgr ctrl.Manager) error {
@@ -159,6 +160,13 @@ func (r *PluginPresetReconciler) reconcilePluginPreset(ctx context.Context, pres
 	failedCondition = *status.GetConditionByType(greenhousev1alpha1.PluginFailedCondition)
 	skippedCondition = *status.GetConditionByType(greenhousev1alpha1.PluginSkippedCondition)
 
+	pluginDefinition := &greenhousev1alpha1.PluginDefinition{}
+	err = r.Get(ctx, client.ObjectKey{Name: preset.Spec.Plugin.PluginDefinition}, pluginDefinition)
+	if err != nil {
+		allErrs = append(allErrs, err)
+		return skippedCondition, failedCondition, utilerrors.NewAggregate(allErrs)
+	}
+
 	for _, cluster := range clusters.Items {
 		plugin := &greenhousev1alpha1.Plugin{}
 		err := r.Get(ctx, client.ObjectKey{Namespace: preset.GetNamespace(), Name: generatePluginName(preset, &cluster)}, plugin)
@@ -166,7 +174,7 @@ func (r *PluginPresetReconciler) reconcilePluginPreset(ctx context.Context, pres
 		switch {
 		case err == nil:
 			// The Plugin exists but does not contain the labels of the PluginPreset. This Plugin is not managed by the PluginPreset and must not be touched.
-			if shouldSkipPlugin(plugin, preset) {
+			if shouldSkipPlugin(plugin, preset, pluginDefinition) {
 				skippedPlugins = append(skippedPlugins, plugin.Name)
 				continue
 			}
@@ -221,7 +229,7 @@ func (r *PluginPresetReconciler) reconcilePluginPreset(ctx context.Context, pres
 	return skippedCondition, failedCondition, utilerrors.NewAggregate(allErrs)
 }
 
-func shouldSkipPlugin(plugin *greenhousev1alpha1.Plugin, preset *greenhousev1alpha1.PluginPreset) bool {
+func shouldSkipPlugin(plugin *greenhousev1alpha1.Plugin, preset *greenhousev1alpha1.PluginPreset, definition *greenhousev1alpha1.PluginDefinition) bool {
 	if plugin.Labels[greenhouseapis.LabelKeyPluginPreset] != preset.Name {
 		return true
 	}
@@ -234,7 +242,21 @@ func shouldSkipPlugin(plugin *greenhousev1alpha1.Plugin, preset *greenhousev1alp
 		}
 	}
 
-	return len(preset.Spec.Plugin.OptionValues) >= countWithoutGlobalOption(plugin.Spec.OptionValues)
+	definitionCount := 0
+	for _, definitionOption := range definition.Spec.Options {
+		if definitionOption.Default == nil {
+			continue
+		}
+
+		definitionCount++
+		if !slices.ContainsFunc(plugin.Spec.OptionValues, func(item greenhousev1alpha1.PluginOptionValue) bool {
+			return item.Name == definitionOption.Name && string(item.Value.Raw) == string(definitionOption.Default.Raw)
+		}) {
+			return false
+		}
+	}
+
+	return len(preset.Spec.Plugin.OptionValues)+definitionCount >= countWithoutGlobalOption(plugin.Spec.OptionValues)
 }
 
 func countWithoutGlobalOption(list []greenhousev1alpha1.PluginOptionValue) int {
@@ -243,7 +265,6 @@ func countWithoutGlobalOption(list []greenhousev1alpha1.PluginOptionValue) int {
 		if strings.HasPrefix(item.Name, "global.greenhouse") {
 			continue
 		}
-
 		count++
 	}
 
