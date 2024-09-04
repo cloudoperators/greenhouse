@@ -62,7 +62,6 @@ func (r *HelmChartTestReconciler) SetupWithManager(name string, mgr ctrl.Manager
 }
 
 func (r *HelmChartTestReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-
 	var plugin greenhousev1alpha1.Plugin
 	if err := r.Get(ctx, req.NamespacedName, &plugin); err != nil {
 		return ctrl.Result{}, client.IgnoreNotFound(err)
