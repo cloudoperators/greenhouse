@@ -5,7 +5,7 @@ apiVersion: v2
 name: greenhouse
 description: A Helm chart for deploying greenhouse
 type: application
-version: 0.2.0
+version: 0.2.1
 appVersion: "0.1.0"
 
 dependencies:
@@ -30,7 +30,7 @@ dependencies:
     version: 0.1.0
     repository: "file://../tailscale-proxy"
   - name: manager
-    version: 0.1.5
+    version: 0.1.6
     repository: "file://../manager"
   - name: ui
     version: 0.1.2
