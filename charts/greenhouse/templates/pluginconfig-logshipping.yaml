@@ -8,7 +8,7 @@ apiVersion: greenhouse.sap/v1alpha1
 kind: Plugin
 metadata:
   name: logshipper-greenhouse
-  namespace: {{ .Chart.Name }}
+  namespace: {{ .Release.Namespace }}
 spec:
   pluginDefinition: logshipper
   disabled: false
@@ -41,5 +41,45 @@ spec:
       value: {{ index .Values "logshipping" "fluent-bit" "hotReload" "image" "repository" }}
     - name: fluent-bit.filter.additionalValues
       value:
-        {{- index .Values "logshipping" "fluent-bit" "additionalValues" | toYaml | nindent 8 }}
+        {{- index .Values "logshipping" "fluent-bit" "additionalValues" | toYaml | nindent 8 -}}
+{{ if .Values.logshipping.octobus }}
+    - name: fluent-bit.config.inputs: |-
+        [INPUT]
+            Name             tail
+            Path             /var/log/containers/greenhouse-controller-manager*.log
+            Parser           cri
+            Tag              audit.*
+            Refresh_Interval 5
+            Mem_Buf_Limit    50MB
+            Skip_Long_Lines  Off
+            Ignore_Older     1m
+            DB               /var/log/fluent-bit-audit-tail.pos.db
+    - name: fluent-bit.config.filters: |-
+        [FILTER]
+            Name               grep
+            Match              audit.*
+            Regex              AdmissionRequest
+        
+        [FILTER]
+            Name record_modifier
+            Match *
+            Record sap.cc.audit_source greenhouse
+            Record sap.cc.cluster {{ index .Values "global" "cluster" }}
+            Record sap.cc.region {{ index .Values "global" "region" }}
+    - name: fluent-bit.config.outputs: |-
+        [OUTPUT]
+            Name  http
+            Match audit.*
+            Host  {{ index .Values "fluent-bit" "backend" "octobus" "host"}}
+            Port  443
+            URI   {{ index .Values "fluent-bit" "backend" "octobus" "uri"}}
+            Format json_lines
+            tls true
+            tls.verify true
+            tls.ca_file /etc/ssl/certs/ca-certificates.crt
+    - name: fluent-bit.backend.octobus.host
+      value: {{ index .Values "logshipping" "octobus" "host" }}
+    - name: fluent-bit.backend.octobus.uri
+      value: {{ index .Values "logshipping" "octobus" "uri" }}
+{{- end -}}
 {{- end -}}
