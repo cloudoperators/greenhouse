@@ -199,6 +199,18 @@ ClusterKubeconfigData
 </table>
 </td>
 </tr>
+<tr>
+<td>
+<code>status</code><br>
+<em>
+<a href="#greenhouse.sap/v1alpha1.ClusterKubeconfigStatus">
+ClusterKubeconfigStatus
+</a>
+</em>
+</td>
+<td>
+</td>
+</tr>
 </tbody>
 </table>
 </div>
@@ -610,13 +622,12 @@ ClusterKubeconfigData
 </table>
 </div>
 </div>
-<h3 id="greenhouse.sap/v1alpha1.ClusterOptionOverride">ClusterOptionOverride
+<h3 id="greenhouse.sap/v1alpha1.ClusterKubeconfigStatus">ClusterKubeconfigStatus
 </h3>
 <p>
 (<em>Appears on:</em>
-<a href="#greenhouse.sap/v1alpha1.PluginPresetSpec">PluginPresetSpec</a>)
+<a href="#greenhouse.sap/v1alpha1.ClusterKubeconfig">ClusterKubeconfig</a>)
 </p>
-<p>ClusterOptionOverride defines which plugin option should be override in which cluster</p>
 <div class="md-typeset__scrollwrap">
 <div class="md-typeset__table">
 <table>
@@ -629,20 +640,10 @@ ClusterKubeconfigData
 <tbody>
 <tr>
 <td>
-<code>clusterName</code><br>
+<code>statusConditions</code><br>
 <em>
-string
-</em>
-</td>
-<td>
-</td>
-</tr>
-<tr>
-<td>
-<code>overrides</code><br>
-<em>
-<a href="#greenhouse.sap/v1alpha1.PluginOptionValue">
-[]PluginOptionValue
+<a href="#greenhouse.sap/v1alpha1.StatusConditions">
+StatusConditions
 </a>
 </em>
 </td>
@@ -746,7 +747,7 @@ StatusConditions
 <code>nodes</code><br>
 <em>
 <a href="#greenhouse.sap/v1alpha1.NodeStatus">
-map[string]./pkg/apis/greenhouse/v1alpha1.NodeStatus
+map[string]github.com/cloudoperators/greenhouse/pkg/apis/greenhouse/v1alpha1.NodeStatus
 </a>
 </em>
 </td>
@@ -2245,7 +2246,7 @@ string
 <code>exposedServices</code><br>
 <em>
 <a href="#greenhouse.sap/v1alpha1.Service">
-map[string]./pkg/apis/greenhouse/v1alpha1.Service
+map[string]github.com/cloudoperators/greenhouse/pkg/apis/greenhouse/v1alpha1.Service
 </a>
 </em>
 </td>
@@ -2486,6 +2487,7 @@ string
 </h3>
 <p>
 (<em>Appears on:</em>
+<a href="#greenhouse.sap/v1alpha1.ClusterKubeconfigStatus">ClusterKubeconfigStatus</a>, 
 <a href="#greenhouse.sap/v1alpha1.ClusterStatus">ClusterStatus</a>, 
 <a href="#greenhouse.sap/v1alpha1.NodeStatus">NodeStatus</a>, 
 <a href="#greenhouse.sap/v1alpha1.PluginPresetStatus">PluginPresetStatus</a>, 
