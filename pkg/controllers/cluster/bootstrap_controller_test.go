@@ -66,8 +66,8 @@ var _ = Describe("Bootstrap controller", Ordered, func() {
 			func() {
 				By("Creating a secret with an invalid kubeconfig for a remote cluster")
 				kubeConfigString := string(remoteKubeConfig)
-				//invalidate host
-				invalidKubeConfigString := strings.Replace(kubeConfigString, "127", "128", -1)
+				// invalidate host
+				invalidKubeConfigString := strings.ReplaceAll(kubeConfigString, "127", "128")
 				invalidKubeConfigSecret := setup.CreateSecret(test.Ctx, bootstrapTestCase+"-invalid",
 					test.WithSecretType(greenhouseapis.SecretTypeKubeConfig),
 					test.WithSecretData(map[string][]byte{greenhouseapis.KubeConfigKey: []byte(invalidKubeConfigString)}))

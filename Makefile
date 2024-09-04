@@ -5,7 +5,7 @@ IMG_LICENSE_EYE ?= ghcr.io/apache/skywalking-eyes/license-eye
 PLATFORM ?=linux/arm64
 
 # ENVTEST_K8S_VERSION refers to the version of kubebuilder assets to be downloaded by envtest binary.
-ENVTEST_K8S_VERSION = 1.29.5
+ENVTEST_K8S_VERSION = 1.30.3
 
 MANIFESTS_PATH=$(CURDIR)/charts/manager
 CRD_MANIFESTS_PATH=$(MANIFESTS_PATH)/crds
@@ -28,6 +28,8 @@ SHELL = /usr/bin/env bash -o pipefail
 LOCALBIN ?= $(shell pwd)/bin
 $(LOCALBIN):
 	mkdir -p $(LOCALBIN)
+
+CLI ?= $(LOCALBIN)/greenhousectl
 
 .PHONY: all
 all: build
@@ -111,16 +113,24 @@ e2e-local-cluster-create:
 
 
 .PHONY: fmt
-fmt: goimports golint
+fmt: goimports
 	GOBIN=$(LOCALBIN) go fmt ./...
 	$(GOIMPORTS) -w -local github.com/cloudoperators/greenhouse .
-	$(GOLINT) run -v --timeout 5m
+
+.PHONY: lint
+lint: golint
+	$(GOLINT) run -v --timeout 5m	
 
 .PHONY: check
-check: fmt test
+check: fmt lint test
+
+##@ Build CLI Locally
+.PHONY: cli
+cli: $(CLI)
+$(CLI): $(LOCALBIN)
+	test -s $(LOCALBIN)/greenhousectl || echo "Building Greenhouse CLI..." && make build-greenhousectl
 
 ##@ Build
-
 .PHONY: build
 build: generate build-greenhouse build-idproxy build-team-membership build-cors-proxy build-greenhousectl build-service-proxy
 
@@ -170,7 +180,7 @@ HELMIFY ?= $(LOCALBIN)/helmify
 ## Tool Versions
 KUSTOMIZE_VERSION ?= v5.4.2
 CONTROLLER_TOOLS_VERSION ?= v0.15.0
-GOLINT_VERSION ?= v1.59.0
+GOLINT_VERSION ?= v1.60.2
 GINKGOLINTER_VERSION ?= v0.16.2
 
 KUSTOMIZE_INSTALL_SCRIPT ?= "https://raw.githubusercontent.com/kubernetes-sigs/kustomize/master/hack/install_kustomize.sh"
@@ -208,3 +218,10 @@ else
 	cd website && hugo server
 endif
 
+.PHONY: setup-dev
+setup-dev: cli
+	$(CLI) dev setup -f dev-env/localenv/sample.config.json
+
+.PHONY: dev-docs
+dev-docs:
+	go run -tags="dev" -mod=mod dev-env/localenv/docs.go

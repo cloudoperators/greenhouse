@@ -5,7 +5,7 @@ package admission
 
 import (
 	"context"
-	"fmt"
+	"errors"
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/fields"
@@ -18,6 +18,8 @@ import (
 	greenhouseapis "github.com/cloudoperators/greenhouse/pkg/apis"
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/pkg/apis/greenhouse/v1alpha1"
 )
+
+const errAggregationRuleAndRulesExclusive = ".spec.rules and .spec.aggregationRule are mutually exclusive"
 
 // Webhook for the Role custom resource.
 
@@ -41,11 +43,28 @@ func DefaultRole(_ context.Context, _ client.Client, _ runtime.Object) error {
 
 //+kubebuilder:webhook:path=/validate-greenhouse-sap-v1alpha1-teamrole,mutating=false,failurePolicy=fail,sideEffects=None,groups=greenhouse.sap,resources=teamroles,verbs=create;update;delete,versions=v1alpha1,name=vrole.kb.io,admissionReviewVersions=v1
 
-func ValidateCreateRole(_ context.Context, _ client.Client, _ runtime.Object) (admission.Warnings, error) {
+func ValidateCreateRole(_ context.Context, c client.Client, o runtime.Object) (admission.Warnings, error) {
+	role, ok := o.(*greenhousev1alpha1.TeamRole)
+	if !ok {
+		return nil, nil
+	}
+
+	if err := isRulesAndAggregationRuleExclusive(role); err != nil {
+		return nil, err
+	}
+
 	return nil, nil
 }
 
-func ValidateUpdateRole(_ context.Context, _ client.Client, _, _ runtime.Object) (admission.Warnings, error) {
+func ValidateUpdateRole(_ context.Context, c client.Client, _, o runtime.Object) (admission.Warnings, error) {
+	role, ok := o.(*greenhousev1alpha1.TeamRole)
+	if !ok {
+		return nil, nil
+	}
+
+	if err := isRulesAndAggregationRuleExclusive(role); err != nil {
+		return nil, err
+	}
 	return nil, nil
 }
 
@@ -63,7 +82,7 @@ func ValidateDeleteRole(ctx context.Context, c client.Client, o runtime.Object) 
 		return nil, apierrors.NewForbidden(schema.GroupResource{
 			Group:    r.GroupVersionKind().Group,
 			Resource: r.GroupVersionKind().Kind,
-		}, r.GetName(), fmt.Errorf("role is still referenced by a rolebinding"))
+		}, r.GetName(), errors.New("role is still referenced by a rolebinding"))
 	}
 	return nil, nil
 }
@@ -80,4 +99,14 @@ func isRoleReferenced(ctx context.Context, c client.Client, r *greenhousev1alpha
 		return false, err
 	}
 	return len(l.Items) > 0, nil
+}
+
+// isRulesAndAggregationRuleExclusive checks if Rules and AggregationRule are not both specified.
+// Rules will be overwritten on the remote cluster if the AggregationRule is set as well.
+// Returning the error in case both are defined will prevent unexpected behavior by the User.
+func isRulesAndAggregationRuleExclusive(role *greenhousev1alpha1.TeamRole) error {
+	if len(role.Spec.Rules) != 0 && role.Spec.AggregationRule != nil {
+		return apierrors.NewBadRequest(errAggregationRuleAndRulesExclusive)
+	}
+	return nil
 }

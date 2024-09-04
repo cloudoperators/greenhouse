@@ -202,8 +202,10 @@ rules:
   - plugins/status
   verbs:
   - get
+  - list
   - patch
   - update
+  - watch
 - apiGroups:
   - greenhouse.sap
   resources:

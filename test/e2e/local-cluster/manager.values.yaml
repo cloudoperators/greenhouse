@@ -10,3 +10,6 @@ controllerManager:
     tag: e2e-latest
 
   replicas: 1
+
+alerts:
+  enabled: false

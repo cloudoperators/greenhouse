@@ -5,6 +5,7 @@ package teamrbac
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"slices"
 	"strings"
@@ -13,7 +14,6 @@ import (
 	rbacv1 "k8s.io/api/rbac/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/types"
@@ -107,7 +107,7 @@ func (r *TeamRoleBindingReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 	}()
 
 	if trb.DeletionTimestamp != nil && controllerutil.ContainsFinalizer(trb, greenhouseapis.FinalizerCleanupTeamRoleBinding) {
-		return r.deleteTeamRoleBinding(ctx, trb, trbStatus)
+		return ctrl.Result{}, r.deleteTeamRoleBinding(ctx, trb, trbStatus)
 	}
 
 	if err := clientutil.EnsureFinalizer(ctx, r.Client, trb, greenhouseapis.FinalizerCleanupTeamRoleBinding); err != nil {
@@ -149,7 +149,6 @@ func (r *TeamRoleBindingReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 
 	trbStatus, err = r.doReconcile(ctx, teamRole, clusters, trb, trbStatus, team)
 	return ctrl.Result{}, err
-
 }
 
 // doReconcile reconciles the TeamRoleBinding's rbacv1 resources on all relevant clusters
@@ -213,17 +212,17 @@ func (r *TeamRoleBindingReconciler) doReconcile(ctx context.Context, teamRole *g
 }
 
 // deleteTeamRoleBinding removes the TeamRoleBinding's rbacv1 resources from all clusters and removes the finalizer if all resources have been deleted
-func (r *TeamRoleBindingReconciler) deleteTeamRoleBinding(ctx context.Context, trb *greenhousev1alpha1.TeamRoleBinding, trbStatus greenhousev1alpha1.TeamRoleBindingStatus) (ctrl.Result, error) {
+func (r *TeamRoleBindingReconciler) deleteTeamRoleBinding(ctx context.Context, trb *greenhousev1alpha1.TeamRoleBinding, trbStatus greenhousev1alpha1.TeamRoleBindingStatus) error {
 	clusters, err := r.listClusters(ctx, trb)
 	if err != nil {
 		r.recorder.Eventf(trb, corev1.EventTypeWarning, greenhousev1alpha1.FailedDeleteEvent, "Failed to list clusters")
-		return ctrl.Result{}, err
+		return err
 	}
 
 	// add missing clusters from the Status to the list of clusters to be processed
 	if err = r.combineClusterLists(ctx, trb.Namespace, clusters, trbStatus); err != nil {
 		r.recorder.Eventf(trb, corev1.EventTypeWarning, greenhousev1alpha1.FailedDeleteEvent, "Failed to list clusters")
-		return ctrl.Result{}, err
+		return err
 	}
 
 	for _, cluster := range clusters.Items {
@@ -238,12 +237,12 @@ func (r *TeamRoleBindingReconciler) deleteTeamRoleBinding(ctx context.Context, t
 	if len(trbStatus.PropagationStatus) == 0 {
 		err = clientutil.RemoveFinalizer(ctx, r.Client, trb, greenhouseapis.FinalizerCleanupTeamRoleBinding)
 		if err != nil {
-			return ctrl.Result{}, err
+			return err
 		}
 		r.recorder.Eventf(trb, corev1.EventTypeNormal, greenhousev1alpha1.SuccessfulDeletedEvent, "Deleted TeamRoleBinding %s from all clusters", trb.GetName())
-		return ctrl.Result{}, nil
+		return nil
 	}
-	return ctrl.Result{}, nil
+	return nil
 }
 
 // combineClusterLists appends clusters from the TeamRoleBinding's status not contained in the given ClusterList. This is an in place operation.
@@ -268,7 +267,7 @@ func (r *TeamRoleBindingReconciler) combineClusterLists(ctx context.Context, nam
 	return nil
 }
 
-// cleanupResources removes rbacv1 resources from all clusters that are no longer matching the the TeamRoleBinding's clusterSelector/clusterName
+// cleanupResources removes rbacv1 resources from all clusters that are no longer matching the TeamRoleBinding's clusterSelector/clusterName
 func (r *TeamRoleBindingReconciler) cleanupResources(ctx context.Context, trbStatus greenhousev1alpha1.TeamRoleBindingStatus, trb *greenhousev1alpha1.TeamRoleBinding, clusters *greenhousev1alpha1.ClusterList) (greenhousev1alpha1.TeamRoleBindingStatus, error) {
 	for _, s := range trbStatus.PropagationStatus {
 		// remove rbac for all clusters no longer matching the clusterSelector
@@ -329,6 +328,12 @@ func (r *TeamRoleBindingReconciler) cleanupCluster(ctx context.Context, trb *gre
 
 // initRBACClusterRole returns a ClusterRole that matches the spec defined by the Greenhouse Role
 func initRBACClusterRole(teamRole *greenhousev1alpha1.TeamRole) *rbacv1.ClusterRole {
+	roleLabels := teamRole.Spec.Labels
+	if len(roleLabels) == 0 {
+		roleLabels = make(map[string]string, 1)
+	}
+	roleLabels[greenhouseapis.LabelKeyRole] = teamRole.GetName()
+
 	clusterRole := &rbacv1.ClusterRole{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "ClusterRole",
@@ -336,9 +341,10 @@ func initRBACClusterRole(teamRole *greenhousev1alpha1.TeamRole) *rbacv1.ClusterR
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:   teamRole.GetRBACName(),
-			Labels: map[string]string{greenhouseapis.LabelKeyRole: teamRole.GetName()},
+			Labels: roleLabels,
 		},
-		Rules: teamRole.DeepCopy().Spec.Rules,
+		Rules:           teamRole.DeepCopy().Spec.Rules,
+		AggregationRule: teamRole.Spec.AggregationRule.DeepCopy(),
 	}
 	return clusterRole
 }
@@ -408,7 +414,7 @@ func getTeamRole(ctx context.Context, c client.Client, r record.EventRecorder, t
 // getTeam retrieves the Team referenced by the given TeamRoleBinding in the TeamRoleBinding's Namespace
 func getTeam(ctx context.Context, c client.Client, teamRoleBinding *greenhousev1alpha1.TeamRoleBinding) (*greenhousev1alpha1.Team, error) {
 	if teamRoleBinding.Spec.TeamRef == "" {
-		return nil, fmt.Errorf("error missing team reference")
+		return nil, errors.New("error missing team reference")
 	}
 
 	team := &greenhousev1alpha1.Team{}
@@ -428,6 +434,7 @@ func reconcileClusterRole(ctx context.Context, cl client.Client, c *greenhousev1
 	result, err := clientutil.CreateOrPatch(ctx, cl, remoteCR, func() error {
 		remoteCR.Labels = cr.Labels
 		remoteCR.Rules = cr.Rules
+		remoteCR.AggregationRule = cr.AggregationRule
 		return nil
 	})
 
@@ -650,7 +657,7 @@ func (r *TeamRoleBindingReconciler) listClusters(ctx context.Context, trb *green
 		return &greenhousev1alpha1.ClusterList{Items: []greenhousev1alpha1.Cluster{*cluster}}, nil
 	}
 
-	clusterSelector, err := v1.LabelSelectorAsSelector(&trb.Spec.ClusterSelector)
+	clusterSelector, err := metav1.LabelSelectorAsSelector(&trb.Spec.ClusterSelector)
 	if err != nil {
 		return nil, err
 	}

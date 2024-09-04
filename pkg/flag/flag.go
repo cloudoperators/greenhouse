@@ -12,7 +12,7 @@ import (
 )
 
 var (
-	//ignore a few stupid flags that come with dependencies
+	// ignore a few stupid flags that come with dependencies
 	flagBlacklist  = []string{"v", "version", "vmodule", "master", "alsologtostderr", "kubeconfig", "log_backtrace_at", "log_dir", "stderrthreshold", "logtostderr"}
 	envVarReplacer = strings.NewReplacer(
 		"-", "_",

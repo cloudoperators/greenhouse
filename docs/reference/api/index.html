@@ -128,6 +128,475 @@ ClusterStatus
 <h3 id="greenhouse.sap/v1alpha1.ClusterConditionType">ClusterConditionType
 (<code>string</code> alias)</h3>
 <p>ClusterConditionType is a valid condition of a cluster.</p>
+<h3 id="greenhouse.sap/v1alpha1.ClusterKubeconfig">ClusterKubeconfig
+</h3>
+<p>ClusterKubeconfig is the Schema for the clusterkubeconfigs API
+ObjectMeta.OwnerReferences is used to link the ClusterKubeconfig to the Cluster
+ObjectMeta.Generation is used to detect changes in the ClusterKubeconfig and sync local kubeconfig files
+ObjectMeta.Name is designed to be the same with the Cluster name</p>
+<div class="md-typeset__scrollwrap">
+<div class="md-typeset__table">
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>metadata</code><br>
+<em>
+<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.24/#objectmeta-v1-meta">
+Kubernetes meta/v1.ObjectMeta
+</a>
+</em>
+</td>
+<td>
+Refer to the Kubernetes API documentation for the fields of the
+<code>metadata</code> field.
+</td>
+</tr>
+<tr>
+<td>
+<code>spec</code><br>
+<em>
+<a href="#greenhouse.sap/v1alpha1.ClusterKubeconfigSpec">
+ClusterKubeconfigSpec
+</a>
+</em>
+</td>
+<td>
+<br/>
+<br/>
+<table>
+<tr>
+<td>
+<code>kubeconfig</code><br>
+<em>
+<a href="#greenhouse.sap/v1alpha1.ClusterKubeconfigData">
+ClusterKubeconfigData
+</a>
+</em>
+</td>
+<td>
+</td>
+</tr>
+</table>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<h3 id="greenhouse.sap/v1alpha1.ClusterKubeconfigAuthInfo">ClusterKubeconfigAuthInfo
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#greenhouse.sap/v1alpha1.ClusterKubeconfigAuthInfoItem">ClusterKubeconfigAuthInfoItem</a>)
+</p>
+<div class="md-typeset__scrollwrap">
+<div class="md-typeset__table">
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>auth-provider</code><br>
+<em>
+k8s.io/client-go/tools/clientcmd/api.AuthProviderConfig
+</em>
+</td>
+<td>
+</td>
+</tr>
+<tr>
+<td>
+<code>client-certificate-data</code><br>
+<em>
+[]byte
+</em>
+</td>
+<td>
+</td>
+</tr>
+<tr>
+<td>
+<code>client-key-data</code><br>
+<em>
+[]byte
+</em>
+</td>
+<td>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<h3 id="greenhouse.sap/v1alpha1.ClusterKubeconfigAuthInfoItem">ClusterKubeconfigAuthInfoItem
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#greenhouse.sap/v1alpha1.ClusterKubeconfigData">ClusterKubeconfigData</a>)
+</p>
+<div class="md-typeset__scrollwrap">
+<div class="md-typeset__table">
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>name</code><br>
+<em>
+string
+</em>
+</td>
+<td>
+</td>
+</tr>
+<tr>
+<td>
+<code>user</code><br>
+<em>
+<a href="#greenhouse.sap/v1alpha1.ClusterKubeconfigAuthInfo">
+ClusterKubeconfigAuthInfo
+</a>
+</em>
+</td>
+<td>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<h3 id="greenhouse.sap/v1alpha1.ClusterKubeconfigCluster">ClusterKubeconfigCluster
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#greenhouse.sap/v1alpha1.ClusterKubeconfigClusterItem">ClusterKubeconfigClusterItem</a>)
+</p>
+<div class="md-typeset__scrollwrap">
+<div class="md-typeset__table">
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>server</code><br>
+<em>
+string
+</em>
+</td>
+<td>
+</td>
+</tr>
+<tr>
+<td>
+<code>certificate-authority-data</code><br>
+<em>
+[]byte
+</em>
+</td>
+<td>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<h3 id="greenhouse.sap/v1alpha1.ClusterKubeconfigClusterItem">ClusterKubeconfigClusterItem
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#greenhouse.sap/v1alpha1.ClusterKubeconfigData">ClusterKubeconfigData</a>)
+</p>
+<div class="md-typeset__scrollwrap">
+<div class="md-typeset__table">
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>name</code><br>
+<em>
+string
+</em>
+</td>
+<td>
+</td>
+</tr>
+<tr>
+<td>
+<code>cluster</code><br>
+<em>
+<a href="#greenhouse.sap/v1alpha1.ClusterKubeconfigCluster">
+ClusterKubeconfigCluster
+</a>
+</em>
+</td>
+<td>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<h3 id="greenhouse.sap/v1alpha1.ClusterKubeconfigContext">ClusterKubeconfigContext
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#greenhouse.sap/v1alpha1.ClusterKubeconfigContextItem">ClusterKubeconfigContextItem</a>)
+</p>
+<div class="md-typeset__scrollwrap">
+<div class="md-typeset__table">
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>cluster</code><br>
+<em>
+string
+</em>
+</td>
+<td>
+</td>
+</tr>
+<tr>
+<td>
+<code>user</code><br>
+<em>
+string
+</em>
+</td>
+<td>
+</td>
+</tr>
+<tr>
+<td>
+<code>namespace</code><br>
+<em>
+string
+</em>
+</td>
+<td>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<h3 id="greenhouse.sap/v1alpha1.ClusterKubeconfigContextItem">ClusterKubeconfigContextItem
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#greenhouse.sap/v1alpha1.ClusterKubeconfigData">ClusterKubeconfigData</a>)
+</p>
+<div class="md-typeset__scrollwrap">
+<div class="md-typeset__table">
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>name</code><br>
+<em>
+string
+</em>
+</td>
+<td>
+</td>
+</tr>
+<tr>
+<td>
+<code>context</code><br>
+<em>
+<a href="#greenhouse.sap/v1alpha1.ClusterKubeconfigContext">
+ClusterKubeconfigContext
+</a>
+</em>
+</td>
+<td>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<h3 id="greenhouse.sap/v1alpha1.ClusterKubeconfigData">ClusterKubeconfigData
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#greenhouse.sap/v1alpha1.ClusterKubeconfigSpec">ClusterKubeconfigSpec</a>)
+</p>
+<p>ClusterKubeconfigData stores the kubeconfig data ready to use kubectl or other local tooling
+It is a simplified version of clientcmdapi.Config: <a href="https://pkg.go.dev/k8s.io/client-go/tools/clientcmd/api#Config">https://pkg.go.dev/k8s.io/client-go/tools/clientcmd/api#Config</a></p>
+<div class="md-typeset__scrollwrap">
+<div class="md-typeset__table">
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>kind</code><br>
+<em>
+string
+</em>
+</td>
+<td>
+</td>
+</tr>
+<tr>
+<td>
+<code>apiVersion</code><br>
+<em>
+string
+</em>
+</td>
+<td>
+</td>
+</tr>
+<tr>
+<td>
+<code>clusters</code><br>
+<em>
+<a href="#greenhouse.sap/v1alpha1.ClusterKubeconfigClusterItem">
+[]ClusterKubeconfigClusterItem
+</a>
+</em>
+</td>
+<td>
+</td>
+</tr>
+<tr>
+<td>
+<code>users</code><br>
+<em>
+<a href="#greenhouse.sap/v1alpha1.ClusterKubeconfigAuthInfoItem">
+[]ClusterKubeconfigAuthInfoItem
+</a>
+</em>
+</td>
+<td>
+</td>
+</tr>
+<tr>
+<td>
+<code>contexts</code><br>
+<em>
+<a href="#greenhouse.sap/v1alpha1.ClusterKubeconfigContextItem">
+[]ClusterKubeconfigContextItem
+</a>
+</em>
+</td>
+<td>
+</td>
+</tr>
+<tr>
+<td>
+<code>current-context</code><br>
+<em>
+string
+</em>
+</td>
+<td>
+</td>
+</tr>
+<tr>
+<td>
+<code>preferences</code><br>
+<em>
+<a href="#greenhouse.sap/v1alpha1.ClusterKubeconfigPreferences">
+ClusterKubeconfigPreferences
+</a>
+</em>
+</td>
+<td>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<h3 id="greenhouse.sap/v1alpha1.ClusterKubeconfigPreferences">ClusterKubeconfigPreferences
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#greenhouse.sap/v1alpha1.ClusterKubeconfigData">ClusterKubeconfigData</a>)
+</p>
+<h3 id="greenhouse.sap/v1alpha1.ClusterKubeconfigSpec">ClusterKubeconfigSpec
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#greenhouse.sap/v1alpha1.ClusterKubeconfig">ClusterKubeconfig</a>)
+</p>
+<p>ClusterKubeconfigSpec stores the kubeconfig data for the cluster
+The idea is to use kubeconfig data locally with minimum effort (with local tools or plain kubectl):
+kubectl get cluster-kubeconfig $NAME -o yaml | yq -y .spec.kubeconfig</p>
+<div class="md-typeset__scrollwrap">
+<div class="md-typeset__table">
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>kubeconfig</code><br>
+<em>
+<a href="#greenhouse.sap/v1alpha1.ClusterKubeconfigData">
+ClusterKubeconfigData
+</a>
+</em>
+</td>
+<td>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
 <h3 id="greenhouse.sap/v1alpha1.ClusterSpec">ClusterSpec
 </h3>
 <p>
@@ -1124,7 +1593,7 @@ string
 <p>Icon specifies the icon to be used for this plugin in the Greenhouse UI.
 Icons can be either:
 - A string representing a juno icon in camel case from this list: <a href="https://github.com/sapcc/juno/blob/main/libs/juno-ui-components/src/components/Icon/Icon.component.js#L6-L52">https://github.com/sapcc/juno/blob/main/libs/juno-ui-components/src/components/Icon/Icon.component.js#L6-L52</a>
-- A publicly accessable image reference to a .png file. Will be displayed 100x100px</p>
+- A publicly accessible image reference to a .png file. Will be displayed 100x100px</p>
 </td>
 </tr>
 <tr>
@@ -1270,7 +1739,7 @@ string
 <p>Icon specifies the icon to be used for this plugin in the Greenhouse UI.
 Icons can be either:
 - A string representing a juno icon in camel case from this list: <a href="https://github.com/sapcc/juno/blob/main/libs/juno-ui-components/src/components/Icon/Icon.component.js#L6-L52">https://github.com/sapcc/juno/blob/main/libs/juno-ui-components/src/components/Icon/Icon.component.js#L6-L52</a>
-- A publicly accessable image reference to a .png file. Will be displayed 100x100px</p>
+- A publicly accessible image reference to a .png file. Will be displayed 100x100px</p>
 </td>
 </tr>
 <tr>
@@ -2417,6 +2886,31 @@ TeamRoleSpec
 <p>Rules is a list of rbacv1.PolicyRules used on a managed RBAC (Cluster)Role</p>
 </td>
 </tr>
+<tr>
+<td>
+<code>aggregationRule</code><br>
+<em>
+<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.24/#aggregationrule-v1-rbac">
+Kubernetes rbac/v1.AggregationRule
+</a>
+</em>
+</td>
+<td>
+<p>AggregationRule describes how to locate ClusterRoles to aggregate into the ClusterRole on the remote cluster</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>labels</code><br>
+<em>
+map[string]string
+</em>
+</td>
+<td>
+<p>Labels are applied to the ClusterRole created on the remote cluster.
+This allows using TeamRoles as part of AggregationRules by other TeamRoles</p>
+</td>
+</tr>
 </table>
 </td>
 </tr>
@@ -2707,6 +3201,31 @@ StatusConditions
 </td>
 <td>
 <p>Rules is a list of rbacv1.PolicyRules used on a managed RBAC (Cluster)Role</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>aggregationRule</code><br>
+<em>
+<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.24/#aggregationrule-v1-rbac">
+Kubernetes rbac/v1.AggregationRule
+</a>
+</em>
+</td>
+<td>
+<p>AggregationRule describes how to locate ClusterRoles to aggregate into the ClusterRole on the remote cluster</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>labels</code><br>
+<em>
+map[string]string
+</em>
+</td>
+<td>
+<p>Labels are applied to the ClusterRole created on the remote cluster.
+This allows using TeamRoles as part of AggregationRules by other TeamRoles</p>
 </td>
 </tr>
 </tbody>

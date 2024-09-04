@@ -210,6 +210,8 @@ func (r *HeadscaleAccessReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 	if err := r.reconcilePreAuthenticationKey(ctx, k8sHeadscaleProxyClientForRemoteCluster, cluster); err != nil {
 		return ctrl.Result{}, err
 	}
+
+	updateMetrics(cluster)
 	return ctrl.Result{RequeueAfter: defaultRequeueInterval}, nil
 }
 

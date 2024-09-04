@@ -46,12 +46,11 @@ var (
 )
 
 const (
-	TEST_TIMEOUT        = 3 * time.Minute
-	TEST_RETRY_INTERVAL = 3 * time.Second
+	testTimeout       = 3 * time.Minute
+	testRetryInterval = 3 * time.Second
 )
 
 func init() {
-
 	l := log.FromContext(context.Background())
 
 	flag.StringVar(&kindClusterName, "kindClusterName", "greenhouse-e2e", "Cluster name for creating a new kind cluster")
@@ -78,11 +77,9 @@ func init() {
 	flag.Parse()
 
 	l.Info("configuration loaded", "kindClusterName", kindClusterName, "dockerImageRepository", dockerImageRepository, "dockerImageTag", dockerImageTag, "dockerImageBuildSkip", dockerImageBuildSkip, "kubeconfigName", kubeconfigName, "kubeconfigInternalName", kubeconfigInternalName, "verbose", verbose)
-
 }
 
 func main() {
-
 	ctx := context.Background()
 	l := log.FromContext(ctx)
 
@@ -189,11 +186,9 @@ func main() {
 		os.Exit(1)
 	}
 	l.Info("[SUCCESS] Deploy greenhouse manager chart")
-
 }
 
-func installChart(ctx context.Context, dir, release, kubeconfig string, namespace string, valuesFilename string) error {
-
+func installChart(ctx context.Context, dir, release, kubeconfig, namespace, valuesFilename string) error {
 	l := log.FromContext(ctx)
 
 	chart, err := loader.Load(dir)
@@ -233,7 +228,7 @@ func installChart(ctx context.Context, dir, release, kubeconfig string, namespac
 			client.Namespace = namespace
 			client.CreateNamespace = true
 			client.Wait = true
-			client.Timeout = TEST_TIMEOUT
+			client.Timeout = testTimeout
 
 			if _, err := client.RunWithContext(ctx, chart, values); err != nil {
 				l.Error(err, "chart install")
@@ -244,7 +239,7 @@ func installChart(ctx context.Context, dir, release, kubeconfig string, namespac
 		client := action.NewUpgrade(actionConfig)
 		client.Namespace = namespace
 		client.Wait = true
-		client.Timeout = TEST_TIMEOUT
+		client.Timeout = testTimeout
 		if _, err := client.RunWithContext(ctx, release, chart, values); err != nil {
 			l.Error(err, "chart upgrade")
 			return err

@@ -12,7 +12,6 @@ import (
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/client-go/tools/record"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -54,10 +53,7 @@ func (r *PluginPresetReconciler) SetupWithManager(name string, mgr ctrl.Manager)
 	return ctrl.NewControllerManagedBy(mgr).
 		Named(name).
 		For(&greenhousev1alpha1.PluginPreset{}).
-		Owns(&greenhousev1alpha1.Plugin{}).
-		// Enqueue PluginPreset if the Plugin has a label with the pluginpreset key.
-		Watches(&greenhousev1alpha1.Plugin{}, handler.EnqueueRequestsFromMapFunc(r.enqueuePresetForLabelledPlugin),
-			builder.WithPredicates(predicate.LabelChangedPredicate{})).
+		Owns(&greenhousev1alpha1.Plugin{}, builder.WithPredicates(predicate.GenerationChangedPredicate{})).
 		// Clusters and teams are passed as values to each Helm operation. Reconcile on change.
 		Watches(&greenhousev1alpha1.Cluster{}, handler.EnqueueRequestsFromMapFunc(r.enqueueAllPluginPresetsInNamespace),
 			builder.WithPredicates(predicate.LabelChangedPredicate{})).
@@ -95,7 +91,7 @@ func (r *PluginPresetReconciler) Reconcile(ctx context.Context, req ctrl.Request
 
 		// If there are still plugins left, requeue the deletion.
 		if len(allErrs) > 0 {
-			return ctrl.Result{}, fmt.Errorf("failed to delete plugins for %s/%s: %v", pluginPreset.Namespace, pluginPreset.Name, errors.Join(allErrs...))
+			return ctrl.Result{}, fmt.Errorf("failed to delete plugins for %s/%s: %w", pluginPreset.Namespace, pluginPreset.Name, errors.Join(allErrs...))
 		}
 
 		// Remove the finalizer to allow for deletion.
@@ -103,7 +99,6 @@ func (r *PluginPresetReconciler) Reconcile(ctx context.Context, req ctrl.Request
 			return ctrl.Result{}, err
 		}
 		return ctrl.Result{}, nil
-
 	}
 	if err := clientutil.EnsureFinalizer(ctx, r.Client, pluginPreset, greenhouseapis.FinalizerCleanupPluginPreset); err != nil {
 		return ctrl.Result{}, err
@@ -178,7 +173,7 @@ func (r *PluginPresetReconciler) reconcilePluginPreset(ctx context.Context, pres
 
 		case apierrors.IsNotFound(err):
 			plugin = &greenhousev1alpha1.Plugin{
-				ObjectMeta: v1.ObjectMeta{
+				ObjectMeta: metav1.ObjectMeta{
 					Name:      generatePluginName(preset, &cluster),
 					Namespace: preset.GetNamespace(),
 				},
@@ -206,18 +201,18 @@ func (r *PluginPresetReconciler) reconcilePluginPreset(ctx context.Context, pres
 	}
 	switch {
 	case len(skippedPlugins) > 0:
-		skippedCondition.Status = v1.ConditionTrue
-		skippedCondition.Message = fmt.Sprintf("Skipped existing plugins: %s", strings.Join(skippedPlugins, ", "))
+		skippedCondition.Status = metav1.ConditionTrue
+		skippedCondition.Message = "Skipped existing plugins: " + strings.Join(skippedPlugins, ", ")
 	default:
-		skippedCondition.Status = v1.ConditionFalse
+		skippedCondition.Status = metav1.ConditionFalse
 		skippedCondition.Message = ""
 	}
 	switch {
 	case len(failedPlugins) > 0:
-		failedCondition.Status = v1.ConditionTrue
-		failedCondition.Message = fmt.Sprintf("Failed to reconcile plugins: %s", strings.Join(failedPlugins, ", "))
+		failedCondition.Status = metav1.ConditionTrue
+		failedCondition.Message = "Failed to reconcile plugins: " + strings.Join(failedPlugins, ", ")
 	default:
-		failedCondition.Status = v1.ConditionFalse
+		failedCondition.Status = metav1.ConditionFalse
 		failedCondition.Message = ""
 	}
 	return skippedCondition, failedCondition, utilerrors.NewAggregate(allErrs)
@@ -288,7 +283,7 @@ func (r *PluginPresetReconciler) listPlugins(ctx context.Context, pb *greenhouse
 }
 
 func (r *PluginPresetReconciler) listClusters(ctx context.Context, pb *greenhousev1alpha1.PluginPreset) (*greenhousev1alpha1.ClusterList, error) {
-	clusterSelector, err := v1.LabelSelectorAsSelector(&pb.Spec.ClusterSelector)
+	clusterSelector, err := metav1.LabelSelectorAsSelector(&pb.Spec.ClusterSelector)
 	if err != nil {
 		return nil, err
 	}
@@ -297,18 +292,6 @@ func (r *PluginPresetReconciler) listClusters(ctx context.Context, pb *greenhous
 		return nil, err
 	}
 	return clusters, nil
-}
-
-// enqueuePresetForLabelledPlugin returns the reconcile request for the PluginPreset referenced in the Plugins labels.
-func (r *PluginPresetReconciler) enqueuePresetForLabelledPlugin(ctx context.Context, obj client.Object) []ctrl.Request {
-	plugin, ok := obj.(*greenhousev1alpha1.Plugin)
-	if !ok {
-		return nil
-	}
-	if val := plugin.GetLabels()[greenhouseapis.LabelKeyPluginPreset]; val != "" {
-		return []ctrl.Request{{NamespacedName: client.ObjectKey{Namespace: plugin.GetNamespace(), Name: val}}}
-	}
-	return nil
 }
 
 // enqueueAllPluginPresetsInNamespace returns a list of reconcile requests for all PluginPresets in the same namespace as obj.

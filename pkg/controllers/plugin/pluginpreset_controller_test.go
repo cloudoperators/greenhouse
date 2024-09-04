@@ -223,7 +223,7 @@ var _ = Describe("PluginPreset Controller Lifecycle", Ordered, func() {
 		Eventually(func(g Gomega) {
 			err = test.K8sClient.List(test.Ctx, pluginList, client.MatchingLabels{greenhouseapis.LabelKeyPluginPreset: pluginPresetName})
 			g.Expect(err).NotTo(HaveOccurred(), "failed to list Plugins")
-			g.Expect(pluginList.Items).To(HaveLen(0), "all plugins for the Preset should be deleted")
+			g.Expect(pluginList.Items).To(BeEmpty(), "all plugins for the Preset should be deleted")
 		}).Should(Succeed(), "plugins for the pluginPreset should be deleted")
 	})
 

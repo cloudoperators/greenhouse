@@ -4,8 +4,6 @@
 package rbac
 
 import (
-	"fmt"
-
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 
@@ -24,7 +22,7 @@ func OrganizationAdminPolicyRules() []rbacv1.PolicyRule {
 		// Grant permissions for secrets referenced by other resources, e.g. Plugins for storing sensitive values.
 		// Retrieving these secrets is not permitted to the user.
 		{
-			Verbs:     []string{"create", "update", "patch"},
+			Verbs:     []string{"get", "list", "watch", "create", "update", "patch"},
 			APIGroups: []string{corev1.GroupName},
 			Resources: []string{"secrets"},
 		},
@@ -45,6 +43,12 @@ func OrganizationAdminPolicyRules() []rbacv1.PolicyRule {
 			Verbs:     []string{"get", "list", "watch"},
 			APIGroups: []string{"monitoring.coreos.com"},
 			Resources: []string{"alertmanagers", "alertmanagerconfigs"},
+		},
+		// Grant permission to view Pods, ReplicaSets, Deployments, StatefulSets, DaemonSets, CronJobs, Jobs, ConfigMaps
+		{
+			Verbs:     []string{"get", "list", "watch"},
+			APIGroups: []string{""},
+			Resources: []string{"pods", "replicasets", "deployments", "statefulsets", "daemonsets", "cronjobs", "jobs", "configmaps"},
 		},
 	}
 	orgAdminPolicyRules = append(orgAdminPolicyRules,
@@ -112,5 +116,5 @@ func OrganizationMemberPolicyRules() []rbacv1.PolicyRule {
 
 // GetTeamRoleName returns the name of the role for a team.
 func GetTeamRoleName(teamName string) string {
-	return fmt.Sprintf("team:%s", teamName)
+	return "team:" + teamName
 }

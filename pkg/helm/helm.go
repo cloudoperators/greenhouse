@@ -429,7 +429,7 @@ func newHelmAction(restClientGetter genericclioptions.RESTClientGetter, namespac
 
 func debug(format string, v ...interface{}) {
 	if IsHelmDebug {
-		format = fmt.Sprintf("[debug] %s", format)
+		format = "[debug] " + format
 		log.FromContext(context.Background()).Info(fmt.Sprintf(format, v...))
 	}
 }
@@ -510,9 +510,8 @@ func getValuesFromPlugin(ctx context.Context, c client.Client, plugin *greenhous
 		if val.ValueFrom == nil {
 			continue
 		}
-		switch {
 		// Retrieve value from secret.
-		case val.ValueFrom.Secret != nil:
+		if val.ValueFrom.Secret != nil {
 			valFromSecret, err := getValueFromSecret(ctx, c, plugin.GetNamespace(), val.ValueFrom.Secret.Name, val.ValueFrom.Secret.Key)
 			if err != nil {
 				return nil, err

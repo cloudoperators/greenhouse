@@ -1,7 +1,7 @@
 # SPDX-FileCopyrightText: 2024 SAP SE or an SAP affiliate company and Greenhouse contributors
 # SPDX-License-Identifier: Apache-2.0
 
-baseURL: "http://documentation.greenhouse.global.cloud.sap"
+baseURL: "https://cloudoperators.github.io/greenhouse"
 languageCode: "en-us"
 title: "Greenhouse"
 
@@ -37,17 +37,13 @@ params:
 
 menu:
  main:
-   - name: "Greenhouse"
-     url: "https://dashboard.greenhouse.global.cloud.sap"
-     pre: "<i class='fa-solid fa-cloud'></i>"
-     weight: 1
-   - name: "PluginDefinitions"
+   - name: "GitHub"
      pre: "<i class='fab fa-github'></i>"
      url: "https://github.com/cloudoperators/greenhouse"
      weight: 0
-   - name: "Core"
-     pre: "<i class='fab fa-github'></i>"
-     url: "https://github.com/cloudoperators/greenhouse"
+   - name: "Legal Disclosure"
+     pre: "<i class='fa-regular fa-section'></i>"
+     url: "https://www.sap.com/corporate/de/legal/impressum.html"
      weight: 0
 
 module:

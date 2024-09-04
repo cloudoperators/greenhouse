@@ -24,5 +24,5 @@ func OrganizationPluginAdminRoleName(orgName string) string {
 
 // OrganizationRoleName returns the name of the role for an organization.
 func OrganizationRoleName(orgName string) string {
-	return fmt.Sprintf("organization:%s", orgName)
+	return "organization:" + orgName
 }
