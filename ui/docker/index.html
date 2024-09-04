@@ -2,19 +2,7 @@
 <html style="margin: 0; padding: 0; display: flex; flex-direction: column">
   <head>
     <title>Greenhouse</title>
-    <!-- <link rel="icon" sizes="any" href="/assets/favicon.ico" />
-    <link
-      rel="icon"
-      type="image/png"
-      sizes="16x16"
-      href="/assets/favicon-16x16.png"
-    />
-    <link
-      rel="icon"
-      type="image/png"
-      sizes="32x32"
-      href="/assets/favicon-32x32.png"
-    /> -->
+    <link rel="icon" sizes="any" href="/assets/favicon.ico" />
 
     <script type="importmap">
       {
@@ -55,6 +43,8 @@
       if (props?.currentHost === "origin") {
         props.currentHost = window.location.origin
       }
+
+      console.log("=================props", props)
 
       const { mount } = await import(
         manifest["greenhouse-dashboard"]["latest"].path

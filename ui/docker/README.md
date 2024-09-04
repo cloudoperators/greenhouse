@@ -61,7 +61,7 @@ You can customize the Greenhouse application using the following environment var
 - **`OIDC_ISSUER_URL`**: The URL of the OIDC issuer.
 - **`OIDC_CLIENT_ID`**: The client ID for OIDC authentication.
 - **`K8S_API_ENDPOINT`**: The URL for the Kubernetes API endpoint.
-- **`ENVIRONMENT`**: The environment setting, with possible values of qa or production (default).
+- **`ENVIRONMENT`**: The environment setting, with possible values of qa, dev or production (default).
 - **`THEME`**: Determines the visual theme of the application. Available options:
   - `theme-light`: Light theme.
   - `theme-dark`: Dark theme.

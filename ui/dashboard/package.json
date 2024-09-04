@@ -1,7 +1,7 @@
 {
   "name": "greenhouse-dashboard",
   "version": "0.1.26",
-  "orgAdminVersion": "1.1.20",
+  "orgAdminVersion": "latest",
   "author": "UI-Team",
   "contributors": [
     "Andreas Pfau",

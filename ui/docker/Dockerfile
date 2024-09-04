@@ -49,11 +49,23 @@ RUN apk add --no-cache jq \
 
 WORKDIR /usr/share/nginx/html
 
-ENV CURRENT_HOST="origin"
+ENV CURRENT_HOST=""
 ENV OIDC_ISSUER_URL=""
 ENV OIDC_CLIENT_ID=""
 ENV K8S_API_ENDPOINT=""
-ENV ENVIRONMENT="production"
+ENV ENVIRONMENT=""
+
+# default appProps.json
+RUN cat <<EOF > /appProps.json
+{
+  "currentHost": "origin",
+  "apiEndpoint": "https://api.endpoint.com",
+  "environment": "dev",
+  "authIssuerUrl": "https://auth.endpoint.com",
+  "authClientId": "clientID"
+}
+EOF
+
 
 COPY docker/index.html .
 COPY docker/nginx.conf /etc/nginx/conf.d/default.conf

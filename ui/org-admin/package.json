@@ -75,7 +75,7 @@
   "dependencies": {
     "@cloudoperators/juno-communicator": "^2.2.11",
     "@cloudoperators/juno-messages-provider": "^0.1.17",
-    "@cloudoperators/juno-ui-components": "^2.15.4",
+    "@cloudoperators/juno-ui-components": "^2.16.0",
     "@cloudoperators/juno-url-state-provider-v1": "^1.3.2"
   },
   "peerDependencies": {

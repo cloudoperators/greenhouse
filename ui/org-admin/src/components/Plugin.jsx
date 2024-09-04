@@ -29,9 +29,13 @@ const Plugin = ({ config }) => {
 
   // mount the app each time the component is reloaded losing the state
   useEffect(() => {
-    if (!mount || !assetsUrl || !config) return
+    if (!config) return
     // mount the app
-    mount(app.current, config)
+    mount(app.current, {
+      ...config,
+      assetsHost: assetsUrl,
+      appProps: { ...config?.props, embedded: true },
+    })
       .then((loaded) => {
         if (!loaded) return
         setIsMountedApp(true)
@@ -43,7 +47,7 @@ const Plugin = ({ config }) => {
           text: `${config?.name}: ` + parseError(error),
         })
       })
-  }, [reload, config, assetsUrl])
+  }, [assetsUrl, reload, config])
 
   const displayPluging = useMemo(
     () => activePlugin === config?.name,
