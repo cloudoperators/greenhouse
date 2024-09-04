@@ -6,6 +6,7 @@ package plugin
 import (
 	"context"
 	"fmt"
+	"reflect"
 	"time"
 
 	"github.com/prometheus/client_golang/prometheus"
@@ -118,6 +119,10 @@ func (r *WorkLoadStatusReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 	}
 	if err := r.Client.Get(ctx, types.NamespacedName{Name: plugin.Spec.PluginDefinition}, pluginDefinition); err != nil {
 		return ctrl.Result{}, err
+	}
+	// Nothing to do when the status of the plugin is empty and when the plugin does not have a Helm Chart
+	if reflect.DeepEqual(plugin.Status, greenhousev1alpha1.PluginStatus{}) || plugin.Status.HelmChart == nil {
+		return ctrl.Result{}, nil
 	}
 
 	pluginStatus := initPluginStatus(plugin)
