@@ -21,8 +21,8 @@ type ClusterKubeconfigData struct {
 	Kind           string                          `json:"kind,omitempty"`
 	APIVersion     string                          `json:"apiVersion,omitempty"`
 	Clusters       []ClusterKubeconfigClusterItem  `json:"clusters,omitempty"`
-	AuthInfo       []ClusterKubeconfigAuthInfoItem `json:"users"`
-	Contexts       []ClusterKubeconfigContextItem  `json:"contexts"`
+	AuthInfo       []ClusterKubeconfigAuthInfoItem `json:"users,omitempty"`
+	Contexts       []ClusterKubeconfigContextItem  `json:"contexts,omitempty"`
 	CurrentContext string                          `json:"current-context,omitempty"`
 	Preferences    ClusterKubeconfigPreferences    `json:"preferences,omitempty"`
 }
@@ -73,8 +73,19 @@ type ClusterKubeconfig struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec ClusterKubeconfigSpec `json:"spec,omitempty"`
+	Spec   ClusterKubeconfigSpec   `json:"spec,omitempty"`
+	Status ClusterKubeconfigStatus `json:"status,omitempty"`
 }
+
+type ClusterKubeconfigStatus struct {
+	Conditions StatusConditions `json:"statusConditions,omitempty"`
+}
+
+const (
+	KubeconfigCreatedCondition         ConditionType = "Created"
+	KubeconfigReconcileFailedCondition ConditionType = "ReconcileFailed"
+	KubeconfigReadyCondition           ConditionType = "Ready"
+)
 
 //+kubebuilder:object:root=true
 
