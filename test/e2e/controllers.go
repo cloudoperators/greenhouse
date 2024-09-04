@@ -59,6 +59,7 @@ var knownControllers = map[string]func(controllerName string, mgr ctrl.Manager) 
 	// "clusterPropagation":     (&clustercontrollers.ClusterPropagationReconciler{}).SetupWithManager,
 	// "clusterHeadscaleAccess": startClusterHeadscaleAccessReconciler,
 	"clusterStatus": (&clustercontrollers.ClusterStatusReconciler{}).SetupWithManager,
+	// "kubeconfig":    (&clustercontrollers.KubeconfigReconciler{}).SetupWithManager,
 }
 
 func startOrganizationDexReconciler(name string, mgr ctrl.Manager) error {
