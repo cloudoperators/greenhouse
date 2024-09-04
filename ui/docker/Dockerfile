@@ -2,7 +2,10 @@ FROM node:20-alpine as build
 
 LABEL repository="https://github.com/cloudoperators/greenhouse/tree/main/ui/docker/Dockerfile" 
 
-RUN apk add --no-cache git jq
+RUN apk add --no-cache git jq \
+  && apk upgrade --no-cache --no-progress \
+  && apk del --no-cache --no-progress apk-tools alpine-keys
+
 
 WORKDIR /greenhouse/apps 
 
@@ -40,7 +43,9 @@ RUN cd /tmp/greenhouse && \
 
 FROM nginx:alpine
 
-RUN apk add --no-cache jq
+RUN apk add --no-cache jq \
+  && apk upgrade --no-cache --no-progress \
+  && apk del --no-cache --no-progress apk-tools alpine-keys
 
 WORKDIR /usr/share/nginx/html
 
