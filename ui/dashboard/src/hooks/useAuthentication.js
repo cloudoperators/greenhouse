@@ -1,3 +1,8 @@
+/*
+ * SPDX-FileCopyrightText: 2024 SAP SE or an SAP affiliate company and Greenhouse contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
 // import React, { useEffect, useMemo } from "react"
 // import { oidcSession, mockedSession } from "@cloudoperators/juno-oauth"
 // import { broadcast, watch, onGet } from "@cloudoperators/juno-communicator"

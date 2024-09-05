@@ -1,4 +1,7 @@
 #!/bin/sh
+# SPDX-FileCopyrightText: 2024 SAP SE or an SAP affiliate company and Greenhouse contributors
+# SPDX-License-Identifier: Apache-2.0
+
 
 set -e
 /usr/local/bin/generate_manifest.sh --manifest=/usr/share/nginx/html/manifest.json --apps=/usr/share/nginx/html/apps --extensions=/usr/share/nginx/html/extensions

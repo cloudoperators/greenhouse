@@ -1,4 +1,7 @@
 #!/usr/bin/env sh
+# SPDX-FileCopyrightText: 2024 SAP SE or an SAP affiliate company and Greenhouse contributors
+# SPDX-License-Identifier: Apache-2.0
+
 
 # extract args from the command line. Args are of the form --name=value
 for i in "$@"; do
