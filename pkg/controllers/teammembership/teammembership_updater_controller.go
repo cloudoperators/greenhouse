@@ -20,6 +20,8 @@ import (
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/pkg/apis/greenhouse/v1alpha1"
 	"github.com/cloudoperators/greenhouse/pkg/clientutil"
 	"github.com/cloudoperators/greenhouse/pkg/scim"
+	corev1 "k8s.io/api/core/v1"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
 const TeamMembershipRequeueInterval = 10 * time.Minute
@@ -51,6 +53,9 @@ type TeamMembershipUpdaterController struct {
 //+kubebuilder:rbac:groups=greenhouse.sap,resources=teams,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=greenhouse.sap,resources=teams/status,verbs=get;update;patch
 //+kubebuilder:rbac:groups=greenhouse.sap,resources=teams/finalizers,verbs=update
+//+kubebuilder:rbac:groups=greenhouse.sap,resources=teammemberships,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups=greenhouse.sap,resources=teammemberships/status,verbs=get;update;patch
+//+kubebuilder:rbac:groups=greenhouse.sap,resources=organizations,verbs=get
 //+kubebuilder:rbac:groups="",resources=events,verbs=get;list;watch;update;patch
 
 // SetupWithManager sets up the controller with the Manager.
@@ -122,6 +127,11 @@ func (r *TeamMembershipUpdaterController) Reconcile(ctx context.Context, req ctr
 
 	if team.Spec.MappedIDPGroup == "" {
 		if teamMembershipExists {
+			membersCountMetric.With(prometheus.Labels{
+				"namespace": team.Namespace,
+				"team":      team.Name,
+			}).Set(float64(0))
+
 			log.FromContext(ctx).Info("deleting TeamMembership, Team does not have MappedIdpGroup set", "team-membership", teamMembership.Name)
 			err = r.Delete(ctx, teamMembership, &client.DeleteOptions{})
 			return ctrl.Result{}, err
@@ -176,30 +186,32 @@ func (r *TeamMembershipUpdaterController) Reconcile(ctx context.Context, req ctr
 		return ctrl.Result{RequeueAfter: TeamMembershipRequeueInterval}, nil
 	}
 
-	if teamMembershipExists {
-		err = r.updateTeamMembership(ctx, team, teamMembership, users)
-		if err != nil {
-			log.FromContext(ctx).Info("failed processing team-membership for team", "error", err)
-			return ctrl.Result{}, err
-		}
-		now := metav1.NewTime(time.Now())
-		teamMembershipStatus.LastChangedTime = &now
-	} else {
-		teamMembership, err = r.createTeamMembership(ctx, team, users)
-		if err != nil {
-			log.FromContext(ctx).Info("failed processing team-membership for team", "error", err)
-			return ctrl.Result{}, err
-		}
-
-		teamMembershipStatus = initTeamMembershipStatus(teamMembership)
-		now := metav1.NewTime(time.Now())
-		teamMembershipStatus.LastChangedTime = &now
-		teamMembershipStatus.SetConditions(greenhousev1alpha1.TrueCondition(greenhousev1alpha1.ScimAccessReadyCondition, "", ""))
-		if statusErr := r.setStatus(ctx, teamMembership, teamMembershipStatus); statusErr != nil {
-			log.FromContext(ctx).Error(statusErr, "failed to set status")
-		}
+	teamMembership.Namespace = team.Namespace
+	teamMembership.Name = team.Name
+	result, err := clientutil.CreateOrPatch(ctx, r.Client, teamMembership, func() error {
+		teamMembership.Spec.Members = users
+		return controllerutil.SetOwnerReference(team, teamMembership, r.Scheme())
+	})
+	if err != nil {
+		log.FromContext(ctx).Info("failed processing team-membership for team", "error", err)
+		return ctrl.Result{}, err
+	}
+	switch result {
+	case clientutil.OperationResultCreated:
+		log.FromContext(ctx).Info("created team-membership", "name", teamMembership.Name, "members count", len(teamMembership.Spec.Members))
+		r.recorder.Eventf(teamMembership, corev1.EventTypeNormal, "CreatedTeamMembership", "Created TeamMembership %s", teamMembership.Name)
+	case clientutil.OperationResultUpdated:
+		log.FromContext(ctx).Info("updated team-membership", "name", teamMembership.Name, "members count", len(teamMembership.Spec.Members))
+		r.recorder.Eventf(teamMembership, corev1.EventTypeNormal, "UpdatedTeamMembership", "Updated TeamMembership %s", teamMembership.Name)
 	}
 
+	teamMembershipStatus = initTeamMembershipStatus(teamMembership)
+	now := metav1.NewTime(time.Now())
+	teamMembershipStatus.LastChangedTime = &now
+	teamMembershipStatus.SetConditions(greenhousev1alpha1.TrueCondition(greenhousev1alpha1.ScimAccessReadyCondition, "", ""))
+	if statusErr := r.setStatus(ctx, teamMembership, teamMembershipStatus); statusErr != nil {
+		log.FromContext(ctx).Error(statusErr, "failed to set status")
+	}
 	return ctrl.Result{RequeueAfter: TeamMembershipRequeueInterval}, nil
 }
 
@@ -238,59 +250,4 @@ func (r *TeamMembershipUpdaterController) getUsersFromScim(scimClient *scim.Scim
 	}
 	users := scimClient.GetUsers(members)
 	return users, nil
-}
-
-func (r *TeamMembershipUpdaterController) createTeamMembership(
-	ctx context.Context,
-	team *greenhousev1alpha1.Team,
-	users []greenhousev1alpha1.User,
-) (*greenhousev1alpha1.TeamMembership, error) {
-
-	teamMembership := new(greenhousev1alpha1.TeamMembership)
-	teamMembership.Namespace = team.Namespace
-	teamMembership.Name = team.Name
-	teamMembership.Spec.Members = users
-	err := r.Create(ctx, teamMembership, &client.CreateOptions{})
-	if err != nil {
-		return nil, err
-	}
-	log.FromContext(ctx).Info("created team-membership",
-		"name", teamMembership.Name, "members count", len(teamMembership.Spec.Members))
-
-	err = r.updateOwnerReferenceForTeam(ctx, teamMembership, team)
-	if err != nil {
-		return nil, err
-	}
-	return teamMembership, nil
-}
-
-func (r *TeamMembershipUpdaterController) updateTeamMembership(
-	ctx context.Context,
-	team *greenhousev1alpha1.Team,
-	teamMembership *greenhousev1alpha1.TeamMembership,
-	users []greenhousev1alpha1.User,
-) error {
-
-	teamMembership.Spec.Members = users
-	if err := r.Update(ctx, teamMembership, &client.UpdateOptions{}); err != nil {
-		return err
-	}
-	log.FromContext(ctx).Info("updated team-membership",
-		"name", teamMembership.Name, "members count", len(teamMembership.Spec.Members))
-
-	return r.updateOwnerReferenceForTeam(ctx, teamMembership, team)
-}
-
-func (r *TeamMembershipUpdaterController) updateOwnerReferenceForTeam(ctx context.Context, teamMembership *greenhousev1alpha1.TeamMembership, team *greenhousev1alpha1.Team) error {
-	team.ObjectMeta.OwnerReferences = []metav1.OwnerReference{
-		{
-			APIVersion:         greenhousev1alpha1.GroupVersion.String(),
-			Kind:               "TeamMembership",
-			Name:               teamMembership.GetName(),
-			UID:                teamMembership.GetUID(),
-			Controller:         nil,
-			BlockOwnerDeletion: nil,
-		},
-	}
-	return r.Update(ctx, team, &client.UpdateOptions{})
 }

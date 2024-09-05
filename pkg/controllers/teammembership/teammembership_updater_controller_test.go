@@ -78,6 +78,39 @@ var _ = Describe("TeammembershipUpdaterController", func() {
 			createTestOrgWithSecret(setup.Namespace())
 		})
 
+		It("should create TeamMembership when Team is created", func() {
+			By("creating a test Team")
+			team := setup.CreateTeam(test.Ctx, firstTeamName, test.WithMappedIDPGroup(validIdpGroupName))
+
+			ownerRef := metav1.OwnerReference{
+				APIVersion:         greenhousev1alpha1.GroupVersion.String(),
+				Kind:               "Team",
+				UID:                team.UID,
+				Name:               team.Name,
+				Controller:         nil,
+				BlockOwnerDeletion: nil,
+			}
+
+			Eventually(func(g Gomega) {
+				teamMemberships := &greenhousev1alpha1.TeamMembershipList{}
+				err := setup.List(test.Ctx, teamMemberships, &client.ListOptions{Namespace: setup.Namespace()})
+				g.Expect(err).ShouldNot(HaveOccurred(), "unexpected error getting TeamMemberships")
+				g.Expect(teamMemberships.Items).To(HaveLen(1), "there should be exactly one TeamMembership")
+				teamMembership := teamMemberships.Items[0]
+				g.Expect(teamMemberships.Items[0].OwnerReferences).To(ContainElement(ownerRef), "TeamMembership should have set team as owner reference")
+				g.Expect(teamMembership.Spec.Members).To(HaveLen(2), "the TeamMembership should have exactly two Members")
+				g.Expect(teamMembership.Status.LastChangedTime).ToNot(BeNil(), "TeamMembership status should have updated LastChangedTime")
+				scimAccessReadyCondition := teamMembership.Status.GetConditionByType(greenhousev1alpha1.ScimAccessReadyCondition)
+				g.Expect(scimAccessReadyCondition).ToNot(BeNil())
+				g.Expect(scimAccessReadyCondition.Type).To(Equal(greenhousev1alpha1.ScimAccessReadyCondition))
+				g.Expect(scimAccessReadyCondition.Status).To(Equal(metav1.ConditionTrue))
+				readyCondition := teamMembership.Status.GetConditionByType(greenhousev1alpha1.ReadyCondition)
+				g.Expect(readyCondition).ToNot(BeNil())
+				g.Expect(readyCondition.Type).To(Equal(greenhousev1alpha1.ReadyCondition))
+				g.Expect(readyCondition.Status).To(Equal(metav1.ConditionTrue))
+			}).Should(Succeed(), "TeamMembership should be reconciled")
+		})
+
 		It("should update existing TM without users", func() {
 			By("creating a test TeamMembership")
 			err := setup.Create(test.Ctx, &greenhousev1alpha1.TeamMembership{
@@ -204,7 +237,7 @@ var _ = Describe("TeammembershipUpdaterController", func() {
 			Expect(err).NotTo(HaveOccurred(), "there must be no error creating a TeamMembership")
 
 			By("creating first test Team")
-			err = setup.Create(test.Ctx, &greenhousev1alpha1.Team{
+			firstTeam := &greenhousev1alpha1.Team{
 				TypeMeta: metav1.TypeMeta{
 					Kind:       "Team",
 					APIVersion: greenhousev1alpha1.GroupVersion.String(),
@@ -216,11 +249,12 @@ var _ = Describe("TeammembershipUpdaterController", func() {
 				Spec: greenhousev1alpha1.TeamSpec{
 					MappedIDPGroup: validIdpGroupName,
 				},
-			})
+			}
+			err = setup.Create(test.Ctx, firstTeam)
 			Expect(err).NotTo(HaveOccurred(), "there must be no error creating a Team")
 
 			By("creating second test Team")
-			setup.CreateTeam(test.Ctx, secondTeamName, test.WithMappedIDPGroup(otherValidIdpGroupName))
+			secondTeam := setup.CreateTeam(test.Ctx, secondTeamName, test.WithMappedIDPGroup(otherValidIdpGroupName))
 
 			By("ensuring two TeamMemberships have been created")
 			teamMemberships := &greenhousev1alpha1.TeamMembershipList{}
@@ -230,15 +264,29 @@ var _ = Describe("TeammembershipUpdaterController", func() {
 				g.Expect(teamMemberships.Items).To(HaveLen(2), "there should be exactly two TeamMemberships")
 			}).Should(Succeed(), "two TeamMemberships should have been created")
 
+			firstOwnerRef := metav1.OwnerReference{
+				APIVersion:         greenhousev1alpha1.GroupVersion.String(),
+				Kind:               "Team",
+				UID:                firstTeam.UID,
+				Name:               firstTeam.Name,
+				Controller:         nil,
+				BlockOwnerDeletion: nil,
+			}
+			secondOwnerRef := metav1.OwnerReference{
+				APIVersion:         greenhousev1alpha1.GroupVersion.String(),
+				Kind:               "Team",
+				UID:                secondTeam.UID,
+				Name:               secondTeam.Name,
+				Controller:         nil,
+				BlockOwnerDeletion: nil,
+			}
+
 			By("ensuring both TeamMemberships have been reconciled")
 			Eventually(func(g Gomega) {
-				g.Expect(teamMemberships.Items[0].Spec.Members).To(HaveLen(2), "first Team should have 2 users")
-				g.Expect(teamMemberships.Items[1].Spec.Members).To(HaveLen(3), "second Team should have 3 users")
-				teams := &greenhousev1alpha1.TeamList{}
-				err := setup.List(test.Ctx, teams, &client.ListOptions{Namespace: setup.Namespace()})
-				g.Expect(err).ShouldNot(HaveOccurred(), "unexpected error getting Teams")
-				g.Expect(teams.Items[0].GetOwnerReferences()).ToNot(BeNil(), "first Team should have set owner reference")
-				g.Expect(teams.Items[1].GetOwnerReferences()).ToNot(BeNil(), "first Team should have set owner reference")
+				g.Expect(teamMemberships.Items[0].Spec.Members).To(HaveLen(2), "first TeamMembership should have 2 users")
+				g.Expect(teamMemberships.Items[1].Spec.Members).To(HaveLen(3), "second TeamMembership should have 3 users")
+				g.Expect(teamMemberships.Items[0].OwnerReferences).To(ContainElement(firstOwnerRef), "first TeamMembership should have set first team as owner reference")
+				g.Expect(teamMemberships.Items[1].OwnerReferences).To(ContainElement(secondOwnerRef), "second TeamMembership should have set second team as owner reference")
 			}).Should(Succeed(), "both TeamMemberships should be reconciled")
 		})
 
