@@ -296,7 +296,7 @@ var _ = Describe("Plugin Preset skip changes", Ordered, func() {
 			&greenhousev1alpha1.PluginDefinition{},
 			true,
 		),
-		Entry("should not skip when plugin definition is different between plugin and plugin preset",
+		Entry("should not skip when plugin preset contains options which is not present in plugin",
 			&greenhousev1alpha1.Plugin{
 				ObjectMeta: metav1.ObjectMeta{
 					Labels: map[string]string{
@@ -307,7 +307,7 @@ var _ = Describe("Plugin Preset skip changes", Ordered, func() {
 					PluginDefinition: pluginPresetDefinitionName,
 					OptionValues: []greenhousev1alpha1.PluginOptionValue{
 						{
-							Name:  greenhouseapis.GroupName + ".test_parameter",
+							Name:  "global.greenhouse.test_parameter",
 							Value: asAPIextensionJSON(2),
 						},
 					},
@@ -343,7 +343,7 @@ var _ = Describe("Plugin Preset skip changes", Ordered, func() {
 					PluginDefinition: pluginPresetDefinitionName,
 					OptionValues: []greenhousev1alpha1.PluginOptionValue{
 						{
-							Name:  greenhouseapis.GroupName + ".test_parameter",
+							Name:  "global.greenhouse.test_parameter",
 							Value: asAPIextensionJSON(2),
 						},
 						{
@@ -372,7 +372,7 @@ var _ = Describe("Plugin Preset skip changes", Ordered, func() {
 			&greenhousev1alpha1.PluginDefinition{},
 			false,
 		),
-		Entry("should not skip when one of plugin preset option has different value",
+		Entry("should not skip when one of plugin preset option has more then one value and one of them is different then option in plugin",
 			&greenhousev1alpha1.Plugin{
 				ObjectMeta: metav1.ObjectMeta{
 					Labels: map[string]string{
@@ -479,7 +479,7 @@ var _ = Describe("Plugin Preset skip changes", Ordered, func() {
 					PluginDefinition: pluginPresetDefinitionName,
 					OptionValues: []greenhousev1alpha1.PluginOptionValue{
 						{
-							Name:  "greenhouse.global.test_parameter",
+							Name:  "global.greenhouse.test_parameter",
 							Value: asAPIextensionJSON(2),
 						},
 						{
@@ -511,46 +511,6 @@ var _ = Describe("Plugin Preset skip changes", Ordered, func() {
 			},
 			&greenhousev1alpha1.PluginDefinition{},
 			false,
-		),
-		Entry("should skip when plugin preset has the same values like plugin",
-			&greenhousev1alpha1.Plugin{
-				ObjectMeta: metav1.ObjectMeta{
-					Labels: map[string]string{
-						greenhouseapis.LabelKeyPluginPreset: pluginPresetName,
-					},
-				},
-				Spec: greenhousev1alpha1.PluginSpec{
-					PluginDefinition: pluginPresetDefinitionName,
-					OptionValues: []greenhousev1alpha1.PluginOptionValue{
-						{
-							Name:  "global.greenhouse.test_parameter",
-							Value: asAPIextensionJSON(2),
-						},
-						{
-							Name:  "plugin_preset.test_parameter",
-							Value: asAPIextensionJSON(3),
-						},
-					},
-				},
-			},
-			&greenhousev1alpha1.PluginPreset{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: pluginPresetName,
-				},
-				Spec: greenhousev1alpha1.PluginPresetSpec{
-					Plugin: greenhousev1alpha1.PluginSpec{
-						PluginDefinition: pluginPresetDefinitionName,
-						OptionValues: []greenhousev1alpha1.PluginOptionValue{
-							{
-								Name:  "plugin_preset.test_parameter",
-								Value: asAPIextensionJSON(3),
-							},
-						},
-					},
-				},
-			},
-			&greenhousev1alpha1.PluginDefinition{},
-			true,
 		),
 		Entry("should skip when plugin has default values from plugin definition",
 			&greenhousev1alpha1.Plugin{

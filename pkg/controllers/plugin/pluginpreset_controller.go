@@ -234,6 +234,7 @@ func shouldSkipPlugin(plugin *greenhousev1alpha1.Plugin, preset *greenhousev1alp
 		return true
 	}
 
+	// need to reconcile when plugin does not have option which exists in plugin preset
 	for _, presetOptionValue := range preset.Spec.Plugin.OptionValues {
 		if !slices.ContainsFunc(plugin.Spec.OptionValues, func(item greenhousev1alpha1.PluginOptionValue) bool {
 			return item.Name == presetOptionValue.Name && string(item.Value.Raw) == string(presetOptionValue.Value.Raw)
@@ -242,33 +243,33 @@ func shouldSkipPlugin(plugin *greenhousev1alpha1.Plugin, preset *greenhousev1alp
 		}
 	}
 
-	definitionCount := 0
-	for _, definitionOption := range definition.Spec.Options {
-		if definitionOption.Default == nil {
+	for _, pluginOption := range plugin.Spec.OptionValues {
+		if strings.HasPrefix(pluginOption.Name, "global.greenhouse") {
+			// pluginOption is a global option, nothing to do
 			continue
 		}
 
-		definitionCount++
-		if !slices.ContainsFunc(plugin.Spec.OptionValues, func(item greenhousev1alpha1.PluginOptionValue) bool {
-			return item.Name == definitionOption.Name && string(item.Value.Raw) == string(definitionOption.Default.Raw)
+		if slices.ContainsFunc(preset.Spec.Plugin.OptionValues, func(item greenhousev1alpha1.PluginOptionValue) bool {
+			return item.Name == pluginOption.Name && string(item.Value.Raw) == string(pluginOption.Value.Raw)
 		}) {
-			return false
-		}
-	}
-
-	return len(preset.Spec.Plugin.OptionValues)+definitionCount >= countWithoutGlobalOption(plugin.Spec.OptionValues)
-}
-
-func countWithoutGlobalOption(list []greenhousev1alpha1.PluginOptionValue) int {
-	count := 0
-	for _, item := range list {
-		if strings.HasPrefix(item.Name, "global.greenhouse") {
+			// optionValue is set by the PluginPreset, nothing to do
 			continue
 		}
-		count++
+		if slices.ContainsFunc(definition.Spec.Options, func(item greenhousev1alpha1.PluginOption) bool {
+			if item.Default == nil {
+				return false
+			}
+			return item.Name == pluginOption.Name && string(item.Default.Raw) == string(pluginOption.Value.Raw)
+		}) {
+			// optionValue is set by the PluginDefinition, nothing to do
+			continue
+		}
+		// the optionValue is not a global option, not set by the PluginPreset and not set by the PluginDefinition
+		// need to reconcile to get the managed Plugin back into the desired state
+		return false
 	}
-
-	return count
+	// all options are global options or set by the PluginPreset or the PluginDefinition
+	return true
 }
 
 func overridesPluginOptionValues(plugin *greenhousev1alpha1.Plugin, preset *greenhousev1alpha1.PluginPreset) {
