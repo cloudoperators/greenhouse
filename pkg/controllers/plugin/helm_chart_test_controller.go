@@ -75,7 +75,7 @@ func (r *HelmChartTestReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 
 	// Helm Chart Test cannot be done as the Helm Chart deployment is not successful
 	if plugin.Status.HelmReleaseStatus.Status != "deployed" {
-		return ctrl.Result{Requeue: true}, nil
+		return ctrl.Result{}, nil
 	}
 
 	pluginStatus := initPluginStatus(&plugin)
