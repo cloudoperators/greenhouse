@@ -29,47 +29,6 @@ var (
 	setup *test.TestSetup
 )
 
-func createTestOrgWithSecret(namespace string) {
-	By("creating a secret")
-	testSecret := corev1.Secret{
-		TypeMeta: metav1.TypeMeta{
-			Kind:       "Secret",
-			APIVersion: corev1.GroupName,
-		},
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "test-secret",
-			Namespace: namespace,
-		},
-		Data: map[string][]byte{
-			"basicAuthUser": []byte("user"),
-			"basicAuthPw":   []byte("pw"),
-		},
-	}
-	err := setup.Client.Create(test.Ctx, &testSecret)
-	Expect(err).ToNot(HaveOccurred(), "there must be no error creating a secret")
-
-	By("creating organization with name: " + namespace)
-	setup.CreateOrganization(test.Ctx, namespace, func(o *greenhousev1alpha1.Organization) {
-		o.Spec.Authentication = &greenhousev1alpha1.Authentication{
-			SCIMConfig: &greenhousev1alpha1.SCIMConfig{
-				BaseURL: groupsServer.URL,
-				BasicAuthUser: &greenhousev1alpha1.ValueFromSource{
-					Secret: &greenhousev1alpha1.SecretKeyReference{
-						Name: "test-secret",
-						Key:  "basicAuthUser",
-					},
-				},
-				BasicAuthPw: &greenhousev1alpha1.ValueFromSource{
-					Secret: &greenhousev1alpha1.SecretKeyReference{
-						Name: "test-secret",
-						Key:  "basicAuthPw",
-					},
-				},
-			},
-		}
-	})
-}
-
 var _ = Describe("TeammembershipUpdaterController", func() {
 	When("reconciling a teammembership", func() {
 		BeforeEach(func() {
@@ -113,33 +72,10 @@ var _ = Describe("TeammembershipUpdaterController", func() {
 
 		It("should update existing TM without users", func() {
 			By("creating a test TeamMembership")
-			err := setup.Create(test.Ctx, &greenhousev1alpha1.TeamMembership{
-				TypeMeta: metav1.TypeMeta{
-					APIVersion: greenhousev1alpha1.GroupVersion.Group,
-					Kind:       "TeamMembership",
-				},
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      firstTeamName,
-					Namespace: setup.Namespace(),
-				},
-			})
-			Expect(err).NotTo(HaveOccurred(), "there must be no error creating a TeamMembership")
+			createTeamMembership(firstTeamName, nil)
 
 			By("creating a test Team")
-			err = setup.Create(test.Ctx, &greenhousev1alpha1.Team{
-				TypeMeta: metav1.TypeMeta{
-					Kind:       "Team",
-					APIVersion: greenhousev1alpha1.GroupVersion.String(),
-				},
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      firstTeamName,
-					Namespace: setup.Namespace(),
-				},
-				Spec: greenhousev1alpha1.TeamSpec{
-					MappedIDPGroup: validIdpGroupName,
-				},
-			})
-			Expect(err).NotTo(HaveOccurred(), "there must be no error creating a Team")
+			createTeam(firstTeamName, validIdpGroupName)
 
 			By("ensuring the TeamMembership has been reconciled")
 			Eventually(func(g Gomega) {
@@ -163,43 +99,17 @@ var _ = Describe("TeammembershipUpdaterController", func() {
 
 		It("should update existing TM with users", func() {
 			By("creating a test TeamMembership with 1 existing user")
-			err := setup.Create(test.Ctx, &greenhousev1alpha1.TeamMembership{
-				TypeMeta: metav1.TypeMeta{
-					APIVersion: greenhousev1alpha1.GroupVersion.Group,
-					Kind:       "TeamMembership",
-				},
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      firstTeamName,
-					Namespace: setup.Namespace(),
-				},
-				Spec: greenhousev1alpha1.TeamMembershipSpec{
-					Members: []greenhousev1alpha1.User{
-						{
-							ID:        "I12345",
-							FirstName: "John",
-							LastName:  "Doe",
-							Email:     "john.doe@example.com",
-						},
-					},
+			createTeamMembership(firstTeamName, []greenhousev1alpha1.User{
+				{
+					ID:        "I12345",
+					FirstName: "John",
+					LastName:  "Doe",
+					Email:     "john.doe@example.com",
 				},
 			})
-			Expect(err).NotTo(HaveOccurred(), "there must be no error creating a TeamMembership")
 
 			By("creating a test Team")
-			err = setup.Create(test.Ctx, &greenhousev1alpha1.Team{
-				TypeMeta: metav1.TypeMeta{
-					Kind:       "Team",
-					APIVersion: greenhousev1alpha1.GroupVersion.String(),
-				},
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      firstTeamName,
-					Namespace: setup.Namespace(),
-				},
-				Spec: greenhousev1alpha1.TeamSpec{
-					MappedIDPGroup: validIdpGroupName,
-				},
-			})
-			Expect(err).NotTo(HaveOccurred(), "there must be no error creating a Team")
+			createTeam(firstTeamName, validIdpGroupName)
 
 			By("ensuring the TeamMembership has been reconciled")
 			Eventually(func(g Gomega) {
@@ -214,44 +124,17 @@ var _ = Describe("TeammembershipUpdaterController", func() {
 
 		It("should update multiple TMs", func() {
 			By("creating a test TeamMembership with 1 existing user")
-			err := setup.Create(test.Ctx, &greenhousev1alpha1.TeamMembership{
-				TypeMeta: metav1.TypeMeta{
-					APIVersion: greenhousev1alpha1.GroupVersion.Group,
-					Kind:       "TeamMembership",
-				},
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      firstTeamName,
-					Namespace: setup.Namespace(),
-				},
-				Spec: greenhousev1alpha1.TeamMembershipSpec{
-					Members: []greenhousev1alpha1.User{
-						{
-							ID:        "I12345",
-							FirstName: "John",
-							LastName:  "Doe",
-							Email:     "john.doe@example.com",
-						},
-					},
+			createTeamMembership(firstTeamName, []greenhousev1alpha1.User{
+				{
+					ID:        "I12345",
+					FirstName: "John",
+					LastName:  "Doe",
+					Email:     "john.doe@example.com",
 				},
 			})
-			Expect(err).NotTo(HaveOccurred(), "there must be no error creating a TeamMembership")
 
 			By("creating first test Team")
-			firstTeam := &greenhousev1alpha1.Team{
-				TypeMeta: metav1.TypeMeta{
-					Kind:       "Team",
-					APIVersion: greenhousev1alpha1.GroupVersion.String(),
-				},
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      firstTeamName,
-					Namespace: setup.Namespace(),
-				},
-				Spec: greenhousev1alpha1.TeamSpec{
-					MappedIDPGroup: validIdpGroupName,
-				},
-			}
-			err = setup.Create(test.Ctx, firstTeam)
-			Expect(err).NotTo(HaveOccurred(), "there must be no error creating a Team")
+			firstTeam := createTeam(firstTeamName, validIdpGroupName)
 
 			By("creating second test Team")
 			secondTeam := setup.CreateTeam(test.Ctx, secondTeamName, test.WithMappedIDPGroup(otherValidIdpGroupName))
@@ -309,30 +192,10 @@ var _ = Describe("TeammembershipUpdaterController", func() {
 
 		It("should delete existing TM if team has no mappedIDPGroup", func() {
 			By("creating a test TeamMembership")
-			err := setup.Create(test.Ctx, &greenhousev1alpha1.TeamMembership{
-				TypeMeta: metav1.TypeMeta{
-					APIVersion: greenhousev1alpha1.GroupVersion.Group,
-					Kind:       "TeamMembership",
-				},
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      firstTeamName,
-					Namespace: setup.Namespace(),
-				},
-			})
-			Expect(err).NotTo(HaveOccurred(), "there must be no error creating a TeamMembership")
+			createTeamMembership(firstTeamName, nil)
 
 			By("creating a test Team without mappedIdpGroup")
-			err = setup.Create(test.Ctx, &greenhousev1alpha1.Team{
-				TypeMeta: metav1.TypeMeta{
-					Kind:       "Team",
-					APIVersion: greenhousev1alpha1.GroupVersion.String(),
-				},
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      firstTeamName,
-					Namespace: setup.Namespace(),
-				},
-			})
-			Expect(err).NotTo(HaveOccurred(), "there must be no error creating a Team")
+			createTeam(firstTeamName, "")
 
 			By("ensuring the TeamMembership has been deleted")
 			Eventually(func(g Gomega) {
@@ -404,33 +267,10 @@ var _ = Describe("TeammembershipUpdaterController", func() {
 			Expect(err).ToNot(HaveOccurred(), "there must be no error deleting the secret")
 
 			By("creating a test TeamMembership")
-			err = setup.Create(test.Ctx, &greenhousev1alpha1.TeamMembership{
-				TypeMeta: metav1.TypeMeta{
-					APIVersion: greenhousev1alpha1.GroupVersion.Group,
-					Kind:       "TeamMembership",
-				},
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      firstTeamName,
-					Namespace: setup.Namespace(),
-				},
-			})
-			Expect(err).NotTo(HaveOccurred(), "there must be no error creating a TeamMembership")
+			createTeamMembership(firstTeamName, nil)
 
 			By("creating a test Team with valid MappedIdpGroup")
-			err = setup.Create(test.Ctx, &greenhousev1alpha1.Team{
-				TypeMeta: metav1.TypeMeta{
-					Kind:       "Team",
-					APIVersion: greenhousev1alpha1.GroupVersion.String(),
-				},
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      firstTeamName,
-					Namespace: setup.Namespace(),
-				},
-				Spec: greenhousev1alpha1.TeamSpec{
-					MappedIDPGroup: validIdpGroupName,
-				},
-			})
-			Expect(err).NotTo(HaveOccurred(), "there must be no error creating a Team")
+			createTeam(firstTeamName, validIdpGroupName)
 
 			By("ensuring TeamMemberships have been reconciled")
 			Eventually(func(g Gomega) {
@@ -455,33 +295,10 @@ var _ = Describe("TeammembershipUpdaterController", func() {
 
 		It("should set ready condition to false on SCIM request failed", func() {
 			By("creating a test TeamMembership")
-			err := setup.Create(test.Ctx, &greenhousev1alpha1.TeamMembership{
-				TypeMeta: metav1.TypeMeta{
-					APIVersion: greenhousev1alpha1.GroupVersion.Group,
-					Kind:       "TeamMembership",
-				},
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      firstTeamName,
-					Namespace: setup.Namespace(),
-				},
-			})
-			Expect(err).NotTo(HaveOccurred(), "there must be no error creating a TeamMembership")
+			createTeamMembership(firstTeamName, nil)
 
 			By("creating a test Team with invalid MappedIdpGroup")
-			err = setup.Create(test.Ctx, &greenhousev1alpha1.Team{
-				TypeMeta: metav1.TypeMeta{
-					Kind:       "Team",
-					APIVersion: greenhousev1alpha1.GroupVersion.String(),
-				},
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      firstTeamName,
-					Namespace: setup.Namespace(),
-				},
-				Spec: greenhousev1alpha1.TeamSpec{
-					MappedIDPGroup: nonExistingGroupName,
-				},
-			})
-			Expect(err).NotTo(HaveOccurred(), "there must be no error creating a Team")
+			createTeam(firstTeamName, nonExistingGroupName)
 
 			By("ensuring TeamMemberships have been reconciled")
 			Eventually(func(g Gomega) {
@@ -529,5 +346,114 @@ var _ = Describe("TeammembershipUpdaterController", func() {
 				g.Expect(tee.Contents()).To(ContainSubstring("SCIM config is missing from org"), "logger should log about missing SCIM config")
 			}).Should(Succeed(), "TeamMemberships should have been reconciled")
 		})
+
+		It("should update TeamMembership when one user has changed", func() {
+			By("creating test TeamMembership with two users")
+			originalUsers := []greenhousev1alpha1.User{
+				{ // User from mock.
+					ID:        "I12345",
+					FirstName: "John",
+					LastName:  "Doe",
+					Email:     "john.doe@example.com",
+				},
+				{ // User different from mock.
+					ID:        "I99999",
+					FirstName: "Some",
+					LastName:  "User",
+					Email:     "some.user@example.com",
+				},
+			}
+			createTeamMembership(firstTeamName, originalUsers)
+
+			By("creating test Team with valid idp group")
+			createTeam(firstTeamName, validIdpGroupName)
+
+			Eventually(func(g Gomega) {
+				teamMemberships := &greenhousev1alpha1.TeamMembershipList{}
+				err := setup.List(test.Ctx, teamMemberships, &client.ListOptions{Namespace: setup.Namespace()})
+				g.Expect(err).ShouldNot(HaveOccurred(), "unexpected error getting TeamMemberships")
+				g.Expect(teamMemberships.Items).To(HaveLen(1), "there should be exactly one TeamMembership")
+				teamMembership := teamMemberships.Items[0]
+				g.Expect(teamMembership.Spec.Members).To(HaveLen(2), "TeamMembership should have two users")
+				g.Expect(teamMembership.Spec.Members).ToNot(Equal(originalUsers), "TeamMembership users should be updated")
+			}).Should(Succeed(), "TeamMembership should have been reconciled")
+		})
 	})
 })
+
+func createTestOrgWithSecret(namespace string) {
+	By("creating a secret")
+	testSecret := corev1.Secret{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "Secret",
+			APIVersion: corev1.GroupName,
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "test-secret",
+			Namespace: namespace,
+		},
+		Data: map[string][]byte{
+			"basicAuthUser": []byte("user"),
+			"basicAuthPw":   []byte("pw"),
+		},
+	}
+	err := setup.Client.Create(test.Ctx, &testSecret)
+	Expect(err).ToNot(HaveOccurred(), "there must be no error creating a secret")
+
+	By("creating organization with name: " + namespace)
+	setup.CreateOrganization(test.Ctx, namespace, func(o *greenhousev1alpha1.Organization) {
+		o.Spec.Authentication = &greenhousev1alpha1.Authentication{
+			SCIMConfig: &greenhousev1alpha1.SCIMConfig{
+				BaseURL: groupsServer.URL,
+				BasicAuthUser: &greenhousev1alpha1.ValueFromSource{
+					Secret: &greenhousev1alpha1.SecretKeyReference{
+						Name: "test-secret",
+						Key:  "basicAuthUser",
+					},
+				},
+				BasicAuthPw: &greenhousev1alpha1.ValueFromSource{
+					Secret: &greenhousev1alpha1.SecretKeyReference{
+						Name: "test-secret",
+						Key:  "basicAuthPw",
+					},
+				},
+			},
+		}
+	})
+}
+
+func createTeamMembership(name string, members []greenhousev1alpha1.User) {
+	err := setup.Create(test.Ctx, &greenhousev1alpha1.TeamMembership{
+		TypeMeta: metav1.TypeMeta{
+			APIVersion: greenhousev1alpha1.GroupVersion.Group,
+			Kind:       "TeamMembership",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      name,
+			Namespace: setup.Namespace(),
+		},
+		Spec: greenhousev1alpha1.TeamMembershipSpec{
+			Members: members,
+		},
+	})
+	Expect(err).NotTo(HaveOccurred(), "there must be no error creating a TeamMembership")
+}
+
+func createTeam(name string, mappedIDPGroup string) *greenhousev1alpha1.Team {
+	team := &greenhousev1alpha1.Team{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "Team",
+			APIVersion: greenhousev1alpha1.GroupVersion.String(),
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      name,
+			Namespace: setup.Namespace(),
+		},
+		Spec: greenhousev1alpha1.TeamSpec{
+			MappedIDPGroup: mappedIDPGroup,
+		},
+	}
+	err := setup.Create(test.Ctx, team)
+	Expect(err).NotTo(HaveOccurred(), "there must be no error creating a Team")
+	return team
+}

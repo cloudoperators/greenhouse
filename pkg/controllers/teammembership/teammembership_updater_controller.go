@@ -5,6 +5,7 @@ package teammembership
 
 import (
 	"context"
+	"slices"
 	"time"
 
 	"github.com/prometheus/client_golang/prometheus"
@@ -17,11 +18,12 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/metrics"
 
+	corev1 "k8s.io/api/core/v1"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
+
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/pkg/apis/greenhouse/v1alpha1"
 	"github.com/cloudoperators/greenhouse/pkg/clientutil"
 	"github.com/cloudoperators/greenhouse/pkg/scim"
-	corev1 "k8s.io/api/core/v1"
-	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
 const TeamMembershipRequeueInterval = 10 * time.Minute
@@ -68,42 +70,6 @@ func (r *TeamMembershipUpdaterController) SetupWithManager(name string, mgr ctrl
 		For(&greenhousev1alpha1.Team{}).
 		Owns(&greenhousev1alpha1.TeamMembership{}).
 		Complete(r)
-}
-
-func initTeamMembershipStatus(teamMembership *greenhousev1alpha1.TeamMembership) greenhousev1alpha1.TeamMembershipStatus {
-	teamMembershipStatus := teamMembership.Status.DeepCopy()
-	for _, t := range exposedConditions {
-		if teamMembershipStatus.GetConditionByType(t) == nil {
-			teamMembershipStatus.SetConditions(greenhousev1alpha1.UnknownCondition(t, "", ""))
-		}
-	}
-	return *teamMembershipStatus
-}
-
-func (r *TeamMembershipUpdaterController) setStatus(ctx context.Context, teamMembership *greenhousev1alpha1.TeamMembership, teamMembershipStatus greenhousev1alpha1.TeamMembershipStatus) error {
-	readyCondition := r.computeReadyCondition(teamMembershipStatus.StatusConditions)
-	teamMembershipStatus.StatusConditions.SetConditions(readyCondition)
-	_, err := clientutil.PatchStatus(ctx, r.Client, teamMembership, func() error {
-		teamMembership.Status = teamMembershipStatus
-		return nil
-	})
-	return err
-}
-
-func (r *TeamMembershipUpdaterController) computeReadyCondition(
-	conditions greenhousev1alpha1.StatusConditions,
-) (readyCondition greenhousev1alpha1.Condition) {
-
-	readyCondition = *conditions.GetConditionByType(greenhousev1alpha1.ReadyCondition)
-
-	if conditions.GetConditionByType(greenhousev1alpha1.ScimAccessReadyCondition).IsFalse() {
-		readyCondition.Status = metav1.ConditionFalse
-		readyCondition.Message = "SCIM access not ready"
-		return readyCondition
-	}
-	readyCondition.Status = metav1.ConditionTrue
-	readyCondition.Message = "ready"
-	return readyCondition
 }
 
 func (r *TeamMembershipUpdaterController) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
@@ -180,7 +146,7 @@ func (r *TeamMembershipUpdaterController) Reconcile(ctx context.Context, req ctr
 		"team":      team.Name,
 	}).Set(float64(len(users)))
 
-	if teamMembershipExists && len(teamMembership.Spec.Members) == len(users) {
+	if teamMembershipExists && slices.Equal(teamMembership.Spec.Members, users) {
 		// Requeue when nothing has changed.
 		return ctrl.Result{RequeueAfter: TeamMembershipRequeueInterval}, nil
 	}
@@ -245,4 +211,40 @@ func (r *TeamMembershipUpdaterController) getUsersFromScim(scimClient *scim.Scim
 	}
 	users := scimClient.GetUsers(members)
 	return users, nil
+}
+
+func initTeamMembershipStatus(teamMembership *greenhousev1alpha1.TeamMembership) greenhousev1alpha1.TeamMembershipStatus {
+	teamMembershipStatus := teamMembership.Status.DeepCopy()
+	for _, t := range exposedConditions {
+		if teamMembershipStatus.GetConditionByType(t) == nil {
+			teamMembershipStatus.SetConditions(greenhousev1alpha1.UnknownCondition(t, "", ""))
+		}
+	}
+	return *teamMembershipStatus
+}
+
+func (r *TeamMembershipUpdaterController) setStatus(ctx context.Context, teamMembership *greenhousev1alpha1.TeamMembership, teamMembershipStatus greenhousev1alpha1.TeamMembershipStatus) error {
+	readyCondition := r.computeReadyCondition(teamMembershipStatus.StatusConditions)
+	teamMembershipStatus.StatusConditions.SetConditions(readyCondition)
+	_, err := clientutil.PatchStatus(ctx, r.Client, teamMembership, func() error {
+		teamMembership.Status = teamMembershipStatus
+		return nil
+	})
+	return err
+}
+
+func (r *TeamMembershipUpdaterController) computeReadyCondition(
+	conditions greenhousev1alpha1.StatusConditions,
+) (readyCondition greenhousev1alpha1.Condition) {
+
+	readyCondition = *conditions.GetConditionByType(greenhousev1alpha1.ReadyCondition)
+
+	if conditions.GetConditionByType(greenhousev1alpha1.ScimAccessReadyCondition).IsFalse() {
+		readyCondition.Status = metav1.ConditionFalse
+		readyCondition.Message = "SCIM access not ready"
+		return readyCondition
+	}
+	readyCondition.Status = metav1.ConditionTrue
+	readyCondition.Message = "ready"
+	return readyCondition
 }
