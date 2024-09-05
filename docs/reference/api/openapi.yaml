@@ -1,7 +1,7 @@
 openapi: 3.0.0
 info:
   title: Greenhouse
-  version: 1a540ac
+  version: 8cf8689
   description: PlusOne operations platform
 paths:
   /Team:
@@ -864,6 +864,49 @@ components:
         spec:
           description: PluginPresetSpec defines the desired state of PluginPreset
           properties:
+            clusterOptionOverrides:
+              description: ClusterOptionOverrides define plugin option values to override by the PluginPreset
+              items:
+                description: ClusterOptionOverride defines which plugin option should be override in which cluster
+                properties:
+                  clusterName:
+                    type: string
+                  overrides:
+                    items:
+                      description: PluginOptionValue is the value for a PluginOption.
+                      properties:
+                        name:
+                          description: Name of the values.
+                          type: string
+                        value:
+                          description: Value is the actual value in plain text.
+                          x-kubernetes-preserve-unknown-fields: true
+                        valueFrom:
+                          description: ValueFrom references a potentially confidential value in another source.
+                          properties:
+                            secret:
+                              description: Secret references the secret containing the value.
+                              properties:
+                                key:
+                                  description: Key in the secret to select the value from.
+                                  type: string
+                                name:
+                                  description: Name of the secret in the same namespace.
+                                  type: string
+                              required:
+                                - key
+                                - name
+                              type: object
+                          type: object
+                      required:
+                        - name
+                      type: object
+                    type: array
+                required:
+                  - clusterName
+                  - overrides
+                type: object
+              type: array
             clusterSelector:
               description: ClusterSelector is a label selector to select the clusters the plugin bundle should be deployed to.
               properties:

@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2024 SAP SE or an SAP affiliate company and Greenhouse contributors
 // SPDX-License-Identifier: Apache-2.0
 
-package plugin_test
+package plugin
 
 import (
 	. "github.com/onsi/ginkgo/v2"
@@ -242,6 +242,265 @@ var _ = Describe("PluginPreset Controller Lifecycle", Ordered, func() {
 	})
 })
 
+var _ = Describe("overridesPluginOptionValues", Ordered, func() {
+	DescribeTable("test cases", func(plugin *greenhousev1alpha1.Plugin, preset *greenhousev1alpha1.PluginPreset, expectedPlugin *greenhousev1alpha1.Plugin) {
+		overridesPluginOptionValues(plugin, preset)
+		Expect(plugin).To(BeEquivalentTo(expectedPlugin))
+	},
+		Entry("with no defined pluginPresetOverrides",
+			&greenhousev1alpha1.Plugin{
+				Spec: greenhousev1alpha1.PluginSpec{
+					OptionValues: []greenhousev1alpha1.PluginOptionValue{
+						{
+							Name:  "option-1",
+							Value: asAPIextensionJSON(2),
+						},
+					},
+				},
+			},
+			&greenhousev1alpha1.PluginPreset{
+				Spec: greenhousev1alpha1.PluginPresetSpec{},
+			},
+			&greenhousev1alpha1.Plugin{
+				Spec: greenhousev1alpha1.PluginSpec{
+					OptionValues: []greenhousev1alpha1.PluginOptionValue{
+						{
+							Name:  "option-1",
+							Value: asAPIextensionJSON(2),
+						},
+					},
+				},
+			},
+		),
+		Entry("with defined pluginPresetOverrides but for another cluster",
+			&greenhousev1alpha1.Plugin{
+				Spec: greenhousev1alpha1.PluginSpec{
+					ClusterName: clusterA,
+					OptionValues: []greenhousev1alpha1.PluginOptionValue{
+						{
+							Name:  "option-1",
+							Value: asAPIextensionJSON(2),
+						},
+					},
+				},
+			},
+			&greenhousev1alpha1.PluginPreset{
+				Spec: greenhousev1alpha1.PluginPresetSpec{
+					ClusterOptionOverrides: []greenhousev1alpha1.ClusterOptionOverride{
+						{
+							ClusterName: clusterB,
+							Overrides: []greenhousev1alpha1.PluginOptionValue{
+								{
+									Name:  "option-1",
+									Value: asAPIextensionJSON(1),
+								},
+							},
+						},
+					},
+				},
+			},
+			&greenhousev1alpha1.Plugin{
+				Spec: greenhousev1alpha1.PluginSpec{
+					ClusterName: clusterA,
+					OptionValues: []greenhousev1alpha1.PluginOptionValue{
+						{
+							Name:  "option-1",
+							Value: asAPIextensionJSON(2),
+						},
+					},
+				},
+			},
+		),
+		Entry("with defined pluginPresetOverrides for the correct cluster",
+			&greenhousev1alpha1.Plugin{
+				Spec: greenhousev1alpha1.PluginSpec{
+					ClusterName: clusterA,
+					OptionValues: []greenhousev1alpha1.PluginOptionValue{
+						{
+							Name:  "option-1",
+							Value: asAPIextensionJSON(2),
+						},
+					},
+				},
+			},
+			&greenhousev1alpha1.PluginPreset{
+				Spec: greenhousev1alpha1.PluginPresetSpec{
+					ClusterOptionOverrides: []greenhousev1alpha1.ClusterOptionOverride{
+						{
+							ClusterName: clusterA,
+							Overrides: []greenhousev1alpha1.PluginOptionValue{
+								{
+									Name:  "option-1",
+									Value: asAPIextensionJSON(1),
+								},
+							},
+						},
+					},
+				},
+			},
+			&greenhousev1alpha1.Plugin{
+				Spec: greenhousev1alpha1.PluginSpec{
+					ClusterName: clusterA,
+					OptionValues: []greenhousev1alpha1.PluginOptionValue{
+						{
+							Name:  "option-1",
+							Value: asAPIextensionJSON(1),
+						},
+					},
+				},
+			},
+		),
+		Entry("with defined pluginPresetOverrides for the cluster and plugin with empty option values",
+			&greenhousev1alpha1.Plugin{
+				Spec: greenhousev1alpha1.PluginSpec{
+					ClusterName:  clusterA,
+					OptionValues: []greenhousev1alpha1.PluginOptionValue{},
+				},
+			},
+			&greenhousev1alpha1.PluginPreset{
+				Spec: greenhousev1alpha1.PluginPresetSpec{
+					ClusterOptionOverrides: []greenhousev1alpha1.ClusterOptionOverride{
+						{
+							ClusterName: clusterA,
+							Overrides: []greenhousev1alpha1.PluginOptionValue{
+								{
+									Name:  "option-1",
+									Value: asAPIextensionJSON(1),
+								},
+							},
+						},
+					},
+				},
+			},
+			&greenhousev1alpha1.Plugin{
+				Spec: greenhousev1alpha1.PluginSpec{
+					ClusterName: clusterA,
+					OptionValues: []greenhousev1alpha1.PluginOptionValue{
+						{
+							Name:  "option-1",
+							Value: asAPIextensionJSON(1),
+						},
+					},
+				},
+			},
+		),
+		Entry("with defined pluginPresetOverrides and plugin has two options",
+			&greenhousev1alpha1.Plugin{
+				Spec: greenhousev1alpha1.PluginSpec{
+					ClusterName: clusterA,
+					OptionValues: []greenhousev1alpha1.PluginOptionValue{
+						{
+							Name:  "option-1",
+							Value: asAPIextensionJSON(1),
+						},
+						{
+							Name:  "option-2",
+							Value: asAPIextensionJSON(1),
+						},
+					},
+				},
+			},
+			&greenhousev1alpha1.PluginPreset{
+				Spec: greenhousev1alpha1.PluginPresetSpec{
+					ClusterOptionOverrides: []greenhousev1alpha1.ClusterOptionOverride{
+						{
+							ClusterName: clusterA,
+							Overrides: []greenhousev1alpha1.PluginOptionValue{
+								{
+									Name:  "option-2",
+									Value: asAPIextensionJSON(2),
+								},
+							},
+						},
+					},
+				},
+			},
+			&greenhousev1alpha1.Plugin{
+				Spec: greenhousev1alpha1.PluginSpec{
+					ClusterName: clusterA,
+					OptionValues: []greenhousev1alpha1.PluginOptionValue{
+						{
+							Name:  "option-1",
+							Value: asAPIextensionJSON(1),
+						},
+						{
+							Name:  "option-2",
+							Value: asAPIextensionJSON(2),
+						},
+					},
+				},
+			},
+		),
+		Entry("with defined pluginPresetOverrides has multiple options to override",
+			&greenhousev1alpha1.Plugin{
+				Spec: greenhousev1alpha1.PluginSpec{
+					ClusterName: clusterA,
+					OptionValues: []greenhousev1alpha1.PluginOptionValue{
+						{
+							Name:  "option-1",
+							Value: asAPIextensionJSON(1),
+						},
+						{
+							Name:  "option-2",
+							Value: asAPIextensionJSON(1),
+						},
+						{
+							Name:  "option-3",
+							Value: asAPIextensionJSON(1),
+						},
+					},
+				},
+			},
+			&greenhousev1alpha1.PluginPreset{
+				Spec: greenhousev1alpha1.PluginPresetSpec{
+					ClusterOptionOverrides: []greenhousev1alpha1.ClusterOptionOverride{
+						{
+							ClusterName: clusterA,
+							Overrides: []greenhousev1alpha1.PluginOptionValue{
+								{
+									Name:  "option-2",
+									Value: asAPIextensionJSON(2),
+								},
+								{
+									Name:  "option-3",
+									Value: asAPIextensionJSON(2),
+								},
+								{
+									Name:  "option-4",
+									Value: asAPIextensionJSON(2),
+								},
+							},
+						},
+					},
+				},
+			},
+			&greenhousev1alpha1.Plugin{
+				Spec: greenhousev1alpha1.PluginSpec{
+					ClusterName: clusterA,
+					OptionValues: []greenhousev1alpha1.PluginOptionValue{
+						{
+							Name:  "option-1",
+							Value: asAPIextensionJSON(1),
+						},
+						{
+							Name:  "option-2",
+							Value: asAPIextensionJSON(2),
+						},
+						{
+							Name:  "option-3",
+							Value: asAPIextensionJSON(2),
+						},
+						{
+							Name:  "option-4",
+							Value: asAPIextensionJSON(2),
+						},
+					},
+				},
+			},
+		),
+	)
+})
+
 // clusterSecret returns the secret for a cluster.
 func clusterSecret(clusterName string) *corev1.Secret {
 	return &corev1.Secret{
@@ -331,6 +590,7 @@ func pluginPreset(name, selectorValue string) *greenhousev1alpha1.PluginPreset {
 					"cluster": selectorValue,
 				},
 			},
+			ClusterOptionOverrides: []greenhousev1alpha1.ClusterOptionOverride{},
 		},
 	}
 }
