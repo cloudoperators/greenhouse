@@ -87,11 +87,11 @@ jobs:
             type=sha,enable=true,format=short,prefix=
             type=edge,branch=master
           labels: |
-            org.opencontainers.image.title=Supernova UI
-            org.opencontainers.image.description=Supernova is an alternative UI for Prometheus Alertmanager with some quality of life improvements
-            org.opencontainers.image.url=https://github.com/cloudoperators/greenhouse-extensions/tree/main/alerts/ui
-            org.opencontainers.image.source=https://github.com/cloudoperators/greenhouse-extensions/tree/main/alerts/ui
-            org.opencontainers.image.documentation=https://github.com/cloudoperators/greenhouse-extensions/tree/main/alerts/ui
+            org.opencontainers.image.title=Greenhouse Dashboard
+            org.opencontainers.image.description=Greenhouse Dashboard is an all-in-one docker image including all dependent apps.
+            org.opencontainers.image.url=https://github.com/cloudoperators/greenhouse/tree/main/ui
+            org.opencontainers.image.source=https://github.com/cloudoperators/greenhouse/tree/main/ui/docker
+            org.opencontainers.image.documentation=https://github.com/cloudoperators/greenhouse/tree/main/ui/docker/README.md
 
       # Build and push Docker image with Buildx (don't push on PR)
       # https://github.com/docker/build-push-action
