@@ -17,6 +17,7 @@ import (
 
 	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
 
+	greenhouseapis "github.com/cloudoperators/greenhouse/pkg/apis"
 	"github.com/cloudoperators/greenhouse/pkg/apis/greenhouse/v1alpha1"
 	"github.com/cloudoperators/greenhouse/pkg/clientutil"
 
@@ -38,7 +39,10 @@ func (r *KubeconfigReconciler) SetupWithManager(name string, mgr ctrl.Manager) e
 
 	return ctrl.NewControllerManagedBy(mgr).
 		Named(name).
-		Watches(&v1alpha1.Cluster{}, handler.EnqueueRequestsFromMapFunc(enqueueSameNameResource)).
+		Watches(&v1alpha1.Cluster{}, handler.EnqueueRequestsFromMapFunc(sameNameResource)).
+		Watches(&corev1.Secret{}, handler.EnqueueRequestsFromMapFunc(clusterSecretToCluster)).
+		Watches(&v1alpha1.Organization{}, handler.EnqueueRequestsFromMapFunc(r.organizationToClusters)).
+		Watches(&corev1.Secret{}, handler.EnqueueRequestsFromMapFunc(r.organizationSecretToClusters)).
 		For(&v1alpha1.ClusterKubeconfig{}).
 		Complete(r)
 }
@@ -256,6 +260,49 @@ const (
 	OIDCHashAnnotation                     = "greenhouse.sap/oidc-hash"
 )
 
-func enqueueSameNameResource(_ context.Context, o client.Object) []ctrl.Request {
+func sameNameResource(_ context.Context, o client.Object) []ctrl.Request {
 	return []ctrl.Request{{NamespacedName: types.NamespacedName{Namespace: o.GetNamespace(), Name: o.GetName()}}}
+}
+
+func clusterSecretToCluster(_ context.Context, o client.Object) []ctrl.Request {
+	secret, ok := o.(*corev1.Secret)
+	if ok && secret.Type == greenhouseapis.SecretTypeKubeConfig {
+		return []ctrl.Request{{NamespacedName: types.NamespacedName{Namespace: o.GetNamespace(), Name: o.GetName()}}}
+	}
+	return nil
+}
+
+func (r *KubeconfigReconciler) organizationToClusters(ctx context.Context, o client.Object) []ctrl.Request {
+	// get namespace for this org
+	ns := &corev1.Namespace{}
+	err := r.Get(ctx, client.ObjectKey{Name: o.GetName()}, ns)
+
+	// if namespace exitsts
+	if err == nil {
+		// get clusters in this namespace
+		clusters := &v1alpha1.ClusterList{}
+		err = r.List(ctx, clusters, client.InNamespace(ns.GetName()))
+		if err == nil {
+			var requests []ctrl.Request
+			for _, cluster := range clusters.Items {
+				requests = append(requests, ctrl.Request{NamespacedName: types.NamespacedName{Namespace: cluster.Namespace, Name: cluster.Name}})
+			}
+			return requests
+		}
+	}
+	return nil
+}
+
+func (r *KubeconfigReconciler) organizationSecretToClusters(ctx context.Context, o client.Object) []ctrl.Request {
+	// get clusters in this namespace
+	clusters := &v1alpha1.ClusterList{}
+	err := r.List(ctx, clusters, client.InNamespace(o.GetNamespace()))
+	if err == nil {
+		var requests []ctrl.Request
+		for _, cluster := range clusters.Items {
+			requests = append(requests, ctrl.Request{NamespacedName: types.NamespacedName{Namespace: cluster.Namespace, Name: cluster.Name}})
+		}
+		return requests
+	}
+	return nil
 }

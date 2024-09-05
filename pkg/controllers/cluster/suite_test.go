@@ -37,7 +37,6 @@ var (
 
 	headscaleReconciler *clusterpkg.HeadscaleAccessReconciler
 	bootstrapReconciler *clusterpkg.BootstrapReconciler
-	// kubeconfigReconciler *clusterpkg.KubeconfigReconciler
 )
 
 func TestClusterBootstrap(t *testing.T) {
@@ -65,7 +64,10 @@ var _ = BeforeSuite(func() {
 	test.RegisterController("clusterStatus", (&clusterpkg.ClusterStatusReconciler{}).SetupWithManager)
 	test.RegisterWebhook("clusterValidation", admission.SetupClusterWebhookWithManager)
 	test.RegisterWebhook("secretsWebhook", admission.SetupSecretWebhookWithManager)
-	test.RegisterController("kubeconfig", (&clusterpkg.KubeconfigReconciler{}).SetupWithManager)
+
+	// orgWebhook is required by cluster-kubeconfig since it uses organization-level resources
+	test.RegisterController("cluster-kubeconfig", (&clusterpkg.KubeconfigReconciler{}).SetupWithManager)
+	test.RegisterWebhook("orgWebhook", admission.SetupOrganizationWebhookWithManager)
 
 	test.TestBeforeSuite()
 
