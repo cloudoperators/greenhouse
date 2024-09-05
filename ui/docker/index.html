@@ -44,8 +44,6 @@
         props.currentHost = window.location.origin
       }
 
-      console.log("=================props", props)
-
       const { mount } = await import(
         manifest["greenhouse-dashboard"]["latest"].path
       )
