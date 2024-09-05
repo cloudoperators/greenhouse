@@ -1,0 +1,7 @@
+{
+  "currentHost": "origin",
+  "apiEndpoint": "https://api.endpoint.com",
+  "environment": "production",
+  "authIssuerUrl": "https://auth.endpoint.com",
+  "authClientId": "clientID"
+}

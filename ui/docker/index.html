@@ -4,35 +4,11 @@
 -->
 
 <!DOCTYPE html>
-<html lang="en">
+<html style="margin: 0; padding: 0; display: flex; flex-direction: column">
   <head>
-    <meta charset="UTF-8" />
-    <link rel="icon" href="favicon.ico" sizes="any" />
+    <title>Greenhouse</title>
+    <link rel="icon" sizes="any" href="/assets/favicon.ico" />
 
-    <title>Greenhouse Dev</title>
-    <style>
-      html {
-        display: flex;
-        flex-direction: column;
-        margin: 0;
-        padding: 0;
-      }
-      body {
-        flex-grow: 1;
-        height: 100vh;
-        margin: 0;
-        padding: 0;
-      }
-      #root {
-        display: inline;
-      }
-    </style>
-    <script>
-      // automatically reload on build changes
-      new EventSource("/esbuild").addEventListener("change", () =>
-        location.reload()
-      )
-    </script>
     <script type="importmap">
       {
         "imports": {
@@ -44,9 +20,7 @@
           "zustand": "https://esm.sh/v135/*zustand@4.5.4",
           "zustand/": "https://esm.sh/v135/*zustand@4.5.4/",
           "prop-types": "https://esm.sh/v135/*prop-types@15.8.1",
-          "luxon": "https://esm.sh/v135/luxon@3.5.0",
-          "oauth": "https://esm.sh/@cloudoperators/juno-oauth@1.2.7",
-          "juno-ui-components": "https://esm.sh/@cloudoperators/juno-ui-components@2.16.0"
+          "luxon": "https://esm.sh/v135/luxon@3.5.0"
         },
         "scopes": {
           "https://esm.sh/v135/": {
@@ -60,15 +34,29 @@
       }
     </script>
   </head>
-  <body>
+  <body style="height: 100vh; flex-grow: 1; margin: 0; padding: 0">
     <script type="module">
-      // appProps are generated in development env and added to the build
-      import allProps from "./build/appProps.js"
-      import("./build/index.js").then((app) => {
-        app.mount(document.getElementById("root"), { props: allProps.appProps })
+      const manifest = await fetch("manifest.json").then((response) => {
+        return response.json()
       })
-    </script>
 
-    <div id="root" data-juno-app="greenhouse-dashboard"></div>
+      if (!manifest["greenhouse-dashboard"]) {
+        console.error("No manifest found for greenhouse-dashboard")
+      }
+
+      const props = await fetch("/appProps.json").then((r) => r.json())
+      if (props?.currentHost === "origin") {
+        props.currentHost = window.location.origin
+      }
+
+      const { mount } = await import(
+        manifest["greenhouse-dashboard"]["latest"].path
+      )
+
+      const root = document.createElement("div")
+      document.body.appendChild(root)
+      root.setAttribute("data-app", "greenhouse-dashboard")
+      mount(root, { props })
+    </script>
   </body>
 </html>

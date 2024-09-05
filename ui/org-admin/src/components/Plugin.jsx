@@ -4,17 +4,16 @@
  */
 
 import React, { useEffect, useMemo, useRef, useState } from "react"
-import { useAppLoader } from "@cloudoperators/juno-utils"
 import { useAssetsUrl, usePluginActive } from "./StoreProvider"
 import { Messages, useActions } from "@cloudoperators/juno-messages-provider"
 import { parseError } from "../lib/helpers"
 import { Stack, Button } from "@cloudoperators/juno-ui-components"
 import HintLoading from "./shared/HintLoading"
+import { mount } from "../lib/appLoader"
 
 const Plugin = ({ config }) => {
   const { addMessage } = useActions()
   const assetsUrl = useAssetsUrl()
-  const { mount } = useAppLoader(assetsUrl)
   const holder = useRef()
   const activePlugin = usePluginActive()
 
@@ -30,9 +29,13 @@ const Plugin = ({ config }) => {
 
   // mount the app each time the component is reloaded losing the state
   useEffect(() => {
-    if (!mount || !assetsUrl || !config) return
+    if (!config) return
     // mount the app
-    mount(app.current, config)
+    mount(app.current, {
+      ...config,
+      assetsHost: assetsUrl,
+      appProps: { ...config?.props, embedded: true },
+    })
       .then((loaded) => {
         if (!loaded) return
         setIsMountedApp(true)
@@ -44,7 +47,7 @@ const Plugin = ({ config }) => {
           text: `${config?.name}: ` + parseError(error),
         })
       })
-  }, [mount, reload, config, assetsUrl])
+  }, [assetsUrl, reload, config])
 
   const displayPluging = useMemo(
     () => activePlugin === config?.name,

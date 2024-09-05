@@ -4,7 +4,7 @@
  */
 
 import React, { useEffect, useState, useMemo, useRef } from "react"
-import { useAppLoader } from "@cloudoperators/juno-utils"
+import { mount } from "../lib/appLoader"
 import { usePlugin, useGlobalsAssetsHost } from "../components/StoreProvider"
 import { Messages, useActions } from "@cloudoperators/juno-messages-provider"
 import { parseError } from "../lib/helpers"
@@ -12,7 +12,6 @@ import { Stack, Button } from "@cloudoperators/juno-ui-components"
 
 const Plugin = ({ id }) => {
   const assetsHost = useGlobalsAssetsHost()
-  const { mount } = useAppLoader(assetsHost)
   const holder = useRef()
   const config = usePlugin().config()
   const activeApps = usePlugin().active()
@@ -29,11 +28,12 @@ const Plugin = ({ id }) => {
 
   // mount the app each time the component is reloaded losing the state
   useEffect(() => {
-    if (!mount || !assetsHost || !config) return
+    if (!assetsHost || !config) return
     // mount the app
     mount(app.current, {
       ...config[id],
-      props: { ...config[id]?.props, embedded: true },
+      assetsHost,
+      appProps: { ...config[id]?.props, embedded: true },
     })
       .then((loaded) => {
         if (!loaded) return
