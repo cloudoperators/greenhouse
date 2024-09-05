@@ -503,5 +503,31 @@ var _ = Describe("TeammembershipUpdaterController", func() {
 				g.Expect(readyCondition.Status).To(Equal(metav1.ConditionFalse))
 			}).Should(Succeed(), "TeamMemberships should have been reconciled")
 		})
+
+		It("should log about missing SCIM config", func() {
+			var organization = new(greenhousev1alpha1.Organization)
+			err := setup.Get(test.Ctx, types.NamespacedName{Name: setup.Namespace()}, organization)
+			Expect(err).ToNot(HaveOccurred(), "there must be no error getting organization")
+
+			By("removing SCIM config from organization")
+			organization.Spec.Authentication.SCIMConfig = nil
+			Expect(setup.Update(test.Ctx, organization)).To(Succeed(), "there must be no error removing SCIM config from org")
+
+			By("teeing logger to a custom writer")
+			tee := gbytes.NewBuffer()
+			GinkgoWriter.TeeTo(tee)
+			defer GinkgoWriter.ClearTeeWriters()
+
+			By("creating a Team with valid idp group")
+			setup.CreateTeam(test.Ctx, firstTeamName, test.WithMappedIDPGroup(validIdpGroupName))
+
+			Eventually(func(g Gomega) {
+				teamMemberships := &greenhousev1alpha1.TeamMembershipList{}
+				err := setup.List(test.Ctx, teamMemberships, &client.ListOptions{Namespace: setup.Namespace()})
+				g.Expect(err).ShouldNot(HaveOccurred(), "unexpected error getting TeamMemberships")
+				g.Expect(teamMemberships.Items).To(BeEmpty(), "there should be no TeamMemberships")
+				g.Expect(tee.Contents()).To(ContainSubstring("SCIM config is missing from org"), "logger should log about missing SCIM config")
+			}).Should(Succeed(), "TeamMemberships should have been reconciled")
+		})
 	})
 })

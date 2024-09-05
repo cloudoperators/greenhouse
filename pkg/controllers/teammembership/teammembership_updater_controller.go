@@ -141,16 +141,15 @@ func (r *TeamMembershipUpdaterController) Reconcile(ctx context.Context, req ctr
 		}
 	}
 
-	var teamMembershipStatus greenhousev1alpha1.TeamMembershipStatus
-	if teamMembershipExists {
-		teamMembershipStatus = initTeamMembershipStatus(teamMembership)
-
-		defer func() {
+	teamMembershipStatus := initTeamMembershipStatus(teamMembership)
+	defer func() {
+		// Set status only if TM exists.
+		if teamMembership.Name != "" {
 			if statusErr := r.setStatus(ctx, teamMembership, teamMembershipStatus); statusErr != nil {
 				log.FromContext(ctx).Error(statusErr, "failed to set status")
 			}
-		}()
-	}
+		}
+	}()
 
 	// Ignore organizations without SCIM configuration.
 	if organization.Spec.Authentication == nil || organization.Spec.Authentication.SCIMConfig == nil {
@@ -205,13 +204,9 @@ func (r *TeamMembershipUpdaterController) Reconcile(ctx context.Context, req ctr
 		r.recorder.Eventf(teamMembership, corev1.EventTypeNormal, "UpdatedTeamMembership", "Updated TeamMembership %s", teamMembership.Name)
 	}
 
-	teamMembershipStatus = initTeamMembershipStatus(teamMembership)
 	now := metav1.NewTime(time.Now())
 	teamMembershipStatus.LastChangedTime = &now
 	teamMembershipStatus.SetConditions(greenhousev1alpha1.TrueCondition(greenhousev1alpha1.ScimAccessReadyCondition, "", ""))
-	if statusErr := r.setStatus(ctx, teamMembership, teamMembershipStatus); statusErr != nil {
-		log.FromContext(ctx).Error(statusErr, "failed to set status")
-	}
 	return ctrl.Result{RequeueAfter: TeamMembershipRequeueInterval}, nil
 }
 
