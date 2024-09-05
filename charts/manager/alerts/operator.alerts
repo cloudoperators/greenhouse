@@ -21,7 +21,7 @@ groups:
         severity: warning
     - alert: GreenhouseOperatorWorkqueueNotDrained
       annotations:
-        description:  The workqueue backlog of Greenhuse Operator controller - {{ $labels.name }} is not getting drained.
+        description:  The workqueue backlog of Greenhouse Operator controller - {{ $labels.name }} is not getting drained.
         summary: Greenhouse Operator controller - {{ $labels.name }}'s backlog is not being drained.
       expr: |
         sum by (name) (rate(workqueue_depth{job="greenhouse-controller-manager-metrics-service"}[5m])) > 0
