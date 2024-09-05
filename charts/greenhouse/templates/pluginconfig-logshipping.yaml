@@ -43,7 +43,7 @@ spec:
       value:
         {{- index .Values "logshipping" "fluent-bit" "additionalValues" | toYaml | nindent 8 -}}
 {{ if .Values.logshipping.octobus }}
-    - name: fluent-bit.customConfig.inputs: |-
+    - name: fluent-bit.customConfig.inputs |-
         [INPUT]
             Name             tail
             Path             /var/log/containers/greenhouse-controller-manager*.log
@@ -54,7 +54,7 @@ spec:
             Skip_Long_Lines  Off
             Ignore_Older     1m
             DB               /var/log/fluent-bit-audit-tail.pos.db
-    - name: fluent-bit.customConfig.filters: |-
+    - name: fluent-bit.customConfig.filters |-
         [FILTER]
             Name               grep
             Match              audit.*
@@ -66,7 +66,7 @@ spec:
             Record sap.cc.audit_source greenhouse
             Record sap.cc.cluster {{ index .Values "global" "cluster" }}
             Record sap.cc.region {{ index .Values "global" "region" }}
-    - name: fluent-bit.customConfig.outputs: |-
+    - name: fluent-bit.customConfig.outputs |-
         [OUTPUT]
             Name  http
             Match audit.*
