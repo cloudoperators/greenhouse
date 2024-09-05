@@ -70,9 +70,9 @@ spec:
         [OUTPUT]
             Name  http
             Match audit.*
-            Host  {{ index .Values "fluent-bit" "backend" "octobus" "host"}}
+            Host  {{ index .Values "logshipping" "octobus" "host"}}
             Port  443
-            URI   {{ index .Values "fluent-bit" "backend" "octobus" "uri"}}
+            URI   {{ index .Values "logshipping" "octobus" "uri"}}
             Format json_lines
             tls true
             tls.verify true
