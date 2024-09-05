@@ -115,7 +115,7 @@ func (r *WorkLoadStatusReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 	var pluginDefinition = new(greenhousev1alpha1.PluginDefinition)
 	var releaseStatus = new(ReleaseStatus)
 	if err := r.Client.Get(ctx, req.NamespacedName, plugin); err != nil {
-		return ctrl.Result{}, err
+		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
 	if err := r.Client.Get(ctx, types.NamespacedName{Name: plugin.Spec.PluginDefinition}, pluginDefinition); err != nil {
 		return ctrl.Result{}, err

@@ -49,7 +49,7 @@ func (r *ClusterStatusReconciler) SetupWithManager(name string, mgr ctrl.Manager
 func (r *ClusterStatusReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	var cluster = new(greenhousev1alpha1.Cluster)
 	if err := r.Get(ctx, req.NamespacedName, cluster); err != nil {
-		return ctrl.Result{}, err
+		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
 
 	if cluster.DeletionTimestamp != nil {
