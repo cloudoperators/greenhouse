@@ -67,6 +67,9 @@ logshipping:
     logstashPrefix: "greenhouse"
     username: topSecret!
     password: topSecret!
+  octobus:
+    host: audit.test
+    path: /my/index
   fluent-bit:
     additionalValues:
       - key: foo

@@ -41,4 +41,11 @@ spec:
   clusterSelector: # LabelSelector for the clusters the Plugin should be deployed to
     matchLabels:
       <label-key>: <label-value>
+  clusterOptionOverrides: # allows you to override specific options in a given cluster
+    - clusterName: <cluster name where we want to override values>
+      overrides:
+        - name: <option name to override>
+          value: <new value>
+        - ..
+    - ..
 ```

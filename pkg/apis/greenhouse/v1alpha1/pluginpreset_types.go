@@ -20,6 +20,17 @@ type PluginPresetSpec struct {
 
 	// ClusterSelector is a label selector to select the clusters the plugin bundle should be deployed to.
 	ClusterSelector metav1.LabelSelector `json:"clusterSelector"`
+
+	// ClusterOptionOverrides define plugin option values to override by the PluginPreset
+	// +kubebuilder:validation:Optional
+	ClusterOptionOverrides []ClusterOptionOverride `json:"clusterOptionOverrides,omitempty"`
+}
+
+// ClusterOptionOverride defines which plugin option should be override in which cluster
+// +kubebuilder:validation:Optional
+type ClusterOptionOverride struct {
+	ClusterName string              `json:"clusterName"`
+	Overrides   []PluginOptionValue `json:"overrides"`
 }
 
 const (
