@@ -72,7 +72,7 @@ var _ = Describe("TeammembershipUpdaterController", func() {
 
 		It("should update existing TM without users", func() {
 			By("creating a test TeamMembership")
-			createTeamMembership(firstTeamName, nil)
+			createTeamMembershipForFirstTeam(nil)
 
 			By("creating a test Team")
 			createTeam(firstTeamName, validIdpGroupName)
@@ -99,7 +99,7 @@ var _ = Describe("TeammembershipUpdaterController", func() {
 
 		It("should update existing TM with users", func() {
 			By("creating a test TeamMembership with 1 existing user")
-			createTeamMembership(firstTeamName, []greenhousev1alpha1.User{
+			createTeamMembershipForFirstTeam([]greenhousev1alpha1.User{
 				{
 					ID:        "I12345",
 					FirstName: "John",
@@ -124,7 +124,7 @@ var _ = Describe("TeammembershipUpdaterController", func() {
 
 		It("should update multiple TMs", func() {
 			By("creating a test TeamMembership with 1 existing user")
-			createTeamMembership(firstTeamName, []greenhousev1alpha1.User{
+			createTeamMembershipForFirstTeam([]greenhousev1alpha1.User{
 				{
 					ID:        "I12345",
 					FirstName: "John",
@@ -192,7 +192,7 @@ var _ = Describe("TeammembershipUpdaterController", func() {
 
 		It("should delete existing TM if team has no mappedIDPGroup", func() {
 			By("creating a test TeamMembership")
-			createTeamMembership(firstTeamName, nil)
+			createTeamMembershipForFirstTeam(nil)
 
 			By("creating a test Team without mappedIdpGroup")
 			createTeam(firstTeamName, "")
@@ -267,7 +267,7 @@ var _ = Describe("TeammembershipUpdaterController", func() {
 			Expect(err).ToNot(HaveOccurred(), "there must be no error deleting the secret")
 
 			By("creating a test TeamMembership")
-			createTeamMembership(firstTeamName, nil)
+			createTeamMembershipForFirstTeam(nil)
 
 			By("creating a test Team with valid MappedIdpGroup")
 			createTeam(firstTeamName, validIdpGroupName)
@@ -295,7 +295,7 @@ var _ = Describe("TeammembershipUpdaterController", func() {
 
 		It("should set ready condition to false on SCIM request failed", func() {
 			By("creating a test TeamMembership")
-			createTeamMembership(firstTeamName, nil)
+			createTeamMembershipForFirstTeam(nil)
 
 			By("creating a test Team with invalid MappedIdpGroup")
 			createTeam(firstTeamName, nonExistingGroupName)
@@ -363,7 +363,7 @@ var _ = Describe("TeammembershipUpdaterController", func() {
 					Email:     "some.user@example.com",
 				},
 			}
-			createTeamMembership(firstTeamName, originalUsers)
+			createTeamMembershipForFirstTeam(originalUsers)
 
 			By("creating test Team with valid idp group")
 			createTeam(firstTeamName, validIdpGroupName)
@@ -437,14 +437,14 @@ func createTestOrgWithSecret(namespace string) {
 	})
 }
 
-func createTeamMembership(name string, members []greenhousev1alpha1.User) {
+func createTeamMembershipForFirstTeam(members []greenhousev1alpha1.User) {
 	err := setup.Create(test.Ctx, &greenhousev1alpha1.TeamMembership{
 		TypeMeta: metav1.TypeMeta{
 			APIVersion: greenhousev1alpha1.GroupVersion.Group,
 			Kind:       "TeamMembership",
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      name,
+			Name:      firstTeamName,
 			Namespace: setup.Namespace(),
 		},
 		Spec: greenhousev1alpha1.TeamMembershipSpec{
@@ -454,7 +454,7 @@ func createTeamMembership(name string, members []greenhousev1alpha1.User) {
 	Expect(err).NotTo(HaveOccurred(), "there must be no error creating a TeamMembership")
 }
 
-func createTeam(name string, mappedIDPGroup string) *greenhousev1alpha1.Team {
+func createTeam(name, mappedIDPGroup string) *greenhousev1alpha1.Team {
 	team := &greenhousev1alpha1.Team{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "Team",
