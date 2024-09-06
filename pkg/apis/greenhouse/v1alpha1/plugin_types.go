@@ -43,11 +43,11 @@ type PluginOptionValue struct {
 }
 
 // ValueJSON returns the value as JSON.
-func (v *PluginOptionValue) ValueJSON() (string, error) {
+func (v *PluginOptionValue) ValueJSON() string {
 	if v.Value == nil {
-		return "", nil
+		return ""
 	}
-	return string(v.Value.Raw), nil
+	return string(v.Value.Raw)
 }
 
 const (
