@@ -49,7 +49,7 @@ spec:
             Name             tail
             Path             /var/log/containers/greenhouse-controller-manager*.log
             Parser           cri
-            Tag              audit.*
+            Tag              audit
             Refresh_Interval 5
             Mem_Buf_Limit    50MB
             Skip_Long_Lines  Off
@@ -59,12 +59,12 @@ spec:
       value: |
         [FILTER]
             Name               grep
-            Match              audit.*
+            Match              audit
             Regex              message /.*AdmissionRequest.*/
         
         [FILTER]
             Name record_modifier
-            Match audit.*
+            Match audit
             Record sap.cc.audit.source greenhouse
             Record sap.cc.cluster {{ index .Values "global" "cluster" }}
             Record sap.cc.region {{ index .Values "global" "region" }}
@@ -72,7 +72,7 @@ spec:
       value: |
         [OUTPUT]
             Name  http
-            Match audit.*
+            Match audit
             Host  {{ index .Values "logshipping" "octobus" "host"}}
             Port  443
             URI   {{ index .Values "logshipping" "octobus" "uri"}}
