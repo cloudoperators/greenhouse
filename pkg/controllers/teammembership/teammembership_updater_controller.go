@@ -5,7 +5,6 @@ package teammembership
 
 import (
 	"context"
-	"slices"
 	"time"
 
 	"github.com/prometheus/client_golang/prometheus"
@@ -145,11 +144,6 @@ func (r *TeamMembershipUpdaterController) Reconcile(ctx context.Context, req ctr
 		"namespace": team.Namespace,
 		"team":      team.Name,
 	}).Set(float64(len(users)))
-
-	if teamMembershipExists && slices.Equal(teamMembership.Spec.Members, users) {
-		// Requeue when nothing has changed.
-		return ctrl.Result{RequeueAfter: TeamMembershipRequeueInterval}, nil
-	}
 
 	teamMembership.Namespace = team.Namespace
 	teamMembership.Name = team.Name

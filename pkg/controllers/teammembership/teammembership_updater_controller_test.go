@@ -368,6 +368,19 @@ var _ = Describe("TeammembershipUpdaterController", func() {
 			By("creating test Team with valid idp group")
 			createTeam(firstTeamName, validIdpGroupName)
 
+			expectedUser1 := greenhousev1alpha1.User{
+				ID:        "I12345",
+				FirstName: "John",
+				LastName:  "Doe",
+				Email:     "john.doe@example.com",
+			}
+			expectedUser2 := greenhousev1alpha1.User{
+				ID:        "I23456",
+				FirstName: "Jane",
+				LastName:  "Doe",
+				Email:     "jane.doe@example.com",
+			}
+
 			Eventually(func(g Gomega) {
 				teamMemberships := &greenhousev1alpha1.TeamMembershipList{}
 				err := setup.List(test.Ctx, teamMemberships, &client.ListOptions{Namespace: setup.Namespace()})
@@ -376,6 +389,8 @@ var _ = Describe("TeammembershipUpdaterController", func() {
 				teamMembership := teamMemberships.Items[0]
 				g.Expect(teamMembership.Spec.Members).To(HaveLen(2), "TeamMembership should have two users")
 				g.Expect(teamMembership.Spec.Members).ToNot(Equal(originalUsers), "TeamMembership users should be updated")
+				g.Expect(teamMembership.Spec.Members).To(ContainElement(expectedUser1), "TeamMembership users should contain first expected user")
+				g.Expect(teamMembership.Spec.Members).To(ContainElement(expectedUser2), "TeamMembership users should contain second expected user")
 			}).Should(Succeed(), "TeamMembership should have been reconciled")
 		})
 	})
