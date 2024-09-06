@@ -75,7 +75,7 @@ var _ = Describe("TeammembershipUpdaterController", func() {
 			createTeamMembershipForFirstTeam(nil)
 
 			By("creating a test Team")
-			createTeam(firstTeamName, validIdpGroupName)
+			createFirstTeam(validIdpGroupName)
 
 			By("ensuring the TeamMembership has been reconciled")
 			Eventually(func(g Gomega) {
@@ -109,7 +109,7 @@ var _ = Describe("TeammembershipUpdaterController", func() {
 			})
 
 			By("creating a test Team")
-			createTeam(firstTeamName, validIdpGroupName)
+			createFirstTeam(validIdpGroupName)
 
 			By("ensuring the TeamMembership has been reconciled")
 			Eventually(func(g Gomega) {
@@ -134,7 +134,7 @@ var _ = Describe("TeammembershipUpdaterController", func() {
 			})
 
 			By("creating first test Team")
-			firstTeam := createTeam(firstTeamName, validIdpGroupName)
+			firstTeam := createFirstTeam(validIdpGroupName)
 
 			By("creating second test Team")
 			secondTeam := setup.CreateTeam(test.Ctx, secondTeamName, test.WithMappedIDPGroup(otherValidIdpGroupName))
@@ -195,7 +195,7 @@ var _ = Describe("TeammembershipUpdaterController", func() {
 			createTeamMembershipForFirstTeam(nil)
 
 			By("creating a test Team without mappedIdpGroup")
-			createTeam(firstTeamName, "")
+			createFirstTeam("")
 
 			By("ensuring the TeamMembership has been deleted")
 			Eventually(func(g Gomega) {
@@ -270,7 +270,7 @@ var _ = Describe("TeammembershipUpdaterController", func() {
 			createTeamMembershipForFirstTeam(nil)
 
 			By("creating a test Team with valid MappedIdpGroup")
-			createTeam(firstTeamName, validIdpGroupName)
+			createFirstTeam(validIdpGroupName)
 
 			By("ensuring TeamMemberships have been reconciled")
 			Eventually(func(g Gomega) {
@@ -298,7 +298,7 @@ var _ = Describe("TeammembershipUpdaterController", func() {
 			createTeamMembershipForFirstTeam(nil)
 
 			By("creating a test Team with invalid MappedIdpGroup")
-			createTeam(firstTeamName, nonExistingGroupName)
+			createFirstTeam(nonExistingGroupName)
 
 			By("ensuring TeamMemberships have been reconciled")
 			Eventually(func(g Gomega) {
@@ -366,7 +366,7 @@ var _ = Describe("TeammembershipUpdaterController", func() {
 			createTeamMembershipForFirstTeam(originalUsers)
 
 			By("creating test Team with valid idp group")
-			createTeam(firstTeamName, validIdpGroupName)
+			createFirstTeam(validIdpGroupName)
 
 			expectedUser1 := greenhousev1alpha1.User{
 				ID:        "I12345",
@@ -454,14 +454,14 @@ func createTeamMembershipForFirstTeam(members []greenhousev1alpha1.User) {
 	Expect(err).NotTo(HaveOccurred(), "there must be no error creating a TeamMembership")
 }
 
-func createTeam(name, mappedIDPGroup string) *greenhousev1alpha1.Team {
+func createFirstTeam(mappedIDPGroup string) *greenhousev1alpha1.Team {
 	team := &greenhousev1alpha1.Team{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "Team",
 			APIVersion: greenhousev1alpha1.GroupVersion.String(),
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      name,
+			Name:      firstTeamName,
 			Namespace: setup.Namespace(),
 		},
 		Spec: greenhousev1alpha1.TeamSpec{
