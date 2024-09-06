@@ -36,9 +36,9 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Read Docker image version
-        id: read_version
-        run: echo "IMAGE_TAG=$(date +%s)" >> $GITHUB_ENV
+      - name: Create Docker image version
+        id: create_version
+        run: echo "IMAGE_TAG=$(date +'%Y%m%d-%H%M%S')" >> $GITHUB_ENV
 
       # Login against a Docker registry except on PR
       # https://github.com/docker/login-action
@@ -102,6 +102,8 @@ jobs:
           context: ui
           file: ui/docker/Dockerfile
           push: true
+          # remove untagged images produced for multi platform builds
+          provenance: false
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           platforms: |
