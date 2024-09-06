@@ -6,7 +6,10 @@ package main
 import (
 	"errors"
 	goflag "flag"
+	"fmt"
 	"os"
+	"strconv"
+	"strings"
 	"time"
 
 	flag "github.com/spf13/pflag"
@@ -29,9 +32,22 @@ import (
 	"github.com/cloudoperators/greenhouse/pkg/version"
 )
 
+type managerMode int
+
+const (
+	// regularMode starts Manager with registered Controllers and all Webhooks
+	regularMode managerMode = iota
+	// webhookOnlyMode starts the Manager with all Webhooks and no Controllers
+	webhookOnlyMode
+	// controllerOnlyMode starts the Manager with registered Controllers and no Webhooks
+	controllerOnlyMode
+)
+
 const (
 	defaultRemoteClusterBearerTokenValidity   = 24 * time.Hour
 	defaultRenewRemoteClusterBearerTokenAfter = 20 * time.Hour
+	disableControllersEnv                     = "WEBHOOK_ONLY"     // used to deploy the operator in webhook only mode no controllers will run in this mode.
+	disableWebhookEnv                         = "CONTROLLERS_ONLY" // used to disable webhooks when running locally or in debug mode.
 )
 
 var (
@@ -126,21 +142,30 @@ func main() {
 	})
 	handleError(err, "unable to start manager")
 
+	mode, err := calculateManagerMode()
+	if err != nil {
+		handleError(err, "unable to calculate manager mode")
+	}
+
 	// Register controllers.
-	for controllerName, hookFunc := range knownControllers {
-		if !isControllerEnabled(controllerName) {
-			setupLog.Info("skipping controller", "name", controllerName)
+	if mode != webhookOnlyMode {
+		for controllerName, hookFunc := range knownControllers {
+			if !isControllerEnabled(controllerName) {
+				setupLog.Info("skipping controller", "name", controllerName)
+				continue
+			}
+			setupLog.Info("registering controller", "name", controllerName)
+			handleError(hookFunc(controllerName, mgr), "unable to create controller", "name", controllerName)
 			continue
 		}
-		setupLog.Info("registering controller", "name", controllerName)
-		handleError(hookFunc(controllerName, mgr), "unable to create controller", "name", controllerName)
-		continue
 	}
 
 	// Register webhooks.
-	for webhookName, hookFunc := range knownWebhooks {
-		setupLog.Info("registering webhook", "name", webhookName)
-		handleError(hookFunc(mgr), "unable to create webhook", "name", webhookName)
+	if mode != controllerOnlyMode {
+		for webhookName, hookFunc := range knownWebhooks {
+			setupLog.Info("registering webhook", "name", webhookName)
+			handleError(hookFunc(mgr), "unable to create webhook", "name", webhookName)
+		}
 	}
 	//+kubebuilder:scaffold:builder
 
@@ -156,4 +181,41 @@ func handleError(err error, msg string, keysAndValues ...interface{}) {
 		setupLog.Error(err, msg, keysAndValues...)
 		os.Exit(1)
 	}
+}
+
+// calculateManagerMode - calculates in which mode the manager should run.
+func calculateManagerMode() (managerMode, error) {
+	webhookOnlyEnv := os.Getenv(disableControllersEnv)
+	controllersOnlyEnv := os.Getenv(disableWebhookEnv)
+
+	var webhookOnly, controllersOnly bool
+	var err error
+
+	if strings.TrimSpace(webhookOnlyEnv) != "" {
+		webhookOnly, err = strconv.ParseBool(webhookOnlyEnv)
+		if err != nil {
+			return -1, fmt.Errorf("unable to parse %s: %w", disableControllersEnv, err)
+		}
+	}
+
+	if strings.TrimSpace(controllersOnlyEnv) != "" {
+		controllersOnly, err = strconv.ParseBool(controllersOnlyEnv)
+		if err != nil {
+			return -1, fmt.Errorf("unable to parse %s: %w", disableWebhookEnv, err)
+		}
+	}
+
+	if webhookOnly && controllersOnly {
+		return -1, errors.New("you can have only one of WEBHOOK_ONLY or CONTROLLERS_ONLY env be set to true")
+	}
+
+	if webhookOnly {
+		return webhookOnlyMode, nil
+	}
+
+	if controllersOnly {
+		return controllerOnlyMode, nil
+	}
+
+	return regularMode, nil
 }

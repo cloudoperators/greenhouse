@@ -1,0 +1,62 @@
+<!--
+  ~ SPDX-FileCopyrightText: 2024 SAP SE or an SAP affiliate company and Greenhouse contributors
+  ~ SPDX-License-Identifier: Apache-2.0
+-->
+
+<!DOCTYPE html>
+<html style="margin: 0; padding: 0; display: flex; flex-direction: column">
+  <head>
+    <title>Greenhouse</title>
+    <link rel="icon" sizes="any" href="/assets/favicon.ico" />
+
+    <script type="importmap">
+      {
+        "imports": {
+          "@tanstack/react-query": "https://esm.sh/v135/*@tanstack/react-query@5.51.23",
+          "react-dom": "https://esm.sh/v135/*react-dom@18.3.1",
+          "react-dom/": "https://esm.sh/v135/*react-dom@18.3.1/",
+          "react": "https://esm.sh/v135/react@18.3.1",
+          "react/": "https://esm.sh/v135/react@18.3.1/",
+          "zustand": "https://esm.sh/v135/*zustand@4.5.4",
+          "zustand/": "https://esm.sh/v135/*zustand@4.5.4/",
+          "prop-types": "https://esm.sh/v135/*prop-types@15.8.1",
+          "luxon": "https://esm.sh/v135/luxon@3.5.0"
+        },
+        "scopes": {
+          "https://esm.sh/v135/": {
+            "@tanstack/query-core": "https://esm.sh/v135/@tanstack/query-core@5.51.21",
+            "loose-envify": "https://esm.sh/v135/loose-envify@1.4.0",
+            "scheduler": "https://esm.sh/v135/scheduler@0.23.2",
+            "use-sync-external-store": "https://esm.sh/v135/use-sync-external-store@1.2.2",
+            "use-sync-external-store/": "https://esm.sh/v135/use-sync-external-store@1.2.2/"
+          }
+        }
+      }
+    </script>
+  </head>
+  <body style="height: 100vh; flex-grow: 1; margin: 0; padding: 0">
+    <script type="module">
+      const manifest = await fetch("manifest.json").then((response) => {
+        return response.json()
+      })
+
+      if (!manifest["greenhouse-dashboard"]) {
+        console.error("No manifest found for greenhouse-dashboard")
+      }
+
+      const props = await fetch("/appProps.json").then((r) => r.json())
+      if (props?.currentHost === "origin") {
+        props.currentHost = window.location.origin
+      }
+
+      const { mount } = await import(
+        manifest["greenhouse-dashboard"]["latest"].path
+      )
+
+      const root = document.createElement("div")
+      document.body.appendChild(root)
+      root.setAttribute("data-app", "greenhouse-dashboard")
+      mount(root, { props })
+    </script>
+  </body>
+</html>

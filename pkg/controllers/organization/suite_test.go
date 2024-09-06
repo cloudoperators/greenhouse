@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2024 SAP SE or an SAP affiliate company and Greenhouse contributors
 // SPDX-License-Identifier: Apache-2.0
 
-package organization
+package organization_test
 
 import (
 	"testing"
@@ -10,6 +10,7 @@ import (
 	. "github.com/onsi/gomega"
 
 	"github.com/cloudoperators/greenhouse/pkg/admission"
+	organizationpkg "github.com/cloudoperators/greenhouse/pkg/controllers/organization"
 	"github.com/cloudoperators/greenhouse/pkg/test"
 )
 
@@ -19,9 +20,10 @@ func TestOrganization(t *testing.T) {
 }
 
 var _ = BeforeSuite(func() {
-	test.RegisterController("namespaceController", (&NamespaceReconciler{}).SetupWithManager)
-	test.RegisterController("organizationController", (&RBACReconciler{}).SetupWithManager)
+	test.RegisterController("organizationController", (&organizationpkg.OrganizationReconciler{}).SetupWithManager)
+	test.RegisterController("organizationRBAC", (&organizationpkg.RBACReconciler{}).SetupWithManager)
 	test.RegisterWebhook("orgWebhook", admission.SetupOrganizationWebhookWithManager)
+	test.RegisterWebhook("teamWebhook", admission.SetupTeamWebhookWithManager)
 	test.TestBeforeSuite()
 })
 

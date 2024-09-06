@@ -62,6 +62,8 @@ const useApi = () => {
         const version = conf.status?.uiApplication?.version
         const url = conf.status?.uiApplication?.url
 
+        // console.log("===", name, version, manifest[name]?.[version])
+
         // only add plugin if the url is from another host or the name with the given version is in the manifest!
         if ((url && url.indexOf(assetsHost) < 0) || manifest[name]?.[version]) {
           const newConf = createPluginConfig({
@@ -79,6 +81,8 @@ const useApi = () => {
           if (newConf) config[id] = newConf
         }
       })
+
+      // console.log(config)
 
       return config
     })

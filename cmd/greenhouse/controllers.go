@@ -21,7 +21,7 @@ import (
 // knownControllers contains all controllers to be registered when starting the operator.
 var knownControllers = map[string]func(controllerName string, mgr ctrl.Manager) error{
 	// Organization controllers.
-	"organizationNamespace":      (&organizationcontrollers.NamespaceReconciler{}).SetupWithManager,
+	"organizationController":     (&organizationcontrollers.OrganizationReconciler{}).SetupWithManager,
 	"organizationRBAC":           (&organizationcontrollers.RBACReconciler{}).SetupWithManager,
 	"organizationDEX":            startOrganizationDexReconciler,
 	"organizationServiceProxy":   (&organizationcontrollers.ServiceProxyReconciler{}).SetupWithManager,
@@ -47,7 +47,8 @@ var knownControllers = map[string]func(controllerName string, mgr ctrl.Manager) 
 	"pluginHelm": (&plugincontrollers.HelmReconciler{
 		KubeRuntimeOpts: kubeClientOpts,
 	}).SetupWithManager,
-	"pluginPreset": (&plugincontrollers.PluginPresetReconciler{}).SetupWithManager,
+	"pluginPreset":    (&plugincontrollers.PluginPresetReconciler{}).SetupWithManager,
+	"pluginChartTest": (&plugincontrollers.HelmChartTestReconciler{}).SetupWithManager,
 
 	// Cluster controllers
 	"bootStrap":           (&clustercontrollers.BootstrapReconciler{}).SetupWithManager,

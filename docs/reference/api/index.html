@@ -610,6 +610,49 @@ ClusterKubeconfigData
 </table>
 </div>
 </div>
+<h3 id="greenhouse.sap/v1alpha1.ClusterOptionOverride">ClusterOptionOverride
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#greenhouse.sap/v1alpha1.PluginPresetSpec">PluginPresetSpec</a>)
+</p>
+<p>ClusterOptionOverride defines which plugin option should be override in which cluster</p>
+<div class="md-typeset__scrollwrap">
+<div class="md-typeset__table">
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>clusterName</code><br>
+<em>
+string
+</em>
+</td>
+<td>
+</td>
+</tr>
+<tr>
+<td>
+<code>overrides</code><br>
+<em>
+<a href="#greenhouse.sap/v1alpha1.PluginOptionValue">
+[]PluginOptionValue
+</a>
+</em>
+</td>
+<td>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
 <h3 id="greenhouse.sap/v1alpha1.ClusterSpec">ClusterSpec
 </h3>
 <p>
@@ -1889,6 +1932,7 @@ string
 </h3>
 <p>
 (<em>Appears on:</em>
+<a href="#greenhouse.sap/v1alpha1.ClusterOptionOverride">ClusterOptionOverride</a>, 
 <a href="#greenhouse.sap/v1alpha1.PluginSpec">PluginSpec</a>)
 </p>
 <p>PluginOptionValue is the value for a PluginOption.</p>
@@ -2007,6 +2051,19 @@ Kubernetes meta/v1.LabelSelector
 <p>ClusterSelector is a label selector to select the clusters the plugin bundle should be deployed to.</p>
 </td>
 </tr>
+<tr>
+<td>
+<code>clusterOptionOverrides</code><br>
+<em>
+<a href="#greenhouse.sap/v1alpha1.ClusterOptionOverride">
+[]ClusterOptionOverride
+</a>
+</em>
+</td>
+<td>
+<p>ClusterOptionOverrides define plugin option values to override by the PluginPreset</p>
+</td>
+</tr>
 </table>
 </td>
 </tr>
@@ -2067,6 +2124,19 @@ Kubernetes meta/v1.LabelSelector
 </td>
 <td>
 <p>ClusterSelector is a label selector to select the clusters the plugin bundle should be deployed to.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>clusterOptionOverrides</code><br>
+<em>
+<a href="#greenhouse.sap/v1alpha1.ClusterOptionOverride">
+[]ClusterOptionOverride
+</a>
+</em>
+</td>
+<td>
+<p>ClusterOptionOverrides define plugin option values to override by the PluginPreset</p>
 </td>
 </tr>
 </tbody>
@@ -2970,6 +3040,31 @@ TeamRoleSpec
 <p>Rules is a list of rbacv1.PolicyRules used on a managed RBAC (Cluster)Role</p>
 </td>
 </tr>
+<tr>
+<td>
+<code>aggregationRule</code><br>
+<em>
+<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.24/#aggregationrule-v1-rbac">
+Kubernetes rbac/v1.AggregationRule
+</a>
+</em>
+</td>
+<td>
+<p>AggregationRule describes how to locate ClusterRoles to aggregate into the ClusterRole on the remote cluster</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>labels</code><br>
+<em>
+map[string]string
+</em>
+</td>
+<td>
+<p>Labels are applied to the ClusterRole created on the remote cluster.
+This allows using TeamRoles as part of AggregationRules by other TeamRoles</p>
+</td>
+</tr>
 </table>
 </td>
 </tr>
@@ -3260,6 +3355,31 @@ StatusConditions
 </td>
 <td>
 <p>Rules is a list of rbacv1.PolicyRules used on a managed RBAC (Cluster)Role</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>aggregationRule</code><br>
+<em>
+<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.24/#aggregationrule-v1-rbac">
+Kubernetes rbac/v1.AggregationRule
+</a>
+</em>
+</td>
+<td>
+<p>AggregationRule describes how to locate ClusterRoles to aggregate into the ClusterRole on the remote cluster</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>labels</code><br>
+<em>
+map[string]string
+</em>
+</td>
+<td>
+<p>Labels are applied to the ClusterRole created on the remote cluster.
+This allows using TeamRoles as part of AggregationRules by other TeamRoles</p>
 </td>
 </tr>
 </tbody>

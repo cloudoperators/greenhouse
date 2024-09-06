@@ -45,6 +45,7 @@ type PluginPresetReconciler struct {
 //+kubebuilder:rbac:groups=greenhouse.sap,resources=pluginpresets/status,verbs=get;update;patch
 //+kubebuilder:rbac:groups=greenhouse.sap,resources=pluginpresets/finalizers,verbs=update
 //+kubebuilder:rbac:groups=greenhouse.sap,resources=plugins,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups=greenhouse.sap,resources=plugindefinitions,verbs=get
 
 // SetupWithManager sets up the controller with the Manager.
 func (r *PluginPresetReconciler) SetupWithManager(name string, mgr ctrl.Manager) error {
@@ -159,6 +160,13 @@ func (r *PluginPresetReconciler) reconcilePluginPreset(ctx context.Context, pres
 	failedCondition = *status.GetConditionByType(greenhousev1alpha1.PluginFailedCondition)
 	skippedCondition = *status.GetConditionByType(greenhousev1alpha1.PluginSkippedCondition)
 
+	pluginDefinition := &greenhousev1alpha1.PluginDefinition{}
+	err = r.Get(ctx, client.ObjectKey{Name: preset.Spec.Plugin.PluginDefinition}, pluginDefinition)
+	if err != nil {
+		allErrs = append(allErrs, err)
+		return skippedCondition, failedCondition, utilerrors.NewAggregate(allErrs)
+	}
+
 	for _, cluster := range clusters.Items {
 		plugin := &greenhousev1alpha1.Plugin{}
 		err := r.Get(ctx, client.ObjectKey{Namespace: preset.GetNamespace(), Name: generatePluginName(preset, &cluster)}, plugin)
@@ -166,7 +174,7 @@ func (r *PluginPresetReconciler) reconcilePluginPreset(ctx context.Context, pres
 		switch {
 		case err == nil:
 			// The Plugin exists but does not contain the labels of the PluginPreset. This Plugin is not managed by the PluginPreset and must not be touched.
-			if plugin.Labels[greenhouseapis.LabelKeyPluginPreset] != preset.Name {
+			if shouldSkipPlugin(plugin, preset, pluginDefinition) {
 				skippedPlugins = append(skippedPlugins, plugin.Name)
 				continue
 			}
@@ -192,6 +200,9 @@ func (r *PluginPresetReconciler) reconcilePluginPreset(ctx context.Context, pres
 			plugin.Spec = preset.Spec.Plugin
 			// Set the cluster name to the name of the cluster. The PluginSpec contained in the PluginPreset does not have a cluster name.
 			plugin.Spec.ClusterName = cluster.GetName()
+
+			// overrides options based on preset definition
+			overridesPluginOptionValues(plugin, preset)
 			return nil
 		})
 		if err != nil {
@@ -216,6 +227,73 @@ func (r *PluginPresetReconciler) reconcilePluginPreset(ctx context.Context, pres
 		failedCondition.Message = ""
 	}
 	return skippedCondition, failedCondition, utilerrors.NewAggregate(allErrs)
+}
+
+func shouldSkipPlugin(plugin *greenhousev1alpha1.Plugin, preset *greenhousev1alpha1.PluginPreset, definition *greenhousev1alpha1.PluginDefinition) bool {
+	if plugin.Labels[greenhouseapis.LabelKeyPluginPreset] != preset.Name {
+		return true
+	}
+
+	// need to reconcile when plugin does not have option which exists in plugin preset
+	for _, presetOptionValue := range preset.Spec.Plugin.OptionValues {
+		if !slices.ContainsFunc(plugin.Spec.OptionValues, func(item greenhousev1alpha1.PluginOptionValue) bool {
+			return item.Name == presetOptionValue.Name && string(item.Value.Raw) == string(presetOptionValue.Value.Raw)
+		}) {
+			return false
+		}
+	}
+
+	for _, pluginOption := range plugin.Spec.OptionValues {
+		if strings.HasPrefix(pluginOption.Name, "global.greenhouse") {
+			// pluginOption is a global option, nothing to do
+			continue
+		}
+
+		if slices.ContainsFunc(preset.Spec.Plugin.OptionValues, func(item greenhousev1alpha1.PluginOptionValue) bool {
+			return item.Name == pluginOption.Name && string(item.Value.Raw) == string(pluginOption.Value.Raw)
+		}) {
+			// optionValue is set by the PluginPreset, nothing to do
+			continue
+		}
+		if slices.ContainsFunc(definition.Spec.Options, func(item greenhousev1alpha1.PluginOption) bool {
+			if item.Default == nil {
+				return false
+			}
+			return item.Name == pluginOption.Name && string(item.Default.Raw) == string(pluginOption.Value.Raw)
+		}) {
+			// optionValue is set by the PluginDefinition, nothing to do
+			continue
+		}
+		// the optionValue is not a global option, not set by the PluginPreset and not set by the PluginDefinition
+		// need to reconcile to get the managed Plugin back into the desired state
+		return false
+	}
+	// all options are global options or set by the PluginPreset or the PluginDefinition
+	return true
+}
+
+func overridesPluginOptionValues(plugin *greenhousev1alpha1.Plugin, preset *greenhousev1alpha1.PluginPreset) {
+	index := slices.IndexFunc(preset.Spec.ClusterOptionOverrides, func(override greenhousev1alpha1.ClusterOptionOverride) bool {
+		return override.ClusterName == plugin.Spec.ClusterName
+	})
+
+	// when plugin is running on different cluster then defined in
+	if index == -1 {
+		return
+	}
+
+	// overrides value
+	for _, overrideValue := range preset.Spec.ClusterOptionOverrides[index].Overrides {
+		valueIndex := slices.IndexFunc(plugin.Spec.OptionValues, func(value greenhousev1alpha1.PluginOptionValue) bool {
+			return value.Name == overrideValue.Name
+		})
+
+		if valueIndex == -1 {
+			plugin.Spec.OptionValues = append(plugin.Spec.OptionValues, overrideValue)
+		} else {
+			plugin.Spec.OptionValues[valueIndex] = overrideValue
+		}
+	}
 }
 
 // generatePluginName generates a name for a plugin based on the used PluginPreset's name and the Cluster.

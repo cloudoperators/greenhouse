@@ -4,9 +4,9 @@
 
 /.github/               @cloudoperators/Administrators
 /.github/workflows/     @cloudoperators/greenhouse-core
-/.github/labeler.yml    @cloudoperators/greenhouse-backend
-/.github/licenserc.yaml @cloudoperators/greenhouse-backend
-/.github/renovate.json  @cloudoperators/greenhouse-backend
+/.github/labeler.yml    @cloudoperators/greenhouse-core
+/.github/licenserc.yaml @cloudoperators/greenhouse-core
+/.github/renovate.json  @cloudoperators/greenhouse-core
 
 /ui/                    @cloudoperators/greenhouse-frontend @uwe-mayer
 
@@ -26,7 +26,7 @@
 /ct.yaml                @cloudoperators/greenhouse-backend
 /Dockerfile             @cloudoperators/greenhouse-backend
 /Dockerfile.*           @cloudoperators/greenhouse-backend
-/Makefile               @cloudoperators/greenhouse-backend
+/Makefile               @cloudoperators/greenhouse-core
 /.golangci.yaml         @cloudoperators/greenhouse-backend
 /PROJECT                @cloudoperators/greenhouse-backend
 /go.*                   @cloudoperators/greenhouse-backend

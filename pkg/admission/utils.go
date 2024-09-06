@@ -110,5 +110,10 @@ func logAdmissionRequest(ctx context.Context) {
 	if err != nil {
 		return
 	}
+
+	// Remove all objects from the log
+	admissionRequest.Object.Raw = nil
+	admissionRequest.OldObject.Raw = nil
+
 	ctrl.Log.Info("AdmissionRequest", "Request", admissionRequest)
 }

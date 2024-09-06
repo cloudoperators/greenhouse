@@ -4,9 +4,9 @@ groups:
     - alert: GreenhouseProxyRequestErrorsHigh
       annotations:
         description: '{{ $value | humanizePercentage }} of {{ $labels.method }} requests failed for {{ $labels.service }}'
-        summary: 'Errors high for proxy {{$labels.service}}'
+        summary: 'HTTP 5xx errors high for proxy {{$labels.service}}'
       expr: |
-        (sum by (service, method) (rate(http_requests_total{code=~"4.."}[5m]) or rate(http_requests_total{code=~"5.."}[5m]))) / (sum by (service, method) (rate(http_requests_total[5m]))) > 0.1
+        (sum by (service, method) (rate(http_requests_total{code=~"4..",code!="401", code!="403"}[5m]) or rate(http_requests_total{code=~"5.."}[5m]))) / (sum by (service, method) (rate(http_requests_total[5m]))) > 0.1
       for: 15m
       labels:
         severity: warning

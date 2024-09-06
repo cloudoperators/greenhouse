@@ -9,6 +9,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"slices"
 	"time"
 
 	"helm.sh/helm/v3/pkg/action"
@@ -91,6 +92,28 @@ func InstallOrUpgradeHelmChartFromPlugin(ctx context.Context, local client.Clien
 		return err
 	}
 	return upgradeRelease(ctx, local, restClientGetter, pluginDefinition, plugin)
+}
+
+// HelmChartTest to do helm test on the plugin
+func HelmChartTest(ctx context.Context, restClientGetter genericclioptions.RESTClientGetter, plugin *greenhousev1alpha1.Plugin) (bool, error) {
+	var hasTestHook bool
+	cfg, err := newHelmAction(restClientGetter, plugin.GetReleaseNamespace())
+	if err != nil {
+		return hasTestHook, err
+	}
+
+	results, err := action.NewReleaseTesting(cfg).Run(plugin.Name)
+	if err != nil {
+		return hasTestHook, err
+	}
+
+	if results.Hooks != nil {
+		hasTestHook = slices.ContainsFunc(results.Hooks, func(h *release.Hook) bool {
+			return slices.Contains(h.Events, release.HookTest)
+		})
+	}
+
+	return hasTestHook, nil
 }
 
 // UninstallHelmRelease removes the Helm release for the given Plugin.

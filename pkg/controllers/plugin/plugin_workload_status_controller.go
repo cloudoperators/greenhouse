@@ -6,6 +6,7 @@ package plugin
 import (
 	"context"
 	"fmt"
+	"reflect"
 	"time"
 
 	"github.com/prometheus/client_golang/prometheus"
@@ -114,17 +115,28 @@ func (r *WorkLoadStatusReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 	var pluginDefinition = new(greenhousev1alpha1.PluginDefinition)
 	var releaseStatus = new(ReleaseStatus)
 	if err := r.Client.Get(ctx, req.NamespacedName, plugin); err != nil {
-		return ctrl.Result{}, err
+		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
 	if err := r.Client.Get(ctx, types.NamespacedName{Name: plugin.Spec.PluginDefinition}, pluginDefinition); err != nil {
 		return ctrl.Result{}, err
 	}
+	// Nothing to do when the status of the plugin is empty and when the plugin does not have a Helm Chart
+	if reflect.DeepEqual(plugin.Status, greenhousev1alpha1.PluginStatus{}) || plugin.Status.HelmChart == nil {
+		return ctrl.Result{}, nil
+	}
+
+	pluginStatus := initPluginStatus(plugin)
+
+	defer func() {
+		if statusErr := r.setStatus(ctx, plugin, pluginStatus); statusErr != nil {
+			log.FromContext(ctx).Error(statusErr, "failed to set status")
+		}
+	}()
 
 	if plugin.DeletionTimestamp != nil || pluginDefinition.Spec.HelmChart == nil {
 		return ctrl.Result{}, nil
 	}
 
-	pluginStatus := initPluginStatus(plugin)
 	clusterAccessReadyCondition, restClientGetter := initClientGetter(ctx, r.Client, r.kubeClientOpts, *plugin, plugin.Status)
 	pluginStatus.StatusConditions.SetConditions(clusterAccessReadyCondition)
 	if !clusterAccessReadyCondition.IsTrue() {
@@ -153,21 +165,21 @@ func (r *WorkLoadStatusReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 			getPayloadStatus(ctx, releaseStatus, objClient, key.Name, releaseStatus.ReleaseNamespace, key.GVK)
 		}
 
-		if statusErr := r.setStatus(ctx, plugin, releaseStatus, pluginStatus); statusErr != nil {
-			log.FromContext(ctx).Error(statusErr, "failed to set status")
-		}
+		workloadCondition := computeWorkloadCondition(plugin, pluginStatus, releaseStatus)
+		pluginStatus.StatusConditions.SetConditions(workloadCondition)
 	}
 	return ctrl.Result{RequeueAfter: StatusRequeueInterval}, nil
 }
 
 // setStatus sets the status and metrics for the plugin
-func (r *WorkLoadStatusReconciler) setStatus(ctx context.Context, plugin *greenhousev1alpha1.Plugin, release *ReleaseStatus, pluginStatus greenhousev1alpha1.PluginStatus) error {
-	readyCondition := computeReadyCondition(plugin, pluginStatus, release)
+func (r *WorkLoadStatusReconciler) setStatus(ctx context.Context, plugin *greenhousev1alpha1.Plugin, pluginStatus greenhousev1alpha1.PluginStatus) error {
+	readyCondition := computeReadyCondition(pluginStatus.StatusConditions)
 	pluginStatus.StatusConditions.SetConditions(readyCondition)
 	_, err := clientutil.PatchStatus(ctx, r.Client, plugin, func() error {
 		plugin.Status = pluginStatus
 		return nil
 	})
+
 	return err
 }
 
@@ -189,10 +201,11 @@ func getPayloadStatus(ctx context.Context, releaseStatus *ReleaseStatus, cl clie
 		status.UnavailableReplicas += remoteObject.Status.UnavailableReplicas
 		if !isPayloadReadyRunning(remoteObject) {
 			status.Ready = false
-			status.Message = fmt.Sprintf("Following workload resources are not ready: %s/%s", gvk.Kind, objName)
+			status.Message = fmt.Sprintf("%s/%s", gvk.Kind, objName)
+			releaseStatus.PayloadStatus = append(releaseStatus.PayloadStatus, *status)
+		} else {
 			releaseStatus.PayloadStatus = append(releaseStatus.PayloadStatus, *status)
 		}
-		releaseStatus.PayloadStatus = append(releaseStatus.PayloadStatus, *status)
 	case "StatefulSet":
 		remoteObject := &appsv1.StatefulSet{}
 		if err := cl.Get(ctx, types.NamespacedName{Name: objName, Namespace: objNamespace}, remoteObject); err != nil {
@@ -206,10 +219,11 @@ func getPayloadStatus(ctx context.Context, releaseStatus *ReleaseStatus, cl clie
 
 		if !isPayloadReadyRunning(remoteObject) {
 			status.Ready = false
-			status.Message = fmt.Sprintf("Following workload resources are not ready: %s/%s", gvk.Kind, objName)
+			status.Message = fmt.Sprintf("%s/%s", gvk.Kind, objName)
+			releaseStatus.PayloadStatus = append(releaseStatus.PayloadStatus, *status)
+		} else {
 			releaseStatus.PayloadStatus = append(releaseStatus.PayloadStatus, *status)
 		}
-		releaseStatus.PayloadStatus = append(releaseStatus.PayloadStatus, *status)
 	case "DaemonSet":
 		remoteObject := &appsv1.DaemonSet{}
 		if err := cl.Get(ctx, types.NamespacedName{Name: objName, Namespace: objNamespace}, remoteObject); err != nil {
@@ -226,8 +240,9 @@ func getPayloadStatus(ctx context.Context, releaseStatus *ReleaseStatus, cl clie
 			status.Ready = false
 			status.Message = fmt.Sprintf("%s/%s", gvk.Kind, objName)
 			releaseStatus.PayloadStatus = append(releaseStatus.PayloadStatus, *status)
+		} else {
+			releaseStatus.PayloadStatus = append(releaseStatus.PayloadStatus, *status)
 		}
-		releaseStatus.PayloadStatus = append(releaseStatus.PayloadStatus, *status)
 	case "ReplicaSet":
 		remoteObject := &appsv1.ReplicaSet{}
 		if err := cl.Get(ctx, types.NamespacedName{Name: objName, Namespace: objNamespace}, remoteObject); err != nil {
@@ -242,8 +257,9 @@ func getPayloadStatus(ctx context.Context, releaseStatus *ReleaseStatus, cl clie
 			status.Ready = false
 			status.Message = fmt.Sprintf("%s/%s", gvk.Kind, objName)
 			releaseStatus.PayloadStatus = append(releaseStatus.PayloadStatus, *status)
+		} else {
+			releaseStatus.PayloadStatus = append(releaseStatus.PayloadStatus, *status)
 		}
-		releaseStatus.PayloadStatus = append(releaseStatus.PayloadStatus, *status)
 	case "Job":
 		remoteObject := &batchv1.Job{}
 		if err := cl.Get(ctx, types.NamespacedName{Name: objName, Namespace: objNamespace}, remoteObject); err != nil {
@@ -254,8 +270,9 @@ func getPayloadStatus(ctx context.Context, releaseStatus *ReleaseStatus, cl clie
 			status.Ready = false
 			status.Message = fmt.Sprintf("%s/%s", gvk.Kind, objName)
 			releaseStatus.PayloadStatus = append(releaseStatus.PayloadStatus, *status)
+		} else {
+			releaseStatus.PayloadStatus = append(releaseStatus.PayloadStatus, *status)
 		}
-		releaseStatus.PayloadStatus = append(releaseStatus.PayloadStatus, *status)
 	case "CronJob":
 		remoteObject := &batchv1.CronJob{}
 		if err := cl.Get(ctx, types.NamespacedName{Name: objName, Namespace: objNamespace}, remoteObject); err != nil {
@@ -266,8 +283,9 @@ func getPayloadStatus(ctx context.Context, releaseStatus *ReleaseStatus, cl clie
 			status.Ready = false
 			status.Message = fmt.Sprintf("%s/%s", gvk.Kind, objName)
 			releaseStatus.PayloadStatus = append(releaseStatus.PayloadStatus, *status)
+		} else {
+			releaseStatus.PayloadStatus = append(releaseStatus.PayloadStatus, *status)
 		}
-		releaseStatus.PayloadStatus = append(releaseStatus.PayloadStatus, *status)
 	case "Pod":
 		remoteObject := &corev1.Pod{}
 		if err := cl.Get(ctx, types.NamespacedName{Name: objName, Namespace: objNamespace}, remoteObject); err != nil {
@@ -278,8 +296,9 @@ func getPayloadStatus(ctx context.Context, releaseStatus *ReleaseStatus, cl clie
 			status.Ready = false
 			status.Message = fmt.Sprintf("%s/%s", gvk.Kind, objName)
 			releaseStatus.PayloadStatus = append(releaseStatus.PayloadStatus, *status)
+		} else {
+			releaseStatus.PayloadStatus = append(releaseStatus.PayloadStatus, *status)
 		}
-		releaseStatus.PayloadStatus = append(releaseStatus.PayloadStatus, *status)
 	case "Alertmanager":
 		remoteObject := &corev1.PodList{}
 		listOptions := &client.ListOptions{
@@ -301,7 +320,8 @@ func getPayloadStatus(ctx context.Context, releaseStatus *ReleaseStatus, cl clie
 			status.Ready = false
 			status.Message = fmt.Sprintf("%s/%s", gvk.Kind, objName)
 			releaseStatus.PayloadStatus = append(releaseStatus.PayloadStatus, *status)
+		} else {
+			releaseStatus.PayloadStatus = append(releaseStatus.PayloadStatus, *status)
 		}
-		releaseStatus.PayloadStatus = append(releaseStatus.PayloadStatus, *status)
 	}
 }

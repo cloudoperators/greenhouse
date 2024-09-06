@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/api/validation"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/validation/field"
@@ -114,35 +115,28 @@ func ValidateUpdatePlugin(ctx context.Context, c client.Client, old, obj runtime
 	}
 
 	allWarns = append(allWarns, validateOwnerReference(oldPlugin)...)
+	allErrs := field.ErrorList{}
 
 	pluginDefinition := new(greenhousev1alpha1.PluginDefinition)
 	err := c.Get(ctx, client.ObjectKey{Namespace: "", Name: plugin.Spec.PluginDefinition}, pluginDefinition)
 	if err != nil {
-		// TODO: provide actual APIError
-		return allWarns, err
+		if apierrors.IsNotFound(err) {
+			return allWarns, field.NotFound(field.NewPath("spec").Child("pluginDefinition"), plugin.Spec.PluginDefinition)
+		}
+		return allWarns, field.InternalError(field.NewPath("spec").Child("pluginDefinition"), err)
 	}
 
-	if errList := validatePluginOptionValues(plugin.Spec.OptionValues, pluginDefinition); len(errList) > 0 {
-		return allWarns, apierrors.NewInvalid(plugin.GroupVersionKind().GroupKind(), plugin.Name, errList)
-	}
+	allErrs = append(allErrs, validation.ValidateImmutableField(oldPlugin.Spec.PluginDefinition, plugin.Spec.PluginDefinition, field.NewPath("spec", "pluginDefinition"))...)
 
-	if err := validateImmutableField(oldPlugin.Spec.ClusterName, plugin.Spec.ClusterName,
-		field.NewPath("spec", "clusterName"),
-	); err != nil {
-		return allWarns, err
-	}
+	allErrs = append(allErrs, validatePluginOptionValues(plugin.Spec.OptionValues, pluginDefinition)...)
 
-	// temporary: allow changing the release namespace to the plugin namespace for the migration to releaseNamespaces
-	if oldPlugin.Spec.ReleaseNamespace == "" && plugin.Spec.ReleaseNamespace == plugin.Namespace {
-		return allWarns, nil
-	}
+	allErrs = append(allErrs, validation.ValidateImmutableField(oldPlugin.Spec.ClusterName, plugin.Spec.ClusterName,
+		field.NewPath("spec", "clusterName"))...)
 
-	if err := validateImmutableField(oldPlugin.Spec.ReleaseNamespace, plugin.Spec.ReleaseNamespace,
-		field.NewPath("spec", "releaseNamespace"),
-	); err != nil {
-		return allWarns, err
-	}
-	return allWarns, nil
+	allErrs = append(allErrs, validation.ValidateImmutableField(oldPlugin.Spec.ReleaseNamespace, plugin.Spec.ReleaseNamespace,
+		field.NewPath("spec", "releaseNamespace"))...)
+
+	return allWarns, allErrs.ToAggregate()
 }
 
 func ValidateDeletePlugin(_ context.Context, _ client.Client, _ runtime.Object) (admission.Warnings, error) {
