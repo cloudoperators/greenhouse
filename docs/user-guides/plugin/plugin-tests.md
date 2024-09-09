@@ -125,7 +125,7 @@ testFramework:
 
 6. **Running the Tests**:
 
-> **Important:** Once you have completed all the steps above, you are ready to run the tests. However, before running the tests, ensure that you perform a fresh Helm installation or upgrade of your Plugin's Helm release by executing the following command:
+> **Important:** Once you have completed all the steps above, you are ready to run the tests. However, before running the tests, ensure that you perform a fresh Helm installation or upgrade of your Plugin's Helm release against your test Kubernetes cluster (for example, Minikube or Kind) by executing the following command:
 
 ```yaml
 # For a new installation
@@ -135,7 +135,7 @@ helm install <Release name> <chart-path>
 helm upgrade <Release name> <chart-path>
 ```
 
-- After the Helm installation or upgrade is successful, Run the tests against a test Kubernetes cluster (for example, Minikube or Kind) by executing the following command.
+- After the Helm installation or upgrade is successful, run the tests against the same test Kubernetes cluster by executing the following command.
 
 ```yaml
 helm test <Release name>
