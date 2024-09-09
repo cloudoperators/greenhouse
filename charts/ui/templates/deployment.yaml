@@ -65,6 +65,7 @@ spec:
           volumeMounts:
             - name: props
               mountPath: /
+      volumes:    
         - name: props
           configMap:
             defaultMode: 420
