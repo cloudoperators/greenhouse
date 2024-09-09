@@ -64,7 +64,8 @@ spec:
                 command: ["/bin/sh", "-c", "sleep 30"]
           volumeMounts:
             - name: props
-              mountPath: /
+              mountPath: /appProps.json
+              subPath: appProps.json
       volumes:    
         - name: props
           configMap:
