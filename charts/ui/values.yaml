@@ -2,8 +2,8 @@
 # SPDX-License-Identifier: Apache-2.0
 
 image:
-  repository: nginx
-  tag: 1.27.1-alpine
+  repository: docker pull ghcr.io/cloudoperators/greenhouse-dashboard
+  tag: 20240906-094545
   pullPolicy: IfNotPresent
 
 # TODO: Migrate to ingress.host
@@ -13,7 +13,7 @@ ingress:
   className: nginx
 
 juno:
-  assetServerURL: https://assets.juno.global.cloud.sap
+  assetServerURL: origin
   # version of the juno greenhouse app
   greenhouse:
     version: latest
