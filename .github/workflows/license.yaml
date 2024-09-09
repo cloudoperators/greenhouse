@@ -5,4 +5,6 @@ on:
 
 jobs:
   build-license-eye:
+    permissions:
+      contents: write # Only used when `apply_header: true` else the permission is `read` see: https://github.com/cloudoperators/common/blob/8f15c13b6f4c1631c7e6f6dff5c3300452e9b5b6/.github/workflows/shared-license.yaml#L21-L22
     uses: cloudoperators/common/.github/workflows/shared-license.yaml@main
