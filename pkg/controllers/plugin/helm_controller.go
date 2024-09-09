@@ -156,11 +156,12 @@ func (r *HelmReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.
 
 	driftDetectedCondition, reconcileFailedCondition := r.reconcileHelmRelease(ctx, restClientGetter, plugin, pluginDefinition, pluginStatus)
 	pluginStatus.StatusConditions.SetConditions(driftDetectedCondition, reconcileFailedCondition)
+	statusReconcileCompleteCondition := r.reconcileStatus(ctx, restClientGetter, plugin, pluginDefinition, &pluginStatus)
+	pluginStatus.StatusConditions.SetConditions(statusReconcileCompleteCondition)
+
 	if reconcileFailedCondition.IsTrue() {
 		return ctrl.Result{}, fmt.Errorf("helm reconcile failed: %s", reconcileFailedCondition.Message)
 	}
-	statusReconcileCompleteCondition := r.reconcileStatus(ctx, restClientGetter, plugin, pluginDefinition, &pluginStatus)
-	pluginStatus.StatusConditions.SetConditions(statusReconcileCompleteCondition)
 
 	return ctrl.Result{}, nil
 }
