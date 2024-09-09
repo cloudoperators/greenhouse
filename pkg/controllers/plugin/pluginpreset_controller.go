@@ -237,7 +237,7 @@ func shouldSkipPlugin(plugin *greenhousev1alpha1.Plugin, preset *greenhousev1alp
 	// need to reconcile when plugin does not have option which exists in plugin preset
 	for _, presetOptionValue := range preset.Spec.Plugin.OptionValues {
 		if !slices.ContainsFunc(plugin.Spec.OptionValues, func(item greenhousev1alpha1.PluginOptionValue) bool {
-			return item.Name == presetOptionValue.Name && string(item.Value.Raw) == string(presetOptionValue.Value.Raw)
+			return equalPluginOptions(presetOptionValue, item)
 		}) {
 			return false
 		}
@@ -250,13 +250,17 @@ func shouldSkipPlugin(plugin *greenhousev1alpha1.Plugin, preset *greenhousev1alp
 		}
 
 		if slices.ContainsFunc(preset.Spec.Plugin.OptionValues, func(item greenhousev1alpha1.PluginOptionValue) bool {
-			return item.Name == pluginOption.Name && string(item.Value.Raw) == string(pluginOption.Value.Raw)
+			return equalPluginOptions(item, pluginOption)
 		}) {
 			// optionValue is set by the PluginPreset, nothing to do
 			continue
 		}
 		if slices.ContainsFunc(definition.Spec.Options, func(item greenhousev1alpha1.PluginOption) bool {
 			if item.Default == nil {
+				return false
+			}
+			if pluginOption.ValueFrom != nil {
+				// PluginDefinition does not support valueFrom for default values
 				return false
 			}
 			return item.Name == pluginOption.Name && string(item.Default.Raw) == string(pluginOption.Value.Raw)
@@ -388,4 +392,26 @@ func listPluginPresetAsReconcileRequests(ctx context.Context, c client.Client, l
 		requests[i] = ctrl.Request{NamespacedName: client.ObjectKeyFromObject(pluginPreset.DeepCopy())}
 	}
 	return requests
+}
+
+// equalPluginOptions compares two PluginOptionValue objects.
+func equalPluginOptions(a, b greenhousev1alpha1.PluginOptionValue) bool {
+	if a.Name != b.Name {
+		return false
+	}
+	valueNil := a.Value == nil && b.Value == nil
+	valueFromNil := a.ValueFrom == nil && b.ValueFrom == nil
+	switch {
+	case valueNil && valueFromNil:
+		return true
+
+	case !valueNil:
+		return a.ValueJSON() == b.ValueJSON()
+
+	case !valueFromNil:
+		return a.ValueFrom.Secret.Name == b.ValueFrom.Secret.Name &&
+			a.ValueFrom.Secret.Key == b.ValueFrom.Secret.Key
+	default:
+		return false
+	}
 }

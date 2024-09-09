@@ -605,6 +605,117 @@ var _ = Describe("Plugin Preset skip changes", Ordered, func() {
 				},
 			},
 			false,
+		), Entry("should not skip when Plugin has different valueFrom then PluginDefinition",
+			&greenhousev1alpha1.Plugin{
+				ObjectMeta: metav1.ObjectMeta{
+					Labels: map[string]string{
+						greenhouseapis.LabelKeyPluginPreset: pluginPresetName,
+					},
+				},
+				Spec: greenhousev1alpha1.PluginSpec{
+					PluginDefinition: pluginPresetDefinitionName,
+					OptionValues: []greenhousev1alpha1.PluginOptionValue{
+						{
+							Name:  "global.greenhouse.test_parameter",
+							Value: asAPIextensionJSON(2),
+						},
+						{
+							Name: "plugin_definition.test_parameter",
+							ValueFrom: &greenhousev1alpha1.ValueFromSource{
+								Secret: &greenhousev1alpha1.SecretKeyReference{
+									Name: "test-secret",
+									Key:  "test-key",
+								},
+							},
+						},
+					},
+				},
+			},
+			&greenhousev1alpha1.PluginPreset{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: pluginPresetName,
+				},
+				Spec: greenhousev1alpha1.PluginPresetSpec{
+					Plugin: greenhousev1alpha1.PluginSpec{
+						PluginDefinition: pluginPresetDefinitionName,
+						OptionValues:     []greenhousev1alpha1.PluginOptionValue{},
+					},
+				},
+			},
+			&greenhousev1alpha1.PluginDefinition{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: pluginPresetDefinitionName,
+				},
+				Spec: greenhousev1alpha1.PluginDefinitionSpec{
+					Options: []greenhousev1alpha1.PluginOption{
+						{
+							Name:    "plugin_definition.test_parameter",
+							Default: asAPIextensionJSON(4),
+						},
+					},
+				},
+			},
+			false,
+		), Entry("should skip when Plugin has same valueFrom as PluginDefinition",
+			&greenhousev1alpha1.Plugin{
+				ObjectMeta: metav1.ObjectMeta{
+					Labels: map[string]string{
+						greenhouseapis.LabelKeyPluginPreset: pluginPresetName,
+					},
+				},
+				Spec: greenhousev1alpha1.PluginSpec{
+					PluginDefinition: pluginPresetDefinitionName,
+					OptionValues: []greenhousev1alpha1.PluginOptionValue{
+						{
+							Name:  "global.greenhouse.test_parameter",
+							Value: asAPIextensionJSON(2),
+						},
+						{
+							Name: "plugin_definition.test_parameter",
+							ValueFrom: &greenhousev1alpha1.ValueFromSource{
+								Secret: &greenhousev1alpha1.SecretKeyReference{
+									Name: "test-secret",
+									Key:  "test-key",
+								},
+							},
+						},
+					},
+				},
+			},
+			&greenhousev1alpha1.PluginPreset{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: pluginPresetName,
+				},
+				Spec: greenhousev1alpha1.PluginPresetSpec{
+					Plugin: greenhousev1alpha1.PluginSpec{
+						PluginDefinition: pluginPresetDefinitionName,
+						OptionValues: []greenhousev1alpha1.PluginOptionValue{
+							{Name: "plugin_definition.test_parameter",
+								ValueFrom: &greenhousev1alpha1.ValueFromSource{
+									Secret: &greenhousev1alpha1.SecretKeyReference{
+										Name: "test-secret",
+										Key:  "test-key",
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			&greenhousev1alpha1.PluginDefinition{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: pluginPresetDefinitionName,
+				},
+				Spec: greenhousev1alpha1.PluginDefinitionSpec{
+					Options: []greenhousev1alpha1.PluginOption{
+						{
+							Name:    "plugin_definition.test_parameter",
+							Default: asAPIextensionJSON(4),
+						},
+					},
+				},
+			},
+			true,
 		),
 	)
 })
