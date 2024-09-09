@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: Apache-2.0
 
 image:
-  repository: docker pull ghcr.io/cloudoperators/greenhouse-dashboard
+  repository: ghcr.io/cloudoperators/greenhouse-dashboard
   tag: 20240906-094545
   pullPolicy: IfNotPresent
 
