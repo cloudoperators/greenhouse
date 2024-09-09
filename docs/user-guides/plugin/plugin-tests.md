@@ -76,34 +76,33 @@ data:
    - This test `Pod` will mount the `ConfigMap` created in the previous step and will execute the test script `run.sh`.
 
 ```yaml
- {{- if .Values.testFramework.enabled -}}
- apiVersion: v1
- kind: Pod
- metadata:
-   name: {{ .Release.Name }}-test
-   namespace: {{ .Release.Namespace }}
-   labels:
-     type: integration-test
-   annotations:
-     "helm.sh/hook": test
-     "helm.sh/hook-delete-policy": "before-hook-creation,hook-succeeded"
- spec:
-   serviceAccountName: {{ .Release.Name }}-test
-   containers:
-     - name: bats-test
-       image: "{{ .Values.testFramework.image.registry}}/{{ .Values.testFramework.image.repository}}:{{ .Values.testFramework.image.tag }}"
-       imagePullPolicy: {{ .Values.testFramework.image.pullPolicy }}
-       command: ["bats", "-t", "/tests/run.sh"]
-       volumeMounts:
-         - name: tests
-           mountPath: /tests
-           readOnly: true
-   volumes:
-     - name: tests
-       configMap:
-         name: {{ .Release.Name }}-test
-   restartPolicy: Never
- {{- end -}}
+{{- if .Values.testFramework.enabled -}}
+apiVersion: v1
+kind: Pod
+metadata:
+  name: {{ .Release.Name }}-test
+  namespace: {{ .Release.Namespace }}
+  labels:
+    type: integration-test
+  annotations:
+    "helm.sh/hook": test
+    "helm.sh/hook-delete-policy": "before-hook-creation,hook-succeeded"
+spec:
+  serviceAccountName: {{ .Release.Name }}-test
+  containers:
+    - name: bats-test
+      image: "{{ .Values.testFramework.image.registry}}/{{ .Values.testFramework.image.repository}}:{{ .Values.testFramework.image.tag }}"
+      imagePullPolicy: {{ .Values.testFramework.image.pullPolicy }}
+      command: ["bats", "-t", "/tests/run.sh"]
+      volumeMounts:
+        - name: tests
+          mountPath: /tests
+          readOnly: true   volumes:
+    - name: tests
+      configMap:
+        name: {{ .Release.Name }}-test
+  restartPolicy: Never
+{{- end -}}
 ```
 
 4. **RBAC Permissions**:
@@ -112,7 +111,7 @@ data:
 - You can use [test-permissions.yaml](https://github.com/cloudoperators/greenhouse-extensions/blob/main/kube-monitoring/charts/templates/tests/test-permissions.yaml) from the `kube-monitoring` as a reference to configure RBAC permissions for your test Pod.
 
 5. **Configure the Test Framework in Plugin's `values.yaml`**:
-   - Add the following configuration to your plugin's `values.yaml` file:
+   - Add the following configuration to your Plugin's `values.yaml` file:
 
 ```yaml
 testFramework:
@@ -126,7 +125,7 @@ testFramework:
 
 6. **Running the Tests**:
 
-> **Important:** Once you have completed all the steps above, you are ready to run the tests. However, before running the tests, ensure that you perform a fresh Helm installation or upgrade of your plugin's Helm release by executing the following command:
+> **Important:** Once you have completed all the steps above, you are ready to run the tests. However, before running the tests, ensure that you perform a fresh Helm installation or upgrade of your Plugin's Helm release by executing the following command:
 
 ```yaml
 # For a new installation
@@ -146,12 +145,12 @@ helm test <Release name>
 
 Before submitting a pull request:
 
-- Ensure your plugin's Helm Chart includes a `/tests` directory.
+- Ensure your Plugin's Helm Chart includes a `/tests` directory.
 - Verify the presence of `test-<plugin-name>.yaml`, `test-<plugin-name>-config.yaml`, and `test-permissions.yaml` files.
-- Test your plugin thoroughly using `helm test <release-name>` and confirm that all tests pass against a test Kubernetes cluster.
+- Test your Plugin thoroughly using `helm test <release-name>` and confirm that all tests pass against a test Kubernetes cluster.
 - Include a brief description of the tests in your pull request.
 
 **Important Notes**
 
-- **Test Coverage:** Aim for comprehensive test coverage to ensure your plugin's reliability.
+- **Test Coverage:** Aim for comprehensive test coverage to ensure your Plugin's reliability.
 - **Test Isolation:** Design tests that don't interfere with other plugins or production environments.
