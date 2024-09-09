@@ -453,11 +453,7 @@ func convertFlatValuesToHelmValues(values []greenhousev1alpha1.PluginOptionValue
 	}
 	helmValues := make(map[string]interface{}, 0)
 	for _, v := range values {
-		jsonVal, err := v.ValueJSON()
-		if err != nil {
-			return nil, err
-		}
-		if err := strvals.ParseJSON(fmt.Sprintf("%s=%s", v.Name, jsonVal), helmValues); err != nil {
+		if err := strvals.ParseJSON(fmt.Sprintf("%s=%s", v.Name, v.ValueJSON()), helmValues); err != nil {
 			return nil, err
 		}
 	}

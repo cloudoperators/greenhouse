@@ -25,7 +25,7 @@ spec:
       labels:
         app: dashboard
       annotations:
-        checksum/index-html-cm: {{ include (print $.Template.BasePath "/index-html-cm.yaml") . | sha256sum }}
+        checksum/props-cm: {{ include (print $.Template.BasePath "/dashboard-props-cm.yaml") . | sha256sum }}
     spec:
       # The preStop hook below sleeps 30 seconds, extend the gracePeriod accordingly
       terminationGracePeriodSeconds: 60
@@ -63,10 +63,10 @@ spec:
                 #Give the ingress some time to reload its config
                 command: ["/bin/sh", "-c", "sleep 30"]
           volumeMounts:
-            - name: index-html
-              mountPath: /usr/share/nginx/html/         
-      volumes:
-        - name: index-html
+            - name: props
+              mountPath: /
+      volumes:    
+        - name: props
           configMap:
             defaultMode: 420
-            name: {{ .Release.Name }}-ui-index-html-cm
+            name: {{ .Release.Name }}-dashboard-props    

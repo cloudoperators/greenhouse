@@ -34,7 +34,9 @@ export async function mount(
   }
 
   // Get the path for the specified version or use "latest"
-  const modulePath = manifest[name][version || "latest"]?.path
+  const modulePath =
+    manifest[name][version || "latest"]?.path ||
+    manifest[name][version || "latest"]?.entryFile
 
   if (!modulePath) {
     console.error(`No path found for ${name} version ${version || "latest"}`)
@@ -43,7 +45,7 @@ export async function mount(
 
   try {
     // Dynamically import the module and extract its mount function
-    const { mount } = await import(modulePath)
+    const { mount } = await import(new URL(modulePath, assetsHost))
 
     // Mount the module with the provided container element and props
     await mount(containerElement, {

@@ -73,6 +73,10 @@ func (r *HelmChartTestReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 		return ctrl.Result{}, nil
 	}
 
+	if plugin.Spec.Disabled {
+		return ctrl.Result{}, nil
+	}
+
 	// Helm Chart Test cannot be done as the Helm Chart deployment is not successful
 	if plugin.Status.HelmReleaseStatus.Status != "deployed" {
 		return ctrl.Result{}, nil
