@@ -22,6 +22,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/log"
+	"sigs.k8s.io/controller-runtime/pkg/predicate"
 
 	greenhouseapis "github.com/cloudoperators/greenhouse/pkg/apis"
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/pkg/apis/greenhouse/v1alpha1"
@@ -124,9 +125,10 @@ func (pm *ProxyManager) SetupWithManager(name string, mgr ctrl.Manager) error {
 		Named(name).
 		For(&v1.Secret{}, builder.WithPredicates(
 			clientutil.PredicateFilterBySecretType(greenhouseapis.SecretTypeKubeConfig),
+			predicate.ResourceVersionChangedPredicate{},
 		)).
 		// Watch plugins to be notified about exposed services
-		Watches(&greenhousev1alpha1.Plugin{}, handler.EnqueueRequestsFromMapFunc(enqueuePluginForCluster)).
+		Watches(&greenhousev1alpha1.Plugin{}, handler.EnqueueRequestsFromMapFunc(enqueuePluginForCluster), builder.WithPredicates(predicate.Or(predicate.GenerationChangedPredicate{}, predicate.LabelChangedPredicate{}))).
 		Complete(pm)
 }
 
