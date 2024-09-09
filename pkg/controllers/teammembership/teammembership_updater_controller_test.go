@@ -420,13 +420,13 @@ func createTestOrgWithSecret(namespace string) {
 		o.Spec.Authentication = &greenhousev1alpha1.Authentication{
 			SCIMConfig: &greenhousev1alpha1.SCIMConfig{
 				BaseURL: groupsServer.URL,
-				BasicAuthUser: &greenhousev1alpha1.ValueFromSource{
+				BasicAuthUser: greenhousev1alpha1.ValueFromSource{
 					Secret: &greenhousev1alpha1.SecretKeyReference{
 						Name: "test-secret",
 						Key:  "basicAuthUser",
 					},
 				},
-				BasicAuthPw: &greenhousev1alpha1.ValueFromSource{
+				BasicAuthPw: greenhousev1alpha1.ValueFromSource{
 					Secret: &greenhousev1alpha1.SecretKeyReference{
 						Name: "test-secret",
 						Key:  "basicAuthPw",

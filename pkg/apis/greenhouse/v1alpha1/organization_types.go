@@ -46,9 +46,9 @@ type SCIMConfig struct {
 	// URL to the SCIM server.
 	BaseURL string `json:"baseURL"`
 	// User to be used for basic authentication.
-	BasicAuthUser *ValueFromSource `json:"basicAuthUser,omitempty"`
+	BasicAuthUser ValueFromSource `json:"basicAuthUser"`
 	// Password to be used for basic authentication.
-	BasicAuthPw *ValueFromSource `json:"basicAuthPw,omitempty"`
+	BasicAuthPw ValueFromSource `json:"basicAuthPw"`
 }
 
 // OrganizationStatus defines the observed state of an Organization

@@ -148,6 +148,8 @@ spec:
                         type: object
                     required:
                     - baseURL
+                    - basicAuthPw
+                    - basicAuthUser
                     type: object
                 type: object
               description:
