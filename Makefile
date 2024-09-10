@@ -77,7 +77,7 @@ GEN_CRD_API_REFERENCE_DOCS := $(CURDIR)/hack/docs-generator/gen-crd-api-referenc
 check-gen-crd-api-reference-docs:
 	@if [ ! -f $(GEN_CRD_API_REFERENCE_DOCS) ]; then \
 		echo "gen-crd-api-reference-docs not found, installing..."; \
-		go build -o $(LOCALBIN) github.com/ahmetb/gen-crd-api-reference-docs@latest; \
+		GO111MODULE=on go build -o $(LOCALBIN) github.com/ahmetb/gen-crd-api-reference-docs@latest; \
 	fi
 
 GEN_DOCS ?= $(LOCALBIN)/gen-crd-api-reference-docs
@@ -183,27 +183,27 @@ $(KUSTOMIZE): $(LOCALBIN)
 controller-gen: $(CONTROLLER_GEN) ## Download controller-gen locally if necessary.
 $(CONTROLLER_GEN): $(LOCALBIN)
 ## GOBIN=$(LOCALBIN) go install sigs.k8s.io/controller-tools/cmd/controller-gen@$(CONTROLLER_TOOLS_VERSION)
-	go build -o $(LOCALBIN) sigs.k8s.io/controller-tools/cmd/controller-gen@$(CONTROLLER_TOOLS_VERSION)
+	GO111MODULE=on go build -o $(LOCALBIN) sigs.k8s.io/controller-tools/cmd/controller-gen@$(CONTROLLER_TOOLS_VERSION)
 
 .PHONY: envtest
 envtest: $(ENVTEST) ## Download envtest-setup locally if necessary.
 $(ENVTEST): $(LOCALBIN)
 ## GOBIN=$(LOCALBIN) go install sigs.k8s.io/controller-runtime/tools/setup-envtest@latest
-	go build -o $(LOCALBIN) sigs.k8s.io/controller-runtime/tools/setup-envtest@latest
+	GO111MODULE=on go build -o $(LOCALBIN) sigs.k8s.io/controller-runtime/tools/setup-envtest@latest
 
 .PHONY: goimports
 goimports: $(GOIMPORTS)
 $(GOIMPORTS): $(LOCALBIN)
 ## GOBIN=$(LOCALBIN) go install golang.org/x/tools/cmd/goimports@latest
-	go build -o $(LOCALBIN) golang.org/x/tools/cmd/goimports@latest
+	GO111MODULE=on go build -o $(LOCALBIN) golang.org/x/tools/cmd/goimports@latest
 
 .PHONY: golint
 golint: $(GOLINT)
 $(GOLINT): $(LOCALBIN)
 ## GOBIN=$(LOCALBIN) go install github.com/golangci/golangci-lint/cmd/golangci-lint@$(GOLINT_VERSION)
 ## GOBIN=$(LOCALBIN) go install github.com/nunnatsa/ginkgolinter/cmd/ginkgolinter@$(GINKGOLINTER_VERSION)
-	go build -o $(LOCALBIN) github.com/golangci/golangci-lint/cmd/golangci-lint@$(GOLINT_VERSION)
-	go build -o $(LOCALBIN) github.com/nunnatsa/ginkgolinter/cmd/ginkgolinter@$(GINKGOLINTER_VERSION)
+	GO111MODULE=on go build -o $(LOCALBIN) github.com/golangci/golangci-lint/cmd/golangci-lint@$(GOLINT_VERSION)
+	GO111MODULE=on go build -o $(LOCALBIN) github.com/nunnatsa/ginkgolinter/cmd/ginkgolinter@$(GINKGOLINTER_VERSION)
 
 .PHONY: serve-docs
 serve-docs: generate-manifests
