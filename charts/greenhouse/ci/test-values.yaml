@@ -17,6 +17,11 @@ oidc:
   redirectURL: https://top.secret/redirect
   clientID: topSecret!
   clientSecret: topSecret!
+scim:
+  enabled: true
+  baseURL: https://top.secret/scim
+  username: topSecret!
+  password: topSecret!123
 
 alerts:
   enabled: true
