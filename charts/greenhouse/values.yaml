@@ -23,7 +23,7 @@ oidc:
   clientSecret:
 scim:
   enabled: false
-  # username: 
+  # username:
   # password:
 
 # Configures core Greenhouse teams.
