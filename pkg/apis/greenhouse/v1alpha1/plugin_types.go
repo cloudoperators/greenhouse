@@ -70,6 +70,9 @@ const (
 	// NoHelmChartTestFailuresCondition reflects the status of the HelmChart tests.
 	NoHelmChartTestFailuresCondition ConditionType = "NoHelmChartTestFailures"
 
+	// PluginDisabled reflects the status of the Plugin being disabled.
+	PluginDisabledCondition ConditionType = "PluginDisabled"
+
 	// PluginDefinitionNotFoundReason is set when the pluginDefinition is not found.
 	PluginDefinitionNotFoundReason ConditionReason = "PluginDefinitionNotFound"
 

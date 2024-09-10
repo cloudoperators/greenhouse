@@ -44,6 +44,7 @@ var exposedConditions = []greenhousev1alpha1.ConditionType{
 	greenhousev1alpha1.StatusUpToDateCondition,
 	greenhousev1alpha1.NoHelmChartTestFailuresCondition,
 	greenhousev1alpha1.WorkloadReadyCondition,
+	greenhousev1alpha1.PluginDisabledCondition,
 }
 
 // HelmReconciler reconciles a Plugin object.
@@ -154,10 +155,30 @@ func (r *HelmReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.
 		return ctrl.Result{}, fmt.Errorf("pluginDefinition not found: %s", helmReconcileFailedCondition.Message)
 	}
 
+	pluginDisabledCondition := *pluginStatus.GetConditionByType(greenhousev1alpha1.PluginDisabledCondition)
+	if plugin.Spec.Disabled {
+		// Uninstall the Helm release if it exists.
+		releaseNotFound, err := helm.UninstallHelmRelease(ctx, restClientGetter, plugin)
+		if err != nil {
+			c := greenhousev1alpha1.TrueCondition(greenhousev1alpha1.HelmReconcileFailedCondition, greenhousev1alpha1.HelmUninstallFailedReason, err.Error())
+			pluginStatus.StatusConditions.SetConditions(c)
+			return ctrl.Result{}, err
+		}
+		if !releaseNotFound {
+			fmt.Printf("Uninstalled Helm release for disabled plugin %s\n", plugin.Name)
+
+			pluginDisabledCondition.Status = metav1.ConditionTrue
+			pluginDisabledCondition.Message = "Plugin is disabled successfully"
+			pluginStatus.StatusConditions.SetConditions(pluginDisabledCondition)
+		}
+		return ctrl.Result{}, nil
+	}
+
 	driftDetectedCondition, reconcileFailedCondition := r.reconcileHelmRelease(ctx, restClientGetter, plugin, pluginDefinition, pluginStatus)
-	pluginStatus.StatusConditions.SetConditions(driftDetectedCondition, reconcileFailedCondition)
+	pluginDisabledCondition.Status = metav1.ConditionFalse
+	pluginDisabledCondition.Message = ""
 	statusReconcileCompleteCondition := r.reconcileStatus(ctx, restClientGetter, plugin, pluginDefinition, &pluginStatus)
-	pluginStatus.StatusConditions.SetConditions(statusReconcileCompleteCondition)
+	pluginStatus.StatusConditions.SetConditions(driftDetectedCondition, reconcileFailedCondition, pluginDisabledCondition, statusReconcileCompleteCondition)
 
 	if reconcileFailedCondition.IsTrue() {
 		return ctrl.Result{}, fmt.Errorf("helm reconcile failed: %s", reconcileFailedCondition.Message)
