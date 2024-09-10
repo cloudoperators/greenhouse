@@ -2,9 +2,6 @@ dependencies:
 - name: idproxy
   repository: file://../idproxy
   version: 0.2.0
-- name: team-membership
-  repository: file://../team-membership
-  version: 0.1.1
 - name: cors-proxy
   repository: file://../cors-proxy
   version: 0.2.0
@@ -23,5 +20,5 @@ dependencies:
 - name: demo
   repository: file://../demo
   version: 0.1.1
-digest: sha256:79905b3a23f3e2d4869f6036c6d431f73d289eaeba23edce4fabcc2aaf5b3f0f
-generated: "2024-09-04T09:43:27.515551+02:00"
+digest: sha256:a9f3691f99496f2a587ab98e599c7b0cc00c0c5a6e712b75c2fc070aedd1615b
+generated: "2024-09-06T14:19:08.271429486+02:00"

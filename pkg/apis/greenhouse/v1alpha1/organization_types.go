@@ -26,6 +26,8 @@ type OrganizationSpec struct {
 type Authentication struct {
 	// OIDConfig configures the OIDC provider.
 	OIDCConfig *OIDCConfig `json:"oidc,omitempty"`
+	// SCIMConfig configures the SCIM client.
+	SCIMConfig *SCIMConfig `json:"scim,omitempty"`
 }
 
 type OIDCConfig struct {
@@ -38,6 +40,15 @@ type OIDCConfig struct {
 	ClientIDReference SecretKeyReference `json:"clientIDReference"`
 	// ClientSecretReference references the Kubernetes secret containing the client secret.
 	ClientSecretReference SecretKeyReference `json:"clientSecretReference"`
+}
+
+type SCIMConfig struct {
+	// URL to the SCIM server.
+	BaseURL string `json:"baseURL"`
+	// User to be used for basic authentication.
+	BasicAuthUser ValueFromSource `json:"basicAuthUser"`
+	// Password to be used for basic authentication.
+	BasicAuthPw ValueFromSource `json:"basicAuthPw"`
 }
 
 // OrganizationStatus defines the observed state of an Organization

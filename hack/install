@@ -52,8 +52,7 @@ helm upgrade greenhouse "${REPO_ROOT}/${HELM_DIR}" \
   --reset-values \
   --install \
   --set ccloud.enabled=false \
-  --set team-membership.enabled=false \
-  --set-string image.tag=latest --set-string team-membership.image.tag=latest --set-string idproxy.image.tag=latest --set-string cors-proxy.image.tag=latest
+  --set-string image.tag=latest --set-string idproxy.image.tag=latest --set-string cors-proxy.image.tag=latest
   # TODO: Handle additional values files.
 
 # Configure ServiceAccount-based auth for CI.

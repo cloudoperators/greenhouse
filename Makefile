@@ -132,7 +132,7 @@ $(CLI): $(LOCALBIN)
 
 ##@ Build
 .PHONY: build
-build: generate build-greenhouse build-idproxy build-team-membership build-cors-proxy build-greenhousectl build-service-proxy
+build: generate build-greenhouse build-idproxy build-cors-proxy build-greenhousectl build-service-proxy
 
 build-%: GIT_BRANCH  = $(shell git rev-parse --abbrev-ref HEAD)
 build-%: GIT_COMMIT  = $(shell git rev-parse --short HEAD)
