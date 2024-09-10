@@ -68,8 +68,6 @@ jobs:
       # https://github.com/docker/setup-buildx-action
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3 # v3.0.0
-        env:
-          BUILDX_NO_DEFAULT_ATTESTATIONS: 1
         with:
           driver-opts: |
             image=moby/buildkit:latest
@@ -116,6 +114,7 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
         #  cache-from: type=gha
         #  cache-to: type=gha,mode=max
+          sbom: false
           platforms: |
             linux/amd64
             linux/arm64
