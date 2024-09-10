@@ -73,3 +73,79 @@ var NginxPluginDefinition = &greenhousev1alpha1.PluginDefinition{
 		},
 	},
 }
+
+var AlertsPluginDefinition = &greenhousev1alpha1.PluginDefinition{
+	TypeMeta: metav1.TypeMeta{
+		Kind:       "PluginDefinition",
+		APIVersion: greenhousev1alpha1.GroupVersion.String(),
+	},
+	ObjectMeta: metav1.ObjectMeta{
+		Name:      "alerts",
+		Namespace: test.TestNamespace,
+	},
+	Spec: greenhousev1alpha1.PluginDefinitionSpec{
+		Version:        "2.0.2",
+		Weight:         ptr[int32](0),
+		DisplayName:    "Alerts",
+		Description:    "The Alerts Plugin consists of both Prometheus Alertmanager and Supernova, the holistic alert management UI",
+		DocMarkDownUrl: "https://raw.githubusercontent.com/cloudoperators/greenhouse-extensions/main/alerts/README.md",
+		Icon:           "https://raw.githubusercontent.com/cloudoperators/greenhouse-extensions/main/alerts/logo.png",
+		HelmChart: &greenhousev1alpha1.HelmChartReference{
+			Name:       "artifact-hub",
+			Repository: "https://artifacthub.github.io/helm-charts",
+			Version:    "1.19.0",
+		},
+		UIApplication: &greenhousev1alpha1.UIApplicationReference{
+			Name:    "supernova",
+			Version: "latest",
+		},
+		Options: []greenhousev1alpha1.PluginOption{
+			{
+				Name:        "endpoint",
+				Description: "Alertmanager API Endpoint URL",
+				Required:    true,
+				Type:        "string",
+			},
+			{
+				Name:        "alerts.prometheusOperator.enabled",
+				Description: "Deploy Prometheus Operator if kube-monitoring has not already installed it once.",
+				Default:     &apiextensionsv1.JSON{Raw: []byte("false")},
+				Type:        "bool",
+			},
+			{
+				Name:        "alerts.crds.enabled",
+				Description: "Install Prometheus Operator CRDs if kube-monitoring has not already installed them.",
+				Default:     &apiextensionsv1.JSON{Raw: []byte("false")},
+				Type:        "bool",
+			},
+			{
+				Name:        "alerts.alertmanager.enabled",
+				Description: "Install Prometheus Operator CRDs if kube-monitoring has not already installed them.",
+				Required:    true,
+				Type:        "bool",
+			},
+			{
+				Name:        "alerts.defaultRules.create",
+				Description: "Install Prometheus Operator CRDs if kube-monitoring has not already installed them.",
+				Default:     &apiextensionsv1.JSON{Raw: []byte("true")},
+				Type:        "bool",
+			},
+			{
+				Name:        "alerts.alertmanager.ingress.enabled",
+				Description: "Install Prometheus Operator CRDs if kube-monitoring has not already installed them.",
+				Default:     &apiextensionsv1.JSON{Raw: []byte("true")},
+				Type:        "bool",
+			},
+			{
+				Name:        "alerts.alertmanager.serviceMonitor.additionalLabels",
+				Description: "Additional ServiceMonitor labels. Name of the kube-monitoring Plugin to monitor Alertmanager.",
+				Default:     &apiextensionsv1.JSON{Raw: []byte("{\"plugin\": \"kube-monitoring\"}")},
+				Type:        "map",
+			},
+		},
+	},
+}
+
+func ptr[T any](value T) *T {
+	return &value
+}

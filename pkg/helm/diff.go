@@ -6,6 +6,7 @@ package helm
 import (
 	"encoding/json"
 	"fmt"
+	"maps"
 	"strings"
 
 	"github.com/pkg/errors"
@@ -62,6 +63,14 @@ func diffAgainstRelease(restClientGetter genericclioptions.RESTClientGetter, nam
 	remoteObjs, err := ObjectMapFromRelease(restClientGetter, helmRelease, nil)
 	if err != nil {
 		return nil, err
+	}
+
+	for _, hook := range helmRelease.Hooks {
+		hookObjs, err := ObjectMapFromManifest(restClientGetter, helmRelease.Namespace, hook.Manifest, nil)
+		if err != nil {
+			return nil, err
+		}
+		maps.Copy(remoteObjs, hookObjs)
 	}
 
 	localObjs, err := ObjectMapFromManifest(restClientGetter, namespace, manifest, nil)
