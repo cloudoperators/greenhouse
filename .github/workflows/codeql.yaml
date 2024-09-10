@@ -11,9 +11,9 @@ on:
 jobs:
   codeql:
     permissions:
-        security-events: write
-        actions: read
-        contents: read
+      security-events: write
+      actions: read
+      contents: read
     uses: cloudoperators/common/.github/workflows/shared-codeql.yaml@main
     with:
       runs-on: "['default']"
