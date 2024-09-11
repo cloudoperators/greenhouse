@@ -5,30 +5,6 @@ on:
 
 jobs:
   build-license-eye:
-    name: Build LicenseEye
-    runs-on: [ default ]
     permissions:
-      contents: write
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          repository: ${{ github.event.pull_request.head.repo.full_name }}
-          ref: ${{ github.event.pull_request.head.ref }}
-
-      - name: Check License Header
-        uses: apache/skywalking-eyes/header@v0.6.0
-        with:
-            config: .github/licenserc.yaml
-            mode: fix
-
-      - name: Apply Changes
-        uses: EndBug/add-and-commit@v9
-        env:
-            GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-            author_name: License Bot
-            author_email: license_bot@github.com
-            message: 'Automatic application of license header'
+      contents: write # Only used when `apply_header: true` else the permission is `read` see: https://github.com/cloudoperators/common/blob/8f15c13b6f4c1631c7e6f6dff5c3300452e9b5b6/.github/workflows/shared-license.yaml#L21-L22
+    uses: cloudoperators/common/.github/workflows/shared-license.yaml@main

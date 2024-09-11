@@ -114,6 +114,8 @@ jobs:
           push: ${{ github.event_name != 'pull_request' }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+          # remove untagged images produced for multi platform builds
+          provenance: false
         #  cache-from: type=gha
         #  cache-to: type=gha,mode=max
           platforms: |
