@@ -1,0 +1,7 @@
+# SPDX-FileCopyrightText: 2024 SAP SE or an SAP affiliate company and Greenhouse contributors
+# SPDX-License-Identifier: Apache-2.0
+
+apiVersion: v2
+name: myChart
+version: 1.0.0
+description: A basic chart for testing with CRDs
