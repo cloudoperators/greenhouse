@@ -26,7 +26,7 @@ jobs:
           with:
             account: cloudoperators
             image-names: "greenhouse*" # select only packages starts with greenhouse*
-            image-tags: "!main"  # any image tag
+            image-tags: "*"  # any image tag
             tag-selection: both  # select both tagged and untagged package versions
             keep-n-most-recent: 5 # keep up to `n` tagged package versions for each of the packages
             cut-off: 4w # package versions should be older than 4 weeks
