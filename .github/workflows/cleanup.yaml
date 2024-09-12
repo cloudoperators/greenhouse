@@ -10,10 +10,25 @@ jobs:
     steps:
         - uses: dataaxiom/ghcr-cleanup-action@v1
           with:
-            dry-run: false
+            dry-run: true
             exclude-tags: main
             delete-untagged: true
             delete-ghost-images: true
             delete-partial-images: true
             keep-n-tagged: 3
             token: ${{ secrets.GITHUB_TOKEN }}
+    
+  cleanup2:
+    name: retention policy 2
+    runs-on: ubuntu-latest
+    steps:
+        - uses: snok/container-retention-policy@v3.0.0
+          with:
+            account: cloudoperators
+            image-names: "greenhouse*" # select only packages starts with greenhouse*
+            image-tags: "!main"  # any image tag
+            tag-selection: both  # select both tagged and untagged package versions
+            keep-n-most-recent: 5 # keep up to `n` tagged package versions for each of the packages
+            cut-off: 4w # package versions should be older than 4 weeks
+            token: ${{ secrets.GITHUB_TOKEN }}
+            dry-run: true
