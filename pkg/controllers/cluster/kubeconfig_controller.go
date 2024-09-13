@@ -277,7 +277,7 @@ func (r *KubeconfigReconciler) organizationToClusters(ctx context.Context, o cli
 	ns := &corev1.Namespace{}
 	err := r.Get(ctx, client.ObjectKey{Name: o.GetName()}, ns)
 
-	// if namespace exitsts
+	// if namespace exists
 	if err == nil {
 		// get clusters in this namespace
 		clusters := &v1alpha1.ClusterList{}
