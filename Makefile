@@ -207,8 +207,8 @@ $(GOIMPORTS): $(LOCALBIN)
 .PHONY: golint
 golint: $(GOLINT)
 $(GOLINT): $(LOCALBIN)
-	GOPATH=$(shell pwd) go install github.com/golangci/golangci-lint/cmd/golangci-lint@$(GOLINT_VERSION)
-	GOPATH=$(shell pwd) go install github.com/nunnatsa/ginkgolinter/cmd/ginkgolinter@$(GINKGOLINTER_VERSION)
+	GOBIN=$(LOCALBIN) go install github.com/golangci/golangci-lint/cmd/golangci-lint@$(GOLINT_VERSION)
+	GOBIN=$(LOCALBIN) go install github.com/nunnatsa/ginkgolinter/cmd/ginkgolinter@$(GINKGOLINTER_VERSION)
 
 .PHONY: serve-docs
 serve-docs: generate-manifests
