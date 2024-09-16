@@ -92,7 +92,10 @@
   "customManagers": [
     {
       "customType": "regex",
-      "fileMatch": ["Makefile$", "\\.sh$"],
+      "fileMatch": [
+        "^Makefile$"
+      ],
+      "matchStringsStrategy": "combination",
       "matchStrings": [
         ".*_VERSION"
       ],
