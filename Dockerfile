@@ -4,7 +4,6 @@ FROM --platform=${BUILDPLATFORM:-linux/amd64} golang:1.22 as builder
 ARG TARGETOS
 ARG TARGETARCH
 ENV CGO_ENABLED=0
-ENV CONTROLLER_GEN_BIN="${shell pwd}/bin"
 
 WORKDIR /workspace
 
@@ -15,7 +14,7 @@ COPY . .
 # Build greenhouse operator and tooling.
 RUN --mount=type=cache,target=/go/pkg/mod \
 	--mount=type=cache,target=/root/.cache/go-build \
-	make build CGO_ENABLED=${CGO_ENABLED} GOOS=${TARGETOS} GOARCH=${TARGETARCH} CONTROLLER_GEN=${CONTROLLER_GEN_BIN}
+	make build CGO_ENABLED=${CGO_ENABLED} GOOS=${TARGETOS} GOARCH=${TARGETARCH}
 
 # Use distroless as minimal base image to package the manager binary
 # Refer to https://github.com/GoogleContainerTools/distroless for more details
