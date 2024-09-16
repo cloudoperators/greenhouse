@@ -71,8 +71,8 @@ generate: controller-gen ## Generate code containing DeepCopy, DeepCopyInto, and
 
 .PHONY: generate-docker
 generate-docker: controller-gen-docker ## Generate code containing DeepCopy, DeepCopyInto, and DeepCopyObject method implementations.
-	$(CONTROLLER_GEN_DOCKER) object:headerFile="hack/boilerplate.go.txt" paths="./pkg/apis/..."
-	$(CONTROLLER_GEN_DOCKER) object:headerFile="hack/boilerplate.go.txt" paths="./pkg/dex/..."
+	$(CONTROLLER_GEN) object:headerFile="hack/boilerplate.go.txt" paths="./pkg/apis/..."
+	$(CONTROLLER_GEN) object:headerFile="hack/boilerplate.go.txt" paths="./pkg/dex/..."
 
 
 # Default values
@@ -178,7 +178,6 @@ kustomize-build-crds: generate-manifests kustomize
 ## Tool Binaries
 KUSTOMIZE ?= $(LOCALBIN)/kustomize
 CONTROLLER_GEN ?= $(LOCALBIN)/controller-gen
-CONTROLLER_GEN_DOCKER ?=$(shell pwd)/bin/controller-gen
 GOIMPORTS ?= $(LOCALBIN)/goimports
 GOLINT ?= $(LOCALBIN)/golangci-lint
 ENVTEST ?= $(LOCALBIN)/setup-envtest
@@ -203,7 +202,7 @@ $(CONTROLLER_GEN): $(LOCALBIN)
 
 .PHONY: controller-gen-docker
 controller-gen-docker: $(CONTROLLER_GEN) ## Download controller-gen locally if necessary.
-$(CONTROLLER_GEN_DOCKER): $(shell pwd)/bin
+$(CONTROLLER_GEN): $(LOCALBIN)
 	GOPATH=$(shell pwd) go install sigs.k8s.io/controller-tools/cmd/controller-gen@$(CONTROLLER_TOOLS_VERSION)
 
 .PHONY: envtest
@@ -213,7 +212,7 @@ $(ENVTEST): $(LOCALBIN)
 
 .PHONY: envtest-docker
 envtest-docker: $(ENVTEST) ## Download envtest-setup locally if necessary.
-$(ENVTEST): $(shell pwd)/bin
+$(ENVTEST): $(LOCALBIN)
 	GOPATH=$(shell pwd) go install sigs.k8s.io/controller-runtime/tools/setup-envtest@latest
 
 .PHONY: goimports
