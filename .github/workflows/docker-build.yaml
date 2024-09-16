@@ -118,7 +118,6 @@ jobs:
           provenance: false
         #  cache-from: type=gha
         #  cache-to: type=gha,mode=max
-          provenance: false
           platforms: |
             linux/amd64
             linux/arm64
