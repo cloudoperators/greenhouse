@@ -110,9 +110,43 @@ func (r *KubeconfigReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 		return ctrl.Result{}, nil
 	}
 
+	// get oidc info from organization
+	oidc, err := r.getOIDCInfo(ctx, cluster.Namespace)
+	if err != nil {
+		l.Error(err, "skip reconcile, oidc data not fetched")
+		return ctrl.Result{}, nil
+	}
+	oidcHash, err := rxhash.HashStruct(oidc)
+	if err != nil {
+		l.Error(err, "unable to hash oidc info")
+		return ctrl.Result{}, err
+	}
+	if kubeconfig.ObjectMeta.Annotations[OIDCHashAnnotation] != oidcHash {
+		updateRequired = true
+		if kubeconfig.ObjectMeta.Annotations == nil {
+			kubeconfig.ObjectMeta.Annotations = make(map[string]string)
+		}
+		kubeconfig.ObjectMeta.Annotations[OIDCHashAnnotation] = oidcHash
+		kubeconfig.Spec.Kubeconfig.AuthInfo = []v1alpha1.ClusterKubeconfigAuthInfoItem{
+			{
+				Name: "oidc@" + cluster.Name,
+				AuthInfo: v1alpha1.ClusterKubeconfigAuthInfo{
+					AuthProvider: clientcmdapi.AuthProviderConfig{
+						Name: "oidc",
+						Config: map[string]string{
+							"client-id":      oidc.ClientID,
+							"client-secret":  oidc.ClientSecret,
+							"idp-issuer-url": oidc.IssuerURL,
+						},
+					},
+				},
+			},
+		}
+	}
+
 	// get cluster connection data from cluster secret
 	var secret corev1.Secret
-	err := r.Get(ctx, client.ObjectKey{Name: req.Name, Namespace: req.Namespace}, &secret)
+	err = r.Get(ctx, client.ObjectKey{Name: req.Name, Namespace: req.Namespace}, &secret)
 	if err != nil {
 		kubeconfig.Status.Conditions.SetConditions(v1alpha1.TrueCondition(v1alpha1.KubeconfigReconcileFailedCondition, "SecretFetch", err.Error()))
 		updateRequired = true
@@ -146,44 +180,6 @@ func (r *KubeconfigReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 					CertificateAuthorityData: clusterCfg.CertificateAuthorityData,
 				},
 			}}
-	}
-
-	// get oidc info from organization
-	oidc, err := r.getOIDCInfo(ctx, cluster.Namespace)
-	if err != nil {
-		kubeconfig.Status.Conditions.SetConditions(v1alpha1.TrueCondition(v1alpha1.KubeconfigReconcileFailedCondition, "OIDCFetch", err.Error()))
-		updateRequired = true
-		failed = true
-		l.Error(err, "unable to fetch oidc data")
-	} else {
-		oidcHash, err := rxhash.HashStruct(oidc)
-		if err != nil {
-			l.Error(err, "unable to hash oidc info")
-			return ctrl.Result{}, err
-		}
-		if kubeconfig.ObjectMeta.Annotations[OIDCHashAnnotation] != oidcHash {
-			updateRequired = true
-			if kubeconfig.ObjectMeta.Annotations == nil {
-				kubeconfig.ObjectMeta.Annotations = make(map[string]string)
-			}
-			kubeconfig.ObjectMeta.Annotations[OIDCHashAnnotation] = oidcHash
-
-			kubeconfig.Spec.Kubeconfig.AuthInfo = []v1alpha1.ClusterKubeconfigAuthInfoItem{
-				{
-					Name: "oidc@" + cluster.Name,
-					AuthInfo: v1alpha1.ClusterKubeconfigAuthInfo{
-						AuthProvider: clientcmdapi.AuthProviderConfig{
-							Name: "oidc",
-							Config: map[string]string{
-								"client-id":      oidc.ClientID,
-								"client-secret":  oidc.ClientSecret,
-								"idp-issuer-url": oidc.IssuerURL,
-							},
-						},
-					},
-				},
-			}
-		}
 	}
 
 	if updateRequired {
