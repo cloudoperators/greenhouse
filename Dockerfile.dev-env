@@ -15,7 +15,7 @@ RUN make controller-gen-docker envtest-docker
 # Build dev-env and setup-envtest
 RUN --mount=type=cache,target=/go/pkg/mod \
   --mount=type=cache,target=/root/.cache/go-build \
-  make generate build-dev-env CGO_ENABLED=${CGO_ENABLED} GOOS=${TARGETOS} GOARCH=${TARGETARCH} \
+  make generate-docker build-dev-env CGO_ENABLED=${CGO_ENABLED} GOOS=${TARGETOS} GOARCH=${TARGETARCH} \
   && cp $(/workspace/bin/setup-envtest use ${ENVTEST_K8S_VERSION} -p path)/* /usr/local/bin
 
 # Get PluginDefinitions from https://github.com/cloudoperators/greenhouse-extensions
