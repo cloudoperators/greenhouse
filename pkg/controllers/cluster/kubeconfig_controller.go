@@ -52,8 +52,8 @@ func (r *KubeconfigReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 
 	var cluster v1alpha1.Cluster
 	if err := r.Get(ctx, req.NamespacedName, &cluster); err != nil {
-		l.Error(err, "unable to fetch cluster")
-		return ctrl.Result{}, err
+		l.Info("skip reconcile, cluster is not found")
+		return ctrl.Result{}, nil
 	}
 
 	if cluster.GetDeletionTimestamp() != nil {
