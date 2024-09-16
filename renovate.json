@@ -91,17 +91,7 @@
   "separateMinorPatch": true,
   "customManagers": [
     {
-      "customType": "regex",
-      "description": "Update _VERSION variables in Makefile",
-      "fileMatch": [
-        "^Makefile$"
-      ],
-      "matchStrings": [
-        "# renovate: datasource=(?<datasource>[a-z-]+?)(?: depName=(?<depName>.+?))? packageName=(?<packageName>.+?)(?: versioning=(?<versioning>[a-z-]+?))?\\s.+?_VERSION=(?<currentValue>.+?)\\s"
-      ]
-    },
-    {
-      "description": "version field and OTELCOL_BUILDER_VERSION should follow upstream",
+      "description": "version field and ENVTEST_K8S_VERSION should follow upstream",
       "fileMatch": [
         "^Makefile$"
       ],
@@ -110,6 +100,46 @@
         "ENVTEST_K8S_VERSION\\s*\\?=\\s*(?<currentValue>\\S+)"
       ],
       "depNameTemplate": "kubernetes-sigs/controller-tools",
+      "datasourceTemplate": "github-releases",
+      "extractVersionTemplate": "^v(?<version>.*)$"
+    },
+    {
+      "description": "version field and KUSTOMIZE_VERSION should follow upstream",
+      "fileMatch": [
+        "^Makefile$"
+      ],
+      "matchStrings": [
+        "\\sversion:\\s+(?<currentValue>\\S+)",
+        "KUSTOMIZE_VERSION\\s*\\?=\\s*(?<currentValue>\\S+)"
+      ],
+      "depNameTemplate": "kubernetes-sigs/kustomize",
+      "datasourceTemplate": "github-releases",
+      "extractVersionTemplate": "^v(?<version>.*)$"
+    },
+    {
+      "description": "version field and CONTROLLER_TOOLS_VERSION should follow upstream",
+      "fileMatch": [
+        "^Makefile$"
+      ],
+      "matchStrings": [
+        "\\sversion:\\s+(?<currentValue>\\S+)",
+        "CONTROLLER_TOOLS_VERSION\\s*\\?=\\s*(?<currentValue>\\S+)"
+      ],
+      "depNameTemplate": "kubernetes-sigs/controller-tools",
+      "datasourceTemplate": "github-releases",
+      "extractVersionTemplate": "^v(?<version>.*)$"
+    },
+    {
+      "description": "version field and GOLINT_VERSION/GINKGOLINTER_VERSION should follow upstream",
+      "fileMatch": [
+        "^Makefile$"
+      ],
+      "matchStrings": [
+        "\\sversion:\\s+(?<currentValue>\\S+)",
+        "GOLINT_VERSION\\s*\\?=\\s*(?<currentValue>\\S+)",
+        "GINKGOLINTER_VERSION\\s*\\?=\\s*(?<currentValue>\\S+)",
+      ],
+      "depNameTemplate": "golangci/golangci-lint",
       "datasourceTemplate": "github-releases",
       "extractVersionTemplate": "^v(?<version>.*)$"
     }
