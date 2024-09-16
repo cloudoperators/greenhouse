@@ -196,7 +196,7 @@ $(CONTROLLER_GEN): $(LOCALBIN)
 
 .PHONY: controller-gen-docker
 controller-gen-docker: $(CONTROLLER_GEN) ## Download controller-gen locally if necessary.
-$(CONTROLLER_GEN): $(LOCALBIN)
+$(CONTROLLER_GEN_DOCKER): $(LOCALBIN)
 	GOPATH=$(shell pwd) go install sigs.k8s.io/controller-tools/cmd/controller-gen@$(CONTROLLER_TOOLS_VERSION)
 
 .PHONY: envtest
@@ -206,7 +206,7 @@ $(ENVTEST): $(LOCALBIN)
 
 .PHONY: envtest-docker
 envtest-docker: $(ENVTEST) ## Download envtest-setup locally if necessary.
-$(ENVTEST): $(LOCALBIN)
+$(ENVTEST_DOCKER): $(LOCALBIN)
 	GOPATH=$(shell pwd) go install sigs.k8s.io/controller-runtime/tools/setup-envtest@latest
 
 .PHONY: goimports
