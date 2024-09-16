@@ -91,7 +91,7 @@ func (r *KubeconfigReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 
 		kubeconfig.Status.Conditions.SetConditions(v1alpha1.TrueCondition(v1alpha1.KubeconfigCreatedCondition, "NewCreation", ""))
 
-		err := r.Client.Create(ctx, &kubeconfig)
+		_, err := clientutil.CreateOrPatch(ctx, r.Client, &kubeconfig, func() error { return nil })
 		if err != nil {
 			l.Error(err, "unable to create kubeconfig")
 			return ctrl.Result{}, err
