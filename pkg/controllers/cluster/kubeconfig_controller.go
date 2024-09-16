@@ -20,8 +20,6 @@ import (
 	greenhouseapis "github.com/cloudoperators/greenhouse/pkg/apis"
 	"github.com/cloudoperators/greenhouse/pkg/apis/greenhouse/v1alpha1"
 	"github.com/cloudoperators/greenhouse/pkg/clientutil"
-
-	"github.com/rxwycdh/rxhash"
 )
 
 type KubeconfigReconciler struct {
@@ -65,8 +63,6 @@ func (r *KubeconfigReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 	}
 
 	var kubeconfig v1alpha1.ClusterKubeconfig
-	updateRequired := false
-	failed := false
 
 	if err := r.Get(ctx, req.NamespacedName, &kubeconfig); err != nil {
 		if client.IgnoreNotFound(err) != nil {
@@ -88,26 +84,17 @@ func (r *KubeconfigReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 				UID:        cluster.UID,
 			},
 		}
-
+		kubeconfig.Spec.Kubeconfig.Contexts = []v1alpha1.ClusterKubeconfigContextItem{
+			{
+				Name: cluster.Name,
+				Context: v1alpha1.ClusterKubeconfigContext{
+					Cluster:   cluster.Name,
+					AuthInfo:  "oidc@" + cluster.Name,
+					Namespace: "default",
+				},
+			}}
+		kubeconfig.Spec.Kubeconfig.CurrentContext = cluster.Name
 		kubeconfig.Status.Conditions.SetConditions(v1alpha1.TrueCondition(v1alpha1.KubeconfigCreatedCondition, "NewCreation", ""))
-
-		_, err := clientutil.CreateOrPatch(ctx, r.Client, &kubeconfig, func() error { return nil })
-		if err != nil {
-			l.Error(err, "unable to create kubeconfig")
-			return ctrl.Result{}, err
-		}
-		return ctrl.Result{Requeue: true}, nil
-	}
-
-	if kubeconfig.GetDeletionTimestamp() != nil {
-		l.Info("skip reconcile, kubeconfig is being deleted")
-		return ctrl.Result{}, nil
-	}
-
-	condition := kubeconfig.Status.Conditions.GetConditionByType(v1alpha1.KubeconfigReconcileFailedCondition)
-	if condition != nil && condition.IsTrue() {
-		l.Info("skip reconcile, reconcile failed already")
-		return ctrl.Result{}, nil
 	}
 
 	// get oidc info from organization
@@ -116,17 +103,44 @@ func (r *KubeconfigReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 		l.Error(err, "skip reconcile, oidc data not fetched")
 		return ctrl.Result{}, nil
 	}
-	oidcHash, err := rxhash.HashStruct(oidc)
+
+	// get cluster connection data from cluster secret
+	var secret corev1.Secret
+	err = r.Get(ctx, client.ObjectKey{Name: req.Name, Namespace: req.Namespace}, &secret)
 	if err != nil {
-		l.Error(err, "unable to hash oidc info")
+		l.Error(err, "skip reconcile, secret data not fetched")
+		return ctrl.Result{}, nil
+	}
+
+	// collect cluster connection data and update kubeconfig
+	rootKubeCfg := secret.Data["kubeconfig"]
+	kubeCfg, err := clientcmd.Load(rootKubeCfg)
+	if err != nil {
+		l.Error(err, "unable to load kubeconfig")
 		return ctrl.Result{}, err
 	}
-	if kubeconfig.ObjectMeta.Annotations[OIDCHashAnnotation] != oidcHash {
-		updateRequired = true
-		if kubeconfig.ObjectMeta.Annotations == nil {
-			kubeconfig.ObjectMeta.Annotations = make(map[string]string)
-		}
-		kubeconfig.ObjectMeta.Annotations[OIDCHashAnnotation] = oidcHash
+
+	var clusterCfg *clientcmdapi.Cluster
+	for _, v := range kubeCfg.Clusters {
+		clusterCfg = v
+		break
+	}
+
+	clientutil.CreateOrPatch(ctx, r.Client, &kubeconfig, func() error {
+		kubeconfig.Spec.Kubeconfig.Clusters = []v1alpha1.ClusterKubeconfigClusterItem{
+			{
+				Name: cluster.Name,
+				Cluster: v1alpha1.ClusterKubeconfigCluster{
+					Server:                   clusterCfg.Server,
+					CertificateAuthorityData: clusterCfg.CertificateAuthorityData,
+				},
+			}}
+
+		return nil
+	})
+
+	// collect oidc data and update kubeconfig
+	clientutil.CreateOrPatch(ctx, r.Client, &kubeconfig, func() error {
 		kubeconfig.Spec.Kubeconfig.AuthInfo = []v1alpha1.ClusterKubeconfigAuthInfoItem{
 			{
 				Name: "oidc@" + cluster.Name,
@@ -142,67 +156,16 @@ func (r *KubeconfigReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 				},
 			},
 		}
-	}
+		return nil
+	})
 
-	// get cluster connection data from cluster secret
-	var secret corev1.Secret
-	err = r.Get(ctx, client.ObjectKey{Name: req.Name, Namespace: req.Namespace}, &secret)
+	_, err = clientutil.CreateOrPatch(ctx, r.Client, &kubeconfig, func() error {
+		kubeconfig.Status.Conditions.SetConditions(v1alpha1.TrueCondition(v1alpha1.KubeconfigReadyCondition, "Complete", ""))
+		return nil
+	})
 	if err != nil {
-		kubeconfig.Status.Conditions.SetConditions(v1alpha1.TrueCondition(v1alpha1.KubeconfigReconcileFailedCondition, "SecretFetch", err.Error()))
-		updateRequired = true
-		failed = true
-		l.Error(err, "unable to fetch secret")
-	} else if secret.ObjectMeta.ResourceVersion != kubeconfig.ObjectMeta.Annotations[ClusterSecretResourceVersionAnnotation] { // check if cluster secret has been updated
-		updateRequired = true
-		if kubeconfig.ObjectMeta.Annotations == nil {
-			kubeconfig.ObjectMeta.Annotations = make(map[string]string)
-		}
-		kubeconfig.ObjectMeta.Annotations[ClusterSecretResourceVersionAnnotation] = secret.ObjectMeta.ResourceVersion
-
-		rootKubeCfg := secret.Data["kubeconfig"]
-		kubeCfg, err := clientcmd.Load(rootKubeCfg)
-		if err != nil {
-			l.Error(err, "unable to load kubeconfig")
-			return ctrl.Result{}, err
-		}
-
-		var clusterCfg *clientcmdapi.Cluster
-		for _, v := range kubeCfg.Clusters {
-			clusterCfg = v
-			break
-		}
-
-		kubeconfig.Spec.Kubeconfig.Clusters = []v1alpha1.ClusterKubeconfigClusterItem{
-			{
-				Name: cluster.Name,
-				Cluster: v1alpha1.ClusterKubeconfigCluster{
-					Server:                   clusterCfg.Server,
-					CertificateAuthorityData: clusterCfg.CertificateAuthorityData,
-				},
-			}}
-	}
-
-	if updateRequired {
-		if !failed {
-			kubeconfig.Status.Conditions.SetConditions(v1alpha1.TrueCondition(v1alpha1.KubeconfigReadyCondition, "Complete", ""))
-		}
-		// check for the context settings
-		kubeconfig.Spec.Kubeconfig.Contexts = []v1alpha1.ClusterKubeconfigContextItem{
-			{
-				Name: cluster.Name,
-				Context: v1alpha1.ClusterKubeconfigContext{
-					Cluster:   cluster.Name,
-					AuthInfo:  "oidc@" + cluster.Name,
-					Namespace: "default",
-				},
-			}}
-		kubeconfig.Spec.Kubeconfig.CurrentContext = cluster.Name
-
-		err := r.Client.Update(ctx, &kubeconfig)
-		if err != nil {
-			l.Error(err, "unable to update kubeconfig")
-			return ctrl.Result{}, err
-		}
+		l.Error(err, "unable to update kubeconfig")
+		return ctrl.Result{}, err
 	}
 
 	return ctrl.Result{}, nil
@@ -253,11 +216,6 @@ func (r *KubeconfigReconciler) getOIDCInfo(ctx context.Context, orgName string) 
 	}
 	return oidc, nil
 }
-
-const (
-	ClusterSecretResourceVersionAnnotation = "greenhouse.sap/cluster-secret-resource-version"
-	OIDCHashAnnotation                     = "greenhouse.sap/oidc-hash"
-)
 
 func sameNameResource(_ context.Context, o client.Object) []ctrl.Request {
 	return []ctrl.Request{{NamespacedName: types.NamespacedName{Namespace: o.GetNamespace(), Name: o.GetName()}}}
