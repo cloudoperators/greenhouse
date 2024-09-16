@@ -149,6 +149,7 @@ Before submitting a pull request:
 - Verify the presence of `test-<plugin-name>.yaml`, `test-<plugin-name>-config.yaml`, and `test-permissions.yaml` files.
 - Test your Plugin thoroughly using `helm test <release-name>` and confirm that all tests pass against a test Kubernetes cluster.
 - Include a brief description of the tests in your pull request.
+- Make sure that your Plugin's Chart Directory and the Plugin's Upstream Chart Repository are added to this [greenhouse-extensions helm test config file](https://github.com/cloudoperators/greenhouse-extensions/blob/main/.github/configs/helm-test.yaml). This will ensure that your Plugin's tests are automatically run in the GitHub Actions workflow when you submit a pull request for this Plugin.
 
 **Important Notes**
 
