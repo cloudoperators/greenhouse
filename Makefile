@@ -69,12 +69,6 @@ generate: controller-gen ## Generate code containing DeepCopy, DeepCopyInto, and
 	$(CONTROLLER_GEN) object:headerFile="hack/boilerplate.go.txt" paths="./pkg/apis/..."
 	$(CONTROLLER_GEN) object:headerFile="hack/boilerplate.go.txt" paths="./pkg/dex/..."
 
-#.PHONY: generate-docker
-#generate-docker: controller-gen-docker ## Generate code containing DeepCopy, DeepCopyInto, and DeepCopyObject method implementations.
-#	$(CONTROLLER_GEN) object:headerFile="hack/boilerplate.go.txt" paths="./pkg/apis/..."
-#	$(CONTROLLER_GEN) object:headerFile="hack/boilerplate.go.txt" paths="./pkg/dex/..."
-
-
 # Default values
 GEN_DOCS_API_DIR ?= "./pkg/apis/greenhouse/v1alpha1" ## -app-dir should be Canonical Path Format so absolute path doesn't work. That's why we don't use $(CURDIR) here.
 GEN_DOCS_CONFIG ?= "$(CURDIR)/hack/docs-generator/config.json"
@@ -85,7 +79,7 @@ GEN_CRD_API_REFERENCE_DOCS := $(CURDIR)/hack/docs-generator/gen-crd-api-referenc
 check-gen-crd-api-reference-docs:
 	@if [ ! -f $(GEN_CRD_API_REFERENCE_DOCS) ]; then \
 		echo "gen-crd-api-reference-docs not found, installing..."; \
-		GOPATH=$(shell pwd) go install github.com/ahmetb/gen-crd-api-reference-docs@latest; \
+		GOBIN=$(LOCALBIN) go install github.com/ahmetb/gen-crd-api-reference-docs@latest; \
 	fi
 
 GEN_DOCS ?= $(LOCALBIN)/gen-crd-api-reference-docs
@@ -120,7 +114,7 @@ e2e-local-cluster-create:
 
 .PHONY: fmt
 fmt: goimports
-	GOPATH=$(shell pwd) go fmt ./...
+	GOBIN=$(LOCALBIN) go fmt ./...
 	$(GOIMPORTS) -w -local github.com/cloudoperators/greenhouse .
 
 .PHONY: lint
@@ -218,7 +212,7 @@ $(ENVTEST): $(LOCALBIN)
 .PHONY: goimports
 goimports: $(GOIMPORTS)
 $(GOIMPORTS): $(LOCALBIN)
-	GOPATH=$(shell pwd) go install golang.org/x/tools/cmd/goimports@latest
+	GOBIN=$(LOCALBIN) go install golang.org/x/tools/cmd/goimports@latest
 
 .PHONY: golint
 golint: $(GOLINT)
