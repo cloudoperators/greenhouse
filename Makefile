@@ -29,6 +29,8 @@ LOCALBIN ?= $(shell pwd)/bin
 $(LOCALBIN):
 	mkdir -p $(LOCALBIN)
 
+CLI ?= $(LOCALBIN)/greenhousectl
+
 .PHONY: all
 all: build
 
@@ -111,18 +113,26 @@ e2e-local-cluster-create:
 
 
 .PHONY: fmt
-fmt: goimports golint
-	GOBIN=$(LOCALBIN) go fmt ./...
+fmt: goimports
+	GOPATH=$(shell pwd) go fmt ./...
 	$(GOIMPORTS) -w -local github.com/cloudoperators/greenhouse .
-	$(GOLINT) run -v --timeout 5m
+
+.PHONY: lint
+lint: golint
+	$(GOLINT) run -v --timeout 5m	
 
 .PHONY: check
-check: fmt test
+check: fmt lint test
+
+##@ Build CLI Locally
+.PHONY: cli
+cli: $(CLI)
+$(CLI): $(LOCALBIN)
+	test -s $(LOCALBIN)/greenhousectl || echo "Building Greenhouse CLI..." && make build-greenhousectl
 
 ##@ Build
-
 .PHONY: build
-build: generate build-greenhouse build-idproxy build-team-membership build-cors-proxy build-greenhousectl build-service-proxy
+build: generate build-greenhouse build-idproxy build-cors-proxy build-greenhousectl build-service-proxy
 
 build-%: GIT_BRANCH  = $(shell git rev-parse --abbrev-ref HEAD)
 build-%: GIT_COMMIT  = $(shell git rev-parse --short HEAD)
@@ -170,7 +180,7 @@ HELMIFY ?= $(LOCALBIN)/helmify
 ## Tool Versions
 KUSTOMIZE_VERSION ?= v5.4.2
 CONTROLLER_TOOLS_VERSION ?= v0.15.0
-GOLINT_VERSION ?= v1.60.1
+GOLINT_VERSION ?= v1.60.2
 GINKGOLINTER_VERSION ?= v0.16.2
 
 KUSTOMIZE_INSTALL_SCRIPT ?= "https://raw.githubusercontent.com/kubernetes-sigs/kustomize/master/hack/install_kustomize.sh"
@@ -182,13 +192,23 @@ $(KUSTOMIZE): $(LOCALBIN)
 .PHONY: controller-gen
 controller-gen: $(CONTROLLER_GEN) ## Download controller-gen locally if necessary.
 $(CONTROLLER_GEN): $(LOCALBIN)
+	GOBIN=$(LOCALBIN) go install sigs.k8s.io/controller-tools/cmd/controller-gen@$(CONTROLLER_TOOLS_VERSION)
+
+.PHONY: controller-gen-docker
+controller-gen: $(CONTROLLER_GEN) ## Download controller-gen locally if necessary.
+$(CONTROLLER_GEN): $(LOCALBIN)
 	GOPATH=$(shell pwd) go install sigs.k8s.io/controller-tools/cmd/controller-gen@$(CONTROLLER_TOOLS_VERSION)
-	
+
 .PHONY: envtest
 envtest: $(ENVTEST) ## Download envtest-setup locally if necessary.
 $(ENVTEST): $(LOCALBIN)
+	GOBIN=$(LOCALBIN) go install sigs.k8s.io/controller-runtime/tools/setup-envtest@latest
+
+.PHONY: envtest-docker
+envtest: $(ENVTEST) ## Download envtest-setup locally if necessary.
+$(ENVTEST): $(LOCALBIN)
 	GOPATH=$(shell pwd) go install sigs.k8s.io/controller-runtime/tools/setup-envtest@latest
-	
+
 .PHONY: goimports
 goimports: $(GOIMPORTS)
 $(GOIMPORTS): $(LOCALBIN)
@@ -197,8 +217,8 @@ $(GOIMPORTS): $(LOCALBIN)
 .PHONY: golint
 golint: $(GOLINT)
 $(GOLINT): $(LOCALBIN)
-	GOPATH=$(shell pwd) go install github.com/golangci/golangci-lint/cmd/golangci-lint@$(GOLINT_VERSION)
-	GOPATH=$(shell pwd) go install github.com/nunnatsa/ginkgolinter/cmd/ginkgolinter@$(GINKGOLINTER_VERSION)
+	GOBIN=$(LOCALBIN) go install github.com/golangci/golangci-lint/cmd/golangci-lint@$(GOLINT_VERSION)
+	GOBIN=$(LOCALBIN) go install github.com/nunnatsa/ginkgolinter/cmd/ginkgolinter@$(GINKGOLINTER_VERSION)
 
 .PHONY: serve-docs
 serve-docs: generate-manifests
@@ -208,3 +228,10 @@ else
 	cd website && hugo server
 endif
 
+.PHONY: setup-dev
+setup-dev: cli
+	$(CLI) dev setup -f dev-env/localenv/sample.config.json
+
+.PHONY: dev-docs
+dev-docs:
+	go run -tags="dev" -mod=mod dev-env/localenv/docs.go
