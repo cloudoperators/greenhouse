@@ -92,15 +92,13 @@
   "customManagers": [
     {
       "customType": "regex",
+      "description": "Update _VERSION variables in Makefile",
       "fileMatch": [
         "^Makefile$"
       ],
-      "matchStringsStrategy": "combination",
       "matchStrings": [
-        ".*_VERSION"
-      ],
-      "datasourceTemplate": "go",
-      "versioningTemplate": "semver"
+        "# renovate: datasource=(?<datasource>[a-z-]+?)(?: depName=(?<depName>.+?))? packageName=(?<packageName>.+?)(?: versioning=(?<versioning>[a-z-]+?))?\\s.+?_VERSION=(?<currentValue>.+?)\\s"
+      ]
     }
   ]
 }
