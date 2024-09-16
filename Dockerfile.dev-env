@@ -10,7 +10,7 @@ WORKDIR /workspace
 COPY . .
 
 # Build dev-env and setup-envtest
-RUN make controller-gen envtest 
+RUN make controller-gen-docker envtest-docker
 
 # Build dev-env and setup-envtest
 RUN --mount=type=cache,target=/go/pkg/mod \
