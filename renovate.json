@@ -101,16 +101,16 @@
       ]
     },
     {
-      "customType": "regex",
-      "description": "Update _VERSION variables in Makefile",
+      "description": "version field and OTELCOL_BUILDER_VERSION should follow upstream",
       "fileMatch": [
         "^Makefile$"
       ],
       "matchStrings": [
-        "ENVTEST_K8S_VERSION: 'v(?<currentValue>.*?)'\n"
+        "\\sversion:\\s+(?<currentValue>\\S+)",
+        "ENVTEST_K8S_VERSION\\s*\\?=\\s*(?<currentValue>\\S+)"
       ],
-      "datasourceTemplate": "github-tags",
       "depNameTemplate": "kubernetes-sigs/controller-tools",
+      "datasourceTemplate": "github-releases",
       "extractVersionTemplate": "^v(?<version>.*)$"
     }
   ]
