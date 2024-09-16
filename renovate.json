@@ -99,6 +99,19 @@
       "matchStrings": [
         "# renovate: datasource=(?<datasource>[a-z-]+?)(?: depName=(?<depName>.+?))? packageName=(?<packageName>.+?)(?: versioning=(?<versioning>[a-z-]+?))?\\s.+?_VERSION=(?<currentValue>.+?)\\s"
       ]
+    },
+    {
+      "customType": "regex",
+      "description": "Update _VERSION variables in Makefile",
+      "fileMatch": [
+        "^Makefile$"
+      ],
+      "matchStrings": [
+        "ENVTEST_K8S_VERSION: 'v(?<currentValue>.*?)'\\n",
+      ],
+      "datasourceTemplate": "github-tags",
+      "depNameTemplate": "kubernetes-sigs/controller-tools",
+      "extractVersionTemplate": "^v(?<version>.*)$"
     }
   ]
 }
