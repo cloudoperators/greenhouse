@@ -69,10 +69,10 @@ generate: controller-gen ## Generate code containing DeepCopy, DeepCopyInto, and
 	$(CONTROLLER_GEN) object:headerFile="hack/boilerplate.go.txt" paths="./pkg/apis/..."
 	$(CONTROLLER_GEN) object:headerFile="hack/boilerplate.go.txt" paths="./pkg/dex/..."
 
-.PHONY: generate-docker
-generate-docker: controller-gen-docker ## Generate code containing DeepCopy, DeepCopyInto, and DeepCopyObject method implementations.
-	$(CONTROLLER_GEN) object:headerFile="hack/boilerplate.go.txt" paths="./pkg/apis/..."
-	$(CONTROLLER_GEN) object:headerFile="hack/boilerplate.go.txt" paths="./pkg/dex/..."
+#.PHONY: generate-docker
+#generate-docker: controller-gen-docker ## Generate code containing DeepCopy, DeepCopyInto, and DeepCopyObject method implementations.
+#	$(CONTROLLER_GEN) object:headerFile="hack/boilerplate.go.txt" paths="./pkg/apis/..."
+#	$(CONTROLLER_GEN) object:headerFile="hack/boilerplate.go.txt" paths="./pkg/dex/..."
 
 
 # Default values
