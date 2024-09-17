@@ -209,7 +209,7 @@ $(CONTROLLER_GEN): $(LOCALBIN)
 	GOBIN=$(LOCALBIN) go install sigs.k8s.io/controller-tools/cmd/controller-gen@$(CONTROLLER_TOOLS_VERSION)
 
 .PHONY: controller-gen-docker
-controller-gen-docker: $(CONTROLLER_GEN) ## Download controller-gen locally if necessary.
+controller-gen-docker: $(CONTROLLER_GEN_DOCKER) ## Download controller-gen locally if necessary.
 $(CONTROLLER_GEN_DOCKER): $(LOCALBIN)
 	GOPATH=$(shell pwd) go install sigs.k8s.io/controller-tools/cmd/controller-gen@$(CONTROLLER_TOOLS_VERSION)
 
