@@ -21,6 +21,10 @@ oidc:
   redirectURL:
   clientID:
   clientSecret:
+scim:
+  enabled: false
+  # username:
+  # password:
 
 # Configures core Greenhouse teams.
 teams:

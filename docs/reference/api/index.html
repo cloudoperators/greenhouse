@@ -42,6 +42,19 @@ OIDCConfig
 <p>OIDConfig configures the OIDC provider.</p>
 </td>
 </tr>
+<tr>
+<td>
+<code>scim</code><br>
+<em>
+<a href="#greenhouse.sap/v1alpha1.SCIMConfig">
+SCIMConfig
+</a>
+</em>
+</td>
+<td>
+<p>SCIMConfig configures the SCIM client.</p>
+</td>
+</tr>
 </tbody>
 </table>
 </div>
@@ -2518,6 +2531,63 @@ Condition
 </table>
 </div>
 </div>
+<h3 id="greenhouse.sap/v1alpha1.SCIMConfig">SCIMConfig
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#greenhouse.sap/v1alpha1.Authentication">Authentication</a>)
+</p>
+<div class="md-typeset__scrollwrap">
+<div class="md-typeset__table">
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>baseURL</code><br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>URL to the SCIM server.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>basicAuthUser</code><br>
+<em>
+<a href="#greenhouse.sap/v1alpha1.ValueFromSource">
+ValueFromSource
+</a>
+</em>
+</td>
+<td>
+<p>User to be used for basic authentication.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>basicAuthPw</code><br>
+<em>
+<a href="#greenhouse.sap/v1alpha1.ValueFromSource">
+ValueFromSource
+</a>
+</em>
+</td>
+<td>
+<p>Password to be used for basic authentication.</p>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
 <h3 id="greenhouse.sap/v1alpha1.SecretKeyReference">SecretKeyReference
 </h3>
 <p>
@@ -2635,6 +2705,7 @@ string
 <a href="#greenhouse.sap/v1alpha1.NodeStatus">NodeStatus</a>, 
 <a href="#greenhouse.sap/v1alpha1.PluginPresetStatus">PluginPresetStatus</a>, 
 <a href="#greenhouse.sap/v1alpha1.PluginStatus">PluginStatus</a>, 
+<a href="#greenhouse.sap/v1alpha1.TeamMembershipStatus">TeamMembershipStatus</a>, 
 <a href="#greenhouse.sap/v1alpha1.TeamRoleBindingStatus">TeamRoleBindingStatus</a>)
 </p>
 <p>A StatusConditions contains a list of conditions.
@@ -2897,6 +2968,19 @@ Kubernetes meta/v1.Time
 <td>
 <em>(Optional)</em>
 <p>LastChangedTime is the information when was the last time the membership was actually changed</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>statusConditions</code><br>
+<em>
+<a href="#greenhouse.sap/v1alpha1.StatusConditions">
+StatusConditions
+</a>
+</em>
+</td>
+<td>
+<p>StatusConditions contain the different conditions that constitute the status of the TeamRoleBinding.</p>
 </td>
 </tr>
 </tbody>
@@ -3484,7 +3568,8 @@ string
 </h3>
 <p>
 (<em>Appears on:</em>
-<a href="#greenhouse.sap/v1alpha1.PluginOptionValue">PluginOptionValue</a>)
+<a href="#greenhouse.sap/v1alpha1.PluginOptionValue">PluginOptionValue</a>, 
+<a href="#greenhouse.sap/v1alpha1.SCIMConfig">SCIMConfig</a>)
 </p>
 <p>ValueFromSource is a valid source for a value.</p>
 <div class="md-typeset__scrollwrap">
