@@ -2,7 +2,6 @@
 IMG ?= ghcr.io/cloudoperators/greenhouse:dev-$(USER)
 IMG_DEV_ENV ?= ghcr.io/cloudoperators/greenhouse-dev-env:dev-$(USER)
 IMG_LICENSE_EYE ?= ghcr.io/apache/skywalking-eyes/license-eye
-PLATFORM ?=linux/arm64
 
 # ENVTEST_K8S_VERSION refers to the version of kubebuilder assets to be downloaded by envtest binary.
 ENVTEST_K8S_VERSION = 1.30.3
@@ -28,6 +27,16 @@ SHELL = /usr/bin/env bash -o pipefail
 LOCALBIN ?= $(shell pwd)/bin
 $(LOCALBIN):
 	mkdir -p $(LOCALBIN)
+
+## Auto Detect Platform
+UNAME_P := $(shell uname -p)
+PLATFORM :=
+ifeq ($(UNAME_P),x86_64)
+	PLATFORM = linux/amd64
+endif
+ifneq ($(filter arm%,$(UNAME_P)),)
+	PLATFORM = linux/arm64
+endif
 
 CLI ?= $(LOCALBIN)/greenhousectl
 
@@ -68,6 +77,11 @@ generate-types: generate-open-api-spec## Generate typescript types from CRDs.
 generate: controller-gen ## Generate code containing DeepCopy, DeepCopyInto, and DeepCopyObject method implementations.
 	$(CONTROLLER_GEN) object:headerFile="hack/boilerplate.go.txt" paths="./pkg/apis/..."
 	$(CONTROLLER_GEN) object:headerFile="hack/boilerplate.go.txt" paths="./pkg/dex/..."
+
+.PHONY: generate-docker
+generate-docker: controller-gen-docker
+	$(CONTROLLER_GEN_DOCKER) object:headerFile="hack/boilerplate.go.txt" paths="./pkg/apis/..."
+	$(CONTROLLER_GEN_DOCKER) object:headerFile="hack/boilerplate.go.txt" paths="./pkg/dex/..."
 
 # Default values
 GEN_DOCS_API_DIR ?= "./pkg/apis/greenhouse/v1alpha1" ## -app-dir should be Canonical Path Format so absolute path doesn't work. That's why we don't use $(CURDIR) here.
