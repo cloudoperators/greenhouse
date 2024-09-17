@@ -25,7 +25,6 @@ var _ = BeforeSuite(func() {
 	test.RegisterWebhook("teamWebhook", admission.SetupTeamWebhookWithManager)
 	test.RegisterWebhook("secretsWebhook", admission.SetupSecretWebhookWithManager)
 	test.TestBeforeSuite()
-
 })
 
 var _ = AfterSuite(func() {

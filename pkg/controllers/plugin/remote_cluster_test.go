@@ -10,6 +10,7 @@ import (
 	"helm.sh/helm/v3/pkg/action"
 	"helm.sh/helm/v3/pkg/release"
 	corev1 "k8s.io/api/core/v1"
+	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -85,6 +86,22 @@ var (
 		},
 	}
 
+	testPluginWithCRDs = &greenhousev1alpha1.Plugin{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "Plugin",
+			APIVersion: greenhousev1alpha1.GroupVersion.String(),
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "test-plugin-crd",
+			Namespace: test.TestNamespace,
+		},
+		Spec: greenhousev1alpha1.PluginSpec{
+			ClusterName:      "test-cluster",
+			PluginDefinition: "test-plugindefinition-crd",
+			ReleaseNamespace: test.TestNamespace,
+		},
+	}
+
 	testSecret = corev1.Secret{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "Secret",
@@ -119,6 +136,30 @@ var (
 		},
 	}
 
+	testPluginWithHelmChartCRDs = &greenhousev1alpha1.PluginDefinition{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: test.TestNamespace,
+			Name:      "test-plugindefinition-crd",
+		},
+		Spec: greenhousev1alpha1.PluginDefinitionSpec{
+			Version: "1.0.0",
+			HelmChart: &greenhousev1alpha1.HelmChartReference{
+				Name:       "./../../test/fixtures/myChartWithCRDs",
+				Repository: "dummy",
+				Version:    "1.0.0",
+			},
+			Options: []greenhousev1alpha1.PluginOption{
+				{
+					Name:        "key1",
+					Description: "key1 description",
+					Required:    true,
+					Default:     test.MustReturnJSONFor("defaultKey1"),
+					Type:        "string",
+				},
+			},
+		},
+	}
+
 	testCluster = &greenhousev1alpha1.Cluster{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "Cluster",
@@ -147,7 +188,7 @@ var (
 )
 
 // Tests
-var _ = Describe("Validate plugin clusterName", Ordered, func() {
+var _ = Describe("HelmController reconciliation", Ordered, func() {
 	BeforeAll(func() {
 		err := test.K8sClient.Create(test.Ctx, testPluginDefinition)
 		Expect(err).ToNot(HaveOccurred(), "there should be no error creating the pluginDefinition")
@@ -344,7 +385,86 @@ var _ = Describe("Validate plugin clusterName", Ordered, func() {
 				ShouldNot(HaveOccurred(), "there should be no error listing helm releases")
 			return releases
 		}).Should(BeEmpty(), "the helm release should be deleted from the remote cluster")
+	})
 
+	It("should re-create CRD if CRD was deleted", func() {
+		By("creating plugin definition with CRDs")
+		Expect(test.K8sClient.Create(test.Ctx, testPluginWithHelmChartCRDs)).To(Succeed(), "should create plugin definition")
+
+		remoteRestClientGetter := clientutil.NewRestClientGetterFromBytes(remoteKubeConfig, testPluginWithCRDs.GetReleaseNamespace(), clientutil.WithPersistentConfig())
+
+		By("creating test plugin referencing the cluster")
+		testPluginWithCRDs.Spec.ClusterName = "test-cluster"
+		Expect(test.K8sClient.Create(test.Ctx, testPluginWithCRDs)).
+			Should(Succeed(), "there should be no error creating the plugin")
+
+		By("checking the ClusterAccessReadyCondition on the plugin")
+		Eventually(func(g Gomega) bool {
+			err := test.K8sClient.Get(test.Ctx, types.NamespacedName{Name: testPluginWithCRDs.Name, Namespace: testPluginWithCRDs.Namespace}, testPluginWithCRDs)
+			g.Expect(err).ShouldNot(HaveOccurred(), "there should be no error getting the plugin")
+			clusterAccessReadyCondition := testPluginWithCRDs.Status.GetConditionByType(greenhousev1alpha1.ClusterAccessReadyCondition)
+			readyCondition := testPluginWithCRDs.Status.GetConditionByType(greenhousev1alpha1.ReadyCondition)
+			g.Expect(clusterAccessReadyCondition).ToNot(BeNil(), "the ClusterAccessReadyCondition should not be nil")
+			g.Expect(readyCondition).ToNot(BeNil(), "the ReadyCondition should not be nil")
+			return true
+		}).Should(BeTrue(), "the ClusterAccessReadyCondition should be false")
+
+		By("checking the helm releases deployed to the remote cluster")
+		helmConfig, err := helm.ExportNewHelmAction(remoteRestClientGetter, testPluginWithCRDs.GetReleaseNamespace())
+		Expect(err).ShouldNot(HaveOccurred(), "there should be no error creating helm config")
+		listAction := action.NewList(helmConfig)
+		Eventually(func() []*release.Release {
+			releases, err := listAction.Run()
+			Expect(err).ShouldNot(HaveOccurred(), "there should be no error listing helm releases")
+			return releases
+		}).Should(ContainElement(gstruct.PointTo(gstruct.MatchFields(gstruct.IgnoreExtras, gstruct.Fields{"Name": Equal(testPluginWithCRDs.Name)}))), "the helm release should be deployed to the remote cluster")
+
+		By("checking if helm release exists")
+		Eventually(func() bool {
+			_, err := helm.GetReleaseForHelmChartFromPlugin(test.Ctx, remoteRestClientGetter, testPluginWithCRDs)
+			return err == nil
+		}).Should(BeTrue(), "release for helm chart should already exist")
+
+		teamCRDName := "teams.greenhouse.sap"
+		teamCRDKey := types.NamespacedName{Name: teamCRDName, Namespace: ""}
+
+		By("Getting Team CRD from remote cluster")
+		var teamCRD = &apiextensionsv1.CustomResourceDefinition{}
+		Eventually(func(g Gomega) {
+			g.Expect(remoteK8sClient.Get(test.Ctx, teamCRDKey, teamCRD)).To(Succeed(), "there must be no error getting the Team CRD")
+			g.Expect(teamCRD.Name).To(Equal(teamCRDName), "created Team CRD should have the correct name")
+		}).ShouldNot(HaveOccurred(), "Team CRD should be created on remote cluster")
+
+		By("deleting Team CRD from the remote cluster")
+		Eventually(func() error {
+			return remoteK8sClient.Delete(test.Ctx, teamCRD)
+		}).Should(Succeed(), "there must be no error deleting Team CRD")
+
+		By("setting label on plugin to trigger reconciliation")
+		// Get up-to-date version of plugin.
+		err = test.K8sClient.Get(test.Ctx, types.NamespacedName{Name: testPluginWithCRDs.Name, Namespace: testPluginWithCRDs.Namespace}, testPluginWithCRDs)
+		Expect(err).ToNot(HaveOccurred(), "there should be no error getting plugin")
+		// Set a label on the plugin to trigger reconciliation.
+		testPluginWithCRDs.Labels = map[string]string{"test": "label"}
+		Expect(test.K8sClient.Update(test.Ctx, testPluginWithCRDs)).Should(Succeed(), "there should be no error updating the plugin")
+
+		By("ensuring Team CRD was re-created in the remote cluster")
+		Eventually(func(g Gomega) {
+			var teamCRD = &apiextensionsv1.CustomResourceDefinition{}
+			g.Expect(remoteK8sClient.Get(test.Ctx, teamCRDKey, teamCRD)).To(Succeed(), "there must be no error getting the Team CRD")
+			g.Expect(teamCRD.Name).To(Equal(teamCRDName), "re-created Team CRD should have the correct name")
+		}).Should(Succeed(), "Team CRD should be re-created")
+
+		By("cleaning up test")
+		By("deleting the plugin")
+		Expect(test.K8sClient.Delete(test.Ctx, testPluginWithCRDs)).Should(Succeed(), "there should be no error deleting the plugin")
+
+		By("checking the helm releases deployed to the remote cluster")
+		Eventually(func() []*release.Release {
+			releases, err := action.NewList(helmConfig).Run()
+			Expect(err).ShouldNot(HaveOccurred(), "there should be no error listing helm releases")
+			return releases
+		}).Should(BeEmpty(), "the helm release should be deleted from the remote cluster")
 	})
 })
 

@@ -172,7 +172,11 @@ func DiffChartToDeployedResources(ctx context.Context, local client.Client, rest
 	if err != nil {
 		return nil, false, err
 	}
-
+	diffCrds, err := diffAgainstRemoteCRDs(restClientGetter, helmRelease)
+	if err != nil {
+		return nil, false, err
+	}
+	diffObjects = append(diffObjects, diffCrds...)
 	if len(diffObjects) > 0 {
 		log.FromContext(ctx).Info("diff between manifest and release detected", "resources", diffObjects.String())
 		return diffObjects, false, nil
