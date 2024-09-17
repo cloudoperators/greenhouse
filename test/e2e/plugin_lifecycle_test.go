@@ -22,7 +22,7 @@ import (
 	"github.com/cloudoperators/greenhouse/test/e2e/fixtures"
 )
 
-var _ = FDescribe("PluginLifecycle", Ordered, func() {
+var _ = Describe("PluginLifecycle", Ordered, func() {
 	It("should deploy the plugin", func() {
 
 		const clusterName = "test-cluster-a"
