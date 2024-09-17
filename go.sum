@@ -107,8 +107,8 @@ github.com/dblohm7/wingoes v0.0.0-20240820181039-f2b84150679e h1:L+XrFvD0vBIBm+W
 github.com/dblohm7/wingoes v0.0.0-20240820181039-f2b84150679e/go.mod h1:SUxUaAK/0UG5lYyZR1L1nC4AaYYvSSYTWQSH3FPcxKU=
 github.com/dexidp/dex v0.0.0-20240807174518-43956db7fd75 h1:rhJGxE3OIwZQmReo7UO/u+Qd/DsH4pZUBaUr2wrSxp0=
 github.com/dexidp/dex v0.0.0-20240807174518-43956db7fd75/go.mod h1:r4AnI+KSlse0g9cmP+swnmsJscyXlMwDOugBOt5yWcA=
-github.com/dexidp/dex/api/v2 v2.1.1-0.20240807174518-43956db7fd75 h1:+6yv8pY6NPzvEExj/rWp8xu9LZNNUQImWofqpcaW+Og=
-github.com/dexidp/dex/api/v2 v2.1.1-0.20240807174518-43956db7fd75/go.mod h1:wW7pJO4K9SxAgwjTWGv9jzBS6sbKcItdtbC25uJoZvg=
+github.com/dexidp/dex/api/v2 v2.2.0 h1:lMehnAw5NwMorWcCf5ncwzqe0uJ/g/PtK7DR4K8uM5E=
+github.com/dexidp/dex/api/v2 v2.2.0/go.mod h1:wW7pJO4K9SxAgwjTWGv9jzBS6sbKcItdtbC25uJoZvg=
 github.com/dgryski/go-rendezvous v0.0.0-20200823014737-9f7001d12a5f h1:lO4WD4F/rVNCu3HqELle0jiPLLBs70cWOduZpkS1E78=
 github.com/dgryski/go-rendezvous v0.0.0-20200823014737-9f7001d12a5f/go.mod h1:cuUVRXasLTGF7a8hSLbxyZXjz+1KgoB3wDUb6vlszIc=
 github.com/distribution/distribution/v3 v3.0.0-beta.1 h1:X+ELTxPuZ1Xe5MsD3kp2wfGUhc8I+MPfRis8dZ818Ic=
