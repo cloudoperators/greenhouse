@@ -9,7 +9,6 @@ WORKDIR /workspace
 
 COPY . .
 
-# Build dev-env and setup-envtest
 RUN make action-controllergen action-envtest
 RUN make actiongenerate
 
