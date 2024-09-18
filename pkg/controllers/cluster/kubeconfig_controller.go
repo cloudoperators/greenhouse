@@ -126,6 +126,7 @@ func (r *KubeconfigReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 		break
 	}
 
+	// collect oidc data and update kubeconfig
 	clientutil.CreateOrPatch(ctx, r.Client, &kubeconfig, func() error {
 		kubeconfig.Spec.Kubeconfig.Clusters = []v1alpha1.ClusterKubeconfigClusterItem{
 			{
@@ -135,12 +136,6 @@ func (r *KubeconfigReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 					CertificateAuthorityData: clusterCfg.CertificateAuthorityData,
 				},
 			}}
-
-		return nil
-	})
-
-	// collect oidc data and update kubeconfig
-	clientutil.CreateOrPatch(ctx, r.Client, &kubeconfig, func() error {
 		kubeconfig.Spec.Kubeconfig.AuthInfo = []v1alpha1.ClusterKubeconfigAuthInfoItem{
 			{
 				Name: "oidc@" + cluster.Name,
@@ -156,13 +151,10 @@ func (r *KubeconfigReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 				},
 			},
 		}
-		return nil
-	})
-
-	_, err = clientutil.CreateOrPatch(ctx, r.Client, &kubeconfig, func() error {
 		kubeconfig.Status.Conditions.SetConditions(v1alpha1.TrueCondition(v1alpha1.KubeconfigReadyCondition, "Complete", ""))
 		return nil
 	})
+
 	if err != nil {
 		l.Error(err, "unable to update kubeconfig")
 		return ctrl.Result{}, err
