@@ -78,8 +78,8 @@ generate: controller-gen ## Generate code containing DeepCopy, DeepCopyInto, and
 	$(CONTROLLER_GEN) object:headerFile="hack/boilerplate.go.txt" paths="./pkg/apis/..."
 	$(CONTROLLER_GEN) object:headerFile="hack/boilerplate.go.txt" paths="./pkg/dex/..."
 
-.PHONY: generate-action
-generate-action: controller-gen-action
+.PHONY: action-generate
+action-generate: controller-gen-action
 	$(CONTROLLER_GEN_ACTION) object:headerFile="hack/boilerplate.go.txt" paths="./pkg/apis/..."
 	$(CONTROLLER_GEN_ACTION) object:headerFile="hack/boilerplate.go.txt" paths="./pkg/dex/..."
 
@@ -145,8 +145,8 @@ $(CLI): $(LOCALBIN)
 	test -s $(LOCALBIN)/greenhousectl || echo "Building Greenhouse CLI..." && make build-greenhousectl
 
 ##@ Build
-.PHONY: build-action
-build-action: generate-action build-greenhouse build-idproxy build-cors-proxy build-greenhousectl build-service-proxy
+.PHONY: action-build
+action-build: action-generate build-greenhouse build-idproxy build-cors-proxy build-greenhousectl build-service-proxy
 
 .PHONY: build
 build: generate build-greenhouse build-idproxy build-cors-proxy build-greenhousectl build-service-proxy
@@ -208,8 +208,8 @@ kustomize: $(KUSTOMIZE) ## Download kustomize locally if necessary.
 $(KUSTOMIZE): $(LOCALBIN)
 	test -s $(LOCALBIN)/kustomize || curl -s $(KUSTOMIZE_INSTALL_SCRIPT) | bash -s -- $(subst v,,$(KUSTOMIZE_VERSION)) $(LOCALBIN)
 
-.PHONY: controller-gen-action
-controller-gen-action: $(CONTROLLER_GEN_ACTION) ## Download controller-gen locally if necessary.
+.PHONY: action-controller-gen
+action-controller-gen: $(CONTROLLER_GEN_ACTION) ## Download controller-gen locally if necessary.
 $(CONTROLLER_GEN_ACTION): $(LOCALBIN)
 	GOPATH=$(shell pwd) go install sigs.k8s.io/controller-tools/cmd/controller-gen@$(CONTROLLER_TOOLS_VERSION)
 
@@ -218,8 +218,8 @@ controller-gen: $(CONTROLLER_GEN) ## Download controller-gen locally if necessar
 $(CONTROLLER_GEN): $(LOCALBIN)
 	GOBIN=$(LOCALBIN) go install sigs.k8s.io/controller-tools/cmd/controller-gen@$(CONTROLLER_TOOLS_VERSION)
 
-.PHONY: envtest-action
-envtest-action: $(ENVTEST) ## Download envtest-setup locally if necessary.
+.PHONY: action-envtest
+action-envtest: $(ENVTEST) ## Download envtest-setup locally if necessary.
 $(ENVTEST_ACTION): $(LOCALBIN)
 	GOPATH=$(shell pwd) go install sigs.k8s.io/controller-runtime/tools/setup-envtest@latest
 
