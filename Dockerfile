@@ -8,13 +8,13 @@ ENV CGO_ENABLED=0
 WORKDIR /workspace
 
 COPY Makefile .
-RUN make controller-gen-docker
+RUN make controller-gen-action
 COPY . .
 
 # Build greenhouse operator and tooling.
 RUN --mount=type=cache,target=/go/pkg/mod \
 	--mount=type=cache,target=/root/.cache/go-build \
-	make build CGO_ENABLED=${CGO_ENABLED} GOOS=${TARGETOS} GOARCH=${TARGETARCH}
+	make build-action CGO_ENABLED=${CGO_ENABLED} GOOS=${TARGETOS} GOARCH=${TARGETARCH}
 
 # Use distroless as minimal base image to package the manager binary
 # Refer to https://github.com/GoogleContainerTools/distroless for more details
