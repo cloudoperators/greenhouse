@@ -146,7 +146,7 @@ $(CLI): $(LOCALBIN)
 
 ##@ Build
 .PHONY: build-action
-build: generate-action build-greenhouse build-idproxy build-cors-proxy build-greenhousectl build-service-proxy
+build-action: generate-action build-greenhouse build-idproxy build-cors-proxy build-greenhousectl build-service-proxy
 
 .PHONY: build
 build: generate build-greenhouse build-idproxy build-cors-proxy build-greenhousectl build-service-proxy
@@ -189,9 +189,11 @@ kustomize-build-crds: generate-manifests kustomize
 ## Tool Binaries
 KUSTOMIZE ?= $(LOCALBIN)/kustomize
 CONTROLLER_GEN ?= $(LOCALBIN)/controller-gen
+CONTROLLER_GEN_ACTION ?= $(LOCALBIN)/controller-gen
 GOIMPORTS ?= $(LOCALBIN)/goimports
 GOLINT ?= $(LOCALBIN)/golangci-lint
 ENVTEST ?= $(LOCALBIN)/setup-envtest
+ENVTEST_ACTION ?= $(LOCALBIN)/setup-envtest
 HELMIFY ?= $(LOCALBIN)/helmify
 
 ## Tool Versions
