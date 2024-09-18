@@ -1,16 +1,17 @@
+{{ if .Values.hook_enabled }}
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: post-delete-job
+  name: hook-job
   annotations:
-    "helm.sh/hook": post-delete
-    "helm.sh/hook-weight": "-5"
-    "helm.sh/hook-delete-policy": hook-succeeded
+    "helm.sh/hook": post-install, post-upgrade
+    "helm.sh/hook-weight": "10"
 spec:
   template:
     spec:
       containers:
-        - name: pre-install-container
-          image: busybox
-          command: ['sh', '-c', 'echo Pre-install hook executed!']
+        - name: pre-update-container
+          image: alpine:{{.Values.imageTag}}
+          command: ['sh', '-c', 'sleep 5']
       restartPolicy: Never
+{{ end }}

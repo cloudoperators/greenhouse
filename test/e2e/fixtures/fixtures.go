@@ -80,7 +80,7 @@ var TestHookPluginDefinition = &greenhousev1alpha1.PluginDefinition{
 		APIVersion: greenhousev1alpha1.GroupVersion.String(),
 	},
 	ObjectMeta: metav1.ObjectMeta{
-		Name:      "test-redis-hooks",
+		Name:      "test-hooks",
 		Namespace: test.TestNamespace,
 	},
 	Spec: greenhousev1alpha1.PluginDefinitionSpec{
@@ -99,7 +99,13 @@ var TestHookPluginDefinition = &greenhousev1alpha1.PluginDefinition{
 			Name:    "supernova",
 			Version: "latest",
 		},
-		Options: []greenhousev1alpha1.PluginOption{},
+		Options: []greenhousev1alpha1.PluginOption{
+			{
+				Name:    "hook_enabled",
+				Type:    "bool",
+				Default: &apiextensionsv1.JSON{Raw: []byte("false")},
+			},
+		},
 	},
 }
 

@@ -59,7 +59,7 @@ func (d DiffObjectList) String() string {
 }
 
 // diffAgainstRelease returns the diff between the templated manifest and the manifest of the deployed Helm release.
-func diffAgainstRelease(restClientGetter genericclioptions.RESTClientGetter, namespace, manifest string, helmRelease *release.Release) (DiffObjectList, error) {
+func diffAgainstRelease(restClientGetter genericclioptions.RESTClientGetter, namespace string, helmTemplateRelease, helmRelease *release.Release) (DiffObjectList, error) {
 	remoteObjs, err := ObjectMapFromRelease(restClientGetter, helmRelease, nil)
 	if err != nil {
 		return nil, err
@@ -73,9 +73,17 @@ func diffAgainstRelease(restClientGetter genericclioptions.RESTClientGetter, nam
 		maps.Copy(remoteObjs, hookObjs)
 	}
 
-	localObjs, err := ObjectMapFromManifest(restClientGetter, namespace, manifest, nil)
+	localObjs, err := ObjectMapFromManifest(restClientGetter, namespace, helmTemplateRelease.Manifest, nil)
 	if err != nil {
 		return nil, err
+	}
+
+	for _, hook := range helmTemplateRelease.Hooks {
+		hookObjs, err := ObjectMapFromManifest(restClientGetter, namespace, hook.Manifest, nil)
+		if err != nil {
+			return nil, err
+		}
+		maps.Copy(localObjs, hookObjs)
 	}
 
 	// create the set of all keys in local and remote objects

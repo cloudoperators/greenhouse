@@ -2,8 +2,8 @@
 # SPDX-License-Identifier: Apache-2.0
 
 apiVersion: v2
-name: test-redis-hook
-description: Test for hook plugin deployment with redis image
+name: test-hook
+description: Test for hook plugin deployment
 
 # A chart can be either an 'application' or a 'library' chart.
 #

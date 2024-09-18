@@ -11,6 +11,7 @@ import (
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/gstruct"
 	appsv1 "k8s.io/api/apps/v1"
+	batchv1 "k8s.io/api/batch/v1"
 	v1 "k8s.io/api/core/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -24,7 +25,7 @@ import (
 )
 
 var _ = Describe("PluginLifecycle", Ordered, func() {
-	Context("without webhook", func() {
+	Context("without helm hook", func() {
 		It("should deploy the plugin", func() {
 
 			const clusterName = "test-cluster-a"
@@ -112,26 +113,26 @@ var _ = Describe("PluginLifecycle", Ordered, func() {
 			}
 			Expect(nginxDeploymentExists).To(BeTrue())
 
-		// Updating replicas
-		namespacedName := types.NamespacedName{Name: testPlugin.Name, Namespace: testPlugin.Namespace}
-		err = test.K8sClient.Get(ctx, namespacedName, testPlugin)
-		Expect(err).NotTo(HaveOccurred())
-		testPlugin = &pluginList.Items[0]
-		// TODO: This test must not rely on index value, but on OptionValue.Name
-		// A helper method to get and set an OptionValue by name should be introduced.
-		testPlugin.Spec.OptionValues[10].Value.Raw = []byte("2")
-		err = test.K8sClient.Update(ctx, testPlugin)
-		Expect(err).NotTo(HaveOccurred())
-		Eventually(func(g Gomega) bool {
-			err = remoteClient.List(ctx, deploymentList, client.InNamespace(setup.Namespace()))
-			g.Expect(err).NotTo(HaveOccurred())
-			for _, deployment := range deploymentList.Items {
-				if strings.Contains(deployment.Name, "nginx") {
-					g.Expect(deployment.Spec.Replicas).To(PointTo(Equal(int32(2))))
+			// Updating replicas
+			namespacedName := types.NamespacedName{Name: testPlugin.Name, Namespace: testPlugin.Namespace}
+			err = test.K8sClient.Get(ctx, namespacedName, testPlugin)
+			Expect(err).NotTo(HaveOccurred())
+			testPlugin = &pluginList.Items[0]
+			// TODO: This test must not rely on index value, but on OptionValue.Name
+			// A helper method to get and set an OptionValue by name should be introduced.
+			testPlugin.Spec.OptionValues[10].Value.Raw = []byte("2")
+			err = test.K8sClient.Update(ctx, testPlugin)
+			Expect(err).NotTo(HaveOccurred())
+			Eventually(func(g Gomega) bool {
+				err = remoteClient.List(ctx, deploymentList, client.InNamespace(setup.Namespace()))
+				g.Expect(err).NotTo(HaveOccurred())
+				for _, deployment := range deploymentList.Items {
+					if strings.Contains(deployment.Name, "nginx") {
+						g.Expect(deployment.Spec.Replicas).To(PointTo(Equal(int32(2))))
+					}
 				}
-			}
-			return true
-		}).Should(BeTrue())
+				return true
+			}).Should(BeTrue())
 
 			// Deleting plugin
 			test.EventuallyDeleted(ctx, test.K8sClient, testPlugin)
@@ -149,7 +150,7 @@ var _ = Describe("PluginLifecycle", Ordered, func() {
 		})
 	})
 
-	Context("with webhooks", func() {
+	Context("with helm lifecycle hooks", func() {
 		It("should deploy the plugin", func() {
 
 			const clusterName = "test-cluster-b"
@@ -201,18 +202,27 @@ var _ = Describe("PluginLifecycle", Ordered, func() {
 			// Creating plugin
 			err = test.K8sClient.Create(ctx, testPlugin)
 			Expect(err).NotTo(HaveOccurred())
+
+			// Check jobs
+			jobList := &batchv1.JobList{}
+			err = remoteClient.List(ctx, jobList, client.InNamespace(setup.Namespace()))
+			Expect(err).NotTo(HaveOccurred())
+			Expect(len(jobList.Items)).To(BeEquivalentTo(0))
+
+			// Check plugin list
+			var plugin greenhousev1alpha1.Plugin
 			Eventually(func(g Gomega) {
 				err = test.K8sClient.List(ctx, pluginList)
 				g.Expect(err).NotTo(HaveOccurred())
 				g.Expect(len(pluginList.Items)).To(BeEquivalentTo(1))
 				g.Expect(pluginList.Items[0].Status.HelmReleaseStatus).ToNot(BeNil())
 				g.Expect(pluginList.Items[0].Status.HelmReleaseStatus.Status).To(BeEquivalentTo("deployed"))
+				plugin = pluginList.Items[0]
 			}).Should(Succeed())
 
 			// Checking pod
 			err = remoteClient.List(ctx, podList, client.InNamespace(setup.Namespace()))
 			Expect(err).NotTo(HaveOccurred())
-			SetDefaultEventuallyTimeout(60 * time.Second)
 			Eventually(func(g Gomega) {
 				err = remoteClient.List(ctx, podList, client.InNamespace(setup.Namespace()))
 				g.Expect(err).NotTo(HaveOccurred())
@@ -228,6 +238,19 @@ var _ = Describe("PluginLifecycle", Ordered, func() {
 				}
 			}
 			Expect(podExists).To(BeTrue())
+
+			// Update plugin value
+			plugin.Spec.OptionValues[4].Value.Raw = []byte("true")
+			err = test.K8sClient.Update(ctx, &plugin)
+			Expect(err).NotTo(HaveOccurred())
+
+			// Check jobs
+			Eventually(func(g Gomega) {
+				err = remoteClient.List(ctx, jobList, client.InNamespace(setup.Namespace()))
+				g.Expect(err).NotTo(HaveOccurred())
+				g.Expect(len(jobList.Items)).To(BeEquivalentTo(1))
+			}).Should(Succeed())
+
 		})
 	})
 })
