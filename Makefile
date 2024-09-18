@@ -73,8 +73,8 @@ generate-open-api-spec:
 generate-types: generate-open-api-spec## Generate typescript types from CRDs.
 	hack/typescript/create-types $(CURDIR)/docs/reference/api/openapi.yaml $(CURDIR)/hack/typescript/metadata.yaml $(CURDIR)/ui/types/ 
 
-.PHONY: action-generate
-action-generate: action-controller-gen
+.PHONY: actiongenerate
+actiongenerate: action-controllergen
 	$(CONTROLLER_GEN_ACTION) object:headerFile="hack/boilerplate.go.txt" paths="./pkg/apis/..."
 	$(CONTROLLER_GEN_ACTION) object:headerFile="hack/boilerplate.go.txt" paths="./pkg/dex/..."
 
@@ -208,8 +208,8 @@ kustomize: $(KUSTOMIZE) ## Download kustomize locally if necessary.
 $(KUSTOMIZE): $(LOCALBIN)
 	test -s $(LOCALBIN)/kustomize || curl -s $(KUSTOMIZE_INSTALL_SCRIPT) | bash -s -- $(subst v,,$(KUSTOMIZE_VERSION)) $(LOCALBIN)
 
-.PHONY: action-controller-gen
-action-controller-gen: $(CONTROLLER_GEN_ACTION) ## Download controller-gen locally if necessary.
+.PHONY: action-controllergen
+action-controllergen: $(CONTROLLER_GEN_ACTION) ## Download controller-gen locally if necessary.
 $(CONTROLLER_GEN_ACTION): $(LOCALBIN)
 	GOPATH=$(shell pwd) go install sigs.k8s.io/controller-tools/cmd/controller-gen@$(CONTROLLER_TOOLS_VERSION)
 

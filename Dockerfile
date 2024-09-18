@@ -8,7 +8,7 @@ ENV CGO_ENABLED=0
 WORKDIR /workspace
 
 COPY Makefile .
-RUN make action-controller-gen
+RUN make action-controllergen
 COPY . .
 
 # Build greenhouse operator and tooling.
