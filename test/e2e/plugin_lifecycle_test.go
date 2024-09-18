@@ -115,7 +115,9 @@ var _ = Describe("PluginLifecycle", Ordered, func() {
 		err = test.K8sClient.Get(ctx, namespacedName, testPlugin)
 		Expect(err).NotTo(HaveOccurred())
 		testPlugin = &pluginList.Items[0]
-		testPlugin.Spec.OptionValues[9].Value.Raw = []byte("2")
+		// TODO: This test must not rely on index value, but on OptionValue.Name
+		// A helper method to get and set an OptionValue by name should be introduced.
+		testPlugin.Spec.OptionValues[10].Value.Raw = []byte("2")
 		err = test.K8sClient.Update(ctx, testPlugin)
 		Expect(err).NotTo(HaveOccurred())
 		Eventually(func(g Gomega) bool {
