@@ -146,7 +146,7 @@ $(CLI): $(LOCALBIN)
 
 ##@ Build
 .PHONY: action-build
-action-build: action-generate build-greenhouse build-idproxy build-cors-proxy build-greenhousectl build-service-proxy
+action-build: actiongenerate build-greenhouse build-idproxy build-cors-proxy build-greenhousectl build-service-proxy
 
 .PHONY: build
 build: generate build-greenhouse build-idproxy build-cors-proxy build-greenhousectl build-service-proxy
