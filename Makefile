@@ -79,7 +79,7 @@ generate: controller-gen ## Generate code containing DeepCopy, DeepCopyInto, and
 	$(CONTROLLER_GEN) object:headerFile="hack/boilerplate.go.txt" paths="./pkg/dex/..."
 
 .PHONY: action-generate
-action-generate: controller-gen-action
+action-generate: action-controller-gen
 	$(CONTROLLER_GEN_ACTION) object:headerFile="hack/boilerplate.go.txt" paths="./pkg/apis/..."
 	$(CONTROLLER_GEN_ACTION) object:headerFile="hack/boilerplate.go.txt" paths="./pkg/dex/..."
 
