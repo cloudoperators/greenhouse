@@ -100,7 +100,7 @@ func (r *KubeconfigReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 	// get oidc info from organization
 	oidc, err := r.getOIDCInfo(ctx, cluster.Namespace)
 	if err != nil {
-		l.Error(err, "skip reconcile, oidc data not fetched")
+		l.Error(err, "skip reconcile, error fetching OIDC data")
 		return ctrl.Result{}, nil
 	}
 
