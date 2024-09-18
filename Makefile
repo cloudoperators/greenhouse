@@ -78,10 +78,10 @@ generate: controller-gen ## Generate code containing DeepCopy, DeepCopyInto, and
 	$(CONTROLLER_GEN) object:headerFile="hack/boilerplate.go.txt" paths="./pkg/apis/..."
 	$(CONTROLLER_GEN) object:headerFile="hack/boilerplate.go.txt" paths="./pkg/dex/..."
 
-.PHONY: generate-docker
-generate-docker: controller-gen-docker
-	$(CONTROLLER_GEN_DOCKER) object:headerFile="hack/boilerplate.go.txt" paths="./pkg/apis/..."
-	$(CONTROLLER_GEN_DOCKER) object:headerFile="hack/boilerplate.go.txt" paths="./pkg/dex/..."
+.PHONY: generate-action
+generate-action: controller-gen-action
+	$(CONTROLLER_GEN_ACTION) object:headerFile="hack/boilerplate.go.txt" paths="./pkg/apis/..."
+	$(CONTROLLER_GEN_ACTION) object:headerFile="hack/boilerplate.go.txt" paths="./pkg/dex/..."
 
 # Default values
 GEN_DOCS_API_DIR ?= "./pkg/apis/greenhouse/v1alpha1" ## -app-dir should be Canonical Path Format so absolute path doesn't work. That's why we don't use $(CURDIR) here.
@@ -145,6 +145,9 @@ $(CLI): $(LOCALBIN)
 	test -s $(LOCALBIN)/greenhousectl || echo "Building Greenhouse CLI..." && make build-greenhousectl
 
 ##@ Build
+.PHONY: build-action
+build: generate-action build-greenhouse build-idproxy build-cors-proxy build-greenhousectl build-service-proxy
+
 .PHONY: build
 build: generate build-greenhouse build-idproxy build-cors-proxy build-greenhousectl build-service-proxy
 
@@ -208,9 +211,9 @@ controller-gen: $(CONTROLLER_GEN) ## Download controller-gen locally if necessar
 $(CONTROLLER_GEN): $(LOCALBIN)
 	GOBIN=$(LOCALBIN) go install sigs.k8s.io/controller-tools/cmd/controller-gen@$(CONTROLLER_TOOLS_VERSION)
 
-.PHONY: controller-gen-docker
-controller-gen-docker: $(CONTROLLER_GEN_DOCKER) ## Download controller-gen locally if necessary.
-$(CONTROLLER_GEN_DOCKER): $(LOCALBIN)
+.PHONY: controller-gen-action
+controller-gen-action: $(CONTROLLER_GEN_ACTION) ## Download controller-gen locally if necessary.
+$(CONTROLLER_GEN_ACTION): $(LOCALBIN)
 	GOPATH=$(shell pwd) go install sigs.k8s.io/controller-tools/cmd/controller-gen@$(CONTROLLER_TOOLS_VERSION)
 
 .PHONY: envtest
@@ -218,9 +221,9 @@ envtest: $(ENVTEST) ## Download envtest-setup locally if necessary.
 $(ENVTEST): $(LOCALBIN)
 	GOBIN=$(LOCALBIN) go install sigs.k8s.io/controller-runtime/tools/setup-envtest@latest
 
-.PHONY: envtest-docker
-envtest-docker: $(ENVTEST) ## Download envtest-setup locally if necessary.
-$(ENVTEST_DOCKER): $(LOCALBIN)
+.PHONY: envtest-action
+envtest-action: $(ENVTEST) ## Download envtest-setup locally if necessary.
+$(ENVTEST_ACTION): $(LOCALBIN)
 	GOPATH=$(shell pwd) go install sigs.k8s.io/controller-runtime/tools/setup-envtest@latest
 
 .PHONY: goimports
