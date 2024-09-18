@@ -73,15 +73,15 @@ generate-open-api-spec:
 generate-types: generate-open-api-spec## Generate typescript types from CRDs.
 	hack/typescript/create-types $(CURDIR)/docs/reference/api/openapi.yaml $(CURDIR)/hack/typescript/metadata.yaml $(CURDIR)/ui/types/ 
 
-.PHONY: generate
-generate: controller-gen ## Generate code containing DeepCopy, DeepCopyInto, and DeepCopyObject method implementations.
-	$(CONTROLLER_GEN) object:headerFile="hack/boilerplate.go.txt" paths="./pkg/apis/..."
-	$(CONTROLLER_GEN) object:headerFile="hack/boilerplate.go.txt" paths="./pkg/dex/..."
-
 .PHONY: action-generate
 action-generate: action-controller-gen
 	$(CONTROLLER_GEN_ACTION) object:headerFile="hack/boilerplate.go.txt" paths="./pkg/apis/..."
 	$(CONTROLLER_GEN_ACTION) object:headerFile="hack/boilerplate.go.txt" paths="./pkg/dex/..."
+
+.PHONY: generate
+generate: controller-gen ## Generate code containing DeepCopy, DeepCopyInto, and DeepCopyObject method implementations.
+	$(CONTROLLER_GEN) object:headerFile="hack/boilerplate.go.txt" paths="./pkg/apis/..."
+	$(CONTROLLER_GEN) object:headerFile="hack/boilerplate.go.txt" paths="./pkg/dex/..."
 
 # Default values
 GEN_DOCS_API_DIR ?= "./pkg/apis/greenhouse/v1alpha1" ## -app-dir should be Canonical Path Format so absolute path doesn't work. That's why we don't use $(CURDIR) here.
