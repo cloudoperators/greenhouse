@@ -63,6 +63,7 @@ type ClusterKubeconfigPreferences struct {
 }
 
 //+kubebuilder:object:root=true
+//+kubebuilder:subresource:status
 //+kubebuilder:resource:shortName=cluster-kubeconfig;cluster-kubeconfigs
 
 // ClusterKubeconfig is the Schema for the clusterkubeconfigs API
@@ -77,6 +78,7 @@ type ClusterKubeconfig struct {
 	Status ClusterKubeconfigStatus `json:"status,omitempty"`
 }
 
+// +kubebuilder:object:generate=true
 type ClusterKubeconfigStatus struct {
 	Conditions StatusConditions `json:"statusConditions,omitempty"`
 }

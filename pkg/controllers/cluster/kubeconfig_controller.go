@@ -5,6 +5,7 @@ package cluster
 
 import (
 	"context"
+	"errors"
 
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -62,6 +63,11 @@ func (r *KubeconfigReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 		return ctrl.Result{}, nil
 	}
 
+	if len(cluster.Status.Conditions) == 0 || !cluster.Status.IsReadyTrue() {
+		l.Info("skip reconcile, cluster is not ready")
+		return ctrl.Result{}, nil
+	}
+
 	var kubeconfig v1alpha1.ClusterKubeconfig
 
 	if err := r.Get(ctx, req.NamespacedName, &kubeconfig); err != nil {
@@ -94,13 +100,26 @@ func (r *KubeconfigReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 				},
 			}}
 		kubeconfig.Spec.Kubeconfig.CurrentContext = cluster.Name
-		kubeconfig.Status.Conditions.SetConditions(v1alpha1.TrueCondition(v1alpha1.KubeconfigCreatedCondition, "NewCreation", ""))
+		kubeconfig.Status = calculateKubeconfigStatus(kubeconfig)
+
 	}
+
+	defer func() {
+		result, err := clientutil.PatchStatus(ctx, r.Client, &kubeconfig, func() error {
+			kubeconfig.Status = calculateKubeconfigStatus(kubeconfig)
+			return nil
+		})
+		if err != nil {
+			log.FromContext(ctx).Error(err, "error setting status")
+		}
+		l.Info("status updated", "result", result)
+	}()
 
 	// get oidc info from organization
 	oidc, err := r.getOIDCInfo(ctx, cluster.Namespace)
 	if err != nil {
-		l.Error(err, "skip reconcile, error fetching OIDC data")
+		l.Error(err, "unable to get oidc info")
+		kubeconfig.Status.Conditions.SetConditions(v1alpha1.TrueCondition(v1alpha1.KubeconfigReconcileFailedCondition, "OIDCInfoError", err.Error()))
 		return ctrl.Result{}, nil
 	}
 
@@ -108,7 +127,8 @@ func (r *KubeconfigReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 	var secret corev1.Secret
 	err = r.Get(ctx, client.ObjectKey{Name: req.Name, Namespace: req.Namespace}, &secret)
 	if err != nil {
-		l.Error(err, "skip reconcile, secret data not fetched")
+		l.Error(err, "unable to get cluster secret")
+		kubeconfig.Status.Conditions.SetConditions(v1alpha1.TrueCondition(v1alpha1.KubeconfigReconcileFailedCondition, "SecretDataError", err.Error()))
 		return ctrl.Result{}, nil
 	}
 
@@ -117,7 +137,8 @@ func (r *KubeconfigReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 	kubeCfg, err := clientcmd.Load(rootKubeCfg)
 	if err != nil {
 		l.Error(err, "unable to load kubeconfig")
-		return ctrl.Result{}, err
+		kubeconfig.Status.Conditions.SetConditions(v1alpha1.TrueCondition(v1alpha1.KubeconfigReconcileFailedCondition, "KubeconfigLoadError", err.Error()))
+		return ctrl.Result{}, nil
 	}
 
 	var clusterCfg *clientcmdapi.Cluster
@@ -127,7 +148,7 @@ func (r *KubeconfigReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 	}
 
 	// collect oidc data and update kubeconfig
-	clientutil.CreateOrPatch(ctx, r.Client, &kubeconfig, func() error {
+	result, err := clientutil.CreateOrPatch(ctx, r.Client, &kubeconfig, func() error {
 		kubeconfig.Spec.Kubeconfig.Clusters = []v1alpha1.ClusterKubeconfigClusterItem{
 			{
 				Name: cluster.Name,
@@ -151,7 +172,6 @@ func (r *KubeconfigReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 				},
 			},
 		}
-		kubeconfig.Status.Conditions.SetConditions(v1alpha1.TrueCondition(v1alpha1.KubeconfigReadyCondition, "Complete", ""))
 		return nil
 	})
 
@@ -159,7 +179,7 @@ func (r *KubeconfigReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 		l.Error(err, "unable to update kubeconfig")
 		return ctrl.Result{}, err
 	}
-
+	l.Info("kubeconfig updated", "result", result)
 	return ctrl.Result{}, nil
 }
 
@@ -176,6 +196,10 @@ func (r *KubeconfigReconciler) getOIDCInfo(ctx context.Context, orgName string) 
 	if err := r.Get(ctx, client.ObjectKey{Name: orgName}, &org); err != nil {
 		l.Error(err, "unable to fetch organization", "organization", orgName)
 		return OIDCInfo{}, err
+	}
+
+	if org.Spec.Authentication == nil || org.Spec.Authentication.OIDCConfig == nil {
+		return OIDCInfo{}, errors.New("no oidc config found")
 	}
 
 	clientIDRef := org.Spec.Authentication.OIDCConfig.ClientIDReference
@@ -254,4 +278,35 @@ func (r *KubeconfigReconciler) organizationSecretToClusters(ctx context.Context,
 		return requests
 	}
 	return nil
+}
+
+func calculateKubeconfigStatus(ck v1alpha1.ClusterKubeconfig) v1alpha1.ClusterKubeconfigStatus {
+	// new creation
+	status := ck.Status.DeepCopy()
+	if len(status.Conditions.Conditions) == 0 {
+		status.Conditions.SetConditions(v1alpha1.TrueCondition(v1alpha1.KubeconfigCreatedCondition, "NewCreation", ""))
+	}
+
+	for _, ct := range ExposedKubeconfigConditions {
+		if status.Conditions.GetConditionByType(ct) == nil {
+			status.Conditions.SetConditions(v1alpha1.UnknownCondition(ct, "", ""))
+		}
+	}
+	// check for failure
+	reconcileFailedStatus := status.Conditions.GetConditionByType(v1alpha1.KubeconfigReconcileFailedCondition)
+	if reconcileFailedStatus != nil && reconcileFailedStatus.IsTrue() {
+		status.Conditions.SetConditions(v1alpha1.FalseCondition(v1alpha1.KubeconfigReadyCondition, "ReconcileFailed", ""))
+		status.Conditions.SetConditions(v1alpha1.FalseCondition(v1alpha1.KubeconfigCreatedCondition, "ReconcileFailed", ""))
+	} else {
+		status.Conditions.SetConditions(v1alpha1.TrueCondition(v1alpha1.KubeconfigReadyCondition, "Complete", ""))
+		status.Conditions.SetConditions(v1alpha1.FalseCondition(v1alpha1.KubeconfigReconcileFailedCondition, "ReadyState", ""))
+		status.Conditions.SetConditions(v1alpha1.FalseCondition(v1alpha1.KubeconfigCreatedCondition, "ReadyState", ""))
+	}
+	return *status
+}
+
+var ExposedKubeconfigConditions = []v1alpha1.ConditionType{
+	v1alpha1.KubeconfigCreatedCondition,
+	v1alpha1.KubeconfigReconcileFailedCondition,
+	v1alpha1.KubeconfigReadyCondition,
 }
