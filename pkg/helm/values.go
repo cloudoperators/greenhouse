@@ -13,6 +13,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/pkg/apis/greenhouse/v1alpha1"
+	"github.com/cloudoperators/greenhouse/pkg/common"
 )
 
 func GetPluginOptionValuesForPlugin(ctx context.Context, c client.Client, plugin *greenhousev1alpha1.Plugin) ([]greenhousev1alpha1.PluginOptionValue, error) {
@@ -137,6 +138,17 @@ func getGreenhouseValues(ctx context.Context, c client.Client, p greenhousev1alp
 		greenhouseValues = append(greenhouseValues, greenhousev1alpha1.PluginOptionValue{
 			Name:      "global.greenhouse.clusterName",
 			Value:     &apiextensionsv1.JSON{Raw: clusterNameVal},
+			ValueFrom: nil,
+		})
+
+		// append DNSDomain
+		baseDomainVal, err := json.Marshal(common.DNSDomain)
+		if err != nil {
+			return nil, err
+		}
+		greenhouseValues = append(greenhouseValues, greenhousev1alpha1.PluginOptionValue{
+			Name:      "global.greenhouse.baseDomain",
+			Value:     &apiextensionsv1.JSON{Raw: baseDomainVal},
 			ValueFrom: nil,
 		})
 	}

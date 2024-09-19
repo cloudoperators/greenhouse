@@ -16,6 +16,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	greenhousesapv1alpha1 "github.com/cloudoperators/greenhouse/pkg/apis/greenhouse/v1alpha1"
+	"github.com/cloudoperators/greenhouse/pkg/common"
 	"github.com/cloudoperators/greenhouse/pkg/helm"
 	"github.com/cloudoperators/greenhouse/pkg/test"
 )
@@ -70,7 +71,9 @@ var _ = Describe("helm package test", func() {
 			Expect(pluginOptionValues).To(
 				ContainElement(greenhousesapv1alpha1.PluginOptionValue{Name: "global.greenhouse.clusterName", Value: test.MustReturnJSONFor(plugin.Spec.ClusterName), ValueFrom: nil}), "the pluginDefinition option values should contain the clusterName from the plugin")
 			Expect(pluginOptionValues).To(
-				ContainElement(greenhousesapv1alpha1.PluginOptionValue{Name: "global.greenhouse.organizationName", Value: test.MustReturnJSONFor(plugin.GetNamespace()), ValueFrom: nil}), "the pluginDefinition option values should contain the orgName from the plugin namspace")
+				ContainElement(greenhousesapv1alpha1.PluginOptionValue{Name: "global.greenhouse.organizationName", Value: test.MustReturnJSONFor(plugin.GetNamespace()), ValueFrom: nil}), "the pluginDefinition option values should contain the orgName from the plugin namespace")
+			Expect(pluginOptionValues).To(
+				ContainElement(greenhousesapv1alpha1.PluginOptionValue{Name: "global.greenhouse.baseDomain", Value: test.MustReturnJSONFor(common.DNSDomain), ValueFrom: nil}), "the pluginDefinition option values should contain the baseDomain")
 		})
 	})
 
