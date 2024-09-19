@@ -63,8 +63,8 @@ func (r *HelmChartTestReconciler) SetupWithManager(name string, mgr ctrl.Manager
 }
 
 func (r *HelmChartTestReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	var plugin greenhousev1alpha1.Plugin
-	if err := r.Get(ctx, req.NamespacedName, &plugin); err != nil {
+	var plugin = new(greenhousev1alpha1.Plugin)
+	if err := r.Get(ctx, req.NamespacedName, plugin); err != nil {
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
 
@@ -82,12 +82,12 @@ func (r *HelmChartTestReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 		return ctrl.Result{}, nil
 	}
 
-	pluginStatus := initPluginStatus(&plugin)
+	pluginStatus := initPluginStatus(plugin)
 
 	noHelmChartTestFailuresCondition := *pluginStatus.GetConditionByType(greenhousev1alpha1.NoHelmChartTestFailuresCondition)
 
 	defer func() {
-		_, err := clientutil.PatchStatus(ctx, r.Client, &plugin, func() error {
+		_, err := clientutil.PatchStatus(ctx, r.Client, plugin, func() error {
 			plugin.Status.StatusConditions.SetConditions(noHelmChartTestFailuresCondition)
 			return nil
 		})
@@ -96,13 +96,13 @@ func (r *HelmChartTestReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 		}
 	}()
 
-	clusterAccessReadyCondition, restClientGetter := initClientGetter(ctx, r.Client, r.kubeClientOpts, plugin, plugin.Status)
+	clusterAccessReadyCondition, restClientGetter := initClientGetter(ctx, r.Client, r.kubeClientOpts, *plugin)
 	pluginStatus.StatusConditions.SetConditions(clusterAccessReadyCondition)
 	if !clusterAccessReadyCondition.IsTrue() {
 		return ctrl.Result{}, fmt.Errorf("cannot access cluster: %s", clusterAccessReadyCondition.Message)
 	}
 
-	hasHelmChartTest, err := helm.HelmChartTest(ctx, restClientGetter, &plugin)
+	hasHelmChartTest, err := helm.HelmChartTest(ctx, restClientGetter, plugin)
 	prometheusLabels := prometheus.Labels{
 		"cluster":   plugin.Spec.ClusterName,
 		"plugin":    plugin.Name,
