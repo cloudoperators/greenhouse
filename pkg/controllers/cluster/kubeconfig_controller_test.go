@@ -17,6 +17,10 @@ import (
 	greenhouseapis "github.com/cloudoperators/greenhouse/pkg/apis"
 	"github.com/cloudoperators/greenhouse/pkg/apis/greenhouse/v1alpha1"
 	"github.com/cloudoperators/greenhouse/pkg/test"
+
+	clusterpkg "github.com/cloudoperators/greenhouse/pkg/controllers/cluster"
+
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 var _ = Describe("ClusterKubeconfig controller", Ordered, func() {
@@ -94,6 +98,9 @@ var _ = Describe("ClusterKubeconfig controller", Ordered, func() {
 			g.Expect(test.K8sClient.Get(test.Ctx, types.NamespacedName{Name: cluster.Name, Namespace: setup.Namespace()}, &clusterKubeconfig)).ShouldNot(HaveOccurred(), "There should be no error getting the ClusterKubeconfig resource")
 			return clusterKubeconfig.Status.Conditions.IsReadyTrue()
 		}).Should(BeTrue())
+
+		// ensure conditions are initialized
+		Expect(clusterKubeconfig.Status.Conditions.Conditions).Should(HaveLen(len(clusterpkg.ExposedKubeconfigConditions)))
 	})
 
 	It("should ClusterKubeconfig has correct kubeconfig data", func() {
@@ -208,5 +215,25 @@ users:
 		Expect(clusterKubeconfig.Spec.Kubeconfig.AuthInfo[0].AuthInfo.AuthProvider.Config).Should(HaveLen(3))
 		Expect(clusterKubeconfig.Spec.Kubeconfig.AuthInfo[0].AuthInfo.AuthProvider.Config["client-secret"]).Should(Equal(oidcClientSecret))
 
+	})
+
+	It("should fail with ClusterKubeconfig when organization OIDC data is not found", func() {
+		organization := v1alpha1.Organization{}
+		Expect(test.K8sClient.Get(test.Ctx, types.NamespacedName{Name: setup.Namespace(), Namespace: setup.Namespace()}, &organization)).To(Succeed())
+		organization.Spec.Authentication.OIDCConfig = nil
+		Expect(test.K8sClient.Update(test.Ctx, &organization)).To(Succeed())
+
+		clusterKubeconfig := v1alpha1.ClusterKubeconfig{}
+		clusterKubeconfig.Name = cluster.Name
+		clusterKubeconfig.Namespace = setup.Namespace()
+
+		Eventually(func(g Gomega) bool {
+			g.Expect(test.K8sClient.Get(test.Ctx, types.NamespacedName{Name: cluster.Name, Namespace: setup.Namespace()}, &clusterKubeconfig)).ShouldNot(HaveOccurred(), "There should be no error getting the ClusterKubeconfig resource")
+			return clusterKubeconfig.Status.Conditions.IsReadyTrue()
+		}).Should(Equal(false))
+
+		// check for reconcile failed condition
+		Expect(clusterKubeconfig.Status.Conditions.GetConditionByType(v1alpha1.KubeconfigReconcileFailedCondition)).NotTo(BeNil())
+		Expect(clusterKubeconfig.Status.Conditions.GetConditionByType(v1alpha1.KubeconfigReconcileFailedCondition).Status).To(Equal(metav1.ConditionTrue))
 	})
 })
