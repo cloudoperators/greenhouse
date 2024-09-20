@@ -1,0 +1,82 @@
+name: Test build Docker images on PR
+
+on:
+  pull_request:
+    types: [ opened, synchronize, reopened ]
+    paths:
+      - Makefile
+      - Dockerfile
+      - Dockerfile.*
+    
+env:
+  REGISTRY: ghcr.io
+
+jobs:
+  build:
+    name: Build
+    runs-on: [ default ]
+    continue-on-error: true
+    strategy:
+      fail-fast: false
+      max-parallel: 6
+      matrix:
+        include:
+          - Dockerfiles: Dockerfile
+            Imagename: greenhouse
+          - Dockerfiles: Dockerfile.dev-env
+            Imagename: greenhouse-dev-env
+          - Dockerfiles: Dockerfile.headscalectl
+            Imagename: greenhouse-headscalectl
+          - Dockerfiles: Dockerfile.tailscale
+            Imagename: greenhouse-tailscale
+          - Dockerfiles: Dockerfile.tcp-proxy
+            Imagename: greenhouse-tcp-proxy
+
+    permissions:
+      contents: read
+      packages: read
+      id-token: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+      
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+        with:
+          driver-opts: |
+            image=moby/buildkit:latest
+
+      - name: Extract Docker metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ matrix.Imagename }}
+          tags: |
+            type=semver,pattern={{version}},prefix=v
+            type=semver,pattern={{major}}.{{minor}},prefix=v
+            type=semver,pattern={{major}},enable=${{ !startsWith(github.ref, 'refs/tags/v0.') }},prefix=v
+            type=ref,event=branch
+            type=ref,event=tag
+            type=ref,event=pr
+            type=schedule
+            type=raw,value=${{ github.sha }}
+            type=sha,enable=true,format=short,prefix=
+            type=edge,branch=master
+
+      - name: Build Docker image
+        id: build-and-push
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ${{ matrix.Dockerfiles }}
+          push: false
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          provenance: false
+          platforms: |
+            linux/amd64
+            linux/arm64

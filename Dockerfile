@@ -1,5 +1,5 @@
 # Build the manager binary
-FROM --platform=${BUILDPLATFORM:-linux/amd64} golang:1.23 as builder
+FROM --platform=${BUILDPLATFORM:-linux/amd64} golang:1.23 AS builder
 
 ARG TARGETOS
 ARG TARGETARCH
@@ -8,13 +8,13 @@ ENV CGO_ENABLED=0
 WORKDIR /workspace
 
 COPY Makefile .
-RUN make controller-gen-docker
+RUN make action-controllergen
 COPY . .
 
 # Build greenhouse operator and tooling.
 RUN --mount=type=cache,target=/go/pkg/mod \
 	--mount=type=cache,target=/root/.cache/go-build \
-	make build CGO_ENABLED=${CGO_ENABLED} GOOS=${TARGETOS} GOARCH=${TARGETARCH}
+	make action-build CGO_ENABLED=${CGO_ENABLED} GOOS=${TARGETOS} GOARCH=${TARGETARCH}
 
 # Use distroless as minimal base image to package the manager binary
 # Refer to https://github.com/GoogleContainerTools/distroless for more details
