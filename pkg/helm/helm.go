@@ -62,7 +62,7 @@ func InstallOrUpgradeHelmChartFromPlugin(ctx context.Context, local client.Clien
 	}
 	// A release does not exist. Install it.
 	if !isReleaseExists {
-		log.FromContext(ctx).Info("installing release for plugin", "namespace", plugin.GetReleaseNamespace(), "name", plugin.Name)
+		log.FromContext(ctx).Info("installing release for plugin", "namespace", plugin.Spec.ReleaseNamespace, "name", plugin.Name)
 		_, err = installRelease(ctx, local, restClientGetter, pluginDefinition, plugin, false)
 		return err
 	}
@@ -81,7 +81,7 @@ func InstallOrUpgradeHelmChartFromPlugin(ctx context.Context, local client.Clien
 	if releaseStatus, ok := isCanReleaseBeUpgraded(latestRelease); !ok {
 		return fmt.Errorf("cannot upgrade release %s/%s in status %s", latestRelease.Namespace, latestRelease.Name, releaseStatus.String())
 	}
-	log.FromContext(ctx).Info("upgrading release", "namespace", plugin.GetReleaseNamespace(), "name", plugin.Name)
+	log.FromContext(ctx).Info("upgrading release", "namespace", plugin.Spec.ReleaseNamespace, "name", plugin.Name)
 
 	c, err := clientutil.NewK8sClientFromRestClientGetter(restClientGetter)
 	if err != nil {
@@ -97,7 +97,7 @@ func InstallOrUpgradeHelmChartFromPlugin(ctx context.Context, local client.Clien
 // HelmChartTest to do helm test on the plugin
 func HelmChartTest(ctx context.Context, restClientGetter genericclioptions.RESTClientGetter, plugin *greenhousev1alpha1.Plugin) (bool, error) {
 	var hasTestHook bool
-	cfg, err := newHelmAction(restClientGetter, plugin.GetReleaseNamespace())
+	cfg, err := newHelmAction(restClientGetter, plugin.Spec.ReleaseNamespace)
 	if err != nil {
 		return hasTestHook, err
 	}
@@ -118,7 +118,7 @@ func HelmChartTest(ctx context.Context, restClientGetter genericclioptions.RESTC
 
 // UninstallHelmRelease removes the Helm release for the given Plugin.
 func UninstallHelmRelease(ctx context.Context, restClientGetter genericclioptions.RESTClientGetter, plugin *greenhousev1alpha1.Plugin) (releaseNotFound bool, err error) {
-	cfg, err := newHelmAction(restClientGetter, plugin.GetReleaseNamespace())
+	cfg, err := newHelmAction(restClientGetter, plugin.Spec.ReleaseNamespace)
 	if err != nil {
 		return false, err
 	}
@@ -168,7 +168,7 @@ func DiffChartToDeployedResources(ctx context.Context, local client.Client, rest
 		return nil, false, err
 	}
 
-	diffObjects, err := diffAgainstRelease(restClientGetter, plugin.GetReleaseNamespace(), manifest, helmRelease)
+	diffObjects, err := diffAgainstRelease(restClientGetter, plugin.Spec.ReleaseNamespace, manifest, helmRelease)
 	if err != nil {
 		return nil, false, err
 	}
@@ -189,7 +189,7 @@ func DiffChartToDeployedResources(ctx context.Context, local client.Client, rest
 		return nil, false, nil
 	}
 
-	diffObjects, err = diffAgainstLiveObjects(restClientGetter, plugin.GetReleaseNamespace(), manifest)
+	diffObjects, err = diffAgainstLiveObjects(restClientGetter, plugin.Spec.ReleaseNamespace, manifest)
 	if err != nil {
 		return nil, false, err
 	}
@@ -207,7 +207,7 @@ func ResetHelmReleaseStatusToDeployed(ctx context.Context, restClientGetter gene
 		return err
 	}
 
-	cfg, err := newHelmAction(restClientGetter, plugin.GetReleaseNamespace())
+	cfg, err := newHelmAction(restClientGetter, plugin.Spec.ReleaseNamespace)
 	if err != nil {
 		return err
 	}
@@ -222,7 +222,7 @@ func ResetHelmReleaseStatusToDeployed(ctx context.Context, restClientGetter gene
 
 // getLatestUpgradeableRelease returns the latest released that can be upgraded or an error.
 func getLatestUpgradeableRelease(restClientGetter genericclioptions.RESTClientGetter, plugin *greenhousev1alpha1.Plugin) (*release.Release, error) {
-	cfg, err := newHelmAction(restClientGetter, plugin.GetReleaseNamespace())
+	cfg, err := newHelmAction(restClientGetter, plugin.Spec.ReleaseNamespace)
 	if err != nil {
 		return nil, err
 	}
@@ -243,7 +243,7 @@ func getLatestUpgradeableRelease(restClientGetter genericclioptions.RESTClientGe
 		}
 	}
 	if latest == nil {
-		return nil, fmt.Errorf("no release found to rollback to for plugin %s/%s", plugin.GetReleaseNamespace(), plugin.Name)
+		return nil, fmt.Errorf("no release found to rollback to for plugin %s/%s", plugin.Spec.ReleaseNamespace, plugin.Name)
 	}
 	return latest, nil
 }
@@ -264,7 +264,7 @@ func isReleaseExistsForPlugin(ctx context.Context, restClientGetter genericcliop
 
 // GetReleaseForHelmChartFromPlugin returns the Helm release for the given Plugin or an error.
 func GetReleaseForHelmChartFromPlugin(_ context.Context, restClientGetter genericclioptions.RESTClientGetter, plugin *greenhousev1alpha1.Plugin) (*release.Release, error) {
-	cfg, err := newHelmAction(restClientGetter, plugin.GetReleaseNamespace())
+	cfg, err := newHelmAction(restClientGetter, plugin.Spec.ReleaseNamespace)
 	if err != nil {
 		return nil, err
 	}
@@ -315,12 +315,12 @@ func configureChartPathOptions(cpo *action.ChartPathOptions, c *greenhousev1alph
 }
 
 func upgradeRelease(ctx context.Context, local client.Client, restClientGetter genericclioptions.RESTClientGetter, pluginDefinition *greenhousev1alpha1.PluginDefinition, plugin *greenhousev1alpha1.Plugin) error {
-	cfg, err := newHelmAction(restClientGetter, plugin.GetReleaseNamespace())
+	cfg, err := newHelmAction(restClientGetter, plugin.Spec.ReleaseNamespace)
 	if err != nil {
 		return err
 	}
 	upgradeAction := action.NewUpgrade(cfg)
-	upgradeAction.Namespace = plugin.GetReleaseNamespace()
+	upgradeAction.Namespace = plugin.Spec.ReleaseNamespace
 	upgradeAction.DependencyUpdate = true
 	upgradeAction.MaxHistory = 5
 	upgradeAction.Description = pluginDefinition.Spec.Version
@@ -358,13 +358,13 @@ func upgradeRelease(ctx context.Context, local client.Client, restClientGetter g
 }
 
 func installRelease(ctx context.Context, local client.Client, restClientGetter genericclioptions.RESTClientGetter, pluginDefinition *greenhousev1alpha1.PluginDefinition, plugin *greenhousev1alpha1.Plugin, isDryRun bool) (*release.Release, error) {
-	cfg, err := newHelmAction(restClientGetter, plugin.GetReleaseNamespace())
+	cfg, err := newHelmAction(restClientGetter, plugin.Spec.ReleaseNamespace)
 	if err != nil {
 		return nil, err
 	}
 	installAction := action.NewInstall(cfg)
 	installAction.ReleaseName = plugin.Name
-	installAction.Namespace = plugin.GetReleaseNamespace()
+	installAction.Namespace = plugin.Spec.ReleaseNamespace
 	installAction.CreateNamespace = true
 	installAction.DependencyUpdate = true
 	installAction.DryRun = isDryRun
