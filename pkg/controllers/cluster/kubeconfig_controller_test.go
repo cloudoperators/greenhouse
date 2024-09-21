@@ -230,7 +230,7 @@ users:
 		Eventually(func(g Gomega) bool {
 			g.Expect(test.K8sClient.Get(test.Ctx, types.NamespacedName{Name: cluster.Name, Namespace: setup.Namespace()}, &clusterKubeconfig)).ShouldNot(HaveOccurred(), "There should be no error getting the ClusterKubeconfig resource")
 			return clusterKubeconfig.Status.Conditions.IsReadyTrue()
-		}).Should(Equal(false))
+		}).Should(BeFalse())
 
 		// check for reconcile failed condition
 		Expect(clusterKubeconfig.Status.Conditions.GetConditionByType(v1alpha1.KubeconfigReconcileFailedCondition)).NotTo(BeNil())

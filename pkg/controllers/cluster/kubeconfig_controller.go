@@ -101,7 +101,6 @@ func (r *KubeconfigReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 			}}
 		kubeconfig.Spec.Kubeconfig.CurrentContext = cluster.Name
 		kubeconfig.Status = calculateKubeconfigStatus(kubeconfig)
-
 	}
 
 	defer func() {
