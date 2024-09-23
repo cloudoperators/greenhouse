@@ -211,7 +211,7 @@ $(KUSTOMIZE): $(LOCALBIN)
 .PHONY: action-controllergen
 action-controllergen:: $(CONTROLLER_GEN_ACTION) ## Download controller-gen locally if necessary.
 $(CONTROLLER_GEN_ACTION):: $(LOCALBIN)
-	GO111MODULE="auto" GOMODCACHE=$(shell pwd)/tmp GOPATH=$(shell pwd) go install -modcacherw sigs.k8s.io/controller-tools/cmd/controller-gen@$(CONTROLLER_TOOLS_VERSION)
+	GOMODCACHE=$(shell pwd)/tmp GOPATH=$(shell pwd) go install -modcacherw sigs.k8s.io/controller-tools/cmd/controller-gen@$(CONTROLLER_TOOLS_VERSION)
 	GOMODCACHE=$(shell pwd)/tmp go clean -modcache
 
 .PHONY: controller-gen
@@ -222,7 +222,7 @@ $(CONTROLLER_GEN):: $(LOCALBIN)
 .PHONY: action-envtest
 action-envtest:: $(ENVTEST) ## Download envtest-setup locally if necessary.
 $(ENVTEST_ACTION):: $(LOCALBIN)
-	GO111MODULE="auto" GOMODCACHE=$(shell pwd)/tmp GOPATH=$(shell pwd) go install -modcacherw sigs.k8s.io/controller-runtime/tools/setup-envtest@latest
+	GOMODCACHE=$(shell pwd)/tmp GOPATH=$(shell pwd) go install -modcacherw sigs.k8s.io/controller-runtime/tools/setup-envtest@latest
 	GOMODCACHE=$(shell pwd)/tmp go clean -modcache
 
 .PHONY: envtest
