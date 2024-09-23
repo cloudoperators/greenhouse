@@ -209,23 +209,23 @@ $(KUSTOMIZE): $(LOCALBIN)
 	test -s $(LOCALBIN)/kustomize || curl -s $(KUSTOMIZE_INSTALL_SCRIPT) | bash -s -- $(subst v,,$(KUSTOMIZE_VERSION)) $(LOCALBIN)
 
 .PHONY: action-controllergen
-action-controllergen: $(CONTROLLER_GEN_ACTION) ## Download controller-gen locally if necessary.
-$(CONTROLLER_GEN_ACTION): $(LOCALBIN)
+action-controllergen:: $(CONTROLLER_GEN_ACTION) ## Download controller-gen locally if necessary.
+$(CONTROLLER_GEN_ACTION):: $(LOCALBIN)
 	GOPATH=$(shell pwd) go install sigs.k8s.io/controller-tools/cmd/controller-gen@$(CONTROLLER_TOOLS_VERSION)
 
 .PHONY: controller-gen
-controller-gen: $(CONTROLLER_GEN) ## Download controller-gen locally if necessary.
-$(CONTROLLER_GEN): $(LOCALBIN)
+controller-gen:: $(CONTROLLER_GEN) ## Download controller-gen locally if necessary.
+$(CONTROLLER_GEN):: $(LOCALBIN)
 	GOBIN=$(LOCALBIN) go install sigs.k8s.io/controller-tools/cmd/controller-gen@$(CONTROLLER_TOOLS_VERSION)
 
 .PHONY: action-envtest
-action-envtest: $(ENVTEST) ## Download envtest-setup locally if necessary.
-$(ENVTEST_ACTION): $(LOCALBIN)
+action-envtest:: $(ENVTEST) ## Download envtest-setup locally if necessary.
+$(ENVTEST_ACTION):: $(LOCALBIN)
 	GOPATH=$(shell pwd) go install sigs.k8s.io/controller-runtime/tools/setup-envtest@latest
 
 .PHONY: envtest
-envtest: $(ENVTEST) ## Download envtest-setup locally if necessary.
-$(ENVTEST): $(LOCALBIN)
+envtest:: $(ENVTEST) ## Download envtest-setup locally if necessary.
+$(ENVTEST):: $(LOCALBIN)
 	GOBIN=$(LOCALBIN) go install sigs.k8s.io/controller-runtime/tools/setup-envtest@latest
 
 .PHONY: goimports
