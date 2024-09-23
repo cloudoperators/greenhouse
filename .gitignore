@@ -34,10 +34,6 @@ testbin/*
 # gorleaser artifacts
 dist/**
 
-# Makefile GOBIN ignore
-pkg/sumdb/**
-pkg/mod/**
-
 # Apple files 
 .DS_Store
 
