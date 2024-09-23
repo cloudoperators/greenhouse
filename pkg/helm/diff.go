@@ -11,14 +11,18 @@ import (
 	"github.com/pkg/errors"
 	"github.com/wI2L/jsondiff"
 	"helm.sh/helm/v3/pkg/release"
+	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 	"k8s.io/cli-runtime/pkg/resource"
+	"k8s.io/client-go/dynamic"
 	"k8s.io/utils/ptr"
+	"sigs.k8s.io/yaml"
 )
 
 const (
@@ -89,6 +93,46 @@ func diffAgainstRelease(restClientGetter genericclioptions.RESTClientGetter, nam
 		}
 	}
 	return allDiffs, err
+}
+
+// diffAgainstRemoteCRDs compares the CRDObjects from helm release with CRDs in remote cluster.
+func diffAgainstRemoteCRDs(restClientGetter genericclioptions.RESTClientGetter, helmRelease *release.Release) (DiffObjectList, error) {
+	restConfig, err := restClientGetter.ToRESTConfig()
+	if err != nil {
+		return nil, err
+	}
+	dynamicClient, err := dynamic.NewForConfig(restConfig)
+	if err != nil {
+		return nil, err
+	}
+	crdGetter := resource.CRDFromDynamic(dynamicClient)
+	crdFinder := resource.NewCRDFinder(crdGetter)
+
+	crdList := helmRelease.Chart.CRDObjects()
+
+	allDiffs := make([]DiffObject, 0)
+	for _, crdFile := range crdList {
+		if crdFile.File == nil || crdFile.File.Data == nil {
+			continue
+		}
+		// Read the manifest to an object.
+		crd := &apiextensionsv1.CustomResourceDefinition{}
+		if err := yaml.Unmarshal(crdFile.File.Data, crd); err != nil {
+			return nil, err
+		}
+		found, err := crdFinder.HasCRD(schema.GroupKind{Group: crd.Spec.Group, Kind: crd.Spec.Names.Kind})
+		if err != nil {
+			return nil, err
+		}
+		if found {
+			continue
+		}
+		allDiffs = append(allDiffs, DiffObject{
+			Name: crd.GetName(),
+			Diff: "missing CRD",
+		})
+	}
+	return allDiffs, nil
 }
 
 // diffAgainstLiveObjects compares the objects in the templated manifest with the objects deployed in the cluster.

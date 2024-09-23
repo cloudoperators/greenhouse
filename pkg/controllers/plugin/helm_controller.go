@@ -148,7 +148,7 @@ func (r *HelmReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.
 		return ctrl.Result{}, err
 	}
 
-	helmReconcileFailedCondition, pluginDefinition := r.getPlugin(ctx, plugin)
+	helmReconcileFailedCondition, pluginDefinition := r.getPluginDefinition(ctx, plugin)
 	pluginStatus.StatusConditions.SetConditions(helmReconcileFailedCondition)
 	if pluginDefinition == nil {
 		return ctrl.Result{}, fmt.Errorf("pluginDefinition not found: %s", helmReconcileFailedCondition.Message)
@@ -189,7 +189,7 @@ func (r *HelmReconciler) setStatus(ctx context.Context, plugin *greenhousev1alph
 	return err
 }
 
-func (r *HelmReconciler) getPlugin(
+func (r *HelmReconciler) getPluginDefinition(
 	ctx context.Context,
 	plugin *greenhousev1alpha1.Plugin,
 ) (

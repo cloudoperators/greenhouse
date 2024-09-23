@@ -88,7 +88,7 @@ func InstallOrUpgradeHelmChartFromPlugin(ctx context.Context, local client.Clien
 		return err
 	}
 
-	if err := replaceCustomResourceDefinitions(ctx, c, helmChart.CRDObjects()); err != nil {
+	if err := replaceCustomResourceDefinitions(ctx, c, helmChart.CRDObjects(), true); err != nil {
 		return err
 	}
 	return upgradeRelease(ctx, local, restClientGetter, pluginDefinition, plugin)
@@ -172,7 +172,11 @@ func DiffChartToDeployedResources(ctx context.Context, local client.Client, rest
 	if err != nil {
 		return nil, false, err
 	}
-
+	diffCrds, err := diffAgainstRemoteCRDs(restClientGetter, helmRelease)
+	if err != nil {
+		return nil, false, err
+	}
+	diffObjects = append(diffObjects, diffCrds...)
 	if len(diffObjects) > 0 {
 		log.FromContext(ctx).Info("diff between manifest and release detected", "resources", diffObjects.String())
 		return diffObjects, false, nil
@@ -344,7 +348,7 @@ func upgradeRelease(ctx context.Context, local client.Client, restClientGetter g
 	if err != nil {
 		return err
 	}
-	if err := replaceCustomResourceDefinitions(ctx, c, helmChart.CRDObjects()); err != nil {
+	if err := replaceCustomResourceDefinitions(ctx, c, helmChart.CRDObjects(), true); err != nil {
 		return err
 	}
 
@@ -386,7 +390,7 @@ func installRelease(ctx context.Context, local client.Client, restClientGetter g
 		return nil, err
 	}
 
-	if err := replaceCustomResourceDefinitions(ctx, c, helmChart.CRDObjects()); err != nil {
+	if err := replaceCustomResourceDefinitions(ctx, c, helmChart.CRDObjects(), false); err != nil {
 		return nil, err
 	}
 	helmValues, err := getValuesForHelmChart(ctx, local, helmChart, plugin, isDryRun)
@@ -545,7 +549,7 @@ func isCanReleaseBeUpgraded(r *release.Release) (release.Status, bool) {
 	return r.Info.Status, !r.Info.Status.IsPending() && r.Info.Status != release.StatusFailed
 }
 
-func replaceCustomResourceDefinitions(ctx context.Context, c client.Client, crdList []chart.CRD) error {
+func replaceCustomResourceDefinitions(ctx context.Context, c client.Client, crdList []chart.CRD, isUpgrade bool) error {
 	if len(crdList) == 0 {
 		return nil
 	}
@@ -562,8 +566,15 @@ func replaceCustomResourceDefinitions(ctx context.Context, c client.Client, crdL
 		// Attempt to get the CRD from the cluster.
 		var curObj = new(apiextensionsv1.CustomResourceDefinition)
 		if err := c.Get(ctx, types.NamespacedName{Namespace: "", Name: crd.GetName()}, curObj); err != nil {
-			// Let Helm handle the installation if the CRD doesn't exist yet.
 			if apierrors.IsNotFound(err) {
+				// On install or dryRun: let Helm handle the installation if the CRD doesn't exist yet.
+				if !isUpgrade {
+					continue
+				}
+				// On upgrade: re-create the CRD based on helm chart if the CRD was deleted.
+				if err := c.Create(ctx, crd); err != nil {
+					return err
+				}
 				continue
 			}
 			return err
