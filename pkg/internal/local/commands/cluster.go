@@ -21,7 +21,7 @@ var (
 		Use:               "create",
 		Short:             "Create a kinD cluster",
 		Long:              "Create a kinD cluster and setup the greenhouse namespace optionally",
-		Example:           `greenhousectl dev cluster create --name <my-cluster-name> --namespace <my-namespace>`,
+		Example:           `greenhousectl dev cluster create --name <my-cluster-name> --namespace <my-namespace> --version <v1.30.3>`,
 		DisableAutoGenTag: true,
 		PreRunE: func(cmd *cobra.Command, args []string) error {
 			return validateFlagInputs(cmd.Flags())
@@ -50,7 +50,7 @@ func processDeleteLocalCluster(_ *cobra.Command, _ []string) error {
 }
 
 func processCreateLocalCluster(_ *cobra.Command, _ []string) error {
-	err := setup.NewExecutionEnv().WithClusterSetup(clusterName, namespaceName).Run()
+	err := setup.NewExecutionEnv().WithClusterSetup(clusterName, namespaceName, clusterVersion).Run()
 	if err != nil {
 		return err
 	}
@@ -60,6 +60,7 @@ func processCreateLocalCluster(_ *cobra.Command, _ []string) error {
 func init() {
 	createClusterCmd.Flags().StringVarP(&clusterName, "name", "c", "", "create a kind cluster with a name - e.g. -c <my-cluster>")
 	createClusterCmd.Flags().StringVarP(&namespaceName, "namespace", "n", "", "create a namespace in the cluster - e.g. -c <my-cluster> -n <my-namespace>")
+	createClusterCmd.Flags().StringVar(&clusterVersion, "version", "", "create the cluster with a specific version - e.g. -v <v1.30.3>")
 	deleteClusterCmd.Flags().StringVarP(&clusterName, "name", "c", "", "delete the kind cluster - e.g. -c <my-cluster>")
 	cobra.CheckErr(createClusterCmd.MarkFlagRequired("name"))
 	cobra.CheckErr(deleteClusterCmd.MarkFlagRequired("name"))

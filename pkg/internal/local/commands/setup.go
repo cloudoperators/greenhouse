@@ -75,7 +75,7 @@ func processSetup(cmd *cobra.Command, _ []string) error {
 			namespace = *cfg.Cluster.Namespace
 		}
 		env := setup.NewExecutionEnv().
-			WithClusterSetup(cfg.Cluster.Name, namespace)
+			WithClusterSetup(cfg.Cluster.Name, namespace, cfg.Cluster.Version)
 		for _, dep := range cfg.Dependencies {
 			if dep.Manifest != nil && dep.Manifest.Webhook == nil {
 				env = env.WithLimitedManifests(ctx, dep.Manifest)

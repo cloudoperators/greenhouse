@@ -13,7 +13,7 @@ import (
 
 // CreateCluster - creates a kind cluster with the given name
 // if the cluster already exists, it sets the context to the existing cluster
-func CreateCluster(clusterName string) error {
+func CreateCluster(clusterName, clusterVersion string) error {
 	exists, err := clusterExists(clusterName)
 	if err != nil {
 		return err
@@ -22,12 +22,23 @@ func CreateCluster(clusterName string) error {
 		utils.Logf("kind cluster with name %s already exists", clusterName)
 		return nil
 	}
-	return utils.Shell{
-		Cmd: "kind create cluster --name ${name}",
-		Vars: map[string]string{
-			"name": clusterName,
-		},
-	}.Exec()
+	if clusterVersion == "" {
+		return utils.Shell{
+			Cmd: "kind create cluster --name ${name}",
+			Vars: map[string]string{
+				"name": clusterName,
+			},
+		}.Exec()
+	} else {
+		version := fmt.Sprintf("kindest/node:%s", clusterVersion)
+		return utils.Shell{
+			Cmd: "kind create cluster --name ${name} --image ${image}",
+			Vars: map[string]string{
+				"name":  clusterName,
+				"image": version,
+			},
+		}.Exec()
+	}
 }
 
 // DeleteCluster - deletes a kind cluster with the given name
