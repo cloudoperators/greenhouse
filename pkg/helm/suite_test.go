@@ -146,6 +146,7 @@ var (
 			PluginDefinition: "test-plugindefinition",
 			ClusterName:      "test-cluster",
 			OptionValues:     []greenhousesapv1alpha1.PluginOptionValue{},
+			ReleaseNamespace: "test-release-namespace",
 		},
 	}
 
