@@ -44,6 +44,7 @@ var (
 		Spec: greenhousev1alpha1.PluginSpec{
 			ClusterName:      "test-cluster",
 			PluginDefinition: "test-plugindefinition",
+			ReleaseNamespace: test.TestNamespace,
 		},
 	}
 
@@ -391,7 +392,7 @@ var _ = Describe("HelmController reconciliation", Ordered, func() {
 		By("creating plugin definition with CRDs")
 		Expect(test.K8sClient.Create(test.Ctx, testPluginWithHelmChartCRDs)).To(Succeed(), "should create plugin definition")
 
-		remoteRestClientGetter := clientutil.NewRestClientGetterFromBytes(remoteKubeConfig, testPluginWithCRDs.GetReleaseNamespace(), clientutil.WithPersistentConfig())
+		remoteRestClientGetter := clientutil.NewRestClientGetterFromBytes(remoteKubeConfig, testPluginWithCRDs.Spec.ReleaseNamespace, clientutil.WithPersistentConfig())
 
 		By("creating test plugin referencing the cluster")
 		testPluginWithCRDs.Spec.ClusterName = "test-cluster"
@@ -410,7 +411,7 @@ var _ = Describe("HelmController reconciliation", Ordered, func() {
 		}).Should(BeTrue(), "the ClusterAccessReadyCondition should be false")
 
 		By("checking the helm releases deployed to the remote cluster")
-		helmConfig, err := helm.ExportNewHelmAction(remoteRestClientGetter, testPluginWithCRDs.GetReleaseNamespace())
+		helmConfig, err := helm.ExportNewHelmAction(remoteRestClientGetter, testPluginWithCRDs.Spec.ReleaseNamespace)
 		Expect(err).ShouldNot(HaveOccurred(), "there should be no error creating helm config")
 		listAction := action.NewList(helmConfig)
 		Eventually(func() []*release.Release {
