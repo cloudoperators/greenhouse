@@ -13,9 +13,12 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/record"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/metrics"
+	"sigs.k8s.io/controller-runtime/pkg/predicate"
 
 	corev1 "k8s.io/api/core/v1"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -68,7 +71,26 @@ func (r *TeamMembershipUpdaterController) SetupWithManager(name string, mgr ctrl
 		Named(name).
 		For(&greenhousev1alpha1.Team{}).
 		Owns(&greenhousev1alpha1.TeamMembership{}).
+		// If an Organization's .Spec was changed, reconcile relevant Teams.
+		Watches(&greenhousev1alpha1.Organization{}, handler.EnqueueRequestsFromMapFunc(r.enqueueAllTeamsForOrganization),
+			builder.WithPredicates(predicate.GenerationChangedPredicate{})).
 		Complete(r)
+}
+
+func (r *TeamMembershipUpdaterController) enqueueAllTeamsForOrganization(ctx context.Context, o client.Object) []ctrl.Request {
+	// Team's namespace corresponds to Organization's name.
+	return listTeamsAsReconcileRequests(ctx, r.Client, &client.ListOptions{Namespace: o.GetName()})
+}
+func listTeamsAsReconcileRequests(ctx context.Context, c client.Client, listOpts ...client.ListOption) []ctrl.Request {
+	var teamList = new(greenhousev1alpha1.TeamList)
+	if err := c.List(ctx, teamList, listOpts...); err != nil {
+		return nil
+	}
+	res := make([]ctrl.Request, len(teamList.Items))
+	for idx, team := range teamList.Items {
+		res[idx] = ctrl.Request{NamespacedName: client.ObjectKeyFromObject(team.DeepCopy())}
+	}
+	return res
 }
 
 func (r *TeamMembershipUpdaterController) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
