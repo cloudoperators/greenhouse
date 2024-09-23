@@ -30,7 +30,7 @@ func CreateCluster(clusterName, clusterVersion string) error {
 			},
 		}.Exec()
 	} else {
-		version := fmt.Sprintf("kindest/node:%s", clusterVersion)
+		version := "kindest/node:" + clusterVersion
 		return utils.Shell{
 			Cmd: "kind create cluster --name ${name} --image ${image}",
 			Vars: map[string]string{
