@@ -12,14 +12,15 @@ import (
 )
 
 var (
-	clusterName   string
-	namespaceName string
-	dockerFile    string
-	releaseName   string
-	chartPath     string
-	valuesPath    string
-	crdOnly       bool
-	excludeKinds  []string
+	clusterName    string
+	namespaceName  string
+	clusterVersion string
+	dockerFile     string
+	releaseName    string
+	chartPath      string
+	valuesPath     string
+	crdOnly        bool
+	excludeKinds   []string
 )
 
 func GetLocalSetupCommands() []*cobra.Command {

@@ -16,6 +16,7 @@ import (
 type Cluster struct {
 	Name           string  `json:"name"`
 	Namespace      *string `json:"namespace"`
+	Version        string  `json:"version"`
 	kubeConfigPath string
 }
 
@@ -24,7 +25,7 @@ func clusterSetup(env *ExecutionEnv) error {
 	if env.cluster == nil {
 		return errors.New("cluster configuration is missing")
 	}
-	err := klient.CreateCluster(env.cluster.Name)
+	err := klient.CreateCluster(env.cluster.Name, env.cluster.Version)
 	if err != nil {
 		return err
 	}

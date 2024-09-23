@@ -48,7 +48,7 @@ func processManifests(cmd *cobra.Command, _ []string) error {
 		Webhook:      nil,
 	}
 	err := setup.NewExecutionEnv().
-		WithClusterSetup(clusterName, namespaceName).
+		WithClusterSetup(clusterName, namespaceName, clusterVersion).
 		WithLimitedManifests(ctx, manifest).
 		Run()
 	if err != nil {
@@ -61,6 +61,7 @@ func init() {
 	// required flags
 	manifestCmd.Flags().StringVarP(&clusterName, "name", "c", "", "Name of the kind cluster - e.g. greenhouse-123 (without the kind prefix)")
 	manifestCmd.Flags().StringVarP(&namespaceName, "namespace", "n", "", "namespace to install the resources")
+	manifestCmd.Flags().StringVar(&clusterVersion, "version", "", "create the cluster with a specific version - e.g. -v <v1.30.3>")
 	manifestCmd.Flags().StringVarP(&chartPath, "chart-path", "p", "", "local absolute chart path where manifests are located - e.g. <path>/<to>/charts/manager")
 	manifestCmd.Flags().StringVarP(&releaseName, "release", "r", "greenhouse", "Helm release name, Default value: greenhouse - e.g. your-release-name")
 	// optional flags
