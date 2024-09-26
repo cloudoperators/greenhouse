@@ -126,9 +126,8 @@ func (r *WorkLoadStatusReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 	}
 
 	pluginStatus := initPluginStatus(plugin)
-
 	defer func() {
-		if statusErr := r.setStatus(ctx, plugin, pluginStatus); statusErr != nil {
+		if statusErr := setPluginStatus(ctx, r.Client, plugin, pluginStatus); statusErr != nil {
 			log.FromContext(ctx).Error(statusErr, "failed to set status")
 		}
 	}()
@@ -137,7 +136,7 @@ func (r *WorkLoadStatusReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 		return ctrl.Result{}, nil
 	}
 
-	clusterAccessReadyCondition, restClientGetter := initClientGetter(ctx, r.Client, r.kubeClientOpts, *plugin, plugin.Status)
+	clusterAccessReadyCondition, restClientGetter := initClientGetter(ctx, r.Client, r.kubeClientOpts, *plugin)
 	pluginStatus.StatusConditions.SetConditions(clusterAccessReadyCondition)
 	if !clusterAccessReadyCondition.IsTrue() {
 		return ctrl.Result{RequeueAfter: 10 * time.Minute}, fmt.Errorf("cannot access cluster: %s", clusterAccessReadyCondition.Message)
@@ -169,18 +168,6 @@ func (r *WorkLoadStatusReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 		pluginStatus.StatusConditions.SetConditions(workloadCondition)
 	}
 	return ctrl.Result{RequeueAfter: StatusRequeueInterval}, nil
-}
-
-// setStatus sets the status and metrics for the plugin
-func (r *WorkLoadStatusReconciler) setStatus(ctx context.Context, plugin *greenhousev1alpha1.Plugin, pluginStatus greenhousev1alpha1.PluginStatus) error {
-	readyCondition := computeReadyCondition(pluginStatus.StatusConditions)
-	pluginStatus.StatusConditions.SetConditions(readyCondition)
-	_, err := clientutil.PatchStatus(ctx, r.Client, plugin, func() error {
-		plugin.Status = pluginStatus
-		return nil
-	})
-
-	return err
 }
 
 // getPayloadStatus fetches the status of the object and updates the ReleaseStatus object

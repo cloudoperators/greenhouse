@@ -35,17 +35,6 @@ import (
 
 const helmReleaseSecretType = "helm.sh/release.v1" //nolint:gosec
 
-// exposedConditions are the conditions that are exposed in the StatusConditions of the Plugin.
-var exposedConditions = []greenhousev1alpha1.ConditionType{
-	greenhousev1alpha1.ReadyCondition,
-	greenhousev1alpha1.ClusterAccessReadyCondition,
-	greenhousev1alpha1.HelmDriftDetectedCondition,
-	greenhousev1alpha1.HelmReconcileFailedCondition,
-	greenhousev1alpha1.StatusUpToDateCondition,
-	greenhousev1alpha1.NoHelmChartTestFailuresCondition,
-	greenhousev1alpha1.WorkloadReadyCondition,
-}
-
 // HelmReconciler reconciles a Plugin object.
 type HelmReconciler struct {
 	client.Client
@@ -113,14 +102,13 @@ func (r *HelmReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.
 	}
 
 	pluginStatus := initPluginStatus(plugin)
-
 	defer func() {
-		if statusErr := r.setStatus(ctx, plugin, pluginStatus); statusErr != nil {
+		if statusErr := setPluginStatus(ctx, r.Client, plugin, pluginStatus); statusErr != nil {
 			log.FromContext(ctx).Error(statusErr, "failed to set status")
 		}
 	}()
 
-	clusterAccessReadyCondition, restClientGetter := initClientGetter(ctx, r.Client, r.kubeClientOpts, *plugin, pluginStatus)
+	clusterAccessReadyCondition, restClientGetter := initClientGetter(ctx, r.Client, r.kubeClientOpts, *plugin)
 	pluginStatus.StatusConditions.SetConditions(clusterAccessReadyCondition)
 	if !clusterAccessReadyCondition.IsTrue() {
 		return ctrl.Result{}, fmt.Errorf("cannot access cluster: %s", clusterAccessReadyCondition.Message)
@@ -164,29 +152,6 @@ func (r *HelmReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.
 	}
 
 	return ctrl.Result{}, nil
-}
-
-func initPluginStatus(plugin *greenhousev1alpha1.Plugin) greenhousev1alpha1.PluginStatus {
-	pluginStatus := plugin.Status.DeepCopy()
-	for _, t := range exposedConditions {
-		if pluginStatus.GetConditionByType(t) == nil {
-			pluginStatus.SetConditions(greenhousev1alpha1.UnknownCondition(t, "", ""))
-		}
-	}
-	if pluginStatus.HelmReleaseStatus == nil {
-		pluginStatus.HelmReleaseStatus = &greenhousev1alpha1.HelmReleaseStatus{Status: "unknown"}
-	}
-	return *pluginStatus
-}
-
-func (r *HelmReconciler) setStatus(ctx context.Context, plugin *greenhousev1alpha1.Plugin, pluginStatus greenhousev1alpha1.PluginStatus) error {
-	readyCondition := computeReadyCondition(pluginStatus.StatusConditions)
-	pluginStatus.StatusConditions.SetConditions(readyCondition)
-	_, err := clientutil.PatchStatus(ctx, r.Client, plugin, func() error {
-		plugin.Status = pluginStatus
-		return nil
-	})
-	return err
 }
 
 func (r *HelmReconciler) getPluginDefinition(
