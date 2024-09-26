@@ -1,5 +1,5 @@
 # Build the manager binary
-FROM --platform=${BUILDPLATFORM:-linux/amd64} golang:1.23 as builder
+FROM --platform=${BUILDPLATFORM:-linux/amd64} golang:1.23 AS builder
 
 ARG TARGETOS
 ARG TARGETARCH
@@ -9,17 +9,17 @@ WORKDIR /workspace
 
 COPY . .
 
-# Build dev-env and setup-envtest
-RUN make controller-gen-docker envtest-docker
+RUN make action-controllergen action-envtest
+RUN make actiongenerate
 
 # Build dev-env and setup-envtest
 RUN --mount=type=cache,target=/go/pkg/mod \
   --mount=type=cache,target=/root/.cache/go-build \
-  make generate-docker build-dev-env CGO_ENABLED=${CGO_ENABLED} GOOS=${TARGETOS} GOARCH=${TARGETARCH} \
+  make build-dev-env CGO_ENABLED=${CGO_ENABLED} GOOS=${TARGETOS} GOARCH=${TARGETARCH} \
   && cp $(/workspace/bin/setup-envtest use ${ENVTEST_K8S_VERSION} -p path)/* /usr/local/bin
 
 # Get PluginDefinitions from https://github.com/cloudoperators/greenhouse-extensions
-FROM alpine/git:2.45.2 as git
+FROM alpine/git:2.45.2 AS git
 RUN git clone https://github.com/cloudoperators/greenhouse-extensions.git /greenhouse-extensions
 
 # final image 

@@ -397,7 +397,7 @@ var _ = Describe("HelmControllerTest", Serial, func() {
 				return err != nil
 			}).Should(BeFalse())
 			Eventually(func() bool {
-				_, err := helm.GetReleaseForHelmChartFromPlugin(test.Ctx, clientutil.NewRestClientGetterFromRestConfig(test.Cfg, testPlugin.GetReleaseNamespace(), clientutil.WithPersistentConfig()), testPlugin)
+				_, err := helm.GetReleaseForHelmChartFromPlugin(test.Ctx, clientutil.NewRestClientGetterFromRestConfig(test.Cfg, testPlugin.Spec.ReleaseNamespace, clientutil.WithPersistentConfig()), testPlugin)
 				if err != nil {
 					return errors.Is(err, driver.ErrReleaseNotFound)
 				}

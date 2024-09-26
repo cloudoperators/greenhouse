@@ -73,15 +73,15 @@ generate-open-api-spec:
 generate-types: generate-open-api-spec## Generate typescript types from CRDs.
 	hack/typescript/create-types $(CURDIR)/docs/reference/api/openapi.yaml $(CURDIR)/hack/typescript/metadata.yaml $(CURDIR)/ui/types/ 
 
+.PHONY: actiongenerate
+actiongenerate: action-controllergen
+	$(CONTROLLER_GEN_ACTION) object:headerFile="hack/boilerplate.go.txt" paths="./pkg/apis/..."
+	$(CONTROLLER_GEN_ACTION) object:headerFile="hack/boilerplate.go.txt" paths="./pkg/dex/..."
+
 .PHONY: generate
 generate: controller-gen ## Generate code containing DeepCopy, DeepCopyInto, and DeepCopyObject method implementations.
 	$(CONTROLLER_GEN) object:headerFile="hack/boilerplate.go.txt" paths="./pkg/apis/..."
 	$(CONTROLLER_GEN) object:headerFile="hack/boilerplate.go.txt" paths="./pkg/dex/..."
-
-.PHONY: generate-docker
-generate-docker: controller-gen-docker
-	$(CONTROLLER_GEN_DOCKER) object:headerFile="hack/boilerplate.go.txt" paths="./pkg/apis/..."
-	$(CONTROLLER_GEN_DOCKER) object:headerFile="hack/boilerplate.go.txt" paths="./pkg/dex/..."
 
 # Default values
 GEN_DOCS_API_DIR ?= "./pkg/apis/greenhouse/v1alpha1" ## -app-dir should be Canonical Path Format so absolute path doesn't work. That's why we don't use $(CURDIR) here.
@@ -145,6 +145,9 @@ $(CLI): $(LOCALBIN)
 	test -s $(LOCALBIN)/greenhousectl || echo "Building Greenhouse CLI..." && make build-greenhousectl
 
 ##@ Build
+.PHONY: action-build
+action-build: build-greenhouse build-idproxy build-cors-proxy build-greenhousectl build-service-proxy
+
 .PHONY: build
 build: generate build-greenhouse build-idproxy build-cors-proxy build-greenhousectl build-service-proxy
 
@@ -186,9 +189,11 @@ kustomize-build-crds: generate-manifests kustomize
 ## Tool Binaries
 KUSTOMIZE ?= $(LOCALBIN)/kustomize
 CONTROLLER_GEN ?= $(LOCALBIN)/controller-gen
+CONTROLLER_GEN_ACTION ?= $(LOCALBIN)/controller-gen
 GOIMPORTS ?= $(LOCALBIN)/goimports
 GOLINT ?= $(LOCALBIN)/golangci-lint
 ENVTEST ?= $(LOCALBIN)/setup-envtest
+ENVTEST_ACTION ?= $(LOCALBIN)/setup-envtest
 HELMIFY ?= $(LOCALBIN)/helmify
 
 ## Tool Versions
@@ -203,25 +208,29 @@ kustomize: $(KUSTOMIZE) ## Download kustomize locally if necessary.
 $(KUSTOMIZE): $(LOCALBIN)
 	test -s $(LOCALBIN)/kustomize || curl -s $(KUSTOMIZE_INSTALL_SCRIPT) | bash -s -- $(subst v,,$(KUSTOMIZE_VERSION)) $(LOCALBIN)
 
+.PHONY: action-controllergen
+action-controllergen:: $(CONTROLLER_GEN_ACTION) ## Download controller-gen locally if necessary.
+$(CONTROLLER_GEN_ACTION):: $(LOCALBIN)
+	GOMODCACHE=$(shell pwd)/tmp GOPATH=$(shell pwd) go install -modcacherw sigs.k8s.io/controller-tools/cmd/controller-gen@$(CONTROLLER_TOOLS_VERSION)
+	GOMODCACHE=$(shell pwd)/tmp go clean -modcache
+	rm -rf $(shell pwd)/pkg/sumdb/
+
 .PHONY: controller-gen
-controller-gen: $(CONTROLLER_GEN) ## Download controller-gen locally if necessary.
-$(CONTROLLER_GEN): $(LOCALBIN)
+controller-gen:: $(CONTROLLER_GEN) ## Download controller-gen locally if necessary.
+$(CONTROLLER_GEN):: $(LOCALBIN)
 	GOBIN=$(LOCALBIN) go install sigs.k8s.io/controller-tools/cmd/controller-gen@$(CONTROLLER_TOOLS_VERSION)
 
-.PHONY: controller-gen-docker
-controller-gen-docker: $(CONTROLLER_GEN_DOCKER) ## Download controller-gen locally if necessary.
-$(CONTROLLER_GEN_DOCKER): $(LOCALBIN)
-	GOPATH=$(shell pwd) go install sigs.k8s.io/controller-tools/cmd/controller-gen@$(CONTROLLER_TOOLS_VERSION)
+.PHONY: action-envtest
+action-envtest:: $(ENVTEST) ## Download envtest-setup locally if necessary.
+$(ENVTEST_ACTION):: $(LOCALBIN)
+	GOMODCACHE=$(shell pwd)/tmp GOPATH=$(shell pwd) go install -modcacherw sigs.k8s.io/controller-runtime/tools/setup-envtest@latest
+	GOMODCACHE=$(shell pwd)/tmp go clean -modcache
+	rm -rf $(shell pwd)/pkg/sumdb/
 
 .PHONY: envtest
-envtest: $(ENVTEST) ## Download envtest-setup locally if necessary.
-$(ENVTEST): $(LOCALBIN)
+envtest:: $(ENVTEST) ## Download envtest-setup locally if necessary.
+$(ENVTEST):: $(LOCALBIN)
 	GOBIN=$(LOCALBIN) go install sigs.k8s.io/controller-runtime/tools/setup-envtest@latest
-
-.PHONY: envtest-docker
-envtest-docker: $(ENVTEST) ## Download envtest-setup locally if necessary.
-$(ENVTEST_DOCKER): $(LOCALBIN)
-	GOPATH=$(shell pwd) go install sigs.k8s.io/controller-runtime/tools/setup-envtest@latest
 
 .PHONY: goimports
 goimports: $(GOIMPORTS)

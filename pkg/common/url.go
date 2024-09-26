@@ -17,7 +17,7 @@ func URLForExposedServiceInPlugin(serviceName string, plugin *greenhousev1alpha1
 	return fmt.Sprintf(
 		// The pattern shall be $https://$service-$namespace-$cluster.$organisation.$basedomain .
 		"https://%s--%s--%s.%s.%s",
-		serviceName, plugin.GetNamespace(), plugin.Spec.ClusterName,
+		serviceName, plugin.Spec.ReleaseNamespace, plugin.Spec.ClusterName,
 		plugin.GetNamespace(), DNSDomain,
 	)
 }

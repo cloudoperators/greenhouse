@@ -62,6 +62,7 @@ var _ = Describe("ensure helm diff against the release manifest works as expecte
 						Value: test.MustReturnJSONFor("true"),
 					},
 				},
+				ReleaseNamespace: namespace,
 			},
 		}
 

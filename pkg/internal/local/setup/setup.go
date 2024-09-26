@@ -24,10 +24,11 @@ func NewExecutionEnv() *ExecutionEnv {
 	}
 }
 
-func (env *ExecutionEnv) WithClusterSetup(name, namespace string) *ExecutionEnv {
+func (env *ExecutionEnv) WithClusterSetup(name, namespace, version string) *ExecutionEnv {
 	env.cluster = &Cluster{
 		Name:      name,
 		Namespace: nil,
+		Version:   version,
 	}
 	if strings.TrimSpace(namespace) != "" {
 		env.cluster.Namespace = &namespace

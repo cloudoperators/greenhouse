@@ -78,7 +78,7 @@ func initClientGetter(
 
 	// early return if spec.clusterName is not set
 	if plugin.Spec.ClusterName == "" {
-		restClientGetter, err = clientutil.NewRestClientGetterForInCluster(plugin.GetReleaseNamespace(), kubeClientOpts...)
+		restClientGetter, err = clientutil.NewRestClientGetterForInCluster(plugin.Spec.ReleaseNamespace, kubeClientOpts...)
 		if err != nil {
 			clusterAccessReadyCondition.Status = metav1.ConditionFalse
 			clusterAccessReadyCondition.Message = "cannot access greenhouse cluster: " + err.Error()
@@ -111,7 +111,7 @@ func initClientGetter(
 		clusterAccessReadyCondition.Message = fmt.Sprintf("Failed to get secret for cluster %s: %s", plugin.Spec.ClusterName, err.Error())
 		return clusterAccessReadyCondition, nil
 	}
-	restClientGetter, err = clientutil.NewRestClientGetterFromSecret(&secret, plugin.GetReleaseNamespace(), kubeClientOpts...)
+	restClientGetter, err = clientutil.NewRestClientGetterFromSecret(&secret, plugin.Spec.ReleaseNamespace, kubeClientOpts...)
 	if err != nil {
 		clusterAccessReadyCondition.Status = metav1.ConditionFalse
 		clusterAccessReadyCondition.Message = fmt.Sprintf("cannot access cluster %s: %s", plugin.Spec.ClusterName, err.Error())

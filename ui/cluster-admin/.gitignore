@@ -1,6 +1,0 @@
-secretProps.json
-build/
-public/build/
-node_modules/
-webhook-certs/
-envtest/

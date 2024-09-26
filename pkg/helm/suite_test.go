@@ -25,7 +25,6 @@ var _ = BeforeSuite(func() {
 	test.RegisterWebhook("teamWebhook", admission.SetupTeamWebhookWithManager)
 	test.RegisterWebhook("secretsWebhook", admission.SetupSecretWebhookWithManager)
 	test.TestBeforeSuite()
-
 })
 
 var _ = AfterSuite(func() {
@@ -114,6 +113,30 @@ var (
 		},
 	}
 
+	testPluginWithHelmChartCRDs = &greenhousesapv1alpha1.PluginDefinition{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: "test-org",
+			Name:      "test-plugindefinition",
+		},
+		Spec: greenhousesapv1alpha1.PluginDefinitionSpec{
+			Version: "1.0.0",
+			HelmChart: &greenhousesapv1alpha1.HelmChartReference{
+				Name:       "./../test/fixtures/myChartWithCRDs",
+				Repository: "dummy",
+				Version:    "1.0.0",
+			},
+			Options: []greenhousesapv1alpha1.PluginOption{
+				{
+					Name:        "key1",
+					Description: "key1 description",
+					Required:    true,
+					Default:     test.MustReturnJSONFor("defaultKey1"),
+					Type:        "string",
+				},
+			},
+		},
+	}
+
 	plugin = &greenhousesapv1alpha1.Plugin{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: "test-org",
@@ -123,6 +146,7 @@ var (
 			PluginDefinition: "test-plugindefinition",
 			ClusterName:      "test-cluster",
 			OptionValues:     []greenhousesapv1alpha1.PluginOptionValue{},
+			ReleaseNamespace: "test-release-namespace",
 		},
 	}
 

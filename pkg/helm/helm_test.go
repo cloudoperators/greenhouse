@@ -12,7 +12,9 @@ import (
 	"helm.sh/helm/v3/pkg/action"
 	"helm.sh/helm/v3/pkg/chart"
 	"helm.sh/helm/v3/pkg/release"
+	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	greenhousesapv1alpha1 "github.com/cloudoperators/greenhouse/pkg/apis/greenhouse/v1alpha1"
@@ -92,7 +94,7 @@ var _ = Describe("helm package test", func() {
 			Expect(err).ShouldNot(HaveOccurred(),
 				"there should be no error for plugindefinitions with helm chart")
 
-			cfg, err := helm.ExportNewHelmAction(test.RestClientGetter, plugin.GetReleaseNamespace())
+			cfg, err := helm.ExportNewHelmAction(test.RestClientGetter, plugin.Spec.ReleaseNamespace)
 			Expect(err).ShouldNot(HaveOccurred(), "there should be no error creating helm config")
 			listAction := action.NewList(cfg)
 			releases, err := listAction.Run()
@@ -107,7 +109,7 @@ var _ = Describe("helm package test", func() {
 			// We expect the release from the previous test to be found
 			Expect(releaseNotFound).To(BeFalse(), "the release should have been found before deleting")
 
-			cfg, err := helm.ExportNewHelmAction(test.RestClientGetter, plugin.GetReleaseNamespace())
+			cfg, err := helm.ExportNewHelmAction(test.RestClientGetter, plugin.Spec.ReleaseNamespace)
 			Expect(err).ShouldNot(HaveOccurred(), "there should be no error creating helm config")
 			listAction := action.NewList(cfg)
 			releases, err := listAction.Run()
@@ -130,6 +132,70 @@ var _ = Describe("helm package test", func() {
 			Expect(chartName).Should(Equal(testPluginWithHelmChart.Spec.HelmChart.Name))
 			Expect(cpo.RepoURL).Should(Equal(testPluginWithHelmChart.Spec.HelmChart.Repository))
 			Expect(cpo.Version).Should(Equal(testPluginWithHelmChart.Spec.HelmChart.Version))
+		})
+	})
+
+	When("handling a helm chart with CRDs", func() {
+		It("should re-create CRDs from Helm chart when CRD is missing on upgrade", func() {
+			By("installing helm chart")
+			err := helm.InstallOrUpgradeHelmChartFromPlugin(test.Ctx, test.K8sClient, test.RestClientGetter, testPluginWithHelmChartCRDs, plugin)
+			Expect(err).ShouldNot(HaveOccurred(),
+				"there should be no error installing helm chart")
+
+			By("getting the Team CRD")
+			var teamCRD = &apiextensionsv1.CustomResourceDefinition{}
+			teamCRDName := "teams.greenhouse.sap"
+			teamCRDKey := types.NamespacedName{Name: teamCRDName, Namespace: ""}
+			err = test.K8sClient.Get(test.Ctx, teamCRDKey, teamCRD)
+			Expect(err).ToNot(HaveOccurred(), "there must be no error getting Team CRD")
+
+			By("deleting the Team CRD")
+			test.EventuallyDeleted(test.Ctx, test.K8sClient, teamCRD)
+
+			By("upgrading helm chart")
+			err = helm.InstallOrUpgradeHelmChartFromPlugin(test.Ctx, test.K8sClient, test.RestClientGetter, testPluginWithHelmChartCRDs, plugin)
+			Expect(err).ShouldNot(HaveOccurred(),
+				"there should be no error upgrading helm chart")
+
+			Eventually(func(g Gomega) {
+				By("getting Team CRD")
+				var teamCRD = &apiextensionsv1.CustomResourceDefinition{}
+				g.Expect(test.K8sClient.Get(test.Ctx, teamCRDKey, teamCRD)).To(Succeed(), "there must be no error getting the Team CRD")
+				g.Expect(teamCRD.Name).To(Equal(teamCRDName), "re-created Team CRD should have the correct name")
+			}).Should(Succeed(), "should re-create CRDs from Helm chart")
+
+			By("cleaning up test")
+			_, err = helm.UninstallHelmRelease(test.Ctx, test.RestClientGetter, plugin)
+			Expect(err).ToNot(HaveOccurred(), "there must be no error uninstalling helm release")
+		})
+
+		It("should not create CRDs from Helm chart when CRD is missing on templating", func() {
+			By("installing helm chart")
+			err := helm.InstallOrUpgradeHelmChartFromPlugin(test.Ctx, test.K8sClient, test.RestClientGetter, testPluginWithHelmChartCRDs, plugin)
+			Expect(err).ShouldNot(HaveOccurred(),
+				"there should be no error installing helm chart")
+
+			By("getting the Team CRD")
+			var teamCRD = &apiextensionsv1.CustomResourceDefinition{}
+			teamCRDName := "teams.greenhouse.sap"
+			teamCRDKey := types.NamespacedName{Name: teamCRDName, Namespace: ""}
+			err = test.K8sClient.Get(test.Ctx, teamCRDKey, teamCRD)
+			Expect(err).ToNot(HaveOccurred(), "there must be no error getting Team CRD")
+
+			By("deleting the Team CRD")
+			test.EventuallyDeleted(test.Ctx, test.K8sClient, teamCRD)
+
+			By("templating the Helm Chart from the Plugin")
+			_, err = helm.TemplateHelmChartFromPlugin(test.Ctx, test.K8sClient, test.RestClientGetter, testPluginWithHelmChartCRDs, plugin)
+			Expect(err).NotTo(HaveOccurred(), "there should be no error templating the helm chart")
+
+			By("getting the Team CRD")
+			err = test.K8sClient.Get(test.Ctx, teamCRDKey, teamCRD)
+			Expect(err).To(HaveOccurred(), "Team CRD should not be re-created")
+
+			By("cleaning up test")
+			_, err = helm.UninstallHelmRelease(test.Ctx, test.RestClientGetter, plugin)
+			Expect(err).ToNot(HaveOccurred(), "there must be no error uninstalling helm release")
 		})
 	})
 })

@@ -148,15 +148,6 @@ type Plugin struct {
 	Status PluginStatus `json:"status,omitempty"`
 }
 
-// GetReleaseNamespace returns the release namespace of the Plugin.
-func (p *Plugin) GetReleaseNamespace() string {
-	// TODO: Replace this method with a Defaulter in the webhook once all Plugins have the ReleaseNamespace set.
-	if p.Spec.ReleaseNamespace == "" {
-		return p.GetNamespace()
-	}
-	return p.Spec.ReleaseNamespace
-}
-
 //+kubebuilder:object:root=true
 
 // PluginList contains a list of Plugin
