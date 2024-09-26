@@ -35,6 +35,7 @@ var exposedConditions = []greenhousev1alpha1.ConditionType{
 	greenhousev1alpha1.WorkloadReadyCondition,
 }
 
+// initPluginStatus initializes all empty Plugin Conditions to "unknown"
 func initPluginStatus(plugin *greenhousev1alpha1.Plugin) greenhousev1alpha1.PluginStatus {
 	pluginStatus := plugin.Status.DeepCopy()
 	for _, t := range exposedConditions {
@@ -48,7 +49,7 @@ func initPluginStatus(plugin *greenhousev1alpha1.Plugin) greenhousev1alpha1.Plug
 	return *pluginStatus
 }
 
-// setPluginStatus sets the status and metrics for the plugin
+// setPluginStatus sets the status for the plugin
 func setPluginStatus(ctx context.Context, k8sClient client.Client, plugin *greenhousev1alpha1.Plugin, pluginStatus greenhousev1alpha1.PluginStatus) error {
 	readyCondition := computeReadyCondition(pluginStatus.StatusConditions)
 	pluginStatus.StatusConditions.SetConditions(readyCondition)
