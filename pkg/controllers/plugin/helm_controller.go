@@ -5,6 +5,7 @@ package plugin
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"time"
 
@@ -404,6 +405,12 @@ func getExposedServicesForPluginFromHelmRelease(restClientGetter genericclioptio
 		return nil, err
 	}
 	var exposedServices = make(map[string]greenhousev1alpha1.Service, 0)
+	if len(exposedServiceList) == 0 {
+		return exposedServices, nil
+	}
+	if plugin.Spec.ClusterName == "" {
+		return nil, errors.New("plugin does not have ClusterName")
+	}
 	for _, svc := range exposedServiceList {
 		svcPort, err := getPortForExposedService(svc.Object)
 		if err != nil {

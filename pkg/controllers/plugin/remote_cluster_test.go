@@ -19,6 +19,7 @@ import (
 	greenhouseapis "github.com/cloudoperators/greenhouse/pkg/apis"
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/pkg/apis/greenhouse/v1alpha1"
 	"github.com/cloudoperators/greenhouse/pkg/clientutil"
+	"github.com/cloudoperators/greenhouse/pkg/common"
 	"github.com/cloudoperators/greenhouse/pkg/helm"
 	"github.com/cloudoperators/greenhouse/pkg/test"
 )
@@ -103,6 +104,22 @@ var (
 		},
 	}
 
+	testPluginWithExposedService = &greenhousev1alpha1.Plugin{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "Plugin",
+			APIVersion: greenhousev1alpha1.GroupVersion.String(),
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "test-plugin-exposed",
+			Namespace: test.TestNamespace,
+		},
+		Spec: greenhousev1alpha1.PluginSpec{
+			ClusterName:      "test-cluster",
+			PluginDefinition: "test-plugindefinition-exposed",
+			ReleaseNamespace: test.TestNamespace,
+		},
+	}
+
 	testSecret = corev1.Secret{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "Secret",
@@ -149,14 +166,20 @@ var (
 				Repository: "dummy",
 				Version:    "1.0.0",
 			},
-			Options: []greenhousev1alpha1.PluginOption{
-				{
-					Name:        "key1",
-					Description: "key1 description",
-					Required:    true,
-					Default:     test.MustReturnJSONFor("defaultKey1"),
-					Type:        "string",
-				},
+		},
+	}
+
+	pluginDefinitionWithExposedService = &greenhousev1alpha1.PluginDefinition{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: test.TestNamespace,
+			Name:      "test-plugindefinition-exposed",
+		},
+		Spec: greenhousev1alpha1.PluginDefinitionSpec{
+			Version: "1.0.0",
+			HelmChart: &greenhousev1alpha1.HelmChartReference{
+				Name:       "./../../test/fixtures/chartWithExposedService",
+				Repository: "dummy",
+				Version:    "1.3.0",
 			},
 		},
 	}
@@ -466,6 +489,96 @@ var _ = Describe("HelmController reconciliation", Ordered, func() {
 			Expect(err).ShouldNot(HaveOccurred(), "there should be no error listing helm releases")
 			return releases
 		}).Should(BeEmpty(), "the helm release should be deleted from the remote cluster")
+	})
+
+	When("reconciling status for plugin with exposed service", func() {
+		It("should generate exposed service URL", func() {
+			common.DNSDomain = "example.com"
+
+			By("creating plugin definition with exposed service")
+			Expect(test.K8sClient.Create(test.Ctx, pluginDefinitionWithExposedService)).To(Succeed(), "should create plugin definition")
+
+			testPluginWithExposedService1 := testPluginWithExposedService.DeepCopy()
+
+			remoteRestClientGetter := clientutil.NewRestClientGetterFromBytes(remoteKubeConfig, testPluginWithExposedService1.Spec.ReleaseNamespace, clientutil.WithPersistentConfig())
+
+			By("creating test plugin referencing the cluster")
+			testPluginWithExposedService1.Spec.ClusterName = "test-cluster"
+			Expect(test.K8sClient.Create(test.Ctx, testPluginWithExposedService1)).
+				Should(Succeed(), "there should be no error creating the plugin")
+
+			By("checking the helm releases deployed to the remote cluster")
+			helmConfig, err := helm.ExportNewHelmAction(remoteRestClientGetter, testPluginWithExposedService1.Spec.ReleaseNamespace)
+			Expect(err).ShouldNot(HaveOccurred(), "there should be no error creating helm config")
+			listAction := action.NewList(helmConfig)
+			Eventually(func() []*release.Release {
+				releases, err := listAction.Run()
+				Expect(err).ShouldNot(HaveOccurred(), "there should be no error listing helm releases")
+				return releases
+			}).Should(ContainElement(gstruct.PointTo(gstruct.MatchFields(gstruct.IgnoreExtras, gstruct.Fields{"Name": Equal(testPluginWithExposedService1.Name)}))), "the helm release should be deployed to the remote cluster")
+
+			By("checking plugin status")
+			Eventually(func(g Gomega) {
+				err = test.K8sClient.Get(test.Ctx, types.NamespacedName{Name: testPluginWithExposedService1.Name, Namespace: testPluginWithExposedService1.Namespace}, testPluginWithExposedService1)
+				g.Expect(err).ToNot(HaveOccurred(), "there should be no error getting plugin")
+				statusUpToDateCondition := testPluginWithExposedService1.Status.GetConditionByType(greenhousev1alpha1.StatusUpToDateCondition)
+				g.Expect(statusUpToDateCondition.Status).To(Equal(metav1.ConditionTrue), "plugin status up to date condition should be set to true")
+				g.Expect(testPluginWithExposedService1.Status.ExposedServices).ToNot(BeEmpty(), "exposed services in plugin status should not be empty")
+				g.Expect(testPluginWithExposedService1.Status.ExposedServices).To(HaveLen(1), "there should be only one exposed service in plugin status")
+				exposedServiceURL := ""
+				for exposedServiceURL = range testPluginWithExposedService1.Status.ExposedServices {
+					break
+				}
+				// URL pattern: $https://$service-$namespace-$cluster.$organisation.$basedomain
+				g.Expect(exposedServiceURL).To(Equal("https://exposed-service--test-org--test-cluster.test-org.example.com"), "exposed service URL should be generated correctly")
+			}).Should(Succeed(), "plugin should have correct status")
+
+			By("cleaning up test")
+			By("deleting the plugin")
+			Expect(test.K8sClient.Delete(test.Ctx, testPluginWithExposedService1)).Should(Succeed(), "there should be no error deleting the plugin")
+
+			By("checking the helm releases deployed to the remote cluster")
+			Eventually(func() []*release.Release {
+				releases, err := action.NewList(helmConfig).Run()
+				Expect(err).ShouldNot(HaveOccurred(), "there should be no error listing helm releases")
+				return releases
+			}).Should(BeEmpty(), "the helm release should be deleted from the remote cluster")
+		})
+
+		It("should set error on status when cluster name is missing", func() {
+			testPluginWithExposedService2 := testPluginWithExposedService.DeepCopy()
+
+			By("checking greenhouse namespace")
+			var greenhouseNamespace = new(corev1.Namespace)
+			err := test.K8sClient.Get(test.Ctx, types.NamespacedName{Namespace: "", Name: "greenhouse"}, greenhouseNamespace)
+			if err != nil {
+				By("creating central cluster greenhouse namespace")
+				greenhouseNamespace = &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: "greenhouse"}}
+				err = test.K8sClient.Create(test.Ctx, greenhouseNamespace)
+				Expect(err).ShouldNot(HaveOccurred(), "there should be no error creating the greenhouse namespace")
+			}
+
+			By("creating test plugin without ClusterName")
+			// Deploy plugin to central cluster.
+			testPluginWithExposedService2.Namespace = "greenhouse"
+			testPluginWithExposedService2.Spec.ClusterName = ""
+			Expect(test.K8sClient.Create(test.Ctx, testPluginWithExposedService2)).
+				Should(Succeed(), "there should be no error creating the plugin")
+
+			By("checking plugin status")
+			Eventually(func(g Gomega) {
+				err = test.K8sClient.Get(test.Ctx, types.NamespacedName{Name: testPluginWithExposedService2.Name, Namespace: testPluginWithExposedService2.Namespace}, testPluginWithExposedService2)
+				g.Expect(err).ToNot(HaveOccurred(), "there should be no error getting plugin")
+				statusUpToDateCondition := testPluginWithExposedService2.Status.GetConditionByType(greenhousev1alpha1.StatusUpToDateCondition)
+				g.Expect(statusUpToDateCondition).ToNot(BeNil(), "status up to date condition should exist")
+				g.Expect(statusUpToDateCondition.Status).To(Equal(metav1.ConditionFalse), "plugin status up to date condition should be set to false")
+				g.Expect(statusUpToDateCondition.Message).To(ContainSubstring("plugin does not have ClusterName"), "plugin status up to date condition should have correct message")
+				g.Expect(testPluginWithExposedService2.Status.ExposedServices).To(BeEmpty(), "exposed services in plugin status should be empty")
+			}).Should(Succeed(), "plugin should have correct status")
+
+			By("deleting the plugin")
+			Expect(test.K8sClient.Delete(test.Ctx, testPluginWithExposedService2)).Should(Succeed(), "there should be no error deleting the plugin")
+		})
 	})
 })
 
