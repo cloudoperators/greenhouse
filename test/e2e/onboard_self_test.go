@@ -72,8 +72,7 @@ var _ = Describe("OnboardSelf", Ordered, func() {
 			greenhouseCluster := &greenhousev1alpha1.Cluster{}
 			Expect(test.K8sClient.Get(test.Ctx, types.NamespacedName{Name: "greenhouse-self", Namespace: test.TestNamespace}, greenhouseCluster)).Should(Succeed())
 			id := types.NamespacedName{Name: "greenhouse-self", Namespace: test.TestNamespace}
-			Expect(test.K8sClient.Delete(test.Ctx, greenhouseCluster, &client.DeleteOptions{})).Should(Succeed())
-
+			test.MustDeleteCluster(test.Ctx, test.K8sClient, id)
 			By("Checking the resource is deleted")
 			Eventually(func(g Gomega) bool {
 				err := test.K8sClient.Get(test.Ctx, id, greenhouseCluster)
