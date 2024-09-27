@@ -6,6 +6,8 @@ package plugin
 import (
 	"context"
 	"fmt"
+	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/cli-runtime/pkg/genericclioptions"
 	"reflect"
 	"strings"
 
@@ -96,7 +98,20 @@ func (r *HelmChartTestReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 		}
 	}()
 
-	clusterAccessReadyCondition, restClientGetter := initClientGetter(ctx, r.Client, r.kubeClientOpts, *plugin)
+	var restClientGetter genericclioptions.RESTClientGetter
+	clusterAccessReadyCondition := *pluginStatus.GetConditionByType(greenhousev1alpha1.ClusterAccessReadyCondition)
+
+	// Check if the plugin is ready to be reconciled.
+	cluster := &greenhousev1alpha1.Cluster{}
+	err := r.Client.Get(ctx, types.NamespacedName{Namespace: plugin.GetNamespace(), Name: plugin.Spec.ClusterName}, cluster)
+	if err != nil {
+		clusterAccessReadyCondition.Status = metav1.ConditionFalse
+		clusterAccessReadyCondition.Message = fmt.Sprintf("Failed to get cluster %s: %s", plugin.Spec.ClusterName, err.Error())
+		pluginStatus.StatusConditions.SetConditions(clusterAccessReadyCondition)
+		return ctrl.Result{}, err
+	}
+
+	clusterAccessReadyCondition, restClientGetter = initClientGetter(ctx, r.Client, r.kubeClientOpts, *plugin, cluster, clusterAccessReadyCondition)
 	pluginStatus.StatusConditions.SetConditions(clusterAccessReadyCondition)
 	if !clusterAccessReadyCondition.IsTrue() {
 		return ctrl.Result{}, fmt.Errorf("cannot access cluster: %s", clusterAccessReadyCondition.Message)

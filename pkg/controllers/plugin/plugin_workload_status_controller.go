@@ -6,6 +6,7 @@ package plugin
 import (
 	"context"
 	"fmt"
+	"k8s.io/cli-runtime/pkg/genericclioptions"
 	"reflect"
 	"time"
 
@@ -125,6 +126,10 @@ func (r *WorkLoadStatusReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 		return ctrl.Result{}, nil
 	}
 
+	if plugin.DeletionTimestamp != nil || pluginDefinition.Spec.HelmChart == nil {
+		return ctrl.Result{}, nil
+	}
+
 	pluginStatus := initPluginStatus(plugin)
 	defer func() {
 		if statusErr := setPluginStatus(ctx, r.Client, plugin, pluginStatus); statusErr != nil {
@@ -132,11 +137,18 @@ func (r *WorkLoadStatusReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 		}
 	}()
 
-	if plugin.DeletionTimestamp != nil || pluginDefinition.Spec.HelmChart == nil {
-		return ctrl.Result{}, nil
+	var restClientGetter genericclioptions.RESTClientGetter
+	clusterAccessReadyCondition := greenhousev1alpha1.UnknownCondition(greenhousev1alpha1.ClusterAccessReadyCondition, "", "")
+	// Check if the plugin is ready to be reconciled.
+	cluster := &greenhousev1alpha1.Cluster{}
+	err := r.Client.Get(ctx, types.NamespacedName{Namespace: plugin.GetNamespace(), Name: plugin.Spec.ClusterName}, cluster)
+	if err != nil {
+		clusterAccessReadyCondition.Status = metav1.ConditionFalse
+		clusterAccessReadyCondition.Message = fmt.Sprintf("Failed to get cluster %s: %s", plugin.Spec.ClusterName, err.Error())
+		pluginStatus.StatusConditions.SetConditions(clusterAccessReadyCondition)
+		return ctrl.Result{}, err
 	}
-
-	clusterAccessReadyCondition, restClientGetter := initClientGetter(ctx, r.Client, r.kubeClientOpts, *plugin)
+	clusterAccessReadyCondition, restClientGetter = initClientGetter(ctx, r.Client, r.kubeClientOpts, *plugin, cluster, clusterAccessReadyCondition)
 	pluginStatus.StatusConditions.SetConditions(clusterAccessReadyCondition)
 	if !clusterAccessReadyCondition.IsTrue() {
 		return ctrl.Result{RequeueAfter: 10 * time.Minute}, fmt.Errorf("cannot access cluster: %s", clusterAccessReadyCondition.Message)
