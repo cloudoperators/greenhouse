@@ -7,13 +7,15 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/cloudoperators/greenhouse/pkg/apis"
-	"github.com/cloudoperators/greenhouse/pkg/clientutil"
+	"strings"
+	"time"
+
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/validation/field"
-	"strings"
-	"time"
+
+	"github.com/cloudoperators/greenhouse/pkg/apis"
+	"github.com/cloudoperators/greenhouse/pkg/clientutil"
 
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"

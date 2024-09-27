@@ -6,7 +6,6 @@ package clientutil
 import (
 	"context"
 	"fmt"
-	"github.com/cloudoperators/greenhouse/pkg/apis"
 	"os"
 	"path/filepath"
 	"strings"
@@ -18,6 +17,7 @@ import (
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
+	greehouseapis "github.com/cloudoperators/greenhouse/pkg/apis"
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/pkg/apis/greenhouse/v1alpha1"
 )
 
@@ -82,14 +82,14 @@ func findRecursively(path, dirName string, maxSteps, steps int) (string, error) 
 }
 
 func isMarkedForDeletion(annotations map[string]string) bool {
-	_, deletionMarked := annotations[apis.MarkClusterDeletionAnnotation]
-	_, scheduleExists := annotations[apis.ScheduleClusterDeletionAnnotation]
+	_, deletionMarked := annotations[greehouseapis.MarkClusterDeletionAnnotation]
+	_, scheduleExists := annotations[greehouseapis.ScheduleClusterDeletionAnnotation]
 	return deletionMarked && scheduleExists
 }
 
 func ExtractDeletionSchedule(annotations map[string]string) (bool, time.Time, error) {
-	_, deletionMarked := annotations[apis.MarkClusterDeletionAnnotation]
-	deletionSchedule, scheduleExists := annotations[apis.ScheduleClusterDeletionAnnotation]
+	_, deletionMarked := annotations[greehouseapis.MarkClusterDeletionAnnotation]
+	deletionSchedule, scheduleExists := annotations[greehouseapis.ScheduleClusterDeletionAnnotation]
 	if deletionMarked && scheduleExists {
 		schedule, err := time.Parse(time.DateTime, deletionSchedule)
 		return scheduleExists, schedule, err

@@ -7,10 +7,11 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	greenhouseapis "github.com/cloudoperators/greenhouse/pkg/apis"
-	"github.com/cloudoperators/greenhouse/pkg/clientutil"
 	"os"
 	"time"
+
+	greenhouseapis "github.com/cloudoperators/greenhouse/pkg/apis"
+	"github.com/cloudoperators/greenhouse/pkg/clientutil"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"

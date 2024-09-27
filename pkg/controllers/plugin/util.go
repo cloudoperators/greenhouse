@@ -6,9 +6,10 @@ package plugin
 import (
 	"context"
 	"fmt"
-	ctrl "sigs.k8s.io/controller-runtime"
 	"strings"
 	"time"
+
+	ctrl "sigs.k8s.io/controller-runtime"
 
 	"github.com/pkg/errors"
 	appsv1 "k8s.io/api/apps/v1"
@@ -76,7 +77,9 @@ func initClientGetter(
 	greenhousev1alpha1.Condition,
 	genericclioptions.RESTClientGetter,
 ) {
+
 	var err error
+
 	var restClientGetter genericclioptions.RESTClientGetter
 
 	// early return if spec.clusterName is not set

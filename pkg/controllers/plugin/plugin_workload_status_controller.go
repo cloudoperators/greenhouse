@@ -6,9 +6,10 @@ package plugin
 import (
 	"context"
 	"fmt"
-	"k8s.io/cli-runtime/pkg/genericclioptions"
 	"reflect"
 	"time"
+
+	"k8s.io/cli-runtime/pkg/genericclioptions"
 
 	"github.com/prometheus/client_golang/prometheus"
 	appsv1 "k8s.io/api/apps/v1"
