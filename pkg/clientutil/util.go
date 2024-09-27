@@ -6,9 +6,11 @@ package clientutil
 import (
 	"context"
 	"fmt"
+	"github.com/cloudoperators/greenhouse/pkg/apis"
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -77,4 +79,71 @@ func findRecursively(path, dirName string, maxSteps, steps int) (string, error) 
 		return "", err
 	}
 	return dirPath, nil
+}
+
+func isMarkedForDeletion(annotations map[string]string) bool {
+	_, deletionMarked := annotations[apis.MarkClusterDeletionAnnotation]
+	_, scheduleExists := annotations[apis.ScheduleClusterDeletionAnnotation]
+	return deletionMarked && scheduleExists
+}
+
+func ExtractDeletionSchedule(annotations map[string]string) (bool, time.Time, error) {
+	_, deletionMarked := annotations[apis.MarkClusterDeletionAnnotation]
+	deletionSchedule, scheduleExists := annotations[apis.ScheduleClusterDeletionAnnotation]
+	if deletionMarked && scheduleExists {
+		schedule, err := time.Parse(time.DateTime, deletionSchedule)
+		return scheduleExists, schedule, err
+	}
+	return scheduleExists, time.Time{}, nil
+}
+
+func ShouldReconcileOrRequeue(cluster *greenhousev1alpha1.Cluster, currentTime time.Time) (bool, time.Duration, error) {
+	if cluster.DeletionTimestamp != nil {
+		return false, 0, nil
+	}
+	annotations := cluster.GetAnnotations()
+	isScheduled, scheduleTime, err := ExtractDeletionSchedule(annotations)
+	if err != nil {
+		return false, 0, err
+	}
+	if !isScheduled {
+		return false, 0, nil
+	}
+	formattedCurrentTime, err := ParseDateTime(currentTime)
+	if err != nil {
+		return false, 0, err
+	}
+	timeDiff := scheduleTime.Sub(formattedCurrentTime)
+	if timeDiff <= 0 {
+		return true, 0, nil
+	}
+	return true, timeDiff, nil
+}
+
+func ShouldProceedDeletion(now, schedule time.Time) (bool, error) {
+	// time.Before() compares two time objects
+	// schedule is formatted as time.DateTime
+	// so we need to format now as well to time.DateTime otherwise it will always return false
+	formattedNow, err := ParseDateTime(now)
+	if err != nil {
+		return false, err
+	}
+	return !formattedNow.Before(schedule), nil
+}
+
+func FilterClustersBeingDeleted(clusters *greenhousev1alpha1.ClusterList) *greenhousev1alpha1.ClusterList {
+	// Iterate over the cluster list in reverse to safely remove elements to prevent index shifting when an item is removed.
+	for i := len(clusters.Items) - 1; i >= 0; i-- {
+		c := clusters.Items[i]
+		if isMarkedForDeletion(clusters.Items[i].GetAnnotations()) || c.GetDeletionTimestamp() != nil {
+			// Remove the cluster marked for deletion by slicing the array
+			clusters.Items = append(clusters.Items[:i], clusters.Items[i+1:]...)
+		}
+	}
+	return clusters
+}
+
+func ParseDateTime(t time.Time) (time.Time, error) {
+	layout := t.Format(time.DateTime)
+	return time.Parse(time.DateTime, layout)
 }
