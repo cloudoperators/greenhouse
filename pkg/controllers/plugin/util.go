@@ -7,6 +7,7 @@ import (
 	"context"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/pkg/errors"
 	appsv1 "k8s.io/api/apps/v1"
@@ -68,13 +69,15 @@ func initClientGetter(
 	k8sClient client.Client,
 	kubeClientOpts []clientutil.KubeClientOption,
 	plugin greenhousev1alpha1.Plugin,
-) (
+	cluster *greenhousev1alpha1.Cluster,
 	clusterAccessReadyCondition greenhousev1alpha1.Condition,
-	restClientGetter genericclioptions.RESTClientGetter,
+) (
+	greenhousev1alpha1.Condition,
+	genericclioptions.RESTClientGetter,
 ) {
 
 	var err error
-	clusterAccessReadyCondition = greenhousev1alpha1.UnknownCondition(greenhousev1alpha1.ClusterAccessReadyCondition, "", "")
+	var restClientGetter genericclioptions.RESTClientGetter
 
 	// early return if spec.clusterName is not set
 	if plugin.Spec.ClusterName == "" {
@@ -88,12 +91,19 @@ func initClientGetter(
 		return clusterAccessReadyCondition, restClientGetter
 	}
 
-	cluster := new(greenhousev1alpha1.Cluster)
-	err = k8sClient.Get(ctx, types.NamespacedName{Namespace: plugin.Namespace, Name: plugin.Spec.ClusterName}, cluster)
-	if err != nil {
-		clusterAccessReadyCondition.Status = metav1.ConditionFalse
-		clusterAccessReadyCondition.Message = fmt.Sprintf("Failed to get cluster %s: %s", plugin.Spec.ClusterName, err.Error())
-		return clusterAccessReadyCondition, nil
+	// only early exit if the plugin is not explicitly marked for deletion
+	if plugin.GetDeletionTimestamp() == nil {
+		// we early exit if the cluster is marked for deletion
+		scheduleExists, schedule, _ := clientutil.ExtractDeletionSchedule(cluster.GetAnnotations())
+		if scheduleExists {
+			canDelete, _ := clientutil.ShouldProceedDeletion(time.Now(), schedule)
+			if !canDelete {
+				clusterAccessReadyCondition.Status = metav1.ConditionFalse
+				clusterAccessReadyCondition.Message = fmt.Sprintf("cluster %s is scheduled for deletion at %s", plugin.Spec.ClusterName, schedule)
+				clusterAccessReadyCondition.Reason = greenhousev1alpha1.ClusterDeletionScheduledReason
+				return clusterAccessReadyCondition, nil
+			}
+		}
 	}
 
 	readyConditionInCluster := cluster.Status.StatusConditions.GetConditionByType(greenhousev1alpha1.ReadyCondition)
