@@ -258,3 +258,13 @@ setup-dev: cli
 .PHONY: dev-docs
 dev-docs:
 	go run -tags="dev" -mod=mod dev-env/localenv/docs.go
+
+ADMIN_CLUSTER ?= greenhouse-admin
+ADMIN_NAMESPACE ?= greenhouse
+ADMIN_RELEASE ?= greenhouse
+ADMIN_CHART_PATH ?= charts/manager
+WEBHOOK_DEV ?= false
+
+.PHONY: setup-webhook
+setup-webhook: cli
+	$(CLI) dev setup webhook --name $(ADMIN_CLUSTER) --namespace $(ADMIN_NAMESPACE) --release $(ADMIN_RELEASE) --chart-path $(ADMIN_CHART_PATH) --dockerfile ./ --dev-mode $(WEBHOOK_DEV)
