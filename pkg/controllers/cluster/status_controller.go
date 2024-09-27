@@ -56,6 +56,8 @@ func (r *ClusterStatusReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 		return ctrl.Result{}, nil
 	}
 
+	var conditions []greenhousev1alpha1.Condition
+
 	kubeConfigValidCondition, restClientGetter, k8sVersion := r.reconcileClusterSecret(ctx, cluster)
 
 	allNodesReadyCondition := greenhousev1alpha1.UnknownCondition(greenhousev1alpha1.AllNodesReady, "", "")
@@ -72,7 +74,13 @@ func (r *ClusterStatusReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 	// patch message and condition
 	result, err := clientutil.PatchStatus(ctx, r.Client, cluster, func() error {
 		cluster.Status.KubernetesVersion = k8sVersion
-		cluster.Status.SetConditions(readyCondition, allNodesReadyCondition, kubeConfigValidCondition)
+		conditions = append(conditions, readyCondition, allNodesReadyCondition, kubeConfigValidCondition)
+		scheduleExists, schedule, _ := clientutil.ExtractDeletionSchedule(cluster.GetAnnotations())
+		if scheduleExists {
+			deletionCondition := greenhousev1alpha1.TrueCondition(greenhousev1alpha1.ClusterDeletionScheduled, "", "deletion scheduled at "+schedule.Format(time.DateTime))
+			conditions = append(conditions, deletionCondition)
+		}
+		cluster.Status.SetConditions(conditions...)
 		cluster.Status.Nodes = clusterNodeStatus
 		return nil
 	})
