@@ -76,7 +76,6 @@ func initClientGetter(
 	greenhousev1alpha1.Condition,
 	genericclioptions.RESTClientGetter,
 ) {
-	logger := ctrl.LoggerFrom(ctx)
 	var err error
 	var restClientGetter genericclioptions.RESTClientGetter
 
@@ -95,9 +94,10 @@ func initClientGetter(
 	// only early exit if the plugin is not explicitly marked for deletion
 	if plugin.GetDeletionTimestamp() == nil {
 		// we early exit if the cluster is marked for deletion
+		logger := ctrl.LoggerFrom(ctx)
 		scheduleExists, schedule, err := clientutil.ExtractDeletionSchedule(cluster.GetAnnotations())
 		if err != nil {
-			logger.Error(err, "failed to extract deletion schedule", "annotations", cluster.GetAnnotations())
+			logger.Error(err, "failed to extract deletion schedule", "cluster", cluster)
 		}
 		if scheduleExists {
 			canDelete, err := clientutil.ShouldProceedDeletion(time.Now(), schedule)
