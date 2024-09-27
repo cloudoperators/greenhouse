@@ -6,6 +6,7 @@ package plugin
 import (
 	"context"
 	"fmt"
+	ctrl "sigs.k8s.io/controller-runtime"
 	"strings"
 	"time"
 
@@ -75,7 +76,7 @@ func initClientGetter(
 	greenhousev1alpha1.Condition,
 	genericclioptions.RESTClientGetter,
 ) {
-
+	logger := ctrl.LoggerFrom(ctx)
 	var err error
 	var restClientGetter genericclioptions.RESTClientGetter
 
@@ -94,9 +95,15 @@ func initClientGetter(
 	// only early exit if the plugin is not explicitly marked for deletion
 	if plugin.GetDeletionTimestamp() == nil {
 		// we early exit if the cluster is marked for deletion
-		scheduleExists, schedule, _ := clientutil.ExtractDeletionSchedule(cluster.GetAnnotations())
+		scheduleExists, schedule, err := clientutil.ExtractDeletionSchedule(cluster.GetAnnotations())
+		if err != nil {
+			logger.Error(err, "failed to extract deletion schedule", "annotations", cluster.GetAnnotations())
+		}
 		if scheduleExists {
-			canDelete, _ := clientutil.ShouldProceedDeletion(time.Now(), schedule)
+			canDelete, err := clientutil.ShouldProceedDeletion(time.Now(), schedule)
+			if err != nil {
+				logger.Error(err, "failed to check deletion schedule", "schedule", schedule)
+			}
 			if !canDelete {
 				clusterAccessReadyCondition.Status = metav1.ConditionFalse
 				clusterAccessReadyCondition.Message = fmt.Sprintf("cluster %s is scheduled for deletion at %s", plugin.Spec.ClusterName, schedule)

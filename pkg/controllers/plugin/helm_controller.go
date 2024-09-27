@@ -133,7 +133,10 @@ func (r *HelmReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.
 		// ClusterDeletionScheduledReason is only set if the cluster is scheduled for deletion
 		if clusterAccessReadyCondition.Reason == greenhousev1alpha1.ClusterDeletionScheduledReason {
 			// ShouldReconcileOrRequeue returns true with duration if the cluster is scheduled for deletion
-			shouldRequeue, requeueDuration, _ := clientutil.ShouldReconcileOrRequeue(cluster, time.Now())
+			shouldRequeue, requeueDuration, err := clientutil.ShouldReconcileOrRequeue(cluster, time.Now())
+			if err != nil {
+				logger.Error(err, "failed to calculate requeue duration - ignoring deletion schedule")
+			}
 			if shouldRequeue {
 				logger.Info("skip plugin reconcile - cluster is scheduled for deletion", "cluster", cluster.GetName(), "requeueAfter", requeueDuration)
 				return ctrl.Result{RequeueAfter: requeueDuration}, nil

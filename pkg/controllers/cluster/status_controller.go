@@ -47,6 +47,7 @@ func (r *ClusterStatusReconciler) SetupWithManager(name string, mgr ctrl.Manager
 }
 
 func (r *ClusterStatusReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
+	logger := ctrl.LoggerFrom(ctx)
 	var cluster = new(greenhousev1alpha1.Cluster)
 	if err := r.Get(ctx, req.NamespacedName, cluster); err != nil {
 		return ctrl.Result{}, client.IgnoreNotFound(err)
@@ -75,7 +76,10 @@ func (r *ClusterStatusReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 	result, err := clientutil.PatchStatus(ctx, r.Client, cluster, func() error {
 		cluster.Status.KubernetesVersion = k8sVersion
 		conditions = append(conditions, readyCondition, allNodesReadyCondition, kubeConfigValidCondition)
-		scheduleExists, schedule, _ := clientutil.ExtractDeletionSchedule(cluster.GetAnnotations())
+		scheduleExists, schedule, err := clientutil.ExtractDeletionSchedule(cluster.GetAnnotations())
+		if err != nil {
+			logger.Error(err, "failed to extract deletion schedule - ignoring deletion schedule")
+		}
 		if scheduleExists {
 			deletionCondition := greenhousev1alpha1.TrueCondition(greenhousev1alpha1.ClusterDeletionScheduled, "", "deletion scheduled at "+schedule.Format(time.DateTime))
 			conditions = append(conditions, deletionCondition)

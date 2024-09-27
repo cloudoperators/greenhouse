@@ -27,7 +27,8 @@ import (
 )
 
 func UpdateClusterWithDeletionAnnotation(ctx context.Context, c client.Client, cluster *greenhousev1alpha1.Cluster) {
-	schedule, _ := clientutil.ParseDateTime(time.Now().Add(-1 * time.Minute))
+	schedule, err := clientutil.ParseDateTime(time.Now().Add(-1 * time.Minute))
+	Expect(err).ToNot(HaveOccurred(), "there should be no error parsing the time")
 	cluster.SetAnnotations(map[string]string{
 		greenhouseapis.MarkClusterDeletionAnnotation:     "true",
 		greenhouseapis.ScheduleClusterDeletionAnnotation: schedule.Format(time.DateTime),
