@@ -6,8 +6,9 @@ package plugin
 import (
 	"encoding/json"
 	"errors"
-	greenhousecluster "github.com/cloudoperators/greenhouse/pkg/controllers/cluster"
 	"testing"
+
+	greenhousecluster "github.com/cloudoperators/greenhouse/pkg/controllers/cluster"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
