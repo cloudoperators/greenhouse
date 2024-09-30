@@ -24,6 +24,8 @@ const (
 )
 
 // knownControllers contains all controllers to be registered when starting the e2e test suite
+
+//nolint:unused
 var knownControllers = map[string]func(controllerName string, mgr ctrl.Manager) error{
 	// Organization controllers.
 	"organizationController":     (&organizationcontrollers.OrganizationReconciler{}).SetupWithManager,
@@ -58,6 +60,7 @@ var knownControllers = map[string]func(controllerName string, mgr ctrl.Manager) 
 	"clusterStatus": (&clustercontrollers.ClusterStatusReconciler{}).SetupWithManager,
 }
 
+//nolint:unused
 func startOrganizationDexReconciler(name string, mgr ctrl.Manager) error {
 	namespace := "greenhouse"
 	if v, ok := os.LookupEnv("POD_NAMESPACE"); ok {
@@ -68,6 +71,7 @@ func startOrganizationDexReconciler(name string, mgr ctrl.Manager) error {
 	}).SetupWithManager(name, mgr)
 }
 
+//nolint:unused
 func startClusterDirectAccessReconciler(name string, mgr ctrl.Manager) error {
 	return (&clustercontrollers.DirectAccessReconciler{
 		RemoteClusterBearerTokenValidity:   defaultRemoteClusterBearerTokenValidity,

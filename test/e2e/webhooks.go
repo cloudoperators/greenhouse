@@ -9,6 +9,7 @@ import (
 	"github.com/cloudoperators/greenhouse/pkg/admission"
 )
 
+//nolint:unused
 var knownWebhooks = map[string]func(mgr ctrl.Manager) error{
 	"cluster":          admission.SetupClusterWebhookWithManager,
 	"secrets":          admission.SetupSecretWebhookWithManager,
