@@ -4,6 +4,7 @@
 package common
 
 import (
+	"crypto/sha256"
 	"fmt"
 
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/pkg/apis/greenhouse/v1alpha1"
@@ -13,11 +14,16 @@ import (
 var DNSDomain string
 
 // URLForExposedServiceInPlugin returns the URL that shall be used to expose a service centrally via Greenhouse.
+// The pattern shall be $https://$service--$cluster--$namespace.$organisation.$basedomain .
+// If the first subdomain exceeds 63 characters, it will be shortened to 63 characters by appending a hash.
 func URLForExposedServiceInPlugin(serviceName string, plugin *greenhousev1alpha1.Plugin) string {
+	subdomain := fmt.Sprintf("%s--%s--%s", serviceName, plugin.Spec.ClusterName, plugin.Spec.ReleaseNamespace)
+	if len(subdomain) > 63 {
+		hashedSubdomain := sha256.Sum256([]byte(subdomain))
+		subdomain = fmt.Sprintf("%s-%x", subdomain[:54], hashedSubdomain[:4])
+	}
 	return fmt.Sprintf(
-		// The pattern shall be $https://$service-$namespace-$cluster.$organisation.$basedomain .
-		"https://%s--%s--%s.%s.%s",
-		serviceName, plugin.Spec.ReleaseNamespace, plugin.Spec.ClusterName,
-		plugin.GetNamespace(), DNSDomain,
+		"https://%s.%s.%s",
+		subdomain, plugin.GetNamespace(), DNSDomain,
 	)
 }

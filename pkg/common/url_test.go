@@ -30,6 +30,20 @@ var _ = Describe("validate url methods", Ordered, func() {
 		plugin.SetNamespace("test-organisation")
 
 		url := common.URLForExposedServiceInPlugin("test-service", plugin)
-		Expect(url).To(Equal("https://test-service--test-namespace--test-cluster.test-organisation.example.com"))
+		Expect(url).To(Equal("https://test-service--test-cluster--test-namespace.test-organisation.example.com"))
+	})
+
+	It("should correctly cap the url with a hash on urls with subdomains exceeding 63 characters", func() {
+		common.DNSDomain = "example.com"
+		plugin := &v1alpha1.Plugin{
+			Spec: v1alpha1.PluginSpec{
+				ReleaseNamespace: "test-long-namespace",
+				ClusterName:      "test-cluster",
+			},
+		}
+		plugin.SetNamespace("test-organisation")
+
+		url := common.URLForExposedServiceInPlugin("this-is-a-very-long-service-name", plugin)
+		Expect(url).To(Equal("https://this-is-a-very-long-service-name--test-cluster--test-l-7982a2e3.test-organisation.example.com"))
 	})
 })
