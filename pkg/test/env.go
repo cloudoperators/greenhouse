@@ -160,13 +160,13 @@ var (
 			Expect(K8sManager).
 				NotTo(BeNil(), "the manager must not be nil")
 
-			// Register webhooks.
+			// Register webhooks
 			for webhookName, registerFunc := range allRegisterWebhookFuncs {
 				logf.FromContext(Ctx, "message", "registering webhook", "name", webhookName)
 				Expect(registerFunc(K8sManager)).To(Succeed(), "there must be no error registering the webhook", "name", webhookName)
 			}
 
-			// Register controllers.
+			// Register controllers
 			for controllerName, registerFunc := range allRegisterControllerFuncs {
 				Expect(registerFunc(controllerName, K8sManager)).
 					To(Succeed(), "there must be no error registering the controller", "name", controllerName)

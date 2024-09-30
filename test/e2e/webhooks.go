@@ -1,6 +1,7 @@
 // SPDX-FileCopyrightText: 2024 SAP SE or an SAP affiliate company and Greenhouse contributors
 // SPDX-License-Identifier: Apache-2.0
 
+//nolint:unused
 package e2e
 
 import (
@@ -9,7 +10,6 @@ import (
 	"github.com/cloudoperators/greenhouse/pkg/admission"
 )
 
-//nolint:unused
 var knownWebhooks = map[string]func(mgr ctrl.Manager) error{
 	"cluster":          admission.SetupClusterWebhookWithManager,
 	"secrets":          admission.SetupSecretWebhookWithManager,
