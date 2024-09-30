@@ -6,6 +6,7 @@ package plugin
 import (
 	"encoding/json"
 	"errors"
+	greenhousecluster "github.com/cloudoperators/greenhouse/pkg/controllers/cluster"
 	"testing"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -38,6 +39,7 @@ func TestHelmController(t *testing.T) {
 var _ = BeforeSuite(func() {
 	test.RegisterController("pluginHelm", (&HelmReconciler{KubeRuntimeOpts: clientutil.RuntimeOptions{QPS: 5, Burst: 10}}).SetupWithManager)
 	test.RegisterController("pluginPreset", (&PluginPresetReconciler{}).SetupWithManager)
+	test.RegisterController("clusterDirectAccess", (&greenhousecluster.DirectAccessReconciler{}).SetupWithManager)
 	test.RegisterWebhook("pluginDefinitionWebhook", admission.SetupPluginDefinitionWebhookWithManager)
 	test.RegisterWebhook("pluginWebhook", admission.SetupPluginWebhookWithManager)
 	test.RegisterWebhook("clusterWebhook", admission.SetupClusterWebhookWithManager)

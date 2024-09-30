@@ -13,6 +13,7 @@ import (
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/client-go/util/retry"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
 
@@ -265,8 +266,15 @@ var _ = Describe("HelmController reconciliation", Ordered, func() {
 		}).Should(BeTrue(), "the ClusterAccessReadyCondition should be false")
 
 		By("setting the ready condition on the test-cluster")
-		testCluster.Status.StatusConditions.SetConditions(greenhousev1alpha1.TrueCondition(greenhousev1alpha1.ReadyCondition, "", ""))
-		Expect(test.K8sClient.Status().Update(test.Ctx, testCluster)).Should(Succeed(), "there should be no error updating the cluster resource")
+		err := retry.RetryOnConflict(retry.DefaultRetry, func() error {
+			err := test.K8sClient.Get(test.Ctx, types.NamespacedName{Name: testCluster.Name, Namespace: testCluster.Namespace}, testCluster)
+			if err != nil {
+				return err
+			}
+			testCluster.Status.StatusConditions.SetConditions(greenhousev1alpha1.TrueCondition(greenhousev1alpha1.ReadyCondition, "", ""))
+			return test.K8sClient.Status().Update(test.Ctx, testCluster)
+		})
+		Expect(err).ShouldNot(HaveOccurred(), "there should be no error updating the cluster resource")
 
 		By("triggering setting a label on the plugin to trigger reconciliation")
 		testPlugin.Labels = map[string]string{"test": "label"}
