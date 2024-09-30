@@ -1002,33 +1002,6 @@ func cluster(name string) *greenhousev1alpha1.Cluster {
 	}
 }
 
-func plugin(clusterName string, ownerRefs []metav1.OwnerReference) *greenhousev1alpha1.Plugin {
-	return &greenhousev1alpha1.Plugin{
-		TypeMeta: metav1.TypeMeta{
-			Kind:       "Plugin",
-			APIVersion: greenhousev1alpha1.GroupVersion.String(),
-		},
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      pluginPresetName + "-" + clusterName,
-			Namespace: test.TestNamespace,
-			Labels: map[string]string{
-				greenhouseapis.LabelKeyPluginPreset: pluginPresetName,
-			},
-			OwnerReferences: ownerRefs,
-		},
-		Spec: greenhousev1alpha1.PluginSpec{
-			ClusterName:      clusterB,
-			PluginDefinition: pluginPresetDefinitionName,
-			OptionValues: []greenhousev1alpha1.PluginOptionValue{
-				{
-					Name:  "myRequiredOption",
-					Value: test.MustReturnJSONFor("myValue"),
-				},
-			},
-		},
-	}
-}
-
 func pluginPreset(name, selectorValue string) *greenhousev1alpha1.PluginPreset {
 	return &greenhousev1alpha1.PluginPreset{
 		TypeMeta: metav1.TypeMeta{
