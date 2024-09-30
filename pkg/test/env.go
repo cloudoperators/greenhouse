@@ -50,7 +50,7 @@ var (
 )
 
 // RegisterController registers a controller for the testbed.
-// A currently running testbed is not affected.
+// current running testbed is not affected.
 func RegisterController(controllerName string, f registerControllerFunc) {
 	if _, ok := allRegisterControllerFuncs[controllerName]; !ok {
 		allRegisterControllerFuncs[controllerName] = f
