@@ -142,12 +142,14 @@ func (r *WorkLoadStatusReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 	clusterAccessReadyCondition := greenhousev1alpha1.UnknownCondition(greenhousev1alpha1.ClusterAccessReadyCondition, "", "")
 	// Check if the plugin is ready to be reconciled.
 	cluster := &greenhousev1alpha1.Cluster{}
-	err := r.Client.Get(ctx, types.NamespacedName{Namespace: plugin.GetNamespace(), Name: plugin.Spec.ClusterName}, cluster)
-	if err != nil {
-		clusterAccessReadyCondition.Status = metav1.ConditionFalse
-		clusterAccessReadyCondition.Message = fmt.Sprintf("Failed to get cluster %s: %s", plugin.Spec.ClusterName, err.Error())
-		pluginStatus.StatusConditions.SetConditions(clusterAccessReadyCondition)
-		return ctrl.Result{}, err
+	if plugin.Spec.ClusterName != "" {
+		err := r.Client.Get(ctx, types.NamespacedName{Namespace: plugin.GetNamespace(), Name: plugin.Spec.ClusterName}, cluster)
+		if err != nil {
+			clusterAccessReadyCondition.Status = metav1.ConditionFalse
+			clusterAccessReadyCondition.Message = fmt.Sprintf("Failed to get cluster %s: %s", plugin.Spec.ClusterName, err.Error())
+			pluginStatus.StatusConditions.SetConditions(clusterAccessReadyCondition)
+			return ctrl.Result{}, err
+		}
 	}
 	clusterAccessReadyCondition, restClientGetter = initClientGetter(ctx, r.Client, r.kubeClientOpts, *plugin, cluster, clusterAccessReadyCondition)
 	pluginStatus.StatusConditions.SetConditions(clusterAccessReadyCondition)
