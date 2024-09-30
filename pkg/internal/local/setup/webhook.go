@@ -181,7 +181,7 @@ func (m *Manifest) modifyWebhook(resource map[string]interface{}, hook client.Ob
 				modifiedHook.Webhooks[i].ClientConfig.URL = utils.StringP(url)
 				modifiedHook.Webhooks[i].ClientConfig.Service = nil
 			}
-			c.TimeoutSeconds = utils.Int32P(30)
+			modifiedHook.Webhooks[i].TimeoutSeconds = utils.Int32P(30)
 		}
 		// convert from aregv1.MutatingWebhookConfiguration{} to yaml
 		return utils.FromK8sObjectToYaml(modifiedHook, aregv1.SchemeGroupVersion)
@@ -194,7 +194,7 @@ func (m *Manifest) modifyWebhook(resource map[string]interface{}, hook client.Ob
 				modifiedHook.Webhooks[i].ClientConfig.URL = utils.StringP(url)
 				modifiedHook.Webhooks[i].ClientConfig.Service = nil
 			}
-			c.TimeoutSeconds = utils.Int32P(30)
+			modifiedHook.Webhooks[i].TimeoutSeconds = utils.Int32P(30)
 		}
 		// convert from aregv1.ValidatingWebhookConfiguration{} to yaml
 		return utils.FromK8sObjectToYaml(modifiedHook, aregv1.SchemeGroupVersion)

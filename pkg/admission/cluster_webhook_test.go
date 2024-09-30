@@ -220,7 +220,7 @@ var _ = Describe("Cluster Webhook", func() {
 					Namespace: "test-namespace",
 					Annotations: map[string]string{
 						greenhouseapis.MarkClusterDeletionAnnotation:     "true",
-						greenhouseapis.ScheduleClusterDeletionAnnotation: "2006-01-02",
+						greenhouseapis.ScheduleClusterDeletionAnnotation: time.DateOnly,
 					},
 				},
 				Spec: greenhousev1alpha1.ClusterSpec{
