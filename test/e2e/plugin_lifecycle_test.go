@@ -41,47 +41,23 @@ var _ = Describe("PluginLifecycle", Ordered, func() {
 			}
 			test.EventuallyCreated(test.Ctx, test.K8sClient, cluster)
 
-			testPluginDefinition := fixtures.NginxPluginDefinition
-			testPluginDefinition.ObjectMeta.Namespace = setup.Namespace() // namespace override
-
-			testPlugin := &greenhousev1alpha1.Plugin{
-				TypeMeta: metav1.TypeMeta{
-					Kind:       "Plugin",
-					APIVersion: greenhousev1alpha1.GroupVersion.String(),
-				},
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "test-nginx-plugin",
-					Namespace: setup.Namespace(),
-				},
-				Spec: greenhousev1alpha1.PluginSpec{
-					PluginDefinition: "nginx-18.1.7",
-					ReleaseNamespace: setup.Namespace(),
-					ClusterName:      secret.Name,
-					OptionValues: []greenhousev1alpha1.PluginOptionValue{
-						{
-							Name:  "replicaCount",
-							Value: &apiextensionsv1.JSON{Raw: []byte("1")},
-						},
-					},
-				},
-				Status: greenhousev1alpha1.PluginStatus{},
-			}
-
 			pluginDefinitionList := &greenhousev1alpha1.PluginDefinitionList{}
 			pluginList := &greenhousev1alpha1.PluginList{}
 			deploymentList := &appsv1.DeploymentList{}
 			ctx := test.Ctx
 
 			// Creating plugin definition
-			err := test.K8sClient.Create(ctx, testPluginDefinition)
-			Expect(err).NotTo(HaveOccurred())
-			err = test.K8sClient.List(ctx, pluginDefinitionList)
+			testPluginDefinition := fixtures.CreateNginxPluginDefinition(ctx, setup)
+			err := test.K8sClient.List(ctx, pluginDefinitionList)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(len(pluginDefinitionList.Items)).To(BeEquivalentTo(1))
 
 			// Creating plugin
-			err = test.K8sClient.Create(ctx, testPlugin)
-			Expect(err).NotTo(HaveOccurred())
+			testPlugin := setup.CreatePlugin(test.Ctx, "test-nginx-plugin",
+				test.WithPluginDefinition(testPluginDefinition.Name),
+				test.WithCluster(secret.Name),
+				test.WithReleaseNamespace(setup.Namespace()),
+				test.WithPluginOptionValue("replicaCount", &apiextensionsv1.JSON{Raw: []byte("1")}, nil))
 			Eventually(func(g Gomega) bool {
 				err = test.K8sClient.List(ctx, pluginList)
 				g.Expect(err).NotTo(HaveOccurred())
@@ -164,42 +140,22 @@ var _ = Describe("PluginLifecycle", Ordered, func() {
 			}
 			test.EventuallyCreated(test.Ctx, test.K8sClient, cluster)
 
-			testPluginDefinition := fixtures.TestHookPluginDefinition
-			testPluginDefinition.ObjectMeta.Namespace = setup.Namespace() // namespace override
-
-			testPlugin := &greenhousev1alpha1.Plugin{
-				TypeMeta: metav1.TypeMeta{
-					Kind:       "Plugin",
-					APIVersion: greenhousev1alpha1.GroupVersion.String(),
-				},
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "test-hook-plugin",
-					Namespace: setup.Namespace(),
-				},
-				Spec: greenhousev1alpha1.PluginSpec{
-					PluginDefinition: testPluginDefinition.Name,
-					ReleaseNamespace: setup.Namespace(),
-					ClusterName:      secret.Name,
-					OptionValues:     []greenhousev1alpha1.PluginOptionValue{},
-				},
-				Status: greenhousev1alpha1.PluginStatus{},
-			}
-
 			pluginDefinitionList := &greenhousev1alpha1.PluginDefinitionList{}
 			pluginList := &greenhousev1alpha1.PluginList{}
 			podList := &v1.PodList{}
 			ctx := test.Ctx
 
 			// Creating plugin definition
-			err := test.K8sClient.Create(ctx, testPluginDefinition)
-			Expect(err).NotTo(HaveOccurred())
-			err = test.K8sClient.List(ctx, pluginDefinitionList)
+			testPluginDefinition := fixtures.CreateTestHookPluginDefinition(test.Ctx, setup)
+			err := test.K8sClient.List(ctx, pluginDefinitionList)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(len(pluginDefinitionList.Items)).To(BeEquivalentTo(1))
 
 			// Creating plugin
-			err = test.K8sClient.Create(ctx, testPlugin)
-			Expect(err).NotTo(HaveOccurred())
+			_ = setup.CreatePlugin(test.Ctx, "test-hook-plugin",
+				test.WithPluginDefinition(testPluginDefinition.Name),
+				test.WithCluster(secret.Name),
+				test.WithReleaseNamespace(setup.Namespace()))
 
 			// Check jobs
 			jobList := &batchv1.JobList{}

@@ -160,6 +160,13 @@ func WithHelmChart(chart *greenhousev1alpha1.HelmChartReference) func(*greenhous
 	}
 }
 
+// WithHelmChart sets the HelmChart of a PluginDefinition
+func AppendPluginOption(option greenhousev1alpha1.PluginOption) func(*greenhousev1alpha1.PluginDefinition) {
+	return func(pd *greenhousev1alpha1.PluginDefinition) {
+		pd.Spec.Options = append(pd.Spec.Options, option)
+	}
+}
+
 // CreatePluginDefinition creates and returns a PluginDefinition object. Opts can be used to set the desired state of the PluginDefinition.
 func (t *TestSetup) CreatePluginDefinition(ctx context.Context, name string, opts ...func(*greenhousev1alpha1.PluginDefinition)) *greenhousev1alpha1.PluginDefinition {
 	GinkgoHelper()
