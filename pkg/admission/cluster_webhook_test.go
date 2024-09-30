@@ -173,6 +173,64 @@ var _ = Describe("Cluster Webhook", func() {
 		),
 	)
 
+	DescribeTable("Validate Update Cluster",
+		func(cluster *greenhousev1alpha1.Cluster, withError bool) {
+			_, err := ValidateUpdateCluster(ctx, nil, nil, cluster)
+			if withError {
+				Expect(err).To(HaveOccurred())
+			} else {
+				Expect(err).NotTo(HaveOccurred())
+			}
+		},
+		Entry("it should allow update without deletion markers",
+			&greenhousev1alpha1.Cluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "test-cluster",
+					Namespace: "test-namespace",
+					Annotations: map[string]string{
+						"custom-annotation": "custom-value",
+					},
+				},
+				Spec: greenhousev1alpha1.ClusterSpec{
+					AccessMode: greenhousev1alpha1.ClusterAccessModeDirect,
+				},
+			},
+			false,
+		),
+		Entry("it should allow update with valid deletion schedule",
+			&greenhousev1alpha1.Cluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "test-cluster",
+					Namespace: "test-namespace",
+					Annotations: map[string]string{
+						greenhouseapis.MarkClusterDeletionAnnotation:     "true",
+						greenhouseapis.ScheduleClusterDeletionAnnotation: fortyEight(),
+					},
+				},
+				Spec: greenhousev1alpha1.ClusterSpec{
+					AccessMode: greenhousev1alpha1.ClusterAccessModeDirect,
+				},
+			},
+			false,
+		),
+		Entry("it should deny update with invalid deletion schedule",
+			&greenhousev1alpha1.Cluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "test-cluster",
+					Namespace: "test-namespace",
+					Annotations: map[string]string{
+						greenhouseapis.MarkClusterDeletionAnnotation:     "true",
+						greenhouseapis.ScheduleClusterDeletionAnnotation: "2006-01-02",
+					},
+				},
+				Spec: greenhousev1alpha1.ClusterSpec{
+					AccessMode: greenhousev1alpha1.ClusterAccessModeDirect,
+				},
+			},
+			true,
+		),
+	)
+
 	DescribeTable("Validate Delete Cluster",
 		func(cluster *greenhousev1alpha1.Cluster, withError bool) {
 			err := DefaultCluster(ctx, nil, cluster)

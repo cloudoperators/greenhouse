@@ -97,7 +97,18 @@ func ValidateCreateCluster(ctx context.Context, _ client.Client, obj runtime.Obj
 	return nil, nil
 }
 
-func ValidateUpdateCluster(_ context.Context, _ client.Client, _, _ runtime.Object) (admission.Warnings, error) {
+func ValidateUpdateCluster(ctx context.Context, _ client.Client, _, currObj runtime.Object) (admission.Warnings, error) {
+	cluster, ok := currObj.(*greenhousev1alpha1.Cluster)
+	logger := ctrl.LoggerFrom(ctx)
+	if !ok {
+		return nil, nil
+	}
+	_, _, err := clientutil.ExtractDeletionSchedule(cluster.GetAnnotations())
+	if err != nil {
+		err = apierrors.NewBadRequest("invalid deletion schedule provided - expected format 2006-01-02 15:04:05")
+		logger.Error(err, "update request denied", "cluster", cluster.GetName())
+		return admission.Warnings{"update is not allowed"}, err
+	}
 	return nil, nil
 }
 
