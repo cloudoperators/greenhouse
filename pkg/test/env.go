@@ -58,13 +58,13 @@ func RegisterController(controllerName string, f registerControllerFunc) {
 }
 
 // UnregisterController removes a controller from the testbed.
-// A currently running testbed is not affected.
+// currently running testbed is not affected.
 func UnregisterController(controllerName string) {
 	delete(allRegisterControllerFuncs, controllerName)
 }
 
 // RegisterWebhook registers a webhook for the testbed.
-// A currently running testbed is not affected.
+// currently running testbed is not affected.
 func RegisterWebhook(webhookName string, f registerWebhookFunc) {
 	if _, ok := allRegisterWebhookFuncs[webhookName]; !ok {
 		allRegisterWebhookFuncs[webhookName] = f
