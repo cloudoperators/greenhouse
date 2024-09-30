@@ -50,7 +50,7 @@ var (
 )
 
 // RegisterController registers a controller for the testbed.
-// current running testbed is not affected.
+// A currently running testbed is not affected.
 func RegisterController(controllerName string, f registerControllerFunc) {
 	if _, ok := allRegisterControllerFuncs[controllerName]; !ok {
 		allRegisterControllerFuncs[controllerName] = f
@@ -58,13 +58,13 @@ func RegisterController(controllerName string, f registerControllerFunc) {
 }
 
 // UnregisterController removes a controller from the testbed.
-// currently running testbed is not affected.
+// A currently running testbed is not affected.
 func UnregisterController(controllerName string) {
 	delete(allRegisterControllerFuncs, controllerName)
 }
 
 // RegisterWebhook registers a webhook for the testbed.
-// currently running testbed is not affected.
+// A currently running testbed is not affected.
 func RegisterWebhook(webhookName string, f registerWebhookFunc) {
 	if _, ok := allRegisterWebhookFuncs[webhookName]; !ok {
 		allRegisterWebhookFuncs[webhookName] = f
@@ -160,13 +160,13 @@ var (
 			Expect(K8sManager).
 				NotTo(BeNil(), "the manager must not be nil")
 
-			// Register webhooks
+			// Register webhooks.
 			for webhookName, registerFunc := range allRegisterWebhookFuncs {
 				logf.FromContext(Ctx, "message", "registering webhook", "name", webhookName)
 				Expect(registerFunc(K8sManager)).To(Succeed(), "there must be no error registering the webhook", "name", webhookName)
 			}
 
-			// Register controllers
+			// Register controllers.
 			for controllerName, registerFunc := range allRegisterControllerFuncs {
 				Expect(registerFunc(controllerName, K8sManager)).
 					To(Succeed(), "there must be no error registering the controller", "name", controllerName)
