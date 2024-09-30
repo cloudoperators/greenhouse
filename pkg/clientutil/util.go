@@ -88,6 +88,9 @@ func isMarkedForDeletion(annotations map[string]string) bool {
 }
 
 func ExtractDeletionSchedule(annotations map[string]string) (bool, time.Time, error) {
+	if annotations == nil {
+		return false, time.Time{}, nil
+	}
 	_, deletionMarked := annotations[greehouseapis.MarkClusterDeletionAnnotation]
 	deletionSchedule, scheduleExists := annotations[greehouseapis.ScheduleClusterDeletionAnnotation]
 	if deletionMarked && scheduleExists {
