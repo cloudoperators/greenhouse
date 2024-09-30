@@ -44,6 +44,8 @@ func MustDeleteCluster(ctx context.Context, c client.Client, id client.ObjectKey
 	Expect(c.Get(ctx, id, cluster)).
 		To(Succeed(), "there must be no error getting the cluster")
 	UpdateClusterWithDeletionAnnotation(ctx, c, cluster)
+	Expect(c.Get(ctx, id, cluster)).
+		To(Succeed(), "there must be no error getting the cluster")
 	Expect(c.Delete(ctx, cluster)).
 		To(Succeed(), "there must be no error deleting object", "key", client.ObjectKeyFromObject(cluster))
 
