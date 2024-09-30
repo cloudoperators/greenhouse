@@ -1,6 +1,8 @@
 // SPDX-FileCopyrightText: 2024 SAP SE or an SAP affiliate company and Greenhouse contributors
 // SPDX-License-Identifier: Apache-2.0
 
+//go:build e2e
+
 package e2e
 
 import (
