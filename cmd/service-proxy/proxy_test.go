@@ -41,7 +41,7 @@ func TestRewrite(t *testing.T) {
 	}{
 		{
 			name:        "valid host",
-			url:         "https://name--namespace--cluster.organisation.basedomain/abcd",
+			url:         "https://name--cluster--namespace.organisation.basedomain/abcd",
 			expectedURL: "https://apiserver/proxy/url/abcd",
 			contextVal:  "cluster",
 		},
