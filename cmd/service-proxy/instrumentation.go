@@ -7,9 +7,10 @@ import (
 	"context"
 	"net/http"
 
-	"github.com/cloudoperators/greenhouse/pkg/common"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
+
+	"github.com/cloudoperators/greenhouse/pkg/common"
 )
 
 type ctxClusterKey struct {
