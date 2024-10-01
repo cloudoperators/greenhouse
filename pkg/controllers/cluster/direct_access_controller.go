@@ -67,6 +67,9 @@ func (r *DirectAccessReconciler) Reconcile(ctx context.Context, req ctrl.Request
 		return ctrl.Result{}, nil
 	}
 
+	// Update metrics at the end of the reconcile function
+	defer updateMetrics(cluster)
+
 	isScheduled, schedule, err := clientutil.ExtractDeletionSchedule(cluster.GetAnnotations())
 	if err != nil {
 		return ctrl.Result{}, err
@@ -153,7 +156,6 @@ func (r *DirectAccessReconciler) Reconcile(ctx context.Context, req ctrl.Request
 		return ctrl.Result{}, err
 	}
 
-	updateMetrics(cluster)
 	return ctrl.Result{RequeueAfter: defaultRequeueInterval}, nil
 }
 
