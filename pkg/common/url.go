@@ -6,6 +6,7 @@ package common
 import (
 	"crypto/sha256"
 	"fmt"
+	"strings"
 
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/pkg/apis/greenhouse/v1alpha1"
 )
@@ -26,4 +27,20 @@ func URLForExposedServiceInPlugin(serviceName string, plugin *greenhousev1alpha1
 		"https://%s.%s.%s",
 		subdomain, plugin.GetNamespace(), DNSDomain,
 	)
+}
+
+// SplitHost splits an exposed service host into its name, namespace and cluster parts
+// The pattern shall be $service--$cluster--$namespace
+// TODO, need to fix: We know that information on the namespace and even the cluster might be lost when the host was hashed due to it's length.
+// Currently only cluster is critical, need to fix this.
+func SplitHost(host string) (name, cluster, namespace string, err error) {
+	parts := strings.SplitN(host, ".", 2)
+	if len(parts) < 2 {
+		return "", "", "", fmt.Errorf("invalid host: %s", host)
+	}
+	parts = strings.SplitN(parts[0], "--", 3)
+	if len(parts) < 3 {
+		return "", "", "", fmt.Errorf("invalid host: %s", host)
+	}
+	return parts[0], parts[1], parts[2], nil
 }
