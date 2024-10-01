@@ -112,6 +112,7 @@ func (pm *ProxyManager) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.R
 			cls.routes[url] = &u
 		}
 	}
+	logger.Info("Added routes for cluster", "cluster", req.Name, "routes", cls.routes)
 	pm.clusters[req.Name] = cls
 
 	return ctrl.Result{}, nil
