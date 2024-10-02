@@ -80,6 +80,7 @@ func DefaultCluster(ctx context.Context, _ client.Client, obj runtime.Object) er
 
 //+kubebuilder:webhook:path=/validate-greenhouse-sap-v1alpha1-cluster,mutating=false,failurePolicy=fail,sideEffects=None,groups=greenhouse.sap,resources=clusters,verbs=create;update;delete,versions=v1alpha1,name=vcluster.kb.io,admissionReviewVersions=v1
 
+// ValidateCreateCluster disallows creating clusters with deletionMarked or deletionSchedule annotations
 func ValidateCreateCluster(ctx context.Context, _ client.Client, obj runtime.Object) (admission.Warnings, error) {
 	logger := ctrl.LoggerFrom(ctx)
 	cluster, ok := obj.(*greenhousev1alpha1.Cluster)
@@ -97,6 +98,7 @@ func ValidateCreateCluster(ctx context.Context, _ client.Client, obj runtime.Obj
 	return nil, nil
 }
 
+//ValidateUpdateCluster disallows cluster updates with invalid deletion schedules
 func ValidateUpdateCluster(ctx context.Context, _ client.Client, _, currObj runtime.Object) (admission.Warnings, error) {
 	cluster, ok := currObj.(*greenhousev1alpha1.Cluster)
 	logger := ctrl.LoggerFrom(ctx)
@@ -112,6 +114,7 @@ func ValidateUpdateCluster(ctx context.Context, _ client.Client, _, currObj runt
 	return nil, nil
 }
 
+// ValidateDeleteCluster only allows deletion requests for clusters with a deletion schedule timestamp past now.
 func ValidateDeleteCluster(ctx context.Context, _ client.Client, obj runtime.Object) (admission.Warnings, error) {
 	now := time.Now()
 	logger := ctrl.LoggerFrom(ctx)

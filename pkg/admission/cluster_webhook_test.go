@@ -245,7 +245,7 @@ var _ = Describe("Cluster Webhook", func() {
 				Expect(warnings).To(BeEmpty())
 			}
 		},
-		Entry("it should not allow deletion of cluster without deletion annotation",
+		Entry("it should deny deletion of cluster without deletion annotation",
 			&greenhousev1alpha1.Cluster{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "test-cluster",
