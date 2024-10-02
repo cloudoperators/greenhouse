@@ -9,6 +9,8 @@ import (
 
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
+
+	"github.com/cloudoperators/greenhouse/pkg/common"
 )
 
 type ctxClusterKey struct {
@@ -67,7 +69,7 @@ func InstrumentHandler(next http.Handler, registry prometheus.Registerer) http.H
 
 	injector := func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
-			if name, namespace, cluster, err := SplitHost(req.Host); err == nil {
+			if name, cluster, namespace, err := common.SplitHost(req.Host); err == nil {
 				ctx := req.Context()
 				ctx = context.WithValue(ctx, ctxClusterKey{}, cluster)
 				ctx = context.WithValue(ctx, ctxNamespaceKey{}, namespace)

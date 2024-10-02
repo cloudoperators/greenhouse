@@ -1,6 +1,8 @@
 // SPDX-FileCopyrightText: 2024 SAP SE or an SAP affiliate company and Greenhouse contributors
 // SPDX-License-Identifier: Apache-2.0
 
+//go:build e2e
+
 package e2e
 
 import (
@@ -24,6 +26,7 @@ const (
 )
 
 // knownControllers contains all controllers to be registered when starting the e2e test suite
+
 var knownControllers = map[string]func(controllerName string, mgr ctrl.Manager) error{
 	// Organization controllers.
 	"organizationController":     (&organizationcontrollers.OrganizationReconciler{}).SetupWithManager,

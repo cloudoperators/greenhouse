@@ -33,7 +33,7 @@ Plugins deploying Helm Charts into remote clusters support exposed services.
 
 By adding the following label to a service in helm chart it will become accessible from the central greenhouse system via a service proxy:
 
-```greenhouse.sap/expose: "true"```
+`greenhouse.sap/expose: "true"`
 
 ## Deploying a Plugin
 
@@ -53,5 +53,5 @@ kubectl --namespace=<organization name> create -f plugin.yaml
 
 After deploying the plugin to a remote cluster, ExposedServices section in Plugin's status provides an overview of the Plugins services that are centrally exposed. It maps the exposed URL to the service found in the manifest.
 
-- The URLs for exposed services are created in the following pattern: `https://$service-$namespace-$cluster.$organisation.$basedomain`.
+- The URLs for exposed services are created in the following pattern: `$https://$service--$cluster--$namespace.$organisation.$basedomain`. If `$service--$cluster--$namespace` exceeds 63 characters it is capped at 54 characters and a hash is appended.s
 - When deploying a plugin to the central cluster, the exposed services won't have their URLs defined, which will be reflected in the Plugin's Status.

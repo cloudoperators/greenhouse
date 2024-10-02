@@ -10,7 +10,6 @@ import (
 	"net/http/httputil"
 	"net/url"
 	"regexp"
-	"strings"
 	"sync"
 
 	"github.com/go-logr/logr"
@@ -27,6 +26,7 @@ import (
 	greenhouseapis "github.com/cloudoperators/greenhouse/pkg/apis"
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/pkg/apis/greenhouse/v1alpha1"
 	"github.com/cloudoperators/greenhouse/pkg/clientutil"
+	"github.com/cloudoperators/greenhouse/pkg/common"
 )
 
 func NewProxyManager() *ProxyManager {
@@ -112,6 +112,7 @@ func (pm *ProxyManager) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.R
 			cls.routes[url] = &u
 		}
 	}
+	logger.Info("Added routes for cluster", "cluster", req.Name, "routes", cls.routes)
 	pm.clusters[req.Name] = cls
 
 	return ctrl.Result{}, nil
@@ -170,8 +171,8 @@ func (pm *ProxyManager) rewrite(req *httputil.ProxyRequest) {
 		req.Out = req.Out.WithContext(log.IntoContext(req.Out.Context(), l))
 	}()
 
-	// hostname is expected to have the format $name--$namespace--$cluster.$organisation.$basedomain
-	name, namespace, cluster, err := SplitHost(req.In.Host)
+	// hostname is expected to have the format $name--$cluster--$namespace.$organisation.$basedomain
+	name, cluster, namespace, err := common.SplitHost(req.In.Host)
 	if err != nil {
 		return
 	}
@@ -241,17 +242,4 @@ func enqueuePluginForCluster(_ context.Context, o client.Object) []ctrl.Request 
 		return nil
 	}
 	return []ctrl.Request{{NamespacedName: types.NamespacedName{Namespace: plugin.Namespace, Name: plugin.Spec.ClusterName}}}
-}
-
-// SplitHost splits a host into its name, namespace and cluster parts
-func SplitHost(host string) (name, namespace, cluster string, err error) {
-	parts := strings.SplitN(host, ".", 2)
-	if len(parts) < 2 {
-		return "", "", "", fmt.Errorf("invalid host: %s", host)
-	}
-	parts = strings.SplitN(parts[0], "--", 3)
-	if len(parts) < 3 {
-		return "", "", "", fmt.Errorf("invalid host: %s", host)
-	}
-	return parts[0], parts[1], parts[2], nil
 }
