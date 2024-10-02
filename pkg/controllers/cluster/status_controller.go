@@ -6,7 +6,6 @@ package cluster
 import (
 	"context"
 	"fmt"
-	greenhouseapis "github.com/cloudoperators/greenhouse/pkg/apis"
 	"github.com/go-logr/logr"
 	"time"
 
@@ -100,13 +99,13 @@ func (r *ClusterStatusReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 }
 
 func (r *ClusterStatusReconciler) checkDeletionSchedule(logger logr.Logger, cluster *greenhousev1alpha1.Cluster) greenhousev1alpha1.Condition {
-	deletionCondition := greenhousev1alpha1.UnknownCondition(greenhouseapis.ClusterDeletionScheduled, "", "")
+	deletionCondition := greenhousev1alpha1.UnknownCondition(ClusterDeletionScheduled, "", "")
 	scheduleExists, schedule, err := clientutil.ExtractDeletionSchedule(cluster.GetAnnotations())
 	if err != nil {
 		logger.Error(err, "failed to extract deletion schedule - ignoring deletion schedule")
 	}
 	if scheduleExists {
-		deletionCondition = greenhousev1alpha1.TrueCondition(greenhouseapis.ClusterDeletionScheduled, "", "deletion scheduled at "+schedule.Format(time.DateTime))
+		deletionCondition = greenhousev1alpha1.TrueCondition(ClusterDeletionScheduled, "", "deletion scheduled at "+schedule.Format(time.DateTime))
 	}
 	return deletionCondition
 }

@@ -6,6 +6,7 @@ package plugin
 import (
 	"context"
 	"fmt"
+	clusterpkg "github.com/cloudoperators/greenhouse/pkg/controllers/cluster"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"strings"
 	"time"
@@ -310,7 +311,7 @@ func shouldReconcileOrRequeue(ctx context.Context, c client.Client, plugin *gree
 		return &reconcileResult{
 			requeueAfter: requeueAfter,
 			condition: greenhousev1alpha1.Condition{
-				Type:    greenhouseapis.ClusterDeletionScheduled,
+				Type:    clusterpkg.ClusterDeletionScheduled,
 				Status:  metav1.ConditionTrue,
 				Message: msg,
 			},

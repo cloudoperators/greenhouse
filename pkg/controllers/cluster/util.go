@@ -33,6 +33,9 @@ import (
 	"github.com/cloudoperators/greenhouse/pkg/clientutil"
 )
 
+// ClusterDeletionScheduled reflects the condition type if a cluster is scheduled for deletion
+const ClusterDeletionScheduled greenhousev1alpha1.ConditionType = "ClusterDeletionScheduled"
+
 var defaultRequeueInterval = 10 * time.Minute
 
 type KubeConfigHelper struct {
