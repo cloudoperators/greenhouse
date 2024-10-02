@@ -6,6 +6,7 @@ package cluster
 import (
 	"context"
 	"fmt"
+	"github.com/go-logr/logr"
 	"time"
 
 	corev1 "k8s.io/api/core/v1"
@@ -72,18 +73,16 @@ func (r *ClusterStatusReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 
 	readyCondition := r.reconcileReadyStatus(cluster, kubeConfigValidCondition)
 
+	conditions = append(conditions, readyCondition, allNodesReadyCondition, kubeConfigValidCondition)
+
+	deletionCondition := r.checkDeletionSchedule(logger, cluster)
+	if deletionCondition.IsTrue() {
+		conditions = append(conditions, deletionCondition)
+	}
+
 	// patch message and condition
 	result, err := clientutil.PatchStatus(ctx, r.Client, cluster, func() error {
 		cluster.Status.KubernetesVersion = k8sVersion
-		conditions = append(conditions, readyCondition, allNodesReadyCondition, kubeConfigValidCondition)
-		scheduleExists, schedule, err := clientutil.ExtractDeletionSchedule(cluster.GetAnnotations())
-		if err != nil {
-			logger.Error(err, "failed to extract deletion schedule - ignoring deletion schedule")
-		}
-		if scheduleExists {
-			deletionCondition := greenhousev1alpha1.TrueCondition(greenhousev1alpha1.ClusterDeletionScheduled, "", "deletion scheduled at "+schedule.Format(time.DateTime))
-			conditions = append(conditions, deletionCondition)
-		}
 		cluster.Status.SetConditions(conditions...)
 		cluster.Status.Nodes = clusterNodeStatus
 		return nil
@@ -97,6 +96,18 @@ func (r *ClusterStatusReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 	}
 
 	return ctrl.Result{RequeueAfter: StatusRequeueInterval}, nil
+}
+
+func (r *ClusterStatusReconciler) checkDeletionSchedule(logger logr.Logger, cluster *greenhousev1alpha1.Cluster) greenhousev1alpha1.Condition {
+	deletionCondition := greenhousev1alpha1.UnknownCondition(greenhousev1alpha1.ClusterDeletionScheduled, "", "")
+	scheduleExists, schedule, err := clientutil.ExtractDeletionSchedule(cluster.GetAnnotations())
+	if err != nil {
+		logger.Error(err, "failed to extract deletion schedule - ignoring deletion schedule")
+	}
+	if scheduleExists {
+		deletionCondition = greenhousev1alpha1.TrueCondition(greenhousev1alpha1.ClusterDeletionScheduled, "", "deletion scheduled at "+schedule.Format(time.DateTime))
+	}
+	return deletionCondition
 }
 
 func (r *ClusterStatusReconciler) reconcileClusterSecret(

@@ -5,7 +5,6 @@ package cluster_test
 
 import (
 	"fmt"
-
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
@@ -216,5 +215,22 @@ var _ = Describe("Cluster status controller", Ordered, func() {
 			return true
 		}).Should(BeTrue())
 
+	})
+
+	It("should set the deletion condition when the cluster is marked for deletion", func() {
+		By("marking the cluster for deletion")
+		Expect(test.K8sClient.Get(test.Ctx, types.NamespacedName{Name: validCluster.Name, Namespace: setup.Namespace()}, &validCluster)).ShouldNot(HaveOccurred(), "There should be no error getting the cluster resource")
+		validCluster.SetAnnotations(map[string]string{
+			greenhouseapis.MarkClusterDeletionAnnotation: "true",
+		})
+		Expect(test.K8sClient.Update(test.Ctx, &validCluster)).To(Succeed(), "there must be no error updating the object", "key", client.ObjectKeyFromObject(&validCluster))
+
+		By("checking the deletion condition")
+		Eventually(func(g Gomega) bool {
+			g.Expect(test.K8sClient.Get(test.Ctx, types.NamespacedName{Name: validCluster.Name, Namespace: setup.Namespace()}, &validCluster)).ShouldNot(HaveOccurred(), "There should be no error getting the cluster resource")
+			g.Expect(validCluster.Status.GetConditionByType(greenhousev1alpha1.ClusterDeletionScheduled)).ToNot(BeNil(), "The Deletion condition should be present")
+			g.Expect(validCluster.Status.GetConditionByType(greenhousev1alpha1.ClusterDeletionScheduled).Status).To(Equal(metav1.ConditionTrue))
+			return true
+		}).Should(BeTrue())
 	})
 })
