@@ -21,10 +21,10 @@ import (
 // knownControllers contains all controllers to be registered when starting the operator.
 var knownControllers = map[string]func(controllerName string, mgr ctrl.Manager) error{
 	// Organization controllers.
-	"organizationController": (&organizationcontrollers.OrganizationReconciler{}).SetupWithManager,
-	"organizationRBAC":       (&organizationcontrollers.RBACReconciler{}).SetupWithManager,
-	"organizationDEX":        startOrganizationDexReconciler,
-	// "organizationServiceProxy":   (&organizationcontrollers.ServiceProxyReconciler{}).SetupWithManager,
+	"organizationController":     (&organizationcontrollers.OrganizationReconciler{}).SetupWithManager,
+	"organizationRBAC":           (&organizationcontrollers.RBACReconciler{}).SetupWithManager,
+	"organizationDEX":            startOrganizationDexReconciler,
+	"organizationServiceProxy":   (&organizationcontrollers.ServiceProxyReconciler{}).SetupWithManager,
 	"organizationTeamRoleSeeder": (&organizationcontrollers.TeamRoleSeederReconciler{}).SetupWithManager,
 
 	// Team controllers.
