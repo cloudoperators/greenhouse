@@ -81,12 +81,14 @@ func findRecursively(path, dirName string, maxSteps, steps int) (string, error) 
 	return dirPath, nil
 }
 
+// isMarkedForDeletion - checks if the cluster has deletion annotation and deletion schedule annotation
 func isMarkedForDeletion(annotations map[string]string) bool {
 	_, deletionMarked := annotations[greehouseapis.MarkClusterDeletionAnnotation]
 	_, scheduleExists := annotations[greehouseapis.ScheduleClusterDeletionAnnotation]
 	return deletionMarked && scheduleExists
 }
 
+// ExtractDeletionSchedule - extracts the deletion schedule from the annotation in time.DateTime format
 func ExtractDeletionSchedule(annotations map[string]string) (bool, time.Time, error) {
 	if annotations == nil {
 		return false, time.Time{}, nil
@@ -100,6 +102,8 @@ func ExtractDeletionSchedule(annotations map[string]string) (bool, time.Time, er
 	return scheduleExists, time.Time{}, nil
 }
 
+// ShouldReconcileOrRequeue - checks if the calling controller should continue with reconciliation
+// or requeue with the time difference between the current time and the deletion schedule
 func ShouldReconcileOrRequeue(cluster *greenhousev1alpha1.Cluster, currentTime time.Time) (bool, time.Duration, error) {
 	if cluster.DeletionTimestamp != nil {
 		return false, 0, nil
@@ -123,6 +127,7 @@ func ShouldReconcileOrRequeue(cluster *greenhousev1alpha1.Cluster, currentTime t
 	return true, timeDiff, nil
 }
 
+// ShouldProceedDeletion - checks if the deletion should be allowed if the schedule has elapsed
 func ShouldProceedDeletion(now, schedule time.Time) (bool, error) {
 	// time.Before() compares two time objects
 	// schedule is formatted as time.DateTime
@@ -134,6 +139,7 @@ func ShouldProceedDeletion(now, schedule time.Time) (bool, error) {
 	return !formattedNow.Before(schedule), nil
 }
 
+// FilterClustersBeingDeleted - filters out the clusters that are marked for deletion
 func FilterClustersBeingDeleted(clusters *greenhousev1alpha1.ClusterList) *greenhousev1alpha1.ClusterList {
 	// Iterate over the cluster list in reverse to safely remove elements to prevent index shifting when an item is removed.
 	for i := len(clusters.Items) - 1; i >= 0; i-- {
@@ -146,6 +152,7 @@ func FilterClustersBeingDeleted(clusters *greenhousev1alpha1.ClusterList) *green
 	return clusters
 }
 
+// ParseDateTime - parses the time object to time.DateTime format
 func ParseDateTime(t time.Time) (time.Time, error) {
 	layout := t.Format(time.DateTime)
 	return time.Parse(time.DateTime, layout)
