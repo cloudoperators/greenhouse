@@ -6,10 +6,12 @@ package plugin
 import (
 	"context"
 	"fmt"
-	clusterpkg "github.com/cloudoperators/greenhouse/pkg/controllers/cluster"
-	ctrl "sigs.k8s.io/controller-runtime"
 	"strings"
 	"time"
+
+	ctrl "sigs.k8s.io/controller-runtime"
+
+	clusterpkg "github.com/cloudoperators/greenhouse/pkg/controllers/cluster"
 
 	"github.com/pkg/errors"
 	appsv1 "k8s.io/api/apps/v1"

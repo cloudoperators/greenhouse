@@ -98,7 +98,7 @@ func ValidateCreateCluster(ctx context.Context, _ client.Client, obj runtime.Obj
 	return nil, nil
 }
 
-//ValidateUpdateCluster disallows cluster updates with invalid deletion schedules
+// ValidateUpdateCluster disallows cluster updates with invalid deletion schedules
 func ValidateUpdateCluster(ctx context.Context, _ client.Client, _, currObj runtime.Object) (admission.Warnings, error) {
 	cluster, ok := currObj.(*greenhousev1alpha1.Cluster)
 	logger := ctrl.LoggerFrom(ctx)
