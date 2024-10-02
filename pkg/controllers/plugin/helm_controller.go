@@ -97,7 +97,6 @@ func (r *HelmReconciler) SetupWithManager(name string, mgr ctrl.Manager) error {
 }
 
 func (r *HelmReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	logger := ctrl.LoggerFrom(ctx)
 	var plugin = new(greenhousev1alpha1.Plugin)
 	if err := r.Get(ctx, req.NamespacedName, plugin); err != nil {
 		return ctrl.Result{}, client.IgnoreNotFound(err)
@@ -106,48 +105,14 @@ func (r *HelmReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.
 	pluginStatus := initPluginStatus(plugin)
 	defer func() {
 		if statusErr := setPluginStatus(ctx, r.Client, plugin, pluginStatus); statusErr != nil {
-			logger.Error(statusErr, "failed to set status")
+			log.FromContext(ctx).Error(statusErr, "failed to set status")
 		}
 	}()
 
-	var restClientGetter genericclioptions.RESTClientGetter
-	clusterAccessReadyCondition := greenhousev1alpha1.UnknownCondition(greenhousev1alpha1.ClusterAccessReadyCondition, "", "")
-
-	cluster := &greenhousev1alpha1.Cluster{}
-	if plugin.Spec.ClusterName != "" {
-		err := r.Client.Get(ctx, types.NamespacedName{Namespace: plugin.GetNamespace(), Name: plugin.Spec.ClusterName}, cluster)
-		if err != nil {
-			clusterAccessReadyCondition.Status = metav1.ConditionFalse
-			clusterAccessReadyCondition.Message = fmt.Sprintf("Failed to get cluster %s: %s", plugin.Spec.ClusterName, err.Error())
-			pluginStatus.StatusConditions.SetConditions(clusterAccessReadyCondition)
-			return ctrl.Result{}, err
-		}
-	}
-
-	clusterAccessReadyCondition, restClientGetter = initClientGetter(ctx, r.Client, r.kubeClientOpts, *plugin, cluster, clusterAccessReadyCondition)
+	clusterAccessReadyCondition, restClientGetter := initClientGetter(ctx, r.Client, r.kubeClientOpts, *plugin)
 	pluginStatus.StatusConditions.SetConditions(clusterAccessReadyCondition)
-	// check if plugin is ready to be reconciled
-	// if the cluster is marked for deletion or other error during initClientGetter, the condition is false
-	// if deletionTimeStamp is set, the deletion logic will continue as long as the cluster is not scheduled for deletion
 	if !clusterAccessReadyCondition.IsTrue() {
-		// if the cluster is scheduled for deletion, we should not reconcile the plugin
-		// but rather requeueAfter with duration diff of currentTime and schedule time
-		// ClusterDeletionScheduledReason is only set if the cluster is scheduled for deletion
-		if clusterAccessReadyCondition.Reason == greenhousev1alpha1.ClusterDeletionScheduledReason {
-			// ShouldReconcileOrRequeue returns true with duration if the cluster is scheduled for deletion
-			shouldRequeue, requeueDuration, err := clientutil.ShouldReconcileOrRequeue(cluster, time.Now())
-			if err != nil {
-				logger.Error(err, "failed to calculate requeue duration - ignoring deletion schedule")
-			}
-			if shouldRequeue {
-				logger.Info("skip plugin reconcile - cluster is scheduled for deletion", "cluster", cluster.GetName(), "requeueAfter", requeueDuration)
-				return ctrl.Result{RequeueAfter: requeueDuration}, nil
-			}
-		} else {
-			err := fmt.Errorf("cannot access cluster: %s", clusterAccessReadyCondition.Message)
-			logger.Error(err, "cluster is not ready")
-			return ctrl.Result{}, err
-		}
+		return ctrl.Result{}, fmt.Errorf("cannot access cluster: %s", clusterAccessReadyCondition.Message)
 	}
 
 	// Cleanup Helm release.

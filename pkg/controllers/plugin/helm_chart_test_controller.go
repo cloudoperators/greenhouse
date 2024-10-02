@@ -9,9 +9,6 @@ import (
 	"reflect"
 	"strings"
 
-	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/cli-runtime/pkg/genericclioptions"
-
 	"github.com/prometheus/client_golang/prometheus"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/tools/record"
@@ -99,22 +96,7 @@ func (r *HelmChartTestReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 		}
 	}()
 
-	var restClientGetter genericclioptions.RESTClientGetter
-	clusterAccessReadyCondition := *pluginStatus.GetConditionByType(greenhousev1alpha1.ClusterAccessReadyCondition)
-
-	// Check if the plugin is ready to be reconciled.
-	cluster := &greenhousev1alpha1.Cluster{}
-	if plugin.Spec.ClusterName != "" {
-		err := r.Client.Get(ctx, types.NamespacedName{Namespace: plugin.GetNamespace(), Name: plugin.Spec.ClusterName}, cluster)
-		if err != nil {
-			clusterAccessReadyCondition.Status = metav1.ConditionFalse
-			clusterAccessReadyCondition.Message = fmt.Sprintf("Failed to get cluster %s: %s", plugin.Spec.ClusterName, err.Error())
-			pluginStatus.StatusConditions.SetConditions(clusterAccessReadyCondition)
-			return ctrl.Result{}, err
-		}
-	}
-
-	clusterAccessReadyCondition, restClientGetter = initClientGetter(ctx, r.Client, r.kubeClientOpts, *plugin, cluster, clusterAccessReadyCondition)
+	clusterAccessReadyCondition, restClientGetter := initClientGetter(ctx, r.Client, r.kubeClientOpts, *plugin)
 	pluginStatus.StatusConditions.SetConditions(clusterAccessReadyCondition)
 	if !clusterAccessReadyCondition.IsTrue() {
 		return ctrl.Result{}, fmt.Errorf("cannot access cluster: %s", clusterAccessReadyCondition.Message)
