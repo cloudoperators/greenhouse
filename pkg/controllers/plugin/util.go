@@ -6,10 +6,9 @@ package plugin
 import (
 	"context"
 	"fmt"
+	ctrl "sigs.k8s.io/controller-runtime"
 	"strings"
 	"time"
-
-	ctrl "sigs.k8s.io/controller-runtime"
 
 	"github.com/pkg/errors"
 	appsv1 "k8s.io/api/apps/v1"
@@ -36,6 +35,11 @@ var exposedConditions = []greenhousev1alpha1.ConditionType{
 	greenhousev1alpha1.StatusUpToDateCondition,
 	greenhousev1alpha1.NoHelmChartTestFailuresCondition,
 	greenhousev1alpha1.WorkloadReadyCondition,
+}
+
+type reconcileResult struct {
+	condition    greenhousev1alpha1.Condition
+	requeueAfter time.Duration
 }
 
 // initPluginStatus initializes all empty Plugin Conditions to "unknown"
@@ -71,16 +75,13 @@ func initClientGetter(
 	k8sClient client.Client,
 	kubeClientOpts []clientutil.KubeClientOption,
 	plugin greenhousev1alpha1.Plugin,
-	cluster *greenhousev1alpha1.Cluster,
-	clusterAccessReadyCondition greenhousev1alpha1.Condition,
 ) (
-	greenhousev1alpha1.Condition,
-	genericclioptions.RESTClientGetter,
+	clusterAccessReadyCondition greenhousev1alpha1.Condition,
+	restClientGetter genericclioptions.RESTClientGetter,
 ) {
 
 	var err error
-
-	var restClientGetter genericclioptions.RESTClientGetter
+	clusterAccessReadyCondition = greenhousev1alpha1.UnknownCondition(greenhousev1alpha1.ClusterAccessReadyCondition, "", "")
 
 	// early return if spec.clusterName is not set
 	if plugin.Spec.ClusterName == "" {
@@ -94,26 +95,12 @@ func initClientGetter(
 		return clusterAccessReadyCondition, restClientGetter
 	}
 
-	// only early exit if the plugin is not explicitly marked for deletion
-	if plugin.GetDeletionTimestamp() == nil {
-		// we early exit if the cluster is marked for deletion
-		logger := ctrl.LoggerFrom(ctx)
-		scheduleExists, schedule, err := clientutil.ExtractDeletionSchedule(cluster.GetAnnotations())
-		if err != nil {
-			logger.Error(err, "failed to extract deletion schedule", "cluster", cluster)
-		}
-		if scheduleExists {
-			canDelete, err := clientutil.ShouldProceedDeletion(time.Now(), schedule)
-			if err != nil {
-				logger.Error(err, "failed to check deletion schedule", "schedule", schedule)
-			}
-			if !canDelete {
-				clusterAccessReadyCondition.Status = metav1.ConditionFalse
-				clusterAccessReadyCondition.Message = fmt.Sprintf("cluster %s is scheduled for deletion at %s", plugin.Spec.ClusterName, schedule)
-				clusterAccessReadyCondition.Reason = greenhousev1alpha1.ClusterDeletionScheduledReason
-				return clusterAccessReadyCondition, nil
-			}
-		}
+	cluster := new(greenhousev1alpha1.Cluster)
+	err = k8sClient.Get(ctx, types.NamespacedName{Namespace: plugin.Namespace, Name: plugin.Spec.ClusterName}, cluster)
+	if err != nil {
+		clusterAccessReadyCondition.Status = metav1.ConditionFalse
+		clusterAccessReadyCondition.Message = fmt.Sprintf("Failed to get cluster %s: %s", plugin.Spec.ClusterName, err.Error())
+		return clusterAccessReadyCondition, nil
 	}
 
 	readyConditionInCluster := cluster.Status.StatusConditions.GetConditionByType(greenhousev1alpha1.ReadyCondition)
@@ -300,4 +287,35 @@ func computeReadyCondition(
 	readyCondition.Status = metav1.ConditionTrue
 	readyCondition.Message = "ready"
 	return readyCondition
+}
+
+func shouldReconcileOrRequeue(ctx context.Context, c client.Client, plugin *greenhousev1alpha1.Plugin) (*reconcileResult, error) {
+	logger := ctrl.LoggerFrom(ctx)
+	if plugin.Spec.ClusterName == "" {
+		logger.Info("plugin does not have a clusterName set, will skip requeue")
+		return nil, nil
+	}
+	cluster := &greenhousev1alpha1.Cluster{}
+	err := c.Get(ctx, types.NamespacedName{Namespace: plugin.Namespace, Name: plugin.Spec.ClusterName}, cluster)
+	if err != nil {
+		return nil, err
+	}
+	scheduleExists, schedule, err := clientutil.ExtractDeletionSchedule(cluster.GetAnnotations())
+	if err != nil {
+		return nil, err
+	}
+	if scheduleExists {
+		msg := fmt.Sprintf("cluster %s is scheduled for deletion at %s", plugin.Spec.ClusterName, schedule)
+		requeueAfter := time.Until(schedule)
+		return &reconcileResult{
+			requeueAfter: requeueAfter,
+			condition: greenhousev1alpha1.Condition{
+				Type:    greenhousev1alpha1.ClusterDeletionScheduled,
+				Status:  metav1.ConditionTrue,
+				Message: msg,
+			},
+		}, nil
+	}
+
+	return nil, nil
 }

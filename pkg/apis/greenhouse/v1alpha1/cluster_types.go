@@ -30,9 +30,6 @@ const (
 	// KubeConfigValid reflects the validity of the kubeconfig of a cluster.
 	KubeConfigValid ConditionType = "KubeConfigValid"
 
-	// ClusterDeletionScheduledReason reflects the reason if a cluster is scheduled for deletion
-	ClusterDeletionScheduledReason ConditionReason = "ClusterDeletionScheduled"
-
 	// ClusterDeletionScheduled reflects the condition type if a cluster is scheduled for deletion
 	ClusterDeletionScheduled ConditionType = "ClusterDeletionScheduled"
 )

@@ -102,31 +102,6 @@ func ExtractDeletionSchedule(annotations map[string]string) (bool, time.Time, er
 	return scheduleExists, time.Time{}, nil
 }
 
-// ShouldReconcileOrRequeue - checks if the calling controller should continue with reconciliation
-// or requeue with the time difference between the current time and the deletion schedule
-func ShouldReconcileOrRequeue(cluster *greenhousev1alpha1.Cluster, currentTime time.Time) (bool, time.Duration, error) {
-	if cluster.DeletionTimestamp != nil {
-		return false, 0, nil
-	}
-	annotations := cluster.GetAnnotations()
-	isScheduled, scheduleTime, err := ExtractDeletionSchedule(annotations)
-	if err != nil {
-		return false, 0, err
-	}
-	if !isScheduled {
-		return false, 0, nil
-	}
-	formattedCurrentTime, err := ParseDateTime(currentTime)
-	if err != nil {
-		return false, 0, err
-	}
-	timeDiff := scheduleTime.Sub(formattedCurrentTime)
-	if timeDiff <= 0 {
-		return true, 0, nil
-	}
-	return true, timeDiff, nil
-}
-
 // ShouldProceedDeletion - checks if the deletion should be allowed if the schedule has elapsed
 func ShouldProceedDeletion(now, schedule time.Time) (bool, error) {
 	// time.Before() compares two time objects

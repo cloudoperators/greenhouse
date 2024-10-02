@@ -137,6 +137,16 @@ func (r *HelmReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.
 		return ctrl.Result{}, err
 	}
 
+	// Check if we should continue with reconciliation or requeue if cluster is scheduled for deletion
+	result, err := shouldReconcileOrRequeue(ctx, r.Client, plugin)
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+	if result != nil {
+		pluginStatus.StatusConditions.SetConditions(result.condition)
+		return ctrl.Result{RequeueAfter: result.requeueAfter}, nil
+	}
+
 	helmReconcileFailedCondition, pluginDefinition := r.getPluginDefinition(ctx, plugin)
 	pluginStatus.StatusConditions.SetConditions(helmReconcileFailedCondition)
 	if pluginDefinition == nil {
