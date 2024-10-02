@@ -5,7 +5,6 @@ package cluster_test
 
 import (
 	"fmt"
-	clusterpkg "github.com/cloudoperators/greenhouse/pkg/controllers/cluster"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -17,6 +16,7 @@ import (
 
 	greenhouseapis "github.com/cloudoperators/greenhouse/pkg/apis"
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/pkg/apis/greenhouse/v1alpha1"
+	clusterpkg "github.com/cloudoperators/greenhouse/pkg/controllers/cluster"
 	"github.com/cloudoperators/greenhouse/pkg/test"
 )
 
