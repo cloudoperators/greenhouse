@@ -310,7 +310,7 @@ func shouldReconcileOrRequeue(ctx context.Context, c client.Client, plugin *gree
 		return &reconcileResult{
 			requeueAfter: requeueAfter,
 			condition: greenhousev1alpha1.Condition{
-				Type:    greenhousev1alpha1.ClusterDeletionScheduled,
+				Type:    greenhouseapis.ClusterDeletionScheduled,
 				Status:  metav1.ConditionTrue,
 				Message: msg,
 			},

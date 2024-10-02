@@ -267,4 +267,4 @@ WEBHOOK_DEV ?= false
 
 .PHONY: setup-webhook
 setup-webhook: cli
-	$(CLI) dev setup webhook --name $(ADMIN_CLUSTER) --namespace $(ADMIN_NAMESPACE) --release $(ADMIN_RELEASE) --chart-path $(ADMIN_CHART_PATH) --dockerfile ./ --dev-mode $(WEBHOOK_DEV)
+	$(CLI) dev setup webhook --name $(ADMIN_CLUSTER) --namespace $(ADMIN_NAMESPACE) --release $(ADMIN_RELEASE) --chart-path $(ADMIN_CHART_PATH) --dockerfile ./ --dev-mode=$(WEBHOOK_DEV)

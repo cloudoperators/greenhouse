@@ -3,7 +3,10 @@
 
 package apis
 
-import corev1 "k8s.io/api/core/v1"
+import (
+	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/pkg/apis/greenhouse/v1alpha1"
+	corev1 "k8s.io/api/core/v1"
+)
 
 const (
 	// GroupName for greenhouse API resources.
@@ -86,11 +89,14 @@ const (
 	RolebindingTeamRefField = ".spec.teamRef"
 )
 
-// cluster deletion annotations
+// cluster deletion annotations and condition
 const (
 	// MarkClusterDeletionAnnotation is used to mark a cluster for deletion.
 	MarkClusterDeletionAnnotation = "greenhouse.sap/delete-cluster"
 	// ScheduleClusterDeletionAnnotation is used to schedule a cluster for deletion.
 	// Timestamp is set by mutating webhook if cluster is marked for deletion.
 	ScheduleClusterDeletionAnnotation = "greenhouse.sap/deletion-schedule"
+
+	// ClusterDeletionScheduled reflects the condition type if a cluster is scheduled for deletion
+	ClusterDeletionScheduled greenhousev1alpha1.ConditionType = "ClusterDeletionScheduled"
 )

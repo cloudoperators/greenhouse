@@ -5,7 +5,6 @@ package cluster
 
 import (
 	"context"
-	"strconv"
 	"time"
 
 	"github.com/pkg/errors"
@@ -192,9 +191,6 @@ func deletePlugins(ctx context.Context, c client.Client, cluster *greenhousev1al
 		return
 	}
 	for _, plugin := range pluginList.Items {
-		plugin.SetAnnotations(map[string]string{
-			"greenhouse.sap/deletedAt": strconv.FormatInt(time.Now().Unix(), 10),
-		})
 		if err = c.Delete(ctx, &plugin); client.IgnoreNotFound(err) != nil {
 			return
 		}
