@@ -11,8 +11,6 @@ import (
 
 	ctrl "sigs.k8s.io/controller-runtime"
 
-	clusterpkg "github.com/cloudoperators/greenhouse/pkg/controllers/cluster"
-
 	"github.com/pkg/errors"
 	appsv1 "k8s.io/api/apps/v1"
 	batchv1 "k8s.io/api/batch/v1"
@@ -313,7 +311,7 @@ func shouldReconcileOrRequeue(ctx context.Context, c client.Client, plugin *gree
 		return &reconcileResult{
 			requeueAfter: requeueAfter,
 			condition: greenhousev1alpha1.Condition{
-				Type:    clusterpkg.ClusterDeletionScheduled,
+				Type:    greenhousev1alpha1.ClusterDeletionScheduled,
 				Status:  metav1.ConditionTrue,
 				Message: msg,
 			},

@@ -100,13 +100,13 @@ func (r *ClusterStatusReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 }
 
 func (r *ClusterStatusReconciler) checkDeletionSchedule(logger logr.Logger, cluster *greenhousev1alpha1.Cluster) greenhousev1alpha1.Condition {
-	deletionCondition := greenhousev1alpha1.UnknownCondition(ClusterDeletionScheduled, "", "")
+	deletionCondition := greenhousev1alpha1.UnknownCondition(greenhousev1alpha1.ClusterDeletionScheduled, "", "")
 	scheduleExists, schedule, err := clientutil.ExtractDeletionSchedule(cluster.GetAnnotations())
 	if err != nil {
 		logger.Error(err, "failed to extract deletion schedule - ignoring deletion schedule")
 	}
 	if scheduleExists {
-		deletionCondition = greenhousev1alpha1.TrueCondition(ClusterDeletionScheduled, "", "deletion scheduled at "+schedule.Format(time.DateTime))
+		deletionCondition = greenhousev1alpha1.TrueCondition(greenhousev1alpha1.ClusterDeletionScheduled, "", "deletion scheduled at "+schedule.Format(time.DateTime))
 	}
 	return deletionCondition
 }
