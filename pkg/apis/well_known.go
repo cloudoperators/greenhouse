@@ -11,8 +11,6 @@ const (
 	// GroupName for greenhouse API resources.
 	GroupName = "greenhouse.sap"
 
-	CommonCleanupFinalizer = "greenhouse.sap/cleanup"
-
 	// FinalizerCleanupHelmRelease is used to invoke the Helm release cleanup logic.
 	FinalizerCleanupHelmRelease = "greenhouse.sap/helm"
 

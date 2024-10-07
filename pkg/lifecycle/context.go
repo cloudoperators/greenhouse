@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2024 SAP SE or an SAP affiliate company and Greenhouse contributors
 // SPDX-License-Identifier: Apache-2.0
 
-package reconcile
+package lifecycle
 
 import (
 	"context"
@@ -51,7 +51,8 @@ func createContextFromRuntimeObject(ctx context.Context, object RuntimeObject, r
 
 // getEventRecorderFromContext - returns the event recorder from the context
 // useful to fire condition changes as events
-// nolint:unused
+//
+//nolint:unused
 func getEventRecorderFromContext(ctx context.Context) record.EventRecorder {
 	reconcileRun, err := getRunFromContext(ctx)
 	if err != nil {
