@@ -17,6 +17,9 @@ const (
 	// ReadyCondition reflects the overall readiness status of a resource.
 	ReadyCondition ConditionType = "Ready"
 
+	// DeleteCondition reflects that the resource has finished it's cleanup process.
+	DeleteCondition ConditionType = "Deleted"
+
 	// ClusterListEmpty is set when the resources ClusterSelector results in an empty ClusterList.
 	ClusterListEmpty ConditionType = "ClusterListEmpty"
 
