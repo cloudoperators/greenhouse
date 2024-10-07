@@ -5,6 +5,7 @@ package lifecycle
 
 import (
 	"context"
+
 	"golang.org/x/exp/slices"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -73,21 +74,18 @@ func convertResultToCondition(runtimeObject RuntimeObject, reconcileResult Recon
 			break
 		}
 		condition = greenhousev1alpha1.TrueCondition(greenhousev1alpha1.DeleteCondition, DeletedReason, "resource is successfully deleted")
-		break
 	case Failed:
 		if isCreate {
 			condition = greenhousev1alpha1.FalseCondition(greenhousev1alpha1.ReadyCondition, FailingCreationReason, "resource creation failed")
 			break
 		}
 		condition = greenhousev1alpha1.FalseCondition(greenhousev1alpha1.DeleteCondition, FailingDeletionReason, "resource deletion failed")
-		break
 	default:
 		if isCreate {
 			condition = greenhousev1alpha1.FalseCondition(greenhousev1alpha1.ReadyCondition, PendingCreationReason, "resource creation is pending")
 			break
 		}
 		condition = greenhousev1alpha1.FalseCondition(greenhousev1alpha1.DeleteCondition, PendingDeletionReason, "resource deletion is pending")
-		break
 	}
 	runtimeObject.SetCondition(condition)
 }
