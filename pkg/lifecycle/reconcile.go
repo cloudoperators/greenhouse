@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2024 SAP SE or an SAP affiliate company and Greenhouse contributors
 // SPDX-License-Identifier: Apache-2.0
 
-package reconcile
+package lifecycle
 
 import (
 	"context"
@@ -21,15 +21,35 @@ import (
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/pkg/apis/greenhouse/v1alpha1"
 )
 
+type ReconcileResult string
+
+const (
+	CreatedReason          greenhousev1alpha1.ConditionReason = "Created"
+	PendingCreationReason  greenhousev1alpha1.ConditionReason = "PendingCreation"
+	FailingCreationReason  greenhousev1alpha1.ConditionReason = "FailingCreation"
+	PendingDeletionReason  greenhousev1alpha1.ConditionReason = "PendingDeletion"
+	FailingDeletionReason  greenhousev1alpha1.ConditionReason = "FailingDeletion"
+	DeletedReason          greenhousev1alpha1.ConditionReason = "Deleted"
+	CommonCleanupFinalizer                                    = "greenhouse.sap/cleanup"
+
+	// Success should be returned in case the operator reached its target state
+	Success ReconcileResult = "Success"
+	// Failed should be returned in case the operator wasn't able to reach its target state and without external changes it's unlikely that this will succeed in the next try
+	Failed ReconcileResult = "Failed"
+	// Pending should be returned in case the operator is still trying to reach the target state (Requeue, waiting for remote resource to be cleaned up, etc.)
+	Pending ReconcileResult = "Pending"
+)
+
 type RuntimeObject interface {
 	runtime.Object
 	v1.Object
 	GetConditions() greenhousev1alpha1.StatusConditions
+	SetCondition(greenhousev1alpha1.Condition)
 }
 
 type Reconciler interface {
-	EnsureCreated(context.Context, RuntimeObject) (ctrl.Result, error)
-	EnsureDeleted(context.Context, RuntimeObject) (ctrl.Result, error)
+	EnsureCreated(context.Context, RuntimeObject) (ctrl.Result, ReconcileResult, error)
+	EnsureDeleted(context.Context, RuntimeObject) (ctrl.Result, ReconcileResult, error)
 	GetEventRecorder() record.EventRecorder
 }
 
@@ -85,22 +105,14 @@ func Reconcile(ctx context.Context, kubeClient client.Client, namespacedName typ
 }
 
 func ensureCreated(ctx context.Context, reconciler Reconciler, runtimeObject RuntimeObject) (ctrl.Result, error) {
-	result, err := reconciler.EnsureCreated(ctx, runtimeObject)
-	if err != nil {
-		createCondition := greenhousev1alpha1.FalseCondition(greenhousev1alpha1.ReadyCondition, "FailingCreation", err.Error())
-		setCondition(createCondition, runtimeObject)
-	}
+	result, reconcileResult, err := reconciler.EnsureCreated(ctx, runtimeObject)
+	convertResultToCondition(runtimeObject, reconcileResult, true)
 	return result, err
 }
 
 func ensureDeleted(ctx context.Context, reconciler Reconciler, runtimeObject RuntimeObject) (ctrl.Result, error) {
-	deleteCondition := greenhousev1alpha1.FalseCondition(greenhousev1alpha1.DeleteCondition, "PendingDeletion", "Resource is being deleted")
-	setCondition(deleteCondition, runtimeObject)
-	result, err := reconciler.EnsureDeleted(ctx, runtimeObject)
-	if err == nil && result.IsZero() {
-		deleteCondition = greenhousev1alpha1.TrueCondition(greenhousev1alpha1.DeleteCondition, "Deleted", "Resource is deleted")
-		setCondition(deleteCondition, runtimeObject)
-	}
+	result, reconcileResult, err := reconciler.EnsureDeleted(ctx, runtimeObject)
+	convertResultToCondition(runtimeObject, reconcileResult, false)
 	return result, err
 }
 

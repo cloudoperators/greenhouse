@@ -1,28 +1,26 @@
 // SPDX-FileCopyrightText: 2024 SAP SE or an SAP affiliate company and Greenhouse contributors
 // SPDX-License-Identifier: Apache-2.0
 
-package reconcile
+package lifecycle
 
 import (
 	"context"
-
 	"golang.org/x/exp/slices"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
-	greenhouseapis "github.com/cloudoperators/greenhouse/pkg/apis"
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/pkg/apis/greenhouse/v1alpha1"
 )
 
 // hasCleanupFinalizer - returns true in case the cleanup finalizer exists in runtimeObject
 func hasCleanupFinalizer(runtimeObject RuntimeObject) bool {
-	return slices.Contains(runtimeObject.GetFinalizers(), greenhouseapis.CommonCleanupFinalizer)
+	return slices.Contains(runtimeObject.GetFinalizers(), CommonCleanupFinalizer)
 }
 
 // addFinalizer - Adds greenhouse cleanup finalizer to resource
 func addFinalizer(ctx context.Context, kubeClient client.Client, runtimeObject RuntimeObject) (ctrl.Result, error) {
-	if controllerutil.AddFinalizer(runtimeObject, greenhouseapis.CommonCleanupFinalizer) {
+	if controllerutil.AddFinalizer(runtimeObject, CommonCleanupFinalizer) {
 		return ctrl.Result{}, kubeClient.Update(ctx, runtimeObject)
 	}
 	return ctrl.Result{}, nil
@@ -30,7 +28,7 @@ func addFinalizer(ctx context.Context, kubeClient client.Client, runtimeObject R
 
 // removeFinalizer - Removes greenhouse cleanup finalizer from resource
 func removeFinalizer(ctx context.Context, kubeClient client.Client, runtimeObject RuntimeObject) (ctrl.Result, error) {
-	if controllerutil.RemoveFinalizer(runtimeObject, greenhouseapis.CommonCleanupFinalizer) {
+	if controllerutil.RemoveFinalizer(runtimeObject, CommonCleanupFinalizer) {
 		return ctrl.Result{}, kubeClient.Update(ctx, runtimeObject)
 	}
 	return ctrl.Result{}, nil
@@ -48,12 +46,8 @@ func isResourceDeleted(runtimeObject RuntimeObject) bool {
 	return deleteCondition.IsTrue()
 }
 
-func setCondition(condition greenhousev1alpha1.Condition, runtimeObject RuntimeObject) {
-	status := runtimeObject.GetConditions()
-	status.SetConditions(condition)
-}
-
 // patchStatus - patches the status of the resource with the new status and returns the reconcile error
+// TODO: implement event recorder to fire ready condition change events
 func patchStatus(ctx context.Context, newObject RuntimeObject, kubeClient client.Client, reconcileError error) error {
 	oldObject, err := getOriginalResourceFromContext(ctx)
 	if err != nil {
@@ -64,4 +58,36 @@ func patchStatus(ctx context.Context, newObject RuntimeObject, kubeClient client
 		return err
 	}
 	return reconcileError
+}
+
+// convertResultToCondition - converts the reconcile result to a condition and sets it in the runtimeObject
+// TODO: propagate error messages to the condition
+// TODO: clear ready condition on delete
+func convertResultToCondition(runtimeObject RuntimeObject, reconcileResult ReconcileResult, isCreate bool) {
+	var condition greenhousev1alpha1.Condition
+
+	switch reconcileResult {
+	case Success:
+		if isCreate {
+			condition = greenhousev1alpha1.TrueCondition(greenhousev1alpha1.ReadyCondition, CreatedReason, "resource is successfully created")
+			break
+		}
+		condition = greenhousev1alpha1.TrueCondition(greenhousev1alpha1.DeleteCondition, DeletedReason, "resource is successfully deleted")
+		break
+	case Failed:
+		if isCreate {
+			condition = greenhousev1alpha1.FalseCondition(greenhousev1alpha1.ReadyCondition, FailingCreationReason, "resource creation failed")
+			break
+		}
+		condition = greenhousev1alpha1.FalseCondition(greenhousev1alpha1.DeleteCondition, FailingDeletionReason, "resource deletion failed")
+		break
+	default:
+		if isCreate {
+			condition = greenhousev1alpha1.FalseCondition(greenhousev1alpha1.ReadyCondition, PendingCreationReason, "resource creation is pending")
+			break
+		}
+		condition = greenhousev1alpha1.FalseCondition(greenhousev1alpha1.DeleteCondition, PendingDeletionReason, "resource deletion is pending")
+		break
+	}
+	runtimeObject.SetCondition(condition)
 }
