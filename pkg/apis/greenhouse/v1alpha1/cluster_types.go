@@ -101,6 +101,14 @@ type Cluster struct {
 	Status ClusterStatus `json:"status,omitempty"`
 }
 
+func (c *Cluster) GetConditions() StatusConditions {
+	return c.Status.StatusConditions
+}
+
+func (c *Cluster) SetCondition(condition Condition) {
+	c.Status.StatusConditions.SetConditions(condition)
+}
+
 // GetSecretName returns the Kubernetes secret containing sensitive data for this cluster.
 // The secret is for internal usage only and its content must not be exposed to the user.
 func (c *Cluster) GetSecretName() string {

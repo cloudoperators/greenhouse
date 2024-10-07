@@ -54,8 +54,8 @@ var knownControllers = map[string]func(controllerName string, mgr ctrl.Manager) 
 	"pluginPreset": (&plugincontrollers.PluginPresetReconciler{}).SetupWithManager,
 
 	// Cluster controllers
-	"bootStrap":           (&clustercontrollers.BootstrapReconciler{}).SetupWithManager,
-	"clusterDirectAccess": startClusterDirectAccessReconciler,
+	"bootStrap": (&clustercontrollers.BootstrapReconciler{}).SetupWithManager,
+	"cluster":   startRemoteClusterReconciler,
 	// "clusterPropagation":     (&clustercontrollers.ClusterPropagationReconciler{}).SetupWithManager,
 	// "clusterHeadscaleAccess": startClusterHeadscaleAccessReconciler,
 	"clusterStatus": (&clustercontrollers.ClusterStatusReconciler{}).SetupWithManager,
@@ -71,8 +71,8 @@ func startOrganizationDexReconciler(name string, mgr ctrl.Manager) error {
 	}).SetupWithManager(name, mgr)
 }
 
-func startClusterDirectAccessReconciler(name string, mgr ctrl.Manager) error {
-	return (&clustercontrollers.DirectAccessReconciler{
+func startRemoteClusterReconciler(name string, mgr ctrl.Manager) error {
+	return (&clustercontrollers.RemoteClusterReconciler{
 		RemoteClusterBearerTokenValidity:   defaultRemoteClusterBearerTokenValidity,
 		RenewRemoteClusterBearerTokenAfter: defaultRenewRemoteClusterBearerTokenAfter,
 	}).SetupWithManager(name, mgr)
