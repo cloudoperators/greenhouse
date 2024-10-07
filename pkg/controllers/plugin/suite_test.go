@@ -8,6 +8,8 @@ import (
 	"errors"
 	"testing"
 
+	greenhousecluster "github.com/cloudoperators/greenhouse/pkg/controllers/cluster"
+
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gstruct"
@@ -38,6 +40,7 @@ func TestHelmController(t *testing.T) {
 var _ = BeforeSuite(func() {
 	test.RegisterController("pluginHelm", (&HelmReconciler{KubeRuntimeOpts: clientutil.RuntimeOptions{QPS: 5, Burst: 10}}).SetupWithManager)
 	test.RegisterController("pluginPreset", (&PluginPresetReconciler{}).SetupWithManager)
+	test.RegisterController("clusterDirectAccess", (&greenhousecluster.DirectAccessReconciler{}).SetupWithManager)
 	test.RegisterWebhook("pluginDefinitionWebhook", admission.SetupPluginDefinitionWebhookWithManager)
 	test.RegisterWebhook("pluginWebhook", admission.SetupPluginWebhookWithManager)
 	test.RegisterWebhook("clusterWebhook", admission.SetupClusterWebhookWithManager)

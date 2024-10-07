@@ -67,9 +67,27 @@ func (r *DirectAccessReconciler) Reconcile(ctx context.Context, req ctrl.Request
 		return ctrl.Result{}, nil
 	}
 
+	isScheduled, schedule, err := clientutil.ExtractDeletionSchedule(cluster.GetAnnotations())
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+	if isScheduled && cluster.DeletionTimestamp == nil {
+		if ok, err := clientutil.ShouldProceedDeletion(time.Now(), schedule); ok && err == nil {
+			return ctrl.Result{}, r.Client.Delete(ctx, cluster)
+		}
+	}
+
 	// Cleanup logic
 	if cluster.DeletionTimestamp != nil && controllerutil.ContainsFinalizer(cluster, greenhouseapis.FinalizerCleanupCluster) {
-		// TODO: Delete the pluginDefinitions first then the rest of the resources.
+		// delete all plugins that are bound to this cluster
+		deletionCount, err := deletePlugins(ctx, r.Client, cluster)
+		if err != nil {
+			return ctrl.Result{}, err
+		}
+		if deletionCount > 0 {
+			return ctrl.Result{RequeueAfter: 10 * time.Second}, nil
+		}
+
 		var kubeConfigSecret = new(corev1.Secret)
 		if err := r.Client.Get(ctx, types.NamespacedName{Namespace: cluster.GetNamespace(), Name: cluster.GetSecretName()}, kubeConfigSecret); err != nil {
 			return ctrl.Result{}, err
@@ -159,4 +177,24 @@ func generateNewClientKubeConfig(_ context.Context, restConfigGetter *clientutil
 		return nil, errors.Wrapf(err, "failed to generate kubeconfig for cluster %s", cluster.GetName())
 	}
 	return kubeconfigByte, nil
+}
+
+func deletePlugins(ctx context.Context, c client.Client, cluster *greenhousev1alpha1.Cluster) (count int, err error) {
+	pluginList := &greenhousev1alpha1.PluginList{}
+	err = c.List(
+		ctx,
+		pluginList,
+		client.InNamespace(cluster.GetNamespace()),
+		client.MatchingLabels{greenhouseapis.LabelKeyCluster: cluster.GetName()},
+	)
+	if err != nil {
+		return
+	}
+	for _, plugin := range pluginList.Items {
+		if err = c.Delete(ctx, &plugin); client.IgnoreNotFound(err) != nil {
+			return
+		}
+		count++
+	}
+	return
 }

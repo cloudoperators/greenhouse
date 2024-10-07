@@ -8,6 +8,10 @@ import (
 	"encoding/json"
 	"errors"
 	"os"
+	"time"
+
+	greenhouseapis "github.com/cloudoperators/greenhouse/pkg/apis"
+	"github.com/cloudoperators/greenhouse/pkg/clientutil"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -23,13 +27,25 @@ import (
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/pkg/apis/greenhouse/v1alpha1"
 )
 
+func UpdateClusterWithDeletionAnnotation(ctx context.Context, c client.Client, cluster *greenhousev1alpha1.Cluster) {
+	schedule, err := clientutil.ParseDateTime(time.Now().Add(-1 * time.Minute))
+	Expect(err).ToNot(HaveOccurred(), "there should be no error parsing the time")
+	cluster.SetAnnotations(map[string]string{
+		greenhouseapis.MarkClusterDeletionAnnotation:     "true",
+		greenhouseapis.ScheduleClusterDeletionAnnotation: schedule.Format(time.DateTime),
+	})
+	Expect(c.Update(ctx, cluster)).To(Succeed(), "there must be no error updating the object", "key", client.ObjectKeyFromObject(cluster))
+}
+
 // MustDeleteCluster is used in the test context only and removes a cluster by namespaced name.
 func MustDeleteCluster(ctx context.Context, c client.Client, id client.ObjectKey) {
 	GinkgoHelper()
 	var cluster = new(greenhousev1alpha1.Cluster)
 	Expect(c.Get(ctx, id, cluster)).
 		To(Succeed(), "there must be no error getting the cluster")
-
+	UpdateClusterWithDeletionAnnotation(ctx, c, cluster)
+	Expect(c.Get(ctx, id, cluster)).
+		To(Succeed(), "there must be no error getting the cluster")
 	Expect(c.Delete(ctx, cluster)).
 		To(Succeed(), "there must be no error deleting object", "key", client.ObjectKeyFromObject(cluster))
 

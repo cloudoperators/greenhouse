@@ -117,15 +117,6 @@ func (r *PluginPresetReconciler) Reconcile(ctx context.Context, req ctrl.Request
 		pluginPresetStatus.SetConditions(greenhousev1alpha1.FalseCondition(greenhousev1alpha1.ClusterListEmpty, "", ""))
 	}
 
-	plugins, err := r.listPlugins(ctx, pluginPreset)
-	if err != nil {
-		return ctrl.Result{}, err
-	}
-
-	if err := r.cleanupPlugins(ctx, clusters, plugins); err != nil {
-		return ctrl.Result{}, err
-	}
-
 	skippedCondition, failedCondition, err := r.reconcilePluginPreset(ctx, pluginPreset, clusters, pluginPresetStatus)
 	pluginPresetStatus.SetConditions(skippedCondition, failedCondition)
 	if err != nil {
@@ -133,21 +124,6 @@ func (r *PluginPresetReconciler) Reconcile(ctx context.Context, req ctrl.Request
 	}
 
 	return ctrl.Result{}, nil
-}
-
-// cleanupPlugins deletes all plugins where the clusterName is not included in the ClusterList.
-func (r *PluginPresetReconciler) cleanupPlugins(ctx context.Context, clusters *greenhousev1alpha1.ClusterList, plugins *greenhousev1alpha1.PluginList) error {
-	var allErrs = make([]error, 0)
-	for _, plugin := range plugins.Items {
-		if !slices.ContainsFunc(clusters.Items, func(cluster greenhousev1alpha1.Cluster) bool {
-			return cluster.GetName() == plugin.Spec.ClusterName
-		}) {
-			if err := r.Client.Delete(ctx, &plugin); err != nil && !apierrors.IsNotFound(err) {
-				allErrs = append(allErrs, err)
-			}
-		}
-	}
-	return errors.Join(allErrs...)
 }
 
 // reconcilePluginPreset reconciles the PluginPreset by creating or updating the Plugins for the given clusters.
@@ -373,7 +349,7 @@ func (r *PluginPresetReconciler) listClusters(ctx context.Context, pb *greenhous
 	if err := r.List(ctx, clusters, client.InNamespace(pb.GetNamespace()), client.MatchingLabelsSelector{Selector: clusterSelector}); err != nil {
 		return nil, err
 	}
-	return clusters, nil
+	return clientutil.FilterClustersBeingDeleted(clusters), nil
 }
 
 // enqueueAllPluginPresetsInNamespace returns a list of reconcile requests for all PluginPresets in the same namespace as obj.

@@ -3,7 +3,9 @@
 
 package apis
 
-import corev1 "k8s.io/api/core/v1"
+import (
+	corev1 "k8s.io/api/core/v1"
+)
 
 const (
 	// GroupName for greenhouse API resources.
@@ -84,4 +86,13 @@ const (
 
 	// RolebindingTeamRefField is the field in the RoleBinding spec that references the Team.
 	RolebindingTeamRefField = ".spec.teamRef"
+)
+
+// cluster deletion annotations and condition
+const (
+	// MarkClusterDeletionAnnotation is used to mark a cluster for deletion.
+	MarkClusterDeletionAnnotation = "greenhouse.sap/delete-cluster"
+	// ScheduleClusterDeletionAnnotation is used to schedule a cluster for deletion.
+	// Timestamp is set by mutating webhook if cluster is marked for deletion.
+	ScheduleClusterDeletionAnnotation = "greenhouse.sap/deletion-schedule"
 )

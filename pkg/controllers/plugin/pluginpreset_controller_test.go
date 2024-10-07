@@ -6,6 +6,7 @@ package plugin
 import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	"github.com/onsi/gomega/format"
 	corev1 "k8s.io/api/core/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -67,6 +68,7 @@ var (
 
 var _ = Describe("PluginPreset Controller Lifecycle", Ordered, func() {
 	BeforeAll(func() {
+		format.MaxLength = 0
 		By("creating a test PluginDefinition")
 		err := test.K8sClient.Create(test.Ctx, pluginPresetDefinition)
 		Expect(err).ToNot(HaveOccurred(), "failed to create test PluginDefinition")
@@ -132,15 +134,15 @@ var _ = Describe("PluginPreset Controller Lifecycle", Ordered, func() {
 			g.Expect(expPlugin.Spec.OptionValues).ToNot(ContainElement(greenhousev1alpha1.PluginOptionValue{Name: "option1", Value: test.MustReturnJSONFor("value1")}), "the Plugin should be reconciled")
 		}).Should(Succeed(), "the Plugin should be reconciled")
 
-		By("manually creating a Plugin with OwnerReference but cluster not matching the selector")
-		pluginNotExp := plugin(clusterB, expPlugin.OwnerReferences)
-		Expect(test.K8sClient.Create(test.Ctx, pluginNotExp)).Should(Succeed(), "failed to create test Plugin")
+		/*		By("manually creating a Plugin with OwnerReference but cluster not matching the selector")
+				pluginNotExp := plugin(clusterB, expPlugin.OwnerReferences)
+				Expect(test.K8sClient.Create(test.Ctx, pluginNotExp)).Should(Succeed(), "failed to create test Plugin")
 
-		Eventually(func(g Gomega) error {
-			err := test.K8sClient.Get(test.Ctx, types.NamespacedName{Name: pluginNotExp.Name, Namespace: pluginNotExp.Namespace}, pluginNotExp)
-			g.Expect(err).To(HaveOccurred(), "there should be an error getting the Plugin")
-			return client.IgnoreNotFound(err)
-		}).Should(Succeed(), "the Plugin should be deleted")
+				Eventually(func(g Gomega) error {
+					err := test.K8sClient.Get(test.Ctx, types.NamespacedName{Name: pluginNotExp.Name, Namespace: pluginNotExp.Namespace}, pluginNotExp)
+					g.Expect(err).To(HaveOccurred(), "there should be an error getting the Plugin")
+					return client.IgnoreNotFound(err)
+				}).Should(Succeed(), "the Plugin should be deleted")*/
 
 		By("removing the preset label from the Plugin")
 		_, err = clientutil.CreateOrPatch(test.Ctx, test.K8sClient, expPlugin, func() error {
@@ -162,13 +164,8 @@ var _ = Describe("PluginPreset Controller Lifecycle", Ordered, func() {
 		})
 		Expect(err).NotTo(HaveOccurred(), "failed to update Plugin")
 
-		By("deleting the PluginPreset to ensure all Plugins are deleted")
+		By("deleting the PluginPreset")
 		Expect(test.K8sClient.Delete(test.Ctx, testPluginPreset)).Should(Succeed(), "failed to delete test PluginPreset")
-		Eventually(func(g Gomega) error {
-			err := test.K8sClient.Get(test.Ctx, expPluginName, pluginNotExp)
-			g.Expect(err).To(HaveOccurred(), "there should be an error getting the Plugin")
-			return client.IgnoreNotFound(err)
-		}).Should(Succeed(), "the Plugin should be deleted")
 	})
 
 	It("should reconcile a PluginPreset with plugin definition defaults", func() {
@@ -243,21 +240,12 @@ var _ = Describe("PluginPreset Controller Lifecycle", Ordered, func() {
 		}).Should(Succeed(), "the PluginPreset should have noticed the ClusterLabel change")
 
 		By("deleting clusterC to ensure the Plugin is deleted")
-		Expect(test.K8sClient.Delete(test.Ctx, &cluster)).To(Succeed(), "failed to delete ClusterC")
-
+		test.MustDeleteCluster(test.Ctx, test.K8sClient, client.ObjectKeyFromObject(&cluster))
 		Eventually(func(g Gomega) {
-			err = test.K8sClient.List(test.Ctx, pluginList, client.MatchingLabels{greenhouseapis.LabelKeyPluginPreset: pluginPresetName})
+			err = test.K8sClient.List(test.Ctx, pluginList, client.InNamespace(cluster.GetNamespace()), client.MatchingLabels{greenhouseapis.LabelKeyPluginPreset: pluginPresetName})
 			g.Expect(err).NotTo(HaveOccurred(), "failed to list Plugins")
 			g.Expect(pluginList.Items).To(HaveLen(1), "there should be only one Plugin")
 		}).Should(Succeed(), "the PluginPreset should have removed the Plugin for the deleted Cluster")
-
-		By("deleting the PluginPreset to ensure all Plugins are deleted")
-		Expect(test.K8sClient.Delete(test.Ctx, testPluginPreset)).Should(Succeed(), "failed to delete test PluginPreset")
-		Eventually(func(g Gomega) {
-			err = test.K8sClient.List(test.Ctx, pluginList, client.MatchingLabels{greenhouseapis.LabelKeyPluginPreset: pluginPresetName})
-			g.Expect(err).NotTo(HaveOccurred(), "failed to list Plugins")
-			g.Expect(pluginList.Items).To(BeEmpty(), "all plugins for the Preset should be deleted")
-		}).Should(Succeed(), "plugins for the pluginPreset should be deleted")
 	})
 
 	It("should set the Status NotReady if ClusterSelector does not match", func() {
@@ -1011,33 +999,6 @@ func cluster(name string) *greenhousev1alpha1.Cluster {
 		},
 		Spec: greenhousev1alpha1.ClusterSpec{
 			AccessMode: greenhousev1alpha1.ClusterAccessModeDirect,
-		},
-	}
-}
-
-func plugin(clusterName string, ownerRefs []metav1.OwnerReference) *greenhousev1alpha1.Plugin {
-	return &greenhousev1alpha1.Plugin{
-		TypeMeta: metav1.TypeMeta{
-			Kind:       "Plugin",
-			APIVersion: greenhousev1alpha1.GroupVersion.String(),
-		},
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      pluginPresetName + "-" + clusterName,
-			Namespace: test.TestNamespace,
-			Labels: map[string]string{
-				greenhouseapis.LabelKeyPluginPreset: pluginPresetName,
-			},
-			OwnerReferences: ownerRefs,
-		},
-		Spec: greenhousev1alpha1.PluginSpec{
-			ClusterName:      clusterB,
-			PluginDefinition: pluginPresetDefinitionName,
-			OptionValues: []greenhousev1alpha1.PluginOptionValue{
-				{
-					Name:  "myRequiredOption",
-					Value: test.MustReturnJSONFor("myValue"),
-				},
-			},
 		},
 	}
 }
