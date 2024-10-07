@@ -277,8 +277,12 @@ var _ = Describe("HelmController reconciliation", Ordered, func() {
 		Expect(err).ShouldNot(HaveOccurred(), "there should be no error updating the cluster resource")
 
 		By("triggering setting a label on the plugin to trigger reconciliation")
-		testPlugin.Labels = map[string]string{"test": "label"}
-		Expect(test.K8sClient.Update(test.Ctx, testPlugin)).Should(Succeed(), "there should be no error updating the plugin")
+		err = retry.RetryOnConflict(retry.DefaultRetry, func() error {
+			err = test.K8sClient.Get(test.Ctx, types.NamespacedName{Name: testPlugin.Name, Namespace: testPlugin.Namespace}, testPlugin)
+			testPlugin.Labels = map[string]string{"test": "label"}
+			return test.K8sClient.Update(test.Ctx, testPlugin)
+		})
+		Expect(err).ShouldNot(HaveOccurred(), "there should be no error updating the plugin labels")
 
 		By("checking the ClusterAccessReadyCondition on the plugin")
 		Eventually(func(g Gomega) bool {
