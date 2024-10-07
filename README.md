@@ -28,7 +28,7 @@ User guides, links and references are available in the official [Greenhouse docu
 
 ### Architecture & Design
 
-The [Greenhouse design and architecture document](docs/architecture/product_design.md) describes the various use-cases and user stories.
+The [Greenhouse design and architecture document](https://cloudoperators.github.io/greenhouse/docs/architecture/product_design/) describes the various use-cases and user stories.
 
 ### API resources
 
