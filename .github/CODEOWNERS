@@ -11,6 +11,7 @@
 /ui/                    @cloudoperators/greenhouse-frontend @uwe-mayer
 
 /docs/                  @cloudoperators/greenhouse-core
+/types/                 @cloudoperators/greenhouse-core
 /dev-env/               @cloudoperators/greenhouse-core
 /website/               @cloudoperators/greenhouse-core
 .gitignore              @cloudoperators/greenhouse-core
