@@ -54,12 +54,12 @@ func setCondition(condition greenhousev1alpha1.Condition, runtimeObject RuntimeO
 }
 
 // patchStatus - patches the status of the resource with the new status and returns the reconcile error
-func patchStatus(ctx context.Context, new RuntimeObject, kubeClient client.Client, reconcileError error) error {
-	old, err := getOriginalResourceFromContext(ctx)
+func patchStatus(ctx context.Context, newObject RuntimeObject, kubeClient client.Client, reconcileError error) error {
+	oldObject, err := getOriginalResourceFromContext(ctx)
 	if err != nil {
 		return err
 	}
-	err = kubeClient.Status().Patch(ctx, new, client.MergeFrom(old))
+	err = kubeClient.Status().Patch(ctx, newObject, client.MergeFrom(oldObject))
 	if err != nil {
 		return err
 	}

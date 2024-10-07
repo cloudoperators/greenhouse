@@ -51,6 +51,7 @@ func createContextFromRuntimeObject(ctx context.Context, object RuntimeObject, r
 
 // getEventRecorderFromContext - returns the event recorder from the context
 // useful to fire condition changes as events
+// nolint:unused
 func getEventRecorderFromContext(ctx context.Context) record.EventRecorder {
 	reconcileRun, err := getRunFromContext(ctx)
 	if err != nil {
