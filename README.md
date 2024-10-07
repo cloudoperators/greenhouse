@@ -22,7 +22,11 @@ Greenhouse holds bi-weekly community calls in Microsoft Teams.
 
 The [Roadmap Kanban board](https://github.com/orgs/cloudoperators/projects/1) provides an overview of ongoing and planned efforts.
 
-## Architecture & Design
+## Documentation
+
+User guides, links and references are available in the official [Greenhouse documentation](https://cloudoperators.github.io/greenhouse/).
+
+### Architecture & Design
 
 The [Greenhouse design and architecture document](docs/architecture/product_design.md) describes the various use-cases and user stories.
 
