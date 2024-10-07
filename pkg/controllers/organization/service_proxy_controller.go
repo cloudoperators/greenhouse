@@ -143,7 +143,7 @@ func listOrganizationsAsReconcileRequests(ctx context.Context, c client.Client, 
 	}
 	res := make([]ctrl.Request, len(organizationList.Items))
 	for idx, organization := range organizationList.Items {
-		res[idx] = ctrl.Request{NamespacedName: client.ObjectKeyFromObject(organization.DeepCopy())}
+		res[idx] = ctrl.Request{NamespacedName: types.NamespacedName{Name: organization.Name, Namespace: organization.Namespace}}
 	}
 	return res
 }
