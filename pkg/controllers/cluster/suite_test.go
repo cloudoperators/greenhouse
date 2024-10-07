@@ -48,7 +48,7 @@ var _ = BeforeSuite(func() {
 
 	bootstrapReconciler = &clusterpkg.BootstrapReconciler{}
 	test.RegisterController("clusterBootstrap", (bootstrapReconciler).SetupWithManager)
-	test.RegisterController("clusterDirectAccess", (&clusterpkg.DirectAccessReconciler{
+	test.RegisterController("cluster", (&clusterpkg.RemoteClusterReconciler{
 		RemoteClusterBearerTokenValidity:   10 * time.Minute,
 		RenewRemoteClusterBearerTokenAfter: 9 * time.Minute,
 	}).SetupWithManager)

@@ -100,6 +100,7 @@ func startRemoteClusterReconciler(name string, mgr ctrl.Manager) error {
 	}).SetupWithManager(name, mgr)
 }
 
+//nolint:unused
 func startClusterHeadscaleAccessReconciler(name string, mgr ctrl.Manager) error {
 	if renewRemoteClusterBearerTokenAfter > remoteClusterBearerTokenValidity {
 		setupLog.Info("WARN: remoteClusterBearerTokenValidity is less than renewRemoteClusterBearerTokenAfter")
