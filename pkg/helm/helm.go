@@ -9,6 +9,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"path/filepath"
 	"slices"
 	"time"
 
@@ -328,13 +329,8 @@ func upgradeRelease(ctx context.Context, local client.Client, restClientGetter g
 	upgradeAction.DependencyUpdate = true
 	upgradeAction.MaxHistory = 5
 	upgradeAction.Description = pluginDefinition.Spec.Version
-	chartName := configureChartPathOptions(&upgradeAction.ChartPathOptions, pluginDefinition.Spec.HelmChart)
 
-	chartPath, err := upgradeAction.LocateChart(chartName, settings)
-	if err != nil {
-		return err
-	}
-	helmChart, err := ChartLoader(chartPath)
+	helmChart, err := loadHelmChart(&upgradeAction.ChartPathOptions, pluginDefinition.Spec.HelmChart, settings)
 	if err != nil {
 		return err
 	}
@@ -374,13 +370,8 @@ func installRelease(ctx context.Context, local client.Client, restClientGetter g
 	installAction.DryRun = isDryRun
 	installAction.ClientOnly = isDryRun
 	installAction.Description = pluginDefinition.Spec.Version
-	chartName := configureChartPathOptions(&installAction.ChartPathOptions, pluginDefinition.Spec.HelmChart)
 
-	chartPath, err := installAction.LocateChart(chartName, settings)
-	if err != nil {
-		return nil, err
-	}
-	helmChart, err := ChartLoader(chartPath)
+	helmChart, err := loadHelmChart(&installAction.ChartPathOptions, pluginDefinition.Spec.HelmChart, settings)
 	if err != nil {
 		return nil, err
 	}
@@ -404,6 +395,21 @@ func installRelease(ctx context.Context, local client.Client, restClientGetter g
 	}
 	helmChart.Metadata.KubeVersion = ""
 	return installAction.RunWithContext(ctx, helmChart, helmValues)
+}
+
+func loadHelmChart(chartPathOptions *action.ChartPathOptions, reference *greenhousev1alpha1.HelmChartReference, settings *cli.EnvSettings) (*chart.Chart, error) {
+	name := filepath.Base(reference.Name)
+	chartPath := settings.RepositoryCache + "/" + name + "-" + reference.Version + ".tgz"
+
+	if _, err := os.Stat(chartPath); errors.Is(err, os.ErrNotExist) {
+		chartName := configureChartPathOptions(chartPathOptions, reference)
+		chartPath, err = chartPathOptions.LocateChart(chartName, settings)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return ChartLoader(chartPath)
 }
 
 func newHelmAction(restClientGetter genericclioptions.RESTClientGetter, namespace string) (*action.Configuration, error) {

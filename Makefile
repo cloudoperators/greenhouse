@@ -71,7 +71,7 @@ generate-open-api-spec:
 
 .PHONY: generate-types
 generate-types: generate-open-api-spec## Generate typescript types from CRDs.
-	hack/typescript/create-types $(CURDIR)/docs/reference/api/openapi.yaml $(CURDIR)/hack/typescript/metadata.yaml $(CURDIR)/ui/types/ 
+	hack/typescript/create-types $(CURDIR)/docs/reference/api/openapi.yaml $(CURDIR)/hack/typescript/metadata.yaml $(CURDIR)/types/typescript/
 
 .PHONY: actiongenerate
 actiongenerate: action-controllergen
