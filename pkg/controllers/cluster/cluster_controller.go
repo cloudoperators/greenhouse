@@ -72,6 +72,9 @@ func (r *RemoteClusterReconciler) EnsureCreated(ctx context.Context, resource li
 		return ctrl.Result{}, lifecycle.Failed, nil
 	}
 
+	// Update metrics at the end of the reconcile function
+	defer updateMetrics(cluster)
+
 	isScheduled, schedule, err := clientutil.ExtractDeletionSchedule(cluster.GetAnnotations())
 	if err != nil {
 		return ctrl.Result{}, lifecycle.Failed, err
@@ -123,7 +126,6 @@ func (r *RemoteClusterReconciler) EnsureCreated(ctx context.Context, resource li
 		return ctrl.Result{}, lifecycle.Failed, err
 	}
 
-	updateMetrics(cluster)
 	return ctrl.Result{RequeueAfter: defaultRequeueInterval}, lifecycle.Success, nil
 }
 
