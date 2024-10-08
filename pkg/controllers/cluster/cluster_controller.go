@@ -62,7 +62,7 @@ func (r *RemoteClusterReconciler) GetEventRecorder() record.EventRecorder {
 }
 
 func (r *RemoteClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	return lifecycle.Reconcile(ctx, r.Client, req.NamespacedName, &greenhousev1alpha1.Cluster{}, r)
+	return lifecycle.Reconcile(ctx, r.Client, req.NamespacedName, &greenhousev1alpha1.Cluster{}, r, r.setConditions())
 }
 
 func (r *RemoteClusterReconciler) EnsureCreated(ctx context.Context, resource lifecycle.RuntimeObject) (ctrl.Result, lifecycle.ReconcileResult, error) {
@@ -71,9 +71,6 @@ func (r *RemoteClusterReconciler) EnsureCreated(ctx context.Context, resource li
 	if cluster.Spec.AccessMode != greenhousev1alpha1.ClusterAccessModeDirect {
 		return ctrl.Result{}, lifecycle.Failed, nil
 	}
-
-	// Update metrics at the end of the reconcile function
-	defer updateMetrics(cluster)
 
 	isScheduled, schedule, err := clientutil.ExtractDeletionSchedule(cluster.GetAnnotations())
 	if err != nil {
@@ -125,7 +122,7 @@ func (r *RemoteClusterReconciler) EnsureCreated(ctx context.Context, resource li
 	if err := reconcileRemoteAPIServerVersion(ctx, restClientGetter, r.Client, cluster); err != nil {
 		return ctrl.Result{}, lifecycle.Failed, err
 	}
-
+	updateMetrics(cluster)
 	return ctrl.Result{RequeueAfter: defaultRequeueInterval}, lifecycle.Success, nil
 }
 
@@ -158,6 +155,7 @@ func (r *RemoteClusterReconciler) EnsureDeleted(ctx context.Context, resource li
 	if err := deleteNamespaceInRemoteCluster(ctx, remoteClient, cluster); err != nil {
 		return ctrl.Result{}, lifecycle.Failed, err
 	}
+	updateMetrics(cluster)
 	return ctrl.Result{}, lifecycle.Success, nil
 }
 
