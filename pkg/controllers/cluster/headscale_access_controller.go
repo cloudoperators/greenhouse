@@ -123,6 +123,9 @@ func (r *HeadscaleAccessReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 		return ctrl.Result{}, nil
 	}
 
+	// Update metrics at the end of the reconcile function
+	defer updateMetrics(cluster)
+
 	// Cleanup logic
 	if cluster.DeletionTimestamp != nil && controllerutil.ContainsFinalizer(cluster, greenhouseapis.FinalizerCleanupCluster) {
 		// Delete resources (serviceAccount, clusterRoleBinding, namespace, etc.) in remote cluster before the secret.
@@ -211,7 +214,6 @@ func (r *HeadscaleAccessReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 		return ctrl.Result{}, err
 	}
 
-	updateMetrics(cluster)
 	return ctrl.Result{RequeueAfter: defaultRequeueInterval}, nil
 }
 
