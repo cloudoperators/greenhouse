@@ -94,7 +94,7 @@ var _ = Describe("PluginLifecycle", Ordered, func() {
 			err = test.K8sClient.Get(ctx, namespacedName, testPlugin)
 			Expect(err).NotTo(HaveOccurred())
 			testPlugin = &pluginList.Items[0]
-			setOptionValueForPlugin(testPlugin, "replicaCount", "2")
+			test.SetOptionValueForPlugin(testPlugin, "replicaCount", "2")
 			err = test.K8sClient.Update(ctx, testPlugin)
 			Expect(err).NotTo(HaveOccurred())
 			Eventually(func(g Gomega) bool {
@@ -194,7 +194,7 @@ var _ = Describe("PluginLifecycle", Ordered, func() {
 			Expect(podExists).To(BeTrue())
 
 			// Update plugin value
-			setOptionValueForPlugin(&plugin, "hook_enabled", "true")
+			test.SetOptionValueForPlugin(&plugin, "hook_enabled", "true")
 			err = test.K8sClient.Update(ctx, &plugin)
 			Expect(err).NotTo(HaveOccurred())
 
@@ -208,17 +208,3 @@ var _ = Describe("PluginLifecycle", Ordered, func() {
 		})
 	})
 })
-
-func setOptionValueForPlugin(plugin *greenhousev1alpha1.Plugin, key, value string) {
-	for i, keyValue := range plugin.Spec.OptionValues {
-		if keyValue.Name == key {
-			plugin.Spec.OptionValues[i].Value.Raw = []byte(value)
-			return
-		}
-	}
-
-	plugin.Spec.OptionValues = append(plugin.Spec.OptionValues, greenhousev1alpha1.PluginOptionValue{
-		Name:  key,
-		Value: &apiextensionsv1.JSON{Raw: []byte(value)},
-	})
-}

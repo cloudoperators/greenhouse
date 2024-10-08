@@ -241,6 +241,20 @@ func WithPluginOptionValue(name string, value *apiextensionsv1.JSON, valueFrom *
 	}
 }
 
+func SetOptionValueForPlugin(plugin *greenhousev1alpha1.Plugin, key, value string) {
+	for i, keyValue := range plugin.Spec.OptionValues {
+		if keyValue.Name == key {
+			plugin.Spec.OptionValues[i].Value.Raw = []byte(value)
+			return
+		}
+	}
+
+	plugin.Spec.OptionValues = append(plugin.Spec.OptionValues, greenhousev1alpha1.PluginOptionValue{
+		Name:  key,
+		Value: &apiextensionsv1.JSON{Raw: []byte(value)},
+	})
+}
+
 func (t *TestSetup) NewPlugin(ctx context.Context, name string, opts ...func(*greenhousev1alpha1.Plugin)) *greenhousev1alpha1.Plugin {
 	GinkgoHelper()
 	plugin := &greenhousev1alpha1.Plugin{
