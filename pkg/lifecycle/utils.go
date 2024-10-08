@@ -61,31 +61,39 @@ func patchStatus(ctx context.Context, newObject RuntimeObject, kubeClient client
 	return reconcileError
 }
 
-// convertResultToCondition - converts the reconcile result to a condition and sets it in the runtimeObject
-// TODO: propagate error messages to the condition
-// TODO: clear ready condition on delete
-func convertResultToCondition(runtimeObject RuntimeObject, reconcileResult ReconcileResult, isCreate bool) {
+// setupDeleteState - converts the reconcile result to a condition and sets it in the runtimeObject for deletion phase
+func setupDeleteState(runtimeObject RuntimeObject, reconcileResult ReconcileResult, err error) {
 	var condition greenhousev1alpha1.Condition
-
 	switch reconcileResult {
 	case Success:
-		if isCreate {
-			condition = greenhousev1alpha1.TrueCondition(greenhousev1alpha1.ReadyCondition, CreatedReason, "resource is successfully created")
-			break
-		}
 		condition = greenhousev1alpha1.TrueCondition(greenhousev1alpha1.DeleteCondition, DeletedReason, "resource is successfully deleted")
 	case Failed:
-		if isCreate {
-			condition = greenhousev1alpha1.FalseCondition(greenhousev1alpha1.ReadyCondition, FailingCreationReason, "resource creation failed")
-			break
+		msg := ""
+		if err != nil {
+			msg = err.Error()
 		}
-		condition = greenhousev1alpha1.FalseCondition(greenhousev1alpha1.DeleteCondition, FailingDeletionReason, "resource deletion failed")
+		condition = greenhousev1alpha1.FalseCondition(greenhousev1alpha1.DeleteCondition, FailingDeletionReason, "resource deletion failed"+msg)
 	default:
-		if isCreate {
-			condition = greenhousev1alpha1.FalseCondition(greenhousev1alpha1.ReadyCondition, PendingCreationReason, "resource creation is pending")
-			break
-		}
 		condition = greenhousev1alpha1.FalseCondition(greenhousev1alpha1.DeleteCondition, PendingDeletionReason, "resource deletion is pending")
+	}
+	runtimeObject.SetCondition(condition)
+}
+
+// setupCreateState - if statusFunc is not passed to reconciler then the default status conditions are set in runtimeObject
+func setupCreateState(runtimeObject RuntimeObject, reconcileResult ReconcileResult, err error) {
+	var condition greenhousev1alpha1.Condition
+	switch reconcileResult {
+	case Success:
+		condition = greenhousev1alpha1.TrueCondition(greenhousev1alpha1.ReadyCondition, CreatedReason, "resource is successfully created")
+	case Failed:
+		msg := ""
+		if err != nil {
+			msg = err.Error()
+		}
+		condition = greenhousev1alpha1.FalseCondition(greenhousev1alpha1.ReadyCondition, FailingCreationReason, "resource creation failed"+msg)
+		break
+	default:
+		condition = greenhousev1alpha1.UnknownCondition(greenhousev1alpha1.ReadyCondition, PendingCreationReason, "resource creation is pending")
 	}
 	runtimeObject.SetCondition(condition)
 }
