@@ -61,7 +61,7 @@ var _ = BeforeSuite(func() {
 		RenewRemoteClusterBearerTokenAfter:       9 * time.Minute,
 	}
 	test.RegisterController("clusterHeadscaleAccess", (headscaleReconciler).SetupWithManager)
-	test.RegisterController("clusterStatus", (&clusterpkg.ClusterStatusReconciler{}).SetupWithManager)
+	test.RegisterController("clusterStatus", (&clusterpkg.RemoteClusterReconciler{}).SetupWithManager)
 	test.RegisterWebhook("clusterValidation", admission.SetupClusterWebhookWithManager)
 	test.RegisterWebhook("secretsWebhook", admission.SetupSecretWebhookWithManager)
 
