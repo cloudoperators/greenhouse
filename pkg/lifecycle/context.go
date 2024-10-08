@@ -38,7 +38,7 @@ func (d dummyEventRecorder) AnnotatedEventf(object runtime.Object, annotations m
 	d.logger.Info(msgEventDiscarded, "annotations", annotations, "type", eventtype, "reason", reason, "messageFmt", messageFmt, "args", args)
 }
 
-// CreateContextFromRuntimeObject create a new context with a copy of the object attached.
+// createContextFromRuntimeObject create a new context with a copy of the object attached.
 func createContextFromRuntimeObject(ctx context.Context, object RuntimeObject, recorder record.EventRecorder) context.Context {
 	if recorder == nil {
 		recorder = dummyEventRecorder{ctrl.LoggerFrom(ctx)}

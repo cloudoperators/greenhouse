@@ -40,20 +40,31 @@ const (
 	Pending ReconcileResult = "Pending"
 )
 
+// Conditioner is a function that can be used to set the status conditions of the object at a later point in the reconciliation process
+// Provided by the caller of the Reconcile function
+type Conditioner func(context.Context, RuntimeObject)
+
+// RuntimeObject is an interface that generalizes the CR object that is being reconciled
 type RuntimeObject interface {
 	runtime.Object
 	v1.Object
+	// GetConditions returns the status conditions of the object (must be implemented in respective types)
 	GetConditions() greenhousev1alpha1.StatusConditions
+	// SetCondition sets the status conditions of the object (must be implemented in respective types)
 	SetCondition(greenhousev1alpha1.Condition)
 }
 
+// Reconciler is the interface that wraps the basic EnsureCreated and EnsureDeleted methods that a controller should implement
 type Reconciler interface {
 	EnsureCreated(context.Context, RuntimeObject) (ctrl.Result, ReconcileResult, error)
 	EnsureDeleted(context.Context, RuntimeObject) (ctrl.Result, ReconcileResult, error)
 	GetEventRecorder() record.EventRecorder
 }
 
-func Reconcile(ctx context.Context, kubeClient client.Client, namespacedName types.NamespacedName, runtimeObject RuntimeObject, reconciler Reconciler) (ctrl.Result, error) {
+// Reconcile - is a generic function that is used to reconcile the state of a resource
+// It standardizes the reconciliation loop and provides a common way to set finalizers, remove finalizers, and update the status of the resource
+// It splits the reconciliation into two phases: EnsureCreated and EnsureDeleted to keep the create / update and delete logic in controllers segregated
+func Reconcile(ctx context.Context, kubeClient client.Client, namespacedName types.NamespacedName, runtimeObject RuntimeObject, reconciler Reconciler, statusFunc Conditioner) (ctrl.Result, error) {
 	logger := ctrl.LoggerFrom(ctx)
 	if err := kubeClient.Get(ctx, namespacedName, runtimeObject); err != nil {
 		if apiErrors.IsNotFound(err) {
@@ -65,6 +76,7 @@ func Reconcile(ctx context.Context, kubeClient client.Client, namespacedName typ
 		return ctrl.Result{}, err
 	}
 	//https://github.com/kubernetes/kubernetes/issues/3030
+	// add type information to runtime object if it is missing (GVK)
 	if runtimeObject.GetObjectKind().GroupVersionKind() == (schema.GroupVersionKind{}) {
 		err := addTypeInformationToObject(runtimeObject)
 		if err != nil {
@@ -72,7 +84,7 @@ func Reconcile(ctx context.Context, kubeClient client.Client, namespacedName typ
 			return ctrl.Result{}, err
 		}
 	}
-
+	// store the original object in the context
 	ctx = createContextFromRuntimeObject(ctx, runtimeObject, reconciler.GetEventRecorder())
 
 	shouldBeDeleted := runtimeObject.GetDeletionTimestamp() != nil
@@ -88,35 +100,45 @@ func Reconcile(ctx context.Context, kubeClient client.Client, namespacedName typ
 		err    error
 	)
 	if shouldBeDeleted && hasCleanupFinalizer(runtimeObject) {
+		// check if the resource is already deleted (a control state to decide whether to remove finalizer)
+		// at this point the remote resource is already cleaned up so garbage collection can be done
 		if isResourceDeleted(runtimeObject) {
-			// remove CleanupFinalizer if SetupState is Deleted. Once all finalizers have been
-			// removed, the object will be deleted.
 			logger.Info("remove finalizers")
 			return removeFinalizer(ctx, kubeClient, runtimeObject)
 		}
-
+		// if the resource is not deleted yet, we need to ensure it is deleted
 		logger.Info("ensure deleted")
 		result, err = ensureDeleted(ctx, reconciler, runtimeObject)
 	} else {
-		result, err = ensureCreated(ctx, reconciler, runtimeObject)
+		// if it is not in deletion phase then we ensure it is in desired created state
+		result, err = ensureCreated(ctx, reconciler, statusFunc, runtimeObject)
 	}
-
+	// patch the final status of the resource to end the reconciliation loop
 	return result, patchStatus(ctx, runtimeObject, kubeClient, err)
 }
 
-func ensureCreated(ctx context.Context, reconciler Reconciler, runtimeObject RuntimeObject) (ctrl.Result, error) {
+// ensureCreated - invokes the controller's EnsureCreated method and invokes the statusFunc to update the status of the resource
+func ensureCreated(ctx context.Context, reconciler Reconciler, statusFunc Conditioner, runtimeObject RuntimeObject) (ctrl.Result, error) {
 	result, reconcileResult, err := reconciler.EnsureCreated(ctx, runtimeObject)
-	convertResultToCondition(runtimeObject, reconcileResult, true)
+	if statusFunc != nil {
+		statusFunc(ctx, runtimeObject)
+	} else {
+		// if no statusFunc is provided, we can use defaults
+		setupCreateState(runtimeObject, reconcileResult, err)
+	}
 	return result, err
 }
 
+// ensureDeleted - invokes the controller's EnsureDeleted method and sets the status of the resource to deleted
 func ensureDeleted(ctx context.Context, reconciler Reconciler, runtimeObject RuntimeObject) (ctrl.Result, error) {
+	setupDeleteState(runtimeObject, Pending, nil)
 	result, reconcileResult, err := reconciler.EnsureDeleted(ctx, runtimeObject)
-	convertResultToCondition(runtimeObject, reconcileResult, false)
+	setupDeleteState(runtimeObject, reconcileResult, err)
 	return result, err
 }
 
 // see https://github.com/kubernetes/kubernetes/issues/3030
+// addTypeInformationToObject adds the missing GVK information to the runtime object
 func addTypeInformationToObject(obj runtime.Object) error {
 	groupVersionKinds, _, err := scheme.Scheme.ObjectKinds(obj)
 	if err != nil {
