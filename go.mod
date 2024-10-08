@@ -7,13 +7,13 @@ replace (
 	github.com/dexidp/dex => github.com/dexidp/dex v0.0.0-20240807174518-43956db7fd75
 	github.com/dexidp/dex/api/v2 => github.com/dexidp/dex/api/v2 v2.2.0
 	// Keep k8s dependencies in sync.
-	k8s.io/api => k8s.io/api v0.30.4
-	k8s.io/apiextensions-apiserver => k8s.io/apiextensions-apiserver v0.30.4
-	k8s.io/apimachinery => k8s.io/apimachinery v0.30.4
-	k8s.io/cli-runtime => k8s.io/cli-runtime v0.30.4
-	k8s.io/client-go => k8s.io/client-go v0.30.4
-	k8s.io/component-base => k8s.io/component-base v0.30.4
-	k8s.io/kubectl => k8s.io/kubectl v0.30.4
+	k8s.io/api => k8s.io/api v0.30.5
+	k8s.io/apiextensions-apiserver => k8s.io/apiextensions-apiserver v0.30.5
+	k8s.io/apimachinery => k8s.io/apimachinery v0.30.5
+	k8s.io/cli-runtime => k8s.io/cli-runtime v0.30.5
+	k8s.io/client-go => k8s.io/client-go v0.30.5
+	k8s.io/component-base => k8s.io/component-base v0.30.5
+	k8s.io/kubectl => k8s.io/kubectl v0.30.5
 	sigs.k8s.io/controller-runtime => sigs.k8s.io/controller-runtime v0.18.5
 )
 
@@ -38,12 +38,12 @@ require (
 	gopkg.in/yaml.v3 v3.0.1
 	gotest.tools/v3 v3.5.1
 	helm.sh/helm/v3 v3.15.4
-	k8s.io/api v0.31.0
-	k8s.io/apiextensions-apiserver v0.31.0
-	k8s.io/apimachinery v0.31.0
-	k8s.io/cli-runtime v0.31.0
-	k8s.io/client-go v0.31.0
-	k8s.io/kubectl v0.31.0
+	k8s.io/api v0.31.1
+	k8s.io/apiextensions-apiserver v0.31.1
+	k8s.io/apimachinery v0.31.1
+	k8s.io/cli-runtime v0.31.1
+	k8s.io/client-go v0.31.1
+	k8s.io/kubectl v0.31.1
 	k8s.io/utils v0.0.0-20240902221715-702e33fdd3c3
 	sigs.k8s.io/controller-runtime v0.19.0
 	sigs.k8s.io/e2e-framework v0.4.0
