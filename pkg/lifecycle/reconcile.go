@@ -91,7 +91,7 @@ func Reconcile(ctx context.Context, kubeClient client.Client, namespacedName typ
 
 	// check whether finalizer is set
 	if !shouldBeDeleted && !hasCleanupFinalizer(runtimeObject) {
-		logger.Info("add finalizers")
+		logger.Info("add finalizer")
 		return addFinalizer(ctx, kubeClient, runtimeObject)
 	}
 
