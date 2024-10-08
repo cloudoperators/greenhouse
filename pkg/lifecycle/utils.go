@@ -91,7 +91,6 @@ func setupCreateState(runtimeObject RuntimeObject, reconcileResult ReconcileResu
 			msg = err.Error()
 		}
 		condition = greenhousev1alpha1.FalseCondition(greenhousev1alpha1.ReadyCondition, FailingCreationReason, "resource creation failed"+msg)
-		break
 	default:
 		condition = greenhousev1alpha1.UnknownCondition(greenhousev1alpha1.ReadyCondition, PendingCreationReason, "resource creation is pending")
 	}
