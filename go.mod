@@ -48,7 +48,7 @@ require (
 	sigs.k8s.io/controller-runtime v0.19.0
 	sigs.k8s.io/e2e-framework v0.4.0
 	sigs.k8s.io/yaml v1.4.0
-	tailscale.com v1.74.0
+	tailscale.com v1.74.1
 )
 
 require (
