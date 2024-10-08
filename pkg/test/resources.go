@@ -160,7 +160,7 @@ func WithHelmChart(chart *greenhousev1alpha1.HelmChartReference) func(*greenhous
 	}
 }
 
-// WithHelmChart sets the HelmChart of a PluginDefinition
+// AppendPluginOption sets the plugin option in plugin definition
 func AppendPluginOption(option greenhousev1alpha1.PluginOption) func(*greenhousev1alpha1.PluginDefinition) {
 	return func(pd *greenhousev1alpha1.PluginDefinition) {
 		pd.Spec.Options = append(pd.Spec.Options, option)
@@ -241,6 +241,7 @@ func WithPluginOptionValue(name string, value *apiextensionsv1.JSON, valueFrom *
 	}
 }
 
+// SetOptionValueForPlugin sets the value of a PluginOptionValue in plugin
 func SetOptionValueForPlugin(plugin *greenhousev1alpha1.Plugin, key, value string) {
 	for i, keyValue := range plugin.Spec.OptionValues {
 		if keyValue.Name == key {
@@ -255,6 +256,7 @@ func SetOptionValueForPlugin(plugin *greenhousev1alpha1.Plugin, key, value strin
 	})
 }
 
+// NewPlugin creates new plugin
 func (t *TestSetup) NewPlugin(ctx context.Context, name string, opts ...func(*greenhousev1alpha1.Plugin)) *greenhousev1alpha1.Plugin {
 	GinkgoHelper()
 	plugin := &greenhousev1alpha1.Plugin{
