@@ -35,6 +35,8 @@ func removeFinalizer(ctx context.Context, kubeClient client.Client, runtimeObjec
 	return ctrl.Result{}, nil
 }
 
+// isResourceDeleted - returns true if the resource has a true Deleted condition
+// This is used to determine if the resource is in deletion phase has finished its cleanup
 func isResourceDeleted(runtimeObject RuntimeObject) bool {
 	status := runtimeObject.GetConditions()
 	if len(status.Conditions) == 0 {

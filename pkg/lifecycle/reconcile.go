@@ -5,10 +5,6 @@ package lifecycle
 
 import (
 	"context"
-	"fmt"
-
-	"k8s.io/apimachinery/pkg/runtime/schema"
-	"k8s.io/client-go/kubernetes/scheme"
 
 	apiErrors "k8s.io/apimachinery/pkg/api/errors"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -75,15 +71,6 @@ func Reconcile(ctx context.Context, kubeClient client.Client, namespacedName typ
 		logger.Error(err, "Failed to load resource")
 		return ctrl.Result{}, err
 	}
-	//https://github.com/kubernetes/kubernetes/issues/3030
-	// add type information to runtime object if it is missing (GVK)
-	if runtimeObject.GetObjectKind().GroupVersionKind() == (schema.GroupVersionKind{}) {
-		err := addTypeInformationToObject(runtimeObject)
-		if err != nil {
-			logger.Error(err, "GVK is missing in runtime object")
-			return ctrl.Result{}, err
-		}
-	}
 	// store the original object in the context
 	ctx = createContextFromRuntimeObject(ctx, runtimeObject, reconciler.GetEventRecorder())
 
@@ -91,7 +78,7 @@ func Reconcile(ctx context.Context, kubeClient client.Client, namespacedName typ
 
 	// check whether finalizer is set
 	if !shouldBeDeleted && !hasCleanupFinalizer(runtimeObject) {
-		logger.Info("add finalizers")
+		logger.Info("add finalizer")
 		return addFinalizer(ctx, kubeClient, runtimeObject)
 	}
 
@@ -113,6 +100,7 @@ func Reconcile(ctx context.Context, kubeClient client.Client, namespacedName typ
 		// if it is not in deletion phase then we ensure it is in desired created state
 		result, err = ensureCreated(ctx, reconciler, statusFunc, runtimeObject)
 	}
+
 	// patch the final status of the resource to end the reconciliation loop
 	return result, patchStatus(ctx, runtimeObject, kubeClient, err)
 }
@@ -135,22 +123,4 @@ func ensureDeleted(ctx context.Context, reconciler Reconciler, runtimeObject Run
 	result, reconcileResult, err := reconciler.EnsureDeleted(ctx, runtimeObject)
 	setupDeleteState(runtimeObject, reconcileResult, err)
 	return result, err
-}
-
-// see https://github.com/kubernetes/kubernetes/issues/3030
-// addTypeInformationToObject adds the missing GVK information to the runtime object
-func addTypeInformationToObject(obj runtime.Object) error {
-	groupVersionKinds, _, err := scheme.Scheme.ObjectKinds(obj)
-	if err != nil {
-		return fmt.Errorf("missing apiVersion or kind and cannot assign it; %w", err)
-	}
-
-	for _, gvk := range groupVersionKinds {
-		if gvk.Kind == "" || gvk.Version == "" || gvk.Version == runtime.APIVersionInternal {
-			continue
-		}
-		obj.GetObjectKind().SetGroupVersionKind(gvk)
-		break
-	}
-	return nil
 }
