@@ -34,7 +34,7 @@ require (
 	github.com/vladimirvivien/gexe v0.3.0
 	github.com/wI2L/jsondiff v0.6.0
 	go.uber.org/zap v1.27.0
-	golang.org/x/text v0.18.0
+	golang.org/x/text v0.19.0
 	gopkg.in/yaml.v3 v3.0.1
 	gotest.tools/v3 v3.5.1
 	helm.sh/helm/v3 v3.15.4
@@ -44,7 +44,7 @@ require (
 	k8s.io/cli-runtime v0.31.1
 	k8s.io/client-go v0.31.1
 	k8s.io/kubectl v0.31.1
-	k8s.io/utils v0.0.0-20240902221715-702e33fdd3c3
+	k8s.io/utils v0.0.0-20240921022957-49e7df575cb6
 	sigs.k8s.io/controller-runtime v0.19.0
 	sigs.k8s.io/e2e-framework v0.4.0
 	sigs.k8s.io/yaml v1.4.0
@@ -217,7 +217,7 @@ require (
 	golang.org/x/sync v0.8.0 // indirect
 	golang.org/x/sys v0.24.0 // indirect
 	golang.org/x/term v0.23.0 // indirect
-	golang.org/x/time v0.6.0
+	golang.org/x/time v0.7.0
 	golang.org/x/tools v0.24.0 // indirect
 	gomodules.xyz/jsonpatch/v2 v2.4.0 // indirect
 	google.golang.org/api v0.195.0 // indirect
