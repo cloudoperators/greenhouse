@@ -1,0 +1,15 @@
+name: E2E Test
+on:
+  workflow_dispatch: {}
+
+jobs:
+  e2e:
+    runs-on: "default"
+    strategy:
+      fail-fast: false
+      matrix:
+        k8s-version: ["v1.29.9", "v1.30.5", "v1.31.1"]
+    steps:
+      - uses: cloudoperators/common/workflows/e2e@main
+        with:
+          kubernetes-version: ${{ matrix.k8s-version }}
