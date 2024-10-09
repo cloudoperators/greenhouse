@@ -5,6 +5,7 @@ package cluster
 
 import (
 	"context"
+	"errors"
 	"time"
 
 	"github.com/cloudoperators/greenhouse/pkg/lifecycle"
@@ -24,7 +25,15 @@ import (
 func (r *RemoteClusterReconciler) setConditions() lifecycle.Conditioner {
 	return func(ctx context.Context, resource lifecycle.RuntimeObject) {
 		logger := ctrl.LoggerFrom(ctx)
-		cluster := resource.(*greenhousev1alpha1.Cluster)
+		cluster, ok := resource.(*greenhousev1alpha1.Cluster)
+		if !ok {
+			logger.Error(errors.New("invalid object type"), "object is not of Cluster type")
+			return
+		}
+		if cluster.Spec.AccessMode != greenhousev1alpha1.ClusterAccessModeDirect {
+			logger.Info("skipping status calculation for cluster with access mode " + string(cluster.Spec.AccessMode))
+			return
+		}
 		var conditions []greenhousev1alpha1.Condition
 		kubeConfigValidCondition, restClientGetter, k8sVersion := r.reconcileClusterSecret(ctx, cluster)
 

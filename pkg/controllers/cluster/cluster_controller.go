@@ -67,10 +67,12 @@ func (r *RemoteClusterReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 }
 
 func (r *RemoteClusterReconciler) EnsureCreated(ctx context.Context, resource lifecycle.RuntimeObject) (ctrl.Result, lifecycle.ReconcileResult, error) {
-	cluster := resource.(*greenhousev1alpha1.Cluster)
-
+	cluster, ok := resource.(*greenhousev1alpha1.Cluster)
+	if !ok {
+		return ctrl.Result{}, lifecycle.Failed, errors.New("object is not of cluster type")
+	}
 	if cluster.Spec.AccessMode != greenhousev1alpha1.ClusterAccessModeDirect {
-		return ctrl.Result{}, lifecycle.Failed, nil
+		return ctrl.Result{}, lifecycle.Success, nil
 	}
 
 	isScheduled, schedule, err := clientutil.ExtractDeletionSchedule(cluster.GetAnnotations())
@@ -129,7 +131,10 @@ func (r *RemoteClusterReconciler) EnsureCreated(ctx context.Context, resource li
 
 // EnsureDeleted - handles the deletion / cleanup of cluster resource
 func (r *RemoteClusterReconciler) EnsureDeleted(ctx context.Context, resource lifecycle.RuntimeObject) (ctrl.Result, lifecycle.ReconcileResult, error) {
-	cluster := resource.(*greenhousev1alpha1.Cluster)
+	cluster, ok := resource.(*greenhousev1alpha1.Cluster)
+	if !ok {
+		return ctrl.Result{}, lifecycle.Failed, errors.New("object is not of cluster type")
+	}
 	// delete all plugins that are bound to this cluster
 	deletionCount, err := deletePlugins(ctx, r.Client, cluster)
 	if err != nil {
