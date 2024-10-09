@@ -72,7 +72,7 @@ func (r *RemoteClusterReconciler) EnsureCreated(ctx context.Context, resource li
 		return ctrl.Result{}, lifecycle.Failed, errors.New("object is not of cluster type")
 	}
 	if cluster.Spec.AccessMode != greenhousev1alpha1.ClusterAccessModeDirect {
-		return ctrl.Result{}, lifecycle.Success, nil
+		return ctrl.Result{}, lifecycle.Failed, nil
 	}
 
 	isScheduled, schedule, err := clientutil.ExtractDeletionSchedule(cluster.GetAnnotations())

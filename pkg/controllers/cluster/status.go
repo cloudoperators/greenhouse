@@ -27,11 +27,11 @@ func (r *RemoteClusterReconciler) setConditions() lifecycle.Conditioner {
 		logger := ctrl.LoggerFrom(ctx)
 		cluster, ok := resource.(*greenhousev1alpha1.Cluster)
 		if !ok {
-			logger.Error(errors.New("invalid object type"), "object is not of Cluster type")
+			logger.Error(errors.New("resource is not a cluster"), "status setup failed")
 			return
 		}
 		if cluster.Spec.AccessMode != greenhousev1alpha1.ClusterAccessModeDirect {
-			logger.Info("skipping status calculation for cluster with access mode " + string(cluster.Spec.AccessMode))
+			logger.Info("cluster is not direct access mode - skipping status setup")
 			return
 		}
 		var conditions []greenhousev1alpha1.Condition
