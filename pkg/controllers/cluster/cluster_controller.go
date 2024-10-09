@@ -5,8 +5,9 @@ package cluster
 
 import (
 	"context"
-	"github.com/cloudoperators/greenhouse/pkg/lifecycle"
 	"time"
+
+	"github.com/cloudoperators/greenhouse/pkg/lifecycle"
 
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"

@@ -5,18 +5,20 @@ package cluster
 
 import (
 	"context"
-	"github.com/cloudoperators/greenhouse/pkg/lifecycle"
 	"time"
+
+	"github.com/cloudoperators/greenhouse/pkg/lifecycle"
 
 	"github.com/go-logr/logr"
 
-	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/pkg/apis/greenhouse/v1alpha1"
-	"github.com/cloudoperators/greenhouse/pkg/clientutil"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 	ctrl "sigs.k8s.io/controller-runtime"
+
+	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/pkg/apis/greenhouse/v1alpha1"
+	"github.com/cloudoperators/greenhouse/pkg/clientutil"
 )
 
 func (r *RemoteClusterReconciler) setConditions() lifecycle.Conditioner {
