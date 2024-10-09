@@ -1,0 +1,25 @@
+# SPDX-FileCopyrightText: 2024 SAP SE or an SAP affiliate company and Greenhouse contributors
+# SPDX-License-Identifier: Apache-2.0
+
+image:
+  repository: ghcr.io/cloudoperators/juno-app-greenhouse
+  tag: 0.2.0
+  pullPolicy: IfNotPresent
+
+# TODO: Migrate to ingress.host
+host:
+
+ingress:
+  className: nginx
+
+juno:
+  assetServerURL: origin
+  # version of the juno greenhouse app
+  greenhouse:
+    version: latest
+
+# The user for demonstration purposes.
+demoUser:
+  token: demo
+
+environment: "prod"

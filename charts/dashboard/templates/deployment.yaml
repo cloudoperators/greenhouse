@@ -1,0 +1,73 @@
+{{/* 
+SPDX-FileCopyrightText: 2024 SAP SE or an SAP affiliate company and Greenhouse contributors
+SPDX-License-Identifier: Apache-2.0
+*/}}
+
+kind: Deployment
+apiVersion: apps/v1
+
+metadata:
+  name: {{ .Release.Name }}-dashboard
+
+spec:
+  selector:
+    matchLabels:
+      app: dashboard
+  revisionHistoryLimit: 3
+  replicas: 2
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 0
+      maxSurge: 2
+  template:
+    metadata:
+      labels:
+        app: dashboard
+      annotations:
+        checksum/props-cm: {{ include (print $.Template.BasePath "/dashboard-props-cm.yaml") . | sha256sum }}
+    spec:
+      # The preStop hook below sleeps 30 seconds, extend the gracePeriod accordingly
+      terminationGracePeriodSeconds: 60
+      containers:
+        - name: dashboard
+          image: "{{ required ".Values.image.repository missing" .Values.image.repository }}:{{ required ".Values.image.tag missing" .Values.image.tag }}"
+          imagePullPolicy: {{ required ".Values.image.pullPolicy missing" .Values.image.pullPolicy }}
+          ports:
+            - name: dashboard
+              containerPort: 80
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "256M"
+            limits:
+              cpu: "100m"
+              memory: "256M"
+              
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 80
+            timeoutSeconds: 10
+            periodSeconds: 60
+            initialDelaySeconds: 60
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 80
+            timeoutSeconds: 5
+            periodSeconds: 5
+          lifecycle:
+            preStop:
+              exec:
+                #Give the ingress some time to reload its config
+                command: ["/bin/sh", "-c", "sleep 30"]
+          volumeMounts:
+            - name: props
+              mountPath: /appProps.json
+              subPath: appProps.json
+      volumes:    
+        - name: props
+          configMap:
+            defaultMode: 420
+            name: {{ .Release.Name }}-dashboard-app-props

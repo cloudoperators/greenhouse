@@ -1,0 +1,40 @@
+{{/* 
+SPDX-FileCopyrightText: 2024 SAP SE or an SAP affiliate company and Greenhouse contributors
+SPDX-License-Identifier: Apache-2.0
+*/}}
+
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ .Release.Name }}-dashboard
+  annotations:
+    kubernetes.io/tls-acme: "true"
+spec:
+  ingressClassName: {{ required ".Values.ingress.className missing" .Values.ingress.className }}
+  rules:
+    - host: "{{ required ".Values.host missing" .Values.host }}"
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: {{ .Release.Name }}-dashboard
+                port:
+                  number: 80
+    - host: "*.{{ required ".Values.host missing" .Values.host }}"
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: {{ .Release.Name }}-dashboard
+                port:
+                  number: 80
+
+  tls:
+    - hosts:
+        - "{{ required ".Values.host missing" .Values.host }}"
+        - "*.{{ required ".Values.host missing" .Values.host }}"
+      secretName: "tls-{{ .Release.Name }}-ui"
