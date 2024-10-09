@@ -1,0 +1,20 @@
+# SPDX-FileCopyrightText: 2024 SAP SE or an SAP affiliate company and Greenhouse contributors
+# SPDX-License-Identifier: Apache-2.0
+
+{{ if .Values.hook_enabled }}
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: hook-job
+  annotations:
+    "helm.sh/hook": post-install, post-upgrade
+    "helm.sh/hook-weight": "10"
+spec:
+  template:
+    spec:
+      containers:
+        - name: pre-update-container
+          image: alpine:{{.Values.imageTag}}
+          command: ['sh', '-c', 'sleep 5']
+      restartPolicy: Never
+{{ end }}
