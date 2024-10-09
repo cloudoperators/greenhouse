@@ -164,12 +164,12 @@ func DiffChartToDeployedResources(ctx context.Context, local client.Client, rest
 		return nil, true, nil
 	}
 
-	manifest, err := TemplateHelmChartFromPlugin(ctx, local, restClientGetter, pluginDefinition, plugin)
+	helmTemplateRelease, err := TemplateHelmChartFromPlugin(ctx, local, restClientGetter, pluginDefinition, plugin)
 	if err != nil {
 		return nil, false, err
 	}
 
-	diffObjects, err := diffAgainstRelease(restClientGetter, plugin.Spec.ReleaseNamespace, manifest, helmRelease)
+	diffObjects, err := diffAgainstRelease(restClientGetter, plugin.Spec.ReleaseNamespace, helmTemplateRelease, helmRelease)
 	if err != nil {
 		return nil, false, err
 	}
@@ -194,7 +194,7 @@ func DiffChartToDeployedResources(ctx context.Context, local client.Client, rest
 		return nil, false, nil
 	}
 
-	diffObjects, err = diffAgainstLiveObjects(restClientGetter, plugin.Spec.ReleaseNamespace, manifest)
+	diffObjects, err = diffAgainstLiveObjects(restClientGetter, plugin.Spec.ReleaseNamespace, helmTemplateRelease.Manifest)
 	if err != nil {
 		return nil, false, err
 	}
@@ -277,12 +277,12 @@ func GetReleaseForHelmChartFromPlugin(_ context.Context, restClientGetter generi
 }
 
 // TemplateHelmChartFromPlugin returns the rendered manifest or an error.
-func TemplateHelmChartFromPlugin(ctx context.Context, local client.Client, restClientGetter genericclioptions.RESTClientGetter, pluginDefinition *greenhousev1alpha1.PluginDefinition, plugin *greenhousev1alpha1.Plugin) (string, error) {
+func TemplateHelmChartFromPlugin(ctx context.Context, local client.Client, restClientGetter genericclioptions.RESTClientGetter, pluginDefinition *greenhousev1alpha1.PluginDefinition, plugin *greenhousev1alpha1.Plugin) (*release.Release, error) {
 	helmRelease, err := installRelease(ctx, local, restClientGetter, pluginDefinition, plugin, true)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
-	return helmRelease.Manifest, nil
+	return helmRelease, nil
 }
 
 type ChartLoaderFunc func(name string) (*chart.Chart, error)

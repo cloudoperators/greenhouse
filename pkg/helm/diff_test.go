@@ -79,7 +79,7 @@ var _ = Describe("ensure helm diff against the release manifest works as expecte
 
 	It("should no diff or drift if nothing changes", func() {
 		By("templating the Helm Chart from the Plugin")
-		manifestUT, err := helm.TemplateHelmChartFromPlugin(test.Ctx, test.K8sClient, test.RestClientGetter, pluginDefinitionUT, pluginUT)
+		templateUT, err := helm.TemplateHelmChartFromPlugin(test.Ctx, test.K8sClient, test.RestClientGetter, pluginDefinitionUT, pluginUT)
 		Expect(err).NotTo(HaveOccurred(), "there should be no error templating the helm chart")
 
 		By("retrieving the Release for the Plugin")
@@ -87,12 +87,12 @@ var _ = Describe("ensure helm diff against the release manifest works as expecte
 		Expect(err).NotTo(HaveOccurred(), "there should be no error getting the release for the helm chart")
 
 		By("diffing the manifest against the helm release")
-		diff, err := helm.ExportDiffAgainstRelease(test.RestClientGetter, namespace, manifestUT, releaseUT)
+		diff, err := helm.ExportDiffAgainstRelease(test.RestClientGetter, namespace, templateUT, releaseUT)
 		Expect(err).NotTo(HaveOccurred(), "there should be no error diffing the manifest against the helm release")
 		Expect(diff).To(BeEmpty(), "the diff should be empty")
 
 		By("diffing the manifest against the live objects")
-		diff, err = helm.ExportDiffAgainstLiveObjects(test.RestClientGetter, namespace, manifestUT)
+		diff, err = helm.ExportDiffAgainstLiveObjects(test.RestClientGetter, namespace, templateUT.Manifest)
 		Expect(err).NotTo(HaveOccurred(), "there should be no error diffing the manifest against the helm release")
 		Expect(diff).To(BeEmpty(), "the diff should be empty")
 	})
@@ -107,7 +107,7 @@ var _ = Describe("ensure helm diff against the release manifest works as expecte
 		}
 
 		By("templating the Helm Chart from the Plugin")
-		manifestUT, err := helm.TemplateHelmChartFromPlugin(test.Ctx, test.K8sClient, test.RestClientGetter, pluginDefinitionUT, pluginUT)
+		templateUT, err := helm.TemplateHelmChartFromPlugin(test.Ctx, test.K8sClient, test.RestClientGetter, pluginDefinitionUT, pluginUT)
 		Expect(err).NotTo(HaveOccurred(), "there should be no error templating the helm chart")
 
 		By("retrieving the Release for the Plugin")
@@ -115,12 +115,12 @@ var _ = Describe("ensure helm diff against the release manifest works as expecte
 		Expect(err).NotTo(HaveOccurred(), "there should be no error getting the release for the helm chart")
 
 		By("diffing the manifest against the helm release")
-		diff, err := helm.ExportDiffAgainstRelease(test.RestClientGetter, namespace, manifestUT, releaseUT)
+		diff, err := helm.ExportDiffAgainstRelease(test.RestClientGetter, namespace, templateUT, releaseUT)
 		Expect(err).NotTo(HaveOccurred(), "there should be no error diffing the manifest against the helm release")
 		Expect(diff).To(ContainSubstring("3.19"), "the diff should not be empty")
 
 		By("diffing the manifest against the live objects")
-		diff, err = helm.ExportDiffAgainstLiveObjects(test.RestClientGetter, namespace, manifestUT)
+		diff, err = helm.ExportDiffAgainstLiveObjects(test.RestClientGetter, namespace, templateUT.Manifest)
 		Expect(err).NotTo(HaveOccurred(), "there should be no error diffing the manifest against the helm release")
 		Expect(diff).To(ContainSubstring("3.19"), "the diff should not be empty")
 	})
@@ -159,7 +159,7 @@ var _ = Describe("ensure helm diff against the release manifest works as expecte
 		Expect(test.K8sClient.Update(test.Ctx, podUT)).To(Succeed(), "the pod should be updated")
 
 		By("templating the Helm Chart from the Plugin")
-		manifestUT, err := helm.TemplateHelmChartFromPlugin(test.Ctx, test.K8sClient, test.RestClientGetter, pluginDefinitionUT, pluginUT)
+		templateUT, err := helm.TemplateHelmChartFromPlugin(test.Ctx, test.K8sClient, test.RestClientGetter, pluginDefinitionUT, pluginUT)
 		Expect(err).NotTo(HaveOccurred(), "there should be no error templating the helm chart")
 
 		By("retrieving the Release for the Plugin")
@@ -167,12 +167,12 @@ var _ = Describe("ensure helm diff against the release manifest works as expecte
 		Expect(err).NotTo(HaveOccurred(), "there should be no error getting the release for the helm chart")
 
 		By("diffing the manifest against the helm release")
-		diff, err := helm.ExportDiffAgainstRelease(test.RestClientGetter, namespace, manifestUT, releaseUT)
+		diff, err := helm.ExportDiffAgainstRelease(test.RestClientGetter, namespace, templateUT, releaseUT)
 		Expect(err).NotTo(HaveOccurred(), "there should be no error diffing the manifest against the helm release")
 		Expect(diff).To(BeEmpty(), "the diff should be empty")
 
 		By("diffing the manifest against the live objects")
-		diff, err = helm.ExportDiffAgainstLiveObjects(test.RestClientGetter, namespace, manifestUT)
+		diff, err = helm.ExportDiffAgainstLiveObjects(test.RestClientGetter, namespace, templateUT.Manifest)
 		Expect(err).NotTo(HaveOccurred(), "there should be no error diffing the manifest against the helm release")
 		Expect(diff).To(ContainSubstring("3.17"), "the diff should not be empty")
 	})
@@ -414,7 +414,7 @@ var _ = Describe("Ensure helm diff does not leak secrets", Ordered, func() {
 
 			helmRelease := &release.Release{Manifest: manifest}
 
-			diffs, err := helm.ExportDiffAgainstRelease(test.RestClientGetter, namespace, manifest, helmRelease)
+			diffs, err := helm.ExportDiffAgainstRelease(test.RestClientGetter, namespace, helmRelease, helmRelease)
 			Expect(err).NotTo(HaveOccurred(), "there should be no error diffing the helm release")
 			Expect(diffs).To(BeEmpty(), "the diff should be empty")
 			Expect(diffs).NotTo(ContainSubstring("dGVzdC12YWx1ZQ=="), "the diff should not contain the original value for test")
