@@ -88,7 +88,6 @@ var _ = Describe("ClusterKubeconfig controller", Ordered, func() {
 
 	AfterAll(func() {
 		test.MustDeleteCluster(test.Ctx, test.K8sClient, client.ObjectKeyFromObject(&cluster))
-		Expect(test.K8sClient.Delete(test.Ctx, organization)).To(Succeed())
 		Expect(test.K8sClient.Delete(test.Ctx, &oidcSecret)).To(Succeed())
 	})
 
