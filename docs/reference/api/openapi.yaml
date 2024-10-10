@@ -1,7 +1,7 @@
 openapi: 3.0.0
 info:
   title: Greenhouse
-  version: 2fe4054
+  version: 3a95605
   description: PlusOne operations platform
 paths:
   /Organization:
@@ -1153,6 +1153,9 @@ components:
           properties:
             description:
               description: Description provides additional details of the team.
+              type: string
+            joinUrl:
+              description: URL to join the IdP group.
               type: string
             mappedIdPGroup:
               description: IdP group id matching team.
