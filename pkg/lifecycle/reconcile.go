@@ -5,6 +5,14 @@ package lifecycle
 
 import (
 	"context"
+	"reflect"
+
+	"github.com/go-logr/logr"
+	"github.com/google/go-cmp/cmp"
+	"sigs.k8s.io/controller-runtime/pkg/event"
+	"sigs.k8s.io/controller-runtime/pkg/predicate"
+
+	"github.com/cloudoperators/greenhouse/pkg/clientutil"
 
 	apiErrors "k8s.io/apimachinery/pkg/api/errors"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -20,13 +28,14 @@ import (
 type ReconcileResult string
 
 const (
-	CreatedReason          greenhousev1alpha1.ConditionReason = "Created"
-	PendingCreationReason  greenhousev1alpha1.ConditionReason = "PendingCreation"
-	FailingCreationReason  greenhousev1alpha1.ConditionReason = "FailingCreation"
-	PendingDeletionReason  greenhousev1alpha1.ConditionReason = "PendingDeletion"
-	FailingDeletionReason  greenhousev1alpha1.ConditionReason = "FailingDeletion"
-	DeletedReason          greenhousev1alpha1.ConditionReason = "Deleted"
-	CommonCleanupFinalizer                                    = "greenhouse.sap/cleanup"
+	CreatedReason           greenhousev1alpha1.ConditionReason = "Created"
+	PendingCreationReason   greenhousev1alpha1.ConditionReason = "PendingCreation"
+	FailingCreationReason   greenhousev1alpha1.ConditionReason = "FailingCreation"
+	ScheduledDeletionReason greenhousev1alpha1.ConditionReason = "ScheduledDeletion"
+	PendingDeletionReason   greenhousev1alpha1.ConditionReason = "PendingDeletion"
+	FailingDeletionReason   greenhousev1alpha1.ConditionReason = "FailingDeletion"
+	DeletedReason           greenhousev1alpha1.ConditionReason = "Deleted"
+	CommonCleanupFinalizer                                     = "greenhouse.sap/cleanup"
 
 	// Success should be returned in case the operator reached its target state
 	Success ReconcileResult = "Success"
@@ -77,50 +86,136 @@ func Reconcile(ctx context.Context, kubeClient client.Client, namespacedName typ
 	shouldBeDeleted := runtimeObject.GetDeletionTimestamp() != nil
 
 	// check whether finalizer is set
-	if !shouldBeDeleted && !hasCleanupFinalizer(runtimeObject) {
-		logger.Info("add finalizer")
-		return addFinalizer(ctx, kubeClient, runtimeObject)
+	if !shouldBeDeleted && !clientutil.HasFinalizer(runtimeObject, CommonCleanupFinalizer) {
+		return ctrl.Result{}, clientutil.EnsureFinalizer(ctx, kubeClient, runtimeObject, CommonCleanupFinalizer)
 	}
 
 	var (
 		result ctrl.Result
 		err    error
 	)
-	if shouldBeDeleted && hasCleanupFinalizer(runtimeObject) {
+	if shouldBeDeleted && clientutil.HasFinalizer(runtimeObject, CommonCleanupFinalizer) {
 		// check if the resource is already deleted (a control state to decide whether to remove finalizer)
 		// at this point the remote resource is already cleaned up so garbage collection can be done
 		if isResourceDeleted(runtimeObject) {
-			logger.Info("remove finalizers")
-			return removeFinalizer(ctx, kubeClient, runtimeObject)
+			err = clientutil.RemoveFinalizer(ctx, kubeClient, runtimeObject, CommonCleanupFinalizer)
+			return ctrl.Result{}, client.IgnoreNotFound(err)
 		}
 		// if the resource is not deleted yet, we need to ensure it is deleted
-		logger.Info("ensure deleted")
-		result, err = ensureDeleted(ctx, reconciler, runtimeObject)
+		result, err = ensureDeleted(ctx, logger, reconciler, runtimeObject)
 	} else {
 		// if it is not in deletion phase then we ensure it is in desired created state
-		result, err = ensureCreated(ctx, reconciler, statusFunc, runtimeObject)
+		result, err = ensureCreated(ctx, logger, reconciler, runtimeObject, statusFunc)
 	}
 
 	// patch the final status of the resource to end the reconciliation loop
-	return result, patchStatus(ctx, runtimeObject, kubeClient, err)
+	return result, patchStatus(ctx, kubeClient, runtimeObject, err)
+}
+
+// isResourceDeleted - returns true if the resource has a true Deleted condition
+// This is used to determine if the resource is in deletion phase has finished its cleanup
+func isResourceDeleted(runtimeObject RuntimeObject) bool {
+	status := runtimeObject.GetConditions()
+	if len(status.Conditions) == 0 {
+		return false
+	}
+	deleteCondition := status.GetConditionByType(greenhousev1alpha1.DeleteCondition)
+	if deleteCondition == nil {
+		return false
+	}
+	return deleteCondition.IsTrue() && deleteCondition.Reason == DeletedReason
 }
 
 // ensureCreated - invokes the controller's EnsureCreated method and invokes the statusFunc to update the status of the resource
-func ensureCreated(ctx context.Context, reconciler Reconciler, statusFunc Conditioner, runtimeObject RuntimeObject) (ctrl.Result, error) {
+func ensureCreated(ctx context.Context, logger logr.Logger, reconciler Reconciler, runtimeObject RuntimeObject, statusFunc Conditioner) (ctrl.Result, error) {
+	logger.Info("ensure created")
 	result, reconcileResult, err := reconciler.EnsureCreated(ctx, runtimeObject)
 	if statusFunc != nil {
 		statusFunc(ctx, runtimeObject)
 	} else {
-		// if no statusFunc is provided, we can use defaults
 		setupCreateState(runtimeObject, reconcileResult, err)
 	}
 	return result, err
 }
 
 // ensureDeleted - invokes the controller's EnsureDeleted method and sets the status of the resource to deleted
-func ensureDeleted(ctx context.Context, reconciler Reconciler, runtimeObject RuntimeObject) (ctrl.Result, error) {
+func ensureDeleted(ctx context.Context, logger logr.Logger, reconciler Reconciler, runtimeObject RuntimeObject) (ctrl.Result, error) {
+	logger.Info("ensure deleted")
 	setupDeleteState(runtimeObject, Pending, nil)
 	result, reconcileResult, err := reconciler.EnsureDeleted(ctx, runtimeObject)
 	setupDeleteState(runtimeObject, reconcileResult, err)
 	return result, err
+}
+
+// setupDeleteState - converts the reconcile result to a condition and sets it in the runtimeObject for deletion phase
+func setupDeleteState(runtimeObject RuntimeObject, reconcileResult ReconcileResult, err error) {
+	var condition greenhousev1alpha1.Condition
+	switch reconcileResult {
+	case Success:
+		condition = greenhousev1alpha1.TrueCondition(greenhousev1alpha1.DeleteCondition, DeletedReason, "resource is successfully deleted")
+	case Failed:
+		msg := ""
+		if err != nil {
+			msg = err.Error()
+		}
+		condition = greenhousev1alpha1.FalseCondition(greenhousev1alpha1.DeleteCondition, FailingDeletionReason, "resource deletion failed"+msg)
+	default:
+		condition = greenhousev1alpha1.FalseCondition(greenhousev1alpha1.DeleteCondition, PendingDeletionReason, "resource deletion is pending")
+	}
+	runtimeObject.SetCondition(condition)
+}
+
+// setupCreateState - if statusFunc is not passed to reconciler then the default status conditions are set in runtimeObject
+func setupCreateState(runtimeObject RuntimeObject, reconcileResult ReconcileResult, err error) {
+	var condition greenhousev1alpha1.Condition
+	switch reconcileResult {
+	case Success:
+		condition = greenhousev1alpha1.TrueCondition(greenhousev1alpha1.ReadyCondition, CreatedReason, "resource is successfully created")
+	case Failed:
+		msg := ""
+		if err != nil {
+			msg = err.Error()
+		}
+		condition = greenhousev1alpha1.FalseCondition(greenhousev1alpha1.ReadyCondition, FailingCreationReason, "resource creation failed"+msg)
+	default:
+		condition = greenhousev1alpha1.UnknownCondition(greenhousev1alpha1.ReadyCondition, PendingCreationReason, "resource creation is pending")
+	}
+	runtimeObject.SetCondition(condition)
+}
+
+// patchStatus - patches the status of the resource with the new status and returns the reconcile error
+// TODO: implement event recorder to fire ready condition change events
+func patchStatus(ctx context.Context, kubeClient client.Client, newObject RuntimeObject, reconcileError error) error {
+	oldObject, err := getOriginalResourceFromContext(ctx)
+	if err != nil {
+		return err
+	}
+	err = kubeClient.Status().Patch(ctx, newObject, client.MergeFrom(oldObject))
+	if err != nil {
+		return err
+	}
+	return reconcileError
+}
+
+func IgnoreStatusUpdatePredicate() predicate.Predicate {
+	return predicate.Funcs{
+		UpdateFunc: func(e event.UpdateEvent) bool {
+			if e.ObjectOld == nil {
+				return false
+			}
+			if e.ObjectNew == nil {
+				return false
+			}
+			if !cmp.Equal(e.ObjectOld.GetAnnotations(), e.ObjectNew.GetAnnotations()) || !cmp.Equal(e.ObjectOld.GetLabels(), e.ObjectNew.GetLabels()) {
+				return true
+			}
+			// Ignore updates to CR status in which case metadata.Generation does not change
+			if e.ObjectNew.GetGeneration() == e.ObjectOld.GetGeneration() && reflect.DeepEqual(e.ObjectNew.GetFinalizers(), e.ObjectOld.GetFinalizers()) {
+				// On delete event deletion timestamp is set
+				// In such cases return true else false
+				return e.ObjectNew.GetDeletionTimestamp() != nil
+			}
+			return true
+		},
+	}
 }

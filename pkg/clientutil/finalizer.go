@@ -33,3 +33,7 @@ func RemoveFinalizer(ctx context.Context, c client.Client, o client.Object, fina
 	})
 	return err
 }
+
+func HasFinalizer(o client.Object, finalizer string) bool {
+	return controllerutil.ContainsFinalizer(o, finalizer)
+}
