@@ -3,15 +3,17 @@ package clientutil
 import (
 	"context"
 	"errors"
-	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/pkg/apis/greenhouse/v1alpha1"
-	"github.com/cloudoperators/greenhouse/pkg/controllers/fixtures"
+	"testing"
+
 	"github.com/stretchr/testify/require"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes/scheme"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
-	"testing"
+
+	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/pkg/apis/greenhouse/v1alpha1"
+	"github.com/cloudoperators/greenhouse/pkg/controllers/fixtures"
 )
 
 const (
@@ -129,9 +131,8 @@ func Test_EnsureFinalizer(t *testing.T) {
 func Test_RemoveFinalizer(t *testing.T) {
 	err := greenhousev1alpha1.AddToScheme(scheme.Scheme)
 	require.NoError(t, err)
-
+	ctx := context.Background()
 	type args struct {
-		ctx       context.Context
 		c         client.Client
 		o         client.Object
 		finalizer string
@@ -145,7 +146,6 @@ func Test_RemoveFinalizer(t *testing.T) {
 		{
 			name: "it should remove finalizer successfully",
 			args: args{
-				ctx:       context.Background(),
 				c:         fake.NewClientBuilder().WithScheme(scheme.Scheme).WithObjects(objectWithFinalizer(CommonCleanupFinalizer)).Build(),
 				o:         objectWithFinalizer(CommonCleanupFinalizer),
 				finalizer: CommonCleanupFinalizer,
@@ -155,7 +155,6 @@ func Test_RemoveFinalizer(t *testing.T) {
 		{
 			name: "it should error out while removing finalizer",
 			args: args{
-				ctx:       context.Background(),
 				c:         &errorClient{Client: fake.NewClientBuilder().WithScheme(scheme.Scheme).WithObjects(objectWithFinalizer(CommonCleanupFinalizer)).Build()},
 				o:         objectWithFinalizer(CommonCleanupFinalizer),
 				finalizer: CommonCleanupFinalizer,
@@ -165,7 +164,6 @@ func Test_RemoveFinalizer(t *testing.T) {
 		{
 			name: "it should not error out if finalizer is not present",
 			args: args{
-				ctx:       context.Background(),
 				c:         nil,
 				o:         objectWithoutFinalizer(),
 				finalizer: CommonCleanupFinalizer,
@@ -176,7 +174,7 @@ func Test_RemoveFinalizer(t *testing.T) {
 
 	for _, test := range testCases {
 		t.Run(test.name, func(t *testing.T) {
-			err = RemoveFinalizer(test.args.ctx, test.args.c, test.args.o, test.args.finalizer)
+			err = RemoveFinalizer(ctx, test.args.c, test.args.o, test.args.finalizer)
 			if (err != nil) != test.wantErr {
 				t.Errorf("RemoveFinalizer() error = %v, wantErr %v", err, test.wantErr)
 			}

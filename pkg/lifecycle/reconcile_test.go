@@ -1,11 +1,13 @@
 package lifecycle
 
 import (
-	"github.com/cloudoperators/greenhouse/pkg/controllers/fixtures"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"sigs.k8s.io/controller-runtime/pkg/event"
 	"testing"
 	"time"
+
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"sigs.k8s.io/controller-runtime/pkg/event"
+
+	"github.com/cloudoperators/greenhouse/pkg/controllers/fixtures"
 
 	"github.com/stretchr/testify/assert"
 	"sigs.k8s.io/controller-runtime/pkg/client"

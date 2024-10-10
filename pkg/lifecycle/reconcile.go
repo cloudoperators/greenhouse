@@ -5,12 +5,14 @@ package lifecycle
 
 import (
 	"context"
-	"github.com/cloudoperators/greenhouse/pkg/clientutil"
+	"reflect"
+
 	"github.com/go-logr/logr"
 	"github.com/google/go-cmp/cmp"
-	"reflect"
 	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
+
+	"github.com/cloudoperators/greenhouse/pkg/clientutil"
 
 	apiErrors "k8s.io/apimachinery/pkg/api/errors"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -107,7 +109,7 @@ func Reconcile(ctx context.Context, kubeClient client.Client, namespacedName typ
 	}
 
 	// patch the final status of the resource to end the reconciliation loop
-	return result, patchStatus(ctx, logger, kubeClient, runtimeObject, err)
+	return result, patchStatus(ctx, kubeClient, runtimeObject, err)
 }
 
 // isResourceDeleted - returns true if the resource has a true Deleted condition
@@ -183,7 +185,7 @@ func setupCreateState(runtimeObject RuntimeObject, reconcileResult ReconcileResu
 
 // patchStatus - patches the status of the resource with the new status and returns the reconcile error
 // TODO: implement event recorder to fire ready condition change events
-func patchStatus(ctx context.Context, logger logr.Logger, kubeClient client.Client, newObject RuntimeObject, reconcileError error) error {
+func patchStatus(ctx context.Context, kubeClient client.Client, newObject RuntimeObject, reconcileError error) error {
 	oldObject, err := getOriginalResourceFromContext(ctx)
 	if err != nil {
 		return err
