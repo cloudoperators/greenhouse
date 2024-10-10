@@ -47,6 +47,8 @@ func DefaultCluster(ctx context.Context, _ client.Client, obj runtime.Object) er
 	if !ok {
 		return nil
 	}
+	cluster.SetDefaultTokenValidityIfNeeded()
+
 	annotations := cluster.GetAnnotations()
 	deletionVal, deletionMarked := annotations[apis.MarkClusterDeletionAnnotation]
 	_, scheduleExists := annotations[apis.ScheduleClusterDeletionAnnotation]
@@ -95,7 +97,8 @@ func ValidateCreateCluster(ctx context.Context, _ client.Client, obj runtime.Obj
 		logger.Error(err, "found deletion annotation on cluster creation, admission will be denied")
 		return admission.Warnings{"you cannot create a cluster with deletion annotation"}, err
 	}
-	return nil, nil
+
+	return validateTokenValidity(cluster)
 }
 
 // ValidateUpdateCluster disallows cluster updates with invalid deletion schedules
@@ -111,7 +114,7 @@ func ValidateUpdateCluster(ctx context.Context, _ client.Client, _, currObj runt
 		logger.Error(err, "update request denied", "cluster", cluster.GetName())
 		return admission.Warnings{"update is not allowed"}, err
 	}
-	return nil, nil
+	return validateTokenValidity(cluster)
 }
 
 // ValidateDeleteCluster only allows deletion requests for clusters with a deletion schedule timestamp past now.
@@ -159,4 +162,13 @@ func ValidateDeleteCluster(ctx context.Context, _ client.Client, obj runtime.Obj
 	err = apierrors.NewForbidden(groupResource, cluster.GetName(), errors.New("deletion scheduled at - "+schedule.String()))
 	logger.Error(err, "deletion request denied", "cluster", cluster.GetName())
 	return admission.Warnings{"deletion is not allowed"}, err
+}
+
+func validateTokenValidity(cluster *greenhousev1alpha1.Cluster) (admission.Warnings, error) {
+	if cluster.Spec.MaxTokenValidity.Duration > greenhousev1alpha1.MaxTokenValidity {
+		err := apierrors.NewBadRequest("token validity is too long")
+		return admission.Warnings{"token validity too long"}, err
+	}
+
+	return nil, nil
 }

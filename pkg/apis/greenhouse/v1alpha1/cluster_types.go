@@ -4,6 +4,8 @@
 package v1alpha1
 
 import (
+	"time"
+
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -26,6 +28,9 @@ const (
 
 	// KubeConfigValid reflects the validity of the kubeconfig of a cluster.
 	KubeConfigValid ConditionType = "KubeConfigValid"
+
+	// MaxTokenValidity contains maximum bearer token validity duration. It is also default value.
+	MaxTokenValidity = 72 * time.Hour
 )
 
 // ClusterStatus defines the observed state of Cluster
@@ -90,4 +95,12 @@ type ClusterList struct {
 
 func init() {
 	SchemeBuilder.Register(&Cluster{}, &ClusterList{})
+}
+
+func (c *Cluster) SetDefaultTokenValidityIfNeeded() {
+	if c.Spec.MaxTokenValidity.Duration != 0 {
+		return
+	}
+
+	c.Spec.MaxTokenValidity.Duration = MaxTokenValidity
 }

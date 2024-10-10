@@ -112,7 +112,7 @@ func (r *RemoteClusterReconciler) EnsureCreated(ctx context.Context, resource li
 
 	var tokenRequest = &tokenHelper{
 		Client:                             r.Client,
-		RemoteClusterBearerTokenValidity:   r.RemoteClusterBearerTokenValidity,
+		RemoteClusterBearerTokenValidity:   cluster.Spec.MaxTokenValidity.Duration,
 		RenewRemoteClusterBearerTokenAfter: r.RenewRemoteClusterBearerTokenAfter,
 	}
 	if err := tokenRequest.ReconcileServiceAccountToken(ctx, restClientGetter, cluster); err != nil {
