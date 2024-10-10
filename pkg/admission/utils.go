@@ -5,6 +5,7 @@ package admission
 
 import (
 	"context"
+	"net/url"
 
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/validation/field"
@@ -101,6 +102,11 @@ func validateImmutableField(oldValue, newValue string, path *field.Path) *field.
 		return field.Invalid(path, newValue, "field is immutable")
 	}
 	return nil
+}
+
+func validateURL(str string) bool {
+	parsedURL, err := url.Parse(str)
+	return err == nil && parsedURL.Scheme != "" && parsedURL.Host != ""
 }
 
 // logAdmissionRequest logs the AdmissionRequest.
