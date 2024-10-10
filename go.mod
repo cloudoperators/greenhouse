@@ -1,6 +1,8 @@
 module github.com/cloudoperators/greenhouse
 
-go 1.23
+go 1.23.1
+
+toolchain go1.23.2
 
 replace (
 	// DEX import matches version v2.41.1.
@@ -48,7 +50,7 @@ require (
 	sigs.k8s.io/controller-runtime v0.19.0
 	sigs.k8s.io/e2e-framework v0.4.0
 	sigs.k8s.io/yaml v1.4.0
-	tailscale.com v1.74.1
+	tailscale.com v1.76.0
 )
 
 require (
