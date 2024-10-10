@@ -77,7 +77,7 @@ var _ = Describe("Bootstrap controller", Ordered, func() {
 				id := types.NamespacedName{Name: invalidKubeConfigSecret.Name, Namespace: setup.Namespace()}
 				Eventually(func(g Gomega) bool {
 					g.Expect(test.K8sClient.Get(test.Ctx, id, cluster)).Should(Succeed(), "the cluster should have been created")
-					g.Expect(cluster.Spec.AccessMode).To(Equal(greenhousev1alpha1.ClusterAccessModeHeadscale), "the cluster accessmode should be set to headscale")
+					g.Expect(cluster.Spec.AccessMode).To(Equal(greenhousev1alpha1.ClusterAccessModeDirect), "the cluster accessmode should still be direct")
 					g.Expect(cluster.Status.Conditions).ToNot(BeNil(), "status conditions should be present")
 					readyCondition := cluster.Status.GetConditionByType(greenhousev1alpha1.ReadyCondition)
 					g.Expect(readyCondition).ToNot(BeNil())

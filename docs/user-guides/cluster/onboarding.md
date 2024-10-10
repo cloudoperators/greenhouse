@@ -36,6 +36,7 @@ greenhousectl cluster bootstrap --bootstrap-kubeconfig <path/to/cluster-kubeconf
 ```
 
 A typical output when you ran the command looks like
+
 ```commandline
 2024-02-01T09:34:55.522+0100	INFO	setup	Loaded kubeconfig	{"context": "default", "host": "https://api.greenhouse-qa.eu-nl-1.cloud.sap"}
 2024-02-01T09:34:55.523+0100	INFO	setup	Loaded client kubeconfig	{"host": "https://api.monitoring.greenhouse.shoot.canary.k8s-hana.ondemand.com"}
@@ -43,9 +44,6 @@ A typical output when you ran the command looks like
 2024-02-01T09:34:56.639+0100	INFO	setup	created namespace	{"name": "ccloud"}
 2024-02-01T09:34:56.696+0100	INFO	setup	created serviceAccount	{"name": "greenhouse"}
 2024-02-01T09:34:56.810+0100	INFO	setup	created clusterRoleBinding	{"name": "greenhouse"}
-2024-02-01T09:34:56.867+0100	INFO	setup	created serviceAccount	{"name": "tailscale"}
-2024-02-01T09:34:56.925+0100	INFO	setup	created role	{"name": "tailscale"}
-2024-02-01T09:34:56.982+0100	INFO	setup	created roleBinding	{"name": "tailscale"}
 2024-02-01T09:34:57.189+0100	INFO	setup	created clusterSecret	{"name": "monitoring"}
 2024-02-01T09:34:58.309+0100	INFO	setup	Bootstraping cluster finished	{"clusterName": "monitoring", "orgName": "ccloud"}
 ```

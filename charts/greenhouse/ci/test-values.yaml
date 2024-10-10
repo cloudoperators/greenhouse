@@ -39,12 +39,6 @@ alerts:
     host: topSecret!
   endpoint: topSecret!
 
-headscale:
-  ingress:
-    host: "foo.bar"
-  postgres:
-    password: topSecret!
-
 tailscale-proxy:
   preauthkeyProvosioner:
     userName: topSecret!

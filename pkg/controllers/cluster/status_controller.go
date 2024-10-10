@@ -72,7 +72,7 @@ func (r *ClusterStatusReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 		allNodesReadyCondition, clusterNodeStatus = r.reconcileNodeStatus(ctx, restClientGetter)
 	}
 
-	readyCondition := r.reconcileReadyStatus(cluster, kubeConfigValidCondition)
+	readyCondition := r.reconcileReadyStatus(kubeConfigValidCondition)
 
 	conditions = append(conditions, readyCondition, allNodesReadyCondition, kubeConfigValidCondition)
 
@@ -151,19 +151,12 @@ func (r *ClusterStatusReconciler) reconcileClusterSecret(
 	return
 }
 
-func (r *ClusterStatusReconciler) reconcileReadyStatus(cluster *greenhousev1alpha1.Cluster, kubeConfigValidCondition greenhousev1alpha1.Condition) (readyCondition greenhousev1alpha1.Condition) {
+func (r *ClusterStatusReconciler) reconcileReadyStatus(kubeConfigValidCondition greenhousev1alpha1.Condition) (readyCondition greenhousev1alpha1.Condition) {
 	readyCondition = greenhousev1alpha1.UnknownCondition(greenhousev1alpha1.ReadyCondition, "", "")
 
 	if kubeConfigValidCondition.IsFalse() {
 		readyCondition.Status = metav1.ConditionFalse
 		readyCondition.Message = "kubeconfig not valid - cannot access cluster"
-		// change ready condition message if headscale not ready
-		if cluster.Spec.AccessMode == greenhousev1alpha1.ClusterAccessModeHeadscale {
-			headscaleReadyCondition := cluster.Status.StatusConditions.GetConditionByType(greenhousev1alpha1.HeadscaleReady)
-			if headscaleReadyCondition == nil || !headscaleReadyCondition.IsTrue() {
-				readyCondition.Message = "Headscale connection not ready"
-			}
-		}
 	} else {
 		readyCondition.Status = metav1.ConditionTrue
 	}

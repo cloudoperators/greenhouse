@@ -52,17 +52,6 @@ spec:
               containerName: manager
               divisor: "0"
               resource: limits.cpu
-        {{- if .Values.headscale.enabled }}
-        - name: HEADSCALE_API_URL
-          value: {{ required ".Values.headscale.apiURL missing" .Values.headscale.apiURL }}
-        - name: HEADSCALE_API_KEY
-          valueFrom:
-            secretKeyRef:
-              name: {{ required ".Values.headscale.apiKeySecret missing" .Values.headscale.apiKeySecret }}
-              key: HEADSCALE_CLI_API_KEY
-        - name: TAILSCALE_PROXY
-          value: {{ required ".Values.headscale.proxyURL missing" .Values.headscale.proxyURL }}
-        {{ end }}
         image: {{ .Values.controllerManager.image.repository }}:{{ .Values.controllerManager.image.tag | default .Chart.AppVersion }}
         livenessProbe:
           httpGet:
