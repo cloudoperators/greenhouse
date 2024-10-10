@@ -48,7 +48,7 @@ var _ = BeforeSuite(func() {
 
 	bootstrapReconciler = &clusterpkg.BootstrapReconciler{}
 	test.RegisterController("clusterBootstrap", (bootstrapReconciler).SetupWithManager)
-	test.RegisterController("clusterDirectAccess", (&clusterpkg.DirectAccessReconciler{
+	test.RegisterController("cluster", (&clusterpkg.RemoteClusterReconciler{
 		RemoteClusterBearerTokenValidity:   10 * time.Minute,
 		RenewRemoteClusterBearerTokenAfter: 9 * time.Minute,
 	}).SetupWithManager)
@@ -61,7 +61,6 @@ var _ = BeforeSuite(func() {
 		RenewRemoteClusterBearerTokenAfter:       9 * time.Minute,
 	}
 	test.RegisterController("clusterHeadscaleAccess", (headscaleReconciler).SetupWithManager)
-	test.RegisterController("clusterStatus", (&clusterpkg.ClusterStatusReconciler{}).SetupWithManager)
 	test.RegisterWebhook("clusterValidation", admission.SetupClusterWebhookWithManager)
 	test.RegisterWebhook("secretsWebhook", admission.SetupSecretWebhookWithManager)
 

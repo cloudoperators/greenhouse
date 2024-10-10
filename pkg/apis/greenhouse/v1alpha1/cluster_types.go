@@ -29,9 +29,6 @@ const (
 
 	// KubeConfigValid reflects the validity of the kubeconfig of a cluster.
 	KubeConfigValid ConditionType = "KubeConfigValid"
-
-	// ClusterDeletionScheduled reflects the condition type if a cluster is scheduled for deletion
-	ClusterDeletionScheduled ConditionType = "ClusterDeletionScheduled"
 )
 
 // ClusterStatus defines the observed state of Cluster
@@ -99,6 +96,14 @@ type Cluster struct {
 
 	Spec   ClusterSpec   `json:"spec,omitempty"`
 	Status ClusterStatus `json:"status,omitempty"`
+}
+
+func (c *Cluster) GetConditions() StatusConditions {
+	return c.Status.StatusConditions
+}
+
+func (c *Cluster) SetCondition(condition Condition) {
+	c.Status.StatusConditions.SetConditions(condition)
 }
 
 // GetSecretName returns the Kubernetes secret containing sensitive data for this cluster.

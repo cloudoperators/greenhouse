@@ -26,7 +26,9 @@ type DummySpec struct {
 }
 
 // DummyStatus defines the observed state of Dummy
-type DummyStatus struct{}
+type DummyStatus struct {
+	v1alpha1.StatusConditions `json:"statusConditions,omitempty"`
+}
 
 //+kubebuilder:object:root=true
 //+kubebuilder:subresource:status
@@ -142,4 +144,12 @@ func (in *DummyStatus) DeepCopy() *DummyStatus {
 	out := new(DummyStatus)
 	in.DeepCopyInto(out)
 	return out
+}
+
+func (in *Dummy) GetConditions() v1alpha1.StatusConditions {
+	return in.Status.StatusConditions
+}
+
+func (in *Dummy) SetCondition(condition v1alpha1.Condition) {
+	in.Status.StatusConditions.SetConditions(condition)
 }

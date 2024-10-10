@@ -16,6 +16,7 @@ import (
 
 	greenhouseapis "github.com/cloudoperators/greenhouse/pkg/apis"
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/pkg/apis/greenhouse/v1alpha1"
+	"github.com/cloudoperators/greenhouse/pkg/lifecycle"
 	"github.com/cloudoperators/greenhouse/pkg/test"
 )
 
@@ -229,8 +230,8 @@ var _ = Describe("Cluster status controller", Ordered, func() {
 		By("checking the deletion condition")
 		Eventually(func(g Gomega) bool {
 			g.Expect(test.K8sClient.Get(test.Ctx, types.NamespacedName{Name: validCluster.Name, Namespace: setup.Namespace()}, &validCluster)).ShouldNot(HaveOccurred(), "There should be no error getting the cluster resource")
-			g.Expect(validCluster.Status.GetConditionByType(greenhousev1alpha1.ClusterDeletionScheduled)).ToNot(BeNil(), "The Deletion condition should be present")
-			g.Expect(validCluster.Status.GetConditionByType(greenhousev1alpha1.ClusterDeletionScheduled).Status).To(Equal(metav1.ConditionTrue))
+			g.Expect(validCluster.Status.GetConditionByType(greenhousev1alpha1.DeleteCondition)).ToNot(BeNil(), "The Delete condition should be present")
+			g.Expect(validCluster.Status.GetConditionByType(greenhousev1alpha1.DeleteCondition).Reason).To(Equal(lifecycle.ScheduledDeletionReason))
 			return true
 		}).Should(BeTrue())
 	})
