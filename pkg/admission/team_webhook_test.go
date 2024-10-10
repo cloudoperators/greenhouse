@@ -72,11 +72,11 @@ var _ = Describe("Validate Team Creation", func() {
 		teamFaultyGreenhouseLabels := teamStub
 		teamFaultyGreenhouseLabels.SetName("faulty-greenhouse-labels")
 
-		teamValidJoinUrl := teamStub
-		teamValidJoinUrl.SetName("valid-joinurl")
+		teamValidJoinURL := teamStub
+		teamValidJoinURL.SetName("valid-joinurl")
 
-		teamInvalidJoinUrl := teamStub
-		teamInvalidJoinUrl.SetName("invalid-joinurl")
+		teamInvalidJoinURL := teamStub
+		teamInvalidJoinURL.SetName("invalid-joinurl")
 
 		By("correctly allowing creation of a team with non-greenhouse labels", func() {
 			teamNoGreenhouseLabels.SetLabels(map[string]string{
@@ -133,24 +133,24 @@ var _ = Describe("Validate Team Creation", func() {
 		})
 
 		By("correctly allowing create of a team with valid JoinURL", func() {
-			teamValidJoinUrl.Spec.JoinURL = "https://example.com/resource"
-			err := test.K8sClient.Create(test.Ctx, &teamValidJoinUrl)
+			teamValidJoinURL.Spec.JoinURL = "https://example.com/resource"
+			err := test.K8sClient.Create(test.Ctx, &teamValidJoinURL)
 			Expect(err).ToNot(HaveOccurred(), "There should be no error when creating a team with valid JoinURL")
 		})
 		By("correctly denying create of a team with invalid JoinURL", func() {
-			teamInvalidJoinUrl.Spec.JoinURL = "testvalue"
-			err := test.K8sClient.Create(test.Ctx, &teamInvalidJoinUrl)
+			teamInvalidJoinURL.Spec.JoinURL = "testvalue"
+			err := test.K8sClient.Create(test.Ctx, &teamInvalidJoinURL)
 			Expect(err).To(HaveOccurred(), "There should be an error when creating a team with invalid JoinURL")
 			Expect(err.Error()).To(ContainSubstring("JoinURL must be a valid URL."))
 		})
 		By("correctly allowing update of a team with valid JoinURL", func() {
-			teamValidJoinUrl.Spec.JoinURL = "https://1.1.1.1:80"
-			err := test.K8sClient.Update(test.Ctx, &teamValidJoinUrl)
+			teamValidJoinURL.Spec.JoinURL = "https://1.1.1.1:80"
+			err := test.K8sClient.Update(test.Ctx, &teamValidJoinURL)
 			Expect(err).ToNot(HaveOccurred(), "There should be no error when updating a team with valid JoinURL")
 		})
 		By("correctly denying update of a team with invalid JoinURL", func() {
-			teamValidJoinUrl.Spec.JoinURL = "/example/1"
-			err := test.K8sClient.Update(test.Ctx, &teamValidJoinUrl)
+			teamValidJoinURL.Spec.JoinURL = "/example/1"
+			err := test.K8sClient.Update(test.Ctx, &teamValidJoinURL)
 			Expect(err).To(HaveOccurred(), "There should be an error when updating a team with invalid JoinURL")
 			Expect(err.Error()).To(ContainSubstring("JoinURL must be a valid URL."))
 		})

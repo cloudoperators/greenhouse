@@ -104,9 +104,9 @@ func validateImmutableField(oldValue, newValue string, path *field.Path) *field.
 	return nil
 }
 
-func validateUrl(str string) bool {
-	url, err := url.Parse(str)
-	return err == nil && url.Scheme != "" && url.Host != ""
+func validateURL(str string) bool {
+	parsedURL, err := url.Parse(str)
+	return err == nil && parsedURL.Scheme != "" && parsedURL.Host != ""
 }
 
 // logAdmissionRequest logs the AdmissionRequest.
