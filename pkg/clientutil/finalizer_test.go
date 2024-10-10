@@ -3,6 +3,7 @@ package clientutil
 import (
 	"context"
 	"errors"
+	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/pkg/apis/greenhouse/v1alpha1"
 	"github.com/cloudoperators/greenhouse/pkg/controllers/fixtures"
 	"github.com/stretchr/testify/require"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -76,7 +77,7 @@ func Test_HasFinalizer(t *testing.T) {
 }
 
 func Test_EnsureFinalizer(t *testing.T) {
-	err := fixtures.AddToScheme(scheme.Scheme)
+	err := greenhousev1alpha1.AddToScheme(scheme.Scheme)
 	require.NoError(t, err)
 	type args struct {
 		ctx       context.Context
@@ -126,7 +127,7 @@ func Test_EnsureFinalizer(t *testing.T) {
 }
 
 func Test_RemoveFinalizer(t *testing.T) {
-	err := fixtures.AddToScheme(scheme.Scheme)
+	err := greenhousev1alpha1.AddToScheme(scheme.Scheme)
 	require.NoError(t, err)
 
 	type args struct {
