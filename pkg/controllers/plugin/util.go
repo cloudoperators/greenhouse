@@ -6,9 +6,10 @@ package plugin
 import (
 	"context"
 	"fmt"
-	"github.com/cloudoperators/greenhouse/pkg/lifecycle"
 	"strings"
 	"time"
+
+	"github.com/cloudoperators/greenhouse/pkg/lifecycle"
 
 	ctrl "sigs.k8s.io/controller-runtime"
 
