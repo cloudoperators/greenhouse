@@ -658,8 +658,9 @@ StatusConditions
 </h3>
 <p>
 (<em>Appears on:</em>
-<a href="#greenhouse.sap/v1alpha1.ClusterKubeconfig">ClusterKubeconfig</a>)
+<a href="#greenhouse.sap/v1alpha1.PluginPresetSpec">PluginPresetSpec</a>)
 </p>
+<p>ClusterOptionOverride defines which plugin option should be override in which cluster</p>
 <div class="md-typeset__scrollwrap">
 <div class="md-typeset__table">
 <table>
@@ -672,10 +673,20 @@ StatusConditions
 <tbody>
 <tr>
 <td>
-<code>statusConditions</code><br>
+<code>clusterName</code><br>
 <em>
-<a href="#greenhouse.sap/v1alpha1.StatusConditions">
-StatusConditions
+string
+</em>
+</td>
+<td>
+</td>
+</tr>
+<tr>
+<td>
+<code>overrides</code><br>
+<em>
+<a href="#greenhouse.sap/v1alpha1.PluginOptionValue">
+[]PluginOptionValue
 </a>
 </em>
 </td>
