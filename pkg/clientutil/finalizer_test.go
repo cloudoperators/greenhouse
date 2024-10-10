@@ -32,15 +32,11 @@ func (e *errorClient) Patch(_ context.Context, _ client.Object, _ client.Patch, 
 }
 
 func objectWithFinalizer(finalizers ...string) *fixtures.Dummy {
-	var setFinalizers []string
-	for _, finalizer := range finalizers {
-		setFinalizers = append(setFinalizers, finalizer)
-	}
 	return &fixtures.Dummy{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:       "test-object",
 			Namespace:  "test-namespace",
-			Finalizers: setFinalizers,
+			Finalizers: finalizers,
 		},
 	}
 }
@@ -84,8 +80,8 @@ func Test_HasFinalizer(t *testing.T) {
 func Test_EnsureFinalizer(t *testing.T) {
 	err := greenhousev1alpha1.AddToScheme(scheme.Scheme)
 	require.NoError(t, err)
+	ctx := context.Background()
 	type args struct {
-		ctx       context.Context
 		c         client.Client
 		o         client.Object
 		finalizer string
@@ -99,7 +95,6 @@ func Test_EnsureFinalizer(t *testing.T) {
 		{
 			name: "it should add finalizer successfully",
 			args: args{
-				ctx:       context.Background(),
 				c:         fake.NewClientBuilder().WithScheme(scheme.Scheme).WithObjects(objectWithoutFinalizer()).Build(),
 				o:         objectWithoutFinalizer(),
 				finalizer: "some.other.finalizer",
@@ -109,7 +104,6 @@ func Test_EnsureFinalizer(t *testing.T) {
 		{
 			name: "it should error out while adding finalizer",
 			args: args{
-				ctx:       context.Background(),
 				c:         &errorClient{Client: nil},
 				o:         objectWithoutFinalizer(),
 				finalizer: "some.another.finalizer",
@@ -120,7 +114,7 @@ func Test_EnsureFinalizer(t *testing.T) {
 
 	for _, test := range testCases {
 		t.Run(test.name, func(t *testing.T) {
-			err = EnsureFinalizer(test.args.ctx, test.args.c, test.args.o, test.args.finalizer)
+			err = EnsureFinalizer(ctx, test.args.c, test.args.o, test.args.finalizer)
 			if (err != nil) != test.wantErr {
 				t.Errorf("EnsureFinalizer() error = %v, wantErr %v", err, test.wantErr)
 			}
