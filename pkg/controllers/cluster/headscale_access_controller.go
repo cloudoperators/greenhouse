@@ -331,7 +331,7 @@ func (r *HeadscaleAccessReconciler) reconcileServiceAccountToken(ctx context.Con
 		Client:                             r.Client,
 		Proxy:                              r.TailscaleProxy,
 		HeadscaleAddress:                   ipAddress,
-		RemoteClusterBearerTokenValidity:   r.RemoteClusterBearerTokenValidity,
+		RemoteClusterBearerTokenValidity:   cluster.Spec.MaxTokenValidity.Duration,
 		RenewRemoteClusterBearerTokenAfter: r.RenewRemoteClusterBearerTokenAfter,
 	}
 	return tokenRequestor.ReconcileServiceAccountToken(ctx, restClientGetter, cluster)
