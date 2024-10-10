@@ -53,6 +53,16 @@ func PredicateClusterByAccessMode(accessMode greenhousev1alpha1.ClusterAccessMod
 	})
 }
 
+func PredicateClusterIsReady() predicate.Predicate {
+	return predicate.NewPredicateFuncs(func(o client.Object) bool {
+		cluster, ok := o.(*greenhousev1alpha1.Cluster)
+		if ok && (len(cluster.Status.Conditions) == 0 || !cluster.Status.IsReadyTrue()) {
+			return true
+		}
+		return false
+	})
+}
+
 func PredicateByName(name string) predicate.Predicate {
 	return predicate.NewPredicateFuncs(func(o client.Object) bool {
 		return o.GetName() == name

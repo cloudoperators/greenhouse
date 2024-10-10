@@ -12,6 +12,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/clientcmd"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/log"
@@ -38,7 +39,8 @@ func (r *KubeconfigReconciler) SetupWithManager(name string, mgr ctrl.Manager) e
 
 	return ctrl.NewControllerManagedBy(mgr).
 		Named(name).
-		Watches(&v1alpha1.Cluster{}, handler.EnqueueRequestsFromMapFunc(sameNameResource)).
+		Watches(&v1alpha1.Cluster{}, handler.EnqueueRequestsFromMapFunc(sameNameResource),
+			builder.WithPredicates(clientutil.PredicateClusterIsReady())).
 		Watches(&corev1.Secret{}, handler.EnqueueRequestsFromMapFunc(clusterSecretToCluster)).
 		Watches(&v1alpha1.Organization{}, handler.EnqueueRequestsFromMapFunc(r.organizationToClusters)).
 		Watches(&corev1.Secret{}, handler.EnqueueRequestsFromMapFunc(r.organizationSecretToClusters)).
@@ -60,11 +62,6 @@ func (r *KubeconfigReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 
 	if cluster.GetDeletionTimestamp() != nil {
 		l.Info("skip reconcile, cluster is being deleted")
-		return ctrl.Result{}, nil
-	}
-
-	if len(cluster.Status.Conditions) == 0 || !cluster.Status.IsReadyTrue() {
-		l.Info("skip reconcile, cluster is not ready")
 		return ctrl.Result{}, nil
 	}
 
