@@ -17,8 +17,8 @@ const (
 	// ReadyCondition reflects the overall readiness status of a resource.
 	ReadyCondition ConditionType = "Ready"
 
-	// DeleteCondition reflects that the resource has finished it's cleanup process.
-	DeleteCondition ConditionType = "Deleted"
+	// DeleteCondition reflects that the resource has finished its cleanup process.
+	DeleteCondition ConditionType = "Delete"
 
 	// ClusterListEmpty is set when the resources ClusterSelector results in an empty ClusterList.
 	ClusterListEmpty ConditionType = "ClusterListEmpty"
@@ -80,7 +80,7 @@ func UnknownCondition(t ConditionType, reason ConditionReason, message string) C
 
 // Equal returns true if the condition is identical to the supplied condition,
 // ignoring the LastTransitionTime.
-func (c Condition) Equal(other Condition) bool {
+func (c *Condition) Equal(other Condition) bool {
 	return c.Type == other.Type &&
 		c.Status == other.Status &&
 		c.Reason == other.Reason &&
@@ -88,12 +88,16 @@ func (c Condition) Equal(other Condition) bool {
 }
 
 // IsTrue returns true if the condition is true.
-func (c Condition) IsTrue() bool {
+func (c *Condition) IsTrue() bool {
 	return c.Status == metav1.ConditionTrue
 }
 
+func (c *Condition) IsUnknown() bool {
+	return c.Status == metav1.ConditionUnknown
+}
+
 // IsFalse returns true if the condition is false.
-func (c Condition) IsFalse() bool {
+func (c *Condition) IsFalse() bool {
 	return c.Status == metav1.ConditionFalse
 }
 

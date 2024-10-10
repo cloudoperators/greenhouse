@@ -55,6 +55,7 @@ func (r *RemoteClusterReconciler) SetupWithManager(name string, mgr ctrl.Manager
 		)).
 		// Watch the secret owned by this cluster.
 		Watches(&corev1.Secret{}, handler.EnqueueRequestForOwner(mgr.GetScheme(), mgr.GetRESTMapper(), &greenhousev1alpha1.Cluster{})).
+		WithEventFilter(lifecycle.IgnoreStatusUpdatePredicate()).
 		Complete(r)
 }
 
@@ -67,14 +68,11 @@ func (r *RemoteClusterReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 }
 
 func (r *RemoteClusterReconciler) EnsureCreated(ctx context.Context, resource lifecycle.RuntimeObject) (ctrl.Result, lifecycle.ReconcileResult, error) {
-	cluster, ok := resource.(*greenhousev1alpha1.Cluster)
-	if !ok {
-		return ctrl.Result{}, lifecycle.Failed, errors.New("object is not of cluster type")
-	}
+	cluster := resource.(*greenhousev1alpha1.Cluster) //nolint:errcheck
 	if cluster.Spec.AccessMode != greenhousev1alpha1.ClusterAccessModeDirect {
 		return ctrl.Result{}, lifecycle.Failed, nil
 	}
-
+	// Deletion Schedule mechanism
 	isScheduled, schedule, err := clientutil.ExtractDeletionSchedule(cluster.GetAnnotations())
 	if err != nil {
 		return ctrl.Result{}, lifecycle.Failed, err
@@ -88,6 +86,7 @@ func (r *RemoteClusterReconciler) EnsureCreated(ctx context.Context, resource li
 			return ctrl.Result{}, lifecycle.Success, nil
 		}
 	}
+	defer updateMetrics(cluster)
 	var clusterSecret = new(corev1.Secret)
 	if err := r.Get(ctx, types.NamespacedName{Name: cluster.GetSecretName(), Namespace: cluster.GetNamespace()}, clusterSecret); err != nil {
 		return ctrl.Result{}, lifecycle.Failed, err
@@ -113,28 +112,24 @@ func (r *RemoteClusterReconciler) EnsureCreated(ctx context.Context, resource li
 		return ctrl.Result{}, lifecycle.Failed, err
 	}
 
-	var tokenRequestor = &tokenHelper{
+	var tokenRequest = &tokenHelper{
 		Client:                             r.Client,
 		RemoteClusterBearerTokenValidity:   r.RemoteClusterBearerTokenValidity,
 		RenewRemoteClusterBearerTokenAfter: r.RenewRemoteClusterBearerTokenAfter,
 	}
-	if err := tokenRequestor.ReconcileServiceAccountToken(ctx, restClientGetter, cluster); err != nil {
+	if err := tokenRequest.ReconcileServiceAccountToken(ctx, restClientGetter, cluster); err != nil {
 		return ctrl.Result{}, lifecycle.Failed, err
 	}
 
 	if err := reconcileRemoteAPIServerVersion(ctx, restClientGetter, r.Client, cluster); err != nil {
 		return ctrl.Result{}, lifecycle.Failed, err
 	}
-	updateMetrics(cluster)
 	return ctrl.Result{RequeueAfter: defaultRequeueInterval}, lifecycle.Success, nil
 }
 
 // EnsureDeleted - handles the deletion / cleanup of cluster resource
 func (r *RemoteClusterReconciler) EnsureDeleted(ctx context.Context, resource lifecycle.RuntimeObject) (ctrl.Result, lifecycle.ReconcileResult, error) {
-	cluster, ok := resource.(*greenhousev1alpha1.Cluster)
-	if !ok {
-		return ctrl.Result{}, lifecycle.Failed, errors.New("object is not of cluster type")
-	}
+	cluster := resource.(*greenhousev1alpha1.Cluster) //nolint:errcheck
 	// delete all plugins that are bound to this cluster
 	deletionCount, err := deletePlugins(ctx, r.Client, cluster)
 	if err != nil {
@@ -143,6 +138,8 @@ func (r *RemoteClusterReconciler) EnsureDeleted(ctx context.Context, resource li
 	if deletionCount > 0 {
 		return ctrl.Result{RequeueAfter: 10 * time.Second}, lifecycle.Pending, nil
 	}
+
+	defer updateMetrics(cluster)
 
 	kubeConfigSecret := &corev1.Secret{}
 	if err := r.Client.Get(ctx, types.NamespacedName{Namespace: cluster.GetNamespace(), Name: cluster.GetSecretName()}, kubeConfigSecret); err != nil {
@@ -161,7 +158,6 @@ func (r *RemoteClusterReconciler) EnsureDeleted(ctx context.Context, resource li
 	if err := deleteNamespaceInRemoteCluster(ctx, remoteClient, cluster); err != nil {
 		return ctrl.Result{}, lifecycle.Failed, err
 	}
-	updateMetrics(cluster)
 	return ctrl.Result{}, lifecycle.Success, nil
 }
 

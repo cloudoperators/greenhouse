@@ -51,7 +51,7 @@ func (r *RemoteClusterReconciler) setConditions() lifecycle.Conditioner {
 		conditions = append(conditions, readyCondition, allNodesReadyCondition, kubeConfigValidCondition)
 
 		deletionCondition := r.checkDeletionSchedule(logger, cluster)
-		if deletionCondition.IsTrue() {
+		if !deletionCondition.IsUnknown() {
 			conditions = append(conditions, deletionCondition)
 		}
 		cluster.Status.KubernetesVersion = k8sVersion
@@ -61,13 +61,13 @@ func (r *RemoteClusterReconciler) setConditions() lifecycle.Conditioner {
 }
 
 func (r *RemoteClusterReconciler) checkDeletionSchedule(logger logr.Logger, cluster *greenhousev1alpha1.Cluster) greenhousev1alpha1.Condition {
-	deletionCondition := greenhousev1alpha1.UnknownCondition(greenhousev1alpha1.ClusterDeletionScheduled, "", "")
+	deletionCondition := greenhousev1alpha1.UnknownCondition(greenhousev1alpha1.DeleteCondition, "", "")
 	scheduleExists, schedule, err := clientutil.ExtractDeletionSchedule(cluster.GetAnnotations())
 	if err != nil {
 		logger.Error(err, "failed to extract deletion schedule - ignoring deletion schedule")
 	}
 	if scheduleExists {
-		deletionCondition = greenhousev1alpha1.TrueCondition(greenhousev1alpha1.ClusterDeletionScheduled, "", "deletion scheduled at "+schedule.Format(time.DateTime))
+		deletionCondition = greenhousev1alpha1.FalseCondition(greenhousev1alpha1.DeleteCondition, lifecycle.ScheduledDeletionReason, "deletion scheduled at "+schedule.Format(time.DateTime))
 	}
 	return deletionCondition
 }
