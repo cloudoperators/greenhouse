@@ -23,6 +23,11 @@ scim:
   username: topSecret!
   password: topSecret!123
 
+teams:
+  admin:
+    description: The Admin Team
+    mappedIdPGroup: Admin IDP Group
+
 alerts:
   enabled: true
   tlsConfig:

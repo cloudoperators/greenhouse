@@ -29,9 +29,9 @@ scim:
 # Configures core Greenhouse teams.
 teams:
   # An admin team must be specified. Additional teams are optional.
-  admin:
-    description: Greenhouse admin team
-    mappedIdPGroup: CCloud Greenhouse Admin
+  # admin:
+  #   description:
+  #   mappedIdPGroup:
 
 # toggles logshipping subchart
 logshipping:
