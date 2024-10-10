@@ -13,6 +13,8 @@ type TeamSpec struct {
 	Description string `json:"description,omitempty"`
 	// IdP group id matching team.
 	MappedIDPGroup string `json:"mappedIdPGroup,omitempty"`
+	// URL to join the IdP group.
+	JoinURL string `json:"joinUrl,omitempty"`
 }
 
 // TeamStatus defines the observed state of Team
