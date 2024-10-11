@@ -9,12 +9,7 @@ jobs:
   cleanup:
     uses: kengou4/common/.github/workflows/play-shared-ghcr-cleanup.yaml@main
     with:
-      package: |
-        greenhouse
-        greenhouse-tcp-proxy
-        greenhouse-tailscale
-        greenhouse-headscalectl
-        greenhouse-dev-env
+      package: greenhouse,greenhouse-tcp-proxy,greenhouse-tailscale,greenhouse-headscalectl,greenhouse-dev-env
       dry-run: true
       exclude-tags: main
       delete-untagged: true
