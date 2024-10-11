@@ -59,7 +59,7 @@ func PredicateClusterIsReady() predicate.Predicate {
 		if !ok {
 			return false
 		}
-		return len(cluster.Status.Conditions) > 0 && cluster.Status.IsReadyTrue()
+		return cluster.Status.IsReadyTrue()
 	})
 }
 
