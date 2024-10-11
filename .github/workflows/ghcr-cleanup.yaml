@@ -9,6 +9,8 @@ jobs:
   cleanup:
     uses: kengou4/common/.github/workflows/play-shared-ghcr-cleanup.yaml@main
     with:
+      package: greenhouse*
+      expand-packages: true
       dry-run: true
       exclude-tags: main
       delete-untagged: true
@@ -16,4 +18,3 @@ jobs:
       delete-orphaned-images: true
       delete-partial-images: true
       keep-n-tagged: 5
-      
