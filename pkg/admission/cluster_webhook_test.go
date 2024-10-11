@@ -304,3 +304,35 @@ var _ = Describe("Cluster Webhook", func() {
 		),
 	)
 })
+
+var _ = Describe("validateTokenValidity", func() {
+	DescribeTable("Validate token validity", func(cluster *greenhousev1alpha1.Cluster, withError bool) {
+		admission, err := validateTokenValidity(cluster)
+
+		if withError {
+			Expect(err).To(HaveOccurred())
+			Expect(admission).ToNot(BeNil())
+			return
+		}
+
+		Expect(err).NotTo(HaveOccurred())
+		Expect(admission).To(BeNil())
+	},
+		Entry("with too long token validity",
+			&greenhousev1alpha1.Cluster{
+				Spec: greenhousev1alpha1.ClusterSpec{
+					MaxTokenValidity: metav1.Duration{Duration: 73 * time.Hour},
+				},
+			},
+			true,
+		),
+		Entry("with correct token validity",
+			&greenhousev1alpha1.Cluster{
+				Spec: greenhousev1alpha1.ClusterSpec{
+					MaxTokenValidity: metav1.Duration{Duration: 72 * time.Hour},
+				},
+			},
+			false,
+		),
+	)
+})
