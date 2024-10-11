@@ -6,13 +6,6 @@ nameOverride: greenhouse
 alerts:
   enabled: true
 
-# TODO: Move to globals to share with headscale chart
-headscale:
-  enabled: false
-  apiURL:
-  apiKeySecret: tailscale-auth
-  proxyURL: socks5://greenhouse-tailscale-proxy.greenhouse.svc.cluster.local:1055
-
 controllerManager:
   containerSecurityContext:
     allowPrivilegeEscalation: false

@@ -1,7 +1,7 @@
 openapi: 3.0.0
 info:
   title: Greenhouse
-  version: 2fe4054
+  version: 723b1e3
   description: PlusOne operations platform
 paths:
   /Organization:
@@ -390,7 +390,6 @@ components:
               description: AccessMode configures how the cluster is accessed from the Greenhouse operator.
               enum:
                 - direct
-                - headscale
               type: string
           required:
             - accessMode
@@ -402,51 +401,6 @@ components:
               description: BearerTokenExpirationTimestamp reflects the expiration timestamp of the bearer token used to access the cluster.
               format: date-time
               type: string
-            headScaleStatus:
-              description: HeadScaleStatus contains the current status of the headscale client.
-              properties:
-                createdAt:
-                  format: date-time
-                  type: string
-                expiry:
-                  format: date-time
-                  type: string
-                forcedTags:
-                  items:
-                    type: string
-                  type: array
-                id:
-                  format: int64
-                  type: integer
-                ipAddresses:
-                  items:
-                    type: string
-                  type: array
-                name:
-                  type: string
-                online:
-                  type: boolean
-                preAuthKey:
-                  description: PreAuthKey reflects the status of the pre-authentication key used by the Headscale machine.
-                  properties:
-                    createdAt:
-                      format: date-time
-                      type: string
-                    ephemeral:
-                      type: boolean
-                    expiration:
-                      format: date-time
-                      type: string
-                    id:
-                      type: string
-                    reusable:
-                      type: boolean
-                    used:
-                      type: boolean
-                    user:
-                      type: string
-                  type: object
-              type: object
             kubernetesVersion:
               description: KubernetesVersion reflects the detected Kubernetes version of the cluster.
               type: string

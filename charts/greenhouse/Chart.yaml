@@ -5,7 +5,7 @@ apiVersion: v2
 name: greenhouse
 description: A Helm chart for deploying greenhouse
 type: application
-version: 0.2.8
+version: 0.3.0
 appVersion: "0.1.0"
 
 dependencies:
@@ -17,14 +17,6 @@ dependencies:
     name: cors-proxy
     repository: "file://../cors-proxy"
     version: 0.2.0
-  - condition: headscale.enabled
-    name: headscale
-    version: 0.1.3
-    repository: "file://../headscale"
-  - condition: tailscale-proxy.enabled
-    name: tailscale-proxy
-    version: 0.1.0
-    repository: "file://../tailscale-proxy"
   - name: manager
     version: 0.1.6
     repository: "file://../manager"

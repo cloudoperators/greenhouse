@@ -115,7 +115,6 @@ func (r *BootstrapReconciler) getClusterAndIgnoreNotFoundError(ctx context.Conte
 }
 
 // createOrPatchCluster creates or patches the cluster resource and persists input err in the cluster.status.message.
-// Sets cluster.Spec.AccesMode to "headscale" if input err != nil
 func (r *BootstrapReconciler) createOrPatchCluster(
 	ctx context.Context,
 	cluster *greenhousev1alpha1.Cluster,
@@ -131,18 +130,10 @@ func (r *BootstrapReconciler) createOrPatchCluster(
 	readyCondition := greenhousev1alpha1.TrueCondition(greenhousev1alpha1.ReadyCondition, "", "")
 
 	accessMode := greenhousev1alpha1.ClusterAccessModeDirect
-	if metav1.HasLabel(kubeConfigSecret.ObjectMeta, greenhouseapis.LabelAccessMode) && kubeConfigSecret.Labels[greenhouseapis.LabelAccessMode] == "headscale" {
-		accessMode = greenhousev1alpha1.ClusterAccessModeHeadscale
-	}
 
 	if err != nil {
 		readyCondition.Message = "cluster not ready: " + err.Error()
 		readyCondition.Status = metav1.ConditionFalse
-		// Accessmode "headscale" when an error occurred.
-		accessMode = greenhousev1alpha1.ClusterAccessModeHeadscale
-		log.FromContext(ctx).Info("error in cluster reconciliation",
-			"namespace", kubeConfigSecret.GetNamespace(), "name", kubeConfigSecret.GetName(), "message", err.Error(),
-		)
 	}
 
 	cluster.Name = kubeConfigSecret.Name

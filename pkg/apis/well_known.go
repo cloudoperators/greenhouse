@@ -33,9 +33,6 @@ const (
 	// This kubeconfig should be used by Greenhouse controllers and their kubernetes clients to access the remote cluster.
 	GreenHouseKubeConfigKey = "greenhousekubeconfig"
 
-	// HeadscalePreAuthKey is the key for the Headscale pre-authentication key in a secret of type greenhouse.sap/kubeconfig.
-	HeadscalePreAuthKey = "headscalePreAuthKey"
-
 	// LabelKeyPluginPreset is used to identify the PluginPreset managing the plugin.
 	LabelKeyPluginPreset = "greenhouse.sap/pluginpreset"
 
@@ -48,10 +45,7 @@ const (
 	// LabelKeyCluster is used to identify corresponding Cluster for the resource.
 	LabelKeyCluster = "greenhouse.sap/cluster"
 
-	// HeadScaleKey is the key for the Headscale client deployment
-	HeadScaleKey = "greenhouse.sap/headscale"
-
-	// LabelAccessMode is used to force the access mode to headscale for a cluster.
+	// LabelAccessMode is used to force the access mode for a cluster.
 	LabelAccessMode = "greenhouse.sap/access-mode"
 
 	// LabelKeyExposeService is applied to services that are part of a PluginDefinitions Helm chart to expose them via the central Greenhouse infrastructure.
