@@ -148,5 +148,9 @@ func (sc *StatusConditions) GetConditionByType(conditionType ConditionType) *Con
 
 // IsReadyTrue returns true if the Ready condition is true.
 func (sc *StatusConditions) IsReadyTrue() bool {
-	return sc.GetConditionByType(ReadyCondition).IsTrue()
+	c := sc.GetConditionByType(ReadyCondition)
+	if c == nil {
+		return false
+	}
+	return c.IsTrue()
 }
