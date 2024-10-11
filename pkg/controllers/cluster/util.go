@@ -35,47 +35,6 @@ import (
 
 var defaultRequeueInterval = 10 * time.Minute
 
-type KubeConfigHelper struct {
-	Host           string
-	CAData         []byte
-	BearerToken    string
-	Username       string
-	Namespace      string
-	TLSServerName  string
-	ProxyURL       string
-	ClientCertData []byte
-	ClientKeyData  []byte
-}
-
-// RestConfigToAPIConfig converts a rest config to a clientcmdapi.Config
-func (kubeconfig *KubeConfigHelper) RestConfigToAPIConfig(clusterName string) clientcmdapi.Config {
-	clientConfig := clientcmdapi.NewConfig()
-	clientConfig.Clusters[clusterName] = &clientcmdapi.Cluster{
-		Server:                   kubeconfig.Host,
-		CertificateAuthorityData: kubeconfig.CAData,
-		TLSServerName:            kubeconfig.TLSServerName,
-		ProxyURL:                 kubeconfig.ProxyURL,
-	}
-	clientConfig.Contexts[clusterName] = &clientcmdapi.Context{
-		Cluster:   clusterName,
-		AuthInfo:  kubeconfig.Username,
-		Namespace: kubeconfig.Namespace,
-	}
-	clientConfig.CurrentContext = clusterName
-	if kubeconfig.BearerToken != "" {
-		clientConfig.AuthInfos[kubeconfig.Username] = &clientcmdapi.AuthInfo{
-			Token: kubeconfig.BearerToken,
-		}
-	}
-	if kubeconfig.ClientCertData != nil && kubeconfig.ClientKeyData != nil {
-		clientConfig.AuthInfos[kubeconfig.Username] = &clientcmdapi.AuthInfo{
-			ClientCertificateData: kubeconfig.ClientCertData,
-			ClientKeyData:         kubeconfig.ClientKeyData,
-		}
-	}
-	return *clientConfig
-}
-
 func reconcileNamespaceInRemoteCluster(ctx context.Context, k8sClient client.Client, cluster *greenhousev1alpha1.Cluster) error {
 	var namespace = new(corev1.Namespace)
 	namespace.Name = cluster.GetNamespace()
@@ -241,23 +200,29 @@ func (t *tokenHelper) ReconcileServiceAccountToken(ctx context.Context, restClie
 
 // generateNewClientKubeConfigHeadscale generates a kubeconfig for the client to access the cluster from REST config coming from the secret plus the modifications needed for headscale.
 func generateNewClientKubeConfigHeadscale(_ context.Context, restConfigGetter *clientutil.RestClientGetter, bearerToken string, cluster *greenhousev1alpha1.Cluster, proxy, headscaleAddress string) ([]byte, error) {
-	restConfig, err := restConfigGetter.ToRawKubeConfigLoader().ClientConfig()
+	apiConfig, err := restConfigGetter.ToRawKubeConfigLoader().RawConfig()
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to load kube clientConfig for cluster %s", cluster.GetName())
 	}
 
-	kubeConfigGenerator := &KubeConfigHelper{
-		Host:          "https://" + headscaleAddress,
-		TLSServerName: "127.0.0.1",
-		ProxyURL:      proxy,
-		CAData:        restConfig.CAData,
-		BearerToken:   bearerToken,
-		Username:      serviceAccountName,
-		Namespace:     cluster.GetNamespace(),
-	}
-	kubeconfigByte, err := clientcmd.Write(kubeConfigGenerator.RestConfigToAPIConfig(cluster.Name))
+	newConfig := clientcmd.NewDefaultClientConfig(apiConfig, &clientcmd.ConfigOverrides{
+		AuthInfo: clientcmdapi.AuthInfo{
+			Token: bearerToken,
+		},
+		ClusterInfo: clientcmdapi.Cluster{
+			Server:        "https://" + headscaleAddress,
+			TLSServerName: "127.0.0.1",
+			ProxyURL:      proxy,
+		},
+	})
+
+	mergedKubeConfig, err := newConfig.MergedRawConfig()
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to generate kubeconfig for cluster %s", cluster.GetName())
+	}
+	kubeconfigByte, err := clientcmd.Write(mergedKubeConfig)
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to write kubeconfig for cluster %s", cluster.GetName())
 	}
 	return kubeconfigByte, nil
 }
