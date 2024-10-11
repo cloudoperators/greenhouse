@@ -13,5 +13,7 @@ jobs:
       exclude-tags: main
       delete-untagged: true
       delete-ghost-images: true
+      delete-orphaned-images: true
       delete-partial-images: true
       keep-n-tagged: 5
+      
