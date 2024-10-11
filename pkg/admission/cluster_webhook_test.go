@@ -171,6 +171,36 @@ var _ = Describe("Cluster Webhook", func() {
 			},
 			true,
 		),
+		Entry("it should deny creation of cluster with too long token validity",
+			&greenhousev1alpha1.Cluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "test-cluster",
+					Namespace: "test-namespace",
+				},
+				Spec: greenhousev1alpha1.ClusterSpec{
+					AccessMode: greenhousev1alpha1.ClusterAccessModeDirect,
+					MaxTokenValidity: metav1.Duration{
+						Duration: 73 * time.Hour,
+					},
+				},
+			},
+			true,
+		),
+		Entry("it should allow creation of cluster with not too long token validity",
+			&greenhousev1alpha1.Cluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "test-cluster",
+					Namespace: "test-namespace",
+				},
+				Spec: greenhousev1alpha1.ClusterSpec{
+					AccessMode: greenhousev1alpha1.ClusterAccessModeDirect,
+					MaxTokenValidity: metav1.Duration{
+						Duration: 72 * time.Hour,
+					},
+				},
+			},
+			false,
+		),
 	)
 
 	DescribeTable("Validate Update Cluster",
