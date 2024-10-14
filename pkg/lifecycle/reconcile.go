@@ -147,7 +147,7 @@ func setupDeleteState(runtimeObject RuntimeObject, reconcileResult ReconcileResu
 		if err != nil {
 			msg = err.Error()
 		}
-		condition = greenhousev1alpha1.FalseCondition(greenhousev1alpha1.DeleteCondition, FailingDeletionReason, "resource deletion failed"+msg)
+		condition = greenhousev1alpha1.FalseCondition(greenhousev1alpha1.DeleteCondition, FailingDeletionReason, "resource deletion failed: "+msg)
 	default:
 		condition = greenhousev1alpha1.FalseCondition(greenhousev1alpha1.DeleteCondition, PendingDeletionReason, "resource deletion is pending")
 	}
