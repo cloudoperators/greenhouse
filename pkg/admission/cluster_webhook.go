@@ -114,7 +114,7 @@ func ValidateUpdateCluster(ctx context.Context, _ client.Client, _, currObj runt
 		logger.Error(err, "update request denied", "cluster", cluster.GetName())
 		return admission.Warnings{"update is not allowed"}, err
 	}
-	return validateTokenValidity(cluster)
+	return nil, nil
 }
 
 // ValidateDeleteCluster only allows deletion requests for clusters with a deletion schedule timestamp past now.
@@ -165,7 +165,7 @@ func ValidateDeleteCluster(ctx context.Context, _ client.Client, obj runtime.Obj
 }
 
 func validateTokenValidity(cluster *greenhousev1alpha1.Cluster) (admission.Warnings, error) {
-	if cluster.Spec.MaxTokenValidity.Duration > greenhousev1alpha1.MaxTokenValidity {
+	if cluster.Spec.MaxTokenValidity != nil && cluster.Spec.MaxTokenValidity.Duration > greenhousev1alpha1.MaxTokenValidity {
 		err := apierrors.NewBadRequest("token validity is too long")
 		return admission.Warnings{"token validity too long"}, err
 	}
