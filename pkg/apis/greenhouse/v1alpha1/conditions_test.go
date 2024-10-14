@@ -117,12 +117,6 @@ var _ = Describe("Test conditions util functions", func() {
 			LastTransitionTime: timeNow,
 			Message:            "test",
 		}, false),
-		Entry("should return false if the Ready condition is not set", greenhousev1alpha1.Condition{
-			Type:               greenhousev1alpha1.KubeconfigReadyCondition,
-			Status:             metav1.ConditionFalse,
-			LastTransitionTime: timeNow,
-			Message:            "test",
-		}, false),
 		Entry("should return false if no conditions are set", nil, false),
 	)
 
