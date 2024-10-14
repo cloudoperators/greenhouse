@@ -5,16 +5,10 @@ package lifecycle
 
 import (
 	"context"
-	"reflect"
-
-	"github.com/go-logr/logr"
-	"github.com/google/go-cmp/cmp"
-	"sigs.k8s.io/controller-runtime/pkg/event"
-	"sigs.k8s.io/controller-runtime/pkg/predicate"
-
 	"github.com/cloudoperators/greenhouse/pkg/clientutil"
+	"github.com/go-logr/logr"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
-	apiErrors "k8s.io/apimachinery/pkg/api/errors"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
@@ -72,21 +66,16 @@ type Reconciler interface {
 func Reconcile(ctx context.Context, kubeClient client.Client, namespacedName types.NamespacedName, runtimeObject RuntimeObject, reconciler Reconciler, statusFunc Conditioner) (ctrl.Result, error) {
 	logger := ctrl.LoggerFrom(ctx)
 	if err := kubeClient.Get(ctx, namespacedName, runtimeObject); err != nil {
-		if apiErrors.IsNotFound(err) {
-			// object was deleted in the meantime
-			return ctrl.Result{}, nil
-		}
-
-		logger.Error(err, "Failed to load resource")
-		return ctrl.Result{}, err
+		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
 	// store the original object in the context
 	ctx = createContextFromRuntimeObject(ctx, runtimeObject, reconciler.GetEventRecorder())
 
 	shouldBeDeleted := runtimeObject.GetDeletionTimestamp() != nil
+	hasFinalizer := controllerutil.ContainsFinalizer(runtimeObject, CommonCleanupFinalizer)
 
 	// check whether finalizer is set
-	if !shouldBeDeleted && !clientutil.HasFinalizer(runtimeObject, CommonCleanupFinalizer) {
+	if !shouldBeDeleted && !hasFinalizer {
 		return ctrl.Result{}, clientutil.EnsureFinalizer(ctx, kubeClient, runtimeObject, CommonCleanupFinalizer)
 	}
 
@@ -94,7 +83,7 @@ func Reconcile(ctx context.Context, kubeClient client.Client, namespacedName typ
 		result ctrl.Result
 		err    error
 	)
-	if shouldBeDeleted && clientutil.HasFinalizer(runtimeObject, CommonCleanupFinalizer) {
+	if shouldBeDeleted && hasFinalizer {
 		// check if the resource is already deleted (a control state to decide whether to remove finalizer)
 		// at this point the remote resource is already cleaned up so garbage collection can be done
 		if isResourceDeleted(runtimeObject) {
@@ -116,9 +105,6 @@ func Reconcile(ctx context.Context, kubeClient client.Client, namespacedName typ
 // This is used to determine if the resource is in deletion phase has finished its cleanup
 func isResourceDeleted(runtimeObject RuntimeObject) bool {
 	status := runtimeObject.GetConditions()
-	if len(status.Conditions) == 0 {
-		return false
-	}
 	deleteCondition := status.GetConditionByType(greenhousev1alpha1.DeleteCondition)
 	if deleteCondition == nil {
 		return false
@@ -195,27 +181,4 @@ func patchStatus(ctx context.Context, kubeClient client.Client, newObject Runtim
 		return err
 	}
 	return reconcileError
-}
-
-func IgnoreStatusUpdatePredicate() predicate.Predicate {
-	return predicate.Funcs{
-		UpdateFunc: func(e event.UpdateEvent) bool {
-			if e.ObjectOld == nil {
-				return false
-			}
-			if e.ObjectNew == nil {
-				return false
-			}
-			if !cmp.Equal(e.ObjectOld.GetAnnotations(), e.ObjectNew.GetAnnotations()) || !cmp.Equal(e.ObjectOld.GetLabels(), e.ObjectNew.GetLabels()) {
-				return true
-			}
-			// Ignore updates to CR status in which case metadata.Generation does not change
-			if e.ObjectNew.GetGeneration() == e.ObjectOld.GetGeneration() && reflect.DeepEqual(e.ObjectNew.GetFinalizers(), e.ObjectOld.GetFinalizers()) {
-				// On delete event deletion timestamp is set
-				// In such cases return true else false
-				return e.ObjectNew.GetDeletionTimestamp() != nil
-			}
-			return true
-		},
-	}
 }
