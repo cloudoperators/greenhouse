@@ -13,17 +13,12 @@ import (
 
 	"github.com/spf13/cobra"
 	"go.uber.org/zap/zapcore"
-	appsv1 "k8s.io/api/apps/v1"
 	authenticationv1 "k8s.io/api/authentication/v1"
 	authorizationv1 "k8s.io/api/authorization/v1"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
-	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/apimachinery/pkg/util/intstr"
-	"k8s.io/apimachinery/pkg/util/wait"
-	"k8s.io/client-go/discovery"
 	"k8s.io/client-go/kubernetes"
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
 	"k8s.io/client-go/rest"
@@ -42,8 +37,7 @@ import (
 )
 
 const (
-	tailscaleServiceAccountName = "tailscale"
-	serviceAccountName          = "greenhouse"
+	serviceAccountName = "greenhouse"
 )
 
 var (
@@ -72,14 +66,8 @@ type newClusterBootstrapOptions struct {
 	ghClient           client.Client
 	ghConfig           rest.Config
 	kubecontext        string
-	headscaleURI       string
-	preAuthKey         string
 	orgName            string
 	clusterName        string
-	proxyImage         string
-	proxyImageTag      string
-	tailscaleImage     string
-	tailscaleImageTag  string
 	customerKubeConfig string
 	onBehafOfUser      string
 	freeAccessMode     bool
@@ -112,14 +100,8 @@ func newClusterBootstrapCmd() *cobra.Command {
 	bootstrapCmd.Flags().AddGoFlagSet(flag.CommandLine)
 
 	bootstrapCmd.Flags().StringVar(&o.kubecontext, "kubecontext", "", "The context to use from the kubeconfig (defaults to current-context)")
-	bootstrapCmd.Flags().StringVar(&o.headscaleURI, "headscale-uri", clientutil.GetEnvOrDefault("HEADSCALE_URI", ""), "The headscale URI to use. Can be set via HEADSCALE_URI env var")
-	bootstrapCmd.Flags().StringVar(&o.preAuthKey, "preauth-key", clientutil.GetEnvOrDefault("HEADSCALE_PREAUTHKEY", ""), "The pre-auth key to use. Can be set via HEADSCALE_PREAUTHKEY env var")
 	bootstrapCmd.Flags().StringVar(&o.orgName, "org", clientutil.GetEnvOrDefault("GREENHOUSE_ORG", ""), "The organization name to use. Can be set via GREENHOUSE_ORG env var")
 	bootstrapCmd.Flags().StringVar(&o.clusterName, "cluster-name", clientutil.GetEnvOrDefault("GREENHOUSE_CLUSTER_NAME", ""), "The cluster name to use. Can be set via GREENHOUSE_CLUSTER_NAME env var")
-	bootstrapCmd.Flags().StringVar(&o.proxyImage, "proxy-image", clientutil.GetEnvOrDefault("PROXY_IMAGE", "ghcr.io/cloudoperators/tcp-proxy"), "The proxy image to use. Can be set via PROXY_IMAGE env var")
-	bootstrapCmd.Flags().StringVar(&o.proxyImageTag, "proxy-image-tag", clientutil.GetEnvOrDefault("PROXY_IMAGE_TAG", "0.1.1"), "The proxy image tag to use. Can be set via PROXY_IMAGE_TAG env var")
-	bootstrapCmd.Flags().StringVar(&o.tailscaleImage, "tailscale-image", clientutil.GetEnvOrDefault("TAILSCALE_IMAGE", "ghcr.io/cloudoperators/tailscale"), "The tailscale image to use. Can be set via TAILSCALE_IMAGE env var")
-	bootstrapCmd.Flags().StringVar(&o.tailscaleImageTag, "tailscale-image-tag", clientutil.GetEnvOrDefault("TAILSCALE_IMAGE_TAG", "1.50.1"), "The tailscale image tag to use. Can be set via TAILSCALE_IMAGE_TAG env var")
 	bootstrapCmd.Flags().StringVar(&o.customerKubeConfig, "bootstrap-kubeconfig", "", "The kubeconfig of the cluster to bootstrap")
 	bootstrapCmd.Flags().BoolVar(&o.freeAccessMode, "free-access-mode", true, "Let the cluster bootstrap controller decide the access mode for the cluster")
 	bootstrapCmd.Flags().StringVar(&o.onBehafOfUser, "as", "", "The user to impersonate for the operation")
@@ -194,17 +176,6 @@ func (o *newClusterBootstrapOptions) fillDefaults() error {
 		o.clusterName = customerConfig.CurrentContext
 	}
 
-	// This is temporary solution till we have a headscale per org deployed
-	switch {
-	case strings.Contains(o.ghConfig.Host, "api.qa.greenhouse"):
-		o.headscaleURI = "https://headscale.greenhouse-qa.eu-nl-1.cloud.sap"
-	case strings.Contains(o.ghConfig.Host, "api.greenhouse-qa"):
-		o.headscaleURI = "https://headscale.greenhouse-qa.eu-nl-1.cloud.sap"
-	case strings.Contains(o.ghConfig.Host, "api.dev-david.greenhouse"):
-		o.headscaleURI = "https://headscale.davidg.c.eu-nl-1.cloud.sap"
-	default:
-		o.headscaleURI = "https://headscale.greenhouse.global.cloud.sap"
-	}
 	return nil
 }
 
@@ -224,29 +195,13 @@ func (o *newClusterBootstrapOptions) run() error {
 	if err := createClusterRoleBindingInRemoteCluster(ctx, o.customerClient, o.orgName); err != nil {
 		return err
 	}
-	if err := createServiceAccountInRemoteCluster(ctx, o.customerClient, tailscaleServiceAccountName, o.orgName); err != nil {
-		return err
-	}
-	if err := createRoleInRemoteCluster(ctx, o.customerClient, o.orgName); err != nil {
-		return err
-	}
-	if err := createRoleBindingInRemoteCluster(ctx, o.customerClient, o.orgName); err != nil {
-		return err
-	}
+
 	if !bootstrapped {
 		if err := o.createClusterObject(ctx); err != nil {
 			return err
 		}
 	}
-	/*
-		else {
-			// TODO: if the cluster already bootstraped we need to check if the preauthkey is still correct
-			// New bootstraptoken needs to be created and the cluster secret object needs to be updated
-		}
-	*/
-	if err := o.workOnCreatedCluster(ctx); err != nil {
-		return err
-	}
+
 	setupLog.Info("Bootstraping cluster finished", "clusterName", o.clusterName, "orgName", o.orgName)
 	return nil
 }
@@ -293,72 +248,6 @@ func createServiceAccountInRemoteCluster(ctx context.Context, k8sClient client.C
 	return nil
 }
 
-func createRoleInRemoteCluster(ctx context.Context, k8sClient client.Client, orgName string) error {
-	var role = new(rbacv1.Role)
-	role.Name = tailscaleServiceAccountName
-	role.Namespace = orgName
-	result, err := clientutil.CreateOrPatch(ctx, k8sClient, role, func() error {
-		role.Rules = []rbacv1.PolicyRule{
-			{
-				APIGroups: []string{""},
-				Resources: []string{"secrets"},
-				Verbs:     []string{"create"},
-			},
-			{
-				APIGroups:     []string{""},
-				ResourceNames: []string{tailscaleServiceAccountName + "-auth"},
-				Resources:     []string{"secrets"},
-				Verbs:         []string{"get", "update", "patch"},
-			},
-		}
-		return nil
-	})
-	if err != nil {
-		return err
-	}
-	switch result {
-	case clientutil.OperationResultNone:
-		setupLog.Info("role already exists", "name", role.Name)
-	case clientutil.OperationResultCreated:
-		setupLog.Info("created role", "name", role.Name)
-	case clientutil.OperationResultUpdated:
-		setupLog.Info("updated role", "name", role.Name)
-	}
-	return nil
-}
-
-func createRoleBindingInRemoteCluster(ctx context.Context, k8sClient client.Client, orgName string) error {
-	var roleBinding = new(rbacv1.RoleBinding)
-	roleBinding.Name = tailscaleServiceAccountName
-	roleBinding.Namespace = orgName
-	result, err := clientutil.CreateOrPatch(ctx, k8sClient, roleBinding, func() error {
-		roleBinding.Subjects = []rbacv1.Subject{
-			{
-				Kind: "ServiceAccount",
-				Name: tailscaleServiceAccountName,
-			},
-		}
-		roleBinding.RoleRef = rbacv1.RoleRef{
-			Kind:     "Role",
-			Name:     tailscaleServiceAccountName,
-			APIGroup: "rbac.authorization.k8s.io",
-		}
-		return nil
-	})
-	if err != nil {
-		return err
-	}
-	switch result {
-	case clientutil.OperationResultNone:
-		setupLog.Info("roleBinding already exists", "name", roleBinding.Name)
-	case clientutil.OperationResultCreated:
-		setupLog.Info("created roleBinding", "name", roleBinding.Name)
-	case clientutil.OperationResultUpdated:
-		setupLog.Info("updated roleBinding", "name", roleBinding.Name)
-	}
-	return nil
-}
-
 func createClusterRoleBindingInRemoteCluster(ctx context.Context, k8sClient client.Client, orgName string) error {
 	var clusterRoleBinding = new(rbacv1.ClusterRoleBinding)
 	clusterRoleBinding.Name = serviceAccountName
@@ -394,207 +283,6 @@ func createClusterRoleBindingInRemoteCluster(ctx context.Context, k8sClient clie
 		setupLog.Info("created clusterRoleBinding", "name", clusterRoleBinding.Name)
 	case clientutil.OperationResultUpdated:
 		setupLog.Info("updated clusterRoleBinding", "name", clusterRoleBinding.Name)
-	}
-	return nil
-}
-
-func createAuthSecretInRemoteCluster(ctx context.Context, k8sClient client.Client, orgName string, preAuthKey []byte) error {
-	var authSecret = new(corev1.Secret)
-	authSecret.Name = "tailscale-auth"
-	authSecret.Namespace = orgName
-
-	result, err := clientutil.CreateOrPatch(ctx, k8sClient, authSecret, func() error {
-		authSecret.Type = corev1.SecretTypeOpaque
-		authSecret.Data = map[string][]byte{"TS_AUTHKEY": preAuthKey}
-		return nil
-	})
-	if err != nil {
-		return err
-	}
-	switch result {
-	case clientutil.OperationResultNone:
-		setupLog.Info("authSecret already exists", "name", authSecret.Name)
-	case clientutil.OperationResultCreated:
-		setupLog.Info("created authSecret", "name", authSecret.Name)
-	case clientutil.OperationResultUpdated:
-		setupLog.Info("updated authSecret", "name", authSecret.Name)
-	}
-	return nil
-}
-
-func (o *newClusterBootstrapOptions) isCalicoUsed() bool {
-	dcClient, err := discovery.NewDiscoveryClientForConfig(getKubeconfigOrDie(o.customerKubeConfig))
-	if err != nil {
-		setupLog.Error(err, "unable to create discovery client")
-		return false
-	}
-	apiGroupList, err := dcClient.ServerGroups()
-	if err != nil {
-		setupLog.Error(err, "unable to list apiGroups")
-		return false
-	}
-	for _, apiGroup := range apiGroupList.Groups {
-		if apiGroup.Name == "crd.projectcalico.org" {
-			return true
-		}
-	}
-	return false
-}
-
-func (o *newClusterBootstrapOptions) deployTailscaleInRemoteCluster(ctx context.Context, k8sClient client.Client) error {
-	greenhouseTailscaleLabel := map[string]string{greenhouseapis.HeadScaleKey: "client"}
-	tailscaleImageStr := o.tailscaleImage + ":" + o.tailscaleImageTag
-	proxyImageStr := o.proxyImage + ":" + o.proxyImageTag
-	hostNetworkBool := o.isCalicoUsed()
-	setupLog.Info("hostNetworking is set to:", "hostNetwork", hostNetworkBool)
-	var tailscaleDeployment = new(appsv1.Deployment)
-	tailscaleDeployment.Name = o.clusterName + "tailscale"
-	tailscaleDeployment.Namespace = o.orgName
-
-	result, err := clientutil.CreateOrPatch(ctx, k8sClient, tailscaleDeployment, func() error {
-		tailscaleDeployment.Labels = greenhouseTailscaleLabel
-		tailscaleDeployment.Spec = appsv1.DeploymentSpec{
-			Selector: &metav1.LabelSelector{MatchLabels: greenhouseTailscaleLabel},
-			Template: corev1.PodTemplateSpec{
-				ObjectMeta: metav1.ObjectMeta{
-					Labels: greenhouseTailscaleLabel,
-				},
-				Spec: corev1.PodSpec{
-					ServiceAccountName: tailscaleServiceAccountName,
-					Containers: []corev1.Container{
-						{
-							Name:            "proxy",
-							ImagePullPolicy: corev1.PullAlways,
-							Image:           proxyImageStr,
-							Lifecycle: &corev1.Lifecycle{
-								PreStop: &corev1.LifecycleHandler{
-									Exec: &corev1.ExecAction{
-										Command: []string{
-											"/wait-shutdown",
-										},
-									},
-								},
-							},
-							Env: []corev1.EnvVar{
-								{
-									Name:  "ALL_PROXY",
-									Value: "socks5://localhost:1055",
-								},
-							},
-							Resources: corev1.ResourceRequirements{
-								Limits: map[corev1.ResourceName]resource.Quantity{
-									corev1.ResourceCPU:    resource.MustParse("50m"),
-									corev1.ResourceMemory: resource.MustParse("512Mi"),
-								},
-								Requests: map[corev1.ResourceName]resource.Quantity{
-									corev1.ResourceCPU:    resource.MustParse("5m"),
-									corev1.ResourceMemory: resource.MustParse("64Mi"),
-								},
-							},
-						},
-						{
-							Name:            "ts-sidecar",
-							ImagePullPolicy: corev1.PullAlways,
-							Image:           tailscaleImageStr,
-							Args: []string{
-								"--socket",
-								"/tmp/tailscaled.sock",
-							},
-							Env: []corev1.EnvVar{
-								{
-									Name:  "TS_STATE_DIR",
-									Value: "/state",
-								},
-								{
-									Name:  "TS_TAILSCALED_EXTRA_ARGS",
-									Value: "--state=mem: --no-logs-no-support --debug=:8080",
-								},
-								{
-									Name:  "TS_ACCEPT_DNS",
-									Value: "false",
-								},
-								{
-									Name:  "TS_EXTRA_ARGS",
-									Value: "--login-server " + o.headscaleURI,
-								},
-								{
-									Name:  "TS_KUBE_SECRET",
-									Value: "",
-								},
-								{
-									Name:  "TS_USERSPACE",
-									Value: "true",
-								},
-								{
-									Name:  "TS_SOCKS5_SERVER",
-									Value: ":1055",
-								},
-								{
-									Name: "TS_AUTH_KEY",
-									ValueFrom: &corev1.EnvVarSource{
-										SecretKeyRef: &corev1.SecretKeySelector{
-											LocalObjectReference: corev1.LocalObjectReference{
-												Name: "tailscale-auth",
-											},
-											Key: "TS_AUTHKEY",
-										},
-									},
-								},
-							},
-							LivenessProbe: &corev1.Probe{
-								FailureThreshold:    5,
-								SuccessThreshold:    2,
-								TimeoutSeconds:      5,
-								PeriodSeconds:       5,
-								InitialDelaySeconds: 10,
-								ProbeHandler: corev1.ProbeHandler{
-									HTTPGet: &corev1.HTTPGetAction{
-										Path: "/healthz",
-										Port: intstr.FromInt32(8090),
-									},
-								},
-							},
-							SecurityContext: &corev1.SecurityContext{
-								Capabilities: &corev1.Capabilities{
-									Add: []corev1.Capability{
-										"NET_ADMIN",
-									},
-								},
-							},
-							VolumeMounts: []corev1.VolumeMount{
-								{
-									Name:      "state",
-									MountPath: "/state",
-								},
-							},
-						},
-					},
-					HostNetwork: hostNetworkBool,
-					Volumes: []corev1.Volume{
-						{
-							Name: "state",
-							VolumeSource: corev1.VolumeSource{
-								EmptyDir: &corev1.EmptyDirVolumeSource{
-									Medium: corev1.StorageMediumMemory,
-								},
-							},
-						},
-					},
-				},
-			},
-		}
-		return nil
-	})
-	if err != nil {
-		return err
-	}
-	switch result {
-	case clientutil.OperationResultNone:
-		setupLog.Info("deployment already exists", "name", tailscaleDeployment.Name)
-	case clientutil.OperationResultCreated:
-		setupLog.Info("created deployment", "name", tailscaleDeployment.Name)
-	case clientutil.OperationResultUpdated:
-		setupLog.Info("updated deployment", "name", tailscaleDeployment.Name)
 	}
 	return nil
 }
@@ -670,9 +358,10 @@ func (o *newClusterBootstrapOptions) createClusterObject(ctx context.Context) er
 	clusterSecret := new(corev1.Secret)
 	clusterSecret.Name = o.clusterName
 	clusterSecret.Namespace = o.orgName
-	if !o.freeAccessMode {
-		clusterSecret.Labels = map[string]string{greenhouseapis.LabelAccessMode: "headscale"}
-	}
+	// access mode decision should happen before anything else is touched
+	// if !o.freeAccessMode {
+	// 	clusterSecret.Labels = map[string]string{greenhouseapis.LabelAccessMode: "headscale"}
+	// }
 	clusterSecret.Type = greenhouseapis.SecretTypeKubeConfig
 	clusterSecret.Data = map[string][]byte{"kubeconfig": genKubeConfig}
 
@@ -725,56 +414,4 @@ func getKubeconfigOrDie(kubecontext string) *rest.Config {
 	}
 	setupLog.Info("Loaded kubeconfig", "context", kubecontext, "host", restConfig.Host)
 	return restConfig
-}
-func (o *newClusterBootstrapOptions) isClusterObjectCreated(ctx context.Context) wait.ConditionWithContextFunc {
-	return func(_ context.Context) (bool, error) {
-		cluster := new(greenhouseapisv1alpha1.Cluster)
-		if err := o.ghClient.Get(ctx, client.ObjectKey{Name: o.clusterName, Namespace: o.orgName}, cluster); err != nil {
-			return false, err
-		}
-
-		switch cluster.Spec.AccessMode {
-		case greenhouseapisv1alpha1.ClusterAccessModeDirect:
-			return true, nil
-		case greenhouseapisv1alpha1.ClusterAccessModeHeadscale:
-			clusterSecret := new(corev1.Secret)
-			if err := o.ghClient.Get(ctx, client.ObjectKey{Name: o.clusterName, Namespace: o.orgName}, clusterSecret); err != nil {
-				return false, err
-			}
-			if clusterSecret.Data["headscalePreAuthKey"] == nil {
-				return true, nil
-			}
-		}
-
-		return false, nil
-	}
-}
-
-func (o *newClusterBootstrapOptions) waitForClusterCreated(ctx context.Context, timeout time.Duration) error {
-	return wait.PollUntilContextTimeout(ctx, time.Second, timeout, false, o.isClusterObjectCreated(ctx))
-}
-
-func (o *newClusterBootstrapOptions) workOnCreatedCluster(ctx context.Context) error {
-	if err := o.waitForClusterCreated(ctx, time.Duration(60)*time.Second); err != nil {
-		return err
-	}
-
-	cluster := new(greenhouseapisv1alpha1.Cluster)
-	if err := o.ghClient.Get(ctx, client.ObjectKey{Name: o.clusterName, Namespace: o.orgName}, cluster); err != nil {
-		return err
-	}
-	if cluster.Spec.AccessMode == greenhouseapisv1alpha1.ClusterAccessModeHeadscale {
-		clusterSecret := new(corev1.Secret)
-		if err := o.ghClient.Get(ctx, client.ObjectKey{Name: o.clusterName, Namespace: o.orgName}, clusterSecret); err != nil {
-			return err
-		}
-		if err := createAuthSecretInRemoteCluster(ctx, o.customerClient, o.orgName, clusterSecret.Data["headscalePreAuthKey"]); err != nil {
-			return err
-		}
-
-		if err := o.deployTailscaleInRemoteCluster(ctx, o.customerClient); err != nil {
-			return err
-		}
-	}
-	return nil
 }
