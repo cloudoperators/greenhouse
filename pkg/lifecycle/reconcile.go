@@ -14,7 +14,6 @@ import (
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/client-go/tools/record"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -60,7 +59,6 @@ type RuntimeObject interface {
 type Reconciler interface {
 	EnsureCreated(context.Context, RuntimeObject) (ctrl.Result, ReconcileResult, error)
 	EnsureDeleted(context.Context, RuntimeObject) (ctrl.Result, ReconcileResult, error)
-	GetEventRecorder() record.EventRecorder
 }
 
 // Reconcile - is a generic function that is used to reconcile the state of a resource
@@ -72,7 +70,7 @@ func Reconcile(ctx context.Context, kubeClient client.Client, namespacedName typ
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
 	// store the original object in the context
-	ctx = createContextFromRuntimeObject(ctx, runtimeObject, reconciler.GetEventRecorder())
+	ctx = createContextFromRuntimeObject(ctx, runtimeObject)
 
 	shouldBeDeleted := runtimeObject.GetDeletionTimestamp() != nil
 	hasFinalizer := controllerutil.ContainsFinalizer(runtimeObject, CommonCleanupFinalizer)
