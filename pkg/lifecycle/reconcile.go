@@ -5,9 +5,11 @@ package lifecycle
 
 import (
 	"context"
-	"github.com/cloudoperators/greenhouse/pkg/clientutil"
+
 	"github.com/go-logr/logr"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
+
+	"github.com/cloudoperators/greenhouse/pkg/clientutil"
 
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -22,9 +24,11 @@ import (
 type ReconcileResult string
 
 const (
-	CreatedReason           greenhousev1alpha1.ConditionReason = "Created"
-	PendingCreationReason   greenhousev1alpha1.ConditionReason = "PendingCreation"
-	FailingCreationReason   greenhousev1alpha1.ConditionReason = "FailingCreation"
+	CreatedReason         greenhousev1alpha1.ConditionReason = "Created"
+	PendingCreationReason greenhousev1alpha1.ConditionReason = "PendingCreation"
+	FailingCreationReason greenhousev1alpha1.ConditionReason = "FailingCreation"
+	// ScheduledDeletionReason is used to indicate that the resource is scheduled for deletion
+	//nolint:unused
 	ScheduledDeletionReason greenhousev1alpha1.ConditionReason = "ScheduledDeletion"
 	PendingDeletionReason   greenhousev1alpha1.ConditionReason = "PendingDeletion"
 	FailingDeletionReason   greenhousev1alpha1.ConditionReason = "FailingDeletion"
@@ -63,6 +67,8 @@ type Reconciler interface {
 // Reconcile - is a generic function that is used to reconcile the state of a resource
 // It standardizes the reconciliation loop and provides a common way to set finalizers, remove finalizers, and update the status of the resource
 // It splits the reconciliation into two phases: EnsureCreated and EnsureDeleted to keep the create / update and delete logic in controllers segregated
+//
+//nolint:unused
 func Reconcile(ctx context.Context, kubeClient client.Client, namespacedName types.NamespacedName, runtimeObject RuntimeObject, reconciler Reconciler, statusFunc Conditioner) (ctrl.Result, error) {
 	logger := ctrl.LoggerFrom(ctx)
 	if err := kubeClient.Get(ctx, namespacedName, runtimeObject); err != nil {
