@@ -30,7 +30,7 @@ func getRunFromContext(ctx context.Context) (*reconcileRun, error) {
 	return val, nil
 }
 
-// GetOriginalResourceFromContext - returns the unmodified version of the RuntimeObject
+// getOriginalResourceFromContext - returns the unmodified version of the RuntimeObject
 func getOriginalResourceFromContext(ctx context.Context) (RuntimeObject, error) {
 	reconcileRun, err := getRunFromContext(ctx)
 	if err != nil {
