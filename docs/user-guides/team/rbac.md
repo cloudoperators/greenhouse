@@ -1,8 +1,21 @@
 ---
 title: "Role-based access control"
 description: >
-   Creating and managing roles and permissions in Greenhouse.
+  Creating and managing roles and permissions in Greenhouse.
 ---
+
+## Contents
+
+- [Before you begin](#before-you-begin)
+- [Greenhouse Team RBAC user guide](#greenhouse-team-rbac-user-guide)
+- [Overview](#overview)
+- [Defining TeamRoles](#defining-teamroles)
+  - [Example](#example)
+- [Seeded default TeamRoles](#seeded-default-teamroles)
+- [Defining TeamRoleBindings](#defining-teamrolebindings)
+  - [Assigning TeamRoles to Teams on a single Cluster](#assigning-teamroles-to-teams-on-a-single-cluster)
+  - [Assigning TeamRoles to Teams on multiple Clusters](#assigning-teamroles-to-teams-on-multiple-clusters)
+  - [Aggregating TeamRoles](#aggregating-teamroles)
 
 ## Before you begin
 
@@ -25,7 +38,7 @@ Within Greenhouse the RBAC on remote Clusters is managed using `TeamRole` and `T
 `TeamRoles` define what actions a team can perform within the Kubernetes cluster.
 Common roles including the below `cluster-admin` are pre-defined within each organization.
 
-### Cluster administrator
+### Example
 
 This TeamRole named `pod-read` grants read access to Pods!.
 
@@ -44,6 +57,23 @@ spec:
         - "get"
         - "list"
 ```
+
+## Seeded default TeamRoles
+
+Greenhouse provides a set of [default `TeamRoles`](./../../../pkg/controllers/organization/teamrole_seeder_controller.go) that are seeded to all clusters:
+
+- `cluster-admin`
+  - full priviledges
+- `cluster-viewer`
+  - `get`, `list` and `watch` all resources
+- `cluster-developer`
+  - Aggregated role. Greenhouse aggregates the `application-developer` and the `cluster-viewer`. Further `TeamRoles` can be aggregated.
+- `application-developer`
+  - Set of permissions on `pods`, `deployments` and `statefulsets` necessary to develop applications on k8s
+- `node-maintainer`
+  - `get` and `patch` `nodes`
+- `namespace-admin`
+  - all permissions on `namespaces`
 
 ## Defining TeamRoleBindings
 
@@ -175,8 +205,8 @@ metadata:
 spec:
   aggregationRule:
     clusterRoleSelectors:
-    - matchLabels:
-        "aggregate": "true"
+      - matchLabels:
+          "aggregate": "true"
 ```
 
 ```yaml
