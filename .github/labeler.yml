@@ -15,13 +15,6 @@ documentation:
     - README.md
     - docs/**
 
-headscale:
-- changed-files:
-  - any-glob-to-any-file:
-    - charts/headscale/**
-    - pkg/headscale/**
-    - pkg/headscalectl/**
-
 idproxy:
 - changed-files:
   - any-glob-to-any-file:
