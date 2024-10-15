@@ -105,7 +105,7 @@ var _ = Describe("Reconcile", func() {
 			_, err := lifecycle.Reconcile(ctx, mockClient, namespacedName, resourceForTest, mockReconciler, nil)
 
 			if tt.args.reconcileError == nil {
-				Expect(err).To(BeNil())
+				Expect(err).ToNot(HaveOccurred())
 			} else {
 				Expect(err).To(Equal(tt.args.reconcileError))
 			}
@@ -121,7 +121,7 @@ var _ = Describe("Reconcile", func() {
 			Expect(expectedState.Reason).To(Equal(tt.wantSetupState.Reason))
 			Expect(expectedState.Message).To(Equal(tt.wantSetupState.Message))
 			if tt.verifyFinalizerRemoval {
-				Expect(resourceForTest.GetFinalizers()).To(HaveLen(0))
+				Expect(resourceForTest.GetFinalizers()).To(BeEmpty())
 			}
 		},
 		Entry("it should reach CREATED state", struct {
