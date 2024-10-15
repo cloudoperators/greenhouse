@@ -55,7 +55,6 @@ func (r *RemoteClusterReconciler) SetupWithManager(name string, mgr ctrl.Manager
 		)).
 		// Watch the secret owned by this cluster.
 		Watches(&corev1.Secret{}, handler.EnqueueRequestForOwner(mgr.GetScheme(), mgr.GetRESTMapper(), &greenhousev1alpha1.Cluster{})).
-		WithEventFilter(lifecycle.IgnoreStatusUpdatePredicate()).
 		Complete(r)
 }
 

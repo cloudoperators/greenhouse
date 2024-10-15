@@ -20,7 +20,7 @@ import (
 	"github.com/cloudoperators/greenhouse/pkg/test"
 )
 
-var _ = Describe("Cluster status controller", Ordered, func() {
+var _ = Describe("Cluster status", Ordered, func() {
 	const (
 		clusterStatusTestCase = "cluster-status"
 	)
