@@ -1,0 +1,44 @@
+name: Packages Cleanup
+
+on:
+  workflow_dispatch: {}
+
+jobs:
+  release:
+    if: startsWith(github.ref, 'refs/tags/')
+    runs-on: default
+    steps:
+      - name: Build Changelog
+        uses: mikepenz/release-changelog-builder-action@v5
+        with:
+          mode: "COMMIT"
+          configurationJson: |
+            {
+              "template": "#{{CHANGELOG}}",
+              "categories": [
+                {
+                    "title": "## 🚀 Features",
+                    "labels": ["feat", "feature"]
+                },
+                {
+                    "title": "## 🐛 Fixes",
+                    "labels": ["fix", "bug"]
+                },
+                {
+                    "title": "## Security"
+                    "labels": ["chore(deps)"]
+                },
+                {
+                    "title": "## Other",
+                    "labels": []
+                }
+              ],
+              "label_extractor": [
+                {
+                  "pattern": "^(build|chore|ci|docs|feat|fix|perf|refactor|revert|style|test){1}(\\([\\w\\-\\.]+\\))?(!)?: ([\\w ])+([\\s\\S]*)",
+                  "target": "$1"
+                }
+              ]
+            }
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
