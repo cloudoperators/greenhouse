@@ -10,69 +10,78 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/mock"
-	"github.com/stretchr/testify/require"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 
-	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/pkg/apis/greenhouse/v1alpha1"
+	"github.com/cloudoperators/greenhouse/pkg/apis/greenhouse/v1alpha1"
 	"github.com/cloudoperators/greenhouse/pkg/controllers/fixtures"
 	"github.com/cloudoperators/greenhouse/pkg/lifecycle"
 	"github.com/cloudoperators/greenhouse/pkg/mocks"
+
+	. "github.com/onsi/ginkgo/v2"
+	. "github.com/onsi/gomega"
 )
 
-var createdCondition = greenhousev1alpha1.TrueCondition(greenhousev1alpha1.ReadyCondition, lifecycle.CreatedReason, "resource is successfully created")
-var pendingCreationCondition = greenhousev1alpha1.FalseCondition(greenhousev1alpha1.ReadyCondition, lifecycle.PendingCreationReason, "resource is pending creation")
-var failingCreationCondition = greenhousev1alpha1.FalseCondition(greenhousev1alpha1.ReadyCondition, lifecycle.FailingCreationReason, "resource creation failed")
-var deletedCondition = greenhousev1alpha1.TrueCondition(greenhousev1alpha1.DeleteCondition, lifecycle.DeletedReason, "resource is successfully deleted")
-var pendingDeletionCondition = greenhousev1alpha1.FalseCondition(greenhousev1alpha1.DeleteCondition, lifecycle.PendingDeletionReason, "resource is pending deletion")
-var failingDeletionCondition = greenhousev1alpha1.FalseCondition(greenhousev1alpha1.DeleteCondition, lifecycle.FailingDeletionReason, "resource deletion failed")
-
 func TestReconcile(t *testing.T) {
-	deletionTime := metav1.NewTime(time.Now())
+	RegisterFailHandler(Fail)
+	RunSpecs(t, "Reconcile Suite")
+}
 
-	statusWriter := &mocks.MockSubResourceWriter{}
-	statusWriter.On("Patch", mock.Anything, mock.Anything, mock.Anything).Return(nil)
+var _ = Describe("Reconcile", func() {
+	var (
+		createdCondition         = v1alpha1.TrueCondition(v1alpha1.ReadyCondition, lifecycle.CreatedReason, "resource is successfully created")
+		pendingCreationCondition = v1alpha1.UnknownCondition(v1alpha1.ReadyCondition, lifecycle.PendingCreationReason, "resource creation is pending")
+		failingCreationCondition = v1alpha1.FalseCondition(v1alpha1.ReadyCondition, lifecycle.FailingCreationReason, "resource creation failed")
+		deletedCondition         = v1alpha1.TrueCondition(v1alpha1.DeleteCondition, lifecycle.DeletedReason, "resource is successfully deleted")
+		pendingDeletionCondition = v1alpha1.FalseCondition(v1alpha1.DeleteCondition, lifecycle.PendingDeletionReason, "resource deletion is pending")
+		failingDeletionCondition = v1alpha1.FalseCondition(v1alpha1.DeleteCondition, lifecycle.FailingDeletionReason, "resource deletion failed: ")
+	)
+	var (
+		mockClient      *mocks.MockClient
+		mockReconciler  *mocks.MockReconciler
+		statusWriter    *mocks.MockSubResourceWriter
+		ctx             context.Context
+		namespacedName  types.NamespacedName
+		resourceForTest *fixtures.Dummy
+		deletionTime    metav1.Time
+	)
 
-	mockedClient := &mocks.MockClient{}
-	mockedClient.On("Get", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil)
-	mockedClient.On("Patch", mock.Anything, mock.Anything).Return(nil)
-	mockedClient.On("Status").Return(statusWriter)
+	BeforeEach(func() {
+		statusWriter = &mocks.MockSubResourceWriter{}
+		statusWriter.On("Patch", mock.Anything, mock.Anything, mock.Anything).Return(nil)
+		mockClient = &mocks.MockClient{}
+		mockClient.On("Get", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil)
+		mockClient.On("Patch", mock.Anything, mock.Anything, mock.Anything).Return(nil)
+		mockClient.On("Status").Return(statusWriter)
 
-	ctx := context.Background()
+		mockReconciler = &mocks.MockReconciler{}
 
-	namespacedName := types.NamespacedName{Name: "DummyResource", Namespace: "Dummy"}
+		ctx = context.Background()
+		namespacedName = types.NamespacedName{Name: "DummyResource", Namespace: "Dummy"}
+		deletionTime = metav1.NewTime(time.Now())
+	})
 
 	type args struct {
 		reconcileResult lifecycle.ReconcileResult
 		deletionTime    *metav1.Time
-		setupState      greenhousev1alpha1.Condition
+		setupState      v1alpha1.Condition
 		reconcileError  error
 	}
 
 	ensureCreated := "EnsureCreated"
 	ensureDeleted := "EnsureDeleted"
 
-	tests := []struct {
-		name           string
-		args           args
-		wantMethod     string
-		wantSetupState greenhousev1alpha1.Condition
-	}{
-		{name: "it should reach CREATED state", wantMethod: ensureCreated, wantSetupState: createdCondition, args: args{setupState: greenhousev1alpha1.Condition{}, reconcileResult: lifecycle.Success, deletionTime: nil}},
-		{name: "it should be in PENDING_CREATION state", wantMethod: ensureCreated, wantSetupState: pendingCreationCondition, args: args{setupState: greenhousev1alpha1.Condition{}, reconcileResult: lifecycle.Pending, deletionTime: nil}},
-		{name: "it should reach FAILING_CREATION state", wantMethod: ensureCreated, wantSetupState: failingCreationCondition, args: args{setupState: greenhousev1alpha1.Condition{}, reconcileResult: lifecycle.Failed, deletionTime: nil, reconcileError: errors.New("")}},
-		{name: "it should stay in CREATED state", wantMethod: ensureCreated, wantSetupState: createdCondition, args: args{setupState: createdCondition, reconcileResult: lifecycle.Success, deletionTime: nil}},
-		{name: "it should reach DELETED state", wantMethod: ensureDeleted, wantSetupState: deletedCondition, args: args{setupState: createdCondition, reconcileResult: lifecycle.Success, deletionTime: &deletionTime}},
-		{name: "it should reach PENDING_DELETION state", wantMethod: ensureDeleted, wantSetupState: pendingDeletionCondition, args: args{setupState: createdCondition, reconcileResult: lifecycle.Pending, deletionTime: &deletionTime}},
-		{name: "it should reach FAILING_DELETION state", wantMethod: ensureDeleted, wantSetupState: failingDeletionCondition, args: args{setupState: createdCondition, reconcileResult: lifecycle.Failed, deletionTime: &deletionTime, reconcileError: errors.New("")}},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			resourceForTest := &fixtures.Dummy{
+	DescribeTable("Reconcile",
+		func(tt struct {
+			args                   args
+			wantMethod             string
+			wantSetupState         v1alpha1.Condition
+			verifyFinalizerRemoval bool
+		}) {
+			resourceForTest = &fixtures.Dummy{
 				Spec:     fixtures.DummySpec{},
-				Status:   fixtures.DummyStatus{StatusConditions: greenhousev1alpha1.StatusConditions{Conditions: []greenhousev1alpha1.Condition{tt.args.setupState}}},
+				Status:   fixtures.DummyStatus{StatusConditions: v1alpha1.StatusConditions{Conditions: []v1alpha1.Condition{tt.args.setupState}}},
 				TypeMeta: metav1.TypeMeta{Kind: "Pod", APIVersion: "v1"},
 				ObjectMeta: metav1.ObjectMeta{
 					Name:              "DummyResource",
@@ -83,25 +92,159 @@ func TestReconcile(t *testing.T) {
 				},
 			}
 
-			mockedReconciler := &mocks.MockReconciler{}
 			wantNotCalled := ensureCreated
 			if tt.wantMethod == ensureCreated {
 				wantNotCalled = ensureDeleted
-				mockedReconciler.On(ensureCreated, mock.Anything, mock.Anything).Return(ctrl.Result{}, tt.args.reconcileResult, tt.args.reconcileError)
-				mockedReconciler.On(ensureDeleted, mock.Anything, mock.Anything).Return(ctrl.Result{}, nil, tt.args.reconcileError)
+				mockReconciler.On(ensureCreated, mock.Anything, mock.Anything).Return(ctrl.Result{}, tt.args.reconcileResult, tt.args.reconcileError)
+				mockReconciler.On(ensureDeleted, mock.Anything, mock.Anything).Return(ctrl.Result{}, nil, tt.args.reconcileError)
 			} else {
-				mockedReconciler.On(ensureCreated, mock.Anything, mock.Anything).Return(ctrl.Result{}, nil, tt.args.reconcileError)
-				mockedReconciler.On(ensureDeleted, mock.Anything, mock.Anything).Return(ctrl.Result{}, tt.args.reconcileResult, tt.args.reconcileError)
+				mockReconciler.On(ensureCreated, mock.Anything, mock.Anything).Return(ctrl.Result{}, nil, tt.args.reconcileError)
+				mockReconciler.On(ensureDeleted, mock.Anything, mock.Anything).Return(ctrl.Result{}, tt.args.reconcileResult, tt.args.reconcileError)
 			}
 
-			_, err := lifecycle.Reconcile(ctx, mockedClient, namespacedName, resourceForTest, mockedReconciler, nil)
+			_, err := lifecycle.Reconcile(ctx, mockClient, namespacedName, resourceForTest, mockReconciler, nil)
 
-			require.Equal(t, tt.args.reconcileError, err)
-			mockedReconciler.AssertCalled(t, tt.wantMethod, mock.Anything, mock.Anything)
-			mockedReconciler.AssertNotCalled(t, wantNotCalled, mock.Anything, mock.Anything)
-			statusWriter.AssertCalled(t, "Patch", mock.Anything, mock.Anything, mock.Anything)
+			if tt.args.reconcileError == nil {
+				Expect(err).To(BeNil())
+			} else {
+				Expect(err).To(Equal(tt.args.reconcileError))
+			}
+			if !tt.verifyFinalizerRemoval {
+				mockReconciler.AssertCalled(GinkgoT(), tt.wantMethod, mock.Anything, mock.Anything)
+				mockReconciler.AssertNotCalled(GinkgoT(), wantNotCalled, mock.Anything, mock.Anything)
+				statusWriter.AssertCalled(GinkgoT(), "Patch", mock.Anything, mock.Anything, mock.Anything)
+			}
 			expectedState := resourceForTest.Status.GetConditionByType(tt.wantSetupState.Type)
-			require.Equal(t, tt.wantSetupState.Reason, expectedState.Reason)
-		})
-	}
-}
+			// we cannot compare the whole condition because the lastTransitionTime is different
+			Expect(expectedState.Type).To(Equal(tt.wantSetupState.Type))
+			Expect(expectedState.Status).To(Equal(tt.wantSetupState.Status))
+			Expect(expectedState.Reason).To(Equal(tt.wantSetupState.Reason))
+			Expect(expectedState.Message).To(Equal(tt.wantSetupState.Message))
+			if tt.verifyFinalizerRemoval {
+				Expect(resourceForTest.GetFinalizers()).To(HaveLen(0))
+			}
+		},
+		Entry("it should reach CREATED state", struct {
+			args                   args
+			wantMethod             string
+			wantSetupState         v1alpha1.Condition
+			verifyFinalizerRemoval bool
+		}{
+			wantMethod:             ensureCreated,
+			wantSetupState:         createdCondition,
+			verifyFinalizerRemoval: false,
+			args: args{
+				setupState:      v1alpha1.Condition{},
+				reconcileResult: lifecycle.Success,
+				deletionTime:    nil,
+			},
+		}),
+		Entry("it should be in PENDING_CREATION state", struct {
+			args                   args
+			wantMethod             string
+			wantSetupState         v1alpha1.Condition
+			verifyFinalizerRemoval bool
+		}{
+			wantMethod:             ensureCreated,
+			wantSetupState:         pendingCreationCondition,
+			verifyFinalizerRemoval: false,
+			args: args{
+				setupState:      v1alpha1.Condition{},
+				reconcileResult: lifecycle.Pending,
+				deletionTime:    nil,
+			},
+		}),
+		Entry("it should reach FAILING_CREATION state", struct {
+			args                   args
+			wantMethod             string
+			wantSetupState         v1alpha1.Condition
+			verifyFinalizerRemoval bool
+		}{
+			wantMethod:             ensureCreated,
+			wantSetupState:         failingCreationCondition,
+			verifyFinalizerRemoval: false,
+			args: args{
+				setupState:      v1alpha1.Condition{},
+				reconcileResult: lifecycle.Failed,
+				deletionTime:    nil,
+				reconcileError:  errors.New(""),
+			},
+		}),
+		Entry("it should stay in CREATED state", struct {
+			args                   args
+			wantMethod             string
+			wantSetupState         v1alpha1.Condition
+			verifyFinalizerRemoval bool
+		}{
+			wantMethod:             ensureCreated,
+			wantSetupState:         createdCondition,
+			verifyFinalizerRemoval: false,
+			args: args{
+				setupState:      createdCondition,
+				reconcileResult: lifecycle.Success,
+				deletionTime:    nil,
+			},
+		}),
+		Entry("it should reach DELETED state", struct {
+			args                   args
+			wantMethod             string
+			wantSetupState         v1alpha1.Condition
+			verifyFinalizerRemoval bool
+		}{
+			wantMethod:             ensureDeleted,
+			wantSetupState:         deletedCondition,
+			verifyFinalizerRemoval: false,
+			args: args{
+				setupState:      createdCondition,
+				reconcileResult: lifecycle.Success,
+				deletionTime:    &deletionTime,
+			},
+		}),
+		Entry("it should reach PENDING_DELETION state", struct {
+			args                   args
+			wantMethod             string
+			wantSetupState         v1alpha1.Condition
+			verifyFinalizerRemoval bool
+		}{
+			wantMethod:             ensureDeleted,
+			wantSetupState:         pendingDeletionCondition,
+			verifyFinalizerRemoval: false,
+			args: args{
+				setupState:      createdCondition,
+				reconcileResult: lifecycle.Pending,
+				deletionTime:    &deletionTime,
+			},
+		}),
+		Entry("it should reach FAILING_DELETION state", struct {
+			args                   args
+			wantMethod             string
+			wantSetupState         v1alpha1.Condition
+			verifyFinalizerRemoval bool
+		}{
+			wantMethod:             ensureDeleted,
+			wantSetupState:         failingDeletionCondition,
+			verifyFinalizerRemoval: false,
+			args: args{
+				setupState:      createdCondition,
+				reconcileResult: lifecycle.Failed,
+				deletionTime:    &deletionTime,
+				reconcileError:  errors.New(""),
+			},
+		}),
+		Entry("it should not have finalizers if in DELETED state", struct {
+			args                   args
+			wantMethod             string
+			wantSetupState         v1alpha1.Condition
+			verifyFinalizerRemoval bool
+		}{
+			wantMethod:             ensureDeleted,
+			wantSetupState:         deletedCondition,
+			verifyFinalizerRemoval: true,
+			args: args{
+				setupState:      deletedCondition,
+				reconcileResult: lifecycle.Success,
+				deletionTime:    &deletionTime,
+			},
+		}),
+	)
+})
