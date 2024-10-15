@@ -199,7 +199,7 @@ HELMIFY ?= $(LOCALBIN)/helmify
 ## Tool Versions
 KUSTOMIZE_VERSION ?= v5.4.2
 CONTROLLER_TOOLS_VERSION ?= v0.15.0
-GOLINT_VERSION ?= v1.60.2
+GOLINT_VERSION ?= v1.61.0
 GINKGOLINTER_VERSION ?= v0.16.2
 
 KUSTOMIZE_INSTALL_SCRIPT ?= "https://raw.githubusercontent.com/kubernetes-sigs/kustomize/master/hack/install_kustomize.sh"
@@ -268,3 +268,9 @@ WEBHOOK_DEV ?= false
 .PHONY: setup-webhook
 setup-webhook: cli
 	$(CLI) dev setup webhook --name $(ADMIN_CLUSTER) --namespace $(ADMIN_NAMESPACE) --release $(ADMIN_RELEASE) --chart-path $(ADMIN_CHART_PATH) --dockerfile ./ --dev-mode=$(WEBHOOK_DEV)
+
+# Download and install mockery locally via `brew install mockery`
+MOCKERY := $(shell which mockery)
+mockery:
+	# will look into .mockery.yaml for configuration
+	$(MOCKERY)

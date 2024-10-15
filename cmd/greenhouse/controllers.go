@@ -6,7 +6,6 @@ package main
 import (
 	"os"
 	"sort"
-	"time"
 
 	ctrl "sigs.k8s.io/controller-runtime"
 
@@ -51,10 +50,10 @@ var knownControllers = map[string]func(controllerName string, mgr ctrl.Manager) 
 	"pluginChartTest": (&plugincontrollers.HelmChartTestReconciler{}).SetupWithManager,
 
 	// Cluster controllers
-	"bootStrap": (&clustercontrollers.BootstrapReconciler{}).SetupWithManager,
-	"cluster":   startRemoteClusterReconciler,
+	"bootStrap":           (&clustercontrollers.BootstrapReconciler{}).SetupWithManager,
+	"clusterDirectAccess": startClusterDirectAccessReconciler,
 	// "clusterPropagation":     (&clustercontrollers.ClusterPropagationReconciler{}).SetupWithManager,
-	// "clusterHeadscaleAccess": startClusterHeadscaleAccessReconciler,
+	"clusterStatus": (&clustercontrollers.ClusterStatusReconciler{}).SetupWithManager,
 }
 
 // knownControllers lists the name of known controllers.
@@ -87,43 +86,14 @@ func startOrganizationDexReconciler(name string, mgr ctrl.Manager) error {
 	}).SetupWithManager(name, mgr)
 }
 
-func startRemoteClusterReconciler(name string, mgr ctrl.Manager) error {
+func startClusterDirectAccessReconciler(name string, mgr ctrl.Manager) error {
 	if renewRemoteClusterBearerTokenAfter > remoteClusterBearerTokenValidity {
 		setupLog.Info("WARN: remoteClusterBearerTokenValidity is less than renewRemoteClusterBearerTokenAfter")
 		setupLog.Info("Setting renewRemoteClusterBearerTokenAfter to half of remoteClusterBearerTokenValidity")
 		renewRemoteClusterBearerTokenAfter = remoteClusterBearerTokenValidity / 2
 	}
-	return (&clustercontrollers.RemoteClusterReconciler{
+	return (&clustercontrollers.DirectAccessReconciler{
 		RemoteClusterBearerTokenValidity:   remoteClusterBearerTokenValidity,
 		RenewRemoteClusterBearerTokenAfter: renewRemoteClusterBearerTokenAfter,
-	}).SetupWithManager(name, mgr)
-}
-
-//nolint:unused
-func startClusterHeadscaleAccessReconciler(name string, mgr ctrl.Manager) error {
-	if renewRemoteClusterBearerTokenAfter > remoteClusterBearerTokenValidity {
-		setupLog.Info("WARN: remoteClusterBearerTokenValidity is less than renewRemoteClusterBearerTokenAfter")
-		setupLog.Info("Setting renewRemoteClusterBearerTokenAfter to half of remoteClusterBearerTokenValidity")
-		renewRemoteClusterBearerTokenAfter = remoteClusterBearerTokenValidity / 2
-	}
-	if headscaleAPIKey == "" || headscaleAPIURL == "" {
-		setupLog.Info("WARN: headscaleApiKey or headscaleApiUrl is not set")
-		setupLog.Info("Skipping headscale access reconciler")
-		return nil
-	}
-
-	if tailscaleProxy == "" {
-		setupLog.Info("WARN: tailscaleProxy is not set")
-		setupLog.Info("Skipping headscale access reconciler")
-		return nil
-	}
-
-	return (&clustercontrollers.HeadscaleAccessReconciler{
-		HeadscaleAPIKey:                          headscaleAPIKey,
-		HeadscaleGRPCURL:                         headscaleAPIURL,
-		TailscaleProxy:                           tailscaleProxy,
-		HeadscalePreAuthenticationKeyMinValidity: 8 * time.Hour,
-		RemoteClusterBearerTokenValidity:         remoteClusterBearerTokenValidity,
-		RenewRemoteClusterBearerTokenAfter:       renewRemoteClusterBearerTokenAfter,
 	}).SetupWithManager(name, mgr)
 }

@@ -5,10 +5,8 @@ package cluster
 
 import (
 	"context"
-	"errors"
+	"fmt"
 	"time"
-
-	"github.com/cloudoperators/greenhouse/pkg/lifecycle"
 
 	"github.com/go-logr/logr"
 
@@ -16,63 +14,104 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
+	"k8s.io/client-go/tools/record"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/log"
+	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/pkg/apis/greenhouse/v1alpha1"
 	"github.com/cloudoperators/greenhouse/pkg/clientutil"
 )
 
-func (r *RemoteClusterReconciler) setConditions() lifecycle.Conditioner {
-	return func(ctx context.Context, resource lifecycle.RuntimeObject) {
-		logger := ctrl.LoggerFrom(ctx)
-		cluster, ok := resource.(*greenhousev1alpha1.Cluster)
-		if !ok {
-			logger.Error(errors.New("resource is not a cluster"), "status setup failed")
-			return
-		}
-		if cluster.Spec.AccessMode != greenhousev1alpha1.ClusterAccessModeDirect {
-			logger.Info("cluster is not direct access mode - skipping status setup")
-			return
-		}
-		var conditions []greenhousev1alpha1.Condition
-		kubeConfigValidCondition, restClientGetter, k8sVersion := r.reconcileClusterSecret(ctx, cluster)
+const StatusRequeueInterval = 2 * time.Minute
 
-		allNodesReadyCondition := greenhousev1alpha1.UnknownCondition(greenhousev1alpha1.AllNodesReady, "", "")
-		clusterNodeStatus := make(map[string]greenhousev1alpha1.NodeStatus)
-		// Can only reconcile node status if kubeconfig is valid
-		if restClientGetter == nil || kubeConfigValidCondition.IsFalse() {
-			allNodesReadyCondition.Message = "kubeconfig not valid - cannot know node status"
-		} else {
-			allNodesReadyCondition, clusterNodeStatus = r.reconcileNodeStatus(ctx, restClientGetter)
-		}
+// ClusterStatusReconciler reconciles the overall status of a remote cluster
+type ClusterStatusReconciler struct {
+	client.Client
+	recorder record.EventRecorder
+}
 
-		readyCondition := r.reconcileReadyStatus(cluster, kubeConfigValidCondition)
+//+kubebuilder:rbac:groups=greenhouse.sap,resources=clusters,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups=greenhouse.sap,resources=clusters/status,verbs=get;update;patch
+//+kubebuilder:rbac:groups=greenhouse.sap,resources=clusters/finalizers,verbs=update
+//+kubebuilder:rbac:groups="",resources=secrets,verbs=get;list;watch;update;patch;create
 
-		conditions = append(conditions, readyCondition, allNodesReadyCondition, kubeConfigValidCondition)
+// SetupWithManager sets up the controller with the Manager.
+func (r *ClusterStatusReconciler) SetupWithManager(name string, mgr ctrl.Manager) error {
+	r.Client = mgr.GetClient()
+	r.recorder = mgr.GetEventRecorderFor(name)
 
-		deletionCondition := r.checkDeletionSchedule(logger, cluster)
-		if !deletionCondition.IsUnknown() {
-			conditions = append(conditions, deletionCondition)
-		}
+	return ctrl.NewControllerManagedBy(mgr).
+		Named(name).
+		For(&greenhousev1alpha1.Cluster{}).
+		Complete(r)
+}
+
+func (r *ClusterStatusReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
+	logger := ctrl.LoggerFrom(ctx)
+	var cluster = new(greenhousev1alpha1.Cluster)
+	if err := r.Get(ctx, req.NamespacedName, cluster); err != nil {
+		return ctrl.Result{}, client.IgnoreNotFound(err)
+	}
+
+	if cluster.DeletionTimestamp != nil {
+		return ctrl.Result{}, nil
+	}
+
+	var conditions []greenhousev1alpha1.Condition
+
+	kubeConfigValidCondition, restClientGetter, k8sVersion := r.reconcileClusterSecret(ctx, cluster)
+
+	allNodesReadyCondition := greenhousev1alpha1.UnknownCondition(greenhousev1alpha1.AllNodesReady, "", "")
+	clusterNodeStatus := make(map[string]greenhousev1alpha1.NodeStatus)
+	// Can only reconcile node status if kubeconfig is valid
+	if restClientGetter == nil || kubeConfigValidCondition.IsFalse() {
+		allNodesReadyCondition.Message = "kubeconfig not valid - cannot know node status"
+	} else {
+		allNodesReadyCondition, clusterNodeStatus = r.reconcileNodeStatus(ctx, restClientGetter)
+	}
+
+	readyCondition := r.reconcileReadyStatus(kubeConfigValidCondition)
+
+	conditions = append(conditions, readyCondition, allNodesReadyCondition, kubeConfigValidCondition)
+
+	deletionCondition := r.checkDeletionSchedule(logger, cluster)
+	if deletionCondition.IsTrue() {
+		conditions = append(conditions, deletionCondition)
+	}
+
+	// patch message and condition
+	result, err := clientutil.PatchStatus(ctx, r.Client, cluster, func() error {
 		cluster.Status.KubernetesVersion = k8sVersion
 		cluster.Status.SetConditions(conditions...)
 		cluster.Status.Nodes = clusterNodeStatus
+		return nil
+	})
+	if err != nil {
+		return reconcile.Result{}, err
 	}
+	if result != clientutil.OperationResultNone {
+		logMessage := fmt.Sprintf("%s cluster.status", result)
+		log.FromContext(ctx).V(5).Info(logMessage, "namespace", cluster.Namespace, "name", cluster.Name, "status", cluster.Status)
+	}
+
+	return ctrl.Result{RequeueAfter: StatusRequeueInterval}, nil
 }
 
-func (r *RemoteClusterReconciler) checkDeletionSchedule(logger logr.Logger, cluster *greenhousev1alpha1.Cluster) greenhousev1alpha1.Condition {
-	deletionCondition := greenhousev1alpha1.UnknownCondition(greenhousev1alpha1.DeleteCondition, "", "")
+func (r *ClusterStatusReconciler) checkDeletionSchedule(logger logr.Logger, cluster *greenhousev1alpha1.Cluster) greenhousev1alpha1.Condition {
+	deletionCondition := greenhousev1alpha1.UnknownCondition(greenhousev1alpha1.ClusterDeletionScheduled, "", "")
 	scheduleExists, schedule, err := clientutil.ExtractDeletionSchedule(cluster.GetAnnotations())
 	if err != nil {
 		logger.Error(err, "failed to extract deletion schedule - ignoring deletion schedule")
 	}
 	if scheduleExists {
-		deletionCondition = greenhousev1alpha1.FalseCondition(greenhousev1alpha1.DeleteCondition, lifecycle.ScheduledDeletionReason, "deletion scheduled at "+schedule.Format(time.DateTime))
+		deletionCondition = greenhousev1alpha1.TrueCondition(greenhousev1alpha1.ClusterDeletionScheduled, "", "deletion scheduled at "+schedule.Format(time.DateTime))
 	}
 	return deletionCondition
 }
 
-func (r *RemoteClusterReconciler) reconcileClusterSecret(
+func (r *ClusterStatusReconciler) reconcileClusterSecret(
 	ctx context.Context,
 	cluster *greenhousev1alpha1.Cluster,
 ) (
@@ -112,19 +151,12 @@ func (r *RemoteClusterReconciler) reconcileClusterSecret(
 	return
 }
 
-func (r *RemoteClusterReconciler) reconcileReadyStatus(cluster *greenhousev1alpha1.Cluster, kubeConfigValidCondition greenhousev1alpha1.Condition) (readyCondition greenhousev1alpha1.Condition) {
+func (r *ClusterStatusReconciler) reconcileReadyStatus(kubeConfigValidCondition greenhousev1alpha1.Condition) (readyCondition greenhousev1alpha1.Condition) {
 	readyCondition = greenhousev1alpha1.UnknownCondition(greenhousev1alpha1.ReadyCondition, "", "")
 
 	if kubeConfigValidCondition.IsFalse() {
 		readyCondition.Status = metav1.ConditionFalse
 		readyCondition.Message = "kubeconfig not valid - cannot access cluster"
-		// change ready condition message if headscale not ready
-		if cluster.Spec.AccessMode == greenhousev1alpha1.ClusterAccessModeHeadscale {
-			headscaleReadyCondition := cluster.Status.StatusConditions.GetConditionByType(greenhousev1alpha1.HeadscaleReady)
-			if headscaleReadyCondition == nil || !headscaleReadyCondition.IsTrue() {
-				readyCondition.Message = "Headscale connection not ready"
-			}
-		}
 	} else {
 		readyCondition.Status = metav1.ConditionTrue
 	}
@@ -132,7 +164,7 @@ func (r *RemoteClusterReconciler) reconcileReadyStatus(cluster *greenhousev1alph
 }
 
 // reconcileNodeStatus returns the status of all nodes of the cluster and an all nodes ready condition.
-func (r *RemoteClusterReconciler) reconcileNodeStatus(
+func (r *ClusterStatusReconciler) reconcileNodeStatus(
 	ctx context.Context,
 	restClientGetter genericclioptions.RESTClientGetter,
 ) (

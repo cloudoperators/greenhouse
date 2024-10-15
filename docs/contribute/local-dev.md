@@ -110,8 +110,6 @@ docker run --network host -e KUBECONFIG=/envtest/kubeconfig -v ./envtest:/envtes
 
 See all available flags [here](https://github.com/cloudoperators/greenhouse/blob/main/cmd/greenhouse/main.go#L59-L87).
 
-Note that not setting `headscaleAPIURL`, `headscaleAPIKey` or `tailscaleProxy` will prevent running the [headscale access controller](https://github.com/cloudoperators/greenhouse/blob/main/pkg/controllers/cluster/headscale_access_controller.go).
-
 ## Greenhouse UI
 
 Build the latest `dev-ui` image by running:

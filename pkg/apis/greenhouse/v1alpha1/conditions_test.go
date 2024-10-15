@@ -98,6 +98,28 @@ var _ = Describe("Test conditions util functions", func() {
 		}, false),
 	)
 
+	DescribeTable("should correctly calculate the Ready condition",
+		func(condition greenhousev1alpha1.Condition, expected bool) {
+			statusConditions := greenhousev1alpha1.StatusConditions{
+				Conditions: []greenhousev1alpha1.Condition{condition},
+			}
+			Expect(statusConditions.IsReadyTrue()).To(Equal(expected))
+		},
+		Entry("should return true if Ready condition is true", greenhousev1alpha1.Condition{
+			Type:               greenhousev1alpha1.ReadyCondition,
+			Status:             metav1.ConditionTrue,
+			LastTransitionTime: timeNow,
+			Message:            "test",
+		}, true),
+		Entry("should return false if Ready condition is false", greenhousev1alpha1.Condition{
+			Type:               greenhousev1alpha1.ReadyCondition,
+			Status:             metav1.ConditionFalse,
+			LastTransitionTime: timeNow,
+			Message:            "test",
+		}, false),
+		Entry("should return false if no conditions are set", nil, false),
+	)
+
 	DescribeTable("should correctly use SetCondition on StatusConditions",
 		func(
 			initialStatusConditions greenhousev1alpha1.StatusConditions,
@@ -132,7 +154,7 @@ var _ = Describe("Test conditions util functions", func() {
 			greenhousev1alpha1.StatusConditions{
 				Conditions: []greenhousev1alpha1.Condition{
 					{
-						Type:               greenhousev1alpha1.HeadscaleReady,
+						Type:               greenhousev1alpha1.KubeConfigValid,
 						Status:             metav1.ConditionFalse,
 						LastTransitionTime: timeNow,
 						Message:            "test",
@@ -142,7 +164,7 @@ var _ = Describe("Test conditions util functions", func() {
 			greenhousev1alpha1.StatusConditions{
 				Conditions: []greenhousev1alpha1.Condition{
 					{
-						Type:               greenhousev1alpha1.HeadscaleReady,
+						Type:               greenhousev1alpha1.KubeConfigValid,
 						Status:             metav1.ConditionFalse,
 						LastTransitionTime: timeNow,
 						Message:            "test",
@@ -166,7 +188,7 @@ var _ = Describe("Test conditions util functions", func() {
 			greenhousev1alpha1.StatusConditions{
 				Conditions: []greenhousev1alpha1.Condition{
 					{
-						Type:               greenhousev1alpha1.HeadscaleReady,
+						Type:               greenhousev1alpha1.KubeConfigValid,
 						Status:             metav1.ConditionFalse,
 						LastTransitionTime: timeNow,
 						Message:            "test",
@@ -182,7 +204,7 @@ var _ = Describe("Test conditions util functions", func() {
 			greenhousev1alpha1.StatusConditions{
 				Conditions: []greenhousev1alpha1.Condition{
 					{
-						Type:               greenhousev1alpha1.HeadscaleReady,
+						Type:               greenhousev1alpha1.KubeConfigValid,
 						Status:             metav1.ConditionFalse,
 						LastTransitionTime: timeNow,
 						Message:            "test",
@@ -206,7 +228,7 @@ var _ = Describe("Test conditions util functions", func() {
 			greenhousev1alpha1.StatusConditions{
 				Conditions: []greenhousev1alpha1.Condition{
 					{
-						Type:               greenhousev1alpha1.HeadscaleReady,
+						Type:               greenhousev1alpha1.KubeConfigValid,
 						Status:             metav1.ConditionFalse,
 						LastTransitionTime: timeNow,
 						Message:            "test",
@@ -222,7 +244,7 @@ var _ = Describe("Test conditions util functions", func() {
 			greenhousev1alpha1.StatusConditions{
 				Conditions: []greenhousev1alpha1.Condition{
 					{
-						Type:               greenhousev1alpha1.HeadscaleReady,
+						Type:               greenhousev1alpha1.KubeConfigValid,
 						Status:             metav1.ConditionFalse,
 						LastTransitionTime: timeNow,
 						Message:            "test",
@@ -246,7 +268,7 @@ var _ = Describe("Test conditions util functions", func() {
 			greenhousev1alpha1.StatusConditions{
 				Conditions: []greenhousev1alpha1.Condition{
 					{
-						Type:               greenhousev1alpha1.HeadscaleReady,
+						Type:               greenhousev1alpha1.KubeConfigValid,
 						Status:             metav1.ConditionFalse,
 						LastTransitionTime: timeNow,
 						Message:            "test",
@@ -256,7 +278,7 @@ var _ = Describe("Test conditions util functions", func() {
 			greenhousev1alpha1.StatusConditions{
 				Conditions: []greenhousev1alpha1.Condition{
 					{
-						Type:               greenhousev1alpha1.HeadscaleReady,
+						Type:               greenhousev1alpha1.KubeConfigValid,
 						Status:             metav1.ConditionFalse,
 						LastTransitionTime: timeNow,
 						Message:            "test2",
@@ -264,7 +286,7 @@ var _ = Describe("Test conditions util functions", func() {
 				},
 			},
 			greenhousev1alpha1.Condition{
-				Type:               greenhousev1alpha1.HeadscaleReady,
+				Type:               greenhousev1alpha1.KubeConfigValid,
 				Status:             metav1.ConditionFalse,
 				LastTransitionTime: metav1.NewTime(metav1.Now().AddDate(0, 0, -1)),
 				Message:            "test2",
@@ -275,7 +297,7 @@ var _ = Describe("Test conditions util functions", func() {
 			greenhousev1alpha1.StatusConditions{
 				Conditions: []greenhousev1alpha1.Condition{
 					{
-						Type:               greenhousev1alpha1.HeadscaleReady,
+						Type:               greenhousev1alpha1.KubeConfigValid,
 						Status:             metav1.ConditionFalse,
 						LastTransitionTime: timeNow,
 						Message:            "test",
@@ -285,7 +307,7 @@ var _ = Describe("Test conditions util functions", func() {
 			greenhousev1alpha1.StatusConditions{
 				Conditions: []greenhousev1alpha1.Condition{
 					{
-						Type:               greenhousev1alpha1.HeadscaleReady,
+						Type:               greenhousev1alpha1.KubeConfigValid,
 						Status:             metav1.ConditionFalse,
 						LastTransitionTime: timeNow,
 						Message:            "test2",
@@ -300,7 +322,7 @@ var _ = Describe("Test conditions util functions", func() {
 			},
 			greenhousev1alpha1.Condition{
 
-				Type:               greenhousev1alpha1.HeadscaleReady,
+				Type:               greenhousev1alpha1.KubeConfigValid,
 				Status:             metav1.ConditionFalse,
 				LastTransitionTime: metav1.NewTime(metav1.Now().AddDate(0, 0, -1)),
 				Message:            "test2",

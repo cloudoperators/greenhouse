@@ -6,60 +6,19 @@ package lifecycle
 import (
 	"context"
 	"errors"
-
-	"github.com/go-logr/logr"
-	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/client-go/tools/record"
-	ctrl "sigs.k8s.io/controller-runtime"
 )
-
-const msgEventDiscarded = "Event is discarded because no event recorder was found in context"
 
 type reconcileRunKey struct{}
 
 type reconcileRun struct {
-	eventRecorder record.EventRecorder
-	objectCopy    RuntimeObject
-}
-
-type dummyEventRecorder struct {
-	logger logr.Logger
-}
-
-func (d dummyEventRecorder) Event(object runtime.Object, eventtype, reason, message string) {
-	d.logger.Info(msgEventDiscarded, "type", eventtype, "reason", reason, "message", message)
-}
-
-func (d dummyEventRecorder) Eventf(object runtime.Object, eventtype, reason, messageFmt string, args ...any) {
-	d.logger.Info(msgEventDiscarded, "type", eventtype, "reason", reason, "messageFmt", messageFmt, "args", args)
-}
-
-func (d dummyEventRecorder) AnnotatedEventf(object runtime.Object, annotations map[string]string, eventtype, reason, messageFmt string, args ...any) {
-	d.logger.Info(msgEventDiscarded, "annotations", annotations, "type", eventtype, "reason", reason, "messageFmt", messageFmt, "args", args)
+	objectCopy RuntimeObject
 }
 
 // createContextFromRuntimeObject create a new context with a copy of the object attached.
-func createContextFromRuntimeObject(ctx context.Context, object RuntimeObject, recorder record.EventRecorder) context.Context {
-	if recorder == nil {
-		recorder = dummyEventRecorder{ctrl.LoggerFrom(ctx)}
-	}
+func createContextFromRuntimeObject(ctx context.Context, object RuntimeObject) context.Context {
 	return context.WithValue(ctx, reconcileRunKey{}, &reconcileRun{
-		eventRecorder: recorder,
-		objectCopy:    object.DeepCopyObject().(RuntimeObject),
+		objectCopy: object.DeepCopyObject().(RuntimeObject),
 	})
-}
-
-// getEventRecorderFromContext - returns the event recorder from the context
-// useful to fire condition changes as events
-//
-//nolint:unused
-func getEventRecorderFromContext(ctx context.Context) record.EventRecorder {
-	reconcileRun, err := getRunFromContext(ctx)
-	if err != nil {
-		return dummyEventRecorder{ctrl.LoggerFrom(ctx)}
-	}
-
-	return reconcileRun.eventRecorder
 }
 
 func getRunFromContext(ctx context.Context) (*reconcileRun, error) {
@@ -71,7 +30,7 @@ func getRunFromContext(ctx context.Context) (*reconcileRun, error) {
 	return val, nil
 }
 
-// GetOriginalResourceFromContext - returns the unmodified version of the RuntimeObject
+// getOriginalResourceFromContext - returns the unmodified version of the RuntimeObject
 func getOriginalResourceFromContext(ctx context.Context) (RuntimeObject, error) {
 	reconcileRun, err := getRunFromContext(ctx)
 	if err != nil {
