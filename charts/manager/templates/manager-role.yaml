@@ -71,6 +71,17 @@ rules:
 - apiGroups:
   - greenhouse.sap
   resources:
+  - cluster-kubeconfigs
+  verbs:
+  - create
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - greenhouse.sap
+  resources:
   - clusters
   verbs:
   - create
