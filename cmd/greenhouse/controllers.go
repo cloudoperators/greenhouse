@@ -51,9 +51,8 @@ var knownControllers = map[string]func(controllerName string, mgr ctrl.Manager) 
 
 	// Cluster controllers
 	"bootStrap":           (&clustercontrollers.BootstrapReconciler{}).SetupWithManager,
-	"clusterDirectAccess": startClusterDirectAccessReconciler,
+	"clusterDirectAccess": startClusterReconciler,
 	// "clusterPropagation":     (&clustercontrollers.ClusterPropagationReconciler{}).SetupWithManager,
-	"clusterStatus": (&clustercontrollers.ClusterStatusReconciler{}).SetupWithManager,
 }
 
 // knownControllers lists the name of known controllers.
@@ -86,13 +85,13 @@ func startOrganizationDexReconciler(name string, mgr ctrl.Manager) error {
 	}).SetupWithManager(name, mgr)
 }
 
-func startClusterDirectAccessReconciler(name string, mgr ctrl.Manager) error {
+func startClusterReconciler(name string, mgr ctrl.Manager) error {
 	if renewRemoteClusterBearerTokenAfter > remoteClusterBearerTokenValidity {
 		setupLog.Info("WARN: remoteClusterBearerTokenValidity is less than renewRemoteClusterBearerTokenAfter")
 		setupLog.Info("Setting renewRemoteClusterBearerTokenAfter to half of remoteClusterBearerTokenValidity")
 		renewRemoteClusterBearerTokenAfter = remoteClusterBearerTokenValidity / 2
 	}
-	return (&clustercontrollers.DirectAccessReconciler{
+	return (&clustercontrollers.RemoteClusterReconciler{
 		RemoteClusterBearerTokenValidity:   remoteClusterBearerTokenValidity,
 		RenewRemoteClusterBearerTokenAfter: renewRemoteClusterBearerTokenAfter,
 	}).SetupWithManager(name, mgr)
