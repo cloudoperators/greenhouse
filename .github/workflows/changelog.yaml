@@ -1,4 +1,4 @@
-name: Packages Cleanup
+name: Changelog
 
 on:
   workflow_dispatch: {}
