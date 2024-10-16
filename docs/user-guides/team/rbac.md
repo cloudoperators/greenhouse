@@ -202,8 +202,8 @@ metadata:
 spec:
   aggregationRule:
     clusterRoleSelectors:
-      - matchLabels:
-          "aggregate": "true"
+      matchLabels:
+        "aggregate": "true"
 ```
 
 ```yaml
