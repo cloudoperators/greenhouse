@@ -171,7 +171,6 @@ func setupCreateState(runtimeObject RuntimeObject, reconcileResult ReconcileResu
 }
 
 // patchStatus - patches the status of the resource with the new status and returns the reconcile error
-// TODO: implement event recorder to fire ready condition change events
 func patchStatus(ctx context.Context, kubeClient client.Client, newObject RuntimeObject, reconcileError error) error {
 	oldObject, err := getOriginalResourceFromContext(ctx)
 	if err != nil {
