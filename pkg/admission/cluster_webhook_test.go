@@ -179,7 +179,7 @@ var _ = Describe("Cluster Webhook", func() {
 				},
 				Spec: greenhousev1alpha1.ClusterSpec{
 					AccessMode: greenhousev1alpha1.ClusterAccessModeDirect,
-					MaxTokenValidity: &metav1.Duration{
+					MaxTokenValidity: metav1.Duration{
 						Duration: 73 * time.Hour,
 					},
 				},
@@ -194,7 +194,7 @@ var _ = Describe("Cluster Webhook", func() {
 				},
 				Spec: greenhousev1alpha1.ClusterSpec{
 					AccessMode: greenhousev1alpha1.ClusterAccessModeDirect,
-					MaxTokenValidity: &metav1.Duration{
+					MaxTokenValidity: metav1.Duration{
 						Duration: 72 * time.Hour,
 					},
 				},
@@ -321,7 +321,7 @@ var _ = Describe("validateTokenValidity", func() {
 		Entry("with too long token validity",
 			&greenhousev1alpha1.Cluster{
 				Spec: greenhousev1alpha1.ClusterSpec{
-					MaxTokenValidity: &metav1.Duration{Duration: 73 * time.Hour},
+					MaxTokenValidity: metav1.Duration{Duration: 73 * time.Hour},
 				},
 			},
 			true,
@@ -329,7 +329,7 @@ var _ = Describe("validateTokenValidity", func() {
 		Entry("with correct token validity",
 			&greenhousev1alpha1.Cluster{
 				Spec: greenhousev1alpha1.ClusterSpec{
-					MaxTokenValidity: &metav1.Duration{Duration: 72 * time.Hour},
+					MaxTokenValidity: metav1.Duration{Duration: 72 * time.Hour},
 				},
 			},
 			false,
