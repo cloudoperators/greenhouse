@@ -1,7 +1,7 @@
 openapi: 3.0.0
 info:
   title: Greenhouse
-  version: aecb95b
+  version: f4b0b36
   description: PlusOne operations platform
 paths:
   /TeamMembership:
@@ -1093,6 +1093,10 @@ components:
               description: AccessMode configures how the cluster is accessed from the Greenhouse operator.
               enum:
                 - direct
+              type: string
+            maxTokenValidity:
+              default: 72h
+              description: MaxTokenValidity specifies the maximum duration for which a token remains valid
               type: string
           required:
             - accessMode
