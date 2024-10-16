@@ -202,7 +202,7 @@ metadata:
 spec:
   aggregationRule:
     clusterRoleSelectors:
-      matchLabels:
+    - matchLabels:
         "aggregate": "true"
 ```
 
