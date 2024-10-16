@@ -62,18 +62,15 @@ spec:
 
 Greenhouse provides a set of [default `TeamRoles`](./../../../pkg/controllers/organization/teamrole_seeder_controller.go) that are seeded to all clusters:
 
-- `cluster-admin`
-  - full priviledges
-- `cluster-viewer`
-  - `get`, `list` and `watch` all resources
-- `cluster-developer`
-  - Aggregated role. Greenhouse aggregates the `application-developer` and the `cluster-viewer`. Further `TeamRoles` can be aggregated.
-- `application-developer`
-  - Set of permissions on `pods`, `deployments` and `statefulsets` necessary to develop applications on k8s
-- `node-maintainer`
-  - `get` and `patch` `nodes`
-- `namespace-admin`
-  - all permissions on `namespaces`
+| TeamRole                | Description                                                                                                                         | APIGroups | Resources                                                                             | Verbs                                                         |
+| ----------------------- | ----------------------------------------------------------------------------------------------------------------------------------- | --------- | ------------------------------------------------------------------------------------- | ------------------------------------------------------------- |
+| `cluster-admin`         | Full privileges                                                                                                                     | \*        | \*                                                                                    | \*                                                            |
+| `cluster-viewer`        | `get`, `list` and `watch` all resources                                                                                             | \*        | \*                                                                                    | `get`, `list`, `watch`                                        |
+| `cluster-developer`     | Aggregated role. Greenhouse aggregates the `application-developer` and the `cluster-viewer`. Further `TeamRoles` can be aggregated. |           |                                                                                       |                                                               |
+| `application-developer` | Set of permissions on `pods`, `deployments` and `statefulsets` necessary to develop applications on k8s                             | `apps`    | `deployments`, `statefulsets`                                                         | `patch`                                                       |
+|                         |                                                                                                                                     | ""        | `pods`, `pods/portforward`, `pods/eviction`, `pods/proxy`, `pods/log`, `pods/status`, | `get`, `list`, `watch`, `create`, `update`, `patch`, `delete` |
+| `node-maintainer`       | `get` and `patch` `nodes`                                                                                                           | ""        | `nodes`                                                                               | `get`, `patch`                                                |
+| `namespace-creator`     | All permissions on `namespaces`                                                                                                     | ""        | `namespaces`                                                                          | \*                                                            |
 
 ## Defining TeamRoleBindings
 

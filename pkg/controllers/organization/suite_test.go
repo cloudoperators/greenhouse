@@ -22,8 +22,10 @@ func TestOrganization(t *testing.T) {
 var _ = BeforeSuite(func() {
 	test.RegisterController("organizationController", (&organizationpkg.OrganizationReconciler{}).SetupWithManager)
 	test.RegisterController("organizationRBAC", (&organizationpkg.RBACReconciler{}).SetupWithManager)
+	test.RegisterController("teamRoleSeeder", (&organizationpkg.TeamRoleSeederReconciler{}).SetupWithManager)
 	test.RegisterWebhook("orgWebhook", admission.SetupOrganizationWebhookWithManager)
 	test.RegisterWebhook("teamWebhook", admission.SetupTeamWebhookWithManager)
+	test.RegisterWebhook("teamRoleWebhook", admission.SetupTeamRoleWebhookWithManager)
 	test.TestBeforeSuite()
 })
 

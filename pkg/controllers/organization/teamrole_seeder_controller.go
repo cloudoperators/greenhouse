@@ -69,7 +69,7 @@ var defaultTeamRoles = map[string]greenhousesapv1alpha1.TeamRoleSpec{
 			Verbs:     []string{"get", "patch"},
 		}},
 	},
-	"namespace-admin": {
+	"namespace-creator": {
 		Rules: []rbacv1.PolicyRule{{
 			APIGroups: []string{""},
 			Resources: []string{"namespaces"},
