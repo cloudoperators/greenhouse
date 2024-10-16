@@ -16,7 +16,7 @@ type ClusterSpec struct {
 
 	// MaxTokenValidity specifies the maximum duration for which a token remains valid
 	// +kubebuilder:default:="72h"
-	MaxTokenValidity *metav1.Duration `json:"maxTokenValidity,omitempty"`
+	MaxTokenValidity metav1.Duration `json:"maxTokenValidity,omitempty"`
 }
 
 // ClusterAccessMode configures the access mode to the customer cluster.
@@ -102,9 +102,9 @@ func init() {
 }
 
 func (c *Cluster) SetDefaultTokenValidityIfNeeded() {
-	if c.Spec.MaxTokenValidity != nil && c.Spec.MaxTokenValidity.Duration != 0 {
+	if c.Spec.MaxTokenValidity.Duration != 0 {
 		return
 	}
 
-	c.Spec.MaxTokenValidity = &metav1.Duration{Duration: MaxTokenValidity}
+	c.Spec.MaxTokenValidity = metav1.Duration{Duration: MaxTokenValidity}
 }
