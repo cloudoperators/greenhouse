@@ -6,6 +6,7 @@ package lifecycle_test
 import (
 	"context"
 	"errors"
+	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/pkg/apis/greenhouse/v1alpha1"
 	"testing"
 	"time"
 
@@ -14,7 +15,6 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 
-	"github.com/cloudoperators/greenhouse/pkg/apis/greenhouse/v1alpha1"
 	"github.com/cloudoperators/greenhouse/pkg/controllers/fixtures"
 	"github.com/cloudoperators/greenhouse/pkg/lifecycle"
 	"github.com/cloudoperators/greenhouse/pkg/mocks"
@@ -30,12 +30,12 @@ func TestReconcile(t *testing.T) {
 
 var _ = Describe("Reconcile", func() {
 	var (
-		createdCondition         = v1alpha1.TrueCondition(v1alpha1.ReadyCondition, lifecycle.CreatedReason, "resource is successfully created")
-		pendingCreationCondition = v1alpha1.UnknownCondition(v1alpha1.ReadyCondition, lifecycle.PendingCreationReason, "resource creation is pending")
-		failingCreationCondition = v1alpha1.FalseCondition(v1alpha1.ReadyCondition, lifecycle.FailingCreationReason, "resource creation failed")
-		deletedCondition         = v1alpha1.TrueCondition(v1alpha1.DeleteCondition, lifecycle.DeletedReason, "resource is successfully deleted")
-		pendingDeletionCondition = v1alpha1.FalseCondition(v1alpha1.DeleteCondition, lifecycle.PendingDeletionReason, "resource deletion is pending")
-		failingDeletionCondition = v1alpha1.FalseCondition(v1alpha1.DeleteCondition, lifecycle.FailingDeletionReason, "resource deletion failed: ")
+		createdCondition         = greenhousev1alpha1.TrueCondition(greenhousev1alpha1.ReadyCondition, lifecycle.CreatedReason, "resource is successfully created")
+		pendingCreationCondition = greenhousev1alpha1.UnknownCondition(greenhousev1alpha1.ReadyCondition, lifecycle.PendingCreationReason, "resource creation is pending")
+		failingCreationCondition = greenhousev1alpha1.FalseCondition(greenhousev1alpha1.ReadyCondition, lifecycle.FailingCreationReason, "resource creation failed")
+		deletedCondition         = greenhousev1alpha1.TrueCondition(greenhousev1alpha1.DeleteCondition, lifecycle.DeletedReason, "resource is successfully deleted")
+		pendingDeletionCondition = greenhousev1alpha1.FalseCondition(greenhousev1alpha1.DeleteCondition, lifecycle.PendingDeletionReason, "resource deletion is pending")
+		failingDeletionCondition = greenhousev1alpha1.FalseCondition(greenhousev1alpha1.DeleteCondition, lifecycle.FailingDeletionReason, "resource deletion failed: ")
 	)
 	var (
 		mockClient      *mocks.MockClient
@@ -65,7 +65,7 @@ var _ = Describe("Reconcile", func() {
 	type args struct {
 		reconcileResult lifecycle.ReconcileResult
 		deletionTime    *metav1.Time
-		setupState      v1alpha1.Condition
+		setupState      greenhousev1alpha1.Condition
 		reconcileError  error
 	}
 
@@ -76,12 +76,12 @@ var _ = Describe("Reconcile", func() {
 		func(tt struct {
 			args                   args
 			wantMethod             string
-			wantSetupState         v1alpha1.Condition
+			wantSetupState         greenhousev1alpha1.Condition
 			verifyFinalizerRemoval bool
 		}) {
 			resourceForTest = &fixtures.Dummy{
 				Spec:     fixtures.DummySpec{},
-				Status:   fixtures.DummyStatus{StatusConditions: v1alpha1.StatusConditions{Conditions: []v1alpha1.Condition{tt.args.setupState}}},
+				Status:   fixtures.DummyStatus{StatusConditions: greenhousev1alpha1.StatusConditions{Conditions: []greenhousev1alpha1.Condition{tt.args.setupState}}},
 				TypeMeta: metav1.TypeMeta{Kind: "Pod", APIVersion: "v1"},
 				ObjectMeta: metav1.ObjectMeta{
 					Name:              "DummyResource",
@@ -127,14 +127,14 @@ var _ = Describe("Reconcile", func() {
 		Entry("it should reach CREATED state", struct {
 			args                   args
 			wantMethod             string
-			wantSetupState         v1alpha1.Condition
+			wantSetupState         greenhousev1alpha1.Condition
 			verifyFinalizerRemoval bool
 		}{
 			wantMethod:             ensureCreated,
 			wantSetupState:         createdCondition,
 			verifyFinalizerRemoval: false,
 			args: args{
-				setupState:      v1alpha1.Condition{},
+				setupState:      greenhousev1alpha1.Condition{},
 				reconcileResult: lifecycle.Success,
 				deletionTime:    nil,
 			},
@@ -142,14 +142,14 @@ var _ = Describe("Reconcile", func() {
 		Entry("it should be in PENDING_CREATION state", struct {
 			args                   args
 			wantMethod             string
-			wantSetupState         v1alpha1.Condition
+			wantSetupState         greenhousev1alpha1.Condition
 			verifyFinalizerRemoval bool
 		}{
 			wantMethod:             ensureCreated,
 			wantSetupState:         pendingCreationCondition,
 			verifyFinalizerRemoval: false,
 			args: args{
-				setupState:      v1alpha1.Condition{},
+				setupState:      greenhousev1alpha1.Condition{},
 				reconcileResult: lifecycle.Pending,
 				deletionTime:    nil,
 			},
@@ -157,14 +157,14 @@ var _ = Describe("Reconcile", func() {
 		Entry("it should reach FAILING_CREATION state", struct {
 			args                   args
 			wantMethod             string
-			wantSetupState         v1alpha1.Condition
+			wantSetupState         greenhousev1alpha1.Condition
 			verifyFinalizerRemoval bool
 		}{
 			wantMethod:             ensureCreated,
 			wantSetupState:         failingCreationCondition,
 			verifyFinalizerRemoval: false,
 			args: args{
-				setupState:      v1alpha1.Condition{},
+				setupState:      greenhousev1alpha1.Condition{},
 				reconcileResult: lifecycle.Failed,
 				deletionTime:    nil,
 				reconcileError:  errors.New(""),
@@ -173,7 +173,7 @@ var _ = Describe("Reconcile", func() {
 		Entry("it should stay in CREATED state", struct {
 			args                   args
 			wantMethod             string
-			wantSetupState         v1alpha1.Condition
+			wantSetupState         greenhousev1alpha1.Condition
 			verifyFinalizerRemoval bool
 		}{
 			wantMethod:             ensureCreated,
@@ -188,7 +188,7 @@ var _ = Describe("Reconcile", func() {
 		Entry("it should reach DELETED state", struct {
 			args                   args
 			wantMethod             string
-			wantSetupState         v1alpha1.Condition
+			wantSetupState         greenhousev1alpha1.Condition
 			verifyFinalizerRemoval bool
 		}{
 			wantMethod:             ensureDeleted,
@@ -203,7 +203,7 @@ var _ = Describe("Reconcile", func() {
 		Entry("it should reach PENDING_DELETION state", struct {
 			args                   args
 			wantMethod             string
-			wantSetupState         v1alpha1.Condition
+			wantSetupState         greenhousev1alpha1.Condition
 			verifyFinalizerRemoval bool
 		}{
 			wantMethod:             ensureDeleted,
@@ -218,7 +218,7 @@ var _ = Describe("Reconcile", func() {
 		Entry("it should reach FAILING_DELETION state", struct {
 			args                   args
 			wantMethod             string
-			wantSetupState         v1alpha1.Condition
+			wantSetupState         greenhousev1alpha1.Condition
 			verifyFinalizerRemoval bool
 		}{
 			wantMethod:             ensureDeleted,
@@ -234,7 +234,7 @@ var _ = Describe("Reconcile", func() {
 		Entry("it should not have finalizers if in DELETED state", struct {
 			args                   args
 			wantMethod             string
-			wantSetupState         v1alpha1.Condition
+			wantSetupState         greenhousev1alpha1.Condition
 			verifyFinalizerRemoval bool
 		}{
 			wantMethod:             ensureDeleted,
