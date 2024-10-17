@@ -5,6 +5,7 @@ package organization
 
 import (
 	"context"
+	"github.com/cloudoperators/greenhouse/pkg/lifecycle"
 
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/tools/record"
@@ -43,22 +44,25 @@ func (r *OrganizationReconciler) SetupWithManager(name string, mgr ctrl.Manager)
 }
 
 func (r *OrganizationReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	ctx = clientutil.LogIntoContextFromRequest(ctx, req)
+	return lifecycle.Reconcile(ctx, r.Client, req.NamespacedName, &greenhousesapv1alpha1.Organization{}, r, nil)
+}
 
-	var org = new(greenhousesapv1alpha1.Organization)
-	if err := r.Get(ctx, req.NamespacedName, org); err != nil {
-		return ctrl.Result{}, client.IgnoreNotFound(err)
-	}
+func (r *OrganizationReconciler) EnsureDeleted(_ context.Context, _ lifecycle.RuntimeObject) (ctrl.Result, lifecycle.ReconcileResult, error) {
+	return ctrl.Result{}, lifecycle.Success, nil // nothing to do in that case
+}
+
+func (r *OrganizationReconciler) EnsureCreated(ctx context.Context, object lifecycle.RuntimeObject) (ctrl.Result, lifecycle.ReconcileResult, error) {
+	var org = object.(*greenhousesapv1alpha1.Organization)
 
 	if err := r.reconcileNamespace(ctx, org); err != nil {
-		return ctrl.Result{}, err
+		return ctrl.Result{}, lifecycle.Failed, err
 	}
 
 	if err := r.reconcileAdminTeam(ctx, org); err != nil {
-		return ctrl.Result{}, err
+		return ctrl.Result{}, lifecycle.Failed, err
 	}
 
-	return ctrl.Result{}, nil
+	return ctrl.Result{}, lifecycle.Success, nil
 }
 
 func (r *OrganizationReconciler) reconcileNamespace(ctx context.Context, org *greenhousesapv1alpha1.Organization) error {
