@@ -1,0 +1,19 @@
+name: Packages Cleanup
+
+on:
+  workflow_dispatch: {}
+  schedule:
+    - cron: "35 10 1-7 * 2" #"At 10:35 AM, between day 1 and 7 of the month, and on Tuesday"
+
+jobs:
+  cleanup:
+    uses: cloudoperators/common/.github/workflows/shared-ghcr-cleanup.yaml@main
+    with:
+      package: greenhouse,greenhouse-dev-env,greenhouse/charts/greenhouse
+      dry-run: true
+      exclude-tags: main
+      delete-untagged: true
+      delete-ghost-images: true
+      delete-orphaned-images: true
+      delete-partial-images: true
+      keep-n-tagged: 10
