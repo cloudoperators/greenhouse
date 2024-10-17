@@ -32,12 +32,6 @@ func OrganizationAdminPolicyRules() []rbacv1.PolicyRule {
 			APIGroups: []string{"rbac.authorization.k8s.io"},
 			Resources: []string{"rolebindings"},
 		},
-		// Grant permission for TeamRoles
-		{
-			Verbs:     []string{"get", "list", "watch", "update", "patch", "delete", "create"},
-			APIGroups: []string{greenhouseapisv1alpha1.GroupVersion.Group},
-			Resources: []string{"teamroles"},
-		},
 		// Grant permission to view Alertmanager and AlertmanagerConfig resources
 		{
 			Verbs:     []string{"get", "list", "watch"},
@@ -71,6 +65,12 @@ func OrganizationClusterAdminPolicyRules() []rbacv1.PolicyRule {
 			Verbs:     []string{"create", "update", "patch"},
 			APIGroups: []string{corev1.GroupName},
 			Resources: []string{"secrets"},
+		},
+		// Grant permission for TeamRoles
+		{
+			Verbs:     []string{"get", "list", "watch", "update", "patch", "delete", "create"},
+			APIGroups: []string{greenhouseapisv1alpha1.GroupVersion.Group},
+			Resources: []string{"teamroles"},
 		},
 		// Grant permission for TeamRoleBindings
 		{
