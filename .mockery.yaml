@@ -1,0 +1,16 @@
+# SPDX-FileCopyrightText: 2024 SAP SE or an SAP affiliate company and Greenhouse contributors
+# SPDX-License-Identifier: Apache-2.0
+
+# .mockery.yaml
+with-expecter: false
+filename: "mock_{{.InterfaceName}}.go"
+outpkg: mocks
+dir: pkg/mocks
+packages:
+  github.com/cloudoperators/greenhouse/pkg/lifecycle:
+    interfaces:
+      Reconciler:
+  sigs.k8s.io/controller-runtime/pkg/client:
+    interfaces:
+      Client:
+      SubResourceWriter:
