@@ -9,6 +9,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/cloudoperators/greenhouse/pkg/lifecycle"
+
 	ctrl "sigs.k8s.io/controller-runtime"
 
 	"github.com/pkg/errors"
@@ -58,14 +60,13 @@ func initPluginStatus(plugin *greenhousev1alpha1.Plugin) greenhousev1alpha1.Plug
 }
 
 // setPluginStatus sets the status for the plugin
-func setPluginStatus(ctx context.Context, k8sClient client.Client, plugin *greenhousev1alpha1.Plugin, pluginStatus greenhousev1alpha1.PluginStatus) error {
-	readyCondition := computeReadyCondition(pluginStatus.StatusConditions)
-	pluginStatus.StatusConditions.SetConditions(readyCondition)
-	_, err := clientutil.PatchStatus(ctx, k8sClient, plugin, func() error {
-		plugin.Status = pluginStatus
-		return nil
-	})
-	return err
+func setPluginStatus() lifecycle.Conditioner {
+	return func(ctx context.Context, obj lifecycle.RuntimeObject) {
+		plugin := obj.(*greenhousev1alpha1.Plugin)
+		pluginStatus := plugin.Status
+		readyCondition := computeReadyCondition(pluginStatus.StatusConditions)
+		pluginStatus.StatusConditions.SetConditions(readyCondition)
+	}
 }
 
 // initClientGetter returns a RestClientGetter for the given Plugin.
@@ -258,6 +259,10 @@ func computeReadyCondition(
 	conditions greenhousev1alpha1.StatusConditions,
 ) (readyCondition greenhousev1alpha1.Condition) {
 
+	if conditions.Conditions == nil {
+		ready := greenhousev1alpha1.UnknownCondition(greenhousev1alpha1.ReadyCondition, "", "")
+		return ready
+	}
 	readyCondition = *conditions.GetConditionByType(greenhousev1alpha1.ReadyCondition)
 
 	// If the Cluster is not ready, the Plugin could not be ready

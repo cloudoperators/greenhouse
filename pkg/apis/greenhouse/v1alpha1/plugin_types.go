@@ -148,6 +148,14 @@ type Plugin struct {
 	Status PluginStatus `json:"status,omitempty"`
 }
 
+func (p *Plugin) GetConditions() StatusConditions {
+	return p.Status.StatusConditions
+}
+
+func (p *Plugin) SetCondition(condition Condition) {
+	p.Status.SetConditions(condition)
+}
+
 //+kubebuilder:object:root=true
 
 // PluginList contains a list of Plugin

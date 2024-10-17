@@ -9,6 +9,8 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/cloudoperators/greenhouse/pkg/lifecycle"
+
 	"golang.org/x/time/rate"
 	"helm.sh/helm/v3/pkg/release"
 	corev1 "k8s.io/api/core/v1"
@@ -22,7 +24,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
-	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
@@ -96,60 +97,52 @@ func (r *HelmReconciler) SetupWithManager(name string, mgr ctrl.Manager) error {
 }
 
 func (r *HelmReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	var plugin = new(greenhousev1alpha1.Plugin)
-	if err := r.Get(ctx, req.NamespacedName, plugin); err != nil {
-		return ctrl.Result{}, client.IgnoreNotFound(err)
+	return lifecycle.Reconcile(ctx, r.Client, req.NamespacedName, &greenhousev1alpha1.Plugin{}, r, nil)
+}
+
+func (r *HelmReconciler) EnsureDeleted(ctx context.Context, resource lifecycle.RuntimeObject) (ctrl.Result, lifecycle.ReconcileResult, error) {
+	plugin := resource.(*greenhousev1alpha1.Plugin) //nolint:errcheck
+	pluginStatus := initPluginStatus(plugin)
+	_, restClientGetter := initClientGetter(ctx, r.Client, r.kubeClientOpts, *plugin)
+	isDeleted, err := helm.UninstallHelmRelease(ctx, restClientGetter, plugin)
+	if err != nil {
+		c := greenhousev1alpha1.TrueCondition(greenhousev1alpha1.HelmReconcileFailedCondition, greenhousev1alpha1.HelmUninstallFailedReason, err.Error())
+		pluginStatus.StatusConditions.SetConditions(c)
+		return ctrl.Result{}, lifecycle.Failed, err
 	}
+	if !isDeleted {
+		// Ensure we're called again for some corner cases esp. where the actual deletion takes unusually long (hooks) yet the watch won't catch it.
+		return ctrl.Result{RequeueAfter: time.Minute}, lifecycle.Pending, nil
+	}
+	pluginStatus.StatusConditions.SetConditions(greenhousev1alpha1.FalseCondition(greenhousev1alpha1.HelmReconcileFailedCondition, "", ""))
+	return ctrl.Result{}, lifecycle.Success, nil
+}
+
+func (r *HelmReconciler) EnsureCreated(ctx context.Context, resource lifecycle.RuntimeObject) (ctrl.Result, lifecycle.ReconcileResult, error) {
+	plugin := resource.(*greenhousev1alpha1.Plugin) //nolint:errcheck
 
 	pluginStatus := initPluginStatus(plugin)
-	defer func() {
-		if statusErr := setPluginStatus(ctx, r.Client, plugin, pluginStatus); statusErr != nil {
-			log.FromContext(ctx).Error(statusErr, "failed to set status")
-		}
-	}()
 
 	clusterAccessReadyCondition, restClientGetter := initClientGetter(ctx, r.Client, r.kubeClientOpts, *plugin)
 	pluginStatus.StatusConditions.SetConditions(clusterAccessReadyCondition)
 	if !clusterAccessReadyCondition.IsTrue() {
-		return ctrl.Result{}, fmt.Errorf("cannot access cluster: %s", clusterAccessReadyCondition.Message)
-	}
-
-	// Cleanup Helm release.
-	if plugin.DeletionTimestamp != nil && controllerutil.ContainsFinalizer(plugin, greenhouseapis.FinalizerCleanupHelmRelease) {
-		isDeleted, err := helm.UninstallHelmRelease(ctx, restClientGetter, plugin)
-		if err != nil {
-			c := greenhousev1alpha1.TrueCondition(greenhousev1alpha1.HelmReconcileFailedCondition, greenhousev1alpha1.HelmUninstallFailedReason, err.Error())
-			pluginStatus.StatusConditions.SetConditions(c)
-			return ctrl.Result{}, err
-		}
-		if !isDeleted {
-			// Ensure we're called again for some corner cases esp. where the actual deletion takes unusually long (hooks) yet the watch won't catch it.
-			return ctrl.Result{RequeueAfter: time.Minute}, nil
-		}
-		pluginStatus.StatusConditions.SetConditions(greenhousev1alpha1.FalseCondition(greenhousev1alpha1.HelmReconcileFailedCondition, "", ""))
-
-		err = clientutil.RemoveFinalizer(ctx, r.Client, plugin, greenhouseapis.FinalizerCleanupHelmRelease)
-		return ctrl.Result{}, err
-	}
-
-	if err := clientutil.EnsureFinalizer(ctx, r.Client, plugin, greenhouseapis.FinalizerCleanupHelmRelease); err != nil {
-		return ctrl.Result{}, err
+		return ctrl.Result{}, lifecycle.Failed, fmt.Errorf("cannot access cluster: %s", clusterAccessReadyCondition.Message)
 	}
 
 	// Check if we should continue with reconciliation or requeue if cluster is scheduled for deletion
 	result, err := shouldReconcileOrRequeue(ctx, r.Client, plugin)
 	if err != nil {
-		return ctrl.Result{}, err
+		return ctrl.Result{}, lifecycle.Failed, err
 	}
 	if result != nil {
 		pluginStatus.StatusConditions.SetConditions(result.condition)
-		return ctrl.Result{RequeueAfter: result.requeueAfter}, nil
+		return ctrl.Result{RequeueAfter: result.requeueAfter}, lifecycle.Pending, nil
 	}
 
 	helmReconcileFailedCondition, pluginDefinition := r.getPluginDefinition(ctx, plugin)
 	pluginStatus.StatusConditions.SetConditions(helmReconcileFailedCondition)
 	if pluginDefinition == nil {
-		return ctrl.Result{}, fmt.Errorf("pluginDefinition not found: %s", helmReconcileFailedCondition.Message)
+		return ctrl.Result{}, lifecycle.Failed, fmt.Errorf("pluginDefinition not found: %s", helmReconcileFailedCondition.Message)
 	}
 
 	driftDetectedCondition, reconcileFailedCondition := r.reconcileHelmRelease(ctx, restClientGetter, plugin, pluginDefinition, pluginStatus)
@@ -158,10 +151,10 @@ func (r *HelmReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.
 	pluginStatus.StatusConditions.SetConditions(statusReconcileCompleteCondition)
 
 	if reconcileFailedCondition.IsTrue() {
-		return ctrl.Result{}, fmt.Errorf("helm reconcile failed: %s", reconcileFailedCondition.Message)
+		return ctrl.Result{}, lifecycle.Failed, fmt.Errorf("helm reconcile failed: %s", reconcileFailedCondition.Message)
 	}
 
-	return ctrl.Result{}, nil
+	return ctrl.Result{}, lifecycle.Success, nil
 }
 
 func (r *HelmReconciler) getPluginDefinition(

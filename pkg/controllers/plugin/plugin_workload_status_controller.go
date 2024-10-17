@@ -126,11 +126,6 @@ func (r *WorkLoadStatusReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 	}
 
 	pluginStatus := initPluginStatus(plugin)
-	defer func() {
-		if statusErr := setPluginStatus(ctx, r.Client, plugin, pluginStatus); statusErr != nil {
-			log.FromContext(ctx).Error(statusErr, "failed to set status")
-		}
-	}()
 
 	if plugin.DeletionTimestamp != nil || pluginDefinition.Spec.HelmChart == nil {
 		return ctrl.Result{}, nil
