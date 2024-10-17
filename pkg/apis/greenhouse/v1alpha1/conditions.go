@@ -68,7 +68,7 @@ func TrueCondition(t ConditionType, reason ConditionReason, message string) Cond
 	return NewCondition(t, metav1.ConditionTrue, reason, message)
 }
 
-// NewTrue returns a Condition with ConditionFalse and the given type, reason and message. LastTransitionTime is set to now.
+// FalseCondition returns a Condition with ConditionFalse and the given type, reason and message. LastTransitionTime is set to now.
 func FalseCondition(t ConditionType, reason ConditionReason, message string) Condition {
 	return NewCondition(t, metav1.ConditionFalse, reason, message)
 }
