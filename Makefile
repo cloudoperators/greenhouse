@@ -268,3 +268,9 @@ WEBHOOK_DEV ?= false
 .PHONY: setup-webhook
 setup-webhook: cli
 	$(CLI) dev setup webhook --name $(ADMIN_CLUSTER) --namespace $(ADMIN_NAMESPACE) --release $(ADMIN_RELEASE) --chart-path $(ADMIN_CHART_PATH) --dockerfile ./ --dev-mode=$(WEBHOOK_DEV)
+
+# Download and install mockery locally via `brew install mockery`
+MOCKERY := $(shell which mockery)
+mockery:
+	# will look into .mockery.yaml for configuration
+	$(MOCKERY)
