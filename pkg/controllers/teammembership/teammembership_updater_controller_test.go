@@ -14,6 +14,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/pkg/apis/greenhouse/v1alpha1"
+	"github.com/cloudoperators/greenhouse/pkg/clientutil"
 	"github.com/cloudoperators/greenhouse/pkg/test"
 )
 
@@ -419,16 +420,21 @@ var _ = Describe("TeammembershipUpdaterController", func() {
 				g.Expect(scimAccessReadyCondition).ToNot(BeNil())
 				g.Expect(scimAccessReadyCondition.Type).To(Equal(greenhousev1alpha1.ScimAccessReadyCondition))
 				g.Expect(scimAccessReadyCondition.Status).To(Equal(metav1.ConditionFalse))
-				g.Expect(scimAccessReadyCondition.Reason).To(Equal(greenhousev1alpha1.SecretNotFoundReason), "reason should be set to SecretNotFoundReason")
+				g.Expect(scimAccessReadyCondition.Reason).To(Equal(greenhousev1alpha1.ScimAPIUnavailableReason), "reason should be set to ScimApiUnavailableReason")
 			}).Should(Succeed(), "TeamMembership should reflect missing secret in status")
 
 			By("creating missing secret")
 			createSecretForScimConfig(setup.Namespace())
-			By("updating ScimConfig in Organization")
+
 			var organization = &greenhousev1alpha1.Organization{}
 			Expect(
 				setup.Get(test.Ctx, types.NamespacedName{Name: setup.Namespace(), Namespace: ""}, organization),
 			).To(Succeed(), "there should be no error getting the organization")
+
+			By("updating Organization Status")
+			updateOrganizationStatusWithScimAvailability(organization)
+
+			By("updating ScimConfig in Organization")
 			organization.Spec.Authentication = &greenhousev1alpha1.Authentication{
 				SCIMConfig: &greenhousev1alpha1.SCIMConfig{
 					BaseURL: groupsServer.URL,
@@ -471,7 +477,7 @@ func createTestOrgWithSecret(namespace string) {
 	createSecretForScimConfig(namespace)
 
 	By("creating organization with name: " + namespace)
-	setup.CreateOrganization(test.Ctx, namespace, func(o *greenhousev1alpha1.Organization) {
+	org := setup.CreateOrganization(test.Ctx, namespace, func(o *greenhousev1alpha1.Organization) {
 		o.Spec.Authentication = &greenhousev1alpha1.Authentication{
 			SCIMConfig: &greenhousev1alpha1.SCIMConfig{
 				BaseURL: groupsServer.URL,
@@ -490,6 +496,18 @@ func createTestOrgWithSecret(namespace string) {
 			},
 		}
 	})
+
+	updateOrganizationStatusWithScimAvailability(org)
+}
+
+func updateOrganizationStatusWithScimAvailability(org *greenhousev1alpha1.Organization) {
+	orgStatus := org.Status
+	orgStatus.SetConditions(greenhousev1alpha1.TrueCondition(greenhousev1alpha1.ScimAPIAvailableCondition, "", ""))
+	_, err := clientutil.PatchStatus(test.Ctx, setup.Client, org, func() error {
+		org.Status = orgStatus
+		return nil
+	})
+	Expect(err).ToNot(HaveOccurred(), "there should be no error patching org status")
 }
 
 func createSecretForScimConfig(namespace string) {

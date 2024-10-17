@@ -138,6 +138,15 @@ func (r *TeamMembershipUpdaterController) Reconcile(ctx context.Context, req ctr
 		}
 	}()
 
+	orgScimAPIAvailableCondition := organization.Status.GetConditionByType(greenhousev1alpha1.ScimAPIAvailableCondition)
+	if orgScimAPIAvailableCondition == nil || !orgScimAPIAvailableCondition.IsTrue() {
+		if teamMembershipExists {
+			teamMembershipStatus.SetConditions(greenhousev1alpha1.FalseCondition(greenhousev1alpha1.ScimAccessReadyCondition,
+				greenhousev1alpha1.ScimAPIUnavailableReason, "SCIM API in Organization is unavailable"))
+		}
+		return ctrl.Result{}, nil
+	}
+
 	// Ignore organizations without SCIM configuration.
 	if organization.Spec.Authentication == nil || organization.Spec.Authentication.SCIMConfig == nil {
 		log.FromContext(ctx).Info("SCIM config is missing from org", "Name", req.NamespacedName)
