@@ -53,11 +53,11 @@ func OrganizationAdminPolicyRules() []rbacv1.PolicyRule {
 // OrganizationClusterAdminPolicyRules returns the namespace-scoped PolicyRules for an organization cluster admin.
 func OrganizationClusterAdminPolicyRules() []rbacv1.PolicyRule {
 	policyRules := []rbacv1.PolicyRule{
-		// Grant read permissions for Clusters to organization cluster admins.
+		// Grant CRUD Permissions for Clusters, TeamRoles and TeamRoleBindings
 		{
 			Verbs:     []string{"get", "list", "watch", "update", "patch", "delete", "create"},
 			APIGroups: []string{greenhouseapisv1alpha1.GroupVersion.Group},
-			Resources: []string{"clusters"},
+			Resources: []string{"clusters", "teamroles", "teamrolebindings"},
 		},
 		// Grant permissions for secrets referenced by other resources, e.g. Plugins for storing sensitive values.
 		// Retrieving these secrets is not permitted to the user.
@@ -65,18 +65,6 @@ func OrganizationClusterAdminPolicyRules() []rbacv1.PolicyRule {
 			Verbs:     []string{"create", "update", "patch"},
 			APIGroups: []string{corev1.GroupName},
 			Resources: []string{"secrets"},
-		},
-		// Grant permission for TeamRoles
-		{
-			Verbs:     []string{"get", "list", "watch", "update", "patch", "delete", "create"},
-			APIGroups: []string{greenhouseapisv1alpha1.GroupVersion.Group},
-			Resources: []string{"teamroles"},
-		},
-		// Grant permission for TeamRoleBindings
-		{
-			Verbs:     []string{"get", "list", "watch", "update", "patch", "delete", "create"},
-			APIGroups: []string{greenhouseapisv1alpha1.GroupVersion.Group},
-			Resources: []string{"teamrolebindings"},
 		},
 	}
 	return append(OrganizationMemberPolicyRules(), policyRules...)
