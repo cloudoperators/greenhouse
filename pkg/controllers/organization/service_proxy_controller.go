@@ -25,6 +25,7 @@ import (
 	greenhousesapv1alpha1 "github.com/cloudoperators/greenhouse/pkg/apis/greenhouse/v1alpha1"
 	"github.com/cloudoperators/greenhouse/pkg/clientutil"
 	"github.com/cloudoperators/greenhouse/pkg/common"
+	"github.com/cloudoperators/greenhouse/pkg/lifecycle"
 	"github.com/cloudoperators/greenhouse/pkg/version"
 )
 
@@ -59,18 +60,21 @@ func (r *ServiceProxyReconciler) SetupWithManager(name string, mgr ctrl.Manager)
 }
 
 func (r *ServiceProxyReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	ctx = clientutil.LogIntoContextFromRequest(ctx, req)
+	return lifecycle.Reconcile(ctx, r.Client, req.NamespacedName, &greenhousesapv1alpha1.Organization{}, r, nil)
+}
 
-	var org = new(greenhousesapv1alpha1.Organization)
-	if err := r.Get(ctx, req.NamespacedName, org); err != nil {
-		return ctrl.Result{}, client.IgnoreNotFound(err)
-	}
+func (r *ServiceProxyReconciler) EnsureDeleted(_ context.Context, _ lifecycle.RuntimeObject) (ctrl.Result, lifecycle.ReconcileResult, error) {
+	return ctrl.Result{}, lifecycle.Success, nil // nothing to do in that case
+}
+
+func (r *ServiceProxyReconciler) EnsureCreated(ctx context.Context, obj lifecycle.RuntimeObject) (ctrl.Result, lifecycle.ReconcileResult, error) {
+	org := obj.(*greenhousesapv1alpha1.Organization)
 
 	if err := r.reconcileServiceProxy(ctx, org); err != nil {
-		return ctrl.Result{}, err
+		return ctrl.Result{}, lifecycle.Failed, err
 	}
 
-	return ctrl.Result{}, nil
+	return ctrl.Result{}, lifecycle.Success, nil
 }
 
 func (r *ServiceProxyReconciler) reconcileServiceProxy(ctx context.Context, org *greenhousesapv1alpha1.Organization) error {
