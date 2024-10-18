@@ -1308,6 +1308,33 @@ string
 <a href="#greenhouse.sap/v1alpha1.Organization">Organization</a>)
 </p>
 <p>OrganizationStatus defines the observed state of an Organization</p>
+<div class="md-typeset__scrollwrap">
+<div class="md-typeset__table">
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>statusConditions</code><br>
+<em>
+<a href="#greenhouse.sap/v1alpha1.StatusConditions">
+StatusConditions
+</a>
+</em>
+</td>
+<td>
+<p>StatusConditions contain the different conditions that constitute the status of the Organization.</p>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
 <h3 id="greenhouse.sap/v1alpha1.Plugin">Plugin
 </h3>
 <p>Plugin is the Schema for the plugins API</p>
@@ -2533,6 +2560,7 @@ string
 <a href="#greenhouse.sap/v1alpha1.ClusterKubeconfigStatus">ClusterKubeconfigStatus</a>, 
 <a href="#greenhouse.sap/v1alpha1.ClusterStatus">ClusterStatus</a>, 
 <a href="#greenhouse.sap/v1alpha1.NodeStatus">NodeStatus</a>, 
+<a href="#greenhouse.sap/v1alpha1.OrganizationStatus">OrganizationStatus</a>, 
 <a href="#greenhouse.sap/v1alpha1.PluginPresetStatus">PluginPresetStatus</a>, 
 <a href="#greenhouse.sap/v1alpha1.PluginStatus">PluginStatus</a>, 
 <a href="#greenhouse.sap/v1alpha1.TeamMembershipStatus">TeamMembershipStatus</a>, 
@@ -2810,7 +2838,7 @@ StatusConditions
 </em>
 </td>
 <td>
-<p>StatusConditions contain the different conditions that constitute the status of the TeamRoleBinding.</p>
+<p>StatusConditions contain the different conditions that constitute the status of the TeamMembership.</p>
 </td>
 </tr>
 </tbody>

@@ -15,6 +15,15 @@ import (
 
 	greenhousesapv1alpha1 "github.com/cloudoperators/greenhouse/pkg/apis/greenhouse/v1alpha1"
 	"github.com/cloudoperators/greenhouse/pkg/clientutil"
+	"github.com/cloudoperators/greenhouse/pkg/scim"
+)
+
+var (
+	// exposedConditions are the conditions that are exposed in the StatusConditions of the Organization.
+	exposedConditions = []greenhousesapv1alpha1.ConditionType{
+		greenhousesapv1alpha1.ReadyCondition,
+		greenhousesapv1alpha1.ScimAPIAvailableCondition,
+	}
 )
 
 // OrganizationReconciler reconciles an Organization object
@@ -50,9 +59,20 @@ func (r *OrganizationReconciler) Reconcile(ctx context.Context, req ctrl.Request
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
 
+	orgStatus := initOrganizationStatus(org)
+	defer func() {
+		if statusErr := r.setStatus(ctx, org, orgStatus); statusErr != nil {
+			log.FromContext(ctx).Error(statusErr, "failed to set status")
+		}
+	}()
+
 	if err := r.reconcileNamespace(ctx, org); err != nil {
 		return ctrl.Result{}, err
 	}
+
+	orgStatus.SetConditions(greenhousesapv1alpha1.TrueCondition(greenhousesapv1alpha1.ReadyCondition, "", ""))
+
+	r.checkScimAPIAvailability(ctx, org, orgStatus)
 
 	if err := r.reconcileAdminTeam(ctx, org); err != nil {
 		return ctrl.Result{}, err
@@ -106,4 +126,76 @@ func (r *OrganizationReconciler) reconcileAdminTeam(ctx context.Context, org *gr
 		r.recorder.Eventf(org, corev1.EventTypeNormal, "UpdatedTeam", "Updated Team %s in namespace %s", team.Name, namespace)
 	}
 	return nil
+}
+
+func (r *OrganizationReconciler) checkScimAPIAvailability(ctx context.Context, org *greenhousesapv1alpha1.Organization, orgStatus greenhousesapv1alpha1.OrganizationStatus) {
+	if org.Spec.Authentication == nil || org.Spec.Authentication.SCIMConfig == nil {
+		orgStatus.SetConditions(greenhousesapv1alpha1.FalseCondition(greenhousesapv1alpha1.ScimAPIAvailableCondition, greenhousesapv1alpha1.SecretNotFoundReason, "SCIM config is missing"))
+		return
+	}
+
+	scimClient, err := r.createScimClient(ctx, org.Name, &orgStatus, org.Spec.Authentication.SCIMConfig)
+	if err != nil {
+		orgStatus.SetConditions(greenhousesapv1alpha1.FalseCondition(greenhousesapv1alpha1.ScimAPIAvailableCondition, greenhousesapv1alpha1.ScimRequestFailedReason, "Failed to create SCIM client"))
+		return
+	}
+
+	if org.Spec.MappedOrgAdminIDPGroup == "" {
+		orgStatus.SetConditions(greenhousesapv1alpha1.FalseCondition(greenhousesapv1alpha1.ScimAPIAvailableCondition, greenhousesapv1alpha1.ScimRequestFailedReason, ".Spec.MappedOrgAdminIDPGroup is not set in Organization"))
+		return
+	}
+
+	_, err = scimClient.GetTeamMembers(org.Spec.MappedOrgAdminIDPGroup)
+	if err != nil {
+		orgStatus.SetConditions(greenhousesapv1alpha1.FalseCondition(greenhousesapv1alpha1.ScimAPIAvailableCondition, greenhousesapv1alpha1.ScimRequestFailedReason, "Failed to request data from SCIM API"))
+		return
+	}
+
+	orgStatus.SetConditions(greenhousesapv1alpha1.TrueCondition(greenhousesapv1alpha1.ScimAPIAvailableCondition, "", ""))
+}
+
+func initOrganizationStatus(org *greenhousesapv1alpha1.Organization) greenhousesapv1alpha1.OrganizationStatus {
+	orgStatus := org.Status.DeepCopy()
+	for _, t := range exposedConditions {
+		if orgStatus.GetConditionByType(t) == nil {
+			orgStatus.SetConditions(greenhousesapv1alpha1.UnknownCondition(t, "", ""))
+		}
+	}
+	return *orgStatus
+}
+
+func (r *OrganizationReconciler) createScimClient(
+	ctx context.Context,
+	namespace string,
+	organizationStatus *greenhousesapv1alpha1.OrganizationStatus,
+	scimConfig *greenhousesapv1alpha1.SCIMConfig,
+) (*scim.ScimClient, error) {
+
+	basicAuthUser, err := clientutil.GetSecretKeyFromSecretKeyReference(ctx, r.Client, namespace, *scimConfig.BasicAuthUser.Secret)
+	if err != nil {
+		organizationStatus.SetConditions(greenhousesapv1alpha1.FalseCondition(greenhousesapv1alpha1.ScimAPIAvailableCondition, greenhousesapv1alpha1.SecretNotFoundReason, "BasicAuthUser missing"))
+		return nil, err
+	}
+	basicAuthPw, err := clientutil.GetSecretKeyFromSecretKeyReference(ctx, r.Client, namespace, *scimConfig.BasicAuthPw.Secret)
+	if err != nil {
+		organizationStatus.SetConditions(greenhousesapv1alpha1.FalseCondition(greenhousesapv1alpha1.ScimAPIAvailableCondition, greenhousesapv1alpha1.SecretNotFoundReason, "BasicAuthPw missing"))
+		return nil, err
+	}
+	clientConfig := scim.Config{
+		RawURL:   scimConfig.BaseURL,
+		AuthType: scim.Basic,
+		BasicAuthConfig: &scim.BasicAuthConfig{
+			BasicAuthUser: basicAuthUser,
+			BasicAuthPw:   basicAuthPw,
+		},
+	}
+	return scim.NewScimClient(clientConfig)
+}
+
+func (r *OrganizationReconciler) setStatus(ctx context.Context, org *greenhousesapv1alpha1.Organization, orgStatus greenhousesapv1alpha1.OrganizationStatus) error {
+	_, err := clientutil.PatchStatus(ctx, r.Client, org, func() error {
+		org.Status = orgStatus
+		return nil
+	})
+	return err
 }

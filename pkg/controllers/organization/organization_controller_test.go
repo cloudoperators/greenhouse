@@ -16,8 +16,8 @@ import (
 
 var _ = Describe("Test Organization reconciliation", func() {
 	const (
-		someIdpGroupName    = "SOME-IDP-GROUP"
-		anotherIdpGroupName = "ANOTHER-IDP-GROUP"
+		validIdpGroupName      = "SOME_IDP_GROUP_NAME"
+		otherValidIdpGroupName = "ANOTHER_IDP_GROUP"
 	)
 	var (
 		setup *test.TestSetup
@@ -37,7 +37,7 @@ var _ = Describe("Test Organization reconciliation", func() {
 		It("should create admin team for organization", func() {
 			testOrgName := "test-org-2"
 			testOrg := setup.CreateOrganization(test.Ctx, testOrgName, func(org *greenhousev1alpha1.Organization) {
-				org.Spec.MappedOrgAdminIDPGroup = someIdpGroupName
+				org.Spec.MappedOrgAdminIDPGroup = validIdpGroupName
 			})
 			b := true
 			ownerRef := metav1.OwnerReference{
@@ -53,7 +53,7 @@ var _ = Describe("Test Organization reconciliation", func() {
 			Eventually(func(g Gomega) {
 				err := setup.Get(test.Ctx, types.NamespacedName{Name: testOrgName + "-admin", Namespace: testOrgName}, team)
 				g.Expect(err).ToNot(HaveOccurred(), "Admin Team should be created for organization")
-				g.Expect(team.Spec.MappedIDPGroup).To(Equal(someIdpGroupName), "Admin Team should have the same idp group name as organization")
+				g.Expect(team.Spec.MappedIDPGroup).To(Equal(validIdpGroupName), "Admin Team should have the same idp group name as organization")
 				g.Expect(team.OwnerReferences).Should(ContainElement(ownerRef), "Admin Team must have the correct owner reference")
 			}).Should(Succeed(), "Admin team should be created for organization")
 		})
@@ -61,11 +61,11 @@ var _ = Describe("Test Organization reconciliation", func() {
 		It("should update admin team when MappedOrgAdminIDPGroup in org changes", func() {
 			testOrgName := "test-org-3"
 			testOrg := setup.CreateOrganization(test.Ctx, testOrgName, func(org *greenhousev1alpha1.Organization) {
-				org.Spec.MappedOrgAdminIDPGroup = someIdpGroupName
+				org.Spec.MappedOrgAdminIDPGroup = validIdpGroupName
 			})
 
 			By("updating MappedOrgAdminIDPGroup in Organization")
-			testOrg.Spec.MappedOrgAdminIDPGroup = anotherIdpGroupName
+			testOrg.Spec.MappedOrgAdminIDPGroup = otherValidIdpGroupName
 			err := setup.Update(test.Ctx, testOrg)
 			Expect(err).ToNot(HaveOccurred(), "there must be no error updating the organization")
 
@@ -73,14 +73,14 @@ var _ = Describe("Test Organization reconciliation", func() {
 			Eventually(func(g Gomega) {
 				err := setup.Get(test.Ctx, types.NamespacedName{Name: testOrgName + "-admin", Namespace: testOrgName}, team)
 				g.Expect(err).ToNot(HaveOccurred(), "there should be no error getting org admin team")
-				g.Expect(team.Spec.MappedIDPGroup).To(Equal(anotherIdpGroupName), "Admin team should be updated with new IDPGroup")
+				g.Expect(team.Spec.MappedIDPGroup).To(Equal(otherValidIdpGroupName), "Admin team should be updated with new IDPGroup")
 			}).Should(Succeed(), "Admin team should be updated with new IDPGroup")
 		})
 
 		It("should update admin team when MappedIDPGroup in team changes", func() {
 			testOrgName := "test-org-4"
 			setup.CreateOrganization(test.Ctx, testOrgName, func(org *greenhousev1alpha1.Organization) {
-				org.Spec.MappedOrgAdminIDPGroup = someIdpGroupName
+				org.Spec.MappedOrgAdminIDPGroup = validIdpGroupName
 			})
 			var team = &greenhousev1alpha1.Team{}
 			Eventually(func() error {
@@ -88,20 +88,20 @@ var _ = Describe("Test Organization reconciliation", func() {
 			}).ShouldNot(HaveOccurred(), "there should be no error getting org admin team")
 
 			By("changing MappedIDPGroup in Team")
-			team.Spec.MappedIDPGroup = anotherIdpGroupName
+			team.Spec.MappedIDPGroup = otherValidIdpGroupName
 			Expect(setup.Update(test.Ctx, team)).To(Succeed(), "there must be no error updating the team")
 
 			Eventually(func(g Gomega) {
 				err := setup.Get(test.Ctx, types.NamespacedName{Name: testOrgName + "-admin", Namespace: testOrgName}, team)
 				g.Expect(err).ToNot(HaveOccurred(), "there should be no error getting org admin team")
-				g.Expect(team.Spec.MappedIDPGroup).To(Equal(someIdpGroupName), "Admin team should be updated with organization IDPGroup")
+				g.Expect(team.Spec.MappedIDPGroup).To(Equal(validIdpGroupName), "Admin team should be updated with organization IDPGroup")
 			}).Should(Succeed(), "Admin team should be updated with organization IDPGroup")
 		})
 
 		It("should recreate org admin team if deleted", func() {
 			testOrgName := "test-org-5"
 			setup.CreateOrganization(test.Ctx, testOrgName, func(org *greenhousev1alpha1.Organization) {
-				org.Spec.MappedOrgAdminIDPGroup = someIdpGroupName
+				org.Spec.MappedOrgAdminIDPGroup = validIdpGroupName
 			})
 			var team = &greenhousev1alpha1.Team{}
 			Eventually(func() error {
@@ -116,5 +116,120 @@ var _ = Describe("Test Organization reconciliation", func() {
 				g.Expect(err).ToNot(HaveOccurred(), "there should be no error getting org admin team")
 			}).Should(Succeed(), "Org admin team should be recreated")
 		})
+
+		It("should set correct status condition when creating Organization with SCIM Config", func() {
+			By("creating Organization with SCIM Config")
+			testOrgName := setup.Namespace()
+
+			By("creating secret for SCIM Config")
+			createSecretForScimConfig(testOrgName)
+
+			By("creating Organization with SCIM Config")
+			testOrg := setup.CreateOrganization(test.Ctx, testOrgName,
+				func(o *greenhousev1alpha1.Organization) {
+					o.Spec.MappedOrgAdminIDPGroup = validIdpGroupName
+				},
+				func(o *greenhousev1alpha1.Organization) {
+					o.Spec.Authentication = &greenhousev1alpha1.Authentication{
+						SCIMConfig: &greenhousev1alpha1.SCIMConfig{
+							BaseURL: groupsServer.URL,
+							BasicAuthUser: greenhousev1alpha1.ValueFromSource{
+								Secret: &greenhousev1alpha1.SecretKeyReference{
+									Name: "test-secret",
+									Key:  "basicAuthUser",
+								},
+							},
+							BasicAuthPw: greenhousev1alpha1.ValueFromSource{
+								Secret: &greenhousev1alpha1.SecretKeyReference{
+									Name: "test-secret",
+									Key:  "basicAuthPw",
+								},
+							},
+						},
+					}
+				},
+			)
+
+			By("checking Organization status")
+			Eventually(func(g Gomega) {
+				err := setup.Get(test.Ctx, types.NamespacedName{Name: testOrgName}, testOrg)
+				g.Expect(err).ToNot(HaveOccurred(), "there should be no error getting the Organization")
+				scimAPIAvailableCondition := testOrg.Status.GetConditionByType(greenhousev1alpha1.ScimAPIAvailableCondition)
+				g.Expect(scimAPIAvailableCondition).ToNot(BeNil(), "ScimApiAvailableCondition should be set on Organization")
+				g.Expect(scimAPIAvailableCondition.IsTrue()).To(BeTrue(), "ScimApiAvailableCondition should be True on Organization")
+			}).Should(Succeed(), "Organization should have set correct status condition")
+		})
+
+		It("should set correct status condition after updating Organization with SCIM Config", func() {
+			By("creating Organization without SCIM Config")
+			testOrgName := setup.Namespace()
+			testOrg := setup.CreateOrganization(test.Ctx, testOrgName, func(org *greenhousev1alpha1.Organization) {
+				org.Spec.MappedOrgAdminIDPGroup = validIdpGroupName
+			})
+
+			By("checking Organization status")
+			Eventually(func(g Gomega) {
+				err := setup.Get(test.Ctx, types.NamespacedName{Name: testOrgName}, testOrg)
+				g.Expect(err).ToNot(HaveOccurred(), "there should be no error getting the Organization")
+				scimAPIAvailableCondition := testOrg.Status.GetConditionByType(greenhousev1alpha1.ScimAPIAvailableCondition)
+				g.Expect(scimAPIAvailableCondition).ToNot(BeNil(), "ScimApiAvailableCondition should be set on Organization")
+				g.Expect(scimAPIAvailableCondition.IsFalse()).To(BeTrue(), "ScimApiAvailableCondition should be False on Organization")
+			}).Should(Succeed(), "Organization should have set correct status condition")
+
+			By("creating secret for SCIM Config")
+			createSecretForScimConfig(testOrgName)
+
+			By("updating Organization with SCIM Config")
+			err := setup.Get(test.Ctx, types.NamespacedName{Name: testOrgName}, testOrg)
+			Expect(err).ToNot(HaveOccurred(), "there should be no error getting the Organization")
+			testOrg.Spec.Authentication = &greenhousev1alpha1.Authentication{
+				SCIMConfig: &greenhousev1alpha1.SCIMConfig{
+					BaseURL: groupsServer.URL,
+					BasicAuthUser: greenhousev1alpha1.ValueFromSource{
+						Secret: &greenhousev1alpha1.SecretKeyReference{
+							Name: "test-secret",
+							Key:  "basicAuthUser",
+						},
+					},
+					BasicAuthPw: greenhousev1alpha1.ValueFromSource{
+						Secret: &greenhousev1alpha1.SecretKeyReference{
+							Name: "test-secret",
+							Key:  "basicAuthPw",
+						},
+					},
+				},
+			}
+			err = setup.Update(test.Ctx, testOrg)
+			Expect(err).ToNot(HaveOccurred(), "there should be no error updating the Organization")
+
+			By("checking Organization status")
+			Eventually(func(g Gomega) {
+				var testOrg = new(greenhousev1alpha1.Organization)
+				err := setup.Get(test.Ctx, types.NamespacedName{Name: testOrgName}, testOrg)
+				g.Expect(err).ToNot(HaveOccurred(), "there should be no error getting the Organization")
+				scimAPIAvailableCondition := testOrg.Status.GetConditionByType(greenhousev1alpha1.ScimAPIAvailableCondition)
+				g.Expect(scimAPIAvailableCondition).ToNot(BeNil(), "ScimApiAvailableCondition should be set on Organization")
+				g.Expect(scimAPIAvailableCondition.IsTrue()).To(BeTrue(), "ScimApiAvailableCondition should be True on Organization")
+			}).Should(Succeed(), "Organization should have set correct status condition")
+		})
 	})
 })
+
+func createSecretForScimConfig(namespace string) {
+	testSecret := corev1.Secret{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "Secret",
+			APIVersion: corev1.GroupName,
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "test-secret",
+			Namespace: namespace,
+		},
+		Data: map[string][]byte{
+			"basicAuthUser": []byte("user"),
+			"basicAuthPw":   []byte("pw"),
+		},
+	}
+	err := test.K8sClient.Create(test.Ctx, &testSecret)
+	Expect(err).ToNot(HaveOccurred(), "there must be no error creating a secret")
+}

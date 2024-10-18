@@ -10,10 +10,8 @@ import (
 const (
 	// ScimAccessReadyCondition reflects if there is a connection to SCIM.
 	ScimAccessReadyCondition ConditionType = "ScimAccessReady"
-	// SecretNotFoundReason is set when the secret with credentials to SCIM is not found.
-	SecretNotFoundReason ConditionReason = "SecretNotFound"
-	// ScimRequestFailedReason is set when a request to SCIM failed.
-	ScimRequestFailedReason ConditionReason = "ScimRequestFailed"
+	// ScimAPIUnavailableReason is set when the organization has set ScimApiAvailableCondition to false.
+	ScimAPIUnavailableReason ConditionReason = "ScimApiUnavailable"
 )
 
 // User specifies a human person.
@@ -43,7 +41,7 @@ type TeamMembershipStatus struct {
 	// LastChangedTime is the information when was the last time the membership was actually changed
 	// +optional
 	LastChangedTime *metav1.Time `json:"lastUpdateTime,omitempty"`
-	// StatusConditions contain the different conditions that constitute the status of the TeamRoleBinding.
+	// StatusConditions contain the different conditions that constitute the status of the TeamMembership.
 	StatusConditions `json:"statusConditions,omitempty"`
 }
 
