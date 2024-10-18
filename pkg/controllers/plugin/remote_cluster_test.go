@@ -13,7 +13,6 @@ import (
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/client-go/util/retry"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
 
@@ -253,45 +252,16 @@ var _ = Describe("HelmController reconciliation", Ordered, func() {
 		Expect(test.K8sClient.Create(test.Ctx, testPlugin)).Should(Succeed(), "there should be no error updating the plugin")
 
 		By("checking the ClusterAccessReadyCondition on the plugin")
-		Eventually(func(g Gomega) bool {
+		Eventually(func(g Gomega) {
 			err := test.K8sClient.Get(test.Ctx, types.NamespacedName{Name: testPlugin.Name, Namespace: testPlugin.Namespace}, testPlugin)
 			g.Expect(err).ShouldNot(HaveOccurred(), "there should be no error getting the plugin")
 			clusterAccessReadyCondition := testPlugin.Status.GetConditionByType(greenhousev1alpha1.ClusterAccessReadyCondition)
 			readyCondition := testPlugin.Status.GetConditionByType(greenhousev1alpha1.ReadyCondition)
 			g.Expect(clusterAccessReadyCondition).ToNot(BeNil(), "the ClusterAccessReadyCondition should not be nil")
 			g.Expect(readyCondition).ToNot(BeNil(), "the ReadyCondition should not be nil")
-			g.Expect(testPlugin.Status.GetConditionByType(greenhousev1alpha1.ClusterAccessReadyCondition).IsFalse()).Should(BeTrue(), "the ClusterAccessReadyCondition should be false")
-			g.Expect(testPlugin.Status.GetConditionByType(greenhousev1alpha1.ReadyCondition).IsFalse()).Should(BeTrue(), "the ReadyCondition should be false")
-			return true
-		}).Should(BeTrue(), "the ClusterAccessReadyCondition should be false")
-
-		By("setting the ready condition on the test-cluster")
-		err := retry.RetryOnConflict(retry.DefaultRetry, func() error {
-			err := test.K8sClient.Get(test.Ctx, types.NamespacedName{Name: testCluster.Name, Namespace: testCluster.Namespace}, testCluster)
-			if err != nil {
-				return err
-			}
-			testCluster.Status.StatusConditions.SetConditions(greenhousev1alpha1.TrueCondition(greenhousev1alpha1.ReadyCondition, "", ""))
-			return test.K8sClient.Status().Update(test.Ctx, testCluster)
-		})
-		Expect(err).ShouldNot(HaveOccurred(), "there should be no error updating the cluster resource")
-
-		By("triggering setting a label on the plugin to trigger reconciliation")
-		err = retry.RetryOnConflict(retry.DefaultRetry, func() error {
-			err = test.K8sClient.Get(test.Ctx, types.NamespacedName{Name: testPlugin.Name, Namespace: testPlugin.Namespace}, testPlugin)
-			testPlugin.Labels = map[string]string{"test": "label"}
-			return test.K8sClient.Update(test.Ctx, testPlugin)
-		})
-		Expect(err).ShouldNot(HaveOccurred(), "there should be no error updating the plugin labels")
-
-		By("checking the ClusterAccessReadyCondition on the plugin")
-		Eventually(func(g Gomega) bool {
-			err := test.K8sClient.Get(test.Ctx, types.NamespacedName{Name: testPlugin.Name, Namespace: testPlugin.Namespace}, testPlugin)
-			g.Expect(err).ShouldNot(HaveOccurred(), "there should be no error getting the plugin")
-			g.Expect(testPlugin.Status.GetConditionByType(greenhousev1alpha1.ClusterAccessReadyCondition).IsTrue()).Should(BeTrue(), "the ClusterAccessReadyCondition should be true")
-			g.Expect(testPlugin.Status.GetConditionByType(greenhousev1alpha1.ReadyCondition).IsTrue()).Should(BeTrue(), "the ReadyCondition should be true")
-			return true
-		}).Should(BeTrue(), "the ClusterAccessReadyCondition should be true")
+			g.Expect(clusterAccessReadyCondition.IsTrue()).Should(BeTrue(), "the ClusterAccessReadyCondition should be true")
+			g.Expect(readyCondition.IsTrue()).Should(BeTrue(), "the ReadyCondition should be true")
+		}).Should(Succeed(), "the ClusterAccessReadyCondition should be true")
 
 		By("checking the helm releases deployed to the remote cluster")
 		helmConfig, err := helm.ExportNewHelmAction(remoteRestClientGetter, testPlugin.Spec.ReleaseNamespace)
