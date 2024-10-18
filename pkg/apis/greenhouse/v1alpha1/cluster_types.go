@@ -4,6 +4,8 @@
 package v1alpha1
 
 import (
+	"time"
+
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -11,6 +13,10 @@ import (
 type ClusterSpec struct {
 	// AccessMode configures how the cluster is accessed from the Greenhouse operator.
 	AccessMode ClusterAccessMode `json:"accessMode"`
+
+	// MaxTokenValidity specifies the maximum duration for which a token remains valid
+	// +kubebuilder:default:="72h"
+	MaxTokenValidity metav1.Duration `json:"maxTokenValidity,omitempty"`
 }
 
 // ClusterAccessMode configures the access mode to the customer cluster.
@@ -29,6 +35,9 @@ const (
 
 	// ClusterDeletionScheduled reflects the condition type if a cluster is scheduled for deletion
 	ClusterDeletionScheduled ConditionType = "ClusterDeletionScheduled"
+
+	// MaxTokenValidity contains maximum bearer token validity duration. It is also default value.
+	MaxTokenValidity = 72 * time.Hour
 )
 
 // ClusterStatus defines the observed state of Cluster
@@ -85,4 +94,12 @@ type ClusterList struct {
 
 func init() {
 	SchemeBuilder.Register(&Cluster{}, &ClusterList{})
+}
+
+func (c *Cluster) SetDefaultTokenValidityIfNeeded() {
+	if c.Spec.MaxTokenValidity.Duration != 0 {
+		return
+	}
+
+	c.Spec.MaxTokenValidity = metav1.Duration{Duration: MaxTokenValidity}
 }

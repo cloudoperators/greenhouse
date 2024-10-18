@@ -143,10 +143,11 @@ func (r *DirectAccessReconciler) Reconcile(ctx context.Context, req ctrl.Request
 		return ctrl.Result{}, err
 	}
 
+	cluster.SetDefaultTokenValidityIfNeeded()
 	var tokenRequestor = &tokenHelper{
 		Client:                             r.Client,
-		RemoteClusterBearerTokenValidity:   r.RemoteClusterBearerTokenValidity,
-		RenewRemoteClusterBearerTokenAfter: r.RenewRemoteClusterBearerTokenAfter,
+		RemoteClusterBearerTokenValidity:   cluster.Spec.MaxTokenValidity.Duration,
+		RenewRemoteClusterBearerTokenAfter: cluster.Spec.MaxTokenValidity.Duration - (24 * time.Hour),
 	}
 	if err := tokenRequestor.ReconcileServiceAccountToken(ctx, restClientGetter, cluster); err != nil {
 		return ctrl.Result{}, err
