@@ -6,6 +6,7 @@ package organization
 import (
 	"context"
 
+	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -108,8 +109,11 @@ func (r *TeamRoleSeederReconciler) EnsureDeleted(_ context.Context, _ lifecycle.
 	return ctrl.Result{}, lifecycle.Success, nil // nothing to do in that case
 }
 
-func (r *TeamRoleSeederReconciler) EnsureCreated(ctx context.Context, obj lifecycle.RuntimeObject) (ctrl.Result, lifecycle.ReconcileResult, error) {
-	org := obj.(*greenhousesapv1alpha1.Organization)
+func (r *TeamRoleSeederReconciler) EnsureCreated(ctx context.Context, object lifecycle.RuntimeObject) (ctrl.Result, lifecycle.ReconcileResult, error) {
+	org, ok := object.(*greenhousesapv1alpha1.Organization)
+	if !ok {
+		return ctrl.Result{}, lifecycle.Failed, errors.Errorf("RuntimeObject has incompatible type.")
+	}
 
 	if err := r.reconcileDefaultTeamRoles(ctx, org); err != nil {
 		return ctrl.Result{}, lifecycle.Failed, err
