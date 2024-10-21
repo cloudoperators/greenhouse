@@ -5,7 +5,6 @@ package organization
 
 import (
 	"context"
-	"github.com/cloudoperators/greenhouse/pkg/lifecycle"
 
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
@@ -18,6 +17,7 @@ import (
 
 	greenhousesapv1alpha1 "github.com/cloudoperators/greenhouse/pkg/apis/greenhouse/v1alpha1"
 	"github.com/cloudoperators/greenhouse/pkg/clientutil"
+	"github.com/cloudoperators/greenhouse/pkg/lifecycle"
 )
 
 var defaultTeamRoles = map[string]greenhousesapv1alpha1.TeamRoleSpec{
