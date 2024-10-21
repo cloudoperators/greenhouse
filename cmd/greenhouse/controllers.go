@@ -51,7 +51,7 @@ var knownControllers = map[string]func(controllerName string, mgr ctrl.Manager) 
 
 	// Cluster controllers
 	"bootStrap":           (&clustercontrollers.BootstrapReconciler{}).SetupWithManager,
-	"clusterDirectAccess": startClusterReconciler,
+	"clusterReconciler": startClusterReconciler,
 	// "clusterPropagation":     (&clustercontrollers.ClusterPropagationReconciler{}).SetupWithManager,
 }
 
