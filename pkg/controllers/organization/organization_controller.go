@@ -5,7 +5,6 @@ package organization
 
 import (
 	"context"
-	"github.com/cloudoperators/greenhouse/pkg/lifecycle"
 
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/tools/record"
@@ -16,6 +15,7 @@ import (
 
 	greenhousesapv1alpha1 "github.com/cloudoperators/greenhouse/pkg/apis/greenhouse/v1alpha1"
 	"github.com/cloudoperators/greenhouse/pkg/clientutil"
+	"github.com/cloudoperators/greenhouse/pkg/lifecycle"
 )
 
 // OrganizationReconciler reconciles an Organization object
