@@ -6,6 +6,7 @@ package cluster
 import (
 	"context"
 	"fmt"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"time"
 
 	authenticationv1 "k8s.io/api/authentication/v1"
@@ -17,7 +18,6 @@ import (
 	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
 	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
 	greenhouseapis "github.com/cloudoperators/greenhouse/pkg/apis"
@@ -26,6 +26,11 @@ import (
 )
 
 var defaultRequeueInterval = 10 * time.Minute
+
+const (
+	CRoleKind = "ClusterRole"
+	CRoleRef  = "cluster-admin"
+)
 
 type KubeConfigHelper struct {
 	Host           string
@@ -88,6 +93,17 @@ func reconcileNamespaceInRemoteCluster(ctx context.Context, k8sClient client.Cli
 	return nil
 }
 
+func deleteServiceAccountInRemoteCluster(ctx context.Context, k8sClient client.Client, cluster *greenhousev1alpha1.Cluster) error {
+	serviceAccount := &corev1.ServiceAccount{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      serviceAccountName,
+			Namespace: cluster.GetNamespace(),
+		},
+	}
+	err := k8sClient.Delete(ctx, serviceAccount)
+	return client.IgnoreNotFound(err)
+}
+
 func reconcileServiceAccountInRemoteCluster(ctx context.Context, k8sClient client.Client, cluster *greenhousev1alpha1.Cluster) error {
 	var serviceAccount = new(corev1.ServiceAccount)
 	serviceAccount.Name = serviceAccountName
@@ -110,33 +126,36 @@ func reconcileServiceAccountInRemoteCluster(ctx context.Context, k8sClient clien
 }
 
 func reconcileClusterRoleBindingInRemoteCluster(ctx context.Context, k8sClient client.Client, cluster *greenhousev1alpha1.Cluster) error {
-	var clusterRoleBinding = new(rbacv1.ClusterRoleBinding)
-	clusterRoleBinding.Name = serviceAccountName
-
-	var nameSpace = new(corev1.Namespace)
-	if err := k8sClient.Get(ctx, types.NamespacedName{Namespace: "", Name: cluster.GetNamespace()}, nameSpace); err != nil {
-		return err
-	}
-
-	result, err := clientutil.CreateOrPatch(ctx, k8sClient, clusterRoleBinding, func() error {
-		clusterRoleBinding.Subjects = []rbacv1.Subject{
+	clusterRoleBinding := &rbacv1.ClusterRoleBinding{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: serviceAccountName,
+		},
+		Subjects: []rbacv1.Subject{
 			{
 				Kind:      rbacv1.ServiceAccountKind,
 				Name:      serviceAccountName,
 				Namespace: cluster.GetNamespace(),
 			},
-		}
-		clusterRoleBinding.RoleRef = rbacv1.RoleRef{
-			Kind:     "ClusterRole",
-			Name:     "cluster-admin",
+		},
+		RoleRef: rbacv1.RoleRef{
+			Kind:     CRoleKind,
+			Name:     CRoleRef,
 			APIGroup: rbacv1.GroupName,
-		}
-		return controllerutil.SetOwnerReference(nameSpace, clusterRoleBinding, k8sClient.Scheme())
-	})
+		},
+	}
 
+	serviceAccount := &corev1.ServiceAccount{}
+	if err := k8sClient.Get(ctx, types.NamespacedName{Namespace: cluster.GetNamespace(), Name: serviceAccountName}, serviceAccount); err != nil {
+		return err
+	}
+
+	result, err := clientutil.CreateOrPatch(ctx, k8sClient, clusterRoleBinding, func() error {
+		return controllerutil.SetOwnerReference(serviceAccount, clusterRoleBinding, k8sClient.Scheme())
+	})
 	if err != nil {
 		return err
 	}
+
 	switch result {
 	case clientutil.OperationResultCreated:
 		log.FromContext(ctx).Info("created clusterRoleBinding", "cluster", clusterRoleBinding.Name)
@@ -236,14 +255,4 @@ func reconcileRemoteAPIServerVersion(ctx context.Context, restConfigGetter *clie
 		return nil
 	})
 	return err
-}
-
-// deleteNamespaceInRemoteCluster deletes the namespace ignoring NotFound errors.
-func deleteNamespaceInRemoteCluster(ctx context.Context, remoteK8sClient client.Client, cluster *greenhousev1alpha1.Cluster) error {
-	var namespace = new(corev1.Namespace)
-	namespace.Name = cluster.GetNamespace()
-	// Attempt deletion if the namespace in the remote cluster.
-	err := remoteK8sClient.Delete(ctx, namespace)
-	// Ignore errors if was already deleted.
-	return client.IgnoreNotFound(err)
 }
