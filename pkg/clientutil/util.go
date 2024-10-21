@@ -6,6 +6,7 @@ package clientutil
 import (
 	"context"
 	"fmt"
+	"k8s.io/client-go/kubernetes"
 	"os"
 	"path/filepath"
 	"strings"
@@ -46,7 +47,8 @@ func GetSecretKeyFromSecretKeyReference(ctx context.Context, c client.Client, na
 }
 
 // GetKubernetesVersion returns the kubernetes git version using the discovery client.
-func GetKubernetesVersion(restClientGetter genericclioptions.RESTClientGetter) (*version.Info, error) {
+func GetKubernetesVersion(restClientGetter genericclioptions.RESTClientGetter, clientSet kubernetes.Interface) (*version.Info, error) {
+	clientSet.Discovery().ServerVersion()
 	dc, err := restClientGetter.ToDiscoveryClient()
 	if err != nil {
 		return nil, err

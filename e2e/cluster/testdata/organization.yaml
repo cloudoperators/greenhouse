@@ -1,0 +1,8 @@
+apiVersion: greenhouse.sap/v1alpha1
+kind: Organization
+metadata:
+  name: e2e-organization
+spec:
+  description: converge cloud organization
+  displayName: ccloud
+  mappedOrgAdminIdPGroup: TEST_ORG_ADMIN
