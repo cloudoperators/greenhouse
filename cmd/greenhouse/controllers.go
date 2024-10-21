@@ -50,7 +50,7 @@ var knownControllers = map[string]func(controllerName string, mgr ctrl.Manager) 
 	"pluginChartTest": (&plugincontrollers.HelmChartTestReconciler{}).SetupWithManager,
 
 	// Cluster controllers
-	"bootStrap":           (&clustercontrollers.BootstrapReconciler{}).SetupWithManager,
+	"bootStrap":         (&clustercontrollers.BootstrapReconciler{}).SetupWithManager,
 	"clusterReconciler": startClusterReconciler,
 	// "clusterPropagation":     (&clustercontrollers.ClusterPropagationReconciler{}).SetupWithManager,
 }
