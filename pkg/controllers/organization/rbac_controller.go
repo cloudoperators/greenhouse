@@ -7,6 +7,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/client-go/tools/record"
@@ -64,8 +65,11 @@ func (r *RBACReconciler) EnsureDeleted(_ context.Context, _ lifecycle.RuntimeObj
 	return ctrl.Result{}, lifecycle.Success, nil // nothing to do in that case
 }
 
-func (r *RBACReconciler) EnsureCreated(ctx context.Context, obj lifecycle.RuntimeObject) (ctrl.Result, lifecycle.ReconcileResult, error) {
-	org := obj.(*greenhouseapisv1alpha1.Organization)
+func (r *RBACReconciler) EnsureCreated(ctx context.Context, object lifecycle.RuntimeObject) (ctrl.Result, lifecycle.ReconcileResult, error) {
+	org, ok := object.(*greenhouseapisv1alpha1.Organization)
+	if !ok {
+		return ctrl.Result{}, lifecycle.Failed, errors.Errorf("RuntimeObject has incompatible type.")
+	}
 
 	// NOTE: The below code is intentionally rather explicit for transparency reasons as several Kubernetes resources
 	// are involved granting permissions on both cluster and namespace level based on organization, team membership and roles.

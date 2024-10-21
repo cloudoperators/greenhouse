@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"fmt"
 
+	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -67,8 +68,11 @@ func (r *ServiceProxyReconciler) EnsureDeleted(_ context.Context, _ lifecycle.Ru
 	return ctrl.Result{}, lifecycle.Success, nil // nothing to do in that case
 }
 
-func (r *ServiceProxyReconciler) EnsureCreated(ctx context.Context, obj lifecycle.RuntimeObject) (ctrl.Result, lifecycle.ReconcileResult, error) {
-	org := obj.(*greenhousesapv1alpha1.Organization)
+func (r *ServiceProxyReconciler) EnsureCreated(ctx context.Context, object lifecycle.RuntimeObject) (ctrl.Result, lifecycle.ReconcileResult, error) {
+	org, ok := object.(*greenhousesapv1alpha1.Organization)
+	if !ok {
+		return ctrl.Result{}, lifecycle.Failed, errors.Errorf("RuntimeObject has incompatible type.")
+	}
 
 	if err := r.reconcileServiceProxy(ctx, org); err != nil {
 		return ctrl.Result{}, lifecycle.Failed, err

@@ -6,6 +6,7 @@ package organization
 import (
 	"context"
 
+	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/tools/record"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -52,7 +53,10 @@ func (r *OrganizationReconciler) EnsureDeleted(_ context.Context, _ lifecycle.Ru
 }
 
 func (r *OrganizationReconciler) EnsureCreated(ctx context.Context, object lifecycle.RuntimeObject) (ctrl.Result, lifecycle.ReconcileResult, error) {
-	var org = object.(*greenhousesapv1alpha1.Organization)
+	org, ok := object.(*greenhousesapv1alpha1.Organization)
+	if !ok {
+		return ctrl.Result{}, lifecycle.Failed, errors.Errorf("RuntimeObject has incompatible type.")
+	}
 
 	if err := r.reconcileNamespace(ctx, org); err != nil {
 		return ctrl.Result{}, lifecycle.Failed, err

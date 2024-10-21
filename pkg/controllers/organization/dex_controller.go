@@ -76,7 +76,10 @@ func (r *DexReconciler) EnsureDeleted(_ context.Context, _ lifecycle.RuntimeObje
 }
 
 func (r *DexReconciler) EnsureCreated(ctx context.Context, object lifecycle.RuntimeObject) (ctrl.Result, lifecycle.ReconcileResult, error) {
-	var org = object.(*greenhousesapv1alpha1.Organization)
+	org, ok := object.(*greenhousesapv1alpha1.Organization)
+	if !ok {
+		return ctrl.Result{}, lifecycle.Failed, errors.Errorf("RuntimeObject has incompatible type.")
+	}
 
 	// Ignore organizations without OIDC configuration.
 	if org.Spec.Authentication == nil || org.Spec.Authentication.OIDCConfig == nil {
