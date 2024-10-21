@@ -152,9 +152,12 @@ func (r *RemoteClusterReconciler) EnsureDeleted(ctx context.Context, resource li
 	if err != nil {
 		return ctrl.Result{}, lifecycle.Failed, err
 	}
-	// Delete namespace in remote cluster before the secret.
-	// All remote resources are bound by owner-reference to the namespace
-	if err := deleteNamespaceInRemoteCluster(ctx, remoteClient, cluster); err != nil {
+
+	if err := deleteClusterRoleBindingInRemoteCluster(ctx, remoteClient); err != nil {
+		return ctrl.Result{}, lifecycle.Failed, err
+	}
+
+	if err := deleteServiceAccountInRemoteCluster(ctx, remoteClient, cluster); err != nil {
 		return ctrl.Result{}, lifecycle.Failed, err
 	}
 	return ctrl.Result{}, lifecycle.Success, nil
