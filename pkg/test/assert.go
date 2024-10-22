@@ -20,7 +20,7 @@ func EventuallyDeleted(ctx context.Context, c client.Client, obj client.Object) 
 	Eventually(func() bool {
 		cluster, ok := obj.(*greenhousev1alpha1.Cluster)
 		if ok {
-			UpdateClusterWithDeletionAnnotation(ctx, c, cluster)
+			UpdateClusterWithDeletionAnnotation(ctx, c, client.ObjectKeyFromObject(cluster))
 		}
 		if err := c.Delete(ctx, obj); err != nil {
 			return apierrors.IsNotFound(err)

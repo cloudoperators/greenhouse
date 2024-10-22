@@ -7,6 +7,8 @@ import (
 	"context"
 	"time"
 
+	"github.com/cloudoperators/greenhouse/pkg/lifecycle"
+
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -15,7 +17,6 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 
 	greenhouseapis "github.com/cloudoperators/greenhouse/pkg/apis"
@@ -25,8 +26,8 @@ import (
 
 const serviceAccountName = "greenhouse"
 
-// DirectAccessReconciler reconciles a Cluster object with accessMode=direct set.
-type DirectAccessReconciler struct {
+// RemoteClusterReconciler reconciles a Cluster object with accessMode=direct set.
+type RemoteClusterReconciler struct {
 	client.Client
 	recorder                           record.EventRecorder
 	RemoteClusterBearerTokenValidity   time.Duration
@@ -43,7 +44,7 @@ type DirectAccessReconciler struct {
 //+kubebuilder:rbac:groups="rbac",resources=clusterrolebindings,verbs=get;list;watch;update;patch;create
 
 // SetupWithManager sets up the controller with the Manager.
-func (r *DirectAccessReconciler) SetupWithManager(name string, mgr ctrl.Manager) error {
+func (r *RemoteClusterReconciler) SetupWithManager(name string, mgr ctrl.Manager) error {
 	r.Client = mgr.GetClient()
 	r.recorder = mgr.GetEventRecorderFor(name)
 
@@ -57,106 +58,107 @@ func (r *DirectAccessReconciler) SetupWithManager(name string, mgr ctrl.Manager)
 		Complete(r)
 }
 
-func (r *DirectAccessReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	var cluster = new(greenhousev1alpha1.Cluster)
-	if err := r.Get(ctx, req.NamespacedName, cluster); err != nil {
-		return ctrl.Result{}, client.IgnoreNotFound(err)
-	}
+func (r *RemoteClusterReconciler) GetEventRecorder() record.EventRecorder {
+	return r.recorder
+}
 
+func (r *RemoteClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
+	return lifecycle.Reconcile(ctx, r.Client, req.NamespacedName, &greenhousev1alpha1.Cluster{}, r, r.setConditions())
+}
+
+func (r *RemoteClusterReconciler) EnsureCreated(ctx context.Context, resource lifecycle.RuntimeObject) (ctrl.Result, lifecycle.ReconcileResult, error) {
+	cluster := resource.(*greenhousev1alpha1.Cluster) //nolint:errcheck
 	if cluster.Spec.AccessMode != greenhousev1alpha1.ClusterAccessModeDirect {
-		return ctrl.Result{}, nil
+		return ctrl.Result{}, lifecycle.Failed, nil
 	}
-
-	// Update metrics at the end of the reconcile function
-	defer updateMetrics(cluster)
-
+	// Deletion Schedule mechanism
 	isScheduled, schedule, err := clientutil.ExtractDeletionSchedule(cluster.GetAnnotations())
 	if err != nil {
-		return ctrl.Result{}, err
+		return ctrl.Result{}, lifecycle.Failed, err
 	}
 	if isScheduled && cluster.DeletionTimestamp == nil {
 		if ok, err := clientutil.ShouldProceedDeletion(time.Now(), schedule); ok && err == nil {
-			return ctrl.Result{}, r.Client.Delete(ctx, cluster)
+			err = r.Client.Delete(ctx, cluster)
+			if err != nil {
+				return ctrl.Result{}, lifecycle.Failed, err
+			}
+			return ctrl.Result{}, lifecycle.Success, nil
 		}
 	}
-
-	// Cleanup logic
-	if cluster.DeletionTimestamp != nil && controllerutil.ContainsFinalizer(cluster, greenhouseapis.FinalizerCleanupCluster) {
-		// delete all plugins that are bound to this cluster
-		deletionCount, err := deletePlugins(ctx, r.Client, cluster)
-		if err != nil {
-			return ctrl.Result{}, err
-		}
-		if deletionCount > 0 {
-			return ctrl.Result{RequeueAfter: 10 * time.Second}, nil
-		}
-
-		var kubeConfigSecret = new(corev1.Secret)
-		if err := r.Client.Get(ctx, types.NamespacedName{Namespace: cluster.GetNamespace(), Name: cluster.GetSecretName()}, kubeConfigSecret); err != nil {
-			return ctrl.Result{}, err
-		}
-		restClientGetter, err := clientutil.NewRestClientGetterFromSecret(kubeConfigSecret, cluster.Namespace)
-		if err != nil {
-			return ctrl.Result{}, err
-		}
-		remoteClient, err := clientutil.NewK8sClientFromRestClientGetter(restClientGetter)
-		if err != nil {
-			return ctrl.Result{}, err
-		}
-		// Delete namespace in remote cluster before the secret.
-		// All remote resources are bound by owner-reference to the namespace
-		if err := deleteNamespaceInRemoteCluster(ctx, remoteClient, cluster); err != nil {
-			return ctrl.Result{}, err
-		}
-		// A simple Delete won't do. The logic should take into consideration the order, that only a portion of the resources have been deleted, etc.
-		err = clientutil.RemoveFinalizer(ctx, r.Client, cluster, greenhouseapis.FinalizerCleanupCluster)
-		return ctrl.Result{}, err
-	}
-
-	// Add finalizer before starting any work.
-	if err := clientutil.EnsureFinalizer(ctx, r.Client, cluster, greenhouseapis.FinalizerCleanupCluster); err != nil {
-		return ctrl.Result{}, client.IgnoreNotFound(err)
-	}
-
+	defer updateMetrics(cluster)
 	var clusterSecret = new(corev1.Secret)
 	if err := r.Get(ctx, types.NamespacedName{Name: cluster.GetSecretName(), Namespace: cluster.GetNamespace()}, clusterSecret); err != nil {
-		return ctrl.Result{}, err
+		return ctrl.Result{}, lifecycle.Failed, err
 	}
 
 	restClientGetter, err := clientutil.NewRestClientGetterFromSecret(clusterSecret, cluster.Namespace)
 	if err != nil {
-		return ctrl.Result{}, err
+		return ctrl.Result{}, lifecycle.Failed, err
 	}
 
 	k8sClientForRemoteCluster, err := clientutil.NewK8sClientFromRestClientGetter(restClientGetter)
 	if err != nil {
-		return ctrl.Result{}, err
+		return ctrl.Result{}, lifecycle.Failed, err
 	}
 
 	if err := reconcileNamespaceInRemoteCluster(ctx, k8sClientForRemoteCluster, cluster); err != nil {
-		return ctrl.Result{}, err
+		return ctrl.Result{}, lifecycle.Failed, err
 	}
 	if err := reconcileServiceAccountInRemoteCluster(ctx, k8sClientForRemoteCluster, cluster); err != nil {
-		return ctrl.Result{}, err
+		return ctrl.Result{}, lifecycle.Failed, err
 	}
 	if err := reconcileClusterRoleBindingInRemoteCluster(ctx, k8sClientForRemoteCluster, cluster); err != nil {
-		return ctrl.Result{}, err
+		return ctrl.Result{}, lifecycle.Failed, err
 	}
 
-	var tokenRequestor = &tokenHelper{
+	var tokenRequest = &tokenHelper{
 		Client:                             r.Client,
 		RemoteClusterBearerTokenValidity:   r.RemoteClusterBearerTokenValidity,
 		RenewRemoteClusterBearerTokenAfter: r.RenewRemoteClusterBearerTokenAfter,
 	}
-	if err := tokenRequestor.ReconcileServiceAccountToken(ctx, restClientGetter, cluster); err != nil {
-		return ctrl.Result{}, err
+	if err := tokenRequest.ReconcileServiceAccountToken(ctx, restClientGetter, cluster); err != nil {
+		return ctrl.Result{}, lifecycle.Failed, err
 	}
 
 	if err := reconcileRemoteAPIServerVersion(ctx, restClientGetter, r.Client, cluster); err != nil {
-		return ctrl.Result{}, err
+		return ctrl.Result{}, lifecycle.Failed, err
+	}
+	return ctrl.Result{RequeueAfter: defaultRequeueInterval}, lifecycle.Success, nil
+}
+
+// EnsureDeleted - handles the deletion / cleanup of cluster resource
+func (r *RemoteClusterReconciler) EnsureDeleted(ctx context.Context, resource lifecycle.RuntimeObject) (ctrl.Result, lifecycle.ReconcileResult, error) {
+	cluster := resource.(*greenhousev1alpha1.Cluster) //nolint:errcheck
+	// delete all plugins that are bound to this cluster
+	deletionCount, err := deletePlugins(ctx, r.Client, cluster)
+	if err != nil {
+		return ctrl.Result{}, lifecycle.Failed, err
+	}
+	if deletionCount > 0 {
+		return ctrl.Result{RequeueAfter: 10 * time.Second}, lifecycle.Pending, nil
 	}
 
-	return ctrl.Result{RequeueAfter: defaultRequeueInterval}, nil
+	defer updateMetrics(cluster)
+
+	kubeConfigSecret := &corev1.Secret{}
+	if err := r.Client.Get(ctx, types.NamespacedName{Namespace: cluster.GetNamespace(), Name: cluster.GetSecretName()}, kubeConfigSecret); err != nil {
+		return ctrl.Result{}, lifecycle.Failed, err
+	}
+	restClientGetter, err := clientutil.NewRestClientGetterFromSecret(kubeConfigSecret, cluster.Namespace)
+	if err != nil {
+		return ctrl.Result{}, lifecycle.Failed, err
+	}
+	remoteClient, err := clientutil.NewK8sClientFromRestClientGetter(restClientGetter)
+	if err != nil {
+		return ctrl.Result{}, lifecycle.Failed, err
+	}
+
+	// deleting the service account in the remote cluster will delete the namespaced role and namespaced role binding as well
+	// since it is owned by the service account
+	if err := deleteServiceAccountInRemoteCluster(ctx, remoteClient, cluster); err != nil {
+		return ctrl.Result{}, lifecycle.Failed, err
+	}
+	return ctrl.Result{}, lifecycle.Success, nil
 }
 
 // generateNewClientKubeConfig generates a kubeconfig for the client to access the cluster from REST config coming from the secret
@@ -165,7 +167,6 @@ func generateNewClientKubeConfig(_ context.Context, restConfigGetter *clientutil
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to load kube clientConfig for cluster %s", cluster.GetName())
 	}
-
 	// TODO: replace overwrite with https://github.com/kubernetes/kubernetes/pull/119398 after 1.30 upgrade
 	kubeConfigGenerator := &KubeConfigHelper{
 		Host:        restConfig.Host,
