@@ -3,13 +3,15 @@ title: "PluginDefinitions and Plugins"
 weight: 4
 ---
 
-## What are Plugin Definitions?
+## What are PluginDefinitions and Plugins?
 
-PluginDefinitions are a way to extend the functionality of the platform. They can include a [Juno microfrontend](https://github.com/cloudoperators/juno) into the Greenhouse Dashboard and/or a backend component. The backend components of a PluginDefinition is packaged as a Helm Chart and provides default values for the Helm Chart. This allows to package and distribute tools such as Prometheus with a sensible default configuration, as well as giving the user a list of configurable values.
+PluginDefinitons and Plugins are the Greenhouse way to extend the core functionality with domain specific features.
+PluginDefinitions, as the name suggests, are the definition of a Plugin, whereas a Plugin is a concrete instance of a PluginDefinition that is deployed to a Cluster.
 
-## Plugins
+The PluginDefinitions are shared between all Organizations in Greenhouse. A PluginDefinition can include a frontend, that is displayed in the Greenhouse dashboard and/or a backend component. The frontend is expected to be a standalone microfrontend created with the [Juno framework](https://github.com/cloudoperators/juno).
+The backend components of a PluginDefinition are packaged as a Helm Chart and provide sane and opinionated default values. This allows Greenhouse to package and distribute tools such as Prometheus with a sensible default configuration, as well as giving the user a list of configurable values.
 
-In order to deploy the Helm Chart of a Plugin Definition into a particular cluster a Plugin is used. The Plugin specifies the PluginDefintion to deploy, the release namespace to use, the values to set and the cluster to deploy to. Depending on the PluginDefinition it may be required to provide required values (e.g. credentials, endpoints etc.), but in general the PluginDefinition provides sensible defaults.
+A Plugin is used to deploy the Helm Chart referenced referenced in a PluginDefinition to a Cluster. The Plugin can be considered as an instance of a PluginDefinition, this instance specifies the PluginDefinition, the desired Cluster and additional values to set. Depending on the PluginDefinition, it may be necessary to specify required values (e.g. credentials, endpoints, etc.), but in general the PluginDefinition provides well-established default values.
 
 > [!NOTE]
 > In this example the Plugin 'openTelemetry-cluster-a' is used to deploy the PluginDefinition 'openTelemetry' to the cluster 'cluster-a'.
@@ -17,8 +19,9 @@ In order to deploy the Helm Chart of a Plugin Definition into a particular clust
 ```mermaid
 flowchart TB
   subgraph "Greenhouse" 
-    subgraph "Organization" 
-        pluginDefinition[PluginDefinition 'openTelemetry']
+    pluginDefinition[PluginDefinition 'openTelemetry']
+    
+    subgraph "Namespace &lt;org-name&gt;" 
         clusterA[Cluster 'cluster-a']
         plugin1[Plugin 'openTelemetry-cluster-a']
     end
@@ -45,13 +48,13 @@ PluginPresets are a mechanism to configure Plugins for multiple clusters at once
 ```mermaid
 flowchart TB
   subgraph "Greenhouse" 
-    subgraph "Organization" 
-        pluginDefinition[PluginDefinition 'example']
-        pluginPreset[PluginPreset 'example-obs']
+    pluginDefinition[PluginDefinition 'example']
+    subgraph "Namespace &lt;org-name&gt;"  
+        pluginPreset[PluginPreset 'example-preset']
         clusterA[Cluster 'cluster-a']
         clusterB[Cluster 'cluster-b']
-        plugin1[Plugin 'example-obs-cluster-a']
-        plugin2[Plugin 'example-obs-cluster-b']
+        plugin1[Plugin 'example-preset-cluster-a']
+        plugin2[Plugin 'example-preset-cluster-b']
     end
   end
 

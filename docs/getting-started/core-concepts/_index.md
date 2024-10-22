@@ -9,7 +9,7 @@ description: >
 
 | Feature | Description | API | UI | Comments |
 | --- | --- | --- | --- | --- |
-| [Organizations](/docs/getting-started/core-concepts/organizations) | Organizations are the top-level entities in Greenhouse. Based on the name of the Organization a namespace is automatically created. This namespace contains all resources that are managed by Greenhouse for the Organization, such as Teams, Clusters, and Plugins. | 🟢 | 🟢 | |
-| [Teams](/docs/getting-started/core-concepts/teams.md) | Teams are used to manage access to resources in Greenhouse. | 🟢 | 🟡 | Read-only access to Teams via the UI |
-| [Clusters(/docs/getting-started/core-concepts/clusters.md)] | Clusters represent a Kubernetes cluster that is managed by Greenhouse. | 🟡 | 🟡 | Limited editability of Clusters via UI, CLI for KubeConfig registry planned |
-| [Plugin Definitions & Plugins](/docs/getting-started/core-concepts/plugins.md) | PluginDefinitions are the extensibility features used to deploy & configure UIs and backend components. | 🟡 | 🟡 | Read-only access via UI, kube native plugin catalog planned |
+| [Organizations](/docs/getting-started/core-concepts/organizations) | Organizations are the top-level entities in Greenhouse. | 🟢 | 🟢 | |
+| [Teams](/docs/getting-started/core-concepts/teams.md) | Teams are used to manage access and ownership of resources in Greenhouse. | 🟢 | 🟡 | Read-only access to Teams via the UI |
+| [Clusters](/docs/getting-started/core-concepts/clusters.md) | Clusters represent a Kubernetes cluster that is managed by Greenhouse. | 🟡 | 🟡 | Limited modification of Clusters via UI, CLI for KubeConfig registry planned. |
+| [Plugin Definitions & Plugins](/docs/getting-started/core-concepts/plugins.md) | Plugins are software components that extend and integrate with Greenhouse . | 🟡 | 🟡 | Read-only access via UI, a native Plugin Catalog is planned. |
