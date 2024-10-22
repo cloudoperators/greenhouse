@@ -153,10 +153,8 @@ func (r *RemoteClusterReconciler) EnsureDeleted(ctx context.Context, resource li
 		return ctrl.Result{}, lifecycle.Failed, err
 	}
 
-	if err := deleteClusterRoleBindingInRemoteCluster(ctx, remoteClient); err != nil {
-		return ctrl.Result{}, lifecycle.Failed, err
-	}
-
+	// deleting the service account in the remote cluster will delete the namespaced role and namespaced role binding as well
+	// since it is owned by the service account
 	if err := deleteServiceAccountInRemoteCluster(ctx, remoteClient, cluster); err != nil {
 		return ctrl.Result{}, lifecycle.Failed, err
 	}

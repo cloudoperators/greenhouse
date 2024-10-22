@@ -124,16 +124,6 @@ func reconcileServiceAccountInRemoteCluster(ctx context.Context, k8sClient clien
 	return nil
 }
 
-func deleteClusterRoleBindingInRemoteCluster(ctx context.Context, k8sClient client.Client) error {
-	clusterRoleBinding := &rbacv1.ClusterRoleBinding{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: serviceAccountName,
-		},
-	}
-	err := k8sClient.Delete(ctx, clusterRoleBinding)
-	return client.IgnoreNotFound(err)
-}
-
 func reconcileClusterRoleBindingInRemoteCluster(ctx context.Context, k8sClient client.Client, cluster *greenhousev1alpha1.Cluster) error {
 	clusterRoleBinding := &rbacv1.ClusterRoleBinding{
 		ObjectMeta: metav1.ObjectMeta{
@@ -153,12 +143,14 @@ func reconcileClusterRoleBindingInRemoteCluster(ctx context.Context, k8sClient c
 		},
 	}
 
-	var nameSpace = new(corev1.Namespace)
-	if err := k8sClient.Get(ctx, types.NamespacedName{Namespace: "", Name: cluster.GetNamespace()}, nameSpace); err != nil {
+	namespace := new(corev1.Namespace)
+	if err := k8sClient.Get(ctx, types.NamespacedName{Namespace: "", Name: cluster.GetNamespace()}, namespace); err != nil {
 		return err
 	}
 
-	result, err := clientutil.CreateOrPatch(ctx, k8sClient, clusterRoleBinding, func() error { return nil })
+	result, err := clientutil.CreateOrPatch(ctx, k8sClient, clusterRoleBinding, func() error {
+		return nil
+	})
 	if err != nil {
 		return err
 	}
