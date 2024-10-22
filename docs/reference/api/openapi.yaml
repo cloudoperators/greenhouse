@@ -1094,10 +1094,14 @@ components:
               enum:
                 - direct
               type: string
-            maxTokenValidity:
-              default: 72h
-              description: MaxTokenValidity specifies the maximum duration for which a token remains valid
-              type: string
+            kubeConfig:
+              description: KubeConfig contains specific values for `KubeConfig` for the cluster.
+              properties:
+                maxTokenValidity:
+                  default: 72h
+                  description: MaxTokenValidity specifies the maximum duration for which a token remains valid.
+                  type: string
+              type: object
           required:
             - accessMode
           type: object
