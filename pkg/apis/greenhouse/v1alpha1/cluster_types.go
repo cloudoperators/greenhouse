@@ -14,14 +14,20 @@ type ClusterSpec struct {
 	// AccessMode configures how the cluster is accessed from the Greenhouse operator.
 	AccessMode ClusterAccessMode `json:"accessMode"`
 
-	// MaxTokenValidity specifies the maximum duration for which a token remains valid
-	// +kubebuilder:default:="72h"
-	MaxTokenValidity metav1.Duration `json:"maxTokenValidity,omitempty"`
+	// KubeConfig contains specific values for `KubeConfig` for the cluster.
+	KubeConfig ClusterKubeConfig `json:"kubeConfig,omitempty"`
 }
 
 // ClusterAccessMode configures the access mode to the customer cluster.
 // +kubebuilder:validation:Enum=direct
 type ClusterAccessMode string
+
+// ClusterKubeConfig configures kube config values.
+type ClusterKubeConfig struct {
+	// MaxTokenValidity specifies the maximum duration for which a token remains valid.
+	// +kubebuilder:default:="72h"
+	MaxTokenValidity metav1.Duration `json:"maxTokenValidity,omitempty"`
+}
 
 const (
 	// ClusterAccessModeDirect configures direct access to the cluster.
@@ -102,9 +108,9 @@ func init() {
 }
 
 func (c *Cluster) SetDefaultTokenValidityIfNeeded() {
-	if c.Spec.MaxTokenValidity.Duration != 0 {
+	if c.Spec.KubeConfig.MaxTokenValidity.Duration != 0 {
 		return
 	}
 
-	c.Spec.MaxTokenValidity = metav1.Duration{Duration: MaxTokenValidity}
+	c.Spec.KubeConfig.MaxTokenValidity = metav1.Duration{Duration: MaxTokenValidity}
 }
