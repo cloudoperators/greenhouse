@@ -106,7 +106,10 @@ func validateImmutableField(oldValue, newValue string, path *field.Path) *field.
 
 func validateURL(str string) bool {
 	parsedURL, err := url.Parse(str)
-	return err == nil && parsedURL.Scheme != "" && parsedURL.Host != ""
+	if err != nil || parsedURL.Scheme == "" || parsedURL.Host == "" {
+		return false
+	}
+	return parsedURL.Scheme == "http" || parsedURL.Scheme == "https"
 }
 
 // logAdmissionRequest logs the AdmissionRequest.

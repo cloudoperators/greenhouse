@@ -103,7 +103,7 @@ func validateJoinURL(team *greenhousev1alpha1.Team) error {
 	if !validateURL(team.Spec.JoinURL) {
 		return apierrors.NewInvalid(team.GroupVersionKind().GroupKind(), team.GetName(), field.ErrorList{
 			field.Invalid(field.NewPath("spec").Child("joinUrl"), team.Spec.JoinURL,
-				"JoinURL must be a valid URL."),
+				"JoinURL must be a valid 'http:' or 'https:' URL, like 'https://example.com'."),
 		})
 	}
 	return nil

@@ -141,10 +141,10 @@ var _ = Describe("Validate Team Creation", func() {
 			teamInvalidJoinURL.Spec.JoinURL = "testvalue"
 			err := test.K8sClient.Create(test.Ctx, &teamInvalidJoinURL)
 			Expect(err).To(HaveOccurred(), "There should be an error when creating a team with invalid JoinURL")
-			Expect(err.Error()).To(ContainSubstring("JoinURL must be a valid URL."))
+			Expect(err.Error()).To(ContainSubstring("JoinURL must be a valid 'http:' or 'https:' URL, like 'https://example.com'."))
 		})
 		By("correctly allowing update of a team with valid JoinURL", func() {
-			teamValidJoinURL.Spec.JoinURL = "https://1.1.1.1:80"
+			teamValidJoinURL.Spec.JoinURL = "http://1.1.1.1:80"
 			err := test.K8sClient.Update(test.Ctx, &teamValidJoinURL)
 			Expect(err).ToNot(HaveOccurred(), "There should be no error when updating a team with valid JoinURL")
 		})
@@ -152,7 +152,7 @@ var _ = Describe("Validate Team Creation", func() {
 			teamValidJoinURL.Spec.JoinURL = "/example/1"
 			err := test.K8sClient.Update(test.Ctx, &teamValidJoinURL)
 			Expect(err).To(HaveOccurred(), "There should be an error when updating a team with invalid JoinURL")
-			Expect(err.Error()).To(ContainSubstring("JoinURL must be a valid URL."))
+			Expect(err.Error()).To(ContainSubstring("JoinURL must be a valid 'http:' or 'https:' URL, like 'https://example.com'."))
 		})
 	})
 })
