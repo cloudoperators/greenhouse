@@ -62,27 +62,24 @@ type KubeConfigHelper struct {
 	ClientKeyData  []byte
 }
 
-type Audience []string
-type NumericDate int64
-
 type Claims struct {
 	Issuer     string           `json:"iss,omitempty"`
 	Subject    string           `json:"sub,omitempty"`
-	Audience   Audience         `json:"aud,omitempty"`
-	Expiry     *NumericDate     `json:"exp,omitempty"`
-	NotBefore  *NumericDate     `json:"nbf,omitempty"`
-	IssuedAt   *NumericDate     `json:"iat,omitempty"`
+	Audience   []string         `json:"aud,omitempty"`
+	Expiry     int64            `json:"exp,omitempty"`
+	NotBefore  int64            `json:"nbf,omitempty"`
+	IssuedAt   int64            `json:"iat,omitempty"`
 	ID         string           `json:"jti,omitempty"`
 	Kubernetes kubernetesClaims `json:"kubernetes.io,omitempty"`
 }
 
 type kubernetesClaims struct {
-	Namespace string       `json:"namespace,omitempty"`
-	Svcacct   ref          `json:"serviceaccount,omitempty"`
-	Pod       *ref         `json:"pod,omitempty"`
-	Secret    *ref         `json:"secret,omitempty"`
-	Node      *ref         `json:"node,omitempty"`
-	WarnAfter *NumericDate `json:"warnafter,omitempty"`
+	Namespace string `json:"namespace,omitempty"`
+	Svcacct   ref    `json:"serviceaccount,omitempty"`
+	Pod       *ref   `json:"pod,omitempty"`
+	Secret    *ref   `json:"secret,omitempty"`
+	Node      *ref   `json:"node,omitempty"`
+	WarnAfter int64  `json:"warnafter,omitempty"`
 }
 
 type ref struct {
@@ -251,7 +248,7 @@ func (t *tokenHelper) ReconcileServiceAccountToken(ctx context.Context, restClie
 		}
 	}
 
-	actualTokenExpiry = metav1.Unix(int64(*t.tokenInfo.Expiry), 0)
+	actualTokenExpiry = metav1.Unix(t.tokenInfo.Expiry, 0)
 	if actualTokenExpiry.After(time.Now().Add(t.RenewRemoteClusterBearerTokenAfter)) {
 		log.FromContext(ctx).V(5).Info("bearer token is still valid", "cluster", cluster.Name, "expirationTimestamp", cluster.Status.BearerTokenExpirationTimestamp.Time)
 		return nil
