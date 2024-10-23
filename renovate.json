@@ -12,7 +12,7 @@
     "forkProcessing": "enabled",
     "regexManagers": [
       {
-        "description": "Bump envtest tools version in the Makefile",
+        "description": "Bump envtest version in the Makefile",
         "fileMatch": [
           "^Makefile$"
         ],
@@ -21,10 +21,10 @@
         ],
         "datasourceTemplate": "github-tags",
         "depNameTemplate": "kubernetes-sigs/controller-tools",
-        "extractVersionTemplate": "^envtest-v(?<version>.*)$"
+        "extractVersionTemplate": "^envtest.v(?<version>.*)$"
       },
       {
-        "description": "Bump envtest tools version in the Makefile",
+        "description": "Bump controller tools version in the Makefile",
         "fileMatch": [
           "^Makefile$"
         ],
