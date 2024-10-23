@@ -5,9 +5,11 @@ package cluster
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"time"
 
+	"github.com/go-jose/go-jose/v4"
 	authenticationv1 "k8s.io/api/authentication/v1"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
@@ -24,7 +26,24 @@ import (
 	"github.com/cloudoperators/greenhouse/pkg/clientutil"
 )
 
-var defaultRequeueInterval = 10 * time.Minute
+var (
+	defaultRequeueInterval = 10 * time.Minute
+	allSignatureAlgorithms = []jose.SignatureAlgorithm{
+		jose.EdDSA,
+		jose.HS256,
+		jose.HS384,
+		jose.HS512,
+		jose.RS256,
+		jose.RS384,
+		jose.RS512,
+		jose.ES256,
+		jose.ES384,
+		jose.ES512,
+		jose.PS256,
+		jose.PS384,
+		jose.PS512,
+	}
+)
 
 const (
 	CRoleKind = "ClusterRole"
@@ -41,6 +60,34 @@ type KubeConfigHelper struct {
 	ProxyURL       string
 	ClientCertData []byte
 	ClientKeyData  []byte
+}
+
+type Audience []string
+type NumericDate int64
+
+type Claims struct {
+	Issuer     string           `json:"iss,omitempty"`
+	Subject    string           `json:"sub,omitempty"`
+	Audience   Audience         `json:"aud,omitempty"`
+	Expiry     *NumericDate     `json:"exp,omitempty"`
+	NotBefore  *NumericDate     `json:"nbf,omitempty"`
+	IssuedAt   *NumericDate     `json:"iat,omitempty"`
+	ID         string           `json:"jti,omitempty"`
+	Kubernetes kubernetesClaims `json:"kubernetes.io,omitempty"`
+}
+
+type kubernetesClaims struct {
+	Namespace string       `json:"namespace,omitempty"`
+	Svcacct   ref          `json:"serviceaccount,omitempty"`
+	Pod       *ref         `json:"pod,omitempty"`
+	Secret    *ref         `json:"secret,omitempty"`
+	Node      *ref         `json:"node,omitempty"`
+	WarnAfter *NumericDate `json:"warnafter,omitempty"`
+}
+
+type ref struct {
+	Name string `json:"name,omitempty"`
+	UID  string `json:"uid,omitempty"`
 }
 
 // RestConfigToAPIConfig converts a rest config to a clientcmdapi.Config
@@ -169,22 +216,44 @@ func reconcileClusterRoleBindingInRemoteCluster(ctx context.Context, k8sClient c
 type tokenHelper struct {
 	client.Client
 	Proxy                              string
+	tokenInfo                          Claims
 	RemoteClusterBearerTokenValidity   time.Duration
 	RenewRemoteClusterBearerTokenAfter time.Duration
 }
 
 // ReconcileServiceAccountToken reconciles the service account token for the cluster and updates the secret containing the kube config
 func (t *tokenHelper) ReconcileServiceAccountToken(ctx context.Context, restClientGetter *clientutil.RestClientGetter, cluster *greenhousev1alpha1.Cluster) error {
-	// TODO: Do not rely on the status but actually check the token expiration.
-	if !cluster.Status.BearerTokenExpirationTimestamp.IsZero() && cluster.Status.BearerTokenExpirationTimestamp.Time.After(time.Now().Add(t.RenewRemoteClusterBearerTokenAfter)) {
-		log.FromContext(ctx).V(5).Info("bearer token is still valid", "cluster", cluster.Name, "expirationTimestamp", cluster.Status.BearerTokenExpirationTimestamp.Time)
-		return nil
-	}
-
 	remoteRestConfig, err := restClientGetter.ToRESTConfig()
 	if err != nil {
 		return err
 	}
+	jwt, err := jose.ParseSigned(remoteRestConfig.BearerToken, allSignatureAlgorithms)
+	// If parsing the token is not possible we fall back to the old way of checking the token expiration
+	if err != nil {
+		if !cluster.Status.BearerTokenExpirationTimestamp.IsZero() && cluster.Status.BearerTokenExpirationTimestamp.Time.After(time.Now().Add(t.RenewRemoteClusterBearerTokenAfter)) {
+			log.FromContext(ctx).V(5).Info("bearer token is still valid", "cluster", cluster.Name, "expirationTimestamp", cluster.Status.BearerTokenExpirationTimestamp.Time)
+			return nil
+		}
+	}
+
+	var jwtPayload []byte
+	if jwt != nil {
+		jwtPayload = jwt.UnsafePayloadWithoutVerification()
+	}
+	err = json.Unmarshal(jwtPayload, &t.tokenInfo)
+	// If parsing the token is not possible we fall back to the old way of checking the token expiration
+	if err != nil {
+		if !cluster.Status.BearerTokenExpirationTimestamp.IsZero() && cluster.Status.BearerTokenExpirationTimestamp.Time.After(time.Now().Add(t.RenewRemoteClusterBearerTokenAfter)) {
+			log.FromContext(ctx).V(5).Info("bearer token is still valid", "cluster", cluster.Name, "expirationTimestamp", cluster.Status.BearerTokenExpirationTimestamp.Time)
+			return nil
+		}
+	}
+	actualTokenExpiry := time.Unix(int64(*t.tokenInfo.Expiry), 0)
+	if actualTokenExpiry.After(time.Now().Add(t.RenewRemoteClusterBearerTokenAfter)) {
+		log.FromContext(ctx).V(5).Info("bearer token is still valid", "cluster", cluster.Name, "expirationTimestamp", cluster.Status.BearerTokenExpirationTimestamp.Time)
+		return nil
+	}
+
 	clientset, err := kubernetes.NewForConfig(remoteRestConfig)
 	if err != nil {
 		return err
