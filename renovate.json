@@ -17,7 +17,7 @@
           "^Makefile$"
         ],
         "matchStrings": [
-          "ENVTEST_K8S_VERSION\\s*\\?=\\s*(?<currentValue>v?(?:\\d+\\.){0,2}\\d+)",
+          "ENVTEST_K8S_VERSION\\s*\\?=\\s*(?<currentValue>v?(?:\\d+\\.){0,2}\\d+)"
         ],
         "datasourceTemplate": "github-tags",
         "depNameTemplate": "kubernetes-sigs/controller-tools",
