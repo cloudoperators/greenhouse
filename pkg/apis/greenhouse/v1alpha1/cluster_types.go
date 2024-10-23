@@ -4,8 +4,6 @@
 package v1alpha1
 
 import (
-	"time"
-
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -24,9 +22,11 @@ type ClusterAccessMode string
 
 // ClusterKubeConfig configures kube config values.
 type ClusterKubeConfig struct {
-	// MaxTokenValidity specifies the maximum duration for which a token remains valid.
-	// +kubebuilder:default:="72h"
-	MaxTokenValidity metav1.Duration `json:"maxTokenValidity,omitempty"`
+	// MaxTokenValidity specifies the maximum duration for which a token remains valid in hours.
+	// +kubebuilder:default:=72
+	// +kubebuilder:validation:Minimum=24
+	// +kubebuilder:validation:Maximum=72
+	MaxTokenValidity int32 `json:"maxTokenValidity,omitempty"`
 }
 
 const (
@@ -40,7 +40,10 @@ const (
 	KubeConfigValid ConditionType = "KubeConfigValid"
 
 	// MaxTokenValidity contains maximum bearer token validity duration. It is also default value.
-	MaxTokenValidity = 72 * time.Hour
+	MaxTokenValidity = 72
+
+	// MinTokenValidity contains maximum bearer token validity duration.
+	MinTokenValidity = 24
 )
 
 // ClusterStatus defines the observed state of Cluster
@@ -108,9 +111,9 @@ func init() {
 }
 
 func (c *Cluster) SetDefaultTokenValidityIfNeeded() {
-	if c.Spec.KubeConfig.MaxTokenValidity.Duration != 0 {
+	if c.Spec.KubeConfig.MaxTokenValidity != 0 {
 		return
 	}
 
-	c.Spec.KubeConfig.MaxTokenValidity = metav1.Duration{Duration: MaxTokenValidity}
+	c.Spec.KubeConfig.MaxTokenValidity = MaxTokenValidity
 }

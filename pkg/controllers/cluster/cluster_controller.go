@@ -113,8 +113,8 @@ func (r *RemoteClusterReconciler) EnsureCreated(ctx context.Context, resource li
 	cluster.SetDefaultTokenValidityIfNeeded()
 	var tokenRequest = &tokenHelper{
 		Client:                             r.Client,
-		RemoteClusterBearerTokenValidity:   cluster.Spec.KubeConfig.MaxTokenValidity.Duration,
-		RenewRemoteClusterBearerTokenAfter: cluster.Spec.KubeConfig.MaxTokenValidity.Duration - (24 * time.Hour),
+		RemoteClusterBearerTokenValidity:   time.Duration(cluster.Spec.KubeConfig.MaxTokenValidity) * time.Hour,
+		RenewRemoteClusterBearerTokenAfter: (time.Duration(cluster.Spec.KubeConfig.MaxTokenValidity) * time.Hour) - (24 * time.Hour),
 	}
 	if err := tokenRequest.ReconcileServiceAccountToken(ctx, restClientGetter, cluster); err != nil {
 		return ctrl.Result{}, lifecycle.Failed, err

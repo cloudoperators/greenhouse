@@ -165,9 +165,14 @@ func ValidateDeleteCluster(ctx context.Context, _ client.Client, obj runtime.Obj
 }
 
 func validateTokenValidity(cluster *greenhousev1alpha1.Cluster) (admission.Warnings, error) {
-	if cluster.Spec.KubeConfig.MaxTokenValidity.Duration > greenhousev1alpha1.MaxTokenValidity {
+	if cluster.Spec.KubeConfig.MaxTokenValidity > greenhousev1alpha1.MaxTokenValidity {
 		err := apierrors.NewBadRequest("token validity is too long")
 		return admission.Warnings{"token validity too long"}, err
+	}
+
+	if cluster.Spec.KubeConfig.MaxTokenValidity < greenhousev1alpha1.MinTokenValidity {
+		err := apierrors.NewBadRequest("token validity is too short")
+		return admission.Warnings{"token validity too short"}, err
 	}
 
 	return nil, nil
