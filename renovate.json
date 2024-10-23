@@ -18,11 +18,10 @@
         ],
         "matchStrings": [
           "ENVTEST_K8S_VERSION\\s*\\?=\\s*(?<currentValue>v?(?:\\d+\\.){0,2}\\d+)",
-          "CONTROLLER_TOOLS_VERSION\\s*\\?=\\s*(?<currentValue>v?(?:\\d+\\.){0,2}\\d+)"
         ],
         "datasourceTemplate": "github-tags",
         "depNameTemplate": "kubernetes-sigs/controller-tools",
-        "extractVersionTemplate": "^v(?<version>.*)$"
+        "extractVersionTemplate": "^envtest-v(?<version>.*)$"
       },
       {
         "description": "Bump envtest tools version in the Makefile",
@@ -70,7 +69,7 @@
         ],
         "datasourceTemplate": "github-tags",
         "depNameTemplate": "kubernetes-sigs/kustomize",
-        "extractVersionTemplate": "^/v(?<version>.*)$"
+        "extractVersionTemplate": "^kustomize/v(?<version>.*)$"
       }
     ],
     "packageRules": [
