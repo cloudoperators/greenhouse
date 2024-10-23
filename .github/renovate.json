@@ -1,6 +1,5 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
-  "forkProcessing": "enabled",
   "extends": [
     "config:recommended"
   ],
@@ -10,6 +9,7 @@
   "ignoreDeps": [
     "github.com/dexidp/dex"
   ],
+  "forkProcessing": "enabled",
   "packageRules": [
     {
       "groupName": "github actions",
