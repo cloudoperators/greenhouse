@@ -223,6 +223,9 @@ type tokenHelper struct {
 
 // ReconcileServiceAccountToken reconciles the service account token for the cluster and updates the secret containing the kube config
 func (t *tokenHelper) ReconcileServiceAccountToken(ctx context.Context, restClientGetter *clientutil.RestClientGetter, cluster *greenhousev1alpha1.Cluster) error {
+	var jwtPayload []byte
+	var actualTokenExpiry metav1.Time
+	
 	remoteRestConfig, err := restClientGetter.ToRESTConfig()
 	if err != nil {
 		return err
@@ -236,7 +239,6 @@ func (t *tokenHelper) ReconcileServiceAccountToken(ctx context.Context, restClie
 		}
 	}
 
-	var jwtPayload []byte
 	if jwt != nil {
 		jwtPayload = jwt.UnsafePayloadWithoutVerification()
 	}
@@ -248,7 +250,8 @@ func (t *tokenHelper) ReconcileServiceAccountToken(ctx context.Context, restClie
 			return nil
 		}
 	}
-	actualTokenExpiry := time.Unix(int64(*t.tokenInfo.Expiry), 0)
+
+	actualTokenExpiry = metav1.Unix(int64(*t.tokenInfo.Expiry), 0)
 	if actualTokenExpiry.After(time.Now().Add(t.RenewRemoteClusterBearerTokenAfter)) {
 		log.FromContext(ctx).V(5).Info("bearer token is still valid", "cluster", cluster.Name, "expirationTimestamp", cluster.Status.BearerTokenExpirationTimestamp.Time)
 		return nil
