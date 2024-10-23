@@ -4,8 +4,13 @@ IMG_DEV_ENV ?= ghcr.io/cloudoperators/greenhouse-dev-env:dev-$(USER)
 IMG_LICENSE_EYE ?= ghcr.io/apache/skywalking-eyes/license-eye
 PLATFORM ?=linux/arm64
 
-# ENVTEST_K8S_VERSION refers to the version of kubebuilder assets to be downloaded by envtest binary.
-ENVTEST_K8S_VERSION = 1.30.2
+# Package Versions
+## ENVTEST_K8S_VERSION refers to the version of kubebuilder assets to be downloaded by envtest binary.
+ENVTEST_K8S_VERSION ?= 1.30.2
+CONTROLLER_TOOLS_VERSION ?= v0.15.0
+KUSTOMIZE_VERSION ?= v5.4.2
+GOLINT_VERSION ?= v1.60.2
+GINKGOLINTER_VERSION ?= v0.16.2
 
 MANIFESTS_PATH=$(CURDIR)/charts/manager
 CRD_MANIFESTS_PATH=$(MANIFESTS_PATH)/crds
@@ -176,12 +181,6 @@ GOIMPORTS ?= $(LOCALBIN)/goimports
 GOLINT ?= $(LOCALBIN)/golangci-lint
 ENVTEST ?= $(LOCALBIN)/setup-envtest
 HELMIFY ?= $(LOCALBIN)/helmify
-
-## Tool Versions
-KUSTOMIZE_VERSION ?= v5.4.2
-CONTROLLER_TOOLS_VERSION ?= v0.15.0
-GOLINT_VERSION ?= v1.60.2
-GINKGOLINTER_VERSION ?= v0.16.2
 
 KUSTOMIZE_INSTALL_SCRIPT ?= "https://raw.githubusercontent.com/kubernetes-sigs/kustomize/master/hack/install_kustomize.sh"
 .PHONY: kustomize

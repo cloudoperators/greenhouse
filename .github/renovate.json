@@ -89,58 +89,54 @@
     "gomodUpdateImportPaths"
   ],
   "separateMinorPatch": true,
-  "customManagers": [
+  "regexManagers": [
     {
-      "description": "version field and ENVTEST_K8S_VERSION should follow upstream",
+      "description": "Bump envtest and controller tools version in the Makefile",
       "fileMatch": [
         "^Makefile$"
       ],
       "matchStrings": [
-        "\\sversion:\\s+(?<currentValue>\\S+)",
-        "ENVTEST_K8S_VERSION\\s*\\?=\\s*(?<currentValue>\\S+)"
+        "ENVTEST_K8S_VERSION: 'v(?<currentValue>.*?)'\\n",
+        "CONTROLLER_TOOLS_VERSION: 'v(?<currentValue>.*?)'\\n"
       ],
+      "datasourceTemplate": "github-tags",
       "depNameTemplate": "kubernetes-sigs/controller-tools",
-      "datasourceTemplate": "github-releases",
       "extractVersionTemplate": "^v(?<version>.*)$"
     },
     {
-      "description": "version field and KUSTOMIZE_VERSION should follow upstream",
+      "description": "Bump golangci-lint version in the Makefile",
       "fileMatch": [
         "^Makefile$"
       ],
       "matchStrings": [
-        "\\sversion:\\s+(?<currentValue>\\S+)",
-        "KUSTOMIZE_VERSION\\s*\\?=\\s*(?<currentValue>\\S+)"
+        "GOLINT_VERSION: 'v(?<currentValue>.*?)'\\n"
       ],
-      "depNameTemplate": "kubernetes-sigs/kustomize",
-      "datasourceTemplate": "github-releases",
-      "extractVersionTemplate": "^v(?<version>.*)$"
-    },
-    {
-      "description": "version field and CONTROLLER_TOOLS_VERSION should follow upstream",
-      "fileMatch": [
-        "^Makefile$"
-      ],
-      "matchStrings": [
-        "\\sversion:\\s+(?<currentValue>\\S+)",
-        "CONTROLLER_TOOLS_VERSION\\s*\\?=\\s*(?<currentValue>\\S+)"
-      ],
-      "depNameTemplate": "kubernetes-sigs/controller-tools",
-      "datasourceTemplate": "github-releases",
-      "extractVersionTemplate": "^v(?<version>.*)$"
-    },
-    {
-      "description": "version field and GOLINT_VERSION/GINKGOLINTER_VERSION should follow upstream",
-      "fileMatch": [
-        "^Makefile$"
-      ],
-      "matchStrings": [
-        "\\sversion:\\s+(?<currentValue>\\S+)",
-        "GOLINT_VERSION\\s*\\?=\\s*(?<currentValue>\\S+)",
-        "GINKGOLINTER_VERSION\\s*\\?=\\s*(?<currentValue>\\S+)",
-      ],
+      "datasourceTemplate": "github-tags",
       "depNameTemplate": "golangci/golangci-lint",
-      "datasourceTemplate": "github-releases",
+      "extractVersionTemplate": "^v(?<version>.*)$"
+    },
+    {
+      "description": "Bump ginkolinter version in the Makefile",
+      "fileMatch": [
+        "^Makefile$"
+      ],
+      "matchStrings": [
+        "GINKGOLINTER_VERSION: 'v(?<currentValue>.*?)'\\n"
+      ],
+      "datasourceTemplate": "github-tags",
+      "depNameTemplate": "nunnatsa/ginkgolinter",
+      "extractVersionTemplate": "^v(?<version>.*)$"
+    },
+    {
+      "description": "Bump kustomize version in the Makefile",
+      "fileMatch": [
+        "^Makefile$"
+      ],
+      "matchStrings": [
+        "KUSTOMIZE_VERSION: 'v(?<currentValue>.*?)'\\n"
+      ],
+      "datasourceTemplate": "github-tags",
+      "depNameTemplate": "kubernetes-sigs/kustomize",
       "extractVersionTemplate": "^v(?<version>.*)$"
     }
   ]
