@@ -225,7 +225,7 @@ type tokenHelper struct {
 func (t *tokenHelper) ReconcileServiceAccountToken(ctx context.Context, restClientGetter *clientutil.RestClientGetter, cluster *greenhousev1alpha1.Cluster) error {
 	var jwtPayload []byte
 	var actualTokenExpiry metav1.Time
-	
+
 	remoteRestConfig, err := restClientGetter.ToRESTConfig()
 	if err != nil {
 		return err
