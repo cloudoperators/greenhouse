@@ -28,6 +28,15 @@ groups:
       for: 15m
       labels:
         severity: warning
+    - alert: GreenhousePluginHelmChartTestFailures
+      expr: |
+        sum by(plugin, cluster, namespace)(rate(greenhouse_plugin_chart_test_runs_total{result="Error"}[30m])) > 0
+      for: 15m
+      labels:
+        severity: warning
+      annotations:
+        summary: "Helm Chart test failing for plugin {{ $labels.plugin }}"
+        description: "Helm Chart test for plugin {{ $labels.plugin }} in namespace {{ $labels.namespace }} on cluster {{ $labels.cluster }} has been failing for the last 15 minutes"
   - name: greenhouse-webhooks.rules
     rules:
     - alert: GreenhouseWebhookLatencyHigh
