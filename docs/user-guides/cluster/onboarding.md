@@ -29,12 +29,12 @@ You need to have the `kubeconfig` files for both the `greenhouse` and the `boots
 
 _Organization_ > _Clusters_ > _Access greenhouse cluster_.
 
+### Onboard
+
 For accessing the `greenhouse` cluster, the `greenhousectl` will expect your default kubernetes [`kubeconfig` file](https://kubernetes.io/docs/concepts/configuration/organize-cluster-access-kubeconfig/) and [`context`](https://kubernetes.io/docs/reference/kubectl/generated/kubectl_config/kubectl_config_use-context/) to be set to `greenhouse`.
 The easiest way for doing so is passing the `--kubeconfig` (and optionally `--kubecontext`) flag to your `greenhousectl` command.
 
 The location of the `kubeconfig` file to the `bootstrap` cluster is passed via the `--bootstrap-kubeconfig` flag.
-
-### Onboard
 
 ```commandline
 greenhousectl cluster bootstrap --kubeconfig=<path/to/greenhouse-kubeconfig-file> --bootstrap-kubeconfig <path/to/bootstrap-kubeconfig-file> --org <greenhouse-organization-name> --cluster-name <name>
@@ -78,7 +78,7 @@ kind: Cluster
 metadata:
   creationTimestamp: "2024-02-07T10:23:23Z"
   finalizers:
-    - greenhouse.sap/cluster
+    greenhouse.sap/cluster
   generation: 1
   name: monitoring
   namespace: ccloud
@@ -89,9 +89,18 @@ spec:
 status:
   bearerTokenExpirationTimestamp: "2024-02-09T06:28:57Z"
   kubernetesVersion: v1.27.8
+  statusConditions:
+    conditions:
+    - lastTransitionTime: "2024-02-09T06:28:57Z"
+      status: "True"
+      type: Ready
+...
 ```
 
 When the `status.kubernetesVersion` field shows the correct version of the Kubernetes cluster, the cluster was successfully bootstrapped in Greenhouse.
+Then `status.conditions` will contain a `Condition` with `type=ready` and `status="true""` 
+
+
 In the remote cluster, a new namespace is created and contains some resources managed by Greenhouse.
 The namespace has the same name as your organization in Greenhouse.
 
