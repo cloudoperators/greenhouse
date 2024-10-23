@@ -5,7 +5,7 @@ weight: 1
 
 ## What are Organizations?
 
-Organizations are the top-level entities in Greenhouse.Each Organization gets a dedicated Namespace, that contains all resources bound to the Organization.
+Organizations are the top-level entities in Greenhouse. Each Organization gets a dedicated Namespace, that contains all resources bound to the Organization.
 Greenhouse expects an Organization to provide it's own Identity Provider and currently supports _OIDC_ Identity Providers. Greenhouse also supports SCIM for syncing users and groups from an Identity Provider.
 
 See [creating an Organization](./../../user-guides/organization/creation.md) for more details.
