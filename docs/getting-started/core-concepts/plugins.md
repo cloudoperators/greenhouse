@@ -11,7 +11,7 @@ PluginDefinitions, as the name suggests, are the definition of a Plugin, whereas
 The PluginDefinitions are shared between all Organizations in Greenhouse. A PluginDefinition can include a frontend, that is displayed in the Greenhouse dashboard and/or a backend component. The frontend is expected to be a standalone microfrontend created with the [Juno framework](https://github.com/cloudoperators/juno).
 The backend components of a PluginDefinition are packaged as a Helm Chart and provide sane and opinionated default values. This allows Greenhouse to package and distribute tools such as Prometheus with a sensible default configuration, as well as giving the user a list of configurable values.
 
-A Plugin is used to deploy the Helm Chart referenced referenced in a PluginDefinition to a Cluster. The Plugin can be considered as an instance of a PluginDefinition, this instance specifies the PluginDefinition, the desired Cluster and additional values to set. Depending on the PluginDefinition, it may be necessary to specify required values (e.g. credentials, endpoints, etc.), but in general the PluginDefinition provides well-established default values.
+A Plugin is used to deploy the Helm Chart referenced in a PluginDefinition to a Cluster. The Plugin can be considered as an instance of a PluginDefinition, this instance specifies the PluginDefinition, the desired Cluster and additional values to set. Depending on the PluginDefinition, it may be necessary to specify required values (e.g. credentials, endpoints, etc.), but in general the PluginDefinition provides well-established default values.
 
 > [!NOTE]
 > In this example the Plugin 'openTelemetry-cluster-a' is used to deploy the PluginDefinition 'openTelemetry' to the cluster 'cluster-a'.
