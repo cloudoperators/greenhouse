@@ -6,7 +6,6 @@ package cluster
 import (
 	"context"
 	"fmt"
-	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"time"
 
 	authenticationv1 "k8s.io/api/authentication/v1"
@@ -144,13 +143,13 @@ func reconcileClusterRoleBindingInRemoteCluster(ctx context.Context, k8sClient c
 		},
 	}
 
-	serviceAccount := &corev1.ServiceAccount{}
-	if err := k8sClient.Get(ctx, types.NamespacedName{Namespace: cluster.GetNamespace(), Name: serviceAccountName}, serviceAccount); err != nil {
+	namespace := new(corev1.Namespace)
+	if err := k8sClient.Get(ctx, types.NamespacedName{Namespace: "", Name: cluster.GetNamespace()}, namespace); err != nil {
 		return err
 	}
 
 	result, err := clientutil.CreateOrPatch(ctx, k8sClient, clusterRoleBinding, func() error {
-		return controllerutil.SetOwnerReference(serviceAccount, clusterRoleBinding, k8sClient.Scheme())
+		return nil
 	})
 	if err != nil {
 		return err
