@@ -10,6 +10,20 @@
       "github.com/dexidp/dex"
     ],
     "forkProcessing": "enabled",
+    "customManagers": [
+        {
+          "customType": "regex",
+          "fileMatch": [
+            "(^|/)Makefile$",
+            "(^|/)makefile$",
+            "(^|/)GNUMakefile$",
+            "\\.mk$"
+          ],
+          "matchStrings": [
+            "# renovate: datasource=(?<datasource>[a-z-.]+?) depName=(?<depName>[^\\s]+?)(?: (?:packageName)=(?<packageName>[^\\s]+?))?(?: versioning=(?<versioning>[^\\s]+?))?(?: extractVersion=(?<extractVersion>[^\\s]+?))?(?: registryUrl=(?<registryUrl>[^\\s]+?))?\\s+[A-Za-z0-9_]+?_VERSION\\s*:*\\??=\\s*[\"']?(?<currentValue>.+?)[\"']?\\s"
+          ]
+        }
+    ],
     "packageRules": [
       {
         "groupName": "github actions",
@@ -18,12 +32,6 @@
         "extends": [
           "helpers:pinGitHubActionDigests"
         ],
-        "minimumReleaseAge": "14 days"
-      },
-      {
-        "groupName": "makefile versions",
-        "matchManagers": ["makefileVersions"],
-        "matchUpdateTypes": ["major", "minor", "patch"],
         "minimumReleaseAge": "14 days"
       },
       {
