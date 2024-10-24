@@ -30,4 +30,4 @@ juno:
   demoUser:
     token: demo
 
-environment: "prod"
+  environment: "prod"
