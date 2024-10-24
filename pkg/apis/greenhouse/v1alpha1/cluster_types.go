@@ -11,11 +11,23 @@ import (
 type ClusterSpec struct {
 	// AccessMode configures how the cluster is accessed from the Greenhouse operator.
 	AccessMode ClusterAccessMode `json:"accessMode"`
+
+	// KubeConfig contains specific values for `KubeConfig` for the cluster.
+	KubeConfig ClusterKubeConfig `json:"kubeConfig,omitempty"`
 }
 
 // ClusterAccessMode configures the access mode to the customer cluster.
 // +kubebuilder:validation:Enum=direct
 type ClusterAccessMode string
+
+// ClusterKubeConfig configures kube config values.
+type ClusterKubeConfig struct {
+	// MaxTokenValidity specifies the maximum duration for which a token remains valid in hours.
+	// +kubebuilder:default:=72
+	// +kubebuilder:validation:Minimum=24
+	// +kubebuilder:validation:Maximum=72
+	MaxTokenValidity int32 `json:"maxTokenValidity,omitempty"`
+}
 
 const (
 	// ClusterAccessModeDirect configures direct access to the cluster.
@@ -26,6 +38,12 @@ const (
 
 	// KubeConfigValid reflects the validity of the kubeconfig of a cluster.
 	KubeConfigValid ConditionType = "KubeConfigValid"
+
+	// MaxTokenValidity contains maximum bearer token validity duration. It is also default value.
+	MaxTokenValidity = 72
+
+	// MinTokenValidity contains maximum bearer token validity duration.
+	MinTokenValidity = 24
 )
 
 // ClusterStatus defines the observed state of Cluster
@@ -90,4 +108,12 @@ type ClusterList struct {
 
 func init() {
 	SchemeBuilder.Register(&Cluster{}, &ClusterList{})
+}
+
+func (c *Cluster) SetDefaultTokenValidityIfNeeded() {
+	if c.Spec.KubeConfig.MaxTokenValidity != 0 {
+		return
+	}
+
+	c.Spec.KubeConfig.MaxTokenValidity = MaxTokenValidity
 }
