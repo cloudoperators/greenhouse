@@ -14,24 +14,18 @@ type ClusterSpec struct {
 }
 
 // ClusterAccessMode configures the access mode to the customer cluster.
-// +kubebuilder:validation:Enum=direct;headscale
+// +kubebuilder:validation:Enum=direct
 type ClusterAccessMode string
 
 const (
 	// ClusterAccessModeDirect configures direct access to the cluster.
 	ClusterAccessModeDirect ClusterAccessMode = "direct"
 
-	// ClusterAccessModeHeadscale configures headscale-based access to the cluster.
-	ClusterAccessModeHeadscale ClusterAccessMode = "headscale"
-
 	// AllNodesReady reflects the readiness status of all nodes of a cluster.
 	AllNodesReady ConditionType = "AllNodesReady"
 
 	// KubeConfigValid reflects the validity of the kubeconfig of a cluster.
 	KubeConfigValid ConditionType = "KubeConfigValid"
-
-	// ClusterDeletionScheduled reflects the condition type if a cluster is scheduled for deletion
-	ClusterDeletionScheduled ConditionType = "ClusterDeletionScheduled"
 )
 
 // ClusterStatus defines the observed state of Cluster
@@ -40,44 +34,14 @@ type ClusterStatus struct {
 	KubernetesVersion string `json:"kubernetesVersion,omitempty"`
 	// BearerTokenExpirationTimestamp reflects the expiration timestamp of the bearer token used to access the cluster.
 	BearerTokenExpirationTimestamp metav1.Time `json:"bearerTokenExpirationTimestamp,omitempty"`
-	// HeadScaleStatus contains the current status of the headscale client.
-	HeadScaleStatus *HeadScaleMachineStatus `json:"headScaleStatus,omitempty"`
 	// StatusConditions contain the different conditions that constitute the status of the Cluster.
 	StatusConditions `json:"statusConditions,omitempty"`
 	// Nodes provides a map of cluster node names to node statuses
 	Nodes map[string]NodeStatus `json:"nodes,omitempty"`
 }
 
-// HeadScaleMachineStatus is the status of a Headscale machine.
-type HeadScaleMachineStatus struct {
-	ID          uint64      `json:"id,omitempty"`
-	IPAddresses []string    `json:"ipAddresses,omitempty"`
-	Name        string      `json:"name,omitempty"`
-	Expiry      metav1.Time `json:"expiry,omitempty"`
-	CreatedAt   metav1.Time `json:"createdAt,omitempty"`
-	ForcedTags  []string    `json:"forcedTags,omitempty"`
-	PreAuthKey  *PreAuthKey `json:"preAuthKey,omitempty"`
-	Online      bool        `json:"online,omitempty"`
-}
-
-// PreAuthKey reflects the status of the pre-authentication key used by the Headscale machine.
-type PreAuthKey struct {
-	ID         string      `json:"id,omitempty"`
-	User       string      `json:"user,omitempty"`
-	Reusable   bool        `json:"reusable,omitempty"`
-	Ephemeral  bool        `json:"ephemeral,omitempty"`
-	Used       bool        `json:"used,omitempty"`
-	CreatedAt  metav1.Time `json:"createdAt,omitempty"`
-	Expiration metav1.Time `json:"expiration,omitempty"`
-}
-
 // ClusterConditionType is a valid condition of a cluster.
 type ClusterConditionType string
-
-const (
-	// HeadscaleReady reflects the readiness status of the headscale access of a cluster.
-	HeadscaleReady ConditionType = "HeadscaleReady"
-)
 
 type NodeStatus struct {
 	// We mirror the node conditions here for faster reference
@@ -99,6 +63,14 @@ type Cluster struct {
 
 	Spec   ClusterSpec   `json:"spec,omitempty"`
 	Status ClusterStatus `json:"status,omitempty"`
+}
+
+func (c *Cluster) GetConditions() StatusConditions {
+	return c.Status.StatusConditions
+}
+
+func (c *Cluster) SetCondition(condition Condition) {
+	c.Status.StatusConditions.SetConditions(condition)
 }
 
 // GetSecretName returns the Kubernetes secret containing sensitive data for this cluster.

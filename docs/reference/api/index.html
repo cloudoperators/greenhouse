@@ -199,6 +199,18 @@ ClusterKubeconfigData
 </table>
 </td>
 </tr>
+<tr>
+<td>
+<code>status</code><br>
+<em>
+<a href="#greenhouse.sap/v1alpha1.ClusterKubeconfigStatus">
+ClusterKubeconfigStatus
+</a>
+</em>
+</td>
+<td>
+</td>
+</tr>
 </tbody>
 </table>
 </div>
@@ -610,6 +622,38 @@ ClusterKubeconfigData
 </table>
 </div>
 </div>
+<h3 id="greenhouse.sap/v1alpha1.ClusterKubeconfigStatus">ClusterKubeconfigStatus
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#greenhouse.sap/v1alpha1.ClusterKubeconfig">ClusterKubeconfig</a>)
+</p>
+<div class="md-typeset__scrollwrap">
+<div class="md-typeset__table">
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>statusConditions</code><br>
+<em>
+<a href="#greenhouse.sap/v1alpha1.StatusConditions">
+StatusConditions
+</a>
+</em>
+</td>
+<td>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
 <h3 id="greenhouse.sap/v1alpha1.ClusterOptionOverride">ClusterOptionOverride
 </h3>
 <p>
@@ -726,19 +770,6 @@ Kubernetes meta/v1.Time
 </td>
 <td>
 <p>BearerTokenExpirationTimestamp reflects the expiration timestamp of the bearer token used to access the cluster.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>headScaleStatus</code><br>
-<em>
-<a href="#greenhouse.sap/v1alpha1.HeadScaleMachineStatus">
-HeadScaleMachineStatus
-</a>
-</em>
-</td>
-<td>
-<p>HeadScaleStatus contains the current status of the headscale client.</p>
 </td>
 </tr>
 <tr>
@@ -870,113 +901,6 @@ string
 <a href="#greenhouse.sap/v1alpha1.Condition">Condition</a>)
 </p>
 <p>ConditionType is a valid condition of a resource.</p>
-<h3 id="greenhouse.sap/v1alpha1.HeadScaleMachineStatus">HeadScaleMachineStatus
-</h3>
-<p>
-(<em>Appears on:</em>
-<a href="#greenhouse.sap/v1alpha1.ClusterStatus">ClusterStatus</a>)
-</p>
-<p>HeadScaleMachineStatus is the status of a Headscale machine.</p>
-<div class="md-typeset__scrollwrap">
-<div class="md-typeset__table">
-<table>
-<thead>
-<tr>
-<th>Field</th>
-<th>Description</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>
-<code>id</code><br>
-<em>
-uint64
-</em>
-</td>
-<td>
-</td>
-</tr>
-<tr>
-<td>
-<code>ipAddresses</code><br>
-<em>
-[]string
-</em>
-</td>
-<td>
-</td>
-</tr>
-<tr>
-<td>
-<code>name</code><br>
-<em>
-string
-</em>
-</td>
-<td>
-</td>
-</tr>
-<tr>
-<td>
-<code>expiry</code><br>
-<em>
-<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.24/#time-v1-meta">
-Kubernetes meta/v1.Time
-</a>
-</em>
-</td>
-<td>
-</td>
-</tr>
-<tr>
-<td>
-<code>createdAt</code><br>
-<em>
-<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.24/#time-v1-meta">
-Kubernetes meta/v1.Time
-</a>
-</em>
-</td>
-<td>
-</td>
-</tr>
-<tr>
-<td>
-<code>forcedTags</code><br>
-<em>
-[]string
-</em>
-</td>
-<td>
-</td>
-</tr>
-<tr>
-<td>
-<code>preAuthKey</code><br>
-<em>
-<a href="#greenhouse.sap/v1alpha1.PreAuthKey">
-PreAuthKey
-</a>
-</em>
-</td>
-<td>
-</td>
-</tr>
-<tr>
-<td>
-<code>online</code><br>
-<em>
-bool
-</em>
-</td>
-<td>
-</td>
-</tr>
-</tbody>
-</table>
-</div>
-</div>
 <h3 id="greenhouse.sap/v1alpha1.HelmChartReference">HelmChartReference
 </h3>
 <p>
@@ -2391,101 +2315,6 @@ StatusConditions
 </table>
 </div>
 </div>
-<h3 id="greenhouse.sap/v1alpha1.PreAuthKey">PreAuthKey
-</h3>
-<p>
-(<em>Appears on:</em>
-<a href="#greenhouse.sap/v1alpha1.HeadScaleMachineStatus">HeadScaleMachineStatus</a>)
-</p>
-<p>PreAuthKey reflects the status of the pre-authentication key used by the Headscale machine.</p>
-<div class="md-typeset__scrollwrap">
-<div class="md-typeset__table">
-<table>
-<thead>
-<tr>
-<th>Field</th>
-<th>Description</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>
-<code>id</code><br>
-<em>
-string
-</em>
-</td>
-<td>
-</td>
-</tr>
-<tr>
-<td>
-<code>user</code><br>
-<em>
-string
-</em>
-</td>
-<td>
-</td>
-</tr>
-<tr>
-<td>
-<code>reusable</code><br>
-<em>
-bool
-</em>
-</td>
-<td>
-</td>
-</tr>
-<tr>
-<td>
-<code>ephemeral</code><br>
-<em>
-bool
-</em>
-</td>
-<td>
-</td>
-</tr>
-<tr>
-<td>
-<code>used</code><br>
-<em>
-bool
-</em>
-</td>
-<td>
-</td>
-</tr>
-<tr>
-<td>
-<code>createdAt</code><br>
-<em>
-<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.24/#time-v1-meta">
-Kubernetes meta/v1.Time
-</a>
-</em>
-</td>
-<td>
-</td>
-</tr>
-<tr>
-<td>
-<code>expiration</code><br>
-<em>
-<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.24/#time-v1-meta">
-Kubernetes meta/v1.Time
-</a>
-</em>
-</td>
-<td>
-</td>
-</tr>
-</tbody>
-</table>
-</div>
-</div>
 <h3 id="greenhouse.sap/v1alpha1.PropagationStatus">PropagationStatus
 </h3>
 <p>
@@ -2701,6 +2530,7 @@ string
 </h3>
 <p>
 (<em>Appears on:</em>
+<a href="#greenhouse.sap/v1alpha1.ClusterKubeconfigStatus">ClusterKubeconfigStatus</a>, 
 <a href="#greenhouse.sap/v1alpha1.ClusterStatus">ClusterStatus</a>, 
 <a href="#greenhouse.sap/v1alpha1.NodeStatus">NodeStatus</a>, 
 <a href="#greenhouse.sap/v1alpha1.PluginPresetStatus">PluginPresetStatus</a>, 

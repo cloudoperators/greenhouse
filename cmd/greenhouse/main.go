@@ -55,9 +55,6 @@ var (
 	setupLog = ctrl.Log.WithName("setup")
 
 	enabledControllers []string
-	headscaleAPIURL,
-	headscaleAPIKey,
-	tailscaleProxy string
 	remoteClusterBearerTokenValidity,
 	renewRemoteClusterBearerTokenAfter time.Duration
 	kubeClientOpts clientutil.RuntimeOptions
@@ -84,15 +81,6 @@ func main() {
 	var probeAddr string
 	flag.StringVar(&probeAddr, "health-probe-bind-address", ":8081",
 		"The address the probe endpoint binds to.")
-
-	flag.StringVar(&headscaleAPIURL, "headscale-api-url", clientutil.GetEnvOrDefault("HEADSCALE_API_URL", ""),
-		"Headscale API URL.(format https://<url>) Can be set via HEADSCALE_API_URL env var")
-
-	flag.StringVar(&headscaleAPIKey, "headscale-api-key", clientutil.GetEnvOrDefault("HEADSCALE_API_KEY", ""),
-		"Headscale API KEY. Can be set via HEADSCALE_API_KEY env var")
-
-	flag.StringVar(&tailscaleProxy, "tailscale-proxy", clientutil.GetEnvOrDefault("TAILSCALE_PROXY", ""),
-		"Tailscale proxy to be used by Greenhouse in case of type the communication is not direct. Can be set via TAILSCALE_PROXY env var")
 
 	flag.DurationVar(&remoteClusterBearerTokenValidity, "remote-cluster-bearer-token-validity", defaultRemoteClusterBearerTokenValidity,
 		"Validity of the bearer token we request to access the remote clusters")
