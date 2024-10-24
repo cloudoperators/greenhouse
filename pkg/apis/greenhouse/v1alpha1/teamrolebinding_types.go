@@ -71,6 +71,14 @@ func init() {
 	SchemeBuilder.Register(&TeamRoleBinding{}, &TeamRoleBindingList{})
 }
 
+func (trb *TeamRoleBinding) GetConditions() StatusConditions {
+	return trb.Status.StatusConditions
+}
+
+func (trb *TeamRoleBinding) SetCondition(condition Condition) {
+	trb.Status.StatusConditions.SetConditions(condition)
+}
+
 // GetRBACName returns the name of the rbacv1.RoleBinding or rbacv1.ClusterRoleBinding that will be created on the remote cluster
 func (trb *TeamRoleBinding) GetRBACName() string {
 	return greenhouseapis.RBACPrefix + trb.GetName()
