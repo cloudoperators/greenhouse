@@ -213,7 +213,6 @@ func reconcileClusterRoleBindingInRemoteCluster(ctx context.Context, k8sClient c
 type tokenHelper struct {
 	client.Client
 	Proxy                              string
-	tokenInfo                          Claims
 	RemoteClusterBearerTokenValidity   time.Duration
 	RenewRemoteClusterBearerTokenAfter time.Duration
 }
@@ -221,6 +220,7 @@ type tokenHelper struct {
 // ReconcileServiceAccountToken reconciles the service account token for the cluster and updates the secret containing the kube config
 func (t *tokenHelper) ReconcileServiceAccountToken(ctx context.Context, restClientGetter *clientutil.RestClientGetter, cluster *greenhousev1alpha1.Cluster) error {
 	var jwtPayload []byte
+	var tokenInfo = new(claims)
 	var actualTokenExpiry metav1.Time
 
 	remoteRestConfig, err := restClientGetter.ToRESTConfig()
@@ -239,19 +239,19 @@ func (t *tokenHelper) ReconcileServiceAccountToken(ctx context.Context, restClie
 	if jwt != nil {
 		jwtPayload = jwt.UnsafePayloadWithoutVerification()
 	}
-	err = json.Unmarshal(jwtPayload, &t.tokenInfo)
+	err = json.Unmarshal(jwtPayload, &tokenInfo)
 	// If parsing the token is not possible we fall back to the old way of checking the token expiration
-	if err != nil {
+	if err == nil {
+		actualTokenExpiry = metav1.Unix(tokenInfo.Expiry, 0)
+		if actualTokenExpiry.After(time.Now().Add(t.RenewRemoteClusterBearerTokenAfter)) {
+			log.FromContext(ctx).V(5).Info("bearer token is still valid", "cluster", cluster.Name, "expirationTimestamp", cluster.Status.BearerTokenExpirationTimestamp.Time)
+			return nil
+		}
+	} else {
 		if !cluster.Status.BearerTokenExpirationTimestamp.IsZero() && cluster.Status.BearerTokenExpirationTimestamp.Time.After(time.Now().Add(t.RenewRemoteClusterBearerTokenAfter)) {
 			log.FromContext(ctx).V(5).Info("bearer token is still valid", "cluster", cluster.Name, "expirationTimestamp", cluster.Status.BearerTokenExpirationTimestamp.Time)
 			return nil
 		}
-	}
-
-	actualTokenExpiry = metav1.Unix(t.tokenInfo.Expiry, 0)
-	if actualTokenExpiry.After(time.Now().Add(t.RenewRemoteClusterBearerTokenAfter)) {
-		log.FromContext(ctx).V(5).Info("bearer token is still valid", "cluster", cluster.Name, "expirationTimestamp", cluster.Status.BearerTokenExpirationTimestamp.Time)
-		return nil
 	}
 
 	clientset, err := kubernetes.NewForConfig(remoteRestConfig)
