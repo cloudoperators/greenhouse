@@ -15,7 +15,6 @@ spec:
       app: dashboard
   revisionHistoryLimit: 3
   replicas: 2
-  # replicas: {{ required ".Values.dashboard.replicas missing" .Values.dashboard.replicas }}
   strategy:
     type: RollingUpdate
     rollingUpdate:
