@@ -61,16 +61,16 @@ var (
 )
 
 type newClusterBootstrapOptions struct {
-	customerClient     client.Client
-	customerConfig     rest.Config
-	ghClient           client.Client
-	ghConfig           rest.Config
-	kubecontext        string
-	orgName            string
-	clusterName        string
-	customerKubeConfig string
-	onBehafOfUser      string
-	freeAccessMode     bool
+	customerClient       client.Client
+	customerConfig       rest.Config
+	ghClient             client.Client
+	ghConfig             rest.Config
+	kubecontext          string
+	kubeconfig           string
+	orgName              string
+	clusterName          string
+	greenhouseKubeConfig string
+	onBehafOfUser        string
 }
 
 func init() {
@@ -92,6 +92,7 @@ func newClusterBootstrapCmd() *cobra.Command {
 			if err := cmd.ValidateRequiredFlags(); err != nil {
 				return err
 			}
+			o.kubeconfig = cmd.Flag("kubeconfig").Value.String()
 			return o.permissionCheck()
 		},
 	}
@@ -102,8 +103,7 @@ func newClusterBootstrapCmd() *cobra.Command {
 	bootstrapCmd.Flags().StringVar(&o.kubecontext, "kubecontext", "", "The context to use from the kubeconfig (defaults to current-context)")
 	bootstrapCmd.Flags().StringVar(&o.orgName, "org", clientutil.GetEnvOrDefault("GREENHOUSE_ORG", ""), "The organization name to use. Can be set via GREENHOUSE_ORG env var")
 	bootstrapCmd.Flags().StringVar(&o.clusterName, "cluster-name", clientutil.GetEnvOrDefault("GREENHOUSE_CLUSTER_NAME", ""), "The cluster name to use. Can be set via GREENHOUSE_CLUSTER_NAME env var")
-	bootstrapCmd.Flags().StringVar(&o.customerKubeConfig, "bootstrap-kubeconfig", "", "The kubeconfig of the cluster to bootstrap")
-	bootstrapCmd.Flags().BoolVar(&o.freeAccessMode, "free-access-mode", true, "Let the cluster bootstrap controller decide the access mode for the cluster")
+	bootstrapCmd.Flags().StringVar(&o.greenhouseKubeConfig, "greenhouse-kubeconfig", "", "The kubeconfig of the greenhouse cluster")
 	bootstrapCmd.Flags().StringVar(&o.onBehafOfUser, "as", "", "The user to impersonate for the operation")
 
 	// Mark required flags
@@ -113,7 +113,7 @@ func newClusterBootstrapCmd() *cobra.Command {
 	if err := bootstrapCmd.MarkFlagRequired("bootstrap-kubeconfig"); err != nil {
 		setupLog.Error(err, "Flag could not set as required", "bootstrap-kubeconfig")
 	}
-	bootstrapCmd.MarkFlagsRequiredTogether("org", "bootstrap-kubeconfig")
+	bootstrapCmd.MarkFlagsRequiredTogether("org", "greenhouse-kubeconfig")
 	// Silence usage to avoid confusing customers
 	bootstrapCmd.SilenceUsage = true
 
@@ -127,13 +127,13 @@ func newClusterBootstrapCmd() *cobra.Command {
 }
 
 func (o *newClusterBootstrapOptions) permissionCheck() (err error) {
-	greenhouseRestConfig := getKubeconfigOrDie(o.kubecontext)
+	greenhouseRestConfig := getClientKubeconfig(&o.greenhouseKubeConfig)
 	o.ghConfig = *greenhouseRestConfig
 	o.ghClient, err = clientutil.NewK8sClient(&o.ghConfig)
 	if err != nil {
 		return err
 	}
-	customerRestConfig := getClientKubeconfig(&o.customerKubeConfig)
+	customerRestConfig := getKubeconfigOrDie(o.kubecontext)
 	o.customerConfig = *customerRestConfig
 	o.customerClient, err = clientutil.NewK8sClient(&o.customerConfig)
 	if err != nil {
@@ -164,11 +164,17 @@ func (o *newClusterBootstrapOptions) permissionCheck() (err error) {
 }
 
 func (o *newClusterBootstrapOptions) fillDefaults() error {
+	var clientKubeConfig string
+	if o.kubeconfig == "" {
+		clientKubeConfig = os.Getenv(clientcmd.RecommendedConfigPathEnvVar)
+	} else {
+		clientKubeConfig = o.kubeconfig
+	}
 	if o.clusterName == "" {
 		customerConfig, err := clientcmd.NewNonInteractiveDeferredLoadingClientConfig(
-			&clientcmd.ClientConfigLoadingRules{ExplicitPath: o.customerKubeConfig},
+			&clientcmd.ClientConfigLoadingRules{ExplicitPath: clientKubeConfig},
 			&clientcmd.ConfigOverrides{
-				CurrentContext: "",
+				CurrentContext: o.kubecontext,
 			}).RawConfig()
 		if err != nil {
 			return err
@@ -196,10 +202,8 @@ func (o *newClusterBootstrapOptions) run() error {
 		return err
 	}
 
-	if !bootstrapped {
-		if err := o.createClusterObject(ctx); err != nil {
-			return err
-		}
+	if err := o.createOrUpdateClusterObject(ctx, bootstrapped); err != nil {
+		return err
 	}
 
 	setupLog.Info("Bootstraping cluster finished", "clusterName", o.clusterName, "orgName", o.orgName)
@@ -335,7 +339,7 @@ func (o *newClusterBootstrapOptions) isClusterAlreadyBootstraped(ctx context.Con
 	return true
 }
 
-func (o *newClusterBootstrapOptions) createClusterObject(ctx context.Context) error {
+func (o *newClusterBootstrapOptions) createOrUpdateClusterObject(ctx context.Context, bootstrapped bool) error {
 	token, err := o.createServiceAccountToken()
 	if err != nil {
 		return err
@@ -354,21 +358,24 @@ func (o *newClusterBootstrapOptions) createClusterObject(ctx context.Context) er
 	if err != nil {
 		return err
 	}
-
 	clusterSecret := new(corev1.Secret)
 	clusterSecret.Name = o.clusterName
 	clusterSecret.Namespace = o.orgName
-	// access mode decision should happen before anything else is touched
-	// if !o.freeAccessMode {
-	// 	clusterSecret.Labels = map[string]string{greenhouseapis.LabelAccessMode: "headscale"}
-	// }
 	clusterSecret.Type = greenhouseapis.SecretTypeKubeConfig
-	clusterSecret.Data = map[string][]byte{"kubeconfig": genKubeConfig}
-
-	if err = o.ghClient.Create(ctx, clusterSecret); err != nil {
-		return err
+	if !bootstrapped {
+		clusterSecret.Data = map[string][]byte{greenhouseapis.KubeConfigKey: genKubeConfig}
+		if err = o.ghClient.Create(ctx, clusterSecret); err != nil {
+			return err
+		}
+		setupLog.Info("created clusterSecret", "name", clusterSecret.Name)
+	} else {
+		clusterSecret.Data = map[string][]byte{greenhouseapis.KubeConfigKey: genKubeConfig}
+		clusterSecret.Data = map[string][]byte{greenhouseapis.GreenHouseKubeConfigKey: genKubeConfig}
+		if err = o.ghClient.Update(ctx, clusterSecret); err != nil {
+			return err
+		}
+		setupLog.Info("updated clusterSecret", "name", clusterSecret.Name)
 	}
-	setupLog.Info("created clusterSecret", "name", clusterSecret.Name)
 
 	return nil
 }
