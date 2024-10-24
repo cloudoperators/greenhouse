@@ -62,7 +62,7 @@ type KubeConfigHelper struct {
 	ClientKeyData  []byte
 }
 
-type Claims struct {
+type claims struct {
 	Issuer     string           `json:"iss,omitempty"`
 	Subject    string           `json:"sub,omitempty"`
 	Audience   []string         `json:"aud,omitempty"`
