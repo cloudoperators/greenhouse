@@ -31,8 +31,8 @@ spec:
       terminationGracePeriodSeconds: 60
       containers:
         - name: dashboard
-          image: "{{ required ".Values.image.repository missing" .Values.image.repository }}:{{ required ".Values.image.tag missing" .Values.image.tag }}"
-          imagePullPolicy: {{ required ".Values.image.pullPolicy missing" .Values.image.pullPolicy }}
+          image: "{{ required ".Values.dashboard.image.repository missing" .Values.dashboard.image.repository }}:{{ required ".Values.dashboard.image.tag missing" .Values.dashboard.image.tag }}"
+          imagePullPolicy: {{ required ".Values.dashboard.image.pullPolicy missing" .Values.dashboard.image.pullPolicy }}
           ports:
             - name: dashboard
               containerPort: 80

@@ -10,9 +10,9 @@ metadata:
   annotations:
     kubernetes.io/tls-acme: "true"
 spec:
-  ingressClassName: {{ required ".Values.ingress.className missing" .Values.ingress.className }}
+  ingressClassName: {{ required ".Values.dashboard.ingress.className missing" .Values.dashboard.ingress.className }}
   rules:
-    - host: "test-{{ required ".Values.host missing" .Values.host }}"
+    - host: "test-{{ required ".Values.dashboard.host missing" .Values.dashboard.host }}"
       http:
         paths:
           - path: /
@@ -22,7 +22,7 @@ spec:
                 name: {{ .Release.Name }}-dashboard
                 port:
                   number: 80
-    - host: "*.{{ required ".Values.host missing" .Values.host }}"
+    - host: "*.{{ required ".Values.dashboard.host missing" .Values.dashboard.host }}"
       http:
         paths:
           - path: /
@@ -35,6 +35,6 @@ spec:
 
   tls:
     - hosts:
-        - "{{ required ".Values.host missing" .Values.host }}"
-        - "*.{{ required ".Values.host missing" .Values.host }}"
+        - "{{ required ".Values.dashboard.host missing" .Values.dashboard.host }}"
+        - "*.{{ required ".Values.dashboard.host missing" .Values.dashboard.host }}"
       secretName: "tls-{{ .Release.Name }}-dashboard"
