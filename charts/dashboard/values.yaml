@@ -7,7 +7,8 @@ image:
   tag: 0.2.0
   pullPolicy: IfNotPresent
 
-replicas: 2
+dashboard:
+  replicas: 2
 
 # TODO: Migrate to ingress.host
 host:
