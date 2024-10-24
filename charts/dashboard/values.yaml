@@ -7,11 +7,11 @@ image:
   tag: 0.2.0
   pullPolicy: IfNotPresent
 
-dashboard:
-  replicas: 2
 
-  # TODO: Migrate to ingress.host
-  host:
+replicas: 2
+
+# TODO: Migrate to ingress.host
+host: "dashboard.greenhouse.local"
 
 ingress:
   className: nginx
