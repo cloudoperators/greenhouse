@@ -22,7 +22,7 @@
         "datasourceTemplate": "github-tags",
         "depNameTemplate": "kubernetes-sigs/kustomize",
         "extractVersionTemplate": "^kustomize/v(?<version>.*)$",
-        "versioningTemplate": "{{#if versioning}}v{{{versioning}}}{{else}}semver{{/if}}"
+        "versioningTemplate": "{{replace '^v*' 'v' newVersion}}"
        }
     ],
     "packageRules": [
