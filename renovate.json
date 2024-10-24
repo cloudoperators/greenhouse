@@ -21,7 +21,8 @@
         ],
         "datasourceTemplate": "github-tags",
         "depNameTemplate": "kubernetes-sigs/controller-tools",
-        "extractVersionTemplate": "^envtest.v(?<version>.*)$"
+        "extractVersionTemplate": "^envtest.v(?<version>.*)$",
+        "versioningTemplate": "semver"
       },
       {
         "description": "Bump controller tools version in the Makefile",
@@ -69,7 +70,8 @@
         ],
         "datasourceTemplate": "github-tags",
         "depNameTemplate": "kubernetes-sigs/kustomize",
-        "extractVersionTemplate": "^kustomize/v(?<version>.*)$"
+        "extractVersionTemplate": "^kustomize/v(?<version>.*)$",
+        "versioningTemplate": "semver"
       }
     ],
     "packageRules": [
