@@ -12,7 +12,7 @@ metadata:
 spec:
   ingressClassName: {{ required ".Values.ingress.className missing" .Values.ingress.className }}
   rules:
-    - host: "{{ required ".Values.host missing" .Values.host }}"
+    - host: "test-{{ required ".Values.host missing" .Values.host }}"
       http:
         paths:
           - path: /
@@ -37,4 +37,4 @@ spec:
     - hosts:
         - "{{ required ".Values.host missing" .Values.host }}"
         - "*.{{ required ".Values.host missing" .Values.host }}"
-      secretName: "tls-{{ .Release.Name }}-ui"
+      secretName: "tls-{{ .Release.Name }}-dashboard"
