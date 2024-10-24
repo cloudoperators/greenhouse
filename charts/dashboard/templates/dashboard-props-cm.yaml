@@ -11,11 +11,11 @@ metadata:
 data:
   appProps.json: |
     {
-      "authIssuerUrl": {{ required ".Values.dashboard.oidcIssuerUrl" .Values.dashboard.oidcIssuerUrl | quote }},
-      "authClientId": {{ required ".Values.dashboard.oidcClientId" .Values.dashboard.oidcClientId | quote }},
-      "currentHost": {{ required ".Values.dashboard.juno.assetServerURL missing" .Values.dashboard.juno.assetServerURL | quote}},
-      "apiEndpoint": {{ required ".Values.dashboard.k8sApiEndpoint" .Values.dashboard.k8sApiEndpoint | quote }},
-      "environment": {{ required ".Values.dashboard.environment" .Values.dashboard.environment | quote }},
-      "demoUserToken": {{ required ".Values.dashboard.demoUser.token" .Values.dashboard.demoUser.token | quote }}
+      "authIssuerUrl": {{ required ".Values.oidcIssuerUrl" .Values.oidcIssuerUrl | quote }},
+      "authClientId": {{ required ".Values.oidcClientId" .Values.oidcClientId | quote }},
+      "currentHost": {{ required ".Values.juno.assetServerURL missing" .Values.juno.assetServerURL | quote}},
+      "apiEndpoint": {{ required ".Values.k8sApiEndpoint" .Values.k8sApiEndpoint | quote }},
+      "environment": {{ required ".Values.environment" .Values.environment | quote }},
+      "demoUserToken": {{ required ".Values.demoUser.token" .Values.demoUser.token | quote }}
     }
 

@@ -12,7 +12,7 @@ metadata:
 spec:
   ingressClassName: {{ required ".Values.ingress.className missing" .Values.ingress.className }}
   rules:
-    - host: "test-{{ required ".Values.dashboard.host missing" .Values.dashboard.host }}"
+    - host: "test-{{ required ".Values.host missing" .Values.host }}"
       http:
         paths:
           - path: /
@@ -22,7 +22,7 @@ spec:
                 name: {{ .Release.Name }}-dashboard
                 port:
                   number: 80
-    - host: "*.test-{{ required ".Values.dashboard.host missing" .Values.dashboard.host }}"
+    - host: "*.test-{{ required ".Values.host missing" .Values.host }}"
       http:
         paths:
           - path: /
@@ -35,6 +35,6 @@ spec:
 
   tls:
     - hosts:
-        - "{{ required ".Values.dashboard.host missing" .Values.dashboard.host }}"
-        - "*.{{ required ".Values.dashboard.host missing" .Values.dashboard.host }}"
+        - "{{ required ".Values.host missing" .Values.host }}"
+        - "*.{{ required ".Values.host missing" .Values.host }}"
       secretName: "tls-{{ .Release.Name }}-dashboard"
