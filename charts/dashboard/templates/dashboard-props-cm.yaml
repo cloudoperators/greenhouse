@@ -16,6 +16,6 @@ data:
       "currentHost": {{ required ".Values.juno.assetServerURL missing" .Values.juno.assetServerURL | quote}},
       "apiEndpoint": {{ required ".Values.juno.k8sApiEndpoint" .Values.juno.k8sApiEndpoint | quote }},
       "environment": {{ required ".Values.juno.environment" .Values.juno.environment | quote }},
-      "demoUserToken": {{ .Values.juno.demoUser.token | quote }}
+      "demoUserToken": {{ required ".Values.juno.demoUser.token" .Values.juno.demoUser.token | quote }}
     }
 
