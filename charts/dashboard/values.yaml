@@ -3,11 +3,14 @@
 
 image:
   repository: ghcr.io/cloudoperators/juno-app-greenhouse
+  digest: sha256:your-image-digest-here
   tag: 0.2.0
   pullPolicy: IfNotPresent
 
+replicas: 2
+
 # TODO: Migrate to ingress.host
-host:
+host: "dashboard.greenhouse.local"
 
 ingress:
   className: nginx
@@ -18,8 +21,13 @@ juno:
   greenhouse:
     version: latest
 
-# The user for demonstration purposes.
-demoUser:
-  token: demo
+  # app properties
+  oidcIssuerUrl: https://accounts.com
+  oidcClientId: 1234567890
+  k8sApiEndpoint: https://kubernetes.defaul
 
-environment: "prod"
+  # The user for demonstration purposes.
+  demoUser:
+    token: demo
+
+  environment: prod
