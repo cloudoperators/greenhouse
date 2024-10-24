@@ -10,70 +10,6 @@
       "github.com/dexidp/dex"
     ],
     "forkProcessing": "enabled",
-    "regexManagers": [
-      {
-        "description": "Bump envtest version in the Makefile",
-        "fileMatch": [
-          "^Makefile$"
-        ],
-        "matchStrings": [
-          "ENVTEST_K8S_VERSION\\s*\\?=\\s*(?<currentValue>v?(?:\\d+\\.){0,2}\\d+)"
-        ],
-        "datasourceTemplate": "github-tags",
-        "depNameTemplate": "kubernetes-sigs/controller-tools",
-        "extractVersionTemplate": "^envtest.v(?<version>.*)$",
-        "versioningTemplate": "semver"
-      },
-      {
-        "description": "Bump controller tools version in the Makefile",
-        "fileMatch": [
-          "^Makefile$"
-        ],
-        "matchStrings": [
-          "CONTROLLER_TOOLS_VERSION\\s*\\?=\\s*(?<currentValue>v?(?:\\d+\\.){0,2}\\d+)"
-        ],
-        "datasourceTemplate": "github-tags",
-        "depNameTemplate": "kubernetes-sigs/controller-tools",
-        "extractVersionTemplate": "^v(?<version>.*)$"
-      },
-      {
-        "description": "Bump golangci-lint version in the Makefile",
-        "fileMatch": [
-          "^Makefile$"
-        ],
-        "matchStrings": [
-          "GOLINT_VERSION\\s*\\?=\\s*(?<currentValue>v?(?:\\d+\\.){0,2}\\d+)"
-        ],
-        "datasourceTemplate": "github-tags",
-        "depNameTemplate": "golangci/golangci-lint",
-        "extractVersionTemplate": "^v(?<version>.*)$"
-      },
-      {
-        "description": "Bump ginkolinter version in the Makefile",
-        "fileMatch": [
-          "^Makefile$"
-        ],
-        "matchStrings": [
-          "GINKGOLINTER_VERSION\\s*\\?=\\s*(?<currentValue>v?(?:\\d+\\.){0,2}\\d+)"
-        ],
-        "datasourceTemplate": "github-tags",
-        "depNameTemplate": "nunnatsa/ginkgolinter",
-        "extractVersionTemplate": "^v(?<version>.*)$"
-      },
-      {
-        "description": "Bump kustomize version in the Makefile",
-        "fileMatch": [
-          "^Makefile$"
-        ],
-        "matchStrings": [
-          "KUSTOMIZE_VERSION\\s*\\?=\\s*(?<currentValue>v?(?:\\d+\\.){0,2}\\d+)"
-        ],
-        "datasourceTemplate": "github-tags",
-        "depNameTemplate": "kubernetes-sigs/kustomize",
-        "extractVersionTemplate": "^kustomize/v(?<version>.*)$",
-        "versioningTemplate": "semver"
-      }
-    ],
     "packageRules": [
       {
         "groupName": "github actions",
@@ -82,6 +18,12 @@
         "extends": [
           "helpers:pinGitHubActionDigests"
         ],
+        "minimumReleaseAge": "14 days"
+      },
+      {
+        "groupName": "makefile versions",
+        "matchManagers": ["makefileVersions"],
+        "matchUpdateTypes": ["major", "minor", "patch"],
         "minimumReleaseAge": "14 days"
       },
       {
