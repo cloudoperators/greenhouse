@@ -14,7 +14,7 @@ spec:
     matchLabels:
       app: dashboard
   revisionHistoryLimit: 3
-  replicas: 2
+  replicas: {{ required ".Values.dashboard.replicas missing" .Values.dashboard.replicas }}
   strategy:
     type: RollingUpdate
     rollingUpdate:
@@ -26,12 +26,14 @@ spec:
         app: dashboard
       annotations:
         checksum/props-cm: {{ include (print $.Template.BasePath "/dashboard-props-cm.yaml") . | sha256sum }}
+        imageDigest: {{ .Values.image.digest | quote }}
     spec:
       # The preStop hook below sleeps 30 seconds, extend the gracePeriod accordingly
       terminationGracePeriodSeconds: 60
       containers:
         - name: dashboard
           image: "{{ required ".Values.dashboard.image.repository missing" .Values.dashboard.image.repository }}:{{ required ".Values.dashboard.image.tag missing" .Values.dashboard.image.tag }}"
+          # image: "{{ required ".Values.dashboard.image.repository missing" .Values.dashboard.image.repository }}@{{ .Values.image.digest }}"
           imagePullPolicy: {{ required ".Values.dashboard.image.pullPolicy missing" .Values.dashboard.image.pullPolicy }}
           ports:
             - name: dashboard
