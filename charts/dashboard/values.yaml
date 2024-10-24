@@ -7,7 +7,6 @@ image:
   tag: 0.2.0
   pullPolicy: IfNotPresent
 
-
 replicas: 2
 
 # TODO: Migrate to ingress.host
@@ -22,8 +21,13 @@ juno:
   greenhouse:
     version: latest
 
-# The user for demonstration purposes.
-demoUser:
-  token: demo
+  # app properties
+  oidcIssuerUrl: https://accounts.com
+  oidcClientId: 1234567890
+  k8sApiEndpoint: https://kubernetes.defaul
+
+  # The user for demonstration purposes.
+  demoUser:
+    token: demo
 
 environment: "prod"

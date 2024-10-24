@@ -11,11 +11,11 @@ metadata:
 data:
   appProps.json: |
     {
-      "authIssuerUrl": {{ required ".Values.oidcIssuerUrl" .Values.oidcIssuerUrl | quote }},
-      "authClientId": {{ required ".Values.oidcClientId" .Values.oidcClientId | quote }},
+      "authIssuerUrl": {{ required ".Values.juno.oidcIssuerUrl" .Values.oidcIssuerUrl | quote }},
+      "authClientId": {{ required ".Values.juno.oidcClientId" .Values.oidcClientId | quote }},
       "currentHost": {{ required ".Values.juno.assetServerURL missing" .Values.juno.assetServerURL | quote}},
-      "apiEndpoint": {{ required ".Values.k8sApiEndpoint" .Values.k8sApiEndpoint | quote }},
-      "environment": {{ required ".Values.environment" .Values.environment | quote }},
-      "demoUserToken": {{ required ".Values.demoUser.token" .Values.demoUser.token | quote }}
+      "apiEndpoint": {{ required ".Values.juno.k8sApiEndpoint" .Values.k8sApiEndpoint | quote }},
+      "environment": {{ required ".Values.juno.environment" .Values.environment | quote }},
+      "demoUserToken": {{ required ".Values.juno.demoUser.token" .Values.demoUser.token | quote }}
     }
 
