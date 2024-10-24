@@ -10,11 +10,6 @@ import (
 	"os"
 	"time"
 
-	"k8s.io/client-go/util/retry"
-
-	greenhouseapis "github.com/cloudoperators/greenhouse/pkg/apis"
-	"github.com/cloudoperators/greenhouse/pkg/clientutil"
-
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gstruct"
@@ -24,9 +19,12 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
+	"k8s.io/client-go/util/retry"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
+	greenhouseapis "github.com/cloudoperators/greenhouse/pkg/apis"
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/pkg/apis/greenhouse/v1alpha1"
+	"github.com/cloudoperators/greenhouse/pkg/clientutil"
 )
 
 func UpdateClusterWithDeletionAnnotation(ctx context.Context, c client.Client, id client.ObjectKey) {

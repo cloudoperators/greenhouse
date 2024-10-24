@@ -8,10 +8,7 @@ import (
 	"errors"
 	"time"
 
-	"github.com/cloudoperators/greenhouse/pkg/lifecycle"
-
 	"github.com/go-logr/logr"
-
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -20,6 +17,7 @@ import (
 
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/pkg/apis/greenhouse/v1alpha1"
 	"github.com/cloudoperators/greenhouse/pkg/clientutil"
+	"github.com/cloudoperators/greenhouse/pkg/lifecycle"
 )
 
 func (r *RemoteClusterReconciler) setConditions() lifecycle.Conditioner {
