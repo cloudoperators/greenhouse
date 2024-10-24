@@ -1,5 +1,6 @@
 {
     "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+    "forkProcessing": "enabled",
     "extends": [
       "config:recommended"
     ],
@@ -9,20 +10,20 @@
     "ignoreDeps": [
       "github.com/dexidp/dex"
     ],
-    "forkProcessing": "enabled",
-    "customManagers": [
-        {
-          "customType": "regex",
-          "fileMatch": [
-            "(^|/)Makefile$",
-            "(^|/)makefile$",
-            "(^|/)GNUMakefile$",
-            "\\.mk$"
-          ],
-          "matchStrings": [
-            "# renovate: datasource=(?<datasource>[a-z-.]+?) depName=(?<depName>[^\\s]+?)(?: (?:packageName)=(?<packageName>[^\\s]+?))?(?: versioning=(?<versioning>[^\\s]+?))?(?: extractVersion=(?<extractVersion>[^\\s]+?))?(?: registryUrl=(?<registryUrl>[^\\s]+?))?\\s+[A-Za-z0-9_]+?_VERSION\\s*:*\\??=\\s*[\"']?(?<currentValue>.+?)[\"']?\\s"
-          ]
-        }
+    "regexManagers": [
+      {
+        "description": "Bump kustomize version in the Makefile",
+        "fileMatch": [
+          "^Makefile$"
+        ],
+        "matchStrings": [
+          "KUSTOMIZE_VERSION\\s*\\?=\\s*(?<currentValue>v?(?:\\d+\\.){0,2}\\d+)"
+        ],
+        "datasourceTemplate": "github-tags",
+        "depNameTemplate": "kubernetes-sigs/kustomize",
+        "extractVersionTemplate": "^kustomize/v(?<version>.*)$",
+        "versioningTemplate": "loose"
+      }
     ],
     "packageRules": [
       {
