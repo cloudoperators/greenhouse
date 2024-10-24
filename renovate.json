@@ -22,7 +22,7 @@
         "datasourceTemplate": "github-tags",
         "depNameTemplate": "kubernetes-sigs/kustomize",
         "extractVersionTemplate": "^kustomize/v(?<version>.*)$",
-        "autoReplaceStringTemplate": "KUSTOMIZE_VERSION ? v{{newValue}}"
+        "autoReplaceStringTemplate": "{{#if newValue}}v{{{newValue}}}{{else}}golang-version{{/if}}"
        }
     ],
     "packageRules": [
