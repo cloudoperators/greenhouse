@@ -83,7 +83,7 @@ func (r *DexReconciler) EnsureCreated(ctx context.Context, object lifecycle.Runt
 
 	// Ignore organizations without OIDC configuration.
 	if org.Spec.Authentication == nil || org.Spec.Authentication.OIDCConfig == nil {
-		return ctrl.Result{}, lifecycle.Success, nil
+		return ctrl.Result{}, lifecycle.Pending, nil
 	}
 
 	if err := r.reconcileDexConnector(ctx, org); err != nil {
