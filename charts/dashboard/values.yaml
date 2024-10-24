@@ -10,8 +10,8 @@ image:
 dashboard:
   replicas: 2
 
-# TODO: Migrate to ingress.host
-host:
+  # TODO: Migrate to ingress.host
+  host:
 
 ingress:
   className: nginx
