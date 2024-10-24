@@ -14,7 +14,7 @@ spec:
     matchLabels:
       app: dashboard
   revisionHistoryLimit: 3
-  replicas: "{{ required ".Values.replicas missing" .Values.replicas }}
+  replicas: {{ required ".Values.replicas missing" .Values.replicas }}
   strategy:
     type: RollingUpdate
     rollingUpdate:
