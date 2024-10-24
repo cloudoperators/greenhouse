@@ -4,6 +4,8 @@
 package v1alpha1
 
 import (
+	"slices"
+
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	greenhouseapis "github.com/cloudoperators/greenhouse/pkg/apis"
@@ -77,6 +79,34 @@ func (trb *TeamRoleBinding) GetConditions() StatusConditions {
 
 func (trb *TeamRoleBinding) SetCondition(condition Condition) {
 	trb.Status.StatusConditions.SetConditions(condition)
+}
+
+// SetPropagationStatus updates the TeamRoleBinding's PropagationStatus for the Cluster
+func (trb *TeamRoleBinding) SetPropagationStatus(cluster string, rbacReady metav1.ConditionStatus, reason ConditionReason) {
+	condition := NewCondition(RBACReady, rbacReady, reason, "")
+	for i, ps := range trb.Status.PropagationStatus {
+		if ps.ClusterName != cluster {
+			continue
+		}
+		if ps.Condition.Status != rbacReady {
+			condition.LastTransitionTime = ps.Condition.LastTransitionTime
+		}
+		trb.Status.PropagationStatus[i].Condition = condition
+		return
+	}
+	condition.LastTransitionTime = metav1.Now()
+	trb.Status.PropagationStatus = append(trb.Status.PropagationStatus, PropagationStatus{
+		ClusterName: cluster,
+		Condition:   condition,
+	})
+}
+
+// RemovePropagationStatus removes a condition for the Cluster from TeamRoleBinding's PropagationStatus
+func (trb *TeamRoleBinding) RemovePropagationStatus(cluster string) {
+	updatedStatus := slices.DeleteFunc(trb.Status.PropagationStatus, func(ps PropagationStatus) bool {
+		return ps.ClusterName == cluster
+	})
+	trb.Status.PropagationStatus = updatedStatus
 }
 
 // GetRBACName returns the name of the rbacv1.RoleBinding or rbacv1.ClusterRoleBinding that will be created on the remote cluster
