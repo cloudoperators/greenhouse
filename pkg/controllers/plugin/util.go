@@ -9,6 +9,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/cloudoperators/greenhouse/pkg/lifecycle"
+
 	ctrl "sigs.k8s.io/controller-runtime"
 
 	"github.com/pkg/errors"
@@ -311,8 +313,9 @@ func shouldReconcileOrRequeue(ctx context.Context, c client.Client, plugin *gree
 		return &reconcileResult{
 			requeueAfter: requeueAfter,
 			condition: greenhousev1alpha1.Condition{
-				Type:    greenhousev1alpha1.ClusterDeletionScheduled,
-				Status:  metav1.ConditionTrue,
+				Type:    greenhousev1alpha1.DeleteCondition,
+				Reason:  lifecycle.ScheduledDeletionReason,
+				Status:  metav1.ConditionFalse,
 				Message: msg,
 			},
 		}, nil
