@@ -82,8 +82,8 @@ func (trb *TeamRoleBinding) SetCondition(condition Condition) {
 }
 
 // SetPropagationStatus updates the TeamRoleBinding's PropagationStatus for the Cluster
-func (trb *TeamRoleBinding) SetPropagationStatus(cluster string, rbacReady metav1.ConditionStatus, reason ConditionReason) {
-	condition := NewCondition(RBACReady, rbacReady, reason, "")
+func (trb *TeamRoleBinding) SetPropagationStatus(cluster string, rbacReady metav1.ConditionStatus, reason ConditionReason, message string) {
+	condition := NewCondition(RBACReady, rbacReady, reason, message)
 	for i, ps := range trb.Status.PropagationStatus {
 		if ps.ClusterName != cluster {
 			continue
