@@ -17,7 +17,7 @@
           "^Makefile$"
         ],
         "matchStrings": [
-          "KUSTOMIZE_VERSION .= (?<currentValue>.*?)\\n"
+          "KUSTOMIZE_VERSION .= (?<currentValue>v.*)\\n"
         ],
         "datasourceTemplate": "github-releases",
         "depNameTemplate": "kubernetes-sigs/kustomize",
