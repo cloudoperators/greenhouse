@@ -21,7 +21,7 @@
         ],
         "datasourceTemplate": "github-releases",
         "depNameTemplate": "kubernetes-sigs/kustomize",
-        "extractVersionTemplate": "^v(?<version>.*?)$"
+        "extractVersionTemplate": "^kustomize/v(?<version>.*?)$"
        }
     ],
     "packageRules": [
