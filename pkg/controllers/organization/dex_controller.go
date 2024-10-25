@@ -20,6 +20,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/record"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
@@ -63,7 +64,9 @@ func (r *DexReconciler) SetupWithManager(name string, mgr ctrl.Manager) error {
 		Owns(&dexapi.Connector{}).
 		Owns(&dexapi.OAuth2Client{}).
 		// Watch secrets referenced by organizations for confidential values.
-		Watches(&corev1.Secret{}, handler.EnqueueRequestsFromMapFunc(r.enqueueOrganizationForReferencedSecret)).
+		Watches(&corev1.Secret{},
+			handler.EnqueueRequestsFromMapFunc(r.enqueueOrganizationForReferencedSecret),
+			builder.WithPredicates(clientutil.PredicateHasOICDConfigured())).
 		Complete(r)
 }
 
@@ -79,11 +82,6 @@ func (r *DexReconciler) EnsureCreated(ctx context.Context, object lifecycle.Runt
 	org, ok := object.(*greenhousesapv1alpha1.Organization)
 	if !ok {
 		return ctrl.Result{}, lifecycle.Failed, errors.Errorf("RuntimeObject has incompatible type.")
-	}
-
-	// Ignore organizations without OIDC configuration.
-	if org.Spec.Authentication == nil || org.Spec.Authentication.OIDCConfig == nil {
-		return ctrl.Result{}, lifecycle.Success, nil
 	}
 
 	if err := r.reconcileDexConnector(ctx, org); err != nil {
