@@ -10,7 +10,7 @@
     "ignoreDeps": [
       "github.com/dexidp/dex"
     ],
-    "regexManagers": [
+    "customManagers": [
       {
         "description": "Bump kustomize version in the Makefile",
         "fileMatch": [
@@ -22,7 +22,7 @@
         "datasourceTemplate": "github-releases",
         "depNameTemplate": "kubernetes-sigs/kustomize",
         "extractVersionTemplate": "^kustomize/v(?<version>.*)$",
-        "versioningTemplate": "go"
+        "versioningTemplate": "{{#if versioning}}{{{versioning}}}{{else}}semver{{/if}}"
        }
     ],
     "packageRules": [
