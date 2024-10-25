@@ -19,10 +19,10 @@
         "matchStrings": [
           "KUSTOMIZE_VERSION\\s*\\?=\\s*(?<currentValue>v?(?:\\d+\\.){0,2}\\d+)"
         ],
-        "datasourceTemplate": "github-tags",
+        "datasourceTemplate": "github-releases",
         "depNameTemplate": "kubernetes-sigs/kustomize",
         "extractVersionTemplate": "^kustomize/v(?<version>.*)$",
-        "versioningTemplate": "golang-version"
+        "versioningTemplate": "go"
        }
     ],
     "packageRules": [
