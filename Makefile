@@ -4,7 +4,7 @@ IMG_DEV_ENV ?= ghcr.io/cloudoperators/greenhouse-dev-env:dev-$(USER)
 IMG_LICENSE_EYE ?= ghcr.io/apache/skywalking-eyes/license-eye
 
 # ENVTEST_K8S_VERSION refers to the version of kubebuilder assets to be downloaded by envtest binary.
-ENVTEST_K8S_VERSION = 1.30.3
+ENVTEST_K8S_VERSION ?= 1.30.3
 
 MANIFESTS_PATH=$(CURDIR)/charts/manager
 CRD_MANIFESTS_PATH=$(MANIFESTS_PATH)/crds

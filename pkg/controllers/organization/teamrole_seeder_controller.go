@@ -8,6 +8,7 @@ import (
 
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/tools/record"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -23,6 +24,55 @@ var defaultTeamRoles = map[string]greenhousesapv1alpha1.TeamRoleSpec{
 		Rules: []rbacv1.PolicyRule{{
 			APIGroups: []string{"*"},
 			Resources: []string{"*"},
+			Verbs:     []string{"*"},
+		}},
+	},
+	"cluster-viewer": {
+		Rules: []rbacv1.PolicyRule{{
+			APIGroups: []string{"*"},
+			Resources: []string{"*"},
+			Verbs:     []string{"get", "list", "watch"},
+		}},
+		Labels: map[string]string{
+			"greenhouse.sap/aggregate-to-developer": "true",
+		},
+	},
+	"cluster-developer": {
+		AggregationRule: &rbacv1.AggregationRule{
+			ClusterRoleSelectors: []metav1.LabelSelector{{
+				MatchLabels: map[string]string{
+					"greenhouse.sap/aggregate-to-developer": "true",
+				},
+			}},
+		},
+	},
+	"application-developer": {
+		Labels: map[string]string{
+			"greenhouse.sap/aggregate-to-developer": "true",
+		},
+		Rules: []rbacv1.PolicyRule{{
+			APIGroups: []string{""},
+			// no "pods/exec" to prevent privilege escalation through pod service accounts
+			Resources: []string{"pods", "pods/portforward", "pods/eviction", "pods/proxy", "pods/log", "pods/status"},
+			Verbs:     []string{"*"},
+		}, {
+			APIGroups: []string{"apps"},
+			Resources: []string{"deployments/scale", "statefulsets/scale"},
+			Verbs:     []string{"patch"},
+		},
+		},
+	},
+	"node-maintainer": {
+		Rules: []rbacv1.PolicyRule{{
+			APIGroups: []string{""},
+			Resources: []string{"nodes"},
+			Verbs:     []string{"get", "patch"},
+		}},
+	},
+	"namespace-creator": {
+		Rules: []rbacv1.PolicyRule{{
+			APIGroups: []string{""},
+			Resources: []string{"namespaces"},
 			Verbs:     []string{"*"},
 		}},
 	},
@@ -85,7 +135,6 @@ func (r *TeamRoleSeederReconciler) reconcileDefaultTeamRoles(ctx context.Context
 			log.FromContext(ctx).Info("updated team role", "namespace", tr.GetNamespace(), "name", tr.GetName())
 			r.recorder.Eventf(org, corev1.EventTypeNormal, "UpdatedTeamRole", "Updated team role %s/%s", tr.GetNamespace(), tr.GetName())
 		}
-		return nil
 	}
 	return nil
 }

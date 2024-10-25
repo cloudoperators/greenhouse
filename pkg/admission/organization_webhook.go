@@ -7,7 +7,6 @@ import (
 	"context"
 	"strings"
 
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -56,10 +55,6 @@ func ValidateUpdateOrganization(_ context.Context, _ client.Client, _, _ runtime
 	return nil, nil
 }
 
-func ValidateDeleteOrganization(_ context.Context, _ client.Client, o runtime.Object) (admission.Warnings, error) {
-	_, ok := o.(*greenhousev1alpha1.Organization)
-	if !ok {
-		return nil, nil
-	}
-	return nil, apierrors.NewBadRequest("Organization cannot be deleted")
+func ValidateDeleteOrganization(_ context.Context, _ client.Client, _ runtime.Object) (admission.Warnings, error) {
+	return nil, nil
 }
