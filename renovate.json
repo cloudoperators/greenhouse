@@ -23,7 +23,7 @@
         "depNameTemplate": "kubernetes-sigs/kustomize",
         "extractVersionTemplate": "^kustomize/v(?<version>.*)$",
         "versioningTemplate": "loose",
-        "autoReplaceStringTemplate": "v{{{newVersion}}}"
+        "autoReplaceStringTemplate": "KUSTOMIZE_VERSION ?= v{{{newVersion}}}"
        }
     ],
     "packageRules": [
