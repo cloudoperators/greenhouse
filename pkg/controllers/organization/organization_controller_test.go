@@ -122,7 +122,7 @@ var _ = Describe("Test Organization reconciliation", func() {
 			testOrgName := setup.Namespace()
 
 			By("creating secret for SCIM Config")
-			createSecretForScimConfig(testOrgName)
+			createSecretForSCIMConfig(testOrgName)
 
 			By("creating Organization with SCIM Config")
 			testOrg := setup.CreateOrganization(test.Ctx, testOrgName,
@@ -154,9 +154,9 @@ var _ = Describe("Test Organization reconciliation", func() {
 			Eventually(func(g Gomega) {
 				err := setup.Get(test.Ctx, types.NamespacedName{Name: testOrgName}, testOrg)
 				g.Expect(err).ToNot(HaveOccurred(), "there should be no error getting the Organization")
-				scimAPIAvailableCondition := testOrg.Status.GetConditionByType(greenhousev1alpha1.ScimAPIAvailableCondition)
-				g.Expect(scimAPIAvailableCondition).ToNot(BeNil(), "ScimApiAvailableCondition should be set on Organization")
-				g.Expect(scimAPIAvailableCondition.IsTrue()).To(BeTrue(), "ScimApiAvailableCondition should be True on Organization")
+				scimAPIAvailableCondition := testOrg.Status.GetConditionByType(greenhousev1alpha1.SCIMAPIAvailableCondition)
+				g.Expect(scimAPIAvailableCondition).ToNot(BeNil(), "SCIMAPIAvailableCondition should be set on Organization")
+				g.Expect(scimAPIAvailableCondition.IsTrue()).To(BeTrue(), "SCIMAPIAvailableCondition should be True on Organization")
 			}).Should(Succeed(), "Organization should have set correct status condition")
 		})
 
@@ -171,15 +171,15 @@ var _ = Describe("Test Organization reconciliation", func() {
 			Eventually(func(g Gomega) {
 				err := setup.Get(test.Ctx, types.NamespacedName{Name: testOrgName}, testOrg)
 				g.Expect(err).ToNot(HaveOccurred(), "there should be no error getting the Organization")
-				scimAPIAvailableCondition := testOrg.Status.GetConditionByType(greenhousev1alpha1.ScimAPIAvailableCondition)
-				g.Expect(scimAPIAvailableCondition).ToNot(BeNil(), "ScimApiAvailableCondition should be set on Organization")
-				g.Expect(scimAPIAvailableCondition.IsFalse()).To(BeTrue(), "ScimApiAvailableCondition should be False on Organization")
+				scimAPIAvailableCondition := testOrg.Status.GetConditionByType(greenhousev1alpha1.SCIMAPIAvailableCondition)
+				g.Expect(scimAPIAvailableCondition).ToNot(BeNil(), "SCIMAPIAvailableCondition should be set on Organization")
+				g.Expect(scimAPIAvailableCondition.Status).To(Equal(metav1.ConditionUnknown), "SCIMAPIAvailableCondition should be set to Unknown on Organization")
+				readyCondition := testOrg.Status.GetConditionByType(greenhousev1alpha1.ReadyCondition)
+				g.Expect(readyCondition).ToNot(BeNil(), "ReadyCondition should be set on Organization")
+				g.Expect(readyCondition.IsTrue()).To(BeTrue(), "ReadyCondition should be True on Organization")
 			}).Should(Succeed(), "Organization should have set correct status condition")
 
-			By("creating secret for SCIM Config")
-			createSecretForScimConfig(testOrgName)
-
-			By("updating Organization with SCIM Config")
+			By("updating Organization with SCIM Config without the secret")
 			err := setup.Get(test.Ctx, types.NamespacedName{Name: testOrgName}, testOrg)
 			Expect(err).ToNot(HaveOccurred(), "there should be no error getting the Organization")
 			testOrg.Spec.Authentication = &greenhousev1alpha1.Authentication{
@@ -204,18 +204,43 @@ var _ = Describe("Test Organization reconciliation", func() {
 
 			By("checking Organization status")
 			Eventually(func(g Gomega) {
+				err := setup.Get(test.Ctx, types.NamespacedName{Name: testOrgName}, testOrg)
+				g.Expect(err).ToNot(HaveOccurred(), "there should be no error getting the Organization")
+				scimAPIAvailableCondition := testOrg.Status.GetConditionByType(greenhousev1alpha1.SCIMAPIAvailableCondition)
+				g.Expect(scimAPIAvailableCondition).ToNot(BeNil(), "SCIMAPIAvailableCondition should be set on Organization")
+				g.Expect(scimAPIAvailableCondition.IsFalse()).To(BeTrue(), "SCIMAPIAvailableCondition should be False on Organization")
+				readyCondition := testOrg.Status.GetConditionByType(greenhousev1alpha1.ReadyCondition)
+				g.Expect(readyCondition).ToNot(BeNil(), "ReadyCondition should be set on Organization")
+				g.Expect(readyCondition.IsFalse()).To(BeTrue(), "ReadyCondition should be False on Organization")
+			}).Should(Succeed(), "Organization should have set correct status condition")
+
+			By("creating secret for SCIM Config")
+			createSecretForSCIMConfig(testOrgName)
+
+			By("setting labels on Organization to trigger reconciliation")
+			err = setup.Get(test.Ctx, types.NamespacedName{Name: testOrgName}, testOrg)
+			Expect(err).ToNot(HaveOccurred(), "there should be no error getting the Organization")
+			testOrg.Labels = map[string]string{"test": "label"}
+			err = setup.Update(test.Ctx, testOrg)
+			Expect(err).ToNot(HaveOccurred(), "there should be no error updating the Organization")
+
+			By("checking Organization status")
+			Eventually(func(g Gomega) {
 				var testOrg = new(greenhousev1alpha1.Organization)
 				err := setup.Get(test.Ctx, types.NamespacedName{Name: testOrgName}, testOrg)
 				g.Expect(err).ToNot(HaveOccurred(), "there should be no error getting the Organization")
-				scimAPIAvailableCondition := testOrg.Status.GetConditionByType(greenhousev1alpha1.ScimAPIAvailableCondition)
-				g.Expect(scimAPIAvailableCondition).ToNot(BeNil(), "ScimApiAvailableCondition should be set on Organization")
-				g.Expect(scimAPIAvailableCondition.IsTrue()).To(BeTrue(), "ScimApiAvailableCondition should be True on Organization")
+				scimAPIAvailableCondition := testOrg.Status.GetConditionByType(greenhousev1alpha1.SCIMAPIAvailableCondition)
+				g.Expect(scimAPIAvailableCondition).ToNot(BeNil(), "SCIMAPIAvailableCondition should be set on Organization")
+				g.Expect(scimAPIAvailableCondition.IsTrue()).To(BeTrue(), "SCIMAPIAvailableCondition should be True on Organization")
+				readyCondition := testOrg.Status.GetConditionByType(greenhousev1alpha1.ReadyCondition)
+				g.Expect(readyCondition).ToNot(BeNil(), "ReadyCondition should be set on Organization")
+				g.Expect(readyCondition.IsTrue()).To(BeTrue(), "ReadyCondition should be True on Organization")
 			}).Should(Succeed(), "Organization should have set correct status condition")
 		})
 	})
 })
 
-func createSecretForScimConfig(namespace string) {
+func createSecretForSCIMConfig(namespace string) {
 	testSecret := corev1.Secret{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "Secret",

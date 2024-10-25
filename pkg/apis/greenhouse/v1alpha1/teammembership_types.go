@@ -8,10 +8,10 @@ import (
 )
 
 const (
-	// ScimAccessReadyCondition reflects if there is a connection to SCIM.
-	ScimAccessReadyCondition ConditionType = "ScimAccessReady"
-	// ScimAPIUnavailableReason is set when the organization has set ScimApiAvailableCondition to false.
-	ScimAPIUnavailableReason ConditionReason = "ScimApiUnavailable"
+	// SCIMAccessReadyCondition reflects if there is a connection to SCIM.
+	SCIMAccessReadyCondition ConditionType = "SCIMAccessReady"
+	// SCIMAPIUnavailableReason is set when the organization has set SCIMAPIAvailableCondition to false.
+	SCIMAPIUnavailableReason ConditionReason = "SCIMAPIUnavailable"
 )
 
 // User specifies a human person.

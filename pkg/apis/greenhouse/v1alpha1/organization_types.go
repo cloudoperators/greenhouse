@@ -8,12 +8,12 @@ import (
 )
 
 const (
-	// ScimAPIAvailableCondition reflects if there is a connection to SCIM API.
-	ScimAPIAvailableCondition ConditionType = "ScimApiAvailable"
+	// SCIMAPIAvailableCondition reflects if there is a connection to SCIM API.
+	SCIMAPIAvailableCondition ConditionType = "SCIMAPIAvailable"
 	// SecretNotFoundReason is set when the secret with credentials to SCIM is not found.
 	SecretNotFoundReason ConditionReason = "SecretNotFound"
-	// ScimRequestFailedReason is set when a request to SCIM failed.
-	ScimRequestFailedReason ConditionReason = "ScimRequestFailed"
+	// SCIMRequestFailedReason is set when a request to SCIM failed.
+	SCIMRequestFailedReason ConditionReason = "SCIMRequestFailed"
 )
 
 // OrganizationSpec defines the desired state of Organization

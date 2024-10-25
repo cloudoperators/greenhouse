@@ -41,7 +41,7 @@ var (
 	// exposedConditions are the conditions that are exposed in the StatusConditions of the TeamMembership.
 	exposedConditions = []greenhousev1alpha1.ConditionType{
 		greenhousev1alpha1.ReadyCondition,
-		greenhousev1alpha1.ScimAccessReadyCondition,
+		greenhousev1alpha1.SCIMAccessReadyCondition,
 	}
 )
 
@@ -138,11 +138,11 @@ func (r *TeamMembershipUpdaterController) Reconcile(ctx context.Context, req ctr
 		}
 	}()
 
-	orgScimAPIAvailableCondition := organization.Status.GetConditionByType(greenhousev1alpha1.ScimAPIAvailableCondition)
-	if orgScimAPIAvailableCondition == nil || !orgScimAPIAvailableCondition.IsTrue() {
+	orgSCIMAPIAvailableCondition := organization.Status.GetConditionByType(greenhousev1alpha1.SCIMAPIAvailableCondition)
+	if orgSCIMAPIAvailableCondition == nil || !orgSCIMAPIAvailableCondition.IsTrue() {
 		if teamMembershipExists {
-			teamMembershipStatus.SetConditions(greenhousev1alpha1.FalseCondition(greenhousev1alpha1.ScimAccessReadyCondition,
-				greenhousev1alpha1.ScimAPIUnavailableReason, "SCIM API in Organization is unavailable"))
+			teamMembershipStatus.SetConditions(greenhousev1alpha1.FalseCondition(greenhousev1alpha1.SCIMAccessReadyCondition,
+				greenhousev1alpha1.SCIMAPIUnavailableReason, "SCIM API in Organization is unavailable"))
 		}
 		return ctrl.Result{}, nil
 	}
@@ -151,25 +151,25 @@ func (r *TeamMembershipUpdaterController) Reconcile(ctx context.Context, req ctr
 	if organization.Spec.Authentication == nil || organization.Spec.Authentication.SCIMConfig == nil {
 		log.FromContext(ctx).Info("SCIM config is missing from org", "Name", req.NamespacedName)
 
-		c := greenhousev1alpha1.FalseCondition(greenhousev1alpha1.ScimAccessReadyCondition, greenhousev1alpha1.SecretNotFoundReason, "SCIM config is missing from organization")
+		c := greenhousev1alpha1.FalseCondition(greenhousev1alpha1.SCIMAccessReadyCondition, greenhousev1alpha1.SecretNotFoundReason, "SCIM config is missing from organization")
 		teamMembershipStatus.SetConditions(c)
 
 		return ctrl.Result{}, nil
 	}
 
-	scimClient, err := r.createScimClient(ctx, req.Namespace, &teamMembershipStatus, organization.Spec.Authentication.SCIMConfig)
+	scimClient, err := r.createSCIMClient(ctx, req.Namespace, &teamMembershipStatus, organization.Spec.Authentication.SCIMConfig)
 	if err != nil {
 		return ctrl.Result{}, err
 	}
 
-	users, err := r.getUsersFromScim(scimClient, team.Spec.MappedIDPGroup)
+	users, err := r.getUsersFromSCIM(scimClient, team.Spec.MappedIDPGroup)
 	if err != nil {
 		log.FromContext(ctx).Info("failed processing team-membership for team", "error", err)
-		teamMembershipStatus.SetConditions(greenhousev1alpha1.FalseCondition(greenhousev1alpha1.ScimAccessReadyCondition, greenhousev1alpha1.ScimRequestFailedReason, ""))
+		teamMembershipStatus.SetConditions(greenhousev1alpha1.FalseCondition(greenhousev1alpha1.SCIMAccessReadyCondition, greenhousev1alpha1.SCIMRequestFailedReason, ""))
 		return ctrl.Result{}, err
 	}
 
-	teamMembershipStatus.SetConditions(greenhousev1alpha1.TrueCondition(greenhousev1alpha1.ScimAccessReadyCondition, "", ""))
+	teamMembershipStatus.SetConditions(greenhousev1alpha1.TrueCondition(greenhousev1alpha1.SCIMAccessReadyCondition, "", ""))
 
 	membersCountMetric.With(prometheus.Labels{
 		"namespace": team.Namespace,
@@ -197,11 +197,11 @@ func (r *TeamMembershipUpdaterController) Reconcile(ctx context.Context, req ctr
 
 	now := metav1.NewTime(time.Now())
 	teamMembershipStatus.LastChangedTime = &now
-	teamMembershipStatus.SetConditions(greenhousev1alpha1.TrueCondition(greenhousev1alpha1.ScimAccessReadyCondition, "", ""))
+	teamMembershipStatus.SetConditions(greenhousev1alpha1.TrueCondition(greenhousev1alpha1.SCIMAccessReadyCondition, "", ""))
 	return ctrl.Result{RequeueAfter: TeamMembershipRequeueInterval}, nil
 }
 
-func (r *TeamMembershipUpdaterController) createScimClient(
+func (r *TeamMembershipUpdaterController) createSCIMClient(
 	ctx context.Context,
 	namespace string,
 	teamMembershipStatus *greenhousev1alpha1.TeamMembershipStatus,
@@ -210,12 +210,12 @@ func (r *TeamMembershipUpdaterController) createScimClient(
 
 	basicAuthUser, err := clientutil.GetSecretKeyFromSecretKeyReference(ctx, r.Client, namespace, *scimConfig.BasicAuthUser.Secret)
 	if err != nil {
-		teamMembershipStatus.SetConditions(greenhousev1alpha1.FalseCondition(greenhousev1alpha1.ScimAccessReadyCondition, greenhousev1alpha1.SecretNotFoundReason, "BasicAuthUser missing"))
+		teamMembershipStatus.SetConditions(greenhousev1alpha1.FalseCondition(greenhousev1alpha1.SCIMAccessReadyCondition, greenhousev1alpha1.SecretNotFoundReason, "BasicAuthUser missing"))
 		return nil, err
 	}
 	basicAuthPw, err := clientutil.GetSecretKeyFromSecretKeyReference(ctx, r.Client, namespace, *scimConfig.BasicAuthPw.Secret)
 	if err != nil {
-		teamMembershipStatus.SetConditions(greenhousev1alpha1.FalseCondition(greenhousev1alpha1.ScimAccessReadyCondition, greenhousev1alpha1.SecretNotFoundReason, "BasicAuthPw missing"))
+		teamMembershipStatus.SetConditions(greenhousev1alpha1.FalseCondition(greenhousev1alpha1.SCIMAccessReadyCondition, greenhousev1alpha1.SecretNotFoundReason, "BasicAuthPw missing"))
 		return nil, err
 	}
 	clientConfig := scim.Config{
@@ -229,7 +229,7 @@ func (r *TeamMembershipUpdaterController) createScimClient(
 	return scim.NewScimClient(clientConfig)
 }
 
-func (r *TeamMembershipUpdaterController) getUsersFromScim(scimClient *scim.ScimClient, mappedIDPGroup string) ([]greenhousev1alpha1.User, error) {
+func (r *TeamMembershipUpdaterController) getUsersFromSCIM(scimClient *scim.ScimClient, mappedIDPGroup string) ([]greenhousev1alpha1.User, error) {
 	members, err := scimClient.GetTeamMembers(mappedIDPGroup)
 	if err != nil {
 		return nil, err
@@ -264,7 +264,7 @@ func (r *TeamMembershipUpdaterController) computeReadyCondition(
 
 	readyCondition = *conditions.GetConditionByType(greenhousev1alpha1.ReadyCondition)
 
-	if conditions.GetConditionByType(greenhousev1alpha1.ScimAccessReadyCondition).IsFalse() {
+	if conditions.GetConditionByType(greenhousev1alpha1.SCIMAccessReadyCondition).IsFalse() {
 		readyCondition.Status = metav1.ConditionFalse
 		readyCondition.Message = "SCIM access not ready"
 		return readyCondition
