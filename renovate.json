@@ -17,12 +17,11 @@
           "^Makefile$"
         ],
         "matchStrings": [
-          "KUSTOMIZE_VERSION\\s*\\?=\\s*(?<currentValue>v?(?:\\d+\\.){0,2}\\d+)"
+          "KUSTOMIZE_VERSION ?= (?<currentValue>.*?)\\n"
         ],
         "datasourceTemplate": "github-releases",
         "depNameTemplate": "kubernetes-sigs/kustomize",
-        "extractVersionTemplate": "^kustomize/v(?<version>.*)$",
-        "versioningTemplate": "{{#if versioning}}{{{versioning}}}{{else}}semver{{/if}}"
+        "extractVersionTemplate": "^v(?<version>.*?)$"
        }
     ],
     "packageRules": [
