@@ -55,6 +55,9 @@ spec:
               description:
                 description: Description provides additional details of the team.
                 type: string
+              joinUrl:
+                description: URL to join the IdP group.
+                type: string
               mappedIdPGroup:
                 description: IdP group id matching team.
                 type: string
