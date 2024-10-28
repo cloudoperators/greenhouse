@@ -32,31 +32,28 @@ jobs:
           # Configure which scopes are allowed (newline-delimited).
           # These are regex patterns auto-wrapped in `^ $`.
           scopes: |
+            cluster-controller
+            organization-controller
+            plugin-controller
+            plugindefinition-controller
+            team-controller
+            teammembership-controller
+            teamsrbac-controller
             build
-            communicator
             config
-            carbon
             ci
             core
             deps
             docs
-            doop
-            example
-            heureka
-            greenhouse            
-            infra
+            e2e
+            greenhouse
+            greenhousectl          
             actions
-            juno
-            k8s
-            message-provider
-            npm
-            oauth
-            supernova
             template
             ui
             utils
-            url-state-provider
             version
+            webhook
             ISSUE-\d+
           # Configure that a scope must always be provided.
           requireScope: true
