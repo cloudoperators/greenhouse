@@ -20,6 +20,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/record"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
@@ -29,6 +30,7 @@ import (
 	"github.com/cloudoperators/greenhouse/pkg/clientutil"
 	"github.com/cloudoperators/greenhouse/pkg/common"
 	dexapi "github.com/cloudoperators/greenhouse/pkg/dex/api"
+	"github.com/cloudoperators/greenhouse/pkg/lifecycle"
 	"github.com/cloudoperators/greenhouse/pkg/util"
 )
 
@@ -62,30 +64,35 @@ func (r *DexReconciler) SetupWithManager(name string, mgr ctrl.Manager) error {
 		Owns(&dexapi.Connector{}).
 		Owns(&dexapi.OAuth2Client{}).
 		// Watch secrets referenced by organizations for confidential values.
-		Watches(&corev1.Secret{}, handler.EnqueueRequestsFromMapFunc(r.enqueueOrganizationForReferencedSecret)).
+		Watches(&corev1.Secret{},
+			handler.EnqueueRequestsFromMapFunc(r.enqueueOrganizationForReferencedSecret),
+			builder.WithPredicates(clientutil.PredicateHasOICDConfigured())).
 		Complete(r)
 }
 
 func (r *DexReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	var org = new(greenhousesapv1alpha1.Organization)
-	if err := r.Get(ctx, req.NamespacedName, org); err != nil {
-		return ctrl.Result{}, client.IgnoreNotFound(err)
-	}
+	return lifecycle.Reconcile(ctx, r.Client, req.NamespacedName, &greenhousesapv1alpha1.Organization{}, r, nil)
+}
 
-	// Ignore organizations without OIDC configuration.
-	if org.Spec.Authentication == nil || org.Spec.Authentication.OIDCConfig == nil {
-		return ctrl.Result{}, nil
+func (r *DexReconciler) EnsureDeleted(_ context.Context, _ lifecycle.RuntimeObject) (ctrl.Result, lifecycle.ReconcileResult, error) {
+	return ctrl.Result{}, lifecycle.Success, nil // nothing to do in that case
+}
+
+func (r *DexReconciler) EnsureCreated(ctx context.Context, object lifecycle.RuntimeObject) (ctrl.Result, lifecycle.ReconcileResult, error) {
+	org, ok := object.(*greenhousesapv1alpha1.Organization)
+	if !ok {
+		return ctrl.Result{}, lifecycle.Failed, errors.Errorf("RuntimeObject has incompatible type.")
 	}
 
 	if err := r.reconcileDexConnector(ctx, org); err != nil {
-		return ctrl.Result{}, err
+		return ctrl.Result{}, lifecycle.Failed, err
 	}
 
 	if err := r.reconcileOAuth2Client(ctx, org); err != nil {
-		return ctrl.Result{}, err
+		return ctrl.Result{}, lifecycle.Failed, err
 	}
 
-	return ctrl.Result{}, nil
+	return ctrl.Result{}, lifecycle.Success, nil
 }
 
 func (r *DexReconciler) reconcileDexConnector(ctx context.Context, org *greenhousesapv1alpha1.Organization) error {
