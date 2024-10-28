@@ -100,7 +100,7 @@ func newClusterBootstrapCmd() *cobra.Command {
 	// Flags
 	bootstrapCmd.Flags().AddGoFlagSet(flag.CommandLine)
 
-	bootstrapCmd.Flags().StringVar(&o.kubecontext, "kubecontext", "", "The context to use from the kubeconfig (defaults to current-context)")
+	bootstrapCmd.Flags().StringVar(&o.kubecontext, "kubecontext", "", "The context to use from the kubeconfig for the cluster which needs to be onboarded(defaults to current-context)")
 	bootstrapCmd.Flags().StringVar(&o.orgName, "org", clientutil.GetEnvOrDefault("GREENHOUSE_ORG", ""), "The organization name to use. Can be set via GREENHOUSE_ORG env var")
 	bootstrapCmd.Flags().StringVar(&o.clusterName, "cluster-name", clientutil.GetEnvOrDefault("GREENHOUSE_CLUSTER_NAME", ""), "The cluster name to use. Can be set via GREENHOUSE_CLUSTER_NAME env var")
 	bootstrapCmd.Flags().StringVar(&o.greenhouseKubeConfig, "greenhouse-kubeconfig", "", "The kubeconfig of the greenhouse cluster")
