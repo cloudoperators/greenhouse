@@ -46,6 +46,7 @@ jobs:
             config
             ci
             core
+            controller
             deps
             docs
             e2e
