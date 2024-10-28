@@ -14,6 +14,6 @@ During the [initial onboarding](../../user-guides/cluster/onboarding.md) of a cl
 
 ## Cluster registry (coming soon)
 
-Once a Cluster is onboarded to Greenhouse a ClusterKubeConfig is generated for the Cluster based on the OIDC configuration of the Organization. This enables memebers of an Organization to access the fleet fo onboarded Clusters via the common Identity Provider.  on the respective Clusters can be managed via [Greenhouse Team RBAC](./../../user-guides/team/rbac.md).
+Once a Cluster is onboarded to Greenhouse a ClusterKubeConfig is generated for the Cluster based on the OIDC configuration of the Organization. This enables members of an Organization to access the fleet of onboarded Clusters via the common Identity Provider. on the respective Clusters can be managed via [Greenhouse Team RBAC](./../../user-guides/team/rbac.md).
 
 In order to make it convenient to use these ClusterKubeConfigs and to easily switch between multiple context locally there will be a CLI provided by Greenhouse.
