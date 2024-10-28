@@ -32,13 +32,16 @@ jobs:
           # Configure which scopes are allowed (newline-delimited).
           # These are regex patterns auto-wrapped in `^ $`.
           scopes: |
-            cluster-controller
-            organization-controller
-            plugin-controller
-            plugindefinition-controller
-            team-controller
-            teammembership-controller
-            teamsrbac-controller
+            clusterkubeconfigs
+            clusters
+            organizations
+            plugindefinitions
+            pluginpresets
+            plugins
+            teammemberships
+            teamrolebindings
+            teamroles
+            teams
             build
             config
             ci
