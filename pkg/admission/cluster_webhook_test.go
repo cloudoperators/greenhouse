@@ -171,21 +171,6 @@ var _ = Describe("Cluster Webhook", func() {
 			},
 			true,
 		),
-		Entry("it should deny creation of cluster with too long token validity",
-			&greenhousev1alpha1.Cluster{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "test-cluster",
-					Namespace: "test-namespace",
-				},
-				Spec: greenhousev1alpha1.ClusterSpec{
-					AccessMode: greenhousev1alpha1.ClusterAccessModeDirect,
-					KubeConfig: greenhousev1alpha1.ClusterKubeConfig{
-						MaxTokenValidity: 73,
-					},
-				},
-			},
-			true,
-		),
 		Entry("it should allow creation of cluster with not too long token validity",
 			&greenhousev1alpha1.Cluster{
 				ObjectMeta: metav1.ObjectMeta{
@@ -301,52 +286,6 @@ var _ = Describe("Cluster Webhook", func() {
 				},
 			},
 			true,
-		),
-	)
-})
-
-var _ = Describe("validateTokenValidity", func() {
-	DescribeTable("Validate token validity", func(cluster *greenhousev1alpha1.Cluster, withError bool) {
-		admission, err := validateTokenValidity(cluster)
-
-		if withError {
-			Expect(err).To(HaveOccurred())
-			Expect(admission).ToNot(BeNil())
-			return
-		}
-
-		Expect(err).NotTo(HaveOccurred())
-		Expect(admission).To(BeNil())
-	},
-		Entry("with too long token validity",
-			&greenhousev1alpha1.Cluster{
-				Spec: greenhousev1alpha1.ClusterSpec{
-					KubeConfig: greenhousev1alpha1.ClusterKubeConfig{
-						MaxTokenValidity: 73,
-					},
-				},
-			},
-			true,
-		),
-		Entry("with too short token validity",
-			&greenhousev1alpha1.Cluster{
-				Spec: greenhousev1alpha1.ClusterSpec{
-					KubeConfig: greenhousev1alpha1.ClusterKubeConfig{
-						MaxTokenValidity: 23,
-					},
-				},
-			},
-			true,
-		),
-		Entry("with correct token validity",
-			&greenhousev1alpha1.Cluster{
-				Spec: greenhousev1alpha1.ClusterSpec{
-					KubeConfig: greenhousev1alpha1.ClusterKubeConfig{
-						MaxTokenValidity: 72,
-					},
-				},
-			},
-			false,
 		),
 	)
 })
