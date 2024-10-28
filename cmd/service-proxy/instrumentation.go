@@ -69,11 +69,9 @@ func InstrumentHandler(next http.Handler, registry prometheus.Registerer) http.H
 
 	injector := func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
-			if name, cluster, namespace, err := common.SplitHost(req.Host); err == nil {
+			if cluster, err := common.ExtractCluster(req.Host); err == nil {
 				ctx := req.Context()
 				ctx = context.WithValue(ctx, ctxClusterKey{}, cluster)
-				ctx = context.WithValue(ctx, ctxNamespaceKey{}, namespace)
-				ctx = context.WithValue(ctx, ctxNameKey{}, name)
 				req = req.WithContext(ctx)
 			}
 			next.ServeHTTP(rw, req)

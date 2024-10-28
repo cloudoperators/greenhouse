@@ -97,12 +97,12 @@ func (pm *ProxyManager) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.R
 		return ctrl.Result{}, fmt.Errorf("failed to parse api url: %w", err)
 	}
 
-	configs, err := pm.pluginsForCluster(ctx, req.Name, req.Namespace)
+	plugins, err := pm.pluginsForCluster(ctx, req.Name, req.Namespace)
 	if err != nil {
 		return ctrl.Result{}, fmt.Errorf("failed to get plugins for cluster %s: %w", req.Name, err)
 	}
-	for _, cfg := range configs {
-		for url, svc := range cfg.Status.ExposedServices {
+	for _, plugin := range plugins {
+		for url, svc := range plugin.Status.ExposedServices {
 			u := *k8sAPIURL // copy URL struct
 			proto := "http"
 			if svc.Protocol != nil {
@@ -172,11 +172,11 @@ func (pm *ProxyManager) rewrite(req *httputil.ProxyRequest) {
 	}()
 
 	// hostname is expected to have the format $name--$cluster--$namespace.$organisation.$basedomain
-	name, cluster, namespace, err := common.SplitHost(req.In.Host)
+	cluster, err := common.ExtractCluster(req.In.Host)
 	if err != nil {
 		return
 	}
-	l = l.WithValues("cluster", cluster, "namespace", namespace, "name", name)
+	l = l.WithValues("cluster", cluster)
 
 	pm.mu.RLock()
 	defer pm.mu.RUnlock()

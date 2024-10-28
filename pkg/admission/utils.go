@@ -5,10 +5,16 @@ package admission
 
 import (
 	"context"
+	"fmt"
 	"net/url"
+	"strings"
 
+	"github.com/go-logr/logr"
+
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/validation/field"
+
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
@@ -125,4 +131,37 @@ func logAdmissionRequest(ctx context.Context) {
 	admissionRequest.OldObject.Raw = nil
 
 	ctrl.Log.Info("AdmissionRequest", "Request", admissionRequest)
+}
+
+// invalidateDoubleDashes validates that the object name does not contain double dashes.
+func invalidateDoubleDashesInName(obj client.Object, l logr.Logger) (admission.Warnings, error) {
+	if strings.Contains(obj.GetName(), "--") {
+		err := apierrors.NewInvalid(
+			obj.GetObjectKind().GroupVersionKind().GroupKind(),
+			obj.GetName(),
+			field.ErrorList{
+				field.Invalid(field.NewPath("metadata", "name"), obj.GetName(), "name cannot contain double dashes"),
+			},
+		)
+		l.Error(err, "found object name with double dashes, admission will be denied")
+		return admission.Warnings{"you cannot create an object with double dashes in the name"}, err
+	}
+	return nil, nil
+}
+
+// capName validates that the name is not longer than the provided length.
+
+func capName(obj client.Object, l logr.Logger, length int) (admission.Warnings, error) {
+	if len(obj.GetName()) > length {
+		err := apierrors.NewInvalid(
+			obj.GetObjectKind().GroupVersionKind().GroupKind(),
+			obj.GetName(),
+			field.ErrorList{
+				field.Invalid(field.NewPath("metadata", "name"), obj.GetName(), fmt.Sprintf("name must be less than or equal to %d", length)),
+			},
+		)
+		l.Error(err, fmt.Sprintf("found object name too long, admission will be denied, name must be less than or equal to %d", length))
+		return admission.Warnings{fmt.Sprintf("you cannot create an object with a name longer than %d", length)}, err
+	}
+	return nil, nil
 }
