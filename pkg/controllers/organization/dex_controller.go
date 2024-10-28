@@ -60,7 +60,8 @@ func (r *DexReconciler) SetupWithManager(name string, mgr ctrl.Manager) error {
 	}
 	return ctrl.NewControllerManagedBy(mgr).
 		Named(name).
-		For(&greenhousesapv1alpha1.Organization{}).
+		For(&greenhousesapv1alpha1.Organization{},
+			builder.WithPredicates(clientutil.PredicateHasOICDConfigured())).
 		Owns(&dexapi.Connector{}).
 		Owns(&dexapi.OAuth2Client{}).
 		// Watch secrets referenced by organizations for confidential values.
