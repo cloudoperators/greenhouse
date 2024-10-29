@@ -5,6 +5,8 @@ package teammembership
 
 import (
 	"context"
+	"github.com/cloudoperators/greenhouse/pkg/lifecycle"
+	"github.com/pkg/errors"
 	"time"
 
 	"github.com/prometheus/client_golang/prometheus"
@@ -94,20 +96,29 @@ func listTeamsAsReconcileRequests(ctx context.Context, c client.Client, listOpts
 }
 
 func (r *TeamMembershipUpdaterController) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
+	return lifecycle.Reconcile(ctx, r.Client, req.NamespacedName, &greenhousev1alpha1.Team{}, r, nil)
+}
+
+func (r *TeamMembershipUpdaterController) EnsureDeleted(ctx context.Context, object lifecycle.RuntimeObject) (ctrl.Result, lifecycle.ReconcileResult, error) {
+	return ctrl.Result{}, lifecycle.Success, nil
+}
+
+func (r *TeamMembershipUpdaterController) EnsureCreated(ctx context.Context, object lifecycle.RuntimeObject) (ctrl.Result, lifecycle.ReconcileResult, error) {
+	team, ok := object.(*greenhousev1alpha1.Team)
+	if !ok {
+		return ctrl.Result{}, lifecycle.Failed, errors.Errorf("RuntimeObject has incompatible type.")
+	}
+
 	var organization = new(greenhousev1alpha1.Organization)
-	if err := r.Get(ctx, types.NamespacedName{Name: req.Namespace}, organization); err != nil {
-		return ctrl.Result{}, client.IgnoreNotFound(err)
+	if err := r.Get(ctx, types.NamespacedName{Name: object.GetNamespace()}, organization); err != nil {
+		return ctrl.Result{}, lifecycle.Failed, client.IgnoreNotFound(err)
 	}
 
-	var team = new(greenhousev1alpha1.Team)
-	if err := r.Get(ctx, req.NamespacedName, team); err != nil {
-		return ctrl.Result{}, client.IgnoreNotFound(err)
-	}
-
+	teamNamespacedName := types.NamespacedName{Namespace: team.Namespace, Name: team.Name}
 	var teamMembership = new(greenhousev1alpha1.TeamMembership)
-	err := r.Get(ctx, types.NamespacedName{Name: team.Name, Namespace: team.Namespace}, teamMembership)
+	err := r.Get(ctx, teamNamespacedName, teamMembership)
 	if !apierrors.IsNotFound(err) && err != nil {
-		return ctrl.Result{}, err
+		return ctrl.Result{}, lifecycle.Failed, err
 	}
 
 	teamMembershipExists := !apierrors.IsNotFound(err)
@@ -121,10 +132,14 @@ func (r *TeamMembershipUpdaterController) Reconcile(ctx context.Context, req ctr
 
 			log.FromContext(ctx).Info("deleting TeamMembership, Team does not have MappedIdpGroup set", "team-membership", teamMembership.Name)
 			err = r.Delete(ctx, teamMembership, &client.DeleteOptions{})
-			return ctrl.Result{}, err
+			if err != nil {
+				return ctrl.Result{}, lifecycle.Failed, err
+			}
+
+			return ctrl.Result{}, lifecycle.Success, nil
 		} else {
 			log.FromContext(ctx).Info("Team does not have MappedIdpGroup set", "team", team.Name)
-			return ctrl.Result{}, nil
+			return ctrl.Result{}, lifecycle.Success, nil
 		}
 	}
 
@@ -140,24 +155,24 @@ func (r *TeamMembershipUpdaterController) Reconcile(ctx context.Context, req ctr
 
 	// Ignore organizations without SCIM configuration.
 	if organization.Spec.Authentication == nil || organization.Spec.Authentication.SCIMConfig == nil {
-		log.FromContext(ctx).Info("SCIM config is missing from org", "Name", req.NamespacedName)
+		log.FromContext(ctx).Info("SCIM config is missing from org", "Name", teamNamespacedName)
 
 		c := greenhousev1alpha1.FalseCondition(greenhousev1alpha1.ScimAccessReadyCondition, greenhousev1alpha1.SecretNotFoundReason, "SCIM config is missing from organization")
 		teamMembershipStatus.SetConditions(c)
 
-		return ctrl.Result{}, nil
+		return ctrl.Result{}, lifecycle.Success, nil
 	}
 
-	scimClient, err := r.createScimClient(ctx, req.Namespace, &teamMembershipStatus, organization.Spec.Authentication.SCIMConfig)
+	scimClient, err := r.createScimClient(ctx, team.Namespace, &teamMembershipStatus, organization.Spec.Authentication.SCIMConfig)
 	if err != nil {
-		return ctrl.Result{}, err
+		return ctrl.Result{}, lifecycle.Failed, err
 	}
 
 	users, err := r.getUsersFromScim(scimClient, team.Spec.MappedIDPGroup)
 	if err != nil {
 		log.FromContext(ctx).Info("failed processing team-membership for team", "error", err)
 		teamMembershipStatus.SetConditions(greenhousev1alpha1.FalseCondition(greenhousev1alpha1.ScimAccessReadyCondition, greenhousev1alpha1.ScimRequestFailedReason, ""))
-		return ctrl.Result{}, err
+		return ctrl.Result{}, lifecycle.Failed, err
 	}
 
 	teamMembershipStatus.SetConditions(greenhousev1alpha1.TrueCondition(greenhousev1alpha1.ScimAccessReadyCondition, "", ""))
@@ -175,7 +190,7 @@ func (r *TeamMembershipUpdaterController) Reconcile(ctx context.Context, req ctr
 	})
 	if err != nil {
 		log.FromContext(ctx).Info("failed processing team-membership for team", "error", err)
-		return ctrl.Result{}, err
+		return ctrl.Result{}, lifecycle.Failed, err
 	}
 	switch result {
 	case clientutil.OperationResultCreated:
@@ -189,7 +204,7 @@ func (r *TeamMembershipUpdaterController) Reconcile(ctx context.Context, req ctr
 	now := metav1.NewTime(time.Now())
 	teamMembershipStatus.LastChangedTime = &now
 	teamMembershipStatus.SetConditions(greenhousev1alpha1.TrueCondition(greenhousev1alpha1.ScimAccessReadyCondition, "", ""))
-	return ctrl.Result{RequeueAfter: TeamMembershipRequeueInterval}, nil
+	return ctrl.Result{RequeueAfter: TeamMembershipRequeueInterval}, lifecycle.Success, nil
 }
 
 func (r *TeamMembershipUpdaterController) createScimClient(
