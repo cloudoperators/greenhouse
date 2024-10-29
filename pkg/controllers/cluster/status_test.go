@@ -51,7 +51,7 @@ var _ = Describe("Cluster status", Ordered, func() {
 			},
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "test-node",
-				Namespace: setup.Namespace(),
+				Namespace: "",
 			},
 			Status: corev1.NodeStatus{
 				Conditions: []corev1.NodeCondition{
@@ -72,7 +72,7 @@ var _ = Describe("Cluster status", Ordered, func() {
 			},
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "test-node-2",
-				Namespace: setup.Namespace(),
+				Namespace: "",
 			},
 			Status: corev1.NodeStatus{
 				Conditions: []corev1.NodeCondition{
@@ -93,7 +93,7 @@ var _ = Describe("Cluster status", Ordered, func() {
 			},
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "test-node-3",
-				Namespace: setup.Namespace(),
+				Namespace: "",
 			},
 			Status: corev1.NodeStatus{
 				Conditions: []corev1.NodeCondition{
