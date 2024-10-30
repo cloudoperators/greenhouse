@@ -74,6 +74,7 @@ metadata:
   uid: 0db6e464-ec36-459e-8a05-4ad668b57f42
 spec:
   accessMode: direct
+  maxTokenValidity: 72h
 status:
   bearerTokenExpirationTimestamp: "2024-02-09T06:28:57Z"
   kubernetesVersion: v1.27.8

@@ -82,3 +82,9 @@ type OrganizationList struct {
 func init() {
 	SchemeBuilder.Register(&Organization{}, &OrganizationList{})
 }
+
+func (o *Organization) GetConditions() StatusConditions {
+	return StatusConditions{} // OrganizationStatus is an empty struct so we don't need to get anything
+}
+
+func (o *Organization) SetCondition(Condition) {} // OrganizationStatus is an empty struct so we don't need to set anything
