@@ -7,10 +7,12 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"time"
+
+	"gopkg.in/yaml.v3"
+
 	greenhouseapisv1alpha1 "github.com/cloudoperators/greenhouse/pkg/apis/greenhouse/v1alpha1"
 	"github.com/cloudoperators/greenhouse/pkg/lifecycle"
-	"gopkg.in/yaml.v3"
-	"time"
 
 	"github.com/cenkalti/backoff/v4"
 	batchv1 "k8s.io/api/batch/v1"

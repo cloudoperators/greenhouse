@@ -4,14 +4,12 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"github.com/cenkalti/backoff/v4"
-	greenhouseapis "github.com/cloudoperators/greenhouse/pkg/apis"
-	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/pkg/apis/greenhouse/v1alpha1"
-	"github.com/cloudoperators/greenhouse/pkg/clientutil"
-	"github.com/cloudoperators/greenhouse/pkg/internal/local/klient"
-	"github.com/cloudoperators/greenhouse/pkg/internal/local/utils"
-	"github.com/cloudoperators/greenhouse/pkg/lifecycle"
 	"io"
+	"os"
+	"strings"
+	"time"
+
+	"github.com/cenkalti/backoff/v4"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -20,10 +18,14 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
-	"os"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"strings"
-	"time"
+
+	greenhouseapis "github.com/cloudoperators/greenhouse/pkg/apis"
+	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/pkg/apis/greenhouse/v1alpha1"
+	"github.com/cloudoperators/greenhouse/pkg/clientutil"
+	"github.com/cloudoperators/greenhouse/pkg/internal/local/klient"
+	"github.com/cloudoperators/greenhouse/pkg/internal/local/utils"
+	"github.com/cloudoperators/greenhouse/pkg/lifecycle"
 )
 
 const (

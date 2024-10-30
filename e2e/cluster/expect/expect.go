@@ -3,11 +3,8 @@ package expect
 import (
 	"context"
 	"fmt"
-	greenhouseapis "github.com/cloudoperators/greenhouse/pkg/apis"
-	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/pkg/apis/greenhouse/v1alpha1"
-	"github.com/cloudoperators/greenhouse/pkg/clientutil"
-	"github.com/cloudoperators/greenhouse/pkg/e2e"
-	"github.com/cloudoperators/greenhouse/pkg/lifecycle"
+	"time"
+
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
@@ -19,7 +16,12 @@ import (
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/util/retry"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"time"
+
+	greenhouseapis "github.com/cloudoperators/greenhouse/pkg/apis"
+	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/pkg/apis/greenhouse/v1alpha1"
+	"github.com/cloudoperators/greenhouse/pkg/clientutil"
+	"github.com/cloudoperators/greenhouse/pkg/e2e"
+	"github.com/cloudoperators/greenhouse/pkg/lifecycle"
 )
 
 const (
