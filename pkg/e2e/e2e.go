@@ -48,7 +48,7 @@ const (
 	RemoteClientSet  EClient = "RemoteClientSet"
 )
 
-var defaultElapsedTime = 30 * time.Second
+var defaultElapsedTime = 120 * time.Second
 
 type EClient string
 type WaitApplyFunc func(resource lifecycle.RuntimeObject) error
@@ -194,6 +194,9 @@ func prepareClients(kubeconfigEnv string, userScheme ...func(s *runtime.Scheme) 
 	}, nil
 }
 
+// GetRESTConfigFromBytes returns a rest.Config from a kubeconfig bytes
+//
+//no:lint:unused
 func GetRESTConfigFromBytes(kubeconfigBytes []byte) (*rest.Config, error) {
 	return clientcmd.RESTConfigFromKubeConfig(kubeconfigBytes)
 }
