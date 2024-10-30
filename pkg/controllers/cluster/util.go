@@ -6,6 +6,11 @@ package cluster
 import (
 	"context"
 	"fmt"
+	"github.com/pkg/errors"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/client-go/tools/clientcmd"
+	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"time"
 
 	authenticationv1 "k8s.io/api/authentication/v1"
@@ -92,23 +97,20 @@ func reconcileNamespaceInRemoteCluster(ctx context.Context, k8sClient client.Cli
 	return nil
 }
 
-func deleteServiceAccountInRemoteCluster(ctx context.Context, k8sClient client.Client, cluster *greenhousev1alpha1.Cluster) error {
+func reconcileServiceAccountInRemoteCluster(ctx context.Context, k8sClient client.Client, cluster *greenhousev1alpha1.Cluster) error {
 	serviceAccount := &corev1.ServiceAccount{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      serviceAccountName,
 			Namespace: cluster.GetNamespace(),
 		},
 	}
-	err := k8sClient.Delete(ctx, serviceAccount)
-	return client.IgnoreNotFound(err)
-}
-
-func reconcileServiceAccountInRemoteCluster(ctx context.Context, k8sClient client.Client, cluster *greenhousev1alpha1.Cluster) error {
-	var serviceAccount = new(corev1.ServiceAccount)
-	serviceAccount.Name = serviceAccountName
-	serviceAccount.Namespace = cluster.GetNamespace()
+	crb := &rbacv1.ClusterRoleBinding{}
+	err := k8sClient.Get(ctx, client.ObjectKey{Name: serviceAccountName}, crb)
+	if err != nil {
+		return err
+	}
 	result, err := clientutil.CreateOrPatch(ctx, k8sClient, serviceAccount, func() error {
-		return nil
+		return controllerutil.SetOwnerReference(crb, serviceAccount, k8sClient.Scheme())
 	})
 	if err != nil {
 		return err
@@ -120,6 +122,31 @@ func reconcileServiceAccountInRemoteCluster(ctx context.Context, k8sClient clien
 	case clientutil.OperationResultUpdated:
 		log.FromContext(ctx).Info("updated serviceAccount", "cluster", serviceAccount.Name)
 		// TODO: emit event on cluster
+	}
+	return nil
+}
+
+func deleteClusterRoleBindingInRemoteCluster(ctx context.Context, k8sClient client.Client) error {
+	crb := &rbacv1.ClusterRoleBinding{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: serviceAccountName,
+		},
+	}
+	err := k8sClient.Get(ctx, client.ObjectKey{Name: serviceAccountName}, crb)
+	if err != nil {
+		ctrl.LoggerFrom(ctx).V(5).Error(err, "potential err getting clusterRoleBinding")
+		if apierrors.IsUnauthorized(err) || apierrors.IsNotFound(err) || apierrors.IsForbidden(err) {
+			return nil
+		}
+		return err
+	}
+	err = k8sClient.Delete(ctx, crb)
+	// ignore not found and forbidden errors
+	if err != nil {
+		ctrl.LoggerFrom(ctx).V(5).Error(err, "potential err deleting clusterRoleBinding")
+		if !apierrors.IsUnauthorized(err) && !apierrors.IsNotFound(err) && !apierrors.IsForbidden(err) {
+			return err
+		}
 	}
 	return nil
 }
@@ -143,25 +170,19 @@ func reconcileClusterRoleBindingInRemoteCluster(ctx context.Context, k8sClient c
 		},
 	}
 
-	namespace := new(corev1.Namespace)
-	if err := k8sClient.Get(ctx, types.NamespacedName{Namespace: "", Name: cluster.GetNamespace()}, namespace); err != nil {
-		return err
-	}
-
 	result, err := clientutil.CreateOrPatch(ctx, k8sClient, clusterRoleBinding, func() error {
 		return nil
 	})
 	if err != nil {
 		return err
 	}
-
 	switch result {
+	// TODO: emit event on cluster
 	case clientutil.OperationResultCreated:
 		log.FromContext(ctx).Info("created clusterRoleBinding", "cluster", clusterRoleBinding.Name)
-		// TODO: emit event on cluster
+	// TODO: emit event on cluster
 	case clientutil.OperationResultUpdated:
 		log.FromContext(ctx).Info("updated clusterRoleBinding", "cluster", clusterRoleBinding.Name)
-		// TODO: emit event on cluster
 	}
 	return nil
 }
@@ -241,6 +262,27 @@ func (t *tokenHelper) ReconcileServiceAccountToken(ctx context.Context, restClie
 		return nil
 	})
 	return err
+}
+
+// generateNewClientKubeConfig generates a kubeconfig for the client to access the cluster from REST config coming from the secret
+func generateNewClientKubeConfig(_ context.Context, restConfigGetter *clientutil.RestClientGetter, bearerToken string, cluster *greenhousev1alpha1.Cluster) ([]byte, error) {
+	restConfig, err := restConfigGetter.ToRawKubeConfigLoader().ClientConfig()
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to load kube clientConfig for cluster %s", cluster.GetName())
+	}
+	// TODO: replace overwrite with https://github.com/kubernetes/kubernetes/pull/119398 after 1.30 upgrade
+	kubeConfigGenerator := &KubeConfigHelper{
+		Host:        restConfig.Host,
+		CAData:      restConfig.CAData,
+		BearerToken: bearerToken,
+		Username:    serviceAccountName,
+		Namespace:   cluster.GetNamespace(),
+	}
+	kubeconfigByte, err := clientcmd.Write(kubeConfigGenerator.RestConfigToAPIConfig(cluster.Name))
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to generate kubeconfig for cluster %s", cluster.GetName())
+	}
+	return kubeconfigByte, nil
 }
 
 // reconcileRemoteAPIServerVersion fetches the api server version from the remote cluster and reflects it in the cluster CR

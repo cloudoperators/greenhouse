@@ -9,10 +9,8 @@ import (
 
 	"github.com/cloudoperators/greenhouse/pkg/lifecycle"
 
-	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/client-go/tools/record"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
@@ -86,7 +84,7 @@ func (r *RemoteClusterReconciler) EnsureCreated(ctx context.Context, resource li
 		}
 	}
 	defer updateMetrics(cluster)
-	var clusterSecret = new(corev1.Secret)
+	clusterSecret := &corev1.Secret{}
 	if err := r.Get(ctx, types.NamespacedName{Name: cluster.GetSecretName(), Namespace: cluster.GetNamespace()}, clusterSecret); err != nil {
 		return ctrl.Result{}, lifecycle.Failed, err
 	}
@@ -101,13 +99,18 @@ func (r *RemoteClusterReconciler) EnsureCreated(ctx context.Context, resource li
 		return ctrl.Result{}, lifecycle.Failed, err
 	}
 
+	// create cluster role binding first so that it can be added as owner in serviceAccount
+	if err := reconcileClusterRoleBindingInRemoteCluster(ctx, k8sClientForRemoteCluster, cluster); err != nil {
+		return ctrl.Result{}, lifecycle.Failed, err
+	}
+
+	// create managed namespace in remote cluster
 	if err := reconcileNamespaceInRemoteCluster(ctx, k8sClientForRemoteCluster, cluster); err != nil {
 		return ctrl.Result{}, lifecycle.Failed, err
 	}
+
+	// create greenhouse service account in managed namespace and assign cluster role binding as owner
 	if err := reconcileServiceAccountInRemoteCluster(ctx, k8sClientForRemoteCluster, cluster); err != nil {
-		return ctrl.Result{}, lifecycle.Failed, err
-	}
-	if err := reconcileClusterRoleBindingInRemoteCluster(ctx, k8sClientForRemoteCluster, cluster); err != nil {
 		return ctrl.Result{}, lifecycle.Failed, err
 	}
 
@@ -153,33 +156,12 @@ func (r *RemoteClusterReconciler) EnsureDeleted(ctx context.Context, resource li
 		return ctrl.Result{}, lifecycle.Failed, err
 	}
 
-	// deleting the service account in the remote cluster will delete the namespaced role and namespaced role binding as well
-	// since it is owned by the service account
-	if err := deleteServiceAccountInRemoteCluster(ctx, remoteClient, cluster); err != nil {
+	// deleting the cluster role binding in the remote cluster will delete the greenhouse service account in managed namespace
+	// due to owner reference
+	if err := deleteClusterRoleBindingInRemoteCluster(ctx, remoteClient); err != nil {
 		return ctrl.Result{}, lifecycle.Failed, err
 	}
 	return ctrl.Result{}, lifecycle.Success, nil
-}
-
-// generateNewClientKubeConfig generates a kubeconfig for the client to access the cluster from REST config coming from the secret
-func generateNewClientKubeConfig(_ context.Context, restConfigGetter *clientutil.RestClientGetter, bearerToken string, cluster *greenhousev1alpha1.Cluster) ([]byte, error) {
-	restConfig, err := restConfigGetter.ToRawKubeConfigLoader().ClientConfig()
-	if err != nil {
-		return nil, errors.Wrapf(err, "failed to load kube clientConfig for cluster %s", cluster.GetName())
-	}
-	// TODO: replace overwrite with https://github.com/kubernetes/kubernetes/pull/119398 after 1.30 upgrade
-	kubeConfigGenerator := &KubeConfigHelper{
-		Host:        restConfig.Host,
-		CAData:      restConfig.CAData,
-		BearerToken: bearerToken,
-		Username:    serviceAccountName,
-		Namespace:   cluster.GetNamespace(),
-	}
-	kubeconfigByte, err := clientcmd.Write(kubeConfigGenerator.RestConfigToAPIConfig(cluster.Name))
-	if err != nil {
-		return nil, errors.Wrapf(err, "failed to generate kubeconfig for cluster %s", cluster.GetName())
-	}
-	return kubeconfigByte, nil
 }
 
 func deletePlugins(ctx context.Context, c client.Client, cluster *greenhousev1alpha1.Cluster) (count int, err error) {
