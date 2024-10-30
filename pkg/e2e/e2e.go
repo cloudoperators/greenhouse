@@ -238,7 +238,7 @@ func WaitUntilResourceReadyOrNotReady(ctx context.Context, apiClient client.Clie
 		conditions := resource.GetConditions()
 		readyCondition := conditions.GetConditionByType(greenhousev1alpha1.ReadyCondition).IsTrue()
 		expected := readyCondition == readyStatus
-		utils.Logf("readyCondition: %v, expectedStatus: %v, calcualted: %v\n", readyCondition, readyStatus, expected)
+		utils.Logf("readyCondition: %v, expectedStatus: %v, calculated: %v\n", readyCondition, readyStatus, expected)
 		if !expected {
 			return fmt.Errorf("resource %s is not yet in expected state", resource.GetName())
 		}
@@ -272,7 +272,7 @@ func (env *TestEnv) GenerateControllerLogs(ctx context.Context, startTime time.T
 		utils.Logf("error listing pods: %s", err.Error())
 		return
 	}
-	if len(pods.Items) < 0 {
+	if len(pods.Items) == 0 {
 		utils.Logf("no pods found for deployment %s", managerDeploymentName)
 		return
 	}

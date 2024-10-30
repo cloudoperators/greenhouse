@@ -3,6 +3,7 @@ package expect
 import (
 	"context"
 	"fmt"
+	"strconv"
 	"time"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -87,7 +88,7 @@ func OffBoardRemoteCluster(ctx context.Context, adminClient, remoteClient client
 	Eventually(func(g Gomega) bool {
 		err := adminClient.Get(ctx, client.ObjectKey{Name: name, Namespace: namespace}, cluster)
 		g.Expect(err).To(HaveOccurred())
-		g.Expect(client.IgnoreNotFound(err)).To(BeNil())
+		g.Expect(client.IgnoreNotFound(err)).To(Succeed())
 		return true
 	}, 1*time.Minute).Should(BeTrue(), "cluster resource should be deleted")
 
@@ -96,11 +97,11 @@ func OffBoardRemoteCluster(ctx context.Context, adminClient, remoteClient client
 		crb := &rbacv1.ClusterRoleBinding{}
 		err := remoteClient.Get(ctx, client.ObjectKey{Name: ManagedResourceName}, crb)
 		GinkgoWriter.Printf("crb err: %v\n", err)
-		g.Expect(client.IgnoreNotFound(err)).To(BeNil(), "cluster role binding should be deleted")
+		g.Expect(client.IgnoreNotFound(err)).To(Succeed(), "cluster role binding should be deleted")
 		managedSA := &corev1.ServiceAccount{}
 		err = remoteClient.Get(ctx, client.ObjectKey{Name: ManagedResourceName, Namespace: namespace}, managedSA)
 		GinkgoWriter.Printf("sa err: %v\n", err)
-		g.Expect(client.IgnoreNotFound(err)).To(BeNil(), "managed service account should be deleted")
+		g.Expect(client.IgnoreNotFound(err)).To(Succeed(), "managed service account should be deleted")
 		return true
 	}, 1*time.Minute).Should(BeTrue(), "managed service account should be deleted")
 }
@@ -120,7 +121,7 @@ func ClusterIsReady(ctx context.Context, adminClient client.Client, clusterName,
 	}).Should(BeTrue(), "cluster should be ready")
 }
 
-func RevokingRemoteServiceAccount(ctx context.Context, adminClient client.Client, remoteClient client.Client, serviceAccountName, clusterName, namespace string) {
+func RevokingRemoteServiceAccount(ctx context.Context, adminClient, remoteClient client.Client, serviceAccountName, clusterName, namespace string) {
 	By("deleting the managed service account in the remote cluster")
 	Eventually(func(g Gomega) bool {
 		sa := &corev1.ServiceAccount{}
@@ -178,7 +179,7 @@ func reconcileReadyNotReady(ctx context.Context, adminClient client.Client, clus
 	err := e2e.WaitUntilResourceReadyOrNotReady(ctx, adminClient, &greenhousev1alpha1.Cluster{}, clusterName, namespace, func(resource lifecycle.RuntimeObject) error {
 		By("triggering a reconcile of the cluster resource")
 		resource.SetLabels(map[string]string{
-			"greenhouse.sap/last-apply": fmt.Sprintf("%d", time.Now().Unix()),
+			"greenhouse.sap/last-apply": strconv.FormatInt(time.Now().Unix(), 10),
 		})
 		return adminClient.Update(ctx, resource)
 	}, readyStatus)
