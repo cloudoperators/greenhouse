@@ -1,8 +1,9 @@
+# Cluster Scoped Resource
 apiVersion: greenhouse.sap/v1alpha1
 kind: Organization
 metadata:
-  name: e2e-organization
+  name: cluster-e2e
 spec:
-  description: converge cloud organization
-  displayName: ccloud
+  description: e2e organization for cluster
+  displayName: ClusterE2E
   mappedOrgAdminIdPGroup: TEST_ORG_ADMIN
