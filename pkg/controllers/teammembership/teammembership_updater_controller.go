@@ -96,7 +96,7 @@ func listTeamsAsReconcileRequests(ctx context.Context, c client.Client, listOpts
 }
 
 func (r *TeamMembershipUpdaterController) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	return lifecycle.Reconcile(ctx, r.Client, req.NamespacedName, &greenhousev1alpha1.Team{}, r, nil)
+	return lifecycle.Reconcile(ctx, r.Client, req.NamespacedName, &greenhousev1alpha1.Team{}, r, nil) // status function is nil because it updates the other entity inside.
 }
 
 func (r *TeamMembershipUpdaterController) EnsureDeleted(ctx context.Context, object lifecycle.RuntimeObject) (ctrl.Result, lifecycle.ReconcileResult, error) {
