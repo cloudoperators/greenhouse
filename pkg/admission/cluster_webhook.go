@@ -47,6 +47,7 @@ func DefaultCluster(ctx context.Context, _ client.Client, obj runtime.Object) er
 	if !ok {
 		return nil
 	}
+
 	annotations := cluster.GetAnnotations()
 	deletionVal, deletionMarked := annotations[apis.MarkClusterDeletionAnnotation]
 	_, scheduleExists := annotations[apis.ScheduleClusterDeletionAnnotation]
@@ -102,6 +103,7 @@ func ValidateCreateCluster(ctx context.Context, _ client.Client, obj runtime.Obj
 		logger.Error(err, "found deletion annotation on cluster creation, admission will be denied")
 		return admission.Warnings{"you cannot create a cluster with deletion annotation"}, err
 	}
+
 	return nil, nil
 }
 

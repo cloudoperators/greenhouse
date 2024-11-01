@@ -1,7 +1,7 @@
 openapi: 3.0.0
 info:
   title: Greenhouse
-  version: a72ea02
+  version: aad9425
   description: PlusOne operations platform
 paths:
   /TeamMembership:
@@ -1097,6 +1097,17 @@ components:
               enum:
                 - direct
               type: string
+            kubeConfig:
+              description: KubeConfig contains specific values for `KubeConfig` for the cluster.
+              properties:
+                maxTokenValidity:
+                  default: 72
+                  description: MaxTokenValidity specifies the maximum duration for which a token remains valid in hours.
+                  format: int32
+                  maximum: 72
+                  minimum: 24
+                  type: integer
+              type: object
           required:
             - accessMode
           type: object

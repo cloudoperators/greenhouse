@@ -17,7 +17,17 @@ spec:
     singular: pluginpreset
   scope: Namespaced
   versions:
-  - name: v1alpha1
+  - additionalPrinterColumns:
+    - jsonPath: .spec.plugin.pluginDefinition
+      name: Plugin Definition
+      type: string
+    - jsonPath: .spec.plugin.releaseNamespace
+      name: Release Namespace
+      type: string
+    - jsonPath: .status.statusConditions.conditions[?(@.type == "Ready")].status
+      name: Ready
+      type: string
+    name: v1alpha1
     schema:
       openAPIV3Schema:
         description: PluginPreset is the Schema for the PluginPresets API
