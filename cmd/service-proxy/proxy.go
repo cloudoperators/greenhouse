@@ -36,20 +36,34 @@ func NewProxyManager() *ProxyManager {
 }
 
 type ProxyManager struct {
-	client client.Client
-	logger logr.Logger
-
+	client   client.Client
+	logger   logr.Logger
 	clusters map[string]clusterRoutes
 	mu       sync.RWMutex
 }
 
 type clusterRoutes struct {
 	transport http.RoundTripper
-	routes    map[string]*url.URL
+	routes    map[string]route
 }
 
-// contextClusterKey is used to embed a cluster in the context
-type contextClusterKey struct {
+// route holds the url the request should be forwarded to and the service name and namespace as metadata
+type route struct {
+	url         *url.URL
+	serviceName string
+	namespace   string
+}
+
+// ContextClusterKey is used to embed a cluster in the context
+type ContextClusterKey struct {
+}
+
+// contextNamespaceKey is used to embed a namespace in the context
+type ContextNamespaceKey struct {
+}
+
+// contextNameKey is used to embed a name in the context
+type ContextNameKey struct {
 }
 
 var apiServerProxyPathRegex = regexp.MustCompile(`/api/v1/namespaces/[^/]+/services/[^/]+/proxy/`)
@@ -90,7 +104,7 @@ func (pm *ProxyManager) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.R
 		return ctrl.Result{}, fmt.Errorf("failed to create transport for cluster %s: %w", req.Name, err)
 	}
 
-	cls.routes = make(map[string]*url.URL)
+	cls.routes = make(map[string]route)
 
 	k8sAPIURL, err := url.Parse(restConfig.Host)
 	if err != nil {
@@ -109,7 +123,7 @@ func (pm *ProxyManager) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.R
 				proto = *svc.Protocol
 			}
 			u.Path = fmt.Sprintf("/api/v1/namespaces/%s/services/%s:%s:%d/proxy", svc.Namespace, proto, svc.Name, svc.Port)
-			cls.routes[url] = &u
+			cls.routes[url] = route{url: &u, namespace: svc.Namespace, serviceName: svc.Name}
 		}
 	}
 	logger.Info("Added routes for cluster", "cluster", req.Name, "routes", cls.routes)
@@ -144,10 +158,11 @@ func (pm *ProxyManager) ReverseProxy() *httputil.ReverseProxy {
 	}
 }
 
+// RoundTrip executes the rewritten request and uses the transport created when reconciling the cluster with respective credentials
 func (pm *ProxyManager) RoundTrip(req *http.Request) (resp *http.Response, err error) {
 	pm.mu.RLock()
 	defer pm.mu.RUnlock()
-	cluster, ok := req.Context().Value(contextClusterKey{}).(string)
+	cluster, ok := req.Context().Value(ContextClusterKey{}).(string)
 
 	if !ok {
 		return nil, fmt.Errorf("no upstream found for: %s", req.URL.String())
@@ -161,6 +176,7 @@ func (pm *ProxyManager) RoundTrip(req *http.Request) (resp *http.Response, err e
 	return
 }
 
+// rewrite rewrites the request to the backend URL and sets the cluster in the context to be used by RoundTrip to identify the correct transport
 func (pm *ProxyManager) rewrite(req *httputil.ProxyRequest) {
 	req.SetXForwarded()
 
@@ -171,26 +187,24 @@ func (pm *ProxyManager) rewrite(req *httputil.ProxyRequest) {
 		req.Out = req.Out.WithContext(log.IntoContext(req.Out.Context(), l))
 	}()
 
-	// hostname is expected to have the format $name--$cluster--$namespace.$organisation.$basedomain
+	// hostname is expected to have the format specified in ./pkg/common/url.go
 	cluster, err := common.ExtractCluster(req.In.Host)
 	if err != nil {
 		return
 	}
-	l = l.WithValues("cluster", cluster)
 
-	pm.mu.RLock()
-	defer pm.mu.RUnlock()
-	cls, found := pm.clusters[cluster]
-	if !found {
+	route, ok := pm.GetClusterRoute(cluster, "https://"+req.In.Host)
+	if !ok {
+		l.Info("No route found for cluster and URL", "cluster", cluster, "url", req.In.URL.String())
 		return
 	}
-	backendURL, found := cls.routes["https://"+req.In.Host]
-	if !found {
-		return
-	}
+	backendURL := route.url
 	// set cluster in context
-	req.Out = req.Out.WithContext(context.WithValue(req.Out.Context(), contextClusterKey{}, cluster))
+	ctx := context.WithValue(req.Out.Context(), ContextClusterKey{}, cluster)
 
+	l.WithValues("cluster", cluster, "namespace", route.namespace, "name", route.serviceName)
+
+	req.Out = req.Out.WithContext(ctx)
 	req.SetURL(backendURL)
 }
 
@@ -230,6 +244,21 @@ func (pm *ProxyManager) pluginsForCluster(ctx context.Context, cluster, namespac
 		}
 	}
 	return configs, nil
+}
+
+// GetClusterRoute returns the route information for a given cluster and incoming URL
+func (pm *ProxyManager) GetClusterRoute(cluster, inURL string) (*route, bool) {
+	pm.mu.RLock()
+	defer pm.mu.RUnlock()
+	cls, ok := pm.clusters[cluster]
+	if !ok {
+		return nil, false
+	}
+	getRoute, ok := cls.routes[inURL]
+	if !ok {
+		return nil, false
+	}
+	return &getRoute, true
 }
 
 func enqueuePluginForCluster(_ context.Context, o client.Object) []ctrl.Request {

@@ -60,8 +60,12 @@ func TestRewrite(t *testing.T) {
 			}
 			pm := NewProxyManager()
 			pm.clusters["cluster"] = clusterRoutes{
-				routes: map[string]*url.URL{
-					inputURL.Scheme + "://" + inputURL.Host: proxyURL,
+				routes: map[string]route{
+					inputURL.Scheme + "://" + inputURL.Host: {
+						url:         proxyURL,
+						namespace:   "namespace",
+						serviceName: "test",
+					},
 				},
 			}
 			r, err := http.NewRequestWithContext(context.Background(), http.MethodGet, inputURL.String(), http.NoBody)
@@ -81,8 +85,8 @@ func TestRewrite(t *testing.T) {
 			if req.Out.URL.String() != tt.expectedURL {
 				t.Errorf("expected url %s, got %s", tt.expectedURL, req.Out.URL.String())
 			}
-			if req.Out.Context().Value(contextClusterKey{}) != tt.contextVal {
-				t.Errorf("expected cluster %s in context, got %s", "cluster", req.Out.Context().Value(contextClusterKey{}))
+			if req.Out.Context().Value(ContextClusterKey{}) != tt.contextVal {
+				t.Errorf("expected cluster %s in context, got %s", "cluster", req.Out.Context().Value(ContextClusterKey{}))
 			}
 		})
 	}
@@ -139,7 +143,7 @@ users:
 			},
 		}).Build()
 	pm.clusters["cluster"] = clusterRoutes{
-		routes: map[string]*url.URL{},
+		routes: map[string]route{},
 	}
 	ctx := context.Background()
 	_, err := pm.Reconcile(ctx, ctrl.Request{NamespacedName: types.NamespacedName{Name: "cluster", Namespace: "namespace"}})
@@ -148,10 +152,11 @@ users:
 		t.Errorf("expected no error, got: %s", err)
 	}
 
-	targetURL, ok := pm.clusters["cluster"].routes["https://service--namespace--cluster.org.basedomain"]
+	route, ok := pm.clusters["cluster"].routes["https://service--namespace--cluster.org.basedomain"]
 	if !ok {
 		t.Fatal("expected route to be added")
 	}
+	targetURL := route.url
 	expectedURL := fmt.Sprintf("%s/api/v1/namespaces/%s/services/%s:%s:%s/proxy", "https://apiserver.test", "namespace", "http", "test", "8080")
 	if targetURL.String() != expectedURL {
 		t.Errorf("expected url %s, got %s", expectedURL, targetURL.String())

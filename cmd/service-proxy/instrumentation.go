@@ -13,31 +13,25 @@ import (
 	"github.com/cloudoperators/greenhouse/pkg/common"
 )
 
-type ctxClusterKey struct {
-}
-type ctxNamespaceKey struct {
-}
-type ctxNameKey struct {
-}
-
 var (
 	clusterFromContext = promhttp.WithLabelFromCtx("cluster", func(ctx context.Context) string {
-		cluster, _ := ctx.Value(ctxClusterKey{}).(string) //nolint:errcheck
+		cluster, _ := ctx.Value(ContextClusterKey{}).(string) //nolint:errcheck
 		return cluster
 	})
 
 	namespaceFromContext = promhttp.WithLabelFromCtx("namespace", func(ctx context.Context) string {
-		namespace, _ := ctx.Value(ctxNamespaceKey{}).(string) //nolint:errcheck
+		namespace, _ := ctx.Value(ContextNamespaceKey{}).(string) //nolint:errcheck
 		return namespace
 	})
 
 	nameFromContext = promhttp.WithLabelFromCtx("name", func(ctx context.Context) string {
-		name, _ := ctx.Value(ctxNameKey{}).(string) //nolint:errcheck
+		name, _ := ctx.Value(ContextNameKey{}).(string) //nolint:errcheck
 		return name
 	})
 )
 
-func InstrumentHandler(next http.Handler, registry prometheus.Registerer) http.Handler {
+func InstrumentHandler(pm *ProxyManager, registry prometheus.Registerer) http.Handler {
+	next := pm.ReverseProxy()
 	requestCounter := prometheus.NewCounterVec(
 		prometheus.CounterOpts{
 			Name: "http_requests_total",
@@ -70,8 +64,15 @@ func InstrumentHandler(next http.Handler, registry prometheus.Registerer) http.H
 	injector := func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
 			if cluster, err := common.ExtractCluster(req.Host); err == nil {
+				pm.mu.Lock()
+				defer pm.mu.Unlock()
 				ctx := req.Context()
-				ctx = context.WithValue(ctx, ctxClusterKey{}, cluster)
+				ctx = context.WithValue(ctx, ContextClusterKey{}, cluster)
+				route, found := pm.GetClusterRoute(cluster, req.Host)
+				if found {
+					ctx = context.WithValue(ctx, ContextNamespaceKey{}, route.namespace)
+					ctx = context.WithValue(ctx, ContextNameKey{}, route.serviceName)
+				}
 				req = req.WithContext(ctx)
 			}
 			next.ServeHTTP(rw, req)
