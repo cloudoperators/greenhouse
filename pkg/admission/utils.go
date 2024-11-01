@@ -134,7 +134,7 @@ func logAdmissionRequest(ctx context.Context) {
 }
 
 // invalidateDoubleDashes validates that the object name does not contain double dashes.
-func invalidateDoubleDashesInName(obj client.Object, l logr.Logger) (admission.Warnings, error) {
+func invalidateDoubleDashesInName(obj client.Object, l logr.Logger) error {
 	if strings.Contains(obj.GetName(), "--") {
 		err := apierrors.NewInvalid(
 			obj.GetObjectKind().GroupVersionKind().GroupKind(),
@@ -144,14 +144,14 @@ func invalidateDoubleDashesInName(obj client.Object, l logr.Logger) (admission.W
 			},
 		)
 		l.Error(err, "found object name with double dashes, admission will be denied")
-		return admission.Warnings{"you cannot create an object with double dashes in the name"}, err
+		return err
 	}
-	return nil, nil
+	return nil
 }
 
 // capName validates that the name is not longer than the provided length.
 
-func capName(obj client.Object, l logr.Logger, length int) (admission.Warnings, error) {
+func capName(obj client.Object, l logr.Logger, length int) error {
 	if len(obj.GetName()) > length {
 		err := apierrors.NewInvalid(
 			obj.GetObjectKind().GroupVersionKind().GroupKind(),
@@ -161,7 +161,7 @@ func capName(obj client.Object, l logr.Logger, length int) (admission.Warnings, 
 			},
 		)
 		l.Error(err, fmt.Sprintf("found object name too long, admission will be denied, name must be less than or equal to %d", length))
-		return admission.Warnings{fmt.Sprintf("you cannot create an object with a name longer than %d", length)}, err
+		return err
 	}
-	return nil, nil
+	return nil
 }
