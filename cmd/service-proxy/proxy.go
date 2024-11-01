@@ -54,16 +54,16 @@ type route struct {
 	namespace   string
 }
 
-// ContextClusterKey is used to embed a cluster in the context
-type ContextClusterKey struct {
+// contextClusterKey is used to embed a cluster in the context
+type contextClusterKey struct {
 }
 
 // contextNamespaceKey is used to embed a namespace in the context
-type ContextNamespaceKey struct {
+type contextNamespaceKey struct {
 }
 
 // contextNameKey is used to embed a name in the context
-type ContextNameKey struct {
+type contextNameKey struct {
 }
 
 var apiServerProxyPathRegex = regexp.MustCompile(`/api/v1/namespaces/[^/]+/services/[^/]+/proxy/`)
@@ -162,7 +162,7 @@ func (pm *ProxyManager) ReverseProxy() *httputil.ReverseProxy {
 func (pm *ProxyManager) RoundTrip(req *http.Request) (resp *http.Response, err error) {
 	pm.mu.RLock()
 	defer pm.mu.RUnlock()
-	cluster, ok := req.Context().Value(ContextClusterKey{}).(string)
+	cluster, ok := req.Context().Value(contextClusterKey{}).(string)
 
 	if !ok {
 		return nil, fmt.Errorf("no upstream found for: %s", req.URL.String())
@@ -200,7 +200,7 @@ func (pm *ProxyManager) rewrite(req *httputil.ProxyRequest) {
 	}
 	backendURL := route.url
 	// set cluster in context
-	ctx := context.WithValue(req.Out.Context(), ContextClusterKey{}, cluster)
+	ctx := context.WithValue(req.Out.Context(), contextClusterKey{}, cluster)
 
 	l.WithValues("cluster", cluster, "namespace", route.namespace, "name", route.serviceName)
 

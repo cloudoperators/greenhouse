@@ -15,17 +15,17 @@ import (
 
 var (
 	clusterFromContext = promhttp.WithLabelFromCtx("cluster", func(ctx context.Context) string {
-		cluster, _ := ctx.Value(ContextClusterKey{}).(string) //nolint:errcheck
+		cluster, _ := ctx.Value(contextClusterKey{}).(string) //nolint:errcheck
 		return cluster
 	})
 
 	namespaceFromContext = promhttp.WithLabelFromCtx("namespace", func(ctx context.Context) string {
-		namespace, _ := ctx.Value(ContextNamespaceKey{}).(string) //nolint:errcheck
+		namespace, _ := ctx.Value(contextNamespaceKey{}).(string) //nolint:errcheck
 		return namespace
 	})
 
 	nameFromContext = promhttp.WithLabelFromCtx("name", func(ctx context.Context) string {
-		name, _ := ctx.Value(ContextNameKey{}).(string) //nolint:errcheck
+		name, _ := ctx.Value(contextNameKey{}).(string) //nolint:errcheck
 		return name
 	})
 )
@@ -67,11 +67,11 @@ func InstrumentHandler(pm *ProxyManager, registry prometheus.Registerer) http.Ha
 				pm.mu.Lock()
 				defer pm.mu.Unlock()
 				ctx := req.Context()
-				ctx = context.WithValue(ctx, ContextClusterKey{}, cluster)
+				ctx = context.WithValue(ctx, contextClusterKey{}, cluster)
 				route, found := pm.GetClusterRoute(cluster, req.Host)
 				if found {
-					ctx = context.WithValue(ctx, ContextNamespaceKey{}, route.namespace)
-					ctx = context.WithValue(ctx, ContextNameKey{}, route.serviceName)
+					ctx = context.WithValue(ctx, contextNamespaceKey{}, route.namespace)
+					ctx = context.WithValue(ctx, contextNameKey{}, route.serviceName)
 				}
 				req = req.WithContext(ctx)
 			}

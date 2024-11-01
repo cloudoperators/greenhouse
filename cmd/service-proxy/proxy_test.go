@@ -85,8 +85,8 @@ func TestRewrite(t *testing.T) {
 			if req.Out.URL.String() != tt.expectedURL {
 				t.Errorf("expected url %s, got %s", tt.expectedURL, req.Out.URL.String())
 			}
-			if req.Out.Context().Value(ContextClusterKey{}) != tt.contextVal {
-				t.Errorf("expected cluster %s in context, got %s", "cluster", req.Out.Context().Value(ContextClusterKey{}))
+			if req.Out.Context().Value(contextClusterKey{}) != tt.contextVal {
+				t.Errorf("expected cluster %s in context, got %s", "cluster", req.Out.Context().Value(contextClusterKey{}))
 			}
 		})
 	}
