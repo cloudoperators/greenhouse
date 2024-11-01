@@ -105,11 +105,11 @@ func TestReconcile(t *testing.T) {
 				Namespace: "namespace",
 			},
 			Spec: greenhousev1alpha1.PluginSpec{
-				ClusterName: "cluster",
+				ClusterName: "cluster-1",
 			},
 			Status: greenhousev1alpha1.PluginStatus{
 				ExposedServices: map[string]greenhousev1alpha1.Service{
-					"https://service--namespace--cluster.org.basedomain": {
+					"https://cluster-1--1234567.org.basedomain": {
 						Namespace: "namespace",
 						Name:      "test",
 						Port:      8080,
@@ -119,7 +119,7 @@ func TestReconcile(t *testing.T) {
 		},
 		&v1.Secret{
 			ObjectMeta: metav1.ObjectMeta{
-				Name:      "cluster",
+				Name:      "cluster-1",
 				Namespace: "namespace",
 			},
 			Type: "greenhouse.sap/kubeconfig",
@@ -142,17 +142,14 @@ users:
 `),
 			},
 		}).Build()
-	pm.clusters["cluster"] = clusterRoutes{
-		routes: map[string]route{},
-	}
 	ctx := context.Background()
-	_, err := pm.Reconcile(ctx, ctrl.Request{NamespacedName: types.NamespacedName{Name: "cluster", Namespace: "namespace"}})
+	_, err := pm.Reconcile(ctx, ctrl.Request{NamespacedName: types.NamespacedName{Name: "cluster-1", Namespace: "namespace"}})
 
 	if err != nil {
 		t.Errorf("expected no error, got: %s", err)
 	}
 
-	route, ok := pm.clusters["cluster"].routes["https://service--namespace--cluster.org.basedomain"]
+	route, ok := pm.clusters["cluster-1"].routes["https://cluster-1--1234567.org.basedomain"]
 	if !ok {
 		t.Fatal("expected route to be added")
 	}

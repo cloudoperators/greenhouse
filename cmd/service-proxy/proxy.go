@@ -1,6 +1,21 @@
 // SPDX-FileCopyrightText: 2024 SAP SE or an SAP affiliate company and Greenhouse contributors
 // SPDX-License-Identifier: Apache-2.0
 
+// The ProxyManager struct is used to manage the reverse proxy and the cluster routes.
+// The Reconcile method is used to add or update the cluster routes.
+// When reconciling cluster routes from a Plugin with an exposed service, the ProxyManager persists the transport and URL necessary to proxy an incoming request in the clusters map.
+// The transport is created using the credentials from the Secret associated with the cluster.
+// The URL is created using the k8s API server proxy: https://kubernetes.io/docs/tasks/access-application-cluster/access-cluster-services/#discovering-builtin-services
+// Entries are saved by cluster and exposed URL. E.g., if a Plugin exposes a service with the URL "https://cluster1--1234567.example.com" on cluster-1, the route is saved in
+// clusters["cluster-1"]clusterRoutes{
+//   transport: net/http.RoundTripper{$TransportCreatedFromClusterKubeConfig},
+//   routes: map[string]route ["https://cluster-1--1234567.organisation.basedomain"]route{
+//     url: *net/url.URL {$BackenURL},
+//     serviceName: $serviceName,
+//     namespace: $serviceNamespace
+//   }
+// }.
+
 package main
 
 import (
