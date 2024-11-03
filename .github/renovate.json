@@ -10,8 +10,9 @@
   "ignoreDeps": [
     "github.com/dexidp/dex"
   ],
-  "regexManagers": [
+  "customManagers": [
     {
+      "customType": "regex",
       "description": "Bump envtest version in the Makefile",
       "fileMatch": [
         "^Makefile$"
@@ -24,6 +25,7 @@
       "extractVersionTemplate": "^envtest.v(?<version>.*)$"
     },
     {
+      "customType": "regex",
       "description": "Bump controller tools version in the Makefile",
       "fileMatch": [
         "^Makefile$"
@@ -36,6 +38,7 @@
       "extractVersionTemplate": "^v(?<version>.*)$"
     },
     {
+      "customType": "regex",
       "description": "Bump golangci-lint version in the Makefile",
       "fileMatch": [
         "^Makefile$"
@@ -48,6 +51,7 @@
       "extractVersionTemplate": "^v(?<version>.*)$"
     },
     {
+      "customType": "regex",
       "description": "Bump ginkolinter version in the Makefile",
       "fileMatch": [
         "^Makefile$"
@@ -60,6 +64,7 @@
       "extractVersionTemplate": "^v(?<version>.*)$"
     },
     {
+      "customType": "regex",
       "description": "Bump kustomize version in the Makefile",
       "fileMatch": [
         "^Makefile$"
@@ -75,8 +80,14 @@
   "packageRules": [
     {
       "groupName": "github actions",
-      "matchManagers": ["github-actions"],
-      "matchUpdateTypes": ["major", "minor", "patch"],
+      "matchManagers": [
+        "github-actions"
+      ],
+      "matchUpdateTypes": [
+        "major",
+        "minor",
+        "patch"
+      ],
       "extends": [
         "helpers:pinGitHubActionDigests"
       ],
@@ -91,9 +102,14 @@
     },
     {
       "groupName": "golang",
-      "matchDatasources": ["docker", "go-version"],
-      "matchPackagePatterns": ["golang"],
-      "minimumReleaseAge": "14 days"
+      "matchDatasources": [
+        "docker",
+        "go-version"
+      ],
+      "minimumReleaseAge": "14 days",
+      "matchPackageNames": [
+        "/golang/"
+      ]
     },
     {
       "groupName": "helm",
@@ -101,11 +117,15 @@
       "matchDatasources": [
         "go"
       ],
-      "matchUpdateTypes": ["major", "minor", "patch"],
-      "matchPackagePrefixes": [
-        "helm.sh/helm/v3"
+      "matchUpdateTypes": [
+        "major",
+        "minor",
+        "patch"
       ],
-      "minimumReleaseAge": "14 days"
+      "minimumReleaseAge": "14 days",
+      "matchPackageNames": [
+        "helm.sh/helm/v3{/,}**"
+      ]
     },
     {
       "groupName": "kubernetes packages",
@@ -113,37 +133,41 @@
       "matchDatasources": [
         "go"
       ],
-      "matchUpdateTypes": ["major", "minor", "patch"],
-      "matchPackagePrefixes": [
-        "k8s.io/api",
-        "k8s.io/apiextensions-apiserver",
-        "k8s.io/apimachinery",
-        "k8s.io/apiserver",
-        "k8s.io/cli-runtime",
-        "k8s.io/client-go",
-        "k8s.io/cloud-provider",
-        "k8s.io/cluster-bootstrap",
-        "k8s.io/code-generator",
-        "k8s.io/component-base",
-        "k8s.io/controller-manager",
-        "k8s.io/cri-api",
-        "k8s.io/csi-translation-lib",
-        "k8s.io/kube-aggregator",
-        "k8s.io/kube-controller-manager",
-        "k8s.io/kube-proxy",
-        "k8s.io/kube-scheduler",
-        "k8s.io/kubectl",
-        "k8s.io/kubelet",
-        "k8s.io/legacy-cloud-providers",
-        "k8s.io/metrics",
-        "k8s.io/mount-utils",
-        "k8s.io/pod-security-admission",
-        "k8s.io/sample-apiserver",
-        "k8s.io/sample-cli-plugin",
-        "k8s.io/sample-controller",
-        "sigs.k8s.io/controller-runtime"
+      "matchUpdateTypes": [
+        "major",
+        "minor",
+        "patch"
       ],
-      "minimumReleaseAge": "14 days"
+      "minimumReleaseAge": "14 days",
+      "matchPackageNames": [
+        "k8s.io/api{/,}**",
+        "k8s.io/apiextensions-apiserver{/,}**",
+        "k8s.io/apimachinery{/,}**",
+        "k8s.io/apiserver{/,}**",
+        "k8s.io/cli-runtime{/,}**",
+        "k8s.io/client-go{/,}**",
+        "k8s.io/cloud-provider{/,}**",
+        "k8s.io/cluster-bootstrap{/,}**",
+        "k8s.io/code-generator{/,}**",
+        "k8s.io/component-base{/,}**",
+        "k8s.io/controller-manager{/,}**",
+        "k8s.io/cri-api{/,}**",
+        "k8s.io/csi-translation-lib{/,}**",
+        "k8s.io/kube-aggregator{/,}**",
+        "k8s.io/kube-controller-manager{/,}**",
+        "k8s.io/kube-proxy{/,}**",
+        "k8s.io/kube-scheduler{/,}**",
+        "k8s.io/kubectl{/,}**",
+        "k8s.io/kubelet{/,}**",
+        "k8s.io/legacy-cloud-providers{/,}**",
+        "k8s.io/metrics{/,}**",
+        "k8s.io/mount-utils{/,}**",
+        "k8s.io/pod-security-admission{/,}**",
+        "k8s.io/sample-apiserver{/,}**",
+        "k8s.io/sample-cli-plugin{/,}**",
+        "k8s.io/sample-controller{/,}**",
+        "sigs.k8s.io/controller-runtime{/,}**"
+      ]
     }
   ],
   "postUpdateOptions": [
