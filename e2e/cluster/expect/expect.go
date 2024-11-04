@@ -75,7 +75,7 @@ func ClusterDeletionIsScheduled(ctx context.Context, adminClient client.Client, 
 		GinkgoWriter.Printf("diff: %f\n", diff)
 		g.Expect(diff).To(BeNumerically("~", 48, 0.04), "deletion schedule should be within 1 hour")
 		return true
-	}, 1*time.Minute).Should(BeTrue(), "cluster should have a deletion schedule annotation")
+	}).Should(BeTrue(), "cluster should have a deletion schedule annotation")
 }
 
 func OffBoardRemoteCluster(ctx context.Context, adminClient, remoteClient client.Client, testStartTime time.Time, name, namespace string) {
