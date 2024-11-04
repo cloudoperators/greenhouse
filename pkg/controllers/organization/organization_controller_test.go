@@ -65,8 +65,10 @@ var _ = Describe("Test Organization reconciliation", Ordered, func() {
 			})
 
 			By("updating MappedOrgAdminIDPGroup in Organization")
+			err := setup.Get(test.Ctx, types.NamespacedName{Name: testOrg.Name, Namespace: testOrg.Namespace}, testOrg)
+			Expect(err).ToNot(HaveOccurred(), "there should be no error getting the organization")
 			testOrg.Spec.MappedOrgAdminIDPGroup = anotherIdpGroupName
-			err := setup.Update(test.Ctx, testOrg)
+			err = setup.Update(test.Ctx, testOrg)
 			Expect(err).ToNot(HaveOccurred(), "there must be no error updating the organization")
 
 			var team = &greenhousev1alpha1.Team{}
