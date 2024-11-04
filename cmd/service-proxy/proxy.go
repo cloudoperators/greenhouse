@@ -187,7 +187,10 @@ func (pm *ProxyManager) RoundTrip(req *http.Request) (resp *http.Response, err e
 		return nil, fmt.Errorf("cluster %s not found", cluster)
 	}
 	resp, err = cls.transport.RoundTrip(req)
-	log.FromContext(req.Context()).Info("Forwarded request", "status", resp.StatusCode, "upstream", req.URL.String())
+	// errors are logged by pm.Errorhandler
+	if err == nil {
+		log.FromContext(req.Context()).Info("Forwarded request", "status", resp.StatusCode, "upstream", req.URL.String())
+	}
 	return
 }
 

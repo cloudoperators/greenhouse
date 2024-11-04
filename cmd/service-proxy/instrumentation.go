@@ -64,8 +64,6 @@ func InstrumentHandler(pm *ProxyManager, registry prometheus.Registerer) http.Ha
 	injector := func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
 			if cluster, err := common.ExtractCluster(req.Host); err == nil {
-				pm.mu.Lock()
-				defer pm.mu.Unlock()
 				ctx := req.Context()
 				ctx = context.WithValue(ctx, contextClusterKey{}, cluster)
 				route, found := pm.GetClusterRoute(cluster, req.Host)
