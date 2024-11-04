@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2024 SAP SE or an SAP affiliate company and Greenhouse contributors
+// SPDX-License-Identifier: Apache-2.0
+
 package expect
 
 import (
@@ -90,7 +93,7 @@ func OffBoardRemoteCluster(ctx context.Context, adminClient, remoteClient client
 		g.Expect(err).To(HaveOccurred())
 		g.Expect(client.IgnoreNotFound(err)).To(Succeed())
 		return true
-	}, 1*time.Minute).Should(BeTrue(), "cluster resource should be deleted")
+	}).Should(BeTrue(), "cluster resource should be deleted")
 
 	By("verifying that the remote cluster managed service account and cluster role binding is deleted")
 	Eventually(func(g Gomega) bool {
@@ -103,7 +106,7 @@ func OffBoardRemoteCluster(ctx context.Context, adminClient, remoteClient client
 		GinkgoWriter.Printf("sa err: %v\n", err)
 		g.Expect(client.IgnoreNotFound(err)).To(Succeed(), "managed service account should be deleted")
 		return true
-	}, 1*time.Minute).Should(BeTrue(), "managed service account should be deleted")
+	}).Should(BeTrue(), "managed service account should be deleted")
 }
 
 func ClusterIsReady(ctx context.Context, adminClient client.Client, clusterName, namespace string) {
