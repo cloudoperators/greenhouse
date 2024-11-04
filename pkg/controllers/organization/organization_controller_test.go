@@ -9,6 +9,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/client-go/util/retry"
 
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/pkg/apis/greenhouse/v1alpha1"
 	"github.com/cloudoperators/greenhouse/pkg/test"
@@ -65,10 +66,13 @@ var _ = Describe("Test Organization reconciliation", Ordered, func() {
 			})
 
 			By("updating MappedOrgAdminIDPGroup in Organization")
-			err := setup.Get(test.Ctx, types.NamespacedName{Name: testOrg.Name, Namespace: testOrg.Namespace}, testOrg)
-			Expect(err).ToNot(HaveOccurred(), "there should be no error getting the organization")
-			testOrg.Spec.MappedOrgAdminIDPGroup = anotherIdpGroupName
-			err = setup.Update(test.Ctx, testOrg)
+			err := retry.RetryOnConflict(retry.DefaultBackoff, func() error {
+				if err := setup.Get(test.Ctx, types.NamespacedName{Name: testOrg.Name, Namespace: testOrg.Namespace}, testOrg); err != nil {
+					return err
+				}
+				testOrg.Spec.MappedOrgAdminIDPGroup = anotherIdpGroupName
+				return setup.Update(test.Ctx, testOrg)
+			})
 			Expect(err).ToNot(HaveOccurred(), "there must be no error updating the organization")
 
 			var team = &greenhousev1alpha1.Team{}
