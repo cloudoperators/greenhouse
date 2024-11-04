@@ -40,7 +40,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        k8s-version: [ "v1.29.8"]
+        k8s-version: [ "v1.29.8", "v1.30.4", "v1.31.0" ]
         e2es: ${{fromJson(needs.init.outputs.tests)}}
     steps:
       - name: "Checkout"
