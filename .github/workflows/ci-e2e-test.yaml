@@ -15,7 +15,7 @@ jobs:
   init:
     outputs:
       tests: ${{ steps.e2es.outputs.result }}
-    runs-on: [ "solinas", "self-hosted" ]
+    runs-on: [ default ]
     name: "Prepare E2E Scenarios"
     steps:
       - name: "Checkout"
@@ -32,7 +32,7 @@ jobs:
     name: "Run ${{ matrix.e2es }}(${{ matrix.k8s-version}}) E2E"
     if: needs.init.outputs.tests != '[]'
     needs: [ init ]
-    runs-on: [ "solinas", "self-hosted" ]
+    runs-on: [ default ]
     env:
       ADMIN_CLUSTER: greenhouse-admin
       REMOTE_CLUSTER: greenhouse-remote
@@ -108,7 +108,7 @@ jobs:
   checksOK:
     name: "E2E Check"
     needs: [ e2e ]
-    runs-on: [ "solinas", "self-hosted" ]
+    runs-on: [ default ]
     if: always()
     steps:
       - name: "Check if e2e passed"
