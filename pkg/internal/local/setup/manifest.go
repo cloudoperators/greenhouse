@@ -101,7 +101,10 @@ func webhookManifestSetup(ctx context.Context, m *Manifest) Step {
 			return err
 		}
 		if m.Webhook.DevMode {
-			return m.extractWebhookCerts(ctx, clusterName, namespace)
+			err = m.extractWebhookCerts(ctx, clusterName, namespace)
+			if err != nil {
+				return err
+			}
 		}
 		return nil
 	}
