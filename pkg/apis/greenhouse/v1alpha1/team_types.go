@@ -18,7 +18,9 @@ type TeamSpec struct {
 }
 
 // TeamStatus defines the observed state of Team
-type TeamStatus struct{}
+type TeamStatus struct {
+	StatusConditions StatusConditions `json:"statusConditions"`
+}
 
 //+kubebuilder:object:root=true
 //+kubebuilder:subresource:status
@@ -49,7 +51,9 @@ func init() {
 }
 
 func (o *Team) GetConditions() StatusConditions {
-	return StatusConditions{} // OrganizationStatus is an empty struct so we don't need to get anything
+	return o.Status.StatusConditions
 }
 
-func (o *Team) SetCondition(Condition) {} // OrganizationStatus is an empty struct so we don't need to set anything
+func (o *Team) SetCondition(condition Condition) {
+	o.Status.StatusConditions.SetConditions(condition)
+}
