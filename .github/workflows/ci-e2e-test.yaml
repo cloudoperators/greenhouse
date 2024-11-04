@@ -1,15 +1,121 @@
-name: E2E Test
+name: E2E Workflow
 on:
-  workflow_dispatch: {}
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - 'pkg/**'
+      - 'e2e/**'
+      - 'cmd/**'
+      - 'Dockerfile*'
+      - 'go.mod'
+      - 'go.sum'
+      - '.golangci.yaml'
 
 jobs:
+  init:
+    outputs:
+      tests: ${{ steps.e2es.outputs.result }}
+    runs-on: [ "solinas", "self-hosted" ]
+    name: "Prepare E2E Scenarios"
+    steps:
+      - name: "Checkout"
+        uses: actions/checkout@v4
+
+      - name: "E2E Detection"
+        id: e2es
+        run: |
+          scenarios=$(find ${{ github.workspace }}/e2e -type f -name 'e2e_test.go' -exec dirname {} \; | xargs -n 1 basename | jq -R -s -c 'split("\n")[:-1]')
+          echo $scenarios
+          echo "result=$scenarios" >> $GITHUB_OUTPUT
+
   e2e:
-    runs-on: "default"
+    name: "Run ${{ matrix.e2es }}(${{ matrix.k8s-version}}) E2E"
+    if: needs.init.outputs.tests != '[]'
+    needs: [ init ]
+    runs-on: [ "solinas", "self-hosted" ]
+    env:
+      ADMIN_CLUSTER: greenhouse-admin
+      REMOTE_CLUSTER: greenhouse-remote
+
     strategy:
       fail-fast: false
       matrix:
-        k8s-version: ["v1.29.9", "v1.30.5", "v1.31.1"]
+        k8s-version: [ "v1.29.8"]
+        e2es: ${{fromJson(needs.init.outputs.tests)}}
     steps:
-      - uses: cloudoperators/common/workflows/e2e@main
+      - name: "Checkout"
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
         with:
-          kubernetes-version: ${{ matrix.k8s-version }}
+          go-version-file: 'go.mod'
+          token: ${{ secrets.GO_MODULE_TOKEN }}
+
+      - name: Create Admin Cluster
+        uses: helm/kind-action@v1.10.0
+        with:
+          version: 'v0.24.0'
+          cluster_name: ${{ env.ADMIN_CLUSTER }}
+
+      - name: Create Remote Cluster
+        uses: helm/kind-action@v1.10.0
+        with:
+          version: 'v0.24.0'
+          node_image: 'kindest/node:${{ matrix.k8s-version }}'
+          cluster_name: ${{ env.REMOTE_CLUSTER }}
+          config: ${{ github.workspace }}/e2e/kind-config.yaml
+
+      - name: "Prepare E2E Config"
+        id: config
+        run: |
+          make cli
+          ${{ github.workspace }}/bin/greenhousectl dev setup -f ${{ github.workspace }}/e2e/config.json
+          
+          kind get kubeconfig --name ${{ env.ADMIN_CLUSTER}} > ${{ github.workspace }}/bin/${{env.ADMIN_CLUSTER}}.kubeconfig
+          kind get kubeconfig --name ${{ env.REMOTE_CLUSTER}} > ${{ github.workspace }}/bin/${{env.REMOTE_CLUSTER}}.kubeconfig
+          kind get kubeconfig --name ${{ env.REMOTE_CLUSTER}} --internal > ${{ github.workspace }}/bin/${{env.REMOTE_CLUSTER}}-int.kubeconfig
+          
+          echo "admin_config=$GITHUB_WORKSPACE/bin/${{env.ADMIN_CLUSTER}}.kubeconfig" >> $GITHUB_OUTPUT
+          echo "remote_config=$GITHUB_WORKSPACE/bin/${{env.REMOTE_CLUSTER}}.kubeconfig" >> $GITHUB_OUTPUT
+          echo "remote_int_config=$GITHUB_WORKSPACE/bin/${{env.REMOTE_CLUSTER}}-int.kubeconfig" >> $GITHUB_OUTPUT
+
+      - name: "E2E Run"
+        id: e2e
+        continue-on-error: true
+        working-directory: ${{ github.workspace }}/e2e
+        env:
+          SCENARIO: ${{ matrix.e2es }}
+          EXECUTION_ENV: gh-actions
+          GREENHOUSE_ADMIN_KUBECONFIG: ${{ steps.config.outputs.admin_config }}
+          GREENHOUSE_REMOTE_KUBECONFIG: ${{ steps.config.outputs.remote_config }}
+          GREENHOUSE_REMOTE_INT_KUBECONFIG: ${{ steps.config.outputs.remote_int_config }}
+          CONTROLLER_LOGS_PATH: ${{github.workspace}}/bin/${{matrix.e2es}}.txt
+        run: |
+          go install github.com/onsi/ginkgo/v2/ginkgo@latest
+          ginkgo version
+          make e2e
+
+      - name: "Upload Logs"
+        uses: actions/upload-artifact@v3
+        with:
+          name: e2e-logs
+          path: ${{steps.debug.outputs.result}}
+          retention-days: 7
+          if-no-files-found: ignore
+
+
+  checksOK:
+    name: "E2E Check"
+    needs: [ e2e ]
+    runs-on: [ "solinas", "self-hosted" ]
+    if: always()
+    steps:
+      - name: "Check if e2e passed"
+        run: |
+          if [ "${{ needs.e2e.result }}" == "success" ]; then
+            echo "✅ E2E passed 🎉"
+          else
+            echo "❌ E2E failed 😭"
+            exit 1
+          fi
