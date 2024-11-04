@@ -95,12 +95,13 @@ jobs:
           go install github.com/onsi/ginkgo/v2/ginkgo@latest
           ginkgo version
           make e2e
+          echo "result=$CONTROLLER_LOGS_PATH" >> $GITHUB_OUTPUT
 
       - name: "Upload Logs"
         uses: actions/upload-artifact@v3
         with:
           name: e2e-logs
-          path: ${{steps.debug.outputs.result}}
+          path: ${{steps.e2e.outputs.result}}
           retention-days: 7
           if-no-files-found: ignore
 
