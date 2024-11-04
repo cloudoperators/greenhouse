@@ -11,11 +11,14 @@ e2e-local: prepare
     	GREENHOUSE_REMOTE_INT_KUBECONFIG="${PWD}/../bin/$(REMOTE_CLUSTER)-int.kubeconfig" \
     	CONTROLLER_LOGS_PATH="${PWD}/../bin/$(SCENARIO)-e2e-pod-logs.txt" \
     	EXECUTION_ENV=$(EXECUTION_ENV) \
+		GOMEGA_DEFAULT_EVENTUALLY_TIMEOUT="2m" \
 		go test -tags="$(SCENARIO)E2E" ./$(SCENARIO) -test.v -ginkgo.v
 
 .PHONY: e2e
 e2e:
-	go test -tags="$(SCENARIO)E2E" ./$(SCENARIO) -test.v -ginkgo.v
+	echo $(SCENARIO)
+	echo $(EXECUTION_ENV)
+	GOMEGA_DEFAULT_EVENTUALLY_TIMEOUT="2m" go test -tags="$(SCENARIO)E2E" ./$(SCENARIO) -test.v -ginkgo.v
 
 .PHONY: admin-cluster
 admin-cluster:

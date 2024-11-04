@@ -100,7 +100,8 @@ generate-documentation: check-gen-crd-api-reference-docs
 
 .PHONY: test
 test: generate-manifests generate envtest ## Run tests.
-	KUBEBUILDER_ASSETS="$(shell $(ENVTEST) use $(ENVTEST_K8S_VERSION) -p path)" go test ./... -coverprofile cover.out -v
+	KUBEBUILDER_ASSETS="$(shell $(ENVTEST) use $(ENVTEST_K8S_VERSION) -p path)" \
+	 GOMEGA_DEFAULT_EVENTUALLY_TIMEOUT="2m" go test ./... -coverprofile cover.out -v
 
 .PHONY: e2e
 e2e: 
