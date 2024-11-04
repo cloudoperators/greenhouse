@@ -106,7 +106,7 @@ func webhookManifestSetup(ctx context.Context, m *Manifest) Step {
 				return err
 			}
 		}
-		return nil
+		return m.waitUntilDeploymentReady(ctx, clusterName, namespace)
 	}
 }
 

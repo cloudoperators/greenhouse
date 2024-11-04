@@ -16,9 +16,7 @@ e2e-local: prepare
 
 .PHONY: e2e
 e2e:
-	echo $(SCENARIO)
-	echo $(EXECUTION_ENV)
-	GOMEGA_DEFAULT_EVENTUALLY_TIMEOUT="2m" go test -tags="$(SCENARIO)E2E" -mod=readonly -test.v -ginkgo.v ./$(SCENARIO)
+	GOMEGA_DEFAULT_EVENTUALLY_TIMEOUT="2m" go test -tags="$(SCENARIO)E2E" ./$(SCENARIO) -mod=readonly -test.v -ginkgo.v
 
 .PHONY: admin-cluster
 admin-cluster:
