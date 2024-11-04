@@ -137,10 +137,10 @@ func (r *TeamMembershipUpdaterController) EnsureCreated(ctx context.Context, obj
 			}
 
 			return ctrl.Result{}, lifecycle.Success, nil
-		} else {
-			log.FromContext(ctx).Info("Team does not have MappedIdpGroup set", "team", team.Name)
-			return ctrl.Result{}, lifecycle.Success, nil
 		}
+
+		log.FromContext(ctx).Info("Team does not have MappedIdpGroup set", "team", team.Name)
+		return ctrl.Result{}, lifecycle.Success, nil
 	}
 
 	teamMembershipStatus := initTeamMembershipStatus(teamMembership)
