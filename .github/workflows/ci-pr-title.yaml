@@ -42,6 +42,7 @@ jobs:
             teamrolebindings
             teamroles
             teams
+            service-proxy
             build
             config
             ci
