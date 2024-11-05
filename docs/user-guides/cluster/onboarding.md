@@ -36,7 +36,7 @@ For accessing the `greenhouse` cluster, the `greenhousectl` will expect your def
 The location of the `kubeconfig` file to the `bootstrap` cluster is passed via the `--kubeconfig` flag or via the `KUBECONFIG` enviorment variable
 
 ```commandline
-greenhousectl cluster bootstrap --kubeconfig=<path/to/greenhouse-kubeconfig-file> --bootstrap-kubeconfig <path/to/bootstrap-kubeconfig-file> --org <greenhouse-organization-name> --cluster-name <name>
+greenhousectl cluster bootstrap --kubeconfig=<path/to/bootstrap-kubeconfig-file> --greenhouse-kubeconfig <path/to/greenhouse-kubeconfig-file> --org <greenhouse-organization-name> --cluster-name <name>
 ```
 
 Since Greenhouse generates URLs which contain the cluster name, we highly recommend to choose a **short** cluster name.
