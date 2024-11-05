@@ -73,13 +73,7 @@ jobs:
       - name: "Prepare E2E Config"
         id: config
         run: |
-          make cli
-          ${{ github.workspace }}/bin/greenhousectl dev setup -f ${{ github.workspace }}/e2e/config.json
-          
-          kind get kubeconfig --name ${{ env.ADMIN_CLUSTER}} > ${{ github.workspace }}/bin/${{env.ADMIN_CLUSTER}}.kubeconfig
-          kind get kubeconfig --name ${{ env.REMOTE_CLUSTER}} > ${{ github.workspace }}/bin/${{env.REMOTE_CLUSTER}}.kubeconfig
-          kind get kubeconfig --name ${{ env.REMOTE_CLUSTER}} --internal > ${{ github.workspace }}/bin/${{env.REMOTE_CLUSTER}}-int.kubeconfig
-          
+          make setup-e2e
           echo "admin_config=$GITHUB_WORKSPACE/bin/${{env.ADMIN_CLUSTER}}.kubeconfig" >> $GITHUB_OUTPUT
           echo "remote_config=$GITHUB_WORKSPACE/bin/${{env.REMOTE_CLUSTER}}.kubeconfig" >> $GITHUB_OUTPUT
           echo "remote_int_config=$GITHUB_WORKSPACE/bin/${{env.REMOTE_CLUSTER}}-int.kubeconfig" >> $GITHUB_OUTPUT
@@ -88,7 +82,6 @@ jobs:
       - name: "E2E Run"
         id: e2e
         continue-on-error: true
-        working-directory: ${{ github.workspace }}/e2e
         env:
           SCENARIO: ${{ matrix.e2es }}
           EXECUTION_ENV: gh-actions

@@ -102,27 +102,6 @@ generate-documentation: check-gen-crd-api-reference-docs
 test: generate-manifests generate envtest ## Run tests.
 	KUBEBUILDER_ASSETS="$(shell $(ENVTEST) use $(ENVTEST_K8S_VERSION) -p path)" go test ./... -coverprofile cover.out -v
 
-.PHONY: e2e
-e2e: 
-	go test -tags="e2e" ./test/e2e/... -coverprofile cover.out -test.v
-
-.PHONY: e2e-local
-e2e-local: generate-manifests generate envtest ## Run e2e tests against mock api.
-	unset USE_EXISTING_CLUSTER && KUBEBUILDER_ASSETS="$(shell $(ENVTEST) use $(ENVTEST_K8S_VERSION) -p path)" go test -tags="e2e" ./test/e2e/... -coverprofile cover.out -ginkgo.v -test.v
-
-.PHONY: e2e-remote
-e2e-remote: ## Run e2e tests against a remote Greenhouse cluster. TEST_KUBECONFIG must be set.
-	USE_EXISTING_CLUSTER=true go test -tags="e2e" ./test/e2e/... -coverprofile cover.out -ginkgo.v -test.v
-
-.PHONY: e2e-local-cluster
-e2e-local-cluster: e2e-local-cluster-create  ## Run e2e tests on a local KIND cluster.
-	USE_EXISTING_CLUSTER=true TEST_KUBECONFIG=$(shell pwd)/test/e2e/local-cluster/e2e.kubeconfig INTERNAL_KUBECONFIG=$(shell pwd)/test/e2e/local-cluster/e2e.internal.kubeconfig go test -tags="e2e" ./test/e2e/... -coverprofile cover.out -ginkgo.v -test.v
-
-.PHONY: e2e-local-cluster-create
-e2e-local-cluster-create:
-	cd test/e2e/local-cluster && go run . --dockerImagePlatform=$(PLATFORM)
-
-
 .PHONY: fmt
 fmt: goimports
 	GOBIN=$(LOCALBIN) go fmt ./...
@@ -250,23 +229,51 @@ else
 	cd website && hugo server
 endif
 
-.PHONY: setup-dev
-setup-dev: cli
-	$(CLI) dev setup -f dev-env/localenv/sample.config.json
-
-.PHONY: dev-docs
-dev-docs:
-	go run -tags="dev" -mod=mod dev-env/localenv/docs.go
-
+SCENARIO ?= cluster
 ADMIN_CLUSTER ?= greenhouse-admin
+REMOTE_CLUSTER ?=greenhouse-remote
+EXECUTION_ENV ?= LOCAL
 ADMIN_NAMESPACE ?= greenhouse
 ADMIN_RELEASE ?= greenhouse
 ADMIN_CHART_PATH ?= charts/manager
 WEBHOOK_DEV ?= false
 
+.PHONY: setup-dev
+setup-dev: cli
+	$(CLI) dev setup -f dev-env/localenv/sample.config.json
+
 .PHONY: setup-webhook
 setup-webhook: cli
 	$(CLI) dev setup webhook --name $(ADMIN_CLUSTER) --namespace $(ADMIN_NAMESPACE) --release $(ADMIN_RELEASE) --chart-path $(ADMIN_CHART_PATH) --dockerfile ./ --dev-mode=$(WEBHOOK_DEV)
+
+.PHONY: setup-e2e
+setup-e2e: cli
+	$(CLI) dev setup -f e2e/config.json
+	make prepare-e2e
+
+.PHONY: e2e
+e2e:
+	GOMEGA_DEFAULT_EVENTUALLY_TIMEOUT="2m" go test -tags="$(SCENARIO)E2E" ${PWD}/e2e/$(SCENARIO) -mod=readonly -test.v -ginkgo.v
+
+.PHONY: e2e-local
+e2e-local: prepare-e2e
+	GREENHOUSE_ADMIN_KUBECONFIG="${PWD}/bin/$(ADMIN_CLUSTER).kubeconfig" \
+    	GREENHOUSE_REMOTE_KUBECONFIG="${PWD}/bin/$(REMOTE_CLUSTER).kubeconfig" \
+    	GREENHOUSE_REMOTE_INT_KUBECONFIG="${PWD}/bin/$(REMOTE_CLUSTER)-int.kubeconfig" \
+    	CONTROLLER_LOGS_PATH="${PWD}/bin/$(SCENARIO)-e2e-pod-logs.txt" \
+    	EXECUTION_ENV=$(EXECUTION_ENV) \
+		GOMEGA_DEFAULT_EVENTUALLY_TIMEOUT="2m" \
+		go test -tags="$(SCENARIO)E2E" ${PWD}/e2e/$(SCENARIO) -test.v -ginkgo.v
+
+.PHONY: prepare-e2e
+prepare-e2e:
+	kind get kubeconfig --name $(ADMIN_CLUSTER) > ${PWD}/bin/$(ADMIN_CLUSTER).kubeconfig
+	kind get kubeconfig --name $(REMOTE_CLUSTER) > ${PWD}/bin/$(REMOTE_CLUSTER).kubeconfig
+	kind get kubeconfig --name $(REMOTE_CLUSTER) --internal > ${PWD}/bin/$(REMOTE_CLUSTER)-int.kubeconfig
+
+.PHONY: dev-docs
+dev-docs:
+	go run -tags="dev" -mod=mod dev-env/localenv/docs.go
 
 # Download and install mockery locally via `brew install mockery`
 MOCKERY := $(shell which mockery)

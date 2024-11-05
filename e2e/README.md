@@ -164,7 +164,6 @@ Example (Goland):
 ### Tips
 
 Pod logs for the controller manager and webhooks can be very long and can be difficult to read especially when you are running multiple tests.
-
 If you want to get logs for a specific test and you have set the `CONTROLLER_LOGS_PATH` environment variable, you can extract the logs from a specific time.
 
 Example:
@@ -203,22 +202,23 @@ var _ = AfterSuite(func() {
 
 This is not foolproof as there could be reconciliations happening on different resources, especially in a real cluster, but it can help in narrowing down the logs to a specific test run.
 
-If you are using `Eventually` in your tests, you need to ensure that the result that you are expecting actually happens quickly as the default timeout for `Eventually` is 1 second.
+If `Eventually` in used in tests, ensure that the result being expected happens quickly.
 
-If you are expecting something to happen but takes longer than 1 second, you can increase the timeout for `Eventually` by passing the timeout value as the first argument.
+> The test is started with the env GOMEGA_DEFAULT_EVENTUALLY_TIMEOUT="2m" 
+
+If some result is expected to happen, but takes longer than 2m, the timeout for `Eventually` can be increased by passing the timeout value as the first argument.
 
 Example:
 
 ```go
 Eventually(func() bool {
 // your code here
-}, 10*time.Second, 1*time.Second).Should(BeTrue())
+}, 150*time.Second, 10*time.Second).Should(BeTrue())
 ```
 
-This will wait for 10 seconds for the condition to be true, checking every 1 second.
+This will wait for 150 seconds for the condition to be true, polling every 10 seconds.
 
 Alternatively, you can use `WaitUntilResourceReadyOrNotReady` in [e2e](../pkg/e2e/e2e.go) to wait for a resource to be ready or not ready.
-
-`WaitUntilResourceReadyOrNotReady` has a timeout of 2 minutes with exponential backoff and will wait for a resource to be ready or not ready.
+`WaitUntilResourceReadyOrNotReady` has a timeout of 3 minutes with exponential backoff and will wait for a resource to be ready or not ready.
 
 > Note: You can only use `WaitUntilResourceReadyOrNotReady` for resources that use the `lifecycle.Reconcile` interface.
