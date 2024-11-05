@@ -21,6 +21,7 @@ jobs:
       - name: "Checkout"
         uses: actions/checkout@v4
 
+      # find all e2e scenarios in the e2e directory and generate an array of scenario names
       - name: "E2E Detection"
         id: e2es
         run: |
@@ -50,14 +51,16 @@ jobs:
         uses: actions/setup-go@v5
         with:
           go-version-file: 'go.mod'
-          token: ${{ secrets.GO_MODULE_TOKEN }}
+          token: ${{ secrets.GITHUB_TOKEN }}
 
+      # Create the admin cluster with latest kubernetes version
       - name: Create Admin Cluster
         uses: helm/kind-action@v1.10.0
         with:
           version: 'v0.24.0'
           cluster_name: ${{ env.ADMIN_CLUSTER }}
 
+      # Create the remote cluster with kubernetes version from the matrix
       - name: Create Remote Cluster
         uses: helm/kind-action@v1.10.0
         with:
@@ -66,6 +69,7 @@ jobs:
           cluster_name: ${{ env.REMOTE_CLUSTER }}
           config: ${{ github.workspace }}/e2e/kind-config.yaml
 
+      # build CLI, setup e2e environment and prepare kubeconfigs
       - name: "Prepare E2E Config"
         id: config
         run: |
@@ -80,6 +84,7 @@ jobs:
           echo "remote_config=$GITHUB_WORKSPACE/bin/${{env.REMOTE_CLUSTER}}.kubeconfig" >> $GITHUB_OUTPUT
           echo "remote_int_config=$GITHUB_WORKSPACE/bin/${{env.REMOTE_CLUSTER}}-int.kubeconfig" >> $GITHUB_OUTPUT
 
+      # run the e2e tests with the scenario from the matrix
       - name: "E2E Run"
         id: e2e
         continue-on-error: true
@@ -94,10 +99,10 @@ jobs:
         run: |
           go install github.com/onsi/ginkgo/v2/ginkgo@latest
           ginkgo version
-          make e2e
           echo "result=$CONTROLLER_LOGS_PATH" >> $GITHUB_OUTPUT
+          make e2e
 
-      - name: "Upload Logs"
+      - name: "Upload E2E Logs"
         uses: actions/upload-artifact@v3
         with:
           name: e2e-logs
@@ -105,7 +110,7 @@ jobs:
           retention-days: 7
           if-no-files-found: ignore
 
-
+  # check if the e2e tests passed for all scenarios
   checksOK:
     name: "E2E Check"
     needs: [ e2e ]

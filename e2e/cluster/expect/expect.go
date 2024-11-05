@@ -58,9 +58,13 @@ func ClusterDeletionIsScheduled(ctx context.Context, adminClient client.Client, 
 	objKey := client.ObjectKey{Name: name, Namespace: namespace}
 
 	By("marking the cluster for deletion")
-	err := adminClient.Get(ctx, objKey, cluster)
-	Expect(err).NotTo(HaveOccurred(), "there should be no error getting the cluster")
-	err = markClusterToBeDeleted(ctx, adminClient, cluster)
+	err := retry.RetryOnConflict(retry.DefaultBackoff, func() error {
+		err := adminClient.Get(ctx, objKey, cluster)
+		if err != nil {
+			return err
+		}
+		return markClusterToBeDeleted(ctx, adminClient, cluster)
+	})
 	Expect(err).NotTo(HaveOccurred(), "there should be no error marking the cluster for deletion")
 
 	Eventually(func(g Gomega) bool {
