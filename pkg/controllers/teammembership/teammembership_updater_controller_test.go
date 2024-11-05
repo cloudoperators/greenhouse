@@ -7,11 +7,11 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
+	corev1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-
-	corev1 "k8s.io/api/core/v1"
 
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/pkg/apis/greenhouse/v1alpha1"
 	"github.com/cloudoperators/greenhouse/pkg/test"
@@ -29,7 +29,7 @@ var (
 	setup *test.TestSetup
 )
 
-var _ = Describe("TeammembershipUpdaterController", func() {
+var _ = Describe("TeammembershipUpdaterController", Ordered, func() {
 	Context("reconciling with valid SCIM config in Organization", func() {
 		BeforeEach(func() {
 			By("creating new test setup")
@@ -392,6 +392,34 @@ var _ = Describe("TeammembershipUpdaterController", func() {
 				g.Expect(teamMembership.Spec.Members).To(ContainElement(expectedUser1), "TeamMembership users should contain first expected user")
 				g.Expect(teamMembership.Spec.Members).To(ContainElement(expectedUser2), "TeamMembership users should contain second expected user")
 			}).Should(Succeed(), "TeamMembership should have been reconciled")
+		})
+
+		It("should delete the team after all", func() {
+			team := &greenhousev1alpha1.Team{}
+			Eventually(func(g Gomega) {
+				err := setup.Get(test.Ctx, types.NamespacedName{Namespace: setup.Namespace(), Name: firstTeamName}, team)
+				g.Expect(apierrors.IsNotFound(err)).To(BeTrue(), "Team should be deleted")
+			}).Should(Succeed())
+
+			team = createFirstTeam(validIdpGroupName)
+			Eventually(func(g Gomega) {
+				err := setup.Get(test.Ctx, types.NamespacedName{Namespace: setup.Namespace(), Name: firstTeamName}, team)
+				g.Expect(err).ShouldNot(HaveOccurred(), "unexpected error getting Team")
+				g.Expect(team.Name).To(BeEquivalentTo(firstTeamName))
+
+				teamMemberships := &greenhousev1alpha1.TeamMembershipList{}
+				err = setup.List(test.Ctx, teamMemberships, &client.ListOptions{Namespace: setup.Namespace()})
+				g.Expect(err).ShouldNot(HaveOccurred(), "unexpected error getting TeamMemberships")
+				g.Expect(teamMemberships.Items).To(HaveLen(1), "there should be exactly one TeamMembership")
+			}).Should(Succeed())
+
+			err := setup.Delete(test.Ctx, team)
+			Expect(err).ToNot(HaveOccurred(), "there must be no error deleting Team")
+
+			Eventually(func(g Gomega) {
+				err := setup.Get(test.Ctx, types.NamespacedName{Namespace: setup.Namespace(), Name: firstTeamName}, team)
+				g.Expect(apierrors.IsNotFound(err)).To(BeTrue(), "Team should be deleted")
+			}).Should(Succeed())
 		})
 	})
 
