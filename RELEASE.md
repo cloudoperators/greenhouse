@@ -9,7 +9,7 @@ We are following [Semantic Versioning](https://semver.org) for versioning.
 
 ## Release Cadence
 
-We intend for regular releases every four weeks. The release is should happen in the week after the end of each sprint. For the current sprint schedule please have a look at the [roadmap project](https://github.com/orgs/cloudoperators/projects/9).
+We intend for regular releases every four weeks. The release should happen in the week after the end of each sprint. For the current sprint schedule please have a look at the [roadmap project](https://github.com/orgs/cloudoperators/projects/9).
 
 Bug fixes may be released at any time, but we will try to bundle them into the next release.
 
