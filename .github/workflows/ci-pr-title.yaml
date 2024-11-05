@@ -35,6 +35,7 @@ jobs:
             clusterkubeconfigs
             clusters
             organizations
+            dex
             idproxy
             plugindefinitions
             pluginpresets
