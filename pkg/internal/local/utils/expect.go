@@ -57,21 +57,3 @@ func WaitUntilJobSucceeds(ctx context.Context, k8sClient client.Client, name, na
 		return nil
 	}, b)
 }
-
-func WaitUntilNamespaceCreated(ctx context.Context, k8sClient client.Client, name string) error {
-	b := backoff.NewExponentialBackOff(backoff.WithInitialInterval(5*time.Second), backoff.WithMaxElapsedTime(DefaultElapsedTime))
-	return backoff.Retry(func() error {
-		Logf("waiting for namespace %s to be created...", name)
-		ns := &v1.Namespace{}
-		err := k8sClient.Get(ctx, types.NamespacedName{
-			Name: name,
-		}, ns)
-		if err != nil {
-			return err
-		}
-		if ns.Status.Phase != v1.NamespaceActive {
-			return errors.New("namespace is not yet ready")
-		}
-		return nil
-	}, b)
-}
