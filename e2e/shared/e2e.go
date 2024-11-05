@@ -1,11 +1,12 @@
 // SPDX-FileCopyrightText: 2024 SAP SE or an SAP affiliate company and Greenhouse contributors
 // SPDX-License-Identifier: Apache-2.0
 
-package e2e
+package shared
 
 import (
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -13,6 +14,10 @@ import (
 	"time"
 
 	"github.com/cenkalti/backoff/v4"
+	"k8s.io/apimachinery/pkg/types"
+
+	. "github.com/onsi/ginkgo/v2"
+	. "github.com/onsi/gomega"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -25,11 +30,8 @@ import (
 	"k8s.io/client-go/tools/clientcmd"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	greenhouseapis "github.com/cloudoperators/greenhouse/pkg/apis"
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/pkg/apis/greenhouse/v1alpha1"
 	"github.com/cloudoperators/greenhouse/pkg/clientutil"
-	"github.com/cloudoperators/greenhouse/pkg/internal/local/klient"
-	"github.com/cloudoperators/greenhouse/pkg/internal/local/utils"
 	"github.com/cloudoperators/greenhouse/pkg/lifecycle"
 )
 
@@ -75,22 +77,25 @@ type TestEnv struct {
 
 func NewExecutionEnv(userScheme ...func(s *runtime.Scheme) error) *TestEnv {
 	adminClusterClient, err := prepareClients(AdminKubeConfigPathEnv, userScheme...)
-	utils.CheckError(err)
+	Expect(err).NotTo(HaveOccurred(), "error preparing admin cluster client")
 	remoteClusterClient, err := prepareClients(RemoteKubeConfigPathEnv)
-	utils.CheckError(err)
+	Expect(err).NotTo(HaveOccurred(), "error preparing remote cluster client")
+
 	isReal := isRealCluster()
 	var remoteKubeCfgBytes []byte
 	var remoteKubeCfgPath string
 	if isReal {
+		GinkgoWriter.Printf("Running on real cluster\n")
 		remoteKubeCfgPath, err = fromEnv(RemoteKubeConfigPathEnv)
-		utils.CheckError(err)
+		Expect(err).NotTo(HaveOccurred(), "error getting remote kubeconfig path")
 		remoteKubeCfgBytes, err = readFileContent(remoteKubeCfgPath)
-		utils.CheckError(err)
+		Expect(err).NotTo(HaveOccurred(), "error reading remote kubeconfig file")
 	} else {
+		GinkgoWriter.Printf("Running on local cluster\n")
 		remoteIntKubeCfgPath, err := fromEnv(remoteIntKubeConfigPathEnv)
-		utils.CheckError(err)
+		Expect(err).NotTo(HaveOccurred(), "error getting remote internal kubeconfig path")
 		remoteKubeCfgBytes, err = readFileContent(remoteIntKubeCfgPath)
-		utils.CheckError(err)
+		Expect(err).NotTo(HaveOccurred(), "error reading remote internal kubeconfig file")
 	}
 	return &TestEnv{
 		adminClusterClient:    adminClusterClient,
@@ -111,32 +116,17 @@ func isRealCluster() bool {
 func (env *TestEnv) WithOrganization(ctx context.Context, samplePath string) *TestEnv {
 	org := &greenhousev1alpha1.Organization{}
 	orgBytes, err := readFileContent(samplePath)
-	utils.CheckError(err)
-	err = utils.FromYamlToK8sObject(string(orgBytes), org)
-	utils.CheckError(err)
-	err = env.adminClusterClient.client.Create(ctx, org)
-	if client.IgnoreAlreadyExists(err) != nil {
-		utils.CheckError(err)
-	}
-	err = utils.WaitUntilNamespaceCreated(ctx, env.adminClusterClient.client, org.Name)
-	utils.CheckError(err)
-	env.TestNamespace = org.Name
-	return env
-}
+	Expect(err).NotTo(HaveOccurred(), "error reading organization sample data")
+	err = FromYamlToK8sObject(string(orgBytes), org)
+	Expect(err).NotTo(HaveOccurred(), "error converting organization yaml to k8s object")
 
-func (env *TestEnv) WithOnboardedRemoteCluster(ctx context.Context, name string) *TestEnv {
-	secret := &corev1.Secret{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      name,
-			Namespace: env.TestNamespace,
-		},
-		Type: greenhouseapis.SecretTypeKubeConfig,
-		Data: map[string][]byte{
-			greenhouseapis.KubeConfigKey: env.RemoteKubeConfigBytes,
-		},
-	}
-	err := env.adminClusterClient.client.Create(ctx, secret)
-	utils.CheckError(err)
+	err = env.adminClusterClient.client.Create(ctx, org)
+	Expect(client.IgnoreAlreadyExists(err)).NotTo(HaveOccurred(), "error creating organization")
+
+	// TODO: check ready condition on organization after standardization
+	err = WaitUntilNamespaceCreated(ctx, env.adminClusterClient.client, org.Name)
+	Expect(err).NotTo(HaveOccurred(), "error waiting for namespace to be created")
+	env.TestNamespace = org.Name
 	return env
 }
 
@@ -147,7 +137,7 @@ func (env *TestEnv) GetClient(clientType EClient) client.Client {
 	case RemoteClient:
 		return env.remoteClusterClient.client
 	default:
-		utils.CheckError(fmt.Errorf("client type %s not supported", clientType))
+		GinkgoWriter.Printf("client type %s not supported", clientType)
 		return nil
 	}
 }
@@ -159,7 +149,7 @@ func (env *TestEnv) GetRESTClient(clientType EClient) *clientutil.RestClientGett
 	case RemoteRESTClient:
 		return env.remoteClusterClient.restClient
 	default:
-		utils.CheckError(fmt.Errorf("client type %s not supported", clientType))
+		GinkgoWriter.Printf("client type %s not supported", clientType)
 		return nil
 	}
 }
@@ -171,7 +161,7 @@ func (env *TestEnv) GetClientSet(clientType EClient) kubernetes.Interface {
 	case RemoteClientSet:
 		return env.remoteClusterClient.clientSet
 	default:
-		utils.CheckError(fmt.Errorf("client type %s not supported", clientType))
+		GinkgoWriter.Printf("client type %s not supported", clientType)
 		return nil
 	}
 }
@@ -185,7 +175,7 @@ func prepareClients(kubeconfigEnv string, userScheme ...func(s *runtime.Scheme) 
 	if err != nil {
 		return nil, err
 	}
-	restConfig, k8sClient, err := klient.NewKubeClientFromConfigWithScheme(string(kubeconfigBytes), userScheme...)
+	restConfig, k8sClient, err := NewKubeClientFromConfigWithScheme(string(kubeconfigBytes), userScheme...)
 	if err != nil {
 		return nil, err
 	}
@@ -235,7 +225,7 @@ func IsResourceOwnedByOwner(owner, owned metav1.Object) bool {
 	// ClusterRoleBinding does not have a type information (So We add it)
 	if runtimeObj.GetObjectKind().GroupVersionKind() == (schema.GroupVersionKind{}) {
 		if err := addTypeInformationToObject(runtimeObj); err != nil {
-			utils.Logf("error adding type information to object: %s", err.Error())
+			GinkgoWriter.Printf("error adding type information to object: %s", err.Error())
 			return false
 		}
 	}
@@ -266,7 +256,7 @@ func addTypeInformationToObject(obj runtime.Object) error {
 func WaitUntilResourceReadyOrNotReady(ctx context.Context, apiClient client.Client, resource lifecycle.RuntimeObject, name, namespace string, applyFunc WaitApplyFunc, readyStatus bool) error {
 	b := backoff.NewExponentialBackOff(backoff.WithInitialInterval(5*time.Second), backoff.WithMaxElapsedTime(defaultElapsedTime))
 	return backoff.Retry(func() error {
-		utils.Log("waiting for resource to be ready... \n")
+		Logf("waiting for resource %s to be ready... \n", name)
 		err := apiClient.Get(ctx, client.ObjectKey{Name: name, Namespace: namespace}, resource)
 		if err != nil {
 			return err
@@ -283,9 +273,27 @@ func WaitUntilResourceReadyOrNotReady(ctx context.Context, apiClient client.Clie
 			return fmt.Errorf("resource %s does not have ready condition yet", resource.GetName())
 		}
 		expected := readyCondition.IsTrue() == readyStatus
-		utils.Logf("readyCondition: %v, expectedStatus: %v, calculated: %v\n", readyCondition.IsTrue(), readyStatus, expected)
+		Logf("readyCondition: %v, expectedStatus: %v, calculated: %v\n", readyCondition.IsTrue(), readyStatus, expected)
 		if !expected {
 			return fmt.Errorf("resource %s is not yet in expected state", resource.GetName())
+		}
+		return nil
+	}, b)
+}
+
+func WaitUntilNamespaceCreated(ctx context.Context, k8sClient client.Client, name string) error {
+	b := backoff.NewExponentialBackOff(backoff.WithInitialInterval(5*time.Second), backoff.WithMaxElapsedTime(30*time.Second))
+	return backoff.Retry(func() error {
+		Logf("waiting for namespace %s to be created...", name)
+		ns := &corev1.Namespace{}
+		err := k8sClient.Get(ctx, types.NamespacedName{
+			Name: name,
+		}, ns)
+		if err != nil {
+			return err
+		}
+		if ns.Status.Phase != corev1.NamespaceActive {
+			return errors.New("namespace is not yet ready")
 		}
 		return nil
 	}, b)
@@ -294,7 +302,7 @@ func WaitUntilResourceReadyOrNotReady(ctx context.Context, apiClient client.Clie
 func (env *TestEnv) GenerateControllerLogs(ctx context.Context, startTime time.Time) {
 	podLogsPath, err := fromEnv(ControllerLogsPathEnv)
 	if err != nil {
-		utils.Logf("%s", err.Error())
+		Logf("%s", err.Error())
 		return
 	}
 
@@ -304,7 +312,7 @@ func (env *TestEnv) GenerateControllerLogs(ctx context.Context, startTime time.T
 
 	err = k8sClient.Get(ctx, client.ObjectKey{Name: managerDeploymentName, Namespace: managerDeploymentNamespace}, deployment)
 	if err != nil {
-		utils.Logf("error getting deployment: %s", err.Error())
+		Logf("error getting deployment: %s", err.Error())
 		return
 	}
 
@@ -314,11 +322,11 @@ func (env *TestEnv) GenerateControllerLogs(ctx context.Context, startTime time.T
 		Namespace:     deployment.Namespace,
 	})
 	if err != nil {
-		utils.Logf("error listing pods: %s", err.Error())
+		Logf("error listing pods: %s", err.Error())
 		return
 	}
 	if len(pods.Items) == 0 {
-		utils.Logf("no pods found for deployment %s", managerDeploymentName)
+		Logf("no pods found for deployment %s", managerDeploymentName)
 		return
 	}
 
@@ -330,40 +338,40 @@ func (env *TestEnv) GenerateControllerLogs(ctx context.Context, startTime time.T
 	req := clientSet.CoreV1().Pods(managerDeploymentNamespace).GetLogs(podName, &podLogOpts)
 	logStream, err := req.Stream(ctx)
 	if err != nil {
-		utils.Logf("error getting pod logs stream %s", err.Error())
+		Logf("error getting pod logs stream %s", err.Error())
 		return
 	}
 	defer func(logStream io.ReadCloser) {
 		err := logStream.Close()
 		if err != nil {
-			utils.Logf("error closing pod logs stream in defer %s", err.Error())
+			Logf("error closing pod logs stream in defer %s", err.Error())
 		}
 	}(logStream)
 
 	// Create or open the log file
 	file, err := os.Create(podLogsPath)
 	if err != nil {
-		utils.Logf("error creating log file %s: %s", podLogsPath, err.Error())
+		Logf("error creating log file %s: %s", podLogsPath, err.Error())
 		return
 	}
 	defer func(file *os.File) {
 		err := file.Close()
 		if err != nil {
-			utils.Logf("error closing log file in defer %s", err.Error())
+			Logf("error closing log file in defer %s", err.Error())
 		}
 	}(file)
 
 	buf := new(bytes.Buffer)
 	_, err = io.Copy(buf, logStream)
 	if err != nil {
-		utils.Logf("error copying pod logs %s", err.Error())
+		Logf("error copying pod logs %s", err.Error())
 		return
 	}
 	// Write the logs to the file
 	_, err = file.WriteString(buf.String())
 	if err != nil {
-		utils.Logf("error writing pod logs to file %s: %s", podLogsPath, err.Error())
+		Logf("error writing pod logs to file %s: %s", podLogsPath, err.Error())
 		return
 	}
-	utils.Logf("pod %s logs written to file: %s", podName, podLogsPath)
+	Logf("pod %s logs written to file: %s", podName, podLogsPath)
 }
