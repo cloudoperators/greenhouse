@@ -21,11 +21,27 @@ body:
         - (Medium) I'm annoyed but I'll live
         - (Urgent) I can't use the Greenhouse without
   - type: textarea
+    id: user-story
+    attributes:
+      label: "User Story"
+      description: "Provide an optional one sentence user story describing the feature"
+      placeholder: "> As a <role> I can <capability>, so that <receive benefit>."
+    validations:
+      required: false
+  - type: textarea
     id: description
     attributes:
       label: "Description"
       description: Provide a clear and concise description of the feature you're requesting
       placeholder: Short and explicit description of your feature. 
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance_criteria
+    attributes:
+      label: "Acceptance Criteria"
+      description: List of clear, concise, and testable statements that define the completeness of the feature
+      placeholder: "- [ ] Criteria 1"
     validations:
       required: true
   - type: textarea
