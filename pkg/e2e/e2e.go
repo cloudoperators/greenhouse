@@ -18,7 +18,9 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -42,6 +44,8 @@ const (
 	realCluster                = "GARDENER"
 )
 
+type EClient string
+
 const (
 	AdminClient      EClient = "AdminClient"
 	RemoteClient     EClient = "RemoteClient"
@@ -51,9 +55,8 @@ const (
 	RemoteClientSet  EClient = "RemoteClientSet"
 )
 
-var defaultElapsedTime = 120 * time.Second
+var defaultElapsedTime = 180 * time.Second
 
-type EClient string
 type WaitApplyFunc func(resource lifecycle.RuntimeObject) error
 
 type clientBox struct {
@@ -224,6 +227,42 @@ func fromEnv(key string) (string, error) {
 	return val, nil
 }
 
+func IsResourceOwnedByOwner(owner, owned metav1.Object) bool {
+	runtimeObj, ok := (owner).(runtime.Object)
+	if !ok {
+		return false
+	}
+	// ClusterRoleBinding does not have a type information (So We add it)
+	if runtimeObj.GetObjectKind().GroupVersionKind() == (schema.GroupVersionKind{}) {
+		if err := addTypeInformationToObject(runtimeObj); err != nil {
+			utils.Logf("error adding type information to object: %s", err.Error())
+			return false
+		}
+	}
+	for _, ownerRef := range owned.GetOwnerReferences() {
+		if ownerRef.Name == owner.GetName() && ownerRef.UID == owner.GetUID() && ownerRef.Kind == runtimeObj.GetObjectKind().GroupVersionKind().Kind {
+			return true
+		}
+	}
+	return false
+}
+
+func addTypeInformationToObject(obj runtime.Object) error {
+	gvks, _, err := scheme.Scheme.ObjectKinds(obj)
+	if err != nil {
+		return fmt.Errorf("missing apiVersion or kind and cannot assign it; %w", err)
+	}
+
+	for _, gvk := range gvks {
+		if gvk.Kind == "" || gvk.Version == "" || gvk.Version == runtime.APIVersionInternal {
+			continue
+		}
+		obj.GetObjectKind().SetGroupVersionKind(gvk)
+		break
+	}
+	return nil
+}
+
 func WaitUntilResourceReadyOrNotReady(ctx context.Context, apiClient client.Client, resource lifecycle.RuntimeObject, name, namespace string, applyFunc WaitApplyFunc, readyStatus bool) error {
 	b := backoff.NewExponentialBackOff(backoff.WithInitialInterval(5*time.Second), backoff.WithMaxElapsedTime(defaultElapsedTime))
 	return backoff.Retry(func() error {
@@ -239,9 +278,12 @@ func WaitUntilResourceReadyOrNotReady(ctx context.Context, apiClient client.Clie
 			}
 		}
 		conditions := resource.GetConditions()
-		readyCondition := conditions.GetConditionByType(greenhousev1alpha1.ReadyCondition).IsTrue()
-		expected := readyCondition == readyStatus
-		utils.Logf("readyCondition: %v, expectedStatus: %v, calculated: %v\n", readyCondition, readyStatus, expected)
+		readyCondition := conditions.GetConditionByType(greenhousev1alpha1.ReadyCondition)
+		if readyCondition == nil {
+			return fmt.Errorf("resource %s does not have ready condition yet", resource.GetName())
+		}
+		expected := readyCondition.IsTrue() == readyStatus
+		utils.Logf("readyCondition: %v, expectedStatus: %v, calculated: %v\n", readyCondition.IsTrue(), readyStatus, expected)
 		if !expected {
 			return fmt.Errorf("resource %s is not yet in expected state", resource.GetName())
 		}

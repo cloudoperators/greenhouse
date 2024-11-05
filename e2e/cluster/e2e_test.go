@@ -110,7 +110,7 @@ var _ = Describe("Cluster E2E", Ordered, func() {
 			Expect(found).To(BeTrue(), "managed service account should be bound to the cluster role binding")
 
 			By("verifying if the greenhouse service account has cluster role binding as owner reference")
-			isOwner := expect.IsOwner(crb, sa)
+			isOwner := e2e.IsResourceOwnedByOwner(crb, sa)
 			log.Printf("isOwner: %v\n", isOwner)
 			Expect(isOwner).To(BeTrue(), "service account should have an owner reference")
 		})

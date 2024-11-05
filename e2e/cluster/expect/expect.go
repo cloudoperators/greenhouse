@@ -5,7 +5,6 @@ package expect
 
 import (
 	"context"
-	"fmt"
 	"strconv"
 	"time"
 
@@ -15,9 +14,6 @@ import (
 	rbacv1 "k8s.io/api/rbac/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/runtime/schema"
-	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/util/retry"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -162,26 +158,6 @@ func RestoreCluster(ctx context.Context, adminClient client.Client, clusterName,
 	Expect(err).NotTo(HaveOccurred(), "cluster should be ready")
 }
 
-func IsOwner(owner, owned metav1.Object) bool {
-	runtimeObj, ok := (owner).(runtime.Object)
-	if !ok {
-		return false
-	}
-	// ClusterRoleBinding does not have a type information (So We add it)
-	if runtimeObj.GetObjectKind().GroupVersionKind() == (schema.GroupVersionKind{}) {
-		if err := addTypeInformationToObject(runtimeObj); err != nil {
-			GinkgoWriter.Printf("error adding type information to object: %s", err.Error())
-			return false
-		}
-	}
-	for _, ownerRef := range owned.GetOwnerReferences() {
-		if ownerRef.Name == owner.GetName() && ownerRef.UID == owner.GetUID() && ownerRef.Kind == runtimeObj.GetObjectKind().GroupVersionKind().Kind {
-			return true
-		}
-	}
-	return false
-}
-
 func reconcileReadyNotReady(ctx context.Context, adminClient client.Client, clusterName, namespace string, readyStatus bool) {
 	err := e2e.WaitUntilResourceReadyOrNotReady(ctx, adminClient, &greenhousev1alpha1.Cluster{}, clusterName, namespace, func(resource lifecycle.RuntimeObject) error {
 		By("triggering a reconcile of the cluster resource")
@@ -214,20 +190,4 @@ func markClusterToBeDeleted(ctx context.Context, k8sClient client.Client, cluste
 		greenhouseapis.MarkClusterDeletionAnnotation: "true",
 	})
 	return k8sClient.Update(ctx, cluster)
-}
-
-func addTypeInformationToObject(obj runtime.Object) error {
-	gvks, _, err := scheme.Scheme.ObjectKinds(obj)
-	if err != nil {
-		return fmt.Errorf("missing apiVersion or kind and cannot assign it; %w", err)
-	}
-
-	for _, gvk := range gvks {
-		if gvk.Kind == "" || gvk.Version == "" || gvk.Version == runtime.APIVersionInternal {
-			continue
-		}
-		obj.GetObjectKind().SetGroupVersionKind(gvk)
-		break
-	}
-	return nil
 }
