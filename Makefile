@@ -263,13 +263,17 @@ e2e-local: prepare-e2e
     	CONTROLLER_LOGS_PATH="${PWD}/bin/$(SCENARIO)-e2e-pod-logs.txt" \
     	EXECUTION_ENV=$(EXECUTION_ENV) \
 		GOMEGA_DEFAULT_EVENTUALLY_TIMEOUT="2m" \
-		go test -tags="$(SCENARIO)E2E" ${PWD}/e2e/$(SCENARIO) -test.v -ginkgo.v
+		go test -tags="$(SCENARIO)E2E" ${PWD}/e2e/$(SCENARIO) -test.v -ginkgo.v --ginkgo.junit-report=${PWD}/bin/$(SCENARIO)-e2e-report.xml
 
 .PHONY: prepare-e2e
 prepare-e2e:
 	kind get kubeconfig --name $(ADMIN_CLUSTER) > ${PWD}/bin/$(ADMIN_CLUSTER).kubeconfig
 	kind get kubeconfig --name $(REMOTE_CLUSTER) > ${PWD}/bin/$(REMOTE_CLUSTER).kubeconfig
 	kind get kubeconfig --name $(REMOTE_CLUSTER) --internal > ${PWD}/bin/$(REMOTE_CLUSTER)-int.kubeconfig
+
+.PHONY: list-scenarios
+list-scenarios:
+	find ${PWD}/e2e -type f -name 'e2e_test.go' -exec dirname {} \; | xargs -n 1 basename | jq -R -s -c 'split("\n")[:-1]'
 
 .PHONY: dev-docs
 dev-docs:

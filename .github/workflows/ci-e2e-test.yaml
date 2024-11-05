@@ -25,7 +25,7 @@ jobs:
       - name: "E2E Detection"
         id: e2es
         run: |
-          scenarios=$(find ${{ github.workspace }}/e2e -type f -name 'e2e_test.go' -exec dirname {} \; | xargs -n 1 basename | jq -R -s -c 'split("\n")[:-1]')
+          scenarios=$(make list-scenarios)
           echo $scenarios
           echo "result=$scenarios" >> $GITHUB_OUTPUT
 
@@ -88,7 +88,7 @@ jobs:
           GREENHOUSE_ADMIN_KUBECONFIG: ${{ steps.config.outputs.admin_config }}
           GREENHOUSE_REMOTE_KUBECONFIG: ${{ steps.config.outputs.remote_config }}
           GREENHOUSE_REMOTE_INT_KUBECONFIG: ${{ steps.config.outputs.remote_int_config }}
-          CONTROLLER_LOGS_PATH: ${{github.workspace}}/bin/${{matrix.e2es}}.txt
+          CONTROLLER_LOGS_PATH: ${{github.workspace}}/bin/${{matrix.e2es}}-${{matrix.k8s-version}}.txt
         run: |
           go install github.com/onsi/ginkgo/v2/ginkgo@latest
           ginkgo version
