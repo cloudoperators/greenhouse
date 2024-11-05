@@ -27,7 +27,7 @@ For consistency we will refer to those two clusters by their names from now on.
 
 You need to have the `kubeconfig` files for both the `greenhouse` and the `bootstrap` cluster at hand. The `kubeconfig` file for the `greenhouse` cluster can be downloaded via the Greenhouse dashboard:
 
-_Organization_ > _Clusters_ > _Access greenhouse cluster_.
+_Organization_ > _Clusters_ > _Access Greenhouse cluster_.
 
 ### Onboard
 
