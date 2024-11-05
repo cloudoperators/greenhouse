@@ -31,7 +31,7 @@ _Organization_ > _Clusters_ > _Access Greenhouse cluster_.
 
 ### Onboard
 
-For accessing the `greenhouse` cluster, the `greenhousectl` will expect your default kubernetes [`kubeconfig` file](https://kubernetes.io/docs/concepts/configuration/organize-cluster-access-kubeconfig/) and [`context`](https://kubernetes.io/docs/reference/kubectl/generated/kubectl_config/kubectl_config_use-context/) to be set to `greenhouse`.
+For accessing the `greenhouse` cluster, the `greenhousectl` will expect your default Kubernetes [`kubeconfig` file](https://kubernetes.io/docs/concepts/configuration/organize-cluster-access-kubeconfig/) and [`context`](https://kubernetes.io/docs/reference/kubectl/generated/kubectl_config/kubectl_config_use-context/) to be set to `greenhouse`.
 The easiest way for doing so is passing the `--kubeconfig` (and optionally `--kubecontext`) flag to your `greenhousectl` command.
 
 The location of the `kubeconfig` file to the `bootstrap` cluster is passed via the `--bootstrap-kubeconfig` flag.
