@@ -21,7 +21,7 @@ Download the latest `greenhousectl` binary from [here](https://github.com/cloudo
 Onboarding a `Cluster` to Greenhouse will require you to authenticate to two different Kubernetes clusters via respective `kubeconfig` files:
 
 - `greenhouse`: The cluster your Greenhouse installation is running on. You need `organization-admin` or `cluster-admin` priviledges.
-- `bootstrap`: The cluster you want to onboard. You need `system:masters` priviledges.
+- `bootstrap`: The cluster you want to onboard. You need `system:masters` privileges.
 
 For consistency we will refer to those two clusters by their names from now on.
 
