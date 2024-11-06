@@ -16,7 +16,7 @@ jobs:
         uses: mikepenz/release-changelog-builder-action@v5
         with:
           mode: "COMMIT"
-          outputFile: "CHANGELOG.md"
+          outputFile: "./CHANGELOG.md"
           configurationJson: |
             {
               "template": "#{{CHANGELOG}}",
