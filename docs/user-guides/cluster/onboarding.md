@@ -101,4 +101,5 @@ Then `status.conditions` will contain a `Condition` with `type=Ready` and `statu
 In the remote cluster, a new namespace is created and contains some resources managed by Greenhouse.
 The namespace has the same name as your organization in Greenhouse.
 
-If the bootstrapping failed, you can delete the Kubernetes cluster from Greenhouse with `kubectl --namespace=<greenhouse-organization-name> delete cluster <name>` and run the bootstrap command again.
+If the bootstrapping failed, you can find details about why it failed in the `Cluster.statusConditions`. More precisely there will be a condition of `type=KubeConfigValid` which might have hints in the `message` field. This is also displayed in the UI on the `Cluster` details view.
+Reruning the onboarding command with an updated `kubeConfig` file will fix these issues.
