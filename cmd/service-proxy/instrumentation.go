@@ -31,7 +31,6 @@ var (
 )
 
 func InstrumentHandler(pm *ProxyManager, registry prometheus.Registerer) http.Handler {
-	next := pm.ReverseProxy()
 	requestCounter := prometheus.NewCounterVec(
 		prometheus.CounterOpts{
 			Name: "http_requests_total",
@@ -81,7 +80,7 @@ func InstrumentHandler(pm *ProxyManager, registry prometheus.Registerer) http.Ha
 		promhttp.InstrumentHandlerCounter(requestCounter,
 			promhttp.InstrumentHandlerDuration(requestDuration,
 				promhttp.InstrumentHandlerResponseSize(responseSizeHistogram,
-					next,
+					pm.ReverseProxy(),
 					clusterFromContext, namespaceFromContext, nameFromContext,
 				),
 				clusterFromContext, namespaceFromContext, nameFromContext,
