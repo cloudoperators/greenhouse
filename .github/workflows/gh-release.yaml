@@ -27,8 +27,7 @@ jobs:
                 }
               ]
             }
-          outputFile: "CHANGELOG.md"
-          mode: "COMMIT"
+          outputFile: CHANGELOG.md
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Release
@@ -36,4 +35,6 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
             draft: true
+            generate_release_notes: true
+            body_path: CHANGELOG.md
             token: ${{ secrets.GITHUB_TOKEN }}
