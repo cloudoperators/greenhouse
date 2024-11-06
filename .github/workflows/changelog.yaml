@@ -16,6 +16,9 @@ jobs:
         uses: mikepenz/release-changelog-builder-action@v5
         with:
           mode: "COMMIT"
-          outputFile: "./CHANGELOG.md"
+          owner: ${{ github.repository_owner }}
+          repo: ${{ github.repository }}
+          fromTag: 0.0.1
+          outputFile: CHANGELOG.md
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
