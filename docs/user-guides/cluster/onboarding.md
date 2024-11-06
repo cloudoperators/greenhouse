@@ -31,9 +31,9 @@ _Organization_ > _Clusters_ > _Access Greenhouse cluster_.
 
 ### Onboard
 
-For accessing the `greenhouse` cluster, the `greenhousectl` will expect your default Kubernetes [`kubeconfig` file](https://kubernetes.io/docs/concepts/configuration/organize-cluster-access-kubeconfig/) and [`context`](https://kubernetes.io/docs/reference/kubectl/generated/kubectl_config/kubectl_config_use-context/) to be set to `bootstrap`.
+For accessing the `bootstrap` cluster, the `greenhousectl` will expect your default Kubernetes [`kubeconfig` file](https://kubernetes.io/docs/concepts/configuration/organize-cluster-access-kubeconfig/) and [`context`](https://kubernetes.io/docs/reference/kubectl/generated/kubectl_config/kubectl_config_use-context/) to be set to `bootstrap`. This can be achieved by passing the `--kubeconfig` flag or by setting the `KUBECONFIG` env var.
 
-The location of the `kubeconfig` file to the `bootstrap` cluster is passed via the `--kubeconfig` flag or via the `KUBECONFIG` enviorment variable
+The location of the `kubeconfig` file to the `greenhouse` cluster is passed via the `--greenhouse-kubeconfig` flag.
 
 ```commandline
 greenhousectl cluster bootstrap --kubeconfig=<path/to/bootstrap-kubeconfig-file> --greenhouse-kubeconfig <path/to/greenhouse-kubeconfig-file> --org <greenhouse-organization-name> --cluster-name <name>
@@ -76,8 +76,7 @@ apiVersion: greenhouse.sap/v1alpha1
 kind: Cluster
 metadata:
   creationTimestamp: "2024-02-07T10:23:23Z"
-  finalizers:
-    greenhouse.sap/cluster
+  finalizers: greenhouse.sap/cluster
   generation: 1
   name: monitoring
   namespace: ccloud
@@ -90,15 +89,13 @@ status:
   kubernetesVersion: v1.27.8
   statusConditions:
     conditions:
-    - lastTransitionTime: "2024-02-09T06:28:57Z"
-      status: "True"
-      type: Ready
-...
+      - lastTransitionTime: "2024-02-09T06:28:57Z"
+        status: "True"
+        type: Ready
 ```
 
 When the `status.kubernetesVersion` field shows the correct version of the Kubernetes cluster, the cluster was successfully bootstrapped in Greenhouse.
-Then `status.conditions` will contain a `Condition` with `type=ready` and `status="true""` 
-
+Then `status.conditions` will contain a `Condition` with `type=ready` and `status="true""`
 
 In the remote cluster, a new namespace is created and contains some resources managed by Greenhouse.
 The namespace has the same name as your organization in Greenhouse.
