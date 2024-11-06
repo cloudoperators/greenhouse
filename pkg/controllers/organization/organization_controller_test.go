@@ -64,12 +64,20 @@ var _ = Describe("Test Organization reconciliation", Ordered, func() {
 				org.Spec.MappedOrgAdminIDPGroup = validIdpGroupName
 			})
 
+			var team = &greenhousev1alpha1.Team{}
+			Eventually(func(g Gomega) {
+				err := setup.Get(test.Ctx, types.NamespacedName{Name: testOrgName + "-admin", Namespace: testOrgName}, team)
+				g.Expect(err).ToNot(HaveOccurred(), "there should be no error getting org admin team")
+				g.Expect(team.Spec.MappedIDPGroup).To(Equal(validIdpGroupName), "Admin team should be creted with valid IDPGroup")
+			}).Should(Succeed(), "Admin team should be created with valid IDPGroup")
+
 			By("updating MappedOrgAdminIDPGroup in Organization")
+			err := setup.Get(test.Ctx, types.NamespacedName{Name: testOrgName, Namespace: ""}, testOrg)
+			Expect(err).ToNot(HaveOccurred(), "there should be no error getting the organization")
 			testOrg.Spec.MappedOrgAdminIDPGroup = otherValidIdpGroupName
-			err := setup.Update(test.Ctx, testOrg)
+			err = setup.Update(test.Ctx, testOrg)
 			Expect(err).ToNot(HaveOccurred(), "there must be no error updating the organization")
 
-			var team = &greenhousev1alpha1.Team{}
 			Eventually(func(g Gomega) {
 				err := setup.Get(test.Ctx, types.NamespacedName{Name: testOrgName + "-admin", Namespace: testOrgName}, team)
 				g.Expect(err).ToNot(HaveOccurred(), "there should be no error getting org admin team")
