@@ -9,25 +9,17 @@ image:
 
 replicas: 2
 
-# TODO: Migrate to ingress.host
-host: "dashboard.greenhouse.local"
-
 ingress:
   className: nginx
+  host: "dashboard.greenhouse.local"
 
-juno:
+dashboard:
   assetServerURL: origin
-  # version of the juno greenhouse app
-  greenhouse:
-    version: latest
-
-  # app properties
   oidcIssuerUrl: https://accounts.com
   oidcClientId: 1234567890
   k8sApiEndpoint: https://kubernetes.defaul
+  environment: prod
 
   # The user for demonstration purposes.
   demoUser:
     token: demo
-
-  environment: prod
