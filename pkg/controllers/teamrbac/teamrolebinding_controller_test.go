@@ -384,6 +384,58 @@ var _ = Describe("Validate ClusterRole & RoleBinding on Remote Cluster", Ordered
 		})
 	})
 
+	Context("When creating a Greenhouse TeamRoleBinding with non-existing namespaces on the central cluster", func() {
+		It("Should fail to create ClusterRole and RoleBinding on the remote cluster", func() {
+			By("creating a TeamRoleBinding on the central cluster")
+			trb := setup.CreateTeamRoleBinding(test.Ctx, "test-rolebinding",
+				test.WithTeamRoleRef(teamRoleUT.Name),
+				test.WithTeamRef(teamUT.Name),
+				test.WithClusterName(clusterA.Name),
+				test.WithNamespaces("non-existing-namespace", setup.Namespace()))
+
+			By("validating the RoleBinding created on the remote cluster")
+			remoteRoleBinding := &rbacv1.RoleBinding{}
+			remoteRoleBindingName := types.NamespacedName{
+				Name:      trb.GetRBACName(),
+				Namespace: trb.Namespace,
+			}
+			Eventually(func(g Gomega) bool {
+				g.Expect(clusterAKubeClient.Get(context.TODO(), remoteRoleBindingName, remoteRoleBinding)).To(Succeed(), "there should be no error getting the RoleBinding from the Remote Cluster")
+				return !remoteRoleBinding.CreationTimestamp.IsZero()
+			}).Should(BeTrue(), "there should be no error getting the RoleBinding")
+			Expect(remoteRoleBinding.RoleRef.Name).To(HavePrefix(greenhouseapis.RBACPrefix))
+			Expect(remoteRoleBinding.RoleRef.Name).To(ContainSubstring(teamRoleUT.Name))
+
+			By("validating the ClusterRole created on the remote cluster")
+			remoteClusterRole := &rbacv1.ClusterRole{}
+			remoteClusterRoleName := types.NamespacedName{
+				Name: teamRoleUT.GetRBACName(),
+			}
+			Eventually(func(g Gomega) bool {
+				g.Expect(clusterAKubeClient.Get(test.Ctx, remoteClusterRoleName, remoteClusterRole)).To(Succeed(), "there should be no error getting the ClusterRole from the Remote Cluster")
+				return !remoteClusterRole.CreationTimestamp.IsZero()
+			}).Should(BeTrue(), "there should be no error getting the ClusterRole")
+			Expect(remoteClusterRole.Name).To(HavePrefix(greenhouseapis.RBACPrefix))
+			Expect(remoteClusterRole.Name).To(ContainSubstring(teamRoleUT.Name))
+			Expect(remoteClusterRole.Rules).To(Equal(teamRoleUT.Spec.Rules))
+
+			By("validating the TeamRoleBinding PropagationStatus for the remote cluster is false")
+			actTRB := &greenhousev1alpha1.TeamRoleBinding{}
+			actTRBKey := types.NamespacedName{Name: trb.Name, Namespace: trb.Namespace}
+			Eventually(func(g Gomega) {
+				g.Expect(test.K8sClient.Get(test.Ctx, actTRBKey, actTRB)).To(Succeed(), "there should be no error getting the TeamRoleBinding from the Central Cluster")
+				g.Expect(actTRB.Status.PropagationStatus).To(HaveLen(1), "the TeamRoleBinding should be propagated to one cluster")
+				g.Expect(actTRB.Status.PropagationStatus[0].Message).To(ContainSubstring("Failed to reconcile RoleBindings"))
+			}).Should(Succeed(), "there should be no error validating the PropagationStatus")
+			Expect(remoteClusterRole.Name).To(HavePrefix(greenhouseapis.RBACPrefix))
+			Expect(remoteClusterRole.Name).To(ContainSubstring(teamRoleUT.Name))
+			Expect(remoteClusterRole.Rules).To(Equal(teamRoleUT.Spec.Rules))
+
+			By("cleaning up the test")
+			test.EventuallyDeleted(test.Ctx, test.K8sClient, trb)
+		})
+	})
+
 	Context("When creating a Greenhouse TeamRoleBinding without namespaces on the central cluster", func() {
 		It("Should create a ClusterRole and ClusterRoleBinding on the remote cluster", func() {
 			By("creating a TeamRoleBinding without Namespaces on the central cluster")

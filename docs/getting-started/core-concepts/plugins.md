@@ -18,10 +18,10 @@ A Plugin is used to deploy the Helm Chart referenced in a PluginDefinition to a 
 
 ```mermaid
 flowchart TB
-  subgraph "Greenhouse" 
+  subgraph "Greenhouse"
     pluginDefinition[PluginDefinition 'openTelemetry']
-    
-    subgraph "Namespace &lt;org-name&gt;" 
+
+    subgraph "Namespace &lt;org-name&gt;"
         clusterA[Cluster 'cluster-a']
         plugin1[Plugin 'openTelemetry-cluster-a']
     end
@@ -47,14 +47,14 @@ PluginPresets are a mechanism to configure Plugins for multiple clusters at once
 
 ```mermaid
 flowchart TB
-  subgraph "Greenhouse" 
+  subgraph "Greenhouse"
     pluginDefinition[PluginDefinition 'example']
-    subgraph "Namespace &lt;org-name&gt;"  
-        pluginPreset[PluginPreset 'example-preset']
+    subgraph "Namespace &lt;org-name&gt;"
+        pluginPreset[PluginPreset 'example-obs']
         clusterA[Cluster 'cluster-a']
         clusterB[Cluster 'cluster-b']
-        plugin1[Plugin 'example-preset-cluster-a']
-        plugin2[Plugin 'example-preset-cluster-b']
+        plugin1[Plugin 'example-obs-cluster-a']
+        plugin2[Plugin 'example-obs-cluster-b']
     end
   end
 
