@@ -1,7 +1,7 @@
 openapi: 3.0.0
 info:
   title: Greenhouse
-  version: 8257878
+  version: 0fa6b52
   description: PlusOne operations platform
 paths:
   /TeamMembership:
@@ -1097,12 +1097,51 @@ components:
             description:
               description: Description provides additional details of the team.
               type: string
+            joinUrl:
+              description: URL to join the IdP group.
+              type: string
             mappedIdPGroup:
               description: IdP group id matching team.
               type: string
           type: object
         status:
           description: TeamStatus defines the observed state of Team
+          properties:
+            statusConditions:
+              description: A StatusConditions contains a list of conditions.\nOnly one condition of a given type may exist in the list.
+              properties:
+                conditions:
+                  items:
+                    description: Condition contains additional information on the state of a resource.
+                    properties:
+                      lastTransitionTime:
+                        description: LastTransitionTime is the last time the condition transitioned from one status to another.
+                        format: date-time
+                        type: string
+                      message:
+                        description: Message is an optional human readable message indicating details about the last transition.
+                        type: string
+                      reason:
+                        description: Reason is a one-word, CamelCase reason for the condition's last transition.
+                        type: string
+                      status:
+                        description: Status of the condition.
+                        type: string
+                      type:
+                        description: Type of the condition.
+                        type: string
+                    required:
+                      - lastTransitionTime
+                      - status
+                      - type
+                    type: object
+                  type: array
+                  x-kubernetes-list-map-keys:
+                    - type
+                  x-kubernetes-list-type: map
+              type: object
+          required:
+            - statusConditions
           type: object
       type: object
     Cluster:
@@ -1128,6 +1167,17 @@ components:
               enum:
                 - direct
               type: string
+            kubeConfig:
+              description: KubeConfig contains specific values for `KubeConfig` for the cluster.
+              properties:
+                maxTokenValidity:
+                  default: 72
+                  description: MaxTokenValidity specifies the maximum duration for which a token remains valid in hours.
+                  format: int32
+                  maximum: 72
+                  minimum: 24
+                  type: integer
+              type: object
           required:
             - accessMode
           type: object

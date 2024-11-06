@@ -7,6 +7,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/client-go/tools/record"
@@ -17,6 +18,7 @@ import (
 
 	greenhouseapisv1alpha1 "github.com/cloudoperators/greenhouse/pkg/apis/greenhouse/v1alpha1"
 	"github.com/cloudoperators/greenhouse/pkg/clientutil"
+	"github.com/cloudoperators/greenhouse/pkg/lifecycle"
 	"github.com/cloudoperators/greenhouse/pkg/rbac"
 )
 
@@ -56,11 +58,17 @@ func (r *RBACReconciler) SetupWithManager(name string, mgr ctrl.Manager) error {
 }
 
 func (r *RBACReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	ctx = clientutil.LogIntoContextFromRequest(ctx, req)
+	return lifecycle.Reconcile(ctx, r.Client, req.NamespacedName, &greenhouseapisv1alpha1.Organization{}, r, nil)
+}
 
-	var org = new(greenhouseapisv1alpha1.Organization)
-	if err := r.Get(ctx, req.NamespacedName, org); err != nil {
-		return ctrl.Result{}, client.IgnoreNotFound(err)
+func (r *RBACReconciler) EnsureDeleted(_ context.Context, _ lifecycle.RuntimeObject) (ctrl.Result, lifecycle.ReconcileResult, error) {
+	return ctrl.Result{}, lifecycle.Success, nil // nothing to do in that case
+}
+
+func (r *RBACReconciler) EnsureCreated(ctx context.Context, object lifecycle.RuntimeObject) (ctrl.Result, lifecycle.ReconcileResult, error) {
+	org, ok := object.(*greenhouseapisv1alpha1.Organization)
+	if !ok {
+		return ctrl.Result{}, lifecycle.Failed, errors.Errorf("RuntimeObject has incompatible type.")
 	}
 
 	// NOTE: The below code is intentionally rather explicit for transparency reasons as several Kubernetes resources
@@ -69,43 +77,43 @@ func (r *RBACReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.
 
 	// RBAC for organization admins for cluster- and namespace-scoped resources.
 	if err := r.reconcileClusterRole(ctx, org, admin); err != nil {
-		return ctrl.Result{}, err
+		return ctrl.Result{}, lifecycle.Failed, err
 	}
 	if err := r.reconcileClusterRoleBinding(ctx, org, admin); err != nil {
-		return ctrl.Result{}, err
+		return ctrl.Result{}, lifecycle.Failed, err
 	}
 	if err := r.reconcileRole(ctx, org, admin); err != nil {
-		return ctrl.Result{}, err
+		return ctrl.Result{}, lifecycle.Failed, err
 	}
 	if err := r.reconcileRoleBinding(ctx, org, admin); err != nil {
-		return ctrl.Result{}, err
+		return ctrl.Result{}, lifecycle.Failed, err
 	}
 
 	// RBAC for organization members for cluster- and namespace-scoped resources.
 	if err := r.reconcileClusterRole(ctx, org, member); err != nil {
-		return ctrl.Result{}, err
+		return ctrl.Result{}, lifecycle.Failed, err
 	}
 	if err := r.reconcileClusterRoleBinding(ctx, org, member); err != nil {
-		return ctrl.Result{}, err
+		return ctrl.Result{}, lifecycle.Failed, err
 	}
 	if err := r.reconcileRole(ctx, org, member); err != nil {
-		return ctrl.Result{}, err
+		return ctrl.Result{}, lifecycle.Failed, err
 	}
 	if err := r.reconcileRoleBinding(ctx, org, member); err != nil {
-		return ctrl.Result{}, err
+		return ctrl.Result{}, lifecycle.Failed, err
 	}
 
 	// RBAC roles for organization cluster admins to access namespace-scoped resources.
 	if err := r.reconcileRole(ctx, org, clusterAdmin); err != nil {
-		return ctrl.Result{}, err
+		return ctrl.Result{}, lifecycle.Failed, err
 	}
 
 	// RBAC roles for organization plugin admins to access namespace-scoped resources.
 	if err := r.reconcileRole(ctx, org, pluginAdmin); err != nil {
-		return ctrl.Result{}, err
+		return ctrl.Result{}, lifecycle.Failed, err
 	}
 
-	return ctrl.Result{}, nil
+	return ctrl.Result{}, lifecycle.Success, nil
 }
 
 func (r *RBACReconciler) reconcileClusterRole(ctx context.Context, org *greenhouseapisv1alpha1.Organization, group userGroup) error {

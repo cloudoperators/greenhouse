@@ -171,6 +171,21 @@ var _ = Describe("Cluster Webhook", func() {
 			},
 			true,
 		),
+		Entry("it should allow creation of cluster with not too long token validity",
+			&greenhousev1alpha1.Cluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "test-cluster",
+					Namespace: "test-namespace",
+				},
+				Spec: greenhousev1alpha1.ClusterSpec{
+					AccessMode: greenhousev1alpha1.ClusterAccessModeDirect,
+					KubeConfig: greenhousev1alpha1.ClusterKubeConfig{
+						MaxTokenValidity: 72,
+					},
+				},
+			},
+			false,
+		),
 	)
 
 	DescribeTable("Validate Update Cluster",

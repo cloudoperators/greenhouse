@@ -9,8 +9,6 @@ import (
 	"strings"
 	"time"
 
-	ctrl "sigs.k8s.io/controller-runtime"
-
 	"github.com/pkg/errors"
 	appsv1 "k8s.io/api/apps/v1"
 	batchv1 "k8s.io/api/batch/v1"
@@ -20,11 +18,13 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
+	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	greenhouseapis "github.com/cloudoperators/greenhouse/pkg/apis"
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/pkg/apis/greenhouse/v1alpha1"
 	"github.com/cloudoperators/greenhouse/pkg/clientutil"
+	"github.com/cloudoperators/greenhouse/pkg/lifecycle"
 )
 
 // exposedConditions are the conditions that are exposed in the StatusConditions of the Plugin.
@@ -311,8 +311,9 @@ func shouldReconcileOrRequeue(ctx context.Context, c client.Client, plugin *gree
 		return &reconcileResult{
 			requeueAfter: requeueAfter,
 			condition: greenhousev1alpha1.Condition{
-				Type:    greenhousev1alpha1.ClusterDeletionScheduled,
-				Status:  metav1.ConditionTrue,
+				Type:    greenhousev1alpha1.DeleteCondition,
+				Reason:  lifecycle.ScheduledDeletionReason,
+				Status:  metav1.ConditionFalse,
 				Message: msg,
 			},
 		}, nil

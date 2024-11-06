@@ -5,9 +5,11 @@ package cluster
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"time"
 
+	"github.com/go-jose/go-jose/v4"
 	authenticationv1 "k8s.io/api/authentication/v1"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
@@ -17,7 +19,6 @@ import (
 	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
 	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
 	greenhouseapis "github.com/cloudoperators/greenhouse/pkg/apis"
@@ -25,7 +26,29 @@ import (
 	"github.com/cloudoperators/greenhouse/pkg/clientutil"
 )
 
-var defaultRequeueInterval = 10 * time.Minute
+var (
+	defaultRequeueInterval = 10 * time.Minute
+	allSignatureAlgorithms = []jose.SignatureAlgorithm{
+		jose.EdDSA,
+		jose.HS256,
+		jose.HS384,
+		jose.HS512,
+		jose.RS256,
+		jose.RS384,
+		jose.RS512,
+		jose.ES256,
+		jose.ES384,
+		jose.ES512,
+		jose.PS256,
+		jose.PS384,
+		jose.PS512,
+	}
+)
+
+const (
+	CRoleKind = "ClusterRole"
+	CRoleRef  = "cluster-admin"
+)
 
 type KubeConfigHelper struct {
 	Host           string
@@ -37,6 +60,31 @@ type KubeConfigHelper struct {
 	ProxyURL       string
 	ClientCertData []byte
 	ClientKeyData  []byte
+}
+
+type claims struct {
+	Issuer     string           `json:"iss,omitempty"`
+	Subject    string           `json:"sub,omitempty"`
+	Audience   []string         `json:"aud,omitempty"`
+	Expiry     int64            `json:"exp,omitempty"`
+	NotBefore  int64            `json:"nbf,omitempty"`
+	IssuedAt   int64            `json:"iat,omitempty"`
+	ID         string           `json:"jti,omitempty"`
+	Kubernetes kubernetesClaims `json:"kubernetes.io,omitempty"`
+}
+
+type kubernetesClaims struct {
+	Namespace string `json:"namespace,omitempty"`
+	Svcacct   ref    `json:"serviceaccount,omitempty"`
+	Pod       *ref   `json:"pod,omitempty"`
+	Secret    *ref   `json:"secret,omitempty"`
+	Node      *ref   `json:"node,omitempty"`
+	WarnAfter int64  `json:"warnafter,omitempty"`
+}
+
+type ref struct {
+	Name string `json:"name,omitempty"`
+	UID  string `json:"uid,omitempty"`
 }
 
 // RestConfigToAPIConfig converts a rest config to a clientcmdapi.Config
@@ -88,6 +136,17 @@ func reconcileNamespaceInRemoteCluster(ctx context.Context, k8sClient client.Cli
 	return nil
 }
 
+func deleteServiceAccountInRemoteCluster(ctx context.Context, k8sClient client.Client, cluster *greenhousev1alpha1.Cluster) error {
+	serviceAccount := &corev1.ServiceAccount{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      serviceAccountName,
+			Namespace: cluster.GetNamespace(),
+		},
+	}
+	err := k8sClient.Delete(ctx, serviceAccount)
+	return client.IgnoreNotFound(err)
+}
+
 func reconcileServiceAccountInRemoteCluster(ctx context.Context, k8sClient client.Client, cluster *greenhousev1alpha1.Cluster) error {
 	var serviceAccount = new(corev1.ServiceAccount)
 	serviceAccount.Name = serviceAccountName
@@ -110,33 +169,36 @@ func reconcileServiceAccountInRemoteCluster(ctx context.Context, k8sClient clien
 }
 
 func reconcileClusterRoleBindingInRemoteCluster(ctx context.Context, k8sClient client.Client, cluster *greenhousev1alpha1.Cluster) error {
-	var clusterRoleBinding = new(rbacv1.ClusterRoleBinding)
-	clusterRoleBinding.Name = serviceAccountName
-
-	var nameSpace = new(corev1.Namespace)
-	if err := k8sClient.Get(ctx, types.NamespacedName{Namespace: "", Name: cluster.GetNamespace()}, nameSpace); err != nil {
-		return err
-	}
-
-	result, err := clientutil.CreateOrPatch(ctx, k8sClient, clusterRoleBinding, func() error {
-		clusterRoleBinding.Subjects = []rbacv1.Subject{
+	clusterRoleBinding := &rbacv1.ClusterRoleBinding{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: serviceAccountName,
+		},
+		Subjects: []rbacv1.Subject{
 			{
 				Kind:      rbacv1.ServiceAccountKind,
 				Name:      serviceAccountName,
 				Namespace: cluster.GetNamespace(),
 			},
-		}
-		clusterRoleBinding.RoleRef = rbacv1.RoleRef{
-			Kind:     "ClusterRole",
-			Name:     "cluster-admin",
+		},
+		RoleRef: rbacv1.RoleRef{
+			Kind:     CRoleKind,
+			Name:     CRoleRef,
 			APIGroup: rbacv1.GroupName,
-		}
-		return controllerutil.SetOwnerReference(nameSpace, clusterRoleBinding, k8sClient.Scheme())
-	})
+		},
+	}
 
+	namespace := new(corev1.Namespace)
+	if err := k8sClient.Get(ctx, types.NamespacedName{Namespace: "", Name: cluster.GetNamespace()}, namespace); err != nil {
+		return err
+	}
+
+	result, err := clientutil.CreateOrPatch(ctx, k8sClient, clusterRoleBinding, func() error {
+		return nil
+	})
 	if err != nil {
 		return err
 	}
+
 	switch result {
 	case clientutil.OperationResultCreated:
 		log.FromContext(ctx).Info("created clusterRoleBinding", "cluster", clusterRoleBinding.Name)
@@ -157,16 +219,39 @@ type tokenHelper struct {
 
 // ReconcileServiceAccountToken reconciles the service account token for the cluster and updates the secret containing the kube config
 func (t *tokenHelper) ReconcileServiceAccountToken(ctx context.Context, restClientGetter *clientutil.RestClientGetter, cluster *greenhousev1alpha1.Cluster) error {
-	// TODO: Do not rely on the status but actually check the token expiration.
-	if !cluster.Status.BearerTokenExpirationTimestamp.IsZero() && cluster.Status.BearerTokenExpirationTimestamp.Time.After(time.Now().Add(t.RenewRemoteClusterBearerTokenAfter)) {
-		log.FromContext(ctx).V(5).Info("bearer token is still valid", "cluster", cluster.Name, "expirationTimestamp", cluster.Status.BearerTokenExpirationTimestamp.Time)
-		return nil
-	}
+	var jwtPayload []byte
+	var tokenInfo = new(claims)
+	var actualTokenExpiry metav1.Time
 
 	remoteRestConfig, err := restClientGetter.ToRESTConfig()
 	if err != nil {
 		return err
 	}
+	jwt, err := jose.ParseSigned(remoteRestConfig.BearerToken, allSignatureAlgorithms)
+	// If parsing the token is not possible we fall back to the old way of checking the token expiration
+	if err != nil {
+		if !cluster.Status.BearerTokenExpirationTimestamp.IsZero() && cluster.Status.BearerTokenExpirationTimestamp.Time.After(time.Now().Add(t.RenewRemoteClusterBearerTokenAfter)) {
+			log.FromContext(ctx).V(5).Info("bearer token is still valid", "cluster", cluster.Name, "expirationTimestamp", cluster.Status.BearerTokenExpirationTimestamp.Time)
+			return nil
+		}
+	}
+
+	if jwt != nil {
+		jwtPayload = jwt.UnsafePayloadWithoutVerification()
+	}
+	err = json.Unmarshal(jwtPayload, &tokenInfo)
+	// If parsing the token is not possible we fall back to the old way of checking the token expiration
+	if err == nil {
+		actualTokenExpiry = metav1.Unix(tokenInfo.Expiry, 0)
+		if actualTokenExpiry.After(time.Now().Add(t.RenewRemoteClusterBearerTokenAfter)) {
+			log.FromContext(ctx).V(5).Info("bearer token is still valid", "cluster", cluster.Name, "expirationTimestamp", cluster.Status.BearerTokenExpirationTimestamp.Time)
+			return nil
+		}
+	} else if !cluster.Status.BearerTokenExpirationTimestamp.IsZero() && cluster.Status.BearerTokenExpirationTimestamp.Time.After(time.Now().Add(t.RenewRemoteClusterBearerTokenAfter)) {
+		log.FromContext(ctx).V(5).Info("bearer token is still valid", "cluster", cluster.Name, "expirationTimestamp", cluster.Status.BearerTokenExpirationTimestamp.Time)
+		return nil
+	}
+
 	clientset, err := kubernetes.NewForConfig(remoteRestConfig)
 	if err != nil {
 		return err
@@ -236,14 +321,4 @@ func reconcileRemoteAPIServerVersion(ctx context.Context, restConfigGetter *clie
 		return nil
 	})
 	return err
-}
-
-// deleteNamespaceInRemoteCluster deletes the namespace ignoring NotFound errors.
-func deleteNamespaceInRemoteCluster(ctx context.Context, remoteK8sClient client.Client, cluster *greenhousev1alpha1.Cluster) error {
-	var namespace = new(corev1.Namespace)
-	namespace.Name = cluster.GetNamespace()
-	// Attempt deletion if the namespace in the remote cluster.
-	err := remoteK8sClient.Delete(ctx, namespace)
-	// Ignore errors if was already deleted.
-	return client.IgnoreNotFound(err)
 }

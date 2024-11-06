@@ -1,0 +1,15 @@
+---
+title: "Core Concepts"
+linkTitle: "Core Concepts"
+weight: 1
+landingSectionIndex: false
+description: >
+  Overview of some core concepts of Greenhouse
+---
+
+| Feature | Description | API | UI | Comments |
+| --- | --- | --- | --- | --- |
+| [Organizations](/docs/getting-started/core-concepts/organizations) | Organizations are the top-level entities in Greenhouse. | 🟢 | 🟢 | |
+| [Teams](/docs/getting-started/core-concepts/teams.md) | Teams are used to manage access and ownership of resources in Greenhouse. | 🟢 | 🟡 | Read-only access to Teams via the UI |
+| [Clusters](/docs/getting-started/core-concepts/clusters.md) | Clusters represent a Kubernetes cluster that is managed by Greenhouse. | 🟡 | 🟡 | Limited modification of Clusters via UI, CLI for KubeConfig registry planned. |
+| [Plugin Definitions & Plugins](/docs/getting-started/core-concepts/plugins.md) | Plugins are software components that extend and integrate with Greenhouse . | 🟡 | 🟡 | Read-only access via UI, a native Plugin Catalog is planned. |

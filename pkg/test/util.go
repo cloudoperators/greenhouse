@@ -10,9 +10,6 @@ import (
 	"os"
 	"time"
 
-	greenhouseapis "github.com/cloudoperators/greenhouse/pkg/apis"
-	"github.com/cloudoperators/greenhouse/pkg/clientutil"
-
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gstruct"
@@ -22,28 +19,35 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
+	"k8s.io/client-go/util/retry"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
+	greenhouseapis "github.com/cloudoperators/greenhouse/pkg/apis"
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/pkg/apis/greenhouse/v1alpha1"
+	"github.com/cloudoperators/greenhouse/pkg/clientutil"
 )
 
-func UpdateClusterWithDeletionAnnotation(ctx context.Context, c client.Client, cluster *greenhousev1alpha1.Cluster) {
+func UpdateClusterWithDeletionAnnotation(ctx context.Context, c client.Client, id client.ObjectKey) {
 	schedule, err := clientutil.ParseDateTime(time.Now().Add(-1 * time.Minute))
 	Expect(err).ToNot(HaveOccurred(), "there should be no error parsing the time")
-	cluster.SetAnnotations(map[string]string{
-		greenhouseapis.MarkClusterDeletionAnnotation:     "true",
-		greenhouseapis.ScheduleClusterDeletionAnnotation: schedule.Format(time.DateTime),
+	err = retry.RetryOnConflict(retry.DefaultRetry, func() error {
+		cluster := &greenhousev1alpha1.Cluster{}
+		Expect(c.Get(ctx, id, cluster)).
+			To(Succeed(), "there must be no error getting the cluster")
+		cluster.SetAnnotations(map[string]string{
+			greenhouseapis.MarkClusterDeletionAnnotation:     "true",
+			greenhouseapis.ScheduleClusterDeletionAnnotation: schedule.Format(time.DateTime),
+		})
+		return c.Update(ctx, cluster)
 	})
-	Expect(c.Update(ctx, cluster)).To(Succeed(), "there must be no error updating the object", "key", client.ObjectKeyFromObject(cluster))
+	Expect(err).ToNot(HaveOccurred(), "there must be no error updating the object", "key", id)
 }
 
 // MustDeleteCluster is used in the test context only and removes a cluster by namespaced name.
 func MustDeleteCluster(ctx context.Context, c client.Client, id client.ObjectKey) {
 	GinkgoHelper()
 	var cluster = new(greenhousev1alpha1.Cluster)
-	Expect(c.Get(ctx, id, cluster)).
-		To(Succeed(), "there must be no error getting the cluster")
-	UpdateClusterWithDeletionAnnotation(ctx, c, cluster)
+	UpdateClusterWithDeletionAnnotation(ctx, c, id)
 	Expect(c.Get(ctx, id, cluster)).
 		To(Succeed(), "there must be no error getting the cluster")
 	Expect(c.Delete(ctx, cluster)).

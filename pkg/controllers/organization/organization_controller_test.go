@@ -14,7 +14,7 @@ import (
 	"github.com/cloudoperators/greenhouse/pkg/test"
 )
 
-var _ = Describe("Test Organization reconciliation", func() {
+var _ = Describe("Test Organization reconciliation", Ordered, func() {
 	const (
 		validIdpGroupName      = "SOME_IDP_GROUP_NAME"
 		otherValidIdpGroupName = "ANOTHER_IDP_GROUP"

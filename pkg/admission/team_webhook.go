@@ -45,7 +45,10 @@ func ValidateCreateTeam(ctx context.Context, c client.Client, o runtime.Object) 
 	if !ok {
 		return nil, nil
 	}
-	return nil, validateGreenhouseLabels(team, ctx, c)
+	if err := validateGreenhouseLabels(team, ctx, c); err != nil {
+		return nil, err
+	}
+	return nil, validateJoinURL(team)
 }
 
 func ValidateUpdateTeam(ctx context.Context, c client.Client, _, o runtime.Object) (admission.Warnings, error) {
@@ -53,7 +56,10 @@ func ValidateUpdateTeam(ctx context.Context, c client.Client, _, o runtime.Objec
 	if !ok {
 		return nil, nil
 	}
-	return nil, validateGreenhouseLabels(team, ctx, c)
+	if err := validateGreenhouseLabels(team, ctx, c); err != nil {
+		return nil, err
+	}
+	return nil, validateJoinURL(team)
 }
 
 func ValidateDeleteTeam(_ context.Context, _ client.Client, _ runtime.Object) (admission.Warnings, error) {
@@ -86,6 +92,19 @@ func validateGreenhouseLabels(team *greenhousev1alpha1.Team, ctx context.Context
 				})
 			}
 		}
+	}
+	return nil
+}
+
+func validateJoinURL(team *greenhousev1alpha1.Team) error {
+	if team.Spec.JoinURL == "" {
+		return nil
+	}
+	if !validateURL(team.Spec.JoinURL) {
+		return apierrors.NewInvalid(team.GroupVersionKind().GroupKind(), team.GetName(), field.ErrorList{
+			field.Invalid(field.NewPath("spec").Child("joinUrl"), team.Spec.JoinURL,
+				"JoinURL must be a valid 'http:' or 'https:' URL, like 'https://example.com'."),
+		})
 	}
 	return nil
 }

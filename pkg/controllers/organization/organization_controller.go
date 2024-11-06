@@ -6,6 +6,7 @@ package organization
 import (
 	"context"
 
+	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/tools/record"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -15,6 +16,7 @@ import (
 
 	greenhousesapv1alpha1 "github.com/cloudoperators/greenhouse/pkg/apis/greenhouse/v1alpha1"
 	"github.com/cloudoperators/greenhouse/pkg/clientutil"
+	"github.com/cloudoperators/greenhouse/pkg/lifecycle"
 	"github.com/cloudoperators/greenhouse/pkg/scim"
 )
 
@@ -52,11 +54,17 @@ func (r *OrganizationReconciler) SetupWithManager(name string, mgr ctrl.Manager)
 }
 
 func (r *OrganizationReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	ctx = clientutil.LogIntoContextFromRequest(ctx, req)
+	return lifecycle.Reconcile(ctx, r.Client, req.NamespacedName, &greenhousesapv1alpha1.Organization{}, r, nil)
+}
 
-	var org = new(greenhousesapv1alpha1.Organization)
-	if err := r.Get(ctx, req.NamespacedName, org); err != nil {
-		return ctrl.Result{}, client.IgnoreNotFound(err)
+func (r *OrganizationReconciler) EnsureDeleted(_ context.Context, _ lifecycle.RuntimeObject) (ctrl.Result, lifecycle.ReconcileResult, error) {
+	return ctrl.Result{}, lifecycle.Success, nil // nothing to do in that case
+}
+
+func (r *OrganizationReconciler) EnsureCreated(ctx context.Context, object lifecycle.RuntimeObject) (ctrl.Result, lifecycle.ReconcileResult, error) {
+	org, ok := object.(*greenhousesapv1alpha1.Organization)
+	if !ok {
+		return ctrl.Result{}, lifecycle.Failed, errors.Errorf("RuntimeObject has incompatible type.")
 	}
 
 	orgStatus := initOrganizationStatus(org)
@@ -67,7 +75,7 @@ func (r *OrganizationReconciler) Reconcile(ctx context.Context, req ctrl.Request
 	}()
 
 	if err := r.reconcileNamespace(ctx, org); err != nil {
-		return ctrl.Result{}, err
+		return ctrl.Result{}, lifecycle.Failed, err
 	}
 
 	scimAPIAvailableCondition := r.checkSCIMAPIAvailability(ctx, org)
@@ -75,10 +83,10 @@ func (r *OrganizationReconciler) Reconcile(ctx context.Context, req ctrl.Request
 	orgStatus.SetConditions(scimAPIAvailableCondition, readyCondition)
 
 	if err := r.reconcileAdminTeam(ctx, org); err != nil {
-		return ctrl.Result{}, err
+		return ctrl.Result{}, lifecycle.Failed, err
 	}
 
-	return ctrl.Result{}, nil
+	return ctrl.Result{}, lifecycle.Success, nil
 }
 
 func (r *OrganizationReconciler) reconcileNamespace(ctx context.Context, org *greenhousesapv1alpha1.Organization) error {
