@@ -18,7 +18,6 @@ jobs:
           mode: "COMMIT"
           owner: ${{ github.repository_owner }}
           repo: ${{ github.repository }}
-          fromTag: 0.0.1
           outputFile: CHANGELOG.md
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
