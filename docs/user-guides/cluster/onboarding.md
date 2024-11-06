@@ -5,6 +5,13 @@ description: >
   Onboard an existing Kubernetes cluster to Greenhouse.
 ---
 
+## Content Overview
+
+- [Preparation](#preparation)
+- [Onboard](#onboard)
+- [After onboarding](#after-onboarding)
+- [Trouble shooting](#trouble-shooting)
+
 This guides describes how to onboard an existing Kubernetes cluster to your Greenhouse organization.  
 If you don't have an organization yet please reach out to the Greenhouse administrators.
 
@@ -100,6 +107,8 @@ Then `status.conditions` will contain a `Condition` with `type=Ready` and `statu
 
 In the remote cluster, a new namespace is created and contains some resources managed by Greenhouse.
 The namespace has the same name as your organization in Greenhouse.
+
+## Trouble shooting
 
 If the bootstrapping failed, you can find details about why it failed in the `Cluster.statusConditions`. More precisely there will be a condition of `type=KubeConfigValid` which might have hints in the `message` field. This is also displayed in the UI on the `Cluster` details view.
 Reruning the onboarding command with an updated `kubeConfig` file will fix these issues.
