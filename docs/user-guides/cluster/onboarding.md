@@ -76,7 +76,8 @@ apiVersion: greenhouse.sap/v1alpha1
 kind: Cluster
 metadata:
   creationTimestamp: "2024-02-07T10:23:23Z"
-  finalizers: greenhouse.sap/cluster
+  finalizers:
+    - greenhouse.sap/cleanup
   generation: 1
   name: monitoring
   namespace: ccloud
@@ -95,7 +96,7 @@ status:
 ```
 
 When the `status.kubernetesVersion` field shows the correct version of the Kubernetes cluster, the cluster was successfully bootstrapped in Greenhouse.
-Then `status.conditions` will contain a `Condition` with `type=ready` and `status="true""`
+Then `status.conditions` will contain a `Condition` with `type=Ready` and `status="true""`
 
 In the remote cluster, a new namespace is created and contains some resources managed by Greenhouse.
 The namespace has the same name as your organization in Greenhouse.
