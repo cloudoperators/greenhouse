@@ -34,6 +34,7 @@ import (
 var exposedConditions = []greenhousev1alpha1.ConditionType{
 	greenhousev1alpha1.ReadyCondition,
 	greenhousev1alpha1.ClusterListEmpty,
+	greenhousev1alpha1.RBACReady,
 }
 
 // TeamRoleBindingReconciler reconciles a TeamRole object
@@ -102,12 +103,7 @@ func (r *TeamRoleBindingReconciler) setConditions() lifecycle.Conditioner {
 			return
 		}
 
-		// trbStatus := initTeamRoleBindingStatus(trb)
-
-		rbacReadyCondition := trb.Status.GetConditionByType(greenhousev1alpha1.RBACReady)
-		if rbacReadyCondition == nil {
-			trb.SetCondition(greenhousev1alpha1.UnknownCondition(greenhousev1alpha1.RBACReady, "", ""))
-		}
+		initTeamRoleBindingStatus(trb)
 
 		readyCondition := computeReadyCondition(trb.Status)
 		trb.SetCondition(readyCondition)
@@ -115,7 +111,11 @@ func (r *TeamRoleBindingReconciler) setConditions() lifecycle.Conditioner {
 }
 
 func (r *TeamRoleBindingReconciler) EnsureCreated(ctx context.Context, resource lifecycle.RuntimeObject) (ctrl.Result, lifecycle.ReconcileResult, error) {
-	trb := resource.(*greenhousev1alpha1.TeamRoleBinding) //nolint:errcheck
+	trb, ok := resource.(*greenhousev1alpha1.TeamRoleBinding)
+	if !ok {
+		return ctrl.Result{}, lifecycle.Failed, errors.New("RuntimeObject has incompatible type")
+	}
+
 	_ = log.FromContext(ctx)
 
 	teamRole, err := getTeamRole(ctx, r.Client, r.recorder, trb)
@@ -145,8 +145,9 @@ func (r *TeamRoleBindingReconciler) EnsureCreated(ctx context.Context, resource 
 	team, err := getTeam(ctx, r.Client, trb)
 	if err != nil {
 		if apierrors.IsNotFound(err) {
-			trb.SetCondition(greenhousev1alpha1.FalseCondition(greenhousev1alpha1.RBACReady, greenhousev1alpha1.TeamNotFound, fmt.Sprintf("Failed to get team %s in namespace %s", trb.Spec.TeamRef, trb.GetNamespace())))
-			r.recorder.Eventf(trb, corev1.EventTypeWarning, greenhousev1alpha1.FailedEvent, "Failed to get team %s in namespace %s", trb.Spec.TeamRef, trb.GetNamespace())
+			message := fmt.Sprintf("Failed to get team %s in namespace %s", trb.Spec.TeamRef, trb.GetNamespace())
+			trb.SetCondition(greenhousev1alpha1.FalseCondition(greenhousev1alpha1.RBACReady, greenhousev1alpha1.TeamNotFound, message))
+			r.recorder.Event(trb, corev1.EventTypeWarning, greenhousev1alpha1.FailedEvent, message)
 		}
 		return ctrl.Result{}, lifecycle.Failed, err
 	}
@@ -160,7 +161,11 @@ func (r *TeamRoleBindingReconciler) EnsureCreated(ctx context.Context, resource 
 
 // EnsureDeleted - removes the TeamRoleBinding's rbacv1 resources from all clusters.
 func (r *TeamRoleBindingReconciler) EnsureDeleted(ctx context.Context, resource lifecycle.RuntimeObject) (ctrl.Result, lifecycle.ReconcileResult, error) {
-	trb := resource.(*greenhousev1alpha1.TeamRoleBinding) //nolint:errcheck
+	trb, ok := resource.(*greenhousev1alpha1.TeamRoleBinding)
+	if !ok {
+		return ctrl.Result{}, lifecycle.Failed, errors.New("RuntimeObject has incompatible type")
+	}
+
 	clusters, err := r.listClusters(ctx, trb)
 	if err != nil {
 		r.recorder.Eventf(trb, corev1.EventTypeWarning, greenhousev1alpha1.FailedDeleteEvent, "Failed to list clusters")
@@ -239,8 +244,9 @@ func (r *TeamRoleBindingReconciler) doReconcile(ctx context.Context, teamRole *g
 	}
 
 	if len(failedClusters) > 0 {
-		trb.SetCondition(greenhousev1alpha1.FalseCondition(greenhousev1alpha1.RBACReady, greenhousev1alpha1.RBACReconcileFailed, "Error reconciling TeamRoleBindiding for clusters: "+strings.Join(failedClusters, ", ")))
-		return fmt.Errorf("error reconciling TeamRoleBinding for clusters: %v", strings.Join(failedClusters, ", "))
+		message := "Error reconciling TeamRoleBinding for clusters: " + strings.Join(failedClusters, ", ")
+		trb.SetCondition(greenhousev1alpha1.FalseCondition(greenhousev1alpha1.RBACReady, greenhousev1alpha1.RBACReconcileFailed, message))
+		return errors.New(message)
 	}
 
 	trb.SetCondition(greenhousev1alpha1.TrueCondition(greenhousev1alpha1.RBACReady, greenhousev1alpha1.RBACReconciled, ""))
@@ -671,14 +677,12 @@ func (r *TeamRoleBindingReconciler) listClusters(ctx context.Context, trb *green
 }
 
 // initTeamRoleBindingStatus ensures that all required conditions are present in the TeamRoleBinding's Status
-func initTeamRoleBindingStatus(trb *greenhousev1alpha1.TeamRoleBinding) greenhousev1alpha1.TeamRoleBindingStatus {
-	status := trb.Status.DeepCopy()
+func initTeamRoleBindingStatus(trb *greenhousev1alpha1.TeamRoleBinding) {
 	for _, ct := range exposedConditions {
-		if status.GetConditionByType(ct) == nil {
-			status.SetConditions(greenhousev1alpha1.UnknownCondition(ct, "", ""))
+		if trb.Status.GetConditionByType(ct) == nil {
+			trb.SetCondition(greenhousev1alpha1.UnknownCondition(ct, "", ""))
 		}
 	}
-	return *status
 }
 
 // computeReadyCondition computes the ReadyCondition based on the TeamRoleBinding's StatusConditions

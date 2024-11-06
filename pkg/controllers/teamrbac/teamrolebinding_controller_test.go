@@ -5,7 +5,6 @@ package teamrbac
 
 import (
 	"context"
-	"fmt"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -364,7 +363,7 @@ var _ = Describe("Validate ClusterRole & RoleBinding on Remote Cluster", Ordered
 				g.Expect(err).ToNot(HaveOccurred(), "there should be no error getting the TeamRoleBinding from central Cluster")
 
 				g.Expect(trb.Status.PropagationStatus).To(HaveLen(1), "the TeamRoleBinding should be propagated to one cluster")
-				statusMessage := fmt.Sprintf("Failed to reconcile RoleBinding %s in cluster %s for namespace %s", trb.GetRBACName(), clusterA.Name, "non-existing-namespace")
+				statusMessage := "Failed to reconcile RoleBindings: namespaces \"non-existing-namespace\" not found"
 				g.Expect(trb.Status.PropagationStatus).To(ContainElement(And(
 					HaveField("ClusterName", clusterA.Name),
 					HaveField("Condition.Status", metav1.ConditionFalse),
@@ -376,7 +375,7 @@ var _ = Describe("Validate ClusterRole & RoleBinding on Remote Cluster", Ordered
 				g.Expect(rbacReadyCondition).ToNot(BeNil(), "RBACReady condition should not be nil on the TeamRoleBinding")
 				g.Expect(rbacReadyCondition.Status).To(Equal(metav1.ConditionFalse), "RBACReady condition should be False on the TeamRoleBinding")
 				g.Expect(rbacReadyCondition.Reason).To(Equal(greenhousev1alpha1.RBACReconcileFailed), "RBACReady condition should have the correct Reason")
-				g.Expect(rbacReadyCondition.Message).To(Equal("Error reconciling TeamRoleBindiding for clusters: test-cluster-a"), "RBACReady condition should have the correct Message")
+				g.Expect(rbacReadyCondition.Message).To(Equal("Error reconciling TeamRoleBinding for clusters: test-cluster-a"), "RBACReady condition should have the correct Message")
 			}).Should(Succeed(), "TeamRoleBinding should propagate the error")
 
 			By("cleaning up the test")
