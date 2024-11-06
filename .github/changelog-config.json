@@ -2,7 +2,7 @@
     "categories": [
       {
         "title": "## 🚀 What's Changed",
-        "labels": ["feature"]
+        "labels": ["feat", "fix"]
       },
       {
         "title": "## 🐛 Fixes",
@@ -12,21 +12,6 @@
         "key": "tests",
         "title": "## 🧪 Tests",
         "labels": ["test"]
-      },
-      {
-        "title": "## 🧪 Tests and some 🪄 Magic",
-        "labels": ["test", "magic"],
-        "exclude_labels": ["no-magic"],
-        "exhaustive": true,
-        "exhaustive_rules": "false",
-        "empty_content": "- no matching PRs",
-        "rules": [
-          {
-            "pattern": "open",
-            "on_property": "status",
-            "flags": "gu"
-          }
-        ]
       }
     ],
     "ignore_labels": [
@@ -36,7 +21,7 @@
       "order": "ASC",
       "on_property": "mergedAt"
     },
-    "template": "#{{CHANGELOG}}\n\n<details>\n<summary>Uncategorized</summary>\n\n#{{UNCATEGORIZED}}\n</details>",
+    "template": "#{{CHANGELOG}}\n\n<details>\n<summary>What's Changed</summary>\n\n#{{UNCATEGORIZED}}\n</details>",
     "pr_template": "- #{{TITLE}} by #{{AUTHOR}} in: ##{{NUMBER}}",
     "empty_template": "- no changes"
 }
