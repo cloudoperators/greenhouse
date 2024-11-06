@@ -1,0 +1,39 @@
+name: Main
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
+
+jobs:
+  release:
+    runs-on: default
+    permissions:
+        contents: write
+        discussions: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Build Changelog
+        uses: mikepenz/release-changelog-builder-action@v5
+        with:
+          configurationJson: |
+            {
+              "template": "#{{CHANGELOG}}",
+              "categories": [
+                {
+                    "title": "## 🌱 Dependencies"
+                    "labels": ["chore(deps)","fix(deps)"]
+                }
+              ]
+            }
+          outputFile: "CHANGELOG.md"
+          mode: "COMMIT"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+            draft: true
+            token: ${{ secrets.GITHUB_TOKEN }}
