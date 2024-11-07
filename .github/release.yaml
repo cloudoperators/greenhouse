@@ -1,0 +1,9 @@
+changelog:
+  categories:
+    - title: What's Changed 🎉
+      labels:
+        - "*"
+    - title: Bug Fixes 🛠
+      labels:
+        - chore(deps)
+        - fix(deps)
