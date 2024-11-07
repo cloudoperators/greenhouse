@@ -5,19 +5,14 @@
         "labels": ["feat", "fix"]
       },
       {
-        "title": "## 🐛 Fixes",
-        "labels": ["fix"]
-      },
-      {
-        "key": "tests",
-        "title": "## 🧪 Tests",
-        "labels": ["test"]
+        "title": "## 🧪 Dependency updates",
+        "labels": ["chore(deps)", "fix(deps)"]
       }
     ],
     "sort": {
       "order": "ASC",
       "on_property": "mergedAt"
     },
-    "template": "#{{CHANGELOG}}\n\n##What's Changed\n#{{UNCATEGORIZED}}\n",
+    "template": "#{{CHANGELOG}}\n\n##What's Changed\n#{{UNCATEGORIZED}}\n## Contributors\n#{{CONTRIBUTORS}}\n**Full Changelog**: #{{RELEASE_DIFF}}",
     "pr_template": "- #{{TITLE}} by @#{{AUTHOR}} in: ##{{NUMBER}}"
 }
