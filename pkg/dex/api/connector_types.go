@@ -11,6 +11,8 @@ func init() {
 	SchemeBuilder.Register(&Connector{}, &ConnectorList{})
 }
 
+// add some comment
+
 // +kubebuilder:object:root=true
 
 // Connector is an object that contains the metadata about connectors used to login to Dex.
