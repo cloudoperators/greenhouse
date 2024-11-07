@@ -4,6 +4,8 @@ changelog:
       labels:
         - "*"
     - title: Bug Fixes 🛠
+      authors:
+        - renovate
       labels:
         - chore(deps)
         - fix(deps)

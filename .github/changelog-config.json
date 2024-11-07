@@ -6,7 +6,7 @@
       },
       {
         "title": "## 📦 Dependency updates",
-        "labels": ["dependencies"]
+        "labels": ["dependency"]
       }
     ],
     "sort": {
@@ -15,7 +15,7 @@
     },
     "label_extractor": [
       {
-        "pattern": "renovate\\[bot\\]",
+        "pattern": "renovate",
         "on_property": "author",
         "method": "replace",
         "target": "dependency"
