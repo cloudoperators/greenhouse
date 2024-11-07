@@ -15,10 +15,6 @@
     },
     "label_extractor": [
       {
-        "pattern": "^(build|chore|ci|docs|feat|fix|perf|refactor|revert|style|test){1}(\\([\\w\\-\\.]+\\))?(!)?: ([\\w ])+([\\s\\S]*)",
-        "target": "$1"
-      },
-      {
         "pattern": "renovate\\[bot\\]",
         "on_property": "author",
         "method": "replace",
