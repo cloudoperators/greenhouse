@@ -11,7 +11,7 @@
     },
     "label_extractor": [
       {
-        "pattern": "renovate",
+        "pattern": "renovate\\[bot\\]",
         "on_property": "author",
         "method": "replace",
         "target": "dependency"
