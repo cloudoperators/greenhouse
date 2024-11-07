@@ -25,6 +25,7 @@ import (
 	greenhouseapis "github.com/cloudoperators/greenhouse/pkg/apis"
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/pkg/apis/greenhouse/v1alpha1"
 	"github.com/cloudoperators/greenhouse/pkg/clientutil"
+	"github.com/cloudoperators/greenhouse/pkg/lifecycle"
 )
 
 // presetExposedConditions contains the conditions that are exposed in the PluginPreset's StatusConditions.
@@ -62,79 +63,84 @@ func (r *PluginPresetReconciler) SetupWithManager(name string, mgr ctrl.Manager)
 }
 
 func (r *PluginPresetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
+	return lifecycle.Reconcile(ctx, r.Client, req.NamespacedName, &greenhousev1alpha1.PluginPreset{}, r, r.setConditions())
+}
+
+func (r *PluginPresetReconciler) setConditions() lifecycle.Conditioner {
+	return func(ctx context.Context, resource lifecycle.RuntimeObject) {
+		logger := ctrl.LoggerFrom(ctx)
+		pluginPreset, ok := resource.(*greenhousev1alpha1.PluginPreset)
+		if !ok {
+			logger.Error(errors.New("resource is not a PluginPreset"), "status setup failed")
+			return
+		}
+
+		readyCondition := r.computeReadyCondition(pluginPreset.Status.StatusConditions)
+		pluginPreset.SetCondition(readyCondition)
+	}
+}
+
+func (r *PluginPresetReconciler) EnsureCreated(ctx context.Context, resource lifecycle.RuntimeObject) (ctrl.Result, lifecycle.ReconcileResult, error) {
+	pluginPreset := resource.(*greenhousev1alpha1.PluginPreset) //nolint:errcheck
+
 	_ = log.FromContext(ctx)
 
-	var pluginPreset = new(greenhousev1alpha1.PluginPreset)
-	if err := r.Get(ctx, req.NamespacedName, pluginPreset); err != nil {
-		return ctrl.Result{}, client.IgnoreNotFound(err)
-	}
-
-	pluginPresetStatus := initPluginPresetStatus(pluginPreset)
-
-	defer func() {
-		if statusErr := r.setStatus(ctx, pluginPreset, pluginPresetStatus); statusErr != nil {
-			log.FromContext(ctx).Error(statusErr, "failed to set status")
-		}
-	}()
-
-	if pluginPreset.DeletionTimestamp != nil && controllerutil.ContainsFinalizer(pluginPreset, greenhouseapis.FinalizerCleanupPluginPreset) {
-		// Cleanup the plugins that are managed by this PluginPreset.
-		plugins, err := r.listPlugins(ctx, pluginPreset)
-		if err != nil {
-			return ctrl.Result{}, err
-		}
-		allErrs := make([]error, 0)
-		for _, plugin := range plugins.Items {
-			if err := r.Client.Delete(ctx, &plugin); err != nil && !apierrors.IsNotFound(err) {
-				allErrs = append(allErrs, err)
-			}
-		}
-
-		// If there are still plugins left, requeue the deletion.
-		if len(allErrs) > 0 {
-			return ctrl.Result{}, fmt.Errorf("failed to delete plugins for %s/%s: %w", pluginPreset.Namespace, pluginPreset.Name, errors.Join(allErrs...))
-		}
-
-		// Remove the finalizer to allow for deletion.
-		if err := clientutil.RemoveFinalizer(ctx, r.Client, pluginPreset, greenhouseapis.FinalizerCleanupPluginPreset); err != nil {
-			return ctrl.Result{}, err
-		}
-		return ctrl.Result{}, nil
-	}
-	if err := clientutil.EnsureFinalizer(ctx, r.Client, pluginPreset, greenhouseapis.FinalizerCleanupPluginPreset); err != nil {
-		return ctrl.Result{}, err
-	}
+	initPluginPresetStatus(pluginPreset)
 
 	clusters, err := r.listClusters(ctx, pluginPreset)
 	if err != nil {
-		return ctrl.Result{}, err
+		return ctrl.Result{}, lifecycle.Failed, err
 	}
 
 	switch {
 	case len(clusters.Items) == 0:
-		pluginPresetStatus.SetConditions(greenhousev1alpha1.TrueCondition(greenhousev1alpha1.ClusterListEmpty, "", "No cluster matches ClusterSelector"))
+		pluginPreset.SetCondition(greenhousev1alpha1.TrueCondition(greenhousev1alpha1.ClusterListEmpty, "", "No cluster matches ClusterSelector"))
 	default:
-		pluginPresetStatus.SetConditions(greenhousev1alpha1.FalseCondition(greenhousev1alpha1.ClusterListEmpty, "", ""))
+		pluginPreset.SetCondition(greenhousev1alpha1.FalseCondition(greenhousev1alpha1.ClusterListEmpty, "", ""))
 	}
 
-	skippedCondition, failedCondition, err := r.reconcilePluginPreset(ctx, pluginPreset, clusters, pluginPresetStatus)
-	pluginPresetStatus.SetConditions(skippedCondition, failedCondition)
+	skippedCondition, failedCondition, err := r.reconcilePluginPreset(ctx, pluginPreset, clusters)
+	pluginPreset.SetCondition(skippedCondition)
+	pluginPreset.SetCondition(failedCondition)
 	if err != nil {
-		return ctrl.Result{}, err
+		return ctrl.Result{}, lifecycle.Failed, err
 	}
 
-	return ctrl.Result{}, nil
+	return ctrl.Result{}, lifecycle.Success, nil
+}
+
+func (r *PluginPresetReconciler) EnsureDeleted(ctx context.Context, resource lifecycle.RuntimeObject) (ctrl.Result, lifecycle.ReconcileResult, error) {
+	pluginPreset := resource.(*greenhousev1alpha1.PluginPreset) //nolint:errcheck
+
+	// Cleanup the plugins that are managed by this PluginPreset.
+	plugins, err := r.listPlugins(ctx, pluginPreset)
+	if err != nil {
+		return ctrl.Result{}, lifecycle.Failed, err
+	}
+	allErrs := make([]error, 0)
+	for _, plugin := range plugins.Items {
+		if err := r.Client.Delete(ctx, &plugin); err != nil && !apierrors.IsNotFound(err) {
+			allErrs = append(allErrs, err)
+		}
+	}
+
+	// If there are still plugins left, requeue the deletion.
+	if len(allErrs) > 0 {
+		return ctrl.Result{}, lifecycle.Pending, fmt.Errorf("failed to delete plugins for %s/%s: %w", pluginPreset.Namespace, pluginPreset.Name, errors.Join(allErrs...))
+	}
+
+	return ctrl.Result{}, lifecycle.Success, nil
 }
 
 // reconcilePluginPreset reconciles the PluginPreset by creating or updating the Plugins for the given clusters.
 // It skips reconciliation for Plugins that do not have the labels of the PluginPreset.
-func (r *PluginPresetReconciler) reconcilePluginPreset(ctx context.Context, preset *greenhousev1alpha1.PluginPreset, clusters *greenhousev1alpha1.ClusterList, status greenhousev1alpha1.PluginPresetStatus) (skippedCondition, failedCondition greenhousev1alpha1.Condition, err error) {
+func (r *PluginPresetReconciler) reconcilePluginPreset(ctx context.Context, preset *greenhousev1alpha1.PluginPreset, clusters *greenhousev1alpha1.ClusterList) (skippedCondition, failedCondition greenhousev1alpha1.Condition, err error) {
 	var allErrs = make([]error, 0)
 	var skippedPlugins = make([]string, 0)
 	var failedPlugins = make([]string, 0)
 
-	failedCondition = *status.GetConditionByType(greenhousev1alpha1.PluginFailedCondition)
-	skippedCondition = *status.GetConditionByType(greenhousev1alpha1.PluginSkippedCondition)
+	failedCondition = *preset.Status.GetConditionByType(greenhousev1alpha1.PluginFailedCondition)
+	skippedCondition = *preset.Status.GetConditionByType(greenhousev1alpha1.PluginSkippedCondition)
 
 	pluginDefinition := &greenhousev1alpha1.PluginDefinition{}
 	err = r.Get(ctx, client.ObjectKey{Name: preset.Spec.Plugin.PluginDefinition}, pluginDefinition)
@@ -281,24 +287,12 @@ func generatePluginName(p *greenhousev1alpha1.PluginPreset, cluster *greenhousev
 	return fmt.Sprintf("%s-%s", p.Name, cluster.GetName())
 }
 
-func initPluginPresetStatus(p *greenhousev1alpha1.PluginPreset) greenhousev1alpha1.PluginPresetStatus {
-	presetStatus := p.Status.DeepCopy()
-	for _, t := range presetExposedConditions {
-		if presetStatus.GetConditionByType(t) == nil {
-			presetStatus.SetConditions(greenhousev1alpha1.UnknownCondition(t, "", ""))
+func initPluginPresetStatus(p *greenhousev1alpha1.PluginPreset) {
+	for _, ct := range presetExposedConditions {
+		if p.Status.GetConditionByType(ct) == nil {
+			p.SetCondition(greenhousev1alpha1.UnknownCondition(ct, "", ""))
 		}
 	}
-	return *presetStatus
-}
-
-func (r *PluginPresetReconciler) setStatus(ctx context.Context, p *greenhousev1alpha1.PluginPreset, status greenhousev1alpha1.PluginPresetStatus) error {
-	readyCondition := r.computeReadyCondition(status.StatusConditions)
-	status.StatusConditions.SetConditions(readyCondition)
-	_, err := clientutil.PatchStatus(ctx, r.Client, p, func() error {
-		p.Status = status
-		return nil
-	})
-	return err
 }
 
 // computeReadyCondition computes the ReadyCondition based on the PluginPreset's StatusConditions.
