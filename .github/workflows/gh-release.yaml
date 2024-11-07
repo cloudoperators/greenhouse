@@ -17,6 +17,7 @@ jobs:
       - name: Build Changelog
         uses: mikepenz/release-changelog-builder-action@v5
         with:
+          mode: "COMMIT"
           configuration: .github/changelog-config.json
           outputFile: CHANGELOG.md
         env:

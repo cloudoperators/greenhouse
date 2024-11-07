@@ -14,14 +14,10 @@
         "labels": ["test"]
       }
     ],
-    "ignore_labels": [
-      "ignore"
-    ],
     "sort": {
       "order": "ASC",
       "on_property": "mergedAt"
     },
-    "template": "#{{CHANGELOG}}\n\n<details>\n<summary>What's Changed</summary>\n\n#{{UNCATEGORIZED}}\n</details>",
-    "pr_template": "- #{{TITLE}} by #{{AUTHOR}} in: ##{{NUMBER}}",
-    "empty_template": "- no changes"
+    "template": "#{{CHANGELOG}}\n\n##What's Changed\n#{{UNCATEGORIZED}}\n",
+    "pr_template": "- #{{TITLE}} by @#{{AUTHOR}} in: ##{{NUMBER}}"
 }
