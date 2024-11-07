@@ -13,31 +13,24 @@ import (
 	"github.com/cloudoperators/greenhouse/pkg/common"
 )
 
-type ctxClusterKey struct {
-}
-type ctxNamespaceKey struct {
-}
-type ctxNameKey struct {
-}
-
 var (
 	clusterFromContext = promhttp.WithLabelFromCtx("cluster", func(ctx context.Context) string {
-		cluster, _ := ctx.Value(ctxClusterKey{}).(string) //nolint:errcheck
+		cluster, _ := ctx.Value(contextClusterKey{}).(string) //nolint:errcheck
 		return cluster
 	})
 
 	namespaceFromContext = promhttp.WithLabelFromCtx("namespace", func(ctx context.Context) string {
-		namespace, _ := ctx.Value(ctxNamespaceKey{}).(string) //nolint:errcheck
+		namespace, _ := ctx.Value(contextNamespaceKey{}).(string) //nolint:errcheck
 		return namespace
 	})
 
 	nameFromContext = promhttp.WithLabelFromCtx("name", func(ctx context.Context) string {
-		name, _ := ctx.Value(ctxNameKey{}).(string) //nolint:errcheck
+		name, _ := ctx.Value(contextNameKey{}).(string) //nolint:errcheck
 		return name
 	})
 )
 
-func InstrumentHandler(next http.Handler, registry prometheus.Registerer) http.Handler {
+func InstrumentHandler(pm *ProxyManager, registry prometheus.Registerer) http.Handler {
 	requestCounter := prometheus.NewCounterVec(
 		prometheus.CounterOpts{
 			Name: "http_requests_total",
@@ -69,11 +62,14 @@ func InstrumentHandler(next http.Handler, registry prometheus.Registerer) http.H
 
 	injector := func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
-			if name, cluster, namespace, err := common.SplitHost(req.Host); err == nil {
+			if cluster, err := common.ExtractCluster(req.Host); err == nil {
 				ctx := req.Context()
-				ctx = context.WithValue(ctx, ctxClusterKey{}, cluster)
-				ctx = context.WithValue(ctx, ctxNamespaceKey{}, namespace)
-				ctx = context.WithValue(ctx, ctxNameKey{}, name)
+				ctx = context.WithValue(ctx, contextClusterKey{}, cluster)
+				route, found := pm.GetClusterRoute(cluster, req.Host)
+				if found {
+					ctx = context.WithValue(ctx, contextNamespaceKey{}, route.namespace)
+					ctx = context.WithValue(ctx, contextNameKey{}, route.serviceName)
+				}
 				req = req.WithContext(ctx)
 			}
 			next.ServeHTTP(rw, req)
@@ -84,7 +80,7 @@ func InstrumentHandler(next http.Handler, registry prometheus.Registerer) http.H
 		promhttp.InstrumentHandlerCounter(requestCounter,
 			promhttp.InstrumentHandlerDuration(requestDuration,
 				promhttp.InstrumentHandlerResponseSize(responseSizeHistogram,
-					next,
+					pm.ReverseProxy(),
 					clusterFromContext, namespaceFromContext, nameFromContext,
 				),
 				clusterFromContext, namespaceFromContext, nameFromContext,
