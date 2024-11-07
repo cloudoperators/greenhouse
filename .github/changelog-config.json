@@ -1,10 +1,6 @@
 {
     "categories": [
       {
-        "title": "## 🚀 What's Changed",
-        "labels": ["feat", "fix", "chore"]
-      },
-      {
         "title": "## 📦 Dependency updates",
         "labels": ["dependency"]
       }
@@ -21,6 +17,6 @@
         "target": "dependency"
       }
     ],
-    "template": "#{{CHANGELOG}}\n\n## What's Changed\n#{{UNCATEGORIZED}}\n\n**Full Changelog**: #{{RELEASE_DIFF}}",
+    "template": "#{{CHANGELOG}}\n\n## 🚀What's Changed\n#{{UNCATEGORIZED}}\n\n**Full Changelog**: #{{RELEASE_DIFF}}",
     "pr_template": "- #{{TITLE}} by @#{{AUTHOR}} in: ##{{NUMBER}}"
 }
