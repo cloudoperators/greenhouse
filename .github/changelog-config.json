@@ -2,7 +2,7 @@
     "categories": [
       {
         "title": "## 🚀 What's Changed",
-        "labels": ["feat", "fix"]
+        "labels": ["feat", "fix","chore"]
       },
       {
         "title": "## 🧪 Dependency updates",
