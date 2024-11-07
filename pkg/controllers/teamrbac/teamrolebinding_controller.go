@@ -103,8 +103,6 @@ func (r *TeamRoleBindingReconciler) setConditions() lifecycle.Conditioner {
 			return
 		}
 
-		initTeamRoleBindingStatus(trb)
-
 		readyCondition := computeReadyCondition(trb.Status)
 		trb.SetCondition(readyCondition)
 	}
@@ -117,6 +115,8 @@ func (r *TeamRoleBindingReconciler) EnsureCreated(ctx context.Context, resource 
 	}
 
 	_ = log.FromContext(ctx)
+
+	initTeamRoleBindingStatus(trb)
 
 	teamRole, err := getTeamRole(ctx, r.Client, r.recorder, trb)
 	if err != nil {
