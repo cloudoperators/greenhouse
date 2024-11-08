@@ -85,8 +85,8 @@ jobs:
 
             img_dir="${GREENHOUSE_EXTENSIONS_GIT_DIR}/${d}/img"
             if [[ -d $img_dir ]]; then
-              echo "copying ${img_dir} to ${DESTINATION_DIR}/img"
-              cp -r $img_dir "${DESTINATION_DIR}/img"
+              echo "copying ${img_dir} to ${DESTINATION_DIR}/${d}/img"
+              cp -r $img_dir "${DESTINATION_DIR}/${d}/img"
             fi
             
             echo "copying ${GREENHOUSE_EXTENSIONS_GIT_DIR}/${d}/README.md" "${DESTINATION_DIR}/${d}.md";
