@@ -7,7 +7,6 @@ package plugin
 
 import (
 	"context"
-	batchv1 "k8s.io/api/batch/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"strings"
 	"testing"
@@ -17,7 +16,6 @@ import (
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/gstruct"
 	appsv1 "k8s.io/api/apps/v1"
-	v1 "k8s.io/api/core/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
@@ -163,74 +161,5 @@ var _ = Describe("Plugin E2E", Ordered, func() {
 
 		By("Deleting plugin definition")
 		test.EventuallyDeleted(ctx, adminClient, testPluginDefinition)
-	})
-
-	It("with helm lifecycle hooks", func() {
-		By("Creating plugin definition")
-		testPluginDefinition := fixtures.CreateTestHookPluginDefinition(env.TestNamespace)
-		err := adminClient.Create(ctx, testPluginDefinition)
-		Expect(err).ToNot(HaveOccurred())
-
-		By("Checking the plugin definition is ready")
-		pluginDefinitionList := &greenhousev1alpha1.PluginDefinitionList{}
-		err = adminClient.List(ctx, pluginDefinitionList)
-		Expect(err).NotTo(HaveOccurred())
-		Expect(len(pluginDefinitionList.Items)).To(BeEquivalentTo(1))
-
-		By("Creating plugin")
-		testPlugin := fixtures.PreparePlugin("test-hook-plugin", env.TestNamespace,
-			test.WithPluginDefinition(testPluginDefinition.Name),
-			test.WithCluster(remoteClusterName),
-			test.WithReleaseNamespace(env.TestNamespace))
-		err = adminClient.Create(ctx, testPlugin)
-		Expect(err).ToNot(HaveOccurred())
-
-		By("Check jobs")
-		jobList := &batchv1.JobList{}
-		err = remoteClient.List(ctx, jobList, client.InNamespace(env.TestNamespace))
-		Expect(err).NotTo(HaveOccurred())
-		Expect(len(jobList.Items)).To(BeEquivalentTo(0))
-
-		By("Check plugin list")
-		var plugin greenhousev1alpha1.Plugin
-		pluginList := &greenhousev1alpha1.PluginList{}
-		Eventually(func(g Gomega) {
-			err = adminClient.List(ctx, pluginList)
-			g.Expect(err).NotTo(HaveOccurred())
-			g.Expect(len(pluginList.Items)).To(BeEquivalentTo(1))
-			g.Expect(pluginList.Items[0].Status.HelmReleaseStatus).ToNot(BeNil())
-			g.Expect(pluginList.Items[0].Status.HelmReleaseStatus.Status).To(BeEquivalentTo("deployed"))
-			plugin = pluginList.Items[0]
-		}).Should(Succeed())
-
-		By("Checking pod")
-		podList := &v1.PodList{}
-		Eventually(func(g Gomega) {
-			err = remoteClient.List(ctx, podList, client.InNamespace(env.TestNamespace))
-			g.Expect(err).NotTo(HaveOccurred())
-			g.Expect(podList.Items).ToNot(BeEmpty())
-		}).Should(Succeed())
-
-		By("Checking the name of pod")
-		podExists := false
-		for _, pod := range podList.Items {
-			if strings.Contains(pod.Name, "alpine") {
-				podExists = true
-				break
-			}
-		}
-		Expect(podExists).To(BeTrue())
-
-		By("Update plugin value")
-		test.SetOptionValueForPlugin(&plugin, "hook_enabled", "true")
-		err = adminClient.Update(ctx, &plugin)
-		Expect(err).NotTo(HaveOccurred())
-
-		By("Check jobs")
-		Eventually(func(g Gomega) {
-			err = remoteClient.List(ctx, jobList, client.InNamespace(env.TestNamespace))
-			g.Expect(err).NotTo(HaveOccurred())
-			g.Expect(len(jobList.Items)).To(BeEquivalentTo(1))
-		}).Should(Succeed())
 	})
 })

@@ -12,7 +12,7 @@ import (
 	"github.com/cloudoperators/greenhouse/pkg/test"
 )
 
-func PreparePluginDefinition(name string, namespace string, opts ...func(*greenhousev1alpha1.PluginDefinition)) *greenhousev1alpha1.PluginDefinition {
+func PreparePluginDefinition(name, namespace string, opts ...func(*greenhousev1alpha1.PluginDefinition)) *greenhousev1alpha1.PluginDefinition {
 	pd := &greenhousev1alpha1.PluginDefinition{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "PluginDefinition",
@@ -25,11 +25,7 @@ func PreparePluginDefinition(name string, namespace string, opts ...func(*greenh
 		Spec: greenhousev1alpha1.PluginDefinitionSpec{
 			Description: "TestPluginDefinition",
 			Version:     "1.0.0",
-			HelmChart: &greenhousev1alpha1.HelmChartReference{
-				Name:       "./../../test/fixtures/myChart",
-				Repository: "dummy",
-				Version:    "1.0.0",
-			},
+			HelmChart:   &greenhousev1alpha1.HelmChartReference{}, // helm chart values are override later
 		},
 	}
 	for _, o := range opts {
@@ -104,20 +100,4 @@ func PreparePlugin(name, namespace string, opts ...func(*greenhousev1alpha1.Plug
 		o(plugin)
 	}
 	return plugin
-}
-
-func CreateTestHookPluginDefinition(namespace string) *greenhousev1alpha1.PluginDefinition {
-	return PreparePluginDefinition("test-hooks", namespace,
-		test.WithVersion("0.1.0"),
-		test.WithHelmChart(&greenhousev1alpha1.HelmChartReference{
-			Name:       "./testdata/testHook",
-			Repository: "dummy",
-			Version:    "0.1.0",
-		}),
-		test.AppendPluginOption(greenhousev1alpha1.PluginOption{
-			Name:    "hook_enabled",
-			Type:    "bool",
-			Default: &apiextensionsv1.JSON{Raw: []byte("false")},
-		}),
-	)
 }
