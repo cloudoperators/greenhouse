@@ -24,15 +24,15 @@ spec:
     metadata:
       labels:
         app: dashboard
+        imageDigest: {{ .Values.image.digest | quote }}
       annotations:
         checksum/props-cm: {{ include (print $.Template.BasePath "/dashboard-props-cm.yaml") . | sha256sum }}
-        imageDigest: {{ .Values.image.digest | quote }}
     spec:
       # The preStop hook below sleeps 30 seconds, extend the gracePeriod accordingly
       terminationGracePeriodSeconds: 60
       containers:
         - name: dashboard
-          image: "{{ required ".Values.image.repository missing" .Values.image.repository }}:{{ required ".Values.image.tag missing" .Values.image.tag }}"
+          image: "{{ required ".Values.image.repository missing" .Values.image.repository }}@{{ required ".Values.image.digest missing" .Values.image.digest }}"
           # image: "{{ required ".Values.image.repository missing" .Values.image.repository }}@{{ .Values.image.digest }}"
           imagePullPolicy: {{ required ".Values.image.pullPolicy missing" .Values.image.pullPolicy }}
           ports:
