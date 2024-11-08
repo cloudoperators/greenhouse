@@ -88,9 +88,8 @@ jobs:
           GREENHOUSE_REMOTE_KUBECONFIG: ${{ steps.config.outputs.remote_config }}
           GREENHOUSE_REMOTE_INT_KUBECONFIG: ${{ steps.config.outputs.remote_int_config }}
           CONTROLLER_LOGS_PATH: ${{github.workspace}}/bin/${{matrix.e2es}}-${{matrix.k8s-version}}.txt
+          E2E_REPORT_PATH: ${{github.workspace}}/bin/${{matrix.e2es}}-${{matrix.k8s-version}}.json
         run: |
-          go install github.com/onsi/ginkgo/v2/ginkgo@latest
-          ginkgo version
           echo "result=$CONTROLLER_LOGS_PATH" >> $GITHUB_OUTPUT
           make e2e
 

@@ -237,6 +237,7 @@ ADMIN_NAMESPACE ?= greenhouse
 ADMIN_RELEASE ?= greenhouse
 ADMIN_CHART_PATH ?= charts/manager
 WEBHOOK_DEV ?= false
+E2E_REPORT_PATH="$(shell pwd)/bin/$(SCENARIO)-e2e-report.json"
 
 .PHONY: setup-dev
 setup-dev: cli
@@ -253,7 +254,8 @@ setup-e2e: cli
 
 .PHONY: e2e
 e2e:
-	GOMEGA_DEFAULT_EVENTUALLY_TIMEOUT="2m" go test -tags="$(SCENARIO)E2E" ${PWD}/e2e/$(SCENARIO) -mod=readonly -test.v -ginkgo.v
+	GOMEGA_DEFAULT_EVENTUALLY_TIMEOUT="2m" \
+		go test -tags="$(SCENARIO)E2E" ${PWD}/e2e/$(SCENARIO) -mod=readonly -test.v -ginkgo.v --ginkgo.json-report=$(E2E_REPORT_PATH)
 
 .PHONY: e2e-local
 e2e-local: prepare-e2e
@@ -263,7 +265,7 @@ e2e-local: prepare-e2e
     	CONTROLLER_LOGS_PATH="$(shell pwd)/bin/$(SCENARIO)-e2e-pod-logs.txt" \
     	EXECUTION_ENV=$(EXECUTION_ENV) \
 		GOMEGA_DEFAULT_EVENTUALLY_TIMEOUT="2m" \
-		go test -tags="$(SCENARIO)E2E" $(shell pwd)/e2e/$(SCENARIO) -test.v -ginkgo.v --ginkgo.junit-report=$(shell pwd)/bin/$(SCENARIO)-e2e-report.xml
+		go test -tags="$(SCENARIO)E2E" $(shell pwd)/e2e/$(SCENARIO) -test.v -ginkgo.v --ginkgo.json-report=$(E2E_REPORT_PATH)
 
 .PHONY: prepare-e2e
 prepare-e2e:
