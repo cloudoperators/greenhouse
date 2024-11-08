@@ -24,7 +24,6 @@ spec:
     metadata:
       labels:
         app: dashboard
-        imageDigest: {{ .Values.image.digest | quote }}
       annotations:
         checksum/props-cm: {{ include (print $.Template.BasePath "/dashboard-props-cm.yaml") . | sha256sum }}
     spec:
