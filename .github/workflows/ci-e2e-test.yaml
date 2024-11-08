@@ -57,14 +57,12 @@ jobs:
       - name: Create Admin Cluster
         uses: helm/kind-action@v1.10.0
         with:
-          version: 'v0.24.0'
           cluster_name: ${{ env.ADMIN_CLUSTER }}
 
       # Create the remote cluster with kubernetes version from the matrix
       - name: Create Remote Cluster
         uses: helm/kind-action@v1.10.0
         with:
-          version: 'v0.24.0'
           node_image: 'kindest/node:${{ matrix.k8s-version }}'
           cluster_name: ${{ env.REMOTE_CLUSTER }}
           config: ${{ github.workspace }}/e2e/kind-config.yaml
