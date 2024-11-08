@@ -32,7 +32,6 @@ spec:
       containers:
         - name: dashboard
           image: "{{ required ".Values.image.repository missing" .Values.image.repository }}@{{ required ".Values.image.digest missing" .Values.image.digest }}"
-          # image: "{{ required ".Values.image.repository missing" .Values.image.repository }}@{{ .Values.image.digest }}"
           imagePullPolicy: {{ required ".Values.image.pullPolicy missing" .Values.image.pullPolicy }}
           ports:
             - name: dashboard
