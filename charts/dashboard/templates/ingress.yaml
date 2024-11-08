@@ -12,7 +12,7 @@ metadata:
 spec:
   ingressClassName: {{ required ".Values.ingress.className missing" .Values.ingress.className }}
   rules:
-    - host: "{{ required ".Values.ingress.host missing" .Values.ingress.host }}"
+    - host: "{{ required ".fake-Values.ingress.host missing" .Values.ingress.host }}"
       http:
         paths:
           - path: /
@@ -22,7 +22,7 @@ spec:
                 name: {{ .Release.Name }}-dashboard
                 port:
                   number: 80
-    - host: "*.{{ required ".Values.ingress.host missing" .Values.ingress.host }}"
+    - host: "*.{{ required ".fake-Values.ingress.host missing" .Values.ingress.host }}"
       http:
         paths:
           - path: /
