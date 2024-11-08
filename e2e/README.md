@@ -53,14 +53,18 @@ Example:
 package cluster
 
 import (
-...)
+	...
+	"github.com/cloudoperators/greenhouse/e2e/shared"
+	...
+)
 
 var (
-	env              *e2e.TestEnv
+	env              *shared.TestEnv
 	ctx              context.Context
 	adminClient      client.Client
 	remoteClient     client.Client
 	remoteRestClient *clientutil.RestClientGetter
+	testStartTime    time.Time
 )
 
 func TestE2e(t *testing.T) {
@@ -71,10 +75,14 @@ func TestE2e(t *testing.T) {
 var _ = BeforeSuite(func() {
 	logf.SetLogger(zap.New(zap.WriteTo(GinkgoWriter), zap.UseDevMode(true)))
 	ctx = context.Background()
-	env = e2e.NewExecutionEnv(greenhousev1alpha1.AddToScheme).WithOrganization(ctx, "./testdata/organization.yaml")
-	adminClient = env.GetClient(e2e.AdminClient)
-	remoteClient = env.GetClient(e2e.RemoteClient)
-	remoteRestClient = env.GetRESTClient(e2e.RemoteRESTClient)
+	env = shared.NewExecutionEnv(greenhousev1alpha1.AddToScheme).WithOrganization(ctx, "./testdata/organization.yaml")
+	adminClient = env.GetClient(shared.AdminClient)
+	Expect(adminClient).ToNot(BeNil(), "admin client should not be nil")
+	remoteClient = env.GetClient(shared.RemoteClient)
+	Expect(remoteClient).ToNot(BeNil(), "remote client should not be nil")
+	remoteRestClient = env.GetRESTClient(shared.RemoteRESTClient)
+	Expect(remoteRestClient).ToNot(BeNil(), "remote rest client should not be nil")
+	testStartTime = time.Now().UTC()
 })
 ```
 
@@ -88,38 +96,39 @@ This is very helpful when running the tests locally and very important when runn
 Example:
 
 ```go
-var _ = AfterSuite(func () {
-expect.OffBoardRemoteCluster(ctx, adminClient, remoteClient, testStartTime, expect.RemoteClusterName, env.TestNamespace)
+var _ = AfterSuite(func() {
+shared.OffBoardRemoteCluster(ctx, adminClient, remoteClient, testStartTime, remoteClusterName, env.TestNamespace)
+env.GenerateControllerLogs(ctx, testStartTime)
 })
 ```
 
-You can take a look at helper functions available in [e2e](../pkg/e2e/e2e.go), which is meant to be the common place to
+You can take a look at helper functions available in [shared](./shared), which is meant to be the common place to
 have reusable functions across all e2e tests.
 
-## Running E2E Tests
-
-To run the E2E tests, you need to be in the `e2e` directory in the root of the project.
-
-For most scenarios, Greenhouse E2E tests require a minimum of 2 k8s clusters to run the tests.
-One cluster acts as the admin cluster and the other cluster acts as the remote cluster.
-
 ### Running E2E Tests Locally
+
+1. Setup KinD clusters and greenhouse operator by running `make setup-e2e` (Skip if you already have a running version)
+2. Run the tests by executing `make e2e-local SCENARIO=<scenario> ADMIN_CLUSTER=<admin-cluster-name> REMOTE_CLUSTER=<remote-cluster-name>` 
+
+```shell
 
 If you already have 2 k8s clusters running locally, you can run the tests using the following command:
 
 ```shell
-make e2e-local SCENARIO=cluster ADMIN_CLUSTER=greenhouse-admin REMOTE_CLUSTER=greenhouse-remote
+make e2e-local SCENARIO=cluster ADMIN_CLUSTER=<kind-cluster-name> REMOTE_CLUSTER=<kind-cluster-name>
 ```
 
-> Note: The `ADMIN_CLUSTER` is the cluster that has Greenhouse CRDs installed and the controller manager running.
-> The `REMOTE_CLUSTER` is the cluster that is being onboarded to the admin cluster to manage Greenhouse resources such
-> as `Plugins`, `RBACs` etc.
+> [!NOTE]  
+> There sane defaults provided in the `Makefile` for `SCENARIO`, `ADMIN_CLUSTER` and `REMOTE_CLUSTER`
+  if you are using defaults then you only need to execute `make e2e-local SCENARIO=<scenario-name>`
+  The `ADMIN_CLUSTER` is the cluster that has Greenhouse CRDs installed and the controller manager running.
+  The `REMOTE_CLUSTER` is the cluster that is being onboarded to the admin cluster to manage Greenhouse resources such
+  as `Plugins`, `RBACs` etc.
 
-The e2e `Makefile` has default values for `SCENARIO`, `ADMIN_CLUSTER` and `REMOTE_CLUSTER`
+> [!WARNING]
+> If you have made changes to operator code and want to run the tests, you need to re-execute `make setup-e2e` to
+  ensure the operator image is built with the latest changes and loaded into the KinD clusters.
 
-The default values for cluster types are targeting KinD clusters when using `make e2e-local`
-
-The name for the KinD clusters should be provided without the `kind-` prefix.
 
 ### Running E2E Tests Against Real K8s Clusters
 
@@ -149,6 +158,17 @@ Once the environment variables are set, you can run the tests using the followin
 ```shell
 make e2e SCENARIO=cluster
 ```
+
+### E2E Workflow
+
+You can find the E2E workflow in the `.github/workflows/ci-e2e-test.yaml`
+
+The workflow detects e2e scenarios based on the folder names in the `e2e` directory, which contain `e2e_test.go` file (otherwise ignores the dir)
+and generates a matrix for the scenarios to run against `KinD` clusters targeting different kubernetes versions for remote cluster
+
+It will be multi-matrix workflow where each scenario will run the tests against different k8s versions for the remote cluster.
+
+[E2E Workflow in Action](https://github.com/cloudoperators/greenhouse/actions/workflows/ci-e2e-test.yaml) 
 
 ### Debugging E2E Tests
 
@@ -202,6 +222,8 @@ var _ = AfterSuite(func() {
 
 This is not foolproof as there could be reconciliations happening on different resources, especially in a real cluster, but it can help in narrowing down the logs to a specific test run.
 
+**Eventually Timeout**
+
 If `Eventually` in used in tests, ensure that the result being expected happens quickly.
 
 > The test is started with the env GOMEGA_DEFAULT_EVENTUALLY_TIMEOUT="2m" 
@@ -218,7 +240,7 @@ Eventually(func() bool {
 
 This will wait for 150 seconds for the condition to be true, polling every 10 seconds.
 
-Alternatively, you can use `WaitUntilResourceReadyOrNotReady` in [e2e](../pkg/e2e/e2e.go) to wait for a resource to be ready or not ready.
+Alternatively, you can use `WaitUntilResourceReadyOrNotReady` in [shared](./shared/e2e.go) to wait for a resource to be ready or not ready.
 `WaitUntilResourceReadyOrNotReady` has a timeout of 3 minutes with exponential backoff and will wait for a resource to be ready or not ready.
 
 > Note: You can only use `WaitUntilResourceReadyOrNotReady` for resources that use the `lifecycle.Reconcile` interface.

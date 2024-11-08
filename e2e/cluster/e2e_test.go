@@ -7,7 +7,6 @@ package cluster
 
 import (
 	"context"
-	"log"
 	"testing"
 	"time"
 
@@ -118,7 +117,6 @@ var _ = Describe("Cluster E2E", Ordered, func() {
 
 			By("verifying if the greenhouse service account has cluster role binding as owner reference")
 			isOwner := shared.IsResourceOwnedByOwner(crb, sa)
-			log.Printf("isOwner: %v\n", isOwner)
 			Expect(isOwner).To(BeTrue(), "service account should have an owner reference")
 		})
 
