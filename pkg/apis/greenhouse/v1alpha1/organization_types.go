@@ -91,6 +91,6 @@ func (o *Organization) GetConditions() StatusConditions {
 	return o.Status.StatusConditions
 }
 
-func (o *Organization) SetCondition(Condition Condition) {
-	o.Status.StatusConditions.SetConditions(Condition)
+func (o *Organization) SetCondition(condition Condition) {
+	o.Status.StatusConditions.SetConditions(condition)
 }
