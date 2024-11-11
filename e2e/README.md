@@ -187,7 +187,7 @@ Example (Goland):
 ### Tips
 
 Pod logs for the controller manager and webhooks can be very long and can be difficult to read especially when you are running multiple tests.
-If you want to get logs for a specific test and you have set the `CONTROLLER_LOGS_PATH` environment variable, you can extract the logs from a specific time.
+If you want to get logs for a specific test and you have set the `CONTROLLER_LOGS_PATH` environment variable, you can extract the logs for a specific time.
 
 Example:
 
