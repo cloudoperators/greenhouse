@@ -511,8 +511,8 @@ var _ = Describe("HelmController reconciliation", Ordered, func() {
 				for exposedServiceURL = range testPluginWithExposedService1.Status.ExposedServices {
 					break
 				}
-				// URL pattern: $https://$service--$cluster--$namespace.$organisation.$basedomain
-				g.Expect(exposedServiceURL).To(Equal("https://exposed-service--test-cluster--test-org.test-org.example.com"), "exposed service URL should be generated correctly")
+				expectedURL := common.URLForExposedServiceInPlugin("exposed-service", testPluginWithExposedService)
+				g.Expect(exposedServiceURL).To(Equal(expectedURL), "exposed service URL should be generated correctly")
 			}).Should(Succeed(), "plugin should have correct status")
 
 			By("cleaning up test")

@@ -88,6 +88,13 @@ func ValidateCreateCluster(ctx context.Context, _ client.Client, obj runtime.Obj
 	if !ok {
 		return nil, nil
 	}
+	if err := invalidateDoubleDashesInName(cluster, logger); err != nil {
+		return nil, err
+	}
+	// capping the name at 40 chars, so we ensure to get unique urls for exposed services per cluster. service-name/namespace hash needs to fit (max 63 chars)
+	if err := capName(cluster, logger, 40); err != nil {
+		return nil, err
+	}
 	annotations := cluster.GetAnnotations()
 	_, deletionMarked := annotations[apis.MarkClusterDeletionAnnotation]
 	_, scheduleExists := annotations[apis.ScheduleClusterDeletionAnnotation]

@@ -29,6 +29,7 @@ jobs:
             research
             style
             test
+            docs
           # Configure which scopes are allowed (newline-delimited).
           # These are regex patterns auto-wrapped in `^ $`.
           scopes: |
