@@ -53,9 +53,34 @@ func PredicateClusterByAccessMode(accessMode greenhousev1alpha1.ClusterAccessMod
 	})
 }
 
+func PredicateClusterIsReady() predicate.Predicate {
+	return predicate.NewPredicateFuncs(func(o client.Object) bool {
+		cluster, ok := o.(*greenhousev1alpha1.Cluster)
+		if !ok {
+			return false
+		}
+		return cluster.Status.IsReadyTrue()
+	})
+}
+
 func PredicateByName(name string) predicate.Predicate {
 	return predicate.NewPredicateFuncs(func(o client.Object) bool {
 		return o.GetName() == name
+	})
+}
+
+func PredicateHasOICDConfigured() predicate.Predicate {
+	return predicate.NewPredicateFuncs(func(o client.Object) bool {
+		org, ok := o.(*greenhousev1alpha1.Organization)
+		if !ok {
+			return false
+		}
+
+		if org.Spec.Authentication == nil || org.Spec.Authentication.OIDCConfig == nil {
+			return false
+		}
+
+		return true
 	})
 }
 

@@ -10,7 +10,7 @@ on:
       - '.golangci.yaml'
 
 jobs:
-  build:
+  lint:
     runs-on: [ default ]
     steps:
       - uses: actions/checkout@v4
@@ -24,7 +24,33 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
       - name: golangci-lint
         run: make lint
+
+  test:
+    runs-on: [ default ]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: 'go.mod'
+          token: ${{ secrets.GITHUB_TOKEN }}
       - name: test
         run: make test
+
+  build:
+    runs-on: [ default ]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: 'go.mod'
+          token: ${{ secrets.GITHUB_TOKEN }}
       - name: build
         run: make build

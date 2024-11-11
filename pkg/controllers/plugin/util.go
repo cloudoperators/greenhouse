@@ -7,6 +7,7 @@ import (
 	"context"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/pkg/errors"
 	appsv1 "k8s.io/api/apps/v1"
@@ -17,11 +18,13 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
+	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	greenhouseapis "github.com/cloudoperators/greenhouse/pkg/apis"
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/pkg/apis/greenhouse/v1alpha1"
 	"github.com/cloudoperators/greenhouse/pkg/clientutil"
+	"github.com/cloudoperators/greenhouse/pkg/lifecycle"
 )
 
 // exposedConditions are the conditions that are exposed in the StatusConditions of the Plugin.
@@ -33,6 +36,11 @@ var exposedConditions = []greenhousev1alpha1.ConditionType{
 	greenhousev1alpha1.StatusUpToDateCondition,
 	greenhousev1alpha1.NoHelmChartTestFailuresCondition,
 	greenhousev1alpha1.WorkloadReadyCondition,
+}
+
+type reconcileResult struct {
+	condition    greenhousev1alpha1.Condition
+	requeueAfter time.Duration
 }
 
 // initPluginStatus initializes all empty Plugin Conditions to "unknown"
@@ -280,4 +288,36 @@ func computeReadyCondition(
 	readyCondition.Status = metav1.ConditionTrue
 	readyCondition.Message = "ready"
 	return readyCondition
+}
+
+func shouldReconcileOrRequeue(ctx context.Context, c client.Client, plugin *greenhousev1alpha1.Plugin) (*reconcileResult, error) {
+	logger := ctrl.LoggerFrom(ctx)
+	if plugin.Spec.ClusterName == "" {
+		logger.Info("plugin does not have a clusterName set, will skip requeue")
+		return nil, nil
+	}
+	cluster := &greenhousev1alpha1.Cluster{}
+	err := c.Get(ctx, types.NamespacedName{Namespace: plugin.Namespace, Name: plugin.Spec.ClusterName}, cluster)
+	if err != nil {
+		return nil, err
+	}
+	scheduleExists, schedule, err := clientutil.ExtractDeletionSchedule(cluster.GetAnnotations())
+	if err != nil {
+		return nil, err
+	}
+	if scheduleExists {
+		msg := fmt.Sprintf("cluster %s is scheduled for deletion at %s", plugin.Spec.ClusterName, schedule)
+		requeueAfter := time.Until(schedule)
+		return &reconcileResult{
+			requeueAfter: requeueAfter,
+			condition: greenhousev1alpha1.Condition{
+				Type:    greenhousev1alpha1.DeleteCondition,
+				Reason:  lifecycle.ScheduledDeletionReason,
+				Status:  metav1.ConditionFalse,
+				Message: msg,
+			},
+		}, nil
+	}
+
+	return nil, nil
 }

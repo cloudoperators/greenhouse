@@ -17,6 +17,9 @@ const (
 	// ReadyCondition reflects the overall readiness status of a resource.
 	ReadyCondition ConditionType = "Ready"
 
+	// DeleteCondition reflects that the resource has finished its cleanup process.
+	DeleteCondition ConditionType = "Delete"
+
 	// ClusterListEmpty is set when the resources ClusterSelector results in an empty ClusterList.
 	ClusterListEmpty ConditionType = "ClusterListEmpty"
 
@@ -65,7 +68,7 @@ func TrueCondition(t ConditionType, reason ConditionReason, message string) Cond
 	return NewCondition(t, metav1.ConditionTrue, reason, message)
 }
 
-// NewTrue returns a Condition with ConditionFalse and the given type, reason and message. LastTransitionTime is set to now.
+// FalseCondition returns a Condition with ConditionFalse and the given type, reason and message. LastTransitionTime is set to now.
 func FalseCondition(t ConditionType, reason ConditionReason, message string) Condition {
 	return NewCondition(t, metav1.ConditionFalse, reason, message)
 }
@@ -77,7 +80,7 @@ func UnknownCondition(t ConditionType, reason ConditionReason, message string) C
 
 // Equal returns true if the condition is identical to the supplied condition,
 // ignoring the LastTransitionTime.
-func (c Condition) Equal(other Condition) bool {
+func (c *Condition) Equal(other Condition) bool {
 	return c.Type == other.Type &&
 		c.Status == other.Status &&
 		c.Reason == other.Reason &&
@@ -85,12 +88,16 @@ func (c Condition) Equal(other Condition) bool {
 }
 
 // IsTrue returns true if the condition is true.
-func (c Condition) IsTrue() bool {
+func (c *Condition) IsTrue() bool {
 	return c.Status == metav1.ConditionTrue
 }
 
+func (c *Condition) IsUnknown() bool {
+	return c.Status == metav1.ConditionUnknown
+}
+
 // IsFalse returns true if the condition is false.
-func (c Condition) IsFalse() bool {
+func (c *Condition) IsFalse() bool {
 	return c.Status == metav1.ConditionFalse
 }
 
@@ -148,5 +155,9 @@ func (sc *StatusConditions) GetConditionByType(conditionType ConditionType) *Con
 
 // IsReadyTrue returns true if the Ready condition is true.
 func (sc *StatusConditions) IsReadyTrue() bool {
-	return sc.GetConditionByType(ReadyCondition).IsTrue()
+	c := sc.GetConditionByType(ReadyCondition)
+	if c == nil {
+		return false
+	}
+	return c.IsTrue()
 }

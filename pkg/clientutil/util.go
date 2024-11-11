@@ -9,6 +9,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -16,6 +17,7 @@ import (
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
+	greehouseapis "github.com/cloudoperators/greenhouse/pkg/apis"
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/pkg/apis/greenhouse/v1alpha1"
 )
 
@@ -77,4 +79,56 @@ func findRecursively(path, dirName string, maxSteps, steps int) (string, error) 
 		return "", err
 	}
 	return dirPath, nil
+}
+
+// isMarkedForDeletion - checks if the cluster has deletion annotation and deletion schedule annotation
+func isMarkedForDeletion(annotations map[string]string) bool {
+	_, deletionMarked := annotations[greehouseapis.MarkClusterDeletionAnnotation]
+	_, scheduleExists := annotations[greehouseapis.ScheduleClusterDeletionAnnotation]
+	return deletionMarked && scheduleExists
+}
+
+// ExtractDeletionSchedule - extracts the deletion schedule from the annotation in time.DateTime format
+func ExtractDeletionSchedule(annotations map[string]string) (bool, time.Time, error) {
+	if annotations == nil {
+		return false, time.Time{}, nil
+	}
+	_, deletionMarked := annotations[greehouseapis.MarkClusterDeletionAnnotation]
+	deletionSchedule, scheduleExists := annotations[greehouseapis.ScheduleClusterDeletionAnnotation]
+	if deletionMarked && scheduleExists {
+		schedule, err := time.Parse(time.DateTime, deletionSchedule)
+		return scheduleExists, schedule, err
+	}
+	return scheduleExists, time.Time{}, nil
+}
+
+// ShouldProceedDeletion - checks if the deletion should be allowed if the schedule has elapsed
+func ShouldProceedDeletion(now, schedule time.Time) (bool, error) {
+	// time.Before() compares two time objects
+	// schedule is formatted as time.DateTime
+	// so we need to format now as well to time.DateTime otherwise it will always return false
+	formattedNow, err := ParseDateTime(now)
+	if err != nil {
+		return false, err
+	}
+	return !formattedNow.Before(schedule), nil
+}
+
+// FilterClustersBeingDeleted - filters out the clusters that are marked for deletion
+func FilterClustersBeingDeleted(clusters *greenhousev1alpha1.ClusterList) *greenhousev1alpha1.ClusterList {
+	// Iterate over the cluster list in reverse to safely remove elements to prevent index shifting when an item is removed.
+	for i := len(clusters.Items) - 1; i >= 0; i-- {
+		c := clusters.Items[i]
+		if isMarkedForDeletion(clusters.Items[i].GetAnnotations()) || c.GetDeletionTimestamp() != nil {
+			// Remove the cluster marked for deletion by slicing the array
+			clusters.Items = append(clusters.Items[:i], clusters.Items[i+1:]...)
+		}
+	}
+	return clusters
+}
+
+// ParseDateTime - parses the time object to time.DateTime format
+func ParseDateTime(t time.Time) (time.Time, error) {
+	layout := t.Format(time.DateTime)
+	return time.Parse(time.DateTime, layout)
 }

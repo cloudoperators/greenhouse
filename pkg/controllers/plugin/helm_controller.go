@@ -90,8 +90,7 @@ func (r *HelmReconciler) SetupWithManager(name string, mgr ctrl.Manager) error {
 		Watches(&greenhousev1alpha1.PluginDefinition{}, handler.EnqueueRequestsFromMapFunc(r.enqueueAllPluginsForPluginDefinition),
 			builder.WithPredicates(predicate.GenerationChangedPredicate{})).
 		// Clusters and teams are passed as values to each Helm operation. Reconcile on change.
-		Watches(&greenhousev1alpha1.Cluster{}, handler.EnqueueRequestsFromMapFunc(r.enqueueAllPluginsForCluster),
-			builder.WithPredicates(predicate.GenerationChangedPredicate{})).
+		Watches(&greenhousev1alpha1.Cluster{}, handler.EnqueueRequestsFromMapFunc(r.enqueueAllPluginsForCluster)).
 		Watches(&greenhousev1alpha1.Team{}, handler.EnqueueRequestsFromMapFunc(r.enqueueAllPluginsInNamespace), builder.WithPredicates(predicate.GenerationChangedPredicate{})).
 		Complete(r)
 }
@@ -135,6 +134,16 @@ func (r *HelmReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.
 
 	if err := clientutil.EnsureFinalizer(ctx, r.Client, plugin, greenhouseapis.FinalizerCleanupHelmRelease); err != nil {
 		return ctrl.Result{}, err
+	}
+
+	// Check if we should continue with reconciliation or requeue if cluster is scheduled for deletion
+	result, err := shouldReconcileOrRequeue(ctx, r.Client, plugin)
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+	if result != nil {
+		pluginStatus.StatusConditions.SetConditions(result.condition)
+		return ctrl.Result{RequeueAfter: result.requeueAfter}, nil
 	}
 
 	helmReconcileFailedCondition, pluginDefinition := r.getPluginDefinition(ctx, plugin)

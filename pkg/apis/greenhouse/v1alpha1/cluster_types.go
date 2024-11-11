@@ -11,24 +11,39 @@ import (
 type ClusterSpec struct {
 	// AccessMode configures how the cluster is accessed from the Greenhouse operator.
 	AccessMode ClusterAccessMode `json:"accessMode"`
+
+	// KubeConfig contains specific values for `KubeConfig` for the cluster.
+	KubeConfig ClusterKubeConfig `json:"kubeConfig,omitempty"`
 }
 
 // ClusterAccessMode configures the access mode to the customer cluster.
-// +kubebuilder:validation:Enum=direct;headscale
+// +kubebuilder:validation:Enum=direct
 type ClusterAccessMode string
+
+// ClusterKubeConfig configures kube config values.
+type ClusterKubeConfig struct {
+	// MaxTokenValidity specifies the maximum duration for which a token remains valid in hours.
+	// +kubebuilder:default:=72
+	// +kubebuilder:validation:Minimum=24
+	// +kubebuilder:validation:Maximum=72
+	MaxTokenValidity int32 `json:"maxTokenValidity,omitempty"`
+}
 
 const (
 	// ClusterAccessModeDirect configures direct access to the cluster.
 	ClusterAccessModeDirect ClusterAccessMode = "direct"
-
-	// ClusterAccessModeHeadscale configures headscale-based access to the cluster.
-	ClusterAccessModeHeadscale ClusterAccessMode = "headscale"
 
 	// AllNodesReady reflects the readiness status of all nodes of a cluster.
 	AllNodesReady ConditionType = "AllNodesReady"
 
 	// KubeConfigValid reflects the validity of the kubeconfig of a cluster.
 	KubeConfigValid ConditionType = "KubeConfigValid"
+
+	// MaxTokenValidity contains maximum bearer token validity duration. It is also default value.
+	MaxTokenValidity = 72
+
+	// MinTokenValidity contains maximum bearer token validity duration.
+	MinTokenValidity = 24
 )
 
 // ClusterStatus defines the observed state of Cluster
@@ -37,44 +52,14 @@ type ClusterStatus struct {
 	KubernetesVersion string `json:"kubernetesVersion,omitempty"`
 	// BearerTokenExpirationTimestamp reflects the expiration timestamp of the bearer token used to access the cluster.
 	BearerTokenExpirationTimestamp metav1.Time `json:"bearerTokenExpirationTimestamp,omitempty"`
-	// HeadScaleStatus contains the current status of the headscale client.
-	HeadScaleStatus *HeadScaleMachineStatus `json:"headScaleStatus,omitempty"`
 	// StatusConditions contain the different conditions that constitute the status of the Cluster.
 	StatusConditions `json:"statusConditions,omitempty"`
 	// Nodes provides a map of cluster node names to node statuses
 	Nodes map[string]NodeStatus `json:"nodes,omitempty"`
 }
 
-// HeadScaleMachineStatus is the status of a Headscale machine.
-type HeadScaleMachineStatus struct {
-	ID          uint64      `json:"id,omitempty"`
-	IPAddresses []string    `json:"ipAddresses,omitempty"`
-	Name        string      `json:"name,omitempty"`
-	Expiry      metav1.Time `json:"expiry,omitempty"`
-	CreatedAt   metav1.Time `json:"createdAt,omitempty"`
-	ForcedTags  []string    `json:"forcedTags,omitempty"`
-	PreAuthKey  *PreAuthKey `json:"preAuthKey,omitempty"`
-	Online      bool        `json:"online,omitempty"`
-}
-
-// PreAuthKey reflects the status of the pre-authentication key used by the Headscale machine.
-type PreAuthKey struct {
-	ID         string      `json:"id,omitempty"`
-	User       string      `json:"user,omitempty"`
-	Reusable   bool        `json:"reusable,omitempty"`
-	Ephemeral  bool        `json:"ephemeral,omitempty"`
-	Used       bool        `json:"used,omitempty"`
-	CreatedAt  metav1.Time `json:"createdAt,omitempty"`
-	Expiration metav1.Time `json:"expiration,omitempty"`
-}
-
 // ClusterConditionType is a valid condition of a cluster.
 type ClusterConditionType string
-
-const (
-	// HeadscaleReady reflects the readiness status of the headscale access of a cluster.
-	HeadscaleReady ConditionType = "HeadscaleReady"
-)
 
 type NodeStatus struct {
 	// We mirror the node conditions here for faster reference
@@ -98,6 +83,14 @@ type Cluster struct {
 	Status ClusterStatus `json:"status,omitempty"`
 }
 
+func (c *Cluster) GetConditions() StatusConditions {
+	return c.Status.StatusConditions
+}
+
+func (c *Cluster) SetCondition(condition Condition) {
+	c.Status.StatusConditions.SetConditions(condition)
+}
+
 // GetSecretName returns the Kubernetes secret containing sensitive data for this cluster.
 // The secret is for internal usage only and its content must not be exposed to the user.
 func (c *Cluster) GetSecretName() string {
@@ -115,4 +108,12 @@ type ClusterList struct {
 
 func init() {
 	SchemeBuilder.Register(&Cluster{}, &ClusterList{})
+}
+
+func (c *Cluster) SetDefaultTokenValidityIfNeeded() {
+	if c.Spec.KubeConfig.MaxTokenValidity != 0 {
+		return
+	}
+
+	c.Spec.KubeConfig.MaxTokenValidity = MaxTokenValidity
 }

@@ -5,27 +5,20 @@ package cluster
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
-	"strings"
 	"time"
 
-	"google.golang.org/protobuf/types/known/timestamppb"
-
-	headscalev1 "github.com/juanfont/headscale/gen/go/headscale/v1"
-	"github.com/pkg/errors"
-	"google.golang.org/grpc/status"
+	"github.com/go-jose/go-jose/v4"
 	authenticationv1 "k8s.io/api/authentication/v1"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/tools/clientcmd"
 	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
-	"k8s.io/client-go/tools/record"
 	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
 	greenhouseapis "github.com/cloudoperators/greenhouse/pkg/apis"
@@ -33,7 +26,29 @@ import (
 	"github.com/cloudoperators/greenhouse/pkg/clientutil"
 )
 
-var defaultRequeueInterval = 10 * time.Minute
+var (
+	defaultRequeueInterval = 10 * time.Minute
+	allSignatureAlgorithms = []jose.SignatureAlgorithm{
+		jose.EdDSA,
+		jose.HS256,
+		jose.HS384,
+		jose.HS512,
+		jose.RS256,
+		jose.RS384,
+		jose.RS512,
+		jose.ES256,
+		jose.ES384,
+		jose.ES512,
+		jose.PS256,
+		jose.PS384,
+		jose.PS512,
+	}
+)
+
+const (
+	CRoleKind = "ClusterRole"
+	CRoleRef  = "cluster-admin"
+)
 
 type KubeConfigHelper struct {
 	Host           string
@@ -45,6 +60,31 @@ type KubeConfigHelper struct {
 	ProxyURL       string
 	ClientCertData []byte
 	ClientKeyData  []byte
+}
+
+type claims struct {
+	Issuer     string           `json:"iss,omitempty"`
+	Subject    string           `json:"sub,omitempty"`
+	Audience   []string         `json:"aud,omitempty"`
+	Expiry     int64            `json:"exp,omitempty"`
+	NotBefore  int64            `json:"nbf,omitempty"`
+	IssuedAt   int64            `json:"iat,omitempty"`
+	ID         string           `json:"jti,omitempty"`
+	Kubernetes kubernetesClaims `json:"kubernetes.io,omitempty"`
+}
+
+type kubernetesClaims struct {
+	Namespace string `json:"namespace,omitempty"`
+	Svcacct   ref    `json:"serviceaccount,omitempty"`
+	Pod       *ref   `json:"pod,omitempty"`
+	Secret    *ref   `json:"secret,omitempty"`
+	Node      *ref   `json:"node,omitempty"`
+	WarnAfter int64  `json:"warnafter,omitempty"`
+}
+
+type ref struct {
+	Name string `json:"name,omitempty"`
+	UID  string `json:"uid,omitempty"`
 }
 
 // RestConfigToAPIConfig converts a rest config to a clientcmdapi.Config
@@ -96,6 +136,17 @@ func reconcileNamespaceInRemoteCluster(ctx context.Context, k8sClient client.Cli
 	return nil
 }
 
+func deleteServiceAccountInRemoteCluster(ctx context.Context, k8sClient client.Client, cluster *greenhousev1alpha1.Cluster) error {
+	serviceAccount := &corev1.ServiceAccount{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      serviceAccountName,
+			Namespace: cluster.GetNamespace(),
+		},
+	}
+	err := k8sClient.Delete(ctx, serviceAccount)
+	return client.IgnoreNotFound(err)
+}
+
 func reconcileServiceAccountInRemoteCluster(ctx context.Context, k8sClient client.Client, cluster *greenhousev1alpha1.Cluster) error {
 	var serviceAccount = new(corev1.ServiceAccount)
 	serviceAccount.Name = serviceAccountName
@@ -118,33 +169,36 @@ func reconcileServiceAccountInRemoteCluster(ctx context.Context, k8sClient clien
 }
 
 func reconcileClusterRoleBindingInRemoteCluster(ctx context.Context, k8sClient client.Client, cluster *greenhousev1alpha1.Cluster) error {
-	var clusterRoleBinding = new(rbacv1.ClusterRoleBinding)
-	clusterRoleBinding.Name = serviceAccountName
-
-	var nameSpace = new(corev1.Namespace)
-	if err := k8sClient.Get(ctx, types.NamespacedName{Namespace: "", Name: cluster.GetNamespace()}, nameSpace); err != nil {
-		return err
-	}
-
-	result, err := clientutil.CreateOrPatch(ctx, k8sClient, clusterRoleBinding, func() error {
-		clusterRoleBinding.Subjects = []rbacv1.Subject{
+	clusterRoleBinding := &rbacv1.ClusterRoleBinding{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: serviceAccountName,
+		},
+		Subjects: []rbacv1.Subject{
 			{
 				Kind:      rbacv1.ServiceAccountKind,
 				Name:      serviceAccountName,
 				Namespace: cluster.GetNamespace(),
 			},
-		}
-		clusterRoleBinding.RoleRef = rbacv1.RoleRef{
-			Kind:     "ClusterRole",
-			Name:     "cluster-admin",
+		},
+		RoleRef: rbacv1.RoleRef{
+			Kind:     CRoleKind,
+			Name:     CRoleRef,
 			APIGroup: rbacv1.GroupName,
-		}
-		return controllerutil.SetOwnerReference(nameSpace, clusterRoleBinding, k8sClient.Scheme())
-	})
+		},
+	}
 
+	namespace := new(corev1.Namespace)
+	if err := k8sClient.Get(ctx, types.NamespacedName{Namespace: "", Name: cluster.GetNamespace()}, namespace); err != nil {
+		return err
+	}
+
+	result, err := clientutil.CreateOrPatch(ctx, k8sClient, clusterRoleBinding, func() error {
+		return nil
+	})
 	if err != nil {
 		return err
 	}
+
 	switch result {
 	case clientutil.OperationResultCreated:
 		log.FromContext(ctx).Info("created clusterRoleBinding", "cluster", clusterRoleBinding.Name)
@@ -159,23 +213,45 @@ func reconcileClusterRoleBindingInRemoteCluster(ctx context.Context, k8sClient c
 type tokenHelper struct {
 	client.Client
 	Proxy                              string
-	HeadscaleAddress                   string
 	RemoteClusterBearerTokenValidity   time.Duration
 	RenewRemoteClusterBearerTokenAfter time.Duration
 }
 
 // ReconcileServiceAccountToken reconciles the service account token for the cluster and updates the secret containing the kube config
 func (t *tokenHelper) ReconcileServiceAccountToken(ctx context.Context, restClientGetter *clientutil.RestClientGetter, cluster *greenhousev1alpha1.Cluster) error {
-	// TODO: Do not rely on the status but actually check the token expiration.
-	if !cluster.Status.BearerTokenExpirationTimestamp.IsZero() && cluster.Status.BearerTokenExpirationTimestamp.Time.After(time.Now().Add(t.RenewRemoteClusterBearerTokenAfter)) {
-		log.FromContext(ctx).V(5).Info("bearer token is still valid", "cluster", cluster.Name, "expirationTimestamp", cluster.Status.BearerTokenExpirationTimestamp.Time)
-		return nil
-	}
+	var jwtPayload []byte
+	var tokenInfo = new(claims)
+	var actualTokenExpiry metav1.Time
 
 	remoteRestConfig, err := restClientGetter.ToRESTConfig()
 	if err != nil {
 		return err
 	}
+	jwt, err := jose.ParseSigned(remoteRestConfig.BearerToken, allSignatureAlgorithms)
+	// If parsing the token is not possible we fall back to the old way of checking the token expiration
+	if err != nil {
+		if !cluster.Status.BearerTokenExpirationTimestamp.IsZero() && cluster.Status.BearerTokenExpirationTimestamp.Time.After(time.Now().Add(t.RenewRemoteClusterBearerTokenAfter)) {
+			log.FromContext(ctx).V(5).Info("bearer token is still valid", "cluster", cluster.Name, "expirationTimestamp", cluster.Status.BearerTokenExpirationTimestamp.Time)
+			return nil
+		}
+	}
+
+	if jwt != nil {
+		jwtPayload = jwt.UnsafePayloadWithoutVerification()
+	}
+	err = json.Unmarshal(jwtPayload, &tokenInfo)
+	// If parsing the token is not possible we fall back to the old way of checking the token expiration
+	if err == nil {
+		actualTokenExpiry = metav1.Unix(tokenInfo.Expiry, 0)
+		if actualTokenExpiry.After(time.Now().Add(t.RenewRemoteClusterBearerTokenAfter)) {
+			log.FromContext(ctx).V(5).Info("bearer token is still valid", "cluster", cluster.Name, "expirationTimestamp", cluster.Status.BearerTokenExpirationTimestamp.Time)
+			return nil
+		}
+	} else if !cluster.Status.BearerTokenExpirationTimestamp.IsZero() && cluster.Status.BearerTokenExpirationTimestamp.Time.After(time.Now().Add(t.RenewRemoteClusterBearerTokenAfter)) {
+		log.FromContext(ctx).V(5).Info("bearer token is still valid", "cluster", cluster.Name, "expirationTimestamp", cluster.Status.BearerTokenExpirationTimestamp.Time)
+		return nil
+	}
+
 	clientset, err := kubernetes.NewForConfig(remoteRestConfig)
 	if err != nil {
 		return err
@@ -198,11 +274,6 @@ func (t *tokenHelper) ReconcileServiceAccountToken(ctx context.Context, restClie
 	switch cluster.Spec.AccessMode {
 	case greenhousev1alpha1.ClusterAccessModeDirect:
 		generatedKubeConfig, err = generateNewClientKubeConfig(ctx, restClientGetter, tokenRequestResponse.Status.Token, cluster)
-		if err != nil {
-			return err
-		}
-	case greenhousev1alpha1.ClusterAccessModeHeadscale:
-		generatedKubeConfig, err = generateNewClientKubeConfigHeadscale(ctx, restClientGetter, tokenRequestResponse.Status.Token, cluster, t.Proxy, t.HeadscaleAddress)
 		if err != nil {
 			return err
 		}
@@ -239,29 +310,6 @@ func (t *tokenHelper) ReconcileServiceAccountToken(ctx context.Context, restClie
 	return err
 }
 
-// generateNewClientKubeConfigHeadscale generates a kubeconfig for the client to access the cluster from REST config coming from the secret plus the modifications needed for headscale.
-func generateNewClientKubeConfigHeadscale(_ context.Context, restConfigGetter *clientutil.RestClientGetter, bearerToken string, cluster *greenhousev1alpha1.Cluster, proxy, headscaleAddress string) ([]byte, error) {
-	restConfig, err := restConfigGetter.ToRawKubeConfigLoader().ClientConfig()
-	if err != nil {
-		return nil, errors.Wrapf(err, "failed to load kube clientConfig for cluster %s", cluster.GetName())
-	}
-
-	kubeConfigGenerator := &KubeConfigHelper{
-		Host:          "https://" + headscaleAddress,
-		TLSServerName: "127.0.0.1",
-		ProxyURL:      proxy,
-		CAData:        restConfig.CAData,
-		BearerToken:   bearerToken,
-		Username:      serviceAccountName,
-		Namespace:     cluster.GetNamespace(),
-	}
-	kubeconfigByte, err := clientcmd.Write(kubeConfigGenerator.RestConfigToAPIConfig(cluster.Name))
-	if err != nil {
-		return nil, errors.Wrapf(err, "failed to generate kubeconfig for cluster %s", cluster.GetName())
-	}
-	return kubeconfigByte, nil
-}
-
 // reconcileRemoteAPIServerVersion fetches the api server version from the remote cluster and reflects it in the cluster CR
 func reconcileRemoteAPIServerVersion(ctx context.Context, restConfigGetter *clientutil.RestClientGetter, k8sclient client.Client, cluster *greenhousev1alpha1.Cluster) error {
 	k8sVersion, err := clientutil.GetKubernetesVersion(restConfigGetter)
@@ -273,78 +321,4 @@ func reconcileRemoteAPIServerVersion(ctx context.Context, restConfigGetter *clie
 		return nil
 	})
 	return err
-}
-
-// deleteNamespaceInRemoteCluster deletes the namespace ignoring NotFound errors.
-func deleteNamespaceInRemoteCluster(ctx context.Context, remoteK8sClient client.Client, cluster *greenhousev1alpha1.Cluster) error {
-	var namespace = new(corev1.Namespace)
-	namespace.Name = cluster.GetNamespace()
-	// Attempt deletion if the namespace in the remote cluster.
-	err := remoteK8sClient.Delete(ctx, namespace)
-	// Ignore errors if was already deleted.
-	return client.IgnoreNotFound(err)
-}
-
-// ReconcileHeadscaleUser ensure a user for the cluster exists in the headscale coordination server.
-func ReconcileHeadscaleUser(ctx context.Context, recorder record.EventRecorder, cluster *greenhousev1alpha1.Cluster, headscaleGRPCClient headscalev1.HeadscaleServiceClient) error {
-	createResp, err := headscaleGRPCClient.CreateUser(ctx, &headscalev1.CreateUserRequest{
-		Name: headscaleKeyForCluster(cluster),
-	})
-	if err != nil {
-		errStatus, ok := status.FromError(err)
-		if !ok {
-			return err
-		}
-		switch {
-		case strings.Contains(errStatus.Message(), "Unauthorized"):
-			return fmt.Errorf("headscale: unauthorized to create user %s", headscaleKeyForCluster(cluster))
-		case strings.Contains(errStatus.Message(), "already exists"):
-			return nil
-		}
-		return err
-	}
-	recorder.Eventf(cluster, corev1.EventTypeNormal, "HeadscaleUserCreated", "Headscale user %s created for cluster", createResp.User.Name)
-	return nil
-}
-
-// ReconcilePreAuthorizationKey ensure a pre-authorization key exists for the given cluster.
-func ReconcilePreAuthorizationKey(ctx context.Context, cluster *greenhousev1alpha1.Cluster, headscaleGRPCClient headscalev1.HeadscaleServiceClient, headscalePreAuthenticationKeyMinValidity time.Duration) (*headscalev1.PreAuthKey, error) {
-	// Check whether an existing pre-authorization key can be used.
-	resp, err := headscaleGRPCClient.ListPreAuthKeys(ctx, &headscalev1.ListPreAuthKeysRequest{
-		User: headscaleKeyForCluster(cluster),
-	})
-	if err != nil {
-		return nil, err
-	}
-	for _, key := range resp.GetPreAuthKeys() {
-		if isPreAuthenticationKeyIsNotExpired(key, headscalePreAuthenticationKeyMinValidity) {
-			return key, nil
-		}
-	}
-
-	// Request a new pre-authorization key.
-	expiration := time.Now().UTC().Add(7 * 24 * time.Hour)
-	createPreAuth := &headscalev1.CreatePreAuthKeyRequest{
-		User:       headscaleKeyForCluster(cluster),
-		Reusable:   true,
-		Ephemeral:  true,
-		Expiration: timestamppb.New(expiration),
-		AclTags:    []string{"tag:greenhouse", "tag:client", "tag:" + headscaleKeyForCluster(cluster)},
-	}
-	createResp, err := headscaleGRPCClient.CreatePreAuthKey(ctx, createPreAuth)
-	if err != nil {
-		errStatus, ok := status.FromError(err)
-		if !ok {
-			return nil, err
-		}
-		switch {
-		case strings.Contains(errStatus.Message(), "Unauthorized"):
-			return nil, fmt.Errorf("headscale: unauthorized to create user %s", headscaleKeyForCluster(cluster))
-		case strings.Contains(errStatus.Message(), "tag is invalid"):
-			return nil, fmt.Errorf("headscale: failed to create PreAuthKey for user %s: %s", headscaleKeyForCluster(cluster), errStatus.Message())
-		}
-		return nil, errors.Wrapf(err, "failed to create PreAuthenticationKey for user %s", headscaleKeyForCluster(cluster))
-	}
-	log.FromContext(ctx).Info("PreAuthenticationKey issued", "user", headscaleKeyForCluster(cluster), "expireDate", createResp.PreAuthKey.Expiration.AsTime())
-	return createResp.PreAuthKey, nil
 }

@@ -8,17 +8,6 @@ rules:
   - ""
   resources:
   - events
-  verbs:
-  - create
-  - delete
-  - get
-  - list
-  - patch
-  - update
-  - watch
-- apiGroups:
-  - ""
-  resources:
   - namespaces
   verbs:
   - create
@@ -32,16 +21,6 @@ rules:
   - ""
   resources:
   - secrets
-  verbs:
-  - create
-  - get
-  - list
-  - patch
-  - update
-  - watch
-- apiGroups:
-  - ""
-  resources:
   - serviceaccounts
   verbs:
   - create
@@ -71,7 +50,25 @@ rules:
 - apiGroups:
   - greenhouse.sap
   resources:
+  - cluster-kubeconfigs
+  - teamroles
+  verbs:
+  - create
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - greenhouse.sap
+  resources:
   - clusters
+  - organizations
+  - plugindefinitions
+  - plugins
+  - teammemberships
+  - teamrolebindings
+  - teams
   verbs:
   - create
   - delete
@@ -83,74 +80,26 @@ rules:
 - apiGroups:
   - greenhouse.sap
   resources:
-  - clusters
-  - teams
-  verbs:
-  - get
-  - list
-  - watch
-- apiGroups:
-  - greenhouse.sap
-  resources:
   - clusters/finalizers
+  - organizations/finalizers
+  - plugindefinitions/finalizers
+  - pluginpresets/finalizers
+  - plugins/finalizers
+  - teammemberships/finalizers
+  - teamrolebindings/finalizers
+  - teams/finalizers
   verbs:
   - update
 - apiGroups:
   - greenhouse.sap
   resources:
   - clusters/status
-  verbs:
-  - get
-  - patch
-  - update
-- apiGroups:
-  - greenhouse.sap
-  resources:
-  - organizations
-  verbs:
-  - create
-  - delete
-  - get
-  - list
-  - patch
-  - update
-  - watch
-- apiGroups:
-  - greenhouse.sap
-  resources:
-  - organizations/finalizers
-  verbs:
-  - update
-- apiGroups:
-  - greenhouse.sap
-  resources:
   - organizations/status
-  verbs:
-  - get
-  - patch
-  - update
-- apiGroups:
-  - greenhouse.sap
-  resources:
-  - plugindefinitions
-  verbs:
-  - create
-  - delete
-  - get
-  - list
-  - patch
-  - update
-  - watch
-- apiGroups:
-  - greenhouse.sap
-  resources:
-  - plugindefinitions/finalizers
-  verbs:
-  - update
-- apiGroups:
-  - greenhouse.sap
-  resources:
   - plugindefinitions/status
+  - pluginpresets/status
+  - teammemberships/status
+  - teamrolebindings/status
+  - teams/status
   verbs:
   - get
   - patch
@@ -167,38 +116,6 @@ rules:
 - apiGroups:
   - greenhouse.sap
   resources:
-  - pluginpresets/finalizers
-  verbs:
-  - update
-- apiGroups:
-  - greenhouse.sap
-  resources:
-  - pluginpresets/status
-  verbs:
-  - get
-  - patch
-  - update
-- apiGroups:
-  - greenhouse.sap
-  resources:
-  - plugins
-  verbs:
-  - create
-  - delete
-  - get
-  - list
-  - patch
-  - update
-  - watch
-- apiGroups:
-  - greenhouse.sap
-  resources:
-  - plugins/finalizers
-  verbs:
-  - update
-- apiGroups:
-  - greenhouse.sap
-  resources:
   - plugins/status
   verbs:
   - get
@@ -206,95 +123,6 @@ rules:
   - patch
   - update
   - watch
-- apiGroups:
-  - greenhouse.sap
-  resources:
-  - teammemberships
-  verbs:
-  - create
-  - delete
-  - get
-  - list
-  - patch
-  - update
-  - watch
-- apiGroups:
-  - greenhouse.sap
-  resources:
-  - teammemberships/finalizers
-  verbs:
-  - update
-- apiGroups:
-  - greenhouse.sap
-  resources:
-  - teammemberships/status
-  verbs:
-  - get
-  - patch
-  - update
-- apiGroups:
-  - greenhouse.sap
-  resources:
-  - teamrolebindings
-  verbs:
-  - create
-  - delete
-  - get
-  - list
-  - patch
-  - update
-  - watch
-- apiGroups:
-  - greenhouse.sap
-  resources:
-  - teamrolebindings/finalizers
-  verbs:
-  - update
-- apiGroups:
-  - greenhouse.sap
-  resources:
-  - teamrolebindings/status
-  verbs:
-  - get
-  - patch
-  - update
-- apiGroups:
-  - greenhouse.sap
-  resources:
-  - teamroles
-  verbs:
-  - create
-  - get
-  - list
-  - patch
-  - update
-  - watch
-- apiGroups:
-  - greenhouse.sap
-  resources:
-  - teams
-  verbs:
-  - create
-  - delete
-  - get
-  - list
-  - patch
-  - update
-  - watch
-- apiGroups:
-  - greenhouse.sap
-  resources:
-  - teams/finalizers
-  verbs:
-  - update
-- apiGroups:
-  - greenhouse.sap
-  resources:
-  - teams/status
-  verbs:
-  - get
-  - patch
-  - update
 - apiGroups:
   - rbac
   resources:

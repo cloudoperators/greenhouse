@@ -41,7 +41,7 @@ func TestRewrite(t *testing.T) {
 	}{
 		{
 			name:        "valid host",
-			url:         "https://name--cluster--namespace.organisation.basedomain/abcd",
+			url:         "https://cluster--1234567.organisation.basedomain/abcd",
 			expectedURL: "https://apiserver/proxy/url/abcd",
 			contextVal:  "cluster",
 		},
@@ -60,8 +60,12 @@ func TestRewrite(t *testing.T) {
 			}
 			pm := NewProxyManager()
 			pm.clusters["cluster"] = clusterRoutes{
-				routes: map[string]*url.URL{
-					inputURL.Scheme + "://" + inputURL.Host: proxyURL,
+				routes: map[string]route{
+					inputURL.Scheme + "://" + inputURL.Host: {
+						url:         proxyURL,
+						namespace:   "namespace",
+						serviceName: "test",
+					},
 				},
 			}
 			r, err := http.NewRequestWithContext(context.Background(), http.MethodGet, inputURL.String(), http.NoBody)
@@ -101,11 +105,11 @@ func TestReconcile(t *testing.T) {
 				Namespace: "namespace",
 			},
 			Spec: greenhousev1alpha1.PluginSpec{
-				ClusterName: "cluster",
+				ClusterName: "cluster-1",
 			},
 			Status: greenhousev1alpha1.PluginStatus{
 				ExposedServices: map[string]greenhousev1alpha1.Service{
-					"https://service--namespace--cluster.org.basedomain": {
+					"https://cluster-1--1234567.org.basedomain": {
 						Namespace: "namespace",
 						Name:      "test",
 						Port:      8080,
@@ -115,7 +119,7 @@ func TestReconcile(t *testing.T) {
 		},
 		&v1.Secret{
 			ObjectMeta: metav1.ObjectMeta{
-				Name:      "cluster",
+				Name:      "cluster-1",
 				Namespace: "namespace",
 			},
 			Type: "greenhouse.sap/kubeconfig",
@@ -138,20 +142,18 @@ users:
 `),
 			},
 		}).Build()
-	pm.clusters["cluster"] = clusterRoutes{
-		routes: map[string]*url.URL{},
-	}
 	ctx := context.Background()
-	_, err := pm.Reconcile(ctx, ctrl.Request{NamespacedName: types.NamespacedName{Name: "cluster", Namespace: "namespace"}})
+	_, err := pm.Reconcile(ctx, ctrl.Request{NamespacedName: types.NamespacedName{Name: "cluster-1", Namespace: "namespace"}})
 
 	if err != nil {
 		t.Errorf("expected no error, got: %s", err)
 	}
 
-	targetURL, ok := pm.clusters["cluster"].routes["https://service--namespace--cluster.org.basedomain"]
+	route, ok := pm.clusters["cluster-1"].routes["https://cluster-1--1234567.org.basedomain"]
 	if !ok {
 		t.Fatal("expected route to be added")
 	}
+	targetURL := route.url
 	expectedURL := fmt.Sprintf("%s/api/v1/namespaces/%s/services/%s:%s:%s/proxy", "https://apiserver.test", "namespace", "http", "test", "8080")
 	if targetURL.String() != expectedURL {
 		t.Errorf("expected url %s, got %s", expectedURL, targetURL.String())

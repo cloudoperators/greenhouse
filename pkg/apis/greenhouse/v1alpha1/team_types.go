@@ -13,10 +13,14 @@ type TeamSpec struct {
 	Description string `json:"description,omitempty"`
 	// IdP group id matching team.
 	MappedIDPGroup string `json:"mappedIdPGroup,omitempty"`
+	// URL to join the IdP group.
+	JoinURL string `json:"joinUrl,omitempty"`
 }
 
 // TeamStatus defines the observed state of Team
-type TeamStatus struct{}
+type TeamStatus struct {
+	StatusConditions StatusConditions `json:"statusConditions"`
+}
 
 //+kubebuilder:object:root=true
 //+kubebuilder:subresource:status
@@ -44,4 +48,12 @@ type TeamList struct {
 
 func init() {
 	SchemeBuilder.Register(&Team{}, &TeamList{})
+}
+
+func (o *Team) GetConditions() StatusConditions {
+	return o.Status.StatusConditions
+}
+
+func (o *Team) SetCondition(condition Condition) {
+	o.Status.StatusConditions.SetConditions(condition)
 }

@@ -5,8 +5,6 @@ package clientutil
 
 import (
 	"context"
-	"net/http"
-	"net/url"
 
 	corev1 "k8s.io/api/core/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
@@ -45,19 +43,6 @@ func NewK8sClientFromRestClientGetter(restClientGetter genericclioptions.RESTCli
 	cfg, err := restClientGetter.ToRESTConfig()
 	if err != nil {
 		return nil, err
-	}
-	return NewK8sClient(cfg)
-}
-
-func NewHeadscaleK8sClientFromRestClientGetter(restClientGetter genericclioptions.RESTClientGetter, proxy, headscaleAddress string) (client.Client, error) {
-	cfg, err := restClientGetter.ToRESTConfig()
-	if err != nil {
-		return nil, err
-	}
-	cfg.Host = "https://" + headscaleAddress
-	cfg.TLSClientConfig.ServerName = "127.0.0.1"
-	cfg.Proxy = func(req *http.Request) (*url.URL, error) {
-		return url.Parse(proxy)
 	}
 	return NewK8sClient(cfg)
 }

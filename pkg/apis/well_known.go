@@ -3,7 +3,9 @@
 
 package apis
 
-import corev1 "k8s.io/api/core/v1"
+import (
+	corev1 "k8s.io/api/core/v1"
+)
 
 const (
 	// GroupName for greenhouse API resources.
@@ -31,9 +33,6 @@ const (
 	// This kubeconfig should be used by Greenhouse controllers and their kubernetes clients to access the remote cluster.
 	GreenHouseKubeConfigKey = "greenhousekubeconfig"
 
-	// HeadscalePreAuthKey is the key for the Headscale pre-authentication key in a secret of type greenhouse.sap/kubeconfig.
-	HeadscalePreAuthKey = "headscalePreAuthKey"
-
 	// LabelKeyPluginPreset is used to identify the PluginPreset managing the plugin.
 	LabelKeyPluginPreset = "greenhouse.sap/pluginpreset"
 
@@ -46,10 +45,7 @@ const (
 	// LabelKeyCluster is used to identify corresponding Cluster for the resource.
 	LabelKeyCluster = "greenhouse.sap/cluster"
 
-	// HeadScaleKey is the key for the Headscale client deployment
-	HeadScaleKey = "greenhouse.sap/headscale"
-
-	// LabelAccessMode is used to force the access mode to headscale for a cluster.
+	// LabelAccessMode is used to force the access mode for a cluster.
 	LabelAccessMode = "greenhouse.sap/access-mode"
 
 	// LabelKeyExposeService is applied to services that are part of a PluginDefinitions Helm chart to expose them via the central Greenhouse infrastructure.
@@ -84,4 +80,13 @@ const (
 
 	// RolebindingTeamRefField is the field in the RoleBinding spec that references the Team.
 	RolebindingTeamRefField = ".spec.teamRef"
+)
+
+// cluster deletion annotations and condition
+const (
+	// MarkClusterDeletionAnnotation is used to mark a cluster for deletion.
+	MarkClusterDeletionAnnotation = "greenhouse.sap/delete-cluster"
+	// ScheduleClusterDeletionAnnotation is used to schedule a cluster for deletion.
+	// Timestamp is set by mutating webhook if cluster is marked for deletion.
+	ScheduleClusterDeletionAnnotation = "greenhouse.sap/deletion-schedule"
 )

@@ -9,6 +9,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"path/filepath"
 	"slices"
 	"time"
 
@@ -163,12 +164,12 @@ func DiffChartToDeployedResources(ctx context.Context, local client.Client, rest
 		return nil, true, nil
 	}
 
-	manifest, err := TemplateHelmChartFromPlugin(ctx, local, restClientGetter, pluginDefinition, plugin)
+	helmTemplateRelease, err := TemplateHelmChartFromPlugin(ctx, local, restClientGetter, pluginDefinition, plugin)
 	if err != nil {
 		return nil, false, err
 	}
 
-	diffObjects, err := diffAgainstRelease(restClientGetter, plugin.Spec.ReleaseNamespace, manifest, helmRelease)
+	diffObjects, err := diffAgainstRelease(restClientGetter, plugin.Spec.ReleaseNamespace, helmTemplateRelease, helmRelease)
 	if err != nil {
 		return nil, false, err
 	}
@@ -193,7 +194,7 @@ func DiffChartToDeployedResources(ctx context.Context, local client.Client, rest
 		return nil, false, nil
 	}
 
-	diffObjects, err = diffAgainstLiveObjects(restClientGetter, plugin.Spec.ReleaseNamespace, manifest)
+	diffObjects, err = diffAgainstLiveObjects(restClientGetter, plugin.Spec.ReleaseNamespace, helmTemplateRelease.Manifest)
 	if err != nil {
 		return nil, false, err
 	}
@@ -276,12 +277,12 @@ func GetReleaseForHelmChartFromPlugin(_ context.Context, restClientGetter generi
 }
 
 // TemplateHelmChartFromPlugin returns the rendered manifest or an error.
-func TemplateHelmChartFromPlugin(ctx context.Context, local client.Client, restClientGetter genericclioptions.RESTClientGetter, pluginDefinition *greenhousev1alpha1.PluginDefinition, plugin *greenhousev1alpha1.Plugin) (string, error) {
+func TemplateHelmChartFromPlugin(ctx context.Context, local client.Client, restClientGetter genericclioptions.RESTClientGetter, pluginDefinition *greenhousev1alpha1.PluginDefinition, plugin *greenhousev1alpha1.Plugin) (*release.Release, error) {
 	helmRelease, err := installRelease(ctx, local, restClientGetter, pluginDefinition, plugin, true)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
-	return helmRelease.Manifest, nil
+	return helmRelease, nil
 }
 
 type ChartLoaderFunc func(name string) (*chart.Chart, error)
@@ -328,13 +329,8 @@ func upgradeRelease(ctx context.Context, local client.Client, restClientGetter g
 	upgradeAction.DependencyUpdate = true
 	upgradeAction.MaxHistory = 5
 	upgradeAction.Description = pluginDefinition.Spec.Version
-	chartName := configureChartPathOptions(&upgradeAction.ChartPathOptions, pluginDefinition.Spec.HelmChart)
 
-	chartPath, err := upgradeAction.LocateChart(chartName, settings)
-	if err != nil {
-		return err
-	}
-	helmChart, err := ChartLoader(chartPath)
+	helmChart, err := loadHelmChart(&upgradeAction.ChartPathOptions, pluginDefinition.Spec.HelmChart, settings)
 	if err != nil {
 		return err
 	}
@@ -374,13 +370,8 @@ func installRelease(ctx context.Context, local client.Client, restClientGetter g
 	installAction.DryRun = isDryRun
 	installAction.ClientOnly = isDryRun
 	installAction.Description = pluginDefinition.Spec.Version
-	chartName := configureChartPathOptions(&installAction.ChartPathOptions, pluginDefinition.Spec.HelmChart)
 
-	chartPath, err := installAction.LocateChart(chartName, settings)
-	if err != nil {
-		return nil, err
-	}
-	helmChart, err := ChartLoader(chartPath)
+	helmChart, err := loadHelmChart(&installAction.ChartPathOptions, pluginDefinition.Spec.HelmChart, settings)
 	if err != nil {
 		return nil, err
 	}
@@ -404,6 +395,21 @@ func installRelease(ctx context.Context, local client.Client, restClientGetter g
 	}
 	helmChart.Metadata.KubeVersion = ""
 	return installAction.RunWithContext(ctx, helmChart, helmValues)
+}
+
+func loadHelmChart(chartPathOptions *action.ChartPathOptions, reference *greenhousev1alpha1.HelmChartReference, settings *cli.EnvSettings) (*chart.Chart, error) {
+	name := filepath.Base(reference.Name)
+	chartPath := settings.RepositoryCache + "/" + name + "-" + reference.Version + ".tgz"
+
+	if _, err := os.Stat(chartPath); errors.Is(err, os.ErrNotExist) {
+		chartName := configureChartPathOptions(chartPathOptions, reference)
+		chartPath, err = chartPathOptions.LocateChart(chartName, settings)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return ChartLoader(chartPath)
 }
 
 func newHelmAction(restClientGetter genericclioptions.RESTClientGetter, namespace string) (*action.Configuration, error) {

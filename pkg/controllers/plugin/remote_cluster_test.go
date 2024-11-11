@@ -252,34 +252,16 @@ var _ = Describe("HelmController reconciliation", Ordered, func() {
 		Expect(test.K8sClient.Create(test.Ctx, testPlugin)).Should(Succeed(), "there should be no error updating the plugin")
 
 		By("checking the ClusterAccessReadyCondition on the plugin")
-		Eventually(func(g Gomega) bool {
+		Eventually(func(g Gomega) {
 			err := test.K8sClient.Get(test.Ctx, types.NamespacedName{Name: testPlugin.Name, Namespace: testPlugin.Namespace}, testPlugin)
 			g.Expect(err).ShouldNot(HaveOccurred(), "there should be no error getting the plugin")
 			clusterAccessReadyCondition := testPlugin.Status.GetConditionByType(greenhousev1alpha1.ClusterAccessReadyCondition)
 			readyCondition := testPlugin.Status.GetConditionByType(greenhousev1alpha1.ReadyCondition)
 			g.Expect(clusterAccessReadyCondition).ToNot(BeNil(), "the ClusterAccessReadyCondition should not be nil")
 			g.Expect(readyCondition).ToNot(BeNil(), "the ReadyCondition should not be nil")
-			g.Expect(testPlugin.Status.GetConditionByType(greenhousev1alpha1.ClusterAccessReadyCondition).IsFalse()).Should(BeTrue(), "the ClusterAccessReadyCondition should be false")
-			g.Expect(testPlugin.Status.GetConditionByType(greenhousev1alpha1.ReadyCondition).IsFalse()).Should(BeTrue(), "the ReadyCondition should be false")
-			return true
-		}).Should(BeTrue(), "the ClusterAccessReadyCondition should be false")
-
-		By("setting the ready condition on the test-cluster")
-		testCluster.Status.StatusConditions.SetConditions(greenhousev1alpha1.TrueCondition(greenhousev1alpha1.ReadyCondition, "", ""))
-		Expect(test.K8sClient.Status().Update(test.Ctx, testCluster)).Should(Succeed(), "there should be no error updating the cluster resource")
-
-		By("triggering setting a label on the plugin to trigger reconciliation")
-		testPlugin.Labels = map[string]string{"test": "label"}
-		Expect(test.K8sClient.Update(test.Ctx, testPlugin)).Should(Succeed(), "there should be no error updating the plugin")
-
-		By("checking the ClusterAccessReadyCondition on the plugin")
-		Eventually(func(g Gomega) bool {
-			err := test.K8sClient.Get(test.Ctx, types.NamespacedName{Name: testPlugin.Name, Namespace: testPlugin.Namespace}, testPlugin)
-			g.Expect(err).ShouldNot(HaveOccurred(), "there should be no error getting the plugin")
-			g.Expect(testPlugin.Status.GetConditionByType(greenhousev1alpha1.ClusterAccessReadyCondition).IsTrue()).Should(BeTrue(), "the ClusterAccessReadyCondition should be true")
-			g.Expect(testPlugin.Status.GetConditionByType(greenhousev1alpha1.ReadyCondition).IsTrue()).Should(BeTrue(), "the ReadyCondition should be true")
-			return true
-		}).Should(BeTrue(), "the ClusterAccessReadyCondition should be true")
+			g.Expect(clusterAccessReadyCondition.IsTrue()).Should(BeTrue(), "the ClusterAccessReadyCondition should be true")
+			g.Expect(readyCondition.IsTrue()).Should(BeTrue(), "the ReadyCondition should be true")
+		}).Should(Succeed(), "the ClusterAccessReadyCondition should be true")
 
 		By("checking the helm releases deployed to the remote cluster")
 		helmConfig, err := helm.ExportNewHelmAction(remoteRestClientGetter, testPlugin.Spec.ReleaseNamespace)
@@ -529,8 +511,8 @@ var _ = Describe("HelmController reconciliation", Ordered, func() {
 				for exposedServiceURL = range testPluginWithExposedService1.Status.ExposedServices {
 					break
 				}
-				// URL pattern: $https://$service--$cluster--$namespace.$organisation.$basedomain
-				g.Expect(exposedServiceURL).To(Equal("https://exposed-service--test-cluster--test-org.test-org.example.com"), "exposed service URL should be generated correctly")
+				expectedURL := common.URLForExposedServiceInPlugin("exposed-service", testPluginWithExposedService)
+				g.Expect(exposedServiceURL).To(Equal(expectedURL), "exposed service URL should be generated correctly")
 			}).Should(Succeed(), "plugin should have correct status")
 
 			By("cleaning up test")

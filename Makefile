@@ -3,9 +3,6 @@ IMG ?= ghcr.io/cloudoperators/greenhouse:dev-$(USER)
 IMG_DEV_ENV ?= ghcr.io/cloudoperators/greenhouse-dev-env:dev-$(USER)
 IMG_LICENSE_EYE ?= ghcr.io/apache/skywalking-eyes/license-eye
 
-# ENVTEST_K8S_VERSION refers to the version of kubebuilder assets to be downloaded by envtest binary.
-ENVTEST_K8S_VERSION = 1.30.3
-
 MANIFESTS_PATH=$(CURDIR)/charts/manager
 CRD_MANIFESTS_PATH=$(MANIFESTS_PATH)/crds
 TEMPLATES_MANIFESTS_PATH=$(MANIFESTS_PATH)/templates
@@ -71,7 +68,7 @@ generate-open-api-spec:
 
 .PHONY: generate-types
 generate-types: generate-open-api-spec## Generate typescript types from CRDs.
-	hack/typescript/create-types $(CURDIR)/docs/reference/api/openapi.yaml $(CURDIR)/hack/typescript/metadata.yaml $(CURDIR)/ui/types/ 
+	hack/typescript/create-types $(CURDIR)/docs/reference/api/openapi.yaml $(CURDIR)/hack/typescript/metadata.yaml $(CURDIR)/types/typescript/
 
 .PHONY: actiongenerate
 actiongenerate: action-controllergen
@@ -197,10 +194,12 @@ ENVTEST_ACTION ?= $(LOCALBIN)/setup-envtest
 HELMIFY ?= $(LOCALBIN)/helmify
 
 ## Tool Versions
-KUSTOMIZE_VERSION ?= v5.4.2
-CONTROLLER_TOOLS_VERSION ?= v0.15.0
-GOLINT_VERSION ?= v1.60.2
-GINKGOLINTER_VERSION ?= v0.16.2
+KUSTOMIZE_VERSION ?= 5.5.0
+CONTROLLER_TOOLS_VERSION ?= 0.16.5
+GOLINT_VERSION ?= 1.61.0
+GINKGOLINTER_VERSION ?= 0.18.0
+# ENVTEST_K8S_VERSION refers to the version of kubebuilder assets to be downloaded by envtest binary.
+ENVTEST_K8S_VERSION ?= 1.30.3
 
 KUSTOMIZE_INSTALL_SCRIPT ?= "https://raw.githubusercontent.com/kubernetes-sigs/kustomize/master/hack/install_kustomize.sh"
 .PHONY: kustomize
@@ -211,14 +210,14 @@ $(KUSTOMIZE): $(LOCALBIN)
 .PHONY: action-controllergen
 action-controllergen:: $(CONTROLLER_GEN_ACTION) ## Download controller-gen locally if necessary.
 $(CONTROLLER_GEN_ACTION):: $(LOCALBIN)
-	GOMODCACHE=$(shell pwd)/tmp GOPATH=$(shell pwd) go install -modcacherw sigs.k8s.io/controller-tools/cmd/controller-gen@$(CONTROLLER_TOOLS_VERSION)
+	GOMODCACHE=$(shell pwd)/tmp GOPATH=$(shell pwd) go install -modcacherw sigs.k8s.io/controller-tools/cmd/controller-gen@v$(CONTROLLER_TOOLS_VERSION)
 	GOMODCACHE=$(shell pwd)/tmp go clean -modcache
 	rm -rf $(shell pwd)/pkg/sumdb/
 
 .PHONY: controller-gen
 controller-gen:: $(CONTROLLER_GEN) ## Download controller-gen locally if necessary.
 $(CONTROLLER_GEN):: $(LOCALBIN)
-	GOBIN=$(LOCALBIN) go install sigs.k8s.io/controller-tools/cmd/controller-gen@$(CONTROLLER_TOOLS_VERSION)
+	GOBIN=$(LOCALBIN) go install sigs.k8s.io/controller-tools/cmd/controller-gen@v$(CONTROLLER_TOOLS_VERSION)
 
 .PHONY: action-envtest
 action-envtest:: $(ENVTEST) ## Download envtest-setup locally if necessary.
@@ -240,8 +239,8 @@ $(GOIMPORTS): $(LOCALBIN)
 .PHONY: golint
 golint: $(GOLINT)
 $(GOLINT): $(LOCALBIN)
-	GOBIN=$(LOCALBIN) go install github.com/golangci/golangci-lint/cmd/golangci-lint@$(GOLINT_VERSION)
-	GOBIN=$(LOCALBIN) go install github.com/nunnatsa/ginkgolinter/cmd/ginkgolinter@$(GINKGOLINTER_VERSION)
+	GOBIN=$(LOCALBIN) go install github.com/golangci/golangci-lint/cmd/golangci-lint@v$(GOLINT_VERSION)
+	GOBIN=$(LOCALBIN) go install github.com/nunnatsa/ginkgolinter/cmd/ginkgolinter@v$(GINKGOLINTER_VERSION)
 
 .PHONY: serve-docs
 serve-docs: generate-manifests
@@ -258,3 +257,19 @@ setup-dev: cli
 .PHONY: dev-docs
 dev-docs:
 	go run -tags="dev" -mod=mod dev-env/localenv/docs.go
+
+ADMIN_CLUSTER ?= greenhouse-admin
+ADMIN_NAMESPACE ?= greenhouse
+ADMIN_RELEASE ?= greenhouse
+ADMIN_CHART_PATH ?= charts/manager
+WEBHOOK_DEV ?= false
+
+.PHONY: setup-webhook
+setup-webhook: cli
+	$(CLI) dev setup webhook --name $(ADMIN_CLUSTER) --namespace $(ADMIN_NAMESPACE) --release $(ADMIN_RELEASE) --chart-path $(ADMIN_CHART_PATH) --dockerfile ./ --dev-mode=$(WEBHOOK_DEV)
+
+# Download and install mockery locally via `brew install mockery`
+MOCKERY := $(shell which mockery)
+mockery:
+	# will look into .mockery.yaml for configuration
+	$(MOCKERY)
