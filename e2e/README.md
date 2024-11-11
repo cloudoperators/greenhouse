@@ -153,6 +153,9 @@ variables:
 export CONTROLLER_LOGS_PATH=<path-to-save-the-file>
 ```
 
+> [!NOTE]
+> The provided GREENHOUSE_ADMIN_KUBECONFIG should have permissions to read pod logs 
+
 Once the environment variables are set, you can run the tests using the following command:
 
 ```shell

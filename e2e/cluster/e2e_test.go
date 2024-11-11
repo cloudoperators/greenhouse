@@ -7,6 +7,7 @@ package cluster
 
 import (
 	"context"
+	"slices"
 	"testing"
 	"time"
 
@@ -106,13 +107,9 @@ var _ = Describe("Cluster E2E", Ordered, func() {
 			Expect(err).ToNot(HaveOccurred(), "there should be no error getting the service account")
 
 			By("verifying if the greenhouse service account is bound to the cluster role binding")
-			found := false
-			for _, subject := range crb.Subjects {
-				if subject.Kind == rbacv1.ServiceAccountKind && subject.Name == sa.Name && subject.Namespace == env.TestNamespace {
-					found = true
-					break
-				}
-			}
+			found := slices.ContainsFunc(crb.Subjects, func(s rbacv1.Subject) bool {
+				return s.Kind == rbacv1.ServiceAccountKind && s.Name == sa.Name && s.Namespace == env.TestNamespace
+			})
 			Expect(found).To(BeTrue(), "managed service account should be bound to the cluster role binding")
 
 			By("verifying if the greenhouse service account has cluster role binding as owner reference")
