@@ -3,9 +3,6 @@ IMG ?= ghcr.io/cloudoperators/greenhouse:dev-$(USER)
 IMG_DEV_ENV ?= ghcr.io/cloudoperators/greenhouse-dev-env:dev-$(USER)
 IMG_LICENSE_EYE ?= ghcr.io/apache/skywalking-eyes/license-eye
 
-# ENVTEST_K8S_VERSION refers to the version of kubebuilder assets to be downloaded by envtest binary.
-ENVTEST_K8S_VERSION = 1.30.3
-
 MANIFESTS_PATH=$(CURDIR)/charts/manager
 CRD_MANIFESTS_PATH=$(MANIFESTS_PATH)/crds
 TEMPLATES_MANIFESTS_PATH=$(MANIFESTS_PATH)/templates
@@ -197,10 +194,12 @@ ENVTEST_ACTION ?= $(LOCALBIN)/setup-envtest
 HELMIFY ?= $(LOCALBIN)/helmify
 
 ## Tool Versions
-KUSTOMIZE_VERSION ?= v5.4.2
-CONTROLLER_TOOLS_VERSION ?= v0.15.0
-GOLINT_VERSION ?= v1.61.0
-GINKGOLINTER_VERSION ?= v0.16.2
+KUSTOMIZE_VERSION ?= 5.5.0
+CONTROLLER_TOOLS_VERSION ?= 0.16.5
+GOLINT_VERSION ?= 1.61.0
+GINKGOLINTER_VERSION ?= 0.18.0
+# ENVTEST_K8S_VERSION refers to the version of kubebuilder assets to be downloaded by envtest binary.
+ENVTEST_K8S_VERSION ?= 1.30.3
 
 KUSTOMIZE_INSTALL_SCRIPT ?= "https://raw.githubusercontent.com/kubernetes-sigs/kustomize/master/hack/install_kustomize.sh"
 .PHONY: kustomize
@@ -211,14 +210,14 @@ $(KUSTOMIZE): $(LOCALBIN)
 .PHONY: action-controllergen
 action-controllergen:: $(CONTROLLER_GEN_ACTION) ## Download controller-gen locally if necessary.
 $(CONTROLLER_GEN_ACTION):: $(LOCALBIN)
-	GOMODCACHE=$(shell pwd)/tmp GOPATH=$(shell pwd) go install -modcacherw sigs.k8s.io/controller-tools/cmd/controller-gen@$(CONTROLLER_TOOLS_VERSION)
+	GOMODCACHE=$(shell pwd)/tmp GOPATH=$(shell pwd) go install -modcacherw sigs.k8s.io/controller-tools/cmd/controller-gen@v$(CONTROLLER_TOOLS_VERSION)
 	GOMODCACHE=$(shell pwd)/tmp go clean -modcache
 	rm -rf $(shell pwd)/pkg/sumdb/
 
 .PHONY: controller-gen
 controller-gen:: $(CONTROLLER_GEN) ## Download controller-gen locally if necessary.
 $(CONTROLLER_GEN):: $(LOCALBIN)
-	GOBIN=$(LOCALBIN) go install sigs.k8s.io/controller-tools/cmd/controller-gen@$(CONTROLLER_TOOLS_VERSION)
+	GOBIN=$(LOCALBIN) go install sigs.k8s.io/controller-tools/cmd/controller-gen@v$(CONTROLLER_TOOLS_VERSION)
 
 .PHONY: action-envtest
 action-envtest:: $(ENVTEST) ## Download envtest-setup locally if necessary.
@@ -240,8 +239,8 @@ $(GOIMPORTS): $(LOCALBIN)
 .PHONY: golint
 golint: $(GOLINT)
 $(GOLINT): $(LOCALBIN)
-	GOBIN=$(LOCALBIN) go install github.com/golangci/golangci-lint/cmd/golangci-lint@$(GOLINT_VERSION)
-	GOBIN=$(LOCALBIN) go install github.com/nunnatsa/ginkgolinter/cmd/ginkgolinter@$(GINKGOLINTER_VERSION)
+	GOBIN=$(LOCALBIN) go install github.com/golangci/golangci-lint/cmd/golangci-lint@v$(GOLINT_VERSION)
+	GOBIN=$(LOCALBIN) go install github.com/nunnatsa/ginkgolinter/cmd/ginkgolinter@v$(GINKGOLINTER_VERSION)
 
 .PHONY: serve-docs
 serve-docs: generate-manifests

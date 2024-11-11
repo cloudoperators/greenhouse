@@ -8,6 +8,8 @@ kind: Job
 metadata:
   name: {{ include "manager.fullname" . }}-kube-webhook-certgen
   namespace: greenhouse
+  annotations:
+    {{- toYaml .Values.kubeWebhookCertgen.annotations | nindent 4 }}
   labels:
   {{- include "manager.labels" . | nindent 4 }}
 spec:

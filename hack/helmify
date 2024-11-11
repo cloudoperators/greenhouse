@@ -37,6 +37,8 @@ PREFIX="greenhouse" rename "mutating-webhook-configuration"
 PREFIX="greenhouse" rename "validating-webhook-configuration"
 PREFIX="greenhouse" rename "webhook-service"
 
+yq -i '(.webhooks[] | select(.name == "*secret.kb.io") | .namespaceSelector) |= {"matchExpressions": [{"key":"kubernetes.io/metadata.name", "operator": "NotIn", "values":["kube-system"]}]}' "$TEMPLATES_DIR/webhooks.yaml"
+
 # Helmify RBAC.
 rename-file-if-exists "$TEMPLATES_DIR/role.yaml" "$TEMPLATES_DIR/manager-role.yaml"
 $SED_CMD 's/namespace: system/namespace: {{ .Release.Namespace}}/g' "$TEMPLATES_DIR/manager-role.yaml"

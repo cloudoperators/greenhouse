@@ -159,14 +159,14 @@ func (r *TeamRoleBindingReconciler) doReconcile(ctx context.Context, teamRole *g
 		remoteRestClient, err := clientutil.NewK8sClientFromCluster(ctx, r.Client, &cluster)
 		if err != nil {
 			r.recorder.Eventf(trb, corev1.EventTypeWarning, greenhousev1alpha1.FailedEvent, "Error getting client for cluster %s to replicate %s", cluster.GetName(), trb.GetName())
-			setPropagationStatus(&trbStatus, cluster.GetName(), metav1.ConditionFalse, greenhousev1alpha1.ClusterConnectionFailed)
+			setPropagationStatus(&trbStatus, cluster.GetName(), metav1.ConditionFalse, greenhousev1alpha1.ClusterConnectionFailed, err.Error())
 			failedClusters = append(failedClusters, cluster.GetName())
 			continue
 		}
 
 		if err := reconcileClusterRole(ctx, remoteRestClient, &cluster, cr); err != nil {
 			r.recorder.Eventf(trb, corev1.EventTypeWarning, greenhousev1alpha1.FailedEvent, "Failed to reconcile ClusterRole %s in cluster %s", cr.GetName(), cluster.GetName())
-			setPropagationStatus(&trbStatus, cluster.GetName(), metav1.ConditionFalse, greenhousev1alpha1.ClusterRoleFailed)
+			setPropagationStatus(&trbStatus, cluster.GetName(), metav1.ConditionFalse, greenhousev1alpha1.ClusterRoleFailed, err.Error())
 			failedClusters = append(failedClusters, cluster.GetName())
 			continue
 		}
@@ -176,30 +176,28 @@ func (r *TeamRoleBindingReconciler) doReconcile(ctx context.Context, teamRole *g
 			crb := rbacClusterRoleBinding(trb, cr, team)
 			if err := reconcileClusterRoleBinding(ctx, remoteRestClient, &cluster, crb); err != nil {
 				r.recorder.Eventf(trb, corev1.EventTypeWarning, greenhousev1alpha1.FailedEvent, "Failed to reconcile ClusterRoleBinding %s in cluster %s", crb.GetName(), cluster.GetName())
-				setPropagationStatus(&trbStatus, cluster.GetName(), metav1.ConditionFalse, greenhousev1alpha1.RoleBindingFailed)
+				setPropagationStatus(&trbStatus, cluster.GetName(), metav1.ConditionFalse, greenhousev1alpha1.RoleBindingFailed, err.Error())
 				failedClusters = append(failedClusters, cluster.GetName())
 				continue
 			}
-			setPropagationStatus(&trbStatus, cluster.GetName(), metav1.ConditionTrue, greenhousev1alpha1.RBACReconciled)
+			setPropagationStatus(&trbStatus, cluster.GetName(), metav1.ConditionTrue, greenhousev1alpha1.RBACReconciled, "")
 		default:
-			hasFailed := false
+			errorMesages := []string{}
 			for _, namespace := range trb.Spec.Namespaces {
 				rbacRoleBinding := rbacRoleBinding(trb, cr, team, namespace)
 
 				if err := reconcileRoleBinding(ctx, remoteRestClient, &cluster, rbacRoleBinding); err != nil {
-					r.recorder.Eventf(trb, corev1.EventTypeWarning, greenhousev1alpha1.FailedEvent, "Failed to reconcile RoleBinding %s in cluster %s", rbacRoleBinding.GetName(), cluster.GetName())
-					setPropagationStatus(&trbStatus, cluster.GetName(), metav1.ConditionFalse, greenhousev1alpha1.RoleBindingFailed)
-					if !hasFailed {
-						hasFailed = true
-					}
+					r.recorder.Eventf(trb, corev1.EventTypeWarning, greenhousev1alpha1.FailedEvent, "Failed to reconcile RoleBinding %s in cluster/namespace %s/%s: ", rbacRoleBinding.GetName(), cluster.GetName(), namespace)
 					failedClusters = append(failedClusters, cluster.GetName())
+					errorMesages = append(errorMesages, err.Error())
 				}
 			}
-			if hasFailed {
+			if len(errorMesages) > 0 {
+				setPropagationStatus(&trbStatus, cluster.GetName(), metav1.ConditionFalse, greenhousev1alpha1.RoleBindingFailed, "Failed to reconcile RoleBindings: "+strings.Join(errorMesages, ", "))
 				continue
 			}
 		}
-		setPropagationStatus(&trbStatus, cluster.GetName(), metav1.ConditionTrue, greenhousev1alpha1.RBACReconciled)
+		setPropagationStatus(&trbStatus, cluster.GetName(), metav1.ConditionTrue, greenhousev1alpha1.RBACReconciled, "")
 	}
 
 	if len(failedClusters) > 0 {
@@ -709,9 +707,9 @@ func computeReadyCondition(status greenhousev1alpha1.TeamRoleBindingStatus) gree
 }
 
 // setPropagationStatus updates the TeamRoleBinding's PropagationStatus for the Cluster
-func setPropagationStatus(status *greenhousev1alpha1.TeamRoleBindingStatus, cluster string, rbacReady metav1.ConditionStatus, reason greenhousev1alpha1.ConditionReason) {
+func setPropagationStatus(status *greenhousev1alpha1.TeamRoleBindingStatus, cluster string, rbacReady metav1.ConditionStatus, reason greenhousev1alpha1.ConditionReason, message string) {
 	exists := false
-	condition := greenhousev1alpha1.NewCondition(greenhousev1alpha1.RBACReady, rbacReady, reason, "")
+	condition := greenhousev1alpha1.NewCondition(greenhousev1alpha1.RBACReady, rbacReady, reason, message)
 	for i, ps := range status.PropagationStatus {
 		if ps.ClusterName == cluster {
 			if ps.Condition.Status == rbacReady {

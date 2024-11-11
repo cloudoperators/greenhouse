@@ -112,6 +112,19 @@ ClusterAccessMode
 <p>AccessMode configures how the cluster is accessed from the Greenhouse operator.</p>
 </td>
 </tr>
+<tr>
+<td>
+<code>kubeConfig</code><br>
+<em>
+<a href="#greenhouse.sap/v1alpha1.ClusterKubeConfig">
+ClusterKubeConfig
+</a>
+</em>
+</td>
+<td>
+<p>KubeConfig contains specific values for <code>KubeConfig</code> for the cluster.</p>
+</td>
+</tr>
 </table>
 </td>
 </tr>
@@ -141,6 +154,38 @@ ClusterStatus
 <h3 id="greenhouse.sap/v1alpha1.ClusterConditionType">ClusterConditionType
 (<code>string</code> alias)</h3>
 <p>ClusterConditionType is a valid condition of a cluster.</p>
+<h3 id="greenhouse.sap/v1alpha1.ClusterKubeConfig">ClusterKubeConfig
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#greenhouse.sap/v1alpha1.ClusterSpec">ClusterSpec</a>)
+</p>
+<p>ClusterKubeConfig configures kube config values.</p>
+<div class="md-typeset__scrollwrap">
+<div class="md-typeset__table">
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>maxTokenValidity</code><br>
+<em>
+int32
+</em>
+</td>
+<td>
+<p>MaxTokenValidity specifies the maximum duration for which a token remains valid in hours.</p>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
 <h3 id="greenhouse.sap/v1alpha1.ClusterKubeconfig">ClusterKubeconfig
 </h3>
 <p>ClusterKubeconfig is the Schema for the clusterkubeconfigs API
@@ -725,6 +770,19 @@ ClusterAccessMode
 </td>
 <td>
 <p>AccessMode configures how the cluster is accessed from the Greenhouse operator.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>kubeConfig</code><br>
+<em>
+<a href="#greenhouse.sap/v1alpha1.ClusterKubeConfig">
+ClusterKubeConfig
+</a>
+</em>
+</td>
+<td>
+<p>KubeConfig contains specific values for <code>KubeConfig</code> for the cluster.</p>
 </td>
 </tr>
 </tbody>
@@ -2536,7 +2594,8 @@ string
 <a href="#greenhouse.sap/v1alpha1.PluginPresetStatus">PluginPresetStatus</a>, 
 <a href="#greenhouse.sap/v1alpha1.PluginStatus">PluginStatus</a>, 
 <a href="#greenhouse.sap/v1alpha1.TeamMembershipStatus">TeamMembershipStatus</a>, 
-<a href="#greenhouse.sap/v1alpha1.TeamRoleBindingStatus">TeamRoleBindingStatus</a>)
+<a href="#greenhouse.sap/v1alpha1.TeamRoleBindingStatus">TeamRoleBindingStatus</a>, 
+<a href="#greenhouse.sap/v1alpha1.TeamStatus">TeamStatus</a>)
 </p>
 <p>A StatusConditions contains a list of conditions.
 Only one condition of a given type may exist in the list.</p>
@@ -2626,6 +2685,17 @@ string
 </td>
 <td>
 <p>IdP group id matching team.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>joinUrl</code><br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>URL to join the IdP group.</p>
 </td>
 </tr>
 </table>
@@ -3262,6 +3332,17 @@ string
 <p>IdP group id matching team.</p>
 </td>
 </tr>
+<tr>
+<td>
+<code>joinUrl</code><br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>URL to join the IdP group.</p>
+</td>
+</tr>
 </tbody>
 </table>
 </div>
@@ -3273,6 +3354,32 @@ string
 <a href="#greenhouse.sap/v1alpha1.Team">Team</a>)
 </p>
 <p>TeamStatus defines the observed state of Team</p>
+<div class="md-typeset__scrollwrap">
+<div class="md-typeset__table">
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>statusConditions</code><br>
+<em>
+<a href="#greenhouse.sap/v1alpha1.StatusConditions">
+StatusConditions
+</a>
+</em>
+</td>
+<td>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
 <h3 id="greenhouse.sap/v1alpha1.UIApplicationReference">UIApplicationReference
 </h3>
 <p>

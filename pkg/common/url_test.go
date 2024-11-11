@@ -30,20 +30,27 @@ var _ = Describe("validate url methods", Ordered, func() {
 		plugin.SetNamespace("test-organisation")
 
 		url := common.URLForExposedServiceInPlugin("test-service", plugin)
-		Expect(url).To(Equal("https://test-service--test-cluster--test-namespace.test-organisation.example.com"))
+		Expect(url).To(Equal("https://test-cluster--e30cc9f.test-organisation.example.com"))
 	})
 
-	It("should correctly cap the url with a hash on urls with subdomains exceeding 63 characters", func() {
-		common.DNSDomain = "example.com"
-		plugin := &v1alpha1.Plugin{
-			Spec: v1alpha1.PluginSpec{
-				ReleaseNamespace: "test-long-namespace",
-				ClusterName:      "test-cluster",
-			},
+	It("should correctly extract the cluster from an host", func() {
+		cluster, err := common.ExtractCluster("test-cluster--e30cc9f.test-organisation.example.com")
+
+		Expect(err).ToNot(HaveOccurred())
+		Expect(cluster).To(Equal("test-cluster"))
+	})
+
+	It("should return an error if the host is invalid", func() {
+		invalidHosts := []string{
+			"https://test-cluster-e30cc9f.test-organisation.example.com",
+			"test-cluster-e30cc9f.example.com",
+			"test-cluster--e30cc9f",
 		}
-		plugin.SetNamespace("test-organisation")
 
-		url := common.URLForExposedServiceInPlugin("this-is-a-very-long-service-name", plugin)
-		Expect(url).To(Equal("https://this-is-a-very-long-service-name--test-cluster--test-l-7982a2e3.test-organisation.example.com"))
+		for _, host := range invalidHosts {
+			_, err := common.ExtractCluster(host)
+			Expect(err).To(HaveOccurred(), "Expected error for host: %s", host)
+		}
 	})
+
 })

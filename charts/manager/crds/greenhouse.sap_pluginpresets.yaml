@@ -6,7 +6,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.15.0
+    controller-gen.kubebuilder.io/version: v0.16.5
   name: pluginpresets.greenhouse.sap
 spec:
   group: greenhouse.sap
@@ -17,7 +17,17 @@ spec:
     singular: pluginpreset
   scope: Namespaced
   versions:
-  - name: v1alpha1
+  - additionalPrinterColumns:
+    - jsonPath: .spec.plugin.pluginDefinition
+      name: Plugin Definition
+      type: string
+    - jsonPath: .spec.plugin.releaseNamespace
+      name: Release Namespace
+      type: string
+    - jsonPath: .status.statusConditions.conditions[?(@.type == "Ready")].status
+      name: Ready
+      type: string
+    name: v1alpha1
     schema:
       openAPIV3Schema:
         description: PluginPreset is the Schema for the PluginPresets API

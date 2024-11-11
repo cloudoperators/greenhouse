@@ -6,7 +6,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.15.0
+    controller-gen.kubebuilder.io/version: v0.16.5
   name: clusters.greenhouse.sap
 spec:
   group: greenhouse.sap
@@ -58,6 +58,19 @@ spec:
                 enum:
                 - direct
                 type: string
+              kubeConfig:
+                description: KubeConfig contains specific values for `KubeConfig`
+                  for the cluster.
+                properties:
+                  maxTokenValidity:
+                    default: 72
+                    description: MaxTokenValidity specifies the maximum duration for
+                      which a token remains valid in hours.
+                    format: int32
+                    maximum: 72
+                    minimum: 24
+                    type: integer
+                type: object
             required:
             - accessMode
             type: object

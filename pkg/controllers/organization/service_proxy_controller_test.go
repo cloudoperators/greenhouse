@@ -36,6 +36,14 @@ var _ = Describe("Organization ServiceProxyReconciler", Ordered, func() {
 		},
 	}
 
+	var (
+		setup *test.TestSetup
+	)
+
+	BeforeEach(func() {
+		setup = test.NewTestSetup(test.Ctx, test.K8sClient, "org-rbac-test")
+	})
+
 	When("plugin definition for service proxy is missing", func() {
 		It("should log about missing plugin definition and create plugin when it's added", func() {
 			By("ensuring service-proxy plugin definition does not exist")
@@ -49,17 +57,7 @@ var _ = Describe("Organization ServiceProxyReconciler", Ordered, func() {
 			defer GinkgoWriter.ClearTeeWriters()
 
 			By("creating an organization")
-			org := &greenhousev1alpha1.Organization{
-				TypeMeta: metav1.TypeMeta{
-					Kind:       "Organization",
-					APIVersion: greenhousev1alpha1.GroupVersion.String(),
-				},
-				ObjectMeta: metav1.ObjectMeta{
-					Name: "test-serviceproxy-org1",
-				},
-			}
-			err = test.K8sClient.Create(test.Ctx, org)
-			Expect(err).ToNot(HaveOccurred(), "there should be no error creating the organization")
+			org := setup.CreateOrganization(test.Ctx, "test-serviceproxy-org1")
 
 			By("ensuring ServiceProxyController logged about missing plugin definition")
 			Eventually(func() []byte {
@@ -88,17 +86,7 @@ var _ = Describe("Organization ServiceProxyReconciler", Ordered, func() {
 			Expect(err).ToNot(HaveOccurred(), "there should be no error getting the service-proxy plugin definition")
 
 			By("creating an organization")
-			org := &greenhousev1alpha1.Organization{
-				TypeMeta: metav1.TypeMeta{
-					Kind:       "Organization",
-					APIVersion: greenhousev1alpha1.GroupVersion.String(),
-				},
-				ObjectMeta: metav1.ObjectMeta{
-					Name: "test-serviceproxy-org2",
-				},
-			}
-			err = test.K8sClient.Create(test.Ctx, org)
-			Expect(err).ToNot(HaveOccurred(), "there should be no error creating the organization")
+			org := setup.CreateOrganization(test.Ctx, "test-serviceproxy-org2")
 
 			By("ensuring a service-proxy plugin has been created for organization")
 			Eventually(func(g Gomega) {

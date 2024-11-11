@@ -47,6 +47,7 @@ func DefaultCluster(ctx context.Context, _ client.Client, obj runtime.Object) er
 	if !ok {
 		return nil
 	}
+
 	annotations := cluster.GetAnnotations()
 	deletionVal, deletionMarked := annotations[apis.MarkClusterDeletionAnnotation]
 	_, scheduleExists := annotations[apis.ScheduleClusterDeletionAnnotation]
@@ -87,6 +88,13 @@ func ValidateCreateCluster(ctx context.Context, _ client.Client, obj runtime.Obj
 	if !ok {
 		return nil, nil
 	}
+	if err := invalidateDoubleDashesInName(cluster, logger); err != nil {
+		return nil, err
+	}
+	// capping the name at 40 chars, so we ensure to get unique urls for exposed services per cluster. service-name/namespace hash needs to fit (max 63 chars)
+	if err := capName(cluster, logger, 40); err != nil {
+		return nil, err
+	}
 	annotations := cluster.GetAnnotations()
 	_, deletionMarked := annotations[apis.MarkClusterDeletionAnnotation]
 	_, scheduleExists := annotations[apis.ScheduleClusterDeletionAnnotation]
@@ -95,6 +103,7 @@ func ValidateCreateCluster(ctx context.Context, _ client.Client, obj runtime.Obj
 		logger.Error(err, "found deletion annotation on cluster creation, admission will be denied")
 		return admission.Warnings{"you cannot create a cluster with deletion annotation"}, err
 	}
+
 	return nil, nil
 }
 

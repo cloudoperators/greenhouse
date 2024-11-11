@@ -5,6 +5,7 @@ package admission
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"strings"
 
@@ -199,8 +200,12 @@ func validatePluginOptionValues(optionValues []greenhousev1alpha1.PluginOptionVa
 			// validate that the Plugin.OptionValue matches the type of the PluginDefinition.Option
 			if val.Value != nil {
 				if err := pluginOption.IsValidValue(val.Value); err != nil {
+					var v any
+					if err := json.Unmarshal(val.Value.Raw, &v); err != nil {
+						v = err
+					}
 					allErrs = append(allErrs, field.Invalid(
-						fieldPathWithIndex.Child("value"), val.Value.Raw, err.Error(),
+						fieldPathWithIndex.Child("value"), v, err.Error(),
 					))
 				}
 			}

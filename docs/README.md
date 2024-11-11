@@ -4,7 +4,7 @@ This directory contains the documentation for Greenhouse, the PlusOne operations
 
 All directories containing an `_index.md` with the following content are synchronized to the website.
 
-```
+```markdown
 ---
 title: "<title>"
 linkTitle: "<link>"
