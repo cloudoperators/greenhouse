@@ -73,9 +73,11 @@ jobs:
         run: |
           cd $GREENHOUSE_GIT_DIR
           mkdir -p ${DESTINATION_DIR}
+          mkdir -p "${DESTINATION_DIR}/img"
 
           echo "collecting PluginDefinition descriptions from ${GREENHOUSE_EXTENSIONS_GIT_DIR}"
           all_files=$(git -C $GREENHOUSE_EXTENSIONS_GIT_DIR grep --recursive --files-with-matches -e "kind: PluginDefinition" -- '*plugindefinition.yaml')
+
           for f in $all_files; do
             d=$(dirname $f)
             filename="${GREENHOUSE_EXTENSIONS_GIT_DIR}/${d}/README.md"
@@ -85,9 +87,8 @@ jobs:
 
             img_dir="${GREENHOUSE_EXTENSIONS_GIT_DIR}/${d}/img"
             if [[ -d $img_dir ]]; then
-              mkdir -p "${DESTINATION_DIR}/${d}/img"
-              echo "copying ${img_dir} to ${DESTINATION_DIR}/${d}/img"
-              cp -r $img_dir "${DESTINATION_DIR}/${d}/img"
+              echo "copying images from ${img_dir} to ${DESTINATION_DIR}/img"
+              cp -r $img_dir/*.png "${DESTINATION_DIR}/img"
             fi
             
             echo "copying ${GREENHOUSE_EXTENSIONS_GIT_DIR}/${d}/README.md" "${DESTINATION_DIR}/${d}.md";
