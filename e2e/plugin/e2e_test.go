@@ -27,7 +27,6 @@ var (
 	ctx          context.Context
 	adminClient  client.Client
 	remoteClient client.Client
-	//	remoteRestClient *clientutil.RestClientGetter
 	testStartTime time.Time
 )
 
@@ -43,7 +42,6 @@ var _ = BeforeSuite(func() {
 		WithOrganization(ctx, "./testdata/organization.yaml")
 	adminClient = env.GetClient(shared.AdminClient)
 	remoteClient = env.GetClient(shared.RemoteClient)
-	// remoteRestClient = env.GetRESTClient(e2e.RemoteRESTClient)
 	testStartTime = time.Now().UTC()
 })
 

@@ -9,7 +9,6 @@ on:
       - 'Dockerfile*'
       - 'go.mod'
       - 'go.sum'
-      - '.golangci.yaml'
 
 jobs:
   init:

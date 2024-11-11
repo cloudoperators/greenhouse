@@ -231,7 +231,7 @@ endif
 
 SCENARIO ?= cluster
 ADMIN_CLUSTER ?= greenhouse-admin
-REMOTE_CLUSTER ?=greenhouse-remote
+REMOTE_CLUSTER ?= greenhouse-remote
 EXECUTION_ENV ?= LOCAL
 ADMIN_NAMESPACE ?= greenhouse
 ADMIN_RELEASE ?= greenhouse

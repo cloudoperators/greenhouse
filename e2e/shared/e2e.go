@@ -190,12 +190,6 @@ func prepareClients(kubeconfigEnv string, userScheme ...func(s *runtime.Scheme) 
 	}, nil
 }
 
-// GetRESTConfigFromBytes returns a rest.Config from a kubeconfig bytes
-//
-//no:lint:unused
-func GetRESTConfigFromBytes(kubeconfigBytes []byte) (*rest.Config, error) {
-	return clientcmd.RESTConfigFromKubeConfig(kubeconfigBytes)
-}
 
 func readFileContent(path string) ([]byte, error) {
 	_, err := os.Stat(path)

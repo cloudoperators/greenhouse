@@ -169,7 +169,7 @@ You can find the E2E workflow in the `.github/workflows/ci-e2e-test.yaml`
 The workflow detects e2e scenarios based on the folder names in the `e2e` directory, which contain `e2e_test.go` file (otherwise ignores the dir)
 and generates a matrix for the scenarios to run against `KinD` clusters targeting different kubernetes versions for remote cluster
 
-It will be multi-matrix workflow where each scenario will run the tests against different k8s versions for the remote cluster.
+It will be multi-matrix workflow where each scenario will run the tests against a remote cluster with a different k8s version.
 
 [E2E Workflow in Action](https://github.com/cloudoperators/greenhouse/actions/workflows/ci-e2e-test.yaml) 
 
@@ -227,7 +227,7 @@ This is not foolproof as there could be reconciliations happening on different r
 
 **Eventually Timeout**
 
-If `Eventually` in used in tests, ensure that the result being expected happens quickly.
+If `Eventually` is used in tests, ensure that the result being expected happens quickly.
 
 > The test is started with the env GOMEGA_DEFAULT_EVENTUALLY_TIMEOUT="2m" 
 
