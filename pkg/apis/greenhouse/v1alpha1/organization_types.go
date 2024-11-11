@@ -52,7 +52,10 @@ type SCIMConfig struct {
 }
 
 // OrganizationStatus defines the observed state of an Organization
-type OrganizationStatus struct{}
+type OrganizationStatus struct {
+	// StatusConditions contain the different conditions that constitute the status of the Organization
+	StatusConditions `json:"statusConditions,omitempty"`
+}
 
 //+kubebuilder:object:root=true
 //+kubebuilder:subresource:status
@@ -84,7 +87,9 @@ func init() {
 }
 
 func (o *Organization) GetConditions() StatusConditions {
-	return StatusConditions{} // OrganizationStatus is an empty struct so we don't need to get anything
+	return o.Status.StatusConditions
 }
 
-func (o *Organization) SetCondition(Condition) {} // OrganizationStatus is an empty struct so we don't need to set anything
+func (o *Organization) SetCondition(Condition Condition) {
+	o.Status.StatusConditions.SetConditions(Condition)
+}
