@@ -167,7 +167,7 @@ webhooks:
     sideEffects: None
     namespaceSelector:
       matchExpressions:
-        - key: kubernetes.io
+        - key: kubernetes.io/metadata.name
           operator: NotIn
           values:
             - kube-system
@@ -368,7 +368,7 @@ webhooks:
     sideEffects: None
     namespaceSelector:
       matchExpressions:
-        - key: kubernetes.io
+        - key: kubernetes.io/metadata.name
           operator: NotIn
           values:
             - kube-system
