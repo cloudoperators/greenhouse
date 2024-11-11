@@ -26,8 +26,6 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/kubernetes/scheme"
-	"k8s.io/client-go/rest"
-	"k8s.io/client-go/tools/clientcmd"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/pkg/apis/greenhouse/v1alpha1"
@@ -189,7 +187,6 @@ func prepareClients(kubeconfigEnv string, userScheme ...func(s *runtime.Scheme) 
 		clientSet:  clientSet,
 	}, nil
 }
-
 
 func readFileContent(path string) ([]byte, error) {
 	_, err := os.Stat(path)

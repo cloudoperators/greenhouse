@@ -23,10 +23,10 @@ import (
 const remoteClusterName = "remote-plugin-cluster"
 
 var (
-	env          *shared.TestEnv
-	ctx          context.Context
-	adminClient  client.Client
-	remoteClient client.Client
+	env           *shared.TestEnv
+	ctx           context.Context
+	adminClient   client.Client
+	remoteClient  client.Client
 	testStartTime time.Time
 )
 
