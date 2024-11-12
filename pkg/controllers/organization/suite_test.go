@@ -4,6 +4,7 @@
 package organization_test
 
 import (
+	"net/http/httptest"
 	"testing"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -11,7 +12,12 @@ import (
 
 	"github.com/cloudoperators/greenhouse/pkg/admission"
 	organizationpkg "github.com/cloudoperators/greenhouse/pkg/controllers/organization"
+	"github.com/cloudoperators/greenhouse/pkg/scim"
 	"github.com/cloudoperators/greenhouse/pkg/test"
+)
+
+var (
+	groupsServer *httptest.Server
 )
 
 func TestOrganization(t *testing.T) {
@@ -20,6 +26,9 @@ func TestOrganization(t *testing.T) {
 }
 
 var _ = BeforeSuite(func() {
+	By("mocking SCIM server")
+	groupsServer = scim.ReturnDefaultGroupResponseMockServer()
+
 	test.RegisterController("organizationController", (&organizationpkg.OrganizationReconciler{}).SetupWithManager)
 	test.RegisterController("organizationRBAC", (&organizationpkg.RBACReconciler{}).SetupWithManager)
 	test.RegisterController("organizationServiceProxy", (&organizationpkg.ServiceProxyReconciler{}).SetupWithManager)
@@ -34,5 +43,7 @@ var _ = BeforeSuite(func() {
 
 var _ = AfterSuite(func() {
 	By("tearing down the test environment")
+	groupsServer.Close()
+
 	test.TestAfterSuite()
 })

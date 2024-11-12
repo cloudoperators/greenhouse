@@ -86,7 +86,7 @@ spec:
                 type: string
               statusConditions:
                 description: StatusConditions contain the different conditions that
-                  constitute the status of the TeamRoleBinding.
+                  constitute the status of the TeamMembership.
                 properties:
                   conditions:
                     items:
