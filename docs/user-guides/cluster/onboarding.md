@@ -5,10 +5,17 @@ description: >
   Onboard an existing Kubernetes cluster to Greenhouse.
 ---
 
-This guides describes how to onboard an existing Kubernetes cluster to your Greenhouse organization.  
-If you don't have an organization yet please reach out to the Greenhouse administrators.  
+## Content Overview
 
-While all members of an organization can see existing clusters, their management requires **organization admin privileges**. 
+- [Preparation](#preparation)
+- [Onboard](#onboard)
+- [After onboarding](#after-onboarding)
+- [Trouble shooting](#trouble-shooting)
+
+This guides describes how to onboard an existing Kubernetes cluster to your Greenhouse organization.  
+If you don't have an organization yet please reach out to the Greenhouse administrators.
+
+While all members of an organization can see existing clusters, their management requires [`org-admin` or `cluster-admin` privileges](./../../getting-started/core-concepts/organizations.md).
 
 ```
 NOTE: The UI is currently in development. For now this guide describes the onboarding workflow via command line.
@@ -16,24 +23,31 @@ NOTE: The UI is currently in development. For now this guide describes the onboa
 
 ### Preparation
 
-Download the latest `greenhousectl` binary from [here](https://github.com/cloudoperators/greenhouse/releases). 
+Download the latest `greenhousectl` binary from [here](https://github.com/cloudoperators/greenhouse/releases).
 
-The command line tool requires access to both the Greenhouse **and** your Kubernetes cluster. 
-Hence, have the `kubeconfig` files for both clusters at hand. The `kubeconfig` file for the Greenhouse Kubernetes cluster can be downloaded via the Greenhouse dashboard: _Organization_ > _Clusters_ > _Access greenhouse cluster_. 
+Onboarding a `Cluster` to Greenhouse will require you to authenticate to two different Kubernetes clusters via respective `kubeconfig` files:
 
-For accessing the **Greenhouse Kubernetes cluster**, the `greenhousectl` will check whether your local kubectl is connected to the Greenhouse Kubernetes cluster. If not connected, 
-either the environment variables `KUBECONFIG` and `KUBECONTEXT` or the *greenhousectl* flags `--kubeconfig` and `--kubecontext`  
-must point to the respective Greenhouse kubeconfig. 
+- `greenhouse`: The cluster your Greenhouse installation is running on. You need `organization-admin` or `cluster-admin` priviledges.
+- `bootstrap`: The cluster you want to onboard. You need `system:masters` privileges.
 
-For accessing your **Kubernetes cluster**, it's mandatory to provide the kubeconfig to the *greenhousectl* using the flag `--bootstrap-kubeconfig` 
+For consistency we will refer to those two clusters by their names from now on.
+
+You need to have the `kubeconfig` files for both the `greenhouse` and the `bootstrap` cluster at hand. The `kubeconfig` file for the `greenhouse` cluster can be downloaded via the Greenhouse dashboard:
+
+_Organization_ > _Clusters_ > _Access Greenhouse cluster_.
+
 ### Onboard
 
-Since Greenhouse generates URLs which contain the cluster name, we highly recommend to choose a **short** cluster name. 
-In particular for <span style="color:red">Gardener Clusters</span> setting a short name is mandatory, because Gardener has very long cluster names, e.g. `garden-greenhouse--monitoring-external`.
+For accessing the `bootstrap` cluster, the `greenhousectl` will expect your default Kubernetes [`kubeconfig` file](https://kubernetes.io/docs/concepts/configuration/organize-cluster-access-kubeconfig/) and [`context`](https://kubernetes.io/docs/reference/kubectl/generated/kubectl_config/kubectl_config_use-context/) to be set to `bootstrap`. This can be achieved by passing the `--kubeconfig` flag or by setting the `KUBECONFIG` env var.
+
+The location of the `kubeconfig` file to the `greenhouse` cluster is passed via the `--greenhouse-kubeconfig` flag.
 
 ```commandline
-greenhousectl cluster bootstrap --bootstrap-kubeconfig <path/to/cluster-kubeconfig-file> --org <greenhouse-organization-name> --cluster-name <name>
+greenhousectl cluster bootstrap --kubeconfig=<path/to/bootstrap-kubeconfig-file> --greenhouse-kubeconfig <path/to/greenhouse-kubeconfig-file> --org <greenhouse-organization-name> --cluster-name <name>
 ```
+
+Since Greenhouse generates URLs which contain the cluster name, we highly recommend to choose a **short** cluster name.
+In particular for <span style="color:red">Gardener Clusters</span> setting a short name is mandatory, because Gardener has very long cluster names, e.g. `garden-greenhouse--monitoring-external`.
 
 A typical output when you ran the command looks like
 
@@ -51,22 +65,26 @@ A typical output when you ran the command looks like
 ### After onboarding
 
 1. List all clusters in your Greenhouse organization:
+
 ```
    kubectl --namespace=<greenhouse-organization-name> get clusters
 ```
-2. Show the details of a cluster: 
+
+2. Show the details of a cluster:
+
 ```
    kubectl --namespace=<greenhouse-organization-name> get cluster <name> -o yaml
 ```
 
-Example:   
+Example:
+
 ```yaml
 apiVersion: greenhouse.sap/v1alpha1
 kind: Cluster
 metadata:
   creationTimestamp: "2024-02-07T10:23:23Z"
   finalizers:
-  - greenhouse.sap/cluster
+    - greenhouse.sap/cleanup
   generation: 1
   name: monitoring
   namespace: ccloud
@@ -78,10 +96,20 @@ spec:
 status:
   bearerTokenExpirationTimestamp: "2024-02-09T06:28:57Z"
   kubernetesVersion: v1.27.8
-...
+  statusConditions:
+    conditions:
+      - lastTransitionTime: "2024-02-09T06:28:57Z"
+        status: "True"
+        type: Ready
 ```
-When the `status.kubernetesVersion` field shows the correct version of the Kubernetes cluster, the cluster was successfully bootstrapped in Greenhouse.
-In the remote cluster, a new namespace is created and contains some resources managed by Greenhouse. 
-The namespace has the same name as your organization in Greenhouse. 
 
-If the bootstrapping failed, you can delete the Kubernetes cluster from Greenhouse with `kubectl --namespace=<greenhouse-organization-name> delete cluster <name>` and run the bootstrap command again.
+When the `status.kubernetesVersion` field shows the correct version of the Kubernetes cluster, the cluster was successfully bootstrapped in Greenhouse.
+Then `status.conditions` will contain a `Condition` with `type=Ready` and `status="true""`
+
+In the remote cluster, a new namespace is created and contains some resources managed by Greenhouse.
+The namespace has the same name as your organization in Greenhouse.
+
+## Trouble shooting
+
+If the bootstrapping failed, you can find details about why it failed in the `Cluster.statusConditions`. More precisely there will be a condition of `type=KubeConfigValid` which might have hints in the `message` field. This is also displayed in the UI on the `Cluster` details view.
+Reruning the onboarding command with an updated `kubeConfig` file will fix these issues.

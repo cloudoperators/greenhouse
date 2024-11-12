@@ -73,7 +73,24 @@ This ensures all pre-requisites are met, the organization is configured correctl
            key: clientSecret
            name: oidc-config
          issuer: https://...
+       scim:
+         baseURL: URL to the SCIM server.
+         basicAuthUser:
+           secret:
+             name: Name of the secret in the same namespace.
+             key: Key in the secret holding the user value.
+         basicAuthPw:
+           secret:
+             name: Name of the secret in the same namespace.
+             key: Key in the secret holding the password value.
      description: My new organization
      displayName: Short name of the organization
      mappedOrgAdminIdPGroup: Name of the group in the IDP that should be mapped to the organization admin role.
    ```
+
+## Setting up Team Membership synchronization with Greenhouse
+   Team Membership synchronization with Greenhouse requires access to SCIM API.
+
+   For the Team Memberships to be created Organization needs to be configured with URL and credentials of the SCIM API. SCIM API is used to get members for teams in the organization based on the IDP groups set for teams.
+
+   IDP group for the organization admin team should be set to the `mappedOrgAdminIdPGroup` field in the Organization configuration. It is required for the synchronization to work. IDP groups for remaining teams in the organization should be set in their respective configurations.

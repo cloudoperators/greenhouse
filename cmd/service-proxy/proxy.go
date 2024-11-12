@@ -1,6 +1,21 @@
 // SPDX-FileCopyrightText: 2024 SAP SE or an SAP affiliate company and Greenhouse contributors
 // SPDX-License-Identifier: Apache-2.0
 
+// The ProxyManager struct is used to manage the reverse proxy and the cluster routes.
+// The Reconcile method is used to add or update the cluster routes.
+// When reconciling cluster routes from a Plugin with an exposed service, the ProxyManager persists the transport and URL necessary to proxy an incoming request in the clusters map.
+// The transport is created using the credentials from the Secret associated with the cluster.
+// The URL is created using the k8s API server proxy: https://kubernetes.io/docs/tasks/access-application-cluster/access-cluster-services/#discovering-builtin-services
+// Entries are saved by cluster and exposed URL. E.g., if a Plugin exposes a service with the URL "https://cluster1--1234567.example.com" on cluster-1, the route is saved in
+// clusters["cluster-1"]clusterRoutes{
+//   transport: net/http.RoundTripper{$TransportCreatedFromClusterKubeConfig},
+//   routes: map[string]route ["https://cluster-1--1234567.organisation.basedomain"]route{
+//     url: *net/url.URL {$BackenURL},
+//     serviceName: $serviceName,
+//     namespace: $serviceNamespace
+//   }
+// }.
+
 package main
 
 import (
@@ -21,7 +36,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/log"
-	"sigs.k8s.io/controller-runtime/pkg/predicate"
 
 	greenhouseapis "github.com/cloudoperators/greenhouse/pkg/apis"
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/pkg/apis/greenhouse/v1alpha1"
@@ -36,20 +50,34 @@ func NewProxyManager() *ProxyManager {
 }
 
 type ProxyManager struct {
-	client client.Client
-	logger logr.Logger
-
+	client   client.Client
+	logger   logr.Logger
 	clusters map[string]clusterRoutes
 	mu       sync.RWMutex
 }
 
 type clusterRoutes struct {
 	transport http.RoundTripper
-	routes    map[string]*url.URL
+	routes    map[string]route
+}
+
+// route holds the url the request should be forwarded to and the service name and namespace as metadata
+type route struct {
+	url         *url.URL
+	serviceName string
+	namespace   string
 }
 
 // contextClusterKey is used to embed a cluster in the context
 type contextClusterKey struct {
+}
+
+// contextNamespaceKey is used to embed a namespace in the context
+type contextNamespaceKey struct {
+}
+
+// contextNameKey is used to embed a name in the context
+type contextNameKey struct {
 }
 
 var apiServerProxyPathRegex = regexp.MustCompile(`/api/v1/namespaces/[^/]+/services/[^/]+/proxy/`)
@@ -90,26 +118,26 @@ func (pm *ProxyManager) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.R
 		return ctrl.Result{}, fmt.Errorf("failed to create transport for cluster %s: %w", req.Name, err)
 	}
 
-	cls.routes = make(map[string]*url.URL)
+	cls.routes = make(map[string]route)
 
 	k8sAPIURL, err := url.Parse(restConfig.Host)
 	if err != nil {
 		return ctrl.Result{}, fmt.Errorf("failed to parse api url: %w", err)
 	}
 
-	configs, err := pm.pluginsForCluster(ctx, req.Name, req.Namespace)
+	plugins, err := pm.pluginsForCluster(ctx, req.Name, req.Namespace)
 	if err != nil {
 		return ctrl.Result{}, fmt.Errorf("failed to get plugins for cluster %s: %w", req.Name, err)
 	}
-	for _, cfg := range configs {
-		for url, svc := range cfg.Status.ExposedServices {
+	for _, plugin := range plugins {
+		for url, svc := range plugin.Status.ExposedServices {
 			u := *k8sAPIURL // copy URL struct
 			proto := "http"
 			if svc.Protocol != nil {
 				proto = *svc.Protocol
 			}
 			u.Path = fmt.Sprintf("/api/v1/namespaces/%s/services/%s:%s:%d/proxy", svc.Namespace, proto, svc.Name, svc.Port)
-			cls.routes[url] = &u
+			cls.routes[url] = route{url: &u, namespace: svc.Namespace, serviceName: svc.Name}
 		}
 	}
 	logger.Info("Added routes for cluster", "cluster", req.Name, "routes", cls.routes)
@@ -126,10 +154,9 @@ func (pm *ProxyManager) SetupWithManager(name string, mgr ctrl.Manager) error {
 		Named(name).
 		For(&v1.Secret{}, builder.WithPredicates(
 			clientutil.PredicateFilterBySecretType(greenhouseapis.SecretTypeKubeConfig),
-			predicate.ResourceVersionChangedPredicate{},
 		)).
 		// Watch plugins to be notified about exposed services
-		Watches(&greenhousev1alpha1.Plugin{}, handler.EnqueueRequestsFromMapFunc(enqueuePluginForCluster), builder.WithPredicates(predicate.Or(predicate.GenerationChangedPredicate{}, predicate.LabelChangedPredicate{}))).
+		Watches(&greenhousev1alpha1.Plugin{}, handler.EnqueueRequestsFromMapFunc(enqueuePluginForCluster)).
 		Complete(pm)
 }
 
@@ -144,6 +171,7 @@ func (pm *ProxyManager) ReverseProxy() *httputil.ReverseProxy {
 	}
 }
 
+// RoundTrip executes the rewritten request and uses the transport created when reconciling the cluster with respective credentials
 func (pm *ProxyManager) RoundTrip(req *http.Request) (resp *http.Response, err error) {
 	pm.mu.RLock()
 	defer pm.mu.RUnlock()
@@ -157,10 +185,14 @@ func (pm *ProxyManager) RoundTrip(req *http.Request) (resp *http.Response, err e
 		return nil, fmt.Errorf("cluster %s not found", cluster)
 	}
 	resp, err = cls.transport.RoundTrip(req)
-	log.FromContext(req.Context()).Info("Forwarded request", "status", resp.StatusCode, "upstream", req.URL.String())
+	// errors are logged by pm.Errorhandler
+	if err == nil {
+		log.FromContext(req.Context()).Info("Forwarded request", "status", resp.StatusCode, "upstream", req.URL.String())
+	}
 	return
 }
 
+// rewrite rewrites the request to the backend URL and sets the cluster in the context to be used by RoundTrip to identify the correct transport
 func (pm *ProxyManager) rewrite(req *httputil.ProxyRequest) {
 	req.SetXForwarded()
 
@@ -171,26 +203,24 @@ func (pm *ProxyManager) rewrite(req *httputil.ProxyRequest) {
 		req.Out = req.Out.WithContext(log.IntoContext(req.Out.Context(), l))
 	}()
 
-	// hostname is expected to have the format $name--$cluster--$namespace.$organisation.$basedomain
-	name, cluster, namespace, err := common.SplitHost(req.In.Host)
+	// hostname is expected to have the format specified in ./pkg/common/url.go
+	cluster, err := common.ExtractCluster(req.In.Host)
 	if err != nil {
 		return
 	}
-	l = l.WithValues("cluster", cluster, "namespace", namespace, "name", name)
 
-	pm.mu.RLock()
-	defer pm.mu.RUnlock()
-	cls, found := pm.clusters[cluster]
-	if !found {
+	route, ok := pm.GetClusterRoute(cluster, "https://"+req.In.Host)
+	if !ok {
+		l.Info("No route found for cluster and URL", "cluster", cluster, "url", req.In.URL.String())
 		return
 	}
-	backendURL, found := cls.routes["https://"+req.In.Host]
-	if !found {
-		return
-	}
+	backendURL := route.url
 	// set cluster in context
-	req.Out = req.Out.WithContext(context.WithValue(req.Out.Context(), contextClusterKey{}, cluster))
+	ctx := context.WithValue(req.Out.Context(), contextClusterKey{}, cluster)
 
+	l.WithValues("cluster", cluster, "namespace", route.namespace, "name", route.serviceName)
+
+	req.Out = req.Out.WithContext(ctx)
 	req.SetURL(backendURL)
 }
 
@@ -230,6 +260,21 @@ func (pm *ProxyManager) pluginsForCluster(ctx context.Context, cluster, namespac
 		}
 	}
 	return configs, nil
+}
+
+// GetClusterRoute returns the route information for a given cluster and incoming URL
+func (pm *ProxyManager) GetClusterRoute(cluster, inURL string) (*route, bool) {
+	pm.mu.RLock()
+	defer pm.mu.RUnlock()
+	cls, ok := pm.clusters[cluster]
+	if !ok {
+		return nil, false
+	}
+	getRoute, ok := cls.routes[inURL]
+	if !ok {
+		return nil, false
+	}
+	return &getRoute, true
 }
 
 func enqueuePluginForCluster(_ context.Context, o client.Object) []ctrl.Request {

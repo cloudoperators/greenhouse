@@ -17,6 +17,15 @@ import (
 	greenhousesapv1alpha1 "github.com/cloudoperators/greenhouse/pkg/apis/greenhouse/v1alpha1"
 	"github.com/cloudoperators/greenhouse/pkg/clientutil"
 	"github.com/cloudoperators/greenhouse/pkg/lifecycle"
+	"github.com/cloudoperators/greenhouse/pkg/scim"
+)
+
+var (
+	// exposedConditions are the conditions that are exposed in the StatusConditions of the Organization.
+	exposedConditions = []greenhousesapv1alpha1.ConditionType{
+		greenhousesapv1alpha1.ReadyCondition,
+		greenhousesapv1alpha1.SCIMAPIAvailableCondition,
+	}
 )
 
 // OrganizationReconciler reconciles an Organization object
@@ -58,9 +67,20 @@ func (r *OrganizationReconciler) EnsureCreated(ctx context.Context, object lifec
 		return ctrl.Result{}, lifecycle.Failed, errors.Errorf("RuntimeObject has incompatible type.")
 	}
 
+	orgStatus := initOrganizationStatus(org)
+	defer func() {
+		if statusErr := r.setStatus(ctx, org, orgStatus); statusErr != nil {
+			log.FromContext(ctx).Error(statusErr, "failed to set status")
+		}
+	}()
+
 	if err := r.reconcileNamespace(ctx, org); err != nil {
 		return ctrl.Result{}, lifecycle.Failed, err
 	}
+
+	scimAPIAvailableCondition := r.checkSCIMAPIAvailability(ctx, org)
+	readyCondition := calculateReadyCondition(scimAPIAvailableCondition)
+	orgStatus.SetConditions(scimAPIAvailableCondition, readyCondition)
 
 	if err := r.reconcileAdminTeam(ctx, org); err != nil {
 		return ctrl.Result{}, lifecycle.Failed, err
@@ -114,4 +134,72 @@ func (r *OrganizationReconciler) reconcileAdminTeam(ctx context.Context, org *gr
 		r.recorder.Eventf(org, corev1.EventTypeNormal, "UpdatedTeam", "Updated Team %s in namespace %s", team.Name, namespace)
 	}
 	return nil
+}
+
+func (r *OrganizationReconciler) checkSCIMAPIAvailability(ctx context.Context, org *greenhousesapv1alpha1.Organization) greenhousesapv1alpha1.Condition {
+	if org.Spec.Authentication == nil || org.Spec.Authentication.SCIMConfig == nil {
+		// SCIM Config is optional.
+		return greenhousesapv1alpha1.UnknownCondition(greenhousesapv1alpha1.SCIMAPIAvailableCondition, "", "SCIM Config not provided")
+	}
+
+	if org.Spec.MappedOrgAdminIDPGroup == "" {
+		return greenhousesapv1alpha1.FalseCondition(greenhousesapv1alpha1.SCIMAPIAvailableCondition, greenhousesapv1alpha1.SCIMRequestFailedReason, ".Spec.MappedOrgAdminIDPGroup is not set in Organization")
+	}
+
+	namespace := org.Name
+	scimConfig := org.Spec.Authentication.SCIMConfig
+
+	basicAuthUser, err := clientutil.GetSecretKeyFromSecretKeyReference(ctx, r.Client, namespace, *scimConfig.BasicAuthUser.Secret)
+	if err != nil {
+		return greenhousesapv1alpha1.FalseCondition(greenhousesapv1alpha1.SCIMAPIAvailableCondition, greenhousesapv1alpha1.SecretNotFoundReason, "BasicAuthUser missing")
+	}
+	basicAuthPw, err := clientutil.GetSecretKeyFromSecretKeyReference(ctx, r.Client, namespace, *scimConfig.BasicAuthPw.Secret)
+	if err != nil {
+		return greenhousesapv1alpha1.FalseCondition(greenhousesapv1alpha1.SCIMAPIAvailableCondition, greenhousesapv1alpha1.SecretNotFoundReason, "BasicAuthPw missing")
+	}
+	clientConfig := scim.Config{
+		RawURL:   scimConfig.BaseURL,
+		AuthType: scim.Basic,
+		BasicAuthConfig: &scim.BasicAuthConfig{
+			BasicAuthUser: basicAuthUser,
+			BasicAuthPw:   basicAuthPw,
+		},
+	}
+	scimClient, err := scim.NewScimClient(clientConfig)
+	if err != nil {
+		return greenhousesapv1alpha1.FalseCondition(greenhousesapv1alpha1.SCIMAPIAvailableCondition, greenhousesapv1alpha1.SCIMRequestFailedReason, "Failed to create SCIM client")
+	}
+
+	_, err = scimClient.GetTeamMembers(org.Spec.MappedOrgAdminIDPGroup)
+	if err != nil {
+		return greenhousesapv1alpha1.FalseCondition(greenhousesapv1alpha1.SCIMAPIAvailableCondition, greenhousesapv1alpha1.SCIMRequestFailedReason, "Failed to request data from SCIM API")
+	}
+
+	return greenhousesapv1alpha1.TrueCondition(greenhousesapv1alpha1.SCIMAPIAvailableCondition, "", "")
+}
+
+func calculateReadyCondition(scimAPIAvailableCondition greenhousesapv1alpha1.Condition) greenhousesapv1alpha1.Condition {
+	if scimAPIAvailableCondition.IsFalse() {
+		return greenhousesapv1alpha1.FalseCondition(greenhousesapv1alpha1.ReadyCondition, greenhousesapv1alpha1.SCIMAPIUnavailableReason, "")
+	}
+	// If SCIM API availability is unknown, then Ready state should be True, because SCIM Config is optional.
+	return greenhousesapv1alpha1.TrueCondition(greenhousesapv1alpha1.ReadyCondition, "", "")
+}
+
+func initOrganizationStatus(org *greenhousesapv1alpha1.Organization) greenhousesapv1alpha1.OrganizationStatus {
+	orgStatus := org.Status.DeepCopy()
+	for _, t := range exposedConditions {
+		if orgStatus.GetConditionByType(t) == nil {
+			orgStatus.SetConditions(greenhousesapv1alpha1.UnknownCondition(t, "", ""))
+		}
+	}
+	return *orgStatus
+}
+
+func (r *OrganizationReconciler) setStatus(ctx context.Context, org *greenhousesapv1alpha1.Organization, orgStatus greenhousesapv1alpha1.OrganizationStatus) error {
+	_, err := clientutil.PatchStatus(ctx, r.Client, org, func() error {
+		org.Status = orgStatus
+		return nil
+	})
+	return err
 }

@@ -109,7 +109,7 @@ func main() {
 
 	frontend := http.Server{
 		Addr:    listenAddr,
-		Handler: InstrumentHandler(pm.ReverseProxy(), metrics.Registry),
+		Handler: InstrumentHandler(pm, metrics.Registry),
 	}
 
 	g.Add(
