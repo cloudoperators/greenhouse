@@ -14,6 +14,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/pkg/apis/greenhouse/v1alpha1"
+	"github.com/cloudoperators/greenhouse/pkg/clientutil"
 	"github.com/cloudoperators/greenhouse/pkg/test"
 )
 
@@ -59,9 +60,9 @@ var _ = Describe("TeammembershipUpdaterController", Ordered, func() {
 				g.Expect(teamMemberships.Items[0].OwnerReferences).To(ContainElement(ownerRef), "TeamMembership should have set team as owner reference")
 				g.Expect(teamMembership.Spec.Members).To(HaveLen(2), "the TeamMembership should have exactly two Members")
 				g.Expect(teamMembership.Status.LastChangedTime).ToNot(BeNil(), "TeamMembership status should have updated LastChangedTime")
-				scimAccessReadyCondition := teamMembership.Status.GetConditionByType(greenhousev1alpha1.ScimAccessReadyCondition)
+				scimAccessReadyCondition := teamMembership.Status.GetConditionByType(greenhousev1alpha1.SCIMAccessReadyCondition)
 				g.Expect(scimAccessReadyCondition).ToNot(BeNil())
-				g.Expect(scimAccessReadyCondition.Type).To(Equal(greenhousev1alpha1.ScimAccessReadyCondition))
+				g.Expect(scimAccessReadyCondition.Type).To(Equal(greenhousev1alpha1.SCIMAccessReadyCondition))
 				g.Expect(scimAccessReadyCondition.Status).To(Equal(metav1.ConditionTrue))
 				readyCondition := teamMembership.Status.GetConditionByType(greenhousev1alpha1.ReadyCondition)
 				g.Expect(readyCondition).ToNot(BeNil())
@@ -86,9 +87,9 @@ var _ = Describe("TeammembershipUpdaterController", Ordered, func() {
 				firstTeamMembership := teamMemberships.Items[0]
 				g.Expect(firstTeamMembership.Spec.Members).To(HaveLen(2), "the TeamMembership should have exactly two Members")
 				g.Expect(firstTeamMembership.Status.LastChangedTime).ToNot(BeNil(), "TeamMembership status should have updated LastChangedTime")
-				scimAccessReadyCondition := firstTeamMembership.Status.GetConditionByType(greenhousev1alpha1.ScimAccessReadyCondition)
+				scimAccessReadyCondition := firstTeamMembership.Status.GetConditionByType(greenhousev1alpha1.SCIMAccessReadyCondition)
 				g.Expect(scimAccessReadyCondition).ToNot(BeNil())
-				g.Expect(scimAccessReadyCondition.Type).To(Equal(greenhousev1alpha1.ScimAccessReadyCondition))
+				g.Expect(scimAccessReadyCondition.Type).To(Equal(greenhousev1alpha1.SCIMAccessReadyCondition))
 				g.Expect(scimAccessReadyCondition.Status).To(Equal(metav1.ConditionTrue))
 				readyCondition := firstTeamMembership.Status.GetConditionByType(greenhousev1alpha1.ReadyCondition)
 				g.Expect(readyCondition).ToNot(BeNil())
@@ -281,9 +282,9 @@ var _ = Describe("TeammembershipUpdaterController", Ordered, func() {
 
 				firstTeamMembership := teamMemberships.Items[0]
 
-				scimAccessReadyCondition := firstTeamMembership.Status.GetConditionByType(greenhousev1alpha1.ScimAccessReadyCondition)
+				scimAccessReadyCondition := firstTeamMembership.Status.GetConditionByType(greenhousev1alpha1.SCIMAccessReadyCondition)
 				g.Expect(scimAccessReadyCondition).ToNot(BeNil())
-				g.Expect(scimAccessReadyCondition.Type).To(Equal(greenhousev1alpha1.ScimAccessReadyCondition))
+				g.Expect(scimAccessReadyCondition.Type).To(Equal(greenhousev1alpha1.SCIMAccessReadyCondition))
 				g.Expect(scimAccessReadyCondition.Status).To(Equal(metav1.ConditionFalse))
 				g.Expect(scimAccessReadyCondition.Reason).To(Equal(greenhousev1alpha1.SecretNotFoundReason), "reason should be set to SecretNotFound")
 				readyCondition := firstTeamMembership.Status.GetConditionByType(greenhousev1alpha1.ReadyCondition)
@@ -309,11 +310,11 @@ var _ = Describe("TeammembershipUpdaterController", Ordered, func() {
 
 				firstTeamMembership := teamMemberships.Items[0]
 
-				scimAccessReadyCondition := firstTeamMembership.Status.GetConditionByType(greenhousev1alpha1.ScimAccessReadyCondition)
+				scimAccessReadyCondition := firstTeamMembership.Status.GetConditionByType(greenhousev1alpha1.SCIMAccessReadyCondition)
 				g.Expect(scimAccessReadyCondition).ToNot(BeNil())
-				g.Expect(scimAccessReadyCondition.Type).To(Equal(greenhousev1alpha1.ScimAccessReadyCondition))
+				g.Expect(scimAccessReadyCondition.Type).To(Equal(greenhousev1alpha1.SCIMAccessReadyCondition))
 				g.Expect(scimAccessReadyCondition.Status).To(Equal(metav1.ConditionFalse))
-				g.Expect(scimAccessReadyCondition.Reason).To(Equal(greenhousev1alpha1.ScimRequestFailedReason), "reason should be set to ScimRequestFailed")
+				g.Expect(scimAccessReadyCondition.Reason).To(Equal(greenhousev1alpha1.SCIMRequestFailedReason), "reason should be set to SCIMRequestFailed")
 				readyCondition := firstTeamMembership.Status.GetConditionByType(greenhousev1alpha1.ReadyCondition)
 				g.Expect(readyCondition).ToNot(BeNil())
 				g.Expect(readyCondition.Type).To(Equal(greenhousev1alpha1.ReadyCondition))
@@ -426,7 +427,7 @@ var _ = Describe("TeammembershipUpdaterController", Ordered, func() {
 	Context("reconciling with missing SCIM config in Organization", func() {
 		BeforeEach(func() {
 			setup = test.NewTestSetup(test.Ctx, test.K8sClient, test.TestNamespace)
-			createTestOrgWithoutScimConfig(setup.Namespace())
+			createTestOrgWithoutSCIMConfig(setup.Namespace())
 		})
 
 		It("should reconcile Teams when Org's SCIM config changes", func() {
@@ -443,20 +444,25 @@ var _ = Describe("TeammembershipUpdaterController", Ordered, func() {
 				g.Expect(err).ShouldNot(HaveOccurred(), "unexpected error getting TeamMemberships")
 				g.Expect(teamMemberships.Items).To(HaveLen(1), "there should be only one TeamMembership")
 				firstTeamMembership := teamMemberships.Items[0]
-				scimAccessReadyCondition := firstTeamMembership.Status.GetConditionByType(greenhousev1alpha1.ScimAccessReadyCondition)
+				scimAccessReadyCondition := firstTeamMembership.Status.GetConditionByType(greenhousev1alpha1.SCIMAccessReadyCondition)
 				g.Expect(scimAccessReadyCondition).ToNot(BeNil())
-				g.Expect(scimAccessReadyCondition.Type).To(Equal(greenhousev1alpha1.ScimAccessReadyCondition))
+				g.Expect(scimAccessReadyCondition.Type).To(Equal(greenhousev1alpha1.SCIMAccessReadyCondition))
 				g.Expect(scimAccessReadyCondition.Status).To(Equal(metav1.ConditionFalse))
-				g.Expect(scimAccessReadyCondition.Reason).To(Equal(greenhousev1alpha1.SecretNotFoundReason), "reason should be set to SecretNotFoundReason")
+				g.Expect(scimAccessReadyCondition.Reason).To(Equal(greenhousev1alpha1.SCIMAPIUnavailableReason), "reason should be set to SCIMAPIUnavailable")
 			}).Should(Succeed(), "TeamMembership should reflect missing secret in status")
 
 			By("creating missing secret")
-			createSecretForScimConfig(setup.Namespace())
-			By("updating ScimConfig in Organization")
+			createSecretForSCIMConfig(setup.Namespace())
+
 			var organization = &greenhousev1alpha1.Organization{}
 			Expect(
 				setup.Get(test.Ctx, types.NamespacedName{Name: setup.Namespace(), Namespace: ""}, organization),
 			).To(Succeed(), "there should be no error getting the organization")
+
+			By("updating Organization Status")
+			updateOrganizationStatusWithSCIMAvailability(organization)
+
+			By("updating SCIMConfig in Organization")
 			organization.Spec.Authentication = &greenhousev1alpha1.Authentication{
 				SCIMConfig: &greenhousev1alpha1.SCIMConfig{
 					BaseURL: groupsServer.URL,
@@ -482,9 +488,9 @@ var _ = Describe("TeammembershipUpdaterController", Ordered, func() {
 				g.Expect(err).ShouldNot(HaveOccurred(), "unexpected error getting TeamMemberships")
 				g.Expect(teamMemberships.Items).To(HaveLen(2), "there should be two TeamMemberships")
 				firstTeamMembership := teamMemberships.Items[0]
-				scimAccessReadyCondition := firstTeamMembership.Status.GetConditionByType(greenhousev1alpha1.ScimAccessReadyCondition)
+				scimAccessReadyCondition := firstTeamMembership.Status.GetConditionByType(greenhousev1alpha1.SCIMAccessReadyCondition)
 				g.Expect(scimAccessReadyCondition).ToNot(BeNil())
-				g.Expect(scimAccessReadyCondition.Type).To(Equal(greenhousev1alpha1.ScimAccessReadyCondition))
+				g.Expect(scimAccessReadyCondition.Type).To(Equal(greenhousev1alpha1.SCIMAccessReadyCondition))
 				g.Expect(scimAccessReadyCondition.Status).To(Equal(metav1.ConditionTrue))
 				g.Expect(firstTeamMembership.Spec.Members).To(HaveLen(2), "there should be two members in first TeamMembership")
 				secondTeamMembership := teamMemberships.Items[1]
@@ -496,10 +502,10 @@ var _ = Describe("TeammembershipUpdaterController", Ordered, func() {
 
 func createTestOrgWithSecret(namespace string) {
 	By("creating a secret")
-	createSecretForScimConfig(namespace)
+	createSecretForSCIMConfig(namespace)
 
 	By("creating organization with name: " + namespace)
-	setup.CreateOrganization(test.Ctx, namespace, func(o *greenhousev1alpha1.Organization) {
+	org := setup.CreateOrganization(test.Ctx, namespace, func(o *greenhousev1alpha1.Organization) {
 		o.Spec.Authentication = &greenhousev1alpha1.Authentication{
 			SCIMConfig: &greenhousev1alpha1.SCIMConfig{
 				BaseURL: groupsServer.URL,
@@ -518,9 +524,21 @@ func createTestOrgWithSecret(namespace string) {
 			},
 		}
 	})
+
+	updateOrganizationStatusWithSCIMAvailability(org)
 }
 
-func createSecretForScimConfig(namespace string) {
+func updateOrganizationStatusWithSCIMAvailability(org *greenhousev1alpha1.Organization) {
+	orgStatus := org.Status
+	orgStatus.SetConditions(greenhousev1alpha1.TrueCondition(greenhousev1alpha1.SCIMAPIAvailableCondition, "", ""))
+	_, err := clientutil.PatchStatus(test.Ctx, setup.Client, org, func() error {
+		org.Status = orgStatus
+		return nil
+	})
+	Expect(err).ToNot(HaveOccurred(), "there should be no error patching org status")
+}
+
+func createSecretForSCIMConfig(namespace string) {
 	testSecret := corev1.Secret{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "Secret",
@@ -539,7 +557,7 @@ func createSecretForScimConfig(namespace string) {
 	Expect(err).ToNot(HaveOccurred(), "there must be no error creating a secret")
 }
 
-func createTestOrgWithoutScimConfig(namespace string) {
+func createTestOrgWithoutSCIMConfig(namespace string) {
 	By("creating organization with name: " + namespace)
 	setup.CreateOrganization(test.Ctx, namespace)
 }

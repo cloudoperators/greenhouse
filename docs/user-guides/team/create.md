@@ -13,8 +13,11 @@ While all members of an organization can see existing teams, their management re
 
 ## Creating a team
 
-The team resource is used to structure members of your organization and assign fine-grained access and permission levels.  
-Each team must be backed by a group in the identity provider (IdP) of the organization.   
+The team resource is used to structure members of your organization and assign fine-grained access and permission levels.
+
+Each Team must be backed by a group in the identity provider (IdP) of the Organization.
+   * IdP group should be set on the `mappedIdPGroup` field in Team configuration.
+   * This, along with SCIM API configured in the Organization, allows for synchronization of TeamMemberships with Greenhouse.
 
 ```
 NOTE: The UI is currently in development. For now this guides describes the onboarding workflow via command line.
