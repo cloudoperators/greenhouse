@@ -7,6 +7,15 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+const (
+	// SCIMAPIAvailableCondition reflects if there is a connection to SCIM API.
+	SCIMAPIAvailableCondition ConditionType = "SCIMAPIAvailable"
+	// SecretNotFoundReason is set when the secret with credentials to SCIM is not found.
+	SecretNotFoundReason ConditionReason = "SecretNotFound"
+	// SCIMRequestFailedReason is set when a request to SCIM failed.
+	SCIMRequestFailedReason ConditionReason = "SCIMRequestFailed"
+)
+
 // OrganizationSpec defines the desired state of Organization
 type OrganizationSpec struct {
 	// DisplayName is an optional name for the organization to be displayed in the Greenhouse UI.
@@ -52,7 +61,10 @@ type SCIMConfig struct {
 }
 
 // OrganizationStatus defines the observed state of an Organization
-type OrganizationStatus struct{}
+type OrganizationStatus struct {
+	// StatusConditions contain the different conditions that constitute the status of the Organization.
+	StatusConditions `json:"statusConditions,omitempty"`
+}
 
 //+kubebuilder:object:root=true
 //+kubebuilder:subresource:status
