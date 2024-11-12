@@ -1,31 +1,44 @@
 ---
-title: "Monitoring architecture"
+title: "Building Observability Architectures"
 weight: 3
 ---
 
-This section provides an overview of the Greenhouse monitoring components. 
+The main terminologies used in this document can be found in [core-concepts](https://cloudoperators.github.io/greenhouse/docs/getting-started/core-concepts).
 
-## Monitoring components
+## Introduction to Observability
 
-1) **Metrics**  
+Observability in software and infrastructure has become essential for operation the complexity of modern Clouds. The concept centers on understanding the internal states of systems based on the data they produce, enabling teams to:
 
-    The **kube-monitoring** plugin is intended for monitoring remote Kubernetes clusters and is preconfigured to collect metrics from all Kubernetes components. It also comes with a default set of Kubernetes alerting rules. The plugin includes `Prometheus`, `Prometheus operator`, `Prometheus node exporter` and `kube-state-metrics`. The plugin is provided in its own namespace, which is managed by Greenhouse. `Prometheus` and `Prometheus operator` configurations can also be extended to process customer metrics and alerts.
+	•	Detect and troubleshoot issues quickly,
+	•	Maintain performance and reliability,
+	•	Make data-driven improvements.
 
-2) **Visualization/Dashboard**
+## Core Components and Tools
 
-   With the **plutono** plugin, you can deploy Plutono, a fork of Grafana `7.5.17` in the Greenhouse central cluster,    to query Prometheus metrics and visualize them in dynamic dashboards.  
+Key pillars of observability are **metrics**, **logs**, and **traces**, each providing unique insights that contribute to a comprehensive view of a system’s health.
 
-3) **Alerts**
+- **Metrics:**
+	•	Metrics are numerical data points representing system health over time (e.g., CPU usage, memory usage, request latency).
+	•	**Prometheus** is a widely used tool for collecting and querying metrics. It uses a time-series database optimized for real-time data, making it ideal for gathering system health data, enabling alerting, and visualizing trends.
 
-    The **alerts** plugin contains the `Prometheus Alertmanager` and `Supernova` as user interface. 
-    It is deployed in the Greenhouse central cluster in the customer org namespace. 
-    The Alertmanager receives alerts from the Prometheis in the remote Kubernetes clusters.  
-    Supernova is a user-friendly interface for the Alertmanager. It provides a grouped overview of the alerts with additional simple filter options. 
+- **Logs:**
+	•	Logs capture detailed, structured/unstructured records of system events, which are essential for post-incident analysis and troubleshooting.
+	•	**OpenSearch** provides a robust, scalable platform for log indexing, search, and analysis, enabling teams to sift through large volumes of logs to identify issues and understand system behavior over time.
 
-4) **Notifications**
+- **Traces:**
+	•	Traces follow a request’s journey through the system, capturing latency and failures across microservices. Traces are key for understanding dependencies and diagnosing bottlenecks.
 
-    The `Alertmanager` can send out notifications to different receivers (e.g. Slack, Email, ...) based on alert labels.
+**OpenTelemetry** is a vendor-neutral standard for instrumenting applications and collecting metrics, logs and traces. By providing a unified approach, **OpenTelemetry** makes it easier to integrate with backends like Prometheus, OpenSearch, or other APM tools.
 
-The Greenhouse monitoring components and their interactions are illustrated below.
+## Observability in Greenhouse
 
-![Monitoring architecture](../monitoring-architecture.png)
+Greenhouse provides a suite of Plugins to help customers build observability architectures for their Greenhouse-onboarded Kubernetes clusters. These components are designed to collect metrics and logs with a proven default configuration, enabling customers to monitor, visualize, and alert on system health. The following Plugins are available currently:
+
+- [Kubernetes Monitoring](https://cloudoperators.github.io/greenhouse/docs/reference/catalog/kube-monitoring): Prometheus, to collect metrics from Kubernetes components and provides a default set of alerting rules.
+- [Thanos](https://cloudoperators.github.io/greenhouse/docs/reference/catalog/thanos): Thanos, to store and query Prometheus metrics at scale.
+- [Plutono](https://cloudoperators.github.io/greenhouse/docs/reference/catalog/plutono): Visualisation tool, to query Prometheus metrics and visualize them in dynamic dashboards.
+- [Alerts](https://cloudoperators.github.io/greenhouse/docs/reference/catalog/alerts): Prometheus Alertmanager and Supernova, to manage and visualize alerts from Prometheus.
+- [OpenTelemetry](https://cloudoperators.github.io/greenhouse/docs/reference/catalog/opentelemetry): OpenTelemetry Collector, to collect metrics and logs from applications and forward them to backends like Prometheus and OpenSearch.
+
+## Example Architectures
+![Monitoring architecture](./monitoring-architecture.png)
