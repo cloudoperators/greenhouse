@@ -14,7 +14,7 @@ spec:
     matchLabels:
       app: dashboard
   revisionHistoryLimit: 3
-  replicas: 2
+  replicas: {{ required ".Values.replicas missing" .Values.replicas }}
   strategy:
     type: RollingUpdate
     rollingUpdate:
@@ -31,7 +31,7 @@ spec:
       terminationGracePeriodSeconds: 60
       containers:
         - name: dashboard
-          image: "{{ required ".Values.image.repository missing" .Values.image.repository }}:{{ required ".Values.image.tag missing" .Values.image.tag }}"
+          image: "{{ required ".Values.image.repository missing" .Values.image.repository }}@{{ required ".Values.image.digest missing" .Values.image.digest }}"
           imagePullPolicy: {{ required ".Values.image.pullPolicy missing" .Values.image.pullPolicy }}
           ports:
             - name: dashboard
