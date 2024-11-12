@@ -7,7 +7,6 @@ package plugin
 
 import (
 	"context"
-	"k8s.io/apimachinery/pkg/types"
 	"strings"
 	"testing"
 	"time"
@@ -17,6 +16,7 @@ import (
 	. "github.com/onsi/gomega/gstruct"
 	appsv1 "k8s.io/api/apps/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
+	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
@@ -24,7 +24,6 @@ import (
 	"github.com/cloudoperators/greenhouse/e2e/plugin/fixtures"
 	"github.com/cloudoperators/greenhouse/e2e/shared"
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/pkg/apis/greenhouse/v1alpha1"
-	"github.com/cloudoperators/greenhouse/pkg/test"
 )
 
 const remoteClusterName = "remote-plugin-cluster"
@@ -90,11 +89,11 @@ var _ = Describe("Plugin E2E", Ordered, func() {
 
 		By("Creating the plugin")
 		// Creating plugin
-		testPlugin := fixtures.PreparePlugin("test-nginx-plugin", env.TestNamespace,
-			test.WithPluginDefinition(testPluginDefinition.Name),
-			test.WithCluster(remoteClusterName),
-			test.WithReleaseNamespace(env.TestNamespace),
-			test.WithPluginOptionValue("replicaCount", &apiextensionsv1.JSON{Raw: []byte("1")}, nil))
+		testPlugin := shared.PreparePlugin("test-nginx-plugin", env.TestNamespace,
+			shared.WithPluginDefinition(testPluginDefinition.Name),
+			shared.WithCluster(remoteClusterName),
+			shared.WithReleaseNamespace(env.TestNamespace),
+			shared.WithPluginOptionValue("replicaCount", &apiextensionsv1.JSON{Raw: []byte("1")}, nil))
 		err = adminClient.Create(ctx, testPlugin)
 		Expect(err).ToNot(HaveOccurred())
 
@@ -132,7 +131,7 @@ var _ = Describe("Plugin E2E", Ordered, func() {
 			namespacedName := types.NamespacedName{Name: testPlugin.Name, Namespace: env.TestNamespace}
 			err = adminClient.Get(ctx, namespacedName, testPlugin)
 			g.Expect(err).NotTo(HaveOccurred())
-			test.SetOptionValueForPlugin(testPlugin, "replicaCount", "2")
+			shared.SetOptionValueForPlugin(testPlugin, "replicaCount", "2")
 			err = adminClient.Update(ctx, testPlugin)
 			g.Expect(err).NotTo(HaveOccurred())
 		}).Should(Succeed())
@@ -149,7 +148,7 @@ var _ = Describe("Plugin E2E", Ordered, func() {
 		}).Should(Succeed())
 
 		By("Deleting plugin")
-		test.EventuallyDeleted(ctx, adminClient, testPlugin)
+		shared.EventuallyDeleted(ctx, adminClient, testPlugin)
 
 		By("Check, is deployment deleted")
 		Eventually(func(g Gomega) bool {
@@ -160,6 +159,6 @@ var _ = Describe("Plugin E2E", Ordered, func() {
 		}).Should(BeTrue())
 
 		By("Deleting plugin definition")
-		test.EventuallyDeleted(ctx, adminClient, testPluginDefinition)
+		shared.EventuallyDeleted(ctx, adminClient, testPluginDefinition)
 	})
 })
