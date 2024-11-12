@@ -1,49 +1,19 @@
 openapi: 3.0.0
 info:
   title: Greenhouse
-  version: c9d3eaa
+  version: 0055c78
   description: PlusOne operations platform
 paths:
-  /TeamMembership:
-    post:
-      responses:
-        default:
-          description: TeamMembership
-  /Plugin:
-    post:
-      responses:
-        default:
-          description: Plugin
   /Organization:
     post:
       responses:
         default:
           description: Organization
-  /PluginDefinition:
-    post:
-      responses:
-        default:
-          description: PluginDefinition
-  /PluginPreset:
-    post:
-      responses:
-        default:
-          description: PluginPreset
   /ClusterKubeconfig:
     post:
       responses:
         default:
           description: ClusterKubeconfig
-  /TeamRoleBinding:
-    post:
-      responses:
-        default:
-          description: TeamRoleBinding
-  /Team:
-    post:
-      responses:
-        default:
-          description: Team
   /Cluster:
     post:
       responses:
@@ -54,288 +24,38 @@ paths:
       responses:
         default:
           description: TeamRole
+  /TeamMembership:
+    post:
+      responses:
+        default:
+          description: TeamMembership
+  /PluginPreset:
+    post:
+      responses:
+        default:
+          description: PluginPreset
+  /Team:
+    post:
+      responses:
+        default:
+          description: Team
+  /TeamRoleBinding:
+    post:
+      responses:
+        default:
+          description: TeamRoleBinding
+  /Plugin:
+    post:
+      responses:
+        default:
+          description: Plugin
+  /PluginDefinition:
+    post:
+      responses:
+        default:
+          description: PluginDefinition
 components:
   schemas:
-    TeamMembership:
-      xml:
-        name: greenhouse.sap
-        namespace: v1alpha1
-      title: TeamMembership
-      description: TeamMembership is the Schema for the teammemberships API
-      properties:
-        apiVersion:
-          description: 'APIVersion defines the versioned schema of this representation of an object.\nServers should convert recognized schemas to the latest internal value, and\nmay reject unrecognized values.\nMore info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
-          type: string
-        kind:
-          description: 'Kind is a string value representing the REST resource this object represents.\nServers may infer this from the endpoint the client submits requests to.\nCannot be updated.\nIn CamelCase.\nMore info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
-          type: string
-        metadata:
-          type: object
-        spec:
-          description: TeamMembershipSpec defines the desired state of TeamMembership
-          properties:
-            members:
-              description: Members list users that are part of a team.
-              items:
-                description: User specifies a human person.
-                properties:
-                  email:
-                    description: Email of the user.
-                    type: string
-                  firstName:
-                    description: FirstName of the user.
-                    type: string
-                  id:
-                    description: ID is the unique identifier of the user.
-                    type: string
-                  lastName:
-                    description: LastName of the user.
-                    type: string
-                required:
-                  - email
-                  - firstName
-                  - id
-                  - lastName
-                type: object
-              type: array
-          type: object
-        status:
-          description: TeamMembershipStatus defines the observed state of TeamMembership
-          properties:
-            lastSyncedTime:
-              description: LastSyncedTime is the information when was the last time the membership was synced
-              format: date-time
-              type: string
-            lastUpdateTime:
-              description: LastChangedTime is the information when was the last time the membership was actually changed
-              format: date-time
-              type: string
-            statusConditions:
-              description: StatusConditions contain the different conditions that constitute the status of the TeamMembership.
-              properties:
-                conditions:
-                  items:
-                    description: Condition contains additional information on the state of a resource.
-                    properties:
-                      lastTransitionTime:
-                        description: LastTransitionTime is the last time the condition transitioned from one status to another.
-                        format: date-time
-                        type: string
-                      message:
-                        description: Message is an optional human readable message indicating details about the last transition.
-                        type: string
-                      reason:
-                        description: Reason is a one-word, CamelCase reason for the condition's last transition.
-                        type: string
-                      status:
-                        description: Status of the condition.
-                        type: string
-                      type:
-                        description: Type of the condition.
-                        type: string
-                    required:
-                      - lastTransitionTime
-                      - status
-                      - type
-                    type: object
-                  type: array
-                  x-kubernetes-list-map-keys:
-                    - type
-                  x-kubernetes-list-type: map
-              type: object
-          type: object
-      type: object
-    Plugin:
-      xml:
-        name: greenhouse.sap
-        namespace: v1alpha1
-      title: Plugin
-      description: Plugin is the Schema for the plugins API
-      properties:
-        apiVersion:
-          description: 'APIVersion defines the versioned schema of this representation of an object.\nServers should convert recognized schemas to the latest internal value, and\nmay reject unrecognized values.\nMore info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
-          type: string
-        kind:
-          description: 'Kind is a string value representing the REST resource this object represents.\nServers may infer this from the endpoint the client submits requests to.\nCannot be updated.\nIn CamelCase.\nMore info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
-          type: string
-        metadata:
-          type: object
-        spec:
-          description: PluginSpec defines the desired state of Plugin
-          properties:
-            clusterName:
-              description: ClusterName is the name of the cluster the plugin is deployed to. If not set, the plugin is deployed to the greenhouse cluster.
-              type: string
-            disabled:
-              description: Disabled indicates that the plugin is administratively disabled.
-              type: boolean
-            displayName:
-              description: DisplayName is an optional name for the Plugin to be displayed in the Greenhouse UI.\nThis is especially helpful to distinguish multiple instances of a PluginDefinition in the same context.\nDefaults to a normalized version of metadata.name.
-              type: string
-            optionValues:
-              description: Values are the values for a PluginDefinition instance.
-              items:
-                description: PluginOptionValue is the value for a PluginOption.
-                properties:
-                  name:
-                    description: Name of the values.
-                    type: string
-                  value:
-                    description: Value is the actual value in plain text.
-                    x-kubernetes-preserve-unknown-fields: true
-                  valueFrom:
-                    description: ValueFrom references a potentially confidential value in another source.
-                    properties:
-                      secret:
-                        description: Secret references the secret containing the value.
-                        properties:
-                          key:
-                            description: Key in the secret to select the value from.
-                            type: string
-                          name:
-                            description: Name of the secret in the same namespace.
-                            type: string
-                        required:
-                          - key
-                          - name
-                        type: object
-                    type: object
-                required:
-                  - name
-                type: object
-              type: array
-            pluginDefinition:
-              description: PluginDefinition is the name of the PluginDefinition this instance is for.
-              type: string
-            releaseNamespace:
-              description: ReleaseNamespace is the namespace in the remote cluster to which the backend is deployed.\nDefaults to the Greenhouse managed namespace if not set.
-              type: string
-          required:
-            - disabled
-            - pluginDefinition
-          type: object
-        status:
-          description: PluginStatus defines the observed state of Plugin
-          properties:
-            description:
-              description: Description provides additional details of the plugin.
-              type: string
-            exposedServices:
-              additionalProperties:
-                description: Service references a Kubernetes service of a Plugin.
-                properties:
-                  name:
-                    description: Name is the name of the service in the target cluster.
-                    type: string
-                  namespace:
-                    description: Namespace is the namespace of the service in the target cluster.
-                    type: string
-                  port:
-                    description: Port is the port of the service.
-                    format: int32
-                    type: integer
-                  protocol:
-                    description: Protocol is the protocol of the service.
-                    type: string
-                required:
-                  - name
-                  - namespace
-                  - port
-                type: object
-              description: ExposedServices provides an overview of the Plugins services that are centrally exposed.\nIt maps the exposed URL to the service found in the manifest.
-              type: object
-            helmChart:
-              description: HelmChart contains a reference the helm chart used for the deployed pluginDefinition version.
-              properties:
-                name:
-                  description: Name of the HelmChart chart.
-                  type: string
-                repository:
-                  description: Repository of the HelmChart chart.
-                  type: string
-                version:
-                  description: Version of the HelmChart chart.
-                  type: string
-              required:
-                - name
-                - repository
-                - version
-              type: object
-            helmReleaseStatus:
-              description: HelmReleaseStatus reflects the status of the latest HelmChart release.\nThis is only configured if the pluginDefinition is backed by HelmChart.
-              properties:
-                firstDeployed:
-                  description: FirstDeployed is the timestamp of the first deployment of the release.
-                  format: date-time
-                  type: string
-                lastDeployed:
-                  description: LastDeployed is the timestamp of the last deployment of the release.
-                  format: date-time
-                  type: string
-                status:
-                  description: Status is the status of a HelmChart release.
-                  type: string
-              required:
-                - status
-              type: object
-            statusConditions:
-              description: StatusConditions contain the different conditions that constitute the status of the Plugin.
-              properties:
-                conditions:
-                  items:
-                    description: Condition contains additional information on the state of a resource.
-                    properties:
-                      lastTransitionTime:
-                        description: LastTransitionTime is the last time the condition transitioned from one status to another.
-                        format: date-time
-                        type: string
-                      message:
-                        description: Message is an optional human readable message indicating details about the last transition.
-                        type: string
-                      reason:
-                        description: Reason is a one-word, CamelCase reason for the condition's last transition.
-                        type: string
-                      status:
-                        description: Status of the condition.
-                        type: string
-                      type:
-                        description: Type of the condition.
-                        type: string
-                    required:
-                      - lastTransitionTime
-                      - status
-                      - type
-                    type: object
-                  type: array
-                  x-kubernetes-list-map-keys:
-                    - type
-                  x-kubernetes-list-type: map
-              type: object
-            uiApplication:
-              description: UIApplication contains a reference to the frontend that is used for the deployed pluginDefinition version.
-              properties:
-                name:
-                  description: Name of the UI application.
-                  type: string
-                url:
-                  description: URL specifies the url to a built javascript asset.\nBy default, assets are loaded from the Juno asset server using the provided name and version.
-                  type: string
-                version:
-                  description: Version of the frontend application.
-                  type: string
-              required:
-                - name
-                - version
-              type: object
-            version:
-              description: Version contains the latest pluginDefinition version the config was last applied with successfully.
-              type: string
-            weight:
-              description: Weight configures the order in which Plugins are shown in the Greenhouse UI.
-              format: int32
-              type: integer
-          type: object
-      type: object
     Organization:
       xml:
         name: greenhouse.sap
@@ -458,311 +178,6 @@ components:
           properties:
             statusConditions:
               description: StatusConditions contain the different conditions that constitute the status of the Organization.
-              properties:
-                conditions:
-                  items:
-                    description: Condition contains additional information on the state of a resource.
-                    properties:
-                      lastTransitionTime:
-                        description: LastTransitionTime is the last time the condition transitioned from one status to another.
-                        format: date-time
-                        type: string
-                      message:
-                        description: Message is an optional human readable message indicating details about the last transition.
-                        type: string
-                      reason:
-                        description: Reason is a one-word, CamelCase reason for the condition's last transition.
-                        type: string
-                      status:
-                        description: Status of the condition.
-                        type: string
-                      type:
-                        description: Type of the condition.
-                        type: string
-                    required:
-                      - lastTransitionTime
-                      - status
-                      - type
-                    type: object
-                  type: array
-                  x-kubernetes-list-map-keys:
-                    - type
-                  x-kubernetes-list-type: map
-              type: object
-          type: object
-      type: object
-    PluginDefinition:
-      xml:
-        name: greenhouse.sap
-        namespace: v1alpha1
-      title: PluginDefinition
-      description: PluginDefinition is the Schema for the PluginDefinitions API
-      properties:
-        apiVersion:
-          description: 'APIVersion defines the versioned schema of this representation of an object.\nServers should convert recognized schemas to the latest internal value, and\nmay reject unrecognized values.\nMore info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
-          type: string
-        kind:
-          description: 'Kind is a string value representing the REST resource this object represents.\nServers may infer this from the endpoint the client submits requests to.\nCannot be updated.\nIn CamelCase.\nMore info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
-          type: string
-        metadata:
-          type: object
-        spec:
-          description: PluginDefinitionSpec defines the desired state of PluginDefinitionSpec
-          properties:
-            description:
-              description: Description provides additional details of the pluginDefinition.
-              type: string
-            displayName:
-              description: DisplayName provides a human-readable label for the pluginDefinition.
-              type: string
-            docMarkDownUrl:
-              description: DocMarkDownUrl specifies the URL to the markdown documentation file for this plugin.\nSource needs to allow all CORS origins.
-              type: string
-            helmChart:
-              description: HelmChart specifies where the Helm Chart for this pluginDefinition can be found.
-              properties:
-                name:
-                  description: Name of the HelmChart chart.
-                  type: string
-                repository:
-                  description: Repository of the HelmChart chart.
-                  type: string
-                version:
-                  description: Version of the HelmChart chart.
-                  type: string
-              required:
-                - name
-                - repository
-                - version
-              type: object
-            icon:
-              description: 'Icon specifies the icon to be used for this plugin in the Greenhouse UI.\nIcons can be either:\n- A string representing a juno icon in camel case from this list: https://github.com/sapcc/juno/blob/main/libs/juno-ui-components/src/components/Icon/Icon.component.js#L6-L52\n- A publicly accessible image reference to a .png file. Will be displayed 100x100px'
-              type: string
-            options:
-              description: RequiredValues is a list of values required to create an instance of this PluginDefinition.
-              items:
-                properties:
-                  default:
-                    description: Default provides a default value for the option
-                    x-kubernetes-preserve-unknown-fields: true
-                  description:
-                    description: Description provides a human-readable text for the value as shown in the UI.
-                    type: string
-                  displayName:
-                    description: DisplayName provides a human-readable label for the configuration option
-                    type: string
-                  name:
-                    description: Name/Key of the config option.
-                    type: string
-                  regex:
-                    description: Regex specifies a match rule for validating configuration options.
-                    type: string
-                  required:
-                    description: Required indicates that this config option is required
-                    type: boolean
-                  type:
-                    description: Type of this configuration option.
-                    enum:
-                      - string
-                      - secret
-                      - bool
-                      - int
-                      - list
-                      - map
-                    type: string
-                required:
-                  - name
-                  - required
-                  - type
-                type: object
-              type: array
-            uiApplication:
-              description: UIApplication specifies a reference to a UI application
-              properties:
-                name:
-                  description: Name of the UI application.
-                  type: string
-                url:
-                  description: URL specifies the url to a built javascript asset.\nBy default, assets are loaded from the Juno asset server using the provided name and version.
-                  type: string
-                version:
-                  description: Version of the frontend application.
-                  type: string
-              required:
-                - name
-                - version
-              type: object
-            version:
-              description: Version of this pluginDefinition
-              type: string
-            weight:
-              description: Weight configures the order in which Plugins are shown in the Greenhouse UI.\nDefaults to alphabetical sorting if not provided or on conflict.
-              format: int32
-              type: integer
-          required:
-            - version
-          type: object
-        status:
-          description: PluginDefinitionStatus defines the observed state of PluginDefinition
-          type: object
-      type: object
-    PluginPreset:
-      xml:
-        name: greenhouse.sap
-        namespace: v1alpha1
-      title: PluginPreset
-      description: PluginPreset is the Schema for the PluginPresets API
-      properties:
-        apiVersion:
-          description: 'APIVersion defines the versioned schema of this representation of an object.\nServers should convert recognized schemas to the latest internal value, and\nmay reject unrecognized values.\nMore info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
-          type: string
-        kind:
-          description: 'Kind is a string value representing the REST resource this object represents.\nServers may infer this from the endpoint the client submits requests to.\nCannot be updated.\nIn CamelCase.\nMore info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
-          type: string
-        metadata:
-          type: object
-        spec:
-          description: PluginPresetSpec defines the desired state of PluginPreset
-          properties:
-            clusterOptionOverrides:
-              description: ClusterOptionOverrides define plugin option values to override by the PluginPreset
-              items:
-                description: ClusterOptionOverride defines which plugin option should be override in which cluster
-                properties:
-                  clusterName:
-                    type: string
-                  overrides:
-                    items:
-                      description: PluginOptionValue is the value for a PluginOption.
-                      properties:
-                        name:
-                          description: Name of the values.
-                          type: string
-                        value:
-                          description: Value is the actual value in plain text.
-                          x-kubernetes-preserve-unknown-fields: true
-                        valueFrom:
-                          description: ValueFrom references a potentially confidential value in another source.
-                          properties:
-                            secret:
-                              description: Secret references the secret containing the value.
-                              properties:
-                                key:
-                                  description: Key in the secret to select the value from.
-                                  type: string
-                                name:
-                                  description: Name of the secret in the same namespace.
-                                  type: string
-                              required:
-                                - key
-                                - name
-                              type: object
-                          type: object
-                      required:
-                        - name
-                      type: object
-                    type: array
-                required:
-                  - clusterName
-                  - overrides
-                type: object
-              type: array
-            clusterSelector:
-              description: ClusterSelector is a label selector to select the clusters the plugin bundle should be deployed to.
-              properties:
-                matchExpressions:
-                  description: matchExpressions is a list of label selector requirements. The requirements are ANDed.
-                  items:
-                    description: A label selector requirement is a selector that contains values, a key, and an operator that\nrelates the key and values.
-                    properties:
-                      key:
-                        description: key is the label key that the selector applies to.
-                        type: string
-                      operator:
-                        description: operator represents a key's relationship to a set of values.\nValid operators are In, NotIn, Exists and DoesNotExist.
-                        type: string
-                      values:
-                        description: values is an array of string values. If the operator is In or NotIn,\nthe values array must be non-empty. If the operator is Exists or DoesNotExist,\nthe values array must be empty. This array is replaced during a strategic\nmerge patch.
-                        items:
-                          type: string
-                        type: array
-                        x-kubernetes-list-type: atomic
-                    required:
-                      - key
-                      - operator
-                    type: object
-                  type: array
-                  x-kubernetes-list-type: atomic
-                matchLabels:
-                  additionalProperties:
-                    type: string
-                  description: matchLabels is a map of {key,value} pairs. A single {key,value} in the matchLabels\nmap is equivalent to an element of matchExpressions, whose key field is "key", the\noperator is "In", and the values array contains only "value". The requirements are ANDed.
-                  type: object
-              type: object
-              x-kubernetes-map-type: atomic
-            plugin:
-              description: PluginSpec is the spec of the plugin to be deployed by the PluginPreset.
-              properties:
-                clusterName:
-                  description: ClusterName is the name of the cluster the plugin is deployed to. If not set, the plugin is deployed to the greenhouse cluster.
-                  type: string
-                disabled:
-                  description: Disabled indicates that the plugin is administratively disabled.
-                  type: boolean
-                displayName:
-                  description: DisplayName is an optional name for the Plugin to be displayed in the Greenhouse UI.\nThis is especially helpful to distinguish multiple instances of a PluginDefinition in the same context.\nDefaults to a normalized version of metadata.name.
-                  type: string
-                optionValues:
-                  description: Values are the values for a PluginDefinition instance.
-                  items:
-                    description: PluginOptionValue is the value for a PluginOption.
-                    properties:
-                      name:
-                        description: Name of the values.
-                        type: string
-                      value:
-                        description: Value is the actual value in plain text.
-                        x-kubernetes-preserve-unknown-fields: true
-                      valueFrom:
-                        description: ValueFrom references a potentially confidential value in another source.
-                        properties:
-                          secret:
-                            description: Secret references the secret containing the value.
-                            properties:
-                              key:
-                                description: Key in the secret to select the value from.
-                                type: string
-                              name:
-                                description: Name of the secret in the same namespace.
-                                type: string
-                            required:
-                              - key
-                              - name
-                            type: object
-                        type: object
-                    required:
-                      - name
-                    type: object
-                  type: array
-                pluginDefinition:
-                  description: PluginDefinition is the name of the PluginDefinition this instance is for.
-                  type: string
-                releaseNamespace:
-                  description: ReleaseNamespace is the namespace in the remote cluster to which the backend is deployed.\nDefaults to the Greenhouse managed namespace if not set.
-                  type: string
-              required:
-                - disabled
-                - pluginDefinition
-              type: object
-          required:
-            - clusterSelector
-            - plugin
-          type: object
-        status:
-          description: PluginPresetStatus defines the observed state of PluginPreset
-          properties:
-            statusConditions:
-              description: StatusConditions contain the different conditions that constitute the status of the PluginPreset.
               properties:
                 conditions:
                   items:
@@ -931,217 +346,6 @@ components:
                     - type
                   x-kubernetes-list-type: map
               type: object
-          type: object
-      type: object
-    TeamRoleBinding:
-      xml:
-        name: greenhouse.sap
-        namespace: v1alpha1
-      title: TeamRoleBinding
-      description: TeamRoleBinding is the Schema for the rolebindings API
-      properties:
-        apiVersion:
-          description: 'APIVersion defines the versioned schema of this representation of an object.\nServers should convert recognized schemas to the latest internal value, and\nmay reject unrecognized values.\nMore info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
-          type: string
-        kind:
-          description: 'Kind is a string value representing the REST resource this object represents.\nServers may infer this from the endpoint the client submits requests to.\nCannot be updated.\nIn CamelCase.\nMore info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
-          type: string
-        metadata:
-          type: object
-        spec:
-          description: TeamRoleBindingSpec defines the desired state of a TeamRoleBinding
-          properties:
-            clusterName:
-              description: ClusterName is the name of the cluster the rbacv1 resources are created on.
-              type: string
-            clusterSelector:
-              description: ClusterSelector is a label selector to select the Clusters the TeamRoleBinding should be deployed to.
-              properties:
-                matchExpressions:
-                  description: matchExpressions is a list of label selector requirements. The requirements are ANDed.
-                  items:
-                    description: A label selector requirement is a selector that contains values, a key, and an operator that\nrelates the key and values.
-                    properties:
-                      key:
-                        description: key is the label key that the selector applies to.
-                        type: string
-                      operator:
-                        description: operator represents a key's relationship to a set of values.\nValid operators are In, NotIn, Exists and DoesNotExist.
-                        type: string
-                      values:
-                        description: values is an array of string values. If the operator is In or NotIn,\nthe values array must be non-empty. If the operator is Exists or DoesNotExist,\nthe values array must be empty. This array is replaced during a strategic\nmerge patch.
-                        items:
-                          type: string
-                        type: array
-                        x-kubernetes-list-type: atomic
-                    required:
-                      - key
-                      - operator
-                    type: object
-                  type: array
-                  x-kubernetes-list-type: atomic
-                matchLabels:
-                  additionalProperties:
-                    type: string
-                  description: matchLabels is a map of {key,value} pairs. A single {key,value} in the matchLabels\nmap is equivalent to an element of matchExpressions, whose key field is "key", the\noperator is "In", and the values array contains only "value". The requirements are ANDed.
-                  type: object
-              type: object
-              x-kubernetes-map-type: atomic
-            namespaces:
-              description: Namespaces is the immutable list of namespaces in the Greenhouse Clusters to apply the RoleBinding to.\nIf empty, a ClusterRoleBinding will be created on the remote cluster, otherwise a RoleBinding per namespace.
-              items:
-                type: string
-              type: array
-            teamRef:
-              description: TeamRef references a Greenhouse Team by name
-              type: string
-            teamRoleRef:
-              description: TeamRoleRef references a Greenhouse TeamRole by name
-              type: string
-          type: object
-        status:
-          description: TeamRoleBindingStatus defines the observed state of the TeamRoleBinding
-          properties:
-            clusters:
-              description: PropagationStatus is the list of clusters the TeamRoleBinding is applied to
-              items:
-                description: PropagationStatus defines the observed state of the TeamRoleBinding's associated rbacv1 resources  on a Cluster
-                properties:
-                  clusterName:
-                    description: ClusterName is the name of the cluster the rbacv1 resources are created on.
-                    type: string
-                  condition:
-                    description: Condition is the overall Status of the rbacv1 resources created on the cluster
-                    properties:
-                      lastTransitionTime:
-                        description: LastTransitionTime is the last time the condition transitioned from one status to another.
-                        format: date-time
-                        type: string
-                      message:
-                        description: Message is an optional human readable message indicating details about the last transition.
-                        type: string
-                      reason:
-                        description: Reason is a one-word, CamelCase reason for the condition's last transition.
-                        type: string
-                      status:
-                        description: Status of the condition.
-                        type: string
-                      type:
-                        description: Type of the condition.
-                        type: string
-                    required:
-                      - lastTransitionTime
-                      - status
-                      - type
-                    type: object
-                required:
-                  - clusterName
-                type: object
-              type: array
-              x-kubernetes-list-map-keys:
-                - clusterName
-              x-kubernetes-list-type: map
-            statusConditions:
-              description: StatusConditions contain the different conditions that constitute the status of the TeamRoleBinding.
-              properties:
-                conditions:
-                  items:
-                    description: Condition contains additional information on the state of a resource.
-                    properties:
-                      lastTransitionTime:
-                        description: LastTransitionTime is the last time the condition transitioned from one status to another.
-                        format: date-time
-                        type: string
-                      message:
-                        description: Message is an optional human readable message indicating details about the last transition.
-                        type: string
-                      reason:
-                        description: Reason is a one-word, CamelCase reason for the condition's last transition.
-                        type: string
-                      status:
-                        description: Status of the condition.
-                        type: string
-                      type:
-                        description: Type of the condition.
-                        type: string
-                    required:
-                      - lastTransitionTime
-                      - status
-                      - type
-                    type: object
-                  type: array
-                  x-kubernetes-list-map-keys:
-                    - type
-                  x-kubernetes-list-type: map
-              type: object
-          type: object
-      type: object
-    Team:
-      xml:
-        name: greenhouse.sap
-        namespace: v1alpha1
-      title: Team
-      description: Team is the Schema for the teams API
-      properties:
-        apiVersion:
-          description: 'APIVersion defines the versioned schema of this representation of an object.\nServers should convert recognized schemas to the latest internal value, and\nmay reject unrecognized values.\nMore info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
-          type: string
-        kind:
-          description: 'Kind is a string value representing the REST resource this object represents.\nServers may infer this from the endpoint the client submits requests to.\nCannot be updated.\nIn CamelCase.\nMore info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
-          type: string
-        metadata:
-          type: object
-        spec:
-          description: TeamSpec defines the desired state of Team
-          properties:
-            description:
-              description: Description provides additional details of the team.
-              type: string
-            joinUrl:
-              description: URL to join the IdP group.
-              type: string
-            mappedIdPGroup:
-              description: IdP group id matching team.
-              type: string
-          type: object
-        status:
-          description: TeamStatus defines the observed state of Team
-          properties:
-            statusConditions:
-              description: A StatusConditions contains a list of conditions.\nOnly one condition of a given type may exist in the list.
-              properties:
-                conditions:
-                  items:
-                    description: Condition contains additional information on the state of a resource.
-                    properties:
-                      lastTransitionTime:
-                        description: LastTransitionTime is the last time the condition transitioned from one status to another.
-                        format: date-time
-                        type: string
-                      message:
-                        description: Message is an optional human readable message indicating details about the last transition.
-                        type: string
-                      reason:
-                        description: Reason is a one-word, CamelCase reason for the condition's last transition.
-                        type: string
-                      status:
-                        description: Status of the condition.
-                        type: string
-                      type:
-                        description: Type of the condition.
-                        type: string
-                    required:
-                      - lastTransitionTime
-                      - status
-                      - type
-                    type: object
-                  type: array
-                  x-kubernetes-list-map-keys:
-                    - type
-                  x-kubernetes-list-type: map
-              type: object
-          required:
-            - statusConditions
           type: object
       type: object
     Cluster:
@@ -1374,5 +578,801 @@ components:
           type: object
         status:
           description: TeamRoleStatus defines the observed state of a TeamRole
+          type: object
+      type: object
+    TeamMembership:
+      xml:
+        name: greenhouse.sap
+        namespace: v1alpha1
+      title: TeamMembership
+      description: TeamMembership is the Schema for the teammemberships API
+      properties:
+        apiVersion:
+          description: 'APIVersion defines the versioned schema of this representation of an object.\nServers should convert recognized schemas to the latest internal value, and\nmay reject unrecognized values.\nMore info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+          type: string
+        kind:
+          description: 'Kind is a string value representing the REST resource this object represents.\nServers may infer this from the endpoint the client submits requests to.\nCannot be updated.\nIn CamelCase.\nMore info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+          type: string
+        metadata:
+          type: object
+        spec:
+          description: TeamMembershipSpec defines the desired state of TeamMembership
+          properties:
+            members:
+              description: Members list users that are part of a team.
+              items:
+                description: User specifies a human person.
+                properties:
+                  email:
+                    description: Email of the user.
+                    type: string
+                  firstName:
+                    description: FirstName of the user.
+                    type: string
+                  id:
+                    description: ID is the unique identifier of the user.
+                    type: string
+                  lastName:
+                    description: LastName of the user.
+                    type: string
+                required:
+                  - email
+                  - firstName
+                  - id
+                  - lastName
+                type: object
+              type: array
+          type: object
+        status:
+          description: TeamMembershipStatus defines the observed state of TeamMembership
+          properties:
+            lastSyncedTime:
+              description: LastSyncedTime is the information when was the last time the membership was synced
+              format: date-time
+              type: string
+            lastUpdateTime:
+              description: LastChangedTime is the information when was the last time the membership was actually changed
+              format: date-time
+              type: string
+            statusConditions:
+              description: StatusConditions contain the different conditions that constitute the status of the TeamMembership.
+              properties:
+                conditions:
+                  items:
+                    description: Condition contains additional information on the state of a resource.
+                    properties:
+                      lastTransitionTime:
+                        description: LastTransitionTime is the last time the condition transitioned from one status to another.
+                        format: date-time
+                        type: string
+                      message:
+                        description: Message is an optional human readable message indicating details about the last transition.
+                        type: string
+                      reason:
+                        description: Reason is a one-word, CamelCase reason for the condition's last transition.
+                        type: string
+                      status:
+                        description: Status of the condition.
+                        type: string
+                      type:
+                        description: Type of the condition.
+                        type: string
+                    required:
+                      - lastTransitionTime
+                      - status
+                      - type
+                    type: object
+                  type: array
+                  x-kubernetes-list-map-keys:
+                    - type
+                  x-kubernetes-list-type: map
+              type: object
+          type: object
+      type: object
+    PluginPreset:
+      xml:
+        name: greenhouse.sap
+        namespace: v1alpha1
+      title: PluginPreset
+      description: PluginPreset is the Schema for the PluginPresets API
+      properties:
+        apiVersion:
+          description: 'APIVersion defines the versioned schema of this representation of an object.\nServers should convert recognized schemas to the latest internal value, and\nmay reject unrecognized values.\nMore info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+          type: string
+        kind:
+          description: 'Kind is a string value representing the REST resource this object represents.\nServers may infer this from the endpoint the client submits requests to.\nCannot be updated.\nIn CamelCase.\nMore info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+          type: string
+        metadata:
+          type: object
+        spec:
+          description: PluginPresetSpec defines the desired state of PluginPreset
+          properties:
+            clusterOptionOverrides:
+              description: ClusterOptionOverrides define plugin option values to override by the PluginPreset
+              items:
+                description: ClusterOptionOverride defines which plugin option should be override in which cluster
+                properties:
+                  clusterName:
+                    type: string
+                  overrides:
+                    items:
+                      description: PluginOptionValue is the value for a PluginOption.
+                      properties:
+                        name:
+                          description: Name of the values.
+                          type: string
+                        value:
+                          description: Value is the actual value in plain text.
+                          x-kubernetes-preserve-unknown-fields: true
+                        valueFrom:
+                          description: ValueFrom references a potentially confidential value in another source.
+                          properties:
+                            secret:
+                              description: Secret references the secret containing the value.
+                              properties:
+                                key:
+                                  description: Key in the secret to select the value from.
+                                  type: string
+                                name:
+                                  description: Name of the secret in the same namespace.
+                                  type: string
+                              required:
+                                - key
+                                - name
+                              type: object
+                          type: object
+                      required:
+                        - name
+                      type: object
+                    type: array
+                required:
+                  - clusterName
+                  - overrides
+                type: object
+              type: array
+            clusterSelector:
+              description: ClusterSelector is a label selector to select the clusters the plugin bundle should be deployed to.
+              properties:
+                matchExpressions:
+                  description: matchExpressions is a list of label selector requirements. The requirements are ANDed.
+                  items:
+                    description: A label selector requirement is a selector that contains values, a key, and an operator that\nrelates the key and values.
+                    properties:
+                      key:
+                        description: key is the label key that the selector applies to.
+                        type: string
+                      operator:
+                        description: operator represents a key's relationship to a set of values.\nValid operators are In, NotIn, Exists and DoesNotExist.
+                        type: string
+                      values:
+                        description: values is an array of string values. If the operator is In or NotIn,\nthe values array must be non-empty. If the operator is Exists or DoesNotExist,\nthe values array must be empty. This array is replaced during a strategic\nmerge patch.
+                        items:
+                          type: string
+                        type: array
+                        x-kubernetes-list-type: atomic
+                    required:
+                      - key
+                      - operator
+                    type: object
+                  type: array
+                  x-kubernetes-list-type: atomic
+                matchLabels:
+                  additionalProperties:
+                    type: string
+                  description: matchLabels is a map of {key,value} pairs. A single {key,value} in the matchLabels\nmap is equivalent to an element of matchExpressions, whose key field is "key", the\noperator is "In", and the values array contains only "value". The requirements are ANDed.
+                  type: object
+              type: object
+              x-kubernetes-map-type: atomic
+            plugin:
+              description: PluginSpec is the spec of the plugin to be deployed by the PluginPreset.
+              properties:
+                clusterName:
+                  description: ClusterName is the name of the cluster the plugin is deployed to. If not set, the plugin is deployed to the greenhouse cluster.
+                  type: string
+                disabled:
+                  description: Disabled indicates that the plugin is administratively disabled.
+                  type: boolean
+                displayName:
+                  description: DisplayName is an optional name for the Plugin to be displayed in the Greenhouse UI.\nThis is especially helpful to distinguish multiple instances of a PluginDefinition in the same context.\nDefaults to a normalized version of metadata.name.
+                  type: string
+                optionValues:
+                  description: Values are the values for a PluginDefinition instance.
+                  items:
+                    description: PluginOptionValue is the value for a PluginOption.
+                    properties:
+                      name:
+                        description: Name of the values.
+                        type: string
+                      value:
+                        description: Value is the actual value in plain text.
+                        x-kubernetes-preserve-unknown-fields: true
+                      valueFrom:
+                        description: ValueFrom references a potentially confidential value in another source.
+                        properties:
+                          secret:
+                            description: Secret references the secret containing the value.
+                            properties:
+                              key:
+                                description: Key in the secret to select the value from.
+                                type: string
+                              name:
+                                description: Name of the secret in the same namespace.
+                                type: string
+                            required:
+                              - key
+                              - name
+                            type: object
+                        type: object
+                    required:
+                      - name
+                    type: object
+                  type: array
+                pluginDefinition:
+                  description: PluginDefinition is the name of the PluginDefinition this instance is for.
+                  type: string
+                releaseNamespace:
+                  description: ReleaseNamespace is the namespace in the remote cluster to which the backend is deployed.\nDefaults to the Greenhouse managed namespace if not set.
+                  type: string
+              required:
+                - disabled
+                - pluginDefinition
+              type: object
+          required:
+            - clusterSelector
+            - plugin
+          type: object
+        status:
+          description: PluginPresetStatus defines the observed state of PluginPreset
+          properties:
+            statusConditions:
+              description: StatusConditions contain the different conditions that constitute the status of the PluginPreset.
+              properties:
+                conditions:
+                  items:
+                    description: Condition contains additional information on the state of a resource.
+                    properties:
+                      lastTransitionTime:
+                        description: LastTransitionTime is the last time the condition transitioned from one status to another.
+                        format: date-time
+                        type: string
+                      message:
+                        description: Message is an optional human readable message indicating details about the last transition.
+                        type: string
+                      reason:
+                        description: Reason is a one-word, CamelCase reason for the condition's last transition.
+                        type: string
+                      status:
+                        description: Status of the condition.
+                        type: string
+                      type:
+                        description: Type of the condition.
+                        type: string
+                    required:
+                      - lastTransitionTime
+                      - status
+                      - type
+                    type: object
+                  type: array
+                  x-kubernetes-list-map-keys:
+                    - type
+                  x-kubernetes-list-type: map
+              type: object
+          type: object
+      type: object
+    Team:
+      xml:
+        name: greenhouse.sap
+        namespace: v1alpha1
+      title: Team
+      description: Team is the Schema for the teams API
+      properties:
+        apiVersion:
+          description: 'APIVersion defines the versioned schema of this representation of an object.\nServers should convert recognized schemas to the latest internal value, and\nmay reject unrecognized values.\nMore info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+          type: string
+        kind:
+          description: 'Kind is a string value representing the REST resource this object represents.\nServers may infer this from the endpoint the client submits requests to.\nCannot be updated.\nIn CamelCase.\nMore info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+          type: string
+        metadata:
+          type: object
+        spec:
+          description: TeamSpec defines the desired state of Team
+          properties:
+            description:
+              description: Description provides additional details of the team.
+              type: string
+            joinUrl:
+              description: URL to join the IdP group.
+              type: string
+            mappedIdPGroup:
+              description: IdP group id matching team.
+              type: string
+          type: object
+        status:
+          description: TeamStatus defines the observed state of Team
+          properties:
+            statusConditions:
+              description: A StatusConditions contains a list of conditions.\nOnly one condition of a given type may exist in the list.
+              properties:
+                conditions:
+                  items:
+                    description: Condition contains additional information on the state of a resource.
+                    properties:
+                      lastTransitionTime:
+                        description: LastTransitionTime is the last time the condition transitioned from one status to another.
+                        format: date-time
+                        type: string
+                      message:
+                        description: Message is an optional human readable message indicating details about the last transition.
+                        type: string
+                      reason:
+                        description: Reason is a one-word, CamelCase reason for the condition's last transition.
+                        type: string
+                      status:
+                        description: Status of the condition.
+                        type: string
+                      type:
+                        description: Type of the condition.
+                        type: string
+                    required:
+                      - lastTransitionTime
+                      - status
+                      - type
+                    type: object
+                  type: array
+                  x-kubernetes-list-map-keys:
+                    - type
+                  x-kubernetes-list-type: map
+              type: object
+          required:
+            - statusConditions
+          type: object
+      type: object
+    TeamRoleBinding:
+      xml:
+        name: greenhouse.sap
+        namespace: v1alpha1
+      title: TeamRoleBinding
+      description: TeamRoleBinding is the Schema for the rolebindings API
+      properties:
+        apiVersion:
+          description: 'APIVersion defines the versioned schema of this representation of an object.\nServers should convert recognized schemas to the latest internal value, and\nmay reject unrecognized values.\nMore info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+          type: string
+        kind:
+          description: 'Kind is a string value representing the REST resource this object represents.\nServers may infer this from the endpoint the client submits requests to.\nCannot be updated.\nIn CamelCase.\nMore info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+          type: string
+        metadata:
+          type: object
+        spec:
+          description: TeamRoleBindingSpec defines the desired state of a TeamRoleBinding
+          properties:
+            clusterName:
+              description: ClusterName is the name of the cluster the rbacv1 resources are created on.
+              type: string
+            clusterSelector:
+              description: ClusterSelector is a label selector to select the Clusters the TeamRoleBinding should be deployed to.
+              properties:
+                matchExpressions:
+                  description: matchExpressions is a list of label selector requirements. The requirements are ANDed.
+                  items:
+                    description: A label selector requirement is a selector that contains values, a key, and an operator that\nrelates the key and values.
+                    properties:
+                      key:
+                        description: key is the label key that the selector applies to.
+                        type: string
+                      operator:
+                        description: operator represents a key's relationship to a set of values.\nValid operators are In, NotIn, Exists and DoesNotExist.
+                        type: string
+                      values:
+                        description: values is an array of string values. If the operator is In or NotIn,\nthe values array must be non-empty. If the operator is Exists or DoesNotExist,\nthe values array must be empty. This array is replaced during a strategic\nmerge patch.
+                        items:
+                          type: string
+                        type: array
+                        x-kubernetes-list-type: atomic
+                    required:
+                      - key
+                      - operator
+                    type: object
+                  type: array
+                  x-kubernetes-list-type: atomic
+                matchLabels:
+                  additionalProperties:
+                    type: string
+                  description: matchLabels is a map of {key,value} pairs. A single {key,value} in the matchLabels\nmap is equivalent to an element of matchExpressions, whose key field is "key", the\noperator is "In", and the values array contains only "value". The requirements are ANDed.
+                  type: object
+              type: object
+              x-kubernetes-map-type: atomic
+            namespaces:
+              description: Namespaces is the immutable list of namespaces in the Greenhouse Clusters to apply the RoleBinding to.\nIf empty, a ClusterRoleBinding will be created on the remote cluster, otherwise a RoleBinding per namespace.
+              items:
+                type: string
+              type: array
+            teamRef:
+              description: TeamRef references a Greenhouse Team by name
+              type: string
+            teamRoleRef:
+              description: TeamRoleRef references a Greenhouse TeamRole by name
+              type: string
+          type: object
+        status:
+          description: TeamRoleBindingStatus defines the observed state of the TeamRoleBinding
+          properties:
+            clusters:
+              description: PropagationStatus is the list of clusters the TeamRoleBinding is applied to
+              items:
+                description: PropagationStatus defines the observed state of the TeamRoleBinding's associated rbacv1 resources  on a Cluster
+                properties:
+                  clusterName:
+                    description: ClusterName is the name of the cluster the rbacv1 resources are created on.
+                    type: string
+                  condition:
+                    description: Condition is the overall Status of the rbacv1 resources created on the cluster
+                    properties:
+                      lastTransitionTime:
+                        description: LastTransitionTime is the last time the condition transitioned from one status to another.
+                        format: date-time
+                        type: string
+                      message:
+                        description: Message is an optional human readable message indicating details about the last transition.
+                        type: string
+                      reason:
+                        description: Reason is a one-word, CamelCase reason for the condition's last transition.
+                        type: string
+                      status:
+                        description: Status of the condition.
+                        type: string
+                      type:
+                        description: Type of the condition.
+                        type: string
+                    required:
+                      - lastTransitionTime
+                      - status
+                      - type
+                    type: object
+                required:
+                  - clusterName
+                type: object
+              type: array
+              x-kubernetes-list-map-keys:
+                - clusterName
+              x-kubernetes-list-type: map
+            statusConditions:
+              description: StatusConditions contain the different conditions that constitute the status of the TeamRoleBinding.
+              properties:
+                conditions:
+                  items:
+                    description: Condition contains additional information on the state of a resource.
+                    properties:
+                      lastTransitionTime:
+                        description: LastTransitionTime is the last time the condition transitioned from one status to another.
+                        format: date-time
+                        type: string
+                      message:
+                        description: Message is an optional human readable message indicating details about the last transition.
+                        type: string
+                      reason:
+                        description: Reason is a one-word, CamelCase reason for the condition's last transition.
+                        type: string
+                      status:
+                        description: Status of the condition.
+                        type: string
+                      type:
+                        description: Type of the condition.
+                        type: string
+                    required:
+                      - lastTransitionTime
+                      - status
+                      - type
+                    type: object
+                  type: array
+                  x-kubernetes-list-map-keys:
+                    - type
+                  x-kubernetes-list-type: map
+              type: object
+          type: object
+      type: object
+    Plugin:
+      xml:
+        name: greenhouse.sap
+        namespace: v1alpha1
+      title: Plugin
+      description: Plugin is the Schema for the plugins API
+      properties:
+        apiVersion:
+          description: 'APIVersion defines the versioned schema of this representation of an object.\nServers should convert recognized schemas to the latest internal value, and\nmay reject unrecognized values.\nMore info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+          type: string
+        kind:
+          description: 'Kind is a string value representing the REST resource this object represents.\nServers may infer this from the endpoint the client submits requests to.\nCannot be updated.\nIn CamelCase.\nMore info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+          type: string
+        metadata:
+          type: object
+        spec:
+          description: PluginSpec defines the desired state of Plugin
+          properties:
+            clusterName:
+              description: ClusterName is the name of the cluster the plugin is deployed to. If not set, the plugin is deployed to the greenhouse cluster.
+              type: string
+            disabled:
+              description: Disabled indicates that the plugin is administratively disabled.
+              type: boolean
+            displayName:
+              description: DisplayName is an optional name for the Plugin to be displayed in the Greenhouse UI.\nThis is especially helpful to distinguish multiple instances of a PluginDefinition in the same context.\nDefaults to a normalized version of metadata.name.
+              type: string
+            optionValues:
+              description: Values are the values for a PluginDefinition instance.
+              items:
+                description: PluginOptionValue is the value for a PluginOption.
+                properties:
+                  name:
+                    description: Name of the values.
+                    type: string
+                  value:
+                    description: Value is the actual value in plain text.
+                    x-kubernetes-preserve-unknown-fields: true
+                  valueFrom:
+                    description: ValueFrom references a potentially confidential value in another source.
+                    properties:
+                      secret:
+                        description: Secret references the secret containing the value.
+                        properties:
+                          key:
+                            description: Key in the secret to select the value from.
+                            type: string
+                          name:
+                            description: Name of the secret in the same namespace.
+                            type: string
+                        required:
+                          - key
+                          - name
+                        type: object
+                    type: object
+                required:
+                  - name
+                type: object
+              type: array
+            pluginDefinition:
+              description: PluginDefinition is the name of the PluginDefinition this instance is for.
+              type: string
+            releaseNamespace:
+              description: ReleaseNamespace is the namespace in the remote cluster to which the backend is deployed.\nDefaults to the Greenhouse managed namespace if not set.
+              type: string
+          required:
+            - disabled
+            - pluginDefinition
+          type: object
+        status:
+          description: PluginStatus defines the observed state of Plugin
+          properties:
+            description:
+              description: Description provides additional details of the plugin.
+              type: string
+            exposedServices:
+              additionalProperties:
+                description: Service references a Kubernetes service of a Plugin.
+                properties:
+                  name:
+                    description: Name is the name of the service in the target cluster.
+                    type: string
+                  namespace:
+                    description: Namespace is the namespace of the service in the target cluster.
+                    type: string
+                  port:
+                    description: Port is the port of the service.
+                    format: int32
+                    type: integer
+                  protocol:
+                    description: Protocol is the protocol of the service.
+                    type: string
+                required:
+                  - name
+                  - namespace
+                  - port
+                type: object
+              description: ExposedServices provides an overview of the Plugins services that are centrally exposed.\nIt maps the exposed URL to the service found in the manifest.
+              type: object
+            helmChart:
+              description: HelmChart contains a reference the helm chart used for the deployed pluginDefinition version.
+              properties:
+                name:
+                  description: Name of the HelmChart chart.
+                  type: string
+                repository:
+                  description: Repository of the HelmChart chart.
+                  type: string
+                version:
+                  description: Version of the HelmChart chart.
+                  type: string
+              required:
+                - name
+                - repository
+                - version
+              type: object
+            helmReleaseStatus:
+              description: HelmReleaseStatus reflects the status of the latest HelmChart release.\nThis is only configured if the pluginDefinition is backed by HelmChart.
+              properties:
+                firstDeployed:
+                  description: FirstDeployed is the timestamp of the first deployment of the release.
+                  format: date-time
+                  type: string
+                lastDeployed:
+                  description: LastDeployed is the timestamp of the last deployment of the release.
+                  format: date-time
+                  type: string
+                status:
+                  description: Status is the status of a HelmChart release.
+                  type: string
+              required:
+                - status
+              type: object
+            statusConditions:
+              description: StatusConditions contain the different conditions that constitute the status of the Plugin.
+              properties:
+                conditions:
+                  items:
+                    description: Condition contains additional information on the state of a resource.
+                    properties:
+                      lastTransitionTime:
+                        description: LastTransitionTime is the last time the condition transitioned from one status to another.
+                        format: date-time
+                        type: string
+                      message:
+                        description: Message is an optional human readable message indicating details about the last transition.
+                        type: string
+                      reason:
+                        description: Reason is a one-word, CamelCase reason for the condition's last transition.
+                        type: string
+                      status:
+                        description: Status of the condition.
+                        type: string
+                      type:
+                        description: Type of the condition.
+                        type: string
+                    required:
+                      - lastTransitionTime
+                      - status
+                      - type
+                    type: object
+                  type: array
+                  x-kubernetes-list-map-keys:
+                    - type
+                  x-kubernetes-list-type: map
+              type: object
+            uiApplication:
+              description: UIApplication contains a reference to the frontend that is used for the deployed pluginDefinition version.
+              properties:
+                name:
+                  description: Name of the UI application.
+                  type: string
+                url:
+                  description: URL specifies the url to a built javascript asset.\nBy default, assets are loaded from the Juno asset server using the provided name and version.
+                  type: string
+                version:
+                  description: Version of the frontend application.
+                  type: string
+              required:
+                - name
+                - version
+              type: object
+            version:
+              description: Version contains the latest pluginDefinition version the config was last applied with successfully.
+              type: string
+            weight:
+              description: Weight configures the order in which Plugins are shown in the Greenhouse UI.
+              format: int32
+              type: integer
+          type: object
+      type: object
+    PluginDefinition:
+      xml:
+        name: greenhouse.sap
+        namespace: v1alpha1
+      title: PluginDefinition
+      description: PluginDefinition is the Schema for the PluginDefinitions API
+      properties:
+        apiVersion:
+          description: 'APIVersion defines the versioned schema of this representation of an object.\nServers should convert recognized schemas to the latest internal value, and\nmay reject unrecognized values.\nMore info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+          type: string
+        kind:
+          description: 'Kind is a string value representing the REST resource this object represents.\nServers may infer this from the endpoint the client submits requests to.\nCannot be updated.\nIn CamelCase.\nMore info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+          type: string
+        metadata:
+          type: object
+        spec:
+          description: PluginDefinitionSpec defines the desired state of PluginDefinitionSpec
+          properties:
+            description:
+              description: Description provides additional details of the pluginDefinition.
+              type: string
+            displayName:
+              description: DisplayName provides a human-readable label for the pluginDefinition.
+              type: string
+            docMarkDownUrl:
+              description: DocMarkDownUrl specifies the URL to the markdown documentation file for this plugin.\nSource needs to allow all CORS origins.
+              type: string
+            helmChart:
+              description: HelmChart specifies where the Helm Chart for this pluginDefinition can be found.
+              properties:
+                name:
+                  description: Name of the HelmChart chart.
+                  type: string
+                repository:
+                  description: Repository of the HelmChart chart.
+                  type: string
+                version:
+                  description: Version of the HelmChart chart.
+                  type: string
+              required:
+                - name
+                - repository
+                - version
+              type: object
+            icon:
+              description: 'Icon specifies the icon to be used for this plugin in the Greenhouse UI.\nIcons can be either:\n- A string representing a juno icon in camel case from this list: https://github.com/sapcc/juno/blob/main/libs/juno-ui-components/src/components/Icon/Icon.component.js#L6-L52\n- A publicly accessible image reference to a .png file. Will be displayed 100x100px'
+              type: string
+            options:
+              description: RequiredValues is a list of values required to create an instance of this PluginDefinition.
+              items:
+                properties:
+                  default:
+                    description: Default provides a default value for the option
+                    x-kubernetes-preserve-unknown-fields: true
+                  description:
+                    description: Description provides a human-readable text for the value as shown in the UI.
+                    type: string
+                  displayName:
+                    description: DisplayName provides a human-readable label for the configuration option
+                    type: string
+                  name:
+                    description: Name/Key of the config option.
+                    type: string
+                  regex:
+                    description: Regex specifies a match rule for validating configuration options.
+                    type: string
+                  required:
+                    description: Required indicates that this config option is required
+                    type: boolean
+                  type:
+                    description: Type of this configuration option.
+                    enum:
+                      - string
+                      - secret
+                      - bool
+                      - int
+                      - list
+                      - map
+                    type: string
+                required:
+                  - name
+                  - required
+                  - type
+                type: object
+              type: array
+            uiApplication:
+              description: UIApplication specifies a reference to a UI application
+              properties:
+                name:
+                  description: Name of the UI application.
+                  type: string
+                url:
+                  description: URL specifies the url to a built javascript asset.\nBy default, assets are loaded from the Juno asset server using the provided name and version.
+                  type: string
+                version:
+                  description: Version of the frontend application.
+                  type: string
+              required:
+                - name
+                - version
+              type: object
+            version:
+              description: Version of this pluginDefinition
+              type: string
+            weight:
+              description: Weight configures the order in which Plugins are shown in the Greenhouse UI.\nDefaults to alphabetical sorting if not provided or on conflict.
+              format: int32
+              type: integer
+          required:
+            - version
+          type: object
+        status:
+          description: PluginDefinitionStatus defines the observed state of PluginDefinition
           type: object
       type: object
