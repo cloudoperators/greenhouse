@@ -44,4 +44,4 @@ The following Plugins are available currently:
 - [OpenTelemetry](https://cloudoperators.github.io/greenhouse/docs/reference/catalog/opentelemetry): OpenTelemetry Pipelines, to collect metrics and logs from applications and forward them to backends like Prometheus and OpenSearch.
 
 ## Overview Architecture
-![Observability architecture](./monitoring-architecture.png)
+![Observability architecture](../monitoring-architecture.png)
