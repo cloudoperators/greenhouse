@@ -70,11 +70,14 @@ type oidcConnector struct {
 }
 
 func (c *oidcConnector) LoginURL(s connector.Scopes, callbackURL, state string) (string, error) {
-	return c.conn.(connector.CallbackConnector).LoginURL(s, callbackURL, state)
+	return c.conn.(connector.CallbackConnector).LoginURL(s, callbackURL, state) //nolint:errcheck
 }
 
 func (c *oidcConnector) HandleCallback(s connector.Scopes, r *http.Request) (connector.Identity, error) {
-	identity, err := c.conn.(connector.CallbackConnector).HandleCallback(s, r)
+	identity, err := c.conn.(connector.CallbackConnector).HandleCallback(s, r) //nolint:errcheck
+	if err != nil {
+		return identity, err
+	}
 
 	groups, groupsErr := c.getGroups(c.id, identity.Groups, r.Context())
 	if groupsErr != nil {
@@ -100,7 +103,10 @@ func (c *oidcConnector) HandleCallback(s connector.Scopes, r *http.Request) (con
 }
 
 func (c *oidcConnector) Refresh(ctx context.Context, s connector.Scopes, identity connector.Identity) (connector.Identity, error) {
-	identity, err := c.conn.(connector.RefreshConnector).Refresh(ctx, s, identity)
+	identity, err := c.conn.(connector.RefreshConnector).Refresh(ctx, s, identity) //nolint:errcheck
+	if err != nil {
+		return identity, err
+	}
 
 	groups, groupsErr := c.getGroups(c.id, identity.Groups, ctx)
 	if groupsErr != nil {
