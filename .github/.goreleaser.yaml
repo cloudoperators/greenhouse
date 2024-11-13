@@ -1,3 +1,7 @@
+# yaml-language-server: $schema=https://goreleaser.com/static/schema.json
+# vim: set ts=2 sw=2 tw=0 fo=jcroql
+version: 2
+
 env:
   - GO111MODULE=on
   - CGO_ENABLED=0
@@ -43,6 +47,9 @@ builds:
       - "{{ .Env.LDFLAGS }}"
     no_unique_dist_dir: true
 
+checksum:
+  name_template: "checksums.txt"
+
 archives:
   - format: tar.gz
     format_overrides:
@@ -51,4 +58,3 @@ archives:
     name_template: '{{.ProjectName}}_{{.Version}}_{{.Os}}-{{.Arch}}'
     files:
       - README.md
-
