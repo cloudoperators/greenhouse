@@ -364,7 +364,7 @@ func getHostIPFromInterface() string {
 		return ""
 	}
 	for _, addr := range addresses {
-		if ipv4 := addr.(*net.IPNet).IP.To4(); ipv4 != nil {
+		if ipv4 := addr.(*net.IPNet).IP.To4(); ipv4 != nil { //nolint:errcheck
 			utils.Logf("found IP address for docker0 interface: %s", ipv4.String())
 			return ipv4.String()
 		}
