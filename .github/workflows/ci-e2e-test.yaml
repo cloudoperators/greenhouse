@@ -1,15 +1,117 @@
-name: E2E Test
+name: E2E Workflow
 on:
-  workflow_dispatch: {}
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - 'pkg/**'
+      - 'e2e/**'
+      - 'cmd/**'
+      - 'Dockerfile*'
+      - 'go.mod'
+      - 'go.sum'
 
 jobs:
+  init:
+    outputs:
+      tests: ${{ steps.e2es.outputs.result }}
+    runs-on: [ default ]
+    name: "Prepare E2E Scenarios"
+    steps:
+      - name: "Checkout"
+        uses: actions/checkout@v4
+
+      # find all e2e scenarios in the e2e directory and generate an array of scenario names
+      - name: "E2E Detection"
+        id: e2es
+        run: |
+          scenarios=$(find ${GITHUB_WORKSPACE}/e2e -type f -name 'e2e_test.go' -exec dirname {} \; | xargs -n 1 basename | jq -R -s -c 'split("\n")[:-1]')
+          echo $scenarios
+          echo "result=$scenarios" >> $GITHUB_OUTPUT
+
   e2e:
-    runs-on: "default"
+    name: "Run ${{ matrix.e2es }}(${{ matrix.k8s-version}}) E2E"
+    if: needs.init.outputs.tests != '[]'
+    needs: [ init ]
+    runs-on: [ default ]
+    env:
+      ADMIN_CLUSTER: greenhouse-admin
+      REMOTE_CLUSTER: greenhouse-remote
+
     strategy:
       fail-fast: false
       matrix:
-        k8s-version: ["v1.29.9", "v1.30.5", "v1.31.1"]
+        k8s-version: [ "v1.29.8", "v1.30.4", "v1.31.0" ]
+        e2es: ${{fromJson(needs.init.outputs.tests)}}
     steps:
-      - uses: cloudoperators/common/workflows/e2e@main
+      - name: "Checkout"
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
         with:
-          kubernetes-version: ${{ matrix.k8s-version }}
+          go-version-file: 'go.mod'
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      # Create the admin cluster with latest kubernetes version
+      - name: Create Admin Cluster
+        uses: helm/kind-action@v1.10.0
+        with:
+          cluster_name: ${{ env.ADMIN_CLUSTER }}
+          node_image: 'kindest/node:v1.31.0'
+
+      # Create the remote cluster with kubernetes version from the matrix
+      - name: Create Remote Cluster
+        uses: helm/kind-action@v1.10.0
+        with:
+          node_image: 'kindest/node:${{ matrix.k8s-version }}'
+          cluster_name: ${{ env.REMOTE_CLUSTER }}
+          config: ${{ github.workspace }}/e2e/kind-config.yaml
+
+      # build CLI, setup e2e environment and prepare kubeconfigs
+      - name: "Prepare E2E Config"
+        id: config
+        run: |
+          make setup-e2e
+          echo "admin_config=$GITHUB_WORKSPACE/bin/${{env.ADMIN_CLUSTER}}.kubeconfig" >> $GITHUB_OUTPUT
+          echo "remote_config=$GITHUB_WORKSPACE/bin/${{env.REMOTE_CLUSTER}}.kubeconfig" >> $GITHUB_OUTPUT
+          echo "remote_int_config=$GITHUB_WORKSPACE/bin/${{env.REMOTE_CLUSTER}}-int.kubeconfig" >> $GITHUB_OUTPUT
+
+      # run the e2e tests with the scenario from the matrix
+      - name: "E2E Run"
+        id: e2e
+        continue-on-error: true
+        env:
+          SCENARIO: ${{ matrix.e2es }}
+          EXECUTION_ENV: gh-actions
+          GREENHOUSE_ADMIN_KUBECONFIG: ${{ steps.config.outputs.admin_config }}
+          GREENHOUSE_REMOTE_KUBECONFIG: ${{ steps.config.outputs.remote_config }}
+          GREENHOUSE_REMOTE_INT_KUBECONFIG: ${{ steps.config.outputs.remote_int_config }}
+          CONTROLLER_LOGS_PATH: ${{github.workspace}}/bin/${{matrix.e2es}}-${{matrix.k8s-version}}.txt
+          E2E_REPORT_PATH: ${{github.workspace}}/bin/${{matrix.e2es}}-${{matrix.k8s-version}}.json
+        run: |
+          echo "result=$CONTROLLER_LOGS_PATH" >> $GITHUB_OUTPUT
+          make e2e
+
+      - name: "Upload E2E Logs"
+        uses: actions/upload-artifact@v3
+        with:
+          name: e2e-logs
+          path: ${{steps.e2e.outputs.result}}
+          retention-days: 7
+          if-no-files-found: ignore
+
+  # check if the e2e tests passed for all scenarios
+  checksOK:
+    name: "E2E Check"
+    needs: [ e2e ]
+    runs-on: [ default ]
+    if: always()
+    steps:
+      - name: "Check if e2e passed"
+        run: |
+          if [ "${{ needs.e2e.result }}" == "success" ]; then
+            echo "✅ E2E passed 🎉"
+          else
+            echo "❌ E2E failed 😭"
+            exit 1
+          fi

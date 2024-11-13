@@ -73,10 +73,12 @@ var _ = Describe("Test Organization reconciliation", Ordered, func() {
 			}).Should(Succeed(), "Admin team should be created with valid IDPGroup")
 
 			By("updating MappedOrgAdminIDPGroup in Organization")
-			err := setup.Get(test.Ctx, types.NamespacedName{Name: testOrgName, Namespace: ""}, testOrg)
-			Expect(err).ToNot(HaveOccurred(), "there should be no error getting the organization")
-			testOrg.Spec.MappedOrgAdminIDPGroup = otherValidIdpGroupName
-			err = setup.Update(test.Ctx, testOrg)
+			err := retry.RetryOnConflict(retry.DefaultRetry, func() error {
+				err := setup.Get(test.Ctx, types.NamespacedName{Name: testOrgName}, testOrg)
+				Expect(err).ToNot(HaveOccurred(), "there should be no error getting the Organization")
+				testOrg.Spec.MappedOrgAdminIDPGroup = otherValidIdpGroupName
+				return setup.Update(test.Ctx, testOrg)
+			})
 			Expect(err).ToNot(HaveOccurred(), "there must be no error updating the organization")
 
 			Eventually(func(g Gomega) {

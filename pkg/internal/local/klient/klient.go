@@ -4,7 +4,7 @@
 package klient
 
 import (
-	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
+	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/tools/clientcmd"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -15,5 +15,5 @@ func NewKubeClientFromConfig(configStr string) (client.Client, error) {
 	if err != nil {
 		return nil, err
 	}
-	return client.New(config, client.Options{Scheme: clientgoscheme.Scheme})
+	return client.New(config, client.Options{Scheme: scheme.Scheme})
 }
