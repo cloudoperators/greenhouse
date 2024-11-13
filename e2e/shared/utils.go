@@ -6,12 +6,13 @@ package shared
 import (
 	"bytes"
 	"io"
+
 	kyaml "k8s.io/apimachinery/pkg/util/yaml"
 	"k8s.io/klog/v2"
 )
 
 func Log(args ...any) {
-	args[0] = "===== 🤖 " + args[0].(string)
+	args[0] = "===== 🤖 " + args[0].(string) //nolint:errcheck
 	klog.InfoDepth(1, args...)
 }
 

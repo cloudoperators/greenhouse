@@ -7,9 +7,10 @@ package cluster
 
 import (
 	"context"
-	"github.com/cloudoperators/greenhouse/pkg/clientutil"
 	"testing"
 	"time"
+
+	"github.com/cloudoperators/greenhouse/pkg/clientutil"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
