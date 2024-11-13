@@ -1,5 +1,5 @@
 ---
-title: "PluginDefinitions and Plugins"
+title: "PluginDefinitions, Plugins and PluginPresets"
 weight: 4
 ---
 
