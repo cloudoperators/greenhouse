@@ -9,6 +9,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"k8s.io/client-go/tools/clientcmd"
 	"os"
 	"strings"
 	"time"
@@ -16,7 +17,6 @@ import (
 	"github.com/cenkalti/backoff/v4"
 	"k8s.io/apimachinery/pkg/types"
 
-	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -44,62 +44,44 @@ const (
 	realCluster                = "GARDENER"
 )
 
-type EClient string
-
-const (
-	AdminClient      EClient = "AdminClient"
-	RemoteClient     EClient = "RemoteClient"
-	AdminRESTClient  EClient = "AdminRESTClient"
-	RemoteRESTClient EClient = "RemoteRESTClient"
-	AdminClientSet   EClient = "AdminClientSet"
-	RemoteClientSet  EClient = "RemoteClientSet"
-)
-
 var defaultElapsedTime = 180 * time.Second
 
 type WaitApplyFunc func(resource lifecycle.RuntimeObject) error
 
-type clientBox struct {
-	client     client.Client
-	restClient *clientutil.RestClientGetter
-	clientSet  kubernetes.Interface
-}
-
 type TestEnv struct {
-	adminClusterClient    *clientBox
-	remoteClusterClient   *clientBox
-	TestNamespace         string
-	IsRealCluster         bool
-	RemoteKubeConfigBytes []byte
+	AdminRestClientGetter  *clientutil.RestClientGetter
+	RemoteRestClientGetter *clientutil.RestClientGetter
+	TestNamespace          string
+	IsRealCluster          bool
+	RemoteKubeConfigBytes  []byte
 }
 
-func NewExecutionEnv(userScheme ...func(s *runtime.Scheme) error) *TestEnv {
-	adminClusterClient, err := prepareClients(AdminKubeConfigPathEnv, userScheme...)
-	Expect(err).NotTo(HaveOccurred(), "error preparing admin cluster client")
-	remoteClusterClient, err := prepareClients(RemoteKubeConfigPathEnv)
-	Expect(err).NotTo(HaveOccurred(), "error preparing remote cluster client")
+func NewExecutionEnv() *TestEnv {
+	adminGetter := clientGetter(AdminKubeConfigPathEnv)
+	remoteGetter := clientGetter(RemoteKubeConfigPathEnv)
 
 	isReal := isRealCluster()
+	var err error
 	var remoteKubeCfgBytes []byte
 	var remoteKubeCfgPath string
 	if isReal {
-		GinkgoWriter.Printf("Running on real cluster\n")
+		Log("Running on real cluster\n")
 		remoteKubeCfgPath, err = fromEnv(RemoteKubeConfigPathEnv)
 		Expect(err).NotTo(HaveOccurred(), "error getting remote kubeconfig path")
 		remoteKubeCfgBytes, err = readFileContent(remoteKubeCfgPath)
 		Expect(err).NotTo(HaveOccurred(), "error reading remote kubeconfig file")
 	} else {
-		GinkgoWriter.Printf("Running on local cluster\n")
+		Log("Running on local cluster\n")
 		remoteIntKubeCfgPath, err := fromEnv(remoteIntKubeConfigPathEnv)
 		Expect(err).NotTo(HaveOccurred(), "error getting remote internal kubeconfig path")
 		remoteKubeCfgBytes, err = readFileContent(remoteIntKubeCfgPath)
 		Expect(err).NotTo(HaveOccurred(), "error reading remote internal kubeconfig file")
 	}
 	return &TestEnv{
-		adminClusterClient:    adminClusterClient,
-		remoteClusterClient:   remoteClusterClient,
-		RemoteKubeConfigBytes: remoteKubeCfgBytes,
-		IsRealCluster:         isReal,
+		AdminRestClientGetter:  adminGetter,
+		RemoteRestClientGetter: remoteGetter,
+		RemoteKubeConfigBytes:  remoteKubeCfgBytes,
+		IsRealCluster:          isReal,
 	}
 }
 
@@ -111,81 +93,31 @@ func isRealCluster() bool {
 	return strings.TrimSpace(execEnv) == realCluster
 }
 
-func (env *TestEnv) WithOrganization(ctx context.Context, samplePath string) *TestEnv {
+func (env *TestEnv) WithOrganization(ctx context.Context, k8sClient client.Client, samplePath string) *TestEnv {
 	org := &greenhousev1alpha1.Organization{}
 	orgBytes, err := readFileContent(samplePath)
 	Expect(err).NotTo(HaveOccurred(), "error reading organization sample data")
 	err = FromYamlToK8sObject(string(orgBytes), org)
 	Expect(err).NotTo(HaveOccurred(), "error converting organization yaml to k8s object")
-
-	err = env.adminClusterClient.client.Create(ctx, org)
+	Logf("creating organization %s", org.Name)
+	err = k8sClient.Create(ctx, org)
 	Expect(client.IgnoreAlreadyExists(err)).NotTo(HaveOccurred(), "error creating organization")
 
 	// TODO: check ready condition on organization after standardization
-	err = WaitUntilNamespaceCreated(ctx, env.adminClusterClient.client, org.Name)
+	err = WaitUntilNamespaceCreated(ctx, k8sClient, org.Name)
 	Expect(err).NotTo(HaveOccurred(), "error waiting for namespace to be created")
 	env.TestNamespace = org.Name
 	return env
 }
 
-func (env *TestEnv) GetClient(clientType EClient) client.Client {
-	switch clientType {
-	case AdminClient:
-		return env.adminClusterClient.client
-	case RemoteClient:
-		return env.remoteClusterClient.client
-	default:
-		GinkgoWriter.Printf("client type %s not supported", clientType)
-		return nil
-	}
-}
-
-func (env *TestEnv) GetRESTClient(clientType EClient) *clientutil.RestClientGetter {
-	switch clientType {
-	case AdminRESTClient:
-		return env.adminClusterClient.restClient
-	case RemoteRESTClient:
-		return env.remoteClusterClient.restClient
-	default:
-		GinkgoWriter.Printf("client type %s not supported", clientType)
-		return nil
-	}
-}
-
-func (env *TestEnv) GetClientSet(clientType EClient) kubernetes.Interface {
-	switch clientType {
-	case AdminClientSet:
-		return env.adminClusterClient.clientSet
-	case RemoteClientSet:
-		return env.remoteClusterClient.clientSet
-	default:
-		GinkgoWriter.Printf("client type %s not supported", clientType)
-		return nil
-	}
-}
-
-func prepareClients(kubeconfigEnv string, userScheme ...func(s *runtime.Scheme) error) (*clientBox, error) {
+func clientGetter(kubeconfigEnv string) *clientutil.RestClientGetter {
 	kubeconfigPath, err := fromEnv(kubeconfigEnv)
-	if err != nil {
-		return nil, err
-	}
+	Expect(err).NotTo(HaveOccurred(), "error getting kubeconfig path from env")
 	kubeconfigBytes, err := readFileContent(kubeconfigPath)
-	if err != nil {
-		return nil, err
-	}
-	restConfig, k8sClient, err := NewKubeClientFromConfigWithScheme(string(kubeconfigBytes), userScheme...)
-	if err != nil {
-		return nil, err
-	}
-	clientSet, err := kubernetes.NewForConfig(restConfig)
-	if err != nil {
-		return nil, err
-	}
-	return &clientBox{
-		client:     k8sClient,
-		restClient: clientutil.NewRestClientGetterFromRestConfig(restConfig, ""),
-		clientSet:  clientSet,
-	}, nil
+	Expect(err).NotTo(HaveOccurred(), "error reading kubeconfig file")
+	config, err := clientcmd.RESTConfigFromKubeConfig(kubeconfigBytes)
+	Expect(err).NotTo(HaveOccurred(), "error getting rest config from kubeconfig")
+	return clientutil.NewRestClientGetterFromRestConfig(config, "")
 }
 
 func readFileContent(path string) ([]byte, error) {
@@ -216,7 +148,7 @@ func IsResourceOwnedByOwner(owner, owned metav1.Object) bool {
 	// ClusterRoleBinding does not have a type information (So We add it)
 	if runtimeObj.GetObjectKind().GroupVersionKind() == (schema.GroupVersionKind{}) {
 		if err := addTypeInformationToObject(runtimeObj); err != nil {
-			GinkgoWriter.Printf("error adding type information to object: %s", err.Error())
+			LogErr("error adding type information to object: %s", err.Error())
 			return false
 		}
 	}
@@ -272,6 +204,8 @@ func WaitUntilResourceReadyOrNotReady(ctx context.Context, apiClient client.Clie
 	}, b)
 }
 
+// WaitUntilNamespaceCreated waits until the namespace is created and active
+// TODO: Remove this once organization controller is standardized
 func WaitUntilNamespaceCreated(ctx context.Context, k8sClient client.Client, name string) error {
 	b := backoff.NewExponentialBackOff(backoff.WithInitialInterval(5*time.Second), backoff.WithMaxElapsedTime(30*time.Second))
 	return backoff.Retry(func() error {
@@ -297,8 +231,21 @@ func (env *TestEnv) GenerateControllerLogs(ctx context.Context, startTime time.T
 		return
 	}
 
-	k8sClient := env.adminClusterClient.client
-	clientSet := env.adminClusterClient.clientSet
+	config, err := env.AdminRestClientGetter.ToRESTConfig()
+	if err != nil {
+		Logf("error getting admin rest config: %s", err.Error())
+		return
+	}
+	k8sClient, err := clientutil.NewK8sClientFromRestClientGetter(env.AdminRestClientGetter)
+	if err != nil {
+		Logf("error creating k8s client: %s", err.Error())
+		return
+	}
+	clientSet, err := kubernetes.NewForConfig(config)
+	if err != nil {
+		Logf("error creating k8s clientset: %s", err.Error())
+		return
+	}
 	deployment := &appsv1.Deployment{}
 
 	err = k8sClient.Get(ctx, client.ObjectKey{Name: managerDeploymentName, Namespace: managerDeploymentNamespace}, deployment)

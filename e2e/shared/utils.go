@@ -6,8 +6,6 @@ package shared
 import (
 	"bytes"
 	"io"
-	"os"
-
 	kyaml "k8s.io/apimachinery/pkg/util/yaml"
 	"k8s.io/klog/v2"
 )
@@ -19,13 +17,6 @@ func Log(args ...any) {
 
 func Logf(format string, args ...any) {
 	klog.InfofDepth(1, "===== 🤖 "+format, args...)
-}
-
-func CheckError(err error) {
-	if err != nil {
-		klog.ErrorfDepth(1, "===== 😵 error: %s", err)
-		os.Exit(-1)
-	}
 }
 
 func LogErr(format string, args ...any) {

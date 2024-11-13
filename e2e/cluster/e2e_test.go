@@ -45,14 +45,15 @@ func TestE2e(t *testing.T) {
 
 var _ = BeforeSuite(func() {
 	logf.SetLogger(zap.New(zap.WriteTo(GinkgoWriter), zap.UseDevMode(true)))
+	var err error
 	ctx = context.Background()
-	env = shared.NewExecutionEnv(greenhousev1alpha1.AddToScheme).WithOrganization(ctx, "./testdata/organization.yaml")
-	adminClient = env.GetClient(shared.AdminClient)
-	Expect(adminClient).ToNot(BeNil(), "admin client should not be nil")
-	remoteClient = env.GetClient(shared.RemoteClient)
-	Expect(remoteClient).ToNot(BeNil(), "remote client should not be nil")
-	remoteRestClient = env.GetRESTClient(shared.RemoteRESTClient)
-	Expect(remoteRestClient).ToNot(BeNil(), "remote rest client should not be nil")
+	env = shared.NewExecutionEnv()
+	adminClient, err = clientutil.NewK8sClientFromRestClientGetter(env.AdminRestClientGetter)
+	Expect(err).ToNot(HaveOccurred(), "there should be no error creating the admin client")
+	remoteClient, err = clientutil.NewK8sClientFromRestClientGetter(env.RemoteRestClientGetter)
+	Expect(err).ToNot(HaveOccurred(), "there should be no error creating the remote client")
+	remoteRestClient = env.RemoteRestClientGetter
+	env = env.WithOrganization(ctx, adminClient, "./testdata/organization.yaml")
 	testStartTime = time.Now().UTC()
 })
 

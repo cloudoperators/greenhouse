@@ -7,6 +7,7 @@ package cluster
 
 import (
 	"context"
+	"github.com/cloudoperators/greenhouse/pkg/clientutil"
 	"testing"
 	"time"
 
@@ -37,11 +38,14 @@ func TestE2e(t *testing.T) {
 
 var _ = BeforeSuite(func() {
 	logf.SetLogger(zap.New(zap.WriteTo(GinkgoWriter), zap.UseDevMode(true)))
+	var err error
 	ctx = context.Background()
-	env = shared.NewExecutionEnv(greenhousev1alpha1.AddToScheme).
-		WithOrganization(ctx, "./testdata/organization.yaml")
-	adminClient = env.GetClient(shared.AdminClient)
-	remoteClient = env.GetClient(shared.RemoteClient)
+	env = shared.NewExecutionEnv()
+	adminClient, err = clientutil.NewK8sClientFromRestClientGetter(env.AdminRestClientGetter)
+	Expect(err).ToNot(HaveOccurred(), "there should be no error creating the admin client")
+	remoteClient, err = clientutil.NewK8sClientFromRestClientGetter(env.RemoteRestClientGetter)
+	Expect(err).ToNot(HaveOccurred(), "there should be no error creating the remote client")
+	env = env.WithOrganization(ctx, adminClient, "./testdata/organization.yaml")
 	testStartTime = time.Now().UTC()
 })
 
