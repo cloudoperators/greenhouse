@@ -7,7 +7,7 @@ The main terminologies used in this document can be found in [core-concepts](htt
 
 ## Introduction to Observability
 
-Observability in software and infrastructure has become essential for operation the complexity of modern Clouds. The concept centers on understanding the internal states of systems based on the data they produce, enabling teams to:
+Observability in software and infrastructure has become essential for operating the complex modern cloud environments. The concept centers on understanding the internal states of systems based on the data they produce, enabling teams to:
 
 -   Detect and troubleshoot issues quickly,
 -	Maintain performance and reliability,
