@@ -37,11 +37,11 @@ Greenhouse provides a suite of Plugins which consist of pre-packaged configurati
 
 The following Plugins are available currently:
 
-- [Kubernetes Monitoring](https://cloudoperators.github.io/greenhouse/docs/reference/catalog/kube-monitoring): Prometheus, to collect metrics from Kubernetes components and provides a default set of alerting rules.
-- [Thanos](https://cloudoperators.github.io/greenhouse/docs/reference/catalog/thanos): Thanos, to store and query Prometheus metrics at scale.
-- [Plutono](https://cloudoperators.github.io/greenhouse/docs/reference/catalog/plutono): Visualisation tool, to query Prometheus metrics and visualize them in dynamic dashboards.
-- [Alerts](https://cloudoperators.github.io/greenhouse/docs/reference/catalog/alerts): Prometheus Alertmanager and Supernova, to manage and visualize alerts from Prometheus.
-- [OpenTelemetry](https://cloudoperators.github.io/greenhouse/docs/reference/catalog/opentelemetry): OpenTelemetry Collector, to collect metrics and logs from applications and forward them to backends like Prometheus and OpenSearch.
+- [Kubernetes Monitoring](https://cloudoperators.github.io/greenhouse/docs/reference/catalog/kube-monitoring): Prometheus, to collect custom and Kubernetes specific metrics with standard Kubernetes alerting enabled. 
+- [Thanos](https://cloudoperators.github.io/greenhouse/docs/reference/catalog/thanos): Thanos, to enable long term metric retention and unified metric accessibility.
+- [Plutono](https://cloudoperators.github.io/greenhouse/docs/reference/catalog/plutono): Grafana fork, to create dynamic dashboards for metrics.
+- [Alerts](https://cloudoperators.github.io/greenhouse/docs/reference/catalog/alerts): Prometheus Alertmanager and Supernova, to manage and visualize alerts sent by Prometheus.
+- [OpenTelemetry](https://cloudoperators.github.io/greenhouse/docs/reference/catalog/opentelemetry): OpenTelemetry Pipelines, to collect metrics and logs from applications and forward them to backends like Prometheus and OpenSearch.
 
 ## Overview Architecture
 ![Observability architecture](./monitoring-architecture.png)
