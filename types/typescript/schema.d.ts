@@ -428,7 +428,26 @@ export interface components {
                 mappedOrgAdminIdPGroup?: string;
             };
             /** @description OrganizationStatus defines the observed state of an Organization */
-            status?: Record<string, never>;
+            status?: {
+                /** @description StatusConditions contain the different conditions that constitute the status of the Organization. */
+                statusConditions?: {
+                    conditions?: {
+                        /**
+                         * Format: date-time
+                         * @description LastTransitionTime is the last time the condition transitioned from one status to another.
+                         */
+                        lastTransitionTime: string;
+                        /** @description Message is an optional human readable message indicating details about the last transition. */
+                        message?: string;
+                        /** @description Reason is a one-word, CamelCase reason for the condition's last transition. */
+                        reason?: string;
+                        /** @description Status of the condition. */
+                        status: string;
+                        /** @description Type of the condition. */
+                        type: string;
+                    }[];
+                };
+            };
         };
         /**
          * ClusterKubeconfig
@@ -469,7 +488,7 @@ export interface components {
                         };
                         name: string;
                     }[];
-                    contexts: {
+                    contexts?: {
                         context?: {
                             cluster: string;
                             namespace?: string;
@@ -480,7 +499,7 @@ export interface components {
                     "current-context"?: string;
                     kind?: string;
                     preferences?: Record<string, never>;
-                    users: {
+                    users?: {
                         name: string;
                         user?: {
                             /** @description AuthProviderConfig holds the configuration for a specified auth provider. */
@@ -495,6 +514,26 @@ export interface components {
                             /** Format: byte */
                             "client-key-data"?: string;
                         };
+                    }[];
+                };
+            };
+            status?: {
+                /** @description A StatusConditions contains a list of conditions.\nOnly one condition of a given type may exist in the list. */
+                statusConditions?: {
+                    conditions?: {
+                        /**
+                         * Format: date-time
+                         * @description LastTransitionTime is the last time the condition transitioned from one status to another.
+                         */
+                        lastTransitionTime: string;
+                        /** @description Message is an optional human readable message indicating details about the last transition. */
+                        message?: string;
+                        /** @description Reason is a one-word, CamelCase reason for the condition's last transition. */
+                        reason?: string;
+                        /** @description Status of the condition. */
+                        status: string;
+                        /** @description Type of the condition. */
+                        type: string;
                     }[];
                 };
             };
@@ -532,6 +571,15 @@ export interface components {
                  * @enum {string}
                  */
                 accessMode: "direct";
+                /** @description KubeConfig contains specific values for `KubeConfig` for the cluster. */
+                kubeConfig?: {
+                    /**
+                     * Format: int32
+                     * @description MaxTokenValidity specifies the maximum duration for which a token remains valid in hours.
+                     * @default 72
+                     */
+                    maxTokenValidity: number;
+                };
             };
             /** @description ClusterStatus defines the observed state of Cluster */
             status?: {
@@ -707,7 +755,7 @@ export interface components {
                  * @description LastChangedTime is the information when was the last time the membership was actually changed
                  */
                 lastUpdateTime?: string;
-                /** @description StatusConditions contain the different conditions that constitute the status of the TeamRoleBinding. */
+                /** @description StatusConditions contain the different conditions that constitute the status of the TeamMembership. */
                 statusConditions?: {
                     conditions?: {
                         /**
@@ -874,11 +922,32 @@ export interface components {
             spec?: {
                 /** @description Description provides additional details of the team. */
                 description?: string;
+                /** @description URL to join the IdP group. */
+                joinUrl?: string;
                 /** @description IdP group id matching team. */
                 mappedIdPGroup?: string;
             };
             /** @description TeamStatus defines the observed state of Team */
-            status?: Record<string, never>;
+            status?: {
+                /** @description A StatusConditions contains a list of conditions.\nOnly one condition of a given type may exist in the list. */
+                statusConditions: {
+                    conditions?: {
+                        /**
+                         * Format: date-time
+                         * @description LastTransitionTime is the last time the condition transitioned from one status to another.
+                         */
+                        lastTransitionTime: string;
+                        /** @description Message is an optional human readable message indicating details about the last transition. */
+                        message?: string;
+                        /** @description Reason is a one-word, CamelCase reason for the condition's last transition. */
+                        reason?: string;
+                        /** @description Status of the condition. */
+                        status: string;
+                        /** @description Type of the condition. */
+                        type: string;
+                    }[];
+                };
+            };
         };
         /**
          * TeamRoleBinding

@@ -72,6 +72,7 @@ type OrganizationStatus struct {
 //+kubebuilder:printcolumn:name="Description",type=string,JSONPath=`.spec.description`
 //+kubebuilder:printcolumn:name="IdP admin group",type="string",JSONPath=".spec.mappedOrgAdminIdPGroup"
 //+kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp"
+//+kubebuilder:printcolumn:name="Ready",type="string",JSONPath=`.status.statusConditions.conditions[?(@.type == "Ready")].status`
 
 // Organization is the Schema for the organizations API
 type Organization struct {
@@ -96,7 +97,9 @@ func init() {
 }
 
 func (o *Organization) GetConditions() StatusConditions {
-	return StatusConditions{} // OrganizationStatus is an empty struct so we don't need to get anything
+	return o.Status.StatusConditions
 }
 
-func (o *Organization) SetCondition(Condition) {} // OrganizationStatus is an empty struct so we don't need to set anything
+func (o *Organization) SetCondition(condition Condition) {
+	o.Status.StatusConditions.SetConditions(condition)
+}
