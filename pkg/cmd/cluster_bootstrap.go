@@ -23,6 +23,7 @@ import (
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
+	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
 	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -33,7 +34,6 @@ import (
 	greenhouseapis "github.com/cloudoperators/greenhouse/pkg/apis"
 	greenhouseapisv1alpha1 "github.com/cloudoperators/greenhouse/pkg/apis/greenhouse/v1alpha1"
 	"github.com/cloudoperators/greenhouse/pkg/clientutil"
-	clustercontroller "github.com/cloudoperators/greenhouse/pkg/controllers/cluster"
 )
 
 const (
@@ -345,16 +345,22 @@ func (o *newClusterBootstrapOptions) createOrUpdateClusterObject(ctx context.Con
 		return err
 	}
 
-	generateKubeconfig := &clustercontroller.KubeConfigHelper{
-		Host:          o.customerConfig.Host,
-		TLSServerName: o.customerConfig.TLSClientConfig.ServerName,
-		CAData:        o.customerConfig.CAData,
-		BearerToken:   token,
-		Username:      serviceAccountName,
-		Namespace:     o.orgName,
+	clientCfg := clientcmdapi.NewConfig()
+	clientCfg.Clusters[o.clusterName] = &clientcmdapi.Cluster{
+		Server:                   o.customerConfig.Host,
+		TLSServerName:            o.customerConfig.TLSClientConfig.ServerName,
+		CertificateAuthorityData: o.customerConfig.CAData,
+	}
+	clientCfg.Contexts[o.clusterName] = &clientcmdapi.Context{
+		Cluster:   o.clusterName,
+		AuthInfo:  serviceAccountName,
+		Namespace: o.orgName,
+	}
+	clientCfg.AuthInfos[serviceAccountName] = &clientcmdapi.AuthInfo{
+		Token: token,
 	}
 
-	genKubeConfig, err := clientcmd.Write(generateKubeconfig.RestConfigToAPIConfig(o.clusterName))
+	genKubeConfig, err := clientcmd.Write(*clientCfg)
 	if err != nil {
 		return err
 	}
