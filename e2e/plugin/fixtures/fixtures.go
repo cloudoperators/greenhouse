@@ -4,9 +4,9 @@
 package fixtures
 
 import (
-	"github.com/cloudoperators/greenhouse/e2e/shared"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 
+	"github.com/cloudoperators/greenhouse/e2e/shared"
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/pkg/apis/greenhouse/v1alpha1"
 )
 

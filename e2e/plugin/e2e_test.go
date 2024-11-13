@@ -24,6 +24,7 @@ import (
 	"github.com/cloudoperators/greenhouse/e2e/plugin/fixtures"
 	"github.com/cloudoperators/greenhouse/e2e/shared"
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/pkg/apis/greenhouse/v1alpha1"
+	"github.com/cloudoperators/greenhouse/pkg/clientutil"
 )
 
 const remoteClusterName = "remote-plugin-cluster"
@@ -45,10 +46,14 @@ func TestE2e(t *testing.T) {
 var _ = BeforeSuite(func() {
 	logf.SetLogger(zap.New(zap.WriteTo(GinkgoWriter), zap.UseDevMode(true)))
 	ctx = context.Background()
-	env = shared.NewExecutionEnv(greenhousev1alpha1.AddToScheme).
-		WithOrganization(ctx, "./testdata/organization.yaml")
-	adminClient = env.GetClient(shared.AdminClient)
-	remoteClient = env.GetClient(shared.RemoteClient)
+	env = shared.NewExecutionEnv()
+
+	var err error
+	adminClient, err = clientutil.NewK8sClientFromRestClientGetter(env.AdminRestClientGetter)
+	Expect(err).ToNot(HaveOccurred(), "there should be no error creating the admin client")
+	remoteClient, err = clientutil.NewK8sClientFromRestClientGetter(env.RemoteRestClientGetter)
+	Expect(err).ToNot(HaveOccurred(), "there should be no error creating the remote client")
+	env = env.WithOrganization(ctx, adminClient, "./testdata/organization.yaml")
 	// remoteRestClient = env.GetRESTClient(e2e.RemoteRESTClient)
 	testStartTime = time.Now().UTC()
 })
