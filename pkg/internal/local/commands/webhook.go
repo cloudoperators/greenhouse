@@ -59,7 +59,7 @@ func processWebhook(cmd *cobra.Command, _ []string) error {
 	}
 
 	err := setup.NewExecutionEnv().
-		WithClusterSetup(clusterName, namespaceName, clusterVersion).
+		WithClusterSetup(clusterName, namespaceName, clusterVersion, "").
 		WithWebhookDevelopment(ctx, manifest).
 		Run()
 	if err != nil {

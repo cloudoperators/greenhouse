@@ -1,0 +1,4 @@
+resources:
+  - 01-organization.yaml
+  - 02-plugin-definition.yaml
+  - 03-cluster-secret.yaml

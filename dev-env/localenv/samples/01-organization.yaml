@@ -1,0 +1,8 @@
+apiVersion: greenhouse.sap/v1alpha1
+kind: Organization
+metadata:
+  name: demo
+spec:
+  description: this is a demo greenhouse organization
+  displayName: Greenhouse Demo
+  mappedOrgAdminIdPGroup: DEMO_ORG_ADMIN

@@ -24,7 +24,7 @@ func NewExecutionEnv() *ExecutionEnv {
 	}
 }
 
-func (env *ExecutionEnv) WithClusterSetup(name, namespace, version string) *ExecutionEnv {
+func (env *ExecutionEnv) WithClusterSetup(name, namespace, version, configPath string) *ExecutionEnv {
 	env.cluster = &Cluster{
 		Name:      name,
 		Namespace: nil,
@@ -32,6 +32,9 @@ func (env *ExecutionEnv) WithClusterSetup(name, namespace, version string) *Exec
 	}
 	if strings.TrimSpace(namespace) != "" {
 		env.cluster.Namespace = &namespace
+	}
+	if strings.TrimSpace(configPath) != "" {
+		env.cluster.ConfigPath = configPath
 	}
 	env.steps = append(env.steps, clusterSetup)
 	return env

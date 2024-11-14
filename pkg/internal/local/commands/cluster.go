@@ -4,9 +4,8 @@
 package commands
 
 import (
-	"github.com/spf13/cobra"
-
 	"github.com/cloudoperators/greenhouse/pkg/internal/local/setup"
+	"github.com/spf13/cobra"
 )
 
 var clusterCmd = &cobra.Command{
@@ -50,7 +49,11 @@ func processDeleteLocalCluster(_ *cobra.Command, _ []string) error {
 }
 
 func processCreateLocalCluster(_ *cobra.Command, _ []string) error {
-	err := setup.NewExecutionEnv().WithClusterSetup(clusterName, namespaceName, clusterVersion).Run()
+	kindConfigPath, err := createKindConfig()
+	if err != nil {
+		return err
+	}
+	err = setup.NewExecutionEnv().WithClusterSetup(clusterName, namespaceName, clusterVersion, kindConfigPath).Run()
 	if err != nil {
 		return err
 	}

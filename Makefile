@@ -238,10 +238,15 @@ ADMIN_RELEASE ?= greenhouse
 ADMIN_CHART_PATH ?= charts/manager
 WEBHOOK_DEV ?= false
 E2E_REPORT_PATH="$(shell pwd)/bin/$(SCENARIO)-e2e-report.json"
+PLUGIN_DIR ?=
+
+.PHONY: plugin-dev
+plugin-dev: cli
+	PLUGIN_PATH=$(PLUGIN_DIR) $(CLI) dev setup -f dev-env/localenv/plugin-dev.config.json
 
 .PHONY: setup-dev
 setup-dev: cli
-	$(CLI) dev setup -f dev-env/localenv/sample.config.json
+	PLUGIN_PATH=$(PLUGIN_DIR) $(CLI) dev setup -f dev-env/localenv/sample.config.json
 
 .PHONY: setup-webhook
 setup-webhook: cli

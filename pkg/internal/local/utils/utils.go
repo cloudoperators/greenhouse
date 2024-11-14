@@ -25,6 +25,8 @@ import (
 	syaml "sigs.k8s.io/yaml"
 )
 
+const PluginDirectoryPath = "PLUGIN_PATH"
+
 func Log(args ...any) {
 	args[0] = "===== 🤖 " + args[0].(string) //nolint:errcheck
 	klog.InfoDepth(1, args...)
