@@ -10,9 +10,12 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/tools/record"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
+	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/log"
+	"sigs.k8s.io/controller-runtime/pkg/predicate"
 
 	greenhousesapv1alpha1 "github.com/cloudoperators/greenhouse/pkg/apis/greenhouse/v1alpha1"
 	"github.com/cloudoperators/greenhouse/pkg/clientutil"
@@ -38,6 +41,9 @@ type OrganizationReconciler struct {
 //+kubebuilder:rbac:groups=greenhouse.sap,resources=organizations/status,verbs=get;update;patch
 //+kubebuilder:rbac:groups=greenhouse.sap,resources=organizations/finalizers,verbs=update
 //+kubebuilder:rbac:groups=greenhouse.sap,resources=teams,verbs=get;watch;create;update;patch
+//+kubebuilder:rbac:groups="rbac.authorization.k8s.io",resources=clusterroles;clusterrolebindings;roles;rolebindings,verbs=get;list;watch;create;update;patch
+//+kubebuilder:rbac:groups=greenhouse.sap,resources=plugins,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups=greenhouse.sap,resources=plugindefinitions,verbs=get;list;watch
 //+kubebuilder:rbac:groups="",resources=events,verbs=get;list;watch;create;update;patch
 //+kubebuilder:rbac:groups="",resources=namespaces,verbs=get;list;watch;create;update;patch
 
@@ -50,6 +56,13 @@ func (r *OrganizationReconciler) SetupWithManager(name string, mgr ctrl.Manager)
 		For(&greenhousesapv1alpha1.Organization{}).
 		Owns(&corev1.Namespace{}).
 		Owns(&greenhousesapv1alpha1.Team{}).
+		Owns(&greenhousesapv1alpha1.Plugin{}).
+		Watches(&greenhousesapv1alpha1.PluginDefinition{},
+			handler.EnqueueRequestsFromMapFunc(r.enqueueAllOrganizationsForServiceProxyPluginDefinition),
+			builder.WithPredicates(predicate.And(
+				clientutil.PredicateByName(serviceProxyName),
+				predicate.GenerationChangedPredicate{},
+			))).
 		Complete(r)
 }
 
@@ -81,53 +94,11 @@ func (r *OrganizationReconciler) EnsureCreated(ctx context.Context, object lifec
 		return ctrl.Result{}, lifecycle.Failed, err
 	}
 
+	if err := r.reconcileServiceProxy(ctx, org); err != nil {
+		return ctrl.Result{}, lifecycle.Failed, err
+	}
+
 	return ctrl.Result{}, lifecycle.Success, nil
-}
-
-func (r *OrganizationReconciler) reconcileRBAC(ctx context.Context, org *greenhousesapv1alpha1.Organization) error {
-	// NOTE: The below code is intentionally rather explicit for transparency reasons as several Kubernetes resources
-	// are involved granting permissions on both cluster and namespace level based on organization, team membership and roles.
-	// The PolicyRules can be found in the pkg/rbac/role.
-
-	// RBAC for organization admins for cluster- and namespace-scoped resources.
-	if err := r.reconcileClusterRole(ctx, org, admin); err != nil {
-		return err
-	}
-	if err := r.reconcileClusterRoleBinding(ctx, org, admin); err != nil {
-		return err
-	}
-	if err := r.reconcileRole(ctx, org, admin); err != nil {
-		return err
-	}
-	if err := r.reconcileRoleBinding(ctx, org, admin); err != nil {
-		return err
-	}
-
-	// RBAC for organization members for cluster- and namespace-scoped resources.
-	if err := r.reconcileClusterRole(ctx, org, member); err != nil {
-		return err
-	}
-	if err := r.reconcileClusterRoleBinding(ctx, org, member); err != nil {
-		return err
-	}
-	if err := r.reconcileRole(ctx, org, member); err != nil {
-		return err
-	}
-	if err := r.reconcileRoleBinding(ctx, org, member); err != nil {
-		return err
-	}
-
-	// RBAC roles for organization cluster admins to access namespace-scoped resources.
-	if err := r.reconcileRole(ctx, org, clusterAdmin); err != nil {
-		return err
-	}
-
-	// RBAC roles for organization plugin admins to access namespace-scoped resources.
-	if err := r.reconcileRole(ctx, org, pluginAdmin); err != nil {
-		return err
-	}
-
-	return nil
 }
 
 func (r *OrganizationReconciler) reconcileNamespace(ctx context.Context, org *greenhousesapv1alpha1.Organization) error {
@@ -174,6 +145,52 @@ func (r *OrganizationReconciler) reconcileAdminTeam(ctx context.Context, org *gr
 		log.FromContext(ctx).Info("updated org admin team", "name", team.Name, "teamNamespace", namespace)
 		r.recorder.Eventf(org, corev1.EventTypeNormal, "UpdatedTeam", "Updated Team %s in namespace %s", team.Name, namespace)
 	}
+	return nil
+}
+
+func (r *OrganizationReconciler) reconcileRBAC(ctx context.Context, org *greenhousesapv1alpha1.Organization) error {
+	// NOTE: The below code is intentionally rather explicit for transparency reasons as several Kubernetes resources
+	// are involved granting permissions on both cluster and namespace level based on organization, team membership and roles.
+	// The PolicyRules can be found in the pkg/rbac/role.
+
+	// RBAC for organization admins for cluster- and namespace-scoped resources.
+	if err := r.reconcileClusterRole(ctx, org, admin); err != nil {
+		return err
+	}
+	if err := r.reconcileClusterRoleBinding(ctx, org, admin); err != nil {
+		return err
+	}
+	if err := r.reconcileRole(ctx, org, admin); err != nil {
+		return err
+	}
+	if err := r.reconcileRoleBinding(ctx, org, admin); err != nil {
+		return err
+	}
+
+	// RBAC for organization members for cluster- and namespace-scoped resources.
+	if err := r.reconcileClusterRole(ctx, org, member); err != nil {
+		return err
+	}
+	if err := r.reconcileClusterRoleBinding(ctx, org, member); err != nil {
+		return err
+	}
+	if err := r.reconcileRole(ctx, org, member); err != nil {
+		return err
+	}
+	if err := r.reconcileRoleBinding(ctx, org, member); err != nil {
+		return err
+	}
+
+	// RBAC roles for organization cluster admins to access namespace-scoped resources.
+	if err := r.reconcileRole(ctx, org, clusterAdmin); err != nil {
+		return err
+	}
+
+	// RBAC roles for organization plugin admins to access namespace-scoped resources.
+	if err := r.reconcileRole(ctx, org, pluginAdmin); err != nil {
+		return err
+	}
+
 	return nil
 }
 
