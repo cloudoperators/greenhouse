@@ -58,7 +58,7 @@ func (r *RBACReconciler) SetupWithManager(name string, mgr ctrl.Manager) error {
 }
 
 func (r *RBACReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	return lifecycle.Reconcile(ctx, r.Client, req.NamespacedName, &greenhouseapisv1alpha1.Organization{}, r, nil)
+	return lifecycle.Reconcile(ctx, r.Client, req.NamespacedName, &greenhouseapisv1alpha1.Organization{}, r, noStatus())
 }
 
 func (r *RBACReconciler) EnsureDeleted(_ context.Context, _ lifecycle.RuntimeObject) (ctrl.Result, lifecycle.ReconcileResult, error) {
