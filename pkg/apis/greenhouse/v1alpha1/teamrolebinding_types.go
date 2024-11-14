@@ -88,7 +88,8 @@ func (trb *TeamRoleBinding) SetPropagationStatus(cluster string, rbacReady metav
 		if ps.ClusterName != cluster {
 			continue
 		}
-		if ps.Condition.Status != rbacReady {
+		if ps.Condition.Status == rbacReady {
+			// Set the LastTransitionTime to its previous value if the status did not change.
 			condition.LastTransitionTime = ps.Condition.LastTransitionTime
 		}
 		trb.Status.PropagationStatus[i].Condition = condition
