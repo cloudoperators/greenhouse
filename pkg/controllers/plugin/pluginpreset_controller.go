@@ -99,9 +99,7 @@ func (r *PluginPresetReconciler) EnsureCreated(ctx context.Context, resource lif
 		pluginPreset.SetCondition(greenhousev1alpha1.FalseCondition(greenhousev1alpha1.ClusterListEmpty, "", ""))
 	}
 
-	skippedCondition, failedCondition, err := r.reconcilePluginPreset(ctx, pluginPreset, clusters)
-	pluginPreset.SetCondition(skippedCondition)
-	pluginPreset.SetCondition(failedCondition)
+	err = r.reconcilePluginPreset(ctx, pluginPreset, clusters)
 	if err != nil {
 		return ctrl.Result{}, lifecycle.Failed, err
 	}
@@ -134,19 +132,16 @@ func (r *PluginPresetReconciler) EnsureDeleted(ctx context.Context, resource lif
 
 // reconcilePluginPreset reconciles the PluginPreset by creating or updating the Plugins for the given clusters.
 // It skips reconciliation for Plugins that do not have the labels of the PluginPreset.
-func (r *PluginPresetReconciler) reconcilePluginPreset(ctx context.Context, preset *greenhousev1alpha1.PluginPreset, clusters *greenhousev1alpha1.ClusterList) (skippedCondition, failedCondition greenhousev1alpha1.Condition, err error) {
+func (r *PluginPresetReconciler) reconcilePluginPreset(ctx context.Context, preset *greenhousev1alpha1.PluginPreset, clusters *greenhousev1alpha1.ClusterList) error {
 	var allErrs = make([]error, 0)
 	var skippedPlugins = make([]string, 0)
 	var failedPlugins = make([]string, 0)
 
-	failedCondition = *preset.Status.GetConditionByType(greenhousev1alpha1.PluginFailedCondition)
-	skippedCondition = *preset.Status.GetConditionByType(greenhousev1alpha1.PluginSkippedCondition)
-
 	pluginDefinition := &greenhousev1alpha1.PluginDefinition{}
-	err = r.Get(ctx, client.ObjectKey{Name: preset.Spec.Plugin.PluginDefinition}, pluginDefinition)
+	err := r.Get(ctx, client.ObjectKey{Name: preset.Spec.Plugin.PluginDefinition}, pluginDefinition)
 	if err != nil {
 		allErrs = append(allErrs, err)
-		return skippedCondition, failedCondition, utilerrors.NewAggregate(allErrs)
+		return utilerrors.NewAggregate(allErrs)
 	}
 
 	for _, cluster := range clusters.Items {
@@ -169,7 +164,7 @@ func (r *PluginPresetReconciler) reconcilePluginPreset(ctx context.Context, pres
 				},
 			}
 		default:
-			return skippedCondition, failedCondition, err
+			return err
 		}
 
 		_, err = clientutil.CreateOrPatch(ctx, r.Client, plugin, func() error {
@@ -194,21 +189,17 @@ func (r *PluginPresetReconciler) reconcilePluginPreset(ctx context.Context, pres
 	}
 	switch {
 	case len(skippedPlugins) > 0:
-		skippedCondition.Status = metav1.ConditionTrue
-		skippedCondition.Message = "Skipped existing plugins: " + strings.Join(skippedPlugins, ", ")
+		preset.SetCondition(greenhousev1alpha1.TrueCondition(greenhousev1alpha1.PluginSkippedCondition, "", "Skipped existing plugins: "+strings.Join(skippedPlugins, ", ")))
 	default:
-		skippedCondition.Status = metav1.ConditionFalse
-		skippedCondition.Message = ""
+		preset.SetCondition(greenhousev1alpha1.FalseCondition(greenhousev1alpha1.PluginSkippedCondition, "", ""))
 	}
 	switch {
 	case len(failedPlugins) > 0:
-		failedCondition.Status = metav1.ConditionTrue
-		failedCondition.Message = "Failed to reconcile plugins: " + strings.Join(failedPlugins, ", ")
+		preset.SetCondition(greenhousev1alpha1.TrueCondition(greenhousev1alpha1.PluginFailedCondition, "", "Failed to reconcile plugins: "+strings.Join(failedPlugins, ", ")))
 	default:
-		failedCondition.Status = metav1.ConditionFalse
-		failedCondition.Message = ""
+		preset.SetCondition(greenhousev1alpha1.FalseCondition(greenhousev1alpha1.PluginFailedCondition, "", ""))
 	}
-	return skippedCondition, failedCondition, utilerrors.NewAggregate(allErrs)
+	return utilerrors.NewAggregate(allErrs)
 }
 
 func shouldSkipPlugin(plugin *greenhousev1alpha1.Plugin, preset *greenhousev1alpha1.PluginPreset, definition *greenhousev1alpha1.PluginDefinition) bool {
