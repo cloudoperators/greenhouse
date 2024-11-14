@@ -31,11 +31,10 @@ import (
 const remoteClusterName = "remote-plugin-cluster"
 
 var (
-	env          *shared.TestEnv
-	ctx          context.Context
-	adminClient  client.Client
-	remoteClient client.Client
-	//	remoteRestClient *clientutil.RestClientGetter
+	env           *shared.TestEnv
+	ctx           context.Context
+	adminClient   client.Client
+	remoteClient  client.Client
 	testStartTime time.Time
 )
 
@@ -55,7 +54,6 @@ var _ = BeforeSuite(func() {
 	remoteClient, err = clientutil.NewK8sClientFromRestClientGetter(env.RemoteRestClientGetter)
 	Expect(err).ToNot(HaveOccurred(), "there should be no error creating the remote client")
 	env = env.WithOrganization(ctx, adminClient, "./testdata/organization.yaml")
-	// remoteRestClient = env.GetRESTClient(e2e.RemoteRESTClient)
 	testStartTime = time.Now().UTC()
 })
 
@@ -71,11 +69,10 @@ var _ = Describe("Plugin E2E", Ordered, func() {
 	})
 	It("should have a cluster resource created", func() {
 		By("verifying if the cluster resource is created")
-		Eventually(func(g Gomega) bool {
+		Eventually(func(g Gomega) {
 			err := adminClient.Get(ctx, client.ObjectKey{Name: remoteClusterName, Namespace: env.TestNamespace}, &greenhousev1alpha1.Cluster{})
 			g.Expect(err).ToNot(HaveOccurred())
-			return true
-		}).Should(BeTrue(), "cluster resource should be created")
+		}).Should(Succeed(), "cluster resource should be created")
 
 		By("verifying the cluster status is ready")
 		shared.ClusterIsReady(ctx, adminClient, remoteClusterName, env.TestNamespace)
