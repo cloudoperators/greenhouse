@@ -63,7 +63,7 @@ var _ = Describe("Validate Role Admission", func() {
 	})
 
 	It("should not allow creating a TeamRole with both Rules and AggregationRule set", func() {
-		teamRole = setup.NewTeamRole(test.Ctx, "test-role", test.WithRules(rules), test.WithAggregationRule(aggregationRule), test.WithRules(rules))
+		teamRole = test.NewTeamRole(test.Ctx, "test-role", setup.Namespace(), test.WithRules(rules), test.WithAggregationRule(aggregationRule), test.WithRules(rules))
 
 		err := test.K8sClient.Create(test.Ctx, teamRole)
 		Expect(err).To(HaveOccurred(), "there should be an error creating the role with both rules and aggregation rule set")
