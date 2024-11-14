@@ -77,7 +77,57 @@ func (r *OrganizationReconciler) EnsureCreated(ctx context.Context, object lifec
 		return ctrl.Result{}, lifecycle.Failed, err
 	}
 
+	if err := r.reconcileRBAC(ctx, org); err != nil {
+		return ctrl.Result{}, lifecycle.Failed, err
+	}
+
 	return ctrl.Result{}, lifecycle.Success, nil
+}
+
+func (r *OrganizationReconciler) reconcileRBAC(ctx context.Context, org *greenhousesapv1alpha1.Organization) error {
+	// NOTE: The below code is intentionally rather explicit for transparency reasons as several Kubernetes resources
+	// are involved granting permissions on both cluster and namespace level based on organization, team membership and roles.
+	// The PolicyRules can be found in the pkg/rbac/role.
+
+	// RBAC for organization admins for cluster- and namespace-scoped resources.
+	if err := r.reconcileClusterRole(ctx, org, admin); err != nil {
+		return err
+	}
+	if err := r.reconcileClusterRoleBinding(ctx, org, admin); err != nil {
+		return err
+	}
+	if err := r.reconcileRole(ctx, org, admin); err != nil {
+		return err
+	}
+	if err := r.reconcileRoleBinding(ctx, org, admin); err != nil {
+		return err
+	}
+
+	// RBAC for organization members for cluster- and namespace-scoped resources.
+	if err := r.reconcileClusterRole(ctx, org, member); err != nil {
+		return err
+	}
+	if err := r.reconcileClusterRoleBinding(ctx, org, member); err != nil {
+		return err
+	}
+	if err := r.reconcileRole(ctx, org, member); err != nil {
+		return err
+	}
+	if err := r.reconcileRoleBinding(ctx, org, member); err != nil {
+		return err
+	}
+
+	// RBAC roles for organization cluster admins to access namespace-scoped resources.
+	if err := r.reconcileRole(ctx, org, clusterAdmin); err != nil {
+		return err
+	}
+
+	// RBAC roles for organization plugin admins to access namespace-scoped resources.
+	if err := r.reconcileRole(ctx, org, pluginAdmin); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (r *OrganizationReconciler) reconcileNamespace(ctx context.Context, org *greenhousesapv1alpha1.Organization) error {

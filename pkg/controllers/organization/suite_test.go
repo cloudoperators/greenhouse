@@ -30,7 +30,7 @@ var _ = BeforeSuite(func() {
 	groupsServer = scim.ReturnDefaultGroupResponseMockServer()
 
 	test.RegisterController("organizationController", (&organizationpkg.OrganizationReconciler{}).SetupWithManager)
-	test.RegisterController("organizationRBAC", (&organizationpkg.RBACReconciler{}).SetupWithManager)
+	//test.RegisterController("organizationRBAC", (&organizationpkg.RBACReconciler{}).SetupWithManager)
 	test.RegisterController("organizationServiceProxy", (&organizationpkg.ServiceProxyReconciler{}).SetupWithManager)
 	test.RegisterController("teamRoleSeeder", (&organizationpkg.TeamRoleSeederReconciler{}).SetupWithManager)
 	test.RegisterWebhook("orgWebhook", admission.SetupOrganizationWebhookWithManager)

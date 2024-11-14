@@ -7,18 +7,13 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
-	"k8s.io/client-go/tools/record"
-	ctrl "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
 	greenhouseapisv1alpha1 "github.com/cloudoperators/greenhouse/pkg/apis/greenhouse/v1alpha1"
 	"github.com/cloudoperators/greenhouse/pkg/clientutil"
-	"github.com/cloudoperators/greenhouse/pkg/lifecycle"
 	"github.com/cloudoperators/greenhouse/pkg/rbac"
 )
 
@@ -31,92 +26,7 @@ const (
 	pluginAdmin
 )
 
-// RBACReconciler reconciles an Organization object and manages RBAC permissions based on organization and team membership.
-type RBACReconciler struct {
-	client.Client
-	recorder record.EventRecorder
-}
-
-//+kubebuilder:rbac:groups=greenhouse.sap,resources=organizations,verbs=get;list;watch;create;update;patch
-//+kubebuilder:rbac:groups=greenhouse.sap,resources=organizations/status,verbs=get;update;patch
-//+kubebuilder:rbac:groups=greenhouse.sap,resources=organizations/finalizers,verbs=update
-//+kubebuilder:rbac:groups="rbac.authorization.k8s.io",resources=clusterroles;clusterrolebindings;roles;rolebindings,verbs=get;list;watch;create;update;patch
-//+kubebuilder:rbac:groups="",resources=events,verbs=get;list;watch;create;update;patch;delete
-
-// SetupWithManager sets up the controller with the Manager.
-func (r *RBACReconciler) SetupWithManager(name string, mgr ctrl.Manager) error {
-	r.Client = mgr.GetClient()
-	r.recorder = mgr.GetEventRecorderFor(name)
-	return ctrl.NewControllerManagedBy(mgr).
-		Named(name).
-		For(&greenhouseapisv1alpha1.Organization{}).
-		Owns(&rbacv1.Role{}).
-		Owns(&rbacv1.RoleBinding{}).
-		Owns(&rbacv1.ClusterRole{}).
-		Owns(&rbacv1.ClusterRoleBinding{}).
-		Complete(r)
-}
-
-func (r *RBACReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	return lifecycle.Reconcile(ctx, r.Client, req.NamespacedName, &greenhouseapisv1alpha1.Organization{}, r, noStatus())
-}
-
-func (r *RBACReconciler) EnsureDeleted(_ context.Context, _ lifecycle.RuntimeObject) (ctrl.Result, lifecycle.ReconcileResult, error) {
-	return ctrl.Result{}, lifecycle.Success, nil // nothing to do in that case
-}
-
-func (r *RBACReconciler) EnsureCreated(ctx context.Context, object lifecycle.RuntimeObject) (ctrl.Result, lifecycle.ReconcileResult, error) {
-	org, ok := object.(*greenhouseapisv1alpha1.Organization)
-	if !ok {
-		return ctrl.Result{}, lifecycle.Failed, errors.Errorf("RuntimeObject has incompatible type.")
-	}
-
-	// NOTE: The below code is intentionally rather explicit for transparency reasons as several Kubernetes resources
-	// are involved granting permissions on both cluster and namespace level based on organization, team membership and roles.
-	// The PolicyRules can be found in the pkg/rbac/role.
-
-	// RBAC for organization admins for cluster- and namespace-scoped resources.
-	if err := r.reconcileClusterRole(ctx, org, admin); err != nil {
-		return ctrl.Result{}, lifecycle.Failed, err
-	}
-	if err := r.reconcileClusterRoleBinding(ctx, org, admin); err != nil {
-		return ctrl.Result{}, lifecycle.Failed, err
-	}
-	if err := r.reconcileRole(ctx, org, admin); err != nil {
-		return ctrl.Result{}, lifecycle.Failed, err
-	}
-	if err := r.reconcileRoleBinding(ctx, org, admin); err != nil {
-		return ctrl.Result{}, lifecycle.Failed, err
-	}
-
-	// RBAC for organization members for cluster- and namespace-scoped resources.
-	if err := r.reconcileClusterRole(ctx, org, member); err != nil {
-		return ctrl.Result{}, lifecycle.Failed, err
-	}
-	if err := r.reconcileClusterRoleBinding(ctx, org, member); err != nil {
-		return ctrl.Result{}, lifecycle.Failed, err
-	}
-	if err := r.reconcileRole(ctx, org, member); err != nil {
-		return ctrl.Result{}, lifecycle.Failed, err
-	}
-	if err := r.reconcileRoleBinding(ctx, org, member); err != nil {
-		return ctrl.Result{}, lifecycle.Failed, err
-	}
-
-	// RBAC roles for organization cluster admins to access namespace-scoped resources.
-	if err := r.reconcileRole(ctx, org, clusterAdmin); err != nil {
-		return ctrl.Result{}, lifecycle.Failed, err
-	}
-
-	// RBAC roles for organization plugin admins to access namespace-scoped resources.
-	if err := r.reconcileRole(ctx, org, pluginAdmin); err != nil {
-		return ctrl.Result{}, lifecycle.Failed, err
-	}
-
-	return ctrl.Result{}, lifecycle.Success, nil
-}
-
-func (r *RBACReconciler) reconcileClusterRole(ctx context.Context, org *greenhouseapisv1alpha1.Organization, group userGroup) error {
+func (r *OrganizationReconciler) reconcileClusterRole(ctx context.Context, org *greenhouseapisv1alpha1.Organization, group userGroup) error {
 	var clusterRoleName string
 	var clusterRoleRules []rbacv1.PolicyRule
 
