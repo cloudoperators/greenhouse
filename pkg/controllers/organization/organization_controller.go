@@ -34,7 +34,8 @@ var (
 // OrganizationReconciler reconciles an Organization object
 type OrganizationReconciler struct {
 	client.Client
-	recorder record.EventRecorder
+	recorder  record.EventRecorder
+	Namespace string
 }
 
 //+kubebuilder:rbac:groups=greenhouse.sap,resources=organizations,verbs=get;list;watch;create;update;patch;delete
@@ -48,6 +49,8 @@ type OrganizationReconciler struct {
 //+kubebuilder:rbac:groups="",resources=events,verbs=get;list;watch;create;update;patch
 //+kubebuilder:rbac:groups="",resources=namespaces,verbs=get;list;watch;create;update;patch
 //+kubebuilder:rbac:groups=greenhouse.sap,resources=organizations,verbs=get;list;watch
+//+kubebuilder:rbac:groups=dex.coreos.com,resources=connectors;oauth2clients,verbs=get;list;watch;create;update;patch
+//+kubebuilder:rbac:groups="",resources=secrets,verbs=get;list;watch
 
 // SetupWithManager sets up the controller with the Manager.
 func (r *OrganizationReconciler) SetupWithManager(name string, mgr ctrl.Manager) error {
@@ -60,6 +63,9 @@ func (r *OrganizationReconciler) SetupWithManager(name string, mgr ctrl.Manager)
 		Owns(&greenhousesapv1alpha1.Team{}).
 		Owns(&greenhousesapv1alpha1.TeamRole{}).
 		Owns(&greenhousesapv1alpha1.Plugin{}).
+		Watches(&corev1.Secret{},
+			handler.EnqueueRequestsFromMapFunc(r.enqueueOrganizationForReferencedSecret),
+			builder.WithPredicates(clientutil.PredicateHasOICDConfigured())).
 		Watches(&greenhousesapv1alpha1.PluginDefinition{},
 			handler.EnqueueRequestsFromMapFunc(r.enqueueAllOrganizationsForServiceProxyPluginDefinition),
 			builder.WithPredicates(predicate.And(
@@ -103,6 +109,16 @@ func (r *OrganizationReconciler) EnsureCreated(ctx context.Context, object lifec
 
 	if err := r.reconcileServiceProxy(ctx, org); err != nil {
 		return ctrl.Result{}, lifecycle.Failed, err
+	}
+
+	if org.Spec.Authentication != nil && org.Spec.Authentication.OIDCConfig != nil {
+		if err := r.reconcileDexConnector(ctx, org); err != nil {
+			return ctrl.Result{}, lifecycle.Failed, err
+		}
+
+		if err := r.reconcileOAuth2Client(ctx, org); err != nil {
+			return ctrl.Result{}, lifecycle.Failed, err
+		}
 	}
 
 	if err := r.reconcileAdminTeam(ctx, org); err != nil {
