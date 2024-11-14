@@ -25,6 +25,7 @@ import (
 	"github.com/cloudoperators/greenhouse/e2e/shared"
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/pkg/apis/greenhouse/v1alpha1"
 	"github.com/cloudoperators/greenhouse/pkg/clientutil"
+	"github.com/cloudoperators/greenhouse/pkg/test"
 )
 
 const remoteClusterName = "remote-plugin-cluster"
@@ -94,11 +95,11 @@ var _ = Describe("Plugin E2E", Ordered, func() {
 
 		By("Creating the plugin")
 		// Creating plugin
-		testPlugin := shared.PreparePlugin("test-nginx-plugin", env.TestNamespace,
-			shared.WithPluginDefinition(testPluginDefinition.Name),
-			shared.WithCluster(remoteClusterName),
-			shared.WithReleaseNamespace(env.TestNamespace),
-			shared.WithPluginOptionValue("replicaCount", &apiextensionsv1.JSON{Raw: []byte("1")}, nil))
+		testPlugin := fixtures.PreparePlugin("test-nginx-plugin", env.TestNamespace,
+			test.WithPluginDefinition(testPluginDefinition.Name),
+			test.WithCluster(remoteClusterName),
+			test.WithReleaseNamespace(env.TestNamespace),
+			test.WithPluginOptionValue("replicaCount", &apiextensionsv1.JSON{Raw: []byte("1")}, nil))
 		err = adminClient.Create(ctx, testPlugin)
 		Expect(err).ToNot(HaveOccurred())
 
@@ -136,7 +137,7 @@ var _ = Describe("Plugin E2E", Ordered, func() {
 			namespacedName := types.NamespacedName{Name: testPlugin.Name, Namespace: env.TestNamespace}
 			err = adminClient.Get(ctx, namespacedName, testPlugin)
 			g.Expect(err).NotTo(HaveOccurred())
-			shared.SetOptionValueForPlugin(testPlugin, "replicaCount", "2")
+			test.SetOptionValueForPlugin(testPlugin, "replicaCount", "2")
 			err = adminClient.Update(ctx, testPlugin)
 			g.Expect(err).NotTo(HaveOccurred())
 		}).Should(Succeed())
@@ -153,7 +154,7 @@ var _ = Describe("Plugin E2E", Ordered, func() {
 		}).Should(Succeed())
 
 		By("Deleting plugin")
-		shared.EventuallyDeleted(ctx, adminClient, testPlugin)
+		test.EventuallyDeleted(ctx, adminClient, testPlugin)
 
 		By("Check, is deployment deleted")
 		Eventually(func(g Gomega) bool {
@@ -164,6 +165,6 @@ var _ = Describe("Plugin E2E", Ordered, func() {
 		}).Should(BeTrue())
 
 		By("Deleting plugin definition")
-		shared.EventuallyDeleted(ctx, adminClient, testPluginDefinition)
+		test.EventuallyDeleted(ctx, adminClient, testPluginDefinition)
 	})
 })
