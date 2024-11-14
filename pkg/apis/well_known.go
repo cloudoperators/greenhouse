@@ -17,10 +17,8 @@ const (
 	// FinalizerCleanupPluginPreset is used to invoke the PluginPreset cleanup logic.
 	FinalizerCleanupPluginPreset = "greenhouse.sap/pluginpreset"
 
-	// FinalizerCleanupCluster is used to invoke the cleanup of a registered cluster.
-	FinalizerCleanupCluster = "greenhouse.sap/cluster"
-
 	// FinalizerCleanupPropagatedResource is used to invoke the cleanup of remote resources.
+	// TODO: Remove this finalizer after standardization is complete
 	FinalizerCleanupPropagatedResource = "greenhouse.sap/propagatedResource"
 
 	// SecretTypeKubeConfig specifies a secret containing the kubeconfig for a cluster.
@@ -45,9 +43,6 @@ const (
 	// LabelKeyCluster is used to identify corresponding Cluster for the resource.
 	LabelKeyCluster = "greenhouse.sap/cluster"
 
-	// LabelAccessMode is used to force the access mode for a cluster.
-	LabelAccessMode = "greenhouse.sap/access-mode"
-
 	// LabelKeyExposeService is applied to services that are part of a PluginDefinitions Helm chart to expose them via the central Greenhouse infrastructure.
 	LabelKeyExposeService = "greenhouse.sap/expose"
 
@@ -57,12 +52,6 @@ const (
 
 // TeamRole and TeamRoleBinding constants
 const (
-	// FinalizerCleanupTeamRoleBinding is used to invoke the RoleBinding release cleanup logic.
-	FinalizerCleanupTeamRoleBinding = "greenhouse.sap/rolebinding"
-
-	// FinalizerCleanupRole is used to invoke the Role release cleanup logic.
-	FinalizerCleanupRole = "greenhouse.sap/role"
-
 	// LabelKeyRoleBinding is the key of the label that is used to identify the RoleBinding.
 	LabelKeyRoleBinding = "greenhouse.sap/rolebinding"
 
