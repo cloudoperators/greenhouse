@@ -42,10 +42,12 @@ type OrganizationReconciler struct {
 //+kubebuilder:rbac:groups=greenhouse.sap,resources=organizations/finalizers,verbs=update
 //+kubebuilder:rbac:groups=greenhouse.sap,resources=teams,verbs=get;watch;create;update;patch
 //+kubebuilder:rbac:groups="rbac.authorization.k8s.io",resources=clusterroles;clusterrolebindings;roles;rolebindings,verbs=get;list;watch;create;update;patch
-//+kubebuilder:rbac:groups=greenhouse.sap,resources=plugins,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=greenhouse.sap,resources=plugindefinitions,verbs=get;list;watch
+//+kubebuilder:rbac:groups=greenhouse.sap,resources=plugins,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups=greenhouse.sap,resources=teamroles,verbs=get;list;watch;create;update;patch
 //+kubebuilder:rbac:groups="",resources=events,verbs=get;list;watch;create;update;patch
 //+kubebuilder:rbac:groups="",resources=namespaces,verbs=get;list;watch;create;update;patch
+//+kubebuilder:rbac:groups=greenhouse.sap,resources=organizations,verbs=get;list;watch
 
 // SetupWithManager sets up the controller with the Manager.
 func (r *OrganizationReconciler) SetupWithManager(name string, mgr ctrl.Manager) error {
@@ -56,6 +58,7 @@ func (r *OrganizationReconciler) SetupWithManager(name string, mgr ctrl.Manager)
 		For(&greenhousesapv1alpha1.Organization{}).
 		Owns(&corev1.Namespace{}).
 		Owns(&greenhousesapv1alpha1.Team{}).
+		Owns(&greenhousesapv1alpha1.TeamRole{}).
 		Owns(&greenhousesapv1alpha1.Plugin{}).
 		Watches(&greenhousesapv1alpha1.PluginDefinition{},
 			handler.EnqueueRequestsFromMapFunc(r.enqueueAllOrganizationsForServiceProxyPluginDefinition),
@@ -94,7 +97,15 @@ func (r *OrganizationReconciler) EnsureCreated(ctx context.Context, object lifec
 		return ctrl.Result{}, lifecycle.Failed, err
 	}
 
+	if err := r.reconcileDefaultTeamRoles(ctx, org); err != nil {
+		return ctrl.Result{}, lifecycle.Failed, err
+	}
+
 	if err := r.reconcileServiceProxy(ctx, org); err != nil {
+		return ctrl.Result{}, lifecycle.Failed, err
+	}
+
+	if err := r.reconcileAdminTeam(ctx, org); err != nil {
 		return ctrl.Result{}, lifecycle.Failed, err
 	}
 

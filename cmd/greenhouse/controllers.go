@@ -24,7 +24,7 @@ var knownControllers = map[string]func(controllerName string, mgr ctrl.Manager) 
 	// "organizationRBAC":           (&organizationcontrollers.RBACReconciler{}).SetupWithManager,
 	"organizationDEX": startOrganizationDexReconciler,
 	// "organizationServiceProxy":   (&organizationcontrollers.ServiceProxyReconciler{}).SetupWithManager,
-	"organizationTeamRoleSeeder": (&organizationcontrollers.TeamRoleSeederReconciler{}).SetupWithManager,
+	// "organizationTeamRoleSeeder": (&organizationcontrollers.TeamRoleSeederReconciler{}).SetupWithManager,
 
 	// Team controllers.
 	"teamPropagation": (&teamcontrollers.TeamPropagationReconciler{}).SetupWithManager,
