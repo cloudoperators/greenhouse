@@ -12,7 +12,5 @@ import (
 // noStatus - empty noStatus func to avoid continuous reconciliations for org controllers that don't implement conditions
 // TODO: remove this once organization controllers are merged
 func noStatus() lifecycle.Conditioner {
-	return func(_ context.Context, _ lifecycle.RuntimeObject) {
-		return
-	}
+	return func(_ context.Context, _ lifecycle.RuntimeObject) {}
 }
