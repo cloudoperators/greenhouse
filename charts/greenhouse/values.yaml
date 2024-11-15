@@ -33,16 +33,6 @@ teams:
   #   description:
   #   mappedIdPGroup:
 
-# toggles logshipping subchart
-logshipping:
-  enabled: false
-  fluent-bit:
-    image:
-      repository: "cr.fluentbit.io/fluent/fluent-bit"
-    hotReload:
-      image:
-        repository: "ghcr.io/jimmidyson/configmap-reload"
-    additionalValues: []
 
 ### Configure several Plugins for the Greenhouse organization below.
 
