@@ -4,7 +4,13 @@
 package v1alpha1
 
 import (
+	"context"
 	"fmt"
+
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 // HelmChartReference references a Helm Chart in a chart repository.
@@ -47,4 +53,53 @@ type UIApplicationReference struct {
 
 	// Version of the frontend application.
 	Version string `json:"version"`
+}
+
+type ClusterSelector struct {
+	Name          string               `json:"clusterName,omitempty"`
+	LabelSelector metav1.LabelSelector `json:"labelSelector,omitempty"`
+	ExcludeList   []string             `json:"excludeList,omitempty"`
+}
+
+// ListClusters returns the list of Clusters that match the ClusterSelector's Name or LabelSelector with applied ExcludeList.
+// If the Name or LabelSelector does not return any cluster, an empty ClusterList is returned without error
+func (cs *ClusterSelector) ListClusters(ctx context.Context, c client.Client, namespace string) (*ClusterList, error) {
+	if cs.Name != "" {
+		cluster := new(Cluster)
+		err := c.Get(ctx, types.NamespacedName{Name: cs.Name, Namespace: namespace}, cluster)
+		if err != nil {
+			if apierrors.IsNotFound(err) {
+				return &ClusterList{}, nil
+			}
+			return nil, err
+		}
+		return &ClusterList{Items: []Cluster{*cluster}}, nil
+	}
+
+	labelSelector, err := metav1.LabelSelectorAsSelector(&cs.LabelSelector)
+	if err != nil {
+		return nil, err
+	}
+	var clusters = new(ClusterList)
+	if err := c.List(ctx, clusters, client.InNamespace(namespace), client.MatchingLabelsSelector{Selector: labelSelector}); err != nil {
+		return nil, err
+	}
+
+	filteredClusters := make([]Cluster, 0)
+	for _, cluster := range clusters.Items {
+		shouldExclude := false
+		for _, excludedClusterName := range cs.ExcludeList {
+			if cluster.Name == excludedClusterName {
+				shouldExclude = true
+				break
+			}
+		}
+		if shouldExclude {
+			continue
+		}
+		filteredClusters = append(filteredClusters, cluster)
+	}
+	clusters.Items = filteredClusters
+
+	return clusters, nil
 }
