@@ -1,0 +1,42 @@
+apiVersion: greenhouse.sap/v1alpha1
+kind: PluginDefinition
+metadata:
+  name: nginx-18.1.7
+spec:
+  description: TestPluginDefinition
+  version: 18.1.7
+  helmChart:
+    name: bitnamicharts/nginx
+    repository: oci://registry-1.docker.io
+    version: 18.1.7
+  options:
+    - name: autoscaling.enabled
+      description: autoscaling.enabled
+      required: false
+      type: bool
+      default: false
+    - name: autoscaling.maxReplicas
+      description: autoscaling.maxReplicas
+      required: false
+      type: string
+      default: ""
+    - name: autoscaling.minReplicas
+      description: autoscaling.minReplicas
+      required: false
+      type: string
+      default: ""
+    - name: containerSecurityContext.enabled
+      description: containerSecurityContext.enabled
+      required: false
+      type: bool
+      default: true
+    - name: replicaCount
+      description: replicaCount
+      required: false
+      type: int
+      default: 1
+    - name: podSecurityContext.enabled
+      description: podSecurityContext.enabled
+      required: false
+      type: bool
+      default: true
