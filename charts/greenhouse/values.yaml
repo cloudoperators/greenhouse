@@ -33,6 +33,9 @@ teams:
   #   description:
   #   mappedIdPGroup:
 
+# demo organization
+demo:
+  enabled: false
 
 ### Configure several Plugins for the Greenhouse organization below.
 
