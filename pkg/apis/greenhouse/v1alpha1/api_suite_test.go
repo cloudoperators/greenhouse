@@ -6,9 +6,10 @@ package v1alpha1_test
 import (
 	"testing"
 
-	"github.com/cloudoperators/greenhouse/pkg/test"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+
+	"github.com/cloudoperators/greenhouse/pkg/test"
 )
 
 func TestAPI(t *testing.T) {
