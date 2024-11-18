@@ -5,9 +5,8 @@ ARG TARGETOS
 ARG TARGETARCH
 
 WORKDIR /workspace
-
 COPY . .
-
+RUN go mod vendor
 # Build greenhouse operator and tooling.
 RUN CGO_ENABLED=0 GOOS=${TARGETOS:-linux} GOARCH=${TARGETARCH} go build -v -a -o greenhouse ./cmd/greenhouse
 
