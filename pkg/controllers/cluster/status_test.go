@@ -150,7 +150,7 @@ var _ = Describe("Cluster status", Ordered, func() {
 			g.Expect(validCluster.Status.Nodes["test-node"].Conditions).ToNot(BeEmpty())
 			g.Expect(validCluster.Status.Nodes["test-node"].Ready).To(BeFalse())
 			return true
-		}).WithTimeout(2 * time.Minute).Should(BeTrue())
+		}, 2*time.Minute).Should(BeTrue()) // TODO: fix the this test as it does not need to wait for 2 minutes
 
 		By("updating the node ready condition")
 		node := &corev1.Node{}

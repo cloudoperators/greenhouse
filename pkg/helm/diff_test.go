@@ -242,7 +242,7 @@ var _ = Describe("Ensure helm diff does not leak secrets", Ordered, func() {
 		secretID := types.NamespacedName{Name: secretName, Namespace: namespace}
 		Eventually(func() error {
 			return test.K8sClient.Get(test.Ctx, secretID, secret)
-		}).Should(BeNil(), "the secret should be created")
+		}).Should(Succeed(), "the secret should be created")
 
 		stringSecret = &corev1.Secret{
 			TypeMeta: metav1.TypeMeta{
@@ -266,7 +266,7 @@ var _ = Describe("Ensure helm diff does not leak secrets", Ordered, func() {
 		secretID = types.NamespacedName{Name: stringSecretName, Namespace: namespace}
 		Eventually(func() error {
 			return test.K8sClient.Get(test.Ctx, secretID, stringSecret)
-		}).Should(BeNil(), "the stringData secret should be created")
+		}).Should(Succeed(), "the stringData secret should be created")
 	})
 	When("a secret is changed", func() {
 		It("should redact the original and changed values under data", func() {

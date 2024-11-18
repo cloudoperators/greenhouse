@@ -1,0 +1,22 @@
+{
+    "categories": [
+      {
+        "title": "## 📦 Dependency updates",
+        "labels": ["dependency"]
+      }
+    ],
+    "sort": {
+      "order": "ASC",
+      "on_property": "mergedAt"
+    },
+    "label_extractor": [
+      {
+        "pattern": "renovate\\[bot\\]",
+        "on_property": "author",
+        "method": "replace",
+        "target": "dependency"
+      }
+    ],
+    "template": "## 🚀What's Changed\n#{{UNCATEGORIZED}}\n\n#{{CHANGELOG}}\n\n**Full Changelog**: #{{RELEASE_DIFF}}",
+    "pr_template": "- #{{TITLE}} by @#{{AUTHOR}} in: ##{{NUMBER}}"
+}

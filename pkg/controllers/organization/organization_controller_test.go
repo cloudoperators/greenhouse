@@ -9,6 +9,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/client-go/util/retry"
 
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/pkg/apis/greenhouse/v1alpha1"
 	"github.com/cloudoperators/greenhouse/pkg/test"
@@ -72,10 +73,12 @@ var _ = Describe("Test Organization reconciliation", Ordered, func() {
 			}).Should(Succeed(), "Admin team should be created with valid IDPGroup")
 
 			By("updating MappedOrgAdminIDPGroup in Organization")
-			err := setup.Get(test.Ctx, types.NamespacedName{Name: testOrgName, Namespace: ""}, testOrg)
-			Expect(err).ToNot(HaveOccurred(), "there should be no error getting the organization")
-			testOrg.Spec.MappedOrgAdminIDPGroup = otherValidIdpGroupName
-			err = setup.Update(test.Ctx, testOrg)
+			err := retry.RetryOnConflict(retry.DefaultRetry, func() error {
+				err := setup.Get(test.Ctx, types.NamespacedName{Name: testOrgName}, testOrg)
+				Expect(err).ToNot(HaveOccurred(), "there should be no error getting the Organization")
+				testOrg.Spec.MappedOrgAdminIDPGroup = otherValidIdpGroupName
+				return setup.Update(test.Ctx, testOrg)
+			})
 			Expect(err).ToNot(HaveOccurred(), "there must be no error updating the organization")
 
 			Eventually(func(g Gomega) {
@@ -226,10 +229,12 @@ var _ = Describe("Test Organization reconciliation", Ordered, func() {
 			createSecretForSCIMConfig(testOrgName)
 
 			By("setting labels on Organization to trigger reconciliation")
-			err = setup.Get(test.Ctx, types.NamespacedName{Name: testOrgName}, testOrg)
-			Expect(err).ToNot(HaveOccurred(), "there should be no error getting the Organization")
-			testOrg.Labels = map[string]string{"test": "label"}
-			err = setup.Update(test.Ctx, testOrg)
+			err = retry.RetryOnConflict(retry.DefaultRetry, func() error {
+				err := setup.Get(test.Ctx, types.NamespacedName{Name: testOrgName}, testOrg)
+				Expect(err).ToNot(HaveOccurred(), "there should be no error getting the Organization")
+				testOrg.Labels = map[string]string{"test": "label"}
+				return setup.Update(test.Ctx, testOrg)
+			})
 			Expect(err).ToNot(HaveOccurred(), "there should be no error updating the Organization")
 
 			By("checking Organization status")
