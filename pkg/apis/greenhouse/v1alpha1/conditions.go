@@ -132,12 +132,28 @@ func (sc *StatusConditions) SetConditions(conditionsToSet ...Condition) {
 				}
 				break
 			}
+
+			// Remove the deprecated NoHelmChartTestFailures condition if it exists
+			if currentCondition.Type == NoHelmChartTestFailuresCondition {
+				sc.Conditions = removeCondition(sc.Conditions, NoHelmChartTestFailuresCondition)
+			}
 		}
 		// if the condition does not exist, append it
 		if !exists {
 			sc.Conditions = append(sc.Conditions, conditionToSet)
 		}
 	}
+}
+
+// removeCondition removes the condition with the given type from the list of conditions.
+func removeCondition(conditions []Condition, conditionType ConditionType) []Condition {
+	var newConditions []Condition
+	for _, condition := range conditions {
+		if condition.Type != conditionType {
+			newConditions = append(newConditions, condition)
+		}
+	}
+	return newConditions
 }
 
 // GetConditionByType returns the condition of the given type, if it exists.
