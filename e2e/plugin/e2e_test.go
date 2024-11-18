@@ -15,11 +15,13 @@ import (
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/gstruct"
 	appsv1 "k8s.io/api/apps/v1"
+	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
+	"github.com/cloudoperators/greenhouse/e2e/plugin/fixtures"
 	"github.com/cloudoperators/greenhouse/e2e/shared"
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/pkg/apis/greenhouse/v1alpha1"
 	"github.com/cloudoperators/greenhouse/pkg/clientutil"
@@ -78,9 +80,7 @@ var _ = Describe("Plugin E2E", Ordered, func() {
 
 	It("should deploy the plugin", func() {
 		By("creating plugin definition")
-		testPluginDefinition, loadResErr := shared.LoadResource[greenhousev1alpha1.PluginDefinition]("./testdata/plugindefinition.yaml")
-		testPluginDefinition.Namespace = env.TestNamespace
-		Expect(loadResErr).ToNot(HaveOccurred(), "there should be no error loading the plugin definition")
+		testPluginDefinition := fixtures.PrepareNginxPluginDefinition(env.TestNamespace)
 		err := adminClient.Create(ctx, testPluginDefinition)
 		Expect(err).ToNot(HaveOccurred())
 
@@ -91,9 +91,12 @@ var _ = Describe("Plugin E2E", Ordered, func() {
 		Expect(len(pluginDefinitionList.Items)).To(BeEquivalentTo(1))
 
 		By("Creating the plugin")
-		testPlugin, err := shared.LoadResource[greenhousev1alpha1.Plugin]("./testdata/plugin.yaml")
-		testPlugin.Namespace = env.TestNamespace
-		Expect(err).ToNot(HaveOccurred())
+		// Creating plugin
+		testPlugin := fixtures.PreparePlugin("test-nginx-plugin", env.TestNamespace,
+			test.WithPluginDefinition(testPluginDefinition.Name),
+			test.WithCluster(remoteClusterName),
+			test.WithReleaseNamespace(env.TestNamespace),
+			test.WithPluginOptionValue("replicaCount", &apiextensionsv1.JSON{Raw: []byte("1")}, nil))
 		err = adminClient.Create(ctx, testPlugin)
 		Expect(err).ToNot(HaveOccurred())
 
