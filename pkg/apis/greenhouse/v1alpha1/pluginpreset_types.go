@@ -61,6 +61,14 @@ type PluginPreset struct {
 	Status PluginPresetStatus `json:"status,omitempty"`
 }
 
+func (c *PluginPreset) GetConditions() StatusConditions {
+	return c.Status.StatusConditions
+}
+
+func (c *PluginPreset) SetCondition(condition Condition) {
+	c.Status.StatusConditions.SetConditions(condition)
+}
+
 //+kubebuilder:object:root=true
 
 // PluginPresetList contains a list of PluginPresets
