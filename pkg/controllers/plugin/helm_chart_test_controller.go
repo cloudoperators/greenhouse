@@ -84,11 +84,11 @@ func (r *HelmChartTestReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 
 	pluginStatus := initPluginStatus(plugin)
 
-	HelmChartTestSucceeded := *pluginStatus.GetConditionByType(greenhousev1alpha1.HelmChartTestSucceededCondition)
+	HelmChartTestSucceededCondition := *pluginStatus.GetConditionByType(greenhousev1alpha1.HelmChartTestSucceededCondition)
 
 	defer func() {
 		_, err := clientutil.PatchStatus(ctx, r.Client, plugin, func() error {
-			plugin.Status.StatusConditions.SetConditions(HelmChartTestSucceeded)
+			plugin.Status.StatusConditions.SetConditions(HelmChartTestSucceededCondition)
 			return nil
 		})
 		if err != nil {
@@ -119,12 +119,12 @@ func (r *HelmChartTestReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 		"namespace": plugin.Namespace,
 	}
 	if err != nil {
-		HelmChartTestSucceeded.Status = metav1.ConditionFalse
+		HelmChartTestSucceededCondition.Status = metav1.ConditionFalse
 		errStr := fmt.Sprintf("Helm Chart testing failed: %s. To debug, please run `helm test %s`command in your remote cluster %s.", err.Error(), plugin.Name, plugin.Spec.ClusterName)
 		errStr = strings.ReplaceAll(errStr, "\n", "")
 		errStr = strings.ReplaceAll(errStr, "\t", " ")
 		errStr = strings.ReplaceAll(errStr, "*", "")
-		HelmChartTestSucceeded.Message = errStr
+		HelmChartTestSucceededCondition.Message = errStr
 
 		prometheusLabels["result"] = "Error"
 		chartTestRunsTotal.With(prometheusLabels).Inc()
@@ -133,14 +133,14 @@ func (r *HelmChartTestReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 	}
 
 	if !hasHelmChartTest {
-		HelmChartTestSucceeded.Status = metav1.ConditionTrue
-		HelmChartTestSucceeded.Message = "No Helm Chart Tests defined by the PluginDefinition"
+		HelmChartTestSucceededCondition.Status = metav1.ConditionTrue
+		HelmChartTestSucceededCondition.Message = "No Helm Chart Tests defined by the PluginDefinition"
 
 		prometheusLabels["result"] = "NoTests"
 		chartTestRunsTotal.With(prometheusLabels).Inc()
 	} else {
-		HelmChartTestSucceeded.Status = metav1.ConditionTrue
-		HelmChartTestSucceeded.Message = "Helm Chart Test is successful"
+		HelmChartTestSucceededCondition.Status = metav1.ConditionTrue
+		HelmChartTestSucceededCondition.Message = "Helm Chart Test is successful"
 
 		prometheusLabels["result"] = "Success"
 		chartTestRunsTotal.With(prometheusLabels).Inc()
