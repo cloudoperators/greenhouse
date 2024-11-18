@@ -55,10 +55,14 @@ type UIApplicationReference struct {
 	Version string `json:"version"`
 }
 
+// ClusterSelector specifies a selector for clusters by name or by label with the option to exclude specific clusters.
 type ClusterSelector struct {
-	Name          string               `json:"clusterName,omitempty"`
+	// Name of a single Cluster to select.
+	Name string `json:"clusterName,omitempty"`
+	// LabelSelector is a label query over a set of Clusters.
 	LabelSelector metav1.LabelSelector `json:"labelSelector,omitempty"`
-	ExcludeList   []string             `json:"excludeList,omitempty"`
+	// ExcludeList is a list of Cluster names to exclude from LabelSelector query.
+	ExcludeList []string `json:"excludeList,omitempty"`
 }
 
 // ListClusters returns the list of Clusters that match the ClusterSelector's Name or LabelSelector with applied ExcludeList.
