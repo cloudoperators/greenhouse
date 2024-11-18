@@ -1,6 +1,6 @@
 <mxfile host="65bd71144e">
     <diagram id="greenhouse-architecture" name="Greenhouse Architecture">
-        <mxGraphModel dx="2738" dy="995" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1200" pageHeight="1600" background="#ffffff" math="0" shadow="0">
+        <mxGraphModel dx="1905" dy="456" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1200" pageHeight="1600" background="#ffffff" math="0" shadow="0">
             <root>
                 <mxCell id="0"/>
                 <mxCell id="1" parent="0"/>
@@ -58,11 +58,11 @@
                 <mxCell id="OC0RQ_Q84rU6Oe2xj8qc-233" value="&lt;font style=&quot;font-size: 21px;&quot;&gt;&lt;b&gt;Greenhouse Central Cluster&lt;/b&gt;&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;strokeWidth=2;fontSize=16;align=center;verticalAlign=top;spacing=10;fillStyle=solid;fontFamily=Comic Sans MS;flipH=0;sketch=1;curveFitting=1;jiggle=2;" parent="OC0RQ_Q84rU6Oe2xj8qc-232" vertex="1">
                     <mxGeometry width="1090" height="300" as="geometry"/>
                 </mxCell>
-                <mxCell id="OC0RQ_Q84rU6Oe2xj8qc-234" value="&lt;font style=&quot;font-size: 18px;&quot;&gt;&lt;b&gt;Plugin Controller&lt;/b&gt;&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF5E6;strokeColor=#FFB347;strokeWidth=2;fontSize=14;align=center;verticalAlign=top;spacing=10;arcSize=16;fillStyle=solid;fontFamily=Comic Sans MS;flipH=0;sketch=1;curveFitting=1;jiggle=2;" parent="OC0RQ_Q84rU6Oe2xj8qc-232" vertex="1">
+                <mxCell id="OC0RQ_Q84rU6Oe2xj8qc-234" value="&lt;font style=&quot;font-size: 18px;&quot;&gt;&lt;b&gt;Helm Chart Test Controller&lt;/b&gt;&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF5E6;strokeColor=#FFB347;strokeWidth=2;fontSize=14;align=center;verticalAlign=top;spacing=10;arcSize=16;fillStyle=solid;fontFamily=Comic Sans MS;flipH=0;sketch=1;curveFitting=1;jiggle=2;" parent="OC0RQ_Q84rU6Oe2xj8qc-232" vertex="1">
                     <mxGeometry x="791" y="70" width="250" height="200" as="geometry"/>
                 </mxCell>
-                <mxCell id="OC0RQ_Q84rU6Oe2xj8qc-235" value="&lt;font style=&quot;font-size: 16px;&quot;&gt;1. Manages Plugins&lt;br&gt;2. Run Helm Chart Tests&lt;br&gt;3. Update Status&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#666666;fontSize=12;align=left;verticalAlign=top;spacing=10;fontFamily=Comic Sans MS;flipH=0;sketch=1;curveFitting=1;jiggle=2;" parent="OC0RQ_Q84rU6Oe2xj8qc-232" vertex="1">
-                    <mxGeometry x="811" y="135" width="210" height="90" as="geometry"/>
+                <mxCell id="OC0RQ_Q84rU6Oe2xj8qc-235" value="&lt;font style=&quot;font-size: 16px;&quot;&gt;1. Run Helm Chart Tests&lt;br&gt;2. Update Plugin Status&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#666666;fontSize=12;align=left;verticalAlign=top;spacing=10;fontFamily=Comic Sans MS;flipH=0;sketch=1;curveFitting=1;jiggle=2;" parent="OC0RQ_Q84rU6Oe2xj8qc-232" vertex="1">
+                    <mxGeometry x="811" y="150" width="210" height="65" as="geometry"/>
                 </mxCell>
                 <mxCell id="OC0RQ_Q84rU6Oe2xj8qc-236" value="" style="group;fontFamily=Comic Sans MS;flipH=0;sketch=1;curveFitting=1;jiggle=2;" parent="OC0RQ_Q84rU6Oe2xj8qc-232" connectable="0" vertex="1">
                     <mxGeometry x="371" y="70" width="250" height="200" as="geometry"/>
