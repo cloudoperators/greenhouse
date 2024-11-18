@@ -6,6 +6,7 @@ package v1alpha1_test
 import (
 	"testing"
 
+	"github.com/cloudoperators/greenhouse/pkg/test"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 )
@@ -16,7 +17,10 @@ func TestAPI(t *testing.T) {
 }
 
 var _ = BeforeSuite(func() {
+	test.TestBeforeSuite()
 })
 
 var _ = AfterSuite(func() {
+	By("tearing down the test environment")
+	test.TestAfterSuite()
 })

@@ -62,7 +62,7 @@ type ClusterSelector struct {
 }
 
 // ListClusters returns the list of Clusters that match the ClusterSelector's Name or LabelSelector with applied ExcludeList.
-// If the Name or LabelSelector does not return any cluster, an empty ClusterList is returned without error
+// If the Name or LabelSelector does not return any cluster, an empty ClusterList is returned without error.
 func (cs *ClusterSelector) ListClusters(ctx context.Context, c client.Client, namespace string) (*ClusterList, error) {
 	if cs.Name != "" {
 		cluster := new(Cluster)
@@ -83,6 +83,9 @@ func (cs *ClusterSelector) ListClusters(ctx context.Context, c client.Client, na
 	var clusters = new(ClusterList)
 	if err := c.List(ctx, clusters, client.InNamespace(namespace), client.MatchingLabelsSelector{Selector: labelSelector}); err != nil {
 		return nil, err
+	}
+	if len(clusters.Items) == 0 || len(cs.ExcludeList) == 0 {
+		return clusters, nil
 	}
 
 	filteredClusters := make([]Cluster, 0)
