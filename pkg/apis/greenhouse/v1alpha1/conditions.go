@@ -4,6 +4,8 @@
 package v1alpha1
 
 import (
+	"slices"
+
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -147,13 +149,9 @@ func (sc *StatusConditions) SetConditions(conditionsToSet ...Condition) {
 
 // removeCondition removes the condition with the given type from the list of conditions.
 func removeCondition(conditions []Condition, conditionType ConditionType) []Condition {
-	var newConditions []Condition
-	for _, condition := range conditions {
-		if condition.Type != conditionType {
-			newConditions = append(newConditions, condition)
-		}
-	}
-	return newConditions
+	return slices.DeleteFunc(conditions, func(c Condition) bool {
+		return c.Type == conditionType
+	})
 }
 
 // GetConditionByType returns the condition of the given type, if it exists.
