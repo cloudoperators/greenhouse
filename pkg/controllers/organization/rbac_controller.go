@@ -64,7 +64,7 @@ func (r *OrganizationReconciler) reconcileClusterRole(ctx context.Context, org *
 	return nil
 }
 
-func (r *RBACReconciler) reconcileClusterRoleBinding(ctx context.Context, org *greenhouseapisv1alpha1.Organization, group userGroup) error {
+func (r *OrganizationReconciler) reconcileClusterRoleBinding(ctx context.Context, org *greenhouseapisv1alpha1.Organization, group userGroup) error {
 	var clusterRoleBindingName = ""
 
 	switch group {
@@ -109,7 +109,7 @@ func (r *RBACReconciler) reconcileClusterRoleBinding(ctx context.Context, org *g
 	return nil
 }
 
-func (r *RBACReconciler) reconcileRole(ctx context.Context, org *greenhouseapisv1alpha1.Organization, group userGroup) error {
+func (r *OrganizationReconciler) reconcileRole(ctx context.Context, org *greenhouseapisv1alpha1.Organization, group userGroup) error {
 	var roleName string
 	var roleRules []rbacv1.PolicyRule
 
@@ -152,7 +152,7 @@ func (r *RBACReconciler) reconcileRole(ctx context.Context, org *greenhouseapisv
 	return nil
 }
 
-func (r *RBACReconciler) reconcileRoleBinding(ctx context.Context, org *greenhouseapisv1alpha1.Organization, group userGroup) error {
+func (r *OrganizationReconciler) reconcileRoleBinding(ctx context.Context, org *greenhouseapisv1alpha1.Organization, group userGroup) error {
 	var roleBindingName = ""
 
 	switch group {
