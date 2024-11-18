@@ -314,3 +314,18 @@ func (env *TestEnv) GenerateControllerLogs(ctx context.Context, startTime time.T
 	}
 	Logf("pod %s logs written to file: %s", podName, podLogsPath)
 }
+
+func LoadResource[T any](filePath string) (*T, error) {
+	resourceRaw, err := readFileContent(filePath)
+	if err != nil {
+		return nil, err
+	}
+
+	resource := new(T)
+	err = FromYamlToK8sObject(string(resourceRaw), resource)
+	if err != nil {
+		return nil, err
+	}
+
+	return resource, nil
+}
