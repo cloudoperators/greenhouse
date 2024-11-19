@@ -252,6 +252,13 @@ setup-e2e: cli
 	$(CLI) dev setup -f e2e/config.json
 	make prepare-e2e
 
+.PHONY: clean-e2e
+clean-e2e:
+	$(CLI) dev cluster delete --name $(REMOTE_CLUSTER)
+	$(CLI) dev cluster delete --name $(ADMIN_CLUSTER)
+	rm -v $(CLI)
+	rm -v $(LOCALBIN)/*.kubeconfig
+
 .PHONY: e2e
 e2e:
 	GOMEGA_DEFAULT_EVENTUALLY_TIMEOUT="2m" \
