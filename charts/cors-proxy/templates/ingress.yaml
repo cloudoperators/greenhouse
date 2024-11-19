@@ -26,11 +26,11 @@ spec:
   {{- if .Values.ingress.tls }}
   tls:
     - hosts:
-        - {{ required "host missing" .Values.host | quote }}
+        - {{ include "api.hostname" $ | quote }}
       secretName: {{ $fullName }}
   {{- end }}
   rules:
-    - host: {{ required "host missing" .Values.host | quote }}
+    - host: {{ include "api.hostname" $ | quote }}
       http:
         paths:
           - path: /

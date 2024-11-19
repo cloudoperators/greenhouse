@@ -60,3 +60,9 @@ Create the name of the service account to use
 {{- default "default" .Values.serviceAccount.name }}
 {{- end }}
 {{- end }}
+
+
+{{/* Render the k8s api hostname */}}
+{{- define "api.hostname" -}}
+{{- printf "%s.%s" "api" (required "global.dnsDomain missing" .Values.global.dnsDomain) }}
+{{- end }}
