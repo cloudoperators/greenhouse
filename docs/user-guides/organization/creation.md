@@ -88,6 +88,8 @@ This ensures all pre-requisites are met, the organization is configured correctl
      mappedOrgAdminIdPGroup: Name of the group in the IDP that should be mapped to the organization admin role.
    ```
 
+The field `mappedOrgAdminIdPGroup` is mandatory.
+
 ## Setting up Team Membership synchronization with Greenhouse
    Team Membership synchronization with Greenhouse requires access to SCIM API.
 
