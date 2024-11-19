@@ -93,17 +93,31 @@ jobs:
           make e2e
 
       - name: "Upload E2E Logs"
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
-          name: e2e-logs
+          name: e2e-logs-${{ matrix.e2es }}-${{ matrix.k8s-version }}
           path: ${{steps.e2e.outputs.result}}
           retention-days: 7
           if-no-files-found: ignore
 
+  artifacts:
+    name: "Merge Artifacts"
+    runs-on: [ default ]
+    needs: [ e2e ]
+    continue-on-error: true
+    steps:
+      - name: "Merge Uploads"
+        uses: actions/upload-artifact/merge@v4
+        with:
+          name: e2e-logs
+          pattern: e2e-logs-*
+          retention-days: 7
+          delete-merged: true
+
   # check if the e2e tests passed for all scenarios
   checksOK:
     name: "E2E Check"
-    needs: [ e2e ]
+    needs: [ artifacts, e2e ]
     runs-on: [ default ]
     if: always()
     steps:
