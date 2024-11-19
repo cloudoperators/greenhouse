@@ -834,7 +834,9 @@
   "refresh": false,
   "schemaVersion": 27,
   "style": "dark",
-  "tags": [],
+  "tags": [
+    "greenhouse"
+  ],
   "templating": {
     "list": [
       {
