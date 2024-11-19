@@ -77,7 +77,6 @@ jobs:
           echo "remote_int_config=$GITHUB_WORKSPACE/bin/${{env.REMOTE_CLUSTER}}-int.kubeconfig" >> $GITHUB_OUTPUT
 
       # run the e2e tests with the scenario from the matrix
-      # CONTROLLER_LOGS_PATH: ${{github.workspace}}/bin/${{matrix.e2es}}-${{matrix.k8s-version}}.txt
       - name: "E2E Run"
         id: e2e
         continue-on-error: true
@@ -87,6 +86,7 @@ jobs:
           GREENHOUSE_ADMIN_KUBECONFIG: ${{ steps.config.outputs.admin_config }}
           GREENHOUSE_REMOTE_KUBECONFIG: ${{ steps.config.outputs.remote_config }}
           GREENHOUSE_REMOTE_INT_KUBECONFIG: ${{ steps.config.outputs.remote_int_config }}
+          CONTROLLER_LOGS_PATH: ${{github.workspace}}/bin/${{matrix.e2es}}-${{matrix.k8s-version}}.txt
           E2E_REPORT_PATH: ${{github.workspace}}/bin/${{matrix.e2es}}-${{matrix.k8s-version}}.json
         run: |
           echo "result=$CONTROLLER_LOGS_PATH" >> $GITHUB_OUTPUT
@@ -104,11 +104,11 @@ jobs:
 
   artifacts:
     name: "Merge Artifacts"
-    continue-on-error: true # If there are no artifacts available, the merge step will fail so we need to continue on error
     runs-on: [ default ]
     needs: [ e2e ]
     steps:
       - name: "Merge Uploads"
+        continue-on-error: true # If there are no artifacts available, the merge step will fail so we need to continue on error
         uses: actions/upload-artifact/merge@v4
         with:
           name: e2e-logs
