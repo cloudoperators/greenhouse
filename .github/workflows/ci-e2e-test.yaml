@@ -92,18 +92,34 @@ jobs:
           echo "result=$CONTROLLER_LOGS_PATH" >> $GITHUB_OUTPUT
           make e2e
 
+      # v4 upload-artifact needs unique names for each artifact (see https://github.com/actions/upload-artifact/tree/main?tab=readme-ov-file#not-uploading-to-the-same-artifact)
       - name: "Upload E2E Logs"
         uses: actions/upload-artifact@v4
+        if: ${{ steps.e2e.outputs.result != '' }} # skip if nothing needs to be uploaded
         with:
-          name: e2e-logs
+          name: e2e-logs-${{ matrix.e2es }}-${{ matrix.k8s-version }}
           path: ${{steps.e2e.outputs.result}}
           retention-days: 7
           if-no-files-found: ignore
 
+  artifacts:
+    name: "Merge Artifacts"
+    runs-on: [ default ]
+    needs: [ e2e ]
+    steps:
+      - name: "Merge Uploads"
+        continue-on-error: true # If there are no artifacts available, the merge step will fail so we need to continue on error
+        uses: actions/upload-artifact/merge@v4
+        with:
+          name: e2e-logs
+          pattern: e2e-logs-*
+          retention-days: 7
+          delete-merged: true
+
   # check if the e2e tests passed for all scenarios
   checksOK:
     name: "E2E Check"
-    needs: [ e2e ]
+    needs: [ artifacts, e2e ]
     runs-on: [ default ]
     if: always()
     steps:
