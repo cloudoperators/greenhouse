@@ -1,21 +1,14 @@
 # SPDX-FileCopyrightText: 2024 SAP SE or an SAP affiliate company and Greenhouse contributors
 # SPDX-License-Identifier: Apache-2.0
+global:
+  dnsDomain: example.com
 
-host: auth.example.com
 ingress:
-  enabled: false
+  enabled: true
 
-connectors:
-- id: admin
-  name: Greenhouse Admin
-  type: greenhouse-oidc
-  config: |
-    issuer: https://example.com
-    clientID: nase
-    clientSecret: hase
-    redirectURI: https://{{ required "host missing" .Values.host }}/callback
-    insecureEnableGroups: true
-    userNameKey: login_name
+corsAllowedOrigins:
+  - "*"
+  - "foo"
 
 clients:
 - id: "greenhouse-ui"
