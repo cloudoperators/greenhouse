@@ -86,10 +86,10 @@ jobs:
           GREENHOUSE_ADMIN_KUBECONFIG: ${{ steps.config.outputs.admin_config }}
           GREENHOUSE_REMOTE_KUBECONFIG: ${{ steps.config.outputs.remote_config }}
           GREENHOUSE_REMOTE_INT_KUBECONFIG: ${{ steps.config.outputs.remote_int_config }}
-          CONTROLLER_LOGS_PATH: ${{github.workspace}}/bin/${{matrix.e2es}}-${{matrix.k8s-version}}.txt
+          CONTROLLER_LOGS_PATH: ${{github.workspace}}/bin/${{matrix.e2es}}-${{matrix.k8s-version}}
           E2E_REPORT_PATH: ${{github.workspace}}/bin/${{matrix.e2es}}-${{matrix.k8s-version}}.json
         run: |
-          echo "result=$CONTROLLER_LOGS_PATH" >> $GITHUB_OUTPUT
+          echo "result=$CONTROLLER_LOGS_PATH-$(date +'%Y-%m-%dT%H:%M:%S').txt" >> $GITHUB_OUTPUT
           make e2e
 
       - name: "Upload E2E Logs"
