@@ -109,9 +109,9 @@
           "datasource": "${Prometheus}",
           "editorMode": "code",
           "exemplar": true,
-          "expr": "sum(rate(controller_runtime_reconcile_total{job=\"$job\", namespace=\"$namespace\"}[5m])) by (instance, controller)",
+          "expr": "sum(rate(controller_runtime_reconcile_total{job=\"$job\", namespace=\"$namespace\"}[5m])) by (controller)",
           "interval": "",
-          "legendFormat": "{{instance}} {{controller}}",
+          "legendFormat": "{{controller}}",
           "range": true,
           "refId": "A"
         }
@@ -192,9 +192,9 @@
           "datasource": "${Prometheus}",
           "editorMode": "code",
           "exemplar": true,
-          "expr": "sum(rate(controller_runtime_reconcile_errors_total{job=\"$job\", namespace=\"$namespace\"}[5m])) by (instance, controller)",
+          "expr": "sum(rate(controller_runtime_reconcile_errors_total{job=\"$job\", namespace=\"$namespace\"}[5m])) by (controller)",
           "interval": "",
-          "legendFormat": "{{instance}} {{controller}}",
+          "legendFormat": "{{controller}}",
           "range": true,
           "refId": "A"
         }
@@ -294,27 +294,27 @@
         {
           "datasource": "${Prometheus}",
           "exemplar": true,
-          "expr": "histogram_quantile(0.50, sum(rate(workqueue_queue_duration_seconds_bucket{job=\"$job\", namespace=\"$namespace\"}[5m])) by (instance, name, le))",
+          "expr": "histogram_quantile(0.50, sum(rate(workqueue_queue_duration_seconds_bucket{job=\"$job\", namespace=\"$namespace\"}[5m])) by (name, le))",
           "interval": "",
-          "legendFormat": "P50 {{name}} {{instance}} ",
+          "legendFormat": "P50 {{name}} ",
           "refId": "A"
         },
         {
           "datasource": "${Prometheus}",
           "exemplar": true,
-          "expr": "histogram_quantile(0.90, sum(rate(workqueue_queue_duration_seconds_bucket{job=\"$job\", namespace=\"$namespace\"}[5m])) by (instance, name, le))",
+          "expr": "histogram_quantile(0.90, sum(rate(workqueue_queue_duration_seconds_bucket{job=\"$job\", namespace=\"$namespace\"}[5m])) by (name, le))",
           "hide": false,
           "interval": "",
-          "legendFormat": "P90 {{name}} {{instance}} ",
+          "legendFormat": "P90 {{name}} ",
           "refId": "B"
         },
         {
           "datasource": "${Prometheus}",
           "exemplar": true,
-          "expr": "histogram_quantile(0.99, sum(rate(workqueue_queue_duration_seconds_bucket{job=\"$job\", namespace=\"$namespace\"}[5m])) by (instance, name, le))",
+          "expr": "histogram_quantile(0.99, sum(rate(workqueue_queue_duration_seconds_bucket{job=\"$job\", namespace=\"$namespace\"}[5m])) by (name, le))",
           "hide": false,
           "interval": "",
-          "legendFormat": "P99 {{name}} {{instance}} ",
+          "legendFormat": "P99 {{name}} ",
           "refId": "C"
         }
       ],
@@ -390,9 +390,9 @@
         {
           "datasource": "${Prometheus}",
           "exemplar": true,
-          "expr": "sum(rate(workqueue_adds_total{job=\"$job\", namespace=\"$namespace\"}[5m])) by (instance, name)",
+          "expr": "sum(rate(workqueue_adds_total{job=\"$job\", namespace=\"$namespace\"}[5m])) by (name)",
           "interval": "",
-          "legendFormat": "{{name}} {{instance}}",
+          "legendFormat": "{{name}}",
           "refId": "A"
         }
       ],
@@ -477,27 +477,27 @@
         {
           "datasource": "${Prometheus}",
           "exemplar": true,
-          "expr": "histogram_quantile(0.50, sum(rate(workqueue_work_duration_seconds_bucket{job=\"$job\", namespace=\"$namespace\"}[5m])) by (instance, name, le))",
+          "expr": "histogram_quantile(0.50, sum(rate(workqueue_work_duration_seconds_bucket{job=\"$job\", namespace=\"$namespace\"}[5m])) by (name, le))",
           "interval": "",
-          "legendFormat": "P50 {{name}} {{instance}} ",
+          "legendFormat": "P50 {{name}} ",
           "refId": "A"
         },
         {
           "datasource": "${Prometheus}",
           "exemplar": true,
-          "expr": "histogram_quantile(0.90, sum(rate(workqueue_work_duration_seconds_bucket{job=\"$job\", namespace=\"$namespace\"}[5m])) by (instance, name, le))",
+          "expr": "histogram_quantile(0.90, sum(rate(workqueue_work_duration_seconds_bucket{job=\"$job\", namespace=\"$namespace\"}[5m])) by (name, le))",
           "hide": false,
           "interval": "",
-          "legendFormat": "P90 {{name}} {{instance}} ",
+          "legendFormat": "P90 {{name}} ",
           "refId": "B"
         },
         {
           "datasource": "${Prometheus}",
           "exemplar": true,
-          "expr": "histogram_quantile(0.99, sum(rate(workqueue_work_duration_seconds_bucket{job=\"$job\", namespace=\"$namespace\"}[5m])) by (instance, name, le))",
+          "expr": "histogram_quantile(0.99, sum(rate(workqueue_work_duration_seconds_bucket{job=\"$job\", namespace=\"$namespace\"}[5m])) by (name, le))",
           "hide": false,
           "interval": "",
-          "legendFormat": "P99 {{name}} {{instance}} ",
+          "legendFormat": "P99 {{name}} ",
           "refId": "C"
         }
       ],
@@ -574,9 +574,9 @@
         {
           "datasource": "${Prometheus}",
           "exemplar": true,
-          "expr": "sum(rate(workqueue_retries_total{job=\"$job\", namespace=\"$namespace\"}[5m])) by (instance, name)",
+          "expr": "sum(rate(workqueue_retries_total{job=\"$job\", namespace=\"$namespace\"}[5m])) by (name)",
           "interval": "",
-          "legendFormat": "{{name}} {{instance}} ",
+          "legendFormat": "{{name}}",
           "refId": "A"
         }
       ],
@@ -667,9 +667,9 @@
       "targets": [
         {
           "exemplar": true,
-          "expr": "sum(rate(controller_runtime_webhook_requests_total{job=\"$job\", namespace=\"$namespace\"}[5m])) by (instance, webhook)",
+          "expr": "sum(rate(controller_runtime_webhook_requests_total{job=\"$job\", namespace=\"$namespace\"}[5m])) by (webhook)",
           "interval": "",
-          "legendFormat": "{{instance}}{{webhook}}",
+          "legendFormat": "{{webhook}}",
           "refId": "A"
         }
       ],
@@ -747,10 +747,10 @@
       "targets": [
         {
           "exemplar": true,
-          "expr": "sum(rate(controller_runtime_webhook_requests_in_flight{job=\"$job\", namespace=\"$namespace\"}[5m])) by (instance, webhook)",
+          "expr": "sum(rate(controller_runtime_webhook_requests_in_flight{job=\"$job\", namespace=\"$namespace\"}[5m])) by (webhook)",
           "instant": false,
           "interval": "",
-          "legendFormat": "{{instance}}{{webhook}}",
+          "legendFormat": "{{webhook}}",
           "refId": "A"
         }
       ],
