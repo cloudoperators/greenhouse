@@ -94,6 +94,7 @@ jobs:
 
       - name: "Upload E2E Logs"
         uses: actions/upload-artifact@v4
+        continue-on-error: true
         with:
           name: e2e-logs-${{ matrix.e2es }}-${{ matrix.k8s-version }}
           path: ${{steps.e2e.outputs.result}}
