@@ -5,6 +5,7 @@ package organization
 
 import (
 	"context"
+	rbacv1 "k8s.io/api/rbac/v1"
 
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
@@ -48,7 +49,6 @@ type OrganizationReconciler struct {
 //+kubebuilder:rbac:groups=greenhouse.sap,resources=teamroles,verbs=get;list;watch;create;update;patch
 //+kubebuilder:rbac:groups="",resources=events,verbs=get;list;watch;create;update;patch
 //+kubebuilder:rbac:groups="",resources=namespaces,verbs=get;list;watch;create;update;patch
-//+kubebuilder:rbac:groups=greenhouse.sap,resources=organizations,verbs=get;list;watch
 //+kubebuilder:rbac:groups=dex.coreos.com,resources=connectors;oauth2clients,verbs=get;list;watch;create;update;patch
 //+kubebuilder:rbac:groups="",resources=secrets,verbs=get;list;watch
 
@@ -63,6 +63,10 @@ func (r *OrganizationReconciler) SetupWithManager(name string, mgr ctrl.Manager)
 		Owns(&greenhousesapv1alpha1.Team{}).
 		Owns(&greenhousesapv1alpha1.TeamRole{}).
 		Owns(&greenhousesapv1alpha1.Plugin{}).
+		Owns(&rbacv1.Role{}).
+		Owns(&rbacv1.RoleBinding{}).
+		Owns(&rbacv1.ClusterRole{}).
+		Owns(&rbacv1.ClusterRoleBinding{}).
 		Watches(&corev1.Secret{},
 			handler.EnqueueRequestsFromMapFunc(r.enqueueOrganizationForReferencedSecret),
 			builder.WithPredicates(clientutil.PredicateHasOICDConfigured())).
@@ -92,10 +96,6 @@ func (r *OrganizationReconciler) EnsureCreated(ctx context.Context, object lifec
 	initOrganizationStatus(org)
 
 	if err := r.reconcileNamespace(ctx, org); err != nil {
-		return ctrl.Result{}, lifecycle.Failed, err
-	}
-
-	if err := r.reconcileAdminTeam(ctx, org); err != nil {
 		return ctrl.Result{}, lifecycle.Failed, err
 	}
 
