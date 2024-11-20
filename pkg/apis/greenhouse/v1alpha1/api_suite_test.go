@@ -8,6 +8,8 @@ import (
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+
+	"github.com/cloudoperators/greenhouse/pkg/test"
 )
 
 func TestAPI(t *testing.T) {
@@ -16,7 +18,10 @@ func TestAPI(t *testing.T) {
 }
 
 var _ = BeforeSuite(func() {
+	test.TestBeforeSuite()
 })
 
 var _ = AfterSuite(func() {
+	By("tearing down the test environment")
+	test.TestAfterSuite()
 })
