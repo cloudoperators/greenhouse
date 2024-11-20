@@ -7,7 +7,7 @@ ARG TARGETARCH
 WORKDIR /workspace
 COPY . .
 # Build greenhouse operator and tooling.
-RUN CGO_ENABLED=0 GOOS=${TARGETOS:-linux} GOARCH=${TARGETARCH} go build -v -a -o greenhouse ./cmd/greenhouse
+RUN CGO_ENABLED=0 GOOS=${TARGETOS:-linux} GOARCH=${TARGETARCH} go build -buildvcs=false -v -a -o greenhouse ./cmd/greenhouse
 
 # Use distroless as minimal base image to package the manager binary
 # Refer to https://github.com/GoogleContainerTools/distroless for more details
