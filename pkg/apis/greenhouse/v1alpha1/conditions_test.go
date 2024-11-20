@@ -354,40 +354,39 @@ var _ = Describe("Test conditions util functions", func() {
 
 	})
 
-
-    It("should remove the deprecated NoHelmChartTestFailures condition", func() {
-        By("removing the deprecated NoHelmChartTestFailures condition")
-        noHelmChartTestFailuresCondition := greenhousev1alpha1.Condition{
-            Type:               greenhousev1alpha1.NoHelmChartTestFailuresCondition,
-            Status:             metav1.ConditionTrue,
-            LastTransitionTime: timeNow,
-            Message:            "test",
-        }
+	It("should remove the deprecated NoHelmChartTestFailures condition", func() {
+		By("removing the deprecated NoHelmChartTestFailures condition")
+		noHelmChartTestFailuresCondition := greenhousev1alpha1.Condition{
+			Type:               greenhousev1alpha1.NoHelmChartTestFailuresCondition,
+			Status:             metav1.ConditionTrue,
+			LastTransitionTime: timeNow,
+			Message:            "test",
+		}
 
 		existingCondition1 := greenhousev1alpha1.Condition{
-            Type:               greenhousev1alpha1.HelmReconcileFailedCondition,
-            Status:             metav1.ConditionFalse,
-            LastTransitionTime: timeNow,
-            Message:            "test",			
-        }
+			Type:               greenhousev1alpha1.HelmReconcileFailedCondition,
+			Status:             metav1.ConditionFalse,
+			LastTransitionTime: timeNow,
+			Message:            "test",
+		}
 
 		existingCondition2 := greenhousev1alpha1.Condition{
-            Type:               greenhousev1alpha1.HelmDriftDetectedCondition,
-            Status:             metav1.ConditionTrue,
-            LastTransitionTime: timeNow,
-            Message:            "test",			
-        }
-		
-        statusConditions := greenhousev1alpha1.StatusConditions{
-            Conditions: []greenhousev1alpha1.Condition{noHelmChartTestFailuresCondition, existingCondition1, existingCondition2},
-        }
+			Type:               greenhousev1alpha1.HelmDriftDetectedCondition,
+			Status:             metav1.ConditionTrue,
+			LastTransitionTime: timeNow,
+			Message:            "test",
+		}
+
+		statusConditions := greenhousev1alpha1.StatusConditions{
+			Conditions: []greenhousev1alpha1.Condition{noHelmChartTestFailuresCondition, existingCondition1, existingCondition2},
+		}
 
 		newCondition1 := greenhousev1alpha1.Condition{
-            Type:               greenhousev1alpha1.HelmChartTestSucceededCondition,
-            Status:             metav1.ConditionTrue,
-            LastTransitionTime: timeNow,
-            Message:            "test",			
-        }
+			Type:               greenhousev1alpha1.HelmChartTestSucceededCondition,
+			Status:             metav1.ConditionTrue,
+			LastTransitionTime: timeNow,
+			Message:            "test",
+		}
 
 		newCondition2 := greenhousev1alpha1.Condition{
 			Type:               greenhousev1alpha1.ReadyCondition,
@@ -396,17 +395,17 @@ var _ = Describe("Test conditions util functions", func() {
 			Message:            "test",
 		}
 
-        // Set new condition
-        statusConditions.SetConditions(newCondition1)
-        statusConditions.SetConditions(newCondition2)
+		// Set new condition
+		statusConditions.SetConditions(newCondition1)
+		statusConditions.SetConditions(newCondition2)
 
-        // Check if the deprecated condition is removed
-        Expect(statusConditions.GetConditionByType(greenhousev1alpha1.NoHelmChartTestFailuresCondition)).To(BeNil())
+		// Check if the deprecated condition is removed
+		Expect(statusConditions.GetConditionByType(greenhousev1alpha1.NoHelmChartTestFailuresCondition)).To(BeNil())
 
-        // Check if the new condition is added
-        condition := statusConditions.GetConditionByType(greenhousev1alpha1.HelmChartTestSucceededCondition)
-        Expect(condition).NotTo(BeNil())
-        Expect(condition.Status).To(Equal(metav1.ConditionTrue))
-        Expect(condition.LastTransitionTime).To(Equal(timeNow))
-    })
+		// Check if the new condition is added
+		condition := statusConditions.GetConditionByType(greenhousev1alpha1.HelmChartTestSucceededCondition)
+		Expect(condition).NotTo(BeNil())
+		Expect(condition.Status).To(Equal(metav1.ConditionTrue))
+		Expect(condition.LastTransitionTime).To(Equal(timeNow))
+	})
 })
