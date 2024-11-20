@@ -7,7 +7,9 @@ import (
 	"context"
 	"strings"
 
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/util/validation/field"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
@@ -47,14 +49,43 @@ func DefaultOrganization(_ context.Context, _ client.Client, o runtime.Object) e
 
 //+kubebuilder:webhook:path=/validate-greenhouse-sap-v1alpha1-organization,mutating=false,failurePolicy=fail,sideEffects=None,groups=greenhouse.sap,resources=organizations,verbs=create;update;delete,versions=v1alpha1,name=vorganization.kb.io,admissionReviewVersions=v1
 
-func ValidateCreateOrganization(_ context.Context, _ client.Client, _ runtime.Object) (admission.Warnings, error) {
+func ValidateCreateOrganization(_ context.Context, _ client.Client, obj runtime.Object) (admission.Warnings, error) {
+	organization, ok := obj.(*greenhousev1alpha1.Organization)
+	if !ok {
+		return nil, nil
+	}
+
+	if err := validateMappedOrgAdminIDPGroup(organization); err != nil {
+		return nil, err
+	}
+
 	return nil, nil
 }
 
-func ValidateUpdateOrganization(_ context.Context, _ client.Client, _, _ runtime.Object) (admission.Warnings, error) {
+func ValidateUpdateOrganization(_ context.Context, _ client.Client, _, newObj runtime.Object) (admission.Warnings, error) {
+	organization, ok := newObj.(*greenhousev1alpha1.Organization)
+	if !ok {
+		return nil, nil
+	}
+
+	if err := validateMappedOrgAdminIDPGroup(organization); err != nil {
+		return nil, err
+	}
+
 	return nil, nil
 }
 
 func ValidateDeleteOrganization(_ context.Context, _ client.Client, _ runtime.Object) (admission.Warnings, error) {
 	return nil, nil
+}
+
+func validateMappedOrgAdminIDPGroup(organization *greenhousev1alpha1.Organization) error {
+	if organization.Spec.MappedOrgAdminIDPGroup == "" {
+		return apierrors.NewInvalid(organization.GroupVersionKind().GroupKind(), organization.GetName(), field.ErrorList{
+			field.Required(field.NewPath("spec").Child("MappedOrgAdminIDPGroup"),
+				"An Organization without spec.MappedOrgAdminIDPGroup is invalid"),
+		})
+	}
+
+	return nil
 }
