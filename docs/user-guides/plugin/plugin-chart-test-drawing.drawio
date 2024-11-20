@@ -1,6 +1,6 @@
 <mxfile host="65bd71144e">
     <diagram id="greenhouse-architecture" name="Greenhouse Architecture">
-        <mxGraphModel dx="1905" dy="456" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1200" pageHeight="1600" background="#ffffff" math="0" shadow="0">
+        <mxGraphModel dx="3742" dy="477" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1200" pageHeight="1600" background="#ffffff" math="0" shadow="0">
             <root>
                 <mxCell id="0"/>
                 <mxCell id="1" parent="0"/>
@@ -118,16 +118,11 @@
                 <mxCell id="5" value="" style="shape=image;verticalLabelPosition=bottom;labelBackgroundColor=default;verticalAlign=top;aspect=fixed;imageAspect=0;image=data:image/svg+xml,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCI+CiAgPHBhdGggZmlsbD0iI0ZGMDAwMCIgZD0iTTE5IDYuNDFMMTcuNTkgNSAxMiAxMC41OSA2LjQxIDUgNSA2LjQxIDEwLjU5IDEyIDUgMTcuNTkgNi40MSAxOSAxMiAxMy40MSAxNy41OSAxOSAxOSAxNy41OSAxMy40MSAxMnoiLz4KPC9zdmc+;fontStyle=1" parent="OC0RQ_Q84rU6Oe2xj8qc-246" vertex="1">
                     <mxGeometry x="9.03" y="34.5" width="25.5" height="25.5" as="geometry"/>
                 </mxCell>
-                <mxCell id="OC0RQ_Q84rU6Oe2xj8qc-253" value="&lt;span style=&quot;&quot;&gt;Manages&lt;/span&gt;" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;exitX=0;exitY=0.5;entryX=1;entryY=0.5;strokeColor=default;strokeWidth=2;fontSize=12;exitDx=0;exitDy=0;entryDx=0;entryDy=0;fontColor=default;fontFamily=Comic Sans MS;fillColor=#dae8fc;labelBackgroundColor=#DAE8FC;sketch=1;curveFitting=1;jiggle=2;" parent="OC0RQ_Q84rU6Oe2xj8qc-232" source="OC0RQ_Q84rU6Oe2xj8qc-234" target="OC0RQ_Q84rU6Oe2xj8qc-237" edge="1">
-                    <mxGeometry relative="1" as="geometry">
-                        <mxPoint as="offset"/>
-                    </mxGeometry>
-                </mxCell>
-                <mxCell id="OC0RQ_Q84rU6Oe2xj8qc-254" value="&lt;span style=&quot;&quot;&gt;Update Plugin Status&lt;/span&gt;" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;exitX=0;exitY=0.7;entryX=1;entryY=0.7;strokeColor=default;strokeWidth=2;fontSize=12;fontFamily=Comic Sans MS;labelBackgroundColor=#DAE8FC;sketch=1;curveFitting=1;jiggle=2;" parent="OC0RQ_Q84rU6Oe2xj8qc-232" source="OC0RQ_Q84rU6Oe2xj8qc-234" target="OC0RQ_Q84rU6Oe2xj8qc-237" edge="1">
+                <mxCell id="OC0RQ_Q84rU6Oe2xj8qc-254" value="&lt;span style=&quot;&quot;&gt;Update Plugin Status&lt;/span&gt;" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;exitX=0;exitY=0.5;strokeColor=default;strokeWidth=2;fontSize=12;fontFamily=Comic Sans MS;labelBackgroundColor=#DAE8FC;sketch=1;curveFitting=1;jiggle=2;exitDx=0;exitDy=0;" parent="OC0RQ_Q84rU6Oe2xj8qc-232" source="OC0RQ_Q84rU6Oe2xj8qc-234" target="OC0RQ_Q84rU6Oe2xj8qc-237" edge="1">
                     <mxGeometry relative="1" as="geometry"/>
                 </mxCell>
-                <mxCell id="OC0RQ_Q84rU6Oe2xj8qc-255" value="Read" style="edgeStyle=none;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=-0.02;entryY=0.442;entryDx=0;entryDy=0;fontFamily=Comic Sans MS;fontSize=12;labelBackgroundColor=#DAE8FC;entryPerimeter=0;sketch=1;curveFitting=1;jiggle=2;" parent="OC0RQ_Q84rU6Oe2xj8qc-232" source="OC0RQ_Q84rU6Oe2xj8qc-243" target="OC0RQ_Q84rU6Oe2xj8qc-237" edge="1">
-                    <mxGeometry x="0.0105" relative="1" as="geometry">
+                <mxCell id="OC0RQ_Q84rU6Oe2xj8qc-255" value="Read" style="edgeStyle=none;html=1;exitX=1.007;exitY=0.558;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;fontFamily=Comic Sans MS;fontSize=12;labelBackgroundColor=#DAE8FC;sketch=1;curveFitting=1;jiggle=2;exitPerimeter=0;" parent="OC0RQ_Q84rU6Oe2xj8qc-232" source="OC0RQ_Q84rU6Oe2xj8qc-243" target="OC0RQ_Q84rU6Oe2xj8qc-237" edge="1">
+                    <mxGeometry x="-0.0013" relative="1" as="geometry">
                         <mxPoint as="offset"/>
                     </mxGeometry>
                 </mxCell>
