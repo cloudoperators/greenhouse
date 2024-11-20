@@ -19,3 +19,12 @@ groups:
       for: 15m
       labels:
         severity: warning
+    - alert: GreenhouseIDProxyErrorsHigh
+      annotations:
+        description: Greenhouse id-proxy is failing
+        summary: Greenhouse id-proxy service - HTTP 5xx errors are high.
+      expr: |
+        rate(http_requests_total{service="greenhouse-idproxy", code=~"5.."}[5m]) > 0
+      for: 5m
+      labels:
+        severity: critical

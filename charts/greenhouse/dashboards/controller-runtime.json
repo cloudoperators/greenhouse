@@ -106,13 +106,12 @@
       "pluginVersion": "7.5.32",
       "targets": [
         {
-          "datasource": "prometheus-greenhouse-qa",
+          "datasource": "${Prometheus}",
           "editorMode": "code",
           "exemplar": true,
           "expr": "sum(rate(controller_runtime_reconcile_total{job=\"$job\", namespace=\"$namespace\"}[5m])) by (instance, controller)",
           "interval": "",
           "legendFormat": "{{instance}} {{controller}}",
-          "queryType": "randomWalk",
           "range": true,
           "refId": "A"
         }
@@ -190,7 +189,7 @@
       "pluginVersion": "7.5.32",
       "targets": [
         {
-          "datasource": "prometheus-greenhouse-qa",
+          "datasource": "${Prometheus}",
           "editorMode": "code",
           "exemplar": true,
           "expr": "sum(rate(controller_runtime_reconcile_errors_total{job=\"$job\", namespace=\"$namespace\"}[5m])) by (instance, controller)",
@@ -293,7 +292,7 @@
       },
       "targets": [
         {
-          "datasource": "prometheus-greenhouse-qa",
+          "datasource": "${Prometheus}",
           "exemplar": true,
           "expr": "histogram_quantile(0.50, sum(rate(workqueue_queue_duration_seconds_bucket{job=\"$job\", namespace=\"$namespace\"}[5m])) by (instance, name, le))",
           "interval": "",
@@ -301,7 +300,7 @@
           "refId": "A"
         },
         {
-          "datasource": "prometheus-greenhouse-qa",
+          "datasource": "${Prometheus}",
           "exemplar": true,
           "expr": "histogram_quantile(0.90, sum(rate(workqueue_queue_duration_seconds_bucket{job=\"$job\", namespace=\"$namespace\"}[5m])) by (instance, name, le))",
           "hide": false,
@@ -310,7 +309,7 @@
           "refId": "B"
         },
         {
-          "datasource": "prometheus-greenhouse-qa",
+          "datasource": "${Prometheus}",
           "exemplar": true,
           "expr": "histogram_quantile(0.99, sum(rate(workqueue_queue_duration_seconds_bucket{job=\"$job\", namespace=\"$namespace\"}[5m])) by (instance, name, le))",
           "hide": false,
@@ -389,7 +388,7 @@
       "pluginVersion": "7.5.32",
       "targets": [
         {
-          "datasource": "prometheus-greenhouse-qa",
+          "datasource": "${Prometheus}",
           "exemplar": true,
           "expr": "sum(rate(workqueue_adds_total{job=\"$job\", namespace=\"$namespace\"}[5m])) by (instance, name)",
           "interval": "",
@@ -476,7 +475,7 @@
       },
       "targets": [
         {
-          "datasource": "prometheus-greenhouse-qa",
+          "datasource": "${Prometheus}",
           "exemplar": true,
           "expr": "histogram_quantile(0.50, sum(rate(workqueue_work_duration_seconds_bucket{job=\"$job\", namespace=\"$namespace\"}[5m])) by (instance, name, le))",
           "interval": "",
@@ -484,7 +483,7 @@
           "refId": "A"
         },
         {
-          "datasource": "prometheus-greenhouse-qa",
+          "datasource": "${Prometheus}",
           "exemplar": true,
           "expr": "histogram_quantile(0.90, sum(rate(workqueue_work_duration_seconds_bucket{job=\"$job\", namespace=\"$namespace\"}[5m])) by (instance, name, le))",
           "hide": false,
@@ -493,7 +492,7 @@
           "refId": "B"
         },
         {
-          "datasource": "prometheus-greenhouse-qa",
+          "datasource": "${Prometheus}",
           "exemplar": true,
           "expr": "histogram_quantile(0.99, sum(rate(workqueue_work_duration_seconds_bucket{job=\"$job\", namespace=\"$namespace\"}[5m])) by (instance, name, le))",
           "hide": false,
@@ -573,7 +572,7 @@
       "pluginVersion": "7.5.32",
       "targets": [
         {
-          "datasource": "prometheus-greenhouse-qa",
+          "datasource": "${Prometheus}",
           "exemplar": true,
           "expr": "sum(rate(workqueue_retries_total{job=\"$job\", namespace=\"$namespace\"}[5m])) by (instance, name)",
           "interval": "",
@@ -671,7 +670,6 @@
           "expr": "sum(rate(controller_runtime_webhook_requests_total{job=\"$job\", namespace=\"$namespace\"}[5m])) by (instance, webhook)",
           "interval": "",
           "legendFormat": "{{instance}}{{webhook}}",
-          "queryType": "randomWalk",
           "refId": "A"
         }
       ],
@@ -753,7 +751,6 @@
           "instant": false,
           "interval": "",
           "legendFormat": "{{instance}}{{webhook}}",
-          "queryType": "randomWalk",
           "refId": "A"
         }
       ],
@@ -806,7 +803,6 @@
           "instant": false,
           "interval": "",
           "legendFormat": "{{le}}",
-          "queryType": "randomWalk",
           "refId": "A"
         }
       ],
@@ -838,7 +834,9 @@
   "refresh": false,
   "schemaVersion": 27,
   "style": "dark",
-  "tags": [],
+  "tags": [
+    "greenhouse"
+  ],
   "templating": {
     "list": [
       {

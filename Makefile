@@ -176,7 +176,7 @@ HELMIFY ?= $(LOCALBIN)/helmify
 KUSTOMIZE_VERSION ?= 5.5.0
 CONTROLLER_TOOLS_VERSION ?= 0.16.5
 GOLINT_VERSION ?= 1.62.0
-GINKGOLINTER_VERSION ?= 0.18.2
+GINKGOLINTER_VERSION ?= 0.18.3
 # ENVTEST_K8S_VERSION refers to the version of kubebuilder assets to be downloaded by envtest binary.
 ENVTEST_K8S_VERSION ?= 1.30.3
 
@@ -256,6 +256,13 @@ setup-webhook: cli
 setup-e2e: cli
 	$(CLI) dev setup -f e2e/config.json
 	make prepare-e2e
+
+.PHONY: clean-e2e
+clean-e2e:
+	$(CLI) dev cluster delete --name $(REMOTE_CLUSTER)
+	$(CLI) dev cluster delete --name $(ADMIN_CLUSTER)
+	rm -v $(CLI)
+	rm -v $(LOCALBIN)/*.kubeconfig
 
 .PHONY: e2e
 e2e:

@@ -85,7 +85,6 @@
           "expr": "sum by (method, code) (rate(http_requests_total{service=~\"$proxy\"}[5m]))",
           "interval": "",
           "legendFormat": "{{method}}/{{code}}",
-          "queryType": "randomWalk",
           "refId": "A"
         }
       ],
@@ -172,7 +171,6 @@
           "format": "heatmap",
           "interval": "",
           "legendFormat": "{{le}}",
-          "queryType": "randomWalk",
           "refId": "A"
         }
       ],
@@ -240,7 +238,6 @@
           "format": "heatmap",
           "interval": "",
           "legendFormat": "{{le}}",
-          "queryType": "randomWalk",
           "refId": "A"
         }
       ],
@@ -272,7 +269,9 @@
   ],
   "schemaVersion": 27,
   "style": "dark",
-  "tags": [],
+  "tags": [
+    "greenhouse"
+  ],
   "templating": {
     "list": [
       {
