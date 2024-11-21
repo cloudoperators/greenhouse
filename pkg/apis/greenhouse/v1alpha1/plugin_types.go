@@ -67,8 +67,11 @@ const (
 	// StatusUpToDateCondition reflects the failed reconciliation of the Plugin.
 	StatusUpToDateCondition ConditionType = "StatusUpToDate"
 
-	// NoHelmChartTestFailuresCondition reflects the status of the HelmChart tests.
+	// Deprecated: NoHelmChartTestFailuresCondition reflects the status of the HelmChart tests.
 	NoHelmChartTestFailuresCondition ConditionType = "NoHelmChartTestFailures"
+
+	// HelmChartTestSucceededCondition reflects the status of the HelmChart tests.
+	HelmChartTestSucceededCondition ConditionType = "HelmChartTestSucceeded"
 
 	// PluginDefinitionNotFoundReason is set when the pluginDefinition is not found.
 	PluginDefinitionNotFoundReason ConditionReason = "PluginDefinitionNotFound"

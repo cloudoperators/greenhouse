@@ -34,7 +34,7 @@ var exposedConditions = []greenhousev1alpha1.ConditionType{
 	greenhousev1alpha1.HelmDriftDetectedCondition,
 	greenhousev1alpha1.HelmReconcileFailedCondition,
 	greenhousev1alpha1.StatusUpToDateCondition,
-	greenhousev1alpha1.NoHelmChartTestFailuresCondition,
+	greenhousev1alpha1.HelmChartTestSucceededCondition,
 	greenhousev1alpha1.WorkloadReadyCondition,
 }
 
@@ -272,7 +272,7 @@ func computeReadyCondition(
 		readyCondition.Message = "Helm reconcile failed"
 		return readyCondition
 	}
-	if conditions.GetConditionByType(greenhousev1alpha1.NoHelmChartTestFailuresCondition).IsFalse() {
+	if conditions.GetConditionByType(greenhousev1alpha1.HelmChartTestSucceededCondition).IsFalse() {
 		readyCondition.Status = metav1.ConditionFalse
 		readyCondition.Message = "Helm Chart Test failed"
 		return readyCondition

@@ -147,8 +147,8 @@ func (r *HelmReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.
 	}
 
 	helmReconcileFailedCondition, pluginDefinition := r.getPluginDefinition(ctx, plugin)
-	pluginStatus.StatusConditions.SetConditions(helmReconcileFailedCondition)
 	if pluginDefinition == nil {
+		pluginStatus.StatusConditions.SetConditions(helmReconcileFailedCondition)
 		return ctrl.Result{}, fmt.Errorf("pluginDefinition not found: %s", helmReconcileFailedCondition.Message)
 	}
 

@@ -65,6 +65,9 @@ func NewOrganization(ctx context.Context, name string, opts ...func(*greenhousev
 		ObjectMeta: metav1.ObjectMeta{
 			Name: name,
 		},
+		Spec: greenhousev1alpha1.OrganizationSpec{
+			MappedOrgAdminIDPGroup: "default-admin-id-group",
+		},
 	}
 	for _, o := range opts {
 		o(org)
