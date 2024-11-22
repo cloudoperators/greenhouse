@@ -74,3 +74,10 @@ groups:
       expr: greenhouse_cluster_k8s_versions_total{version=~"v1\\.(1[0-9]|2[0-1])\\..*"} == 1
       labels:
         severity: warning
+    - alert: GreenhousePluginTooManyErrors
+      annotations:
+        summary: "Plugin has too mane errors"
+        description: "Plugin {{ $labels.plugin }} in organization {{ $labels.organization }} has more then 10 errors"
+      expr: increase(greenhouse_plugin_reconcile_total{result="error"}[1h] > 10) by (plugin, organization)
+      labels:
+        severity: warning
