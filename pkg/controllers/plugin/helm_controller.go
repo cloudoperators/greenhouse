@@ -107,6 +107,7 @@ func (r *HelmReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.
 		if statusErr := setPluginStatus(ctx, r.Client, plugin, pluginStatus); statusErr != nil {
 			log.FromContext(ctx).Error(statusErr, "failed to set status")
 		}
+		updateMetrics(plugin)
 	}()
 
 	clusterAccessReadyCondition, restClientGetter := initClientGetter(ctx, r.Client, r.kubeClientOpts, *plugin)
