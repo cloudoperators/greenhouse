@@ -275,8 +275,7 @@ func (r *HelmReconciler) reconcileStatus(ctx context.Context,
 		}
 	)
 
-	statusReconcileCondition = *pluginStatus.GetConditionByType(greenhousev1alpha1.StatusUpToDateCondition)
-	statusReconcileCondition.Status = metav1.ConditionTrue
+	statusReconcileCondition = greenhousev1alpha1.TrueCondition(greenhousev1alpha1.StatusUpToDateCondition, "", "")
 	// Collect status from the Helm release.
 	if helmRelease, err := helm.GetReleaseForHelmChartFromPlugin(ctx, restClientGetter, plugin); err == nil {
 		// Ensure the status is always reported.
