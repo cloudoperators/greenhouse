@@ -35,7 +35,7 @@ var (
 		greenhousesapv1alpha1.OrganizationAdminTeamConfigured,
 		greenhousesapv1alpha1.ServiceProxyProvisioned,
 		greenhousesapv1alpha1.OrganizationDefaultTeamRoleConfigured,
-		greenhousesapv1alpha1.NamespacePreparedCondition,
+		greenhousesapv1alpha1.NamespaceCreated,
 		greenhousesapv1alpha1.OrganizationRBACConfigured,
 	}
 )
@@ -106,10 +106,10 @@ func (r *OrganizationReconciler) EnsureCreated(ctx context.Context, object lifec
 	initOrganizationStatus(org)
 
 	if err := r.reconcileNamespace(ctx, org); err != nil {
-		org.SetCondition(greenhousesapv1alpha1.FalseCondition(greenhousesapv1alpha1.NamespacePreparedCondition, "", err.Error()))
+		org.SetCondition(greenhousesapv1alpha1.FalseCondition(greenhousesapv1alpha1.NamespaceCreated, "", err.Error()))
 		return ctrl.Result{}, lifecycle.Failed, err
 	}
-	org.SetCondition(greenhousesapv1alpha1.TrueCondition(greenhousesapv1alpha1.NamespacePreparedCondition, "", ""))
+	org.SetCondition(greenhousesapv1alpha1.TrueCondition(greenhousesapv1alpha1.NamespaceCreated, "", ""))
 
 	if err := r.reconcileRBAC(ctx, org); err != nil {
 		org.SetCondition(greenhousesapv1alpha1.FalseCondition(greenhousesapv1alpha1.OrganizationRBACConfigured, "", err.Error()))
