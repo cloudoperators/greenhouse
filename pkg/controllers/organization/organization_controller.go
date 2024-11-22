@@ -30,6 +30,13 @@ var (
 	exposedConditions = []greenhousesapv1alpha1.ConditionType{
 		greenhousesapv1alpha1.ReadyCondition,
 		greenhousesapv1alpha1.SCIMAPIAvailableCondition,
+		greenhousesapv1alpha1.ServiceProxyProvisioned,
+		greenhousesapv1alpha1.OrganizationOICDConfigured,
+		greenhousesapv1alpha1.OrganizationAdminTeamConfigured,
+		greenhousesapv1alpha1.ServiceProxyProvisioned,
+		greenhousesapv1alpha1.OrganizationDefaultTeamRoleConfigured,
+		greenhousesapv1alpha1.NamespacePreparedCondition,
+		greenhousesapv1alpha1.OrganizationRBACConfigured,
 	}
 )
 
@@ -99,34 +106,47 @@ func (r *OrganizationReconciler) EnsureCreated(ctx context.Context, object lifec
 	initOrganizationStatus(org)
 
 	if err := r.reconcileNamespace(ctx, org); err != nil {
+		org.SetCondition(greenhousesapv1alpha1.FalseCondition(greenhousesapv1alpha1.NamespacePreparedCondition, "", err.Error()))
 		return ctrl.Result{}, lifecycle.Failed, err
 	}
+	org.SetCondition(greenhousesapv1alpha1.TrueCondition(greenhousesapv1alpha1.NamespacePreparedCondition, "", ""))
 
 	if err := r.reconcileRBAC(ctx, org); err != nil {
+		org.SetCondition(greenhousesapv1alpha1.FalseCondition(greenhousesapv1alpha1.OrganizationRBACConfigured, "", err.Error()))
 		return ctrl.Result{}, lifecycle.Failed, err
 	}
+	org.SetCondition(greenhousesapv1alpha1.TrueCondition(greenhousesapv1alpha1.OrganizationRBACConfigured, "", ""))
 
 	if err := r.reconcileDefaultTeamRoles(ctx, org); err != nil {
+		org.SetCondition(greenhousesapv1alpha1.FalseCondition(greenhousesapv1alpha1.OrganizationDefaultTeamRoleConfigured, "", err.Error()))
 		return ctrl.Result{}, lifecycle.Failed, err
 	}
+	org.SetCondition(greenhousesapv1alpha1.TrueCondition(greenhousesapv1alpha1.OrganizationDefaultTeamRoleConfigured, "", ""))
 
 	if err := r.reconcileServiceProxy(ctx, org); err != nil {
+		org.SetCondition(greenhousesapv1alpha1.FalseCondition(greenhousesapv1alpha1.ServiceProxyProvisioned, "", err.Error()))
 		return ctrl.Result{}, lifecycle.Failed, err
 	}
+	org.SetCondition(greenhousesapv1alpha1.TrueCondition(greenhousesapv1alpha1.ServiceProxyProvisioned, "", ""))
 
 	if org.Spec.Authentication != nil && org.Spec.Authentication.OIDCConfig != nil {
 		if err := r.reconcileDexConnector(ctx, org); err != nil {
+			org.SetCondition(greenhousesapv1alpha1.FalseCondition(greenhousesapv1alpha1.OrganizationOICDConfigured, greenhousesapv1alpha1.DexReconcileFailed, ""))
 			return ctrl.Result{}, lifecycle.Failed, err
 		}
 
 		if err := r.reconcileOAuth2Client(ctx, org); err != nil {
+			org.SetCondition(greenhousesapv1alpha1.FalseCondition(greenhousesapv1alpha1.OrganizationOICDConfigured, greenhousesapv1alpha1.OAuthOICDFailed, err.Error()))
 			return ctrl.Result{}, lifecycle.Failed, err
 		}
+		org.SetCondition(greenhousesapv1alpha1.TrueCondition(greenhousesapv1alpha1.OrganizationOICDConfigured, "", ""))
 	}
 
 	if err := r.reconcileAdminTeam(ctx, org); err != nil {
+		org.SetCondition(greenhousesapv1alpha1.FalseCondition(greenhousesapv1alpha1.OrganizationAdminTeamConfigured, "", err.Error()))
 		return ctrl.Result{}, lifecycle.Failed, err
 	}
+	org.SetCondition(greenhousesapv1alpha1.TrueCondition(greenhousesapv1alpha1.OrganizationAdminTeamConfigured, "", ""))
 
 	return ctrl.Result{}, lifecycle.Success, nil
 }
