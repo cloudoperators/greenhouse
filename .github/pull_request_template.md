@@ -1,10 +1,18 @@
+<!--
+Please ensure the PR title follows the conventional commit format:
+<type>(<scope>): description
+
+For a list of accepted types and scopes see the workflow documentation: https://github.com/cloudoperators/greenhouse/blob/main/.github/workflows/ci-pr-title.yaml
+
+-->
+
 ## Description
 <!--
 Please do not leave this blank 
 This PR [adds/removes/fixes/replaces] the [feature/bug/etc]. 
--->
 
 Please include a summary of the changes and the related issue. Please also include relevant motivation and context. List any dependencies that are required for this change.
+-->
 
 ## What type of PR is this? (check all applicable)
 
@@ -53,7 +61,5 @@ Please describe the tests that you ran to verify your changes. Provide instructi
 - [ ] My code follows the style guidelines of this project
 - [ ] I have performed a self-review of my code
 - [ ] I have commented my code, particularly in hard-to-understand areas
-- [ ] I have made corresponding changes to the documentation
 - [ ] My changes generate no new warnings
-- [ ] I have added tests that prove my fix is effective or that my feature works
 - [ ] New and existing unit tests pass locally with my changes
