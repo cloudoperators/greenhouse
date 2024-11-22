@@ -33,12 +33,12 @@ Please include a summary of the changes and the related issue. Please also inclu
 <!-- 
 Please use this format link issue numbers: Fixes #123
 https://docs.github.com/en/free-pro-team@latest/github/managing-your-work-on-github/linking-a-pull-request-to-an-issue#linking-a-pull-request-to-an-issue-using-a-keyword 
--->
+
 - Related Issue # (issue)
 - Closes # (issue)
 - Fixes # (issue)
 
-> Remove if not applicable
+-->
 
 ## Added tests?
 
