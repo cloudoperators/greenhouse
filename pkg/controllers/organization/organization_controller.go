@@ -54,7 +54,7 @@ func (r *OrganizationReconciler) SetupWithManager(name string, mgr ctrl.Manager)
 }
 
 func (r *OrganizationReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	return lifecycle.Reconcile(ctx, r.Client, req.NamespacedName, &greenhousesapv1alpha1.Organization{}, r, nil)
+	return lifecycle.Reconcile(ctx, r.Client, req.NamespacedName, &greenhousesapv1alpha1.Organization{}, r, r.setStatus())
 }
 
 func (r *OrganizationReconciler) EnsureDeleted(_ context.Context, _ lifecycle.RuntimeObject) (ctrl.Result, lifecycle.ReconcileResult, error) {
@@ -67,20 +67,11 @@ func (r *OrganizationReconciler) EnsureCreated(ctx context.Context, object lifec
 		return ctrl.Result{}, lifecycle.Failed, errors.Errorf("RuntimeObject has incompatible type.")
 	}
 
-	orgStatus := initOrganizationStatus(org)
-	defer func() {
-		if statusErr := r.setStatus(ctx, org, orgStatus); statusErr != nil {
-			log.FromContext(ctx).Error(statusErr, "failed to set status")
-		}
-	}()
+	initOrganizationStatus(org)
 
 	if err := r.reconcileNamespace(ctx, org); err != nil {
 		return ctrl.Result{}, lifecycle.Failed, err
 	}
-
-	scimAPIAvailableCondition := r.checkSCIMAPIAvailability(ctx, org)
-	readyCondition := calculateReadyCondition(scimAPIAvailableCondition)
-	orgStatus.SetConditions(scimAPIAvailableCondition, readyCondition)
 
 	if err := r.reconcileAdminTeam(ctx, org); err != nil {
 		return ctrl.Result{}, lifecycle.Failed, err
@@ -139,7 +130,7 @@ func (r *OrganizationReconciler) reconcileAdminTeam(ctx context.Context, org *gr
 func (r *OrganizationReconciler) checkSCIMAPIAvailability(ctx context.Context, org *greenhousesapv1alpha1.Organization) greenhousesapv1alpha1.Condition {
 	if org.Spec.Authentication == nil || org.Spec.Authentication.SCIMConfig == nil {
 		// SCIM Config is optional.
-		return greenhousesapv1alpha1.UnknownCondition(greenhousesapv1alpha1.SCIMAPIAvailableCondition, "", "SCIM Config not provided")
+		return greenhousesapv1alpha1.UnknownCondition(greenhousesapv1alpha1.SCIMAPIAvailableCondition, greenhousesapv1alpha1.SCIMConfigNotProvidedReason, "SCIM Config not provided")
 	}
 
 	if org.Spec.MappedOrgAdminIDPGroup == "" {
@@ -175,7 +166,7 @@ func (r *OrganizationReconciler) checkSCIMAPIAvailability(ctx context.Context, o
 		return greenhousesapv1alpha1.FalseCondition(greenhousesapv1alpha1.SCIMAPIAvailableCondition, greenhousesapv1alpha1.SCIMRequestFailedReason, "Failed to request data from SCIM API")
 	}
 
-	return greenhousesapv1alpha1.TrueCondition(greenhousesapv1alpha1.SCIMAPIAvailableCondition, "", "")
+	return greenhousesapv1alpha1.TrueCondition(greenhousesapv1alpha1.SCIMAPIAvailableCondition, lifecycle.CreatedReason, "SCIM API is available")
 }
 
 func calculateReadyCondition(scimAPIAvailableCondition greenhousesapv1alpha1.Condition) greenhousesapv1alpha1.Condition {
@@ -186,20 +177,23 @@ func calculateReadyCondition(scimAPIAvailableCondition greenhousesapv1alpha1.Con
 	return greenhousesapv1alpha1.TrueCondition(greenhousesapv1alpha1.ReadyCondition, "", "")
 }
 
-func initOrganizationStatus(org *greenhousesapv1alpha1.Organization) greenhousesapv1alpha1.OrganizationStatus {
-	orgStatus := org.Status.DeepCopy()
+func initOrganizationStatus(org *greenhousesapv1alpha1.Organization) {
+	orgStatus := org.Status
 	for _, t := range exposedConditions {
 		if orgStatus.GetConditionByType(t) == nil {
 			orgStatus.SetConditions(greenhousesapv1alpha1.UnknownCondition(t, "", ""))
 		}
 	}
-	return *orgStatus
 }
 
-func (r *OrganizationReconciler) setStatus(ctx context.Context, org *greenhousesapv1alpha1.Organization, orgStatus greenhousesapv1alpha1.OrganizationStatus) error {
-	_, err := clientutil.PatchStatus(ctx, r.Client, org, func() error {
-		org.Status = orgStatus
-		return nil
-	})
-	return err
+func (r *OrganizationReconciler) setStatus() lifecycle.Conditioner {
+	return func(ctx context.Context, object lifecycle.RuntimeObject) {
+		org, ok := object.(*greenhousesapv1alpha1.Organization)
+		if !ok {
+			return
+		}
+		scimAPIAvailableCondition := r.checkSCIMAPIAvailability(ctx, org)
+		readyCondition := calculateReadyCondition(scimAPIAvailableCondition)
+		org.Status.SetConditions(scimAPIAvailableCondition, readyCondition)
+	}
 }

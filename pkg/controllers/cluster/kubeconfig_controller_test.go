@@ -34,6 +34,8 @@ var _ = Describe("ClusterKubeconfig controller", Ordered, func() {
 		oidcClientSecret    = "the-client-secret"
 		oidcClientSecretKey = "clientSecret"
 		oidcSecretResource  = "the-oidc-secret"
+
+		mappedAdminID = "the-admin-id"
 	)
 
 	var (
@@ -50,6 +52,7 @@ var _ = Describe("ClusterKubeconfig controller", Ordered, func() {
 
 		By("Creating an organization with OIDC config")
 		organization.Name = setup.Namespace()
+		organization.Spec.MappedOrgAdminIDPGroup = mappedAdminID
 		organization.Spec.Authentication = &v1alpha1.Authentication{
 			OIDCConfig: &v1alpha1.OIDCConfig{
 				Issuer: oidcIssuer,

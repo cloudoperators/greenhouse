@@ -14,6 +14,8 @@ const (
 	SecretNotFoundReason ConditionReason = "SecretNotFound"
 	// SCIMRequestFailedReason is set when a request to SCIM failed.
 	SCIMRequestFailedReason ConditionReason = "SCIMRequestFailed"
+	// SCIMConfigNotProvidedReason is set when scim config is not present in spec as it is optional
+	SCIMConfigNotProvidedReason ConditionReason = "SCIMConfigNotProvided"
 )
 
 // OrganizationSpec defines the desired state of Organization

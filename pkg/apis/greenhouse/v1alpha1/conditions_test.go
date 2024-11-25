@@ -353,4 +353,59 @@ var _ = Describe("Test conditions util functions", func() {
 		Expect(condition1.Equal(condition2)).To(BeTrue())
 
 	})
+
+	It("should remove the deprecated NoHelmChartTestFailures condition", func() {
+		By("removing the deprecated NoHelmChartTestFailures condition")
+		noHelmChartTestFailuresCondition := greenhousev1alpha1.Condition{
+			Type:               greenhousev1alpha1.NoHelmChartTestFailuresCondition,
+			Status:             metav1.ConditionTrue,
+			LastTransitionTime: timeNow,
+			Message:            "test",
+		}
+
+		existingCondition1 := greenhousev1alpha1.Condition{
+			Type:               greenhousev1alpha1.HelmReconcileFailedCondition,
+			Status:             metav1.ConditionFalse,
+			LastTransitionTime: timeNow,
+			Message:            "test",
+		}
+
+		existingCondition2 := greenhousev1alpha1.Condition{
+			Type:               greenhousev1alpha1.HelmDriftDetectedCondition,
+			Status:             metav1.ConditionTrue,
+			LastTransitionTime: timeNow,
+			Message:            "test",
+		}
+
+		statusConditions := greenhousev1alpha1.StatusConditions{
+			Conditions: []greenhousev1alpha1.Condition{noHelmChartTestFailuresCondition, existingCondition1, existingCondition2},
+		}
+
+		newCondition1 := greenhousev1alpha1.Condition{
+			Type:               greenhousev1alpha1.HelmChartTestSucceededCondition,
+			Status:             metav1.ConditionTrue,
+			LastTransitionTime: timeNow,
+			Message:            "test",
+		}
+
+		newCondition2 := greenhousev1alpha1.Condition{
+			Type:               greenhousev1alpha1.ReadyCondition,
+			Status:             metav1.ConditionTrue,
+			LastTransitionTime: metav1.NewTime(metav1.Now().AddDate(0, 0, -1)),
+			Message:            "test",
+		}
+
+		// Set new condition
+		statusConditions.SetConditions(newCondition1)
+		statusConditions.SetConditions(newCondition2)
+
+		// Check if the deprecated condition is removed
+		Expect(statusConditions.GetConditionByType(greenhousev1alpha1.NoHelmChartTestFailuresCondition)).To(BeNil())
+
+		// Check if the new condition is added
+		condition := statusConditions.GetConditionByType(greenhousev1alpha1.HelmChartTestSucceededCondition)
+		Expect(condition).NotTo(BeNil())
+		Expect(condition.Status).To(Equal(metav1.ConditionTrue))
+		Expect(condition.LastTransitionTime).To(Equal(timeNow))
+	})
 })

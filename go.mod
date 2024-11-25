@@ -7,13 +7,13 @@ replace (
 	github.com/dexidp/dex => github.com/dexidp/dex v0.0.0-20240807174518-43956db7fd75
 	github.com/dexidp/dex/api/v2 => github.com/dexidp/dex/api/v2 v2.2.0
 	// Keep k8s dependencies in sync.
-	k8s.io/api => k8s.io/api v0.30.5
-	k8s.io/apiextensions-apiserver => k8s.io/apiextensions-apiserver v0.30.5
-	k8s.io/apimachinery => k8s.io/apimachinery v0.30.5
-	k8s.io/cli-runtime => k8s.io/cli-runtime v0.30.5
-	k8s.io/client-go => k8s.io/client-go v0.30.5
-	k8s.io/component-base => k8s.io/component-base v0.30.5
-	k8s.io/kubectl => k8s.io/kubectl v0.30.5
+	k8s.io/api => k8s.io/api v0.30.6
+	k8s.io/apiextensions-apiserver => k8s.io/apiextensions-apiserver v0.30.6
+	k8s.io/apimachinery => k8s.io/apimachinery v0.30.7
+	k8s.io/cli-runtime => k8s.io/cli-runtime v0.30.6
+	k8s.io/client-go => k8s.io/client-go v0.30.6
+	k8s.io/component-base => k8s.io/component-base v0.30.6
+	k8s.io/kubectl => k8s.io/kubectl v0.30.6
 	sigs.k8s.io/controller-runtime => sigs.k8s.io/controller-runtime v0.18.5
 )
 
@@ -25,28 +25,28 @@ require (
 	github.com/jeremywohl/flatten/v2 v2.0.0-20211013061545-07e4a09fb8e4
 	github.com/oklog/run v1.1.1-0.20240127200640-eee6e044b77c
 	github.com/onsi/ginkgo/v2 v2.21.0
-	github.com/onsi/gomega v1.34.2
+	github.com/onsi/gomega v1.35.1
 	github.com/pkg/errors v0.9.1
 	github.com/prometheus/client_golang v1.20.5
 	github.com/sirupsen/logrus v1.9.3
 	github.com/spf13/cobra v1.8.1
 	github.com/spf13/pflag v1.0.5
 	github.com/stretchr/testify v1.9.0
-	github.com/vladimirvivien/gexe v0.3.0
+	github.com/vladimirvivien/gexe v0.4.0
 	github.com/wI2L/jsondiff v0.6.0
 	go.uber.org/zap v1.27.0
-	golang.org/x/text v0.19.0
+	golang.org/x/text v0.20.0
 	gopkg.in/yaml.v3 v3.0.1
 	gotest.tools/v3 v3.5.1
 	helm.sh/helm/v3 v3.15.4
-	k8s.io/api v0.31.1
-	k8s.io/apiextensions-apiserver v0.31.1
-	k8s.io/apimachinery v0.31.1
-	k8s.io/cli-runtime v0.31.1
-	k8s.io/client-go v0.31.1
-	k8s.io/kubectl v0.31.1
+	k8s.io/api v0.31.2
+	k8s.io/apiextensions-apiserver v0.31.2
+	k8s.io/apimachinery v0.31.3
+	k8s.io/cli-runtime v0.31.2
+	k8s.io/client-go v0.31.2
+	k8s.io/kubectl v0.31.2
 	k8s.io/utils v0.0.0-20240921022957-49e7df575cb6
-	sigs.k8s.io/controller-runtime v0.19.0
+	sigs.k8s.io/controller-runtime v0.19.1
 	sigs.k8s.io/e2e-framework v0.5.0
 	sigs.k8s.io/yaml v1.4.0
 )
@@ -201,16 +201,16 @@ require (
 	golang.org/x/exp v0.0.0-20240823005443-9b4947da3948 // indirect
 	golang.org/x/net v0.30.0 // indirect
 	golang.org/x/oauth2 v0.22.0 // indirect
-	golang.org/x/sync v0.8.0 // indirect
+	golang.org/x/sync v0.9.0 // indirect
 	golang.org/x/sys v0.26.0 // indirect
 	golang.org/x/term v0.25.0 // indirect
-	golang.org/x/time v0.7.0
+	golang.org/x/time v0.8.0
 	golang.org/x/tools v0.26.0 // indirect
 	gomodules.xyz/jsonpatch/v2 v2.4.0 // indirect
 	google.golang.org/api v0.195.0 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20240827150818-7e3bb234dfed // indirect
 	google.golang.org/grpc v1.66.3 // indirect
-	google.golang.org/protobuf v1.34.2 // indirect
+	google.golang.org/protobuf v1.35.1 // indirect
 	gopkg.in/inf.v0 v0.9.1 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	k8s.io/apiserver v0.31.0 // indirect

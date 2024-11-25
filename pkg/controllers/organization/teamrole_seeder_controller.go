@@ -102,7 +102,7 @@ func (r *TeamRoleSeederReconciler) SetupWithManager(name string, mgr ctrl.Manage
 }
 
 func (r *TeamRoleSeederReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	return lifecycle.Reconcile(ctx, r.Client, req.NamespacedName, &greenhousesapv1alpha1.Organization{}, r, nil)
+	return lifecycle.Reconcile(ctx, r.Client, req.NamespacedName, &greenhousesapv1alpha1.Organization{}, r, noStatus())
 }
 
 func (r *TeamRoleSeederReconciler) EnsureDeleted(_ context.Context, _ lifecycle.RuntimeObject) (ctrl.Result, lifecycle.ReconcileResult, error) {
