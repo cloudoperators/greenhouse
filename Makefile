@@ -267,7 +267,7 @@ setup-plugin-dev: cli
 
 .PHONY: setup-dev
 setup-dev: cli
-	PLUGIN_PATH=$(PLUGIN_DIR) $(CLI) dev setup -f dev-env/localenv/dev.config.yaml
+	$(CLI) dev setup -f dev-env/localenv/dev.config.yaml
 
 .PHONY: setup-webhook
 setup-webhook: cli
