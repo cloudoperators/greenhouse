@@ -113,7 +113,7 @@ func (s *ScimClient) GetTeamMembers(teamMappedIDPGroup string) ([]Member, error)
 
 // GetUsers returns a list of fully qualified Users, the number of malformed users and the number of inactive users
 // On error only the error is set
-func (s *ScimClient) GetUsers(members []Member) (users []greenhousev1alpha1.User, inactive int, malformed int, err error) {
+func (s *ScimClient) GetUsers(members []Member) (users []greenhousev1alpha1.User, inactive, malformed int, err error) {
 	users = make([]greenhousev1alpha1.User, 0)
 	malformed = 0
 	inactive = 0
