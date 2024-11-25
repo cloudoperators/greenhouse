@@ -21,8 +21,8 @@ const (
 	NamespaceCreated ConditionType = "NamespaceCreated"
 	// OrganizationRBACConfigured is set when the RBAC for organization is configured
 	OrganizationRBACConfigured ConditionType = "OrganizationRBACConfigured"
-	// OrganizationDefaultTeamRoleConfigured is set when default team roles are configured
-	OrganizationDefaultTeamRoleConfigured ConditionType = "OrganizationDefaultTeamRoleConfigured"
+	// OrganizationDefaultTeamRolesConfigured is set when default team roles are configured
+	OrganizationDefaultTeamRolesConfigured ConditionType = "OrganizationDefaultTeamRolesConfigured"
 	// ServiceProxyProvisioned is set when the service proxy is provisioned
 	ServiceProxyProvisioned ConditionType = "ServiceProxyProvisioned"
 	// OrganizationOICDConfigured is set when the OICD is configured
