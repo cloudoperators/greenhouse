@@ -7,6 +7,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"k8s.io/utils/ptr"
 	"net"
 	"os"
 	"path/filepath"
@@ -28,14 +29,14 @@ import (
 )
 
 type Webhook struct {
-	Envs       []WebhookEnv `json:"envs"`
-	DockerFile string       `json:"dockerFile"`
-	DevMode    bool         `json:"devMode"`
+	Envs       []WebhookEnv `yaml:"envs" json:"envs"`
+	DockerFile string       `yaml:"dockerFile" json:"dockerFile"`
+	DevMode    bool         `yaml:"devMode" json:"devMode"`
 }
 
 type WebhookEnv struct {
-	Name  string `json:"name"`
-	Value string `json:"value"`
+	Name  string `yaml:"name" json:"name"`
+	Value string `yaml:"value" json:"value"`
 }
 
 const (
@@ -104,6 +105,36 @@ func (m *Manifest) setupWebhookManifest(resources []map[string]interface{}, clus
 	return webhookManifests, nil
 }
 
+func (m *Manifest) setHostPathVolume(deployment *appsv1.Deployment) {
+	hostVolume := v1.Volume{
+		Name: "plugin",
+		VolumeSource: v1.VolumeSource{
+			HostPath: &v1.HostPathVolumeSource{
+				Path: utils.PluginHostPath,
+				Type: ptr.To[v1.HostPathType](v1.HostPathDirectory),
+			},
+		},
+	}
+	if len(deployment.Spec.Template.Spec.Volumes) == 0 {
+		deployment.Spec.Template.Spec.Volumes = []v1.Volume{hostVolume}
+	} else {
+		deployment.Spec.Template.Spec.Volumes = append(deployment.Spec.Template.Spec.Volumes, hostVolume)
+	}
+}
+
+func (m *Manifest) setHostPathVolumeMount(containerIndex int, deployment *appsv1.Deployment) {
+	hostMount := v1.VolumeMount{
+		Name:      "plugin",
+		MountPath: utils.ManagerHostPathMount,
+	}
+	if len(deployment.Spec.Template.Spec.Containers[containerIndex].VolumeMounts) == 0 {
+		deployment.Spec.Template.Spec.Containers[containerIndex].VolumeMounts = []v1.VolumeMount{hostMount}
+	} else {
+		deployment.Spec.Template.Spec.Containers[containerIndex].VolumeMounts = append(deployment.Spec.Template.Spec.Containers[containerIndex].VolumeMounts, hostMount)
+	}
+
+}
+
 // modifyManagerDeployment - appends the env in manager container by setting WEBHOOK_ONLY=true
 func (m *Manifest) modifyManagerDeployment(deploymentResource map[string]interface{}) (map[string]interface{}, error) {
 	deployment := &appsv1.Deployment{}
@@ -128,6 +159,12 @@ func (m *Manifest) modifyManagerDeployment(deploymentResource map[string]interfa
 	}
 	deployment.Spec.Template.Spec.Containers[index].Image = MangerIMG
 	deployment.Spec.Replicas = utils.Int32P(1)
+	if m.enableLocalPluginDev {
+		m.setHostPathVolume(deployment)
+		m.setHostPathVolumeMount(index, deployment)
+		deployment.Spec.Template.Spec.Containers[index].SecurityContext.RunAsGroup = ptr.To[int64](65532)
+	}
+
 	depBytes, err := utils.FromK8sObjectToYaml(deployment, appsv1.SchemeGroupVersion)
 	if err != nil {
 		return nil, err
