@@ -24,6 +24,8 @@ type PluginPresetSpec struct {
 	// ClusterOptionOverrides define plugin option values to override by the PluginPreset
 	// +kubebuilder:validation:Optional
 	ClusterOptionOverrides []ClusterOptionOverride `json:"clusterOptionOverrides,omitempty"`
+
+	MyNewField string `json:"myNewField"`
 }
 
 // ClusterOptionOverride defines which plugin option should be override in which cluster
