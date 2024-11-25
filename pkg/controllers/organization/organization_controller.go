@@ -34,7 +34,7 @@ var (
 		greenhousesapv1alpha1.OrganizationOICDConfigured,
 		greenhousesapv1alpha1.OrganizationAdminTeamConfigured,
 		greenhousesapv1alpha1.ServiceProxyProvisioned,
-		greenhousesapv1alpha1.OrganizationDefaultTeamRoleConfigured,
+		greenhousesapv1alpha1.OrganizationDefaultTeamRolesConfigured,
 		greenhousesapv1alpha1.NamespaceCreated,
 		greenhousesapv1alpha1.OrganizationRBACConfigured,
 	}
@@ -118,10 +118,10 @@ func (r *OrganizationReconciler) EnsureCreated(ctx context.Context, object lifec
 	org.SetCondition(greenhousesapv1alpha1.TrueCondition(greenhousesapv1alpha1.OrganizationRBACConfigured, "", ""))
 
 	if err := r.reconcileDefaultTeamRoles(ctx, org); err != nil {
-		org.SetCondition(greenhousesapv1alpha1.FalseCondition(greenhousesapv1alpha1.OrganizationDefaultTeamRoleConfigured, "", err.Error()))
+		org.SetCondition(greenhousesapv1alpha1.FalseCondition(greenhousesapv1alpha1.OrganizationDefaultTeamRolesConfigured, "", err.Error()))
 		return ctrl.Result{}, lifecycle.Failed, err
 	}
-	org.SetCondition(greenhousesapv1alpha1.TrueCondition(greenhousesapv1alpha1.OrganizationDefaultTeamRoleConfigured, "", ""))
+	org.SetCondition(greenhousesapv1alpha1.TrueCondition(greenhousesapv1alpha1.OrganizationDefaultTeamRolesConfigured, "", ""))
 
 	if err := r.reconcileServiceProxy(ctx, org); err != nil {
 		org.SetCondition(greenhousesapv1alpha1.FalseCondition(greenhousesapv1alpha1.ServiceProxyProvisioned, "", err.Error()))
