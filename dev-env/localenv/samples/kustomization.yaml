@@ -1,7 +1,6 @@
 # SPDX-FileCopyrightText: 2024 SAP SE or an SAP affiliate company and Greenhouse contributors
 # SPDX-License-Identifier: Apache-2.0
 
-global:
-  dnsDomain: green.house
-alerts:
-  enabled: false
+# Add more resources in the future to setup a complete environment with plugins
+resources:
+  - organization.yaml
