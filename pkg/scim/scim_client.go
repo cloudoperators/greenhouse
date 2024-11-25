@@ -11,11 +11,10 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"log"
 	"net/http"
 	"net/http/httputil"
 	"net/url"
-	"sync"
+	"strings"
 
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/pkg/apis/greenhouse/v1alpha1"
 )
@@ -24,6 +23,9 @@ const (
 	groupPathName             = "Groups"
 	filterQueryKey            = "filter"
 	filterQueryExpressionStub = "displayName eq \"%s\""
+
+	reasonNotActive = "user is not active"
+	reasonMalformed = "could not create User from memberResponseBody"
 )
 
 type Config struct {
@@ -109,30 +111,28 @@ func (s *ScimClient) GetTeamMembers(teamMappedIDPGroup string) ([]Member, error)
 	return groupResponseBody.Resources[0].Members, nil
 }
 
-// Returns a full fledged Users array from the members array
-func (s *ScimClient) GetUsers(members []Member) []greenhousev1alpha1.User {
-	var wg sync.WaitGroup
-	usersBuffer := make(chan *greenhousev1alpha1.User, len(members))
-	wg.Add(len(members))
+// GetUsers returns a list of fully qualified Users, the number of malformed users and the number of inactive users
+// On error only the error is set
+func (s *ScimClient) GetUsers(members []Member) (users []greenhousev1alpha1.User, inactive int, malformed int, err error) {
+	users = make([]greenhousev1alpha1.User, 0)
+	malformed = 0
+	inactive = 0
 	for _, member := range members {
-		go func(member Member) {
-			defer wg.Done()
-			user, err := s.getUser(member)
-			if err != nil {
-				log.Printf(`failed getting user: %s`, err)
+		user, err := s.getUser(member)
+		if err != nil {
+			if strings.Contains(err.Error(), reasonNotActive) {
+				inactive += 1
+				continue
 			}
-			usersBuffer <- user
-		}(member)
-	}
-	wg.Wait()
-	users := []greenhousev1alpha1.User{}
-	for range cap(usersBuffer) {
-		user := <-usersBuffer
-		if user != nil {
-			users = append(users, *user)
+			if strings.Contains(err.Error(), reasonMalformed) {
+				malformed += 1
+				continue
+			}
+			return nil, 0, 0, err
 		}
+		users = append(users, *user)
 	}
-	return users
+	return users, inactive, malformed, nil
 }
 
 func (s *ScimClient) getUser(member Member) (*greenhousev1alpha1.User, error) {
@@ -163,14 +163,14 @@ func (s *ScimClient) getUser(member Member) (*greenhousev1alpha1.User, error) {
 	}
 
 	if !memberResponseBody.Active {
-		return nil, fmt.Errorf("user is not active: %v", memberResponseBody)
+		return nil, fmt.Errorf("%s: %v", reasonNotActive, memberResponseBody)
 	}
 
 	user := greenhousev1alpha1.User{}
 	if memberResponseBody.UserName != "" && memberResponseBody.Name.GivenName != "" && memberResponseBody.Name.FamilyName != "" && len(memberResponseBody.Emails) > 0 && memberResponseBody.Emails[0].Value != "" {
 		user = greenhousev1alpha1.User{ID: memberResponseBody.UserName, FirstName: memberResponseBody.Name.GivenName, LastName: memberResponseBody.Name.FamilyName, Email: memberResponseBody.Emails[0].Value}
 	} else {
-		return nil, fmt.Errorf("could not create User from memberResponseBody: %v", memberResponseBody)
+		return nil, fmt.Errorf("%s: %v", reasonMalformed, memberResponseBody)
 	}
 
 	return &user, nil
