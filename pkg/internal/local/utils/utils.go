@@ -25,6 +25,12 @@ import (
 	syaml "sigs.k8s.io/yaml"
 )
 
+const (
+	ManagerHostPathMount = "/local/plugins"
+	PluginDirectoryPath  = "PLUGIN_PATH"
+	PluginHostPath       = "/greenhouse/local/plugins"
+)
+
 func Log(args ...any) {
 	args[0] = "===== 🤖 " + args[0].(string) //nolint:errcheck
 	klog.InfoDepth(1, args...)

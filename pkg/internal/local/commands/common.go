@@ -5,6 +5,10 @@ package commands
 
 import (
 	"fmt"
+	"github.com/cloudoperators/greenhouse/pkg/internal/local/utils"
+	"gopkg.in/yaml.v3"
+	"os"
+	kv1alpha4 "sigs.k8s.io/kind/pkg/apis/config/v1alpha4"
 	"strings"
 
 	"github.com/spf13/cobra"
@@ -15,6 +19,7 @@ var (
 	clusterName    string
 	namespaceName  string
 	clusterVersion string
+	kindConfigPath string
 	dockerFile     string
 	releaseName    string
 	chartPath      string
@@ -76,4 +81,37 @@ func validateFlagInputs(flags *pflag.FlagSet) error {
 		return fmt.Errorf("flag validation failed for: %s", strings.Join(invalidFlags, ", "))
 	}
 	return nil
+}
+
+func createHostPathConfig() (string, error) {
+	pluginDir, ok := os.LookupEnv(utils.PluginDirectoryPath)
+	if !ok {
+		return "", nil
+	}
+	if strings.TrimSpace(pluginDir) == "" {
+		return "", nil
+	} else {
+		kindConfig := kv1alpha4.Cluster{
+			TypeMeta: kv1alpha4.TypeMeta{
+				Kind:       "Cluster",
+				APIVersion: "kind.x-k8s.io/v1alpha4",
+			},
+			Nodes: []kv1alpha4.Node{
+				{
+					Role: kv1alpha4.ControlPlaneRole,
+					ExtraMounts: []kv1alpha4.Mount{
+						{
+							HostPath:      pluginDir,
+							ContainerPath: utils.PluginHostPath,
+						},
+					},
+				},
+			},
+		}
+		kindConfigBytes, err := yaml.Marshal(kindConfig)
+		if err != nil {
+			return "", err
+		}
+		return utils.RandomWriteToTmpFolder("plugin-config.yaml", string(kindConfigBytes))
+	}
 }
