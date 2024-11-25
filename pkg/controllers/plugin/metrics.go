@@ -1,9 +1,10 @@
 package plugin
 
 import (
-	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/pkg/apis/greenhouse/v1alpha1"
 	"github.com/prometheus/client_golang/prometheus"
 	"sigs.k8s.io/controller-runtime/pkg/metrics"
+
+	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/pkg/apis/greenhouse/v1alpha1"
 )
 
 const (
@@ -13,7 +14,6 @@ const (
 	metricReasonTemplateFailed = "template_failed"
 	metricReasonDiffFailed     = "diff_failed"
 	metricReasonUpgradeFailed  = "upgrade_failed"
-	metricReasonRollbackFailed = "rollback_failed"
 )
 
 var (
@@ -43,11 +43,15 @@ func updateMetrics(plugin *greenhousev1alpha1.Plugin) {
 				result = metricResultError
 				reason = metricReasonTemplateFailed
 			}
-			break
 		case greenhousev1alpha1.HelmDriftDetectedCondition:
 			if condition.IsTrue() {
 				result = metricResultError
 				reason = metricReasonDiffFailed
+			}
+		case greenhousev1alpha1.StatusUpToDateCondition:
+			if condition.IsFalse() {
+				result = metricResultError
+				reason = metricReasonUpgradeFailed
 			}
 		}
 	}
