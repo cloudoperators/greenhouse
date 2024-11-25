@@ -25,6 +25,7 @@ import (
 	metricsserver "sigs.k8s.io/controller-runtime/pkg/metrics/server"
 
 	greenhousesapv1alpha1 "github.com/cloudoperators/greenhouse/pkg/apis/greenhouse/v1alpha1"
+	greenhousesapv1alpha2 "github.com/cloudoperators/greenhouse/pkg/apis/greenhouse/v1alpha2"
 	"github.com/cloudoperators/greenhouse/pkg/clientutil"
 	"github.com/cloudoperators/greenhouse/pkg/common"
 	dexapi "github.com/cloudoperators/greenhouse/pkg/dex/api"
@@ -64,6 +65,7 @@ func init() {
 	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
 	utilruntime.Must(apiextensionsv1.AddToScheme(scheme))
 	utilruntime.Must(greenhousesapv1alpha1.AddToScheme(scheme))
+	utilruntime.Must(greenhousesapv1alpha2.AddToScheme(scheme))
 	utilruntime.Must(dexapi.AddToScheme(scheme))
 	//+kubebuilder:scaffold:scheme
 }

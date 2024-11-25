@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2024 SAP SE or an SAP affiliate company and Greenhouse contributors
 // SPDX-License-Identifier: Apache-2.0
 
-package v1alpha1
+package v1alpha2
 
 import (
 	"slices"
@@ -17,10 +17,9 @@ type TeamRoleBindingSpec struct {
 	TeamRoleRef string `json:"teamRoleRef,omitempty"`
 	// TeamRef references a Greenhouse Team by name
 	TeamRef string `json:"teamRef,omitempty"`
-	// ClusterName is the name of the cluster the rbacv1 resources are created on.
-	ClusterName string `json:"clusterName,omitempty"`
-	// ClusterSelector is a label selector to select the Clusters the TeamRoleBinding should be deployed to.
-	ClusterSelector metav1.LabelSelector `json:"clusterSelector,omitempty"`
+
+	ClusterSelector ClusterSelector `json:"clusterSelector,omitempty"`
+
 	// Namespaces is the immutable list of namespaces in the Greenhouse Clusters to apply the RoleBinding to.
 	// If empty, a ClusterRoleBinding will be created on the remote cluster, otherwise a RoleBinding per namespace.
 	Namespaces []string `json:"namespaces,omitempty"`
@@ -46,7 +45,6 @@ type PropagationStatus struct {
 
 //+kubebuilder:object:root=true
 //+kubebuilder:subresource:status
-//+kubebuilder:storageversion
 //+kubebuilder:printcolumn:name="Team Role",type=string,JSONPath=`.spec.teamRoleRef`
 //+kubebuilder:printcolumn:name="Team",type=string,JSONPath=`.spec.teamRef`
 //+kubebuilder:printcolumn:name="Ready",type="string",JSONPath=`.status.statusConditions.conditions[?(@.type == "Ready")].status`

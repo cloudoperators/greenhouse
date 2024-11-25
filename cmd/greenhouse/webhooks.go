@@ -7,16 +7,18 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 
 	"github.com/cloudoperators/greenhouse/pkg/admission"
+	admission_v1alpha2 "github.com/cloudoperators/greenhouse/pkg/admission/v1alpha2"
 )
 
 var knownWebhooks = map[string]func(mgr ctrl.Manager) error{
-	"cluster":          admission.SetupClusterWebhookWithManager,
-	"secrets":          admission.SetupSecretWebhookWithManager,
-	"organization":     admission.SetupOrganizationWebhookWithManager,
-	"pluginDefinition": admission.SetupPluginDefinitionWebhookWithManager,
-	"plugin":           admission.SetupPluginWebhookWithManager,
-	"pluginPreset":     admission.SetupPluginPresetWebhookWithManager,
-	"teamrole":         admission.SetupTeamRoleWebhookWithManager,
-	"teamrolebinding":  admission.SetupTeamRoleBindingWebhookWithManager,
-	"team":             admission.SetupTeamWebhookWithManager,
+	"cluster":                  admission.SetupClusterWebhookWithManager,
+	"secrets":                  admission.SetupSecretWebhookWithManager,
+	"organization":             admission.SetupOrganizationWebhookWithManager,
+	"pluginDefinition":         admission.SetupPluginDefinitionWebhookWithManager,
+	"plugin":                   admission.SetupPluginWebhookWithManager,
+	"pluginPreset":             admission.SetupPluginPresetWebhookWithManager,
+	"teamrole":                 admission.SetupTeamRoleWebhookWithManager,
+	"teamrolebinding_v1alpha1": admission.SetupTeamRoleBindingWebhookWithManager,
+	"teamrolebinding_v1alpha2": admission_v1alpha2.SetupTeamRoleBindingWebhookWithManager,
+	"team":                     admission.SetupTeamWebhookWithManager,
 }
