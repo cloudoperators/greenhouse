@@ -48,6 +48,7 @@ jobs:
             service-proxy
             build
             config
+            charts
             ci
             core
             controller

@@ -20,11 +20,7 @@ import (
 // knownControllers contains all controllers to be registered when starting the operator.
 var knownControllers = map[string]func(controllerName string, mgr ctrl.Manager) error{
 	// Organization controllers.
-	"organizationController":     (&organizationcontrollers.OrganizationReconciler{}).SetupWithManager,
-	"organizationRBAC":           (&organizationcontrollers.RBACReconciler{}).SetupWithManager,
-	"organizationDEX":            startOrganizationDexReconciler,
-	"organizationServiceProxy":   (&organizationcontrollers.ServiceProxyReconciler{}).SetupWithManager,
-	"organizationTeamRoleSeeder": (&organizationcontrollers.TeamRoleSeederReconciler{}).SetupWithManager,
+	"organizationController": startOrganizationReconciler,
 
 	// Team controllers.
 	"teamPropagation": (&teamcontrollers.TeamPropagationReconciler{}).SetupWithManager,
@@ -75,12 +71,12 @@ func isControllerEnabled(controllerName string) bool {
 	return false
 }
 
-func startOrganizationDexReconciler(name string, mgr ctrl.Manager) error {
+func startOrganizationReconciler(name string, mgr ctrl.Manager) error {
 	namespace := "greenhouse"
 	if v, ok := os.LookupEnv("POD_NAMESPACE"); ok {
 		namespace = v
 	}
-	return (&organizationcontrollers.DexReconciler{
+	return (&organizationcontrollers.OrganizationReconciler{
 		Namespace: namespace,
 	}).SetupWithManager(name, mgr)
 }
