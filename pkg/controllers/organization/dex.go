@@ -18,30 +18,19 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	networkingv1 "k8s.io/api/networking/v1"
 	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/client-go/tools/record"
 	ctrl "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
-	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
 	greenhousesapv1alpha1 "github.com/cloudoperators/greenhouse/pkg/apis/greenhouse/v1alpha1"
 	"github.com/cloudoperators/greenhouse/pkg/clientutil"
 	"github.com/cloudoperators/greenhouse/pkg/common"
 	dexapi "github.com/cloudoperators/greenhouse/pkg/dex/api"
-	"github.com/cloudoperators/greenhouse/pkg/lifecycle"
 	"github.com/cloudoperators/greenhouse/pkg/util"
 )
 
 const dexConnectorTypeGreenhouse = "greenhouse-oidc"
-
-// DexReconciler reconciles a Organization object
-type DexReconciler struct {
-	client.Client
-	recorder  record.EventRecorder
-	Namespace string
-}
 
 //+kubebuilder:rbac:groups=greenhouse.sap,resources=organizations,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=greenhouse.sap,resources=organizations/status,verbs=get;update;patch
@@ -51,52 +40,7 @@ type DexReconciler struct {
 //+kubebuilder:rbac:groups=dex.coreos.com,resources=connectors;oauth2clients,verbs=get;list;watch;create;update;patch
 //+kubebuilder:rbac:groups="",resources=secrets,verbs=get;list;watch
 
-// SetupWithManager sets up the controller with the Manager.
-func (r *DexReconciler) SetupWithManager(name string, mgr ctrl.Manager) error {
-	r.Client = mgr.GetClient()
-	r.recorder = mgr.GetEventRecorderFor(name)
-	if r.Namespace == "" {
-		return errors.New("namespace required but missing")
-	}
-	return ctrl.NewControllerManagedBy(mgr).
-		Named(name).
-		For(&greenhousesapv1alpha1.Organization{},
-			builder.WithPredicates(clientutil.PredicateHasOICDConfigured())).
-		Owns(&dexapi.Connector{}).
-		Owns(&dexapi.OAuth2Client{}).
-		// Watch secrets referenced by organizations for confidential values.
-		Watches(&corev1.Secret{},
-			handler.EnqueueRequestsFromMapFunc(r.enqueueOrganizationForReferencedSecret),
-			builder.WithPredicates(clientutil.PredicateHasOICDConfigured())).
-		Complete(r)
-}
-
-func (r *DexReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	return lifecycle.Reconcile(ctx, r.Client, req.NamespacedName, &greenhousesapv1alpha1.Organization{}, r, noStatus())
-}
-
-func (r *DexReconciler) EnsureDeleted(_ context.Context, _ lifecycle.RuntimeObject) (ctrl.Result, lifecycle.ReconcileResult, error) {
-	return ctrl.Result{}, lifecycle.Success, nil // nothing to do in that case
-}
-
-func (r *DexReconciler) EnsureCreated(ctx context.Context, object lifecycle.RuntimeObject) (ctrl.Result, lifecycle.ReconcileResult, error) {
-	org, ok := object.(*greenhousesapv1alpha1.Organization)
-	if !ok {
-		return ctrl.Result{}, lifecycle.Failed, errors.Errorf("RuntimeObject has incompatible type.")
-	}
-
-	if err := r.reconcileDexConnector(ctx, org); err != nil {
-		return ctrl.Result{}, lifecycle.Failed, err
-	}
-
-	if err := r.reconcileOAuth2Client(ctx, org); err != nil {
-		return ctrl.Result{}, lifecycle.Failed, err
-	}
-
-	return ctrl.Result{}, lifecycle.Success, nil
-}
-
-func (r *DexReconciler) reconcileDexConnector(ctx context.Context, org *greenhousesapv1alpha1.Organization) error {
+func (r *OrganizationReconciler) reconcileDexConnector(ctx context.Context, org *greenhousesapv1alpha1.Organization) error {
 	clientID, err := clientutil.GetSecretKeyFromSecretKeyReference(ctx, r.Client, org.Name, org.Spec.Authentication.OIDCConfig.ClientIDReference)
 	if err != nil {
 		return err
@@ -147,7 +91,7 @@ func (r *DexReconciler) reconcileDexConnector(ctx context.Context, org *greenhou
 	return nil
 }
 
-func (r *DexReconciler) enqueueOrganizationForReferencedSecret(_ context.Context, o client.Object) []ctrl.Request {
+func (r *OrganizationReconciler) enqueueOrganizationForReferencedSecret(_ context.Context, o client.Object) []ctrl.Request {
 	var org = new(greenhousesapv1alpha1.Organization)
 	if err := r.Get(context.Background(), types.NamespacedName{Namespace: "", Name: o.GetNamespace()}, org); err != nil {
 		return nil
@@ -155,7 +99,7 @@ func (r *DexReconciler) enqueueOrganizationForReferencedSecret(_ context.Context
 	return []ctrl.Request{{NamespacedName: client.ObjectKeyFromObject(org)}}
 }
 
-func (r *DexReconciler) discoverOIDCRedirectURL(ctx context.Context, org *greenhousesapv1alpha1.Organization) (string, error) {
+func (r *OrganizationReconciler) discoverOIDCRedirectURL(ctx context.Context, org *greenhousesapv1alpha1.Organization) (string, error) {
 	if r := org.Spec.Authentication.OIDCConfig.RedirectURI; r != "" {
 		return r, nil
 	}
@@ -173,7 +117,7 @@ func (r *DexReconciler) discoverOIDCRedirectURL(ctx context.Context, org *greenh
 	return "", errors.New("oidc redirect URL not provided and cannot be discovered")
 }
 
-func (r *DexReconciler) reconcileOAuth2Client(ctx context.Context, org *greenhousesapv1alpha1.Organization) error {
+func (r *OrganizationReconciler) reconcileOAuth2Client(ctx context.Context, org *greenhousesapv1alpha1.Organization) error {
 	var oAuth2Client = new(dexapi.OAuth2Client)
 	oAuth2Client.ObjectMeta.Name = encodedOAuth2ClientName(org.Name)
 	oAuth2Client.ObjectMeta.Namespace = r.Namespace

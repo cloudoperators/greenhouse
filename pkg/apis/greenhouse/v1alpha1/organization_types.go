@@ -16,6 +16,23 @@ const (
 	SCIMRequestFailedReason ConditionReason = "SCIMRequestFailed"
 	// SCIMConfigNotProvidedReason is set when scim config is not present in spec as it is optional
 	SCIMConfigNotProvidedReason ConditionReason = "SCIMConfigNotProvided"
+
+	// NamespaceCreated is set when the namespace for organization is created.
+	NamespaceCreated ConditionType = "NamespaceCreated"
+	// OrganizationRBACConfigured is set when the RBAC for organization is configured
+	OrganizationRBACConfigured ConditionType = "OrganizationRBACConfigured"
+	// OrganizationDefaultTeamRolesConfigured is set when default team roles are configured
+	OrganizationDefaultTeamRolesConfigured ConditionType = "OrganizationDefaultTeamRolesConfigured"
+	// ServiceProxyProvisioned is set when the service proxy is provisioned
+	ServiceProxyProvisioned ConditionType = "ServiceProxyProvisioned"
+	// OrganizationOICDConfigured is set when the OICD is configured
+	OrganizationOICDConfigured ConditionType = "OrganizationOICDConfigured"
+	// DexReconcileFailed is set when dex reconcile step has failed
+	DexReconcileFailed ConditionReason = "DexReconcileFailed"
+	// OAuthOICDFailed is set when OAuth reconciler has failed
+	OAuthOICDFailed ConditionReason = "OAuthOICDFailed"
+	// OrganizationAdminTeamConfigured is set when the admin team is configured for organization
+	OrganizationAdminTeamConfigured ConditionType = "OrganizationAdminTeamConfigured"
 )
 
 // OrganizationSpec defines the desired state of Organization

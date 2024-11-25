@@ -30,6 +30,7 @@ import (
 
 	greenhousesapv1alpha1 "github.com/cloudoperators/greenhouse/pkg/apis/greenhouse/v1alpha1"
 	"github.com/cloudoperators/greenhouse/pkg/clientutil"
+	dexapi "github.com/cloudoperators/greenhouse/pkg/dex/api"
 
 	_ "k8s.io/client-go/plugin/pkg/client/auth/oidc"
 )
@@ -253,6 +254,8 @@ func StartControlPlane(port string, installCRDs, installWebhooks bool) (*rest.Co
 		To(Succeed(), "there must no error adding the clientgo api to the scheme")
 	Expect(apiextensionsv1.AddToScheme(scheme.Scheme)).
 		To(Succeed(), "there must be no error adding the apiextensions api to the scheme")
+	Expect(dexapi.AddToScheme(scheme.Scheme)).
+		To(Succeed(), "there must be no error adding the dex api to the scheme")
 
 	// Create k8s client
 	k8sClient, err := clientutil.NewK8sClient(cfg)
