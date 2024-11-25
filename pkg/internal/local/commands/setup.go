@@ -4,9 +4,9 @@
 package commands
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
+	"gopkg.in/yaml.v3"
 	"os"
 
 	"github.com/spf13/cobra"
@@ -15,22 +15,22 @@ import (
 )
 
 type Config struct {
-	Config []*clusterConfig `json:"config"`
+	Config []*clusterConfig `yaml:"config" json:"config"`
 }
 
 type clusterConfig struct {
-	Cluster      *setup.Cluster       `json:"cluster"`
-	Dependencies []*ClusterDependency `json:"dependencies"`
+	Cluster      *setup.Cluster       `yaml:"cluster" json:"cluster"`
+	Dependencies []*ClusterDependency `yaml:"dependencies" json:"dependencies"`
 }
 
 type ClusterDependency struct {
-	Manifest *setup.Manifest `json:"manifest"`
+	Manifest *setup.Manifest `yaml:"manifest" json:"manifest"`
 }
 
 func setupExample() string {
 	return `
 # Setup Greenhouse dev environment with a configuration file
-greenhousectl dev setup -f dev-env/localenv/sample.config.json
+greenhousectl dev setup -f dev-env/localenv/dev.config.yaml
 
 - This will create an admin and a remote cluster
 - Install CRDs, Webhook definitions, RBACs, Certs, etc... for Greenhouse into the target cluster
@@ -61,7 +61,7 @@ func processSetup(cmd *cobra.Command, _ []string) error {
 		return fmt.Errorf("failed to read config file - %s: %w", setupConfigFile, err)
 	}
 	config := &Config{}
-	err = json.Unmarshal(f, config)
+	err = yaml.Unmarshal(f, config)
 	if err != nil {
 		return fmt.Errorf("failed to unmarshal config file - %s: %w", setupConfigFile, err)
 	}
@@ -74,13 +74,22 @@ func processSetup(cmd *cobra.Command, _ []string) error {
 		if cfg.Cluster.Namespace != nil {
 			namespace = *cfg.Cluster.Namespace
 		}
+		// in case of plugin development we check if the plugin directory env exists
+		// if it does, we generate KinD config to enable hostPath mounts
+		hostPathConfig, err := createHostPathConfig()
+		if err != nil {
+			return err
+		}
 		env := setup.NewExecutionEnv().
-			WithClusterSetup(cfg.Cluster.Name, namespace, cfg.Cluster.Version)
+			WithClusterSetup(cfg.Cluster.Name, namespace, cfg.Cluster.Version, hostPathConfig)
 		for _, dep := range cfg.Dependencies {
 			if dep.Manifest != nil && dep.Manifest.Webhook == nil {
 				env = env.WithLimitedManifests(ctx, dep.Manifest)
 			}
 			if dep.Manifest != nil && dep.Manifest.Webhook != nil {
+				if hostPathConfig != "" {
+					env = env.WithLocalPluginDev(dep.Manifest)
+				}
 				dep.Manifest.ExcludeKinds = append(
 					dep.Manifest.ExcludeKinds,
 					"Deployment",
@@ -100,6 +109,6 @@ func processSetup(cmd *cobra.Command, _ []string) error {
 }
 
 func init() {
-	setupCmd.Flags().StringVarP(&setupConfigFile, "config", "f", "", "configuration file path - e.g. -f hack/localenv/sample.config.json")
+	setupCmd.Flags().StringVarP(&setupConfigFile, "config", "f", "", "configuration file path - e.g. -f dev-env/localenv/dev.config.yaml")
 	cobra.CheckErr(setupCmd.MarkFlagRequired("config"))
 }
