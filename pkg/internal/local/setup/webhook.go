@@ -133,7 +133,6 @@ func (m *Manifest) setHostPathVolumeMount(containerIndex int, deployment *appsv1
 	} else {
 		deployment.Spec.Template.Spec.Containers[containerIndex].VolumeMounts = append(deployment.Spec.Template.Spec.Containers[containerIndex].VolumeMounts, hostMount)
 	}
-
 }
 
 // modifyManagerDeployment - appends the env in manager container by setting WEBHOOK_ONLY=true
