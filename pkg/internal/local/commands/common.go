@@ -92,28 +92,27 @@ func createHostPathConfig() (string, error) {
 	}
 	if strings.TrimSpace(pluginDir) == "" {
 		return "", nil
-	} else {
-		kindConfig := kv1alpha4.Cluster{
-			TypeMeta: kv1alpha4.TypeMeta{
-				Kind:       "Cluster",
-				APIVersion: "kind.x-k8s.io/v1alpha4",
-			},
-			Nodes: []kv1alpha4.Node{
-				{
-					Role: kv1alpha4.ControlPlaneRole,
-					ExtraMounts: []kv1alpha4.Mount{
-						{
-							HostPath:      pluginDir,
-							ContainerPath: utils.PluginHostPath,
-						},
+	}
+	kindConfig := kv1alpha4.Cluster{
+		TypeMeta: kv1alpha4.TypeMeta{
+			Kind:       "Cluster",
+			APIVersion: "kind.x-k8s.io/v1alpha4",
+		},
+		Nodes: []kv1alpha4.Node{
+			{
+				Role: kv1alpha4.ControlPlaneRole,
+				ExtraMounts: []kv1alpha4.Mount{
+					{
+						HostPath:      pluginDir,
+						ContainerPath: utils.PluginHostPath,
 					},
 				},
 			},
-		}
-		kindConfigBytes, err := yaml.Marshal(kindConfig)
-		if err != nil {
-			return "", err
-		}
-		return utils.RandomWriteToTmpFolder("plugin-config.yaml", string(kindConfigBytes))
+		},
 	}
+	kindConfigBytes, err := yaml.Marshal(kindConfig)
+	if err != nil {
+		return "", err
+	}
+	return utils.RandomWriteToTmpFolder("plugin-config.yaml", string(kindConfigBytes))
 }
