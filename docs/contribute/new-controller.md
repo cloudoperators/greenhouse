@@ -17,7 +17,7 @@ Greenhouse is build using Kubebuilder as the framework for Kubernetes controller
 > Since this project does not follow the Kubebuilder v3 scaffolding structure, it is necessary to create a symlink to the main.go
 
 ```shell
-ln -s ./cmd/manager/main.go main.go
+ln -s ./cmd/greenhouse/main.go main.go
 ```
 
 To create a new controller, run the following command:
