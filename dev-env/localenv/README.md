@@ -59,15 +59,17 @@ greenhousectl dev cluster create [flags]
 ### Examples
 
 ```
-greenhousectl dev cluster create --name <my-cluster-name> --namespace <my-namespace>
+greenhousectl dev cluster create --name <my-cluster-name> --namespace <my-namespace> --version <v1.30.3>
 ```
 
 ### Options
 
 ```
+      --config string      create the cluster with a specific kind configuration file - e.g. --config <path>/<to>/<config>
   -h, --help               help for create
   -c, --name string        create a kind cluster with a name - e.g. -c <my-cluster>
   -n, --namespace string   create a namespace in the cluster - e.g. -c <my-cluster> -n <my-namespace>
+      --version string     create the cluster with a specific version - e.g. -v <v1.30.3>
 ```
 
 ## greenhousectl dev cluster delete
@@ -136,6 +138,7 @@ greenhousectl dev setup manifest --name greenhouse-admin --namespace greenhouse 
   -n, --namespace string           namespace to install the resources
   -r, --release string             Helm release name, Default value: greenhouse - e.g. your-release-name (default "greenhouse")
   -v, --values-path string         local absolute values file path - e.g. <path>/<to>/my-values.yaml
+      --version string             create the cluster with a specific version - e.g. -v <v1.30.3>
 ```
 
 ## greenhousectl dev setup webhook
@@ -170,6 +173,7 @@ greenhousectl dev setup webhook --name greenhouse-admin --namespace greenhouse -
 
 ```
   -p, --chart-path string    local chart path where manifests are located - e.g. <path>/<to>/charts/manager
+      --config string        create the cluster with a specific kind configuration file - e.g. --config <path>/<to>/<config>
   -m, --dev-mode             Enable dev mode for webhook setup - Note: Admission Webhooks will be modified for local development
   -f, --dockerfile string    local path to the Dockerfile of greenhouse manager
   -h, --help                 help for webhook
@@ -177,6 +181,7 @@ greenhousectl dev setup webhook --name greenhouse-admin --namespace greenhouse -
   -n, --namespace string     namespace to install the resources
   -r, --release string       Helm release name, Default value: greenhouse - e.g. your-release-name (default "greenhouse")
   -v, --values-path string   local absolute values file path - e.g. <path>/<to>/my-values.yaml
+      --version string       create the cluster with a specific version - e.g. -v <v1.30.3>
 ```
 
 ## greenhousectl dev setup
@@ -196,7 +201,7 @@ greenhousectl dev setup [flags]
 ```
 
 # Setup Greenhouse dev environment with a configuration file
-greenhousectl dev setup -f dev-env/localenv/sample.config.json
+greenhousectl dev setup -f dev-env/localenv/dev.config.yaml
 
 - This will create an admin and a remote cluster
 - Install CRDs, Webhook definitions, RBACs, Certs, etc... for Greenhouse into the target cluster
@@ -207,7 +212,7 @@ greenhousectl dev setup -f dev-env/localenv/sample.config.json
 ### Options
 
 ```
-  -f, --config string   configuration file path - e.g. -f hack/localenv/sample.config.json
+  -f, --config string   configuration file path - e.g. -f dev-env/localenv/dev.config.yaml
   -h, --help            help for setup
 ```
 
