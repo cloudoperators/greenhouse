@@ -43,30 +43,21 @@ func DefaultSecret(_ context.Context, _ client.Client, _ runtime.Object) error {
 
 func ValidateCreateSecret(ctx context.Context, _ client.Client, o runtime.Object) (admission.Warnings, error) {
 	secret, ok := o.(*corev1.Secret)
-	logger := ctrl.LoggerFrom(ctx)
 	if !ok {
 		return nil, nil
 	}
-	// Check if the secret name is no longer than 40 characters
-	if err := capName(secret, logger, 40); err != nil {
-		return nil, err
-	}
-	// Check if the secret name contains double dashes
-	if err := invalidateDoubleDashesInName(secret, logger); err != nil {
-		return nil, err
-	}
-	if err := validateSecretGreenHouseType(secret); err != nil {
+	if err := validateSecretGreenHouseType(ctx, secret); err != nil {
 		return nil, err
 	}
 	return nil, validateKubeconfigInSecret(secret)
 }
 
-func ValidateUpdateSecret(_ context.Context, _ client.Client, _, o runtime.Object) (admission.Warnings, error) {
+func ValidateUpdateSecret(ctx context.Context, _ client.Client, _, o runtime.Object) (admission.Warnings, error) {
 	secret, ok := o.(*corev1.Secret)
 	if !ok {
 		return nil, nil
 	}
-	if err := validateSecretGreenHouseType(secret); err != nil {
+	if err := validateSecretGreenHouseType(ctx, secret); err != nil {
 		return nil, err
 	}
 	return nil, validateKubeconfigInSecret(secret)
@@ -76,10 +67,19 @@ func ValidateDeleteSecret(_ context.Context, _ client.Client, _ runtime.Object) 
 	return nil, nil
 }
 
-func validateSecretGreenHouseType(secret *corev1.Secret) error {
+func validateSecretGreenHouseType(ctx context.Context, secret *corev1.Secret) error {
 	// if not greenhouse kubeconfig secret, skip validation
 	if secret.Type != greenhouseapis.SecretTypeKubeConfig {
 		return nil
+	}
+	logger := ctrl.LoggerFrom(ctx)
+	// Check if the secret name is no longer than 40 characters
+	if err := capName(secret, logger, 40); err != nil {
+		return err
+	}
+	// Check if the secret name contains double dashes
+	if err := invalidateDoubleDashesInName(secret, logger); err != nil {
+		return err
 	}
 	// Check if the secret contains kubeconfig provided by the client
 	if !clientutil.IsSecretContainsKey(secret, greenhouseapis.KubeConfigKey) {
