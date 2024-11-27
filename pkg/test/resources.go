@@ -7,47 +7,14 @@ import (
 	"context"
 
 	. "github.com/onsi/ginkgo/v2"
-	. "github.com/onsi/gomega"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/util/rand"
 
-	greenhouseapis "github.com/cloudoperators/greenhouse/pkg/apis"
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/pkg/apis/greenhouse/v1alpha1"
-	"github.com/cloudoperators/greenhouse/pkg/clientutil"
 )
-
-type TestSetup struct {
-	client.Client
-	namespace string
-}
-
-func (t *TestSetup) Namespace() string {
-	return t.namespace
-}
-
-// RandomizeName returns the name with a random alphanumeric suffix
-func (t *TestSetup) RandomizeName(name string) string {
-	return name + "-" + rand.String(8)
-}
-
-// NewTestSetup creates a new TestSetup object and a new namespace on the cluster for the test
-func NewTestSetup(ctx context.Context, c client.Client, name string) *TestSetup {
-	suffix := rand.String(8)
-
-	t := &TestSetup{
-		Client:    c,
-		namespace: name + "-" + suffix,
-	}
-
-	// Create test namespace
-	Expect(t.Create(Ctx, &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: t.namespace}})).To(Succeed(), "there should be no error creating the test case namespace")
-	return t
-}
 
 // WithAccessMode sets the ClusterAccessMode on a Cluster
 func WithAccessMode(mode greenhousev1alpha1.ClusterAccessMode) func(*greenhousev1alpha1.Cluster) {
@@ -66,45 +33,8 @@ func WithLabel(key, value string) func(*greenhousev1alpha1.Cluster) {
 	}
 }
 
-// OnboardCluster creates a new Cluster and Kubernetes secret for a remote cluster and creates the namespace used for TestSetup on the remote cluster
-func (t *TestSetup) OnboardCluster(ctx context.Context, name string, kubeCfg []byte, opts ...func(*greenhousev1alpha1.Cluster)) *greenhousev1alpha1.Cluster {
-	GinkgoHelper()
-	cluster := t.CreateCluster(ctx, name, opts...)
-
-	var testClusterK8sSecret = &corev1.Secret{
-		TypeMeta: metav1.TypeMeta{
-			Kind:       "Secret",
-			APIVersion: corev1.GroupName,
-		},
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      cluster.Name,
-			Namespace: t.Namespace(),
-		},
-		Type: greenhouseapis.SecretTypeKubeConfig,
-		Data: map[string][]byte{
-			greenhouseapis.GreenHouseKubeConfigKey: kubeCfg,
-		},
-	}
-	Expect(t.Create(ctx, testClusterK8sSecret)).Should(Succeed(), "there should be no error creating the kubeconfig secret during onboarding")
-
-	restClientGetter, err := clientutil.NewRestClientGetterFromSecret(testClusterK8sSecret, t.Namespace())
-	Expect(err).NotTo(HaveOccurred(), "there should be no error creating the rest client getter from the kubeconfig secret during onboarding")
-
-	k8sClientForRemoteCluster, err := clientutil.NewK8sClientFromRestClientGetter(restClientGetter)
-	Expect(err).NotTo(HaveOccurred(), "there should be no error creating the k8s client from the rest client getter during onboarding")
-
-	var namespace = &corev1.Namespace{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: t.Namespace(),
-		}}
-	Expect(k8sClientForRemoteCluster.Create(ctx, namespace)).To(Succeed(), "there should be no error creating the namespace during onboarding")
-
-	return cluster
-}
-
-// CreateCluster creates a new Cluster resource without creating a Secret
-func (t *TestSetup) CreateCluster(ctx context.Context, name string, opts ...func(*greenhousev1alpha1.Cluster)) *greenhousev1alpha1.Cluster {
-	GinkgoHelper()
+// NewCluster returns a greenhousev1alpha1.Cluster object. Opts can be used to set the desired state of the Cluster.
+func NewCluster(ctx context.Context, name, namespace string, opts ...func(*greenhousev1alpha1.Cluster)) *greenhousev1alpha1.Cluster {
 	cluster := &greenhousev1alpha1.Cluster{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "Cluster",
@@ -112,7 +42,7 @@ func (t *TestSetup) CreateCluster(ctx context.Context, name string, opts ...func
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
-			Namespace: t.Namespace(),
+			Namespace: namespace,
 		},
 		Spec: greenhousev1alpha1.ClusterSpec{
 			AccessMode: greenhousev1alpha1.ClusterAccessModeDirect,
@@ -122,14 +52,11 @@ func (t *TestSetup) CreateCluster(ctx context.Context, name string, opts ...func
 	for _, o := range opts {
 		o(cluster)
 	}
-
-	Expect(t.Create(ctx, cluster)).To(Succeed(), "there should be no error creating the cluster during onboarding")
 	return cluster
 }
 
-// CreateOrganization creates a Organization within the TestSetup and returns the created Organization resource.
-func (t *TestSetup) CreateOrganization(ctx context.Context, name string, opts ...func(*greenhousev1alpha1.Organization)) *greenhousev1alpha1.Organization {
-	GinkgoHelper()
+// NewOrganization returns a greenhousev1alpha1.Organization object. Opts can be used to set the desired state of the Organization.
+func NewOrganization(ctx context.Context, name string, opts ...func(*greenhousev1alpha1.Organization)) *greenhousev1alpha1.Organization {
 	org := &greenhousev1alpha1.Organization{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "Organization",
@@ -138,11 +65,13 @@ func (t *TestSetup) CreateOrganization(ctx context.Context, name string, opts ..
 		ObjectMeta: metav1.ObjectMeta{
 			Name: name,
 		},
+		Spec: greenhousev1alpha1.OrganizationSpec{
+			MappedOrgAdminIDPGroup: "default-admin-id-group",
+		},
 	}
 	for _, o := range opts {
 		o(org)
 	}
-	Expect(t.Create(ctx, org)).Should(Succeed(), "there should be no error creating the Organization")
 	return org
 }
 
@@ -167,17 +96,16 @@ func AppendPluginOption(option greenhousev1alpha1.PluginOption) func(*greenhouse
 	}
 }
 
-// CreatePluginDefinition creates and returns a PluginDefinition object. Opts can be used to set the desired state of the PluginDefinition.
-func (t *TestSetup) CreatePluginDefinition(ctx context.Context, name string, opts ...func(*greenhousev1alpha1.PluginDefinition)) *greenhousev1alpha1.PluginDefinition {
-	GinkgoHelper()
+// NewPluginDefinition returns a greenhousev1alpha1.PluginDefinition object. Opts can be used to set the desired state of the PluginDefinition.
+func NewPluginDefinition(ctx context.Context, name, namespace string, opts ...func(*greenhousev1alpha1.PluginDefinition)) *greenhousev1alpha1.PluginDefinition {
 	pd := &greenhousev1alpha1.PluginDefinition{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "PluginDefinition",
 			APIVersion: greenhousev1alpha1.GroupVersion.String(),
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      t.RandomizeName(name),
-			Namespace: t.Namespace(),
+			Name:      name,
+			Namespace: namespace,
 		},
 		Spec: greenhousev1alpha1.PluginDefinitionSpec{
 			Description: "TestPluginDefinition",
@@ -192,8 +120,6 @@ func (t *TestSetup) CreatePluginDefinition(ctx context.Context, name string, opt
 	for _, o := range opts {
 		o(pd)
 	}
-
-	Expect(t.Create(ctx, pd)).Should(Succeed(), "there should be no error creating the PluginDefinition")
 	return pd
 }
 
@@ -220,7 +146,6 @@ func WithCluster(cluster string) func(*greenhousev1alpha1.Plugin) {
 
 // WithPluginOptionValue sets the value of a PluginOptionValue
 func WithPluginOptionValue(name string, value *apiextensionsv1.JSON, valueFrom *greenhousev1alpha1.ValueFromSource) func(*greenhousev1alpha1.Plugin) {
-	GinkgoHelper()
 	return func(p *greenhousev1alpha1.Plugin) {
 		if value != nil && valueFrom != nil {
 			Fail("value and valueFrom are mutually exclusive")
@@ -256,8 +181,8 @@ func SetOptionValueForPlugin(plugin *greenhousev1alpha1.Plugin, key, value strin
 	})
 }
 
-// NewPlugin creates new plugin
-func (t *TestSetup) NewPlugin(ctx context.Context, name string, opts ...func(*greenhousev1alpha1.Plugin)) *greenhousev1alpha1.Plugin {
+// NewPlugin returns a greenhousev1alpha1.Plugin object. Opts can be used to set the desired state of the Plugin.
+func NewPlugin(ctx context.Context, name, namespace string, opts ...func(*greenhousev1alpha1.Plugin)) *greenhousev1alpha1.Plugin {
 	GinkgoHelper()
 	plugin := &greenhousev1alpha1.Plugin{
 		TypeMeta: metav1.TypeMeta{
@@ -265,21 +190,13 @@ func (t *TestSetup) NewPlugin(ctx context.Context, name string, opts ...func(*gr
 			APIVersion: greenhousev1alpha1.GroupVersion.String(),
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      t.RandomizeName(name),
-			Namespace: t.Namespace(),
+			Name:      name,
+			Namespace: namespace,
 		},
 	}
 	for _, o := range opts {
 		o(plugin)
 	}
-	return plugin
-}
-
-// CreatePlugin creates and returns a Plugin object. Opts can be used to set the desired state of the Plugin.
-func (t *TestSetup) CreatePlugin(ctx context.Context, name string, opts ...func(*greenhousev1alpha1.Plugin)) *greenhousev1alpha1.Plugin {
-	GinkgoHelper()
-	plugin := t.NewPlugin(ctx, name, opts...)
-	Expect(t.Create(ctx, plugin)).Should(Succeed(), "there should be no error creating the Plugin")
 	return plugin
 }
 
@@ -304,15 +221,16 @@ func WithLabels(labels map[string]string) func(*greenhousev1alpha1.TeamRole) {
 	}
 }
 
-func (t *TestSetup) NewTeamRole(ctx context.Context, name string, opts ...func(*greenhousev1alpha1.TeamRole)) *greenhousev1alpha1.TeamRole {
+// NewTeamRole returns a greenhousev1alpha1.TeamRole object. Opts can be used to set the desired state of the TeamRole.
+func NewTeamRole(ctx context.Context, name, namespace string, opts ...func(*greenhousev1alpha1.TeamRole)) *greenhousev1alpha1.TeamRole {
 	tr := &greenhousev1alpha1.TeamRole{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "TeamRole",
 			APIVersion: greenhousev1alpha1.GroupVersion.String(),
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      t.RandomizeName(name),
-			Namespace: t.Namespace(),
+			Name:      name,
+			Namespace: namespace,
 		},
 		Spec: greenhousev1alpha1.TeamRoleSpec{
 			Rules: []rbacv1.PolicyRule{
@@ -327,14 +245,6 @@ func (t *TestSetup) NewTeamRole(ctx context.Context, name string, opts ...func(*
 	for _, opt := range opts {
 		opt(tr)
 	}
-	return tr
-}
-
-// CreateTeamRole returns a TeamRole object. Opts can be used to set the desired state of the TeamRole.
-func (t *TestSetup) CreateTeamRole(ctx context.Context, name string, opts ...func(*greenhousev1alpha1.TeamRole)) *greenhousev1alpha1.TeamRole {
-	GinkgoHelper()
-	tr := t.NewTeamRole(ctx, name, opts...)
-	Expect(t.Create(ctx, tr)).Should(Succeed(), "there should be no error creating the TeamRole")
 	return tr
 }
 
@@ -368,25 +278,21 @@ func WithNamespaces(namespaces ...string) func(*greenhousev1alpha1.TeamRoleBindi
 	}
 }
 
-// CreateTeamRoleBinding returns a TeamRoleBinding object. Opts can be used to set the desired state of the TeamRoleBinding.
-func (t *TestSetup) CreateTeamRoleBinding(ctx context.Context, name string, opts ...func(*greenhousev1alpha1.TeamRoleBinding)) *greenhousev1alpha1.TeamRoleBinding {
-	GinkgoHelper()
+// NewTeamRoleBinding returns a greenhousev1alpha1.TeamRoleBinding object. Opts can be used to set the desired state of the TeamRoleBinding.
+func NewTeamRoleBinding(ctx context.Context, name, namespace string, opts ...func(*greenhousev1alpha1.TeamRoleBinding)) *greenhousev1alpha1.TeamRoleBinding {
 	trb := &greenhousev1alpha1.TeamRoleBinding{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "TeamRoleBinding",
 			APIVersion: greenhousev1alpha1.GroupVersion.String(),
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      t.RandomizeName(name),
-			Namespace: t.Namespace(),
+			Name:      name,
+			Namespace: namespace,
 		},
-		Spec: greenhousev1alpha1.TeamRoleBindingSpec{},
 	}
 	for _, o := range opts {
 		o(trb)
 	}
-
-	Expect(t.Create(ctx, trb)).Should(Succeed(), "there should be no error creating the TeamRoleBinding")
 	return trb
 }
 
@@ -396,23 +302,21 @@ func WithMappedIDPGroup(group string) func(*greenhousev1alpha1.Team) {
 	}
 }
 
-// CreateTeam returns a Team object. Opts can be used to set the desired state of the Team.st
-func (t *TestSetup) CreateTeam(ctx context.Context, name string, opts ...func(*greenhousev1alpha1.Team)) *greenhousev1alpha1.Team {
-	GinkgoHelper()
+// NewTeam returns a greenhousev1alpha1.Team object. Opts can be used to set the desired state of the Team.
+func NewTeam(ctx context.Context, name, namespace string, opts ...func(*greenhousev1alpha1.Team)) *greenhousev1alpha1.Team {
 	team := &greenhousev1alpha1.Team{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "Team",
 			APIVersion: greenhousev1alpha1.GroupVersion.String(),
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      t.RandomizeName(name),
-			Namespace: t.Namespace(),
+			Name:      name,
+			Namespace: namespace,
 		},
 	}
 	for _, opt := range opts {
 		opt(team)
 	}
-	Expect(t.Create(ctx, team)).Should(Succeed(), "there should be no error creating the Team")
 	return team
 }
 
@@ -430,9 +334,8 @@ func WithSecretData(data map[string][]byte) func(*corev1.Secret) {
 	}
 }
 
-// CreateSecret returns a Secret object. Opts can be used to set the desired state of the Secret.
-func (t *TestSetup) CreateSecret(ctx context.Context, name string, opts ...func(*corev1.Secret)) *corev1.Secret {
-	GinkgoHelper()
+// NewSecret returns a Secret object. Opts can be used to set the desired state of the Secret.
+func NewSecret(ctx context.Context, name, namespace string, opts ...func(*corev1.Secret)) *corev1.Secret {
 	secret := &corev1.Secret{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "Secret",
@@ -440,12 +343,11 @@ func (t *TestSetup) CreateSecret(ctx context.Context, name string, opts ...func(
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
-			Namespace: t.Namespace(),
+			Namespace: namespace,
 		},
 	}
 	for _, opt := range opts {
 		opt(secret)
 	}
-	Expect(t.Create(ctx, secret)).Should(Succeed(), "there should be no error creating the Secret")
 	return secret
 }

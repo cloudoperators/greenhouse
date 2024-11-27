@@ -12,6 +12,7 @@ import (
 	"k8s.io/client-go/util/retry"
 
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/pkg/apis/greenhouse/v1alpha1"
+	"github.com/cloudoperators/greenhouse/pkg/clientutil"
 	"github.com/cloudoperators/greenhouse/pkg/test"
 )
 
@@ -73,13 +74,11 @@ var _ = Describe("Test Organization reconciliation", Ordered, func() {
 			}).Should(Succeed(), "Admin team should be created with valid IDPGroup")
 
 			By("updating MappedOrgAdminIDPGroup in Organization")
-			err := retry.RetryOnConflict(retry.DefaultRetry, func() error {
-				err := setup.Get(test.Ctx, types.NamespacedName{Name: testOrgName}, testOrg)
-				Expect(err).ToNot(HaveOccurred(), "there should be no error getting the Organization")
+			_, err := clientutil.Patch(test.Ctx, test.K8sClient, testOrg, func() error {
 				testOrg.Spec.MappedOrgAdminIDPGroup = otherValidIdpGroupName
-				return setup.Update(test.Ctx, testOrg)
+				return nil
 			})
-			Expect(err).ToNot(HaveOccurred(), "there must be no error updating the organization")
+			Expect(err).To(Succeed(), "there must be no error updating the organization")
 
 			Eventually(func(g Gomega) {
 				err := setup.Get(test.Ctx, types.NamespacedName{Name: testOrgName + "-admin", Namespace: testOrgName}, team)
@@ -99,8 +98,12 @@ var _ = Describe("Test Organization reconciliation", Ordered, func() {
 			}).ShouldNot(HaveOccurred(), "there should be no error getting org admin team")
 
 			By("changing MappedIDPGroup in Team")
-			team.Spec.MappedIDPGroup = otherValidIdpGroupName
-			Expect(setup.Update(test.Ctx, team)).To(Succeed(), "there must be no error updating the team")
+			_, err := clientutil.Patch(test.Ctx, test.K8sClient, team, func() error {
+				team.Spec.MappedIDPGroup = otherValidIdpGroupName
+				return nil
+			})
+
+			Expect(err).To(Succeed(), "there must be no error updating the team")
 
 			Eventually(func(g Gomega) {
 				err := setup.Get(test.Ctx, types.NamespacedName{Name: testOrgName + "-admin", Namespace: testOrgName}, team)
@@ -191,27 +194,29 @@ var _ = Describe("Test Organization reconciliation", Ordered, func() {
 			}).Should(Succeed(), "Organization should have set correct status condition")
 
 			By("updating Organization with SCIM Config without the secret")
-			err := setup.Get(test.Ctx, types.NamespacedName{Name: testOrgName}, testOrg)
-			Expect(err).ToNot(HaveOccurred(), "there should be no error getting the Organization")
-			testOrg.Spec.Authentication = &greenhousev1alpha1.Authentication{
-				SCIMConfig: &greenhousev1alpha1.SCIMConfig{
-					BaseURL: groupsServer.URL,
-					BasicAuthUser: greenhousev1alpha1.ValueFromSource{
-						Secret: &greenhousev1alpha1.SecretKeyReference{
-							Name: "test-secret",
-							Key:  "basicAuthUser",
+			Eventually(func(g Gomega) { // In 'Eventually' block to avoid flaky tests.
+				err := setup.Get(test.Ctx, types.NamespacedName{Name: testOrgName}, testOrg)
+				g.Expect(err).ToNot(HaveOccurred(), "there should be no error getting the Organization")
+				testOrg.Spec.Authentication = &greenhousev1alpha1.Authentication{
+					SCIMConfig: &greenhousev1alpha1.SCIMConfig{
+						BaseURL: groupsServer.URL,
+						BasicAuthUser: greenhousev1alpha1.ValueFromSource{
+							Secret: &greenhousev1alpha1.SecretKeyReference{
+								Name: "test-secret",
+								Key:  "basicAuthUser",
+							},
+						},
+						BasicAuthPw: greenhousev1alpha1.ValueFromSource{
+							Secret: &greenhousev1alpha1.SecretKeyReference{
+								Name: "test-secret",
+								Key:  "basicAuthPw",
+							},
 						},
 					},
-					BasicAuthPw: greenhousev1alpha1.ValueFromSource{
-						Secret: &greenhousev1alpha1.SecretKeyReference{
-							Name: "test-secret",
-							Key:  "basicAuthPw",
-						},
-					},
-				},
-			}
-			err = setup.Update(test.Ctx, testOrg)
-			Expect(err).ToNot(HaveOccurred(), "there should be no error updating the Organization")
+				}
+				err = setup.Update(test.Ctx, testOrg)
+				g.Expect(err).ToNot(HaveOccurred(), "there should be no error updating the Organization")
+			}).Should(Succeed(), "Organization should have set correct status condition")
 
 			By("checking Organization status")
 			Eventually(func(g Gomega) {
@@ -229,7 +234,7 @@ var _ = Describe("Test Organization reconciliation", Ordered, func() {
 			createSecretForSCIMConfig(testOrgName)
 
 			By("setting labels on Organization to trigger reconciliation")
-			err = retry.RetryOnConflict(retry.DefaultRetry, func() error {
+			err := retry.RetryOnConflict(retry.DefaultRetry, func() error {
 				err := setup.Get(test.Ctx, types.NamespacedName{Name: testOrgName}, testOrg)
 				Expect(err).ToNot(HaveOccurred(), "there should be no error getting the Organization")
 				testOrg.Labels = map[string]string{"test": "label"}

@@ -181,6 +181,10 @@ func (o *newClusterBootstrapOptions) fillDefaults() error {
 		}
 		o.clusterName = customerConfig.CurrentContext
 	}
+	// Validate the cluster name here before proceeding
+	if err := validateClusterName(o.clusterName, 40); err != nil {
+		return err
+	}
 
 	return nil
 }
@@ -421,4 +425,17 @@ func getKubeconfigOrDie(kubecontext string) *rest.Config {
 	}
 	setupLog.Info("Loaded kubeconfig", "context", kubecontext, "host", restConfig.Host)
 	return restConfig
+}
+
+// validateClusterName is making sure that the cluster name is not empty, not longer than length parameter characters and does not contain '--'
+func validateClusterName(clusterName string, length int) error {
+	switch {
+	case clusterName == "":
+		return errors.New("cluster name cannot be empty")
+	case len(clusterName) > length:
+		return errors.New("cluster name cannot be longer than 40 characters")
+	case strings.Contains(clusterName, "--"):
+		return errors.New("cluster name cannot contain '--'")
+	}
+	return nil
 }

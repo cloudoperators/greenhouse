@@ -9,7 +9,6 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
-	"strings"
 	"testing"
 
 	"gotest.tools/v3/assert"
@@ -32,6 +31,7 @@ func TestScim(t *testing.T) {
 	t.Run("GetUsers:Error from upstream", scTest.TestGetUserErrorResponse)
 	t.Run("GetUsers:Malformed response", scTest.TestGetUserMalformedUserResponse)
 	t.Run("GetUsers:2 valid users, 1 malformed, 1 inactive", scTest.TestGetUsers)
+	t.Run("GetUsers:2 valid users, 1 inactive, 1 rate-limitted", scTest.TestGetUsersWithRateLimit)
 }
 
 func (sc *ScimClientTests) TestNewScimClient(t *testing.T) {
@@ -91,7 +91,7 @@ func (sc *ScimClientTests) TestGetTeamMembersErrorResponse(t *testing.T) {
 		statusCode int
 	}
 
-	for _, testCase := range []testCase{{500}, {404}, {403}} {
+	for _, testCase := range []testCase{{http.StatusInternalServerError}, {http.StatusNotFound}, {http.StatusUnauthorized}} {
 		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			assert.Equal(t, r.URL.Path, "/Groups", "Should correctly call groups path")
 			assert.Equal(t, r.URL.RawQuery, "filter=displayName+eq+%22SOME_IDP_GROUP_NAME%22", "Should correctly call filter parameters")
@@ -160,7 +160,7 @@ func (sc *ScimClientTests) TestGetUserErrorResponse(t *testing.T) {
 		statusCode int
 	}
 
-	for _, testCase := range []testCase{{500}, {404}, {403}} {
+	for _, testCase := range []testCase{{http.StatusInternalServerError}, {http.StatusTooManyRequests}, {http.StatusNotFound}, {http.StatusUnauthorized}} {
 		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			w.WriteHeader(testCase.statusCode)
 			w.Header().Add("Content-Type", "application/scim+json")
@@ -254,10 +254,73 @@ func (sc *ScimClientTests) TestGetUsers(t *testing.T) {
 		log.SetOutput(os.Stderr)
 	}()
 
-	users := scimClient.GetUsers(members)
+	users, inactive, malformed, err := scimClient.GetUsers(members)
+	assert.NilError(t, err, "Should not error on getting users")
 	expectedUsers := []greenhousesapv1alpha1.User{{ID: "I12345", FirstName: "John", LastName: "Doe", Email: "john.doe@example.com"}, {ID: "I23456", FirstName: "Jane", LastName: "Doe", Email: "jane.doe@example.com"}}
 	assert.NilError(t, err, "Should not error on getting users")
-	assert.Equal(t, strings.Contains(buf.String(), "failed getting user: could not create User from memberResponseBody:"), true, "Should log error on malformed user")
-	assert.Equal(t, strings.Contains(buf.String(), "failed getting user: user is not active:"), true, "Should log error on inactive user")
+	assert.Equal(t, inactive, 1, "Should have 1 inactive user")
+	assert.Equal(t, malformed, 1, "Should have 1 inactive user")
 	assert.Equal(t, len(users), len(expectedUsers), "Should not error and not return malformed or inactive user")
+}
+
+func (sc *ScimClientTests) TestGetUsersWithRateLimit(t *testing.T) {
+	// valid user 1
+	server1 := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		w.Header().Add("Content-Type", "application/scim+json")
+		_, err := w.Write([]byte(UserResponseBodyMock1))
+		if err != nil {
+			log.Printf("error creating mock server: %s", err)
+		}
+	}))
+	defer server1.Close()
+
+	// rate-limitted request
+	server2 := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusTooManyRequests)
+		w.Header().Add("Content-Type", "application/scim+json")
+		_, err := w.Write([]byte(`{"error":"some-error"}`))
+		if err != nil {
+			log.Printf("error creating mock server: %s", err)
+		}
+	}))
+	defer server2.Close()
+
+	// valid user 2
+	server3 := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		w.Header().Add("Content-Type", "application/scim+json")
+		_, err := w.Write([]byte(UserResponseBodyMock2))
+		if err != nil {
+			log.Printf("error creating mock server: %s", err)
+		}
+	}))
+	defer server3.Close()
+
+	// inactive user
+	server4 := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		w.Header().Add("Content-Type", "application/scim+json")
+		_, err := w.Write([]byte(InactiveUserResponseBodyMock))
+		if err != nil {
+			log.Printf("error creating mock server: %s", err)
+		}
+	}))
+	defer server4.Close()
+	scimConfig := Config{"https://some-url", Basic, &BasicAuthConfig{"user", "pw"}}
+	scimClient, err := NewScimClient(scimConfig)
+	assert.NilError(t, err)
+	members := []Member{{server1.URL}, {server2.URL}, {server3.URL}, {server4.URL}}
+
+	var buf bytes.Buffer
+	log.SetOutput(&buf)
+	defer func() {
+		log.SetOutput(os.Stderr)
+	}()
+
+	users, inactive, malformed, err := scimClient.GetUsers(members)
+	assert.ErrorContains(t, err, "Too Many Requests", "Should get error if request to upstream returned !200 status code")
+	assert.Equal(t, inactive, 0, "Should not return inactive users on error")
+	assert.Equal(t, malformed, 0, "Should not return malformed users on error")
+	assert.Equal(t, len(users), 0, "Should not return users on error")
 }

@@ -5,6 +5,7 @@ package teammembership
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"github.com/pkg/errors"
@@ -12,6 +13,7 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/tools/record"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
@@ -44,6 +46,7 @@ var (
 	exposedConditions = []greenhousev1alpha1.ConditionType{
 		greenhousev1alpha1.ReadyCondition,
 		greenhousev1alpha1.SCIMAccessReadyCondition,
+		greenhousev1alpha1.SCIMAllMembersValidCondition,
 	}
 )
 
@@ -177,14 +180,14 @@ func (r *TeamMembershipUpdaterController) EnsureCreated(ctx context.Context, obj
 		return ctrl.Result{}, lifecycle.Failed, err
 	}
 
-	users, err := r.getUsersFromSCIM(scimClient, team.Spec.MappedIDPGroup)
+	users, membersValidCondition, err := r.getUsersFromSCIM(scimClient, team.Spec.MappedIDPGroup)
 	if err != nil {
 		log.FromContext(ctx).Info("failed processing team-membership for team", "error", err)
 		teamMembershipStatus.SetConditions(greenhousev1alpha1.FalseCondition(greenhousev1alpha1.SCIMAccessReadyCondition, greenhousev1alpha1.SCIMRequestFailedReason, ""))
 		return ctrl.Result{}, lifecycle.Failed, err
 	}
 
-	teamMembershipStatus.SetConditions(greenhousev1alpha1.TrueCondition(greenhousev1alpha1.SCIMAccessReadyCondition, "", ""))
+	teamMembershipStatus.SetConditions(membersValidCondition, greenhousev1alpha1.TrueCondition(greenhousev1alpha1.SCIMAccessReadyCondition, "", ""))
 
 	membersCountMetric.With(prometheus.Labels{
 		"namespace": team.Namespace,
@@ -213,7 +216,10 @@ func (r *TeamMembershipUpdaterController) EnsureCreated(ctx context.Context, obj
 	now := metav1.NewTime(time.Now())
 	teamMembershipStatus.LastChangedTime = &now
 	teamMembershipStatus.SetConditions(greenhousev1alpha1.TrueCondition(greenhousev1alpha1.SCIMAccessReadyCondition, "", ""))
-	return ctrl.Result{RequeueAfter: TeamMembershipRequeueInterval}, lifecycle.Success, nil
+	return ctrl.Result{
+			RequeueAfter: wait.Jitter(TeamMembershipRequeueInterval, 0.1),
+		},
+		lifecycle.Success, nil
 }
 
 func (r *TeamMembershipUpdaterController) createSCIMClient(
@@ -244,13 +250,23 @@ func (r *TeamMembershipUpdaterController) createSCIMClient(
 	return scim.NewScimClient(clientConfig)
 }
 
-func (r *TeamMembershipUpdaterController) getUsersFromSCIM(scimClient *scim.ScimClient, mappedIDPGroup string) ([]greenhousev1alpha1.User, error) {
+func (r *TeamMembershipUpdaterController) getUsersFromSCIM(scimClient *scim.ScimClient, mappedIDPGroup string) ([]greenhousev1alpha1.User, greenhousev1alpha1.Condition, error) {
+	condition := greenhousev1alpha1.UnknownCondition(greenhousev1alpha1.SCIMAllMembersValidCondition, "", "")
 	members, err := scimClient.GetTeamMembers(mappedIDPGroup)
 	if err != nil {
-		return nil, err
+		return nil, condition, err
 	}
-	users := scimClient.GetUsers(members)
-	return users, nil
+	users, inactive, malformed, err := scimClient.GetUsers(members)
+	if err != nil {
+		return nil, condition, err
+	}
+	if inactive+malformed > 0 {
+		msg := fmt.Sprintf("SCIM members with issues: %d inactive, %d malformed", inactive, malformed)
+		condition = greenhousev1alpha1.FalseCondition(greenhousev1alpha1.SCIMAllMembersValidCondition, "", msg)
+		return users, condition, nil
+	}
+	condition = greenhousev1alpha1.TrueCondition(greenhousev1alpha1.SCIMAllMembersValidCondition, "", "")
+	return users, condition, nil
 }
 
 func initTeamMembershipStatus(teamMembership *greenhousev1alpha1.TeamMembership) greenhousev1alpha1.TeamMembershipStatus {
