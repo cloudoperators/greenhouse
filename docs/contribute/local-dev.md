@@ -18,8 +18,7 @@ The Greenhouse Dashboard is a UI acting on the k8s apiserver of the cluster Gree
 This guide provides the following:
 
 1. [Local Setup](#local-setup)
-
-   1.1 [Mock k8s Server](#mock-k8s-server-aka-dev-env)
+   1.1 [Mock k8s Server](local-dev.md#mock-k8s-server-aka-envtest)
 
    1.2 [Greenhouse Controller](#greenhouse-controller)
 
@@ -112,75 +111,70 @@ See all available flags [here](https://github.com/cloudoperators/greenhouse/blob
 
 ## Greenhouse UI
 
-Build the latest `dev-ui` image by running:
+### Use the latest upstream
 
-```bash
-$ docker build --platform linux/amd64 -t ghcr.io/cloudoperators/greenhouse-dev-ui:main -f Dockerfile.dev-ui  .
-```
+Either pull or start the docker-compose to retrieve the latest [juno-app-greenhouse](https://github.com/cloudoperators/juno/pkgs/container/juno-app-greenhouse) release.
 
-To run the Greenhouse UI locally you can either run the docker image exposing port `3000` or in `host` network:
+### Building the UI locally
 
-```bash
-docker run --network host ghcr.io/cloudoperators/greenhouse-dev-ui:main
-```
+The Greenhouse UI is located in the [cloudoperators/juno](https://github.com/cloudoperators/juno/tree/main/apps/greenhouse) repository.
 
-or run the `node` process itself via `npm` (both dependencies need to be installed locally). We use the [props template prepared for dev-env](https://github.com/cloudoperators/greenhouse/tree/main/dev-env/build/greenhouse-ui/secretProps.json) to run the app:
-via:
+1. Clone the repository [cloudoperators/juno](https://github.com/cloudoperators/juno)
+1. Run [docker buildx build](https://docs.docker.com/reference/cli/docker/buildx/):
 
-```bash
-cp ./dev-env/build/greenhouse-ui/secretProps.json ./ui/dashboard/secretProps.json
-npm start --prefix ./ui/dashboard
-```
+    ```bash
+    $ docker buildx build --platform=linux/amd64 -t ghcr.io/cloudoperators/juno-app-greenhouse:latest -f apps/greenhouse/docker/Dockerfile .  
+    ```
+    > NOTE: Building the image is rather resource heavy on your machine. For reference, using [colima](https://github.com/abiosoft/colima):
 
-As you might have noticed we inject a [props template prepared for dev-env](https://github.com/cloudoperators/greenhouse/tree/main/dev-env/build/greenhouse-ui/secretProps.json) expecting the k8s api to run on `127.0.0.1:8090`, which is the default exported by the [mock api server image](#mock-k8s-server-aka-dev-env). Also authentication will be mocked.
+    | Able to build? | PROFILE | STATUS | ARCH | CPUS | MEMORY | DISK | RUNTIME | ADDRESS 
+    | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
+    | ❌ |   default | Running | aarch64 | 2 | 4GiB | 100GiB | docker |
+    | ✅ |   default | Running | aarch64 | 4 | 8GiB | 100GiB | docker |
 
-Have a look at the [props template](https://github.com/cloudoperators/greenhouse/blob/main/ui/dashboard/secretProps.template.json) to point your local UI to other running Greenhouse instances.
+1. Start the UI Docker
+    ```bash
+    $ docker run -p 3000:80 -v ./ui/appProps.json:/appProps.json ghcr.io/cloudoperators/juno-app-greenhouse:latest
+    ```
+    > Note: We inject a [props template prepared for dev-env](https://github.com/cloudoperators/greenhouse/tree/main/dev-env/ui/appProps.json) expecting the k8s api to run on `127.0.0.1:8090`, which is the default exported by the [mock api server image](#mock-k8s-server-aka-envtest). Also authentication will be mocked. Have a look at the [props template](https://github.com/cloudoperators/juno/blob/main/apps/greenhouse/appProps.template.json) to point your local UI to other running Greenhouse instances.
 
-Access the UI on [localhost:3000](http://localhost:3000/).
+1. Start the UI with `node` (with support for live reloads). Follow the instructions in the `cloudoperators/juno`, [here](https://github.com/cloudoperators/juno/tree/main/apps/greenhouse).
 
-Run the UI on a different port by exposing env var `APP_PORT`:
+1. Access the UI on [localhost:3000](http://localhost:3000/).
 
-```bash
-APP_PORT=<your-port> npm start --prefix ./ui/dashboard
-```
-
-> Note: Running the code locally only watches and live reloads the local code (changes) of the [dashboard](https://github.com/cloudoperators/greenhouse/tree/main/ui/dashboard) micro frontend (MFE). This is not true for the embedded MFEs. Run those separately with respective props pointing to the mock k8s apiserver for development.
+> Note: Running the code locally only watches and live reloads the local code (changes) of the [dashboard](https://github.com/cloudoperators/juno/blob/main/apps/greenhouse) micro frontend (MFE). This is not true for the embedded MFEs. Run those separately with respective props pointing to the mock k8s apiserver for development.
 
 ## docker compose
 
-If you do not need or want to run your local code but want to run a set of Greenhouse images we provide a setup with [docker compose](https://github.com/cloudoperators/greenhouse/blob/main/dev-env/docker-compose.yaml) and can be started via
+If you do not need or want to run your local code but want to run a set of Greenhouse images we provide a setup with [docker compose](https://github.com/cloudoperators/greenhouse/blob/main/dev-env/docker-compose.yaml):
 
-```bash
-docker compose up
-```
+1. Navigate to the [dev-env](https://github.com/cloudoperators/greenhouse/tree/main/dev-env) dir, and start `docker compose`.
+    ```bash
+    cd ./dev-env
+    docker compose up
+    ```
 
-from the `./dev-env` folder.
+1. You might need to build the `dev-ui` image manually, in that case follow [the steps above](#building-the-ui-locally).
 
-You might need to build the `dev-ui` image by hand:
-
-```bash
-docker compose build greenhouse-ui
-```
-
-The [network-host.docker-compose.yaml](https://github.com/cloudoperators/greenhouse/blob/main/dev-env/network-host.docker-compose.yaml) provides the same setup starting all containers in host network mode.
+1. (Alternative) The [network-host.docker-compose.yaml](https://github.com/cloudoperators/greenhouse/blob/main/dev-env/network-host.docker-compose.yaml) provides the same setup but starts all containers in **host** network mode instead.
 
 ## Bootstrap
 
 The [docker-compose](#docker-compose) setup per default bootstraps an Organization [test-org](https://github.com/cloudoperators/greenhouse/tree/main/dev-env/bootstrap/test-org.yaml) to your cluster, which is the bare minimum to get the `dev-env` working.
 
-Running
+By running:
 
 ```bash
 docker compose run bootstrap kubectl apply -f /bootstrap/additional_resources
 ```
 
-or uncommenting the additional resources in the command of the bootstrap container on the [docker-compose](https://github.com/cloudoperators/greenhouse/blob/main/dev-env/docker-compose.yaml#L50) file will additionally deploy the following:
+or by uncommenting the "additional resources" in the command of the bootstrap container in the [docker-compose](https://github.com/cloudoperators/greenhouse/blob/main/dev-env/docker-compose.yaml#L51) file, the following resources items would be created automatically:
 
-- [test-team-1 through test-team-3](https://github.com/cloudoperators/greenhouse/tree/main/dev-env/bootstrap/teams.yaml) within Organization `test-org`
-- respective dummy teammemberships for both teams
-- [cluster-1 through cluster-3 and self](https://github.com/cloudoperators/greenhouse/tree/main/dev-env/bootstrap/clusters.yaml) with different conditions and states
-- some [dummy nodes](https://github.com/cloudoperators/greenhouse/tree/main/dev-env/bootstrap/nodes.yaml) for clusters
-- some [plugindefinitions with plugins](https://github.com/cloudoperators/greenhouse/tree/main/dev-env/bootstrap/plugins.yamls) across the clusters
+- [test-team-1, test-team-2, test-team-3](https://github.com/cloudoperators/greenhouse/tree/main/dev-env/bootstrap/teams.yaml) within Organization `test-org',
+- respective dummy `teammemberships` for both teams,
+- [cluster-1, cluster-2, cluster-3 and self](https://github.com/cloudoperators/greenhouse/tree/main/dev-env/bootstrap/clusters.yaml) with different conditions and states,
+- some [dummy nodes](https://github.com/cloudoperators/greenhouse/tree/main/dev-env/bootstrap/nodes.yaml) for clusters,
+- some [plugindefinitions with plugins](https://github.com/cloudoperators/greenhouse/tree/main/dev-env/bootstrap/plugins.yamls) across the clusters.
 
 > Note: These resources are intended to showcase the UI and produce a lot of _"noise"_ on the Greenhouse controller.
 
