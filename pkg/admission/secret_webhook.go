@@ -41,10 +41,19 @@ func DefaultSecret(_ context.Context, _ client.Client, _ runtime.Object) error {
 
 //+kubebuilder:webhook:path=/validate--v1-secret,mutating=false,failurePolicy=ignore,sideEffects=None,groups="",matchPolicy=Exact,resources=secrets,verbs=create;update;delete,versions=v1,name=vsecret.kb.io,admissionReviewVersions=v1
 
-func ValidateCreateSecret(_ context.Context, _ client.Client, o runtime.Object) (admission.Warnings, error) {
+func ValidateCreateSecret(ctx context.Context, _ client.Client, o runtime.Object) (admission.Warnings, error) {
 	secret, ok := o.(*corev1.Secret)
+	logger := ctrl.LoggerFrom(ctx)
 	if !ok {
 		return nil, nil
+	}
+	// Check if the secret name is no longer than 40 characters
+	if err := capName(secret, logger, 40); err != nil {
+		return nil, err
+	}
+	// Check if the secret name contains double dashes
+	if err := invalidateDoubleDashesInName(secret, logger); err != nil {
+		return nil, err
 	}
 	if err := validateSecretGreenHouseType(secret); err != nil {
 		return nil, err

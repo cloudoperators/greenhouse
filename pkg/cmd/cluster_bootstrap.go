@@ -181,6 +181,7 @@ func (o *newClusterBootstrapOptions) fillDefaults() error {
 		}
 		o.clusterName = customerConfig.CurrentContext
 	}
+	// Validate the cluster name here before proceeding
 	if err := validateClusterName(o.clusterName, 40); err != nil {
 		return err
 	}
@@ -426,6 +427,7 @@ func getKubeconfigOrDie(kubecontext string) *rest.Config {
 	return restConfig
 }
 
+// validateClusterName is making sure that the cluster name is not empty, not longer than lenght parameter characters and does not contain '--'
 func validateClusterName(clustertName string, length int) error {
 	switch {
 	case clustertName == "":
