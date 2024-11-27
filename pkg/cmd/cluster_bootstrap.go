@@ -430,11 +430,11 @@ func getKubeconfigOrDie(kubecontext string) *rest.Config {
 // validateClusterName is making sure that the cluster name is not empty, not longer than length parameter characters and does not contain '--'
 func validateClusterName(clusterName string, length int) error {
 	switch {
-	case clustertName == "":
+	case clusterName == "":
 		return errors.New("cluster name cannot be empty")
-	case len(clustertName) > length:
+	case len(clusterName) > length:
 		return errors.New("cluster name cannot be longer than 40 characters")
-	case strings.Contains(clustertName, "--"):
+	case strings.Contains(clusterName, "--"):
 		return errors.New("cluster name cannot contain '--'")
 	}
 	return nil
