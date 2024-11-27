@@ -7,14 +7,14 @@ replace (
 	github.com/dexidp/dex => github.com/dexidp/dex v0.0.0-20240807174518-43956db7fd75
 	github.com/dexidp/dex/api/v2 => github.com/dexidp/dex/api/v2 v2.2.0
 	// Keep k8s dependencies in sync.
-	k8s.io/api => k8s.io/api v0.30.6
-	k8s.io/apiextensions-apiserver => k8s.io/apiextensions-apiserver v0.30.6
-	k8s.io/apimachinery => k8s.io/apimachinery v0.30.7
-	k8s.io/cli-runtime => k8s.io/cli-runtime v0.30.6
-	k8s.io/client-go => k8s.io/client-go v0.30.6
-	k8s.io/component-base => k8s.io/component-base v0.30.6
-	k8s.io/kubectl => k8s.io/kubectl v0.30.6
-	sigs.k8s.io/controller-runtime => sigs.k8s.io/controller-runtime v0.18.5
+	k8s.io/api => k8s.io/api v0.31.2
+	k8s.io/apiextensions-apiserver => k8s.io/apiextensions-apiserver v0.31.2
+	k8s.io/apimachinery => k8s.io/apimachinery v0.31.3
+	k8s.io/cli-runtime => k8s.io/cli-runtime v0.31.2
+	k8s.io/client-go => k8s.io/client-go v0.31.2
+	k8s.io/component-base => k8s.io/component-base v0.31.2
+	k8s.io/kubectl => k8s.io/kubectl v0.31.2
+	sigs.k8s.io/controller-runtime => sigs.k8s.io/controller-runtime v0.19.1
 )
 
 require (
@@ -45,7 +45,7 @@ require (
 	k8s.io/cli-runtime v0.31.2
 	k8s.io/client-go v0.31.2
 	k8s.io/kubectl v0.31.2
-	k8s.io/utils v0.0.0-20240921022957-49e7df575cb6
+	k8s.io/utils v0.0.0-20241104163129-6fe5fd82f078
 	sigs.k8s.io/controller-runtime v0.19.1
 	sigs.k8s.io/e2e-framework v0.5.0
 	sigs.k8s.io/kind v0.25.0
@@ -64,6 +64,7 @@ require (
 	github.com/cpuguy83/go-md2man/v2 v2.0.4 // indirect
 	github.com/creack/pty v1.1.23 // indirect
 	github.com/distribution/reference v0.6.0 // indirect
+	github.com/fxamacker/cbor/v2 v2.7.0 // indirect
 	github.com/go-task/slim-sprig/v3 v3.0.0 // indirect
 	github.com/google/gnostic-models v0.6.9-0.20230804172637-c7be7c783f49 // indirect
 	github.com/gorilla/websocket v1.5.3 // indirect
@@ -78,6 +79,7 @@ require (
 	github.com/tidwall/match v1.1.1 // indirect
 	github.com/tidwall/pretty v1.2.1 // indirect
 	github.com/tidwall/sjson v1.2.5 // indirect
+	github.com/x448/float16 v0.8.4 // indirect
 	go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.54.0 // indirect
 	google.golang.org/genproto/googleapis/api v0.0.0-20240827150818-7e3bb234dfed // indirect
 	gopkg.in/evanphx/json-patch.v4 v4.12.0 // indirect
@@ -214,8 +216,8 @@ require (
 	google.golang.org/protobuf v1.35.1 // indirect
 	gopkg.in/inf.v0 v0.9.1 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
-	k8s.io/apiserver v0.31.0 // indirect
-	k8s.io/component-base v0.31.1 // indirect
+	k8s.io/apiserver v0.31.2 // indirect
+	k8s.io/component-base v0.31.2 // indirect
 	k8s.io/klog/v2 v2.130.1
 	k8s.io/kube-openapi v0.0.0-20240827152857-f7e401e7b4c2 // indirect
 	oras.land/oras-go v1.2.6 // indirect
