@@ -14,7 +14,7 @@ function prepare_cluster(){
   rm -f ${REMOTE_CLUSTER_KUBECONFIG}
 	kind delete cluster --name "${REMOTE_CLUSTER_NAME}"
 	kind create cluster --name "${REMOTE_CLUSTER_NAME}" --kubeconfig="${REMOTE_CLUSTER_KUBECONFIG}" --image ${KIND_CLUSTER_VERSION}
-
+ 
   KIND_SERVER="https://${REMOTE_CLUSTER_NAME}-control-plane:6443"
 	kubectl --kubeconfig="${REMOTE_CLUSTER_KUBECONFIG}" config set-cluster "kind-${REMOTE_CLUSTER_NAME}" --server="${KIND_SERVER}"
 
@@ -24,6 +24,7 @@ function prepare_cluster(){
 
 function onboard_cluster(){
   echo "Creating secret on dev-env cluster to onboard ${REMOTE_CLUSTER_NAME}"
+  kubectl --kubeconfig="${KUBECONFIG_DIR}/kubeconfig" --namespace=test-org delete secret ${REMOTE_CLUSTER_NAME} --ignore-not-found=true
   kubectl --kubeconfig="${KUBECONFIG_DIR}/kubeconfig" --namespace=test-org create secret generic ${REMOTE_CLUSTER_NAME} --type=greenhouse.sap/kubeconfig --from-file=kubeconfig="${REMOTE_CLUSTER_KUBECONFIG}"
 }
 
@@ -35,3 +36,6 @@ REMOTE_CLUSTER_KUBECONFIG="${KUBECONFIG_DIR}/${REMOTE_CLUSTER_NAME}.kubeconfig"
 
 prepare_cluster
 onboard_cluster
+
+echo "Exporting kind kubeconfig for ${KUBECONFIG_DIR}/${REMOTE_CLUSTER_NAME}-kubeconfig."
+kind export kubeconfig --name remote-cluster --kubeconfig ${KUBECONFIG_DIR}/${REMOTE_CLUSTER_NAME}-kubeconfig

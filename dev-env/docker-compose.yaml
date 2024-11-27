@@ -33,14 +33,11 @@ services:
     network_mode: service:envtest
     command: --dns-domain localhost
   greenhouse-ui:
-    image: ghcr.io/cloudoperators/greenhouse-dev-ui:main
-    environment:
-      - PORT=3000
+    image: ghcr.io/cloudoperators/juno-app-greenhouse:latest
     ports:
-      - "3000:3000"
-    build:
-      context: ./../
-      dockerfile: Dockerfile.dev-ui
+      - "3000:80"
+    volumes:
+    - ./ui/appProps.json:/appProps.json
   bootstrap:
     image: ghcr.io/cloudoperators/greenhouse-dev-env:main
     environment:
