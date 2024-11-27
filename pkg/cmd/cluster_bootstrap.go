@@ -181,7 +181,7 @@ func (o *newClusterBootstrapOptions) fillDefaults() error {
 		}
 		o.clusterName = customerConfig.CurrentContext
 	}
-	if err := validateClusterName(o.clusterName); err != nil {
+	if err := validateClusterName(o.clusterName, 40); err != nil {
 		return err
 	}
 
@@ -426,11 +426,11 @@ func getKubeconfigOrDie(kubecontext string) *rest.Config {
 	return restConfig
 }
 
-func validateClusterName(clustertName string) error {
+func validateClusterName(clustertName string, length int) error {
 	switch {
 	case clustertName == "":
 		return errors.New("cluster name cannot be empty")
-	case len(clustertName) > 40:
+	case len(clustertName) > length:
 		return errors.New("cluster name cannot be longer than 40 characters")
 	case strings.Contains(clustertName, "--"):
 		return errors.New("cluster name cannot contain '--'")
