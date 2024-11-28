@@ -74,10 +74,11 @@ groups:
       expr: greenhouse_cluster_k8s_versions_total{version=~"v1\\.(1[0-9]|2[0-1])\\..*"} == 1
       labels:
         severity: warning
-    - alert: GreenhousePluginHasErrors
+    - alert: GreenhousePluginConstantlyFailing
       annotations:
-        summary: "Plugin has errors"
-        description: "Plugin {{ $labels.plugin }} in organization {{ $labels.organization }} has more then 10 errors"
-      expr: increase(greenhouse_plugin_reconcile_total{result="error"}[15m] > 0) by (plugin, organization)
+        summary: "Plugin reconciliation is constantly failing"
+        description: "Plugin {{ $labels.plugin }} in organization {{ $labels.organization }} keeps failing with reason: {{ $labels.reason }}"
+      expr: increase(greenhouse_plugin_reconcile_total{result="error"}[5m] > 0) by (plugin, organization)
+      for: 15m
       labels:
         severity: warning
