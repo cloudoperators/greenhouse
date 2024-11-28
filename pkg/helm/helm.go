@@ -34,6 +34,7 @@ import (
 
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/pkg/apis/greenhouse/v1alpha1"
 	"github.com/cloudoperators/greenhouse/pkg/clientutil"
+	"github.com/cloudoperators/greenhouse/pkg/metrics"
 )
 
 func init() {
@@ -65,6 +66,7 @@ func InstallOrUpgradeHelmChartFromPlugin(ctx context.Context, local client.Clien
 	if !isReleaseExists {
 		log.FromContext(ctx).Info("installing release for plugin", "namespace", plugin.Spec.ReleaseNamespace, "name", plugin.Name)
 		_, err = installRelease(ctx, local, restClientGetter, pluginDefinition, plugin, false)
+		metrics.UpdateMetrics(plugin, metrics.MetricResultError, metrics.MetricReasonInstallFailed)
 		return err
 	}
 	helmChart, err := locateChartForPlugin(restClientGetter, pluginDefinition)
@@ -92,7 +94,13 @@ func InstallOrUpgradeHelmChartFromPlugin(ctx context.Context, local client.Clien
 	if err := replaceCustomResourceDefinitions(ctx, c, helmChart.CRDObjects(), true); err != nil {
 		return err
 	}
-	return upgradeRelease(ctx, local, restClientGetter, pluginDefinition, plugin)
+
+	if err := upgradeRelease(ctx, local, restClientGetter, pluginDefinition, plugin); err != nil {
+		metrics.UpdateMetrics(plugin, metrics.MetricResultError, metrics.MetricReasonUpgradeFailed)
+		return err
+	}
+
+	return nil
 }
 
 // HelmChartTest to do helm test on the plugin
