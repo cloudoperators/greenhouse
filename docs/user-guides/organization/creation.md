@@ -36,7 +36,7 @@ This ensures all pre-requisites are met, the organization is configured correctl
    For SAP, we recommend using a SAP ID service (IDS) tenant.  
    Please include the parameters for your tenant in the message to the Greenhouse team when signing up.
 
-   If you don't have a SAP ID Service tenant yet, please refer to the [SAP ID Service](/docs/user-guides/organization/sap-id) section for more information.
+   If you don't have a SAP ID Service tenant yet, please refer to the [SAP ID Service](/greenhouse/docs/user-guides/organization/sap-id) section for more information.
 
 
 3. **Greenhouse organization**  
