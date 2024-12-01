@@ -48,7 +48,7 @@ func processManifests(cmd *cobra.Command, _ []string) error {
 		Webhook:      nil,
 	}
 	err := setup.NewExecutionEnv().
-		WithClusterSetup(clusterName, namespaceName, clusterVersion).
+		WithClusterSetup(clusterName, namespaceName, clusterVersion, "").
 		WithLimitedManifests(ctx, manifest).
 		Run()
 	if err != nil {

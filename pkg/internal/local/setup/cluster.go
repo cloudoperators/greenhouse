@@ -14,18 +14,20 @@ import (
 )
 
 type Cluster struct {
-	Name           string  `json:"name"`
-	Namespace      *string `json:"namespace"`
-	Version        string  `json:"version"`
+	Name           string  `yaml:"name" json:"name"`
+	Namespace      *string `yaml:"namespace" json:"namespace"`
+	Version        string  `yaml:"version" json:"version"`
+	ConfigPath     string  `yaml:"configPath" json:"configPath"`
 	kubeConfigPath string
 }
 
 // clusterSetup - creates a kind Cluster with a given name and optionally creates a namespace if specified
+// also accepts a KinD configuration file to create the cluster
 func clusterSetup(env *ExecutionEnv) error {
 	if env.cluster == nil {
 		return errors.New("cluster configuration is missing")
 	}
-	err := klient.CreateCluster(env.cluster.Name, env.cluster.Version)
+	err := klient.CreateCluster(env.cluster.Name, env.cluster.Version, env.cluster.ConfigPath)
 	if err != nil {
 		return err
 	}
