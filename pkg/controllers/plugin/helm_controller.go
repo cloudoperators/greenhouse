@@ -256,11 +256,11 @@ func (r *HelmReconciler) reconcileHelmRelease(
 	if err := helm.InstallOrUpgradeHelmChartFromPlugin(ctx, r.Client, restClientGetter, pluginDefinition, plugin); err != nil {
 		reconcileFailedCondition.Status = metav1.ConditionTrue
 		reconcileFailedCondition.Message = "Helm install/upgrade failed: " + err.Error()
-		metrics.UpdateMetrics(plugin, metrics.MetricResultError, metrics.MetricReasonUninstallHelmFailed)
 		return driftDetectedCondition, reconcileFailedCondition
 	}
 	reconcileFailedCondition.Status = metav1.ConditionFalse
 	reconcileFailedCondition.Message = "Helm install/upgrade successful"
+	metrics.UpdateMetrics(plugin, metrics.MetricResultSuccess, metrics.MetricReasonEmpty)
 	return driftDetectedCondition, reconcileFailedCondition
 }
 
