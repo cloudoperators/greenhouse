@@ -58,9 +58,6 @@ func (r *PropagationReconciler) BaseSetupWithManager(name string, mgr ctrl.Manag
 }
 
 func (r *PropagationReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	// convenience var to collect successful deletions across all clusters
-	removeFinalizer := false
-
 	obj, ok := r.EmptyObj.DeepCopyObject().(client.Object)
 	if !ok {
 		return ctrl.Result{}, fmt.Errorf("object %T is not a client.Object", obj)
@@ -98,45 +95,42 @@ func (r *PropagationReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 			return ctrl.Result{}, err
 		}
 
-		if err, removeFinalizer = r.reconcileObject(ctx, remoteRestClient, obj, cluster.GetName()); err != nil {
+		if err = r.reconcileObject(ctx, remoteRestClient, obj, cluster.GetName()); err != nil {
 			return ctrl.Result{}, err
 		}
 	}
-	if removeFinalizer {
-		if err := clientutil.RemoveFinalizer(ctx, r.Client, obj, greenhouseapis.FinalizerCleanupPropagatedResource); err != nil {
-			return ctrl.Result{}, err
-		}
+	if err := clientutil.RemoveFinalizer(ctx, r.Client, obj, greenhouseapis.FinalizerCleanupPropagatedResource); err != nil {
+		return ctrl.Result{}, err
 	}
 
 	return ctrl.Result{RequeueAfter: DefaultRequeueInterval}, nil
 }
 
-func (r *PropagationReconciler) reconcileObject(ctx context.Context, restClient client.Client, obj client.Object, clusterName string) (err error, removeFinalizer bool) {
+func (r *PropagationReconciler) reconcileObject(ctx context.Context, restClient client.Client, obj client.Object, clusterName string) error {
 	remoteObject := obj.DeepCopyObject().(client.Object) //nolint:errcheck
 	remoteObjectExists := true
 	if err := restClient.Get(ctx, client.ObjectKeyFromObject(remoteObject), remoteObject); err != nil {
 		if apierrors.IsNotFound(err) {
 			remoteObjectExists = false
 		} else {
-			return err, false
+			return err
 		}
 	}
 
 	// cleanup
-	if obj.GetDeletionTimestamp() != nil && remoteObjectExists {
+	if remoteObjectExists {
 		if err := restClient.Delete(ctx, remoteObject); err != nil {
 			// might have been deleted by now
 			if apierrors.IsNotFound(err) {
 				log.FromContext(ctx).Info("object does not exist on target cluster", "object", obj, "cluster", clusterName)
-				return nil, true
+				return nil
 			} else {
-				return err, false
+				return err
 			}
 		}
 		log.FromContext(ctx).Info("deleted object on target cluster", "object", obj, "cluster", clusterName)
-		return nil, true
 	}
-	return nil, false
+	return nil
 }
 
 func (r *PropagationReconciler) ListObjects(ctx context.Context) client.ObjectList {
