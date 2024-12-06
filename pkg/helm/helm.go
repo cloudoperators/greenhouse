@@ -34,6 +34,7 @@ import (
 
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/pkg/apis/greenhouse/v1alpha1"
 	"github.com/cloudoperators/greenhouse/pkg/clientutil"
+	"github.com/cloudoperators/greenhouse/pkg/metrics"
 )
 
 func init() {
@@ -55,6 +56,7 @@ const driftDetectionInterval = 60 * time.Minute
 func InstallOrUpgradeHelmChartFromPlugin(ctx context.Context, local client.Client, restClientGetter genericclioptions.RESTClientGetter, pluginDefinition *greenhousev1alpha1.PluginDefinition, plugin *greenhousev1alpha1.Plugin) error {
 	// Early return if the pluginDefinition is not helm based
 	if pluginDefinition.Spec.HelmChart == nil {
+		metrics.UpdateMetrics(plugin, metrics.MetricResultError, metrics.MetricReasonHelmChartIsNotDefined)
 		return fmt.Errorf("no helm chart defined in pluginDefinition.Spec.HelmChart for pluginDefinition %s", plugin.Spec.PluginDefinition)
 	}
 	latestRelease, isReleaseExists, err := isReleaseExistsForPlugin(ctx, restClientGetter, plugin)
@@ -65,34 +67,46 @@ func InstallOrUpgradeHelmChartFromPlugin(ctx context.Context, local client.Clien
 	if !isReleaseExists {
 		log.FromContext(ctx).Info("installing release for plugin", "namespace", plugin.Spec.ReleaseNamespace, "name", plugin.Name)
 		_, err = installRelease(ctx, local, restClientGetter, pluginDefinition, plugin, false)
+		metrics.UpdateMetrics(plugin, metrics.MetricResultError, metrics.MetricReasonInstallFailed)
 		return err
 	}
 	helmChart, err := locateChartForPlugin(restClientGetter, pluginDefinition)
 	if err != nil {
+		metrics.UpdateMetrics(plugin, metrics.MetricResultError, metrics.MetricReasonUpgradeFailed)
 		return err
 	}
 	// Avoid attempts to upgrade a failed release and attempt to resurrect it.
 	if latestRelease.Info != nil && latestRelease.Info.Status == release.StatusFailed {
 		log.FromContext(ctx).Info("attempting to reset release status", "current status", latestRelease.Info.Status.String())
 		if err := ResetHelmReleaseStatusToDeployed(ctx, restClientGetter, plugin); err != nil {
+			metrics.UpdateMetrics(plugin, metrics.MetricResultError, metrics.MetricReasonUpgradeFailed)
 			return err
 		}
 	}
 	// Avoid upgrading a currently pending release.
 	if releaseStatus, ok := isCanReleaseBeUpgraded(latestRelease); !ok {
+		metrics.UpdateMetrics(plugin, metrics.MetricResultError, metrics.MetricReasonUpgradeFailed)
 		return fmt.Errorf("cannot upgrade release %s/%s in status %s", latestRelease.Namespace, latestRelease.Name, releaseStatus.String())
 	}
 	log.FromContext(ctx).Info("upgrading release", "namespace", plugin.Spec.ReleaseNamespace, "name", plugin.Name)
 
 	c, err := clientutil.NewK8sClientFromRestClientGetter(restClientGetter)
 	if err != nil {
+		metrics.UpdateMetrics(plugin, metrics.MetricResultError, metrics.MetricReasonUpgradeFailed)
 		return err
 	}
 
 	if err := replaceCustomResourceDefinitions(ctx, c, helmChart.CRDObjects(), true); err != nil {
+		metrics.UpdateMetrics(plugin, metrics.MetricResultError, metrics.MetricReasonUpgradeFailed)
 		return err
 	}
-	return upgradeRelease(ctx, local, restClientGetter, pluginDefinition, plugin)
+
+	if err := upgradeRelease(ctx, local, restClientGetter, pluginDefinition, plugin); err != nil {
+		metrics.UpdateMetrics(plugin, metrics.MetricResultError, metrics.MetricReasonUpgradeFailed)
+		return err
+	}
+
+	return nil
 }
 
 // HelmChartTest to do helm test on the plugin
