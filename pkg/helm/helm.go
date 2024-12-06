@@ -78,9 +78,15 @@ func InstallOrUpgradeHelmChartFromPlugin(ctx context.Context, local client.Clien
 			return err
 		}
 	}
-	// Avoid upgrading a currently pending release.
 	if releaseStatus, ok := isCanReleaseBeUpgraded(latestRelease); !ok {
-		return fmt.Errorf("cannot upgrade release %s/%s in status %s", latestRelease.Namespace, latestRelease.Name, releaseStatus.String())
+		if releaseStatus.IsPending() {
+			log.FromContext(ctx).Info("unlocking pending release in state", "namespace", latestRelease.Namespace, "name", plugin.Name)
+			if err := unlockPendingRelease(restClientGetter, latestRelease); err != nil {
+				return fmt.Errorf("failed unlocking pending release %s/%s: %w", latestRelease.Namespace, latestRelease.Name, err)
+			}
+			return fmt.Errorf("cannot upgrade pending release %s/%s, set to state to '%s'", latestRelease.Namespace, latestRelease.Name, release.StatusFailed)
+		}
+		return fmt.Errorf("cannot upgrade release %s/%s in status '%s'", latestRelease.Namespace, latestRelease.Name, releaseStatus.String())
 	}
 	log.FromContext(ctx).Info("upgrading release", "namespace", plugin.Spec.ReleaseNamespace, "name", plugin.Name)
 
@@ -545,6 +551,19 @@ func getValueFromSecret(ctx context.Context, c client.Client, secretNamespace, s
 		return "", fmt.Errorf("secret %s/%s does not contain key %s", secretNamespace, secretName, secretKey)
 	}
 	return string(valByte), nil
+}
+
+// unlockPendingRelease sets the status of a pending release to failed.
+func unlockPendingRelease(restClientGetter genericclioptions.RESTClientGetter, rls *release.Release) error {
+	cfg, err := newHelmAction(restClientGetter, rls.Namespace)
+	if err != nil {
+		return err
+	}
+	if status := rls.Info.Status; status.IsPending() {
+		rls.SetStatus(release.StatusFailed, fmt.Sprintf("Release set to failed from stuck '%s' state", status.String()))
+		return cfg.Releases.Update(rls)
+	}
+	return nil
 }
 
 func isCanReleaseBeUpgraded(r *release.Release) (release.Status, bool) {
