@@ -975,7 +975,7 @@ func clusterSecret(clusterName string) *corev1.Secret {
 			APIVersion: corev1.GroupName,
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      "test-" + clusterName,
+			Name:      clusterName,
 			Namespace: test.TestNamespace,
 		},
 		Type: greenhouseapis.SecretTypeKubeConfig,
