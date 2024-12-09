@@ -5,7 +5,6 @@ package cluster_test
 
 import (
 	"fmt"
-	"time"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -150,7 +149,7 @@ var _ = Describe("Cluster status", Ordered, func() {
 			g.Expect(validCluster.Status.Nodes["test-node"].Conditions).ToNot(BeEmpty())
 			g.Expect(validCluster.Status.Nodes["test-node"].Ready).To(BeFalse())
 			return true
-		}, 2*time.Minute).Should(BeTrue()) // TODO: fix the this test as it does not need to wait for 2 minutes
+		}).Should(BeTrue())
 
 		By("updating the node ready condition")
 		node := &corev1.Node{}
