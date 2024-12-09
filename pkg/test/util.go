@@ -19,7 +19,6 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
-	"k8s.io/client-go/util/retry"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	greenhouseapis "github.com/cloudoperators/greenhouse/pkg/apis"
@@ -27,29 +26,29 @@ import (
 	"github.com/cloudoperators/greenhouse/pkg/clientutil"
 )
 
-func UpdateClusterWithDeletionAnnotation(ctx context.Context, c client.Client, id client.ObjectKey) {
+func UpdateClusterWithDeletionAnnotation(ctx context.Context, c client.Client, id client.ObjectKey) *greenhousev1alpha1.Cluster {
+	GinkgoHelper()
 	schedule, err := clientutil.ParseDateTime(time.Now().Add(-1 * time.Minute))
 	Expect(err).ToNot(HaveOccurred(), "there should be no error parsing the time")
-	err = retry.RetryOnConflict(retry.DefaultRetry, func() error {
-		cluster := &greenhousev1alpha1.Cluster{}
-		Expect(c.Get(ctx, id, cluster)).
+	cluster := &greenhousev1alpha1.Cluster{}
+	Eventually(func(g Gomega) {
+		g.Expect(c.Get(ctx, id, cluster)).
 			To(Succeed(), "there must be no error getting the cluster")
+		baseCluster := cluster.DeepCopy()
 		cluster.SetAnnotations(map[string]string{
 			greenhouseapis.MarkClusterDeletionAnnotation:     "true",
 			greenhouseapis.ScheduleClusterDeletionAnnotation: schedule.Format(time.DateTime),
 		})
-		return c.Update(ctx, cluster)
-	})
-	Expect(err).ToNot(HaveOccurred(), "there must be no error updating the object", "key", id)
+		g.Expect(c.Patch(ctx, cluster, client.MergeFrom(baseCluster))).To(Succeed(), "there must be no error updating the cluster")
+	}).Should(Succeed(), "there should be no error setting the cluster deletion annotation")
+	return cluster
 }
 
 // MustDeleteCluster is used in the test context only and removes a cluster by namespaced name.
 func MustDeleteCluster(ctx context.Context, c client.Client, id client.ObjectKey) {
 	GinkgoHelper()
-	var cluster = new(greenhousev1alpha1.Cluster)
-	UpdateClusterWithDeletionAnnotation(ctx, c, id)
-	Expect(c.Get(ctx, id, cluster)).
-		To(Succeed(), "there must be no error getting the cluster")
+
+	cluster := UpdateClusterWithDeletionAnnotation(ctx, c, id)
 	Expect(c.Delete(ctx, cluster)).
 		To(Succeed(), "there must be no error deleting object", "key", client.ObjectKeyFromObject(cluster))
 
