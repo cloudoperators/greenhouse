@@ -4,11 +4,11 @@
 {{- end }}
 
 {{/* Render the auth hostname */}}
-{{- define "auth.hostname" -}}
+{{- define "dashboard.auth.hostname" -}}
 {{- printf "https://%s.%s" "auth" (required "global.dnsDomain missing" .Values.global.dnsDomain) }}
 {{- end }}
 
 {{/* Render the k8s api hostname */}}
-{{- define "api.hostname" -}}
+{{- define "dashboard.api.hostname" -}}
 {{- printf "https://%s.%s" "api" (required "global.dnsDomain missing" .Values.global.dnsDomain) }}
 {{- end }}

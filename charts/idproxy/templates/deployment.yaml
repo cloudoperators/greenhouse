@@ -50,7 +50,7 @@ spec:
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           command:
             - /idproxy
-            - --issuer=https://{{include "auth.hostname" $}}
+            - --issuer=https://{{include "idproxy.auth.hostname" $}}
             {{- range $origin := .Values.corsAllowedOrigins | default (list "*") }}
             - --allowed-origins={{ $origin }}
             {{- end }}

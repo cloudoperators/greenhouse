@@ -26,11 +26,11 @@ spec:
   {{- if .Values.ingress.tls }}
   tls:
     - hosts:
-        - {{ include "api.hostname" $ | quote }}
+        - {{ include "cors-proxy.api.hostname" $ | quote }}
       secretName: {{ $fullName }}
   {{- end }}
   rules:
-    - host: {{ include "api.hostname" $ | quote }}
+    - host: {{ include "cors-proxy.api.hostname" $ | quote }}
       http:
         paths:
           - path: /
