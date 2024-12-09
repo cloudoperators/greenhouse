@@ -29,6 +29,7 @@ var _ = Describe("Bootstrap controller", Ordered, func() {
 	BeforeAll(func() {
 		_, _, remoteEnvTest, remoteKubeConfig = test.StartControlPlane("6888", false, false)
 		setup = test.NewTestSetup(test.Ctx, test.K8sClient, bootstrapTestCase)
+		setup.CreateOrganizationWithOIDCConfig(test.Ctx, setup.Namespace())
 	})
 
 	AfterAll(func() {
@@ -67,7 +68,7 @@ var _ = Describe("Bootstrap controller", Ordered, func() {
 				By("Creating a secret with an invalid kubeconfig for a remote cluster")
 				kubeConfigString := string(remoteKubeConfig)
 				// invalidate host
-				invalidKubeConfigString := strings.ReplaceAll(kubeConfigString, "127", "128")
+				invalidKubeConfigString := strings.ReplaceAll(kubeConfigString, "127.0.0.1", "invalid.host")
 				invalidKubeConfigSecret := setup.CreateSecret(test.Ctx, bootstrapTestCase+"-invalid",
 					test.WithSecretType(greenhouseapis.SecretTypeKubeConfig),
 					test.WithSecretData(map[string][]byte{greenhouseapis.KubeConfigKey: []byte(invalidKubeConfigString)}))

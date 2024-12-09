@@ -4,7 +4,6 @@
 package cluster_test
 
 import (
-	"context"
 	"fmt"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -41,7 +40,7 @@ var _ = Describe("ClusterKubeconfig controller", Ordered, func() {
 	var (
 		cluster      = v1alpha1.Cluster{}
 		organization = &v1alpha1.Organization{}
-		oidcSecret   = corev1.Secret{}
+		oidcSecret   = &corev1.Secret{}
 
 		setup test.TestSetup
 	)
@@ -50,36 +49,24 @@ var _ = Describe("ClusterKubeconfig controller", Ordered, func() {
 
 		setup = *test.NewTestSetup(test.Ctx, test.K8sClient, kubeconfigTestCase)
 
-		By("Creating an organization with OIDC config")
-		organization.Name = setup.Namespace()
-		organization.Spec.MappedOrgAdminIDPGroup = mappedAdminID
-		organization.Spec.Authentication = &v1alpha1.Authentication{
-			OIDCConfig: &v1alpha1.OIDCConfig{
-				Issuer: oidcIssuer,
-				ClientIDReference: v1alpha1.SecretKeyReference{
-					Name: oidcSecretResource,
-					Key:  oidcClientIDKey,
-				},
-				ClientSecretReference: v1alpha1.SecretKeyReference{
-					Name: oidcSecretResource,
-					Key:  oidcClientSecretKey,
-				},
-			},
-		}
-		Expect(test.K8sClient.Create(context.Background(), organization)).To(Succeed())
-
 		By("Creating a secret with OIDC data")
-		oidcSecret.Name = oidcSecretResource
-		oidcSecret.Namespace = organization.Name
-		oidcSecret.Data = map[string][]byte{
-			oidcClientIDKey:     []byte(oidcClientID),
-			oidcClientSecretKey: []byte(oidcClientSecret),
-		}
-		Expect(test.K8sClient.Create(context.Background(), &oidcSecret)).To(Succeed())
+		oidcSecret = setup.CreateSecret(test.Ctx, oidcSecretResource,
+			test.WithSecretNamespace(setup.Namespace()),
+			test.WithSecretData(map[string][]byte{
+				oidcClientIDKey:     []byte(oidcClientID),
+				oidcClientSecretKey: []byte(oidcClientSecret),
+			}))
+
+		By("Creating an organization with OIDC config")
+		organization = setup.CreateOrganization(test.Ctx, setup.Namespace(),
+			test.WithMappedAdminIDPGroup(mappedAdminID),
+			test.WithOIDCConfig(oidcIssuer, oidcSecretResource, oidcClientIDKey, oidcClientSecretKey),
+		)
 
 		By("Creating a Secret with a valid KubeConfig")
 		secret := setup.CreateSecret(test.Ctx, clusterName,
 			test.WithSecretType(greenhouseapis.SecretTypeKubeConfig),
+			test.WithSecretNamespace(organization.Name),
 			test.WithSecretData(map[string][]byte{greenhouseapis.KubeConfigKey: test.KubeConfig}))
 
 		By("Checking the cluster resource has been created")
@@ -91,7 +78,7 @@ var _ = Describe("ClusterKubeconfig controller", Ordered, func() {
 
 	AfterAll(func() {
 		test.MustDeleteCluster(test.Ctx, test.K8sClient, client.ObjectKeyFromObject(&cluster))
-		Expect(test.K8sClient.Delete(test.Ctx, &oidcSecret)).To(Succeed())
+		Expect(test.K8sClient.Delete(test.Ctx, oidcSecret)).To(Succeed())
 	})
 
 	clusterKubeconfig := v1alpha1.ClusterKubeconfig{}
@@ -226,8 +213,6 @@ users:
 		Expect(test.K8sClient.Update(test.Ctx, &organization)).To(Succeed())
 
 		clusterKubeconfig := v1alpha1.ClusterKubeconfig{}
-		clusterKubeconfig.Name = cluster.Name
-		clusterKubeconfig.Namespace = setup.Namespace()
 
 		Eventually(func(g Gomega) bool {
 			g.Expect(test.K8sClient.Get(test.Ctx, types.NamespacedName{Name: cluster.Name, Namespace: setup.Namespace()}, &clusterKubeconfig)).ShouldNot(HaveOccurred(), "There should be no error getting the ClusterKubeconfig resource")

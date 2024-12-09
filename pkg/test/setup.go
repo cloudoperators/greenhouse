@@ -19,6 +19,15 @@ import (
 	"github.com/cloudoperators/greenhouse/pkg/clientutil"
 )
 
+const (
+	OIDCSecretResource  = "oidc-secret"
+	OIDCClientIDKey     = "clientID"
+	OIDCClientID        = "the-client-id"
+	OIDCClientSecretKey = "clientSecret"
+	OIDCClientSecret    = "the-client-secret"
+	OIDCIssuer          = "https://the-issuer"
+)
+
 type TestSetup struct {
 	client.Client
 	namespace string
@@ -89,6 +98,19 @@ func (t *TestSetup) CreateCluster(ctx context.Context, name string, opts ...func
 	cluster := NewCluster(ctx, name, t.Namespace(), opts...)
 	Expect(t.Create(ctx, cluster)).To(Succeed(), "there should be no error creating the cluster during onboarding")
 	return cluster
+}
+
+func (t *TestSetup) CreateOrganizationWithOIDCConfig(ctx context.Context, orgName string) (*greenhousev1alpha1.Organization, *corev1.Secret) {
+	GinkgoHelper()
+	secret := t.CreateSecret(ctx, OIDCSecretResource,
+		WithSecretNamespace(orgName),
+		WithSecretData(map[string][]byte{
+			OIDCClientIDKey:     []byte(OIDCClientID),
+			OIDCClientSecretKey: []byte(OIDCClientSecret),
+		}))
+
+	org := t.CreateOrganization(ctx, orgName, WithOIDCConfig(OIDCIssuer, secret.Name, OIDCClientIDKey, OIDCClientSecretKey))
+	return org, secret
 }
 
 // CreateOrganization creates a Organization within the TestSetup and returns the created Organization resource.

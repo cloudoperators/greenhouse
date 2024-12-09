@@ -5,7 +5,6 @@ package cluster_test
 
 import (
 	"fmt"
-	"time"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -40,6 +39,7 @@ var _ = Describe("KubeConfig controller", func() {
 		BeforeEach(func() {
 			_, _, remoteEnvTest, remoteKubeConfig = test.StartControlPlane("6885", false, false)
 			setup = test.NewTestSetup(test.Ctx, test.K8sClient, directAccessTestCase)
+			setup.CreateOrganizationWithOIDCConfig(test.Ctx, setup.Namespace())
 		})
 
 		AfterEach(func() {
@@ -81,7 +81,7 @@ var _ = Describe("KubeConfig controller", func() {
 				Eventually(func() error {
 					var namespace = new(corev1.Namespace)
 					return remoteClient.Get(test.Ctx, types.NamespacedName{Namespace: "", Name: setup.Namespace()}, namespace)
-				}, 3*time.Minute).Should(Succeed(), fmt.Sprintf("eventually the namespace %s should exist", setup.Namespace()))
+				}).Should(Succeed(), fmt.Sprintf("eventually the namespace %s should exist", setup.Namespace()))
 
 				By("Checking service account has been created in remote cluster")
 				Eventually(func() error {

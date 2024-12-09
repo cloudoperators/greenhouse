@@ -149,6 +149,8 @@ func (r *PluginPresetReconciler) reconcilePluginPreset(ctx context.Context, pres
 		err := r.Get(ctx, client.ObjectKey{Namespace: preset.GetNamespace(), Name: generatePluginName(preset, &cluster)}, plugin)
 
 		switch {
+		case !cluster.DeletionTimestamp.IsZero():
+			continue
 		case err == nil:
 			// The Plugin exists but does not contain the labels of the PluginPreset. This Plugin is not managed by the PluginPreset and must not be touched.
 			if shouldSkipPlugin(plugin, preset, pluginDefinition) {
