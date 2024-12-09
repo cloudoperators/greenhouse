@@ -14,6 +14,12 @@ global:
     clientID:
     clientSecret:
 
+# Organization & IDProxy should be enabled only after the initial install of greenhouse
+organization:
+  enabled: false
+idproxy:
+  enabled: false
+
 # OIDC configuration for Greenhouse.
 # Remove this section after migration to above globals.
 oidc:
@@ -38,6 +44,10 @@ demo:
   enabled: false
 
 ### Configure several Plugins for the Greenhouse organization below.
+
+# Toggle the installation of Plugins into the Greenhouse namespace
+plugins:
+  enabled: false
 
 # Configures the DigiCert issuer for the Greenhouse organization,
 # which enables obtaining DigiCert certificates via the cert-manager.
@@ -110,3 +120,12 @@ alerts:
   alertmanager:
     # Whether to deploy the alertmanager.
     enabled: false
+
+logshipping:
+  enabled: false
+  fluent-bit:
+    image:
+      repository: cr.fluentbit.io/fluent/fluent-bit
+    hotReload:
+      image:
+        repository: ghcr.io/jimmidyson/configmap-reload
