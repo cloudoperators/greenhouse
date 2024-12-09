@@ -1,4 +1,4 @@
-{{- if .Values.logshipping.enabled -}}
+{{- if and .Values.plugins.enabled .Values.logshipping.enabled -}}
 apiVersion: v1
 kind: Secret
 metadata:
