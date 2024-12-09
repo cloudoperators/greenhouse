@@ -40,6 +40,7 @@ var _ = Describe("KubeConfig controller", func() {
 		BeforeEach(func() {
 			_, _, remoteEnvTest, remoteKubeConfig = test.StartControlPlane("6885", false, false)
 			setup = test.NewTestSetup(test.Ctx, test.K8sClient, directAccessTestCase)
+			setup.CreateOrganizationWithOIDCConfig(test.Ctx, setup.Namespace())
 		})
 
 		AfterEach(func() {

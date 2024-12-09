@@ -29,6 +29,7 @@ var _ = Describe("Bootstrap controller", Ordered, func() {
 	BeforeAll(func() {
 		_, _, remoteEnvTest, remoteKubeConfig = test.StartControlPlane("6888", false, false)
 		setup = test.NewTestSetup(test.Ctx, test.K8sClient, bootstrapTestCase)
+		setup.CreateOrganizationWithOIDCConfig(test.Ctx, setup.Namespace())
 	})
 
 	AfterAll(func() {
