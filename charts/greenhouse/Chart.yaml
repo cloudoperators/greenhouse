@@ -20,6 +20,10 @@ dependencies:
   - name: manager
     version: 0.1.6
     repository: "file://../manager"
+  - condition: ui.enabled
+    name: dashboard
+    version: 0.1.0
+    repository: "file://../dashboard"
   - name: demo
     version: 0.1.1
     repository: "file://../demo"
