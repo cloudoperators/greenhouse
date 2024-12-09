@@ -56,8 +56,7 @@ func MustDeleteCluster(ctx context.Context, c client.Client, id client.ObjectKey
 	Eventually(func() bool {
 		err := c.Get(ctx, client.ObjectKeyFromObject(cluster), cluster)
 		return apierrors.IsNotFound(err)
-	}).
-		Should(BeFalse(), "the object should be deleted eventually")
+	}).Should(BeTrue(), "the object should be deleted eventually")
 }
 
 // MustReturnJSONFor marshals val to JSON and returns an apiextensionsv1.JSON.
