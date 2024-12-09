@@ -10,12 +10,12 @@ metadata:
 spec:
   description: Greenhouse organization
   mappedOrgAdminIdPGroup: {{ required ".Values.teams.admin.mappedIdPGroup missing" .Values.teams.admin.mappedIdPGroup }}
-{{- if or .Values.oidc.enabled .Values.scim.enabled }}
+{{- if or .Values.global.oidc.enabled .Values.scim.enabled }}
   authentication:
-{{- if.Values.oidc.enabled }}
+{{- if.Values.global.oidc.enabled }}
     oidc:
-      issuer: {{ required ".Values.oidc.issuer missing" .Values.oidc.issuer }}
-      redirectURL: {{ required ".Values.oidc.redirectURL missing" .Values.oidc.redirectURL }}
+      issuer: {{ required ".Values.global.oidc.issuer missing" .Values.global.oidc.issuer }}
+      redirectURI: {{ required ".Values.global.oidc.redirectURL missing" .Values.global.oidc.redirectURL }}
       clientIDReference:
         name: {{ .Chart.Name }}-oidc
         key: clientID
