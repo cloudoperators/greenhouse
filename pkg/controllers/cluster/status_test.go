@@ -204,13 +204,13 @@ var _ = Describe("Cluster status", Ordered, func() {
 	It("should reconcile the status of a cluster without a secret", func() {
 		By("checking cluster conditions")
 		Eventually(func(g Gomega) bool {
-			g.Expect(test.K8sClient.Get(test.Ctx, types.NamespacedName{Name: invalidCluster.Name, Namespace: setup.Namespace()}, &validCluster)).ShouldNot(HaveOccurred(), "There should be no error getting the cluster resource")
-			g.Expect(validCluster.Status.StatusConditions).ToNot(BeNil())
-			kubeConfigValidCondition := validCluster.Status.GetConditionByType(greenhousev1alpha1.KubeConfigValid)
+			g.Expect(test.K8sClient.Get(test.Ctx, types.NamespacedName{Name: invalidCluster.Name, Namespace: setup.Namespace()}, invalidCluster)).ShouldNot(HaveOccurred(), "There should be no error getting the cluster resource")
+			g.Expect(invalidCluster.Status.StatusConditions).ToNot(BeNil())
+			kubeConfigValidCondition := invalidCluster.Status.GetConditionByType(greenhousev1alpha1.KubeConfigValid)
 			g.Expect(kubeConfigValidCondition).ToNot(BeNil(), "The KubeConfigValid condition should be present")
 			g.Expect(kubeConfigValidCondition.Status).To(Equal(metav1.ConditionFalse))
 			g.Expect(kubeConfigValidCondition.Message).To(ContainSubstring("Secret \"" + invalidCluster.Name + "\" not found"))
-			readyCondition := validCluster.Status.GetConditionByType(greenhousev1alpha1.ReadyCondition)
+			readyCondition := invalidCluster.Status.GetConditionByType(greenhousev1alpha1.ReadyCondition)
 			g.Expect(readyCondition).ToNot(BeNil(), "The ClusterReady condition should be present")
 			g.Expect(readyCondition.Status).To(Equal(metav1.ConditionFalse))
 			g.Expect(readyCondition.Message).To(ContainSubstring("kubeconfig not valid - cannot access cluster"))
