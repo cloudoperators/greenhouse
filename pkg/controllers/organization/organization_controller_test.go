@@ -194,7 +194,7 @@ var _ = Describe("Test Organization reconciliation", Ordered, func() {
 			}).Should(Succeed(), "Organization should have set correct status condition")
 
 			By("updating Organization with SCIM Config without the secret")
-			Eventually(func(g Gomega) { // In 'Eventually' block to avoid flaky mocks.
+			Eventually(func(g Gomega) { // In 'Eventually' block to avoid flaky tests.
 				err := setup.Get(test.Ctx, types.NamespacedName{Name: testOrgName}, testOrg)
 				g.Expect(err).ToNot(HaveOccurred(), "there should be no error getting the Organization")
 				testOrg.Spec.Authentication = &greenhousev1alpha1.Authentication{
