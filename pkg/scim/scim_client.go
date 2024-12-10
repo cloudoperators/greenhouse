@@ -174,7 +174,7 @@ func (c *scimClient) GetUsers(ctx context.Context, options *QueryOptions) (*Resp
 	if err != nil {
 		return nil, err
 	}
-	resp, body, err := c.doRequest(req)
+	resp, body, err := c.doRequest(req) //nolint:bodyclose
 	if err != nil {
 		return nil, err
 	}
@@ -206,7 +206,7 @@ func (c *scimClient) GetGroups(ctx context.Context, options *QueryOptions) (*Res
 	if err != nil {
 		return nil, err
 	}
-	resp, body, err := c.doRequest(req)
+	resp, body, err := c.doRequest(req) //nolint:bodyclose
 	if err != nil {
 		return nil, err
 	}

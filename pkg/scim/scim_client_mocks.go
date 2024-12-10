@@ -71,6 +71,7 @@ func secondUserPaginatedResponseFn() mockResponse {
 	}
 }
 
+//nolint:unused
 func inactiveUserResponseBodyMockFn() mockResponse {
 	return mockResponse{
 		statusCode: http.StatusOK,
@@ -228,6 +229,7 @@ const (
 		}]
 	}`
 
+	//nolint:unused
 	inactiveUserResponseBodyMock = `{
 		"schemas": ["urn:ietf:params:scim:api:messages:2.0:ListResponse"],
 		"totalResults": 1,
