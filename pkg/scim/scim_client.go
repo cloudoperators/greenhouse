@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2024 SAP SE or an SAP affiliate company and Greenhouse contributors
 // SPDX-License-Identifier: Apache-2.0
 
-// Package scim implemements a very basic scim client with utility needed to extract users from IdP Groups
+// Package scim implements a very basic scim client with utility needed to extract users from IdP Groups
 // A scim client is initialized via it's base url and authentication method.
 // As for now only basic auth is implemented
 package scim
@@ -11,167 +11,231 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"net/http"
-	"net/http/httputil"
 	"net/url"
 	"strings"
-
-	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/pkg/apis/greenhouse/v1alpha1"
 )
 
-const (
-	groupPathName             = "Groups"
-	filterQueryKey            = "filter"
-	filterQueryExpressionStub = "displayName eq \"%s\""
+type scimClient struct {
+	baseURL    *url.URL
+	httpClient http.Client
+	paginator  Paginator
+}
 
-	reasonNotActive = "user is not active"
-	reasonMalformed = "could not create User from memberResponseBody"
-)
+type paginator struct {
+	client ISCIMClient
+}
+
+type basicAuthTransport struct {
+	Username string
+	Password string
+	Next     http.RoundTripper
+}
 
 type Config struct {
-	RawURL          string
-	AuthType        AuthType
-	BasicAuthConfig *BasicAuthConfig
+	URL       string
+	AuthType  AuthType
+	BasicAuth *BasicAuthConfig
 }
 
 type BasicAuthConfig struct {
-	BasicAuthUser string
-	BasicAuthPw   string
+	Username string
+	Password string
 }
 
-// Returns a scimClient
-func NewScimClient(scimConfig Config) (*ScimClient, error) {
-	baseURL, err := url.Parse(scimConfig.RawURL)
+const (
+	groupPath       = "Groups"
+	userPath        = "Users"
+	paginationEndID = "end"
+)
+
+func (t *basicAuthTransport) RoundTrip(req *http.Request) (*http.Response, error) {
+	req.SetBasicAuth(t.Username, t.Password)
+	return t.Next.RoundTrip(req)
+}
+
+type Paginator interface {
+	fetchAll(ctx context.Context, path string, options *QueryOptions) ([]Resource, error)
+}
+
+func newPaginator(c ISCIMClient) Paginator {
+	return &paginator{
+		client: c,
+	}
+}
+
+type ISCIMClient interface {
+	GetUsers(ctx context.Context, options *QueryOptions) (*ResponseBody, error)
+	GetPaginatedUsers(ctx context.Context, options *QueryOptions) ([]Resource, error)
+	GetGroups(ctx context.Context, options *QueryOptions) (*ResponseBody, error)
+	GetPaginatedGroups(ctx context.Context, options *QueryOptions) ([]Resource, error)
+	GroupExists(ctx context.Context, options *QueryOptions) (bool, error)
+}
+
+// NewSCIMClient - creates a new SCIM client with an auth transport
+func NewSCIMClient(config *Config) (ISCIMClient, error) {
+	var authTransport http.RoundTripper
+	baseURL, err := url.Parse(config.URL)
 	if err != nil {
 		return nil, err
 	}
 
-	httpClient, err := generateHTTPClient(scimConfig)
-	if err != nil {
-		return nil, err
-	}
-
-	scimClient := ScimClient{baseURL, httpClient}
-	return &scimClient, nil
-}
-
-func generateHTTPClient(scimConfig Config) (httpClient, error) {
-	if scimConfig.AuthType == Basic {
-		if scimConfig.BasicAuthConfig == nil {
-			return nil, errors.New("could not create http client, BasicAuthConfig missing")
+	if config.AuthType == Basic {
+		if config.BasicAuth == nil {
+			return nil, errors.New("could not create http scimClient, BasicAuthConfig missing")
 		}
-		basicAuthUser := scimConfig.BasicAuthConfig.BasicAuthUser
-		basicAuthPw := scimConfig.BasicAuthConfig.BasicAuthPw
-		return basicAuthHTTPClient{basicAuthUser, basicAuthPw, http.Client{}}, nil
+		if strings.TrimSpace(config.BasicAuth.Username) == "" || strings.TrimSpace(config.BasicAuth.Password) == "" {
+			return nil, errors.New("could not create SCIM Client, BasicAuthConfig missing username or password")
+		}
+		authTransport = &basicAuthTransport{
+			Username: config.BasicAuth.Username,
+			Password: config.BasicAuth.Password,
+			Next:     http.DefaultTransport,
+		}
 	}
-	return nil, fmt.Errorf("no client available for %v", scimConfig.AuthType)
+
+	c := &scimClient{
+		baseURL: baseURL,
+		httpClient: http.Client{
+			Transport: authTransport,
+		},
+	}
+	c.paginator = newPaginator(c)
+	return c, nil
 }
 
-// Returns team members referenced by URL in a IdP group
-func (s *ScimClient) GetTeamMembers(teamMappedIDPGroup string) ([]Member, error) {
-	groupEndpoint := s.baseURL.JoinPath(groupPathName)
-	params := s.baseURL.Query()
-	params.Add(filterQueryKey, fmt.Sprintf(filterQueryExpressionStub, teamMappedIDPGroup))
-	groupEndpoint.RawQuery = params.Encode()
+// GetPaginatedUsers - fetches all users using pagination
+func (c *scimClient) GetPaginatedUsers(ctx context.Context, options *QueryOptions) ([]Resource, error) {
+	return c.paginator.fetchAll(ctx, userPath, options)
+}
 
-	req, err := http.NewRequestWithContext(context.TODO(), http.MethodGet, groupEndpoint.String(), http.NoBody)
-	if err != nil {
-		return nil, fmt.Errorf("could not create request %v ", req)
+// GetPaginatedGroups - fetches all groups using pagination
+func (c *scimClient) GetPaginatedGroups(ctx context.Context, options *QueryOptions) ([]Resource, error) {
+	return c.paginator.fetchAll(ctx, groupPath, options)
+}
+
+// fetchAll - fetches all user resources using pagination
+func (p *paginator) fetchAll(ctx context.Context, path string, options *QueryOptions) ([]Resource, error) {
+	var allResources []Resource
+
+	// Ensure options is initialized
+	if options == nil {
+		options = &QueryOptions{}
 	}
 
-	response, err := s.httpClient.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer response.Body.Close()
-
-	if response.StatusCode != http.StatusOK {
-		dumpedResponse, err := httputil.DumpResponse(response, true)
+	for {
+		// Fetch a single page of results
+		resources, nextID, err := p.fetchPage(ctx, path, options)
 		if err != nil {
-			return nil, fmt.Errorf("failed to dump response: %w", err)
+			return nil, err
 		}
-		return nil, fmt.Errorf("could not retrieve TeamMembers from %s : %s", groupEndpoint.String(), string(dumpedResponse))
+
+		// Append the resources to the result set
+		allResources = append(allResources, resources...)
+
+		// Break if no more pages to fetch
+		if nextID == paginationEndID || nextID == "" {
+			break
+		}
+
+		// Set the NextID as StartID for the next request
+		options.StartID = nextID
 	}
 
-	var groupResponseBody = new(GroupResponseBody)
-
-	err = json.NewDecoder(response.Body).Decode(&groupResponseBody)
-	if err != nil {
-		return nil, err
-	}
-
-	if groupResponseBody.TotalResults == 0 {
-		return nil, fmt.Errorf("no mapped group found for %s", teamMappedIDPGroup)
-	}
-
-	if len(groupResponseBody.Resources) == 0 || groupResponseBody.Resources[0].Members == nil {
-		return nil, fmt.Errorf("unexpected response format, could not extract members from groupResponseBody %v", groupResponseBody)
-	}
-
-	return groupResponseBody.Resources[0].Members, nil
+	return allResources, nil
 }
 
-// GetUsers returns a list of fully qualified Users, the number of malformed users and the number of inactive users
-// On error only the error is set
-func (s *ScimClient) GetUsers(members []Member) (users []greenhousev1alpha1.User, inactive, malformed int, err error) {
-	users = make([]greenhousev1alpha1.User, 0)
-	malformed = 0
-	inactive = 0
-	for _, member := range members {
-		user, err := s.getUser(member)
-		if err != nil {
-			if strings.Contains(err.Error(), reasonNotActive) {
-				inactive += 1
-				continue
-			}
-			if strings.Contains(err.Error(), reasonMalformed) {
-				malformed += 1
-				continue
-			}
-			return nil, 0, 0, err
-		}
-		users = append(users, *user)
+// fetchPage - fetches a single page of results and returns the resources and next ID
+func (p *paginator) fetchPage(ctx context.Context, path string, options *QueryOptions) ([]Resource, string, error) {
+	var responseBody *ResponseBody
+	var err error
+	switch path {
+	case userPath:
+		responseBody, err = p.client.GetUsers(ctx, options)
+	case groupPath:
+		responseBody, err = p.client.GetGroups(ctx, options)
+	default:
+		return nil, "", fmt.Errorf("unexpected path %s", path)
 	}
-	return users, inactive, malformed, nil
+	if err != nil {
+		return nil, "", err
+	}
+	return responseBody.Resources, responseBody.NextID, err
 }
 
-func (s *ScimClient) getUser(member Member) (*greenhousev1alpha1.User, error) {
-	req, err := http.NewRequestWithContext(context.TODO(), http.MethodGet, member.Ref, http.NoBody)
-	if err != nil {
-		return nil, fmt.Errorf("could not create request %v ", req)
+// GetUsers - fetches users with optional query parameters
+func (c *scimClient) GetUsers(ctx context.Context, options *QueryOptions) (*ResponseBody, error) {
+	u := c.baseURL.JoinPath(userPath)
+	if options != nil {
+		u.RawQuery = options.toQuery()
 	}
-
-	response, err := s.httpClient.Do(req)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, u.String(), http.NoBody)
 	if err != nil {
 		return nil, err
 	}
-	defer response.Body.Close()
+	resp, body, err := c.doRequest(req)
+	if err != nil {
+		return nil, err
+	}
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("unexpected status code %d", resp.StatusCode)
+	}
+	return body, nil
+}
 
-	if response.StatusCode != http.StatusOK {
-		dumpedResponse, err := httputil.DumpResponse(response, true)
+// GroupExists - checks if a group exists
+func (c *scimClient) GroupExists(ctx context.Context, options *QueryOptions) (bool, error) {
+	groups, err := c.GetGroups(ctx, options)
+	if err != nil {
+		return false, err
+	}
+	if groups.TotalResults == 0 {
+		return false, nil
+	}
+	return true, nil
+}
+
+// GetGroups - fetches groups with optional query parameters
+func (c *scimClient) GetGroups(ctx context.Context, options *QueryOptions) (*ResponseBody, error) {
+	u := c.baseURL.JoinPath("Groups")
+	if options != nil {
+		u.RawQuery = options.toQuery()
+	}
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, u.String(), http.NoBody)
+	if err != nil {
+		return nil, err
+	}
+	resp, body, err := c.doRequest(req)
+	if err != nil {
+		return nil, err
+	}
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("unexpected status code %d", resp.StatusCode)
+	}
+	return body, nil
+}
+
+// doRequest performs the http request and returns the scim response body struct
+func (c *scimClient) doRequest(req *http.Request) (*http.Response, *ResponseBody, error) {
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		return nil, nil, err
+	}
+	defer func(Body io.ReadCloser) {
+		err := Body.Close()
 		if err != nil {
-			return nil, fmt.Errorf("failed to dump response: %w", err)
+			fmt.Println(err)
 		}
-		return nil, fmt.Errorf("could not retrieve TeamMember from %s : %s", member.Ref, string(dumpedResponse))
-	}
-
-	var memberResponseBody = new(MemberResponseBody)
-
-	err = json.NewDecoder(response.Body).Decode(&memberResponseBody)
+	}(resp.Body)
+	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
-
-	if !memberResponseBody.Active {
-		return nil, fmt.Errorf("%s: %v", reasonNotActive, memberResponseBody)
+	respBody := &ResponseBody{}
+	err = json.Unmarshal(body, respBody)
+	if err != nil {
+		return nil, nil, err
 	}
-
-	user := greenhousev1alpha1.User{}
-	if memberResponseBody.UserName != "" && memberResponseBody.Name.GivenName != "" && memberResponseBody.Name.FamilyName != "" && len(memberResponseBody.Emails) > 0 && memberResponseBody.Emails[0].Value != "" {
-		user = greenhousev1alpha1.User{ID: memberResponseBody.UserName, FirstName: memberResponseBody.Name.GivenName, LastName: memberResponseBody.Name.FamilyName, Email: memberResponseBody.Emails[0].Value}
-	} else {
-		return nil, fmt.Errorf("%s: %v", reasonMalformed, memberResponseBody)
-	}
-
-	return &user, nil
+	return resp, respBody, nil
 }
