@@ -146,7 +146,7 @@ var _ = Describe("Test Organization reconciliation", Ordered, func() {
 				func(o *greenhousev1alpha1.Organization) {
 					o.Spec.Authentication = &greenhousev1alpha1.Authentication{
 						SCIMConfig: &greenhousev1alpha1.SCIMConfig{
-							BaseURL: groupsServer.URL,
+							BaseURL: groupsServer.URL + "/scim",
 							BasicAuthUser: greenhousev1alpha1.ValueFromSource{
 								Secret: &greenhousev1alpha1.SecretKeyReference{
 									Name: "test-secret",
@@ -194,12 +194,12 @@ var _ = Describe("Test Organization reconciliation", Ordered, func() {
 			}).Should(Succeed(), "Organization should have set correct status condition")
 
 			By("updating Organization with SCIM Config without the secret")
-			Eventually(func(g Gomega) { // In 'Eventually' block to avoid flaky tests.
+			Eventually(func(g Gomega) { // In 'Eventually' block to avoid flaky mocks.
 				err := setup.Get(test.Ctx, types.NamespacedName{Name: testOrgName}, testOrg)
 				g.Expect(err).ToNot(HaveOccurred(), "there should be no error getting the Organization")
 				testOrg.Spec.Authentication = &greenhousev1alpha1.Authentication{
 					SCIMConfig: &greenhousev1alpha1.SCIMConfig{
-						BaseURL: groupsServer.URL,
+						BaseURL: groupsServer.URL + "/scim",
 						BasicAuthUser: greenhousev1alpha1.ValueFromSource{
 							Secret: &greenhousev1alpha1.SecretKeyReference{
 								Name: "test-secret",
