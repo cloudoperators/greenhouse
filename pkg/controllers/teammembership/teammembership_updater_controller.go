@@ -32,7 +32,7 @@ import (
 	"github.com/cloudoperators/greenhouse/pkg/scim"
 )
 
-const TeamMembershipRequeueInterval = 10 * time.Minute
+const RequeueInterval = 10 * time.Minute
 
 var (
 	membersCountMetric = prometheus.NewGaugeVec(
@@ -180,7 +180,7 @@ func (r *TeamMembershipUpdaterController) EnsureCreated(ctx context.Context, obj
 		return ctrl.Result{}, lifecycle.Failed, err
 	}
 
-	users, membersValidCondition, err := r.getUsersFromSCIM(scimClient, team.Spec.MappedIDPGroup)
+	users, membersValidCondition, err := r.getUsersFromSCIM(ctx, scimClient, team.Spec.MappedIDPGroup)
 	if err != nil {
 		log.FromContext(ctx).Info("failed processing team-membership for team", "error", err)
 		teamMembershipStatus.SetConditions(greenhousev1alpha1.FalseCondition(greenhousev1alpha1.SCIMAccessReadyCondition, greenhousev1alpha1.SCIMRequestFailedReason, ""))
@@ -217,7 +217,7 @@ func (r *TeamMembershipUpdaterController) EnsureCreated(ctx context.Context, obj
 	teamMembershipStatus.LastChangedTime = &now
 	teamMembershipStatus.SetConditions(greenhousev1alpha1.TrueCondition(greenhousev1alpha1.SCIMAccessReadyCondition, "", ""))
 	return ctrl.Result{
-			RequeueAfter: wait.Jitter(TeamMembershipRequeueInterval, 0.1),
+			RequeueAfter: wait.Jitter(RequeueInterval, 0.1),
 		},
 		lifecycle.Success, nil
 }
@@ -227,7 +227,7 @@ func (r *TeamMembershipUpdaterController) createSCIMClient(
 	namespace string,
 	teamMembershipStatus *greenhousev1alpha1.TeamMembershipStatus,
 	scimConfig *greenhousev1alpha1.SCIMConfig,
-) (*scim.ScimClient, error) {
+) (scim.ISCIMClient, error) {
 
 	basicAuthUser, err := clientutil.GetSecretKeyFromSecretKeyReference(ctx, r.Client, namespace, *scimConfig.BasicAuthUser.Secret)
 	if err != nil {
@@ -239,26 +239,48 @@ func (r *TeamMembershipUpdaterController) createSCIMClient(
 		teamMembershipStatus.SetConditions(greenhousev1alpha1.FalseCondition(greenhousev1alpha1.SCIMAccessReadyCondition, greenhousev1alpha1.SecretNotFoundReason, "BasicAuthPw missing"))
 		return nil, err
 	}
-	clientConfig := scim.Config{
-		RawURL:   scimConfig.BaseURL,
+	clientConfig := &scim.Config{
+		URL:      scimConfig.BaseURL,
 		AuthType: scim.Basic,
-		BasicAuthConfig: &scim.BasicAuthConfig{
-			BasicAuthUser: basicAuthUser,
-			BasicAuthPw:   basicAuthPw,
+		BasicAuth: &scim.BasicAuthConfig{
+			Username: basicAuthUser,
+			Password: basicAuthPw,
 		},
 	}
-	return scim.NewScimClient(clientConfig)
+	return scim.NewSCIMClient(clientConfig)
 }
 
-func (r *TeamMembershipUpdaterController) getUsersFromSCIM(scimClient *scim.ScimClient, mappedIDPGroup string) ([]greenhousev1alpha1.User, greenhousev1alpha1.Condition, error) {
+func (r *TeamMembershipUpdaterController) getUsersFromSCIM(ctx context.Context, scimClient scim.ISCIMClient, mappedIDPGroup string) ([]greenhousev1alpha1.User, greenhousev1alpha1.Condition, error) {
 	condition := greenhousev1alpha1.UnknownCondition(greenhousev1alpha1.SCIMAllMembersValidCondition, "", "")
-	members, err := scimClient.GetTeamMembers(mappedIDPGroup)
+	opts := &scim.QueryOptions{
+		Filter:     scim.UserFilterByGroupDisplayName(mappedIDPGroup),
+		Attributes: scim.SetAttributes(scim.AttrName, scim.AttrEmails, scim.AttrDisplayName, scim.AttrActive),
+		StartID:    scim.InitialStartID,
+	}
+	resources, err := scimClient.GetPaginatedUsers(ctx, opts)
 	if err != nil {
 		return nil, condition, err
 	}
-	users, inactive, malformed, err := scimClient.GetUsers(members)
-	if err != nil {
-		return nil, condition, err
+	users := make([]greenhousev1alpha1.User, 0)
+	malformed := 0
+	inactive := 0
+	for _, resource := range resources {
+		user := greenhousev1alpha1.User{
+			ID:        resource.UserName,
+			FirstName: resource.FirstName(),
+			LastName:  resource.LastName(),
+			Email:     resource.PrimaryEmail(),
+		}
+		if user.ID == "" || user.FirstName == "" || user.LastName == "" || user.Email == "" {
+			malformed++
+			continue
+		}
+
+		if !resource.ActiveUser() {
+			inactive++
+			continue
+		}
+		users = append(users, user)
 	}
 	if inactive+malformed > 0 {
 		msg := fmt.Sprintf("SCIM members with issues: %d inactive, %d malformed", inactive, malformed)
