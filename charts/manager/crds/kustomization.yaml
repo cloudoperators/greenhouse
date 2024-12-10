@@ -13,3 +13,26 @@ resources:
 - greenhouse.sap_teamroles.yaml
 - greenhouse.sap_teamrolebindings.yaml
 #+kubebuilder:scaffold:crdkustomizeresource
+
+patches:
+- target:
+    group: apiextensions.k8s.io
+    version: v1
+    kind: CustomResourceDefinition
+    name: teamrolebindings.greenhouse.sap
+  patch: |-
+    - op: add
+      path: "/spec/conversion"
+      value:
+        strategy: Webhook
+        webhook:
+          clientConfig:
+            service:
+              namespace: greenhouse
+              name: greenhouse-webhook-service
+              path: /convert
+            caBundle: "LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCk1JSUJkVENDQVJ5Z0F3SUJBZ0lSQVA1c1pkN1hBSGVQTCs0dlZlUXBWVkV3Q2dZSUtvWkl6ajBFQXdJd0R6RU4KTUFzR0ExVUVDaE1FYm1sc01UQWdGdzB5TkRFeU1UQXdNVEU1TkRCYUdBOHlNVEkwTVRFeE5qQXhNVGswTUZvdwpEekVOTUFzR0ExVUVDaE1FYm1sc01UQlpNQk1HQnlxR1NNNDlBZ0VHQ0NxR1NNNDlBd0VIQTBJQUJLRVpUZ01DCmd4WU96THlFSGFXZnVOcXR5TmV0MWE4UXBCcStIRWFVUVFZRG1xbXR1MzRxakRySVB2WVRhK1duUFY2dHNLQTYKQkhVaSs2T2IwTDllU05PalZ6QlZNQTRHQTFVZER3RUIvd1FFQXdJQ0JEQVRCZ05WSFNVRUREQUtCZ2dyQmdFRgpCUWNEQVRBUEJnTlZIUk1CQWY4RUJUQURBUUgvTUIwR0ExVWREZ1FXQkJRejJXR0FRYllmVEppWUhDVWRKQUVjCksyaTdyVEFLQmdncWhrak9QUVFEQWdOSEFEQkVBaUFTaGR4Z2pxS0RPQytVaE8xMkRBWFhzbXpqRlVqYWR2cmIKSXhpUlc1YjhwUUlnSjVWMU1jYmd0TWh4dnd3NmlaeTNZQ1RBc0wwcjFYM1hnaUJNYXZGU1p2dz0KLS0tLS1FTkQgQ0VSVElGSUNBVEUtLS0tLQo="
+          conversionReviewVersions:
+          - v1alpha1
+          - v1alpha2
+          - v1beta1

@@ -1,0 +1,33 @@
+# SPDX-FileCopyrightText: 2024 SAP SE or an SAP affiliate company and Greenhouse contributors
+# SPDX-License-Identifier: Apache-2.0
+
+apiVersion: greenhouse.sap/v1alpha1
+kind: TeamRole
+metadata:
+  name: test-teamrole-1
+  namespace: test-org
+
+---
+
+apiVersion: greenhouse.sap/v1alpha2
+kind: TeamRoleBinding
+metadata:
+  name: test-trb-1
+  namespace: test-org
+spec:
+  teamRoleRef: test-teamrole-1
+  teamRef: test-team-1
+  clusterSelector:
+    name: cluster-1
+
+# ---
+
+# apiVersion: greenhouse.sap/v1alpha1
+# kind: TeamRoleBinding
+# metadata:
+#   name: test-trb-2
+#   namespace: test-org
+# spec:
+#   teamRoleRef: test-teamrole-1
+#   teamRef: test-team-1
+#   clusterName: "cluster-1"
