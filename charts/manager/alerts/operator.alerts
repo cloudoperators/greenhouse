@@ -78,7 +78,7 @@ groups:
       annotations:
         summary: "Plugin reconciliation is constantly failing"
         description: "Plugin {{ $labels.plugin }} in organization {{ $labels.organization }} keeps failing with reason: {{ $labels.reason }}"
-      expr: increase(greenhouse_plugin_reconcile_total{result="error"}[5m] > 0) by (plugin, organization)
+      expr: sum by (organization, plugin) (increase(greenhouse_plugin_reconcile_total{result="error"}[5m])) > 0
       for: 15m
       labels:
         severity: warning
