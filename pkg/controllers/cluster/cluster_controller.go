@@ -133,6 +133,10 @@ func (r *RemoteClusterReconciler) EnsureCreated(ctx context.Context, resource li
 // EnsureDeleted - handles the deletion / cleanup of cluster resource
 func (r *RemoteClusterReconciler) EnsureDeleted(ctx context.Context, resource lifecycle.RuntimeObject) (ctrl.Result, lifecycle.ReconcileResult, error) {
 	cluster := resource.(*greenhousev1alpha1.Cluster) //nolint:errcheck
+	c := cluster.Status.StatusConditions.GetConditionByType(greenhousev1alpha1.KubeConfigValid)
+	if c != nil && c.IsFalse() {
+		return ctrl.Result{}, lifecycle.Success, nil
+	}
 	// delete all plugins that are bound to this cluster
 	deletionCount, err := deletePlugins(ctx, r.Client, cluster)
 	if err != nil {
