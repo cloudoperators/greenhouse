@@ -102,7 +102,7 @@ func (r *TeamMembershipUpdaterController) Reconcile(ctx context.Context, req ctr
 	return lifecycle.Reconcile(ctx, r.Client, req.NamespacedName, &greenhousev1alpha1.Team{}, r, nil) // status function is nil because it updates the other entity inside.
 }
 
-func (r *TeamMembershipUpdaterController) EnsureDeleted(ctx context.Context, object lifecycle.RuntimeObject) (ctrl.Result, lifecycle.ReconcileResult, error) {
+func (r *TeamMembershipUpdaterController) EnsureDeleted(_ context.Context, _ lifecycle.RuntimeObject) (ctrl.Result, lifecycle.ReconcileResult, error) {
 	return ctrl.Result{}, lifecycle.Success, nil
 }
 
