@@ -238,10 +238,36 @@ ADMIN_RELEASE ?= greenhouse
 ADMIN_CHART_PATH ?= charts/manager
 WEBHOOK_DEV ?= false
 E2E_REPORT_PATH="$(shell pwd)/bin/$(SCENARIO)-e2e-report.json"
+PLUGIN_DIR ?=
+GREENHOUSE_ORG ?= demo
+
+.PHONY: setup-demo
+setup-demo: prepare-e2e samples
+	kubectl create secret generic kind-$(REMOTE_CLUSTER) \
+		--from-literal=kubeconfig="$$(cat ${PWD}/bin/$(REMOTE_CLUSTER)-int.kubeconfig)" \
+		--namespace=$(GREENHOUSE_ORG) \
+		--type="greenhouse.sap/kubeconfig" \
+		--dry-run=client -o yaml | kubectl apply -f -
+
+.PHONY: samples
+samples: kustomize
+	$(KUSTOMIZE) build dev-env/localenv/samples | kubectl apply -n $(GREENHOUSE_ORG) --kubeconfig=$(shell pwd)/bin/$(ADMIN_CLUSTER).kubeconfig -f -
+	while true; do \
+		if kubectl get organizations $(GREENHOUSE_ORG) --kubeconfig=$(shell pwd)/bin/$(ADMIN_CLUSTER).kubeconfig -o json | \
+			jq -e '.status.statusConditions.conditions[] | select(.type == "Ready") | select(.status == "True")' > /dev/null; then \
+			echo "Organization is ready"; \
+			exit 0; \
+		fi; \
+		sleep 5; \
+	done
+
+.PHONY: setup-plugin-dev
+setup-plugin-dev: cli
+	PLUGIN_PATH=$(PLUGIN_DIR) $(CLI) dev setup -f dev-env/localenv/plugin.config.yaml && make setup-demo
 
 .PHONY: setup-dev
 setup-dev: cli
-	$(CLI) dev setup -f dev-env/localenv/sample.config.json
+	$(CLI) dev setup -f dev-env/localenv/dev.config.yaml
 
 .PHONY: setup-webhook
 setup-webhook: cli
@@ -249,7 +275,7 @@ setup-webhook: cli
 
 .PHONY: setup-e2e
 setup-e2e: cli
-	$(CLI) dev setup -f e2e/config.json
+	$(CLI) dev setup -f e2e/config.yaml
 	make prepare-e2e
 
 .PHONY: clean-e2e

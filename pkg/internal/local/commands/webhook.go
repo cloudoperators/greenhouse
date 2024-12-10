@@ -59,7 +59,7 @@ func processWebhook(cmd *cobra.Command, _ []string) error {
 	}
 
 	err := setup.NewExecutionEnv().
-		WithClusterSetup(clusterName, namespaceName, clusterVersion).
+		WithClusterSetup(clusterName, namespaceName, clusterVersion, kindConfigPath).
 		WithWebhookDevelopment(ctx, manifest).
 		Run()
 	if err != nil {
@@ -72,6 +72,7 @@ func init() {
 	webhookCmd.Flags().StringVarP(&clusterName, "name", "c", "", "Name of the kind cluster - e.g. my-cluster (without the kind prefix)")
 	webhookCmd.Flags().StringVarP(&namespaceName, "namespace", "n", "", "namespace to install the resources")
 	webhookCmd.Flags().StringVar(&clusterVersion, "version", "", "create the cluster with a specific version - e.g. -v <v1.30.3>")
+	webhookCmd.Flags().StringVar(&kindConfigPath, "config", "", "create the cluster with a specific kind configuration file - e.g. --config <path>/<to>/<config>")
 	webhookCmd.Flags().StringVarP(&chartPath, "chart-path", "p", "", "local chart path where manifests are located - e.g. <path>/<to>/charts/manager")
 	webhookCmd.Flags().StringVarP(&valuesPath, "values-path", "v", "", "local absolute values file path - e.g. <path>/<to>/my-values.yaml")
 	webhookCmd.Flags().StringVarP(&dockerFile, "dockerfile", "f", "", "local path to the Dockerfile of greenhouse manager")

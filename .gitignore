@@ -2,6 +2,9 @@
 vendor/**
 node_modules
 
+# TestData
+dev-env/localenv/samples/**/local_*.yaml
+
 # Binaries for programs and plugins
 *.exe
 *.exe~

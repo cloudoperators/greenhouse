@@ -4,6 +4,8 @@
 package admission
 
 import (
+	"context"
+
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
@@ -14,6 +16,7 @@ import (
 var _ = Describe("Validate Secret Creation based on type", func() {
 	DescribeTable("Validate secret creation with different secret types", func(secretType corev1.SecretType, dataKey string, expErr bool) {
 		var secret *corev1.Secret
+		var ctx context.Context
 		if dataKey != "" {
 			secret = &corev1.Secret{
 				Type: secretType,
@@ -26,7 +29,7 @@ var _ = Describe("Validate Secret Creation based on type", func() {
 				Type: secretType,
 			}
 		}
-		err := validateSecretGreenHouseType(secret)
+		err := validateSecretGreenHouseType(ctx, secret)
 		switch expErr {
 		case true:
 			Expect(err).To(HaveOccurred(), "expected an error, got nil")

@@ -56,9 +56,10 @@ jobs:
             docs
             e2e
             greenhouse
-            greenhousectl          
+            greenhousectl
             actions
             template
+            tests
             ui
             utils
             version

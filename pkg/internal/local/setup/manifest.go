@@ -13,13 +13,14 @@ import (
 )
 
 type Manifest struct {
-	ReleaseName  string   `json:"release"`
-	ChartPath    string   `json:"chartPath"`
-	ValuesPath   string   `json:"valuesPath"`
-	CRDOnly      bool     `json:"crdOnly"`
-	ExcludeKinds []string `json:"excludeKinds"`
-	Webhook      *Webhook `json:"webhook"`
-	hc           helm.IHelm
+	ReleaseName          string   `yaml:"release" json:"release"`
+	ChartPath            string   `yaml:"chartPath" json:"chartPath"`
+	ValuesPath           string   `yaml:"valuesPath" json:"valuesPath"`
+	CRDOnly              bool     `yaml:"crdOnly" json:"crdOnly"`
+	ExcludeKinds         []string `yaml:"excludeKinds" json:"excludeKinds"`
+	Webhook              *Webhook `yaml:"webhook" json:"webhook"`
+	hc                   helm.IHelm
+	enableLocalPluginDev bool
 }
 
 func limitedManifestSetup(ctx context.Context, m *Manifest) Step {
