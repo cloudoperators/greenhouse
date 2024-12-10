@@ -144,7 +144,7 @@ var _ = Describe("helm package test", func() {
 
 			By("getting the Team CRD")
 			var teamCRD = &apiextensionsv1.CustomResourceDefinition{}
-			teamCRDName := "teams.greenhouse.sap"
+			teamCRDName := "teams.greenhouse.fixtures"
 			teamCRDKey := types.NamespacedName{Name: teamCRDName, Namespace: ""}
 			err = test.K8sClient.Get(test.Ctx, teamCRDKey, teamCRD)
 			Expect(err).ToNot(HaveOccurred(), "there must be no error getting Team CRD")

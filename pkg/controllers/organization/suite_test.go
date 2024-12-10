@@ -29,7 +29,7 @@ var _ = BeforeSuite(func() {
 	By("mocking SCIM server")
 	groupsServer = scim.ReturnDefaultGroupResponseMockServer()
 
-	test.RegisterController("organizationController", (&organizationpkg.OrganizationReconciler{}).SetupWithManager)
+	test.RegisterController("organizationController", (&organizationpkg.OrganizationReconciler{Namespace: "default"}).SetupWithManager)
 	test.RegisterWebhook("orgWebhook", admission.SetupOrganizationWebhookWithManager)
 	test.RegisterWebhook("teamWebhook", admission.SetupTeamWebhookWithManager)
 	test.RegisterWebhook("pluginDefinitionWebhook", admission.SetupPluginDefinitionWebhookWithManager)
