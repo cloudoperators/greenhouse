@@ -6,6 +6,7 @@ package v1alpha1
 import (
 	"context"
 	"fmt"
+	"slices"
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -85,28 +86,19 @@ func (cs *ClusterSelector) ListClusters(ctx context.Context, c client.Client, na
 		return nil, err
 	}
 	var clusters = new(ClusterList)
-	if err := c.List(ctx, clusters, client.InNamespace(namespace), client.MatchingLabelsSelector{Selector: labelSelector}); err != nil {
+	err = c.List(ctx, clusters, client.InNamespace(namespace), client.MatchingLabelsSelector{Selector: labelSelector})
+	if err != nil {
 		return nil, err
 	}
 	if len(clusters.Items) == 0 || len(cs.ExcludeList) == 0 {
 		return clusters, nil
 	}
 
-	filteredClusters := make([]Cluster, 0)
-	for _, cluster := range clusters.Items {
-		shouldExclude := false
-		for _, excludedClusterName := range cs.ExcludeList {
-			if cluster.Name == excludedClusterName {
-				shouldExclude = true
-				break
-			}
-		}
-		if shouldExclude {
-			continue
-		}
-		filteredClusters = append(filteredClusters, cluster)
-	}
-	clusters.Items = filteredClusters
+	clusters.Items = slices.DeleteFunc(clusters.Items, func(cluster Cluster) bool {
+		return slices.ContainsFunc(cs.ExcludeList, func(excludedClusterName string) bool {
+			return cluster.Name == excludedClusterName
+		})
+	})
 
 	return clusters, nil
 }
