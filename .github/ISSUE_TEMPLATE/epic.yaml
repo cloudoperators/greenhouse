@@ -1,6 +1,6 @@
-name: Epic
+name: ✨ Epic
 description: Create an epic
-title: "(context): "
+title: "[EPIC] - <title>"
 body:
   - type: textarea
     id: description
