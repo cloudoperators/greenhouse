@@ -1,6 +1,3 @@
-# SPDX-FileCopyrightText: 2024 SAP SE or an SAP affiliate company and Greenhouse contributors
-# SPDX-License-Identifier: Apache-2.0
-
 ---
 apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
@@ -65,6 +62,29 @@ spec:
           status:
             description: TeamStatus defines the observed state of Team
             properties:
+              members:
+                items:
+                  description: User specifies a human person.
+                  properties:
+                    email:
+                      description: Email of the user.
+                      type: string
+                    firstName:
+                      description: FirstName of the user.
+                      type: string
+                    id:
+                      description: ID is the unique identifier of the user.
+                      type: string
+                    lastName:
+                      description: LastName of the user.
+                      type: string
+                  required:
+                  - email
+                  - firstName
+                  - id
+                  - lastName
+                  type: object
+                type: array
               statusConditions:
                 description: |-
                   A StatusConditions contains a list of conditions.
@@ -105,6 +125,7 @@ spec:
                     x-kubernetes-list-type: map
                 type: object
             required:
+            - members
             - statusConditions
             type: object
         type: object

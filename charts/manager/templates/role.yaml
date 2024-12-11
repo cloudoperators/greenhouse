@@ -1,0 +1,157 @@
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: manager-role
+rules:
+- apiGroups:
+  - ""
+  resources:
+  - events
+  - secrets
+  - serviceaccounts
+  verbs:
+  - create
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - ""
+  resources:
+  - namespaces
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - '*'
+  resources:
+  - '*'
+  verbs:
+  - '*'
+- apiGroups:
+  - dex.coreos.com
+  resources:
+  - connectors
+  - oauth2clients
+  verbs:
+  - create
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - greenhouse.sap
+  resources:
+  - cluster-kubeconfigs
+  - teamroles
+  verbs:
+  - create
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - greenhouse.sap
+  resources:
+  - clusters
+  - organizations
+  - plugindefinitions
+  - plugins
+  - teammemberships
+  - teamrolebindings
+  - teams
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - greenhouse.sap
+  resources:
+  - clusters/finalizers
+  - organizations/finalizers
+  - plugindefinitions/finalizers
+  - pluginpresets/finalizers
+  - plugins/finalizers
+  - teammemberships/finalizers
+  - teamrolebindings/finalizers
+  - teams/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - greenhouse.sap
+  resources:
+  - clusters/status
+  - organizations/status
+  - plugindefinitions/status
+  - pluginpresets/status
+  - teammemberships/status
+  - teamrolebindings/status
+  - teams/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - greenhouse.sap
+  resources:
+  - pluginpresets
+  verbs:
+  - get
+  - list
+  - update
+  - watch
+- apiGroups:
+  - greenhouse.sap
+  resources:
+  - plugins/status
+  verbs:
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - greenhouse.sap
+  resources:
+  - teammemberships=
+  verbs:
+  - get
+  - list
+- apiGroups:
+  - rbac
+  resources:
+  - clusterrolebindings
+  verbs:
+  - create
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - rbac.authorization.k8s.io
+  resources:
+  - clusterrolebindings
+  - clusterroles
+  - rolebindings
+  - roles
+  verbs:
+  - create
+  - get
+  - list
+  - patch
+  - update
+  - watch

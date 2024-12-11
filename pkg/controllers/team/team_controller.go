@@ -20,6 +20,10 @@ type TeamReconciler struct {
 	recorder record.EventRecorder
 }
 
+//+kubebuilder:rbac:groups=greenhouse.sap,resources=teams,verbs=get;list;watch;update
+//+kubebuilder:rbac:groups=greenhouse.sap,resources=teams/status,verbs=get;update;patch
+//+kubebuilder:rbac:groups=greenhouse.sap,resources=teammemberships=,verbs=get;list
+
 // SetupWithManager sets up the controller with the Manager.
 func (r *TeamReconciler) SetupWithManager(name string, mgr ctrl.Manager) error {
 	r.Client = mgr.GetClient()
@@ -67,6 +71,11 @@ func (r *TeamReconciler) setStatus() lifecycle.Conditioner {
 		}
 
 		team.Status.Members = members
+		team.Status.StatusConditions.SetConditions(greenhouseapisv1alpha1.TrueCondition(
+			greenhouseapisv1alpha1.StatusUpToDateCondition, "", "Members is up to date"))
+		if team.Status.StatusConditions.Conditions == nil {
+			team.Status.StatusConditions.Conditions = []greenhouseapisv1alpha1.Condition{}
+		}
 	}
 }
 
