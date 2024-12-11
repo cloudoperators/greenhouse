@@ -1,39 +1,41 @@
----
 name: Epic
-about: Create an epic
+description: Create an epic
 title: "(context): "
-assignees: ""
----
-
-### Description
-
-What problem does it solve? Why is it important?
-
-### Objectives
-
-List the high-level objectives or goals of this epic.
-
-- Objective 1
-- Objective 2
-- Objective 3
-
-### Acceptance Criteria
-
-Define the criteria that must be met for this epic to be considered complete
-
-- [ ] Criterion 1
-- [ ] Criterion 2
-- [ ] Criterion 3
-
-
-### Dependencies
-
-Identify any other epics, issues, or tasks that this epic depends on.
-
-- Dependency 1
-- Dependency 2
-- Dependency 3
-
-### Additional Notes
-
-Any additional information, context, or considerations.
+body:
+  - type: textarea
+    id: description
+    attributes:
+      label: Description
+      placeholder: What problem does it solve? Why is it important?
+  - type: textarea
+    id: objectives
+    attributes:
+      label: Objectives
+      placeholder: List the high-level objectives or goals of this epic.
+      value: |
+        - Objective 1
+        - Objective 2
+        - Objective 3
+  - type: textarea
+    id: acceptance-criteria
+    attributes:
+      label: Acceptance Criteria
+      placeholder: Define the criteria that must be  met for this epic to be considered complete
+      value: |
+        - [ ] Criterion 1
+        - [ ] Criterion 2
+        - [ ] Criterion 3
+  - type: textarea
+    id: dependencies
+    attributes:
+      label: Dependencies
+      placeholder: Identify any other epics, issues, or tasks that this epic depends on.
+      value: |
+        - Dependency 1
+        - Dependency 2
+        - Dependency 3
+  - type: textarea
+    id: additional-notes
+    attributes:
+      label: Additioinal Notes
+      placeholder: Any additional information, context, or considerations.
