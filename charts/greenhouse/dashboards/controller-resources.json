@@ -97,7 +97,7 @@
       "pluginVersion": "7.5.32",
       "targets": [
         {
-          "datasource": "prometheus-greenhouse-qa",
+          "datasource": "{$Prometheus}",
           "exemplar": true,
           "expr": "rate(process_cpu_seconds_total{job=\"$job\", namespace=\"$namespace\", pod=\"$pod\"}[5m]) * 100",
           "format": "time_series",
@@ -186,7 +186,7 @@
       "pluginVersion": "7.5.32",
       "targets": [
         {
-          "datasource": "prometheus-greenhouse-qa",
+          "datasource": "{$Prometheus}",
           "exemplar": true,
           "expr": "process_resident_memory_bytes{job=\"$job\", namespace=\"$namespace\", pod=\"$pod\"}",
           "format": "time_series",
@@ -206,7 +206,9 @@
   "refresh": "",
   "schemaVersion": 27,
   "style": "dark",
-  "tags": [],
+  "tags": [
+    "greenhouse"
+  ],
   "templating": {
     "list": [
       {

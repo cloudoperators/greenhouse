@@ -55,6 +55,33 @@ func NewCluster(ctx context.Context, name, namespace string, opts ...func(*green
 	return cluster
 }
 
+// WithMappedIDPGroup sets the MappedIDPGroup on an Organization
+func WithMappedAdminIDPGroup(group string) func(*greenhousev1alpha1.Organization) {
+	return func(org *greenhousev1alpha1.Organization) {
+		org.Spec.MappedOrgAdminIDPGroup = group
+	}
+}
+
+// WithOIDCConfig sets the OIDCConfig on an Organization
+func WithOIDCConfig(issuer, secretName, clientIDKey, clientSecretKey string) func(*greenhousev1alpha1.Organization) {
+	return func(org *greenhousev1alpha1.Organization) {
+		if org.Spec.Authentication == nil {
+			org.Spec.Authentication = &greenhousev1alpha1.Authentication{}
+		}
+		org.Spec.Authentication.OIDCConfig = &greenhousev1alpha1.OIDCConfig{
+			Issuer: issuer,
+			ClientIDReference: greenhousev1alpha1.SecretKeyReference{
+				Name: secretName,
+				Key:  clientIDKey,
+			},
+			ClientSecretReference: greenhousev1alpha1.SecretKeyReference{
+				Name: secretName,
+				Key:  clientSecretKey,
+			},
+		}
+	}
+}
+
 // NewOrganization returns a greenhousev1alpha1.Organization object. Opts can be used to set the desired state of the Organization.
 func NewOrganization(ctx context.Context, name string, opts ...func(*greenhousev1alpha1.Organization)) *greenhousev1alpha1.Organization {
 	org := &greenhousev1alpha1.Organization{
@@ -64,6 +91,9 @@ func NewOrganization(ctx context.Context, name string, opts ...func(*greenhousev
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name: name,
+		},
+		Spec: greenhousev1alpha1.OrganizationSpec{
+			MappedOrgAdminIDPGroup: "default-admin-id-group",
 		},
 	}
 	for _, o := range opts {
@@ -328,6 +358,13 @@ func WithSecretType(secretType corev1.SecretType) func(*corev1.Secret) {
 func WithSecretData(data map[string][]byte) func(*corev1.Secret) {
 	return func(s *corev1.Secret) {
 		s.Data = data
+	}
+}
+
+// WithSecretNamespace sets the namespace of the Secret
+func WithSecretNamespace(namespace string) func(*corev1.Secret) {
+	return func(s *corev1.Secret) {
+		s.Namespace = namespace
 	}
 }
 

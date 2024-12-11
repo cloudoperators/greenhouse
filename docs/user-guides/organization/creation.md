@@ -36,7 +36,7 @@ This ensures all pre-requisites are met, the organization is configured correctl
    For SAP, we recommend using a SAP ID service (IDS) tenant.  
    Please include the parameters for your tenant in the message to the Greenhouse team when signing up.
 
-   If you don't have a SAP ID Service tenant yet, please refer to the [SAP ID Service](/docs/user-guides/organization/sap-id) section for more information.
+   If you don't have a SAP ID Service tenant yet, please refer to the [SAP ID Service](/greenhouse/docs/user-guides/organization/sap-id) section for more information.
 
 
 3. **Greenhouse organization**  
@@ -93,4 +93,4 @@ This ensures all pre-requisites are met, the organization is configured correctl
 
    For the Team Memberships to be created Organization needs to be configured with URL and credentials of the SCIM API. SCIM API is used to get members for teams in the organization based on the IDP groups set for teams.
 
-   IDP group for the organization admin team should be set to the `mappedOrgAdminIdPGroup` field in the Organization configuration. It is required for the synchronization to work. IDP groups for remaining teams in the organization should be set in their respective configurations.
+   IDP group for the organization admin team must be set to the `mappedOrgAdminIdPGroup` field in the Organization configuration. It is required for the synchronization to work. IDP groups for remaining teams in the organization should be set in their respective configurations.

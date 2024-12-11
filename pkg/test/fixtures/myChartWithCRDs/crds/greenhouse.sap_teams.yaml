@@ -7,9 +7,9 @@ kind: CustomResourceDefinition
 metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.15.0
-  name: teams.greenhouse.sap
+  name: teams.greenhouse.fixtures
 spec:
-  group: greenhouse.sap
+  group: greenhouse.fixtures
   names:
     kind: Team
     listKind: TeamList

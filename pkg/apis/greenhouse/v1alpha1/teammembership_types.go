@@ -12,6 +12,8 @@ const (
 	SCIMAccessReadyCondition ConditionType = "SCIMAccessReady"
 	// SCIMAPIUnavailableReason is set when the organization has set SCIMAPIAvailableCondition to false.
 	SCIMAPIUnavailableReason ConditionReason = "SCIMAPIUnavailable"
+	// SCIMAllMembersValidCondition reflects if all members are valid. It is set to false if there are invalid or inactive members.
+	SCIMAllMembersValidCondition ConditionType = "SCIMAllMembersValid"
 )
 
 // User specifies a human person.

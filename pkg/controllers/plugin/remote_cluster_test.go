@@ -431,7 +431,7 @@ var _ = Describe("HelmController reconciliation", Ordered, func() {
 			return err == nil
 		}).Should(BeTrue(), "release for helm chart should already exist")
 
-		teamCRDName := "teams.greenhouse.sap"
+		teamCRDName := "teams.greenhouse.fixtures"
 		teamCRDKey := types.NamespacedName{Name: teamCRDName, Namespace: ""}
 
 		By("Getting Team CRD from remote cluster")

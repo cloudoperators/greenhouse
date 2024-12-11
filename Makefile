@@ -62,7 +62,7 @@ generate-manifests: controller-gen ## Generate WebhookConfiguration, ClusterRole
 	docker run --rm -v $(shell pwd):/github/workspace $(IMG_LICENSE_EYE) -c .github/licenserc.yaml header fix
 
 .PHONY: generate-open-api-spec
-generate-open-api-spec: VERSION = $(shell git rev-parse --short HEAD)
+generate-open-api-spec: VERSION = main
 generate-open-api-spec:
 	hack/openapi-generator/generate-openapi-spec-from-crds $(CRD_MANIFESTS_PATH) $(VERSION) docs/reference/api
 
@@ -176,9 +176,9 @@ HELMIFY ?= $(LOCALBIN)/helmify
 KUSTOMIZE_VERSION ?= 5.5.0
 CONTROLLER_TOOLS_VERSION ?= 0.16.5
 GOLINT_VERSION ?= 1.62.0
-GINKGOLINTER_VERSION ?= 0.18.2
+GINKGOLINTER_VERSION ?= 0.18.3
 # ENVTEST_K8S_VERSION refers to the version of kubebuilder assets to be downloaded by envtest binary.
-ENVTEST_K8S_VERSION ?= 1.30.3
+ENVTEST_K8S_VERSION ?= 1.31.0
 
 KUSTOMIZE_INSTALL_SCRIPT ?= "https://raw.githubusercontent.com/kubernetes-sigs/kustomize/master/hack/install_kustomize.sh"
 .PHONY: kustomize
@@ -238,10 +238,36 @@ ADMIN_RELEASE ?= greenhouse
 ADMIN_CHART_PATH ?= charts/manager
 WEBHOOK_DEV ?= false
 E2E_REPORT_PATH="$(shell pwd)/bin/$(SCENARIO)-e2e-report.json"
+PLUGIN_DIR ?=
+GREENHOUSE_ORG ?= demo
+
+.PHONY: setup-demo
+setup-demo: prepare-e2e samples
+	kubectl create secret generic kind-$(REMOTE_CLUSTER) \
+		--from-literal=kubeconfig="$$(cat ${PWD}/bin/$(REMOTE_CLUSTER)-int.kubeconfig)" \
+		--namespace=$(GREENHOUSE_ORG) \
+		--type="greenhouse.sap/kubeconfig" \
+		--dry-run=client -o yaml | kubectl apply -f -
+
+.PHONY: samples
+samples: kustomize
+	$(KUSTOMIZE) build dev-env/localenv/samples | kubectl apply -n $(GREENHOUSE_ORG) --kubeconfig=$(shell pwd)/bin/$(ADMIN_CLUSTER).kubeconfig -f -
+	while true; do \
+		if kubectl get organizations $(GREENHOUSE_ORG) --kubeconfig=$(shell pwd)/bin/$(ADMIN_CLUSTER).kubeconfig -o json | \
+			jq -e '.status.statusConditions.conditions[] | select(.type == "Ready") | select(.status == "True")' > /dev/null; then \
+			echo "Organization is ready"; \
+			exit 0; \
+		fi; \
+		sleep 5; \
+	done
+
+.PHONY: setup-plugin-dev
+setup-plugin-dev: cli
+	PLUGIN_PATH=$(PLUGIN_DIR) $(CLI) dev setup -f dev-env/localenv/plugin.config.yaml && make setup-demo
 
 .PHONY: setup-dev
 setup-dev: cli
-	$(CLI) dev setup -f dev-env/localenv/sample.config.json
+	$(CLI) dev setup -f dev-env/localenv/dev.config.yaml
 
 .PHONY: setup-webhook
 setup-webhook: cli
@@ -249,8 +275,15 @@ setup-webhook: cli
 
 .PHONY: setup-e2e
 setup-e2e: cli
-	$(CLI) dev setup -f e2e/config.json
+	$(CLI) dev setup -f e2e/config.yaml
 	make prepare-e2e
+
+.PHONY: clean-e2e
+clean-e2e:
+	$(CLI) dev cluster delete --name $(REMOTE_CLUSTER)
+	$(CLI) dev cluster delete --name $(ADMIN_CLUSTER)
+	rm -v $(CLI)
+	rm -v $(LOCALBIN)/*.kubeconfig
 
 .PHONY: e2e
 e2e:

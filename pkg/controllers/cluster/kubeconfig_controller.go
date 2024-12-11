@@ -97,12 +97,11 @@ func (r *KubeconfigReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 				},
 			}}
 		kubeconfig.Spec.Kubeconfig.CurrentContext = cluster.Name
-		kubeconfig.Status = calculateKubeconfigStatus(kubeconfig)
 	}
 
 	defer func() {
 		result, err := clientutil.PatchStatus(ctx, r.Client, &kubeconfig, func() error {
-			kubeconfig.Status = calculateKubeconfigStatus(kubeconfig)
+			kubeconfig.Status = calculateKubeconfigStatus(&kubeconfig)
 			return nil
 		})
 		if err != nil {
@@ -276,7 +275,7 @@ func (r *KubeconfigReconciler) organizationSecretToClusters(ctx context.Context,
 	return nil
 }
 
-func calculateKubeconfigStatus(ck v1alpha1.ClusterKubeconfig) v1alpha1.ClusterKubeconfigStatus {
+func calculateKubeconfigStatus(ck *v1alpha1.ClusterKubeconfig) v1alpha1.ClusterKubeconfigStatus {
 	// new creation
 	status := ck.Status.DeepCopy()
 	if len(status.Conditions.Conditions) == 0 {

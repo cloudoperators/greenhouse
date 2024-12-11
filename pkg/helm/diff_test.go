@@ -178,6 +178,96 @@ var _ = Describe("ensure helm diff against the release manifest works as expecte
 	})
 })
 
+var _ = Describe("ensure helm with hooks diff against the release manifest works as expected", Ordered, func() {
+	var (
+		pluginDefinitionUT *greenhousev1alpha1.PluginDefinition
+		pluginUT           *greenhousev1alpha1.Plugin
+	)
+
+	BeforeEach(func() {
+		pluginDefinitionUT = &greenhousev1alpha1.PluginDefinition{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: namespace,
+				Name:      "test-plugindefinition",
+			},
+			Spec: greenhousev1alpha1.PluginDefinitionSpec{
+				Description: "Testplugin",
+				Version:     "1.0.0",
+				HelmChart: &greenhousev1alpha1.HelmChartReference{
+					Name:       "./../test/fixtures/testHook",
+					Repository: "dummy",
+					Version:    "1.0.0",
+				},
+			},
+		}
+		pluginUT = &greenhousev1alpha1.Plugin{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: namespace,
+				Name:      "test-plugin",
+			},
+			Spec: greenhousev1alpha1.PluginSpec{
+				PluginDefinition: "test-plugindefinition",
+				OptionValues: []greenhousev1alpha1.PluginOptionValue{
+					{
+						Name:  "hook_enabled",
+						Value: test.MustReturnJSONFor(false),
+					},
+				},
+				ReleaseNamespace: namespace,
+			},
+		}
+
+		By("install the chart")
+		r, err := helm.ExportInstallHelmRelease(test.Ctx, test.K8sClient, test.RestClientGetter, pluginDefinitionUT, pluginUT, false)
+		Expect(err).NotTo(HaveOccurred(), "there should be no error installing the helm release")
+		Expect(r).NotTo(BeNil(), "the release should not be nil")
+	})
+
+	AfterEach(func() {
+		_, err := helm.UninstallHelmRelease(test.Ctx, test.RestClientGetter, pluginUT)
+		Expect(err).NotTo(HaveOccurred(), "there should be no error uninstalling the helm release")
+	})
+
+	It("should show a diff if a plugin was installed", func() {
+		By("templating the Helm Chart from the Plugin")
+		manifestUT, err := helm.TemplateHelmChartFromPlugin(test.Ctx, test.K8sClient, test.RestClientGetter, pluginDefinitionUT, pluginUT)
+		Expect(err).NotTo(HaveOccurred(), "there should be no error templating the helm chart")
+
+		By("retrieving the Release for the Plugin")
+		releaseUT, err := helm.GetReleaseForHelmChartFromPlugin(test.Ctx, test.RestClientGetter, pluginUT)
+		Expect(err).NotTo(HaveOccurred(), "there should be no error getting the release for the helm chart")
+
+		By("diffing the manifest against the helm release")
+		diff, err := helm.ExportDiffAgainstRelease(test.RestClientGetter, namespace, manifestUT, releaseUT)
+		Expect(err).NotTo(HaveOccurred(), "there should be no error diffing the manifest against the helm release")
+		Expect(diff).To(BeEmpty(), "the diff should not be empty")
+
+	})
+
+	It("should show a diff if a plugin was installed", func() {
+		By("changing the Plugin's PluginOptionValues")
+		pluginUT.Spec.OptionValues = []greenhousev1alpha1.PluginOptionValue{
+			{
+				Name:  "hook_enabled",
+				Value: test.MustReturnJSONFor(true),
+			},
+		}
+
+		By("templating the Helm Chart from the Plugin")
+		manifestUT, err := helm.TemplateHelmChartFromPlugin(test.Ctx, test.K8sClient, test.RestClientGetter, pluginDefinitionUT, pluginUT)
+		Expect(err).NotTo(HaveOccurred(), "there should be no error templating the helm chart")
+
+		By("retrieving the Release for the Plugin")
+		releaseUT, err := helm.GetReleaseForHelmChartFromPlugin(test.Ctx, test.RestClientGetter, pluginUT)
+		Expect(err).NotTo(HaveOccurred(), "there should be no error getting the release for the helm chart")
+
+		By("diffing the manifest against the helm release")
+		diff, err := helm.ExportDiffAgainstRelease(test.RestClientGetter, namespace, manifestUT, releaseUT)
+		Expect(err).NotTo(HaveOccurred(), "there should be no error diffing the manifest against the helm release")
+		Expect(diff).NotTo(BeEmpty(), "the diff should not be empty")
+	})
+})
+
 var _ = Describe("ensure errors with Manifests are handled correctly", func() {
 	It("should not return an error if the CRD does not exist", func() {
 		manifest := `

@@ -26,12 +26,14 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
+	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	greenhouseapis "github.com/cloudoperators/greenhouse/pkg/apis"
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/pkg/apis/greenhouse/v1alpha1"
 	"github.com/cloudoperators/greenhouse/pkg/clientutil"
 	"github.com/cloudoperators/greenhouse/pkg/common"
 	"github.com/cloudoperators/greenhouse/pkg/helm"
+	"github.com/cloudoperators/greenhouse/pkg/metrics"
 )
 
 const helmReleaseSecretType = "helm.sh/release.v1" //nolint:gosec
@@ -77,9 +79,9 @@ func (r *HelmReconciler) SetupWithManager(name string, mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		Named(name).
 		WithOptions(controller.Options{
-			RateLimiter: workqueue.NewMaxOfRateLimiter(
-				workqueue.NewItemExponentialFailureRateLimiter(30*time.Second, 1*time.Hour),
-				&workqueue.BucketRateLimiter{Limiter: rate.NewLimiter(rate.Limit(10), 100)})}).
+			RateLimiter: workqueue.NewTypedMaxOfRateLimiter(
+				workqueue.NewTypedItemExponentialFailureRateLimiter[reconcile.Request](30*time.Second, 1*time.Hour),
+				&workqueue.TypedBucketRateLimiter[reconcile.Request]{Limiter: rate.NewLimiter(rate.Limit(10), 100)})}).
 		For(&greenhousev1alpha1.Plugin{}).
 		// If the release was (manually) modified the secret would have been modified. Reconcile it.
 		Watches(&corev1.Secret{},
@@ -111,6 +113,7 @@ func (r *HelmReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.
 	clusterAccessReadyCondition, restClientGetter := initClientGetter(ctx, r.Client, r.kubeClientOpts, *plugin)
 	pluginStatus.StatusConditions.SetConditions(clusterAccessReadyCondition)
 	if !clusterAccessReadyCondition.IsTrue() {
+		metrics.UpdateMetrics(plugin, metrics.MetricResultError, metrics.MetricReasonClusterAccessFailed)
 		return ctrl.Result{}, fmt.Errorf("cannot access cluster: %s", clusterAccessReadyCondition.Message)
 	}
 
@@ -120,6 +123,7 @@ func (r *HelmReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.
 		if err != nil {
 			c := greenhousev1alpha1.TrueCondition(greenhousev1alpha1.HelmReconcileFailedCondition, greenhousev1alpha1.HelmUninstallFailedReason, err.Error())
 			pluginStatus.StatusConditions.SetConditions(c)
+			metrics.UpdateMetrics(plugin, metrics.MetricResultError, metrics.MetricReasonUninstallHelmFailed)
 			return ctrl.Result{}, err
 		}
 		if !isDeleted {
@@ -147,8 +151,9 @@ func (r *HelmReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.
 	}
 
 	helmReconcileFailedCondition, pluginDefinition := r.getPluginDefinition(ctx, plugin)
-	pluginStatus.StatusConditions.SetConditions(helmReconcileFailedCondition)
 	if pluginDefinition == nil {
+		pluginStatus.StatusConditions.SetConditions(helmReconcileFailedCondition)
+		metrics.UpdateMetrics(plugin, metrics.MetricResultError, metrics.MetricReasonPluginDefinitionNotFound)
 		return ctrl.Result{}, fmt.Errorf("pluginDefinition not found: %s", helmReconcileFailedCondition.Message)
 	}
 
@@ -215,6 +220,7 @@ func (r *HelmReconciler) reconcileHelmRelease(
 	if _, err := helm.TemplateHelmChartFromPlugin(ctx, r.Client, restClientGetter, pluginDefinition, plugin); err != nil {
 		reconcileFailedCondition.Status = metav1.ConditionTrue
 		reconcileFailedCondition.Message = "Helm template failed: " + err.Error()
+		metrics.UpdateMetrics(plugin, metrics.MetricResultError, metrics.MetricReasonTemplateFailed)
 		return driftDetectedCondition, reconcileFailedCondition
 	}
 
@@ -223,6 +229,7 @@ func (r *HelmReconciler) reconcileHelmRelease(
 	if err != nil {
 		reconcileFailedCondition.Status = metav1.ConditionTrue
 		reconcileFailedCondition.Message = "Helm diff failed: " + err.Error()
+		metrics.UpdateMetrics(plugin, metrics.MetricResultError, metrics.MetricReasonDiffFailed)
 		return driftDetectedCondition, reconcileFailedCondition
 	}
 
@@ -253,6 +260,7 @@ func (r *HelmReconciler) reconcileHelmRelease(
 	}
 	reconcileFailedCondition.Status = metav1.ConditionFalse
 	reconcileFailedCondition.Message = "Helm install/upgrade successful"
+	metrics.UpdateMetrics(plugin, metrics.MetricResultSuccess, metrics.MetricReasonEmpty)
 	return driftDetectedCondition, reconcileFailedCondition
 }
 
@@ -275,8 +283,7 @@ func (r *HelmReconciler) reconcileStatus(ctx context.Context,
 		}
 	)
 
-	statusReconcileCondition = *pluginStatus.GetConditionByType(greenhousev1alpha1.StatusUpToDateCondition)
-	statusReconcileCondition.Status = metav1.ConditionTrue
+	statusReconcileCondition = greenhousev1alpha1.TrueCondition(greenhousev1alpha1.StatusUpToDateCondition, "", "")
 	// Collect status from the Helm release.
 	if helmRelease, err := helm.GetReleaseForHelmChartFromPlugin(ctx, restClientGetter, plugin); err == nil {
 		// Ensure the status is always reported.

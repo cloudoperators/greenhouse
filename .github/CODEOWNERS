@@ -31,3 +31,4 @@
 /.golangci.yaml         @cloudoperators/greenhouse-backend
 /PROJECT                @cloudoperators/greenhouse-backend
 /go.*                   @cloudoperators/greenhouse-backend
+/e2e/                   @cloudoperators/greenhouse-backend
