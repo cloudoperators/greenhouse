@@ -146,7 +146,7 @@ var _ = Describe("Test Organization reconciliation", Ordered, func() {
 				func(o *greenhousev1alpha1.Organization) {
 					o.Spec.Authentication = &greenhousev1alpha1.Authentication{
 						SCIMConfig: &greenhousev1alpha1.SCIMConfig{
-							BaseURL: groupsServer.URL,
+							BaseURL: groupsServer.URL + "/scim",
 							BasicAuthUser: greenhousev1alpha1.ValueFromSource{
 								Secret: &greenhousev1alpha1.SecretKeyReference{
 									Name: "test-secret",
@@ -199,7 +199,7 @@ var _ = Describe("Test Organization reconciliation", Ordered, func() {
 				g.Expect(err).ToNot(HaveOccurred(), "there should be no error getting the Organization")
 				testOrg.Spec.Authentication = &greenhousev1alpha1.Authentication{
 					SCIMConfig: &greenhousev1alpha1.SCIMConfig{
-						BaseURL: groupsServer.URL,
+						BaseURL: groupsServer.URL + "/scim",
 						BasicAuthUser: greenhousev1alpha1.ValueFromSource{
 							Secret: &greenhousev1alpha1.SecretKeyReference{
 								Name: "test-secret",

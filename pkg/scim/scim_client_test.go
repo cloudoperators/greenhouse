@@ -4,323 +4,311 @@
 package scim
 
 import (
-	"bytes"
-	"log"
+	"context"
+	"fmt"
+
 	"net/http"
-	"net/http/httptest"
-	"os"
 	"testing"
 
-	"gotest.tools/v3/assert"
-
-	greenhousesapv1alpha1 "github.com/cloudoperators/greenhouse/pkg/apis/greenhouse/v1alpha1"
+	"github.com/stretchr/testify/assert"
 )
 
-type ScimClientTests struct{}
-
-var firstTeamMemberRef = "https://some-user-location"
-
-func TestScim(t *testing.T) {
-	scTest := ScimClientTests{}
-	t.Run("NewScimClient", scTest.TestNewScimClient)
-	t.Run("GetMembers:Non existing group", scTest.TestGetTeamMembersFromNonExistingGroup)
-	t.Run("GetMembers:Existing group", scTest.TestGetTeamMembersFromGroup)
-	t.Run("GetMembers:Error from upstream", scTest.TestGetTeamMembersErrorResponse)
-	t.Run("GetMembers:Malformed response", scTest.TestGetTeamMembersFromMalformedGroupResponse)
-	t.Run("GetUser:Valid user", scTest.TestGetUser)
-	t.Run("GetUsers:Error from upstream", scTest.TestGetUserErrorResponse)
-	t.Run("GetUsers:Malformed response", scTest.TestGetUserMalformedUserResponse)
-	t.Run("GetUsers:2 valid users, 1 malformed, 1 inactive", scTest.TestGetUsers)
-	t.Run("GetUsers:2 valid users, 1 inactive, 1 rate-limitted", scTest.TestGetUsersWithRateLimit)
-}
-
-func (sc *ScimClientTests) TestNewScimClient(t *testing.T) {
-	scimConfig := Config{"some-url.com", Basic, &BasicAuthConfig{"user", "pw"}}
-	_, err := NewScimClient(scimConfig)
-	assert.NilError(t, err, "Should create client with basic auth credentials from env vars")
-}
-
-func (sc *ScimClientTests) TestGetTeamMembersFromNonExistingGroup(t *testing.T) {
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		assert.Equal(t, r.URL.Path, "/Groups", "Should correctly call groups path")
-		assert.Equal(t, r.URL.RawQuery, "filter=displayName+eq+%22NON_EXISTING_IDP_GROUP_NAME%22", "Should correctly call filter parameters")
-
-		w.WriteHeader(http.StatusOK)
-		w.Header().Add("Content-Type", "application/scim+json")
-		_, err := w.Write([]byte(EmptyGroupResponseBodyMock))
-		if err != nil {
-			log.Printf("error creating mock server: %s", err)
-		}
-	}))
-	defer server.Close()
-	scimConfig := Config{server.URL, Basic, &BasicAuthConfig{"user", "pw"}}
-	scimClient, err := NewScimClient(scimConfig)
-	assert.NilError(t, err)
-
-	teamMembers, err := scimClient.GetTeamMembers("NON_EXISTING_IDP_GROUP_NAME")
-
-	assert.Error(t, err, "no mapped group found for NON_EXISTING_IDP_GROUP_NAME", "Should correctly error false group name")
-	assert.Equal(t, len(teamMembers), 0, "Shouldn't return teamMembers from not existing group")
-}
-
-func (sc *ScimClientTests) TestGetTeamMembersFromGroup(t *testing.T) {
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		assert.Equal(t, r.URL.Path, "/Groups", "Should correctly call groups path")
-		assert.Equal(t, r.URL.RawQuery, "filter=displayName+eq+%22SOME_IDP_GROUP_NAME%22", "Should correctly call filter parameters")
-
-		w.WriteHeader(http.StatusOK)
-		w.Header().Add("Content-Type", "application/scim+json")
-		_, err := w.Write([]byte(GroupResponseBodyWithMembersMock))
-		if err != nil {
-			log.Printf("error creating mock server: %s", err)
-		}
-	}))
-	defer server.Close()
-	scimConfig := Config{server.URL, Basic, &BasicAuthConfig{"user", "pw"}}
-	scimClient, err := NewScimClient(scimConfig)
-	assert.NilError(t, err)
-
-	teamMembers, err := scimClient.GetTeamMembers("SOME_IDP_GROUP_NAME")
-	assert.NilError(t, err, "Should not error on existing group with team members")
-	assert.Equal(t, len(teamMembers), 3, "Should return all existing members")
-	assert.Equal(t, teamMembers[0].Ref, firstTeamMemberRef, "Should match user reference")
-}
-
-func (sc *ScimClientTests) TestGetTeamMembersErrorResponse(t *testing.T) {
-	type testCase struct {
-		statusCode int
+func Test_Basic_Auth_Client(t *testing.T) {
+	testTable := []struct {
+		name      string
+		username  string
+		password  string
+		withError bool
+	}{
+		{
+			name:     "it should successfully create a basic auth client",
+			username: "some-username",
+			password: "some-password",
+		},
+		{
+			name:      "it should fail to create a basic auth client, when no username is provided",
+			password:  "some-password",
+			withError: true,
+		},
+		{
+			name:      "it should fail to create a basic auth client, when no password is provided",
+			username:  "some-username",
+			withError: true,
+		},
+		{
+			name:      "it should fail to create a basic auth client, when no username and password is provided",
+			withError: true,
+		},
 	}
-
-	for _, testCase := range []testCase{{http.StatusInternalServerError}, {http.StatusNotFound}, {http.StatusUnauthorized}} {
-		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			assert.Equal(t, r.URL.Path, "/Groups", "Should correctly call groups path")
-			assert.Equal(t, r.URL.RawQuery, "filter=displayName+eq+%22SOME_IDP_GROUP_NAME%22", "Should correctly call filter parameters")
-
-			w.WriteHeader(testCase.statusCode)
-			w.Header().Add("Content-Type", "application/scim+json")
-			_, err := w.Write([]byte(`{"error":"internal"}`))
-			if err != nil {
-				log.Printf("error creating mock server: %s", err)
+	for _, test := range testTable {
+		t.Run(test.name, func(t *testing.T) {
+			server, _ := setup()
+			_, err := NewSCIMClient(&Config{
+				URL:      server.URL + baseURLPath,
+				AuthType: Basic,
+				BasicAuth: &BasicAuthConfig{
+					Username: test.username,
+					Password: test.password,
+				},
+			})
+			if test.withError {
+				assert.Error(t, err)
+			} else {
+				assert.NoError(t, err)
 			}
-		}))
-		defer server.Close()
-		scimConfig := Config{server.URL, Basic, &BasicAuthConfig{"user", "pw"}}
-		scimClient, err := NewScimClient(scimConfig)
-		assert.NilError(t, err)
-
-		teamMembers, err := scimClient.GetTeamMembers("SOME_IDP_GROUP_NAME")
-		assert.ErrorContains(t, err, "could not retrieve TeamMembers from", "Should correctly error on non 200 Status codes")
-		assert.Equal(t, len(teamMembers), 0, "Shouldn't return teamMembers if request errored")
+			t.Cleanup(func() {
+				// tear down test server
+				server.Close()
+			})
+		})
 	}
 }
 
-func (sc *ScimClientTests) TestGetTeamMembersFromMalformedGroupResponse(t *testing.T) {
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		assert.Equal(t, r.URL.Path, "/Groups", "Should correctly call groups path")
-		assert.Equal(t, r.URL.RawQuery, "filter=displayName+eq+%22SOME_IDP_GROUP_NAME%22", "Should correctly call filter parameters")
+func TestClient_GroupExists(t *testing.T) {
+	// Create a fake client to mock API calls.
+	responseMap := make(map[string]mockResponse)
+	ctx := context.Background()
+	server, mux := setup()
 
-		w.WriteHeader(http.StatusOK)
-		w.Header().Add("Content-Type", "application/scim+json")
-		_, err := w.Write([]byte(MalformedGroupResponseBodyMock))
-		if err != nil {
-			log.Printf("error creating mock server: %s", err)
+	mux.HandleFunc("/Groups", func(w http.ResponseWriter, r *http.Request) {
+		mockResp, ok := responseMap[r.URL.Query().Get("filter")]
+		if !ok {
+			http.Error(w, "not found", http.StatusNotFound)
+			return
 		}
-	}))
-	defer server.Close()
-	scimConfig := Config{server.URL, Basic, &BasicAuthConfig{"user", "pw"}}
-	scimClient, err := NewScimClient(scimConfig)
-	assert.NilError(t, err)
-
-	teamMembers, err := scimClient.GetTeamMembers("SOME_IDP_GROUP_NAME")
-	assert.ErrorContains(t, err, "could not extract members from groupResponseBody", "Should correctly error on malformed groupResponseBody")
-	assert.Equal(t, len(teamMembers), 0, "Shouldn't return teamMemberson malformed groupResponseBody")
-}
-
-func (sc *ScimClientTests) TestGetUser(t *testing.T) {
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusOK)
 		w.Header().Add("Content-Type", "application/scim+json")
-		_, err := w.Write([]byte(UserResponseBodyMock1))
-		if err != nil {
-			log.Printf("error creating mock server: %s", err)
-		}
-	}))
-	defer server.Close()
-	scimConfig := Config{server.URL, Basic, &BasicAuthConfig{"user", "pw"}}
-	scimClient, err := NewScimClient(scimConfig)
-	member := Member{server.URL}
-	assert.NilError(t, err)
-	user, err := scimClient.getUser(member)
-	assert.NilError(t, err, "There should be no error getting a user of a valid member")
-	assert.Equal(t, *user, greenhousesapv1alpha1.User{ID: "I12345", FirstName: "John", LastName: "Doe", Email: "john.doe@example.com"})
-}
+		w.WriteHeader(mockResp.statusCode)
+		_, err := fmt.Fprint(w, mockResp.body)
+		assert.NoError(t, err)
+	})
+	scimClient, err := NewSCIMClient(&Config{
+		URL:      server.URL + baseURLPath,
+		AuthType: Basic,
+		BasicAuth: &BasicAuthConfig{
+			Username: "some-username",
+			Password: "some-password",
+		},
+	})
+	assert.NoError(t, err)
 
-func (sc *ScimClientTests) TestGetUserErrorResponse(t *testing.T) {
-	type testCase struct {
-		statusCode int
+	testTable := []struct {
+		name                 string
+		queryOptions         *QueryOptions
+		mockResponse         mockResponse
+		expectedExists       bool
+		expectedTotalResults int
+		withError            bool
+	}{
+		{
+			name: "it should successfully check if group exists",
+			queryOptions: &QueryOptions{
+				Filter:             GroupFilterByDisplayName("SOME_IDP_GROUP_NAME"),
+				ExcludedAttributes: SetAttributes(AttrMembers),
+			},
+			mockResponse:         existingGroupResponseBodyMockFn(),
+			expectedTotalResults: 1,
+			expectedExists:       true,
+		},
+		{
+			name: "it should successfully check if group does not exist",
+			queryOptions: &QueryOptions{
+				Filter:             GroupFilterByDisplayName("non-existing-group"),
+				ExcludedAttributes: SetAttributes(AttrMembers),
+			},
+			mockResponse:   emptyResponseBodyMockFn(),
+			expectedExists: false,
+		},
+		{
+			name: "it should error out when invalid request is made",
+			queryOptions: &QueryOptions{
+				Filter:  GroupFilterByDisplayName("error-group"),
+				StartID: "1",
+			},
+			mockResponse: errorResponseBodyMockFn(),
+			withError:    true,
+		},
 	}
 
-	for _, testCase := range []testCase{{http.StatusInternalServerError}, {http.StatusTooManyRequests}, {http.StatusNotFound}, {http.StatusUnauthorized}} {
-		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			w.WriteHeader(testCase.statusCode)
-			w.Header().Add("Content-Type", "application/scim+json")
-			_, err := w.Write([]byte(`{"error":"some-error"}`))
-			if err != nil {
-				log.Printf("error creating mock server: %s", err)
+	for _, test := range testTable {
+		t.Run(test.name, func(t *testing.T) {
+			// Update the response map for this test case
+			responseMap[test.queryOptions.Filter.String()] = test.mockResponse
+			exists, err := scimClient.GroupExists(ctx, test.queryOptions)
+			if test.withError {
+				assert.Error(t, err)
+			} else {
+				assert.NoError(t, err)
+				assert.Equal(t, test.expectedExists, exists)
 			}
-		}))
-		defer server.Close()
-		scimConfig := Config{server.URL, Basic, &BasicAuthConfig{"user", "pw"}}
-		scimClient, err := NewScimClient(scimConfig)
-		assert.NilError(t, err)
-		member := Member{server.URL}
-		user, err := scimClient.getUser(member)
-		assert.ErrorContains(t, err, "could not retrieve TeamMember from", "Should correctly error on non 200 Status codes")
-		assert.Equal(t, user, (*greenhousesapv1alpha1.User)(nil), "Shouldn't return teamMembers if request errored")
+			group, err := scimClient.GetGroups(ctx, test.queryOptions)
+			if test.withError {
+				assert.Error(t, err)
+			} else {
+				assert.NoError(t, err)
+				assert.Equal(t, test.expectedTotalResults, group.TotalResults)
+			}
+		})
 	}
+	t.Cleanup(func() {
+		// tear down test server
+		server.Close()
+	})
 }
 
-func (sc *ScimClientTests) TestGetUserMalformedUserResponse(t *testing.T) {
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusOK)
-		w.Header().Add("Content-Type", "application/scim+json")
-		_, err := w.Write([]byte(MalFormedUserResponseBodyMock))
-		if err != nil {
-			log.Printf("error creating mock server: %s", err)
+func TestClient_GetUsers(t *testing.T) {
+	// Create a mock response map and test server
+	responseMap := make(map[string]mockResponse)
+	ctx := context.Background()
+	server, mux := setup()
+
+	mux.HandleFunc("/Users", func(w http.ResponseWriter, r *http.Request) {
+		mockResp, ok := responseMap[r.URL.Query().Get("filter")]
+		if !ok {
+			http.Error(w, "not found", http.StatusNotFound)
+			return
 		}
-	}))
-	defer server.Close()
-	scimConfig := Config{server.URL, Basic, &BasicAuthConfig{"user", "pw"}}
-	scimClient, err := NewScimClient(scimConfig)
-	assert.NilError(t, err)
-	member := Member{server.URL}
-	user, err := scimClient.getUser(member)
-	assert.ErrorContains(t, err, "could not create User", "Should correctly error on malformed user")
-	assert.Equal(t, user, (*greenhousesapv1alpha1.User)(nil), "Shouldn't return teamMembers if request errored")
+		w.Header().Add("Content-Type", "application/scim+json")
+		w.WriteHeader(mockResp.statusCode)
+		_, err := fmt.Fprint(w, mockResp.body)
+		assert.NoError(t, err)
+	})
+
+	// Create the SCIM client
+	scimClient, err := NewSCIMClient(&Config{
+		URL:      server.URL + baseURLPath,
+		AuthType: Basic,
+		BasicAuth: &BasicAuthConfig{
+			Username: "some-username",
+			Password: "some-password",
+		},
+	})
+	assert.NoError(t, err)
+
+	// Define test cases
+	testTable := []struct {
+		name          string
+		queryOptions  *QueryOptions
+		mockResponse  mockResponse
+		expectedUsers int
+		withError     bool
+	}{
+		{
+			name: "it should successfully fetch users",
+			queryOptions: &QueryOptions{
+				Filter:     UserFilterByGroupDisplayName("SOME_IDP_GROUP_NAME"),
+				Attributes: SetAttributes(AttrName, AttrEmails, AttrDisplayName, AttrActive),
+			},
+			mockResponse:  userResponseBodyMockFn(),
+			expectedUsers: 2,
+		},
+		{
+			name: "it should return an empty result when no users exist",
+			queryOptions: &QueryOptions{
+				Filter:     UserFilterByGroupDisplayName("non-existing-group"),
+				Attributes: SetAttributes(AttrName, AttrEmails, AttrDisplayName, AttrActive),
+			},
+			mockResponse:  emptyResponseBodyMockFn(),
+			expectedUsers: 0,
+		},
+		{
+			name: "it should handle an error response",
+			queryOptions: &QueryOptions{
+				Filter:  UserFilterByGroupDisplayName("some-group"),
+				StartID: "invalid",
+			},
+			mockResponse: errorResponseBodyMockFn(),
+			withError:    true,
+		},
+	}
+
+	// Run the test cases
+	for _, test := range testTable {
+		t.Run(test.name, func(t *testing.T) {
+			// Set up the mock response for this test case
+			responseMap[test.queryOptions.Filter.String()] = test.mockResponse
+
+			// Make the GetUsers call
+			users, err := scimClient.GetUsers(ctx, test.queryOptions)
+			if test.withError {
+				assert.Error(t, err)
+			} else {
+				assert.NoError(t, err)
+				assert.Equal(t, test.expectedUsers, users.TotalResults)
+			}
+		})
+	}
+	t.Cleanup(func() {
+		server.Close()
+	})
 }
 
-func (sc *ScimClientTests) TestGetUsers(t *testing.T) {
-	// valid user 1
-	server1 := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusOK)
-		w.Header().Add("Content-Type", "application/scim+json")
-		_, err := w.Write([]byte(UserResponseBodyMock1))
-		if err != nil {
-			log.Printf("error creating mock server: %s", err)
+func TestClient_GetPaginatedUsers(t *testing.T) {
+	// Create a mock response map and test server
+	responseMap := make(map[string]mockResponse)
+	ctx := context.Background()
+	server, mux := setup()
+
+	// This counter will track how many times "/Users" has been called.
+	callCount := 0
+
+	mux.HandleFunc("/Users", func(w http.ResponseWriter, r *http.Request) {
+		callCount++
+
+		startID := r.URL.Query().Get("startId") // use startId to distinguish pages
+
+		mockResp, ok := responseMap[startID]
+		if !ok {
+			http.Error(w, "not found", http.StatusNotFound)
+			return
 		}
-	}))
-	defer server1.Close()
-
-	// malformed user
-	server2 := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusOK)
 		w.Header().Add("Content-Type", "application/scim+json")
-		_, err := w.Write([]byte(MalFormedUserResponseBodyMock))
-		if err != nil {
-			log.Printf("error creating mock server: %s", err)
-		}
-	}))
-	defer server2.Close()
+		w.WriteHeader(mockResp.statusCode)
+		_, err := fmt.Fprint(w, mockResp.body)
+		assert.NoError(t, err)
+	})
 
-	// valid user 2
-	server3 := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusOK)
-		w.Header().Add("Content-Type", "application/scim+json")
-		_, err := w.Write([]byte(UserResponseBodyMock2))
-		if err != nil {
-			log.Printf("error creating mock server: %s", err)
-		}
-	}))
-	defer server3.Close()
+	// Create the SCIM client
+	scimClient, err := NewSCIMClient(&Config{
+		URL:      server.URL + baseURLPath,
+		AuthType: Basic,
+		BasicAuth: &BasicAuthConfig{
+			Username: "some-username",
+			Password: "some-password",
+		},
+	})
+	assert.NoError(t, err)
 
-	// inactive user
-	server4 := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusOK)
-		w.Header().Add("Content-Type", "application/scim+json")
-		_, err := w.Write([]byte(InactiveUserResponseBodyMock))
-		if err != nil {
-			log.Printf("error creating mock server: %s", err)
-		}
-	}))
-	defer server4.Close()
-	scimConfig := Config{"https://some-url", Basic, &BasicAuthConfig{"user", "pw"}}
-	scimClient, err := NewScimClient(scimConfig)
-	assert.NilError(t, err)
-	members := []Member{{server1.URL}, {server2.URL}, {server3.URL}, {server4.URL}}
+	// simulate two pages:
+	// First page: returns 2 users and a nextId
+	// Second page: returns the last user, no nextId
 
-	var buf bytes.Buffer
-	log.SetOutput(&buf)
-	defer func() {
-		log.SetOutput(os.Stderr)
-	}()
+	firstPageResponse := firstUserPaginatedResponseFn()
+	secondPageResponse := secondUserPaginatedResponseFn()
 
-	users, inactive, malformed, err := scimClient.GetUsers(members)
-	assert.NilError(t, err, "Should not error on getting users")
-	expectedUsers := []greenhousesapv1alpha1.User{{ID: "I12345", FirstName: "John", LastName: "Doe", Email: "john.doe@example.com"}, {ID: "I23456", FirstName: "Jane", LastName: "Doe", Email: "jane.doe@example.com"}}
-	assert.NilError(t, err, "Should not error on getting users")
-	assert.Equal(t, inactive, 1, "Should have 1 inactive user")
-	assert.Equal(t, malformed, 1, "Should have 1 inactive user")
-	assert.Equal(t, len(users), len(expectedUsers), "Should not error and not return malformed or inactive user")
-}
+	// The key "" represents the first request (no startId),
+	// "second-page" represents the second request.
+	responseMap["initial"] = firstPageResponse
+	responseMap["second-page"] = secondPageResponse
 
-func (sc *ScimClientTests) TestGetUsersWithRateLimit(t *testing.T) {
-	// valid user 1
-	server1 := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusOK)
-		w.Header().Add("Content-Type", "application/scim+json")
-		_, err := w.Write([]byte(UserResponseBodyMock1))
-		if err != nil {
-			log.Printf("error creating mock server: %s", err)
-		}
-	}))
-	defer server1.Close()
+	// Call GetPaginatedUsers
+	users, err := scimClient.GetPaginatedUsers(ctx, &QueryOptions{
+		Filter:  UserFilterByGroupDisplayName("some-group"),
+		StartID: "initial",
+	})
 
-	// rate-limitted request
-	server2 := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusTooManyRequests)
-		w.Header().Add("Content-Type", "application/scim+json")
-		_, err := w.Write([]byte(`{"error":"some-error"}`))
-		if err != nil {
-			log.Printf("error creating mock server: %s", err)
-		}
-	}))
-	defer server2.Close()
+	// Assertions
+	assert.NoError(t, err)
+	assert.Equal(t, 3, len(users))
+	// Ensure we got the combined results from both pages
+	assert.Equal(t, "user1", users[0].ID)
+	assert.Equal(t, "user2", users[1].ID)
+	assert.Equal(t, "user3", users[2].ID)
 
-	// valid user 2
-	server3 := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusOK)
-		w.Header().Add("Content-Type", "application/scim+json")
-		_, err := w.Write([]byte(UserResponseBodyMock2))
-		if err != nil {
-			log.Printf("error creating mock server: %s", err)
-		}
-	}))
-	defer server3.Close()
+	// Assert that the "/Users" endpoint was hit twice:
+	// once for the first page and once for the second page.
+	assert.Equal(t, 2, callCount)
 
-	// inactive user
-	server4 := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusOK)
-		w.Header().Add("Content-Type", "application/scim+json")
-		_, err := w.Write([]byte(InactiveUserResponseBodyMock))
-		if err != nil {
-			log.Printf("error creating mock server: %s", err)
-		}
-	}))
-	defer server4.Close()
-	scimConfig := Config{"https://some-url", Basic, &BasicAuthConfig{"user", "pw"}}
-	scimClient, err := NewScimClient(scimConfig)
-	assert.NilError(t, err)
-	members := []Member{{server1.URL}, {server2.URL}, {server3.URL}, {server4.URL}}
-
-	var buf bytes.Buffer
-	log.SetOutput(&buf)
-	defer func() {
-		log.SetOutput(os.Stderr)
-	}()
-
-	users, inactive, malformed, err := scimClient.GetUsers(members)
-	assert.ErrorContains(t, err, "Too Many Requests", "Should get error if request to upstream returned !200 status code")
-	assert.Equal(t, inactive, 0, "Should not return inactive users on error")
-	assert.Equal(t, malformed, 0, "Should not return malformed users on error")
-	assert.Equal(t, len(users), 0, "Should not return users on error")
+	t.Cleanup(func() {
+		server.Close()
+	})
 }

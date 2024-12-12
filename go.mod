@@ -37,7 +37,6 @@ require (
 	go.uber.org/zap v1.27.0
 	golang.org/x/text v0.20.0
 	gopkg.in/yaml.v3 v3.0.1
-	gotest.tools/v3 v3.5.1
 	helm.sh/helm/v3 v3.15.4
 	k8s.io/api v0.31.2
 	k8s.io/apiextensions-apiserver v0.31.2
@@ -83,6 +82,7 @@ require (
 	go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.54.0 // indirect
 	google.golang.org/genproto/googleapis/api v0.0.0-20240827150818-7e3bb234dfed // indirect
 	gopkg.in/evanphx/json-patch.v4 v4.12.0 // indirect
+	gotest.tools/v3 v3.5.1 // indirect
 )
 
 require (
