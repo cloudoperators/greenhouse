@@ -13,7 +13,10 @@ import (
 	"github.com/cloudoperators/greenhouse/pkg/test"
 )
 
-const teamName = "test-team-0000"
+const (
+	teamName        = "test-team"
+	anotherTeamName = "another-test-team"
+)
 
 var _ = Describe("TeamControllerTest", Ordered, func() {
 	It("Should update status of team with members", func() {
@@ -57,6 +60,42 @@ var _ = Describe("TeamControllerTest", Ordered, func() {
 						FirstName: "John",
 						LastName:  "Doe",
 						Email:     "john.doe@example.com",
+					},
+				},
+			},
+		})
+		Expect(err).ToNot(HaveOccurred())
+
+		err = test.K8sClient.Create(test.Ctx, &greenhouseapisv1alpha1.TeamMembership{
+			TypeMeta: metav1.TypeMeta{
+				Kind:       "TeamMembership",
+				APIVersion: greenhouseapisv1alpha1.GroupVersion.String(),
+			},
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "another-test-membership",
+				Namespace: test.TestNamespace,
+				OwnerReferences: []metav1.OwnerReference{
+					{
+						APIVersion: greenhouseapisv1alpha1.GroupVersion.String(),
+						Kind:       "Team",
+						Name:       anotherTeamName,
+						UID:        "uhuiqweqwe",
+					},
+				},
+			},
+			Spec: greenhouseapisv1alpha1.TeamMembershipSpec{
+				Members: []greenhouseapisv1alpha1.User{
+					{
+						ID:        "d2a72c04-42d2-426a-942d-af9609c4cd00",
+						FirstName: "Test",
+						LastName:  "User1",
+						Email:     "u1@example.com",
+					},
+					{
+						ID:        "d2a72c04-42d2-426a-942d-af9609c4cd00",
+						FirstName: "Test",
+						LastName:  "User2",
+						Email:     "u2@example.com",
 					},
 				},
 			},
