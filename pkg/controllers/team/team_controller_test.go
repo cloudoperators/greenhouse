@@ -10,6 +10,8 @@ import (
 	"github.com/cloudoperators/greenhouse/pkg/test"
 )
 
+const teamName = "test-team-0000"
+
 var _ = Describe("TeamControllerTest", Ordered, func() {
 	It("Should update status of team with members", func() {
 		err := test.K8sClient.Create(test.Ctx, &greenhouseapisv1alpha1.Team{
@@ -18,7 +20,7 @@ var _ = Describe("TeamControllerTest", Ordered, func() {
 				APIVersion: greenhouseapisv1alpha1.GroupVersion.String(),
 			},
 			ObjectMeta: metav1.ObjectMeta{
-				Name:      "test-team",
+				Name:      teamName,
 				Namespace: test.TestNamespace,
 			},
 			Spec: greenhouseapisv1alpha1.TeamSpec{
@@ -40,7 +42,7 @@ var _ = Describe("TeamControllerTest", Ordered, func() {
 					{
 						APIVersion: greenhouseapisv1alpha1.GroupVersion.String(),
 						Kind:       "Team",
-						Name:       "test-team",
+						Name:       teamName,
 						UID:        "uhuihiuh",
 					},
 				},
@@ -60,7 +62,7 @@ var _ = Describe("TeamControllerTest", Ordered, func() {
 
 		Eventually(func(g Gomega) {
 			team := &greenhouseapisv1alpha1.Team{}
-			err := test.K8sClient.Get(test.Ctx, client.ObjectKey{Name: "test-team", Namespace: test.TestNamespace}, team)
+			err := test.K8sClient.Get(test.Ctx, client.ObjectKey{Name: teamName, Namespace: test.TestNamespace}, team)
 			g.Expect(err).ToNot(HaveOccurred())
 			g.Expect(team.Status.Members).To(HaveLen(1))
 		}).Should(Succeed())
