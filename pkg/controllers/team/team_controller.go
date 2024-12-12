@@ -12,6 +12,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	greenhouseapisv1alpha1 "github.com/cloudoperators/greenhouse/pkg/apis/greenhouse/v1alpha1"
+	"github.com/cloudoperators/greenhouse/pkg/clientutil"
 	"github.com/cloudoperators/greenhouse/pkg/lifecycle"
 )
 
@@ -63,7 +64,11 @@ func (r *TeamReconciler) setStatus() lifecycle.Conditioner {
 		}
 
 		for _, member := range teamMembershipList.Items {
-			if !hasOwnerReference(member.OwnerReferences, team.Kind, team.Name) {
+			var teamReference *v1.OwnerReference
+			if teamReference = clientutil.GetOwnerReference(&member, "Team"); teamReference == nil {
+				continue
+			}
+			if teamReference.Name != team.Name {
 				continue
 			}
 
@@ -77,14 +82,4 @@ func (r *TeamReconciler) setStatus() lifecycle.Conditioner {
 			team.Status.StatusConditions.Conditions = []greenhouseapisv1alpha1.Condition{}
 		}
 	}
-}
-
-func hasOwnerReference(ownerReferences []v1.OwnerReference, kind, name string) bool {
-	for _, ownerReference := range ownerReferences {
-		if ownerReference.Kind == kind && ownerReference.Name == name {
-			return true
-		}
-	}
-
-	return false
 }
