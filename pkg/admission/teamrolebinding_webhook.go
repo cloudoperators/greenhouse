@@ -87,8 +87,13 @@ func ValidateUpdateRoleBinding(ctx context.Context, c client.Client, old, cur ru
 				Group:    oldRB.GroupVersionKind().Group,
 				Resource: oldRB.Kind,
 			}, oldRB.Name, field.Forbidden(field.NewPath("spec"), "must contain either spec.clusterName or spec.clusterSelector"))
-	case hasNamespacesChanged(oldRB, curRB):
-		return nil, apierrors.NewForbidden(schema.GroupResource{Group: oldRB.GroupVersionKind().Group, Resource: oldRB.Kind}, oldRB.Name, field.Forbidden(field.NewPath("spec", "namespaces"), "cannot be changed"))
+	case hasNamespacesChanged(oldRB, curRB) && len(curRB.Spec.Namespaces) == 0:
+		// Deny removing all namespaces - at least one has to stay.
+		return nil, apierrors.NewForbidden(
+			schema.GroupResource{
+				Group:    oldRB.GroupVersionKind().Group,
+				Resource: oldRB.Kind,
+			}, oldRB.Name, field.Forbidden(field.NewPath("spec", "namespaces"), "cannot remove all namespaces"))
 	default:
 		return nil, nil
 	}
