@@ -247,7 +247,8 @@ func (r *TeamMembershipUpdaterController) createSCIMClient(
 			Password: basicAuthPw,
 		},
 	}
-	return scim.NewSCIMClient(clientConfig)
+	logger := ctrl.LoggerFrom(ctx)
+	return scim.NewSCIMClient(logger, clientConfig)
 }
 
 func (r *TeamMembershipUpdaterController) getUsersFromSCIM(ctx context.Context, scimClient scim.ISCIMClient, mappedIDPGroup string) ([]greenhousev1alpha1.User, greenhousev1alpha1.Condition, error) {
@@ -257,7 +258,7 @@ func (r *TeamMembershipUpdaterController) getUsersFromSCIM(ctx context.Context, 
 		Attributes: scim.SetAttributes(scim.AttrName, scim.AttrEmails, scim.AttrDisplayName, scim.AttrActive),
 		StartID:    scim.InitialStartID,
 	}
-	resources, err := scimClient.GetPaginatedUsers(ctx, opts)
+	resources, err := scimClient.GetUsers(ctx, opts)
 	if err != nil {
 		return nil, condition, err
 	}

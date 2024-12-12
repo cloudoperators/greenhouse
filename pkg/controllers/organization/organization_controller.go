@@ -273,7 +273,8 @@ func (r *OrganizationReconciler) checkSCIMAPIAvailability(ctx context.Context, o
 			Password: basicAuthPw,
 		},
 	}
-	scimClient, err := scim.NewSCIMClient(config)
+	logger := ctrl.LoggerFrom(ctx)
+	scimClient, err := scim.NewSCIMClient(logger, config)
 	if err != nil {
 		return greenhousesapv1alpha1.FalseCondition(greenhousesapv1alpha1.SCIMAPIAvailableCondition, greenhousesapv1alpha1.SCIMRequestFailedReason, "Failed to create SCIM client")
 	}

@@ -7,6 +7,8 @@ import (
 	"context"
 	"fmt"
 
+	ctrl "sigs.k8s.io/controller-runtime"
+
 	"net/http"
 	"testing"
 
@@ -40,10 +42,11 @@ func Test_Basic_Auth_Client(t *testing.T) {
 			withError: true,
 		},
 	}
+	logger := ctrl.Log.WithName("scim")
 	for _, test := range testTable {
 		t.Run(test.name, func(t *testing.T) {
 			server, _ := setup()
-			_, err := NewSCIMClient(&Config{
+			_, err := NewSCIMClient(logger, &Config{
 				URL:      server.URL + baseURLPath,
 				AuthType: Basic,
 				BasicAuth: &BasicAuthConfig{
@@ -68,6 +71,7 @@ func TestClient_GroupExists(t *testing.T) {
 	// Create a fake client to mock API calls.
 	responseMap := make(map[string]mockResponse)
 	ctx := context.Background()
+	logger := ctrl.Log.WithName("scim")
 	server, mux := setup()
 
 	mux.HandleFunc("/Groups", func(w http.ResponseWriter, r *http.Request) {
@@ -81,7 +85,7 @@ func TestClient_GroupExists(t *testing.T) {
 		_, err := fmt.Fprint(w, mockResp.body)
 		assert.NoError(t, err)
 	})
-	scimClient, err := NewSCIMClient(&Config{
+	scimClient, err := NewSCIMClient(logger, &Config{
 		URL:      server.URL + baseURLPath,
 		AuthType: Basic,
 		BasicAuth: &BasicAuthConfig{
@@ -140,12 +144,12 @@ func TestClient_GroupExists(t *testing.T) {
 				assert.NoError(t, err)
 				assert.Equal(t, test.expectedExists, exists)
 			}
-			group, err := scimClient.GetGroups(ctx, test.queryOptions)
+			groups, err := scimClient.GetGroups(ctx, test.queryOptions)
 			if test.withError {
 				assert.Error(t, err)
 			} else {
 				assert.NoError(t, err)
-				assert.Equal(t, test.expectedTotalResults, group.TotalResults)
+				assert.Equal(t, test.expectedTotalResults, len(groups))
 			}
 		})
 	}
@@ -159,6 +163,7 @@ func TestClient_GetUsers(t *testing.T) {
 	// Create a mock response map and test server
 	responseMap := make(map[string]mockResponse)
 	ctx := context.Background()
+	logger := ctrl.Log.WithName("scim")
 	server, mux := setup()
 
 	mux.HandleFunc("/Users", func(w http.ResponseWriter, r *http.Request) {
@@ -174,7 +179,7 @@ func TestClient_GetUsers(t *testing.T) {
 	})
 
 	// Create the SCIM client
-	scimClient, err := NewSCIMClient(&Config{
+	scimClient, err := NewSCIMClient(logger, &Config{
 		URL:      server.URL + baseURLPath,
 		AuthType: Basic,
 		BasicAuth: &BasicAuthConfig{
@@ -233,7 +238,7 @@ func TestClient_GetUsers(t *testing.T) {
 				assert.Error(t, err)
 			} else {
 				assert.NoError(t, err)
-				assert.Equal(t, test.expectedUsers, users.TotalResults)
+				assert.Equal(t, test.expectedUsers, len(users))
 			}
 		})
 	}
@@ -246,6 +251,7 @@ func TestClient_GetPaginatedUsers(t *testing.T) {
 	// Create a mock response map and test server
 	responseMap := make(map[string]mockResponse)
 	ctx := context.Background()
+	logger := ctrl.Log.WithName("scim")
 	server, mux := setup()
 
 	// This counter will track how many times "/Users" has been called.
@@ -268,7 +274,7 @@ func TestClient_GetPaginatedUsers(t *testing.T) {
 	})
 
 	// Create the SCIM client
-	scimClient, err := NewSCIMClient(&Config{
+	scimClient, err := NewSCIMClient(logger, &Config{
 		URL:      server.URL + baseURLPath,
 		AuthType: Basic,
 		BasicAuth: &BasicAuthConfig{
@@ -291,7 +297,7 @@ func TestClient_GetPaginatedUsers(t *testing.T) {
 	responseMap["second-page"] = secondPageResponse
 
 	// Call GetPaginatedUsers
-	users, err := scimClient.GetPaginatedUsers(ctx, &QueryOptions{
+	users, err := scimClient.GetUsers(ctx, &QueryOptions{
 		Filter:  UserFilterByGroupDisplayName("some-group"),
 		StartID: "initial",
 	})

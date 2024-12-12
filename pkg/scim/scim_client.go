@@ -15,16 +15,14 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
+
+	"github.com/go-logr/logr"
 )
 
 type scimClient struct {
+	log        logr.Logger
 	baseURL    *url.URL
 	httpClient http.Client
-	paginator  Paginator
-}
-
-type paginator struct {
-	client ISCIMClient
 }
 
 type basicAuthTransport struct {
@@ -55,26 +53,14 @@ func (t *basicAuthTransport) RoundTrip(req *http.Request) (*http.Response, error
 	return t.Next.RoundTrip(req)
 }
 
-type Paginator interface {
-	fetchAll(ctx context.Context, path string, options *QueryOptions) ([]Resource, error)
-}
-
-func newPaginator(c ISCIMClient) Paginator {
-	return &paginator{
-		client: c,
-	}
-}
-
 type ISCIMClient interface {
-	GetUsers(ctx context.Context, options *QueryOptions) (*ResponseBody, error)
-	GetPaginatedUsers(ctx context.Context, options *QueryOptions) ([]Resource, error)
-	GetGroups(ctx context.Context, options *QueryOptions) (*ResponseBody, error)
-	GetPaginatedGroups(ctx context.Context, options *QueryOptions) ([]Resource, error)
+	GetUsers(ctx context.Context, options *QueryOptions) ([]Resource, error)
+	GetGroups(ctx context.Context, options *QueryOptions) ([]Resource, error)
 	GroupExists(ctx context.Context, options *QueryOptions) (bool, error)
 }
 
 // NewSCIMClient - creates a new SCIM client with an auth transport
-func NewSCIMClient(config *Config) (ISCIMClient, error) {
+func NewSCIMClient(logger logr.Logger, config *Config) (ISCIMClient, error) {
 	var authTransport http.RoundTripper
 	baseURL, err := url.Parse(config.URL)
 	if err != nil {
@@ -83,7 +69,7 @@ func NewSCIMClient(config *Config) (ISCIMClient, error) {
 
 	if config.AuthType == Basic {
 		if config.BasicAuth == nil {
-			return nil, errors.New("could not create http scimClient, BasicAuthConfig missing")
+			return nil, errors.New("could not create http scim client, Basic Auth Config missing")
 		}
 		if strings.TrimSpace(config.BasicAuth.Username) == "" || strings.TrimSpace(config.BasicAuth.Password) == "" {
 			return nil, errors.New("could not create SCIM Client, BasicAuthConfig missing username or password")
@@ -95,93 +81,17 @@ func NewSCIMClient(config *Config) (ISCIMClient, error) {
 		}
 	}
 
-	c := &scimClient{
+	return &scimClient{
+		log:     logger,
 		baseURL: baseURL,
 		httpClient: http.Client{
 			Transport: authTransport,
 		},
-	}
-	c.paginator = newPaginator(c)
-	return c, nil
+	}, nil
 }
 
-// GetPaginatedUsers - fetches all users using pagination
-func (c *scimClient) GetPaginatedUsers(ctx context.Context, options *QueryOptions) ([]Resource, error) {
-	return c.paginator.fetchAll(ctx, userPath, options)
-}
-
-// GetPaginatedGroups - fetches all groups using pagination
-func (c *scimClient) GetPaginatedGroups(ctx context.Context, options *QueryOptions) ([]Resource, error) {
-	return c.paginator.fetchAll(ctx, groupPath, options)
-}
-
-// fetchAll - fetches all user resources using pagination
-func (p *paginator) fetchAll(ctx context.Context, path string, options *QueryOptions) ([]Resource, error) {
-	var allResources []Resource
-
-	// Ensure options is initialized
-	if options == nil {
-		options = &QueryOptions{}
-	}
-
-	for {
-		// Fetch a single page of results
-		resources, nextID, err := p.fetchPage(ctx, path, options)
-		if err != nil {
-			return nil, err
-		}
-
-		// Append the resources to the result set
-		allResources = append(allResources, resources...)
-
-		// Break if no more pages to fetch
-		if nextID == paginationEndID || nextID == "" {
-			break
-		}
-
-		// Set the NextID as StartID for the next request
-		options.StartID = nextID
-	}
-
-	return allResources, nil
-}
-
-// fetchPage - fetches a single page of results and returns the resources and next ID
-func (p *paginator) fetchPage(ctx context.Context, path string, options *QueryOptions) ([]Resource, string, error) {
-	var responseBody *ResponseBody
-	var err error
-	switch path {
-	case userPath:
-		responseBody, err = p.client.GetUsers(ctx, options)
-	case groupPath:
-		responseBody, err = p.client.GetGroups(ctx, options)
-	default:
-		return nil, "", fmt.Errorf("unexpected path %s", path)
-	}
-	if err != nil {
-		return nil, "", err
-	}
-	return responseBody.Resources, responseBody.NextID, err
-}
-
-// GetUsers - fetches users with optional query parameters
-func (c *scimClient) GetUsers(ctx context.Context, options *QueryOptions) (*ResponseBody, error) {
-	u := c.baseURL.JoinPath(userPath)
-	if options != nil {
-		u.RawQuery = options.toQuery()
-	}
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, u.String(), http.NoBody)
-	if err != nil {
-		return nil, err
-	}
-	resp, body, err := c.doRequest(req) //nolint:bodyclose
-	if err != nil {
-		return nil, err
-	}
-	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("unexpected status code %d", resp.StatusCode)
-	}
-	return body, nil
+func (c *scimClient) GetUsers(ctx context.Context, options *QueryOptions) ([]Resource, error) {
+	return c.fetchAllResources(ctx, userPath, options)
 }
 
 // GroupExists - checks if a group exists
@@ -190,30 +100,58 @@ func (c *scimClient) GroupExists(ctx context.Context, options *QueryOptions) (bo
 	if err != nil {
 		return false, err
 	}
-	if groups.TotalResults == 0 {
-		return false, nil
-	}
-	return true, nil
+	return len(groups) > 0, nil
 }
 
-// GetGroups - fetches groups with optional query parameters
-func (c *scimClient) GetGroups(ctx context.Context, options *QueryOptions) (*ResponseBody, error) {
-	u := c.baseURL.JoinPath("Groups")
+// GetGroups - fetches all groups (optionally if StartID is provided then it does pagination)
+func (c *scimClient) GetGroups(ctx context.Context, options *QueryOptions) ([]Resource, error) {
+	return c.fetchAllResources(ctx, groupPath, options)
+}
+
+// fetchAllResources handles the logic for making a single or multiple requests depending on whether StartID is set.
+func (c *scimClient) fetchAllResources(ctx context.Context, path string, options *QueryOptions) ([]Resource, error) {
+	if options == nil {
+		options = &QueryOptions{}
+	}
+
+	var allResources []Resource
+	for {
+		resources, nextID, err := c.fetchPage(ctx, path, options)
+		if err != nil {
+			return nil, err
+		}
+
+		allResources = append(allResources, resources...)
+
+		// If StartID is not provided or nextID is empty or nextID is the end of pagination, then break
+		if options.StartID == "" || nextID == "" || nextID == paginationEndID {
+			break
+		}
+
+		options.StartID = nextID
+	}
+
+	return allResources, nil
+}
+
+// fetchPage fetches a single page of results for the given path and startID
+func (c *scimClient) fetchPage(ctx context.Context, path string, options *QueryOptions) ([]Resource, string, error) {
+	u := c.baseURL.JoinPath(path)
 	if options != nil {
 		u.RawQuery = options.toQuery()
 	}
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, u.String(), http.NoBody)
 	if err != nil {
-		return nil, err
+		return nil, "", err
 	}
 	resp, body, err := c.doRequest(req) //nolint:bodyclose
 	if err != nil {
-		return nil, err
+		return nil, "", err
 	}
 	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("unexpected status code %d", resp.StatusCode)
+		return nil, "", fmt.Errorf("unexpected status code %d", resp.StatusCode)
 	}
-	return body, nil
+	return body.Resources, body.NextID, nil
 }
 
 // doRequest performs the http request and returns the scim response body struct
@@ -225,7 +163,7 @@ func (c *scimClient) doRequest(req *http.Request) (*http.Response, *ResponseBody
 	defer func(Body io.ReadCloser) {
 		err := Body.Close()
 		if err != nil {
-			fmt.Println(err)
+			c.log.Error(err, "error closing scim response body")
 		}
 	}(resp.Body)
 	body, err := io.ReadAll(resp.Body)
