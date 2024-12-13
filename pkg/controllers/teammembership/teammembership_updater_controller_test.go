@@ -69,6 +69,12 @@ var _ = Describe("TeammembershipUpdaterController", Ordered, func() {
 				g.Expect(readyCondition.Type).To(Equal(greenhousev1alpha1.ReadyCondition))
 				g.Expect(readyCondition.Status).To(Equal(metav1.ConditionTrue))
 			}).Should(Succeed(), "TeamMembership should be reconciled")
+
+			Eventually(func(g Gomega) {
+				err := setup.Get(test.Ctx, client.ObjectKeyFromObject(team), team)
+				g.Expect(err).ShouldNot(HaveOccurred(), "unexpected error getting Team")
+				g.Expect(team.Status.Members).To(HaveLen(2), "the TeamMembership should have exactly two Members")
+			})
 		})
 
 		It("should update existing TM without users", func() {
@@ -76,7 +82,7 @@ var _ = Describe("TeammembershipUpdaterController", Ordered, func() {
 			createTeamMembershipForFirstTeam(nil)
 
 			By("creating a test Team")
-			createFirstTeam(validIdpGroupName)
+			firstTeam := createFirstTeam(validIdpGroupName)
 
 			By("ensuring the TeamMembership has been reconciled")
 			Eventually(func(g Gomega) {
@@ -96,6 +102,13 @@ var _ = Describe("TeammembershipUpdaterController", Ordered, func() {
 				g.Expect(readyCondition.Type).To(Equal(greenhousev1alpha1.ReadyCondition))
 				g.Expect(readyCondition.Status).To(Equal(metav1.ConditionTrue))
 			}).Should(Succeed(), "the TeamMembership should be reconciled")
+
+			By("ensuring that the Team has been updated")
+			Eventually(func(g Gomega) {
+				err := setup.Get(test.Ctx, client.ObjectKeyFromObject(firstTeam), firstTeam)
+				g.Expect(err).ShouldNot(HaveOccurred(), "unexpected error getting Team")
+				g.Expect(firstTeam.Status.Members).To(HaveLen(2), "the TeamMembership should have exactly two Members")
+			})
 		})
 
 		It("should update existing TM with users", func() {
@@ -110,7 +123,7 @@ var _ = Describe("TeammembershipUpdaterController", Ordered, func() {
 			})
 
 			By("creating a test Team")
-			createFirstTeam(validIdpGroupName)
+			firstTeam := createFirstTeam(validIdpGroupName)
 
 			By("ensuring the TeamMembership has been reconciled")
 			Eventually(func(g Gomega) {
@@ -121,6 +134,13 @@ var _ = Describe("TeammembershipUpdaterController", Ordered, func() {
 				g.Expect(teamMemberships.Items[0].Spec.Members).To(HaveLen(2), "the TeamMembership should have exactly two Members")
 				g.Expect(teamMemberships.Items[0].Status.LastChangedTime).ToNot(BeNil(), "TeamMembership status should have updated LastChangedTime")
 			}).Should(Succeed(), "the TeamMembership should be reconciled")
+
+			By("ensuring that the Team has been updated")
+			Eventually(func(g Gomega) {
+				err := setup.Get(test.Ctx, client.ObjectKeyFromObject(firstTeam), firstTeam)
+				g.Expect(err).ShouldNot(HaveOccurred(), "unexpected error getting Team")
+				g.Expect(firstTeam.Status.Members).To(HaveLen(2), "the TeamMembership should have exactly two Members")
+			})
 		})
 
 		It("should update multiple TMs", func() {
@@ -172,6 +192,20 @@ var _ = Describe("TeammembershipUpdaterController", Ordered, func() {
 				g.Expect(teamMemberships.Items[0].OwnerReferences).To(ContainElement(firstOwnerRef), "first TeamMembership should have set first team as owner reference")
 				g.Expect(teamMemberships.Items[1].OwnerReferences).To(ContainElement(secondOwnerRef), "second TeamMembership should have set second team as owner reference")
 			}).Should(Succeed(), "both TeamMemberships should be reconciled")
+
+			By("ensuring that the first Team has been updated")
+			Eventually(func(g Gomega) {
+				err := setup.Get(test.Ctx, client.ObjectKeyFromObject(firstTeam), firstTeam)
+				g.Expect(err).ShouldNot(HaveOccurred(), "unexpected error getting Team")
+				g.Expect(firstTeam.Status.Members).To(HaveLen(2), "the first team should have exactly two Members")
+			})
+
+			By("ensuring that the second Team has been updated")
+			Eventually(func(g Gomega) {
+				err := setup.Get(test.Ctx, client.ObjectKeyFromObject(secondTeam), secondTeam)
+				g.Expect(err).ShouldNot(HaveOccurred(), "unexpected error getting Team")
+				g.Expect(secondTeam.Status.Members).To(HaveLen(3), "the second team should have exactly three Members")
+			})
 		})
 
 		It("should do nothing if Team has no mappedIdpGroup", func() {
@@ -367,7 +401,7 @@ var _ = Describe("TeammembershipUpdaterController", Ordered, func() {
 			createTeamMembershipForFirstTeam(originalUsers)
 
 			By("creating test Team with valid idp group")
-			createFirstTeam(validIdpGroupName)
+			firstTeam := createFirstTeam(validIdpGroupName)
 
 			expectedUser1 := greenhousev1alpha1.User{
 				ID:        "I12345",
@@ -393,6 +427,13 @@ var _ = Describe("TeammembershipUpdaterController", Ordered, func() {
 				g.Expect(teamMembership.Spec.Members).To(ContainElement(expectedUser1), "TeamMembership users should contain first expected user")
 				g.Expect(teamMembership.Spec.Members).To(ContainElement(expectedUser2), "TeamMembership users should contain second expected user")
 			}).Should(Succeed(), "TeamMembership should have been reconciled")
+
+			Eventually(func(g Gomega) {
+				err := setup.Get(test.Ctx, client.ObjectKeyFromObject(firstTeam), firstTeam)
+				g.Expect(err).ShouldNot(HaveOccurred(), "unexpected error getting firstTeam")
+				g.Expect(firstTeam.Status.Members).To(HaveLen(2), "firstTeam should have two users")
+				g.Expect(firstTeam.Status.Members).To(BeEquivalentTo([]greenhousev1alpha1.User{expectedUser1, expectedUser2}), "firstTeam should contains users")
+			}).Should(Succeed(), "the team status should be updated")
 		})
 
 		It("should delete the team after all", func() {

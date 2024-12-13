@@ -124,13 +124,6 @@ rules:
   - update
   - watch
 - apiGroups:
-  - greenhouse.sap
-  resources:
-  - teammemberships=
-  verbs:
-  - get
-  - list
-- apiGroups:
   - rbac
   resources:
   - clusterrolebindings
