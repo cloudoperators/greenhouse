@@ -16,7 +16,7 @@ import (
 )
 
 var (
-	groupsServer *httptest.Server
+	usersServer *httptest.Server
 )
 
 func TestTeammembership(t *testing.T) {
@@ -26,7 +26,7 @@ func TestTeammembership(t *testing.T) {
 
 var _ = BeforeSuite(func() {
 	By("mocking SCIM server")
-	groupsServer = scim.ReturnDefaultGroupResponseMockServer()
+	usersServer = scim.ReturnUserResponseMockServer()
 
 	test.RegisterController("teammembershipUpdaterController",
 		(&teammembership.TeamMembershipUpdaterController{}).SetupWithManager)
@@ -35,7 +35,7 @@ var _ = BeforeSuite(func() {
 
 var _ = AfterSuite(func() {
 	By("tearing down the test environment")
-	groupsServer.Close()
+	usersServer.Close()
 
 	test.TestAfterSuite()
 })

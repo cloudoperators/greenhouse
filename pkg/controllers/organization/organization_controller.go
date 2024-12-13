@@ -265,22 +265,33 @@ func (r *OrganizationReconciler) checkSCIMAPIAvailability(ctx context.Context, o
 	if err != nil {
 		return greenhousesapv1alpha1.FalseCondition(greenhousesapv1alpha1.SCIMAPIAvailableCondition, greenhousesapv1alpha1.SecretNotFoundReason, "BasicAuthPw missing")
 	}
-	clientConfig := scim.Config{
-		RawURL:   scimConfig.BaseURL,
+	config := &scim.Config{
+		URL:      scimConfig.BaseURL,
 		AuthType: scim.Basic,
-		BasicAuthConfig: &scim.BasicAuthConfig{
-			BasicAuthUser: basicAuthUser,
-			BasicAuthPw:   basicAuthPw,
+		BasicAuth: &scim.BasicAuthConfig{
+			Username: basicAuthUser,
+			Password: basicAuthPw,
 		},
 	}
-	scimClient, err := scim.NewScimClient(clientConfig)
+	logger := ctrl.LoggerFrom(ctx)
+	scimClient, err := scim.NewSCIMClient(logger, config)
 	if err != nil {
 		return greenhousesapv1alpha1.FalseCondition(greenhousesapv1alpha1.SCIMAPIAvailableCondition, greenhousesapv1alpha1.SCIMRequestFailedReason, "Failed to create SCIM client")
 	}
 
-	_, err = scimClient.GetTeamMembers(org.Spec.MappedOrgAdminIDPGroup)
+	// verify that the SCIM API can be accessed
+	opts := &scim.QueryOptions{
+		Filter:             scim.GroupFilterByDisplayName(org.Spec.MappedOrgAdminIDPGroup),
+		ExcludedAttributes: scim.SetAttributes(scim.AttrMembers),
+	}
+
+	groups, err := scimClient.GetGroups(ctx, opts)
 	if err != nil {
+		logger.Error(err, "Failed to request data from SCIM API")
 		return greenhousesapv1alpha1.FalseCondition(greenhousesapv1alpha1.SCIMAPIAvailableCondition, greenhousesapv1alpha1.SCIMRequestFailedReason, "Failed to request data from SCIM API")
+	}
+	if len(groups) == 0 {
+		return greenhousesapv1alpha1.FalseCondition(greenhousesapv1alpha1.SCIMAPIAvailableCondition, greenhousesapv1alpha1.SCIMRequestFailedReason, org.Spec.MappedOrgAdminIDPGroup+" Group not found in SCIM API")
 	}
 
 	return greenhousesapv1alpha1.TrueCondition(greenhousesapv1alpha1.SCIMAPIAvailableCondition, lifecycle.CreatedReason, "SCIM API is available")

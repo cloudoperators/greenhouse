@@ -218,7 +218,7 @@ var _ = Describe("TeammembershipUpdaterController", Ordered, func() {
 
 			By("ensuring logger was called correctly")
 			failedProcessingLog := "failed processing team-membership for team"
-			reasonLog := "no mapped group found for " + nonExistingGroupName
+			reasonLog := "unexpected status code 404"
 			Eventually(func(g Gomega) {
 				g.Expect(tee.Contents()).To(ContainSubstring(failedProcessingLog), "logger should log failed processing")
 				g.Expect(tee.Contents()).To(ContainSubstring(reasonLog), "logger should log reason")
@@ -244,7 +244,7 @@ var _ = Describe("TeammembershipUpdaterController", Ordered, func() {
 
 			By("ensuring logger was called correctly")
 			failedProcessingLog := "failed processing team-membership for team"
-			reasonLog := "could not retrieve TeamMembers from"
+			reasonLog := "unexpected status code 404"
 			Eventually(func(g Gomega) {
 				g.Expect(tee.Contents()).To(ContainSubstring(failedProcessingLog), "logger should log failed processing")
 				g.Expect(tee.Contents()).To(ContainSubstring(reasonLog), "logger should log reason")
@@ -465,7 +465,7 @@ var _ = Describe("TeammembershipUpdaterController", Ordered, func() {
 			By("updating SCIMConfig in Organization")
 			organization.Spec.Authentication = &greenhousev1alpha1.Authentication{
 				SCIMConfig: &greenhousev1alpha1.SCIMConfig{
-					BaseURL: groupsServer.URL,
+					BaseURL: usersServer.URL + "/scim",
 					BasicAuthUser: greenhousev1alpha1.ValueFromSource{
 						Secret: &greenhousev1alpha1.SecretKeyReference{
 							Name: "test-secret",
@@ -508,7 +508,7 @@ func createTestOrgWithSecret(namespace string) {
 	org := setup.CreateOrganization(test.Ctx, namespace, func(o *greenhousev1alpha1.Organization) {
 		o.Spec.Authentication = &greenhousev1alpha1.Authentication{
 			SCIMConfig: &greenhousev1alpha1.SCIMConfig{
-				BaseURL: groupsServer.URL,
+				BaseURL: usersServer.URL + "/scim",
 				BasicAuthUser: greenhousev1alpha1.ValueFromSource{
 					Secret: &greenhousev1alpha1.SecretKeyReference{
 						Name: "test-secret",
