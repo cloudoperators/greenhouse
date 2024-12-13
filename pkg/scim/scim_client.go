@@ -56,7 +56,6 @@ func (t *basicAuthTransport) RoundTrip(req *http.Request) (*http.Response, error
 type ISCIMClient interface {
 	GetUsers(ctx context.Context, options *QueryOptions) ([]Resource, error)
 	GetGroups(ctx context.Context, options *QueryOptions) ([]Resource, error)
-	GroupExists(ctx context.Context, options *QueryOptions) (bool, error)
 }
 
 // NewSCIMClient - creates a new SCIM client with an auth transport
@@ -92,15 +91,6 @@ func NewSCIMClient(logger logr.Logger, config *Config) (ISCIMClient, error) {
 
 func (c *scimClient) GetUsers(ctx context.Context, options *QueryOptions) ([]Resource, error) {
 	return c.fetchAllResources(ctx, userPath, options)
-}
-
-// GroupExists - checks if a group exists
-func (c *scimClient) GroupExists(ctx context.Context, options *QueryOptions) (bool, error) {
-	groups, err := c.GetGroups(ctx, options)
-	if err != nil {
-		return false, err
-	}
-	return len(groups) > 0, nil
 }
 
 // GetGroups - fetches all groups (optionally if StartID is provided then it does pagination)

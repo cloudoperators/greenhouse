@@ -67,7 +67,7 @@ func Test_Basic_Auth_Client(t *testing.T) {
 	}
 }
 
-func TestClient_GroupExists(t *testing.T) {
+func TestClient_GetGroups(t *testing.T) {
 	// Create a fake client to mock API calls.
 	responseMap := make(map[string]mockResponse)
 	ctx := context.Background()
@@ -104,7 +104,7 @@ func TestClient_GroupExists(t *testing.T) {
 		withError            bool
 	}{
 		{
-			name: "it should successfully check if group exists",
+			name: "it should successfully return one group",
 			queryOptions: &QueryOptions{
 				Filter:             GroupFilterByDisplayName("SOME_IDP_GROUP_NAME"),
 				ExcludedAttributes: SetAttributes(AttrMembers),
@@ -114,13 +114,14 @@ func TestClient_GroupExists(t *testing.T) {
 			expectedExists:       true,
 		},
 		{
-			name: "it should successfully check if group does not exist",
+			name: "it should not return any groups",
 			queryOptions: &QueryOptions{
 				Filter:             GroupFilterByDisplayName("non-existing-group"),
 				ExcludedAttributes: SetAttributes(AttrMembers),
 			},
-			mockResponse:   emptyResponseBodyMockFn(),
-			expectedExists: false,
+			mockResponse:         emptyResponseBodyMockFn(),
+			expectedTotalResults: 0,
+			expectedExists:       false,
 		},
 		{
 			name: "it should error out when invalid request is made",
@@ -137,13 +138,6 @@ func TestClient_GroupExists(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			// Update the response map for this test case
 			responseMap[test.queryOptions.Filter.String()] = test.mockResponse
-			exists, err := scimClient.GroupExists(ctx, test.queryOptions)
-			if test.withError {
-				assert.Error(t, err)
-			} else {
-				assert.NoError(t, err)
-				assert.Equal(t, test.expectedExists, exists)
-			}
 			groups, err := scimClient.GetGroups(ctx, test.queryOptions)
 			if test.withError {
 				assert.Error(t, err)
@@ -296,7 +290,7 @@ func TestClient_GetPaginatedUsers(t *testing.T) {
 	responseMap["initial"] = firstPageResponse
 	responseMap["second-page"] = secondPageResponse
 
-	// Call GetPaginatedUsers
+	// Call GetUsers with pagination
 	users, err := scimClient.GetUsers(ctx, &QueryOptions{
 		Filter:  UserFilterByGroupDisplayName("some-group"),
 		StartID: "initial",
