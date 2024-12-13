@@ -73,8 +73,8 @@ var _ = Describe("TeammembershipUpdaterController", Ordered, func() {
 			Eventually(func(g Gomega) {
 				err := setup.Get(test.Ctx, client.ObjectKeyFromObject(team), team)
 				g.Expect(err).ShouldNot(HaveOccurred(), "unexpected error getting Team")
-				g.Expect(team.Status.Members).To(HaveLen(2), "the TeamMembership should have exactly two Members")
-			})
+				g.Expect(team.Status.Members).To(HaveLen(2), "the Team should have exactly two Members")
+			}).Should(Succeed(), "Team should have the team members")
 		})
 
 		It("should update existing TM without users", func() {
@@ -108,7 +108,7 @@ var _ = Describe("TeammembershipUpdaterController", Ordered, func() {
 				err := setup.Get(test.Ctx, client.ObjectKeyFromObject(firstTeam), firstTeam)
 				g.Expect(err).ShouldNot(HaveOccurred(), "unexpected error getting Team")
 				g.Expect(firstTeam.Status.Members).To(HaveLen(2), "the TeamMembership should have exactly two Members")
-			})
+			}).Should(Succeed(), "Team should have the team members")
 		})
 
 		It("should update existing TM with users", func() {
@@ -140,7 +140,7 @@ var _ = Describe("TeammembershipUpdaterController", Ordered, func() {
 				err := setup.Get(test.Ctx, client.ObjectKeyFromObject(firstTeam), firstTeam)
 				g.Expect(err).ShouldNot(HaveOccurred(), "unexpected error getting Team")
 				g.Expect(firstTeam.Status.Members).To(HaveLen(2), "the TeamMembership should have exactly two Members")
-			})
+			}).Should(Succeed(), "Team should have the team members")
 		})
 
 		It("should update multiple TMs", func() {
@@ -198,14 +198,14 @@ var _ = Describe("TeammembershipUpdaterController", Ordered, func() {
 				err := setup.Get(test.Ctx, client.ObjectKeyFromObject(firstTeam), firstTeam)
 				g.Expect(err).ShouldNot(HaveOccurred(), "unexpected error getting Team")
 				g.Expect(firstTeam.Status.Members).To(HaveLen(2), "the first team should have exactly two Members")
-			})
+			}).Should(Succeed(), "First team should have the team members")
 
 			By("ensuring that the second Team has been updated")
 			Eventually(func(g Gomega) {
 				err := setup.Get(test.Ctx, client.ObjectKeyFromObject(secondTeam), secondTeam)
 				g.Expect(err).ShouldNot(HaveOccurred(), "unexpected error getting Team")
 				g.Expect(secondTeam.Status.Members).To(HaveLen(3), "the second team should have exactly three Members")
-			})
+			}).Should(Succeed(), "Second team should have the team members")
 		})
 
 		It("should do nothing if Team has no mappedIdpGroup", func() {
