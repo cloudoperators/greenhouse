@@ -160,8 +160,8 @@ func (c *scimClient) doRequest(req *http.Request) (*http.Response, *ResponseBody
 	if err != nil {
 		return nil, nil, err
 	}
-	defer func(Body io.ReadCloser) {
-		err := Body.Close()
+	defer func(body io.ReadCloser) {
+		err := body.Close()
 		if err != nil {
 			c.log.Error(err, "error closing scim response body")
 		}

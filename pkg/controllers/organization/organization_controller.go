@@ -279,13 +279,14 @@ func (r *OrganizationReconciler) checkSCIMAPIAvailability(ctx context.Context, o
 		return greenhousesapv1alpha1.FalseCondition(greenhousesapv1alpha1.SCIMAPIAvailableCondition, greenhousesapv1alpha1.SCIMRequestFailedReason, "Failed to create SCIM client")
 	}
 
+        // verify that the SCIM API can be accessed
 	opts := &scim.QueryOptions{
 		Filter:             scim.GroupFilterByDisplayName(org.Spec.MappedOrgAdminIDPGroup),
 		ExcludedAttributes: scim.SetAttributes(scim.AttrMembers),
 	}
 
-	exists, err := scimClient.GroupExists(ctx, opts)
-	if err != nil || !exists {
+	groups, err := scimClient.GetGroup(ctx, opts)
+	if err != nil || len(groups) == 0 {
 		return greenhousesapv1alpha1.FalseCondition(greenhousesapv1alpha1.SCIMAPIAvailableCondition, greenhousesapv1alpha1.SCIMRequestFailedReason, "Failed to request data from SCIM API")
 	}
 
