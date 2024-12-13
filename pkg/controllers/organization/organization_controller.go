@@ -5,8 +5,6 @@ package organization
 
 import (
 	"context"
-	"fmt"
-
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
@@ -292,8 +290,7 @@ func (r *OrganizationReconciler) checkSCIMAPIAvailability(ctx context.Context, o
 		return greenhousesapv1alpha1.FalseCondition(greenhousesapv1alpha1.SCIMAPIAvailableCondition, greenhousesapv1alpha1.SCIMRequestFailedReason, "Failed to request data from SCIM API")
 	}
 	if len(groups) == 0 {
-		msg := fmt.Sprintf("%s Group not found in SCIM API", org.Spec.MappedOrgAdminIDPGroup)
-		return greenhousesapv1alpha1.FalseCondition(greenhousesapv1alpha1.SCIMAPIAvailableCondition, greenhousesapv1alpha1.SCIMRequestFailedReason, msg)
+		return greenhousesapv1alpha1.FalseCondition(greenhousesapv1alpha1.SCIMAPIAvailableCondition, greenhousesapv1alpha1.SCIMRequestFailedReason, org.Spec.MappedOrgAdminIDPGroup+" Group not found in SCIM API")
 	}
 
 	return greenhousesapv1alpha1.TrueCondition(greenhousesapv1alpha1.SCIMAPIAvailableCondition, lifecycle.CreatedReason, "SCIM API is available")
