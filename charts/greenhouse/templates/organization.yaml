@@ -15,7 +15,7 @@ spec:
 {{- if.Values.global.oidc.enabled }}
     oidc:
       issuer: {{ required ".Values.global.oidc.issuer missing" .Values.global.oidc.issuer }}
-      redirectURI: {{ required ".Values.global.oidc.redirectURL missing" .Values.global.oidc.redirectURL }}
+      redirectURI: {{ default (printf "https://%s" ( include "idproxy.auth.hostname" .)) .Values.global.oidc.redirectURL }}
       clientIDReference:
         name: {{ .Chart.Name }}-oidc
         key: clientID
