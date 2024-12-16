@@ -2,11 +2,9 @@
 # SPDX-License-Identifier: Apache-2.0
 
 global:
-  dns:
-    # The DNS domain to be used for all Greenhouse components.
-    domain:
+  # The DNS domain to be used for all Greenhouse components.
+  dnsDomain:
   dockerHubMirror:
-
   # OIDC configuration for Greenhouse.
   oidc:
     issuer:
@@ -16,17 +14,10 @@ global:
 
 # Organization & IDProxy should be enabled only after the initial install of greenhouse
 organization:
-  enabled: false
+  enabled: true
 idproxy:
-  enabled: false
+  enabled: true
 
-# OIDC configuration for Greenhouse.
-# Remove this section after migration to above globals.
-oidc:
-  issuer:
-  redirectURL:
-  clientID:
-  clientSecret:
 scim:
   enabled: false
   # username:
@@ -47,7 +38,7 @@ demo:
 
 # Toggle the installation of Plugins into the Greenhouse namespace
 plugins:
-  enabled: false
+  enabled: true
 
 # Configures the DigiCert issuer for the Greenhouse organization,
 # which enables obtaining DigiCert certificates via the cert-manager.
