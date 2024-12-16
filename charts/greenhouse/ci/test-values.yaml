@@ -46,12 +46,6 @@ tailscale-proxy:
 cors-proxy:
   host: "foo.bar"
 
-ui:
-  host: "foo.bar"
-  oidcIssuerUrl: "foo.bar/oidc"
-  oidcClientId: topSecret!
-  k8sApiEndpoint: "api.k8s.foo.bar"
-
 team-membership:
   env:
     SCIM_BASIC_AUTH_USER: topSecret!
