@@ -297,7 +297,7 @@ func (r *TeamRoleBindingReconciler) cleanupResources(ctx context.Context, trb *g
 			continue
 		}
 
-		// Remove rbac from all namespaces not matching the .spec.namespaces.
+		// Remove RoleBindings from all namespaces not matching the .spec.namespaces.
 		cluster := &greenhousev1alpha1.Cluster{}
 		err := r.Get(ctx, types.NamespacedName{Namespace: trb.Namespace, Name: s.ClusterName}, cluster)
 		if err != nil {
@@ -324,7 +324,7 @@ func (r *TeamRoleBindingReconciler) cleanupClusterNamespaces(ctx context.Context
 
 	var roleBindings = new(rbacv1.RoleBindingList)
 	err = cl.List(ctx, roleBindings, &client.ListOptions{
-		FieldSelector: fields.OneTermEqualSelector(".metadata.name", trb.GetRBACName()),
+		FieldSelector: fields.OneTermEqualSelector("metadata.name", trb.GetRBACName()),
 	})
 	if apierrors.IsNotFound(err) {
 		return nil
@@ -333,18 +333,15 @@ func (r *TeamRoleBindingReconciler) cleanupClusterNamespaces(ctx context.Context
 	}
 
 	roleBindingsToDelete := slices.DeleteFunc(roleBindings.Items, func(roleBinding rbacv1.RoleBinding) bool {
-		return !slices.ContainsFunc(trb.Spec.Namespaces, func(namespace string) bool {
+		return slices.ContainsFunc(trb.Spec.Namespaces, func(namespace string) bool {
 			return roleBinding.Namespace == namespace
 		})
 	})
+	if len(roleBindingsToDelete) == 0 {
+		return nil
+	}
 
 	for _, roleBinding := range roleBindingsToDelete {
-		// remoteObject := &rbacv1.RoleBinding{
-		// 	ObjectMeta: metav1.ObjectMeta{
-		// 		Name:      trb.GetRBACName(),
-		// 		Namespace: namespace,
-		// 	},
-		// }
 		result, err := clientutil.Delete(ctx, cl, &roleBinding)
 		switch {
 		case err != nil:
@@ -354,7 +351,6 @@ func (r *TeamRoleBindingReconciler) cleanupClusterNamespaces(ctx context.Context
 			log.FromContext(ctx).Info("deleted RoleBinding successfully", "roleBinding", trb.GetRBACName(), "cluster", cluster.GetName(), "namespace", roleBinding.Namespace)
 		}
 	}
-
 	return nil
 }
 
