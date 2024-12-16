@@ -10,5 +10,5 @@
 
 {{/* Render the k8s api hostname */}}
 {{- define "dashboard.api.hostname" -}}
-{{- printf "https://%s.%s" "api" (required "global.dnsDomain missing" .Values.global.dnsDomain) }}
+{{- printf "https://%s.%s" (default "api" .Values.global.kubeAPISubDomain) (required "global.dnsDomain missing" .Values.global.dnsDomain) }}
 {{- end }}
