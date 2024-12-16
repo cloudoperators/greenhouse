@@ -12,7 +12,7 @@ data:
   appProps.json: |
     {
       "authIssuerUrl": {{ include "dashboard.auth.hostname" $ | quote }},
-      "authClientId": {{ required ".Values.global.oidc.clientID" $.Values.global.oidc.clientID | quote }},
+      "authClientId": {{ default .Values.global.oidc.dashboardClientID "greenhouse" | quote }},
       "currentHost": {{ required ".Values.dashboard.assetServerURL missing" .Values.dashboard.assetServerURL | quote }},
       "apiEndpoint": {{ include "dashboard.api.hostname" $  | quote }},
       "environment": {{ required ".Values.dashboard.environment" .Values.dashboard.environment | quote }},
