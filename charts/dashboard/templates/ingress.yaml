@@ -7,8 +7,10 @@ apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
   name: {{ .Release.Name }}-dashboard
+  {{- with .Values.ingress.annotations }}
   annotations:
-    kubernetes.io/tls-acme: "true"
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
 spec:
   ingressClassName: {{ required ".Values.ingress.className missing" .Values.ingress.className }}
   rules:
