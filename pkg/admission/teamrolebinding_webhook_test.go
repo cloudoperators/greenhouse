@@ -14,7 +14,6 @@ import (
 )
 
 var _ = Describe("Validate Create RoleBinding", Ordered, func() {
-
 	var (
 		setup    *test.TestSetup
 		teamRole *greenhousev1alpha1.TeamRole
@@ -117,50 +116,124 @@ var _ = Describe("Validate Create RoleBinding", Ordered, func() {
 			Expect(err).To(MatchError(ContainSubstring("cannot specify both spec.clusterName and spec.clusterSelector")))
 		})
 	})
-})
 
-var _ = Describe("Validate Update Rolebinding", func() {
-	Context("ensures that changes to the immutable Namespaces are detected", func() {
-		defaultNamespaces := []string{"testNamespace", "demoNamespace"}
-		emptyNamespaces := []string{}
-		editedNamespaces := []string{"editedNamespace", "demoNamespace"}
-		deletedNamespaces := []string{"demoNamespace"}
-
-		DescribeTable("Validate that adding, removing, or editing Namespaces is detected", func(oldNamespaces, curNamespaces []string, expChange bool) {
+	Context("Validate Update Rolebinding", func() {
+		It("Should deny changes to the empty Namespaces", func() {
+			emptyNamespaces := []string{}
 			oldRB := &greenhousev1alpha1.TeamRoleBinding{
 				ObjectMeta: metav1.ObjectMeta{
 					Namespace: "greenhouse",
 					Name:      "testBinding",
 				},
 				Spec: greenhousev1alpha1.TeamRoleBindingSpec{
-					TeamRoleRef: "testRole",
-					Namespaces:  oldNamespaces,
+					TeamRoleRef: teamRole.Name,
+					TeamRef:     team.Name,
+					ClusterName: cluster.Name,
+					Namespaces:  emptyNamespaces,
 				},
 			}
 
+			editedNamespaces := []string{"demoNamespace"}
 			curRB := &greenhousev1alpha1.TeamRoleBinding{
 				ObjectMeta: metav1.ObjectMeta{
 					Namespace: "greenhouse",
 					Name:      "testBinding",
 				},
 				Spec: greenhousev1alpha1.TeamRoleBindingSpec{
-					TeamRoleRef: "testRole",
-					Namespaces:  curNamespaces,
+					TeamRoleRef: teamRole.Name,
+					TeamRef:     team.Name,
+					ClusterName: cluster.Name,
+					Namespaces:  editedNamespaces,
 				},
 			}
 
-			switch hasChanged := hasNamespacesChanged(oldRB, curRB); hasChanged {
-			case true:
-				Expect(expChange).To(BeTrue(), "expected Namespaces changes, but none found")
-			default:
-				Expect(expChange).To(BeFalse(), "unexpected Namespaces change detected")
+			warns, err := ValidateUpdateRoleBinding(test.Ctx, test.K8sClient, oldRB, curRB)
+			Expect(warns).To(BeNil(), "expected no warnings")
+			Expect(err).To(HaveOccurred(), "expected an error")
+			Expect(err).To(MatchError(ContainSubstring("cannot change existing TeamRoleBinding from cluster-scoped to namespace-scoped")))
+		})
+
+		It("Should deny removing all Namespaces", func() {
+			filledNamespaces := []string{"demoNamespace1", "demoNamespace2"}
+			oldRB := &greenhousev1alpha1.TeamRoleBinding{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: "greenhouse",
+					Name:      "testBinding",
+				},
+				Spec: greenhousev1alpha1.TeamRoleBindingSpec{
+					TeamRoleRef: teamRole.Name,
+					TeamRef:     team.Name,
+					ClusterName: cluster.Name,
+					Namespaces:  filledNamespaces,
+				},
 			}
-		},
-			Entry("No Changes, all good", defaultNamespaces, defaultNamespaces, false),
-			Entry("Namespaces added", emptyNamespaces, defaultNamespaces, true),
-			Entry("Namespaces removed", defaultNamespaces, emptyNamespaces, true),
-			Entry("Namespaces edited", defaultNamespaces, editedNamespaces, true),
-			Entry("Namespaces deleted", defaultNamespaces, deletedNamespaces, true),
-		)
+
+			emptyNamespaces := []string{}
+			curRB := &greenhousev1alpha1.TeamRoleBinding{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: "greenhouse",
+					Name:      "testBinding",
+				},
+				Spec: greenhousev1alpha1.TeamRoleBindingSpec{
+					TeamRoleRef: teamRole.Name,
+					TeamRef:     team.Name,
+					ClusterName: cluster.Name,
+					Namespaces:  emptyNamespaces,
+				},
+			}
+
+			warns, err := ValidateUpdateRoleBinding(test.Ctx, test.K8sClient, oldRB, curRB)
+			Expect(warns).To(BeNil(), "expected no warnings")
+			Expect(err).To(HaveOccurred(), "expected an error")
+			Expect(err).To(MatchError(ContainSubstring("cannot remove all namespaces in existing TeamRoleBinding")))
+		})
+
+		It("Should allow changing Namespaces", func() {
+			filledNamespaces := []string{"demoNamespace1", "demoNamespace2"}
+			oldRB := &greenhousev1alpha1.TeamRoleBinding{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: "greenhouse",
+					Name:      "testBinding",
+				},
+				Spec: greenhousev1alpha1.TeamRoleBindingSpec{
+					TeamRoleRef: teamRole.Name,
+					TeamRef:     team.Name,
+					ClusterName: cluster.Name,
+					Namespaces:  filledNamespaces,
+				},
+			}
+
+			addedNamespaces := []string{"demoNamespace1", "demoNamespace2", "demoNamespace3"}
+			curRB := &greenhousev1alpha1.TeamRoleBinding{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: "greenhouse",
+					Name:      "testBinding",
+				},
+				Spec: greenhousev1alpha1.TeamRoleBindingSpec{
+					TeamRoleRef: teamRole.Name,
+					TeamRef:     team.Name,
+					ClusterName: cluster.Name,
+					Namespaces:  addedNamespaces,
+				},
+			}
+
+			warns, err := ValidateUpdateRoleBinding(test.Ctx, test.K8sClient, oldRB, curRB)
+			Expect(warns).To(BeNil(), "expected no warnings")
+			Expect(err).ToNot(HaveOccurred(), "expected no error")
+
+			removedNamespaces := []string{"demoNamespace1"}
+			curRB.Spec.Namespaces = removedNamespaces
+
+			warns, err = ValidateUpdateRoleBinding(test.Ctx, test.K8sClient, oldRB, curRB)
+			Expect(warns).To(BeNil(), "expected no warnings")
+			Expect(err).ToNot(HaveOccurred(), "expected no error")
+
+			differentNamespaces := []string{"differentNamespace1", "differentNamespace2"}
+			curRB.Spec.Namespaces = differentNamespaces
+
+			warns, err = ValidateUpdateRoleBinding(test.Ctx, test.K8sClient, oldRB, curRB)
+			Expect(warns).To(BeNil(), "expected no warnings")
+			Expect(err).ToNot(HaveOccurred(), "expected no error")
+		})
 	})
 })

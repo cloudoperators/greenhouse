@@ -5,7 +5,6 @@ package admission
 
 import (
 	"context"
-	"reflect"
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -87,13 +86,18 @@ func ValidateUpdateRoleBinding(ctx context.Context, c client.Client, old, cur ru
 				Group:    oldRB.GroupVersionKind().Group,
 				Resource: oldRB.Kind,
 			}, oldRB.Name, field.Forbidden(field.NewPath("spec"), "must contain either spec.clusterName or spec.clusterSelector"))
-	case hasNamespacesChanged(oldRB, curRB) && len(curRB.Spec.Namespaces) == 0:
-		// Deny removing all namespaces - at least one has to stay.
+	case isClusterScoped(oldRB) && !isClusterScoped(curRB):
 		return nil, apierrors.NewForbidden(
 			schema.GroupResource{
 				Group:    oldRB.GroupVersionKind().Group,
 				Resource: oldRB.Kind,
-			}, oldRB.Name, field.Forbidden(field.NewPath("spec", "namespaces"), "cannot remove all namespaces"))
+			}, oldRB.Name, field.Forbidden(field.NewPath("spec", "namespaces"), "cannot change existing TeamRoleBinding from cluster-scoped to namespace-scoped"))
+	case !isClusterScoped(oldRB) && isClusterScoped(curRB):
+		return nil, apierrors.NewForbidden(
+			schema.GroupResource{
+				Group:    oldRB.GroupVersionKind().Group,
+				Resource: oldRB.Kind,
+			}, oldRB.Name, field.Forbidden(field.NewPath("spec", "namespaces"), "cannot remove all namespaces in existing TeamRoleBinding"))
 	default:
 		return nil, nil
 	}
@@ -101,11 +105,6 @@ func ValidateUpdateRoleBinding(ctx context.Context, c client.Client, old, cur ru
 
 func ValidateDeleteRoleBinding(_ context.Context, _ client.Client, _ runtime.Object) (admission.Warnings, error) {
 	return nil, nil
-}
-
-// hasNamespacesChanged returns true if the namespaces in the old and current RoleBinding are different.
-func hasNamespacesChanged(old, cur *greenhousev1alpha1.TeamRoleBinding) bool {
-	return !reflect.DeepEqual(old.Spec.Namespaces, cur.Spec.Namespaces)
 }
 
 // validateClusterNameOrSelector checks if the TeamRoleBinding has a valid clusterName or clusterSelector but not both.
@@ -118,4 +117,9 @@ func validateClusterNameOrSelector(rb *greenhousev1alpha1.TeamRoleBinding) error
 		return apierrors.NewInvalid(rb.GroupVersionKind().GroupKind(), rb.Name, field.ErrorList{field.Invalid(field.NewPath("spec", "clusterName"), rb.Spec.ClusterName, "must specify either spec.clusterName or spec.clusterSelector")})
 	}
 	return nil
+}
+
+// isClusterScoped returns true if the TeamRoleBinding will create ClusterRoleBindings.
+func isClusterScoped(trb *greenhousev1alpha1.TeamRoleBinding) bool {
+	return len(trb.Spec.Namespaces) == 0
 }
