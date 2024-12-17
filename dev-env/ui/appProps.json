@@ -1,0 +1,8 @@
+{
+  "apiEndpoint": "http://127.0.0.1:8090",
+  "environment": "dev",
+  "authIssuerUrl": "https://auth.endpoint.com",
+  "currentHost": "https://assets.server.com",
+  "authClientId": "client-id",
+  "mockAuth": true
+}

@@ -1107,6 +1107,29 @@ components:
         status:
           description: TeamStatus defines the observed state of Team
           properties:
+            members:
+              items:
+                description: User specifies a human person.
+                properties:
+                  email:
+                    description: Email of the user.
+                    type: string
+                  firstName:
+                    description: FirstName of the user.
+                    type: string
+                  id:
+                    description: ID is the unique identifier of the user.
+                    type: string
+                  lastName:
+                    description: LastName of the user.
+                    type: string
+                required:
+                  - email
+                  - firstName
+                  - id
+                  - lastName
+                type: object
+              type: array
             statusConditions:
               description: A StatusConditions contains a list of conditions.\nOnly one condition of a given type may exist in the list.
               properties:
@@ -1141,6 +1164,7 @@ components:
                   x-kubernetes-list-type: map
               type: object
           required:
+            - members
             - statusConditions
           type: object
       type: object
