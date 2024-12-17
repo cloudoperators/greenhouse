@@ -1,0 +1,49 @@
+{{/* 
+SPDX-FileCopyrightText: 2024 SAP SE or an SAP affiliate company and Greenhouse contributors
+SPDX-License-Identifier: Apache-2.0
+*/}}
+
+{{- if .Capabilities.APIVersions.Has "monitoring.coreos.com/v1/ServiceMonitor" }}
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: {{ include "manager.fullname" . }}-controller-manager
+  labels:
+    plugin: kube-monitoring
+spec:
+  endpoints:
+    - honorLabels: true
+      interval: 30s
+      port: metrics
+      scheme: http
+      path: /metrics
+  namespaceSelector:
+    matchNames:
+      - {{ .Release.Namespace }}
+  selector:
+    matchLabels:
+      app: greenhouse
+      {{- include "manager.selectorLabels" . | nindent 6 }}
+
+---
+
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: greenhouse-service-proxies
+  labels:
+    plugin: kube-monitoring
+spec:
+  endpoints:
+    - honorLabels: true
+      interval: 30s
+      port: metrics
+      scheme: http
+      path: /metrics
+  namespaceSelector:
+    any: true
+  selector:
+    matchLabels:
+      app.kubernetes.io/instance: service-proxy
+      app.kubernetes.io/name: service-proxy
+{{ end }}
