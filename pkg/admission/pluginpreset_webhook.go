@@ -109,6 +109,21 @@ func ValidateUpdatePluginPreset(ctx context.Context, c client.Client, oldObj, cu
 	return nil, nil
 }
 
-func ValidateDeletePluginPreset(_ context.Context, _ client.Client, _ runtime.Object) (admission.Warnings, error) {
+func ValidateDeletePluginPreset(_ context.Context, _ client.Client, obj runtime.Object) (admission.Warnings, error) {
+	pluginPreset, ok := obj.(*greenhousev1alpha1.PluginPreset)
+	if !ok {
+		return nil, nil
+	}
+
+	var allErrs field.ErrorList
+	if _, ok := pluginPreset.Annotations["greenhouse.sap/prevent-deletion"]; ok {
+		allErrs = append(allErrs, field.Invalid(field.NewPath("metadata").Child("annotation").Child("greenhouse.sap/prevent-deletion"), pluginPreset.Annotations,
+			"Plugin preset has prevent deletion annotation"))
+	}
+
+	if len(allErrs) > 0 {
+		return nil, apierrors.NewInvalid(pluginPreset.GroupVersionKind().GroupKind(), pluginPreset.Name, allErrs)
+	}
+
 	return nil, nil
 }
