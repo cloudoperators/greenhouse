@@ -20,7 +20,7 @@ type TeamSpec struct {
 // TeamStatus defines the observed state of Team
 type TeamStatus struct {
 	StatusConditions StatusConditions `json:"statusConditions"`
-	Members          []User           `json:"members"`
+	Members          []User           `json:"members,omitempty"`
 }
 
 //+kubebuilder:object:root=true
