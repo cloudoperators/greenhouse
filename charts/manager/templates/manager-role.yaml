@@ -8,10 +8,10 @@ rules:
   - ""
   resources:
   - events
-  - namespaces
+  - secrets
+  - serviceaccounts
   verbs:
   - create
-  - delete
   - get
   - list
   - patch
@@ -20,10 +20,10 @@ rules:
 - apiGroups:
   - ""
   resources:
-  - secrets
-  - serviceaccounts
+  - namespaces
   verbs:
   - create
+  - delete
   - get
   - list
   - patch

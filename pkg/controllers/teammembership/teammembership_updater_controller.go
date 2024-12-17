@@ -99,7 +99,7 @@ func listTeamsAsReconcileRequests(ctx context.Context, c client.Client, listOpts
 }
 
 func (r *TeamMembershipUpdaterController) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	return lifecycle.Reconcile(ctx, r.Client, req.NamespacedName, &greenhousev1alpha1.Team{}, r, nil) // status function is nil because it updates the other entity inside.
+	return lifecycle.Reconcile(ctx, r.Client, req.NamespacedName, &greenhousev1alpha1.Team{}, r, nil)
 }
 
 func (r *TeamMembershipUpdaterController) EnsureDeleted(_ context.Context, _ lifecycle.RuntimeObject) (ctrl.Result, lifecycle.ReconcileResult, error) {
@@ -187,6 +187,7 @@ func (r *TeamMembershipUpdaterController) EnsureCreated(ctx context.Context, obj
 		return ctrl.Result{}, lifecycle.Failed, err
 	}
 
+	team.Status.Members = users
 	teamMembershipStatus.SetConditions(membersValidCondition, greenhousev1alpha1.TrueCondition(greenhousev1alpha1.SCIMAccessReadyCondition, "", ""))
 
 	membersCountMetric.With(prometheus.Labels{
