@@ -19,6 +19,8 @@ import (
 
 // Webhook for the PluginPreset custom resource.
 
+const preventDeletionAnnotation = "greenhouse.sap/prevent-deletion"
+
 func SetupPluginPresetWebhookWithManager(mgr ctrl.Manager) error {
 	return setupWebhook(mgr,
 		&greenhousev1alpha1.PluginPreset{},
@@ -116,9 +118,9 @@ func ValidateDeletePluginPreset(_ context.Context, _ client.Client, obj runtime.
 	}
 
 	var allErrs field.ErrorList
-	if _, ok := pluginPreset.Annotations["greenhouse.sap/prevent-deletion"]; ok {
-		allErrs = append(allErrs, field.Invalid(field.NewPath("metadata").Child("annotation").Child("greenhouse.sap/prevent-deletion"), pluginPreset.Annotations,
-			"Plugin preset has prevent deletion annotation"))
+	if _, ok := pluginPreset.Annotations[preventDeletionAnnotation]; ok {
+		allErrs = append(allErrs, field.Invalid(field.NewPath("metadata").Child("annotation").Child(preventDeletionAnnotation),
+			pluginPreset.Annotations, "Plugin preset has prevent deletion annotation"))
 	}
 
 	if len(allErrs) > 0 {

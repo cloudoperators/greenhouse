@@ -170,4 +170,35 @@ var _ = Describe("PluginPreset Admission Tests", Ordered, func() {
 		Expect(test.K8sClient.Delete(test.Ctx, cut)).
 			To(Succeed(), "there must be no error deleting the PluginPreset")
 	})
+
+	It("should reject delete operation when PluginPreset has prevent deletion annotation", func() {
+		pluginPreset := &greenhousev1alpha1.PluginPreset{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      pluginPresetUpdate,
+				Namespace: test.TestNamespace,
+				Annotations: map[string]string{
+					preventDeletionAnnotation: "true",
+				},
+			},
+			Spec: greenhousev1alpha1.PluginPresetSpec{
+				Plugin: greenhousev1alpha1.PluginSpec{
+					PluginDefinition: pluginPresetDefinition,
+				},
+				ClusterSelector: metav1.LabelSelector{MatchLabels: map[string]string{"foo": "bar"}},
+			},
+		}
+
+		err := test.K8sClient.Create(test.Ctx, pluginPreset)
+		Expect(err).ToNot(HaveOccurred())
+
+		err = test.K8sClient.Delete(test.Ctx, pluginPreset)
+		Expect(err).To(HaveOccurred())
+
+		pluginPreset.Annotations = map[string]string{}
+		err = test.K8sClient.Update(test.Ctx, pluginPreset)
+		Expect(err).ToNot(HaveOccurred())
+
+		err = test.K8sClient.Delete(test.Ctx, pluginPreset)
+		Expect(err).ToNot(HaveOccurred())
+	})
 })
