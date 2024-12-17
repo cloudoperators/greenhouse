@@ -733,7 +733,7 @@ var _ = Describe("Validate ClusterRole & RoleBinding on Remote Cluster", Ordered
 	})
 
 	Context("Changing Namespaces in a Greenhouse TeamRoleBinding", func() {
-		It("Should create and delete RoleBindings based on Namespaces in the remote cluster", func() {
+		It("Should create and delete RoleBindings based on .Spec.Namespaces in the remote cluster", func() {
 			By("creating a TeamRoleBinding on the central cluster")
 			trb := setup.CreateTeamRoleBinding(test.Ctx, "test-trb-1",
 				test.WithTeamRoleRef(teamRoleUT.Name),
@@ -826,6 +826,117 @@ var _ = Describe("Validate ClusterRole & RoleBinding on Remote Cluster", Ordered
 
 			By("cleaning up the test")
 			test.EventuallyDeleted(test.Ctx, test.K8sClient, trb)
+		})
+
+		It("Should remove all deployed RoleBindings when remote cluster is no longer matching cluster selector", func() {
+			By("counting all RoleBindings on the remote cluster")
+			var allRemoteRoleBindings = new(rbacv1.RoleBindingList)
+			Expect(clusterAKubeClient.List(test.Ctx, allRemoteRoleBindings)).To(Succeed(), "There should be no error listing remote RoleBindings")
+			previousRemoteRoleBindingsTotalCount := len(allRemoteRoleBindings.Items)
+
+			// These namespaces must be created in one of the previous tests.
+			firstAdditionalNamespace := "test-namespace-1"
+			secondAdditionalNamespace := "test-namespace-2"
+
+			By("creating a TeamRoleBinding with ClusterSelector and Namespaces on the central cluster")
+			trb := setup.CreateTeamRoleBinding(test.Ctx, "test-rolebinding",
+				test.WithTeamRoleRef(teamRoleUT.Name),
+				test.WithTeamRef(teamUT.Name),
+				test.WithClusterSelector(metav1.LabelSelector{MatchLabels: map[string]string{"cluster": "a"}}),
+				test.WithNamespaces(firstAdditionalNamespace, secondAdditionalNamespace))
+
+			trbKey := types.NamespacedName{Name: trb.Name, Namespace: trb.Namespace}
+
+			By("validating the RoleBindings created on the remote clusterA")
+			var remoteRoleBindings = new(rbacv1.RoleBindingList)
+			Eventually(func(g Gomega) {
+				err := clusterAKubeClient.List(test.Ctx, remoteRoleBindings, &client.ListOptions{
+					FieldSelector: fields.OneTermEqualSelector("metadata.name", trb.GetRBACName()),
+				})
+				g.Expect(err).ToNot(HaveOccurred(), "There should be no error listing remote RoleBindings")
+				g.Expect(remoteRoleBindings.Items).To(HaveLen(2), "There should be exactly two RoleBindings deployed to the remote cluster")
+
+				g.Expect(slices.ContainsFunc(remoteRoleBindings.Items, func(roleBinding rbacv1.RoleBinding) bool {
+					return roleBinding.Namespace == firstAdditionalNamespace
+				})).To(BeTrue(), "There should be a RoleBinding for the first added namespace")
+				g.Expect(slices.ContainsFunc(remoteRoleBindings.Items, func(roleBinding rbacv1.RoleBinding) bool {
+					return roleBinding.Namespace == secondAdditionalNamespace
+				})).To(BeTrue(), "There should be a RoleBinding for the second added namespace")
+			}).Should(Succeed(), "Two RoleBindings should be deployed to remote clusterA")
+
+			By("updating the TeamRoleBinding with a different selector and changed namespaces")
+			_, err := clientutil.CreateOrPatch(test.Ctx, k8sClient, trb, func() error {
+				trb.Spec.ClusterName = ""
+				trb.Spec.ClusterSelector = metav1.LabelSelector{MatchLabels: map[string]string{"not": "matching"}}
+				// Replace with a single different namespace.
+				trb.Spec.Namespaces = []string{setup.Namespace()}
+				return nil
+			})
+			Expect(err).ToNot(HaveOccurred(), "there should be no error updating the TeamRoleBinding")
+
+			By("validating that all the deployed RoleBindings are removed from the remote clusterA")
+			Eventually(func(g Gomega) {
+				err := clusterAKubeClient.List(test.Ctx, remoteRoleBindings, &client.ListOptions{
+					FieldSelector: fields.OneTermEqualSelector("metadata.name", trb.GetRBACName()),
+				})
+				g.Expect(err).ToNot(HaveOccurred(), "There should be no error listing remote RoleBindings")
+				g.Expect(remoteRoleBindings.Items).To(BeEmpty(), "There should be no RoleBindings deployed to the remote clusterA")
+			}).Should(Succeed(), "Both deployed RoleBindings should be removed from remote clusterA")
+
+			By("validating the TeamRoleBinding's status is updated")
+			Eventually(func(g Gomega) {
+				g.Expect(k8sClient.Get(test.Ctx, trbKey, trb)).To(Succeed(), "there should be no error getting the TeamRoleBinding")
+				g.Expect(trb.Status.PropagationStatus).To(BeEmpty(), "the TeamRoleBinding should not be propagated to any cluster")
+			}).Should(Succeed(), "the TeamRoleBindings status should reflect the current status")
+
+			By("checking that no other RoleBindings have been deleted")
+			Expect(clusterAKubeClient.List(test.Ctx, allRemoteRoleBindings)).To(Succeed(), "There should be no error listing all remote RoleBindings")
+			currentRemoteRoleBindingsTotalCount := len(allRemoteRoleBindings.Items)
+			Expect(currentRemoteRoleBindingsTotalCount).To(Equal(previousRemoteRoleBindingsTotalCount), "There should be the same total number of RoleBindings on the remote cluster")
+
+			By("cleaning up the test")
+			test.EventuallyDeleted(test.Ctx, test.K8sClient, trb)
+		})
+
+		It("Should delete only deployed RoleBindings from the remote cluster when the TRB is deleted", func() {
+			By("counting all RoleBindings on the remote cluster")
+			var allRemoteRoleBindings = new(rbacv1.RoleBindingList)
+			Expect(clusterAKubeClient.List(test.Ctx, allRemoteRoleBindings)).To(Succeed(), "There should be no error listing remote RoleBindings")
+			previousRemoteRoleBindingsTotalCount := len(allRemoteRoleBindings.Items)
+
+			By("creating a TeamRoleBinding on the central cluster")
+			trb := setup.CreateTeamRoleBinding(test.Ctx, "test-trb-1",
+				test.WithTeamRoleRef(teamRoleUT.Name),
+				test.WithTeamRef(teamUT.Name),
+				test.WithClusterName(clusterA.Name),
+				test.WithNamespaces(setup.Namespace()))
+
+			By("validating the RoleBinding created on the remote cluster")
+			Eventually(func(g Gomega) {
+				var deployedRoleBindings = new(rbacv1.RoleBindingList)
+				err := clusterAKubeClient.List(test.Ctx, deployedRoleBindings, &client.ListOptions{
+					FieldSelector: fields.OneTermEqualSelector("metadata.name", trb.GetRBACName()),
+				})
+				g.Expect(err).ToNot(HaveOccurred(), "There should be no error listing remote RoleBindings")
+				g.Expect(deployedRoleBindings.Items).To(HaveLen(1), "There should be exactly one RoleBinding on the remote cluster")
+			}).Should(Succeed(), "there should be no error getting the RoleBindings")
+
+			By("removing the TeamRoleBinding from the central cluster")
+			test.EventuallyDeleted(test.Ctx, test.K8sClient, trb)
+
+			By("checking that there is the same total number of RoleBindings as before")
+			Eventually(func(g Gomega) {
+				var deployedRoleBindings = new(rbacv1.RoleBindingList)
+				err := clusterAKubeClient.List(test.Ctx, deployedRoleBindings, &client.ListOptions{
+					FieldSelector: fields.OneTermEqualSelector("metadata.name", trb.GetRBACName()),
+				})
+				g.Expect(err).ToNot(HaveOccurred(), "There should be no error listing remote RoleBindings")
+				g.Expect(deployedRoleBindings.Items).To(BeEmpty(), "There should be no deployed RoleBindings on the remote cluster")
+
+				g.Expect(clusterAKubeClient.List(test.Ctx, allRemoteRoleBindings)).To(Succeed(), "There should be no error listing all remote RoleBindings")
+				currentRemoteRoleBindingsTotalCount := len(allRemoteRoleBindings.Items)
+				g.Expect(currentRemoteRoleBindingsTotalCount).To(Equal(previousRemoteRoleBindingsTotalCount), "There should be the same total number of RoleBindings on the remote cluster")
+			}).Should(Succeed(), "there should be the same total number of RoleBindings as before the TRB creation")
 		})
 	})
 })
