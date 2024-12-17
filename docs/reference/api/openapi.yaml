@@ -988,7 +988,7 @@ components:
               type: object
               x-kubernetes-map-type: atomic
             namespaces:
-              description: Namespaces is the immutable list of namespaces in the Greenhouse Clusters to apply the RoleBinding to.\nIf empty, a ClusterRoleBinding will be created on the remote cluster, otherwise a RoleBinding per namespace.
+              description: Namespaces is a list of namespaces in the Greenhouse Clusters to apply the RoleBinding to.\nIf empty, a ClusterRoleBinding will be created on the remote cluster, otherwise a RoleBinding per namespace.
               items:
                 type: string
               type: array
