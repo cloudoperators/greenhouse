@@ -3,13 +3,13 @@ SPDX-FileCopyrightText: 2024 SAP SE or an SAP affiliate company and Greenhouse c
 SPDX-License-Identifier: Apache-2.0
 */}}
 
-{{- if.Values.oidc.enabled }}
+{{- if.Values.global.oidc.enabled }}
 apiVersion: v1
 kind: Secret
 metadata:
   name: {{ .Chart.Name }}-oidc
   namespace: {{ .Chart.Name }}
 data:
-  clientID: {{ required ".Values.oidc.clientID missing" .Values.oidc.clientID | b64enc }}
-  clientSecret: {{ required ".Values.oidc.clientSecret missing" .Values.oidc.clientSecret | b64enc }}
+  clientID: {{ required ".Values.global.oidc.clientID missing" .Values.global.oidc.clientID | b64enc }}
+  clientSecret: {{ required ".Values.global.oidc.clientSecret missing" .Values.global.oidc.clientSecret | b64enc }}
 {{ end }}

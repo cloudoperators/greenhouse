@@ -3,6 +3,7 @@ SPDX-FileCopyrightText: 2024 SAP SE or an SAP affiliate company and Greenhouse c
 SPDX-License-Identifier: Apache-2.0
 */}}
 
+{{ if .Values.organization.enabled }}
 {{ $chartName := .Chart.Name }}
 {{ range $teamName, $team := .Values.teams }}
 ---
@@ -15,3 +16,4 @@ spec:
   description: {{ $team.description | default (printf "Team %s" $teamName) }}
   mappedIdPGroup: {{ required "Team mappedGroupID is missing" $team.mappedIdPGroup }}
 {{- end }}
+{{ end }}

@@ -11,10 +11,10 @@ metadata:
 data:
   appProps.json: |
     {
-      "authIssuerUrl": {{ required ".Values.dashboard.oidcIssuerUrl" .Values.dashboard.oidcIssuerUrl | quote }},
-      "authClientId": {{ required ".Values.dashboard.oidcClientId" .Values.dashboard.oidcClientId | quote }},
+      "authIssuerUrl": {{ include "dashboard.auth.hostname" $ | quote }},
+      "authClientId": {{ default .Values.global.oidc.dashboardClientID "greenhouse" | quote }},
       "currentHost": {{ required ".Values.dashboard.assetServerURL missing" .Values.dashboard.assetServerURL | quote }},
-      "apiEndpoint": {{ required ".Values.dashboard.k8sApiEndpoint" .Values.dashboard.k8sApiEndpoint | quote }},
+      "apiEndpoint": {{ include "dashboard.api.hostname" $  | quote }},
       "environment": {{ required ".Values.dashboard.environment" .Values.dashboard.environment | quote }},
       "demoUserToken": {{ required ".Values.dashboard.demoUser.token" .Values.dashboard.demoUser.token | quote }}
     }

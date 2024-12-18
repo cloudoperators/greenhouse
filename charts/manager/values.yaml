@@ -14,7 +14,7 @@ controllerManager:
         - ALL
   image:
     repository: ghcr.io/cloudoperators/greenhouse
-    tag: latest
+    tag: main
 
   resources:
     requests:
