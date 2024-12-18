@@ -294,6 +294,61 @@ func (r *TeamRoleBindingReconciler) cleanupResources(ctx context.Context, trb *g
 				return err
 			}
 			trb.RemovePropagationStatus(s.ClusterName)
+			continue
+		}
+
+		// Remove RoleBindings from all namespaces not matching the .spec.namespaces.
+		cluster := &greenhousev1alpha1.Cluster{}
+		err := r.Get(ctx, types.NamespacedName{Namespace: trb.Namespace, Name: s.ClusterName}, cluster)
+		if err != nil {
+			return err
+		}
+		if err = r.cleanupClusterNamespaces(ctx, trb, cluster); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// cleanupClusterNamespaces removes RoleBindings not matching the trb.spec.namespaces from the cluster.
+func (r *TeamRoleBindingReconciler) cleanupClusterNamespaces(ctx context.Context, trb *greenhousev1alpha1.TeamRoleBinding, cluster *greenhousev1alpha1.Cluster) error {
+	if isClusterScoped(trb) {
+		return nil
+	}
+
+	cl, err := clientutil.NewK8sClientFromCluster(ctx, r.Client, cluster)
+	if err != nil {
+		log.FromContext(ctx).Error(err, "Error getting client for cluster", "cluster", cluster.GetName())
+		return err
+	}
+
+	var roleBindings = new(rbacv1.RoleBindingList)
+	err = cl.List(ctx, roleBindings, &client.ListOptions{
+		FieldSelector: fields.OneTermEqualSelector("metadata.name", trb.GetRBACName()),
+	})
+	if apierrors.IsNotFound(err) {
+		return nil
+	} else if err != nil {
+		return err
+	}
+
+	roleBindingsToDelete := slices.DeleteFunc(roleBindings.Items, func(roleBinding rbacv1.RoleBinding) bool {
+		return slices.ContainsFunc(trb.Spec.Namespaces, func(namespace string) bool {
+			return roleBinding.Namespace == namespace
+		})
+	})
+	if len(roleBindingsToDelete) == 0 {
+		return nil
+	}
+
+	for _, roleBinding := range roleBindingsToDelete {
+		result, err := clientutil.Delete(ctx, cl, &roleBinding)
+		switch {
+		case err != nil:
+			log.FromContext(ctx).Error(err, "error deleting RoleBinding", "roleBinding", trb.GetRBACName(), "cluster", cluster.GetName(), "namespace", roleBinding.Namespace)
+			return err
+		case result == clientutil.DeletionResultDeleted:
+			log.FromContext(ctx).Info("deleted RoleBinding successfully", "roleBinding", trb.GetRBACName(), "cluster", cluster.GetName(), "namespace", roleBinding.Namespace)
 		}
 	}
 	return nil
@@ -315,7 +370,7 @@ func (r *TeamRoleBindingReconciler) cleanupCluster(ctx context.Context, trb *gre
 			return err
 		}
 	default:
-		if err := r.deleteRoleBindings(ctx, cl, trb, cluster); err != nil {
+		if err := r.deleteAllDeployedRoleBindings(ctx, cl, trb, cluster); err != nil {
 			return err
 		}
 	}
@@ -511,22 +566,28 @@ func reconcileRoleBinding(ctx context.Context, cl client.Client, c *greenhousev1
 	return nil
 }
 
-func (r TeamRoleBindingReconciler) deleteRoleBindings(ctx context.Context, cl client.Client, trb *greenhousev1alpha1.TeamRoleBinding, cluster *greenhousev1alpha1.Cluster) error {
-	for _, namespace := range trb.Spec.Namespaces {
-		remoteObject := &rbacv1.RoleBinding{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      trb.GetRBACName(),
-				Namespace: namespace,
-			},
-		}
-		result, err := clientutil.Delete(ctx, cl, remoteObject)
+// deleteAllDeployedRoleBindings deletes all RoleBindings deployed to a remote cluster.
+// Deletes not only those specified in .spec.namespaces, but all by the trb.GetRBACName() name.
+func (r TeamRoleBindingReconciler) deleteAllDeployedRoleBindings(ctx context.Context, cl client.Client, trb *greenhousev1alpha1.TeamRoleBinding, cluster *greenhousev1alpha1.Cluster) error {
+	var roleBindingsToDelete = new(rbacv1.RoleBindingList)
+	err := cl.List(ctx, roleBindingsToDelete, &client.ListOptions{
+		FieldSelector: fields.OneTermEqualSelector("metadata.name", trb.GetRBACName()),
+	})
+	if apierrors.IsNotFound(err) {
+		return nil
+	} else if err != nil {
+		return err
+	}
+
+	for _, roleBinding := range roleBindingsToDelete.Items {
+		result, err := clientutil.Delete(ctx, cl, &roleBinding)
 
 		switch {
 		case err != nil:
-			log.FromContext(ctx).Error(err, "error deleting RoleBinding", "roleBinding", trb.GetRBACName(), "cluster", cluster.GetName(), "namespace", namespace)
+			log.FromContext(ctx).Error(err, "error deleting RoleBinding", "roleBinding", trb.GetRBACName(), "cluster", cluster.GetName(), "namespace", roleBinding.Namespace)
 			return err
 		case result == clientutil.DeletionResultDeleted:
-			log.FromContext(ctx).Info("deleted RoleBinding successfully", "roleBinding", trb.GetRBACName(), "cluster", cluster.GetName(), "namespace", namespace)
+			log.FromContext(ctx).Info("deleted RoleBinding successfully", "roleBinding", trb.GetRBACName(), "cluster", cluster.GetName(), "namespace", roleBinding.Namespace)
 		}
 	}
 	return nil
