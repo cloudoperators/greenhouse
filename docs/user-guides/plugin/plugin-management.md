@@ -21,6 +21,8 @@ In case the _PluginPreset_ is updated all of the Plugin instances that are manag
 Changes that are done directly on a _Plugin_ which was created from a _PluginPreset_ will be overwritten immediately by the _PluginPreset_ Controller. All changes must be performed on the _PluginPreset_ itself.
 If a _Plugin_ already existed with the same name as the _PluginPreset_ would create, this _Plugin_ will be ignored in following reconciliations.
 
+To prevent accidental deletion of the _Plugin_, the _PluginPreset_ has the annotation `greenhouse.sap/prevent-deletion`. To delete the pluginPreset along with the plugins, you must first remove the annotation.
+
 ## Example _PluginPreset_
 
 ```yaml
