@@ -167,6 +167,12 @@ var _ = Describe("PluginPreset Admission Tests", Ordered, func() {
 		Expect(err.Error()).
 			To(ContainSubstring("field is immutable"), "the error must reflect the field is immutable")
 
+		_, err = clientutil.CreateOrPatch(test.Ctx, test.K8sClient, cut, func() error {
+			delete(cut.Annotations, preventDeletionAnnotation)
+			return nil
+		})
+		Expect(err).
+			ToNot(HaveOccurred())
 		Expect(test.K8sClient.Delete(test.Ctx, cut)).
 			To(Succeed(), "there must be no error deleting the PluginPreset")
 	})
