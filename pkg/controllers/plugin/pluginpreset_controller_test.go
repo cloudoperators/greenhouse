@@ -165,6 +165,9 @@ var _ = Describe("PluginPreset Controller Lifecycle", Ordered, func() {
 		Expect(err).NotTo(HaveOccurred(), "failed to update Plugin")
 
 		By("deleting the PluginPreset")
+		testPluginPreset.Annotations = map[string]string{}
+		err = test.K8sClient.Update(test.Ctx, testPluginPreset)
+		Expect(err).ToNot(HaveOccurred())
 		Expect(test.K8sClient.Delete(test.Ctx, testPluginPreset)).Should(Succeed(), "failed to delete test PluginPreset")
 	})
 
@@ -195,6 +198,12 @@ var _ = Describe("PluginPreset Controller Lifecycle", Ordered, func() {
 		}))
 
 		By("removing plugin preset")
+		Eventually(func(g Gomega) {
+			err := test.K8sClient.Get(test.Ctx, client.ObjectKeyFromObject(pluginPreset), pluginPreset)
+			g.Expect(err).ShouldNot(HaveOccurred(), "unexpected error getting PluginPreset")
+			pluginPreset.Annotations = map[string]string{}
+			Expect(test.K8sClient.Update(test.Ctx, pluginPreset)).ToNot(HaveOccurred())
+		}).Should(Succeed(), "failed to update PluginPreset")
 		Expect(test.K8sClient.Delete(test.Ctx, pluginPreset)).ToNot(HaveOccurred())
 		test.EventuallyDeleted(test.Ctx, test.K8sClient, pluginPreset)
 	})
