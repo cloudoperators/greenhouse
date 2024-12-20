@@ -244,6 +244,7 @@ var _ = Describe("Propagation reconciler", Ordered, func() {
 	)
 
 	It("should have created the crd on the remote clusters with owner reference", func() {
+		Skip("Skipped because propagation reconciler is deprecated.")
 		CRDList := &apiextensionsv1.CustomResourceDefinitionList{}
 		otherCRDList := &apiextensionsv1.CustomResourceDefinitionList{}
 		Eventually(func(g Gomega) bool {
@@ -263,6 +264,7 @@ var _ = Describe("Propagation reconciler", Ordered, func() {
 	})
 
 	It("should have created the resource on the remote cluster", func() {
+		Skip("Skipped because propagation reconciler is deprecated.")
 		remoteObject := &fixtures.Dummy{}
 		otherRemoteObject := &fixtures.Dummy{}
 		Eventually(func(g Gomega) bool {
@@ -277,6 +279,7 @@ var _ = Describe("Propagation reconciler", Ordered, func() {
 	})
 
 	It("should reconcile CRD and object after CRD update", func() {
+		Skip("Skipped because propagation reconciler is deprecated.")
 		By("updating the crd in the local cluster")
 		currentCRD := &apiextensionsv1.CustomResourceDefinition{}
 		err := test.K8sClient.Get(test.Ctx, types.NamespacedName{Namespace: "", Name: dummyCRDName}, currentCRD)
@@ -319,6 +322,7 @@ var _ = Describe("Propagation reconciler", Ordered, func() {
 	})
 
 	It("should reconcile the remote resource after local resource update", func() {
+		Skip("Skipped because propagation reconciler is deprecated.")
 		By("getting the local resource")
 		localObject := dummy
 		updateLabel := map[string]string{"test": "test"}
@@ -347,6 +351,7 @@ var _ = Describe("Propagation reconciler", Ordered, func() {
 	})
 
 	It("should delete the remote resources after deletion", func() {
+		Skip("Skipped because propagation reconciler is deprecated.")
 		By("deleting the local resource")
 		err := test.K8sClient.Delete(test.Ctx, dummy)
 		Expect(err).ToNot(HaveOccurred(), "there should be no error deleting the resource")
