@@ -1164,7 +1164,6 @@ components:
                   x-kubernetes-list-type: map
               type: object
           required:
-            - members
             - statusConditions
           type: object
       type: object

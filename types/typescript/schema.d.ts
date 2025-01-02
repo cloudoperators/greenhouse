@@ -929,6 +929,16 @@ export interface components {
             };
             /** @description TeamStatus defines the observed state of Team */
             status?: {
+                members?: {
+                    /** @description Email of the user. */
+                    email: string;
+                    /** @description FirstName of the user. */
+                    firstName: string;
+                    /** @description ID is the unique identifier of the user. */
+                    id: string;
+                    /** @description LastName of the user. */
+                    lastName: string;
+                }[];
                 /** @description A StatusConditions contains a list of conditions.\nOnly one condition of a given type may exist in the list. */
                 statusConditions: {
                     conditions?: {

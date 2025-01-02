@@ -3,7 +3,7 @@ SPDX-FileCopyrightText: 2024 SAP SE or an SAP affiliate company and Greenhouse c
 SPDX-License-Identifier: Apache-2.0
 */}}
 
-{{- if .Values.disco.enabled }}
+{{- if and .Values.plugins.enabled .Values.disco.enabled }}
 apiVersion: greenhouse.sap/v1alpha1
 kind: Plugin
 metadata:

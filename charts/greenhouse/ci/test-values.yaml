@@ -3,6 +3,14 @@
 
 global:
   dnsDomain: foo.global
+  oidc:
+    enabled: true
+    issuer: https://top.secret
+    redirectURL: https://top.secret/redirect
+    clientID: topSecret!
+    clientSecret: topSecret!
+plugins:
+  enabled: true
 
 digicertIssuer:
   enabled: true
@@ -11,12 +19,6 @@ digicertIssuer:
   organizationUnits: Me
   caCertID: 1
 
-oidc:
-  enabled: true
-  issuer: https://top.secret
-  redirectURL: https://top.secret/redirect
-  clientID: topSecret!
-  clientSecret: topSecret!
 scim:
   enabled: true
   baseURL: https://top.secret/scim

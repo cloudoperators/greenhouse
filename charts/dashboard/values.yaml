@@ -1,5 +1,9 @@
 # SPDX-FileCopyrightText: 2024 SAP SE or an SAP affiliate company and Greenhouse contributors
 # SPDX-License-Identifier: Apache-2.0
+global:
+  dnsDomain: ""
+  oidc:
+    clientID: ""
 
 image:
   repository: ghcr.io/cloudoperators/juno-app-greenhouse
@@ -10,13 +14,9 @@ replicas: 2
 
 ingress:
   className: nginx
-  host: "dashboard.greenhouse.local"
 
 dashboard:
   assetServerURL: origin
-  oidcIssuerUrl: https://accounts.com
-  oidcClientId: 1234567890
-  k8sApiEndpoint: https://kubernetes.defaul
   environment: prod
 
   # The user for demonstration purposes.

@@ -7,12 +7,14 @@ apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
   name: {{ .Release.Name }}-dashboard
+  {{- with .Values.ingress.annotations }}
   annotations:
-    kubernetes.io/tls-acme: "true"
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
 spec:
   ingressClassName: {{ required ".Values.ingress.className missing" .Values.ingress.className }}
   rules:
-    - host: "{{ required ".Values.ingress.host missing" .Values.ingress.host }}"
+    - host: "{{ include "dashboard.hostname" $ }}"
       http:
         paths:
           - path: /
@@ -22,7 +24,7 @@ spec:
                 name: {{ .Release.Name }}-dashboard
                 port:
                   number: 80
-    - host: "*.{{ required ".Values.ingress.host missing" .Values.ingress.host }}"
+    - host: "*.{{ include "dashboard.hostname" $ }}"
       http:
         paths:
           - path: /
@@ -35,6 +37,6 @@ spec:
 
   tls:
     - hosts:
-        - "{{ required ".Values.ingress.host missing" .Values.ingress.host }}"
-        - "*.{{ required ".Values.ingress.host missing" .Values.ingress.host }}"
+        - "{{ include "dashboard.hostname" $ }}"
+        - "*.{{ include "dashboard.hostname" $ }}"
       secretName: "tls-{{ .Release.Name }}-dashboard"
