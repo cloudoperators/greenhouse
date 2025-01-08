@@ -73,11 +73,17 @@ func OrganizationClusterAdminPolicyRules() []rbacv1.PolicyRule {
 // OrganizationPluginAdminPolicyRules returns the namespace-scoped PolicyRules for an organization plugin admin.
 func OrganizationPluginAdminPolicyRules() []rbacv1.PolicyRule {
 	policyRules := []rbacv1.PolicyRule{
-		// Grant read permissions for PluginDefinitions to organization cluster admins.
+		// Grant read, create, update and delete permissions for PluginPresets to organization plugin admins.
 		{
 			Verbs:     []string{"get", "list", "watch", "update", "patch", "delete", "create"},
 			APIGroups: []string{greenhouseapisv1alpha1.GroupVersion.Group},
-			Resources: []string{"plugins", "pluginpresets"},
+			Resources: []string{"pluginpresets"},
+		},
+		// Grant read, update and delete permissions for PluginPresets to organization plugin admins. No create
+		{
+			Verbs:     []string{"get", "list", "watch", "update", "patch", "delete"},
+			APIGroups: []string{greenhouseapisv1alpha1.GroupVersion.Group},
+			Resources: []string{"plugins"},
 		},
 		// Grant permissions for secrets referenced by other resources, e.g. Plugins for storing sensitive values.
 		// Retrieving these secrets is not permitted to the user.
