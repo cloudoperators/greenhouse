@@ -39,22 +39,20 @@ var exposedConditions = []greenhousev1alpha1.ConditionType{
 }
 
 type reconcileResult struct {
-	condition    greenhousev1alpha1.Condition
 	requeueAfter time.Duration
 }
 
 // initPluginStatus initializes all empty Plugin Conditions to "unknown"
 func initPluginStatus(plugin *greenhousev1alpha1.Plugin) greenhousev1alpha1.PluginStatus {
-	pluginStatus := plugin.Status.DeepCopy()
 	for _, t := range exposedConditions {
-		if pluginStatus.GetConditionByType(t) == nil {
-			pluginStatus.SetConditions(greenhousev1alpha1.UnknownCondition(t, "", ""))
+		if plugin.Status.GetConditionByType(t) == nil {
+			plugin.SetCondition(greenhousev1alpha1.UnknownCondition(t, "", ""))
 		}
 	}
-	if pluginStatus.HelmReleaseStatus == nil {
-		pluginStatus.HelmReleaseStatus = &greenhousev1alpha1.HelmReleaseStatus{Status: "unknown"}
+	if plugin.Status.HelmReleaseStatus == nil {
+		plugin.Status.HelmReleaseStatus = &greenhousev1alpha1.HelmReleaseStatus{Status: "unknown"}
 	}
-	return *pluginStatus
+	return plugin.Status
 }
 
 // setPluginStatus sets the status for the plugin
@@ -307,15 +305,10 @@ func shouldReconcileOrRequeue(ctx context.Context, c client.Client, plugin *gree
 	}
 	if scheduleExists {
 		msg := fmt.Sprintf("cluster %s is scheduled for deletion at %s", plugin.Spec.ClusterName, schedule)
+		plugin.SetCondition(greenhousev1alpha1.FalseCondition(greenhousev1alpha1.DeleteCondition, lifecycle.ScheduledDeletionReason, msg))
 		requeueAfter := time.Until(schedule)
 		return &reconcileResult{
 			requeueAfter: requeueAfter,
-			condition: greenhousev1alpha1.Condition{
-				Type:    greenhousev1alpha1.DeleteCondition,
-				Reason:  lifecycle.ScheduledDeletionReason,
-				Status:  metav1.ConditionFalse,
-				Message: msg,
-			},
 		}, nil
 	}
 

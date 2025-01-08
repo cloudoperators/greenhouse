@@ -108,7 +108,6 @@ func (r *HelmChartTestReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 		return ctrl.Result{}, err
 	}
 	if result != nil {
-		pluginStatus.StatusConditions.SetConditions(result.condition)
 		return ctrl.Result{RequeueAfter: result.requeueAfter}, nil
 	}
 

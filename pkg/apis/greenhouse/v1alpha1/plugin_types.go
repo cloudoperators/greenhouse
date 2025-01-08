@@ -163,3 +163,11 @@ type PluginList struct {
 func init() {
 	SchemeBuilder.Register(&Plugin{}, &PluginList{})
 }
+
+func (o *Plugin) GetConditions() StatusConditions {
+	return o.Status.StatusConditions
+}
+
+func (o *Plugin) SetCondition(condition Condition) {
+	o.Status.StatusConditions.SetConditions(condition)
+}
