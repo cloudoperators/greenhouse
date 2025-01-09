@@ -78,6 +78,11 @@ func startOrganizationReconciler(name string, mgr ctrl.Manager) error {
 	}
 	return (&organizationcontrollers.OrganizationReconciler{
 		Namespace: namespace,
+		PGDB:      pgDB,
+		PGHost:    pgHost,
+		PGPort:    pgPort,
+		PGUser:    pgUser,
+		PGPasswd:  pgPasswd,
 	}).SetupWithManager(name, mgr)
 }
 

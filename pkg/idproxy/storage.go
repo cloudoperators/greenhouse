@@ -11,9 +11,35 @@ import (
 	"github.com/dexidp/dex/storage"
 	"github.com/dexidp/dex/storage/kubernetes"
 	"github.com/dexidp/dex/storage/kubernetes/k8sapi"
+	"github.com/dexidp/dex/storage/sql"
 	"github.com/ghodss/yaml"
 )
 
+// NewPostgresStorage creates a new Postgres storage.
+func NewPostgresStorage(sslConfig sql.SSL, dbConfig sql.NetworkDB, logger *slog.Logger) (storage.Storage, error) {
+	sqlStorage, err := postgresStorage(sslConfig, sql.NetworkDB{
+		Host:     dbConfig.Host,
+		Port:     dbConfig.Port,
+		User:     dbConfig.User,
+		Password: dbConfig.Password,
+		Database: dbConfig.Database,
+	}, logger.With("component", "storage"))
+	if err != nil {
+		return nil, err
+	}
+	return sqlStorage, nil
+}
+
+// postgresStorage creates a new Postgres storage.
+func postgresStorage(sslConfig sql.SSL, dbConfig sql.NetworkDB, logger *slog.Logger) (storage.Storage, error) {
+	var storageConfig = sql.Postgres{
+		SSL:       sslConfig,
+		NetworkDB: dbConfig,
+	}
+	return storageConfig.Open(logger)
+}
+
+// NewKubernetesStorage creates a new Kubernetes storage.
 func NewKubernetesStorage(kubeconfig, kubecontext, namespace string, logger *slog.Logger) (storage.Storage, error) {
 	var storageConfig = kubernetes.Config{InCluster: true}
 	if kubeconfig != "" {
