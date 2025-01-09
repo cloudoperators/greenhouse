@@ -39,6 +39,9 @@ func main() {
 	var idTokenValidity time.Duration
 	var listenAddr, metricsAddr string
 	var allowedOrigins []string
+	// DB connection parameters
+	var pgDB, pgHost, pgUser, pgPasswd string
+	var pgPort uint16
 	logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
 	// set default logger to be used by log
 	slog.SetDefault(logger)
@@ -48,6 +51,11 @@ func main() {
 	flag.StringVar(&kubeconfig, "kubeconfig", os.Getenv("KUBECONFIG"), "Use kubeconfig for authentication")
 	flag.StringVar(&kubecontext, "kubecontext", os.Getenv("KUBECONTEXT"), "Use context from kubeconfig")
 	flag.StringVar(&kubenamespace, "kubenamespace", os.Getenv("KUBENAMESPACE"), "Use namespace")
+	flag.StringVar(&pgDB, "database", os.Getenv("DB_NAME"), "Database name")
+	flag.StringVar(&pgHost, "dbHost", os.Getenv("DB_HOST"), "Database host")
+	flag.Uint16Var(&pgPort, "dbPort", 5432, "Database port")
+	flag.StringVar(&pgUser, "dbUser", os.Getenv("DB_USER"), "Database user")
+	flag.StringVar(&pgPasswd, "dbPassword", os.Getenv("DB_PASSWORD"), "Database password")
 	flag.StringVar(&issuer, "issuer", "", "Issuer URL")
 	flag.StringVar(&listenAddr, "listen-addr", ":8080", "oidc listen address")
 	flag.StringVar(&metricsAddr, "metrics-addr", ":6543", "bind address for metrics")
@@ -58,7 +66,19 @@ func main() {
 	if issuer == "" {
 		log.Fatal("No --issuer given")
 	}
+	/*
+		sqlDexStorage, err := idproxy.NewPostgresStorage(sql.SSL{Mode: "disable"}, sql.NetworkDB{
+			Host:     pgHost,
+			Port:     pgPort,
+			User:     pgUser,
+			Password: pgPasswd,
+			Database: pgDB,
+		}, logger.With("component", "storage"))
+		if err != nil {
+			log.Fatalf("Failed to initialize postgres storage: %s", err)
+		}
 
+	*/
 	dexStorage, err := idproxy.NewKubernetesStorage(kubeconfig, kubecontext, kubenamespace, logger.With("component", "storage"))
 	if err != nil {
 		log.Fatalf("Failed to initialize kubernetes storage: %s", err)
@@ -78,6 +98,7 @@ func main() {
 		SkipApprovalScreen: true,
 		Logger:             logger.With("component", "server"),
 		Storage:            dexStorage,
+		// Storage:            sqlDexStorage,
 		AllowedOrigins:     allowedOrigins,
 		IDTokensValidFor:   idTokenValidity,
 		RefreshTokenPolicy: refreshPolicy,
