@@ -80,6 +80,7 @@ var _ = Describe("Plugin E2E", Ordered, func() {
 		Eventually(func(g Gomega) {
 			err := adminClient.Get(ctx, client.ObjectKey{Name: remoteClusterName, Namespace: env.TestNamespace}, &greenhousev1alpha1.Cluster{})
 			g.Expect(err).ToNot(HaveOccurred())
+
 		}).Should(Succeed(), "cluster resource should be created")
 
 		By("verifying the cluster status is ready")
@@ -98,15 +99,25 @@ var _ = Describe("Plugin E2E", Ordered, func() {
 		Expect(err).NotTo(HaveOccurred())
 		Expect(len(pluginDefinitionList.Items)).To(BeEquivalentTo(1))
 
-		By("Creating the plugin")
+		By("Try to creating the plugin")
 		// Creating plugin
 		testPlugin := fixtures.PreparePlugin("test-nginx-plugin", env.TestNamespace,
 			test.WithPluginDefinition(testPluginDefinition.Name),
-			test.WithCluster(remoteClusterName),
 			test.WithReleaseNamespace(env.TestNamespace),
 			test.WithPluginOptionValue("replicaCount", &apiextensionsv1.JSON{Raw: []byte("1")}, nil))
 		err = adminClient.Create(ctx, testPlugin)
+		Expect(err).To(HaveOccurred())
+
+		By("Creating the plugin preset")
+		testPluginPreset := fixtures.PreparePluginPreset("test-nginx-preset", env.TestNamespace, testPlugin.Spec)
+		err = adminClient.Create(ctx, testPluginPreset)
 		Expect(err).ToNot(HaveOccurred())
+
+		By("Checking the plugin preset is ready")
+		Eventually(func(g Gomega) {
+			err = adminClient.Get(ctx, client.ObjectKeyFromObject(testPluginPreset), testPluginPreset)
+			g.Expect(err).ToNot(HaveOccurred())
+		}).Should(Succeed())
 
 		By("Checking the plugin status is ready")
 		pluginList := &greenhousev1alpha1.PluginList{}
@@ -139,11 +150,11 @@ var _ = Describe("Plugin E2E", Ordered, func() {
 
 		By("Updating replicas")
 		Eventually(func(g Gomega) {
-			namespacedName := types.NamespacedName{Name: testPlugin.Name, Namespace: env.TestNamespace}
-			err = adminClient.Get(ctx, namespacedName, testPlugin)
+			namespacedName := types.NamespacedName{Name: testPluginPreset.Name, Namespace: testPluginPreset.Namespace}
+			err = adminClient.Get(ctx, namespacedName, testPluginPreset)
 			g.Expect(err).NotTo(HaveOccurred())
-			test.SetOptionValueForPlugin(testPlugin, "replicaCount", "2")
-			err = adminClient.Update(ctx, testPlugin)
+			test.SetOptionValueForPluginPreset(testPluginPreset, "replicaCount", "2")
+			err = adminClient.Update(ctx, testPluginPreset)
 			g.Expect(err).NotTo(HaveOccurred())
 		}).Should(Succeed())
 
@@ -167,7 +178,7 @@ var _ = Describe("Plugin E2E", Ordered, func() {
 		}).Should(Succeed())
 
 		By("Deleting plugin")
-		test.EventuallyDeleted(ctx, adminClient, testPlugin)
+		test.EventuallyDeleted(ctx, adminClient, testPluginPreset)
 
 		By("Check, is deployment deleted")
 		Eventually(func(g Gomega) bool {
