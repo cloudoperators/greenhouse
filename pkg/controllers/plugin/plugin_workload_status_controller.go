@@ -136,10 +136,9 @@ func (r *WorkLoadStatusReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 		return ctrl.Result{}, nil
 	}
 
-	clusterAccessReadyCondition, restClientGetter := initClientGetter(ctx, r.Client, r.kubeClientOpts, *plugin)
-	pluginStatus.StatusConditions.SetConditions(clusterAccessReadyCondition)
-	if !clusterAccessReadyCondition.IsTrue() {
-		return ctrl.Result{RequeueAfter: 10 * time.Minute}, fmt.Errorf("cannot access cluster: %s", clusterAccessReadyCondition.Message)
+	restClientGetter, err := initClientGetter(ctx, r.Client, r.kubeClientOpts, *plugin)
+	if err != nil {
+		return ctrl.Result{RequeueAfter: 10 * time.Minute}, fmt.Errorf("cannot access cluster: %s", err.Error())
 	}
 
 	objClient, err := clientutil.NewK8sClientFromRestClientGetter(restClientGetter)

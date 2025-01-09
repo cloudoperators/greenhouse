@@ -118,11 +118,10 @@ func (r *HelmReconciler) setConditions() lifecycle.Conditioner {
 func (r *HelmReconciler) EnsureDeleted(ctx context.Context, resource lifecycle.RuntimeObject) (ctrl.Result, lifecycle.ReconcileResult, error) {
 	plugin := resource.(*greenhousev1alpha1.Plugin) //nolint:errcheck
 
-	clusterAccessReadyCondition, restClientGetter := initClientGetter(ctx, r.Client, r.kubeClientOpts, *plugin)
-	plugin.SetCondition(clusterAccessReadyCondition)
-	if !clusterAccessReadyCondition.IsTrue() {
+	restClientGetter, err := initClientGetter(ctx, r.Client, r.kubeClientOpts, *plugin)
+	if err != nil {
 		metrics.UpdateMetrics(plugin, metrics.MetricResultError, metrics.MetricReasonClusterAccessFailed)
-		return ctrl.Result{}, lifecycle.Failed, fmt.Errorf("cannot access cluster: %s", clusterAccessReadyCondition.Message)
+		return ctrl.Result{}, lifecycle.Failed, fmt.Errorf("cannot access cluster: %s", err.Error())
 	}
 
 	isDeleted, err := helm.UninstallHelmRelease(ctx, restClientGetter, plugin)
@@ -146,11 +145,10 @@ func (r *HelmReconciler) EnsureCreated(ctx context.Context, resource lifecycle.R
 
 	initPluginStatus(plugin)
 
-	clusterAccessReadyCondition, restClientGetter := initClientGetter(ctx, r.Client, r.kubeClientOpts, *plugin)
-	plugin.SetCondition(clusterAccessReadyCondition)
-	if !clusterAccessReadyCondition.IsTrue() {
+	restClientGetter, err := initClientGetter(ctx, r.Client, r.kubeClientOpts, *plugin)
+	if err != nil {
 		metrics.UpdateMetrics(plugin, metrics.MetricResultError, metrics.MetricReasonClusterAccessFailed)
-		return ctrl.Result{}, lifecycle.Failed, fmt.Errorf("cannot access cluster: %s", clusterAccessReadyCondition.Message)
+		return ctrl.Result{}, lifecycle.Failed, fmt.Errorf("cannot access cluster: %s", err.Error())
 	}
 
 	// Check if we should continue with reconciliation or requeue if cluster is scheduled for deletion

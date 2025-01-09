@@ -74,57 +74,58 @@ func initClientGetter(
 	k8sClient client.Client,
 	kubeClientOpts []clientutil.KubeClientOption,
 	plugin greenhousev1alpha1.Plugin,
-) (
-	clusterAccessReadyCondition greenhousev1alpha1.Condition,
-	restClientGetter genericclioptions.RESTClientGetter,
-) {
-
-	var err error
-	clusterAccessReadyCondition = greenhousev1alpha1.UnknownCondition(greenhousev1alpha1.ClusterAccessReadyCondition, "", "")
+) (genericclioptions.RESTClientGetter, error) {
 
 	// early return if spec.clusterName is not set
 	if plugin.Spec.ClusterName == "" {
-		restClientGetter, err = clientutil.NewRestClientGetterForInCluster(plugin.Spec.ReleaseNamespace, kubeClientOpts...)
+		restClientGetter, err := clientutil.NewRestClientGetterForInCluster(plugin.Spec.ReleaseNamespace, kubeClientOpts...)
 		if err != nil {
-			clusterAccessReadyCondition.Status = metav1.ConditionFalse
-			clusterAccessReadyCondition.Message = "cannot access greenhouse cluster: " + err.Error()
-			return clusterAccessReadyCondition, nil
+			errorMessage := "cannot access greenhouse cluster: " + err.Error()
+			plugin.SetCondition(greenhousev1alpha1.FalseCondition(
+				greenhousev1alpha1.ClusterAccessReadyCondition, "", errorMessage))
+			return nil, errors.New(errorMessage)
 		}
-		clusterAccessReadyCondition.Status = metav1.ConditionTrue
-		return clusterAccessReadyCondition, restClientGetter
+		plugin.SetCondition(greenhousev1alpha1.TrueCondition(
+			greenhousev1alpha1.ClusterAccessReadyCondition, "", ""))
+		return restClientGetter, nil
 	}
 
 	cluster := new(greenhousev1alpha1.Cluster)
-	err = k8sClient.Get(ctx, types.NamespacedName{Namespace: plugin.Namespace, Name: plugin.Spec.ClusterName}, cluster)
+	err := k8sClient.Get(ctx, types.NamespacedName{Namespace: plugin.Namespace, Name: plugin.Spec.ClusterName}, cluster)
 	if err != nil {
-		clusterAccessReadyCondition.Status = metav1.ConditionFalse
-		clusterAccessReadyCondition.Message = fmt.Sprintf("Failed to get cluster %s: %s", plugin.Spec.ClusterName, err.Error())
-		return clusterAccessReadyCondition, nil
+		errorMessage := fmt.Sprintf("Failed to get cluster %s: %s", plugin.Spec.ClusterName, err.Error())
+		plugin.SetCondition(greenhousev1alpha1.FalseCondition(
+			greenhousev1alpha1.ClusterAccessReadyCondition, "", errorMessage))
+		return nil, errors.New(errorMessage)
 	}
 
 	readyConditionInCluster := cluster.Status.StatusConditions.GetConditionByType(greenhousev1alpha1.ReadyCondition)
 	if readyConditionInCluster == nil || readyConditionInCluster.Status != metav1.ConditionTrue {
-		clusterAccessReadyCondition.Status = metav1.ConditionFalse
-		clusterAccessReadyCondition.Message = fmt.Sprintf("cluster %s is not ready", plugin.Spec.ClusterName)
-		return clusterAccessReadyCondition, nil
+		errorMessage := fmt.Sprintf("cluster %s is not ready", plugin.Spec.ClusterName)
+		plugin.SetCondition(greenhousev1alpha1.FalseCondition(
+			greenhousev1alpha1.ClusterAccessReadyCondition, "", errorMessage))
+		return nil, errors.New(errorMessage)
 	}
 
 	// get restclientGetter from cluster if clusterName is set
 	secret := corev1.Secret{}
 	err = k8sClient.Get(ctx, types.NamespacedName{Namespace: plugin.Namespace, Name: plugin.Spec.ClusterName}, &secret)
 	if err != nil {
-		clusterAccessReadyCondition.Status = metav1.ConditionFalse
-		clusterAccessReadyCondition.Message = fmt.Sprintf("Failed to get secret for cluster %s: %s", plugin.Spec.ClusterName, err.Error())
-		return clusterAccessReadyCondition, nil
+		errorMessage := fmt.Sprintf("Failed to get secret for cluster %s: %s", plugin.Spec.ClusterName, err.Error())
+		plugin.SetCondition(greenhousev1alpha1.FalseCondition(
+			greenhousev1alpha1.ClusterAccessReadyCondition, "", errorMessage))
+		return nil, errors.New(errorMessage)
 	}
-	restClientGetter, err = clientutil.NewRestClientGetterFromSecret(&secret, plugin.Spec.ReleaseNamespace, kubeClientOpts...)
+	restClientGetter, err := clientutil.NewRestClientGetterFromSecret(&secret, plugin.Spec.ReleaseNamespace, kubeClientOpts...)
 	if err != nil {
-		clusterAccessReadyCondition.Status = metav1.ConditionFalse
-		clusterAccessReadyCondition.Message = fmt.Sprintf("cannot access cluster %s: %s", plugin.Spec.ClusterName, err.Error())
-		return clusterAccessReadyCondition, nil
+		errorMessage := fmt.Sprintf("cannot access cluster %s: %s", plugin.Spec.ClusterName, err.Error())
+		plugin.SetCondition(greenhousev1alpha1.FalseCondition(
+			greenhousev1alpha1.ClusterAccessReadyCondition, "", errorMessage))
+		return nil, errors.New(errorMessage)
 	}
-	clusterAccessReadyCondition.Status = metav1.ConditionTrue
-	return clusterAccessReadyCondition, restClientGetter
+	plugin.SetCondition(greenhousev1alpha1.TrueCondition(
+		greenhousev1alpha1.ClusterAccessReadyCondition, "", ""))
+	return restClientGetter, nil
 }
 
 func getPortForExposedService(o runtime.Object) (*corev1.ServicePort, error) {

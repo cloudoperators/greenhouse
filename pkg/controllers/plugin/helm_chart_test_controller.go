@@ -96,10 +96,9 @@ func (r *HelmChartTestReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 		}
 	}()
 
-	clusterAccessReadyCondition, restClientGetter := initClientGetter(ctx, r.Client, r.kubeClientOpts, *plugin)
-	pluginStatus.StatusConditions.SetConditions(clusterAccessReadyCondition)
-	if !clusterAccessReadyCondition.IsTrue() {
-		return ctrl.Result{}, fmt.Errorf("cannot access cluster: %s", clusterAccessReadyCondition.Message)
+	restClientGetter, err := initClientGetter(ctx, r.Client, r.kubeClientOpts, *plugin)
+	if err != nil {
+		return ctrl.Result{}, fmt.Errorf("cannot access cluster: %s", err.Error())
 	}
 
 	// Check if we should continue with reconciliation or requeue if cluster is scheduled for deletion
