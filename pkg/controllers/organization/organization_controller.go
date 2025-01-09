@@ -8,7 +8,6 @@ import (
 	"log/slog"
 	"os"
 
-	"github.com/cloudoperators/greenhouse/pkg/idproxy"
 	"github.com/dexidp/dex/storage"
 	"github.com/dexidp/dex/storage/sql"
 	"github.com/pkg/errors"
@@ -26,6 +25,7 @@ import (
 	greenhousesapv1alpha1 "github.com/cloudoperators/greenhouse/pkg/apis/greenhouse/v1alpha1"
 	"github.com/cloudoperators/greenhouse/pkg/clientutil"
 	dexapi "github.com/cloudoperators/greenhouse/pkg/dex/api"
+	"github.com/cloudoperators/greenhouse/pkg/idproxy"
 	"github.com/cloudoperators/greenhouse/pkg/lifecycle"
 	"github.com/cloudoperators/greenhouse/pkg/scim"
 )
