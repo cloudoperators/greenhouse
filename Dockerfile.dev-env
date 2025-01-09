@@ -19,11 +19,11 @@ RUN --mount=type=cache,target=/go/pkg/mod \
   && cp $(/workspace/bin/setup-envtest use ${ENVTEST_K8S_VERSION} -p path)/* /usr/local/bin
 
 # Get PluginDefinitions from https://github.com/cloudoperators/greenhouse-extensions
-FROM alpine/git:2.45.2 AS git
+FROM alpine/git:v2.47.1 AS git
 RUN git clone https://github.com/cloudoperators/greenhouse-extensions.git /greenhouse-extensions
 
 # final image 
-FROM --platform=${BUILDPLATFORM:-linux/amd64} alpine:3.20.3
+FROM --platform=${BUILDPLATFORM:-linux/amd64} alpine:3.21.2
 LABEL source_repository="https://github.com/cloudoperators/greenhouse"
 ENV KUBEBUILDER_ASSETS=/usr/local/bin
 WORKDIR /
