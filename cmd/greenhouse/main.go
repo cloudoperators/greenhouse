@@ -58,6 +58,9 @@ var (
 	remoteClusterBearerTokenValidity,
 	renewRemoteClusterBearerTokenAfter time.Duration
 	kubeClientOpts clientutil.RuntimeOptions
+	// DB connection parameters
+	pgDB, pgHost, pgUser, pgPasswd string
+	pgPort                         uint16
 )
 
 func init() {
@@ -90,6 +93,12 @@ func main() {
 
 	flag.StringVar(&common.DNSDomain, "dns-domain", "",
 		"The DNS domain to use for the Greenhouse central cluster")
+
+	flag.StringVar(&pgDB, "database", os.Getenv("DB_NAME"), "Database name")
+	flag.StringVar(&pgHost, "dbHost", os.Getenv("DB_HOST"), "Database host")
+	flag.Uint16Var(&pgPort, "dbPort", 5432, "Database port")
+	flag.StringVar(&pgUser, "dbUser", os.Getenv("DB_USER"), "Database user")
+	flag.StringVar(&pgPasswd, "dbPassword", os.Getenv("DB_PASSWORD"), "Database password")
 
 	opts := zap.Options{
 		Development: true,

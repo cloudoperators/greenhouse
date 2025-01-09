@@ -12,6 +12,7 @@ import (
 	"strings"
 
 	"github.com/dexidp/dex/connector/oidc"
+	"github.com/dexidp/dex/storage"
 	"github.com/pkg/errors"
 	"golang.org/x/text/cases"
 	"golang.org/x/text/language"
@@ -88,6 +89,33 @@ func (r *OrganizationReconciler) reconcileDexConnector(ctx context.Context, org 
 		log.FromContext(ctx).Info("updated dex connector", "namespace", dexConnector.Namespace, "name", dexConnector.GetName())
 		r.recorder.Eventf(org, corev1.EventTypeNormal, "UpdatedDexConnector", "Updated dex connector %s/%s", dexConnector.Namespace, dexConnector.GetName())
 	}
+
+	// Create the connectors also in SQL storage
+	var oidcConnector storage.Connector
+	if oidcConnector, err = r.sqlDexStorage.GetConnector(org.Name); err != nil {
+		if err = r.sqlDexStorage.CreateConnector(ctx, storage.Connector{
+			ID:     org.Name,
+			Type:   dexConnectorTypeGreenhouse,
+			Name:   cases.Title(language.English).String(org.Name),
+			Config: configByte,
+		}); err != nil {
+			return err
+		}
+		log.FromContext(ctx).Info("created dex connector in SQL storage", "name", org.Name)
+		r.recorder.Eventf(org, corev1.EventTypeNormal, "CreatedDexConnectorSQL", "Created dex connector in SQL storage %s", org.Name)
+	}
+	if err = r.sqlDexStorage.UpdateConnector(oidcConnector.ID, func(c storage.Connector) (storage.Connector, error) {
+		c.ID = org.Name
+		c.Type = dexConnectorTypeGreenhouse
+		c.Name = cases.Title(language.English).String(org.Name)
+		c.Config = configByte
+		return c, nil
+	}); err != nil {
+		return err
+	}
+	log.FromContext(ctx).Info("updated dex connector in SQL storage", "name", org.Name)
+	r.recorder.Eventf(org, corev1.EventTypeNormal, "UpdatedDexConnectorSQL", "Updated dex connector in SQL storage %s", org.Name)
+
 	return nil
 }
 
@@ -118,6 +146,42 @@ func (r *OrganizationReconciler) discoverOIDCRedirectURL(ctx context.Context, or
 }
 
 func (r *OrganizationReconciler) reconcileOAuth2Client(ctx context.Context, org *greenhousesapv1alpha1.Organization) error {
+	var oAuthClient storage.Client
+	var err error
+	if oAuthClient, err = r.sqlDexStorage.GetClient(org.Name); err != nil {
+		if err = r.sqlDexStorage.CreateClient(ctx, storage.Client{
+			Public: true,
+			ID:     org.Name,
+			Name:   org.Name,
+			RedirectURIs: []string{
+				"https://dashboard." + common.DNSDomain,
+				fmt.Sprintf("https://%s.dashboard.%s", org.Name, common.DNSDomain),
+			},
+		}); err != nil {
+			return err
+		}
+		log.FromContext(ctx).Info("created oauth2client", "name", org.Name)
+		r.recorder.Eventf(org, corev1.EventTypeNormal, "CreatedOAuth2Client", "Created oauth2client %s", org.Name)
+		return nil
+	}
+
+	if err = r.sqlDexStorage.UpdateClient(oAuthClient.Name, func(authClient storage.Client) (storage.Client, error) {
+		authClient.Public = true
+		authClient.ID = org.Name
+		authClient.Name = org.Name
+		for _, requiredRedirectURL := range []string{
+			"https://dashboard." + common.DNSDomain,
+			fmt.Sprintf("https://%s.dashboard.%s", org.Name, common.DNSDomain),
+		} {
+			authClient.RedirectURIs = util.AppendStringToSliceIfNotContains(requiredRedirectURL, authClient.RedirectURIs)
+		}
+		return authClient, nil
+	}); err != nil {
+		return err
+	}
+	log.FromContext(ctx).Info("updated oauth2client", "name", org.Name)
+	r.recorder.Eventf(org, corev1.EventTypeNormal, "UpdatedOAuth2Client", "Updated oauth2client %s", org.Name)
+
 	var oAuth2Client = new(dexapi.OAuth2Client)
 	oAuth2Client.ObjectMeta.Name = encodedOAuth2ClientName(org.Name)
 	oAuth2Client.ObjectMeta.Namespace = r.Namespace
