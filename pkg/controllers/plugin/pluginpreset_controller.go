@@ -169,7 +169,15 @@ func (r *PluginPresetReconciler) reconcilePluginPreset(ctx context.Context, pres
 			return err
 		}
 
+		log.FromContext(ctx).Info("======================== OOOOOOOOOO", "cluster", cluster)
 		_, err = clientutil.CreateOrPatch(ctx, r.Client, plugin, func() error {
+			// Add annotation to allow plugin creation
+			if plugin.Annotations == nil {
+				plugin.Annotations = make(map[string]string)
+			}
+
+			plugin.Annotations["greenhouse.sap/allow-create"] = "true"
+
 			// Label the plugin with the managed resource label to identify it as managed by the PluginPreset.
 			plugin.SetLabels(map[string]string{greenhouseapis.LabelKeyPluginPreset: preset.Name})
 			// Set the owner reference to the PluginPreset. This is used to trigger reconciliation, if the managed Plugin is modified.

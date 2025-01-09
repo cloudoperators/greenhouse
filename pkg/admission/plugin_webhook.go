@@ -6,6 +6,7 @@ package admission
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"strings"
 
@@ -88,6 +89,10 @@ func ValidateCreatePlugin(ctx context.Context, c client.Client, obj runtime.Obje
 		return nil, nil
 	}
 
+	if !allowCreatePlugin(plugin) {
+		return nil, errors.New("plugin creation is not allowed")
+	}
+
 	pluginDefinition := new(greenhousev1alpha1.PluginDefinition)
 	err := c.Get(ctx, client.ObjectKey{Namespace: "", Name: plugin.Spec.PluginDefinition}, pluginDefinition)
 	if err != nil {
@@ -142,6 +147,12 @@ func ValidateUpdatePlugin(ctx context.Context, c client.Client, old, obj runtime
 
 func ValidateDeletePlugin(_ context.Context, _ client.Client, _ runtime.Object) (admission.Warnings, error) {
 	return nil, nil
+}
+
+func allowCreatePlugin(plugin *greenhousev1alpha1.Plugin) bool {
+	_, ok := plugin.Annotations["greenhouse.sap/allow-create"]
+	delete(plugin.Annotations, "greenhouse.sap/allow-create")
+	return ok
 }
 
 // validateOwnerRefernce returns a Warning if the Plugin is managed by a PluginPreset
