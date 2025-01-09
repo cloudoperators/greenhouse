@@ -133,7 +133,7 @@ func ValidateDeletePluginPreset(_ context.Context, _ client.Client, obj runtime.
 	var allErrs field.ErrorList
 	if _, ok := pluginPreset.Annotations[preventDeletionAnnotation]; ok {
 		allErrs = append(allErrs, field.Invalid(field.NewPath("metadata").Child("annotation").Child(preventDeletionAnnotation),
-			pluginPreset.Annotations, "Plugin preset has prevent deletion annotation"))
+			pluginPreset.Annotations, fmt.Sprintf("PluginPreset with annotation '%s' set may not be deleted.", preventDeletionAnnotation)))
 	}
 
 	if len(allErrs) > 0 {
