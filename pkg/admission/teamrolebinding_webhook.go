@@ -91,7 +91,7 @@ func ValidateUpdateRoleBinding(ctx context.Context, c client.Client, old, cur ru
 			schema.GroupResource{
 				Group:    oldRB.GroupVersionKind().Group,
 				Resource: oldRB.Kind,
-			}, oldRB.Name, field.Forbidden(field.NewPath("spec", "namespaces"), "cannot change existing TeamRoleBinding from cluster-scoped to namespace-scoped"))
+			}, oldRB.Name, field.Forbidden(field.NewPath("spec", "namespaces"), "cannot change existing TeamRoleBinding from cluster-scoped to namespace-scoped by adding namespaces"))
 	case !isClusterScoped(oldRB) && isClusterScoped(curRB):
 		return nil, apierrors.NewForbidden(
 			schema.GroupResource{
