@@ -5,11 +5,7 @@ package organization
 
 import (
 	"context"
-	"log/slog"
-	"os"
 
-	"github.com/dexidp/dex/storage"
-	"github.com/dexidp/dex/storage/sql"
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
@@ -25,7 +21,6 @@ import (
 	greenhousesapv1alpha1 "github.com/cloudoperators/greenhouse/pkg/apis/greenhouse/v1alpha1"
 	"github.com/cloudoperators/greenhouse/pkg/clientutil"
 	dexapi "github.com/cloudoperators/greenhouse/pkg/dex/api"
-	"github.com/cloudoperators/greenhouse/pkg/idproxy"
 	"github.com/cloudoperators/greenhouse/pkg/lifecycle"
 	"github.com/cloudoperators/greenhouse/pkg/scim"
 )
@@ -53,7 +48,6 @@ type OrganizationReconciler struct {
 	// Database related configuration
 	PGDB, PGHost, PGUser, PGPasswd string
 	PGPort                         uint16
-	sqlDexStorage                  storage.Storage
 }
 
 //+kubebuilder:rbac:groups=greenhouse.sap,resources=organizations,verbs=get;list;watch;create;update;patch;delete
@@ -73,19 +67,6 @@ type OrganizationReconciler struct {
 func (r *OrganizationReconciler) SetupWithManager(name string, mgr ctrl.Manager) error {
 	r.Client = mgr.GetClient()
 	r.recorder = mgr.GetEventRecorderFor(name)
-
-	var err error
-	logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
-	r.sqlDexStorage, err = idproxy.NewPostgresStorage(sql.SSL{Mode: "disable"}, sql.NetworkDB{
-		Host:     r.PGHost,
-		Port:     r.PGPort,
-		User:     r.PGUser,
-		Password: r.PGPasswd,
-		Database: r.PGDB,
-	}, logger.With("component", "storage"))
-	if err != nil {
-		return err
-	}
 
 	return ctrl.NewControllerManagedBy(mgr).
 		Named(name).
