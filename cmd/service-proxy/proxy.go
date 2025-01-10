@@ -132,11 +132,16 @@ func (pm *ProxyManager) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.R
 	for _, plugin := range plugins {
 		for url, svc := range plugin.Status.ExposedServices {
 			u := *k8sAPIURL // copy URL struct
-			proto := "http"
-			if svc.Protocol != nil {
-				proto = *svc.Protocol
+
+			fmt.Printf("svc: %v\n", svc)
+
+			if svc.Protocol != nil && *svc.Protocol == "https" {
+				// For HTTPS, format should be: https:<service_name>:<port>
+				u.Path = fmt.Sprintf("/api/v1/namespaces/%s/services/https:%s:%d/proxy", svc.Namespace, svc.Name, svc.Port)
+				} else {
+					// For HTTP, format should be: <service_name>:<port>
+					u.Path = fmt.Sprintf("/api/v1/namespaces/%s/services/%s:%d/proxy", svc.Namespace, svc.Name, svc.Port)
 			}
-			u.Path = fmt.Sprintf("/api/v1/namespaces/%s/services/%s:%s:%d/proxy", svc.Namespace, proto, svc.Name, svc.Port)
 			cls.routes[url] = route{url: &u, namespace: svc.Namespace, serviceName: svc.Name}
 		}
 	}
