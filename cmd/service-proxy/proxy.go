@@ -133,8 +133,6 @@ func (pm *ProxyManager) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.R
 		for url, svc := range plugin.Status.ExposedServices {
 			u := *k8sAPIURL // copy URL struct
 
-			fmt.Printf("svc: %v\n", svc)
-
 			if svc.Protocol != nil && *svc.Protocol == "https" {
 				// For HTTPS, format should be: https:<service_name>:<port>
 				u.Path = fmt.Sprintf("/api/v1/namespaces/%s/services/https:%s:%d/proxy", svc.Namespace, svc.Name, svc.Port)
