@@ -92,75 +92,7 @@ func TestRewrite(t *testing.T) {
 	}
 }
 
-// TestReconcile tests the reconcile function of the proxy manager.
-// It injects a client from  sigs.k8s.io/controller-runtime/pkg/client/fake into the proxy manager and
-// sets up a cluster and a plugin with an exposed service in the fake client.
-// The test checks if the route is properly added to the cluster.
-func TestReconcile(t *testing.T) {
-	pm := NewProxyManager()
-	pm.client = fake.NewClientBuilder().WithScheme(test.GreenhouseV1Alpha1Scheme()).WithObjects(
-		&greenhousev1alpha1.Plugin{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      "plugin1",
-				Namespace: "namespace",
-			},
-			Spec: greenhousev1alpha1.PluginSpec{
-				ClusterName: "cluster-1",
-			},
-			Status: greenhousev1alpha1.PluginStatus{
-				ExposedServices: map[string]greenhousev1alpha1.Service{
-					"https://cluster-1--1234567.org.basedomain": {
-						Namespace: "namespace",
-						Name:      "test",
-						Port:      8080,
-					},
-				},
-			},
-		},
-		&v1.Secret{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      "cluster-1",
-				Namespace: "namespace",
-			},
-			Type: "greenhouse.sap/kubeconfig",
-			Data: map[string][]byte{
-				greenhouseapis.GreenHouseKubeConfigKey: []byte(`
-kind: Config
-apiVersion: v1
-clusters:
-- name: cluster1
-  cluster:
-    server: https://apiserver.test
-contexts:
-- context:
-    cluster: cluster1
-    user: user1
-  name: context1
-current-context: context1
-users:
-- name: user1
-`),
-			},
-		}).Build()
-	ctx := context.Background()
-	_, err := pm.Reconcile(ctx, ctrl.Request{NamespacedName: types.NamespacedName{Name: "cluster-1", Namespace: "namespace"}})
-
-	if err != nil {
-		t.Errorf("expected no error, got: %s", err)
-	}
-
-	route, ok := pm.clusters["cluster-1"].routes["https://cluster-1--1234567.org.basedomain"]
-	if !ok {
-		t.Fatal("expected route to be added")
-	}
-	targetURL := route.url
-	expectedURL := fmt.Sprintf("%s/api/v1/namespaces/%s/services/%s:%s:%s/proxy", "https://apiserver.test", "namespace", "http", "test", "8080")
-	if targetURL.String() != expectedURL {
-		t.Errorf("expected url %s, got %s", expectedURL, targetURL.String())
-	}
-}
-
-func TestReconcile2(t *testing.T) {
+func TestURLGenerationWithProtocols(t *testing.T) {
 	// Test cases to cover different protocol scenarios
 	tests := []struct {
 		name            string
