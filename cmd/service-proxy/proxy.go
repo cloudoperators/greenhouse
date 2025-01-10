@@ -138,9 +138,9 @@ func (pm *ProxyManager) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.R
 			if svc.Protocol != nil && *svc.Protocol == "https" {
 				// For HTTPS, format should be: https:<service_name>:<port>
 				u.Path = fmt.Sprintf("/api/v1/namespaces/%s/services/https:%s:%d/proxy", svc.Namespace, svc.Name, svc.Port)
-				} else {
-					// For HTTP, format should be: <service_name>:<port>
-					u.Path = fmt.Sprintf("/api/v1/namespaces/%s/services/%s:%d/proxy", svc.Namespace, svc.Name, svc.Port)
+			} else {
+				// For HTTP, format should be: <service_name>:<port>
+				u.Path = fmt.Sprintf("/api/v1/namespaces/%s/services/%s:%d/proxy", svc.Namespace, svc.Name, svc.Port)
 			}
 			cls.routes[url] = route{url: &u, namespace: svc.Namespace, serviceName: svc.Name}
 		}

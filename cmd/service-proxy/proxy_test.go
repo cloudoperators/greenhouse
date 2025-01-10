@@ -161,60 +161,60 @@ users:
 }
 
 func TestReconcile2(t *testing.T) {
-    // Test cases to cover different protocol scenarios
-    tests := []struct {
-        name            string
-        protocol        *string
-        expectedURLPath string
-    }{
-        {
-            name:            "default_no_protocol",
-            protocol:        nil,
-            expectedURLPath: "/api/v1/namespaces/namespace/services/test:8080/proxy",
-        },
-        {
-            name:            "explicit_http_protocol",
-            protocol:        pointer("http"),
-            expectedURLPath: "/api/v1/namespaces/namespace/services/test:8080/proxy",
-        },
-        {
-            name:            "explicit_https_protocol",
-            protocol:        pointer("https"),
-            expectedURLPath: "/api/v1/namespaces/namespace/services/https:test:8080/proxy",
-        },
-    }
+	// Test cases to cover different protocol scenarios
+	tests := []struct {
+		name            string
+		protocol        *string
+		expectedURLPath string
+	}{
+		{
+			name:            "default_no_protocol",
+			protocol:        nil,
+			expectedURLPath: "/api/v1/namespaces/namespace/services/test:8080/proxy",
+		},
+		{
+			name:            "explicit_http_protocol",
+			protocol:        pointer("http"),
+			expectedURLPath: "/api/v1/namespaces/namespace/services/test:8080/proxy",
+		},
+		{
+			name:            "explicit_https_protocol",
+			protocol:        pointer("https"),
+			expectedURLPath: "/api/v1/namespaces/namespace/services/https:test:8080/proxy",
+		},
+	}
 
-    for _, tc := range tests {
-        t.Run(tc.name, func(t *testing.T) {
-            pm := NewProxyManager()
-            pm.client = fake.NewClientBuilder().WithScheme(test.GreenhouseV1Alpha1Scheme()).WithObjects(
-                &greenhousev1alpha1.Plugin{
-                    ObjectMeta: metav1.ObjectMeta{
-                        Name:      "plugin1",
-                        Namespace: "namespace",
-                    },
-                    Spec: greenhousev1alpha1.PluginSpec{
-                        ClusterName: "cluster-1",
-                    },
-                    Status: greenhousev1alpha1.PluginStatus{
-                        ExposedServices: map[string]greenhousev1alpha1.Service{
-                            "https://cluster-1--1234567.org.basedomain": {
-                                Namespace: "namespace",
-                                Name:      "test",
-                                Port:      8080,
-                                Protocol:  tc.protocol,
-                            },
-                        },
-                    },
-                },
-                &v1.Secret{
-                    ObjectMeta: metav1.ObjectMeta{
-                        Name:      "cluster-1",
-                        Namespace: "namespace",
-                    },
-                    Type: "greenhouse.sap/kubeconfig",
-                    Data: map[string][]byte{
-                        greenhouseapis.GreenHouseKubeConfigKey: []byte(`
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			pm := NewProxyManager()
+			pm.client = fake.NewClientBuilder().WithScheme(test.GreenhouseV1Alpha1Scheme()).WithObjects(
+				&greenhousev1alpha1.Plugin{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "plugin1",
+						Namespace: "namespace",
+					},
+					Spec: greenhousev1alpha1.PluginSpec{
+						ClusterName: "cluster-1",
+					},
+					Status: greenhousev1alpha1.PluginStatus{
+						ExposedServices: map[string]greenhousev1alpha1.Service{
+							"https://cluster-1--1234567.org.basedomain": {
+								Namespace: "namespace",
+								Name:      "test",
+								Port:      8080,
+								Protocol:  tc.protocol,
+							},
+						},
+					},
+				},
+				&v1.Secret{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "cluster-1",
+						Namespace: "namespace",
+					},
+					Type: "greenhouse.sap/kubeconfig",
+					Data: map[string][]byte{
+						greenhouseapis.GreenHouseKubeConfigKey: []byte(`
 kind: Config
 apiVersion: v1
 clusters:
@@ -230,31 +230,31 @@ current-context: context1
 users:
 - name: user1
 `),
-                    },
-                }).Build()
+					},
+				}).Build()
 
-            ctx := context.Background()
-            _, err := pm.Reconcile(ctx, ctrl.Request{NamespacedName: types.NamespacedName{Name: "cluster-1", Namespace: "namespace"}})
+			ctx := context.Background()
+			_, err := pm.Reconcile(ctx, ctrl.Request{NamespacedName: types.NamespacedName{Name: "cluster-1", Namespace: "namespace"}})
 
-            if err != nil {
-                t.Errorf("expected no error, got: %s", err)
-            }
+			if err != nil {
+				t.Errorf("expected no error, got: %s", err)
+			}
 
-            route, ok := pm.clusters["cluster-1"].routes["https://cluster-1--1234567.org.basedomain"]
-            if !ok {
-                t.Fatal("expected route to be added")
-            }
+			route, ok := pm.clusters["cluster-1"].routes["https://cluster-1--1234567.org.basedomain"]
+			if !ok {
+				t.Fatal("expected route to be added")
+			}
 
-            targetURL := route.url
-            expectedURL := fmt.Sprintf("https://apiserver.test%s", tc.expectedURLPath)
-            if targetURL.String() != expectedURL {
-                t.Errorf("expected url %s, got %s", expectedURL, targetURL.String())
-            }
-        })
-    }
+			targetURL := route.url
+			expectedURL := fmt.Sprintf("https://apiserver.test%s", tc.expectedURLPath)
+			if targetURL.String() != expectedURL {
+				t.Errorf("expected url %s, got %s", expectedURL, targetURL.String())
+			}
+		})
+	}
 }
 
 // helper function to create string pointer
 func pointer(s string) *string {
-    return &s
+	return &s
 }
