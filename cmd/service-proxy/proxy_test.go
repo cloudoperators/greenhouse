@@ -5,7 +5,6 @@ package main
 
 import (
 	"context"
-	"fmt"
 	"net/http"
 	"net/http/httputil"
 	"net/url"
@@ -178,7 +177,7 @@ users:
 			}
 
 			targetURL := route.url
-			expectedURL := fmt.Sprintf("https://apiserver.test%s", tc.expectedURLPath)
+			expectedURL := "https://apiserver.test" + tc.expectedURLPath
 			if targetURL.String() != expectedURL {
 				t.Errorf("expected url %s, got %s", expectedURL, targetURL.String())
 			}
