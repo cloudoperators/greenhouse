@@ -11,6 +11,7 @@ on:
       - 'go.sum'
 
 jobs:
+
   init:
     outputs:
       tests: ${{ steps.e2es.outputs.result }}
@@ -33,64 +34,19 @@ jobs:
     if: needs.init.outputs.tests != '[]'
     needs: [ init ]
     runs-on: [ default ]
-    env:
-      ADMIN_CLUSTER: greenhouse-admin
-      REMOTE_CLUSTER: greenhouse-remote
-
     strategy:
       fail-fast: false
       matrix:
         k8s-version: [ "v1.29.8", "v1.30.4", "v1.31.0" ]
         e2es: ${{fromJson(needs.init.outputs.tests)}}
     steps:
-      - name: "Checkout"
-        uses: actions/checkout@v4
-
-      - name: Set up Go
-        uses: actions/setup-go@v5
-        with:
-          go-version-file: 'go.mod'
-          token: ${{ secrets.GITHUB_TOKEN }}
-
-      # Create the admin cluster with latest kubernetes version
-      - name: Create Admin Cluster
-        uses: helm/kind-action@v1.12.0
-        with:
-          cluster_name: ${{ env.ADMIN_CLUSTER }}
-          node_image: 'kindest/node:v1.31.0'
-
-      # Create the remote cluster with kubernetes version from the matrix
-      - name: Create Remote Cluster
-        uses: helm/kind-action@v1.12.0
-        with:
-          node_image: 'kindest/node:${{ matrix.k8s-version }}'
-          cluster_name: ${{ env.REMOTE_CLUSTER }}
-          config: ${{ github.workspace }}/e2e/kind-config.yaml
-
-      # build CLI, setup e2e environment and prepare kubeconfigs
-      - name: "Prepare E2E Config"
-        id: config
-        run: |
-          make setup-e2e
-          echo "admin_config=$GITHUB_WORKSPACE/bin/${{env.ADMIN_CLUSTER}}.kubeconfig" >> $GITHUB_OUTPUT
-          echo "remote_config=$GITHUB_WORKSPACE/bin/${{env.REMOTE_CLUSTER}}.kubeconfig" >> $GITHUB_OUTPUT
-          echo "remote_int_config=$GITHUB_WORKSPACE/bin/${{env.REMOTE_CLUSTER}}-int.kubeconfig" >> $GITHUB_OUTPUT
-
-      # run the e2e tests with the scenario from the matrix
-      - name: "E2E Run"
+      # run the e2e tests using composite common/workflows/e2e action
+      - name: "E2E"
         id: e2e
-        continue-on-error: true
-        env:
-          SCENARIO: ${{ matrix.e2es }}
-          EXECUTION_ENV: gh-actions
-          GREENHOUSE_ADMIN_KUBECONFIG: ${{ steps.config.outputs.admin_config }}
-          GREENHOUSE_REMOTE_KUBECONFIG: ${{ steps.config.outputs.remote_config }}
-          GREENHOUSE_REMOTE_INT_KUBECONFIG: ${{ steps.config.outputs.remote_int_config }}
-          CONTROLLER_LOGS_PATH: ${{github.workspace}}/bin/${{matrix.e2es}}-${{matrix.k8s-version}}.txt
-          E2E_REPORT_PATH: ${{github.workspace}}/bin/${{matrix.e2es}}-${{matrix.k8s-version}}.json
-        run: |
-          echo "result=$CONTROLLER_LOGS_PATH" >> $GITHUB_OUTPUT
-          make e2e
+        uses: cloudoperators/common/workflows/e2e@workflows/e2e
+        with:
+          k8s-version: ${{ matrix.k8s-version }}
+          scenario: ${{ matrix.e2es }}
 
       # v4 upload-artifact needs unique names for each artifact (see https://github.com/actions/upload-artifact/tree/main?tab=readme-ov-file#not-uploading-to-the-same-artifact)
       - name: "Upload E2E Logs"
