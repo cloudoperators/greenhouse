@@ -5,8 +5,9 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/cloudoperators/greenhouse/pkg/clientutil"
 	"strings"
+
+	"github.com/cloudoperators/greenhouse/pkg/clientutil"
 
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"

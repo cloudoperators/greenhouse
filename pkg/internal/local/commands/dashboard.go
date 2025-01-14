@@ -3,10 +3,12 @@ package commands
 import (
 	"errors"
 	"fmt"
-	"github.com/cloudoperators/greenhouse/pkg/internal/local/setup"
+	"os"
+
 	"github.com/spf13/cobra"
 	"gopkg.in/yaml.v3"
-	"os"
+
+	"github.com/cloudoperators/greenhouse/pkg/internal/local/setup"
 )
 
 func dashboardSetupExample() string {

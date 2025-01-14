@@ -6,8 +6,9 @@ package commands
 import (
 	"errors"
 	"fmt"
-	"gopkg.in/yaml.v3"
 	"os"
+
+	"gopkg.in/yaml.v3"
 
 	"github.com/spf13/cobra"
 
