@@ -131,7 +131,7 @@ func (m *Manifest) setupDashboard(ctx context.Context, clusterName, namespace st
 	if err != nil {
 		return nil, err
 	}
-	dashboardConfigMap, err = m.modifyDashboardProps(ctx, cl, dashboardConfigMap, clusterName, namespace, dashboardCMPropsKey, dashboardSAToken)
+	dashboardConfigMap, err = m.modifyDashboardProps(ctx, cl, dashboardConfigMap, namespace, dashboardCMPropsKey, dashboardSAToken)
 	if err != nil {
 		return nil, err
 	}
@@ -167,7 +167,7 @@ func (m *Manifest) modifyDashboardDeployment(deploymentResource map[string]inter
 	return utils.RawK8sInterface(depBytes)
 }
 
-func (m *Manifest) modifyDashboardProps(ctx context.Context, cl client.Client, configMapResource map[string]interface{}, clusterName, namespace, propsKey, tokenSecretName string) (map[string]interface{}, error) {
+func (m *Manifest) modifyDashboardProps(ctx context.Context, cl client.Client, configMapResource map[string]interface{}, namespace, propsKey, tokenSecretName string) (map[string]interface{}, error) {
 	configMap := &corev1.ConfigMap{}
 	configMapStr, err := utils.Stringy(configMapResource)
 	if err != nil {
