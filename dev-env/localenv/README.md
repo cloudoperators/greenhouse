@@ -1,194 +1,144 @@
 
+
 # Setting up development environment
 
 This handy CLI tool will help you to setup your development environment in no time.
+
 ## Prerequisites
+
 - [docker](https://docs.docker.com/get-docker/)
 - [KinD](https://kind.sigs.k8s.io/docs/user/quick-start/)
 - [kubectl](https://kubernetes.io/docs/tasks/tools/install-kubectl/)
+
 ## Usage
 
-You can use `greenhousectl` either by downloading the latest binary from [here](https://github.com/cloudoperators/greenhouse/releases)
+You can use `greenhousectl` either by downloading the latest binary
+from [here](https://github.com/cloudoperators/greenhouse/releases)
 
-Or you can build it from source by running the following command: `build-greenhousectl`
+Or you can build it from source by running the following command: `make cli`
 
 > [!NOTE]  
 > The CLI binary will be available in the `bin` folder
 
+## Setting up the development environment
+
+There are multiple local development environment setup available for the Greenhouse project. You can choose the one that
+fits your needs.
+
+`All commands will spin up KinD clusters and setup the necessary components`
+
+### Develop controllers locally and run the webhook server in-cluster
+
+```shell
+make setup-controller-dev
+```
+
+> [!NOTE]
+> set the environment variable `CONTROLLERS_ONLY=true` in your debugger configuration
+> If no environment variable is set, the webhook server will error out due to the missing certs
+
+### Develop Admission Webhook server locally
+
+```shell
+make setup-webhook-dev
+```
+
+> [!NOTE]
+> set the environment variable `WEBHOOK_ONLY=true` in your debugger configuration
+> If both the controllers and the webhook server needs to be run locally, do not set any environment variable
+
+### Running Greenhouse Dashboard in-cluster
+
+```shell
+make setup-dashboard
+```
+
+> [!NOTE]
+> You will need to port-forward the cors-proxy service and the dashboard service to access the dashboard
+> Information on how to access the dashboard is displayed after the command is executed
+
+### Develop Greenhouse Dashboard locally
+
+```shell
+make setup
+```
+
+- This will install the operator, cors-proxy, sample organization with an onboarded remote cluster
+- Additionally, it also creates a `appProps.json` `ConfigMap` in the `greenhouse` namespace
+- You can now retrieve the generated `appProps.json` in-cluster by executing
+  `kc get cm greenhouse-dashboard-app-props -n greenhouse -o=json | jq -r '.data.["appProps.json"]'`
+- Optionally you can also redirect this output to `appProps.json`
+  in [Juno Repository](https://github.com/cloudoperators/juno/tree/main/apps/greenhouse)
+- Follow the instructions in the terminal to `port-forward` the cors-proxy service (ignore the `port-forward` of
+  dashboard service)
+- Start the dashboard locally
+- `PluginDefinition(s)` can be applied
+  from [Greenhouse Extensions](https://github.com/cloudoperators/greenhouse-extensions) repository
+
+
+### Test Plugin / Greenhouse Extension charts locally
+
+```shell
+PLUGIN_DIR=<absolute-path-to-charts-dir> make setup
+```
+
+- This will install a full running setup of operator, dashboard, sample organization with an onboarded remote cluster
+- Additionally, it will mount the plugin charts directory on to the `node` of the `KinD` cluster
+- The operator deployment has a hostPath volume mount to the plugin charts directory from the `node` of the `KinD`
+  cluster
+
+You would need to apply the `PluginDefinition(s)` of the chart that needs to be tested.
+
+However, before applying the `PluginDefinition(s)`, you need to modify the `PluginDefinition(s)` to point to a local
+file path.
+
+Modify `spec.helmChart.name` to point to the local file path of the chart that needs to be tested
+
+Example Scenario:
+
+You have cloned the [Greenhouse Extensions](https://github.com/cloudoperators/greenhouse-extensions) repository,
+and you want to test `cert-manager` plugin chart locally.
+
+```yaml
+
+apiVersion: greenhouse.sap/v1alpha1
+kind: PluginDefinition
+metadata:
+  name: cert-manager
+spec:
+  description: Automated TLS certificate management
+  displayName: Certificate manager
+  docMarkDownUrl: >-
+    https://raw.githubusercontent.com/cloudoperators/greenhouse-extensions/main/cert-manager/README.md
+  helmChart:
+    name: cert-manager # <- replace it with 'local/plugins/cert-manager/charts/v1.11.0/cert-manager'
+    repository: oci://ghcr.io/cloudoperators/greenhouse-extensions/charts # <- replace it with empty ''
+    version: 1.11.0 # <- replace it with empty ''
+...
+
+```
+
 ## Additional information
-
-Charts needed for dev env setup for `KinD`
-
-- `charts/manager`
-- `charts/idproxy`
 
 When setting up your development environment, certain resources are modified for development convenience -
 
- - The manager `Deployment` has environment variables `WEBHOOK_ONLY` and `CONTROLLERS_ONLY`
- - `WEBHOOK_ONLY=true` will only run the webhook server
- - `CONTROLLERS_ONLY=true` will only run the controllers
- - Only one of the above can be set to `true` at a time otherwise the manager will error out
+- The manager `Deployment` has environment variables `WEBHOOK_ONLY` and `CONTROLLERS_ONLY`
+- `WEBHOOK_ONLY=true` will only run the webhook server
+- `CONTROLLERS_ONLY=true` will only run the controllers
+- Only one of the above can be set to `true` at a time otherwise the manager will error out
 
-if `DevMode` is enabled for webhooks then depending on the OS the webhook manifests are altered by removing `clientConfig.service` and 
-replacing it with `clientConfig.url`, allowing you to debug the code locally.
-
-> [!NOTE]  
-> The `DevMode` can be enabled by setting the `--dev-mode` flag while individually setting up the webhook or by setting the `devMode` key to `true` in the `dev-env/localenv/sample.config.json` file.
+if `DevMode` is enabled for webhooks then depending on the OS the webhook manifests are altered by removing
+`clientConfig.service` and replacing it with `clientConfig.url`, allowing you to debug the code locally.
 
 - `linux` - the ipv4 addr from `docker0` interface is used - ex: `https://172.17.0.2:9443/<path>`
 - `macOS` - host.docker.internal is used - ex: `https://host.docker.internal:9443/<path>`
-- `windows` - ideally `host.docker.internal` should work, otherwise please reach out with a contribution :heart
-- webhook certs are generated by `charts/manager/templates/kube-webhook-certgen.yaml` Job in-cluster and they are extracted and saved to `/tmp/k8s-webhook-server/serving-certs`
+- `windows` - ideally `host.docker.internal` should work, otherwise please reach out with a contribution <3
+- webhook certs are generated by `charts/manager/templates/kube-webhook-certgen.yaml` Job in-cluster, and they are
+  extracted and saved to `/tmp/k8s-webhook-server/serving-certs`
 - `kubeconfig` of the created cluster(s) are saved to `/tmp/greenhouse/<clusterName>.kubeconfig`
 
-Below you will find a list of commands available for dev env setup
-  
 ---
-## greenhousectl dev cluster create
-
-Create a kinD cluster
-
-### Synopsis
-
-Create a kinD cluster and setup the greenhouse namespace optionally
-
-```
-greenhousectl dev cluster create [flags]
-```
-
-### Examples
-
-```
-greenhousectl dev cluster create --name <my-cluster-name> --namespace <my-namespace> --version <v1.30.3>
-```
-
-### Options
-
-```
-      --config string      create the cluster with a specific kind configuration file - e.g. --config <path>/<to>/<config>
-  -h, --help               help for create
-  -c, --name string        create a kind cluster with a name - e.g. -c <my-cluster>
-  -n, --namespace string   create a namespace in the cluster - e.g. -c <my-cluster> -n <my-namespace>
-      --version string     create the cluster with a specific version - e.g. -v <v1.30.3>
-```
-
-## greenhousectl dev cluster delete
-
-Delete a kinD cluster
-
-### Synopsis
-
-Delete a specific kinD cluster
-
-```
-greenhousectl dev cluster delete [flags]
-```
-
-### Examples
-
-```
-greenhousectl dev cluster delete --name <my-cluster-name>
-```
-
-### Options
-
-```
-  -h, --help          help for delete
-  -c, --name string   delete the kind cluster - e.g. -c <my-cluster>
-```
-
-## greenhousectl dev setup manifest
-
-install manifests for Greenhouse
-
-### Synopsis
-
-install CRDs, Webhook definitions, RBACs, Certs, etc... for Greenhouse into the target cluster
-
-```
-greenhousectl dev setup manifest [flags]
-```
-
-### Examples
-
-```
-
-# Install manifests for Greenhouse into the target cluster (All manifests except Deployment - recommended)
-greenhousectl dev setup manifest --name greenhouse-admin --namespace greenhouse --release greenhouse --chart-path charts/manager
-
-# Install only CRDs for Greenhouse into the target cluster
-greenhousectl dev setup manifest --name greenhouse-admin --namespace greenhouse --release greenhouse --chart-path charts/idproxy --crd-only
-
-# Install manifests with excluded kinds for Greenhouse into the target cluster (Caution: Only exclude if you know what you are doing)
-greenhousectl dev setup manifest --name greenhouse-admin --namespace greenhouse --release greenhouse --chart-path charts/manager --excludeKinds Deployment --excludeKinds Job
-
-# Install manifests for Greenhouse into the target cluster with values file
-greenhousectl dev setup manifest --name greenhouse-admin --namespace greenhouse --release greenhouse --chart-path charts/manager --values-path dev-env/localenv/sample.values.yaml
-
-```
-
-### Options
-
-```
-  -p, --chart-path string          local absolute chart path where manifests are located - e.g. <path>/<to>/charts/manager
-  -d, --crd-only                   Install only CRDs
-  -e, --excludeKinds stringArray   Exclude kinds from the generated manifests: ex: -e Deployment -e Job (default [Deployment])
-  -h, --help                       help for manifest
-  -c, --name string                Name of the kind cluster - e.g. greenhouse-123 (without the kind prefix)
-  -n, --namespace string           namespace to install the resources
-  -r, --release string             Helm release name, Default value: greenhouse - e.g. your-release-name (default "greenhouse")
-  -v, --values-path string         local absolute values file path - e.g. <path>/<to>/my-values.yaml
-      --version string             create the cluster with a specific version - e.g. -v <v1.30.3>
-```
-
-## greenhousectl dev setup webhook
-
-Setup webhooks for Greenhouse (Validating and Mutating webhooks)
-
-### Synopsis
-
-Setup Validating and Mutating webhooks for Greenhouse controller development convenience
-
-```
-greenhousectl dev setup webhook [flags]
-```
-
-### Examples
-
-```
-
-# Setup webhook for Greenhouse controller development convenience (Webhooks run in cluster)
-greenhousectl dev setup webhook --name greenhouse-admin --namespace greenhouse --release greenhouse --chart-path charts/manager --dockerfile ./
-
-# Setup webhook for Greenhouse webhook development convenience (Webhooks run local)
-greenhousectl dev setup webhook --name greenhouse-admin --namespace greenhouse --release greenhouse --chart-path charts/manager --dockerfile ./ --dev-mode
-
-# Additionally provide values file (defaults may not work since charts change over time)
-greenhousectl dev setup webhook --name greenhouse-admin --namespace greenhouse --release greenhouse --chart-path charts/manager --dockerfile ./ --values-path hack/localenv/sample.values.yaml
-
-
-```
-
-### Options
-
-```
-  -p, --chart-path string    local chart path where manifests are located - e.g. <path>/<to>/charts/manager
-      --config string        create the cluster with a specific kind configuration file - e.g. --config <path>/<to>/<config>
-  -m, --dev-mode             Enable dev mode for webhook setup - Note: Admission Webhooks will be modified for local development
-  -f, --dockerfile string    local path to the Dockerfile of greenhouse manager
-  -h, --help                 help for webhook
-  -c, --name string          Name of the kind cluster - e.g. my-cluster (without the kind prefix)
-  -n, --namespace string     namespace to install the resources
-  -r, --release string       Helm release name, Default value: greenhouse - e.g. your-release-name (default "greenhouse")
-  -v, --values-path string   local absolute values file path - e.g. <path>/<to>/my-values.yaml
-      --version string       create the cluster with a specific version - e.g. -v <v1.30.3>
-```
-
 ## greenhousectl dev setup
-
-setup dev environment
-
-### Synopsis
 
 setup dev environment with a configuration file
 
@@ -204,8 +154,16 @@ greenhousectl dev setup [flags]
 greenhousectl dev setup -f dev-env/localenv/dev.config.yaml
 
 - This will create an admin and a remote cluster
-- Install CRDs, Webhook definitions, RBACs, Certs, etc... for Greenhouse into the target cluster
+- Install CRDs, Webhook definitions, RBACs, Certs, etc... for Greenhouse into the admin cluster
 - Depending on the devMode, it will install the webhook in-cluster or enable it for local development
+
+Overriding certain values in dev.config.yaml:
+
+- Override devMode for webhook development with d=true or devMode=true
+- Override helm chart installation with c=true or crdOnly=true
+- Override environment variables for manager deployment with e="ENV_NAME=VALUE" or env="ENV_NAME=VALUE" (can be repeated)
+
+e.g. greenhousectl dev setup -f dev-env/localenv/dev.config.yaml d=true e="WEBHOOK_ONLY=false" e="CONTROLLERS_ONLY=true"
 
 ```
 
@@ -214,6 +172,32 @@ greenhousectl dev setup -f dev-env/localenv/dev.config.yaml
 ```
   -f, --config string   configuration file path - e.g. -f dev-env/localenv/dev.config.yaml
   -h, --help            help for setup
+```
+
+## greenhousectl dev setup dashboard
+
+setup dashboard for local development with a configuration file
+
+```
+greenhousectl dev setup dashboard [flags]
+```
+
+### Examples
+
+```
+
+# Setup Greenhouse dev environment with a configuration file
+greenhousectl dev setup dashboard -f dev-env/localenv/ui.config.yaml
+
+- Installs the Greenhouse dashboard and CORS proxy into the admin cluster
+
+```
+
+### Options
+
+```
+  -f, --config string   configuration file path - e.g. -f dev-env/localenv/ui.config.yaml
+  -h, --help            help for dashboard
 ```
 
 
