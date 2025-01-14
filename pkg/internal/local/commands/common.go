@@ -30,7 +30,7 @@ func GenerateDevCommandDocs() []*cobra.Command {
 	}
 }
 
-func getBoolArg(matchArgs []string, args []string) (bool, bool) {
+func getBoolArg(matchArgs, args []string) (override, overrideVal bool) {
 	for _, a := range args {
 		// Split each argument into key and value
 		parts := strings.SplitN(a, "=", 2)
@@ -38,17 +38,19 @@ func getBoolArg(matchArgs []string, args []string) (bool, bool) {
 			// Use strconv to parse the value as a boolean
 			parsedBool, err := strconv.ParseBool(parts[1])
 			if err == nil {
-				return true, parsedBool
+				override = true
+				overrideVal = parsedBool
+				return
 			}
 			// If parsing fails, consider it invalid and return as not found
 			break
 		}
 	}
 	// If not found or invalid value, return false
-	return false, false
+	return
 }
 
-func getArgArray(matchArgs []string, args []string) []string {
+func getArgArray(matchArgs, args []string) []string {
 	var result []string
 
 	for _, a := range args {

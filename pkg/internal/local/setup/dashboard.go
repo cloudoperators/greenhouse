@@ -217,7 +217,7 @@ func (m *Manifest) modifyDashboardProps(ctx context.Context, cl client.Client, c
 func (m *Manifest) getDashboardSetupInfo() string {
 	proxyForward := fmt.Sprintf("port-forward the cors-proxy service: kubectl port-forward svc/%s-cors-proxy 9090:80 -n greenhouse (use & at the end to re-use terminal)", m.ReleaseName)
 	dashboardForward := fmt.Sprintf("port-forward the dashboard service: kubectl port-forward svc/%s-dashboard <LOCAL_PORT>:80 -n greenhouse (use & at the end to re-use terminal)", m.ReleaseName)
-	dashboardInfo := fmt.Sprintf("access the dashboard at http://localhost:<LOCAL_PORT> (use the port you used in the dashboard port-forward command)")
+	dashboardInfo := "access the dashboard at http://localhost:<LOCAL_PORT> (use the port you used in the dashboard port-forward command)"
 	killInfo := "stop port-forwarding with CTRL+C or CMD+C, if you are using & at the end, do lsof -i :<PORT> and then kill -9 <PID>"
 	return fmt.Sprintf("dashboard setup complete... \n-- %s \n-- %s\n-- %s\n-- %s", proxyForward, dashboardForward, dashboardInfo, killInfo)
 }
