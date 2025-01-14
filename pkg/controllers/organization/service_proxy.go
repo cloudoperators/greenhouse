@@ -91,6 +91,9 @@ func (r *OrganizationReconciler) reconcileServiceProxy(ctx context.Context, org 
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      serviceProxyName,
 			Namespace: org.Name,
+			Annotations: map[string]string{
+				greenhousesapv1alpha1.AllowCreateAnnotation: "true",
+			},
 		},
 		Spec: greenhousesapv1alpha1.PluginSpec{
 			PluginDefinition: serviceProxyName,

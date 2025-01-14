@@ -77,6 +77,8 @@ const (
 	HelmUninstallFailedReason ConditionReason = "HelmUninstallFailed"
 )
 
+const AllowCreateAnnotation = "greenhouse.sap/allow-create"
+
 // PluginStatus defines the observed state of Plugin
 type PluginStatus struct {
 	// HelmReleaseStatus reflects the status of the latest HelmChart release.

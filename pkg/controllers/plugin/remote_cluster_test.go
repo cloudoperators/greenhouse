@@ -41,6 +41,9 @@ var (
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "test-plugindefinition",
 			Namespace: test.TestNamespace,
+			Annotations: map[string]string{
+				greenhousev1alpha1.AllowCreateAnnotation: "true",
+			},
 		},
 		Spec: greenhousev1alpha1.PluginSpec{
 			ClusterName:      "test-cluster",
@@ -57,6 +60,9 @@ var (
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "test-plugin-secretref",
 			Namespace: test.TestNamespace,
+			Annotations: map[string]string{
+				greenhousev1alpha1.AllowCreateAnnotation: "true",
+			},
 		},
 		Spec: greenhousev1alpha1.PluginSpec{
 			PluginDefinition: "test-plugindefinition",
@@ -80,6 +86,9 @@ var (
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "test-plugin-in-made-up-namespace",
 			Namespace: test.TestNamespace,
+			Annotations: map[string]string{
+				greenhousev1alpha1.AllowCreateAnnotation: "true",
+			},
 		},
 		Spec: greenhousev1alpha1.PluginSpec{
 			PluginDefinition: testPluginDefinition.GetName(),
@@ -96,6 +105,9 @@ var (
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "test-plugin-crd",
 			Namespace: test.TestNamespace,
+			Annotations: map[string]string{
+				greenhousev1alpha1.AllowCreateAnnotation: "true",
+			},
 		},
 		Spec: greenhousev1alpha1.PluginSpec{
 			ClusterName:      "test-cluster",
@@ -112,6 +124,9 @@ var (
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "test-plugin-exposed",
 			Namespace: test.TestNamespace,
+			Annotations: map[string]string{
+				greenhousev1alpha1.AllowCreateAnnotation: "true",
+			},
 		},
 		Spec: greenhousev1alpha1.PluginSpec{
 			ClusterName:      "test-cluster",

@@ -181,6 +181,9 @@ var _ = Describe("HelmControllerTest", Serial, func() {
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      PluginName,
 				Namespace: Namespace,
+				Annotations: map[string]string{
+					greenhousev1alpha1.AllowCreateAnnotation: "true",
+				},
 			},
 			Spec: greenhousev1alpha1.PluginSpec{
 				PluginDefinition: PluginDefinitionName,
@@ -528,6 +531,9 @@ var _ = Describe("HelmControllerTest", Serial, func() {
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      pluginName,
 					Namespace: Namespace,
+					Annotations: map[string]string{
+						greenhousev1alpha1.AllowCreateAnnotation: "true",
+					},
 				},
 				Spec: greenhousev1alpha1.PluginSpec{
 					PluginDefinition: pluginWithEveryOption,
@@ -670,6 +676,9 @@ var _ = When("the pluginDefinition is UI only", func() {
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "uiplugin",
 				Namespace: "default",
+				Annotations: map[string]string{
+					greenhousev1alpha1.AllowCreateAnnotation: "true",
+				},
 			},
 			Spec: greenhousev1alpha1.PluginSpec{
 				PluginDefinition: "myuiplugin",
