@@ -4,8 +4,9 @@
 package commands
 
 import (
-	"fmt"
 	"os"
+	"slices"
+	"strconv"
 	"strings"
 
 	"gopkg.in/yaml.v3"
@@ -14,75 +15,52 @@ import (
 	"github.com/cloudoperators/greenhouse/pkg/internal/local/utils"
 
 	"github.com/spf13/cobra"
-	"github.com/spf13/pflag"
-)
-
-var (
-	clusterName    string
-	namespaceName  string
-	clusterVersion string
-	kindConfigPath string
-	dockerFile     string
-	releaseName    string
-	chartPath      string
-	valuesPath     string
-	crdOnly        bool
-	excludeKinds   []string
 )
 
 func GetLocalSetupCommands() []*cobra.Command {
 	return []*cobra.Command{
-		clusterCmd,
 		setupCmd,
 	}
 }
 
 func GenerateDevCommandDocs() []*cobra.Command {
 	return []*cobra.Command{
-		createClusterCmd,
-		deleteClusterCmd,
-		manifestCmd,
-		webhookCmd,
 		setupCmd,
+		dashboardCmd,
 	}
 }
 
-func validateFlagInputs(flags *pflag.FlagSet) error {
-	invalidFlags := make([]string, 0)
-	flags.VisitAll(func(flag *pflag.Flag) {
-		switch flag.Value.Type() {
-		case "string":
-			_, required := flag.Annotations[cobra.BashCompOneRequiredFlag]
-			if required && strings.TrimSpace(flag.Value.String()) == "" {
-				invalidFlags = append(invalidFlags, flag.Name)
-				return
+func getBoolArg(matchArgs []string, args []string) (bool, bool) {
+	for _, a := range args {
+		// Split each argument into key and value
+		parts := strings.SplitN(a, "=", 2)
+		if len(parts) == 2 && slices.Contains(matchArgs, parts[0]) {
+			// Use strconv to parse the value as a boolean
+			parsedBool, err := strconv.ParseBool(parts[1])
+			if err == nil {
+				return true, parsedBool
 			}
-			if !required && flag.Changed && strings.TrimSpace(flag.Value.String()) == "" {
-				invalidFlags = append(invalidFlags, flag.Name)
-				return
-			}
-		case "stringArray":
-			if flag.Changed {
-				arr, err := flags.GetStringArray(flag.Name)
-				if err != nil {
-					invalidFlags = append(invalidFlags, flag.Name)
-					return
-				}
-				for _, a := range arr {
-					if strings.TrimSpace(a) == "" || strings.Contains(a, "-") {
-						invalidFlags = append(invalidFlags, flag.Name)
-						return
-					}
-				}
-			}
-		default:
-			return
+			// If parsing fails, consider it invalid and return as not found
+			break
 		}
-	})
-	if len(invalidFlags) > 0 {
-		return fmt.Errorf("flag validation failed for: %s", strings.Join(invalidFlags, ", "))
 	}
-	return nil
+	// If not found or invalid value, return false
+	return false, false
+}
+
+func getArgArray(matchArgs []string, args []string) []string {
+	var result []string
+
+	for _, a := range args {
+		// Split each argument into key and value
+		parts := strings.SplitN(a, "=", 2)
+		if len(parts) == 2 && slices.Contains(matchArgs, parts[0]) {
+			// Append the argument to the result if the key matches
+			result = append(result, parts[1])
+		}
+	}
+
+	return result
 }
 
 func createHostPathConfig() (string, error) {
