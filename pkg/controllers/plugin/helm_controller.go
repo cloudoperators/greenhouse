@@ -106,7 +106,7 @@ func (r *HelmReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.
 	pluginStatus := initPluginStatus(plugin)
 	defer func() {
 		if statusErr := setPluginStatus(ctx, r.Client, plugin, pluginStatus); statusErr != nil {
-			log.FromContext(ctx).Error(statusErr, "failed to set status")
+			log.FromContext(ctx).Error(statusErr, "failed to set status", "plugin", plugin, "status", pluginStatus)
 		}
 	}()
 

@@ -31,9 +31,6 @@ func OnboardRemoteCluster(ctx context.Context, k8sClient client.Client, kubeConf
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
 			Namespace: namespace,
-			Labels: map[string]string{
-				"app": "test",
-			},
 		},
 		Type: greenhouseapis.SecretTypeKubeConfig,
 		Data: map[string][]byte{
