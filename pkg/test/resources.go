@@ -242,6 +242,17 @@ func NewPlugin(ctx context.Context, name, namespace string, opts ...func(*greenh
 	return plugin
 }
 
+// WithAnnotation sets the annotation for plugin
+func WithAnnotation(key, value string) func(plugin *greenhousev1alpha1.Plugin) {
+	return func(plugin *greenhousev1alpha1.Plugin) {
+		if plugin.Annotations == nil {
+			plugin.Annotations = map[string]string{}
+		}
+
+		plugin.Annotations[key] = value
+	}
+}
+
 // WithRules overrides the default rules of a TeamRole
 func WithRules(rules []rbacv1.PolicyRule) func(*greenhousev1alpha1.TeamRole) {
 	return func(tr *greenhousev1alpha1.TeamRole) {

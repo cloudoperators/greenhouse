@@ -78,10 +78,23 @@ var _ = Describe("Plugin E2E", Ordered, func() {
 	It("should have a cluster resource created", func() {
 		By("verifying if the cluster resource is created")
 		Eventually(func(g Gomega) {
-			err := adminClient.Get(ctx, client.ObjectKey{Name: remoteClusterName, Namespace: env.TestNamespace}, &greenhousev1alpha1.Cluster{})
+			var remoteCluster greenhousev1alpha1.Cluster
+			err := adminClient.Get(ctx, client.ObjectKey{Name: remoteClusterName, Namespace: env.TestNamespace}, &remoteCluster)
 			g.Expect(err).ToNot(HaveOccurred())
-
+			if remoteCluster.Labels == nil {
+				remoteCluster.Labels = map[string]string{}
+			}
+			remoteCluster.Labels["app"] = "test"
+			err = adminClient.Update(ctx, &remoteCluster)
+			g.Expect(err).ToNot(HaveOccurred())
 		}).Should(Succeed(), "cluster resource should be created")
+
+		Eventually(func(g Gomega) {
+			var remoteCluster greenhousev1alpha1.Cluster
+			err := adminClient.Get(ctx, client.ObjectKey{Name: remoteClusterName, Namespace: env.TestNamespace}, &remoteCluster)
+			g.Expect(err).ToNot(HaveOccurred())
+			g.Expect(remoteCluster.Labels["app"]).To(Equal("test"))
+		}).Should(Succeed(), "cluster resource should be updated")
 
 		By("verifying the cluster status is ready")
 		shared.ClusterIsReady(ctx, adminClient, remoteClusterName, env.TestNamespace)
@@ -127,6 +140,7 @@ var _ = Describe("Plugin E2E", Ordered, func() {
 			g.Expect(len(pluginList.Items)).To(BeEquivalentTo(1))
 			g.Expect(pluginList.Items[0].Status.HelmReleaseStatus).ToNot(BeNil())
 			g.Expect(pluginList.Items[0].Status.HelmReleaseStatus.Status).To(BeEquivalentTo("deployed"))
+			testPlugin = &pluginList.Items[0]
 		}).Should(Succeed())
 
 		By("Checking deployment")
@@ -177,8 +191,29 @@ var _ = Describe("Plugin E2E", Ordered, func() {
 			}
 		}).Should(Succeed())
 
+		By("Add annotation to allow delete plugin preset")
+		Eventually(func(g Gomega) {
+			err = adminClient.Get(ctx, client.ObjectKeyFromObject(testPluginPreset), testPluginPreset)
+			g.Expect(err).NotTo(HaveOccurred())
+			if testPluginPreset.Annotations == nil {
+				testPluginPreset.Annotations = map[string]string{}
+			}
+			delete(testPluginPreset.Annotations, "greenhouse.sap/prevent-deletion")
+			err = adminClient.Update(ctx, testPluginPreset)
+			g.Expect(err).NotTo(HaveOccurred())
+		}).Should(Succeed())
+
+		By("Deleting plugin preset")
+		Eventually(func(g Gomega) {
+			err = adminClient.Delete(ctx, testPluginPreset)
+			g.Expect(err).NotTo(HaveOccurred())
+		}).Should(Succeed())
+
 		By("Deleting plugin")
-		test.EventuallyDeleted(ctx, adminClient, testPluginPreset)
+		Eventually(func(g Gomega) {
+			err = adminClient.Delete(ctx, testPlugin)
+			g.Expect(err).NotTo(HaveOccurred())
+		}).Should(Succeed())
 
 		By("Check, is deployment deleted")
 		Eventually(func(g Gomega) bool {
