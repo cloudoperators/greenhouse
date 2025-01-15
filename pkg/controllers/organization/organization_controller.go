@@ -5,7 +5,11 @@ package organization
 
 import (
 	"context"
+	"log/slog"
+	"os"
 
+	"github.com/dexidp/dex/storage"
+	"github.com/dexidp/dex/storage/sql"
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
@@ -21,6 +25,7 @@ import (
 	greenhousesapv1alpha1 "github.com/cloudoperators/greenhouse/pkg/apis/greenhouse/v1alpha1"
 	"github.com/cloudoperators/greenhouse/pkg/clientutil"
 	dexapi "github.com/cloudoperators/greenhouse/pkg/dex/api"
+	"github.com/cloudoperators/greenhouse/pkg/idproxy"
 	"github.com/cloudoperators/greenhouse/pkg/lifecycle"
 	"github.com/cloudoperators/greenhouse/pkg/scim"
 )
@@ -46,8 +51,8 @@ type OrganizationReconciler struct {
 	recorder  record.EventRecorder
 	Namespace string
 	// Database related configuration
-	PGDB, PGHost, PGUser, PGPasswd string
-	PGPort                         uint16
+	NetworkDB  sql.NetworkDB
+	dexStorage storage.Storage
 }
 
 //+kubebuilder:rbac:groups=greenhouse.sap,resources=organizations,verbs=get;list;watch;create;update;patch;delete
@@ -67,6 +72,14 @@ type OrganizationReconciler struct {
 func (r *OrganizationReconciler) SetupWithManager(name string, mgr ctrl.Manager) error {
 	r.Client = mgr.GetClient()
 	r.recorder = mgr.GetEventRecorderFor(name)
+
+	var err error
+	logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
+	if r.dexStorage, err = idproxy.NewPostgresStorage(sql.SSL{Mode: "disable"}, r.NetworkDB, logger.With("component", "storage")); err != nil {
+		return errors.Wrap(err, "failed to initialize postgres storage")
+	}
+
+	defer r.dexStorage.Close()
 
 	return ctrl.NewControllerManagedBy(mgr).
 		Named(name).

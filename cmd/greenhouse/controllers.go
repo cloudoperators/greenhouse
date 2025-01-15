@@ -76,13 +76,10 @@ func startOrganizationReconciler(name string, mgr ctrl.Manager) error {
 	if v, ok := os.LookupEnv("POD_NAMESPACE"); ok {
 		namespace = v
 	}
+
 	return (&organizationcontrollers.OrganizationReconciler{
 		Namespace: namespace,
-		PGDB:      pgDB,
-		PGHost:    pgHost,
-		PGPort:    pgPort,
-		PGUser:    pgUser,
-		PGPasswd:  pgPasswd,
+		NetworkDB: postgresDB,
 	}).SetupWithManager(name, mgr)
 }
 

@@ -12,6 +12,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/dexidp/dex/storage/sql"
+	"github.com/sapcc/go-bits/osext"
 	flag "github.com/spf13/pflag"
 	"go.uber.org/zap/zapcore"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
@@ -59,8 +61,7 @@ var (
 	renewRemoteClusterBearerTokenAfter time.Duration
 	kubeClientOpts clientutil.RuntimeOptions
 	// DB connection parameters
-	pgDB, pgHost, pgUser, pgPasswd string
-	pgPort                         uint16
+	postgresDB sql.NetworkDB
 )
 
 func init() {
@@ -94,11 +95,11 @@ func main() {
 	flag.StringVar(&common.DNSDomain, "dns-domain", "",
 		"The DNS domain to use for the Greenhouse central cluster")
 
-	flag.StringVar(&pgDB, "database", os.Getenv("DB_NAME"), "Database name")
-	flag.StringVar(&pgHost, "dbHost", os.Getenv("DB_HOST"), "Database host")
-	flag.Uint16Var(&pgPort, "dbPort", 5432, "Database port")
-	flag.StringVar(&pgUser, "dbUser", os.Getenv("DB_USER"), "Database user")
-	flag.StringVar(&pgPasswd, "dbPassword", os.Getenv("DB_PASSWORD"), "Database password")
+	flag.StringVar(&postgresDB.Database, "database", osext.GetenvOrDefault("DEX_POSTGRES_DATABASE", "dex"), "Database name")
+	flag.StringVar(&postgresDB.Host, "dbHost", osext.GetenvOrDefault("DEX_POSTGRES_HOST", "localhost"), "Database host")
+	flag.Uint16Var(&postgresDB.Port, "dbPort", 5432, "Database port")
+	flag.StringVar(&postgresDB.User, "dbUser", osext.GetenvOrDefault("DEX_POSTGRES_USER", "dex"), "Database user")
+	flag.StringVar(&postgresDB.Password, "dbPassword", osext.GetenvOrDefault("DEX_POSTGRES_PASSWORD", "dex"), "Database password")
 
 	opts := zap.Options{
 		Development: true,

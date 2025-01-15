@@ -9,13 +9,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"hash/fnv"
-	"log/slog"
-	"os"
 	"strings"
-
-	"github.com/dexidp/dex/storage/sql"
-
-	"github.com/cloudoperators/greenhouse/pkg/idproxy"
 
 	"github.com/dexidp/dex/connector/oidc"
 	"github.com/dexidp/dex/storage"
@@ -96,24 +90,10 @@ func (r *OrganizationReconciler) reconcileDexConnector(ctx context.Context, org 
 		r.recorder.Eventf(org, corev1.EventTypeNormal, "UpdatedDexConnector", "Updated dex connector %s/%s", dexConnector.Namespace, dexConnector.GetName())
 	}
 
-	logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
-	sqlDexStorage, err := idproxy.NewPostgresStorage(sql.SSL{Mode: "disable"}, sql.NetworkDB{
-		Host:     r.PGHost,
-		Port:     r.PGPort,
-		User:     r.PGUser,
-		Password: r.PGPasswd,
-		Database: r.PGDB,
-	}, logger.With("component", "storage"))
-	if err != nil {
-		return err
-	}
-
-	defer sqlDexStorage.Close()
-
 	// Create the connectors also in SQL storage
 	var oidcConnector storage.Connector
-	if oidcConnector, err = sqlDexStorage.GetConnector(org.Name); err != nil {
-		if err = sqlDexStorage.CreateConnector(ctx, storage.Connector{
+	if oidcConnector, err = r.dexStorage.GetConnector(org.Name); err != nil {
+		if err = r.dexStorage.CreateConnector(ctx, storage.Connector{
 			ID:     org.Name,
 			Type:   dexConnectorTypeGreenhouse,
 			Name:   cases.Title(language.English).String(org.Name),
@@ -122,9 +102,8 @@ func (r *OrganizationReconciler) reconcileDexConnector(ctx context.Context, org 
 			return err
 		}
 		log.FromContext(ctx).Info("created dex connector in SQL storage", "name", org.Name)
-		r.recorder.Eventf(org, corev1.EventTypeNormal, "CreatedDexConnectorSQL", "Created dex connector in SQL storage %s", org.Name)
 	}
-	if err = sqlDexStorage.UpdateConnector(oidcConnector.ID, func(c storage.Connector) (storage.Connector, error) {
+	if err = r.dexStorage.UpdateConnector(oidcConnector.ID, func(c storage.Connector) (storage.Connector, error) {
 		c.ID = org.Name
 		c.Type = dexConnectorTypeGreenhouse
 		c.Name = cases.Title(language.English).String(org.Name)
@@ -134,7 +113,6 @@ func (r *OrganizationReconciler) reconcileDexConnector(ctx context.Context, org 
 		return err
 	}
 	log.FromContext(ctx).Info("updated dex connector in SQL storage", "name", org.Name)
-	r.recorder.Eventf(org, corev1.EventTypeNormal, "UpdatedDexConnectorSQL", "Updated dex connector in SQL storage %s", org.Name)
 
 	return nil
 }
@@ -166,23 +144,10 @@ func (r *OrganizationReconciler) discoverOIDCRedirectURL(ctx context.Context, or
 }
 
 func (r *OrganizationReconciler) reconcileOAuth2Client(ctx context.Context, org *greenhousesapv1alpha1.Organization) error {
-	logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
-	sqlDexStorage, err := idproxy.NewPostgresStorage(sql.SSL{Mode: "disable"}, sql.NetworkDB{
-		Host:     r.PGHost,
-		Port:     r.PGPort,
-		User:     r.PGUser,
-		Password: r.PGPasswd,
-		Database: r.PGDB,
-	}, logger.With("component", "storage"))
-	if err != nil {
-		return err
-	}
-
-	defer sqlDexStorage.Close()
-
 	var oAuthClient storage.Client
-	if oAuthClient, err = sqlDexStorage.GetClient(org.Name); err != nil {
-		if err = sqlDexStorage.CreateClient(ctx, storage.Client{
+	var err error
+	if oAuthClient, err = r.dexStorage.GetClient(org.Name); err != nil {
+		if err = r.dexStorage.CreateClient(ctx, storage.Client{
 			Public: true,
 			ID:     org.Name,
 			Name:   org.Name,
@@ -194,11 +159,10 @@ func (r *OrganizationReconciler) reconcileOAuth2Client(ctx context.Context, org 
 			return err
 		}
 		log.FromContext(ctx).Info("created oauth2client", "name", org.Name)
-		r.recorder.Eventf(org, corev1.EventTypeNormal, "CreatedOAuth2Client", "Created oauth2client %s", org.Name)
 		return nil
 	}
 
-	if err = sqlDexStorage.UpdateClient(oAuthClient.Name, func(authClient storage.Client) (storage.Client, error) {
+	if err = r.dexStorage.UpdateClient(oAuthClient.Name, func(authClient storage.Client) (storage.Client, error) {
 		authClient.Public = true
 		authClient.ID = org.Name
 		authClient.Name = org.Name
@@ -213,7 +177,6 @@ func (r *OrganizationReconciler) reconcileOAuth2Client(ctx context.Context, org 
 		return err
 	}
 	log.FromContext(ctx).Info("updated oauth2client", "name", org.Name)
-	r.recorder.Eventf(org, corev1.EventTypeNormal, "UpdatedOAuth2Client", "Updated oauth2client %s", org.Name)
 
 	var oAuth2Client = new(dexapi.OAuth2Client)
 	oAuth2Client.ObjectMeta.Name = encodedOAuth2ClientName(org.Name)
