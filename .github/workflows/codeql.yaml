@@ -2,11 +2,13 @@ name: "CodeQL"
 
 on:
   push:
-    branches: [ "main" ]
+    branches: ["main"]
   pull_request:
-    types: [ opened, synchronize, reopened ]
+    types: [opened, synchronize, reopened]
+    paths-ignore:
+      - "docs/**"
   schedule:
-    - cron: '20 08 * * 1'
+    - cron: "20 08 * * 1"
 
 jobs:
   codeql:
