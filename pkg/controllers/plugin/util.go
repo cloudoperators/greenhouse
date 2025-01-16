@@ -55,17 +55,6 @@ func initPluginStatus(plugin *greenhousev1alpha1.Plugin) greenhousev1alpha1.Plug
 	return plugin.Status
 }
 
-// setPluginStatus sets the status for the plugin
-func setPluginStatus(ctx context.Context, k8sClient client.Client, plugin *greenhousev1alpha1.Plugin, pluginStatus greenhousev1alpha1.PluginStatus) error {
-	readyCondition := computeReadyCondition(pluginStatus.StatusConditions)
-	pluginStatus.StatusConditions.SetConditions(readyCondition)
-	_, err := clientutil.PatchStatus(ctx, k8sClient, plugin, func() error {
-		plugin.Status = pluginStatus
-		return nil
-	})
-	return err
-}
-
 // initClientGetter returns a RestClientGetter for the given Plugin.
 // If the Plugin has a clusterName set, the RestClientGetter is initialized from the cluster secret.
 // Otherwise, the RestClientGetter is initialized with in-cluster config
@@ -223,28 +212,24 @@ func allResourceReady(payloadStatus []PayloadStatus) bool {
 	return true
 }
 
-// computeWorkloadCondition computes the ReadyCondition for the Plugin and sets the workload metrics and message
-func computeWorkloadCondition(plugin *greenhousev1alpha1.Plugin, pluginStatus greenhousev1alpha1.PluginStatus, release *ReleaseStatus) greenhousev1alpha1.Condition {
-	WorkloadReadyStatus := *pluginStatus.GetConditionByType(greenhousev1alpha1.WorkloadReadyCondition)
-
-	WorkloadReadyStatus.Status = metav1.ConditionTrue
+// computeWorkloadCondition computes the ReadyCondition for the Plugin and sets the workload metrics and condition message.
+func computeWorkloadCondition(plugin *greenhousev1alpha1.Plugin, release *ReleaseStatus) {
 	if !allResourceReady(release.PayloadStatus) {
-		WorkloadReadyStatus.Status = metav1.ConditionFalse
 		setWorkloadMetrics(plugin, 0)
-		WorkloadReadyStatus.Message = "Following workload resources are not ready: [ "
+		errorMessage := "Following workload resources are not ready: [ "
 		for _, status := range release.PayloadStatus {
 			if !status.Ready {
-				WorkloadReadyStatus.Message += ", " + status.Message
+				errorMessage += ", " + status.Message
 			}
 		}
-		WorkloadReadyStatus.Message = strings.TrimPrefix(WorkloadReadyStatus.Message, ", ")
-		WorkloadReadyStatus.Message += " ]"
-	} else {
-		setWorkloadMetrics(plugin, 1)
-		WorkloadReadyStatus.Message = "Workload is running"
+		errorMessage = strings.TrimPrefix(errorMessage, ", ")
+		errorMessage += " ]"
+		plugin.SetCondition(greenhousev1alpha1.FalseCondition(greenhousev1alpha1.WorkloadReadyCondition, "", errorMessage))
+		return
 	}
 
-	return WorkloadReadyStatus
+	setWorkloadMetrics(plugin, 1)
+	plugin.SetCondition(greenhousev1alpha1.TrueCondition(greenhousev1alpha1.WorkloadReadyCondition, "", "Workload is running"))
 }
 
 // setWorkloadMetrics sets the workload status metric to the given status
