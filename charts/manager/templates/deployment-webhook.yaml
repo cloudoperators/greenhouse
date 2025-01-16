@@ -6,7 +6,7 @@ SPDX-License-Identifier: Apache-2.0
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: {{ include "manager.fullname" . }}-controller-manager
+  name: {{ include "manager.fullname" . }}-webhook-manager
   namespace: greenhouse
   labels:
     app: greenhouse
@@ -35,6 +35,8 @@ spec:
         {{- include "manager.params" . | indent 8 }}
         {{- end }}
         env:
+        - name: WEBHOOK_ONLY
+          value: "true"
         {{- if eq .Values.global.dex.backend "postgres" }}
         - name: PG_DATABASE
           value: {{ .Values.global.dex.postgresql.postgresqlDatabase }}

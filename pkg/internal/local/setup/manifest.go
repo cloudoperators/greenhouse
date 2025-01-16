@@ -97,11 +97,16 @@ func webhookManifestSetup(ctx context.Context, m *Manifest) Step {
 			noWbManifests := excludeResources(filtered, []string{"MutatingWebhookConfiguration", "ValidatingWebhookConfiguration"})
 			return m.applyManifests(noWbManifests, namespace, env.cluster.kubeConfigPath)
 		}
-		webHookManifests, err := m.setupWebhookManifest(resources, clusterName)
+		webHookManifests, err := m.setupWebhookManifest(resources, clusterName, WebhookDeploymentNameSuffix)
 		if err != nil {
 			return err
 		}
 		filtered = append(filtered, webHookManifests...)
+		controllerManifests, err := m.setupWebhookManifest(resources, clusterName, ControllersDeploymentNameSuffix)
+		if err != nil {
+			return err
+		}
+		filtered = append(filtered, controllerManifests...)
 		err = m.applyManifests(filtered, namespace, env.cluster.kubeConfigPath)
 		if err != nil {
 			return err
@@ -112,7 +117,11 @@ func webhookManifestSetup(ctx context.Context, m *Manifest) Step {
 				return err
 			}
 		}
-		return m.waitUntilDeploymentReady(ctx, clusterName, m.ReleaseName+ManagerDeploymentNameSuffix, namespace)
+		if err := m.waitUntilDeploymentReady(ctx, clusterName, m.ReleaseName+WebhookDeploymentNameSuffix, namespace); err != nil {
+			return err
+		}
+
+		return m.waitUntilDeploymentReady(ctx, clusterName, m.ReleaseName+ControllersDeploymentNameSuffix, namespace)
 	}
 }
 
