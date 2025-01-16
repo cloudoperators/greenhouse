@@ -13,7 +13,6 @@ import (
 	"time"
 
 	"github.com/dexidp/dex/storage/sql"
-	"github.com/sapcc/go-bits/osext"
 	flag "github.com/spf13/pflag"
 	"go.uber.org/zap/zapcore"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
@@ -95,11 +94,11 @@ func main() {
 	flag.StringVar(&common.DNSDomain, "dns-domain", "",
 		"The DNS domain to use for the Greenhouse central cluster")
 
-	flag.StringVar(&postgresDB.Database, "database", osext.GetenvOrDefault("DEX_POSTGRES_DATABASE", "dex"), "Database name")
-	flag.StringVar(&postgresDB.Host, "dbHost", osext.GetenvOrDefault("DEX_POSTGRES_HOST", "localhost"), "Database host")
+	flag.StringVar(&postgresDB.Database, "database", clientutil.GetEnvOrDefault("DEX_POSTGRES_DATABASE", "dex"), "Database name")
+	flag.StringVar(&postgresDB.Host, "dbHost", clientutil.GetEnvOrDefault("DEX_POSTGRES_HOST", "localhost"), "Database host")
 	flag.Uint16Var(&postgresDB.Port, "dbPort", 5432, "Database port")
-	flag.StringVar(&postgresDB.User, "dbUser", osext.GetenvOrDefault("DEX_POSTGRES_USER", "dex"), "Database user")
-	flag.StringVar(&postgresDB.Password, "dbPassword", osext.GetenvOrDefault("DEX_POSTGRES_PASSWORD", "dex"), "Database password")
+	flag.StringVar(&postgresDB.User, "dbUser", clientutil.GetEnvOrDefault("DEX_POSTGRES_USER", "dex"), "Database user")
+	flag.StringVar(&postgresDB.Password, "dbPassword", clientutil.GetEnvOrDefault("DEX_POSTGRES_PASSWORD", "dex"), "Database password")
 
 	opts := zap.Options{
 		Development: true,
