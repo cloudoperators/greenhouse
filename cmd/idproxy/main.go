@@ -42,7 +42,7 @@ func main() {
 	var allowedOrigins []string
 	// DB connection parameters
 	var postgresDB sql.NetworkDB
-	
+
 	logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
 	// set default logger to be used by log
 	slog.SetDefault(logger)

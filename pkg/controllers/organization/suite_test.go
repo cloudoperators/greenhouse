@@ -5,11 +5,12 @@ package organization_test
 
 import (
 	"context"
+	"net/http/httptest"
+	"testing"
+
 	"github.com/dexidp/dex/storage/sql"
 	"github.com/testcontainers/testcontainers-go"
 	"github.com/testcontainers/testcontainers-go/wait"
-	"net/http/httptest"
-	"testing"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -23,10 +24,9 @@ import (
 )
 
 const (
-	mockDb   = "mock"
-	mockUsr  = "mock"
-	mockPwd  = "mock_pwd"
-	mockPort = 5004
+	mockDb  = "mock"
+	mockUsr = "mock"
+	mockPwd = "mock_pwd"
 )
 
 var (
