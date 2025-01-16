@@ -12,6 +12,7 @@ import (
 	"path/filepath"
 	"time"
 
+	"github.com/dexidp/dex/storage/sql"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
@@ -165,6 +166,20 @@ var (
 			for webhookName, registerFunc := range allRegisterWebhookFuncs {
 				logf.FromContext(Ctx, "message", "registering webhook", "name", webhookName)
 				Expect(registerFunc(K8sManager)).To(Succeed(), "there must be no error registering the webhook", "name", webhookName)
+			}
+
+			// Start Postgres for testing
+			psqlCfg := &sql.Postgres{
+				sql.NetworkDB{
+					Database: "postgres",
+					User:     "postgres",
+					Password: "postgres",
+					Host:     "localhost",
+					Port:     5432,
+				},
+				sql.SSL{
+					Mode: "disable",
+				},
 			}
 
 			// Register controllers.
