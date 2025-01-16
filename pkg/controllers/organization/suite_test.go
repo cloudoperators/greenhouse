@@ -24,9 +24,9 @@ import (
 )
 
 const (
-	mockDb  = "mock"
-	mockUsr = "mock"
-	mockPwd = "mock_pwd"
+	mockDB  = "mock"
+	mockUSR = "mock"
+	mockPWD = "mock_pwd"
 )
 
 var (
@@ -57,9 +57,9 @@ var _ = BeforeSuite(func() {
 	netDB := sql.NetworkDB{
 		Host:     host,
 		Port:     uint16(port.Int()),
-		User:     mockUsr,
-		Password: mockPwd,
-		Database: mockDb,
+		User:     mockUSR,
+		Password: mockPWD,
+		Database: mockDB,
 	}
 
 	test.RegisterController("organizationController", (&organizationpkg.OrganizationReconciler{Namespace: "default", NetworkDB: netDB}).SetupWithManager)
@@ -82,9 +82,9 @@ var _ = AfterSuite(func() {
 
 func startPgTC(ctx context.Context) (*postgres.PostgresContainer, error) {
 	return postgres.Run(ctx, "postgres:16-alpine",
-		postgres.WithDatabase(mockDb),
-		postgres.WithUsername(mockUsr),
-		postgres.WithPassword(mockPwd),
+		postgres.WithDatabase(mockDB),
+		postgres.WithUsername(mockUSR),
+		postgres.WithPassword(mockPWD),
 		testcontainers.WithWaitStrategy(
 			// First, we wait for the container to log readiness twice.
 			// This is because it will restart itself after the first startup.
