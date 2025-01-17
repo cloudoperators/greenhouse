@@ -6,7 +6,6 @@ package controllers
 import (
 	"context"
 	"fmt"
-	"time"
 
 	corev1 "k8s.io/api/core/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
@@ -23,10 +22,6 @@ import (
 	greenhouseapis "github.com/cloudoperators/greenhouse/pkg/apis"
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/pkg/apis/greenhouse/v1alpha1"
 	"github.com/cloudoperators/greenhouse/pkg/clientutil"
-)
-
-const (
-	DefaultRequeueInterval = 10 * time.Minute
 )
 
 // PropagationReconciler implements the basic functionality every resource propagation reconciler needs.
@@ -103,7 +98,7 @@ func (r *PropagationReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 		return ctrl.Result{}, err
 	}
 
-	return ctrl.Result{RequeueAfter: DefaultRequeueInterval}, nil
+	return ctrl.Result{}, nil
 }
 
 func (r *PropagationReconciler) reconcileObject(ctx context.Context, restClient client.Client, obj client.Object, clusterName string) error {
