@@ -1,5 +1,3 @@
-
-
 # Setting up development environment
 
 This handy CLI tool will help you to setup your development environment in no time.
@@ -12,10 +10,7 @@ This handy CLI tool will help you to setup your development environment in no ti
 
 ## Usage
 
-You can use `greenhousectl` either by downloading the latest binary
-from [here](https://github.com/cloudoperators/greenhouse/releases)
-
-Or you can build it from source by running the following command: `make cli`
+Build `greenhousectl` from source by running the following command: `make cli`
 
 > [!NOTE]  
 > The CLI binary will be available in the `bin` folder
@@ -26,6 +21,15 @@ There are multiple local development environment setup available for the Greenho
 fits your needs.
 
 `All commands will spin up KinD clusters and setup the necessary components`
+
+if you have a `~/.kube/config` file then `KinD` will automatically merge the `kubeconfig` of the created cluster(s)
+
+use `kubectl config use-context kind-greenhouse-admin` to switch to `greenhouse admin` cluster context
+use `kubectl config use-context kind-greenhouse-remote` to switch to `greenhouse remote` cluster context
+
+
+if you do not have a `~/.kube/config` file then you can extract it by running `kind get kubeconfig --name greenhouse-admin > /path/to/greenhouse-admin-kubeconfig` or `kind get kubeconfig --name greenhouse-remote > /path/to/greenhouse-remote-kubeconfig` (the `KinD` cluster names should be used without the prefix `kind-`)
+and then use `kubectl --kubeconfig=<path to admin / remote kubeconfig>` to interact with the local `greenhouse` clusters
 
 ### Develop controllers locally and run the webhook server in-cluster
 
@@ -57,7 +61,7 @@ make setup-dashboard
 > You will need to port-forward the cors-proxy service and the dashboard service to access the dashboard
 > Information on how to access the dashboard is displayed after the command is executed
 
-### Develop Greenhouse Dashboard locally
+### Run Greenhouse Core for UI development
 
 ```shell
 make setup
@@ -66,15 +70,14 @@ make setup
 - This will install the operator, cors-proxy, sample organization with an onboarded remote cluster
 - Additionally, it also creates a `appProps.json` `ConfigMap` in the `greenhouse` namespace
 - You can now retrieve the generated `appProps.json` in-cluster by executing
-  `kc get cm greenhouse-dashboard-app-props -n greenhouse -o=json | jq -r '.data.["appProps.json"]'`
+  `kubectl get cm greenhouse-dashboard-app-props -n greenhouse -o=json | jq -r '.data.["appProps.json"]'`
 - Optionally you can also redirect this output to `appProps.json`
   in [Juno Repository](https://github.com/cloudoperators/juno/blob/main/apps/greenhouse/README.md)
 - Follow the instructions in the terminal to `port-forward` the cors-proxy service (ignore the `port-forward` of
   dashboard service)
-- Start the dashboard locally
-- `PluginDefinition(s)` can be applied
-  from [Greenhouse Extensions](https://github.com/cloudoperators/greenhouse-extensions) repository
-
+- After port-forwarding `cors-proxy` service, it should be used as `apiEndpoint` in `appProps.json`
+- Start the dashboard locally (more information on how to run the dashboard locally can be found in
+  the [Juno Repository](https://github.com/cloudoperators/juno/blob/main/apps/greenhouse/README.md)
 
 ### Test Plugin / Greenhouse Extension charts locally
 
@@ -87,10 +90,7 @@ PLUGIN_DIR=<absolute-path-to-charts-dir> make setup
 - The operator deployment has a hostPath volume mount to the plugin charts directory from the `node` of the `KinD`
   cluster
 
-You would need to apply the `PluginDefinition(s)` of the chart that needs to be tested.
-
-However, before applying the `PluginDefinition(s)`, you need to modify the `PluginDefinition(s)` to point to a local
-file path.
+To test your local Chart (now mounted to the KinD cluster) with a `plugindefinition.yaml` you would need to adjust `.spec.helmChart.name` to use the local chart.
 
 Modify `spec.helmChart.name` to point to the local file path of the chart that needs to be tested
 
@@ -111,11 +111,17 @@ spec:
   docMarkDownUrl: >-
     https://raw.githubusercontent.com/cloudoperators/greenhouse-extensions/main/cert-manager/README.md
   helmChart:
-    name: cert-manager # <- replace it with 'local/plugins/cert-manager/charts/v1.11.0/cert-manager'
-    repository: oci://ghcr.io/cloudoperators/greenhouse-extensions/charts # <- replace it with empty ''
-    version: 1.11.0 # <- replace it with empty ''
+    name: 'local/plugins/<path-to-cert-manager-chart-folder>'
+    repository: '' # <- has to be empty
+    version: '' # <- has to be empty
 ...
 
+```
+
+Apply the `plugindefinition.yaml` to the `admin` cluster
+
+```shell
+kubectl --kubeconfig=<your-kind-config> apply -f plugindefinition.yaml
 ```
 
 ## Additional information
@@ -138,6 +144,7 @@ if `DevMode` is enabled for webhooks then depending on the OS the webhook manife
 - `kubeconfig` of the created cluster(s) are saved to `/tmp/greenhouse/<clusterName>.kubeconfig`
 
 ---
+
 ## greenhousectl dev setup
 
 setup dev environment with a configuration file
@@ -200,9 +207,10 @@ greenhousectl dev setup dashboard -f dev-env/localenv/ui.config.yaml
   -h, --help            help for dashboard
 ```
 
-
 ## Generating Docs
+
 To generate the markdown documentation, run the following command:
+
 ```shell
 make dev-docs
 ```
