@@ -4,4 +4,4 @@
 # Add more resources in the future to setup a complete environment with plugins
 resources:
   - organization.yaml
-  - https://github.com/cloudoperators/greenhouse-extensions?ref=main
+  - https://github.com/cloudoperators/greenhouse-extensions?ref=plugindefinition/tooling
