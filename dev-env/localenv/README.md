@@ -28,8 +28,14 @@ use `kubectl config use-context kind-greenhouse-admin` to switch to `greenhouse 
 use `kubectl config use-context kind-greenhouse-remote` to switch to `greenhouse remote` cluster context
 
 
-if you do not have a `~/.kube/config` file then you can extract it by running `kind get kubeconfig --name greenhouse-admin > /path/to/greenhouse-admin-kubeconfig` or `kind get kubeconfig --name greenhouse-remote > /path/to/greenhouse-remote-kubeconfig` (the `KinD` cluster names should be used without the prefix `kind-`)
-and then use `kubectl --kubeconfig=<path to admin / remote kubeconfig>` to interact with the local `greenhouse` clusters
+if you do not have the contexts of the created cluster(s) in `~/.kube/config` file then you can extract it from the operating system's `tmp` folder, where the CLI will write `kubeconfig` of the created `KinD` clusters 
+
+> [!NOTE]
+> linux / macOS: in unix like systems you can find the `kubeconfig` at `$TMPDIR/greenhouse/<clusterName>.kubeconfig`
+> windows: in windows many tmp folders exist so the CLI can write the `kubeconfig` to the first non-empty value from %TMP%, %TEMP%, %USERPROFILE%
+> The path where the `kubeconfig` is written will be displayed in the terminal after the command is executed by the CLI
+
+use `kubectl --kubeconfig=<path to admin / remote kubeconfig>` to interact with the local `greenhouse` clusters
 
 ### Develop controllers locally and run the webhook server in-cluster
 
