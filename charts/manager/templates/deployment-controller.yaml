@@ -16,12 +16,12 @@ spec:
   selector:
     matchLabels:
       app: greenhouse
-    {{- include "manager.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: "controller-manager"
   template:
     metadata:
       labels:
         app: greenhouse
-      {{- include "manager.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: "controller-manager"
       annotations:
         kubectl.kubernetes.io/default-container: manager
         prometheus.io/scrape: "true"
