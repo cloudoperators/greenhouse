@@ -32,7 +32,9 @@ if you do not have the contexts of the created cluster(s) in `~/.kube/config` fi
 
 > [!NOTE]
 > linux / macOS: in unix like systems you can find the `kubeconfig` at `$TMPDIR/greenhouse/<clusterName>.kubeconfig`
+> 
 > windows: in windows many tmp folders exist so the CLI can write the `kubeconfig` to the first non-empty value from %TMP%, %TEMP%, %USERPROFILE%
+> 
 > The path where the `kubeconfig` is written will be displayed in the terminal after the command is executed by the CLI
 
 use `kubectl --kubeconfig=<path to admin / remote kubeconfig>` to interact with the local `greenhouse` clusters
@@ -45,6 +47,7 @@ make setup-controller-dev
 
 > [!NOTE]
 > set the environment variable `CONTROLLERS_ONLY=true` in your debugger configuration
+> 
 > If no environment variable is set, the webhook server will error out due to the missing certs
 
 ### Develop Admission Webhook server locally
@@ -55,6 +58,7 @@ make setup-webhook-dev
 
 > [!NOTE]
 > set the environment variable `WEBHOOK_ONLY=true` in your debugger configuration
+> 
 > If both the controllers and the webhook server needs to be run locally, do not set any environment variable
 
 ### Running Greenhouse Dashboard in-cluster
@@ -65,6 +69,7 @@ make setup-dashboard
 
 > [!NOTE]
 > You will need to port-forward the cors-proxy service and the dashboard service to access the dashboard
+> 
 > Information on how to access the dashboard is displayed after the command is executed
 
 ### Run Greenhouse Core for UI development
