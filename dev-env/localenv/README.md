@@ -68,7 +68,7 @@ make setup
 - You can now retrieve the generated `appProps.json` in-cluster by executing
   `kc get cm greenhouse-dashboard-app-props -n greenhouse -o=json | jq -r '.data.["appProps.json"]'`
 - Optionally you can also redirect this output to `appProps.json`
-  in [Juno Repository](https://github.com/cloudoperators/juno/tree/main/apps/greenhouse)
+  in [Juno Repository](https://github.com/cloudoperators/juno/blob/main/apps/greenhouse/README.md)
 - Follow the instructions in the terminal to `port-forward` the cors-proxy service (ignore the `port-forward` of
   dashboard service)
 - Start the dashboard locally
