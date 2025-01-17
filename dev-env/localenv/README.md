@@ -39,7 +39,7 @@ if you do not have the contexts of the created cluster(s) in `~/.kube/config` fi
 
 use `kubectl --kubeconfig=<path to admin / remote kubeconfig>` to interact with the local `greenhouse` clusters
 
-### Develop controllers locally and run the webhook server in-cluster
+### Develop Controllers locally and run the webhook server in-cluster
 
 ```shell
 make setup-controller-dev
@@ -57,9 +57,30 @@ make setup-webhook-dev
 ```
 
 > [!NOTE]
-> set the environment variable `WEBHOOK_ONLY=true` in your debugger configuration
-> 
-> If both the controllers and the webhook server needs to be run locally, do not set any environment variable
+> set the environment variable `WEBHOOK_ONLY=true` in your debugger configuration if you only want to run the webhook server
+
+### Develop Controllers and Admission Webhook server locally
+
+```shell
+DEV_MODE=true WEBHOOK_ONLY=true make setup-manager
+```
+
+This will modify the `ValidatingWebhookConfiguration` and `MutatingWebhookConfiguration` to use the `host.docker.internal` (macOS / windows) or `ipv4` (linux) address for the webhook server
+Write the webhook certs to `/tmp/k8s-webhook-server/serving-certs`
+
+> [!NOTE]
+> The deployed controller-manager is running in webhook only mode, but it does not receive any requests
+
+Now you can run the webhook server and the controllers locally
+
+Since both need to be run locally no `CONTROLLERS_ONLY` or `WEBHOOK_ONLY` environment variables are needed in your debugger configuration
+
+
+> [!NOTE]
+> The dev setup will modify the webhook configurations to have 30s timeout for the webhook requests, but
+> when break points are used to debug webhook requests, it can result into timeouts. 
+> In such cases, modify the CR with a dummy annotation to re-trigger the webhook request and reconciliation
+
 
 ### Running Greenhouse Dashboard in-cluster
 
