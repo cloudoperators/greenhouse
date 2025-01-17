@@ -31,9 +31,9 @@ use `kubectl config use-context kind-greenhouse-remote` to switch to `greenhouse
 if you do not have the contexts of the created cluster(s) in `~/.kube/config` file then you can extract it from the operating system's `tmp` folder, where the CLI will write `kubeconfig` of the created `KinD` clusters 
 
 > [!NOTE]
-> linux / macOS: in unix like systems you can find the `kubeconfig` at `$TMPDIR/greenhouse/<clusterName>.kubeconfig`
+> `linux / macOS`: in `unix` like systems you can find the `kubeconfig` at `$TMPDIR/greenhouse/<clusterName>.kubeconfig`
 > 
-> windows: in windows many tmp folders exist so the CLI can write the `kubeconfig` to the first non-empty value from %TMP%, %TEMP%, %USERPROFILE%
+> `windows`: in `windows` many tmp folders exist so the CLI can write the `kubeconfig` to the first non-empty value from `%TMP%`, `%TEMP%`, `%USERPROFILE%`
 > 
 > The path where the `kubeconfig` is written will be displayed in the terminal after the command is executed by the CLI
 
