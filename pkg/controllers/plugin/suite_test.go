@@ -54,6 +54,23 @@ var _ = BeforeSuite(func() {
 	}
 })
 
+// checkReadyConditionComponentsUnderTest asserts that components of plugin's ReadyCondition are ready,
+// except for WorkloadReady condition, which is not a subject under test.
+// This is done because the cumulative Ready condition in tests will be false due to workload not being ready.
+func checkReadyConditionComponentsUnderTest(g Gomega, plugin *greenhousev1alpha1.Plugin) {
+	readyCondition := plugin.Status.GetConditionByType(greenhousev1alpha1.ReadyCondition)
+	g.Expect(readyCondition).ToNot(BeNil(), "Ready condition should not be nil")
+	clusterAccessReadyCondition := plugin.Status.GetConditionByType(greenhousev1alpha1.ClusterAccessReadyCondition)
+	g.Expect(clusterAccessReadyCondition).ToNot(BeNil())
+	g.Expect(clusterAccessReadyCondition.Status).To(Equal(metav1.ConditionTrue), "ClusterAccessReady condition should be true")
+	helmReconcileFailedCondition := plugin.Status.GetConditionByType(greenhousev1alpha1.HelmReconcileFailedCondition)
+	g.Expect(helmReconcileFailedCondition).ToNot(BeNil())
+	g.Expect(helmReconcileFailedCondition.Status).To(Equal(metav1.ConditionFalse), "HelmReconcileFailed condition should be false")
+	// helmChartTestSucceededCondition := plugin.Status.GetConditionByType(greenhousev1alpha1.HelmChartTestSucceededCondition)
+	// g.Expect(helmChartTestSucceededCondition).ToNot(BeNil())
+	// g.Expect(helmChartTestSucceededCondition.Status).To(Equal(metav1.ConditionTrue), "HelmChartTestSucceeded condition should be true")
+}
+
 // HelmReconcilerTest performs tests in Serial mode to avoid conflicts with the k8s resources
 var _ = Describe("HelmControllerTest", Serial, func() {
 
@@ -183,8 +200,8 @@ var _ = Describe("HelmControllerTest", Serial, func() {
 			if err != nil {
 				return false
 			}
-			g.Expect(actPlugin.Status.GetConditionByType(greenhousev1alpha1.ReadyCondition)).ToNot(BeNil())
-			g.Expect(actPlugin.Status.GetConditionByType(greenhousev1alpha1.ReadyCondition).Status).To(Equal(metav1.ConditionTrue))
+			By("checking ReadyCondition selected components")
+			checkReadyConditionComponentsUnderTest(g, actPlugin)
 			g.Expect(actPlugin.Status.HelmReleaseStatus.Status).To(Equal("deployed"))
 			return true
 		}).Should(BeTrue())
@@ -238,12 +255,8 @@ var _ = Describe("HelmControllerTest", Serial, func() {
 					return false
 				}
 				g.Expect(actPlugin.Status.Version).To(Equal(PluginDefinitionVersionUpdated))
-				g.Expect(actPlugin.Status.GetConditionByType(greenhousev1alpha1.ReadyCondition)).ToNot(BeNil())
-				// We only check ClusterAccessReady and HelmReconcileFailed once for completeness here as they are implicitly checked with ReadyCondition
-				g.Expect(actPlugin.Status.GetConditionByType(greenhousev1alpha1.ClusterAccessReadyCondition).IsTrue()).To(BeTrue(), "ClusterAccessReadyCondition should be true")
-				g.Expect(actPlugin.Status.GetConditionByType(greenhousev1alpha1.HelmReconcileFailedCondition).IsFalse()).To(BeTrue(), "HelmReconcileFailedCondition should not be true")
+				checkReadyConditionComponentsUnderTest(g, actPlugin)
 				g.Expect(actPlugin.Status.GetConditionByType(greenhousev1alpha1.StatusUpToDateCondition).IsTrue()).To(BeTrue(), "StatusReconcileCompleteCondition should be true")
-				g.Expect(actPlugin.Status.GetConditionByType(greenhousev1alpha1.ReadyCondition).IsTrue()).To(BeTrue(), "ReadyCondition should be true")
 				return true
 			}).Should(BeTrue())
 
@@ -285,8 +298,7 @@ var _ = Describe("HelmControllerTest", Serial, func() {
 					return false
 				}
 				g.Expect(actPlugin.Status.Version).To(Equal(PluginDefinitionVersionUpdated))
-				g.Expect(actPlugin.Status.GetConditionByType(greenhousev1alpha1.ReadyCondition)).ToNot(BeNil())
-				g.Expect(actPlugin.Status.GetConditionByType(greenhousev1alpha1.ReadyCondition).IsTrue()).To(BeTrue(), "ReadyCondition should be true")
+				checkReadyConditionComponentsUnderTest(g, actPlugin)
 				g.Expect(actPlugin.Status.GetConditionByType(greenhousev1alpha1.StatusUpToDateCondition).IsTrue()).To(BeTrue(), "StatusReconcileCompleteCondition should be true")
 				return true
 			}).Should(BeTrue())
@@ -329,8 +341,7 @@ var _ = Describe("HelmControllerTest", Serial, func() {
 					return false
 				}
 				g.Expect(actPlugin.Status.Version).To(Equal(PluginDefinitionVersionUpdated))
-				g.Expect(actPlugin.Status.GetConditionByType(greenhousev1alpha1.ReadyCondition)).ToNot(BeNil())
-				g.Expect(actPlugin.Status.GetConditionByType(greenhousev1alpha1.ReadyCondition).IsTrue()).To(BeTrue(), "ReadyCondition should be true")
+				checkReadyConditionComponentsUnderTest(g, actPlugin)
 				g.Expect(actPlugin.Status.GetConditionByType(greenhousev1alpha1.StatusUpToDateCondition).IsTrue()).To(BeTrue(), "StatusReconcileCompleteCondition should be true")
 				return true
 			}).Should(BeTrue())
@@ -564,8 +575,7 @@ var _ = Describe("HelmControllerTest", Serial, func() {
 					Expect(err).ToNot(HaveOccurred(), "error getting plugin")
 					return false
 				}
-				g.Expect(actPlugin.Status.GetConditionByType(greenhousev1alpha1.ReadyCondition)).ToNot(BeNil())
-				g.Expect(actPlugin.Status.GetConditionByType(greenhousev1alpha1.ReadyCondition).Status).To(Equal(metav1.ConditionTrue))
+				checkReadyConditionComponentsUnderTest(g, actPlugin)
 				g.Expect(actPlugin.Status.Version).To(Equal(PluginDefinitionVersion))
 				return true
 			}).Should(BeTrue())
