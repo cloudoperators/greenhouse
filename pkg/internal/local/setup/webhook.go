@@ -59,7 +59,7 @@ const (
 // modifies cert job (charts/manager/templates/kube-webhook-certgen.yaml) to include host.docker.internal
 // if devMode is enabled, modifies mutating and validating webhook configurations to use host.docker.internal URL and removes service from clientConfig
 // extracts the webhook certs from the secret and writes them to tmp/k8s-webhook-server/serving-certs directory
-func (m *Manifest) setupWebhookManifest(resources []map[string]interface{}, clusterName string, resourceSuffix string) ([]map[string]interface{}, error) {
+func (m *Manifest) setupWebhookManifest(resources []map[string]interface{}, clusterName, resourceSuffix string) ([]map[string]interface{}, error) {
 	webhookManifests := make([]map[string]interface{}, 0)
 	releaseName := m.ReleaseName
 	managerDeployment, err := extractResourceByNameKind(resources, releaseName+resourceSuffix, DeploymentKind)
@@ -342,7 +342,7 @@ func (m *Manifest) waitUntilDeploymentReady(ctx context.Context, clusterName, na
 			return err
 		}
 		if deployment.Status.Conditions == nil {
-			return errors.New(fmt.Sprintf("deployment %s is not yet ready", deploymentName))
+			return fmt.Errorf("deployment %s is not yet ready", deploymentName)
 		}
 		available := false
 		for _, condition := range deployment.Status.Conditions {
@@ -352,7 +352,7 @@ func (m *Manifest) waitUntilDeploymentReady(ctx context.Context, clusterName, na
 			}
 		}
 		if !available {
-			return errors.New(fmt.Sprintf("deployment %s is not yet ready", deploymentName))
+			return fmt.Errorf("deployment %s is not yet ready", deploymentName)
 		}
 		return nil
 	}, b)
