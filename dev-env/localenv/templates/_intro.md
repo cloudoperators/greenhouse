@@ -1,5 +1,17 @@
+# Setting up a local development environment
 
-# Setting up development environment
+Greenhouse provides a couple of cli commands based on `make` to run a local Greenhouse instance.
+
+- [Setting up the development environment](#setting-up-the-development-environment)
+- Developing Greenhouse core functionality:
+  - [Develop Controllers locally and run the webhook server in-cluster](#develop-controllers-locally-and-run-the-webhook-server-in-cluster)
+  - [Develop Admission Webhook server locally](#develop-admission-webhook-server-locally)
+- Greenhouse Dashboard
+  - [Running Greenhouse Dashboard in-cluster](#running-greenhouse-dashboard-in-cluster)
+  - [Run Greenhouse Core for UI development](#run-greenhouse-core-for-ui-development)
+- Greenhouse Extensions
+  - [Test Plugin / Greenhouse Extension charts locally](#test-plugin--greenhouse-extension-charts-locally)
+- [Additional information](#additional-information)
 
 This handy CLI tool will help you to setup your development environment in no time.
 
@@ -11,10 +23,7 @@ This handy CLI tool will help you to setup your development environment in no ti
 
 ## Usage
 
-You can use `greenhousectl` either by downloading the latest binary
-from [here](https://github.com/cloudoperators/greenhouse/releases)
-
-Or you can build it from source by running the following command: `make cli`
+Build `greenhousectl` from source by running the following command: `make cli`
 
 > [!NOTE]  
 > The CLI binary will be available in the `bin` folder
@@ -26,7 +35,25 @@ fits your needs.
 
 `All commands will spin up KinD clusters and setup the necessary components`
 
-### Develop controllers locally and run the webhook server in-cluster
+if you have a `~/.kube/config` file then `KinD` will automatically merge the `kubeconfig` of the created cluster(s)
+
+use `kubectl config use-context kind-greenhouse-admin` to switch to `greenhouse admin` cluster context
+use `kubectl config use-context kind-greenhouse-remote` to switch to `greenhouse remote` cluster context
+
+if you do not have the contexts of the created cluster(s) in `~/.kube/config` file then you can extract it from the
+operating system's `tmp` folder, where the CLI will write `kubeconfig` of the created `KinD` clusters
+
+> [!NOTE]
+> `linux / macOS`: in `unix` like systems you can find the `kubeconfig` at `$TMPDIR/greenhouse/<clusterName>.kubeconfig`
+>
+> `windows`: in `windows` many tmp folders exist so the CLI can write the `kubeconfig` to the first non-empty value from
+`%TMP%`, `%TEMP%`, `%USERPROFILE%`
+>
+> The path where the `kubeconfig` is written will be displayed in the terminal after the command is executed by the CLI
+
+use `kubectl --kubeconfig=<path to admin / remote kubeconfig>` to interact with the local `greenhouse` clusters
+
+### Develop Controllers locally and run the webhook server in-cluster
 
 ```shell
 make setup-controller-dev
@@ -34,6 +61,7 @@ make setup-controller-dev
 
 > [!NOTE]
 > set the environment variable `CONTROLLERS_ONLY=true` in your debugger configuration
+>
 > If no environment variable is set, the webhook server will error out due to the missing certs
 
 ### Develop Admission Webhook server locally
@@ -43,8 +71,32 @@ make setup-webhook-dev
 ```
 
 > [!NOTE]
-> set the environment variable `WEBHOOK_ONLY=true` in your debugger configuration
-> If both the controllers and the webhook server needs to be run locally, do not set any environment variable
+> set the environment variable `WEBHOOK_ONLY=true` in your debugger configuration if you only want to run the webhook
+> server
+
+### Develop Controllers and Admission Webhook server locally
+
+```shell
+DEV_MODE=true WEBHOOK_ONLY=true make setup-manager
+```
+
+This will modify the `ValidatingWebhookConfiguration` and `MutatingWebhookConfiguration` to use the
+`host.docker.internal` (macOS / windows) or `ipv4` (linux) address for the webhook server
+Write the webhook certs to `/tmp/k8s-webhook-server/serving-certs`
+
+> [!NOTE]
+> The deployed controller-manager is running in webhook only mode, but it does not receive any requests
+
+Now you can run the webhook server and the controllers locally
+
+Since both need to be run locally no `CONTROLLERS_ONLY` or `WEBHOOK_ONLY` environment variables are needed in your
+debugger configuration
+
+
+> [!NOTE]
+> The dev setup will modify the webhook configurations to have 30s timeout for the webhook requests, but
+> when break points are used to debug webhook requests, it can result into timeouts.
+> In such cases, modify the CR with a dummy annotation to re-trigger the webhook request and reconciliation
 
 ### Running Greenhouse Dashboard in-cluster
 
@@ -54,9 +106,10 @@ make setup-dashboard
 
 > [!NOTE]
 > You will need to port-forward the cors-proxy service and the dashboard service to access the dashboard
+>
 > Information on how to access the dashboard is displayed after the command is executed
 
-### Develop Greenhouse Dashboard locally
+### Run Greenhouse Core for UI development
 
 ```shell
 make setup
@@ -65,15 +118,14 @@ make setup
 - This will install the operator, cors-proxy, sample organization with an onboarded remote cluster
 - Additionally, it also creates a `appProps.json` `ConfigMap` in the `greenhouse` namespace
 - You can now retrieve the generated `appProps.json` in-cluster by executing
-  `kc get cm greenhouse-dashboard-app-props -n greenhouse -o=json | jq -r '.data.["appProps.json"]'`
+  `kubectl get cm greenhouse-dashboard-app-props -n greenhouse -o=json | jq -r '.data.["appProps.json"]'`
 - Optionally you can also redirect this output to `appProps.json`
-  in [Juno Repository](https://github.com/cloudoperators/juno/tree/main/apps/greenhouse)
+  in [Juno Repository](https://github.com/cloudoperators/juno/blob/main/apps/greenhouse/README.md)
 - Follow the instructions in the terminal to `port-forward` the cors-proxy service (ignore the `port-forward` of
   dashboard service)
-- Start the dashboard locally
-- `PluginDefinition(s)` can be applied
-  from [Greenhouse Extensions](https://github.com/cloudoperators/greenhouse-extensions) repository
-
+- After port-forwarding `cors-proxy` service, it should be used as `apiEndpoint` in `appProps.json`
+- Start the dashboard locally (more information on how to run the dashboard locally can be found in
+  the [Juno Repository](https://github.com/cloudoperators/juno/blob/main/apps/greenhouse/README.md)
 
 ### Test Plugin / Greenhouse Extension charts locally
 
@@ -86,10 +138,8 @@ PLUGIN_DIR=<absolute-path-to-charts-dir> make setup
 - The operator deployment has a hostPath volume mount to the plugin charts directory from the `node` of the `KinD`
   cluster
 
-You would need to apply the `PluginDefinition(s)` of the chart that needs to be tested.
-
-However, before applying the `PluginDefinition(s)`, you need to modify the `PluginDefinition(s)` to point to a local
-file path.
+To test your local Chart (now mounted to the KinD cluster) with a `plugindefinition.yaml` you would need to adjust `.spec.helmChart.name` to use the local chart. 
+With the provided mounting mechanism it will always live in `local/plugins/` within the KinD cluster.
 
 Modify `spec.helmChart.name` to point to the local file path of the chart that needs to be tested
 
@@ -110,11 +160,17 @@ spec:
   docMarkDownUrl: >-
     https://raw.githubusercontent.com/cloudoperators/greenhouse-extensions/main/cert-manager/README.md
   helmChart:
-    name: cert-manager # <- replace it with 'local/plugins/cert-manager/charts/v1.11.0/cert-manager'
-    repository: oci://ghcr.io/cloudoperators/greenhouse-extensions/charts # <- replace it with empty ''
-    version: 1.11.0 # <- replace it with empty ''
+    name: 'local/plugins/<path-to-cert-manager-chart-folder>'
+    repository: '' # <- has to be empty
+    version: '' # <- has to be empty
 ...
 
+```
+
+Apply the `plugindefinition.yaml` to the `admin` cluster
+
+```shell
+kubectl --kubeconfig=<your-kind-config> apply -f plugindefinition.yaml
 ```
 
 ## Additional information
