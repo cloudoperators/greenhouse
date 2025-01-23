@@ -129,6 +129,8 @@ type HelmReleaseStatus struct {
 	FirstDeployed metav1.Time `json:"firstDeployed,omitempty"`
 	// LastDeployed is the timestamp of the last deployment of the release.
 	LastDeployed metav1.Time `json:"lastDeployed,omitempty"`
+	// PluginOptionChecksum is the checksum of plugin option values.
+	PluginOptionChecksum string `json:"pluginOptionChecksum,omitempty"`
 }
 
 //+kubebuilder:object:root=true

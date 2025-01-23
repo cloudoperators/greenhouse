@@ -195,6 +195,10 @@ spec:
                       of the release.
                     format: date-time
                     type: string
+                  pluginOptionChecksum:
+                    description: PluginOptionChecksum is the checksum of plugin option
+                      values.
+                    type: string
                   status:
                     description: Status is the status of a HelmChart release.
                     type: string

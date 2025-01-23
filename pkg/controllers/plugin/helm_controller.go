@@ -318,6 +318,14 @@ func (r *HelmReconciler) reconcileStatus(ctx context.Context,
 			if latestReleaseInfo.Status == release.StatusDeployed {
 				pluginVersion = latestReleaseInfo.Description
 			}
+			if plugin.Spec.OptionValues != nil {
+				checksum, err := helm.CalculatePluginOptionChecksum(ctx, r.Client, plugin)
+				if err == nil {
+					releaseStatus.PluginOptionChecksum = checksum
+				} else {
+					releaseStatus.PluginOptionChecksum = ""
+				}
+			}
 		}
 	} else {
 		plugin.SetCondition(greenhousev1alpha1.FalseCondition(
