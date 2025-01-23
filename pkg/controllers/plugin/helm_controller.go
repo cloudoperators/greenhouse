@@ -168,20 +168,27 @@ func (r *HelmReconciler) EnsureCreated(ctx context.Context, resource lifecycle.R
 
 	reconcileErr := r.reconcileHelmRelease(ctx, restClientGetter, plugin, pluginDefinition)
 
-	// PluginStatus and WorkloadStatus should be reconciled regardless of Helm reconciliation result.
+	// PluginStatus, WorkloadStatus and HelmChartTest should be reconciled regardless of Helm reconciliation result.
 	r.reconcileStatus(ctx, restClientGetter, plugin, pluginDefinition, &plugin.Status)
 
 	workloadStatusResult, workloadStatusErr := r.reconcilePluginWorkloadStatus(ctx, restClientGetter, plugin, pluginDefinition)
 
+	helmChartTestResult, helmChartTestErr := r.reconcileHelmChartTest(ctx, plugin)
+
 	if reconcileErr != nil {
 		return ctrl.Result{}, lifecycle.Failed, fmt.Errorf("helm reconcile failed: %s", reconcileErr.Error())
 	}
-
 	if workloadStatusErr != nil {
 		return ctrl.Result{}, lifecycle.Failed, fmt.Errorf("workload status reconcile failed: %s", workloadStatusErr.Error())
 	}
+	if helmChartTestErr != nil {
+		return ctrl.Result{}, lifecycle.Failed, fmt.Errorf("helm chart test reconcile failed: %s", helmChartTestErr.Error())
+	}
 	if workloadStatusResult != nil {
 		return ctrl.Result{RequeueAfter: workloadStatusResult.requeueAfter}, lifecycle.Pending, nil
+	}
+	if helmChartTestResult != nil {
+		return ctrl.Result{RequeueAfter: helmChartTestResult.requeueAfter}, lifecycle.Pending, nil
 	}
 
 	return ctrl.Result{}, lifecycle.Success, nil
