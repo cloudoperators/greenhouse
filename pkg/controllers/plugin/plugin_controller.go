@@ -38,8 +38,8 @@ import (
 
 const helmReleaseSecretType = "helm.sh/release.v1" //nolint:gosec
 
-// HelmReconciler reconciles a Plugin object.
-type HelmReconciler struct {
+// PluginReconciler reconciles a Plugin object.
+type PluginReconciler struct {
 	client.Client
 	KubeRuntimeOpts clientutil.RuntimeOptions
 	kubeClientOpts  []clientutil.KubeClientOption
@@ -57,7 +57,7 @@ type HelmReconciler struct {
 //+kubebuilder:rbac:groups=*,resources=*,verbs=*
 
 // SetupWithManager sets up the controller with the Manager.
-func (r *HelmReconciler) SetupWithManager(name string, mgr ctrl.Manager) error {
+func (r *PluginReconciler) SetupWithManager(name string, mgr ctrl.Manager) error {
 	r.Client = mgr.GetClient()
 	r.kubeClientOpts = []clientutil.KubeClientOption{
 		clientutil.WithRuntimeOptions(r.KubeRuntimeOpts),
@@ -97,11 +97,11 @@ func (r *HelmReconciler) SetupWithManager(name string, mgr ctrl.Manager) error {
 		Complete(r)
 }
 
-func (r *HelmReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
+func (r *PluginReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	return lifecycle.Reconcile(ctx, r.Client, req.NamespacedName, &greenhousev1alpha1.Plugin{}, r, r.setConditions())
 }
 
-func (r *HelmReconciler) setConditions() lifecycle.Conditioner {
+func (r *PluginReconciler) setConditions() lifecycle.Conditioner {
 	return func(ctx context.Context, resource lifecycle.RuntimeObject) {
 		logger := ctrl.LoggerFrom(ctx)
 		plugin, ok := resource.(*greenhousev1alpha1.Plugin)
@@ -115,7 +115,7 @@ func (r *HelmReconciler) setConditions() lifecycle.Conditioner {
 	}
 }
 
-func (r *HelmReconciler) EnsureDeleted(ctx context.Context, resource lifecycle.RuntimeObject) (ctrl.Result, lifecycle.ReconcileResult, error) {
+func (r *PluginReconciler) EnsureDeleted(ctx context.Context, resource lifecycle.RuntimeObject) (ctrl.Result, lifecycle.ReconcileResult, error) {
 	plugin := resource.(*greenhousev1alpha1.Plugin) //nolint:errcheck
 
 	restClientGetter, err := initClientGetter(ctx, r.Client, r.kubeClientOpts, *plugin)
@@ -140,7 +140,7 @@ func (r *HelmReconciler) EnsureDeleted(ctx context.Context, resource lifecycle.R
 	return ctrl.Result{}, lifecycle.Success, nil
 }
 
-func (r *HelmReconciler) EnsureCreated(ctx context.Context, resource lifecycle.RuntimeObject) (ctrl.Result, lifecycle.ReconcileResult, error) {
+func (r *PluginReconciler) EnsureCreated(ctx context.Context, resource lifecycle.RuntimeObject) (ctrl.Result, lifecycle.ReconcileResult, error) {
 	plugin := resource.(*greenhousev1alpha1.Plugin) //nolint:errcheck
 
 	initPluginStatus(plugin)
@@ -194,7 +194,7 @@ func (r *HelmReconciler) EnsureCreated(ctx context.Context, resource lifecycle.R
 	return ctrl.Result{}, lifecycle.Success, nil
 }
 
-func (r *HelmReconciler) getPluginDefinition(
+func (r *PluginReconciler) getPluginDefinition(
 	ctx context.Context,
 	plugin *greenhousev1alpha1.Plugin,
 ) (
@@ -223,7 +223,7 @@ func (r *HelmReconciler) getPluginDefinition(
 	return pluginDefinition, nil
 }
 
-func (r *HelmReconciler) reconcileHelmRelease(
+func (r *PluginReconciler) reconcileHelmRelease(
 	ctx context.Context,
 	restClientGetter genericclioptions.RESTClientGetter,
 	plugin *greenhousev1alpha1.Plugin,
@@ -287,7 +287,7 @@ func (r *HelmReconciler) reconcileHelmRelease(
 	return nil
 }
 
-func (r *HelmReconciler) reconcileStatus(ctx context.Context,
+func (r *PluginReconciler) reconcileStatus(ctx context.Context,
 	restClientGetter genericclioptions.RESTClientGetter,
 	plugin *greenhousev1alpha1.Plugin,
 	pluginDefinition *greenhousev1alpha1.PluginDefinition,
@@ -362,7 +362,7 @@ func (r *HelmReconciler) reconcileStatus(ctx context.Context,
 }
 
 // enqueueAllPluginsForCluster enqueues all Plugins which have .spec.clusterName set to the name of the given Cluster.
-func (r *HelmReconciler) enqueueAllPluginsForCluster(ctx context.Context, o client.Object) []ctrl.Request {
+func (r *PluginReconciler) enqueueAllPluginsForCluster(ctx context.Context, o client.Object) []ctrl.Request {
 	listOpts := &client.ListOptions{
 		FieldSelector: fields.OneTermEqualSelector(greenhouseapis.PluginClusterNameField, o.GetName()),
 		Namespace:     o.GetNamespace(),
@@ -370,11 +370,11 @@ func (r *HelmReconciler) enqueueAllPluginsForCluster(ctx context.Context, o clie
 	return listPluginsAsReconcileRequests(ctx, r.Client, listOpts)
 }
 
-func (r *HelmReconciler) enqueueAllPluginsInNamespace(ctx context.Context, o client.Object) []ctrl.Request {
+func (r *PluginReconciler) enqueueAllPluginsInNamespace(ctx context.Context, o client.Object) []ctrl.Request {
 	return listPluginsAsReconcileRequests(ctx, r.Client, client.InNamespace(o.GetNamespace()))
 }
 
-func (r *HelmReconciler) enqueueAllPluginsForPluginDefinition(ctx context.Context, o client.Object) []ctrl.Request {
+func (r *PluginReconciler) enqueueAllPluginsForPluginDefinition(ctx context.Context, o client.Object) []ctrl.Request {
 	return listPluginsAsReconcileRequests(ctx, r.Client, client.MatchingLabels{greenhouseapis.LabelKeyPluginDefinition: o.GetName()})
 }
 

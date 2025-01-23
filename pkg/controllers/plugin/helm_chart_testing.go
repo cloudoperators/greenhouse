@@ -29,7 +29,7 @@ func init() {
 	metrics.Registry.MustRegister(chartTestRunsTotal)
 }
 
-func (r *HelmReconciler) reconcileHelmChartTest(ctx context.Context, plugin *greenhousev1alpha1.Plugin) (*reconcileResult, error) {
+func (r *PluginReconciler) reconcileHelmChartTest(ctx context.Context, plugin *greenhousev1alpha1.Plugin) (*reconcileResult, error) {
 	// Nothing to do when the status of the plugin is empty and when the plugin does not have a Helm Chart
 	if reflect.DeepEqual(plugin.Status, greenhousev1alpha1.PluginStatus{}) || plugin.Status.HelmChart == nil {
 		return nil, nil

@@ -81,7 +81,7 @@ func init() {
 	metrics.Registry.MustRegister(workloadStatus)
 }
 
-func (r *HelmReconciler) reconcilePluginWorkloadStatus(
+func (r *PluginReconciler) reconcilePluginWorkloadStatus(
 	ctx context.Context,
 	restClientGetter genericclioptions.RESTClientGetter,
 	plugin *greenhousev1alpha1.Plugin,
