@@ -19,6 +19,8 @@ import (
 
 // Webhook for the PluginPreset custom resource.
 
+const preventDeletionAnnotation = "greenhouse.sap/prevent-deletion"
+
 func SetupPluginPresetWebhookWithManager(mgr ctrl.Manager) error {
 	return setupWebhook(mgr,
 		&greenhousev1alpha1.PluginPreset{},
@@ -33,7 +35,20 @@ func SetupPluginPresetWebhookWithManager(mgr ctrl.Manager) error {
 
 //+kubebuilder:webhook:path=/mutate-greenhouse-sap-v1alpha1-pluginpreset,mutating=true,failurePolicy=fail,sideEffects=None,groups=greenhouse.sap,resources=pluginpresets,verbs=create;update,versions=v1alpha1,name=mpluginpreset.kb.io,admissionReviewVersions=v1
 
-func DefaultPluginPreset(_ context.Context, _ client.Client, _ runtime.Object) error {
+func DefaultPluginPreset(_ context.Context, _ client.Client, o runtime.Object) error {
+	pluginPreset, ok := o.(*greenhousev1alpha1.PluginPreset)
+	if !ok {
+		return nil
+	}
+
+	// prevent deletion on plugin preset creation
+	if pluginPreset.Annotations == nil {
+		pluginPreset.Annotations = map[string]string{}
+	}
+	if pluginPreset.CreationTimestamp.IsZero() {
+		pluginPreset.Annotations[preventDeletionAnnotation] = "true"
+	}
+
 	return nil
 }
 
@@ -109,6 +124,21 @@ func ValidateUpdatePluginPreset(ctx context.Context, c client.Client, oldObj, cu
 	return nil, nil
 }
 
-func ValidateDeletePluginPreset(_ context.Context, _ client.Client, _ runtime.Object) (admission.Warnings, error) {
+func ValidateDeletePluginPreset(_ context.Context, _ client.Client, obj runtime.Object) (admission.Warnings, error) {
+	pluginPreset, ok := obj.(*greenhousev1alpha1.PluginPreset)
+	if !ok {
+		return nil, nil
+	}
+
+	var allErrs field.ErrorList
+	if _, ok := pluginPreset.Annotations[preventDeletionAnnotation]; ok {
+		allErrs = append(allErrs, field.Invalid(field.NewPath("metadata").Child("annotation").Child(preventDeletionAnnotation),
+			pluginPreset.Annotations, fmt.Sprintf("PluginPreset with annotation '%s' set may not be deleted.", preventDeletionAnnotation)))
+	}
+
+	if len(allErrs) > 0 {
+		return nil, apierrors.NewInvalid(pluginPreset.GroupVersionKind().GroupKind(), pluginPreset.Name, allErrs)
+	}
+
 	return nil, nil
 }
