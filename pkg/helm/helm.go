@@ -226,12 +226,17 @@ func ResetHelmReleaseStatusToDeployed(ctx context.Context, restClientGetter gene
 		return err
 	}
 
+	version := 1
+	if r.Version > 0 {
+		version = r.Version
+	}
+
 	cfg, err := newHelmAction(restClientGetter, plugin.Spec.ReleaseNamespace)
 	if err != nil {
 		return err
 	}
 	rollbackAction := action.NewRollback(cfg)
-	rollbackAction.Version = r.Version
+	rollbackAction.Version = version
 	rollbackAction.DisableHooks = true
 	rollbackAction.Wait = true
 	rollbackAction.Timeout = 5 * time.Minute

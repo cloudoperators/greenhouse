@@ -163,6 +163,10 @@ func (r *HelmReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.
 	pluginStatus.StatusConditions.SetConditions(statusReconcileCompleteCondition)
 
 	if reconcileFailedCondition.IsTrue() {
+		err := helm.ResetHelmReleaseStatusToDeployed(ctx, restClientGetter, plugin)
+		if err != nil {
+			return ctrl.Result{}, fmt.Errorf("helm reconcile failed: %s, rollback failed: %s", reconcileFailedCondition.Message, err.Error())
+		}
 		return ctrl.Result{}, fmt.Errorf("helm reconcile failed: %s", reconcileFailedCondition.Message)
 	}
 
