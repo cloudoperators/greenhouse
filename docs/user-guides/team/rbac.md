@@ -19,7 +19,7 @@ description: >
 
 ## Before you begin
 
-This guides describes how to manage roles and permissions in Greenhouse with the help of TeamRoles and TeamRoleBindings.
+This guide describes how to manage roles and permissions in Greenhouse with the help of TeamRoles and TeamRoleBindings.
 
 While all members of an organization can see the permissions configured with TeamRoles & TeamRoleBindings, configuration of these requires **OrganizationAdmin privileges**.
 
@@ -40,7 +40,7 @@ Common roles including the below `cluster-admin` are pre-defined within each org
 
 ### Example
 
-This TeamRole named `pod-read` grants read access to Pods!.
+This TeamRole named `pod-read` grants read access to Pods.
 
 ```yaml
 apiVersion: greenhouse.sap/v1alpha1
@@ -75,7 +75,7 @@ Greenhouse provides a set of [default `TeamRoles`](./../../../pkg/controllers/or
 ## Defining TeamRoleBindings
 
 `TeamRoleBindings` define the permissions of a Greenhouse Team within Clusters by linking to a specific `TeamRole`.
-TeamRoleBindings have a simple specification that links a Team, a TeamRole, one or more Clusters and optionally a one or more Namespaces together. Once the TeamRoleBinding is created, the Team will have the permissions defined in the TeamRole within the specified Clusters and Namespaces. This allows for fine-grained control over the permissions of each Team within each Cluster.
+TeamRoleBindings have a simple specification that links a Team, a TeamRole, one or more Clusters and optionally one or more Namespaces together. Once the TeamRoleBinding is created, the Team will have the permissions defined in the TeamRole within the specified Clusters and Namespaces. This allows for fine-grained control over the permissions of each Team within each Cluster.
 The TeamRoleBinding Controller within Greenhouse deploys rbacv1 resources to the targeted Clusters. The referenced TeamRole is created as a rbacv1.ClusterRole. In case the TeamRoleBinding references a Namespace, the Controller will create a rbacv1.RoleBinding which links the Team with the rbacv1.ClusterRole. In case no Namespace is referenced, the Controller will create a rbacv1.ClusterRoleBinding instead.
 
 ### Assigning TeamRoles to Teams on a single Cluster
@@ -124,7 +124,7 @@ More details on the concept of Aggregated ClusterRoles can be found in the Kuber
 
 [!NOTE] A TeamRole is only created on a cluster if it is referenced by a TeamRoleBinding. If a TeamRole is not referenced by a TeamRoleBinding it will not be created on any target cluster. A TeamRoleBinding referencing a TeamRole with an aggregationRule will only provide the correct access, if there is at least one TeamRoleBinding referencing a TeamRole with the corresponding label deployed to the same cluster.
 
-The following example shows how to an AggregationRule can be used with TeamRoles and TeamRoleBindings.
+The following example shows how an AggregationRule can be used with TeamRoles and TeamRoleBindings.
 
 This TeamRole specifies `.spec.Labels`. The labels will be applied to the resulting ClusterRole on the target cluster.
 
@@ -218,3 +218,12 @@ spec:
     matchLabels:
       environment: production
 ```
+
+
+### Updating TeamRoleBindings 
+
+Updating the RoleRef of a ClusterRoleBinding and RoleBinding is not allowed, but requires recreating the binding resources. See [ClusterRoleBinding docs](https://kubernetes.io/docs/reference/access-authn-authz/rbac/#clusterrolebinding-example) for more information.
+This is to allow giving out permissions to update the subjects, while avoiding that privileges are changed. Furthermore, changing the role can change the extent of a binding significantly. Therefore it needs to be recreated.
+
+After the TeamRoleBinding has been created, it can be updated with some limitations. Similarly to RoleBindings, the RoleRef and TeamRef may not be changed. Validation webhook denies that.
+The TeamRoleBinding's Namespaces may be changed for the bindings to be applied to different namespaces. However, the scope of the TeamRoleBinding cannot be changed. That's why if the TeamRoleBinding has been created with Namespaces specified, it is namespace-scoped, and cannot be changed to cluster-scoped by removing all namespaces from the list. Similarly with the cluster-scoped TeamRoleBinding, which created with empty Namespaces, cannot be changed to namespace-scoped by adding any namespaces to the list.
