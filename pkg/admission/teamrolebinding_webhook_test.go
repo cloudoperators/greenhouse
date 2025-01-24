@@ -235,5 +235,71 @@ var _ = Describe("Validate Create RoleBinding", Ordered, func() {
 			Expect(warns).To(BeNil(), "expected no warnings")
 			Expect(err).ToNot(HaveOccurred(), "expected no error")
 		})
+
+		It("Should deny changing the TeamRoleRef", func() {
+			oldRB := &greenhousev1alpha1.TeamRoleBinding{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: "greenhouse",
+					Name:      "testBinding",
+				},
+				Spec: greenhousev1alpha1.TeamRoleBindingSpec{
+					TeamRoleRef: teamRole.Name,
+					TeamRef:     team.Name,
+					ClusterName: cluster.Name,
+					Namespaces:  []string{"demoNamespace"},
+				},
+			}
+
+			curRB := &greenhousev1alpha1.TeamRoleBinding{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: "greenhouse",
+					Name:      "testBinding",
+				},
+				Spec: greenhousev1alpha1.TeamRoleBindingSpec{
+					TeamRoleRef: "differentTeamRole",
+					TeamRef:     team.Name,
+					ClusterName: cluster.Name,
+					Namespaces:  []string{"demoNamespace"},
+				},
+			}
+
+			warns, err := ValidateUpdateRoleBinding(test.Ctx, test.K8sClient, oldRB, curRB)
+			Expect(warns).To(BeNil(), "expected no warnings")
+			Expect(err).To(HaveOccurred(), "expected an error")
+			Expect(err).To(MatchError(ContainSubstring("cannot change TeamRoleRef of an existing TeamRoleBinding")))
+		})
+
+		It("Should deny changing the TeamRef", func() {
+			oldRB := &greenhousev1alpha1.TeamRoleBinding{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: "greenhouse",
+					Name:      "testBinding",
+				},
+				Spec: greenhousev1alpha1.TeamRoleBindingSpec{
+					TeamRoleRef: teamRole.Name,
+					TeamRef:     team.Name,
+					ClusterName: cluster.Name,
+					Namespaces:  []string{},
+				},
+			}
+
+			curRB := &greenhousev1alpha1.TeamRoleBinding{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: "greenhouse",
+					Name:      "testBinding",
+				},
+				Spec: greenhousev1alpha1.TeamRoleBindingSpec{
+					TeamRoleRef: teamRole.Name,
+					TeamRef:     "differentTeam",
+					ClusterName: cluster.Name,
+					Namespaces:  []string{},
+				},
+			}
+
+			warns, err := ValidateUpdateRoleBinding(test.Ctx, test.K8sClient, oldRB, curRB)
+			Expect(warns).To(BeNil(), "expected no warnings")
+			Expect(err).To(HaveOccurred(), "expected an error")
+			Expect(err).To(MatchError(ContainSubstring("cannot change TeamRef of an existing TeamRoleBinding")))
+		})
 	})
 })
