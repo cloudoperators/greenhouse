@@ -4,6 +4,7 @@
 Greenhouse provides a couple of cli commands based on `make` to run a local Greenhouse instance.
 
 - [Setting up the development environment](#setting-up-the-development-environment)
+- [Run local Greenhouse](#run-local-greenhouse)
 - Developing Greenhouse core functionality:
   - [Develop Controllers locally and run the webhook server in-cluster](#develop-controllers-locally-and-run-the-webhook-server-in-cluster)
   - [Develop Admission Webhook server locally](#develop-admission-webhook-server-locally)
@@ -110,24 +111,28 @@ make setup-dashboard
 >
 > Information on how to access the dashboard is displayed after the command is executed
 
-### Run Greenhouse Core for UI development
+### Run local Greenhouse
 
 ```shell
 make setup
 ```
 
-- This will install the operator, cors-proxy, sample organization with an onboarded remote cluster
-- Additionally, it also creates a `appProps.json` `ConfigMap` in the `greenhouse` namespace
+- This will install the operator, the dashboard, cors-proxy and a sample organization with an onboarded remote cluster
+- port-forward the `cors-proxy` by `kubectl port-forward svc/greenhouse-cors-proxy 9090:80 -n greenhouse &`
+- port-forward the `dashboard` by `kubectl port-forward svc/greenhouse-dashboard 5001:80 -n greenhouse &`
+- Access the local `demo` organization on the Greenhouse dashboard on [localhost:5001](http://localhost:5001/?org=demo)
+
+
+### Run Greenhouse Core for UI development
+- Startup the environment as in [Run local Greenhouse](#run-local-greenhouse)
+- An `appProps.json` `ConfigMap` is created  in the `greenhouse` namespace to configure the dashboard.
 - You can now retrieve the generated `appProps.json` in-cluster by executing
   `kubectl get cm greenhouse-dashboard-app-props -n greenhouse -o=json | jq -r '.data.["appProps.json"]'`
 - Optionally you can also redirect this output to `appProps.json`
   in [Juno Repository](https://github.com/cloudoperators/juno/blob/main/apps/greenhouse/README.md)
-- Follow the instructions in the terminal to `port-forward` the cors-proxy service (ignore the `port-forward` of
-  dashboard service)
 - After port-forwarding `cors-proxy` service, it should be used as `apiEndpoint` in `appProps.json`
 - Start the dashboard locally (more information on how to run the dashboard locally can be found in
   the [Juno Repository](https://github.com/cloudoperators/juno/blob/main/apps/greenhouse/README.md)
-
 ### Test Plugin / Greenhouse Extension charts locally
 
 ```shell
