@@ -9,12 +9,12 @@ replace (
 	// Keep k8s dependencies in sync.
 	k8s.io/api => k8s.io/api v0.31.4
 	k8s.io/apiextensions-apiserver => k8s.io/apiextensions-apiserver v0.31.4
-	k8s.io/apimachinery => k8s.io/apimachinery v0.31.4
+	k8s.io/apimachinery => k8s.io/apimachinery v0.31.5
 	k8s.io/cli-runtime => k8s.io/cli-runtime v0.31.4
 	k8s.io/client-go => k8s.io/client-go v0.31.4
 	k8s.io/component-base => k8s.io/component-base v0.31.4
 	k8s.io/kubectl => k8s.io/kubectl v0.31.4
-	sigs.k8s.io/controller-runtime => sigs.k8s.io/controller-runtime v0.19.3
+	sigs.k8s.io/controller-runtime => sigs.k8s.io/controller-runtime v0.19.4
 )
 
 require (
@@ -40,12 +40,12 @@ require (
 	helm.sh/helm/v3 v3.16.4
 	k8s.io/api v0.31.4
 	k8s.io/apiextensions-apiserver v0.31.4
-	k8s.io/apimachinery v0.31.4
+	k8s.io/apimachinery v0.31.5
 	k8s.io/cli-runtime v0.31.4
 	k8s.io/client-go v0.31.4
 	k8s.io/kubectl v0.31.4
-	k8s.io/utils v0.0.0-20241104163129-6fe5fd82f078
-	sigs.k8s.io/controller-runtime v0.19.3
+	k8s.io/utils v0.0.0-20241210054802-24370beab758
+	sigs.k8s.io/controller-runtime v0.19.4
 	sigs.k8s.io/e2e-framework v0.5.0
 	sigs.k8s.io/kind v0.26.0
 	sigs.k8s.io/yaml v1.4.0
@@ -63,6 +63,7 @@ require (
 	github.com/cpuguy83/go-md2man/v2 v2.0.4 // indirect
 	github.com/creack/pty v1.1.23 // indirect
 	github.com/distribution/reference v0.6.0 // indirect
+	github.com/fsnotify/fsnotify v1.7.0 // indirect
 	github.com/fxamacker/cbor/v2 v2.7.0 // indirect
 	github.com/go-task/slim-sprig/v3 v3.0.0 // indirect
 	github.com/google/gnostic-models v0.6.9-0.20230804172637-c7be7c783f49 // indirect
