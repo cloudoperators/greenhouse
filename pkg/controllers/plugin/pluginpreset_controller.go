@@ -153,7 +153,7 @@ func (r *PluginPresetReconciler) reconcilePluginPreset(ctx context.Context, pres
 			continue
 		case err == nil:
 			// The Plugin exists but does not contain the labels of the PluginPreset. This Plugin is not managed by the PluginPreset and must not be touched.
-			if shouldSkipPlugin(plugin, preset, pluginDefinition) {
+			if shouldSkipPlugin(plugin, preset, pluginDefinition, cluster.Name) {
 				skippedPlugins = append(skippedPlugins, plugin.Name)
 				continue
 			}
@@ -204,9 +204,24 @@ func (r *PluginPresetReconciler) reconcilePluginPreset(ctx context.Context, pres
 	return utilerrors.NewAggregate(allErrs)
 }
 
-func shouldSkipPlugin(plugin *greenhousev1alpha1.Plugin, preset *greenhousev1alpha1.PluginPreset, definition *greenhousev1alpha1.PluginDefinition) bool {
+func shouldSkipPlugin(plugin *greenhousev1alpha1.Plugin, preset *greenhousev1alpha1.PluginPreset, definition *greenhousev1alpha1.PluginDefinition, clusterName string) bool {
 	if plugin.Labels[greenhouseapis.LabelKeyPluginPreset] != preset.Name {
 		return true
+	}
+
+	// need to reconcile when plugin labels has been changed
+	for _, override := range preset.Spec.ClusterOptionOverrides {
+		if override.ClusterName != clusterName {
+			continue
+		}
+
+		for _, overrideOptionValue := range override.Overrides {
+			if !slices.ContainsFunc(plugin.Spec.OptionValues, func(item greenhousev1alpha1.PluginOptionValue) bool {
+				return equalPluginOptions(overrideOptionValue, item)
+			}) {
+				return false
+			}
+		}
 	}
 
 	// need to reconcile when plugin does not have option which exists in plugin preset
@@ -227,7 +242,7 @@ func shouldSkipPlugin(plugin *greenhousev1alpha1.Plugin, preset *greenhousev1alp
 		if slices.ContainsFunc(preset.Spec.Plugin.OptionValues, func(item greenhousev1alpha1.PluginOptionValue) bool {
 			return equalPluginOptions(item, pluginOption)
 		}) {
-			// optionValue is set by the PluginPreset, nothing to do
+			// optionValue is set by the PluginPreset, nothing to doen plugin does not have option which exists in plugin p
 			continue
 		}
 		if slices.ContainsFunc(definition.Spec.Options, func(item greenhousev1alpha1.PluginOption) bool {

@@ -873,7 +873,7 @@
           "value": "greenhouse-controller-manager-metrics-service"
         },
         "datasource": "${Prometheus}",
-        "definition": "label_values(controller_runtime_reconcile_total{job=~\".*greenhouse/kube-monitoring-sd.*\"}, job)",
+        "definition": "label_values(controller_runtime_reconcile_total{job=~\".*greenhouse-controller.*\"}, job)",
         "description": null,
         "error": null,
         "hide": 0,
@@ -883,7 +883,7 @@
         "name": "job",
         "options": [],
         "query": {
-          "query": "label_values(controller_runtime_reconcile_total{job=~\".*greenhouse/kube-monitoring-sd.*\"}, job)",
+          "query": "label_values(controller_runtime_reconcile_total{job=~\".*greenhouse-controller.*\"}, job)",
           "refId": "StandardVariableQuery"
         },
         "refresh": 2,
@@ -905,7 +905,7 @@
           "value": "greenhouse"
         },
         "datasource": "${Prometheus}",
-        "definition": "label_values(controller_runtime_reconcile_total{job=~\".*greenhouse/kube-monitoring-sd.*\"}, namespace)",
+        "definition": "label_values(controller_runtime_reconcile_total{job=~\".*greenhouse-controller.*\"}, namespace)",
         "description": null,
         "error": null,
         "hide": 0,
@@ -915,7 +915,7 @@
         "name": "namespace",
         "options": [],
         "query": {
-          "query": "label_values(controller_runtime_reconcile_total{job=~\".*greenhouse/kube-monitoring-sd.*\"}, namespace)",
+          "query": "label_values(controller_runtime_reconcile_total{job=~\".*greenhouse-controller.*\"}, namespace)",
           "refId": "StandardVariableQuery"
         },
         "refresh": 1,

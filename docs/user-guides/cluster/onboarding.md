@@ -1,6 +1,7 @@
 ---
 title: "Cluster onboarding"
 linkTitle: "Onboarding"
+weight: 1
 description: >
   Onboard an existing Kubernetes cluster to Greenhouse.
 ---
@@ -10,7 +11,7 @@ description: >
 - [Preparation](#preparation)
 - [Onboard](#onboard)
 - [After onboarding](#after-onboarding)
-- [Trouble shooting](#trouble-shooting)
+- [Troubleshooting](#troubleshooting)
 
 This guides describes how to onboard an existing Kubernetes cluster to your Greenhouse organization.  
 If you don't have an organization yet please reach out to the Greenhouse administrators.
@@ -27,7 +28,7 @@ Download the latest `greenhousectl` binary from [here](https://github.com/cloudo
 
 Onboarding a `Cluster` to Greenhouse will require you to authenticate to two different Kubernetes clusters via respective `kubeconfig` files:
 
-- `greenhouse`: The cluster your Greenhouse installation is running on. You need `organization-admin` or `cluster-admin` priviledges.
+- `greenhouse`: The cluster your Greenhouse installation is running on. You need `organization-admin` or `cluster-admin` privileges.
 - `bootstrap`: The cluster you want to onboard. You need `system:masters` privileges.
 
 For consistency we will refer to those two clusters by their names from now on.
@@ -49,7 +50,7 @@ greenhousectl cluster bootstrap --kubeconfig=<path/to/bootstrap-kubeconfig-file>
 Since Greenhouse generates URLs which contain the cluster name, we highly recommend to choose a **short** cluster name.
 In particular for <span style="color:red">Gardener Clusters</span> setting a short name is mandatory, because Gardener has very long cluster names, e.g. `garden-greenhouse--monitoring-external`.
 
-A typical output when you ran the command looks like
+A typical output when you run the command looks like
 
 ```commandline
 2024-02-01T09:34:55.522+0100	INFO	setup	Loaded kubeconfig	{"context": "default", "host": "https://api.greenhouse-qa.eu-nl-1.cloud.sap"}
@@ -109,7 +110,7 @@ Then `status.conditions` will contain a `Condition` with `type=Ready` and `statu
 In the remote cluster, a new namespace is created and contains some resources managed by Greenhouse.
 The namespace has the same name as your organization in Greenhouse.
 
-## Trouble shooting
+## Troubleshooting
 
 If the bootstrapping failed, you can find details about why it failed in the `Cluster.statusConditions`. More precisely there will be a condition of `type=KubeConfigValid` which might have hints in the `message` field. This is also displayed in the UI on the `Cluster` details view.
 Reruning the onboarding command with an updated `kubeConfig` file will fix these issues.
