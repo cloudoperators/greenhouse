@@ -353,5 +353,5 @@ var _ = Describe("Test conditions util functions", func() {
 		Expect(condition1.Equal(condition2)).To(BeTrue())
 
 	})
-	
+
 })
