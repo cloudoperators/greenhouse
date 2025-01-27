@@ -32,9 +32,10 @@ type basicAuthTransport struct {
 }
 
 type Config struct {
-	URL       string
-	AuthType  AuthType
-	BasicAuth *BasicAuthConfig
+	URL         string
+	AuthType    AuthType
+	BasicAuth   *BasicAuthConfig
+	BearerToken *string
 }
 
 type BasicAuthConfig struct {
