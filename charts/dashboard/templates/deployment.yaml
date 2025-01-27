@@ -26,6 +26,7 @@ spec:
         app: dashboard
       annotations:
         checksum/props-cm: {{ include (print $.Template.BasePath "/dashboard-props-cm.yaml") . | sha256sum }}
+        checksum/props-secrets: {{ include (print $.Template.BasePath "/secret.yaml") . | sha256sum }}
     spec:
       # The preStop hook below sleeps 30 seconds, extend the gracePeriod accordingly
       terminationGracePeriodSeconds: 60
