@@ -77,6 +77,8 @@ type SCIMConfig struct {
 	BasicAuthUser ValueFromSource `json:"basicAuthUser"`
 	// Password to be used for basic authentication.
 	BasicAuthPw ValueFromSource `json:"basicAuthPw"`
+	// BearerToken to be used for bearer token authorization
+	BearerToken ValueFromSource `json:"bearerToken"`
 }
 
 // OrganizationStatus defines the observed state of an Organization
