@@ -208,21 +208,6 @@ func SetOptionValueForPlugin(plugin *greenhousev1alpha1.Plugin, key, value strin
 	})
 }
 
-// SetOptionValueForPluginPreset sets the value of a PluginOtionValue
-func SetOptionValueForPluginPreset(pluginPreset *greenhousev1alpha1.PluginPreset, key, value string) {
-	for i, keyValue := range pluginPreset.Spec.Plugin.OptionValues {
-		if keyValue.Name == key {
-			pluginPreset.Spec.Plugin.OptionValues[i].Value.Raw = []byte(value)
-			return
-		}
-	}
-
-	pluginPreset.Spec.Plugin.OptionValues = append(pluginPreset.Spec.Plugin.OptionValues, greenhousev1alpha1.PluginOptionValue{
-		Name:  key,
-		Value: &apiextensionsv1.JSON{Raw: []byte(value)},
-	})
-}
-
 // NewPlugin returns a greenhousev1alpha1.Plugin object. Opts can be used to set the desired state of the Plugin.
 func NewPlugin(ctx context.Context, name, namespace string, opts ...func(*greenhousev1alpha1.Plugin)) *greenhousev1alpha1.Plugin {
 	GinkgoHelper()

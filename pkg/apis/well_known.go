@@ -48,6 +48,9 @@ const (
 
 	// LabelKeyExposeNamedPort is specifying the port to be exposed by name. LabelKeyExposeService needs to be set. Defaults to the first port if the named port is not found.
 	LabelKeyExposeNamedPort = "greenhouse.sap/exposeNamedPort"
+
+	// AllowPluginCreateAnnotation enables the creation of a plugin
+	AllowPluginCreateAnnotation = "greenhouse.sap/allow-plugin-create"
 )
 
 // TeamRole and TeamRoleBinding constants

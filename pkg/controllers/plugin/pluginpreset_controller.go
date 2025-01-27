@@ -175,7 +175,7 @@ func (r *PluginPresetReconciler) reconcilePluginPreset(ctx context.Context, pres
 				plugin.Annotations = make(map[string]string)
 			}
 
-			plugin.Annotations[greenhousev1alpha1.AllowCreateAnnotation] = "true"
+			plugin.Annotations[greenhouseapis.AllowPluginCreateAnnotation] = "true"
 
 			// Label the plugin with the managed resource label to identify it as managed by the PluginPreset.
 			plugin.SetLabels(map[string]string{greenhouseapis.LabelKeyPluginPreset: preset.Name})
