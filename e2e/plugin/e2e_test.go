@@ -27,6 +27,7 @@ import (
 
 	"github.com/cloudoperators/greenhouse/e2e/plugin/fixtures"
 	"github.com/cloudoperators/greenhouse/e2e/shared"
+	"github.com/cloudoperators/greenhouse/pkg/apis"
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/pkg/apis/greenhouse/v1alpha1"
 	"github.com/cloudoperators/greenhouse/pkg/clientutil"
 	"github.com/cloudoperators/greenhouse/pkg/helm"
@@ -112,8 +113,7 @@ var _ = Describe("Plugin E2E", Ordered, func() {
 		Expect(err).NotTo(HaveOccurred())
 		Expect(len(pluginDefinitionList.Items)).To(BeEquivalentTo(1))
 
-		By("Try to creating the plugin")
-		// Creating plugin
+		By("Trying to create the plugin without annotation")
 		testPlugin := fixtures.PreparePlugin("test-nginx-plugin", env.TestNamespace,
 			test.WithPluginDefinition(testPluginDefinition.Name),
 			test.WithReleaseNamespace(env.TestNamespace),
@@ -121,16 +121,15 @@ var _ = Describe("Plugin E2E", Ordered, func() {
 		err = adminClient.Create(ctx, testPlugin)
 		Expect(err).To(HaveOccurred())
 
-		By("Creating the plugin preset")
-		testPluginPreset := fixtures.PreparePluginPreset("test-nginx-preset", env.TestNamespace, testPlugin.Spec)
-		err = adminClient.Create(ctx, testPluginPreset)
+		By("Trying to create the plugin without annotation")
+		testPlugin = fixtures.PreparePlugin("test-nginx-plugin", env.TestNamespace,
+			test.WithPluginDefinition(testPluginDefinition.Name),
+			test.WithReleaseNamespace(env.TestNamespace),
+			test.WithPluginOptionValue("replicaCount", &apiextensionsv1.JSON{Raw: []byte("1")}, nil),
+			test.WithCluster(remoteClusterName),
+			test.WithAnnotation(apis.AllowPluginCreateAnnotation, "true"))
+		err = adminClient.Create(ctx, testPlugin)
 		Expect(err).ToNot(HaveOccurred())
-
-		By("Checking the plugin preset is ready")
-		Eventually(func(g Gomega) {
-			err = adminClient.Get(ctx, client.ObjectKeyFromObject(testPluginPreset), testPluginPreset)
-			g.Expect(err).ToNot(HaveOccurred())
-		}).Should(Succeed())
 
 		By("Checking the plugin status is ready")
 		pluginList := &greenhousev1alpha1.PluginList{}
@@ -164,11 +163,11 @@ var _ = Describe("Plugin E2E", Ordered, func() {
 
 		By("Updating replicas")
 		Eventually(func(g Gomega) {
-			namespacedName := types.NamespacedName{Name: testPluginPreset.Name, Namespace: testPluginPreset.Namespace}
-			err = adminClient.Get(ctx, namespacedName, testPluginPreset)
+			namespacedName := types.NamespacedName{Name: testPlugin.Name, Namespace: testPlugin.Namespace}
+			err = adminClient.Get(ctx, namespacedName, testPlugin)
 			g.Expect(err).NotTo(HaveOccurred())
-			test.SetOptionValueForPluginPreset(testPluginPreset, "replicaCount", "2")
-			err = adminClient.Update(ctx, testPluginPreset)
+			test.SetOptionValueForPlugin(testPlugin, "replicaCount", "2")
+			err = adminClient.Update(ctx, testPlugin)
 			g.Expect(err).NotTo(HaveOccurred())
 		}).Should(Succeed())
 
@@ -189,24 +188,6 @@ var _ = Describe("Plugin E2E", Ordered, func() {
 					g.Expect(deployment.Spec.Replicas).To(PointTo(Equal(int32(2))))
 				}
 			}
-		}).Should(Succeed())
-
-		By("Add annotation to allow delete plugin preset")
-		Eventually(func(g Gomega) {
-			err = adminClient.Get(ctx, client.ObjectKeyFromObject(testPluginPreset), testPluginPreset)
-			g.Expect(err).NotTo(HaveOccurred())
-			if testPluginPreset.Annotations == nil {
-				testPluginPreset.Annotations = map[string]string{}
-			}
-			delete(testPluginPreset.Annotations, "greenhouse.sap/prevent-deletion")
-			err = adminClient.Update(ctx, testPluginPreset)
-			g.Expect(err).NotTo(HaveOccurred())
-		}).Should(Succeed())
-
-		By("Deleting plugin preset")
-		Eventually(func(g Gomega) {
-			err = adminClient.Delete(ctx, testPluginPreset)
-			g.Expect(err).NotTo(HaveOccurred())
 		}).Should(Succeed())
 
 		By("Deleting plugin")

@@ -79,7 +79,7 @@ func OrganizationPluginAdminPolicyRules() []rbacv1.PolicyRule {
 			APIGroups: []string{greenhouseapisv1alpha1.GroupVersion.Group},
 			Resources: []string{"pluginpresets"},
 		},
-		// Grant read, update and delete permissions for PluginPresets to organization plugin admins. No create
+		// Grant read, update and delete permissions for Plugins to organization plugin admins. No create
 		{
 			Verbs:     []string{"get", "list", "watch", "update", "patch", "delete"},
 			APIGroups: []string{greenhouseapisv1alpha1.GroupVersion.Group},

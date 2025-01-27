@@ -150,8 +150,8 @@ func ValidateDeletePlugin(_ context.Context, _ client.Client, _ runtime.Object) 
 }
 
 func allowCreatePlugin(plugin *greenhousev1alpha1.Plugin) bool {
-	_, ok := plugin.Annotations["greenhouse.sap/allow-create"]
-	delete(plugin.Annotations, "greenhouse.sap/allow-create")
+	_, ok := plugin.Annotations[greenhouseapis.AllowPluginCreateAnnotation]
+	delete(plugin.Annotations, greenhouseapis.AllowPluginCreateAnnotation)
 	return ok
 }
 
