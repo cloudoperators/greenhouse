@@ -43,7 +43,10 @@ spec:
             limits:
               cpu: "100m"
               memory: "256M"
-              
+          env:
+            - name: DEMO_TOKEN
+              valueFrom: { secretKeyRef: { name: dashboard_app_props, key: demo_token } }
+
           livenessProbe:
             httpGet:
               path: /
