@@ -203,14 +203,18 @@ func (r *TeamRoleBindingReconciler) doReconcile(ctx context.Context, teamRole *g
 		if err != nil {
 			r.recorder.Eventf(trb, corev1.EventTypeWarning, greenhousev1alpha1.FailedEvent, "Error getting client for cluster %s to replicate %s", cluster.GetName(), trb.GetName())
 			trb.SetPropagationStatus(cluster.GetName(), metav1.ConditionFalse, greenhousev1alpha1.ClusterConnectionFailed, err.Error())
-			failedClusters = append(failedClusters, cluster.GetName())
+			if !slices.Contains(failedClusters, cluster.GetName()) {
+				failedClusters = append(failedClusters, cluster.GetName())
+			}
 			continue
 		}
 
 		if err := reconcileClusterRole(ctx, remoteRestClient, &cluster, cr); err != nil {
 			r.recorder.Eventf(trb, corev1.EventTypeWarning, greenhousev1alpha1.FailedEvent, "Failed to reconcile ClusterRole %s in cluster %s", cr.GetName(), cluster.GetName())
 			trb.SetPropagationStatus(cluster.GetName(), metav1.ConditionFalse, greenhousev1alpha1.ClusterRoleFailed, err.Error())
-			failedClusters = append(failedClusters, cluster.GetName())
+			if !slices.Contains(failedClusters, cluster.GetName()) {
+				failedClusters = append(failedClusters, cluster.GetName())
+			}
 			continue
 		}
 
@@ -220,7 +224,9 @@ func (r *TeamRoleBindingReconciler) doReconcile(ctx context.Context, teamRole *g
 			if err := reconcileClusterRoleBinding(ctx, remoteRestClient, &cluster, crb); err != nil {
 				r.recorder.Eventf(trb, corev1.EventTypeWarning, greenhousev1alpha1.FailedEvent, "Failed to reconcile ClusterRoleBinding %s in cluster %s", crb.GetName(), cluster.GetName())
 				trb.SetPropagationStatus(cluster.GetName(), metav1.ConditionFalse, greenhousev1alpha1.RoleBindingFailed, err.Error())
-				failedClusters = append(failedClusters, cluster.GetName())
+				if !slices.Contains(failedClusters, cluster.GetName()) {
+					failedClusters = append(failedClusters, cluster.GetName())
+				}
 				continue
 			}
 			trb.SetPropagationStatus(cluster.GetName(), metav1.ConditionTrue, greenhousev1alpha1.RBACReconciled, "")
@@ -231,7 +237,9 @@ func (r *TeamRoleBindingReconciler) doReconcile(ctx context.Context, teamRole *g
 
 				if err := reconcileRoleBinding(ctx, remoteRestClient, &cluster, rbacRoleBinding); err != nil {
 					r.recorder.Eventf(trb, corev1.EventTypeWarning, greenhousev1alpha1.FailedEvent, "Failed to reconcile RoleBinding %s in cluster/namespace %s/%s: ", rbacRoleBinding.GetName(), cluster.GetName(), namespace)
-					failedClusters = append(failedClusters, cluster.GetName())
+					if !slices.Contains(failedClusters, cluster.GetName()) {
+						failedClusters = append(failedClusters, cluster.GetName())
+					}
 					errorMesages = append(errorMesages, err.Error())
 				}
 			}
