@@ -13,6 +13,7 @@ type AuthType byte
 
 const (
 	Basic AuthType = iota
+	Bearer
 )
 
 const (
