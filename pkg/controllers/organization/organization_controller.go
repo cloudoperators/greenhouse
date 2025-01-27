@@ -257,21 +257,40 @@ func (r *OrganizationReconciler) checkSCIMAPIAvailability(ctx context.Context, o
 	namespace := org.Name
 	scimConfig := org.Spec.Authentication.SCIMConfig
 
-	basicAuthUser, err := clientutil.GetSecretKeyFromSecretKeyReference(ctx, r.Client, namespace, *scimConfig.BasicAuthUser.Secret)
-	if err != nil {
-		return greenhousesapv1alpha1.FalseCondition(greenhousesapv1alpha1.SCIMAPIAvailableCondition, greenhousesapv1alpha1.SecretNotFoundReason, "BasicAuthUser missing")
+	var authType *scim.AuthType
+	var basicAuthUser, basicAuthPw, bearerToken string
+	var err error
+	if scimConfig.BasicAuthUser.Secret != nil && scimConfig.BasicAuthPw.Secret != nil { // Conditions to avoid panic
+		basicAuthUser, err = clientutil.GetSecretKeyFromSecretKeyReference(ctx, r.Client, namespace, *scimConfig.BasicAuthUser.Secret)
+		if err != nil {
+			return greenhousesapv1alpha1.FalseCondition(greenhousesapv1alpha1.SCIMAPIAvailableCondition, greenhousesapv1alpha1.SecretNotFoundReason, "BasicAuthUser missing")
+		}
+		basicAuthPw, err = clientutil.GetSecretKeyFromSecretKeyReference(ctx, r.Client, namespace, *scimConfig.BasicAuthPw.Secret)
+		if err != nil {
+			return greenhousesapv1alpha1.FalseCondition(greenhousesapv1alpha1.SCIMAPIAvailableCondition, greenhousesapv1alpha1.SecretNotFoundReason, "BasicAuthPw missing")
+		}
+		newAuthType := scim.Basic
+		authType = &newAuthType
 	}
-	basicAuthPw, err := clientutil.GetSecretKeyFromSecretKeyReference(ctx, r.Client, namespace, *scimConfig.BasicAuthPw.Secret)
-	if err != nil {
-		return greenhousesapv1alpha1.FalseCondition(greenhousesapv1alpha1.SCIMAPIAvailableCondition, greenhousesapv1alpha1.SecretNotFoundReason, "BasicAuthPw missing")
+	if scimConfig.BearerToken.Secret != nil {
+		bearerToken, err = clientutil.GetSecretKeyFromSecretKeyReference(ctx, r.Client, namespace, *scimConfig.BearerToken.Secret)
+		if err != nil {
+			return greenhousesapv1alpha1.FalseCondition(greenhousesapv1alpha1.SCIMAPIAvailableCondition, greenhousesapv1alpha1.SecretNotFoundReason, "BearerToken missing")
+		}
+		newAuthType := scim.Bearer
+		authType = &newAuthType
+	}
+	if authType == nil {
+		return greenhousesapv1alpha1.FalseCondition(greenhousesapv1alpha1.SCIMAPIAvailableCondition, greenhousesapv1alpha1.SCIMConfigNotProvidedReason, "SCIM config is not provided")
 	}
 	config := &scim.Config{
 		URL:      scimConfig.BaseURL,
-		AuthType: scim.Basic,
+		AuthType: *authType,
 		BasicAuth: &scim.BasicAuthConfig{
 			Username: basicAuthUser,
 			Password: basicAuthPw,
 		},
+		BearerToken: &bearerToken,
 	}
 	logger := ctrl.LoggerFrom(ctx)
 	scimClient, err := scim.NewSCIMClient(logger, config)
