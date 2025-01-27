@@ -67,9 +67,6 @@ const (
 	// StatusUpToDateCondition reflects the failed reconciliation of the Plugin.
 	StatusUpToDateCondition ConditionType = "StatusUpToDate"
 
-	// Deprecated: NoHelmChartTestFailuresCondition reflects the status of the HelmChart tests.
-	NoHelmChartTestFailuresCondition ConditionType = "NoHelmChartTestFailures"
-
 	// HelmChartTestSucceededCondition reflects the status of the HelmChart tests.
 	HelmChartTestSucceededCondition ConditionType = "HelmChartTestSucceeded"
 
