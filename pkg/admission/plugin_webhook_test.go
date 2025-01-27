@@ -231,7 +231,7 @@ var _ = Describe("Validate plugin spec fields", Ordered, func() {
 		testPlugin = test.NewPlugin(test.Ctx, "test-plugin", setup.Namespace(),
 			test.WithPluginDefinition(testPluginDefinition.Name),
 			test.WithReleaseNamespace("test-namespace"),
-			test.WithAnnotation(greenhousev1alpha1.AllowCreateAnnotation, "true"))
+			test.WithAnnotation(greenhouseapis.AllowPluginCreateAnnotation, "true"))
 		expectClusterMustBeSetError(test.K8sClient.Create(test.Ctx, testPlugin))
 	})
 
@@ -241,7 +241,7 @@ var _ = Describe("Validate plugin spec fields", Ordered, func() {
 			test.WithPluginDefinition(testPluginDefinition.Name),
 			test.WithCluster("non-existent-cluster"),
 			test.WithReleaseNamespace("test-namespace"),
-			test.WithAnnotation(greenhousev1alpha1.AllowCreateAnnotation, "true"))
+			test.WithAnnotation(greenhouseapis.AllowPluginCreateAnnotation, "true"))
 
 		expectClusterNotFoundError(test.K8sClient.Create(test.Ctx, testPlugin))
 	})
@@ -252,7 +252,7 @@ var _ = Describe("Validate plugin spec fields", Ordered, func() {
 			test.WithPluginDefinition(testPluginDefinition.Name),
 			test.WithCluster(testCluster.Name),
 			test.WithReleaseNamespace("test-namespace"),
-			test.WithAnnotation(greenhousev1alpha1.AllowCreateAnnotation, "true"))
+			test.WithAnnotation(greenhouseapis.AllowPluginCreateAnnotation, "true"))
 
 		By("checking the label on the plugin")
 		actPlugin := &greenhousev1alpha1.Plugin{}
@@ -268,7 +268,7 @@ var _ = Describe("Validate plugin spec fields", Ordered, func() {
 			test.WithPluginDefinition(testPluginDefinition.Name),
 			test.WithCluster(testCluster.Name),
 			test.WithReleaseNamespace("test-namespace"),
-			test.WithAnnotation(greenhousev1alpha1.AllowCreateAnnotation, "true"))
+			test.WithAnnotation(greenhouseapis.AllowPluginCreateAnnotation, "true"))
 		testPlugin.Spec.ClusterName = "wrong-cluster-name"
 		err := test.K8sClient.Update(test.Ctx, testPlugin)
 
@@ -281,7 +281,7 @@ var _ = Describe("Validate plugin spec fields", Ordered, func() {
 			test.WithPluginDefinition(testPluginDefinition.Name),
 			test.WithCluster(testCluster.Name),
 			test.WithReleaseNamespace("test-namespace"),
-			test.WithAnnotation(greenhousev1alpha1.AllowCreateAnnotation, "true"))
+			test.WithAnnotation(greenhouseapis.AllowPluginCreateAnnotation, "true"))
 		testPlugin.Spec.ClusterName = ""
 		err := test.K8sClient.Update(test.Ctx, testPlugin)
 		Expect(err).To(HaveOccurred(), "there should be an error changing the plugin's clusterName")
@@ -293,11 +293,21 @@ var _ = Describe("Validate plugin spec fields", Ordered, func() {
 			test.WithPluginDefinition(testPluginDefinition.Name),
 			test.WithCluster(testCluster.Name),
 			test.WithReleaseNamespace("test-namespace"),
-			test.WithAnnotation(greenhousev1alpha1.AllowCreateAnnotation, "true"))
+			test.WithAnnotation(greenhouseapis.AllowPluginCreateAnnotation, "true"))
 		testPlugin.Spec.ReleaseNamespace = "foo-bar"
 		err := test.K8sClient.Update(test.Ctx, testPlugin)
 		Expect(err).To(HaveOccurred(), "there should be an error changing the plugin's releaseNamespace")
 		Expect(err.Error()).To(ContainSubstring(validation.FieldImmutableErrorMsg))
+	})
+
+	It("should deny creation of a Plugin without AllowPluginCreationAnnotation", func() {
+		testPlugin = test.NewPlugin(test.Ctx, "test-plugin-2", setup.Namespace(),
+			test.WithPluginDefinition(testPluginDefinition.Name),
+			test.WithCluster(testCluster.Name),
+			test.WithReleaseNamespace("test-namespace"))
+		err := test.K8sClient.Create(test.Ctx, testPlugin)
+		Expect(err).To(HaveOccurred())
+		Expect(err.Error()).To(ContainSubstring("plugin creation is not allowed"))
 	})
 
 	It("should reject to update a plugin when the pluginDefinition changes", func() {
@@ -306,7 +316,7 @@ var _ = Describe("Validate plugin spec fields", Ordered, func() {
 			test.WithPluginDefinition(testPluginDefinition.Name),
 			test.WithCluster(testCluster.Name),
 			test.WithReleaseNamespace("test-namespace"),
-			test.WithAnnotation(greenhousev1alpha1.AllowCreateAnnotation, "true"))
+			test.WithAnnotation(greenhouseapis.AllowPluginCreateAnnotation, "true"))
 
 		testPlugin.Spec.PluginDefinition = secondPluginDefinition.Name
 		err := test.K8sClient.Update(test.Ctx, testPlugin)

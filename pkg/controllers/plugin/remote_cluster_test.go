@@ -42,7 +42,7 @@ var (
 			Name:      "test-plugindefinition",
 			Namespace: test.TestNamespace,
 			Annotations: map[string]string{
-				greenhousev1alpha1.AllowCreateAnnotation: "true",
+				greenhouseapis.AllowPluginCreateAnnotation: "true",
 			},
 		},
 		Spec: greenhousev1alpha1.PluginSpec{
@@ -61,7 +61,7 @@ var (
 			Name:      "test-plugin-secretref",
 			Namespace: test.TestNamespace,
 			Annotations: map[string]string{
-				greenhousev1alpha1.AllowCreateAnnotation: "true",
+				greenhouseapis.AllowPluginCreateAnnotation: "true",
 			},
 		},
 		Spec: greenhousev1alpha1.PluginSpec{
@@ -87,7 +87,7 @@ var (
 			Name:      "test-plugin-in-made-up-namespace",
 			Namespace: test.TestNamespace,
 			Annotations: map[string]string{
-				greenhousev1alpha1.AllowCreateAnnotation: "true",
+				greenhouseapis.AllowPluginCreateAnnotation: "true",
 			},
 		},
 		Spec: greenhousev1alpha1.PluginSpec{
@@ -106,7 +106,7 @@ var (
 			Name:      "test-plugin-crd",
 			Namespace: test.TestNamespace,
 			Annotations: map[string]string{
-				greenhousev1alpha1.AllowCreateAnnotation: "true",
+				greenhouseapis.AllowPluginCreateAnnotation: "true",
 			},
 		},
 		Spec: greenhousev1alpha1.PluginSpec{
@@ -125,7 +125,7 @@ var (
 			Name:      "test-plugin-exposed",
 			Namespace: test.TestNamespace,
 			Annotations: map[string]string{
-				greenhousev1alpha1.AllowCreateAnnotation: "true",
+				greenhouseapis.AllowPluginCreateAnnotation: "true",
 			},
 		},
 		Spec: greenhousev1alpha1.PluginSpec{
