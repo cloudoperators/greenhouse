@@ -4,3 +4,7 @@ global:
   dnsDomain: greenhouse.tld
   oidc:
     clientID: topSecret!
+
+secrets:
+  demoUser:
+    token: test_demo_user_token
