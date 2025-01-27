@@ -284,6 +284,7 @@ func (r *TeamRoleBindingReconciler) combineClusterLists(ctx context.Context, nam
 }
 
 // cleanupResources removes rbacv1 resources from all clusters that are no longer matching the TeamRoleBinding's clusterSelector/clusterName
+// if the Cluster is not ready, the TeamRoleBinding's status will be updated accordingly but no resources will be removed
 func (r *TeamRoleBindingReconciler) cleanupResources(ctx context.Context, trb *greenhousev1alpha1.TeamRoleBinding, clusters *greenhousev1alpha1.ClusterList) error {
 	for _, s := range trb.Status.PropagationStatus {
 		// remove rbac for all clusters no longer matching the clusterSelector
@@ -297,6 +298,10 @@ func (r *TeamRoleBindingReconciler) cleanupResources(ctx context.Context, trb *g
 			}
 			if err != nil {
 				return err
+			}
+			if !cluster.Status.StatusConditions.IsReadyTrue() {
+				trb.SetPropagationStatus(s.ClusterName, metav1.ConditionFalse, greenhousev1alpha1.ClusterConnectionFailed, "Cluster is not ready")
+				continue
 			}
 			if err = r.cleanupCluster(ctx, trb, cluster); err != nil {
 				return err
@@ -721,6 +726,7 @@ func isRoleReferenced(ctx context.Context, c client.Client, teamRoleBinding *gre
 
 // listClusters returns the list of Clusters that match the TeamRoleBinding's ClusterSelector or ClusterName
 // If the ClusterName or ClusterSelector does not return any cluster, an empty ClusterList is returned without error
+// If a cluster in the list is not ready, then it is removed from the list and the PropagationStatus updated
 func (r *TeamRoleBindingReconciler) listClusters(ctx context.Context, trb *greenhousev1alpha1.TeamRoleBinding) (*greenhousev1alpha1.ClusterList, error) {
 	if trb.Spec.ClusterName != "" {
 		cluster := new(greenhousev1alpha1.Cluster)
@@ -742,6 +748,14 @@ func (r *TeamRoleBindingReconciler) listClusters(ctx context.Context, trb *green
 	if err := r.List(ctx, clusters, client.InNamespace(trb.GetNamespace()), client.MatchingLabelsSelector{Selector: clusterSelector}); err != nil {
 		return nil, err
 	}
+	// remove clusters which are not ready
+	clusters.Items = slices.DeleteFunc(clusters.Items, func(c greenhousev1alpha1.Cluster) bool {
+		if !c.Status.StatusConditions.IsReadyTrue() {
+			trb.SetPropagationStatus(c.GetName(), metav1.ConditionFalse, greenhousev1alpha1.ClusterConnectionFailed, "Cluster is not ready")
+			return true
+		}
+		return false
+	})
 	return clusters, nil
 }
 
