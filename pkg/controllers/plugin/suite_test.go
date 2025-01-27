@@ -26,6 +26,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/cloudoperators/greenhouse/pkg/admission"
+	greenhouseapis "github.com/cloudoperators/greenhouse/pkg/apis"
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/pkg/apis/greenhouse/v1alpha1"
 	"github.com/cloudoperators/greenhouse/pkg/clientutil"
 	"github.com/cloudoperators/greenhouse/pkg/helm"
@@ -165,7 +166,7 @@ var _ = Describe("HelmControllerTest", Serial, func() {
 				Name:      PluginName,
 				Namespace: Namespace,
 				Annotations: map[string]string{
-					greenhousev1alpha1.AllowCreateAnnotation: "true",
+					greenhouseapis.AllowPluginCreateAnnotation: "true",
 				},
 			},
 			Spec: greenhousev1alpha1.PluginSpec{
@@ -521,7 +522,7 @@ var _ = Describe("HelmControllerTest", Serial, func() {
 					Name:      pluginName,
 					Namespace: Namespace,
 					Annotations: map[string]string{
-						greenhousev1alpha1.AllowCreateAnnotation: "true",
+						greenhouseapis.AllowPluginCreateAnnotation: "true",
 					},
 				},
 				Spec: greenhousev1alpha1.PluginSpec{
@@ -667,7 +668,7 @@ var _ = When("the pluginDefinition is UI only", func() {
 				Name:      "uiplugin",
 				Namespace: "default",
 				Annotations: map[string]string{
-					greenhousev1alpha1.AllowCreateAnnotation: "true",
+					greenhouseapis.AllowPluginCreateAnnotation: "true",
 				},
 			},
 			Spec: greenhousev1alpha1.PluginSpec{
