@@ -1,4 +1,5 @@
 
+
 # Setting up a local development environment
 
 Greenhouse provides a couple of cli commands based on `make` to run a local Greenhouse instance.
@@ -54,6 +55,17 @@ operating system's `tmp` folder, where the CLI will write `kubeconfig` of the cr
 > The path where the `kubeconfig` is written will be displayed in the terminal after the command is executed by the CLI
 
 use `kubectl --kubeconfig=<path to admin / remote kubeconfig>` to interact with the local `greenhouse` clusters
+
+### Run Greenhouse Locally
+
+```shell
+make setup
+```
+
+- This will install the operator, the dashboard, cors-proxy and a sample organization with an onboarded remote cluster
+- port-forward the `cors-proxy` by `kubectl port-forward svc/greenhouse-cors-proxy 9090:80 -n greenhouse &`
+- port-forward the `dashboard` by `kubectl port-forward svc/greenhouse-dashboard 5001:80 -n greenhouse &`
+- Access the local `demo` organization on the Greenhouse dashboard on [localhost:5001](http://localhost:5001/?org=demo)
 
 ### Develop Controllers locally and run the webhook server in-cluster
 
@@ -111,17 +123,6 @@ make setup-dashboard
 >
 > Information on how to access the dashboard is displayed after the command is executed
 
-### Run local Greenhouse
-
-```shell
-make setup
-```
-
-- This will install the operator, the dashboard, cors-proxy and a sample organization with an onboarded remote cluster
-- port-forward the `cors-proxy` by `kubectl port-forward svc/greenhouse-cors-proxy 9090:80 -n greenhouse &`
-- port-forward the `dashboard` by `kubectl port-forward svc/greenhouse-dashboard 5001:80 -n greenhouse &`
-- Access the local `demo` organization on the Greenhouse dashboard on [localhost:5001](http://localhost:5001/?org=demo)
-
 
 ### Run Greenhouse Core for UI development
 - Startup the environment as in [Run local Greenhouse](#run-local-greenhouse)
@@ -144,7 +145,7 @@ PLUGIN_DIR=<absolute-path-to-charts-dir> make setup
 - The operator deployment has a hostPath volume mount to the plugin charts directory from the `node` of the `KinD`
   cluster
 
-To test your local Chart (now mounted to the KinD cluster) with a `plugindefinition.yaml` you would need to adjust `.spec.helmChart.name` to use the local chart. 
+To test your local Chart (now mounted to the KinD cluster) with a `plugindefinition.yaml` you would need to adjust `.spec.helmChart.name` to use the local chart.
 With the provided mounting mechanism it will always live in `local/plugins/` within the KinD cluster.
 
 Modify `spec.helmChart.name` to point to the local file path of the chart that needs to be tested
