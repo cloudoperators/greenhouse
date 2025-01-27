@@ -45,7 +45,7 @@ spec:
               memory: "256M"
           env:
             - name: DEMO_TOKEN
-              valueFrom: { secretKeyRef: { name: dashboard_app_props, key: demo_token } }
+              valueFrom: { secretKeyRef: { name: dashboard-app-props, key: demo_token } }
 
           livenessProbe:
             httpGet:
