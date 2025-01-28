@@ -44,7 +44,7 @@ const (
 	MangerIMG                          = "greenhouse/manager:local"
 	MangerContainer                    = "manager"
 	DeploymentKind                     = "Deployment"
-	DeploymentNameSuffix               = "-controller-manager"
+	ManagerDeploymentNameSuffix        = "-controller-manager"
 	JobKind                            = "Job"
 	JobNameSuffix                      = "-kube-webhook-certgen"
 	MutatingWebhookConfigurationKind   = "MutatingWebhookConfiguration"
@@ -60,7 +60,7 @@ const (
 func (m *Manifest) setupWebhookManifest(resources []map[string]interface{}, clusterName string) ([]map[string]interface{}, error) {
 	webhookManifests := make([]map[string]interface{}, 0)
 	releaseName := m.ReleaseName
-	managerDeployment, err := extractResourceByNameKind(resources, releaseName+DeploymentNameSuffix, DeploymentKind)
+	managerDeployment, err := extractResourceByNameKind(resources, releaseName+ManagerDeploymentNameSuffix, DeploymentKind)
 	if err != nil {
 		return nil, err
 	}
@@ -147,7 +147,7 @@ func (m *Manifest) modifyManagerDeployment(deploymentResource map[string]interfa
 	if err != nil {
 		return nil, err
 	}
-	index := getManagerContainerIndex(deployment)
+	index := getContainerIndex(deployment, MangerContainer)
 	if index == -1 {
 		return nil, errors.New("manager container not found in deployment")
 	}
@@ -283,9 +283,9 @@ func (m *Manifest) buildAndLoadImage(clusterName string) error {
 	return klient.LoadImage(MangerIMG, clusterName)
 }
 
-func getManagerContainerIndex(deployment *appsv1.Deployment) int {
+func getContainerIndex(deployment *appsv1.Deployment, containerName string) int {
 	for i, container := range deployment.Spec.Template.Spec.Containers {
-		if container.Name == MangerContainer {
+		if container.Name == containerName {
 			return i
 		}
 	}
@@ -323,19 +323,18 @@ func extractResourceByKind(resources []map[string]interface{}, kind string) map[
 	return nil
 }
 
-func (m *Manifest) waitUntilDeploymentReady(ctx context.Context, clusterName, namespace string) error {
-	deploymentName := m.ReleaseName + DeploymentNameSuffix
+func (m *Manifest) waitUntilDeploymentReady(ctx context.Context, clusterName, name, namespace string) error {
 	cl, err := getKubeClient(clusterName)
 	if err != nil {
 		return err
 	}
 	b := backoff.NewExponentialBackOff(backoff.WithInitialInterval(5*time.Second), backoff.WithMaxElapsedTime(2*time.Minute))
 	return backoff.Retry(func() error {
-		utils.Logf("waiting for deployment %s to be ready...", deploymentName)
+		utils.Logf("waiting for deployment %s to be ready...", name)
 		deployment := &appsv1.Deployment{}
 		err := cl.Get(ctx, types.NamespacedName{
 			Namespace: namespace,
-			Name:      deploymentName,
+			Name:      name,
 		}, deployment)
 		if err != nil {
 			return err
@@ -451,4 +450,34 @@ func getHostIPFromInterface() string {
 	}
 	utils.LogErr("failed to get IP address for docker0 interface")
 	return ""
+}
+
+func (w *Webhook) AddOrOverrideEnv(envs []string) {
+	// Convert the input array of key=value strings into WebhookEnv objects
+	for _, env := range envs {
+		// Split the string into key and value
+		parts := strings.SplitN(env, "=", 2)
+		if len(parts) != 2 {
+			// Skip invalid key=value strings
+			continue
+		}
+		key := parts[0]
+		value := parts[1]
+
+		// Check if the environment variable already exists in w.Envs
+		found := false
+		for i, existingEnv := range w.Envs {
+			if existingEnv.Name == key {
+				// Override the value if the key matches
+				w.Envs[i].Value = value
+				found = true
+				break
+			}
+		}
+
+		// If not found, add the new environment variable
+		if !found {
+			w.Envs = append(w.Envs, WebhookEnv{Name: key, Value: value})
+		}
+	}
 }
