@@ -199,10 +199,10 @@ var _ = Describe("helm package test", func() {
 		})
 	})
 
-	FWhen("helm install fails at initial release", func() {
+	When("helm install fails at initial release", func() {
 		It("should rollback to the same initial version", func() {
 			By("installing a helm chart from a pluginDefinition")
-			err := helm.InstallOrUpgradeHelmChartFromPlugin(test.Ctx, test.K8sClient, test.RestClientGetter, testPluginWithHelmChart, plugin)
+			err := helm.InstallOrUpgradeHelmChartFromPlugin(test.Ctx, test.K8sClient, test.RestClientGetter, testPluginWithHelmChartCRDs, plugin)
 			Expect(err).ShouldNot(HaveOccurred(),
 				"there should be no error for installing helm chart from plugin")
 
@@ -226,7 +226,7 @@ var _ = Describe("helm package test", func() {
 			Expect(helmRelease.Info.Status).To(Equal(release.StatusFailed), "helm release should be set to failed")
 
 			By("running install or upgrade again")
-			err = helm.InstallOrUpgradeHelmChartFromPlugin(test.Ctx, test.K8sClient, test.RestClientGetter, testPluginWithHelmChart, plugin)
+			err = helm.InstallOrUpgradeHelmChartFromPlugin(test.Ctx, test.K8sClient, test.RestClientGetter, testPluginWithHelmChartCRDs, plugin)
 			Expect(err).ShouldNot(HaveOccurred(),
 				"there should be no error for upgrading the helm chart")
 
@@ -235,6 +235,10 @@ var _ = Describe("helm package test", func() {
 			helmRelease, err = getAction.Run(plugin.Name)
 			Expect(err).ShouldNot(HaveOccurred(), "there should be no error getting the helm release")
 			Expect(helmRelease.Info.Status).To(Equal(release.StatusDeployed), "helm release should be set to deployed")
+
+			By("cleaning up test")
+			_, err = helm.UninstallHelmRelease(test.Ctx, test.RestClientGetter, plugin)
+			Expect(err).ToNot(HaveOccurred(), "there must be no error uninstalling helm release")
 		})
 	})
 })
