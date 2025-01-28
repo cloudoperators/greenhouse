@@ -9,4 +9,4 @@ metadata:
   name: {{ .Chart.Name }}
 spec:
   description: Demo organization
-  mappedOrgAdminIDPGroup: demo # this field is required but OIDC is disabled for demo org
+  mappedOrgAdminIdPGroup: demo # this field is required but OIDC is disabled for demo org
