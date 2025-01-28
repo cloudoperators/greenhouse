@@ -44,7 +44,7 @@ func limitedManifestSetup(ctx context.Context, m *Manifest) Step {
 	}
 }
 
-func allManifestSetup(ctx context.Context, m *Manifest) Step {
+func dashboardSetup(ctx context.Context, m *Manifest) Step {
 	return func(env *ExecutionEnv) error {
 		var clusterName, namespace string
 		if env.cluster != nil {
@@ -57,11 +57,16 @@ func allManifestSetup(ctx context.Context, m *Manifest) Step {
 		if err != nil {
 			return err
 		}
-		resources, err := m.generateAllManifests(ctx)
+		dashboardManifests, err := m.setupDashboard(ctx, clusterName, namespace)
 		if err != nil {
 			return err
 		}
-		return m.applyManifests(resources, namespace, env.cluster.kubeConfigPath)
+		err = m.applyManifests(dashboardManifests, namespace, env.cluster.kubeConfigPath)
+		if err != nil {
+			return err
+		}
+		env.info = append(env.info, m.getDashboardSetupInfo())
+		return m.waitUntilDeploymentReady(ctx, clusterName, m.ReleaseName+dashboardDeploymentSuffix, namespace)
 	}
 }
 
@@ -107,7 +112,7 @@ func webhookManifestSetup(ctx context.Context, m *Manifest) Step {
 				return err
 			}
 		}
-		return m.waitUntilDeploymentReady(ctx, clusterName, namespace)
+		return m.waitUntilDeploymentReady(ctx, clusterName, m.ReleaseName+ManagerDeploymentNameSuffix, namespace)
 	}
 }
 

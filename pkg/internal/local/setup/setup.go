@@ -48,11 +48,6 @@ func (env *ExecutionEnv) WithClusterDelete(name string) *ExecutionEnv {
 	return env
 }
 
-func (env *ExecutionEnv) WithAllManifests(ctx context.Context, manifest *Manifest) *ExecutionEnv {
-	env.steps = append(env.steps, allManifestSetup(ctx, manifest))
-	return env
-}
-
 func (env *ExecutionEnv) WithLocalPluginDev(manifest *Manifest) *ExecutionEnv {
 	manifest.enableLocalPluginDev = true
 	return env
@@ -65,6 +60,11 @@ func (env *ExecutionEnv) WithLimitedManifests(ctx context.Context, manifest *Man
 
 func (env *ExecutionEnv) WithWebhookDevelopment(ctx context.Context, manifest *Manifest) *ExecutionEnv {
 	env.steps = append(env.steps, webhookManifestSetup(ctx, manifest))
+	return env
+}
+
+func (env *ExecutionEnv) WithDashboardSetup(ctx context.Context, manifest *Manifest) *ExecutionEnv {
+	env.steps = append(env.steps, dashboardSetup(ctx, manifest))
 	return env
 }
 
