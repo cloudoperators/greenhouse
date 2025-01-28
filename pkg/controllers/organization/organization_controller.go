@@ -277,7 +277,7 @@ func (r *OrganizationReconciler) checkSCIMAPIAvailability(ctx context.Context, o
 		if err != nil {
 			return greenhousesapv1alpha1.FalseCondition(greenhousesapv1alpha1.SCIMAPIAvailableCondition, greenhousesapv1alpha1.SecretNotFoundReason, "BearerToken missing")
 		}
-		newAuthType := scim.Bearer
+		newAuthType := scim.BearerToken
 		authType = &newAuthType
 	}
 	if authType == nil {
