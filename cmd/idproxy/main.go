@@ -16,9 +16,11 @@ import (
 	"time"
 
 	"github.com/dexidp/dex/server"
+	"github.com/dexidp/dex/storage"
 	"github.com/dexidp/dex/storage/sql"
 	"github.com/go-logr/logr"
 	"github.com/oklog/run"
+	"github.com/open-feature/go-sdk/openfeature"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/collectors"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
@@ -30,6 +32,7 @@ import (
 	logk "sigs.k8s.io/controller-runtime/pkg/log"
 
 	greenhousesapv1alpha1 "github.com/cloudoperators/greenhouse/pkg/apis/greenhouse/v1alpha1"
+	"github.com/cloudoperators/greenhouse/pkg/features"
 	"github.com/cloudoperators/greenhouse/pkg/idproxy"
 	"github.com/cloudoperators/greenhouse/pkg/idproxy/web"
 )
@@ -42,6 +45,8 @@ func main() {
 	var allowedOrigins []string
 	// DB connection parameters
 	var postgresDB sql.NetworkDB
+	var dexStorage storage.Storage
+	var err error
 
 	logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
 	// set default logger to be used by log
@@ -52,11 +57,11 @@ func main() {
 	flag.StringVar(&kubeconfig, "kubeconfig", os.Getenv("KUBECONFIG"), "Use kubeconfig for authentication")
 	flag.StringVar(&kubecontext, "kubecontext", os.Getenv("KUBECONTEXT"), "Use context from kubeconfig")
 	flag.StringVar(&kubenamespace, "kubenamespace", os.Getenv("KUBENAMESPACE"), "Use namespace")
-	flag.StringVar(&postgresDB.Database, "database", os.Getenv("DB_NAME"), "Database name")
-	flag.StringVar(&postgresDB.Host, "dbHost", os.Getenv("DB_HOST"), "Database host")
+	flag.StringVar(&postgresDB.Database, "database", os.Getenv("DEX_POSTGRES_DATABASE"), "Database name")
+	flag.StringVar(&postgresDB.Host, "dbHost", os.Getenv("DEX_POSTGRES_HOST"), "Database host")
 	flag.Uint16Var(&postgresDB.Port, "dbPort", 5432, "Database port")
-	flag.StringVar(&postgresDB.User, "dbUser", os.Getenv("DB_USER"), "Database user")
-	flag.StringVar(&postgresDB.Password, "dbPassword", os.Getenv("DB_PASSWORD"), "Database password")
+	flag.StringVar(&postgresDB.User, "dbUser", os.Getenv("DEX_POSTGRES_USER"), "Database user")
+	flag.StringVar(&postgresDB.Password, "dbPassword", os.Getenv("DEX_POSTGRES_PASSWORD"), "Database password")
 	flag.StringVar(&issuer, "issuer", "", "Issuer URL")
 	flag.StringVar(&listenAddr, "listen-addr", ":8080", "oidc listen address")
 	flag.StringVar(&metricsAddr, "metrics-addr", ":6543", "bind address for metrics")
@@ -67,16 +72,35 @@ func main() {
 	if issuer == "" {
 		log.Fatal("No --issuer given")
 	}
-	/*
-		sqlDexStorage, err := idproxy.NewPostgresStorage(sql.SSL{Mode: "disable"}, postgresDB, logger.With("component", "storage"))
+
+	ofClient := features.GetOFClient("idproxy")
+	evalCtx := openfeature.NewEvaluationContext(
+		"backend",
+		map[string]interface{}{},
+	)
+	postgresBackend, err := ofClient.BooleanValue(context.TODO(), "dex-sql-backend", false, evalCtx)
+	if err != nil {
+		log.Fatalf("Failed to get dex-sql-backend value details: %s", err)
+	}
+
+	k8sBackend, err := ofClient.BooleanValue(context.TODO(), "dex-kubernetes-backend", false, evalCtx)
+	if err != nil {
+		log.Fatalf("Failed to get dex-kubernetes-backend value details: %s", err)
+	}
+
+	switch {
+	case postgresBackend:
+		dexStorage, err = idproxy.NewPostgresStorage(sql.SSL{Mode: "disable"}, postgresDB, logger.With("component", "storage"))
 		if err != nil {
 			log.Fatalf("Failed to initialize postgres storage: %s", err)
 		}
-
-	*/
-	dexStorage, err := idproxy.NewKubernetesStorage(kubeconfig, kubecontext, kubenamespace, logger.With("component", "storage"))
-	if err != nil {
-		log.Fatalf("Failed to initialize kubernetes storage: %s", err)
+	case k8sBackend:
+		dexStorage, err = idproxy.NewKubernetesStorage(kubeconfig, kubecontext, kubenamespace, logger.With("component", "storage"))
+		if err != nil {
+			log.Fatalf("Failed to initialize kubernetes storage: %s", err)
+		}
+	default:
+		log.Fatalf("Exactly one of dex-sql-backend or dex-kubernetes-backend must be true")
 	}
 
 	refreshPolicy, err := server.NewRefreshTokenPolicy(logger.With("component", "refreshtokenpolicy"), true, "24h", "24h", "5s")
@@ -93,7 +117,6 @@ func main() {
 		SkipApprovalScreen: true,
 		Logger:             logger.With("component", "server"),
 		Storage:            dexStorage,
-		// Storage:            sqlDexStorage,
 		AllowedOrigins:     allowedOrigins,
 		IDTokensValidFor:   idTokenValidity,
 		RefreshTokenPolicy: refreshPolicy,
