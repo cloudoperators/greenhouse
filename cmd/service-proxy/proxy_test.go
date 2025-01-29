@@ -10,7 +10,6 @@ import (
 	"net/url"
 	"testing"
 
-	"github.com/go-logr/logr"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -20,6 +19,7 @@ import (
 	greenhouseapis "github.com/cloudoperators/greenhouse/pkg/apis"
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/pkg/apis/greenhouse/v1alpha1"
 	"github.com/cloudoperators/greenhouse/pkg/test"
+	"github.com/go-logr/logr"
 )
 
 // TestRewrite tests the rewrite function of the proxy manager.
@@ -27,63 +27,91 @@ import (
 // If checks if he url is properly rewritten and the request context contains the cluster name
 // and a logger with the correct values.
 func TestRewrite(t *testing.T) {
-	proxyURL, err := url.Parse("https://apiserver/proxy/url")
+	proxyURL, err := url.Parse("https://api.blueprints.greenhouse.shoot.canary.k8s-hana.ondemand.com/api/v1/namespaces/kube-monitoring/services/test-service:8080")
 	if err != nil {
-		t.Fatal("failed to parse proxy url")
+		t.Fatal("failed to parse proxy URL")
 	}
 
 	tests := []struct {
-		name        string
-		url         string
-		expectedURL string
-		contextVal  any
+		name                            string
+		url                             string
+		expectedupstreamServiceRouteURL string
+		contextVal                      any
 	}{
 		{
-			name:        "valid host",
-			url:         "https://cluster--1234567.organisation.basedomain/abcd",
-			expectedURL: "https://apiserver/proxy/url/abcd",
-			contextVal:  "cluster",
+			name:                            "valid host with path",
+			url:                             "https://cluster--1234567.organisation.basedomain/dashboard",
+			expectedupstreamServiceRouteURL: "https://api.blueprints.greenhouse.shoot.canary.k8s-hana.ondemand.com/api/v1/namespaces/kube-monitoring/services/test-service:8080/dashboard",
+			contextVal:                      "cluster",
 		},
 		{
-			name:        "invalid host",
-			url:         "https://something.organisation.basedomain/abcd",
-			expectedURL: "https://something.organisation.basedomain/abcd",
-			contextVal:  nil,
+			name:                            "valid host with deeper path",
+			url:                             "https://cluster--1234567.organisation.basedomain/api/resource",
+			expectedupstreamServiceRouteURL: "https://api.blueprints.greenhouse.shoot.canary.k8s-hana.ondemand.com/api/v1/namespaces/kube-monitoring/services/test-service:8080/api/resource",
+			contextVal:                      "cluster",
+		},
+		{
+			name:                            "valid host with already prefixed path",
+			url:                             "https://cluster--1234567.organisation.basedomain/api/v1/namespaces/kube-monitoring/services/test-service:8080/existing-path",
+			expectedupstreamServiceRouteURL: "https://api.blueprints.greenhouse.shoot.canary.k8s-hana.ondemand.com/api/v1/namespaces/kube-monitoring/services/test-service:8080/existing-path",
+			contextVal:                      "cluster",
+		},
+		{
+			name:                            "unknown cluster request",
+			url:                             "https://unknown-cluster.organisation.basedomain/dashboard",
+			expectedupstreamServiceRouteURL: "https://unknown-cluster.organisation.basedomain/dashboard", // No rewrite expected
+			contextVal:                      nil,
+		},
+		{
+			name:                            "invalid host format",
+			url:                             "https://something.organisation.basedomain/abcd",
+			expectedupstreamServiceRouteURL: "https://something.organisation.basedomain/abcd", // No rewrite expected
+			contextVal:                      nil,
 		},
 	}
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			inputURL, err := url.Parse(tt.url)
 			if err != nil {
-				t.Fatal("failed to parse url")
+				t.Fatal("failed to parse URL")
 			}
+
 			pm := NewProxyManager()
 			pm.clusters["cluster"] = clusterRoutes{
 				routes: map[string]route{
 					inputURL.Scheme + "://" + inputURL.Host: {
 						url:         proxyURL,
-						namespace:   "namespace",
-						serviceName: "test",
+						namespace:   "kube-monitoring",
+						serviceName: "test-service",
 					},
 				},
 			}
+
 			r, err := http.NewRequestWithContext(context.Background(), http.MethodGet, inputURL.String(), http.NoBody)
 			if err != nil {
 				t.Fatal("failed to create request")
 				return
 			}
+
 			req := httputil.ProxyRequest{
 				In:  r,
 				Out: r.Clone(r.Context()),
 			}
+
 			pm.rewrite(&req)
 
+			// Ensure logger is propagated
 			if _, err := logr.FromContext(req.Out.Context()); err != nil {
 				t.Error("expected logger in outgoing request context")
 			}
-			if req.Out.URL.String() != tt.expectedURL {
-				t.Errorf("expected url %s, got %s", tt.expectedURL, req.Out.URL.String())
+
+			// Validate the rewritten URL
+			if req.Out.URL.String() != tt.expectedupstreamServiceRouteURL {
+				t.Errorf("expected URL %s, got %s", tt.expectedupstreamServiceRouteURL, req.Out.URL.String())
 			}
+
+			// Validate the cluster context
 			if req.Out.Context().Value(contextClusterKey{}) != tt.contextVal {
 				t.Errorf("expected cluster %s in context, got %s", "cluster", req.Out.Context().Value(contextClusterKey{}))
 			}
@@ -180,6 +208,73 @@ users:
 			expectedURL := "https://apiserver.test" + tc.expectedURLPath
 			if targetURL.String() != expectedURL {
 				t.Errorf("expected url %s, got %s", expectedURL, targetURL.String())
+			}
+		})
+	}
+}
+
+func TestModifyResponse(t *testing.T) {
+	tests := []struct {
+		name               string
+		locationHeader     string
+		expectedLocation   string
+		expectHeaderChange bool
+	}{
+		{
+			name:               "Valid input with proxy paths",
+			locationHeader:     "/api/v1/namespaces/kube-monitoring/services/test-service:8080/proxy/api/main.js",
+			expectedLocation:   "/api/main.js",
+			expectHeaderChange: true,
+		},
+		{
+			name:               "Single proxy path",
+			locationHeader:     "/api/v1/namespaces/kube-monitoring/services/test-service:8080/proxy/",
+			expectedLocation:   "/",
+			expectHeaderChange: true,
+		},
+		{
+			name:               "No match in location header",
+			locationHeader:     "/other/path/that/does/not/match",
+			expectedLocation:   "/other/path/that/does/not/match",
+			expectHeaderChange: false,
+		},
+		{
+			name:               "Empty location header",
+			locationHeader:     "",
+			expectedLocation:   "",
+			expectHeaderChange: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Prepare response
+			resp := &http.Response{
+				Header: http.Header{
+					"Location": []string{tt.locationHeader},
+				},
+				Request: &http.Request{},
+			}
+
+			// Call modifyResponse
+			pm := NewProxyManager() // Assuming NewProxyManager is implemented
+			err := pm.modifyResponse(resp)
+
+			// Check for errors
+			if err != nil {
+				t.Errorf("unexpected error: %v", err)
+			}
+
+			// Validate the location header
+			location := resp.Header.Get("Location")
+			if location != tt.expectedLocation {
+				t.Errorf("expected location %s, got %s", tt.expectedLocation, location)
+			}
+
+			// Validate whether the header was modified
+			headerChanged := location != tt.locationHeader
+			if headerChanged != tt.expectHeaderChange {
+				t.Errorf("expected header change: %v, got: %v", tt.expectHeaderChange, headerChanged)
 			}
 		})
 	}
