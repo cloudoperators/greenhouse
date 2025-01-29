@@ -132,7 +132,6 @@ func (sc *StatusConditions) SetConditions(conditionsToSet ...Condition) {
 				}
 				break
 			}
-
 		}
 		// if the condition does not exist, append it
 		if !exists {
