@@ -10,16 +10,15 @@ import (
 	"net/url"
 	"testing"
 
+	greenhouseapis "github.com/cloudoperators/greenhouse/pkg/apis"
+	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/pkg/apis/greenhouse/v1alpha1"
+	"github.com/cloudoperators/greenhouse/pkg/test"
+	"github.com/go-logr/logr"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
-
-	greenhouseapis "github.com/cloudoperators/greenhouse/pkg/apis"
-	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/pkg/apis/greenhouse/v1alpha1"
-	"github.com/cloudoperators/greenhouse/pkg/test"
-	"github.com/go-logr/logr"
 )
 
 // TestRewrite tests the rewrite function of the proxy manager.
