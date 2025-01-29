@@ -1,0 +1,13 @@
+dex-sql-backend:
+  variations:
+    true: true
+    false: false
+  defaultRule:
+    variation: false
+
+dex-kubernetes-backend:
+  variations:
+    true: true
+    false: false
+  defaultRule:
+    variation: true
