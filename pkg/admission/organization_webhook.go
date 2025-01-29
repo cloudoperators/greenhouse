@@ -7,7 +7,6 @@ import (
 	"context"
 	"strings"
 
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -55,15 +54,16 @@ func ValidateCreateOrganization(_ context.Context, _ client.Client, obj runtime.
 		return nil, nil
 	}
 
+	allErrs := field.ErrorList{}
 	if err := validateMappedOrgAdminIDPGroup(organization); err != nil {
-		return nil, err
+		allErrs = append(allErrs, err)
 	}
 
 	if err := validateSCIMConfig(organization); err != nil {
-		return nil, err
+		allErrs = append(allErrs, err)
 	}
 
-	return nil, nil
+	return nil, allErrs.ToAggregate()
 }
 
 func ValidateUpdateOrganization(_ context.Context, _ client.Client, _, newObj runtime.Object) (admission.Warnings, error) {
@@ -72,29 +72,32 @@ func ValidateUpdateOrganization(_ context.Context, _ client.Client, _, newObj ru
 		return nil, nil
 	}
 
+	allErrs := field.ErrorList{}
 	if err := validateMappedOrgAdminIDPGroup(organization); err != nil {
-		return nil, err
+		allErrs = append(allErrs, err)
 	}
 
-	return nil, nil
+	if err := validateSCIMConfig(organization); err != nil {
+		allErrs = append(allErrs, err)
+	}
+
+	return nil, allErrs.ToAggregate()
 }
 
 func ValidateDeleteOrganization(_ context.Context, _ client.Client, _ runtime.Object) (admission.Warnings, error) {
 	return nil, nil
 }
 
-func validateMappedOrgAdminIDPGroup(organization *greenhousev1alpha1.Organization) *apierrors.StatusError {
+func validateMappedOrgAdminIDPGroup(organization *greenhousev1alpha1.Organization) *field.Error {
 	if organization.Spec.MappedOrgAdminIDPGroup == "" {
-		return apierrors.NewInvalid(organization.GroupVersionKind().GroupKind(), organization.GetName(), field.ErrorList{
-			field.Required(field.NewPath("spec").Child("MappedOrgAdminIDPGroup"),
-				"An Organization without spec.MappedOrgAdminIDPGroup is invalid"),
-		})
+		return field.Required(field.NewPath("spec").Child("MappedOrgAdminIDPGroup"),
+			"An Organization without spec.MappedOrgAdminIDPGroup is invalid")
 	}
 
 	return nil
 }
 
-func validateSCIMConfig(organization *greenhousev1alpha1.Organization) error {
+func validateSCIMConfig(organization *greenhousev1alpha1.Organization) *field.Error {
 	if organization.Spec.Authentication == nil || organization.Spec.Authentication.SCIMConfig == nil {
 		return nil
 	}
@@ -102,12 +105,10 @@ func validateSCIMConfig(organization *greenhousev1alpha1.Organization) error {
 	if organization.Spec.Authentication.SCIMConfig.BearerToken.Secret != nil &&
 		organization.Spec.Authentication.SCIMConfig.BasicAuthUser.Secret != nil &&
 		organization.Spec.Authentication.SCIMConfig.BasicAuthPw.Secret != nil {
-		return apierrors.NewInvalid(organization.GroupVersionKind().GroupKind(), organization.GetName(), field.ErrorList{
-			field.Invalid(
-				field.NewPath("spec").Child("Authentication").Child("SCIMConfig"),
-				organization.Spec.Authentication.SCIMConfig,
-				"only one authentication type can be set in spec.Authentication.SCIMConfig"),
-		})
+		return field.Invalid(
+			field.NewPath("spec").Child("Authentication").Child("SCIMConfig"),
+			organization.Spec.Authentication.SCIMConfig,
+			"only one authentication type can be set in spec.Authentication.SCIMConfig")
 	}
 
 	return nil
