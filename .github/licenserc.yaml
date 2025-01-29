@@ -42,7 +42,6 @@ header:
     - '.mockery.yaml'     # Mockery config file
     - 'pkg/mocks/**'    # Mockery generated files
 
-
   comment: on-failure
   
   # license-location-threshold specifies the index threshold where the license header can be located,
