@@ -74,6 +74,11 @@ func (r *PropagationReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 
 	// TODO parallelize
 	for _, cluster := range clusterList.Items {
+		// skip clusters that are no longer accessible
+		if !cluster.Status.StatusConditions.IsReadyTrue() {
+			continue
+		}
+
 		// get corresponding secret to access the cluster
 		var secret = new(corev1.Secret)
 		if err := r.Get(ctx, types.NamespacedName{Name: cluster.GetSecretName(), Namespace: cluster.GetNamespace()}, secret); err != nil {
