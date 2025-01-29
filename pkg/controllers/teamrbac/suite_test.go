@@ -5,7 +5,6 @@ package teamrbac
 
 import (
 	"testing"
-	"time"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -14,7 +13,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
 
 	"github.com/cloudoperators/greenhouse/pkg/admission"
-	"github.com/cloudoperators/greenhouse/pkg/controllers/cluster"
 	"github.com/cloudoperators/greenhouse/pkg/test"
 	//+kubebuilder:scaffold:imports
 )
@@ -44,10 +42,6 @@ func TestRBACController(t *testing.T) {
 
 var _ = BeforeSuite(func() {
 	test.RegisterController("roleBindingController", (&TeamRoleBindingReconciler{}).SetupWithManager)
-	test.RegisterController("clusterReconciler", (&cluster.RemoteClusterReconciler{
-		RemoteClusterBearerTokenValidity:   30 * time.Minute,
-		RenewRemoteClusterBearerTokenAfter: 25 * time.Minute,
-	}).SetupWithManager)
 	test.RegisterWebhook("clusterWebhook", admission.SetupClusterWebhookWithManager)
 	test.RegisterWebhook("teamsWebhook", admission.SetupTeamWebhookWithManager)
 	test.RegisterWebhook("teamRoleBindingWebhook", admission.SetupTeamRoleBindingWebhookWithManager)
