@@ -17,7 +17,8 @@ import (
 	"github.com/cloudoperators/greenhouse/pkg/clientutil"
 )
 
-func GetOFClient(appName string) *openfeature.Client {
+// NewOfClient returns a open-feature client loading feature flags from a ConfigMap
+func NewOfClient(appName string) *openfeature.Client {
 	k8sInClusterConfig, err := rest.InClusterConfig()
 	if err != nil {
 		log.Fatalf("Failed to create in-cluster config: %s", err)

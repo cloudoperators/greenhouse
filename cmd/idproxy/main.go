@@ -73,11 +73,13 @@ func main() {
 		log.Fatal("No --issuer given")
 	}
 
-	ofClient := features.GetOFClient("idproxy")
+	// Initialize open-feature client
+	ofClient := features.NewOfClient("idproxy")
 	evalCtx := openfeature.NewEvaluationContext(
 		"backend",
 		map[string]interface{}{},
 	)
+	// Get the value of dex-sql-backend and dex-kubernetes-backend
 	postgresBackend, err := ofClient.BooleanValue(context.TODO(), "dex-sql-backend", false, evalCtx)
 	if err != nil {
 		log.Fatalf("Failed to get dex-sql-backend value details: %s", err)
@@ -87,7 +89,7 @@ func main() {
 	if err != nil {
 		log.Fatalf("Failed to get dex-kubernetes-backend value details: %s", err)
 	}
-
+	// Exactly one of dex-sql-backend or dex-kubernetes-backend must be true
 	switch {
 	case postgresBackend:
 		dexStorage, err = idproxy.NewPostgresStorage(sql.SSL{Mode: "disable"}, postgresDB, logger.With("component", "storage"))
