@@ -16,6 +16,7 @@ import (
 	gomegaTypes "github.com/onsi/gomega/types"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
@@ -56,6 +57,20 @@ func MustDeleteCluster(ctx context.Context, c client.Client, id client.ObjectKey
 		err := c.Get(ctx, client.ObjectKeyFromObject(cluster), cluster)
 		return apierrors.IsNotFound(err)
 	}).Should(BeTrue(), "the object should be deleted eventually")
+}
+
+// SetClusterReadyCondition sets the ready condition of the cluster resource.
+func SetClusterReadyCondition(ctx context.Context, c client.Client, cluster *greenhousev1alpha1.Cluster, readyStatus metav1.ConditionStatus) error {
+	_, err := clientutil.PatchStatus(ctx, c, cluster, func() error {
+		cluster.Status.StatusConditions.SetConditions(greenhousev1alpha1.NewCondition(
+			greenhousev1alpha1.ReadyCondition,
+			readyStatus,
+			"",
+			"",
+		))
+		return nil
+	})
+	return err
 }
 
 // MustReturnJSONFor marshals val to JSON and returns an apiextensionsv1.JSON.
