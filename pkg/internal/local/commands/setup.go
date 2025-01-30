@@ -28,14 +28,22 @@ type ClusterDependency struct {
 	Manifest *setup.Manifest `yaml:"manifest" json:"manifest"`
 }
 
-func setupExample() string {
+func devSetupExample() string {
 	return `
 # Setup Greenhouse dev environment with a configuration file
 greenhousectl dev setup -f dev-env/localenv/dev.config.yaml
 
 - This will create an admin and a remote cluster
-- Install CRDs, Webhook definitions, RBACs, Certs, etc... for Greenhouse into the target cluster
+- Install CRDs, Webhook definitions, RBACs, Certs, etc... for Greenhouse into the admin cluster
 - Depending on the devMode, it will install the webhook in-cluster or enable it for local development
+
+Overriding certain values in dev.config.yaml:
+
+- Override devMode for webhook development with d=true or devMode=true
+- Override helm chart installation with c=true or crdOnly=true
+- Override environment variables for manager deployment with e="ENV_NAME=VALUE" or env="ENV_NAME=VALUE" (can be repeated)
+
+e.g. greenhousectl dev setup -f dev-env/localenv/dev.config.yaml d=true e="WEBHOOK_ONLY=false" e="CONTROLLERS_ONLY=true"
 `
 }
 
@@ -43,16 +51,20 @@ var (
 	setupConfigFile string
 	setupCmd        = &cobra.Command{
 		Use:               "setup",
-		Short:             "setup dev environment",
-		Long:              "setup dev environment with a configuration file",
-		Example:           setupExample(),
+		Short:             "setup dev environment with a configuration file",
+		Example:           devSetupExample(),
 		DisableAutoGenTag: true,
-		RunE:              processSetup,
+		RunE:              processDevSetup,
 	}
 )
 
-func processSetup(cmd *cobra.Command, _ []string) error {
+func processDevSetup(cmd *cobra.Command, args []string) error {
 	ctx := cmd.Context()
+
+	overrideWebhookDev, webhookDev := getBoolArg([]string{"d", "devMode"}, args)
+	overrideCRDOnly, onlyCRD := getBoolArg([]string{"c", "crdOnly"}, args)
+	overrideEnvs := getArgArray([]string{"e", "env"}, args)
+
 	_, err := os.Stat(setupConfigFile)
 	if err != nil {
 		return fmt.Errorf("config file - %s not found: %w", setupConfigFile, err)
@@ -84,12 +96,23 @@ func processSetup(cmd *cobra.Command, _ []string) error {
 		env := setup.NewExecutionEnv().
 			WithClusterSetup(cfg.Cluster.Name, namespace, cfg.Cluster.Version, hostPathConfig)
 		for _, dep := range cfg.Dependencies {
-			if dep.Manifest != nil && dep.Manifest.Webhook == nil {
+			if overrideCRDOnly {
+				dep.Manifest.CRDOnly = onlyCRD
+			}
+			if dep.Manifest != nil && (dep.Manifest.CRDOnly || dep.Manifest.Webhook == nil) {
 				env = env.WithLimitedManifests(ctx, dep.Manifest)
+				continue
 			}
 			if dep.Manifest != nil && dep.Manifest.Webhook != nil {
 				if hostPathConfig != "" {
 					env = env.WithLocalPluginDev(dep.Manifest)
+				}
+				if overrideWebhookDev {
+					dep.Manifest.Webhook.DevMode = webhookDev
+				}
+
+				if len(overrideEnvs) > 0 {
+					dep.Manifest.Webhook.AddOrOverrideEnv(overrideEnvs)
 				}
 				dep.Manifest.ExcludeKinds = append(
 					dep.Manifest.ExcludeKinds,

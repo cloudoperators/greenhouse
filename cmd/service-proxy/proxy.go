@@ -25,6 +25,7 @@ import (
 	"net/http/httputil"
 	"net/url"
 	"regexp"
+	"strings"
 	"sync"
 
 	"github.com/go-logr/logr"
@@ -132,11 +133,14 @@ func (pm *ProxyManager) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.R
 	for _, plugin := range plugins {
 		for url, svc := range plugin.Status.ExposedServices {
 			u := *k8sAPIURL // copy URL struct
-			proto := "http"
-			if svc.Protocol != nil {
-				proto = *svc.Protocol
+
+			if svc.Protocol != nil && *svc.Protocol == "https" {
+				// For HTTPS, format should be: https:<service_name>:<port>
+				u.Path = fmt.Sprintf("/api/v1/namespaces/%s/services/https:%s:%d/proxy", svc.Namespace, svc.Name, svc.Port)
+			} else {
+				// For HTTP, format should be: <service_name>:<port>
+				u.Path = fmt.Sprintf("/api/v1/namespaces/%s/services/%s:%d/proxy", svc.Namespace, svc.Name, svc.Port)
 			}
-			u.Path = fmt.Sprintf("/api/v1/namespaces/%s/services/%s:%s:%d/proxy", svc.Namespace, proto, svc.Name, svc.Port)
 			cls.routes[url] = route{url: &u, namespace: svc.Namespace, serviceName: svc.Name}
 		}
 	}
@@ -187,46 +191,72 @@ func (pm *ProxyManager) RoundTrip(req *http.Request) (resp *http.Response, err e
 	resp, err = cls.transport.RoundTrip(req)
 	// errors are logged by pm.Errorhandler
 	if err == nil {
-		log.FromContext(req.Context()).Info("Forwarded request", "status", resp.StatusCode, "upstream", req.URL.String())
+		log.FromContext(req.Context()).Info("Forwarded request", "status", resp.StatusCode, "upstreamServiceRouteURL", req.URL.String())
 	}
 	return
 }
 
-// rewrite rewrites the request to the backend URL and sets the cluster in the context to be used by RoundTrip to identify the correct transport
 func (pm *ProxyManager) rewrite(req *httputil.ProxyRequest) {
 	req.SetXForwarded()
 
-	l := pm.logger.WithValues("host", req.In.Host, "url", req.In.URL.String(), "method", req.In.Method)
+	// Create a logger with relevant request details
+	l := pm.logger.WithValues(
+		"incomingHost", req.In.Host,
+		"incomingRequestURL", req.In.URL.String(),
+		"incomingMethod", req.In.Method,
+	)
 
 	// inject current logger into context before returning
 	defer func() {
 		req.Out = req.Out.WithContext(log.IntoContext(req.Out.Context(), l))
 	}()
 
-	// hostname is expected to have the format specified in ./pkg/common/url.go
+	// Extract cluster from the incoming request host
 	cluster, err := common.ExtractCluster(req.In.Host)
 	if err != nil {
+		l.Error(err, "Failed to extract cluster from host", "host", req.In.Host)
 		return
 	}
 
+	// Retrieve the upstream service route for the cluster
 	route, ok := pm.GetClusterRoute(cluster, "https://"+req.In.Host)
 	if !ok {
-		l.Info("No route found for cluster and URL", "cluster", cluster, "url", req.In.URL.String())
+		l.Info("No route found for cluster and URL", "cluster", cluster, "incomingRequestURL", req.In.URL.String())
 		return
 	}
-	backendURL := route.url
-	// set cluster in context
-	ctx := context.WithValue(req.Out.Context(), contextClusterKey{}, cluster)
+	upstreamServiceRouteURL := route.url
 
-	l.WithValues("cluster", cluster, "namespace", route.namespace, "name", route.serviceName)
+	// Ensure the outgoing request URL is properly updated
+	if !strings.HasPrefix(req.Out.URL.Path, upstreamServiceRouteURL.Path) {
+		// Append the original request path to the upstream service route URL path
+		req.Out.URL.Path = strings.TrimSuffix(upstreamServiceRouteURL.Path, "/") + req.Out.URL.Path
+	}
+
+	// Set the correct upstream service route URL details
+	req.Out.URL.Scheme = upstreamServiceRouteURL.Scheme
+	req.Out.URL.Host = upstreamServiceRouteURL.Host
+
+	// Inject the cluster into the outgoing request context
+	ctx := context.WithValue(req.Out.Context(), contextClusterKey{}, cluster)
+	ctx = log.IntoContext(ctx, l)
 
 	req.Out = req.Out.WithContext(ctx)
-	req.SetURL(backendURL)
+
+	// Log the successful rewrite for debugging purposes
+	l.Info("Request rewrite completed",
+		"cluster", cluster,
+		"namespace", route.namespace,
+		"serviceName", route.serviceName,
+		"upstreamServiceRouteURL", req.Out.URL.String(),
+	)
 }
 
 // modifyResponse strips the k8s API server proxy path prepended to the location header during redirects:
 // https://github.com/kubernetes/kubernetes/blob/master/staging/src/k8s.io/apimachinery/pkg/util/proxy/transport.go#L113
 func (pm *ProxyManager) modifyResponse(resp *http.Response) error {
+	logger := log.FromContext(resp.Request.Context())
+	logger.Info("Modifying response", "statusCode", resp.StatusCode, "originalLocation", resp.Header.Get("Location"))
+
 	if location := resp.Header.Get("Location"); location != "" {
 		location = apiServerProxyPathRegex.ReplaceAllString(location, "/")
 		resp.Header.Set("Location", location)

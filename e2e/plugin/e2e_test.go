@@ -16,6 +16,7 @@ import (
 	. "github.com/onsi/gomega/gstruct"
 	appsv1 "k8s.io/api/apps/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
@@ -163,5 +164,121 @@ var _ = Describe("Plugin E2E", Ordered, func() {
 
 		By("Deleting plugin definition")
 		test.EventuallyDeleted(ctx, adminClient, testPluginDefinition)
+	})
+
+	It("should deploy the plugin by the plugin preset", func() {
+		By("Creating plugin definition")
+		testPluginDefinition := fixtures.PrepareNginxPluginDefinition(env.TestNamespace)
+		err := adminClient.Create(ctx, testPluginDefinition)
+		Expect(err).ToNot(HaveOccurred())
+
+		By("Checking the plugin definition is ready")
+		pluginDefinitionList := &greenhousev1alpha1.PluginDefinitionList{}
+		err = adminClient.List(ctx, pluginDefinitionList)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(len(pluginDefinitionList.Items)).To(BeEquivalentTo(1))
+
+		By("Prepare the plugin")
+		testPlugin := fixtures.PreparePlugin("test-nginx-plugin", env.TestNamespace,
+			test.WithPluginDefinition(testPluginDefinition.Name),
+			test.WithReleaseNamespace(env.TestNamespace),
+			test.WithPluginOptionValue("replicaCount", &apiextensionsv1.JSON{Raw: []byte("1")}, nil))
+
+		By("Add labels to remote cluster")
+		remoteCluster := &greenhousev1alpha1.Cluster{}
+		err = adminClient.Get(ctx, client.ObjectKey{Name: remoteClusterName, Namespace: env.TestNamespace}, remoteCluster)
+		Expect(err).ToNot(HaveOccurred())
+		remoteCluster.Labels = map[string]string{
+			"app": "test-cluster",
+		}
+		err = adminClient.Update(ctx, remoteCluster)
+		Expect(err).ToNot(HaveOccurred())
+
+		By("Creating the plugin preset")
+		testPluginPreset := &greenhousev1alpha1.PluginPreset{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "test-nginx-plugin-preset",
+				Namespace: env.TestNamespace,
+			},
+			Spec: greenhousev1alpha1.PluginPresetSpec{
+				Plugin: testPlugin.Spec,
+				ClusterSelector: metav1.LabelSelector{
+					MatchLabels: map[string]string{
+						"app": "test-cluster",
+					},
+				},
+			},
+		}
+		err = adminClient.Create(ctx, testPluginPreset)
+		Expect(err).ToNot(HaveOccurred())
+
+		By("Checking the plugin status is ready")
+		Eventually(func(g Gomega) {
+			pluginList := &greenhousev1alpha1.PluginList{}
+			err = adminClient.List(ctx, pluginList)
+			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(len(pluginList.Items)).To(BeEquivalentTo(1))
+		}).Should(Succeed())
+
+		By("Check the replicas in deployment")
+		Eventually(func(g Gomega) {
+			deploymentList := &appsv1.DeploymentList{}
+			err = remoteClient.List(ctx, deploymentList, client.InNamespace(env.TestNamespace))
+			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(len(deploymentList.Items)).To(BeEquivalentTo(1))
+			g.Expect(deploymentList.Items[0].Spec.Replicas).To(PointTo(Equal(int32(1))))
+		}).Should(Succeed())
+
+		By("Update plugin preset with cluster overview")
+		err = adminClient.Get(ctx, client.ObjectKeyFromObject(testPluginPreset), testPluginPreset)
+		Expect(err).ToNot(HaveOccurred())
+		testPluginPreset.Spec.ClusterOptionOverrides = []greenhousev1alpha1.ClusterOptionOverride{
+			{
+				ClusterName: remoteClusterName,
+				Overrides: []greenhousev1alpha1.PluginOptionValue{
+					{
+						Name:  "replicaCount",
+						Value: &apiextensionsv1.JSON{Raw: []byte("2")},
+					},
+				},
+			},
+		}
+		err = adminClient.Update(ctx, testPluginPreset)
+		Expect(err).ToNot(HaveOccurred())
+
+		By("Check the replicas in deployment")
+		Eventually(func(g Gomega) {
+			deploymentList := &appsv1.DeploymentList{}
+			err = remoteClient.List(ctx, deploymentList, client.InNamespace(env.TestNamespace))
+			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(len(deploymentList.Items)).To(BeEquivalentTo(1))
+			g.Expect(deploymentList.Items[0].Spec.Replicas).To(PointTo(Equal(int32(2))))
+		}).Should(Succeed())
+
+		By("Update plugin preset with cluster overview")
+		err = adminClient.Get(ctx, client.ObjectKeyFromObject(testPluginPreset), testPluginPreset)
+		Expect(err).ToNot(HaveOccurred())
+		testPluginPreset.Spec.ClusterOptionOverrides = []greenhousev1alpha1.ClusterOptionOverride{
+			{
+				ClusterName: remoteClusterName,
+				Overrides: []greenhousev1alpha1.PluginOptionValue{
+					{
+						Name:  "replicaCount",
+						Value: &apiextensionsv1.JSON{Raw: []byte("3")},
+					},
+				},
+			},
+		}
+		err = adminClient.Update(ctx, testPluginPreset)
+		Expect(err).ToNot(HaveOccurred())
+
+		By("Check the replicas in deployment")
+		Eventually(func(g Gomega) {
+			deploymentList := &appsv1.DeploymentList{}
+			err = remoteClient.List(ctx, deploymentList, client.InNamespace(env.TestNamespace))
+			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(len(deploymentList.Items)).To(BeEquivalentTo(1))
+			g.Expect(deploymentList.Items[0].Spec.Replicas).To(PointTo(Equal(int32(3))))
+		}).Should(Succeed())
 	})
 })

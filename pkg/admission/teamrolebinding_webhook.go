@@ -86,6 +86,18 @@ func ValidateUpdateRoleBinding(ctx context.Context, c client.Client, old, cur ru
 				Group:    oldRB.GroupVersionKind().Group,
 				Resource: oldRB.Kind,
 			}, oldRB.Name, field.Forbidden(field.NewPath("spec"), "must contain either spec.clusterName or spec.clusterSelector"))
+	case oldRB.Spec.TeamRoleRef != curRB.Spec.TeamRoleRef:
+		return nil, apierrors.NewForbidden(
+			schema.GroupResource{
+				Group:    oldRB.GroupVersionKind().Group,
+				Resource: oldRB.Kind,
+			}, oldRB.Name, field.Forbidden(field.NewPath("spec", "teamRoleRef"), "cannot change TeamRoleRef of an existing TeamRoleBinding"))
+	case oldRB.Spec.TeamRef != curRB.Spec.TeamRef:
+		return nil, apierrors.NewForbidden(
+			schema.GroupResource{
+				Group:    oldRB.GroupVersionKind().Group,
+				Resource: oldRB.Kind,
+			}, oldRB.Name, field.Forbidden(field.NewPath("spec", "teamRef"), "cannot change TeamRef of an existing TeamRoleBinding"))
 	case isClusterScoped(oldRB) && !isClusterScoped(curRB):
 		return nil, apierrors.NewForbidden(
 			schema.GroupResource{
