@@ -206,11 +206,11 @@ func (pm *ProxyManager) rewrite(req *httputil.ProxyRequest) {
 		"incomingMethod", req.In.Method,
 	)
 
-		// inject current logger into context before returning
-		defer func() {
-			req.Out = req.Out.WithContext(log.IntoContext(req.Out.Context(), l))
-		}()
-	
+	// inject current logger into context before returning
+	defer func() {
+		req.Out = req.Out.WithContext(log.IntoContext(req.Out.Context(), l))
+	}()
+
 	// Extract cluster from the incoming request host
 	cluster, err := common.ExtractCluster(req.In.Host)
 	if err != nil {
