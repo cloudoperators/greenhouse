@@ -342,7 +342,7 @@ func (m *Manifest) waitUntilDeploymentReady(ctx context.Context, clusterName, na
 			return err
 		}
 		if deployment.Status.Conditions == nil {
-			return fmt.Errorf("deployment %s is not yet ready", deploymentName)
+			return fmt.Errorf("deployment %s is not yet ready", name)
 		}
 		available := false
 		for _, condition := range deployment.Status.Conditions {
@@ -352,7 +352,7 @@ func (m *Manifest) waitUntilDeploymentReady(ctx context.Context, clusterName, na
 			}
 		}
 		if !available {
-			return fmt.Errorf("deployment %s is not yet ready", deploymentName)
+			return fmt.Errorf("deployment %s is not yet ready", name)
 		}
 		return nil
 	}, b)
