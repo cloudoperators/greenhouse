@@ -26,6 +26,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/cloudoperators/greenhouse/pkg/admission"
+	greenhouseapis "github.com/cloudoperators/greenhouse/pkg/apis"
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/pkg/apis/greenhouse/v1alpha1"
 	"github.com/cloudoperators/greenhouse/pkg/clientutil"
 	"github.com/cloudoperators/greenhouse/pkg/helm"
@@ -164,6 +165,9 @@ var _ = Describe("HelmControllerTest", Serial, func() {
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      PluginName,
 				Namespace: Namespace,
+				Annotations: map[string]string{
+					greenhouseapis.AllowPluginCreateAnnotation: "true",
+				},
 			},
 			Spec: greenhousev1alpha1.PluginSpec{
 				PluginDefinition: PluginDefinitionName,
@@ -517,6 +521,9 @@ var _ = Describe("HelmControllerTest", Serial, func() {
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      pluginName,
 					Namespace: Namespace,
+					Annotations: map[string]string{
+						greenhouseapis.AllowPluginCreateAnnotation: "true",
+					},
 				},
 				Spec: greenhousev1alpha1.PluginSpec{
 					PluginDefinition: pluginWithEveryOption,
@@ -660,6 +667,9 @@ var _ = When("the pluginDefinition is UI only", func() {
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "uiplugin",
 				Namespace: "default",
+				Annotations: map[string]string{
+					greenhouseapis.AllowPluginCreateAnnotation: "true",
+				},
 			},
 			Spec: greenhousev1alpha1.PluginSpec{
 				PluginDefinition: "myuiplugin",

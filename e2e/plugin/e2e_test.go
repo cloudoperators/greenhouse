@@ -24,6 +24,7 @@ import (
 
 	"github.com/cloudoperators/greenhouse/e2e/plugin/fixtures"
 	"github.com/cloudoperators/greenhouse/e2e/shared"
+	"github.com/cloudoperators/greenhouse/pkg/apis"
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/pkg/apis/greenhouse/v1alpha1"
 	"github.com/cloudoperators/greenhouse/pkg/clientutil"
 	"github.com/cloudoperators/greenhouse/pkg/test"
@@ -71,9 +72,23 @@ var _ = Describe("Plugin E2E", Ordered, func() {
 	It("should have a cluster resource created", func() {
 		By("verifying if the cluster resource is created")
 		Eventually(func(g Gomega) {
-			err := adminClient.Get(ctx, client.ObjectKey{Name: remoteClusterName, Namespace: env.TestNamespace}, &greenhousev1alpha1.Cluster{})
+			var remoteCluster greenhousev1alpha1.Cluster
+			err := adminClient.Get(ctx, client.ObjectKey{Name: remoteClusterName, Namespace: env.TestNamespace}, &remoteCluster)
+			g.Expect(err).ToNot(HaveOccurred())
+			if remoteCluster.Labels == nil {
+				remoteCluster.Labels = map[string]string{}
+			}
+			remoteCluster.Labels["app"] = "test"
+			err = adminClient.Update(ctx, &remoteCluster)
 			g.Expect(err).ToNot(HaveOccurred())
 		}).Should(Succeed(), "cluster resource should be created")
+
+		Eventually(func(g Gomega) {
+			var remoteCluster greenhousev1alpha1.Cluster
+			err := adminClient.Get(ctx, client.ObjectKey{Name: remoteClusterName, Namespace: env.TestNamespace}, &remoteCluster)
+			g.Expect(err).ToNot(HaveOccurred())
+			g.Expect(remoteCluster.Labels["app"]).To(Equal("test"))
+		}).Should(Succeed(), "cluster resource should be updated")
 
 		By("verifying the cluster status is ready")
 		shared.ClusterIsReady(ctx, adminClient, remoteClusterName, env.TestNamespace)
@@ -91,13 +106,21 @@ var _ = Describe("Plugin E2E", Ordered, func() {
 		Expect(err).NotTo(HaveOccurred())
 		Expect(len(pluginDefinitionList.Items)).To(BeEquivalentTo(1))
 
-		By("Creating the plugin")
-		// Creating plugin
+		By("Trying to create the plugin without annotation")
 		testPlugin := fixtures.PreparePlugin("test-nginx-plugin", env.TestNamespace,
 			test.WithPluginDefinition(testPluginDefinition.Name),
-			test.WithCluster(remoteClusterName),
 			test.WithReleaseNamespace(env.TestNamespace),
 			test.WithPluginOptionValue("replicaCount", &apiextensionsv1.JSON{Raw: []byte("1")}, nil))
+		err = adminClient.Create(ctx, testPlugin)
+		Expect(err).To(HaveOccurred())
+
+		By("Trying to create the plugin without annotation")
+		testPlugin = fixtures.PreparePlugin("test-nginx-plugin", env.TestNamespace,
+			test.WithPluginDefinition(testPluginDefinition.Name),
+			test.WithReleaseNamespace(env.TestNamespace),
+			test.WithPluginOptionValue("replicaCount", &apiextensionsv1.JSON{Raw: []byte("1")}, nil),
+			test.WithCluster(remoteClusterName),
+			test.WithAnnotation(apis.AllowPluginCreateAnnotation, "true"))
 		err = adminClient.Create(ctx, testPlugin)
 		Expect(err).ToNot(HaveOccurred())
 
@@ -109,6 +132,7 @@ var _ = Describe("Plugin E2E", Ordered, func() {
 			g.Expect(len(pluginList.Items)).To(BeEquivalentTo(1))
 			g.Expect(pluginList.Items[0].Status.HelmReleaseStatus).ToNot(BeNil())
 			g.Expect(pluginList.Items[0].Status.HelmReleaseStatus.Status).To(BeEquivalentTo("deployed"))
+			testPlugin = &pluginList.Items[0]
 		}).Should(Succeed())
 
 		By("Checking deployment")
@@ -132,7 +156,7 @@ var _ = Describe("Plugin E2E", Ordered, func() {
 
 		By("Updating replicas")
 		Eventually(func(g Gomega) {
-			namespacedName := types.NamespacedName{Name: testPlugin.Name, Namespace: env.TestNamespace}
+			namespacedName := types.NamespacedName{Name: testPlugin.Name, Namespace: testPlugin.Namespace}
 			err = adminClient.Get(ctx, namespacedName, testPlugin)
 			g.Expect(err).NotTo(HaveOccurred())
 			test.SetOptionValueForPlugin(testPlugin, "replicaCount", "2")
@@ -152,7 +176,10 @@ var _ = Describe("Plugin E2E", Ordered, func() {
 		}).Should(Succeed())
 
 		By("Deleting plugin")
-		test.EventuallyDeleted(ctx, adminClient, testPlugin)
+		Eventually(func(g Gomega) {
+			err = adminClient.Delete(ctx, testPlugin)
+			g.Expect(err).NotTo(HaveOccurred())
+		}).Should(Succeed())
 
 		By("Check, is deployment deleted")
 		Eventually(func(g Gomega) bool {
