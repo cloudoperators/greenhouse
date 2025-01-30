@@ -24,7 +24,7 @@ func GetOFClient(appName string) *openfeature.Client {
 	}
 
 	goFeatureFlagConfig := &goffclient.Config{
-		PollingInterval: 30 * time.Second,
+		PollingInterval: 30 * time.Minute,
 		Context:         context.Background(),
 		Retriever: &k8sretriever.Retriever{
 			Namespace:     clientutil.GetEnvOrDefault("FEATURE_FLAG_NAMESPACE", "greenhouse"),
