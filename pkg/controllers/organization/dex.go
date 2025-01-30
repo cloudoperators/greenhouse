@@ -92,7 +92,7 @@ func (r *OrganizationReconciler) reconcileDexConnector(ctx context.Context, org 
 
 	// Create the connectors also in SQL storage
 	var oidcConnector storage.Connector
-	if oidcConnector, err = r.dexStorage.GetConnector(org.Name); err != nil {
+	if oidcConnector, err = r.dexStorage.GetConnector(org.Name); err != nil && errors.Is(err, storage.ErrNotFound) {
 		if err = r.dexStorage.CreateConnector(ctx, storage.Connector{
 			ID:     org.Name,
 			Type:   dexConnectorTypeGreenhouse,
@@ -102,6 +102,9 @@ func (r *OrganizationReconciler) reconcileDexConnector(ctx context.Context, org 
 			return err
 		}
 		log.FromContext(ctx).Info("created dex connector in SQL storage", "name", org.Name)
+	}
+	if err != nil {
+		log.FromContext(ctx).Error(err, "failed to get dex connector in SQL storage", "name", org.Name)
 	}
 	if err = r.dexStorage.UpdateConnector(oidcConnector.ID, func(c storage.Connector) (storage.Connector, error) {
 		c.ID = org.Name
@@ -146,7 +149,7 @@ func (r *OrganizationReconciler) discoverOIDCRedirectURL(ctx context.Context, or
 func (r *OrganizationReconciler) reconcileOAuth2Client(ctx context.Context, org *greenhousesapv1alpha1.Organization) error {
 	var oAuthClient storage.Client
 	var err error
-	if oAuthClient, err = r.dexStorage.GetClient(org.Name); err != nil {
+	if oAuthClient, err = r.dexStorage.GetClient(org.Name); err != nil && errors.Is(err, storage.ErrNotFound) {
 		if err = r.dexStorage.CreateClient(ctx, storage.Client{
 			Public: true,
 			ID:     org.Name,
@@ -160,6 +163,9 @@ func (r *OrganizationReconciler) reconcileOAuth2Client(ctx context.Context, org 
 		}
 		log.FromContext(ctx).Info("created oauth2client", "name", org.Name)
 		return nil
+	}
+	if err != nil {
+		log.FromContext(ctx).Error(err, "failed to get oauth2client", "name", org.Name)
 	}
 
 	if err = r.dexStorage.UpdateClient(oAuthClient.Name, func(authClient storage.Client) (storage.Client, error) {
