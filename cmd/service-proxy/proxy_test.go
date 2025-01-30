@@ -27,7 +27,7 @@ import (
 // If checks if he url is properly rewritten and the request context contains the cluster name
 // and a logger with the correct values.
 func TestRewrite(t *testing.T) {
-	proxyURL, err := url.Parse("https://api.blueprints.greenhouse.shoot.canary.k8s-hana.ondemand.com/api/v1/namespaces/kube-monitoring/services/test-service:8080")
+	proxyURL, err := url.Parse("https://api.test-api-server.com/api/v1/namespaces/kube-monitoring/services/test-service:8080")
 	if err != nil {
 		t.Fatal("failed to parse proxy URL")
 	}
@@ -41,19 +41,19 @@ func TestRewrite(t *testing.T) {
 		{
 			name:                            "valid host with path",
 			url:                             "https://cluster--1234567.organisation.basedomain/dashboard",
-			expectedupstreamServiceRouteURL: "https://api.blueprints.greenhouse.shoot.canary.k8s-hana.ondemand.com/api/v1/namespaces/kube-monitoring/services/test-service:8080/dashboard",
+			expectedupstreamServiceRouteURL: "https://api.test-api-server.com/api/v1/namespaces/kube-monitoring/services/test-service:8080/dashboard",
 			contextVal:                      "cluster",
 		},
 		{
 			name:                            "valid host with deeper path",
 			url:                             "https://cluster--1234567.organisation.basedomain/api/resource",
-			expectedupstreamServiceRouteURL: "https://api.blueprints.greenhouse.shoot.canary.k8s-hana.ondemand.com/api/v1/namespaces/kube-monitoring/services/test-service:8080/api/resource",
+			expectedupstreamServiceRouteURL: "https://api.test-api-server.com/api/v1/namespaces/kube-monitoring/services/test-service:8080/api/resource",
 			contextVal:                      "cluster",
 		},
 		{
 			name:                            "valid host with already prefixed path",
 			url:                             "https://cluster--1234567.organisation.basedomain/api/v1/namespaces/kube-monitoring/services/test-service:8080/existing-path",
-			expectedupstreamServiceRouteURL: "https://api.blueprints.greenhouse.shoot.canary.k8s-hana.ondemand.com/api/v1/namespaces/kube-monitoring/services/test-service:8080/existing-path",
+			expectedupstreamServiceRouteURL: "https://api.test-api-server.com/api/v1/namespaces/kube-monitoring/services/test-service:8080/existing-path",
 			contextVal:                      "cluster",
 		},
 		{

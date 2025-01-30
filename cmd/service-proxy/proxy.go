@@ -206,11 +206,15 @@ func (pm *ProxyManager) rewrite(req *httputil.ProxyRequest) {
 		"incomingMethod", req.In.Method,
 	)
 
+		// inject current logger into context before returning
+		defer func() {
+			req.Out = req.Out.WithContext(log.IntoContext(req.Out.Context(), l))
+		}()
+	
 	// Extract cluster from the incoming request host
 	cluster, err := common.ExtractCluster(req.In.Host)
 	if err != nil {
 		l.Error(err, "Failed to extract cluster from host", "host", req.In.Host)
-		req.Out = req.Out.WithContext(log.IntoContext(req.Out.Context(), l))
 		return
 	}
 
@@ -218,7 +222,6 @@ func (pm *ProxyManager) rewrite(req *httputil.ProxyRequest) {
 	route, ok := pm.GetClusterRoute(cluster, "https://"+req.In.Host)
 	if !ok {
 		l.Info("No route found for cluster and URL", "cluster", cluster, "incomingRequestURL", req.In.URL.String())
-		req.Out = req.Out.WithContext(log.IntoContext(req.Out.Context(), l))
 		return
 	}
 	upstreamServiceRouteURL := route.url
