@@ -45,69 +45,69 @@ body {
 
 .dex-btn-icon--google {
   background-color: #FFFFFF;
-  background-image: url(../static/img/google-icon.svg);;
+  background-image: url(img/google-icon.svg);;
 }
 
 .dex-btn-icon--local {
   background-color: #84B6EF;
-  background-image: url(../static/img/email-icon.svg);
+  background-image: url(img/email-icon.svg);
 }
 
 .dex-btn-icon--gitea {
   background-color: #F5F5F5;
-  background-image: url(../static/img/gitea-icon.svg);
+  background-image: url(img/gitea-icon.svg);
 }
 
 .dex-btn-icon--github {
   background-color: #F5F5F5;
-  background-image: url(../static/img/github-icon.svg);
+  background-image: url(img/github-icon.svg);
 }
 
 .dex-btn-icon--gitlab {
   background-color: #F5F5F5;
-  background-image: url(../static/img/gitlab-icon.svg);
+  background-image: url(img/gitlab-icon.svg);
   background-size: contain;
 }
 
 .dex-btn-icon--keystone {
   background-color: #F5F5F5;
-  background-image: url(../static/img/keystone-icon.svg);
+  background-image: url(img/keystone-icon.svg);
   background-size: contain;
 }
 
 .dex-btn-icon--oidc {
   background-color: #EBEBEE;
-  background-image: url(../static/img/oidc-icon.svg);
+  background-image: url(img/oidc-icon.svg);
   background-size: contain;
 }
 
 .dex-btn-icon--bitbucket-cloud {
   background-color: #205081;
-  background-image: url(../static/img/bitbucket-icon.svg);
+  background-image: url(img/bitbucket-icon.svg);
 }
 
 .dex-btn-icon--atlassian-crowd {
   background-color: #CFDCEA;
-  background-image: url(../static/img/atlassian-crowd-icon.svg);
+  background-image: url(img/atlassian-crowd-icon.svg);
 }
 
 .dex-btn-icon--ldap {
   background-color: #84B6EF;
-  background-image: url(../static/img/ldap-icon.svg);
+  background-image: url(img/ldap-icon.svg);
 }
 
 .dex-btn-icon--saml {
   background-color: #84B6EF;
-  background-image: url(../static/img/saml-icon.svg);
+  background-image: url(img/saml-icon.svg);
 }
 
 .dex-btn-icon--linkedin {
-  background-image: url(../static/img/linkedin-icon.svg);
+  background-image: url(img/linkedin-icon.svg);
   background-size: contain;
 }
 
 .dex-btn-icon--microsoft {
-  background-image: url(../static/img/microsoft-icon.svg);
+  background-image: url(img/microsoft-icon.svg);
 }
 
 .dex-btn-text {
