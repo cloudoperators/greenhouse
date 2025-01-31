@@ -5,11 +5,7 @@ package organization
 
 import (
 	"context"
-	"log/slog"
-	"os"
 
-	"github.com/dexidp/dex/storage"
-	"github.com/dexidp/dex/storage/sql"
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
@@ -25,7 +21,7 @@ import (
 	greenhousesapv1alpha1 "github.com/cloudoperators/greenhouse/pkg/apis/greenhouse/v1alpha1"
 	"github.com/cloudoperators/greenhouse/pkg/clientutil"
 	dexapi "github.com/cloudoperators/greenhouse/pkg/dex/api"
-	"github.com/cloudoperators/greenhouse/pkg/idproxy"
+	dexstore "github.com/cloudoperators/greenhouse/pkg/dex/store"
 	"github.com/cloudoperators/greenhouse/pkg/lifecycle"
 	"github.com/cloudoperators/greenhouse/pkg/scim"
 )
@@ -49,10 +45,8 @@ var (
 type OrganizationReconciler struct {
 	client.Client
 	recorder  record.EventRecorder
+	Dexter    dexstore.Dexter
 	Namespace string
-	// Database related configuration
-	NetworkDB  sql.NetworkDB
-	dexStorage storage.Storage
 }
 
 //+kubebuilder:rbac:groups=greenhouse.sap,resources=organizations,verbs=get;list;watch;create;update;patch;delete
@@ -72,16 +66,7 @@ type OrganizationReconciler struct {
 func (r *OrganizationReconciler) SetupWithManager(name string, mgr ctrl.Manager) error {
 	r.Client = mgr.GetClient()
 	r.recorder = mgr.GetEventRecorderFor(name)
-
-	var err error
-	logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
-	if r.dexStorage, err = idproxy.NewPostgresStorage(sql.SSL{Mode: "disable"}, r.NetworkDB, logger.With("component", "storage")); err != nil {
-		return errors.Wrap(err, "failed to initialize postgres storage")
-	}
-
-	defer r.dexStorage.Close()
-
-	return ctrl.NewControllerManagedBy(mgr).
+	b := ctrl.NewControllerManagedBy(mgr).
 		Named(name).
 		For(&greenhousesapv1alpha1.Organization{}).
 		Owns(&corev1.Namespace{}).
@@ -92,8 +77,6 @@ func (r *OrganizationReconciler) SetupWithManager(name string, mgr ctrl.Manager)
 		Owns(&rbacv1.RoleBinding{}).
 		Owns(&rbacv1.ClusterRole{}).
 		Owns(&rbacv1.ClusterRoleBinding{}).
-		Owns(&dexapi.Connector{}).
-		Owns(&dexapi.OAuth2Client{}).
 		Watches(&corev1.Secret{},
 			handler.EnqueueRequestsFromMapFunc(r.enqueueOrganizationForReferencedSecret),
 			builder.WithPredicates(clientutil.PredicateHasOICDConfigured())).
@@ -102,8 +85,12 @@ func (r *OrganizationReconciler) SetupWithManager(name string, mgr ctrl.Manager)
 			builder.WithPredicates(predicate.And(
 				clientutil.PredicateByName(serviceProxyName),
 				predicate.GenerationChangedPredicate{},
-			))).
-		Complete(r)
+			)))
+	if r.Dexter.GetBackend() == dexstore.K8s {
+		b.Owns(&dexapi.Connector{}).
+			Owns(&dexapi.OAuth2Client{})
+	}
+	return b.Complete(r)
 }
 
 func (r *OrganizationReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {

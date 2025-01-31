@@ -16,52 +16,34 @@ import (
 	"time"
 
 	"github.com/dexidp/dex/server"
-	"github.com/dexidp/dex/storage"
-	"github.com/dexidp/dex/storage/sql"
 	"github.com/go-logr/logr"
 	"github.com/oklog/run"
-	"github.com/open-feature/go-sdk/openfeature"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/collectors"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	flag "github.com/spf13/pflag"
-	"k8s.io/apimachinery/pkg/runtime"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/oidc"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 	ctrl "sigs.k8s.io/controller-runtime/pkg/client/config"
 	logk "sigs.k8s.io/controller-runtime/pkg/log"
 
-	greenhousesapv1alpha1 "github.com/cloudoperators/greenhouse/pkg/apis/greenhouse/v1alpha1"
+	"github.com/cloudoperators/greenhouse/pkg/clientutil"
+	"github.com/cloudoperators/greenhouse/pkg/dex"
+	dexstore "github.com/cloudoperators/greenhouse/pkg/dex/store"
+	"github.com/cloudoperators/greenhouse/pkg/dex/web"
 	"github.com/cloudoperators/greenhouse/pkg/features"
-	"github.com/cloudoperators/greenhouse/pkg/idproxy"
-	"github.com/cloudoperators/greenhouse/pkg/idproxy/web"
 )
 
 func main() {
-	var kubeconfig, kubecontext, kubenamespace string
 	var issuer string
 	var idTokenValidity time.Duration
 	var listenAddr, metricsAddr string
 	var allowedOrigins []string
-	// DB connection parameters
-	var postgresDB sql.NetworkDB
-	var dexStorage storage.Storage
-	var err error
-
 	logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
 	// set default logger to be used by log
 	slog.SetDefault(logger)
 	// set default deferred logger to be used by controller-runtime
 	logk.SetLogger(logr.FromSlogHandler(logger.Handler()))
 
-	flag.StringVar(&kubeconfig, "kubeconfig", os.Getenv("KUBECONFIG"), "Use kubeconfig for authentication")
-	flag.StringVar(&kubecontext, "kubecontext", os.Getenv("KUBECONTEXT"), "Use context from kubeconfig")
-	flag.StringVar(&kubenamespace, "kubenamespace", os.Getenv("KUBENAMESPACE"), "Use namespace")
-	flag.StringVar(&postgresDB.Database, "database", os.Getenv("DEX_POSTGRES_DATABASE"), "Database name")
-	flag.StringVar(&postgresDB.Host, "dbHost", os.Getenv("DEX_POSTGRES_HOST"), "Database host")
-	flag.Uint16Var(&postgresDB.Port, "dbPort", 5432, "Database port")
-	flag.StringVar(&postgresDB.User, "dbUser", os.Getenv("DEX_POSTGRES_USER"), "Database user")
-	flag.StringVar(&postgresDB.Password, "dbPassword", os.Getenv("DEX_POSTGRES_PASSWORD"), "Database password")
 	flag.StringVar(&issuer, "issuer", "", "Issuer URL")
 	flag.StringVar(&listenAddr, "listen-addr", ":8080", "oidc listen address")
 	flag.StringVar(&metricsAddr, "metrics-addr", ":6543", "bind address for metrics")
@@ -73,37 +55,26 @@ func main() {
 		log.Fatal("No --issuer given")
 	}
 
-	// Initialize open-feature client
-	ofClient := features.NewOfClient("idproxy")
-	evalCtx := openfeature.NewEvaluationContext(
-		"backend",
-		map[string]interface{}{},
-	)
-	// Get the value of dex-sql-backend and dex-kubernetes-backend
-	postgresBackend, err := ofClient.BooleanValue(context.TODO(), "dex-sql-backend", false, evalCtx)
+	restCfg := ctrl.GetConfigOrDie()
+	ctx := context.TODO()
+	k8sClient, err := clientutil.NewK8sClient(restCfg)
 	if err != nil {
-		log.Fatalf("Failed to get dex-sql-backend value details: %s", err)
+		log.Fatalf("failed to create k8s client: %s", err)
 	}
-
-	k8sBackend, err := ofClient.BooleanValue(context.TODO(), "dex-kubernetes-backend", false, evalCtx)
+	backend := clientutil.Ptr("kubernetes")
+	ghFeatures, err := features.NewFeatures(ctx, k8sClient)
 	if err != nil {
-		log.Fatalf("Failed to get dex-kubernetes-backend value details: %s", err)
+		log.Fatalf("failed to get greenhouse features: %s", err)
 	}
-	// Exactly one of dex-sql-backend or dex-kubernetes-backend must be true
-	switch {
-	case postgresBackend:
-		dexStorage, err = idproxy.NewPostgresStorage(sql.SSL{Mode: "disable"}, postgresDB, logger.With("component", "storage"))
-		if err != nil {
-			log.Fatalf("Failed to initialize postgres storage: %s", err)
-		}
-	case k8sBackend:
-		dexStorage, err = idproxy.NewKubernetesStorage(kubeconfig, kubecontext, kubenamespace, logger.With("component", "storage"))
-		if err != nil {
-			log.Fatalf("Failed to initialize kubernetes storage: %s", err)
-		}
-	default:
-		log.Fatalf("Exactly one of dex-sql-backend or dex-kubernetes-backend must be true")
+	if ghFeatures != nil {
+		backend = ghFeatures.GetDexStorageType(ctx)
 	}
+	dexter, err := dexstore.NewDexStorageFactory(logger.With("component", "storage"), *backend)
+	if err != nil {
+		log.Fatalf("failed to create dex storage interface: %s", err)
+	}
+	logger.Info("using dex storage - ", "type", *backend)
+	dexStorage := dexter.GetStorage()
 
 	refreshPolicy, err := server.NewRefreshTokenPolicy(logger.With("component", "refreshtokenpolicy"), true, "24h", "24h", "5s")
 	if err != nil {
@@ -129,22 +100,7 @@ func main() {
 	}
 
 	server.ConnectorsConfig["greenhouse-oidc"] = func() server.ConnectorConfig {
-		k8sConfig, err := ctrl.GetConfigWithContext(kubecontext)
-		if err != nil {
-			log.Fatalf(`Failed to create k8s config: %s`, err)
-		}
-
-		scheme := runtime.NewScheme()
-		err = greenhousesapv1alpha1.AddToScheme(scheme)
-		if err != nil {
-			log.Fatalf(`Failed to create scheme: %s`, err)
-		}
-		k8sClient, err := client.New(k8sConfig, client.Options{Scheme: scheme})
-		if err != nil {
-			log.Fatalf(`Failed to create k8s client: %s`, err)
-		}
-
-		oidcConfig := new(idproxy.OIDCConfig)
+		oidcConfig := new(dex.OIDCConfig)
 		oidcConfig.AddClient(k8sClient)
 		oidcConfig.AddRedirectURI(issuer + "/callback")
 

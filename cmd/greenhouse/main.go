@@ -4,6 +4,7 @@
 package main
 
 import (
+	"context"
 	"errors"
 	goflag "flag"
 	"fmt"
@@ -12,7 +13,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/dexidp/dex/storage/sql"
 	flag "github.com/spf13/pflag"
 	"go.uber.org/zap/zapcore"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
@@ -29,6 +29,7 @@ import (
 	"github.com/cloudoperators/greenhouse/pkg/clientutil"
 	"github.com/cloudoperators/greenhouse/pkg/common"
 	dexapi "github.com/cloudoperators/greenhouse/pkg/dex/api"
+	"github.com/cloudoperators/greenhouse/pkg/features"
 	"github.com/cloudoperators/greenhouse/pkg/helm"
 	"github.com/cloudoperators/greenhouse/pkg/version"
 )
@@ -59,8 +60,7 @@ var (
 	remoteClusterBearerTokenValidity,
 	renewRemoteClusterBearerTokenAfter time.Duration
 	kubeClientOpts clientutil.RuntimeOptions
-	// DB connection parameters
-	postgresDB sql.NetworkDB
+	f              features.Features
 )
 
 func init() {
@@ -93,12 +93,6 @@ func main() {
 
 	flag.StringVar(&common.DNSDomain, "dns-domain", "",
 		"The DNS domain to use for the Greenhouse central cluster")
-
-	flag.StringVar(&postgresDB.Database, "database", clientutil.GetEnvOrDefault("DEX_POSTGRES_DATABASE", "dex"), "Database name")
-	flag.StringVar(&postgresDB.Host, "dbHost", clientutil.GetEnvOrDefault("DEX_POSTGRES_HOST", "localhost"), "Database host")
-	flag.Uint16Var(&postgresDB.Port, "dbPort", 5432, "Database port")
-	flag.StringVar(&postgresDB.User, "dbUser", clientutil.GetEnvOrDefault("DEX_POSTGRES_USER", "dex"), "Database user")
-	flag.StringVar(&postgresDB.Password, "dbPassword", clientutil.GetEnvOrDefault("DEX_POSTGRES_PASSWORD", "dex"), "Database password")
 
 	opts := zap.Options{
 		Development: true,
@@ -138,6 +132,12 @@ func main() {
 		LeaderElectionReleaseOnCancel: true,
 	})
 	handleError(err, "unable to start manager")
+
+	k8sClient := mgr.GetAPIReader()
+	f, err = features.NewFeatures(context.TODO(), k8sClient)
+	if err != nil {
+		handleError(err, "unable to get features")
+	}
 
 	mode, err := calculateManagerMode()
 	if err != nil {

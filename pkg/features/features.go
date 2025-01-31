@@ -5,50 +5,83 @@ package features
 
 import (
 	"context"
-	"log"
-	"time"
+	"errors"
+	"sync"
 
-	ofinprocess "github.com/open-feature/go-sdk-contrib/providers/go-feature-flag-in-process/pkg"
-	"github.com/open-feature/go-sdk/openfeature"
-	goffclient "github.com/thomaspoignant/go-feature-flag"
-	"github.com/thomaspoignant/go-feature-flag/retriever/k8sretriever"
-	"k8s.io/client-go/rest"
+	"gopkg.in/yaml.v3"
+	corev1 "k8s.io/api/core/v1"
+	kerrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/types"
+	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/cloudoperators/greenhouse/pkg/clientutil"
 )
 
-// NewOfClient returns a open-feature client loading feature flags from a ConfigMap
-func NewOfClient(appName string) *openfeature.Client {
-	k8sInClusterConfig, err := rest.InClusterConfig()
+const (
+	DexFeatureKey             = "dex"
+	featureConfigMapName      = "greenhouse-feature-flags"
+	featureConfigMapNamespace = "greenhouse"
+)
+
+type features struct {
+	m   sync.Mutex
+	raw map[string]string
+	dex *dexFeatures `yaml:"dex"`
+}
+
+type dexFeatures struct {
+	Storage string `yaml:"storage"`
+}
+
+type Features interface {
+	GetDexStorageType(ctx context.Context) *string
+}
+
+func NewFeatures(ctx context.Context, k8sClient client.Reader) (Features, error) {
+	featureMap := &corev1.ConfigMap{}
+	if err := k8sClient.Get(ctx, types.NamespacedName{Name: featureConfigMapName, Namespace: featureConfigMapNamespace}, featureMap); err != nil {
+		if kerrors.IsNotFound(err) {
+			return nil, nil
+		}
+		return nil, err
+	}
+	return &features{
+		raw: featureMap.Data,
+	}, nil
+}
+
+func (f *features) resolveDexFeatures() error {
+	f.m.Lock()
+	defer f.m.Unlock()
+
+	// Extract the `dex` key from the ConfigMap
+	dexRaw, exists := f.raw[DexFeatureKey]
+	if !exists {
+		return errors.New("dex feature not found in ConfigMap")
+	}
+
+	// Unmarshal the `dex` YAML string into the struct
+	dex := &dexFeatures{}
+	err := yaml.Unmarshal([]byte(dexRaw), dex)
 	if err != nil {
-		log.Fatalf("Failed to create in-cluster config: %s", err)
+		return err
 	}
 
-	goFeatureFlagConfig := &goffclient.Config{
-		PollingInterval: 30 * time.Minute,
-		Context:         context.Background(),
-		Retriever: &k8sretriever.Retriever{
-			Namespace:     clientutil.GetEnvOrDefault("FEATURE_FLAG_NAMESPACE", "greenhouse"),
-			ConfigMapName: clientutil.GetEnvOrDefault("FEATURE_FLAG_CONFIG_MAP_NAME", "greenhouse-feature-flags"),
-			Key:           clientutil.GetEnvOrDefault("FEATURE_FLAG_CONFIG_MAP_KEY", "config.yaml"),
-			ClientConfig:  *k8sInClusterConfig,
-		},
-	}
+	f.dex = dex
+	return nil
+}
 
-	options := ofinprocess.ProviderOptions{
-		GOFeatureFlagConfig: goFeatureFlagConfig,
+func (f *features) GetDexStorageType(ctx context.Context) *string {
+	if f.dex != nil {
+		return clientutil.Ptr(f.dex.Storage)
 	}
-
-	provider, err := ofinprocess.NewProviderWithContext(context.Background(), options)
-	if err != nil {
-		log.Fatalf("Failed to create provider: %s", err)
+	if err := f.resolveDexFeatures(); err != nil {
+		ctrl.LoggerFrom(ctx).Error(err, "failed to resolve dex features")
+		return nil
 	}
-	if err = openfeature.SetNamedProvider(appName, provider); err != nil {
-		log.Fatalf("Failed to set provider: %s", err)
+	if f.dex.Storage == "" {
+		return nil
 	}
-	if err = goffclient.Init(*goFeatureFlagConfig); err != nil {
-		log.Fatalf("Failed to init provider: %s", err)
-	}
-
-	return openfeature.NewClient(appName)
+	return clientutil.Ptr(f.dex.Storage)
 }
