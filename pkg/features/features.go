@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2024 SAP SE or an SAP affiliate company and Greenhouse contributors
+// SPDX-License-Identifier: Apache-2.0
+
 package features
 
 import (
@@ -7,6 +10,7 @@ import (
 
 	"gopkg.in/yaml.v3"
 	corev1 "k8s.io/api/core/v1"
+	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -21,10 +25,9 @@ const (
 )
 
 type features struct {
-	m         sync.Mutex
-	k8sClient client.Client
-	raw       map[string]string
-	dex       *dexFeatures `yaml:"dex"`
+	m   sync.Mutex
+	raw map[string]string
+	dex *dexFeatures `yaml:"dex"`
 }
 
 type dexFeatures struct {
@@ -35,14 +38,16 @@ type Features interface {
 	GetDexStorageType(ctx context.Context) *string
 }
 
-func NewFeatures(ctx context.Context, k8sClient client.Client) (Features, error) {
+func NewFeatures(ctx context.Context, k8sClient client.Reader) (Features, error) {
 	featureMap := &corev1.ConfigMap{}
 	if err := k8sClient.Get(ctx, types.NamespacedName{Name: featureConfigMapName, Namespace: featureConfigMapNamespace}, featureMap); err != nil {
+		if kerrors.IsNotFound(err) {
+			return nil, nil
+		}
 		return nil, err
 	}
 	return &features{
-		k8sClient: k8sClient,
-		raw:       featureMap.Data,
+		raw: featureMap.Data,
 	}, nil
 }
 
@@ -73,7 +78,7 @@ func (f *features) GetDexStorageType(ctx context.Context) *string {
 	}
 	if err := f.resolveDexFeatures(); err != nil {
 		ctrl.LoggerFrom(ctx).Error(err, "failed to resolve dex features")
-		return clientutil.Ptr("")
+		return nil
 	}
 	if f.dex.Storage == "" {
 		return nil
