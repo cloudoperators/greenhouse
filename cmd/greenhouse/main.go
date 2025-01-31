@@ -4,6 +4,7 @@
 package main
 
 import (
+	"context"
 	"errors"
 	goflag "flag"
 	"fmt"
@@ -28,6 +29,7 @@ import (
 	"github.com/cloudoperators/greenhouse/pkg/clientutil"
 	"github.com/cloudoperators/greenhouse/pkg/common"
 	dexapi "github.com/cloudoperators/greenhouse/pkg/dex/api"
+	"github.com/cloudoperators/greenhouse/pkg/features"
 	"github.com/cloudoperators/greenhouse/pkg/helm"
 	"github.com/cloudoperators/greenhouse/pkg/version"
 )
@@ -58,6 +60,7 @@ var (
 	remoteClusterBearerTokenValidity,
 	renewRemoteClusterBearerTokenAfter time.Duration
 	kubeClientOpts clientutil.RuntimeOptions
+	f              features.Features
 )
 
 func init() {
@@ -129,6 +132,12 @@ func main() {
 		LeaderElectionReleaseOnCancel: true,
 	})
 	handleError(err, "unable to start manager")
+
+	k8sClient := mgr.GetAPIReader()
+	f, err = features.NewFeatures(context.TODO(), k8sClient)
+	if err != nil {
+		handleError(err, "unable to get features")
+	}
 
 	mode, err := calculateManagerMode()
 	if err != nil {

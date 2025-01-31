@@ -4,17 +4,21 @@
 package main
 
 import (
+	"context"
+	"log/slog"
 	"os"
 	"sort"
 
 	ctrl "sigs.k8s.io/controller-runtime"
 
+	"github.com/cloudoperators/greenhouse/pkg/clientutil"
 	clustercontrollers "github.com/cloudoperators/greenhouse/pkg/controllers/cluster"
 	organizationcontrollers "github.com/cloudoperators/greenhouse/pkg/controllers/organization"
 	plugincontrollers "github.com/cloudoperators/greenhouse/pkg/controllers/plugin"
 	teamcontrollers "github.com/cloudoperators/greenhouse/pkg/controllers/team"
 	teammembershipcontrollers "github.com/cloudoperators/greenhouse/pkg/controllers/teammembership"
 	teamrbaccontrollers "github.com/cloudoperators/greenhouse/pkg/controllers/teamrbac"
+	dexstore "github.com/cloudoperators/greenhouse/pkg/dex/store"
 )
 
 // knownControllers contains all controllers to be registered when starting the operator.
@@ -76,7 +80,19 @@ func startOrganizationReconciler(name string, mgr ctrl.Manager) error {
 	if v, ok := os.LookupEnv("POD_NAMESPACE"); ok {
 		namespace = v
 	}
+	var dexter dexstore.Dexter
+	var err error
+	backend := clientutil.Ptr("kubernetes")
+	l := slog.New(slog.NewJSONHandler(os.Stdout, nil))
+	if f != nil {
+		backend = f.GetDexStorageType(context.Background())
+	}
+	dexter, err = dexstore.NewDexStorageFactory(l.With("component", "storage"), *backend)
+	if err != nil {
+		return err
+	}
 	return (&organizationcontrollers.OrganizationReconciler{
+		Dexter:    dexter,
 		Namespace: namespace,
 	}).SetupWithManager(name, mgr)
 }
