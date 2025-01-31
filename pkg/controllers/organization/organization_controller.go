@@ -21,6 +21,7 @@ import (
 	greenhousesapv1alpha1 "github.com/cloudoperators/greenhouse/pkg/apis/greenhouse/v1alpha1"
 	"github.com/cloudoperators/greenhouse/pkg/clientutil"
 	dexapi "github.com/cloudoperators/greenhouse/pkg/dex/api"
+	dexstore "github.com/cloudoperators/greenhouse/pkg/dex/store"
 	"github.com/cloudoperators/greenhouse/pkg/lifecycle"
 	"github.com/cloudoperators/greenhouse/pkg/scim"
 )
@@ -44,6 +45,7 @@ var (
 type OrganizationReconciler struct {
 	client.Client
 	recorder  record.EventRecorder
+	Dexter    dexstore.Dexter
 	Namespace string
 }
 
@@ -64,7 +66,7 @@ type OrganizationReconciler struct {
 func (r *OrganizationReconciler) SetupWithManager(name string, mgr ctrl.Manager) error {
 	r.Client = mgr.GetClient()
 	r.recorder = mgr.GetEventRecorderFor(name)
-	return ctrl.NewControllerManagedBy(mgr).
+	b := ctrl.NewControllerManagedBy(mgr).
 		Named(name).
 		For(&greenhousesapv1alpha1.Organization{}).
 		Owns(&corev1.Namespace{}).
@@ -75,8 +77,6 @@ func (r *OrganizationReconciler) SetupWithManager(name string, mgr ctrl.Manager)
 		Owns(&rbacv1.RoleBinding{}).
 		Owns(&rbacv1.ClusterRole{}).
 		Owns(&rbacv1.ClusterRoleBinding{}).
-		Owns(&dexapi.Connector{}).
-		Owns(&dexapi.OAuth2Client{}).
 		Watches(&corev1.Secret{},
 			handler.EnqueueRequestsFromMapFunc(r.enqueueOrganizationForReferencedSecret),
 			builder.WithPredicates(clientutil.PredicateHasOICDConfigured())).
@@ -85,8 +85,12 @@ func (r *OrganizationReconciler) SetupWithManager(name string, mgr ctrl.Manager)
 			builder.WithPredicates(predicate.And(
 				clientutil.PredicateByName(serviceProxyName),
 				predicate.GenerationChangedPredicate{},
-			))).
-		Complete(r)
+			)))
+	if r.Dexter.GetBackend() == dexstore.K8s {
+		b.Owns(&dexapi.Connector{}).
+			Owns(&dexapi.OAuth2Client{})
+	}
+	return b.Complete(r)
 }
 
 func (r *OrganizationReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
