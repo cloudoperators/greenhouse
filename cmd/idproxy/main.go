@@ -56,23 +56,24 @@ func main() {
 	}
 
 	restCfg := ctrl.GetConfigOrDie()
-	ctx := context.Background()
+	ctx := context.TODO()
 	k8sClient, err := clientutil.NewK8sClient(restCfg)
 	if err != nil {
 		log.Fatalf("failed to create k8s client: %s", err)
 	}
+	backend := clientutil.Ptr("kubernetes")
 	ghFeatures, err := features.NewFeatures(ctx, k8sClient)
 	if err != nil {
 		log.Fatalf("failed to get greenhouse features: %s", err)
 	}
-	backend := ghFeatures.GetDexStorageType(ctx)
-	if backend == nil {
-		log.Fatalf("failed to get dex storage type")
+	if ghFeatures != nil {
+		backend = ghFeatures.GetDexStorageType(ctx)
 	}
-	dexter, err := dexstore.NewDexStorageFactory(nil, logger, *backend)
+	dexter, err := dexstore.NewDexStorageFactory(logger.With("component", "storage"), *backend)
 	if err != nil {
 		log.Fatalf("failed to create dex storage interface: %s", err)
 	}
+	logger.Info("using dex storage - ", "type", *backend)
 	dexStorage := dexter.GetStorage()
 
 	refreshPolicy, err := server.NewRefreshTokenPolicy(logger.With("component", "refreshtokenpolicy"), true, "24h", "24h", "5s")
