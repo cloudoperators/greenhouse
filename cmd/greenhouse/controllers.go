@@ -75,6 +75,9 @@ func isControllerEnabled(controllerName string) bool {
 	return false
 }
 
+// startOrganizationReconciler - setup the organization reconciler
+// resolves dex storage backend from greenhouse-feature-flags
+// initializes the dex storage adapter interface in the organization reconciler
 func startOrganizationReconciler(name string, mgr ctrl.Manager) error {
 	namespace := "greenhouse"
 	if v, ok := os.LookupEnv("POD_NAMESPACE"); ok {

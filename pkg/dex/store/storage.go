@@ -29,6 +29,8 @@ const (
 	clientSecretKey            = "clientSecret"
 )
 
+// Dexter - dex storage adapter interface
+// Supported backends: Postgres, K8s
 type Dexter interface {
 	CreateUpdateConnector(ctx context.Context, k8sClient client.Client, org *greenhouseapisv1alpha1.Organization, configByte []byte, namespace string) error
 	CreateUpdateOauth2Client(ctx context.Context, k8sClient client.Client, org *greenhouseapisv1alpha1.Organization, namespace string) error
@@ -37,6 +39,7 @@ type Dexter interface {
 	Close() error
 }
 
+// NewDexStorageFactory - create a new dex storage adapter depending on the backend
 func NewDexStorageFactory(logger *slog.Logger, backend string) (Dexter, error) {
 	switch backend {
 	case Postgres:
@@ -56,12 +59,14 @@ func NewDexStorageFactory(logger *slog.Logger, backend string) (Dexter, error) {
 	}
 }
 
-func getDeterministicSecret(clientID, version string, secretKey types.UID) string {
+// getDeterministicSecret - generate a deterministic secret based on the clientID and secretKey
+func getDeterministicSecret(clientID string, secretKey types.UID) string {
 	h := hmac.New(sha256.New, []byte(secretKey))
-	h.Write([]byte(version + clientID))
+	h.Write([]byte(clientID))
 	return hex.EncodeToString(h.Sum(nil))[:32]
 }
 
+// prepareClientSecret - create a coreV1 secret with the clientID and secret
 func prepareClientSecret(namespace, clientID, clientSecret string) *corev1.Secret {
 	secret := new(corev1.Secret)
 	secret.SetName(clientID + "-dex-secrets")
@@ -73,6 +78,7 @@ func prepareClientSecret(namespace, clientID, clientSecret string) *corev1.Secre
 	return secret
 }
 
+// writeCredentialsToNamespace - write the client credentials to the organization namespace
 func writeCredentialsToNamespace(ctx context.Context, cl client.Client, secret *corev1.Secret) error {
 	result, err := clientutil.CreateOrPatch(ctx, cl, secret, func() error {
 		return nil

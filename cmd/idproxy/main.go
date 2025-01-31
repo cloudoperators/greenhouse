@@ -55,12 +55,15 @@ func main() {
 		log.Fatal("No --issuer given")
 	}
 
+	// ctrl.GetConfigOrDie() is used to get the k8s client config depending on the environment
+	// In Cluster config is used when running in a k8s cluster else uses the kubeconfig file specified by the KUBECONFIG env variable
 	restCfg := ctrl.GetConfigOrDie()
 	ctx := context.TODO()
 	k8sClient, err := clientutil.NewK8sClient(restCfg)
 	if err != nil {
 		log.Fatalf("failed to create k8s client: %s", err)
 	}
+	// default to kubernetes storage backend
 	backend := clientutil.Ptr("kubernetes")
 	ghFeatures, err := features.NewFeatures(ctx, k8sClient)
 	if err != nil {
@@ -69,11 +72,13 @@ func main() {
 	if ghFeatures != nil {
 		backend = ghFeatures.GetDexStorageType(ctx)
 	}
+	// initialize dex storage adapter interface
 	dexter, err := dexstore.NewDexStorageFactory(logger.With("component", "storage"), *backend)
 	if err != nil {
 		log.Fatalf("failed to create dex storage interface: %s", err)
 	}
 	logger.Info("using dex storage - ", "type", *backend)
+	// get the underlying dex storage interface
 	dexStorage := dexter.GetStorage()
 
 	refreshPolicy, err := server.NewRefreshTokenPolicy(logger.With("component", "refreshtokenpolicy"), true, "24h", "24h", "5s")

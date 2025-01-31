@@ -133,7 +133,10 @@ func main() {
 	})
 	handleError(err, "unable to start manager")
 
+	// extract the manager API Client Reader
+	// Note: mgr.GetClient() will fail here because the cache is not ready yet
 	k8sClient := mgr.GetAPIReader()
+	// Initialize the feature gates from feature-flags config map
 	f, err = features.NewFeatures(context.TODO(), k8sClient)
 	if err != nil {
 		handleError(err, "unable to get features")

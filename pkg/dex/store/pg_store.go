@@ -35,6 +35,7 @@ const (
 	dbNameEnv = "DB_DATABASE"
 )
 
+// newPostgresStore - creates a new postgres storage backend for dex
 func newPostgresStore(logger *slog.Logger) (storage.Storage, error) {
 	var host, user, pass, database string
 	var port int
@@ -65,6 +66,7 @@ func (p *pgDex) GetBackend() string {
 	return p.backend
 }
 
+// CreateUpdateConnector - creates or updates a dex connector in dex postgres storage backend
 func (p *pgDex) CreateUpdateConnector(ctx context.Context, _ client.Client, org *greenhouseapisv1alpha1.Organization, configByte []byte, _ string) error {
 	oidcConnector, err := p.storage.GetConnector(org.Name)
 	if err != nil && errors.Is(err, storage.ErrNotFound) {
@@ -96,8 +98,9 @@ func (p *pgDex) CreateUpdateConnector(ctx context.Context, _ client.Client, org 
 	return nil
 }
 
+// CreateUpdateOauth2Client - creates or updates an oauth2 client in dex postgres storage backend
 func (p *pgDex) CreateUpdateOauth2Client(ctx context.Context, k8sClient client.Client, org *greenhouseapisv1alpha1.Organization, namespace string) error {
-	generatedClientSecret := getDeterministicSecret(org.Name, org.GetResourceVersion(), org.GetUID())
+	generatedClientSecret := getDeterministicSecret(org.Name, org.GetUID())
 	oAuthClient, err := p.storage.GetClient(org.Name)
 	if err != nil && errors.Is(err, storage.ErrNotFound) {
 		if err = p.storage.CreateClient(ctx, storage.Client{
@@ -138,6 +141,7 @@ func (p *pgDex) CreateUpdateOauth2Client(ctx context.Context, k8sClient client.C
 	if err != nil {
 		return err
 	}
+	// write the client credentials to the organization namespace
 	secret := prepareClientSecret(namespace, org.Name, generatedClientSecret)
 	err = writeCredentialsToNamespace(ctx, k8sClient, secret)
 	if err != nil {
@@ -147,6 +151,7 @@ func (p *pgDex) CreateUpdateOauth2Client(ctx context.Context, k8sClient client.C
 	return nil
 }
 
+// GetStorage - returns the underlying dex storage interface
 func (p *pgDex) GetStorage() storage.Storage {
 	return p.storage
 }

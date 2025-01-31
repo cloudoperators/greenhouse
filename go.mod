@@ -20,7 +20,6 @@ replace (
 require (
 	github.com/cenkalti/backoff/v4 v4.3.0
 	github.com/dexidp/dex v0.0.0-20240807174518-43956db7fd75
-	github.com/ghodss/yaml v1.0.0
 	github.com/go-jose/go-jose/v4 v4.0.4
 	github.com/jeremywohl/flatten/v2 v2.0.0-20211013061545-07e4a09fb8e4
 	github.com/oklog/run v1.1.1-0.20240127200640-eee6e044b77c
@@ -66,6 +65,7 @@ require (
 	github.com/distribution/reference v0.6.0 // indirect
 	github.com/fsnotify/fsnotify v1.7.0 // indirect
 	github.com/fxamacker/cbor/v2 v2.7.0 // indirect
+	github.com/ghodss/yaml v1.0.0 // indirect
 	github.com/go-sql-driver/mysql v1.8.1 // indirect
 	github.com/go-task/slim-sprig/v3 v3.0.0 // indirect
 	github.com/google/gnostic-models v0.6.9-0.20230804172637-c7be7c783f49 // indirect

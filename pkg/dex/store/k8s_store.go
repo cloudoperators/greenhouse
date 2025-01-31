@@ -33,6 +33,7 @@ type k8sDex struct {
 
 const encoding = "abcdefghijklmnopqrstuvwxyz234567"
 
+// newKubernetesStore - creates a new kubernetes storage backend for dex
 func newKubernetesStore(logger *slog.Logger) (storage.Storage, error) {
 	cfg := kubernetes.Config{InCluster: true}
 	kEnv := clientutil.GetEnvOrDefault("KUBECONFIG", "")
@@ -51,6 +52,7 @@ func (k *k8sDex) GetBackend() string {
 	return k.backend
 }
 
+// CreateUpdateConnector - creates or updates a dex connector in dex kubernetes storage backend
 func (k *k8sDex) CreateUpdateConnector(ctx context.Context, k8sClient client.Client, org *greenhouseapisv1alpha1.Organization, configByte []byte, namespace string) (err error) {
 	var result clientutil.OperationResult
 	var dexConnector = new(dexapi.Connector)
@@ -75,11 +77,12 @@ func (k *k8sDex) CreateUpdateConnector(ctx context.Context, k8sClient client.Cli
 	return
 }
 
+// CreateUpdateOauth2Client - creates or updates an oauth2 client in dex kubernetes storage backend
 func (k *k8sDex) CreateUpdateOauth2Client(ctx context.Context, k8sClient client.Client, org *greenhouseapisv1alpha1.Organization, namespace string) error {
 	var oAuth2Client = new(dexapi.OAuth2Client)
 	oAuth2Client.ObjectMeta.Name = encodedOAuth2ClientName(org.Name)
 	oAuth2Client.ObjectMeta.Namespace = namespace
-	generatedClientSecret := getDeterministicSecret(org.Name, org.GetResourceVersion(), org.GetUID())
+	generatedClientSecret := getDeterministicSecret(org.Name, org.GetUID())
 
 	result, err := clientutil.CreateOrPatch(ctx, k8sClient, oAuth2Client, func() error {
 		oAuth2Client.Client.Public = true
@@ -114,14 +117,17 @@ func (k *k8sDex) CreateUpdateOauth2Client(ctx context.Context, k8sClient client.
 	return nil
 }
 
+// encodedOAuth2ClientName - encodes the org name to a base32 string
+// for kubernetes backend storage we need to encode the name OAuth2Client CR name
+// See https://github.com/dexidp/dex/issues/1606 for encoding
 func encodedOAuth2ClientName(orgName string) string {
-	// See https://github.com/dexidp/dex/issues/1606 for encoding.
 	return strings.TrimRight(base32.
 		NewEncoding(encoding).
 		EncodeToString(fnv.New64().Sum([]byte(orgName))), "=",
 	)
 }
 
+// GetStorage - returns the underlying dex storage interface
 func (k *k8sDex) GetStorage() storage.Storage {
 	return k.storage
 }
