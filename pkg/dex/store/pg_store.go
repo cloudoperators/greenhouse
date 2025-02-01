@@ -28,11 +28,11 @@ type pgDex struct {
 }
 
 const (
-	hostEnv   = "DB_HOST"
-	portEnv   = "DB_PORT"
-	userEnv   = "DB_USER"
-	passEnv   = "DB_PASSWORD"
-	dbNameEnv = "DB_DATABASE"
+	hostEnv   = "PG_HOST"
+	portEnv   = "PG_PORT"
+	userEnv   = "PG_USER"
+	passEnv   = "PG_PASSWORD"
+	dbNameEnv = "PG_DATABASE"
 )
 
 // newPostgresStore - creates a new postgres storage backend for dex
@@ -143,7 +143,7 @@ func (p *pgDex) CreateUpdateOauth2Client(ctx context.Context, k8sClient client.C
 	}
 	// write the client credentials to the organization namespace
 	secret := prepareClientSecret(namespace, org.Name, generatedClientSecret)
-	err = writeCredentialsToNamespace(ctx, k8sClient, secret)
+	err = writeCredentialsToNamespace(ctx, k8sClient, org, secret)
 	if err != nil {
 		return err
 	}

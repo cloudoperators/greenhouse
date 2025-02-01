@@ -110,7 +110,7 @@ func (k *k8sDex) CreateUpdateOauth2Client(ctx context.Context, k8sClient client.
 	}
 
 	secret := prepareClientSecret(namespace, org.Name, generatedClientSecret)
-	err = writeCredentialsToNamespace(ctx, k8sClient, secret)
+	err = writeCredentialsToNamespace(ctx, k8sClient, org, secret)
 	if err != nil {
 		return err
 	}

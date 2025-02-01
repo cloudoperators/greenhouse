@@ -14,11 +14,11 @@ import (
 	"github.com/dexidp/dex/storage"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
+	controllerruntime "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
 	greenhouseapisv1alpha1 "github.com/cloudoperators/greenhouse/pkg/apis/greenhouse/v1alpha1"
-	"github.com/cloudoperators/greenhouse/pkg/clientutil"
 )
 
 const (
@@ -79,18 +79,42 @@ func prepareClientSecret(namespace, clientID, clientSecret string) *corev1.Secre
 }
 
 // writeCredentialsToNamespace - write the client credentials to the organization namespace
-func writeCredentialsToNamespace(ctx context.Context, cl client.Client, secret *corev1.Secret) error {
-	result, err := clientutil.CreateOrPatch(ctx, cl, secret, func() error {
-		return nil
-	})
+// if the secret already exists, update the secret
+// set organization as the owner reference for the secret
+func writeCredentialsToNamespace(ctx context.Context, cl client.Client, org *greenhouseapisv1alpha1.Organization, secret *corev1.Secret) error {
+	existing := &corev1.Secret{}
+	err := cl.Get(ctx, types.NamespacedName{Name: secret.Name, Namespace: secret.Namespace}, existing)
 	if err != nil {
-		log.FromContext(ctx).Error(err, "unable to create dex client credentials", "name", secret.Name, "namespace", secret.Namespace)
+		if client.IgnoreNotFound(err) != nil {
+			log.FromContext(ctx).Error(err, "unable to get dex client credentials", "name", secret.Name, "namespace", secret.Namespace)
+			return err
+		}
+		// if not found, create the secret with owner reference
+		// set the owner reference
+		err = controllerruntime.SetControllerReference(org, secret, cl.Scheme())
+		if err != nil {
+			log.FromContext(ctx).Error(err, "unable to set controller reference for dex client credentials", "name", secret.Name, "namespace", secret.Namespace)
+			return err
+		}
+		err = cl.Create(ctx, secret)
+		if err != nil {
+			log.FromContext(ctx).Error(err, "unable to create dex client credentials", "name", secret.Name, "namespace", secret.Namespace)
+			return err
+		}
+		return nil
 	}
-	switch result {
-	case clientutil.OperationResultCreated:
-		log.FromContext(ctx).Info("created oauth2client secrets", "name", secret.Name, "namespace", secret.Namespace)
-	case clientutil.OperationResultUpdated:
-		log.FromContext(ctx).Info("updated oauth2client secrets", "name", secret.Name, "namespace", secret.Namespace)
+
+	existing.Data[clientIDKey] = secret.Data[clientIDKey]
+	existing.Data[clientSecretKey] = secret.Data[clientSecretKey]
+	err = controllerruntime.SetControllerReference(org, existing, cl.Scheme())
+	if err != nil {
+		log.FromContext(ctx).Error(err, "unable to create / patch dex client credentials", "name", secret.Name, "namespace", secret.Namespace)
+		return err
+	}
+	err = cl.Update(ctx, existing)
+	if err != nil {
+		log.FromContext(ctx).Error(err, "unable to update dex client credentials", "name", secret.Name, "namespace", secret.Namespace)
+		return err
 	}
 	return nil
 }
