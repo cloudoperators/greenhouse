@@ -32,14 +32,20 @@ type basicAuthTransport struct {
 }
 
 type Config struct {
-	URL       string
-	AuthType  AuthType
-	BasicAuth *BasicAuthConfig
+	URL         string
+	AuthType    AuthType
+	BasicAuth   *BasicAuthConfig
+	BearerToken *string
 }
 
 type BasicAuthConfig struct {
 	Username string
 	Password string
+}
+
+type bearerTokenTransport struct {
+	Token string
+	Next  http.RoundTripper
 }
 
 const (
@@ -50,6 +56,11 @@ const (
 
 func (t *basicAuthTransport) RoundTrip(req *http.Request) (*http.Response, error) {
 	req.SetBasicAuth(t.Username, t.Password)
+	return t.Next.RoundTrip(req)
+}
+
+func (t *bearerTokenTransport) RoundTrip(req *http.Request) (*http.Response, error) {
+	req.Header.Set("Authorization", "Bearer "+t.Token)
 	return t.Next.RoundTrip(req)
 }
 
@@ -66,10 +77,12 @@ func NewSCIMClient(logger logr.Logger, config *Config) (ISCIMClient, error) {
 		return nil, err
 	}
 
-	if config.AuthType == Basic {
+	switch config.AuthType {
+	case Basic:
 		if config.BasicAuth == nil {
 			return nil, errors.New("could not create http scim client, Basic Auth Config missing")
 		}
+
 		if strings.TrimSpace(config.BasicAuth.Username) == "" || strings.TrimSpace(config.BasicAuth.Password) == "" {
 			return nil, errors.New("could not create SCIM Client, BasicAuthConfig missing username or password")
 		}
@@ -78,6 +91,17 @@ func NewSCIMClient(logger logr.Logger, config *Config) (ISCIMClient, error) {
 			Password: config.BasicAuth.Password,
 			Next:     http.DefaultTransport,
 		}
+	case BearerToken:
+		if config.BearerToken == nil {
+			return nil, errors.New("could not create http scim client, BearerToken Config missing")
+		}
+
+		authTransport = &bearerTokenTransport{
+			Token: *config.BearerToken,
+			Next:  http.DefaultTransport,
+		}
+	default:
+		return nil, fmt.Errorf("unknown auth type: %d", config.AuthType)
 	}
 
 	return &scimClient{

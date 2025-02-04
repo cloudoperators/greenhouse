@@ -15,30 +15,48 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func Test_Basic_Auth_Client(t *testing.T) {
+func Test_SCIM_Client(t *testing.T) {
+	bearerToken := "bearer token"
+
 	testTable := []struct {
-		name      string
-		username  string
-		password  string
-		withError bool
+		name        string
+		authType    AuthType
+		username    string
+		password    string
+		bearerToken *string
+		withError   bool
 	}{
 		{
 			name:     "it should successfully create a basic auth client",
+			authType: Basic,
 			username: "some-username",
 			password: "some-password",
 		},
 		{
 			name:      "it should fail to create a basic auth client, when no username is provided",
+			authType:  Basic,
 			password:  "some-password",
 			withError: true,
 		},
 		{
 			name:      "it should fail to create a basic auth client, when no password is provided",
+			authType:  Basic,
 			username:  "some-username",
 			withError: true,
 		},
 		{
 			name:      "it should fail to create a basic auth client, when no username and password is provided",
+			authType:  Basic,
+			withError: true,
+		},
+		{
+			name:        "it should successfully create a bearer token client",
+			authType:    BearerToken,
+			bearerToken: &bearerToken,
+		},
+		{
+			name:      "it should failed to create a bearer token client, when no bearer token is provided",
+			authType:  BearerToken,
 			withError: true,
 		},
 	}
@@ -48,11 +66,12 @@ func Test_Basic_Auth_Client(t *testing.T) {
 			server, _ := setup()
 			_, err := NewSCIMClient(logger, &Config{
 				URL:      server.URL + baseURLPath,
-				AuthType: Basic,
+				AuthType: test.authType,
 				BasicAuth: &BasicAuthConfig{
 					Username: test.username,
 					Password: test.password,
 				},
+				BearerToken: test.bearerToken,
 			})
 			if test.withError {
 				assert.Error(t, err)
