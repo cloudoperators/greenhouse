@@ -576,6 +576,10 @@ func isCanReleaseBeUpgraded(r *release.Release) (release.Status, bool) {
 	if r.Info == nil {
 		return release.StatusUnknown, false
 	}
+	// Allow the upgrade to the first release, even if it failed.
+	if r.Version == 1 {
+		return r.Info.Status, !r.Info.Status.IsPending()
+	}
 	// The release must neither be pending nor failed.
 	return r.Info.Status, !r.Info.Status.IsPending() && r.Info.Status != release.StatusFailed
 }

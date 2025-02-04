@@ -173,7 +173,7 @@ ENVTEST_ACTION ?= $(LOCALBIN)/setup-envtest
 HELMIFY ?= $(LOCALBIN)/helmify
 
 ## Tool Versions
-KUSTOMIZE_VERSION ?= 5.5.0
+KUSTOMIZE_VERSION ?= 5.6.0
 CONTROLLER_TOOLS_VERSION ?= 0.17.1
 GOLINT_VERSION ?= 1.63.4
 GINKGOLINTER_VERSION ?= 0.18.4
@@ -236,15 +236,36 @@ EXECUTION_ENV ?= LOCAL
 ADMIN_NAMESPACE ?= greenhouse
 ADMIN_RELEASE ?= greenhouse
 ADMIN_CHART_PATH ?= charts/manager
-WEBHOOK_DEV ?= false
 E2E_REPORT_PATH="$(shell pwd)/bin/$(SCENARIO)-e2e-report.json"
 PLUGIN_DIR ?=
 GREENHOUSE_ORG ?= demo
+WEBHOOK_ONLY ?= false
+DEV_MODE ?= false
+INTERNAL ?= -int
+
+.PHONY: setup
+setup: cli setup-manager setup-dashboard setup-demo
+
+.PHONY: setup-webhook-dev
+setup-webhook-dev:
+	DEV_MODE=true make setup-manager
+
+.PHONY: setup-controller-dev
+setup-controller-dev:
+	WEBHOOK_ONLY=true make setup-manager && INTERNAL= make setup-demo
+
+.PHONY: setup-manager
+setup-manager: cli
+	PLUGIN_PATH=$(PLUGIN_DIR) $(CLI) dev setup -f dev-env/localenv/dev.config.yaml d=$(DEV_MODE) e=WEBHOOK_ONLY=$(WEBHOOK_ONLY)
+
+.PHONY: setup-dashboard
+setup-dashboard: cli
+	$(CLI) dev setup dashboard -f dev-env/localenv/ui.config.yaml
 
 .PHONY: setup-demo
 setup-demo: prepare-e2e samples
 	kubectl create secret generic kind-$(REMOTE_CLUSTER) \
-		--from-literal=kubeconfig="$$(cat ${PWD}/bin/$(REMOTE_CLUSTER)-int.kubeconfig)" \
+		--from-literal=kubeconfig="$$(cat ${PWD}/bin/$(REMOTE_CLUSTER)$(INTERNAL).kubeconfig)" \
 		--namespace=$(GREENHOUSE_ORG) \
 		--type="greenhouse.sap/kubeconfig" \
 		--dry-run=client -o yaml | kubectl apply -f -
@@ -261,18 +282,6 @@ samples: kustomize
 		sleep 5; \
 	done
 
-.PHONY: setup-plugin-dev
-setup-plugin-dev: cli
-	PLUGIN_PATH=$(PLUGIN_DIR) $(CLI) dev setup -f dev-env/localenv/plugin.config.yaml && make setup-demo
-
-.PHONY: setup-dev
-setup-dev: cli
-	$(CLI) dev setup -f dev-env/localenv/dev.config.yaml
-
-.PHONY: setup-webhook
-setup-webhook: cli
-	$(CLI) dev setup webhook --name $(ADMIN_CLUSTER) --namespace $(ADMIN_NAMESPACE) --release $(ADMIN_RELEASE) --chart-path $(ADMIN_CHART_PATH) --dockerfile ./ --dev-mode=$(WEBHOOK_DEV)
-
 .PHONY: setup-e2e
 setup-e2e: cli
 	$(CLI) dev setup -f e2e/config.yaml
@@ -280,9 +289,8 @@ setup-e2e: cli
 
 .PHONY: clean-e2e
 clean-e2e:
-	$(CLI) dev cluster delete --name $(REMOTE_CLUSTER)
-	$(CLI) dev cluster delete --name $(ADMIN_CLUSTER)
-	rm -v $(CLI)
+	kind delete cluster --name $(REMOTE_CLUSTER)
+	kind delete cluster --name $(ADMIN_CLUSTER)
 	rm -v $(LOCALBIN)/*.kubeconfig
 
 .PHONY: e2e

@@ -199,6 +199,49 @@ var _ = Describe("helm package test", func() {
 			Expect(err).ToNot(HaveOccurred(), "there must be no error uninstalling helm release")
 		})
 	})
+
+	When("helm install fails at initial release", func() {
+		It("should rollback to the same initial version", func() {
+			By("installing a helm chart from a pluginDefinition")
+			err := helm.InstallOrUpgradeHelmChartFromPlugin(test.Ctx, test.K8sClient, test.RestClientGetter, testPluginWithHelmChartCRDs, plugin)
+			Expect(err).ShouldNot(HaveOccurred(),
+				"there should be no error for installing helm chart from plugin")
+
+			By("getting the deployed helm release")
+			cfg, err := helm.ExportNewHelmAction(test.RestClientGetter, plugin.Spec.ReleaseNamespace)
+			Expect(err).ShouldNot(HaveOccurred(), "there should be no error creating helm config")
+			getAction := action.NewGet(cfg)
+			helmRelease, err := getAction.Run(plugin.Name)
+			Expect(err).ShouldNot(HaveOccurred(), "there should be no error getting the helm release")
+			Expect(helmRelease.Info.Status).To(Equal(release.StatusDeployed), "helm release should be set to deployed")
+
+			By("fake failing helm install by setting the deployed helm release to failed")
+			helmRelease.SetStatus(release.StatusFailed, "release set to failed manually from a test")
+			err = cfg.Releases.Update(helmRelease)
+			Expect(err).ToNot(HaveOccurred(), "there should be no error updating the helm release")
+
+			By("checking that the helm release status is set to failed")
+			getAction = action.NewGet(cfg)
+			helmRelease, err = getAction.Run(plugin.Name)
+			Expect(err).ShouldNot(HaveOccurred(), "there should be no error getting the helm release")
+			Expect(helmRelease.Info.Status).To(Equal(release.StatusFailed), "helm release should be set to failed")
+
+			By("running install or upgrade again")
+			err = helm.InstallOrUpgradeHelmChartFromPlugin(test.Ctx, test.K8sClient, test.RestClientGetter, testPluginWithHelmChartCRDs, plugin)
+			Expect(err).ShouldNot(HaveOccurred(),
+				"there should be no error for upgrading the helm chart")
+
+			By("checking that the helm release has been fixed")
+			getAction = action.NewGet(cfg)
+			helmRelease, err = getAction.Run(plugin.Name)
+			Expect(err).ShouldNot(HaveOccurred(), "there should be no error getting the helm release")
+			Expect(helmRelease.Info.Status).To(Equal(release.StatusDeployed), "helm release should be set to deployed")
+
+			By("cleaning up test")
+			_, err = helm.UninstallHelmRelease(test.Ctx, test.RestClientGetter, plugin)
+			Expect(err).ToNot(HaveOccurred(), "there must be no error uninstalling helm release")
+		})
+	})
 })
 
 var _ = DescribeTable("getting helm values from Plugin", func(defaultValue any, exp any) {
