@@ -170,7 +170,7 @@ func (r *PluginReconciler) EnsureCreated(ctx context.Context, resource lifecycle
 
 	reconcileErr := r.reconcileHelmRelease(ctx, restClientGetter, plugin, pluginDefinition)
 
-	// PluginStatus, WorkloadStatus and HelmChartTest should be reconciled regardless of Helm reconciliation result.
+	// PluginStatus, WorkloadStatus and ChartTest should be reconciled regardless of Helm reconciliation result.
 	r.reconcileStatus(ctx, restClientGetter, plugin, pluginDefinition, &plugin.Status)
 
 	workloadStatusResult, workloadStatusErr := r.reconcilePluginWorkloadStatus(ctx, restClientGetter, plugin, pluginDefinition)

@@ -115,8 +115,8 @@ func InstallOrUpgradeHelmChartFromPlugin(ctx context.Context, local client.Clien
 	return nil
 }
 
-// HelmChartTest to do helm test on the plugin
-func HelmChartTest(_ context.Context, restClientGetter genericclioptions.RESTClientGetter, plugin *greenhousev1alpha1.Plugin) (bool, error) {
+// ChartTest to do helm test on the plugin
+func ChartTest(restClientGetter genericclioptions.RESTClientGetter, plugin *greenhousev1alpha1.Plugin) (bool, error) {
 	var hasTestHook bool
 	cfg, err := newHelmAction(restClientGetter, plugin.Spec.ReleaseNamespace)
 	if err != nil {
