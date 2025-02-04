@@ -634,17 +634,17 @@ func CalculatePluginOptionChecksum(ctx context.Context, c client.Client, plugin 
 	if err != nil {
 		return "", err
 	}
-	// Sort option values by Name to ensure the order does not affect the hash.
+	// Sort the option values by Name to ensure consistent ordering.
 	sort.Slice(values, func(i, j int) bool {
 		return values[i].Name < values[j].Name
 	})
 
-	hasher := sha256.New()
-
-	for _, val := range values {
-		hasher.Write([]byte(val.Name))
-		hasher.Write(val.Value.Raw)
+	buf := make([]byte, 0)
+	for _, v := range values {
+		buf = append(buf, []byte(v.Name)...)
+		buf = append(buf, v.Value.Raw...)
 	}
 
-	return hex.EncodeToString(hasher.Sum(nil)), nil
+	checksum := sha256.Sum256(buf)
+	return hex.EncodeToString(checksum[:]), nil
 }
