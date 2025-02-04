@@ -4,6 +4,7 @@
 package clientutil
 
 import (
+	"errors"
 	"os"
 	"strconv"
 )
@@ -23,4 +24,11 @@ func GetIntEnvWithDefault(envKey string, def int) int {
 		return def
 	}
 	return i
+}
+
+func GetEnv(envKey string) (string, error) {
+	if v, ok := os.LookupEnv(envKey); ok {
+		return v, nil
+	}
+	return "", errors.New("environment variable not set")
 }

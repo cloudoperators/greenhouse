@@ -54,6 +54,25 @@ spec:
             {{- range $origin := .Values.corsAllowedOrigins | default (list "*") }}
             - --allowed-origins={{ $origin }}
             {{- end }}
+          env:
+          - name: DEX_POSTGRES_DATABASE
+            value: {{ .Values.postgresql.postgresqlDatabase }}
+          - name: DEX_POSTGRES_HOST
+            value: {{ .Values.postgresql.postgresqlHost }}
+          - name: DEX_POSTGRES_USER
+            value: {{ .Values.postgresql.postgresqlUsername }}
+          - name: DEX_POSTGRES_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                key: postgres-password
+                name: dex-postgres-pguser-dex
+          - name: FEATURE_FLAG_NAMESPACE
+            valueFrom:
+              fieldRef:
+                apiVersion: v1
+                fieldPath: metadata.namespace
+          - name: FEATURE_FLAG_CONFIG_MAP_NAME
+            value: {{ include "manager.fullname" . }}-feature-flags
           ports:
             - name: oidc
               containerPort: 8080
