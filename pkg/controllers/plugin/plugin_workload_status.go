@@ -18,8 +18,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/selection"
 	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/client-go/tools/record"
-	ctrl "sigs.k8s.io/controller-runtime"
+	"k8s.io/cli-runtime/pkg/genericclioptions"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/metrics"
@@ -77,74 +76,31 @@ type ReleaseStatus struct {
 	PayloadStatus    []PayloadStatus
 }
 
-// WorkLoadStatusReconciler reconciles a Plugin and cluster object.
-type WorkLoadStatusReconciler struct {
-	client.Client
-	recorder        record.EventRecorder
-	KubeRuntimeOpts clientutil.RuntimeOptions
-	kubeClientOpts  []clientutil.KubeClientOption
-}
-
 func init() {
 	// Register custom metrics with the global prometheus registry
 	metrics.Registry.MustRegister(workloadStatus)
 }
 
-//+kubebuilder:rbac:groups=greenhouse.sap,resources=plugindefinitions,verbs=get;list;watch
-//+kubebuilder:rbac:groups=greenhouse.sap,resources=plugins,verbs=get;list;watch
-//+kubebuilder:rbac:groups=greenhouse.sap,resources=plugins/status,verbs=get;patch;list;watch
-//+kubebuilder:rbac:groups=greenhouse.sap,resources=clusters;teams,verbs=get;list;watch
+func (r *PluginReconciler) reconcilePluginWorkloadStatus(
+	ctx context.Context,
+	restClientGetter genericclioptions.RESTClientGetter,
+	plugin *greenhousev1alpha1.Plugin,
+	pluginDefinition *greenhousev1alpha1.PluginDefinition,
+) (*reconcileResult, error) {
 
-// SetupWithManager sets up the controller with the Manager.
-func (r *WorkLoadStatusReconciler) SetupWithManager(name string, mgr ctrl.Manager) error {
-	r.Client = mgr.GetClient()
-	r.kubeClientOpts = []clientutil.KubeClientOption{
-		clientutil.WithRuntimeOptions(r.KubeRuntimeOpts),
-		clientutil.WithPersistentConfig(),
-	}
-	r.recorder = mgr.GetEventRecorderFor(name)
-
-	return ctrl.NewControllerManagedBy(mgr).
-		Named(name).
-		For(&greenhousev1alpha1.Plugin{}).
-		Complete(r)
-}
-
-func (r *WorkLoadStatusReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	var plugin = new(greenhousev1alpha1.Plugin)
-	var pluginDefinition = new(greenhousev1alpha1.PluginDefinition)
 	var releaseStatus = new(ReleaseStatus)
-	if err := r.Client.Get(ctx, req.NamespacedName, plugin); err != nil {
-		return ctrl.Result{}, client.IgnoreNotFound(err)
-	}
-	if err := r.Client.Get(ctx, types.NamespacedName{Name: plugin.Spec.PluginDefinition}, pluginDefinition); err != nil {
-		return ctrl.Result{}, err
-	}
+
 	// Nothing to do when the status of the plugin is empty and when the plugin does not have a Helm Chart
 	if reflect.DeepEqual(plugin.Status, greenhousev1alpha1.PluginStatus{}) || plugin.Status.HelmChart == nil {
-		return ctrl.Result{}, nil
+		return nil, nil
 	}
-
-	pluginStatus := initPluginStatus(plugin)
-	defer func() {
-		if statusErr := setPluginStatus(ctx, r.Client, plugin, pluginStatus); statusErr != nil {
-			log.FromContext(ctx).Error(statusErr, "failed to set status")
-		}
-	}()
-
-	if plugin.DeletionTimestamp != nil || pluginDefinition.Spec.HelmChart == nil {
-		return ctrl.Result{}, nil
-	}
-
-	clusterAccessReadyCondition, restClientGetter := initClientGetter(ctx, r.Client, r.kubeClientOpts, *plugin)
-	pluginStatus.StatusConditions.SetConditions(clusterAccessReadyCondition)
-	if !clusterAccessReadyCondition.IsTrue() {
-		return ctrl.Result{RequeueAfter: 10 * time.Minute}, fmt.Errorf("cannot access cluster: %s", clusterAccessReadyCondition.Message)
+	if pluginDefinition.Spec.HelmChart == nil {
+		return nil, nil
 	}
 
 	objClient, err := clientutil.NewK8sClientFromRestClientGetter(restClientGetter)
 	if err != nil {
-		return ctrl.Result{}, err
+		return nil, err
 	}
 
 	helmRelease, err := helm.GetReleaseForHelmChartFromPlugin(ctx, restClientGetter, plugin)
@@ -164,10 +120,9 @@ func (r *WorkLoadStatusReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 			getPayloadStatus(ctx, releaseStatus, objClient, key.Name, releaseStatus.ReleaseNamespace, key.GVK)
 		}
 
-		workloadCondition := computeWorkloadCondition(plugin, pluginStatus, releaseStatus)
-		pluginStatus.StatusConditions.SetConditions(workloadCondition)
+		computeWorkloadCondition(plugin, releaseStatus)
 	}
-	return ctrl.Result{RequeueAfter: StatusRequeueInterval}, nil
+	return &reconcileResult{requeueAfter: StatusRequeueInterval}, nil
 }
 
 // getPayloadStatus fetches the status of the object and updates the ReleaseStatus object

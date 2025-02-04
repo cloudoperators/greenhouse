@@ -211,6 +211,23 @@ var (
 	}
 )
 
+// checkReadyConditionComponentsUnderTest asserts that components of plugin's ReadyCondition are ready,
+// except for WorkloadReady condition, which is not a subject under test.
+// This is done because the cumulative Ready condition in tests will be false due to workload not being ready.
+func checkReadyConditionComponentsUnderTest(g Gomega, plugin *greenhousev1alpha1.Plugin) {
+	readyCondition := plugin.Status.GetConditionByType(greenhousev1alpha1.ReadyCondition)
+	g.Expect(readyCondition).ToNot(BeNil(), "Ready condition should not be nil")
+	clusterAccessReadyCondition := plugin.Status.GetConditionByType(greenhousev1alpha1.ClusterAccessReadyCondition)
+	g.Expect(clusterAccessReadyCondition).ToNot(BeNil())
+	g.Expect(clusterAccessReadyCondition.Status).To(Equal(metav1.ConditionTrue), "ClusterAccessReady condition should be true")
+	helmReconcileFailedCondition := plugin.Status.GetConditionByType(greenhousev1alpha1.HelmReconcileFailedCondition)
+	g.Expect(helmReconcileFailedCondition).ToNot(BeNil())
+	g.Expect(helmReconcileFailedCondition.Status).To(Equal(metav1.ConditionFalse), "HelmReconcileFailed condition should be false")
+	// helmChartTestSucceededCondition := plugin.Status.GetConditionByType(greenhousev1alpha1.HelmChartTestSucceededCondition)
+	// g.Expect(helmChartTestSucceededCondition).ToNot(BeNil())
+	// g.Expect(helmChartTestSucceededCondition.Status).To(Equal(metav1.ConditionTrue), "HelmChartTestSucceeded condition should be true")
+}
+
 // Tests
 var _ = Describe("HelmController reconciliation", Ordered, func() {
 	BeforeAll(func() {
@@ -255,12 +272,7 @@ var _ = Describe("HelmController reconciliation", Ordered, func() {
 		Eventually(func(g Gomega) {
 			err := test.K8sClient.Get(test.Ctx, types.NamespacedName{Name: testPlugin.Name, Namespace: testPlugin.Namespace}, testPlugin)
 			g.Expect(err).ShouldNot(HaveOccurred(), "there should be no error getting the plugin")
-			clusterAccessReadyCondition := testPlugin.Status.GetConditionByType(greenhousev1alpha1.ClusterAccessReadyCondition)
-			readyCondition := testPlugin.Status.GetConditionByType(greenhousev1alpha1.ReadyCondition)
-			g.Expect(clusterAccessReadyCondition).ToNot(BeNil(), "the ClusterAccessReadyCondition should not be nil")
-			g.Expect(readyCondition).ToNot(BeNil(), "the ReadyCondition should not be nil")
-			g.Expect(clusterAccessReadyCondition.IsTrue()).Should(BeTrue(), "the ClusterAccessReadyCondition should be true")
-			g.Expect(readyCondition.IsTrue()).Should(BeTrue(), "the ReadyCondition should be true")
+			checkReadyConditionComponentsUnderTest(g, testPlugin)
 		}).Should(Succeed(), "the ClusterAccessReadyCondition should be true")
 
 		By("checking the helm releases deployed to the remote cluster")
