@@ -50,6 +50,9 @@ var (
 
 	// IsHelmDebug is configured via a flag and enables extensive debug logging for Helm actions.
 	IsHelmDebug bool
+
+	//
+	installUpgradeTimeout = 30 * time.Second
 )
 
 // driftDetectionInterval is the interval after which a drift detection is performed.
@@ -113,7 +116,7 @@ func InstallOrUpgradeHelmChartFromPlugin(ctx context.Context, local client.Clien
 }
 
 // HelmChartTest to do helm test on the plugin
-func HelmChartTest(ctx context.Context, restClientGetter genericclioptions.RESTClientGetter, plugin *greenhousev1alpha1.Plugin) (bool, error) {
+func HelmChartTest(_ context.Context, restClientGetter genericclioptions.RESTClientGetter, plugin *greenhousev1alpha1.Plugin) (bool, error) {
 	var hasTestHook bool
 	cfg, err := newHelmAction(restClientGetter, plugin.Spec.ReleaseNamespace)
 	if err != nil {
@@ -231,7 +234,7 @@ func DiffChartToDeployedResources(ctx context.Context, local client.Client, rest
 }
 
 // ResetHelmReleaseStatusToDeployed resets the status of the release to deployed using a rollback.
-func ResetHelmReleaseStatusToDeployed(ctx context.Context, restClientGetter genericclioptions.RESTClientGetter, plugin *greenhousev1alpha1.Plugin) error {
+func ResetHelmReleaseStatusToDeployed(_ context.Context, restClientGetter genericclioptions.RESTClientGetter, plugin *greenhousev1alpha1.Plugin) error {
 	r, err := getLatestUpgradeableRelease(restClientGetter, plugin)
 	if err != nil {
 		return err
@@ -353,6 +356,8 @@ func upgradeRelease(ctx context.Context, local client.Client, restClientGetter g
 	upgradeAction.Namespace = plugin.Spec.ReleaseNamespace
 	upgradeAction.DependencyUpdate = true
 	upgradeAction.MaxHistory = 5
+	upgradeAction.Timeout = installUpgradeTimeout // set a timeout for the upgrade to not be stuck in pending state
+	upgradeAction.Atomic = true                   // set atomic to true to rollback on failure
 	upgradeAction.Description = pluginDefinition.Spec.Version
 
 	helmChart, err := loadHelmChart(&upgradeAction.ChartPathOptions, pluginDefinition.Spec.HelmChart, settings)
@@ -390,6 +395,8 @@ func installRelease(ctx context.Context, local client.Client, restClientGetter g
 	installAction := action.NewInstall(cfg)
 	installAction.ReleaseName = plugin.Name
 	installAction.Namespace = plugin.Spec.ReleaseNamespace
+	installAction.Timeout = installUpgradeTimeout // set a timeout for the installation to not be stuck in pending state
+	installAction.Atomic = true                   // set atomic to true to rollback on failure
 	installAction.CreateNamespace = true
 	installAction.DependencyUpdate = true
 	installAction.DryRun = isDryRun
@@ -517,7 +524,7 @@ func mergeMaps(a, b map[string]interface{}) map[string]interface{} {
 
 // getValuesForHelmChart returns a set of values to be used for Helm operations.
 // The order is important as the values defined in the Helm chart can be overridden by the values defined in the Plugin.
-func getValuesForHelmChart(ctx context.Context, c client.Client, helmChart *chart.Chart, plugin *greenhousev1alpha1.Plugin, isDryRun bool) (map[string]interface{}, error) {
+func getValuesForHelmChart(ctx context.Context, c client.Client, helmChart *chart.Chart, plugin *greenhousev1alpha1.Plugin, _ bool) (map[string]interface{}, error) {
 	// Copy the values from the Helm chart ensuring a non-nil map.
 	helmValues := mergeMaps(make(map[string]interface{}, 0), helmChart.Values)
 	// Get values defined in plugin.
