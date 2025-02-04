@@ -33,10 +33,7 @@ var knownControllers = map[string]func(controllerName string, mgr ctrl.Manager) 
 	"teamRoleBindingController": (&teamrbaccontrollers.TeamRoleBindingReconciler{}).SetupWithManager,
 
 	// Plugin controllers.
-	// "pluginPropagation": (&plugincontrollers.PluginPropagationReconciler{}).SetupWithManager,
-
-	// Plugin controllers.
-	"pluginHelm": (&plugincontrollers.PluginReconciler{
+	"plugin": (&plugincontrollers.PluginReconciler{
 		KubeRuntimeOpts: kubeClientOpts,
 	}).SetupWithManager,
 	"pluginPreset": (&plugincontrollers.PluginPresetReconciler{}).SetupWithManager,
@@ -44,7 +41,6 @@ var knownControllers = map[string]func(controllerName string, mgr ctrl.Manager) 
 	// Cluster controllers
 	"bootStrap":         (&clustercontrollers.BootstrapReconciler{}).SetupWithManager,
 	"clusterReconciler": startClusterReconciler,
-	// "clusterPropagation":     (&clustercontrollers.ClusterPropagationReconciler{}).SetupWithManager,
 }
 
 // knownControllers lists the name of known controllers.
