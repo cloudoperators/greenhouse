@@ -52,7 +52,7 @@ var (
 	IsHelmDebug bool
 
 	//
-	installUpgradeTimeout = 30 * time.Second
+	installUpgradeTimeout = 3 * time.Minute
 )
 
 // driftDetectionInterval is the interval after which a drift detection is performed.
