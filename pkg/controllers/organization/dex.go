@@ -58,7 +58,7 @@ func (r *OrganizationReconciler) reconcileDexConnector(ctx context.Context, org 
 	if err != nil {
 		return err
 	}
-	return r.Dexter.CreateUpdateConnector(ctx, r.Client, org, configByte, org.Name)
+	return r.Dexter.CreateUpdateConnector(ctx, r.Client, org, configByte)
 }
 
 func (r *OrganizationReconciler) enqueueOrganizationForReferencedSecret(_ context.Context, o client.Object) []ctrl.Request {
@@ -88,7 +88,7 @@ func (r *OrganizationReconciler) discoverOIDCRedirectURL(ctx context.Context, or
 }
 
 func (r *OrganizationReconciler) reconcileOAuth2Client(ctx context.Context, org *greenhousesapv1alpha1.Organization) error {
-	return r.Dexter.CreateUpdateOauth2Client(ctx, r.Client, org, org.Name)
+	return r.Dexter.CreateUpdateOauth2Client(ctx, r.Client, org)
 }
 
 func ensureCallbackURL(url string) string {

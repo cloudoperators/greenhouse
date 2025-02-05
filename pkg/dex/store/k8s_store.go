@@ -71,11 +71,12 @@ func (k *k8sDex) GetBackend() string {
 }
 
 // CreateUpdateConnector - creates or updates a dex connector in dex kubernetes storage backend
-func (k *k8sDex) CreateUpdateConnector(ctx context.Context, k8sClient client.Client, org *greenhouseapisv1alpha1.Organization, configByte []byte, namespace string) (err error) {
+func (k *k8sDex) CreateUpdateConnector(ctx context.Context, k8sClient client.Client, org *greenhouseapisv1alpha1.Organization, configByte []byte) (err error) {
 	var result clientutil.OperationResult
 	var dexConnector = new(dexapi.Connector)
-	dexConnector.Namespace = namespace
-	dexConnector.ObjectMeta.Name = org.GetName()
+	namespaceName := org.GetName()
+	dexConnector.SetName(namespaceName)
+	dexConnector.SetNamespace(namespaceName)
 	result, err = clientutil.CreateOrPatch(ctx, k8sClient, dexConnector, func() error {
 		dexConnector.DexConnector.Type = dexConnectorTypeGreenhouse
 		dexConnector.DexConnector.Name = cases.Title(language.English).String(org.Name)
@@ -96,16 +97,15 @@ func (k *k8sDex) CreateUpdateConnector(ctx context.Context, k8sClient client.Cli
 }
 
 // CreateUpdateOauth2Client - creates or updates an oauth2 client in dex kubernetes storage backend
-func (k *k8sDex) CreateUpdateOauth2Client(ctx context.Context, k8sClient client.Client, org *greenhouseapisv1alpha1.Organization, namespace string) error {
+func (k *k8sDex) CreateUpdateOauth2Client(ctx context.Context, k8sClient client.Client, org *greenhouseapisv1alpha1.Organization) error {
 	var oAuth2Client = new(dexapi.OAuth2Client)
-	oAuth2Client.ObjectMeta.Name = encodedOAuth2ClientName(org.Name)
-	oAuth2Client.ObjectMeta.Namespace = namespace
-	generatedClientSecret := getDeterministicSecret(org.Name, org.GetUID())
+	namespaceName := org.GetName()
+	oAuth2Client.SetName(encodedOAuth2ClientName(namespaceName))
+	oAuth2Client.SetNamespace(namespaceName)
 
 	result, err := clientutil.CreateOrPatch(ctx, k8sClient, oAuth2Client, func() error {
 		oAuth2Client.Client.Public = true
 		oAuth2Client.Client.ID = org.Name
-		oAuth2Client.Secret = generatedClientSecret
 		oAuth2Client.Client.Name = org.Name
 		for _, requiredRedirectURL := range []string{
 			"http://localhost:8085",
@@ -127,11 +127,6 @@ func (k *k8sDex) CreateUpdateOauth2Client(ctx context.Context, k8sClient client.
 		log.FromContext(ctx).Info("updated oauth2client", "namespace", oAuth2Client.Namespace, "name", oAuth2Client.GetName())
 	}
 
-	secret := prepareClientSecret(namespace, org.Name, generatedClientSecret)
-	err = writeCredentialsToNamespace(ctx, k8sClient, org, secret)
-	if err != nil {
-		return err
-	}
 	return nil
 }
 

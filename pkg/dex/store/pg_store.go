@@ -67,7 +67,7 @@ func (p *pgDex) GetBackend() string {
 }
 
 // CreateUpdateConnector - creates or updates a dex connector in dex postgres storage backend
-func (p *pgDex) CreateUpdateConnector(ctx context.Context, _ client.Client, org *greenhouseapisv1alpha1.Organization, configByte []byte, _ string) error {
+func (p *pgDex) CreateUpdateConnector(ctx context.Context, _ client.Client, org *greenhouseapisv1alpha1.Organization, configByte []byte) error {
 	oidcConnector, err := p.storage.GetConnector(org.Name)
 	if err != nil && errors.Is(err, storage.ErrNotFound) {
 		if err = p.storage.CreateConnector(ctx, storage.Connector{
@@ -99,18 +99,15 @@ func (p *pgDex) CreateUpdateConnector(ctx context.Context, _ client.Client, org 
 }
 
 // CreateUpdateOauth2Client - creates or updates an oauth2 client in dex postgres storage backend
-func (p *pgDex) CreateUpdateOauth2Client(ctx context.Context, k8sClient client.Client, org *greenhouseapisv1alpha1.Organization, namespace string) error {
-	generatedClientSecret := getDeterministicSecret(org.Name, org.GetUID())
+func (p *pgDex) CreateUpdateOauth2Client(ctx context.Context, _ client.Client, org *greenhouseapisv1alpha1.Organization) error {
 	oAuthClient, err := p.storage.GetClient(org.Name)
 	if err != nil && errors.Is(err, storage.ErrNotFound) {
 		if err = p.storage.CreateClient(ctx, storage.Client{
 			Public: true,
 			ID:     org.Name,
-			Secret: generatedClientSecret,
 			Name:   org.Name,
 			RedirectURIs: []string{
 				"http://localhost:8085",
-				"http://localhost:8000",
 				"https://dashboard." + common.DNSDomain,
 				fmt.Sprintf("https://%s.dashboard.%s", org.Name, common.DNSDomain),
 			},
@@ -123,14 +120,13 @@ func (p *pgDex) CreateUpdateOauth2Client(ctx context.Context, k8sClient client.C
 	if err != nil {
 		log.FromContext(ctx).Error(err, "failed to get oauth2client", "name", org.Name)
 	}
+
 	err = p.storage.UpdateClient(oAuthClient.Name, func(authClient storage.Client) (storage.Client, error) {
 		authClient.Public = true
 		authClient.ID = org.Name
-		authClient.Secret = generatedClientSecret
 		authClient.Name = org.Name
 		for _, requiredRedirectURL := range []string{
 			"http://localhost:8085",
-			"http://localhost:8000",
 			"https://dashboard." + common.DNSDomain,
 			fmt.Sprintf("https://%s.dashboard.%s", org.Name, common.DNSDomain),
 		} {
@@ -141,13 +137,6 @@ func (p *pgDex) CreateUpdateOauth2Client(ctx context.Context, k8sClient client.C
 	if err != nil {
 		return err
 	}
-	// write the client credentials to the organization namespace
-	secret := prepareClientSecret(namespace, org.Name, generatedClientSecret)
-	err = writeCredentialsToNamespace(ctx, k8sClient, org, secret)
-	if err != nil {
-		return err
-	}
-	log.FromContext(ctx).Info("updated oauth2client", "name", org.Name)
 	return nil
 }
 
