@@ -50,8 +50,8 @@ var _ = AfterSuite(func() {
 
 func dexMocks() dexstore.Dexter {
 	dexter := &mocks.MockDexter{}
-	dexter.On("CreateUpdateConnector", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil)
-	dexter.On("CreateUpdateOauth2Client", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil)
+	dexter.On("CreateUpdateConnector", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil)
+	dexter.On("CreateUpdateOauth2Client", mock.Anything, mock.Anything, mock.Anything).Return(nil)
 	dexter.On("GetBackend").Return(dexstore.K8s)
 	return dexter
 }
