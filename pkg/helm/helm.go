@@ -52,7 +52,7 @@ var (
 	IsHelmDebug bool
 
 	//
-	installUpgradeTimeout = 3 * time.Minute
+	installUpgradeTimeout = 150 * time.Second
 )
 
 // driftDetectionInterval is the interval after which a drift detection is performed.
@@ -357,7 +357,6 @@ func upgradeRelease(ctx context.Context, local client.Client, restClientGetter g
 	upgradeAction.DependencyUpdate = true
 	upgradeAction.MaxHistory = 5
 	upgradeAction.Timeout = installUpgradeTimeout // set a timeout for the upgrade to not be stuck in pending state
-	upgradeAction.Atomic = true                   // set atomic to true to rollback on failure
 	upgradeAction.Description = pluginDefinition.Spec.Version
 
 	helmChart, err := loadHelmChart(&upgradeAction.ChartPathOptions, pluginDefinition.Spec.HelmChart, settings)
@@ -396,7 +395,6 @@ func installRelease(ctx context.Context, local client.Client, restClientGetter g
 	installAction.ReleaseName = plugin.Name
 	installAction.Namespace = plugin.Spec.ReleaseNamespace
 	installAction.Timeout = installUpgradeTimeout // set a timeout for the installation to not be stuck in pending state
-	installAction.Atomic = true                   // set atomic to true to rollback on failure
 	installAction.CreateNamespace = true
 	installAction.DependencyUpdate = true
 	installAction.DryRun = isDryRun
