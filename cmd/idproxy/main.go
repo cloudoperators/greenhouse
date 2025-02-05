@@ -56,7 +56,7 @@ func main() {
 	}
 
 	// ctrl.GetConfigOrDie() is used to get the k8s client config depending on the environment
-	// In Cluster config is used when running in a k8s cluster else uses the kubeconfig file specified by the KUBECONFIG env variable
+	// In-Cluster config is used when running in a k8s cluster else uses the kubeconfig file specified by the KUBECONFIG env variable
 	restCfg := ctrl.GetConfigOrDie()
 	ctx := context.TODO()
 	k8sClient, err := clientutil.NewK8sClient(restCfg)

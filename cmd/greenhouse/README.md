@@ -6,15 +6,11 @@ This is a quick note on running the operator with Dex storage backend configurat
 
 ### Using `kubernetes` as the Dex storage backend
 
-If you are using `kubernetes` as the dex storage backend, you need to set the following environment variables:
+When running the operator locally the kubernetes mode is automatically detected:
 
-- `KUBECONFIG=<path-to-kubeconfig>`
-
-> [!NOTE]
-> If your kube configs (for KinD) are merged in the default ~/.kube/config path
-> then you can set the `KUBECONFIG` environment variable to `~/.kube/config` and set the current context to
-> kind-greenhouse-admin
-> `KUBECONFIG` is needed because dex will revert to InCluster mode if KUBECONFIG is not set
+1. `KUBECONFIG` environment variable - example - `export KUBECONFIG=/path/to/config` (Priority 1)
+2. kube config from the recommended dir and file - example - `$HOME/.kube/config` (Priority 2)
+3. Running inside a kubernetes cluster, `in-cluster` mode is used. (Priority 3)
 
 ### Using `postgres` as the Dex storage backend
 
@@ -25,6 +21,3 @@ If you are using `postgres` as the dex storage backend, you need to set the foll
 - `PG_USER=<postgres-user>` ex: `postgres` (defaults to `postgres` if not set)
 - `PG_HOST=<postgres-host>` ex: `localhost` (required)
 - `PG_PASSWORD=<postgres-password>` ex: `password` (required)
-
-> [!NOTE]
-> Explicitly setting `KUBECONFIG` is not required when using `postgres` as the dex storage backend

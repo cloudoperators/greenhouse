@@ -9,12 +9,17 @@ import (
 	"fmt"
 	"hash/fnv"
 	"log/slog"
+	"os"
+	"path/filepath"
 	"strings"
 
 	"github.com/dexidp/dex/storage"
 	"github.com/dexidp/dex/storage/kubernetes"
 	"golang.org/x/text/cases"
 	"golang.org/x/text/language"
+	"k8s.io/client-go/rest"
+	"k8s.io/client-go/tools/clientcmd"
+	"k8s.io/client-go/util/homedir"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/log"
@@ -36,16 +41,29 @@ const encoding = "abcdefghijklmnopqrstuvwxyz234567"
 // newKubernetesStore - creates a new kubernetes storage backend for dex
 func newKubernetesStore(logger *slog.Logger) (storage.Storage, error) {
 	cfg := kubernetes.Config{InCluster: true}
-	kEnv := clientutil.GetEnvOrDefault("KUBECONFIG", "")
-	if strings.TrimSpace(kEnv) != "" {
+	cfgPath := determineKubeMode()
+	if strings.TrimSpace(cfgPath) != "" {
 		cfg.InCluster = false
-		cfg.KubeConfigFile = kEnv
+		cfg.KubeConfigFile = cfgPath
 	}
 	dexStorage, err := cfg.Open(logger)
 	if err != nil {
 		return nil, err
 	}
 	return dexStorage, nil
+}
+
+func determineKubeMode() string {
+	cfgPath := os.Getenv(clientcmd.RecommendedConfigPathEnvVar)
+	if len(cfgPath) > 0 {
+		return cfgPath
+	}
+	_, err := rest.InClusterConfig()
+	if err == nil {
+		return ""
+	}
+	home := homedir.HomeDir()
+	return filepath.Join(home, ".kube", "config")
 }
 
 func (k *k8sDex) GetBackend() string {

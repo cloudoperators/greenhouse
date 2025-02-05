@@ -18,8 +18,10 @@ Arguments:
 
 Environment Variables:
 
-- If you are using `kubernetes` as the dex storage backend, set the following environment variables:
-  - `KUBECONFIG=<path-to-kubeconfig>`
+- If you are using `kubernetes` as the dex storage backend, kubernetes mode is automatically detected
+    1. `KUBECONFIG` environment variable - example - `export KUBECONFIG=/path/to/config` (Priority 1)
+    2. kube config from the recommended dir and file - example - `$HOME/.kube/config` (Priority 2)
+    3. Running inside a kubernetes cluster, `in-cluster` mode is used. (Priority 3)
 
 - If you are using `postgres` as the dex storage backend, set the following environment variables:
     - `PG_DATABASE=<postgres-database>` ex: `postgres` (defaults to `postgres` if not set)
