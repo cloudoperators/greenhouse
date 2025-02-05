@@ -5,12 +5,15 @@ package helm
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
 	"slices"
+	"sort"
 	"time"
 
 	"helm.sh/helm/v3/pkg/action"
@@ -206,6 +209,14 @@ func DiffChartToDeployedResources(ctx context.Context, local client.Client, rest
 		return nil, false, nil
 	case c.Status != metav1.ConditionUnknown && time.Since(c.LastTransitionTime.Time) < driftDetectionInterval: // Skip as HelmDriftDetectedCondition transitioned less than driftDetectionInterval ago
 		return nil, false, nil
+	}
+
+	// Skip the drift detection if nothing changed with plugin option values.
+	if plugin.Status.HelmReleaseStatus.PluginOptionChecksum != "" {
+		currentPluginOptionChecksum, err := CalculatePluginOptionChecksum(ctx, local, plugin)
+		if err == nil && plugin.Status.HelmReleaseStatus.PluginOptionChecksum == currentPluginOptionChecksum {
+			return nil, false, nil
+		}
 	}
 
 	diffObjects, err = diffAgainstLiveObjects(restClientGetter, plugin.Spec.ReleaseNamespace, helmTemplateRelease.Manifest)
@@ -614,4 +625,26 @@ func replaceCustomResourceDefinitions(ctx context.Context, c client.Client, crdL
 		}
 	}
 	return nil
+}
+
+// CalculatePluginOptionChecksum calculates a hash of plugin option values.
+// Secret-type option values are extracted first and all values are sorted to ensure that order is not important when comparing checksums.
+func CalculatePluginOptionChecksum(ctx context.Context, c client.Client, plugin *greenhousev1alpha1.Plugin) (string, error) {
+	values, err := getValuesFromPlugin(ctx, c, plugin)
+	if err != nil {
+		return "", err
+	}
+	// Sort the option values by Name to ensure consistent ordering.
+	sort.Slice(values, func(i, j int) bool {
+		return values[i].Name < values[j].Name
+	})
+
+	buf := make([]byte, 0)
+	for _, v := range values {
+		buf = append(buf, []byte(v.Name)...)
+		buf = append(buf, v.Value.Raw...)
+	}
+
+	checksum := sha256.Sum256(buf)
+	return hex.EncodeToString(checksum[:]), nil
 }

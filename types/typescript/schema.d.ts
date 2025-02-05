@@ -1005,7 +1005,7 @@ export interface components {
                         [key: string]: string;
                     };
                 };
-                /** @description Namespaces is the immutable list of namespaces in the Greenhouse Clusters to apply the RoleBinding to.\nIf empty, a ClusterRoleBinding will be created on the remote cluster, otherwise a RoleBinding per namespace. */
+                /** @description Namespaces is a list of namespaces in the Greenhouse Clusters to apply the RoleBinding to.\nIf empty, a ClusterRoleBinding will be created on the remote cluster, otherwise a RoleBinding per namespace. */
                 namespaces?: string[];
                 /** @description TeamRef references a Greenhouse Team by name */
                 teamRef?: string;
@@ -1152,6 +1152,8 @@ export interface components {
                      * @description LastDeployed is the timestamp of the last deployment of the release.
                      */
                     lastDeployed?: string;
+                    /** @description PluginOptionChecksum is the checksum of plugin option values. */
+                    pluginOptionChecksum?: string;
                     /** @description Status is the status of a HelmChart release. */
                     status: string;
                 };
