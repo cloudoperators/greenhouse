@@ -5,6 +5,8 @@ package organization
 
 import (
 	"context"
+	"crypto/rand"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 
@@ -25,6 +27,7 @@ import (
 )
 
 const serviceProxyName = "service-proxy"
+const cookieSecretKey = "oauth2proxy-cookie-secret" //nolint:gosec
 
 func (r *OrganizationReconciler) reconcileServiceProxy(ctx context.Context, org *greenhousesapv1alpha1.Organization) error {
 	domain := fmt.Sprintf("%s.%s", org.Name, common.DNSDomain)
@@ -47,6 +50,30 @@ func (r *OrganizationReconciler) reconcileServiceProxy(ctx context.Context, org 
 		return nil
 	}
 
+	if org.Spec.Authentication == nil || org.Spec.Authentication.OIDCConfig == nil {
+		log.FromContext(ctx).Info("skipping service-proxy Plugin reconciliation, Organization has no OIDCConfig")
+		return nil
+	}
+
+	// oauth2-proxy requires a cookie secret, which needs to be provided from a secret
+	secret := &corev1.Secret{}
+	if err := r.Client.Get(ctx, types.NamespacedName{Name: org.Spec.Authentication.OIDCConfig.ClientSecretReference.Name, Namespace: org.Name}, secret); err != nil {
+		log.FromContext(ctx).Info("failed to get Organization OIDC Secret", "error", err)
+		return nil
+	}
+	if _, ok := secret.Data[cookieSecretKey]; !ok {
+		cookieData, err := generateCookieSecret()
+		if err != nil {
+			log.FromContext(ctx).Info("failed to generate cookie secret", "error", err)
+			return err
+		}
+		secret.Data[cookieSecretKey] = []byte(cookieData)
+		if err := r.Client.Update(ctx, secret); err != nil {
+			log.FromContext(ctx).Info("failed to update Organization OIDC Secret with cookie secret", "error", err)
+			return fmt.Errorf("failed to update Organization OIDC Secret with cookie secret: %w", err)
+		}
+	}
+
 	plugin := &greenhousesapv1alpha1.Plugin{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      serviceProxyName,
@@ -67,6 +94,34 @@ func (r *OrganizationReconciler) reconcileServiceProxy(ctx context.Context, org 
 			{
 				Name:  "image.tag",
 				Value: &apiextensionsv1.JSON{Raw: versionJSON},
+			},
+			{
+				Name:  "oauth2proxy.issuerURL",
+				Value: &apiextensionsv1.JSON{Raw: []byte(fmt.Sprintf("\"%s\"", org.Spec.Authentication.OIDCConfig.Issuer))},
+			},
+			{
+				Name:  "oauth2proxy.clientIDRef.secret",
+				Value: &apiextensionsv1.JSON{Raw: []byte(fmt.Sprintf("\"%s\"", org.Spec.Authentication.OIDCConfig.ClientIDReference.Name))},
+			},
+			{
+				Name:  "oauth2proxy.clientIDRef.key",
+				Value: &apiextensionsv1.JSON{Raw: []byte(fmt.Sprintf("\"%s\"", org.Spec.Authentication.OIDCConfig.ClientIDReference.Key))},
+			},
+			{
+				Name:  "oauth2proxy.clientSecretRef.secret",
+				Value: &apiextensionsv1.JSON{Raw: []byte(fmt.Sprintf("\"%s\"", org.Spec.Authentication.OIDCConfig.ClientSecretReference.Name))},
+			},
+			{
+				Name:  "oauth2proxy.clientSecretRef.key",
+				Value: &apiextensionsv1.JSON{Raw: []byte(fmt.Sprintf("\"%s\"", org.Spec.Authentication.OIDCConfig.ClientSecretReference.Key))},
+			},
+			{
+				Name:  "oauth2proxy.cookieSecretRef.secret",
+				Value: &apiextensionsv1.JSON{Raw: []byte(fmt.Sprintf("\"%s\"", org.Spec.Authentication.OIDCConfig.ClientSecretReference.Name))},
+			},
+			{
+				Name:  "oauth2proxy.cookieSecretRef.key",
+				Value: &apiextensionsv1.JSON{Raw: []byte(fmt.Sprintf("\"%s\"", cookieSecretKey))},
 			},
 		}
 		return controllerutil.SetControllerReference(org, plugin, r.Scheme())
@@ -99,4 +154,16 @@ func listOrganizationsAsReconcileRequests(ctx context.Context, c client.Client, 
 		res[idx] = ctrl.Request{NamespacedName: types.NamespacedName{Name: organization.Name, Namespace: organization.Namespace}}
 	}
 	return res
+}
+
+// generateCookieSecret generates a random cookie secret
+func generateCookieSecret() (string, error) {
+	// Generate 16 random bytes
+	token := make([]byte, 16)
+	if _, err := rand.Read(token); err != nil {
+		return "", err
+	}
+	// Base64 encode the token twice
+	encodedToken := base64.StdEncoding.EncodeToString(token)
+	return base64.StdEncoding.EncodeToString([]byte(encodedToken)), nil
 }
