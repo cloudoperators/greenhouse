@@ -97,6 +97,7 @@ rules:
   - organizations/status
   - plugindefinitions/status
   - pluginpresets/status
+  - plugins/status
   - teammemberships/status
   - teamrolebindings/status
   - teams/status
@@ -111,16 +112,6 @@ rules:
   verbs:
   - get
   - list
-  - update
-  - watch
-- apiGroups:
-  - greenhouse.sap
-  resources:
-  - plugins/status
-  verbs:
-  - get
-  - list
-  - patch
   - update
   - watch
 - apiGroups:
