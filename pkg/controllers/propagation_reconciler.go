@@ -99,7 +99,12 @@ func (r *PropagationReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 			return ctrl.Result{}, err
 		}
 	}
-	if err := clientutil.RemoveFinalizer(ctx, r.Client, obj, greenhouseapis.FinalizerCleanupPropagatedResource); err != nil {
+
+	_, err := clientutil.Patch(ctx, r.Client, obj, func() error {
+		controllerutil.RemoveFinalizer(obj, greenhouseapis.FinalizerCleanupPropagatedResource)
+		return nil
+	})
+	if err != nil {
 		return ctrl.Result{}, err
 	}
 

@@ -77,7 +77,7 @@ func Reconcile(ctx context.Context, kubeClient client.Client, namespacedName typ
 
 	// check whether finalizer is set
 	if !shouldBeDeleted && !hasFinalizer {
-		return ctrl.Result{}, clientutil.EnsureFinalizer(ctx, kubeClient, runtimeObject, CommonCleanupFinalizer)
+		return ctrl.Result{}, ensureFinalizer(ctx, kubeClient, runtimeObject, CommonCleanupFinalizer)
 	}
 
 	var (
@@ -88,7 +88,7 @@ func Reconcile(ctx context.Context, kubeClient client.Client, namespacedName typ
 		// check if the resource is already deleted (a control state to decide whether to remove finalizer)
 		// at this point the remote resource is already cleaned up so garbage collection can be done
 		if isResourceDeleted(runtimeObject) {
-			err = clientutil.RemoveFinalizer(ctx, kubeClient, runtimeObject, CommonCleanupFinalizer)
+			err = removeFinalizer(ctx, kubeClient, runtimeObject, CommonCleanupFinalizer)
 			return ctrl.Result{}, client.IgnoreNotFound(err)
 		}
 		// if the resource is not deleted yet, we need to ensure it is deleted
@@ -181,4 +181,28 @@ func patchStatus(ctx context.Context, kubeClient client.Client, newObject Runtim
 		return err
 	}
 	return reconcileError
+}
+
+// ensureFinalizer - ensures a finalizer is present on the object. Returns an error on failure.
+func ensureFinalizer(ctx context.Context, c client.Client, o client.Object, finalizer string) error {
+	if controllerutil.ContainsFinalizer(o, finalizer) {
+		return nil
+	}
+	_, err := clientutil.Patch(ctx, c, o, func() error {
+		controllerutil.AddFinalizer(o, finalizer)
+		return nil
+	})
+	return err
+}
+
+// removeFinalizer - removes a finalizer from an object. Returns an error on failure.
+func removeFinalizer(ctx context.Context, c client.Client, o client.Object, finalizer string) error {
+	if !controllerutil.ContainsFinalizer(o, finalizer) {
+		return nil
+	}
+	_, err := clientutil.Patch(ctx, c, o, func() error {
+		controllerutil.RemoveFinalizer(o, finalizer)
+		return nil
+	})
+	return err
 }
