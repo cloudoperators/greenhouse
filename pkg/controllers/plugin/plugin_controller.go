@@ -303,6 +303,7 @@ func (r *PluginReconciler) reconcileStatus(ctx context.Context,
 			Status:        "unknown",
 			FirstDeployed: metav1.Time{},
 			LastDeployed:  metav1.Time{},
+			Diff:          pluginStatus.HelmReleaseStatus.Diff,
 		}
 	)
 
