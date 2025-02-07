@@ -51,8 +51,8 @@ var (
 	// IsHelmDebug is configured via a flag and enables extensive debug logging for Helm actions.
 	IsHelmDebug bool
 
-	//
-	installUpgradeTimeout = 150 * time.Second
+	// greenhouse helm timeout for install and upgrade actions
+	installUpgradeTimeout = 300 * time.Second
 )
 
 // driftDetectionInterval is the interval after which a drift detection is performed.
@@ -84,7 +84,7 @@ func InstallOrUpgradeHelmChartFromPlugin(ctx context.Context, local client.Clien
 	// Avoid attempts to upgrade a failed release and attempt to resurrect it.
 	if latestRelease.Info != nil && latestRelease.Info.Status == release.StatusFailed {
 		log.FromContext(ctx).Info("attempting to reset release status", "current status", latestRelease.Info.Status.String())
-		if err := ResetHelmReleaseStatusToDeployed(ctx, restClientGetter, plugin); err != nil {
+		if err := ResetHelmReleaseStatusToDeployed(restClientGetter, plugin); err != nil {
 			metrics.UpdateMetrics(plugin, metrics.MetricResultError, metrics.MetricReasonUpgradeFailed)
 			return err
 		}
@@ -234,7 +234,7 @@ func DiffChartToDeployedResources(ctx context.Context, local client.Client, rest
 }
 
 // ResetHelmReleaseStatusToDeployed resets the status of the release to deployed using a rollback.
-func ResetHelmReleaseStatusToDeployed(_ context.Context, restClientGetter genericclioptions.RESTClientGetter, plugin *greenhousev1alpha1.Plugin) error {
+func ResetHelmReleaseStatusToDeployed(restClientGetter genericclioptions.RESTClientGetter, plugin *greenhousev1alpha1.Plugin) error {
 	r, err := getLatestUpgradeableRelease(restClientGetter, plugin)
 	if err != nil {
 		return err
@@ -369,7 +369,7 @@ func upgradeRelease(ctx context.Context, local client.Client, restClientGetter g
 		return err
 	}
 
-	helmValues, err := getValuesForHelmChart(ctx, local, helmChart, plugin, false)
+	helmValues, err := getValuesForHelmChart(ctx, local, helmChart, plugin)
 	if err != nil {
 		return err
 	}
@@ -414,7 +414,7 @@ func installRelease(ctx context.Context, local client.Client, restClientGetter g
 	if err := replaceCustomResourceDefinitions(ctx, c, helmChart.CRDObjects(), false); err != nil {
 		return nil, err
 	}
-	helmValues, err := getValuesForHelmChart(ctx, local, helmChart, plugin, isDryRun)
+	helmValues, err := getValuesForHelmChart(ctx, local, helmChart, plugin)
 	if err != nil {
 		return nil, err
 	}
@@ -522,9 +522,9 @@ func mergeMaps(a, b map[string]interface{}) map[string]interface{} {
 
 // getValuesForHelmChart returns a set of values to be used for Helm operations.
 // The order is important as the values defined in the Helm chart can be overridden by the values defined in the Plugin.
-func getValuesForHelmChart(ctx context.Context, c client.Client, helmChart *chart.Chart, plugin *greenhousev1alpha1.Plugin, _ bool) (map[string]interface{}, error) {
+func getValuesForHelmChart(ctx context.Context, c client.Client, helmChart *chart.Chart, plugin *greenhousev1alpha1.Plugin) (map[string]interface{}, error) {
 	// Copy the values from the Helm chart ensuring a non-nil map.
-	helmValues := mergeMaps(make(map[string]interface{}, 0), helmChart.Values)
+	helmValues := mergeMaps(make(map[string]interface{}), helmChart.Values)
 	// Get values defined in plugin.
 	pluginValues, err := getValuesFromPlugin(ctx, c, plugin)
 	if err != nil {
