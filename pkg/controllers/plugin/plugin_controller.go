@@ -81,7 +81,9 @@ func (r *PluginReconciler) SetupWithManager(name string, mgr ctrl.Manager) error
 		WithOptions(controller.Options{
 			RateLimiter: workqueue.NewTypedMaxOfRateLimiter(
 				workqueue.NewTypedItemExponentialFailureRateLimiter[reconcile.Request](30*time.Second, 1*time.Hour),
-				&workqueue.TypedBucketRateLimiter[reconcile.Request]{Limiter: rate.NewLimiter(rate.Limit(10), 100)})}).
+				&workqueue.TypedBucketRateLimiter[reconcile.Request]{Limiter: rate.NewLimiter(rate.Limit(10), 100)}),
+			MaxConcurrentReconciles: 3,
+		}).
 		For(&greenhousev1alpha1.Plugin{}).
 		// If the release was (manually) modified the secret would have been modified. Reconcile it.
 		Watches(&corev1.Secret{},
@@ -168,7 +170,7 @@ func (r *PluginReconciler) EnsureCreated(ctx context.Context, resource lifecycle
 
 	reconcileErr := r.reconcileHelmRelease(ctx, restClientGetter, plugin, pluginDefinition)
 
-	// PluginStatus, WorkloadStatus and HelmChartTest should be reconciled regardless of Helm reconciliation result.
+	// PluginStatus, WorkloadStatus and ChartTest should be reconciled regardless of Helm reconciliation result.
 	r.reconcileStatus(ctx, restClientGetter, plugin, pluginDefinition, &plugin.Status)
 
 	workloadStatusResult, workloadStatusErr := r.reconcilePluginWorkloadStatus(ctx, restClientGetter, plugin, pluginDefinition)
