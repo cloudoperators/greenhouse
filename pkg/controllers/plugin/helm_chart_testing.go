@@ -58,7 +58,7 @@ func (r *PluginReconciler) reconcileHelmChartTest(ctx context.Context, plugin *g
 		return &reconcileResult{requeueAfter: result.requeueAfter}, nil
 	}
 
-	hasHelmChartTest, err := helm.HelmChartTest(ctx, restClientGetter, plugin)
+	hasHelmChartTest, err := helm.ChartTest(restClientGetter, plugin)
 	prometheusLabels := prometheus.Labels{
 		"cluster":   plugin.Spec.ClusterName,
 		"plugin":    plugin.Name,

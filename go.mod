@@ -14,7 +14,7 @@ replace (
 	k8s.io/client-go => k8s.io/client-go v0.31.5
 	k8s.io/component-base => k8s.io/component-base v0.31.5
 	k8s.io/kubectl => k8s.io/kubectl v0.31.5
-	sigs.k8s.io/controller-runtime => sigs.k8s.io/controller-runtime v0.19.4
+	sigs.k8s.io/controller-runtime => sigs.k8s.io/controller-runtime v0.19.5
 )
 
 require (
@@ -44,8 +44,7 @@ require (
 	k8s.io/client-go v0.31.5
 	k8s.io/kubectl v0.31.5
 	k8s.io/utils v0.0.0-20241210054802-24370beab758
-	sigs.k8s.io/controller-runtime v0.19.4
-	sigs.k8s.io/e2e-framework v0.5.0
+	sigs.k8s.io/controller-runtime v0.19.5
 	sigs.k8s.io/kind v0.26.0
 	sigs.k8s.io/yaml v1.4.0
 )

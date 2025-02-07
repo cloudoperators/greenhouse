@@ -18,6 +18,9 @@ spec:
       value: true
     - name: controller.scope.enabled
       value: false
+    - name: controller.config
+      value:
+        allow-cross-namespace-resources: true
     {{ if .Values.ingress.loadBalancerIP }}
     - name: controller.service.loadBalancerIP
       value: {{ .Values.ingress.loadBalancerIP | quote }}

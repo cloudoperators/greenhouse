@@ -35,7 +35,7 @@ var _ = Describe("helm package test", func() {
 	When("getting the values for the Helm chart of a plugin", func() {
 		It("should correctly get regular values and overwrite helm values", func() {
 			plugin.Spec.OptionValues = []greenhousesapv1alpha1.PluginOptionValue{*optionValue}
-			helmValues, err := helm.ExportGetValuesForHelmChart(context.Background(), test.K8sClient, helmChart, plugin, true)
+			helmValues, err := helm.ExportGetValuesForHelmChart(context.Background(), test.K8sClient, helmChart, plugin)
 			Expect(err).ShouldNot(HaveOccurred(),
 				"there should be no error getting the values")
 			Expect(helmValues).ShouldNot(BeNil(),
@@ -50,7 +50,7 @@ var _ = Describe("helm package test", func() {
 			Expect(test.K8sClient.Create(test.Ctx, pluginSecret, &client.CreateOptions{})).
 				Should(Succeed(), "creating an secret should be successful")
 
-			helmValues, err := helm.ExportGetValuesForHelmChart(context.Background(), test.K8sClient, helmChart, plugin, true)
+			helmValues, err := helm.ExportGetValuesForHelmChart(context.Background(), test.K8sClient, helmChart, plugin)
 			Expect(err).ShouldNot(HaveOccurred(),
 				"there should be no error getting the values")
 			Expect(helmValues).ShouldNot(BeNil(),
@@ -136,7 +136,7 @@ var _ = Describe("helm package test", func() {
 		})
 	})
 
-	When("handling a helm chart with CRDs", func() {
+	When("handling a helm chart with CRDs", Ordered, func() {
 		It("should re-create CRDs from Helm chart when CRD is missing on upgrade", func() {
 			By("installing helm chart")
 			err := helm.InstallOrUpgradeHelmChartFromPlugin(test.Ctx, test.K8sClient, test.RestClientGetter, testPluginWithHelmChartCRDs, plugin)
@@ -246,7 +246,7 @@ var _ = Describe("helm package test", func() {
 
 var _ = DescribeTable("getting helm values from Plugin", func(defaultValue any, exp any) {
 	helmChart := &chart.Chart{
-		Values: make(map[string]interface{}, 0),
+		Values: make(map[string]interface{}),
 	}
 
 	pluginWithOptionValue := &greenhousesapv1alpha1.Plugin{
@@ -265,7 +265,7 @@ var _ = DescribeTable("getting helm values from Plugin", func(defaultValue any, 
 		},
 	}
 
-	helmValues, err := helm.ExportGetValuesForHelmChart(context.Background(), test.K8sClient, helmChart, pluginWithOptionValue, true)
+	helmValues, err := helm.ExportGetValuesForHelmChart(context.Background(), test.K8sClient, helmChart, pluginWithOptionValue)
 	Expect(err).ShouldNot(HaveOccurred(),
 		"there should be no error getting the values")
 	Expect(helmValues).ShouldNot(BeNil(),
@@ -371,7 +371,7 @@ var _ = Describe("Plugin option checksum", Ordered, func() {
 				Value: test.MustReturnJSONFor("pluginValue1"),
 			},
 		}
-		optionValuesEmpty = []greenhousesapv1alpha1.PluginOptionValue{}
+		optionValuesEmpty []greenhousesapv1alpha1.PluginOptionValue
 	)
 
 	BeforeAll(func() {
