@@ -276,6 +276,8 @@ func (r *PluginReconciler) reconcileHelmRelease(
 		return nil
 	}
 
+	plugin.Status.HelmReleaseStatus.Diff = diffObjects.String()
+
 	if err := helm.InstallOrUpgradeHelmChartFromPlugin(ctx, r.Client, restClientGetter, pluginDefinition, plugin); err != nil {
 		errorMessage := "Helm install/upgrade failed: " + err.Error()
 		plugin.SetCondition(greenhousev1alpha1.TrueCondition(
