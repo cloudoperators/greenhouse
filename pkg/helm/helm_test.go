@@ -136,7 +136,7 @@ var _ = Describe("helm package test", func() {
 		})
 	})
 
-	When("handling a helm chart with CRDs", func() {
+	When("handling a helm chart with CRDs", Ordered, func() {
 		It("should re-create CRDs from Helm chart when CRD is missing on upgrade", func() {
 			By("installing helm chart")
 			err := helm.InstallOrUpgradeHelmChartFromPlugin(test.Ctx, test.K8sClient, test.RestClientGetter, testPluginWithHelmChartCRDs, plugin)
