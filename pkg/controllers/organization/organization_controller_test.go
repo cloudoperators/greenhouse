@@ -13,6 +13,7 @@ import (
 
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/pkg/apis/greenhouse/v1alpha1"
 	"github.com/cloudoperators/greenhouse/pkg/clientutil"
+	"github.com/cloudoperators/greenhouse/pkg/scim"
 	"github.com/cloudoperators/greenhouse/pkg/test"
 )
 
@@ -189,7 +190,8 @@ var _ = Describe("Test Organization reconciliation", Ordered, func() {
 				func(o *greenhousev1alpha1.Organization) {
 					o.Spec.Authentication = &greenhousev1alpha1.Authentication{
 						SCIMConfig: &greenhousev1alpha1.SCIMConfig{
-							BaseURL: groupsServer.URL + "/scim",
+							BaseURL:  groupsServer.URL + "/scim",
+							AuthType: scim.BearerToken,
 							BearerToken: greenhousev1alpha1.ValueFromSource{
 								Secret: &greenhousev1alpha1.SecretKeyReference{
 									Name: "test-secret",

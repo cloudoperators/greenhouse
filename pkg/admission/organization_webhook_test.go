@@ -12,6 +12,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/pkg/apis/greenhouse/v1alpha1"
+	"github.com/cloudoperators/greenhouse/pkg/scim"
 )
 
 var _ = Describe("Validate Organization Defaulting Webhook", func() {
@@ -53,7 +54,8 @@ var _ = Describe("Validate Organization Webhook", func() {
 				MappedOrgAdminIDPGroup: "MAPPER_ADMIN_ID_GROUP",
 				Authentication: &greenhousev1alpha1.Authentication{
 					SCIMConfig: &greenhousev1alpha1.SCIMConfig{
-						BaseURL: "https://example.org",
+						BaseURL:  "https://example.org",
+						AuthType: scim.Basic,
 						BasicAuthUser: greenhousev1alpha1.ValueFromSource{
 							Secret: &greenhousev1alpha1.SecretKeyReference{
 								Name: "test-secret",
@@ -75,7 +77,8 @@ var _ = Describe("Validate Organization Webhook", func() {
 				MappedOrgAdminIDPGroup: "MAPPER_ADMIN_ID_GROUP",
 				Authentication: &greenhousev1alpha1.Authentication{
 					SCIMConfig: &greenhousev1alpha1.SCIMConfig{
-						BaseURL: "https://example.org",
+						BaseURL:  "https://example.org",
+						AuthType: scim.BearerToken,
 						BearerToken: greenhousev1alpha1.ValueFromSource{
 							Secret: &greenhousev1alpha1.SecretKeyReference{
 								Name: "test-secret",
@@ -86,18 +89,53 @@ var _ = Describe("Validate Organization Webhook", func() {
 				},
 			},
 		}, false),
-		Entry("with bearer token auth and basic auth configured", &greenhousev1alpha1.Organization{
+		Entry("with basic auth configured incorrectly", &greenhousev1alpha1.Organization{
 			Spec: greenhousev1alpha1.OrganizationSpec{
 				MappedOrgAdminIDPGroup: "MAPPER_ADMIN_ID_GROUP",
 				Authentication: &greenhousev1alpha1.Authentication{
 					SCIMConfig: &greenhousev1alpha1.SCIMConfig{
-						BaseURL: "https://example.org",
+						BaseURL:  "https://example.org",
+						AuthType: scim.Basic,
 						BearerToken: greenhousev1alpha1.ValueFromSource{
 							Secret: &greenhousev1alpha1.SecretKeyReference{
 								Name: "test-secret",
 								Key:  "test-bearer-token",
 							},
 						},
+					},
+				},
+			},
+		}, true),
+		Entry("with bearer token auth configured incorrectly", &greenhousev1alpha1.Organization{
+			Spec: greenhousev1alpha1.OrganizationSpec{
+				MappedOrgAdminIDPGroup: "MAPPER_ADMIN_ID_GROUP",
+				Authentication: &greenhousev1alpha1.Authentication{
+					SCIMConfig: &greenhousev1alpha1.SCIMConfig{
+						BaseURL:  "https://example.org",
+						AuthType: scim.BearerToken,
+						BasicAuthUser: greenhousev1alpha1.ValueFromSource{
+							Secret: &greenhousev1alpha1.SecretKeyReference{
+								Name: "test-secret",
+								Key:  "test-user",
+							},
+						},
+						BasicAuthPw: greenhousev1alpha1.ValueFromSource{
+							Secret: &greenhousev1alpha1.SecretKeyReference{
+								Name: "test-secret",
+								Key:  "test-password",
+							},
+						},
+					},
+				},
+			},
+		}, true),
+		Entry("with incorrect auth type defined", &greenhousev1alpha1.Organization{
+			Spec: greenhousev1alpha1.OrganizationSpec{
+				MappedOrgAdminIDPGroup: "MAPPER_ADMIN_ID_GROUP",
+				Authentication: &greenhousev1alpha1.Authentication{
+					SCIMConfig: &greenhousev1alpha1.SCIMConfig{
+						BaseURL:  "https://example.org",
+						AuthType: scim.AuthType(255),
 						BasicAuthUser: greenhousev1alpha1.ValueFromSource{
 							Secret: &greenhousev1alpha1.SecretKeyReference{
 								Name: "test-secret",
@@ -136,7 +174,8 @@ var _ = Describe("Validate Organization Webhook", func() {
 				MappedOrgAdminIDPGroup: "MAPPER_ADMIN_ID_GROUP",
 				Authentication: &greenhousev1alpha1.Authentication{
 					SCIMConfig: &greenhousev1alpha1.SCIMConfig{
-						BaseURL: "https://example.org",
+						BaseURL:  "https://example.org",
+						AuthType: scim.Basic,
 						BasicAuthUser: greenhousev1alpha1.ValueFromSource{
 							Secret: &greenhousev1alpha1.SecretKeyReference{
 								Name: "test-secret",
@@ -158,7 +197,8 @@ var _ = Describe("Validate Organization Webhook", func() {
 				MappedOrgAdminIDPGroup: "MAPPER_ADMIN_ID_GROUP",
 				Authentication: &greenhousev1alpha1.Authentication{
 					SCIMConfig: &greenhousev1alpha1.SCIMConfig{
-						BaseURL: "https://example.org",
+						BaseURL:  "https://example.org",
+						AuthType: scim.BearerToken,
 						BearerToken: greenhousev1alpha1.ValueFromSource{
 							Secret: &greenhousev1alpha1.SecretKeyReference{
 								Name: "test-secret",
@@ -169,18 +209,13 @@ var _ = Describe("Validate Organization Webhook", func() {
 				},
 			},
 		}, false),
-		Entry("with bearer token auth and basic auth configured", &greenhousev1alpha1.Organization{
+		Entry("with incorrect auth type", &greenhousev1alpha1.Organization{
 			Spec: greenhousev1alpha1.OrganizationSpec{
 				MappedOrgAdminIDPGroup: "MAPPER_ADMIN_ID_GROUP",
 				Authentication: &greenhousev1alpha1.Authentication{
 					SCIMConfig: &greenhousev1alpha1.SCIMConfig{
-						BaseURL: "https://example.org",
-						BearerToken: greenhousev1alpha1.ValueFromSource{
-							Secret: &greenhousev1alpha1.SecretKeyReference{
-								Name: "test-secret",
-								Key:  "test-bearer-token",
-							},
-						},
+						BaseURL:  "https://example.org",
+						AuthType: scim.AuthType(255),
 						BasicAuthUser: greenhousev1alpha1.ValueFromSource{
 							Secret: &greenhousev1alpha1.SecretKeyReference{
 								Name: "test-secret",

@@ -35,7 +35,7 @@ type Config struct {
 	URL         string
 	AuthType    AuthType
 	BasicAuth   *BasicAuthConfig
-	BearerToken *string
+	BearerToken *BearerTokenConfig
 }
 
 type BasicAuthConfig struct {
@@ -43,9 +43,17 @@ type BasicAuthConfig struct {
 	Password string
 }
 
+type BearerTokenConfig struct {
+	Token  string
+	Header string
+	Prefix string
+}
+
 type bearerTokenTransport struct {
-	Token string
-	Next  http.RoundTripper
+	Token  string
+	Header string
+	Prefix string
+	Next   http.RoundTripper
 }
 
 const (
@@ -60,7 +68,17 @@ func (t *basicAuthTransport) RoundTrip(req *http.Request) (*http.Response, error
 }
 
 func (t *bearerTokenTransport) RoundTrip(req *http.Request) (*http.Response, error) {
-	req.Header.Set("Authorization", "Bearer "+t.Token)
+	header := "Authorization"
+	prefix := "Bearer"
+
+	if t.Header != "" {
+		header = t.Header
+	}
+	if t.Prefix != "" {
+		prefix = t.Prefix
+	}
+
+	req.Header.Set(header, fmt.Sprintf("%s %s", prefix, t.Token))
 	return t.Next.RoundTrip(req)
 }
 
@@ -95,10 +113,15 @@ func NewSCIMClient(logger logr.Logger, config *Config) (ISCIMClient, error) {
 		if config.BearerToken == nil {
 			return nil, errors.New("could not create http scim client, BearerToken Config missing")
 		}
+		if config.BearerToken.Token == "" {
+			return nil, errors.New("could not create http scim client, BearerToken Token missing")
+		}
 
 		authTransport = &bearerTokenTransport{
-			Token: *config.BearerToken,
-			Next:  http.DefaultTransport,
+			Token:  config.BearerToken.Token,
+			Header: config.BearerToken.Header,
+			Prefix: config.BearerToken.Prefix,
+			Next:   http.DefaultTransport,
 		}
 	default:
 		return nil, fmt.Errorf("unknown auth type: %d", config.AuthType)
