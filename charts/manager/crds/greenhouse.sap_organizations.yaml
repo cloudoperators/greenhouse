@@ -153,45 +153,15 @@ spec:
                             type: object
                         type: object
                       bearerHeader:
+                        default: Authorization
                         description: BearerHeader to be used to defined bearer token
                           header
-                        properties:
-                          secret:
-                            description: Secret references the secret containing the
-                              value.
-                            properties:
-                              key:
-                                description: Key in the secret to select the value
-                                  from.
-                                type: string
-                              name:
-                                description: Name of the secret in the same namespace.
-                                type: string
-                            required:
-                            - key
-                            - name
-                            type: object
-                        type: object
+                        type: string
                       bearerPrefix:
+                        default: Bearer
                         description: BearerPrefix to be used to defined bearer token
                           prefix
-                        properties:
-                          secret:
-                            description: Secret references the secret containing the
-                              value.
-                            properties:
-                              key:
-                                description: Key in the secret to select the value
-                                  from.
-                                type: string
-                              name:
-                                description: Name of the secret in the same namespace.
-                                type: string
-                            required:
-                            - key
-                            - name
-                            type: object
-                        type: object
+                        type: string
                       bearerToken:
                         description: BearerToken to be used for bearer token authorization
                         properties:

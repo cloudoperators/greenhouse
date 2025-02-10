@@ -273,22 +273,13 @@ func (r *OrganizationReconciler) checkSCIMAPIAvailability(ctx context.Context, o
 		}
 	case scim.BearerToken:
 		var err error
-		bearerTokenConfig = &scim.BearerTokenConfig{}
+		bearerTokenConfig = &scim.BearerTokenConfig{
+			Prefix: scimConfig.BearerPrefix,
+			Header: scimConfig.BearerHeader,
+		}
 		bearerTokenConfig.Token, err = clientutil.GetSecretKeyFromSecretKeyReference(ctx, r.Client, namespace, *scimConfig.BearerToken.Secret)
 		if err != nil {
 			return greenhousesapv1alpha1.FalseCondition(greenhousesapv1alpha1.SCIMAPIAvailableCondition, greenhousesapv1alpha1.SecretNotFoundReason, "BearerToken missing")
-		}
-		if scimConfig.BearerPrefix.Secret != nil {
-			bearerTokenConfig.Prefix, err = clientutil.GetSecretKeyFromSecretKeyReference(ctx, r.Client, namespace, *scimConfig.BearerPrefix.Secret)
-			if err != nil {
-				return greenhousesapv1alpha1.FalseCondition(greenhousesapv1alpha1.SCIMAPIAvailableCondition, greenhousesapv1alpha1.SecretNotFoundReason, "BearerPrefix missing")
-			}
-		}
-		if scimConfig.BearerHeader.Secret != nil {
-			bearerTokenConfig.Header, err = clientutil.GetSecretKeyFromSecretKeyReference(ctx, r.Client, namespace, *scimConfig.BearerHeader.Secret)
-			if err != nil {
-				return greenhousesapv1alpha1.FalseCondition(greenhousesapv1alpha1.SCIMAPIAvailableCondition, greenhousesapv1alpha1.SecretNotFoundReason, "BearerHeader missing")
-			}
 		}
 	default:
 		return greenhousesapv1alpha1.FalseCondition(greenhousesapv1alpha1.SCIMAPIAvailableCondition, greenhousesapv1alpha1.SCIMConfigNotProvidedReason, "SCIM config is not provided")
