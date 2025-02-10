@@ -19,29 +19,34 @@ func Test_SCIM_Client(t *testing.T) {
 	bearerToken := "bearer token"
 
 	testTable := []struct {
-		name        string
-		authType    AuthType
-		username    string
-		password    string
-		bearerToken *string
-		withError   bool
+		name              string
+		authType          AuthType
+		basicAuthConfig   *BasicAuthConfig
+		bearerTokenConfig *BearerTokenConfig
+		withError         bool
 	}{
 		{
 			name:     "it should successfully create a basic auth client",
 			authType: Basic,
-			username: "some-username",
-			password: "some-password",
+			basicAuthConfig: &BasicAuthConfig{
+				Username: "some-username",
+				Password: "some-password",
+			},
 		},
 		{
-			name:      "it should fail to create a basic auth client, when no username is provided",
-			authType:  Basic,
-			password:  "some-password",
+			name:     "it should fail to create a basic auth client, when no username is provided",
+			authType: Basic,
+			basicAuthConfig: &BasicAuthConfig{
+				Password: "some-password",
+			},
 			withError: true,
 		},
 		{
-			name:      "it should fail to create a basic auth client, when no password is provided",
-			authType:  Basic,
-			username:  "some-username",
+			name:     "it should fail to create a basic auth client, when no password is provided",
+			authType: Basic,
+			basicAuthConfig: &BasicAuthConfig{
+				Username: "some-username",
+			},
 			withError: true,
 		},
 		{
@@ -50,14 +55,17 @@ func Test_SCIM_Client(t *testing.T) {
 			withError: true,
 		},
 		{
-			name:        "it should successfully create a bearer token client",
-			authType:    BearerToken,
-			bearerToken: &bearerToken,
+			name:     "it should successfully create a bearer token client",
+			authType: BearerToken,
+			bearerTokenConfig: &BearerTokenConfig{
+				Token: bearerToken,
+			},
 		},
 		{
-			name:      "it should failed to create a bearer token client, when no bearer token is provided",
-			authType:  BearerToken,
-			withError: true,
+			name:              "it should failed to create a bearer token client, when no bearer token is provided",
+			authType:          BearerToken,
+			withError:         true,
+			bearerTokenConfig: &BearerTokenConfig{},
 		},
 	}
 	logger := ctrl.Log.WithName("scim")
@@ -65,13 +73,10 @@ func Test_SCIM_Client(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			server, _ := setup()
 			_, err := NewSCIMClient(logger, &Config{
-				URL:      server.URL + baseURLPath,
-				AuthType: test.authType,
-				BasicAuth: &BasicAuthConfig{
-					Username: test.username,
-					Password: test.password,
-				},
-				BearerToken: test.bearerToken,
+				URL:         server.URL + baseURLPath,
+				AuthType:    test.authType,
+				BasicAuth:   test.basicAuthConfig,
+				BearerToken: test.bearerTokenConfig,
 			})
 			if test.withError {
 				assert.Error(t, err)
