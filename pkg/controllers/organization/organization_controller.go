@@ -257,40 +257,47 @@ func (r *OrganizationReconciler) checkSCIMAPIAvailability(ctx context.Context, o
 	namespace := org.Name
 	scimConfig := org.Spec.Authentication.SCIMConfig
 
-	var authType *scim.AuthType
-	var basicAuthUser, basicAuthPw, bearerToken string
-	var err error
-	if scimConfig.BasicAuthUser.Secret != nil && scimConfig.BasicAuthPw.Secret != nil { // Conditions to avoid panic
-		basicAuthUser, err = clientutil.GetSecretKeyFromSecretKeyReference(ctx, r.Client, namespace, *scimConfig.BasicAuthUser.Secret)
+	var basicAuthConfig *scim.BasicAuthConfig
+	var bearerTokenConfig *scim.BearerTokenConfig
+	switch scimConfig.AuthType {
+	case scim.Basic:
+		var err error
+		basicAuthConfig = &scim.BasicAuthConfig{}
+		basicAuthConfig.Username, err = clientutil.GetSecretKeyFromSecretKeyReference(ctx, r.Client, namespace, *scimConfig.BasicAuthUser.Secret)
 		if err != nil {
 			return greenhousesapv1alpha1.FalseCondition(greenhousesapv1alpha1.SCIMAPIAvailableCondition, greenhousesapv1alpha1.SecretNotFoundReason, "BasicAuthUser missing")
 		}
-		basicAuthPw, err = clientutil.GetSecretKeyFromSecretKeyReference(ctx, r.Client, namespace, *scimConfig.BasicAuthPw.Secret)
+		basicAuthConfig.Password, err = clientutil.GetSecretKeyFromSecretKeyReference(ctx, r.Client, namespace, *scimConfig.BasicAuthPw.Secret)
 		if err != nil {
 			return greenhousesapv1alpha1.FalseCondition(greenhousesapv1alpha1.SCIMAPIAvailableCondition, greenhousesapv1alpha1.SecretNotFoundReason, "BasicAuthPw missing")
 		}
-		newAuthType := scim.Basic
-		authType = &newAuthType
-	}
-	if scimConfig.BearerToken.Secret != nil {
-		bearerToken, err = clientutil.GetSecretKeyFromSecretKeyReference(ctx, r.Client, namespace, *scimConfig.BearerToken.Secret)
+	case scim.BearerToken:
+		var err error
+		bearerTokenConfig = &scim.BearerTokenConfig{}
+		bearerTokenConfig.Token, err = clientutil.GetSecretKeyFromSecretKeyReference(ctx, r.Client, namespace, *scimConfig.BearerToken.Secret)
 		if err != nil {
 			return greenhousesapv1alpha1.FalseCondition(greenhousesapv1alpha1.SCIMAPIAvailableCondition, greenhousesapv1alpha1.SecretNotFoundReason, "BearerToken missing")
 		}
-		newAuthType := scim.BearerToken
-		authType = &newAuthType
-	}
-	if authType == nil {
+		if scimConfig.BearerPrefix.Secret != nil {
+			bearerTokenConfig.Prefix, err = clientutil.GetSecretKeyFromSecretKeyReference(ctx, r.Client, namespace, *scimConfig.BearerPrefix.Secret)
+			if err != nil {
+				return greenhousesapv1alpha1.FalseCondition(greenhousesapv1alpha1.SCIMAPIAvailableCondition, greenhousesapv1alpha1.SecretNotFoundReason, "BearerPrefix missing")
+			}
+		}
+		if scimConfig.BearerHeader.Secret != nil {
+			bearerTokenConfig.Header, err = clientutil.GetSecretKeyFromSecretKeyReference(ctx, r.Client, namespace, *scimConfig.BearerHeader.Secret)
+			if err != nil {
+				return greenhousesapv1alpha1.FalseCondition(greenhousesapv1alpha1.SCIMAPIAvailableCondition, greenhousesapv1alpha1.SecretNotFoundReason, "BearerHeader missing")
+			}
+		}
+	default:
 		return greenhousesapv1alpha1.FalseCondition(greenhousesapv1alpha1.SCIMAPIAvailableCondition, greenhousesapv1alpha1.SCIMConfigNotProvidedReason, "SCIM config is not provided")
 	}
 	config := &scim.Config{
-		URL:      scimConfig.BaseURL,
-		AuthType: *authType,
-		BasicAuth: &scim.BasicAuthConfig{
-			Username: basicAuthUser,
-			Password: basicAuthPw,
-		},
-		BearerToken: &bearerToken,
+		URL:         scimConfig.BaseURL,
+		AuthType:    org.Spec.Authentication.SCIMConfig.AuthType,
+		BasicAuth:   basicAuthConfig,
+		BearerToken: bearerTokenConfig,
 	}
 	logger := ctrl.LoggerFrom(ctx)
 	scimClient, err := scim.NewSCIMClient(logger, config)

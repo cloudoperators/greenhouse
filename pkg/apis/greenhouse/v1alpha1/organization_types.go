@@ -5,6 +5,8 @@ package v1alpha1
 
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
+	"github.com/cloudoperators/greenhouse/pkg/scim"
 )
 
 const (
@@ -73,12 +75,18 @@ type OIDCConfig struct {
 type SCIMConfig struct {
 	// URL to the SCIM server.
 	BaseURL string `json:"baseURL"`
+	// AuthType defined possible authentication type
+	AuthType scim.AuthType `json:"authType,omitempty"`
 	// User to be used for basic authentication.
 	BasicAuthUser ValueFromSource `json:"basicAuthUser"`
 	// Password to be used for basic authentication.
 	BasicAuthPw ValueFromSource `json:"basicAuthPw"`
 	// BearerToken to be used for bearer token authorization
 	BearerToken ValueFromSource `json:"bearerToken"`
+	// BearerPrefix to be used to defined bearer token prefix
+	BearerPrefix ValueFromSource `json:"bearerPrefix"`
+	// BearerHeader to be used to defined bearer token header
+	BearerHeader ValueFromSource `json:"bearerHeader"`
 }
 
 // OrganizationStatus defines the observed state of an Organization
