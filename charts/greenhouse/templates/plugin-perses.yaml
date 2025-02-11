@@ -14,7 +14,7 @@ spec:
       value: true
     - name: perses.ingress.hosts
       value:
-        - host: {{ index .Values.perses.ingress.hosts 0 "host" }}
+        - host: "perses.{{ .Values.global.dnsDomain }}"
           paths:
             - path: /
               pathType: Prefix
@@ -23,8 +23,8 @@ spec:
     - name: perses.ingress.tls
       value:
         - hosts:
-            - {{ index .Values.perses.ingress.tls.hosts 0 }}
-          secretName: {{ printf "%s-%s" "tls" (first .Values.perses.ingress.hosts).host | replace "." "-" }}
+            - "perses.{{ .Values.global.dnsDomain }}"
+          secretName: {{ printf "tls-%s" (print "perses." .Values.global.dnsDomain | replace "." "-") }}
     - name: perses.sidecar.enabled
       value: true
   pluginDefinition: perses
