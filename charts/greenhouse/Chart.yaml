@@ -12,13 +12,13 @@ dependencies:
   - condition: idproxy.enabled
     name: idproxy
     repository: "file://../idproxy"
-    version: 0.2.0
+    version: 0.2.1
   - condition: cors-proxy.enabled
     name: cors-proxy
     repository: "file://../cors-proxy"
     version: 0.2.0
   - name: manager
-    version: 0.1.6
+    version: 0.1.7
     repository: "file://../manager"
   - condition: dashboard.enabled
     name: dashboard
