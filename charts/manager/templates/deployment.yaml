@@ -35,17 +35,23 @@ spec:
         {{- include "manager.params" . | indent 8 }}
         {{- end }}
         env:
-        - name: DEX_POSTGRES_DATABASE
-          value: {{ .Values.postgresql.postgresqlDatabase }}
-        - name: DEX_POSTGRES_HOST
-          value: 
-        - name: DEX_POSTGRES_USER
-          value: {{ .Values.postgresql.postgresqlUsername }}
-        - name: DEX_POSTGRES_PASSWORD
+        - name: FEATURE_FLAGS
+          value: {{ feature-flag.fullname }}
+        {{- if .Values.global.dex.backend == "postgres" }}
+        - name: PG_DATABASE
+          value: {{ .Values.global.dex.postgresql.postgresqlDatabase }}
+        - name: PG_HOST
+          value: {{ .Values.global.dex.postgresql.postgresqlHost }}
+        - name: PG_PORT
+          value: {{ .Values.global.dex.postgresql.postgresqlPort }}
+        - name: PG_USER
+          value: {{ .Values.global.dex.postgresql.postgresqlUsername }}
+        - name: PG_PASSWORD
           valueFrom:
             secretKeyRef:
               key: postgres-password
-              name: dex-postgres-pguser-dex
+              name: {{ .Release.Name }}-pguser-{{ .Values.global.dex.postgresql.postgresqlUsername }}
+        {{- end }}
         - name: POD_NAMESPACE
           valueFrom:
             fieldRef:

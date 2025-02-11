@@ -4,5 +4,16 @@ kind: ConfigMap
 metadata:
   name: {{ include "manager.fullname" . }}-feature-flags
 data:
-    config.yaml: |-
-        {{- .Files.Get "etc/feature_flags.yaml" | nindent 4 }}
+  _example: >
+    ################################
+    #                              #
+    #    EXAMPLE CONFIGURATION     #
+    #                              # 
+    ################################ 
+    # enable dex features 
+    # storage allows you to choose what kind of dex storage backend you would like to choose 
+    # Greenhouse gives the choice of using kubernetes as the storage backend or to use postgresSQL as the backend
+    dex: |
+      storage: kubernetes / postgres
+  dex: |
+    storage: {{ .Values.dex.backend }}

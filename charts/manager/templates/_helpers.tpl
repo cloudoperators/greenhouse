@@ -68,3 +68,13 @@ Create the name of the service account to use
 {{- default "default" .Values.serviceAccount.name }}
 {{- end }}
 {{- end }}
+
+{{/*
+Define postgresql helpers
+*/}}
+{{- define "postgres.fullname" -}}
+  {{- printf "%s-postgresql" .Release.Name | trunc 48 | replace "_" "-" -}}
+{{- end -}}
+{{- denife "feature-flag.fullname"-}}
+    {{- printf "%s-feature-flag" .Release.Name | trunc 48 | replace "_" "-" -}}
+{{- end -}}

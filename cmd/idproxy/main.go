@@ -65,7 +65,7 @@ func main() {
 	}
 	// default to kubernetes storage backend
 	backend := clientutil.Ptr("kubernetes")
-	ghFeatures, err := features.NewFeatures(ctx, k8sClient)
+	ghFeatures, err := features.NewFeatures(ctx, k8sClient, clientutil.GetEnvOrDefault("FEATURE_FLAGS", "greenhouse-feature-flags"), clientutil.GetEnvOrDefault("POD_NAMESPACE", "greenhouse"))
 	if err != nil {
 		log.Fatalf("failed to get greenhouse features: %s", err)
 	}

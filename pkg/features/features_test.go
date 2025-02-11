@@ -72,12 +72,12 @@ func Test_DexFeatures(t *testing.T) {
 
 			if tc.getError != nil {
 				mockK8sClient.On("Get", ctx, types.NamespacedName{
-					Name: featureConfigMapName, Namespace: featureConfigMapNamespace,
+					Name: clientutil.GetEnvOrDefault("FEATURE_FLAGS", "greenhouse-feature-flags"), Namespace: clientutil.GetEnvOrDefault("POD_NAMESPACE", "greenhouse"),
 				}, mock.Anything).Return(tc.getError)
 			} else {
 				configMap.Data = tc.configMapData
 				mockK8sClient.On("Get", ctx, types.NamespacedName{
-					Name: featureConfigMapName, Namespace: featureConfigMapNamespace,
+					Name: clientutil.GetEnvOrDefault("FEATURE_FLAGS", "greenhouse-feature-flags"), Namespace: clientutil.GetEnvOrDefault("POD_NAMESPACE", "greenhouse"),
 				}, mock.Anything).Run(func(args mock.Arguments) {
 					arg := args.Get(2).(*corev1.ConfigMap)
 					*arg = *configMap
@@ -85,7 +85,7 @@ func Test_DexFeatures(t *testing.T) {
 			}
 
 			// Create Features instance
-			featuresInstance, err := NewFeatures(ctx, mockK8sClient)
+			featuresInstance, err := NewFeatures(ctx, mockK8sClient, clientutil.GetEnvOrDefault("FEATURE_FLAGS", "greenhouse-feature-flags"), clientutil.GetEnvOrDefault("POD_NAMESPACE", "greenhouse"))
 			if tc.getError != nil && client.IgnoreNotFound(tc.getError) == nil {
 				assert.NoError(t, client.IgnoreNotFound(err))
 				assert.Nil(t, featuresInstance, "Expected nil when ConfigMap is missing")

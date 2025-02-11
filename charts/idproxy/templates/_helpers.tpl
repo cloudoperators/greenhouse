@@ -65,3 +65,13 @@ Create the name of the service account to use
 {{- define "idproxy.auth.hostname" -}}
 {{- printf "%s.%s" "auth" (required "global.dnsDomain missing" .Values.global.dnsDomain) }}
 {{- end }}
+
+{{/*
+Define postgresql helpers
+*/}}
+{{- define "postgres.fullname" -}}
+  {{- printf "%s-postgresql" .Release.Name | trunc 48 | replace "_" "-" -}}
+{{- end -}}
+{{- denife "feature-flag.fullname"-}}
+    {{- printf "%s-feature-flag" .Release.Name | trunc 48 | replace "_" "-" -}}
+{{- end -}}

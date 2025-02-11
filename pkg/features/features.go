@@ -19,9 +19,8 @@ import (
 )
 
 const (
-	DexFeatureKey             = "dex"
-	featureConfigMapName      = "greenhouse-feature-flags"
-	featureConfigMapNamespace = "greenhouse"
+	DexFeatureKey        = "dex"
+	featureConfigMapName = "greenhouse-feature-flags"
 )
 
 type features struct {
@@ -38,9 +37,9 @@ type Features interface {
 	GetDexStorageType(ctx context.Context) *string
 }
 
-func NewFeatures(ctx context.Context, k8sClient client.Reader) (Features, error) {
+func NewFeatures(ctx context.Context, k8sClient client.Reader, configMapName, podNameSpace string) (Features, error) {
 	featureMap := &corev1.ConfigMap{}
-	if err := k8sClient.Get(ctx, types.NamespacedName{Name: featureConfigMapName, Namespace: featureConfigMapNamespace}, featureMap); err != nil {
+	if err := k8sClient.Get(ctx, types.NamespacedName{Name: configMapName, Namespace: podNameSpace}, featureMap); err != nil {
 		if kerrors.IsNotFound(err) {
 			return nil, nil
 		}

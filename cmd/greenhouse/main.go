@@ -137,7 +137,7 @@ func main() {
 	// Note: mgr.GetClient() will fail here because the cache is not ready yet
 	k8sClient := mgr.GetAPIReader()
 	// Initialize the feature gates from feature-flags config map
-	f, err = features.NewFeatures(context.TODO(), k8sClient)
+	f, err = features.NewFeatures(context.TODO(), k8sClient, clientutil.GetEnvOrDefault("FEATURE_FLAGS", "greenhouse-feature-flags"), clientutil.GetEnvOrDefault("POD_NAMESPACE", "greenhouse"))
 	if err != nil {
 		handleError(err, "unable to get features")
 	}
