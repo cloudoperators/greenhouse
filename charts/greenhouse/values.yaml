@@ -120,3 +120,6 @@ logshipping:
     hotReload:
       image:
         repository: ghcr.io/jimmidyson/configmap-reload
+
+perses:
+  enabled: true

@@ -59,6 +59,7 @@ plutono:
     hosts:
       - "foo.bar"
 
+
 logshipping:
   enabled: true
   opensearch:
