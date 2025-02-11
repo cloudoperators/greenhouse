@@ -28,6 +28,7 @@ import (
 
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/pkg/apis/greenhouse/v1alpha1"
 	"github.com/cloudoperators/greenhouse/pkg/clientutil"
+	"github.com/cloudoperators/greenhouse/pkg/converters"
 	"github.com/cloudoperators/greenhouse/pkg/lifecycle"
 	"github.com/cloudoperators/greenhouse/pkg/scim"
 )
@@ -230,24 +231,12 @@ func (r *TeamMembershipUpdaterController) createSCIMClient(
 	scimConfig *greenhousev1alpha1.SCIMConfig,
 ) (scim.ISCIMClient, error) {
 
-	basicAuthUser, err := clientutil.GetSecretKeyFromSecretKeyReference(ctx, r.Client, namespace, *scimConfig.BasicAuthUser.Secret)
+	clientConfig, conditions, err := converters.GreenhouseSCIMConfigToSCIMConfig(ctx, *scimConfig, r.Client, namespace, greenhousev1alpha1.SCIMAccessReadyCondition)
 	if err != nil {
-		teamMembershipStatus.SetConditions(greenhousev1alpha1.FalseCondition(greenhousev1alpha1.SCIMAccessReadyCondition, greenhousev1alpha1.SecretNotFoundReason, "BasicAuthUser missing"))
+		teamMembershipStatus.SetConditions(conditions)
 		return nil, err
 	}
-	basicAuthPw, err := clientutil.GetSecretKeyFromSecretKeyReference(ctx, r.Client, namespace, *scimConfig.BasicAuthPw.Secret)
-	if err != nil {
-		teamMembershipStatus.SetConditions(greenhousev1alpha1.FalseCondition(greenhousev1alpha1.SCIMAccessReadyCondition, greenhousev1alpha1.SecretNotFoundReason, "BasicAuthPw missing"))
-		return nil, err
-	}
-	clientConfig := &scim.Config{
-		URL:      scimConfig.BaseURL,
-		AuthType: scim.Basic,
-		BasicAuth: &scim.BasicAuthConfig{
-			Username: basicAuthUser,
-			Password: basicAuthPw,
-		},
-	}
+
 	logger := ctrl.LoggerFrom(ctx)
 	return scim.NewSCIMClient(logger, clientConfig)
 }
