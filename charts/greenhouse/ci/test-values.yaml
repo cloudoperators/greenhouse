@@ -59,6 +59,15 @@ plutono:
     hosts:
       - "foo.bar"
 
+perses:
+  enabled: true
+  ingress:
+    hosts:
+      - host: "foo.bar"
+    tls:
+      hosts:
+        - "foo.bar"
+
 logshipping:
   enabled: true
   opensearch:
