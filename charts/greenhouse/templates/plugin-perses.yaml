@@ -1,4 +1,4 @@
-{{ if and .Values.plugins.enabled .Values.plutono.enabled }}
+{{ if and .Values.plugins.enabled .Values.perses.enabled }}
 apiVersion: greenhouse.sap/v1alpha1
 kind: Plugin
 metadata:
