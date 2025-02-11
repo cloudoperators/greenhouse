@@ -26,8 +26,11 @@ import (
 	"github.com/cloudoperators/greenhouse/pkg/version"
 )
 
-const serviceProxyName = "service-proxy"
-const cookieSecretKey = "oauth2proxy-cookie-secret" //nolint:gosec
+const (
+	serviceProxyName       = "service-proxy"
+	cookieSecretKey        = "oauth2proxy-cookie-secret" //nolint:gosec
+	oauthPreviewAnnotation = "greenhouse.sap/oauth-proxy-preview"
+)
 
 func (r *OrganizationReconciler) reconcileServiceProxy(ctx context.Context, org *greenhousesapv1alpha1.Organization) error {
 	domain := fmt.Sprintf("%s.%s", org.Name, common.DNSDomain)
@@ -50,27 +53,37 @@ func (r *OrganizationReconciler) reconcileServiceProxy(ctx context.Context, org 
 		return nil
 	}
 
-	if org.Spec.Authentication == nil || org.Spec.Authentication.OIDCConfig == nil {
-		log.FromContext(ctx).Info("skipping service-proxy Plugin reconciliation, Organization has no OIDCConfig")
-		return nil
+	// TODO: remove this once the feature is considered stable.
+	// This allows to enable/disable the oauth-proxy feature for a specific organization
+	oauthProxyEnabled := false
+	if val, ok := org.GetAnnotations()[oauthPreviewAnnotation]; ok {
+		oauthProxyEnabled = val == "true"
 	}
 
-	// oauth2-proxy requires a cookie secret, which needs to be provided from a secret
-	secret := &corev1.Secret{}
-	if err := r.Client.Get(ctx, types.NamespacedName{Name: org.Spec.Authentication.OIDCConfig.ClientSecretReference.Name, Namespace: org.Name}, secret); err != nil {
-		log.FromContext(ctx).Info("failed to get Organization OIDC Secret", "error", err)
-		return nil
-	}
-	if _, ok := secret.Data[cookieSecretKey]; !ok {
-		cookieData, err := generateCookieSecret()
-		if err != nil {
-			log.FromContext(ctx).Info("failed to generate cookie secret", "error", err)
-			return err
+	if oauthProxyEnabled {
+		// oauth2-proxy requires OIDC Client config
+		if org.Spec.Authentication == nil || org.Spec.Authentication.OIDCConfig == nil {
+			log.FromContext(ctx).Info("skipping service-proxy Plugin reconciliation, Organization has no OIDCConfig")
+			return nil
 		}
-		secret.Data[cookieSecretKey] = []byte(cookieData)
-		if err := r.Client.Update(ctx, secret); err != nil {
-			log.FromContext(ctx).Info("failed to update Organization OIDC Secret with cookie secret", "error", err)
-			return fmt.Errorf("failed to update Organization OIDC Secret with cookie secret: %w", err)
+
+		// oauth2-proxy requires a cookie secret, which needs to be provided from a secret
+		secret := &corev1.Secret{}
+		if err := r.Client.Get(ctx, types.NamespacedName{Name: org.Spec.Authentication.OIDCConfig.ClientSecretReference.Name, Namespace: org.Name}, secret); err != nil {
+			log.FromContext(ctx).Info("failed to get Organization OIDC Secret", "error", err)
+			return nil
+		}
+		if _, ok := secret.Data[cookieSecretKey]; !ok {
+			cookieData, err := generateCookieSecret()
+			if err != nil {
+				log.FromContext(ctx).Info("failed to generate cookie secret", "error", err)
+				return err
+			}
+			secret.Data[cookieSecretKey] = []byte(cookieData)
+			if err := r.Client.Update(ctx, secret); err != nil {
+				log.FromContext(ctx).Info("failed to update Organization OIDC Secret with cookie secret", "error", err)
+				return fmt.Errorf("failed to update Organization OIDC Secret with cookie secret: %w", err)
+			}
 		}
 	}
 
@@ -95,34 +108,43 @@ func (r *OrganizationReconciler) reconcileServiceProxy(ctx context.Context, org 
 				Name:  "image.tag",
 				Value: &apiextensionsv1.JSON{Raw: versionJSON},
 			},
-			{
-				Name:  "oauth2proxy.issuerURL",
-				Value: &apiextensionsv1.JSON{Raw: []byte(fmt.Sprintf("\"%s\"", org.Spec.Authentication.OIDCConfig.Issuer))},
-			},
-			{
-				Name:  "oauth2proxy.clientIDRef.secret",
-				Value: &apiextensionsv1.JSON{Raw: []byte(fmt.Sprintf("\"%s\"", org.Spec.Authentication.OIDCConfig.ClientIDReference.Name))},
-			},
-			{
-				Name:  "oauth2proxy.clientIDRef.key",
-				Value: &apiextensionsv1.JSON{Raw: []byte(fmt.Sprintf("\"%s\"", org.Spec.Authentication.OIDCConfig.ClientIDReference.Key))},
-			},
-			{
-				Name:  "oauth2proxy.clientSecretRef.secret",
-				Value: &apiextensionsv1.JSON{Raw: []byte(fmt.Sprintf("\"%s\"", org.Spec.Authentication.OIDCConfig.ClientSecretReference.Name))},
-			},
-			{
-				Name:  "oauth2proxy.clientSecretRef.key",
-				Value: &apiextensionsv1.JSON{Raw: []byte(fmt.Sprintf("\"%s\"", org.Spec.Authentication.OIDCConfig.ClientSecretReference.Key))},
-			},
-			{
-				Name:  "oauth2proxy.cookieSecretRef.secret",
-				Value: &apiextensionsv1.JSON{Raw: []byte(fmt.Sprintf("\"%s\"", org.Spec.Authentication.OIDCConfig.ClientSecretReference.Name))},
-			},
-			{
-				Name:  "oauth2proxy.cookieSecretRef.key",
-				Value: &apiextensionsv1.JSON{Raw: []byte(fmt.Sprintf("\"%s\"", cookieSecretKey))},
-			},
+		}
+		if oauthProxyEnabled {
+			oauthProxyValues := []greenhousesapv1alpha1.PluginOptionValue{
+				{
+					Name:  "oauth2proxy.enabled",
+					Value: &apiextensionsv1.JSON{Raw: []byte("\"true\"")},
+				},
+				{
+					Name:  "oauth2proxy.issuerURL",
+					Value: &apiextensionsv1.JSON{Raw: []byte(fmt.Sprintf("\"%s\"", org.Spec.Authentication.OIDCConfig.Issuer))},
+				},
+				{
+					Name:  "oauth2proxy.clientIDRef.secret",
+					Value: &apiextensionsv1.JSON{Raw: []byte(fmt.Sprintf("\"%s\"", org.Spec.Authentication.OIDCConfig.ClientIDReference.Name))},
+				},
+				{
+					Name:  "oauth2proxy.clientIDRef.key",
+					Value: &apiextensionsv1.JSON{Raw: []byte(fmt.Sprintf("\"%s\"", org.Spec.Authentication.OIDCConfig.ClientIDReference.Key))},
+				},
+				{
+					Name:  "oauth2proxy.clientSecretRef.secret",
+					Value: &apiextensionsv1.JSON{Raw: []byte(fmt.Sprintf("\"%s\"", org.Spec.Authentication.OIDCConfig.ClientSecretReference.Name))},
+				},
+				{
+					Name:  "oauth2proxy.clientSecretRef.key",
+					Value: &apiextensionsv1.JSON{Raw: []byte(fmt.Sprintf("\"%s\"", org.Spec.Authentication.OIDCConfig.ClientSecretReference.Key))},
+				},
+				{
+					Name:  "oauth2proxy.cookieSecretRef.secret",
+					Value: &apiextensionsv1.JSON{Raw: []byte(fmt.Sprintf("\"%s\"", org.Spec.Authentication.OIDCConfig.ClientSecretReference.Name))},
+				},
+				{
+					Name:  "oauth2proxy.cookieSecretRef.key",
+					Value: &apiextensionsv1.JSON{Raw: []byte(fmt.Sprintf("\"%s\"", cookieSecretKey))},
+				},
+			}
+			plugin.Spec.OptionValues = append(plugin.Spec.OptionValues, oauthProxyValues...)
 		}
 		return controllerutil.SetControllerReference(org, plugin, r.Scheme())
 	})
