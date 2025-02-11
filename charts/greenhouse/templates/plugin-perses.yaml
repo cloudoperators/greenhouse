@@ -1,3 +1,4 @@
+{{ if and .Values.plugins.enabled .Values.plutono.enabled }}
 apiVersion: greenhouse.sap/v1alpha1
 kind: Plugin
 metadata:
@@ -28,3 +29,4 @@ spec:
     - name: perses.sidecar.enabled
       value: true
   pluginDefinition: perses
+{{ end }}
