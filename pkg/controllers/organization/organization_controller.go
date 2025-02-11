@@ -20,6 +20,7 @@ import (
 
 	greenhousesapv1alpha1 "github.com/cloudoperators/greenhouse/pkg/apis/greenhouse/v1alpha1"
 	"github.com/cloudoperators/greenhouse/pkg/clientutil"
+	"github.com/cloudoperators/greenhouse/pkg/converters"
 	dexapi "github.com/cloudoperators/greenhouse/pkg/dex/api"
 	"github.com/cloudoperators/greenhouse/pkg/lifecycle"
 	"github.com/cloudoperators/greenhouse/pkg/scim"
@@ -257,38 +258,9 @@ func (r *OrganizationReconciler) checkSCIMAPIAvailability(ctx context.Context, o
 	namespace := org.Name
 	scimConfig := org.Spec.Authentication.SCIMConfig
 
-	var basicAuthConfig *scim.BasicAuthConfig
-	var bearerTokenConfig *scim.BearerTokenConfig
-	switch scimConfig.AuthType {
-	case scim.Basic:
-		var err error
-		basicAuthConfig = &scim.BasicAuthConfig{}
-		basicAuthConfig.Username, err = clientutil.GetSecretKeyFromSecretKeyReference(ctx, r.Client, namespace, *scimConfig.BasicAuthUser.Secret)
-		if err != nil {
-			return greenhousesapv1alpha1.FalseCondition(greenhousesapv1alpha1.SCIMAPIAvailableCondition, greenhousesapv1alpha1.SecretNotFoundReason, "BasicAuthUser missing")
-		}
-		basicAuthConfig.Password, err = clientutil.GetSecretKeyFromSecretKeyReference(ctx, r.Client, namespace, *scimConfig.BasicAuthPw.Secret)
-		if err != nil {
-			return greenhousesapv1alpha1.FalseCondition(greenhousesapv1alpha1.SCIMAPIAvailableCondition, greenhousesapv1alpha1.SecretNotFoundReason, "BasicAuthPw missing")
-		}
-	case scim.BearerToken:
-		var err error
-		bearerTokenConfig = &scim.BearerTokenConfig{
-			Prefix: scimConfig.BearerPrefix,
-			Header: scimConfig.BearerHeader,
-		}
-		bearerTokenConfig.Token, err = clientutil.GetSecretKeyFromSecretKeyReference(ctx, r.Client, namespace, *scimConfig.BearerToken.Secret)
-		if err != nil {
-			return greenhousesapv1alpha1.FalseCondition(greenhousesapv1alpha1.SCIMAPIAvailableCondition, greenhousesapv1alpha1.SecretNotFoundReason, "BearerToken missing")
-		}
-	default:
-		return greenhousesapv1alpha1.FalseCondition(greenhousesapv1alpha1.SCIMAPIAvailableCondition, greenhousesapv1alpha1.SCIMConfigNotProvidedReason, "SCIM config is not provided")
-	}
-	config := &scim.Config{
-		URL:         scimConfig.BaseURL,
-		AuthType:    org.Spec.Authentication.SCIMConfig.AuthType,
-		BasicAuth:   basicAuthConfig,
-		BearerToken: bearerTokenConfig,
+	config, conditions, err := converters.GreenhouseSCIMConfigToSCIMConfig(ctx, *scimConfig, r.Client, namespace, greenhousesapv1alpha1.SCIMAPIAvailableCondition)
+	if err != nil {
+		return conditions
 	}
 	logger := ctrl.LoggerFrom(ctx)
 	scimClient, err := scim.NewSCIMClient(logger, config)
