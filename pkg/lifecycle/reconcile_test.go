@@ -67,6 +67,7 @@ var _ = Describe("Reconcile", func() {
 		reconcileResult lifecycle.ReconcileResult
 		deletionTime    *metav1.Time
 		setupState      greenhousev1alpha1.Condition
+		finalizers      []string
 		reconcileError  error
 	}
 
@@ -80,6 +81,9 @@ var _ = Describe("Reconcile", func() {
 			wantSetupState         greenhousev1alpha1.Condition
 			verifyFinalizerRemoval bool
 		}) {
+			if len(tt.args.finalizers) == 0 {
+				tt.args.finalizers = []string{lifecycle.CommonCleanupFinalizer}
+			}
 			resourceForTest = &fixtures.Dummy{
 				Spec:     fixtures.DummySpec{},
 				Status:   fixtures.DummyStatus{StatusConditions: greenhousev1alpha1.StatusConditions{Conditions: []greenhousev1alpha1.Condition{tt.args.setupState}}},
@@ -89,7 +93,7 @@ var _ = Describe("Reconcile", func() {
 					Namespace:         "default",
 					CreationTimestamp: metav1.NewTime(time.Now()),
 					DeletionTimestamp: tt.args.deletionTime,
-					Finalizers:        []string{lifecycle.CommonCleanupFinalizer},
+					Finalizers:        tt.args.finalizers,
 				},
 			}
 
@@ -122,7 +126,7 @@ var _ = Describe("Reconcile", func() {
 			Expect(expectedState.Reason).To(Equal(tt.wantSetupState.Reason))
 			Expect(expectedState.Message).To(Equal(tt.wantSetupState.Message))
 			if tt.verifyFinalizerRemoval {
-				Expect(resourceForTest.GetFinalizers()).To(BeEmpty())
+				Expect(resourceForTest.GetFinalizers()).NotTo(ContainElement(lifecycle.CommonCleanupFinalizer))
 			}
 		},
 		Entry("it should reach CREATED state", struct {
@@ -243,6 +247,22 @@ var _ = Describe("Reconcile", func() {
 			verifyFinalizerRemoval: true,
 			args: args{
 				setupState:      deletedCondition,
+				reconcileResult: lifecycle.Success,
+				deletionTime:    &deletionTime,
+			},
+		}),
+		Entry("it should not enter ensureCreated or ensureDeleted if deletionTime is set but no common finalizer", struct {
+			args                   args
+			wantMethod             string
+			wantSetupState         greenhousev1alpha1.Condition
+			verifyFinalizerRemoval bool
+		}{
+			wantMethod:             ensureDeleted,
+			wantSetupState:         deletedCondition,
+			verifyFinalizerRemoval: true,
+			args: args{
+				setupState:      deletedCondition,
+				finalizers:      []string{"greenhouse.sap/unknown", lifecycle.CommonCleanupFinalizer},
 				reconcileResult: lifecycle.Success,
 				deletionTime:    &deletionTime,
 			},

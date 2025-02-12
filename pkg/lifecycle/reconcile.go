@@ -84,7 +84,11 @@ func Reconcile(ctx context.Context, kubeClient client.Client, namespacedName typ
 		result ctrl.Result
 		err    error
 	)
-	if shouldBeDeleted && hasFinalizer {
+	if shouldBeDeleted {
+		// in case of unknown finalizer, we need to ensure that the reconcile does not enter into ensureCreated phase
+		if !hasFinalizer {
+			return ctrl.Result{}, nil
+		}
 		// check if the resource is already deleted (a control state to decide whether to remove finalizer)
 		// at this point the remote resource is already cleaned up so garbage collection can be done
 		if isResourceDeleted(runtimeObject) {
