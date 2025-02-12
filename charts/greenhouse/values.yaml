@@ -123,3 +123,6 @@ logshipping:
 
 perses:
   enabled: true
+
+plutono:
+  enabled: true

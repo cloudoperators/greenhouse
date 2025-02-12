@@ -13,11 +13,11 @@ spec:
         kubernetes.io/tls-acme: "true"
     - name: plutono.ingress.hosts
       value:
-        {{ .Values.plutono.ingress.hosts | toYaml | nindent 8 }}
+        - host: "plutono.{{ .Values.global.dnsDomain }}"
     - name: plutono.ingress.tls
       value:
         - hosts:
-            {{ .Values.plutono.ingress.hosts | toYaml | nindent 12 }}
-          secretName: {{ printf "%s-%s" "tls" (first .Values.plutono.ingress.hosts) | replace "." "-" }}
+          - "plutono.{{ .Values.global.dnsDomain }}"
+          secretName: {{ printf "tls-%s" (printf "plutono.%s" .Values.global.dnsDomain | replace "." "-") }} 
   pluginDefinition: plutono
 {{ end }}
