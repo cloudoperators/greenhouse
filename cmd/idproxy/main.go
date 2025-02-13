@@ -23,6 +23,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	flag "github.com/spf13/pflag"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/oidc"
+	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime/pkg/client/config"
 	logk "sigs.k8s.io/controller-runtime/pkg/log"
 
@@ -64,7 +65,7 @@ func main() {
 		log.Fatalf("failed to create k8s client: %s", err)
 	}
 	// default to kubernetes storage backend
-	backend := clientutil.Ptr("kubernetes")
+	backend := ptr.To("kubernetes")
 	ghFeatures, err := features.NewFeatures(ctx, k8sClient, clientutil.GetEnvOrDefault("FEATURE_FLAGS", "greenhouse-feature-flags"), clientutil.GetEnvOrDefault("POD_NAMESPACE", "greenhouse"))
 	if err != nil {
 		log.Fatalf("failed to get greenhouse features: %s", err)
