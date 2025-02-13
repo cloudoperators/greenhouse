@@ -33,11 +33,6 @@ const (
 	dbNameEnv = "PG_DATABASE"
 )
 
-type Dexter struct {
-	storage storage.Storage
-	backend string
-}
-
 // newKubernetesStore - creates a new kubernetes storage backend for dex
 func newKubernetesStore(logger *slog.Logger) (storage.Storage, error) {
 	cfg := kubernetes.Config{InCluster: true}

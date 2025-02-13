@@ -143,7 +143,7 @@ func (r *OrganizationReconciler) reconcileOAuth2Client(ctx context.Context, org 
 // NOTE: this has to be separate and should not be used with in any dex.UpdateClient transaction as it does not support concurrent updates
 // It is also not safe when using MaxConcurrentReconciles > 1 as the default connector's redirect URIs can be updated concurrently and
 // the last update will win
-func (r *OrganizationReconciler) appendRedirectsToDefaultConnector(ctx context.Context, defaultOAuthClientID string, newOAuthClientID string) error {
+func (r *OrganizationReconciler) appendRedirectsToDefaultConnector(ctx context.Context, defaultOAuthClientID, newOAuthClientID string) error {
 	defaultOAuthClient, err := r.dex.GetClient(defaultOAuthClientID)
 	if err != nil {
 		log.FromContext(ctx).Error(err, "failed to get default connector's oauth2client", "ID", defaultOAuthClientID)
