@@ -6,32 +6,45 @@ package organization
 import (
 	"context"
 	"encoding/json"
+	"fmt"
+	"slices"
 	"strings"
 
 	"github.com/dexidp/dex/connector/oidc"
+	"github.com/dexidp/dex/storage"
 	"github.com/pkg/errors"
+	"golang.org/x/text/cases"
+	"golang.org/x/text/language"
 	networkingv1 "k8s.io/api/networking/v1"
-	"k8s.io/apimachinery/pkg/types"
-	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/log"
 
 	greenhousesapv1alpha1 "github.com/cloudoperators/greenhouse/pkg/apis/greenhouse/v1alpha1"
 	"github.com/cloudoperators/greenhouse/pkg/clientutil"
+	"github.com/cloudoperators/greenhouse/pkg/common"
 )
 
-//+kubebuilder:rbac:groups=greenhouse.sap,resources=organizations,verbs=get;list;watch;create;update;patch;delete
-//+kubebuilder:rbac:groups=greenhouse.sap,resources=organizations/status,verbs=get;update;patch
-//+kubebuilder:rbac:groups=greenhouse.sap,resources=organizations/finalizers,verbs=update
-//+kubebuilder:rbac:groups="",resources=events,verbs=get;list;watch;create;update;patch
-//+kubebuilder:rbac:groups="",resources=namespaces,verbs=get;list;watch;create;update;patch
-//+kubebuilder:rbac:groups=dex.coreos.com,resources=connectors;oauth2clients,verbs=get;list;watch;create;update;patch
-//+kubebuilder:rbac:groups="",resources=secrets,verbs=get;list;watch
+const dexConnectorTypeGreenhouse = "greenhouse-oidc"
+
+func (r *OrganizationReconciler) discoverOIDCRedirectURL(ctx context.Context, org *greenhousesapv1alpha1.Organization) (string, error) {
+	if r := org.Spec.Authentication.OIDCConfig.RedirectURI; r != "" {
+		return r, nil
+	}
+	var ingressList = new(networkingv1.IngressList)
+	if err := r.List(ctx, ingressList, client.InNamespace(r.Namespace), client.MatchingLabels{"app.kubernetes.io/name": "idproxy"}); err != nil {
+		return "", err
+	}
+	for _, ing := range ingressList.Items {
+		for _, rule := range ing.Spec.Rules {
+			if rule.Host != "" {
+				return ensureCallbackURL(rule.Host), nil
+			}
+		}
+	}
+	return "", errors.New("oidc redirect URL not provided and cannot be discovered")
+}
 
 func (r *OrganizationReconciler) reconcileDexConnector(ctx context.Context, org *greenhousesapv1alpha1.Organization) error {
-	if r.Dexter == nil {
-		ctrl.LoggerFrom(ctx).Error(errors.New("dex interface not initialized"), "dex storage feature")
-		return errors.New("dex interface not initialized")
-	}
 	clientID, err := clientutil.GetSecretKeyFromSecretKeyReference(ctx, r.Client, org.Name, org.Spec.Authentication.OIDCConfig.ClientIDReference)
 	if err != nil {
 		return err
@@ -58,37 +71,94 @@ func (r *OrganizationReconciler) reconcileDexConnector(ctx context.Context, org 
 	if err != nil {
 		return err
 	}
-	return r.Dexter.CreateUpdateConnector(ctx, r.Client, org, configByte)
-}
-
-func (r *OrganizationReconciler) enqueueOrganizationForReferencedSecret(_ context.Context, o client.Object) []ctrl.Request {
-	var org = new(greenhousesapv1alpha1.Organization)
-	if err := r.Get(context.Background(), types.NamespacedName{Namespace: "", Name: o.GetNamespace()}, org); err != nil {
-		return nil
-	}
-	return []ctrl.Request{{NamespacedName: client.ObjectKeyFromObject(org)}}
-}
-
-func (r *OrganizationReconciler) discoverOIDCRedirectURL(ctx context.Context, org *greenhousesapv1alpha1.Organization) (string, error) {
-	if r := org.Spec.Authentication.OIDCConfig.RedirectURI; r != "" {
-		return r, nil
-	}
-	var ingressList = new(networkingv1.IngressList)
-	if err := r.List(ctx, ingressList, client.InNamespace(r.Namespace), client.MatchingLabels{"app.kubernetes.io/name": "idproxy"}); err != nil {
-		return "", err
-	}
-	for _, ing := range ingressList.Items {
-		for _, rule := range ing.Spec.Rules {
-			if rule.Host != "" {
-				return ensureCallbackURL(rule.Host), nil
+	oidcConnector, err := r.dex.GetConnector(org.Name)
+	if err != nil {
+		if errors.Is(err, storage.ErrNotFound) {
+			if err = r.dex.CreateConnector(ctx, storage.Connector{
+				ID:     org.Name,
+				Type:   dexConnectorTypeGreenhouse,
+				Name:   cases.Title(language.English).String(org.Name),
+				Config: configByte,
+			}); err != nil {
+				log.FromContext(ctx).Error(err, "failed to create dex connector", "name", org.Name)
+				return err
 			}
+			log.FromContext(ctx).Info("successfully created dex connector", "name", org.Name)
+			return nil
 		}
+		log.FromContext(ctx).Error(err, "failed to get dex connector", "name", org.Name)
+		return err
 	}
-	return "", errors.New("oidc redirect URL not provided and cannot be discovered")
+	if err = r.dex.UpdateConnector(oidcConnector.ID, func(c storage.Connector) (storage.Connector, error) {
+		c.ID = org.Name
+		c.Type = dexConnectorTypeGreenhouse
+		c.Name = cases.Title(language.English).String(org.Name)
+		c.Config = configByte
+		return c, nil
+	}); err != nil {
+		log.FromContext(ctx).Error(err, "failed to update dex connector", "name", org.Name)
+		return err
+	}
+	log.FromContext(ctx).Info("successfully updated dex connector", "name", org.Name)
+	return nil
 }
 
 func (r *OrganizationReconciler) reconcileOAuth2Client(ctx context.Context, org *greenhousesapv1alpha1.Organization) error {
-	return r.Dexter.CreateUpdateOauth2Client(ctx, r.Client, org)
+	oAuthClient, err := r.dex.GetClient(org.Name)
+	if err != nil {
+		if errors.Is(err, storage.ErrNotFound) {
+			redirectURIs := getRedirects(org, nil)
+			if err = r.dex.CreateClient(ctx, storage.Client{
+				Public:       true,
+				ID:           org.Name,
+				Name:         org.Name,
+				RedirectURIs: redirectURIs,
+			}); err != nil {
+				log.FromContext(ctx).Error(err, "failed to create oauth2client", "name", org.Name)
+				return err
+			}
+			log.FromContext(ctx).Info("successfully created oauth2client", "name", org.Name)
+			return nil
+		}
+		log.FromContext(ctx).Error(err, "failed to get oauth2client", "name", org.Name)
+		return err
+	}
+	if err = r.dex.UpdateClient(oAuthClient.ID, func(authClient storage.Client) (storage.Client, error) {
+		authClient.Public = true
+		authClient.ID = org.Name
+		authClient.Name = org.Name
+		authClient.RedirectURIs = getRedirects(org, authClient.RedirectURIs)
+		return authClient, nil
+	}); err != nil {
+		log.FromContext(ctx).Error(err, "failed to update oauth2client", "name", org.Name)
+		return err
+	}
+	log.FromContext(ctx).Info("successfully updated oauth2client", "name", org.Name)
+	return nil
+}
+
+func (r *OrganizationReconciler) appendRedirectsToDefaultConnector(ctx context.Context, defaultOAuthClientID string, newOAuthClientID string) error {
+	defaultOAuthClient, err := r.dex.GetClient(defaultOAuthClientID)
+	if err != nil {
+		log.FromContext(ctx).Error(err, "failed to get default connector's oauth2client", "ID", defaultOAuthClientID)
+		return err
+	}
+	newOAuthClient, err := r.dex.GetClient(newOAuthClientID)
+	if err != nil {
+		log.FromContext(ctx).Error(err, "failed to get oauth2client to append default connector's redirects", "ID", newOAuthClientID)
+		return err
+	}
+	err = r.dex.UpdateClient(defaultOAuthClient.Name, func(authClient storage.Client) (storage.Client, error) {
+		appendedRedirects := appendRedirects(authClient.RedirectURIs, newOAuthClient.RedirectURIs...)
+		authClient.RedirectURIs = appendedRedirects
+		return authClient, nil
+	})
+	if err != nil {
+		log.FromContext(ctx).Error(err, "failed to update default connector's oauth2client redirects", "ID", defaultOAuthClientID)
+		return err
+	}
+	log.FromContext(ctx).Info("successfully updated default connector's oauth2client redirects", "ID", defaultOAuthClientID)
+	return nil
 }
 
 func ensureCallbackURL(url string) string {
@@ -101,4 +171,22 @@ func ensureCallbackURL(url string) string {
 		url += suffix
 	}
 	return url
+}
+
+func getRedirects(org *greenhousesapv1alpha1.Organization, redirectURIs []string) []string {
+	defaultRedirects := []string{
+		"http://localhost:8085", // allowing local development of idproxy url
+		"https://dashboard." + common.DNSDomain,
+		fmt.Sprintf("https://%s.dashboard.%s", org.Name, common.DNSDomain),
+	}
+	return appendRedirects(defaultRedirects, redirectURIs...)
+}
+
+func appendRedirects(redirects []string, newRedirects ...string) []string {
+	for _, r := range newRedirects {
+		if !slices.Contains(redirects, r) {
+			redirects = append(redirects, r)
+		}
+	}
+	return redirects
 }
