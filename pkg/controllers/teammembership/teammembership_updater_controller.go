@@ -28,9 +28,9 @@ import (
 
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/pkg/apis/greenhouse/v1alpha1"
 	"github.com/cloudoperators/greenhouse/pkg/clientutil"
-	"github.com/cloudoperators/greenhouse/pkg/converters"
 	"github.com/cloudoperators/greenhouse/pkg/lifecycle"
 	"github.com/cloudoperators/greenhouse/pkg/scim"
+	"github.com/cloudoperators/greenhouse/pkg/util"
 )
 
 const RequeueInterval = 10 * time.Minute
@@ -231,7 +231,7 @@ func (r *TeamMembershipUpdaterController) createSCIMClient(
 	scimConfig *greenhousev1alpha1.SCIMConfig,
 ) (scim.ISCIMClient, error) {
 
-	clientConfig, conditions, err := converters.GreenhouseSCIMConfigToSCIMConfig(ctx, *scimConfig, r.Client, namespace, greenhousev1alpha1.SCIMAccessReadyCondition)
+	clientConfig, conditions, err := util.GreenhouseSCIMConfigToSCIMConfig(ctx, *scimConfig, r.Client, namespace, greenhousev1alpha1.SCIMAccessReadyCondition)
 	if err != nil {
 		teamMembershipStatus.SetConditions(conditions)
 		return nil, err
