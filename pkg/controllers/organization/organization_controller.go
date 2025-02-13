@@ -23,6 +23,7 @@ import (
 	dexapi "github.com/cloudoperators/greenhouse/pkg/dex/api"
 	"github.com/cloudoperators/greenhouse/pkg/lifecycle"
 	"github.com/cloudoperators/greenhouse/pkg/scim"
+	"github.com/cloudoperators/greenhouse/pkg/util"
 )
 
 var (
@@ -257,21 +258,9 @@ func (r *OrganizationReconciler) checkSCIMAPIAvailability(ctx context.Context, o
 	namespace := org.Name
 	scimConfig := org.Spec.Authentication.SCIMConfig
 
-	basicAuthUser, err := clientutil.GetSecretKeyFromSecretKeyReference(ctx, r.Client, namespace, *scimConfig.BasicAuthUser.Secret)
+	config, err := util.GreenhouseSCIMConfigToSCIMConfig(ctx, *scimConfig, r.Client, namespace)
 	if err != nil {
-		return greenhousesapv1alpha1.FalseCondition(greenhousesapv1alpha1.SCIMAPIAvailableCondition, greenhousesapv1alpha1.SecretNotFoundReason, "BasicAuthUser missing")
-	}
-	basicAuthPw, err := clientutil.GetSecretKeyFromSecretKeyReference(ctx, r.Client, namespace, *scimConfig.BasicAuthPw.Secret)
-	if err != nil {
-		return greenhousesapv1alpha1.FalseCondition(greenhousesapv1alpha1.SCIMAPIAvailableCondition, greenhousesapv1alpha1.SecretNotFoundReason, "BasicAuthPw missing")
-	}
-	config := &scim.Config{
-		URL:      scimConfig.BaseURL,
-		AuthType: scim.Basic,
-		BasicAuth: &scim.BasicAuthConfig{
-			Username: basicAuthUser,
-			Password: basicAuthPw,
-		},
+		return greenhousesapv1alpha1.FalseCondition(greenhousesapv1alpha1.SCIMAPIAvailableCondition, greenhousesapv1alpha1.SCIMConfigNotProvidedReason, err.Error())
 	}
 	logger := ctrl.LoggerFrom(ctx)
 	scimClient, err := scim.NewSCIMClient(logger, config)
