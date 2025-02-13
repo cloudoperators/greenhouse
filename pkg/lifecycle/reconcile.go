@@ -9,8 +9,6 @@ import (
 	"github.com/go-logr/logr"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
-	"github.com/cloudoperators/greenhouse/pkg/clientutil"
-
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
@@ -84,7 +82,11 @@ func Reconcile(ctx context.Context, kubeClient client.Client, namespacedName typ
 		result ctrl.Result
 		err    error
 	)
-	if shouldBeDeleted && hasFinalizer {
+	if shouldBeDeleted {
+		// in case of unknown finalizer, we need to ensure that the reconcile does not enter into ensureCreated phase
+		if !hasFinalizer {
+			return ctrl.Result{}, nil
+		}
 		// check if the resource is already deleted (a control state to decide whether to remove finalizer)
 		// at this point the remote resource is already cleaned up so garbage collection can be done
 		if isResourceDeleted(runtimeObject) {
@@ -185,24 +187,16 @@ func patchStatus(ctx context.Context, kubeClient client.Client, newObject Runtim
 
 // ensureFinalizer - ensures a finalizer is present on the object. Returns an error on failure.
 func ensureFinalizer(ctx context.Context, c client.Client, o client.Object, finalizer string) error {
-	if controllerutil.ContainsFinalizer(o, finalizer) {
-		return nil
+	if controllerutil.AddFinalizer(o, finalizer) {
+		return c.Update(ctx, o)
 	}
-	_, err := clientutil.Patch(ctx, c, o, func() error {
-		controllerutil.AddFinalizer(o, finalizer)
-		return nil
-	})
-	return err
+	return nil
 }
 
 // removeFinalizer - removes a finalizer from an object. Returns an error on failure.
 func removeFinalizer(ctx context.Context, c client.Client, o client.Object, finalizer string) error {
-	if !controllerutil.ContainsFinalizer(o, finalizer) {
-		return nil
+	if controllerutil.RemoveFinalizer(o, finalizer) {
+		return c.Update(ctx, o)
 	}
-	_, err := clientutil.Patch(ctx, c, o, func() error {
-		controllerutil.RemoveFinalizer(o, finalizer)
-		return nil
-	})
-	return err
+	return nil
 }
