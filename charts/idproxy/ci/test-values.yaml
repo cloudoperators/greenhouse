@@ -2,6 +2,13 @@
 # SPDX-License-Identifier: Apache-2.0
 global:
   dnsDomain: example.com
+  dex:
+    backend: postgres
+    postgresql:
+      postgresqlDatabase: dex
+      postgresqlPort: 5432
+      postgresqlUsername: dex
+
 
 ingress:
   enabled: true
