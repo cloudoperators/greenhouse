@@ -56,12 +56,12 @@ spec:
             {{- end }}
           env:
           - name: FEATURE_FLAGS
-            value: {{ feature-flag.fullname }}
-          {{- if .Values.global.dex.backend == "postgres" }}
+            value: {{ template "featureFlag.fullname" . }}
+          {{- if eq (include "dex.backend" $) "postgres" }}
           - name: PG_DATABASE
             value: {{ .Values.global.dex.postgresql.postgresqlDatabase }}
           - name: PG_HOST
-            value: {{ .Values.global.dex.postgresql.postgresqlHost }}
+            value: {{- printf "%s-postgresql" .Release.Name | trunc 48 | replace "_" "-" -}}
           - name: PG_PORT
             value: {{ .Values.global.dex.postgresql.postgresqlPort }}
           - name: PG_USER
@@ -78,7 +78,7 @@ spec:
                 apiVersion: v1
                 fieldPath: metadata.namespace
           - name: FEATURE_FLAGS
-            value: {{ feature-flag.fullname }}
+            value: {{ template "featureFlag.fullname" . }}
           ports:
             - name: oidc
               containerPort: 8080

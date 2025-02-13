@@ -16,4 +16,4 @@ data:
     dex: |
       storage: kubernetes / postgres
   dex: |
-    storage: {{ .Values.dex.backend }}
+    storage: {{ include "dex.backend" $ }}
