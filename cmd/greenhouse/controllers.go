@@ -9,6 +9,7 @@ import (
 	"os"
 	"sort"
 
+	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 
 	"github.com/cloudoperators/greenhouse/pkg/clientutil"
@@ -19,6 +20,10 @@ import (
 	teammembershipcontrollers "github.com/cloudoperators/greenhouse/pkg/controllers/teammembership"
 	teamrbaccontrollers "github.com/cloudoperators/greenhouse/pkg/controllers/teamrbac"
 	dexstore "github.com/cloudoperators/greenhouse/pkg/dex/store"
+)
+
+const (
+	defaultIDProxyStorageType = "kubernetes"
 )
 
 // knownControllers contains all controllers to be registered when starting the operator.
@@ -67,20 +72,17 @@ func isControllerEnabled(controllerName string) bool {
 	return false
 }
 
-// startOrganizationReconciler - setup the organization reconciler
+// startOrganizationReconciler - initializes the organization reconciler
 // resolves dex storage backend from greenhouse-feature-flags
 // initializes the dex storage adapter interface in the organization reconciler
 func startOrganizationReconciler(name string, mgr ctrl.Manager) error {
-	namespace := "greenhouse"
-	if v, ok := os.LookupEnv("POD_NAMESPACE"); ok {
-		namespace = v
-	}
+	namespace := clientutil.GetEnvOrDefault(podNamespaceEnv, defaultPodNamespace)
 	var dexter dexstore.Dexter
 	var err error
-	backend := clientutil.Ptr("kubernetes")
+	backend := ptr.To(defaultIDProxyStorageType)
 	l := slog.New(slog.NewJSONHandler(os.Stdout, nil))
-	if f != nil {
-		backend = f.GetDexStorageType(context.Background())
+	if featureFlags != nil {
+		backend = featureFlags.GetDexStorageType(context.Background())
 	}
 	dexter, err = dexstore.NewDexStorageFactory(l.With("component", "storage"), *backend)
 	if err != nil {

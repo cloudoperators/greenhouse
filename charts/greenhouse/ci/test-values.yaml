@@ -78,11 +78,6 @@ team-membership:
     SCIM_BASIC_AUTH_PW: topSecret!
     SCIM_BASE_URL: "foo.bar"
 
-plutono:
-  ingress:
-    hosts:
-      - "foo.bar"
-
 logshipping:
   enabled: true
   opensearch:

@@ -6,7 +6,6 @@ package store
 import (
 	"context"
 	"errors"
-	"fmt"
 	"log/slog"
 
 	"github.com/dexidp/dex/storage"
@@ -18,8 +17,6 @@ import (
 
 	greenhouseapisv1alpha1 "github.com/cloudoperators/greenhouse/pkg/apis/greenhouse/v1alpha1"
 	"github.com/cloudoperators/greenhouse/pkg/clientutil"
-	"github.com/cloudoperators/greenhouse/pkg/common"
-	"github.com/cloudoperators/greenhouse/pkg/util"
 )
 
 type pgDex struct {
@@ -53,7 +50,7 @@ func newPostgresStore(logger *slog.Logger) (storage.Storage, error) {
 		SSL: sql.SSL{Mode: "disable"},
 		NetworkDB: sql.NetworkDB{
 			Host:     host,
-			Port:     uint16(port),
+			Port:     uint16(port), //nolint:gosec
 			User:     user,
 			Password: pass,
 			Database: database,
@@ -69,29 +66,31 @@ func (p *pgDex) GetBackend() string {
 // CreateUpdateConnector - creates or updates a dex connector in dex postgres storage backend
 func (p *pgDex) CreateUpdateConnector(ctx context.Context, _ client.Client, org *greenhouseapisv1alpha1.Organization, configByte []byte) error {
 	oidcConnector, err := p.storage.GetConnector(org.Name)
-	if err != nil && errors.Is(err, storage.ErrNotFound) {
-		if err = p.storage.CreateConnector(ctx, storage.Connector{
-			ID:     org.Name,
-			Type:   dexConnectorTypeGreenhouse,
-			Name:   cases.Title(language.English).String(org.Name),
-			Config: configByte,
-		}); err != nil {
-			return err
-		}
-		log.FromContext(ctx).Info("created dex connector in SQL storage", "name", org.Name)
-	}
 	if err != nil {
+		if errors.Is(err, storage.ErrNotFound) {
+			if err = p.storage.CreateConnector(ctx, storage.Connector{
+				ID:     org.Name,
+				Type:   dexConnectorTypeGreenhouse,
+				Name:   cases.Title(language.English).String(org.Name),
+				Config: configByte,
+			}); err != nil {
+				log.FromContext(ctx).Error(err, "failed to create dex connector in SQL storage", "name", org.Name)
+				return err
+			}
+			log.FromContext(ctx).Info("created dex connector in SQL storage", "name", org.Name)
+			return nil
+		}
 		log.FromContext(ctx).Error(err, "failed to get dex connector in SQL storage", "name", org.Name)
+		return err
 	}
-	err = p.storage.UpdateConnector(oidcConnector.ID, func(c storage.Connector) (storage.Connector, error) {
+	if err = p.storage.UpdateConnector(oidcConnector.ID, func(c storage.Connector) (storage.Connector, error) {
 		c.ID = org.Name
 		c.Type = dexConnectorTypeGreenhouse
 		c.Name = cases.Title(language.English).String(org.Name)
 		c.Config = configByte
 		return c, nil
-	})
-
-	if err != nil {
+	}); err != nil {
+		log.FromContext(ctx).Error(err, "failed to update dex connector in SQL storage", "name", org.Name)
 		return err
 	}
 	log.FromContext(ctx).Info("updated dex connector in SQL storage", "name", org.Name)
@@ -101,42 +100,32 @@ func (p *pgDex) CreateUpdateConnector(ctx context.Context, _ client.Client, org 
 // CreateUpdateOauth2Client - creates or updates an oauth2 client in dex postgres storage backend
 func (p *pgDex) CreateUpdateOauth2Client(ctx context.Context, _ client.Client, org *greenhouseapisv1alpha1.Organization) error {
 	oAuthClient, err := p.storage.GetClient(org.Name)
-	if err != nil && errors.Is(err, storage.ErrNotFound) {
-		if err = p.storage.CreateClient(ctx, storage.Client{
-			Public: true,
-			ID:     org.Name,
-			Name:   org.Name,
-			RedirectURIs: []string{
-				"http://localhost:8085",
-				"https://dashboard." + common.DNSDomain,
-				fmt.Sprintf("https://%s.dashboard.%s", org.Name, common.DNSDomain),
-			},
-		}); err != nil {
-			return err
+	if err != nil {
+		if errors.Is(err, storage.ErrNotFound) {
+			if err = p.storage.CreateClient(ctx, storage.Client{
+				Public:       true,
+				ID:           org.Name,
+				Name:         org.Name,
+				RedirectURIs: getRedirects(org, nil),
+			}); err != nil {
+				log.FromContext(ctx).Error(err, "failed to create oauth2client", "name", org.Name)
+				return err
+			}
 		}
 		log.FromContext(ctx).Info("created oauth2client", "name", org.Name)
 		return nil
 	}
-	if err != nil {
-		log.FromContext(ctx).Error(err, "failed to get oauth2client", "name", org.Name)
-	}
-
-	err = p.storage.UpdateClient(oAuthClient.Name, func(authClient storage.Client) (storage.Client, error) {
+	if err = p.storage.UpdateClient(oAuthClient.Name, func(authClient storage.Client) (storage.Client, error) {
 		authClient.Public = true
 		authClient.ID = org.Name
 		authClient.Name = org.Name
-		for _, requiredRedirectURL := range []string{
-			"http://localhost:8085",
-			"https://dashboard." + common.DNSDomain,
-			fmt.Sprintf("https://%s.dashboard.%s", org.Name, common.DNSDomain),
-		} {
-			authClient.RedirectURIs = util.AppendStringToSliceIfNotContains(requiredRedirectURL, authClient.RedirectURIs)
-		}
+		authClient.RedirectURIs = getRedirects(org, authClient.RedirectURIs)
 		return authClient, nil
-	})
-	if err != nil {
+	}); err != nil {
+		log.FromContext(ctx).Error(err, "failed to update oauth2client", "name", org.Name)
 		return err
 	}
+	log.FromContext(ctx).Info("updated oauth2client", "name", org.Name)
 	return nil
 }
 

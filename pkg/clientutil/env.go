@@ -4,7 +4,7 @@
 package clientutil
 
 import (
-	"errors"
+	"fmt"
 	"os"
 	"strconv"
 )
@@ -17,6 +17,7 @@ func GetEnvOrDefault(envKey, defaultValue string) string {
 	return defaultValue
 }
 
+// GetIntEnvWithDefault returns the integer value of the environment variable or the default value.
 func GetIntEnvWithDefault(envKey string, def int) int {
 	s := os.Getenv(envKey)
 	i, err := strconv.Atoi(s)
@@ -26,9 +27,10 @@ func GetIntEnvWithDefault(envKey string, def int) int {
 	return i
 }
 
+// GetEnv returns the value of the environment variable or an error if it is not set
 func GetEnv(envKey string) (string, error) {
 	if v, ok := os.LookupEnv(envKey); ok {
 		return v, nil
 	}
-	return "", errors.New("environment variable not set")
+	return "", fmt.Errorf("environment variable '%s' not set", envKey)
 }

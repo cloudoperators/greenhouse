@@ -79,7 +79,7 @@ func Test_DexFeatures(t *testing.T) {
 				mockK8sClient.On("Get", ctx, types.NamespacedName{
 					Name: clientutil.GetEnvOrDefault("FEATURE_FLAGS", "greenhouse-feature-flags"), Namespace: clientutil.GetEnvOrDefault("POD_NAMESPACE", "greenhouse"),
 				}, mock.Anything).Run(func(args mock.Arguments) {
-					arg := args.Get(2).(*corev1.ConfigMap)
+					arg := args.Get(2).(*corev1.ConfigMap) //nolint:errcheck
 					*arg = *configMap
 				}).Return(nil)
 			}
