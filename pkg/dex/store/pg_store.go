@@ -69,29 +69,31 @@ func (p *pgDex) GetBackend() string {
 // CreateUpdateConnector - creates or updates a dex connector in dex postgres storage backend
 func (p *pgDex) CreateUpdateConnector(ctx context.Context, _ client.Client, org *greenhouseapisv1alpha1.Organization, configByte []byte) error {
 	oidcConnector, err := p.storage.GetConnector(org.Name)
-	if err != nil && errors.Is(err, storage.ErrNotFound) {
-		if err = p.storage.CreateConnector(ctx, storage.Connector{
-			ID:     org.Name,
-			Type:   dexConnectorTypeGreenhouse,
-			Name:   cases.Title(language.English).String(org.Name),
-			Config: configByte,
-		}); err != nil {
-			return err
-		}
-		log.FromContext(ctx).Info("created dex connector in SQL storage", "name", org.Name)
-	}
 	if err != nil {
+		if errors.Is(err, storage.ErrNotFound) {
+			err = p.storage.CreateConnector(ctx, storage.Connector{
+				ID:     org.Name,
+				Type:   dexConnectorTypeGreenhouse,
+				Name:   cases.Title(language.English).String(org.Name),
+				Config: configByte,
+			})
+			if err != nil {
+				return err
+			}
+			log.FromContext(ctx).Info("created dex connector in SQL storage", "name", org.Name)
+			return nil
+		}
 		log.FromContext(ctx).Error(err, "failed to get dex connector in SQL storage", "name", org.Name)
+		return err
 	}
-	err = p.storage.UpdateConnector(oidcConnector.ID, func(c storage.Connector) (storage.Connector, error) {
+	if err = p.storage.UpdateConnector(oidcConnector.ID, func(c storage.Connector) (storage.Connector, error) {
 		c.ID = org.Name
 		c.Type = dexConnectorTypeGreenhouse
 		c.Name = cases.Title(language.English).String(org.Name)
 		c.Config = configByte
 		return c, nil
-	})
-
-	if err != nil {
+	}); err != nil {
+		log.FromContext(ctx).Error(err, "failed to update dex connector in SQL storage", "name", org.Name)
 		return err
 	}
 	log.FromContext(ctx).Info("updated dex connector in SQL storage", "name", org.Name)
