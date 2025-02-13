@@ -30,5 +30,5 @@ func GetEnv(envKey string) (string, error) {
 	if v, ok := os.LookupEnv(envKey); ok {
 		return v, nil
 	}
-	return "", errors.New("environment variable not set")
+	return "", fmt.Errorf("environment variable '%s' not set", envKey)
 }
