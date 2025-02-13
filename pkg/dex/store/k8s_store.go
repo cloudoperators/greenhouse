@@ -62,8 +62,7 @@ func determineKubeMode() string {
 	if err == nil {
 		return ""
 	}
-	home := homedir.HomeDir()
-	return filepath.Join(home, ".kube", "config")
+	return filepath.Join(homedir.HomeDir(), ".kube", "config")
 }
 
 func (k *k8sDex) GetBackend() string {
