@@ -231,9 +231,8 @@ func (r *TeamMembershipUpdaterController) createSCIMClient(
 	scimConfig *greenhousev1alpha1.SCIMConfig,
 ) (scim.ISCIMClient, error) {
 
-	clientConfig, err := converters.GreenhouseSCIMConfigToSCIMConfig(ctx, *scimConfig, r.Client, namespace)
+	clientConfig, conditions, err := converters.GreenhouseSCIMConfigToSCIMConfig(ctx, *scimConfig, r.Client, namespace, greenhousev1alpha1.SCIMAccessReadyCondition)
 	if err != nil {
-		conditions := greenhousev1alpha1.FalseCondition(greenhousev1alpha1.SCIMAccessReadyCondition, greenhousev1alpha1.SCIMConfigNotProvidedReason, err.Error())
 		teamMembershipStatus.SetConditions(conditions)
 		return nil, err
 	}
