@@ -1,4 +1,4 @@
-## Running `idprox` service locally
+## Running `idproxy` service locally
 
 You can run the `idproxy` service locally by setting the following arguments and environment variables -
 
@@ -18,12 +18,12 @@ Arguments:
 
 Environment Variables:
 
-- If you are using `kubernetes` as the dex storage backend, kubernetes mode is automatically detected
+- If you want to use `kubernetes` as the dex storage backend, the mode is determined by the following settings: 
     1. `KUBECONFIG` environment variable - example - `export KUBECONFIG=/path/to/config` (Priority 1)
     2. kube config from the recommended dir and file - example - `$HOME/.kube/config` (Priority 2)
     3. Running inside a kubernetes cluster, `in-cluster` mode is used. (Priority 3)
 
-- If you are using `postgres` as the dex storage backend, set the following environment variables:
+- If want to use `postgres` as the dex storage backend, set the following environment variables:
     - `PG_DATABASE=<postgres-database>` ex: `postgres` (defaults to `postgres` if not set)
     - `PG_PORT=<postgres-port>` ex: `5432` (defaults to `5432` if not set)
     - `PG_USER=<postgres-user>` ex: `postgres` (defaults to `postgres` if not set)
