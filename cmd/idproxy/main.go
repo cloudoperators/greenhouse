@@ -29,7 +29,6 @@ import (
 
 	"github.com/cloudoperators/greenhouse/pkg/clientutil"
 	"github.com/cloudoperators/greenhouse/pkg/dex"
-	dexstore "github.com/cloudoperators/greenhouse/pkg/dex/store"
 	"github.com/cloudoperators/greenhouse/pkg/dex/web"
 	"github.com/cloudoperators/greenhouse/pkg/features"
 )
@@ -65,7 +64,7 @@ func main() {
 		log.Fatalf("failed to create k8s client: %s", err)
 	}
 	// default to kubernetes storage backend
-	backend := ptr.To("kubernetes")
+	backend := ptr.To[string](dex.K8s)
 	ghFeatures, err := features.NewFeatures(ctx, k8sClient, clientutil.GetEnvOrDefault("FEATURE_FLAGS", "greenhouse-feature-flags"), clientutil.GetEnvOrDefault("POD_NAMESPACE", "greenhouse"))
 	if err != nil {
 		log.Fatalf("failed to get greenhouse features: %s", err)
@@ -74,13 +73,11 @@ func main() {
 		backend = ghFeatures.GetDexStorageType(ctx)
 	}
 	// initialize dex storage adapter interface
-	dexter, err := dexstore.NewDexStorageFactory(logger.With("component", "storage"), *backend)
+	dexter, err := dex.NewDexStorage(logger.With("component", "storage"), *backend)
 	if err != nil {
 		log.Fatalf("failed to create dex storage interface: %s", err)
 	}
 	logger.Info("using dex storage - ", "type", *backend)
-	// get the underlying dex storage interface
-	dexStorage := dexter.GetStorage()
 
 	refreshPolicy, err := server.NewRefreshTokenPolicy(logger.With("component", "refreshtokenpolicy"), true, "24h", "24h", "5s")
 	if err != nil {
@@ -95,7 +92,7 @@ func main() {
 		Issuer:             issuer,
 		SkipApprovalScreen: true,
 		Logger:             logger.With("component", "server"),
-		Storage:            dexStorage,
+		Storage:            dexter,
 		AllowedOrigins:     allowedOrigins,
 		IDTokensValidFor:   idTokenValidity,
 		RefreshTokenPolicy: refreshPolicy,
