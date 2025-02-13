@@ -9,8 +9,6 @@ import (
 	"github.com/go-logr/logr"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
-	"github.com/cloudoperators/greenhouse/pkg/clientutil"
-
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
@@ -192,21 +190,13 @@ func ensureFinalizer(ctx context.Context, c client.Client, o client.Object, fina
 	if controllerutil.ContainsFinalizer(o, finalizer) {
 		return nil
 	}
-	_, err := clientutil.Patch(ctx, c, o, func() error {
-		controllerutil.AddFinalizer(o, finalizer)
-		return nil
-	})
-	return err
+	return c.Update(ctx, o)
 }
 
 // removeFinalizer - removes a finalizer from an object. Returns an error on failure.
 func removeFinalizer(ctx context.Context, c client.Client, o client.Object, finalizer string) error {
-	if !controllerutil.ContainsFinalizer(o, finalizer) {
-		return nil
+	if controllerutil.RemoveFinalizer(o, finalizer) {
+		return c.Update(ctx, o)
 	}
-	_, err := clientutil.Patch(ctx, c, o, func() error {
-		controllerutil.RemoveFinalizer(o, finalizer)
-		return nil
-	})
-	return err
+	return nil
 }

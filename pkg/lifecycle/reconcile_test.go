@@ -53,6 +53,7 @@ var _ = Describe("Reconcile", func() {
 		statusWriter.On("Patch", mock.Anything, mock.Anything, mock.Anything).Return(nil)
 		mockClient = &mocks.MockClient{}
 		mockClient.On("Get", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil)
+		mockClient.On("Update", mock.Anything, mock.Anything, mock.Anything).Return(nil)
 		mockClient.On("Patch", mock.Anything, mock.Anything, mock.Anything).Return(nil)
 		mockClient.On("Status").Return(statusWriter)
 
