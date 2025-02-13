@@ -187,10 +187,10 @@ func patchStatus(ctx context.Context, kubeClient client.Client, newObject Runtim
 
 // ensureFinalizer - ensures a finalizer is present on the object. Returns an error on failure.
 func ensureFinalizer(ctx context.Context, c client.Client, o client.Object, finalizer string) error {
-	if controllerutil.ContainsFinalizer(o, finalizer) {
-		return nil
+	if controllerutil.AddFinalizer(o, finalizer) {
+		return c.Update(ctx, o)
 	}
-	return c.Update(ctx, o)
+	return nil
 }
 
 // removeFinalizer - removes a finalizer from an object. Returns an error on failure.
