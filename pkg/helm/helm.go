@@ -50,9 +50,6 @@ var (
 
 	// IsHelmDebug is configured via a flag and enables extensive debug logging for Helm actions.
 	IsHelmDebug bool
-
-	// greenhouse helm timeout for install and upgrade actions
-	installUpgradeTimeout = 300 * time.Second
 )
 
 // driftDetectionInterval is the interval after which a drift detection is performed.
@@ -248,7 +245,7 @@ func ResetHelmReleaseStatusToDeployed(restClientGetter genericclioptions.RESTCli
 	rollbackAction.Version = r.Version
 	rollbackAction.DisableHooks = true
 	rollbackAction.Wait = true
-	rollbackAction.Timeout = 5 * time.Minute
+	rollbackAction.Timeout = GetHelmTimeout()
 	rollbackAction.MaxHistory = 5
 	return rollbackAction.Run(r.Name)
 }
@@ -356,7 +353,7 @@ func upgradeRelease(ctx context.Context, local client.Client, restClientGetter g
 	upgradeAction.Namespace = plugin.Spec.ReleaseNamespace
 	upgradeAction.DependencyUpdate = true
 	upgradeAction.MaxHistory = 5
-	upgradeAction.Timeout = installUpgradeTimeout // set a timeout for the upgrade to not be stuck in pending state
+	upgradeAction.Timeout = GetHelmTimeout() // set a timeout for the upgrade to not be stuck in pending state
 	upgradeAction.Description = pluginDefinition.Spec.Version
 
 	helmChart, err := loadHelmChart(&upgradeAction.ChartPathOptions, pluginDefinition.Spec.HelmChart, settings)
@@ -394,7 +391,7 @@ func installRelease(ctx context.Context, local client.Client, restClientGetter g
 	installAction := action.NewInstall(cfg)
 	installAction.ReleaseName = plugin.Name
 	installAction.Namespace = plugin.Spec.ReleaseNamespace
-	installAction.Timeout = installUpgradeTimeout // set a timeout for the installation to not be stuck in pending state
+	installAction.Timeout = GetHelmTimeout() // set a timeout for the installation to not be stuck in pending state
 	installAction.CreateNamespace = true
 	installAction.DependencyUpdate = true
 	installAction.DryRun = isDryRun
