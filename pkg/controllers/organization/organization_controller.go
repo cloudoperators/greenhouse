@@ -20,10 +20,10 @@ import (
 
 	greenhousesapv1alpha1 "github.com/cloudoperators/greenhouse/pkg/apis/greenhouse/v1alpha1"
 	"github.com/cloudoperators/greenhouse/pkg/clientutil"
-	"github.com/cloudoperators/greenhouse/pkg/converters"
 	dexapi "github.com/cloudoperators/greenhouse/pkg/dex/api"
 	"github.com/cloudoperators/greenhouse/pkg/lifecycle"
 	"github.com/cloudoperators/greenhouse/pkg/scim"
+	"github.com/cloudoperators/greenhouse/pkg/util"
 )
 
 var (
@@ -258,7 +258,7 @@ func (r *OrganizationReconciler) checkSCIMAPIAvailability(ctx context.Context, o
 	namespace := org.Name
 	scimConfig := org.Spec.Authentication.SCIMConfig
 
-	config, conditions, err := converters.GreenhouseSCIMConfigToSCIMConfig(ctx, *scimConfig, r.Client, namespace, greenhousesapv1alpha1.SCIMAPIAvailableCondition)
+	config, conditions, err := util.GreenhouseSCIMConfigToSCIMConfig(ctx, *scimConfig, r.Client, namespace, greenhousesapv1alpha1.SCIMAPIAvailableCondition)
 	if err != nil {
 		return conditions
 	}
