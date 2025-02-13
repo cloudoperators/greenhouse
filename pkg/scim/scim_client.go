@@ -11,12 +11,9 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	greenhouseapisv1alpha1 "github.com/cloudoperators/greenhouse/pkg/apis/greenhouse/v1alpha1"
-	"github.com/cloudoperators/greenhouse/pkg/clientutil"
 	"io"
 	"net/http"
 	"net/url"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 	"strings"
 
 	"github.com/go-logr/logr"
@@ -216,42 +213,4 @@ func (c *scimClient) doRequest(req *http.Request) (*http.Response, *ResponseBody
 		return nil, nil, err
 	}
 	return resp, respBody, nil
-}
-
-func GreenhouseSCIMConfigToSCIMConfig(ctx context.Context, c greenhouseapisv1alpha1.SCIMConfig, k8sClient client.Client, namespace string) (*Config, error) {
-	var basicAuthConfig *BasicAuthConfig
-	var bearerTokenConfig *BearerTokenConfig
-	switch c.AuthType {
-	case Basic:
-		var err error
-		basicAuthConfig = &BasicAuthConfig{}
-		basicAuthConfig.Username, err = clientutil.GetSecretKeyFromSecretKeyReference(ctx, k8sClient, namespace, *c.BasicAuthUser.Secret)
-		if err != nil {
-			return nil, errors.New(fmt.Sprintf("BasicAuthUser missing"))
-		}
-		basicAuthConfig.Password, err = clientutil.GetSecretKeyFromSecretKeyReference(ctx, k8sClient, namespace, *c.BasicAuthPw.Secret)
-		if err != nil {
-			return nil, errors.New(fmt.Sprintf("BasicAuthPw missing: %s", err.Error()))
-		}
-	case BearerToken:
-		var err error
-		bearerTokenConfig = &BearerTokenConfig{
-			Prefix: c.BearerPrefix,
-			Header: c.BearerHeader,
-		}
-		bearerTokenConfig.Token, err = clientutil.GetSecretKeyFromSecretKeyReference(ctx, k8sClient, namespace, *c.BearerToken.Secret)
-		if err != nil {
-			return nil, errors.New(fmt.Sprintf("BearerToken missing: %s", err.Error()))
-		}
-	default:
-		return nil, errors.New("SCIM Config is not provided")
-	}
-	config := &Config{
-		URL:         c.BaseURL,
-		AuthType:    c.AuthType,
-		BasicAuth:   basicAuthConfig,
-		BearerToken: bearerTokenConfig,
-	}
-
-	return config, nil
 }
