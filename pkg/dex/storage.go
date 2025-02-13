@@ -77,8 +77,13 @@ func newPostgresStore(logger *slog.Logger) (storage.Storage, error) {
 	cfg := &sql.Postgres{
 		SSL: sql.SSL{Mode: "disable"},
 		NetworkDB: sql.NetworkDB{
-			Host:     host,
-			Port:     uint16(port), //nolint:gosec
+			Host: host,
+			Port: func() uint16 {
+				if port < 0 || port > 65535 {
+					return 5432 // default port value or handle error as needed
+				}
+				return uint16(port)
+			}(),
 			User:     user,
 			Password: pass,
 			Database: database,
