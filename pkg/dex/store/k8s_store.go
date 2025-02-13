@@ -6,7 +6,6 @@ package store
 import (
 	"context"
 	"encoding/base32"
-	"fmt"
 	"hash/fnv"
 	"log/slog"
 	"os"
@@ -26,9 +25,7 @@ import (
 
 	greenhouseapisv1alpha1 "github.com/cloudoperators/greenhouse/pkg/apis/greenhouse/v1alpha1"
 	"github.com/cloudoperators/greenhouse/pkg/clientutil"
-	"github.com/cloudoperators/greenhouse/pkg/common"
 	dexapi "github.com/cloudoperators/greenhouse/pkg/dex/api"
-	"github.com/cloudoperators/greenhouse/pkg/util"
 )
 
 type k8sDex struct {
@@ -84,6 +81,7 @@ func (k *k8sDex) CreateUpdateConnector(ctx context.Context, k8sClient client.Cli
 		return controllerutil.SetControllerReference(org, dexConnector, k8sClient.Scheme())
 	})
 	if err != nil {
+		log.FromContext(ctx).Error(err, "failed to create/update dex connector", "namespace", dexConnector.Namespace, "name", dexConnector.GetName())
 		return
 	}
 	switch result {
@@ -106,17 +104,11 @@ func (k *k8sDex) CreateUpdateOauth2Client(ctx context.Context, k8sClient client.
 		oAuth2Client.Client.Public = true
 		oAuth2Client.Client.ID = org.Name
 		oAuth2Client.Client.Name = org.Name
-		for _, requiredRedirectURL := range []string{
-			"http://localhost:8085",
-			"http://localhost:8000",
-			"https://dashboard." + common.DNSDomain,
-			fmt.Sprintf("https://%s.dashboard.%s", org.Name, common.DNSDomain),
-		} {
-			oAuth2Client.Client.RedirectURIs = util.AppendStringToSliceIfNotContains(requiredRedirectURL, oAuth2Client.RedirectURIs)
-		}
+		oAuth2Client.RedirectURIs = getRedirects(org, oAuth2Client.RedirectURIs)
 		return controllerutil.SetControllerReference(org, oAuth2Client, k8sClient.Scheme())
 	})
 	if err != nil {
+		log.FromContext(ctx).Error(err, "failed to create/update oauth2client", "namespace", oAuth2Client.Namespace, "name", oAuth2Client.GetName())
 		return err
 	}
 	switch result {

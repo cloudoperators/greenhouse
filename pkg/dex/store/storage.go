@@ -7,11 +7,13 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"slices"
 
 	"github.com/dexidp/dex/storage"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	greenhouseapisv1alpha1 "github.com/cloudoperators/greenhouse/pkg/apis/greenhouse/v1alpha1"
+	"github.com/cloudoperators/greenhouse/pkg/common"
 )
 
 const (
@@ -48,4 +50,20 @@ func NewDexStorageFactory(logger *slog.Logger, backend string) (Dexter, error) {
 	default:
 		return nil, fmt.Errorf("unknown dexStorage backend: %s", backend)
 	}
+}
+
+func getRedirects(org *greenhouseapisv1alpha1.Organization, redirectURIs []string) []string {
+	redirects := []string{
+		"http://localhost:8085",
+		"https://dashboard." + common.DNSDomain,
+		fmt.Sprintf("https://%s.dashboard.%s", org.Name, common.DNSDomain),
+	}
+
+	for _, r := range redirects {
+		if !slices.Contains(redirectURIs, r) {
+			redirectURIs = append(redirectURIs, r)
+		}
+	}
+
+	return redirects
 }
