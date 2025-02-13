@@ -50,7 +50,7 @@ func newPostgresStore(logger *slog.Logger) (storage.Storage, error) {
 		SSL: sql.SSL{Mode: "disable"},
 		NetworkDB: sql.NetworkDB{
 			Host:     host,
-			Port:     uint16(port),
+			Port:     uint16(port), //nolint:gosec
 			User:     user,
 			Password: pass,
 			Database: database,

@@ -52,7 +52,7 @@ func newKubernetesStore(logger *slog.Logger) (storage.Storage, error) {
 
 func determineKubeMode() string {
 	cfgPath := os.Getenv(clientcmd.RecommendedConfigPathEnvVar)
-	if len(cfgPath) > 0 {
+	if strings.TrimSpace(cfgPath) != "" {
 		return cfgPath
 	}
 	_, err := rest.InClusterConfig()
