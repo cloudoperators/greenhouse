@@ -44,6 +44,7 @@ func (r *OrganizationReconciler) discoverOIDCRedirectURL(ctx context.Context, or
 	return "", errors.New("oidc redirect URL not provided and cannot be discovered")
 }
 
+// reconcileDexConnector - creates or updates dex connector
 func (r *OrganizationReconciler) reconcileDexConnector(ctx context.Context, org *greenhousesapv1alpha1.Organization) error {
 	clientID, err := clientutil.GetSecretKeyFromSecretKeyReference(ctx, r.Client, org.Name, org.Spec.Authentication.OIDCConfig.ClientIDReference)
 	if err != nil {
@@ -103,6 +104,7 @@ func (r *OrganizationReconciler) reconcileDexConnector(ctx context.Context, org 
 	return nil
 }
 
+// reconcileOAuth2Client - creates or updates oauth2client
 func (r *OrganizationReconciler) reconcileOAuth2Client(ctx context.Context, org *greenhousesapv1alpha1.Organization) error {
 	oAuthClient, err := r.dex.GetClient(org.Name)
 	if err != nil {
@@ -137,6 +139,10 @@ func (r *OrganizationReconciler) reconcileOAuth2Client(ctx context.Context, org 
 	return nil
 }
 
+// appendRedirectsToDefaultConnector - appends new organization's OAuth2Client redirect URIs into the default OAuth2Client redirect URIs
+// NOTE: this has to be separate and should not be used with in any dex.UpdateClient transaction as it does not support concurrent updates
+// It is also not safe when using MaxConcurrentReconciles > 1 as the default connector's redirect URIs can be updated concurrently and
+// the last update will win
 func (r *OrganizationReconciler) appendRedirectsToDefaultConnector(ctx context.Context, defaultOAuthClientID string, newOAuthClientID string) error {
 	defaultOAuthClient, err := r.dex.GetClient(defaultOAuthClientID)
 	if err != nil {
@@ -173,6 +179,10 @@ func ensureCallbackURL(url string) string {
 	return url
 }
 
+// getRedirects - returns the list of default redirect URIs for the reconciling OAuth2Client
+// and merges with the provided redirect URIs
+// this is needed when the default connector is being reconciled as it should not overwrite
+// any appended redirect URIs from other organizations
 func getRedirects(org *greenhousesapv1alpha1.Organization, redirectURIs []string) []string {
 	defaultRedirects := []string{
 		"http://localhost:8085", // allowing local development of idproxy url
@@ -182,6 +192,7 @@ func getRedirects(org *greenhousesapv1alpha1.Organization, redirectURIs []string
 	return appendRedirects(defaultRedirects, redirectURIs...)
 }
 
+// appendRedirects - appends newRedirects to the redirects slice if it does not exist
 func appendRedirects(redirects []string, newRedirects ...string) []string {
 	for _, r := range newRedirects {
 		if !slices.Contains(redirects, r) {
