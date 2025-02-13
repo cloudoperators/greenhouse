@@ -6,6 +6,7 @@ package util
 import (
 	"context"
 	"errors"
+	"fmt"
 
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -14,7 +15,7 @@ import (
 	"github.com/cloudoperators/greenhouse/pkg/scim"
 )
 
-func GreenhouseSCIMConfigToSCIMConfig(ctx context.Context, c greenhouseapisv1alpha1.SCIMConfig, k8sClient client.Client, namespace string, conditionType greenhouseapisv1alpha1.ConditionType) (*scim.Config, greenhouseapisv1alpha1.Condition, error) {
+func GreenhouseSCIMConfigToSCIMConfig(ctx context.Context, c greenhouseapisv1alpha1.SCIMConfig, k8sClient client.Client, namespace string) (*scim.Config, error) {
 	var basicAuthConfig *scim.BasicAuthConfig
 	var bearerTokenConfig *scim.BearerTokenConfig
 	switch c.AuthType {
@@ -23,11 +24,11 @@ func GreenhouseSCIMConfigToSCIMConfig(ctx context.Context, c greenhouseapisv1alp
 		basicAuthConfig = &scim.BasicAuthConfig{}
 		basicAuthConfig.Username, err = clientutil.GetSecretKeyFromSecretKeyReference(ctx, k8sClient, namespace, *c.BasicAuthUser.Secret)
 		if err != nil {
-			return nil, greenhouseapisv1alpha1.FalseCondition(conditionType, greenhouseapisv1alpha1.SecretNotFoundReason, "BasicAuthUser missing"), err
+			return nil, fmt.Errorf("secret for BasicAuthUser is missing: %s", err.Error())
 		}
 		basicAuthConfig.Password, err = clientutil.GetSecretKeyFromSecretKeyReference(ctx, k8sClient, namespace, *c.BasicAuthPw.Secret)
 		if err != nil {
-			return nil, greenhouseapisv1alpha1.FalseCondition(conditionType, greenhouseapisv1alpha1.SecretNotFoundReason, "BasicAuthPw missing"), err
+			return nil, fmt.Errorf("secret for BasicAuthPw is missing: %s", err.Error())
 		}
 	case scim.BearerToken:
 		var err error
@@ -37,10 +38,10 @@ func GreenhouseSCIMConfigToSCIMConfig(ctx context.Context, c greenhouseapisv1alp
 		}
 		bearerTokenConfig.Token, err = clientutil.GetSecretKeyFromSecretKeyReference(ctx, k8sClient, namespace, *c.BearerToken.Secret)
 		if err != nil {
-			return nil, greenhouseapisv1alpha1.FalseCondition(conditionType, greenhouseapisv1alpha1.SecretNotFoundReason, "BearerToken missing"), err
+			return nil, fmt.Errorf("secret for BearerToken is missing: %s", err.Error())
 		}
 	default:
-		return nil, greenhouseapisv1alpha1.FalseCondition(conditionType, greenhouseapisv1alpha1.SCIMConfigNotProvidedReason, "SCIM Config is not provided"), errors.New("SCIM Config is not provided")
+		return nil, errors.New("SCIM Config is not provided")
 	}
 	config := &scim.Config{
 		URL:         c.BaseURL,
@@ -49,5 +50,5 @@ func GreenhouseSCIMConfigToSCIMConfig(ctx context.Context, c greenhouseapisv1alp
 		BearerToken: bearerTokenConfig,
 	}
 
-	return config, greenhouseapisv1alpha1.Condition{}, nil
+	return config, nil
 }
