@@ -409,8 +409,12 @@ components:
                   description: SCIMConfig configures the SCIM client.
                   properties:
                     authType:
+                      default: basic
                       description: AuthType defined possible authentication type
-                      type: integer
+                      enum:
+                        - basic
+                        - token
+                      type: string
                     baseURL:
                       description: URL to the SCIM server.
                       type: string
@@ -477,8 +481,6 @@ components:
                     - baseURL
                     - basicAuthPw
                     - basicAuthUser
-                    - bearerHeader
-                    - bearerPrefix
                     - bearerToken
                   type: object
               type: object
