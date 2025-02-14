@@ -18,6 +18,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
+	greenhouseapis "github.com/cloudoperators/greenhouse/pkg/apis"
 	greenhousesapv1alpha1 "github.com/cloudoperators/greenhouse/pkg/apis/greenhouse/v1alpha1"
 	"github.com/cloudoperators/greenhouse/pkg/clientutil"
 	"github.com/cloudoperators/greenhouse/pkg/common"
@@ -51,6 +52,9 @@ func (r *OrganizationReconciler) reconcileServiceProxy(ctx context.Context, org 
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      serviceProxyName,
 			Namespace: org.Name,
+			Annotations: map[string]string{
+				greenhouseapis.AllowPluginCreateAnnotation: "true",
+			},
 		},
 		Spec: greenhousesapv1alpha1.PluginSpec{
 			PluginDefinition: serviceProxyName,
