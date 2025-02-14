@@ -135,7 +135,7 @@ var _ = Describe("Validate Organization Webhook", func() {
 				Authentication: &greenhousev1alpha1.Authentication{
 					SCIMConfig: &greenhousev1alpha1.SCIMConfig{
 						BaseURL:  "https://example.org",
-						AuthType: scim.AuthType(255),
+						AuthType: "any",
 						BasicAuthUser: greenhousev1alpha1.ValueFromSource{
 							Secret: &greenhousev1alpha1.SecretKeyReference{
 								Name: "test-secret",
@@ -215,7 +215,7 @@ var _ = Describe("Validate Organization Webhook", func() {
 				Authentication: &greenhousev1alpha1.Authentication{
 					SCIMConfig: &greenhousev1alpha1.SCIMConfig{
 						BaseURL:  "https://example.org",
-						AuthType: scim.AuthType(255),
+						AuthType: "any",
 						BasicAuthUser: greenhousev1alpha1.ValueFromSource{
 							Secret: &greenhousev1alpha1.SecretKeyReference{
 								Name: "test-secret",

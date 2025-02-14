@@ -320,7 +320,7 @@ var _ = Describe("TeammembershipUpdaterController", Ordered, func() {
 				g.Expect(scimAccessReadyCondition).ToNot(BeNil())
 				g.Expect(scimAccessReadyCondition.Type).To(Equal(greenhousev1alpha1.SCIMAccessReadyCondition))
 				g.Expect(scimAccessReadyCondition.Status).To(Equal(metav1.ConditionFalse))
-				g.Expect(scimAccessReadyCondition.Reason).To(Equal(greenhousev1alpha1.SCIMConfigNotProvidedReason), "reason should be set to SCIMConfigNotProvidedReason")
+				g.Expect(scimAccessReadyCondition.Reason).To(Equal(greenhousev1alpha1.SCIMConfigErrorReason), "reason should be set to SCIMConfigErrorReason")
 				g.Expect(scimAccessReadyCondition.Message).To(Equal("secret for BasicAuthUser is missing: Secret \"test-secret\" not found"))
 				readyCondition := firstTeamMembership.Status.GetConditionByType(greenhousev1alpha1.ReadyCondition)
 				g.Expect(readyCondition).ToNot(BeNil())
