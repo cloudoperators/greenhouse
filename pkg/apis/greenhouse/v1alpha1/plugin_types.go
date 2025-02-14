@@ -128,6 +128,8 @@ type HelmReleaseStatus struct {
 	LastDeployed metav1.Time `json:"lastDeployed,omitempty"`
 	// PluginOptionChecksum is the checksum of plugin option values.
 	PluginOptionChecksum string `json:"pluginOptionChecksum,omitempty"`
+	// Diff contains the difference between the deployed helm chart and the helm chart in the last reconciliation
+	Diff string `json:"diff,omitempty"`
 }
 
 //+kubebuilder:object:root=true

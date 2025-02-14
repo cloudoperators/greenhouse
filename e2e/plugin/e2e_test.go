@@ -147,6 +147,14 @@ var _ = Describe("Plugin E2E", Ordered, func() {
 			g.Expect(err).NotTo(HaveOccurred())
 		}).Should(Succeed())
 
+		By("Check the diff status")
+		Eventually(func(g Gomega) {
+			err = adminClient.Get(ctx, client.ObjectKey{Name: testPlugin.Name, Namespace: env.TestNamespace}, testPlugin)
+			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(testPlugin.Status.HelmReleaseStatus).ToNot(BeNil())
+			g.Expect(len(testPlugin.Status.HelmReleaseStatus.Diff) > 0).To(BeTrue())
+		}).Should(Succeed())
+
 		By("Check replicas in deployment list")
 		Eventually(func(g Gomega) {
 			err = remoteClient.List(ctx, deploymentList, client.InNamespace(env.TestNamespace))
