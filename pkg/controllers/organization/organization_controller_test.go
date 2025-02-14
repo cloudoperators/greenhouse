@@ -13,6 +13,7 @@ import (
 
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/pkg/apis/greenhouse/v1alpha1"
 	"github.com/cloudoperators/greenhouse/pkg/clientutil"
+	"github.com/cloudoperators/greenhouse/pkg/scim"
 	"github.com/cloudoperators/greenhouse/pkg/test"
 )
 
@@ -131,7 +132,7 @@ var _ = Describe("Test Organization reconciliation", Ordered, func() {
 			}).Should(Succeed(), "Org admin team should be recreated")
 		})
 
-		It("should set correct status condition when creating Organization with SCIM Config", func() {
+		It("should set correct status condition when creating Organization with SCIM Config as BasicAuth", func() {
 			By("creating Organization with SCIM Config")
 			testOrgName := setup.Namespace()
 
@@ -146,7 +147,8 @@ var _ = Describe("Test Organization reconciliation", Ordered, func() {
 				func(o *greenhousev1alpha1.Organization) {
 					o.Spec.Authentication = &greenhousev1alpha1.Authentication{
 						SCIMConfig: &greenhousev1alpha1.SCIMConfig{
-							BaseURL: groupsServer.URL + "/scim",
+							BaseURL:  groupsServer.URL + "/scim",
+							AuthType: scim.Basic,
 							BasicAuthUser: greenhousev1alpha1.ValueFromSource{
 								Secret: &greenhousev1alpha1.SecretKeyReference{
 									Name: "test-secret",
@@ -157,6 +159,44 @@ var _ = Describe("Test Organization reconciliation", Ordered, func() {
 								Secret: &greenhousev1alpha1.SecretKeyReference{
 									Name: "test-secret",
 									Key:  "basicAuthPw",
+								},
+							},
+						},
+					}
+				},
+			)
+
+			By("checking Organization status")
+			Eventually(func(g Gomega) {
+				err := setup.Get(test.Ctx, types.NamespacedName{Name: testOrgName}, testOrg)
+				g.Expect(err).ToNot(HaveOccurred(), "there should be no error getting the Organization")
+				scimAPIAvailableCondition := testOrg.Status.GetConditionByType(greenhousev1alpha1.SCIMAPIAvailableCondition)
+				g.Expect(scimAPIAvailableCondition).ToNot(BeNil(), "SCIMAPIAvailableCondition should be set on Organization")
+				g.Expect(scimAPIAvailableCondition.IsTrue()).To(BeTrue(), "SCIMAPIAvailableCondition should be True on Organization")
+			}).Should(Succeed(), "Organization should have set correct status condition")
+		})
+
+		It("should set correct status condition when creating Organization with SCIM Config as BearerToken", func() {
+			By("creating Organization with SCIM Config")
+			testOrgName := setup.Namespace()
+
+			By("creating secret for SCIM Config")
+			createSecretForSCIMConfig(testOrgName)
+
+			By("creating Organization with SCIM Config")
+			testOrg := setup.CreateOrganization(test.Ctx, testOrgName,
+				func(o *greenhousev1alpha1.Organization) {
+					o.Spec.MappedOrgAdminIDPGroup = validIdpGroupName
+				},
+				func(o *greenhousev1alpha1.Organization) {
+					o.Spec.Authentication = &greenhousev1alpha1.Authentication{
+						SCIMConfig: &greenhousev1alpha1.SCIMConfig{
+							BaseURL:  groupsServer.URL + "/scim",
+							AuthType: scim.BearerToken,
+							BearerToken: greenhousev1alpha1.ValueFromSource{
+								Secret: &greenhousev1alpha1.SecretKeyReference{
+									Name: "test-secret",
+									Key:  "bearerToken",
 								},
 							},
 						},
@@ -199,7 +239,8 @@ var _ = Describe("Test Organization reconciliation", Ordered, func() {
 				g.Expect(err).ToNot(HaveOccurred(), "there should be no error getting the Organization")
 				testOrg.Spec.Authentication = &greenhousev1alpha1.Authentication{
 					SCIMConfig: &greenhousev1alpha1.SCIMConfig{
-						BaseURL: groupsServer.URL + "/scim",
+						BaseURL:  groupsServer.URL + "/scim",
+						AuthType: scim.Basic,
 						BasicAuthUser: greenhousev1alpha1.ValueFromSource{
 							Secret: &greenhousev1alpha1.SecretKeyReference{
 								Name: "test-secret",
@@ -271,6 +312,7 @@ func createSecretForSCIMConfig(namespace string) {
 		Data: map[string][]byte{
 			"basicAuthUser": []byte("user"),
 			"basicAuthPw":   []byte("pw"),
+			"bearerToken":   []byte("100b8cad7cf2a56f6df78f171f97a1ec"),
 		},
 	}
 	err := test.K8sClient.Create(test.Ctx, &testSecret)
