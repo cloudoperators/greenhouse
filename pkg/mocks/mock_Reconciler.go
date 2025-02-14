@@ -5,8 +5,9 @@ package mocks
 import (
 	context "context"
 
-	lifecycle "github.com/cloudoperators/greenhouse/pkg/lifecycle"
 	mock "github.com/stretchr/testify/mock"
+
+	lifecycle "github.com/cloudoperators/greenhouse/pkg/lifecycle"
 
 	reconcile "sigs.k8s.io/controller-runtime/pkg/reconcile"
 )

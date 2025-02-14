@@ -5,11 +5,12 @@ package organization_test
 
 import (
 	"context"
-	"github.com/testcontainers/testcontainers-go"
-	"github.com/testcontainers/testcontainers-go/wait"
 	"net/http/httptest"
 	"os"
 	"testing"
+
+	"github.com/testcontainers/testcontainers-go"
+	"github.com/testcontainers/testcontainers-go/wait"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -24,7 +25,7 @@ import (
 )
 
 const (
-	mockDb  = "mock"
+	mockDB  = "mock"
 	mockUsr = "mock"
 	mockPwd = "mock_pwd"
 )
@@ -55,7 +56,7 @@ var _ = BeforeSuite(func() {
 	Expect(os.Setenv("PG_PORT", port.Port())).ToNot(HaveOccurred())
 	Expect(os.Setenv("PG_USER", mockUsr)).ToNot(HaveOccurred())
 	Expect(os.Setenv("PG_PASSWORD", mockPwd)).ToNot(HaveOccurred())
-	Expect(os.Setenv("PG_DATABASE", mockDb)).ToNot(HaveOccurred())
+	Expect(os.Setenv("PG_DATABASE", mockDB)).ToNot(HaveOccurred())
 
 	test.RegisterController("organizationController", (&organizationpkg.OrganizationReconciler{Namespace: "default", DexStorageType: dex.Postgres}).SetupWithManager)
 	test.RegisterWebhook("orgWebhook", admission.SetupOrganizationWebhookWithManager)
@@ -76,7 +77,7 @@ var _ = AfterSuite(func() {
 
 func startPgTC(ctx context.Context) (*postgres.PostgresContainer, error) {
 	return postgres.Run(ctx, "postgres:16-alpine",
-		postgres.WithDatabase(mockDb),
+		postgres.WithDatabase(mockDB),
 		postgres.WithUsername(mockUsr),
 		postgres.WithPassword(mockPwd),
 		testcontainers.WithWaitStrategy(
