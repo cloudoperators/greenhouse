@@ -9,11 +9,11 @@ import (
 	"strings"
 )
 
-type AuthType byte
+type AuthType string
 
 const (
-	Basic AuthType = iota
-	BearerToken
+	Basic       AuthType = "basic"
+	BearerToken AuthType = "token"
 )
 
 const (

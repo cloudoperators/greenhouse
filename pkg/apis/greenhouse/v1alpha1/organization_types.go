@@ -16,8 +16,8 @@ const (
 	SecretNotFoundReason ConditionReason = "SecretNotFound"
 	// SCIMRequestFailedReason is set when a request to SCIM failed.
 	SCIMRequestFailedReason ConditionReason = "SCIMRequestFailed"
-	// SCIMConfigNotProvidedReason is set when scim config is not present in spec as it is optional
-	SCIMConfigNotProvidedReason ConditionReason = "SCIMConfigNotProvided"
+	// SCIMConfigErrorReason is set when scim config is not present in spec as it is optional
+	SCIMConfigErrorReason ConditionReason = "SCIMConfigErrorReason"
 
 	// NamespaceCreated is set when the namespace for organization is created.
 	NamespaceCreated ConditionType = "NamespaceCreated"
@@ -76,6 +76,8 @@ type SCIMConfig struct {
 	// URL to the SCIM server.
 	BaseURL string `json:"baseURL"`
 	// AuthType defined possible authentication type
+	// +kubebuilder:validation:Enum=basic;token
+	// +kubebuilder:default="basic"
 	AuthType scim.AuthType `json:"authType,omitempty"`
 	// User to be used for basic authentication.
 	BasicAuthUser ValueFromSource `json:"basicAuthUser"`

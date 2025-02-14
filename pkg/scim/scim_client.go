@@ -124,7 +124,7 @@ func NewSCIMClient(logger logr.Logger, config *Config) (ISCIMClient, error) {
 			Next:   http.DefaultTransport,
 		}
 	default:
-		return nil, fmt.Errorf("unknown auth type: %d", config.AuthType)
+		return nil, fmt.Errorf("unknown auth type: %s", config.AuthType)
 	}
 
 	return &scimClient{
