@@ -132,3 +132,9 @@ func ParseDateTime(t time.Time) (time.Time, error) {
 	layout := t.Format(time.DateTime)
 	return time.Parse(time.DateTime, layout)
 }
+
+// Ptr - is a helper func that allocates a new T value
+// to store v and returns a pointer to it.
+func Ptr[T any](v T) *T {
+	return &v
+}

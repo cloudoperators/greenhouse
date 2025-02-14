@@ -5,10 +5,14 @@ package organization
 
 import (
 	"context"
+	"log/slog"
+	"os"
 
+	"github.com/dexidp/dex/storage"
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/record"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
@@ -20,6 +24,7 @@ import (
 
 	greenhousesapv1alpha1 "github.com/cloudoperators/greenhouse/pkg/apis/greenhouse/v1alpha1"
 	"github.com/cloudoperators/greenhouse/pkg/clientutil"
+	dexstore "github.com/cloudoperators/greenhouse/pkg/dex"
 	dexapi "github.com/cloudoperators/greenhouse/pkg/dex/api"
 	"github.com/cloudoperators/greenhouse/pkg/lifecycle"
 	"github.com/cloudoperators/greenhouse/pkg/scim"
@@ -40,11 +45,15 @@ var (
 	}
 )
 
+const defaultGreenhouseConnectorID = "greenhouse"
+
 // OrganizationReconciler reconciles an Organization object
 type OrganizationReconciler struct {
 	client.Client
-	recorder  record.EventRecorder
-	Namespace string
+	recorder       record.EventRecorder
+	DexStorageType string
+	dex            storage.Storage
+	Namespace      string
 }
 
 //+kubebuilder:rbac:groups=greenhouse.sap,resources=organizations,verbs=get;list;watch;create;update;patch;delete
@@ -64,7 +73,13 @@ type OrganizationReconciler struct {
 func (r *OrganizationReconciler) SetupWithManager(name string, mgr ctrl.Manager) error {
 	r.Client = mgr.GetClient()
 	r.recorder = mgr.GetEventRecorderFor(name)
-	return ctrl.NewControllerManagedBy(mgr).
+	l := slog.New(slog.NewJSONHandler(os.Stdout, nil))
+	dexter, err := dexstore.NewDexStorage(l.With("component", "storage"), r.DexStorageType)
+	if err != nil {
+		return err
+	}
+	r.dex = dexter
+	b := ctrl.NewControllerManagedBy(mgr).
 		Named(name).
 		For(&greenhousesapv1alpha1.Organization{}).
 		Owns(&corev1.Namespace{}).
@@ -75,8 +90,6 @@ func (r *OrganizationReconciler) SetupWithManager(name string, mgr ctrl.Manager)
 		Owns(&rbacv1.RoleBinding{}).
 		Owns(&rbacv1.ClusterRole{}).
 		Owns(&rbacv1.ClusterRoleBinding{}).
-		Owns(&dexapi.Connector{}).
-		Owns(&dexapi.OAuth2Client{}).
 		Watches(&corev1.Secret{},
 			handler.EnqueueRequestsFromMapFunc(r.enqueueOrganizationForReferencedSecret),
 			builder.WithPredicates(clientutil.PredicateHasOICDConfigured())).
@@ -85,8 +98,12 @@ func (r *OrganizationReconciler) SetupWithManager(name string, mgr ctrl.Manager)
 			builder.WithPredicates(predicate.And(
 				clientutil.PredicateByName(serviceProxyName),
 				predicate.GenerationChangedPredicate{},
-			))).
-		Complete(r)
+			)))
+	if r.DexStorageType == dexstore.K8s {
+		b.Owns(&dexapi.Connector{}).
+			Owns(&dexapi.OAuth2Client{})
+	}
+	return b.Complete(r)
 }
 
 func (r *OrganizationReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
@@ -138,6 +155,12 @@ func (r *OrganizationReconciler) EnsureCreated(ctx context.Context, object lifec
 		if err := r.reconcileOAuth2Client(ctx, org); err != nil {
 			org.SetCondition(greenhousesapv1alpha1.FalseCondition(greenhousesapv1alpha1.OrganizationOICDConfigured, greenhousesapv1alpha1.OAuthOICDFailed, err.Error()))
 			return ctrl.Result{}, lifecycle.Failed, err
+		}
+		if org.Name != defaultGreenhouseConnectorID {
+			if err := r.appendRedirectsToDefaultConnector(ctx, defaultGreenhouseConnectorID, org.Name); err != nil {
+				org.SetCondition(greenhousesapv1alpha1.FalseCondition(greenhousesapv1alpha1.DefaultConnectorRedirectsConfigured, greenhousesapv1alpha1.DefaultConnectorRedirectsFailed, err.Error()))
+				return ctrl.Result{}, lifecycle.Failed, err
+			}
 		}
 		org.SetCondition(greenhousesapv1alpha1.TrueCondition(greenhousesapv1alpha1.OrganizationOICDConfigured, "", ""))
 	}
@@ -324,4 +347,12 @@ func (r *OrganizationReconciler) setStatus() lifecycle.Conditioner {
 		readyCondition := calculateReadyCondition(scimAPIAvailableCondition)
 		org.Status.SetConditions(scimAPIAvailableCondition, readyCondition)
 	}
+}
+
+func (r *OrganizationReconciler) enqueueOrganizationForReferencedSecret(_ context.Context, o client.Object) []ctrl.Request {
+	var org = new(greenhousesapv1alpha1.Organization)
+	if err := r.Get(context.Background(), types.NamespacedName{Namespace: "", Name: o.GetNamespace()}, org); err != nil {
+		return nil
+	}
+	return []ctrl.Request{{NamespacedName: client.ObjectKeyFromObject(org)}}
 }
