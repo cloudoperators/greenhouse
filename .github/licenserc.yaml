@@ -10,7 +10,7 @@ header:
 
   paths-ignore:
     - '.github/**'
-    - '.reuse/dep5'
+    - 'REUSE.toml'
     - 'LICENSES/*.txt'
     - 'grafana/*.json'
     - 'website/scripts/**'
