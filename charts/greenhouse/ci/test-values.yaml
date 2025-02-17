@@ -29,10 +29,6 @@ postgresql-ng:
   users:
     acme-user:
 
-tableOwner: acme-user
-users:
-  acme-user:
-
 plugins:
   enabled: true
 
