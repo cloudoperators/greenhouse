@@ -157,7 +157,7 @@ func (r *OrganizationReconciler) EnsureCreated(ctx context.Context, object lifec
 			return ctrl.Result{}, lifecycle.Failed, err
 		}
 		if org.Name != defaultGreenhouseConnectorID {
-			if err := r.appendRedirectsToDefaultConnector(ctx, defaultGreenhouseConnectorID, org.Name); err != nil {
+			if err := r.appendRedirectsToDefaultConnector(ctx, org.Name); err != nil {
 				org.SetCondition(greenhousesapv1alpha1.FalseCondition(greenhousesapv1alpha1.DefaultConnectorRedirectsConfigured, greenhousesapv1alpha1.DefaultConnectorRedirectsFailed, err.Error()))
 				return ctrl.Result{}, lifecycle.Failed, err
 			}
