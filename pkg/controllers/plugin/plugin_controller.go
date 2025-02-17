@@ -22,7 +22,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
-	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
@@ -33,13 +32,14 @@ import (
 	"github.com/cloudoperators/greenhouse/pkg/clientutil"
 	"github.com/cloudoperators/greenhouse/pkg/common"
 	"github.com/cloudoperators/greenhouse/pkg/helm"
+	"github.com/cloudoperators/greenhouse/pkg/lifecycle"
 	"github.com/cloudoperators/greenhouse/pkg/metrics"
 )
 
 const helmReleaseSecretType = "helm.sh/release.v1" //nolint:gosec
 
-// HelmReconciler reconciles a Plugin object.
-type HelmReconciler struct {
+// PluginReconciler reconciles a Plugin object.
+type PluginReconciler struct {
 	client.Client
 	KubeRuntimeOpts clientutil.RuntimeOptions
 	kubeClientOpts  []clientutil.KubeClientOption
@@ -57,7 +57,7 @@ type HelmReconciler struct {
 //+kubebuilder:rbac:groups=*,resources=*,verbs=*
 
 // SetupWithManager sets up the controller with the Manager.
-func (r *HelmReconciler) SetupWithManager(name string, mgr ctrl.Manager) error {
+func (r *PluginReconciler) SetupWithManager(name string, mgr ctrl.Manager) error {
 	r.Client = mgr.GetClient()
 	r.kubeClientOpts = []clientutil.KubeClientOption{
 		clientutil.WithRuntimeOptions(r.KubeRuntimeOpts),
@@ -81,7 +81,9 @@ func (r *HelmReconciler) SetupWithManager(name string, mgr ctrl.Manager) error {
 		WithOptions(controller.Options{
 			RateLimiter: workqueue.NewTypedMaxOfRateLimiter(
 				workqueue.NewTypedItemExponentialFailureRateLimiter[reconcile.Request](30*time.Second, 1*time.Hour),
-				&workqueue.TypedBucketRateLimiter[reconcile.Request]{Limiter: rate.NewLimiter(rate.Limit(10), 100)})}).
+				&workqueue.TypedBucketRateLimiter[reconcile.Request]{Limiter: rate.NewLimiter(rate.Limit(10), 100)}),
+			MaxConcurrentReconciles: 3,
+		}).
 		For(&greenhousev1alpha1.Plugin{}).
 		// If the release was (manually) modified the secret would have been modified. Reconcile it.
 		Watches(&corev1.Secret{},
@@ -97,180 +99,201 @@ func (r *HelmReconciler) SetupWithManager(name string, mgr ctrl.Manager) error {
 		Complete(r)
 }
 
-func (r *HelmReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	var plugin = new(greenhousev1alpha1.Plugin)
-	if err := r.Get(ctx, req.NamespacedName, plugin); err != nil {
-		return ctrl.Result{}, client.IgnoreNotFound(err)
-	}
+func (r *PluginReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
+	return lifecycle.Reconcile(ctx, r.Client, req.NamespacedName, &greenhousev1alpha1.Plugin{}, r, r.setConditions())
+}
 
-	pluginStatus := initPluginStatus(plugin)
-	defer func() {
-		if statusErr := setPluginStatus(ctx, r.Client, plugin, pluginStatus); statusErr != nil {
-			log.FromContext(ctx).Error(statusErr, "failed to set status")
+func (r *PluginReconciler) setConditions() lifecycle.Conditioner {
+	return func(ctx context.Context, resource lifecycle.RuntimeObject) {
+		logger := ctrl.LoggerFrom(ctx)
+		plugin, ok := resource.(*greenhousev1alpha1.Plugin)
+		if !ok {
+			logger.Error(errors.New("resource is not a Plugin"), "status setup failed")
+			return
 		}
-	}()
 
-	clusterAccessReadyCondition, restClientGetter := initClientGetter(ctx, r.Client, r.kubeClientOpts, *plugin)
-	pluginStatus.StatusConditions.SetConditions(clusterAccessReadyCondition)
-	if !clusterAccessReadyCondition.IsTrue() {
+		readyCondition := computeReadyCondition(plugin.Status.StatusConditions)
+		plugin.SetCondition(readyCondition)
+	}
+}
+
+func (r *PluginReconciler) EnsureDeleted(ctx context.Context, resource lifecycle.RuntimeObject) (ctrl.Result, lifecycle.ReconcileResult, error) {
+	plugin := resource.(*greenhousev1alpha1.Plugin) //nolint:errcheck
+
+	restClientGetter, err := initClientGetter(ctx, r.Client, r.kubeClientOpts, *plugin)
+	if err != nil {
 		metrics.UpdateMetrics(plugin, metrics.MetricResultError, metrics.MetricReasonClusterAccessFailed)
-		return ctrl.Result{}, fmt.Errorf("cannot access cluster: %s", clusterAccessReadyCondition.Message)
+		return ctrl.Result{}, lifecycle.Failed, fmt.Errorf("cannot access cluster: %s", err.Error())
 	}
 
-	// Cleanup Helm release.
-	if plugin.DeletionTimestamp != nil && controllerutil.ContainsFinalizer(plugin, greenhouseapis.FinalizerCleanupHelmRelease) {
-		isDeleted, err := helm.UninstallHelmRelease(ctx, restClientGetter, plugin)
-		if err != nil {
-			c := greenhousev1alpha1.TrueCondition(greenhousev1alpha1.HelmReconcileFailedCondition, greenhousev1alpha1.HelmUninstallFailedReason, err.Error())
-			pluginStatus.StatusConditions.SetConditions(c)
-			metrics.UpdateMetrics(plugin, metrics.MetricResultError, metrics.MetricReasonUninstallHelmFailed)
-			return ctrl.Result{}, err
-		}
-		if !isDeleted {
-			// Ensure we're called again for some corner cases esp. where the actual deletion takes unusually long (hooks) yet the watch won't catch it.
-			return ctrl.Result{RequeueAfter: time.Minute}, nil
-		}
-		pluginStatus.StatusConditions.SetConditions(greenhousev1alpha1.FalseCondition(greenhousev1alpha1.HelmReconcileFailedCondition, "", ""))
-
-		err = clientutil.RemoveFinalizer(ctx, r.Client, plugin, greenhouseapis.FinalizerCleanupHelmRelease)
-		return ctrl.Result{}, err
+	isDeleted, err := helm.UninstallHelmRelease(ctx, restClientGetter, plugin)
+	if err != nil {
+		c := greenhousev1alpha1.TrueCondition(greenhousev1alpha1.HelmReconcileFailedCondition, greenhousev1alpha1.HelmUninstallFailedReason, err.Error())
+		plugin.SetCondition(c)
+		metrics.UpdateMetrics(plugin, metrics.MetricResultError, metrics.MetricReasonUninstallHelmFailed)
+		return ctrl.Result{}, lifecycle.Failed, err
+	}
+	if !isDeleted {
+		// Ensure we're called again for some corner cases esp. where the actual deletion takes unusually long (hooks) yet the watch won't catch it.
+		return ctrl.Result{RequeueAfter: time.Minute}, lifecycle.Pending, nil
 	}
 
-	if err := clientutil.EnsureFinalizer(ctx, r.Client, plugin, greenhouseapis.FinalizerCleanupHelmRelease); err != nil {
-		return ctrl.Result{}, err
+	plugin.SetCondition(greenhousev1alpha1.FalseCondition(greenhousev1alpha1.HelmReconcileFailedCondition, "", ""))
+	return ctrl.Result{}, lifecycle.Success, nil
+}
+
+func (r *PluginReconciler) EnsureCreated(ctx context.Context, resource lifecycle.RuntimeObject) (ctrl.Result, lifecycle.ReconcileResult, error) {
+	plugin := resource.(*greenhousev1alpha1.Plugin) //nolint:errcheck
+
+	initPluginStatus(plugin)
+
+	restClientGetter, err := initClientGetter(ctx, r.Client, r.kubeClientOpts, *plugin)
+	if err != nil {
+		metrics.UpdateMetrics(plugin, metrics.MetricResultError, metrics.MetricReasonClusterAccessFailed)
+		return ctrl.Result{}, lifecycle.Failed, fmt.Errorf("cannot access cluster: %s", err.Error())
 	}
 
 	// Check if we should continue with reconciliation or requeue if cluster is scheduled for deletion
 	result, err := shouldReconcileOrRequeue(ctx, r.Client, plugin)
 	if err != nil {
-		return ctrl.Result{}, err
+		return ctrl.Result{}, lifecycle.Failed, err
 	}
 	if result != nil {
-		pluginStatus.StatusConditions.SetConditions(result.condition)
-		return ctrl.Result{RequeueAfter: result.requeueAfter}, nil
+		return ctrl.Result{RequeueAfter: result.requeueAfter}, lifecycle.Pending, nil
 	}
 
-	helmReconcileFailedCondition, pluginDefinition := r.getPluginDefinition(ctx, plugin)
-	if pluginDefinition == nil {
-		pluginStatus.StatusConditions.SetConditions(helmReconcileFailedCondition)
+	pluginDefinition, err := r.getPluginDefinition(ctx, plugin)
+	if err != nil {
 		metrics.UpdateMetrics(plugin, metrics.MetricResultError, metrics.MetricReasonPluginDefinitionNotFound)
-		return ctrl.Result{}, fmt.Errorf("pluginDefinition not found: %s", helmReconcileFailedCondition.Message)
+		return ctrl.Result{}, lifecycle.Failed, fmt.Errorf("pluginDefinition not found: %s", err.Error())
 	}
 
-	driftDetectedCondition, reconcileFailedCondition := r.reconcileHelmRelease(ctx, restClientGetter, plugin, pluginDefinition, pluginStatus)
-	pluginStatus.StatusConditions.SetConditions(driftDetectedCondition, reconcileFailedCondition)
-	statusReconcileCompleteCondition := r.reconcileStatus(ctx, restClientGetter, plugin, pluginDefinition, &pluginStatus)
-	pluginStatus.StatusConditions.SetConditions(statusReconcileCompleteCondition)
+	reconcileErr := r.reconcileHelmRelease(ctx, restClientGetter, plugin, pluginDefinition)
 
-	if reconcileFailedCondition.IsTrue() {
-		return ctrl.Result{}, fmt.Errorf("helm reconcile failed: %s", reconcileFailedCondition.Message)
+	// PluginStatus, WorkloadStatus and ChartTest should be reconciled regardless of Helm reconciliation result.
+	r.reconcileStatus(ctx, restClientGetter, plugin, pluginDefinition, &plugin.Status)
+
+	workloadStatusResult, workloadStatusErr := r.reconcilePluginWorkloadStatus(ctx, restClientGetter, plugin, pluginDefinition)
+
+	helmChartTestResult, helmChartTestErr := r.reconcileHelmChartTest(ctx, plugin)
+
+	if reconcileErr != nil {
+		return ctrl.Result{}, lifecycle.Failed, fmt.Errorf("helm reconcile failed: %s", reconcileErr.Error())
+	}
+	if workloadStatusErr != nil {
+		return ctrl.Result{}, lifecycle.Failed, fmt.Errorf("workload status reconcile failed: %s", workloadStatusErr.Error())
+	}
+	if helmChartTestErr != nil {
+		return ctrl.Result{}, lifecycle.Failed, fmt.Errorf("helm chart test reconcile failed: %s", helmChartTestErr.Error())
+	}
+	if workloadStatusResult != nil {
+		return ctrl.Result{RequeueAfter: workloadStatusResult.requeueAfter}, lifecycle.Pending, nil
+	}
+	if helmChartTestResult != nil {
+		return ctrl.Result{RequeueAfter: helmChartTestResult.requeueAfter}, lifecycle.Pending, nil
 	}
 
-	return ctrl.Result{}, nil
+	return ctrl.Result{}, lifecycle.Success, nil
 }
 
-func (r *HelmReconciler) getPluginDefinition(
+func (r *PluginReconciler) getPluginDefinition(
 	ctx context.Context,
 	plugin *greenhousev1alpha1.Plugin,
 ) (
-	helmReconcileFailedCondition greenhousev1alpha1.Condition,
-	pluginDefinition *greenhousev1alpha1.PluginDefinition,
+	*greenhousev1alpha1.PluginDefinition, error,
 ) {
 
 	var err error
-	pluginDefinition = new(greenhousev1alpha1.PluginDefinition)
-	helmReconcileFailedCondition = greenhousev1alpha1.UnknownCondition(greenhousev1alpha1.HelmReconcileFailedCondition, "", "")
+	pluginDefinition := new(greenhousev1alpha1.PluginDefinition)
 
 	if err = r.Get(ctx, types.NamespacedName{Namespace: plugin.GetNamespace(), Name: plugin.Spec.PluginDefinition}, pluginDefinition); err != nil {
-		helmReconcileFailedCondition.Status = metav1.ConditionTrue
-		helmReconcileFailedCondition.Reason = greenhousev1alpha1.PluginDefinitionNotFoundReason
+		var errorMessage string
+
 		if apierrors.IsNotFound(err) {
-			helmReconcileFailedCondition.Message = fmt.Sprintf("PluginDefinition %s does not exist", plugin.Spec.PluginDefinition)
-			return helmReconcileFailedCondition, nil
+			errorMessage = fmt.Sprintf("PluginDefinition %s does not exist", plugin.Spec.PluginDefinition)
+		} else {
+			errorMessage = fmt.Sprintf("Failed to get pluginDefinition %s: %s", plugin.Spec.PluginDefinition, err.Error())
 		}
-		helmReconcileFailedCondition.Message = fmt.Sprintf("Failed to get pluginDefinition %s: %s", plugin.Spec.PluginDefinition, err.Error())
-		return helmReconcileFailedCondition, nil
+
+		plugin.SetCondition(greenhousev1alpha1.TrueCondition(
+			greenhousev1alpha1.HelmReconcileFailedCondition, greenhousev1alpha1.PluginDefinitionNotFoundReason, errorMessage))
+
+		return nil, errors.New(errorMessage)
 	}
-	helmReconcileFailedCondition.Status = metav1.ConditionFalse
-	helmReconcileFailedCondition.Message = ""
-	helmReconcileFailedCondition.Reason = ""
-	return helmReconcileFailedCondition, pluginDefinition
+
+	plugin.SetCondition(greenhousev1alpha1.FalseCondition(greenhousev1alpha1.HelmReconcileFailedCondition, "", ""))
+	return pluginDefinition, nil
 }
 
-func (r *HelmReconciler) reconcileHelmRelease(
+func (r *PluginReconciler) reconcileHelmRelease(
 	ctx context.Context,
 	restClientGetter genericclioptions.RESTClientGetter,
 	plugin *greenhousev1alpha1.Plugin,
 	pluginDefinition *greenhousev1alpha1.PluginDefinition,
-	pluginStatus greenhousev1alpha1.PluginStatus,
-) (driftDetectedCondition, reconcileFailedCondition greenhousev1alpha1.Condition) {
-
-	driftDetectedCondition = *pluginStatus.GetConditionByType(greenhousev1alpha1.HelmDriftDetectedCondition)
-	reconcileFailedCondition = *pluginStatus.GetConditionByType(greenhousev1alpha1.HelmReconcileFailedCondition)
+) error {
 
 	// Not a HelmChart pluginDefinition. Ignore it.
 	if pluginDefinition.Spec.HelmChart == nil {
-		reconcileFailedCondition.Status = metav1.ConditionFalse
-		reconcileFailedCondition.Message = "PluginDefinition is not backed by HelmChart"
-		return driftDetectedCondition, reconcileFailedCondition
+		plugin.SetCondition(greenhousev1alpha1.FalseCondition(
+			greenhousev1alpha1.HelmReconcileFailedCondition, "", "PluginDefinition is not backed by HelmChart"))
+		return nil
 	}
 
 	// Validate before attempting the installation/upgrade.
 	// Any error is reflected in the status of the Plugin.
 	if _, err := helm.TemplateHelmChartFromPlugin(ctx, r.Client, restClientGetter, pluginDefinition, plugin); err != nil {
-		reconcileFailedCondition.Status = metav1.ConditionTrue
-		reconcileFailedCondition.Message = "Helm template failed: " + err.Error()
+		errorMessage := "Helm template failed: " + err.Error()
+		plugin.SetCondition(greenhousev1alpha1.TrueCondition(
+			greenhousev1alpha1.HelmReconcileFailedCondition, "", errorMessage))
 		metrics.UpdateMetrics(plugin, metrics.MetricResultError, metrics.MetricReasonTemplateFailed)
-		return driftDetectedCondition, reconcileFailedCondition
+		return errors.New(errorMessage)
 	}
 
 	// Check whether the deployed resources match the ones we expect.
 	diffObjects, isHelmDrift, err := helm.DiffChartToDeployedResources(ctx, r.Client, restClientGetter, pluginDefinition, plugin)
 	if err != nil {
-		reconcileFailedCondition.Status = metav1.ConditionTrue
-		reconcileFailedCondition.Message = "Helm diff failed: " + err.Error()
+		errorMessage := "Helm diff failed: " + err.Error()
+		plugin.SetCondition(greenhousev1alpha1.TrueCondition(
+			greenhousev1alpha1.HelmReconcileFailedCondition, "", errorMessage))
 		metrics.UpdateMetrics(plugin, metrics.MetricResultError, metrics.MetricReasonDiffFailed)
-		return driftDetectedCondition, reconcileFailedCondition
+		return errors.New(errorMessage)
 	}
 
 	switch {
 	case isHelmDrift: // drift was detected
-		driftDetectedCondition.Status = metav1.ConditionTrue
-		driftDetectedCondition.LastTransitionTime = metav1.Now()
+		plugin.SetCondition(greenhousev1alpha1.TrueCondition(greenhousev1alpha1.HelmDriftDetectedCondition, "", ""))
 		log.FromContext(ctx).Info("drift between deployed resources and manifest detected", "resources", diffObjects.String())
 	case len(diffObjects) > 0: // diff detected
-		driftDetectedCondition.Status = metav1.ConditionFalse
-		driftDetectedCondition.LastTransitionTime = metav1.Now()
+		plugin.SetCondition(greenhousev1alpha1.FalseCondition(greenhousev1alpha1.HelmDriftDetectedCondition, "", ""))
 		log.FromContext(ctx).Info("diff between deployed release and manifest detected", "resources", diffObjects.String())
 	default: // no diff detected and no drift detected
-		driftDetectedCondition.Status = metav1.ConditionFalse
-		driftDetectedCondition.LastTransitionTime = metav1.Now()
+		plugin.SetCondition(greenhousev1alpha1.FalseCondition(greenhousev1alpha1.HelmDriftDetectedCondition, "", ""))
+		plugin.SetCondition(greenhousev1alpha1.FalseCondition(
+			greenhousev1alpha1.HelmReconcileFailedCondition, "", "Release for plugin is up-to-date"))
 
-		reconcileFailedCondition.Status = metav1.ConditionFalse
-		reconcileFailedCondition.Message = "Release for plugin is up-to-date"
 		// TODO: remove unnecessary log?
 		log.FromContext(ctx).Info("release for plugin is up-to-date")
-		return driftDetectedCondition, reconcileFailedCondition
+		return nil
 	}
 
 	if err := helm.InstallOrUpgradeHelmChartFromPlugin(ctx, r.Client, restClientGetter, pluginDefinition, plugin); err != nil {
-		reconcileFailedCondition.Status = metav1.ConditionTrue
-		reconcileFailedCondition.Message = "Helm install/upgrade failed: " + err.Error()
-		return driftDetectedCondition, reconcileFailedCondition
+		errorMessage := "Helm install/upgrade failed: " + err.Error()
+		plugin.SetCondition(greenhousev1alpha1.TrueCondition(
+			greenhousev1alpha1.HelmReconcileFailedCondition, "", errorMessage))
+		return errors.New(errorMessage)
 	}
-	reconcileFailedCondition.Status = metav1.ConditionFalse
-	reconcileFailedCondition.Message = "Helm install/upgrade successful"
+
+	plugin.SetCondition(greenhousev1alpha1.FalseCondition(
+		greenhousev1alpha1.HelmReconcileFailedCondition, "", "Helm install/upgrade successful"))
 	metrics.UpdateMetrics(plugin, metrics.MetricResultSuccess, metrics.MetricReasonEmpty)
-	return driftDetectedCondition, reconcileFailedCondition
+	return nil
 }
 
-func (r *HelmReconciler) reconcileStatus(ctx context.Context,
+func (r *PluginReconciler) reconcileStatus(ctx context.Context,
 	restClientGetter genericclioptions.RESTClientGetter,
 	plugin *greenhousev1alpha1.Plugin,
 	pluginDefinition *greenhousev1alpha1.PluginDefinition,
 	pluginStatus *greenhousev1alpha1.PluginStatus,
-) (
-	statusReconcileCondition greenhousev1alpha1.Condition,
 ) {
 
 	var (
@@ -283,15 +306,17 @@ func (r *HelmReconciler) reconcileStatus(ctx context.Context,
 		}
 	)
 
-	statusReconcileCondition = greenhousev1alpha1.TrueCondition(greenhousev1alpha1.StatusUpToDateCondition, "", "")
 	// Collect status from the Helm release.
-	if helmRelease, err := helm.GetReleaseForHelmChartFromPlugin(ctx, restClientGetter, plugin); err == nil {
+	helmRelease, err := helm.GetReleaseForHelmChartFromPlugin(ctx, restClientGetter, plugin)
+	if err == nil {
 		// Ensure the status is always reported.
-		if serviceList, err := getExposedServicesForPluginFromHelmRelease(restClientGetter, helmRelease, plugin); err == nil {
+		serviceList, err := getExposedServicesForPluginFromHelmRelease(restClientGetter, helmRelease, plugin)
+		if err == nil {
 			exposedServices = serviceList
+			plugin.SetCondition(greenhousev1alpha1.TrueCondition(greenhousev1alpha1.StatusUpToDateCondition, "", ""))
 		} else {
-			statusReconcileCondition.Status = metav1.ConditionFalse
-			statusReconcileCondition.Message = "failed to get exposed services: " + err.Error()
+			plugin.SetCondition(greenhousev1alpha1.FalseCondition(
+				greenhousev1alpha1.StatusUpToDateCondition, "", "failed to get exposed services: "+err.Error()))
 		}
 
 		// Get the release status.
@@ -302,11 +327,20 @@ func (r *HelmReconciler) reconcileStatus(ctx context.Context,
 			if latestReleaseInfo.Status == release.StatusDeployed {
 				pluginVersion = latestReleaseInfo.Description
 			}
+			if plugin.Spec.OptionValues != nil {
+				checksum, err := helm.CalculatePluginOptionChecksum(ctx, r.Client, plugin)
+				if err == nil {
+					releaseStatus.PluginOptionChecksum = checksum
+				} else {
+					releaseStatus.PluginOptionChecksum = ""
+				}
+			}
 		}
 	} else {
-		statusReconcileCondition.Status = metav1.ConditionFalse
-		statusReconcileCondition.Message = "failed to get Helm release: " + err.Error()
+		plugin.SetCondition(greenhousev1alpha1.FalseCondition(
+			greenhousev1alpha1.StatusUpToDateCondition, "", "failed to get Helm release: "+err.Error()))
 	}
+
 	var (
 		uiApplication      *greenhousev1alpha1.UIApplicationReference
 		helmChartReference *greenhousev1alpha1.HelmChartReference
@@ -327,12 +361,10 @@ func (r *HelmReconciler) reconcileStatus(ctx context.Context,
 	pluginStatus.Weight = pluginDefinition.Spec.Weight
 	pluginStatus.Description = pluginDefinition.Spec.Description
 	pluginStatus.ExposedServices = exposedServices
-
-	return statusReconcileCondition
 }
 
 // enqueueAllPluginsForCluster enqueues all Plugins which have .spec.clusterName set to the name of the given Cluster.
-func (r *HelmReconciler) enqueueAllPluginsForCluster(ctx context.Context, o client.Object) []ctrl.Request {
+func (r *PluginReconciler) enqueueAllPluginsForCluster(ctx context.Context, o client.Object) []ctrl.Request {
 	listOpts := &client.ListOptions{
 		FieldSelector: fields.OneTermEqualSelector(greenhouseapis.PluginClusterNameField, o.GetName()),
 		Namespace:     o.GetNamespace(),
@@ -340,11 +372,11 @@ func (r *HelmReconciler) enqueueAllPluginsForCluster(ctx context.Context, o clie
 	return listPluginsAsReconcileRequests(ctx, r.Client, listOpts)
 }
 
-func (r *HelmReconciler) enqueueAllPluginsInNamespace(ctx context.Context, o client.Object) []ctrl.Request {
+func (r *PluginReconciler) enqueueAllPluginsInNamespace(ctx context.Context, o client.Object) []ctrl.Request {
 	return listPluginsAsReconcileRequests(ctx, r.Client, client.InNamespace(o.GetNamespace()))
 }
 
-func (r *HelmReconciler) enqueueAllPluginsForPluginDefinition(ctx context.Context, o client.Object) []ctrl.Request {
+func (r *PluginReconciler) enqueueAllPluginsForPluginDefinition(ctx context.Context, o client.Object) []ctrl.Request {
 	return listPluginsAsReconcileRequests(ctx, r.Client, client.MatchingLabels{greenhouseapis.LabelKeyPluginDefinition: o.GetName()})
 }
 

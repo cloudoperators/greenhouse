@@ -12,6 +12,7 @@ import (
 	"helm.sh/helm/v3/pkg/action"
 	"helm.sh/helm/v3/pkg/chart"
 	"helm.sh/helm/v3/pkg/release"
+	corev1 "k8s.io/api/core/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -34,7 +35,7 @@ var _ = Describe("helm package test", func() {
 	When("getting the values for the Helm chart of a plugin", func() {
 		It("should correctly get regular values and overwrite helm values", func() {
 			plugin.Spec.OptionValues = []greenhousesapv1alpha1.PluginOptionValue{*optionValue}
-			helmValues, err := helm.ExportGetValuesForHelmChart(context.Background(), test.K8sClient, helmChart, plugin, true)
+			helmValues, err := helm.ExportGetValuesForHelmChart(context.Background(), test.K8sClient, helmChart, plugin)
 			Expect(err).ShouldNot(HaveOccurred(),
 				"there should be no error getting the values")
 			Expect(helmValues).ShouldNot(BeNil(),
@@ -49,7 +50,7 @@ var _ = Describe("helm package test", func() {
 			Expect(test.K8sClient.Create(test.Ctx, pluginSecret, &client.CreateOptions{})).
 				Should(Succeed(), "creating an secret should be successful")
 
-			helmValues, err := helm.ExportGetValuesForHelmChart(context.Background(), test.K8sClient, helmChart, plugin, true)
+			helmValues, err := helm.ExportGetValuesForHelmChart(context.Background(), test.K8sClient, helmChart, plugin)
 			Expect(err).ShouldNot(HaveOccurred(),
 				"there should be no error getting the values")
 			Expect(helmValues).ShouldNot(BeNil(),
@@ -135,7 +136,7 @@ var _ = Describe("helm package test", func() {
 		})
 	})
 
-	When("handling a helm chart with CRDs", func() {
+	When("handling a helm chart with CRDs", Ordered, func() {
 		It("should re-create CRDs from Helm chart when CRD is missing on upgrade", func() {
 			By("installing helm chart")
 			err := helm.InstallOrUpgradeHelmChartFromPlugin(test.Ctx, test.K8sClient, test.RestClientGetter, testPluginWithHelmChartCRDs, plugin)
@@ -245,7 +246,7 @@ var _ = Describe("helm package test", func() {
 
 var _ = DescribeTable("getting helm values from Plugin", func(defaultValue any, exp any) {
 	helmChart := &chart.Chart{
-		Values: make(map[string]interface{}, 0),
+		Values: make(map[string]interface{}),
 	}
 
 	pluginWithOptionValue := &greenhousesapv1alpha1.Plugin{
@@ -264,7 +265,7 @@ var _ = DescribeTable("getting helm values from Plugin", func(defaultValue any, 
 		},
 	}
 
-	helmValues, err := helm.ExportGetValuesForHelmChart(context.Background(), test.K8sClient, helmChart, pluginWithOptionValue, true)
+	helmValues, err := helm.ExportGetValuesForHelmChart(context.Background(), test.K8sClient, helmChart, pluginWithOptionValue)
 	Expect(err).ShouldNot(HaveOccurred(),
 		"there should be no error getting the values")
 	Expect(helmValues).ShouldNot(BeNil(),
@@ -300,3 +301,117 @@ func containsReleaseByName(releases []*release.Release, releaseName string) bool
 	}
 	return false
 }
+
+var _ = Describe("Plugin option checksum", Ordered, func() {
+	var (
+		secretWithOptionValue = &corev1.Secret{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: "test-org",
+				Name:      "plugin-secret",
+			},
+			Data: map[string][]byte{
+				"secretKey": []byte("pluginSecretValue1"),
+			},
+		}
+
+		optionValuesOneRequired = []greenhousesapv1alpha1.PluginOptionValue{
+			{
+				Name:  "stringRequired",
+				Value: test.MustReturnJSONFor("required"),
+			},
+		}
+		optionValuesOneSecret = []greenhousesapv1alpha1.PluginOptionValue{
+			{
+				Name: "secret",
+				ValueFrom: &greenhousesapv1alpha1.ValueFromSource{
+					Secret: &greenhousesapv1alpha1.SecretKeyReference{
+						Name: "plugin-secret",
+						Key:  "secretKey",
+					},
+				},
+			},
+		}
+		optionValuesRequiredAndSecret = []greenhousesapv1alpha1.PluginOptionValue{
+			{
+				Name:  "stringRequired",
+				Value: test.MustReturnJSONFor("required"),
+			},
+			{
+				Name: "secret",
+				ValueFrom: &greenhousesapv1alpha1.ValueFromSource{
+					Secret: &greenhousesapv1alpha1.SecretKeyReference{
+						Name: "plugin-secret",
+						Key:  "secretKey",
+					},
+				},
+			},
+		}
+		optionValuesSecretAndRequired = []greenhousesapv1alpha1.PluginOptionValue{
+			{
+				Name: "secret",
+				ValueFrom: &greenhousesapv1alpha1.ValueFromSource{
+					Secret: &greenhousesapv1alpha1.SecretKeyReference{
+						Name: "plugin-secret",
+						Key:  "secretKey",
+					},
+				},
+			},
+			{
+				Name:  "stringRequired",
+				Value: test.MustReturnJSONFor("required"),
+			},
+		}
+		optionValuesRequiredAndOptional = []greenhousesapv1alpha1.PluginOptionValue{
+			{
+				Name:  "stringRequired",
+				Value: test.MustReturnJSONFor("required"),
+			},
+			{
+				Name:  "key1",
+				Value: test.MustReturnJSONFor("pluginValue1"),
+			},
+		}
+		optionValuesEmpty []greenhousesapv1alpha1.PluginOptionValue
+	)
+
+	BeforeAll(func() {
+		// Add secrets for test cases.
+		Expect(test.K8sClient.Create(test.Ctx, secretWithOptionValue)).To(Succeed(), "there should be no error creating a secret")
+	})
+
+	AfterAll(func() {
+		Expect(test.K8sClient.Delete(test.Ctx, secretWithOptionValue)).To(Succeed(), "there should be no error deleting a secret")
+	})
+
+	var _ = DescribeTable("comparing plugin option checksums",
+		func(optionValues1 []greenhousesapv1alpha1.PluginOptionValue, optionValues2 []greenhousesapv1alpha1.PluginOptionValue, expected bool) {
+			plugin1 := greenhousesapv1alpha1.Plugin{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "test-hashing-plugin1",
+					Namespace: "test-org",
+				},
+			}
+			plugin2 := greenhousesapv1alpha1.Plugin{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "test-hashing-plugin2",
+					Namespace: "test-org",
+				},
+			}
+			plugin1.Spec.OptionValues = optionValues1
+			plugin2.Spec.OptionValues = optionValues2
+			hashedValues1, err := helm.CalculatePluginOptionChecksum(test.Ctx, test.K8sClient, &plugin1)
+			Expect(err).ToNot(HaveOccurred(), "there should be no error calculating plugin option checksum")
+			hashedValues2, err := helm.CalculatePluginOptionChecksum(test.Ctx, test.K8sClient, &plugin2)
+			Expect(err).ToNot(HaveOccurred(), "there should be no error calculating plugin option checksum")
+
+			comparisonResult := hashedValues1 == hashedValues2
+			Expect(comparisonResult).To(Equal(expected))
+		},
+		Entry("the same option values should be equal", optionValuesOneRequired, optionValuesOneRequired, true),
+		Entry("the same option values should be equal", optionValuesRequiredAndSecret, optionValuesRequiredAndSecret, true),
+		Entry("the same option values in different order should be equal", optionValuesSecretAndRequired, optionValuesRequiredAndSecret, true),
+		Entry("different option values should not be equal", optionValuesOneRequired, optionValuesOneSecret, false),
+		Entry("different option values should not be equal", optionValuesEmpty, optionValuesOneRequired, false),
+		Entry("different option values should not be equal", optionValuesRequiredAndOptional, optionValuesRequiredAndSecret, false),
+	)
+})

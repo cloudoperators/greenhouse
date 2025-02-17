@@ -5,12 +5,15 @@ package helm
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
 	"slices"
+	"sort"
 	"time"
 
 	"helm.sh/helm/v3/pkg/action"
@@ -78,7 +81,7 @@ func InstallOrUpgradeHelmChartFromPlugin(ctx context.Context, local client.Clien
 	// Avoid attempts to upgrade a failed release and attempt to resurrect it.
 	if latestRelease.Info != nil && latestRelease.Info.Status == release.StatusFailed {
 		log.FromContext(ctx).Info("attempting to reset release status", "current status", latestRelease.Info.Status.String())
-		if err := ResetHelmReleaseStatusToDeployed(ctx, restClientGetter, plugin); err != nil {
+		if err := ResetHelmReleaseStatusToDeployed(restClientGetter, plugin); err != nil {
 			metrics.UpdateMetrics(plugin, metrics.MetricResultError, metrics.MetricReasonUpgradeFailed)
 			return err
 		}
@@ -109,8 +112,8 @@ func InstallOrUpgradeHelmChartFromPlugin(ctx context.Context, local client.Clien
 	return nil
 }
 
-// HelmChartTest to do helm test on the plugin
-func HelmChartTest(ctx context.Context, restClientGetter genericclioptions.RESTClientGetter, plugin *greenhousev1alpha1.Plugin) (bool, error) {
+// ChartTest to do helm test on the plugin
+func ChartTest(restClientGetter genericclioptions.RESTClientGetter, plugin *greenhousev1alpha1.Plugin) (bool, error) {
 	var hasTestHook bool
 	cfg, err := newHelmAction(restClientGetter, plugin.Spec.ReleaseNamespace)
 	if err != nil {
@@ -208,6 +211,14 @@ func DiffChartToDeployedResources(ctx context.Context, local client.Client, rest
 		return nil, false, nil
 	}
 
+	// Skip the drift detection if nothing changed with plugin option values.
+	if plugin.Status.HelmReleaseStatus.PluginOptionChecksum != "" {
+		currentPluginOptionChecksum, err := CalculatePluginOptionChecksum(ctx, local, plugin)
+		if err == nil && plugin.Status.HelmReleaseStatus.PluginOptionChecksum == currentPluginOptionChecksum {
+			return nil, false, nil
+		}
+	}
+
 	diffObjects, err = diffAgainstLiveObjects(restClientGetter, plugin.Spec.ReleaseNamespace, helmTemplateRelease.Manifest)
 	if err != nil {
 		return nil, false, err
@@ -220,7 +231,7 @@ func DiffChartToDeployedResources(ctx context.Context, local client.Client, rest
 }
 
 // ResetHelmReleaseStatusToDeployed resets the status of the release to deployed using a rollback.
-func ResetHelmReleaseStatusToDeployed(ctx context.Context, restClientGetter genericclioptions.RESTClientGetter, plugin *greenhousev1alpha1.Plugin) error {
+func ResetHelmReleaseStatusToDeployed(restClientGetter genericclioptions.RESTClientGetter, plugin *greenhousev1alpha1.Plugin) error {
 	r, err := getLatestUpgradeableRelease(restClientGetter, plugin)
 	if err != nil {
 		return err
@@ -234,7 +245,7 @@ func ResetHelmReleaseStatusToDeployed(ctx context.Context, restClientGetter gene
 	rollbackAction.Version = r.Version
 	rollbackAction.DisableHooks = true
 	rollbackAction.Wait = true
-	rollbackAction.Timeout = 5 * time.Minute
+	rollbackAction.Timeout = GetHelmTimeout()
 	rollbackAction.MaxHistory = 5
 	return rollbackAction.Run(r.Name)
 }
@@ -342,6 +353,7 @@ func upgradeRelease(ctx context.Context, local client.Client, restClientGetter g
 	upgradeAction.Namespace = plugin.Spec.ReleaseNamespace
 	upgradeAction.DependencyUpdate = true
 	upgradeAction.MaxHistory = 5
+	upgradeAction.Timeout = GetHelmTimeout() // set a timeout for the upgrade to not be stuck in pending state
 	upgradeAction.Description = pluginDefinition.Spec.Version
 
 	helmChart, err := loadHelmChart(&upgradeAction.ChartPathOptions, pluginDefinition.Spec.HelmChart, settings)
@@ -354,7 +366,7 @@ func upgradeRelease(ctx context.Context, local client.Client, restClientGetter g
 		return err
 	}
 
-	helmValues, err := getValuesForHelmChart(ctx, local, helmChart, plugin, false)
+	helmValues, err := getValuesForHelmChart(ctx, local, helmChart, plugin)
 	if err != nil {
 		return err
 	}
@@ -379,6 +391,7 @@ func installRelease(ctx context.Context, local client.Client, restClientGetter g
 	installAction := action.NewInstall(cfg)
 	installAction.ReleaseName = plugin.Name
 	installAction.Namespace = plugin.Spec.ReleaseNamespace
+	installAction.Timeout = GetHelmTimeout() // set a timeout for the installation to not be stuck in pending state
 	installAction.CreateNamespace = true
 	installAction.DependencyUpdate = true
 	installAction.DryRun = isDryRun
@@ -398,7 +411,7 @@ func installRelease(ctx context.Context, local client.Client, restClientGetter g
 	if err := replaceCustomResourceDefinitions(ctx, c, helmChart.CRDObjects(), false); err != nil {
 		return nil, err
 	}
-	helmValues, err := getValuesForHelmChart(ctx, local, helmChart, plugin, isDryRun)
+	helmValues, err := getValuesForHelmChart(ctx, local, helmChart, plugin)
 	if err != nil {
 		return nil, err
 	}
@@ -506,9 +519,9 @@ func mergeMaps(a, b map[string]interface{}) map[string]interface{} {
 
 // getValuesForHelmChart returns a set of values to be used for Helm operations.
 // The order is important as the values defined in the Helm chart can be overridden by the values defined in the Plugin.
-func getValuesForHelmChart(ctx context.Context, c client.Client, helmChart *chart.Chart, plugin *greenhousev1alpha1.Plugin, isDryRun bool) (map[string]interface{}, error) {
+func getValuesForHelmChart(ctx context.Context, c client.Client, helmChart *chart.Chart, plugin *greenhousev1alpha1.Plugin) (map[string]interface{}, error) {
 	// Copy the values from the Helm chart ensuring a non-nil map.
-	helmValues := mergeMaps(make(map[string]interface{}, 0), helmChart.Values)
+	helmValues := mergeMaps(make(map[string]interface{}), helmChart.Values)
 	// Get values defined in plugin.
 	pluginValues, err := getValuesFromPlugin(ctx, c, plugin)
 	if err != nil {
@@ -614,4 +627,26 @@ func replaceCustomResourceDefinitions(ctx context.Context, c client.Client, crdL
 		}
 	}
 	return nil
+}
+
+// CalculatePluginOptionChecksum calculates a hash of plugin option values.
+// Secret-type option values are extracted first and all values are sorted to ensure that order is not important when comparing checksums.
+func CalculatePluginOptionChecksum(ctx context.Context, c client.Client, plugin *greenhousev1alpha1.Plugin) (string, error) {
+	values, err := getValuesFromPlugin(ctx, c, plugin)
+	if err != nil {
+		return "", err
+	}
+	// Sort the option values by Name to ensure consistent ordering.
+	sort.Slice(values, func(i, j int) bool {
+		return values[i].Name < values[j].Name
+	})
+
+	buf := make([]byte, 0)
+	for _, v := range values {
+		buf = append(buf, []byte(v.Name)...)
+		buf = append(buf, v.Value.Raw...)
+	}
+
+	checksum := sha256.Sum256(buf)
+	return hex.EncodeToString(checksum[:]), nil
 }

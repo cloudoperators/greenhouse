@@ -7,14 +7,14 @@ replace (
 	github.com/dexidp/dex => github.com/dexidp/dex v0.0.0-20240807174518-43956db7fd75
 	github.com/dexidp/dex/api/v2 => github.com/dexidp/dex/api/v2 v2.2.0
 	// Keep k8s dependencies in sync.
-	k8s.io/api => k8s.io/api v0.31.4
-	k8s.io/apiextensions-apiserver => k8s.io/apiextensions-apiserver v0.31.4
+	k8s.io/api => k8s.io/api v0.31.5
+	k8s.io/apiextensions-apiserver => k8s.io/apiextensions-apiserver v0.31.5
 	k8s.io/apimachinery => k8s.io/apimachinery v0.31.5
-	k8s.io/cli-runtime => k8s.io/cli-runtime v0.31.4
-	k8s.io/client-go => k8s.io/client-go v0.31.4
-	k8s.io/component-base => k8s.io/component-base v0.31.4
-	k8s.io/kubectl => k8s.io/kubectl v0.31.4
-	sigs.k8s.io/controller-runtime => sigs.k8s.io/controller-runtime v0.19.4
+	k8s.io/cli-runtime => k8s.io/cli-runtime v0.31.5
+	k8s.io/client-go => k8s.io/client-go v0.31.5
+	k8s.io/component-base => k8s.io/component-base v0.31.5
+	k8s.io/kubectl => k8s.io/kubectl v0.31.5
+	sigs.k8s.io/controller-runtime => sigs.k8s.io/controller-runtime v0.19.5
 )
 
 require (
@@ -30,7 +30,7 @@ require (
 	github.com/prometheus/client_golang v1.20.5
 	github.com/sirupsen/logrus v1.9.3
 	github.com/spf13/cobra v1.8.1
-	github.com/spf13/pflag v1.0.5
+	github.com/spf13/pflag v1.0.6
 	github.com/stretchr/testify v1.10.0
 	github.com/vladimirvivien/gexe v0.4.1
 	github.com/wI2L/jsondiff v0.6.1
@@ -38,15 +38,14 @@ require (
 	golang.org/x/text v0.21.0
 	gopkg.in/yaml.v3 v3.0.1
 	helm.sh/helm/v3 v3.16.4
-	k8s.io/api v0.31.4
-	k8s.io/apiextensions-apiserver v0.31.4
+	k8s.io/api v0.31.5
+	k8s.io/apiextensions-apiserver v0.31.5
 	k8s.io/apimachinery v0.31.5
-	k8s.io/cli-runtime v0.31.4
-	k8s.io/client-go v0.31.4
-	k8s.io/kubectl v0.31.4
+	k8s.io/cli-runtime v0.31.5
+	k8s.io/client-go v0.31.5
+	k8s.io/kubectl v0.31.5
 	k8s.io/utils v0.0.0-20241210054802-24370beab758
-	sigs.k8s.io/controller-runtime v0.19.4
-	sigs.k8s.io/e2e-framework v0.5.0
+	sigs.k8s.io/controller-runtime v0.19.5
 	sigs.k8s.io/kind v0.26.0
 	sigs.k8s.io/yaml v1.4.0
 )
@@ -217,8 +216,8 @@ require (
 	google.golang.org/protobuf v1.36.1 // indirect
 	gopkg.in/inf.v0 v0.9.1 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
-	k8s.io/apiserver v0.31.4 // indirect
-	k8s.io/component-base v0.31.4 // indirect
+	k8s.io/apiserver v0.31.5 // indirect
+	k8s.io/component-base v0.31.5 // indirect
 	k8s.io/klog/v2 v2.130.1
 	k8s.io/kube-openapi v0.0.0-20240827152857-f7e401e7b4c2 // indirect
 	oras.land/oras-go v1.2.6 // indirect
