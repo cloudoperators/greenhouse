@@ -18,7 +18,7 @@ import (
 	greenhouseapis "github.com/cloudoperators/greenhouse/pkg/apis"
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/pkg/apis/greenhouse/v1alpha1"
 	"github.com/cloudoperators/greenhouse/pkg/clientutil"
-	clusterpkg "github.com/cloudoperators/greenhouse/pkg/controllers/cluster"
+	clusterutils "github.com/cloudoperators/greenhouse/pkg/controllers/cluster/utils"
 	"github.com/cloudoperators/greenhouse/pkg/test"
 )
 
@@ -86,8 +86,8 @@ var _ = Describe("KubeConfig controller", func() {
 				By("Checking service account has been created in remote cluster")
 				Eventually(func() error {
 					var serviceAccount = new(corev1.ServiceAccount)
-					return remoteClient.Get(test.Ctx, types.NamespacedName{Namespace: setup.Namespace(), Name: clusterpkg.ExportServiceAccountName}, serviceAccount)
-				}).Should(Succeed(), fmt.Sprintf("eventually the service account %s/%s should exist", setup.Namespace(), clusterpkg.ExportServiceAccountName))
+					return remoteClient.Get(test.Ctx, types.NamespacedName{Namespace: setup.Namespace(), Name: clusterutils.ServiceAccountName}, serviceAccount)
+				}).Should(Succeed(), fmt.Sprintf("eventually the service account %s/%s should exist", setup.Namespace(), clusterutils.ServiceAccountName))
 
 				By("Checking clusterRoleBinding has been created in remote cluster")
 				clusterRoleBindingName := "greenhouse"
