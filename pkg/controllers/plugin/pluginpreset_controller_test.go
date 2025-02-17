@@ -50,7 +50,7 @@ var (
 			Description: "Testplugin",
 			Version:     "1.0.0",
 			HelmChart: &greenhousev1alpha1.HelmChartReference{
-				Name:       "./../../test/fixtures/myChart",
+				Name:       "./../../test/fixtures/chartWithConfigMap",
 				Repository: "dummy",
 				Version:    "1.0.0",
 			},
