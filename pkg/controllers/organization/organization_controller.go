@@ -258,7 +258,7 @@ func (r *OrganizationReconciler) checkSCIMAPIAvailability(ctx context.Context, o
 	namespace := org.Name
 	scimConfig := org.Spec.Authentication.SCIMConfig
 
-	config, err := util.GreenhouseSCIMConfigToSCIMConfig(ctx, *scimConfig, r.Client, namespace)
+	config, err := util.GreenhouseSCIMConfigToSCIMConfig(ctx, r.Client, scimConfig, namespace)
 	if err != nil {
 		return greenhousesapv1alpha1.FalseCondition(greenhousesapv1alpha1.SCIMAPIAvailableCondition, greenhousesapv1alpha1.SCIMConfigErrorReason, err.Error())
 	}
