@@ -2256,6 +2256,30 @@ StatusConditions
 <p>StatusConditions contain the different conditions that constitute the status of the PluginPreset.</p>
 </td>
 </tr>
+<tr>
+<td>
+<code>pluginStatuses</code><br>
+<em>
+<a href="#greenhouse.sap/v1alpha1.PropagatedPluginStatus">
+[]PropagatedPluginStatus
+</a>
+</em>
+</td>
+<td>
+<p>PluginStatuses contains statuses of Plugins owned by the PluginPreset.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>readyPluginsRatio</code><br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>ReadyPluginsRatio is a representation of the number of ready and total Plugins owned by the PluginPreset.</p>
+</td>
+</tr>
 </tbody>
 </table>
 </div>
@@ -2357,7 +2381,8 @@ Defaults to the Greenhouse managed namespace if not set.</p>
 </h3>
 <p>
 (<em>Appears on:</em>
-<a href="#greenhouse.sap/v1alpha1.Plugin">Plugin</a>)
+<a href="#greenhouse.sap/v1alpha1.Plugin">Plugin</a>, 
+<a href="#greenhouse.sap/v1alpha1.PropagatedPluginStatus">PropagatedPluginStatus</a>)
 </p>
 <p>PluginStatus defines the observed state of Plugin</p>
 <div class="md-typeset__scrollwrap">
@@ -2468,6 +2493,49 @@ StatusConditions
 </td>
 <td>
 <p>StatusConditions contain the different conditions that constitute the status of the Plugin.</p>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<h3 id="greenhouse.sap/v1alpha1.PropagatedPluginStatus">PropagatedPluginStatus
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#greenhouse.sap/v1alpha1.PluginPresetStatus">PluginPresetStatus</a>)
+</p>
+<p>PropagatedPluginStatus defines the Plugin status and name of the cluster that the Plugin&rsquo;s deployed to.</p>
+<div class="md-typeset__scrollwrap">
+<div class="md-typeset__table">
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>clusterName</code><br>
+<em>
+string
+</em>
+</td>
+<td>
+</td>
+</tr>
+<tr>
+<td>
+<code>pluginStatus</code><br>
+<em>
+<a href="#greenhouse.sap/v1alpha1.PluginStatus">
+PluginStatus
+</a>
+</em>
+</td>
+<td>
 </td>
 </tr>
 </tbody>

@@ -215,6 +215,7 @@ func (r *PluginPresetReconciler) reconcilePluginStatuses(
 ) error {
 
 	pluginStatuses := make([]greenhousev1alpha1.PropagatedPluginStatus, 0, len(clusters.Items))
+	readyPluginsCount := 0
 
 	for _, cluster := range clusters.Items {
 		if !cluster.DeletionTimestamp.IsZero() {
@@ -234,11 +235,16 @@ func (r *PluginPresetReconciler) reconcilePluginStatuses(
 			continue
 		}
 
+		if plugin.Status.IsReadyTrue() {
+			readyPluginsCount++
+		}
+
 		currentPluginStatus := greenhousev1alpha1.PropagatedPluginStatus{ClusterName: cluster.Name, PluginStatus: plugin.Status}
 		pluginStatuses = append(pluginStatuses, currentPluginStatus)
 	}
 
 	preset.Status.PluginStatuses = pluginStatuses
+	preset.Status.ReadyPluginsRatio = fmt.Sprintf("%d/%d", readyPluginsCount, len(pluginStatuses))
 	return nil
 }
 

@@ -222,8 +222,8 @@ spec:
             description: PluginPresetStatus defines the observed state of PluginPreset
             properties:
               pluginStatuses:
-                description: PluginStatuses contains statuses of plugins owned by
-                  the preset.
+                description: PluginStatuses contains statuses of Plugins owned by
+                  the PluginPreset.
                 items:
                   description: PropagatedPluginStatus defines the Plugin status and
                     name of the cluster that the Plugin's deployed to.
@@ -387,6 +387,10 @@ spec:
                   - pluginStatus
                   type: object
                 type: array
+              readyPluginsRatio:
+                description: ReadyPluginsRatio is a representation of the number of
+                  ready and total Plugins owned by the PluginPreset.
+                type: string
               statusConditions:
                 description: StatusConditions contain the different conditions that
                   constitute the status of the PluginPreset.

@@ -44,8 +44,10 @@ const (
 type PluginPresetStatus struct {
 	// StatusConditions contain the different conditions that constitute the status of the PluginPreset.
 	StatusConditions `json:"statusConditions,omitempty"`
-	// PluginStatuses contains statuses of plugins owned by the preset.
+	// PluginStatuses contains statuses of Plugins owned by the PluginPreset.
 	PluginStatuses []PropagatedPluginStatus `json:"pluginStatuses,omitempty"`
+	// ReadyPluginsRatio is a representation of the number of ready and total Plugins owned by the PluginPreset.
+	ReadyPluginsRatio string `json:"readyPluginsRatio,omitempty"`
 }
 
 // PropagatedPluginStatus defines the Plugin status and name of the cluster that the Plugin's deployed to.
