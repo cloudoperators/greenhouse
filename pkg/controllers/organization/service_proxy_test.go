@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2024 SAP SE or an SAP affiliate company and Greenhouse contributors
 // SPDX-License-Identifier: Apache-2.0
 
-package organization_test
+package organization
 
 import (
 	. "github.com/onsi/ginkgo/v2"
@@ -10,6 +10,8 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+
+	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/pkg/apis/greenhouse/v1alpha1"
 	"github.com/cloudoperators/greenhouse/pkg/test"
@@ -94,6 +96,35 @@ var _ = Describe("Organization ServiceProxyReconciler", Ordered, func() {
 				err = test.K8sClient.Get(test.Ctx, types.NamespacedName{Name: "service-proxy", Namespace: org.Name}, plugin)
 				g.Expect(err).ToNot(HaveOccurred(), "service-proxy plugin should have been created by controller")
 			}).Should(Succeed(), "service-proxy plugin should have been created for organization")
+		})
+	})
+
+	When("organization is annotated with the oauth2proxy preview annotation", func() {
+		It("should enable the oauth-proxy feature for the organization", func() {
+			By("creating a secret with dummy oidc config")
+			secret := setup.CreateSecret(test.Ctx, "oidc-config", test.WithSecretData(map[string][]byte{"clientID": []byte("dummy"), "clientSecret": []byte("top-secret")}))
+
+			By("annotating the organization")
+			addAnnotation := func(org *greenhousev1alpha1.Organization) {
+				annotations := org.GetAnnotations()
+				if annotations == nil {
+					annotations = make(map[string]string)
+				}
+				annotations[oauthPreviewAnnotation] = "true"
+				org.SetAnnotations(annotations)
+			}
+
+			By("creating an organization with the oauthpreview annotation & oauth config")
+			org := setup.CreateOrganization(test.Ctx, setup.Namespace(), addAnnotation, test.WithOIDCConfig("some-issuer.tld", secret.Name, "clientID", "clientSecret"))
+
+			By("ensuring a service-proxy plugin has been created for organization")
+			Eventually(func(g Gomega) {
+				var plugin = new(greenhousev1alpha1.Plugin)
+				err := test.K8sClient.Get(test.Ctx, types.NamespacedName{Name: "service-proxy", Namespace: org.Name}, plugin)
+				g.Expect(err).ToNot(HaveOccurred(), "service-proxy plugin should have been created by controller")
+				g.Expect(plugin.Spec.OptionValues).To(ContainElement(greenhousev1alpha1.PluginOptionValue{Name: "oauth2proxy.enabled", Value: &apiextensionsv1.JSON{Raw: []byte("\"true\"")}}))
+			}).Should(Succeed(), "service-proxy plugin should have been created for organization")
+
 		})
 	})
 })

@@ -185,6 +185,10 @@ spec:
                   HelmReleaseStatus reflects the status of the latest HelmChart release.
                   This is only configured if the pluginDefinition is backed by HelmChart.
                 properties:
+                  diff:
+                    description: Diff contains the difference between the deployed
+                      helm chart and the helm chart in the last reconciliation
+                    type: string
                   firstDeployed:
                     description: FirstDeployed is the timestamp of the first deployment
                       of the release.

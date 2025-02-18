@@ -174,7 +174,7 @@ var _ = Describe("ensure helm diff against the release manifest works as expecte
 		By("diffing the manifest against the live objects")
 		diff, err = helm.ExportDiffAgainstLiveObjects(test.RestClientGetter, namespace, templateUT.Manifest)
 		Expect(err).NotTo(HaveOccurred(), "there should be no error diffing the manifest against the helm release")
-		Expect(diff).To(ContainSubstring("3.17"), "the diff should not be empty")
+		Expect(diff).To(ContainSubstring("3.18"), "the diff should not be empty")
 	})
 })
 
