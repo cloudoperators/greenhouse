@@ -20,15 +20,14 @@ global:
   region: greenhouse
   registry: keppel.eu-nl-1.cloud.sap/ccloud
 
-postgresqlnq:
+postgresqlng:
   enabled: true
   resources: {}
   # The database that will be created in the database
   postgresDatabase: dex
-  tableOwner: acme-user
+  tableOwner: dex
   users:
     acme-user:
-
 plugins:
   enabled: true
 

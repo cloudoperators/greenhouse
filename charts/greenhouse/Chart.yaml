@@ -29,6 +29,7 @@ dependencies:
     repository: "file://../demo"
     condition: demo.enabled
   - name: postgresql-ng
+    alias: postgresqlng
     version: 1.2.7
     repository: "oci://ghcr.io/sapcc/helm-charts"
-    condition: postgresqlnq.enabled
+    condition: postgresqlng.enabled

@@ -19,7 +19,7 @@ global:
       postgresqlPort:
       postgresqlUsername:
 
-postgresqlnq:
+postgresqlng:
   enabled: true
   global:
     linkerd_enabled: false
