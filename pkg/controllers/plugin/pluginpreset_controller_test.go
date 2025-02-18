@@ -4,8 +4,6 @@
 package plugin
 
 import (
-	"time"
-
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/format"
@@ -256,7 +254,7 @@ var _ = Describe("PluginPreset Controller Lifecycle", Ordered, func() {
 			err = test.K8sClient.List(test.Ctx, pluginList, client.InNamespace(cluster.GetNamespace()), client.MatchingLabels{greenhouseapis.LabelKeyPluginPreset: pluginPresetName})
 			g.Expect(err).NotTo(HaveOccurred(), "failed to list Plugins")
 			g.Expect(pluginList.Items).To(HaveLen(1), "there should be only one Plugin")
-		}, 2*time.Minute).Should(Succeed(), "the PluginPreset should have removed the Plugin for the deleted Cluster")
+		}).Should(Succeed(), "the PluginPreset should have removed the Plugin for the deleted Cluster")
 	})
 
 	It("should set the Status NotReady if ClusterSelector does not match", func() {

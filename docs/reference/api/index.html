@@ -2548,6 +2548,17 @@ string
 </tr>
 <tr>
 <td>
+<code>authType</code><br>
+<em>
+github.com/cloudoperators/greenhouse/pkg/scim.AuthType
+</em>
+</td>
+<td>
+<p>AuthType defined possible authentication type</p>
+</td>
+</tr>
+<tr>
+<td>
 <code>basicAuthUser</code><br>
 <em>
 <a href="#greenhouse.sap/v1alpha1.ValueFromSource">
@@ -2570,6 +2581,41 @@ ValueFromSource
 </td>
 <td>
 <p>Password to be used for basic authentication.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>bearerToken</code><br>
+<em>
+<a href="#greenhouse.sap/v1alpha1.ValueFromSource">
+ValueFromSource
+</a>
+</em>
+</td>
+<td>
+<p>BearerToken to be used for bearer token authorization</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>bearerPrefix</code><br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>BearerPrefix to be used to defined bearer token prefix</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>bearerHeader</code><br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>BearerHeader to be used to defined bearer token header</p>
 </td>
 </tr>
 </tbody>
