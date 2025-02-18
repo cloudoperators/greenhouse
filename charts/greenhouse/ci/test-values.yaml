@@ -20,7 +20,7 @@ global:
   region: greenhouse
   registry: keppel.eu-nl-1.cloud.sap/ccloud
 
-postgresql-ng:
+postgresqlnq:
   enabled: true
   resources: {}
   # The database that will be created in the database

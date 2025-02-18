@@ -64,12 +64,12 @@ Create the name of the service account to use
 {{/*
 Check if global.dex.backend is postgres then the postgressql part need to be enabled as well
 */}}
-{{- if and (eq .Values.global.dex.backend "postgres") (eq .Values.postgresql-ng.enabled "false") }}
+{{- if and (eq .Values.global.dex.backend "postgres") (eq .Values.postgresqlnq.enabled "false") }}
 {{- fail "dex.backend: Setting the dex.backend to postgres requires that you enable and configure postgresql" }}
 {{- end }}
 {{/*
 Comment out for now to support the rollout of the new dex backend
-{{- if and (eq .Values.global.dex.backend "kubernetes") (eq .Values.postgresql-ng.enabled "true") }}
+{{- if and (eq .Values.global.dex.backend "kubernetes") (eq .Values.postgresqlnq.enabled "true") }}
 {{- fail "dex.backend: Setting the dex.backend to kubernetes does not require postgresql enabled" }}
 {{- end }}
 */}}
