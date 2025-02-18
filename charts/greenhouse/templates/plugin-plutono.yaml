@@ -13,7 +13,7 @@ spec:
         kubernetes.io/tls-acme: "true"
     - name: plutono.ingress.hosts
       value:
-        - host: "plutono.{{ .Values.global.dnsDomain }}"
+        - "plutono.{{ .Values.global.dnsDomain }}"
     - name: plutono.ingress.tls
       value:
         - hosts:
