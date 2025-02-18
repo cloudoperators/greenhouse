@@ -44,6 +44,14 @@ const (
 type PluginPresetStatus struct {
 	// StatusConditions contain the different conditions that constitute the status of the PluginPreset.
 	StatusConditions `json:"statusConditions,omitempty"`
+	// PluginStatuses contains statuses of plugins owned by the preset.
+	PluginStatuses []PropagatedPluginStatus `json:"pluginStatuses,omitempty"`
+}
+
+// PropagatedPluginStatus defines the Plugin status and name of the cluster that the Plugin's deployed to.
+type PropagatedPluginStatus struct {
+	ClusterName  string       `json:"clusterName"`
+	PluginStatus PluginStatus `json:"pluginStatus"`
 }
 
 //+kubebuilder:object:root=true

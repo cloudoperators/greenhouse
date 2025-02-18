@@ -104,6 +104,11 @@ func (r *PluginPresetReconciler) EnsureCreated(ctx context.Context, resource lif
 		return ctrl.Result{}, lifecycle.Failed, err
 	}
 
+	err = r.reconcilePluginStatuses(ctx, pluginPreset, clusters)
+	if err != nil {
+		return ctrl.Result{}, lifecycle.Failed, err
+	}
+
 	return ctrl.Result{}, lifecycle.Success, nil
 }
 
@@ -204,8 +209,45 @@ func (r *PluginPresetReconciler) reconcilePluginPreset(ctx context.Context, pres
 	return utilerrors.NewAggregate(allErrs)
 }
 
+// reconcilePluginStatuses updates plugin statuses in PluginPreset for every Plugin managed by the Preset.
+func (r *PluginPresetReconciler) reconcilePluginStatuses(
+	ctx context.Context, preset *greenhousev1alpha1.PluginPreset, clusters *greenhousev1alpha1.ClusterList,
+) error {
+
+	pluginStatuses := make([]greenhousev1alpha1.PropagatedPluginStatus, 0, len(clusters.Items))
+
+	for _, cluster := range clusters.Items {
+		if !cluster.DeletionTimestamp.IsZero() {
+			// Additional validation if cluster is being removed.
+			continue
+		}
+
+		plugin := &greenhousev1alpha1.Plugin{}
+		err := r.Get(ctx, client.ObjectKey{Namespace: preset.GetNamespace(), Name: generatePluginName(preset, &cluster)}, plugin)
+		if err != nil {
+			// Not checking if it's not found, because reconciler already should've added it.
+			return err
+		}
+
+		if !isPluginManagedByPreset(plugin, preset.Name) {
+			// Skip statuses of plugins not managed by the preset.
+			continue
+		}
+
+		currentPluginStatus := greenhousev1alpha1.PropagatedPluginStatus{ClusterName: cluster.Name, PluginStatus: plugin.Status}
+		pluginStatuses = append(pluginStatuses, currentPluginStatus)
+	}
+
+	preset.Status.PluginStatuses = pluginStatuses
+	return nil
+}
+
+func isPluginManagedByPreset(plugin *greenhousev1alpha1.Plugin, presetName string) bool {
+	return plugin.Labels[greenhouseapis.LabelKeyPluginPreset] == presetName
+}
+
 func shouldSkipPlugin(plugin *greenhousev1alpha1.Plugin, preset *greenhousev1alpha1.PluginPreset, definition *greenhousev1alpha1.PluginDefinition, clusterName string) bool {
-	if plugin.Labels[greenhouseapis.LabelKeyPluginPreset] != preset.Name {
+	if !isPluginManagedByPreset(plugin, preset.Name) {
 		return true
 	}
 
