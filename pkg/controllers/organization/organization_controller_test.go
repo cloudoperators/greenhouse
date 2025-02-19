@@ -6,6 +6,7 @@ package organization_test
 import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	"golang.org/x/exp/slices"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -13,6 +14,8 @@ import (
 
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/pkg/apis/greenhouse/v1alpha1"
 	"github.com/cloudoperators/greenhouse/pkg/clientutil"
+	"github.com/cloudoperators/greenhouse/pkg/dex"
+	dexapi "github.com/cloudoperators/greenhouse/pkg/dex/api"
 	"github.com/cloudoperators/greenhouse/pkg/scim"
 	"github.com/cloudoperators/greenhouse/pkg/test"
 )
@@ -296,8 +299,115 @@ var _ = Describe("Test Organization reconciliation", Ordered, func() {
 				g.Expect(readyCondition.IsTrue()).To(BeTrue(), "ReadyCondition should be True on Organization")
 			}).Should(Succeed(), "Organization should have set correct status condition")
 		})
+
+		It("should create dex resources if oidc is enabled", func() {
+			By("creating greenhouse organization with OIDC config")
+			greenhouseOrgName := "greenhouse"
+			setup.CreateOrganization(test.Ctx, greenhouseOrgName, func(org *greenhousev1alpha1.Organization) {
+				org.Spec.MappedOrgAdminIDPGroup = validIdpGroupName
+			})
+			test.EventuallyCreated(test.Ctx, test.K8sClient, &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: greenhouseOrgName}})
+
+			By("creating a test organization for OIDC")
+			oidcOrgName := "test-oidc-org"
+			setup.CreateOrganization(test.Ctx, oidcOrgName, func(org *greenhousev1alpha1.Organization) {
+				org.Spec.MappedOrgAdminIDPGroup = validIdpGroupName
+			})
+			test.EventuallyCreated(test.Ctx, test.K8sClient, &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: oidcOrgName}})
+
+			By("creating a secret for OIDC config")
+			createSecretForOIDCConfig(greenhouseOrgName)
+			createSecretForOIDCConfig(oidcOrgName)
+
+			By("updating the organization with OIDC config")
+			updateOrgWithOIDC(greenhouseOrgName)
+			updateOrgWithOIDC(oidcOrgName)
+
+			By("checking Organization status")
+			checkOrganizationReadyStatus(greenhouseOrgName)
+			checkOrganizationReadyStatus(oidcOrgName)
+
+			if DexStorageType == dex.K8s {
+				By("checking dex connector resource")
+				connectors := &dexapi.ConnectorList{}
+				oAuthClients := &dexapi.OAuth2ClientList{}
+
+				err := setup.List(test.Ctx, connectors)
+				Expect(err).ToNot(HaveOccurred(), "there should be no error listing dex connectors")
+				Expect(len(connectors.Items)).To(BeNumerically(">", 1), "there should be at least one dex connector")
+				err = setup.List(test.Ctx, oAuthClients)
+				Expect(err).ToNot(HaveOccurred(), "there should be no error listing dex oauth clients")
+				Expect(len(oAuthClients.Items)).To(BeNumerically(">", 1), "there should be at least one dex oauth client")
+
+				filteredOrgConnector := slices.DeleteFunc(connectors.Items, func(c dexapi.Connector) bool {
+					return c.ID != oidcOrgName
+				})
+				Expect(filteredOrgConnector).To(HaveLen(1), "there should be one dex connector after filtering")
+				ownerRef := clientutil.GetOwnerReference(&filteredOrgConnector[0], "Organization")
+				Expect(ownerRef).ToNot(BeNil(), "there should be an owner reference for the dex connector")
+				Expect(ownerRef.Name).To(Equal(oidcOrgName), "the owner reference should have the correct name")
+
+				By("checking dex oauth client resource")
+				filteredOrgClient := slices.DeleteFunc(oAuthClients.Items, func(c dexapi.OAuth2Client) bool {
+					return c.ID != oidcOrgName
+				})
+				Expect(filteredOrgClient).To(HaveLen(1), "there should be one dex oauth client after filtering")
+				ownerRef = clientutil.GetOwnerReference(&filteredOrgClient[0], "Organization")
+				Expect(ownerRef).ToNot(BeNil(), "there should be an owner reference for the dex oauth client")
+				Expect(ownerRef.Name).To(Equal(oidcOrgName), "the owner reference should have the correct name")
+			}
+		})
 	})
 })
+
+func checkOrganizationReadyStatus(orgName string) {
+	By("checking Organization status")
+	Eventually(func(g Gomega) {
+		org := &greenhousev1alpha1.Organization{}
+		err := test.K8sClient.Get(test.Ctx, types.NamespacedName{Name: orgName}, org)
+		g.Expect(err).ToNot(HaveOccurred(), "there should be no error getting the Organization")
+		readyCondition := org.Status.GetConditionByType(greenhousev1alpha1.ReadyCondition)
+		g.Expect(readyCondition).ToNot(BeNil(), "ReadyCondition should be set on Organization")
+		g.Expect(readyCondition.IsTrue()).To(BeTrue(), "ReadyCondition should be True on Organization")
+		oidcCondition := org.Status.GetConditionByType(greenhousev1alpha1.OrganizationOICDConfigured)
+		g.Expect(oidcCondition).ToNot(BeNil(), "OrganizationOICDConfigured should be set on Organization")
+		g.Expect(oidcCondition.IsTrue()).To(BeTrue(), "OrganizationOICDConfigured should be True on Organization")
+	}).Should(Succeed(), "Organization should have set correct status condition")
+}
+
+func createSecretForOIDCConfig(namespace string) {
+	oidcSecret := &corev1.Secret{}
+	oidcSecret.SetName("test-oidc-secret")
+	oidcSecret.SetNamespace(namespace)
+	oidcSecret.Data = map[string][]byte{
+		"clientId":     []byte("test-client-id"),
+		"clientSecret": []byte("test-client-secret"),
+	}
+	err := test.K8sClient.Create(test.Ctx, oidcSecret)
+	Expect(err).ToNot(HaveOccurred(), "there should be no error creating the secret")
+}
+
+func updateOrgWithOIDC(orgName string) {
+	org := &greenhousev1alpha1.Organization{}
+	err := test.K8sClient.Get(test.Ctx, types.NamespacedName{Name: orgName}, org)
+	Expect(err).ToNot(HaveOccurred(), "there should be no error getting the organization")
+	org.Spec.Authentication = &greenhousev1alpha1.Authentication{
+		OIDCConfig: &greenhousev1alpha1.OIDCConfig{
+			Issuer:      "https://example.com",
+			RedirectURI: "https://example.com/callback",
+			ClientIDReference: greenhousev1alpha1.SecretKeyReference{
+				Name: "test-oidc-secret",
+				Key:  "clientId",
+			},
+			ClientSecretReference: greenhousev1alpha1.SecretKeyReference{
+				Name: "test-oidc-secret",
+				Key:  "clientSecret",
+			},
+		},
+	}
+	err = test.K8sClient.Update(test.Ctx, org)
+	Expect(err).ToNot(HaveOccurred(), "there should be no error updating the organization with OIDC config")
+}
 
 func createSecretForSCIMConfig(namespace string) {
 	testSecret := corev1.Secret{
