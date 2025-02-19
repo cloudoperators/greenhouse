@@ -17,11 +17,14 @@ import (
 	"golang.org/x/text/language"
 	networkingv1 "k8s.io/api/networking/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
 	greenhousesapv1alpha1 "github.com/cloudoperators/greenhouse/pkg/apis/greenhouse/v1alpha1"
 	"github.com/cloudoperators/greenhouse/pkg/clientutil"
 	"github.com/cloudoperators/greenhouse/pkg/common"
+	"github.com/cloudoperators/greenhouse/pkg/dex"
+	dexapi "github.com/cloudoperators/greenhouse/pkg/dex/api"
 )
 
 const dexConnectorTypeGreenhouse = "greenhouse-oidc"
@@ -42,6 +45,30 @@ func (r *OrganizationReconciler) discoverOIDCRedirectURL(ctx context.Context, or
 		}
 	}
 	return "", errors.New("oidc redirect URL not provided and cannot be discovered")
+}
+
+// removeAuthRedirectFromDefaultConnector - removes oauth redirects of the org being deleted
+// in the default connector's OAuth2Client
+func (r *OrganizationReconciler) removeAuthRedirectFromDefaultConnector(ctx context.Context, org *greenhousesapv1alpha1.Organization) error {
+	defaultClient, err := r.dex.GetClient(defaultGreenhouseConnectorID)
+	if err != nil {
+		log.FromContext(ctx).Error(err, "failed to get default oauth2client", "name", defaultGreenhouseConnectorID)
+		return err
+	}
+	err = r.dex.UpdateClient(defaultClient.Name, func(authClient storage.Client) (storage.Client, error) {
+		orgRedirect := getRedirectForOrg(org.Name)
+		updatedRedirects := slices.DeleteFunc(authClient.RedirectURIs, func(s string) bool {
+			return s == orgRedirect
+		})
+		authClient.RedirectURIs = updatedRedirects
+		return authClient, nil
+	})
+	if err != nil {
+		log.FromContext(ctx).Error(err, "failed to update default connector's oauth2client redirects", "ID", defaultGreenhouseConnectorID)
+		return err
+	}
+	log.FromContext(ctx).Info("successfully removed redirects from default connector's oauth2client redirects", "ID", defaultGreenhouseConnectorID)
+	return nil
 }
 
 // reconcileDexConnector - creates or updates dex connector
@@ -109,7 +136,7 @@ func (r *OrganizationReconciler) reconcileOAuth2Client(ctx context.Context, org 
 	oAuthClient, err := r.dex.GetClient(org.Name)
 	if err != nil {
 		if errors.Is(err, storage.ErrNotFound) {
-			redirectURIs := getRedirects(org, nil)
+			redirectURIs := getRedirects(org.Name, nil)
 			if err = r.dex.CreateClient(ctx, storage.Client{
 				Public:       true,
 				ID:           org.Name,
@@ -129,7 +156,7 @@ func (r *OrganizationReconciler) reconcileOAuth2Client(ctx context.Context, org 
 		authClient.Public = true
 		authClient.ID = org.Name
 		authClient.Name = org.Name
-		authClient.RedirectURIs = getRedirects(org, authClient.RedirectURIs)
+		authClient.RedirectURIs = getRedirects(org.Name, authClient.RedirectURIs)
 		return authClient, nil
 	}); err != nil {
 		log.FromContext(ctx).Error(err, "failed to update oauth2client", "name", org.Name)
@@ -167,6 +194,46 @@ func (r *OrganizationReconciler) appendRedirectsToDefaultConnector(ctx context.C
 	return nil
 }
 
+func (r *OrganizationReconciler) setDexOwnerReferences(ctx context.Context, org *greenhousesapv1alpha1.Organization) error {
+	if r.DexStorageType == dex.K8s {
+		connector := &dexapi.ConnectorList{}
+		if err := r.Client.List(ctx, connector); err != nil {
+			log.FromContext(ctx).Error(err, "failed to list dex connectors")
+			return err
+		}
+		for _, c := range connector.Items {
+			if c.ID == org.Name {
+				_, err := clientutil.CreateOrPatch(ctx, r.Client, &c, func() error {
+					return controllerutil.SetOwnerReference(org, &c, r.Scheme())
+				})
+				if err != nil {
+					log.FromContext(ctx).Error(err, "failed to set owner reference for dex connector", "name", c.ID)
+					return err
+				}
+				break
+			}
+		}
+		oauthClients := &dexapi.OAuth2ClientList{}
+		if err := r.Client.List(ctx, oauthClients); err != nil {
+			log.FromContext(ctx).Error(err, "failed to list dex oauth2clients")
+			return err
+		}
+		for _, c := range oauthClients.Items {
+			if c.ID == org.Name {
+				_, err := clientutil.CreateOrPatch(ctx, r.Client, &c, func() error {
+					return controllerutil.SetOwnerReference(org, &c, r.Scheme())
+				})
+				if err != nil {
+					log.FromContext(ctx).Error(err, "failed to set owner reference for dex oauth2client", "name", c.ID)
+					return err
+				}
+				break
+			}
+		}
+	}
+	return nil
+}
+
 func ensureCallbackURL(url string) string {
 	prefix := "https://"
 	if !strings.HasPrefix(url, prefix) {
@@ -183,13 +250,17 @@ func ensureCallbackURL(url string) string {
 // and merges with the provided redirect URIs
 // this is needed when the default connector is being reconciled as it should not overwrite
 // any appended redirect URIs from other organizations
-func getRedirects(org *greenhousesapv1alpha1.Organization, redirectURIs []string) []string {
+func getRedirects(orgName string, redirectURIs []string) []string {
 	defaultRedirects := []string{
 		"http://localhost:8085", // allowing local development of idproxy url
 		"https://dashboard." + common.DNSDomain,
-		fmt.Sprintf("https://%s.dashboard.%s", org.Name, common.DNSDomain),
+		getRedirectForOrg(orgName),
 	}
 	return appendRedirects(defaultRedirects, redirectURIs...)
+}
+
+func getRedirectForOrg(orgName string) string {
+	return fmt.Sprintf("https://%s.%s", orgName, common.DNSDomain)
 }
 
 // appendRedirects - appends newRedirects to the redirects slice if it does not exist
