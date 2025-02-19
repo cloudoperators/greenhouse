@@ -136,7 +136,8 @@ func (r *BootstrapReconciler) reconcileCluster(ctx context.Context, kubeConfigSe
 	cluster, isFound, err := r.getClusterAndIgnoreNotFoundError(ctx, kubeConfigSecret)
 	// Anything other than an IsNotFound error is reflected in the status to ensure the cluster resource is created in any case.
 	if err != nil {
-		return r.createOrPatchCluster(ctx, cluster, kubeConfigSecret, err)
+		log.FromContext(ctx).Error(err, "failed to get cluster", "namespace", kubeConfigSecret.GetNamespace(), "name", kubeConfigSecret.GetName())
+		return err
 	}
 
 	// This cluster has already been bootstrapped
@@ -147,7 +148,7 @@ func (r *BootstrapReconciler) reconcileCluster(ctx context.Context, kubeConfigSe
 	if isFound && cluster.Spec.AccessMode != "" {
 		return nil
 	}
-	return r.createOrPatchCluster(ctx, cluster, kubeConfigSecret, nil)
+	return r.createOrPatchCluster(ctx, cluster, kubeConfigSecret)
 }
 
 // createOrPatchCluster creates or patches the cluster resource and persists input err in the cluster.status.message.
@@ -155,7 +156,6 @@ func (r *BootstrapReconciler) createOrPatchCluster(
 	ctx context.Context,
 	cluster *greenhousev1alpha1.Cluster,
 	kubeConfigSecret *corev1.Secret,
-	err error,
 ) error {
 	// Ignore clusters about to be deleted.
 	if cluster.DeletionTimestamp != nil {
