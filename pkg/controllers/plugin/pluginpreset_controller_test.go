@@ -165,6 +165,8 @@ var _ = Describe("PluginPreset Controller Lifecycle", Ordered, func() {
 		Expect(err).NotTo(HaveOccurred(), "failed to update Plugin")
 
 		By("deleting the PluginPreset")
+		err = test.K8sClient.Get(test.Ctx, types.NamespacedName{Namespace: testPluginPreset.Namespace, Name: testPluginPreset.Name}, testPluginPreset)
+		Expect(err).ShouldNot(HaveOccurred(), "unexpected error getting PluginPreset")
 		testPluginPreset.Annotations = map[string]string{}
 		err = test.K8sClient.Update(test.Ctx, testPluginPreset)
 		Expect(err).ToNot(HaveOccurred())
