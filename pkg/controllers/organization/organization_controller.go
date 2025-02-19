@@ -111,7 +111,19 @@ func (r *OrganizationReconciler) Reconcile(ctx context.Context, req ctrl.Request
 	return lifecycle.Reconcile(ctx, r.Client, req.NamespacedName, &greenhousesapv1alpha1.Organization{}, r, r.setStatus())
 }
 
-func (r *OrganizationReconciler) EnsureDeleted(_ context.Context, _ lifecycle.RuntimeObject) (ctrl.Result, lifecycle.ReconcileResult, error) {
+func (r *OrganizationReconciler) EnsureDeleted(ctx context.Context, obj lifecycle.RuntimeObject) (ctrl.Result, lifecycle.ReconcileResult, error) {
+	org, ok := obj.(*greenhousesapv1alpha1.Organization)
+	if !ok {
+		return ctrl.Result{}, lifecycle.Success, nil
+	}
+
+	if org.Spec.Authentication != nil && org.Spec.Authentication.OIDCConfig != nil {
+		// delete org oauth redirects from default connector
+		if err := r.removeAuthRedirectFromDefaultConnector(ctx, org); err != nil {
+			return ctrl.Result{}, lifecycle.Failed, err
+		}
+	}
+	// if dex storage type is kubernetes then deletion of org connector, org oauth2client will be handled automatically by owner reference
 	return ctrl.Result{}, lifecycle.Success, nil // nothing to do in that case
 }
 
@@ -163,6 +175,11 @@ func (r *OrganizationReconciler) EnsureCreated(ctx context.Context, object lifec
 				return ctrl.Result{}, lifecycle.Failed, err
 			}
 		}
+
+		if err := r.setDexOwnerReferences(ctx, org); err != nil {
+			return ctrl.Result{}, lifecycle.Failed, err
+		}
+
 		org.SetCondition(greenhousesapv1alpha1.TrueCondition(greenhousesapv1alpha1.OrganizationOICDConfigured, "", ""))
 	}
 
