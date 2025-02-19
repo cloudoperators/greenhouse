@@ -12,7 +12,6 @@ import (
 	clustercontrollers "github.com/cloudoperators/greenhouse/pkg/controllers/cluster"
 	organizationcontrollers "github.com/cloudoperators/greenhouse/pkg/controllers/organization"
 	plugincontrollers "github.com/cloudoperators/greenhouse/pkg/controllers/plugin"
-	teamcontrollers "github.com/cloudoperators/greenhouse/pkg/controllers/team"
 	teammembershipcontrollers "github.com/cloudoperators/greenhouse/pkg/controllers/teammembership"
 	teamrbaccontrollers "github.com/cloudoperators/greenhouse/pkg/controllers/teamrbac"
 )
@@ -22,12 +21,8 @@ var knownControllers = map[string]func(controllerName string, mgr ctrl.Manager) 
 	// Organization controllers.
 	"organizationController": startOrganizationReconciler,
 
-	// Team controllers.
-	"teamPropagation": (&teamcontrollers.TeamPropagationReconciler{}).SetupWithManager,
-
 	// TeamMembership controllers.
-	"teamMembershipUpdater":     (&teammembershipcontrollers.TeamMembershipUpdaterController{}).SetupWithManager,
-	"teamMembershipPropagation": (&teammembershipcontrollers.TeamMembershipPropagationReconciler{}).SetupWithManager,
+	"teamMembershipUpdater": (&teammembershipcontrollers.TeamMembershipUpdaterController{}).SetupWithManager,
 
 	// Team RBAC controllers.
 	"teamRoleBindingController": (&teamrbaccontrollers.TeamRoleBindingReconciler{}).SetupWithManager,
