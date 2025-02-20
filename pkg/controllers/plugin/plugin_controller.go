@@ -220,8 +220,6 @@ func (r *PluginReconciler) getPluginDefinition(
 
 		return nil, errors.New(errorMessage)
 	}
-
-	plugin.SetCondition(greenhousev1alpha1.FalseCondition(greenhousev1alpha1.HelmReconcileFailedCondition, "", ""))
 	return pluginDefinition, nil
 }
 
