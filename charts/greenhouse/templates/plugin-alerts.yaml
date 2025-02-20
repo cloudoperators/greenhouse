@@ -14,6 +14,13 @@ spec:
   disabled: false
   displayName: Alerts
   optionValues:
+    - name: global.caCert
+      valueFrom:
+        secret:
+          key: ca.crt
+          name: ingress-ca-cert
+    - name: global.greenhouse.baseDomain
+      value: {{ .Values.global.baseDomain }}
     - name: alerts.alertmanager.enabled
       value: {{ .Values.alerts.enabled }}
     - name: alerts.alertmanager.ingress.enabled
