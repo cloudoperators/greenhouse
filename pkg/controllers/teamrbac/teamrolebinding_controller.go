@@ -48,6 +48,7 @@ type TeamRoleBindingReconciler struct {
 //+kubebuilder:rbac:groups=greenhouse.sap,resources=teamrolebindings/status,verbs=get;update;patch
 //+kubebuilder:rbac:groups=greenhouse.sap,resources=teamrolebindings/finalizers,verbs=update
 //+kubebuilder:rbac:groups="",resources=events,verbs=create;patch
+//+kubebuilder:rbac:groups="",resources=namespaces,verbs=create;get
 
 // SetupWithManager sets up the controller with the Manager.
 func (r *TeamRoleBindingReconciler) SetupWithManager(name string, mgr ctrl.Manager) error {
@@ -198,6 +199,15 @@ func (r *TeamRoleBindingReconciler) EnsureDeleted(ctx context.Context, resource 
 func (r *TeamRoleBindingReconciler) doReconcile(ctx context.Context, teamRole *greenhousev1alpha1.TeamRole, clusters *greenhousev1alpha1.ClusterList, trb *greenhousev1alpha1.TeamRoleBinding, team *greenhousev1alpha1.Team) error {
 	failedClusters := []string{}
 	cr := initRBACClusterRole(teamRole)
+
+	if trb.Spec.CreateNamespaces {
+		err := r.createNamespaces(ctx, trb)
+		if err != nil {
+			trb.SetCondition(greenhousev1alpha1.FalseCondition(greenhousev1alpha1.RBACReady, greenhousev1alpha1.RBACReconcileFailed, err.Error()))
+			return err
+		}
+	}
+
 	for _, cluster := range clusters.Items {
 		remoteRestClient, err := clientutil.NewK8sClientFromCluster(ctx, r.Client, &cluster)
 		if err != nil {
@@ -784,4 +794,24 @@ func computeReadyCondition(status greenhousev1alpha1.TeamRoleBindingStatus) gree
 	readyCondition.Status = metav1.ConditionTrue
 	readyCondition.Message = "ready"
 	return readyCondition
+}
+
+func (r *TeamRoleBindingReconciler) createNamespaces(ctx context.Context, teamRoleBinding *greenhousev1alpha1.TeamRoleBinding) error {
+	for _, nampespaceName := range teamRoleBinding.Spec.Namespaces {
+		namespace := new(corev1.Namespace)
+		err := r.Client.Get(ctx, types.NamespacedName{Name: nampespaceName}, namespace)
+		if err == nil {
+			continue
+		}
+		if apierrors.IsNotFound(err) {
+			err := r.Client.Create(ctx, &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: nampespaceName}})
+			if err != nil {
+				return err
+			}
+		} else {
+			return err
+		}
+	}
+
+	return nil
 }

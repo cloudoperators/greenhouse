@@ -386,6 +386,26 @@ var _ = Describe("Validate ClusterRole & RoleBinding on Remote Cluster", Ordered
 			By("cleaning up the test")
 			test.EventuallyDeleted(test.Ctx, test.K8sClient, trb)
 		})
+
+		It("Should create namespaces when flag is set to true", func() {
+			By("creating a TeamRoleBinding on the central cluster")
+			trb := setup.CreateTeamRoleBinding(test.Ctx, "test-rolebinding",
+				test.WithTeamRoleRef(teamRoleUT.Name),
+				test.WithTeamRef(teamUT.Name),
+				test.WithClusterName(clusterA.Name),
+				test.WithNamespaces("non-existing-namespace"),
+				test.WithCreateNamespace(true))
+
+			By("checking that the Namespace is created")
+			namespace := &corev1.Namespace{}
+			Eventually(func(g Gomega) {
+				err := test.K8sClient.Get(test.Ctx, types.NamespacedName{Name: "non-existing-namespace"}, namespace)
+				g.Expect(err).ToNot(HaveOccurred(), "there should be no error getting the non-existing namespace")
+			}).Should(Succeed())
+
+			By("cleaning up the test")
+			test.EventuallyDeleted(test.Ctx, test.K8sClient, trb)
+		})
 	})
 
 	Context("When creating a Greenhouse TeamRoleBinding with non-existing namespaces on the central cluster", func() {

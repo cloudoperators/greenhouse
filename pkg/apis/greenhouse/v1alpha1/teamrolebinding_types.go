@@ -24,6 +24,9 @@ type TeamRoleBindingSpec struct {
 	// Namespaces is a list of namespaces in the Greenhouse Clusters to apply the RoleBinding to.
 	// If empty, a ClusterRoleBinding will be created on the remote cluster, otherwise a RoleBinding per namespace.
 	Namespaces []string `json:"namespaces,omitempty"`
+	// CreateNamespaces when the flag is set the controller will create namespaces defined in the Namespaces field.
+	// +kubebuilder:default:=false
+	CreateNamespaces bool `json:"createNamespaces,omitempty"`
 }
 
 // TeamRoleBindingStatus defines the observed state of the TeamRoleBinding
