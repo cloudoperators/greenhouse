@@ -282,15 +282,15 @@ func StartControlPlane(port string, installCRDs, installWebhooks bool) (*rest.Co
 	}
 
 	// utility to export kubeconfig and use it e.g. on a breakpoint to inspect resources during testing
-	if os.Getenv("TEST_EXPORT_KUBECONFIG") == "true" {
-		dir := GinkgoT().TempDir()
-		kubeCfgFile, err := os.CreateTemp(dir, "*-kubeconfig.yaml")
-		Expect(err).NotTo(HaveOccurred())
-		_, err = kubeCfgFile.Write(kubeConfig)
-		Expect(err).NotTo(HaveOccurred())
-		fmt.Printf("export KUBECONFIG=%s\n", kubeCfgFile.Name())
-		Expect(err).NotTo(HaveOccurred())
-	}
+
+	dir := GinkgoT().TempDir()
+	kubeCfgFile, err := os.CreateTemp(dir, "*-kubeconfig.yaml")
+	Expect(err).NotTo(HaveOccurred())
+	_, err = kubeCfgFile.Write(kubeConfig)
+	Expect(err).NotTo(HaveOccurred())
+	err = os.Setenv("KUBECONFIG", kubeCfgFile.Name())
+	Expect(err).NotTo(HaveOccurred())
+	fmt.Printf("export KUBECONFIG=%s\n", kubeCfgFile.Name())
 
 	return cfg, k8sClient, testEnv, kubeConfig
 }
