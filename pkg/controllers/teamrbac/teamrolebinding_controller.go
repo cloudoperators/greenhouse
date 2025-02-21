@@ -448,13 +448,7 @@ func rbacRoleBinding(trb *greenhousev1alpha1.TeamRoleBinding, clusterRole *rbacv
 			Kind:     clusterRole.Kind,
 			Name:     clusterRole.GetName(),
 		},
-		Subjects: []rbacv1.Subject{
-			{
-				APIGroup: rbacv1.GroupName,
-				Kind:     rbacv1.GroupKind,
-				Name:     team.Spec.MappedIDPGroup,
-			},
-		},
+		Subjects: joinSubjectWithDefault(trb.Spec.Subjects, team.Spec.MappedIDPGroup),
 	}
 }
 
@@ -473,14 +467,16 @@ func rbacClusterRoleBinding(trb *greenhousev1alpha1.TeamRoleBinding, clusterRole
 			Kind:     clusterRole.Kind,
 			Name:     clusterRole.GetName(),
 		},
-		Subjects: []rbacv1.Subject{
-			{
-				APIGroup: rbacv1.GroupName,
-				Kind:     rbacv1.GroupKind,
-				Name:     team.Spec.MappedIDPGroup,
-			},
-		},
+		Subjects: joinSubjectWithDefault(trb.Spec.Subjects, team.Spec.MappedIDPGroup),
 	}
+}
+
+func joinSubjectWithDefault(subjects []rbacv1.Subject, mappedIDPGroup string) []rbacv1.Subject {
+	return append(subjects, rbacv1.Subject{
+		APIGroup: rbacv1.GroupName,
+		Kind:     rbacv1.GroupKind,
+		Name:     mappedIDPGroup,
+	})
 }
 
 // getTeamRole retrieves the Role referenced by the given RoleBinding in the RoleBinding's Namespace
