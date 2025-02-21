@@ -6,6 +6,7 @@ package v1alpha1
 import (
 	"slices"
 
+	rbacv1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	greenhouseapis "github.com/cloudoperators/greenhouse/pkg/apis"
@@ -17,6 +18,8 @@ type TeamRoleBindingSpec struct {
 	TeamRoleRef string `json:"teamRoleRef,omitempty"`
 	// TeamRef references a Greenhouse Team by name
 	TeamRef string `json:"teamRef,omitempty"`
+	// Subjects define list of subject with this role
+	Subjects []rbacv1.Subject `json:"subjects,omitempty"`
 	// ClusterName is the name of the cluster the rbacv1 resources are created on.
 	ClusterName string `json:"clusterName,omitempty"`
 	// ClusterSelector is a label selector to select the Clusters the TeamRoleBinding should be deployed to.
@@ -24,6 +27,9 @@ type TeamRoleBindingSpec struct {
 	// Namespaces is a list of namespaces in the Greenhouse Clusters to apply the RoleBinding to.
 	// If empty, a ClusterRoleBinding will be created on the remote cluster, otherwise a RoleBinding per namespace.
 	Namespaces []string `json:"namespaces,omitempty"`
+	// CreateNamespaces when the flag is set the controller will create namespaces defined in the Namespaces field.
+	// +kubebuilder:default:=false
+	CreateNamespaces bool `json:"createNamespaces,omitempty"`
 }
 
 // TeamRoleBindingStatus defines the observed state of the TeamRoleBinding
