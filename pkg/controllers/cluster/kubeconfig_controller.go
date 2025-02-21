@@ -113,7 +113,6 @@ func (r *KubeconfigReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 	// get oidc info from organization
 	oidc, err := r.getOIDCInfo(ctx, cluster.Namespace)
 	if err != nil {
-		l.Error(err, "unable to get oidc info")
 		kubeconfig.Status.Conditions.SetConditions(v1alpha1.TrueCondition(v1alpha1.KubeconfigReconcileFailedCondition, "OIDCInfoError", err.Error()))
 		return ctrl.Result{}, nil
 	}
@@ -122,7 +121,6 @@ func (r *KubeconfigReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 	var secret corev1.Secret
 	err = r.Get(ctx, client.ObjectKey{Name: req.Name, Namespace: req.Namespace}, &secret)
 	if err != nil {
-		l.Error(err, "unable to get cluster secret")
 		kubeconfig.Status.Conditions.SetConditions(v1alpha1.TrueCondition(v1alpha1.KubeconfigReconcileFailedCondition, "SecretDataError", err.Error()))
 		return ctrl.Result{}, nil
 	}
@@ -131,7 +129,6 @@ func (r *KubeconfigReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 	rootKubeCfg := secret.Data["kubeconfig"]
 	kubeCfg, err := clientcmd.Load(rootKubeCfg)
 	if err != nil {
-		l.Error(err, "unable to load kubeconfig")
 		kubeconfig.Status.Conditions.SetConditions(v1alpha1.TrueCondition(v1alpha1.KubeconfigReconcileFailedCondition, "KubeconfigLoadError", err.Error()))
 		return ctrl.Result{}, nil
 	}
@@ -171,7 +168,6 @@ func (r *KubeconfigReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 	})
 
 	if err != nil {
-		l.Error(err, "unable to update kubeconfig")
 		return ctrl.Result{}, err
 	}
 	l.Info("kubeconfig updated", "result", result)
@@ -189,7 +185,6 @@ func (r *KubeconfigReconciler) getOIDCInfo(ctx context.Context, orgName string) 
 
 	var org v1alpha1.Organization
 	if err := r.Get(ctx, client.ObjectKey{Name: orgName}, &org); err != nil {
-		l.Error(err, "unable to fetch organization", "organization", orgName)
 		return OIDCInfo{}, err
 	}
 
@@ -205,7 +200,6 @@ func (r *KubeconfigReconciler) getOIDCInfo(ctx context.Context, orgName string) 
 		clientIDRef,
 	)
 	if err != nil {
-		l.Error(err, "unable to fetch client id", "organization", orgName)
 		return OIDCInfo{}, err
 	}
 
@@ -217,7 +211,6 @@ func (r *KubeconfigReconciler) getOIDCInfo(ctx context.Context, orgName string) 
 		clientSecretRef,
 	)
 	if err != nil {
-		l.Error(err, "unable to fetch client secret", "organization", orgName)
 		return OIDCInfo{}, err
 	}
 	oidc := OIDCInfo{
