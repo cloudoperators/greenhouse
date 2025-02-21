@@ -33,7 +33,7 @@ import (
 	greenhouseapis "github.com/cloudoperators/greenhouse/pkg/apis"
 	greenhouseapisv1alpha1 "github.com/cloudoperators/greenhouse/pkg/apis/greenhouse/v1alpha1"
 	"github.com/cloudoperators/greenhouse/pkg/clientutil"
-	clustercontroller "github.com/cloudoperators/greenhouse/pkg/controllers/cluster"
+	clustercontroller "github.com/cloudoperators/greenhouse/pkg/controllers/cluster/utils"
 )
 
 const (

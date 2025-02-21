@@ -76,11 +76,6 @@ func (r *RemoteClusterReconciler) reconcileClusterSecret(
 	k8sVersion string,
 ) {
 
-	k8sVersion = "unknown"
-	if cluster.Status.KubernetesVersion != "" {
-		k8sVersion = cluster.Status.KubernetesVersion
-	}
-
 	kubeConfigValidCondition = greenhousev1alpha1.UnknownCondition(greenhousev1alpha1.KubeConfigValid, "", "")
 	var clusterSecret = new(corev1.Secret)
 	if err := r.Get(ctx, types.NamespacedName{Name: cluster.GetSecretName(), Namespace: cluster.GetNamespace()}, clusterSecret); err != nil {

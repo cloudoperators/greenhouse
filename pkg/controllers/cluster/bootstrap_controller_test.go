@@ -10,7 +10,7 @@ import (
 	. "github.com/onsi/gomega"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
-	client "sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
 
 	greenhouseapis "github.com/cloudoperators/greenhouse/pkg/apis"
@@ -29,7 +29,7 @@ var _ = Describe("Bootstrap controller", Ordered, func() {
 	BeforeAll(func() {
 		_, _, remoteEnvTest, remoteKubeConfig = test.StartControlPlane("6888", false, false)
 		setup = test.NewTestSetup(test.Ctx, test.K8sClient, bootstrapTestCase)
-		setup.CreateOrganizationWithOIDCConfig(test.Ctx, setup.Namespace())
+		setup.CreateOrganization(test.Ctx, setup.Namespace())
 	})
 
 	AfterAll(func() {
