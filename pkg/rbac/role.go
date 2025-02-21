@@ -97,7 +97,7 @@ func OrganizationMemberPolicyRules() []rbacv1.PolicyRule {
 		{
 			Verbs:     []string{"get", "list", "watch"},
 			APIGroups: []string{greenhouseapisv1alpha1.GroupVersion.Group},
-			Resources: []string{"clusters", "plugins", "pluginpresets", "teams", "teammemberships", "teamroles", "teamrolebindings"},
+			Resources: []string{"clusters", "clusterkubeconfigs", "plugins", "pluginpresets", "teams", "teammemberships", "teamroles", "teamrolebindings"},
 		},
 	}
 }
