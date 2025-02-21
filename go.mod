@@ -9,12 +9,12 @@ replace (
 	// Keep k8s dependencies in sync.
 	k8s.io/api => k8s.io/api v0.31.5
 	k8s.io/apiextensions-apiserver => k8s.io/apiextensions-apiserver v0.31.5
-	k8s.io/apimachinery => k8s.io/apimachinery v0.31.5
+	k8s.io/apimachinery => k8s.io/apimachinery v0.31.6
 	k8s.io/cli-runtime => k8s.io/cli-runtime v0.31.5
 	k8s.io/client-go => k8s.io/client-go v0.31.5
 	k8s.io/component-base => k8s.io/component-base v0.31.5
 	k8s.io/kubectl => k8s.io/kubectl v0.31.5
-	sigs.k8s.io/controller-runtime => sigs.k8s.io/controller-runtime v0.19.5
+	sigs.k8s.io/controller-runtime => sigs.k8s.io/controller-runtime v0.19.6
 )
 
 require (
@@ -40,12 +40,12 @@ require (
 	helm.sh/helm/v3 v3.16.4
 	k8s.io/api v0.31.5
 	k8s.io/apiextensions-apiserver v0.31.5
-	k8s.io/apimachinery v0.31.5
+	k8s.io/apimachinery v0.31.6
 	k8s.io/cli-runtime v0.31.5
 	k8s.io/client-go v0.31.5
 	k8s.io/kubectl v0.31.5
 	k8s.io/utils v0.0.0-20241210054802-24370beab758
-	sigs.k8s.io/controller-runtime v0.19.5
+	sigs.k8s.io/controller-runtime v0.19.6
 	sigs.k8s.io/kind v0.26.0
 	sigs.k8s.io/yaml v1.4.0
 )
