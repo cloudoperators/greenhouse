@@ -3208,6 +3208,19 @@ string
 </tr>
 <tr>
 <td>
+<code>subjects</code><br>
+<em>
+<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.24/#subject-v1-rbac">
+[]Kubernetes rbac/v1.Subject
+</a>
+</em>
+</td>
+<td>
+<p>Subjects define list of subject with this role</p>
+</td>
+</tr>
+<tr>
+<td>
 <code>clusterName</code><br>
 <em>
 string
@@ -3240,6 +3253,17 @@ Kubernetes meta/v1.LabelSelector
 <td>
 <p>Namespaces is a list of namespaces in the Greenhouse Clusters to apply the RoleBinding to.
 If empty, a ClusterRoleBinding will be created on the remote cluster, otherwise a RoleBinding per namespace.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>createNamespaces</code><br>
+<em>
+bool
+</em>
+</td>
+<td>
+<p>CreateNamespaces when the flag is set the controller will create namespaces defined in the Namespaces field.</p>
 </td>
 </tr>
 </table>
@@ -3302,6 +3326,19 @@ string
 </tr>
 <tr>
 <td>
+<code>subjects</code><br>
+<em>
+<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.24/#subject-v1-rbac">
+[]Kubernetes rbac/v1.Subject
+</a>
+</em>
+</td>
+<td>
+<p>Subjects define list of subject with this role</p>
+</td>
+</tr>
+<tr>
+<td>
 <code>clusterName</code><br>
 <em>
 string
@@ -3334,6 +3371,17 @@ Kubernetes meta/v1.LabelSelector
 <td>
 <p>Namespaces is a list of namespaces in the Greenhouse Clusters to apply the RoleBinding to.
 If empty, a ClusterRoleBinding will be created on the remote cluster, otherwise a RoleBinding per namespace.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>createNamespaces</code><br>
+<em>
+bool
+</em>
+</td>
+<td>
+<p>CreateNamespaces when the flag is set the controller will create namespaces defined in the Namespaces field.</p>
 </td>
 </tr>
 </tbody>

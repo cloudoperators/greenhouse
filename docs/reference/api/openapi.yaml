@@ -1056,10 +1056,37 @@ components:
                   type: object
               type: object
               x-kubernetes-map-type: atomic
+            createNamespaces:
+              default: false
+              description: CreateNamespaces when the flag is set the controller will create namespaces defined in the Namespaces field.
+              type: boolean
             namespaces:
               description: Namespaces is a list of namespaces in the Greenhouse Clusters to apply the RoleBinding to.\nIf empty, a ClusterRoleBinding will be created on the remote cluster, otherwise a RoleBinding per namespace.
               items:
                 type: string
+              type: array
+            subjects:
+              description: Subjects define list of subject with this role
+              items:
+                description: Subject contains a reference to the object or user identities a role binding applies to.  This can either hold a direct API object reference,\nor a value for non-objects such as user and group names.
+                properties:
+                  apiGroup:
+                    description: APIGroup holds the API group of the referenced subject.\nDefaults to "" for ServiceAccount subjects.\nDefaults to "rbac.authorization.k8s.io" for User and Group subjects.
+                    type: string
+                  kind:
+                    description: Kind of object being referenced. Values defined by this API group are "User", "Group", and "ServiceAccount".\nIf the Authorizer does not recognized the kind value, the Authorizer should report an error.
+                    type: string
+                  name:
+                    description: Name of the object being referenced.
+                    type: string
+                  namespace:
+                    description: Namespace of the referenced object.  If the object kind is non-namespace, such as "User" or "Group", and this value is not empty\nthe Authorizer should report an error.
+                    type: string
+                required:
+                  - kind
+                  - name
+                type: object
+                x-kubernetes-map-type: atomic
               type: array
             teamRef:
               description: TeamRef references a Greenhouse Team by name
