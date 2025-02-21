@@ -19,7 +19,7 @@ RUN --mount=type=cache,target=/go/pkg/mod \
   && cp $(/workspace/bin/setup-envtest use ${ENVTEST_K8S_VERSION} -p path)/* /usr/local/bin
 
 # Get PluginDefinitions from https://github.com/cloudoperators/greenhouse-extensions
-FROM alpine/git:v2.47.1 AS git
+FROM alpine/git:v2.47.2 AS git
 RUN git clone https://github.com/cloudoperators/greenhouse-extensions.git /greenhouse-extensions
 
 # final image 
