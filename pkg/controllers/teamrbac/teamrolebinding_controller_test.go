@@ -96,7 +96,12 @@ var _ = Describe("Validate ClusterRole & RoleBinding on Remote Cluster", Ordered
 			trb := setup.CreateTeamRoleBinding(test.Ctx, "test-rolebinding",
 				test.WithTeamRoleRef(teamRoleUT.Name),
 				test.WithTeamRef(teamUT.Name),
-				test.WithClusterName(clusterA.Name))
+				test.WithClusterName(clusterA.Name),
+				test.WithSubject(rbacv1.Subject{
+					Kind:     rbacv1.UserKind,
+					APIGroup: rbacv1.GroupName,
+					Name:     "test-user-1",
+				}))
 			trbKey := types.NamespacedName{Name: trb.Name, Namespace: trb.Namespace}
 			By("validating the RoleBinding created on the remote clusterA")
 			remoteRoleBinding := &rbacv1.ClusterRoleBinding{}
@@ -146,6 +151,7 @@ var _ = Describe("Validate ClusterRole & RoleBinding on Remote Cluster", Ordered
 			}).Should(BeTrue(), "there should be no error getting the RoleBinding from ClusterB")
 			Expect(remoteRoleBinding.RoleRef.Name).To(HavePrefix(greenhouseapis.RBACPrefix))
 			Expect(remoteRoleBinding.RoleRef.Name).To(ContainSubstring(teamRoleUT.Name))
+			Expect(remoteRoleBinding.Subjects).To(HaveLen(2))
 
 			By("validating the TeamRoleBinding's status is updated")
 			Eventually(func(g Gomega) {
@@ -312,7 +318,12 @@ var _ = Describe("Validate ClusterRole & RoleBinding on Remote Cluster", Ordered
 				test.WithTeamRoleRef(teamRoleUT.Name),
 				test.WithTeamRef(teamUT.Name),
 				test.WithClusterName(clusterA.Name),
-				test.WithNamespaces(setup.Namespace()))
+				test.WithNamespaces(setup.Namespace()),
+				test.WithSubject(rbacv1.Subject{
+					Kind:     rbacv1.UserKind,
+					APIGroup: rbacv1.GroupName,
+					Name:     "test-user-1",
+				}))
 
 			By("validating the RoleBinding created on the remote cluster")
 			remoteRoleBinding := &rbacv1.RoleBinding{}
@@ -326,6 +337,7 @@ var _ = Describe("Validate ClusterRole & RoleBinding on Remote Cluster", Ordered
 			}).Should(BeTrue(), "there should be no error getting the RoleBinding")
 			Expect(remoteRoleBinding.RoleRef.Name).To(HavePrefix(greenhouseapis.RBACPrefix))
 			Expect(remoteRoleBinding.RoleRef.Name).To(ContainSubstring(teamRoleUT.Name))
+			Expect(remoteRoleBinding.Subjects).To(HaveLen(2))
 
 			By("validating the ClusterRole created on the remote cluster")
 			remoteClusterRole := &rbacv1.ClusterRole{}

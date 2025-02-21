@@ -6,6 +6,7 @@ package v1alpha1
 import (
 	"slices"
 
+	rbacv1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	greenhouseapis "github.com/cloudoperators/greenhouse/pkg/apis"
@@ -17,6 +18,8 @@ type TeamRoleBindingSpec struct {
 	TeamRoleRef string `json:"teamRoleRef,omitempty"`
 	// TeamRef references a Greenhouse Team by name
 	TeamRef string `json:"teamRef,omitempty"`
+	// Subjects define list of subject with this role
+	Subjects []rbacv1.Subject `json:"subjects,omitempty"`
 	// ClusterName is the name of the cluster the rbacv1 resources are created on.
 	ClusterName string `json:"clusterName,omitempty"`
 	// ClusterSelector is a label selector to select the Clusters the TeamRoleBinding should be deployed to.
