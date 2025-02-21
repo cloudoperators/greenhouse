@@ -181,7 +181,6 @@ type OIDCInfo struct {
 }
 
 func (r *KubeconfigReconciler) getOIDCInfo(ctx context.Context, orgName string) (OIDCInfo, error) {
-
 	var org v1alpha1.Organization
 	if err := r.Get(ctx, client.ObjectKey{Name: orgName}, &org); err != nil {
 		return OIDCInfo{}, err
