@@ -168,6 +168,7 @@ func (r *KubeconfigReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 	})
 
 	if err != nil {
+		l.Error(err, "unable to update kubeconfig")
 		return ctrl.Result{}, err
 	}
 	l.Info("kubeconfig updated", "result", result)
@@ -185,6 +186,7 @@ func (r *KubeconfigReconciler) getOIDCInfo(ctx context.Context, orgName string) 
 
 	var org v1alpha1.Organization
 	if err := r.Get(ctx, client.ObjectKey{Name: orgName}, &org); err != nil {
+		l.Error(err, "unable to fetch organization", "organization", orgName)
 		return OIDCInfo{}, err
 	}
 
@@ -200,6 +202,7 @@ func (r *KubeconfigReconciler) getOIDCInfo(ctx context.Context, orgName string) 
 		clientIDRef,
 	)
 	if err != nil {
+		l.Error(err, "unable to fetch client id", "organization", orgName)
 		return OIDCInfo{}, err
 	}
 
