@@ -1,0 +1,13 @@
+<!--
+  ~ SPDX-FileCopyrightText: 2024 SAP SE or an SAP affiliate company and Greenhouse contributors
+  ~ SPDX-License-Identifier: Apache-2.0
+-->
+
+{{ template "header.html" . }}
+
+<div class="theme-panel">
+  <h2 class="theme-heading">{{ .ErrType }}</h2>
+  <p>{{ .ErrMsg }}</p>
+</div>
+
+{{ template "footer.html" . }}

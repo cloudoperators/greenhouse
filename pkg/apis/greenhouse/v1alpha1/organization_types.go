@@ -33,6 +33,8 @@ const (
 	DexReconcileFailed ConditionReason = "DexReconcileFailed"
 	// OAuthOICDFailed is set when OAuth reconciler has failed
 	OAuthOICDFailed ConditionReason = "OAuthOICDFailed"
+	// DefaultConnectorRedirectsFailed is set when the default connector redirects are not updated with new organization redirect URIs
+	DefaultConnectorRedirectsFailed ConditionReason = "DefaultConnectorRedirectsFailed"
 	// OrganizationAdminTeamConfigured is set when the admin team is configured for organization
 	OrganizationAdminTeamConfigured ConditionType = "OrganizationAdminTeamConfigured"
 )

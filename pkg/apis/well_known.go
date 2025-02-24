@@ -11,16 +11,6 @@ const (
 	// GroupName for greenhouse API resources.
 	GroupName = "greenhouse.sap"
 
-	// FinalizerCleanupHelmRelease is used to invoke the Helm release cleanup logic.
-	FinalizerCleanupHelmRelease = "greenhouse.sap/helm"
-
-	// FinalizerCleanupPluginPreset is used to invoke the PluginPreset cleanup logic.
-	FinalizerCleanupPluginPreset = "greenhouse.sap/pluginpreset"
-
-	// FinalizerCleanupPropagatedResource is used to invoke the cleanup of remote resources.
-	// TODO: Remove this finalizer after standardization is complete
-	FinalizerCleanupPropagatedResource = "greenhouse.sap/propagatedResource"
-
 	// SecretTypeKubeConfig specifies a secret containing the kubeconfig for a cluster.
 	SecretTypeKubeConfig corev1.SecretType = "greenhouse.sap/kubeconfig"
 
