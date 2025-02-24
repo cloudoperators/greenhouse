@@ -11,10 +11,6 @@ const (
 	// GroupName for greenhouse API resources.
 	GroupName = "greenhouse.sap"
 
-	// FinalizerCleanupPropagatedResource is used to invoke the cleanup of remote resources.
-	// TODO: Remove this finalizer after standardization is complete
-	FinalizerCleanupPropagatedResource = "greenhouse.sap/propagatedResource"
-
 	// SecretTypeKubeConfig specifies a secret containing the kubeconfig for a cluster.
 	SecretTypeKubeConfig corev1.SecretType = "greenhouse.sap/kubeconfig"
 
@@ -68,13 +64,16 @@ const (
 	RolebindingTeamRefField = ".spec.teamRef"
 )
 
-// cluster deletion annotations and condition
+// cluster annotations
 const (
 	// MarkClusterDeletionAnnotation is used to mark a cluster for deletion.
 	MarkClusterDeletionAnnotation = "greenhouse.sap/delete-cluster"
 	// ScheduleClusterDeletionAnnotation is used to schedule a cluster for deletion.
 	// Timestamp is set by mutating webhook if cluster is marked for deletion.
 	ScheduleClusterDeletionAnnotation = "greenhouse.sap/deletion-schedule"
+	ClusterConnectivityAnnotation     = "greenhouse.sap/cluster-connectivity"
+	ClusterConnectivityKubeconfig     = "kubeconfig"
+	ClusterConnectivityOIDC           = "oidc"
 )
 
 const (
