@@ -165,7 +165,10 @@ func (r *BootstrapReconciler) createOrPatchCluster(
 
 	cluster.SetName(kubeConfigSecret.Name)
 	cluster.SetNamespace(kubeConfigSecret.Namespace)
-	var annotations = cluster.GetAnnotations()
+	annotations := make(map[string]string)
+	if cluster.GetAnnotations() != nil {
+		annotations = cluster.GetAnnotations()
+	}
 	if kubeConfigSecret.Type == greenhouseapis.SecretTypeKubeConfig {
 		annotations[greenhouseapis.ClusterConnectivityAnnotation] = greenhouseapis.ClusterConnectivityKubeconfig
 	}
