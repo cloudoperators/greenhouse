@@ -448,7 +448,7 @@ func rbacRoleBinding(trb *greenhousev1alpha1.TeamRoleBinding, clusterRole *rbacv
 			Kind:     clusterRole.Kind,
 			Name:     clusterRole.GetName(),
 		},
-		Subjects: joinSubjectWithDefault(trb.Spec.Subjects, team.Spec.MappedIDPGroup),
+		Subjects: joinUsernamesWithDefault(trb.Spec.Usernames, team.Spec.MappedIDPGroup),
 	}
 }
 
@@ -467,11 +467,20 @@ func rbacClusterRoleBinding(trb *greenhousev1alpha1.TeamRoleBinding, clusterRole
 			Kind:     clusterRole.Kind,
 			Name:     clusterRole.GetName(),
 		},
-		Subjects: joinSubjectWithDefault(trb.Spec.Subjects, team.Spec.MappedIDPGroup),
+		Subjects: joinUsernamesWithDefault(trb.Spec.Usernames, team.Spec.MappedIDPGroup),
 	}
 }
 
-func joinSubjectWithDefault(subjects []rbacv1.Subject, mappedIDPGroup string) []rbacv1.Subject {
+func joinUsernamesWithDefault(usernames []string, mappedIDPGroup string) []rbacv1.Subject {
+	var subjects []rbacv1.Subject
+	for _, username := range usernames {
+		subjects = append(subjects, rbacv1.Subject{
+			Kind:     rbacv1.UserKind,
+			APIGroup: rbacv1.GroupName,
+			Name:     username,
+		})
+	}
+
 	return append(subjects, rbacv1.Subject{
 		APIGroup: rbacv1.GroupName,
 		Kind:     rbacv1.GroupKind,
