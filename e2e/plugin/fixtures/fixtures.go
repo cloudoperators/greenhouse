@@ -114,3 +114,27 @@ func PreparePlugin(name, namespace string, opts ...func(*greenhousev1alpha1.Plug
 	}
 	return plugin
 }
+
+func PreparePluginPreset(name, namespace string, pluginSpec greenhousev1alpha1.PluginSpec) *greenhousev1alpha1.PluginPreset {
+	pluginPreset := &greenhousev1alpha1.PluginPreset{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "PluginPreset",
+			APIVersion: greenhousev1alpha1.GroupVersion.String(),
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:         name,
+			Namespace:    namespace,
+			GenerateName: name + "-gen",
+		},
+		Spec: greenhousev1alpha1.PluginPresetSpec{
+			Plugin: pluginSpec,
+			ClusterSelector: metav1.LabelSelector{
+				MatchLabels: map[string]string{
+					"app": "test",
+				},
+			},
+		},
+	}
+
+	return pluginPreset
+}
