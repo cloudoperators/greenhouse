@@ -32,21 +32,4 @@ Environment Variables:
 
 > [!NOTE]
 > There should be a configured `Connector` and `OAuth2Client` for the `idproxy` service to work properly. 
-> The `Connector` and `OAuth2Client` is created when you create an `Organization` 
-
-## Testing `idproxy` service locally 
-
-You can test the `idproxy` service locally by initiating an `oauth2` flow with grant type `authorization_code` -
-
-- Visit the well-known endpoint `http://localhost:<PORT_NUM>/.well-known/openid-configuration` to get the `authorization_endpoint` and `token_endpoint`
-- Use `insomnia` or `postman` tool
-- Create an empty http request
-- Set `Auth` type to `OAuth 2.0`
-- Set `Authorization` and `Token` endpoint to the values obtained from the well-known endpoint
-- Set the `client id` and `client secret` (available as `<org-name>-dex-secrets` secret in the `<org-name>` namespace)
-- Set the redirect uri to `http://localhost:8000`
-- Minimum scope required is `openid` (Additionally you can set `email` `groups` `offline_access`)
-- Send the request and you will be redirected to the `dex` login page
-- Choose the provider you want to authenticate with
-- You may be asked to enter the `username` and `password` for the provider
-- Once authenticated you should see the `id_token` and `access_token` automatically populated in `insomnia` or `postman` tool
+> The `Connector` and `OAuth2Client` is created when you create an `Organization`
