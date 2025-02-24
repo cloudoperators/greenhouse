@@ -29,8 +29,6 @@ const (
 	ServiceProxyProvisioned ConditionType = "ServiceProxyProvisioned"
 	// OrganizationOICDConfigured is set when the OICD is configured
 	OrganizationOICDConfigured ConditionType = "OrganizationOICDConfigured"
-	// DefaultConnectorRedirectsConfigured is set when the default connector redirects are appended with redirects URIs from new organizations
-	DefaultConnectorRedirectsConfigured ConditionType = "DefaultConnectorRedirectsConfigured"
 	// DexReconcileFailed is set when dex reconcile step has failed
 	DexReconcileFailed ConditionReason = "DexReconcileFailed"
 	// OAuthOICDFailed is set when OAuth reconciler has failed

@@ -179,13 +179,14 @@ func (r *OrganizationReconciler) EnsureCreated(ctx context.Context, object lifec
 		}
 		if org.Name != defaultGreenhouseConnectorID {
 			if err := r.appendRedirectsToDefaultConnector(ctx, org.Name); err != nil {
-				org.SetCondition(greenhousesapv1alpha1.FalseCondition(greenhousesapv1alpha1.DefaultConnectorRedirectsConfigured, greenhousesapv1alpha1.DefaultConnectorRedirectsFailed, err.Error()))
+				org.SetCondition(greenhousesapv1alpha1.FalseCondition(greenhousesapv1alpha1.OrganizationOICDConfigured, greenhousesapv1alpha1.DefaultConnectorRedirectsFailed, err.Error()))
 				return ctrl.Result{}, lifecycle.Failed, err
 			}
 		}
 
 		if r.DexStorageType == dexstore.K8s {
 			if err := r.setDexOwnerReferences(ctx, org); err != nil {
+				org.SetCondition(greenhousesapv1alpha1.FalseCondition(greenhousesapv1alpha1.OrganizationOICDConfigured, "", err.Error()))
 				return ctrl.Result{}, lifecycle.Failed, err
 			}
 		}
