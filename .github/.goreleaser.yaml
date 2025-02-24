@@ -35,26 +35,13 @@ builds:
       - "{{ .Env.LDFLAGS }}"
     no_unique_dist_dir: true
 
-  - id: windows-amd64
-    binary: greenhousectl-windows-{{ .Arch }}
-    main: ./cmd/greenhousectl/main.go
-    goos:
-      - windows
-    goarch:
-      - amd64
-    ldflags:
-      - -buildmode=exe
-      - "{{ .Env.LDFLAGS }}"
-    no_unique_dist_dir: true
-
 checksum:
   name_template: "checksums.txt"
 
 archives:
-  - format: tar.gz
-    format_overrides:
-      - goos: windows
-        format: zip
+  - formats: [
+      'tar.gz'
+    ]
     name_template: '{{.ProjectName}}_{{.Version}}_{{.Os}}-{{.Arch}}'
     files:
       - README.md
