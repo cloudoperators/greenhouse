@@ -97,11 +97,7 @@ var _ = Describe("Validate ClusterRole & RoleBinding on Remote Cluster", Ordered
 				test.WithTeamRoleRef(teamRoleUT.Name),
 				test.WithTeamRef(teamUT.Name),
 				test.WithClusterName(clusterA.Name),
-				test.WithSubject(rbacv1.Subject{
-					Kind:     rbacv1.UserKind,
-					APIGroup: rbacv1.GroupName,
-					Name:     "test-user-1",
-				}))
+				test.WithUsernames([]string{"test-user-1"}))
 			trbKey := types.NamespacedName{Name: trb.Name, Namespace: trb.Namespace}
 			By("validating the RoleBinding created on the remote clusterA")
 			remoteRoleBinding := &rbacv1.ClusterRoleBinding{}
@@ -319,11 +315,7 @@ var _ = Describe("Validate ClusterRole & RoleBinding on Remote Cluster", Ordered
 				test.WithTeamRef(teamUT.Name),
 				test.WithClusterName(clusterA.Name),
 				test.WithNamespaces(setup.Namespace()),
-				test.WithSubject(rbacv1.Subject{
-					Kind:     rbacv1.UserKind,
-					APIGroup: rbacv1.GroupName,
-					Name:     "test-user-1",
-				}))
+				test.WithUsernames([]string{"test-user-1"}))
 
 			By("validating the RoleBinding created on the remote cluster")
 			remoteRoleBinding := &rbacv1.RoleBinding{}
