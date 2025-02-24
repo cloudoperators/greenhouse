@@ -71,6 +71,32 @@ func (r *OrganizationReconciler) removeAuthRedirectFromDefaultConnector(ctx cont
 	return nil
 }
 
+func (r *OrganizationReconciler) deleteDexConnector(ctx context.Context, org *greenhousesapv1alpha1.Organization) error {
+	if err := r.dex.DeleteConnector(org.Name); err != nil {
+		if errors.Is(err, storage.ErrNotFound) {
+			log.FromContext(ctx).Info("dex connector not found", "name", org.Name)
+			return nil
+		}
+		log.FromContext(ctx).Error(err, "failed to delete dex connector", "name", org.Name)
+		return err
+	}
+	log.FromContext(ctx).Info("successfully deleted dex connector", "name", org.Name)
+	return nil
+}
+
+func (r *OrganizationReconciler) deleteOAuth2Client(ctx context.Context, org *greenhousesapv1alpha1.Organization) error {
+	if err := r.dex.DeleteClient(org.Name); err != nil {
+		if errors.Is(err, storage.ErrNotFound) {
+			log.FromContext(ctx).Info("oauth2client not found", "name", org.Name)
+			return nil
+		}
+		log.FromContext(ctx).Error(err, "failed to delete oauth2client", "name", org.Name)
+		return err
+	}
+	log.FromContext(ctx).Info("successfully deleted oauth2client", "name", org.Name)
+	return nil
+}
+
 // reconcileDexConnector - creates or updates dex connector
 func (r *OrganizationReconciler) reconcileDexConnector(ctx context.Context, org *greenhousesapv1alpha1.Organization) error {
 	clientID, err := clientutil.GetSecretKeyFromSecretKeyReference(ctx, r.Client, org.Name, org.Spec.Authentication.OIDCConfig.ClientIDReference)
