@@ -5,6 +5,7 @@ package admission
 
 import (
 	"context"
+	"encoding/base64"
 
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -46,6 +47,13 @@ func ValidateCreateSecret(ctx context.Context, _ client.Client, o runtime.Object
 	if !ok {
 		return nil, nil
 	}
+	if secret.Type == greenhouseapis.SecretTypeOIDCConfig {
+		err := validateGreenhouseOIDCType(secret)
+		if err != nil {
+			return nil, err
+		}
+		return nil, nil
+	}
 	if err := validateSecretGreenHouseType(ctx, secret); err != nil {
 		return nil, err
 	}
@@ -55,6 +63,13 @@ func ValidateCreateSecret(ctx context.Context, _ client.Client, o runtime.Object
 func ValidateUpdateSecret(ctx context.Context, _ client.Client, _, o runtime.Object) (admission.Warnings, error) {
 	secret, ok := o.(*corev1.Secret)
 	if !ok {
+		return nil, nil
+	}
+	if secret.Type == greenhouseapis.SecretTypeOIDCConfig {
+		err := validateGreenhouseOIDCType(secret)
+		if err != nil {
+			return nil, err
+		}
 		return nil, nil
 	}
 	if err := validateSecretGreenHouseType(ctx, secret); err != nil {
@@ -86,6 +101,36 @@ func validateSecretGreenHouseType(ctx context.Context, secret *corev1.Secret) er
 		return apierrors.NewInvalid(secret.GroupVersionKind().GroupKind(), secret.GetName(), field.ErrorList{
 			field.Required(field.NewPath("data").Child(greenhouseapis.KubeConfigKey),
 				"This type of secrets without Data.kubeconfig is invalid."),
+		})
+	}
+	return nil
+}
+
+func validateGreenhouseOIDCType(secret *corev1.Secret) error {
+	annotations := secret.GetAnnotations()
+	// ensure that the secret does not have empty annotations
+	if annotations == nil {
+		return apierrors.NewInvalid(secret.GroupVersionKind().GroupKind(), secret.GetName(), field.ErrorList{
+			field.Required(field.NewPath("metadata").Child(greenhouseapis.SecretAPIServerURLAnnotation), "This type of secrets without the APIServerURL annotation is invalid."),
+		})
+	}
+	// Validate the APIServerURL annotation exists
+	if _, ok := annotations[greenhouseapis.SecretAPIServerURLAnnotation]; !ok {
+		return apierrors.NewInvalid(secret.GroupVersionKind().GroupKind(), secret.GetName(), field.ErrorList{
+			field.Required(field.NewPath("metadata").Child(greenhouseapis.SecretAPIServerURLAnnotation), "The secret is missing the APIServerURL annotation."),
+		})
+	}
+	// Validate the certificate authority key exists
+	cert, ok := secret.Data[greenhouseapis.SecretAPIServerCAKey]
+	if !ok {
+		return apierrors.NewInvalid(secret.GroupVersionKind().GroupKind(), secret.GetName(), field.ErrorList{
+			field.Required(field.NewPath("data").Child(greenhouseapis.SecretAPIServerCAKey), "The secret is missing the certificate authority key."),
+		})
+	}
+	// Validate that cert is base64 encoded
+	if _, err := base64.StdEncoding.DecodeString(string(cert)); err != nil {
+		return apierrors.NewInvalid(secret.GroupVersionKind().GroupKind(), secret.GetName(), field.ErrorList{
+			field.Invalid(field.NewPath("data").Child(greenhouseapis.SecretAPIServerCAKey), "CERTIFICATE", "The certificate authority key must be base64-encoded."),
 		})
 	}
 	return nil

@@ -18,25 +18,25 @@ import (
 
 // knownControllers contains all controllers to be registered when starting the operator.
 var knownControllers = map[string]func(controllerName string, mgr ctrl.Manager) error{
-	// Organization controllers.
-	"organizationController": startOrganizationReconciler,
+	// Organization controller
+	"organization": startOrganizationReconciler,
 
-	// TeamMembership controllers.
+	// TeamMembership controller
 	"teamMembershipUpdater": (&teammembershipcontrollers.TeamMembershipUpdaterController{}).SetupWithManager,
 
-	// Team RBAC controllers.
-	"teamRoleBindingController": (&teamrbaccontrollers.TeamRoleBindingReconciler{}).SetupWithManager,
+	// Team RBAC controller
+	"teamRoleBinding": (&teamrbaccontrollers.TeamRoleBindingReconciler{}).SetupWithManager,
 
-	// Plugin controllers.
+	// Plugin controllers
 	"plugin": (&plugincontrollers.PluginReconciler{
 		KubeRuntimeOpts: kubeClientOpts,
 	}).SetupWithManager,
 	"pluginPreset": (&plugincontrollers.PluginPresetReconciler{}).SetupWithManager,
 
 	// Cluster controllers
-	"bootStrap":         (&clustercontrollers.BootstrapReconciler{}).SetupWithManager,
-	"clusterReconciler": startClusterReconciler,
-	"kubeconfig":        (&clustercontrollers.KubeconfigReconciler{}).SetupWithManager,
+	"bootstrap":  (&clustercontrollers.BootstrapReconciler{}).SetupWithManager,
+	"cluster":    startClusterReconciler,
+	"kubeconfig": (&clustercontrollers.KubeconfigReconciler{}).SetupWithManager,
 }
 
 // knownControllers lists the name of known controllers.
