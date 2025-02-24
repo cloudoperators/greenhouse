@@ -163,9 +163,17 @@ func (r *BootstrapReconciler) createOrPatchCluster(
 	}
 	accessMode := greenhousev1alpha1.ClusterAccessModeDirect
 
-	cluster.Name = kubeConfigSecret.Name
-	cluster.Namespace = kubeConfigSecret.Namespace
+	cluster.SetName(kubeConfigSecret.Name)
+	cluster.SetNamespace(kubeConfigSecret.Namespace)
+	var annotations = cluster.GetAnnotations()
+	if kubeConfigSecret.Type == greenhouseapis.SecretTypeKubeConfig {
+		annotations[greenhouseapis.ClusterConnectivityAnnotation] = greenhouseapis.ClusterConnectivityKubeconfig
+	}
+	if kubeConfigSecret.Type == greenhouseapis.SecretTypeOIDCConfig {
+		annotations[greenhouseapis.ClusterConnectivityAnnotation] = greenhouseapis.ClusterConnectivityOIDC
+	}
 	result, err := clientutil.CreateOrPatch(ctx, r.Client, cluster, func() error {
+		cluster.SetAnnotations(annotations)
 		cluster.Spec.AccessMode = accessMode
 		return nil
 	})
