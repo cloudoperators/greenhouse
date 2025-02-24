@@ -355,6 +355,14 @@ var _ = Describe("Test Organization reconciliation", Ordered, func() {
 				ownerRef = clientutil.GetOwnerReference(&filteredOrgClient[0], "Organization")
 				Expect(ownerRef).ToNot(BeNil(), "there should be an owner reference for the dex oauth client")
 				Expect(ownerRef.Name).To(Equal(oidcOrgName), "the owner reference should have the correct name")
+
+				By("deleting the organizations")
+				test.EventuallyDeleted(test.Ctx, test.K8sClient, &greenhousev1alpha1.Organization{ObjectMeta: metav1.ObjectMeta{Name: oidcOrgName}})
+				test.EventuallyDeleted(test.Ctx, test.K8sClient, &greenhousev1alpha1.Organization{ObjectMeta: metav1.ObjectMeta{Name: greenhouseOrgName}})
+
+				// we cannot test the deletion of dex resources because of the local of controller-manager in the test environment
+				// since we assert the ownerReferences exist in the above test, it is safe to assume that the dex resources will be deleted
+				// controller-runtime issue: https://github.com/kubernetes-sigs/controller-runtime/issues/626#issuecomment-538529534
 			}
 		})
 	})
