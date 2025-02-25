@@ -47,6 +47,8 @@ jobs:
         with:
           k8s-version: ${{ matrix.k8s-version }}
           scenario: ${{ matrix.e2es }}
+          admin-config: ${{ github.workspace }}/dev-env/localenv/greenhouse-admin-cluster.yaml
+          remote-config: ${{ github.workspace }}/dev-env/localenv/greenhouse-remote-cluster.yaml
 
       # v4 upload-artifact needs unique names for each artifact (see https://github.com/actions/upload-artifact/tree/main?tab=readme-ov-file#not-uploading-to-the-same-artifact)
       - name: "Upload E2E Logs"
