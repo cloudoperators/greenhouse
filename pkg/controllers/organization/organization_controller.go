@@ -122,14 +122,11 @@ func (r *OrganizationReconciler) EnsureDeleted(ctx context.Context, obj lifecycl
 		if err := r.removeAuthRedirectFromDefaultConnector(ctx, org); err != nil {
 			return ctrl.Result{}, lifecycle.Failed, err
 		}
-		// if dex storage type is kubernetes then deletion of org connector, org oauth2client will be handled automatically by owner reference
-		if r.DexStorageType == dexstore.Postgres {
-			if err := r.deleteDexConnector(ctx, org); err != nil {
-				return ctrl.Result{}, lifecycle.Failed, err
-			}
-			if err := r.deleteOAuth2Client(ctx, org); err != nil {
-				return ctrl.Result{}, lifecycle.Failed, err
-			}
+		if err := r.deleteDexConnector(ctx, org); err != nil {
+			return ctrl.Result{}, lifecycle.Failed, err
+		}
+		if err := r.deleteOAuth2Client(ctx, org); err != nil {
+			return ctrl.Result{}, lifecycle.Failed, err
 		}
 	}
 	return ctrl.Result{}, lifecycle.Success, nil // nothing to do in that case
@@ -180,13 +177,6 @@ func (r *OrganizationReconciler) EnsureCreated(ctx context.Context, object lifec
 		if org.Name != defaultGreenhouseConnectorID {
 			if err := r.appendRedirectsToDefaultConnector(ctx, org.Name); err != nil {
 				org.SetCondition(greenhousesapv1alpha1.FalseCondition(greenhousesapv1alpha1.OrganizationOICDConfigured, greenhousesapv1alpha1.DefaultConnectorRedirectsFailed, err.Error()))
-				return ctrl.Result{}, lifecycle.Failed, err
-			}
-		}
-
-		if r.DexStorageType == dexstore.K8s {
-			if err := r.setDexOwnerReferences(ctx, org); err != nil {
-				org.SetCondition(greenhousesapv1alpha1.FalseCondition(greenhousesapv1alpha1.OrganizationOICDConfigured, "", err.Error()))
 				return ctrl.Result{}, lifecycle.Failed, err
 			}
 		}

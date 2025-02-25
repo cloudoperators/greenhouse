@@ -17,14 +17,11 @@ import (
 	"golang.org/x/text/language"
 	networkingv1 "k8s.io/api/networking/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
 	greenhousesapv1alpha1 "github.com/cloudoperators/greenhouse/pkg/apis/greenhouse/v1alpha1"
 	"github.com/cloudoperators/greenhouse/pkg/clientutil"
 	"github.com/cloudoperators/greenhouse/pkg/common"
-	"github.com/cloudoperators/greenhouse/pkg/dex"
-	dexapi "github.com/cloudoperators/greenhouse/pkg/dex/api"
 )
 
 const dexConnectorTypeGreenhouse = "greenhouse-oidc"
@@ -217,46 +214,6 @@ func (r *OrganizationReconciler) appendRedirectsToDefaultConnector(ctx context.C
 		return err
 	}
 	log.FromContext(ctx).Info("successfully updated default connector's oauth2client redirects", "ID", defaultGreenhouseConnectorID)
-	return nil
-}
-
-func (r *OrganizationReconciler) setDexOwnerReferences(ctx context.Context, org *greenhousesapv1alpha1.Organization) error {
-	if r.DexStorageType == dex.K8s {
-		connector := &dexapi.ConnectorList{}
-		if err := r.Client.List(ctx, connector); err != nil {
-			log.FromContext(ctx).Error(err, "failed to list dex connectors")
-			return err
-		}
-		for _, c := range connector.Items {
-			if c.ID == org.Name {
-				_, err := clientutil.CreateOrPatch(ctx, r.Client, &c, func() error {
-					return controllerutil.SetOwnerReference(org, &c, r.Scheme())
-				})
-				if err != nil {
-					log.FromContext(ctx).Error(err, "failed to set owner reference for dex connector", "name", c.ID)
-					return err
-				}
-				break
-			}
-		}
-		oauthClients := &dexapi.OAuth2ClientList{}
-		if err := r.Client.List(ctx, oauthClients); err != nil {
-			log.FromContext(ctx).Error(err, "failed to list dex oauth2clients")
-			return err
-		}
-		for _, c := range oauthClients.Items {
-			if c.ID == org.Name {
-				_, err := clientutil.CreateOrPatch(ctx, r.Client, &c, func() error {
-					return controllerutil.SetOwnerReference(org, &c, r.Scheme())
-				})
-				if err != nil {
-					log.FromContext(ctx).Error(err, "failed to set owner reference for dex oauth2client", "name", c.ID)
-					return err
-				}
-				break
-			}
-		}
-	}
 	return nil
 }
 

@@ -343,26 +343,24 @@ var _ = Describe("Test Organization reconciliation", Ordered, func() {
 					return c.ID != oidcOrgName
 				})
 				Expect(filteredOrgConnector).To(HaveLen(1), "there should be one dex connector after filtering")
-				ownerRef := clientutil.GetOwnerReference(&filteredOrgConnector[0], "Organization")
-				Expect(ownerRef).ToNot(BeNil(), "there should be an owner reference for the dex connector")
-				Expect(ownerRef.Name).To(Equal(oidcOrgName), "the owner reference should have the correct name")
+				Expect(filteredOrgConnector[0].ID).To(Equal(oidcOrgName), "the connector ID should be equal to organization name")
 
 				By("checking dex oauth client resource")
 				filteredOrgClient := slices.DeleteFunc(oAuthClients.Items, func(c dexapi.OAuth2Client) bool {
 					return c.ID != oidcOrgName
 				})
 				Expect(filteredOrgClient).To(HaveLen(1), "there should be one dex oauth client after filtering")
-				ownerRef = clientutil.GetOwnerReference(&filteredOrgClient[0], "Organization")
-				Expect(ownerRef).ToNot(BeNil(), "there should be an owner reference for the dex oauth client")
-				Expect(ownerRef.Name).To(Equal(oidcOrgName), "the owner reference should have the correct name")
+				Expect(filteredOrgClient[0].ID).To(Equal(oidcOrgName), "the oauth client ID should be equal to organization name")
 
 				By("deleting the organizations")
 				test.EventuallyDeleted(test.Ctx, test.K8sClient, &greenhousev1alpha1.Organization{ObjectMeta: metav1.ObjectMeta{Name: oidcOrgName}})
 				test.EventuallyDeleted(test.Ctx, test.K8sClient, &greenhousev1alpha1.Organization{ObjectMeta: metav1.ObjectMeta{Name: greenhouseOrgName}})
 
-				// we cannot test the deletion of dex resources because of the local of controller-manager in the test environment
-				// since we assert the ownerReferences exist in the above test, it is safe to assume that the dex resources will be deleted
-				// controller-runtime issue: https://github.com/kubernetes-sigs/controller-runtime/issues/626#issuecomment-538529534
+				By("checking if the dex resources are deleted")
+				err = setup.List(test.Ctx, connectors)
+				Expect(len(connectors.Items)).To(Equal(0), "there should be no dex connector resources")
+				err = setup.List(test.Ctx, oAuthClients)
+				Expect(len(oAuthClients.Items)).To(Equal(0), "there should be no dex oauth clients resources")
 			}
 		})
 	})
