@@ -1,0 +1,20 @@
+kind: Cluster
+apiVersion: kind.x-k8s.io/v1alpha4
+nodes:
+  - role: control-plane
+    kubeadmConfigPatches:
+      - |
+        kind: ClusterConfiguration
+        apiServer:
+          extraArgs:
+            "oidc-issuer-url": "https://greenhouse-admin-control-plane:6443"
+            "oidc-client-id": "greenhouse"
+            "oidc-username-claim": "sub"
+            "oidc-groups-claim": "groups"
+            "oidc-username-prefix": "greenhouse:"
+            "oidc-ca-file": "/etc/kubernetes/pki/oidc-ca.crt"  # Trust the admin cluster CA
+            "anonymous-auth": "true"
+    extraMounts:
+      - hostPath: bin/greenhouse-admin-ca.crt
+        containerPath: /etc/kubernetes/pki/oidc-ca.crt
+        readOnly: true
