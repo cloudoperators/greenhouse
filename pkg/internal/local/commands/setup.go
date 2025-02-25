@@ -80,21 +80,17 @@ func processDevSetup(cmd *cobra.Command, args []string) error {
 	}
 
 	for _, cfg := range config.Config {
-		namespace := ""
 		if cfg.Cluster == nil {
 			return errors.New("cluster config is missing")
 		}
-		if cfg.Cluster.Namespace != nil {
-			namespace = *cfg.Cluster.Namespace
-		}
 		// in case of plugin development we check if the plugin directory env exists
 		// if it does, we generate KinD config to enable hostPath mounts
-		hostPathConfig, err := createHostPathConfig()
+		hostPathConfig, err := createHostPathConfig(cfg.Cluster.ConfigPath)
 		if err != nil {
 			return err
 		}
 		env := setup.NewExecutionEnv().
-			WithClusterSetup(cfg.Cluster.Name, namespace, cfg.Cluster.Version, hostPathConfig)
+			WithClusterSetup(cfg.Cluster)
 		for _, dep := range cfg.Dependencies {
 			if overrideCRDOnly {
 				dep.Manifest.CRDOnly = onlyCRD

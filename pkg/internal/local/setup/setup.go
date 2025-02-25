@@ -5,7 +5,6 @@ package setup
 
 import (
 	"context"
-	"strings"
 
 	"github.com/cloudoperators/greenhouse/pkg/internal/local/utils"
 )
@@ -24,18 +23,8 @@ func NewExecutionEnv() *ExecutionEnv {
 	}
 }
 
-func (env *ExecutionEnv) WithClusterSetup(name, namespace, version, configPath string) *ExecutionEnv {
-	env.cluster = &Cluster{
-		Name:      name,
-		Namespace: nil,
-		Version:   version,
-	}
-	if strings.TrimSpace(namespace) != "" {
-		env.cluster.Namespace = &namespace
-	}
-	if strings.TrimSpace(configPath) != "" {
-		env.cluster.ConfigPath = configPath
-	}
+func (env *ExecutionEnv) WithClusterSetup(cluster *Cluster) *ExecutionEnv {
+	env.cluster = cluster
 	env.steps = append(env.steps, clusterSetup)
 	return env
 }
