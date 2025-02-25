@@ -72,9 +72,6 @@ Define postgresql helpers
 {{- define "featureFlag.fullname" -}}
   {{- printf "%s-feature-flags" .Release.Name | trunc 48 | replace "_" "-" -}}
 {{- end -}}
-{{- define "postgres.ServiceURL" -}}
-  {{- printf "%s-postgresql" .Release.Name | trunc 48 | replace "_" "-" -}}
-{{- end -}}
 {{/* Render the backend */}}
 {{- define "dex.backend" -}}
   {{- printf "%s" (required "global.dex.backend missing" .Values.global.dex.backend) }}
