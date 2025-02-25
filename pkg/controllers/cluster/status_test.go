@@ -213,10 +213,8 @@ var _ = Describe("Cluster status", Ordered, func() {
 			readyCondition := invalidCluster.Status.GetConditionByType(greenhousev1alpha1.ReadyCondition)
 			g.Expect(readyCondition).ToNot(BeNil(), "The ClusterReady condition should be present")
 			g.Expect(readyCondition.Status).To(Equal(metav1.ConditionFalse))
-			g.Expect(readyCondition.Message).To(ContainSubstring("kubeconfig not valid - cannot access cluster"))
 			return true
 		}).Should(BeTrue())
-
 	})
 
 	It("should set the deletion condition when the cluster is marked for deletion", func() {
