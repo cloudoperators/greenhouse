@@ -1,0 +1,15 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+- https://github.com/fluxcd/image-automation-controller/releases/download/v0.40.0/image-automation-controller.crds.yaml
+- https://github.com/fluxcd/image-automation-controller/releases/download/v0.40.0/image-automation-controller.deployment.yaml
+- account.yaml
+transformers:
+- labels.yaml
+patches:
+- target:
+    group: apps
+    version: v1
+    kind: Deployment
+    name: image-automation-controller
+  path: patch.yaml
