@@ -43,7 +43,7 @@ jobs:
       # run the e2e tests using composite common/workflows/e2e action
       - name: "E2E"
         id: e2e
-        uses: cloudoperators/common/workflows/e2e@feat/oidc-e2e-setup
+        uses: cloudoperators/common/workflows/e2e@main
         with:
           k8s-version: ${{ matrix.k8s-version }}
           scenario: ${{ matrix.e2es }}
