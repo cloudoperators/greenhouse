@@ -5,20 +5,20 @@ apiVersion: v2
 name: greenhouse
 description: A Helm chart for deploying greenhouse
 type: application
-version: 0.8.3
+version: 0.8.5
 appVersion: "0.1.0"
 
 dependencies:
   - condition: idproxy.enabled
     name: idproxy
     repository: "file://../idproxy"
-    version: 0.2.0
+    version: 0.2.2
   - condition: cors-proxy.enabled
     name: cors-proxy
     repository: "file://../cors-proxy"
     version: 0.2.0
   - name: manager
-    version: 0.1.6
+    version: 0.1.8
     repository: "file://../manager"
   - condition: dashboard.enabled
     name: dashboard
@@ -28,3 +28,8 @@ dependencies:
     version: 0.1.2
     repository: "file://../demo"
     condition: demo.enabled
+  - name: postgresql-ng
+    alias: postgresqlng
+    version: 1.2.7
+    repository: "oci://ghcr.io/sapcc/helm-charts"
+    condition: postgresqlng.enabled

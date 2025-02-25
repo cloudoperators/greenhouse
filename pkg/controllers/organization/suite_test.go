@@ -12,12 +12,14 @@ import (
 
 	"github.com/cloudoperators/greenhouse/pkg/admission"
 	organizationpkg "github.com/cloudoperators/greenhouse/pkg/controllers/organization"
+	"github.com/cloudoperators/greenhouse/pkg/dex"
 	"github.com/cloudoperators/greenhouse/pkg/scim"
 	"github.com/cloudoperators/greenhouse/pkg/test"
 )
 
 var (
-	groupsServer *httptest.Server
+	DexStorageType string
+	groupsServer   *httptest.Server
 )
 
 func TestOrganization(t *testing.T) {
@@ -29,7 +31,13 @@ var _ = BeforeSuite(func() {
 	By("mocking SCIM server")
 	groupsServer = scim.ReturnDefaultGroupResponseMockServer()
 
-	test.RegisterController("organizationController", (&organizationpkg.OrganizationReconciler{Namespace: "default"}).SetupWithManager)
+	By("setting the dex storage type")
+	// here we could set the dex storage type to be used in the tests to expect the right behavior
+	// via environment variables in the future
+	// for postgres we can start a postgres testcontainer
+	DexStorageType = dex.K8s
+
+	test.RegisterController("organizationController", (&organizationpkg.OrganizationReconciler{Namespace: "default", DexStorageType: DexStorageType}).SetupWithManager)
 	test.RegisterWebhook("orgWebhook", admission.SetupOrganizationWebhookWithManager)
 	test.RegisterWebhook("teamWebhook", admission.SetupTeamWebhookWithManager)
 	test.RegisterWebhook("pluginDefinitionWebhook", admission.SetupPluginDefinitionWebhookWithManager)
@@ -41,6 +49,5 @@ var _ = BeforeSuite(func() {
 var _ = AfterSuite(func() {
 	By("tearing down the test environment")
 	groupsServer.Close()
-
 	test.TestAfterSuite()
 })
