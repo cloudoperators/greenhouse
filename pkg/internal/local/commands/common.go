@@ -18,6 +18,11 @@ import (
 	"github.com/spf13/cobra"
 )
 
+const (
+	defaultK8sVersion = "v1.31.0"
+	k8sVersionEnvKey  = "K8S_VERSION"
+)
+
 func GetLocalSetupCommands() []*cobra.Command {
 	return []*cobra.Command{
 		setupCmd,

@@ -80,6 +80,9 @@ func (c *Cluster) createNamespace() error {
 	return klient.CreateNamespace(*c.Namespace, c.kubeConfigPath)
 }
 
+// executePostSetup - executes post setup actions on the cluster as defined in the configuration file
+// piped shell commands are converted to ShellPipe type
+// NOTE: output redirects to file are not supported
 func (c *Cluster) executePostSetup() error {
 	if len(c.PostSetup) == 0 {
 		return nil

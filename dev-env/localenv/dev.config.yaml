@@ -5,6 +5,7 @@ config:
   - cluster:
       name: greenhouse-admin
       namespace: greenhouse
+      version: v1.31.0
       configPath: dev-env/localenv/greenhouse-admin-cluster.yaml
       postSetup:
         - command: kubectl --kubeconfig "${kubeconfig}" get cm kube-root-ca.crt -n default -o json | jq -r '.data."ca.crt"' | tee bin/greenhouse-admin-ca.crt
