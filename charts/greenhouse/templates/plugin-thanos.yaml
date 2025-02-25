@@ -28,4 +28,3 @@ spec:
     - name: thanos.compactor.enabled
       value: true
   pluginDefinition: thanos
-  releaseNamespace: kube-monitoring
