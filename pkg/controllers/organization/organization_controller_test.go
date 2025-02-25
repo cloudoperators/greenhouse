@@ -359,10 +359,10 @@ var _ = Describe("Test Organization reconciliation", Ordered, func() {
 				By("checking if the dex resources are deleted")
 				err = setup.List(test.Ctx, connectors)
 				Expect(err).ToNot(HaveOccurred(), "there should be no error listing dex connectors")
-				Expect(len(connectors.Items)).To(BeEmpty(), "there should be no dex connector resources")
+				Expect(connectors.Items).To(BeEmpty(), "there should be no dex connector resources")
 				err = setup.List(test.Ctx, oAuthClients)
 				Expect(err).ToNot(HaveOccurred(), "there should be no error listing dex oauth clients")
-				Expect(len(oAuthClients.Items)).To(BeEmpty(), "there should be no dex oauth clients resources")
+				Expect(oAuthClients.Items).To(BeEmpty(), "there should be no dex oauth clients resources")
 			}
 		})
 	})
