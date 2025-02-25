@@ -108,8 +108,8 @@ spec:
                 x-kubernetes-map-type: atomic
               createNamespaces:
                 default: false
-                description: CreateNamespaces when the flag is set the controller
-                  will create namespaces defined in the Namespaces field.
+                description: CreateNamespaces when enabled the controller will create
+                  namespaces for RoleBindings if they do not exist.
                 type: boolean
               namespaces:
                 description: |-
@@ -125,7 +125,7 @@ spec:
                 description: TeamRoleRef references a Greenhouse TeamRole by name
                 type: string
               usernames:
-                description: Usernames define list of users with team role
+                description: Usernames defines list of users to add to the (Cluster-)RoleBindings
                 items:
                   type: string
                 type: array

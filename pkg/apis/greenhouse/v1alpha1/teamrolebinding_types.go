@@ -17,7 +17,7 @@ type TeamRoleBindingSpec struct {
 	TeamRoleRef string `json:"teamRoleRef,omitempty"`
 	// TeamRef references a Greenhouse Team by name
 	TeamRef string `json:"teamRef,omitempty"`
-	// Usernames define list of users with team role
+	// Usernames defines list of users to add to the (Cluster-)RoleBindings
 	Usernames []string `json:"usernames,omitempty"`
 	// ClusterName is the name of the cluster the rbacv1 resources are created on.
 	ClusterName string `json:"clusterName,omitempty"`
@@ -26,7 +26,7 @@ type TeamRoleBindingSpec struct {
 	// Namespaces is a list of namespaces in the Greenhouse Clusters to apply the RoleBinding to.
 	// If empty, a ClusterRoleBinding will be created on the remote cluster, otherwise a RoleBinding per namespace.
 	Namespaces []string `json:"namespaces,omitempty"`
-	// CreateNamespaces when the flag is set the controller will create namespaces defined in the Namespaces field.
+	// CreateNamespaces when enabled the controller will create namespaces for RoleBindings if they do not exist.
 	// +kubebuilder:default:=false
 	CreateNamespaces bool `json:"createNamespaces,omitempty"`
 }
