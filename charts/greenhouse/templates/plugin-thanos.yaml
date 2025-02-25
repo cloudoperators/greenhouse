@@ -6,12 +6,15 @@ metadata:
 spec:
   disabled: false
   optionValues:
-    - name: testFramework.image.registry
-      value: keppel.global.cloud.sap/ccloud-ghcr-io-mirror
+    {{- if and .Values.global.quayIoMirror .Values.global.ghcrIoMirror .Values.global.dockerHubMirror }}
+    optionValues:
     - name: thanos.image.repository
-      value: keppel.global.cloud.sap/ccloud-quay-mirror/thanos/thanos
+      value: {{ printf "%s/thanos/thanos" .Values.global.quayIoMirror }}
     - name: thanos.initChownData.image.registry
-      value: keppel.global.cloud.sap/ccloud-dockerhub-mirror
+      value: {{ .Values.global.dockerHubMirror }}
+    - name: testFramework.image.registry
+      value: {{ .Values.global.ghcrIoMirror }}
+    {{- end }}
     - name: thanos.query.autoDownsampling
       value: true
     - name: thanos.query.standalone
