@@ -57,7 +57,7 @@ spec:
           env:
           - name: FEATURE_FLAGS
             value: {{ template "featureFlag.fullname" . }}
-          {{- if eq (include "dex.backend" $) "postgres" }}
+          {{- if eq .Values.global.dex.backend "postgres" }}
           - name: PG_DATABASE
             value: {{ .Values.global.dex.postgresql.postgresqlDatabase }}
           - name: PG_HOST
@@ -77,8 +77,6 @@ spec:
               fieldRef:
                 apiVersion: v1
                 fieldPath: metadata.namespace
-          - name: FEATURE_FLAGS
-            value: {{ template "featureFlag.fullname" . }}
           ports:
             - name: oidc
               containerPort: 8080
