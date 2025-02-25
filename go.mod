@@ -20,7 +20,6 @@ replace (
 require (
 	github.com/cenkalti/backoff/v4 v4.3.0
 	github.com/dexidp/dex v0.0.0-20240807174518-43956db7fd75
-	github.com/ghodss/yaml v1.0.0
 	github.com/go-jose/go-jose/v4 v4.0.5
 	github.com/jeremywohl/flatten/v2 v2.0.0-20211013061545-07e4a09fb8e4
 	github.com/oklog/run v1.1.1-0.20240127200640-eee6e044b77c
@@ -205,7 +204,7 @@ require (
 	go.starlark.net v0.0.0-20240725214946-42030a7cedce // indirect
 	go.uber.org/multierr v1.11.0 // indirect
 	golang.org/x/crypto v0.32.0 // indirect
-	golang.org/x/exp v0.0.0-20240823005443-9b4947da3948 // indirect
+	golang.org/x/exp v0.0.0-20240823005443-9b4947da3948
 	golang.org/x/net v0.33.0 // indirect
 	golang.org/x/oauth2 v0.22.0 // indirect
 	golang.org/x/sync v0.11.0 // indirect
