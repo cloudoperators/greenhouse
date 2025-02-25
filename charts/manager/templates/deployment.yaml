@@ -35,8 +35,6 @@ spec:
         {{- include "manager.params" . | indent 8 }}
         {{- end }}
         env:
-        - name: FEATURE_FLAGS
-          value: {{ template "featureFlag.fullname" . }}
         {{- if eq .Values.global.dex.backend "postgres" }}
         - name: PG_DATABASE
           value: {{ .Values.global.dex.postgresql.postgresqlDatabase }}
@@ -52,6 +50,8 @@ spec:
               key: postgres-password
               name: {{ .Release.Name }}-pguser-{{ .Values.global.dex.postgresql.postgresqlUsername }}
         {{- end }}
+        - name: FEATURE_FLAGS
+          value: {{ template "featureFlag.fullname" . }}
         - name: POD_NAMESPACE
           valueFrom:
             fieldRef:
