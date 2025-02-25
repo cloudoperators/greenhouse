@@ -69,11 +69,11 @@ Create the name of the service account to use
 {{/*
 Define postgresql helpers
 */}}
-{{- define "postgres.fullname" -}}
-  {{- printf "%s-postgresql" .Release.Name | trunc 48 | replace "_" "-" -}}
-{{- end -}}
 {{- define "featureFlag.fullname" -}}
   {{- printf "%s-feature-flags" .Release.Name | trunc 48 | replace "_" "-" -}}
+{{- end -}}
+{{- define "postgres.ServiceURL" -}}
+  {{- printf "%s-postgresql" .Release.Name | trunc 48 | replace "_" "-" -}}
 {{- end -}}
 {{/* Render the backend */}}
 {{- define "dex.backend" -}}

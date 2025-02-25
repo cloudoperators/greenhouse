@@ -39,7 +39,7 @@ spec:
         - name: PG_DATABASE
           value: {{ .Values.global.dex.postgresql.postgresqlDatabase }}
         - name: PG_HOST
-          value: {{- printf "%s-postgresql" .Release.Name | trunc 48 | replace "_" "-" -}}
+          value: {{ template "postgresql.ServiceURL" . }}
         - name: PG_PORT
           value: {{ .Values.global.dex.postgresql.postgresqlPort }}
         - name: PG_USER

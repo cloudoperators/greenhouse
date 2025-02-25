@@ -72,7 +72,7 @@ Create the name of the service account to use
 {{/*
 Define postgresql helpers
 */}}
-{{- define "postgres.fullname" -}}
+{{- define "postgres.ServiceURL" -}}
   {{- printf "%s-postgresql" .Release.Name | trunc 48 | replace "_" "-" -}}
 {{- end -}}
 {{- define "featureFlag.fullname" -}}
