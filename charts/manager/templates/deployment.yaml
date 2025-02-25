@@ -40,8 +40,6 @@ spec:
           value: {{ .Values.global.dex.postgresql.postgresqlDatabase }}
         - name: PG_HOST
           value: {{ .Release.Name }}-postgresql
-        - name: PG_PORT
-          value: {{ .Values.global.dex.postgresql.postgresqlPort }}
         - name: PG_USER
           value: {{ .Values.global.dex.postgresql.postgresqlUsername }}
         - name: PG_PASSWORD
