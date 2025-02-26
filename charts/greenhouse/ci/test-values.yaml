@@ -38,6 +38,13 @@ digicertIssuer:
   organizationUnits: Me
   caCertID: 1
 
+ingress:
+  enabled: true
+  annotations:
+    disco: "true"
+    disco/record: ingress.foo.global
+    disco/record-type: "A"
+
 scim:
   enabled: true
   baseURL: https://top.secret/scim
