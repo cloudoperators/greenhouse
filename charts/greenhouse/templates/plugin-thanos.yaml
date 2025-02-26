@@ -1,0 +1,30 @@
+apiVersion: greenhouse.sap/v1alpha1
+kind: Plugin
+metadata:
+  name: thanos
+  namespace: {{ .Chart.Name }}
+spec:
+  disabled: false
+  optionValues:
+    {{- if and .Values.global.quayIoMirror .Values.global.ghcrIoMirror .Values.global.dockerHubMirror }}
+    optionValues:
+    - name: thanos.image.repository
+      value: {{ printf "%s/thanos/thanos" .Values.global.quayIoMirror }}
+    - name: thanos.initChownData.image.registry
+      value: {{ .Values.global.dockerHubMirror }}
+    - name: testFramework.image.registry
+      value: {{ .Values.global.ghcrIoMirror }}
+    {{- end }}
+    - name: thanos.query.autoDownsampling
+      value: true
+    - name: thanos.query.standalone
+      value: false
+    - name: thanos.query.stores
+      value: []
+    - name: thanos.ruler.enabled
+      value: false
+    - name: thanos.store.enabled
+      value: true
+    - name: thanos.compactor.enabled
+      value: true
+  pluginDefinition: thanos
