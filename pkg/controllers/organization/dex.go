@@ -159,12 +159,11 @@ func (r *OrganizationReconciler) reconcileOAuth2Client(ctx context.Context, org 
 	oAuthClient, err := r.dex.GetClient(org.Name)
 	if err != nil {
 		if errors.Is(err, storage.ErrNotFound) {
-			redirectURIs := getRedirects(org.Name, nil)
 			if err = r.dex.CreateClient(ctx, storage.Client{
 				Public:       true,
 				ID:           org.Name,
 				Name:         org.Name,
-				RedirectURIs: redirectURIs,
+				RedirectURIs: getRedirects(org.Name, org.Spec.Authentication.OIDCConfig.OAuth2ClientRedirectURIs),
 			}); err != nil {
 				log.FromContext(ctx).Error(err, "failed to create oauth2client", "name", org.Name)
 				return err
@@ -179,7 +178,7 @@ func (r *OrganizationReconciler) reconcileOAuth2Client(ctx context.Context, org 
 		authClient.Public = true
 		authClient.ID = org.Name
 		authClient.Name = org.Name
-		authClient.RedirectURIs = getRedirects(org.Name, authClient.RedirectURIs)
+		authClient.RedirectURIs = getRedirects(org.Name, org.Spec.Authentication.OIDCConfig.OAuth2ClientRedirectURIs)
 		return authClient, nil
 	}); err != nil {
 		log.FromContext(ctx).Error(err, "failed to update oauth2client", "name", org.Name)
