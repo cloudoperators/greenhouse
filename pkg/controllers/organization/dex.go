@@ -192,19 +192,15 @@ func (r *OrganizationReconciler) reconcileOAuth2Client(ctx context.Context, org 
 // NOTE: this has to be separate and should not be used with in any dex.UpdateClient transaction as it does not support concurrent updates
 // It is also not safe when using MaxConcurrentReconciles > 1 as the default connector's redirect URIs can be updated concurrently and
 // the last update will win
-func (r *OrganizationReconciler) appendRedirectsToDefaultConnector(ctx context.Context, newOAuthClientID string) error {
+func (r *OrganizationReconciler) appendRedirectsToDefaultConnector(ctx context.Context, orgName string) error {
 	defaultOAuthClient, err := r.dex.GetClient(defaultGreenhouseConnectorID)
 	if err != nil {
 		log.FromContext(ctx).Error(err, "failed to get default connector's oauth2client", "ID", defaultGreenhouseConnectorID)
 		return err
 	}
-	newOAuthClient, err := r.dex.GetClient(newOAuthClientID)
-	if err != nil {
-		log.FromContext(ctx).Error(err, "failed to get oauth2client to append default connector's redirects", "ID", newOAuthClientID)
-		return err
-	}
+	orgRedirect := getRedirectForOrg(orgName)
 	err = r.dex.UpdateClient(defaultOAuthClient.Name, func(authClient storage.Client) (storage.Client, error) {
-		appendedRedirects := appendRedirects(authClient.RedirectURIs, newOAuthClient.RedirectURIs...)
+		appendedRedirects := appendRedirects(authClient.RedirectURIs, orgRedirect)
 		authClient.RedirectURIs = appendedRedirects
 		return authClient, nil
 	})
