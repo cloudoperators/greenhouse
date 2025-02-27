@@ -55,7 +55,11 @@ func (r *PluginPresetReconciler) SetupWithManager(name string, mgr ctrl.Manager)
 	return ctrl.NewControllerManagedBy(mgr).
 		Named(name).
 		For(&greenhousev1alpha1.PluginPreset{}).
-		Owns(&greenhousev1alpha1.Plugin{}, builder.WithPredicates(predicate.GenerationChangedPredicate{})).
+		Owns(&greenhousev1alpha1.Plugin{}, builder.WithPredicates(
+			predicate.Or(
+				predicate.GenerationChangedPredicate{},
+				clientutil.PredicatePluginWithStatusReadyChange(),
+			))).
 		// Clusters and teams are passed as values to each Helm operation. Reconcile on change.
 		Watches(&greenhousev1alpha1.Cluster{}, handler.EnqueueRequestsFromMapFunc(r.enqueueAllPluginPresetsInNamespace),
 			builder.WithPredicates(predicate.LabelChangedPredicate{})).
@@ -214,19 +218,19 @@ func (r *PluginPresetReconciler) reconcilePluginStatuses(
 	ctx context.Context, preset *greenhousev1alpha1.PluginPreset, clusters *greenhousev1alpha1.ClusterList,
 ) error {
 
-	pluginStatuses := make([]greenhousev1alpha1.PropagatedPluginStatus, 0, len(clusters.Items))
+	pluginStatuses := make([]greenhousev1alpha1.ManagedPluginStatus, 0, len(clusters.Items))
 	readyPluginsCount := 0
+	failedPluginsCount := 0
 
 	for _, cluster := range clusters.Items {
 		if !cluster.DeletionTimestamp.IsZero() {
-			// Additional validation if cluster is being removed.
+			// Skip cluster that is being removed (but should already be filtered out earlier).
 			continue
 		}
 
 		plugin := &greenhousev1alpha1.Plugin{}
 		err := r.Get(ctx, client.ObjectKey{Namespace: preset.GetNamespace(), Name: generatePluginName(preset, &cluster)}, plugin)
 		if err != nil {
-			// Not checking if it's not found, because reconciler already should've added it.
 			return err
 		}
 
@@ -235,16 +239,25 @@ func (r *PluginPresetReconciler) reconcilePluginStatuses(
 			continue
 		}
 
-		if plugin.Status.IsReadyTrue() {
+		pluginReadyCondition := plugin.Status.GetConditionByType(greenhousev1alpha1.ReadyCondition)
+		if pluginReadyCondition == nil {
+			// Plugin exists, but its Ready condition is not set - treat it as unavailable.
+			continue
+		}
+		if pluginReadyCondition.IsTrue() {
 			readyPluginsCount++
+		} else {
+			failedPluginsCount++
 		}
 
-		currentPluginStatus := greenhousev1alpha1.PropagatedPluginStatus{ClusterName: cluster.Name, PluginStatus: plugin.Status}
+		currentPluginStatus := greenhousev1alpha1.ManagedPluginStatus{PluginName: plugin.Name, ReadyCondition: *pluginReadyCondition}
 		pluginStatuses = append(pluginStatuses, currentPluginStatus)
 	}
 
 	preset.Status.PluginStatuses = pluginStatuses
-	preset.Status.ReadyPluginsRatio = fmt.Sprintf("%d/%d", readyPluginsCount, len(pluginStatuses))
+	preset.Status.AvailablePlugins = len(pluginStatuses)
+	preset.Status.ReadyPlugins = readyPluginsCount
+	preset.Status.FailedPlugins = failedPluginsCount
 	return nil
 }
 
