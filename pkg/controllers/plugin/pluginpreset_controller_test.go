@@ -284,10 +284,11 @@ var _ = Describe("PluginPreset Controller Lifecycle", Ordered, func() {
 		err = test.K8sClient.Get(test.Ctx, client.ObjectKeyFromObject(testPluginPreset), testPluginPreset)
 		Expect(err).ToNot(HaveOccurred(), "failed to get PluginPreset")
 		// Remove prevent-deletion annotation before deleting PluginPreset.
-		_, _ = clientutil.Patch(test.Ctx, test.K8sClient, testPluginPreset, func() error {
+		_, err = clientutil.Patch(test.Ctx, test.K8sClient, testPluginPreset, func() error {
 			delete(testPluginPreset.Annotations, preventDeletionAnnotation)
 			return nil
 		})
+		Expect(err).ToNot(HaveOccurred(), "failed to patch PluginPreset")
 		test.EventuallyDeleted(test.Ctx, test.K8sClient, testPluginPreset)
 	})
 
@@ -366,7 +367,7 @@ var _ = Describe("PluginPreset Controller Lifecycle", Ordered, func() {
 			})).To(BeTrue(), "Ready true status should be reported for the first plugin")
 			g.Expect(slices.ContainsFunc(testPluginPreset.Status.PluginStatuses, func(status greenhousev1alpha1.ManagedPluginStatus) bool {
 				return status.PluginName == testPluginPreset.Name+"-"+otherTestClusterName && status.ReadyCondition.IsTrue()
-			})).To(BeTrue(), "Ready true status should be reported for the addtional plugin")
+			})).To(BeTrue(), "Ready true status should be reported for the additional plugin")
 			g.Expect(testPluginPreset.Status.AvailablePlugins).To(Equal(2), "PluginPreset Status should show exactly two available plugins")
 			g.Expect(testPluginPreset.Status.ReadyPlugins).To(Equal(2), "PluginPreset Status should show exactly two ready plugins")
 			g.Expect(testPluginPreset.Status.FailedPlugins).To(Equal(0), "PluginPreset Status should show exactly zero failed plugins")
@@ -398,10 +399,11 @@ var _ = Describe("PluginPreset Controller Lifecycle", Ordered, func() {
 		err = test.K8sClient.Get(test.Ctx, client.ObjectKeyFromObject(testPluginPreset), testPluginPreset)
 		Expect(err).ToNot(HaveOccurred(), "failed to get PluginPreset")
 		// Remove prevent-deletion annotation before deleting PluginPreset.
-		_, _ = clientutil.Patch(test.Ctx, test.K8sClient, testPluginPreset, func() error {
+		_, err = clientutil.Patch(test.Ctx, test.K8sClient, testPluginPreset, func() error {
 			delete(testPluginPreset.Annotations, preventDeletionAnnotation)
 			return nil
 		})
+		Expect(err).ToNot(HaveOccurred(), "failed to patch PluginPreset")
 		test.EventuallyDeleted(test.Ctx, test.K8sClient, testPluginPreset)
 	})
 })

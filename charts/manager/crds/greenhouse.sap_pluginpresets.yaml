@@ -221,176 +221,57 @@ spec:
           status:
             description: PluginPresetStatus defines the observed state of PluginPreset
             properties:
+              availablePlugins:
+                description: AvailablePlugins is the number of available Plugins managed
+                  by the PluginPreset.
+                type: integer
+              failedPlugins:
+                description: FailedPlugins is the number of failed Plugins managed
+                  by the PluginPreset.
+                type: integer
               pluginStatuses:
-                description: PluginStatuses contains statuses of Plugins owned by
+                description: PluginStatuses contains statuses of Plugins managed by
                   the PluginPreset.
                 items:
-                  description: PropagatedPluginStatus defines the Plugin status and
-                    name of the cluster that the Plugin's deployed to.
+                  description: ManagedPluginStatus defines the Ready condition of
+                    a managed Plugin identified by its name.
                   properties:
-                    clusterName:
+                    pluginName:
                       type: string
-                    pluginStatus:
-                      description: PluginStatus defines the observed state of Plugin
+                    readyCondition:
+                      description: Condition contains additional information on the
+                        state of a resource.
                       properties:
-                        description:
-                          description: Description provides additional details of
-                            the plugin.
+                        lastTransitionTime:
+                          description: LastTransitionTime is the last time the condition
+                            transitioned from one status to another.
+                          format: date-time
                           type: string
-                        exposedServices:
-                          additionalProperties:
-                            description: Service references a Kubernetes service of
-                              a Plugin.
-                            properties:
-                              name:
-                                description: Name is the name of the service in the
-                                  target cluster.
-                                type: string
-                              namespace:
-                                description: Namespace is the namespace of the service
-                                  in the target cluster.
-                                type: string
-                              port:
-                                description: Port is the port of the service.
-                                format: int32
-                                type: integer
-                              protocol:
-                                description: Protocol is the protocol of the service.
-                                type: string
-                            required:
-                            - name
-                            - namespace
-                            - port
-                            type: object
-                          description: |-
-                            ExposedServices provides an overview of the Plugins services that are centrally exposed.
-                            It maps the exposed URL to the service found in the manifest.
-                          type: object
-                        helmChart:
-                          description: HelmChart contains a reference the helm chart
-                            used for the deployed pluginDefinition version.
-                          properties:
-                            name:
-                              description: Name of the HelmChart chart.
-                              type: string
-                            repository:
-                              description: Repository of the HelmChart chart.
-                              type: string
-                            version:
-                              description: Version of the HelmChart chart.
-                              type: string
-                          required:
-                          - name
-                          - repository
-                          - version
-                          type: object
-                        helmReleaseStatus:
-                          description: |-
-                            HelmReleaseStatus reflects the status of the latest HelmChart release.
-                            This is only configured if the pluginDefinition is backed by HelmChart.
-                          properties:
-                            diff:
-                              description: Diff contains the difference between the
-                                deployed helm chart and the helm chart in the last
-                                reconciliation
-                              type: string
-                            firstDeployed:
-                              description: FirstDeployed is the timestamp of the first
-                                deployment of the release.
-                              format: date-time
-                              type: string
-                            lastDeployed:
-                              description: LastDeployed is the timestamp of the last
-                                deployment of the release.
-                              format: date-time
-                              type: string
-                            pluginOptionChecksum:
-                              description: PluginOptionChecksum is the checksum of
-                                plugin option values.
-                              type: string
-                            status:
-                              description: Status is the status of a HelmChart release.
-                              type: string
-                          required:
-                          - status
-                          type: object
-                        statusConditions:
-                          description: StatusConditions contain the different conditions
-                            that constitute the status of the Plugin.
-                          properties:
-                            conditions:
-                              items:
-                                description: Condition contains additional information
-                                  on the state of a resource.
-                                properties:
-                                  lastTransitionTime:
-                                    description: LastTransitionTime is the last time
-                                      the condition transitioned from one status to
-                                      another.
-                                    format: date-time
-                                    type: string
-                                  message:
-                                    description: Message is an optional human readable
-                                      message indicating details about the last transition.
-                                    type: string
-                                  reason:
-                                    description: Reason is a one-word, CamelCase reason
-                                      for the condition's last transition.
-                                    type: string
-                                  status:
-                                    description: Status of the condition.
-                                    type: string
-                                  type:
-                                    description: Type of the condition.
-                                    type: string
-                                required:
-                                - lastTransitionTime
-                                - status
-                                - type
-                                type: object
-                              type: array
-                              x-kubernetes-list-map-keys:
-                              - type
-                              x-kubernetes-list-type: map
-                          type: object
-                        uiApplication:
-                          description: UIApplication contains a reference to the frontend
-                            that is used for the deployed pluginDefinition version.
-                          properties:
-                            name:
-                              description: Name of the UI application.
-                              type: string
-                            url:
-                              description: |-
-                                URL specifies the url to a built javascript asset.
-                                By default, assets are loaded from the Juno asset server using the provided name and version.
-                              type: string
-                            version:
-                              description: Version of the frontend application.
-                              type: string
-                          required:
-                          - name
-                          - version
-                          type: object
-                        version:
-                          description: Version contains the latest pluginDefinition
-                            version the config was last applied with successfully.
+                        message:
+                          description: Message is an optional human readable message
+                            indicating details about the last transition.
                           type: string
-                        weight:
-                          description: Weight configures the order in which Plugins
-                            are shown in the Greenhouse UI.
-                          format: int32
-                          type: integer
+                        reason:
+                          description: Reason is a one-word, CamelCase reason for
+                            the condition's last transition.
+                          type: string
+                        status:
+                          description: Status of the condition.
+                          type: string
+                        type:
+                          description: Type of the condition.
+                          type: string
+                      required:
+                      - lastTransitionTime
+                      - status
+                      - type
                       type: object
-                  required:
-                  - clusterName
-                  - pluginStatus
                   type: object
                 type: array
-              readyPluginsRatio:
-                description: ReadyPluginsRatio is a representation of the number of
-                  ready and total Plugins owned by the PluginPreset.
-                type: string
+              readyPlugins:
+                description: ReadyPlugins is the number of ready Plugins managed by
+                  the PluginPreset.
+                type: integer
               statusConditions:
                 description: StatusConditions contain the different conditions that
                   constitute the status of the PluginPreset.
