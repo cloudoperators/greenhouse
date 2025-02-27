@@ -7,7 +7,6 @@ import (
 	"context"
 	"encoding/base64"
 	"fmt"
-	"strings"
 	"time"
 
 	"github.com/pkg/errors"
@@ -67,11 +66,12 @@ func (r *BootstrapReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		// if secret type is oidc we check if a kubeconfig was already generated,
 		// and we also check if the greenhousekubeconfig key is present and the value is not empty
 		genTime, genTimeAvail := kubeConfigSecret.Annotations[greenhouseapis.SecretOIDCConfigGeneratedOnAnnotation]
-		greenKey, greenKeyAvail := kubeConfigSecret.Data[greenhouseapis.GreenHouseKubeConfigKey]
-		if !genTimeAvail || !greenKeyAvail || strings.TrimSpace(string(greenKey)) == "" {
+		if !genTimeAvail || !clientutil.IsSecretContainsKey(kubeConfigSecret, greenhouseapis.GreenHouseKubeConfigKey) {
 			sa := utils.NewServiceAccount(kubeConfigSecret.GetName(), kubeConfigSecret.GetNamespace())
-			err := r.Client.Create(ctx, sa)
-			if client.IgnoreAlreadyExists(err) != nil {
+			_, err := clientutil.CreateOrPatch(ctx, r.Client, sa, func() error {
+				return controllerutil.SetOwnerReference(kubeConfigSecret, sa, r.Scheme())
+			})
+			if err != nil {
 				return ctrl.Result{}, errors.Wrap(err, "failed creating service account for OIDC config")
 			}
 			return ctrl.Result{}, r.createKubeConfigKey(ctx, kubeConfigSecret)
@@ -199,12 +199,6 @@ func (r *BootstrapReconciler) ensureOwnerReferences(ctx context.Context, kubeCon
 	_, err := clientutil.CreateOrPatch(ctx, r.Client, kubeConfigSecret, func() error {
 		return controllerutil.SetOwnerReference(cluster, kubeConfigSecret, r.Scheme())
 	})
-	if kubeConfigSecret.Type == greenhouseapis.SecretTypeOIDCConfig {
-		sa := utils.NewServiceAccount(kubeConfigSecret.GetName(), kubeConfigSecret.GetNamespace())
-		_, err = clientutil.CreateOrPatch(ctx, r.Client, sa, func() error {
-			return controllerutil.SetOwnerReference(cluster, sa, r.Scheme())
-		})
-	}
 	return err
 }
 
