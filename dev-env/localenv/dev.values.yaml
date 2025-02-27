@@ -3,5 +3,7 @@
 
 global:
   dnsDomain: green.house
+  dex:
+    backend: kubernetes
 alerts:
   enabled: false

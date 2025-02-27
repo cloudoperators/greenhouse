@@ -1225,7 +1225,7 @@ string
 </em>
 </td>
 <td>
-<p>RedirectURI is the redirect URI.
+<p>RedirectURI is the redirect URI to be used for the OIDC flow against the upstream IdP.
 If none is specified, the Greenhouse ID proxy will be used.</p>
 </td>
 </tr>
@@ -1253,6 +1253,18 @@ SecretKeyReference
 </td>
 <td>
 <p>ClientSecretReference references the Kubernetes secret containing the client secret.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>oauth2ClientRedirectURIs</code><br>
+<em>
+[]string
+</em>
+</td>
+<td>
+<p>OAuth2ClientRedirectURIs are a registered set of redirect URIs. When redirecting from the idproxy to
+the client application, the URI requested to redirect to must be contained in this list.</p>
 </td>
 </tr>
 </tbody>

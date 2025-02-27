@@ -4,6 +4,7 @@
 package main
 
 import (
+	"context"
 	"errors"
 	goflag "flag"
 	"fmt"
@@ -28,6 +29,7 @@ import (
 	"github.com/cloudoperators/greenhouse/pkg/clientutil"
 	"github.com/cloudoperators/greenhouse/pkg/common"
 	dexapi "github.com/cloudoperators/greenhouse/pkg/dex/api"
+	"github.com/cloudoperators/greenhouse/pkg/features"
 	"github.com/cloudoperators/greenhouse/pkg/helm"
 	"github.com/cloudoperators/greenhouse/pkg/version"
 )
@@ -46,8 +48,12 @@ const (
 const (
 	defaultRemoteClusterBearerTokenValidity   = 24 * time.Hour
 	defaultRenewRemoteClusterBearerTokenAfter = 20 * time.Hour
-	disableControllersEnv                     = "WEBHOOK_ONLY"     // used to deploy the operator in webhook only mode no controllers will run in this mode.
-	disableWebhookEnv                         = "CONTROLLERS_ONLY" // used to disable webhooks when running locally or in debug mode.
+	disableControllersEnv                     = "WEBHOOK_ONLY"             // used to deploy the operator in webhook only mode no controllers will run in this mode.
+	disableWebhookEnv                         = "CONTROLLERS_ONLY"         // used to disable webhooks when running locally or in debug mode.
+	podNamespaceEnv                           = "POD_NAMESPACE"            // used to read the pod namespace from the environment.
+	defaultPodNamespace                       = "greenhouse"               // default pod namespace.
+	featureFlagsEnv                           = "FEATURE_FLAGS"            // used to read the feature flags configMap name from the environment.
+	defaultFeatureFlagConfigMapName           = "greenhouse-feature-flags" // default feature flags configMap name.
 )
 
 var (
@@ -58,6 +64,7 @@ var (
 	remoteClusterBearerTokenValidity,
 	renewRemoteClusterBearerTokenAfter time.Duration
 	kubeClientOpts clientutil.RuntimeOptions
+	featureFlags   *features.Features
 )
 
 func init() {
@@ -114,7 +121,7 @@ func main() {
 
 	// Disable leader election if not run within a cluster.
 	isEnableLeaderElection := true
-	if _, ok := os.LookupEnv("POD_NAMESPACE"); !ok {
+	if _, ok := os.LookupEnv(podNamespaceEnv); !ok {
 		isEnableLeaderElection = false
 	}
 
@@ -129,6 +136,20 @@ func main() {
 		LeaderElectionReleaseOnCancel: true,
 	})
 	handleError(err, "unable to start manager")
+
+	// extract the manager API Client Reader
+	// Note: mgr.GetClient() will fail here because the cache is not ready yet
+	k8sClient := mgr.GetAPIReader()
+	// Initialize the feature gates from feature-flags config map
+	featureFlags, err = features.NewFeatures(
+		context.TODO(),
+		k8sClient,
+		clientutil.GetEnvOrDefault(featureFlagsEnv, defaultFeatureFlagConfigMapName),
+		clientutil.GetEnvOrDefault(podNamespaceEnv, defaultPodNamespace),
+	)
+	if err != nil {
+		handleError(err, "unable to get features")
+	}
 
 	mode, err := calculateManagerMode()
 	if err != nil {
