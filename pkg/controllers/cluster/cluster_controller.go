@@ -105,19 +105,24 @@ func (r *RemoteClusterReconciler) EnsureCreated(ctx context.Context, resource li
 		return ctrl.Result{}, lifecycle.Failed, err
 	}
 
-	// below resources are only needed for non-oidc clusters
+	var crb *rbacv1.ClusterRoleBinding
 	if clusterSecret.Type != greenhouseapis.SecretTypeOIDCConfig {
-		// create cluster role binding first so that it can be added as owner in serviceAccount
-		crb, err := r.reconcileClusterRoleBindingInRemoteCluster(ctx, remoteClient, cluster)
+		// Create ClusterRoleBinding first so it can be added as an owner in ServiceAccount
+		var err error
+		crb, err = r.reconcileClusterRoleBindingInRemoteCluster(ctx, remoteClient, cluster)
 		if err != nil {
 			return ctrl.Result{}, lifecycle.Failed, err
 		}
-		// create managed namespace in remote cluster (use crb as owner reference)
-		if err := r.reconcileNamespaceInRemoteCluster(ctx, remoteClient, crb, cluster); err != nil {
-			return ctrl.Result{}, lifecycle.Failed, err
-		}
-		// create greenhouse service account in managed namespace (use crb as owner reference)
-		if err := r.reconcileServiceAccountInRemoteCluster(ctx, remoteClient, cluster); err != nil {
+	}
+
+	// Create the namespace in the remote cluster (use crb as owner reference if applicable)
+	if err := r.reconcileNamespaceInRemoteCluster(ctx, remoteClient, cluster); err != nil {
+		return ctrl.Result{}, lifecycle.Failed, err
+	}
+
+	// Create greenhouse service account in managed namespace only for non-OIDC clusters
+	if clusterSecret.Type != greenhouseapis.SecretTypeOIDCConfig {
+		if err := r.reconcileServiceAccountInRemoteCluster(ctx, remoteClient, crb, cluster); err != nil {
 			return ctrl.Result{}, lifecycle.Failed, err
 		}
 	}
@@ -165,11 +170,11 @@ func (r *RemoteClusterReconciler) reconcileClusterRoleBindingInRemoteCluster(ctx
 }
 
 // reconcileNamespaceInRemoteCluster - creates or updates the namespace in the remote cluster
-func (r *RemoteClusterReconciler) reconcileNamespaceInRemoteCluster(ctx context.Context, k8sClient client.Client, crb *rbacv1.ClusterRoleBinding, cluster *greenhousev1alpha1.Cluster) error {
+func (r *RemoteClusterReconciler) reconcileNamespaceInRemoteCluster(ctx context.Context, k8sClient client.Client, cluster *greenhousev1alpha1.Cluster) error {
 	var namespace = new(corev1.Namespace)
 	namespace.Name = cluster.GetNamespace()
 	result, err := clientutil.CreateOrPatch(ctx, k8sClient, namespace, func() error {
-		return controllerutil.SetOwnerReference(crb, namespace, k8sClient.Scheme())
+		return nil
 	})
 	if err != nil {
 		return err
@@ -186,20 +191,13 @@ func (r *RemoteClusterReconciler) reconcileNamespaceInRemoteCluster(ctx context.
 }
 
 // reconcileServiceAccountInRemoteCluster - creates or updates the service account in the remote cluster
-func (r *RemoteClusterReconciler) reconcileServiceAccountInRemoteCluster(ctx context.Context, k8sClient client.Client, cluster *greenhousev1alpha1.Cluster) error {
-	serviceAccount := &corev1.ServiceAccount{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      utils.ServiceAccountName,
-			Namespace: cluster.GetNamespace(),
-		},
-	}
-	crb := &rbacv1.ClusterRoleBinding{}
-	err := k8sClient.Get(ctx, client.ObjectKey{Name: utils.ServiceAccountName}, crb)
-	if err != nil {
-		return err
-	}
+func (r *RemoteClusterReconciler) reconcileServiceAccountInRemoteCluster(ctx context.Context, k8sClient client.Client, crb *rbacv1.ClusterRoleBinding, cluster *greenhousev1alpha1.Cluster) error {
+	serviceAccount := utils.NewServiceAccount(utils.ServiceAccountName, cluster.GetNamespace())
 	result, err := clientutil.CreateOrPatch(ctx, k8sClient, serviceAccount, func() error {
-		return controllerutil.SetOwnerReference(crb, serviceAccount, k8sClient.Scheme())
+		if crb != nil {
+			return controllerutil.SetOwnerReference(crb, serviceAccount, k8sClient.Scheme())
+		}
+		return nil
 	})
 	if err != nil {
 		return err
