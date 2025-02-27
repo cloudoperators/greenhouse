@@ -328,19 +328,33 @@ func (m *Manifest) waitUntilDeploymentReady(ctx context.Context, clusterName, na
 	if err != nil {
 		return err
 	}
-	b := backoff.NewExponentialBackOff(backoff.WithInitialInterval(5*time.Second), backoff.WithMaxElapsedTime(2*time.Minute))
-	return backoff.Retry(func() error {
+	b := &backoff.ExponentialBackOff{
+		InitialInterval:     500 * time.Millisecond, // Start with 500ms delay
+		RandomizationFactor: 0.5,                    // Randomize interval by ±50%
+		Multiplier:          2.0,                    // Double the interval each time
+		MaxInterval:         15 * time.Second,       // Cap at 15s between retries
+	}
+	b.Reset()
+	retries := 0
+	maxRetries := 10
+	op := func() (op bool, err error) {
+		if retries >= maxRetries {
+			err = backoff.Permanent(fmt.Errorf("resource %s did not become ready after %d retries", name, maxRetries))
+		}
 		utils.Logf("waiting for deployment %s to be ready...", name)
 		deployment := &appsv1.Deployment{}
-		err := cl.Get(ctx, types.NamespacedName{
+		err = cl.Get(ctx, types.NamespacedName{
 			Namespace: namespace,
 			Name:      name,
 		}, deployment)
 		if err != nil {
-			return err
+			retries++
+			return
 		}
 		if deployment.Status.Conditions == nil {
-			return errors.New("deployment is not yet ready")
+			retries++
+			err = errors.New("deployment is not yet ready")
+			return
 		}
 		available := false
 		for _, condition := range deployment.Status.Conditions {
@@ -350,10 +364,15 @@ func (m *Manifest) waitUntilDeploymentReady(ctx context.Context, clusterName, na
 			}
 		}
 		if !available {
-			return errors.New("deployment is not yet ready")
+			retries++
+			err = errors.New("deployment is not yet ready")
+			return
 		}
-		return nil
-	}, b)
+		op = true
+		return
+	}
+	_, err = backoff.Retry(ctx, op, backoff.WithBackOff(b))
+	return err
 }
 
 func getKubeClient(clusterName string) (client.Client, error) {
