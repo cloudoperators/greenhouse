@@ -20,6 +20,11 @@ global:
   region: greenhouse
   registry: keppel.eu-nl-1.cloud.sap/ccloud
 
+organization:
+  enabled: true
+  oauth2ClientRedirectURIs:
+    - http://localhost:1234
+
 postgresqlng:
   enabled: true
   resources: {}
@@ -37,6 +42,13 @@ digicertIssuer:
   organizationID: 1
   organizationUnits: Me
   caCertID: 1
+
+ingress:
+  enabled: true
+  annotations:
+    disco: "true"
+    disco/record: ingress.foo.global
+    disco/record-type: "A"
 
 scim:
   enabled: true
