@@ -396,13 +396,17 @@ var _ = Describe("Validate ClusterRole & RoleBinding on Remote Cluster", Ordered
 				test.WithTeamRoleRef(teamRoleUT.Name),
 				test.WithTeamRef(teamUT.Name),
 				test.WithClusterName(clusterB.Name),
-				test.WithNamespaces("non-existing-namespace"),
+				test.WithNamespaces("non-existing-namespace-1", "non-existing-namespace-2"),
 				test.WithCreateNamespace(true))
 
 			By("checking that the Namespace is created")
 			namespace := &corev1.Namespace{}
 			Eventually(func(g Gomega) {
-				err := clusterBKubeClient.Get(test.Ctx, types.NamespacedName{Name: "non-existing-namespace"}, namespace)
+				err := clusterBKubeClient.Get(test.Ctx, types.NamespacedName{Name: "non-existing-namespace-1"}, namespace)
+				g.Expect(err).ToNot(HaveOccurred(), "there should be no error getting the non-existing namespace")
+			}).Should(Succeed())
+			Eventually(func(g Gomega) {
+				err := clusterBKubeClient.Get(test.Ctx, types.NamespacedName{Name: "non-existing-namespace-2"}, namespace)
 				g.Expect(err).ToNot(HaveOccurred(), "there should be no error getting the non-existing namespace")
 			}).Should(Succeed())
 

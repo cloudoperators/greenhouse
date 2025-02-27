@@ -222,7 +222,7 @@ func (r *TeamRoleBindingReconciler) doReconcile(ctx context.Context, teamRole *g
 		switch isClusterScoped(trb) {
 		case true:
 			crb := rbacClusterRoleBinding(trb, cr, team)
-			if err := reconcileClusterRoleBinding(ctx, remoteRestClient, trb, &cluster, crb); err != nil {
+			if err := reconcileClusterRoleBinding(ctx, remoteRestClient, &cluster, crb); err != nil {
 				r.recorder.Eventf(trb, corev1.EventTypeWarning, greenhousev1alpha1.FailedEvent, "Failed to reconcile ClusterRoleBinding %s in cluster %s", crb.GetName(), cluster.GetName())
 				trb.SetPropagationStatus(cluster.GetName(), metav1.ConditionFalse, greenhousev1alpha1.RoleBindingFailed, err.Error())
 				if !slices.Contains(failedClusters, cluster.GetName()) {
@@ -233,6 +233,12 @@ func (r *TeamRoleBindingReconciler) doReconcile(ctx context.Context, teamRole *g
 			trb.SetPropagationStatus(cluster.GetName(), metav1.ConditionTrue, greenhousev1alpha1.RBACReconciled, "")
 		default:
 			errorMesages := []string{}
+			err = createNamespaces(ctx, trb, remoteRestClient)
+			if err != nil {
+				trb.SetPropagationStatus(cluster.GetName(), metav1.ConditionFalse, greenhousev1alpha1.CreateNamespacesFailed, "Failed to create namespaces: "+err.Error())
+				continue
+			}
+
 			for _, namespace := range trb.Spec.Namespaces {
 				rbacRoleBinding := rbacRoleBinding(trb, cr, team, namespace)
 
@@ -249,6 +255,7 @@ func (r *TeamRoleBindingReconciler) doReconcile(ctx context.Context, teamRole *g
 				continue
 			}
 		}
+
 		trb.SetPropagationStatus(cluster.GetName(), metav1.ConditionTrue, greenhousev1alpha1.RBACReconciled, "")
 	}
 
@@ -529,7 +536,7 @@ func reconcileClusterRole(ctx context.Context, cl client.Client, c *greenhousev1
 }
 
 // reconcileClusterRoleBinding creates or updates a ClusterRoleBinding in the Cluster the given client.Client is created for
-func reconcileClusterRoleBinding(ctx context.Context, cl client.Client, trb *greenhousev1alpha1.TeamRoleBinding, c *greenhousev1alpha1.Cluster, crb *rbacv1.ClusterRoleBinding) error {
+func reconcileClusterRoleBinding(ctx context.Context, cl client.Client, c *greenhousev1alpha1.Cluster, crb *rbacv1.ClusterRoleBinding) error {
 	remoteCRB := &rbacv1.ClusterRoleBinding{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: crb.Name,
@@ -541,11 +548,6 @@ func reconcileClusterRoleBinding(ctx context.Context, cl client.Client, trb *gre
 		remoteCRB.Subjects = crb.Subjects
 		return nil
 	})
-	if err != nil {
-		return err
-	}
-
-	err = createNamespaces(ctx, trb, cl)
 	if err != nil {
 		return err
 	}
@@ -708,7 +710,7 @@ func listTeamRoleBindingsAsReconcileRequests(ctx context.Context, c client.Clien
 
 // isClusterScoped returns true if the TeamRoleBinding will create ClusterRoleBindings
 func isClusterScoped(trb *greenhousev1alpha1.TeamRoleBinding) bool {
-	return len(trb.Spec.Namespaces) == 0 || (len(trb.Spec.Namespaces) > 0 && trb.Spec.CreateNamespaces)
+	return len(trb.Spec.Namespaces) == 0
 }
 
 // isRoleReferenced checks if the given TeamRoleBinding's TeamRole is still referenced by any Role or ClusterRole
