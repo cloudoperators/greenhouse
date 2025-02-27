@@ -351,11 +351,11 @@ var _ = Describe("Test Organization reconciliation", Ordered, func() {
 					switch orgClient.ID {
 					case oidcOrgName:
 						Expect(orgClient.ID).To(Equal(oidcOrgName), "the oauth client ID should be equal to organization name")
+						Expect(orgClient.RedirectURIs).To(HaveLen(5), "the oauth client redirect URIs should have the default 3 elements + 2 additionalRedirects")
 						Expect(orgClient.RedirectURIs).To(ContainElements("https://example.com/app", "http://localhost:33768/auth/callback"), "the oauth client redirect URIs should be equal to organization redirect URIs")
-						Expect(orgClient.RedirectURIs).To(HaveLen(6), "the oauth client redirect URIs should have 6 elements (default 3 + 2 additionalRedirects + 1 org)")
 					case greenhouseOrgName:
 						Expect(orgClient.ID).To(Equal(greenhouseOrgName), "the oauth client ID should be equal to organization name")
-						Expect(orgClient.RedirectURIs).To(HaveLen(3), "the oauth client redirect URIs should have the default 3 elements")
+						Expect(orgClient.RedirectURIs).To(HaveLen(4), "the oauth client redirect URIs should have 4 elements (default 3 + 1 org)")
 					default:
 						Fail("unexpected oauth client ID")
 					}
