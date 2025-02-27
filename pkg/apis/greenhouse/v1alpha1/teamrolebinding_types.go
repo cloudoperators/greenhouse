@@ -144,4 +144,7 @@ const (
 
 	// RoleBindingFailed is the condition reason for the TeamRoleBinding when the RoleBinding could not be created
 	RoleBindingFailed ConditionReason = "RoleBindingFailed"
+
+	// CreateNamespacesFailed is the condition reason for the TeamRoleBinding when the namespaces could not be created
+	CreateNamespacesFailed ConditionReason = "CreateNamespacesFailed"
 )
