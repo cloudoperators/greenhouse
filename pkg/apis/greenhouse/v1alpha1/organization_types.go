@@ -74,7 +74,7 @@ type OIDCConfig struct {
 	ClientSecretReference SecretKeyReference `json:"clientSecretReference"`
 	// OAuth2ClientRedirectURIs are a registered set of redirect URIs. When redirecting from the idproxy to
 	// the client application, the URI requested to redirect to must be contained in this list.
-	OAuth2ClientRedirectURIs []string `json:"clientRedirectURIs,omitempty"`
+	OAuth2ClientRedirectURIs []string `json:"oauth2ClientRedirectURIs,omitempty"`
 }
 
 type SCIMConfig struct {
