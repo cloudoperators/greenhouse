@@ -38,6 +38,8 @@ postgresqlng:
 # Organization & IDProxy should be enabled only after the initial install of greenhouse
 organization:
   enabled: true
+  oauth2ClientRedirectURIs:
+    - "http://localhost:33768/auth/callback"
 idproxy:
   enabled: true
 
