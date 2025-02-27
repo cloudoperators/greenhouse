@@ -18,7 +18,7 @@ replace (
 )
 
 require (
-	github.com/cenkalti/backoff/v4 v4.3.0
+	github.com/cenkalti/backoff/v5 v5.0.2
 	github.com/dexidp/dex v0.0.0-20240807174518-43956db7fd75
 	github.com/go-jose/go-jose/v4 v4.0.5
 	github.com/jeremywohl/flatten/v2 v2.0.0-20211013061545-07e4a09fb8e4
