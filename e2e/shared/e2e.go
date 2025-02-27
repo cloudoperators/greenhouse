@@ -15,7 +15,7 @@ import (
 
 	"k8s.io/client-go/tools/clientcmd"
 
-	"github.com/cenkalti/backoff/v4"
+	"github.com/cenkalti/backoff/v5"
 	"k8s.io/apimachinery/pkg/types"
 
 	. "github.com/onsi/gomega"
