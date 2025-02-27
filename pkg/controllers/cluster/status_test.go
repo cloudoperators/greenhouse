@@ -128,17 +128,6 @@ var _ = Describe("Cluster status", Ordered, func() {
 	})
 
 	It("should reconcile the status of a cluster", func() {
-		By("checking cluster ready condition")
-		Eventually(func(g Gomega) bool {
-			g.Expect(test.K8sClient.Get(test.Ctx, types.NamespacedName{Name: validCluster.Name, Namespace: setup.Namespace()}, &validCluster)).ShouldNot(HaveOccurred(), "There should be no error getting the cluster resource")
-			g.Expect(validCluster.Status.StatusConditions).ToNot(BeNil())
-			readyCondition := validCluster.Status.GetConditionByType(greenhousev1alpha1.ReadyCondition)
-			g.Expect(readyCondition).ToNot(BeNil(), "The ClusterReady condition should be present")
-			g.Expect(readyCondition.Status).To(Equal(metav1.ConditionTrue))
-			g.Expect(validCluster.Status.KubernetesVersion).ToNot(BeNil())
-			return true
-		}).Should(BeTrue())
-
 		By("checking cluster node status")
 		Eventually(func(g Gomega) bool {
 			g.Expect(test.K8sClient.Get(test.Ctx, types.NamespacedName{Name: validCluster.Name, Namespace: setup.Namespace()}, &validCluster)).ShouldNot(HaveOccurred(), "There should be no error getting the cluster resource")
@@ -196,6 +185,17 @@ var _ = Describe("Cluster status", Ordered, func() {
 			g.Expect(validCluster.Status.Nodes).ToNot(BeEmpty())
 			g.Expect(validCluster.Status.Nodes["test-node"].Conditions).ToNot(BeEmpty())
 			g.Expect(validCluster.Status.Nodes["test-node"].Ready).To(BeTrue())
+			return true
+		}).Should(BeTrue())
+
+		By("checking cluster ready condition")
+		Eventually(func(g Gomega) bool {
+			g.Expect(test.K8sClient.Get(test.Ctx, types.NamespacedName{Name: validCluster.Name, Namespace: setup.Namespace()}, &validCluster)).ShouldNot(HaveOccurred(), "There should be no error getting the cluster resource")
+			g.Expect(validCluster.Status.StatusConditions).ToNot(BeNil())
+			readyCondition := validCluster.Status.GetConditionByType(greenhousev1alpha1.ReadyCondition)
+			g.Expect(readyCondition).ToNot(BeNil(), "The ClusterReady condition should be present")
+			g.Expect(readyCondition.Status).To(Equal(metav1.ConditionTrue))
+			g.Expect(validCluster.Status.KubernetesVersion).ToNot(BeNil())
 			return true
 		}).Should(BeTrue())
 
