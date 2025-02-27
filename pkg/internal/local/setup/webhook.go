@@ -333,6 +333,7 @@ func (m *Manifest) waitUntilDeploymentReady(ctx context.Context, clusterName, na
 	op := func() (op bool, err error) {
 		if retries >= maxRetries {
 			err = backoff.Permanent(fmt.Errorf("resource %s did not become ready after %d retries", name, maxRetries))
+			return
 		}
 		utils.Logf("waiting for deployment %s to be ready...", name)
 		deployment := &appsv1.Deployment{}
