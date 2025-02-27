@@ -12,11 +12,9 @@ import (
 	"path/filepath"
 	"runtime"
 	"strings"
-	"time"
-
-	"k8s.io/utils/ptr"
 
 	"github.com/cenkalti/backoff/v5"
+	"k8s.io/utils/ptr"
 
 	aregv1 "k8s.io/api/admissionregistration/v1"
 	appsv1 "k8s.io/api/apps/v1"
@@ -328,12 +326,7 @@ func (m *Manifest) waitUntilDeploymentReady(ctx context.Context, clusterName, na
 	if err != nil {
 		return err
 	}
-	b := &backoff.ExponentialBackOff{
-		InitialInterval:     500 * time.Millisecond, // Start with 500ms delay
-		RandomizationFactor: 0.5,                    // Randomize interval by ±50%
-		Multiplier:          2.0,                    // Double the interval each time
-		MaxInterval:         15 * time.Second,       // Cap at 15s between retries
-	}
+	b := utils.StandardBackoff()
 	b.Reset()
 	retries := 0
 	maxRetries := 10
