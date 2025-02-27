@@ -44,7 +44,8 @@ func (r *RemoteClusterReconciler) setConditions() lifecycle.Conditioner {
 			allNodesReadyCondition, clusterNodeStatus = r.reconcileNodeStatus(ctx, restClientGetter)
 		}
 
-		readyCondition := r.reconcileReadyStatus(ctx, kubeConfigValidCondition)
+		// set ready condition if kubeconfig is valid and all nodes are ready
+		readyCondition := r.reconcileReadyStatus(kubeConfigValidCondition, allNodesReadyCondition)
 
 		conditions = append(conditions, readyCondition, allNodesReadyCondition, kubeConfigValidCondition)
 
@@ -111,21 +112,17 @@ func (r *RemoteClusterReconciler) reconcileClusterSecret(
 	return
 }
 
-func (r *RemoteClusterReconciler) reconcileReadyStatus(ctx context.Context, condition greenhousev1alpha1.Condition) (readyCondition greenhousev1alpha1.Condition) {
+func (r *RemoteClusterReconciler) reconcileReadyStatus(conditions ...greenhousev1alpha1.Condition) (readyCondition greenhousev1alpha1.Condition) {
 	readyCondition = greenhousev1alpha1.UnknownCondition(greenhousev1alpha1.ReadyCondition, "", "")
-	if condition.IsFalse() {
-		readyCondition.Status = metav1.ConditionFalse
-		readyCondition.Message = "cannot access cluster"
-		if condition.Message != "" {
-			readyCondition.Message = condition.Message
+	for _, condition := range conditions {
+		if condition.IsFalse() {
+			readyCondition.Status = metav1.ConditionFalse
+			readyCondition.Message = "cannot access cluster"
+			if condition.Message != "" {
+				readyCondition.Message = condition.Message
+			}
+			return
 		}
-		return
-	}
-	nss := &corev1.NamespaceList{}
-	if err := r.List(ctx, nss); err != nil {
-		readyCondition.Status = metav1.ConditionFalse
-		readyCondition.Message = err.Error()
-		return
 	}
 	readyCondition.Status = metav1.ConditionTrue
 	return
