@@ -114,9 +114,7 @@ func InstallOrUpgradeHelmChartFromPlugin(ctx context.Context, local client.Clien
 }
 
 // ChartTest executes Helm chart tests and logs test pod logs if a test fails.
-func ChartTest(ctx context.Context, restClientGetter genericclioptions.RESTClientGetter, plugin *greenhousev1alpha1.Plugin) (bool, string, error) {
-	var hasTestHook bool
-
+func ChartTest(ctx context.Context, restClientGetter genericclioptions.RESTClientGetter, plugin *greenhousev1alpha1.Plugin) (hasTestHook bool, testPodLogs string, err error) {
 	cfg, err := newHelmAction(restClientGetter, plugin.Spec.ReleaseNamespace)
 	if err != nil {
 		return hasTestHook, "", err
@@ -127,7 +125,6 @@ func ChartTest(ctx context.Context, restClientGetter genericclioptions.RESTClien
 	testAction.Namespace = plugin.Spec.ReleaseNamespace
 	results, err := testAction.Run(plugin.Name)
 	if err != nil {
-		var testPodLogs string
 		release, getErr := getLatestRelease(cfg, plugin.Name)
 		if getErr != nil {
 			log.FromContext(ctx).Error(getErr, "Failed to get latest release", "plugin", plugin.Name)
