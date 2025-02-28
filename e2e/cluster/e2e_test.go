@@ -7,6 +7,7 @@ package cluster
 
 import (
 	"context"
+	"encoding/base64"
 	"slices"
 	"testing"
 	"time"
@@ -15,6 +16,7 @@ import (
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
@@ -26,7 +28,11 @@ import (
 )
 
 const (
-	remoteClusterName = "remote-int-cluster"
+	remoteClusterHName               = "remote-int-h-cluster"
+	remoteClusterFName               = "remote-int-f-cluster"
+	remoteOIDCClusterHName           = "remote-int-oidc-h-cluster"
+	remoteOIDCClusterFName           = "remote-int-oidc-f-cluster"
+	remoteOIDCClusterRoleBindingName = "greenhouse-odic-cluster-role-binding"
 )
 
 var (
@@ -58,42 +64,40 @@ var _ = BeforeSuite(func() {
 })
 
 var _ = AfterSuite(func() {
-	shared.OffBoardRemoteCluster(ctx, adminClient, remoteClient, testStartTime, remoteClusterName, env.TestNamespace)
+	shared.OffBoardRemoteCluster(ctx, adminClient, remoteClient, testStartTime, remoteClusterHName, env.TestNamespace)
+	shared.OffBoardRemoteCluster(ctx, adminClient, remoteClient, testStartTime, remoteClusterFName, env.TestNamespace)
+	shared.OffBoardRemoteCluster(ctx, adminClient, remoteClient, testStartTime, remoteOIDCClusterHName, env.TestNamespace)
+	shared.OffBoardRemoteCluster(ctx, adminClient, remoteClient, testStartTime, remoteOIDCClusterFName, env.TestNamespace)
 	env.GenerateControllerLogs(ctx, testStartTime)
 })
 
 var _ = Describe("Cluster E2E", Ordered, func() {
+	// the context executes the tests for Cluster where a secret of type kubeconfig is provided
+	// scenario: Happy Path
 	Context("Cluster Happy Path 🤖", Ordered, func() {
 		It("should onboard remote cluster", func() {
 			By("onboarding remote cluster")
-			shared.OnboardRemoteCluster(ctx, adminClient, env.RemoteKubeConfigBytes, remoteClusterName, env.TestNamespace)
+			shared.OnboardRemoteCluster(ctx, adminClient, env.RemoteKubeConfigBytes, remoteClusterHName, env.TestNamespace)
 		})
 		It("should have a cluster resource created", func() {
 			By("verifying if the cluster resource is created")
 			Eventually(func(g Gomega) bool {
-				err := adminClient.Get(ctx, client.ObjectKey{Name: remoteClusterName, Namespace: env.TestNamespace}, &greenhousev1alpha1.Cluster{})
+				err := adminClient.Get(ctx, client.ObjectKey{Name: remoteClusterHName, Namespace: env.TestNamespace}, &greenhousev1alpha1.Cluster{})
 				g.Expect(err).ToNot(HaveOccurred())
 				return true
 			}).Should(BeTrue(), "cluster resource should be created")
 
 			By("verifying the cluster status is ready")
-			shared.ClusterIsReady(ctx, adminClient, remoteClusterName, env.TestNamespace)
+			shared.ClusterIsReady(ctx, adminClient, remoteClusterHName, env.TestNamespace)
 		})
 
 		It("should verify remote cluster objects", func() {
 			By("verifying the remote cluster version")
-			cluster := &greenhousev1alpha1.Cluster{}
-			err := adminClient.Get(ctx, client.ObjectKey{Name: remoteClusterName, Namespace: env.TestNamespace}, cluster)
-			statusKubeVersion := cluster.Status.KubernetesVersion
-			dc, err := remoteRestClient.ToDiscoveryClient()
-			Expect(err).NotTo(HaveOccurred(), "there should be no error creating the discovery client")
-			expectedKubeVersion, err := dc.ServerVersion()
-			Expect(err).NotTo(HaveOccurred(), "there should be no error getting the server version")
-			Expect(statusKubeVersion).To(Equal(expectedKubeVersion.String()))
+			expect.VerifyClusterVersion(ctx, adminClient, remoteRestClient, remoteClusterHName, env.TestNamespace)
 
 			By("verifying if the managed namespace exists in the remote cluster")
 			ns := &corev1.Namespace{}
-			err = remoteClient.Get(ctx, client.ObjectKey{Name: env.TestNamespace}, ns)
+			err := remoteClient.Get(ctx, client.ObjectKey{Name: env.TestNamespace}, ns)
 			Expect(err).NotTo(HaveOccurred(), "there should be no error getting the managed namespace")
 			Expect(ns.Status.Phase).To(Equal(corev1.NamespaceActive), "managed namespace must be active")
 
@@ -120,38 +124,112 @@ var _ = Describe("Cluster E2E", Ordered, func() {
 
 		It("should successfully schedule the cluster for deletion", func() {
 			By("verifying for the cluster deletion schedule annotation")
-			expect.ClusterDeletionIsScheduled(ctx, adminClient, remoteClusterName, env.TestNamespace)
-		})
-
-		It("should successfully off-board remote cluster", func() {
-			shared.OffBoardRemoteCluster(ctx, adminClient, remoteClient, testStartTime, remoteClusterName, env.TestNamespace)
+			expect.ClusterDeletionIsScheduled(ctx, adminClient, remoteClusterHName, env.TestNamespace)
 		})
 	})
 
+	// the context executes the tests for Cluster where a secret of type kubeconfig is provided
+	// scenario: Fail Path
 	Context("Cluster Fail Path 😵", Ordered, func() {
 		It("should onboard remote cluster", func() {
 			By("onboarding remote cluster")
-			shared.OnboardRemoteCluster(ctx, adminClient, env.RemoteKubeConfigBytes, remoteClusterName, env.TestNamespace)
+			shared.OnboardRemoteCluster(ctx, adminClient, env.RemoteKubeConfigBytes, remoteClusterFName, env.TestNamespace)
 		})
 		It("should have a cluster resource created", func() {
 			By("verifying if the cluster resource is created")
 			Eventually(func(g Gomega) bool {
-				err := adminClient.Get(ctx, client.ObjectKey{Name: remoteClusterName, Namespace: env.TestNamespace}, &greenhousev1alpha1.Cluster{})
+				err := adminClient.Get(ctx, client.ObjectKey{Name: remoteClusterFName, Namespace: env.TestNamespace}, &greenhousev1alpha1.Cluster{})
 				g.Expect(err).ToNot(HaveOccurred())
 				return true
 			}).Should(BeTrue(), "cluster resource should be created")
 
 			By("verifying the cluster status is ready")
-			shared.ClusterIsReady(ctx, adminClient, remoteClusterName, env.TestNamespace)
+			shared.ClusterIsReady(ctx, adminClient, remoteClusterFName, env.TestNamespace)
 		})
 
 		It("should reach not ready state when kubeconfig has expired", func() {
 			By("simulating a revoking of greenhouse service account token")
-			expect.RevokingRemoteServiceAccount(ctx, adminClient, remoteClient, shared.ManagedResourceName, remoteClusterName, env.TestNamespace)
+			expect.RevokingRemoteClusterAccess(ctx, adminClient, remoteClient, shared.ManagedResourceName, remoteClusterFName, env.TestNamespace)
+		})
+	})
+
+	// the context executes the tests for Cluster where a secret of type oidc is provided
+	// scenario: Happy Path
+	Context("Cluster OIDC Happy Path 🤖", Ordered, func() {
+		It("should setup role binding for OIDC on remote cluster", func() {
+			By("setting up cluster role binding for OIDC on remote cluster")
+			expect.SetupOIDCClusterRoleBinding(ctx, remoteClient, remoteOIDCClusterRoleBindingName, remoteOIDCClusterHName, env.TestNamespace)
+		})
+		It("should onboard remote cluster with OIDC", func() {
+			By("onboarding remote cluster with OIDC")
+			restClient := clientutil.NewRestClientGetterFromBytes(env.RemoteKubeConfigBytes, env.TestNamespace)
+			restConfig, err := restClient.ToRESTConfig()
+			Expect(err).NotTo(HaveOccurred(), "there should be no error creating the remote REST config")
+			remoteAPIServerURL := restConfig.Host
+			remoteCA := make([]byte, base64.StdEncoding.EncodedLen(len(restConfig.CAData)))
+			base64.StdEncoding.Encode(remoteCA, restConfig.CAData)
+			shared.OnboardRemoteOIDCCluster(ctx, adminClient, remoteCA, remoteAPIServerURL, remoteOIDCClusterHName, env.TestNamespace)
+
+			By("verifying the cluster status is ready")
+			shared.ClusterIsReady(ctx, adminClient, remoteOIDCClusterHName, env.TestNamespace)
+
+			By("verifying the remote cluster version")
+			expect.VerifyClusterVersion(ctx, adminClient, remoteRestClient, remoteOIDCClusterHName, env.TestNamespace)
+
+			By("verifying the oidc cluster service account is created")
+			sa := &corev1.ServiceAccount{}
+			err = adminClient.Get(ctx, client.ObjectKey{Name: remoteOIDCClusterHName, Namespace: env.TestNamespace}, sa)
+			Expect(err).NotTo(HaveOccurred(), "there should be no error getting the service account")
+
+			By("verifying the oidc cluster service account has the correct owner reference")
+			ownerRef := clientutil.GetOwnerReference(sa, "Secret")
+			Expect(ownerRef).NotTo(BeNil(), "service account should have an owner reference")
+			Expect(ownerRef.Name).To(Equal(remoteOIDCClusterHName), "service account should have the correct owner reference")
+		})
+
+		It("should successfully off-board remote oidc cluster", func() {
+			shared.OffBoardRemoteCluster(ctx, adminClient, remoteClient, testStartTime, remoteOIDCClusterHName, env.TestNamespace)
+			sa := &corev1.ServiceAccount{}
+			err := adminClient.Get(ctx, client.ObjectKey{Name: remoteOIDCClusterHName, Namespace: env.TestNamespace}, sa)
+			Expect(apierrors.IsNotFound(err)).To(BeTrue(), "the service account should not exist")
+		})
+	})
+
+	// the context executes the tests for Cluster where a secret of type oidc is provided
+	// scenario: Fail Path
+	Context("Cluster OIDC Fail Path 😵", Ordered, func() {
+		It("should setup role binding for OIDC on remote cluster", func() {
+			By("setting up cluster role binding for OIDC on remote cluster")
+			expect.SetupOIDCClusterRoleBinding(ctx, remoteClient, remoteOIDCClusterRoleBindingName, remoteOIDCClusterFName, env.TestNamespace)
+		})
+
+		It("should onboard remote cluster with OIDC", func() {
+			By("onboarding remote cluster with OIDC")
+			restClient := clientutil.NewRestClientGetterFromBytes(env.RemoteKubeConfigBytes, env.TestNamespace)
+			restConfig, err := restClient.ToRESTConfig()
+			Expect(err).NotTo(HaveOccurred(), "there should be no error creating the remote REST config")
+			remoteAPIServerURL := restConfig.Host
+			remoteCA := make([]byte, base64.StdEncoding.EncodedLen(len(restConfig.CAData)))
+			base64.StdEncoding.Encode(remoteCA, restConfig.CAData)
+			shared.OnboardRemoteOIDCCluster(ctx, adminClient, remoteCA, remoteAPIServerURL, remoteOIDCClusterFName, env.TestNamespace)
+
+			By("verifying the cluster status is ready")
+			shared.ClusterIsReady(ctx, adminClient, remoteOIDCClusterFName, env.TestNamespace)
+		})
+
+		It("should reach not ready state when remote OIDC cluster role binding does not exist", func() {
+			By("removing the OIDC cluster role binding")
+			expect.RevokingOIDCClusterAccess(ctx, adminClient, remoteClient, remoteOIDCClusterRoleBindingName, remoteOIDCClusterFName, env.TestNamespace)
+
+			By("verifying the allNodesReady condition is false")
+			expect.VerifyFalseAllNodesReady(ctx, adminClient, remoteOIDCClusterFName, env.TestNamespace)
 		})
 
 		It("should restore the cluster to ready state", func() {
-			expect.RestoreCluster(ctx, adminClient, remoteClusterName, env.TestNamespace, env.RemoteKubeConfigBytes)
+			By("restoring the OIDC cluster role binding")
+			expect.SetupOIDCClusterRoleBinding(ctx, remoteClient, remoteOIDCClusterRoleBindingName, remoteOIDCClusterFName, env.TestNamespace)
+			By("re-triggering the OIDC cluster reconciliation")
+			expect.ReconcileReadyNotReady(ctx, adminClient, remoteOIDCClusterFName, env.TestNamespace, true)
 		})
 	})
 })
