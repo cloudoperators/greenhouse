@@ -916,6 +916,7 @@ map[string]./pkg/apis/greenhouse/v1alpha1.NodeStatus
 </h3>
 <p>
 (<em>Appears on:</em>
+<a href="#greenhouse.sap/v1alpha1.ManagedPluginStatus">ManagedPluginStatus</a>, 
 <a href="#greenhouse.sap/v1alpha1.PropagationStatus">PropagationStatus</a>, 
 <a href="#greenhouse.sap/v1alpha1.StatusConditions">StatusConditions</a>)
 </p>
@@ -1140,6 +1141,49 @@ string
 </td>
 <td>
 <p>Diff contains the difference between the deployed helm chart and the helm chart in the last reconciliation</p>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<h3 id="greenhouse.sap/v1alpha1.ManagedPluginStatus">ManagedPluginStatus
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#greenhouse.sap/v1alpha1.PluginPresetStatus">PluginPresetStatus</a>)
+</p>
+<p>ManagedPluginStatus defines the Ready condition of a managed Plugin identified by its name.</p>
+<div class="md-typeset__scrollwrap">
+<div class="md-typeset__table">
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>pluginName</code><br>
+<em>
+string
+</em>
+</td>
+<td>
+</td>
+</tr>
+<tr>
+<td>
+<code>readyCondition</code><br>
+<em>
+<a href="#greenhouse.sap/v1alpha1.Condition">
+Condition
+</a>
+</em>
+</td>
+<td>
 </td>
 </tr>
 </tbody>
@@ -2266,6 +2310,52 @@ StatusConditions
 </td>
 <td>
 <p>StatusConditions contain the different conditions that constitute the status of the PluginPreset.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>pluginStatuses</code><br>
+<em>
+<a href="#greenhouse.sap/v1alpha1.ManagedPluginStatus">
+[]ManagedPluginStatus
+</a>
+</em>
+</td>
+<td>
+<p>PluginStatuses contains statuses of Plugins managed by the PluginPreset.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>availablePlugins</code><br>
+<em>
+int
+</em>
+</td>
+<td>
+<p>AvailablePlugins is the number of available Plugins managed by the PluginPreset.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>readyPlugins</code><br>
+<em>
+int
+</em>
+</td>
+<td>
+<p>ReadyPlugins is the number of ready Plugins managed by the PluginPreset.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>failedPlugins</code><br>
+<em>
+int
+</em>
+</td>
+<td>
+<p>FailedPlugins is the number of failed Plugins managed by the PluginPreset.</p>
 </td>
 </tr>
 </tbody>
