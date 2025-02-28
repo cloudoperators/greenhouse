@@ -12,11 +12,9 @@ import (
 	"path/filepath"
 	"runtime"
 	"strings"
-	"time"
 
+	"github.com/cenkalti/backoff/v5"
 	"k8s.io/utils/ptr"
-
-	"github.com/cenkalti/backoff/v4"
 
 	aregv1 "k8s.io/api/admissionregistration/v1"
 	appsv1 "k8s.io/api/apps/v1"
@@ -328,19 +326,29 @@ func (m *Manifest) waitUntilDeploymentReady(ctx context.Context, clusterName, na
 	if err != nil {
 		return err
 	}
-	b := backoff.NewExponentialBackOff(backoff.WithInitialInterval(5*time.Second), backoff.WithMaxElapsedTime(2*time.Minute))
-	return backoff.Retry(func() error {
+	b := utils.StandardBackoff()
+	b.Reset()
+	retries := 0
+	maxRetries := 10
+	op := func() (op bool, err error) {
+		if retries >= maxRetries {
+			err = backoff.Permanent(fmt.Errorf("resource %s did not become ready after %d retries", name, maxRetries))
+			return
+		}
 		utils.Logf("waiting for deployment %s to be ready...", name)
 		deployment := &appsv1.Deployment{}
-		err := cl.Get(ctx, types.NamespacedName{
+		err = cl.Get(ctx, types.NamespacedName{
 			Namespace: namespace,
 			Name:      name,
 		}, deployment)
 		if err != nil {
-			return err
+			retries++
+			return
 		}
 		if deployment.Status.Conditions == nil {
-			return errors.New("deployment is not yet ready")
+			retries++
+			err = errors.New("deployment is not yet ready")
+			return
 		}
 		available := false
 		for _, condition := range deployment.Status.Conditions {
@@ -350,10 +358,15 @@ func (m *Manifest) waitUntilDeploymentReady(ctx context.Context, clusterName, na
 			}
 		}
 		if !available {
-			return errors.New("deployment is not yet ready")
+			retries++
+			err = errors.New("deployment is not yet ready")
+			return
 		}
-		return nil
-	}, b)
+		op = true
+		return
+	}
+	_, err = backoff.Retry(ctx, op, backoff.WithBackOff(b))
+	return err
 }
 
 func getKubeClient(clusterName string) (client.Client, error) {

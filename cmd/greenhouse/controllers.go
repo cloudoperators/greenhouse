@@ -4,17 +4,19 @@
 package main
 
 import (
-	"os"
+	"context"
 	"sort"
 
+	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 
+	"github.com/cloudoperators/greenhouse/pkg/clientutil"
 	clustercontrollers "github.com/cloudoperators/greenhouse/pkg/controllers/cluster"
 	organizationcontrollers "github.com/cloudoperators/greenhouse/pkg/controllers/organization"
 	plugincontrollers "github.com/cloudoperators/greenhouse/pkg/controllers/plugin"
-	teamcontrollers "github.com/cloudoperators/greenhouse/pkg/controllers/team"
 	teammembershipcontrollers "github.com/cloudoperators/greenhouse/pkg/controllers/teammembership"
 	teamrbaccontrollers "github.com/cloudoperators/greenhouse/pkg/controllers/teamrbac"
+	dexstore "github.com/cloudoperators/greenhouse/pkg/dex"
 )
 
 // knownControllers contains all controllers to be registered when starting the operator.
@@ -22,12 +24,8 @@ var knownControllers = map[string]func(controllerName string, mgr ctrl.Manager) 
 	// Organization controllers.
 	"organizationController": startOrganizationReconciler,
 
-	// Team controllers.
-	"teamPropagation": (&teamcontrollers.TeamPropagationReconciler{}).SetupWithManager,
-
 	// TeamMembership controllers.
-	"teamMembershipUpdater":     (&teammembershipcontrollers.TeamMembershipUpdaterController{}).SetupWithManager,
-	"teamMembershipPropagation": (&teammembershipcontrollers.TeamMembershipPropagationReconciler{}).SetupWithManager,
+	"teamMembershipUpdater": (&teammembershipcontrollers.TeamMembershipUpdaterController{}).SetupWithManager,
 
 	// Team RBAC controllers.
 	"teamRoleBindingController": (&teamrbaccontrollers.TeamRoleBindingReconciler{}).SetupWithManager,
@@ -64,13 +62,18 @@ func isControllerEnabled(controllerName string) bool {
 	return false
 }
 
+// startOrganizationReconciler - initializes the organization reconciler
+// resolves dex storage backend from greenhouse-feature-flags
+// initializes the dex storage adapter interface in the organization reconciler
 func startOrganizationReconciler(name string, mgr ctrl.Manager) error {
-	namespace := "greenhouse"
-	if v, ok := os.LookupEnv("POD_NAMESPACE"); ok {
-		namespace = v
+	namespace := clientutil.GetEnvOrDefault(podNamespaceEnv, defaultPodNamespace)
+	backend := ptr.To(dexstore.K8s)
+	if featureFlags != nil {
+		backend = featureFlags.GetDexStorageType(context.Background())
 	}
 	return (&organizationcontrollers.OrganizationReconciler{
-		Namespace: namespace,
+		Namespace:      namespace,
+		DexStorageType: *backend,
 	}).SetupWithManager(name, mgr)
 }
 

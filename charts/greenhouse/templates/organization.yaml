@@ -22,8 +22,12 @@ spec:
       clientSecretReference:
         name: {{ .Chart.Name }}-oidc
         key: clientSecret
-{{ end }}
-{{ if .Values.scim.enabled }}
+    {{- if .Values.organization.oauth2ClientRedirectURIs }}
+      oauth2ClientRedirectURIs:
+        {{- .Values.organization.oauth2ClientRedirectURIs | toYaml | nindent 10 }}
+    {{- end -}}
+{{- end }}
+{{- if .Values.scim.enabled }}
     scim:
       baseURL: {{ required ".Values.scim.baseURL" .Values.scim.baseURL }}
       basicAuthUser:
