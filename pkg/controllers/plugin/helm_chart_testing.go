@@ -104,18 +104,21 @@ func extractErrorsFromTestPodLogs(testPodLogs string) string {
 		line := scanner.Text()
 		fmt.Println(line)
 
-		if strings.HasPrefix(line, "not ok") {
+		switch {
+		case strings.HasPrefix(line, "not ok"):
 			if errorBlock.Len() > 0 {
 				errors = append(errors, errorBlock.String())
 				errorBlock.Reset()
 			}
 			errorBlock.WriteString(line + "\n")
-		} else if strings.HasPrefix(line, "ok") {
+		case strings.HasPrefix(line, "ok"):
 			// Ignore lines starting with "ok"
 			continue
-		} else if errorBlock.Len() > 0 {
-			// Append additional lines related to the failure
-			errorBlock.WriteString(line + "\n")
+		default:
+			if errorBlock.Len() > 0 {
+				// Append additional lines related to the failure
+				errorBlock.WriteString(line + "\n")
+			}
 		}
 	}
 
@@ -124,6 +127,6 @@ func extractErrorsFromTestPodLogs(testPodLogs string) string {
 	}
 
 	// Join the error messages with an empty line separator
-	return strings.Join(errors, "\n\n")
-
+	errorsStr := strings.Join(errors, "\n")
+	return errorsStr
 }
