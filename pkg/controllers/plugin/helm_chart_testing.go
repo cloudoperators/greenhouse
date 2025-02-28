@@ -4,6 +4,7 @@
 package plugin
 
 import (
+	"bufio"
 	"context"
 	"fmt"
 	"reflect"
@@ -58,22 +59,21 @@ func (r *PluginReconciler) reconcileHelmChartTest(ctx context.Context, plugin *g
 		return &reconcileResult{requeueAfter: result.requeueAfter}, nil
 	}
 
-	hasHelmChartTest, err := helm.ChartTest(ctx, restClientGetter, plugin)
 	prometheusLabels := prometheus.Labels{
 		"cluster":   plugin.Spec.ClusterName,
 		"plugin":    plugin.Name,
 		"namespace": plugin.Namespace,
 	}
+	hasHelmChartTest, testPodLogs, err := helm.ChartTest(ctx, restClientGetter, plugin)
 	if err != nil {
-		errStr := fmt.Sprintf("Helm Chart testing failed: %s. To debug, please run `helm test %s`command in your remote cluster %s.", err.Error(), plugin.Name, plugin.Spec.ClusterName)
-		errStr = strings.ReplaceAll(errStr, "\n", "")
-		errStr = strings.ReplaceAll(errStr, "\t", " ")
-		errStr = strings.ReplaceAll(errStr, "*", "")
-		plugin.SetCondition(greenhousev1alpha1.FalseCondition(greenhousev1alpha1.HelmChartTestSucceededCondition, "", errStr))
-
+		failedTestPodLogs := extractErrorsFromTestPodLogs(testPodLogs)
+		if failedTestPodLogs != "" {
+			plugin.SetCondition(greenhousev1alpha1.FalseCondition(greenhousev1alpha1.HelmChartTestSucceededCondition, "", failedTestPodLogs))
+		} else {
+			plugin.SetCondition(greenhousev1alpha1.FalseCondition(greenhousev1alpha1.HelmChartTestSucceededCondition, "", err.Error()))
+		}
 		prometheusLabels["result"] = "Error"
 		chartTestRunsTotal.With(prometheusLabels).Inc()
-
 		return nil, err
 	}
 
@@ -92,4 +92,38 @@ func (r *PluginReconciler) reconcileHelmChartTest(ctx context.Context, plugin *g
 	}
 
 	return nil, nil
+}
+
+func extractErrorsFromTestPodLogs(testPodLogs string) string {
+	var errors []string
+	var errorBlock strings.Builder
+
+	scanner := bufio.NewScanner(strings.NewReader(testPodLogs))
+
+	for scanner.Scan() {
+		line := scanner.Text()
+		fmt.Println(line)
+
+		if strings.HasPrefix(line, "not ok") {
+			if errorBlock.Len() > 0 {
+				errors = append(errors, errorBlock.String())
+				errorBlock.Reset()
+			}
+			errorBlock.WriteString(line + "\n")
+		} else if strings.HasPrefix(line, "ok") {
+			// Ignore lines starting with "ok"
+			continue
+		} else if errorBlock.Len() > 0 {
+			// Append additional lines related to the failure
+			errorBlock.WriteString(line + "\n")
+		}
+	}
+
+	if errorBlock.Len() > 0 {
+		errors = append(errors, errorBlock.String())
+	}
+
+	// Join the error messages with an empty line separator
+	return strings.Join(errors, "\n\n")
+
 }
