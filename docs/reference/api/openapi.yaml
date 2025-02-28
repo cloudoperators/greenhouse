@@ -1056,6 +1056,10 @@ components:
                   type: object
               type: object
               x-kubernetes-map-type: atomic
+            createNamespaces:
+              default: false
+              description: CreateNamespaces when enabled the controller will create namespaces for RoleBindings if they do not exist.
+              type: boolean
             namespaces:
               description: Namespaces is a list of namespaces in the Greenhouse Clusters to apply the RoleBinding to.\nIf empty, a ClusterRoleBinding will be created on the remote cluster, otherwise a RoleBinding per namespace.
               items:
@@ -1067,6 +1071,11 @@ components:
             teamRoleRef:
               description: TeamRoleRef references a Greenhouse TeamRole by name
               type: string
+            usernames:
+              description: Usernames defines list of users to add to the (Cluster-)RoleBindings
+              items:
+                type: string
+              type: array
           type: object
         status:
           description: TeamRoleBindingStatus defines the observed state of the TeamRoleBinding
