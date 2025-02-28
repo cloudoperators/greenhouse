@@ -1,6 +1,6 @@
 ## Running Greenhouse Operator Locally
 
-An extensive guide is available in the [localenv](../../dev-env/localenv/README.md) documentation.
+An extensive guide is available in the [localenv](../../dev-env/README.md) documentation.
 
 This is a quick note on running the operator with Dex storage backend configuration
 
