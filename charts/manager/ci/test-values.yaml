@@ -3,3 +3,9 @@
 
 global:
   dnsDomain: green.house
+  dex:
+    backend: postgres
+    postgresql:
+      postgresqlDatabase: dex
+      postgresqlPort: 5432
+      postgresqlUsername: dex

@@ -15,7 +15,7 @@ import (
 
 	"k8s.io/client-go/tools/clientcmd"
 
-	"github.com/cenkalti/backoff/v4"
+	"github.com/cenkalti/backoff/v5"
 	"k8s.io/apimachinery/pkg/types"
 
 	. "github.com/onsi/gomega"
@@ -43,9 +43,10 @@ const (
 	managerDeploymentNamespace = "greenhouse"
 	remoteExecutionEnv         = "EXECUTION_ENV"
 	realCluster                = "GARDENER"
-)
 
-var defaultElapsedTime = 180 * time.Second
+	// Define retry timeout for when backoff should stop
+	maxRetries = 10
+)
 
 type WaitApplyFunc func(resource lifecycle.RuntimeObject) error
 
@@ -177,52 +178,101 @@ func addTypeInformationToObject(obj runtime.Object) error {
 	return nil
 }
 
+func getStandardBackoff() *backoff.ExponentialBackOff {
+	// Create an exponential backoff instance
+	b := &backoff.ExponentialBackOff{
+		InitialInterval:     500 * time.Millisecond, // Start with 500ms delay
+		RandomizationFactor: 0.5,                    // Randomize interval by ±50%
+		Multiplier:          2.0,                    // Double the interval each time
+		MaxInterval:         15 * time.Second,       // Cap at 15s between retries
+	}
+	return b
+}
+
 func WaitUntilResourceReadyOrNotReady(ctx context.Context, apiClient client.Client, resource lifecycle.RuntimeObject, name, namespace string, applyFunc WaitApplyFunc, readyStatus bool) error {
-	b := backoff.NewExponentialBackOff(backoff.WithInitialInterval(5*time.Second), backoff.WithMaxElapsedTime(defaultElapsedTime))
-	return backoff.Retry(func() error {
-		Logf("waiting for resource %s to be ready... \n", name)
-		err := apiClient.Get(ctx, client.ObjectKey{Name: name, Namespace: namespace}, resource)
-		if err != nil {
-			return err
+	// Create an exponential backoff instance
+	b := getStandardBackoff()
+	b.Reset() // Ensure backoff starts fresh
+	// Track retry count
+	retries := 0
+
+	// Define the operation function
+	operation := func() (op bool, err error) {
+		if retries >= maxRetries {
+			err = backoff.Permanent(fmt.Errorf("resource %s did not become ready after %d retries", name, maxRetries))
+			return
 		}
+
+		Logf("waiting for resource %s to be ready... (attempt %d)\n", name, retries+1)
+
+		err = apiClient.Get(ctx, client.ObjectKey{Name: name, Namespace: namespace}, resource)
+		if err != nil {
+			retries++
+			return
+		}
+
 		if applyFunc != nil {
 			err = applyFunc(resource)
 			if err != nil {
-				return err
+				retries++
+				return
 			}
 		}
+
 		conditions := resource.GetConditions()
 		readyCondition := conditions.GetConditionByType(greenhousev1alpha1.ReadyCondition)
 		if readyCondition == nil {
-			return fmt.Errorf("resource %s does not have ready condition yet", resource.GetName())
+			retries++
+			err = fmt.Errorf("resource %s does not have ready condition yet", resource.GetName())
+			return
 		}
+
 		expected := readyCondition.IsTrue() == readyStatus
 		Logf("readyCondition: %v, expectedStatus: %v, calculated: %v\n", readyCondition.IsTrue(), readyStatus, expected)
+
 		if !expected {
-			return fmt.Errorf("resource %s is not yet in expected state", resource.GetName())
+			retries++
+			err = fmt.Errorf("resource %s is not yet in expected state", resource.GetName())
 		}
-		return nil
-	}, b)
+		op = true // success
+		return
+	}
+
+	// Run the operation with backoff retry
+	_, err := backoff.Retry(ctx, operation, backoff.WithBackOff(b))
+	return err
 }
 
 // WaitUntilNamespaceCreated waits until the namespace is created and active
 // TODO: Remove this once organization controller is standardized
 func WaitUntilNamespaceCreated(ctx context.Context, k8sClient client.Client, name string) error {
-	b := backoff.NewExponentialBackOff(backoff.WithInitialInterval(5*time.Second), backoff.WithMaxElapsedTime(30*time.Second))
-	return backoff.Retry(func() error {
+	b := getStandardBackoff()
+	b.Reset() // Ensure backoff starts fresh
+	retries := 0
+	op := func() (op bool, err error) {
+		if retries >= maxRetries {
+			err = backoff.Permanent(fmt.Errorf("namespace %s did not become ready after %d retries", name, maxRetries))
+			return
+		}
 		Logf("waiting for namespace %s to be created...", name)
 		ns := &corev1.Namespace{}
-		err := k8sClient.Get(ctx, types.NamespacedName{
+		err = k8sClient.Get(ctx, types.NamespacedName{
 			Name: name,
 		}, ns)
 		if err != nil {
-			return err
+			retries++
+			return
 		}
 		if ns.Status.Phase != corev1.NamespaceActive {
-			return errors.New("namespace is not yet ready")
+			retries++
+			err = errors.New("namespace is not yet ready")
+			return
 		}
-		return nil
-	}, b)
+		op = true
+		return
+	}
+	_, err := backoff.Retry(ctx, op, backoff.WithBackOff(b))
+	return err
 }
 
 func (env *TestEnv) GenerateControllerLogs(ctx context.Context, startTime time.Time) {
