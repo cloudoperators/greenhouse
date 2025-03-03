@@ -16,6 +16,6 @@ dependencies:
   version: 0.1.2
 - name: postgresql-ng
   repository: oci://ghcr.io/sapcc/helm-charts
-  version: 1.2.7
-digest: sha256:91b88434178a15643d7845eb09bfdc64d97a466a1dfd5d003d0b10bc6eedc157
-generated: "2025-02-25T18:42:15.408992+01:00"
+  version: 1.3.0
+digest: sha256:c8472d5a0d8ee0fa0f5e67add73e7728ced915e7bdaed1ec1352a2f415f83ed6
+generated: "2025-03-03T11:20:20.73825458Z"
