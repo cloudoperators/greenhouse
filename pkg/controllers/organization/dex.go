@@ -243,7 +243,7 @@ func getRedirects(orgName string, redirectURIs []string) []string {
 }
 
 func getRedirectForOrg(orgName string) string {
-	return fmt.Sprintf("https://%s.%s", orgName, common.DNSDomain)
+	return fmt.Sprintf("https://%s.dashboard.%s", orgName, common.DNSDomain)
 }
 
 // appendRedirects - appends newRedirects to the redirects slice if it does not exist
