@@ -320,7 +320,7 @@ var _ = Describe("Test Organization reconciliation", Ordered, func() {
 			createSecretForOIDCConfig(oidcOrgName)
 
 			By("updating the organization with OIDC config")
-			updateOrgWithOIDC(greenhouseOrgName)
+			updateOrgWithOIDC(greenhouseOrgName, "https://foo.bar/app")
 			updateOrgWithOIDC(oidcOrgName, "https://example.com/app", "http://localhost:33768/auth/callback")
 
 			By("checking Organization status")
@@ -355,7 +355,7 @@ var _ = Describe("Test Organization reconciliation", Ordered, func() {
 						Expect(orgClient.RedirectURIs).To(ContainElements("https://example.com/app", "http://localhost:33768/auth/callback"), "the oauth client redirect URIs should be equal to organization redirect URIs")
 					case greenhouseOrgName:
 						Expect(orgClient.ID).To(Equal(greenhouseOrgName), "the oauth client ID should be equal to organization name")
-						Expect(orgClient.RedirectURIs).To(HaveLen(4), "the oauth client redirect URIs should have 4 elements (default 3 + 1 org)")
+						Expect(orgClient.RedirectURIs).To(HaveLen(5), "the oauth client redirect URIs should have 4 elements (default 3 + 1 org + 1 additional)")
 					default:
 						Fail("unexpected oauth client ID")
 					}
