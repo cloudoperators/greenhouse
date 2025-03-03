@@ -320,8 +320,8 @@ var _ = Describe("Test Organization reconciliation", Ordered, func() {
 			createSecretForOIDCConfig(oidcOrgName)
 
 			By("updating the organization with OIDC config")
-			updateOrgWithOIDC(greenhouseOrgName, "https://foo.bar/app")
 			updateOrgWithOIDC(oidcOrgName, "https://example.com/app", "http://localhost:33768/auth/callback")
+			updateOrgWithOIDC(greenhouseOrgName, "https://foo.bar/app")
 
 			By("checking Organization status")
 			checkOrganizationReadyStatus(greenhouseOrgName)
