@@ -121,6 +121,7 @@ func ChartTest(ctx context.Context, restClientGetter genericclioptions.RESTClien
 	}
 
 	testAction := action.NewReleaseTesting(cfg)
+	testAction.Timeout = GetHelmTimeout() // set a timeout for the release testing to avoid waiting forever
 	// Used for fetching logs from test pods
 	testAction.Namespace = plugin.Spec.ReleaseNamespace
 	results, err := testAction.Run(plugin.Name)
