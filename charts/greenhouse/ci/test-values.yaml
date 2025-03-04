@@ -9,6 +9,33 @@ global:
     redirectURL: https://top.secret/redirect
     clientID: topSecret!
     clientSecret: topSecret!
+  # DEX configuration for Greenhouse.
+  dex:
+    backend: postgres         # postgres or kubernetesa
+    postgres:
+      postgresqlDatabase: dex
+      postgresqlPort: 5432
+      postgresqlUsername: dex
+  linkerd_enabled: false
+  region: greenhouse
+  registry: keppel.eu-nl-1.cloud.sap/ccloud
+
+organization:
+  enabled: true
+  oauth2ClientRedirectURIs:
+    - http://localhost:1234
+
+postgresqlng:
+  enabled: true
+  resources: {}
+  # The database that will be created in the database
+  postgresDatabase: dex
+  tableOwner: dex
+  users:
+    acme-user:
+  alerts:
+    support_group: foobar
+
 plugins:
   enabled: true
 
@@ -18,6 +45,13 @@ digicertIssuer:
   organizationID: 1
   organizationUnits: Me
   caCertID: 1
+
+ingress:
+  enabled: true
+  annotations:
+    disco: "true"
+    disco/record: ingress.foo.global
+    disco/record-type: "A"
 
 scim:
   enabled: true

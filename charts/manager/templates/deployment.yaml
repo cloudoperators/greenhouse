@@ -35,6 +35,21 @@ spec:
         {{- include "manager.params" . | indent 8 }}
         {{- end }}
         env:
+        {{- if eq .Values.global.dex.backend "postgres" }}
+        - name: PG_DATABASE
+          value: {{ .Values.global.dex.postgresql.postgresqlDatabase }}
+        - name: PG_HOST
+          value: {{ .Release.Name }}-postgresql
+        - name: PG_USER
+          value: {{ .Values.global.dex.postgresql.postgresqlUsername }}
+        - name: PG_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              key: postgres-password
+              name: {{ .Release.Name }}-pguser-{{ .Values.global.dex.postgresql.postgresqlUsername }}
+        {{- end }}
+        - name: FEATURE_FLAGS
+          value: {{ template "featureFlag.fullname" . }}
         - name: POD_NAMESPACE
           valueFrom:
             fieldRef:
