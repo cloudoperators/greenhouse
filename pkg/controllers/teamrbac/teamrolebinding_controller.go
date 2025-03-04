@@ -566,21 +566,6 @@ func reconcileRoleBinding(ctx context.Context, cl client.Client, c *greenhousev1
 		},
 	}
 
-	if createNamespaces {
-		namespace := new(corev1.Namespace)
-		err := cl.Get(ctx, types.NamespacedName{Name: rb.Namespace}, namespace)
-		if err != nil {
-			if apierrors.IsNotFound(err) {
-				err := cl.Create(ctx, &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: rb.Namespace}})
-				if err != nil {
-					return err
-				}
-			} else {
-				return err
-			}
-		}
-	}
-
 	result, err := clientutil.CreateOrPatch(ctx, cl, remoteRB, func() error {
 		remoteRB.Labels = rb.Labels
 		remoteRB.RoleRef = rb.RoleRef
@@ -588,7 +573,14 @@ func reconcileRoleBinding(ctx context.Context, cl client.Client, c *greenhousev1
 		return nil
 	})
 	if err != nil {
-		return err
+		if createNamespaces && apierrors.IsNotFound(err) {
+			err := cl.Create(ctx, &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: rb.Namespace}})
+			if err != nil {
+				return err
+			}
+		} else {
+			return err
+		}
 	}
 
 	switch result {
