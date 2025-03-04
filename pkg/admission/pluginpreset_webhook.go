@@ -5,6 +5,7 @@ package admission
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -86,7 +87,7 @@ func ValidateCreatePluginPreset(ctx context.Context, c client.Client, o runtime.
 	}
 
 	// validate OptionValues defined by the Preset
-	if errList := validatePluginOptionValues(pluginPreset.Spec.Plugin.OptionValues, pluginDefinition); len(errList) > 0 {
+	if errList := validatePluginOptionValuesForPreset(pluginPreset.Spec.Plugin.OptionValues, pluginDefinition); len(errList) > 0 {
 		allErrs = append(allErrs, errList...)
 	}
 
@@ -141,4 +142,66 @@ func ValidateDeletePluginPreset(_ context.Context, _ client.Client, obj runtime.
 	}
 
 	return nil, nil
+}
+
+// validatePluginOptionValuesForPreset validates plugin options, but does not enforce the required ones.
+// Required options are checked at the Plugin creation level, because the preset can override options and we cannot predict what clusters will be a part of the PluginPreset later on.
+func validatePluginOptionValuesForPreset(optionValues []greenhousev1alpha1.PluginOptionValue, pluginDefinition *greenhousev1alpha1.PluginDefinition) field.ErrorList {
+	var allErrs field.ErrorList
+	for _, pluginOption := range pluginDefinition.Spec.Options {
+		for idx, val := range optionValues {
+			if pluginOption.Name != val.Name {
+				continue
+			}
+			fieldPathWithIndex := field.NewPath("spec").Child("optionValues").Index(idx)
+
+			// Value and ValueFrom are mutually exclusive, but one must be provided.
+			if (val.Value == nil && val.ValueFrom == nil) || (val.Value != nil && val.ValueFrom != nil) {
+				allErrs = append(allErrs, field.Required(
+					fieldPathWithIndex,
+					"must provide either value or valueFrom for value "+val.Name,
+				))
+				continue
+			}
+
+			// Validate that OptionValue has a secret reference.
+			if pluginOption.Type == greenhousev1alpha1.PluginOptionTypeSecret {
+				switch {
+				case val.Value != nil:
+					allErrs = append(allErrs, field.TypeInvalid(fieldPathWithIndex.Child("value"), "*****",
+						fmt.Sprintf("optionValue %s of type secret must use valueFrom to reference a secret", val.Name)))
+					continue
+				case val.ValueFrom != nil:
+					if val.ValueFrom.Secret.Name == "" {
+						allErrs = append(allErrs, field.Required(fieldPathWithIndex.Child("valueFrom").Child("name"),
+							fmt.Sprintf("optionValue %s of type secret must reference a secret by name", val.Name)))
+						continue
+					}
+					if val.ValueFrom.Secret.Key == "" {
+						allErrs = append(allErrs, field.Required(fieldPathWithIndex.Child("valueFrom").Child("key"),
+							fmt.Sprintf("optionValue %s of type secret must reference a key in a secret", val.Name)))
+						continue
+					}
+				}
+				continue
+			}
+
+			// validate that the Plugin.OptionValue matches the type of the PluginDefinition.Option
+			if val.Value != nil {
+				if err := pluginOption.IsValidValue(val.Value); err != nil {
+					var v any
+					if err := json.Unmarshal(val.Value.Raw, &v); err != nil {
+						v = err
+					}
+					allErrs = append(allErrs, field.Invalid(
+						fieldPathWithIndex.Child("value"), v, err.Error(),
+					))
+				}
+			}
+		}
+	}
+	if len(allErrs) == 0 {
+		return nil
+	}
+	return allErrs
 }
