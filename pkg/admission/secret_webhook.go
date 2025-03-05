@@ -117,6 +117,12 @@ func validateGreenhouseOIDCType(secret *corev1.Secret) error {
 			field.Required(field.NewPath("data").Child(greenhouseapis.SecretAPIServerCAKey), "The secret is missing the certificate authority key."),
 		})
 	}
+	// empty cert with no value is invalid as base64 encoded check will not return err for empty string or nil []byte
+	if len(cert) == 0 {
+		return apierrors.NewInvalid(secret.GroupVersionKind().GroupKind(), secret.GetName(), field.ErrorList{
+			field.Required(field.NewPath("data").Child(greenhouseapis.SecretAPIServerCAKey), "The certificate authority key must not be empty."),
+		})
+	}
 	// Validate that cert is base64 encoded
 	if _, err := base64.StdEncoding.DecodeString(string(cert)); err != nil {
 		return apierrors.NewInvalid(secret.GroupVersionKind().GroupKind(), secret.GetName(), field.ErrorList{

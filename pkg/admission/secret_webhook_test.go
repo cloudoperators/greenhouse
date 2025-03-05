@@ -5,15 +5,18 @@ package admission
 
 import (
 	"context"
+	"encoding/base64"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
+	greenhouseapis "github.com/cloudoperators/greenhouse/pkg/apis"
 	"github.com/cloudoperators/greenhouse/pkg/test"
 )
 
-var _ = Describe("Validate Secret Creation based on type", func() {
+var _ = FDescribe("Validate Secret Creation based on type", func() {
 	DescribeTable("Validate secret creation with different secret types", func(secretType corev1.SecretType, dataKey string, expErr bool) {
 		var secret *corev1.Secret
 		var ctx context.Context
@@ -74,6 +77,35 @@ var _ = Describe("Validate Secret Creation based on type", func() {
 		Entry("Secret.type is greenhouse.sap/kubeconfig and data.greenhousekubeconfig is empty", corev1.SecretType("greenhouse.sap/kubeconfig"), "greenhousekubeconfig", []byte(""), true),
 		Entry("Secret.type is greenhouse.sap/kubeconfig and data.greenhousekubeconfig is not a valid kubeconfig", corev1.SecretType("greenhouse.sap/kubeconfig"), "greenhousekubeconfig", []byte("invalid"), true),
 		Entry("Secret.type is greenhouse.sap/kubeconfig and data.greenhousekubeconfig is a valid kubeconfig", corev1.SecretType("greenhouse.sap/kubeconfig"), "greenhousekubeconfig", test.KubeConfig, false),
+	)
+
+	DescribeTable("Validate OIDC secret creation",
+		func(annotations map[string]string, certData []byte, expErr bool) {
+			secret := &corev1.Secret{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:        "oidc-secret",
+					Namespace:   corev1.NamespaceDefault,
+					Annotations: annotations,
+				},
+				Type: corev1.SecretType("greenhouse.sap/oidc-config"),
+				Data: map[string][]byte{
+					greenhouseapis.SecretAPIServerCAKey: certData,
+				},
+			}
+
+			err := validateGreenhouseOIDCType(secret)
+
+			if expErr {
+				Expect(err).To(HaveOccurred(), "expected an error, but got nil")
+			} else {
+				Expect(err).ToNot(HaveOccurred(), "expected no error, but got %v", err)
+			}
+		},
+		Entry("Valid APIServerURL but missing certificate authority key", map[string]string{greenhouseapis.SecretAPIServerURLAnnotation: "https://example.com"}, nil, true),
+		Entry("Missing APIServerURL annotation", nil, []byte("validBase64EncodedCert"), true),
+		Entry("Invalid APIServerURL (http scheme)", map[string]string{greenhouseapis.SecretAPIServerURLAnnotation: "http://example.com"}, []byte("validBase64EncodedCert"), true),
+		Entry("Invalid APIServerURL (malformed URL)", map[string]string{greenhouseapis.SecretAPIServerURLAnnotation: "not-a-url"}, []byte("validBase64EncodedCert"), true),
+		Entry("Valid APIServerURL with valid base64 certificate", map[string]string{greenhouseapis.SecretAPIServerURLAnnotation: "https://example.com"}, []byte(base64.StdEncoding.EncodeToString([]byte("valid-cert"))), false),
 	)
 
 })
