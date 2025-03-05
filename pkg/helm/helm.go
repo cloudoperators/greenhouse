@@ -127,16 +127,16 @@ func ChartTest(ctx context.Context, restClientGetter genericclioptions.RESTClien
 	results, err := testAction.Run(plugin.Name)
 	if err != nil {
 		// get the latest release to fetch the test pod logs
-		release, err := action.NewGet(cfg).Run(plugin.Name) 
-        if err != nil {  
-            log.FromContext(ctx).Error(err, "Failed to get latest release", "plugin", plugin.Name)  
-            return hasTestHook, "", err  
-        }  
-        testPodLogs, err = printTestPodLogs(ctx, testAction, release)  
-        if err != nil {  
-            log.FromContext(ctx).Error(err, "Failed to retrieve test pod logs", "plugin", plugin.Name)  
-        }  
-        return hasTestHook, testPodLogs, err 
+		release, err2 := action.NewGet(cfg).Run(plugin.Name)
+		if err2 != nil {
+			log.FromContext(ctx).Error(err2, "Failed to get latest release", "plugin", plugin.Name)
+			return hasTestHook, "", err
+		}
+		testPodLogs, err2 = printTestPodLogs(ctx, testAction, release)
+		if err2 != nil {
+			log.FromContext(ctx).Error(err2, "Failed to retrieve test pod logs", "plugin", plugin.Name)
+		}
+		return hasTestHook, testPodLogs, err
 	}
 
 	if results != nil && results.Hooks != nil {
