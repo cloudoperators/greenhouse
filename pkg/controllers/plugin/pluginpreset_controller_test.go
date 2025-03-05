@@ -295,7 +295,7 @@ var _ = Describe("PluginPreset Controller Lifecycle", Ordered, func() {
 		Expect(test.K8sClient.Create(test.Ctx, pluginPreset)).To(Succeed(), "failed to create PluginPreset")
 		test.EventuallyCreated(test.Ctx, test.K8sClient, pluginPreset)
 
-		By("checking that Plugin has been created with overriden required option")
+		By("checking that Plugin has been created with overridden required option")
 		pluginObjectKey := types.NamespacedName{Name: pluginPresetName + "-override1-" + clusterA, Namespace: test.TestNamespace}
 		plugin := &greenhousev1alpha1.Plugin{}
 		Eventually(func() error {
