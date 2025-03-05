@@ -22,15 +22,18 @@ import (
 )
 
 const (
-	pluginPresetName                 = "test-pluginpreset"
-	pluginPresetDefinitionName       = "preset-plugindefinition"
-	pluginDefinitionWithDefaultsName = "plugin-definition-with-defaults"
+	pluginPresetName                       = "test-pluginpreset"
+	pluginPresetDefinitionName             = "preset-plugindefinition"
+	pluginDefinitionWithDefaultsName       = "plugin-definition-with-defaults"
+	pluginDefinitionWithRequiredOptionName = "plugin-definition-with-required-option"
 
 	releaseNamespace = "test-namespace"
 
 	clusterA = "cluster-a"
 	clusterB = "cluster-b"
 	clusterC = "cluster-c"
+
+	preventDeletionAnnotation = "greenhouse.sap/prevent-deletion"
 )
 
 var (
@@ -269,6 +272,77 @@ var _ = Describe("PluginPreset Controller Lifecycle", Ordered, func() {
 			g.Expect(pluginPreset.Status.StatusConditions.GetConditionByType(greenhousev1alpha1.ClusterListEmpty).IsTrue()).Should(BeTrue(), "PluginPreset should have the ClusterListEmptyCondition set to true")
 			g.Expect(pluginPreset.Status.StatusConditions.GetConditionByType(greenhousev1alpha1.ReadyCondition).IsFalse()).Should(BeTrue(), "PluginPreset should have the ReadyCondition set to false")
 		}).Should(Succeed(), "the PluginPreset should be reconciled")
+	})
+
+	It("should create a Plugin with required options taken from PluginPreset overrides", func() {
+		By("creating PluginDefinition with required option values")
+		pluginDefinition := pluginDefinitionWithRequiredOption()
+		Expect(test.K8sClient.Create(test.Ctx, pluginDefinition)).To(Succeed(), "failed to create PluginDefinition")
+		test.EventuallyCreated(test.Ctx, test.K8sClient, pluginDefinition)
+
+		By("creating a PluginPreset with overrides")
+		pluginPreset := pluginPreset(pluginPresetName+"-override1", clusterA)
+		pluginPreset.Spec.Plugin.PluginDefinition = pluginDefinition.Name
+		pluginPreset.Spec.ClusterOptionOverrides = append(pluginPreset.Spec.ClusterOptionOverrides, greenhousev1alpha1.ClusterOptionOverride{
+			ClusterName: clusterA,
+			Overrides: []greenhousev1alpha1.PluginOptionValue{
+				{
+					Name:  "test-required-option-1",
+					Value: test.MustReturnJSONFor(5),
+				},
+			},
+		})
+		Expect(test.K8sClient.Create(test.Ctx, pluginPreset)).To(Succeed(), "failed to create PluginPreset")
+		test.EventuallyCreated(test.Ctx, test.K8sClient, pluginPreset)
+
+		By("checking that Plugin has been created with overriden required option")
+		pluginObjectKey := types.NamespacedName{Name: pluginPresetName + "-override1-" + clusterA, Namespace: test.TestNamespace}
+		plugin := &greenhousev1alpha1.Plugin{}
+		Eventually(func() error {
+			return test.K8sClient.Get(test.Ctx, pluginObjectKey, plugin)
+		}).Should(Succeed(), "the Plugin should be created successfully")
+		Expect(plugin.Spec.OptionValues).To(ContainElement(pluginPreset.Spec.ClusterOptionOverrides[0].Overrides[0]),
+			"ClusterOptionOverrides should be applied to the Plugin OptionValues")
+
+		By("removing plugin preset")
+		err := test.K8sClient.Get(test.Ctx, client.ObjectKeyFromObject(pluginPreset), pluginPreset)
+		Expect(err).ShouldNot(HaveOccurred(), "unexpected error getting PluginPreset")
+		_, err = clientutil.Patch(test.Ctx, test.K8sClient, pluginPreset, func() error {
+			delete(pluginPreset.Annotations, preventDeletionAnnotation)
+			return nil
+		})
+		Expect(err).ToNot(HaveOccurred(), "failed to remove prevent-deletion annotation from PluginPreset")
+		test.EventuallyDeleted(test.Ctx, test.K8sClient, pluginPreset)
+	})
+
+	It("should save an error when Plugin creation failed due to required options being unset", func() {
+		By("creating a PluginPreset based on PluginDefinition with required option")
+		pluginPreset := pluginPreset(pluginPresetName+"-missing1", clusterA)
+		pluginPreset.Spec.Plugin.PluginDefinition = pluginDefinitionWithRequiredOptionName
+		Expect(test.K8sClient.Create(test.Ctx, pluginPreset)).To(Succeed(), "failed to create PluginPreset")
+		test.EventuallyCreated(test.Ctx, test.K8sClient, pluginPreset)
+
+		By("checking that Plugin creation error has been saved to PluginPreset")
+		Eventually(func(g Gomega) {
+			presetObjectKey := types.NamespacedName{Name: pluginPresetName + "-missing1", Namespace: test.TestNamespace}
+			g.Expect(test.K8sClient.Get(test.Ctx, presetObjectKey, pluginPreset)).To(Succeed())
+			pluginFailedCondition := pluginPreset.Status.GetConditionByType(greenhousev1alpha1.PluginFailedCondition)
+			g.Expect(pluginFailedCondition).ToNot(BeNil())
+			g.Expect(pluginFailedCondition.Status).To(Equal(metav1.ConditionTrue))
+			g.Expect(pluginFailedCondition.Reason).To(Equal(greenhousev1alpha1.PluginReconcileFailed))
+			expectedPluginName := pluginPresetName + "-missing1-" + clusterA
+			g.Expect(pluginFailedCondition.Message).To(ContainSubstring(expectedPluginName + ": Required value: Option 'test-required-option-1' is required by PluginDefinition 'plugin-definition-with-required-option'"))
+		}).Should(Succeed(), "Plugin creation error not found in PluginPreset")
+
+		By("removing plugin preset")
+		err := test.K8sClient.Get(test.Ctx, client.ObjectKeyFromObject(pluginPreset), pluginPreset)
+		Expect(err).ShouldNot(HaveOccurred(), "unexpected error getting PluginPreset")
+		_, err = clientutil.Patch(test.Ctx, test.K8sClient, pluginPreset, func() error {
+			delete(pluginPreset.Annotations, preventDeletionAnnotation)
+			return nil
+		})
+		Expect(err).ToNot(HaveOccurred(), "failed to remove prevent-deletion annotation from PluginPreset")
+		test.EventuallyDeleted(test.Ctx, test.K8sClient, pluginPreset)
 	})
 })
 
@@ -1165,6 +1239,34 @@ func pluginDefinitionWithDefaults() *greenhousev1alpha1.PluginDefinition {
 					Name:    "test-plugin-definition-option-1",
 					Type:    "int",
 					Default: &apiextensionsv1.JSON{Raw: []byte("1")},
+				},
+			},
+			UIApplication: &greenhousev1alpha1.UIApplicationReference{
+				Name:    "test-ui-app",
+				Version: "0.0.1",
+			},
+		},
+	}
+}
+
+func pluginDefinitionWithRequiredOption() *greenhousev1alpha1.PluginDefinition {
+	return &greenhousev1alpha1.PluginDefinition{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "PluginDefinition",
+			APIVersion: greenhousev1alpha1.GroupVersion.String(),
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      pluginDefinitionWithRequiredOptionName,
+			Namespace: test.TestNamespace,
+		},
+		Spec: greenhousev1alpha1.PluginDefinitionSpec{
+			DisplayName: "test display name",
+			Version:     "1.0.0",
+			Options: []greenhousev1alpha1.PluginOption{
+				{
+					Name:     "test-required-option-1",
+					Type:     "int",
+					Required: true,
 				},
 			},
 			UIApplication: &greenhousev1alpha1.UIApplicationReference{

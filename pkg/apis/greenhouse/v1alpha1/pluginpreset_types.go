@@ -10,6 +10,9 @@ import (
 const (
 	// PluginPresetKind is the kind of the PluginPreset resource
 	PluginPresetKind = "PluginPreset"
+
+	// PluginReconcileFailed is set when Plugin creation or update failed.
+	PluginReconcileFailed ConditionReason = "PluginReconcileFailed"
 )
 
 // PluginPresetSpec defines the desired state of PluginPreset
