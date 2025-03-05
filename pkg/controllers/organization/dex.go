@@ -178,7 +178,12 @@ func (r *OrganizationReconciler) reconcileOAuth2Client(ctx context.Context, org 
 		authClient.Public = true
 		authClient.ID = org.Name
 		authClient.Name = org.Name
-		authClient.RedirectURIs = getRedirects(org.Name, org.Spec.Authentication.OIDCConfig.OAuth2ClientRedirectURIs)
+		redirects := getRedirects(org.Name, org.Spec.Authentication.OIDCConfig.OAuth2ClientRedirectURIs)
+		// this ensures that reconciling the default connector does not remove the org specific redirect URIs
+		if authClient.ID == defaultGreenhouseConnectorID {
+			redirects = appendRedirects(redirects, authClient.RedirectURIs...)
+		}
+		authClient.RedirectURIs = redirects
 		return authClient, nil
 	}); err != nil {
 		log.FromContext(ctx).Error(err, "failed to update oauth2client", "name", org.Name)
@@ -238,7 +243,7 @@ func getRedirects(orgName string, redirectURIs []string) []string {
 }
 
 func getRedirectForOrg(orgName string) string {
-	return fmt.Sprintf("https://%s.%s", orgName, common.DNSDomain)
+	return fmt.Sprintf("https://%s.dashboard.%s", orgName, common.DNSDomain)
 }
 
 // appendRedirects - appends newRedirects to the redirects slice if it does not exist

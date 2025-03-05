@@ -119,8 +119,9 @@ func ChartTest(restClientGetter genericclioptions.RESTClientGetter, plugin *gree
 	if err != nil {
 		return hasTestHook, err
 	}
-
-	results, err := action.NewReleaseTesting(cfg).Run(plugin.Name)
+	rta := action.NewReleaseTesting(cfg)
+	rta.Timeout = GetHelmTimeout() // set a timeout for the release testing to avoid waiting forever
+	results, err := rta.Run(plugin.Name)
 	if err != nil {
 		return hasTestHook, err
 	}

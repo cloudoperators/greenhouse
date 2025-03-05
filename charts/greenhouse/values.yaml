@@ -26,6 +26,8 @@ postgresqlng:
     region: greenhouse
     # The registry where the image is stored
     registry:
+  alerts:
+    support_group: greenhouse
   resources: {}
   # The database that will be created in the database
   postgresDatabase: dex
