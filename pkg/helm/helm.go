@@ -126,7 +126,8 @@ func ChartTest(ctx context.Context, restClientGetter genericclioptions.RESTClien
 	testAction.Namespace = plugin.Spec.ReleaseNamespace
 	results, err := testAction.Run(plugin.Name)
 	if err != nil {
-		release, getErr := getLatestRelease(cfg, plugin.Name)
+		// get the latest release to fetch the test pod logs
+		release, getErr := action.NewGet(cfg).Run(plugin.Name)
 		if getErr != nil {
 			log.FromContext(ctx).Error(getErr, "Failed to get latest release", "plugin", plugin.Name)
 		} else {
@@ -146,11 +147,6 @@ func ChartTest(ctx context.Context, restClientGetter genericclioptions.RESTClien
 	}
 
 	return hasTestHook, "", nil
-}
-
-func getLatestRelease(cfg *action.Configuration, releaseName string) (*release.Release, error) {
-	getAction := action.NewGet(cfg)
-	return getAction.Run(releaseName)
 }
 
 func printTestPodLogs(ctx context.Context, testAction *action.ReleaseTesting, rel *release.Release) (string, error) {
