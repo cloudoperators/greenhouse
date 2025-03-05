@@ -1,0 +1,34 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: flux-system
+resources:
+  - namespace.yaml
+  - ../bases/source-controller
+  - ../bases/kustomize-controller
+  - ../bases/notification-controller
+  - ../bases/helm-controller
+  - ../bases/image-reflector-controller
+  - ../bases/image-automation-controller
+  - ../rbac
+  - ../policies
+transformers:
+  - labels.yaml
+images:
+  - name: fluxcd/source-controller
+    newName: ghcr.io/fluxcd/source-controller
+    newTag: v1.4.0
+  - name: fluxcd/kustomize-controller
+    newName: ghcr.io/fluxcd/kustomize-controller
+    newTag: v1.4.0
+  - name: fluxcd/helm-controller
+    newName: ghcr.io/fluxcd/helm-controller
+    newTag: v1.1.0
+  - name: fluxcd/notification-controller
+    newName: ghcr.io/fluxcd/notification-controller
+    newTag: v1.4.0
+  - name: fluxcd/image-reflector-controller
+    newName: ghcr.io/fluxcd/image-reflector-controller
+    newTag: v0.34.0
+  - name: fluxcd/image-automation-controller
+    newName: ghcr.io/fluxcd/image-automation-controller
+    newTag: v0.40.0

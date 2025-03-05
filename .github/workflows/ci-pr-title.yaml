@@ -47,6 +47,7 @@ jobs:
             teamroles
             teams
             service-proxy
+            flux
             build
             config
             charts

@@ -10,6 +10,9 @@
   "ignoreDeps": [
     "github.com/dexidp/dex"
   ],
+  "flux": {
+    "fileMatch": ["^.*/.*/flux-installation-relese\\.ya?ml$"]
+  },
   "customManagers": [
     {
       "customType": "regex",
@@ -75,6 +78,17 @@
       "datasourceTemplate": "github-tags",
       "depNameTemplate": "kubernetes-sigs/kustomize",
       "extractVersionTemplate": "^kustomize/v(?<version>.*)$"
+    },
+    {
+      "customType": "regex",
+      "description": "Bump flux kustomize version",
+      "fileMatch": [
+          "(?:^|flux/.*/)kustomization\\.ya?ml$"
+      ],
+      "matchStrings": [
+          "github.com.(?<packageName>.*).releases.download.(?<currentValue>.*)/"
+      ],
+      "datasourceTemplate": "github-tags"
     }
   ],
   "packageRules": [
@@ -168,6 +182,56 @@
         "k8s.io/sample-controller{/,}**",
         "sigs.k8s.io/controller-runtime{/,}**"
       ]
+    },
+    {
+      "description": "Update flux installation when a new release is available",
+      "groupName": "flux-installation",
+      "matchPackageNames": [
+          "cloudoperators/greenhouse"
+      ],
+      "ignoreUnstable": false
+    },
+    {
+      "groupName": "helm-controller",
+      "matchPackageNames": [
+          "fluxcd/helm-controller",
+          "ghcr.io/fluxcd/helm-controller"
+      ]
+    },
+    {
+        "groupName": "image-automation-controller",
+        "matchPackageNames": [
+            "fluxcd/image-automation-controller",
+            "ghcr.io/fluxcd/image-automation-controller"
+        ]
+    },
+    {
+        "groupName": "image-reflector-controller",
+        "matchPackageNames": [
+            "fluxcd/image-reflector-controller",
+            "ghcr.io/fluxcd/image-reflector-controller"
+        ]
+    },
+    {
+        "groupName": "kustomize-controller",
+        "matchPackageNames": [
+            "fluxcd/kustomize-controller",
+            "ghcr.io/fluxcd/kustomize-controller"
+        ]
+    },
+    {
+        "groupName": "notification-controller",
+        "matchPackageNames": [
+            "fluxcd/notification-controller",
+            "ghcr.io/fluxcd/notification-controller"
+        ]
+    },
+    {
+        "groupName": "source-controller",
+        "matchPackageNames": [
+            "fluxcd/source-controller",
+            "ghcr.io/fluxcd/source-controller"
+        ]
     }
   ],
   "postUpdateOptions": [
