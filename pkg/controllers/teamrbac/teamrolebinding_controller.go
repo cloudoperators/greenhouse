@@ -578,6 +578,7 @@ func reconcileRoleBinding(ctx context.Context, cl client.Client, c *greenhousev1
 			if err != nil {
 				return err
 			}
+			return errors.New("failed to create RoleBinding, created missing namespace")
 		} else {
 			return err
 		}
