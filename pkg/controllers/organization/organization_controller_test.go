@@ -320,8 +320,8 @@ var _ = Describe("Test Organization reconciliation", Ordered, func() {
 			createSecretForOIDCConfig(oidcOrgName)
 
 			By("updating the organization with OIDC config")
-			updateOrgWithOIDC(greenhouseOrgName)
-			updateOrgWithOIDC(oidcOrgName)
+			updateOrgWithOIDC(oidcOrgName, "https://example.com/app", "http://localhost:33768/auth/callback")
+			updateOrgWithOIDC(greenhouseOrgName, "https://foo.bar/app")
 
 			By("checking Organization status")
 			checkOrganizationReadyStatus(greenhouseOrgName)
@@ -346,12 +346,21 @@ var _ = Describe("Test Organization reconciliation", Ordered, func() {
 				Expect(filteredOrgConnector[0].ID).To(Equal(oidcOrgName), "the connector ID should be equal to organization name")
 
 				By("checking dex oauth client resource")
-				filteredOrgClient := slices.DeleteFunc(oAuthClients.Items, func(c dexapi.OAuth2Client) bool {
-					return c.ID != oidcOrgName
-				})
-				Expect(filteredOrgClient).To(HaveLen(1), "there should be one dex oauth client after filtering")
-				Expect(filteredOrgClient[0].ID).To(Equal(oidcOrgName), "the oauth client ID should be equal to organization name")
-
+				Expect(oAuthClients.Items).To(HaveLen(2), "there should be two dex oauth clients")
+				for _, orgClient := range oAuthClients.Items {
+					switch orgClient.ID {
+					case oidcOrgName:
+						Expect(orgClient.ID).To(Equal(oidcOrgName), "the oauth client ID should be equal to organization name")
+						Expect(orgClient.RedirectURIs).To(HaveLen(5), "the oauth client redirect URIs should have the default 3 elements + 2 additionalRedirects")
+						Expect(orgClient.RedirectURIs).To(ContainElements("https://example.com/app", "http://localhost:33768/auth/callback"), "the oauth client redirect URIs should be equal to organization redirect URIs")
+					case greenhouseOrgName:
+						Expect(orgClient.ID).To(Equal(greenhouseOrgName), "the oauth client ID should be equal to organization name")
+						Expect(orgClient.RedirectURIs).To(ContainElements("https://test-oidc-org.dashboard."), "the greenhouse client should contain the org's dashboard redirect uri")
+						Expect(orgClient.RedirectURIs).To(HaveLen(5), "the oauth client redirect URIs should have 4 elements (default 3 + 1 org + 1 additional)")
+					default:
+						Fail("unexpected oauth client ID")
+					}
+				}
 				By("deleting the organizations")
 				test.EventuallyDeleted(test.Ctx, test.K8sClient, &greenhousev1alpha1.Organization{ObjectMeta: metav1.ObjectMeta{Name: oidcOrgName}})
 				test.EventuallyDeleted(test.Ctx, test.K8sClient, &greenhousev1alpha1.Organization{ObjectMeta: metav1.ObjectMeta{Name: greenhouseOrgName}})
@@ -395,7 +404,7 @@ func createSecretForOIDCConfig(namespace string) {
 	Expect(err).ToNot(HaveOccurred(), "there should be no error creating the secret")
 }
 
-func updateOrgWithOIDC(orgName string) {
+func updateOrgWithOIDC(orgName string, additionalRedirects ...string) {
 	org := &greenhousev1alpha1.Organization{}
 	err := test.K8sClient.Get(test.Ctx, types.NamespacedName{Name: orgName}, org)
 	Expect(err).ToNot(HaveOccurred(), "there should be no error getting the organization")
@@ -411,6 +420,7 @@ func updateOrgWithOIDC(orgName string) {
 				Name: "test-oidc-secret",
 				Key:  "clientSecret",
 			},
+			OAuth2ClientRedirectURIs: additionalRedirects,
 		},
 	}
 	err = test.K8sClient.Update(test.Ctx, org)

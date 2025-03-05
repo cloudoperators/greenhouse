@@ -26,6 +26,8 @@ postgresqlng:
     region: greenhouse
     # The registry where the image is stored
     registry:
+  alerts:
+    support_group: greenhouse
   resources: {}
   # The database that will be created in the database
   postgresDatabase: dex
@@ -38,6 +40,8 @@ postgresqlng:
 # Organization & IDProxy should be enabled only after the initial install of greenhouse
 organization:
   enabled: true
+  oauth2ClientRedirectURIs:
+    - "http://localhost:33768/auth/callback"
 idproxy:
   enabled: true
 

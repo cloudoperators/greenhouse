@@ -55,15 +55,11 @@ spec:
             - --allowed-origins={{ $origin }}
             {{- end }}
           env:
-          - name: FEATURE_FLAGS
-            value: {{ template "featureFlag.fullname" . }}
           {{- if eq .Values.global.dex.backend "postgres" }}
           - name: PG_DATABASE
             value: {{ .Values.global.dex.postgresql.postgresqlDatabase }}
           - name: PG_HOST
-            value: {{- printf "%s-postgresql" .Release.Name | trunc 48 | replace "_" "-" -}}
-          - name: PG_PORT
-            value: {{ .Values.global.dex.postgresql.postgresqlPort }}
+            value: {{ .Release.Name }}-postgresql
           - name: PG_USER
             value: {{ .Values.global.dex.postgresql.postgresqlUsername }}
           - name: PG_PASSWORD
@@ -72,6 +68,8 @@ spec:
                 key: postgres-password
                 name: {{ .Release.Name }}-pguser-{{ .Values.global.dex.postgresql.postgresqlUsername }}
           {{- end }}
+          - name: FEATURE_FLAGS
+            value: {{ template "featureFlag.fullname" . }}
           - name: POD_NAMESPACE
             valueFrom:
               fieldRef:
