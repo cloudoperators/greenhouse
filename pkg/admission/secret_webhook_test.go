@@ -16,7 +16,7 @@ import (
 	"github.com/cloudoperators/greenhouse/pkg/test"
 )
 
-var _ = FDescribe("Validate Secret Creation based on type", func() {
+var _ = Describe("Validate Secret Creation based on type", func() {
 	DescribeTable("Validate secret creation with different secret types", func(secretType corev1.SecretType, dataKey string, expErr bool) {
 		var secret *corev1.Secret
 		var ctx context.Context
