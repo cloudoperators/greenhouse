@@ -33,6 +33,9 @@ postgresqlng:
   tableOwner: dex
   users:
     acme-user:
+  alerts:
+    support_group: foobar
+
 plugins:
   enabled: true
 
