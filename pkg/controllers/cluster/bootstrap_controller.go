@@ -74,9 +74,9 @@ func (r *BootstrapReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 			if err != nil {
 				return ctrl.Result{}, errors.Wrap(err, "failed creating service account for OIDC config")
 			}
+			log.FromContext(ctx).Info("OIDC config generated", "date", genTime, "namespace", kubeConfigSecret.GetNamespace(), "name", kubeConfigSecret.GetName())
 			return ctrl.Result{}, r.createKubeConfigKey(ctx, kubeConfigSecret)
 		}
-		log.FromContext(ctx).Info("OIDC config already generated", "date", genTime, "namespace", kubeConfigSecret.GetNamespace(), "name", kubeConfigSecret.GetName())
 	}
 
 	if err := r.reconcileCluster(ctx, kubeConfigSecret); err != nil {

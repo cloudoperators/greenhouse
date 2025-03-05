@@ -6,6 +6,7 @@ package admission
 import (
 	"context"
 	"encoding/base64"
+	"net/url"
 
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -49,10 +50,7 @@ func ValidateCreateSecret(ctx context.Context, _ client.Client, o runtime.Object
 	}
 	if secret.Type == greenhouseapis.SecretTypeOIDCConfig {
 		err := validateGreenhouseOIDCType(secret)
-		if err != nil {
-			return nil, err
-		}
-		return nil, nil
+		return nil, err
 	}
 	if err := validateSecretGreenHouseType(ctx, secret); err != nil {
 		return nil, err
@@ -67,10 +65,7 @@ func ValidateUpdateSecret(ctx context.Context, _ client.Client, _, o runtime.Obj
 	}
 	if secret.Type == greenhouseapis.SecretTypeOIDCConfig {
 		err := validateGreenhouseOIDCType(secret)
-		if err != nil {
-			return nil, err
-		}
-		return nil, nil
+		return nil, err
 	}
 	if err := validateSecretGreenHouseType(ctx, secret); err != nil {
 		return nil, err
@@ -108,18 +103,13 @@ func validateSecretGreenHouseType(ctx context.Context, secret *corev1.Secret) er
 
 func validateGreenhouseOIDCType(secret *corev1.Secret) error {
 	annotations := secret.GetAnnotations()
-	// ensure that the secret does not have empty annotations
-	if annotations == nil {
-		return apierrors.NewInvalid(secret.GroupVersionKind().GroupKind(), secret.GetName(), field.ErrorList{
-			field.Required(field.NewPath("metadata").Child(greenhouseapis.SecretAPIServerURLAnnotation), "This type of secrets without the APIServerURL annotation is invalid."),
-		})
-	}
-	// Validate the APIServerURL annotation exists
-	if _, ok := annotations[greenhouseapis.SecretAPIServerURLAnnotation]; !ok {
+	serverURL, ok := annotations[greenhouseapis.SecretAPIServerURLAnnotation]
+	if !ok || !isValidURL(serverURL) {
 		return apierrors.NewInvalid(secret.GroupVersionKind().GroupKind(), secret.GetName(), field.ErrorList{
 			field.Required(field.NewPath("metadata").Child(greenhouseapis.SecretAPIServerURLAnnotation), "The secret is missing the APIServerURL annotation."),
 		})
 	}
+
 	// Validate the certificate authority key exists
 	cert, ok := secret.Data[greenhouseapis.SecretAPIServerCAKey]
 	if !ok {
@@ -172,4 +162,12 @@ func validateKubeConfig(kubeconfig []byte) error {
 		return err
 	}
 	return clientcmd.ConfirmUsable(*apiConfig, apiConfig.CurrentContext)
+}
+
+func isValidURL(serverURL string) bool {
+	parsed, err := url.Parse(serverURL)
+	if err != nil {
+		return false
+	}
+	return parsed.Scheme == "https" && parsed.Host != ""
 }

@@ -320,19 +320,19 @@ func (r *RemoteClusterReconciler) deleteClusterRoleBindingInRemoteCluster(ctx co
 	crb := &rbacv1.ClusterRoleBinding{}
 	err := k8sClient.Get(ctx, client.ObjectKey{Name: utils.ServiceAccountName}, crb)
 	if err != nil {
-		ctrl.LoggerFrom(ctx).V(5).Error(err, "potential err getting clusterRoleBinding")
 		if apierrors.IsUnauthorized(err) || apierrors.IsNotFound(err) || apierrors.IsForbidden(err) {
 			return nil
 		}
+		ctrl.LoggerFrom(ctx).V(5).Error(err, "err getting clusterRoleBinding")
 		return err
 	}
 	err = k8sClient.Delete(ctx, crb)
 	// ignore not found and forbidden errors
 	if err != nil {
-		ctrl.LoggerFrom(ctx).V(5).Error(err, "potential err deleting clusterRoleBinding")
 		if !apierrors.IsUnauthorized(err) && !apierrors.IsNotFound(err) && !apierrors.IsForbidden(err) {
 			return err
 		}
+		ctrl.LoggerFrom(ctx).V(5).Error(err, "err deleting clusterRoleBinding")
 	}
 	return nil
 }
