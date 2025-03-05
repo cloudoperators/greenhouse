@@ -102,6 +102,7 @@ func extractErrorsFromTestPodLogs(testPodLogs string) string {
 
 	for scanner.Scan() {
 		line := scanner.Text()
+		fmt.Println(line)
 
 		switch {
 		case strings.HasPrefix(line, "not ok"):
