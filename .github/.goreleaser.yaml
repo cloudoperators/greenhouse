@@ -2,6 +2,10 @@
 # vim: set ts=2 sw=2 tw=0 fo=jcroql
 version: 2
 
+before:
+  hooks:
+    - go mod tidy
+
 env:
   - GO111MODULE=on
   - CGO_ENABLED=0
@@ -19,6 +23,7 @@ builds:
       - linux
     goarch:
       - amd64
+      - arm64
     ldflags:
       - "{{ .Env.LDFLAGS }}"
     no_unique_dist_dir: true
@@ -42,6 +47,9 @@ archives:
   - formats: [
       'tar.gz'
     ]
-    name_template: '{{.ProjectName}}_{{.Version}}_{{.Os}}-{{.Arch}}'
+    name_template: >-
+      {{ .ProjectName }}ctl_
+      {{.Version}}_
+      {{.Os}}-{{.Arch}}
     files:
       - README.md
