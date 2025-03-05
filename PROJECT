@@ -6,8 +6,6 @@ domain: sap
 layout:
 - go.kubebuilder.io/v3
 multigroup: true
-plugins:
-  grafana.kubebuilder.io/v1-alpha: {}
 projectName: greenhouse
 repo: github.com/cloudoperators/greenhouse
 resources:
