@@ -126,6 +126,5 @@ func extractErrorsFromTestPodLogs(testPodLogs string) string {
 	}
 
 	// Join the error messages with an empty line separator
-	errorsStr := strings.Join(errors, "\n")
-	return errorsStr
+	return strings.Join(errors, "\n")
 }
