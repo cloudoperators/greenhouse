@@ -6,6 +6,7 @@ package admission
 import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/pkg/apis/greenhouse/v1alpha1"
@@ -206,5 +207,181 @@ var _ = Describe("PluginPreset Admission Tests", Ordered, func() {
 
 		err = test.K8sClient.Delete(test.Ctx, pluginPreset)
 		Expect(err).ToNot(HaveOccurred())
+	})
+})
+
+var _ = Describe("Validate Plugin OptionValues for PluginPreset", func() {
+	DescribeTable("Validate PluginType contains either Value or ValueFrom", func(value *apiextensionsv1.JSON, valueFrom *greenhousev1alpha1.ValueFromSource, expErr bool) {
+		optionValues := []greenhousev1alpha1.PluginOptionValue{
+			{
+				Name:      "test",
+				Value:     value,
+				ValueFrom: valueFrom,
+			},
+		}
+
+		var defaultVal *apiextensionsv1.JSON
+		var optionType greenhousev1alpha1.PluginOptionType
+		switch {
+		case value != nil:
+			defaultVal = value
+			optionType = greenhousev1alpha1.PluginOptionTypeString
+		case valueFrom != nil:
+			defaultVal = test.MustReturnJSONFor(valueFrom.Secret.Name)
+			optionType = greenhousev1alpha1.PluginOptionTypeSecret
+		}
+
+		pluginDefinition := &greenhousev1alpha1.PluginDefinition{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: "greenhouse",
+				Name:      "testPlugin",
+			},
+			Spec: greenhousev1alpha1.PluginDefinitionSpec{
+				Options: []greenhousev1alpha1.PluginOption{
+					{
+						Name:    "test",
+						Default: defaultVal,
+						Type:    optionType,
+					},
+				},
+			},
+		}
+
+		errList := validatePluginOptionValuesForPreset(optionValues, pluginDefinition)
+		switch expErr {
+		case true:
+			Expect(errList).ToNot(BeEmpty(), "expected an error, got nil")
+		default:
+			Expect(errList).To(BeEmpty(), "expected no error, got %v", errList)
+		}
+	},
+		Entry("Value and ValueFrom nil", nil, nil, true),
+		Entry("Value and ValueFrom not nil", test.MustReturnJSONFor("test"), &greenhousev1alpha1.ValueFromSource{Secret: &greenhousev1alpha1.SecretKeyReference{Name: "my-secret"}}, true),
+		Entry("Value not nil", test.MustReturnJSONFor("test"), nil, false),
+		Entry("ValueFrom not nil", nil, &greenhousev1alpha1.ValueFromSource{Secret: &greenhousev1alpha1.SecretKeyReference{Name: "my-secret", Key: "secret-key"}}, false),
+	)
+
+	DescribeTable("Validate PluginOptionValue is consistent with PluginOption Type", func(defaultValue any, defaultType greenhousev1alpha1.PluginOptionType, actValue any, expErr bool) {
+		pluginDefinition := &greenhousev1alpha1.PluginDefinition{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: "greenhouse",
+				Name:      "testPlugin",
+			},
+			Spec: greenhousev1alpha1.PluginDefinitionSpec{
+				Options: []greenhousev1alpha1.PluginOption{
+					{
+						Name:    "test",
+						Default: test.MustReturnJSONFor(defaultValue),
+						Type:    defaultType,
+					},
+				},
+			},
+		}
+
+		optionValues := []greenhousev1alpha1.PluginOptionValue{
+			{
+				Name:  "test",
+				Value: test.MustReturnJSONFor(actValue),
+			},
+		}
+
+		errList := validatePluginOptionValuesForPreset(optionValues, pluginDefinition)
+		switch expErr {
+		case true:
+			Expect(errList).ToNot(BeEmpty(), "expected an error, got nil")
+		default:
+			Expect(errList).To(BeEmpty(), "expected no error, got %v", errList)
+		}
+
+	},
+		Entry("PluginOption Value Consistent With PluginOption Type Bool", false, greenhousev1alpha1.PluginOptionTypeBool, true, false),
+		Entry("PluginOption Value Inconsistent With PluginOption Type Bool", true, greenhousev1alpha1.PluginOptionTypeBool, "notabool", true),
+		Entry("PluginOption Value Consistent With PluginOption Type String", "string", greenhousev1alpha1.PluginOptionTypeString, "mystring", false),
+		Entry("PluginOption Value Consistent With PluginOption Type String Escaped Integer", "1", greenhousev1alpha1.PluginOptionTypeString, "1", false),
+		Entry("PluginOption Value Inconsistent With PluginOption Type String", "string", greenhousev1alpha1.PluginOptionTypeString, 1, true),
+		Entry("PluginOption Value Consistent With PluginOption Type Int", 1, greenhousev1alpha1.PluginOptionTypeInt, 1, false),
+		Entry("PluginOption Value Inconsistent With PluginOption Type Int", 1, greenhousev1alpha1.PluginOptionTypeInt, "one", true),
+		Entry("PluginOption Value Consistent With PluginOption Type List", []string{"one", "two"}, greenhousev1alpha1.PluginOptionTypeList, []string{"one", "two", "three"}, false),
+		Entry("PluginOption Value Inconsistent With PluginOption Type List", []string{"one", "two"}, greenhousev1alpha1.PluginOptionTypeList, "one,two", true),
+		Entry("PluginOption Value Consistent With PluginOption Type Map", map[string]any{"key": "value"}, greenhousev1alpha1.PluginOptionTypeMap, map[string]any{"key": "custom"}, false),
+		Entry("PluginOption Value Inconsistent With PluginOption Type Map", map[string]any{"key": "value"}, greenhousev1alpha1.PluginOptionTypeMap, "one", true),
+		Entry("PluginOption Value Consistent With PluginOption Type Map Nested Map", map[string]any{"key": map[string]any{"nestedKey": "value"}}, greenhousev1alpha1.PluginOptionTypeMap, map[string]any{"key": map[string]any{"nestedKey": "custom"}}, false),
+		Entry("PluginOption Value not supported With PluginOption Type Secret", "", greenhousev1alpha1.PluginOptionTypeSecret, "string", true),
+	)
+
+	DescribeTable("Validate PluginOptionValue references a Secret", func(actValue *greenhousev1alpha1.ValueFromSource, expErr bool) {
+		pluginDefinition := &greenhousev1alpha1.PluginDefinition{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: "greenhouse",
+				Name:      "testPlugin",
+			},
+			Spec: greenhousev1alpha1.PluginDefinitionSpec{
+				Options: []greenhousev1alpha1.PluginOption{
+					{
+						Name: "test",
+						Type: greenhousev1alpha1.PluginOptionTypeSecret,
+					},
+				},
+			},
+		}
+
+		optionValues := []greenhousev1alpha1.PluginOptionValue{
+			{
+				Name:      "test",
+				ValueFrom: actValue,
+			},
+		}
+
+		errList := validatePluginOptionValuesForPreset(optionValues, pluginDefinition)
+		switch expErr {
+		case true:
+			Expect(errList).ToNot(BeEmpty(), "expected an error, got nil")
+		default:
+			Expect(errList).To(BeEmpty(), "expected no error, got %v", errList)
+		}
+	},
+		Entry("PluginOption ValueFrom has a valid SecretReference", &greenhousev1alpha1.ValueFromSource{Secret: &greenhousev1alpha1.SecretKeyReference{Name: "secret", Key: "key"}}, false),
+		Entry("PluginOption ValueFrom is missing SecretReference Name", &greenhousev1alpha1.ValueFromSource{Secret: &greenhousev1alpha1.SecretKeyReference{Key: "key"}}, true),
+		Entry("PluginOption ValueFrom is missing SecretReference Key", &greenhousev1alpha1.ValueFromSource{Secret: &greenhousev1alpha1.SecretKeyReference{Name: "secret"}}, true),
+		Entry("PluginOption ValueFrom does not contain a SecretReference", nil, true),
+	)
+
+	Describe("Validate PluginPreset does not have to specify required options", func() {
+		pluginDefinition := &greenhousev1alpha1.PluginDefinition{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: "greenhouse",
+				Name:      "testPlugin",
+			},
+			Spec: greenhousev1alpha1.PluginDefinitionSpec{
+				Options: []greenhousev1alpha1.PluginOption{
+					{
+						Name:     "test",
+						Type:     greenhousev1alpha1.PluginOptionTypeString,
+						Required: true,
+					},
+				},
+			},
+		}
+		It("should accept a PluginPreset with missing required options", func() {
+			pluginPreset := &greenhousev1alpha1.PluginPreset{
+				TypeMeta: metav1.TypeMeta{
+					Kind:       "PluginPreset",
+					APIVersion: greenhousev1alpha1.GroupVersion.String(),
+				},
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "test-plugin-preset",
+					Namespace: test.TestNamespace,
+				},
+				Spec: greenhousev1alpha1.PluginPresetSpec{
+					Plugin: greenhousev1alpha1.PluginSpec{
+						PluginDefinition: "test",
+						ClusterName:      "test-cluster",
+						OptionValues:     []greenhousev1alpha1.PluginOptionValue{},
+					},
+				},
+			}
+			errList := validatePluginOptionValuesForPreset(pluginPreset.Spec.Plugin.OptionValues, pluginDefinition)
+			Expect(errList).To(BeEmpty(), "unexpected error")
+		})
 	})
 })
