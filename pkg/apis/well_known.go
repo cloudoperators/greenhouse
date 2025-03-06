@@ -14,6 +14,9 @@ const (
 	// SecretTypeKubeConfig specifies a secret containing the kubeconfig for a cluster.
 	SecretTypeKubeConfig corev1.SecretType = "greenhouse.sap/kubeconfig"
 
+	// SecretTypeOIDCConfig specifies a secret containing the OIDC configuration for a cluster.
+	SecretTypeOIDCConfig corev1.SecretType = "greenhouse.sap/oidc"
+
 	// KubeConfigKey is the key for the user-provided kubeconfig in the secret of type greenhouse.sap/kubeconfig.
 	KubeConfigKey = "kubeconfig"
 
@@ -61,11 +64,21 @@ const (
 	RolebindingTeamRefField = ".spec.teamRef"
 )
 
-// cluster deletion annotations and condition
+// cluster annotations
 const (
 	// MarkClusterDeletionAnnotation is used to mark a cluster for deletion.
 	MarkClusterDeletionAnnotation = "greenhouse.sap/delete-cluster"
 	// ScheduleClusterDeletionAnnotation is used to schedule a cluster for deletion.
 	// Timestamp is set by mutating webhook if cluster is marked for deletion.
 	ScheduleClusterDeletionAnnotation = "greenhouse.sap/deletion-schedule"
+	ClusterConnectivityAnnotation     = "greenhouse.sap/cluster-connectivity"
+	ClusterConnectivityKubeconfig     = "kubeconfig"
+	ClusterConnectivityOIDC           = "oidc"
+)
+
+const (
+	SecretAPIServerURLAnnotation          = "oidc.greenhouse.sap/api-server-url"
+	SecretAPIServerCAKey                  = "ca.crt"
+	OIDCAudience                          = "greenhouse"
+	SecretOIDCConfigGeneratedOnAnnotation = "oidc.greenhouse.sap/oidc-token-last-updated"
 )
