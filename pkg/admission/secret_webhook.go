@@ -6,7 +6,6 @@ package admission
 import (
 	"context"
 	"encoding/base64"
-	"net/url"
 
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -104,7 +103,7 @@ func validateSecretGreenHouseType(ctx context.Context, secret *corev1.Secret) er
 func validateGreenhouseOIDCType(secret *corev1.Secret) error {
 	annotations := secret.GetAnnotations()
 	serverURL, ok := annotations[greenhouseapis.SecretAPIServerURLAnnotation]
-	if !ok || !isValidURL(serverURL) {
+	if !ok || !validateURL(serverURL) {
 		return apierrors.NewInvalid(secret.GroupVersionKind().GroupKind(), secret.GetName(), field.ErrorList{
 			field.Required(field.NewPath("metadata").Child(greenhouseapis.SecretAPIServerURLAnnotation), "The secret is missing the APIServerURL annotation."),
 		})
@@ -168,12 +167,4 @@ func validateKubeConfig(kubeconfig []byte) error {
 		return err
 	}
 	return clientcmd.ConfirmUsable(*apiConfig, apiConfig.CurrentContext)
-}
-
-func isValidURL(serverURL string) bool {
-	parsed, err := url.Parse(serverURL)
-	if err != nil {
-		return false
-	}
-	return parsed.Scheme == "https" && parsed.Host != ""
 }
