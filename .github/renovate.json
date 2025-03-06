@@ -11,7 +11,7 @@
     "github.com/dexidp/dex"
   ],
   "flux": {
-    "fileMatch": ["^.*/.*/flux-installation-relese\\.ya?ml$"]
+    "fileMatch": ["^.*/.*/flux-installation-release\\.ya?ml$"]
   },
   "customManagers": [
     {
