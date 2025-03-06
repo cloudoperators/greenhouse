@@ -16,13 +16,28 @@ func TestExtractErrorsFromTestPodLogs(t *testing.T) {
 	}{
 		{
 			"Single not ok log",
-			"1..1\nnot ok 1 Test Health\n# (in test file /tests/run.sh, line 5)\n#   `[ \"$code\" == \"200\" ]' failed\nstream closed EOF for kube-monitoring/plutono-test (plutono-test)",
-			"not ok 1 Test Health\n# (in test file /tests/run.sh, line 5)\n#   `[ \"$code\" == \"200\" ]' failed\nstream closed EOF for kube-monitoring/plutono-test (plutono-test)",
+			"1..1\nnot ok 1 Test Health\n# (in test file /tests/run.sh, line 5)\n#   `[ \"$code\" == \"200\" ]' failed\n",
+			"not ok 1 Test Health\n# (in test file /tests/run.sh, line 5)\n#   `[ \"$code\" == \"200\" ]' failed\n",
 		},
 		{
 			"Mixed logs with ok and not ok",
 			"1..9\nnot ok 1 Verify successful deployment\n# Failure details\nok 2 Success message\nnot ok 3 Another failure\n# More failure details\n# Additional debug info\n# Checking deployment state\nnot ok 4 Third failure\n# Additional failure details\nnot ok 5 Fourth failure\n# More deep failure details",
 			"not ok 1 Verify successful deployment\n# Failure details\n\nnot ok 3 Another failure\n# More failure details\n# Additional debug info\n# Checking deployment state\n\nnot ok 4 Third failure\n# Additional failure details\n\nnot ok 5 Fourth failure\n# More deep failure details",
+		},
+		{
+			"Don't capture logs when the test doesn't use bats framework",
+			"wget: bad address 'testietest:9771'\n",
+			"",
+		},
+		{
+			"Ignore unrelated system errors",
+			"[ERROR] Could not connect to database\n[INFO] Retrying in 5 seconds\n",
+			"",
+		},
+		{
+			"Ignore generic runtime logs",
+			"Starting test execution...\nTest suite initialized\nAll dependencies resolved\n",
+			"",
 		},
 	}
 

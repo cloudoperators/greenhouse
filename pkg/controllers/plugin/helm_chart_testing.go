@@ -116,7 +116,9 @@ func extractErrorsFromTestPodLogs(testPodLogs string) string {
 		default:
 			if errorBlock.Len() > 0 {
 				// Append additional lines related to the failure
-				errorBlock.WriteString(line + "\n")
+				if strings.HasPrefix(line, "#") {
+					errorBlock.WriteString(line + "\n")
+				}
 			}
 		}
 	}
