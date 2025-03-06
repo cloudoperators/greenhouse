@@ -98,6 +98,17 @@ type SCIMConfig struct {
 	BearerHeader string `json:"bearerHeader,omitempty"`
 }
 
+type AuthSecretConfig struct {
+	// OIDC Secret values
+	OIDCClientID     string `json:"oidcClientID"`
+	OIDCClientSecret string `json:"oidcClientSecret"`
+
+	// SCIM Secret values
+	SCIMBasicAuthUser     string `json:"scimBasicAuthUser"`
+	SCIMBasicAuthPassword string `json:"scimBasicAuthPassword"`
+	SCIMBearerToken       string `json:"scimBearerToken"`
+}
+
 // OrganizationStatus defines the observed state of an Organization
 type OrganizationStatus struct {
 	// StatusConditions contain the different conditions that constitute the status of the Organization.
