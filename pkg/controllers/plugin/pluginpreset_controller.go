@@ -108,7 +108,7 @@ func (r *PluginPresetReconciler) EnsureCreated(ctx context.Context, resource lif
 		return ctrl.Result{}, lifecycle.Failed, err
 	}
 
-	err = r.reconcilePluginStatuses(ctx, pluginPreset, clusters)
+	err = r.reconcilePluginStatuses(ctx, pluginPreset)
 	if err != nil {
 		return ctrl.Result{}, lifecycle.Failed, err
 	}
@@ -215,38 +215,29 @@ func (r *PluginPresetReconciler) reconcilePluginPreset(ctx context.Context, pres
 
 // reconcilePluginStatuses updates plugin statuses in PluginPreset for every Plugin managed by the Preset.
 func (r *PluginPresetReconciler) reconcilePluginStatuses(
-	ctx context.Context, preset *greenhousev1alpha1.PluginPreset, clusters *greenhousev1alpha1.ClusterList,
+	ctx context.Context, preset *greenhousev1alpha1.PluginPreset,
 ) error {
 
-	pluginStatuses := make([]greenhousev1alpha1.ManagedPluginStatus, 0, len(clusters.Items))
+	// List all Plugins that are managed by the PluginPreset.
+	plugins, err := r.listPlugins(ctx, preset)
+	if err != nil {
+		return err
+	}
+
+	pluginStatuses := make([]greenhousev1alpha1.ManagedPluginStatus, 0, len(plugins.Items))
 	readyPluginsCount := 0
 	failedPluginsCount := 0
 
-	for _, cluster := range clusters.Items {
-		if !cluster.DeletionTimestamp.IsZero() {
-			// Skip cluster that is being removed (but should already be filtered out earlier).
-			continue
-		}
-
-		plugin := &greenhousev1alpha1.Plugin{}
-		err := r.Get(ctx, client.ObjectKey{Namespace: preset.GetNamespace(), Name: generatePluginName(preset, &cluster)}, plugin)
-		if err != nil {
-			return err
-		}
-
-		if !isPluginManagedByPreset(plugin, preset.Name) {
-			// Skip statuses of plugins not managed by the preset.
-			continue
-		}
-
+	for _, plugin := range plugins.Items {
 		pluginReadyCondition := plugin.Status.GetConditionByType(greenhousev1alpha1.ReadyCondition)
-		if pluginReadyCondition == nil {
+
+		switch {
+		case pluginReadyCondition == nil:
 			// Plugin exists, but its Ready condition is not set - treat it as unavailable.
 			continue
-		}
-		if pluginReadyCondition.IsTrue() {
+		case pluginReadyCondition.IsTrue():
 			readyPluginsCount++
-		} else {
+		default:
 			failedPluginsCount++
 		}
 
