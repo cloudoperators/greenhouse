@@ -144,7 +144,7 @@ var _ = Describe("Validate Team Creation", func() {
 			Expect(err.Error()).To(ContainSubstring("JoinURL must be a valid 'http:' or 'https:' URL, like 'https://example.com'."))
 		})
 		By("correctly allowing update of a team with valid JoinURL", func() {
-			teamValidJoinURL.Spec.JoinURL = "http://1.1.1.1:80"
+			teamValidJoinURL.Spec.JoinURL = "https://1.1.1.1:80"
 			err := test.K8sClient.Update(test.Ctx, &teamValidJoinURL)
 			Expect(err).ToNot(HaveOccurred(), "There should be no error when updating a team with valid JoinURL")
 		})

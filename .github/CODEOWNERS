@@ -21,7 +21,6 @@
 /docs/reference/api       @cloudoperators/greenhouse-backend
 /charts/                  @cloudoperators/greenhouse-backend
 /cmd/                     @cloudoperators/greenhouse-backend
-/grafana/                 @cloudoperators/greenhouse-backend
 /hack/                    @cloudoperators/greenhouse-backend
 /pkg/                     @cloudoperators/greenhouse-backend
 /test/                    @cloudoperators/greenhouse-backend
