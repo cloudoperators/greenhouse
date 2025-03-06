@@ -115,7 +115,7 @@ func validateURL(str string) bool {
 	if err != nil || parsedURL.Scheme == "" || parsedURL.Host == "" {
 		return false
 	}
-	return parsedURL.Scheme == "http" || parsedURL.Scheme == "https"
+	return parsedURL.Scheme == "https"
 }
 
 // logAdmissionRequest logs the AdmissionRequest.
