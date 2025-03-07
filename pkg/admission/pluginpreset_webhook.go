@@ -146,7 +146,7 @@ func ValidateDeletePluginPreset(_ context.Context, _ client.Client, obj runtime.
 }
 
 // validatePluginOptionValuesForPreset validates plugin options and checks the required ones, but does not enforce them completely.
-// Required options are checked at the Plugin creation level, because the preset can override options and we cannot predict what clusters will be a part of the PluginPreset later on.
+// Required options are also checked at the Plugin creation level, because the preset can override options and we cannot predict what clusters will be a part of the PluginPreset later on.
 func validatePluginOptionValuesForPreset(pluginPreset *greenhousev1alpha1.PluginPreset, pluginDefinition *greenhousev1alpha1.PluginDefinition) field.ErrorList {
 	var allErrs field.ErrorList
 
@@ -216,13 +216,12 @@ func validatePluginPresetOptionValuesAgainstPluginDefinition(
 		}
 	}
 	return allErrs
-
 }
 
 // validateRequiredOptionsForPreset validates that all Plugin options marked as required in PluginDefinition have their values set.
 // Either in .Spec.Plugin.OptionValues or in .Spec.ClusterOptionOverrides for a specific Cluster.
 // It's allowed not to specify the required values if Overrides for a cluster are not created.
-// This will be validated later, on Plugin-creation level, as we cannot predict which clusters will be managed by a PluginPreset.
+// This will be validated later, on Plugin-creation level, as we cannot predict all clusters that will be managed by a PluginPreset.
 func validateRequiredOptionsForPreset(pluginPreset *greenhousev1alpha1.PluginPreset, pluginDefinition *greenhousev1alpha1.PluginDefinition) field.ErrorList {
 	var allErrs field.ErrorList
 
