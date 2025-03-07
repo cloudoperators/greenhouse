@@ -145,14 +145,21 @@ func ValidateDeletePluginPreset(_ context.Context, _ client.Client, obj runtime.
 	return nil, nil
 }
 
-// validatePluginOptionValuesForPreset validates plugin options, but does not enforce the required ones.
+// validatePluginOptionValuesForPreset validates plugin options and checks the required ones, but does not enforce them completely.
 // Required options are checked at the Plugin creation level, because the preset can override options and we cannot predict what clusters will be a part of the PluginPreset later on.
 func validatePluginOptionValuesForPreset(pluginPreset *greenhousev1alpha1.PluginPreset, pluginDefinition *greenhousev1alpha1.PluginDefinition) field.ErrorList {
 	var allErrs field.ErrorList
-	errors := validatePluginOptionValuesAgainstPluginDefinition(pluginPreset.Spec.Plugin.OptionValues, pluginDefinition)
+
+	optionValuesPath := field.NewPath("spec").Child("plugin").Child("optionValues")
+	errors := validatePluginPresetOptionValuesAgainstPluginDefinition(pluginPreset.Spec.Plugin.OptionValues, optionValuesPath, pluginDefinition)
 	allErrs = append(allErrs, errors...)
-	errors = validateClusterOptionOverridesAgainstPluginDefinition(pluginPreset.Spec.ClusterOptionOverrides, pluginDefinition)
-	allErrs = append(allErrs, errors...)
+
+	for idx, overridesForSingleCluster := range pluginPreset.Spec.ClusterOptionOverrides {
+		optionOverridesPath := field.NewPath("spec").Child("clusterOptionOverrides").Index(idx).Child("overrides")
+		errors = validatePluginPresetOptionValuesAgainstPluginDefinition(overridesForSingleCluster.Overrides, optionOverridesPath, pluginDefinition)
+		allErrs = append(allErrs, errors...)
+	}
+
 	errors = validateRequiredOptionsForPreset(pluginPreset, pluginDefinition)
 	allErrs = append(allErrs, errors...)
 
@@ -162,14 +169,19 @@ func validatePluginOptionValuesForPreset(pluginPreset *greenhousev1alpha1.Plugin
 	return allErrs
 }
 
-func validatePluginOptionValuesAgainstPluginDefinition(optionValues []greenhousev1alpha1.PluginOptionValue, pluginDefinition *greenhousev1alpha1.PluginDefinition) field.ErrorList {
+func validatePluginPresetOptionValuesAgainstPluginDefinition(
+	optionValues []greenhousev1alpha1.PluginOptionValue,
+	fieldPathToOptions *field.Path,
+	pluginDefinition *greenhousev1alpha1.PluginDefinition,
+) field.ErrorList {
+
 	var allErrs field.ErrorList
 	for _, pluginOption := range pluginDefinition.Spec.Options {
 		for idx, val := range optionValues {
 			if pluginOption.Name != val.Name {
 				continue
 			}
-			fieldPathWithIndex := field.NewPath("spec").Child("plugin").Child("optionValues").Index(idx)
+			fieldPathWithIndex := fieldPathToOptions.Index(idx)
 
 			// Value and ValueFrom are mutually exclusive, but one must be provided.
 			if (val.Value == nil && val.ValueFrom == nil) || (val.Value != nil && val.ValueFrom != nil) {
@@ -204,54 +216,7 @@ func validatePluginOptionValuesAgainstPluginDefinition(optionValues []greenhouse
 		}
 	}
 	return allErrs
-}
 
-func validateClusterOptionOverridesAgainstPluginDefinition(clusterOptionOverrides []greenhousev1alpha1.ClusterOptionOverride, pluginDefinition *greenhousev1alpha1.PluginDefinition) field.ErrorList {
-	var allErrs field.ErrorList
-	for idx, overridesForSingleCluster := range clusterOptionOverrides {
-		fieldPathWithIndex := field.NewPath("spec").Child("clusterOptionOverrides").Index(idx)
-
-		for _, pluginOption := range pluginDefinition.Spec.Options {
-			for idx, val := range overridesForSingleCluster.Overrides {
-				if pluginOption.Name != val.Name {
-					continue
-				}
-				fieldPathWithIndex := fieldPathWithIndex.Child("overrides").Index(idx)
-
-				// Value and ValueFrom are mutually exclusive, but one must be provided.
-				if (val.Value == nil && val.ValueFrom == nil) || (val.Value != nil && val.ValueFrom != nil) {
-					allErrs = append(allErrs, field.Required(
-						fieldPathWithIndex,
-						"must provide either value or valueFrom for value "+val.Name,
-					))
-					continue
-				}
-
-				// Validate that OptionValue has a secret reference.
-				if pluginOption.Type == greenhousev1alpha1.PluginOptionTypeSecret {
-					err := validatePluginOptionOfSecretType(val, fieldPathWithIndex)
-					if err != nil {
-						allErrs = append(allErrs, err)
-					}
-					continue
-				}
-
-				// validate that the OptionValue matches the type of the PluginDefinition.Option
-				if val.Value != nil {
-					if err := pluginOption.IsValidValue(val.Value); err != nil {
-						var v any
-						if err := json.Unmarshal(val.Value.Raw, &v); err != nil {
-							v = err
-						}
-						allErrs = append(allErrs, field.Invalid(
-							fieldPathWithIndex.Child("value"), v, err.Error(),
-						))
-					}
-				}
-			}
-		}
-	}
-	return allErrs
 }
 
 // validateRequiredOptionsForPreset validates that all Plugin options marked as required in PluginDefinition have their values set.
