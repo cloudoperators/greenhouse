@@ -86,9 +86,9 @@
           "(?:^|flux/.*/)kustomization\\.ya?ml$"
       ],
       "matchStrings": [
-          "github.com.(?<packageName>.*).releases.download.(?<currentValue>.*)/"
+          "github.com.(?<packageName>.*).manifests.install.ref.(?<currentValue>.*)"
       ],
-      "datasourceTemplate": "github-tags"
+      "datasourceTemplate": "github-releases"
     }
   ],
   "packageRules": [
@@ -190,48 +190,6 @@
           "cloudoperators/greenhouse"
       ],
       "ignoreUnstable": false
-    },
-    {
-      "groupName": "helm-controller",
-      "matchPackageNames": [
-          "fluxcd/helm-controller",
-          "ghcr.io/fluxcd/helm-controller"
-      ]
-    },
-    {
-        "groupName": "image-automation-controller",
-        "matchPackageNames": [
-            "fluxcd/image-automation-controller",
-            "ghcr.io/fluxcd/image-automation-controller"
-        ]
-    },
-    {
-        "groupName": "image-reflector-controller",
-        "matchPackageNames": [
-            "fluxcd/image-reflector-controller",
-            "ghcr.io/fluxcd/image-reflector-controller"
-        ]
-    },
-    {
-        "groupName": "kustomize-controller",
-        "matchPackageNames": [
-            "fluxcd/kustomize-controller",
-            "ghcr.io/fluxcd/kustomize-controller"
-        ]
-    },
-    {
-        "groupName": "notification-controller",
-        "matchPackageNames": [
-            "fluxcd/notification-controller",
-            "ghcr.io/fluxcd/notification-controller"
-        ]
-    },
-    {
-        "groupName": "source-controller",
-        "matchPackageNames": [
-            "fluxcd/source-controller",
-            "ghcr.io/fluxcd/source-controller"
-        ]
     }
   ],
   "postUpdateOptions": [
