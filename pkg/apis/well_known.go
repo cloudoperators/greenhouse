@@ -17,6 +17,7 @@ const (
 	// SecretTypeOIDCConfig specifies a secret containing the OIDC configuration for a cluster.
 	SecretTypeOIDCConfig corev1.SecretType = "greenhouse.sap/oidc"
 
+	// OrganizationSecretType specifies a secret containing the kubeconfig for an organization.
 	OrganizationSecretType = "greenhouse.sap/orgconfig"
 
 	// KubeConfigKey is the key for the user-provided kubeconfig in the secret of type greenhouse.sap/kubeconfig.
