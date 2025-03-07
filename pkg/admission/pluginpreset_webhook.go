@@ -7,6 +7,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"slices"
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -87,7 +88,7 @@ func ValidateCreatePluginPreset(ctx context.Context, c client.Client, o runtime.
 	}
 
 	// validate OptionValues defined by the Preset
-	if errList := validatePluginOptionValuesForPreset(pluginPreset.Spec.Plugin.OptionValues, pluginDefinition); len(errList) > 0 {
+	if errList := validatePluginOptionValuesForPreset(pluginPreset, pluginDefinition); len(errList) > 0 {
 		allErrs = append(allErrs, errList...)
 	}
 
@@ -146,14 +147,29 @@ func ValidateDeletePluginPreset(_ context.Context, _ client.Client, obj runtime.
 
 // validatePluginOptionValuesForPreset validates plugin options, but does not enforce the required ones.
 // Required options are checked at the Plugin creation level, because the preset can override options and we cannot predict what clusters will be a part of the PluginPreset later on.
-func validatePluginOptionValuesForPreset(optionValues []greenhousev1alpha1.PluginOptionValue, pluginDefinition *greenhousev1alpha1.PluginDefinition) field.ErrorList {
+func validatePluginOptionValuesForPreset(pluginPreset *greenhousev1alpha1.PluginPreset, pluginDefinition *greenhousev1alpha1.PluginDefinition) field.ErrorList {
+	var allErrs field.ErrorList
+	errors := validatePluginOptionValuesAgainstPluginDefinition(pluginPreset.Spec.Plugin.OptionValues, pluginDefinition)
+	allErrs = append(allErrs, errors...)
+	errors = validateClusterOptionOverridesAgainstPluginDefinition(pluginPreset.Spec.ClusterOptionOverrides, pluginDefinition)
+	allErrs = append(allErrs, errors...)
+	errors = validateRequiredOptionsForPreset(pluginPreset, pluginDefinition)
+	allErrs = append(allErrs, errors...)
+
+	if len(allErrs) == 0 {
+		return nil
+	}
+	return allErrs
+}
+
+func validatePluginOptionValuesAgainstPluginDefinition(optionValues []greenhousev1alpha1.PluginOptionValue, pluginDefinition *greenhousev1alpha1.PluginDefinition) field.ErrorList {
 	var allErrs field.ErrorList
 	for _, pluginOption := range pluginDefinition.Spec.Options {
 		for idx, val := range optionValues {
 			if pluginOption.Name != val.Name {
 				continue
 			}
-			fieldPathWithIndex := field.NewPath("spec").Child("optionValues").Index(idx)
+			fieldPathWithIndex := field.NewPath("spec").Child("plugin").Child("optionValues").Index(idx)
 
 			// Value and ValueFrom are mutually exclusive, but one must be provided.
 			if (val.Value == nil && val.ValueFrom == nil) || (val.Value != nil && val.ValueFrom != nil) {
@@ -166,22 +182,9 @@ func validatePluginOptionValuesForPreset(optionValues []greenhousev1alpha1.Plugi
 
 			// Validate that OptionValue has a secret reference.
 			if pluginOption.Type == greenhousev1alpha1.PluginOptionTypeSecret {
-				switch {
-				case val.Value != nil:
-					allErrs = append(allErrs, field.TypeInvalid(fieldPathWithIndex.Child("value"), "*****",
-						fmt.Sprintf("optionValue %s of type secret must use valueFrom to reference a secret", val.Name)))
-					continue
-				case val.ValueFrom != nil:
-					if val.ValueFrom.Secret.Name == "" {
-						allErrs = append(allErrs, field.Required(fieldPathWithIndex.Child("valueFrom").Child("name"),
-							fmt.Sprintf("optionValue %s of type secret must reference a secret by name", val.Name)))
-						continue
-					}
-					if val.ValueFrom.Secret.Key == "" {
-						allErrs = append(allErrs, field.Required(fieldPathWithIndex.Child("valueFrom").Child("key"),
-							fmt.Sprintf("optionValue %s of type secret must reference a key in a secret", val.Name)))
-						continue
-					}
+				err := validatePluginOptionOfSecretType(val, fieldPathWithIndex)
+				if err != nil {
+					allErrs = append(allErrs, err)
 				}
 				continue
 			}
@@ -200,8 +203,112 @@ func validatePluginOptionValuesForPreset(optionValues []greenhousev1alpha1.Plugi
 			}
 		}
 	}
-	if len(allErrs) == 0 {
-		return nil
+	return allErrs
+}
+
+func validateClusterOptionOverridesAgainstPluginDefinition(clusterOptionOverrides []greenhousev1alpha1.ClusterOptionOverride, pluginDefinition *greenhousev1alpha1.PluginDefinition) field.ErrorList {
+	var allErrs field.ErrorList
+	for idx, overridesForSingleCluster := range clusterOptionOverrides {
+		fieldPathWithIndex := field.NewPath("spec").Child("clusterOptionOverrides").Index(idx)
+
+		for _, pluginOption := range pluginDefinition.Spec.Options {
+			for idx, val := range overridesForSingleCluster.Overrides {
+				if pluginOption.Name != val.Name {
+					continue
+				}
+				fieldPathWithIndex := fieldPathWithIndex.Child("overrides").Index(idx)
+
+				// Value and ValueFrom are mutually exclusive, but one must be provided.
+				if (val.Value == nil && val.ValueFrom == nil) || (val.Value != nil && val.ValueFrom != nil) {
+					allErrs = append(allErrs, field.Required(
+						fieldPathWithIndex,
+						"must provide either value or valueFrom for value "+val.Name,
+					))
+					continue
+				}
+
+				// Validate that OptionValue has a secret reference.
+				if pluginOption.Type == greenhousev1alpha1.PluginOptionTypeSecret {
+					err := validatePluginOptionOfSecretType(val, fieldPathWithIndex)
+					if err != nil {
+						allErrs = append(allErrs, err)
+					}
+					continue
+				}
+
+				// validate that the OptionValue matches the type of the PluginDefinition.Option
+				if val.Value != nil {
+					if err := pluginOption.IsValidValue(val.Value); err != nil {
+						var v any
+						if err := json.Unmarshal(val.Value.Raw, &v); err != nil {
+							v = err
+						}
+						allErrs = append(allErrs, field.Invalid(
+							fieldPathWithIndex.Child("value"), v, err.Error(),
+						))
+					}
+				}
+			}
+		}
 	}
 	return allErrs
+}
+
+// validateRequiredOptionsForPreset validates that all Plugin options marked as required in PluginDefinition have their values set.
+// Either in .Spec.Plugin.OptionValues or in .Spec.ClusterOptionOverrides for a specific Cluster.
+// It's allowed not to specify the required values if Overrides for a cluster are not created.
+// This will be validated later, on Plugin-creation level, as we cannot predict which clusters will be managed by a PluginPreset.
+func validateRequiredOptionsForPreset(pluginPreset *greenhousev1alpha1.PluginPreset, pluginDefinition *greenhousev1alpha1.PluginDefinition) field.ErrorList {
+	var allErrs field.ErrorList
+
+	for _, option := range pluginDefinition.Spec.Options {
+		if !option.Required {
+			continue
+		}
+		index := slices.IndexFunc(pluginPreset.Spec.Plugin.OptionValues, func(value greenhousev1alpha1.PluginOptionValue) bool {
+			return value.Name == option.Name
+		})
+		if index >= 0 {
+			// Value for the required option is defined in Spec.Plugin.OptionValues.
+			// PluginPreset may or may not override those values for specific clusters.
+			continue
+		}
+
+		// PluginSpec does not specify the required option.
+		// That's why overrides must define the required option for every cluster.
+		for idx, clusterOptionOverride := range pluginPreset.Spec.ClusterOptionOverrides {
+			index = slices.IndexFunc(clusterOptionOverride.Overrides, func(value greenhousev1alpha1.PluginOptionValue) bool {
+				return value.Name == option.Name
+			})
+			if index >= 0 {
+				// Value for the required option is present for this Cluster.
+				continue
+			}
+
+			fieldPathWithIndex := field.NewPath("spec").Child("clusterOptionOverrides").Index(idx)
+			allErrs = append(allErrs, field.Required(fieldPathWithIndex,
+				fmt.Sprintf("Option '%s' is required by PluginDefinition '%s' and is missing for Cluster '%s'",
+					option.Name, pluginDefinition.Name, clusterOptionOverride.ClusterName)))
+		}
+	}
+
+	return allErrs
+}
+
+func validatePluginOptionOfSecretType(optionValue greenhousev1alpha1.PluginOptionValue, fieldPathWithIndex *field.Path) *field.Error {
+	switch {
+	case optionValue.Value != nil:
+		return field.TypeInvalid(fieldPathWithIndex.Child("value"), "*****",
+			fmt.Sprintf("optionValue %s of type secret must use valueFrom to reference a secret", optionValue.Name))
+	case optionValue.ValueFrom != nil:
+		if optionValue.ValueFrom.Secret.Name == "" {
+			return field.Required(fieldPathWithIndex.Child("valueFrom").Child("name"),
+				fmt.Sprintf("optionValue %s of type secret must reference a secret by name", optionValue.Name))
+		}
+		if optionValue.ValueFrom.Secret.Key == "" {
+			return field.Required(fieldPathWithIndex.Child("valueFrom").Child("key"),
+				fmt.Sprintf("optionValue %s of type secret must reference a key in a secret", optionValue.Name))
+		}
+	}
+	return nil
 }

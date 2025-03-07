@@ -212,11 +212,27 @@ var _ = Describe("PluginPreset Admission Tests", Ordered, func() {
 
 var _ = Describe("Validate Plugin OptionValues for PluginPreset", func() {
 	DescribeTable("Validate PluginType contains either Value or ValueFrom", func(value *apiextensionsv1.JSON, valueFrom *greenhousev1alpha1.ValueFromSource, expErr bool) {
-		optionValues := []greenhousev1alpha1.PluginOptionValue{
-			{
-				Name:      "test",
-				Value:     value,
-				ValueFrom: valueFrom,
+		pluginPreset := &greenhousev1alpha1.PluginPreset{
+			TypeMeta: metav1.TypeMeta{
+				Kind:       "PluginPreset",
+				APIVersion: greenhousev1alpha1.GroupVersion.String(),
+			},
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "test-plugin-preset",
+				Namespace: test.TestNamespace,
+			},
+			Spec: greenhousev1alpha1.PluginPresetSpec{
+				Plugin: greenhousev1alpha1.PluginSpec{
+					PluginDefinition: "test",
+					ClusterName:      "test-cluster",
+					OptionValues: []greenhousev1alpha1.PluginOptionValue{
+						{
+							Name:      "test",
+							Value:     value,
+							ValueFrom: valueFrom,
+						},
+					},
+				},
 			},
 		}
 
@@ -247,7 +263,7 @@ var _ = Describe("Validate Plugin OptionValues for PluginPreset", func() {
 			},
 		}
 
-		errList := validatePluginOptionValuesForPreset(optionValues, pluginDefinition)
+		errList := validatePluginOptionValuesForPreset(pluginPreset, pluginDefinition)
 		switch expErr {
 		case true:
 			Expect(errList).ToNot(BeEmpty(), "expected an error, got nil")
@@ -278,14 +294,30 @@ var _ = Describe("Validate Plugin OptionValues for PluginPreset", func() {
 			},
 		}
 
-		optionValues := []greenhousev1alpha1.PluginOptionValue{
-			{
-				Name:  "test",
-				Value: test.MustReturnJSONFor(actValue),
+		pluginPreset := &greenhousev1alpha1.PluginPreset{
+			TypeMeta: metav1.TypeMeta{
+				Kind:       "PluginPreset",
+				APIVersion: greenhousev1alpha1.GroupVersion.String(),
+			},
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "test-plugin-preset",
+				Namespace: test.TestNamespace,
+			},
+			Spec: greenhousev1alpha1.PluginPresetSpec{
+				Plugin: greenhousev1alpha1.PluginSpec{
+					PluginDefinition: "test",
+					ClusterName:      "test-cluster",
+					OptionValues: []greenhousev1alpha1.PluginOptionValue{
+						{
+							Name:  "test",
+							Value: test.MustReturnJSONFor(actValue),
+						},
+					},
+				},
 			},
 		}
 
-		errList := validatePluginOptionValuesForPreset(optionValues, pluginDefinition)
+		errList := validatePluginOptionValuesForPreset(pluginPreset, pluginDefinition)
 		switch expErr {
 		case true:
 			Expect(errList).ToNot(BeEmpty(), "expected an error, got nil")
@@ -325,14 +357,29 @@ var _ = Describe("Validate Plugin OptionValues for PluginPreset", func() {
 			},
 		}
 
-		optionValues := []greenhousev1alpha1.PluginOptionValue{
-			{
-				Name:      "test",
-				ValueFrom: actValue,
+		pluginPreset := &greenhousev1alpha1.PluginPreset{
+			TypeMeta: metav1.TypeMeta{
+				Kind:       "PluginPreset",
+				APIVersion: greenhousev1alpha1.GroupVersion.String(),
+			},
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "test-plugin-preset",
+				Namespace: test.TestNamespace,
+			},
+			Spec: greenhousev1alpha1.PluginPresetSpec{
+				Plugin: greenhousev1alpha1.PluginSpec{
+					PluginDefinition: "test",
+					OptionValues: []greenhousev1alpha1.PluginOptionValue{
+						{
+							Name:      "test",
+							ValueFrom: actValue,
+						},
+					},
+				},
 			},
 		}
 
-		errList := validatePluginOptionValuesForPreset(optionValues, pluginDefinition)
+		errList := validatePluginOptionValuesForPreset(pluginPreset, pluginDefinition)
 		switch expErr {
 		case true:
 			Expect(errList).ToNot(BeEmpty(), "expected an error, got nil")
@@ -380,7 +427,7 @@ var _ = Describe("Validate Plugin OptionValues for PluginPreset", func() {
 					},
 				},
 			}
-			errList := validatePluginOptionValuesForPreset(pluginPreset.Spec.Plugin.OptionValues, pluginDefinition)
+			errList := validatePluginOptionValuesForPreset(pluginPreset, pluginDefinition)
 			Expect(errList).To(BeEmpty(), "unexpected error")
 		})
 	})
