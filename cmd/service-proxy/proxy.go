@@ -157,7 +157,7 @@ func (pm *ProxyManager) SetupWithManager(name string, mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		Named(name).
 		For(&v1.Secret{}, builder.WithPredicates(
-			clientutil.PredicateFilterBySecretType(greenhouseapis.SecretTypeKubeConfig),
+			clientutil.PredicateFilterBySecretTypes(greenhouseapis.SecretTypeKubeConfig, greenhouseapis.SecretTypeOIDCConfig),
 		)).
 		// Watch plugins to be notified about exposed services
 		Watches(&greenhousev1alpha1.Plugin{}, handler.EnqueueRequestsFromMapFunc(enqueuePluginForCluster)).
