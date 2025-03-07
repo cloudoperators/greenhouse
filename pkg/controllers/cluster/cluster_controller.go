@@ -254,7 +254,9 @@ func (r *RemoteClusterReconciler) reconcileServiceAccountToken(
 		return err
 	}
 	result, err := clientutil.CreateOrPatch(ctx, t.InClusterClient, kubeConfigSecret, func() error {
-		kubeConfigSecret.Annotations[greenhouseapis.SecretOIDCConfigGeneratedOnAnnotation] = metav1.Now().Format(time.DateTime)
+		if secretType == greenhouseapis.SecretTypeOIDCConfig {
+			kubeConfigSecret.Annotations[greenhouseapis.SecretOIDCConfigGeneratedOnAnnotation] = metav1.Now().Format(time.DateTime)
+		}
 		kubeConfigSecret.Data[greenhouseapis.GreenHouseKubeConfigKey] = generatedKubeConfig
 		return nil
 	})
