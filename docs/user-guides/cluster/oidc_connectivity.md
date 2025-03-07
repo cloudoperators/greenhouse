@@ -3,7 +3,7 @@ title: "Remote Cluster Connectivity with OIDC"
 linkTitle: "Remote Cluster Connectivity with OIDC"
 weight: 2
 description: >
-  Onboard an existing Kubernetes cluster to Greenhouse with OIDC configuration.
+  Onboard an existing Kubernetes cluster to Greenhouse, with OIDC configuration.
 ---
 
 ## Content Overview
@@ -13,9 +13,9 @@ description: >
 - [Onboard](#onboard)
 - [Troubleshooting](#troubleshooting)
 
-This guides describes how to onboard an existing Kubernetes cluster to your Greenhouse organization with OIDC
+This guide describes how to onboard an existing Kubernetes cluster to your Greenhouse organization with OIDC
 configuration.
-If you don't have an organization yet please reach out to the Greenhouse administrators.
+If you don't have an organization yet, please reach out to the Greenhouse administrators.
 
 While all members of an organization can see existing clusters, their management requires [`org-admin` or
 `cluster-admin` privileges](./../../getting-started/core-concepts/organizations.md).
