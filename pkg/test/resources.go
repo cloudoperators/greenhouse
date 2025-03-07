@@ -305,6 +305,18 @@ func WithNamespaces(namespaces ...string) func(*greenhousev1alpha1.TeamRoleBindi
 	}
 }
 
+func WithCreateNamespace(createNamespaces bool) func(*greenhousev1alpha1.TeamRoleBinding) {
+	return func(trb *greenhousev1alpha1.TeamRoleBinding) {
+		trb.Spec.CreateNamespaces = createNamespaces
+	}
+}
+
+func WithUsernames(usernames []string) func(*greenhousev1alpha1.TeamRoleBinding) {
+	return func(trb *greenhousev1alpha1.TeamRoleBinding) {
+		trb.Spec.Usernames = usernames
+	}
+}
+
 // NewTeamRoleBinding returns a greenhousev1alpha1.TeamRoleBinding object. Opts can be used to set the desired state of the TeamRoleBinding.
 func NewTeamRoleBinding(ctx context.Context, name, namespace string, opts ...func(*greenhousev1alpha1.TeamRoleBinding)) *greenhousev1alpha1.TeamRoleBinding {
 	trb := &greenhousev1alpha1.TeamRoleBinding{

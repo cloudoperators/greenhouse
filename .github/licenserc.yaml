@@ -12,7 +12,6 @@ header:
     - '.github/**'
     - 'REUSE.toml'
     - 'LICENSES/*.txt'
-    - 'grafana/*.json'
     - 'website/scripts/**'
     - 'hack/**'
     - 'hack/openapi-generator/openapi-info.yaml'
