@@ -44,9 +44,34 @@ func OnboardRemoteCluster(ctx context.Context, k8sClient client.Client, kubeConf
 	Expect(err).NotTo(HaveOccurred())
 }
 
+func OnboardRemoteOIDCCluster(ctx context.Context, k8sClient client.Client, caCert []byte, apiServerURL, name, namespace string) {
+	By("applying remote cluster OIDC configuration as greenhouse secret")
+	secret := &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      name,
+			Namespace: namespace,
+			Annotations: map[string]string{
+				greenhouseapis.SecretAPIServerURLAnnotation: apiServerURL,
+			},
+		},
+		Type: greenhouseapis.SecretTypeOIDCConfig,
+		Data: map[string][]byte{
+			greenhouseapis.SecretAPIServerCAKey: caCert,
+		},
+	}
+	err := k8sClient.Create(ctx, secret)
+	if apierrors.IsAlreadyExists(err) {
+		err = k8sClient.Update(ctx, secret)
+	}
+	Expect(err).NotTo(HaveOccurred())
+}
+
 func OffBoardRemoteCluster(ctx context.Context, adminClient, remoteClient client.Client, testStartTime time.Time, name, namespace string) {
 	cluster := &greenhousev1alpha1.Cluster{}
 	err := adminClient.Get(ctx, client.ObjectKey{Name: name, Namespace: namespace}, cluster)
+	if apierrors.IsNotFound(err) {
+		return
+	}
 	Expect(err).NotTo(HaveOccurred())
 
 	By("marking the cluster for deletion")

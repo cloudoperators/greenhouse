@@ -4,6 +4,8 @@
 package clientutil
 
 import (
+	"slices"
+
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
@@ -24,11 +26,11 @@ var PredicatePluginWithHelmSpec = func() predicate.Funcs {
 	})
 }
 
-// PredicateFilterBySecretType filters secrets by the given type.
-func PredicateFilterBySecretType(secretType corev1.SecretType) predicate.Predicate {
+// PredicateFilterBySecretTypes filters secrets by the given types.
+func PredicateFilterBySecretTypes(secretTypes ...corev1.SecretType) predicate.Predicate {
 	return predicate.NewPredicateFuncs(func(o client.Object) bool {
 		if secret, ok := o.(*corev1.Secret); ok {
-			return secret.Type == secretType
+			return slices.Contains(secretTypes, secret.Type)
 		}
 		return false
 	})
