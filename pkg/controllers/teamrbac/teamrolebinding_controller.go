@@ -198,6 +198,7 @@ func (r *TeamRoleBindingReconciler) EnsureDeleted(ctx context.Context, resource 
 func (r *TeamRoleBindingReconciler) doReconcile(ctx context.Context, teamRole *greenhousev1alpha1.TeamRole, clusters *greenhousev1alpha1.ClusterList, trb *greenhousev1alpha1.TeamRoleBinding, team *greenhousev1alpha1.Team) error {
 	failedClusters := []string{}
 	cr := initRBACClusterRole(teamRole)
+
 	for _, cluster := range clusters.Items {
 		remoteRestClient, err := clientutil.NewK8sClientFromCluster(ctx, r.Client, &cluster)
 		if err != nil {
@@ -235,7 +236,7 @@ func (r *TeamRoleBindingReconciler) doReconcile(ctx context.Context, teamRole *g
 			for _, namespace := range trb.Spec.Namespaces {
 				rbacRoleBinding := rbacRoleBinding(trb, cr, team, namespace)
 
-				if err := reconcileRoleBinding(ctx, remoteRestClient, &cluster, rbacRoleBinding); err != nil {
+				if err := reconcileRoleBinding(ctx, remoteRestClient, &cluster, rbacRoleBinding, trb.Spec.CreateNamespaces); err != nil {
 					r.recorder.Eventf(trb, corev1.EventTypeWarning, greenhousev1alpha1.FailedEvent, "Failed to reconcile RoleBinding %s in cluster/namespace %s/%s: ", rbacRoleBinding.GetName(), cluster.GetName(), namespace)
 					if !slices.Contains(failedClusters, cluster.GetName()) {
 						failedClusters = append(failedClusters, cluster.GetName())
@@ -248,6 +249,7 @@ func (r *TeamRoleBindingReconciler) doReconcile(ctx context.Context, teamRole *g
 				continue
 			}
 		}
+
 		trb.SetPropagationStatus(cluster.GetName(), metav1.ConditionTrue, greenhousev1alpha1.RBACReconciled, "")
 	}
 
@@ -438,13 +440,7 @@ func rbacRoleBinding(trb *greenhousev1alpha1.TeamRoleBinding, clusterRole *rbacv
 			Kind:     clusterRole.Kind,
 			Name:     clusterRole.GetName(),
 		},
-		Subjects: []rbacv1.Subject{
-			{
-				APIGroup: rbacv1.GroupName,
-				Kind:     rbacv1.GroupKind,
-				Name:     team.Spec.MappedIDPGroup,
-			},
-		},
+		Subjects: generateSubjects(trb.Spec.Usernames, team.Spec.MappedIDPGroup),
 	}
 }
 
@@ -463,14 +459,26 @@ func rbacClusterRoleBinding(trb *greenhousev1alpha1.TeamRoleBinding, clusterRole
 			Kind:     clusterRole.Kind,
 			Name:     clusterRole.GetName(),
 		},
-		Subjects: []rbacv1.Subject{
-			{
-				APIGroup: rbacv1.GroupName,
-				Kind:     rbacv1.GroupKind,
-				Name:     team.Spec.MappedIDPGroup,
-			},
-		},
+		Subjects: generateSubjects(trb.Spec.Usernames, team.Spec.MappedIDPGroup),
 	}
+}
+
+// generateSubjects returns a list of subjects with mappedIDPGroup as a rbacv1.GroupKind, and any usernames as rbacv1.UserKind
+func generateSubjects(usernames []string, mappedIDPGroup string) []rbacv1.Subject {
+	var subjects []rbacv1.Subject
+	for _, username := range usernames {
+		subjects = append(subjects, rbacv1.Subject{
+			Kind:     rbacv1.UserKind,
+			APIGroup: rbacv1.GroupName,
+			Name:     username,
+		})
+	}
+
+	return append(subjects, rbacv1.Subject{
+		APIGroup: rbacv1.GroupName,
+		Kind:     rbacv1.GroupKind,
+		Name:     mappedIDPGroup,
+	})
 }
 
 // getTeamRole retrieves the Role referenced by the given RoleBinding in the RoleBinding's Namespace
@@ -534,10 +542,10 @@ func reconcileClusterRoleBinding(ctx context.Context, cl client.Client, c *green
 		remoteCRB.Subjects = crb.Subjects
 		return nil
 	})
-
 	if err != nil {
 		return err
 	}
+
 	switch result {
 	case clientutil.OperationResultNone:
 		log.FromContext(ctx).Info("noop ClusterRoleBinding", "clusterRoleBinding", crb.GetName(), "cluster", c.GetName())
@@ -550,7 +558,7 @@ func reconcileClusterRoleBinding(ctx context.Context, cl client.Client, c *green
 }
 
 // reconcileRoleBinding creates or updates a RoleBinding in the Cluster the given client.Client is created for
-func reconcileRoleBinding(ctx context.Context, cl client.Client, c *greenhousev1alpha1.Cluster, rb *rbacv1.RoleBinding) error {
+func reconcileRoleBinding(ctx context.Context, cl client.Client, c *greenhousev1alpha1.Cluster, rb *rbacv1.RoleBinding, createNamespaces bool) error {
 	remoteRB := &rbacv1.RoleBinding{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      rb.Name,
@@ -564,10 +572,18 @@ func reconcileRoleBinding(ctx context.Context, cl client.Client, c *greenhousev1
 		remoteRB.Subjects = rb.Subjects
 		return nil
 	})
-
 	if err != nil {
-		return err
+		if createNamespaces && apierrors.IsNotFound(err) {
+			err := cl.Create(ctx, &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: rb.Namespace}})
+			if err != nil {
+				return err
+			}
+			return errors.New("failed to create RoleBinding, created missing namespace")
+		} else {
+			return err
+		}
 	}
+
 	switch result {
 	case clientutil.OperationResultNone:
 		log.FromContext(ctx).Info("noop RoleBinding", "roleBinding", rb.GetName(), "cluster", c.GetName(), "namespace", rb.GetNamespace())

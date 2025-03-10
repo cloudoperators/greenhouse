@@ -52,8 +52,6 @@ jobs:
       - name: Install cosign
         if: github.event_name != 'pull_request'
         uses: sigstore/cosign-installer@v3.8.1
-        with:
-          cosign-release: 'v2.2.3'
       
       # Set up QEMU for cross-platform builds
       - name: Set up QEMU
