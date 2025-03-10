@@ -1309,6 +1309,48 @@ components:
         status:
           description: PluginPresetStatus defines the observed state of PluginPreset
           properties:
+            availablePlugins:
+              description: AvailablePlugins is the number of available Plugins managed by the PluginPreset.
+              type: integer
+            failedPlugins:
+              description: FailedPlugins is the number of failed Plugins managed by the PluginPreset.
+              type: integer
+            pluginStatuses:
+              description: PluginStatuses contains statuses of Plugins managed by the PluginPreset.
+              items:
+                description: ManagedPluginStatus defines the Ready condition of a managed Plugin identified by its name.
+                properties:
+                  pluginName:
+                    type: string
+                  readyCondition:
+                    description: Condition contains additional information on the state of a resource.
+                    properties:
+                      lastTransitionTime:
+                        description: LastTransitionTime is the last time the condition transitioned from one status to another.
+                        format: date-time
+                        type: string
+                      message:
+                        description: Message is an optional human readable message indicating details about the last transition.
+                        type: string
+                      reason:
+                        description: Reason is a one-word, CamelCase reason for the condition's last transition.
+                        type: string
+                      status:
+                        description: Status of the condition.
+                        type: string
+                      type:
+                        description: Type of the condition.
+                        type: string
+                    required:
+                      - lastTransitionTime
+                      - status
+                      - type
+                    type: object
+                type: object
+              type: array
+            readyPlugins:
+              description: ReadyPlugins is the number of ready Plugins managed by the PluginPreset.
+              type: integer
             statusConditions:
               description: StatusConditions contain the different conditions that constitute the status of the PluginPreset.
               properties:
