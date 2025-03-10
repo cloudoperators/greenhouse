@@ -17,10 +17,10 @@ spec:
       issuer: {{ required ".Values.global.oidc.issuer missing" .Values.global.oidc.issuer }}
       redirectURI: {{ default (printf "https://%s" ( include "idproxy.auth.hostname" .)) .Values.global.oidc.redirectURL }}
       clientIDReference:
-        name: {{ .Chart.Name }}-oidc
+        name: {{ .Chart.Name }}-secrets
         key: clientID
       clientSecretReference:
-        name: {{ .Chart.Name }}-oidc
+        name: {{ .Chart.Name }}-secrets
         key: clientSecret
     {{- if .Values.organization.oauth2ClientRedirectURIs }}
       oauth2ClientRedirectURIs:
@@ -30,14 +30,21 @@ spec:
 {{- if .Values.scim.enabled }}
     scim:
       baseURL: {{ required ".Values.scim.baseURL" .Values.scim.baseURL }}
+      authType: {{ required ".Values.scim.authType" .Values.scim.authType }}
       basicAuthUser:
         secret:
-          name: {{ .Chart.Name }}-scim
-          key: username
+          name: {{ .Chart.Name }}-secrets
+          key: scimBasicAuthUser
       basicAuthPw:
         secret:
-          name: {{ .Chart.Name }}-scim
-          key: password
+          name: {{ .Chart.Name }}-secrets
+          key: scimBasicAuthPassword
+      bearerToken:
+        secret:
+          name: {{ .Chart.Name }}-secrets
+          key: scimBearerToken
+      bearerPrefix: {{ .Values.scim.bearerPrefix }}
+      bearerHeader: {{ .Values.scim.bearerHeader }}
 {{ end }}
 {{ end }}
 {{ end }}
