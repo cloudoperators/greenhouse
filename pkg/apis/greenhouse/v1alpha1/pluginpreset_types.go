@@ -47,6 +47,21 @@ const (
 type PluginPresetStatus struct {
 	// StatusConditions contain the different conditions that constitute the status of the PluginPreset.
 	StatusConditions `json:"statusConditions,omitempty"`
+
+	// PluginStatuses contains statuses of Plugins managed by the PluginPreset.
+	PluginStatuses []ManagedPluginStatus `json:"pluginStatuses,omitempty"`
+	// AvailablePlugins is the number of available Plugins managed by the PluginPreset.
+	AvailablePlugins int `json:"availablePlugins,omitempty"`
+	// ReadyPlugins is the number of ready Plugins managed by the PluginPreset.
+	ReadyPlugins int `json:"readyPlugins,omitempty"`
+	// FailedPlugins is the number of failed Plugins managed by the PluginPreset.
+	FailedPlugins int `json:"failedPlugins,omitempty"`
+}
+
+// ManagedPluginStatus defines the Ready condition of a managed Plugin identified by its name.
+type ManagedPluginStatus struct {
+	PluginName     string    `json:"pluginName,omitempty"`
+	ReadyCondition Condition `json:"readyCondition,omitempty"`
 }
 
 //+kubebuilder:object:root=true
