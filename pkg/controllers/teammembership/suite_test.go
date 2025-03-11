@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2024 SAP SE or an SAP affiliate company and Greenhouse contributors
 // SPDX-License-Identifier: Apache-2.0
 
-package teammembership_test
+package teammembership
 
 import (
 	"net/http/httptest"
@@ -10,7 +10,6 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
-	"github.com/cloudoperators/greenhouse/pkg/controllers/teammembership"
 	"github.com/cloudoperators/greenhouse/pkg/scim"
 	"github.com/cloudoperators/greenhouse/pkg/test"
 )
@@ -29,7 +28,7 @@ var _ = BeforeSuite(func() {
 	usersServer = scim.ReturnUserResponseMockServer()
 
 	test.RegisterController("teammembershipUpdaterController",
-		(&teammembership.TeamMembershipUpdaterController{}).SetupWithManager)
+		(&TeamMembershipUpdaterController{}).SetupWithManager)
 	test.TestBeforeSuite()
 })
 
