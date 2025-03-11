@@ -179,7 +179,7 @@ func (r *TeamMembershipUpdaterController) EnsureCreated(ctx context.Context, obj
 		return ctrl.Result{}, lifecycle.Success, nil
 	}
 
-	scimClient, err := r.createSCIMClient(ctx, team.Namespace, &teamMembershipStatus, organization.Spec.Authentication.SCIMConfig)
+	scimClient, err := r.createSCIMClient(ctx, team.Namespace, &teamMembershipStatus, organization)
 	if err != nil {
 		return ctrl.Result{}, lifecycle.Failed, err
 	}
@@ -234,10 +234,10 @@ func (r *TeamMembershipUpdaterController) createSCIMClient(
 	ctx context.Context,
 	namespace string,
 	teamMembershipStatus *greenhousev1alpha1.TeamMembershipStatus,
-	scimConfig *greenhousev1alpha1.SCIMConfig,
+	org *greenhousev1alpha1.Organization,
 ) (scim.ISCIMClient, error) {
 
-	clientConfig, err := util.GreenhouseSCIMConfigToSCIMConfig(ctx, r.Client, scimConfig, namespace)
+	clientConfig, err := util.GreenhouseSCIMConfigToSCIMConfig(ctx, r.Client, org, namespace)
 	if err != nil {
 		teamMembershipStatus.SetConditions(greenhousev1alpha1.FalseCondition(greenhousev1alpha1.SCIMAccessReadyCondition, greenhousev1alpha1.SCIMConfigErrorReason, err.Error()))
 		return nil, err
