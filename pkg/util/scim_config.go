@@ -6,44 +6,56 @@ package util
 import (
 	"context"
 	"errors"
-	"fmt"
+	"strings"
 
+	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	greenhouseapisv1alpha1 "github.com/cloudoperators/greenhouse/pkg/apis/greenhouse/v1alpha1"
-	"github.com/cloudoperators/greenhouse/pkg/clientutil"
 	"github.com/cloudoperators/greenhouse/pkg/scim"
 )
 
-func GreenhouseSCIMConfigToSCIMConfig(ctx context.Context, k8sClient client.Client, config *greenhouseapisv1alpha1.SCIMConfig, namespace string) (*scim.Config, error) {
+func GreenhouseSCIMConfigToSCIMConfig(ctx context.Context, k8sClient client.Client, org *greenhouseapisv1alpha1.Organization, namespace string) (*scim.Config, error) {
+	secret := &corev1.Secret{}
+	err := k8sClient.Get(ctx, types.NamespacedName{Namespace: namespace, Name: org.Spec.Authentication.SecretRef}, secret)
+	if err != nil {
+		return nil, err
+	}
+
 	basicAuthConfig := &scim.BasicAuthConfig{Username: "", Password: ""}
 	bearerTokenConfig := &scim.BearerTokenConfig{
-		Prefix: config.BearerPrefix,
-		Header: config.BearerHeader,
+		Prefix: org.Spec.Authentication.SCIMConfig.BearerPrefix,
+		Header: org.Spec.Authentication.SCIMConfig.BearerHeader,
 	}
-	switch config.AuthType {
+	switch org.Spec.Authentication.SCIMConfig.AuthType {
 	case scim.Basic:
-		var err error
-		basicAuthConfig.Username, err = clientutil.GetSecretKeyFromSecretKeyReference(ctx, k8sClient, namespace, *config.BasicAuthUser.Secret)
-		if err != nil {
-			return nil, fmt.Errorf("secret for BasicAuthUser is missing: %s", err.Error())
+		scimBasicAuthUser, ok := secret.Data["scimBasicAuthUser"]
+		if !ok {
+			return nil, errors.New("missing scimBasicAuthUser")
 		}
-		basicAuthConfig.Password, err = clientutil.GetSecretKeyFromSecretKeyReference(ctx, k8sClient, namespace, *config.BasicAuthPw.Secret)
-		if err != nil {
-			return nil, fmt.Errorf("secret for BasicAuthPw is missing: %s", err.Error())
+		scimBasicAuthPassword, ok := secret.Data["scimBasicAuthPassword"]
+		if !ok {
+			return nil, errors.New("missing scimBasicAuthPassword")
 		}
+
+		basicAuthConfig = &scim.BasicAuthConfig{
+			Username: strings.Trim(string(scimBasicAuthUser), "\n"),
+			Password: strings.Trim(string(scimBasicAuthPassword), "\n")}
+
 	case scim.BearerToken:
-		var err error
-		bearerTokenConfig.Token, err = clientutil.GetSecretKeyFromSecretKeyReference(ctx, k8sClient, namespace, *config.BearerToken.Secret)
-		if err != nil {
-			return nil, fmt.Errorf("secret for BearerToken is missing: %s", err.Error())
+		scimBearerToken, ok := secret.Data["scimBearerToken"]
+		if !ok {
+			return nil, errors.New("scimBearerToken is missing")
 		}
+
+		bearerTokenConfig.Token = strings.Trim(string(scimBearerToken), "\n")
 	default:
 		return nil, errors.New("SCIM Config is not provided")
 	}
 	cfg := &scim.Config{
-		URL:         config.BaseURL,
-		AuthType:    config.AuthType,
+		URL:         org.Spec.Authentication.SCIMConfig.BaseURL,
+		AuthType:    org.Spec.Authentication.SCIMConfig.AuthType,
 		BasicAuth:   basicAuthConfig,
 		BearerToken: bearerTokenConfig,
 	}
