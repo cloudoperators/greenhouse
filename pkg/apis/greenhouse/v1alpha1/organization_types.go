@@ -60,6 +60,8 @@ type Authentication struct {
 	OIDCConfig *OIDCConfig `json:"oidc,omitempty"`
 	// SCIMConfig configures the SCIM client.
 	SCIMConfig *SCIMConfig `json:"scim,omitempty"`
+	// SecretRef contains name of the secret with structured secret authentication
+	SecretRef string `json:"secretRef,omitempty"`
 }
 
 type OIDCConfig struct {
@@ -100,8 +102,8 @@ type SCIMConfig struct {
 
 type AuthSecretConfig struct {
 	// OIDC Secret values
-	OIDCClientID     string `json:"oidcClientID"`
-	OIDCClientSecret string `json:"oidcClientSecret"`
+	OIDCClientID     string `json:"clientID"`
+	OIDCClientSecret string `json:"clientSecret"`
 
 	// SCIM Secret values
 	SCIMBasicAuthUser     string `json:"scimBasicAuthUser"`
