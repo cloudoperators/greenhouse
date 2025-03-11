@@ -7,14 +7,14 @@ replace (
 	github.com/dexidp/dex => github.com/dexidp/dex v0.0.0-20240807174518-43956db7fd75
 	github.com/dexidp/dex/api/v2 => github.com/dexidp/dex/api/v2 v2.2.0
 	// Keep k8s dependencies in sync.
-	k8s.io/api => k8s.io/api v0.31.5
-	k8s.io/apiextensions-apiserver => k8s.io/apiextensions-apiserver v0.31.5
-	k8s.io/apimachinery => k8s.io/apimachinery v0.31.5
-	k8s.io/cli-runtime => k8s.io/cli-runtime v0.31.5
-	k8s.io/client-go => k8s.io/client-go v0.31.5
-	k8s.io/component-base => k8s.io/component-base v0.31.5
-	k8s.io/kubectl => k8s.io/kubectl v0.31.5
-	sigs.k8s.io/controller-runtime => sigs.k8s.io/controller-runtime v0.19.5
+	k8s.io/api => k8s.io/api v0.31.6
+	k8s.io/apiextensions-apiserver => k8s.io/apiextensions-apiserver v0.31.6
+	k8s.io/apimachinery => k8s.io/apimachinery v0.31.6
+	k8s.io/cli-runtime => k8s.io/cli-runtime v0.31.6
+	k8s.io/client-go => k8s.io/client-go v0.31.6
+	k8s.io/component-base => k8s.io/component-base v0.31.6
+	k8s.io/kubectl => k8s.io/kubectl v0.31.6
+	sigs.k8s.io/controller-runtime => sigs.k8s.io/controller-runtime v0.19.6
 )
 
 require (
@@ -23,7 +23,7 @@ require (
 	github.com/go-jose/go-jose/v4 v4.0.5
 	github.com/jeremywohl/flatten/v2 v2.0.0-20211013061545-07e4a09fb8e4
 	github.com/oklog/run v1.1.1-0.20240127200640-eee6e044b77c
-	github.com/onsi/ginkgo/v2 v2.22.2
+	github.com/onsi/ginkgo/v2 v2.23.0
 	github.com/onsi/gomega v1.36.2
 	github.com/pkg/errors v0.9.1
 	github.com/prometheus/client_golang v1.20.5
@@ -34,18 +34,18 @@ require (
 	github.com/vladimirvivien/gexe v0.4.1
 	github.com/wI2L/jsondiff v0.6.1
 	go.uber.org/zap v1.27.0
-	golang.org/x/text v0.22.0
+	golang.org/x/text v0.23.0
 	gopkg.in/yaml.v3 v3.0.1
 	helm.sh/helm/v3 v3.16.4
-	k8s.io/api v0.31.5
-	k8s.io/apiextensions-apiserver v0.31.5
-	k8s.io/apimachinery v0.31.5
-	k8s.io/cli-runtime v0.31.5
-	k8s.io/client-go v0.31.5
-	k8s.io/kubectl v0.31.5
+	k8s.io/api v0.31.6
+	k8s.io/apiextensions-apiserver v0.31.6
+	k8s.io/apimachinery v0.31.6
+	k8s.io/cli-runtime v0.31.6
+	k8s.io/client-go v0.31.6
+	k8s.io/kubectl v0.31.6
 	k8s.io/utils v0.0.0-20241210054802-24370beab758
-	sigs.k8s.io/controller-runtime v0.19.5
-	sigs.k8s.io/kind v0.26.0
+	sigs.k8s.io/controller-runtime v0.19.6
+	sigs.k8s.io/kind v0.27.0
 	sigs.k8s.io/yaml v1.4.0
 )
 
@@ -203,15 +203,15 @@ require (
 	go.opentelemetry.io/otel/trace v1.29.0 // indirect
 	go.starlark.net v0.0.0-20240725214946-42030a7cedce // indirect
 	go.uber.org/multierr v1.11.0 // indirect
-	golang.org/x/crypto v0.32.0 // indirect
+	golang.org/x/crypto v0.33.0 // indirect
 	golang.org/x/exp v0.0.0-20240823005443-9b4947da3948
-	golang.org/x/net v0.33.0 // indirect
+	golang.org/x/net v0.35.0 // indirect
 	golang.org/x/oauth2 v0.22.0 // indirect
-	golang.org/x/sync v0.11.0 // indirect
-	golang.org/x/sys v0.29.0 // indirect
-	golang.org/x/term v0.28.0 // indirect
-	golang.org/x/time v0.10.0
-	golang.org/x/tools v0.28.0 // indirect
+	golang.org/x/sync v0.12.0 // indirect
+	golang.org/x/sys v0.30.0 // indirect
+	golang.org/x/term v0.29.0 // indirect
+	golang.org/x/time v0.11.0
+	golang.org/x/tools v0.30.0 // indirect
 	gomodules.xyz/jsonpatch/v2 v2.4.0 // indirect
 	google.golang.org/api v0.195.0 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20240827150818-7e3bb234dfed // indirect
@@ -219,8 +219,8 @@ require (
 	google.golang.org/protobuf v1.36.1 // indirect
 	gopkg.in/inf.v0 v0.9.1 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
-	k8s.io/apiserver v0.31.5 // indirect
-	k8s.io/component-base v0.31.5 // indirect
+	k8s.io/apiserver v0.31.6 // indirect
+	k8s.io/component-base v0.31.6 // indirect
 	k8s.io/klog/v2 v2.130.1
 	k8s.io/kube-openapi v0.0.0-20240827152857-f7e401e7b4c2 // indirect
 	oras.land/oras-go v1.2.6 // indirect
