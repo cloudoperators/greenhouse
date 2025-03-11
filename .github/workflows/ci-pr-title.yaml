@@ -37,6 +37,7 @@ jobs:
             clusters
             organizations
             dex
+            flux
             idproxy
             plugindefinitions
             pluginpresets
