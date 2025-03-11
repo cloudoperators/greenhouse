@@ -21,7 +21,7 @@ spec:
   sourceRef:
     kind: GitRepository
     name: greenhouse-repo
-  path: "./config/flux/install"
+  path: "./config/flux/"
   prune: true
   timeout: 1m
   healthChecks:
