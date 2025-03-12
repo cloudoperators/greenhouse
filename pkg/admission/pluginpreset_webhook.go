@@ -157,9 +157,5 @@ func validatePluginOptionValuesForPreset(pluginPreset *greenhousev1alpha1.Plugin
 		errors = validatePluginOptionValues(overridesForSingleCluster.Overrides, pluginDefinition, false, optionOverridesPath)
 		allErrs = append(allErrs, errors...)
 	}
-
-	if len(allErrs) == 0 {
-		return nil
-	}
 	return allErrs
 }
