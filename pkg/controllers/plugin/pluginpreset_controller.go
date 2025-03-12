@@ -194,7 +194,13 @@ func (r *PluginPresetReconciler) reconcilePluginPreset(ctx context.Context, pres
 			return nil
 		})
 		if err != nil {
-			failedPlugins = append(failedPlugins, plugin.Name)
+			errorMessage := err.Error()
+			var e *apierrors.StatusError
+			if errors.As(err, &e) && e.ErrStatus.Details != nil && len(e.ErrStatus.Details.Causes) > 0 {
+				// Extract the reason for failed Plugin.
+				errorMessage = e.ErrStatus.Details.Causes[0].Message
+			}
+			failedPlugins = append(failedPlugins, plugin.Name+": "+errorMessage)
 			allErrs = append(allErrs, err)
 		}
 	}
@@ -206,7 +212,7 @@ func (r *PluginPresetReconciler) reconcilePluginPreset(ctx context.Context, pres
 	}
 	switch {
 	case len(failedPlugins) > 0:
-		preset.SetCondition(greenhousev1alpha1.TrueCondition(greenhousev1alpha1.PluginFailedCondition, "", "Failed to reconcile plugins: "+strings.Join(failedPlugins, ", ")))
+		preset.SetCondition(greenhousev1alpha1.TrueCondition(greenhousev1alpha1.PluginFailedCondition, greenhousev1alpha1.PluginReconcileFailed, strings.Join(failedPlugins, "; ")))
 	default:
 		preset.SetCondition(greenhousev1alpha1.FalseCondition(greenhousev1alpha1.PluginFailedCondition, "", ""))
 	}

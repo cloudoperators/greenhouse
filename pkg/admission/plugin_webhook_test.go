@@ -13,6 +13,7 @@ import (
 	"k8s.io/apimachinery/pkg/api/validation"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/util/validation/field"
 	"k8s.io/utils/ptr"
 
 	greenhouseapis "github.com/cloudoperators/greenhouse/pkg/apis"
@@ -57,7 +58,8 @@ var _ = Describe("Validate Plugin OptionValues", func() {
 			},
 		}
 
-		errList := validatePluginOptionValues(optionValues, pluginDefinition)
+		optionsFieldPath := field.NewPath("spec").Child("optionValues")
+		errList := validatePluginOptionValues(optionValues, pluginDefinition, true, optionsFieldPath)
 		switch expErr {
 		case true:
 			Expect(errList).ToNot(BeEmpty(), "expected an error, got nil")
@@ -95,14 +97,14 @@ var _ = Describe("Validate Plugin OptionValues", func() {
 			},
 		}
 
-		errList := validatePluginOptionValues(optionValues, pluginDefinition)
+		optionsFieldPath := field.NewPath("spec").Child("optionValues")
+		errList := validatePluginOptionValues(optionValues, pluginDefinition, true, optionsFieldPath)
 		switch expErr {
 		case true:
 			Expect(errList).ToNot(BeEmpty(), "expected an error, got nil")
 		default:
 			Expect(errList).To(BeEmpty(), "expected no error, got %v", errList)
 		}
-
 	},
 		Entry("PluginOption Value Consistent With PluginOption Type Bool", false, greenhousev1alpha1.PluginOptionTypeBool, true, false),
 		Entry("PluginOption Value Inconsistent With PluginOption Type Bool", true, greenhousev1alpha1.PluginOptionTypeBool, "notabool", true),
@@ -142,7 +144,8 @@ var _ = Describe("Validate Plugin OptionValues", func() {
 			},
 		}
 
-		errList := validatePluginOptionValues(optionValues, pluginDefinition)
+		optionsFieldPath := field.NewPath("spec").Child("optionValues")
+		errList := validatePluginOptionValues(optionValues, pluginDefinition, true, optionsFieldPath)
 		switch expErr {
 		case true:
 			Expect(errList).ToNot(BeEmpty(), "expected an error, got nil")
@@ -187,7 +190,8 @@ var _ = Describe("Validate Plugin OptionValues", func() {
 					ClusterName:      "test-cluster",
 				},
 			}
-			errList := validatePluginOptionValues(plugin.Spec.OptionValues, pluginDefinition)
+			optionsFieldPath := field.NewPath("spec").Child("optionValues")
+			errList := validatePluginOptionValues(plugin.Spec.OptionValues, pluginDefinition, true, optionsFieldPath)
 			Expect(errList).NotTo(BeEmpty(), "expected an error, got nil")
 		})
 		It("should accept a Plugin with supplied required options", func() {
@@ -197,7 +201,8 @@ var _ = Describe("Validate Plugin OptionValues", func() {
 					Value: test.MustReturnJSONFor("test"),
 				},
 			}
-			errList := validatePluginOptionValues(optionValues, pluginDefinition)
+			optionsFieldPath := field.NewPath("spec").Child("optionValues")
+			errList := validatePluginOptionValues(optionValues, pluginDefinition, true, optionsFieldPath)
 			Expect(errList).To(BeEmpty(), "unexpected error")
 		})
 	})
