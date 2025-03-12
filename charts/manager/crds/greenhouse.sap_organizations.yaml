@@ -95,9 +95,16 @@ spec:
                       issuer:
                         description: Issuer is the URL of the identity service.
                         type: string
+                      oauth2ClientRedirectURIs:
+                        description: |-
+                          OAuth2ClientRedirectURIs are a registered set of redirect URIs. When redirecting from the idproxy to
+                          the client application, the URI requested to redirect to must be contained in this list.
+                        items:
+                          type: string
+                        type: array
                       redirectURI:
                         description: |-
-                          RedirectURI is the redirect URI.
+                          RedirectURI is the redirect URI to be used for the OIDC flow against the upstream IdP.
                           If none is specified, the Greenhouse ID proxy will be used.
                         type: string
                     required:

@@ -33,6 +33,8 @@ const (
 	DexReconcileFailed ConditionReason = "DexReconcileFailed"
 	// OAuthOICDFailed is set when OAuth reconciler has failed
 	OAuthOICDFailed ConditionReason = "OAuthOICDFailed"
+	// DefaultConnectorRedirectsFailed is set when the default connector redirects are not updated with new organization redirect URIs
+	DefaultConnectorRedirectsFailed ConditionReason = "DefaultConnectorRedirectsFailed"
 	// OrganizationAdminTeamConfigured is set when the admin team is configured for organization
 	OrganizationAdminTeamConfigured ConditionType = "OrganizationAdminTeamConfigured"
 )
@@ -63,13 +65,16 @@ type Authentication struct {
 type OIDCConfig struct {
 	// Issuer is the URL of the identity service.
 	Issuer string `json:"issuer"`
-	// RedirectURI is the redirect URI.
+	// RedirectURI is the redirect URI to be used for the OIDC flow against the upstream IdP.
 	// If none is specified, the Greenhouse ID proxy will be used.
 	RedirectURI string `json:"redirectURI,omitempty"`
 	// ClientIDReference references the Kubernetes secret containing the client id.
 	ClientIDReference SecretKeyReference `json:"clientIDReference"`
 	// ClientSecretReference references the Kubernetes secret containing the client secret.
 	ClientSecretReference SecretKeyReference `json:"clientSecretReference"`
+	// OAuth2ClientRedirectURIs are a registered set of redirect URIs. When redirecting from the idproxy to
+	// the client application, the URI requested to redirect to must be contained in this list.
+	OAuth2ClientRedirectURIs []string `json:"oauth2ClientRedirectURIs,omitempty"`
 }
 
 type SCIMConfig struct {

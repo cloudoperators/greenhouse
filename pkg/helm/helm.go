@@ -4,6 +4,7 @@
 package helm
 
 import (
+	"bytes"
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
@@ -112,26 +113,53 @@ func InstallOrUpgradeHelmChartFromPlugin(ctx context.Context, local client.Clien
 	return nil
 }
 
-// ChartTest to do helm test on the plugin
-func ChartTest(restClientGetter genericclioptions.RESTClientGetter, plugin *greenhousev1alpha1.Plugin) (bool, error) {
-	var hasTestHook bool
+// ChartTest executes Helm chart tests and logs test pod logs if a test fails.
+func ChartTest(ctx context.Context, restClientGetter genericclioptions.RESTClientGetter, plugin *greenhousev1alpha1.Plugin) (hasTestHook bool, testPodLogs string, err error) {
 	cfg, err := newHelmAction(restClientGetter, plugin.Spec.ReleaseNamespace)
 	if err != nil {
-		return hasTestHook, err
+		return hasTestHook, "", err
 	}
 
-	results, err := action.NewReleaseTesting(cfg).Run(plugin.Name)
+	testAction := action.NewReleaseTesting(cfg)
+	testAction.Timeout = GetHelmTimeout() // set a timeout for the release testing to avoid waiting forever
+	// Used for fetching logs from test pods
+	testAction.Namespace = plugin.Spec.ReleaseNamespace
+	results, err := testAction.Run(plugin.Name)
 	if err != nil {
-		return hasTestHook, err
+		// get the latest release to fetch the test pod logs
+		r, err2 := action.NewGet(cfg).Run(plugin.Name)
+		if err2 != nil {
+			log.FromContext(ctx).Error(err2, "Failed to get latest release", "plugin", plugin.Name)
+			return hasTestHook, "", err
+		}
+		testPodLogs, err2 = printTestPodLogs(ctx, testAction, r)
+		if err2 != nil {
+			log.FromContext(ctx).Error(err2, "Failed to retrieve test pod logs", "plugin", plugin.Name)
+		}
+		return hasTestHook, testPodLogs, err
 	}
 
-	if results.Hooks != nil {
+	if results != nil && results.Hooks != nil {
 		hasTestHook = slices.ContainsFunc(results.Hooks, func(h *release.Hook) bool {
 			return slices.Contains(h.Events, release.HookTest)
 		})
 	}
 
-	return hasTestHook, nil
+	return hasTestHook, "", nil
+}
+
+func printTestPodLogs(ctx context.Context, testAction *action.ReleaseTesting, rel *release.Release) (string, error) {
+	var logBuffer bytes.Buffer
+	if err := testAction.GetPodLogs(&logBuffer, rel); err != nil {
+		return "", fmt.Errorf("error fetching test pod logs for release %s in namespace %s: %w", rel.Name, rel.Namespace, err)
+	}
+
+	logContent := logBuffer.String()
+	if logContent == "" {
+		log.FromContext(ctx).Info("No logs found for test pods", "release", rel.Name, "namespace", rel.Namespace)
+	}
+
+	return logContent, nil
 }
 
 // UninstallHelmRelease removes the Helm release for the given Plugin.

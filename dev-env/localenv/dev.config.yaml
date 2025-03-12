@@ -20,10 +20,6 @@ config:
     dependencies:
       - manifest:
           release: greenhouse
-          chartPath: charts/idproxy
-          crdOnly: true
-      - manifest:
-          release: greenhouse
           chartPath: charts/manager
           valuesPath: dev-env/localenv/dev.values.yaml
           crdOnly: false

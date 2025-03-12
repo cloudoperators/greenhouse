@@ -21,3 +21,4 @@ nodes:
       - hostPath: bin/greenhouse-admin-ca.crt
         containerPath: /etc/kubernetes/pki/oidc-ca.crt
         readOnly: true
+  - role: worker

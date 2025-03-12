@@ -916,6 +916,7 @@ map[string]./pkg/apis/greenhouse/v1alpha1.NodeStatus
 </h3>
 <p>
 (<em>Appears on:</em>
+<a href="#greenhouse.sap/v1alpha1.ManagedPluginStatus">ManagedPluginStatus</a>, 
 <a href="#greenhouse.sap/v1alpha1.PropagationStatus">PropagationStatus</a>, 
 <a href="#greenhouse.sap/v1alpha1.StatusConditions">StatusConditions</a>)
 </p>
@@ -1146,6 +1147,49 @@ string
 </table>
 </div>
 </div>
+<h3 id="greenhouse.sap/v1alpha1.ManagedPluginStatus">ManagedPluginStatus
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#greenhouse.sap/v1alpha1.PluginPresetStatus">PluginPresetStatus</a>)
+</p>
+<p>ManagedPluginStatus defines the Ready condition of a managed Plugin identified by its name.</p>
+<div class="md-typeset__scrollwrap">
+<div class="md-typeset__table">
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>pluginName</code><br>
+<em>
+string
+</em>
+</td>
+<td>
+</td>
+</tr>
+<tr>
+<td>
+<code>readyCondition</code><br>
+<em>
+<a href="#greenhouse.sap/v1alpha1.Condition">
+Condition
+</a>
+</em>
+</td>
+<td>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
 <h3 id="greenhouse.sap/v1alpha1.NodeStatus">NodeStatus
 </h3>
 <p>
@@ -1225,7 +1269,7 @@ string
 </em>
 </td>
 <td>
-<p>RedirectURI is the redirect URI.
+<p>RedirectURI is the redirect URI to be used for the OIDC flow against the upstream IdP.
 If none is specified, the Greenhouse ID proxy will be used.</p>
 </td>
 </tr>
@@ -1253,6 +1297,18 @@ SecretKeyReference
 </td>
 <td>
 <p>ClientSecretReference references the Kubernetes secret containing the client secret.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>oauth2ClientRedirectURIs</code><br>
+<em>
+[]string
+</em>
+</td>
+<td>
+<p>OAuth2ClientRedirectURIs are a registered set of redirect URIs. When redirecting from the idproxy to
+the client application, the URI requested to redirect to must be contained in this list.</p>
 </td>
 </tr>
 </tbody>
@@ -2256,6 +2312,52 @@ StatusConditions
 <p>StatusConditions contain the different conditions that constitute the status of the PluginPreset.</p>
 </td>
 </tr>
+<tr>
+<td>
+<code>pluginStatuses</code><br>
+<em>
+<a href="#greenhouse.sap/v1alpha1.ManagedPluginStatus">
+[]ManagedPluginStatus
+</a>
+</em>
+</td>
+<td>
+<p>PluginStatuses contains statuses of Plugins managed by the PluginPreset.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>availablePlugins</code><br>
+<em>
+int
+</em>
+</td>
+<td>
+<p>AvailablePlugins is the number of available Plugins managed by the PluginPreset.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>readyPlugins</code><br>
+<em>
+int
+</em>
+</td>
+<td>
+<p>ReadyPlugins is the number of ready Plugins managed by the PluginPreset.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>failedPlugins</code><br>
+<em>
+int
+</em>
+</td>
+<td>
+<p>FailedPlugins is the number of failed Plugins managed by the PluginPreset.</p>
+</td>
+</tr>
 </tbody>
 </table>
 </div>
@@ -3196,6 +3298,17 @@ string
 </tr>
 <tr>
 <td>
+<code>usernames</code><br>
+<em>
+[]string
+</em>
+</td>
+<td>
+<p>Usernames defines list of users to add to the (Cluster-)RoleBindings</p>
+</td>
+</tr>
+<tr>
+<td>
 <code>clusterName</code><br>
 <em>
 string
@@ -3228,6 +3341,17 @@ Kubernetes meta/v1.LabelSelector
 <td>
 <p>Namespaces is a list of namespaces in the Greenhouse Clusters to apply the RoleBinding to.
 If empty, a ClusterRoleBinding will be created on the remote cluster, otherwise a RoleBinding per namespace.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>createNamespaces</code><br>
+<em>
+bool
+</em>
+</td>
+<td>
+<p>CreateNamespaces when enabled the controller will create namespaces for RoleBindings if they do not exist.</p>
 </td>
 </tr>
 </table>
@@ -3290,6 +3414,17 @@ string
 </tr>
 <tr>
 <td>
+<code>usernames</code><br>
+<em>
+[]string
+</em>
+</td>
+<td>
+<p>Usernames defines list of users to add to the (Cluster-)RoleBindings</p>
+</td>
+</tr>
+<tr>
+<td>
 <code>clusterName</code><br>
 <em>
 string
@@ -3322,6 +3457,17 @@ Kubernetes meta/v1.LabelSelector
 <td>
 <p>Namespaces is a list of namespaces in the Greenhouse Clusters to apply the RoleBinding to.
 If empty, a ClusterRoleBinding will be created on the remote cluster, otherwise a RoleBinding per namespace.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>createNamespaces</code><br>
+<em>
+bool
+</em>
+</td>
+<td>
+<p>CreateNamespaces when enabled the controller will create namespaces for RoleBindings if they do not exist.</p>
 </td>
 </tr>
 </tbody>

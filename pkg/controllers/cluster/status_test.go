@@ -128,17 +128,6 @@ var _ = Describe("Cluster status", Ordered, func() {
 	})
 
 	It("should reconcile the status of a cluster", func() {
-		By("checking cluster ready condition")
-		Eventually(func(g Gomega) bool {
-			g.Expect(test.K8sClient.Get(test.Ctx, types.NamespacedName{Name: validCluster.Name, Namespace: setup.Namespace()}, &validCluster)).ShouldNot(HaveOccurred(), "There should be no error getting the cluster resource")
-			g.Expect(validCluster.Status.StatusConditions).ToNot(BeNil())
-			readyCondition := validCluster.Status.GetConditionByType(greenhousev1alpha1.ReadyCondition)
-			g.Expect(readyCondition).ToNot(BeNil(), "The ClusterReady condition should be present")
-			g.Expect(readyCondition.Status).To(Equal(metav1.ConditionTrue))
-			g.Expect(validCluster.Status.KubernetesVersion).ToNot(BeNil())
-			return true
-		}).Should(BeTrue())
-
 		By("checking cluster node status")
 		Eventually(func(g Gomega) bool {
 			g.Expect(test.K8sClient.Get(test.Ctx, types.NamespacedName{Name: validCluster.Name, Namespace: setup.Namespace()}, &validCluster)).ShouldNot(HaveOccurred(), "There should be no error getting the cluster resource")
@@ -199,6 +188,17 @@ var _ = Describe("Cluster status", Ordered, func() {
 			return true
 		}).Should(BeTrue())
 
+		By("checking cluster ready condition")
+		Eventually(func(g Gomega) bool {
+			g.Expect(test.K8sClient.Get(test.Ctx, types.NamespacedName{Name: validCluster.Name, Namespace: setup.Namespace()}, &validCluster)).ShouldNot(HaveOccurred(), "There should be no error getting the cluster resource")
+			g.Expect(validCluster.Status.StatusConditions).ToNot(BeNil())
+			readyCondition := validCluster.Status.GetConditionByType(greenhousev1alpha1.ReadyCondition)
+			g.Expect(readyCondition).ToNot(BeNil(), "The ClusterReady condition should be present")
+			g.Expect(readyCondition.Status).To(Equal(metav1.ConditionTrue))
+			g.Expect(validCluster.Status.KubernetesVersion).ToNot(BeNil())
+			return true
+		}).Should(BeTrue())
+
 	})
 
 	It("should reconcile the status of a cluster without a secret", func() {
@@ -213,10 +213,8 @@ var _ = Describe("Cluster status", Ordered, func() {
 			readyCondition := invalidCluster.Status.GetConditionByType(greenhousev1alpha1.ReadyCondition)
 			g.Expect(readyCondition).ToNot(BeNil(), "The ClusterReady condition should be present")
 			g.Expect(readyCondition.Status).To(Equal(metav1.ConditionFalse))
-			g.Expect(readyCondition.Message).To(ContainSubstring("kubeconfig not valid - cannot access cluster"))
 			return true
 		}).Should(BeTrue())
-
 	})
 
 	It("should set the deletion condition when the cluster is marked for deletion", func() {

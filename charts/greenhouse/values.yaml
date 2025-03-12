@@ -11,10 +11,37 @@ global:
     redirectURL:
     clientID:
     clientSecret:
+  # DEX configuration for Greenhouse.
+  dex:
+    backend: postgres         # postgres or kubernetes
+    postgresql:
+      postgresqlDatabase:
+      postgresqlPort:
+      postgresqlUsername:
+
+postgresqlng:
+  enabled: true
+  global:
+    linkerd_enabled: false
+    region: greenhouse
+    # The registry where the image is stored
+    registry:
+  alerts:
+    support_group: greenhouse
+  resources: {}
+  # The database that will be created in the database
+  postgresDatabase: dex
+  users:
+    dex:         # The user that will be created in the database
+      grant:         # The grants that will be given to the user
+      - 'GRANT ALL PRIVILEGES ON DATABASE "%PGDATABASE%"'
+  tableOwner:         # The owner of the tables in the database
 
 # Organization & IDProxy should be enabled only after the initial install of greenhouse
 organization:
   enabled: true
+  oauth2ClientRedirectURIs:
+    - "http://localhost:33768/auth/callback"
 idproxy:
   enabled: true
 
