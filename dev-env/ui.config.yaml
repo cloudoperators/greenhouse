@@ -11,12 +11,12 @@ config:
       - manifest:
           release: greenhouse
           chartPath: charts/cors-proxy
-          valuesPath: dev-env/localenv/cors.values.yaml
+          valuesPath: dev-env/cors.values.yaml
           excludeKinds:
             - Ingress
       - manifest:
           release: greenhouse
           chartPath: charts/dashboard
-          valuesPath: dev-env/localenv/ui.values.yaml
+          valuesPath: dev-env/ui.values.yaml
           excludeKinds:
             - Ingress

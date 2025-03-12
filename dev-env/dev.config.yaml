@@ -21,7 +21,7 @@ config:
       - manifest:
           release: greenhouse
           chartPath: charts/manager
-          valuesPath: dev-env/localenv/dev.values.yaml
+          valuesPath: dev-env/dev.values.yaml
           crdOnly: false
           webhook:
             devMode: false

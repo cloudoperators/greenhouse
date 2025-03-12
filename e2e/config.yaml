@@ -3,15 +3,13 @@
 
 config:
   - cluster:
-      name: greenhouse-remote
-  - cluster:
       name: greenhouse-admin
       namespace: greenhouse
     dependencies:
       - manifest:
           release: greenhouse
           chartPath: charts/manager
-          valuesPath: dev-env/localenv/dev.values.yaml
+          valuesPath: dev-env/dev.values.yaml
           crdOnly: false
           webhook:
             devMode: false
@@ -19,3 +17,5 @@ config:
             envs:
               - name: WEBHOOK_ONLY
                 value: 'false'
+  - cluster:
+      name: greenhouse-remote
