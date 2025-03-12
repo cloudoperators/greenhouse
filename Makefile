@@ -142,10 +142,6 @@ run: manifests generate fmt vet ## Run a controller from your host.
 docker-build:
 	docker build --platform ${PLATFORM} -t ${IMG} .
 
-.PHONY: docker-build-dev-env
-docker-build-dev-env:
-	docker build --platform ${PLATFORM} -t ${IMG_DEV_ENV} -f Dockerfile.dev-env .
-
 .PHONY: docker-push
 docker-push: ## Push docker image with the manager.
 	docker push ${IMG}
@@ -256,11 +252,11 @@ setup-controller-dev:
 
 .PHONY: setup-manager
 setup-manager: cli
-	PLUGIN_PATH=$(PLUGIN_DIR) $(CLI) dev setup -f dev-env/localenv/dev.config.yaml d=$(DEV_MODE) e=WEBHOOK_ONLY=$(WEBHOOK_ONLY)
+	PLUGIN_PATH=$(PLUGIN_DIR) $(CLI) dev setup -f dev-env/dev.config.yaml d=$(DEV_MODE) e=WEBHOOK_ONLY=$(WEBHOOK_ONLY)
 
 .PHONY: setup-dashboard
 setup-dashboard: cli
-	$(CLI) dev setup dashboard -f dev-env/localenv/ui.config.yaml
+	$(CLI) dev setup dashboard -f dev-env/ui.config.yaml
 
 .PHONY: setup-demo
 setup-demo: prepare-e2e samples
@@ -272,7 +268,7 @@ setup-demo: prepare-e2e samples
 
 .PHONY: samples
 samples: kustomize
-	$(KUSTOMIZE) build dev-env/localenv/samples | kubectl apply -n $(GREENHOUSE_ORG) --kubeconfig=$(shell pwd)/bin/$(ADMIN_CLUSTER).kubeconfig -f -
+	$(KUSTOMIZE) build dev-env/samples | kubectl apply -n $(GREENHOUSE_ORG) --kubeconfig=$(shell pwd)/bin/$(ADMIN_CLUSTER).kubeconfig -f -
 	while true; do \
 		if kubectl get organizations $(GREENHOUSE_ORG) --kubeconfig=$(shell pwd)/bin/$(ADMIN_CLUSTER).kubeconfig -o json | \
 			jq -e '.status.statusConditions.conditions[] | select(.type == "Ready") | select(.status == "True")' > /dev/null; then \
