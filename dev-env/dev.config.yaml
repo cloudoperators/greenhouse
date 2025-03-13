@@ -3,6 +3,8 @@
 
 config:
   - cluster:
+      name: greenhouse-remote
+  - cluster:
       name: greenhouse-admin
       namespace: greenhouse
     dependencies:
@@ -16,6 +18,4 @@ config:
             dockerFile: "./"
             envs:
               - name: WEBHOOK_ONLY
-                value: 'false'
-  - cluster:
-      name: greenhouse-remote
+                value: 'true'
