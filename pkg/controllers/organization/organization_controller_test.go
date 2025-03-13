@@ -374,11 +374,11 @@ func checkOrganizationReadyStatus(orgName string) {
 
 func createSecretForOIDCConfig(namespace string) {
 	oidcSecret := &corev1.Secret{}
-	oidcSecret.SetName("test-oidc-secret")
+	oidcSecret.SetName("test-secret")
 	oidcSecret.SetNamespace(namespace)
 	oidcSecret.Data = map[string][]byte{
-		"clientId":     []byte("test-client-id"),
-		"clientSecret": []byte("test-client-secret"),
+		"oidcClientId":     []byte("test-client-id"),
+		"oidcClientSecret": []byte("test-client-secret"),
 	}
 	err := test.K8sClient.Create(test.Ctx, oidcSecret)
 	Expect(err).ToNot(HaveOccurred(), "there should be no error creating the secret")
@@ -390,18 +390,11 @@ func updateOrgWithOIDC(orgName string, additionalRedirects ...string) {
 	Expect(err).ToNot(HaveOccurred(), "there should be no error getting the organization")
 	org.Spec.Authentication = &greenhousev1alpha1.Authentication{
 		OIDCConfig: &greenhousev1alpha1.OIDCConfig{
-			Issuer:      "https://example.com",
-			RedirectURI: "https://example.com/callback",
-			ClientIDReference: greenhousev1alpha1.SecretKeyReference{
-				Name: "test-oidc-secret",
-				Key:  "clientId",
-			},
-			ClientSecretReference: greenhousev1alpha1.SecretKeyReference{
-				Name: "test-oidc-secret",
-				Key:  "clientSecret",
-			},
+			Issuer:                   "https://example.com",
+			RedirectURI:              "https://example.com/callback",
 			OAuth2ClientRedirectURIs: additionalRedirects,
 		},
+		SecretRef: "test-secret",
 	}
 	err = test.K8sClient.Update(test.Ctx, org)
 	Expect(err).ToNot(HaveOccurred(), "there should be no error updating the organization with OIDC config")
