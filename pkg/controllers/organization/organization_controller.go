@@ -94,10 +94,7 @@ func (r *OrganizationReconciler) SetupWithManager(name string, mgr ctrl.Manager)
 		Owns(&rbacv1.ClusterRoleBinding{}).
 		Watches(&corev1.Secret{},
 			handler.EnqueueRequestsFromMapFunc(r.enqueueOrganizationForReferencedSecret),
-			builder.WithPredicates(clientutil.PredicateHasOICDConfigured())).
-		Watches(&corev1.Secret{},
-			&handler.EnqueueRequestForObject{},
-			builder.WithPredicates(clientutil.PredicateByName(name+"-secrets"))).
+			builder.WithPredicates(clientutil.PredicateHasAuthConfigured())).
 		Watches(&greenhousesapv1alpha1.PluginDefinition{},
 			handler.EnqueueRequestsFromMapFunc(r.enqueueAllOrganizationsForServiceProxyPluginDefinition),
 			builder.WithPredicates(predicate.And(
