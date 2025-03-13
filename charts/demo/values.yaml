@@ -45,3 +45,7 @@ alerts:
 doop:
   enabled: true
   displayName: Violations
+
+heureka:
+  enabled: true
+  displayName: Compliance
