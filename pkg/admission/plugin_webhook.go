@@ -95,7 +95,9 @@ func ValidateCreatePlugin(ctx context.Context, c client.Client, obj runtime.Obje
 		return nil, err
 	}
 
-	if errList := validatePluginOptionValues(plugin.Spec.OptionValues, pluginDefinition); len(errList) > 0 {
+	optionsFieldPath := field.NewPath("spec").Child("optionValues")
+	errList := validatePluginOptionValues(plugin.Spec.OptionValues, pluginDefinition, true, optionsFieldPath)
+	if len(errList) > 0 {
 		return nil, apierrors.NewInvalid(plugin.GroupVersionKind().GroupKind(), plugin.Name, errList)
 	}
 	if err := validatePluginForCluster(ctx, c, plugin, pluginDefinition); err != nil {
@@ -129,7 +131,8 @@ func ValidateUpdatePlugin(ctx context.Context, c client.Client, old, obj runtime
 
 	allErrs = append(allErrs, validation.ValidateImmutableField(oldPlugin.Spec.PluginDefinition, plugin.Spec.PluginDefinition, field.NewPath("spec", "pluginDefinition"))...)
 
-	allErrs = append(allErrs, validatePluginOptionValues(plugin.Spec.OptionValues, pluginDefinition)...)
+	optionsFieldPath := field.NewPath("spec").Child("optionValues")
+	allErrs = append(allErrs, validatePluginOptionValues(plugin.Spec.OptionValues, pluginDefinition, true, optionsFieldPath)...)
 
 	allErrs = append(allErrs, validation.ValidateImmutableField(oldPlugin.Spec.ClusterName, plugin.Spec.ClusterName,
 		field.NewPath("spec", "clusterName"))...)
@@ -153,7 +156,13 @@ func validateOwnerReference(plugin *greenhousev1alpha1.Plugin) admission.Warning
 	return nil
 }
 
-func validatePluginOptionValues(optionValues []greenhousev1alpha1.PluginOptionValue, pluginDefinition *greenhousev1alpha1.PluginDefinition) field.ErrorList {
+func validatePluginOptionValues(
+	optionValues []greenhousev1alpha1.PluginOptionValue,
+	pluginDefinition *greenhousev1alpha1.PluginDefinition,
+	checkRequiredOptions bool,
+	optionsFieldPath *field.Path,
+) field.ErrorList {
+
 	var allErrs field.ErrorList
 	var isOptionValueSet bool
 	for _, pluginOption := range pluginDefinition.Spec.Options {
@@ -164,7 +173,7 @@ func validatePluginOptionValues(optionValues []greenhousev1alpha1.PluginOptionVa
 			}
 			// If the option is required, it must be set.
 			isOptionValueSet = true
-			fieldPathWithIndex := field.NewPath("spec").Child("optionValues").Index(idx)
+			fieldPathWithIndex := optionsFieldPath.Index(idx)
 
 			// Value and ValueFrom are mutually exclusive, but one must be provided.
 			if (val.Value == nil && val.ValueFrom == nil) || (val.Value != nil && val.ValueFrom != nil) {
@@ -210,8 +219,8 @@ func validatePluginOptionValues(optionValues []greenhousev1alpha1.PluginOptionVa
 				}
 			}
 		}
-		if pluginOption.Required && !isOptionValueSet {
-			allErrs = append(allErrs, field.Required(field.NewPath("spec").Child("optionValues"),
+		if checkRequiredOptions && pluginOption.Required && !isOptionValueSet {
+			allErrs = append(allErrs, field.Required(optionsFieldPath,
 				fmt.Sprintf("Option '%s' is required by PluginDefinition '%s'", pluginOption.Name, pluginDefinition.Name)))
 		}
 	}

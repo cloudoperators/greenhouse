@@ -86,7 +86,7 @@ func ValidateCreatePluginPreset(ctx context.Context, c client.Client, o runtime.
 	}
 
 	// validate OptionValues defined by the Preset
-	if errList := validatePluginOptionValues(pluginPreset.Spec.Plugin.OptionValues, pluginDefinition); len(errList) > 0 {
+	if errList := validatePluginOptionValuesForPreset(pluginPreset, pluginDefinition); len(errList) > 0 {
 		allErrs = append(allErrs, errList...)
 	}
 
@@ -141,4 +141,21 @@ func ValidateDeletePluginPreset(_ context.Context, _ client.Client, obj runtime.
 	}
 
 	return nil, nil
+}
+
+// validatePluginOptionValuesForPreset validates plugin options and their values, but skips the check for required options.
+// Required options are checked at the Plugin creation level, because the preset can override options and we cannot predict what clusters will be a part of the PluginPreset later on.
+func validatePluginOptionValuesForPreset(pluginPreset *greenhousev1alpha1.PluginPreset, pluginDefinition *greenhousev1alpha1.PluginDefinition) field.ErrorList {
+	var allErrs field.ErrorList
+
+	optionValuesPath := field.NewPath("spec").Child("plugin").Child("optionValues")
+	errors := validatePluginOptionValues(pluginPreset.Spec.Plugin.OptionValues, pluginDefinition, false, optionValuesPath)
+	allErrs = append(allErrs, errors...)
+
+	for idx, overridesForSingleCluster := range pluginPreset.Spec.ClusterOptionOverrides {
+		optionOverridesPath := field.NewPath("spec").Child("clusterOptionOverrides").Index(idx).Child("overrides")
+		errors = validatePluginOptionValues(overridesForSingleCluster.Overrides, pluginDefinition, false, optionOverridesPath)
+		allErrs = append(allErrs, errors...)
+	}
+	return allErrs
 }

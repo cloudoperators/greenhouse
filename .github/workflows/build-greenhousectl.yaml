@@ -1,11 +1,12 @@
 name: "Build greenhousectl"
 on:
-  push:
-    tags:        
-      - '**'  
-    paths:
-      - cmd/greenhousectl/**
-      - pkg/cmd/**
+  workflow_dispatch: {}
+  # push:
+  #   tags:        
+  #     - '**'  
+  #   paths:
+  #     - cmd/greenhousectl/**
+  #     - pkg/cmd/**
 
 permissions:
   contents: write # required to create a release

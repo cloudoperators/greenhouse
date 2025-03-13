@@ -1,21 +1,20 @@
 name: Build Docker images and push to registry
 
 on:
-  workflow_dispatch: {}
+  workflow_dispatch: { }
   push:
     branches:
-        - main
+      - main
     paths:
-        - cmd/**
-        - pkg/**
-        - website/**
-        - Dockerfile
-        - Dockerfile.*
-        - go.mod
-        - go.sum
+      - cmd/**
+      - pkg/**
+      - website/**
+      - Dockerfile
+      - go.mod
+      - go.sum
     tags:
       - v*.*.*
-    
+
 env:
   REGISTRY: ghcr.io
 
@@ -23,26 +22,12 @@ jobs:
   build:
     name: Build
     runs-on: [ default ]
-    continue-on-error: true
-    strategy:
-      fail-fast: false
-      max-parallel: 6
-      matrix:
-        include:
-          - Dockerfiles: Dockerfile
-            Imagename: greenhouse
-          - Dockerfiles: Dockerfile.dev-env
-            Imagename: greenhouse-dev-env
-          # - Dockerfiles: Dockerfile.dev-ui
-          #   Imagename: greenhouse-dev-ui
-
     permissions:
       contents: read
       packages: write
       # This is used to complete the identity challenge
       # with sigstore/fulcio when running outside of PRs.
       id-token: write
-
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -51,9 +36,7 @@ jobs:
       # https://github.com/sigstore/cosign-installer
       - name: Install cosign
         if: github.event_name != 'pull_request'
-        uses: sigstore/cosign-installer@v3.8.0
-        with:
-          cosign-release: 'v2.2.3'
+        uses: sigstore/cosign-installer@v3.8.1
       
       # Set up QEMU for cross-platform builds
       - name: Set up QEMU
@@ -84,7 +67,7 @@ jobs:
         id: meta
         uses: docker/metadata-action@v5 # v5.0.0
         with:
-          images: ${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ matrix.Imagename }}
+          images: ${{ env.REGISTRY }}/${{ github.repository_owner }}/greenhouse
           tags: |
             type=semver,pattern={{version}},prefix=v
             type=semver,pattern={{major}}.{{minor}},prefix=v
@@ -104,14 +87,13 @@ jobs:
         uses: docker/build-push-action@v6
         with:
           context: .
-          file: ${{ matrix.Dockerfiles }}
           push: ${{ github.event_name != 'pull_request' }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           # remove untagged images produced for multi platform builds
           provenance: false
-        #  cache-from: type=gha
-        #  cache-to: type=gha,mode=max
+          #  cache-from: type=gha
+          #  cache-to: type=gha,mode=max
           platforms: |
             linux/amd64
             linux/arm64
@@ -136,18 +118,6 @@ jobs:
       contents: read
       packages: read
       security-events: write
-    strategy:
-      fail-fast: false
-      max-parallel: 6
-      matrix:
-        include:
-          - Dockerfiles: Dockerfile
-            Imagename: greenhouse
-          - Dockerfiles: Dockerfile.dev-env
-            Imagename: greenhouse-dev-env
-          # - Dockerfiles: Dockerfile.dev-ui
-          #   Imagename: greenhouse-dev-ui
-
     name: Vulnerability Scan
     needs: build
     runs-on: [ default ]
@@ -156,7 +126,7 @@ jobs:
         uses: aquasecurity/trivy-action@0.29.0
         if: success()
         with:
-          image-ref: ${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ matrix.Imagename }}:${{ github.sha }}
+          image-ref: ${{ env.REGISTRY }}/${{ github.repository_owner }}/greenhouse:${{ github.sha }}
           ignore-unfixed: true
           format: 'sarif'
           output: 'trivy-results.sarif'

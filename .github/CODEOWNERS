@@ -13,15 +13,14 @@
 
 /docs/                    @cloudoperators/greenhouse-core
 /types/                   @cloudoperators/greenhouse-core
-/dev-env/                 @cloudoperators/greenhouse-core
 /website/                 @cloudoperators/greenhouse-core
 .gitignore                @cloudoperators/greenhouse-core
 /README.md                @cloudoperators/greenhouse-core
 
 /docs/reference/api       @cloudoperators/greenhouse-backend
 /charts/                  @cloudoperators/greenhouse-backend
+/config/                  @cloudoperators/greenhouse-backend
 /cmd/                     @cloudoperators/greenhouse-backend
-/grafana/                 @cloudoperators/greenhouse-backend
 /hack/                    @cloudoperators/greenhouse-backend
 /pkg/                     @cloudoperators/greenhouse-backend
 /test/                    @cloudoperators/greenhouse-backend

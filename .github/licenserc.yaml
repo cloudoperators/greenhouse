@@ -12,7 +12,6 @@ header:
     - '.github/**'
     - 'REUSE.toml'
     - 'LICENSES/*.txt'
-    - 'grafana/*.json'
     - 'website/scripts/**'
     - 'hack/**'
     - 'hack/openapi-generator/openapi-info.yaml'
@@ -41,6 +40,8 @@ header:
     - 'charts/**/templates/*.yaml' # license headers on helm templates are causing issues
     - '.mockery.yaml'     # Mockery config file
     - 'pkg/mocks/**'    # Mockery generated files
+    - 'config/flux/**'  #Flux CD files
+    - 'config/manifest/**'  #Flux CD files
 
   comment: on-failure
   
