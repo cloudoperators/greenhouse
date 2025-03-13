@@ -79,14 +79,14 @@ func PredicateHasFinalizer(finalizer string) predicate.Predicate {
 	})
 }
 
-func PredicateHasOICDConfigured() predicate.Predicate {
+func PredicateHasAuthConfigured() predicate.Predicate {
 	return predicate.NewPredicateFuncs(func(o client.Object) bool {
 		org, ok := o.(*greenhousev1alpha1.Organization)
 		if !ok {
 			return false
 		}
 
-		if org.Spec.Authentication == nil || org.Spec.Authentication.OIDCConfig == nil {
+		if org.Spec.Authentication == nil {
 			return false
 		}
 
