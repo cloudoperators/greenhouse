@@ -15,12 +15,13 @@ import (
 	"github.com/pkg/errors"
 	"golang.org/x/text/cases"
 	"golang.org/x/text/language"
+	corev1 "k8s.io/api/core/v1"
 	networkingv1 "k8s.io/api/networking/v1"
+	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
 	greenhousesapv1alpha1 "github.com/cloudoperators/greenhouse/pkg/apis/greenhouse/v1alpha1"
-	"github.com/cloudoperators/greenhouse/pkg/clientutil"
 	"github.com/cloudoperators/greenhouse/pkg/common"
 )
 
@@ -96,14 +97,15 @@ func (r *OrganizationReconciler) deleteOAuth2Client(ctx context.Context, org *gr
 
 // reconcileDexConnector - creates or updates dex connector
 func (r *OrganizationReconciler) reconcileDexConnector(ctx context.Context, org *greenhousesapv1alpha1.Organization) error {
-	clientID, err := clientutil.GetSecretKeyFromSecretKeyReference(ctx, r.Client, org.Name, org.Spec.Authentication.OIDCConfig.ClientIDReference)
+	authSecrets := &corev1.Secret{}
+	err := r.Client.Get(ctx, types.NamespacedName{Namespace: org.Name, Name: org.Spec.Authentication.SecretRef}, authSecrets)
 	if err != nil {
 		return err
 	}
-	clientSecret, err := clientutil.GetSecretKeyFromSecretKeyReference(ctx, r.Client, org.Name, org.Spec.Authentication.OIDCConfig.ClientSecretReference)
-	if err != nil {
-		return err
-	}
+
+	clientID := string(authSecrets.Data["oidcClientID"])
+	clientSecret := string(authSecrets.Data["oidcClientSecret"])
+
 	redirectURL, err := r.discoverOIDCRedirectURL(ctx, org)
 	if err != nil {
 		return err
