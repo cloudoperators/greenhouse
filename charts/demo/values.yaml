@@ -49,3 +49,4 @@ doop:
 heureka:
   enabled: true
   displayName: Compliance
+  endpoint:
