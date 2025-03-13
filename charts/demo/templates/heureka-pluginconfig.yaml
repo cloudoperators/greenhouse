@@ -15,5 +15,5 @@ spec:
   displayName: {{ required ".Values.heureka.displayName missing" .Values.heureka.displayName }}
   optionValues:
     - name: apiEndpoint
-      value: {{ required ".Values.heureka.endpoint missing" .Values.heureka.endpoint }}
+      value: "https://demo.greenhouse.cloud.sap"
 {{ end }}
