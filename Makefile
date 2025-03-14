@@ -132,7 +132,7 @@ build-%: GIT_COMMIT  = $(shell git rev-parse --short HEAD)
 build-%: GIT_STATE   = $(shell if git diff --quiet; then echo clean; else echo dirty; fi)
 build-%: BUILD_DATE  = $(shell date -u +"%Y-%m-%dT%H:%M:%SZ")
 build-%:
-	go build -ldflags "-s -w -X github.com/cloudoperators/greenhouse/pkg/version.GitBranch=$(GIT_BRANCH) -X github.com/cloudoperators/greenhouse/pkg/version.GitCommit=$(GIT_COMMIT) -X github.com/cloudoperators/greenhouse/pkg/version.GitState=$(GIT_STATE) -X github.com/cloudoperators/greenhouse/pkg/version.BuildDate=$(BUILD_DATE)" -o bin/$* ./cmd/$*/
+	go build -ldflags "-s -w -X github.com/cloudoperators/greenhouse/internal/version.GitBranch=$(GIT_BRANCH) -X github.com/cloudoperators/greenhouse/internal/version.GitCommit=$(GIT_COMMIT) -X github.com/cloudoperators/greenhouse/internal/version.GitState=$(GIT_STATE) -X github.com/cloudoperators/greenhouse/internal/version.BuildDate=$(BUILD_DATE)" -o bin/$* ./cmd/$*/
 
 .PHONY: run
 run: manifests generate fmt vet ## Run a controller from your host.
