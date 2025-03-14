@@ -22,4 +22,3 @@ nodes:
         containerPath: /etc/kubernetes/pki/oidc-ca.crt
         readOnly: true
   - role: worker
-  - role: worker
