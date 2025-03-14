@@ -103,8 +103,8 @@ func (r *OrganizationReconciler) reconcileDexConnector(ctx context.Context, org 
 		return err
 	}
 
-	clientID := string(authSecrets.Data["oidcClientID"])
-	clientSecret := string(authSecrets.Data["oidcClientSecret"])
+	clientID := string(authSecrets.Data[greenhousesapv1alpha1.OIDCClientIDKey])
+	clientSecret := string(authSecrets.Data[greenhousesapv1alpha1.OIDCClientSecretKey])
 
 	redirectURL, err := r.discoverOIDCRedirectURL(ctx, org)
 	if err != nil {

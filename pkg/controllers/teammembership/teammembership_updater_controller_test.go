@@ -571,8 +571,8 @@ func createSecretForSCIMConfig(namespace string) {
 			Namespace: namespace,
 		},
 		Data: map[string][]byte{
-			"scimBasicAuthUser":     []byte("user"),
-			"scimBasicAuthPassword": []byte("pw"),
+			greenhousev1alpha1.SCIMBasicAuthUserKey:     []byte("user"),
+			greenhousev1alpha1.SCIMBasicAuthPasswordKey: []byte("pw"),
 		},
 	}
 	err := setup.Client.Create(test.Ctx, &testSecret)
