@@ -125,6 +125,6 @@ resources:
   domain: sap
   group: greenhouse
   kind: ClusterKubeconfig
-  path: github.com/cloudoperators/greenhouse/apis/greenhouse/v1alpha1
+  path: github.com/cloudoperators/greenhouse/api/greenhouse/v1alpha1
   version: v1alpha1
 version: "3"

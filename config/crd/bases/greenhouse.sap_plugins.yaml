@@ -1,0 +1,278 @@
+# SPDX-FileCopyrightText: 2024 SAP SE or an SAP affiliate company and Greenhouse contributors
+# SPDX-License-Identifier: Apache-2.0
+
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.17.2
+  name: plugins.greenhouse.sap
+spec:
+  group: greenhouse.sap
+  names:
+    kind: Plugin
+    listKind: PluginList
+    plural: plugins
+    singular: plugin
+  scope: Namespaced
+  versions:
+  - additionalPrinterColumns:
+    - jsonPath: .spec.displayName
+      name: Display name
+      type: string
+    - jsonPath: .spec.pluginDefinition
+      name: Plugin Definition
+      type: string
+    - jsonPath: .spec.clusterName
+      name: Cluster
+      type: string
+    - jsonPath: .spec.releaseNamespace
+      name: Release Namespace
+      type: string
+    - jsonPath: .spec.disabled
+      name: Disabled
+      type: boolean
+    - jsonPath: .status.statusConditions.conditions[?(@.type == "Ready")].status
+      name: Ready
+      type: string
+    - jsonPath: .status.version
+      name: Version
+      type: string
+    - jsonPath: .metadata.creationTimestamp
+      name: Age
+      type: date
+    name: v1alpha1
+    schema:
+      openAPIV3Schema:
+        description: Plugin is the Schema for the plugins API
+        properties:
+          apiVersion:
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+            type: string
+          kind:
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: PluginSpec defines the desired state of Plugin
+            properties:
+              clusterName:
+                description: ClusterName is the name of the cluster the plugin is
+                  deployed to. If not set, the plugin is deployed to the greenhouse
+                  cluster.
+                type: string
+              displayName:
+                description: |-
+                  DisplayName is an optional name for the Plugin to be displayed in the Greenhouse UI.
+                  This is especially helpful to distinguish multiple instances of a PluginDefinition in the same context.
+                  Defaults to a normalized version of metadata.name.
+                type: string
+              optionValues:
+                description: Values are the values for a PluginDefinition instance.
+                items:
+                  description: PluginOptionValue is the value for a PluginOption.
+                  properties:
+                    name:
+                      description: Name of the values.
+                      type: string
+                    value:
+                      description: Value is the actual value in plain text.
+                      x-kubernetes-preserve-unknown-fields: true
+                    valueFrom:
+                      description: ValueFrom references a potentially confidential
+                        value in another source.
+                      properties:
+                        secret:
+                          description: Secret references the secret containing the
+                            value.
+                          properties:
+                            key:
+                              description: Key in the secret to select the value from.
+                              type: string
+                            name:
+                              description: Name of the secret in the same namespace.
+                              type: string
+                          required:
+                          - key
+                          - name
+                          type: object
+                      type: object
+                  required:
+                  - name
+                  type: object
+                type: array
+              pluginDefinition:
+                description: PluginDefinition is the name of the PluginDefinition
+                  this instance is for.
+                type: string
+              releaseNamespace:
+                description: |-
+                  ReleaseNamespace is the namespace in the remote cluster to which the backend is deployed.
+                  Defaults to the Greenhouse managed namespace if not set.
+                type: string
+            required:
+            - pluginDefinition
+            type: object
+          status:
+            description: PluginStatus defines the observed state of Plugin
+            properties:
+              description:
+                description: Description provides additional details of the plugin.
+                type: string
+              exposedServices:
+                additionalProperties:
+                  description: Service references a Kubernetes service of a Plugin.
+                  properties:
+                    name:
+                      description: Name is the name of the service in the target cluster.
+                      type: string
+                    namespace:
+                      description: Namespace is the namespace of the service in the
+                        target cluster.
+                      type: string
+                    port:
+                      description: Port is the port of the service.
+                      format: int32
+                      type: integer
+                    protocol:
+                      description: Protocol is the protocol of the service.
+                      type: string
+                  required:
+                  - name
+                  - namespace
+                  - port
+                  type: object
+                description: |-
+                  ExposedServices provides an overview of the Plugins services that are centrally exposed.
+                  It maps the exposed URL to the service found in the manifest.
+                type: object
+              helmChart:
+                description: HelmChart contains a reference the helm chart used for
+                  the deployed pluginDefinition version.
+                properties:
+                  name:
+                    description: Name of the HelmChart chart.
+                    type: string
+                  repository:
+                    description: Repository of the HelmChart chart.
+                    type: string
+                  version:
+                    description: Version of the HelmChart chart.
+                    type: string
+                required:
+                - name
+                - repository
+                - version
+                type: object
+              helmReleaseStatus:
+                description: |-
+                  HelmReleaseStatus reflects the status of the latest HelmChart release.
+                  This is only configured if the pluginDefinition is backed by HelmChart.
+                properties:
+                  diff:
+                    description: Diff contains the difference between the deployed
+                      helm chart and the helm chart in the last reconciliation
+                    type: string
+                  firstDeployed:
+                    description: FirstDeployed is the timestamp of the first deployment
+                      of the release.
+                    format: date-time
+                    type: string
+                  lastDeployed:
+                    description: LastDeployed is the timestamp of the last deployment
+                      of the release.
+                    format: date-time
+                    type: string
+                  pluginOptionChecksum:
+                    description: PluginOptionChecksum is the checksum of plugin option
+                      values.
+                    type: string
+                  status:
+                    description: Status is the status of a HelmChart release.
+                    type: string
+                required:
+                - status
+                type: object
+              statusConditions:
+                description: StatusConditions contain the different conditions that
+                  constitute the status of the Plugin.
+                properties:
+                  conditions:
+                    items:
+                      description: Condition contains additional information on the
+                        state of a resource.
+                      properties:
+                        lastTransitionTime:
+                          description: LastTransitionTime is the last time the condition
+                            transitioned from one status to another.
+                          format: date-time
+                          type: string
+                        message:
+                          description: Message is an optional human readable message
+                            indicating details about the last transition.
+                          type: string
+                        reason:
+                          description: Reason is a one-word, CamelCase reason for
+                            the condition's last transition.
+                          type: string
+                        status:
+                          description: Status of the condition.
+                          type: string
+                        type:
+                          description: Type of the condition.
+                          type: string
+                      required:
+                      - lastTransitionTime
+                      - status
+                      - type
+                      type: object
+                    type: array
+                    x-kubernetes-list-map-keys:
+                    - type
+                    x-kubernetes-list-type: map
+                type: object
+              uiApplication:
+                description: UIApplication contains a reference to the frontend that
+                  is used for the deployed pluginDefinition version.
+                properties:
+                  name:
+                    description: Name of the UI application.
+                    type: string
+                  url:
+                    description: |-
+                      URL specifies the url to a built javascript asset.
+                      By default, assets are loaded from the Juno asset server using the provided name and version.
+                    type: string
+                  version:
+                    description: Version of the frontend application.
+                    type: string
+                required:
+                - name
+                - version
+                type: object
+              version:
+                description: Version contains the latest pluginDefinition version
+                  the config was last applied with successfully.
+                type: string
+              weight:
+                description: Weight configures the order in which Plugins are shown
+                  in the Greenhouse UI.
+                format: int32
+                type: integer
+            type: object
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}
