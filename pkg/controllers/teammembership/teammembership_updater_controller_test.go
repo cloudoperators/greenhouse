@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2024 SAP SE or an SAP affiliate company and Greenhouse contributors
 // SPDX-License-Identifier: Apache-2.0
 
-package teammembership_test
+package teammembership
 
 import (
 	. "github.com/onsi/ginkgo/v2"
@@ -15,6 +15,7 @@ import (
 
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/pkg/apis/greenhouse/v1alpha1"
 	"github.com/cloudoperators/greenhouse/pkg/clientutil"
+	"github.com/cloudoperators/greenhouse/pkg/scim"
 	"github.com/cloudoperators/greenhouse/pkg/test"
 )
 
@@ -321,7 +322,7 @@ var _ = Describe("TeammembershipUpdaterController", Ordered, func() {
 				g.Expect(scimAccessReadyCondition.Type).To(Equal(greenhousev1alpha1.SCIMAccessReadyCondition))
 				g.Expect(scimAccessReadyCondition.Status).To(Equal(metav1.ConditionFalse))
 				g.Expect(scimAccessReadyCondition.Reason).To(Equal(greenhousev1alpha1.SCIMConfigErrorReason), "reason should be set to SCIMConfigErrorReason")
-				g.Expect(scimAccessReadyCondition.Message).To(Equal("secret for BasicAuthUser is missing: Secret \"test-secret\" not found"))
+				g.Expect(scimAccessReadyCondition.Message).To(Equal("Secret \"test-secret\" not found"))
 				readyCondition := firstTeamMembership.Status.GetConditionByType(greenhousev1alpha1.ReadyCondition)
 				g.Expect(readyCondition).ToNot(BeNil())
 				g.Expect(readyCondition.Type).To(Equal(greenhousev1alpha1.ReadyCondition))
@@ -508,19 +509,8 @@ var _ = Describe("TeammembershipUpdaterController", Ordered, func() {
 			organization.Spec.Authentication = &greenhousev1alpha1.Authentication{
 				SCIMConfig: &greenhousev1alpha1.SCIMConfig{
 					BaseURL: usersServer.URL + "/scim",
-					BasicAuthUser: greenhousev1alpha1.ValueFromSource{
-						Secret: &greenhousev1alpha1.SecretKeyReference{
-							Name: "test-secret",
-							Key:  "basicAuthUser",
-						},
-					},
-					BasicAuthPw: greenhousev1alpha1.ValueFromSource{
-						Secret: &greenhousev1alpha1.SecretKeyReference{
-							Name: "test-secret",
-							Key:  "basicAuthPw",
-						},
-					},
 				},
+				SecretRef: "test-secret",
 			}
 			Expect(setup.Update(test.Ctx, organization)).To(Succeed(), "there should be no error updating Organization")
 
@@ -550,20 +540,10 @@ func createTestOrgWithSecret(namespace string) {
 	org := setup.CreateOrganization(test.Ctx, namespace, func(o *greenhousev1alpha1.Organization) {
 		o.Spec.Authentication = &greenhousev1alpha1.Authentication{
 			SCIMConfig: &greenhousev1alpha1.SCIMConfig{
-				BaseURL: usersServer.URL + "/scim",
-				BasicAuthUser: greenhousev1alpha1.ValueFromSource{
-					Secret: &greenhousev1alpha1.SecretKeyReference{
-						Name: "test-secret",
-						Key:  "basicAuthUser",
-					},
-				},
-				BasicAuthPw: greenhousev1alpha1.ValueFromSource{
-					Secret: &greenhousev1alpha1.SecretKeyReference{
-						Name: "test-secret",
-						Key:  "basicAuthPw",
-					},
-				},
+				BaseURL:  usersServer.URL + "/scim",
+				AuthType: scim.Basic,
 			},
+			SecretRef: "test-secret",
 		}
 	})
 
@@ -591,8 +571,8 @@ func createSecretForSCIMConfig(namespace string) {
 			Namespace: namespace,
 		},
 		Data: map[string][]byte{
-			"basicAuthUser": []byte("user"),
-			"basicAuthPw":   []byte("pw"),
+			greenhousev1alpha1.SCIMBasicAuthUserKey:     []byte("user"),
+			greenhousev1alpha1.SCIMBasicAuthPasswordKey: []byte("pw"),
 		},
 	}
 	err := setup.Client.Create(test.Ctx, &testSecret)

@@ -12,16 +12,11 @@ spec:
   mappedOrgAdminIdPGroup: {{ required ".Values.teams.admin.mappedIdPGroup missing" .Values.teams.admin.mappedIdPGroup }}
 {{- if or .Values.global.oidc.enabled .Values.scim.enabled }}
   authentication:
+    secretRef: {{ .Chart.Name }}-secrets
 {{- if.Values.global.oidc.enabled }}
     oidc:
       issuer: {{ required ".Values.global.oidc.issuer missing" .Values.global.oidc.issuer }}
       redirectURI: {{ default (printf "https://%s" ( include "idproxy.auth.hostname" .)) .Values.global.oidc.redirectURL }}
-      clientIDReference:
-        name: {{ .Chart.Name }}-oidc
-        key: clientID
-      clientSecretReference:
-        name: {{ .Chart.Name }}-oidc
-        key: clientSecret
     {{- if .Values.organization.oauth2ClientRedirectURIs }}
       oauth2ClientRedirectURIs:
         {{- .Values.organization.oauth2ClientRedirectURIs | toYaml | nindent 10 }}
@@ -30,14 +25,9 @@ spec:
 {{- if .Values.scim.enabled }}
     scim:
       baseURL: {{ required ".Values.scim.baseURL" .Values.scim.baseURL }}
-      basicAuthUser:
-        secret:
-          name: {{ .Chart.Name }}-scim
-          key: username
-      basicAuthPw:
-        secret:
-          name: {{ .Chart.Name }}-scim
-          key: password
+      authType: {{ required ".Values.scim.authType" .Values.scim.authType }}
+      bearerPrefix: {{ .Values.scim.bearerPrefix }}
+      bearerHeader: {{ .Values.scim.bearerHeader }}
 {{ end }}
 {{ end }}
 {{ end }}

@@ -60,6 +60,8 @@ type Authentication struct {
 	OIDCConfig *OIDCConfig `json:"oidc,omitempty"`
 	// SCIMConfig configures the SCIM client.
 	SCIMConfig *SCIMConfig `json:"scim,omitempty"`
+	// SecretRef contains name of the secret with structured secret authentication
+	SecretRef string `json:"secretRef,omitempty"`
 }
 
 type OIDCConfig struct {
@@ -103,6 +105,19 @@ type OrganizationStatus struct {
 	// StatusConditions contain the different conditions that constitute the status of the Organization.
 	StatusConditions `json:"statusConditions,omitempty"`
 }
+
+const (
+	// OIDCClientIDKey is a secret key which contains OIDC client ID
+	OIDCClientIDKey = "oidcClientID"
+	// OIDCClientSecretKey is a secret key which contains OIDC client secret
+	OIDCClientSecretKey = "oidcClientSecret"
+	// SCIMBasicAuthUserKey is a secret key which contains SCIM username
+	SCIMBasicAuthUserKey = "scimBasicAuthUser"
+	// SCIMBasicAuthPasswordKey is a secret key which contains SCIM password
+	SCIMBasicAuthPasswordKey = "scimBasicAuthPassword" //nolint:gosec
+	// SCIMBearerTokenKey is a secret key which contains bearer token
+	SCIMBearerTokenKey = "scimBearerToken"
+)
 
 //+kubebuilder:object:root=true
 //+kubebuilder:subresource:status

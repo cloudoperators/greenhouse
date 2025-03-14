@@ -198,6 +198,10 @@ spec:
                     - basicAuthUser
                     - bearerToken
                     type: object
+                  secretRef:
+                    description: SecretRef contains name of the secret with structured
+                      secret authentication
+                    type: string
                 type: object
               description:
                 description: Description provides additional details of the organization.
