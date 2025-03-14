@@ -74,4 +74,14 @@ const (
 	// ScheduleClusterDeletionAnnotation is used to schedule a cluster for deletion.
 	// Timestamp is set by mutating webhook if cluster is marked for deletion.
 	ScheduleClusterDeletionAnnotation = "greenhouse.sap/deletion-schedule"
+	ClusterConnectivityAnnotation     = "greenhouse.sap/cluster-connectivity"
+	ClusterConnectivityKubeconfig     = "kubeconfig"
+	ClusterConnectivityOIDC           = "oidc"
+)
+
+const (
+	SecretAPIServerURLAnnotation          = "oidc.greenhouse.sap/api-server-url"
+	SecretAPIServerCAKey                  = "ca.crt"
+	OIDCAudience                          = "greenhouse"
+	SecretOIDCConfigGeneratedOnAnnotation = "oidc.greenhouse.sap/oidc-token-last-updated"
 )

@@ -114,7 +114,7 @@ const (
 	// SCIMBasicAuthUserKey is a secret key which contains SCIM username
 	SCIMBasicAuthUserKey = "scimBasicAuthUser"
 	// SCIMBasicAuthPasswordKey is a secret key which contains SCIM password
-	SCIMBasicAuthPasswordKey = "scimBasicAuthPassword"
+	SCIMBasicAuthPasswordKey = "scimBasicAuthPassword" //nolint:gosec
 	// SCIMBearerTokenKey is a secret key which contains bearer token
 	SCIMBearerTokenKey = "scimBearerToken"
 )
