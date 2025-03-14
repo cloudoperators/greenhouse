@@ -30,11 +30,11 @@ func GreenhouseSCIMConfigToSCIMConfig(ctx context.Context, k8sClient client.Clie
 	}
 	switch org.Spec.Authentication.SCIMConfig.AuthType {
 	case scim.Basic:
-		scimBasicAuthUser, ok := secret.Data["scimBasicAuthUser"]
+		scimBasicAuthUser, ok := secret.Data[greenhouseapisv1alpha1.SCIMBasicAuthUserKey]
 		if !ok {
 			return nil, errors.New("missing scimBasicAuthUser")
 		}
-		scimBasicAuthPassword, ok := secret.Data["scimBasicAuthPassword"]
+		scimBasicAuthPassword, ok := secret.Data[greenhouseapisv1alpha1.SCIMBasicAuthPasswordKey]
 		if !ok {
 			return nil, errors.New("missing scimBasicAuthPassword")
 		}
@@ -44,7 +44,7 @@ func GreenhouseSCIMConfigToSCIMConfig(ctx context.Context, k8sClient client.Clie
 			Password: strings.Trim(string(scimBasicAuthPassword), "\n")}
 
 	case scim.BearerToken:
-		scimBearerToken, ok := secret.Data["scimBearerToken"]
+		scimBearerToken, ok := secret.Data[greenhouseapisv1alpha1.SCIMBearerTokenKey]
 		if !ok {
 			return nil, errors.New("scimBearerToken is missing")
 		}

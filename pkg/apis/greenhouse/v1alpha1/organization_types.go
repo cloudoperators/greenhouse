@@ -100,22 +100,24 @@ type SCIMConfig struct {
 	BearerHeader string `json:"bearerHeader,omitempty"`
 }
 
-type AuthSecretConfig struct {
-	// OIDC Secret values
-	OIDCClientID     string `json:"clientID"`
-	OIDCClientSecret string `json:"clientSecret"`
-
-	// SCIM Secret values
-	SCIMBasicAuthUser     string `json:"scimBasicAuthUser"`
-	SCIMBasicAuthPassword string `json:"scimBasicAuthPassword"`
-	SCIMBearerToken       string `json:"scimBearerToken"`
-}
-
 // OrganizationStatus defines the observed state of an Organization
 type OrganizationStatus struct {
 	// StatusConditions contain the different conditions that constitute the status of the Organization.
 	StatusConditions `json:"statusConditions,omitempty"`
 }
+
+const (
+	// OIDCClientIDKey is a secret key which contains OIDC client ID
+	OIDCClientIDKey = "oidcClientID"
+	// OIDCClientSecretKey is a secret key which contains OIDC client secret
+	OIDCClientSecretKey = "oidcClientSecret"
+	// SCIMBasicAuthUserKey is a secret key which contains SCIM username
+	SCIMBasicAuthUserKey = "scimBasicAuthUser"
+	// SCIMBasicAuthPasswordKey is a secret key which contains SCIM password
+	SCIMBasicAuthPasswordKey = "scimBasicAuthPassword"
+	// SCIMBearerTokenKey is a secret key which contains bearer token
+	SCIMBearerTokenKey = "scimBearerToken"
+)
 
 //+kubebuilder:object:root=true
 //+kubebuilder:subresource:status
