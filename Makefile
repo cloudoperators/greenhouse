@@ -187,7 +187,7 @@ action-controllergen:: $(CONTROLLER_GEN_ACTION) ## Download controller-gen local
 $(CONTROLLER_GEN_ACTION):: $(LOCALBIN)
 	GOMODCACHE=$(shell pwd)/tmp GOPATH=$(shell pwd) go install -modcacherw sigs.k8s.io/controller-tools/cmd/controller-gen@v$(CONTROLLER_TOOLS_VERSION)
 	GOMODCACHE=$(shell pwd)/tmp go clean -modcache
-	rm -rf $(shell pwd)/internal/sumdb/
+	rm -rf $(shell pwd)/pkg/sumdb/
 
 .PHONY: controller-gen
 controller-gen:: $(CONTROLLER_GEN) ## Download controller-gen locally if necessary.
@@ -199,7 +199,7 @@ action-envtest:: $(ENVTEST) ## Download envtest-setup locally if necessary.
 $(ENVTEST_ACTION):: $(LOCALBIN)
 	GOMODCACHE=$(shell pwd)/tmp GOPATH=$(shell pwd) go install -modcacherw sigs.k8s.io/controller-runtime/tools/setup-envtest@latest
 	GOMODCACHE=$(shell pwd)/tmp go clean -modcache
-	rm -rf $(shell pwd)/internal/sumdb/
+	rm -rf $(shell pwd)/pkg/sumdb/
 
 .PHONY: envtest
 envtest:: $(ENVTEST) ## Download envtest-setup locally if necessary.
