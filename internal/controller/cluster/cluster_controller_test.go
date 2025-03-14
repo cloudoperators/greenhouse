@@ -18,7 +18,7 @@ import (
 	greenhouseapis "github.com/cloudoperators/greenhouse/api"
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/greenhouse/v1alpha1"
 	"github.com/cloudoperators/greenhouse/internal/clientutil"
-	clusterutils "github.com/cloudoperators/greenhouse/internal/controllers/cluster/utils"
+	clusterutils "github.com/cloudoperators/greenhouse/internal/controller/cluster/utils"
 	"github.com/cloudoperators/greenhouse/internal/test"
 )
 

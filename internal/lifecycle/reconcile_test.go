@@ -16,7 +16,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 
-	"github.com/cloudoperators/greenhouse/internal/controllers/fixtures"
+	"github.com/cloudoperators/greenhouse/internal/controller/fixtures"
 	"github.com/cloudoperators/greenhouse/internal/lifecycle"
 	"github.com/cloudoperators/greenhouse/internal/mocks"
 

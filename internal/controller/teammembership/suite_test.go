@@ -10,7 +10,7 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
-	"github.com/cloudoperators/greenhouse/internal/controllers/teammembership"
+	"github.com/cloudoperators/greenhouse/internal/controller/teammembership"
 	"github.com/cloudoperators/greenhouse/internal/scim"
 	"github.com/cloudoperators/greenhouse/internal/test"
 )

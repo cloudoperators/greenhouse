@@ -17,7 +17,7 @@ import (
 	"github.com/cloudoperators/greenhouse/api/greenhouse/v1alpha1"
 	"github.com/cloudoperators/greenhouse/internal/test"
 
-	clusterpkg "github.com/cloudoperators/greenhouse/internal/controllers/cluster"
+	clusterpkg "github.com/cloudoperators/greenhouse/internal/controller/cluster"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )

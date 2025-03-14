@@ -8,7 +8,7 @@ import (
 	"errors"
 	"testing"
 
-	greenhousecluster "github.com/cloudoperators/greenhouse/internal/controllers/cluster"
+	greenhousecluster "github.com/cloudoperators/greenhouse/internal/controller/cluster"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -26,10 +26,10 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/greenhouse/v1alpha1"
-	"github.com/cloudoperators/greenhouse/internal/admission"
 	"github.com/cloudoperators/greenhouse/internal/clientutil"
 	"github.com/cloudoperators/greenhouse/internal/helm"
 	"github.com/cloudoperators/greenhouse/internal/test"
+	admission "github.com/cloudoperators/greenhouse/internal/webhook"
 )
 
 func TestHelmController(t *testing.T) {

@@ -12,8 +12,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
 
-	"github.com/cloudoperators/greenhouse/internal/admission"
 	"github.com/cloudoperators/greenhouse/internal/test"
+	admission "github.com/cloudoperators/greenhouse/internal/webhook"
 	//+kubebuilder:scaffold:imports
 )
 
