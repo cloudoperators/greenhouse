@@ -13,8 +13,8 @@ import (
 	"k8s.io/client-go/rest"
 	ctrl "sigs.k8s.io/controller-runtime"
 
-	"github.com/cloudoperators/greenhouse/internal/admission"
 	"github.com/cloudoperators/greenhouse/internal/test"
+	admission "github.com/cloudoperators/greenhouse/internal/webhook"
 )
 
 func TestClientUtil(t *testing.T) {

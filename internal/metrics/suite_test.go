@@ -11,7 +11,7 @@ import (
 	"k8s.io/client-go/rest"
 	ctrl "sigs.k8s.io/controller-runtime"
 
-	greenhousecluster "github.com/cloudoperators/greenhouse/internal/controllers/cluster"
+	greenhousecluster "github.com/cloudoperators/greenhouse/internal/controller/cluster"
 	"github.com/cloudoperators/greenhouse/internal/test"
 )
 

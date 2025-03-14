@@ -11,11 +11,11 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 
 	"github.com/cloudoperators/greenhouse/internal/clientutil"
-	clustercontrollers "github.com/cloudoperators/greenhouse/internal/controllers/cluster"
-	organizationcontrollers "github.com/cloudoperators/greenhouse/internal/controllers/organization"
-	plugincontrollers "github.com/cloudoperators/greenhouse/internal/controllers/plugin"
-	teammembershipcontrollers "github.com/cloudoperators/greenhouse/internal/controllers/teammembership"
-	teamrbaccontrollers "github.com/cloudoperators/greenhouse/internal/controllers/teamrbac"
+	clustercontrollers "github.com/cloudoperators/greenhouse/internal/controller/cluster"
+	organizationcontrollers "github.com/cloudoperators/greenhouse/internal/controller/organization"
+	plugincontrollers "github.com/cloudoperators/greenhouse/internal/controller/plugin"
+	teammembershipcontrollers "github.com/cloudoperators/greenhouse/internal/controller/teammembership"
+	teamrbaccontrollers "github.com/cloudoperators/greenhouse/internal/controller/teamrbac"
 	dexstore "github.com/cloudoperators/greenhouse/internal/dex"
 )
 

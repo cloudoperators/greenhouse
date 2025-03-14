@@ -391,7 +391,9 @@ export interface components {
                         };
                         /** @description Issuer is the URL of the identity service. */
                         issuer: string;
-                        /** @description RedirectURI is the redirect URI.\nIf none is specified, the Greenhouse ID proxy will be used. */
+                        /** @description OAuth2ClientRedirectURIs are a registered set of redirect URIs. When redirecting from the idproxy to\nthe client application, the URI requested to redirect to must be contained in this list. */
+                        oauth2ClientRedirectURIs?: string[];
+                        /** @description RedirectURI is the redirect URI to be used for the OIDC flow against the upstream IdP.\nIf none is specified, the Greenhouse ID proxy will be used. */
                         redirectURI?: string;
                     };
                     /** @description SCIMConfig configures the SCIM client. */
@@ -898,6 +900,32 @@ export interface components {
             };
             /** @description PluginPresetStatus defines the observed state of PluginPreset */
             status?: {
+                /** @description AvailablePlugins is the number of available Plugins managed by the PluginPreset. */
+                availablePlugins?: number;
+                /** @description FailedPlugins is the number of failed Plugins managed by the PluginPreset. */
+                failedPlugins?: number;
+                /** @description PluginStatuses contains statuses of Plugins managed by the PluginPreset. */
+                pluginStatuses?: {
+                    pluginName?: string;
+                    /** @description Condition contains additional information on the state of a resource. */
+                    readyCondition?: {
+                        /**
+                         * Format: date-time
+                         * @description LastTransitionTime is the last time the condition transitioned from one status to another.
+                         */
+                        lastTransitionTime: string;
+                        /** @description Message is an optional human readable message indicating details about the last transition. */
+                        message?: string;
+                        /** @description Reason is a one-word, CamelCase reason for the condition's last transition. */
+                        reason?: string;
+                        /** @description Status of the condition. */
+                        status: string;
+                        /** @description Type of the condition. */
+                        type: string;
+                    };
+                }[];
+                /** @description ReadyPlugins is the number of ready Plugins managed by the PluginPreset. */
+                readyPlugins?: number;
                 /** @description StatusConditions contain the different conditions that constitute the status of the PluginPreset. */
                 statusConditions?: {
                     conditions?: {
@@ -1031,12 +1059,19 @@ export interface components {
                         [key: string]: string;
                     };
                 };
+                /**
+                 * @description CreateNamespaces when enabled the controller will create namespaces for RoleBindings if they do not exist.
+                 * @default false
+                 */
+                createNamespaces: boolean;
                 /** @description Namespaces is a list of namespaces in the Greenhouse Clusters to apply the RoleBinding to.\nIf empty, a ClusterRoleBinding will be created on the remote cluster, otherwise a RoleBinding per namespace. */
                 namespaces?: string[];
                 /** @description TeamRef references a Greenhouse Team by name */
                 teamRef?: string;
                 /** @description TeamRoleRef references a Greenhouse TeamRole by name */
                 teamRoleRef?: string;
+                /** @description Usernames defines list of users to add to the (Cluster-)RoleBindings */
+                usernames?: string[];
             };
             /** @description TeamRoleBindingStatus defines the observed state of the TeamRoleBinding */
             status?: {

@@ -56,7 +56,7 @@ manifests: generate-manifests generate-documentation generate-types
 .PHONY: generate-manifests
 generate-manifests: controller-gen ## Generate WebhookConfiguration, ClusterRole and CustomResourceDefinition objects.
 	$(CONTROLLER_GEN) crd paths="./api/..." output:crd:artifacts:config=$(CRD_MANIFESTS_PATH)
-	$(CONTROLLER_GEN) rbac:roleName=manager-role webhook paths="./internal/admission/..." paths="./internal/controllers/..." output:artifacts:config=$(TEMPLATES_MANIFESTS_PATH)
+	$(CONTROLLER_GEN) rbac:roleName=manager-role webhook paths="./internal/webhook/..." paths="./internal/controller/..." output:artifacts:config=$(TEMPLATES_MANIFESTS_PATH)
 	hack/helmify $(TEMPLATES_MANIFESTS_PATH)
 	docker run --rm -v $(shell pwd):/github/workspace $(IMG_LICENSE_EYE) -c .github/licenserc.yaml header fix
 
@@ -186,7 +186,7 @@ action-controllergen:: $(CONTROLLER_GEN_ACTION) ## Download controller-gen local
 $(CONTROLLER_GEN_ACTION):: $(LOCALBIN)
 	GOMODCACHE=$(shell pwd)/tmp GOPATH=$(shell pwd) go install -modcacherw sigs.k8s.io/controller-tools/cmd/controller-gen@v$(CONTROLLER_TOOLS_VERSION)
 	GOMODCACHE=$(shell pwd)/tmp go clean -modcache
-	rm -rf $(shell pwd)/internal/sumdb/
+	rm -rf $(shell pwd)/pkg/sumdb/
 
 .PHONY: controller-gen
 controller-gen:: $(CONTROLLER_GEN) ## Download controller-gen locally if necessary.
@@ -198,7 +198,7 @@ action-envtest:: $(ENVTEST) ## Download envtest-setup locally if necessary.
 $(ENVTEST_ACTION):: $(LOCALBIN)
 	GOMODCACHE=$(shell pwd)/tmp GOPATH=$(shell pwd) go install -modcacherw sigs.k8s.io/controller-runtime/tools/setup-envtest@latest
 	GOMODCACHE=$(shell pwd)/tmp go clean -modcache
-	rm -rf $(shell pwd)/internal/sumdb/
+	rm -rf $(shell pwd)/pkg/sumdb/
 
 .PHONY: envtest
 envtest:: $(ENVTEST) ## Download envtest-setup locally if necessary.
