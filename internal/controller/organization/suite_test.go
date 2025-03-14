@@ -10,11 +10,11 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
-	"github.com/cloudoperators/greenhouse/internal/admission"
-	organizationpkg "github.com/cloudoperators/greenhouse/internal/controllers/organization"
+	organizationpkg "github.com/cloudoperators/greenhouse/internal/controller/organization"
 	"github.com/cloudoperators/greenhouse/internal/dex"
 	"github.com/cloudoperators/greenhouse/internal/scim"
 	"github.com/cloudoperators/greenhouse/internal/test"
+	admission "github.com/cloudoperators/greenhouse/internal/webhook"
 )
 
 var (

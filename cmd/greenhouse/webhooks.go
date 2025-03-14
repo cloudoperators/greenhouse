@@ -6,7 +6,7 @@ package main
 import (
 	ctrl "sigs.k8s.io/controller-runtime"
 
-	"github.com/cloudoperators/greenhouse/internal/admission"
+	admission "github.com/cloudoperators/greenhouse/internal/webhook"
 )
 
 var knownWebhooks = map[string]func(mgr ctrl.Manager) error{

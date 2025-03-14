@@ -14,7 +14,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
-	"github.com/cloudoperators/greenhouse/internal/controllers/cluster/utils"
+	"github.com/cloudoperators/greenhouse/internal/controller/cluster/utils"
 	"github.com/cloudoperators/greenhouse/internal/lifecycle"
 
 	corev1 "k8s.io/api/core/v1"

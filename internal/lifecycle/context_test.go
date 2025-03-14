@@ -10,7 +10,7 @@ import (
 	. "github.com/onsi/gomega"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	"github.com/cloudoperators/greenhouse/internal/controllers/fixtures"
+	"github.com/cloudoperators/greenhouse/internal/controller/fixtures"
 	"github.com/cloudoperators/greenhouse/internal/lifecycle"
 )
 

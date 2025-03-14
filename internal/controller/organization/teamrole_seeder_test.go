@@ -11,7 +11,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/greenhouse/v1alpha1"
-	"github.com/cloudoperators/greenhouse/internal/controllers/organization"
+	"github.com/cloudoperators/greenhouse/internal/controller/organization"
 	"github.com/cloudoperators/greenhouse/internal/test"
 )
 
