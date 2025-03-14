@@ -22,13 +22,13 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 
-	greenhousesapv1alpha1 "github.com/cloudoperators/greenhouse/pkg/apis/greenhouse/v1alpha1"
-	"github.com/cloudoperators/greenhouse/pkg/clientutil"
-	dexstore "github.com/cloudoperators/greenhouse/pkg/dex"
-	dexapi "github.com/cloudoperators/greenhouse/pkg/dex/api"
-	"github.com/cloudoperators/greenhouse/pkg/lifecycle"
-	"github.com/cloudoperators/greenhouse/pkg/scim"
-	"github.com/cloudoperators/greenhouse/pkg/util"
+	greenhousesapv1alpha1 "github.com/cloudoperators/greenhouse/api/greenhouse/v1alpha1"
+	"github.com/cloudoperators/greenhouse/internal/clientutil"
+	dexstore "github.com/cloudoperators/greenhouse/internal/dex"
+	dexapi "github.com/cloudoperators/greenhouse/internal/dex/api"
+	"github.com/cloudoperators/greenhouse/internal/lifecycle"
+	"github.com/cloudoperators/greenhouse/internal/scim"
+	"github.com/cloudoperators/greenhouse/internal/util"
 )
 
 var (

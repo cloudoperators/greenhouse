@@ -7,7 +7,7 @@ import (
 	rbacv1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	greenhouseapis "github.com/cloudoperators/greenhouse/pkg/apis"
+	greenhouseapis "github.com/cloudoperators/greenhouse/api"
 )
 
 // TeamRoleSpec defines the desired state of a TeamRole

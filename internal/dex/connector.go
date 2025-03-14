@@ -15,9 +15,9 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	greenhouseapis "github.com/cloudoperators/greenhouse/pkg/apis"
-	greenhousesapv1alpha1 "github.com/cloudoperators/greenhouse/pkg/apis/greenhouse/v1alpha1"
-	"github.com/cloudoperators/greenhouse/pkg/rbac"
+	greenhouseapis "github.com/cloudoperators/greenhouse/api"
+	greenhousesapv1alpha1 "github.com/cloudoperators/greenhouse/api/greenhouse/v1alpha1"
+	"github.com/cloudoperators/greenhouse/internal/rbac"
 )
 
 var (

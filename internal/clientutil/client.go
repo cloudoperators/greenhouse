@@ -16,8 +16,8 @@ import (
 	"k8s.io/client-go/rest"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/pkg/apis/greenhouse/v1alpha1"
-	dexapi "github.com/cloudoperators/greenhouse/pkg/dex/api"
+	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/greenhouse/v1alpha1"
+	dexapi "github.com/cloudoperators/greenhouse/internal/dex/api"
 )
 
 var Scheme = runtime.NewScheme()

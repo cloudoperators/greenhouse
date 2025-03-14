@@ -7,7 +7,7 @@ import (
 
 	mock "github.com/stretchr/testify/mock"
 
-	lifecycle "github.com/cloudoperators/greenhouse/pkg/lifecycle"
+	lifecycle "github.com/cloudoperators/greenhouse/internal/lifecycle"
 
 	reconcile "sigs.k8s.io/controller-runtime/pkg/reconcile"
 )

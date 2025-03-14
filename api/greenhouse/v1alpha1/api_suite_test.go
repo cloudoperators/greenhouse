@@ -9,7 +9,7 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
-	"github.com/cloudoperators/greenhouse/pkg/test"
+	"github.com/cloudoperators/greenhouse/internal/test"
 )
 
 func TestAPI(t *testing.T) {

@@ -10,7 +10,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/cloudoperators/greenhouse/pkg/clientutil"
+	"github.com/cloudoperators/greenhouse/internal/clientutil"
 
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -19,7 +19,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	"github.com/cloudoperators/greenhouse/pkg/internal/local/utils"
+	"github.com/cloudoperators/greenhouse/internal/internal/local/utils"
 )
 
 const (

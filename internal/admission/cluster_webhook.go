@@ -14,15 +14,15 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 
-	"github.com/cloudoperators/greenhouse/pkg/apis"
-	"github.com/cloudoperators/greenhouse/pkg/clientutil"
+	apis "github.com/cloudoperators/greenhouse/api"
+	"github.com/cloudoperators/greenhouse/internal/clientutil"
 
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
-	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/pkg/apis/greenhouse/v1alpha1"
+	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/greenhouse/v1alpha1"
 )
 
 // Webhook for the Cluster custom resource.

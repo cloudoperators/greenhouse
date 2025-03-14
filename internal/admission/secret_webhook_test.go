@@ -12,8 +12,8 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	greenhouseapis "github.com/cloudoperators/greenhouse/pkg/apis"
-	"github.com/cloudoperators/greenhouse/pkg/test"
+	greenhouseapis "github.com/cloudoperators/greenhouse/api"
+	"github.com/cloudoperators/greenhouse/internal/test"
 )
 
 var _ = Describe("Validate Secret Creation based on type", func() {

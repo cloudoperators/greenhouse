@@ -16,8 +16,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
-	greenhouseapis "github.com/cloudoperators/greenhouse/pkg/apis"
-	"github.com/cloudoperators/greenhouse/pkg/clientutil"
+	greenhouseapis "github.com/cloudoperators/greenhouse/api"
+	"github.com/cloudoperators/greenhouse/internal/clientutil"
 )
 
 // Webhook for the core Secret type resource.

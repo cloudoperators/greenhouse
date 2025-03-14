@@ -6,7 +6,7 @@ package helm
 import (
 	"time"
 
-	"github.com/cloudoperators/greenhouse/pkg/clientutil"
+	"github.com/cloudoperators/greenhouse/internal/clientutil"
 )
 
 // Default Greenhouse helm timeout duration in seconds for install, upgrade and rollback actions.

@@ -10,8 +10,8 @@ import (
 	. "github.com/onsi/gomega"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	"github.com/cloudoperators/greenhouse/pkg/controllers/fixtures"
-	"github.com/cloudoperators/greenhouse/pkg/lifecycle"
+	"github.com/cloudoperators/greenhouse/internal/controllers/fixtures"
+	"github.com/cloudoperators/greenhouse/internal/lifecycle"
 )
 
 var _ = Describe("Context", func() {

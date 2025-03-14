@@ -28,9 +28,9 @@ import (
 	metricsserver "sigs.k8s.io/controller-runtime/pkg/metrics/server"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 
-	greenhousesapv1alpha1 "github.com/cloudoperators/greenhouse/pkg/apis/greenhouse/v1alpha1"
-	"github.com/cloudoperators/greenhouse/pkg/clientutil"
-	dexapi "github.com/cloudoperators/greenhouse/pkg/dex/api"
+	greenhousesapv1alpha1 "github.com/cloudoperators/greenhouse/api/greenhouse/v1alpha1"
+	"github.com/cloudoperators/greenhouse/internal/clientutil"
+	dexapi "github.com/cloudoperators/greenhouse/internal/dex/api"
 
 	_ "k8s.io/client-go/plugin/pkg/client/auth/oidc"
 )

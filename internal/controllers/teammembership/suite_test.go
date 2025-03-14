@@ -10,9 +10,9 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
-	"github.com/cloudoperators/greenhouse/pkg/controllers/teammembership"
-	"github.com/cloudoperators/greenhouse/pkg/scim"
-	"github.com/cloudoperators/greenhouse/pkg/test"
+	"github.com/cloudoperators/greenhouse/internal/controllers/teammembership"
+	"github.com/cloudoperators/greenhouse/internal/scim"
+	"github.com/cloudoperators/greenhouse/internal/test"
 )
 
 var (

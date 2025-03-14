@@ -10,9 +10,9 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 
-	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/pkg/apis/greenhouse/v1alpha1"
-	"github.com/cloudoperators/greenhouse/pkg/controllers/organization"
-	"github.com/cloudoperators/greenhouse/pkg/test"
+	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/greenhouse/v1alpha1"
+	"github.com/cloudoperators/greenhouse/internal/controllers/organization"
+	"github.com/cloudoperators/greenhouse/internal/test"
 )
 
 var _ = Describe("Test TeamRole Seeding", func() {

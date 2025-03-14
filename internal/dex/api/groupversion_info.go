@@ -6,7 +6,7 @@ package api
 import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 
-	"github.com/cloudoperators/greenhouse/pkg/apis"
+	apis "github.com/cloudoperators/greenhouse/api"
 )
 
 /*

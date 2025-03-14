@@ -13,11 +13,11 @@ import (
 	"k8s.io/client-go/tools/clientcmd"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	greenhouseapis "github.com/cloudoperators/greenhouse/pkg/apis"
-	"github.com/cloudoperators/greenhouse/pkg/apis/greenhouse/v1alpha1"
-	"github.com/cloudoperators/greenhouse/pkg/test"
+	greenhouseapis "github.com/cloudoperators/greenhouse/api"
+	"github.com/cloudoperators/greenhouse/api/greenhouse/v1alpha1"
+	"github.com/cloudoperators/greenhouse/internal/test"
 
-	clusterpkg "github.com/cloudoperators/greenhouse/pkg/controllers/cluster"
+	clusterpkg "github.com/cloudoperators/greenhouse/internal/controllers/cluster"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )

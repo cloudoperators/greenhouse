@@ -9,7 +9,7 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/cloudoperators/greenhouse/pkg/version"
+	"github.com/cloudoperators/greenhouse/internal/version"
 )
 
 const programName = "greenhousectl"

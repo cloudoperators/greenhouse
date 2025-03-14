@@ -11,7 +11,7 @@ import (
 	"k8s.io/client-go/tools/clientcmd"
 	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
 
-	greenhouseapis "github.com/cloudoperators/greenhouse/pkg/apis"
+	greenhouseapis "github.com/cloudoperators/greenhouse/api"
 )
 
 func ValidateSecretForKubeConfig(secret *corev1.Secret) error {

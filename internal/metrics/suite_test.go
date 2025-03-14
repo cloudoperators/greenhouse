@@ -11,8 +11,8 @@ import (
 	"k8s.io/client-go/rest"
 	ctrl "sigs.k8s.io/controller-runtime"
 
-	greenhousecluster "github.com/cloudoperators/greenhouse/pkg/controllers/cluster"
-	"github.com/cloudoperators/greenhouse/pkg/test"
+	greenhousecluster "github.com/cloudoperators/greenhouse/internal/controllers/cluster"
+	"github.com/cloudoperators/greenhouse/internal/test"
 )
 
 func TestHelmController(t *testing.T) {

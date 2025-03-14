@@ -3,7 +3,7 @@
 
 package main
 
-import "github.com/cloudoperators/greenhouse/pkg/cmd"
+import "github.com/cloudoperators/greenhouse/internal/cmd"
 
 func main() {
 	cmd.Execute()

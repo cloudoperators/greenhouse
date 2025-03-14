@@ -30,10 +30,10 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
-	greenhouseapis "github.com/cloudoperators/greenhouse/pkg/apis"
-	greenhouseapisv1alpha1 "github.com/cloudoperators/greenhouse/pkg/apis/greenhouse/v1alpha1"
-	"github.com/cloudoperators/greenhouse/pkg/clientutil"
-	clustercontroller "github.com/cloudoperators/greenhouse/pkg/controllers/cluster/utils"
+	greenhouseapis "github.com/cloudoperators/greenhouse/api"
+	greenhouseapisv1alpha1 "github.com/cloudoperators/greenhouse/api/greenhouse/v1alpha1"
+	"github.com/cloudoperators/greenhouse/internal/clientutil"
+	clustercontroller "github.com/cloudoperators/greenhouse/internal/controllers/cluster/utils"
 )
 
 const (
