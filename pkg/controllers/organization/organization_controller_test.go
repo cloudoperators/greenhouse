@@ -377,8 +377,8 @@ func createSecretForOIDCConfig(namespace string) {
 	oidcSecret.SetName("test-secret")
 	oidcSecret.SetNamespace(namespace)
 	oidcSecret.Data = map[string][]byte{
-		"oidcClientId":     []byte("test-client-id"),
-		"oidcClientSecret": []byte("test-client-secret"),
+		greenhousev1alpha1.OIDCClientIDKey:     []byte("test-client-id"),
+		greenhousev1alpha1.OIDCClientSecretKey: []byte("test-client-secret"),
 	}
 	err := test.K8sClient.Create(test.Ctx, oidcSecret)
 	Expect(err).ToNot(HaveOccurred(), "there should be no error creating the secret")
@@ -411,9 +411,9 @@ func createSecretForSCIMConfig(namespace string) *corev1.Secret {
 			Namespace: namespace,
 		},
 		Data: map[string][]byte{
-			"scimBasicAuthUser":     []byte("user"),
-			"scimBasicAuthPassword": []byte("pw"),
-			"scimBearerToken":       []byte("100b8cad7cf2a56f6df78f171f97a1ec"),
+			greenhousev1alpha1.SCIMBasicAuthUserKey:     []byte("user"),
+			greenhousev1alpha1.SCIMBasicAuthPasswordKey: []byte("pw"),
+			greenhousev1alpha1.SCIMBearerTokenKey:       []byte("100b8cad7cf2a56f6df78f171f97a1ec"),
 		},
 	}
 	err := test.K8sClient.Create(test.Ctx, &testSecret)
