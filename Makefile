@@ -56,8 +56,8 @@ manifests: generate-manifests generate-documentation generate-types
 
 .PHONY: generate-manifests
 generate-manifests: controller-gen ## Generate WebhookConfiguration, ClusterRole and CustomResourceDefinition objects.
-	$(CONTROLLER_GEN) crd paths="./pkg/apis/..." output:crd:artifacts:config=$(CRD_MANIFESTS_PATH)
-	$(CONTROLLER_GEN) rbac:roleName=manager-role webhook paths="./pkg/admission/..." paths="./pkg/controllers/..." output:artifacts:config=$(TEMPLATES_MANIFESTS_PATH)
+	$(CONTROLLER_GEN) crd paths="./api/..." output:crd:artifacts:config=$(CRD_MANIFESTS_PATH)
+	$(CONTROLLER_GEN) rbac:roleName=manager-role webhook paths="./internal/admission/..." paths="./internal/controllers/..." output:artifacts:config=$(TEMPLATES_MANIFESTS_PATH)
 	hack/helmify $(TEMPLATES_MANIFESTS_PATH)
 	docker run --rm -v $(shell pwd):/github/workspace $(IMG_LICENSE_EYE) -c .github/licenserc.yaml header fix
 
@@ -72,16 +72,16 @@ generate-types: generate-open-api-spec## Generate typescript types from CRDs.
 
 .PHONY: actiongenerate
 actiongenerate: action-controllergen
-	$(CONTROLLER_GEN_ACTION) object:headerFile="hack/boilerplate.go.txt" paths="./pkg/apis/..."
-	$(CONTROLLER_GEN_ACTION) object:headerFile="hack/boilerplate.go.txt" paths="./pkg/dex/..."
+	$(CONTROLLER_GEN_ACTION) object:headerFile="hack/boilerplate.go.txt" paths="./api/..."
+	$(CONTROLLER_GEN_ACTION) object:headerFile="hack/boilerplate.go.txt" paths="./internal/dex/..."
 
 .PHONY: generate
 generate: controller-gen ## Generate code containing DeepCopy, DeepCopyInto, and DeepCopyObject method implementations.
-	$(CONTROLLER_GEN) object:headerFile="hack/boilerplate.go.txt" paths="./pkg/apis/..."
-	$(CONTROLLER_GEN) object:headerFile="hack/boilerplate.go.txt" paths="./pkg/dex/..."
+	$(CONTROLLER_GEN) object:headerFile="hack/boilerplate.go.txt" paths="./api/..."
+	$(CONTROLLER_GEN) object:headerFile="hack/boilerplate.go.txt" paths="./internal/dex/..."
 
 # Default values
-GEN_DOCS_API_DIR ?= "./pkg/apis/greenhouse/v1alpha1" ## -app-dir should be Canonical Path Format so absolute path doesn't work. That's why we don't use $(CURDIR) here.
+GEN_DOCS_API_DIR ?= "./api/greenhouse/v1alpha1" ## -app-dir should be Canonical Path Format so absolute path doesn't work. That's why we don't use $(CURDIR) here.
 GEN_DOCS_CONFIG ?= "$(CURDIR)/hack/docs-generator/config.json"
 GEN_DOCS_TEMPLATE_DIR ?= "$(CURDIR)/hack/docs-generator/templates"
 GEN_DOCS_OUT_FILE ?= "$(CURDIR)/docs/reference/api/index.html"
@@ -187,7 +187,7 @@ action-controllergen:: $(CONTROLLER_GEN_ACTION) ## Download controller-gen local
 $(CONTROLLER_GEN_ACTION):: $(LOCALBIN)
 	GOMODCACHE=$(shell pwd)/tmp GOPATH=$(shell pwd) go install -modcacherw sigs.k8s.io/controller-tools/cmd/controller-gen@v$(CONTROLLER_TOOLS_VERSION)
 	GOMODCACHE=$(shell pwd)/tmp go clean -modcache
-	rm -rf $(shell pwd)/pkg/sumdb/
+	rm -rf $(shell pwd)/internal/sumdb/
 
 .PHONY: controller-gen
 controller-gen:: $(CONTROLLER_GEN) ## Download controller-gen locally if necessary.
@@ -199,7 +199,7 @@ action-envtest:: $(ENVTEST) ## Download envtest-setup locally if necessary.
 $(ENVTEST_ACTION):: $(LOCALBIN)
 	GOMODCACHE=$(shell pwd)/tmp GOPATH=$(shell pwd) go install -modcacherw sigs.k8s.io/controller-runtime/tools/setup-envtest@latest
 	GOMODCACHE=$(shell pwd)/tmp go clean -modcache
-	rm -rf $(shell pwd)/pkg/sumdb/
+	rm -rf $(shell pwd)/internal/sumdb/
 
 .PHONY: envtest
 envtest:: $(ENVTEST) ## Download envtest-setup locally if necessary.
