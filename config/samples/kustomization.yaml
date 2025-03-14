@@ -1,0 +1,16 @@
+# SPDX-FileCopyrightText: 2024 SAP SE or an SAP affiliate company and Greenhouse contributors
+# SPDX-License-Identifier: Apache-2.0
+
+## Append samples of your project ##
+resources:
+- greenhouse_v1alpha1_organization.yaml
+- greenhouse_v1alpha1_team.yaml
+- greenhouse_v1alpha1_plugindefinition.yaml
+- greenhouse_v1alpha1_plugin.yaml
+- greenhouse_v1alpha1_cluster.yaml
+- greenhouse_v1alpha1_teammembership.yaml
+- greenhouse_v1alpha1_teamrole.yaml
+- greenhouse_v1alpha1_teamrolebinding.yaml
+- greenhouse_v1alpha1_pluginpreset.yaml
+- greenhouse.sap_v1alpha1_clusterkubeconfig.yaml
+# +kubebuilder:scaffold:manifestskustomizesamples

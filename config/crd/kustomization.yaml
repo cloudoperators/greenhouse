@@ -1,0 +1,28 @@
+# SPDX-FileCopyrightText: 2024 SAP SE or an SAP affiliate company and Greenhouse contributors
+# SPDX-License-Identifier: Apache-2.0
+
+# This kustomization.yaml is not intended to be run by itself,
+# since it depends on service name and namespace that are out of this kustomize package.
+# It should be run by config/default
+resources:
+- bases/greenhouse.sap_organizations.yaml
+- bases/greenhouse.sap_teams.yaml
+- bases/greenhouse.sap_plugindefinitions.yaml
+- bases/greenhouse.sap_plugins.yaml
+- bases/greenhouse.sap_clusters.yaml
+- bases/greenhouse.sap_teammemberships.yaml
+- bases/greenhouse.sap_teamroles.yaml
+- bases/greenhouse.sap_teamrolebindings.yaml
+- bases/greenhouse.sap_pluginpresets.yaml
+- bases/greenhouse.sap_clusterkubeconfigs.yaml
+# +kubebuilder:scaffold:crdkustomizeresource
+
+patches:
+# [WEBHOOK] To enable webhook, uncomment all the sections with [WEBHOOK] prefix.
+# patches here are for enabling the conversion webhook for each CRD
+# +kubebuilder:scaffold:crdkustomizewebhookpatch
+
+# [WEBHOOK] To enable webhook, uncomment the following section
+# the following config is for teaching kustomize how to do kustomization for CRDs.
+#configurations:
+#- kustomizeconfig.yaml
