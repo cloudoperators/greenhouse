@@ -17,9 +17,9 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
-	greenhouseapis "github.com/cloudoperators/greenhouse/pkg/apis"
-	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/pkg/apis/greenhouse/v1alpha1"
-	"github.com/cloudoperators/greenhouse/pkg/test"
+	greenhouseapis "github.com/cloudoperators/greenhouse/api"
+	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/greenhouse/v1alpha1"
+	"github.com/cloudoperators/greenhouse/internal/test"
 )
 
 // TestRewrite tests the rewrite function of the proxy manager.

@@ -10,13 +10,13 @@ import (
 	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 
-	"github.com/cloudoperators/greenhouse/pkg/clientutil"
-	clustercontrollers "github.com/cloudoperators/greenhouse/pkg/controllers/cluster"
-	organizationcontrollers "github.com/cloudoperators/greenhouse/pkg/controllers/organization"
-	plugincontrollers "github.com/cloudoperators/greenhouse/pkg/controllers/plugin"
-	teammembershipcontrollers "github.com/cloudoperators/greenhouse/pkg/controllers/teammembership"
-	teamrbaccontrollers "github.com/cloudoperators/greenhouse/pkg/controllers/teamrbac"
-	dexstore "github.com/cloudoperators/greenhouse/pkg/dex"
+	"github.com/cloudoperators/greenhouse/internal/clientutil"
+	clustercontrollers "github.com/cloudoperators/greenhouse/internal/controllers/cluster"
+	organizationcontrollers "github.com/cloudoperators/greenhouse/internal/controllers/organization"
+	plugincontrollers "github.com/cloudoperators/greenhouse/internal/controllers/plugin"
+	teammembershipcontrollers "github.com/cloudoperators/greenhouse/internal/controllers/teammembership"
+	teamrbaccontrollers "github.com/cloudoperators/greenhouse/internal/controllers/teamrbac"
+	dexstore "github.com/cloudoperators/greenhouse/internal/dex"
 )
 
 // knownControllers contains all controllers to be registered when starting the operator.

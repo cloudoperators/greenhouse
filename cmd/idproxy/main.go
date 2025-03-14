@@ -27,10 +27,10 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime/pkg/client/config"
 	logk "sigs.k8s.io/controller-runtime/pkg/log"
 
-	"github.com/cloudoperators/greenhouse/pkg/clientutil"
-	"github.com/cloudoperators/greenhouse/pkg/dex"
-	"github.com/cloudoperators/greenhouse/pkg/dex/web"
-	"github.com/cloudoperators/greenhouse/pkg/features"
+	"github.com/cloudoperators/greenhouse/internal/clientutil"
+	"github.com/cloudoperators/greenhouse/internal/dex"
+	"github.com/cloudoperators/greenhouse/internal/dex/web"
+	"github.com/cloudoperators/greenhouse/internal/features"
 )
 
 func main() {

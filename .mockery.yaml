@@ -4,7 +4,7 @@ filename: "mock_{{.InterfaceName}}.go"
 outpkg: mocks
 dir: pkg/mocks
 packages:
-  github.com/cloudoperators/greenhouse/pkg/lifecycle:
+  github.com/cloudoperators/greenhouse/internal/lifecycle:
     interfaces:
       Reconciler:
   sigs.k8s.io/controller-runtime/pkg/client:
