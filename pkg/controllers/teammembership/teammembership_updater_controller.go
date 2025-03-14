@@ -83,7 +83,7 @@ func (r *TeamMembershipUpdaterController) SetupWithManager(name string, mgr ctrl
 			builder.WithPredicates(predicate.GenerationChangedPredicate{})).
 		Watches(&corev1.Secret{},
 			handler.EnqueueRequestsFromMapFunc(r.enqueueAllSecretsForOrganization),
-			builder.WithPredicates(clientutil.PredicateFilterBySecretType(apis.OrganizationSecretType))).
+			builder.WithPredicates(clientutil.PredicateFilterBySecretTypes(apis.OrganizationSecretType))).
 		Complete(r)
 }
 
