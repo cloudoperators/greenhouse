@@ -1,7 +1,7 @@
 ---
 title: "Cluster offboarding"
 linkTitle: "Offboarding"
-weight: 2
+weight: 3
 description: >
   Offboarding an existing Kubernetes cluster in Greenhouse.
 ---
