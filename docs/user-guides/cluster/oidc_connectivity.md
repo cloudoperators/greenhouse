@@ -15,7 +15,7 @@ description: >
 
 This guide describes how to onboard an existing Kubernetes cluster to your Greenhouse Organization with OIDC
 configuration.
-If you don't have an organization yet, please reach out to the Greenhouse administrators.
+If you don't have a [Greenhouse Organization](https://cloudoperators.github.io/greenhouse/docs/user-guides/organization/creation/) yet, please reach out to the Greenhouse administrators.
 
 While all members of an Organization can see existing Clusters, their management requires [`org-admin` or
 `cluster-admin` privileges](./../../getting-started/core-concepts/organizations.md).
@@ -36,10 +36,8 @@ Starting from Kubernetes v1.30, [Structured Authentication Configuration](https:
 moved to beta and the feature gate is enabled by default. This feature allows configuring multiple OIDC issuers and
 passing them as a configuration file to the Kubernetes API server.
 
-```
-NOTE: More information on Structured Authentication Configuration can be found at 
-https://kubernetes.io/docs/reference/access-authn-authz/authentication/#using-authentication-configuration
-```
+
+> More information on Structured Authentication Configuration can be found at https://kubernetes.io/docs/reference/access-authn-authz/authentication/#using-authentication-configuration
 
 With the combination of _Service Account Issuer Discovery_ and _Structured Authentication Configuration_, Cluster to
 Cluster trust can be established.
@@ -50,7 +48,33 @@ against said remote cluster, using an in-cluster service account token.
 
 The **OIDC Remote Cluster Connectivity** is illustrated below -
 
-![OIDC Remote Connectivity](../oidc-remote-connectivity.png)
+
+```mermaid
+sequenceDiagram
+    autonumber
+    participant User as User / Automation
+    participant RC as Remote Cluster
+    participant AC as Admin Cluster (Greenhouse)
+    participant BC as Bootstrap Controller
+    participant CC as Cluster Controller
+    participant APIServer as APIServer (Remote Cluster)
+
+    User->>RC: 1️⃣ Creates Structured Auth with Admin-Cluster Service Account Issuer URL
+    User->>RC: 2️⃣ Applies ClusterRoleBinding for Cluster-Admin (Pattern: `prefix:system:serviceaccount:org-name:cluster-name`)
+    User->>AC: 3️⃣ Applies Kubernetes Secret with OIDC parameters (Namespace: Organization's Namespace)
+
+    BC->>AC: 4️⃣ Creates ServiceAccount (Sets Secret as owner on ServiceAccount)
+    BC->>AC: 5️⃣ Requests Token from ServiceAccount
+    BC->>AC: 6️⃣ Writes/Updates KubeConfig in Kubernetes Secret (Key: greenhouseKubeconfig)
+    BC->>AC: 7️⃣ Creates Cluster CR (Sets Cluster as owner on Secret)
+
+    CC->>AC: 8️⃣ Fetches KubeConfig from Secret
+    CC->>RC: 9️⃣ Requests Kubernetes Version & Node Status
+
+    APIServer->>AC: 🔍 Introspects Incoming Token (Introspection towards Admin-Cluster Service Account Issuer URL)
+    APIServer->>RC: 🔒 Verifies Authorization via RBAC
+    APIServer-->>CC: ✅ Responds with Requested Resources or ❌ Authentication/Authorization Failure
+```
 
 ### Preparation
 
@@ -137,7 +161,7 @@ Mandatory fields:
 - the annotation `oidc.greenhouse.sap/api-server-url` must have a valid URL pointing to the remote cluster's API server
 - the `ca.crt` field must contain the remote cluster's CA certificate
 - the type of the Secret must be `greenhouse.sap/oidc`
-- the secret name must be the same as the `<cluster-name>` used in the `ClusterRoleBinding`
+- the name of the secret must equal the `<cluster-name>` used in the `ClusterRoleBinding` Subject
 
 `ca.crt` is the `certificate-authority-data` from the kubeconfig file of the remote cluster.
 
@@ -173,4 +197,4 @@ If there is any authentication error then you might see a message similar to
 `the server has asked for the client to provide credentials`,
 in such cases verify the `Structured Authentication Configuration` and ensure the `issuer` and `audiences` are correct.
 
-The `API Server` logs in the remote cluster will provide more information on the authentication errors
+The `API Server` logs in the remote cluster will provide more information on the authentication errors.
