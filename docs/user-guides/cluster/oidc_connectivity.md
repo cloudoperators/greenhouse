@@ -56,22 +56,22 @@ sequenceDiagram
     participant RC as Remote Cluster
     participant AC as Admin Cluster (Greenhouse)
 
-    User->>RC: 1️⃣ Creates Structured Auth with Admin-Cluster Service Account Issuer URL
-    User->>RC: 2️⃣ Applies ClusterRoleBinding for Cluster-Admin (Pattern: `prefix:system:serviceaccount:org-name:cluster-name`)
-    User->>AC: 3️⃣ Applies Kubernetes Secret with OIDC parameters (Namespace: Organization's Namespace)
+    User->>RC: Creates Structured Auth with Admin-Cluster Service Account Issuer URL
+    User->>RC: Applies ClusterRoleBinding for Cluster-Admin (Pattern: `prefix:system:serviceaccount:org-name:cluster-name`)
+    User->>AC: Applies Kubernetes Secret with OIDC parameters (Namespace: Organization's Namespace)
 
-    AC->>AC: 4️⃣ Bootstrap ctrl creates SA (Sets OIDC Secret as owner on SA)
-    AC->>AC: 5️⃣ Bootstrap ctrl requests Token from SA
-    AC->>AC: 6️⃣ Bootstrap ctrl Writes/Updates KubeConfig in OIDC Secret (Key: greenhouseKubeconfig)
-    AC->>AC: 7️⃣ Bootstrap ctrl creates Cluster CR (Sets Cluster as owner on OIDC Secret)
+    AC-->>AC: Bootstrap ctrl creates SA (Sets OIDC Secret as owner on SA)
+    AC-->>AC: Bootstrap ctrl requests Token from SA
+    AC-->>AC: Bootstrap ctrl Writes/Updates KubeConfig in OIDC Secret (Key: greenhouseKubeconfig)
+    AC-->>AC: Bootstrap ctrl creates Cluster CR (Sets Cluster as owner on OIDC Secret)
 
-    AC->>AC: 8️⃣ Cluster ctrl fetches KubeConfig from Secret
-    AC->>RC: 9️⃣ Cluster ctrl requests Kubernetes Version & Node Status
+    AC-->>AC: Cluster ctrl fetches KubeConfig from Secret
+    AC->>RC: Cluster ctrl requests Kubernetes Version & Node Status
 
-    RC->>AC: 🔍 Introspects Incoming Token (Introspection towards Admin-Cluster Service Account Issuer URL)
-    RC->>RC: 🔒 Verifies Authorization via RBAC
-    RC-->>AC: ✅ Responds with Requested Resources or ❌ Authentication/Authorization Failure
-    AC-->>AC:  ⏰ Periodic rotation of Kubeconfig in OIDC Secret (key: greenhouseKubeconfig)
+    RC-->>AC: 🔍 Introspects Incoming Token (Introspection towards Admin-Cluster Service Account Issuer URL)
+    RC-->>RC: 🔒 Verifies Authorization via RBAC
+    RC->>AC: ✅ Responds with Requested Resources or ❌ Authentication/Authorization Failure
+    AC-->>AC: ⏰ Periodic rotation of Kubeconfig in OIDC Secret (key: greenhouseKubeconfig)
 ```
 
 ### Preparation
