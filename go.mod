@@ -7,14 +7,14 @@ replace (
 	github.com/dexidp/dex => github.com/dexidp/dex v0.0.0-20240807174518-43956db7fd75
 	github.com/dexidp/dex/api/v2 => github.com/dexidp/dex/api/v2 v2.3.0
 	// Keep k8s dependencies in sync.
-	k8s.io/api => k8s.io/api v0.31.6
-	k8s.io/apiextensions-apiserver => k8s.io/apiextensions-apiserver v0.31.6
-	k8s.io/apimachinery => k8s.io/apimachinery v0.31.6
-	k8s.io/cli-runtime => k8s.io/cli-runtime v0.31.6
-	k8s.io/client-go => k8s.io/client-go v0.31.6
-	k8s.io/component-base => k8s.io/component-base v0.31.6
-	k8s.io/kubectl => k8s.io/kubectl v0.31.6
-	sigs.k8s.io/controller-runtime => sigs.k8s.io/controller-runtime v0.19.6
+	k8s.io/api => k8s.io/api v0.32.2
+	k8s.io/apiextensions-apiserver => k8s.io/apiextensions-apiserver v0.32.2
+	k8s.io/apimachinery => k8s.io/apimachinery v0.32.3
+	k8s.io/cli-runtime => k8s.io/cli-runtime v0.32.2
+	k8s.io/client-go => k8s.io/client-go v0.32.2
+	k8s.io/component-base => k8s.io/component-base v0.32.2
+	k8s.io/kubectl => k8s.io/kubectl v0.32.2
+	sigs.k8s.io/controller-runtime => sigs.k8s.io/controller-runtime v0.20.2
 )
 
 require (
@@ -26,7 +26,7 @@ require (
 	github.com/onsi/ginkgo/v2 v2.23.0
 	github.com/onsi/gomega v1.36.2
 	github.com/pkg/errors v0.9.1
-	github.com/prometheus/client_golang v1.20.5
+	github.com/prometheus/client_golang v1.21.1
 	github.com/spf13/cobra v1.9.1
 	github.com/spf13/pflag v1.0.6
 	github.com/stretchr/testify v1.10.0
@@ -35,15 +35,15 @@ require (
 	go.uber.org/zap v1.27.0
 	golang.org/x/text v0.23.0
 	gopkg.in/yaml.v3 v3.0.1
-	helm.sh/helm/v3 v3.16.4
-	k8s.io/api v0.31.6
-	k8s.io/apiextensions-apiserver v0.31.6
-	k8s.io/apimachinery v0.31.6
-	k8s.io/cli-runtime v0.31.6
-	k8s.io/client-go v0.31.6
-	k8s.io/kubectl v0.31.6
+	helm.sh/helm/v3 v3.17.1
+	k8s.io/api v0.32.2
+	k8s.io/apiextensions-apiserver v0.32.2
+	k8s.io/apimachinery v0.32.3
+	k8s.io/cli-runtime v0.32.2
+	k8s.io/client-go v0.32.2
+	k8s.io/kubectl v0.32.2
 	k8s.io/utils v0.0.0-20241210054802-24370beab758
-	sigs.k8s.io/controller-runtime v0.19.6
+	sigs.k8s.io/controller-runtime v0.20.2
 	sigs.k8s.io/kind v0.27.0
 	sigs.k8s.io/yaml v1.4.0
 )
@@ -105,9 +105,9 @@ require (
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
 	github.com/chai2010/gettext-go v1.0.3 // indirect
-	github.com/containerd/containerd v1.7.23 // indirect
+	github.com/containerd/containerd v1.7.24 // indirect
 	github.com/coreos/go-oidc/v3 v3.11.0 // indirect
-	github.com/cyphar/filepath-securejoin v0.3.4 // indirect
+	github.com/cyphar/filepath-securejoin v0.3.6 // indirect
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect
 	github.com/dexidp/dex/api/v2 v2.1.1-0.20240807174518-43956db7fd75 // indirect
 	github.com/docker/cli v27.2.0+incompatible // indirect
@@ -118,7 +118,7 @@ require (
 	github.com/docker/go-metrics v0.0.1 // indirect
 	github.com/emicklei/go-restful/v3 v3.12.1 // indirect
 	github.com/evanphx/json-patch v5.9.0+incompatible // indirect
-	github.com/evanphx/json-patch/v5 v5.9.0 // indirect
+	github.com/evanphx/json-patch/v5 v5.9.11 // indirect
 	github.com/exponent-io/jsonpath v0.0.0-20210407135951-1de76d718b3f // indirect
 	github.com/fatih/color v1.17.0 // indirect
 	github.com/felixge/httpsnoop v1.0.4 // indirect
@@ -152,13 +152,12 @@ require (
 	github.com/hashicorp/errwrap v1.1.0 // indirect
 	github.com/hashicorp/go-multierror v1.1.1 // indirect
 	github.com/huandu/xstrings v1.5.0 // indirect
-	github.com/imdario/mergo v0.3.16 // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
 	github.com/jmoiron/sqlx v1.4.0 // indirect
 	github.com/jonboulle/clockwork v0.4.0 // indirect
 	github.com/josharian/intern v1.0.0 // indirect
 	github.com/json-iterator/go v1.1.12 // indirect
-	github.com/klauspost/compress v1.17.9 // indirect
+	github.com/klauspost/compress v1.17.11 // indirect
 	github.com/lann/builder v0.0.0-20180802200727-47ae307949d0 // indirect
 	github.com/lann/ps v0.0.0-20150810152359-62de8c46ede0 // indirect
 	github.com/lib/pq v1.10.9 // indirect
@@ -182,10 +181,10 @@ require (
 	github.com/opencontainers/image-spec v1.1.0 // indirect
 	github.com/peterbourgon/diskv v2.0.1+incompatible // indirect
 	github.com/prometheus/client_model v0.6.1 // indirect
-	github.com/prometheus/common v0.59.1 // indirect
+	github.com/prometheus/common v0.62.0 // indirect
 	github.com/prometheus/procfs v0.15.1 // indirect
 	github.com/rivo/uniseg v0.4.7 // indirect
-	github.com/rubenv/sql-migrate v1.7.0 // indirect
+	github.com/rubenv/sql-migrate v1.7.1 // indirect
 	github.com/russellhaering/goxmldsig v1.4.0 // indirect
 	github.com/russross/blackfriday/v2 v2.1.0 // indirect
 	github.com/shopspring/decimal v1.4.0 // indirect
@@ -198,7 +197,6 @@ require (
 	go.opentelemetry.io/otel v1.32.0 // indirect
 	go.opentelemetry.io/otel/metric v1.32.0 // indirect
 	go.opentelemetry.io/otel/trace v1.32.0 // indirect
-	go.starlark.net v0.0.0-20240725214946-42030a7cedce // indirect
 	go.uber.org/multierr v1.11.0 // indirect
 	golang.org/x/crypto v0.36.0 // indirect
 	golang.org/x/exp v0.0.0-20250305212735-054e65f0b394
@@ -216,13 +214,13 @@ require (
 	google.golang.org/protobuf v1.36.5 // indirect
 	gopkg.in/inf.v0 v0.9.1 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
-	k8s.io/apiserver v0.31.6 // indirect
-	k8s.io/component-base v0.31.6 // indirect
+	k8s.io/apiserver v0.32.2 // indirect
+	k8s.io/component-base v0.32.2 // indirect
 	k8s.io/klog/v2 v2.130.1
-	k8s.io/kube-openapi v0.0.0-20240827152857-f7e401e7b4c2 // indirect
+	k8s.io/kube-openapi v0.0.0-20241105132330-32ad38e42d3f // indirect
 	oras.land/oras-go v1.2.6 // indirect
-	sigs.k8s.io/json v0.0.0-20221116044647-bc3834ca7abd // indirect
-	sigs.k8s.io/kustomize/api v0.17.3 // indirect
-	sigs.k8s.io/kustomize/kyaml v0.17.2 // indirect
-	sigs.k8s.io/structured-merge-diff/v4 v4.4.1 // indirect
+	sigs.k8s.io/json v0.0.0-20241010143419-9aa6b5e7a4b3 // indirect
+	sigs.k8s.io/kustomize/api v0.18.0 // indirect
+	sigs.k8s.io/kustomize/kyaml v0.18.1 // indirect
+	sigs.k8s.io/structured-merge-diff/v4 v4.4.2 // indirect
 )
