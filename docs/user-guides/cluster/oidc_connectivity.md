@@ -79,14 +79,13 @@ sequenceDiagram
 The `Greenhouse` cluster should expose the `/.well-known/openid-configuration` over an unauthenticated endpoint to allow
 remote clusters to fetch the OIDC configuration.
 
-```NOTE
-Some cloud providers or managed Kubernetes services might not expose the _Service Account Issuer Discovery_ as an unauthenticated endpoint. In such
-cases, you can serve this configuration from a different endpoint and set this as the discoveryURL 
-in structured authentication configuration.
 
-Check out https://kubernetes.io/docs/reference/access-authn-authz/authentication/#using-authentication-configuration
+> Some cloud providers or managed Kubernetes services might not expose the _Service Account Issuer Discovery_ as an unauthenticated endpoint. In such
+cases, you can serve this configuration from a different endpoint and set this as the discoveryURL 
+in structured authentication configuration. 
+> 
+> Check out https://kubernetes.io/docs/reference/access-authn-authz/authentication/#using-authentication-configuration
 for more information.
-```
 
 Configure the OIDC issuer in the `Structured Authentication Configuration` of the remote cluster.
 
