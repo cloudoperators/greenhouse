@@ -42,6 +42,8 @@ organization:
   enabled: true
   oauth2ClientRedirectURIs:
     - "http://localhost:33768/auth/callback"
+    - "http://localhost:8000"
+    - "http://localhost:18000"
 idproxy:
   enabled: true
 
