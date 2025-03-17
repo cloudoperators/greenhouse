@@ -18,8 +18,16 @@ spec:
       value: true
     - name: controller.scope.enabled
       value: false
-    {{ if .Values.ingress.loadBalancerIP }}
+    - name: controller.config
+      value:
+        allow-cross-namespace-resources: true
+    {{- if .Values.ingress.loadBalancerIP }}
     - name: controller.service.loadBalancerIP
       value: {{ .Values.ingress.loadBalancerIP | quote }}
-    {{ end }}
+    {{- end }}
+    {{- if .Values.ingress.annotations }}
+    - name: controller.service.annotations
+      value:
+        {{- .Values.ingress.annotations | toYaml | nindent 8 }}
+  {{- end }}
 {{- end }}

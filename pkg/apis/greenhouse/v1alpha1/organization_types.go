@@ -5,6 +5,8 @@ package v1alpha1
 
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
+	"github.com/cloudoperators/greenhouse/pkg/scim"
 )
 
 const (
@@ -14,8 +16,8 @@ const (
 	SecretNotFoundReason ConditionReason = "SecretNotFound"
 	// SCIMRequestFailedReason is set when a request to SCIM failed.
 	SCIMRequestFailedReason ConditionReason = "SCIMRequestFailed"
-	// SCIMConfigNotProvidedReason is set when scim config is not present in spec as it is optional
-	SCIMConfigNotProvidedReason ConditionReason = "SCIMConfigNotProvided"
+	// SCIMConfigErrorReason is set when scim config is not present in spec as it is optional
+	SCIMConfigErrorReason ConditionReason = "SCIMConfigErrorReason"
 
 	// NamespaceCreated is set when the namespace for organization is created.
 	NamespaceCreated ConditionType = "NamespaceCreated"
@@ -31,6 +33,8 @@ const (
 	DexReconcileFailed ConditionReason = "DexReconcileFailed"
 	// OAuthOICDFailed is set when OAuth reconciler has failed
 	OAuthOICDFailed ConditionReason = "OAuthOICDFailed"
+	// DefaultConnectorRedirectsFailed is set when the default connector redirects are not updated with new organization redirect URIs
+	DefaultConnectorRedirectsFailed ConditionReason = "DefaultConnectorRedirectsFailed"
 	// OrganizationAdminTeamConfigured is set when the admin team is configured for organization
 	OrganizationAdminTeamConfigured ConditionType = "OrganizationAdminTeamConfigured"
 )
@@ -61,22 +65,37 @@ type Authentication struct {
 type OIDCConfig struct {
 	// Issuer is the URL of the identity service.
 	Issuer string `json:"issuer"`
-	// RedirectURI is the redirect URI.
+	// RedirectURI is the redirect URI to be used for the OIDC flow against the upstream IdP.
 	// If none is specified, the Greenhouse ID proxy will be used.
 	RedirectURI string `json:"redirectURI,omitempty"`
 	// ClientIDReference references the Kubernetes secret containing the client id.
 	ClientIDReference SecretKeyReference `json:"clientIDReference"`
 	// ClientSecretReference references the Kubernetes secret containing the client secret.
 	ClientSecretReference SecretKeyReference `json:"clientSecretReference"`
+	// OAuth2ClientRedirectURIs are a registered set of redirect URIs. When redirecting from the idproxy to
+	// the client application, the URI requested to redirect to must be contained in this list.
+	OAuth2ClientRedirectURIs []string `json:"oauth2ClientRedirectURIs,omitempty"`
 }
 
 type SCIMConfig struct {
 	// URL to the SCIM server.
 	BaseURL string `json:"baseURL"`
+	// AuthType defined possible authentication type
+	// +kubebuilder:validation:Enum=basic;token
+	// +kubebuilder:default="basic"
+	AuthType scim.AuthType `json:"authType,omitempty"`
 	// User to be used for basic authentication.
 	BasicAuthUser ValueFromSource `json:"basicAuthUser"`
 	// Password to be used for basic authentication.
 	BasicAuthPw ValueFromSource `json:"basicAuthPw"`
+	// BearerToken to be used for bearer token authorization
+	BearerToken ValueFromSource `json:"bearerToken"`
+	// BearerPrefix to be used to defined bearer token prefix
+	// +kubebuilder:default:=Bearer
+	BearerPrefix string `json:"bearerPrefix,omitempty"`
+	// BearerHeader to be used to defined bearer token header
+	// +kubebuilder:default:=Authorization
+	BearerHeader string `json:"bearerHeader,omitempty"`
 }
 
 // OrganizationStatus defines the observed state of an Organization

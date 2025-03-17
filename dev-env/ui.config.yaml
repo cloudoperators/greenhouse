@@ -1,0 +1,22 @@
+# SPDX-FileCopyrightText: 2024 SAP SE or an SAP affiliate company and Greenhouse contributors
+# SPDX-License-Identifier: Apache-2.0
+
+config:
+  - cluster:
+      name: greenhouse-remote
+  - cluster:
+      name: greenhouse-admin
+      namespace: greenhouse
+    dependencies:
+      - manifest:
+          release: greenhouse
+          chartPath: charts/cors-proxy
+          valuesPath: dev-env/cors.values.yaml
+          excludeKinds:
+            - Ingress
+      - manifest:
+          release: greenhouse
+          chartPath: charts/dashboard
+          valuesPath: dev-env/ui.values.yaml
+          excludeKinds:
+            - Ingress

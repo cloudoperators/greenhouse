@@ -7,7 +7,6 @@ import (
 	"context"
 	"strings"
 
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -15,6 +14,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/pkg/apis/greenhouse/v1alpha1"
+	"github.com/cloudoperators/greenhouse/pkg/scim"
 )
 
 // Webhook for the Organization custom resource.
@@ -55,11 +55,16 @@ func ValidateCreateOrganization(_ context.Context, _ client.Client, obj runtime.
 		return nil, nil
 	}
 
+	allErrs := field.ErrorList{}
 	if err := validateMappedOrgAdminIDPGroup(organization); err != nil {
-		return nil, err
+		allErrs = append(allErrs, err)
 	}
 
-	return nil, nil
+	if err := validateSCIMConfig(organization); err != nil {
+		allErrs = append(allErrs, err)
+	}
+
+	return nil, allErrs.ToAggregate()
 }
 
 func ValidateUpdateOrganization(_ context.Context, _ client.Client, _, newObj runtime.Object) (admission.Warnings, error) {
@@ -68,23 +73,54 @@ func ValidateUpdateOrganization(_ context.Context, _ client.Client, _, newObj ru
 		return nil, nil
 	}
 
+	allErrs := field.ErrorList{}
 	if err := validateMappedOrgAdminIDPGroup(organization); err != nil {
-		return nil, err
+		allErrs = append(allErrs, err)
 	}
 
-	return nil, nil
+	if err := validateSCIMConfig(organization); err != nil {
+		allErrs = append(allErrs, err)
+	}
+
+	return nil, allErrs.ToAggregate()
 }
 
 func ValidateDeleteOrganization(_ context.Context, _ client.Client, _ runtime.Object) (admission.Warnings, error) {
 	return nil, nil
 }
 
-func validateMappedOrgAdminIDPGroup(organization *greenhousev1alpha1.Organization) error {
+func validateMappedOrgAdminIDPGroup(organization *greenhousev1alpha1.Organization) *field.Error {
 	if organization.Spec.MappedOrgAdminIDPGroup == "" {
-		return apierrors.NewInvalid(organization.GroupVersionKind().GroupKind(), organization.GetName(), field.ErrorList{
-			field.Required(field.NewPath("spec").Child("MappedOrgAdminIDPGroup"),
-				"An Organization without spec.MappedOrgAdminIDPGroup is invalid"),
-		})
+		return field.Required(field.NewPath("spec").Child("MappedOrgAdminIDPGroup"),
+			"An Organization without spec.MappedOrgAdminIDPGroup is invalid")
+	}
+
+	return nil
+}
+
+func validateSCIMConfig(organization *greenhousev1alpha1.Organization) *field.Error {
+	if organization.Spec.Authentication == nil || organization.Spec.Authentication.SCIMConfig == nil {
+		return nil
+	}
+
+	switch organization.Spec.Authentication.SCIMConfig.AuthType {
+	case scim.Basic:
+		if organization.Spec.Authentication.SCIMConfig.BasicAuthUser.Secret == nil {
+			return field.Required(field.NewPath("spec").Child("Authentication").Child("SCIMConfig").Child("BasicAuthUser"),
+				"An Organization without SCIMConfig.BasicAuthUser is invalid")
+		}
+		if organization.Spec.Authentication.SCIMConfig.BasicAuthPw.Secret == nil {
+			return field.Required(field.NewPath("spec").Child("Authentication").Child("SCIMConfig").Child("BasicAuthPw"),
+				"An Organization without SCIMConfig.BasicAuthPw is invalid")
+		}
+	case scim.BearerToken:
+		if organization.Spec.Authentication.SCIMConfig.BearerToken.Secret == nil {
+			return field.Required(field.NewPath("spec").Child("Authentication").Child("SCIMConfig").Child("BearerToken"),
+				"An Organization without SCIMConfig.BearerToken is invalid")
+		}
+	default:
+		return field.Invalid(field.NewPath("spec").Child("Authentication").Child("SCIMConfig").Child("AuthType"),
+			organization.Spec.Authentication.SCIMConfig.AuthType, "An Organization with incorrect SCIMConfig.AuthType is invalid")
 	}
 
 	return nil

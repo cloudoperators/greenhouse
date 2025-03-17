@@ -6,7 +6,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.17.1
+    controller-gen.kubebuilder.io/version: v0.17.2
   name: plugins.greenhouse.sap
 spec:
   group: greenhouse.sap
@@ -185,6 +185,10 @@ spec:
                   HelmReleaseStatus reflects the status of the latest HelmChart release.
                   This is only configured if the pluginDefinition is backed by HelmChart.
                 properties:
+                  diff:
+                    description: Diff contains the difference between the deployed
+                      helm chart and the helm chart in the last reconciliation
+                    type: string
                   firstDeployed:
                     description: FirstDeployed is the timestamp of the first deployment
                       of the release.
@@ -194,6 +198,10 @@ spec:
                     description: LastDeployed is the timestamp of the last deployment
                       of the release.
                     format: date-time
+                    type: string
+                  pluginOptionChecksum:
+                    description: PluginOptionChecksum is the checksum of plugin option
+                      values.
                     type: string
                   status:
                     description: Status is the status of a HelmChart release.

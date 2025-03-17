@@ -7,6 +7,7 @@ package plugin
 
 import (
 	"context"
+	"os"
 	"strings"
 	"testing"
 	"time"
@@ -14,6 +15,8 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/gstruct"
+	"helm.sh/helm/v3/pkg/action"
+	"helm.sh/helm/v3/pkg/release"
 	appsv1 "k8s.io/api/apps/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -26,10 +29,14 @@ import (
 	"github.com/cloudoperators/greenhouse/e2e/shared"
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/pkg/apis/greenhouse/v1alpha1"
 	"github.com/cloudoperators/greenhouse/pkg/clientutil"
+	"github.com/cloudoperators/greenhouse/pkg/helm"
 	"github.com/cloudoperators/greenhouse/pkg/test"
 )
 
-const remoteClusterName = "remote-plugin-cluster"
+const (
+	remoteClusterName         = "remote-plugin-cluster"
+	preventDeletionAnnotation = "greenhouse.sap/prevent-deletion"
+)
 
 var (
 	env           *shared.TestEnv
@@ -138,6 +145,14 @@ var _ = Describe("Plugin E2E", Ordered, func() {
 			test.SetOptionValueForPlugin(testPlugin, "replicaCount", "2")
 			err = adminClient.Update(ctx, testPlugin)
 			g.Expect(err).NotTo(HaveOccurred())
+		}).Should(Succeed())
+
+		By("Check the diff status")
+		Eventually(func(g Gomega) {
+			err = adminClient.Get(ctx, client.ObjectKey{Name: testPlugin.Name, Namespace: env.TestNamespace}, testPlugin)
+			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(testPlugin.Status.HelmReleaseStatus).ToNot(BeNil())
+			g.Expect(len(testPlugin.Status.HelmReleaseStatus.Diff) > 0).To(BeTrue())
 		}).Should(Succeed())
 
 		By("Check replicas in deployment list")
@@ -255,7 +270,7 @@ var _ = Describe("Plugin E2E", Ordered, func() {
 			g.Expect(deploymentList.Items[0].Spec.Replicas).To(PointTo(Equal(int32(2))))
 		}).Should(Succeed())
 
-		By("Update plugin preset with cluster overview")
+		By("Update plugin preset with cluster option override")
 		err = adminClient.Get(ctx, client.ObjectKeyFromObject(testPluginPreset), testPluginPreset)
 		Expect(err).ToNot(HaveOccurred())
 		testPluginPreset.Spec.ClusterOptionOverrides = []greenhousev1alpha1.ClusterOptionOverride{
@@ -270,7 +285,7 @@ var _ = Describe("Plugin E2E", Ordered, func() {
 			},
 		}
 		err = adminClient.Update(ctx, testPluginPreset)
-		Expect(err).ToNot(HaveOccurred())
+		Expect(err).ToNot(HaveOccurred(), "there should be no error updating the plugin preset with override")
 
 		By("Check the replicas in deployment")
 		Eventually(func(g Gomega) {
@@ -280,5 +295,108 @@ var _ = Describe("Plugin E2E", Ordered, func() {
 			g.Expect(len(deploymentList.Items)).To(BeEquivalentTo(1))
 			g.Expect(deploymentList.Items[0].Spec.Replicas).To(PointTo(Equal(int32(3))))
 		}).Should(Succeed())
+
+		By("Deleting the plugin preset")
+		err = adminClient.Get(ctx, client.ObjectKeyFromObject(testPluginPreset), testPluginPreset)
+		Expect(err).ToNot(HaveOccurred())
+		// Remove prevent-deletion annotation before deleting plugin preset.
+		_, _ = clientutil.Patch(ctx, adminClient, testPluginPreset, func() error {
+			delete(testPluginPreset.Annotations, preventDeletionAnnotation)
+			return nil
+		})
+		test.EventuallyDeleted(ctx, adminClient, testPluginPreset)
+
+		By("Check that the deployment is deleted")
+		Eventually(func(g Gomega) {
+			deploymentList := &appsv1.DeploymentList{}
+			err := remoteClient.List(ctx, deploymentList, client.InNamespace(env.TestNamespace))
+			g.Expect(err).ToNot(HaveOccurred(), "there should be no error listing deployments")
+			g.Expect(deploymentList.Items).To(BeEmpty(), "there should be no deployments")
+		}).Should(Succeed(), "deployments list should be empty")
+
+		By("Deleting the plugin definition")
+		test.EventuallyDeleted(ctx, adminClient, testPluginDefinition)
+	})
+
+	It("should rollback the first helm release on failed deployment", func() {
+		By("Creating a plugin definition with cert-manager helm chart")
+		pluginDefinition := fixtures.PrepareCertManagerPluginDefinition(env.TestNamespace)
+		Expect(adminClient.Create(ctx, pluginDefinition)).To(Succeed(), "there should be no error creating the plugin definition")
+
+		By("Setting the HELM_RELEASE_TIMEOUT to 5 seconds")
+		os.Setenv("HELM_RELEASE_TIMEOUT", "5")
+
+		By("Preparing the plugin")
+		plugin := fixtures.PreparePlugin("test-cert-manager-plugin", env.TestNamespace,
+			test.WithPluginDefinition(pluginDefinition.Name),
+			test.WithCluster(remoteClusterName),
+			test.WithReleaseNamespace(env.TestNamespace),
+		)
+
+		By("Installing release manually on the remote cluster")
+		_, err := helm.ExportInstallHelmRelease(ctx, adminClient, env.RemoteRestClientGetter, pluginDefinition, plugin, false)
+		Expect(err).To(HaveOccurred(), "there should be an error installing the helm chart")
+
+		By("Creating helm config")
+		cfg, err := helm.ExportNewHelmAction(env.RemoteRestClientGetter, plugin.Spec.ReleaseNamespace)
+		Expect(err).ShouldNot(HaveOccurred(), "there should be no error creating helm config")
+
+		By("Checking if the release has status set to failed")
+		Eventually(func(g Gomega) {
+			getAction := action.NewGet(cfg)
+			helmRelease, err := getAction.Run(plugin.Name)
+			g.Expect(err).ShouldNot(HaveOccurred(), "there should be no error getting the helm release")
+			g.Expect(helmRelease.Info.Status).To(Equal(release.StatusFailed), "helm release status should be set to failed")
+			g.Expect(helmRelease.Version).To(Equal(1), "helm release version should equal 1")
+		}).Should(Succeed(), "helm release should be set to failed")
+
+		By("Setting the HELM_RELEASE_TIMEOUT to 5 minutes")
+		os.Setenv("HELM_RELEASE_TIMEOUT", "300")
+
+		By("Creating the plugin")
+		Expect(adminClient.Create(ctx, plugin)).To(Succeed(), "there should be no error creating the plugin")
+
+		By("Checking if the rollback took place")
+		Eventually(func(g Gomega) {
+			namespacedName := types.NamespacedName{Name: plugin.Name, Namespace: env.TestNamespace}
+			err := adminClient.Get(ctx, namespacedName, plugin)
+			g.Expect(err).NotTo(HaveOccurred(), "there should be no error getting the plugin")
+			g.Expect(plugin.Status.HelmReleaseStatus).ToNot(BeNil(), "plugin HelmReleaseStatus should not be nil")
+			g.Expect(plugin.Status.HelmReleaseStatus.Status).To(Equal("deployed"), "helm release status should be set to deployed")
+		}).Should(Succeed(), "plugin should show HelmReleaseStatus as deployed")
+
+		By("Checking if the release has status set to deployed")
+		Eventually(func(g Gomega) {
+			getAction := action.NewGet(cfg)
+			helmRelease, err := getAction.Run(plugin.Name)
+			g.Expect(err).ShouldNot(HaveOccurred(), "there should be no error getting the helm release")
+			g.Expect(helmRelease.Info.Status).To(Equal(release.StatusDeployed), "helm release status should be set back to deployed")
+			g.Expect(helmRelease.Version).To(Equal(3), "helm release version should change to 3")
+		}).Should(Succeed(), "helm release status should be set back to deployed")
+
+		By("Checking the helm release history for rollback")
+		historyAction := action.NewHistory(cfg)
+		releases, err := historyAction.Run(plugin.Name)
+		Expect(err).ToNot(HaveOccurred(), "there should be no error getting helm release history")
+		Expect(releases).To(HaveLen(3), "there should be exactly 3 entries in helm release history")
+		secondReleaseInfo := releases[1].Info
+		Expect(secondReleaseInfo.Description).To(Equal("Rollback to 1"), "release history should show Rollback to 1 in description")
+		Expect(secondReleaseInfo.Status).To(Equal(release.StatusSuperseded), "release history should show Superseded status")
+		thirdReleaseInfo := releases[2].Info
+		Expect(thirdReleaseInfo.Status).To(Equal(release.StatusDeployed), "the last release entry should have status set to deployed")
+
+		By("Deleting the plugin")
+		test.EventuallyDeleted(ctx, adminClient, plugin)
+
+		By("Check that the deployment is deleted")
+		Eventually(func(g Gomega) {
+			deploymentList := &appsv1.DeploymentList{}
+			err := remoteClient.List(ctx, deploymentList, client.InNamespace(env.TestNamespace))
+			g.Expect(err).ToNot(HaveOccurred(), "there should be no error listing deployments")
+			g.Expect(deploymentList.Items).To(BeEmpty(), "there should be no deployments")
+		}).Should(Succeed(), "deployments list should be empty")
+
+		By("Deleting the plugin definition")
+		test.EventuallyDeleted(ctx, adminClient, pluginDefinition)
 	})
 })

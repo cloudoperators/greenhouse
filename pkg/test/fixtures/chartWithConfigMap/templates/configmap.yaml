@@ -1,0 +1,12 @@
+# SPDX-FileCopyrightText: 2024 SAP SE or an SAP affiliate company and Greenhouse contributors
+# SPDX-License-Identifier: Apache-2.0
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  labels:
+    example: label1
+  name: test-config-map
+data:
+  key1: "val1"
+  key2: "val2"

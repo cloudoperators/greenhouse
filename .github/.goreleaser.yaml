@@ -2,6 +2,10 @@
 # vim: set ts=2 sw=2 tw=0 fo=jcroql
 version: 2
 
+before:
+  hooks:
+    - go mod tidy
+
 env:
   - GO111MODULE=on
   - CGO_ENABLED=0
@@ -19,6 +23,7 @@ builds:
       - linux
     goarch:
       - amd64
+      - arm64
     ldflags:
       - "{{ .Env.LDFLAGS }}"
     no_unique_dist_dir: true
@@ -35,26 +40,16 @@ builds:
       - "{{ .Env.LDFLAGS }}"
     no_unique_dist_dir: true
 
-  - id: windows-amd64
-    binary: greenhousectl-windows-{{ .Arch }}
-    main: ./cmd/greenhousectl/main.go
-    goos:
-      - windows
-    goarch:
-      - amd64
-    ldflags:
-      - -buildmode=exe
-      - "{{ .Env.LDFLAGS }}"
-    no_unique_dist_dir: true
-
 checksum:
   name_template: "checksums.txt"
 
 archives:
-  - format: tar.gz
-    format_overrides:
-      - goos: windows
-        format: zip
-    name_template: '{{.ProjectName}}_{{.Version}}_{{.Os}}-{{.Arch}}'
+  - formats: [
+      'tar.gz'
+    ]
+    name_template: >-
+      {{ .ProjectName }}ctl_
+      {{.Version}}_
+      {{.Os}}-{{.Arch}}
     files:
       - README.md

@@ -396,6 +396,12 @@ export interface components {
                     };
                     /** @description SCIMConfig configures the SCIM client. */
                     scim?: {
+                        /**
+                         * @description AuthType defined possible authentication type
+                         * @default basic
+                         * @enum {string}
+                         */
+                        authType: "basic" | "token";
                         /** @description URL to the SCIM server. */
                         baseURL: string;
                         /** @description Password to be used for basic authentication. */
@@ -410,6 +416,26 @@ export interface components {
                         };
                         /** @description User to be used for basic authentication. */
                         basicAuthUser: {
+                            /** @description Secret references the secret containing the value. */
+                            secret?: {
+                                /** @description Key in the secret to select the value from. */
+                                key: string;
+                                /** @description Name of the secret in the same namespace. */
+                                name: string;
+                            };
+                        };
+                        /**
+                         * @description BearerHeader to be used to defined bearer token header
+                         * @default Authorization
+                         */
+                        bearerHeader: string;
+                        /**
+                         * @description BearerPrefix to be used to defined bearer token prefix
+                         * @default Bearer
+                         */
+                        bearerPrefix: string;
+                        /** @description BearerToken to be used for bearer token authorization */
+                        bearerToken: {
                             /** @description Secret references the secret containing the value. */
                             secret?: {
                                 /** @description Key in the secret to select the value from. */
@@ -1005,7 +1031,7 @@ export interface components {
                         [key: string]: string;
                     };
                 };
-                /** @description Namespaces is the immutable list of namespaces in the Greenhouse Clusters to apply the RoleBinding to.\nIf empty, a ClusterRoleBinding will be created on the remote cluster, otherwise a RoleBinding per namespace. */
+                /** @description Namespaces is a list of namespaces in the Greenhouse Clusters to apply the RoleBinding to.\nIf empty, a ClusterRoleBinding will be created on the remote cluster, otherwise a RoleBinding per namespace. */
                 namespaces?: string[];
                 /** @description TeamRef references a Greenhouse Team by name */
                 teamRef?: string;
@@ -1142,6 +1168,8 @@ export interface components {
                 };
                 /** @description HelmReleaseStatus reflects the status of the latest HelmChart release.\nThis is only configured if the pluginDefinition is backed by HelmChart. */
                 helmReleaseStatus?: {
+                    /** @description Diff contains the difference between the deployed helm chart and the helm chart in the last reconciliation */
+                    diff?: string;
                     /**
                      * Format: date-time
                      * @description FirstDeployed is the timestamp of the first deployment of the release.
@@ -1152,6 +1180,8 @@ export interface components {
                      * @description LastDeployed is the timestamp of the last deployment of the release.
                      */
                     lastDeployed?: string;
+                    /** @description PluginOptionChecksum is the checksum of plugin option values. */
+                    pluginOptionChecksum?: string;
                     /** @description Status is the status of a HelmChart release. */
                     status: string;
                 };

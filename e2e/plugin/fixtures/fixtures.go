@@ -84,6 +84,19 @@ func PrepareNginxPluginDefinition(namespace string) *greenhousev1alpha1.PluginDe
 	)
 }
 
+func PrepareCertManagerPluginDefinition(namespace string) *greenhousev1alpha1.PluginDefinition {
+	return PreparePluginDefinition("cert-manager-v1.17.0", namespace,
+		test.WithVersion("v1.17.0"),
+		test.WithHelmChart(
+			&greenhousev1alpha1.HelmChartReference{
+				Name:       "cert-manager",
+				Repository: "https://charts.jetstack.io",
+				Version:    "v1.17.0",
+			},
+		),
+	)
+}
+
 func PreparePlugin(name, namespace string, opts ...func(*greenhousev1alpha1.Plugin)) *greenhousev1alpha1.Plugin {
 	plugin := &greenhousev1alpha1.Plugin{
 		TypeMeta: metav1.TypeMeta{

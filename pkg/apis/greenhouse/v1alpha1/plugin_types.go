@@ -126,6 +126,10 @@ type HelmReleaseStatus struct {
 	FirstDeployed metav1.Time `json:"firstDeployed,omitempty"`
 	// LastDeployed is the timestamp of the last deployment of the release.
 	LastDeployed metav1.Time `json:"lastDeployed,omitempty"`
+	// PluginOptionChecksum is the checksum of plugin option values.
+	PluginOptionChecksum string `json:"pluginOptionChecksum,omitempty"`
+	// Diff contains the difference between the deployed helm chart and the helm chart in the last reconciliation
+	Diff string `json:"diff,omitempty"`
 }
 
 //+kubebuilder:object:root=true
@@ -159,4 +163,12 @@ type PluginList struct {
 
 func init() {
 	SchemeBuilder.Register(&Plugin{}, &PluginList{})
+}
+
+func (o *Plugin) GetConditions() StatusConditions {
+	return o.Status.StatusConditions
+}
+
+func (o *Plugin) SetCondition(condition Condition) {
+	o.Status.StatusConditions.SetConditions(condition)
 }

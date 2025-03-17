@@ -55,7 +55,11 @@ func (r *PluginPresetReconciler) SetupWithManager(name string, mgr ctrl.Manager)
 	return ctrl.NewControllerManagedBy(mgr).
 		Named(name).
 		For(&greenhousev1alpha1.PluginPreset{}).
-		Owns(&greenhousev1alpha1.Plugin{}, builder.WithPredicates(predicate.GenerationChangedPredicate{})).
+		Owns(&greenhousev1alpha1.Plugin{}, builder.WithPredicates(
+			predicate.Or(
+				predicate.GenerationChangedPredicate{},
+				clientutil.PredicatePluginWithStatusReadyChange(),
+			))).
 		// Clusters and teams are passed as values to each Helm operation. Reconcile on change.
 		Watches(&greenhousev1alpha1.Cluster{}, handler.EnqueueRequestsFromMapFunc(r.enqueueAllPluginPresetsInNamespace),
 			builder.WithPredicates(predicate.LabelChangedPredicate{})).
@@ -100,6 +104,11 @@ func (r *PluginPresetReconciler) EnsureCreated(ctx context.Context, resource lif
 	}
 
 	err = r.reconcilePluginPreset(ctx, pluginPreset, clusters)
+	if err != nil {
+		return ctrl.Result{}, lifecycle.Failed, err
+	}
+
+	err = r.reconcilePluginStatuses(ctx, pluginPreset)
 	if err != nil {
 		return ctrl.Result{}, lifecycle.Failed, err
 	}
@@ -185,7 +194,13 @@ func (r *PluginPresetReconciler) reconcilePluginPreset(ctx context.Context, pres
 			return nil
 		})
 		if err != nil {
-			failedPlugins = append(failedPlugins, plugin.Name)
+			errorMessage := err.Error()
+			var e *apierrors.StatusError
+			if errors.As(err, &e) && e.ErrStatus.Details != nil && len(e.ErrStatus.Details.Causes) > 0 {
+				// Extract the reason for failed Plugin.
+				errorMessage = e.ErrStatus.Details.Causes[0].Message
+			}
+			failedPlugins = append(failedPlugins, plugin.Name+": "+errorMessage)
 			allErrs = append(allErrs, err)
 		}
 	}
@@ -197,15 +212,58 @@ func (r *PluginPresetReconciler) reconcilePluginPreset(ctx context.Context, pres
 	}
 	switch {
 	case len(failedPlugins) > 0:
-		preset.SetCondition(greenhousev1alpha1.TrueCondition(greenhousev1alpha1.PluginFailedCondition, "", "Failed to reconcile plugins: "+strings.Join(failedPlugins, ", ")))
+		preset.SetCondition(greenhousev1alpha1.TrueCondition(greenhousev1alpha1.PluginFailedCondition, greenhousev1alpha1.PluginReconcileFailed, strings.Join(failedPlugins, "; ")))
 	default:
 		preset.SetCondition(greenhousev1alpha1.FalseCondition(greenhousev1alpha1.PluginFailedCondition, "", ""))
 	}
 	return utilerrors.NewAggregate(allErrs)
 }
 
+// reconcilePluginStatuses updates plugin statuses in PluginPreset for every Plugin managed by the Preset.
+func (r *PluginPresetReconciler) reconcilePluginStatuses(
+	ctx context.Context, preset *greenhousev1alpha1.PluginPreset,
+) error {
+
+	// List all Plugins that are managed by the PluginPreset.
+	plugins, err := r.listPlugins(ctx, preset)
+	if err != nil {
+		return err
+	}
+
+	pluginStatuses := make([]greenhousev1alpha1.ManagedPluginStatus, 0, len(plugins.Items))
+	readyPluginsCount := 0
+	failedPluginsCount := 0
+
+	for _, plugin := range plugins.Items {
+		pluginReadyCondition := plugin.Status.GetConditionByType(greenhousev1alpha1.ReadyCondition)
+
+		switch {
+		case pluginReadyCondition == nil:
+			// Plugin exists, but its Ready condition is not set - treat it as unavailable.
+			continue
+		case pluginReadyCondition.IsTrue():
+			readyPluginsCount++
+		default:
+			failedPluginsCount++
+		}
+
+		currentPluginStatus := greenhousev1alpha1.ManagedPluginStatus{PluginName: plugin.Name, ReadyCondition: *pluginReadyCondition}
+		pluginStatuses = append(pluginStatuses, currentPluginStatus)
+	}
+
+	preset.Status.PluginStatuses = pluginStatuses
+	preset.Status.AvailablePlugins = len(pluginStatuses)
+	preset.Status.ReadyPlugins = readyPluginsCount
+	preset.Status.FailedPlugins = failedPluginsCount
+	return nil
+}
+
+func isPluginManagedByPreset(plugin *greenhousev1alpha1.Plugin, presetName string) bool {
+	return plugin.Labels[greenhouseapis.LabelKeyPluginPreset] == presetName
+}
+
 func shouldSkipPlugin(plugin *greenhousev1alpha1.Plugin, preset *greenhousev1alpha1.PluginPreset, definition *greenhousev1alpha1.PluginDefinition, clusterName string) bool {
-	if plugin.Labels[greenhouseapis.LabelKeyPluginPreset] != preset.Name {
+	if !isPluginManagedByPreset(plugin, preset.Name) {
 		return true
 	}
 
