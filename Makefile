@@ -56,7 +56,12 @@ manifests: generate-manifests generate-documentation generate-types
 
 .PHONY: generate-manifests
 generate-manifests: controller-gen ## Generate WebhookConfiguration, ClusterRole and CustomResourceDefinition objects.
-	$(CONTROLLER_GEN) crd paths="./pkg/apis/..." output:crd:artifacts:config=$(CRD_MANIFESTS_PATH)
+	$(CONTROLLER_GEN) crd paths="./pkg/apis/..." output:crd:artifacts:config=hack/crd/bases
+	$(KUSTOMIZE) build hack/crd > $(CRD_MANIFESTS_PATH)/crds.yaml
+	(cd $(CRD_MANIFESTS_PATH) && yq -s '(.spec.group | downcase) + "_" + .spec.names.plural + ".yaml"' ./crds.yaml)
+	rm -rf $(CRD_MANIFESTS_PATH)/crds.yaml
+	rm -rf hack/crd/bases
+
 	$(CONTROLLER_GEN) rbac:roleName=manager-role webhook paths="./pkg/admission/..." paths="./pkg/controllers/..." output:artifacts:config=$(TEMPLATES_MANIFESTS_PATH)
 	hack/helmify $(TEMPLATES_MANIFESTS_PATH)
 	docker run --rm -v $(shell pwd):/github/workspace $(IMG_LICENSE_EYE) -c .github/licenserc.yaml header fix
