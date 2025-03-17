@@ -55,25 +55,23 @@ sequenceDiagram
     participant User as User / Automation
     participant RC as Remote Cluster
     participant AC as Admin Cluster (Greenhouse)
-    participant BC as Bootstrap Controller
-    participant CC as Cluster Controller
-    participant APIServer as APIServer (Remote Cluster)
 
     User->>RC: 1️⃣ Creates Structured Auth with Admin-Cluster Service Account Issuer URL
     User->>RC: 2️⃣ Applies ClusterRoleBinding for Cluster-Admin (Pattern: `prefix:system:serviceaccount:org-name:cluster-name`)
     User->>AC: 3️⃣ Applies Kubernetes Secret with OIDC parameters (Namespace: Organization's Namespace)
 
-    BC->>AC: 4️⃣ Creates ServiceAccount (Sets Secret as owner on ServiceAccount)
-    BC->>AC: 5️⃣ Requests Token from ServiceAccount
-    BC->>AC: 6️⃣ Writes/Updates KubeConfig in Kubernetes Secret (Key: greenhouseKubeconfig)
-    BC->>AC: 7️⃣ Creates Cluster CR (Sets Cluster as owner on Secret)
+    AC->>AC: 4️⃣ Bootstrap ctrl creates SA (Sets OIDC Secret as owner on SA)
+    AC->>AC: 5️⃣ Bootstrap ctrl requests Token from SA
+    AC->>AC: 6️⃣ Bootstrap ctrl Writes/Updates KubeConfig in OIDC Secret (Key: greenhouseKubeconfig)
+    AC->>AC: 7️⃣ Bootstrap ctrl creates Cluster CR (Sets Cluster as owner on OIDC Secret)
 
-    CC->>AC: 8️⃣ Fetches KubeConfig from Secret
-    CC->>RC: 9️⃣ Requests Kubernetes Version & Node Status
+    AC->>AC: 8️⃣ Cluster ctrl fetches KubeConfig from Secret
+    AC->>RC: 9️⃣ Cluster ctrl requests Kubernetes Version & Node Status
 
-    APIServer->>AC: 🔍 Introspects Incoming Token (Introspection towards Admin-Cluster Service Account Issuer URL)
-    APIServer->>RC: 🔒 Verifies Authorization via RBAC
-    APIServer-->>CC: ✅ Responds with Requested Resources or ❌ Authentication/Authorization Failure
+    RC->>AC: 🔍 Introspects Incoming Token (Introspection towards Admin-Cluster Service Account Issuer URL)
+    RC->>RC: 🔒 Verifies Authorization via RBAC
+    RC-->>AC: ✅ Responds with Requested Resources or ❌ Authentication/Authorization Failure
+    AC-->>AC:  ⏰ Periodic rotation of Kubeconfig in OIDC Secret (key: greenhouseKubeconfig)
 ```
 
 ### Preparation
