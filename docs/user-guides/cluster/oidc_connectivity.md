@@ -57,21 +57,21 @@ sequenceDiagram
     participant AC as Admin Cluster (Greenhouse)
 
     User->>RC: Creates Structured Auth with Admin-Cluster Service Account Issuer URL
-    User->>RC: Applies ClusterRoleBinding for Cluster-Admin (Pattern: `prefix:system:serviceaccount:org-name:cluster-name`)
-    User->>AC: Applies Kubernetes Secret with OIDC parameters (Namespace: Organization's Namespace)
+    User->>RC: Applies ClusterRoleBinding for Cluster-Admin <br/> (Pattern: `prefix:system:serviceaccount:org-name:cluster-name`)
+    User->>AC: Applies Kubernetes Secret with OIDC parameters <br/> (Namespace: Organization's Namespace)
 
-    AC-->>AC: Bootstrap ctrl creates SA (Sets OIDC Secret as owner on SA)
-    AC-->>AC: Bootstrap ctrl requests Token from SA
-    AC-->>AC: Bootstrap ctrl Writes/Updates KubeConfig in OIDC Secret (Key: greenhouseKubeconfig)
-    AC-->>AC: Bootstrap ctrl creates Cluster CR (Sets Cluster as owner on OIDC Secret)
+    AC-->>AC: `Bootstrap controller creates ServiceAccount <br/> (Sets OIDC Secret as owner on SA)`
+    AC-->>AC: Bootstrap controller requests Token from ServiceAccount
+    AC-->>AC: Bootstrap controller writes/updates KubeConfig in OIDC Secret  <br/> (Key: greenhouseKubeconfig)
+    AC-->>AC: Bootstrap controller creates Cluster CR <br/> (Sets Cluster as owner on OIDC Secret)
 
-    AC-->>AC: Cluster ctrl fetches KubeConfig from Secret
-    AC->>RC: Cluster ctrl requests Kubernetes Version & Node Status
+    AC-->>AC: Cluster controller fetches KubeConfig from Secret
+    AC->>RC: Cluster controller requests Kubernetes Version & Node Status
 
-    RC-->>AC: 🔍 Introspects Incoming Token (Introspection towards Admin-Cluster Service Account Issuer URL)
+    RC-->>AC: 🔍 Introspects Incoming Token <br/> (Introspection towards Admin-Cluster Service Account Issuer URL)
     RC-->>RC: 🔒 Verifies Authorization via RBAC
     RC->>AC: ✅ Responds with Requested Resources or ❌ Authentication/Authorization Failure
-    AC-->>AC: ⏰ Periodic rotation of Kubeconfig in OIDC Secret (key: greenhouseKubeconfig)
+    AC-->>AC: ⏰ Periodic rotation of Kubeconfig in OIDC Secret <br/> (key: greenhouseKubeconfig)
 ```
 
 ### Preparation
