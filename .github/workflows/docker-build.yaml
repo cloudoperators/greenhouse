@@ -1,21 +1,20 @@
 name: Build Docker images and push to registry
 
 on:
-  workflow_dispatch: {}
+  workflow_dispatch: { }
   push:
     branches:
-        - main
+      - main
     paths:
-        - cmd/**
-        - pkg/**
-        - website/**
-        - Dockerfile
-        - Dockerfile.*
-        - go.mod
-        - go.sum
+      - cmd/**
+      - pkg/**
+      - website/**
+      - Dockerfile
+      - go.mod
+      - go.sum
     tags:
       - v*.*.*
-    
+
 env:
   REGISTRY: ghcr.io
 
@@ -23,45 +22,31 @@ jobs:
   build:
     name: Build
     runs-on: [ default ]
-    continue-on-error: true
-    strategy:
-      fail-fast: false
-      max-parallel: 6
-      matrix:
-        include:
-          - Dockerfiles: Dockerfile
-            Imagename: greenhouse
-          - Dockerfiles: Dockerfile.dev-env
-            Imagename: greenhouse-dev-env
-          # - Dockerfiles: Dockerfile.dev-ui
-          #   Imagename: greenhouse-dev-ui
-
     permissions:
       contents: read
       packages: write
       # This is used to complete the identity challenge
       # with sigstore/fulcio when running outside of PRs.
       id-token: write
-
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
 
       # Install the cosign tool except on PR
       # https://github.com/sigstore/cosign-installer
       - name: Install cosign
         if: github.event_name != 'pull_request'
-        uses: sigstore/cosign-installer@v3.8.1
+        uses: sigstore/cosign-installer@d7d6bc7722e3daa8354c50bcb52f4837da5e9b6a # v3.8.1
       
       # Set up QEMU for cross-platform builds
       - name: Set up QEMU
-        uses: docker/setup-qemu-action@v3
+        uses: docker/setup-qemu-action@29109295f81e9208d7d86ff1c6c12d2833863392 # v3
       
       # Set up BuildKit Docker container builder to be able to build
       # multi-platform images and export cache
       # https://github.com/docker/setup-buildx-action
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3 # v3.0.0
+        uses: docker/setup-buildx-action@b5ca514318bd6ebac0fb2aedd5d36ec1b5c232a2 # v3
         with:
           driver-opts: |
             image=moby/buildkit:latest
@@ -70,7 +55,7 @@ jobs:
       # https://github.com/docker/login-action
       - name: Log into registry ${{ env.REGISTRY }}
         if: github.event_name != 'pull_request'
-        uses: docker/login-action@v3
+        uses: docker/login-action@74a5d142397b4f367a81961eba4e8cd7edddf772 # v3
         with:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
@@ -80,9 +65,9 @@ jobs:
       # https://github.com/docker/metadata-action
       - name: Extract Docker metadata
         id: meta
-        uses: docker/metadata-action@v5 # v5.0.0
+        uses: docker/metadata-action@902fa8ec7d6ecbf8d84d538b9b233a880e428804 # v5
         with:
-          images: ${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ matrix.Imagename }}
+          images: ${{ env.REGISTRY }}/${{ github.repository_owner }}/greenhouse
           tags: |
             type=semver,pattern={{version}},prefix=v
             type=semver,pattern={{major}}.{{minor}},prefix=v
@@ -99,17 +84,16 @@ jobs:
       # https://github.com/docker/build-push-action
       - name: Build and push Docker image
         id: build-and-push
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@471d1dc4e07e5cdedd4c2171150001c434f0b7a4 # v6
         with:
           context: .
-          file: ${{ matrix.Dockerfiles }}
           push: ${{ github.event_name != 'pull_request' }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           # remove untagged images produced for multi platform builds
           provenance: false
-        #  cache-from: type=gha
-        #  cache-to: type=gha,mode=max
+          #  cache-from: type=gha
+          #  cache-to: type=gha,mode=max
           platforms: |
             linux/amd64
             linux/arm64
@@ -134,34 +118,22 @@ jobs:
       contents: read
       packages: read
       security-events: write
-    strategy:
-      fail-fast: false
-      max-parallel: 6
-      matrix:
-        include:
-          - Dockerfiles: Dockerfile
-            Imagename: greenhouse
-          - Dockerfiles: Dockerfile.dev-env
-            Imagename: greenhouse-dev-env
-          # - Dockerfiles: Dockerfile.dev-ui
-          #   Imagename: greenhouse-dev-ui
-
     name: Vulnerability Scan
     needs: build
     runs-on: [ default ]
     steps:
       - name: Run Trivy vulnerability scanner
-        uses: aquasecurity/trivy-action@0.29.0
+        uses: aquasecurity/trivy-action@6c175e9c4083a92bbca2f9724c8a5e33bc2d97a5 # 0.30.0
         if: success()
         with:
-          image-ref: ${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ matrix.Imagename }}:${{ github.sha }}
+          image-ref: ${{ env.REGISTRY }}/${{ github.repository_owner }}/greenhouse:${{ github.sha }}
           ignore-unfixed: true
           format: 'sarif'
           output: 'trivy-results.sarif'
           severity: 'CRITICAL,HIGH,MEDIUM'
 
       - name: Upload Trivy scan results to GitHub Security tab
-        uses: github/codeql-action/upload-sarif@v3
+        uses: github/codeql-action/upload-sarif@6bb031afdd8eb862ea3fc1848194185e076637e5 # v3
         if: always()
         with:
           sarif_file: trivy-results.sarif

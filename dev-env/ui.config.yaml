@@ -10,12 +10,13 @@ config:
     dependencies:
       - manifest:
           release: greenhouse
-          chartPath: charts/manager
-          valuesPath: dev-env/localenv/dev.values.yaml
-          crdOnly: false
-          webhook:
-            devMode: false
-            dockerFile: "./"
-            envs:
-              - name: WEBHOOK_ONLY
-                value: 'true'
+          chartPath: charts/cors-proxy
+          valuesPath: dev-env/cors.values.yaml
+          excludeKinds:
+            - Ingress
+      - manifest:
+          release: greenhouse
+          chartPath: charts/dashboard
+          valuesPath: dev-env/ui.values.yaml
+          excludeKinds:
+            - Ingress
