@@ -171,7 +171,7 @@ HELMIFY ?= $(LOCALBIN)/helmify
 ## Tool Versions
 KUSTOMIZE_VERSION ?= 5.6.0
 CONTROLLER_TOOLS_VERSION ?= 0.17.2
-GOLINT_VERSION ?= 1.64.7
+GOLINT_VERSION ?= 1.64.8
 GINKGOLINTER_VERSION ?= 0.19.1
 # ENVTEST_K8S_VERSION refers to the version of kubebuilder assets to be downloaded by envtest binary.
 ENVTEST_K8S_VERSION ?= 1.31.0
