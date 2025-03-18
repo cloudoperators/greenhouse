@@ -19,13 +19,18 @@ spec:
     - name: thanos.query.standalone
       value: true
     - name: thanos.query.stores
-      value: []
+      value:
+      {{- range $index, $plugin := (lookup "greenhouse.sap/v1alpha1" "Plugin" "" "").items }}
+        {{- if eq (get $plugin.metadata.labels "greenhouse.sap/plugindefinition") "thanos" }}
+          {{- range $index, $option := $plugin.spec.optionValues }}
+            {{- if eq $option.name "thanos.query.ingress.grpc.hosts" }}
+        - {{ print (get (index (get $option "value") 0) "host") ":443" }}
+            {{- end }}
+          {{- end }}
+        {{- end }}
+      {{- end }}
     - name: thanos.ruler.enabled
       value: false
-    - name: thanos.store.enabled
-      value: true
-    - name: thanos.compactor.enabled
-      value: true
     - name: thanos.query.ingress.annotations
       value:
         disco: "true"
