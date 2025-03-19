@@ -7,11 +7,12 @@ import (
 	"context"
 	"slices"
 
-	"github.com/cloudoperators/greenhouse/api/greenhouse/v1alpha1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+
+	"github.com/cloudoperators/greenhouse/api/greenhouse/v1alpha1"
 )
 
 // ClusterSelector specifies a selector for clusters by name or by label with the option to exclude specific clusters.
