@@ -14,7 +14,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 
 	"github.com/cloudoperators/greenhouse/internal/test"
-	admission "github.com/cloudoperators/greenhouse/internal/webhook"
+	webhookv1alpha1 "github.com/cloudoperators/greenhouse/internal/webhook/v1alpha1"
 )
 
 func TestClientUtil(t *testing.T) {
@@ -23,7 +23,7 @@ func TestClientUtil(t *testing.T) {
 }
 
 var _ = BeforeSuite(func() {
-	test.RegisterWebhook("secretsWebhook", admission.SetupSecretWebhookWithManager)
+	test.RegisterWebhook("secretsWebhook", webhookv1alpha1.SetupSecretWebhookWithManager)
 	test.TestBeforeSuite()
 	// return the test.Cfg, as the in-cluster config is not available
 	ctrl.GetConfig = func() (*rest.Config, error) {
