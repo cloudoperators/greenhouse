@@ -5,15 +5,8 @@ package v1alpha2
 
 import (
 	"context"
-	"fmt"
-	"net/url"
-	"strings"
 
-	"github.com/go-logr/logr"
-
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/util/validation/field"
 
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -103,21 +96,6 @@ func (c *customValidator) ValidateDelete(ctx context.Context, obj runtime.Object
 	return c.validateDelete(ctx, c.Client, obj)
 }
 
-func validateImmutableField(oldValue, newValue string, path *field.Path) *field.Error {
-	if oldValue != newValue {
-		return field.Invalid(path, newValue, "field is immutable")
-	}
-	return nil
-}
-
-func validateURL(str string) bool {
-	parsedURL, err := url.Parse(str)
-	if err != nil || parsedURL.Scheme == "" || parsedURL.Host == "" {
-		return false
-	}
-	return parsedURL.Scheme == "https"
-}
-
 // logAdmissionRequest logs the AdmissionRequest.
 // This is necessary to audit log the AdmissionRequest independently of the api server audit logs.
 func logAdmissionRequest(ctx context.Context) {
@@ -131,37 +109,4 @@ func logAdmissionRequest(ctx context.Context) {
 	admissionRequest.OldObject.Raw = nil
 
 	ctrl.Log.Info("AdmissionRequest", "Request", admissionRequest)
-}
-
-// invalidateDoubleDashes validates that the object name does not contain double dashes.
-func invalidateDoubleDashesInName(obj client.Object, l logr.Logger) error {
-	if strings.Contains(obj.GetName(), "--") {
-		err := apierrors.NewInvalid(
-			obj.GetObjectKind().GroupVersionKind().GroupKind(),
-			obj.GetName(),
-			field.ErrorList{
-				field.Invalid(field.NewPath("metadata", "name"), obj.GetName(), "name cannot contain double dashes"),
-			},
-		)
-		l.Error(err, "found object name with double dashes, admission will be denied")
-		return err
-	}
-	return nil
-}
-
-// capName validates that the name is not longer than the provided length.
-
-func capName(obj client.Object, l logr.Logger, length int) error {
-	if len(obj.GetName()) > length {
-		err := apierrors.NewInvalid(
-			obj.GetObjectKind().GroupVersionKind().GroupKind(),
-			obj.GetName(),
-			field.ErrorList{
-				field.Invalid(field.NewPath("metadata", "name"), obj.GetName(), fmt.Sprintf("name must be less than or equal to %d", length)),
-			},
-		)
-		l.Error(err, fmt.Sprintf("found object name too long, admission will be denied, name must be less than or equal to %d", length))
-		return err
-	}
-	return nil
 }
