@@ -1,14 +1,15 @@
 // SPDX-FileCopyrightText: 2024 SAP SE or an SAP affiliate company and Greenhouse contributors
 // SPDX-License-Identifier: Apache-2.0
 
-package v1alpha1_test
+package v1alpha2_test
 
 import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/cloudoperators/greenhouse/api/greenhouse/v1alpha1"
+	"github.com/cloudoperators/greenhouse/api/greenhouse/v1alpha2"
 	"github.com/cloudoperators/greenhouse/internal/test"
 )
 
@@ -50,7 +51,7 @@ var _ = Describe("ClusterSelector type's ListClusters method", Ordered, func() {
 
 	It("should return correct cluster by Name", func() {
 		By("setting up a ClusterSelector")
-		cs := new(v1alpha1.ClusterSelector)
+		cs := new(v1alpha2.ClusterSelector)
 		cs.Name = "cluster-a"
 
 		By("executing ListClusters method")
@@ -64,8 +65,8 @@ var _ = Describe("ClusterSelector type's ListClusters method", Ordered, func() {
 
 	It("should list all clusters matching LabelSelector", func() {
 		By("setting up a ClusterSelector")
-		cs := new(v1alpha1.ClusterSelector)
-		cs.LabelSelector = v1.LabelSelector{
+		cs := new(v1alpha2.ClusterSelector)
+		cs.LabelSelector = metav1.LabelSelector{
 			MatchLabels: map[string]string{
 				"group": "first",
 			},
@@ -87,8 +88,8 @@ var _ = Describe("ClusterSelector type's ListClusters method", Ordered, func() {
 
 	It("should list all clusters matching LabelSelector except for those in ExcludeList", func() {
 		By("setting up a ClusterSelector")
-		cs := new(v1alpha1.ClusterSelector)
-		cs.LabelSelector = v1.LabelSelector{
+		cs := new(v1alpha2.ClusterSelector)
+		cs.LabelSelector = metav1.LabelSelector{
 			MatchLabels: map[string]string{
 				"group": "second",
 			},
