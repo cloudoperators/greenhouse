@@ -8,6 +8,18 @@ metadata:
     controller-gen.kubebuilder.io/version: v0.17.2
   name: teamrolebindings.greenhouse.sap
 spec:
+  conversion:
+    strategy: Webhook
+    webhook:
+      clientConfig:
+        service:
+          name: greenhouse-webhook-service
+          namespace: greenhouse
+          path: /convert
+      conversionReviewVersions:
+        - v1alpha1
+        - v1alpha2
+        - v1beta1
   group: greenhouse.sap
   names:
     kind: TeamRoleBinding

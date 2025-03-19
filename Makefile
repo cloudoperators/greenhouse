@@ -55,9 +55,9 @@ generate-all: generate generate-manifests generate-documentation  ## Generate co
 manifests: generate-manifests generate-documentation generate-types
 
 .PHONY: generate-manifests
-generate-manifests: controller-gen ## Generate WebhookConfiguration, ClusterRole and CustomResourceDefinition objects.
+generate-manifests: controller-gen kustomize ## Generate WebhookConfiguration, ClusterRole and CustomResourceDefinition objects.
 	$(CONTROLLER_GEN) crd paths="./api/..." output:crd:artifacts:config=config/crd/bases
-	kustomize build config/crd > $(CRD_MANIFESTS_PATH)/crds.yaml
+	$(KUSTOMIZE) build config/crd > $(CRD_MANIFESTS_PATH)/crds.yaml
 	(cd $(CRD_MANIFESTS_PATH) && yq -s '(.spec.group | downcase) + "_" + .spec.names.plural' ./crds.yaml --no-doc)
 	rm -rf $(CRD_MANIFESTS_PATH)/crds.yaml
 
