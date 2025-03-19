@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2024 SAP SE or an SAP affiliate company and Greenhouse contributors
 // SPDX-License-Identifier: Apache-2.0
 
-package admission
+package v1alpha2
 
 import (
 	"context"
@@ -14,14 +14,15 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
-	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
+	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/greenhouse/v1alpha1"
+	greenhousev1alpha2 "github.com/cloudoperators/greenhouse/api/greenhouse/v1alpha2"
 )
 
 // Webhook for the RoleBinding custom resource.
 
 func SetupTeamRoleBindingWebhookWithManager(mgr ctrl.Manager) error {
 	return setupWebhook(mgr,
-		&greenhousev1alpha1.TeamRoleBinding{},
+		&greenhousev1alpha2.TeamRoleBinding{},
 		webhookFuncs{
 			defaultFunc:        DefaultRoleBinding,
 			validateCreateFunc: ValidateCreateRoleBinding,
@@ -31,7 +32,7 @@ func SetupTeamRoleBindingWebhookWithManager(mgr ctrl.Manager) error {
 	)
 }
 
-//+kubebuilder:webhook:path=/mutate-greenhouse-sap-v1alpha1-teamrolebinding,mutating=true,failurePolicy=fail,sideEffects=None,groups=greenhouse.sap,resources=teamrolebindings,verbs=create;update,versions=v1alpha1,name=mrolebinding.kb.io,admissionReviewVersions=v1
+//+kubebuilder:webhook:path=/mutate-greenhouse-sap-v1alpha2-teamrolebinding,mutating=true,failurePolicy=fail,sideEffects=None,groups=greenhouse.sap,resources=teamrolebindings,verbs=create;update,versions=v1alpha1,name=mrolebinding.kb.io,admissionReviewVersions=v1
 
 func DefaultRoleBinding(_ context.Context, _ client.Client, _ runtime.Object) error {
 	return nil
