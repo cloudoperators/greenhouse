@@ -93,6 +93,7 @@ func (r *PluginPresetReconciler) EnsureCreated(ctx context.Context, resource lif
 
 	clusters, err := r.listClusters(ctx, pluginPreset)
 	if err != nil {
+		pluginPreset.SetCondition(greenhousev1alpha1.TrueCondition(greenhousev1alpha1.ClusterListEmpty, "", fmt.Sprintf("Invalid ClusterSelector: %v", err.Error())))
 		return ctrl.Result{}, lifecycle.Failed, err
 	}
 
@@ -102,6 +103,12 @@ func (r *PluginPresetReconciler) EnsureCreated(ctx context.Context, resource lif
 	default:
 		pluginPreset.SetCondition(greenhousev1alpha1.FalseCondition(greenhousev1alpha1.ClusterListEmpty, "", ""))
 	}
+
+	if err := r.cleanupPlugins(ctx, pluginPreset, clusters); err != nil {
+		return ctrl.Result{}, lifecycle.Failed, err
+	}
+
+	clusters = clientutil.FilterClustersBeingDeleted(clusters)
 
 	err = r.reconcilePluginPreset(ctx, pluginPreset, clusters)
 	if err != nil {
@@ -409,7 +416,30 @@ func (r *PluginPresetReconciler) listClusters(ctx context.Context, pb *greenhous
 	if err := r.List(ctx, clusters, client.InNamespace(pb.GetNamespace()), client.MatchingLabelsSelector{Selector: clusterSelector}); err != nil {
 		return nil, err
 	}
-	return clientutil.FilterClustersBeingDeleted(clusters), nil
+	return clusters, nil
+}
+
+// cleanupPlugins deletes all Plugins managed by the PluginDefinition, where the Cluster is not in the list of Clusters.
+func (r *PluginPresetReconciler) cleanupPlugins(ctx context.Context, pb *greenhousev1alpha1.PluginPreset, cl *greenhousev1alpha1.ClusterList) (err error) {
+	plugins, err := r.listPlugins(ctx, pb)
+	if err != nil {
+		return err
+	}
+	for _, p := range plugins.Items {
+		validCluster := false
+		for _, c := range cl.Items {
+			if p.Spec.ClusterName == c.GetName() {
+				validCluster = true
+				break
+			}
+		}
+		if !validCluster {
+			if err := r.Client.Delete(ctx, &p); err != nil && !apierrors.IsNotFound(err) {
+				return err
+			}
+		}
+	}
+	return nil
 }
 
 // enqueueAllPluginPresetsInNamespace returns a list of reconcile requests for all PluginPresets in the same namespace as obj.
