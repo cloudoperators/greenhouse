@@ -4,7 +4,7 @@
 baseURL: "https://cloudoperators.github.io/greenhouse"
 languageCode: "en-us"
 title: "Greenhouse"
-
+enableEmoji: true
 params:
   github_repo: "https://github.com/cloudoperators/greenhouse"
   github_branch: "main"
