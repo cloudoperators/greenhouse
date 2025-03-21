@@ -5,14 +5,14 @@ apiVersion: v2
 name: greenhouse
 description: A Helm chart for deploying greenhouse
 type: application
-version: 0.9.3
+version: 0.10.0
 appVersion: "0.1.0"
 
 dependencies:
   - condition: idproxy.enabled
     name: idproxy
     repository: "file://../idproxy"
-    version: 0.2.4
+    version: 0.3.0
   - condition: cors-proxy.enabled
     name: cors-proxy
     repository: "file://../cors-proxy"
