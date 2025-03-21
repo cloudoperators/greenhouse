@@ -449,11 +449,12 @@ var _ = Describe("TeammembershipUpdaterController", Ordered, func() {
 				err := setup.Get(test.Ctx, types.NamespacedName{Namespace: setup.Namespace(), Name: firstTeamName}, team)
 				g.Expect(err).ShouldNot(HaveOccurred(), "unexpected error getting Team")
 				g.Expect(team.Name).To(BeEquivalentTo(firstTeamName))
+				g.Expect(team.Status.SCIMStatus).To(BeEquivalentTo(greenhousev1alpha1.ReadyStatus))
 
 				teamMemberships := &greenhousev1alpha1.TeamMembershipList{}
 				err = setup.List(test.Ctx, teamMemberships, &client.ListOptions{Namespace: setup.Namespace()})
 				g.Expect(err).ShouldNot(HaveOccurred(), "unexpected error getting TeamMemberships")
-				g.Expect(teamMemberships.Items).To(HaveLen(1), "there should be exactly one TeamMembership")
+				g.Expect(teamMemberships.Items).To(HaveLen(1), "there shog.Expect(team.Status.StatusConditions.GetConditionByType(greenhousev1alpha1.SCIMAPIAvailableCondition).IsTrue()).Should(BeTrue())uld be exactly one TeamMembership")
 			}).Should(Succeed())
 
 			err := setup.Delete(test.Ctx, team)
