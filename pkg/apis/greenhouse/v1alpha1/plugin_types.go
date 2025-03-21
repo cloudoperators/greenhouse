@@ -18,9 +18,6 @@ type PluginSpec struct {
 	// Defaults to a normalized version of metadata.name.
 	DisplayName string `json:"displayName,omitempty"`
 
-	// Disabled indicates that the plugin is administratively disabled.
-	Disabled bool `json:"disabled"`
-
 	// Values are the values for a PluginDefinition instance.
 	OptionValues []PluginOptionValue `json:"optionValues,omitempty"`
 

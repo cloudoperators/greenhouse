@@ -281,9 +281,6 @@ components:
             clusterName:
               description: ClusterName is the name of the cluster the plugin is deployed to. If not set, the plugin is deployed to the greenhouse cluster.
               type: string
-            disabled:
-              description: Disabled indicates that the plugin is administratively disabled.
-              type: boolean
             displayName:
               description: DisplayName is an optional name for the Plugin to be displayed in the Greenhouse UI.\nThis is especially helpful to distinguish multiple instances of a PluginDefinition in the same context.\nDefaults to a normalized version of metadata.name.
               type: string
@@ -326,7 +323,6 @@ components:
               description: ReleaseNamespace is the namespace in the remote cluster to which the backend is deployed.\nDefaults to the Greenhouse managed namespace if not set.
               type: string
           required:
-            - disabled
             - pluginDefinition
           type: object
         status:
@@ -1254,9 +1250,6 @@ components:
                 clusterName:
                   description: ClusterName is the name of the cluster the plugin is deployed to. If not set, the plugin is deployed to the greenhouse cluster.
                   type: string
-                disabled:
-                  description: Disabled indicates that the plugin is administratively disabled.
-                  type: boolean
                 displayName:
                   description: DisplayName is an optional name for the Plugin to be displayed in the Greenhouse UI.\nThis is especially helpful to distinguish multiple instances of a PluginDefinition in the same context.\nDefaults to a normalized version of metadata.name.
                   type: string
@@ -1299,7 +1292,6 @@ components:
                   description: ReleaseNamespace is the namespace in the remote cluster to which the backend is deployed.\nDefaults to the Greenhouse managed namespace if not set.
                   type: string
               required:
-                - disabled
                 - pluginDefinition
               type: object
           required:
