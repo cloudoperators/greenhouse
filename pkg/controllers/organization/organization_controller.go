@@ -94,7 +94,7 @@ func (r *OrganizationReconciler) SetupWithManager(name string, mgr ctrl.Manager)
 		Owns(&rbacv1.ClusterRoleBinding{}).
 		Watches(&corev1.Secret{},
 			handler.EnqueueRequestsFromMapFunc(r.enqueueOrganizationForReferencedSecret),
-			builder.WithPredicates(clientutil.PredicateHasOICDConfigured())).
+			builder.WithPredicates(clientutil.PredicateHasAuthConfigured())).
 		Watches(&greenhousesapv1alpha1.PluginDefinition{},
 			handler.EnqueueRequestsFromMapFunc(r.enqueueAllOrganizationsForServiceProxyPluginDefinition),
 			builder.WithPredicates(predicate.And(
@@ -298,9 +298,8 @@ func (r *OrganizationReconciler) checkSCIMAPIAvailability(ctx context.Context, o
 	}
 
 	namespace := org.Name
-	scimConfig := org.Spec.Authentication.SCIMConfig
 
-	config, err := util.GreenhouseSCIMConfigToSCIMConfig(ctx, r.Client, scimConfig, namespace)
+	config, err := util.GreenhouseSCIMConfigToSCIMConfig(ctx, r.Client, org, namespace)
 	if err != nil {
 		return greenhousesapv1alpha1.FalseCondition(greenhousesapv1alpha1.SCIMAPIAvailableCondition, greenhousesapv1alpha1.SCIMConfigErrorReason, err.Error())
 	}

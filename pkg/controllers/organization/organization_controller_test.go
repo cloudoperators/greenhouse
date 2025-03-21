@@ -4,9 +4,10 @@
 package organization_test
 
 import (
+	"slices"
+
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	"golang.org/x/exp/slices"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -33,7 +34,7 @@ var _ = Describe("Test Organization reconciliation", Ordered, func() {
 		setup = test.NewTestSetup(test.Ctx, test.K8sClient, test.TestNamespace)
 	})
 
-	When("reconciling an organization", func() {
+	When("reconciling an organization", Ordered, func() {
 		It("should create a namespace for new organization", func() {
 			testOrgName := "test-org-1"
 			setup.CreateOrganization(test.Ctx, testOrgName)
@@ -140,7 +141,13 @@ var _ = Describe("Test Organization reconciliation", Ordered, func() {
 			testOrgName := setup.Namespace()
 
 			By("creating secret for SCIM Config")
-			createSecretForSCIMConfig(testOrgName)
+			testSecret := createSecretForSCIMConfig(testOrgName)
+			Eventually(func(g Gomega) {
+				err := setup.Get(test.Ctx, types.NamespacedName{Namespace: testSecret.Namespace, Name: testSecret.Name}, testSecret)
+				g.Expect(err).NotTo(HaveOccurred())
+				g.Expect(clientutil.IsSecretContainsKey(testSecret, "scimBasicAuthUser")).To(BeTrue())
+				g.Expect(clientutil.IsSecretContainsKey(testSecret, "scimBasicAuthPassword")).To(BeTrue())
+			}).Should(Succeed())
 
 			By("creating Organization with SCIM Config")
 			testOrg := setup.CreateOrganization(test.Ctx, testOrgName,
@@ -152,19 +159,8 @@ var _ = Describe("Test Organization reconciliation", Ordered, func() {
 						SCIMConfig: &greenhousev1alpha1.SCIMConfig{
 							BaseURL:  groupsServer.URL + "/scim",
 							AuthType: scim.Basic,
-							BasicAuthUser: greenhousev1alpha1.ValueFromSource{
-								Secret: &greenhousev1alpha1.SecretKeyReference{
-									Name: "test-secret",
-									Key:  "basicAuthUser",
-								},
-							},
-							BasicAuthPw: greenhousev1alpha1.ValueFromSource{
-								Secret: &greenhousev1alpha1.SecretKeyReference{
-									Name: "test-secret",
-									Key:  "basicAuthPw",
-								},
-							},
 						},
+						SecretRef: testSecret.Name,
 					}
 				},
 			)
@@ -196,13 +192,8 @@ var _ = Describe("Test Organization reconciliation", Ordered, func() {
 						SCIMConfig: &greenhousev1alpha1.SCIMConfig{
 							BaseURL:  groupsServer.URL + "/scim",
 							AuthType: scim.BearerToken,
-							BearerToken: greenhousev1alpha1.ValueFromSource{
-								Secret: &greenhousev1alpha1.SecretKeyReference{
-									Name: "test-secret",
-									Key:  "bearerToken",
-								},
-							},
 						},
+						SecretRef: "test-secret",
 					}
 				},
 			)
@@ -244,19 +235,8 @@ var _ = Describe("Test Organization reconciliation", Ordered, func() {
 					SCIMConfig: &greenhousev1alpha1.SCIMConfig{
 						BaseURL:  groupsServer.URL + "/scim",
 						AuthType: scim.Basic,
-						BasicAuthUser: greenhousev1alpha1.ValueFromSource{
-							Secret: &greenhousev1alpha1.SecretKeyReference{
-								Name: "test-secret",
-								Key:  "basicAuthUser",
-							},
-						},
-						BasicAuthPw: greenhousev1alpha1.ValueFromSource{
-							Secret: &greenhousev1alpha1.SecretKeyReference{
-								Name: "test-secret",
-								Key:  "basicAuthPw",
-							},
-						},
 					},
+					SecretRef: "test-secret",
 				}
 				err = setup.Update(test.Ctx, testOrg)
 				g.Expect(err).ToNot(HaveOccurred(), "there should be no error updating the Organization")
@@ -394,11 +374,11 @@ func checkOrganizationReadyStatus(orgName string) {
 
 func createSecretForOIDCConfig(namespace string) {
 	oidcSecret := &corev1.Secret{}
-	oidcSecret.SetName("test-oidc-secret")
+	oidcSecret.SetName("test-secret")
 	oidcSecret.SetNamespace(namespace)
 	oidcSecret.Data = map[string][]byte{
-		"clientId":     []byte("test-client-id"),
-		"clientSecret": []byte("test-client-secret"),
+		greenhousev1alpha1.OIDCClientIDKey:     []byte("test-client-id"),
+		greenhousev1alpha1.OIDCClientSecretKey: []byte("test-client-secret"),
 	}
 	err := test.K8sClient.Create(test.Ctx, oidcSecret)
 	Expect(err).ToNot(HaveOccurred(), "there should be no error creating the secret")
@@ -410,24 +390,17 @@ func updateOrgWithOIDC(orgName string, additionalRedirects ...string) {
 	Expect(err).ToNot(HaveOccurred(), "there should be no error getting the organization")
 	org.Spec.Authentication = &greenhousev1alpha1.Authentication{
 		OIDCConfig: &greenhousev1alpha1.OIDCConfig{
-			Issuer:      "https://example.com",
-			RedirectURI: "https://example.com/callback",
-			ClientIDReference: greenhousev1alpha1.SecretKeyReference{
-				Name: "test-oidc-secret",
-				Key:  "clientId",
-			},
-			ClientSecretReference: greenhousev1alpha1.SecretKeyReference{
-				Name: "test-oidc-secret",
-				Key:  "clientSecret",
-			},
+			Issuer:                   "https://example.com",
+			RedirectURI:              "https://example.com/callback",
 			OAuth2ClientRedirectURIs: additionalRedirects,
 		},
+		SecretRef: "test-secret",
 	}
 	err = test.K8sClient.Update(test.Ctx, org)
 	Expect(err).ToNot(HaveOccurred(), "there should be no error updating the organization with OIDC config")
 }
 
-func createSecretForSCIMConfig(namespace string) {
+func createSecretForSCIMConfig(namespace string) *corev1.Secret {
 	testSecret := corev1.Secret{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "Secret",
@@ -438,11 +411,12 @@ func createSecretForSCIMConfig(namespace string) {
 			Namespace: namespace,
 		},
 		Data: map[string][]byte{
-			"basicAuthUser": []byte("user"),
-			"basicAuthPw":   []byte("pw"),
-			"bearerToken":   []byte("100b8cad7cf2a56f6df78f171f97a1ec"),
+			greenhousev1alpha1.SCIMBasicAuthUserKey:     []byte("user"),
+			greenhousev1alpha1.SCIMBasicAuthPasswordKey: []byte("pw"),
+			greenhousev1alpha1.SCIMBearerTokenKey:       []byte("100b8cad7cf2a56f6df78f171f97a1ec"),
 		},
 	}
 	err := test.K8sClient.Create(test.Ctx, &testSecret)
 	Expect(err).ToNot(HaveOccurred(), "there must be no error creating a secret")
+	return &testSecret
 }

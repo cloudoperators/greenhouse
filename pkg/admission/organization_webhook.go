@@ -60,7 +60,7 @@ func ValidateCreateOrganization(_ context.Context, _ client.Client, obj runtime.
 		allErrs = append(allErrs, err)
 	}
 
-	if err := validateSCIMConfig(organization); err != nil {
+	if err := validateAuthConfig(organization); err != nil {
 		allErrs = append(allErrs, err)
 	}
 
@@ -78,7 +78,7 @@ func ValidateUpdateOrganization(_ context.Context, _ client.Client, _, newObj ru
 		allErrs = append(allErrs, err)
 	}
 
-	if err := validateSCIMConfig(organization); err != nil {
+	if err := validateAuthConfig(organization); err != nil {
 		allErrs = append(allErrs, err)
 	}
 
@@ -98,29 +98,23 @@ func validateMappedOrgAdminIDPGroup(organization *greenhousev1alpha1.Organizatio
 	return nil
 }
 
-func validateSCIMConfig(organization *greenhousev1alpha1.Organization) *field.Error {
+func validateAuthConfig(organization *greenhousev1alpha1.Organization) *field.Error {
 	if organization.Spec.Authentication == nil || organization.Spec.Authentication.SCIMConfig == nil {
 		return nil
 	}
 
-	switch organization.Spec.Authentication.SCIMConfig.AuthType {
-	case scim.Basic:
-		if organization.Spec.Authentication.SCIMConfig.BasicAuthUser.Secret == nil {
-			return field.Required(field.NewPath("spec").Child("Authentication").Child("SCIMConfig").Child("BasicAuthUser"),
-				"An Organization without SCIMConfig.BasicAuthUser is invalid")
-		}
-		if organization.Spec.Authentication.SCIMConfig.BasicAuthPw.Secret == nil {
-			return field.Required(field.NewPath("spec").Child("Authentication").Child("SCIMConfig").Child("BasicAuthPw"),
-				"An Organization without SCIMConfig.BasicAuthPw is invalid")
-		}
-	case scim.BearerToken:
-		if organization.Spec.Authentication.SCIMConfig.BearerToken.Secret == nil {
-			return field.Required(field.NewPath("spec").Child("Authentication").Child("SCIMConfig").Child("BearerToken"),
-				"An Organization without SCIMConfig.BearerToken is invalid")
-		}
-	default:
-		return field.Invalid(field.NewPath("spec").Child("Authentication").Child("SCIMConfig").Child("AuthType"),
-			organization.Spec.Authentication.SCIMConfig.AuthType, "An Organization with incorrect SCIMConfig.AuthType is invalid")
+	if organization.Spec.Authentication.SecretRef != "" {
+		return nil
+	}
+
+	if organization.Spec.Authentication.SCIMConfig.BaseURL == "" {
+		return field.Required(field.NewPath("spec").Child("Authentication").Child("SCIMConfig").Child("BaseURL"),
+			"An Organization without SCIMConfig.BaseURL is invalid")
+	}
+
+	if organization.Spec.Authentication.SCIMConfig.AuthType != scim.Basic && organization.Spec.Authentication.SCIMConfig.AuthType != scim.BearerToken {
+		return field.Required(field.NewPath("spec").Child("Authentication").Child("SCIMConfig").Child("AuthType"),
+			"An Organization without SCIMConfig.AuthType is invalid")
 	}
 
 	return nil
