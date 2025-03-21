@@ -1,6 +1,5 @@
 # Image URL to use all building/pushing image targets
 IMG ?= ghcr.io/cloudoperators/greenhouse:dev-$(USER)
-IMG_DEV_ENV ?= ghcr.io/cloudoperators/greenhouse-dev-env:dev-$(USER)
 IMG_LICENSE_EYE ?= ghcr.io/apache/skywalking-eyes/license-eye
 
 MANIFESTS_PATH=$(CURDIR)/charts/manager
@@ -316,7 +315,7 @@ list-scenarios:
 
 .PHONY: dev-docs
 dev-docs:
-	go run -tags="dev" -mod=mod dev-env/localenv/docs.go
+	go run -tags="dev" -mod=mod dev-env/docs.go
 
 # Download and install mockery locally via `brew install mockery`
 MOCKERY := $(shell which mockery)

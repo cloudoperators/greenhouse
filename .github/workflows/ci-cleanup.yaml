@@ -9,7 +9,7 @@ jobs:
   cleanup:
     uses: cloudoperators/common/.github/workflows/shared-ghcr-cleanup.yaml@main
     with:
-      package: greenhouse,greenhouse-dev-env,greenhouse/charts/greenhouse
+      package: greenhouse,greenhouse/charts/greenhouse
       dry-run: true
       exclude-tags: main
       delete-untagged: true
