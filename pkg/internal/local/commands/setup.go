@@ -31,7 +31,7 @@ type ClusterDependency struct {
 func devSetupExample() string {
 	return `
 # Setup Greenhouse dev environment with a configuration file
-greenhousectl dev setup -f dev-env/localenv/dev.config.yaml
+greenhousectl dev setup -f dev-env/dev.config.yaml
 
 - This will create an admin and a remote cluster
 - Install CRDs, Webhook definitions, RBACs, Certs, etc... for Greenhouse into the admin cluster
@@ -43,7 +43,7 @@ Overriding certain values in dev.config.yaml:
 - Override helm chart installation with c=true or crdOnly=true
 - Override environment variables for manager deployment with e="ENV_NAME=VALUE" or env="ENV_NAME=VALUE" (can be repeated)
 
-e.g. greenhousectl dev setup -f dev-env/localenv/dev.config.yaml d=true e="WEBHOOK_ONLY=false" e="CONTROLLERS_ONLY=true"
+e.g. greenhousectl dev setup -f dev-env/dev.config.yaml d=true e="WEBHOOK_ONLY=false" e="CONTROLLERS_ONLY=true"
 `
 }
 
@@ -133,6 +133,6 @@ func processDevSetup(cmd *cobra.Command, args []string) error {
 }
 
 func init() {
-	setupCmd.Flags().StringVarP(&setupConfigFile, "config", "f", "", "configuration file path - e.g. -f dev-env/localenv/dev.config.yaml")
+	setupCmd.Flags().StringVarP(&setupConfigFile, "config", "f", "", "configuration file path - e.g. -f dev-env/dev.config.yaml")
 	cobra.CheckErr(setupCmd.MarkFlagRequired("config"))
 }
