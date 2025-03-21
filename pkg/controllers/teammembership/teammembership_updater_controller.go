@@ -229,10 +229,6 @@ func (r *TeamMembershipUpdaterController) EnsureCreated(ctx context.Context, obj
 
 	now := metav1.NewTime(time.Now())
 	teamMembershipStatus.LastChangedTime = &now
-	scimAccessReadyCondition = greenhousev1alpha1.TrueCondition(greenhousev1alpha1.SCIMAccessReadyCondition, "", "")
-	teamMembershipStatus.SetConditions(scimAccessReadyCondition)
-	team.Status.StatusConditions.SetConditions(scimAccessReadyCondition)
-	team.Status.SCIMStatus = greenhousev1alpha1.ReadyStatus
 	return ctrl.Result{
 			RequeueAfter: wait.Jitter(RequeueInterval, 0.1),
 		},
