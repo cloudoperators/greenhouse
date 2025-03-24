@@ -5,28 +5,32 @@ weight: 2
 
 ## Introduction
 
-### Vision 
+### Vision
 
 **"Greenhouse is an extendable Platform that enables Organizations to operate their Infrastructure in a compliant, efficient and transparent manner"**
 
-We want to build a Platform that is capable to integrate all the tools that are required to operate services in our private cloud environment in a compliant, effective and transparent manner. Greenhouse aims to be the single stop for Operators in the GCS PlusOne Organization. The primary focus of Greenhouse is to provide a unified interface for all operational aspects and tools, providing a simple shared data model describing the support organization. 
+We want to build a Platform that is capable to integrate all the tools that are required to operate services in a cloud environment in a compliant, effective and transparent manner. Greenhouse aims to be the single stop for Operators of cloud-native infrastructure. The primary focus of Greenhouse is to provide a unified interface for all operational aspects and tools, providing a simple shared data model describing the support organization.
 
-As every organization is different, using different tools and has different requirements the platform is build in an extendable fashion  that allows a distributed development of plugins. 
+As every organization is different, using different tools and has different requirements the platform is build in an extendable fashion that allows a distributed development of plugins.
 
-While initially developed for the GCS PlusOne Organization the platform is explicitly designed to be of generic use and can be consumed by multiple organizations and teams.
+While initially developed for ApeiroRA the platform is explicitly designed to be of generic use and can be consumed by multiple organizations and teams.
 
 ### Problem Statements
 
 #### Consolidation of Toolsuite
-The operation of cloud infrastructure and applications include a large amount of tasks that are supported by different tools and automations.  
+
+The operation of cloud infrastructure and applications include a large amount of tasks that are supported by different tools and automations.
 Due to the high complexity of cloud environments often times a conglomerate of tools is used to cover all operational aspects. Confguration and setup of the operations toolchain is a complex and time-consuming task that often times lacks automation when it comes to on- and off-boarding people and setting up new teams for new projects.
 
 #### Visibility of Application Specific permission concepts
-At SAP, we are managing identities and access centrally. The Converged Cloud is utilizing Cloud Access Manager for this task.   
-While it is true that we manage who has access to which access level is defined in there it starts getting complicated if you want to figure out the actual Permission Levels on individual Applications those Access Levels are mapped to. 
+
+At SAP, we are managing identities and access centrally. The Converged Cloud is utilizing Cloud Access Manager for this task.
+While it is true that we manage who has access to which access level is defined in there it starts getting complicated if you want to figure out the actual Permission Levels on individual Applications those Access Levels are mapped to.
 
 #### Management of organizational Groups of People
-You often have groups of people that are fulfilling a organizational purpose: 
+
+You often have groups of people that are fulfilling a organizational purpose:
+
 * Support Groups
 * Working Groups
 * etc.
@@ -34,42 +38,44 @@ You often have groups of people that are fulfilling a organizational purpose:
 We have currently no way to represent and manage those groups.
 
 #### Harmonization and Standardization of Authorization Concepts
+
 We are missing a tool that supports teams on creating access levels and profiles following a standardized naming scheme that is enforced by design and takes away the burden of coming up with names for access levels and user profiles/roles.
 
-
 #### Single Point of Truth for Operations Metadata of an Organization
+
 For automations, it is often critical to retrieve Metadata about an Organizational Unit:
-* Who is member of a certain Group of people, that is maybe not reflecting the HR View of a Team? 
-* Which Tool is giving me access to data x,y,z? 
+
+* Who is member of a certain Group of people, that is maybe not reflecting the HR View of a Team?
+* Which Tool is giving me access to data x,y,z?
 * What action items are due and need to get alerted on?
 * Does component x,z,y belong to my organization?
 * etc.
 Currently, we do not have a single point of Truth for this kind of metadata and have to use a vaierity of Tools.
 
-## Terms 
+## Terms
 
-This section lists down Terms and description to Terms to ensure a common languague when talking in context of Greenhouse. 
-
+This section lists down Terms and description to Terms to ensure a common languague when talking in context of Greenhouse.
 
 | Term | Description |
-| -------- | -------- | 
-| Plugin     | A Greenhouse plugin provides additional features to the Greenhouse project. It consists of a juno microfrontend that integrates with the Greenhouse UI AND / OR  a backend component.     |
-| PluginSpec     | Yaml Specification describing a plugin. Contains reference to components that need to be installed. Describes mandatory and optional configuration values     |
-| Plugin configuration     | A specific configuration instance of an Plugin Spec in a greenhouse organization. References the PluginSpec and actual configuration values     |
-| Organization     | A specific configuration instance of an Plugin Spec in a greenhouse organization. References the PluginSpec and actual configuration values     |
-| Team     | A team is part of an organization and consists of users     |
-| Role     | A role that can be assigned to teams. Roles are a static set that can used by UIs to allow/disallow actions (admin, viewer, editor)     |
-| Cluster     | A specific Kubernetes cluster to which an Organization and its members have access and can registered with greenhouse.     |
-| Identity Provider     | Central authentication provider that provides authentication for the User of on organization. Used by the UI and apiserver to authenticate users.     |
+| -------- | -------- |
+| PluginDefinition     | A Greenhouse PluginDefinition provides additional features to the platform. It consists of a [Juno microfrontend](https://github.com/cloudoperators/juno) that integrates with the Greenhouse UI AND / OR  a backend component.     |
+| PluginDefinitionSpec     | YAML Specification describing the PluginDefinition. Contains reference to components (UI App, Helm Chart) that need to be installed. Describes mandatory, optional and default configuration values.     |
+| Plugin  | A Plugin is a specific instance of a PluginDefinition in a Greenhouse Organization. References the PluginDefinitionSpec and actual configuration values     |
+| PluginPreset | A PluginPreset is managing the configuration of Plugins for a set of Clusters. Adding a new Cluster to the set will automatically create the Plugin.     |
+| Organization     | An Organization is the overarching container for all resources in Greenhouse. One Greenhouse installation can contain multiple Organization. Each Organization is isolated on the level of Kubernetes Namespace.     |
+| Team     | A Team is part of an Organization and consists of users.     |
+| TeamRole     | A TeamRole that can be assigned to Teams. Roles are a static set that can used by UIs to allow/disallow actions (admin, viewer, editor)     |
+| TeamRoleBinding | A TeamRoleBinding assigns a TeamRole to a Team. Currently it is used to provide access to onboarded Kubernetes Clusters.
+| Cluster     | A specific Kubernetes cluster to which an Organization and its members have access to and which can be onboarded to Greenhouse.     |
+| ClusterKubeConfig | A ClusterKubeConfig contains the KubeConfig of a Cluster. Greenhouse will provide a central registry for Clusters consumable via CLI for easier cluster access. |
+| Identity Provider     | Central authentication provider that provides authentication for the User of on Organization. Used by the UI and APIServer to authenticate users.     |
 | Authorization Provider     | External system that provides authorization, e.g. team assignments for users     |
-| Greenhouse apiserver     | central apiserver for greenhouse. k8s apiserver with greenhouse CRDs     |
+| Greenhouse APIServer     | Central Kubernetes APIServer for Greenhouse. Kubernetes APIServer with Greenhouse CRDs deployed.     |
 | OIDC Group     | A Group provided by the OIDC Provider (Identity Provider) userinfo with the JWT Token.     |
-| Greenhouse Role     | A Greenhouse-Specific Role that grants access to Greenhouse.   |
-| Plugin Role     | A Role used by a Greenhouse Plugin to decide if a user has access to the Plugin or not and which level of access within the Plugin is provided. The possible Roles are defined by the Plugin itself within the Plugin Spec including a default OIDC Group to Plugin Role Mapping. The final mapping for a Plugin instance can get configured on the Organization Level with the Plugin Configuration.OIDC Groups that are mapped to Plugin Roles are furthermore assigned to Teams which makes users members of an Organization.     |
 
 ## User Profiles
 
-Every Application has Users / Stakeholders, so has Greenhouse. The User Profiles mentioned here give a abstract overview of considered Users / Stakeholders for the Application and the Goals and Tasks of them in context of the Platform. 
+Every Application has Users / Stakeholders, so has Greenhouse. The User Profiles mentioned here give a abstract overview of considered Users / Stakeholders for the Application and the Goals and Tasks of them in context of the Platform.
 
 ### Greenhouse admin
 
@@ -79,12 +85,12 @@ Administrator of a Greenhouse installation.
 
 * Ensure overall function of the Greenhouse plattform
 
-#### Tasks 
+#### Tasks
 
 * Create Organizations
-* Enables Plugins
+* Enable PluginDefinitions
 * Operates central infrastructure (Kubernetes cluster, operator, etc.)
-* Assign initial organization admins
+* Assign initial Organization admins
 
 ### Organization admin
 
@@ -96,14 +102,40 @@ Administrator of a Greenhouse Organization
 
 #### Tasks 
 
-* activate/configure plugins for the organization
-* Create and manage teams for the organization
-* Onboard and manage Kubernetes clusters for the organization
+* configure Plugins for the Organization
+* Create and manage Teams for the Organization
+* Onboard and manage Kubernetes clusters for the Organization
+
+### Organization Cluster admin
+
+Administrator of a Greenhouse Organization's Kubernetes cluster
+
+#### Goals
+
+* Manage an Organizations Clusters
+
+#### Tasks
+
+* configure Plugins for the Organization
+* Create and manage Team access to the Organization Cluster
+* Onboard and manage Kubernetes clusters for the Organization
+
+### Organization Plugin admin
+
+Administrator of a Greenhouse Organization's Plugins
+
+#### Goals
+
+* Manage an Organizations Plugins
+
+#### Tasks
+
+* configure Plugins for the Organization
 
 ### Organization member
 
-Member of on organization that accesses the UI to do ops/support tasks. Is member of one ore more teams of the organization.
-By default members have view permissions on organization resources.
+Member of an Organization that accesses the UI to do ops/support tasks. Is member of one ore more teams of the organization.
+By default members have view permissions on Organization resources.
 
 #### Goals
 
@@ -111,31 +143,32 @@ By default members have view permissions on organization resources.
 
 #### Tasks 
 
-* Highly dependend on team membership and plugins configured for the organization Examples:                  
-    * Check alerts for teams user is assigned
-    * Check policy violations for deployed resources owned by users team
-    * Check for known vulnerabilites in services
+* Highly dependend on Team membership and Plugins configured for the Organization
+* Examples:
+  * Check alerts for Teams the user is assigned to
+  * Check policy violations for deployed resources owned by the Users Team
+  * Check for known vulnerabilites in services
 
 ### Plugin developer
 
-A plugin developer is developing plugins for Greenhouse.
+A plugin developer is developing PluginDefinitions for Greenhouse.
 
 #### Goals
 
-* Must be easy to create plugins
-* Can create and test plugins independently
-* Greenhouse provides tooling to assist creating, validating, etc. plugins
-* Publishing the plugin to Greenhouse requires admin permissions.
+* Must be easy to create PluginDefinitions
+* Can create and test PluginDefinitions independently
+* Greenhouse provides tooling to assist creating, validating, etc. of PluginDefinitions
+* Publishing the PluginDefintion to Greenhouse requires admin permissions.
 
 #### Tasks 
 
-* Plugin Development      
-    * Juno UI Development
-    * Plugin backend development
+* PluginDefintion Development
+  * Juno UI Development
+  * PluginDefinition backend development
 
 ### Auditor
 
-An Auditor audits Greenhouse and/or Greenhouse Plugins for compliance with industry or regulatory standards.
+An Auditor audits Greenhouse and/or Greenhouse PluginDefinitions for compliance with industry or regulatory standards.
 
 #### Goals
 

@@ -1,6 +1,5 @@
 # Image URL to use all building/pushing image targets
 IMG ?= ghcr.io/cloudoperators/greenhouse:dev-$(USER)
-IMG_DEV_ENV ?= ghcr.io/cloudoperators/greenhouse-dev-env:dev-$(USER)
 IMG_LICENSE_EYE ?= ghcr.io/apache/skywalking-eyes/license-eye
 
 MANIFESTS_PATH=$(CURDIR)/charts/manager
@@ -171,7 +170,7 @@ HELMIFY ?= $(LOCALBIN)/helmify
 ## Tool Versions
 KUSTOMIZE_VERSION ?= 5.6.0
 CONTROLLER_TOOLS_VERSION ?= 0.17.2
-GOLINT_VERSION ?= 1.64.5
+GOLINT_VERSION ?= 1.64.8
 GINKGOLINTER_VERSION ?= 0.19.1
 # ENVTEST_K8S_VERSION refers to the version of kubebuilder assets to be downloaded by envtest binary.
 ENVTEST_K8S_VERSION ?= 1.31.0
@@ -316,7 +315,7 @@ list-scenarios:
 
 .PHONY: dev-docs
 dev-docs:
-	go run -tags="dev" -mod=mod dev-env/localenv/docs.go
+	go run -tags="dev" -mod=mod dev-env/docs.go
 
 # Download and install mockery locally via `brew install mockery`
 MOCKERY := $(shell which mockery)
