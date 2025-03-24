@@ -213,7 +213,7 @@ greenhousectl dev setup [flags]
 ```
 
 # Setup Greenhouse dev environment with a configuration file
-greenhousectl dev setup -f dev-env/localenv/dev.config.yaml
+greenhousectl dev setup -f dev-env/dev.config.yaml
 
 - This will create an admin and a remote cluster
 - Install CRDs, Webhook definitions, RBACs, Certs, etc... for Greenhouse into the admin cluster
@@ -225,14 +225,14 @@ Overriding certain values in dev.config.yaml:
 - Override helm chart installation with c=true or crdOnly=true
 - Override environment variables for manager deployment with e="ENV_NAME=VALUE" or env="ENV_NAME=VALUE" (can be repeated)
 
-e.g. greenhousectl dev setup -f dev-env/localenv/dev.config.yaml d=true e="WEBHOOK_ONLY=false" e="CONTROLLERS_ONLY=true"
+e.g. greenhousectl dev setup -f dev-env/dev.config.yaml d=true e="WEBHOOK_ONLY=false" e="CONTROLLERS_ONLY=true"
 
 ```
 
 ### Options
 
 ```
-  -f, --config string   configuration file path - e.g. -f dev-env/localenv/dev.config.yaml
+  -f, --config string   configuration file path - e.g. -f dev-env/dev.config.yaml
   -h, --help            help for setup
 ```
 
@@ -249,7 +249,7 @@ greenhousectl dev setup dashboard [flags]
 ```
 
 # Setup Greenhouse dev environment with a configuration file
-greenhousectl dev setup dashboard -f dev-env/localenv/ui.config.yaml
+greenhousectl dev setup dashboard -f dev-env/ui.config.yaml
 
 - Installs the Greenhouse dashboard and CORS proxy into the admin cluster
 
@@ -258,7 +258,7 @@ greenhousectl dev setup dashboard -f dev-env/localenv/ui.config.yaml
 ### Options
 
 ```
-  -f, --config string   configuration file path - e.g. -f dev-env/localenv/ui.config.yaml
+  -f, --config string   configuration file path - e.g. -f dev-env/ui.config.yaml
   -h, --help            help for dashboard
 ```
 

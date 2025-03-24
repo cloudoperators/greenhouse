@@ -17,7 +17,7 @@ import (
 func dashboardSetupExample() string {
 	return `
 # Setup Greenhouse dev environment with a configuration file
-greenhousectl dev setup dashboard -f dev-env/localenv/ui.config.yaml
+greenhousectl dev setup dashboard -f dev-env/ui.config.yaml
 
 - Installs the Greenhouse dashboard and CORS proxy into the admin cluster
 `
@@ -75,7 +75,7 @@ func processDashboardSetup(cmd *cobra.Command, _ []string) error {
 }
 
 func init() {
-	dashboardCmd.Flags().StringVarP(&setupConfigFile, "config", "f", "", "configuration file path - e.g. -f dev-env/localenv/ui.config.yaml")
+	dashboardCmd.Flags().StringVarP(&setupConfigFile, "config", "f", "", "configuration file path - e.g. -f dev-env/ui.config.yaml")
 	cobra.CheckErr(dashboardCmd.MarkFlagRequired("config"))
 	setupCmd.AddCommand(dashboardCmd)
 }
