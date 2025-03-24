@@ -156,10 +156,6 @@ spec:
                       is deployed to. If not set, the plugin is deployed to the greenhouse
                       cluster.
                     type: string
-                  disabled:
-                    description: Disabled indicates that the plugin is administratively
-                      disabled.
-                    type: boolean
                   displayName:
                     description: |-
                       DisplayName is an optional name for the Plugin to be displayed in the Greenhouse UI.
@@ -211,7 +207,6 @@ spec:
                       Defaults to the Greenhouse managed namespace if not set.
                     type: string
                 required:
-                - disabled
                 - pluginDefinition
                 type: object
             required:
