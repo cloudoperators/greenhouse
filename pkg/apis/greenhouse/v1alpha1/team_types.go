@@ -21,26 +21,14 @@ type TeamSpec struct {
 type TeamStatus struct {
 	StatusConditions StatusConditions `json:"statusConditions"`
 	Members          []User           `json:"members,omitempty"`
-	// SCIMStatus is an additional printer column which contains status of SCIM authentication
-	// +kubebuilder:default="UNKNOWN"
-	SCIMStatus SCIMStatus `json:"scimStatus,omitempty"`
 }
-
-type SCIMStatus string
-
-const (
-	UnknownStatus       SCIMStatus = "UNKNOWN"
-	ErrorStatus         SCIMStatus = "ERROR"
-	NotConfiguredStatus SCIMStatus = "NOT_CONFIGURED"
-	ReadyStatus         SCIMStatus = "READY"
-)
 
 //+kubebuilder:object:root=true
 //+kubebuilder:subresource:status
 //+kubebuilder:printcolumn:name="Description",type=string,JSONPath=`.spec.description`
 //+kubebuilder:printcolumn:name="IDP Group",type=string,JSONPath=`.spec.mappedIdPGroup`
 //+kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp"
-//+kubebuilder:printcolumn:name="SCIM Status",type=string,JSONPath=".status.SCIMStatus"
+//+kubebuilder:printcolumn:name="SCIM Ready",type="string",JSONPath=`.status.statusConditions.conditions[?(@.type == "SCIMAccessReady")].status`
 
 // Team is the Schema for the teams API
 type Team struct {
