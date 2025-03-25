@@ -5,10 +5,14 @@ package main
 
 import (
 	"context"
+	"crypto/x509"
 	"sort"
 
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
+
+	"github.com/open-policy-agent/cert-controller/pkg/rotator"
 
 	"github.com/cloudoperators/greenhouse/internal/clientutil"
 	clustercontrollers "github.com/cloudoperators/greenhouse/internal/controller/cluster"
@@ -21,6 +25,9 @@ import (
 
 // knownControllers contains all controllers to be registered when starting the operator.
 var knownControllers = map[string]func(controllerName string, mgr ctrl.Manager) error{
+	// Certificate generation for webhooks.
+	"cert-controller": startCertController,
+
 	// Organization controllers.
 	"organizationController": startOrganizationReconciler,
 
@@ -87,4 +94,40 @@ func startClusterReconciler(name string, mgr ctrl.Manager) error {
 		RemoteClusterBearerTokenValidity:   remoteClusterBearerTokenValidity,
 		RenewRemoteClusterBearerTokenAfter: renewRemoteClusterBearerTokenAfter,
 	}).SetupWithManager(name, mgr)
+}
+
+func startCertController(_ string, mgr ctrl.Manager) error {
+	setupFinished := make(chan struct{})
+
+	if err := rotator.AddRotator(mgr, &rotator.CertRotator{
+		Webhooks: []rotator.WebhookInfo{
+			{Name: "greenhouse-validating-webhook-configuration", Type: rotator.Validating},
+			{Name: "greenhouse-mutating-webhook-configuration", Type: rotator.Mutating},
+			{Name: "teamrolebindings.greenhouse.sap", Type: rotator.CRDConversion},
+		},
+		IsReady: setupFinished,
+		SecretKey: types.NamespacedName{
+			Namespace: "greenhouse",
+			Name:      "greenhouse-webhook-server-cert",
+		},
+		RequireLeaderElection: false,
+		CertDir:               "/data",
+		CAName:                "greenhouse-ca",
+		CAOrganization:        "greenhouse",
+		DNSName:               "greenhouse-webhook-service.greenhouse.svc",
+		// Optional with default values:
+		// CertName:               "tls.crt",
+		// KeyName:                "tls.key",
+		// CaCertDuration:         10 * 365 * 24 * time.Hour,
+		// ServerCertDuration:     1 * 365 * 24 * time.Hour,
+		// LookaheadInterval:      90 * 24 * time.Hour,
+		// RotationCheckFrequency: 90 * 24 * time.Hour,
+		ExtKeyUsages: &[]x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth},
+	}); err != nil {
+		setupLog.Error(err, "unable to set up cert rotation")
+		return err
+	}
+	// Block until the setup (certificate generation) finishes.
+	// <-setupFinished
+	return nil
 }
