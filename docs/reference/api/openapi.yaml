@@ -837,10 +837,6 @@ components:
                   - lastName
                 type: object
               type: array
-            scimStatus:
-              default: UNKNOWN
-              description: SCIMStatus is an additional printer column which contains status of SCIM authentication
-              type: string
             statusConditions:
               description: A StatusConditions contains a list of conditions.\nOnly one condition of a given type may exist in the list.
               properties:
