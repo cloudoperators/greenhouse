@@ -26,12 +26,4 @@ spec:
       value: true
     - name: thanos.compactor.enabled
       value: true
-    - name: thanos.ingress.enabled
-      value: true
-    - name: thanos.ingress.annotations
-      value:
-        disco: "true"
-        kubernetes.io/tls-acme: "true"
-    - name: thanos.ingress.host
-      value: "thanos.{{ .Values.global.dnsDomain }}"
   pluginDefinition: thanos
