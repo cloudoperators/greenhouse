@@ -204,7 +204,7 @@ webhooks:
       - apiGroups:
           - greenhouse.sap
         apiVersions:
-          - v1alpha1
+          - v1alpha2
         operations:
           - CREATE
           - UPDATE
@@ -426,7 +426,7 @@ webhooks:
       - apiGroups:
           - greenhouse.sap
         apiVersions:
-          - v1alpha1
+          - v1alpha2
         operations:
           - CREATE
           - UPDATE
