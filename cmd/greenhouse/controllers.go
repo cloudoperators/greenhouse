@@ -111,10 +111,11 @@ func startCertController(_ string, mgr ctrl.Manager) error {
 			Name:      "greenhouse-webhook-server-cert",
 		},
 		RequireLeaderElection: false,
-		CertDir:               "/data",
-		CAName:                "greenhouse-ca",
-		CAOrganization:        "greenhouse",
+		CertDir:               "/tmp/k8s-webhook-server/serving-certs",
+		CAName:                "greenhouse-ca", // Used for CA certificate Subject.
+		CAOrganization:        "greenhouse",    // Used for CA certificate Subject.
 		DNSName:               "greenhouse-webhook-service.greenhouse.svc",
+		ExtraDNSNames:         []string{"greenhouse-webhook-service.greenhouse.svc.cluster.local"},
 		// Optional with default values:
 		// CertName:               "tls.crt",
 		// KeyName:                "tls.key",
