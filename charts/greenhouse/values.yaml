@@ -135,9 +135,9 @@ alerts:
     - pod
     - pod_name
     - instance
-  silenceTemplates: [ ]
+  silenceTemplates: []
 
-  predefinedFilters: [ ]
+  predefinedFilters: []
 
   # Alertmanager options.
   alertmanager:
