@@ -16,23 +16,7 @@ spec:
     - name: fluent-bit.parser
       value: "cri"
     - name: fluent-bit.backend.opensearch.enabled
-      value: true
-    - name: fluent-bit.backend.opensearch.host
-      value: {{ required "opensearch host missing" .Values.logshipping.opensearch.host }}
-    - name: fluent-bit.backend.opensearch.port
-      value: {{ default "9200" .Values.logshipping.opensearch.port | quote }}
-    - name: fluent-bit.backend.opensearch.http_user
-      valueFrom:
-        secret:
-          name: greenhouse-opensearch
-          key: username
-    - name: fluent-bit.backend.opensearch.http_password
-      valueFrom:
-        secret:
-          name: greenhouse-opensearch
-          key: password
-    - name: fluent-bit.backend.opensearch.logstash_prefix
-      value: {{ index .Values "logshipping" "opensearch" "logstashPrefix" }}
+      value: false
     - name: prometheusName
       value: "kube-monitoring"
     - name: fluent-bit.image.repository
