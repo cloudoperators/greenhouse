@@ -11,10 +11,8 @@ data:
   failover_password_a: {{ required ".Values.openTelemetry.openSearchLogs.failover_password_a missing" .Values.openTelemetry.openSearchLogs.failover_password_a | b64enc }}
   failover_username_b: {{ required ".Values.openTelemetry.openSearchLogs.failover_username_b missing" .Values.openTelemetry.openSearchLogs.failover_username_b | b64enc }}
   failover_password_b: {{ required ".Values.openTelemetry.openSearchLogs.failover_password_b missing" .Values.openTelemetry.openSearchLogs.failover_password_b | b64enc }}     
-{{- end }}
 
 ---
-
 apiVersion: greenhouse.sap/v1alpha1
 kind: Plugin
 metadata:
@@ -85,3 +83,4 @@ spec:
     - name: testFramework.image.registry
       value: {{ .Values.global.ghcrIoMirror }}
   {{ end -}}
+{{- end }}
