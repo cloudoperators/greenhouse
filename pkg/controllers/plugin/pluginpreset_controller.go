@@ -426,13 +426,9 @@ func (r *PluginPresetReconciler) cleanupPlugins(ctx context.Context, pb *greenho
 		return err
 	}
 	for _, p := range plugins.Items {
-		validCluster := false
-		for _, c := range cl.Items {
-			if p.Spec.ClusterName == c.GetName() {
-				validCluster = true
-				break
-			}
-		}
+		validCluster := slices.ContainsFunc(cl.Items, func(c greenhousev1alpha1.Cluster) bool {
+			return p.Spec.ClusterName == c.GetName()
+		})
 		if !validCluster {
 			if err := r.Client.Delete(ctx, &p); err != nil && !apierrors.IsNotFound(err) {
 				return err
