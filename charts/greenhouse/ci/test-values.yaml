@@ -39,6 +39,10 @@ postgresqlng:
 plugins:
   enabled: true
 
+certManager:
+  webhook:
+    timeoutSeconds: 10
+
 digicertIssuer:
   enabled: true
   apiToken: topSecret!
