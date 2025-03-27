@@ -433,6 +433,8 @@ func (r *PluginPresetReconciler) cleanupPlugins(ctx context.Context, pb *greenho
 			if err := r.Client.Delete(ctx, &p); err != nil && !apierrors.IsNotFound(err) {
 				return err
 			}
+			r.recorder.Eventf(&p, "Info", "PluginDeleted", "Dangling Plugin %s deleted by PluginPreset %s", p.Name, pb.Name)
+			ctrl.LoggerFrom(ctx).Info("Dangling Plugin deleted", "plugin", p.Name, "pluginPreset", pb.Name)
 		}
 	}
 	return nil
