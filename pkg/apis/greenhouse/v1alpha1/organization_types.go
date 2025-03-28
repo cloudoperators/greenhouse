@@ -107,15 +107,15 @@ type OrganizationStatus struct {
 }
 
 const (
-	// OIDCClientIDKey is a secret key which contains OIDC client ID
+	// OIDCClientIDKey is the secret key for the OIDC Client ID
 	OIDCClientIDKey = "oidcClientID"
-	// OIDCClientSecretKey is a secret key which contains OIDC client secret
+	// OIDCClientSecretKey is the secret key for the OIDC client secret
 	OIDCClientSecretKey = "oidcClientSecret"
-	// SCIMBasicAuthUserKey is a secret key which contains SCIM username
+	// SCIMBasicAuthUserKey is the secret key for the SCIM username
 	SCIMBasicAuthUserKey = "scimBasicAuthUser"
-	// SCIMBasicAuthPasswordKey is a secret key which contains SCIM password
+	// SCIMBasicAuthPasswordKey is the secret key for the SCIM password
 	SCIMBasicAuthPasswordKey = "scimBasicAuthPassword" //nolint:gosec
-	// SCIMBearerTokenKey is a secret key which contains bearer token
+	// SCIMBearerTokenKey is the secret key for the SCIM bearer token
 	SCIMBearerTokenKey = "scimBearerToken"
 )
 

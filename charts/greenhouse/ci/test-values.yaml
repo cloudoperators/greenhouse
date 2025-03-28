@@ -63,9 +63,6 @@ scim:
   authType: basic
   username: topSecret!
   password: topSecret!123
-  bearerToken:
-  bearerHeader:
-  bearerPrefix:
 
 teams:
   admin:
