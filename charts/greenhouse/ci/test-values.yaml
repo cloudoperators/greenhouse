@@ -56,6 +56,7 @@ ingress:
 scim:
   enabled: true
   baseURL: https://top.secret/scim
+  authType: basic
   username: topSecret!
   password: topSecret!123
 
