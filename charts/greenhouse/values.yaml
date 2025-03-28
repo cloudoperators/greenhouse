@@ -69,6 +69,9 @@ demo:
 plugins:
   enabled: true
 
+certManager:
+  webhook:
+    timeoutSeconds: 10
 # Configures the DigiCert issuer for the Greenhouse organization,
 # which enables obtaining DigiCert certificates via the cert-manager.
 digicertIssuer:
