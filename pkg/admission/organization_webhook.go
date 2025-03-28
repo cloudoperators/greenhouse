@@ -14,7 +14,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/pkg/apis/greenhouse/v1alpha1"
-	"github.com/cloudoperators/greenhouse/pkg/scim"
 )
 
 // Webhook for the Organization custom resource.
@@ -60,7 +59,7 @@ func ValidateCreateOrganization(_ context.Context, _ client.Client, obj runtime.
 		allErrs = append(allErrs, err)
 	}
 
-	if err := validateAuthConfig(organization); err != nil {
+	if err := validateSCIMConfig(organization); err != nil {
 		allErrs = append(allErrs, err)
 	}
 
@@ -78,7 +77,7 @@ func ValidateUpdateOrganization(_ context.Context, _ client.Client, _, newObj ru
 		allErrs = append(allErrs, err)
 	}
 
-	if err := validateAuthConfig(organization); err != nil {
+	if err := validateSCIMConfig(organization); err != nil {
 		allErrs = append(allErrs, err)
 	}
 
@@ -98,12 +97,8 @@ func validateMappedOrgAdminIDPGroup(organization *greenhousev1alpha1.Organizatio
 	return nil
 }
 
-func validateAuthConfig(organization *greenhousev1alpha1.Organization) *field.Error {
+func validateSCIMConfig(organization *greenhousev1alpha1.Organization) *field.Error {
 	if organization.Spec.Authentication == nil || organization.Spec.Authentication.SCIMConfig == nil {
-		return nil
-	}
-
-	if organization.Spec.Authentication.SecretRef != "" {
 		return nil
 	}
 
@@ -112,9 +107,9 @@ func validateAuthConfig(organization *greenhousev1alpha1.Organization) *field.Er
 			"An Organization without SCIMConfig.BaseURL is invalid")
 	}
 
-	if organization.Spec.Authentication.SCIMConfig.AuthType != scim.Basic && organization.Spec.Authentication.SCIMConfig.AuthType != scim.BearerToken {
-		return field.Required(field.NewPath("spec").Child("Authentication").Child("SCIMConfig").Child("AuthType"),
-			"An Organization without SCIMConfig.AuthType is invalid")
+	if organization.Spec.Authentication.SecretRef == "" {
+		return field.Required(field.NewPath("spec").Child("Authentication").Child("SecretRef"),
+			"An Organization without SCIMConfig.SecretRef is invalid")
 	}
 
 	return nil

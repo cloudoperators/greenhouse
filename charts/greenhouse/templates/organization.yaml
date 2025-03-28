@@ -26,8 +26,14 @@ spec:
     scim:
       baseURL: {{ required ".Values.scim.baseURL" .Values.scim.baseURL }}
       authType: {{ required ".Values.scim.authType" .Values.scim.authType }}
+{{- if eq .Values.scim.authType "token" }}
+{{- if .Values.scim.bearerPrefix }}
       bearerPrefix: {{ .Values.scim.bearerPrefix }}
+{{- end }}
+{{- if .Values.scim.bearerHeader }}
       bearerHeader: {{ .Values.scim.bearerHeader }}
+{{- end }}
+{{ end }}
 {{ end }}
 {{ end }}
 {{ end }}
