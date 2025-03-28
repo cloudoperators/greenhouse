@@ -282,6 +282,70 @@ var _ = Describe("PluginPreset Controller Lifecycle", Ordered, func() {
 		test.EventuallyDeleted(test.Ctx, test.K8sClient, testPluginPreset)
 	})
 
+	It("should delete a Plugin if the cluster no longer matches", func() {
+		By("creating a PluginPreset")
+		testPluginPreset := pluginPreset(pluginPresetName, clusterA)
+		err := test.K8sClient.Create(test.Ctx, testPluginPreset)
+		Expect(err).ToNot(HaveOccurred(), "failed to create test PluginPreset")
+
+		err = test.K8sClient.Create(test.Ctx, cluster(clusterB))
+		Expect(err).ToNot(HaveOccurred(), "failed to create test cluster: "+clusterB)
+		secretObj := clusterSecret(clusterB)
+		secretObj.Data = map[string][]byte{
+			greenhouseapis.KubeConfigKey: clusterBKubeConfig,
+		}
+		Expect(test.K8sClient.Update(test.Ctx, secretObj)).Should(Succeed())
+
+		By("making clusterB match the clusterSelector")
+		pluginList := &greenhousev1alpha1.PluginList{}
+		Eventually(func(g Gomega) {
+			err = test.K8sClient.List(test.Ctx, pluginList, client.MatchingLabels{greenhouseapis.LabelKeyPluginPreset: pluginPresetName})
+			g.Expect(err).NotTo(HaveOccurred(), "failed to list Plugins")
+			g.Expect(pluginList.Items).To(HaveLen(1), "there should be only one Plugin")
+		}).Should(Succeed(), "there should be a Plugin created for the Preset")
+
+		cluster := greenhousev1alpha1.Cluster{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      clusterB,
+				Namespace: test.TestNamespace,
+			},
+		}
+		_, err = clientutil.CreateOrPatch(test.Ctx, test.K8sClient, &cluster, func() error {
+			cluster.Labels = map[string]string{"cluster": clusterA}
+			return nil
+		})
+		Expect(err).NotTo(HaveOccurred(), "failed to update Cluster labels")
+		Eventually(func(g Gomega) {
+			err = test.K8sClient.List(test.Ctx, pluginList, client.MatchingLabels{greenhouseapis.LabelKeyPluginPreset: pluginPresetName})
+			g.Expect(err).NotTo(HaveOccurred(), "failed to list Plugins")
+			g.Expect(pluginList.Items).To(HaveLen(2), "there should be two Plugins")
+		}).Should(Succeed(), "the PluginPreset should have noticed the ClusterLabel change")
+
+		By("changing clusterB labels to ensure the Plugin is deleted")
+		_, err = clientutil.CreateOrPatch(test.Ctx, test.K8sClient, &cluster, func() error {
+			cluster.Labels = map[string]string{}
+			return nil
+		})
+		Expect(err).NotTo(HaveOccurred(), "failed to update Cluster labels")
+
+		Eventually(func(g Gomega) {
+			err = test.K8sClient.List(test.Ctx, pluginList, client.InNamespace(cluster.GetNamespace()), client.MatchingLabels{greenhouseapis.LabelKeyPluginPreset: pluginPresetName})
+			g.Expect(err).NotTo(HaveOccurred(), "failed to list Plugins")
+			g.Expect(pluginList.Items).To(HaveLen(1), "there should be only one Plugin")
+		}).Should(Succeed(), "the PluginPreset should have removed the Plugin for the deleted Cluster")
+
+		By("removing the PluginPreset")
+		err = test.K8sClient.Get(test.Ctx, client.ObjectKeyFromObject(testPluginPreset), testPluginPreset)
+		Expect(err).ToNot(HaveOccurred(), "failed to get PluginPreset")
+		// Remove prevent-deletion annotation before deleting PluginPreset.
+		_, err = clientutil.Patch(test.Ctx, test.K8sClient, testPluginPreset, func() error {
+			delete(testPluginPreset.Annotations, preventDeletionAnnotation)
+			return nil
+		})
+		Expect(err).ToNot(HaveOccurred(), "failed to patch PluginPreset")
+		test.EventuallyDeleted(test.Ctx, test.K8sClient, testPluginPreset)
+	})
+
 	It("should set the Status NotReady if ClusterSelector does not match", func() {
 		// Create a PluginPreset with a ClusterSelector that does not match any cluster
 		pluginPreset := pluginPreset("not-ready", "non-existing-cluster")
@@ -315,14 +379,6 @@ var _ = Describe("PluginPreset Controller Lifecycle", Ordered, func() {
 			g.Expect(testPluginPreset.Status.ReadyPlugins).To(Equal(1), "PluginPreset Status should show exactly one ready plugin")
 			g.Expect(testPluginPreset.Status.FailedPlugins).To(Equal(0), "PluginPreset Status should show exactly zero failed plugins")
 		}).Should(Succeed())
-
-		err = test.K8sClient.Create(test.Ctx, cluster(clusterB))
-		Expect(err).ToNot(HaveOccurred(), "failed to create test cluster: "+clusterB)
-		secretObj := clusterSecret(clusterB)
-		secretObj.Data = map[string][]byte{
-			greenhouseapis.KubeConfigKey: clusterBKubeConfig,
-		}
-		Expect(test.K8sClient.Update(test.Ctx, secretObj)).Should(Succeed())
 
 		By("making clusterB match the clusterSelector")
 		cluster := greenhousev1alpha1.Cluster{
