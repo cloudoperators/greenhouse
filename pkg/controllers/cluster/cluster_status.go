@@ -44,8 +44,7 @@ func (r *RemoteClusterReconciler) setConditions() lifecycle.Conditioner {
 			allNodesReadyCondition, clusterNodeStatus = r.reconcileNodeStatus(ctx, restClientGetter)
 		}
 
-		// set ready condition if kubeconfig is valid and all nodes are ready
-		readyCondition := r.reconcileReadyStatus(kubeConfigValidCondition, allNodesReadyCondition)
+		readyCondition := r.reconcileReadyStatus(kubeConfigValidCondition)
 
 		conditions = append(conditions, readyCondition, allNodesReadyCondition, kubeConfigValidCondition)
 
@@ -117,7 +116,7 @@ func (r *RemoteClusterReconciler) reconcileReadyStatus(conditions ...greenhousev
 	for _, condition := range conditions {
 		if condition.IsFalse() {
 			readyCondition.Status = metav1.ConditionFalse
-			readyCondition.Message = "cannot access cluster"
+			readyCondition.Message = "kubeconfig not valid - cannot access cluster"
 			if condition.Message != "" {
 				readyCondition.Message = condition.Message
 			}

@@ -7,14 +7,14 @@ replace (
 	github.com/dexidp/dex => github.com/dexidp/dex v0.0.0-20240807174518-43956db7fd75
 	github.com/dexidp/dex/api/v2 => github.com/dexidp/dex/api/v2 v2.3.0
 	// Keep k8s dependencies in sync.
-	k8s.io/api => k8s.io/api v0.32.2
-	k8s.io/apiextensions-apiserver => k8s.io/apiextensions-apiserver v0.32.2
+	k8s.io/api => k8s.io/api v0.32.3
+	k8s.io/apiextensions-apiserver => k8s.io/apiextensions-apiserver v0.32.3
 	k8s.io/apimachinery => k8s.io/apimachinery v0.32.3
-	k8s.io/cli-runtime => k8s.io/cli-runtime v0.32.2
-	k8s.io/client-go => k8s.io/client-go v0.32.2
-	k8s.io/component-base => k8s.io/component-base v0.32.2
-	k8s.io/kubectl => k8s.io/kubectl v0.32.2
-	sigs.k8s.io/controller-runtime => sigs.k8s.io/controller-runtime v0.20.2
+	k8s.io/cli-runtime => k8s.io/cli-runtime v0.32.3
+	k8s.io/client-go => k8s.io/client-go v0.32.3
+	k8s.io/component-base => k8s.io/component-base v0.32.3
+	k8s.io/kubectl => k8s.io/kubectl v0.32.3
+	sigs.k8s.io/controller-runtime => sigs.k8s.io/controller-runtime v0.20.3
 )
 
 require (
@@ -36,14 +36,14 @@ require (
 	golang.org/x/text v0.23.0
 	gopkg.in/yaml.v3 v3.0.1
 	helm.sh/helm/v3 v3.17.1
-	k8s.io/api v0.32.2
-	k8s.io/apiextensions-apiserver v0.32.2
+	k8s.io/api v0.32.3
+	k8s.io/apiextensions-apiserver v0.32.3
 	k8s.io/apimachinery v0.32.3
-	k8s.io/cli-runtime v0.32.2
-	k8s.io/client-go v0.32.2
-	k8s.io/kubectl v0.32.2
-	k8s.io/utils v0.0.0-20241210054802-24370beab758
-	sigs.k8s.io/controller-runtime v0.20.2
+	k8s.io/cli-runtime v0.32.3
+	k8s.io/client-go v0.32.3
+	k8s.io/kubectl v0.32.3
+	k8s.io/utils v0.0.0-20250321185631-1f6e0b77f77e
+	sigs.k8s.io/controller-runtime v0.20.3
 	sigs.k8s.io/kind v0.27.0
 	sigs.k8s.io/yaml v1.4.0
 )
@@ -214,8 +214,8 @@ require (
 	google.golang.org/protobuf v1.36.5 // indirect
 	gopkg.in/inf.v0 v0.9.1 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
-	k8s.io/apiserver v0.32.2 // indirect
-	k8s.io/component-base v0.32.2 // indirect
+	k8s.io/apiserver v0.32.3 // indirect
+	k8s.io/component-base v0.32.3 // indirect
 	k8s.io/klog/v2 v2.130.1
 	k8s.io/kube-openapi v0.0.0-20241105132330-32ad38e42d3f // indirect
 	oras.land/oras-go v1.2.6 // indirect

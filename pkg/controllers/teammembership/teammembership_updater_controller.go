@@ -160,8 +160,10 @@ func (r *TeamMembershipUpdaterController) EnsureCreated(ctx context.Context, obj
 	orgSCIMAPIAvailableCondition := organization.Status.GetConditionByType(greenhousev1alpha1.SCIMAPIAvailableCondition)
 	if orgSCIMAPIAvailableCondition == nil || !orgSCIMAPIAvailableCondition.IsTrue() {
 		if teamMembershipExists {
-			teamMembershipStatus.SetConditions(greenhousev1alpha1.FalseCondition(greenhousev1alpha1.SCIMAccessReadyCondition,
-				greenhousev1alpha1.SCIMAPIUnavailableReason, "SCIM API in Organization is unavailable"))
+			scimAccessReadyCondition := greenhousev1alpha1.FalseCondition(greenhousev1alpha1.SCIMAccessReadyCondition,
+				greenhousev1alpha1.SCIMAPIUnavailableReason, "SCIM API in Organization is unavailable")
+			teamMembershipStatus.SetConditions(scimAccessReadyCondition)
+			team.Status.StatusConditions.SetConditions(scimAccessReadyCondition)
 		}
 		return ctrl.Result{}, lifecycle.Success, nil
 	}
@@ -172,6 +174,7 @@ func (r *TeamMembershipUpdaterController) EnsureCreated(ctx context.Context, obj
 
 		c := greenhousev1alpha1.FalseCondition(greenhousev1alpha1.SCIMAccessReadyCondition, greenhousev1alpha1.SecretNotFoundReason, "SCIM config is missing from organization")
 		teamMembershipStatus.SetConditions(c)
+		team.Status.StatusConditions.SetConditions(c)
 
 		return ctrl.Result{}, lifecycle.Success, nil
 	}
@@ -184,12 +187,16 @@ func (r *TeamMembershipUpdaterController) EnsureCreated(ctx context.Context, obj
 	users, membersValidCondition, err := r.getUsersFromSCIM(ctx, scimClient, team.Spec.MappedIDPGroup)
 	if err != nil {
 		log.FromContext(ctx).Info("failed processing team-membership for team", "error", err)
-		teamMembershipStatus.SetConditions(greenhousev1alpha1.FalseCondition(greenhousev1alpha1.SCIMAccessReadyCondition, greenhousev1alpha1.SCIMRequestFailedReason, ""))
+		scimAccessReadyCondition := greenhousev1alpha1.FalseCondition(greenhousev1alpha1.SCIMAccessReadyCondition, greenhousev1alpha1.SCIMRequestFailedReason, "")
+		teamMembershipStatus.SetConditions(scimAccessReadyCondition)
+		team.Status.StatusConditions.SetConditions(scimAccessReadyCondition)
 		return ctrl.Result{}, lifecycle.Failed, err
 	}
 
 	team.Status.Members = users
-	teamMembershipStatus.SetConditions(membersValidCondition, greenhousev1alpha1.TrueCondition(greenhousev1alpha1.SCIMAccessReadyCondition, "", ""))
+	scimAccessReadyCondition := greenhousev1alpha1.TrueCondition(greenhousev1alpha1.SCIMAccessReadyCondition, "", "")
+	teamMembershipStatus.SetConditions(membersValidCondition, scimAccessReadyCondition)
+	team.Status.StatusConditions.SetConditions(membersValidCondition, scimAccessReadyCondition)
 
 	membersCountMetric.With(prometheus.Labels{
 		"namespace": team.Namespace,
@@ -217,7 +224,6 @@ func (r *TeamMembershipUpdaterController) EnsureCreated(ctx context.Context, obj
 
 	now := metav1.NewTime(time.Now())
 	teamMembershipStatus.LastChangedTime = &now
-	teamMembershipStatus.SetConditions(greenhousev1alpha1.TrueCondition(greenhousev1alpha1.SCIMAccessReadyCondition, "", ""))
 	return ctrl.Result{
 			RequeueAfter: wait.Jitter(RequeueInterval, 0.1),
 		},
