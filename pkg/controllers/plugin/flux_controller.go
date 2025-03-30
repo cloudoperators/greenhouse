@@ -116,14 +116,14 @@ func (r *FluxReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.
 func (r *FluxReconciler) setConditions() lifecycle.Conditioner {
 	return func(ctx context.Context, resource lifecycle.RuntimeObject) {
 		logger := ctrl.LoggerFrom(ctx)
-		_, ok := resource.(*greenhousev1alpha1.Plugin)
+		plugin, ok := resource.(*greenhousev1alpha1.Plugin)
 		if !ok {
 			logger.Error(errors.New("resource is not a Plugin"), "status setup failed")
 			return
 		}
 
-		//readyCondition := computeReadyCondition(plugin.Status.StatusConditions)
-		//plugin.SetCondition(readyCondition)
+		readyCondition := computeReadyCondition(plugin.Status.StatusConditions)
+		plugin.SetCondition(readyCondition)
 	}
 }
 
