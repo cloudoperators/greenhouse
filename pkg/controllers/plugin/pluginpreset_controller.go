@@ -178,9 +178,16 @@ func (r *PluginPresetReconciler) reconcilePluginPreset(ctx context.Context, pres
 			return err
 		}
 
+		presetLabels := preset.GetLabels()
 		_, err = clientutil.CreateOrPatch(ctx, r.Client, plugin, func() error {
 			// Label the plugin with the managed resource label to identify it as managed by the PluginPreset.
 			plugin.SetLabels(map[string]string{greenhouseapis.LabelKeyPluginPreset: preset.Name})
+			if presetHasLabel(presetLabels, deliveryToolLabel) {
+				if getLabelValueFromLabels(presetLabels, deliveryToolLabel) != "" {
+					// Label the plugin with the delivery tool label to identify it as managed by the PluginPreset.
+					appendLabels(plugin, map[string]string{deliveryToolLabel: getLabelValueFromLabels(presetLabels, deliveryToolLabel)})
+				}
+			}
 			// Set the owner reference to the PluginPreset. This is used to trigger reconciliation, if the managed Plugin is modified.
 			if err := controllerutil.SetControllerReference(preset, plugin, r.Scheme()); err != nil {
 				return err
