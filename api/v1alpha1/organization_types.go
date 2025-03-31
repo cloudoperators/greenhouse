@@ -85,11 +85,11 @@ type SCIMConfig struct {
 	// +kubebuilder:default="basic"
 	AuthType scim.AuthType `json:"authType,omitempty"`
 	// User to be used for basic authentication.
-	BasicAuthUser ValueFromSource `json:"basicAuthUser"`
+	BasicAuthUser *ValueFromSource `json:"basicAuthUser,omitempty"`
 	// Password to be used for basic authentication.
-	BasicAuthPw ValueFromSource `json:"basicAuthPw"`
+	BasicAuthPw *ValueFromSource `json:"basicAuthPw,omitempty"`
 	// BearerToken to be used for bearer token authorization
-	BearerToken ValueFromSource `json:"bearerToken"`
+	BearerToken *ValueFromSource `json:"bearerToken,omitempty"`
 	// BearerPrefix to be used to defined bearer token prefix
 	// +kubebuilder:default:=Bearer
 	BearerPrefix string `json:"bearerPrefix,omitempty"`

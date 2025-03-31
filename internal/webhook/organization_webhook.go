@@ -44,6 +44,20 @@ func DefaultOrganization(_ context.Context, _ client.Client, o runtime.Object) e
 		normalizedName = strings.TrimSpace(normalizedName)
 		org.Spec.DisplayName = normalizedName
 	}
+
+	if org.Spec.Authentication != nil && org.Spec.Authentication.SCIMConfig != nil {
+		switch org.Spec.Authentication.SCIMConfig.AuthType {
+		case scim.Basic:
+			org.Spec.Authentication.SCIMConfig.BearerToken = nil
+			org.Spec.Authentication.SCIMConfig.BearerHeader = ""
+			org.Spec.Authentication.SCIMConfig.BearerPrefix = ""
+		case scim.BearerToken:
+			org.Spec.Authentication.SCIMConfig.BasicAuthUser = nil
+			org.Spec.Authentication.SCIMConfig.BasicAuthPw = nil
+		default:
+		}
+	}
+
 	return nil
 }
 
