@@ -55,10 +55,11 @@ manifests: generate-manifests generate-documentation generate-types
 
 .PHONY: generate-manifests
 generate-manifests: controller-gen ## Generate WebhookConfiguration, ClusterRole and CustomResourceDefinition objects.
-	$(CONTROLLER_GEN) crd paths="./api/..." output:crd:artifacts:config=config/crd/bases
-	kustomize build config/crd > $(CRD_MANIFESTS_PATH)/crds.yaml
-	(cd $(CRD_MANIFESTS_PATH) && yq -s '(.spec.group | downcase) + "_" + .spec.names.plural' ./crds.yaml --no-doc)
+		$(CONTROLLER_GEN) crd paths="./api/..." output:crd:artifacts:config=config/crd/bases
+	$(KUSTOMIZE) build config/crd > $(CRD_MANIFESTS_PATH)/crds.yaml
+	(cd $(CRD_MANIFESTS_PATH) && yq -s '(.spec.group | downcase) + "_" + .spec.names.plural + ".yaml"' ./crds.yaml)
 	rm -rf $(CRD_MANIFESTS_PATH)/crds.yaml
+	# rm -rf hack/crd/bases
 
 	$(CONTROLLER_GEN) rbac:roleName=manager-role webhook paths="./internal/webhook/..." paths="./internal/controller/..." output:artifacts:config=$(TEMPLATES_MANIFESTS_PATH)
 	hack/helmify $(TEMPLATES_MANIFESTS_PATH)
