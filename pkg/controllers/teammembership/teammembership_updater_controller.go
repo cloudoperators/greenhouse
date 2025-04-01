@@ -26,7 +26,6 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
-	"github.com/cloudoperators/greenhouse/pkg/apis"
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/pkg/apis/greenhouse/v1alpha1"
 	"github.com/cloudoperators/greenhouse/pkg/clientutil"
 	"github.com/cloudoperators/greenhouse/pkg/lifecycle"
@@ -83,7 +82,7 @@ func (r *TeamMembershipUpdaterController) SetupWithManager(name string, mgr ctrl
 			builder.WithPredicates(predicate.GenerationChangedPredicate{})).
 		Watches(&corev1.Secret{},
 			handler.EnqueueRequestsFromMapFunc(r.enqueueAllSecretsForOrganization),
-			builder.WithPredicates(clientutil.PredicateFilterBySecretTypes(apis.SecretTypeOrganizationConfig))).
+			builder.WithPredicates(clientutil.PredicateOrganizationSCIMStatusChange())).
 		Complete(r)
 }
 

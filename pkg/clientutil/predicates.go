@@ -133,3 +133,24 @@ func PredicatePluginWithStatusReadyChange() predicate.Predicate {
 		GenericFunc: func(_ event.GenericEvent) bool { return false },
 	}
 }
+
+func PredicateOrganizationSCIMStatusChange() predicate.Predicate {
+	return predicate.Funcs{
+		CreateFunc: func(_ event.CreateEvent) bool { return false },
+		UpdateFunc: func(e event.UpdateEvent) bool {
+			if e.ObjectOld == nil || e.ObjectNew == nil {
+				return false
+			}
+			oldPlugin, okOld := e.ObjectOld.(*greenhousev1alpha1.Organization)
+			newPlugin, okNew := e.ObjectNew.(*greenhousev1alpha1.Organization)
+			if !okOld || !okNew {
+				return false
+			}
+			oldCondition := oldPlugin.Status.GetConditionByType(greenhousev1alpha1.SCIMAPIAvailableCondition)
+			newCondition := newPlugin.Status.GetConditionByType(greenhousev1alpha1.SCIMAPIAvailableCondition)
+			return oldCondition.IsFalse() && newCondition.IsTrue() // check is the SCIMAPIAvailableCondition condition is flip to true
+		},
+		DeleteFunc:  func(_ event.DeleteEvent) bool { return false },
+		GenericFunc: func(_ event.GenericEvent) bool { return false },
+	}
+}
