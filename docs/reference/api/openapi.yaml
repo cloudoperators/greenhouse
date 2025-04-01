@@ -730,9 +730,6 @@ components:
                       type: object
                   required:
                     - baseURL
-                    - basicAuthPw
-                    - basicAuthUser
-                    - bearerToken
                   type: object
               type: object
             description:
