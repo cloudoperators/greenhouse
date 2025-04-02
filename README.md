@@ -3,7 +3,8 @@ Greenhouse
 [![REUSE status](https://api.reuse.software/badge/github.com/cloudoperators/greenhouse)](https://api.reuse.software/info/github.com/cloudoperators/greenhouse)
 <a href="https://github.com/cloudoperators/greenhouse"><img align="left" width="150" height="170" src="./docs/assets/greenhouse.svg"></a>
 
-Greenhouse is an operations platform focussing on providing a set of tools & processes for managing cloud native infrastructure. Among others it provides the building blocks to enable the configuration and deployment of tools and fine-grained access control to a fleet of Kubernetes clusters.
+Greenhouse is a day 2 operations platform focussing on providing a set of opinionated tools & processes for managing cloud native infrastructure. 
+Among others it provides building blocks to configure and deploy operational tools and fine-grained access control to a fleet of Kubernetes clusters.
 
 It provides out-of-the-box integration and processes on top of cloud native tools like Prometheus, Perses, Alertmanager, and Thanos. The platform allows to extend the functionality with self-developed plugins.
 
