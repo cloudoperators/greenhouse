@@ -17,7 +17,6 @@ ingress:
 
 dashboard:
   assetServerURL: origin
-  environment: prod
 
   # The user for demonstration purposes.
   demoUser:
