@@ -15,7 +15,6 @@ data:
       "authClientId": {{ default .Values.global.oidc.dashboardClientID "greenhouse" | quote }},
       "currentHost": {{ required ".Values.dashboard.assetServerURL missing" .Values.dashboard.assetServerURL | quote }},
       "apiEndpoint": {{ include "dashboard.api.hostname" $  | quote }},
-      "environment": {{ required ".Values.dashboard.environment" .Values.dashboard.environment | quote }},
       "demoUserToken": {{ required ".Values.dashboard.demoUser.token" .Values.dashboard.demoUser.token | quote }}
     }
 
