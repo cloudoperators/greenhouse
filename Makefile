@@ -53,13 +53,15 @@ generate-all: generate generate-manifests generate-documentation  ## Generate co
 .PHONY: manifests
 manifests: generate-manifests generate-documentation generate-types
 
+## Generate manifests for CRD, RBAC, Webhook and helmify the files
+## CRD manifests are generated in hack/crd/bases
+## Patches for CRD conversion webhooks need to be created under hack/crd/patches
+## filename should be in the format webhook.*<group>*.*<kind>*.yaml"
 .PHONY: generate-manifests
 generate-manifests: controller-gen ## Generate WebhookConfiguration, ClusterRole and CustomResourceDefinition objects.
-		$(CONTROLLER_GEN) crd paths="./api/..." output:crd:artifacts:config=config/crd/bases
-	$(KUSTOMIZE) build config/crd > $(CRD_MANIFESTS_PATH)/crds.yaml
-	(cd $(CRD_MANIFESTS_PATH) && yq -s '(.spec.group | downcase) + "_" + .spec.names.plural + ".yaml"' ./crds.yaml)
-	rm -rf $(CRD_MANIFESTS_PATH)/crds.yaml
-	# rm -rf hack/crd/bases
+	$(CONTROLLER_GEN) crd paths="./api/..." output:crd:artifacts:config=hack/crd/bases
+	GOBIN=$(LOCALBIN) go run ./hack/generate.go --crd-dir="./hack/crd" --charts-crd-dir=$(CRD_MANIFESTS_PATH)
+	rm -rf hack/crd/bases
 
 	$(CONTROLLER_GEN) rbac:roleName=manager-role webhook paths="./internal/webhook/..." paths="./internal/controller/..." output:artifacts:config=$(TEMPLATES_MANIFESTS_PATH)
 	hack/helmify $(TEMPLATES_MANIFESTS_PATH)
