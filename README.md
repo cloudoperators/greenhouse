@@ -6,7 +6,7 @@ Greenhouse
 Greenhouse is a day 2 operations platform focussing on providing a set of opinionated tools & processes for managing cloud native infrastructure. 
 Among others it provides building blocks to configure and deploy operational tools and fine-grained access control to a fleet of Kubernetes clusters.
 
-It provides out-of-the-box integration and processes on top of cloud native tools like Prometheus, Perses, Alertmanager, and Thanos. The platform allows to extend the functionality with self-developed plugins.
+In addition to it's out-of-the-box integration and processes on top of battle proven cloud native tools ( e.g Prometheus, Perses, Alertmanager, Thanos, etc.) the platform allows to extend the functionality with self-developed plugins.
 
 ## Value Propositions
 
