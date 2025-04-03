@@ -80,7 +80,7 @@ func (r *TeamMembershipUpdaterController) SetupWithManager(name string, mgr ctrl
 		// If an Organization's .Spec was changed, reconcile relevant Teams.
 		Watches(&greenhousev1alpha1.Organization{}, handler.EnqueueRequestsFromMapFunc(r.enqueueAllTeamsForOrganization),
 			builder.WithPredicates(predicate.GenerationChangedPredicate{})).
-		Watches(&corev1.Secret{},
+		Watches(&greenhousev1alpha1.Organization{},
 			handler.EnqueueRequestsFromMapFunc(r.enqueueAllSecretsForOrganization),
 			builder.WithPredicates(clientutil.PredicateOrganizationSCIMStatusChange())).
 		Complete(r)

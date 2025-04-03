@@ -133,7 +133,10 @@ func PredicateOrganizationSCIMStatusChange() predicate.Predicate {
 			}
 			oldCondition := oldPlugin.Status.GetConditionByType(greenhousev1alpha1.SCIMAPIAvailableCondition)
 			newCondition := newPlugin.Status.GetConditionByType(greenhousev1alpha1.SCIMAPIAvailableCondition)
-			return oldCondition.IsFalse() && newCondition.IsTrue() // check is the SCIMAPIAvailableCondition condition is flip to true
+			if newCondition == nil {
+				return false
+			}
+			return (oldCondition == nil || oldCondition.IsFalse()) && newCondition.IsTrue() // check is the SCIMAPIAvailableCondition condition is flip to true
 		},
 		DeleteFunc:  func(_ event.DeleteEvent) bool { return false },
 		GenericFunc: func(_ event.GenericEvent) bool { return false },
