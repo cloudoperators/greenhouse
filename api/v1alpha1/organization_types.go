@@ -91,10 +91,8 @@ type SCIMConfig struct {
 	// BearerToken to be used for bearer token authorization
 	BearerToken *ValueFromSource `json:"bearerToken,omitempty"`
 	// BearerPrefix to be used to defined bearer token prefix
-	// +kubebuilder:default:=Bearer
 	BearerPrefix string `json:"bearerPrefix,omitempty"`
 	// BearerHeader to be used to defined bearer token header
-	// +kubebuilder:default:=Authorization
 	BearerHeader string `json:"bearerHeader,omitempty"`
 }
 
