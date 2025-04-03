@@ -7,7 +7,7 @@ global:
 
 image:
   repository: ghcr.io/cloudoperators/juno-app-greenhouse
-  digest: sha256:2c6c4c169a297239279cc159b07b504a581ece55df1295f87a0d5e12e6ed8a0f
+  digest: sha256:a0db5f8667b8ca9cd025c71ceee218060f6bf8b581d4620e8ce0a4317b74be04
   pullPolicy: IfNotPresent
 
 replicas: 2
