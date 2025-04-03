@@ -704,11 +704,9 @@ components:
                           type: object
                       type: object
                     bearerHeader:
-                      default: Authorization
                       description: BearerHeader to be used to defined bearer token header
                       type: string
                     bearerPrefix:
-                      default: Bearer
                       description: BearerPrefix to be used to defined bearer token prefix
                       type: string
                     bearerToken:
