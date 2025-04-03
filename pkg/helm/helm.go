@@ -228,7 +228,7 @@ func DiffChartToDeployedResources(ctx context.Context, local client.Client, rest
 		return diffObjects, false, nil
 	}
 
-	c := plugin.Status.StatusConditions.GetConditionByType(greenhousev1alpha1.HelmDriftDetectedCondition)
+	c := plugin.Status.GetConditionByType(greenhousev1alpha1.HelmDriftDetectedCondition)
 	// Skip the drift detection if last DriftDetection Status Change or last Deployment was less than driftDetectionInterval ago
 	switch {
 	case c == nil: // HelmDriftDetectedCondition is not set

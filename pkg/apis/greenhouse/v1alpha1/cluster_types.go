@@ -88,7 +88,7 @@ func (c *Cluster) GetConditions() StatusConditions {
 }
 
 func (c *Cluster) SetCondition(condition Condition) {
-	c.Status.StatusConditions.SetConditions(condition)
+	c.Status.SetConditions(condition)
 }
 
 // GetSecretName returns the Kubernetes secret containing sensitive data for this cluster.

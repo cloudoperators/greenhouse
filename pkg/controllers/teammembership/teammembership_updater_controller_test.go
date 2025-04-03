@@ -622,7 +622,7 @@ func createSecretForSCIMConfig(namespace string) {
 			"basicAuthPw":   []byte("pw"),
 		},
 	}
-	err := setup.Client.Create(test.Ctx, &testSecret)
+	err := setup.Create(test.Ctx, &testSecret)
 	Expect(err).ToNot(HaveOccurred(), "there must be no error creating a secret")
 }
 

@@ -351,7 +351,7 @@ func (o *newClusterBootstrapOptions) createOrUpdateClusterObject(ctx context.Con
 
 	generateKubeconfig := &clustercontroller.KubeConfigHelper{
 		Host:          o.customerConfig.Host,
-		TLSServerName: o.customerConfig.TLSClientConfig.ServerName,
+		TLSServerName: o.customerConfig.ServerName,
 		CAData:        o.customerConfig.CAData,
 		BearerToken:   token,
 		Username:      serviceAccountName,
