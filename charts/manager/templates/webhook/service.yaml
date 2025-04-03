@@ -6,17 +6,17 @@ SPDX-License-Identifier: Apache-2.0
 apiVersion: v1
 kind: Service
 metadata:
-  name: greenhouse-webhook-service
+  name: {{ include "manager.fullname" . }}-webhook-service
   namespace: greenhouse
   labels:
-    app.kubernetes.io/component: webhook
     app.kubernetes.io/created-by: greenhouse
     app.kubernetes.io/part-of: greenhouse
-  {{- include "manager.labels" . | nindent 4 }}
+{{- include "webhook.labels" . | nindent 4 }}
 spec:
   type: {{ .Values.webhookService.type | default "ClusterIP" }}
   selector:
-    app: greenhouse
-  {{- include "manager.selectorLabels" . | nindent 4 }}
+    app: {{ include "manager.fullname" . }}-webhook
+{{- include "webhook.selectorLabels" . | nindent 4 }}
   ports:
- {{- .Values.webhookService.ports | toYaml | nindent 2 -}}
+{{- .Values.webhookService.ports | toYaml | nindent 4 }}
+
