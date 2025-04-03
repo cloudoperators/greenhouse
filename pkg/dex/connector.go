@@ -16,7 +16,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	greenhouseapis "github.com/cloudoperators/greenhouse/pkg/apis"
-	greenhousesapv1alpha1 "github.com/cloudoperators/greenhouse/pkg/apis/greenhouse/v1alpha1"
+	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/pkg/apis/greenhouse/v1alpha1"
 	"github.com/cloudoperators/greenhouse/pkg/rbac"
 )
 
@@ -134,7 +134,7 @@ func (c *oidcConnector) getGroups(organization string, upstreamGroups []string, 
 	teamNamesByIDPGroups := make(map[string][]string)
 	roleNamesByIDPGroups := make(map[string]string)
 
-	teamList := greenhousesapv1alpha1.TeamList{}
+	teamList := greenhousev1alpha1.TeamList{}
 
 	// add team mappings
 	err := c.client.List(ctx, &teamList, &client.ListOptions{Namespace: organization})
@@ -152,7 +152,7 @@ func (c *oidcConnector) getGroups(organization string, upstreamGroups []string, 
 	}
 
 	// add org admin role mapping
-	org := new(greenhousesapv1alpha1.Organization)
+	org := new(greenhousev1alpha1.Organization)
 	err = c.client.Get(ctx, types.NamespacedName{Namespace: "", Name: organization}, org)
 	if err != nil {
 		return nil, err
