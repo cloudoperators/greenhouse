@@ -137,7 +137,7 @@ func (o *Organization) GetConditions() StatusConditions {
 }
 
 func (o *Organization) SetCondition(condition Condition) {
-	o.Status.StatusConditions.SetConditions(condition)
+	o.Status.SetConditions(condition)
 }
 
 func (o *OrganizationSpec) GetSCIMConfig() *SCIMConfig {

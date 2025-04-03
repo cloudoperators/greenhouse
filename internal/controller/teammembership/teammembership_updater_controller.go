@@ -301,7 +301,7 @@ func initTeamMembershipStatus(teamMembership *greenhousev1alpha1.TeamMembership)
 
 func (r *TeamMembershipUpdaterController) setStatus(ctx context.Context, teamMembership *greenhousev1alpha1.TeamMembership, teamMembershipStatus greenhousev1alpha1.TeamMembershipStatus) error {
 	readyCondition := r.computeReadyCondition(teamMembershipStatus.StatusConditions)
-	teamMembershipStatus.StatusConditions.SetConditions(readyCondition)
+	teamMembershipStatus.SetConditions(readyCondition)
 	_, err := clientutil.PatchStatus(ctx, r.Client, teamMembership, func() error {
 		teamMembership.Status = teamMembershipStatus
 		return nil
