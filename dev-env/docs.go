@@ -16,7 +16,7 @@ import (
 
 	"github.com/spf13/cobra/doc"
 
-	"github.com/cloudoperators/greenhouse/pkg/cmd"
+	"github.com/cloudoperators/greenhouse/internal/cmd"
 )
 
 var removeLinks = regexp.MustCompile(`(?s)### SEE ALSO.*`)

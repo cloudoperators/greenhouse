@@ -38,10 +38,10 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
-	greenhouseapis "github.com/cloudoperators/greenhouse/pkg/apis"
-	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/pkg/apis/greenhouse/v1alpha1"
-	"github.com/cloudoperators/greenhouse/pkg/clientutil"
-	"github.com/cloudoperators/greenhouse/pkg/common"
+	greenhouseapis "github.com/cloudoperators/greenhouse/api"
+	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/greenhouse/v1alpha1"
+	"github.com/cloudoperators/greenhouse/internal/clientutil"
+	"github.com/cloudoperators/greenhouse/internal/common"
 )
 
 func NewProxyManager() *ProxyManager {
