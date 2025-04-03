@@ -71,7 +71,7 @@ plugins:
 
 certManager:
   webhook:
-    timeoutSeconds: 10
+    timeoutSeconds: 15
 # Configures the DigiCert issuer for the Greenhouse organization,
 # which enables obtaining DigiCert certificates via the cert-manager.
 digicertIssuer:

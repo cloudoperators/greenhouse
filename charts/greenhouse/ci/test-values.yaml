@@ -41,7 +41,7 @@ plugins:
 
 certManager:
   webhook:
-    timeoutSeconds: 10
+    timeoutSeconds: 15
 
 digicertIssuer:
   enabled: true
