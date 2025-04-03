@@ -44,6 +44,22 @@ app.kubernetes.io/managed-by: {{ .Release.Service }}
 {{- end }}
 
 {{/*
+Webhook labels
+*/}}
+{{- define "webhook.labels" -}}
+app.kubernetes.io/component: webhook
+{{ include "manager.selectorLabels" . }}
+{{ include "webhook.selectorLabels" . }}
+{{- end}}
+
+{{/*
+Webhook Selector labels
+*/}}
+{{- define "webhook.selectorLabels" -}}
+greenhouse.sap/webhook: {{ include "manager.fullname" . }}
+{{- end}}
+
+{{/*
 Manager labels
 */}}
 {{- define "component.labels" -}}
