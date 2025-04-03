@@ -14,7 +14,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/pkg/apis/greenhouse/v1alpha1"
-	"github.com/cloudoperators/greenhouse/pkg/scim"
 )
 
 // Webhook for the Organization custom resource.
@@ -103,24 +102,14 @@ func validateSCIMConfig(organization *greenhousev1alpha1.Organization) *field.Er
 		return nil
 	}
 
-	switch organization.Spec.Authentication.SCIMConfig.AuthType {
-	case scim.Basic:
-		if organization.Spec.Authentication.SCIMConfig.BasicAuthUser.Secret == nil {
-			return field.Required(field.NewPath("spec").Child("Authentication").Child("SCIMConfig").Child("BasicAuthUser"),
-				"An Organization without SCIMConfig.BasicAuthUser is invalid")
-		}
-		if organization.Spec.Authentication.SCIMConfig.BasicAuthPw.Secret == nil {
-			return field.Required(field.NewPath("spec").Child("Authentication").Child("SCIMConfig").Child("BasicAuthPw"),
-				"An Organization without SCIMConfig.BasicAuthPw is invalid")
-		}
-	case scim.BearerToken:
-		if organization.Spec.Authentication.SCIMConfig.BearerToken.Secret == nil {
-			return field.Required(field.NewPath("spec").Child("Authentication").Child("SCIMConfig").Child("BearerToken"),
-				"An Organization without SCIMConfig.BearerToken is invalid")
-		}
-	default:
-		return field.Invalid(field.NewPath("spec").Child("Authentication").Child("SCIMConfig").Child("AuthType"),
-			organization.Spec.Authentication.SCIMConfig.AuthType, "An Organization with incorrect SCIMConfig.AuthType is invalid")
+	if organization.Spec.Authentication.SCIMConfig.BaseURL == "" {
+		return field.Required(field.NewPath("spec").Child("Authentication").Child("SCIMConfig").Child("BaseURL"),
+			"An Organization without SCIMConfig.BaseURL is invalid")
+	}
+
+	if organization.Spec.Authentication.SecretRef == "" {
+		return field.Required(field.NewPath("spec").Child("Authentication").Child("SecretRef"),
+			"An Organization without SCIMConfig.SecretRef is invalid")
 	}
 
 	return nil

@@ -80,6 +80,9 @@ func (r *TeamMembershipUpdaterController) SetupWithManager(name string, mgr ctrl
 		// If an Organization's .Spec was changed, reconcile relevant Teams.
 		Watches(&greenhousev1alpha1.Organization{}, handler.EnqueueRequestsFromMapFunc(r.enqueueAllTeamsForOrganization),
 			builder.WithPredicates(predicate.GenerationChangedPredicate{})).
+		Watches(&greenhousev1alpha1.Organization{},
+			handler.EnqueueRequestsFromMapFunc(r.enqueueAllSecretsForOrganization),
+			builder.WithPredicates(clientutil.PredicateOrganizationSCIMStatusChange())).
 		Complete(r)
 }
 
@@ -96,6 +99,20 @@ func listTeamsAsReconcileRequests(ctx context.Context, c client.Client, listOpts
 	for idx, team := range teamList.Items {
 		res[idx] = ctrl.Request{NamespacedName: client.ObjectKeyFromObject(team.DeepCopy())}
 	}
+	return res
+}
+
+func (r *TeamMembershipUpdaterController) enqueueAllSecretsForOrganization(ctx context.Context, o client.Object) []ctrl.Request {
+	var secretList = new(corev1.SecretList)
+	if err := r.List(ctx, secretList, client.InNamespace(o.GetNamespace())); err != nil {
+		return nil
+	}
+
+	res := make([]ctrl.Request, len(secretList.Items))
+	for idx, secret := range secretList.Items {
+		res[idx] = ctrl.Request{NamespacedName: client.ObjectKeyFromObject(secret.DeepCopy())}
+	}
+
 	return res
 }
 
@@ -179,7 +196,7 @@ func (r *TeamMembershipUpdaterController) EnsureCreated(ctx context.Context, obj
 		return ctrl.Result{}, lifecycle.Success, nil
 	}
 
-	scimClient, err := r.createSCIMClient(ctx, team.Namespace, &teamMembershipStatus, organization.Spec.Authentication.SCIMConfig)
+	scimClient, err := r.createSCIMClient(ctx, team.Namespace, &teamMembershipStatus, organization)
 	if err != nil {
 		return ctrl.Result{}, lifecycle.Failed, err
 	}
@@ -234,10 +251,10 @@ func (r *TeamMembershipUpdaterController) createSCIMClient(
 	ctx context.Context,
 	namespace string,
 	teamMembershipStatus *greenhousev1alpha1.TeamMembershipStatus,
-	scimConfig *greenhousev1alpha1.SCIMConfig,
+	org *greenhousev1alpha1.Organization,
 ) (scim.ISCIMClient, error) {
 
-	clientConfig, err := util.GreenhouseSCIMConfigToSCIMConfig(ctx, r.Client, scimConfig, namespace)
+	clientConfig, err := util.GreenhouseSCIMConfigToSCIMConfig(ctx, r.Client, org, namespace)
 	if err != nil {
 		teamMembershipStatus.SetConditions(greenhousev1alpha1.FalseCondition(greenhousev1alpha1.SCIMAccessReadyCondition, greenhousev1alpha1.SCIMConfigErrorReason, err.Error()))
 		return nil, err

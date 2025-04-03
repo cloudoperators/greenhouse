@@ -49,8 +49,12 @@ idproxy:
 
 scim:
   enabled: false
+  # authType: basic | token
   # username:
   # password:
+  # bearerToken:
+  # bearerHeader:
+  # bearerPrefix:
 
 # Configures core Greenhouse teams.
 teams:
