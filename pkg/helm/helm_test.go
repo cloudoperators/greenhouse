@@ -26,7 +26,7 @@ import (
 
 var _ = Describe("helm package test", func() {
 	helmChart := &chart.Chart{
-		Values: map[string]interface{}{
+		Values: map[string]any{
 			"key1": "helmValue1",
 			"key2": "helmValue2",
 		},
@@ -246,7 +246,7 @@ var _ = Describe("helm package test", func() {
 
 var _ = DescribeTable("getting helm values from Plugin", func(defaultValue any, exp any) {
 	helmChart := &chart.Chart{
-		Values: make(map[string]interface{}),
+		Values: make(map[string]any),
 	}
 
 	pluginWithOptionValue := &greenhousesapv1alpha1.Plugin{
@@ -284,7 +284,7 @@ var _ = DescribeTable("getting helm values from Plugin", func(defaultValue any, 
 	Entry("should get the map default value", map[string]any{"key": "value"}, map[string]any{"key": "value"}),
 )
 
-func namedValueSliceValueByName(valuesMap map[string]interface{}, valueName string) (any, bool) {
+func namedValueSliceValueByName(valuesMap map[string]any, valueName string) (any, bool) {
 	for k, v := range valuesMap {
 		if k == valueName {
 			return v, true

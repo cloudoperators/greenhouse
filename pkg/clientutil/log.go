@@ -14,6 +14,6 @@ func LogIntoContextFromRequest(ctx context.Context, req ctrl.Request) context.Co
 	return LogIntoContext(ctx, "key", req.String())
 }
 
-func LogIntoContext(ctx context.Context, keysAndValues ...interface{}) context.Context {
+func LogIntoContext(ctx context.Context, keysAndValues ...any) context.Context {
 	return log.IntoContext(ctx, log.FromContext(ctx, keysAndValues...))
 }

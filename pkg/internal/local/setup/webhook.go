@@ -55,8 +55,8 @@ const (
 // modifies cert job (charts/manager/templates/kube-webhook-certgen.yaml) to include host.docker.internal
 // if devMode is enabled, modifies mutating and validating webhook configurations to use host.docker.internal URL and removes service from clientConfig
 // extracts the webhook certs from the secret and writes them to tmp/k8s-webhook-server/serving-certs directory
-func (m *Manifest) setupWebhookManifest(resources []map[string]interface{}, clusterName string) ([]map[string]interface{}, error) {
-	webhookManifests := make([]map[string]interface{}, 0)
+func (m *Manifest) setupWebhookManifest(resources []map[string]any, clusterName string) ([]map[string]any, error) {
+	webhookManifests := make([]map[string]any, 0)
 	releaseName := m.ReleaseName
 	managerDeployment, err := extractResourceByNameKind(resources, releaseName+ManagerDeploymentNameSuffix, DeploymentKind)
 	if err != nil {
@@ -134,7 +134,7 @@ func (m *Manifest) setHostPathVolumeMount(containerIndex int, deployment *appsv1
 }
 
 // modifyManagerDeployment - appends the env in manager container by setting WEBHOOK_ONLY=true
-func (m *Manifest) modifyManagerDeployment(deploymentResource map[string]interface{}) (map[string]interface{}, error) {
+func (m *Manifest) modifyManagerDeployment(deploymentResource map[string]any) (map[string]any, error) {
 	deployment := &appsv1.Deployment{}
 	deploymentStr, err := utils.Stringy(deploymentResource)
 	if err != nil {
@@ -172,8 +172,8 @@ func (m *Manifest) modifyManagerDeployment(deploymentResource map[string]interfa
 
 // modifyWebhooks - modifies the webhook configurations to use host.docker.internal URL and removes service from clientConfig
 // during local development of webhooks api server will forward the request to host machine where the webhook is running at port 9443
-func (m *Manifest) modifyWebhooks(resources []map[string]interface{}, webhookURL string) ([]map[string]interface{}, error) {
-	modifiedWebhooks := make([]map[string]interface{}, 0)
+func (m *Manifest) modifyWebhooks(resources []map[string]any, webhookURL string) ([]map[string]any, error) {
+	modifiedWebhooks := make([]map[string]any, 0)
 	for _, resource := range resources {
 		if k, ok := resource["kind"].(string); ok {
 			var hookBytes []byte
@@ -199,7 +199,7 @@ func (m *Manifest) modifyWebhooks(resources []map[string]interface{}, webhookURL
 	return modifiedWebhooks, nil
 }
 
-func (m *Manifest) modifyWebhook(resource map[string]interface{}, hook client.Object, webhookURL string) ([]byte, error) {
+func (m *Manifest) modifyWebhook(resource map[string]any, hook client.Object, webhookURL string) ([]byte, error) {
 	resStr, err := utils.Stringy(resource)
 	if err != nil {
 		return nil, err
@@ -243,7 +243,7 @@ func (m *Manifest) modifyWebhook(resource map[string]interface{}, hook client.Ob
 
 // modifyCertJob - appends host.docker.internal to the args in cert job
 // certs generated are valid only for a set of defined DNS names, adding host.docker.internal to hosts will prevent TLS errors
-func (m *Manifest) modifyCertJob(resources map[string]interface{}, webhookURL string) (map[string]interface{}, error) {
+func (m *Manifest) modifyCertJob(resources map[string]any, webhookURL string) (map[string]any, error) {
 	job := &batchv1.Job{}
 	jobStr, err := utils.Stringy(resources)
 	if err != nil {
@@ -290,10 +290,10 @@ func getContainerIndex(deployment *appsv1.Deployment, containerName string) int 
 	return -1
 }
 
-func extractResourceByNameKind(resources []map[string]interface{}, name, kind string) (map[string]interface{}, error) {
+func extractResourceByNameKind(resources []map[string]any, name, kind string) (map[string]any, error) {
 	for _, resource := range resources {
 		if k, ok := resource["kind"].(string); ok && k == kind {
-			if n, ok := resource["metadata"].(map[string]interface{})["name"].(string); ok && n == name {
+			if n, ok := resource["metadata"].(map[string]any)["name"].(string); ok && n == name {
 				return resource, nil
 			}
 		}
@@ -301,8 +301,8 @@ func extractResourceByNameKind(resources []map[string]interface{}, name, kind st
 	return nil, fmt.Errorf("resource not found: %s", name)
 }
 
-func extractResourcesByKinds(resources []map[string]interface{}, kinds ...string) []map[string]interface{} {
-	extractedResources := make([]map[string]interface{}, 0)
+func extractResourcesByKinds(resources []map[string]any, kinds ...string) []map[string]any {
+	extractedResources := make([]map[string]any, 0)
 	for _, k := range kinds {
 		resource := extractResourceByKind(resources, k)
 		if resource != nil {
@@ -312,7 +312,7 @@ func extractResourcesByKinds(resources []map[string]interface{}, kinds ...string
 	return extractedResources
 }
 
-func extractResourceByKind(resources []map[string]interface{}, kind string) map[string]interface{} {
+func extractResourceByKind(resources []map[string]any, kind string) map[string]any {
 	for _, resource := range resources {
 		if k, ok := resource["kind"].(string); ok && k == kind {
 			return resource
