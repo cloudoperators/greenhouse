@@ -138,6 +138,54 @@ helm upgrade <Release name> <chart-path>
 helm test <Release name>
 ```
 
+## Plugin Testing with dependencies
+
+Some plugins require other plugins to be installed in the cluster for their tests to run successfully. To support this, each plugin can declare required dependencies using a `test-dependencies.yaml` file.
+
+> [!NOTE]  
+> The `test-dependencies.yaml` file is **required** if other plugins need to be installed in the cluster before running the tests in the GitHub Actions workflow during a Pull Request for the plugin.
+
+
+### How It Works
+- Each plugin can optionally include a `test-dependencies.yaml` file in the plugin’s root directory (e.g., `alerts/test-dependencies.yaml`).
+- The file defines a list of plugin names that should be installed **before** testing begins.
+
+### Example `test-dependencies.yaml`
+```yaml
+dependencies:
+  - cert-manager
+```
+
+In this example, the `alert` plugin declares that `cert-manager` plugin must be installed first.
+
+### Automation during Pull Requests
+The GitHub Actions workflow automatically:
+
+1. Detects plugins that are changed in the pull request.
+2. Parses the `test-dependencies.yaml` for each changed plugin if present.
+3. Installs listed dependencies in order
+4. Proceeds with helm chart linting and testing
+
+## Declaring Test Values for CI Testing
+
+Each plugin should provide a `test-values.yaml` file to supply necessary values during testing. This file should be placed inside the `<PLUGIN-NAME>/ci` directory.
+
+- The GitHub Actions workflow automatically detects and uses this file for Helm Chart linting and testing during pull requests.
+- This allows you to customize values specifically for CI testing, without modifying the default `values.yaml`.
+
+### Example File Structure:
+```
+alert/
+├── charts/
+├── ci/
+│   └── test-values.yaml
+└── test-dependencies.yaml
+```
+
+### Summary:
+- Use `test-dependencies.yaml` to declare any required plugin dependencies for testing.
+- Provide `ci/test-values.yaml` to supply test-specific Helm values during lint and test stages in the GitHub Actions workflow.
+
 **Contribution Checklist**
 
 Before submitting a pull request:
@@ -148,8 +196,8 @@ Before submitting a pull request:
 - Include a brief description of the tests in your pull request.
 - Make sure that your Plugin's Chart Directory and the Plugin's Upstream Chart Repository are added to this [greenhouse-extensions helm test config file](https://github.com/cloudoperators/greenhouse-extensions/blob/main/.github/configs/helm-test.yaml). This will ensure that your Plugin's tests are automatically run in the GitHub Actions workflow when you submit a pull request for this Plugin.
 - Note that the [dependencies](https://helm.sh/docs/helm/helm_dependency/) of your Plugin's helm chart might also have their own tests. If so, ensure that the tests of the dependencies are also passing.
+- If your plugin relies on other plugins for testing, please follow the [Plugin Testing with dependencies](#plugin-testing-with-dependencies) section for declaring those dependencies.
 
 **Important Notes**
 
 - **Test Coverage:** Aim for comprehensive test coverage to ensure your Plugin's reliability.
-- **Test Isolation:** Design tests that don't interfere with other plugins or production environments.
