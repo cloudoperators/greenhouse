@@ -133,7 +133,7 @@ func (r *PluginPresetReconciler) EnsureDeleted(ctx context.Context, resource lif
 	}
 	allErrs := make([]error, 0)
 	for _, plugin := range plugins.Items {
-		if err := r.Client.Delete(ctx, &plugin); err != nil && !apierrors.IsNotFound(err) {
+		if err := r.Delete(ctx, &plugin); err != nil && !apierrors.IsNotFound(err) {
 			allErrs = append(allErrs, err)
 		}
 	}
@@ -430,7 +430,7 @@ func (r *PluginPresetReconciler) cleanupPlugins(ctx context.Context, pb *greenho
 			return p.Spec.ClusterName == c.GetName()
 		})
 		if !validCluster {
-			if err := r.Client.Delete(ctx, &p); err != nil && !apierrors.IsNotFound(err) {
+			if err := r.Delete(ctx, &p); err != nil && !apierrors.IsNotFound(err) {
 				return err
 			}
 			r.recorder.Eventf(&p, "Info", "PluginDeleted", "Dangling Plugin %s deleted by PluginPreset %s", p.Name, pb.Name)

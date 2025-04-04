@@ -151,5 +151,5 @@ func (in *Dummy) GetConditions() v1alpha1.StatusConditions {
 }
 
 func (in *Dummy) SetCondition(condition v1alpha1.Condition) {
-	in.Status.StatusConditions.SetConditions(condition)
+	in.Status.SetConditions(condition)
 }

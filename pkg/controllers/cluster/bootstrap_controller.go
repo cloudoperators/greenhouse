@@ -129,7 +129,7 @@ func (r *BootstrapReconciler) createKubeConfigKey(ctx context.Context, secret *c
 	secret.Data[greenhouseapis.GreenHouseKubeConfigKey] = kubeconfigByte
 	annotations[greenhouseapis.SecretOIDCConfigGeneratedOnAnnotation] = metav1.Now().Format(time.DateTime)
 	secret.Annotations = annotations
-	return r.Client.Update(ctx, secret)
+	return r.Update(ctx, secret)
 }
 
 func (r *BootstrapReconciler) reconcileCluster(ctx context.Context, kubeConfigSecret *corev1.Secret) error {

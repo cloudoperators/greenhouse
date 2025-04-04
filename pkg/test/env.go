@@ -239,7 +239,7 @@ func StartControlPlane(port string, installCRDs, installWebhooks bool) (*rest.Co
 		}
 		testEnv.WebhookInstallOptions = webhookInstallOptions
 	}
-	testEnv.ControlPlane.GetAPIServer().SecureServing.ListenAddr.Port = port
+	testEnv.ControlPlane.GetAPIServer().Port = port
 	testEnv.ControlPlane.GetAPIServer().Configure().Append("enable-admission-plugins", "MutatingAdmissionWebhook", "ValidatingAdmissionWebhook")
 
 	// Start control plane

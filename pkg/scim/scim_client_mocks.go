@@ -71,14 +71,6 @@ func secondUserPaginatedResponseFn() mockResponse {
 	}
 }
 
-//nolint:unused
-func inactiveUserResponseBodyMockFn() mockResponse {
-	return mockResponse{
-		statusCode: http.StatusOK,
-		body:       inactiveUserResponseBodyMock,
-	}
-}
-
 const (
 	baseURLPath           = "/scim"
 	errorResponseBodyMock = `{"schemas":["urn:ietf:params:scim:api:messages:2.0:Error"],"status": "400","detail": "Invalid startId"}`

@@ -88,7 +88,7 @@ func initClientGetter(
 		return nil, errors.New(errorMessage)
 	}
 
-	readyConditionInCluster := cluster.Status.StatusConditions.GetConditionByType(greenhousev1alpha1.ReadyCondition)
+	readyConditionInCluster := cluster.Status.GetConditionByType(greenhousev1alpha1.ReadyCondition)
 	if readyConditionInCluster == nil || readyConditionInCluster.Status != metav1.ConditionTrue {
 		errorMessage := fmt.Sprintf("cluster %s is not ready", plugin.Spec.ClusterName)
 		plugin.SetCondition(greenhousev1alpha1.FalseCondition(
