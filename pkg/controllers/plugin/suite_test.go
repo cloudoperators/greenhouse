@@ -309,7 +309,7 @@ var _ = Describe("HelmControllerTest", Serial, func() {
 		It("should verify the Plugin was reconciled", func() {
 			By("injecting different helm values for the same chart version")
 			helm.ChartLoader = helm.ChartLoaderFunc(func(name string) (*chart.Chart, error) {
-				values := map[string]interface{}{
+				values := map[string]any{
 					"imageTag": UpdatedImageVersion,
 				}
 				chart, err := loader.Load(name)

@@ -31,22 +31,20 @@ const (
 
 	releaseNamespace = "test-namespace"
 
-	clusterA             = "cluster-a"
-	clusterB             = "cluster-b"
-	clusterC             = "cluster-c"
-	otherTestClusterName = "other-test-cluster"
+	clusterA = "cluster-a"
+	clusterB = "cluster-b"
 
 	preventDeletionAnnotation = "greenhouse.sap/prevent-deletion"
 )
 
 var (
-	pluginPresetRemoteKubeConfig []byte
-	pluginPresetK8sClient        client.Client
-	pluginPresetRemote           *envtest.Environment
+	clusterAKubeConfig []byte
+	clusterAK8sClient  client.Client
+	clusterARemote     *envtest.Environment
 
-	otherRemoteKubeConfig []byte
-	otherRemoteK8sClient  client.Client
-	otherRemoteEnv        *envtest.Environment
+	clusterBKubeConfig []byte
+	clusterBK8sClient  client.Client
+	clusterBRemote     *envtest.Environment
 
 	pluginPresetDefinition = &greenhousev1alpha1.PluginDefinition{
 		TypeMeta: metav1.TypeMeta{
@@ -84,34 +82,34 @@ var _ = Describe("PluginPreset Controller Lifecycle", Ordered, func() {
 		Expect(err).ToNot(HaveOccurred(), "failed to create test PluginDefinition")
 
 		By("bootstrapping the remote cluster")
-		_, pluginPresetK8sClient, pluginPresetRemote, pluginPresetRemoteKubeConfig = test.StartControlPlane("6886", false, false)
+		_, clusterAK8sClient, clusterARemote, clusterAKubeConfig = test.StartControlPlane("6886", false, false)
 		By("bootstrapping the other remote cluster")
-		_, otherRemoteK8sClient, otherRemoteEnv, otherRemoteKubeConfig = test.StartControlPlane("6886", false, false)
+		_, clusterBK8sClient, clusterBRemote, clusterBKubeConfig = test.StartControlPlane("6887", false, false)
 
 		// kubeConfigController ensures the namespace within the remote cluster -- we have to create it
 		By("creating the namespace on the remote cluster")
-		remoteRestClientGetter := clientutil.NewRestClientGetterFromBytes(pluginPresetRemoteKubeConfig, releaseNamespace, clientutil.WithPersistentConfig())
+		remoteRestClientGetter := clientutil.NewRestClientGetterFromBytes(clusterAKubeConfig, releaseNamespace, clientutil.WithPersistentConfig())
 		remoteK8sClient, err := clientutil.NewK8sClientFromRestClientGetter(remoteRestClientGetter)
 		Expect(err).ShouldNot(HaveOccurred(), "there should be no error creating the k8s client")
 		err = remoteK8sClient.Create(test.Ctx, &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: releaseNamespace}})
 		Expect(err).ShouldNot(HaveOccurred(), "there should be no error creating the namespace")
 
 		By("creating the namespace on the other remote cluster")
-		otherRemoteRestClientGetter := clientutil.NewRestClientGetterFromBytes(otherRemoteKubeConfig, releaseNamespace, clientutil.WithPersistentConfig())
+		otherRemoteRestClientGetter := clientutil.NewRestClientGetterFromBytes(clusterBKubeConfig, releaseNamespace, clientutil.WithPersistentConfig())
 		otherRemoteK8sClient, err := clientutil.NewK8sClientFromRestClientGetter(otherRemoteRestClientGetter)
 		Expect(err).ShouldNot(HaveOccurred(), "there should be no error creating the k8s client")
 		err = otherRemoteK8sClient.Create(test.Ctx, &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: releaseNamespace}})
 		Expect(err).ShouldNot(HaveOccurred(), "there should be no error creating the namespace")
 
-		By("creating two test clusters for the same remote environment")
-		for _, clusterName := range []string{clusterA, clusterB} {
+		By("creating two test clusters")
+		for clusterName, kubeCfg := range map[string][]byte{clusterA: clusterAKubeConfig, clusterB: clusterBKubeConfig} {
 			err := test.K8sClient.Create(test.Ctx, cluster(clusterName))
 			Expect(err).Should(Succeed(), "failed to create test cluster: "+clusterName)
 
 			By("creating a secret with a valid kubeconfig for a remote cluster")
 			secretObj := clusterSecret(clusterName)
 			secretObj.Data = map[string][]byte{
-				greenhouseapis.KubeConfigKey: pluginPresetRemoteKubeConfig,
+				greenhouseapis.KubeConfigKey: kubeCfg,
 			}
 			Expect(test.K8sClient.Create(test.Ctx, secretObj)).Should(Succeed())
 		}
@@ -119,10 +117,10 @@ var _ = Describe("PluginPreset Controller Lifecycle", Ordered, func() {
 
 	AfterAll(func() {
 		By("Stopping remote environments")
-		err := pluginPresetRemote.Stop()
+		err := clusterARemote.Stop()
 		Expect(err).
 			NotTo(HaveOccurred(), "there must be no error stopping the remote environment")
-		err = otherRemoteEnv.Stop()
+		err = clusterBRemote.Stop()
 		Expect(err).
 			NotTo(HaveOccurred(), "there must be no error stopping the other remote environment")
 	})
@@ -239,16 +237,7 @@ var _ = Describe("PluginPreset Controller Lifecycle", Ordered, func() {
 		err := test.K8sClient.Create(test.Ctx, testPluginPreset)
 		Expect(err).ToNot(HaveOccurred(), "failed to create test PluginPreset")
 
-		By("onboarding another cluster")
-		err = test.K8sClient.Create(test.Ctx, cluster(clusterC))
-		Expect(err).Should(Succeed(), "failed to create test cluster: "+clusterC)
-		secretObj := clusterSecret(clusterC)
-		secretObj.Data = map[string][]byte{
-			greenhouseapis.KubeConfigKey: pluginPresetRemoteKubeConfig,
-		}
-		Expect(test.K8sClient.Create(test.Ctx, secretObj)).Should(Succeed())
-
-		By("making clusterC match the clusterSelector")
+		By("making clusterB match the clusterSelector")
 		pluginList := &greenhousev1alpha1.PluginList{}
 		Eventually(func(g Gomega) {
 			err = test.K8sClient.List(test.Ctx, pluginList, client.MatchingLabels{greenhouseapis.LabelKeyPluginPreset: pluginPresetName})
@@ -258,7 +247,7 @@ var _ = Describe("PluginPreset Controller Lifecycle", Ordered, func() {
 
 		cluster := greenhousev1alpha1.Cluster{
 			ObjectMeta: metav1.ObjectMeta{
-				Name:      clusterC,
+				Name:      clusterB,
 				Namespace: test.TestNamespace,
 			},
 		}
@@ -273,8 +262,72 @@ var _ = Describe("PluginPreset Controller Lifecycle", Ordered, func() {
 			g.Expect(pluginList.Items).To(HaveLen(2), "there should be two Plugins")
 		}).Should(Succeed(), "the PluginPreset should have noticed the ClusterLabel change")
 
-		By("deleting clusterC to ensure the Plugin is deleted")
+		By("deleting clusterB to ensure the Plugin is deleted")
 		test.MustDeleteCluster(test.Ctx, test.K8sClient, client.ObjectKeyFromObject(&cluster))
+		Eventually(func(g Gomega) {
+			err = test.K8sClient.List(test.Ctx, pluginList, client.InNamespace(cluster.GetNamespace()), client.MatchingLabels{greenhouseapis.LabelKeyPluginPreset: pluginPresetName})
+			g.Expect(err).NotTo(HaveOccurred(), "failed to list Plugins")
+			g.Expect(pluginList.Items).To(HaveLen(1), "there should be only one Plugin")
+		}).Should(Succeed(), "the PluginPreset should have removed the Plugin for the deleted Cluster")
+
+		By("removing the PluginPreset")
+		err = test.K8sClient.Get(test.Ctx, client.ObjectKeyFromObject(testPluginPreset), testPluginPreset)
+		Expect(err).ToNot(HaveOccurred(), "failed to get PluginPreset")
+		// Remove prevent-deletion annotation before deleting PluginPreset.
+		_, err = clientutil.Patch(test.Ctx, test.K8sClient, testPluginPreset, func() error {
+			delete(testPluginPreset.Annotations, preventDeletionAnnotation)
+			return nil
+		})
+		Expect(err).ToNot(HaveOccurred(), "failed to patch PluginPreset")
+		test.EventuallyDeleted(test.Ctx, test.K8sClient, testPluginPreset)
+	})
+
+	It("should delete a Plugin if the cluster no longer matches", func() {
+		By("creating a PluginPreset")
+		testPluginPreset := pluginPreset(pluginPresetName, clusterA)
+		err := test.K8sClient.Create(test.Ctx, testPluginPreset)
+		Expect(err).ToNot(HaveOccurred(), "failed to create test PluginPreset")
+
+		err = test.K8sClient.Create(test.Ctx, cluster(clusterB))
+		Expect(err).ToNot(HaveOccurred(), "failed to create test cluster: "+clusterB)
+		secretObj := clusterSecret(clusterB)
+		secretObj.Data = map[string][]byte{
+			greenhouseapis.KubeConfigKey: clusterBKubeConfig,
+		}
+		Expect(test.K8sClient.Update(test.Ctx, secretObj)).Should(Succeed())
+
+		By("making clusterB match the clusterSelector")
+		pluginList := &greenhousev1alpha1.PluginList{}
+		Eventually(func(g Gomega) {
+			err = test.K8sClient.List(test.Ctx, pluginList, client.MatchingLabels{greenhouseapis.LabelKeyPluginPreset: pluginPresetName})
+			g.Expect(err).NotTo(HaveOccurred(), "failed to list Plugins")
+			g.Expect(pluginList.Items).To(HaveLen(1), "there should be only one Plugin")
+		}).Should(Succeed(), "there should be a Plugin created for the Preset")
+
+		cluster := greenhousev1alpha1.Cluster{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      clusterB,
+				Namespace: test.TestNamespace,
+			},
+		}
+		_, err = clientutil.CreateOrPatch(test.Ctx, test.K8sClient, &cluster, func() error {
+			cluster.Labels = map[string]string{"cluster": clusterA}
+			return nil
+		})
+		Expect(err).NotTo(HaveOccurred(), "failed to update Cluster labels")
+		Eventually(func(g Gomega) {
+			err = test.K8sClient.List(test.Ctx, pluginList, client.MatchingLabels{greenhouseapis.LabelKeyPluginPreset: pluginPresetName})
+			g.Expect(err).NotTo(HaveOccurred(), "failed to list Plugins")
+			g.Expect(pluginList.Items).To(HaveLen(2), "there should be two Plugins")
+		}).Should(Succeed(), "the PluginPreset should have noticed the ClusterLabel change")
+
+		By("changing clusterB labels to ensure the Plugin is deleted")
+		_, err = clientutil.CreateOrPatch(test.Ctx, test.K8sClient, &cluster, func() error {
+			cluster.Labels = map[string]string{}
+			return nil
+		})
+		Expect(err).NotTo(HaveOccurred(), "failed to update Cluster labels")
+
 		Eventually(func(g Gomega) {
 			err = test.K8sClient.List(test.Ctx, pluginList, client.InNamespace(cluster.GetNamespace()), client.MatchingLabels{greenhouseapis.LabelKeyPluginPreset: pluginPresetName})
 			g.Expect(err).NotTo(HaveOccurred(), "failed to list Plugins")
@@ -308,18 +361,9 @@ var _ = Describe("PluginPreset Controller Lifecycle", Ordered, func() {
 	})
 
 	It("should reconcile PluginStatuses for PluginPreset", func() {
-		By("onboarding another Cluster")
-		err := test.K8sClient.Create(test.Ctx, cluster(otherTestClusterName))
-		Expect(err).ToNot(HaveOccurred(), "failed to create test cluster: "+otherTestClusterName)
-		secretObj := clusterSecret(otherTestClusterName)
-		secretObj.Data = map[string][]byte{
-			greenhouseapis.KubeConfigKey: otherRemoteKubeConfig,
-		}
-		Expect(test.K8sClient.Create(test.Ctx, secretObj)).Should(Succeed())
-
 		By("creating a PluginPreset")
 		testPluginPreset := pluginPreset(pluginPresetName, clusterA)
-		err = test.K8sClient.Create(test.Ctx, testPluginPreset)
+		err := test.K8sClient.Create(test.Ctx, testPluginPreset)
 		Expect(err).ToNot(HaveOccurred(), "failed to create test PluginPreset")
 
 		By("checking PluginStatuses in the PluginPreset")
@@ -336,15 +380,15 @@ var _ = Describe("PluginPreset Controller Lifecycle", Ordered, func() {
 			g.Expect(testPluginPreset.Status.FailedPlugins).To(Equal(0), "PluginPreset Status should show exactly zero failed plugins")
 		}).Should(Succeed())
 
-		By("making otherTestCluster match the clusterSelector")
-		otherTestCluster := greenhousev1alpha1.Cluster{
+		By("making clusterB match the clusterSelector")
+		cluster := greenhousev1alpha1.Cluster{
 			ObjectMeta: metav1.ObjectMeta{
-				Name:      otherTestClusterName,
+				Name:      clusterB,
 				Namespace: test.TestNamespace,
 			},
 		}
-		_, err = clientutil.CreateOrPatch(test.Ctx, test.K8sClient, &otherTestCluster, func() error {
-			otherTestCluster.Labels = map[string]string{"cluster": clusterA}
+		_, err = clientutil.CreateOrPatch(test.Ctx, test.K8sClient, &cluster, func() error {
+			cluster.Labels = map[string]string{"cluster": clusterA}
 			return nil
 		})
 		Expect(err).NotTo(HaveOccurred(), "failed to update other Cluster labels")
@@ -367,7 +411,7 @@ var _ = Describe("PluginPreset Controller Lifecycle", Ordered, func() {
 				return status.PluginName == testPluginPreset.Name+"-"+clusterA && status.ReadyCondition.IsTrue()
 			})).To(BeTrue(), "Ready true status should be reported for the first plugin")
 			g.Expect(slices.ContainsFunc(testPluginPreset.Status.PluginStatuses, func(status greenhousev1alpha1.ManagedPluginStatus) bool {
-				return status.PluginName == testPluginPreset.Name+"-"+otherTestClusterName && status.ReadyCondition.IsTrue()
+				return status.PluginName == testPluginPreset.Name+"-"+clusterB && status.ReadyCondition.IsTrue()
 			})).To(BeTrue(), "Ready true status should be reported for the additional plugin")
 			g.Expect(testPluginPreset.Status.AvailablePlugins).To(Equal(2), "PluginPreset Status should show exactly two available plugins")
 			g.Expect(testPluginPreset.Status.ReadyPlugins).To(Equal(2), "PluginPreset Status should show exactly two ready plugins")
@@ -375,9 +419,9 @@ var _ = Describe("PluginPreset Controller Lifecycle", Ordered, func() {
 		}).Should(Succeed())
 
 		By("deleting otherTestCluster to ensure the Plugin is deleted")
-		test.MustDeleteCluster(test.Ctx, test.K8sClient, client.ObjectKeyFromObject(&otherTestCluster))
+		test.MustDeleteCluster(test.Ctx, test.K8sClient, client.ObjectKeyFromObject(&cluster))
 		Eventually(func(g Gomega) {
-			err = test.K8sClient.List(test.Ctx, pluginList, client.InNamespace(otherTestCluster.GetNamespace()), client.MatchingLabels{greenhouseapis.LabelKeyPluginPreset: pluginPresetName})
+			err = test.K8sClient.List(test.Ctx, pluginList, client.InNamespace(cluster.GetNamespace()), client.MatchingLabels{greenhouseapis.LabelKeyPluginPreset: pluginPresetName})
 			g.Expect(err).NotTo(HaveOccurred(), "failed to list Plugins")
 			g.Expect(pluginList.Items).To(HaveLen(1), "there should be only one Plugin")
 		}).Should(Succeed(), "the PluginPreset should have removed the Plugin for the deleted Cluster")

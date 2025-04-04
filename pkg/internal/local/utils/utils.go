@@ -60,12 +60,12 @@ func StringP(s string) *string {
 }
 
 // GetManagerHelmValues - returns the default values for the manager helm chart
-func GetManagerHelmValues() map[string]interface{} {
-	return map[string]interface{}{
-		"alerts": map[string]interface{}{
+func GetManagerHelmValues() map[string]any {
+	return map[string]any{
+		"alerts": map[string]any{
 			"enabled": false,
 		},
-		"global": map[string]interface{}{
+		"global": map[string]any{
 			"dnsDomain": "localhost",
 		},
 	}
@@ -117,9 +117,9 @@ func RandomWriteToTmpFolder(fileName, content string) (string, error) {
 	return file.Name(), nil
 }
 
-// RawK8sInterface - unmarshalls the provided YAML bytes into a map[string]interface{}
-func RawK8sInterface(yamlBytes []byte) (map[string]interface{}, error) {
-	var data map[string]interface{}
+// RawK8sInterface - unmarshalls the provided YAML bytes into a map[string]any
+func RawK8sInterface(yamlBytes []byte) (map[string]any, error) {
+	var data map[string]any
 	err := kyaml.Unmarshal(yamlBytes, &data)
 	if err != nil {
 		return nil, fmt.Errorf("error unmarshalling YAML bytes: %w", err)
@@ -127,7 +127,7 @@ func RawK8sInterface(yamlBytes []byte) (map[string]interface{}, error) {
 	return data, nil
 }
 
-func Stringy(data map[string]interface{}) (string, error) {
+func Stringy(data map[string]any) (string, error) {
 	s, err := yaml.Marshal(data)
 	if err != nil {
 		return "", err
@@ -135,7 +135,7 @@ func Stringy(data map[string]interface{}) (string, error) {
 	return string(s), nil
 }
 
-func Stringify(data []map[string]interface{}) (string, error) {
+func Stringify(data []map[string]any) (string, error) {
 	stringSources := make([]string, 0)
 	for _, d := range data {
 		s, err := Stringy(d)
