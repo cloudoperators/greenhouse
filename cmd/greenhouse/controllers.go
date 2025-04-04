@@ -34,6 +34,9 @@ var knownControllers = map[string]func(controllerName string, mgr ctrl.Manager) 
 	"plugin": (&plugincontrollers.PluginReconciler{
 		KubeRuntimeOpts: kubeClientOpts,
 	}).SetupWithManager,
+	"pluginToFlux": (&plugincontrollers.FluxReconciler{
+		KubeRuntimeOpts: kubeClientOpts,
+	}).SetupWithManager,
 	"pluginPreset": (&plugincontrollers.PluginPresetReconciler{}).SetupWithManager,
 
 	// Cluster controllers
