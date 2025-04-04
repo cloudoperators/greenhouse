@@ -44,6 +44,7 @@ func DefaultOrganization(_ context.Context, _ client.Client, o runtime.Object) e
 		normalizedName = strings.TrimSpace(normalizedName)
 		org.Spec.DisplayName = normalizedName
 	}
+
 	return nil
 }
 
@@ -105,16 +106,16 @@ func validateSCIMConfig(organization *greenhousev1alpha1.Organization) *field.Er
 
 	switch organization.Spec.Authentication.SCIMConfig.AuthType {
 	case scim.Basic:
-		if organization.Spec.Authentication.SCIMConfig.BasicAuthUser.Secret == nil {
+		if organization.Spec.Authentication.SCIMConfig.BasicAuthUser == nil || organization.Spec.Authentication.SCIMConfig.BasicAuthUser.Secret == nil {
 			return field.Required(field.NewPath("spec").Child("Authentication").Child("SCIMConfig").Child("BasicAuthUser"),
 				"An Organization without SCIMConfig.BasicAuthUser is invalid")
 		}
-		if organization.Spec.Authentication.SCIMConfig.BasicAuthPw.Secret == nil {
+		if organization.Spec.Authentication.SCIMConfig.BasicAuthPw == nil || organization.Spec.Authentication.SCIMConfig.BasicAuthPw.Secret == nil {
 			return field.Required(field.NewPath("spec").Child("Authentication").Child("SCIMConfig").Child("BasicAuthPw"),
 				"An Organization without SCIMConfig.BasicAuthPw is invalid")
 		}
 	case scim.BearerToken:
-		if organization.Spec.Authentication.SCIMConfig.BearerToken.Secret == nil {
+		if organization.Spec.Authentication.SCIMConfig.BearerToken == nil || organization.Spec.Authentication.SCIMConfig.BearerToken.Secret == nil {
 			return field.Required(field.NewPath("spec").Child("Authentication").Child("SCIMConfig").Child("BearerToken"),
 				"An Organization without SCIMConfig.BearerToken is invalid")
 		}

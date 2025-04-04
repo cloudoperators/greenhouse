@@ -56,13 +56,13 @@ var _ = Describe("Validate Organization Webhook", func() {
 					SCIMConfig: &greenhousev1alpha1.SCIMConfig{
 						BaseURL:  "https://example.org",
 						AuthType: scim.Basic,
-						BasicAuthUser: greenhousev1alpha1.ValueFromSource{
+						BasicAuthUser: &greenhousev1alpha1.ValueFromSource{
 							Secret: &greenhousev1alpha1.SecretKeyReference{
 								Name: "test-secret",
 								Key:  "test-user",
 							},
 						},
-						BasicAuthPw: greenhousev1alpha1.ValueFromSource{
+						BasicAuthPw: &greenhousev1alpha1.ValueFromSource{
 							Secret: &greenhousev1alpha1.SecretKeyReference{
 								Name: "test-secret",
 								Key:  "test-password",
@@ -79,7 +79,7 @@ var _ = Describe("Validate Organization Webhook", func() {
 					SCIMConfig: &greenhousev1alpha1.SCIMConfig{
 						BaseURL:  "https://example.org",
 						AuthType: scim.BearerToken,
-						BearerToken: greenhousev1alpha1.ValueFromSource{
+						BearerToken: &greenhousev1alpha1.ValueFromSource{
 							Secret: &greenhousev1alpha1.SecretKeyReference{
 								Name: "test-secret",
 								Key:  "test-bearer-token",
@@ -96,7 +96,7 @@ var _ = Describe("Validate Organization Webhook", func() {
 					SCIMConfig: &greenhousev1alpha1.SCIMConfig{
 						BaseURL:  "https://example.org",
 						AuthType: scim.Basic,
-						BearerToken: greenhousev1alpha1.ValueFromSource{
+						BearerToken: &greenhousev1alpha1.ValueFromSource{
 							Secret: &greenhousev1alpha1.SecretKeyReference{
 								Name: "test-secret",
 								Key:  "test-bearer-token",
@@ -113,13 +113,13 @@ var _ = Describe("Validate Organization Webhook", func() {
 					SCIMConfig: &greenhousev1alpha1.SCIMConfig{
 						BaseURL:  "https://example.org",
 						AuthType: scim.BearerToken,
-						BasicAuthUser: greenhousev1alpha1.ValueFromSource{
+						BasicAuthUser: &greenhousev1alpha1.ValueFromSource{
 							Secret: &greenhousev1alpha1.SecretKeyReference{
 								Name: "test-secret",
 								Key:  "test-user",
 							},
 						},
-						BasicAuthPw: greenhousev1alpha1.ValueFromSource{
+						BasicAuthPw: &greenhousev1alpha1.ValueFromSource{
 							Secret: &greenhousev1alpha1.SecretKeyReference{
 								Name: "test-secret",
 								Key:  "test-password",
@@ -136,13 +136,13 @@ var _ = Describe("Validate Organization Webhook", func() {
 					SCIMConfig: &greenhousev1alpha1.SCIMConfig{
 						BaseURL:  "https://example.org",
 						AuthType: "any",
-						BasicAuthUser: greenhousev1alpha1.ValueFromSource{
+						BasicAuthUser: &greenhousev1alpha1.ValueFromSource{
 							Secret: &greenhousev1alpha1.SecretKeyReference{
 								Name: "test-secret",
 								Key:  "test-user",
 							},
 						},
-						BasicAuthPw: greenhousev1alpha1.ValueFromSource{
+						BasicAuthPw: &greenhousev1alpha1.ValueFromSource{
 							Secret: &greenhousev1alpha1.SecretKeyReference{
 								Name: "test-secret",
 								Key:  "test-password",
@@ -176,13 +176,13 @@ var _ = Describe("Validate Organization Webhook", func() {
 					SCIMConfig: &greenhousev1alpha1.SCIMConfig{
 						BaseURL:  "https://example.org",
 						AuthType: scim.Basic,
-						BasicAuthUser: greenhousev1alpha1.ValueFromSource{
+						BasicAuthUser: &greenhousev1alpha1.ValueFromSource{
 							Secret: &greenhousev1alpha1.SecretKeyReference{
 								Name: "test-secret",
 								Key:  "test-user",
 							},
 						},
-						BasicAuthPw: greenhousev1alpha1.ValueFromSource{
+						BasicAuthPw: &greenhousev1alpha1.ValueFromSource{
 							Secret: &greenhousev1alpha1.SecretKeyReference{
 								Name: "test-secret",
 								Key:  "test-password",
@@ -199,7 +199,7 @@ var _ = Describe("Validate Organization Webhook", func() {
 					SCIMConfig: &greenhousev1alpha1.SCIMConfig{
 						BaseURL:  "https://example.org",
 						AuthType: scim.BearerToken,
-						BearerToken: greenhousev1alpha1.ValueFromSource{
+						BearerToken: &greenhousev1alpha1.ValueFromSource{
 							Secret: &greenhousev1alpha1.SecretKeyReference{
 								Name: "test-secret",
 								Key:  "test-bearer-token",
@@ -216,13 +216,13 @@ var _ = Describe("Validate Organization Webhook", func() {
 					SCIMConfig: &greenhousev1alpha1.SCIMConfig{
 						BaseURL:  "https://example.org",
 						AuthType: "any",
-						BasicAuthUser: greenhousev1alpha1.ValueFromSource{
+						BasicAuthUser: &greenhousev1alpha1.ValueFromSource{
 							Secret: &greenhousev1alpha1.SecretKeyReference{
 								Name: "test-secret",
 								Key:  "test-user",
 							},
 						},
-						BasicAuthPw: greenhousev1alpha1.ValueFromSource{
+						BasicAuthPw: &greenhousev1alpha1.ValueFromSource{
 							Secret: &greenhousev1alpha1.SecretKeyReference{
 								Name: "test-secret",
 								Key:  "test-password",
