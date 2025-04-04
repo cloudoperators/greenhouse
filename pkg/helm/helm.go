@@ -492,7 +492,7 @@ func newHelmAction(restClientGetter genericclioptions.RESTClientGetter, namespac
 	return cfg, nil
 }
 
-func debug(format string, v ...interface{}) {
+func debug(format string, v ...any) {
 	if IsHelmDebug {
 		format = "[debug] " + format
 		log.FromContext(context.Background()).Info(fmt.Sprintf(format, v...))
@@ -512,11 +512,11 @@ is transformed to
 	  image:
 	    registry: foobar
 */
-func convertFlatValuesToHelmValues(values []greenhousev1alpha1.PluginOptionValue) (map[string]interface{}, error) {
+func convertFlatValuesToHelmValues(values []greenhousev1alpha1.PluginOptionValue) (map[string]any, error) {
 	if values == nil {
-		return make(map[string]interface{}, 0), nil
+		return make(map[string]any, 0), nil
 	}
-	helmValues := make(map[string]interface{}, 0)
+	helmValues := make(map[string]any, 0)
 	for _, v := range values {
 		if err := strvals.ParseJSON(fmt.Sprintf("%s=%s", v.Name, v.ValueJSON()), helmValues); err != nil {
 			return nil, err
@@ -526,15 +526,15 @@ func convertFlatValuesToHelmValues(values []greenhousev1alpha1.PluginOptionValue
 }
 
 // Taken from: https://github.com/helm/helm/blob/v3.10.3/pkg/cli/values/options.go#L99-L116
-func mergeMaps(a, b map[string]interface{}) map[string]interface{} {
-	out := make(map[string]interface{}, len(a))
+func mergeMaps(a, b map[string]any) map[string]any {
+	out := make(map[string]any, len(a))
 	for k, v := range a {
 		out[k] = v
 	}
 	for k, v := range b {
-		if v, ok := v.(map[string]interface{}); ok {
+		if v, ok := v.(map[string]any); ok {
 			if bv, ok := out[k]; ok {
-				if bv, ok := bv.(map[string]interface{}); ok {
+				if bv, ok := bv.(map[string]any); ok {
 					out[k] = mergeMaps(bv, v)
 					continue
 				}
@@ -547,9 +547,9 @@ func mergeMaps(a, b map[string]interface{}) map[string]interface{} {
 
 // getValuesForHelmChart returns a set of values to be used for Helm operations.
 // The order is important as the values defined in the Helm chart can be overridden by the values defined in the Plugin.
-func getValuesForHelmChart(ctx context.Context, c client.Client, helmChart *chart.Chart, plugin *greenhousev1alpha1.Plugin) (map[string]interface{}, error) {
+func getValuesForHelmChart(ctx context.Context, c client.Client, helmChart *chart.Chart, plugin *greenhousev1alpha1.Plugin) (map[string]any, error) {
 	// Copy the values from the Helm chart ensuring a non-nil map.
-	helmValues := mergeMaps(make(map[string]interface{}), helmChart.Values)
+	helmValues := mergeMaps(make(map[string]any), helmChart.Values)
 	// Get values defined in plugin.
 	pluginValues, err := getValuesFromPlugin(ctx, c, plugin)
 	if err != nil {

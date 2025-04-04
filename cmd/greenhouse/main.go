@@ -185,7 +185,7 @@ func main() {
 	handleError(mgr.Start(ctrl.SetupSignalHandler()), "problem running manager")
 }
 
-func handleError(err error, msg string, keysAndValues ...interface{}) {
+func handleError(err error, msg string, keysAndValues ...any) {
 	if err != nil {
 		setupLog.Error(err, msg, keysAndValues...)
 		os.Exit(1)

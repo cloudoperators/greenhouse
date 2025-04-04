@@ -148,7 +148,7 @@ func loadPlugin(path string) (*greenhousev1alpha1.Plugin, error) {
 	return plugin, err
 }
 
-func loadAndUnmarshalObject(path string, o interface{}) error {
+func loadAndUnmarshalObject(path string, o any) error {
 	absPath, err := filepath.Abs(path)
 	if err != nil {
 		return err
