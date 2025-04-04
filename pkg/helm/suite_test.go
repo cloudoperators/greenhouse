@@ -11,7 +11,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/cloudoperators/greenhouse/pkg/admission"
-	greenhousesapv1alpha1 "github.com/cloudoperators/greenhouse/pkg/apis/greenhouse/v1alpha1"
+	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/pkg/apis/greenhouse/v1alpha1"
 	"github.com/cloudoperators/greenhouse/pkg/test"
 )
 
@@ -34,27 +34,27 @@ var _ = AfterSuite(func() {
 var (
 	namespace = "test-org"
 
-	optionValue = &greenhousesapv1alpha1.PluginOptionValue{
+	optionValue = &greenhousev1alpha1.PluginOptionValue{
 		Name:  "key1",
 		Value: test.MustReturnJSONFor("pluginValue1"),
 	}
-	secretOptionValue = &greenhousesapv1alpha1.PluginOptionValue{
+	secretOptionValue = &greenhousev1alpha1.PluginOptionValue{
 		Name: "secretValue",
-		ValueFrom: &greenhousesapv1alpha1.ValueFromSource{
-			Secret: &greenhousesapv1alpha1.SecretKeyReference{
+		ValueFrom: &greenhousev1alpha1.ValueFromSource{
+			Secret: &greenhousev1alpha1.SecretKeyReference{
 				Name: "plugindefinition-secret",
 				Key:  "secretKey",
 			},
 		},
 	}
 
-	testPluginWithoutHelmChart = &greenhousesapv1alpha1.PluginDefinition{
+	testPluginWithoutHelmChart = &greenhousev1alpha1.PluginDefinition{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: "test-org",
 			Name:      "test-plugindefinition",
 		},
-		Spec: greenhousesapv1alpha1.PluginDefinitionSpec{
-			Options: []greenhousesapv1alpha1.PluginOption{
+		Spec: greenhousev1alpha1.PluginDefinitionSpec{
+			Options: []greenhousev1alpha1.PluginOption{
 				{
 					Name:        "key1",
 					Description: "key1 description",
@@ -66,19 +66,19 @@ var (
 		},
 	}
 
-	testPluginWithHelmChart = &greenhousesapv1alpha1.PluginDefinition{
+	testPluginWithHelmChart = &greenhousev1alpha1.PluginDefinition{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: "test-org",
 			Name:      "test-plugindefinition",
 		},
-		Spec: greenhousesapv1alpha1.PluginDefinitionSpec{
+		Spec: greenhousev1alpha1.PluginDefinitionSpec{
 			Version: "1.0.0",
-			HelmChart: &greenhousesapv1alpha1.HelmChartReference{
+			HelmChart: &greenhousev1alpha1.HelmChartReference{
 				Name:       "./../test/fixtures/myChart",
 				Repository: "dummy",
 				Version:    "1.0.0",
 			},
-			Options: []greenhousesapv1alpha1.PluginOption{
+			Options: []greenhousev1alpha1.PluginOption{
 				{
 					Name:        "key1",
 					Description: "key1 description",
@@ -90,18 +90,18 @@ var (
 		},
 	}
 
-	testPluginWithHelmChartOCI = &greenhousesapv1alpha1.PluginDefinition{
+	testPluginWithHelmChartOCI = &greenhousev1alpha1.PluginDefinition{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: "test-org",
 			Name:      "test-plugindefinition",
 		},
-		Spec: greenhousesapv1alpha1.PluginDefinitionSpec{
-			HelmChart: &greenhousesapv1alpha1.HelmChartReference{
+		Spec: greenhousev1alpha1.PluginDefinitionSpec{
+			HelmChart: &greenhousev1alpha1.HelmChartReference{
 				Name:       "dummy",
 				Repository: "oci://greenhouse/helm-charts",
 				Version:    "1.0.0",
 			},
-			Options: []greenhousesapv1alpha1.PluginOption{
+			Options: []greenhousev1alpha1.PluginOption{
 				{
 					Name:        "key1",
 					Description: "key1 description",
@@ -113,19 +113,19 @@ var (
 		},
 	}
 
-	testPluginWithHelmChartCRDs = &greenhousesapv1alpha1.PluginDefinition{
+	testPluginWithHelmChartCRDs = &greenhousev1alpha1.PluginDefinition{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: "test-org",
 			Name:      "test-plugindefinition",
 		},
-		Spec: greenhousesapv1alpha1.PluginDefinitionSpec{
+		Spec: greenhousev1alpha1.PluginDefinitionSpec{
 			Version: "1.0.0",
-			HelmChart: &greenhousesapv1alpha1.HelmChartReference{
+			HelmChart: &greenhousev1alpha1.HelmChartReference{
 				Name:       "./../test/fixtures/myChartWithCRDs",
 				Repository: "dummy",
 				Version:    "1.0.0",
 			},
-			Options: []greenhousesapv1alpha1.PluginOption{
+			Options: []greenhousev1alpha1.PluginOption{
 				{
 					Name:        "key1",
 					Description: "key1 description",
@@ -137,15 +137,15 @@ var (
 		},
 	}
 
-	plugin = &greenhousesapv1alpha1.Plugin{
+	plugin = &greenhousev1alpha1.Plugin{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: "test-org",
 			Name:      "test-plugin",
 		},
-		Spec: greenhousesapv1alpha1.PluginSpec{
+		Spec: greenhousev1alpha1.PluginSpec{
 			PluginDefinition: "test-plugindefinition",
 			ClusterName:      "test-cluster",
-			OptionValues:     []greenhousesapv1alpha1.PluginOptionValue{},
+			OptionValues:     []greenhousev1alpha1.PluginOptionValue{},
 			ReleaseNamespace: "test-release-namespace",
 		},
 	}
@@ -160,9 +160,9 @@ var (
 		},
 	}
 
-	team = &greenhousesapv1alpha1.Team{
+	team = &greenhousev1alpha1.Team{
 		TypeMeta: metav1.TypeMeta{
-			APIVersion: greenhousesapv1alpha1.GroupVersion.Group,
+			APIVersion: greenhousev1alpha1.GroupVersion.Group,
 			Kind:       "Team",
 		},
 
@@ -170,7 +170,7 @@ var (
 			Name:      "test-team-1",
 			Namespace: "test-org",
 		},
-		Spec: greenhousesapv1alpha1.TeamSpec{
+		Spec: greenhousev1alpha1.TeamSpec{
 			Description:    "Test Team 1",
 			MappedIDPGroup: "IDP_GROUP_NAME_MATCHING_TEAM_1",
 		},

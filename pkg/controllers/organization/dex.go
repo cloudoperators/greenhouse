@@ -19,14 +19,14 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
-	greenhousesapv1alpha1 "github.com/cloudoperators/greenhouse/pkg/apis/greenhouse/v1alpha1"
+	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/pkg/apis/greenhouse/v1alpha1"
 	"github.com/cloudoperators/greenhouse/pkg/clientutil"
 	"github.com/cloudoperators/greenhouse/pkg/common"
 )
 
 const dexConnectorTypeGreenhouse = "greenhouse-oidc"
 
-func (r *OrganizationReconciler) discoverOIDCRedirectURL(ctx context.Context, org *greenhousesapv1alpha1.Organization) (string, error) {
+func (r *OrganizationReconciler) discoverOIDCRedirectURL(ctx context.Context, org *greenhousev1alpha1.Organization) (string, error) {
 	if r := org.Spec.Authentication.OIDCConfig.RedirectURI; r != "" {
 		return r, nil
 	}
@@ -46,7 +46,7 @@ func (r *OrganizationReconciler) discoverOIDCRedirectURL(ctx context.Context, or
 
 // removeAuthRedirectFromDefaultConnector - removes oauth redirects of the org being deleted
 // in the default connector's OAuth2Client
-func (r *OrganizationReconciler) removeAuthRedirectFromDefaultConnector(ctx context.Context, org *greenhousesapv1alpha1.Organization) error {
+func (r *OrganizationReconciler) removeAuthRedirectFromDefaultConnector(ctx context.Context, org *greenhousev1alpha1.Organization) error {
 	defaultClient, err := r.dex.GetClient(defaultGreenhouseConnectorID)
 	if err != nil {
 		log.FromContext(ctx).Error(err, "failed to get default oauth2client", "name", defaultGreenhouseConnectorID)
@@ -68,7 +68,7 @@ func (r *OrganizationReconciler) removeAuthRedirectFromDefaultConnector(ctx cont
 	return nil
 }
 
-func (r *OrganizationReconciler) deleteDexConnector(ctx context.Context, org *greenhousesapv1alpha1.Organization) error {
+func (r *OrganizationReconciler) deleteDexConnector(ctx context.Context, org *greenhousev1alpha1.Organization) error {
 	if err := r.dex.DeleteConnector(org.Name); err != nil {
 		if errors.Is(err, storage.ErrNotFound) {
 			log.FromContext(ctx).Info("dex connector not found", "name", org.Name)
@@ -81,7 +81,7 @@ func (r *OrganizationReconciler) deleteDexConnector(ctx context.Context, org *gr
 	return nil
 }
 
-func (r *OrganizationReconciler) deleteOAuth2Client(ctx context.Context, org *greenhousesapv1alpha1.Organization) error {
+func (r *OrganizationReconciler) deleteOAuth2Client(ctx context.Context, org *greenhousev1alpha1.Organization) error {
 	if err := r.dex.DeleteClient(org.Name); err != nil {
 		if errors.Is(err, storage.ErrNotFound) {
 			log.FromContext(ctx).Info("oauth2client not found", "name", org.Name)
@@ -95,7 +95,7 @@ func (r *OrganizationReconciler) deleteOAuth2Client(ctx context.Context, org *gr
 }
 
 // reconcileDexConnector - creates or updates dex connector
-func (r *OrganizationReconciler) reconcileDexConnector(ctx context.Context, org *greenhousesapv1alpha1.Organization) error {
+func (r *OrganizationReconciler) reconcileDexConnector(ctx context.Context, org *greenhousev1alpha1.Organization) error {
 	clientID, err := clientutil.GetSecretKeyFromSecretKeyReference(ctx, r.Client, org.Name, org.Spec.Authentication.OIDCConfig.ClientIDReference)
 	if err != nil {
 		return err
@@ -155,7 +155,7 @@ func (r *OrganizationReconciler) reconcileDexConnector(ctx context.Context, org 
 }
 
 // reconcileOAuth2Client - creates or updates oauth2client
-func (r *OrganizationReconciler) reconcileOAuth2Client(ctx context.Context, org *greenhousesapv1alpha1.Organization) error {
+func (r *OrganizationReconciler) reconcileOAuth2Client(ctx context.Context, org *greenhousev1alpha1.Organization) error {
 	oAuthClient, err := r.dex.GetClient(org.Name)
 	if err != nil {
 		if errors.Is(err, storage.ErrNotFound) {

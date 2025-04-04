@@ -16,7 +16,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	greenhousesapv1alpha1 "github.com/cloudoperators/greenhouse/pkg/apis/greenhouse/v1alpha1"
+	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/pkg/apis/greenhouse/v1alpha1"
 	"github.com/cloudoperators/greenhouse/pkg/test"
 )
 
@@ -36,25 +36,25 @@ var _ = BeforeSuite(func() {
 
 	test.TestBeforeSuite()
 
-	err := test.K8sClient.Create(context.TODO(), &greenhousesapv1alpha1.Organization{
+	err := test.K8sClient.Create(context.TODO(), &greenhousev1alpha1.Organization{
 		TypeMeta: metav1.TypeMeta{
-			APIVersion: greenhousesapv1alpha1.GroupVersion.Group,
+			APIVersion: greenhousev1alpha1.GroupVersion.Group,
 			Kind:       "Organization",
 		},
 
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "test-org",
 		},
-		Spec: greenhousesapv1alpha1.OrganizationSpec{
+		Spec: greenhousev1alpha1.OrganizationSpec{
 			Description:            "Test Organization",
 			MappedOrgAdminIDPGroup: "IDP_GROUP_NAME_MATCHING_TEAM_1",
 		},
 	}, &client.CreateOptions{})
 	Expect(err).ToNot(HaveOccurred(), "There should be no error when creating an organization")
 
-	err = test.K8sClient.Create(context.TODO(), &greenhousesapv1alpha1.Team{
+	err = test.K8sClient.Create(context.TODO(), &greenhousev1alpha1.Team{
 		TypeMeta: metav1.TypeMeta{
-			APIVersion: greenhousesapv1alpha1.GroupVersion.Group,
+			APIVersion: greenhousev1alpha1.GroupVersion.Group,
 			Kind:       "Team",
 		},
 
@@ -66,16 +66,16 @@ var _ = BeforeSuite(func() {
 				"some-key":                            "some-value",
 			},
 		},
-		Spec: greenhousesapv1alpha1.TeamSpec{
+		Spec: greenhousev1alpha1.TeamSpec{
 			Description:    "Test Team 1",
 			MappedIDPGroup: "IDP_GROUP_NAME_MATCHING_TEAM_1",
 		},
 	}, &client.CreateOptions{})
 	Expect(err).ToNot(HaveOccurred(), "There should be no error when creating a team")
 
-	err = test.K8sClient.Create(context.TODO(), &greenhousesapv1alpha1.Team{
+	err = test.K8sClient.Create(context.TODO(), &greenhousev1alpha1.Team{
 		TypeMeta: metav1.TypeMeta{
-			APIVersion: greenhousesapv1alpha1.GroupVersion.Group,
+			APIVersion: greenhousev1alpha1.GroupVersion.Group,
 			Kind:       "Team",
 		},
 
@@ -87,16 +87,16 @@ var _ = BeforeSuite(func() {
 				"some-other-key":                      "some-other-value",
 			},
 		},
-		Spec: greenhousesapv1alpha1.TeamSpec{
+		Spec: greenhousev1alpha1.TeamSpec{
 			Description:    "Test Team 2",
 			MappedIDPGroup: "IDP_GROUP_NAME_MATCHING_TEAM_2",
 		},
 	}, &client.CreateOptions{})
 	Expect(err).ToNot(HaveOccurred(), "There should be no error when creating a team")
 
-	err = test.K8sClient.Create(context.TODO(), &greenhousesapv1alpha1.Team{
+	err = test.K8sClient.Create(context.TODO(), &greenhousev1alpha1.Team{
 		TypeMeta: metav1.TypeMeta{
-			APIVersion: greenhousesapv1alpha1.GroupVersion.Group,
+			APIVersion: greenhousev1alpha1.GroupVersion.Group,
 			Kind:       "Team",
 		},
 
@@ -104,16 +104,16 @@ var _ = BeforeSuite(func() {
 			Name:      "test-team-3",
 			Namespace: test.TestNamespace,
 		},
-		Spec: greenhousesapv1alpha1.TeamSpec{
+		Spec: greenhousev1alpha1.TeamSpec{
 			Description:    "Test Team 3",
 			MappedIDPGroup: "IDP_GROUP_NAME_MATCHING_TEAM_3",
 		},
 	}, &client.CreateOptions{})
 	Expect(err).ToNot(HaveOccurred(), "There should be no error when creating a team")
 
-	err = test.K8sClient.Create(context.TODO(), &greenhousesapv1alpha1.Team{
+	err = test.K8sClient.Create(context.TODO(), &greenhousev1alpha1.Team{
 		TypeMeta: metav1.TypeMeta{
-			APIVersion: greenhousesapv1alpha1.GroupVersion.Group,
+			APIVersion: greenhousev1alpha1.GroupVersion.Group,
 			Kind:       "Team",
 		},
 
@@ -121,7 +121,7 @@ var _ = BeforeSuite(func() {
 			Name:      "test-team-4",
 			Namespace: test.TestNamespace,
 		},
-		Spec: greenhousesapv1alpha1.TeamSpec{
+		Spec: greenhousev1alpha1.TeamSpec{
 			Description:    "Test Team 4",
 			MappedIDPGroup: "IDP_GROUP_NAME_MATCHING_TEAM_4",
 		},

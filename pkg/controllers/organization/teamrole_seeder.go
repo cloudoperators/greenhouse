@@ -12,11 +12,11 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
-	greenhousesapv1alpha1 "github.com/cloudoperators/greenhouse/pkg/apis/greenhouse/v1alpha1"
+	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/pkg/apis/greenhouse/v1alpha1"
 	"github.com/cloudoperators/greenhouse/pkg/clientutil"
 )
 
-var defaultTeamRoles = map[string]greenhousesapv1alpha1.TeamRoleSpec{
+var defaultTeamRoles = map[string]greenhousev1alpha1.TeamRoleSpec{
 	"cluster-admin": {
 		Rules: []rbacv1.PolicyRule{{
 			APIGroups: []string{"*"},
@@ -75,9 +75,9 @@ var defaultTeamRoles = map[string]greenhousesapv1alpha1.TeamRoleSpec{
 	},
 }
 
-func (r *OrganizationReconciler) reconcileDefaultTeamRoles(ctx context.Context, org *greenhousesapv1alpha1.Organization) error {
+func (r *OrganizationReconciler) reconcileDefaultTeamRoles(ctx context.Context, org *greenhousev1alpha1.Organization) error {
 	for name, teamRoleSpec := range defaultTeamRoles {
-		var tr = new(greenhousesapv1alpha1.TeamRole)
+		var tr = new(greenhousev1alpha1.TeamRole)
 		tr.Name = name
 		tr.Namespace = org.GetName()
 
