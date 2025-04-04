@@ -6,13 +6,19 @@ package main
 import (
 	"context"
 	"crypto/x509"
-	"sort"
+	"slices"
+	"strings"
 
+	"sort"
+	"strconv"
+
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 
 	"github.com/open-policy-agent/cert-controller/pkg/rotator"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 
 	"github.com/cloudoperators/greenhouse/internal/clientutil"
 	clustercontrollers "github.com/cloudoperators/greenhouse/internal/controller/cluster"
@@ -96,8 +102,47 @@ func startClusterReconciler(name string, mgr ctrl.Manager) error {
 	}).SetupWithManager(name, mgr)
 }
 
+func loadExtraDnsNamesForCertificate(mgr ctrl.Manager) []string {
+	allDnsNames := []string{"greenhouse-webhook-service.greenhouse.svc.cluster.local"}
+
+	setupLog.Info("Loading ExtraDNSNames from ConfigMap...")
+
+	configMap := &corev1.ConfigMap{}
+	// Note: mgr.GetClient() will fail here because the cache is not ready yet.
+	k8sclient := mgr.GetAPIReader()
+	err := k8sclient.Get(context.TODO(), types.NamespacedName{Name: "greenhouse-webhook-server-config", Namespace: "greenhouse"}, configMap)
+	if err != nil {
+		if apierrors.IsNotFound(err) {
+			setupLog.Info("ConfigMap not found. " + err.Error())
+			return allDnsNames
+		}
+		setupLog.Info("failed to load ConfigMap for WebhookServer, leaving default DNSNames")
+		return allDnsNames
+	}
+
+	value, exists := configMap.Data["extraDnsNames"]
+	if exists {
+		extraDNSNames := strings.Split(value, "\n")
+		extraDNSNames = slices.DeleteFunc(extraDNSNames, func(name string) bool {
+			return name == "" // Remove empty strings left after Split.
+		})
+
+		allDnsNames = append(allDnsNames, extraDNSNames...)
+
+		setupLog.Info("Loaded cert-controller local DNS names (" + strconv.Itoa(len(extraDNSNames)) + "):")
+		for i, v := range extraDNSNames {
+			setupLog.Info("value" + strconv.Itoa(i) + " = '" + v + "'")
+		}
+	}
+	return allDnsNames
+}
+
 func startCertController(_ string, mgr ctrl.Manager) error {
 	setupFinished := make(chan struct{})
+
+	setupLog.Info("Loading ExtraDNSNames...")
+	extraDNSNames := loadExtraDnsNamesForCertificate(mgr)
+	setupLog.Info("Loaded " + strconv.Itoa(len(extraDNSNames)) + " ExtraDNSNames.")
 
 	if err := rotator.AddRotator(mgr, &rotator.CertRotator{
 		Webhooks: []rotator.WebhookInfo{
@@ -115,7 +160,9 @@ func startCertController(_ string, mgr ctrl.Manager) error {
 		CAName:                "greenhouse-ca", // Used for CA certificate Subject.
 		CAOrganization:        "greenhouse",    // Used for CA certificate Subject.
 		DNSName:               "greenhouse-webhook-service.greenhouse.svc",
-		ExtraDNSNames:         []string{"greenhouse-webhook-service.greenhouse.svc.cluster.local"},
+		ExtraDNSNames:         extraDNSNames, //[]string{"greenhouse-webhook-service.greenhouse.svc.cluster.local"}, //, "172.17.0.1"
+		ExtKeyUsages:          &[]x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth},
+		// RestartOnSecretRefresh: true,
 		// Optional with default values:
 		// CertName:               "tls.crt",
 		// KeyName:                "tls.key",
@@ -123,7 +170,6 @@ func startCertController(_ string, mgr ctrl.Manager) error {
 		// ServerCertDuration:     1 * 365 * 24 * time.Hour,
 		// LookaheadInterval:      90 * 24 * time.Hour,
 		// RotationCheckFrequency: 90 * 24 * time.Hour,
-		ExtKeyUsages: &[]x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth},
 	}); err != nil {
 		setupLog.Error(err, "unable to set up cert rotation")
 		return err
