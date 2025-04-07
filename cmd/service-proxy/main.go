@@ -26,7 +26,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/metrics"
 	metricsserver "sigs.k8s.io/controller-runtime/pkg/metrics/server"
 
-	greenhousesapv1alpha1 "github.com/cloudoperators/greenhouse/pkg/apis/greenhouse/v1alpha1"
+	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/pkg/apis/greenhouse/v1alpha1"
 	greenhousehealthz "github.com/cloudoperators/greenhouse/pkg/healthz"
 	"github.com/cloudoperators/greenhouse/pkg/version"
 )
@@ -61,7 +61,7 @@ func main() {
 	}
 	scheme := runtime.NewScheme()
 	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
-	utilruntime.Must(greenhousesapv1alpha1.AddToScheme(scheme))
+	utilruntime.Must(greenhousev1alpha1.AddToScheme(scheme))
 
 	mgr, err := ctrl.NewManager(k8sConfig, ctrl.Options{
 		Logger: logger,

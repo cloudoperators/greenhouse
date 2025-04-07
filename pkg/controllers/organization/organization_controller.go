@@ -22,7 +22,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 
-	greenhousesapv1alpha1 "github.com/cloudoperators/greenhouse/pkg/apis/greenhouse/v1alpha1"
+	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/pkg/apis/greenhouse/v1alpha1"
 	"github.com/cloudoperators/greenhouse/pkg/clientutil"
 	dexstore "github.com/cloudoperators/greenhouse/pkg/dex"
 	dexapi "github.com/cloudoperators/greenhouse/pkg/dex/api"
@@ -33,16 +33,16 @@ import (
 
 var (
 	// exposedConditions are the conditions that are exposed in the StatusConditions of the Organization.
-	exposedConditions = []greenhousesapv1alpha1.ConditionType{
-		greenhousesapv1alpha1.ReadyCondition,
-		greenhousesapv1alpha1.SCIMAPIAvailableCondition,
-		greenhousesapv1alpha1.ServiceProxyProvisioned,
-		greenhousesapv1alpha1.OrganizationOICDConfigured,
-		greenhousesapv1alpha1.OrganizationAdminTeamConfigured,
-		greenhousesapv1alpha1.ServiceProxyProvisioned,
-		greenhousesapv1alpha1.OrganizationDefaultTeamRolesConfigured,
-		greenhousesapv1alpha1.NamespaceCreated,
-		greenhousesapv1alpha1.OrganizationRBACConfigured,
+	exposedConditions = []greenhousev1alpha1.ConditionType{
+		greenhousev1alpha1.ReadyCondition,
+		greenhousev1alpha1.SCIMAPIAvailableCondition,
+		greenhousev1alpha1.ServiceProxyProvisioned,
+		greenhousev1alpha1.OrganizationOICDConfigured,
+		greenhousev1alpha1.OrganizationAdminTeamConfigured,
+		greenhousev1alpha1.ServiceProxyProvisioned,
+		greenhousev1alpha1.OrganizationDefaultTeamRolesConfigured,
+		greenhousev1alpha1.NamespaceCreated,
+		greenhousev1alpha1.OrganizationRBACConfigured,
 	}
 )
 
@@ -83,11 +83,11 @@ func (r *OrganizationReconciler) SetupWithManager(name string, mgr ctrl.Manager)
 	r.dex = dexter
 	b := ctrl.NewControllerManagedBy(mgr).
 		Named(name).
-		For(&greenhousesapv1alpha1.Organization{}).
+		For(&greenhousev1alpha1.Organization{}).
 		Owns(&corev1.Namespace{}).
-		Owns(&greenhousesapv1alpha1.Team{}).
-		Owns(&greenhousesapv1alpha1.TeamRole{}).
-		Owns(&greenhousesapv1alpha1.Plugin{}).
+		Owns(&greenhousev1alpha1.Team{}).
+		Owns(&greenhousev1alpha1.TeamRole{}).
+		Owns(&greenhousev1alpha1.Plugin{}).
 		Owns(&rbacv1.Role{}).
 		Owns(&rbacv1.RoleBinding{}).
 		Owns(&rbacv1.ClusterRole{}).
@@ -95,7 +95,7 @@ func (r *OrganizationReconciler) SetupWithManager(name string, mgr ctrl.Manager)
 		Watches(&corev1.Secret{},
 			handler.EnqueueRequestsFromMapFunc(r.enqueueOrganizationForReferencedSecret),
 			builder.WithPredicates(clientutil.PredicateHasOICDConfigured())).
-		Watches(&greenhousesapv1alpha1.PluginDefinition{},
+		Watches(&greenhousev1alpha1.PluginDefinition{},
 			handler.EnqueueRequestsFromMapFunc(r.enqueueAllOrganizationsForServiceProxyPluginDefinition),
 			builder.WithPredicates(predicate.And(
 				clientutil.PredicateByName(serviceProxyName),
@@ -109,11 +109,11 @@ func (r *OrganizationReconciler) SetupWithManager(name string, mgr ctrl.Manager)
 }
 
 func (r *OrganizationReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	return lifecycle.Reconcile(ctx, r.Client, req.NamespacedName, &greenhousesapv1alpha1.Organization{}, r, r.setStatus())
+	return lifecycle.Reconcile(ctx, r.Client, req.NamespacedName, &greenhousev1alpha1.Organization{}, r, r.setStatus())
 }
 
 func (r *OrganizationReconciler) EnsureDeleted(ctx context.Context, obj lifecycle.RuntimeObject) (ctrl.Result, lifecycle.ReconcileResult, error) {
-	org, ok := obj.(*greenhousesapv1alpha1.Organization)
+	org, ok := obj.(*greenhousev1alpha1.Organization)
 	if !ok {
 		return ctrl.Result{}, lifecycle.Success, nil
 	}
@@ -134,7 +134,7 @@ func (r *OrganizationReconciler) EnsureDeleted(ctx context.Context, obj lifecycl
 }
 
 func (r *OrganizationReconciler) EnsureCreated(ctx context.Context, object lifecycle.RuntimeObject) (ctrl.Result, lifecycle.ReconcileResult, error) {
-	org, ok := object.(*greenhousesapv1alpha1.Organization)
+	org, ok := object.(*greenhousev1alpha1.Organization)
 	if !ok {
 		return ctrl.Result{}, lifecycle.Failed, errors.Errorf("RuntimeObject has incompatible type.")
 	}
@@ -142,59 +142,59 @@ func (r *OrganizationReconciler) EnsureCreated(ctx context.Context, object lifec
 	initOrganizationStatus(org)
 
 	if err := r.reconcileNamespace(ctx, org); err != nil {
-		org.SetCondition(greenhousesapv1alpha1.FalseCondition(greenhousesapv1alpha1.NamespaceCreated, "", err.Error()))
+		org.SetCondition(greenhousev1alpha1.FalseCondition(greenhousev1alpha1.NamespaceCreated, "", err.Error()))
 		return ctrl.Result{}, lifecycle.Failed, err
 	}
-	org.SetCondition(greenhousesapv1alpha1.TrueCondition(greenhousesapv1alpha1.NamespaceCreated, "", ""))
+	org.SetCondition(greenhousev1alpha1.TrueCondition(greenhousev1alpha1.NamespaceCreated, "", ""))
 
 	if err := r.reconcileRBAC(ctx, org); err != nil {
-		org.SetCondition(greenhousesapv1alpha1.FalseCondition(greenhousesapv1alpha1.OrganizationRBACConfigured, "", err.Error()))
+		org.SetCondition(greenhousev1alpha1.FalseCondition(greenhousev1alpha1.OrganizationRBACConfigured, "", err.Error()))
 		return ctrl.Result{}, lifecycle.Failed, err
 	}
-	org.SetCondition(greenhousesapv1alpha1.TrueCondition(greenhousesapv1alpha1.OrganizationRBACConfigured, "", ""))
+	org.SetCondition(greenhousev1alpha1.TrueCondition(greenhousev1alpha1.OrganizationRBACConfigured, "", ""))
 
 	if err := r.reconcileDefaultTeamRoles(ctx, org); err != nil {
-		org.SetCondition(greenhousesapv1alpha1.FalseCondition(greenhousesapv1alpha1.OrganizationDefaultTeamRolesConfigured, "", err.Error()))
+		org.SetCondition(greenhousev1alpha1.FalseCondition(greenhousev1alpha1.OrganizationDefaultTeamRolesConfigured, "", err.Error()))
 		return ctrl.Result{}, lifecycle.Failed, err
 	}
-	org.SetCondition(greenhousesapv1alpha1.TrueCondition(greenhousesapv1alpha1.OrganizationDefaultTeamRolesConfigured, "", ""))
+	org.SetCondition(greenhousev1alpha1.TrueCondition(greenhousev1alpha1.OrganizationDefaultTeamRolesConfigured, "", ""))
 
 	if err := r.reconcileServiceProxy(ctx, org); err != nil {
-		org.SetCondition(greenhousesapv1alpha1.FalseCondition(greenhousesapv1alpha1.ServiceProxyProvisioned, "", err.Error()))
+		org.SetCondition(greenhousev1alpha1.FalseCondition(greenhousev1alpha1.ServiceProxyProvisioned, "", err.Error()))
 		return ctrl.Result{}, lifecycle.Failed, err
 	}
-	org.SetCondition(greenhousesapv1alpha1.TrueCondition(greenhousesapv1alpha1.ServiceProxyProvisioned, "", ""))
+	org.SetCondition(greenhousev1alpha1.TrueCondition(greenhousev1alpha1.ServiceProxyProvisioned, "", ""))
 
 	if org.Spec.Authentication != nil && org.Spec.Authentication.OIDCConfig != nil {
 		if err := r.reconcileDexConnector(ctx, org); err != nil {
-			org.SetCondition(greenhousesapv1alpha1.FalseCondition(greenhousesapv1alpha1.OrganizationOICDConfigured, greenhousesapv1alpha1.DexReconcileFailed, ""))
+			org.SetCondition(greenhousev1alpha1.FalseCondition(greenhousev1alpha1.OrganizationOICDConfigured, greenhousev1alpha1.DexReconcileFailed, ""))
 			return ctrl.Result{}, lifecycle.Failed, err
 		}
 
 		if err := r.reconcileOAuth2Client(ctx, org); err != nil {
-			org.SetCondition(greenhousesapv1alpha1.FalseCondition(greenhousesapv1alpha1.OrganizationOICDConfigured, greenhousesapv1alpha1.OAuthOICDFailed, err.Error()))
+			org.SetCondition(greenhousev1alpha1.FalseCondition(greenhousev1alpha1.OrganizationOICDConfigured, greenhousev1alpha1.OAuthOICDFailed, err.Error()))
 			return ctrl.Result{}, lifecycle.Failed, err
 		}
 		if org.Name != defaultGreenhouseConnectorID {
 			if err := r.appendRedirectsToDefaultConnector(ctx, org.Name); err != nil {
-				org.SetCondition(greenhousesapv1alpha1.FalseCondition(greenhousesapv1alpha1.OrganizationOICDConfigured, greenhousesapv1alpha1.DefaultConnectorRedirectsFailed, err.Error()))
+				org.SetCondition(greenhousev1alpha1.FalseCondition(greenhousev1alpha1.OrganizationOICDConfigured, greenhousev1alpha1.DefaultConnectorRedirectsFailed, err.Error()))
 				return ctrl.Result{}, lifecycle.Failed, err
 			}
 		}
 
-		org.SetCondition(greenhousesapv1alpha1.TrueCondition(greenhousesapv1alpha1.OrganizationOICDConfigured, "", ""))
+		org.SetCondition(greenhousev1alpha1.TrueCondition(greenhousev1alpha1.OrganizationOICDConfigured, "", ""))
 	}
 
 	if err := r.reconcileAdminTeam(ctx, org); err != nil {
-		org.SetCondition(greenhousesapv1alpha1.FalseCondition(greenhousesapv1alpha1.OrganizationAdminTeamConfigured, "", err.Error()))
+		org.SetCondition(greenhousev1alpha1.FalseCondition(greenhousev1alpha1.OrganizationAdminTeamConfigured, "", err.Error()))
 		return ctrl.Result{}, lifecycle.Failed, err
 	}
-	org.SetCondition(greenhousesapv1alpha1.TrueCondition(greenhousesapv1alpha1.OrganizationAdminTeamConfigured, "", ""))
+	org.SetCondition(greenhousev1alpha1.TrueCondition(greenhousev1alpha1.OrganizationAdminTeamConfigured, "", ""))
 
 	return ctrl.Result{}, lifecycle.Success, nil
 }
 
-func (r *OrganizationReconciler) reconcileNamespace(ctx context.Context, org *greenhousesapv1alpha1.Organization) error {
+func (r *OrganizationReconciler) reconcileNamespace(ctx context.Context, org *greenhousev1alpha1.Organization) error {
 	var namespace = new(corev1.Namespace)
 	namespace.Name = org.Name
 
@@ -215,10 +215,10 @@ func (r *OrganizationReconciler) reconcileNamespace(ctx context.Context, org *gr
 	return nil
 }
 
-func (r *OrganizationReconciler) reconcileAdminTeam(ctx context.Context, org *greenhousesapv1alpha1.Organization) error {
+func (r *OrganizationReconciler) reconcileAdminTeam(ctx context.Context, org *greenhousev1alpha1.Organization) error {
 	namespace := org.Name
 
-	var team = new(greenhousesapv1alpha1.Team)
+	var team = new(greenhousev1alpha1.Team)
 	team.Name = org.Name + "-admin"
 	team.Namespace = namespace
 
@@ -241,7 +241,7 @@ func (r *OrganizationReconciler) reconcileAdminTeam(ctx context.Context, org *gr
 	return nil
 }
 
-func (r *OrganizationReconciler) reconcileRBAC(ctx context.Context, org *greenhousesapv1alpha1.Organization) error {
+func (r *OrganizationReconciler) reconcileRBAC(ctx context.Context, org *greenhousev1alpha1.Organization) error {
 	// NOTE: The below code is intentionally rather explicit for transparency reasons as several Kubernetes resources
 	// are involved granting permissions on both cluster and namespace level based on organization, team membership and roles.
 	// The PolicyRules can be found in the pkg/rbac/role.
@@ -287,14 +287,14 @@ func (r *OrganizationReconciler) reconcileRBAC(ctx context.Context, org *greenho
 	return nil
 }
 
-func (r *OrganizationReconciler) checkSCIMAPIAvailability(ctx context.Context, org *greenhousesapv1alpha1.Organization) greenhousesapv1alpha1.Condition {
+func (r *OrganizationReconciler) checkSCIMAPIAvailability(ctx context.Context, org *greenhousev1alpha1.Organization) greenhousev1alpha1.Condition {
 	if org.Spec.Authentication == nil || org.Spec.Authentication.SCIMConfig == nil {
 		// SCIM Config is optional.
-		return greenhousesapv1alpha1.UnknownCondition(greenhousesapv1alpha1.SCIMAPIAvailableCondition, greenhousesapv1alpha1.SCIMConfigErrorReason, "SCIM Config not provided")
+		return greenhousev1alpha1.UnknownCondition(greenhousev1alpha1.SCIMAPIAvailableCondition, greenhousev1alpha1.SCIMConfigErrorReason, "SCIM Config not provided")
 	}
 
 	if org.Spec.MappedOrgAdminIDPGroup == "" {
-		return greenhousesapv1alpha1.FalseCondition(greenhousesapv1alpha1.SCIMAPIAvailableCondition, greenhousesapv1alpha1.SCIMRequestFailedReason, ".Spec.MappedOrgAdminIDPGroup is not set in Organization")
+		return greenhousev1alpha1.FalseCondition(greenhousev1alpha1.SCIMAPIAvailableCondition, greenhousev1alpha1.SCIMRequestFailedReason, ".Spec.MappedOrgAdminIDPGroup is not set in Organization")
 	}
 
 	namespace := org.Name
@@ -302,12 +302,12 @@ func (r *OrganizationReconciler) checkSCIMAPIAvailability(ctx context.Context, o
 
 	config, err := util.GreenhouseSCIMConfigToSCIMConfig(ctx, r.Client, scimConfig, namespace)
 	if err != nil {
-		return greenhousesapv1alpha1.FalseCondition(greenhousesapv1alpha1.SCIMAPIAvailableCondition, greenhousesapv1alpha1.SCIMConfigErrorReason, err.Error())
+		return greenhousev1alpha1.FalseCondition(greenhousev1alpha1.SCIMAPIAvailableCondition, greenhousev1alpha1.SCIMConfigErrorReason, err.Error())
 	}
 	logger := ctrl.LoggerFrom(ctx)
 	scimClient, err := scim.NewSCIMClient(logger, config)
 	if err != nil {
-		return greenhousesapv1alpha1.FalseCondition(greenhousesapv1alpha1.SCIMAPIAvailableCondition, greenhousesapv1alpha1.SCIMRequestFailedReason, "Failed to create SCIM client")
+		return greenhousev1alpha1.FalseCondition(greenhousev1alpha1.SCIMAPIAvailableCondition, greenhousev1alpha1.SCIMRequestFailedReason, "Failed to create SCIM client")
 	}
 
 	// verify that the SCIM API can be accessed
@@ -319,35 +319,35 @@ func (r *OrganizationReconciler) checkSCIMAPIAvailability(ctx context.Context, o
 	groups, err := scimClient.GetGroups(ctx, opts)
 	if err != nil {
 		logger.Error(err, "Failed to request data from SCIM API")
-		return greenhousesapv1alpha1.FalseCondition(greenhousesapv1alpha1.SCIMAPIAvailableCondition, greenhousesapv1alpha1.SCIMRequestFailedReason, "Failed to request data from SCIM API")
+		return greenhousev1alpha1.FalseCondition(greenhousev1alpha1.SCIMAPIAvailableCondition, greenhousev1alpha1.SCIMRequestFailedReason, "Failed to request data from SCIM API")
 	}
 	if len(groups) == 0 {
-		return greenhousesapv1alpha1.FalseCondition(greenhousesapv1alpha1.SCIMAPIAvailableCondition, greenhousesapv1alpha1.SCIMRequestFailedReason, org.Spec.MappedOrgAdminIDPGroup+" Group not found in SCIM API")
+		return greenhousev1alpha1.FalseCondition(greenhousev1alpha1.SCIMAPIAvailableCondition, greenhousev1alpha1.SCIMRequestFailedReason, org.Spec.MappedOrgAdminIDPGroup+" Group not found in SCIM API")
 	}
 
-	return greenhousesapv1alpha1.TrueCondition(greenhousesapv1alpha1.SCIMAPIAvailableCondition, lifecycle.CreatedReason, "SCIM API is available")
+	return greenhousev1alpha1.TrueCondition(greenhousev1alpha1.SCIMAPIAvailableCondition, lifecycle.CreatedReason, "SCIM API is available")
 }
 
-func calculateReadyCondition(scimAPIAvailableCondition greenhousesapv1alpha1.Condition) greenhousesapv1alpha1.Condition {
+func calculateReadyCondition(scimAPIAvailableCondition greenhousev1alpha1.Condition) greenhousev1alpha1.Condition {
 	if scimAPIAvailableCondition.IsFalse() {
-		return greenhousesapv1alpha1.FalseCondition(greenhousesapv1alpha1.ReadyCondition, greenhousesapv1alpha1.SCIMAPIUnavailableReason, "")
+		return greenhousev1alpha1.FalseCondition(greenhousev1alpha1.ReadyCondition, greenhousev1alpha1.SCIMAPIUnavailableReason, "")
 	}
 	// If SCIM API availability is unknown, then Ready state should be True, because SCIM Config is optional.
-	return greenhousesapv1alpha1.TrueCondition(greenhousesapv1alpha1.ReadyCondition, "", "")
+	return greenhousev1alpha1.TrueCondition(greenhousev1alpha1.ReadyCondition, "", "")
 }
 
-func initOrganizationStatus(org *greenhousesapv1alpha1.Organization) {
+func initOrganizationStatus(org *greenhousev1alpha1.Organization) {
 	orgStatus := org.Status
 	for _, t := range exposedConditions {
 		if orgStatus.GetConditionByType(t) == nil {
-			orgStatus.SetConditions(greenhousesapv1alpha1.UnknownCondition(t, "", ""))
+			orgStatus.SetConditions(greenhousev1alpha1.UnknownCondition(t, "", ""))
 		}
 	}
 }
 
 func (r *OrganizationReconciler) setStatus() lifecycle.Conditioner {
 	return func(ctx context.Context, object lifecycle.RuntimeObject) {
-		org, ok := object.(*greenhousesapv1alpha1.Organization)
+		org, ok := object.(*greenhousev1alpha1.Organization)
 		if !ok {
 			return
 		}
@@ -358,7 +358,7 @@ func (r *OrganizationReconciler) setStatus() lifecycle.Conditioner {
 }
 
 func (r *OrganizationReconciler) enqueueOrganizationForReferencedSecret(_ context.Context, o client.Object) []ctrl.Request {
-	var org = new(greenhousesapv1alpha1.Organization)
+	var org = new(greenhousev1alpha1.Organization)
 	if err := r.Get(context.Background(), types.NamespacedName{Namespace: "", Name: o.GetNamespace()}, org); err != nil {
 		return nil
 	}

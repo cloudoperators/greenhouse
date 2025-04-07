@@ -28,7 +28,7 @@ type Options struct {
 	KubeConfigPath string
 }
 
-type helmValues map[string]interface{}
+type helmValues map[string]any
 
 type ClientOption func(*Options)
 
@@ -100,7 +100,7 @@ type client struct {
 	releaseName    string
 	namespace      string
 	chartPath      string
-	values         map[string]interface{}
+	values         map[string]any
 	valuesPath     *string
 	kubeConfigPath string
 }

@@ -143,7 +143,7 @@ func (m *Manifest) prepareHelmClient(ctx context.Context, manifest *Manifest, cl
 }
 
 // GenerateManifests - uses helm templating to explode the chart and returns the raw manifest
-func (m *Manifest) generateManifests(ctx context.Context) ([]map[string]interface{}, error) {
+func (m *Manifest) generateManifests(ctx context.Context) ([]map[string]any, error) {
 	resources, err := m.generateAllManifests(ctx)
 	if err != nil {
 		return nil, err
@@ -152,14 +152,14 @@ func (m *Manifest) generateManifests(ctx context.Context) ([]map[string]interfac
 	return m.filterCustomResources(excluded), nil
 }
 
-func (m *Manifest) generateAllManifests(ctx context.Context) ([]map[string]interface{}, error) {
+func (m *Manifest) generateAllManifests(ctx context.Context) ([]map[string]any, error) {
 	utils.Logf("generating manifest for chart %s...", m.ChartPath)
 	templates, err := m.hc.Template(ctx)
 	if err != nil {
 		return nil, err
 	}
 	docs := strings.Split(templates, "---")
-	resources := make([]map[string]interface{}, 0)
+	resources := make([]map[string]any, 0)
 	for _, doc := range docs {
 		resource, err := utils.RawK8sInterface([]byte(doc))
 		if err != nil {
@@ -173,7 +173,7 @@ func (m *Manifest) generateAllManifests(ctx context.Context) ([]map[string]inter
 }
 
 // ApplyManifests - applies the given resources to the Cluster using kubectl
-func (m *Manifest) applyManifests(resources []map[string]interface{}, namespace, kubeConfigPath string) error {
+func (m *Manifest) applyManifests(resources []map[string]any, namespace, kubeConfigPath string) error {
 	manifests, err := utils.Stringify(resources)
 	if err != nil {
 		return err
@@ -193,15 +193,15 @@ func (m *Manifest) apply(manifests, namespace, kubeConfigPath string) error {
 	return sh.Exec()
 }
 
-func (m *Manifest) resourceExclusion(resources []map[string]interface{}) []map[string]interface{} {
+func (m *Manifest) resourceExclusion(resources []map[string]any) []map[string]any {
 	if len(m.ExcludeKinds) == 0 {
 		return resources
 	}
 	return excludeResources(resources, m.ExcludeKinds)
 }
 
-func excludeResources(resources []map[string]interface{}, exclusions []string) []map[string]interface{} {
-	excludeResources := make([]map[string]interface{}, 0)
+func excludeResources(resources []map[string]any, exclusions []string) []map[string]any {
+	excludeResources := make([]map[string]any, 0)
 	excludeResources = append(excludeResources, resources...)
 	for i := 0; i < len(excludeResources); {
 		if k, ok := excludeResources[i]["kind"].(string); ok && utils.SliceContains(exclusions, k) {
@@ -214,15 +214,15 @@ func excludeResources(resources []map[string]interface{}, exclusions []string) [
 	return excludeResources
 }
 
-func (m *Manifest) filterCustomResources(resources []map[string]interface{}) []map[string]interface{} {
+func (m *Manifest) filterCustomResources(resources []map[string]any) []map[string]any {
 	if m.CRDOnly {
 		return filterResourcesBy(resources, "CustomResourceDefinition")
 	}
 	return resources
 }
 
-func filterResourcesBy(resources []map[string]interface{}, filterBy string) []map[string]interface{} {
-	filteredResource := make([]map[string]interface{}, 0)
+func filterResourcesBy(resources []map[string]any, filterBy string) []map[string]any {
+	filteredResource := make([]map[string]any, 0)
 	filteredResource = append(filteredResource, resources...)
 	for i := 0; i < len(filteredResource); {
 		if k, ok := filteredResource[i]["kind"].(string); ok && k != filterBy {

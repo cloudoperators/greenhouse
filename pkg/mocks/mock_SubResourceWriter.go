@@ -17,11 +17,11 @@ type MockSubResourceWriter struct {
 
 // Create provides a mock function with given fields: ctx, obj, subResource, opts
 func (_m *MockSubResourceWriter) Create(ctx context.Context, obj client.Object, subResource client.Object, opts ...client.SubResourceCreateOption) error {
-	_va := make([]interface{}, len(opts))
+	_va := make([]any, len(opts))
 	for _i := range opts {
 		_va[_i] = opts[_i]
 	}
-	var _ca []interface{}
+	var _ca []any
 	_ca = append(_ca, ctx, obj, subResource)
 	_ca = append(_ca, _va...)
 	ret := _m.Called(_ca...)
@@ -42,11 +42,11 @@ func (_m *MockSubResourceWriter) Create(ctx context.Context, obj client.Object, 
 
 // Patch provides a mock function with given fields: ctx, obj, patch, opts
 func (_m *MockSubResourceWriter) Patch(ctx context.Context, obj client.Object, patch client.Patch, opts ...client.SubResourcePatchOption) error {
-	_va := make([]interface{}, len(opts))
+	_va := make([]any, len(opts))
 	for _i := range opts {
 		_va[_i] = opts[_i]
 	}
-	var _ca []interface{}
+	var _ca []any
 	_ca = append(_ca, ctx, obj, patch)
 	_ca = append(_ca, _va...)
 	ret := _m.Called(_ca...)
@@ -67,11 +67,11 @@ func (_m *MockSubResourceWriter) Patch(ctx context.Context, obj client.Object, p
 
 // Update provides a mock function with given fields: ctx, obj, opts
 func (_m *MockSubResourceWriter) Update(ctx context.Context, obj client.Object, opts ...client.SubResourceUpdateOption) error {
-	_va := make([]interface{}, len(opts))
+	_va := make([]any, len(opts))
 	for _i := range opts {
 		_va[_i] = opts[_i]
 	}
-	var _ca []interface{}
+	var _ca []any
 	_ca = append(_ca, ctx, obj)
 	_ca = append(_ca, _va...)
 	ret := _m.Called(_ca...)

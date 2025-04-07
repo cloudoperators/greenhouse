@@ -15,16 +15,16 @@ var _ = Describe("validate utility functions", Ordered, func() {
 		var portNumber int32 = 80
 		// Mock an unstructured object with ports
 		unstructuredObj := &unstructured.Unstructured{
-			Object: map[string]interface{}{
+			Object: map[string]any{
 				"apiVersion": "v1",
 				"kind":       "Service",
-				"metadata": map[string]interface{}{
+				"metadata": map[string]any{
 					"name":      "example-service",
 					"namespace": "default",
 				},
-				"spec": map[string]interface{}{
+				"spec": map[string]any{
 					"type": "ClusterIP",
-					"ports": []interface{}{map[string]interface{}{
+					"ports": []any{map[string]any{
 						"port":     portNumber,
 						"protocol": "TCP",
 					}},
@@ -44,25 +44,25 @@ var _ = Describe("validate utility functions", Ordered, func() {
 		var portNumber2 int32 = 443
 		// Mock an unstructured object with ports
 		unstructuredObj := &unstructured.Unstructured{
-			Object: map[string]interface{}{
+			Object: map[string]any{
 				"apiVersion": "v1",
 				"kind":       "Service",
-				"metadata": map[string]interface{}{
+				"metadata": map[string]any{
 					"name":      "example-service",
 					"namespace": "default",
 					"labels": map[string]string{
 						"greenhouse.sap/exposeNamedPort": "https",
 					},
 				},
-				"spec": map[string]interface{}{
+				"spec": map[string]any{
 					"type": "ClusterIP",
-					"ports": []interface{}{
-						map[string]interface{}{
+					"ports": []any{
+						map[string]any{
 							"name":     "http",
 							"port":     portNumber1,
 							"protocol": "TCP",
 						},
-						map[string]interface{}{
+						map[string]any{
 							"name":     "https",
 							"port":     portNumber2,
 							"protocol": "TCP",

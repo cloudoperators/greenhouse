@@ -25,7 +25,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 	metricsserver "sigs.k8s.io/controller-runtime/pkg/metrics/server"
 
-	greenhousesapv1alpha1 "github.com/cloudoperators/greenhouse/pkg/apis/greenhouse/v1alpha1"
+	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/pkg/apis/greenhouse/v1alpha1"
 	"github.com/cloudoperators/greenhouse/pkg/clientutil"
 	"github.com/cloudoperators/greenhouse/pkg/common"
 	dexapi "github.com/cloudoperators/greenhouse/pkg/dex/api"
@@ -70,7 +70,7 @@ var (
 func init() {
 	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
 	utilruntime.Must(apiextensionsv1.AddToScheme(scheme))
-	utilruntime.Must(greenhousesapv1alpha1.AddToScheme(scheme))
+	utilruntime.Must(greenhousev1alpha1.AddToScheme(scheme))
 	utilruntime.Must(dexapi.AddToScheme(scheme))
 	//+kubebuilder:scaffold:scheme
 }
@@ -185,7 +185,7 @@ func main() {
 	handleError(mgr.Start(ctrl.SetupSignalHandler()), "problem running manager")
 }
 
-func handleError(err error, msg string, keysAndValues ...interface{}) {
+func handleError(err error, msg string, keysAndValues ...any) {
 	if err != nil {
 		setupLog.Error(err, msg, keysAndValues...)
 		os.Exit(1)

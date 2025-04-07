@@ -142,7 +142,7 @@ func getPortForExposedService(o runtime.Object) (*corev1.ServicePort, error) {
 	return svc.Spec.Ports[0].DeepCopy(), nil
 }
 
-func convertRuntimeObjectToCoreV1Service(o interface{}) (*corev1.Service, error) {
+func convertRuntimeObjectToCoreV1Service(o any) (*corev1.Service, error) {
 	switch obj := o.(type) {
 	case *corev1.Service:
 		// If it's already a corev1.Service, no conversion needed
@@ -158,7 +158,7 @@ func convertRuntimeObjectToCoreV1Service(o interface{}) (*corev1.Service, error)
 }
 
 // isPayloadReadyRunning checking if the payload is ready and running
-func isPayloadReadyRunning(o interface{}) bool {
+func isPayloadReadyRunning(o any) bool {
 	switch obj := o.(type) {
 	case *appsv1.Deployment:
 		if (obj.Status.ReadyReplicas == obj.Status.Replicas) && (obj.Status.Replicas == obj.Status.AvailableReplicas) {

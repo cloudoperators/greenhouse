@@ -126,7 +126,7 @@ func (r *KubeconfigReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 	}
 
 	// collect cluster connection data and update kubeconfig
-	rootKubeCfg := secret.Data["kubeconfig"]
+	rootKubeCfg := secret.Data[greenhouseapis.GreenHouseKubeConfigKey]
 	kubeCfg, err := clientcmd.Load(rootKubeCfg)
 	if err != nil {
 		kubeconfig.Status.Conditions.SetConditions(v1alpha1.TrueCondition(v1alpha1.KubeconfigReconcileFailedCondition, "KubeconfigLoadError", err.Error()))

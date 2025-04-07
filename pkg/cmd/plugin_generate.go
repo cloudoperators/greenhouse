@@ -135,7 +135,7 @@ func helmChartToPlugin(helmChart *chart.Chart) (*greenhousev1alpha1.PluginDefini
 	}, nil
 }
 
-func chartValuesToNamedValues(chartValues map[string]interface{}) ([]greenhousev1alpha1.PluginOption, error) {
+func chartValuesToNamedValues(chartValues map[string]any) ([]greenhousev1alpha1.PluginOption, error) {
 	if chartValues == nil {
 		return nil, nil
 	}
@@ -163,7 +163,7 @@ func chartValuesToNamedValues(chartValues map[string]interface{}) ([]greenhousev
 }
 
 func jsonToYaml(jsonBytes []byte) ([]byte, error) {
-	var o interface{}
+	var o any
 	if err := yaml.Unmarshal(jsonBytes, &o); err != nil {
 		return nil, err
 	}
