@@ -1,6 +1,6 @@
 ## Greenhouse documentation
 
-This directory contains the documentation for Greenhouse, the PlusOne operations platform.
+This directory contains the documentation for Greenhouse, the Day-2 operations platform.
 
 All directories containing an `_index.md` with the following content are synchronized to the website.
 
