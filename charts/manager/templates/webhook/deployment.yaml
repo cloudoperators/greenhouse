@@ -40,13 +40,13 @@ spec:
         - name: GOMEMLIMIT
           valueFrom:
             resourceFieldRef:
-              containerName: manager
+              containerName: webhook
               divisor: "0"
               resource: limits.memory
         - name: GOMAXPROCS
           valueFrom:
             resourceFieldRef:
-              containerName: manager
+              containerName: webhook
               divisor: "0"
               resource: limits.cpu
         image: {{ .Values.controllerManager.image.repository }}:{{ .Values.controllerManager.image.tag | default .Chart.AppVersion }}
