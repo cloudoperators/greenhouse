@@ -9,19 +9,16 @@ metadata:
   name: {{ include "manager.fullname" . }}-controller-manager
   namespace: greenhouse
   labels:
-    app: greenhouse
   {{- include "manager.labels" . | nindent 4 }}
 spec:
-  replicas: {{ .Values.controllerManager.replicas }}
   selector:
     matchLabels:
-      app: greenhouse
-      app.kubernetes.io/component: "controller-manager"
+    {{- include "common.selectorLabels" . | nindent 6 }}
+    {{- include "manager.selectorLabels" . | nindent 6 }}
   template:
     metadata:
       labels:
-        app: greenhouse
-        app.kubernetes.io/component: "controller-manager"
+      {{- include "manager.labels" . | nindent 8 }}
       annotations:
         kubectl.kubernetes.io/default-container: manager
         prometheus.io/scrape: "true"

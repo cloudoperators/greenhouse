@@ -31,12 +31,10 @@ Create chart name and version as used by the chart label.
 {{- end }}
 
 {{/*
-Common labels
+common helm lables
 */}}
-{{- define "manager.labels" -}}
+{{- define "common.labels" -}}
 helm.sh/chart: {{ include "manager.chart" . }}
-{{ include "component.labels" . }}
-{{ include "manager.selectorLabels" . }}
 {{- if .Chart.AppVersion }}
 app.kubernetes.io/version: {{ .Chart.AppVersion | quote }}
 {{- end }}
@@ -44,35 +42,36 @@ app.kubernetes.io/managed-by: {{ .Release.Service }}
 {{- end }}
 
 {{/*
-Webhook labels
+manager labels
+*/}}
+{{- define "manager.labels" -}}
+{{ include "common.labels" . }}
+{{ include "common.selectorLabels" . }}
+{{ include "manager.selectorLabels" . }}
+{{- end }}
+
+{{/*
+webhook labels
 */}}
 {{- define "webhook.labels" -}}
-app.kubernetes.io/component: webhook
-{{ include "manager.selectorLabels" . }}
+{{ include "common.labels" . }}
+{{ include "common.selectorLabels" . }}
 {{ include "webhook.selectorLabels" . }}
 {{- end}}
 
-{{/*
-Webhook Selector labels
-*/}}
-{{- define "webhook.selectorLabels" -}}
-greenhouse.sap/webhook: {{ include "manager.fullname" . }}
-{{- end}}
-
-{{/*
-Manager labels
-*/}}
-{{- define "component.labels" -}}
-app.kubernetes.io/component: manager
-{{- end -}}
-
-{{/*
-Selector labels
-*/}}
-{{- define "manager.selectorLabels" -}}
+{{- define "common.selectorLabels" -}}
+app: {{ include "manager.name" . }}
 app.kubernetes.io/name: {{ include "manager.name" . }}
 app.kubernetes.io/instance: {{ .Release.Name }}
-{{- end }}
+{{- end}}
+
+{{- define "manager.selectorLabels" -}}
+app.kubernetes.io/component: manager
+{{- end}}
+
+{{- define "webhook.selectorLabels" -}}
+app.kubernetes.io/component: webhook
+{{- end}}
 
 {{/*
 Create the name of the service account to use

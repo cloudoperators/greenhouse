@@ -23,7 +23,7 @@ spec:
           image: {{ required ".Values.kubeWebhookCertgen.image.repository missing" .Values.kubeWebhookCertgen.image.repository }}:{{ required ".Values.kubeWebhookCertgen.image.tag missing" .Values.kubeWebhookCertgen.image.tag }}
           env:
             - name: SERVICE_NAME
-              value: greenhouse-webhook-service
+              value: {{ include "manager.fullname" . }}-webhook-service
             - name: SECRET_NAME
               value: {{ include "manager.fullname" . }}-webhook-server-cert
             - name: NAMESPACE

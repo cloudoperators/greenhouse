@@ -18,8 +18,7 @@ spec:
       - {{ .Release.Namespace }}
   selector:
     matchLabels:
-      app: greenhouse
-      {{- include "manager.selectorLabels" . | nindent 6 }}
+      {{- include "common.selectorLabels" . | nindent 6 }}
 
 ---
 

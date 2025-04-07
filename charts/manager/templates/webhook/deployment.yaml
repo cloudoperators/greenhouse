@@ -9,18 +9,16 @@ metadata:
   name: {{ include "manager.fullname" . }}-webhook
   namespace: greenhouse
   labels:
-    app: {{ include "manager.fullname" . }}-webhook
   {{- include "webhook.labels" . | nindent 4 }}
 spec:
   replicas: {{ .Values.controllerManager.replicas }}
   selector:
     matchLabels:
-      app: {{ include "manager.fullname" . }}-webhook
+    {{- include "common.selectorLabels" . | nindent 6 }}
     {{- include "webhook.selectorLabels" . | nindent 6 }}
   template:
     metadata:
       labels:
-        app: {{ include "manager.fullname" . }}-webhook
       {{- include "webhook.labels" . | nindent 8 }}
       annotations:
         kubectl.kubernetes.io/default-container: webhook
@@ -31,9 +29,6 @@ spec:
         - /greenhouse
         args:
         - --dns-domain={{ required ".Values.global.dnsDomain missing" .Values.global.dnsDomain }}
-        {{- if gt (len .Values.controllerManager.args) 0 }}
-        {{- include "manager.params" . | indent 8 }}
-        {{- end }}
         env:
         - name: WEBHOOK_ONLY
           value: "true"

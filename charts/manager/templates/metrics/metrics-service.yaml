@@ -9,13 +9,13 @@ metadata:
   name: {{ include "manager.fullname" . }}-controller-manager-metrics-service
   namespace: greenhouse
   labels:
-    app: greenhouse
-    {{- include "manager.labels" . | nindent 4 }}
+    app.kubernetes.io/created-by: {{ include "manager.fullname" . }}
+    app.kubernetes.io/part-of: {{ include "manager.fullname" . }}
+{{- include "webhook.labels" . | nindent 4 }}
 spec:
   type: ClusterIP
   selector:
-    app: greenhouse
-    {{- include "manager.selectorLabels" . | nindent 4 }}
+    {{- include "common.selectorLabels" . | nindent 4 }}
   ports:
     - name: metrics
       port: 8080

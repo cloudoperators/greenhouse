@@ -9,13 +9,13 @@ metadata:
   name: {{ include "manager.fullname" . }}-webhook-service
   namespace: greenhouse
   labels:
-    app.kubernetes.io/created-by: greenhouse
-    app.kubernetes.io/part-of: greenhouse
+    app.kubernetes.io/created-by: {{ include "manager.fullname" . }}
+    app.kubernetes.io/part-of: {{ include "manager.fullname" . }}
 {{- include "webhook.labels" . | nindent 4 }}
 spec:
   type: {{ .Values.webhookService.type | default "ClusterIP" }}
   selector:
-    app: {{ include "manager.fullname" . }}-webhook
+{{- include "common.selectorLabels" . | nindent 4 }}
 {{- include "webhook.selectorLabels" . | nindent 4 }}
   ports:
 {{- .Values.webhookService.ports | toYaml | nindent 4 }}
