@@ -67,7 +67,10 @@ var _ = Describe("ClusterKubeconfig controller", Ordered, func() {
 		secret := setup.CreateSecret(test.Ctx, clusterName,
 			test.WithSecretType(greenhouseapis.SecretTypeKubeConfig),
 			test.WithSecretNamespace(organization.Name),
-			test.WithSecretData(map[string][]byte{greenhouseapis.KubeConfigKey: test.KubeConfig}))
+			test.WithSecretData(map[string][]byte{
+				greenhouseapis.KubeConfigKey:           test.KubeConfig,
+				greenhouseapis.GreenHouseKubeConfigKey: test.KubeConfig,
+			}))
 
 		By("Checking the cluster resource has been created")
 		Eventually(func() error {
@@ -149,7 +152,7 @@ users:
 		secret := corev1.Secret{}
 		Expect(test.K8sClient.Get(test.Ctx, types.NamespacedName{Name: cluster.Name, Namespace: setup.Namespace()}, &secret)).To(Succeed())
 
-		secret.Data[greenhouseapis.KubeConfigKey] = nextKubeconfig
+		secret.Data[greenhouseapis.GreenHouseKubeConfigKey] = nextKubeconfig
 		Expect(test.K8sClient.Update(test.Ctx, &secret)).To(Succeed())
 
 		clusterKubeconfig := v1alpha1.ClusterKubeconfig{}
