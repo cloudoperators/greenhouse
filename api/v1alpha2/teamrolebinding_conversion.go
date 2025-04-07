@@ -6,7 +6,7 @@ package v1alpha2
 import (
 	"sigs.k8s.io/controller-runtime/pkg/conversion"
 
-	"github.com/cloudoperators/greenhouse/api/greenhouse/v1alpha1"
+	"github.com/cloudoperators/greenhouse/api/v1alpha1"
 )
 
 // ConvertTo converts this TeamRoleBinding to the Hub version (v1alpha1). See: https://book.kubebuilder.io/multiversion-tutorial/conversion

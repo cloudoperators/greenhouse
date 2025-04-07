@@ -12,7 +12,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	"github.com/cloudoperators/greenhouse/api/greenhouse/v1alpha1"
+	"github.com/cloudoperators/greenhouse/api/v1alpha1"
 )
 
 // ClusterSelector specifies a selector for clusters by name or by label with the option to exclude specific clusters.

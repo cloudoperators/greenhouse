@@ -9,7 +9,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	greenhouseapis "github.com/cloudoperators/greenhouse/api"
-	"github.com/cloudoperators/greenhouse/api/greenhouse/v1alpha1"
+	"github.com/cloudoperators/greenhouse/api/v1alpha1"
 )
 
 // TeamRoleBindingSpec defines the desired state of a TeamRoleBinding
