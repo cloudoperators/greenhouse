@@ -138,26 +138,49 @@ helm upgrade <Release name> <chart-path>
 helm test <Release name>
 ```
 
-## Plugin Testing with dependencies
+## Plugin Testing with dependencies during Pull Requests
+### Overview
 
 Some plugins require other plugins to be installed in the cluster for their tests to run successfully. To support this, each plugin can declare required dependencies using a `test-dependencies.yaml` file.
 
 > [!NOTE]  
-> The `test-dependencies.yaml` file is **required** if other plugins need to be installed in the cluster before running the tests in the GitHub Actions workflow during a Pull Request for the plugin.
+>The `test-dependencies.yaml` file is required if other plugins need to be installed in the Kind cluster created by the GitHub Actions workflow before running tests during a Pull Request for the plugin.
 
 
 ### How It Works
-- Each plugin can optionally include a `test-dependencies.yaml` file in the plugin’s root directory (e.g., `alerts/test-dependencies.yaml`).
-- The file defines a list of plugin names that should be installed **before** testing begins.
+- Each plugin can optionally include a `test-dependencies.yaml` file in the plugin’s root directory (e.g., `thanos/test-dependencies.yaml`).
+- This file defines both the dependencies (other plugins) that should be installed before testing begins and custom values for these dependencies.
 
 ### Example `test-dependencies.yaml`
 ```yaml
 dependencies:
-  - cert-manager
+  - kube-monitoring
+values:
+  kubeMonitoring:
+    prometheus:
+      enabled: true
+      serviceMonitor:
+        enabled: false
+      prometheusSpec:
+        thanos:
+          objectStorageConfig:
+            secret:
+              type: FILESYSTEM
+              config:
+                directory: "/test"
+              prefix: ""
 ```
 
-In this example, the `alert` plugin declares that `cert-manager` plugin must be installed first.
+In this example, the plugin:
+- Declares `kube-monitoring` as a dependency that must be installed first
+- Provides custom values for this dependent plugin, specifically configuring Prometheus settings
 
+### Dependecy Structure
+The `test-dependencies.yaml` file supports:
+
+- **dependencies**: A list of plugin names that should be installed before testing the current plugin.
+- **values**: Custom configuration values to be applied when installing dependencies
+  
 ### Automation during Pull Requests
 The GitHub Actions workflow automatically:
 
@@ -166,12 +189,17 @@ The GitHub Actions workflow automatically:
 3. Installs listed dependencies in order
 4. Proceeds with helm chart linting and testing
 
-## Declaring Test Values for CI Testing
+## Testing Values Configuration
 
-Each plugin should provide a `test-values.yaml` file to supply necessary values during testing. This file should be placed inside the `<PLUGIN-NAME>/ci` directory.
+### Parent Plugin Configuration
+- A plugin may optionally provide a `<PLUGIN-NAME>/ci/test-values.yaml` file
+- The GitHub Actions workflow will use this values file for testing the plugin if it exists
+- This allows you to customize values specifically for CI testing, without modifying the default `values.yaml`
 
-- The GitHub Actions workflow automatically detects and uses this file for Helm Chart linting and testing during pull requests.
-- This allows you to customize values specifically for CI testing, without modifying the default `values.yaml`.
+### Dependent Plugin Configuration
+- Values for dependent plugins should be specified in the values section of your plugin's `test-dependencies.yaml` file.
+- This allows you to customize the configuration of dependent plugins when they are installed for testing.
+- The values specified in the `test-dependencies.yaml` file will override the default values of the dependent plugins.
 
 ### Example File Structure:
 ```
@@ -181,10 +209,6 @@ alert/
 │   └── test-values.yaml
 └── test-dependencies.yaml
 ```
-
-### Summary:
-- Use `test-dependencies.yaml` to declare any required plugin dependencies for testing.
-- Provide `ci/test-values.yaml` to supply test-specific Helm values during lint and test stages in the GitHub Actions workflow.
 
 **Contribution Checklist**
 
