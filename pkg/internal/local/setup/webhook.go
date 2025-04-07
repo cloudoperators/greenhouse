@@ -14,8 +14,6 @@ import (
 	"strings"
 
 	"github.com/cenkalti/backoff/v5"
-	"k8s.io/utils/ptr"
-
 	aregv1 "k8s.io/api/admissionregistration/v1"
 	appsv1 "k8s.io/api/apps/v1"
 	batchv1 "k8s.io/api/batch/v1"
@@ -28,21 +26,15 @@ import (
 )
 
 type Webhook struct {
-	Envs       []WebhookEnv `yaml:"envs" json:"envs"`
-	DockerFile string       `yaml:"dockerFile" json:"dockerFile"`
-	DevMode    bool         `yaml:"devMode" json:"devMode"`
-}
-
-type WebhookEnv struct {
-	Name  string `yaml:"name" json:"name"`
-	Value string `yaml:"value" json:"value"`
+	DockerFile string `yaml:"dockerFile" json:"dockerFile"`
+	DevMode    bool   `yaml:"devMode" json:"devMode"`
 }
 
 const (
-	MangerIMG                          = "greenhouse/manager:local"
-	MangerContainer                    = "manager"
+	LocalDevIMG                        = "greenhouse/manager:local"
+	WebhookContainer                   = "webhook"
 	DeploymentKind                     = "Deployment"
-	ManagerDeploymentNameSuffix        = "-controller-manager"
+	WebhookDeploymentNameSuffix        = "-webhook"
 	JobKind                            = "Job"
 	JobNameSuffix                      = "-kube-webhook-certgen"
 	MutatingWebhookConfigurationKind   = "MutatingWebhookConfiguration"
@@ -55,16 +47,16 @@ const (
 // modifies cert job (charts/manager/templates/kube-webhook-certgen.yaml) to include host.docker.internal
 // if devMode is enabled, modifies mutating and validating webhook configurations to use host.docker.internal URL and removes service from clientConfig
 // extracts the webhook certs from the secret and writes them to tmp/k8s-webhook-server/serving-certs directory
-func (m *Manifest) setupWebhookManifest(resources []map[string]any, clusterName string) ([]map[string]any, error) {
+func (m *Manifest) setupWebhookManifest(resources []map[string]any) ([]map[string]any, error) {
 	webhookManifests := make([]map[string]any, 0)
 	releaseName := m.ReleaseName
-	managerDeployment, err := extractResourceByNameKind(resources, releaseName+ManagerDeploymentNameSuffix, DeploymentKind)
+	webhookDeployment, err := extractResourceByNameKind(resources, releaseName+WebhookDeploymentNameSuffix, DeploymentKind)
 	if err != nil {
 		return nil, err
 	}
 
-	utils.Log("modifying manager deployment...")
-	managerDeployment, err = m.modifyManagerDeployment(managerDeployment)
+	utils.Log("modifying webhook deployment...")
+	webhookDeployment, err = m.modifyWebhookDeployment(webhookDeployment)
 	if err != nil {
 		return nil, err
 	}
@@ -80,7 +72,7 @@ func (m *Manifest) setupWebhookManifest(resources []map[string]any, clusterName 
 		return nil, err
 	}
 
-	webhookManifests = append(webhookManifests, managerDeployment, certJob)
+	webhookManifests = append(webhookManifests, webhookDeployment, certJob)
 	webhookResources := extractResourcesByKinds(resources, MutatingWebhookConfigurationKind, ValidatingWebhookConfigurationKind)
 	if m.Webhook.DevMode {
 		utils.Log("enabling webhook local development...")
@@ -96,45 +88,11 @@ func (m *Manifest) setupWebhookManifest(resources []map[string]any, clusterName 
 	} else {
 		webhookManifests = append(webhookManifests, webhookResources...)
 	}
-
-	err = m.buildAndLoadImage(clusterName)
-	if err != nil {
-		return nil, err
-	}
 	return webhookManifests, nil
 }
 
-func (m *Manifest) setHostPathVolume(deployment *appsv1.Deployment) {
-	hostVolume := v1.Volume{
-		Name: "plugin",
-		VolumeSource: v1.VolumeSource{
-			HostPath: &v1.HostPathVolumeSource{
-				Path: utils.PluginHostPath,
-				Type: ptr.To[v1.HostPathType](v1.HostPathDirectory),
-			},
-		},
-	}
-	if len(deployment.Spec.Template.Spec.Volumes) == 0 {
-		deployment.Spec.Template.Spec.Volumes = []v1.Volume{hostVolume}
-	} else {
-		deployment.Spec.Template.Spec.Volumes = append(deployment.Spec.Template.Spec.Volumes, hostVolume)
-	}
-}
-
-func (m *Manifest) setHostPathVolumeMount(containerIndex int, deployment *appsv1.Deployment) {
-	hostMount := v1.VolumeMount{
-		Name:      "plugin",
-		MountPath: utils.ManagerHostPathMount,
-	}
-	if len(deployment.Spec.Template.Spec.Containers[containerIndex].VolumeMounts) == 0 {
-		deployment.Spec.Template.Spec.Containers[containerIndex].VolumeMounts = []v1.VolumeMount{hostMount}
-	} else {
-		deployment.Spec.Template.Spec.Containers[containerIndex].VolumeMounts = append(deployment.Spec.Template.Spec.Containers[containerIndex].VolumeMounts, hostMount)
-	}
-}
-
-// modifyManagerDeployment - appends the env in manager container by setting WEBHOOK_ONLY=true
-func (m *Manifest) modifyManagerDeployment(deploymentResource map[string]any) (map[string]any, error) {
+// modifyWebhookDeployment - sets the local image of the webhook deployment
+func (m *Manifest) modifyWebhookDeployment(deploymentResource map[string]any) (map[string]any, error) {
 	deployment := &appsv1.Deployment{}
 	deploymentStr, err := utils.Stringy(deploymentResource)
 	if err != nil {
@@ -145,24 +103,12 @@ func (m *Manifest) modifyManagerDeployment(deploymentResource map[string]any) (m
 	if err != nil {
 		return nil, err
 	}
-	index := getContainerIndex(deployment, MangerContainer)
+	index := getContainerIndex(deployment, WebhookContainer)
 	if index == -1 {
 		return nil, errors.New("manager container not found in deployment")
 	}
-	for _, e := range m.Webhook.Envs {
-		deployment.Spec.Template.Spec.Containers[index].Env = append(deployment.Spec.Template.Spec.Containers[index].Env, v1.EnvVar{
-			Name:  e.Name,
-			Value: e.Value,
-		})
-	}
-	deployment.Spec.Template.Spec.Containers[index].Image = MangerIMG
+	deployment.Spec.Template.Spec.Containers[index].Image = LocalDevIMG
 	deployment.Spec.Replicas = utils.Int32P(1)
-	if m.enableLocalPluginDev {
-		m.setHostPathVolume(deployment)
-		m.setHostPathVolumeMount(index, deployment)
-		deployment.Spec.Template.Spec.Containers[index].SecurityContext.RunAsGroup = ptr.To[int64](65532)
-	}
-
 	depBytes, err := utils.FromK8sObjectToYaml(deployment, appsv1.SchemeGroupVersion)
 	if err != nil {
 		return nil, err
@@ -272,13 +218,13 @@ func (m *Manifest) buildAndLoadImage(clusterName string) error {
 	if !utils.CheckIfFileExists(m.Webhook.DockerFile) {
 		return fmt.Errorf("docker file not found: %s", m.Webhook.DockerFile)
 	}
-	utils.Log("building manager image...")
-	err := klient.BuildImage(MangerIMG, utils.GetHostPlatform(), m.Webhook.DockerFile)
+	utils.Log("building greenhouse local development image...")
+	err := klient.BuildImage(LocalDevIMG, utils.GetHostPlatform(), m.Webhook.DockerFile)
 	if err != nil {
 		return err
 	}
 	utils.Log("loading manager image to Cluster...")
-	return klient.LoadImage(MangerIMG, clusterName)
+	return klient.LoadImage(LocalDevIMG, clusterName)
 }
 
 func getContainerIndex(deployment *appsv1.Deployment, containerName string) int {
@@ -463,34 +409,4 @@ func getHostIPFromInterface() string {
 	}
 	utils.LogErr("failed to get IP address for docker0 interface")
 	return ""
-}
-
-func (w *Webhook) AddOrOverrideEnv(envs []string) {
-	// Convert the input array of key=value strings into WebhookEnv objects
-	for _, env := range envs {
-		// Split the string into key and value
-		parts := strings.SplitN(env, "=", 2)
-		if len(parts) != 2 {
-			// Skip invalid key=value strings
-			continue
-		}
-		key := parts[0]
-		value := parts[1]
-
-		// Check if the environment variable already exists in w.Envs
-		found := false
-		for i, existingEnv := range w.Envs {
-			if existingEnv.Name == key {
-				// Override the value if the key matches
-				w.Envs[i].Value = value
-				found = true
-				break
-			}
-		}
-
-		// If not found, add the new environment variable
-		if !found {
-			w.Envs = append(w.Envs, WebhookEnv{Name: key, Value: value})
-		}
-	}
 }
