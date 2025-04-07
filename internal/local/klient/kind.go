@@ -8,7 +8,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/cloudoperators/greenhouse/internal/internal/local/utils"
+	"github.com/cloudoperators/greenhouse/internal/local/utils"
 )
 
 // CreateCluster - creates a kind cluster with the given name

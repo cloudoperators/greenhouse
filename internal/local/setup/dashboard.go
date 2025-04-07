@@ -19,7 +19,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	"github.com/cloudoperators/greenhouse/internal/internal/local/utils"
+	"github.com/cloudoperators/greenhouse/internal/local/utils"
 )
 
 const (

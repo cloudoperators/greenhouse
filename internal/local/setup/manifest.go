@@ -8,8 +8,8 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/cloudoperators/greenhouse/internal/internal/local/helm"
-	"github.com/cloudoperators/greenhouse/internal/internal/local/utils"
+	"github.com/cloudoperators/greenhouse/internal/local/helm"
+	"github.com/cloudoperators/greenhouse/internal/local/utils"
 )
 
 type Manifest struct {

@@ -7,7 +7,7 @@ import (
 	"context"
 	"strings"
 
-	"github.com/cloudoperators/greenhouse/internal/internal/local/utils"
+	"github.com/cloudoperators/greenhouse/internal/local/utils"
 )
 
 type ExecutionEnv struct {

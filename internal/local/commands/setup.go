@@ -12,7 +12,7 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/cloudoperators/greenhouse/internal/internal/local/setup"
+	"github.com/cloudoperators/greenhouse/internal/local/setup"
 )
 
 type Config struct {

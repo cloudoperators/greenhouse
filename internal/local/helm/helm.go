@@ -16,7 +16,7 @@ import (
 	"helm.sh/helm/v3/pkg/chart/loader"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 
-	"github.com/cloudoperators/greenhouse/internal/internal/local/utils"
+	"github.com/cloudoperators/greenhouse/internal/local/utils"
 )
 
 type Options struct {

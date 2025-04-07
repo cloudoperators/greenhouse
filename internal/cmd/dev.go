@@ -10,7 +10,7 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/vladimirvivien/gexe"
 
-	"github.com/cloudoperators/greenhouse/internal/internal/local/commands"
+	"github.com/cloudoperators/greenhouse/internal/local/commands"
 )
 
 var devSetupCmd = &cobra.Command{

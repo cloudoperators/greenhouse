@@ -11,7 +11,7 @@ import (
 	"github.com/spf13/cobra"
 	"gopkg.in/yaml.v3"
 
-	"github.com/cloudoperators/greenhouse/internal/internal/local/setup"
+	"github.com/cloudoperators/greenhouse/internal/local/setup"
 )
 
 func dashboardSetupExample() string {

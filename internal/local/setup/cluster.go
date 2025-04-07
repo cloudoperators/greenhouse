@@ -9,8 +9,8 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/cloudoperators/greenhouse/internal/internal/local/klient"
-	"github.com/cloudoperators/greenhouse/internal/internal/local/utils"
+	"github.com/cloudoperators/greenhouse/internal/local/klient"
+	"github.com/cloudoperators/greenhouse/internal/local/utils"
 )
 
 type Cluster struct {

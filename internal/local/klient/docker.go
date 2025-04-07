@@ -4,7 +4,7 @@
 package klient
 
 import (
-	"github.com/cloudoperators/greenhouse/internal/internal/local/utils"
+	"github.com/cloudoperators/greenhouse/internal/local/utils"
 )
 
 // BuildImage - uses docker cli to build an image
