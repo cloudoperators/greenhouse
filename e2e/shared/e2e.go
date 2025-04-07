@@ -39,7 +39,7 @@ const (
 	RemoteKubeConfigPathEnv    = "GREENHOUSE_REMOTE_KUBECONFIG"
 	remoteIntKubeConfigPathEnv = "GREENHOUSE_REMOTE_INT_KUBECONFIG"
 	ControllerLogsPathEnv      = "CONTROLLER_LOGS_PATH"
-	managerDeploymentName      = "greenhouse-webhook-manager"
+	managerDeploymentName      = "greenhouse-controller-manager"
 	managerDeploymentNamespace = "greenhouse"
 	remoteExecutionEnv         = "EXECUTION_ENV"
 	realCluster                = "GARDENER"

@@ -234,9 +234,9 @@ ADMIN_CHART_PATH ?= charts/manager
 E2E_REPORT_PATH="$(shell pwd)/bin/$(SCENARIO)-e2e-report.json"
 PLUGIN_DIR ?=
 GREENHOUSE_ORG ?= demo
-WEBHOOK_ONLY ?= false
 DEV_MODE ?= false
 INTERNAL ?= -int
+WITH_CONTROLLER ?= true
 
 .PHONY: setup
 setup: cli setup-manager setup-dashboard setup-demo
@@ -247,11 +247,11 @@ setup-webhook-dev:
 
 .PHONY: setup-controller-dev
 setup-controller-dev:
-	WEBHOOK_ONLY=true make setup-manager && INTERNAL= make setup-demo
+	WITH_CONTROLLER=false make setup-manager && INTERNAL= make setup-demo
 
 .PHONY: setup-manager
 setup-manager: cli
-	PLUGIN_PATH=$(PLUGIN_DIR) $(CLI) dev setup -f dev-env/dev.config.yaml d=$(DEV_MODE) e=WEBHOOK_ONLY=$(WEBHOOK_ONLY)
+	CONTROLLER_ENABLED=$(WITH_CONTROLLER) PLUGIN_PATH=$(PLUGIN_DIR) $(CLI) dev setup -f dev-env/dev.config.yaml d=$(DEV_MODE)
 
 .PHONY: setup-dashboard
 setup-dashboard: cli
@@ -279,14 +279,14 @@ samples: kustomize
 
 .PHONY: setup-e2e
 setup-e2e: cli
-	$(CLI) dev setup -f e2e/config.yaml
+	CONTROLLER_ENABLED=$(WITH_CONTROLLER) $(CLI) dev setup -f e2e/config.yaml
 	make prepare-e2e
 
 .PHONY: clean-e2e
 clean-e2e:
 	kind delete cluster --name $(REMOTE_CLUSTER)
 	kind delete cluster --name $(ADMIN_CLUSTER)
-	rm -v $(LOCALBIN)/*.kubeconfig
+	rm -rf $(LOCALBIN)/*.kubeconfig
 
 .PHONY: e2e
 e2e:
