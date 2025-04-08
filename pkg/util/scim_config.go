@@ -6,7 +6,6 @@ package util
 import (
 	"context"
 	"fmt"
-	"strings"
 
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -32,8 +31,8 @@ func GreenhouseSCIMConfigToSCIMConfig(ctx context.Context, k8sClient client.Clie
 			return nil, fmt.Errorf("secret for BasicAuthPw is missing: %s", err.Error())
 		}
 		cfg.BasicAuth = &scim.BasicAuthConfig{
-			Username: strings.Trim(string(username), "\n"),
-			Password: strings.Trim(string(password), "\n"),
+			Username: username,
+			Password: password,
 		}
 	case scim.BearerToken:
 		var err error
@@ -44,7 +43,7 @@ func GreenhouseSCIMConfigToSCIMConfig(ctx context.Context, k8sClient client.Clie
 		cfg.BearerToken = &scim.BearerTokenConfig{
 			Prefix: config.BearerPrefix,
 			Header: config.BearerHeader,
-			Token:  strings.Trim(string(token), "\n"),
+			Token:  token,
 		}
 		if cfg.BearerToken.Header == "" {
 			cfg.BearerToken.Header = "Authorization"
