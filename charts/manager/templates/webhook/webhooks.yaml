@@ -1,17 +1,14 @@
-# SPDX-FileCopyrightText: 2024 SAP SE or an SAP affiliate company and Greenhouse contributors
-# SPDX-License-Identifier: Apache-2.0
-
 ---
 apiVersion: admissionregistration.k8s.io/v1
 kind: MutatingWebhookConfiguration
 metadata:
-  name: {{ include "manager.fullname" . }}-mutating-webhook-configuration
+  name: greenhouse-mutating-webhook-configuration
 webhooks:
   - admissionReviewVersions:
       - v1
     clientConfig:
       service:
-        name: {{ include "manager.fullname" . }}-webhook-service
+        name: greenhouse-webhook-service
         namespace: greenhouse
         path: /mutate-greenhouse-sap-v1alpha1-cluster
     failurePolicy: Fail
@@ -31,7 +28,7 @@ webhooks:
       - v1
     clientConfig:
       service:
-        name: {{ include "manager.fullname" . }}-webhook-service
+        name: greenhouse-webhook-service
         namespace: greenhouse
         path: /mutate-greenhouse-sap-v1alpha1-organization
     failurePolicy: Fail
@@ -51,7 +48,7 @@ webhooks:
       - v1
     clientConfig:
       service:
-        name: {{ include "manager.fullname" . }}-webhook-service
+        name: greenhouse-webhook-service
         namespace: greenhouse
         path: /mutate-greenhouse-sap-v1alpha1-plugin
     failurePolicy: Fail
@@ -71,7 +68,7 @@ webhooks:
       - v1
     clientConfig:
       service:
-        name: {{ include "manager.fullname" . }}-webhook-service
+        name: greenhouse-webhook-service
         namespace: greenhouse
         path: /mutate-greenhouse-sap-v1alpha1-plugindefinition
     failurePolicy: Fail
@@ -91,7 +88,7 @@ webhooks:
       - v1
     clientConfig:
       service:
-        name: {{ include "manager.fullname" . }}-webhook-service
+        name: greenhouse-webhook-service
         namespace: greenhouse
         path: /mutate-greenhouse-sap-v1alpha1-pluginpreset
     failurePolicy: Fail
@@ -111,7 +108,7 @@ webhooks:
       - v1
     clientConfig:
       service:
-        name: {{ include "manager.fullname" . }}-webhook-service
+        name: greenhouse-webhook-service
         namespace: greenhouse
         path: /mutate-greenhouse-sap-v1alpha1-teamrole
     failurePolicy: Fail
@@ -131,7 +128,7 @@ webhooks:
       - v1
     clientConfig:
       service:
-        name: {{ include "manager.fullname" . }}-webhook-service
+        name: greenhouse-webhook-service
         namespace: greenhouse
         path: /mutate-greenhouse-sap-v1alpha1-teamrolebinding
     failurePolicy: Fail
@@ -151,7 +148,7 @@ webhooks:
       - v1
     clientConfig:
       service:
-        name: {{ include "manager.fullname" . }}-webhook-service
+        name: greenhouse-webhook-service
         namespace: greenhouse
         path: /mutate--v1-secret
     failurePolicy: Ignore
@@ -178,7 +175,7 @@ webhooks:
       - v1
     clientConfig:
       service:
-        name: {{ include "manager.fullname" . }}-webhook-service
+        name: greenhouse-webhook-service
         namespace: greenhouse
         path: /mutate-greenhouse-sap-v1alpha1-team
     failurePolicy: Fail
@@ -198,13 +195,13 @@ webhooks:
 apiVersion: admissionregistration.k8s.io/v1
 kind: ValidatingWebhookConfiguration
 metadata:
-  name: {{ include "manager.fullname" . }}-validating-webhook-configuration
+  name: greenhouse-validating-webhook-configuration
 webhooks:
   - admissionReviewVersions:
       - v1
     clientConfig:
       service:
-        name: {{ include "manager.fullname" . }}-webhook-service
+        name: greenhouse-webhook-service
         namespace: greenhouse
         path: /validate-greenhouse-sap-v1alpha1-cluster
     failurePolicy: Fail
@@ -225,7 +222,7 @@ webhooks:
       - v1
     clientConfig:
       service:
-        name: {{ include "manager.fullname" . }}-webhook-service
+        name: greenhouse-webhook-service
         namespace: greenhouse
         path: /validate-greenhouse-sap-v1alpha1-organization
     failurePolicy: Fail
@@ -246,7 +243,7 @@ webhooks:
       - v1
     clientConfig:
       service:
-        name: {{ include "manager.fullname" . }}-webhook-service
+        name: greenhouse-webhook-service
         namespace: greenhouse
         path: /validate-greenhouse-sap-v1alpha1-plugin
     failurePolicy: Fail
@@ -267,7 +264,7 @@ webhooks:
       - v1
     clientConfig:
       service:
-        name: {{ include "manager.fullname" . }}-webhook-service
+        name: greenhouse-webhook-service
         namespace: greenhouse
         path: /validate-greenhouse-sap-v1alpha1-plugindefinition
     failurePolicy: Fail
@@ -288,7 +285,7 @@ webhooks:
       - v1
     clientConfig:
       service:
-        name: {{ include "manager.fullname" . }}-webhook-service
+        name: greenhouse-webhook-service
         namespace: greenhouse
         path: /validate-greenhouse-sap-v1alpha1-pluginpreset
     failurePolicy: Fail
@@ -309,7 +306,7 @@ webhooks:
       - v1
     clientConfig:
       service:
-        name: {{ include "manager.fullname" . }}-webhook-service
+        name: greenhouse-webhook-service
         namespace: greenhouse
         path: /validate-greenhouse-sap-v1alpha1-teamrole
     failurePolicy: Fail
@@ -330,7 +327,7 @@ webhooks:
       - v1
     clientConfig:
       service:
-        name: {{ include "manager.fullname" . }}-webhook-service
+        name: greenhouse-webhook-service
         namespace: greenhouse
         path: /validate-greenhouse-sap-v1alpha1-teamrolebinding
     failurePolicy: Fail
@@ -351,7 +348,7 @@ webhooks:
       - v1
     clientConfig:
       service:
-        name: {{ include "manager.fullname" . }}-webhook-service
+        name: greenhouse-webhook-service
         namespace: greenhouse
         path: /validate--v1-secret
     failurePolicy: Ignore
@@ -379,7 +376,7 @@ webhooks:
       - v1
     clientConfig:
       service:
-        name: {{ include "manager.fullname" . }}-webhook-service
+        name: greenhouse-webhook-service
         namespace: greenhouse
         path: /validate-greenhouse-sap-v1alpha1-team
     failurePolicy: Fail
