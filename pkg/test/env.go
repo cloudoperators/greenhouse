@@ -28,7 +28,7 @@ import (
 	metricsserver "sigs.k8s.io/controller-runtime/pkg/metrics/server"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 
-	greenhousesapv1alpha1 "github.com/cloudoperators/greenhouse/pkg/apis/greenhouse/v1alpha1"
+	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/pkg/apis/greenhouse/v1alpha1"
 	"github.com/cloudoperators/greenhouse/pkg/clientutil"
 	dexapi "github.com/cloudoperators/greenhouse/pkg/dex/api"
 
@@ -248,7 +248,7 @@ func StartControlPlane(port string, installCRDs, installWebhooks bool) (*rest.Co
 		NotTo(HaveOccurred(), "there must be no error starting the test environment")
 	Expect(cfg).
 		NotTo(BeNil(), "the configuration of the test environment must not be nil")
-	Expect(greenhousesapv1alpha1.AddToScheme(scheme.Scheme)).
+	Expect(greenhousev1alpha1.AddToScheme(scheme.Scheme)).
 		To(Succeed(), "there must be no error adding the greenhouse api to the scheme")
 	Expect(clientgoscheme.AddToScheme(scheme.Scheme)).
 		To(Succeed(), "there must no error adding the clientgo api to the scheme")

@@ -74,6 +74,11 @@ var _ = Describe("TeammembershipUpdaterController", Ordered, func() {
 				err := setup.Get(test.Ctx, client.ObjectKeyFromObject(team), team)
 				g.Expect(err).ShouldNot(HaveOccurred(), "unexpected error getting Team")
 				g.Expect(team.Status.Members).To(HaveLen(2), "the Team should have exactly two Members")
+				scimAccessReadyCondition := team.Status.StatusConditions.GetConditionByType(greenhousev1alpha1.SCIMAccessReadyCondition)
+				g.Expect(scimAccessReadyCondition).ToNot(BeNil())
+				g.Expect(scimAccessReadyCondition.Type).To(Equal(greenhousev1alpha1.SCIMAccessReadyCondition))
+				g.Expect(scimAccessReadyCondition.Status).To(Equal(metav1.ConditionTrue))
+				g.Expect(team.Status.StatusConditions.IsReadyTrue()).To(BeTrue())
 			}).Should(Succeed(), "Team should have the team members")
 		})
 
@@ -108,6 +113,7 @@ var _ = Describe("TeammembershipUpdaterController", Ordered, func() {
 				err := setup.Get(test.Ctx, client.ObjectKeyFromObject(firstTeam), firstTeam)
 				g.Expect(err).ShouldNot(HaveOccurred(), "unexpected error getting Team")
 				g.Expect(firstTeam.Status.Members).To(HaveLen(2), "the TeamMembership should have exactly two Members")
+				g.Expect(firstTeam.Status.StatusConditions.IsReadyTrue()).To(BeTrue())
 			}).Should(Succeed(), "Team should have the team members")
 		})
 
@@ -140,6 +146,7 @@ var _ = Describe("TeammembershipUpdaterController", Ordered, func() {
 				err := setup.Get(test.Ctx, client.ObjectKeyFromObject(firstTeam), firstTeam)
 				g.Expect(err).ShouldNot(HaveOccurred(), "unexpected error getting Team")
 				g.Expect(firstTeam.Status.Members).To(HaveLen(2), "the TeamMembership should have exactly two Members")
+				g.Expect(firstTeam.Status.StatusConditions.IsReadyTrue()).To(BeTrue())
 			}).Should(Succeed(), "Team should have the team members")
 		})
 
@@ -198,6 +205,8 @@ var _ = Describe("TeammembershipUpdaterController", Ordered, func() {
 				err := setup.Get(test.Ctx, client.ObjectKeyFromObject(firstTeam), firstTeam)
 				g.Expect(err).ShouldNot(HaveOccurred(), "unexpected error getting Team")
 				g.Expect(firstTeam.Status.Members).To(HaveLen(2), "the first team should have exactly two Members")
+				g.Expect(firstTeam.Status.StatusConditions.GetConditionByType(greenhousev1alpha1.SCIMAccessReadyCondition).IsTrue()).To(BeTrue())
+				g.Expect(firstTeam.Status.StatusConditions.IsReadyTrue()).To(BeTrue())
 			}).Should(Succeed(), "First team should have the team members")
 
 			By("ensuring that the second Team has been updated")
@@ -205,6 +214,8 @@ var _ = Describe("TeammembershipUpdaterController", Ordered, func() {
 				err := setup.Get(test.Ctx, client.ObjectKeyFromObject(secondTeam), secondTeam)
 				g.Expect(err).ShouldNot(HaveOccurred(), "unexpected error getting Team")
 				g.Expect(secondTeam.Status.Members).To(HaveLen(3), "the second team should have exactly three Members")
+				g.Expect(secondTeam.Status.StatusConditions.GetConditionByType(greenhousev1alpha1.SCIMAccessReadyCondition).IsTrue()).To(BeTrue())
+				g.Expect(secondTeam.Status.StatusConditions.IsReadyTrue()).To(BeTrue())
 			}).Should(Succeed(), "Second team should have the team members")
 		})
 
@@ -334,7 +345,7 @@ var _ = Describe("TeammembershipUpdaterController", Ordered, func() {
 			createTeamMembershipForFirstTeam(nil)
 
 			By("creating a test Team with invalid MappedIdpGroup")
-			createFirstTeam(nonExistingGroupName)
+			team := createFirstTeam(nonExistingGroupName)
 
 			By("ensuring TeamMemberships have been reconciled")
 			Eventually(func(g Gomega) {
@@ -355,6 +366,13 @@ var _ = Describe("TeammembershipUpdaterController", Ordered, func() {
 				g.Expect(readyCondition.Type).To(Equal(greenhousev1alpha1.ReadyCondition))
 				g.Expect(readyCondition.Status).To(Equal(metav1.ConditionFalse))
 			}).Should(Succeed(), "TeamMemberships should have been reconciled")
+
+			Eventually(func(g Gomega) {
+				err := setup.Get(test.Ctx, client.ObjectKeyFromObject(team), team)
+				g.Expect(err).ShouldNot(HaveOccurred(), "unexpected error getting Team")
+				g.Expect(team.Status.StatusConditions.GetConditionByType(greenhousev1alpha1.SCIMAccessReadyCondition).IsFalse()).To(BeTrue())
+				g.Expect(team.Status.StatusConditions.IsReadyTrue()).To(BeFalse())
+			}).Should(Succeed())
 		})
 
 		It("should log about missing SCIM config", func() {
@@ -372,7 +390,7 @@ var _ = Describe("TeammembershipUpdaterController", Ordered, func() {
 			defer GinkgoWriter.ClearTeeWriters()
 
 			By("creating a Team with valid idp group")
-			setup.CreateTeam(test.Ctx, firstTeamName, test.WithMappedIDPGroup(validIdpGroupName))
+			team := setup.CreateTeam(test.Ctx, firstTeamName, test.WithMappedIDPGroup(validIdpGroupName))
 
 			Eventually(func(g Gomega) {
 				teamMemberships := &greenhousev1alpha1.TeamMembershipList{}
@@ -381,6 +399,13 @@ var _ = Describe("TeammembershipUpdaterController", Ordered, func() {
 				g.Expect(teamMemberships.Items).To(BeEmpty(), "there should be no TeamMemberships")
 				g.Expect(tee.Contents()).To(ContainSubstring("SCIM config is missing from org"), "logger should log about missing SCIM config")
 			}).Should(Succeed(), "TeamMemberships should have been reconciled")
+
+			Eventually(func(g Gomega) {
+				err := setup.Get(test.Ctx, client.ObjectKeyFromObject(team), team)
+				g.Expect(err).ShouldNot(HaveOccurred(), "unexpected error getting Team")
+				g.Expect(team.Status.StatusConditions.GetConditionByType(greenhousev1alpha1.SCIMAccessReadyCondition).IsTrue()).To(BeFalse())
+				g.Expect(team.Status.StatusConditions.IsReadyTrue()).To(BeTrue())
+			}).Should(Succeed())
 		})
 
 		It("should update TeamMembership when one user has changed", func() {
@@ -449,6 +474,8 @@ var _ = Describe("TeammembershipUpdaterController", Ordered, func() {
 				err := setup.Get(test.Ctx, types.NamespacedName{Namespace: setup.Namespace(), Name: firstTeamName}, team)
 				g.Expect(err).ShouldNot(HaveOccurred(), "unexpected error getting Team")
 				g.Expect(team.Name).To(BeEquivalentTo(firstTeamName))
+				g.Expect(team.Status.StatusConditions.IsReadyTrue()).To(BeTrue())
+				g.Expect(team.Status.StatusConditions.GetConditionByType(greenhousev1alpha1.SCIMAccessReadyCondition).IsTrue()).To(BeTrue())
 
 				teamMemberships := &greenhousev1alpha1.TeamMembershipList{}
 				err = setup.List(test.Ctx, teamMemberships, &client.ListOptions{Namespace: setup.Namespace()})

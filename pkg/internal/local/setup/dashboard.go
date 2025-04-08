@@ -97,7 +97,7 @@ func assignClusterAdminRole(ctx context.Context, cl client.Client, serviceAccoun
 	return nil
 }
 
-func (m *Manifest) setupDashboard(ctx context.Context, clusterName, namespace string) ([]map[string]interface{}, error) {
+func (m *Manifest) setupDashboard(ctx context.Context, clusterName, namespace string) ([]map[string]any, error) {
 	cl, err := getKubeClient(clusterName)
 	if err != nil {
 		return nil, err
@@ -115,7 +115,7 @@ func (m *Manifest) setupDashboard(ctx context.Context, clusterName, namespace st
 		return nil, err
 	}
 
-	dashboardResources := make([]map[string]interface{}, 0)
+	dashboardResources := make([]map[string]any, 0)
 	resources, err := m.generateManifests(ctx)
 	if err != nil {
 		return nil, err
@@ -148,7 +148,7 @@ func (m *Manifest) setupDashboard(ctx context.Context, clusterName, namespace st
 	return dashboardResources, nil
 }
 
-func (m *Manifest) modifyDashboardDeployment(deploymentResource map[string]interface{}) (map[string]interface{}, error) {
+func (m *Manifest) modifyDashboardDeployment(deploymentResource map[string]any) (map[string]any, error) {
 	deployment := &appsv1.Deployment{}
 	deploymentStr, err := utils.Stringy(deploymentResource)
 	if err != nil {
@@ -171,7 +171,7 @@ func (m *Manifest) modifyDashboardDeployment(deploymentResource map[string]inter
 	return utils.RawK8sInterface(depBytes)
 }
 
-func (m *Manifest) modifyDashboardProps(ctx context.Context, cl client.Client, configMapResource map[string]interface{}, namespace, propsKey, tokenSecretName string) (map[string]interface{}, error) {
+func (m *Manifest) modifyDashboardProps(ctx context.Context, cl client.Client, configMapResource map[string]any, namespace, propsKey, tokenSecretName string) (map[string]any, error) {
 	configMap := &corev1.ConfigMap{}
 	configMapStr, err := utils.Stringy(configMapResource)
 	if err != nil {

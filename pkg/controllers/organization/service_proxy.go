@@ -20,7 +20,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
-	greenhousesapv1alpha1 "github.com/cloudoperators/greenhouse/pkg/apis/greenhouse/v1alpha1"
+	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/pkg/apis/greenhouse/v1alpha1"
 	"github.com/cloudoperators/greenhouse/pkg/clientutil"
 	"github.com/cloudoperators/greenhouse/pkg/common"
 	"github.com/cloudoperators/greenhouse/pkg/version"
@@ -32,7 +32,7 @@ const (
 	oauthPreviewAnnotation = "greenhouse.sap/oauth-proxy-preview"
 )
 
-func (r *OrganizationReconciler) reconcileServiceProxy(ctx context.Context, org *greenhousesapv1alpha1.Organization) error {
+func (r *OrganizationReconciler) reconcileServiceProxy(ctx context.Context, org *greenhousev1alpha1.Organization) error {
 	domain := fmt.Sprintf("%s.%s", org.Name, common.DNSDomain)
 	domainJSON, err := json.Marshal(domain)
 	if err != nil {
@@ -43,7 +43,7 @@ func (r *OrganizationReconciler) reconcileServiceProxy(ctx context.Context, org 
 		return fmt.Errorf("failed to marshal version.GitCommit: %w", err)
 	}
 
-	var pluginDefinition = new(greenhousesapv1alpha1.PluginDefinition)
+	var pluginDefinition = new(greenhousev1alpha1.PluginDefinition)
 	if err := r.Client.Get(ctx, types.NamespacedName{Name: serviceProxyName, Namespace: ""}, pluginDefinition); err != nil {
 		if apierrors.IsNotFound(err) {
 			log.FromContext(ctx).Info("plugin definition for service-proxy not found")
@@ -87,19 +87,19 @@ func (r *OrganizationReconciler) reconcileServiceProxy(ctx context.Context, org 
 		}
 	}
 
-	plugin := &greenhousesapv1alpha1.Plugin{
+	plugin := &greenhousev1alpha1.Plugin{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      serviceProxyName,
 			Namespace: org.Name,
 		},
-		Spec: greenhousesapv1alpha1.PluginSpec{
+		Spec: greenhousev1alpha1.PluginSpec{
 			PluginDefinition: serviceProxyName,
 		},
 	}
 
 	result, err := clientutil.CreateOrPatch(ctx, r.Client, plugin, func() error {
 		plugin.Spec.DisplayName = "Remote service proxy"
-		plugin.Spec.OptionValues = []greenhousesapv1alpha1.PluginOptionValue{
+		plugin.Spec.OptionValues = []greenhousev1alpha1.PluginOptionValue{
 			{
 				Name:  "domain",
 				Value: &apiextensionsv1.JSON{Raw: domainJSON},
@@ -110,7 +110,7 @@ func (r *OrganizationReconciler) reconcileServiceProxy(ctx context.Context, org 
 			},
 		}
 		if oauthProxyEnabled {
-			oauthProxyValues := []greenhousesapv1alpha1.PluginOptionValue{
+			oauthProxyValues := []greenhousev1alpha1.PluginOptionValue{
 				{
 					Name:  "oauth2proxy.enabled",
 					Value: &apiextensionsv1.JSON{Raw: []byte("\"true\"")},
@@ -167,7 +167,7 @@ func (r *OrganizationReconciler) enqueueAllOrganizationsForServiceProxyPluginDef
 }
 
 func listOrganizationsAsReconcileRequests(ctx context.Context, c client.Client, listOpts ...client.ListOption) []ctrl.Request {
-	var organizationList = new(greenhousesapv1alpha1.OrganizationList)
+	var organizationList = new(greenhousev1alpha1.OrganizationList)
 	if err := c.List(ctx, organizationList, listOpts...); err != nil {
 		return nil
 	}

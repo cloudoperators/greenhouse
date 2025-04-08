@@ -25,11 +25,11 @@ type MockClient struct {
 
 // Create provides a mock function with given fields: ctx, obj, opts
 func (_m *MockClient) Create(ctx context.Context, obj client.Object, opts ...client.CreateOption) error {
-	_va := make([]interface{}, len(opts))
+	_va := make([]any, len(opts))
 	for _i := range opts {
 		_va[_i] = opts[_i]
 	}
-	var _ca []interface{}
+	var _ca []any
 	_ca = append(_ca, ctx, obj)
 	_ca = append(_ca, _va...)
 	ret := _m.Called(_ca...)
@@ -50,11 +50,11 @@ func (_m *MockClient) Create(ctx context.Context, obj client.Object, opts ...cli
 
 // Delete provides a mock function with given fields: ctx, obj, opts
 func (_m *MockClient) Delete(ctx context.Context, obj client.Object, opts ...client.DeleteOption) error {
-	_va := make([]interface{}, len(opts))
+	_va := make([]any, len(opts))
 	for _i := range opts {
 		_va[_i] = opts[_i]
 	}
-	var _ca []interface{}
+	var _ca []any
 	_ca = append(_ca, ctx, obj)
 	_ca = append(_ca, _va...)
 	ret := _m.Called(_ca...)
@@ -75,11 +75,11 @@ func (_m *MockClient) Delete(ctx context.Context, obj client.Object, opts ...cli
 
 // DeleteAllOf provides a mock function with given fields: ctx, obj, opts
 func (_m *MockClient) DeleteAllOf(ctx context.Context, obj client.Object, opts ...client.DeleteAllOfOption) error {
-	_va := make([]interface{}, len(opts))
+	_va := make([]any, len(opts))
 	for _i := range opts {
 		_va[_i] = opts[_i]
 	}
-	var _ca []interface{}
+	var _ca []any
 	_ca = append(_ca, ctx, obj)
 	_ca = append(_ca, _va...)
 	ret := _m.Called(_ca...)
@@ -100,11 +100,11 @@ func (_m *MockClient) DeleteAllOf(ctx context.Context, obj client.Object, opts .
 
 // Get provides a mock function with given fields: ctx, key, obj, opts
 func (_m *MockClient) Get(ctx context.Context, key types.NamespacedName, obj client.Object, opts ...client.GetOption) error {
-	_va := make([]interface{}, len(opts))
+	_va := make([]any, len(opts))
 	for _i := range opts {
 		_va[_i] = opts[_i]
 	}
-	var _ca []interface{}
+	var _ca []any
 	_ca = append(_ca, ctx, key, obj)
 	_ca = append(_ca, _va...)
 	ret := _m.Called(_ca...)
@@ -181,11 +181,11 @@ func (_m *MockClient) IsObjectNamespaced(obj runtime.Object) (bool, error) {
 
 // List provides a mock function with given fields: ctx, list, opts
 func (_m *MockClient) List(ctx context.Context, list client.ObjectList, opts ...client.ListOption) error {
-	_va := make([]interface{}, len(opts))
+	_va := make([]any, len(opts))
 	for _i := range opts {
 		_va[_i] = opts[_i]
 	}
-	var _ca []interface{}
+	var _ca []any
 	_ca = append(_ca, ctx, list)
 	_ca = append(_ca, _va...)
 	ret := _m.Called(_ca...)
@@ -206,11 +206,11 @@ func (_m *MockClient) List(ctx context.Context, list client.ObjectList, opts ...
 
 // Patch provides a mock function with given fields: ctx, obj, patch, opts
 func (_m *MockClient) Patch(ctx context.Context, obj client.Object, patch client.Patch, opts ...client.PatchOption) error {
-	_va := make([]interface{}, len(opts))
+	_va := make([]any, len(opts))
 	for _i := range opts {
 		_va[_i] = opts[_i]
 	}
-	var _ca []interface{}
+	var _ca []any
 	_ca = append(_ca, ctx, obj, patch)
 	_ca = append(_ca, _va...)
 	ret := _m.Called(_ca...)
@@ -311,11 +311,11 @@ func (_m *MockClient) SubResource(subResource string) client.SubResourceClient {
 
 // Update provides a mock function with given fields: ctx, obj, opts
 func (_m *MockClient) Update(ctx context.Context, obj client.Object, opts ...client.UpdateOption) error {
-	_va := make([]interface{}, len(opts))
+	_va := make([]any, len(opts))
 	for _i := range opts {
 		_va[_i] = opts[_i]
 	}
-	var _ca []interface{}
+	var _ca []any
 	_ca = append(_ca, ctx, obj)
 	_ca = append(_ca, _va...)
 	ret := _m.Called(_ca...)
