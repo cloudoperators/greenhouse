@@ -4,9 +4,10 @@
 package organization_test
 
 import (
+	"slices"
+
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	"golang.org/x/exp/slices"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -394,7 +395,7 @@ func checkOrganizationReadyStatus(orgName string) {
 
 func createSecretForOIDCConfig(namespace string) {
 	oidcSecret := &corev1.Secret{}
-	oidcSecret.SetName("test-oidc-secret")
+	oidcSecret.SetName("test-secret")
 	oidcSecret.SetNamespace(namespace)
 	oidcSecret.Data = map[string][]byte{
 		"clientId":     []byte("test-client-id"),
@@ -413,11 +414,11 @@ func updateOrgWithOIDC(orgName string, additionalRedirects ...string) {
 			Issuer:      "https://example.com",
 			RedirectURI: "https://example.com/callback",
 			ClientIDReference: greenhousev1alpha1.SecretKeyReference{
-				Name: "test-oidc-secret",
+				Name: "test-secret",
 				Key:  "clientId",
 			},
 			ClientSecretReference: greenhousev1alpha1.SecretKeyReference{
-				Name: "test-oidc-secret",
+				Name: "test-secret",
 				Key:  "clientSecret",
 			},
 			OAuth2ClientRedirectURIs: additionalRedirects,

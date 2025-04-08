@@ -122,6 +122,12 @@ var _ = Describe("Organization ServiceProxyReconciler", Ordered, func() {
 				var plugin = new(greenhousev1alpha1.Plugin)
 				err := test.K8sClient.Get(test.Ctx, types.NamespacedName{Name: "service-proxy", Namespace: org.Name}, plugin)
 				g.Expect(err).ToNot(HaveOccurred(), "service-proxy plugin should have been created by controller")
+
+				var secret = new(corev1.Secret)
+				err = test.K8sClient.Get(test.Ctx, types.NamespacedName{Name: org.Name + technicalSecretSuffix, Namespace: org.Name}, secret)
+				g.Expect(err).ToNot(HaveOccurred(), "org technical secret should have been created by controller")
+				g.Expect(secret.Data).To(HaveKeyWithValue(cookieSecretKey, Not(BeEmpty())), "org technical secret should contain a non-empty cookie secret")
+
 				g.Expect(plugin.Spec.OptionValues).To(ContainElement(greenhousev1alpha1.PluginOptionValue{Name: "oauth2proxy.enabled", Value: &apiextensionsv1.JSON{Raw: []byte("\"true\"")}}))
 			}).Should(Succeed(), "service-proxy plugin should have been created for organization")
 

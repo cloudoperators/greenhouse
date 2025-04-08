@@ -12,6 +12,7 @@ import (
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/record"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -22,6 +23,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 
+	"github.com/cloudoperators/greenhouse/pkg/apis"
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/pkg/apis/greenhouse/v1alpha1"
 	"github.com/cloudoperators/greenhouse/pkg/clientutil"
 	dexstore "github.com/cloudoperators/greenhouse/pkg/dex"
@@ -46,7 +48,12 @@ var (
 	}
 )
 
-const defaultGreenhouseConnectorID = "greenhouse"
+const (
+	defaultGreenhouseConnectorID = "greenhouse"
+	// internalSuffix is used for the internal secret of the organization
+	// this secret is used to store secrets that are not created by the user
+	technicalSecretSuffix = "-internal"
+)
 
 // OrganizationReconciler reconciles an Organization object
 type OrganizationReconciler struct {
@@ -297,10 +304,7 @@ func (r *OrganizationReconciler) checkSCIMAPIAvailability(ctx context.Context, o
 		return greenhousev1alpha1.FalseCondition(greenhousev1alpha1.SCIMAPIAvailableCondition, greenhousev1alpha1.SCIMRequestFailedReason, ".Spec.MappedOrgAdminIDPGroup is not set in Organization")
 	}
 
-	namespace := org.Name
-	scimConfig := org.Spec.Authentication.SCIMConfig
-
-	config, err := util.GreenhouseSCIMConfigToSCIMConfig(ctx, r.Client, scimConfig, namespace)
+	config, err := util.GreenhouseSCIMConfigToSCIMConfig(ctx, r.Client, org.Spec.Authentication.SCIMConfig, org.Name)
 	if err != nil {
 		return greenhousev1alpha1.FalseCondition(greenhousev1alpha1.SCIMAPIAvailableCondition, greenhousev1alpha1.SCIMConfigErrorReason, err.Error())
 	}
@@ -363,4 +367,39 @@ func (r *OrganizationReconciler) enqueueOrganizationForReferencedSecret(_ contex
 		return nil
 	}
 	return []ctrl.Request{{NamespacedName: client.ObjectKeyFromObject(org)}}
+}
+
+// getOrCreateOrgSecret creates the internal secret of an organization, used to store secrets that are not created by the user.
+// The secret is created with the name <org.Name>-internal and the namespace <org.Namespace>.
+func (r *OrganizationReconciler) getOrCreateOrgSecret(ctx context.Context, org *greenhousev1alpha1.Organization) (*corev1.Secret, error) {
+	secret := new(corev1.Secret)
+	secret.Name = org.Name + technicalSecretSuffix
+	secret.Namespace = org.Name
+	secret.Type = apis.SecretTypeOrganization
+
+	// check if the secret already exists
+	err := r.Get(ctx, types.NamespacedName{Namespace: secret.Namespace, Name: secret.Name}, secret)
+	if err == nil {
+		return secret, nil
+	}
+	if !apierrors.IsNotFound(err) {
+		return nil, err
+	}
+
+	result, err := clientutil.CreateOrPatch(ctx, r.Client, secret, func() error {
+		if secret.Data == nil {
+			secret.Data = make(map[string][]byte)
+		}
+		return controllerutil.SetControllerReference(org, secret, r.Scheme())
+	})
+	if err != nil {
+		return nil, err
+	}
+	switch result {
+	case clientutil.OperationResultCreated:
+		log.FromContext(ctx).Info("created secret", "name", secret.Name)
+	case clientutil.OperationResultUpdated:
+		log.FromContext(ctx).Info("updated secret", "name", secret.Name)
+	}
+	return secret, nil
 }
