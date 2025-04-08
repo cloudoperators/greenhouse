@@ -2,7 +2,7 @@
 with-expecter: false
 filename: "mock_{{.InterfaceName}}.go"
 outpkg: mocks
-dir: pkg/mocks
+dir: internal/mocks
 packages:
   github.com/cloudoperators/greenhouse/internal/lifecycle:
     interfaces:
