@@ -48,15 +48,11 @@ func processDashboardSetup(cmd *cobra.Command, _ []string) error {
 	}
 
 	for _, cfg := range config.Config {
-		namespace := ""
 		if cfg.Cluster == nil {
 			return errors.New("cluster config is missing")
 		}
-		if cfg.Cluster.Namespace != nil {
-			namespace = *cfg.Cluster.Namespace
-		}
 		env := setup.NewExecutionEnv().
-			WithClusterSetup(cfg.Cluster.Name, namespace, cfg.Cluster.Version, "")
+			WithClusterSetup(cfg.Cluster)
 		for _, dep := range cfg.Dependencies {
 			if dep.Manifest.ChartPath == "charts/dashboard" {
 				env = env.WithDashboardSetup(ctx, dep.Manifest)
