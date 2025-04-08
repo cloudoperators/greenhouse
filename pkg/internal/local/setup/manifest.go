@@ -128,8 +128,8 @@ func webhookManifestSetup(ctx context.Context, m *Manifest) Step {
 		if len(deployments) > 0 {
 			for _, deployment := range deployments {
 				if deployment["metadata"] != nil {
-					metadata := deployment["metadata"].(map[string]any)
-					name := metadata["name"].(string)
+					metadata := deployment["metadata"].(map[string]any) //nolint:errcheck
+					name := metadata["name"].(string)                   //nolint:errcheck
 					err = m.waitUntilDeploymentReady(ctx, clusterName, name, namespace)
 					if err != nil {
 						return err
