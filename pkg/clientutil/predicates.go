@@ -79,21 +79,6 @@ func PredicateHasFinalizer(finalizer string) predicate.Predicate {
 	})
 }
 
-func PredicateHasOICDConfigured() predicate.Predicate {
-	return predicate.NewPredicateFuncs(func(o client.Object) bool {
-		org, ok := o.(*greenhousev1alpha1.Organization)
-		if !ok {
-			return false
-		}
-
-		if org.Spec.Authentication == nil || org.Spec.Authentication.OIDCConfig == nil {
-			return false
-		}
-
-		return true
-	})
-}
-
 // LabelSelectorPredicate constructs a Predicate from a LabelSelector.
 // Only objects matching the LabelSelector will be admitted.
 // Credit https://github.com/kubernetes-sigs/controller-runtime/blob/v0.10.1/pkg/predicate/predicate.go#L323-L333.
