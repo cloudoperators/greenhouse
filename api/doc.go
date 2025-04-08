@@ -2,4 +2,4 @@
 // SPDX-License-Identifier: Apache-2.0
 
 // +groupName=greenhouse.sap
-package greenhouse
+package api
