@@ -7,7 +7,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 
-	greenhouseapisv1alpha1 "github.com/cloudoperators/greenhouse/api/greenhouse/v1alpha1"
+	greenhouseapisv1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
 )
 
 // OrganizationAdminPolicyRules returns the namespace-scoped PolicyRules for an organization admin.

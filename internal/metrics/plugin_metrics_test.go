@@ -13,7 +13,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/metrics"
 
-	greenhouseapisv1alpha1 "github.com/cloudoperators/greenhouse/api/greenhouse/v1alpha1"
+	greenhouseapisv1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
 )
 
 var _ = Describe("Metrics controller", Ordered, func() {

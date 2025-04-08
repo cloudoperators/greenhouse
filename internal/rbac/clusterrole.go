@@ -6,7 +6,7 @@ package rbac
 import (
 	rbacv1 "k8s.io/api/rbac/v1"
 
-	greenhouseapisv1alpha1 "github.com/cloudoperators/greenhouse/api/greenhouse/v1alpha1"
+	greenhouseapisv1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
 )
 
 // OrganizationAdminClusterRolePolicyRules returns the cluster-scoped PolicyRules for an organization admin.

@@ -9,7 +9,7 @@ import (
 	"fmt"
 	"strings"
 
-	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/greenhouse/v1alpha1"
+	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
 )
 
 // DNSDomain is the DNS domain under which all services shall be exposed.
