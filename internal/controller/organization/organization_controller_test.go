@@ -152,13 +152,13 @@ var _ = Describe("Test Organization reconciliation", Ordered, func() {
 						SCIMConfig: &greenhousev1alpha1.SCIMConfig{
 							BaseURL:  groupsServer.URL + "/scim",
 							AuthType: scim.Basic,
-							BasicAuthUser: greenhousev1alpha1.ValueFromSource{
+							BasicAuthUser: &greenhousev1alpha1.ValueFromSource{
 								Secret: &greenhousev1alpha1.SecretKeyReference{
 									Name: "test-secret",
 									Key:  "basicAuthUser",
 								},
 							},
-							BasicAuthPw: greenhousev1alpha1.ValueFromSource{
+							BasicAuthPw: &greenhousev1alpha1.ValueFromSource{
 								Secret: &greenhousev1alpha1.SecretKeyReference{
 									Name: "test-secret",
 									Key:  "basicAuthPw",
@@ -196,7 +196,7 @@ var _ = Describe("Test Organization reconciliation", Ordered, func() {
 						SCIMConfig: &greenhousev1alpha1.SCIMConfig{
 							BaseURL:  groupsServer.URL + "/scim",
 							AuthType: scim.BearerToken,
-							BearerToken: greenhousev1alpha1.ValueFromSource{
+							BearerToken: &greenhousev1alpha1.ValueFromSource{
 								Secret: &greenhousev1alpha1.SecretKeyReference{
 									Name: "test-secret",
 									Key:  "bearerToken",
@@ -244,13 +244,13 @@ var _ = Describe("Test Organization reconciliation", Ordered, func() {
 					SCIMConfig: &greenhousev1alpha1.SCIMConfig{
 						BaseURL:  groupsServer.URL + "/scim",
 						AuthType: scim.Basic,
-						BasicAuthUser: greenhousev1alpha1.ValueFromSource{
+						BasicAuthUser: &greenhousev1alpha1.ValueFromSource{
 							Secret: &greenhousev1alpha1.SecretKeyReference{
 								Name: "test-secret",
 								Key:  "basicAuthUser",
 							},
 						},
-						BasicAuthPw: greenhousev1alpha1.ValueFromSource{
+						BasicAuthPw: &greenhousev1alpha1.ValueFromSource{
 							Secret: &greenhousev1alpha1.SecretKeyReference{
 								Name: "test-secret",
 								Key:  "basicAuthPw",
