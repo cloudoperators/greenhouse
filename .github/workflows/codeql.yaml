@@ -6,7 +6,7 @@ on:
   pull_request:
     types: [opened, synchronize, reopened]
     paths:
-      - 'pkg/**'
+      - 'internal/**'
       - 'e2e/**'
       - 'cmd/**'
       - 'Dockerfile*'
