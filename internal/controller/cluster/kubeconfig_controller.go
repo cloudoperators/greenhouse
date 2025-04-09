@@ -113,7 +113,7 @@ func (r *KubeconfigReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 	// get oidc info from organization
 	oidc, err := r.getOIDCInfo(ctx, cluster.Namespace)
 	if err != nil {
-		kubeconfig.Status.Conditions.SetConditions(v1alpha1.TrueCondition(v1alpha1.KubeconfigReconcileFailedCondition, "OIDCInfoError", err.Error()))
+		kubeconfig.Status.Conditions.SetConditions(greenhouseapis.TrueCondition(v1alpha1.KubeconfigReconcileFailedCondition, "OIDCInfoError", err.Error()))
 		return ctrl.Result{}, nil
 	}
 
@@ -121,7 +121,7 @@ func (r *KubeconfigReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 	var secret corev1.Secret
 	err = r.Get(ctx, client.ObjectKey{Name: req.Name, Namespace: req.Namespace}, &secret)
 	if err != nil {
-		kubeconfig.Status.Conditions.SetConditions(v1alpha1.TrueCondition(v1alpha1.KubeconfigReconcileFailedCondition, "SecretDataError", err.Error()))
+		kubeconfig.Status.Conditions.SetConditions(greenhouseapis.TrueCondition(v1alpha1.KubeconfigReconcileFailedCondition, "SecretDataError", err.Error()))
 		return ctrl.Result{}, nil
 	}
 
@@ -129,7 +129,7 @@ func (r *KubeconfigReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 	rootKubeCfg := secret.Data[greenhouseapis.GreenHouseKubeConfigKey]
 	kubeCfg, err := clientcmd.Load(rootKubeCfg)
 	if err != nil {
-		kubeconfig.Status.Conditions.SetConditions(v1alpha1.TrueCondition(v1alpha1.KubeconfigReconcileFailedCondition, "KubeconfigLoadError", err.Error()))
+		kubeconfig.Status.Conditions.SetConditions(greenhouseapis.TrueCondition(v1alpha1.KubeconfigReconcileFailedCondition, "KubeconfigLoadError", err.Error()))
 		return ctrl.Result{}, nil
 	}
 
@@ -270,28 +270,28 @@ func calculateKubeconfigStatus(ck *v1alpha1.ClusterKubeconfig) v1alpha1.ClusterK
 	// new creation
 	status := ck.Status.DeepCopy()
 	if len(status.Conditions.Conditions) == 0 {
-		status.Conditions.SetConditions(v1alpha1.TrueCondition(v1alpha1.KubeconfigCreatedCondition, "NewCreation", ""))
+		status.Conditions.SetConditions(greenhouseapis.TrueCondition(v1alpha1.KubeconfigCreatedCondition, "NewCreation", ""))
 	}
 
 	for _, ct := range ExposedKubeconfigConditions {
 		if status.Conditions.GetConditionByType(ct) == nil {
-			status.Conditions.SetConditions(v1alpha1.UnknownCondition(ct, "", ""))
+			status.Conditions.SetConditions(greenhouseapis.UnknownCondition(ct, "", ""))
 		}
 	}
 	// check for failure
 	reconcileFailedStatus := status.Conditions.GetConditionByType(v1alpha1.KubeconfigReconcileFailedCondition)
 	if reconcileFailedStatus != nil && reconcileFailedStatus.IsTrue() {
-		status.Conditions.SetConditions(v1alpha1.FalseCondition(v1alpha1.KubeconfigReadyCondition, "ReconcileFailed", ""))
-		status.Conditions.SetConditions(v1alpha1.FalseCondition(v1alpha1.KubeconfigCreatedCondition, "ReconcileFailed", ""))
+		status.Conditions.SetConditions(greenhouseapis.FalseCondition(v1alpha1.KubeconfigReadyCondition, "ReconcileFailed", ""))
+		status.Conditions.SetConditions(greenhouseapis.FalseCondition(v1alpha1.KubeconfigCreatedCondition, "ReconcileFailed", ""))
 	} else {
-		status.Conditions.SetConditions(v1alpha1.TrueCondition(v1alpha1.KubeconfigReadyCondition, "Complete", ""))
-		status.Conditions.SetConditions(v1alpha1.FalseCondition(v1alpha1.KubeconfigReconcileFailedCondition, "ReadyState", ""))
-		status.Conditions.SetConditions(v1alpha1.FalseCondition(v1alpha1.KubeconfigCreatedCondition, "ReadyState", ""))
+		status.Conditions.SetConditions(greenhouseapis.TrueCondition(v1alpha1.KubeconfigReadyCondition, "Complete", ""))
+		status.Conditions.SetConditions(greenhouseapis.FalseCondition(v1alpha1.KubeconfigReconcileFailedCondition, "ReadyState", ""))
+		status.Conditions.SetConditions(greenhouseapis.FalseCondition(v1alpha1.KubeconfigCreatedCondition, "ReadyState", ""))
 	}
 	return *status
 }
 
-var ExposedKubeconfigConditions = []v1alpha1.ConditionType{
+var ExposedKubeconfigConditions = []greenhouseapis.ConditionType{
 	v1alpha1.KubeconfigCreatedCondition,
 	v1alpha1.KubeconfigReconcileFailedCondition,
 	v1alpha1.KubeconfigReadyCondition,

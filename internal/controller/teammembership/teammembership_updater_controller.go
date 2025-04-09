@@ -26,6 +26,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
+	greenhouseapis "github.com/cloudoperators/greenhouse/api"
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
 	"github.com/cloudoperators/greenhouse/internal/clientutil"
 	"github.com/cloudoperators/greenhouse/internal/lifecycle"
@@ -44,8 +45,8 @@ var (
 		[]string{"namespace", "team"},
 	)
 	// exposedConditions are the conditions that are exposed in the StatusConditions of the TeamMembership.
-	exposedConditions = []greenhousev1alpha1.ConditionType{
-		greenhousev1alpha1.ReadyCondition,
+	exposedConditions = []greenhouseapis.ConditionType{
+		greenhouseapis.ReadyCondition,
 		greenhousev1alpha1.SCIMAccessReadyCondition,
 		greenhousev1alpha1.SCIMAllMembersValidCondition,
 	}
@@ -160,7 +161,7 @@ func (r *TeamMembershipUpdaterController) EnsureCreated(ctx context.Context, obj
 	orgSCIMAPIAvailableCondition := organization.Status.GetConditionByType(greenhousev1alpha1.SCIMAPIAvailableCondition)
 	if orgSCIMAPIAvailableCondition == nil || !orgSCIMAPIAvailableCondition.IsTrue() {
 		if teamMembershipExists {
-			scimAccessReadyCondition := greenhousev1alpha1.FalseCondition(greenhousev1alpha1.SCIMAccessReadyCondition,
+			scimAccessReadyCondition := greenhouseapis.FalseCondition(greenhousev1alpha1.SCIMAccessReadyCondition,
 				greenhousev1alpha1.SCIMAPIUnavailableReason, "SCIM API in Organization is unavailable")
 			teamMembershipStatus.SetConditions(scimAccessReadyCondition)
 			team.Status.StatusConditions.SetConditions(scimAccessReadyCondition)
@@ -172,7 +173,7 @@ func (r *TeamMembershipUpdaterController) EnsureCreated(ctx context.Context, obj
 	if organization.Spec.Authentication == nil || organization.Spec.Authentication.SCIMConfig == nil {
 		log.FromContext(ctx).Info("SCIM config is missing from org", "Name", teamNamespacedName)
 
-		c := greenhousev1alpha1.FalseCondition(greenhousev1alpha1.SCIMAccessReadyCondition, greenhousev1alpha1.SecretNotFoundReason, "SCIM config is missing from organization")
+		c := greenhouseapis.FalseCondition(greenhousev1alpha1.SCIMAccessReadyCondition, greenhousev1alpha1.SecretNotFoundReason, "SCIM config is missing from organization")
 		teamMembershipStatus.SetConditions(c)
 		team.Status.StatusConditions.SetConditions(c)
 
@@ -187,14 +188,14 @@ func (r *TeamMembershipUpdaterController) EnsureCreated(ctx context.Context, obj
 	users, membersValidCondition, err := r.getUsersFromSCIM(ctx, scimClient, team.Spec.MappedIDPGroup)
 	if err != nil {
 		log.FromContext(ctx).Info("failed processing team-membership for team", "error", err)
-		scimAccessReadyCondition := greenhousev1alpha1.FalseCondition(greenhousev1alpha1.SCIMAccessReadyCondition, greenhousev1alpha1.SCIMRequestFailedReason, "")
+		scimAccessReadyCondition := greenhouseapis.FalseCondition(greenhousev1alpha1.SCIMAccessReadyCondition, greenhousev1alpha1.SCIMRequestFailedReason, "")
 		teamMembershipStatus.SetConditions(scimAccessReadyCondition)
 		team.Status.StatusConditions.SetConditions(scimAccessReadyCondition)
 		return ctrl.Result{}, lifecycle.Failed, err
 	}
 
 	team.Status.Members = users
-	scimAccessReadyCondition := greenhousev1alpha1.TrueCondition(greenhousev1alpha1.SCIMAccessReadyCondition, "", "")
+	scimAccessReadyCondition := greenhouseapis.TrueCondition(greenhousev1alpha1.SCIMAccessReadyCondition, "", "")
 	teamMembershipStatus.SetConditions(membersValidCondition, scimAccessReadyCondition)
 	team.Status.StatusConditions.SetConditions(membersValidCondition, scimAccessReadyCondition)
 
@@ -239,7 +240,7 @@ func (r *TeamMembershipUpdaterController) createSCIMClient(
 
 	clientConfig, err := util.GreenhouseSCIMConfigToSCIMConfig(ctx, r.Client, scimConfig, namespace)
 	if err != nil {
-		teamMembershipStatus.SetConditions(greenhousev1alpha1.FalseCondition(greenhousev1alpha1.SCIMAccessReadyCondition, greenhousev1alpha1.SCIMConfigErrorReason, err.Error()))
+		teamMembershipStatus.SetConditions(greenhouseapis.FalseCondition(greenhousev1alpha1.SCIMAccessReadyCondition, greenhousev1alpha1.SCIMConfigErrorReason, err.Error()))
 		return nil, err
 	}
 
@@ -247,8 +248,8 @@ func (r *TeamMembershipUpdaterController) createSCIMClient(
 	return scim.NewSCIMClient(logger, clientConfig)
 }
 
-func (r *TeamMembershipUpdaterController) getUsersFromSCIM(ctx context.Context, scimClient scim.ISCIMClient, mappedIDPGroup string) ([]greenhousev1alpha1.User, greenhousev1alpha1.Condition, error) {
-	condition := greenhousev1alpha1.UnknownCondition(greenhousev1alpha1.SCIMAllMembersValidCondition, "", "")
+func (r *TeamMembershipUpdaterController) getUsersFromSCIM(ctx context.Context, scimClient scim.ISCIMClient, mappedIDPGroup string) ([]greenhousev1alpha1.User, greenhouseapis.Condition, error) {
+	condition := greenhouseapis.UnknownCondition(greenhousev1alpha1.SCIMAllMembersValidCondition, "", "")
 	opts := &scim.QueryOptions{
 		Filter:     scim.UserFilterByGroupDisplayName(mappedIDPGroup),
 		Attributes: scim.SetAttributes(scim.AttrName, scim.AttrEmails, scim.AttrDisplayName, scim.AttrActive),
@@ -281,10 +282,10 @@ func (r *TeamMembershipUpdaterController) getUsersFromSCIM(ctx context.Context, 
 	}
 	if inactive+malformed > 0 {
 		msg := fmt.Sprintf("SCIM members with issues: %d inactive, %d malformed", inactive, malformed)
-		condition = greenhousev1alpha1.FalseCondition(greenhousev1alpha1.SCIMAllMembersValidCondition, "", msg)
+		condition = greenhouseapis.FalseCondition(greenhousev1alpha1.SCIMAllMembersValidCondition, "", msg)
 		return users, condition, nil
 	}
-	condition = greenhousev1alpha1.TrueCondition(greenhousev1alpha1.SCIMAllMembersValidCondition, "", "")
+	condition = greenhouseapis.TrueCondition(greenhousev1alpha1.SCIMAllMembersValidCondition, "", "")
 	return users, condition, nil
 }
 
@@ -292,7 +293,7 @@ func initTeamMembershipStatus(teamMembership *greenhousev1alpha1.TeamMembership)
 	teamMembershipStatus := teamMembership.Status.DeepCopy()
 	for _, t := range exposedConditions {
 		if teamMembershipStatus.GetConditionByType(t) == nil {
-			teamMembershipStatus.SetConditions(greenhousev1alpha1.UnknownCondition(t, "", ""))
+			teamMembershipStatus.SetConditions(greenhouseapis.UnknownCondition(t, "", ""))
 		}
 	}
 	return *teamMembershipStatus
@@ -309,10 +310,10 @@ func (r *TeamMembershipUpdaterController) setStatus(ctx context.Context, teamMem
 }
 
 func (r *TeamMembershipUpdaterController) computeReadyCondition(
-	conditions greenhousev1alpha1.StatusConditions,
-) (readyCondition greenhousev1alpha1.Condition) {
+	conditions greenhouseapis.StatusConditions,
+) (readyCondition greenhouseapis.Condition) {
 
-	readyCondition = *conditions.GetConditionByType(greenhousev1alpha1.ReadyCondition)
+	readyCondition = *conditions.GetConditionByType(greenhouseapis.ReadyCondition)
 
 	if conditions.GetConditionByType(greenhousev1alpha1.SCIMAccessReadyCondition).IsFalse() {
 		readyCondition.Status = metav1.ConditionFalse

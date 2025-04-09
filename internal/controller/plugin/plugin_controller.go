@@ -128,7 +128,7 @@ func (r *PluginReconciler) EnsureDeleted(ctx context.Context, resource lifecycle
 
 	isDeleted, err := helm.UninstallHelmRelease(ctx, restClientGetter, plugin)
 	if err != nil {
-		c := greenhousev1alpha1.TrueCondition(greenhousev1alpha1.HelmReconcileFailedCondition, greenhousev1alpha1.HelmUninstallFailedReason, err.Error())
+		c := greenhouseapis.TrueCondition(greenhousev1alpha1.HelmReconcileFailedCondition, greenhousev1alpha1.HelmUninstallFailedReason, err.Error())
 		plugin.SetCondition(c)
 		metrics.UpdateMetrics(plugin, metrics.MetricResultError, metrics.MetricReasonUninstallHelmFailed)
 		return ctrl.Result{}, lifecycle.Failed, err
@@ -138,7 +138,7 @@ func (r *PluginReconciler) EnsureDeleted(ctx context.Context, resource lifecycle
 		return ctrl.Result{RequeueAfter: time.Minute}, lifecycle.Pending, nil
 	}
 
-	plugin.SetCondition(greenhousev1alpha1.FalseCondition(greenhousev1alpha1.HelmReconcileFailedCondition, "", ""))
+	plugin.SetCondition(greenhouseapis.FalseCondition(greenhousev1alpha1.HelmReconcileFailedCondition, "", ""))
 	return ctrl.Result{}, lifecycle.Success, nil
 }
 
@@ -215,7 +215,7 @@ func (r *PluginReconciler) getPluginDefinition(
 			errorMessage = fmt.Sprintf("Failed to get pluginDefinition %s: %s", plugin.Spec.PluginDefinition, err.Error())
 		}
 
-		plugin.SetCondition(greenhousev1alpha1.TrueCondition(
+		plugin.SetCondition(greenhouseapis.TrueCondition(
 			greenhousev1alpha1.HelmReconcileFailedCondition, greenhousev1alpha1.PluginDefinitionNotFoundReason, errorMessage))
 
 		return nil, errors.New(errorMessage)
@@ -232,7 +232,7 @@ func (r *PluginReconciler) reconcileHelmRelease(
 
 	// Not a HelmChart pluginDefinition. Ignore it.
 	if pluginDefinition.Spec.HelmChart == nil {
-		plugin.SetCondition(greenhousev1alpha1.FalseCondition(
+		plugin.SetCondition(greenhouseapis.FalseCondition(
 			greenhousev1alpha1.HelmReconcileFailedCondition, "", "PluginDefinition is not backed by HelmChart"))
 		return nil
 	}
@@ -241,7 +241,7 @@ func (r *PluginReconciler) reconcileHelmRelease(
 	// Any error is reflected in the status of the Plugin.
 	if _, err := helm.TemplateHelmChartFromPlugin(ctx, r.Client, restClientGetter, pluginDefinition, plugin); err != nil {
 		errorMessage := "Helm template failed: " + err.Error()
-		plugin.SetCondition(greenhousev1alpha1.TrueCondition(
+		plugin.SetCondition(greenhouseapis.TrueCondition(
 			greenhousev1alpha1.HelmReconcileFailedCondition, "", errorMessage))
 		metrics.UpdateMetrics(plugin, metrics.MetricResultError, metrics.MetricReasonTemplateFailed)
 		return errors.New(errorMessage)
@@ -251,7 +251,7 @@ func (r *PluginReconciler) reconcileHelmRelease(
 	diffObjects, isHelmDrift, err := helm.DiffChartToDeployedResources(ctx, r.Client, restClientGetter, pluginDefinition, plugin)
 	if err != nil {
 		errorMessage := "Helm diff failed: " + err.Error()
-		plugin.SetCondition(greenhousev1alpha1.TrueCondition(
+		plugin.SetCondition(greenhouseapis.TrueCondition(
 			greenhousev1alpha1.HelmReconcileFailedCondition, "", errorMessage))
 		metrics.UpdateMetrics(plugin, metrics.MetricResultError, metrics.MetricReasonDiffFailed)
 		return errors.New(errorMessage)
@@ -259,14 +259,14 @@ func (r *PluginReconciler) reconcileHelmRelease(
 
 	switch {
 	case isHelmDrift: // drift was detected
-		plugin.SetCondition(greenhousev1alpha1.TrueCondition(greenhousev1alpha1.HelmDriftDetectedCondition, "", ""))
+		plugin.SetCondition(greenhouseapis.TrueCondition(greenhousev1alpha1.HelmDriftDetectedCondition, "", ""))
 		log.FromContext(ctx).Info("drift between deployed resources and manifest detected", "resources", diffObjects.String())
 	case len(diffObjects) > 0: // diff detected
-		plugin.SetCondition(greenhousev1alpha1.FalseCondition(greenhousev1alpha1.HelmDriftDetectedCondition, "", ""))
+		plugin.SetCondition(greenhouseapis.FalseCondition(greenhousev1alpha1.HelmDriftDetectedCondition, "", ""))
 		log.FromContext(ctx).Info("diff between deployed release and manifest detected", "resources", diffObjects.String())
 	default: // no diff detected and no drift detected
-		plugin.SetCondition(greenhousev1alpha1.FalseCondition(greenhousev1alpha1.HelmDriftDetectedCondition, "", ""))
-		plugin.SetCondition(greenhousev1alpha1.FalseCondition(
+		plugin.SetCondition(greenhouseapis.FalseCondition(greenhousev1alpha1.HelmDriftDetectedCondition, "", ""))
+		plugin.SetCondition(greenhouseapis.FalseCondition(
 			greenhousev1alpha1.HelmReconcileFailedCondition, "", "Release for plugin is up-to-date"))
 
 		// TODO: remove unnecessary log?
@@ -278,12 +278,12 @@ func (r *PluginReconciler) reconcileHelmRelease(
 
 	if err := helm.InstallOrUpgradeHelmChartFromPlugin(ctx, r.Client, restClientGetter, pluginDefinition, plugin); err != nil {
 		errorMessage := "Helm install/upgrade failed: " + err.Error()
-		plugin.SetCondition(greenhousev1alpha1.TrueCondition(
+		plugin.SetCondition(greenhouseapis.TrueCondition(
 			greenhousev1alpha1.HelmReconcileFailedCondition, "", errorMessage))
 		return errors.New(errorMessage)
 	}
 
-	plugin.SetCondition(greenhousev1alpha1.FalseCondition(
+	plugin.SetCondition(greenhouseapis.FalseCondition(
 		greenhousev1alpha1.HelmReconcileFailedCondition, "", "Helm install/upgrade successful"))
 	metrics.UpdateMetrics(plugin, metrics.MetricResultSuccess, metrics.MetricReasonEmpty)
 	return nil
@@ -314,9 +314,9 @@ func (r *PluginReconciler) reconcileStatus(ctx context.Context,
 		serviceList, err := getExposedServicesForPluginFromHelmRelease(restClientGetter, helmRelease, plugin)
 		if err == nil {
 			exposedServices = serviceList
-			plugin.SetCondition(greenhousev1alpha1.TrueCondition(greenhousev1alpha1.StatusUpToDateCondition, "", ""))
+			plugin.SetCondition(greenhouseapis.TrueCondition(greenhousev1alpha1.StatusUpToDateCondition, "", ""))
 		} else {
-			plugin.SetCondition(greenhousev1alpha1.FalseCondition(
+			plugin.SetCondition(greenhouseapis.FalseCondition(
 				greenhousev1alpha1.StatusUpToDateCondition, "", "failed to get exposed services: "+err.Error()))
 		}
 
@@ -338,7 +338,7 @@ func (r *PluginReconciler) reconcileStatus(ctx context.Context,
 			}
 		}
 	} else {
-		plugin.SetCondition(greenhousev1alpha1.FalseCondition(
+		plugin.SetCondition(greenhouseapis.FalseCondition(
 			greenhousev1alpha1.StatusUpToDateCondition, "", "failed to get Helm release: "+err.Error()))
 	}
 

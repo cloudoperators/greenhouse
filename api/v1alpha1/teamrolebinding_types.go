@@ -88,7 +88,7 @@ func (trb *TeamRoleBinding) SetCondition(condition greenhouseapis.Condition) {
 
 // SetPropagationStatus updates the TeamRoleBinding's PropagationStatus for the Cluster
 func (trb *TeamRoleBinding) SetPropagationStatus(cluster string, rbacReady metav1.ConditionStatus, reason greenhouseapis.ConditionReason, message string) {
-	condition := greenhouseapis.NewCondition(RBACReady, rbacReady, reason, message)
+	condition := greenhouseapis.NewCondition(greenhouseapis.RBACReady, rbacReady, reason, message)
 	for i, ps := range trb.Status.PropagationStatus {
 		if ps.ClusterName != cluster {
 			continue

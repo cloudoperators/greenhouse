@@ -29,6 +29,7 @@ import (
 	"k8s.io/client-go/kubernetes/scheme"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
+	greenhouseapis "github.com/cloudoperators/greenhouse/api"
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
 	"github.com/cloudoperators/greenhouse/internal/clientutil"
 	"github.com/cloudoperators/greenhouse/internal/lifecycle"
@@ -220,7 +221,7 @@ func WaitUntilResourceReadyOrNotReady(ctx context.Context, apiClient client.Clie
 		}
 
 		conditions := resource.GetConditions()
-		readyCondition := conditions.GetConditionByType(greenhousev1alpha1.ReadyCondition)
+		readyCondition := conditions.GetConditionByType(greenhouseapis.ReadyCondition)
 		if readyCondition == nil {
 			retries++
 			err = fmt.Errorf("resource %s does not have ready condition yet", resource.GetName())

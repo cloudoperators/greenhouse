@@ -7,6 +7,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 
+	greenhouseapis "github.com/cloudoperators/greenhouse/api"
 	"github.com/cloudoperators/greenhouse/api/v1alpha1"
 )
 
@@ -27,7 +28,7 @@ type DummySpec struct {
 
 // DummyStatus defines the observed state of Dummy
 type DummyStatus struct {
-	v1alpha1.StatusConditions `json:"statusConditions,omitempty"`
+	greenhouseapis.StatusConditions `json:"statusConditions,omitempty"`
 }
 
 //+kubebuilder:object:root=true
@@ -146,10 +147,10 @@ func (in *DummyStatus) DeepCopy() *DummyStatus {
 	return out
 }
 
-func (in *Dummy) GetConditions() v1alpha1.StatusConditions {
+func (in *Dummy) GetConditions() greenhouseapis.StatusConditions {
 	return in.Status.StatusConditions
 }
 
-func (in *Dummy) SetCondition(condition v1alpha1.Condition) {
+func (in *Dummy) SetCondition(condition greenhouseapis.Condition) {
 	in.Status.StatusConditions.SetConditions(condition)
 }

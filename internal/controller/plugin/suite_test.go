@@ -8,6 +8,7 @@ import (
 	"errors"
 	"testing"
 
+	greenhouseapis "github.com/cloudoperators/greenhouse/api"
 	greenhousecluster "github.com/cloudoperators/greenhouse/internal/controller/cluster"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -58,7 +59,7 @@ var _ = BeforeSuite(func() {
 // except for WorkloadReady condition, which is not a subject under test.
 // This is done because the cumulative Ready condition in tests will be false due to workload not being ready.
 func checkReadyConditionComponentsUnderTest(g Gomega, plugin *greenhousev1alpha1.Plugin) {
-	readyCondition := plugin.Status.GetConditionByType(greenhousev1alpha1.ReadyCondition)
+	readyCondition := plugin.Status.GetConditionByType(greenhouseapis.ReadyCondition)
 	g.Expect(readyCondition).ToNot(BeNil(), "Ready condition should not be nil")
 	clusterAccessReadyCondition := plugin.Status.GetConditionByType(greenhousev1alpha1.ClusterAccessReadyCondition)
 	g.Expect(clusterAccessReadyCondition).ToNot(BeNil())
@@ -396,7 +397,7 @@ var _ = Describe("HelmControllerTest", Serial, func() {
 				helmReconcileFailedCondition := actPlugin.Status.GetConditionByType(greenhousev1alpha1.HelmReconcileFailedCondition)
 				g.Expect(helmReconcileFailedCondition).ToNot(BeNil(), "HelmReconcileFailedCondition not found")
 				g.Expect(helmReconcileFailedCondition.IsTrue()).To(BeTrue(), "HelmReconcileFailedCondition is not true")
-				g.Expect(actPlugin.Status.GetConditionByType(greenhousev1alpha1.ReadyCondition).IsTrue()).To(BeFalse(), "ReadyCondition should not be true (but unknown)")
+				g.Expect(actPlugin.Status.GetConditionByType(greenhouseapis.ReadyCondition).IsTrue()).To(BeFalse(), "ReadyCondition should not be true (but unknown)")
 				g.Expect(helmReconcileFailedCondition.Message).To(ContainSubstring("Helm template failed: chart requires kubeVersion: <=1.20.0-0"), "HelmReconcileFailedCondition message does not reflect kubernetes version error")
 				return true
 			}).Should(BeTrue())
@@ -694,8 +695,8 @@ var _ = When("the pluginDefinition is UI only", func() {
 			if err != nil {
 				return false
 			}
-			g.Expect(uiPlugin.Status.GetConditionByType(greenhousev1alpha1.ReadyCondition)).ToNot(BeNil())
-			g.Expect(uiPlugin.Status.GetConditionByType(greenhousev1alpha1.ReadyCondition).Status).To(Equal(metav1.ConditionTrue))
+			g.Expect(uiPlugin.Status.GetConditionByType(greenhouseapis.ReadyCondition)).ToNot(BeNil())
+			g.Expect(uiPlugin.Status.GetConditionByType(greenhouseapis.ReadyCondition).Status).To(Equal(metav1.ConditionTrue))
 			g.Expect(uiPlugin.Status.GetConditionByType(greenhousev1alpha1.HelmReconcileFailedCondition).Status).To(Equal(metav1.ConditionFalse))
 			g.Expect(uiPlugin.Status.GetConditionByType(greenhousev1alpha1.HelmReconcileFailedCondition).Message).To(Equal("PluginDefinition is not backed by HelmChart"))
 			return true

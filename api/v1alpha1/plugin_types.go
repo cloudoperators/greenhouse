@@ -4,9 +4,10 @@
 package v1alpha1
 
 import (
-	greenhouseapis "github.com/cloudoperators/greenhouse/api"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
+	greenhouseapis "github.com/cloudoperators/greenhouse/api"
 )
 
 // PluginSpec defines the desired state of Plugin

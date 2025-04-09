@@ -32,10 +32,10 @@ import (
 	"github.com/cloudoperators/greenhouse/internal/lifecycle"
 )
 
-var exposedConditions = []greenhousev1alpha1.ConditionType{
-	greenhousev1alpha1.ReadyCondition,
-	greenhousev1alpha1.ClusterListEmpty,
-	greenhousev1alpha1.RBACReady,
+var exposedConditions = []greenhouseapis.ConditionType{
+	greenhouseapis.ReadyCondition,
+	greenhouseapis.ClusterListEmpty,
+	greenhouseapis.RBACReady,
 }
 
 // TeamRoleBindingReconciler reconciles a TeamRole object
@@ -56,7 +56,7 @@ func (r *TeamRoleBindingReconciler) SetupWithManager(name string, mgr ctrl.Manag
 	r.recorder = mgr.GetEventRecorderFor(name)
 
 	// index RoleBindings by the RoleRef field for faster lookups
-	if err := mgr.GetFieldIndexer().IndexField(context.Background(), &greenhousev1alpha1.TeamRoleBinding{}, greenhouseapis.RolebindingRoleRefField, func(rawObj client.Object) []string {
+	if err := mgr.GetFieldIndexer().IndexField(context.Background(), &greenhousev1alpha2.TeamRoleBinding{}, greenhouseapis.RolebindingRoleRefField, func(rawObj client.Object) []string {
 		// Extract the TeamRole name from the TeamRoleBinding Spec, if one is provided
 		teamRoleBinding, ok := rawObj.(*greenhousev1alpha2.TeamRoleBinding)
 		if teamRoleBinding.Spec.TeamRoleRef == "" || !ok {
@@ -68,7 +68,7 @@ func (r *TeamRoleBindingReconciler) SetupWithManager(name string, mgr ctrl.Manag
 	}
 
 	// index TeamRoleBindings by the TeamRef field for faster lookups
-	if err := mgr.GetFieldIndexer().IndexField(context.Background(), &greenhousev1alpha1.TeamRoleBinding{}, greenhouseapis.RolebindingTeamRefField, func(rawObj client.Object) []string {
+	if err := mgr.GetFieldIndexer().IndexField(context.Background(), &greenhousev1alpha2.TeamRoleBinding{}, greenhouseapis.RolebindingTeamRefField, func(rawObj client.Object) []string {
 		// Extract the TeamRole name from the TeamRoleBinding Spec, if one is provided
 		teamRoleBinding, ok := rawObj.(*greenhousev1alpha2.TeamRoleBinding)
 		if teamRoleBinding.Spec.TeamRef == "" || !ok {
@@ -127,15 +127,15 @@ func (r *TeamRoleBindingReconciler) EnsureCreated(ctx context.Context, resource 
 	// list the clusters that either match the ClusterName or the ClusterSelector
 	clusters, err := r.listClusters(ctx, trb)
 	if err != nil {
-		trb.SetCondition(greenhousev1alpha1.FalseCondition(greenhousev1alpha1.RBACReady, greenhousev1alpha1.EmptyClusterList, "Failed to get clusters for TeamRoleBinding"))
+		trb.SetCondition(greenhouseapis.FalseCondition(greenhouseapis.RBACReady, greenhouseapis.EmptyClusterList, "Failed to get clusters for TeamRoleBinding"))
 		return ctrl.Result{}, lifecycle.Failed, err
 	}
 	switch len(clusters.Items) {
 	case 0:
-		trb.SetCondition(greenhousev1alpha1.FalseCondition(greenhousev1alpha1.RBACReady, greenhousev1alpha1.EmptyClusterList, ""))
+		trb.SetCondition(greenhouseapis.FalseCondition(greenhouseapis.RBACReady, greenhouseapis.EmptyClusterList, ""))
 		r.recorder.Eventf(trb, corev1.EventTypeWarning, greenhousev1alpha1.FailedEvent, "No clusters found for %s", trb.GetName())
 	default:
-		trb.SetCondition(greenhousev1alpha1.FalseCondition(greenhousev1alpha1.ClusterListEmpty, "", ""))
+		trb.SetCondition(greenhouseapis.FalseCondition(greenhouseapis.ClusterListEmpty, "", ""))
 	}
 
 	err = r.cleanupResources(ctx, trb, clusters)
@@ -147,7 +147,7 @@ func (r *TeamRoleBindingReconciler) EnsureCreated(ctx context.Context, resource 
 	if err != nil {
 		if apierrors.IsNotFound(err) {
 			message := fmt.Sprintf("Failed to get team %s in namespace %s", trb.Spec.TeamRef, trb.GetNamespace())
-			trb.SetCondition(greenhousev1alpha1.FalseCondition(greenhousev1alpha1.RBACReady, greenhousev1alpha1.TeamNotFound, message))
+			trb.SetCondition(greenhouseapis.FalseCondition(greenhouseapis.RBACReady, greenhouseapis.TeamNotFound, message))
 			r.recorder.Event(trb, corev1.EventTypeWarning, greenhousev1alpha1.FailedEvent, message)
 		}
 		return ctrl.Result{}, lifecycle.Failed, err
@@ -204,7 +204,7 @@ func (r *TeamRoleBindingReconciler) doReconcile(ctx context.Context, teamRole *g
 		remoteRestClient, err := clientutil.NewK8sClientFromCluster(ctx, r.Client, &cluster)
 		if err != nil {
 			r.recorder.Eventf(trb, corev1.EventTypeWarning, greenhousev1alpha1.FailedEvent, "Error getting client for cluster %s to replicate %s", cluster.GetName(), trb.GetName())
-			trb.SetPropagationStatus(cluster.GetName(), metav1.ConditionFalse, greenhousev1alpha1.ClusterConnectionFailed, err.Error())
+			trb.SetPropagationStatus(cluster.GetName(), metav1.ConditionFalse, greenhouseapis.ClusterConnectionFailed, err.Error())
 			if !slices.Contains(failedClusters, cluster.GetName()) {
 				failedClusters = append(failedClusters, cluster.GetName())
 			}
@@ -213,7 +213,7 @@ func (r *TeamRoleBindingReconciler) doReconcile(ctx context.Context, teamRole *g
 
 		if err := reconcileClusterRole(ctx, remoteRestClient, &cluster, cr); err != nil {
 			r.recorder.Eventf(trb, corev1.EventTypeWarning, greenhousev1alpha1.FailedEvent, "Failed to reconcile ClusterRole %s in cluster %s", cr.GetName(), cluster.GetName())
-			trb.SetPropagationStatus(cluster.GetName(), metav1.ConditionFalse, greenhousev1alpha1.ClusterRoleFailed, err.Error())
+			trb.SetPropagationStatus(cluster.GetName(), metav1.ConditionFalse, greenhouseapis.ClusterRoleFailed, err.Error())
 			if !slices.Contains(failedClusters, cluster.GetName()) {
 				failedClusters = append(failedClusters, cluster.GetName())
 			}
@@ -225,13 +225,13 @@ func (r *TeamRoleBindingReconciler) doReconcile(ctx context.Context, teamRole *g
 			crb := rbacClusterRoleBinding(trb, cr, team)
 			if err := reconcileClusterRoleBinding(ctx, remoteRestClient, &cluster, crb); err != nil {
 				r.recorder.Eventf(trb, corev1.EventTypeWarning, greenhousev1alpha1.FailedEvent, "Failed to reconcile ClusterRoleBinding %s in cluster %s", crb.GetName(), cluster.GetName())
-				trb.SetPropagationStatus(cluster.GetName(), metav1.ConditionFalse, greenhousev1alpha1.RoleBindingFailed, err.Error())
+				trb.SetPropagationStatus(cluster.GetName(), metav1.ConditionFalse, greenhouseapis.RoleBindingFailed, err.Error())
 				if !slices.Contains(failedClusters, cluster.GetName()) {
 					failedClusters = append(failedClusters, cluster.GetName())
 				}
 				continue
 			}
-			trb.SetPropagationStatus(cluster.GetName(), metav1.ConditionTrue, greenhousev1alpha1.RBACReconciled, "")
+			trb.SetPropagationStatus(cluster.GetName(), metav1.ConditionTrue, greenhouseapis.RBACReconciled, "")
 		default:
 			errorMesages := []string{}
 			for _, namespace := range trb.Spec.Namespaces {
@@ -246,21 +246,21 @@ func (r *TeamRoleBindingReconciler) doReconcile(ctx context.Context, teamRole *g
 				}
 			}
 			if len(errorMesages) > 0 {
-				trb.SetPropagationStatus(cluster.GetName(), metav1.ConditionFalse, greenhousev1alpha1.RoleBindingFailed, "Failed to reconcile RoleBindings: "+strings.Join(errorMesages, ", "))
+				trb.SetPropagationStatus(cluster.GetName(), metav1.ConditionFalse, greenhouseapis.RoleBindingFailed, "Failed to reconcile RoleBindings: "+strings.Join(errorMesages, ", "))
 				continue
 			}
 		}
 
-		trb.SetPropagationStatus(cluster.GetName(), metav1.ConditionTrue, greenhousev1alpha1.RBACReconciled, "")
+		trb.SetPropagationStatus(cluster.GetName(), metav1.ConditionTrue, greenhouseapis.RBACReconciled, "")
 	}
 
 	if len(failedClusters) > 0 {
 		message := "Error reconciling TeamRoleBinding for clusters: " + strings.Join(failedClusters, ", ")
-		trb.SetCondition(greenhousev1alpha1.FalseCondition(greenhousev1alpha1.RBACReady, greenhousev1alpha1.RBACReconcileFailed, message))
+		trb.SetCondition(greenhouseapis.FalseCondition(greenhouseapis.RBACReady, greenhouseapis.RBACReconcileFailed, message))
 		return errors.New(message)
 	}
 
-	trb.SetCondition(greenhousev1alpha1.TrueCondition(greenhousev1alpha1.RBACReady, greenhousev1alpha1.RBACReconciled, ""))
+	trb.SetCondition(greenhouseapis.TrueCondition(greenhouseapis.RBACReady, greenhouseapis.RBACReconciled, ""))
 	return nil
 }
 
@@ -303,7 +303,7 @@ func (r *TeamRoleBindingReconciler) cleanupResources(ctx context.Context, trb *g
 				return err
 			}
 			if !cluster.Status.StatusConditions.IsReadyTrue() {
-				trb.SetPropagationStatus(s.ClusterName, metav1.ConditionFalse, greenhousev1alpha1.ClusterConnectionFailed, "Cluster is not ready")
+				trb.SetPropagationStatus(s.ClusterName, metav1.ConditionFalse, greenhouseapis.ClusterConnectionFailed, "Cluster is not ready")
 				continue
 			}
 			if err = r.cleanupCluster(ctx, trb, cluster); err != nil {
@@ -769,7 +769,7 @@ func (r *TeamRoleBindingReconciler) listClusters(ctx context.Context, trb *green
 	// remove clusters which are not ready
 	clusters.Items = slices.DeleteFunc(clusters.Items, func(c greenhousev1alpha1.Cluster) bool {
 		if !c.Status.StatusConditions.IsReadyTrue() {
-			trb.SetPropagationStatus(c.GetName(), metav1.ConditionFalse, greenhousev1alpha1.ClusterConnectionFailed, "Cluster is not ready")
+			trb.SetPropagationStatus(c.GetName(), metav1.ConditionFalse, greenhouseapis.ClusterConnectionFailed, "Cluster is not ready")
 			return true
 		}
 		return false
@@ -781,14 +781,14 @@ func (r *TeamRoleBindingReconciler) listClusters(ctx context.Context, trb *green
 func initTeamRoleBindingStatus(trb *greenhousev1alpha2.TeamRoleBinding) {
 	for _, ct := range exposedConditions {
 		if trb.Status.GetConditionByType(ct) == nil {
-			trb.SetCondition(greenhousev1alpha1.UnknownCondition(ct, "", ""))
+			trb.SetCondition(greenhouseapis.UnknownCondition(ct, "", ""))
 		}
 	}
 }
 
 // computeReadyCondition computes the ReadyCondition based on the TeamRoleBinding's StatusConditions
-func computeReadyCondition(status greenhousev1alpha2.TeamRoleBindingStatus) greenhousev1alpha1.Condition {
-	readyCondition := *status.GetConditionByType(greenhousev1alpha1.ReadyCondition)
+func computeReadyCondition(status greenhousev1alpha2.TeamRoleBindingStatus) greenhouseapis.Condition {
+	readyCondition := *status.GetConditionByType(greenhouseapis.ReadyCondition)
 
 	for _, condition := range status.PropagationStatus {
 		if condition.IsTrue() {

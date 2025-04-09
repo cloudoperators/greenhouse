@@ -355,8 +355,8 @@ var _ = Describe("PluginPreset Controller Lifecycle", Ordered, func() {
 			err := test.K8sClient.Get(test.Ctx, types.NamespacedName{Name: "not-ready", Namespace: pluginPreset.Namespace}, pluginPreset)
 			g.Expect(err).ShouldNot(HaveOccurred(), "unexpected error getting PluginPreset")
 			g.Expect(pluginPreset.Status.StatusConditions.Conditions).NotTo(BeNil(), "the PluginPreset should have a StatusConditions")
-			g.Expect(pluginPreset.Status.StatusConditions.GetConditionByType(greenhousev1alpha1.ClusterListEmpty).IsTrue()).Should(BeTrue(), "PluginPreset should have the ClusterListEmptyCondition set to true")
-			g.Expect(pluginPreset.Status.StatusConditions.GetConditionByType(greenhousev1alpha1.ReadyCondition).IsFalse()).Should(BeTrue(), "PluginPreset should have the ReadyCondition set to false")
+			g.Expect(pluginPreset.Status.StatusConditions.GetConditionByType(greenhouseapis.ClusterListEmpty).IsTrue()).Should(BeTrue(), "PluginPreset should have the ClusterListEmptyCondition set to true")
+			g.Expect(pluginPreset.Status.StatusConditions.GetConditionByType(greenhouseapis.ReadyCondition).IsFalse()).Should(BeTrue(), "PluginPreset should have the ReadyCondition set to false")
 		}).Should(Succeed(), "the PluginPreset should be reconciled")
 	})
 

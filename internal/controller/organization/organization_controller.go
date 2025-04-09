@@ -22,6 +22,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 
+	greenhouseapis "github.com/cloudoperators/greenhouse/api"
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
 	"github.com/cloudoperators/greenhouse/internal/clientutil"
 	dexstore "github.com/cloudoperators/greenhouse/internal/dex"
@@ -33,8 +34,8 @@ import (
 
 var (
 	// exposedConditions are the conditions that are exposed in the StatusConditions of the Organization.
-	exposedConditions = []greenhousev1alpha1.ConditionType{
-		greenhousev1alpha1.ReadyCondition,
+	exposedConditions = []greenhouseapis.ConditionType{
+		greenhouseapis.ReadyCondition,
 		greenhousev1alpha1.SCIMAPIAvailableCondition,
 		greenhousev1alpha1.ServiceProxyProvisioned,
 		greenhousev1alpha1.OrganizationOICDConfigured,
@@ -142,54 +143,54 @@ func (r *OrganizationReconciler) EnsureCreated(ctx context.Context, object lifec
 	initOrganizationStatus(org)
 
 	if err := r.reconcileNamespace(ctx, org); err != nil {
-		org.SetCondition(greenhousev1alpha1.FalseCondition(greenhousev1alpha1.NamespaceCreated, "", err.Error()))
+		org.SetCondition(greenhouseapis.FalseCondition(greenhousev1alpha1.NamespaceCreated, "", err.Error()))
 		return ctrl.Result{}, lifecycle.Failed, err
 	}
-	org.SetCondition(greenhousev1alpha1.TrueCondition(greenhousev1alpha1.NamespaceCreated, "", ""))
+	org.SetCondition(greenhouseapis.TrueCondition(greenhousev1alpha1.NamespaceCreated, "", ""))
 
 	if err := r.reconcileRBAC(ctx, org); err != nil {
-		org.SetCondition(greenhousev1alpha1.FalseCondition(greenhousev1alpha1.OrganizationRBACConfigured, "", err.Error()))
+		org.SetCondition(greenhouseapis.FalseCondition(greenhousev1alpha1.OrganizationRBACConfigured, "", err.Error()))
 		return ctrl.Result{}, lifecycle.Failed, err
 	}
-	org.SetCondition(greenhousev1alpha1.TrueCondition(greenhousev1alpha1.OrganizationRBACConfigured, "", ""))
+	org.SetCondition(greenhouseapis.TrueCondition(greenhousev1alpha1.OrganizationRBACConfigured, "", ""))
 
 	if err := r.reconcileDefaultTeamRoles(ctx, org); err != nil {
-		org.SetCondition(greenhousev1alpha1.FalseCondition(greenhousev1alpha1.OrganizationDefaultTeamRolesConfigured, "", err.Error()))
+		org.SetCondition(greenhouseapis.FalseCondition(greenhousev1alpha1.OrganizationDefaultTeamRolesConfigured, "", err.Error()))
 		return ctrl.Result{}, lifecycle.Failed, err
 	}
-	org.SetCondition(greenhousev1alpha1.TrueCondition(greenhousev1alpha1.OrganizationDefaultTeamRolesConfigured, "", ""))
+	org.SetCondition(greenhouseapis.TrueCondition(greenhousev1alpha1.OrganizationDefaultTeamRolesConfigured, "", ""))
 
 	if err := r.reconcileServiceProxy(ctx, org); err != nil {
-		org.SetCondition(greenhousev1alpha1.FalseCondition(greenhousev1alpha1.ServiceProxyProvisioned, "", err.Error()))
+		org.SetCondition(greenhouseapis.FalseCondition(greenhousev1alpha1.ServiceProxyProvisioned, "", err.Error()))
 		return ctrl.Result{}, lifecycle.Failed, err
 	}
-	org.SetCondition(greenhousev1alpha1.TrueCondition(greenhousev1alpha1.ServiceProxyProvisioned, "", ""))
+	org.SetCondition(greenhouseapis.TrueCondition(greenhousev1alpha1.ServiceProxyProvisioned, "", ""))
 
 	if org.Spec.Authentication != nil && org.Spec.Authentication.OIDCConfig != nil {
 		if err := r.reconcileDexConnector(ctx, org); err != nil {
-			org.SetCondition(greenhousev1alpha1.FalseCondition(greenhousev1alpha1.OrganizationOICDConfigured, greenhousev1alpha1.DexReconcileFailed, ""))
+			org.SetCondition(greenhouseapis.FalseCondition(greenhousev1alpha1.OrganizationOICDConfigured, greenhousev1alpha1.DexReconcileFailed, ""))
 			return ctrl.Result{}, lifecycle.Failed, err
 		}
 
 		if err := r.reconcileOAuth2Client(ctx, org); err != nil {
-			org.SetCondition(greenhousev1alpha1.FalseCondition(greenhousev1alpha1.OrganizationOICDConfigured, greenhousev1alpha1.OAuthOICDFailed, err.Error()))
+			org.SetCondition(greenhouseapis.FalseCondition(greenhousev1alpha1.OrganizationOICDConfigured, greenhousev1alpha1.OAuthOICDFailed, err.Error()))
 			return ctrl.Result{}, lifecycle.Failed, err
 		}
 		if org.Name != defaultGreenhouseConnectorID {
 			if err := r.appendRedirectsToDefaultConnector(ctx, org.Name); err != nil {
-				org.SetCondition(greenhousev1alpha1.FalseCondition(greenhousev1alpha1.OrganizationOICDConfigured, greenhousev1alpha1.DefaultConnectorRedirectsFailed, err.Error()))
+				org.SetCondition(greenhouseapis.FalseCondition(greenhousev1alpha1.OrganizationOICDConfigured, greenhousev1alpha1.DefaultConnectorRedirectsFailed, err.Error()))
 				return ctrl.Result{}, lifecycle.Failed, err
 			}
 		}
 
-		org.SetCondition(greenhousev1alpha1.TrueCondition(greenhousev1alpha1.OrganizationOICDConfigured, "", ""))
+		org.SetCondition(greenhouseapis.TrueCondition(greenhousev1alpha1.OrganizationOICDConfigured, "", ""))
 	}
 
 	if err := r.reconcileAdminTeam(ctx, org); err != nil {
-		org.SetCondition(greenhousev1alpha1.FalseCondition(greenhousev1alpha1.OrganizationAdminTeamConfigured, "", err.Error()))
+		org.SetCondition(greenhouseapis.FalseCondition(greenhousev1alpha1.OrganizationAdminTeamConfigured, "", err.Error()))
 		return ctrl.Result{}, lifecycle.Failed, err
 	}
-	org.SetCondition(greenhousev1alpha1.TrueCondition(greenhousev1alpha1.OrganizationAdminTeamConfigured, "", ""))
+	org.SetCondition(greenhouseapis.TrueCondition(greenhousev1alpha1.OrganizationAdminTeamConfigured, "", ""))
 
 	return ctrl.Result{}, lifecycle.Success, nil
 }
@@ -287,14 +288,14 @@ func (r *OrganizationReconciler) reconcileRBAC(ctx context.Context, org *greenho
 	return nil
 }
 
-func (r *OrganizationReconciler) checkSCIMAPIAvailability(ctx context.Context, org *greenhousev1alpha1.Organization) greenhousev1alpha1.Condition {
+func (r *OrganizationReconciler) checkSCIMAPIAvailability(ctx context.Context, org *greenhousev1alpha1.Organization) greenhouseapis.Condition {
 	if org.Spec.Authentication == nil || org.Spec.Authentication.SCIMConfig == nil {
 		// SCIM Config is optional.
-		return greenhousev1alpha1.UnknownCondition(greenhousev1alpha1.SCIMAPIAvailableCondition, greenhousev1alpha1.SCIMConfigErrorReason, "SCIM Config not provided")
+		return greenhouseapis.UnknownCondition(greenhousev1alpha1.SCIMAPIAvailableCondition, greenhousev1alpha1.SCIMConfigErrorReason, "SCIM Config not provided")
 	}
 
 	if org.Spec.MappedOrgAdminIDPGroup == "" {
-		return greenhousev1alpha1.FalseCondition(greenhousev1alpha1.SCIMAPIAvailableCondition, greenhousev1alpha1.SCIMRequestFailedReason, ".Spec.MappedOrgAdminIDPGroup is not set in Organization")
+		return greenhouseapis.FalseCondition(greenhousev1alpha1.SCIMAPIAvailableCondition, greenhousev1alpha1.SCIMRequestFailedReason, ".Spec.MappedOrgAdminIDPGroup is not set in Organization")
 	}
 
 	namespace := org.Name
@@ -302,12 +303,12 @@ func (r *OrganizationReconciler) checkSCIMAPIAvailability(ctx context.Context, o
 
 	config, err := util.GreenhouseSCIMConfigToSCIMConfig(ctx, r.Client, scimConfig, namespace)
 	if err != nil {
-		return greenhousev1alpha1.FalseCondition(greenhousev1alpha1.SCIMAPIAvailableCondition, greenhousev1alpha1.SCIMConfigErrorReason, err.Error())
+		return greenhouseapis.FalseCondition(greenhousev1alpha1.SCIMAPIAvailableCondition, greenhousev1alpha1.SCIMConfigErrorReason, err.Error())
 	}
 	logger := ctrl.LoggerFrom(ctx)
 	scimClient, err := scim.NewSCIMClient(logger, config)
 	if err != nil {
-		return greenhousev1alpha1.FalseCondition(greenhousev1alpha1.SCIMAPIAvailableCondition, greenhousev1alpha1.SCIMRequestFailedReason, "Failed to create SCIM client")
+		return greenhouseapis.FalseCondition(greenhousev1alpha1.SCIMAPIAvailableCondition, greenhousev1alpha1.SCIMRequestFailedReason, "Failed to create SCIM client")
 	}
 
 	// verify that the SCIM API can be accessed
@@ -319,28 +320,28 @@ func (r *OrganizationReconciler) checkSCIMAPIAvailability(ctx context.Context, o
 	groups, err := scimClient.GetGroups(ctx, opts)
 	if err != nil {
 		logger.Error(err, "Failed to request data from SCIM API")
-		return greenhousev1alpha1.FalseCondition(greenhousev1alpha1.SCIMAPIAvailableCondition, greenhousev1alpha1.SCIMRequestFailedReason, "Failed to request data from SCIM API")
+		return greenhouseapis.FalseCondition(greenhousev1alpha1.SCIMAPIAvailableCondition, greenhousev1alpha1.SCIMRequestFailedReason, "Failed to request data from SCIM API")
 	}
 	if len(groups) == 0 {
-		return greenhousev1alpha1.FalseCondition(greenhousev1alpha1.SCIMAPIAvailableCondition, greenhousev1alpha1.SCIMRequestFailedReason, org.Spec.MappedOrgAdminIDPGroup+" Group not found in SCIM API")
+		return greenhouseapis.FalseCondition(greenhousev1alpha1.SCIMAPIAvailableCondition, greenhousev1alpha1.SCIMRequestFailedReason, org.Spec.MappedOrgAdminIDPGroup+" Group not found in SCIM API")
 	}
 
-	return greenhousev1alpha1.TrueCondition(greenhousev1alpha1.SCIMAPIAvailableCondition, lifecycle.CreatedReason, "SCIM API is available")
+	return greenhouseapis.TrueCondition(greenhousev1alpha1.SCIMAPIAvailableCondition, lifecycle.CreatedReason, "SCIM API is available")
 }
 
-func calculateReadyCondition(scimAPIAvailableCondition greenhousev1alpha1.Condition) greenhousev1alpha1.Condition {
+func calculateReadyCondition(scimAPIAvailableCondition greenhouseapis.Condition) greenhouseapis.Condition {
 	if scimAPIAvailableCondition.IsFalse() {
-		return greenhousev1alpha1.FalseCondition(greenhousev1alpha1.ReadyCondition, greenhousev1alpha1.SCIMAPIUnavailableReason, "")
+		return greenhouseapis.FalseCondition(greenhouseapis.ReadyCondition, greenhousev1alpha1.SCIMAPIUnavailableReason, "")
 	}
 	// If SCIM API availability is unknown, then Ready state should be True, because SCIM Config is optional.
-	return greenhousev1alpha1.TrueCondition(greenhousev1alpha1.ReadyCondition, "", "")
+	return greenhouseapis.TrueCondition(greenhouseapis.ReadyCondition, "", "")
 }
 
 func initOrganizationStatus(org *greenhousev1alpha1.Organization) {
 	orgStatus := org.Status
 	for _, t := range exposedConditions {
 		if orgStatus.GetConditionByType(t) == nil {
-			orgStatus.SetConditions(greenhousev1alpha1.UnknownCondition(t, "", ""))
+			orgStatus.SetConditions(greenhouseapis.UnknownCondition(t, "", ""))
 		}
 	}
 }

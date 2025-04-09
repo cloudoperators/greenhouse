@@ -62,8 +62,8 @@ func MustDeleteCluster(ctx context.Context, c client.Client, id client.ObjectKey
 // SetClusterReadyCondition sets the ready condition of the cluster resource.
 func SetClusterReadyCondition(ctx context.Context, c client.Client, cluster *greenhousev1alpha1.Cluster, readyStatus metav1.ConditionStatus) error {
 	_, err := clientutil.PatchStatus(ctx, c, cluster, func() error {
-		cluster.Status.StatusConditions.SetConditions(greenhousev1alpha1.NewCondition(
-			greenhousev1alpha1.ReadyCondition,
+		cluster.Status.StatusConditions.SetConditions(greenhouseapis.NewCondition(
+			greenhouseapis.ReadyCondition,
 			readyStatus,
 			"",
 			"",

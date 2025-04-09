@@ -4,9 +4,10 @@
 package v1alpha1
 
 import (
-	greenhouseapis "github.com/cloudoperators/greenhouse/api"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
+
+	greenhouseapis "github.com/cloudoperators/greenhouse/api"
 )
 
 // ClusterKubeconfigSpec stores the kubeconfig data for the cluster

@@ -16,6 +16,7 @@ import (
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 	ctrl "sigs.k8s.io/controller-runtime"
 
+	greenhouseapis "github.com/cloudoperators/greenhouse/api"
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
 	"github.com/cloudoperators/greenhouse/internal/clientutil"
 	"github.com/cloudoperators/greenhouse/internal/lifecycle"
@@ -31,11 +32,11 @@ func (r *RemoteClusterReconciler) setConditions() lifecycle.Conditioner {
 			logger.Error(errors.New("resource is not a cluster"), "status setup failed")
 			return
 		}
-		var conditions []greenhousev1alpha1.Condition
+		var conditions []greenhouseapis.Condition
 
 		kubeConfigValidCondition, restClientGetter, k8sVersion := r.reconcileClusterSecret(ctx, cluster)
 
-		allNodesReadyCondition := greenhousev1alpha1.UnknownCondition(greenhousev1alpha1.AllNodesReady, "", "")
+		allNodesReadyCondition := greenhouseapis.UnknownCondition(greenhousev1alpha1.AllNodesReady, "", "")
 		clusterNodeStatus := make(map[string]greenhousev1alpha1.NodeStatus)
 		// Can only reconcile node status if kubeconfig is valid
 		if restClientGetter == nil || kubeConfigValidCondition.IsFalse() {
@@ -58,18 +59,18 @@ func (r *RemoteClusterReconciler) setConditions() lifecycle.Conditioner {
 	}
 }
 
-func (r *RemoteClusterReconciler) checkDeletionSchedule(logger logr.Logger, cluster *greenhousev1alpha1.Cluster) greenhousev1alpha1.Condition {
-	deletionCondition := greenhousev1alpha1.UnknownCondition(greenhousev1alpha1.DeleteCondition, "", "")
+func (r *RemoteClusterReconciler) checkDeletionSchedule(logger logr.Logger, cluster *greenhousev1alpha1.Cluster) greenhouseapis.Condition {
+	deletionCondition := greenhouseapis.UnknownCondition(greenhouseapis.DeleteCondition, "", "")
 	scheduleExists, schedule, err := clientutil.ExtractDeletionSchedule(cluster.GetAnnotations())
 	if err != nil {
 		logger.Error(err, "failed to extract deletion schedule - ignoring deletion schedule")
 	}
 	if scheduleExists {
-		deletionCondition = greenhousev1alpha1.FalseCondition(greenhousev1alpha1.DeleteCondition, lifecycle.ScheduledDeletionReason, "deletion scheduled at "+schedule.Format(time.DateTime))
+		deletionCondition = greenhouseapis.FalseCondition(greenhouseapis.DeleteCondition, lifecycle.ScheduledDeletionReason, "deletion scheduled at "+schedule.Format(time.DateTime))
 	} else {
 		// Remove the deletion condition if it exists as the deletion schedule annotation has been removed
-		cluster.Status.StatusConditions.Conditions = slices.DeleteFunc(cluster.Status.StatusConditions.Conditions, func(condition greenhousev1alpha1.Condition) bool {
-			return condition.Type == greenhousev1alpha1.DeleteCondition && condition.IsFalse()
+		cluster.Status.StatusConditions.Conditions = slices.DeleteFunc(cluster.Status.StatusConditions.Conditions, func(condition greenhouseapis.Condition) bool {
+			return condition.Type == greenhouseapis.DeleteCondition && condition.IsFalse()
 		})
 	}
 	return deletionCondition
@@ -79,12 +80,12 @@ func (r *RemoteClusterReconciler) reconcileClusterSecret(
 	ctx context.Context,
 	cluster *greenhousev1alpha1.Cluster,
 ) (
-	kubeConfigValidCondition greenhousev1alpha1.Condition,
+	kubeConfigValidCondition greenhouseapis.Condition,
 	restClientGetter genericclioptions.RESTClientGetter,
 	k8sVersion string,
 ) {
 
-	kubeConfigValidCondition = greenhousev1alpha1.UnknownCondition(greenhousev1alpha1.KubeConfigValid, "", "")
+	kubeConfigValidCondition = greenhouseapis.UnknownCondition(greenhousev1alpha1.KubeConfigValid, "", "")
 	var clusterSecret = new(corev1.Secret)
 	if err := r.Get(ctx, types.NamespacedName{Name: cluster.GetSecretName(), Namespace: cluster.GetNamespace()}, clusterSecret); err != nil {
 		kubeConfigValidCondition.Status = metav1.ConditionFalse
@@ -111,8 +112,8 @@ func (r *RemoteClusterReconciler) reconcileClusterSecret(
 	return
 }
 
-func (r *RemoteClusterReconciler) reconcileReadyStatus(conditions ...greenhousev1alpha1.Condition) (readyCondition greenhousev1alpha1.Condition) {
-	readyCondition = greenhousev1alpha1.UnknownCondition(greenhousev1alpha1.ReadyCondition, "", "")
+func (r *RemoteClusterReconciler) reconcileReadyStatus(conditions ...greenhouseapis.Condition) (readyCondition greenhouseapis.Condition) {
+	readyCondition = greenhouseapis.UnknownCondition(greenhouseapis.ReadyCondition, "", "")
 	for _, condition := range conditions {
 		if condition.IsFalse() {
 			readyCondition.Status = metav1.ConditionFalse
@@ -132,12 +133,12 @@ func (r *RemoteClusterReconciler) reconcileNodeStatus(
 	ctx context.Context,
 	restClientGetter genericclioptions.RESTClientGetter,
 ) (
-	allNodesReadyCondition greenhousev1alpha1.Condition,
+	allNodesReadyCondition greenhouseapis.Condition,
 	clusterNodeStatus map[string]greenhousev1alpha1.NodeStatus,
 ) {
 
 	clusterNodeStatus = make(map[string]greenhousev1alpha1.NodeStatus)
-	allNodesReadyCondition = greenhousev1alpha1.TrueCondition(greenhousev1alpha1.AllNodesReady, "", "")
+	allNodesReadyCondition = greenhouseapis.TrueCondition(greenhousev1alpha1.AllNodesReady, "", "")
 
 	remoteClient, err := clientutil.NewK8sClientFromRestClientGetter(restClientGetter)
 	if err != nil {
@@ -155,10 +156,10 @@ func (r *RemoteClusterReconciler) reconcileNodeStatus(
 	}
 
 	for _, node := range nodeList.Items {
-		greenhouseNodeStatusConditions := greenhousev1alpha1.StatusConditions{}
+		greenhouseNodeStatusConditions := greenhouseapis.StatusConditions{}
 		for _, condition := range node.Status.Conditions {
-			greenhouseNodeStatusConditions.SetConditions(greenhousev1alpha1.Condition{
-				Type:               greenhousev1alpha1.ConditionType(condition.Type),
+			greenhouseNodeStatusConditions.SetConditions(greenhouseapis.Condition{
+				Type:               greenhouseapis.ConditionType(condition.Type),
 				Status:             metav1.ConditionStatus(condition.Status),
 				LastTransitionTime: condition.LastTransitionTime,
 				Message:            condition.Message,
