@@ -18,6 +18,7 @@
 /README.md                @cloudoperators/greenhouse-core
 
 /docs/reference/api       @cloudoperators/greenhouse-backend
+/api/                     @cloudoperators/greenhouse-backend
 /charts/                  @cloudoperators/greenhouse-backend
 /config/                  @cloudoperators/greenhouse-backend
 /cmd/                     @cloudoperators/greenhouse-backend
