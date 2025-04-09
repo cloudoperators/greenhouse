@@ -22,7 +22,7 @@
 /config/                  @cloudoperators/greenhouse-backend
 /cmd/                     @cloudoperators/greenhouse-backend
 /hack/                    @cloudoperators/greenhouse-backend
-/pkg/                     @cloudoperators/greenhouse-backend
+/internal/                @cloudoperators/greenhouse-backend
 /test/                    @cloudoperators/greenhouse-backend
 /ct.yaml                  @cloudoperators/greenhouse-backend
 /Dockerfile               @cloudoperators/greenhouse-backend
