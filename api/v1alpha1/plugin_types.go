@@ -4,6 +4,7 @@
 package v1alpha1
 
 import (
+	greenhouseapis "github.com/cloudoperators/greenhouse/api"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -50,28 +51,28 @@ func (v *PluginOptionValue) ValueJSON() string {
 const (
 
 	// ClusterAccessReadyCondition reflects if we can access the cluster a Plugin is to be deployed to.
-	ClusterAccessReadyCondition ConditionType = "ClusterAccessReady"
+	ClusterAccessReadyCondition greenhouseapis.ConditionType = "ClusterAccessReady"
 
 	// HelmReconcileFailedCondition reflects the failed reconciliation of the corresponding helm release.
-	HelmReconcileFailedCondition ConditionType = "HelmReconcileFailed"
+	HelmReconcileFailedCondition greenhouseapis.ConditionType = "HelmReconcileFailed"
 
 	// HelmDriftDetectedCondition reflects the last time a drift between Release and Deployed Resources was detected.
-	HelmDriftDetectedCondition ConditionType = "HelmDriftDetected"
+	HelmDriftDetectedCondition greenhouseapis.ConditionType = "HelmDriftDetected"
 
 	// WorkloadReadyCondition reflects the readiness of the workload resources belonging to the Plugin.
-	WorkloadReadyCondition ConditionType = "WorkloadReady"
+	WorkloadReadyCondition greenhouseapis.ConditionType = "WorkloadReady"
 
 	// StatusUpToDateCondition reflects the failed reconciliation of the Plugin.
-	StatusUpToDateCondition ConditionType = "StatusUpToDate"
+	StatusUpToDateCondition greenhouseapis.ConditionType = "StatusUpToDate"
 
 	// HelmChartTestSucceededCondition reflects the status of the HelmChart tests.
-	HelmChartTestSucceededCondition ConditionType = "HelmChartTestSucceeded"
+	HelmChartTestSucceededCondition greenhouseapis.ConditionType = "HelmChartTestSucceeded"
 
 	// PluginDefinitionNotFoundReason is set when the pluginDefinition is not found.
-	PluginDefinitionNotFoundReason ConditionReason = "PluginDefinitionNotFound"
+	PluginDefinitionNotFoundReason greenhouseapis.ConditionReason = "PluginDefinitionNotFound"
 
 	// HelmUninstallFailedReason is set when the helm release could not be uninstalled.
-	HelmUninstallFailedReason ConditionReason = "HelmUninstallFailed"
+	HelmUninstallFailedReason greenhouseapis.ConditionReason = "HelmUninstallFailed"
 )
 
 // PluginStatus defines the observed state of Plugin
@@ -100,7 +101,7 @@ type PluginStatus struct {
 	ExposedServices map[string]Service `json:"exposedServices,omitempty"`
 
 	// StatusConditions contain the different conditions that constitute the status of the Plugin.
-	StatusConditions `json:"statusConditions,omitempty"`
+	greenhouseapis.StatusConditions `json:"statusConditions,omitempty"`
 }
 
 // Service references a Kubernetes service of a Plugin.
@@ -162,10 +163,10 @@ func init() {
 	SchemeBuilder.Register(&Plugin{}, &PluginList{})
 }
 
-func (o *Plugin) GetConditions() StatusConditions {
+func (o *Plugin) GetConditions() greenhouseapis.StatusConditions {
 	return o.Status.StatusConditions
 }
 
-func (o *Plugin) SetCondition(condition Condition) {
+func (o *Plugin) SetCondition(condition greenhouseapis.Condition) {
 	o.Status.StatusConditions.SetConditions(condition)
 }

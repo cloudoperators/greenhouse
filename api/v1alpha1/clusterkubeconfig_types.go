@@ -4,6 +4,7 @@
 package v1alpha1
 
 import (
+	greenhouseapis "github.com/cloudoperators/greenhouse/api"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
 )
@@ -80,13 +81,13 @@ type ClusterKubeconfig struct {
 
 // +kubebuilder:object:generate=true
 type ClusterKubeconfigStatus struct {
-	Conditions StatusConditions `json:"statusConditions,omitempty"`
+	Conditions greenhouseapis.StatusConditions `json:"statusConditions,omitempty"`
 }
 
 const (
-	KubeconfigCreatedCondition         ConditionType = "Created"
-	KubeconfigReconcileFailedCondition ConditionType = "ReconcileFailed"
-	KubeconfigReadyCondition           ConditionType = "Ready"
+	KubeconfigCreatedCondition         greenhouseapis.ConditionType = "Created"
+	KubeconfigReconcileFailedCondition greenhouseapis.ConditionType = "ReconcileFailed"
+	KubeconfigReadyCondition           greenhouseapis.ConditionType = "Ready"
 )
 
 //+kubebuilder:object:root=true

@@ -34,7 +34,7 @@ type TeamRoleBindingSpec struct {
 // TeamRoleBindingStatus defines the observed state of the TeamRoleBinding
 type TeamRoleBindingStatus struct {
 	// StatusConditions contain the different conditions that constitute the status of the TeamRoleBinding.
-	StatusConditions `json:"statusConditions,omitempty"`
+	greenhouseapis.StatusConditions `json:"statusConditions,omitempty"`
 	// PropagationStatus is the list of clusters the TeamRoleBinding is applied to
 	// +listType="map"
 	// +listMapKey=clusterName
@@ -46,7 +46,7 @@ type PropagationStatus struct {
 	// ClusterName is the name of the cluster the rbacv1 resources are created on.
 	ClusterName string `json:"clusterName"`
 	// Condition is the overall Status of the rbacv1 resources created on the cluster
-	Condition `json:"condition,omitempty"`
+	greenhouseapis.Condition `json:"condition,omitempty"`
 }
 
 //+kubebuilder:object:root=true
@@ -78,17 +78,17 @@ func init() {
 	SchemeBuilder.Register(&TeamRoleBinding{}, &TeamRoleBindingList{})
 }
 
-func (trb *TeamRoleBinding) GetConditions() StatusConditions {
+func (trb *TeamRoleBinding) GetConditions() greenhouseapis.StatusConditions {
 	return trb.Status.StatusConditions
 }
 
-func (trb *TeamRoleBinding) SetCondition(condition Condition) {
+func (trb *TeamRoleBinding) SetCondition(condition greenhouseapis.Condition) {
 	trb.Status.StatusConditions.SetConditions(condition)
 }
 
 // SetPropagationStatus updates the TeamRoleBinding's PropagationStatus for the Cluster
-func (trb *TeamRoleBinding) SetPropagationStatus(cluster string, rbacReady metav1.ConditionStatus, reason ConditionReason, message string) {
-	condition := NewCondition(RBACReady, rbacReady, reason, message)
+func (trb *TeamRoleBinding) SetPropagationStatus(cluster string, rbacReady metav1.ConditionStatus, reason greenhouseapis.ConditionReason, message string) {
+	condition := greenhouseapis.NewCondition(RBACReady, rbacReady, reason, message)
 	for i, ps := range trb.Status.PropagationStatus {
 		if ps.ClusterName != cluster {
 			continue
@@ -119,32 +119,3 @@ func (trb *TeamRoleBinding) RemovePropagationStatus(cluster string) {
 func (trb *TeamRoleBinding) GetRBACName() string {
 	return greenhouseapis.RBACPrefix + trb.GetName()
 }
-
-const (
-	// RBACReady is the condition type for the TeamRoleBinding when the rbacv1 resources are ready
-	RBACReady ConditionType = "RBACReady"
-
-	// RBACReconciled is the condition reason for the TeamRoleBinding when the rbacv1 resources are successfully reconciled
-	RBACReconciled ConditionReason = "RBACReconciled"
-
-	// RBACReconcileFailed is the condition reason for the TeamRoleBinding when not all of the rbacv1 resources have been successfully reconciled
-	RBACReconcileFailed ConditionReason = "RBACReconcileFailed"
-
-	// EmptyClusterList is the condition reason for a resource when the clusterSelector and clusterName do not provide any existing cluster
-	EmptyClusterList ConditionReason = "EmptyClusterList"
-
-	// TeamNotFound is the condition reason when the resources refers to a non-existing Team
-	TeamNotFound ConditionReason = "TeamNotFound"
-
-	// ClusterConnectionFailed is the condition reason for the TeamRoleBinding when the connection to the cluster failed
-	ClusterConnectionFailed ConditionReason = "ClusterConnectionFailed"
-
-	// ClusterRoleFailed is the condition reason for the TeamRoleBinding when the ClusterRole could not be created
-	ClusterRoleFailed ConditionReason = "ClusterRoleFailed"
-
-	// RoleBindingFailed is the condition reason for the TeamRoleBinding when the RoleBinding could not be created
-	RoleBindingFailed ConditionReason = "RoleBindingFailed"
-
-	// CreateNamespacesFailed is the condition reason for the TeamRoleBinding when the namespaces could not be created
-	CreateNamespacesFailed ConditionReason = "CreateNamespacesFailed"
-)

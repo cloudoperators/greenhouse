@@ -9,7 +9,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	greenhouseapis "github.com/cloudoperators/greenhouse/api"
-	"github.com/cloudoperators/greenhouse/api/v1alpha1"
 )
 
 // TeamRoleBindingSpec defines the desired state of a TeamRoleBinding
@@ -33,7 +32,7 @@ type TeamRoleBindingSpec struct {
 // TeamRoleBindingStatus defines the observed state of the TeamRoleBinding
 type TeamRoleBindingStatus struct {
 	// StatusConditions contain the different conditions that constitute the status of the TeamRoleBinding.
-	v1alpha1.StatusConditions `json:"statusConditions,omitempty"`
+	greenhouseapis.StatusConditions `json:"statusConditions,omitempty"`
 	// PropagationStatus is the list of clusters the TeamRoleBinding is applied to
 	// +listType="map"
 	// +listMapKey=clusterName
@@ -45,7 +44,7 @@ type PropagationStatus struct {
 	// ClusterName is the name of the cluster the rbacv1 resources are created on.
 	ClusterName string `json:"clusterName"`
 	// Condition is the overall Status of the rbacv1 resources created on the cluster
-	v1alpha1.Condition `json:"condition,omitempty"`
+	greenhouseapis.Condition `json:"condition,omitempty"`
 }
 
 //+kubebuilder:object:root=true
@@ -78,17 +77,17 @@ func init() {
 	SchemeBuilder.Register(&TeamRoleBinding{}, &TeamRoleBindingList{})
 }
 
-func (trb *TeamRoleBinding) GetConditions() v1alpha1.StatusConditions {
+func (trb *TeamRoleBinding) GetConditions() greenhouseapis.StatusConditions {
 	return trb.Status.StatusConditions
 }
 
-func (trb *TeamRoleBinding) SetCondition(condition v1alpha1.Condition) {
+func (trb *TeamRoleBinding) SetCondition(condition greenhouseapis.Condition) {
 	trb.Status.StatusConditions.SetConditions(condition)
 }
 
 // SetPropagationStatus updates the TeamRoleBinding's PropagationStatus for the Cluster
-func (trb *TeamRoleBinding) SetPropagationStatus(cluster string, rbacReady metav1.ConditionStatus, reason v1alpha1.ConditionReason, message string) {
-	condition := v1alpha1.NewCondition(v1alpha1.RBACReady, rbacReady, reason, message)
+func (trb *TeamRoleBinding) SetPropagationStatus(cluster string, rbacReady metav1.ConditionStatus, reason greenhouseapis.ConditionReason, message string) {
+	condition := greenhouseapis.NewCondition(greenhouseapis.RBACReady, rbacReady, reason, message)
 	for i, ps := range trb.Status.PropagationStatus {
 		if ps.ClusterName != cluster {
 			continue

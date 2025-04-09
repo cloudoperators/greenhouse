@@ -4,6 +4,7 @@
 package v1alpha1
 
 import (
+	greenhouseapis "github.com/cloudoperators/greenhouse/api"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -12,7 +13,7 @@ const (
 	PluginPresetKind = "PluginPreset"
 
 	// PluginReconcileFailed is set when Plugin creation or update failed.
-	PluginReconcileFailed ConditionReason = "PluginReconcileFailed"
+	PluginReconcileFailed greenhouseapis.ConditionReason = "PluginReconcileFailed"
 )
 
 // PluginPresetSpec defines the desired state of PluginPreset
@@ -38,15 +39,15 @@ type ClusterOptionOverride struct {
 
 const (
 	// PluginSkippedCondition is set when the pluginPreset encounters a non-managed plugin.
-	PluginSkippedCondition ConditionType = "PluginSkipped"
+	PluginSkippedCondition greenhouseapis.ConditionType = "PluginSkipped"
 	// PluginFailedCondition is set when the pluginPreset encounters a failure during the reconciliation of a plugin.
-	PluginFailedCondition ConditionType = "PluginFailed"
+	PluginFailedCondition greenhouseapis.ConditionType = "PluginFailed"
 )
 
 // PluginPresetStatus defines the observed state of PluginPreset
 type PluginPresetStatus struct {
 	// StatusConditions contain the different conditions that constitute the status of the PluginPreset.
-	StatusConditions `json:"statusConditions,omitempty"`
+	greenhouseapis.StatusConditions `json:"statusConditions,omitempty"`
 
 	// PluginStatuses contains statuses of Plugins managed by the PluginPreset.
 	PluginStatuses []ManagedPluginStatus `json:"pluginStatuses,omitempty"`
@@ -60,8 +61,8 @@ type PluginPresetStatus struct {
 
 // ManagedPluginStatus defines the Ready condition of a managed Plugin identified by its name.
 type ManagedPluginStatus struct {
-	PluginName     string    `json:"pluginName,omitempty"`
-	ReadyCondition Condition `json:"readyCondition,omitempty"`
+	PluginName     string                   `json:"pluginName,omitempty"`
+	ReadyCondition greenhouseapis.Condition `json:"readyCondition,omitempty"`
 }
 
 //+kubebuilder:object:root=true
@@ -79,11 +80,11 @@ type PluginPreset struct {
 	Status PluginPresetStatus `json:"status,omitempty"`
 }
 
-func (c *PluginPreset) GetConditions() StatusConditions {
+func (c *PluginPreset) GetConditions() greenhouseapis.StatusConditions {
 	return c.Status.StatusConditions
 }
 
-func (c *PluginPreset) SetCondition(condition Condition) {
+func (c *PluginPreset) SetCondition(condition greenhouseapis.Condition) {
 	c.Status.StatusConditions.SetConditions(condition)
 }
 
