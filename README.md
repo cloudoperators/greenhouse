@@ -27,7 +27,7 @@ Greenhouse is a community-driven project. We welcome contributions and feedback.
 
 ## Roadmap
 
-The [Roadmap Kanban board](https://github.com/orgs/cloudoperators/projects/9) provides an overview of ongoing and planned efforts.
+The [Roadmap Kanban board](https://github.com/orgs/cloudoperators/projects/9/views/3) provides an overview of ongoing and planned efforts.
 
 ## Documentation
 
