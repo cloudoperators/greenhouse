@@ -231,8 +231,15 @@ func validatePluginOptionValues(
 }
 
 func validatePluginForCluster(ctx context.Context, c client.Client, plugin *greenhousev1alpha1.Plugin, pluginDefinition *greenhousev1alpha1.PluginDefinition) error {
-	// Exclude whitelisted and front-end only Plugins as well as the greenhouse namespace from the below check.
-	if slices.Contains(pluginsAllowedInCentralCluster, plugin.Spec.PluginDefinition) || pluginDefinition.Spec.HelmChart == nil || plugin.GetNamespace() == "greenhouse" {
+	// Exclude front-end only Plugins as well as the greenhouse namespace from the below check.
+	if pluginDefinition.Spec.HelmChart == nil || plugin.GetNamespace() == "greenhouse" {
+		return nil
+	}
+	// Ensure whitelisted plugins are deployed in the organization namespace
+	if slices.Contains(pluginsAllowedInCentralCluster, plugin.Spec.PluginDefinition) {
+		if plugin.Spec.ReleaseNamespace != plugin.GetNamespace() {
+			return field.Forbidden(field.NewPath("spec").Child("releaseNamespace"), "plugins running in the central cluster can only be deployed in the same namespace as the plugin")
+		}
 		return nil
 	}
 
