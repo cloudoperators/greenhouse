@@ -3,7 +3,7 @@ on:
   workflow_dispatch:
   pull_request:
     paths:
-      - 'pkg/**'
+      - 'internal/**'
       - 'e2e/**'
       - 'cmd/**'
       - 'Dockerfile*'
@@ -52,7 +52,7 @@ jobs:
 
       # v4 upload-artifact needs unique names for each artifact (see https://github.com/actions/upload-artifact/tree/main?tab=readme-ov-file#not-uploading-to-the-same-artifact)
       - name: "Upload E2E Logs"
-        uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1 # v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         if: ${{ steps.e2e.outputs.result != '' }} # skip if nothing needs to be uploaded
         with:
           name: e2e-logs-${{ matrix.e2es }}-${{ matrix.k8s-version }}
@@ -67,7 +67,7 @@ jobs:
     steps:
       - name: "Merge Uploads"
         continue-on-error: true # If there are no artifacts available, the merge step will fail so we need to continue on error
-        uses: actions/upload-artifact/merge@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1 # v4
+        uses: actions/upload-artifact/merge@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: e2e-logs
           pattern: e2e-logs-*

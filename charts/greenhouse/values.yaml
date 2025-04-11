@@ -69,6 +69,9 @@ demo:
 plugins:
   enabled: true
 
+certManager:
+  webhook:
+    timeoutSeconds: 15
 # Configures the DigiCert issuer for the Greenhouse organization,
 # which enables obtaining DigiCert certificates via the cert-manager.
 digicertIssuer:
@@ -150,6 +153,37 @@ logshipping:
       image:
         repository: ghcr.io/jimmidyson/configmap-reload
 
+openTelemetry:
+  enabled: false
+# set via secrets
+  #   region:
+  #   cluster:
+  #   openSearchLogs
+  #     username:
+  #     password:
+  #     endpoint:
+  logsCollector:
+    enabled: true
+  metricsCollector:
+    enabled: true
+  prometheus:
+    podMonitor:
+      enabled: true
+    serviceMonitor:
+      enabled: true
+  admissionWebhooks:
+    certManager:
+      enabled: true
+    autoGenerateCert:
+      enabled: false
+      recreate: false
+  kubeRBACProxy:
+    enabled: false
+  manager:
+    prometheusRule:
+      defaultRules:
+        enabled: false
+      enabled: false
 perses:
   enabled: true
 
