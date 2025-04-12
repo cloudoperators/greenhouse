@@ -6,7 +6,7 @@ helm-charts:
 core-apis:
 - changed-files:
   - any-glob-to-any-file: 
-    - pkg/apis/**
+    - api/**
     - config/crd/**
 
 documentation:
@@ -19,8 +19,7 @@ idproxy:
 - changed-files:
   - any-glob-to-any-file:
     - charts/idproxy/**
-    - pkg/idproxy/**
-    - pkg/dex/**
+    - internal/dex/**
 
 ui:
 - changed-files:

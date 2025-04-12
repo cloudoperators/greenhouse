@@ -30,7 +30,7 @@ _spacer=$(printf -- '#%.0s' {1..100})
 # Start the installation.
 echo -e "${_spacer}
 
-Minimal installer for Greenhouse, the PlusOne operations platform.
+Minimal installer for Greenhouse, the Day-2 operations platform.
 
 Namespace:\t${NAMESPACE}
 Kustomize:\t${REPO_ROOT}/${KUSTOMIZE_DIR}

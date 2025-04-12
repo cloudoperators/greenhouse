@@ -15,7 +15,7 @@ on:
   pull_request:
     types: [opened, synchronize, reopened]
     paths:
-      - "pkg/apis/greenhouse/v1alpha1/**"
+      - "api/v1alpha1/**"
 
 jobs:
   generate-docs-types-specs:

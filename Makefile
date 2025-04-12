@@ -53,10 +53,17 @@ generate-all: generate generate-manifests generate-documentation  ## Generate co
 .PHONY: manifests
 manifests: generate-manifests generate-documentation generate-types
 
+## Generate manifests for CRD, RBAC, Webhook and helmify the files
+## CRD manifests are generated in hack/crd/bases
+## Patches for CRD conversion webhooks need to be created under hack/crd/patches
+## filename should be in the format webhook.*<group>*.*<kind>*.yaml"
 .PHONY: generate-manifests
 generate-manifests: controller-gen ## Generate WebhookConfiguration, ClusterRole and CustomResourceDefinition objects.
-	$(CONTROLLER_GEN) crd paths="./pkg/apis/..." output:crd:artifacts:config=$(CRD_MANIFESTS_PATH)
-	$(CONTROLLER_GEN) rbac:roleName=manager-role webhook paths="./pkg/admission/..." paths="./pkg/controllers/..." output:artifacts:config=$(TEMPLATES_MANIFESTS_PATH)
+	$(CONTROLLER_GEN) crd paths="./api/..." output:crd:artifacts:config=hack/crd/bases
+	GOBIN=$(LOCALBIN) go run ./hack/generate.go --crd-dir="./hack/crd" --charts-crd-dir=$(CRD_MANIFESTS_PATH)
+	rm -rf hack/crd/bases
+
+	$(CONTROLLER_GEN) rbac:roleName=manager-role webhook paths="./internal/webhook/..." paths="./internal/controller/..." output:artifacts:config=$(TEMPLATES_MANIFESTS_PATH)
 	hack/helmify $(TEMPLATES_MANIFESTS_PATH)
 	docker run --rm -v $(shell pwd):/github/workspace $(IMG_LICENSE_EYE) -c .github/licenserc.yaml header fix
 
@@ -71,16 +78,16 @@ generate-types: generate-open-api-spec## Generate typescript types from CRDs.
 
 .PHONY: actiongenerate
 actiongenerate: action-controllergen
-	$(CONTROLLER_GEN_ACTION) object:headerFile="hack/boilerplate.go.txt" paths="./pkg/apis/..."
-	$(CONTROLLER_GEN_ACTION) object:headerFile="hack/boilerplate.go.txt" paths="./pkg/dex/..."
+	$(CONTROLLER_GEN_ACTION) object:headerFile="hack/boilerplate.go.txt" paths="./api/..."
+	$(CONTROLLER_GEN_ACTION) object:headerFile="hack/boilerplate.go.txt" paths="./internal/dex/..."
 
 .PHONY: generate
 generate: controller-gen ## Generate code containing DeepCopy, DeepCopyInto, and DeepCopyObject method implementations.
-	$(CONTROLLER_GEN) object:headerFile="hack/boilerplate.go.txt" paths="./pkg/apis/..."
-	$(CONTROLLER_GEN) object:headerFile="hack/boilerplate.go.txt" paths="./pkg/dex/..."
+	$(CONTROLLER_GEN) object:headerFile="hack/boilerplate.go.txt" paths="./api/..."
+	$(CONTROLLER_GEN) object:headerFile="hack/boilerplate.go.txt" paths="./internal/dex/..."
 
 # Default values
-GEN_DOCS_API_DIR ?= "./pkg/apis/greenhouse/v1alpha1" ## -app-dir should be Canonical Path Format so absolute path doesn't work. That's why we don't use $(CURDIR) here.
+GEN_DOCS_API_DIR ?= "./api/v1alpha1" ## -app-dir should be Canonical Path Format so absolute path doesn't work. That's why we don't use $(CURDIR) here.
 GEN_DOCS_CONFIG ?= "$(CURDIR)/hack/docs-generator/config.json"
 GEN_DOCS_TEMPLATE_DIR ?= "$(CURDIR)/hack/docs-generator/templates"
 GEN_DOCS_OUT_FILE ?= "$(CURDIR)/docs/reference/api/index.html"
@@ -131,7 +138,7 @@ build-%: GIT_COMMIT  = $(shell git rev-parse --short HEAD)
 build-%: GIT_STATE   = $(shell if git diff --quiet; then echo clean; else echo dirty; fi)
 build-%: BUILD_DATE  = $(shell date -u +"%Y-%m-%dT%H:%M:%SZ")
 build-%:
-	go build -ldflags "-s -w -X github.com/cloudoperators/greenhouse/pkg/version.GitBranch=$(GIT_BRANCH) -X github.com/cloudoperators/greenhouse/pkg/version.GitCommit=$(GIT_COMMIT) -X github.com/cloudoperators/greenhouse/pkg/version.GitState=$(GIT_STATE) -X github.com/cloudoperators/greenhouse/pkg/version.BuildDate=$(BUILD_DATE)" -o bin/$* ./cmd/$*/
+	go build -ldflags "-s -w -X github.com/cloudoperators/greenhouse/internal/version.GitBranch=$(GIT_BRANCH) -X github.com/cloudoperators/greenhouse/internal/version.GitCommit=$(GIT_COMMIT) -X github.com/cloudoperators/greenhouse/internal/version.GitState=$(GIT_STATE) -X github.com/cloudoperators/greenhouse/internal/version.BuildDate=$(BUILD_DATE)" -o bin/$* ./cmd/$*/
 
 .PHONY: run
 run: manifests generate fmt vet ## Run a controller from your host.
