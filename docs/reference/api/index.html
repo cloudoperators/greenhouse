@@ -9,6 +9,9 @@ description: Technical reference documentation for Greenhouse API resources
 <li>
 <a href="#greenhouse.sap%2fv1alpha1">greenhouse.sap/v1alpha1</a>
 </li>
+<li>
+<a href="#greenhouse.sap%2fv1alpha2">greenhouse.sap/v1alpha2</a>
+</li>
 </ul>
 <h2 id="greenhouse.sap/v1alpha1">greenhouse.sap/v1alpha1</h2>
 Resource Types:
@@ -687,9 +690,7 @@ ClusterKubeconfigData
 <td>
 <code>statusConditions</code><br>
 <em>
-<a href="#greenhouse.sap/v1alpha1.StatusConditions">
-StatusConditions
-</a>
+github.com/cloudoperators/greenhouse/api.StatusConditions
 </em>
 </td>
 <td>
@@ -834,9 +835,7 @@ Kubernetes meta/v1.Time
 <td>
 <code>statusConditions</code><br>
 <em>
-<a href="#greenhouse.sap/v1alpha1.StatusConditions">
-StatusConditions
-</a>
+github.com/cloudoperators/greenhouse/api.StatusConditions
 </em>
 </td>
 <td>
@@ -848,7 +847,7 @@ StatusConditions
 <code>nodes</code><br>
 <em>
 <a href="#greenhouse.sap/v1alpha1.NodeStatus">
-map[string]./api/v1alpha1.NodeStatus
+map[string]../greenhouse/api/v1alpha1.NodeStatus
 </a>
 </em>
 </td>
@@ -860,106 +859,6 @@ map[string]./api/v1alpha1.NodeStatus
 </table>
 </div>
 </div>
-<h3 id="greenhouse.sap/v1alpha1.Condition">Condition
-</h3>
-<p>
-(<em>Appears on:</em>
-<a href="#greenhouse.sap/v1alpha1.ManagedPluginStatus">ManagedPluginStatus</a>, 
-<a href="#greenhouse.sap/v1alpha1.PropagationStatus">PropagationStatus</a>, 
-<a href="#greenhouse.sap/v1alpha1.StatusConditions">StatusConditions</a>)
-</p>
-<p>Condition contains additional information on the state of a resource.</p>
-<div class="md-typeset__scrollwrap">
-<div class="md-typeset__table">
-<table>
-<thead>
-<tr>
-<th>Field</th>
-<th>Description</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>
-<code>type</code><br>
-<em>
-<a href="#greenhouse.sap/v1alpha1.ConditionType">
-ConditionType
-</a>
-</em>
-</td>
-<td>
-<p>Type of the condition.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>status</code><br>
-<em>
-<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.24/#conditionstatus-v1-meta">
-Kubernetes meta/v1.ConditionStatus
-</a>
-</em>
-</td>
-<td>
-<p>Status of the condition.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>reason</code><br>
-<em>
-<a href="#greenhouse.sap/v1alpha1.ConditionReason">
-ConditionReason
-</a>
-</em>
-</td>
-<td>
-<p>Reason is a one-word, CamelCase reason for the condition&rsquo;s last transition.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>lastTransitionTime</code><br>
-<em>
-<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.24/#time-v1-meta">
-Kubernetes meta/v1.Time
-</a>
-</em>
-</td>
-<td>
-<p>LastTransitionTime is the last time the condition transitioned from one status to another.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>message</code><br>
-<em>
-string
-</em>
-</td>
-<td>
-<p>Message is an optional human readable message indicating details about the last transition.</p>
-</td>
-</tr>
-</tbody>
-</table>
-</div>
-</div>
-<h3 id="greenhouse.sap/v1alpha1.ConditionReason">ConditionReason
-(<code>string</code> alias)</h3>
-<p>
-(<em>Appears on:</em>
-<a href="#greenhouse.sap/v1alpha1.Condition">Condition</a>)
-</p>
-<p>ConditionReason is a valid reason for a condition of a resource.</p>
-<h3 id="greenhouse.sap/v1alpha1.ConditionType">ConditionType
-(<code>string</code> alias)</h3>
-<p>
-(<em>Appears on:</em>
-<a href="#greenhouse.sap/v1alpha1.Condition">Condition</a>)
-</p>
-<p>ConditionType is a valid condition of a resource.</p>
 <h3 id="greenhouse.sap/v1alpha1.HelmChartReference">HelmChartReference
 </h3>
 <p>
@@ -1126,9 +1025,7 @@ string
 <td>
 <code>readyCondition</code><br>
 <em>
-<a href="#greenhouse.sap/v1alpha1.Condition">
-Condition
-</a>
+github.com/cloudoperators/greenhouse/api.Condition
 </em>
 </td>
 <td>
@@ -1158,9 +1055,7 @@ Condition
 <td>
 <code>statusConditions</code><br>
 <em>
-<a href="#greenhouse.sap/v1alpha1.StatusConditions">
-StatusConditions
-</a>
+github.com/cloudoperators/greenhouse/api.StatusConditions
 </em>
 </td>
 <td>
@@ -1458,9 +1353,7 @@ string
 <td>
 <code>statusConditions</code><br>
 <em>
-<a href="#greenhouse.sap/v1alpha1.StatusConditions">
-StatusConditions
-</a>
+github.com/cloudoperators/greenhouse/api.StatusConditions
 </em>
 </td>
 <td>
@@ -2240,9 +2133,7 @@ Kubernetes meta/v1.LabelSelector
 <td>
 <code>statusConditions</code><br>
 <em>
-<a href="#greenhouse.sap/v1alpha1.StatusConditions">
-StatusConditions
-</a>
+github.com/cloudoperators/greenhouse/api.StatusConditions
 </em>
 </td>
 <td>
@@ -2476,7 +2367,7 @@ string
 <code>exposedServices</code><br>
 <em>
 <a href="#greenhouse.sap/v1alpha1.Service">
-map[string]./api/v1alpha1.Service
+map[string]../greenhouse/api/v1alpha1.Service
 </a>
 </em>
 </td>
@@ -2489,9 +2380,7 @@ It maps the exposed URL to the service found in the manifest.</p>
 <td>
 <code>statusConditions</code><br>
 <em>
-<a href="#greenhouse.sap/v1alpha1.StatusConditions">
-StatusConditions
-</a>
+github.com/cloudoperators/greenhouse/api.StatusConditions
 </em>
 </td>
 <td>
@@ -2534,9 +2423,7 @@ string
 <td>
 <code>condition</code><br>
 <em>
-<a href="#greenhouse.sap/v1alpha1.Condition">
-Condition
-</a>
+github.com/cloudoperators/greenhouse/api.Condition
 </em>
 </td>
 <td>
@@ -2753,48 +2640,6 @@ string
 </td>
 <td>
 <p>Protocol is the protocol of the service.</p>
-</td>
-</tr>
-</tbody>
-</table>
-</div>
-</div>
-<h3 id="greenhouse.sap/v1alpha1.StatusConditions">StatusConditions
-</h3>
-<p>
-(<em>Appears on:</em>
-<a href="#greenhouse.sap/v1alpha1.ClusterKubeconfigStatus">ClusterKubeconfigStatus</a>, 
-<a href="#greenhouse.sap/v1alpha1.ClusterStatus">ClusterStatus</a>, 
-<a href="#greenhouse.sap/v1alpha1.NodeStatus">NodeStatus</a>, 
-<a href="#greenhouse.sap/v1alpha1.OrganizationStatus">OrganizationStatus</a>, 
-<a href="#greenhouse.sap/v1alpha1.PluginPresetStatus">PluginPresetStatus</a>, 
-<a href="#greenhouse.sap/v1alpha1.PluginStatus">PluginStatus</a>, 
-<a href="#greenhouse.sap/v1alpha1.TeamMembershipStatus">TeamMembershipStatus</a>, 
-<a href="#greenhouse.sap/v1alpha1.TeamRoleBindingStatus">TeamRoleBindingStatus</a>, 
-<a href="#greenhouse.sap/v1alpha1.TeamStatus">TeamStatus</a>)
-</p>
-<p>A StatusConditions contains a list of conditions.
-Only one condition of a given type may exist in the list.</p>
-<div class="md-typeset__scrollwrap">
-<div class="md-typeset__table">
-<table>
-<thead>
-<tr>
-<th>Field</th>
-<th>Description</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>
-<code>conditions</code><br>
-<em>
-<a href="#greenhouse.sap/v1alpha1.Condition">
-[]Condition
-</a>
-</em>
-</td>
-<td>
 </td>
 </tr>
 </tbody>
@@ -3050,9 +2895,7 @@ Kubernetes meta/v1.Time
 <td>
 <code>statusConditions</code><br>
 <em>
-<a href="#greenhouse.sap/v1alpha1.StatusConditions">
-StatusConditions
-</a>
+github.com/cloudoperators/greenhouse/api.StatusConditions
 </em>
 </td>
 <td>
@@ -3421,9 +3264,7 @@ bool
 <td>
 <code>statusConditions</code><br>
 <em>
-<a href="#greenhouse.sap/v1alpha1.StatusConditions">
-StatusConditions
-</a>
+github.com/cloudoperators/greenhouse/api.StatusConditions
 </em>
 </td>
 <td>
@@ -3588,9 +3429,7 @@ string
 <td>
 <code>statusConditions</code><br>
 <em>
-<a href="#greenhouse.sap/v1alpha1.StatusConditions">
-StatusConditions
-</a>
+github.com/cloudoperators/greenhouse/api.StatusConditions
 </em>
 </td>
 <td>
@@ -3763,6 +3602,360 @@ SecretKeyReference
 </td>
 <td>
 <p>Secret references the secret containing the value.</p>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<h2 id="greenhouse.sap/v1alpha2">greenhouse.sap/v1alpha2</h2>
+Resource Types:
+<ul class="simple"></ul>
+<h3 id="greenhouse.sap/v1alpha2.ClusterSelector">ClusterSelector
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#greenhouse.sap/v1alpha2.TeamRoleBindingSpec">TeamRoleBindingSpec</a>)
+</p>
+<p>ClusterSelector specifies a selector for clusters by name or by label with the option to exclude specific clusters.</p>
+<div class="md-typeset__scrollwrap">
+<div class="md-typeset__table">
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>clusterName</code><br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Name of a single Cluster to select.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>labelSelector</code><br>
+<em>
+<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.24/#labelselector-v1-meta">
+Kubernetes meta/v1.LabelSelector
+</a>
+</em>
+</td>
+<td>
+<p>LabelSelector is a label query over a set of Clusters.</p>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<h3 id="greenhouse.sap/v1alpha2.PropagationStatus">PropagationStatus
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#greenhouse.sap/v1alpha2.TeamRoleBindingStatus">TeamRoleBindingStatus</a>)
+</p>
+<p>PropagationStatus defines the observed state of the TeamRoleBinding&rsquo;s associated rbacv1 resources  on a Cluster</p>
+<div class="md-typeset__scrollwrap">
+<div class="md-typeset__table">
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>clusterName</code><br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>ClusterName is the name of the cluster the rbacv1 resources are created on.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>condition</code><br>
+<em>
+github.com/cloudoperators/greenhouse/api.Condition
+</em>
+</td>
+<td>
+<p>Condition is the overall Status of the rbacv1 resources created on the cluster</p>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<h3 id="greenhouse.sap/v1alpha2.TeamRoleBinding">TeamRoleBinding
+</h3>
+<p>TeamRoleBinding is the Schema for the rolebindings API</p>
+<div class="md-typeset__scrollwrap">
+<div class="md-typeset__table">
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>metadata</code><br>
+<em>
+<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.24/#objectmeta-v1-meta">
+Kubernetes meta/v1.ObjectMeta
+</a>
+</em>
+</td>
+<td>
+Refer to the Kubernetes API documentation for the fields of the
+<code>metadata</code> field.
+</td>
+</tr>
+<tr>
+<td>
+<code>spec</code><br>
+<em>
+<a href="#greenhouse.sap/v1alpha2.TeamRoleBindingSpec">
+TeamRoleBindingSpec
+</a>
+</em>
+</td>
+<td>
+<br/>
+<br/>
+<table>
+<tr>
+<td>
+<code>teamRoleRef</code><br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>TeamRoleRef references a Greenhouse TeamRole by name</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>teamRef</code><br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>TeamRef references a Greenhouse Team by name</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>usernames</code><br>
+<em>
+[]string
+</em>
+</td>
+<td>
+<p>Usernames defines list of users to add to the (Cluster-)RoleBindings</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>clusterSelector</code><br>
+<em>
+<a href="#greenhouse.sap/v1alpha2.ClusterSelector">
+ClusterSelector
+</a>
+</em>
+</td>
+<td>
+<p>ClusterSelector is used to select a Cluster or Clusters the TeamRoleBinding should be deployed to.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>namespaces</code><br>
+<em>
+[]string
+</em>
+</td>
+<td>
+<p>Namespaces is a list of namespaces in the Greenhouse Clusters to apply the RoleBinding to.
+If empty, a ClusterRoleBinding will be created on the remote cluster, otherwise a RoleBinding per namespace.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>createNamespaces</code><br>
+<em>
+bool
+</em>
+</td>
+<td>
+<p>CreateNamespaces when enabled the controller will create namespaces for RoleBindings if they do not exist.</p>
+</td>
+</tr>
+</table>
+</td>
+</tr>
+<tr>
+<td>
+<code>status</code><br>
+<em>
+<a href="#greenhouse.sap/v1alpha2.TeamRoleBindingStatus">
+TeamRoleBindingStatus
+</a>
+</em>
+</td>
+<td>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<h3 id="greenhouse.sap/v1alpha2.TeamRoleBindingSpec">TeamRoleBindingSpec
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#greenhouse.sap/v1alpha2.TeamRoleBinding">TeamRoleBinding</a>)
+</p>
+<p>TeamRoleBindingSpec defines the desired state of a TeamRoleBinding</p>
+<div class="md-typeset__scrollwrap">
+<div class="md-typeset__table">
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>teamRoleRef</code><br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>TeamRoleRef references a Greenhouse TeamRole by name</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>teamRef</code><br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>TeamRef references a Greenhouse Team by name</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>usernames</code><br>
+<em>
+[]string
+</em>
+</td>
+<td>
+<p>Usernames defines list of users to add to the (Cluster-)RoleBindings</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>clusterSelector</code><br>
+<em>
+<a href="#greenhouse.sap/v1alpha2.ClusterSelector">
+ClusterSelector
+</a>
+</em>
+</td>
+<td>
+<p>ClusterSelector is used to select a Cluster or Clusters the TeamRoleBinding should be deployed to.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>namespaces</code><br>
+<em>
+[]string
+</em>
+</td>
+<td>
+<p>Namespaces is a list of namespaces in the Greenhouse Clusters to apply the RoleBinding to.
+If empty, a ClusterRoleBinding will be created on the remote cluster, otherwise a RoleBinding per namespace.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>createNamespaces</code><br>
+<em>
+bool
+</em>
+</td>
+<td>
+<p>CreateNamespaces when enabled the controller will create namespaces for RoleBindings if they do not exist.</p>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<h3 id="greenhouse.sap/v1alpha2.TeamRoleBindingStatus">TeamRoleBindingStatus
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#greenhouse.sap/v1alpha2.TeamRoleBinding">TeamRoleBinding</a>)
+</p>
+<p>TeamRoleBindingStatus defines the observed state of the TeamRoleBinding</p>
+<div class="md-typeset__scrollwrap">
+<div class="md-typeset__table">
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>statusConditions</code><br>
+<em>
+github.com/cloudoperators/greenhouse/api.StatusConditions
+</em>
+</td>
+<td>
+<p>StatusConditions contain the different conditions that constitute the status of the TeamRoleBinding.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>clusters</code><br>
+<em>
+<a href="#greenhouse.sap/v1alpha2.PropagationStatus">
+[]PropagationStatus
+</a>
+</em>
+</td>
+<td>
+<p>PropagationStatus is the list of clusters the TeamRoleBinding is applied to</p>
 </td>
 </tr>
 </tbody>
