@@ -112,18 +112,31 @@ func validateSCIMConfig(organization *greenhousev1alpha1.Organization) field.Err
 
 	switch organization.Spec.Authentication.SCIMConfig.AuthType {
 	case scim.Basic:
+		if organization.Spec.Authentication.SCIMConfig.BasicAuthUser == nil || organization.Spec.Authentication.SCIMConfig.BasicAuthPw == nil {
+			errs = append(errs, field.Required(field.NewPath("spec").Child("Authentication").Child("SCIMConfig").Child("BasicAuthUser"),
+				"An Organization without SCIMConfig.BasicAuthUser or SCIMConfig.BasicAuthPw is invalid"))
+			break
+		}
 		if organization.Spec.Authentication.SCIMConfig.BasicAuthUser.Secret == nil {
 			errs = append(errs, field.Required(field.NewPath("spec").Child("Authentication").Child("SCIMConfig").Child("BasicAuthUser"),
 				"An Organization without SCIMConfig.BasicAuthUser is invalid"))
+			break
 		}
 		if organization.Spec.Authentication.SCIMConfig.BasicAuthPw.Secret == nil {
 			errs = append(errs, field.Required(field.NewPath("spec").Child("Authentication").Child("SCIMConfig").Child("BasicAuthPw"),
 				"An Organization without SCIMConfig.BasicAuthPw is invalid"))
+			break
 		}
 	case scim.BearerToken:
+		if organization.Spec.Authentication.SCIMConfig.BearerToken == nil {
+			errs = append(errs, field.Required(field.NewPath("spec").Child("Authentication").Child("SCIMConfig").Child("BearerToken"),
+				"An Organization without SCIMConfig.BearerToken is invalid"))
+			break
+		}
 		if organization.Spec.Authentication.SCIMConfig.BearerToken.Secret == nil {
 			errs = append(errs, field.Required(field.NewPath("spec").Child("Authentication").Child("SCIMConfig").Child("BearerToken"),
 				"An Organization without SCIMConfig.BearerToken is invalid"))
+			break
 		}
 	default:
 		errs = append(errs, field.Invalid(field.NewPath("spec").Child("Authentication").Child("SCIMConfig").Child("AuthType"),
