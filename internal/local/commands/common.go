@@ -50,21 +50,6 @@ func getBoolArg(matchArgs, args []string) (override, overrideVal bool) {
 	return
 }
 
-func getArgArray(matchArgs, args []string) []string {
-	var result []string
-
-	for _, a := range args {
-		// Split each argument into key and value
-		parts := strings.SplitN(a, "=", 2)
-		if len(parts) == 2 && slices.Contains(matchArgs, parts[0]) {
-			// Append the argument to the result if the key matches
-			result = append(result, parts[1])
-		}
-	}
-
-	return result
-}
-
 func createHostPathConfig() (string, error) {
 	pluginDir, ok := os.LookupEnv(utils.PluginDirectoryPath)
 	if !ok {

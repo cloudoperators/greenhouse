@@ -1,4 +1,3 @@
-
 {{- if .Capabilities.APIVersions.Has "monitoring.coreos.com/v1/ServiceMonitor" }}
 apiVersion: monitoring.coreos.com/v1
 kind: ServiceMonitor
@@ -18,8 +17,7 @@ spec:
       - {{ .Release.Namespace }}
   selector:
     matchLabels:
-      app: greenhouse
-      {{- include "manager.selectorLabels" . | nindent 6 }}
+      {{- include "common.selectorLabels" . | nindent 6 }}
 
 ---
 
