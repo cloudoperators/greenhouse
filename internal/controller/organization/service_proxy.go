@@ -68,16 +68,19 @@ func (r *OrganizationReconciler) reconcileServiceProxy(ctx context.Context, org 
 		}
 
 		// oauth2-proxy requires a cookie secret, which needs to be provided from a secret
-		secret := &corev1.Secret{}
-		if err := r.Client.Get(ctx, types.NamespacedName{Name: org.Spec.Authentication.OIDCConfig.ClientSecretReference.Name, Namespace: org.Name}, secret); err != nil {
-			log.FromContext(ctx).Info("failed to get Organization OIDC Secret", "error", err)
-			return nil
+		secret, err := r.getOrCreateOrgSecret(ctx, org)
+		if err != nil {
+			log.FromContext(ctx).Info("failed to get or create internal Organization Secret", "error", err)
+			return err
 		}
 		if _, ok := secret.Data[cookieSecretKey]; !ok {
 			cookieData, err := generateCookieSecret()
 			if err != nil {
 				log.FromContext(ctx).Info("failed to generate cookie secret", "error", err)
 				return err
+			}
+			if secret.Data == nil {
+				secret.Data = make(map[string][]byte)
 			}
 			secret.Data[cookieSecretKey] = []byte(cookieData)
 			if err := r.Client.Update(ctx, secret); err != nil {
