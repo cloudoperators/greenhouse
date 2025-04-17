@@ -6,7 +6,7 @@ on:
   #     - '**'  
   #   paths:
   #     - cmd/greenhousectl/**
-  #     - pkg/cmd/**
+  #     - internal/cmd/**
 
 permissions:
   contents: write # required to create a release

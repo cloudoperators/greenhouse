@@ -1,0 +1,65 @@
+// SPDX-FileCopyrightText: 2024 SAP SE or an SAP affiliate company and Greenhouse contributors
+// SPDX-License-Identifier: Apache-2.0
+
+package teamrbac
+
+import (
+	"testing"
+
+	. "github.com/onsi/ginkgo/v2"
+	. "github.com/onsi/gomega"
+
+	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/envtest"
+
+	"github.com/cloudoperators/greenhouse/internal/test"
+	admission "github.com/cloudoperators/greenhouse/internal/webhook"
+	//+kubebuilder:scaffold:imports
+)
+
+const (
+	testTeamIDPGroup = "test-idp-group"
+)
+
+// These tests use Ginkgo (BDD-style Go testing framework). Refer to
+// http://onsi.github.io/ginkgo/ to learn more about Ginkgo.
+var (
+	k8sClient client.Client
+	// clusterA
+	clusterAKubeConfig []byte
+	clusterAKubeClient client.Client
+	clusterARemoteEnv  *envtest.Environment
+	// clusterB
+	clusterBKubeConfig []byte
+	clusterBKubeClient client.Client
+	clusterBRemoteEnv  *envtest.Environment
+)
+
+func TestRBACController(t *testing.T) {
+	RegisterFailHandler(Fail)
+	RunSpecs(t, "Team RBAC Controller Suite")
+}
+
+var _ = BeforeSuite(func() {
+	test.RegisterController("roleBindingController", (&TeamRoleBindingReconciler{}).SetupWithManager)
+	test.RegisterWebhook("clusterWebhook", admission.SetupClusterWebhookWithManager)
+	test.RegisterWebhook("teamsWebhook", admission.SetupTeamWebhookWithManager)
+	test.RegisterWebhook("teamRoleBindingWebhook", admission.SetupTeamRoleBindingWebhookWithManager)
+	test.RegisterWebhook("teamRoleWebhook", admission.SetupTeamRoleWebhookWithManager)
+	test.TestBeforeSuite()
+	k8sClient = test.K8sClient
+	bootstrapRemoteClusters()
+})
+
+var _ = AfterSuite(func() {
+	By("tearing down the test environment")
+	test.TestAfterSuite()
+	By("tearing down the remote test environment")
+	err := clusterARemoteEnv.Stop()
+	Expect(err).NotTo(HaveOccurred())
+})
+
+func bootstrapRemoteClusters() {
+	_, clusterAKubeClient, clusterARemoteEnv, clusterAKubeConfig = test.StartControlPlane("6885", false, false)
+	_, clusterBKubeClient, clusterBRemoteEnv, clusterBKubeConfig = test.StartControlPlane("6886", false, false)
+}
