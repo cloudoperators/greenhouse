@@ -19,6 +19,11 @@ spec:
         secret:
           key: ca.crt
           name: ingress-ca-cert
+    - name: alerts.caCert
+      valueFrom:
+        secret:
+          key: ca.crt
+          name: tls-alerts-demo-root-ca
     - name: global.greenhouse.baseDomain
       value: {{ .Values.global.dnsDomain }}
     - name: alerts.alertmanager.enabled
