@@ -324,6 +324,15 @@ list-scenarios:
 dev-docs:
 	go run -tags="dev" -mod=mod dev-env/docs.go
 
+CERT_MANAGER_VERSION ?= v1.8.0
+
+.PHONY: cert-manager
+cert-manager: kustomize
+	helm repo add jetstack https://charts.jetstack.io
+	helm upgrade cert-manager jetstack/cert-manager --namespace cert-manager --create-namespace \
+		--version $(CERT_MANAGER_VERSION) --install --set installCRDs=true
+	-$(KUSTOMIZE) build config/samples/cert-manager | kubectl apply -f -
+
 # Download and install mockery locally via `brew install mockery`
 MOCKERY := $(shell which mockery)
 mockery:

@@ -1,0 +1,8 @@
+# SPDX-FileCopyrightText: 2024 SAP SE or an SAP affiliate company and Greenhouse contributors
+# SPDX-License-Identifier: Apache-2.0
+
+resources:
+  - cert-bootstrap.yaml
+  - cert-issuer.yaml
+  - cert-root.yaml
+  - cert-server.yaml

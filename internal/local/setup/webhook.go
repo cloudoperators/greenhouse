@@ -69,20 +69,12 @@ func (m *Manifest) setupWebhookManifest(resources []map[string]any, clusterName 
 		return nil, err
 	}
 
-	utils.Log("modifying cert-controller...")
+	utils.Log("modifying cert-manager...")
 	webhookURL := getWebhookURL()
-	utils.Log("Add WebhookURL to WebhookServer ConfigMap: " + webhookURL)
-	// Get ConfigMap.
-	webhookServerConfigMap, err := extractResourceByNameKind(resources, "greenhouse-webhook-server-config", ConfigMapKind)
-	if err != nil {
-		return nil, err
-	}
-	webhookServerConfigMap, err = m.modifyWebhookServerConfigMap(webhookServerConfigMap, webhookURL)
-	if err != nil {
-		return nil, err
-	}
 
-	webhookManifests = append(webhookManifests, managerDeployment, webhookServerConfigMap)
+	// utils.Log("Add WebhookURL to Certificate: " + webhookURL)
+
+	webhookManifests = append(webhookManifests, managerDeployment)
 	webhookResources := extractResourcesByKinds(resources, MutatingWebhookConfigurationKind, ValidatingWebhookConfigurationKind)
 	if m.Webhook.DevMode {
 		utils.Log("enabling webhook local development...")
@@ -241,27 +233,6 @@ func (m *Manifest) modifyWebhook(resource map[string]any, hook client.Object, we
 	default:
 		return nil, fmt.Errorf("unexpected webhook type: %T", hook)
 	}
-}
-
-func (m *Manifest) modifyWebhookServerConfigMap(resources map[string]interface{}, webhookURL string) (map[string]interface{}, error) {
-	configMap := &v1.ConfigMap{}
-	configMapStr, err := utils.Stringy(resources)
-	if err != nil {
-		return nil, err
-	}
-	err = utils.FromYamlToK8sObject(configMapStr, configMap)
-	if err != nil {
-		return nil, err
-	}
-	extraDNSNames := configMap.Data["extraDnsNames"]
-	modifiedDNSNames := fmt.Sprintf("%s\n", webhookURL) + extraDNSNames
-	configMap.Data["extraDnsNames"] = modifiedDNSNames
-
-	configMapBytes, err := utils.FromK8sObjectToYaml(configMap, v1.SchemeGroupVersion)
-	if err != nil {
-		return nil, err
-	}
-	return utils.RawK8sInterface(configMapBytes)
 }
 
 // modifyCertJob - appends host.docker.internal to the args in cert job

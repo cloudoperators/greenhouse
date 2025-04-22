@@ -15,6 +15,6 @@ spec:
           name: greenhouse-webhook-service
           path: /convert
       conversionReviewVersions:
-      - v1alpha1
       - v1alpha2
+      - v1alpha1
       - v1beta1

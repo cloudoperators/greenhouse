@@ -1,0 +1,24 @@
+# SPDX-FileCopyrightText: 2024 SAP SE or an SAP affiliate company and Greenhouse contributors
+# SPDX-License-Identifier: Apache-2.0
+
+kind: Certificate
+apiVersion: cert-manager.io/v1
+metadata:
+  name: server-cert
+  namespace: greenhouse
+spec:
+  issuerRef:
+    name: ca-root
+    kind: ClusterIssuer
+  secretName: greenhouse-webhook-server-cert
+  duration: 2160h
+  renewBefore: 360h
+  dnsNames:
+    - greenhouse-webhook-service.greenhouse.svc
+    - greenhouse-webhook-service.greenhouse.svc.cluster.local
+  isCA: false
+  privateKey:
+    algorithm: RSA
+    size: 2048
+  usages:
+    - server auth
