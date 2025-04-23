@@ -166,12 +166,6 @@ func (r *OrganizationReconciler) EnsureCreated(ctx context.Context, object lifec
 	}
 	org.SetCondition(greenhousev1alpha1.TrueCondition(greenhousev1alpha1.OrganizationDefaultTeamRolesConfigured, "", ""))
 
-	if err := r.reconcileServiceProxy(ctx, org); err != nil {
-		org.SetCondition(greenhousev1alpha1.FalseCondition(greenhousev1alpha1.ServiceProxyProvisioned, "", err.Error()))
-		return ctrl.Result{}, lifecycle.Failed, err
-	}
-	org.SetCondition(greenhousev1alpha1.TrueCondition(greenhousev1alpha1.ServiceProxyProvisioned, "", ""))
-
 	if org.Spec.Authentication != nil && org.Spec.Authentication.OIDCConfig != nil {
 		if err := r.reconcileDexConnector(ctx, org); err != nil {
 			org.SetCondition(greenhousev1alpha1.FalseCondition(greenhousev1alpha1.OrganizationOICDConfigured, greenhousev1alpha1.DexReconcileFailed, ""))
@@ -188,9 +182,18 @@ func (r *OrganizationReconciler) EnsureCreated(ctx context.Context, object lifec
 				return ctrl.Result{}, lifecycle.Failed, err
 			}
 		}
-
+		if err := r.reconcileOAuth2ProxySecret(ctx, org); err != nil {
+			org.SetCondition(greenhousev1alpha1.FalseCondition(greenhousev1alpha1.OrganizationOICDConfigured, greenhousev1alpha1.OAuthProxySecretFailed, err.Error()))
+			return ctrl.Result{}, lifecycle.Failed, err
+		}
 		org.SetCondition(greenhousev1alpha1.TrueCondition(greenhousev1alpha1.OrganizationOICDConfigured, "", ""))
 	}
+
+	if err := r.reconcileServiceProxy(ctx, org); err != nil {
+		org.SetCondition(greenhousev1alpha1.FalseCondition(greenhousev1alpha1.ServiceProxyProvisioned, "", err.Error()))
+		return ctrl.Result{}, lifecycle.Failed, err
+	}
+	org.SetCondition(greenhousev1alpha1.TrueCondition(greenhousev1alpha1.ServiceProxyProvisioned, "", ""))
 
 	if err := r.reconcileAdminTeam(ctx, org); err != nil {
 		org.SetCondition(greenhousev1alpha1.FalseCondition(greenhousev1alpha1.OrganizationAdminTeamConfigured, "", err.Error()))

@@ -5,8 +5,6 @@ package organization
 
 import (
 	"context"
-	"crypto/rand"
-	"encoding/base64"
 	"encoding/json"
 	"fmt"
 
@@ -22,8 +20,6 @@ import (
 
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
 	"github.com/cloudoperators/greenhouse/internal/clientutil"
-	"github.com/cloudoperators/greenhouse/internal/common"
-	"github.com/cloudoperators/greenhouse/internal/version"
 )
 
 const (
@@ -33,14 +29,18 @@ const (
 )
 
 func (r *OrganizationReconciler) reconcileServiceProxy(ctx context.Context, org *greenhousev1alpha1.Organization) error {
-	domain := fmt.Sprintf("%s.%s", org.Name, common.DNSDomain)
+	domain := getOauthProxyURL(org.Name)
 	domainJSON, err := json.Marshal(domain)
 	if err != nil {
 		return fmt.Errorf("failed to marshal domain: %w", err)
 	}
-	versionJSON, err := json.Marshal(version.GitCommit)
+	versionJSON, err := json.Marshal("7295bfa")
 	if err != nil {
 		return fmt.Errorf("failed to marshal version.GitCommit: %w", err)
+	}
+	replicaCount, err := json.Marshal(1)
+	if err != nil {
+		return fmt.Errorf("failed to marshal replica count: %w", err)
 	}
 
 	var pluginDefinition = new(greenhousev1alpha1.PluginDefinition)
@@ -53,12 +53,7 @@ func (r *OrganizationReconciler) reconcileServiceProxy(ctx context.Context, org 
 		return nil
 	}
 
-	// TODO: remove this once the feature is considered stable.
-	// This allows to enable/disable the oauth-proxy feature for a specific organization
-	oauthProxyEnabled := false
-	if val, ok := org.GetAnnotations()[oauthPreviewAnnotation]; ok {
-		oauthProxyEnabled = val == "true"
-	}
+	oauthProxyEnabled := isOauthProxyEnabled(org)
 
 	if oauthProxyEnabled {
 		// oauth2-proxy requires OIDC Client config
@@ -111,6 +106,10 @@ func (r *OrganizationReconciler) reconcileServiceProxy(ctx context.Context, org 
 				Name:  "image.tag",
 				Value: &apiextensionsv1.JSON{Raw: versionJSON},
 			},
+			{
+				Name:  "replicaCount",
+				Value: &apiextensionsv1.JSON{Raw: replicaCount},
+			},
 		}
 		if oauthProxyEnabled {
 			oauthProxyValues := []greenhousev1alpha1.PluginOptionValue{
@@ -140,7 +139,7 @@ func (r *OrganizationReconciler) reconcileServiceProxy(ctx context.Context, org 
 				},
 				{
 					Name:  "oauth2proxy.cookieSecretRef.secret",
-					Value: &apiextensionsv1.JSON{Raw: []byte(fmt.Sprintf("\"%s\"", org.Spec.Authentication.OIDCConfig.ClientSecretReference.Name))},
+					Value: &apiextensionsv1.JSON{Raw: []byte(fmt.Sprintf("\"%s\"", org.Name+technicalSecretSuffix))},
 				},
 				{
 					Name:  "oauth2proxy.cookieSecretRef.key",
@@ -165,7 +164,7 @@ func (r *OrganizationReconciler) reconcileServiceProxy(ctx context.Context, org 
 	return nil
 }
 
-func (r *OrganizationReconciler) enqueueAllOrganizationsForServiceProxyPluginDefinition(ctx context.Context, o client.Object) []ctrl.Request {
+func (r *OrganizationReconciler) enqueueAllOrganizationsForServiceProxyPluginDefinition(ctx context.Context, _ client.Object) []ctrl.Request {
 	return listOrganizationsAsReconcileRequests(ctx, r.Client)
 }
 
@@ -179,16 +178,4 @@ func listOrganizationsAsReconcileRequests(ctx context.Context, c client.Client, 
 		res[idx] = ctrl.Request{NamespacedName: types.NamespacedName{Name: organization.Name, Namespace: organization.Namespace}}
 	}
 	return res
-}
-
-// generateCookieSecret generates a random cookie secret
-func generateCookieSecret() (string, error) {
-	// Generate 16 random bytes
-	token := make([]byte, 16)
-	if _, err := rand.Read(token); err != nil {
-		return "", err
-	}
-	// Base64 encode the token twice
-	encodedToken := base64.StdEncoding.EncodeToString(token)
-	return base64.StdEncoding.EncodeToString([]byte(encodedToken)), nil
 }

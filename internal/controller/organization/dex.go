@@ -5,6 +5,8 @@ package organization
 
 import (
 	"context"
+	"crypto/rand"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"slices"
@@ -217,6 +219,78 @@ func (r *OrganizationReconciler) appendRedirectsToDefaultConnector(ctx context.C
 	return nil
 }
 
+// reconcileOAuth2ProxySecret - creates oauth2client redirect in dex for oauth2-proxy to authenticate
+func (r *OrganizationReconciler) reconcileOAuth2ProxySecret(ctx context.Context, org *greenhousev1alpha1.Organization) error {
+	if !isOauthProxyEnabled(org) {
+		log.FromContext(ctx).Info("oauth-proxy feature is disabled for the organization")
+		return nil
+	}
+	intSecret, err := r.getOrCreateOrgSecret(ctx, org)
+	if err != nil {
+		return err
+	}
+	if _, ok := intSecret.Data[cookieSecretKey]; !ok {
+		cookieData, err := generateCookieSecret()
+		if err != nil {
+			log.FromContext(ctx).Info("failed to generate oauth2 proxy cookie secret", "name", org.Name, "error", err)
+			return err
+		}
+		if intSecret.Data == nil {
+			intSecret.Data = make(map[string][]byte)
+		}
+		intSecret.Data[cookieSecretKey] = []byte(cookieData)
+	}
+	oAuthProxyClientName := fmt.Sprintf("oauth2-proxy-%s", org.Name)
+	intSecret.Data["oauth2proxy-clientID"] = []byte(oAuthProxyClientName)
+	oauthProxyClientSecret, err := generateOauth2ProxySecret()
+	if err != nil {
+		log.FromContext(ctx).Error(err, "failed to create oauth2 proxy client secret for org", "name", org.Name)
+		return err
+	}
+	_, sOK := intSecret.Data["oauth2proxy-clientSecret"]
+	if !sOK {
+		intSecret.Data["oauth2proxy-clientSecret"] = []byte(oauthProxyClientSecret)
+	}
+
+	oAuthProxyClient, err := r.dex.GetClient(oAuthProxyClientName)
+	oAuthProxyCallbackURL := fmt.Sprintf("https://%s/oauth2/callback", getOauthProxyURL(org.Name))
+	if err != nil {
+		if errors.Is(err, storage.ErrNotFound) {
+			if err = r.dex.CreateClient(ctx, storage.Client{
+				Public:       true,
+				ID:           oAuthProxyClientName,
+				Name:         fmt.Sprintf("%s Service Proxy", org.Name),
+				RedirectURIs: []string{oAuthProxyCallbackURL}, // add service proxy redirect URI
+				Secret:       oauthProxyClientSecret,
+			}); err != nil {
+				log.FromContext(ctx).Error(err, "failed to create oauth-proxy client credentials", "name", org.Name)
+				return err
+			}
+			log.FromContext(ctx).Info("successfully created oauth-proxy client credentials", "name", org.Name)
+			return nil
+		}
+		log.FromContext(ctx).Error(err, "failed to get oauth2client", "name", org.Name)
+		return err
+	}
+
+	if err = r.dex.UpdateClient(oAuthProxyClient.ID, func(authClient storage.Client) (storage.Client, error) {
+		authClient.Public = true
+		authClient.Secret = string(intSecret.Data["oauth2proxy-clientSecret"])
+		authClient.RedirectURIs = []string{oAuthProxyCallbackURL}
+		return authClient, nil
+	}); err != nil {
+		log.FromContext(ctx).Error(err, "failed to update oauth-proxy client credentials", "name", org.Name)
+		return err
+	}
+	log.FromContext(ctx).Info("successfully updated oauth-proxy client credentials", "name", org.Name)
+
+	if err := r.Client.Update(ctx, intSecret); err != nil {
+		log.FromContext(ctx).Error(err, "failed to update oauth2-proxy secret", "name", org.Name)
+		return err
+	}
+	return nil
+}
+
 func ensureCallbackURL(url string) string {
 	prefix := "https://"
 	if !strings.HasPrefix(url, prefix) {
@@ -254,4 +328,39 @@ func appendRedirects(redirects []string, newRedirects ...string) []string {
 		}
 	}
 	return redirects
+}
+
+// TODO: remove this once the feature is considered stable.
+// This allows to enable/disable the oauth-proxy feature for a specific organization
+// isOauthProxyEnabled - checks if the oauth-proxy feature is enabled for the organization
+func isOauthProxyEnabled(org *greenhousev1alpha1.Organization) bool {
+	oauthProxyEnabled := false
+	if val, ok := org.GetAnnotations()[oauthPreviewAnnotation]; ok {
+		oauthProxyEnabled = val == "true"
+	}
+	return oauthProxyEnabled
+}
+
+func generateOauth2ProxySecret() (string, error) {
+	secret := make([]byte, 32)
+	if _, err := rand.Read(secret); err != nil {
+		return "", fmt.Errorf("failed to generate oauth proxy client secret: %w", err)
+	}
+	return base64.StdEncoding.WithPadding(base64.NoPadding).EncodeToString(secret), nil
+}
+
+// generateCookieSecret generates a random cookie secret
+func generateCookieSecret() (string, error) {
+	// Generate 16 random bytes
+	token := make([]byte, 16)
+	if _, err := rand.Read(token); err != nil {
+		return "", err
+	}
+	// Base64 encode the token twice
+	encodedToken := base64.StdEncoding.EncodeToString(token)
+	return base64.StdEncoding.EncodeToString([]byte(encodedToken)), nil
+}
+
+func getOauthProxyURL(orgName string) string {
+	return fmt.Sprintf("auth-proxy.%s.%s", orgName, common.DNSDomain)
 }
