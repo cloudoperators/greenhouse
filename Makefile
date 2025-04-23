@@ -258,7 +258,7 @@ setup-controller-dev:
 	WEBHOOK_ONLY=true make setup-manager && INTERNAL= make setup-demo
 
 .PHONY: setup-manager
-setup-manager: cli cert-manager
+setup-manager: cli
 	PLUGIN_PATH=$(PLUGIN_DIR) $(CLI) dev setup -f dev-env/dev.config.yaml d=$(DEV_MODE) e=WEBHOOK_ONLY=$(WEBHOOK_ONLY)
 
 .PHONY: setup-dashboard
