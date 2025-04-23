@@ -1,0 +1,15 @@
+kind: Certificate
+apiVersion: cert-manager.io/v1
+metadata:
+  name: ca-root
+  namespace: cert-manager
+spec:
+  secretName: greenhouse-ca-root
+  isCA: true
+  commonName: ca-root
+  privateKey:
+    algorithm: RSA
+    size: 2048
+  issuerRef:
+    kind: ClusterIssuer
+    name: greenhouse-ca-bootstrap

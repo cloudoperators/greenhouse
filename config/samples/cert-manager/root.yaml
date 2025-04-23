@@ -1,0 +1,7 @@
+kind: ClusterIssuer
+apiVersion: cert-manager.io/v1
+metadata:
+  name: ca-root
+spec:
+  ca:
+    secretName: greenhouse-ca-root
