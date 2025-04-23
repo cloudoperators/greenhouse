@@ -139,3 +139,10 @@ func (o *Organization) GetConditions() StatusConditions {
 func (o *Organization) SetCondition(condition Condition) {
 	o.Status.StatusConditions.SetConditions(condition)
 }
+
+func (o *OrganizationSpec) GetSCIMConfig() *SCIMConfig {
+	if o.Authentication != nil {
+		return o.Authentication.SCIMConfig
+	}
+	return nil
+}
