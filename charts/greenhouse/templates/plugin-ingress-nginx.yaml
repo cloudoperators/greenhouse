@@ -21,6 +21,8 @@ spec:
     - name: controller.config
       value:
         allow-cross-namespace-resources: true
+        # oauth2-proxy uses large headers
+        large-client-header-buffers: "4 32k"
     {{- if .Values.ingress.loadBalancerIP }}
     - name: controller.service.loadBalancerIP
       value: {{ .Values.ingress.loadBalancerIP | quote }}
