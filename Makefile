@@ -176,6 +176,7 @@ HELMIFY ?= $(LOCALBIN)/helmify
 
 ## Tool Versions
 KUSTOMIZE_VERSION ?= 5.6.0
+CERT_MANAGER_VERSION ?= v1.17.1
 CONTROLLER_TOOLS_VERSION ?= 0.17.3
 GOLINT_VERSION ?= 1.64.8
 GINKGOLINTER_VERSION ?= 0.19.1
@@ -329,3 +330,10 @@ MOCKERY := $(shell which mockery)
 mockery:
 	# will look into .mockery.yaml for configuration
 	$(MOCKERY)
+
+.PHONY: cert-manager
+cert-manager: kustomize
+	helm repo add jetstack https://charts.jetstack.io
+	kubectl create namespace cert-manager --dry-run=client -o yaml | kubectl apply -f -
+	helm upgrade --namespace cert-manager --version $(CERT_MANAGER_VERSION) --install cert-manager jetstack/cert-manager --set installCRDs=true
+	-$(KUSTOMIZE) build config/samples/cert-manager | kubectl apply -f -
