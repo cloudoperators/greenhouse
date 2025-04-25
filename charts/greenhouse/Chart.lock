@@ -1,7 +1,7 @@
 dependencies:
 - name: idproxy
   repository: file://../idproxy
-  version: 0.3.0
+  version: 0.3.1
 - name: cors-proxy
   repository: file://../cors-proxy
   version: 0.2.0
@@ -17,5 +17,5 @@ dependencies:
 - name: postgresql-ng
   repository: oci://ghcr.io/sapcc/helm-charts
   version: 1.3.0
-digest: sha256:1f0ae04c3f81eccdb8161454ff18715d0b953f2d4b5214c4cc36e390b667ac63
-generated: "2025-03-27T16:31:44.998141+01:00"
+digest: sha256:b07aa5668c340a38565d16f50b06f322814a57c8383d85306bfb40e50e954244
+generated: "2025-04-24T14:35:29.081453+02:00"
