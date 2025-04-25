@@ -176,7 +176,8 @@ HELMIFY ?= $(LOCALBIN)/helmify
 
 ## Tool Versions
 KUSTOMIZE_VERSION ?= 5.6.0
-CONTROLLER_TOOLS_VERSION ?= 0.17.2
+CERT_MANAGER_VERSION ?= v1.17.1
+CONTROLLER_TOOLS_VERSION ?= 0.17.3
 GOLINT_VERSION ?= 1.64.8
 GINKGOLINTER_VERSION ?= 0.19.1
 # ENVTEST_K8S_VERSION refers to the version of kubebuilder assets to be downloaded by envtest binary.
@@ -246,7 +247,7 @@ DEV_MODE ?= false
 INTERNAL ?= -int
 
 .PHONY: setup
-setup: cli setup-manager setup-dashboard setup-demo
+setup: setup-manager setup-dashboard setup-demo
 
 .PHONY: setup-webhook-dev
 setup-webhook-dev:
@@ -329,3 +330,9 @@ MOCKERY := $(shell which mockery)
 mockery:
 	# will look into .mockery.yaml for configuration
 	$(MOCKERY)
+
+.PHONY: cert-manager
+cert-manager: kustomize
+	helm repo add jetstack https://charts.jetstack.io
+	helm upgrade --namespace cert-manager --version $(CERT_MANAGER_VERSION) --install cert-manager jetstack/cert-manager --set installCRDs=true --create-namespace
+	-$(KUSTOMIZE) build config/samples/cert-manager | kubectl apply -f -
