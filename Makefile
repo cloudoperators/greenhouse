@@ -267,6 +267,7 @@ setup-dashboard: cli
 
 .PHONY: setup-demo
 setup-demo: prepare-e2e samples
+	kubectl config use-context kind-$(ADMIN_CLUSTER)
 	kubectl create secret generic kind-$(REMOTE_CLUSTER) \
 		--from-literal=kubeconfig="$$(cat ${PWD}/bin/$(REMOTE_CLUSTER)$(INTERNAL).kubeconfig)" \
 		--namespace=$(GREENHOUSE_ORG) \
