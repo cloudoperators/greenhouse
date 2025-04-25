@@ -202,7 +202,7 @@ func (m *Manifest) setCertManagerAnnotation(resources []map[string]any) []map[st
 		// Grab existing annotations (if any), else make a new map
 		var annotations map[string]any
 		if annAny, found := metadata["annotations"]; found {
-			a := annAny.(map[string]any)
+			a := annAny.(map[string]any) //nolint:errcheck
 			annotations = a
 		} else {
 			annotations = make(map[string]any)
