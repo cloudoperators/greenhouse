@@ -70,6 +70,7 @@ func (m *Manifest) setupWebhookManifest(resources []map[string]any, clusterName 
 	webhookURL := getWebhookURL()
 	webhookManifests = append(webhookManifests, managerDeployment)
 	webhookResources := extractResourcesByKinds(resources, MutatingWebhookConfigurationKind, ValidatingWebhookConfigurationKind)
+	utils.Log("setting cert-manager annotation for webhook resources...")
 	webhookResources = m.setCertManagerAnnotation(webhookResources)
 	if m.Webhook.DevMode {
 		utils.Log("enabling webhook local development...")
