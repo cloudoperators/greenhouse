@@ -8,6 +8,7 @@ config:
       name: greenhouse-admin
       namespace: greenhouse
       postSetup:
+        - command: kubectl config use-context kind-greenhouse-admin
         - command: make cert-manager
     dependencies:
       - manifest:
