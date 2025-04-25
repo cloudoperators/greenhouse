@@ -16,7 +16,7 @@ import (
 
 	"github.com/spf13/cobra/doc"
 
-	"github.com/cloudoperators/greenhouse/pkg/cmd"
+	"github.com/cloudoperators/greenhouse/internal/cmd"
 )
 
 var removeLinks = regexp.MustCompile(`(?s)### SEE ALSO.*`)
@@ -54,7 +54,7 @@ func getCWD() string {
 	return outputPath
 }
 
-// getDevDocsIntro - get the intro markdown content from dev-env/localenv/templates/_intro.md
+// getDevDocsIntro - get the intro markdown content from dev-env/templates/_intro.md
 func getTemplate(cwd string, template string) ([]byte, error) {
 	return os.ReadFile(filepath.Join(cwd, "templates", template))
 }

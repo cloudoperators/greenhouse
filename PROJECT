@@ -4,7 +4,7 @@
 # More info: https://book.kubebuilder.io/reference/project-config.html
 domain: sap
 layout:
-- go.kubebuilder.io/v3
+- go.kubebuilder.io/v4
 multigroup: true
 projectName: greenhouse
 repo: github.com/cloudoperators/greenhouse
@@ -15,7 +15,7 @@ resources:
   domain: sap
   group: greenhouse
   kind: Organization
-  path: github.com/cloudoperators/greenhouse/pkg/apis/greenhouse/v1alpha1
+  path: github.com/cloudoperators/greenhouse/api/v1alpha1
   version: v1alpha1
   webhooks:
     defaulting: true
@@ -28,7 +28,7 @@ resources:
   domain: sap
   group: greenhouse
   kind: Team
-  path: github.com/cloudoperators/greenhouse/pkg/apis/greenhouse/v1alpha1
+  path: github.com/cloudoperators/greenhouse/api/v1alpha1
   version: v1alpha1
   webhooks:
     defaulting: true
@@ -41,7 +41,7 @@ resources:
   domain: sap
   group: greenhouse
   kind: PluginDefinition
-  path: github.com/cloudoperators/greenhouse/pkg/apis/greenhouse/v1alpha1
+  path: github.com/cloudoperators/greenhouse/api/v1alpha1
   version: v1alpha1
   webhooks:
     defaulting: true
@@ -54,7 +54,7 @@ resources:
   domain: sap
   group: greenhouse
   kind: Plugin
-  path: github.com/cloudoperators/greenhouse/pkg/apis/greenhouse/v1alpha1
+  path: github.com/cloudoperators/greenhouse/api/v1alpha1
   version: v1alpha1
   webhooks:
     defaulting: true
@@ -67,7 +67,7 @@ resources:
   domain: sap
   group: greenhouse
   kind: Cluster
-  path: github.com/cloudoperators/greenhouse/pkg/apis/greenhouse/v1alpha1
+  path: github.com/cloudoperators/greenhouse/api/v1alpha1
   version: v1alpha1
   webhooks:
     defaulting: true
@@ -79,7 +79,7 @@ resources:
   domain: sap
   group: greenhouse
   kind: TeamMembership
-  path: github.com/cloudoperators/greenhouse/pkg/apis/greenhouse/v1alpha1
+  path: github.com/cloudoperators/greenhouse/api/v1alpha1
   version: v1alpha1
 - api:
     crdVersion: v1
@@ -88,7 +88,7 @@ resources:
   domain: sap
   group: greenhouse
   kind: TeamRole
-  path: github.com/cloudoperators/greenhouse/pkg/apis/greenhouse/v1alpha1
+  path: github.com/cloudoperators/greenhouse/api/v1alpha1
   version: v1alpha1
   webhooks:
     defaulting: true
@@ -100,7 +100,7 @@ resources:
   domain: sap
   group: greenhouse
   kind: TeamRoleBinding
-  path: github.com/cloudoperators/greenhouse/pkg/apis/greenhouse/v1alpha1
+  path: github.com/cloudoperators/greenhouse/api/v1alpha1
   version: v1alpha1
   webhooks:
     defaulting: true
@@ -113,7 +113,7 @@ resources:
   domain: sap
   group: greenhouse
   kind: PluginPreset
-  path: github.com/cloudoperators/greenhouse/pkg/apis/greenhouse/v1alpha1
+  path: github.com/cloudoperators/greenhouse/api/v1alpha1
   version: v1alpha1
   webhooks:
     defaulting: true
@@ -123,8 +123,8 @@ resources:
     crdVersion: v1
     namespaced: true
   domain: sap
-  group: greenhouse.sap
+  group: greenhouse
   kind: ClusterKubeconfig
-  path: github.com/cloudoperators/greenhouse/apis/greenhouse.sap/v1alpha1
+  path: github.com/cloudoperators/greenhouse/api/v1alpha1
   version: v1alpha1
 version: "3"

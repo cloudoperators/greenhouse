@@ -1,6 +1,5 @@
 # Image URL to use all building/pushing image targets
 IMG ?= ghcr.io/cloudoperators/greenhouse:dev-$(USER)
-IMG_DEV_ENV ?= ghcr.io/cloudoperators/greenhouse-dev-env:dev-$(USER)
 IMG_LICENSE_EYE ?= ghcr.io/apache/skywalking-eyes/license-eye
 
 MANIFESTS_PATH=$(CURDIR)/charts/manager
@@ -54,10 +53,17 @@ generate-all: generate generate-manifests generate-documentation  ## Generate co
 .PHONY: manifests
 manifests: generate-manifests generate-documentation generate-types
 
+## Generate manifests for CRD, RBAC, Webhook and helmify the files
+## CRD manifests are generated in hack/crd/bases
+## Patches for CRD conversion webhooks need to be created under hack/crd/patches
+## filename should be in the format webhook.*<group>*.*<kind>*.yaml"
 .PHONY: generate-manifests
 generate-manifests: controller-gen ## Generate WebhookConfiguration, ClusterRole and CustomResourceDefinition objects.
-	$(CONTROLLER_GEN) crd paths="./pkg/apis/..." output:crd:artifacts:config=$(CRD_MANIFESTS_PATH)
-	$(CONTROLLER_GEN) rbac:roleName=manager-role webhook paths="./pkg/admission/..." paths="./pkg/controllers/..." output:artifacts:config=$(TEMPLATES_MANIFESTS_PATH)
+	$(CONTROLLER_GEN) crd paths="./api/..." output:crd:artifacts:config=hack/crd/bases
+	GOBIN=$(LOCALBIN) go run ./hack/generate.go --crd-dir="./hack/crd" --charts-crd-dir=$(CRD_MANIFESTS_PATH)
+	rm -rf hack/crd/bases
+
+	$(CONTROLLER_GEN) rbac:roleName=manager-role webhook paths="./internal/webhook/..." paths="./internal/controller/..." output:artifacts:config=$(TEMPLATES_MANIFESTS_PATH)
 	hack/helmify $(TEMPLATES_MANIFESTS_PATH)
 	docker run --rm -v $(shell pwd):/github/workspace $(IMG_LICENSE_EYE) -c .github/licenserc.yaml header fix
 
@@ -72,16 +78,16 @@ generate-types: generate-open-api-spec## Generate typescript types from CRDs.
 
 .PHONY: actiongenerate
 actiongenerate: action-controllergen
-	$(CONTROLLER_GEN_ACTION) object:headerFile="hack/boilerplate.go.txt" paths="./pkg/apis/..."
-	$(CONTROLLER_GEN_ACTION) object:headerFile="hack/boilerplate.go.txt" paths="./pkg/dex/..."
+	$(CONTROLLER_GEN_ACTION) object:headerFile="hack/boilerplate.go.txt" paths="./api/..."
+	$(CONTROLLER_GEN_ACTION) object:headerFile="hack/boilerplate.go.txt" paths="./internal/dex/..."
 
 .PHONY: generate
 generate: controller-gen ## Generate code containing DeepCopy, DeepCopyInto, and DeepCopyObject method implementations.
-	$(CONTROLLER_GEN) object:headerFile="hack/boilerplate.go.txt" paths="./pkg/apis/..."
-	$(CONTROLLER_GEN) object:headerFile="hack/boilerplate.go.txt" paths="./pkg/dex/..."
+	$(CONTROLLER_GEN) object:headerFile="hack/boilerplate.go.txt" paths="./api/..."
+	$(CONTROLLER_GEN) object:headerFile="hack/boilerplate.go.txt" paths="./internal/dex/..."
 
 # Default values
-GEN_DOCS_API_DIR ?= "./pkg/apis/greenhouse/v1alpha1" ## -app-dir should be Canonical Path Format so absolute path doesn't work. That's why we don't use $(CURDIR) here.
+GEN_DOCS_API_DIR ?= "./api/v1alpha1" ## -app-dir should be Canonical Path Format so absolute path doesn't work. That's why we don't use $(CURDIR) here.
 GEN_DOCS_CONFIG ?= "$(CURDIR)/hack/docs-generator/config.json"
 GEN_DOCS_TEMPLATE_DIR ?= "$(CURDIR)/hack/docs-generator/templates"
 GEN_DOCS_OUT_FILE ?= "$(CURDIR)/docs/reference/api/index.html"
@@ -132,7 +138,7 @@ build-%: GIT_COMMIT  = $(shell git rev-parse --short HEAD)
 build-%: GIT_STATE   = $(shell if git diff --quiet; then echo clean; else echo dirty; fi)
 build-%: BUILD_DATE  = $(shell date -u +"%Y-%m-%dT%H:%M:%SZ")
 build-%:
-	go build -ldflags "-s -w -X github.com/cloudoperators/greenhouse/pkg/version.GitBranch=$(GIT_BRANCH) -X github.com/cloudoperators/greenhouse/pkg/version.GitCommit=$(GIT_COMMIT) -X github.com/cloudoperators/greenhouse/pkg/version.GitState=$(GIT_STATE) -X github.com/cloudoperators/greenhouse/pkg/version.BuildDate=$(BUILD_DATE)" -o bin/$* ./cmd/$*/
+	go build -ldflags "-s -w -X github.com/cloudoperators/greenhouse/internal/version.GitBranch=$(GIT_BRANCH) -X github.com/cloudoperators/greenhouse/internal/version.GitCommit=$(GIT_COMMIT) -X github.com/cloudoperators/greenhouse/internal/version.GitState=$(GIT_STATE) -X github.com/cloudoperators/greenhouse/internal/version.BuildDate=$(BUILD_DATE)" -o bin/$* ./cmd/$*/
 
 .PHONY: run
 run: manifests generate fmt vet ## Run a controller from your host.
@@ -170,8 +176,9 @@ HELMIFY ?= $(LOCALBIN)/helmify
 
 ## Tool Versions
 KUSTOMIZE_VERSION ?= 5.6.0
-CONTROLLER_TOOLS_VERSION ?= 0.17.2
-GOLINT_VERSION ?= 1.64.5
+CERT_MANAGER_VERSION ?= v1.17.1
+CONTROLLER_TOOLS_VERSION ?= 0.17.3
+GOLINT_VERSION ?= 1.64.8
 GINKGOLINTER_VERSION ?= 0.19.1
 # ENVTEST_K8S_VERSION refers to the version of kubebuilder assets to be downloaded by envtest binary.
 ENVTEST_K8S_VERSION ?= 1.31.0
@@ -240,7 +247,7 @@ DEV_MODE ?= false
 INTERNAL ?= -int
 
 .PHONY: setup
-setup: cli setup-manager setup-dashboard setup-demo
+setup: setup-manager setup-dashboard setup-demo
 
 .PHONY: setup-webhook-dev
 setup-webhook-dev:
@@ -316,10 +323,16 @@ list-scenarios:
 
 .PHONY: dev-docs
 dev-docs:
-	go run -tags="dev" -mod=mod dev-env/localenv/docs.go
+	go run -tags="dev" -mod=mod dev-env/docs.go
 
 # Download and install mockery locally via `brew install mockery`
 MOCKERY := $(shell which mockery)
 mockery:
 	# will look into .mockery.yaml for configuration
 	$(MOCKERY)
+
+.PHONY: cert-manager
+cert-manager: kustomize
+	helm repo add jetstack https://charts.jetstack.io
+	helm upgrade --namespace cert-manager --version $(CERT_MANAGER_VERSION) --install cert-manager jetstack/cert-manager --set installCRDs=true --create-namespace
+	-$(KUSTOMIZE) build config/samples/cert-manager | kubectl apply -f -

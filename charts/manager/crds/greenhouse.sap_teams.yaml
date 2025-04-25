@@ -27,6 +27,9 @@ spec:
     - jsonPath: .metadata.creationTimestamp
       name: Age
       type: date
+    - jsonPath: .status.statusConditions.conditions[?(@.type == "SCIMAccessReady")].status
+      name: SCIM Ready
+      type: string
     name: v1alpha1
     schema:
       openAPIV3Schema:

@@ -15,7 +15,7 @@ on:
   pull_request:
     types: [opened, synchronize, reopened]
     paths:
-      - "pkg/apis/greenhouse/v1alpha1/**"
+      - "api/v1alpha1/**"
 
 jobs:
   generate-docs-types-specs:
@@ -24,7 +24,7 @@ jobs:
       contents: write
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
         with:
           token: ${{ secrets.CLOUOPERATOR_REPO_WRITE }}
           repository: ${{ github.event.pull_request.head.repo.full_name }}
@@ -40,7 +40,7 @@ jobs:
           make generate-types
 
       - name: Apply Changes
-        uses: EndBug/add-and-commit@v9
+        uses: EndBug/add-and-commit@a94899bca583c204427a224a7af87c02f9b325d5 # v9
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
