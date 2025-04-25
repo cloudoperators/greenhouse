@@ -112,7 +112,13 @@ func webhookManifestSetup(ctx context.Context, m *Manifest) Step {
 				return err
 			}
 		}
-		return m.waitUntilDeploymentReady(ctx, clusterName, m.ReleaseName+ManagerDeploymentNameSuffix, namespace)
+		err = m.waitUntilDeploymentReady(ctx, clusterName, m.ReleaseName+ManagerDeploymentNameSuffix, namespace)
+		if err != nil {
+			_ = utils.Shell{
+				Cmd: fmt.Sprintf("kubectl get deployment %s -n %s -o yaml", m.ReleaseName+ManagerDeploymentNameSuffix, namespace),
+			}.Exec() //nolint:errcheck
+		}
+		return err
 	}
 }
 
