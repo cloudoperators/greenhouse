@@ -36,8 +36,10 @@ func (s ShellPipe) Exec() error {
 		if strings.TrimSpace(shell.Cmd) == "" {
 			return errors.New("empty command found")
 		}
-		for k, v := range shell.Vars {
-			exec.SetVar(k, v)
+		if shell.Vars != nil {
+			for k, v := range shell.Vars {
+				exec.SetVar(k, v)
+			}
 		}
 		commands = append(commands, shell.Cmd)
 	}
@@ -91,7 +93,9 @@ func setVars(exec *gexe.Echo, vars map[string]string) {
 // Exec executes a single shell command
 func (s Shell) Exec() error {
 	exec := gexe.New()
-	setVars(exec, s.Vars)
+	if s.Vars != nil {
+		setVars(exec, s.Vars)
+	}
 	if err := s.checkEmptyCommand(); err != nil {
 		return err
 	}

@@ -89,7 +89,9 @@ func (c *Cluster) executePostSetup() error {
 	}
 	var err error
 	for _, action := range c.PostSetup {
-		action.Vars["kubeconfig"] = c.kubeConfigPath
+		if action.Vars != nil {
+			action.Vars["kubeconfig"] = c.kubeConfigPath
+		}
 		shells := make([]utils.Shell, 0)
 		commands := strings.Split(action.Command, "|")
 		if len(commands) > 1 {
