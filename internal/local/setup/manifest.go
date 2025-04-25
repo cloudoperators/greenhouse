@@ -112,16 +112,7 @@ func webhookManifestSetup(ctx context.Context, m *Manifest) Step {
 				return err
 			}
 		}
-		err = m.waitUntilDeploymentReady(ctx, clusterName, m.ReleaseName+ManagerDeploymentNameSuffix, namespace)
-		if err != nil {
-			_ = utils.Shell{
-				Cmd: fmt.Sprintf("kubectl --kubeconfig=${kubeconfig} get deployment %s -n %s -o yaml", m.ReleaseName+ManagerDeploymentNameSuffix, namespace),
-				Vars: map[string]string{
-					"kubeconfig": env.cluster.kubeConfigPath,
-				},
-			}.Exec() //nolint:errcheck
-		}
-		return err
+		return m.waitUntilDeploymentReady(ctx, clusterName, m.ReleaseName+ManagerDeploymentNameSuffix, namespace)
 	}
 }
 

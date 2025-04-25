@@ -3,8 +3,6 @@
 
 config:
   - cluster:
-      name: greenhouse-remote
-  - cluster:
       name: greenhouse-admin
       namespace: greenhouse
       postSetup:
@@ -24,3 +22,5 @@ config:
             envs:
               - name: WEBHOOK_ONLY
                 value: 'false'
+  - cluster:
+      name: greenhouse-remote
