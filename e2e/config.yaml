@@ -5,11 +5,15 @@ config:
   - cluster:
       name: greenhouse-admin
       namespace: greenhouse
+      postSetup:
+        - command: make cert-manager
     dependencies:
       - manifest:
           release: greenhouse
           chartPath: charts/manager
           valuesPath: dev-env/dev.values.yaml
+          excludeKinds:
+            - Job
           crdOnly: false
           webhook:
             devMode: false
