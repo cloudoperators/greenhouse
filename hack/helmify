@@ -38,7 +38,7 @@ PREFIX="greenhouse" rename "validating-webhook-configuration"
 PREFIX="greenhouse" rename "webhook-service"
 
 yq -i '(.webhooks[] | select(.name == "*secret.kb.io") | .namespaceSelector) |= {"matchExpressions": [{"key":"kubernetes.io/metadata.name", "operator": "NotIn", "values":["kube-system"]}]}' "$TEMPLATES_DIR/webhooks.yaml"
-yq -i '(.metadata.annotations += {"cert-manager.io/inject-ca-from": "greenhouse/server-cert"})' "$TEMPLATES_DIR/webhooks.yaml"
+yq -i '(.metadata.annotations += {"cert-manager.io/inject-ca-from": "greenhouse/greenhouse-client-cert"})' "$TEMPLATES_DIR/webhooks.yaml"
 
 # Helmify RBAC.
 rename-file-if-exists "$TEMPLATES_DIR/role.yaml" "$TEMPLATES_DIR/manager-role.yaml"

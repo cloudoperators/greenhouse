@@ -6,4 +6,4 @@ kind: CustomResourceDefinition
 metadata:
   name: teamrolebindings.greenhouse.sap
   annotations:
-    cert-manager.io/inject-ca-from: greenhouse/server-cert
+    cert-manager.io/inject-ca-from: greenhouse/greenhouse-client-cert

@@ -4,7 +4,7 @@ kind: MutatingWebhookConfiguration
 metadata:
   name: greenhouse-mutating-webhook-configuration
   annotations:
-    cert-manager.io/inject-ca-from: greenhouse/server-cert
+    cert-manager.io/inject-ca-from: greenhouse/greenhouse-client-cert
 webhooks:
   - admissionReviewVersions:
       - v1
@@ -219,7 +219,7 @@ kind: ValidatingWebhookConfiguration
 metadata:
   name: greenhouse-validating-webhook-configuration
   annotations:
-    cert-manager.io/inject-ca-from: greenhouse/server-cert
+    cert-manager.io/inject-ca-from: greenhouse/greenhouse-client-cert
 webhooks:
   - admissionReviewVersions:
       - v1
