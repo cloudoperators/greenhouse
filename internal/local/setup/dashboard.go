@@ -34,7 +34,6 @@ const (
 	dashboardDeploymentSuffix = "-dashboard"
 	dashboardConfigMapSuffix  = "-dashboard-app-props"
 	apiEndpointKey            = "apiEndpoint"
-	mockAuthKey               = "mockAuth"
 	demoUserTokenKey          = "demoUserToken"
 	demoOrgKey                = "demoOrg"
 	apiProxyURL               = "http://127.0.0.1:9090"
@@ -200,7 +199,6 @@ func (m *Manifest) modifyDashboardProps(ctx context.Context, cl client.Client, c
 		return nil, errors.New("empty token found in service account secret")
 	}
 	props[apiEndpointKey] = apiProxyURL
-	props[mockAuthKey] = "true"
 	props[demoUserTokenKey] = token
 	props[demoOrgKey] = "demo"
 
