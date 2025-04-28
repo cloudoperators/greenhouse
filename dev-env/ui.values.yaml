@@ -17,6 +17,5 @@ image:
 
 dashboard:
   assetServerURL: origin
-  environment: development
   demoUser:
     token: demo
