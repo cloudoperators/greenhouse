@@ -82,7 +82,7 @@ func (r *RemoteClusterReconciler) EnsureCreated(ctx context.Context, resource li
 	}
 	if isScheduled && cluster.DeletionTimestamp == nil {
 		if ok, err := clientutil.ShouldProceedDeletion(time.Now(), schedule); ok && err == nil {
-			err = r.Client.Delete(ctx, cluster)
+			err = r.Delete(ctx, cluster)
 			if err != nil {
 				return ctrl.Result{}, lifecycle.Failed, err
 			}
@@ -279,7 +279,7 @@ func (r *RemoteClusterReconciler) reconcileServiceAccountToken(
 // EnsureDeleted - handles the deletion / cleanup of cluster resource
 func (r *RemoteClusterReconciler) EnsureDeleted(ctx context.Context, resource lifecycle.RuntimeObject) (ctrl.Result, lifecycle.ReconcileResult, error) {
 	cluster := resource.(*greenhousev1alpha1.Cluster) //nolint:errcheck
-	c := cluster.Status.StatusConditions.GetConditionByType(greenhousev1alpha1.KubeConfigValid)
+	c := cluster.Status.GetConditionByType(greenhousev1alpha1.KubeConfigValid)
 	if c != nil && c.IsFalse() {
 		return ctrl.Result{}, lifecycle.Success, nil
 	}
@@ -293,7 +293,7 @@ func (r *RemoteClusterReconciler) EnsureDeleted(ctx context.Context, resource li
 	}
 
 	kubeConfigSecret := &corev1.Secret{}
-	if err := r.Client.Get(ctx, types.NamespacedName{Namespace: cluster.GetNamespace(), Name: cluster.GetSecretName()}, kubeConfigSecret); err != nil {
+	if err := r.Get(ctx, types.NamespacedName{Namespace: cluster.GetNamespace(), Name: cluster.GetSecretName()}, kubeConfigSecret); err != nil {
 		return ctrl.Result{}, lifecycle.Failed, err
 	}
 	// early return if the cluster connectivity is via OIDC

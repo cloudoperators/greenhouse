@@ -69,7 +69,7 @@ func (r *RemoteClusterReconciler) checkDeletionSchedule(logger logr.Logger, clus
 		deletionCondition = greenhouseapis.FalseCondition(greenhouseapis.DeleteCondition, lifecycle.ScheduledDeletionReason, "deletion scheduled at "+schedule.Format(time.DateTime))
 	} else {
 		// Remove the deletion condition if it exists as the deletion schedule annotation has been removed
-		cluster.Status.StatusConditions.Conditions = slices.DeleteFunc(cluster.Status.StatusConditions.Conditions, func(condition greenhouseapis.Condition) bool {
+		cluster.Status.Conditions = slices.DeleteFunc(cluster.Status.Conditions, func(condition greenhouseapis.Condition) bool {
 			return condition.Type == greenhouseapis.DeleteCondition && condition.IsFalse()
 		})
 	}

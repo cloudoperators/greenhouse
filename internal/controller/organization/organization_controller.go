@@ -12,6 +12,7 @@ import (
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/record"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -47,7 +48,12 @@ var (
 	}
 )
 
-const defaultGreenhouseConnectorID = "greenhouse"
+const (
+	defaultGreenhouseConnectorID = "greenhouse"
+	// internalSuffix is used for the internal secret of the organization
+	// this secret is used to store secrets that are not created by the user
+	technicalSecretSuffix = "-internal"
+)
 
 // OrganizationReconciler reconciles an Organization object
 type OrganizationReconciler struct {
@@ -95,7 +101,7 @@ func (r *OrganizationReconciler) SetupWithManager(name string, mgr ctrl.Manager)
 		Owns(&rbacv1.ClusterRoleBinding{}).
 		Watches(&corev1.Secret{},
 			handler.EnqueueRequestsFromMapFunc(r.enqueueOrganizationForReferencedSecret),
-			builder.WithPredicates(clientutil.PredicateHasOICDConfigured())).
+			builder.WithPredicates(clientutil.PredicateFilterBySecretTypes(greenhouseapis.SecretTypeOrganization))).
 		Watches(&greenhousev1alpha1.PluginDefinition{},
 			handler.EnqueueRequestsFromMapFunc(r.enqueueAllOrganizationsForServiceProxyPluginDefinition),
 			builder.WithPredicates(predicate.And(
@@ -364,4 +370,36 @@ func (r *OrganizationReconciler) enqueueOrganizationForReferencedSecret(_ contex
 		return nil
 	}
 	return []ctrl.Request{{NamespacedName: client.ObjectKeyFromObject(org)}}
+}
+
+// getOrCreateOrgSecret creates the internal secret of an organization, used to store secrets that are not created by the user.
+// The secret is created with the name <org.Name>-internal and the namespace <org.Namespace>.
+func (r *OrganizationReconciler) getOrCreateOrgSecret(ctx context.Context, org *greenhousev1alpha1.Organization) (*corev1.Secret, error) {
+	secret := new(corev1.Secret)
+	secret.Name = org.Name + technicalSecretSuffix
+	secret.Namespace = org.Name
+	secret.Type = greenhouseapis.SecretTypeOrganization
+
+	// check if the secret already exists
+	err := r.Get(ctx, types.NamespacedName{Namespace: secret.Namespace, Name: secret.Name}, secret)
+	if err == nil {
+		return secret, nil
+	}
+	if !apierrors.IsNotFound(err) {
+		return nil, err
+	}
+
+	result, err := clientutil.CreateOrPatch(ctx, r.Client, secret, func() error {
+		return controllerutil.SetControllerReference(org, secret, r.Scheme())
+	})
+	if err != nil {
+		return nil, err
+	}
+	switch result {
+	case clientutil.OperationResultCreated:
+		log.FromContext(ctx).Info("created secret", "name", secret.Name)
+	case clientutil.OperationResultUpdated:
+		log.FromContext(ctx).Info("updated secret", "name", secret.Name)
+	}
+	return secret, nil
 }

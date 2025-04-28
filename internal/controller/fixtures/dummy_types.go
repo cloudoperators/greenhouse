@@ -152,5 +152,5 @@ func (in *Dummy) GetConditions() greenhouseapis.StatusConditions {
 }
 
 func (in *Dummy) SetCondition(condition greenhouseapis.Condition) {
-	in.Status.StatusConditions.SetConditions(condition)
+	in.Status.SetConditions(condition)
 }

@@ -80,21 +80,6 @@ func PredicateHasFinalizer(finalizer string) predicate.Predicate {
 	})
 }
 
-func PredicateHasOICDConfigured() predicate.Predicate {
-	return predicate.NewPredicateFuncs(func(o client.Object) bool {
-		org, ok := o.(*greenhousev1alpha1.Organization)
-		if !ok {
-			return false
-		}
-
-		if org.Spec.Authentication == nil || org.Spec.Authentication.OIDCConfig == nil {
-			return false
-		}
-
-		return true
-	})
-}
-
 // LabelSelectorPredicate constructs a Predicate from a LabelSelector.
 // Only objects matching the LabelSelector will be admitted.
 // Credit https://github.com/kubernetes-sigs/controller-runtime/blob/v0.10.1/pkg/predicate/predicate.go#L323-L333.
@@ -129,6 +114,30 @@ func PredicatePluginWithStatusReadyChange() predicate.Predicate {
 				return true
 			}
 			return oldReadyCondition.Status != newReadyCondition.Status
+		},
+		DeleteFunc:  func(_ event.DeleteEvent) bool { return false },
+		GenericFunc: func(_ event.GenericEvent) bool { return false },
+	}
+}
+
+func PredicateOrganizationSCIMStatusChange() predicate.Predicate {
+	return predicate.Funcs{
+		CreateFunc: func(_ event.CreateEvent) bool { return false },
+		UpdateFunc: func(e event.UpdateEvent) bool {
+			if e.ObjectOld == nil || e.ObjectNew == nil {
+				return false
+			}
+			oldOrg, okOld := e.ObjectOld.(*greenhousev1alpha1.Organization)
+			newOrg, okNew := e.ObjectNew.(*greenhousev1alpha1.Organization)
+			if !okOld || !okNew {
+				return false
+			}
+			oldCondition := oldOrg.Status.GetConditionByType(greenhousev1alpha1.SCIMAPIAvailableCondition)
+			newCondition := newOrg.Status.GetConditionByType(greenhousev1alpha1.SCIMAPIAvailableCondition)
+			if newCondition == nil {
+				return false
+			}
+			return (oldCondition == nil || oldCondition.IsFalse()) && newCondition.IsTrue() // check is the SCIMAPIAvailableCondition condition is flip to true
 		},
 		DeleteFunc:  func(_ event.DeleteEvent) bool { return false },
 		GenericFunc: func(_ event.GenericEvent) bool { return false },

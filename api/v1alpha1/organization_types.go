@@ -138,5 +138,12 @@ func (o *Organization) GetConditions() greenhouseapis.StatusConditions {
 }
 
 func (o *Organization) SetCondition(condition greenhouseapis.Condition) {
-	o.Status.StatusConditions.SetConditions(condition)
+	o.Status.SetConditions(condition)
+}
+
+func (o *OrganizationSpec) GetSCIMConfig() *SCIMConfig {
+	if o.Authentication != nil {
+		return o.Authentication.SCIMConfig
+	}
+	return nil
 }

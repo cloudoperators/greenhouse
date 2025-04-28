@@ -86,7 +86,7 @@ func (c *PluginPreset) GetConditions() greenhouseapis.StatusConditions {
 }
 
 func (c *PluginPreset) SetCondition(condition greenhouseapis.Condition) {
-	c.Status.StatusConditions.SetConditions(condition)
+	c.Status.SetConditions(condition)
 }
 
 //+kubebuilder:object:root=true

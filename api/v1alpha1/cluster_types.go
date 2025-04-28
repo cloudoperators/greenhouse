@@ -90,7 +90,7 @@ func (c *Cluster) GetConditions() greenhouseapis.StatusConditions {
 }
 
 func (c *Cluster) SetCondition(condition greenhouseapis.Condition) {
-	c.Status.StatusConditions.SetConditions(condition)
+	c.Status.SetConditions(condition)
 }
 
 // GetSecretName returns the Kubernetes secret containing sensitive data for this cluster.

@@ -4,13 +4,13 @@ linkTitle: "Testing a Plugin"
 landingSectionIndex: false
 weight: 2
 description: >
-  Guidelines for testing plugins contributed to the Greenhouse project.
+  Guidelines for testing Plugins contributed to the Greenhouse project.
 ---
 ## Overview
 ![Plugin Test architecture](../plugin-chart-test-drawing.png)
 ## Plugin Testing Requirements
 
-All plugins contributed to [plugin-extensions](https://github.com/cloudoperators/greenhouse-extensions) repository should include comprehensive [Helm Chart Tests](https://helm.sh/docs/topics/chart_tests/) using the `bats/bats-detik` testing framework. This ensures our plugins are robust, deployable, and catch potential issues early in the development cycle.
+All Plugins contributed to [Plugin-Extensions](https://github.com/cloudoperators/greenhouse-extensions) repository should include comprehensive [Helm Chart Tests](https://helm.sh/docs/topics/chart_tests/) using the `bats/bats-detik` testing framework. This ensures our Plugins are robust, deployable, and catch potential issues early in the development cycle.
 
 **What is bats/bats-detik?**
 
@@ -132,24 +132,96 @@ helm install <Release name> <chart-path>
 helm upgrade <Release name> <chart-path>
 ```
 
-- After the Helm installation or upgrade is successful, run the tests against the same test Kubernetes cluster by executing the following command.
+- After the Helm installation or upgrade is successful, run the tests against the same test Kubernetes Cluster by executing the following command.
 
 ```yaml
 helm test <Release name>
 ```
 
+## Plugin Testing with dependencies during Pull Requests
+### Overview
+
+Some Plugins require other Plugins to be installed in the Cluster for their tests to run successfully. To support this, each Plugin can declare required dependencies using a `test-dependencies.yaml` file.
+
+> [!NOTE]  
+>The `test-dependencies.yaml` file is required if other Plugins need to be installed in the Kind Cluster created by the GitHub Actions workflow before running tests during a Pull Request for the Plugin.
+
+
+### How It Works
+- Each Plugin can optionally include a `test-dependencies.yaml` file in the Plugin’s root directory (e.g., `Thanos/test-dependencies.yaml`).
+- This file defines both the dependencies (other Plugins) that should be installed before testing begins and custom values for these dependencies.
+
+### Example `test-dependencies.yaml`
+```yaml
+dependencies:
+  - kube-monitoring
+values:
+  kubeMonitoring:
+    prometheus:
+      enabled: true
+      serviceMonitor:
+        enabled: false
+      prometheusSpec:
+        thanos:
+          objectStorageConfig:
+            secret:
+              type: FILESYSTEM
+              config:
+                directory: "/test"
+              prefix: ""
+```
+
+In this example, the Plugin:
+- Declares `kube-monitoring` as a dependency that must be installed first
+- Provides custom values for this dependent Plugin, specifically configuring Prometheus settings
+
+### Dependency Structure
+The `test-dependencies.yaml` file supports:
+
+- **dependencies**: A list of Plugin names that should be installed before testing the current Plugin.
+- **values**: Custom configuration values to be applied when installing dependencies
+  
+### Automation during Pull Requests
+The GitHub Actions workflow automatically:
+
+1. Detects Plugins that are changed in the Pull Request.
+2. Parses the `test-dependencies.yaml` for each changed Plugin if present.
+3. Installs listed dependencies in order
+4. Proceeds with Helm Chart linting and testing
+
+## Testing Values Configuration
+
+### Parent Plugin Configuration
+- A Plugin may optionally provide a `<plugin-name>/ci/test-values.yaml` file
+- The GitHub Actions workflow will use this values file for testing the Plugin if it exists
+- This allows you to customize values specifically for CI testing, without modifying the default `values.yaml`
+
+### Dependent Plugin Configuration
+- Values for dependent Plugins should be specified in the values section of your Plugin's `test-dependencies.yaml` file.
+- This allows you to customize the configuration of dependent Plugins when they are installed for testing.
+- The values specified in the `test-dependencies.yaml` file will override the default values of the dependent Plugins.
+
+### Example File Structure:
+```
+alert/
+├── charts/
+├── ci/
+│   └── test-values.yaml
+└── test-dependencies.yaml
+```
+
 **Contribution Checklist**
 
-Before submitting a pull request:
+Before submitting a Pull Request:
 
 - Ensure your Plugin's Helm Chart includes a `/tests` directory.
 - Verify the presence of `test-<plugin-name>.yaml`, `test-<plugin-name>-config.yaml`, and `test-permissions.yaml` files.
-- Test your Plugin thoroughly using `helm test <release-name>` and confirm that all tests pass against a test Kubernetes cluster.
-- Include a brief description of the tests in your pull request.
-- Make sure that your Plugin's Chart Directory and the Plugin's Upstream Chart Repository are added to this [greenhouse-extensions helm test config file](https://github.com/cloudoperators/greenhouse-extensions/blob/main/.github/configs/helm-test.yaml). This will ensure that your Plugin's tests are automatically run in the GitHub Actions workflow when you submit a pull request for this Plugin.
-- Note that the [dependencies](https://helm.sh/docs/helm/helm_dependency/) of your Plugin's helm chart might also have their own tests. If so, ensure that the tests of the dependencies are also passing.
+- Test your Plugin thoroughly using `helm test <release-name>` and confirm that all tests pass against a test Kubernetes Cluster.
+- Include a brief description of the tests in your Pull Request.
+- Make sure that your Plugin's Chart Directory and the Plugin's Upstream Chart Repository are added to this [Greenhouse-Extensions Helm Test Config File](https://github.com/cloudoperators/greenhouse-extensions/blob/main/.github/configs/helm-test.yaml). This will ensure that your Plugin's tests are automatically run in the GitHub Actions workflow when you submit a Pull Request for this Plugin.
+- Note that the [dependencies](https://helm.sh/docs/helm/helm_dependency/) of your Plugin's Helm Chart might also have their own tests. If so, ensure that the tests of the dependencies are also passing.
+- If your Plugin relies on other Plugins for testing, please follow the [Plugin Testing with Dependencies](#plugin-testing-with-dependencies) section for declaring those dependencies.
 
 **Important Notes**
 
 - **Test Coverage:** Aim for comprehensive test coverage to ensure your Plugin's reliability.
-- **Test Isolation:** Design tests that don't interfere with other plugins or production environments.

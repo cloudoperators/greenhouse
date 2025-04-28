@@ -212,15 +212,18 @@ var _ = Describe("Validate plugin spec fields", Ordered, func() {
 	var (
 		setup *test.TestSetup
 
-		testCluster          *greenhousev1alpha1.Cluster
-		testPlugin           *greenhousev1alpha1.Plugin
-		testPluginDefinition *greenhousev1alpha1.PluginDefinition
+		testCluster                 *greenhousev1alpha1.Cluster
+		testPlugin                  *greenhousev1alpha1.Plugin
+		testPluginDefinition        *greenhousev1alpha1.PluginDefinition
+		testCentralPluginDefinition *greenhousev1alpha1.PluginDefinition
 	)
 
 	BeforeAll(func() {
 		setup = test.NewTestSetup(test.Ctx, test.K8sClient, "plugin-webhook")
 		testCluster = setup.CreateCluster(test.Ctx, "test-cluster")
 		testPluginDefinition = setup.CreatePluginDefinition(test.Ctx, "test-plugindefinition")
+		testCentralPluginDefinition = setup.CreatePluginDefinition(test.Ctx, "central-plugin")
+		pluginsAllowedInCentralCluster = append(pluginsAllowedInCentralCluster, testCentralPluginDefinition.Name)
 	})
 
 	AfterEach(func() {
@@ -230,11 +233,17 @@ var _ = Describe("Validate plugin spec fields", Ordered, func() {
 	AfterAll(func() {
 		test.EventuallyDeleted(test.Ctx, test.K8sClient, testCluster)
 		test.EventuallyDeleted(test.Ctx, test.K8sClient, testPluginDefinition)
+		test.EventuallyDeleted(test.Ctx, test.K8sClient, testCentralPluginDefinition)
 	})
 
 	It("should not accept a plugin without a clusterName", func() {
 		testPlugin = test.NewPlugin(test.Ctx, "test-plugin", setup.Namespace(), test.WithPluginDefinition(testPluginDefinition.Name), test.WithReleaseNamespace("test-namespace"))
 		expectClusterMustBeSetError(test.K8sClient.Create(test.Ctx, testPlugin))
+	})
+
+	It("should not accept a plugin for the central cluster where releaseNamespace and Plugin Namespace do not match", func() {
+		testPlugin = test.NewPlugin(test.Ctx, "test-plugin", setup.Namespace(), test.WithPluginDefinition(testCentralPluginDefinition.Name), test.WithReleaseNamespace("test-namespace"))
+		expectReleaseNamespaceMustMatchError(test.K8sClient.Create(test.Ctx, testPlugin))
 	})
 
 	It("should reject the plugin when the cluster with clusterName does not exist", func() {
@@ -314,6 +323,19 @@ func expectClusterMustBeSetError(err error) {
 	Expect(statusErr.ErrStatus.Message).To(
 		ContainSubstring("spec.clusterName: Required value: the clusterName must be set"),
 		"the error message should reflect that the clusterName must be set",
+	)
+}
+
+func expectReleaseNamespaceMustMatchError(err error) {
+	GinkgoHelper()
+	Expect(err).To(HaveOccurred(), "there should be an error creating/updating the plugin")
+	var statusErr *apierrors.StatusError
+	ok := errors.As(err, &statusErr)
+	Expect(ok).To(BeTrue(), "error should be a status error")
+	Expect(statusErr.ErrStatus.Reason).To(Equal(metav1.StatusReasonForbidden), "the error should be a status forbidden error")
+	Expect(statusErr.ErrStatus.Message).To(
+		ContainSubstring("central cluster can only be deployed in the same namespace as the plugin"),
+		"the error message should reflect that the releaseNamespace must be the same as the plugin namespace for a plugin in the central cluster",
 	)
 }
 

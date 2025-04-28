@@ -333,7 +333,7 @@ var _ = Describe("TeammembershipUpdaterController", Ordered, func() {
 				g.Expect(scimAccessReadyCondition.Type).To(Equal(greenhousev1alpha1.SCIMAccessReadyCondition))
 				g.Expect(scimAccessReadyCondition.Status).To(Equal(metav1.ConditionFalse))
 				g.Expect(scimAccessReadyCondition.Reason).To(Equal(greenhousev1alpha1.SCIMConfigErrorReason), "reason should be set to SCIMConfigErrorReason")
-				g.Expect(scimAccessReadyCondition.Message).To(Equal("secret for BasicAuthUser is missing: Secret \"test-secret\" not found"))
+				g.Expect(scimAccessReadyCondition.Message).To(Equal("secret for '.SCIMConfig.BasicAuthUser' is missing: Secret \"test-secret\" not found"))
 				readyCondition := firstTeamMembership.Status.GetConditionByType(greenhouseapis.ReadyCondition)
 				g.Expect(readyCondition).ToNot(BeNil())
 				g.Expect(readyCondition.Type).To(Equal(greenhouseapis.ReadyCondition))
@@ -623,7 +623,7 @@ func createSecretForSCIMConfig(namespace string) {
 			"basicAuthPw":   []byte("pw"),
 		},
 	}
-	err := setup.Client.Create(test.Ctx, &testSecret)
+	err := setup.Create(test.Ctx, &testSecret)
 	Expect(err).ToNot(HaveOccurred(), "there must be no error creating a secret")
 }
 

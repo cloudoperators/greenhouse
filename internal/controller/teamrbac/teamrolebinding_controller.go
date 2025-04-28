@@ -302,7 +302,7 @@ func (r *TeamRoleBindingReconciler) cleanupResources(ctx context.Context, trb *g
 			if err != nil {
 				return err
 			}
-			if !cluster.Status.StatusConditions.IsReadyTrue() {
+			if !cluster.Status.IsReadyTrue() {
 				trb.SetPropagationStatus(s.ClusterName, metav1.ConditionFalse, greenhouseapis.ClusterConnectionFailed, "Cluster is not ready")
 				continue
 			}
@@ -676,7 +676,7 @@ func (r *TeamRoleBindingReconciler) enqueueTeamRoleBindingsFor(ctx context.Conte
 	}
 	// list all referenced TeamRoleBindings
 	teamRoleBindings := &greenhousev1alpha2.TeamRoleBindingList{}
-	if err := r.Client.List(ctx, teamRoleBindings, listOpts); err != nil {
+	if err := r.List(ctx, teamRoleBindings, listOpts); err != nil {
 		return []ctrl.Request{}
 	}
 
@@ -768,7 +768,7 @@ func (r *TeamRoleBindingReconciler) listClusters(ctx context.Context, trb *green
 	}
 	// remove clusters which are not ready
 	clusters.Items = slices.DeleteFunc(clusters.Items, func(c greenhousev1alpha1.Cluster) bool {
-		if !c.Status.StatusConditions.IsReadyTrue() {
+		if !c.Status.IsReadyTrue() {
 			trb.SetPropagationStatus(c.GetName(), metav1.ConditionFalse, greenhouseapis.ClusterConnectionFailed, "Cluster is not ready")
 			return true
 		}

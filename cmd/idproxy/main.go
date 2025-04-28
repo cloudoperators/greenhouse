@@ -34,10 +34,10 @@ import (
 )
 
 func main() {
-	var issuer string
+	var issuer, listenAddr, metricsAddr string
 	var idTokenValidity time.Duration
-	var listenAddr, metricsAddr string
 	var allowedOrigins []string
+	var keepUpstreamGroups bool
 	logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
 	// set default logger to be used by log
 	slog.SetDefault(logger)
@@ -49,6 +49,7 @@ func main() {
 	flag.StringVar(&metricsAddr, "metrics-addr", ":6543", "bind address for metrics")
 	flag.StringSliceVar(&allowedOrigins, "allowed-origins", []string{"*"}, "list of allowed origins for CORS requests on discovery, token and keys endpoint")
 	flag.DurationVar(&idTokenValidity, "id-token-validity", 1*time.Hour, "Maximum validity of issued id tokens")
+	flag.BoolVar(&keepUpstreamGroups, "keep-upstream-groups", false, "Keep upstream groups in the token")
 	flag.Parse()
 
 	if issuer == "" {
@@ -106,7 +107,7 @@ func main() {
 		oidcConfig := new(dex.OIDCConfig)
 		oidcConfig.AddClient(k8sClient)
 		oidcConfig.AddRedirectURI(issuer + "/callback")
-
+		oidcConfig.KeepUpstreamGroups = keepUpstreamGroups
 		return oidcConfig
 	}
 

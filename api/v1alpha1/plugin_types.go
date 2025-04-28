@@ -169,5 +169,5 @@ func (o *Plugin) GetConditions() greenhouseapis.StatusConditions {
 }
 
 func (o *Plugin) SetCondition(condition greenhouseapis.Condition) {
-	o.Status.StatusConditions.SetConditions(condition)
+	o.Status.SetConditions(condition)
 }
