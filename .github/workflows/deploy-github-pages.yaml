@@ -106,7 +106,7 @@ jobs:
       - name: Install postcss-cli and autoprefixer
         env:
           GREENHOUSE_GIT_DIR: "${{ github.workspace }}/greenhouse"
-        run: cd ${{ env.GREENHOUSE_GIT_DIR }}/website && "npm install postcss-cli autoprefixer
+        run: cd ${{ env.GREENHOUSE_GIT_DIR }}/website && npm install postcss-cli autoprefixer
 
       - name: Build with Hugo
         env:
