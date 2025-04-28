@@ -1,6 +1,12 @@
 name: Deploy Hugo to GitHub Pages
 
 on:
+  pull_request:
+    types:
+      - opened
+      - reopened
+      - synchronize
+      - closed
   workflow_dispatch: {}
   repository_dispatch:
     types: [trigger-workflow]
