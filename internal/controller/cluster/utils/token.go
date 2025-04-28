@@ -98,7 +98,7 @@ func (t *TokenHelper) GenerateTokenRequest(ctx context.Context, restClientGetter
 	jwt, err := jose.ParseSigned(remoteRestConfig.BearerToken, getAllSignatureAlgorithms())
 	// If parsing the token is not possible we fall back to the old way of checking the token expiration
 	if err != nil {
-		if !cluster.Status.BearerTokenExpirationTimestamp.IsZero() && cluster.Status.BearerTokenExpirationTimestamp.Time.After(time.Now().Add(t.RenewRemoteClusterBearerTokenAfter)) {
+		if !cluster.Status.BearerTokenExpirationTimestamp.IsZero() && cluster.Status.BearerTokenExpirationTimestamp.After(time.Now().Add(t.RenewRemoteClusterBearerTokenAfter)) {
 			log.FromContext(ctx).V(5).Info("bearer token is still valid", "cluster", cluster.Name, "expirationTimestamp", cluster.Status.BearerTokenExpirationTimestamp.Time)
 			return nil, nil
 		}
@@ -115,7 +115,7 @@ func (t *TokenHelper) GenerateTokenRequest(ctx context.Context, restClientGetter
 			log.FromContext(ctx).V(5).Info("bearer token is still valid", "cluster", cluster.Name, "expirationTimestamp", cluster.Status.BearerTokenExpirationTimestamp.Time)
 			return nil, nil
 		}
-	} else if !cluster.Status.BearerTokenExpirationTimestamp.IsZero() && cluster.Status.BearerTokenExpirationTimestamp.Time.After(time.Now().Add(t.RenewRemoteClusterBearerTokenAfter)) {
+	} else if !cluster.Status.BearerTokenExpirationTimestamp.IsZero() && cluster.Status.BearerTokenExpirationTimestamp.After(time.Now().Add(t.RenewRemoteClusterBearerTokenAfter)) {
 		log.FromContext(ctx).V(5).Info("bearer token is still valid", "cluster", cluster.Name, "expirationTimestamp", cluster.Status.BearerTokenExpirationTimestamp.Time)
 		return nil, nil
 	}
