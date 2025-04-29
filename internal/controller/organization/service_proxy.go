@@ -5,13 +5,13 @@ package organization
 
 import (
 	"context"
+	"crypto/rand"
 	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
 
 	"github.com/dexidp/dex/storage"
-	"golang.org/x/exp/rand"
 	corev1 "k8s.io/api/core/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -38,7 +38,7 @@ const (
 	technicalSecretSuffix         = "-internal"
 	dexOAuth2ProxyClientPrefix    = "oauth2-proxy-"
 	dexOAuth2ProxyClientIDKey     = "oauth2proxy-clientID"
-	dexOAuth2ProxyClientSecretKey = "oauth2proxy-clientSecret"
+	dexOAuth2ProxyClientSecretKey = "oauth2proxy-clientSecret" //nolint:gosec
 )
 
 func (r *OrganizationReconciler) reconcileServiceProxy(ctx context.Context, org *greenhousev1alpha1.Organization) error {
@@ -91,7 +91,7 @@ func (r *OrganizationReconciler) reconcileOAuth2ProxySecret(ctx context.Context,
 			if err = r.dex.CreateClient(ctx, storage.Client{
 				Public:       false,
 				ID:           oAuthProxyClientName,
-				Name:         fmt.Sprintf("%s Service Proxy", org.Name),
+				Name:         org.Name + " Service Proxy",
 				RedirectURIs: []string{oAuthProxyCallbackURL}, // add service proxy redirect URI
 				Secret:       oauthProxyClientSecret,
 			}); err != nil {
@@ -117,7 +117,7 @@ func (r *OrganizationReconciler) reconcileOAuth2ProxySecret(ctx context.Context,
 	}
 	log.FromContext(ctx).Info("successfully updated oauth-proxy client credentials", "name", org.Name)
 
-	if err := r.Client.Update(ctx, intSecret); err != nil {
+	if err := r.Update(ctx, intSecret); err != nil {
 		log.FromContext(ctx).Error(err, "failed to update oauth2-proxy secret", "name", org.Name)
 		return err
 	}
@@ -136,7 +136,7 @@ func (r *OrganizationReconciler) reconcileServiceProxyPlugin(ctx context.Context
 	}
 
 	var pluginDefinition = new(greenhousev1alpha1.PluginDefinition)
-	if err := r.Client.Get(ctx, types.NamespacedName{Name: serviceProxyName, Namespace: ""}, pluginDefinition); err != nil {
+	if err := r.Get(ctx, types.NamespacedName{Name: serviceProxyName, Namespace: ""}, pluginDefinition); err != nil {
 		if apierrors.IsNotFound(err) {
 			log.FromContext(ctx).Info("plugin definition for service-proxy not found")
 			return nil

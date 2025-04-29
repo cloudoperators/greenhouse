@@ -114,7 +114,7 @@ var _ = Describe("Organization ServiceProxyReconciler", Ordered, func() {
 				org.SetAnnotations(annotations)
 			}
 
-			By("creating an organization with the oauthpreview annotation & oauth config")
+			By("creating an organization with the oauth preview annotation & oauth config")
 			org := setup.CreateOrganization(test.Ctx, setup.Namespace(), addAnnotation, test.WithOIDCConfig("some-issuer.tld", secret.Name, "clientID", "clientSecret"))
 
 			By("ensuring a service-proxy plugin has been created for organization")
