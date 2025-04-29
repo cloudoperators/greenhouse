@@ -6,7 +6,7 @@ SPDX-License-Identifier: Apache-2.0
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: {{ include "manager.fullname" . }}-kube-webhook-certgen
+  grenerateName: {{ include "manager.fullname" . }}-kube-webhook-certgen-
   namespace: greenhouse
   annotations:
     {{- toYaml .Values.kubeWebhookCertgen.annotations | nindent 4 }}
