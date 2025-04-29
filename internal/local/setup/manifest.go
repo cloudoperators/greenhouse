@@ -165,14 +165,29 @@ func (m *Manifest) generateAllManifests(ctx context.Context) ([]map[string]any, 
 
 // ApplyManifests - applies the given resources to the Cluster using kubectl
 func (m *Manifest) applyManifests(resources []map[string]any, namespace, kubeConfigPath string) error {
-	manifests, err := utils.Stringify(resources)
-	if err != nil {
-		return err
+	manifestsToApply := filterResourceApplicability(resources, "apply")
+	manifestsToCreate := filterResourceApplicability(resources, "create")
+	if len(manifestsToCreate) > 0 {
+		createManifests, err := utils.Stringify(manifestsToCreate)
+		if err != nil {
+			return err
+		}
+		err = m.apply(createManifests, namespace, kubeConfigPath, "create")
+		if err != nil {
+			return err
+		}
 	}
-	return m.apply(manifests, namespace, kubeConfigPath)
+	if len(manifestsToApply) > 0 {
+		applyManifests, err := utils.Stringify(manifestsToApply)
+		if err != nil {
+			return err
+		}
+		return m.apply(applyManifests, namespace, kubeConfigPath, "apply")
+	}
+	return nil
 }
 
-func (m *Manifest) apply(manifests, namespace, kubeConfigPath string) error {
+func (m *Manifest) apply(manifests, namespace, kubeConfigPath, applyType string) error {
 	utils.Log("applying manifest...")
 	sh := utils.Shell{}
 	tmpResourcePath, err := utils.RandomWriteToTmpFolder("kind-resources", manifests)
@@ -180,7 +195,7 @@ func (m *Manifest) apply(manifests, namespace, kubeConfigPath string) error {
 		return err
 	}
 	defer utils.CleanUp(tmpResourcePath)
-	sh.Cmd = fmt.Sprintf("kubectl apply --kubeconfig=%s -f %s -n %s", kubeConfigPath, tmpResourcePath, namespace)
+	sh.Cmd = fmt.Sprintf("kubectl %s --kubeconfig=%s -f %s -n %s", applyType, kubeConfigPath, tmpResourcePath, namespace)
 	return sh.Exec()
 }
 
@@ -221,6 +236,20 @@ func filterResourcesBy(resources []map[string]any, filterBy string) []map[string
 			filteredResource = filteredResource[:len(filteredResource)-1]
 		} else {
 			i++
+		}
+	}
+	return filteredResource
+}
+
+func filterResourceApplicability(resources []map[string]any, applyType string) []map[string]any {
+	filteredResource := make([]map[string]any, 0)
+	key := "name"
+	if applyType == "create" {
+		key = "generateName"
+	}
+	for _, resource := range resources {
+		if r, ok := resource["metadata"].(map[string]any)[key].(string); ok && strings.TrimSpace(r) != "" {
+			filteredResource = append(filteredResource, resource)
 		}
 	}
 	return filteredResource
