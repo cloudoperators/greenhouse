@@ -112,7 +112,7 @@ have reusable functions across all e2e tests.
 
 ```shell
 
-If you already have 2 k8s clusters running locally, you can run the tests using the following command:
+If you already have two k8s clusters running locally, you can run the tests using the following command:
 
 ```shell
 make e2e-local SCENARIO=cluster ADMIN_CLUSTER=<kind-cluster-name> REMOTE_CLUSTER=<kind-cluster-name>
