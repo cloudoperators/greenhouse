@@ -44,7 +44,7 @@ const (
 	DeploymentKind                     = "Deployment"
 	ManagerDeploymentNameSuffix        = "-controller-manager"
 	JobKind                            = "Job"
-	JobNameSuffix                      = "-kube-webhook-certgen"
+	JobNameSuffix                      = "-kube-webhook-certgen-"
 	MutatingWebhookConfigurationKind   = "MutatingWebhookConfiguration"
 	ValidatingWebhookConfigurationKind = "ValidatingWebhookConfiguration"
 	webhookCertSecSuffix               = "-webhook-server-cert"
@@ -293,7 +293,7 @@ func getContainerIndex(deployment *appsv1.Deployment, containerName string) int 
 func extractResourceByNameKind(resources []map[string]any, name, kind string) (map[string]any, error) {
 	for _, resource := range resources {
 		if k, ok := resource["kind"].(string); ok && k == kind {
-			if n, ok := resource["metadata"].(map[string]any)["name"].(string); ok && n == name {
+			if g, ok := resource["metadata"].(map[string]any)["generateName"].(string); ok && g == name {
 				return resource, nil
 			}
 		}
