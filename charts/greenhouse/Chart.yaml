@@ -12,7 +12,7 @@ dependencies:
   - condition: idproxy.enabled
     name: idproxy
     repository: "file://../idproxy"
-    version: 0.3.0
+    version: 0.3.1
   - condition: cors-proxy.enabled
     name: cors-proxy
     repository: "file://../cors-proxy"

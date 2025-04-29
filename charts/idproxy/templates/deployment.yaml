@@ -54,6 +54,7 @@ spec:
             {{- range $origin := .Values.corsAllowedOrigins | default (list "*") }}
             - --allowed-origins={{ $origin }}
             {{- end }}
+            - --keep-upstream-groups={{ .Values.keepUpstreamGroups }}
           env:
           {{- if eq .Values.global.dex.backend "postgres" }}
           - name: PG_DATABASE

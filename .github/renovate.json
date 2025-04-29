@@ -6,7 +6,7 @@
     "helpers:pinGitHubActionDigests"
   ],
   "constraints": {
-    "go": "1.23"
+    "go": "1.24"
   },
   "ignoreDeps": [
     "github.com/dexidp/dex"

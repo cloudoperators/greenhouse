@@ -52,9 +52,9 @@ module:
       target: content/docs
   hugoVersion:
       extended: true
-      min: 0.111.0
+      min: 0.128.0
   imports:
-      - path: github.com/sapcc/hugo-documentation-templater/v2
+      - path: github.com/sapcc/hugo-documentation-templater/v3
         disable: false
 
 outputs:
