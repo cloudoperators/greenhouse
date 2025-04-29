@@ -134,10 +134,6 @@ func (r *OrganizationReconciler) reconcileServiceProxyPlugin(ctx context.Context
 	if err != nil {
 		return fmt.Errorf("failed to marshal version.GitCommit: %w", err)
 	}
-	replicaCount, err := json.Marshal(1)
-	if err != nil {
-		return fmt.Errorf("failed to marshal replica count: %w", err)
-	}
 
 	var pluginDefinition = new(greenhousev1alpha1.PluginDefinition)
 	if err := r.Client.Get(ctx, types.NamespacedName{Name: serviceProxyName, Namespace: ""}, pluginDefinition); err != nil {
@@ -179,10 +175,6 @@ func (r *OrganizationReconciler) reconcileServiceProxyPlugin(ctx context.Context
 			{
 				Name:  "image.tag",
 				Value: &apiextensionsv1.JSON{Raw: versionJSON},
-			},
-			{
-				Name:  "replicaCount",
-				Value: &apiextensionsv1.JSON{Raw: replicaCount},
 			},
 		}
 		/*

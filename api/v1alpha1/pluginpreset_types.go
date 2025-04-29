@@ -84,7 +84,7 @@ func (c *PluginPreset) GetConditions() StatusConditions {
 }
 
 func (c *PluginPreset) SetCondition(condition Condition) {
-	c.Status.StatusConditions.SetConditions(condition)
+	c.Status.SetConditions(condition)
 }
 
 //+kubebuilder:object:root=true
