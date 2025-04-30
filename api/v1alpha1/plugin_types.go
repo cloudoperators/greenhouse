@@ -167,5 +167,5 @@ func (o *Plugin) GetConditions() StatusConditions {
 }
 
 func (o *Plugin) SetCondition(condition Condition) {
-	o.Status.StatusConditions.SetConditions(condition)
+	o.Status.SetConditions(condition)
 }

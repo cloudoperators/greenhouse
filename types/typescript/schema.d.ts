@@ -871,8 +871,6 @@ export interface components {
                 plugin: {
                     /** @description ClusterName is the name of the cluster the plugin is deployed to. If not set, the plugin is deployed to the greenhouse cluster. */
                     clusterName?: string;
-                    /** @description Disabled indicates that the plugin is administratively disabled. */
-                    disabled: boolean;
                     /** @description DisplayName is an optional name for the Plugin to be displayed in the Greenhouse UI.\nThis is especially helpful to distinguish multiple instances of a PluginDefinition in the same context.\nDefaults to a normalized version of metadata.name. */
                     displayName?: string;
                     /** @description Values are the values for a PluginDefinition instance. */
@@ -1146,8 +1144,6 @@ export interface components {
             spec?: {
                 /** @description ClusterName is the name of the cluster the plugin is deployed to. If not set, the plugin is deployed to the greenhouse cluster. */
                 clusterName?: string;
-                /** @description Disabled indicates that the plugin is administratively disabled. */
-                disabled: boolean;
                 /** @description DisplayName is an optional name for the Plugin to be displayed in the Greenhouse UI.\nThis is especially helpful to distinguish multiple instances of a PluginDefinition in the same context.\nDefaults to a normalized version of metadata.name. */
                 displayName?: string;
                 /** @description Values are the values for a PluginDefinition instance. */

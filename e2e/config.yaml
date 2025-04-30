@@ -14,8 +14,5 @@ config:
           webhook:
             devMode: false
             dockerFile: "./"
-            envs:
-              - name: WEBHOOK_ONLY
-                value: 'false'
   - cluster:
       name: greenhouse-remote
