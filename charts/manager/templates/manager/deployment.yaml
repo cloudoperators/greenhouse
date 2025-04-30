@@ -6,6 +6,7 @@ metadata:
   labels:
   {{- include "manager.labels" . | nindent 4 }}
 spec:
+  replicas: {{ .Values.controllerManager.replicas }}
   selector:
     matchLabels:
     {{- include "common.selectorLabels" . | nindent 6 }}
