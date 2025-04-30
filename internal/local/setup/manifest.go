@@ -97,11 +97,23 @@ func webhookManifestSetup(ctx context.Context, m *Manifest) Step {
 			noWbManifests := excludeResources(filtered, []string{"MutatingWebhookConfiguration", "ValidatingWebhookConfiguration"})
 			return m.applyManifests(noWbManifests, namespace, env.cluster.kubeConfigPath)
 		}
-		webHookManifests, err := m.setupWebhookManifest(resources, clusterName)
+		// build and load the image to the cluster
+		err = m.buildAndLoadImage(clusterName)
+		if err != nil {
+			return err
+		}
+		webHookManifests, err := m.setupWebhookManifest(resources)
 		if err != nil {
 			return err
 		}
 		filtered = append(filtered, webHookManifests...)
+		managerManifest, err := m.setupManagerManifest(resources)
+		if err != nil {
+			return err
+		}
+		if len(managerManifest) > 0 {
+			filtered = append(filtered, managerManifest...)
+		}
 		err = m.applyManifests(filtered, namespace, env.cluster.kubeConfigPath)
 		if err != nil {
 			return err
@@ -112,7 +124,20 @@ func webhookManifestSetup(ctx context.Context, m *Manifest) Step {
 				return err
 			}
 		}
-		return m.waitUntilDeploymentReady(ctx, clusterName, m.ReleaseName+ManagerDeploymentNameSuffix, namespace)
+		deployments := filterResourcesBy(filtered, "Deployment")
+		if len(deployments) > 0 {
+			for _, deployment := range deployments {
+				if deployment["metadata"] != nil {
+					metadata := deployment["metadata"].(map[string]any) //nolint:errcheck
+					name := metadata["name"].(string)                   //nolint:errcheck
+					err = m.waitUntilDeploymentReady(ctx, clusterName, name, namespace)
+					if err != nil {
+						return err
+					}
+				}
+			}
+		}
+		return nil
 	}
 }
 
