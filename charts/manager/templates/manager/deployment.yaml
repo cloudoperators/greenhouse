@@ -24,9 +24,24 @@ spec:
           args:
             - --dns-domain={{ required ".Values.global.dnsDomain missing" .Values.global.dnsDomain }}
         {{- if gt (len .Values.controllerManager.args) 0 }}
-        {{- include "manager.params" . | indent 8 }}
+        {{- include "manager.params" . | indent 12 }}
         {{- end }}
           env:
+            {{- if eq .Values.global.dex.backend "postgres" }}
+            - name: PG_DATABASE
+              value: {{ .Values.global.dex.postgresql.postgresqlDatabase }}
+            - name: PG_HOST
+              value: {{ .Release.Name }}-postgresql
+            - name: PG_USER
+              value: {{ .Values.global.dex.postgresql.postgresqlUsername }}
+            - name: PG_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  key: postgres-password
+                  name: {{ .Release.Name }}-pguser-{{ .Values.global.dex.postgresql.postgresqlUsername }}
+            {{- end }}
+            - name: FEATURE_FLAGS
+              value: {{ template "featureFlag.fullname" . }}
             - name: CONTROLLERS_ONLY
               value: "true"
             - name: POD_NAMESPACE
@@ -65,7 +80,7 @@ spec:
               port: 8081
             initialDelaySeconds: 5
             periodSeconds: 10
-          securityContext: {{- toYaml .Values.controllerManager.containerSecurityContext | nindent 10 }}
+          securityContext: {{- toYaml .Values.controllerManager.containerSecurityContext | nindent 12 }}
       securityContext:
         runAsNonRoot: true
       serviceAccountName: {{ include "manager.fullname" . }}-controller-manager
