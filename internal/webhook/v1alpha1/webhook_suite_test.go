@@ -15,6 +15,7 @@ import (
 	greenhouseapis "github.com/cloudoperators/greenhouse/api"
 	greenhousev1alpha2 "github.com/cloudoperators/greenhouse/api/v1alpha2"
 	"github.com/cloudoperators/greenhouse/internal/test"
+	"github.com/cloudoperators/greenhouse/internal/webhook/v1alpha2"
 )
 
 func TestWebhooks(t *testing.T) {
@@ -30,7 +31,8 @@ var _ = BeforeSuite(func() {
 	test.RegisterWebhook("secretsWebhook", SetupSecretWebhookWithManager)
 	test.RegisterWebhook("teamsWebhook", SetupTeamWebhookWithManager)
 	test.RegisterWebhook("roleWebhook", SetupTeamRoleWebhookWithManager)
-	test.RegisterWebhook("rolebindingWebhook", setupRoleBindingV1alpha2WebhookForTest)
+	test.RegisterWebhook("rolebindingWebhook", setupRoleBindingWebhookForTest)
+	test.RegisterWebhook("rolebindingV1alpha2Webhook", setupRoleBindingV1alpha2WebhookForTest)
 	test.TestBeforeSuite()
 })
 
@@ -38,7 +40,7 @@ var _ = AfterSuite(func() {
 	test.TestAfterSuite()
 })
 
-// setupRoleBindingWebhookForTest adds an indexField for '.spec.roleRef', additionally to setting up the webhook for the RoleBinding resource. It is used in the webhook tests.
+// setupRoleBindingWebhookForTest adds an indexField for '.spec.teamRoleRef', additionally to setting up the webhook for the RoleBinding resource. It is used in the webhook tests.
 // we can't add this to the webhook setup because it's already indexed by the controller and indexing the field twice is not possible.
 // This is to have the webhook tests run independently of the controller.
 func setupRoleBindingV1alpha2WebhookForTest(mgr manager.Manager) error {
@@ -51,5 +53,5 @@ func setupRoleBindingV1alpha2WebhookForTest(mgr manager.Manager) error {
 		return []string{roleBinding.Spec.TeamRoleRef}
 	})
 	Expect(err).ToNot(HaveOccurred(), "there should be no error indexing the rolebindings by roleRef")
-	return SetupTeamRoleBindingWebhookWithManager(mgr)
+	return v1alpha2.SetupTeamRoleBindingWebhookWithManager(mgr)
 }

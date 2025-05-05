@@ -111,9 +111,9 @@ var _ = Describe("Validate Role Admission", func() {
 // we can't add this to the webhook setup because it's already indexed by the controller and indexing the field twice is not possible.
 // This is to have the webhook tests run independently of the controller.
 func setupRoleBindingWebhookForTest(mgr manager.Manager) error {
-	err := mgr.GetFieldIndexer().IndexField(context.Background(), &greenhousev1alpha2.TeamRoleBinding{}, greenhouseapis.RolebindingTeamRoleRefField, func(rawObj client.Object) []string {
+	err := mgr.GetFieldIndexer().IndexField(context.Background(), &greenhousev1alpha1.TeamRoleBinding{}, greenhouseapis.RolebindingTeamRoleRefField, func(rawObj client.Object) []string {
 		// Extract the Role name from the RoleBinding Spec, if one is provided
-		roleBinding, ok := rawObj.(*greenhousev1alpha2.TeamRoleBinding)
+		roleBinding, ok := rawObj.(*greenhousev1alpha1.TeamRoleBinding)
 		if roleBinding.Spec.TeamRoleRef == "" || !ok {
 			return nil
 		}
