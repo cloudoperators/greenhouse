@@ -119,9 +119,18 @@ func main() {
 		handleError(errors.New("--dns-domain must not be empty"), "unable to start controller")
 	}
 
+	mode, err := calculateManagerMode()
+	if err != nil {
+		handleError(err, "unable to calculate manager mode")
+	}
+
 	// Disable leader election if not run within a cluster.
 	isEnableLeaderElection := true
 	if _, ok := os.LookupEnv(podNamespaceEnv); !ok {
+		isEnableLeaderElection = false
+	}
+	// Disable leader election if run in webhook only mode.
+	if mode == webhookOnlyMode {
 		isEnableLeaderElection = false
 	}
 
@@ -149,11 +158,6 @@ func main() {
 	)
 	if err != nil {
 		handleError(err, "unable to get features")
-	}
-
-	mode, err := calculateManagerMode()
-	if err != nil {
-		handleError(err, "unable to calculate manager mode")
 	}
 
 	// Register controllers.
