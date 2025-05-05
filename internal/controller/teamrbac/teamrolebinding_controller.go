@@ -55,8 +55,8 @@ func (r *TeamRoleBindingReconciler) SetupWithManager(name string, mgr ctrl.Manag
 	r.Client = mgr.GetClient()
 	r.recorder = mgr.GetEventRecorderFor(name)
 
-	// index RoleBindings by the RoleRef field for faster lookups
-	if err := mgr.GetFieldIndexer().IndexField(context.Background(), &greenhousev1alpha2.TeamRoleBinding{}, greenhouseapis.RolebindingRoleRefField, func(rawObj client.Object) []string {
+	// index RoleBindings by the TeamRoleRef field for faster lookups
+	if err := mgr.GetFieldIndexer().IndexField(context.Background(), &greenhousev1alpha2.TeamRoleBinding{}, greenhouseapis.RolebindingTeamRoleRefField, func(rawObj client.Object) []string {
 		// Extract the TeamRole name from the TeamRoleBinding Spec, if one is provided
 		teamRoleBinding, ok := rawObj.(*greenhousev1alpha2.TeamRoleBinding)
 		if teamRoleBinding.Spec.TeamRoleRef == "" || !ok {
@@ -664,7 +664,7 @@ func (r *TeamRoleBindingReconciler) enqueueTeamRoleBindingsFor(ctx context.Conte
 	// determine the field to select TeamRoleBindings by
 	switch o.(type) {
 	case *greenhousev1alpha1.TeamRole:
-		fieldRef = greenhouseapis.RolebindingRoleRefField
+		fieldRef = greenhouseapis.RolebindingTeamRoleRefField
 	case *greenhousev1alpha1.Team:
 		fieldRef = greenhouseapis.RolebindingTeamRefField
 	default:

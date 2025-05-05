@@ -14,6 +14,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
+	greenhousev1alpha2 "github.com/cloudoperators/greenhouse/api/v1alpha2"
 )
 
 // WithAccessMode sets the ClusterAccessMode on a Cluster
@@ -275,54 +276,56 @@ func NewTeamRole(ctx context.Context, name, namespace string, opts ...func(*gree
 	return tr
 }
 
-func WithTeamRoleRef(roleRef string) func(*greenhousev1alpha1.TeamRoleBinding) {
-	return func(trb *greenhousev1alpha1.TeamRoleBinding) {
+func WithTeamRoleRef(roleRef string) func(*greenhousev1alpha2.TeamRoleBinding) {
+	return func(trb *greenhousev1alpha2.TeamRoleBinding) {
 		trb.Spec.TeamRoleRef = roleRef
 	}
 }
 
-func WithTeamRef(teamRef string) func(*greenhousev1alpha1.TeamRoleBinding) {
-	return func(trb *greenhousev1alpha1.TeamRoleBinding) {
+func WithTeamRef(teamRef string) func(*greenhousev1alpha2.TeamRoleBinding) {
+	return func(trb *greenhousev1alpha2.TeamRoleBinding) {
 		trb.Spec.TeamRef = teamRef
 	}
 }
 
-func WithClusterName(clusterName string) func(*greenhousev1alpha1.TeamRoleBinding) {
-	return func(trb *greenhousev1alpha1.TeamRoleBinding) {
-		trb.Spec.ClusterName = clusterName
+func WithClusterName(clusterName string) func(*greenhousev1alpha2.TeamRoleBinding) {
+	return func(trb *greenhousev1alpha2.TeamRoleBinding) {
+		trb.Spec.ClusterSelector = greenhousev1alpha2.ClusterSelector{
+			Name: clusterName,
+		}
 	}
 }
 
-func WithClusterSelector(selector metav1.LabelSelector) func(*greenhousev1alpha1.TeamRoleBinding) {
-	return func(trb *greenhousev1alpha1.TeamRoleBinding) {
-		trb.Spec.ClusterSelector = selector
+func WithClusterSelector(selector metav1.LabelSelector) func(*greenhousev1alpha2.TeamRoleBinding) {
+	return func(trb *greenhousev1alpha2.TeamRoleBinding) {
+		trb.Spec.ClusterSelector.LabelSelector = selector
 	}
 }
 
-func WithNamespaces(namespaces ...string) func(*greenhousev1alpha1.TeamRoleBinding) {
-	return func(trb *greenhousev1alpha1.TeamRoleBinding) {
+func WithNamespaces(namespaces ...string) func(*greenhousev1alpha2.TeamRoleBinding) {
+	return func(trb *greenhousev1alpha2.TeamRoleBinding) {
 		trb.Spec.Namespaces = namespaces
 	}
 }
 
-func WithCreateNamespace(createNamespaces bool) func(*greenhousev1alpha1.TeamRoleBinding) {
-	return func(trb *greenhousev1alpha1.TeamRoleBinding) {
+func WithCreateNamespace(createNamespaces bool) func(*greenhousev1alpha2.TeamRoleBinding) {
+	return func(trb *greenhousev1alpha2.TeamRoleBinding) {
 		trb.Spec.CreateNamespaces = createNamespaces
 	}
 }
 
-func WithUsernames(usernames []string) func(*greenhousev1alpha1.TeamRoleBinding) {
-	return func(trb *greenhousev1alpha1.TeamRoleBinding) {
+func WithUsernames(usernames []string) func(*greenhousev1alpha2.TeamRoleBinding) {
+	return func(trb *greenhousev1alpha2.TeamRoleBinding) {
 		trb.Spec.Usernames = usernames
 	}
 }
 
-// NewTeamRoleBinding returns a greenhousev1alpha1.TeamRoleBinding object. Opts can be used to set the desired state of the TeamRoleBinding.
-func NewTeamRoleBinding(ctx context.Context, name, namespace string, opts ...func(*greenhousev1alpha1.TeamRoleBinding)) *greenhousev1alpha1.TeamRoleBinding {
-	trb := &greenhousev1alpha1.TeamRoleBinding{
+// NewTeamRoleBinding returns a greenhousev1alpha2.TeamRoleBinding object. Opts can be used to set the desired state of the TeamRoleBinding.
+func NewTeamRoleBinding(ctx context.Context, name, namespace string, opts ...func(*greenhousev1alpha2.TeamRoleBinding)) *greenhousev1alpha2.TeamRoleBinding {
+	trb := &greenhousev1alpha2.TeamRoleBinding{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "TeamRoleBinding",
-			APIVersion: greenhousev1alpha1.GroupVersion.String(),
+			APIVersion: greenhousev1alpha2.GroupVersion.String(),
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,

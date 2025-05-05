@@ -16,6 +16,7 @@ import (
 
 	greenhouseapis "github.com/cloudoperators/greenhouse/api"
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
+	greenhousev1alpha2 "github.com/cloudoperators/greenhouse/api/v1alpha2"
 	"github.com/cloudoperators/greenhouse/internal/clientutil"
 	"github.com/cloudoperators/greenhouse/internal/test"
 )
@@ -24,7 +25,7 @@ var _ = Describe("Validate Role Admission", func() {
 	var (
 		setup           *test.TestSetup
 		teamRole        *greenhousev1alpha1.TeamRole
-		teamRoleBinding *greenhousev1alpha1.TeamRoleBinding
+		teamRoleBinding *greenhousev1alpha2.TeamRoleBinding
 
 		team    *greenhousev1alpha1.Team
 		cluster *greenhousev1alpha1.Cluster
@@ -110,9 +111,9 @@ var _ = Describe("Validate Role Admission", func() {
 // we can't add this to the webhook setup because it's already indexed by the controller and indexing the field twice is not possible.
 // This is to have the webhook tests run independently of the controller.
 func setupRoleBindingWebhookForTest(mgr manager.Manager) error {
-	err := mgr.GetFieldIndexer().IndexField(context.Background(), &greenhousev1alpha1.TeamRoleBinding{}, greenhouseapis.RolebindingRoleRefField, func(rawObj client.Object) []string {
+	err := mgr.GetFieldIndexer().IndexField(context.Background(), &greenhousev1alpha2.TeamRoleBinding{}, greenhouseapis.RolebindingTeamRoleRefField, func(rawObj client.Object) []string {
 		// Extract the Role name from the RoleBinding Spec, if one is provided
-		roleBinding, ok := rawObj.(*greenhousev1alpha1.TeamRoleBinding)
+		roleBinding, ok := rawObj.(*greenhousev1alpha2.TeamRoleBinding)
 		if roleBinding.Spec.TeamRoleRef == "" || !ok {
 			return nil
 		}

@@ -14,6 +14,7 @@ import (
 
 	"github.com/cloudoperators/greenhouse/internal/test"
 	webhookv1alpha1 "github.com/cloudoperators/greenhouse/internal/webhook/v1alpha1"
+	webhookv1alpha2 "github.com/cloudoperators/greenhouse/internal/webhook/v1alpha2"
 	//+kubebuilder:scaffold:imports
 )
 
@@ -44,7 +45,8 @@ var _ = BeforeSuite(func() {
 	test.RegisterController("roleBindingController", (&TeamRoleBindingReconciler{}).SetupWithManager)
 	test.RegisterWebhook("clusterWebhook", webhookv1alpha1.SetupClusterWebhookWithManager)
 	test.RegisterWebhook("teamsWebhook", webhookv1alpha1.SetupTeamWebhookWithManager)
-	test.RegisterWebhook("teamRoleBindingWebhook", webhookv1alpha1.SetupTeamRoleBindingWebhookWithManager)
+	test.RegisterWebhook("teamRoleBindingWebhookv1alpha1", webhookv1alpha1.SetupTeamRoleBindingWebhookWithManager)
+	test.RegisterWebhook("teamRoleBindingWebhookv1alpha2", webhookv1alpha2.SetupTeamRoleBindingWebhookWithManager)
 	test.RegisterWebhook("teamRoleWebhook", webhookv1alpha1.SetupTeamRoleWebhookWithManager)
 	test.TestBeforeSuite()
 	k8sClient = test.K8sClient

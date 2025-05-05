@@ -112,26 +112,6 @@ webhooks:
       service:
         name: greenhouse-webhook-service
         namespace: greenhouse
-        path: /mutate-greenhouse-sap-v1alpha1-teamrole
-    failurePolicy: Fail
-    name: mrole.kb.io
-    rules:
-      - apiGroups:
-          - greenhouse.sap
-        apiVersions:
-          - v1alpha1
-        operations:
-          - CREATE
-          - UPDATE
-        resources:
-          - teamroles
-    sideEffects: None
-  - admissionReviewVersions:
-      - v1
-    clientConfig:
-      service:
-        name: greenhouse-webhook-service
-        namespace: greenhouse
         path: /mutate-greenhouse-sap-v1alpha1-teamrolebinding
     failurePolicy: Fail
     name: mrolebinding-v1alpha1.kb.io
@@ -192,6 +172,26 @@ webhooks:
           - UPDATE
         resources:
           - teams
+    sideEffects: None
+  - admissionReviewVersions:
+      - v1
+    clientConfig:
+      service:
+        name: greenhouse-webhook-service
+        namespace: greenhouse
+        path: /mutate-greenhouse-sap-v1alpha1-teamrole
+    failurePolicy: Fail
+    name: mteamrole-v1alpha1.kb.io
+    rules:
+      - apiGroups:
+          - greenhouse.sap
+        apiVersions:
+          - v1alpha1
+        operations:
+          - CREATE
+          - UPDATE
+        resources:
+          - teamroles
     sideEffects: None
   - admissionReviewVersions:
       - v1
@@ -332,27 +332,6 @@ webhooks:
       service:
         name: greenhouse-webhook-service
         namespace: greenhouse
-        path: /validate-greenhouse-sap-v1alpha1-teamrole
-    failurePolicy: Fail
-    name: vrole.kb.io
-    rules:
-      - apiGroups:
-          - greenhouse.sap
-        apiVersions:
-          - v1alpha1
-        operations:
-          - CREATE
-          - UPDATE
-          - DELETE
-        resources:
-          - teamroles
-    sideEffects: None
-  - admissionReviewVersions:
-      - v1
-    clientConfig:
-      service:
-        name: greenhouse-webhook-service
-        namespace: greenhouse
         path: /validate-greenhouse-sap-v1alpha1-teamrolebinding
     failurePolicy: Fail
     name: vrolebinding-v1alpha1.kb.io
@@ -416,6 +395,27 @@ webhooks:
           - DELETE
         resources:
           - teams
+    sideEffects: None
+  - admissionReviewVersions:
+      - v1
+    clientConfig:
+      service:
+        name: greenhouse-webhook-service
+        namespace: greenhouse
+        path: /validate-greenhouse-sap-v1alpha1-teamrole
+    failurePolicy: Fail
+    name: vteamrole-v1alpha1.kb.io
+    rules:
+      - apiGroups:
+          - greenhouse.sap
+        apiVersions:
+          - v1alpha1
+        operations:
+          - CREATE
+          - UPDATE
+          - DELETE
+        resources:
+          - teamroles
     sideEffects: None
   - admissionReviewVersions:
       - v1
