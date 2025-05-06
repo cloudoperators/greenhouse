@@ -687,9 +687,7 @@ ClusterKubeconfigData
 <td>
 <code>statusConditions</code><br>
 <em>
-<a href="#greenhouse.sap/v1alpha1.StatusConditions">
-StatusConditions
-</a>
+github.com/cloudoperators/greenhouse/api/core/v1alpha1.StatusConditions
 </em>
 </td>
 <td>
@@ -886,9 +884,7 @@ Kubernetes meta/v1.Time
 <td>
 <code>statusConditions</code><br>
 <em>
-<a href="#greenhouse.sap/v1alpha1.StatusConditions">
-StatusConditions
-</a>
+github.com/cloudoperators/greenhouse/api/core/v1alpha1.StatusConditions
 </em>
 </td>
 <td>
@@ -912,106 +908,6 @@ map[string]./api/v1alpha1.NodeStatus
 </table>
 </div>
 </div>
-<h3 id="greenhouse.sap/v1alpha1.Condition">Condition
-</h3>
-<p>
-(<em>Appears on:</em>
-<a href="#greenhouse.sap/v1alpha1.ManagedPluginStatus">ManagedPluginStatus</a>, 
-<a href="#greenhouse.sap/v1alpha1.PropagationStatus">PropagationStatus</a>, 
-<a href="#greenhouse.sap/v1alpha1.StatusConditions">StatusConditions</a>)
-</p>
-<p>Condition contains additional information on the state of a resource.</p>
-<div class="md-typeset__scrollwrap">
-<div class="md-typeset__table">
-<table>
-<thead>
-<tr>
-<th>Field</th>
-<th>Description</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>
-<code>type</code><br>
-<em>
-<a href="#greenhouse.sap/v1alpha1.ConditionType">
-ConditionType
-</a>
-</em>
-</td>
-<td>
-<p>Type of the condition.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>status</code><br>
-<em>
-<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.24/#conditionstatus-v1-meta">
-Kubernetes meta/v1.ConditionStatus
-</a>
-</em>
-</td>
-<td>
-<p>Status of the condition.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>reason</code><br>
-<em>
-<a href="#greenhouse.sap/v1alpha1.ConditionReason">
-ConditionReason
-</a>
-</em>
-</td>
-<td>
-<p>Reason is a one-word, CamelCase reason for the condition&rsquo;s last transition.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>lastTransitionTime</code><br>
-<em>
-<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.24/#time-v1-meta">
-Kubernetes meta/v1.Time
-</a>
-</em>
-</td>
-<td>
-<p>LastTransitionTime is the last time the condition transitioned from one status to another.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>message</code><br>
-<em>
-string
-</em>
-</td>
-<td>
-<p>Message is an optional human readable message indicating details about the last transition.</p>
-</td>
-</tr>
-</tbody>
-</table>
-</div>
-</div>
-<h3 id="greenhouse.sap/v1alpha1.ConditionReason">ConditionReason
-(<code>string</code> alias)</h3>
-<p>
-(<em>Appears on:</em>
-<a href="#greenhouse.sap/v1alpha1.Condition">Condition</a>)
-</p>
-<p>ConditionReason is a valid reason for a condition of a resource.</p>
-<h3 id="greenhouse.sap/v1alpha1.ConditionType">ConditionType
-(<code>string</code> alias)</h3>
-<p>
-(<em>Appears on:</em>
-<a href="#greenhouse.sap/v1alpha1.Condition">Condition</a>)
-</p>
-<p>ConditionType is a valid condition of a resource.</p>
 <h3 id="greenhouse.sap/v1alpha1.HelmChartReference">HelmChartReference
 </h3>
 <p>
@@ -1178,9 +1074,7 @@ string
 <td>
 <code>readyCondition</code><br>
 <em>
-<a href="#greenhouse.sap/v1alpha1.Condition">
-Condition
-</a>
+github.com/cloudoperators/greenhouse/api/core/v1alpha1.Condition
 </em>
 </td>
 <td>
@@ -1210,9 +1104,7 @@ Condition
 <td>
 <code>statusConditions</code><br>
 <em>
-<a href="#greenhouse.sap/v1alpha1.StatusConditions">
-StatusConditions
-</a>
+github.com/cloudoperators/greenhouse/api/core/v1alpha1.StatusConditions
 </em>
 </td>
 <td>
@@ -1510,9 +1402,7 @@ string
 <td>
 <code>statusConditions</code><br>
 <em>
-<a href="#greenhouse.sap/v1alpha1.StatusConditions">
-StatusConditions
-</a>
+github.com/cloudoperators/greenhouse/api/core/v1alpha1.StatusConditions
 </em>
 </td>
 <td>
@@ -2292,9 +2182,7 @@ Kubernetes meta/v1.LabelSelector
 <td>
 <code>statusConditions</code><br>
 <em>
-<a href="#greenhouse.sap/v1alpha1.StatusConditions">
-StatusConditions
-</a>
+github.com/cloudoperators/greenhouse/api/core/v1alpha1.StatusConditions
 </em>
 </td>
 <td>
@@ -2541,9 +2429,7 @@ It maps the exposed URL to the service found in the manifest.</p>
 <td>
 <code>statusConditions</code><br>
 <em>
-<a href="#greenhouse.sap/v1alpha1.StatusConditions">
-StatusConditions
-</a>
+github.com/cloudoperators/greenhouse/api/core/v1alpha1.StatusConditions
 </em>
 </td>
 <td>
@@ -2586,9 +2472,7 @@ string
 <td>
 <code>condition</code><br>
 <em>
-<a href="#greenhouse.sap/v1alpha1.Condition">
-Condition
-</a>
+github.com/cloudoperators/greenhouse/api/core/v1alpha1.Condition
 </em>
 </td>
 <td>
@@ -2805,48 +2689,6 @@ string
 </td>
 <td>
 <p>Protocol is the protocol of the service.</p>
-</td>
-</tr>
-</tbody>
-</table>
-</div>
-</div>
-<h3 id="greenhouse.sap/v1alpha1.StatusConditions">StatusConditions
-</h3>
-<p>
-(<em>Appears on:</em>
-<a href="#greenhouse.sap/v1alpha1.ClusterKubeconfigStatus">ClusterKubeconfigStatus</a>, 
-<a href="#greenhouse.sap/v1alpha1.ClusterStatus">ClusterStatus</a>, 
-<a href="#greenhouse.sap/v1alpha1.NodeStatus">NodeStatus</a>, 
-<a href="#greenhouse.sap/v1alpha1.OrganizationStatus">OrganizationStatus</a>, 
-<a href="#greenhouse.sap/v1alpha1.PluginPresetStatus">PluginPresetStatus</a>, 
-<a href="#greenhouse.sap/v1alpha1.PluginStatus">PluginStatus</a>, 
-<a href="#greenhouse.sap/v1alpha1.TeamMembershipStatus">TeamMembershipStatus</a>, 
-<a href="#greenhouse.sap/v1alpha1.TeamRoleBindingStatus">TeamRoleBindingStatus</a>, 
-<a href="#greenhouse.sap/v1alpha1.TeamStatus">TeamStatus</a>)
-</p>
-<p>A StatusConditions contains a list of conditions.
-Only one condition of a given type may exist in the list.</p>
-<div class="md-typeset__scrollwrap">
-<div class="md-typeset__table">
-<table>
-<thead>
-<tr>
-<th>Field</th>
-<th>Description</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>
-<code>conditions</code><br>
-<em>
-<a href="#greenhouse.sap/v1alpha1.Condition">
-[]Condition
-</a>
-</em>
-</td>
-<td>
 </td>
 </tr>
 </tbody>
@@ -3102,9 +2944,7 @@ Kubernetes meta/v1.Time
 <td>
 <code>statusConditions</code><br>
 <em>
-<a href="#greenhouse.sap/v1alpha1.StatusConditions">
-StatusConditions
-</a>
+github.com/cloudoperators/greenhouse/api/core/v1alpha1.StatusConditions
 </em>
 </td>
 <td>
@@ -3473,9 +3313,7 @@ bool
 <td>
 <code>statusConditions</code><br>
 <em>
-<a href="#greenhouse.sap/v1alpha1.StatusConditions">
-StatusConditions
-</a>
+github.com/cloudoperators/greenhouse/api/core/v1alpha1.StatusConditions
 </em>
 </td>
 <td>
@@ -3640,9 +3478,7 @@ string
 <td>
 <code>statusConditions</code><br>
 <em>
-<a href="#greenhouse.sap/v1alpha1.StatusConditions">
-StatusConditions
-</a>
+github.com/cloudoperators/greenhouse/api/core/v1alpha1.StatusConditions
 </em>
 </td>
 <td>
