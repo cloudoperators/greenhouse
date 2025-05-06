@@ -250,7 +250,7 @@ func validatePluginForCluster(ctx context.Context, c client.Client, plugin *gree
 	}
 	// Verify that the cluster exists.
 	var cluster = new(greenhousev1alpha1.Cluster)
-	if err := c.Get(ctx, types.NamespacedName{Namespace: plugin.ObjectMeta.Namespace, Name: clusterName}, cluster); err != nil {
+	if err := c.Get(ctx, types.NamespacedName{Namespace: plugin.Namespace, Name: clusterName}, cluster); err != nil {
 		switch {
 		case apierrors.IsNotFound(err):
 			return field.NotFound(field.NewPath("spec").Child("clusterName"), clusterName)

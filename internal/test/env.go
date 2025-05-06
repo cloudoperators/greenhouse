@@ -235,11 +235,11 @@ func StartControlPlane(port string, installCRDs, installWebhooks bool) (*rest.Co
 	}
 	if installWebhooks {
 		webhookInstallOptions := envtest.WebhookInstallOptions{
-			Paths: []string{filepath.Join(absPathConfigBasePath, "manager", "templates", "webhooks.yaml")},
+			Paths: []string{filepath.Join(absPathConfigBasePath, "manager", "templates", "webhook", "webhooks.yaml")},
 		}
 		testEnv.WebhookInstallOptions = webhookInstallOptions
 	}
-	testEnv.ControlPlane.GetAPIServer().SecureServing.ListenAddr.Port = port
+	testEnv.ControlPlane.GetAPIServer().Port = port
 	testEnv.ControlPlane.GetAPIServer().Configure().Append("enable-admission-plugins", "MutatingAdmissionWebhook", "ValidatingAdmissionWebhook")
 
 	// Start control plane

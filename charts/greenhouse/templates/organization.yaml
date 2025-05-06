@@ -33,11 +33,11 @@ spec:
       basicAuthUser:
         secret:
           name: {{ .Chart.Name }}-auth
-          key: scimUsername
+          key: scimBasicAuthUser
       basicAuthPw:
         secret:
           name: {{ .Chart.Name }}-auth
-          key: scimPassword
+          key: scimBasicAuthPassword
 {{ end }}
 {{ end }}
 {{ end }}

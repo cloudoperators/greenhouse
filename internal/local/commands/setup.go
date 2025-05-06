@@ -64,7 +64,6 @@ func processDevSetup(cmd *cobra.Command, args []string) error {
 
 	overrideWebhookDev, webhookDev := getBoolArg([]string{"d", "devMode"}, args)
 	overrideCRDOnly, onlyCRD := getBoolArg([]string{"c", "crdOnly"}, args)
-	overrideEnvs := getArgArray([]string{"e", "env"}, args)
 
 	_, err := os.Stat(setupConfigFile)
 	if err != nil {
@@ -107,10 +106,6 @@ func processDevSetup(cmd *cobra.Command, args []string) error {
 				}
 				if overrideWebhookDev {
 					dep.Manifest.Webhook.DevMode = webhookDev
-				}
-
-				if len(overrideEnvs) > 0 {
-					dep.Manifest.Webhook.AddOrOverrideEnv(overrideEnvs)
 				}
 				dep.Manifest.ExcludeKinds = append(
 					dep.Manifest.ExcludeKinds,

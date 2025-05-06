@@ -83,7 +83,7 @@ func (trb *TeamRoleBinding) GetConditions() StatusConditions {
 }
 
 func (trb *TeamRoleBinding) SetCondition(condition Condition) {
-	trb.Status.StatusConditions.SetConditions(condition)
+	trb.Status.SetConditions(condition)
 }
 
 // SetPropagationStatus updates the TeamRoleBinding's PropagationStatus for the Cluster
@@ -93,9 +93,9 @@ func (trb *TeamRoleBinding) SetPropagationStatus(cluster string, rbacReady metav
 		if ps.ClusterName != cluster {
 			continue
 		}
-		if ps.Condition.Status == rbacReady {
+		if ps.Status == rbacReady {
 			// Set the LastTransitionTime to its previous value if the status did not change.
-			condition.LastTransitionTime = ps.Condition.LastTransitionTime
+			condition.LastTransitionTime = ps.LastTransitionTime
 		}
 		trb.Status.PropagationStatus[i].Condition = condition
 		return
