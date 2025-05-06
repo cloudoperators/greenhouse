@@ -3,16 +3,33 @@
 
 config:
   - cluster:
-      name: greenhouse-remote
-  - cluster:
       name: greenhouse-admin
       namespace: greenhouse
+      version: v1.31.0
+      configPath: dev-env/greenhouse-admin-cluster.yaml
+      postSetup:
+        - command: kubectl config use-context kind-greenhouse-admin
+        - command: kubectl --kubeconfig "${kubeconfig}" get cm kube-root-ca.crt -n default -o json | jq -r '.data."ca.crt"' | tee bin/greenhouse-admin-ca.crt
+          vars:
+            kubeconfig: kubeconfig
+        - command: kubectl create clusterrolebinding ${clusterRoleBinding} --clusterrole=${clusterRole} --group=${group} --dry-run=client -o yaml | kubectl apply --kubeconfig "${kubeconfig}" -f -
+          vars:
+            kubeconfig: kubeconfig
+            clusterRoleBinding: oidc-reviewer-binding
+            clusterRole: system:service-account-issuer-discovery
+            group: system:unauthenticated
+        - command: make cert-manager
     dependencies:
       - manifest:
           release: greenhouse
           chartPath: charts/manager
           valuesPath: dev-env/dev.values.yaml
+          excludeKinds:
+            - Job # exclude kube-webhook-cert-gen Job (managed by cert-manager)
           crdOnly: false
           webhook:
             devMode: false
             dockerFile: "./"
+  - cluster:
+      name: greenhouse-remote
+      configPath: dev-env/greenhouse-remote-cluster.yaml
