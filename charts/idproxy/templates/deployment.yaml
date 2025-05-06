@@ -11,6 +11,11 @@ metadata:
     {{- include "idproxy.labels" . | nindent 4 }}
 spec:
   replicas: {{ .Values.replicaCount }}
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: {{ .Values.maxSurge | default 1 }}
+      maxUnavailable: {{ $.Values.maxUnavailable | default 0 }}
   selector:
     matchLabels:
       {{- include "idproxy.selectorLabels" . | nindent 6 }}

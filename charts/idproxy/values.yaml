@@ -29,6 +29,9 @@ serviceAccount:
   # If not set and create is true, a name is generated using the fullname template
   name: ""
 
+maxSurge: 2
+maxUnavailable: 0
+
 podAnnotations: {}
 
 podSecurityContext: {}
