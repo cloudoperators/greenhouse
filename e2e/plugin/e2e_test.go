@@ -287,6 +287,25 @@ var _ = Describe("Plugin E2E", Ordered, func() {
 		err = adminClient.Update(ctx, testPluginPreset)
 		Expect(err).ToNot(HaveOccurred(), "there should be no error updating the plugin preset with override")
 
+		By("Ensure the plugin preset is updated")
+		Eventually(func(g Gomega) {
+			err = adminClient.Get(ctx, client.ObjectKeyFromObject(testPluginPreset), testPluginPreset)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(testPluginPreset.Spec.ClusterOptionOverrides).To(HaveLen(1))
+			Expect(testPluginPreset.Spec.ClusterOptionOverrides[0].Overrides).To(HaveLen(1))
+			Expect(testPluginPreset.Spec.ClusterOptionOverrides[0].Overrides[0].Name).To(BeEquivalentTo("replicaCount"))
+			Expect(testPluginPreset.Spec.ClusterOptionOverrides[0].Overrides[0].Value).To(BeEquivalentTo(&apiextensionsv1.JSON{Raw: []byte("3")}))
+		}).Should(Succeed())
+
+		By("Checking the plugin status is ready")
+		Eventually(func(g Gomega) {
+			pluginList := &greenhousev1alpha1.PluginList{}
+			err = adminClient.List(ctx, pluginList)
+			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(len(pluginList.Items)).To(BeEquivalentTo(1))
+			g.Expect(pluginList.Items[0].Status.HelmReleaseStatus.Status).To(BeEquivalentTo("deployed"))
+		}).Should(Succeed())
+
 		By("Check the replicas in deployment")
 		Eventually(func(g Gomega) {
 			deploymentList := &appsv1.DeploymentList{}

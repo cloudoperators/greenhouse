@@ -1,29 +1,22 @@
-{{/* 
-SPDX-FileCopyrightText: 2024 SAP SE or an SAP affiliate company and Greenhouse contributors
-SPDX-License-Identifier: Apache-2.0
-*/}}
-
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: {{ include "manager.fullname" . }}-controller-manager
+  name: {{ include "manager.fullname" . }}-webhook
   namespace: greenhouse
   labels:
-    app: greenhouse
-  {{- include "manager.labels" . | nindent 4 }}
+  {{- include "webhook.labels" . | nindent 4 }}
 spec:
-  replicas: {{ .Values.controllerManager.replicas }}
+  replicas: {{ .Values.webhook.replicas }}
   selector:
     matchLabels:
-      app: greenhouse
-    {{- include "manager.selectorLabels" . | nindent 6 }}
+    {{- include "common.selectorLabels" . | nindent 6 }}
+    {{- include "webhook.selectorLabels" . | nindent 6 }}
   template:
     metadata:
       labels:
-        app: greenhouse
-      {{- include "manager.selectorLabels" . | nindent 8 }}
+      {{- include "webhook.labels" . | nindent 8 }}
       annotations:
-        kubectl.kubernetes.io/default-container: manager
+        kubectl.kubernetes.io/default-container: webhook
         prometheus.io/scrape: "true"
     spec:
       containers:
@@ -31,25 +24,9 @@ spec:
         - /greenhouse
         args:
         - --dns-domain={{ required ".Values.global.dnsDomain missing" .Values.global.dnsDomain }}
-        {{- if gt (len .Values.controllerManager.args) 0 }}
-        {{- include "manager.params" . | indent 8 }}
-        {{- end }}
         env:
-        {{- if eq .Values.global.dex.backend "postgres" }}
-        - name: PG_DATABASE
-          value: {{ .Values.global.dex.postgresql.postgresqlDatabase }}
-        - name: PG_HOST
-          value: {{ .Release.Name }}-postgresql
-        - name: PG_USER
-          value: {{ .Values.global.dex.postgresql.postgresqlUsername }}
-        - name: PG_PASSWORD
-          valueFrom:
-            secretKeyRef:
-              key: postgres-password
-              name: {{ .Release.Name }}-pguser-{{ .Values.global.dex.postgresql.postgresqlUsername }}
-        {{- end }}
-        - name: FEATURE_FLAGS
-          value: {{ template "featureFlag.fullname" . }}
+        - name: WEBHOOK_ONLY
+          value: "true"
         - name: POD_NAMESPACE
           valueFrom:
             fieldRef:
@@ -58,13 +35,13 @@ spec:
         - name: GOMEMLIMIT
           valueFrom:
             resourceFieldRef:
-              containerName: manager
+              containerName: webhook
               divisor: "0"
               resource: limits.memory
         - name: GOMAXPROCS
           valueFrom:
             resourceFieldRef:
-              containerName: manager
+              containerName: webhook
               divisor: "0"
               resource: limits.cpu
         image: {{ .Values.controllerManager.image.repository }}:{{ .Values.controllerManager.image.tag | default .Chart.AppVersion }}
@@ -74,7 +51,7 @@ spec:
             port: 8081
           initialDelaySeconds: 15
           periodSeconds: 20
-        name: manager
+        name: webhook
         ports:
         - containerPort: 9443
           name: webhook-server

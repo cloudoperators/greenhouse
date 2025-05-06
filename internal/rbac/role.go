@@ -39,11 +39,11 @@ func OrganizationAdminPolicyRules() []rbacv1.PolicyRule {
 			APIGroups: []string{"monitoring.coreos.com"},
 			Resources: []string{"alertmanagers", "alertmanagerconfigs"},
 		},
-		// Grant permission to view Pods, ReplicaSets, Deployments, StatefulSets, DaemonSets, CronJobs, Jobs, ConfigMaps
+		// Grant permission to view Pods, ReplicaSets, Deployments, StatefulSets, DaemonSets, CronJobs, Jobs, ConfigMaps and Logs
 		{
 			Verbs:     []string{"get", "list", "watch"},
 			APIGroups: []string{""},
-			Resources: []string{"pods", "replicasets", "deployments", "statefulsets", "daemonsets", "cronjobs", "jobs", "configmaps"},
+			Resources: []string{"pods", "pods/log", "replicasets", "deployments", "statefulsets", "daemonsets", "cronjobs", "jobs", "configmaps"},
 		},
 	}
 	orgAdminPolicyRules = append(orgAdminPolicyRules,

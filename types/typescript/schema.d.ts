@@ -114,6 +114,612 @@ export interface components {
             /** @description TeamRoleStatus defines the observed state of a TeamRole */
             status?: Record<string, never>;
         };
+        /**
+         * TeamMembership
+         * @description TeamMembership is the Schema for the teammemberships API
+         */
+        TeamMembership: {
+            /** @description APIVersion defines the versioned schema of this representation of an object.\nServers should convert recognized schemas to the latest internal value, and\nmay reject unrecognized values.\nMore info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources */
+            apiVersion?: string;
+            /** @description Kind is a string value representing the REST resource this object represents.\nServers may infer this from the endpoint the client submits requests to.\nCannot be updated.\nIn CamelCase.\nMore info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds */
+            kind?: string;
+            metadata?: {
+                name?: string;
+                namespace?: string;
+                /** Format: uuid */
+                uid?: string;
+                resourceVersion?: string;
+                /** Format: date-time */
+                creationTimestamp?: string;
+                /** Format: date-time */
+                deletionTimestamp?: string;
+                labels?: {
+                    [key: string]: string;
+                };
+                annotations?: {
+                    [key: string]: string;
+                };
+            };
+            /** @description TeamMembershipSpec defines the desired state of TeamMembership */
+            spec?: {
+                /** @description Members list users that are part of a team. */
+                members?: {
+                    /** @description Email of the user. */
+                    email: string;
+                    /** @description FirstName of the user. */
+                    firstName: string;
+                    /** @description ID is the unique identifier of the user. */
+                    id: string;
+                    /** @description LastName of the user. */
+                    lastName: string;
+                }[];
+            };
+            /** @description TeamMembershipStatus defines the observed state of TeamMembership */
+            status?: {
+                /**
+                 * Format: date-time
+                 * @description LastSyncedTime is the information when was the last time the membership was synced
+                 */
+                lastSyncedTime?: string;
+                /**
+                 * Format: date-time
+                 * @description LastChangedTime is the information when was the last time the membership was actually changed
+                 */
+                lastUpdateTime?: string;
+                /** @description StatusConditions contain the different conditions that constitute the status of the TeamMembership. */
+                statusConditions?: {
+                    conditions?: {
+                        /**
+                         * Format: date-time
+                         * @description LastTransitionTime is the last time the condition transitioned from one status to another.
+                         */
+                        lastTransitionTime: string;
+                        /** @description Message is an optional human readable message indicating details about the last transition. */
+                        message?: string;
+                        /** @description Reason is a one-word, CamelCase reason for the condition's last transition. */
+                        reason?: string;
+                        /** @description Status of the condition. */
+                        status: string;
+                        /** @description Type of the condition. */
+                        type: string;
+                    }[];
+                };
+            };
+        };
+        /**
+         * PluginPreset
+         * @description PluginPreset is the Schema for the PluginPresets API
+         */
+        PluginPreset: {
+            /** @description APIVersion defines the versioned schema of this representation of an object.\nServers should convert recognized schemas to the latest internal value, and\nmay reject unrecognized values.\nMore info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources */
+            apiVersion?: string;
+            /** @description Kind is a string value representing the REST resource this object represents.\nServers may infer this from the endpoint the client submits requests to.\nCannot be updated.\nIn CamelCase.\nMore info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds */
+            kind?: string;
+            metadata?: {
+                name?: string;
+                namespace?: string;
+                /** Format: uuid */
+                uid?: string;
+                resourceVersion?: string;
+                /** Format: date-time */
+                creationTimestamp?: string;
+                /** Format: date-time */
+                deletionTimestamp?: string;
+                labels?: {
+                    [key: string]: string;
+                };
+                annotations?: {
+                    [key: string]: string;
+                };
+            };
+            /** @description PluginPresetSpec defines the desired state of PluginPreset */
+            spec?: {
+                /** @description ClusterOptionOverrides define plugin option values to override by the PluginPreset */
+                clusterOptionOverrides?: {
+                    clusterName: string;
+                    overrides: {
+                        /** @description Name of the values. */
+                        name: string;
+                        /** @description Value is the actual value in plain text. */
+                        value?: unknown;
+                        /** @description ValueFrom references a potentially confidential value in another source. */
+                        valueFrom?: {
+                            /** @description Secret references the secret containing the value. */
+                            secret?: {
+                                /** @description Key in the secret to select the value from. */
+                                key: string;
+                                /** @description Name of the secret in the same namespace. */
+                                name: string;
+                            };
+                        };
+                    }[];
+                }[];
+                /** @description ClusterSelector is a label selector to select the clusters the plugin bundle should be deployed to. */
+                clusterSelector: {
+                    /** @description matchExpressions is a list of label selector requirements. The requirements are ANDed. */
+                    matchExpressions?: {
+                        /** @description key is the label key that the selector applies to. */
+                        key: string;
+                        /** @description operator represents a key's relationship to a set of values.\nValid operators are In, NotIn, Exists and DoesNotExist. */
+                        operator: string;
+                        /** @description values is an array of string values. If the operator is In or NotIn,\nthe values array must be non-empty. If the operator is Exists or DoesNotExist,\nthe values array must be empty. This array is replaced during a strategic\nmerge patch. */
+                        values?: string[];
+                    }[];
+                    /** @description matchLabels is a map of {key,value} pairs. A single {key,value} in the matchLabels\nmap is equivalent to an element of matchExpressions, whose key field is "key", the\noperator is "In", and the values array contains only "value". The requirements are ANDed. */
+                    matchLabels?: {
+                        [key: string]: string;
+                    };
+                };
+                /** @description PluginSpec is the spec of the plugin to be deployed by the PluginPreset. */
+                plugin: {
+                    /** @description ClusterName is the name of the cluster the plugin is deployed to. If not set, the plugin is deployed to the greenhouse cluster. */
+                    clusterName?: string;
+                    /** @description DisplayName is an optional name for the Plugin to be displayed in the Greenhouse UI.\nThis is especially helpful to distinguish multiple instances of a PluginDefinition in the same context.\nDefaults to a normalized version of metadata.name. */
+                    displayName?: string;
+                    /** @description Values are the values for a PluginDefinition instance. */
+                    optionValues?: {
+                        /** @description Name of the values. */
+                        name: string;
+                        /** @description Value is the actual value in plain text. */
+                        value?: unknown;
+                        /** @description ValueFrom references a potentially confidential value in another source. */
+                        valueFrom?: {
+                            /** @description Secret references the secret containing the value. */
+                            secret?: {
+                                /** @description Key in the secret to select the value from. */
+                                key: string;
+                                /** @description Name of the secret in the same namespace. */
+                                name: string;
+                            };
+                        };
+                    }[];
+                    /** @description PluginDefinition is the name of the PluginDefinition this instance is for. */
+                    pluginDefinition: string;
+                    /** @description ReleaseNamespace is the namespace in the remote cluster to which the backend is deployed.\nDefaults to the Greenhouse managed namespace if not set. */
+                    releaseNamespace?: string;
+                };
+            };
+            /** @description PluginPresetStatus defines the observed state of PluginPreset */
+            status?: {
+                /** @description AvailablePlugins is the number of available Plugins managed by the PluginPreset. */
+                availablePlugins?: number;
+                /** @description FailedPlugins is the number of failed Plugins managed by the PluginPreset. */
+                failedPlugins?: number;
+                /** @description PluginStatuses contains statuses of Plugins managed by the PluginPreset. */
+                pluginStatuses?: {
+                    pluginName?: string;
+                    /** @description Condition contains additional information on the state of a resource. */
+                    readyCondition?: {
+                        /**
+                         * Format: date-time
+                         * @description LastTransitionTime is the last time the condition transitioned from one status to another.
+                         */
+                        lastTransitionTime: string;
+                        /** @description Message is an optional human readable message indicating details about the last transition. */
+                        message?: string;
+                        /** @description Reason is a one-word, CamelCase reason for the condition's last transition. */
+                        reason?: string;
+                        /** @description Status of the condition. */
+                        status: string;
+                        /** @description Type of the condition. */
+                        type: string;
+                    };
+                }[];
+                /** @description ReadyPlugins is the number of ready Plugins managed by the PluginPreset. */
+                readyPlugins?: number;
+                /** @description StatusConditions contain the different conditions that constitute the status of the PluginPreset. */
+                statusConditions?: {
+                    conditions?: {
+                        /**
+                         * Format: date-time
+                         * @description LastTransitionTime is the last time the condition transitioned from one status to another.
+                         */
+                        lastTransitionTime: string;
+                        /** @description Message is an optional human readable message indicating details about the last transition. */
+                        message?: string;
+                        /** @description Reason is a one-word, CamelCase reason for the condition's last transition. */
+                        reason?: string;
+                        /** @description Status of the condition. */
+                        status: string;
+                        /** @description Type of the condition. */
+                        type: string;
+                    }[];
+                };
+            };
+        };
+        /**
+         * Team
+         * @description Team is the Schema for the teams API
+         */
+        Team: {
+            /** @description APIVersion defines the versioned schema of this representation of an object.\nServers should convert recognized schemas to the latest internal value, and\nmay reject unrecognized values.\nMore info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources */
+            apiVersion?: string;
+            /** @description Kind is a string value representing the REST resource this object represents.\nServers may infer this from the endpoint the client submits requests to.\nCannot be updated.\nIn CamelCase.\nMore info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds */
+            kind?: string;
+            metadata?: {
+                name?: string;
+                namespace?: string;
+                /** Format: uuid */
+                uid?: string;
+                resourceVersion?: string;
+                /** Format: date-time */
+                creationTimestamp?: string;
+                /** Format: date-time */
+                deletionTimestamp?: string;
+                labels?: {
+                    [key: string]: string;
+                };
+                annotations?: {
+                    [key: string]: string;
+                };
+            };
+            /** @description TeamSpec defines the desired state of Team */
+            spec?: {
+                /** @description Description provides additional details of the team. */
+                description?: string;
+                /** @description URL to join the IdP group. */
+                joinUrl?: string;
+                /** @description IdP group id matching team. */
+                mappedIdPGroup?: string;
+            };
+            /** @description TeamStatus defines the observed state of Team */
+            status?: {
+                members?: {
+                    /** @description Email of the user. */
+                    email: string;
+                    /** @description FirstName of the user. */
+                    firstName: string;
+                    /** @description ID is the unique identifier of the user. */
+                    id: string;
+                    /** @description LastName of the user. */
+                    lastName: string;
+                }[];
+                /** @description A StatusConditions contains a list of conditions.\nOnly one condition of a given type may exist in the list. */
+                statusConditions: {
+                    conditions?: {
+                        /**
+                         * Format: date-time
+                         * @description LastTransitionTime is the last time the condition transitioned from one status to another.
+                         */
+                        lastTransitionTime: string;
+                        /** @description Message is an optional human readable message indicating details about the last transition. */
+                        message?: string;
+                        /** @description Reason is a one-word, CamelCase reason for the condition's last transition. */
+                        reason?: string;
+                        /** @description Status of the condition. */
+                        status: string;
+                        /** @description Type of the condition. */
+                        type: string;
+                    }[];
+                };
+            };
+        };
+        /**
+         * TeamRoleBinding
+         * @description TeamRoleBinding is the Schema for the rolebindings API
+         */
+        TeamRoleBinding: {
+            /** @description APIVersion defines the versioned schema of this representation of an object.\nServers should convert recognized schemas to the latest internal value, and\nmay reject unrecognized values.\nMore info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources */
+            apiVersion?: string;
+            /** @description Kind is a string value representing the REST resource this object represents.\nServers may infer this from the endpoint the client submits requests to.\nCannot be updated.\nIn CamelCase.\nMore info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds */
+            kind?: string;
+            metadata?: {
+                name?: string;
+                namespace?: string;
+                /** Format: uuid */
+                uid?: string;
+                resourceVersion?: string;
+                /** Format: date-time */
+                creationTimestamp?: string;
+                /** Format: date-time */
+                deletionTimestamp?: string;
+                labels?: {
+                    [key: string]: string;
+                };
+                annotations?: {
+                    [key: string]: string;
+                };
+            };
+            /** @description TeamRoleBindingSpec defines the desired state of a TeamRoleBinding */
+            spec?: {
+                /** @description ClusterName is the name of the cluster the rbacv1 resources are created on. */
+                clusterName?: string;
+                /** @description ClusterSelector is a label selector to select the Clusters the TeamRoleBinding should be deployed to. */
+                clusterSelector?: {
+                    /** @description matchExpressions is a list of label selector requirements. The requirements are ANDed. */
+                    matchExpressions?: {
+                        /** @description key is the label key that the selector applies to. */
+                        key: string;
+                        /** @description operator represents a key's relationship to a set of values.\nValid operators are In, NotIn, Exists and DoesNotExist. */
+                        operator: string;
+                        /** @description values is an array of string values. If the operator is In or NotIn,\nthe values array must be non-empty. If the operator is Exists or DoesNotExist,\nthe values array must be empty. This array is replaced during a strategic\nmerge patch. */
+                        values?: string[];
+                    }[];
+                    /** @description matchLabels is a map of {key,value} pairs. A single {key,value} in the matchLabels\nmap is equivalent to an element of matchExpressions, whose key field is "key", the\noperator is "In", and the values array contains only "value". The requirements are ANDed. */
+                    matchLabels?: {
+                        [key: string]: string;
+                    };
+                };
+                /**
+                 * @description CreateNamespaces when enabled the controller will create namespaces for RoleBindings if they do not exist.
+                 * @default false
+                 */
+                createNamespaces: boolean;
+                /** @description Namespaces is a list of namespaces in the Greenhouse Clusters to apply the RoleBinding to.\nIf empty, a ClusterRoleBinding will be created on the remote cluster, otherwise a RoleBinding per namespace. */
+                namespaces?: string[];
+                /** @description TeamRef references a Greenhouse Team by name */
+                teamRef?: string;
+                /** @description TeamRoleRef references a Greenhouse TeamRole by name */
+                teamRoleRef?: string;
+                /** @description Usernames defines list of users to add to the (Cluster-)RoleBindings */
+                usernames?: string[];
+            };
+            /** @description TeamRoleBindingStatus defines the observed state of the TeamRoleBinding */
+            status?: {
+                /** @description PropagationStatus is the list of clusters the TeamRoleBinding is applied to */
+                clusters?: {
+                    /** @description ClusterName is the name of the cluster the rbacv1 resources are created on. */
+                    clusterName: string;
+                    /** @description Condition is the overall Status of the rbacv1 resources created on the cluster */
+                    condition?: {
+                        /**
+                         * Format: date-time
+                         * @description LastTransitionTime is the last time the condition transitioned from one status to another.
+                         */
+                        lastTransitionTime: string;
+                        /** @description Message is an optional human readable message indicating details about the last transition. */
+                        message?: string;
+                        /** @description Reason is a one-word, CamelCase reason for the condition's last transition. */
+                        reason?: string;
+                        /** @description Status of the condition. */
+                        status: string;
+                        /** @description Type of the condition. */
+                        type: string;
+                    };
+                }[];
+                /** @description StatusConditions contain the different conditions that constitute the status of the TeamRoleBinding. */
+                statusConditions?: {
+                    conditions?: {
+                        /**
+                         * Format: date-time
+                         * @description LastTransitionTime is the last time the condition transitioned from one status to another.
+                         */
+                        lastTransitionTime: string;
+                        /** @description Message is an optional human readable message indicating details about the last transition. */
+                        message?: string;
+                        /** @description Reason is a one-word, CamelCase reason for the condition's last transition. */
+                        reason?: string;
+                        /** @description Status of the condition. */
+                        status: string;
+                        /** @description Type of the condition. */
+                        type: string;
+                    }[];
+                };
+            };
+        };
+        /**
+         * Plugin
+         * @description Plugin is the Schema for the plugins API
+         */
+        Plugin: {
+            /** @description APIVersion defines the versioned schema of this representation of an object.\nServers should convert recognized schemas to the latest internal value, and\nmay reject unrecognized values.\nMore info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources */
+            apiVersion?: string;
+            /** @description Kind is a string value representing the REST resource this object represents.\nServers may infer this from the endpoint the client submits requests to.\nCannot be updated.\nIn CamelCase.\nMore info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds */
+            kind?: string;
+            metadata?: {
+                name?: string;
+                namespace?: string;
+                /** Format: uuid */
+                uid?: string;
+                resourceVersion?: string;
+                /** Format: date-time */
+                creationTimestamp?: string;
+                /** Format: date-time */
+                deletionTimestamp?: string;
+                labels?: {
+                    [key: string]: string;
+                };
+                annotations?: {
+                    [key: string]: string;
+                };
+            };
+            /** @description PluginSpec defines the desired state of Plugin */
+            spec?: {
+                /** @description ClusterName is the name of the cluster the plugin is deployed to. If not set, the plugin is deployed to the greenhouse cluster. */
+                clusterName?: string;
+                /** @description DisplayName is an optional name for the Plugin to be displayed in the Greenhouse UI.\nThis is especially helpful to distinguish multiple instances of a PluginDefinition in the same context.\nDefaults to a normalized version of metadata.name. */
+                displayName?: string;
+                /** @description Values are the values for a PluginDefinition instance. */
+                optionValues?: {
+                    /** @description Name of the values. */
+                    name: string;
+                    /** @description Value is the actual value in plain text. */
+                    value?: unknown;
+                    /** @description ValueFrom references a potentially confidential value in another source. */
+                    valueFrom?: {
+                        /** @description Secret references the secret containing the value. */
+                        secret?: {
+                            /** @description Key in the secret to select the value from. */
+                            key: string;
+                            /** @description Name of the secret in the same namespace. */
+                            name: string;
+                        };
+                    };
+                }[];
+                /** @description PluginDefinition is the name of the PluginDefinition this instance is for. */
+                pluginDefinition: string;
+                /** @description ReleaseNamespace is the namespace in the remote cluster to which the backend is deployed.\nDefaults to the Greenhouse managed namespace if not set. */
+                releaseNamespace?: string;
+            };
+            /** @description PluginStatus defines the observed state of Plugin */
+            status?: {
+                /** @description Description provides additional details of the plugin. */
+                description?: string;
+                /** @description ExposedServices provides an overview of the Plugins services that are centrally exposed.\nIt maps the exposed URL to the service found in the manifest. */
+                exposedServices?: {
+                    [key: string]: {
+                        /** @description Name is the name of the service in the target cluster. */
+                        name: string;
+                        /** @description Namespace is the namespace of the service in the target cluster. */
+                        namespace: string;
+                        /**
+                         * Format: int32
+                         * @description Port is the port of the service.
+                         */
+                        port: number;
+                        /** @description Protocol is the protocol of the service. */
+                        protocol?: string;
+                    };
+                };
+                /** @description HelmChart contains a reference the helm chart used for the deployed pluginDefinition version. */
+                helmChart?: {
+                    /** @description Name of the HelmChart chart. */
+                    name: string;
+                    /** @description Repository of the HelmChart chart. */
+                    repository: string;
+                    /** @description Version of the HelmChart chart. */
+                    version: string;
+                };
+                /** @description HelmReleaseStatus reflects the status of the latest HelmChart release.\nThis is only configured if the pluginDefinition is backed by HelmChart. */
+                helmReleaseStatus?: {
+                    /** @description Diff contains the difference between the deployed helm chart and the helm chart in the last reconciliation */
+                    diff?: string;
+                    /**
+                     * Format: date-time
+                     * @description FirstDeployed is the timestamp of the first deployment of the release.
+                     */
+                    firstDeployed?: string;
+                    /**
+                     * Format: date-time
+                     * @description LastDeployed is the timestamp of the last deployment of the release.
+                     */
+                    lastDeployed?: string;
+                    /** @description PluginOptionChecksum is the checksum of plugin option values. */
+                    pluginOptionChecksum?: string;
+                    /** @description Status is the status of a HelmChart release. */
+                    status: string;
+                };
+                /** @description StatusConditions contain the different conditions that constitute the status of the Plugin. */
+                statusConditions?: {
+                    conditions?: {
+                        /**
+                         * Format: date-time
+                         * @description LastTransitionTime is the last time the condition transitioned from one status to another.
+                         */
+                        lastTransitionTime: string;
+                        /** @description Message is an optional human readable message indicating details about the last transition. */
+                        message?: string;
+                        /** @description Reason is a one-word, CamelCase reason for the condition's last transition. */
+                        reason?: string;
+                        /** @description Status of the condition. */
+                        status: string;
+                        /** @description Type of the condition. */
+                        type: string;
+                    }[];
+                };
+                /** @description UIApplication contains a reference to the frontend that is used for the deployed pluginDefinition version. */
+                uiApplication?: {
+                    /** @description Name of the UI application. */
+                    name: string;
+                    /** @description URL specifies the url to a built javascript asset.\nBy default, assets are loaded from the Juno asset server using the provided name and version. */
+                    url?: string;
+                    /** @description Version of the frontend application. */
+                    version: string;
+                };
+                /** @description Version contains the latest pluginDefinition version the config was last applied with successfully. */
+                version?: string;
+                /**
+                 * Format: int32
+                 * @description Weight configures the order in which Plugins are shown in the Greenhouse UI.
+                 */
+                weight?: number;
+            };
+        };
+        /**
+         * PluginDefinition
+         * @description PluginDefinition is the Schema for the PluginDefinitions API
+         */
+        PluginDefinition: {
+            /** @description APIVersion defines the versioned schema of this representation of an object.\nServers should convert recognized schemas to the latest internal value, and\nmay reject unrecognized values.\nMore info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources */
+            apiVersion?: string;
+            /** @description Kind is a string value representing the REST resource this object represents.\nServers may infer this from the endpoint the client submits requests to.\nCannot be updated.\nIn CamelCase.\nMore info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds */
+            kind?: string;
+            metadata?: {
+                name?: string;
+                namespace?: string;
+                /** Format: uuid */
+                uid?: string;
+                resourceVersion?: string;
+                /** Format: date-time */
+                creationTimestamp?: string;
+                /** Format: date-time */
+                deletionTimestamp?: string;
+                labels?: {
+                    [key: string]: string;
+                };
+                annotations?: {
+                    [key: string]: string;
+                };
+            };
+            /** @description PluginDefinitionSpec defines the desired state of PluginDefinitionSpec */
+            spec?: {
+                /** @description Description provides additional details of the pluginDefinition. */
+                description?: string;
+                /** @description DisplayName provides a human-readable label for the pluginDefinition. */
+                displayName?: string;
+                /** @description DocMarkDownUrl specifies the URL to the markdown documentation file for this plugin.\nSource needs to allow all CORS origins. */
+                docMarkDownUrl?: string;
+                /** @description HelmChart specifies where the Helm Chart for this pluginDefinition can be found. */
+                helmChart?: {
+                    /** @description Name of the HelmChart chart. */
+                    name: string;
+                    /** @description Repository of the HelmChart chart. */
+                    repository: string;
+                    /** @description Version of the HelmChart chart. */
+                    version: string;
+                };
+                /** @description Icon specifies the icon to be used for this plugin in the Greenhouse UI.\nIcons can be either:\n- A string representing a juno icon in camel case from this list: https://github.com/sapcc/juno/blob/main/libs/juno-ui-components/src/components/Icon/Icon.component.js#L6-L52\n- A publicly accessible image reference to a .png file. Will be displayed 100x100px */
+                icon?: string;
+                /** @description RequiredValues is a list of values required to create an instance of this PluginDefinition. */
+                options?: {
+                    /** @description Default provides a default value for the option */
+                    default?: unknown;
+                    /** @description Description provides a human-readable text for the value as shown in the UI. */
+                    description?: string;
+                    /** @description DisplayName provides a human-readable label for the configuration option */
+                    displayName?: string;
+                    /** @description Name/Key of the config option. */
+                    name: string;
+                    /** @description Regex specifies a match rule for validating configuration options. */
+                    regex?: string;
+                    /** @description Required indicates that this config option is required */
+                    required: boolean;
+                    /**
+                     * @description Type of this configuration option.
+                     * @enum {string}
+                     */
+                    type: "string" | "secret" | "bool" | "int" | "list" | "map";
+                }[];
+                /** @description UIApplication specifies a reference to a UI application */
+                uiApplication?: {
+                    /** @description Name of the UI application. */
+                    name: string;
+                    /** @description URL specifies the url to a built javascript asset.\nBy default, assets are loaded from the Juno asset server using the provided name and version. */
+                    url?: string;
+                    /** @description Version of the frontend application. */
+                    version: string;
+                };
+                /** @description Version of this pluginDefinition */
+                version: string;
+                /**
+                 * Format: int32
+                 * @description Weight configures the order in which Plugins are shown in the Greenhouse UI.\nDefaults to alphabetical sorting if not provided or on conflict.
+                 */
+                weight?: number;
+            };
+            /** @description PluginDefinitionStatus defines the observed state of PluginDefinition */
+            status?: Record<string, never>;
+        };
     };
     responses: never;
     parameters: never;

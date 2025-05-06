@@ -236,7 +236,7 @@ func StartControlPlane(port string, installCRDs, installWebhooks bool) (*rest.Co
 	}
 	if installWebhooks {
 		webhookInstallOptions := envtest.WebhookInstallOptions{
-			Paths: []string{filepath.Join(absPathConfigBasePath, "manager", "templates", "webhooks.yaml")},
+			Paths: []string{filepath.Join(absPathConfigBasePath, "manager", "templates", "webhook", "webhooks.yaml")},
 		}
 		testEnv.WebhookInstallOptions = webhookInstallOptions
 	}
