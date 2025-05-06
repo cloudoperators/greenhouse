@@ -81,10 +81,8 @@ func (s Shell) checkEmptyCommand() error {
 }
 
 func setVars(exec *gexe.Echo, vars map[string]string) {
-	if vars != nil {
-		for k, v := range vars {
-			exec.SetVar(k, v)
-		}
+	for k, v := range vars {
+		exec.SetVar(k, v)
 	}
 }
 
