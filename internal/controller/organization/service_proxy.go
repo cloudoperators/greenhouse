@@ -140,7 +140,7 @@ func (r *OrganizationReconciler) reconcileServiceProxy(ctx context.Context, org 
 				},
 				{
 					Name:  "oauth2proxy.cookieSecretRef.secret",
-					Value: &apiextensionsv1.JSON{Raw: []byte(fmt.Sprintf("\"%s\"", org.Spec.Authentication.OIDCConfig.ClientSecretReference.Name))},
+					Value: &apiextensionsv1.JSON{Raw: []byte(fmt.Sprintf("\"%s\"", org.Name+technicalSecretSuffix))},
 				},
 				{
 					Name:  "oauth2proxy.cookieSecretRef.key",
