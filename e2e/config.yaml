@@ -14,7 +14,7 @@ config:
           chartPath: charts/manager
           valuesPath: dev-env/dev.values.yaml
           excludeKinds:
-            - Job
+            - Job # exclude kube-webhook-cert-gen Job (managed by cert-manager)
           crdOnly: false
           webhook:
             devMode: false
