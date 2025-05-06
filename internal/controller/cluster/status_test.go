@@ -15,6 +15,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
 
 	greenhouseapis "github.com/cloudoperators/greenhouse/api"
+	greenhousemetav1alpha1 "github.com/cloudoperators/greenhouse/api/meta/v1alpha1"
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
 	"github.com/cloudoperators/greenhouse/internal/lifecycle"
 	"github.com/cloudoperators/greenhouse/internal/test"
@@ -192,7 +193,7 @@ var _ = Describe("Cluster status", Ordered, func() {
 		Eventually(func(g Gomega) bool {
 			g.Expect(test.K8sClient.Get(test.Ctx, types.NamespacedName{Name: validCluster.Name, Namespace: setup.Namespace()}, &validCluster)).ShouldNot(HaveOccurred(), "There should be no error getting the cluster resource")
 			g.Expect(validCluster.Status.StatusConditions).ToNot(BeNil())
-			readyCondition := validCluster.Status.GetConditionByType(greenhousev1alpha1.ReadyCondition)
+			readyCondition := validCluster.Status.GetConditionByType(greenhousemetav1alpha1.ReadyCondition)
 			g.Expect(readyCondition).ToNot(BeNil(), "The ClusterReady condition should be present")
 			g.Expect(readyCondition.Status).To(Equal(metav1.ConditionTrue))
 			g.Expect(validCluster.Status.KubernetesVersion).ToNot(BeNil())
@@ -210,7 +211,7 @@ var _ = Describe("Cluster status", Ordered, func() {
 			g.Expect(kubeConfigValidCondition).ToNot(BeNil(), "The KubeConfigValid condition should be present")
 			g.Expect(kubeConfigValidCondition.Status).To(Equal(metav1.ConditionFalse))
 			g.Expect(kubeConfigValidCondition.Message).To(ContainSubstring("Secret \"" + invalidCluster.Name + "\" not found"))
-			readyCondition := invalidCluster.Status.GetConditionByType(greenhousev1alpha1.ReadyCondition)
+			readyCondition := invalidCluster.Status.GetConditionByType(greenhousemetav1alpha1.ReadyCondition)
 			g.Expect(readyCondition).ToNot(BeNil(), "The ClusterReady condition should be present")
 			g.Expect(readyCondition.Status).To(Equal(metav1.ConditionFalse))
 			return true
@@ -228,8 +229,8 @@ var _ = Describe("Cluster status", Ordered, func() {
 		By("checking the deletion condition")
 		Eventually(func(g Gomega) bool {
 			g.Expect(test.K8sClient.Get(test.Ctx, types.NamespacedName{Name: validCluster.Name, Namespace: setup.Namespace()}, &validCluster)).ShouldNot(HaveOccurred(), "There should be no error getting the cluster resource")
-			g.Expect(validCluster.Status.GetConditionByType(greenhousev1alpha1.DeleteCondition)).ToNot(BeNil(), "The Delete condition should be present")
-			g.Expect(validCluster.Status.GetConditionByType(greenhousev1alpha1.DeleteCondition).Reason).To(Equal(lifecycle.ScheduledDeletionReason))
+			g.Expect(validCluster.Status.GetConditionByType(greenhousemetav1alpha1.DeleteCondition)).ToNot(BeNil(), "The Delete condition should be present")
+			g.Expect(validCluster.Status.GetConditionByType(greenhousemetav1alpha1.DeleteCondition).Reason).To(Equal(lifecycle.ScheduledDeletionReason))
 			return true
 		}).Should(BeTrue())
 	})
