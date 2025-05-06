@@ -32,7 +32,7 @@ func (trb *TeamRoleBinding) ConvertTo(dstRaw conversion.Hub) error {
 	// Status
 	dst.Status.StatusConditions = trb.Status.StatusConditions
 
-	dstPropagationStatus := make([]v1alpha2.PropagationStatus, 0, len(trb.Status.PropagationStatus))
+	dstPropagationStatus := make([]v1alpha2.PropagationStatus, len(trb.Status.PropagationStatus))
 	for i, v := range trb.Status.PropagationStatus {
 		dstPropagationStatus[i] = v1alpha2.PropagationStatus{
 			ClusterName: v.ClusterName,
@@ -44,7 +44,7 @@ func (trb *TeamRoleBinding) ConvertTo(dstRaw conversion.Hub) error {
 	return nil
 }
 
-// ConvertFrom converts from the Hub version (v1alpha1) to this version.
+// ConvertFrom converts from the Hub version (v1alpha2) to this version.
 func (trb *TeamRoleBinding) ConvertFrom(srcRaw conversion.Hub) error {
 	src := srcRaw.(*v1alpha2.TeamRoleBinding) //nolint:errcheck
 
@@ -64,7 +64,7 @@ func (trb *TeamRoleBinding) ConvertFrom(srcRaw conversion.Hub) error {
 
 	// Status
 	trb.Status.StatusConditions = src.Status.StatusConditions
-	dstPropagationStatus := make([]PropagationStatus, 0, len(src.Status.PropagationStatus))
+	dstPropagationStatus := make([]PropagationStatus, len(src.Status.PropagationStatus))
 	for i, v := range src.Status.PropagationStatus {
 		dstPropagationStatus[i] = PropagationStatus{
 			ClusterName: v.ClusterName,
