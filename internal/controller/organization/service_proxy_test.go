@@ -17,7 +17,7 @@ import (
 	"github.com/cloudoperators/greenhouse/internal/test"
 )
 
-var _ = FDescribe("Organization ServiceProxyReconciler", Ordered, func() {
+var _ = Describe("Organization ServiceProxyReconciler", Ordered, func() {
 	var serviceProxyPluginDefinition = &greenhousev1alpha1.PluginDefinition{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "PluginDefinition",
