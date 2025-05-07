@@ -7,7 +7,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 
-	"github.com/cloudoperators/greenhouse/api/meta/v1alpha1"
 	greenhousemetav1alpha1 "github.com/cloudoperators/greenhouse/api/meta/v1alpha1"
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
 )
@@ -152,6 +151,6 @@ func (in *Dummy) GetConditions() greenhousemetav1alpha1.StatusConditions {
 	return in.Status.StatusConditions
 }
 
-func (in *Dummy) SetCondition(condition v1alpha1.Condition) {
+func (in *Dummy) SetCondition(condition greenhousemetav1alpha1.Condition) {
 	in.Status.SetConditions(condition)
 }
