@@ -267,6 +267,7 @@ setup-dashboard: cli
 
 .PHONY: setup-demo
 setup-demo: prepare-e2e samples
+	kubectl config use-context kind-$(ADMIN_CLUSTER)
 	kubectl create secret generic kind-$(REMOTE_CLUSTER) \
 		--from-literal=kubeconfig="$$(cat ${PWD}/bin/$(REMOTE_CLUSTER)$(INTERNAL).kubeconfig)" \
 		--namespace=$(GREENHOUSE_ORG) \
@@ -334,5 +335,5 @@ mockery:
 .PHONY: cert-manager
 cert-manager: kustomize
 	helm repo add jetstack https://charts.jetstack.io
-	helm upgrade --namespace cert-manager --version $(CERT_MANAGER_VERSION) --install cert-manager jetstack/cert-manager --set installCRDs=true --create-namespace
+	helm upgrade --namespace cert-manager --version $(CERT_MANAGER_VERSION) --install cert-manager jetstack/cert-manager --set crds.enabled=true --create-namespace
 	-$(KUSTOMIZE) build config/samples/cert-manager | kubectl apply -f -
