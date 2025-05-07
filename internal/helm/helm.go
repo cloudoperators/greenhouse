@@ -416,8 +416,14 @@ func installRelease(ctx context.Context, local client.Client, restClientGetter g
 	if err != nil {
 		return nil, err
 	}
+	// releaseName is only defaulted once the Plugin goes through admission again.
+	// for existing plugins, the releaseName is set to the plugin name.
+	releaseName := plugin.Name
+	if plugin.Spec.ReleaseName != "" {
+		releaseName = plugin.Spec.ReleaseName
+	}
 	installAction := action.NewInstall(cfg)
-	installAction.ReleaseName = plugin.Name
+	installAction.ReleaseName = releaseName
 	installAction.Namespace = plugin.Spec.ReleaseNamespace
 	installAction.Timeout = GetHelmTimeout() // set a timeout for the installation to not be stuck in pending state
 	installAction.CreateNamespace = true
