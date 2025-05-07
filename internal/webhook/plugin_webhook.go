@@ -77,6 +77,24 @@ func DefaultPlugin(ctx context.Context, c client.Client, obj runtime.Object) err
 	if plugin.Spec.ReleaseNamespace == "" {
 		plugin.Spec.ReleaseNamespace = plugin.GetNamespace()
 	}
+	// Default the ReleaseName.
+	if plugin.Spec.ReleaseName == "" {
+		if plugin.Status.HelmReleaseStatus != nil {
+			// The Plugin was already deployed, use the Plugin's name as the release name.
+			// This is the legacy behavior and needs to be honored to not break existing deployments.
+			plugin.Spec.ReleaseName = plugin.Name
+		} else {
+			// The Plugin is newly created, use the PluginDefinition's HelmChart name as the release name.
+			pluginDefinition := new(greenhousev1alpha1.PluginDefinition)
+			err := c.Get(ctx, client.ObjectKey{Namespace: "", Name: plugin.Spec.PluginDefinition}, pluginDefinition)
+			if err != nil {
+				return err
+			}
+			if pluginDefinition.Spec.HelmChart != nil {
+				plugin.Spec.ReleaseName = pluginDefinition.Spec.HelmChart.Name
+			}
+		}
+	}
 	return nil
 }
 
@@ -139,6 +157,12 @@ func ValidateUpdatePlugin(ctx context.Context, c client.Client, old, obj runtime
 
 	allErrs = append(allErrs, validation.ValidateImmutableField(oldPlugin.Spec.ReleaseNamespace, plugin.Spec.ReleaseNamespace,
 		field.NewPath("spec", "releaseNamespace"))...)
+
+	if oldPlugin.Spec.ReleaseName == "" && plugin.Status.HelmReleaseStatus != nil {
+		if plugin.Name != plugin.Spec.ReleaseName {
+			allErrs = append(allErrs, field.Forbidden(field.NewPath("spec").Child("releaseName"), "ReleaseName for existing Plugin cannot be changed"))
+		}
+	}
 
 	return allWarns, allErrs.ToAggregate()
 }

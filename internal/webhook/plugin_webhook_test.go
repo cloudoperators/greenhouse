@@ -4,6 +4,7 @@
 package admission
 
 import (
+	"context"
 	"errors"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -15,6 +16,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	"k8s.io/utils/ptr"
+	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	greenhouseapis "github.com/cloudoperators/greenhouse/api"
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
@@ -246,6 +248,15 @@ var _ = Describe("Validate plugin spec fields", Ordered, func() {
 		expectReleaseNamespaceMustMatchError(test.K8sClient.Create(test.Ctx, testPlugin))
 	})
 
+	It("should not accept a plugin if the releaseNamespace changes", func() {
+		testPlugin = setup.CreatePlugin(test.Ctx, "test-plugin", test.WithPluginDefinition(testPluginDefinition.Name), test.WithCluster(testCluster.Name), test.WithReleaseNamespace("test-namespace"))
+
+		By("updating the plugin with a different releaseNamespace")
+		testPlugin.Spec.ReleaseNamespace = "new-namespace"
+		err := test.K8sClient.Update(test.Ctx, testPlugin)
+		Expect(err).To(HaveOccurred(), "there should be an error updating the plugin")
+	})
+
 	It("should reject the plugin when the cluster with clusterName does not exist", func() {
 		By("creating the plugin")
 		testPlugin = test.NewPlugin(test.Ctx, "test-plugin", setup.Namespace(), test.WithPluginDefinition(testPluginDefinition.Name), test.WithCluster("non-existent-cluster"), test.WithReleaseNamespace("test-namespace"))
@@ -371,5 +382,52 @@ var _ = Describe("Validate Plugin with OwnerReference from PluginPresets", func(
 	It("should return no warning if the Plugin has no OwnerReference from a PluginPreset", func() {
 		warnings := validateOwnerReference(testPlugin)
 		Expect(warnings).To(BeNil(), "expected no warning, got %v", warnings)
+	})
+})
+
+var _ = Describe("Validation and defaulting of releaseName", func() {
+	var (
+		testPlugin       *greenhousev1alpha1.Plugin
+		pluginDefinition *greenhousev1alpha1.PluginDefinition
+	)
+
+	BeforeEach(func() {
+		pluginDefinition = test.NewPluginDefinition(test.Ctx, "test-definition", "", test.WithHelmChart(&greenhousev1alpha1.HelmChartReference{Name: "test-helm-chart"}))
+
+		testPlugin = test.NewPlugin(test.Ctx, "test-plugin", "testing", test.WithPluginDefinition("test-definition"))
+		// ensure the Plugin is in the deployed state
+		testPlugin.Status.HelmReleaseStatus = &greenhousev1alpha1.HelmReleaseStatus{
+			Status: "deployed",
+		}
+	})
+
+	It("should default releaseName to the Plugin Name if previously deployed", func() {
+		fakeClient := fake.NewClientBuilder().WithScheme(test.GreenhouseV1Alpha1Scheme()).WithObjects(pluginDefinition).Build()
+		// Call the DefaultPlugin function
+		err := DefaultPlugin(context.TODO(), fakeClient, testPlugin)
+		Expect(err).ToNot(HaveOccurred(), "there should be no error defaulting the plugin")
+
+		// Assert that the releaseName is set to the existing Helm release name
+		Expect(testPlugin.Spec.ReleaseName).To(Equal(testPlugin.Name), "releaseName should be defaulted to the Plugin name")
+	})
+	It("should default releaseName to the Helm chart name from the PluginDefinition if not set and no Helm release exists", func() {
+		fakeClient := fake.NewClientBuilder().WithScheme(test.GreenhouseV1Alpha1Scheme()).WithObjects(pluginDefinition).Build()
+		testPlugin.Status.HelmReleaseStatus = nil // No existing Helm release
+		testPlugin.Spec.ReleaseName = ""          // ReleaseName not set
+
+		// Call the DefaultPlugin function
+		err := DefaultPlugin(context.TODO(), fakeClient, testPlugin)
+		Expect(err).ToNot(HaveOccurred(), "there should be no error defaulting the plugin")
+
+		// Assert that the releaseName is set to the Helm chart name
+		Expect(testPlugin.Spec.ReleaseName).To(Equal("test-helm-chart"), "releaseName should be defaulted to the Helm chart name from the PluginDefinition")
+	})
+
+	It("should not allow arbitrary releaseName if Plugin already deployed", func() {
+		fakeClient := fake.NewClientBuilder().WithScheme(test.GreenhouseV1Alpha1Scheme()).WithObjects(testPlugin, pluginDefinition).Build()
+		cut := testPlugin.DeepCopy()
+		cut.Spec.ReleaseName = "arbitrary-release-name"
+		_, err := ValidateUpdatePlugin(test.Ctx, fakeClient, testPlugin, cut)
+		Expect(err).To(HaveOccurred(), "there should be an error updating the plugin")
 	})
 })

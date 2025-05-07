@@ -29,6 +29,14 @@ type PluginSpec struct {
 	// ReleaseNamespace is the namespace in the remote cluster to which the backend is deployed.
 	// Defaults to the Greenhouse managed namespace if not set.
 	ReleaseNamespace string `json:"releaseNamespace,omitempty"`
+
+	// ReleaseName is the name of the helm release in the remote cluster to which the backend is deployed.
+	// If the Plugin was already deployed, the Plugin's name is used as the release name.
+	// If this Plugin is newly created, the releaseName is defaulted to the PluginDefinitions HelmChart name.
+	// +kubebuilder:validation:Optional
+	// +kubebuilder:validation:XValidation:rule="self == oldSelf",message="ReleaseName is immutable"
+	// +kubebuilder:validation:MaxLength=53
+	ReleaseName string `json:"releaseName,omitempty"`
 }
 
 // PluginOptionValue is the value for a PluginOption.
@@ -143,6 +151,7 @@ type HelmReleaseStatus struct {
 //+kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp"
 
 // Plugin is the Schema for the plugins API
+// +kubebuilder:validation:XValidation:rule="!has(oldSelf.spec.releaseName) || has(self.spec.releaseName)", message="ReleaseName is required once set"
 type Plugin struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
