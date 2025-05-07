@@ -8,16 +8,23 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/cloudoperators/greenhouse/internal/local/klient"
 	"github.com/cloudoperators/greenhouse/internal/local/utils"
 )
 
+type PostSetupAction struct {
+	Command string            `yaml:"command" json:"command"`
+	Vars    map[string]string `yaml:"vars" json:"vars"`
+}
+
 type Cluster struct {
-	Name           string  `yaml:"name" json:"name"`
-	Namespace      *string `yaml:"namespace" json:"namespace"`
-	Version        string  `yaml:"version" json:"version"`
-	ConfigPath     string  `yaml:"configPath" json:"configPath"`
+	Name           string            `yaml:"name" json:"name"`
+	Namespace      *string           `yaml:"namespace" json:"namespace"`
+	Version        string            `yaml:"version" json:"version"`
+	ConfigPath     string            `yaml:"configPath" json:"configPath"`
+	PostSetup      []PostSetupAction `yaml:"postSetup" json:"postSetup"`
 	kubeConfigPath string
 }
 
@@ -40,7 +47,7 @@ func clusterSetup(env *ExecutionEnv) error {
 		return err
 	}
 	env.info = append(env.info, fmt.Sprintf("cluster %s - kubeconfig: %s", env.cluster.Name, env.cluster.kubeConfigPath))
-	return nil
+	return env.cluster.executePostSetup()
 }
 
 // clusterDelete - deletes a kind Cluster with a given name
@@ -71,4 +78,40 @@ func (c *Cluster) createNamespace() error {
 		return nil
 	}
 	return klient.CreateNamespace(*c.Namespace, c.kubeConfigPath)
+}
+
+// executePostSetup - executes post setup actions on the cluster as defined in the configuration file
+// piped shell commands are converted to ShellPipe type
+// NOTE: output redirects to file are not supported
+func (c *Cluster) executePostSetup() error {
+	if len(c.PostSetup) == 0 {
+		return nil
+	}
+	var err error
+	for _, action := range c.PostSetup {
+		if action.Vars != nil {
+			action.Vars["kubeconfig"] = c.kubeConfigPath
+		}
+		shells := make([]utils.Shell, 0)
+		commands := strings.Split(action.Command, "|")
+		if len(commands) > 1 {
+			for _, cmd := range commands {
+				shells = append(shells, utils.Shell{
+					Cmd:  strings.TrimSpace(cmd),
+					Vars: action.Vars,
+				})
+			}
+			err = utils.ShellPipe{Shells: shells}.Exec()
+		} else {
+			err = utils.Shell{
+				Cmd:  action.Command,
+				Vars: action.Vars,
+			}.Exec()
+		}
+		if err != nil {
+			utils.Logf("post setup acction error: %s", err.Error())
+			break
+		}
+	}
+	return err
 }
