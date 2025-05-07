@@ -27,7 +27,9 @@ func (trb *TeamRoleBinding) ConvertTo(dstRaw conversion.Hub) error {
 	// Spec
 	dst.Spec.TeamRoleRef = trb.Spec.TeamRoleRef
 	dst.Spec.TeamRef = trb.Spec.TeamRef
+	dst.Spec.Usernames = trb.Spec.Usernames
 	dst.Spec.Namespaces = trb.Spec.Namespaces
+	dst.Spec.CreateNamespaces = trb.Spec.CreateNamespaces
 
 	// Status
 	dst.Status.StatusConditions = trb.Status.StatusConditions
@@ -60,7 +62,9 @@ func (trb *TeamRoleBinding) ConvertFrom(srcRaw conversion.Hub) error {
 	// Spec
 	trb.Spec.TeamRoleRef = src.Spec.TeamRoleRef
 	trb.Spec.TeamRef = src.Spec.TeamRef
+	trb.Spec.Usernames = src.Spec.Usernames
 	trb.Spec.Namespaces = src.Spec.Namespaces
+	trb.Spec.CreateNamespaces = src.Spec.CreateNamespaces
 
 	// Status
 	trb.Status.StatusConditions = src.Status.StatusConditions
