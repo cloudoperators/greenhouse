@@ -800,137 +800,14 @@ components:
                           - name
                         type: object
                     type: object
-                required:
-                  - name
-                type: object
-              type: array
-            pluginDefinition:
-              description: PluginDefinition is the name of the PluginDefinition this instance is for.
-              type: string
-            releaseNamespace:
-              description: ReleaseNamespace is the namespace in the remote cluster to which the backend is deployed.\nDefaults to the Greenhouse managed namespace if not set.
-              type: string
-          required:
-            - pluginDefinition
-          type: object
-        status:
-          description: PluginStatus defines the observed state of Plugin
-          properties:
-            description:
-              description: Description provides additional details of the plugin.
-              type: string
-            exposedServices:
-              additionalProperties:
-                description: Service references a Kubernetes service of a Plugin.
-                properties:
-                  name:
-                    description: Name is the name of the service in the target cluster.
-                    type: string
-                  namespace:
-                    description: Namespace is the namespace of the service in the target cluster.
-                    type: string
-                  port:
-                    description: Port is the port of the service.
-                    format: int32
-                    type: integer
-                  protocol:
-                    description: Protocol is the protocol of the service.
-                    type: string
-                required:
-                  - name
-                  - namespace
-                  - port
-                type: object
-              description: ExposedServices provides an overview of the Plugins services that are centrally exposed.\nIt maps the exposed URL to the service found in the manifest.
-              type: object
-            helmChart:
-              description: HelmChart contains a reference the helm chart used for the deployed pluginDefinition version.
-              properties:
-                name:
-                  description: Name of the HelmChart chart.
-                  type: string
-                repository:
-                  description: Repository of the HelmChart chart.
-                  type: string
-                version:
-                  description: Version of the HelmChart chart.
-                  type: string
-              required:
-                - name
-                - repository
-                - version
-              type: object
-            helmReleaseStatus:
-              description: HelmReleaseStatus reflects the status of the latest HelmChart release.\nThis is only configured if the pluginDefinition is backed by HelmChart.
-              properties:
-                diff:
-                  description: Diff contains the difference between the deployed helm chart and the helm chart in the last reconciliation
-                  type: string
-                firstDeployed:
-                  description: FirstDeployed is the timestamp of the first deployment of the release.
-                  format: date-time
-                  type: string
-                lastDeployed:
-                  description: LastDeployed is the timestamp of the last deployment of the release.
-                  format: date-time
-                  type: string
-                pluginOptionChecksum:
-                  description: PluginOptionChecksum is the checksum of plugin option values.
-                  type: string
-                status:
-                  description: Status is the status of a HelmChart release.
-                  type: string
-              required:
-                - status
-              type: object
-            statusConditions:
-              description: StatusConditions contain the different conditions that constitute the status of the Plugin.
-              properties:
-                conditions:
-                  items:
-                    description: Condition contains additional information on the state of a resource.
-                    properties:
-                      lastTransitionTime:
-                        description: LastTransitionTime is the last time the condition transitioned from one status to another.
-                        format: date-time
-                        type: string
-                      message:
-                        description: Message is an optional human readable message indicating details about the last transition.
-                        type: string
-                      reason:
-                        description: Reason is a one-word, CamelCase reason for the condition's last transition.
-                        type: string
-                      status:
-                        description: Status of the condition.
-                        type: string
-                      type:
-                        description: Type of the condition.
-                        type: string
-                    required:
-                      - lastTransitionTime
-                      - status
-                      - type
-                    type: object
+                    x-kubernetes-map-type: atomic
                   type: array
-                  x-kubernetes-list-map-keys:
-                    - type
-                  x-kubernetes-list-type: map
+                  x-kubernetes-list-type: atomic
               type: object
-            uiApplication:
-              description: UIApplication contains a reference to the frontend that is used for the deployed pluginDefinition version.
-              properties:
-                name:
-                  description: Name of the UI application.
-                  type: string
-                url:
-                  description: URL specifies the url to a built javascript asset.\nBy default, assets are loaded from the Juno asset server using the provided name and version.
-                  type: string
-                version:
-                  description: Version of the frontend application.
-                  type: string
-              required:
-                - name
-                - version
+            labels:
+              additionalProperties:
+                type: string
+              description: Labels are applied to the ClusterRole created on the remote cluster.\nThis allows using TeamRoles as part of AggregationRules by other TeamRoles
               type: object
             version:
               description: Version contains the latest pluginDefinition version the config was last applied with successfully.
@@ -1217,69 +1094,45 @@ components:
             options:
               description: RequiredValues is a list of values required to create an instance of this PluginDefinition.
               items:
+                description: PolicyRule holds information that describes a policy rule, but does not contain information\nabout who the rule applies to or which namespace the rule applies to.
                 properties:
-                  default:
-                    description: Default provides a default value for the option
-                    x-kubernetes-preserve-unknown-fields: true
-                  description:
-                    description: Description provides a human-readable text for the value as shown in the UI.
-                    type: string
-                  displayName:
-                    description: DisplayName provides a human-readable label for the configuration option
-                    type: string
-                  name:
-                    description: Name/Key of the config option.
-                    type: string
-                  regex:
-                    description: Regex specifies a match rule for validating configuration options.
-                    type: string
-                  required:
-                    description: Required indicates that this config option is required
-                    type: boolean
-                  type:
-                    description: Type of this configuration option.
-                    enum:
-                      - string
-                      - secret
-                      - bool
-                      - int
-                      - list
-                      - map
-                    type: string
+                  apiGroups:
+                    description: APIGroups is the name of the APIGroup that contains the resources.  If multiple API groups are specified, any action requested against one of\nthe enumerated resources in any API group will be allowed. "" represents the core API group and "*" represents all API groups.
+                    items:
+                      type: string
+                    type: array
+                    x-kubernetes-list-type: atomic
+                  nonResourceURLs:
+                    description: NonResourceURLs is a set of partial urls that a user should have access to.  *s are allowed, but only as the full, final step in the path\nSince non-resource URLs are not namespaced, this field is only applicable for ClusterRoles referenced from a ClusterRoleBinding.\nRules can either apply to API resources (such as "pods" or "secrets") or non-resource URL paths (such as "/api"),  but not both.
+                    items:
+                      type: string
+                    type: array
+                    x-kubernetes-list-type: atomic
+                  resourceNames:
+                    description: ResourceNames is an optional white list of names that the rule applies to.  An empty set means that everything is allowed.
+                    items:
+                      type: string
+                    type: array
+                    x-kubernetes-list-type: atomic
+                  resources:
+                    description: Resources is a list of resources this rule applies to. '*' represents all resources.
+                    items:
+                      type: string
+                    type: array
+                    x-kubernetes-list-type: atomic
+                  verbs:
+                    description: Verbs is a list of Verbs that apply to ALL the ResourceKinds contained in this rule. '*' represents all verbs.
+                    items:
+                      type: string
+                    type: array
+                    x-kubernetes-list-type: atomic
                 required:
-                  - name
-                  - required
-                  - type
+                  - verbs
                 type: object
               type: array
-            uiApplication:
-              description: UIApplication specifies a reference to a UI application
-              properties:
-                name:
-                  description: Name of the UI application.
-                  type: string
-                url:
-                  description: URL specifies the url to a built javascript asset.\nBy default, assets are loaded from the Juno asset server using the provided name and version.
-                  type: string
-                version:
-                  description: Version of the frontend application.
-                  type: string
-              required:
-                - name
-                - version
-              type: object
-            version:
-              description: Version of this pluginDefinition
-              type: string
-            weight:
-              description: Weight configures the order in which Plugins are shown in the Greenhouse UI.\nDefaults to alphabetical sorting if not provided or on conflict.
-              format: int32
-              type: integer
-          required:
-            - version
           type: object
         status:
-          description: PluginDefinitionStatus defines the observed state of PluginDefinition
+          description: TeamRoleStatus defines the observed state of a TeamRole
           type: object
       type: object
     Team:
