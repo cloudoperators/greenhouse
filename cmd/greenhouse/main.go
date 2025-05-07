@@ -13,6 +13,9 @@ import (
 	"strings"
 	"time"
 
+	helmcontroller "github.com/fluxcd/helm-controller/api/v2"
+	sourcecontroller "github.com/fluxcd/source-controller/api/v1"
+
 	flag "github.com/spf13/pflag"
 	"go.uber.org/zap/zapcore"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
@@ -72,6 +75,8 @@ func init() {
 	utilruntime.Must(apiextensionsv1.AddToScheme(scheme))
 	utilruntime.Must(greenhousesapv1alpha1.AddToScheme(scheme))
 	utilruntime.Must(dexapi.AddToScheme(scheme))
+	utilruntime.Must(sourcecontroller.AddToScheme(scheme))
+	utilruntime.Must(helmcontroller.AddToScheme(scheme))
 	//+kubebuilder:scaffold:scheme
 }
 

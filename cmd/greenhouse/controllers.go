@@ -12,6 +12,7 @@ import (
 
 	"github.com/cloudoperators/greenhouse/pkg/clientutil"
 	clustercontrollers "github.com/cloudoperators/greenhouse/pkg/controllers/cluster"
+	fluxcontrollers "github.com/cloudoperators/greenhouse/pkg/controllers/flux"
 	organizationcontrollers "github.com/cloudoperators/greenhouse/pkg/controllers/organization"
 	plugincontrollers "github.com/cloudoperators/greenhouse/pkg/controllers/plugin"
 	teammembershipcontrollers "github.com/cloudoperators/greenhouse/pkg/controllers/teammembership"
@@ -29,6 +30,9 @@ var knownControllers = map[string]func(controllerName string, mgr ctrl.Manager) 
 
 	// Team RBAC controllers.
 	"teamRoleBindingController": (&teamrbaccontrollers.TeamRoleBindingReconciler{}).SetupWithManager,
+
+	// Flux controllers.
+	"pluginDefinitionToFlux": (&fluxcontrollers.PluginDefinitionReconciler{}).SetupWithManager,
 
 	// Plugin controllers.
 	"plugin": (&plugincontrollers.PluginReconciler{
