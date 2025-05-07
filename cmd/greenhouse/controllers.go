@@ -12,6 +12,7 @@ import (
 
 	"github.com/cloudoperators/greenhouse/internal/clientutil"
 	clustercontrollers "github.com/cloudoperators/greenhouse/internal/controller/cluster"
+	fluxcontrollers "github.com/cloudoperators/greenhouse/internal/controller/flux"
 	organizationcontrollers "github.com/cloudoperators/greenhouse/internal/controller/organization"
 	plugincontrollers "github.com/cloudoperators/greenhouse/internal/controller/plugin"
 	teammembershipcontrollers "github.com/cloudoperators/greenhouse/internal/controller/teammembership"
@@ -30,8 +31,14 @@ var knownControllers = map[string]func(controllerName string, mgr ctrl.Manager) 
 	// Team RBAC controllers.
 	"teamRoleBindingController": (&teamrbaccontrollers.TeamRoleBindingReconciler{}).SetupWithManager,
 
+	// Flux controllers.
+	"pluginDefinitionToFlux": (&fluxcontrollers.PluginDefinitionReconciler{}).SetupWithManager,
+
 	// Plugin controllers.
 	"plugin": (&plugincontrollers.PluginReconciler{
+		KubeRuntimeOpts: kubeClientOpts,
+	}).SetupWithManager,
+	"pluginToFlux": (&plugincontrollers.FluxReconciler{
 		KubeRuntimeOpts: kubeClientOpts,
 	}).SetupWithManager,
 	"pluginPreset": (&plugincontrollers.PluginPresetReconciler{}).SetupWithManager,
