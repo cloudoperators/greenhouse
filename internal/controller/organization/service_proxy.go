@@ -109,7 +109,7 @@ func (r *OrganizationReconciler) reconcileOAuth2ProxySecret(ctx context.Context,
 		authClient.Public = false
 		authClient.Secret = string(intSecret.Data[dexOAuth2ProxyClientSecretKey])
 		authClient.RedirectURIs = []string{oAuthProxyCallbackURL}
-		authClient.Name = fmt.Sprintf("%s Service Proxy", org.Name)
+		authClient.Name = org.Name + " Service Proxy"
 		return authClient, nil
 	}); err != nil {
 		log.FromContext(ctx).Error(err, "failed to update oauth-proxy client credentials", "name", org.Name)
