@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"strings"
 
+	"helm.sh/helm/v3/pkg/chartutil"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/validation"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -90,9 +91,10 @@ func DefaultPlugin(ctx context.Context, c client.Client, obj runtime.Object) err
 			if err != nil {
 				return err
 			}
-			if pluginDefinition.Spec.HelmChart != nil {
-				plugin.Spec.ReleaseName = pluginDefinition.Spec.HelmChart.Name
+			if pluginDefinition.Spec.HelmChart == nil {
+				return field.InternalError(field.NewPath("spec").Child("pluginDefinition"), fmt.Errorf("PluginDefinition %s does not have a HelmChart", plugin.Spec.PluginDefinition))
 			}
+			plugin.Spec.ReleaseName = pluginDefinition.Spec.HelmChart.Name
 		}
 	}
 	return nil
@@ -111,6 +113,10 @@ func ValidateCreatePlugin(ctx context.Context, c client.Client, obj runtime.Obje
 	if err != nil {
 		// TODO: provide actual APIError
 		return nil, err
+	}
+
+	if err := validateReleaseName(plugin.Spec.ReleaseName); err != nil {
+		return nil, field.Invalid(field.NewPath("spec").Child("releaseName"), plugin.Spec.ReleaseName, err.Error())
 	}
 
 	optionsFieldPath := field.NewPath("spec").Child("optionValues")
@@ -145,6 +151,10 @@ func ValidateUpdatePlugin(ctx context.Context, c client.Client, old, obj runtime
 			return allWarns, field.NotFound(field.NewPath("spec").Child("pluginDefinition"), plugin.Spec.PluginDefinition)
 		}
 		return allWarns, field.InternalError(field.NewPath("spec").Child("pluginDefinition"), err)
+	}
+
+	if err := validateReleaseName(plugin.Spec.ReleaseName); err != nil {
+		return allWarns, field.Invalid(field.NewPath("spec").Child("releaseName"), plugin.Spec.ReleaseName, err.Error())
 	}
 
 	allErrs = append(allErrs, validation.ValidateImmutableField(oldPlugin.Spec.PluginDefinition, plugin.Spec.PluginDefinition, field.NewPath("spec", "pluginDefinition"))...)
@@ -252,6 +262,14 @@ func validatePluginOptionValues(
 		return nil
 	}
 	return allErrs
+}
+
+// validateReleaseName checks if the release name is valid according to Helm's rules.
+func validateReleaseName(name string) error {
+	if name == "" {
+		return nil
+	}
+	return chartutil.ValidateReleaseName(name)
 }
 
 func validatePluginForCluster(ctx context.Context, c client.Client, plugin *greenhousev1alpha1.Plugin, pluginDefinition *greenhousev1alpha1.PluginDefinition) error {
