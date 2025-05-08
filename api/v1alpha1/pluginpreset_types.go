@@ -13,6 +13,10 @@ const (
 
 	// PluginReconcileFailed is set when Plugin creation or update failed.
 	PluginReconcileFailed ConditionReason = "PluginReconcileFailed"
+
+	// PreventDeletionAnnotation is the annotation used to prevent deletion of a PluginPreset.
+	// If the annotation is set the PluginPreset cannot be deleted.
+	PreventDeletionAnnotation = "greenhouse.sap/prevent-deletion"
 )
 
 // PluginPresetSpec defines the desired state of PluginPreset
