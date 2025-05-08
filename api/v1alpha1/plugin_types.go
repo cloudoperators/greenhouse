@@ -178,3 +178,10 @@ func (o *Plugin) GetConditions() StatusConditions {
 func (o *Plugin) SetCondition(condition Condition) {
 	o.Status.SetConditions(condition)
 }
+
+func (o *Plugin) GetReleaseName() string {
+	if o.Spec.ReleaseName != "" {
+		return o.Spec.ReleaseName
+	}
+	return o.Name
+}
