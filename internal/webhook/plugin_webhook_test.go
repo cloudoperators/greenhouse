@@ -239,17 +239,17 @@ var _ = Describe("Validate plugin spec fields", Ordered, func() {
 	})
 
 	It("should not accept a plugin without a clusterName", func() {
-		testPlugin = test.NewPlugin(test.Ctx, "test-plugin", setup.Namespace(), test.WithPluginDefinition(testPluginDefinition.Name), test.WithReleaseNamespace("test-namespace"))
+		testPlugin = test.NewPlugin(test.Ctx, "test-plugin", setup.Namespace(), test.WithPluginDefinition(testPluginDefinition.Name), test.WithReleaseNamespace("test-namespace"), test.WithReleaseName("test-release"))
 		expectClusterMustBeSetError(test.K8sClient.Create(test.Ctx, testPlugin))
 	})
 
 	It("should not accept a plugin for the central cluster where releaseNamespace and Plugin Namespace do not match", func() {
-		testPlugin = test.NewPlugin(test.Ctx, "test-plugin", setup.Namespace(), test.WithPluginDefinition(testCentralPluginDefinition.Name), test.WithReleaseNamespace("test-namespace"))
+		testPlugin = test.NewPlugin(test.Ctx, "test-plugin", setup.Namespace(), test.WithPluginDefinition(testCentralPluginDefinition.Name), test.WithReleaseNamespace("test-namespace"), test.WithReleaseName("test-release"))
 		expectReleaseNamespaceMustMatchError(test.K8sClient.Create(test.Ctx, testPlugin))
 	})
 
 	It("should not accept a plugin if the releaseNamespace changes", func() {
-		testPlugin = setup.CreatePlugin(test.Ctx, "test-plugin", test.WithPluginDefinition(testPluginDefinition.Name), test.WithCluster(testCluster.Name), test.WithReleaseNamespace("test-namespace"))
+		testPlugin = setup.CreatePlugin(test.Ctx, "test-plugin", test.WithPluginDefinition(testPluginDefinition.Name), test.WithCluster(testCluster.Name), test.WithReleaseNamespace("test-namespace"), test.WithReleaseName("test-release"))
 
 		By("updating the plugin with a different releaseNamespace")
 		testPlugin.Spec.ReleaseNamespace = "new-namespace"
@@ -259,14 +259,14 @@ var _ = Describe("Validate plugin spec fields", Ordered, func() {
 
 	It("should reject the plugin when the cluster with clusterName does not exist", func() {
 		By("creating the plugin")
-		testPlugin = test.NewPlugin(test.Ctx, "test-plugin", setup.Namespace(), test.WithPluginDefinition(testPluginDefinition.Name), test.WithCluster("non-existent-cluster"), test.WithReleaseNamespace("test-namespace"))
+		testPlugin = test.NewPlugin(test.Ctx, "test-plugin", setup.Namespace(), test.WithPluginDefinition(testPluginDefinition.Name), test.WithCluster("non-existent-cluster"), test.WithReleaseNamespace("test-namespace"), test.WithReleaseName("test-release"))
 
 		expectClusterNotFoundError(test.K8sClient.Create(test.Ctx, testPlugin))
 	})
 
 	It("should accept the plugin when the cluster with clusterName exists", func() {
 		By("creating the plugin")
-		testPlugin = setup.CreatePlugin(test.Ctx, "test-plugin", test.WithPluginDefinition(testPluginDefinition.Name), test.WithCluster(testCluster.Name), test.WithReleaseNamespace("test-namespace"))
+		testPlugin = setup.CreatePlugin(test.Ctx, "test-plugin", test.WithPluginDefinition(testPluginDefinition.Name), test.WithCluster(testCluster.Name), test.WithReleaseNamespace("test-namespace"), test.WithReleaseName("test-release"))
 
 		By("checking the label on the plugin")
 		actPlugin := &greenhousev1alpha1.Plugin{}
@@ -278,7 +278,7 @@ var _ = Describe("Validate plugin spec fields", Ordered, func() {
 	})
 
 	It("should reject to update a plugin when the clusterName changes", func() {
-		testPlugin = setup.CreatePlugin(test.Ctx, "test-plugin", test.WithPluginDefinition(testPluginDefinition.Name), test.WithCluster(testCluster.Name), test.WithReleaseNamespace("test-namespace"))
+		testPlugin = setup.CreatePlugin(test.Ctx, "test-plugin", test.WithPluginDefinition(testPluginDefinition.Name), test.WithCluster(testCluster.Name), test.WithReleaseNamespace("test-namespace"), test.WithReleaseName("test-release"))
 		testPlugin.Spec.ClusterName = "wrong-cluster-name"
 		err := test.K8sClient.Update(test.Ctx, testPlugin)
 
@@ -287,7 +287,7 @@ var _ = Describe("Validate plugin spec fields", Ordered, func() {
 	})
 
 	It("should reject to update a plugin when the clustername is removed", func() {
-		testPlugin = setup.CreatePlugin(test.Ctx, "test-plugin", test.WithPluginDefinition(testPluginDefinition.Name), test.WithCluster(testCluster.Name), test.WithReleaseNamespace("test-namespace"))
+		testPlugin = setup.CreatePlugin(test.Ctx, "test-plugin", test.WithPluginDefinition(testPluginDefinition.Name), test.WithCluster(testCluster.Name), test.WithReleaseNamespace("test-namespace"), test.WithReleaseName("test-release"))
 		testPlugin.Spec.ClusterName = ""
 		err := test.K8sClient.Update(test.Ctx, testPlugin)
 		Expect(err).To(HaveOccurred(), "there should be an error changing the plugin's clusterName")
@@ -295,7 +295,7 @@ var _ = Describe("Validate plugin spec fields", Ordered, func() {
 	})
 
 	It("should reject to update a plugin when the releaseNamespace changes", func() {
-		testPlugin = setup.CreatePlugin(test.Ctx, "test-plugin", test.WithPluginDefinition(testPluginDefinition.Name), test.WithCluster(testCluster.Name), test.WithReleaseNamespace("test-namespace"))
+		testPlugin = setup.CreatePlugin(test.Ctx, "test-plugin", test.WithPluginDefinition(testPluginDefinition.Name), test.WithCluster(testCluster.Name), test.WithReleaseNamespace("test-namespace"), test.WithReleaseName("test-release"))
 		testPlugin.Spec.ReleaseNamespace = "foo-bar"
 		err := test.K8sClient.Update(test.Ctx, testPlugin)
 		Expect(err).To(HaveOccurred(), "there should be an error changing the plugin's releaseNamespace")
@@ -304,7 +304,7 @@ var _ = Describe("Validate plugin spec fields", Ordered, func() {
 
 	It("should reject to update a plugin when the pluginDefinition changes", func() {
 		secondPluginDefinition := setup.CreatePluginDefinition(test.Ctx, "foo-bar")
-		testPlugin = setup.CreatePlugin(test.Ctx, "test-plugin", test.WithPluginDefinition(testPluginDefinition.Name), test.WithCluster(testCluster.Name), test.WithReleaseNamespace("test-namespace"))
+		testPlugin = setup.CreatePlugin(test.Ctx, "test-plugin", test.WithPluginDefinition(testPluginDefinition.Name), test.WithCluster(testCluster.Name), test.WithReleaseNamespace("test-namespace"), test.WithReleaseName("test-release"))
 
 		testPlugin.Spec.PluginDefinition = secondPluginDefinition.Name
 		err := test.K8sClient.Update(test.Ctx, testPlugin)
