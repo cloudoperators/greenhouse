@@ -28,6 +28,15 @@ spec:
           paths:
             - path: /
               pathType: Prefix
+    - name: thanos.query.ingress.tls
+      value:
+      - hosts:
+          - {{ required ".Values.thanos.ingress.host missing" .Values.thanos.ingress.host }}
+        secretName: tls-{{ .Values.thanos.ingress.host | replace "." "-" }}
+    - name: thanos.query.ingress.annotations
+      value:
+        disco: "true"
+        kubernetes.io/tls-acme: "true"
     - name: thanos.ruler.enabled
       value: false
     - name: thanos.store.enabled
