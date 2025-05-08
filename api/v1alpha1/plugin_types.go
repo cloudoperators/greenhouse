@@ -180,3 +180,10 @@ func (o *Plugin) GetConditions() greenhousemetav1alpha1.StatusConditions {
 func (o *Plugin) SetCondition(condition greenhousemetav1alpha1.Condition) {
 	o.Status.SetConditions(condition)
 }
+
+func (o *Plugin) GetReleaseName() string {
+	if o.Spec.ReleaseName != "" {
+		return o.Spec.ReleaseName
+	}
+	return o.Name
+}

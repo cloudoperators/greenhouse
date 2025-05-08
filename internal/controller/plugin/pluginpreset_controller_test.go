@@ -31,6 +31,7 @@ const (
 	pluginDefinitionWithDefaultsName       = "plugin-definition-with-defaults"
 	pluginDefinitionWithRequiredOptionName = "plugin-definition-with-required-option"
 
+	releaseName      = "test-release"
 	releaseNamespace = "test-namespace"
 
 	clusterA = "cluster-a"
@@ -54,14 +55,12 @@ var (
 			Repository: "dummy",
 			Version:    "1.0.0",
 		}),
-		test.AppendPluginOption(
-			greenhousev1alpha1.PluginOption{
-				Name:        "myRequiredOption",
-				Description: "This is my required test plugin option",
-				Required:    true,
-				Type:        greenhousev1alpha1.PluginOptionTypeString,
-			}),
-	)
+		test.AppendPluginOption(greenhousev1alpha1.PluginOption{
+			Name:        "myRequiredOption",
+			Description: "This is my required test plugin option",
+			Required:    true,
+			Type:        greenhousev1alpha1.PluginOptionTypeString,
+		}))
 )
 
 var _ = Describe("PluginPreset Controller Lifecycle", Ordered, func() {
@@ -187,7 +186,7 @@ var _ = Describe("PluginPreset Controller Lifecycle", Ordered, func() {
 		testPluginPreset.Annotations = map[string]string{}
 		err = test.K8sClient.Update(test.Ctx, testPluginPreset)
 		Expect(err).ToNot(HaveOccurred())
-		Expect(test.K8sClient.Delete(test.Ctx, testPluginPreset)).Should(Succeed(), "failed to delete test PluginPreset")
+		test.EventuallyDeleted(test.Ctx, test.K8sClient, testPluginPreset)
 	})
 
 	It("should reconcile a PluginPreset with plugin definition defaults", func() {
@@ -219,7 +218,6 @@ var _ = Describe("PluginPreset Controller Lifecycle", Ordered, func() {
 			pluginPreset.Annotations = map[string]string{}
 			Expect(test.K8sClient.Update(test.Ctx, pluginPreset)).ToNot(HaveOccurred())
 		}).Should(Succeed(), "failed to update PluginPreset")
-		Expect(test.K8sClient.Delete(test.Ctx, pluginPreset)).ToNot(HaveOccurred())
 		test.EventuallyDeleted(test.Ctx, test.K8sClient, pluginPreset)
 	})
 
@@ -350,6 +348,7 @@ var _ = Describe("PluginPreset Controller Lifecycle", Ordered, func() {
 			g.Expect(pluginPreset.Status.StatusConditions.GetConditionByType(greenhousemetav1alpha1.ClusterListEmpty).IsTrue()).Should(BeTrue(), "PluginPreset should have the ClusterListEmptyCondition set to true")
 			g.Expect(pluginPreset.Status.StatusConditions.GetConditionByType(greenhousemetav1alpha1.ReadyCondition).IsFalse()).Should(BeTrue(), "PluginPreset should have the ReadyCondition set to false")
 		}).Should(Succeed(), "the PluginPreset should be reconciled")
+		test.EventuallyDeleted(test.Ctx, test.K8sClient, pluginPreset)
 	})
 
 	It("should reconcile PluginStatuses for PluginPreset", func() {
@@ -1150,6 +1149,7 @@ func pluginPreset(name, selectorValue string) *greenhousev1alpha1.PluginPreset {
 		Spec: greenhousev1alpha1.PluginPresetSpec{
 			Plugin: greenhousev1alpha1.PluginSpec{
 				PluginDefinition: pluginPresetDefinitionName,
+				ReleaseName:      releaseName,
 				ReleaseNamespace: releaseNamespace,
 				OptionValues: []greenhousev1alpha1.PluginOptionValue{
 					{
