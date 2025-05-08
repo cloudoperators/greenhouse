@@ -20,6 +20,14 @@ spec:
       value: false
     - name: thanos.query.stores
       value: []
+    - name: thanos.query.ingress.enabled
+      value: true
+    - name: thanos.query.ingress.hosts
+      value:
+        - host: {{ .Values.thanos.ingress.host }}
+          paths:
+            - path: /
+              pathType: Prefix
     - name: thanos.ruler.enabled
       value: false
     - name: thanos.store.enabled
