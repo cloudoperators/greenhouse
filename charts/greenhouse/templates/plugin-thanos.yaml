@@ -20,23 +20,21 @@ spec:
       value: false
     - name: thanos.query.stores
       value: []
-    - name: thanos.query.ingress.enabled
-      value: true
-    - name: thanos.query.ingress.hosts
+    - name: thanos.query.ingress
       value:
-        - host: {{ .Values.thanos.ingress.host }}
-          paths:
-            - path: /
-              pathType: Prefix
-    - name: thanos.query.ingress.tls
-      value:
-      - hosts:
-          - {{ required ".Values.thanos.ingress.host missing" .Values.thanos.ingress.host }}
-        secretName: tls-{{ .Values.thanos.ingress.host | replace "." "-" }}
-    - name: thanos.query.ingress.annotations
-      value:
-        disco: "true"
-        kubernetes.io/tls-acme: "true"
+        enabled: true
+        annotations:
+          disco: "true"
+          kubernetes.io/tls-acme: "true"
+        hosts:
+          - host: {{ .Values.thanos.ingress.host }}
+            paths:
+              - path: /
+                pathType: Prefix
+        tls:
+          - hosts:
+              - {{ required ".Values.thanos.ingress.host missing" .Values.thanos.ingress.host }}
+            secretName: tls-{{ .Values.thanos.ingress.host | replace "." "-" }}
     - name: thanos.ruler.enabled
       value: false
     - name: thanos.store.enabled
