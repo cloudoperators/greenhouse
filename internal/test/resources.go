@@ -184,12 +184,12 @@ func WithPluginOptionValue(name string, value *apiextensionsv1.JSON, valueFrom *
 				p.Spec.OptionValues[i] = v
 				return
 			}
-			p.Spec.OptionValues = append(p.Spec.OptionValues, greenhousev1alpha1.PluginOptionValue{
-				Name:      name,
-				Value:     value,
-				ValueFrom: valueFrom,
-			})
 		}
+		p.Spec.OptionValues = append(p.Spec.OptionValues, greenhousev1alpha1.PluginOptionValue{
+			Name:      name,
+			Value:     value,
+			ValueFrom: valueFrom,
+		})
 	}
 }
 
