@@ -19,6 +19,7 @@ import (
 
 	greenhouseapis "github.com/cloudoperators/greenhouse/api"
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
+	greenhousev1alpha2 "github.com/cloudoperators/greenhouse/api/v1alpha2"
 	"github.com/cloudoperators/greenhouse/internal/clientutil"
 	"github.com/cloudoperators/greenhouse/internal/test"
 )
@@ -115,22 +116,22 @@ var _ = Describe("Validate ClusterRole & RoleBinding on Remote Cluster", Ordered
 				g.Expect(trb.Status.PropagationStatus).To(HaveLen(1), "the TeamRoleBinding should be propagated to one cluster")
 				g.Expect(trb.Status.PropagationStatus).Should(ContainElement(And(HaveField("ClusterName", clusterA.Name), HaveField("Condition.Status", Equal(metav1.ConditionTrue)))))
 
-				clusterListEmptyCondition := trb.Status.GetConditionByType(greenhousev1alpha1.ClusterListEmpty)
+				clusterListEmptyCondition := trb.Status.GetConditionByType(greenhouseapis.ClusterListEmpty)
 				g.Expect(clusterListEmptyCondition).ToNot(BeNil(), "ClusterListEmpty condition on TeamRoleBinding should not be nil")
 				g.Expect(clusterListEmptyCondition.Status).To(Equal(metav1.ConditionFalse), "ClusterListEmpty condition on TeamRoleBinding should be False")
-				rbacReadyCondition := trb.Status.GetConditionByType(greenhousev1alpha1.RBACReady)
+				rbacReadyCondition := trb.Status.GetConditionByType(greenhouseapis.RBACReady)
 				g.Expect(rbacReadyCondition).ToNot(BeNil(), "RBACReady condition on TeamRoleBinding should not be nil")
 				g.Expect(rbacReadyCondition.Status).To(Equal(metav1.ConditionTrue), "RBACReady condition on TeamRoleBinding should be True")
-				readyCondition := trb.Status.GetConditionByType(greenhousev1alpha1.ReadyCondition)
+				readyCondition := trb.Status.GetConditionByType(greenhouseapis.ReadyCondition)
 				g.Expect(readyCondition).ToNot(BeNil(), "Ready condition on TeamRoleBinding should not be nil")
 				g.Expect(readyCondition.Status).To(Equal(metav1.ConditionTrue), "Ready condition on TeamRoleBinding should be True")
 			}).Should(Succeed(), "the TeamRoleBindings status should reflect the current status")
 
-			By("updating the TeamRoleBinding with to a selector matching clusterB")
-			trb.Spec.ClusterSelector = metav1.LabelSelector{MatchLabels: map[string]string{"cluster": "b"}}
+			By("updating the TeamRoleBinding with a selector matching clusterB")
+			trb.Spec.ClusterSelector.LabelSelector = metav1.LabelSelector{MatchLabels: map[string]string{"cluster": "b"}}
 			_, err := clientutil.CreateOrPatch(test.Ctx, k8sClient, trb, func() error {
-				trb.Spec.ClusterName = ""
-				trb.Spec.ClusterSelector = metav1.LabelSelector{MatchLabels: map[string]string{"cluster": "b"}}
+				trb.Spec.ClusterSelector.Name = ""
+				trb.Spec.ClusterSelector.LabelSelector = metav1.LabelSelector{MatchLabels: map[string]string{"cluster": "b"}}
 				return nil
 			})
 			Expect(err).ToNot(HaveOccurred(), "there should be no error updating the TeamRoleBinding")
@@ -195,10 +196,10 @@ var _ = Describe("Validate ClusterRole & RoleBinding on Remote Cluster", Ordered
 			}).Should(Succeed(), "the TeamRoleBindings status should reflect the current status")
 
 			By("updating the TeamRoleBinding with to a selector matching clusterB")
-			trb.Spec.ClusterSelector = metav1.LabelSelector{MatchLabels: map[string]string{"cluster": "b"}}
+			trb.Spec.ClusterSelector.LabelSelector = metav1.LabelSelector{MatchLabels: map[string]string{"cluster": "b"}}
 			_, err := clientutil.CreateOrPatch(test.Ctx, k8sClient, trb, func() error {
-				trb.Spec.ClusterName = ""
-				trb.Spec.ClusterSelector = metav1.LabelSelector{MatchLabels: map[string]string{"cluster": "b"}}
+				trb.Spec.ClusterSelector.Name = ""
+				trb.Spec.ClusterSelector.LabelSelector = metav1.LabelSelector{MatchLabels: map[string]string{"cluster": "b"}}
 				return nil
 			})
 			Expect(err).ToNot(HaveOccurred(), "there should be no error updating the TeamRoleBinding")
@@ -375,14 +376,14 @@ var _ = Describe("Validate ClusterRole & RoleBinding on Remote Cluster", Ordered
 				g.Expect(trb.Status.PropagationStatus).To(ContainElement(And(
 					HaveField("ClusterName", clusterA.Name),
 					HaveField("Condition.Status", metav1.ConditionFalse),
-					HaveField("Condition.Reason", greenhousev1alpha1.RoleBindingFailed),
+					HaveField("Condition.Reason", greenhouseapis.RoleBindingFailed),
 					HaveField("Condition.Message", statusMessage),
 				)), "there should be a correct PropagationStatus")
 
-				rbacReadyCondition := trb.Status.GetConditionByType(greenhousev1alpha1.RBACReady)
+				rbacReadyCondition := trb.Status.GetConditionByType(greenhouseapis.RBACReady)
 				g.Expect(rbacReadyCondition).ToNot(BeNil(), "RBACReady condition should not be nil on the TeamRoleBinding")
 				g.Expect(rbacReadyCondition.Status).To(Equal(metav1.ConditionFalse), "RBACReady condition should be False on the TeamRoleBinding")
-				g.Expect(rbacReadyCondition.Reason).To(Equal(greenhousev1alpha1.RBACReconcileFailed), "RBACReady condition should have the correct Reason")
+				g.Expect(rbacReadyCondition.Reason).To(Equal(greenhouseapis.RBACReconcileFailed), "RBACReady condition should have the correct Reason")
 				g.Expect(rbacReadyCondition.Message).To(Equal("Error reconciling TeamRoleBinding for clusters: test-cluster-a"), "RBACReady condition should have the correct Message")
 			}).Should(Succeed(), "TeamRoleBinding should propagate the error")
 
@@ -415,7 +416,7 @@ var _ = Describe("Validate ClusterRole & RoleBinding on Remote Cluster", Ordered
 				err := setup.Get(test.Ctx, types.NamespacedName{Name: trb.Name, Namespace: trb.Namespace}, trb)
 				g.Expect(err).ToNot(HaveOccurred(), "there should be no error getting the TeamRoleBinding from central Cluster")
 
-				rbacReadyCondition := trb.Status.GetConditionByType(greenhousev1alpha1.RBACReady)
+				rbacReadyCondition := trb.Status.GetConditionByType(greenhouseapis.RBACReady)
 				g.Expect(rbacReadyCondition).ToNot(BeNil(), "RBACReady condition should not be nil on the TeamRoleBinding")
 				g.Expect(rbacReadyCondition.Status).To(Equal(metav1.ConditionTrue), "RBACReady condition should be True on the TeamRoleBinding")
 			}).Should(Succeed(), "TeamRoleBinding should propagate the error")
@@ -461,7 +462,7 @@ var _ = Describe("Validate ClusterRole & RoleBinding on Remote Cluster", Ordered
 			Expect(remoteClusterRole.Rules).To(Equal(teamRoleUT.Spec.Rules))
 
 			By("validating the TeamRoleBinding PropagationStatus for the remote cluster is false")
-			actTRB := &greenhousev1alpha1.TeamRoleBinding{}
+			actTRB := &greenhousev1alpha2.TeamRoleBinding{}
 			actTRBKey := types.NamespacedName{Name: trb.Name, Namespace: trb.Namespace}
 			Eventually(func(g Gomega) {
 				g.Expect(test.K8sClient.Get(test.Ctx, actTRBKey, actTRB)).To(Succeed(), "there should be no error getting the TeamRoleBinding from the Central Cluster")
@@ -905,8 +906,8 @@ var _ = Describe("Validate ClusterRole & RoleBinding on Remote Cluster", Ordered
 
 			By("updating the TeamRoleBinding with a different selector and changed namespaces")
 			_, err := clientutil.CreateOrPatch(test.Ctx, k8sClient, trb, func() error {
-				trb.Spec.ClusterName = ""
-				trb.Spec.ClusterSelector = metav1.LabelSelector{MatchLabels: map[string]string{"not": "matching"}}
+				trb.Spec.ClusterSelector.Name = ""
+				trb.Spec.ClusterSelector.LabelSelector = metav1.LabelSelector{MatchLabels: map[string]string{"not": "matching"}}
 				// Replace with a single different namespace.
 				trb.Spec.Namespaces = []string{setup.Namespace()}
 				return nil
@@ -998,13 +999,13 @@ var _ = Describe("Validate ClusterRole & RoleBinding on Remote Cluster", Ordered
 				g.Expect(trb.Status.PropagationStatus).Should(ContainElement(And(HaveField("ClusterName", clusterA.Name), HaveField("Condition.Status", Equal(metav1.ConditionFalse)))))
 				g.Expect(trb.Status.PropagationStatus).Should(ContainElement(And(HaveField("ClusterName", clusterB.Name), HaveField("Condition.Status", Equal(metav1.ConditionTrue)))))
 
-				clusterListEmptyCondition := trb.Status.GetConditionByType(greenhousev1alpha1.ClusterListEmpty)
+				clusterListEmptyCondition := trb.Status.GetConditionByType(greenhouseapis.ClusterListEmpty)
 				g.Expect(clusterListEmptyCondition).ToNot(BeNil(), "ClusterListEmpty condition on TeamRoleBinding should not be nil")
 				g.Expect(clusterListEmptyCondition.Status).To(Equal(metav1.ConditionFalse), "ClusterListEmpty condition on TeamRoleBinding should be False")
-				rbacReadyCondition := trb.Status.GetConditionByType(greenhousev1alpha1.RBACReady)
+				rbacReadyCondition := trb.Status.GetConditionByType(greenhouseapis.RBACReady)
 				g.Expect(rbacReadyCondition).ToNot(BeNil(), "RBACReady condition on TeamRoleBinding should not be nil")
 				g.Expect(rbacReadyCondition.Status).To(Equal(metav1.ConditionTrue), "RBACReady condition on TeamRoleBinding should be True")
-				readyCondition := trb.Status.GetConditionByType(greenhousev1alpha1.ReadyCondition)
+				readyCondition := trb.Status.GetConditionByType(greenhouseapis.ReadyCondition)
 				g.Expect(readyCondition).ToNot(BeNil(), "Ready condition on TeamRoleBinding should not be nil")
 				g.Expect(readyCondition.Status).To(Equal(metav1.ConditionFalse), "Ready condition on TeamRoleBinding should be False")
 			}).Should(Succeed(), "the TeamRoleBindings status should reflect the current status")

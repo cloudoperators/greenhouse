@@ -120,7 +120,7 @@ func ClusterIsReady(ctx context.Context, adminClient client.Client, clusterName,
 		err := adminClient.Get(ctx, client.ObjectKey{Name: clusterName, Namespace: namespace}, cluster)
 		g.Expect(err).ToNot(HaveOccurred())
 		conditions := cluster.GetConditions()
-		readyCondition := conditions.GetConditionByType(greenhousev1alpha1.ReadyCondition)
+		readyCondition := conditions.GetConditionByType(greenhouseapis.ReadyCondition)
 		g.Expect(readyCondition).ToNot(BeNil(), "cluster should have ready condition")
 		g.Expect(readyCondition.IsTrue()).To(BeTrue(), "cluster should be ready")
 		g.Expect(cluster.Status.KubernetesVersion).ToNot(BeEmpty(), "cluster should have kubernetes version")

@@ -6,6 +6,8 @@ package v1alpha1
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
+
+	greenhouseapis "github.com/cloudoperators/greenhouse/api"
 )
 
 // ClusterKubeconfigSpec stores the kubeconfig data for the cluster
@@ -80,13 +82,13 @@ type ClusterKubeconfig struct {
 
 // +kubebuilder:object:generate=true
 type ClusterKubeconfigStatus struct {
-	Conditions StatusConditions `json:"statusConditions,omitempty"`
+	Conditions greenhouseapis.StatusConditions `json:"statusConditions,omitempty"`
 }
 
 const (
-	KubeconfigCreatedCondition         ConditionType = "Created"
-	KubeconfigReconcileFailedCondition ConditionType = "ReconcileFailed"
-	KubeconfigReadyCondition           ConditionType = "Ready"
+	KubeconfigCreatedCondition         greenhouseapis.ConditionType = "Created"
+	KubeconfigReconcileFailedCondition greenhouseapis.ConditionType = "ReconcileFailed"
+	KubeconfigReadyCondition           greenhouseapis.ConditionType = "Ready"
 )
 
 //+kubebuilder:object:root=true

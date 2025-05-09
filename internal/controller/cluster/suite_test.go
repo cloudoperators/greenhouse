@@ -12,7 +12,7 @@ import (
 
 	clusterpkg "github.com/cloudoperators/greenhouse/internal/controller/cluster"
 	"github.com/cloudoperators/greenhouse/internal/test"
-	admission "github.com/cloudoperators/greenhouse/internal/webhook"
+	webhookv1alpha1 "github.com/cloudoperators/greenhouse/internal/webhook/v1alpha1"
 )
 
 var (
@@ -33,12 +33,12 @@ var _ = BeforeSuite(func() {
 		RenewRemoteClusterBearerTokenAfter: 9 * time.Minute,
 	}).SetupWithManager)
 
-	test.RegisterWebhook("clusterValidation", admission.SetupClusterWebhookWithManager)
-	test.RegisterWebhook("secretsWebhook", admission.SetupSecretWebhookWithManager)
+	test.RegisterWebhook("clusterValidation", webhookv1alpha1.SetupClusterWebhookWithManager)
+	test.RegisterWebhook("secretsWebhook", webhookv1alpha1.SetupSecretWebhookWithManager)
 
 	// orgWebhook is required by cluster-kubeconfig since it uses organization-level resources
 	test.RegisterController("kubeconfig", (&clusterpkg.KubeconfigReconciler{}).SetupWithManager)
-	test.RegisterWebhook("orgWebhook", admission.SetupOrganizationWebhookWithManager)
+	test.RegisterWebhook("orgWebhook", webhookv1alpha1.SetupOrganizationWebhookWithManager)
 
 	test.TestBeforeSuite()
 })
