@@ -45,6 +45,21 @@ func UpdateClusterWithDeletionAnnotation(ctx context.Context, c client.Client, i
 	return cluster
 }
 
+func RemoveDeletionProjection(ctx context.Context, c client.Client, id client.ObjectKey) *greenhousev1alpha1.PluginPreset {
+	GinkgoHelper()
+	pluginPreset := &greenhousev1alpha1.PluginPreset{}
+	Eventually(func(g Gomega) {
+		g.Expect(c.Get(ctx, id, pluginPreset)).
+			To(Succeed(), "there must be no error getting the plugin preset")
+		base := pluginPreset.DeepCopy()
+		annotations := pluginPreset.GetAnnotations()
+		delete(annotations, greenhousev1alpha1.PreventDeletionAnnotation)
+		pluginPreset.SetAnnotations(annotations)
+		g.Expect(c.Patch(ctx, pluginPreset, client.MergeFrom(base))).To(Succeed(), "there must be no error updating the pluginpreset")
+	}).Should(Succeed(), "there should be no error removing the deletion projection")
+	return pluginPreset
+}
+
 // MustDeleteCluster is used in the test context only and removes a cluster by namespaced name.
 func MustDeleteCluster(ctx context.Context, c client.Client, id client.ObjectKey) {
 	GinkgoHelper()
