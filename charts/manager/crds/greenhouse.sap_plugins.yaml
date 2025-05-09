@@ -116,6 +116,16 @@ spec:
                 description: PluginDefinition is the name of the PluginDefinition
                   this instance is for.
                 type: string
+              releaseName:
+                description: |-
+                  ReleaseName is the name of the helm release in the remote cluster to which the backend is deployed.
+                  If the Plugin was already deployed, the Plugin's name is used as the release name.
+                  If this Plugin is newly created, the releaseName is defaulted to the PluginDefinitions HelmChart name.
+                maxLength: 53
+                type: string
+                x-kubernetes-validations:
+                - message: ReleaseName is immutable
+                  rule: self == oldSelf
               releaseNamespace:
                 description: |-
                   ReleaseNamespace is the namespace in the remote cluster to which the backend is deployed.
@@ -272,6 +282,9 @@ spec:
                 type: integer
             type: object
         type: object
+        x-kubernetes-validations:
+        - message: ReleaseName is required once set
+          rule: '!has(oldSelf.spec.releaseName) || has(self.spec.releaseName)'
     served: true
     storage: true
     subresources:
