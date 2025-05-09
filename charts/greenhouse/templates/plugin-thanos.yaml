@@ -1,3 +1,4 @@
+{{- if .Values.thanos.enabled }}
 apiVersion: greenhouse.sap/v1alpha1
 kind: Plugin
 metadata:
@@ -24,14 +25,14 @@ spec:
       value: true
     - name: thanos.query.ingress.hosts
       value:
-        - host: {{ .Values.thanos.ingress.host }}
+        - host: thanos.{{ .Values.global.dnsDomain }}
           paths:
             - path: /
               pathType: Prefix
     - name: thanos.query.ingress.tls
       value:
       - hosts:
-          - {{ required ".Values.thanos.ingress.host missing" .Values.thanos.ingress.host }}
+          - thanos.{{ .Values.global.dnsDomain }}
         secretName: tls-{{ .Values.thanos.ingress.host | replace "." "-" }}
     - name: thanos.query.ingress.annotations
       value:
@@ -44,3 +45,4 @@ spec:
     - name: thanos.compactor.enabled
       value: true
   pluginDefinition: thanos
+{{- end }}
