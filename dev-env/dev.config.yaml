@@ -8,7 +8,7 @@ config:
       version: v1.31.0
       configPath: dev-env/greenhouse-admin-cluster.yaml
       postSetup:
-        - command: kubectl config use-context kind-greenhouse-admin
+        - command: kubectl config use-context kind-greenhouse-admin | sleep 7
         - command: kubectl --kubeconfig "${kubeconfig}" get cm kube-root-ca.crt -n default -o json | jq -r '.data."ca.crt"' | tee bin/greenhouse-admin-ca.crt
           vars:
             kubeconfig: kubeconfig
