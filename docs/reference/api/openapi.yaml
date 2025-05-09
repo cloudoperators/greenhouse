@@ -14,6 +14,26 @@ paths:
       responses:
         default:
           description: Cluster
+  /TeamRole:
+    post:
+      responses:
+        default:
+          description: TeamRole
+  /TeamMembership:
+    post:
+      responses:
+        default:
+          description: TeamMembership
+  /PluginPreset:
+    post:
+      responses:
+        default:
+          description: PluginPreset
+  /Team:
+    post:
+      responses:
+        default:
+          description: Team
   /TeamRoleBinding:
     post:
       responses:
