@@ -33,7 +33,7 @@ spec:
       value:
       - hosts:
           - thanos.{{ .Values.global.dnsDomain }}
-        secretName: tls-{{ .Values.thanos.ingress.host | replace "." "-" }}
+        secretName: tls-thanos-{{ .Values.global.dnsDomain | replace "." "-" }}
     - name: thanos.query.ingress.annotations
       value:
         disco: "true"
