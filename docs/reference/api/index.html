@@ -76,7 +76,7 @@ SCIMConfig
 <td>
 <code>metadata</code><br>
 <em>
-<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.24/#objectmeta-v1-meta">
+<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#objectmeta-v1-meta">
 Kubernetes meta/v1.ObjectMeta
 </a>
 </em>
@@ -206,7 +206,7 @@ ObjectMeta.Name is designed to be the same with the Cluster name</p>
 <td>
 <code>metadata</code><br>
 <em>
-<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.24/#objectmeta-v1-meta">
+<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#objectmeta-v1-meta">
 Kubernetes meta/v1.ObjectMeta
 </a>
 </em>
@@ -280,7 +280,9 @@ ClusterKubeconfigStatus
 <td>
 <code>auth-provider</code><br>
 <em>
+<a href="https://pkg.go.dev/k8s.io/client-go/tools/clientcmd/api#AuthProviderConfig">
 k8s.io/client-go/tools/clientcmd/api.AuthProviderConfig
+</a>
 </em>
 </td>
 <td>
@@ -687,8 +689,8 @@ ClusterKubeconfigData
 <td>
 <code>statusConditions</code><br>
 <em>
-<a href="#greenhouse.sap/v1alpha1.StatusConditions">
-StatusConditions
+<a href="https://pkg.go.dev/github.com/cloudoperators/greenhouse/api/v1alpha1#StatusConditions">
+Greenhouse meta/v1alpha1.StatusConditions
 </a>
 </em>
 </td>
@@ -770,7 +772,7 @@ string
 <td>
 <code>labelSelector</code><br>
 <em>
-<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.24/#labelselector-v1-meta">
+<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#labelselector-v1-meta">
 Kubernetes meta/v1.LabelSelector
 </a>
 </em>
@@ -873,7 +875,7 @@ string
 <td>
 <code>bearerTokenExpirationTimestamp</code><br>
 <em>
-<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.24/#time-v1-meta">
+<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#time-v1-meta">
 Kubernetes meta/v1.Time
 </a>
 </em>
@@ -886,8 +888,8 @@ Kubernetes meta/v1.Time
 <td>
 <code>statusConditions</code><br>
 <em>
-<a href="#greenhouse.sap/v1alpha1.StatusConditions">
-StatusConditions
+<a href="https://pkg.go.dev/github.com/cloudoperators/greenhouse/api/v1alpha1#StatusConditions">
+Greenhouse meta/v1alpha1.StatusConditions
 </a>
 </em>
 </td>
@@ -912,106 +914,6 @@ map[string]./api/v1alpha1.NodeStatus
 </table>
 </div>
 </div>
-<h3 id="greenhouse.sap/v1alpha1.Condition">Condition
-</h3>
-<p>
-(<em>Appears on:</em>
-<a href="#greenhouse.sap/v1alpha1.ManagedPluginStatus">ManagedPluginStatus</a>, 
-<a href="#greenhouse.sap/v1alpha1.PropagationStatus">PropagationStatus</a>, 
-<a href="#greenhouse.sap/v1alpha1.StatusConditions">StatusConditions</a>)
-</p>
-<p>Condition contains additional information on the state of a resource.</p>
-<div class="md-typeset__scrollwrap">
-<div class="md-typeset__table">
-<table>
-<thead>
-<tr>
-<th>Field</th>
-<th>Description</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>
-<code>type</code><br>
-<em>
-<a href="#greenhouse.sap/v1alpha1.ConditionType">
-ConditionType
-</a>
-</em>
-</td>
-<td>
-<p>Type of the condition.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>status</code><br>
-<em>
-<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.24/#conditionstatus-v1-meta">
-Kubernetes meta/v1.ConditionStatus
-</a>
-</em>
-</td>
-<td>
-<p>Status of the condition.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>reason</code><br>
-<em>
-<a href="#greenhouse.sap/v1alpha1.ConditionReason">
-ConditionReason
-</a>
-</em>
-</td>
-<td>
-<p>Reason is a one-word, CamelCase reason for the condition&rsquo;s last transition.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>lastTransitionTime</code><br>
-<em>
-<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.24/#time-v1-meta">
-Kubernetes meta/v1.Time
-</a>
-</em>
-</td>
-<td>
-<p>LastTransitionTime is the last time the condition transitioned from one status to another.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>message</code><br>
-<em>
-string
-</em>
-</td>
-<td>
-<p>Message is an optional human readable message indicating details about the last transition.</p>
-</td>
-</tr>
-</tbody>
-</table>
-</div>
-</div>
-<h3 id="greenhouse.sap/v1alpha1.ConditionReason">ConditionReason
-(<code>string</code> alias)</h3>
-<p>
-(<em>Appears on:</em>
-<a href="#greenhouse.sap/v1alpha1.Condition">Condition</a>)
-</p>
-<p>ConditionReason is a valid reason for a condition of a resource.</p>
-<h3 id="greenhouse.sap/v1alpha1.ConditionType">ConditionType
-(<code>string</code> alias)</h3>
-<p>
-(<em>Appears on:</em>
-<a href="#greenhouse.sap/v1alpha1.Condition">Condition</a>)
-</p>
-<p>ConditionType is a valid condition of a resource.</p>
 <h3 id="greenhouse.sap/v1alpha1.HelmChartReference">HelmChartReference
 </h3>
 <p>
@@ -1099,7 +1001,7 @@ string
 <td>
 <code>firstDeployed</code><br>
 <em>
-<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.24/#time-v1-meta">
+<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#time-v1-meta">
 Kubernetes meta/v1.Time
 </a>
 </em>
@@ -1112,7 +1014,7 @@ Kubernetes meta/v1.Time
 <td>
 <code>lastDeployed</code><br>
 <em>
-<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.24/#time-v1-meta">
+<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#time-v1-meta">
 Kubernetes meta/v1.Time
 </a>
 </em>
@@ -1178,8 +1080,8 @@ string
 <td>
 <code>readyCondition</code><br>
 <em>
-<a href="#greenhouse.sap/v1alpha1.Condition">
-Condition
+<a href="https://pkg.go.dev/github.com/cloudoperators/greenhouse/api/v1alpha1#Condition">
+Greenhouse meta/v1alpha1.Condition
 </a>
 </em>
 </td>
@@ -1210,8 +1112,8 @@ Condition
 <td>
 <code>statusConditions</code><br>
 <em>
-<a href="#greenhouse.sap/v1alpha1.StatusConditions">
-StatusConditions
+<a href="https://pkg.go.dev/github.com/cloudoperators/greenhouse/api/v1alpha1#StatusConditions">
+Greenhouse meta/v1alpha1.StatusConditions
 </a>
 </em>
 </td>
@@ -1332,7 +1234,7 @@ the client application, the URI requested to redirect to must be contained in th
 <td>
 <code>metadata</code><br>
 <em>
-<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.24/#objectmeta-v1-meta">
+<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#objectmeta-v1-meta">
 Kubernetes meta/v1.ObjectMeta
 </a>
 </em>
@@ -1510,8 +1412,8 @@ string
 <td>
 <code>statusConditions</code><br>
 <em>
-<a href="#greenhouse.sap/v1alpha1.StatusConditions">
-StatusConditions
+<a href="https://pkg.go.dev/github.com/cloudoperators/greenhouse/api/v1alpha1#StatusConditions">
+Greenhouse meta/v1alpha1.StatusConditions
 </a>
 </em>
 </td>
@@ -1540,7 +1442,7 @@ StatusConditions
 <td>
 <code>metadata</code><br>
 <em>
-<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.24/#objectmeta-v1-meta">
+<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#objectmeta-v1-meta">
 Kubernetes meta/v1.ObjectMeta
 </a>
 </em>
@@ -1659,7 +1561,7 @@ PluginStatus
 <td>
 <code>metadata</code><br>
 <em>
-<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.24/#objectmeta-v1-meta">
+<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#objectmeta-v1-meta">
 Kubernetes meta/v1.ObjectMeta
 </a>
 </em>
@@ -1980,7 +1882,9 @@ string
 <td>
 <code>default</code><br>
 <em>
-k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1.JSON
+<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#json-v1-apiextensions-k8s-io">
+Kubernetes apiextensions/v1.JSON
+</a>
 </em>
 </td>
 <td>
@@ -2089,7 +1993,9 @@ string
 <td>
 <code>value</code><br>
 <em>
-k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1.JSON
+<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#json-v1-apiextensions-k8s-io">
+Kubernetes apiextensions/v1.JSON
+</a>
 </em>
 </td>
 <td>
@@ -2130,7 +2036,7 @@ ValueFromSource
 <td>
 <code>metadata</code><br>
 <em>
-<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.24/#objectmeta-v1-meta">
+<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#objectmeta-v1-meta">
 Kubernetes meta/v1.ObjectMeta
 </a>
 </em>
@@ -2170,7 +2076,7 @@ PluginSpec
 <td>
 <code>clusterSelector</code><br>
 <em>
-<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.24/#labelselector-v1-meta">
+<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#labelselector-v1-meta">
 Kubernetes meta/v1.LabelSelector
 </a>
 </em>
@@ -2245,7 +2151,7 @@ PluginSpec
 <td>
 <code>clusterSelector</code><br>
 <em>
-<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.24/#labelselector-v1-meta">
+<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#labelselector-v1-meta">
 Kubernetes meta/v1.LabelSelector
 </a>
 </em>
@@ -2292,8 +2198,8 @@ Kubernetes meta/v1.LabelSelector
 <td>
 <code>statusConditions</code><br>
 <em>
-<a href="#greenhouse.sap/v1alpha1.StatusConditions">
-StatusConditions
+<a href="https://pkg.go.dev/github.com/cloudoperators/greenhouse/api/v1alpha1#StatusConditions">
+Greenhouse meta/v1alpha1.StatusConditions
 </a>
 </em>
 </td>
@@ -2541,8 +2447,8 @@ It maps the exposed URL to the service found in the manifest.</p>
 <td>
 <code>statusConditions</code><br>
 <em>
-<a href="#greenhouse.sap/v1alpha1.StatusConditions">
-StatusConditions
+<a href="https://pkg.go.dev/github.com/cloudoperators/greenhouse/api/v1alpha1#StatusConditions">
+Greenhouse meta/v1alpha1.StatusConditions
 </a>
 </em>
 </td>
@@ -2586,8 +2492,8 @@ string
 <td>
 <code>condition</code><br>
 <em>
-<a href="#greenhouse.sap/v1alpha1.Condition">
-Condition
+<a href="https://pkg.go.dev/github.com/cloudoperators/greenhouse/api/v1alpha1#Condition">
+Greenhouse meta/v1alpha1.Condition
 </a>
 </em>
 </td>
@@ -2811,48 +2717,6 @@ string
 </table>
 </div>
 </div>
-<h3 id="greenhouse.sap/v1alpha1.StatusConditions">StatusConditions
-</h3>
-<p>
-(<em>Appears on:</em>
-<a href="#greenhouse.sap/v1alpha1.ClusterKubeconfigStatus">ClusterKubeconfigStatus</a>, 
-<a href="#greenhouse.sap/v1alpha1.ClusterStatus">ClusterStatus</a>, 
-<a href="#greenhouse.sap/v1alpha1.NodeStatus">NodeStatus</a>, 
-<a href="#greenhouse.sap/v1alpha1.OrganizationStatus">OrganizationStatus</a>, 
-<a href="#greenhouse.sap/v1alpha1.PluginPresetStatus">PluginPresetStatus</a>, 
-<a href="#greenhouse.sap/v1alpha1.PluginStatus">PluginStatus</a>, 
-<a href="#greenhouse.sap/v1alpha1.TeamMembershipStatus">TeamMembershipStatus</a>, 
-<a href="#greenhouse.sap/v1alpha1.TeamRoleBindingStatus">TeamRoleBindingStatus</a>, 
-<a href="#greenhouse.sap/v1alpha1.TeamStatus">TeamStatus</a>)
-</p>
-<p>A StatusConditions contains a list of conditions.
-Only one condition of a given type may exist in the list.</p>
-<div class="md-typeset__scrollwrap">
-<div class="md-typeset__table">
-<table>
-<thead>
-<tr>
-<th>Field</th>
-<th>Description</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>
-<code>conditions</code><br>
-<em>
-<a href="#greenhouse.sap/v1alpha1.Condition">
-[]Condition
-</a>
-</em>
-</td>
-<td>
-</td>
-</tr>
-</tbody>
-</table>
-</div>
-</div>
 <h3 id="greenhouse.sap/v1alpha1.Team">Team
 </h3>
 <p>Team is the Schema for the teams API</p>
@@ -2870,7 +2734,7 @@ Only one condition of a given type may exist in the list.</p>
 <td>
 <code>metadata</code><br>
 <em>
-<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.24/#objectmeta-v1-meta">
+<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#objectmeta-v1-meta">
 Kubernetes meta/v1.ObjectMeta
 </a>
 </em>
@@ -2962,7 +2826,7 @@ TeamStatus
 <td>
 <code>metadata</code><br>
 <em>
-<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.24/#objectmeta-v1-meta">
+<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#objectmeta-v1-meta">
 Kubernetes meta/v1.ObjectMeta
 </a>
 </em>
@@ -3074,7 +2938,7 @@ TeamMembershipStatus
 <td>
 <code>lastSyncedTime</code><br>
 <em>
-<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.24/#time-v1-meta">
+<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#time-v1-meta">
 Kubernetes meta/v1.Time
 </a>
 </em>
@@ -3088,7 +2952,7 @@ Kubernetes meta/v1.Time
 <td>
 <code>lastUpdateTime</code><br>
 <em>
-<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.24/#time-v1-meta">
+<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#time-v1-meta">
 Kubernetes meta/v1.Time
 </a>
 </em>
@@ -3102,8 +2966,8 @@ Kubernetes meta/v1.Time
 <td>
 <code>statusConditions</code><br>
 <em>
-<a href="#greenhouse.sap/v1alpha1.StatusConditions">
-StatusConditions
+<a href="https://pkg.go.dev/github.com/cloudoperators/greenhouse/api/v1alpha1#StatusConditions">
+Greenhouse meta/v1alpha1.StatusConditions
 </a>
 </em>
 </td>
@@ -3132,7 +2996,7 @@ StatusConditions
 <td>
 <code>metadata</code><br>
 <em>
-<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.24/#objectmeta-v1-meta">
+<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#objectmeta-v1-meta">
 Kubernetes meta/v1.ObjectMeta
 </a>
 </em>
@@ -3159,7 +3023,7 @@ TeamRoleSpec
 <td>
 <code>rules</code><br>
 <em>
-<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.24/#policyrule-v1-rbac">
+<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#policyrule-v1-rbac">
 []Kubernetes rbac/v1.PolicyRule
 </a>
 </em>
@@ -3172,7 +3036,7 @@ TeamRoleSpec
 <td>
 <code>aggregationRule</code><br>
 <em>
-<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.24/#aggregationrule-v1-rbac">
+<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#aggregationrule-v1-rbac">
 Kubernetes rbac/v1.AggregationRule
 </a>
 </em>
@@ -3229,7 +3093,7 @@ TeamRoleStatus
 <td>
 <code>metadata</code><br>
 <em>
-<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.24/#objectmeta-v1-meta">
+<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#objectmeta-v1-meta">
 Kubernetes meta/v1.ObjectMeta
 </a>
 </em>
@@ -3300,7 +3164,7 @@ string
 <td>
 <code>clusterSelector</code><br>
 <em>
-<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.24/#labelselector-v1-meta">
+<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#labelselector-v1-meta">
 Kubernetes meta/v1.LabelSelector
 </a>
 </em>
@@ -3416,7 +3280,7 @@ string
 <td>
 <code>clusterSelector</code><br>
 <em>
-<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.24/#labelselector-v1-meta">
+<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#labelselector-v1-meta">
 Kubernetes meta/v1.LabelSelector
 </a>
 </em>
@@ -3473,8 +3337,8 @@ bool
 <td>
 <code>statusConditions</code><br>
 <em>
-<a href="#greenhouse.sap/v1alpha1.StatusConditions">
-StatusConditions
+<a href="https://pkg.go.dev/github.com/cloudoperators/greenhouse/api/v1alpha1#StatusConditions">
+Greenhouse meta/v1alpha1.StatusConditions
 </a>
 </em>
 </td>
@@ -3520,7 +3384,7 @@ StatusConditions
 <td>
 <code>rules</code><br>
 <em>
-<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.24/#policyrule-v1-rbac">
+<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#policyrule-v1-rbac">
 []Kubernetes rbac/v1.PolicyRule
 </a>
 </em>
@@ -3533,7 +3397,7 @@ StatusConditions
 <td>
 <code>aggregationRule</code><br>
 <em>
-<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.24/#aggregationrule-v1-rbac">
+<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#aggregationrule-v1-rbac">
 Kubernetes rbac/v1.AggregationRule
 </a>
 </em>
@@ -3640,8 +3504,8 @@ string
 <td>
 <code>statusConditions</code><br>
 <em>
-<a href="#greenhouse.sap/v1alpha1.StatusConditions">
-StatusConditions
+<a href="https://pkg.go.dev/github.com/cloudoperators/greenhouse/api/v1alpha1#StatusConditions">
+Greenhouse meta/v1alpha1.StatusConditions
 </a>
 </em>
 </td>

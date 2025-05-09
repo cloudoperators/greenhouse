@@ -15,21 +15,21 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
+	greenhousemetav1alpha1 "github.com/cloudoperators/greenhouse/api/meta/v1alpha1"
 )
 
 type ReconcileResult string
 
 const (
-	CreatedReason         greenhousev1alpha1.ConditionReason = "Created"
-	PendingCreationReason greenhousev1alpha1.ConditionReason = "PendingCreation"
-	FailingCreationReason greenhousev1alpha1.ConditionReason = "FailingCreation"
+	CreatedReason         greenhousemetav1alpha1.ConditionReason = "Created"
+	PendingCreationReason greenhousemetav1alpha1.ConditionReason = "PendingCreation"
+	FailingCreationReason greenhousemetav1alpha1.ConditionReason = "FailingCreation"
 	// ScheduledDeletionReason is used to indicate that the resource is scheduled for deletion
-	ScheduledDeletionReason greenhousev1alpha1.ConditionReason = "ScheduledDeletion"
-	PendingDeletionReason   greenhousev1alpha1.ConditionReason = "PendingDeletion"
-	FailingDeletionReason   greenhousev1alpha1.ConditionReason = "FailingDeletion"
-	DeletedReason           greenhousev1alpha1.ConditionReason = "Deleted"
-	CommonCleanupFinalizer                                     = "greenhouse.sap/cleanup"
+	ScheduledDeletionReason greenhousemetav1alpha1.ConditionReason = "ScheduledDeletion"
+	PendingDeletionReason   greenhousemetav1alpha1.ConditionReason = "PendingDeletion"
+	FailingDeletionReason   greenhousemetav1alpha1.ConditionReason = "FailingDeletion"
+	DeletedReason           greenhousemetav1alpha1.ConditionReason = "Deleted"
+	CommonCleanupFinalizer                                         = "greenhouse.sap/cleanup"
 
 	// Success should be returned in case the operator reached its target state
 	Success ReconcileResult = "Success"
@@ -48,9 +48,9 @@ type RuntimeObject interface {
 	runtime.Object
 	v1.Object
 	// GetConditions returns the status conditions of the object (must be implemented in respective types)
-	GetConditions() greenhousev1alpha1.StatusConditions
+	GetConditions() greenhousemetav1alpha1.StatusConditions
 	// SetCondition sets the status conditions of the object (must be implemented in respective types)
-	SetCondition(greenhousev1alpha1.Condition)
+	SetCondition(greenhousemetav1alpha1.Condition)
 }
 
 // Reconciler is the interface that wraps the basic EnsureCreated and EnsureDeleted methods that a controller should implement
@@ -108,7 +108,7 @@ func Reconcile(ctx context.Context, kubeClient client.Client, namespacedName typ
 // This is used to determine if the resource is in deletion phase has finished its cleanup
 func isResourceDeleted(runtimeObject RuntimeObject) bool {
 	status := runtimeObject.GetConditions()
-	deleteCondition := status.GetConditionByType(greenhousev1alpha1.DeleteCondition)
+	deleteCondition := status.GetConditionByType(greenhousemetav1alpha1.DeleteCondition)
 	if deleteCondition == nil {
 		return false
 	}
@@ -138,36 +138,36 @@ func ensureDeleted(ctx context.Context, logger logr.Logger, reconciler Reconcile
 
 // setupDeleteState - converts the reconcile result to a condition and sets it in the runtimeObject for deletion phase
 func setupDeleteState(runtimeObject RuntimeObject, reconcileResult ReconcileResult, err error) {
-	var condition greenhousev1alpha1.Condition
+	var condition greenhousemetav1alpha1.Condition
 	switch reconcileResult {
 	case Success:
-		condition = greenhousev1alpha1.TrueCondition(greenhousev1alpha1.DeleteCondition, DeletedReason, "resource is successfully deleted")
+		condition = greenhousemetav1alpha1.TrueCondition(greenhousemetav1alpha1.DeleteCondition, DeletedReason, "resource is successfully deleted")
 	case Failed:
 		msg := ""
 		if err != nil {
 			msg = err.Error()
 		}
-		condition = greenhousev1alpha1.FalseCondition(greenhousev1alpha1.DeleteCondition, FailingDeletionReason, "resource deletion failed: "+msg)
+		condition = greenhousemetav1alpha1.FalseCondition(greenhousemetav1alpha1.DeleteCondition, FailingDeletionReason, "resource deletion failed: "+msg)
 	default:
-		condition = greenhousev1alpha1.FalseCondition(greenhousev1alpha1.DeleteCondition, PendingDeletionReason, "resource deletion is pending")
+		condition = greenhousemetav1alpha1.FalseCondition(greenhousemetav1alpha1.DeleteCondition, PendingDeletionReason, "resource deletion is pending")
 	}
 	runtimeObject.SetCondition(condition)
 }
 
 // setupCreateState - if statusFunc is not passed to reconciler then the default status conditions are set in runtimeObject
 func setupCreateState(runtimeObject RuntimeObject, reconcileResult ReconcileResult, err error) {
-	var condition greenhousev1alpha1.Condition
+	var condition greenhousemetav1alpha1.Condition
 	switch reconcileResult {
 	case Success:
-		condition = greenhousev1alpha1.TrueCondition(greenhousev1alpha1.ReadyCondition, CreatedReason, "resource is successfully created")
+		condition = greenhousemetav1alpha1.TrueCondition(greenhousemetav1alpha1.ReadyCondition, CreatedReason, "resource is successfully created")
 	case Failed:
 		msg := ""
 		if err != nil {
 			msg = err.Error()
 		}
-		condition = greenhousev1alpha1.FalseCondition(greenhousev1alpha1.ReadyCondition, FailingCreationReason, "resource creation failed"+msg)
+		condition = greenhousemetav1alpha1.FalseCondition(greenhousemetav1alpha1.ReadyCondition, FailingCreationReason, "resource creation failed"+msg)
 	default:
-		condition = greenhousev1alpha1.UnknownCondition(greenhousev1alpha1.ReadyCondition, PendingCreationReason, "resource creation is pending")
+		condition = greenhousemetav1alpha1.UnknownCondition(greenhousemetav1alpha1.ReadyCondition, PendingCreationReason, "resource creation is pending")
 	}
 	runtimeObject.SetCondition(condition)
 }

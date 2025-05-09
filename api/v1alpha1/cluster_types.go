@@ -5,6 +5,8 @@ package v1alpha1
 
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
+	greenhousemetav1alpha1 "github.com/cloudoperators/greenhouse/api/meta/v1alpha1"
 )
 
 // ClusterSpec defines the desired state of the Cluster.
@@ -34,10 +36,10 @@ const (
 	ClusterAccessModeDirect ClusterAccessMode = "direct"
 
 	// AllNodesReady reflects the readiness status of all nodes of a cluster.
-	AllNodesReady ConditionType = "AllNodesReady"
+	AllNodesReady greenhousemetav1alpha1.ConditionType = "AllNodesReady"
 
 	// KubeConfigValid reflects the validity of the kubeconfig of a cluster.
-	KubeConfigValid ConditionType = "KubeConfigValid"
+	KubeConfigValid greenhousemetav1alpha1.ConditionType = "KubeConfigValid"
 
 	// MaxTokenValidity contains maximum bearer token validity duration. It is also default value.
 	MaxTokenValidity = 72
@@ -53,7 +55,7 @@ type ClusterStatus struct {
 	// BearerTokenExpirationTimestamp reflects the expiration timestamp of the bearer token used to access the cluster.
 	BearerTokenExpirationTimestamp metav1.Time `json:"bearerTokenExpirationTimestamp,omitempty"`
 	// StatusConditions contain the different conditions that constitute the status of the Cluster.
-	StatusConditions `json:"statusConditions,omitempty"`
+	greenhousemetav1alpha1.StatusConditions `json:"statusConditions,omitempty"`
 	// Nodes provides a map of cluster node names to node statuses
 	Nodes map[string]NodeStatus `json:"nodes,omitempty"`
 }
@@ -63,7 +65,7 @@ type ClusterConditionType string
 
 type NodeStatus struct {
 	// We mirror the node conditions here for faster reference
-	StatusConditions `json:"statusConditions,omitempty"`
+	greenhousemetav1alpha1.StatusConditions `json:"statusConditions,omitempty"`
 	// Fast track to the node ready condition.
 	Ready bool `json:"ready,omitempty"`
 }
@@ -83,11 +85,11 @@ type Cluster struct {
 	Status ClusterStatus `json:"status,omitempty"`
 }
 
-func (c *Cluster) GetConditions() StatusConditions {
+func (c *Cluster) GetConditions() greenhousemetav1alpha1.StatusConditions {
 	return c.Status.StatusConditions
 }
 
-func (c *Cluster) SetCondition(condition Condition) {
+func (c *Cluster) SetCondition(condition greenhousemetav1alpha1.Condition) {
 	c.Status.SetConditions(condition)
 }
 
