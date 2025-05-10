@@ -27,6 +27,11 @@ import (
 	"github.com/cloudoperators/greenhouse/internal/lifecycle"
 )
 
+const (
+	deliveryToolLabel = "greenhouse.sap/deployment-tool"
+	deliveryToolFlux  = "flux"
+)
+
 // exposedConditions are the conditions that are exposed in the StatusConditions of the Plugin.
 var exposedConditions = []greenhousev1alpha1.ConditionType{
 	greenhousev1alpha1.ReadyCondition,
@@ -299,4 +304,37 @@ func shouldReconcileOrRequeue(ctx context.Context, c client.Client, plugin *gree
 	}
 
 	return nil, nil
+}
+
+// getLabelValueFromLabels retrieves the value of a specific label from a map of labels.
+func getLabelValueFromLabels(labelMap map[string]string, label string) string {
+	for key, value := range labelMap {
+		if key == label {
+			return value
+		}
+	}
+	return ""
+}
+
+// presetHasLabel checks if the given label is present in the label map.
+func presetHasLabel(labelMap map[string]string, label string) bool {
+	if labelMap == nil {
+		return false
+	}
+	if _, ok := labelMap[label]; ok {
+		return true
+	}
+	return false
+}
+
+// appendLabels appends multiple labels to the given Kubernetes object.
+func appendLabels(obj metav1.Object, newLabels map[string]string) {
+	labels := obj.GetLabels()
+	if labels == nil {
+		labels = make(map[string]string)
+	}
+	for key, value := range newLabels {
+		labels[key] = value
+	}
+	obj.SetLabels(labels)
 }
