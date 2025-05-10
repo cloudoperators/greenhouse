@@ -99,7 +99,27 @@ var _ = Describe("Organization ServiceProxyReconciler", Ordered, func() {
 		})
 	})
 
-	When("organization is annotated with the oauth2proxy preview annotation", func() {
+	When("organization is annotated with the oauth2proxy preview annotation", Ordered, func() {
+		It("should create default organization with oidc", func() {
+			By("creating greenhouse organization with OIDC config")
+			defaultOrg := setup.CreateOrganization(test.Ctx, "greenhouse", func(org *greenhousev1alpha1.Organization) {
+				org.Spec.MappedOrgAdminIDPGroup = "SOME_IDP_GROUP"
+			})
+			test.EventuallyCreated(test.Ctx, test.K8sClient, &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: defaultOrg.Name}})
+			By("creating a secret with dummy oidc config for default organization")
+			secret := setup.CreateSecret(test.Ctx, "greenhouse-oidc-config", test.WithSecretNamespace(defaultOrg.Name), test.WithSecretData(map[string][]byte{"clientID": []byte("dummy"), "clientSecret": []byte("top-secret")}))
+
+			By("Updating the default organization with oidc config")
+			defaultOrg = setup.UpdateOrganization(test.Ctx, defaultOrg.Name, test.WithOIDCConfig("some-issuer.tld", secret.Name, "clientID", "clientSecret"))
+			Eventually(func(g Gomega) {
+				err := test.K8sClient.Get(test.Ctx, types.NamespacedName{Name: defaultOrg.Name}, defaultOrg)
+				g.Expect(err).ToNot(HaveOccurred(), "there should be no error getting the organization")
+				oidcCondition := defaultOrg.Status.GetConditionByType(greenhousev1alpha1.OrganizationOICDConfigured)
+				g.Expect(oidcCondition).ToNot(BeNil(), "OrganizationOICDConfigured should be set on Organization")
+				g.Expect(oidcCondition.IsTrue()).To(BeTrue(), "OrganizationOICDConfigured should be True on Organization")
+			}).Should(Succeed(), "Organization should have set correct status condition")
+		})
+
 		It("should enable the oauth-proxy feature for the organization", func() {
 			By("creating a secret with dummy oidc config")
 			secret := setup.CreateSecret(test.Ctx, "oidc-config", test.WithSecretData(map[string][]byte{"clientID": []byte("dummy"), "clientSecret": []byte("top-secret")}))
@@ -114,7 +134,7 @@ var _ = Describe("Organization ServiceProxyReconciler", Ordered, func() {
 				org.SetAnnotations(annotations)
 			}
 
-			By("creating an organization with the oauthpreview annotation & oauth config")
+			By("creating an organization with the oauth preview annotation & oauth config")
 			org := setup.CreateOrganization(test.Ctx, setup.Namespace(), addAnnotation, test.WithOIDCConfig("some-issuer.tld", secret.Name, "clientID", "clientSecret"))
 
 			By("ensuring a service-proxy plugin has been created for organization")

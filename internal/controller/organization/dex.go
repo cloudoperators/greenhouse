@@ -24,7 +24,9 @@ import (
 	"github.com/cloudoperators/greenhouse/internal/common"
 )
 
-const dexConnectorTypeGreenhouse = "greenhouse-oidc"
+const (
+	dexConnectorTypeGreenhouse = "greenhouse-oidc"
+)
 
 func (r *OrganizationReconciler) discoverOIDCRedirectURL(ctx context.Context, org *greenhousev1alpha1.Organization) (string, error) {
 	if r := org.Spec.Authentication.OIDCConfig.RedirectURI; r != "" {
