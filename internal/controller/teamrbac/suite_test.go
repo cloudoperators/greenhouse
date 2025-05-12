@@ -9,9 +9,10 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
-	teamrbacpkg "github.com/cloudoperators/greenhouse/internal/controller/teamrbac"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
+
+	teamrbacpkg "github.com/cloudoperators/greenhouse/internal/controller/teamrbac"
 
 	"github.com/cloudoperators/greenhouse/internal/test"
 	webhookv1alpha1 "github.com/cloudoperators/greenhouse/internal/webhook/v1alpha1"
