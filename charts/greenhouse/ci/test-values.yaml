@@ -99,12 +99,6 @@ team-membership:
 
 logshipping:
   enabled: true
-  opensearch:
-    host: opensearch.foo.bar
-    port: 9200
-    logstashPrefix: "greenhouse"
-    username: topSecret!
-    password: topSecret!
   octobus:
     host: audit.test
     path: /my/index
