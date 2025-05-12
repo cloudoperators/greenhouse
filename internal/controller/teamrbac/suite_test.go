@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2024 SAP SE or an SAP affiliate company and Greenhouse contributors
 // SPDX-License-Identifier: Apache-2.0
 
-package teamrbac
+package teamrbac_test
 
 import (
 	"testing"
@@ -9,6 +9,7 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
+	teamrbacpkg "github.com/cloudoperators/greenhouse/internal/controller/teamrbac"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
 
@@ -42,7 +43,7 @@ func TestRBACController(t *testing.T) {
 }
 
 var _ = BeforeSuite(func() {
-	test.RegisterController("roleBindingController", (&TeamRoleBindingReconciler{}).SetupWithManager)
+	test.RegisterController("roleBindingController", (&teamrbacpkg.TeamRoleBindingReconciler{}).SetupWithManager)
 	test.RegisterWebhook("clusterWebhook", webhookv1alpha1.SetupClusterWebhookWithManager)
 	test.RegisterWebhook("teamsWebhook", webhookv1alpha1.SetupTeamWebhookWithManager)
 	test.RegisterWebhook("teamRoleBindingWebhookv1alpha1", webhookv1alpha1.SetupTeamRoleBindingWebhookWithManager)

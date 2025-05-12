@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2024 SAP SE or an SAP affiliate company and Greenhouse contributors
 // SPDX-License-Identifier: Apache-2.0
 
-package teamrbac
+package teamrbac_test
 
 import (
 	"context"
@@ -24,15 +24,15 @@ import (
 	"github.com/cloudoperators/greenhouse/internal/test"
 )
 
-var (
-	setup      *test.TestSetup
-	clusterA   *greenhousev1alpha1.Cluster
-	clusterB   *greenhousev1alpha1.Cluster
-	teamUT     *greenhousev1alpha1.Team
-	teamRoleUT *greenhousev1alpha1.TeamRole
-)
-
 var _ = Describe("Validate ClusterRole & RoleBinding on Remote Cluster", Ordered, func() {
+	var (
+		setup      *test.TestSetup
+		clusterA   *greenhousev1alpha1.Cluster
+		clusterB   *greenhousev1alpha1.Cluster
+		teamUT     *greenhousev1alpha1.Team
+		teamRoleUT *greenhousev1alpha1.TeamRole
+	)
+
 	BeforeEach(func() {
 		setup = test.NewTestSetup(test.Ctx, test.K8sClient, "teamrbac")
 		clusterA = setup.OnboardCluster(test.Ctx, "test-cluster-a", clusterAKubeConfig, test.WithLabel("cluster", "a"), test.WithLabel("rbac", "true"))
