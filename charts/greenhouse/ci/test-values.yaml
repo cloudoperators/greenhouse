@@ -69,6 +69,10 @@ teams:
     description: The Admin Team
     mappedIdPGroup: Admin IDP Group
 
+thanos:
+  ingress:
+    host: thanos.local
+
 alerts:
   enabled: true
   tlsConfig:

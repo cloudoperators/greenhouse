@@ -371,7 +371,9 @@ var _ = Describe("TeammembershipUpdaterController", Ordered, func() {
 			Eventually(func(g Gomega) {
 				err := setup.Get(test.Ctx, client.ObjectKeyFromObject(team), team)
 				g.Expect(err).ShouldNot(HaveOccurred(), "unexpected error getting Team")
-				g.Expect(team.Status.StatusConditions.GetConditionByType(greenhousev1alpha1.SCIMAccessReadyCondition).IsFalse()).To(BeTrue())
+				condition := team.Status.StatusConditions.GetConditionByType(greenhousev1alpha1.SCIMAccessReadyCondition)
+				g.Expect(condition).ToNot(BeNil())
+				g.Expect(condition.IsFalse()).To(BeTrue())
 				g.Expect(team.Status.StatusConditions.IsReadyTrue()).To(BeFalse())
 			}).Should(Succeed())
 		})

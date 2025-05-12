@@ -117,6 +117,20 @@ func WithHelmChart(chart *greenhousev1alpha1.HelmChartReference) func(*greenhous
 	}
 }
 
+// WithoutHelmChart sets the HelmChart of a PluginDefinition to nil
+func WithoutHelmChart() func(*greenhousev1alpha1.PluginDefinition) {
+	return func(pd *greenhousev1alpha1.PluginDefinition) {
+		pd.Spec.HelmChart = nil
+	}
+}
+
+// WithDescription sets the description of a PluginDefinition
+func WithUIApplication(ui *greenhousev1alpha1.UIApplicationReference) func(*greenhousev1alpha1.PluginDefinition) {
+	return func(pd *greenhousev1alpha1.PluginDefinition) {
+		pd.Spec.UIApplication = ui
+	}
+}
+
 // AppendPluginOption sets the plugin option in plugin definition
 func AppendPluginOption(option greenhousev1alpha1.PluginOption) func(*greenhousev1alpha1.PluginDefinition) {
 	return func(pd *greenhousev1alpha1.PluginDefinition) {
@@ -185,12 +199,12 @@ func WithPluginOptionValue(name string, value *apiextensionsv1.JSON, valueFrom *
 				p.Spec.OptionValues[i] = v
 				return
 			}
-			p.Spec.OptionValues = append(p.Spec.OptionValues, greenhousev1alpha1.PluginOptionValue{
-				Name:      name,
-				Value:     value,
-				ValueFrom: valueFrom,
-			})
 		}
+		p.Spec.OptionValues = append(p.Spec.OptionValues, greenhousev1alpha1.PluginOptionValue{
+			Name:      name,
+			Value:     value,
+			ValueFrom: valueFrom,
+		})
 	}
 }
 

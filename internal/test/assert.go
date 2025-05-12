@@ -22,6 +22,10 @@ func EventuallyDeleted(ctx context.Context, c client.Client, obj client.Object) 
 		if ok {
 			UpdateClusterWithDeletionAnnotation(ctx, c, client.ObjectKeyFromObject(cluster))
 		}
+		pluginPreset, ok := obj.(*greenhousev1alpha1.PluginPreset)
+		if ok {
+			RemoveDeletionProjection(ctx, c, client.ObjectKeyFromObject(pluginPreset))
+		}
 		if err := c.Delete(ctx, obj); err != nil {
 			return apierrors.IsNotFound(err)
 		}

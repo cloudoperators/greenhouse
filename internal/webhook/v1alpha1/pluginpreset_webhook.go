@@ -19,8 +19,6 @@ import (
 
 // Webhook for the PluginPreset custom resource.
 
-const preventDeletionAnnotation = "greenhouse.sap/prevent-deletion"
-
 func SetupPluginPresetWebhookWithManager(mgr ctrl.Manager) error {
 	return setupWebhook(mgr,
 		&greenhousev1alpha1.PluginPreset{},
@@ -46,7 +44,7 @@ func DefaultPluginPreset(_ context.Context, _ client.Client, o runtime.Object) e
 		pluginPreset.Annotations = map[string]string{}
 	}
 	if pluginPreset.CreationTimestamp.IsZero() {
-		pluginPreset.Annotations[preventDeletionAnnotation] = "true"
+		pluginPreset.Annotations[greenhousev1alpha1.PreventDeletionAnnotation] = "true"
 	}
 
 	return nil
@@ -131,9 +129,9 @@ func ValidateDeletePluginPreset(_ context.Context, _ client.Client, obj runtime.
 	}
 
 	var allErrs field.ErrorList
-	if _, ok := pluginPreset.Annotations[preventDeletionAnnotation]; ok {
-		allErrs = append(allErrs, field.Invalid(field.NewPath("metadata").Child("annotation").Child(preventDeletionAnnotation),
-			pluginPreset.Annotations, fmt.Sprintf("PluginPreset with annotation '%s' set may not be deleted.", preventDeletionAnnotation)))
+	if _, ok := pluginPreset.Annotations[greenhousev1alpha1.PreventDeletionAnnotation]; ok {
+		allErrs = append(allErrs, field.Invalid(field.NewPath("metadata").Child("annotation").Child(greenhousev1alpha1.PreventDeletionAnnotation),
+			pluginPreset.Annotations, fmt.Sprintf("PluginPreset with annotation '%s' set may not be deleted.", greenhousev1alpha1.PreventDeletionAnnotation)))
 	}
 
 	if len(allErrs) > 0 {
