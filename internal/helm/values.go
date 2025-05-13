@@ -12,6 +12,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
+	greenhouseapis "github.com/cloudoperators/greenhouse/api"
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
 	"github.com/cloudoperators/greenhouse/internal/common"
 )
@@ -140,15 +141,28 @@ func getGreenhouseValues(ctx context.Context, c client.Client, p greenhousev1alp
 			Value:     &apiextensionsv1.JSON{Raw: clusterNameVal},
 			ValueFrom: nil,
 		})
+	}
 
-		// append DNSDomain
-		baseDomainVal, err := json.Marshal(common.DNSDomain)
+	// append DNSDomain
+	baseDomainVal, err := json.Marshal(common.DNSDomain)
+	if err != nil {
+		return nil, err
+	}
+	greenhouseValues = append(greenhouseValues, greenhousev1alpha1.PluginOptionValue{
+		Name:      "global.greenhouse.baseDomain",
+		Value:     &apiextensionsv1.JSON{Raw: baseDomainVal},
+		ValueFrom: nil,
+	})
+
+	//append owning team if set
+	if p.Labels[string(greenhouseapis.LabelKeyOwningTeam)] != "" {
+		owningTeamVal, err := json.Marshal(p.Labels[greenhouseapis.LabelKeyOwningTeam])
 		if err != nil {
 			return nil, err
 		}
 		greenhouseValues = append(greenhouseValues, greenhousev1alpha1.PluginOptionValue{
-			Name:      "global.greenhouse.baseDomain",
-			Value:     &apiextensionsv1.JSON{Raw: baseDomainVal},
+			Name:      "global.greenhouse.owningTeam",
+			Value:     &apiextensionsv1.JSON{Raw: owningTeamVal},
 			ValueFrom: nil,
 		})
 	}

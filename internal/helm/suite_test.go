@@ -10,6 +10,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
+	greenhouseapis "github.com/cloudoperators/greenhouse/api"
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
 	"github.com/cloudoperators/greenhouse/internal/test"
 	admission "github.com/cloudoperators/greenhouse/internal/webhook"
@@ -141,6 +142,10 @@ var (
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: "test-org",
 			Name:      "test-plugin",
+			// add owning team label
+			Labels: map[string]string{
+				greenhouseapis.LabelKeyOwningTeam: "test-team-1",
+			},
 		},
 		Spec: greenhousev1alpha1.PluginSpec{
 			PluginDefinition: "test-plugindefinition",
