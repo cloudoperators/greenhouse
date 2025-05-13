@@ -42,9 +42,17 @@ Here's a high-level overview of how to develop a plugin for Greenhouse:
    - Clearly define the purpose and functionality of your plugin.
    - What problem does it solve, and what features will it provide?
 
-2. **Plugin Configuration (plugin.yml)**:
+2. **Plugin Definition (plugindefinition.yaml)**:
 
-   - Create a `greenhouse.yml` file in the root of your repository to specify the plugin's metadata and configuration options. This YAML file should include details like the plugin's description, version, and any configuration values required.
+   - Create a `plugindefinition.yaml` ([API Reference](https://cloudoperators.github.io/greenhouse/docs/reference/api/#greenhouse.sap/v1alpha1.PluginDefinition)) file in the root of your repository to specify the plugin's metadata and configuration options. This YAML file should include details like the plugin's description, version, and any configuration values required.
+   - Provide a list of `PluginOptions` which are values that are consumed to configure the actual `Plugin` instance of your `PluginDefinition`.
+     Greenhouse always provides some global values that are injected into your `Plugin` upon deployment:
+     - `global.greenhouse.organizationName`: The `name` of your `Organization`
+     - `global.greenhouse.teamNames`: All available `Teams` in your `Organization`
+     - `global.greenhouse.clusterNames`: All available `Clusters` in your `Organization`
+     - `global.greenhouse.clusterName`: The `name` of the `Cluster` this `Plugin` instance is deployed to.
+     - `global.greenhouse.baseDomain`: The base domain of your Greenhouse installation
+     - `global.greenhouse.owningTeam`: The owning `Team` of this `Plugin` instance
 
 3. **Plugin Components**:
 
