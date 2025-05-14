@@ -20,6 +20,7 @@ import (
 	greenhouseapis "github.com/cloudoperators/greenhouse/api"
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
 	"github.com/cloudoperators/greenhouse/internal/clientutil"
+	"github.com/cloudoperators/greenhouse/internal/lifecycle"
 	"github.com/cloudoperators/greenhouse/internal/test"
 )
 
@@ -154,16 +155,6 @@ var _ = Describe("PluginPreset Controller Lifecycle", Ordered, func() {
 			g.Expect(err).ShouldNot(HaveOccurred(), "unexpected error getting Plugin")
 			g.Expect(expPlugin.Spec.OptionValues).ToNot(ContainElement(greenhousev1alpha1.PluginOptionValue{Name: "option1", Value: test.MustReturnJSONFor("value1")}), "the Plugin should be reconciled")
 		}).Should(Succeed(), "the Plugin should be reconciled")
-
-		/*		By("manually creating a Plugin with OwnerReference but cluster not matching the selector")
-				pluginNotExp := plugin(clusterB, expPlugin.OwnerReferences)
-				Expect(test.K8sClient.Create(test.Ctx, pluginNotExp)).Should(Succeed(), "failed to create test Plugin")
-
-				Eventually(func(g Gomega) error {
-					err := test.K8sClient.Get(test.Ctx, types.NamespacedName{Name: pluginNotExp.Name, Namespace: pluginNotExp.Namespace}, pluginNotExp)
-					g.Expect(err).To(HaveOccurred(), "there should be an error getting the Plugin")
-					return client.IgnoreNotFound(err)
-				}).Should(Succeed(), "the Plugin should be deleted")*/
 
 		By("removing the preset label from the Plugin")
 		_, err = clientutil.CreateOrPatch(test.Ctx, test.K8sClient, expPlugin, func() error {
@@ -520,6 +511,45 @@ var _ = Describe("PluginPreset Controller Lifecycle", Ordered, func() {
 			return nil
 		})
 		Expect(err).ToNot(HaveOccurred(), "failed to remove prevent-deletion annotation from PluginPreset")
+		test.EventuallyDeleted(test.Ctx, test.K8sClient, pluginPreset)
+	})
+
+	It("should successfully propagate labels from PluginPreset to Plugin", func() {
+		By("ensuring a Plugin Definition has been created")
+		pluginDefinition := pluginDefinitionWithDefaults()
+		By("ensuring a Plugin Preset has been created")
+		pluginPreset := pluginPreset(pluginPresetName+"-label-propagation", clusterA)
+		pluginPreset.Spec.Plugin.PluginDefinition = pluginDefinition.Name
+		pluginPreset.SetAnnotations(map[string]string{
+			lifecycle.PropagateLabelsAnnotation: `{"keys": ["support_group", "region"]}`,
+		})
+		pluginPreset.SetLabels(map[string]string{
+			"support_group": "foo",
+			"region":        "bar",
+			"test-label":    "test-value",
+		})
+		Expect(test.K8sClient.Create(test.Ctx, pluginPreset)).ToNot(HaveOccurred())
+		test.EventuallyCreated(test.Ctx, test.K8sClient, pluginPreset)
+
+		By("ensuring a Plugin has been created")
+		expPluginName := types.NamespacedName{Name: pluginPresetName + "-label-propagation-" + clusterA, Namespace: test.TestNamespace}
+		expPlugin := &greenhousev1alpha1.Plugin{}
+		Eventually(func() error {
+			return test.K8sClient.Get(test.Ctx, expPluginName, expPlugin)
+		}).Should(Succeed(), "the Plugin should be created")
+
+		By("checking Plugin has propagated labels from PluginPreset")
+		Expect(expPlugin.Labels).To(HaveKey("support_group"), "the plugin should have the support_group propagated label")
+		Expect(expPlugin.Labels).To(HaveKey("region"), "the plugin should have the region propagated label")
+
+		By("removing plugin preset")
+		Eventually(func(g Gomega) {
+			err := test.K8sClient.Get(test.Ctx, client.ObjectKeyFromObject(pluginPreset), pluginPreset)
+			g.Expect(err).ShouldNot(HaveOccurred(), "unexpected error getting PluginPreset")
+			pluginPreset.Annotations = map[string]string{}
+			Expect(test.K8sClient.Update(test.Ctx, pluginPreset)).ToNot(HaveOccurred())
+		}).Should(Succeed(), "failed to update PluginPreset")
+		Expect(test.K8sClient.Delete(test.Ctx, pluginPreset)).ToNot(HaveOccurred())
 		test.EventuallyDeleted(test.Ctx, test.K8sClient, pluginPreset)
 	})
 })

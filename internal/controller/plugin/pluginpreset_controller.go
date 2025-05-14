@@ -176,17 +176,14 @@ func (r *PluginPresetReconciler) reconcilePluginPreset(ctx context.Context, pres
 			}
 
 		case apierrors.IsNotFound(err):
-			plugin = &greenhousev1alpha1.Plugin{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      generatePluginName(preset, &cluster),
-					Namespace: preset.GetNamespace(),
-				},
-			}
+			plugin = &greenhousev1alpha1.Plugin{}
+			plugin.SetName(generatePluginName(preset, &cluster))
+			plugin.SetNamespace(preset.GetNamespace())
 		default:
 			return err
 		}
 
-		_, err = clientutil.CreateOrPatch(ctx, r.Client, plugin, func() error {
+		_, err = clientutil.CreateOrUpdate(ctx, r.Client, plugin, func() error {
 			// Label the plugin with the managed resource label to identify it as managed by the PluginPreset.
 			plugin.SetLabels(map[string]string{greenhouseapis.LabelKeyPluginPreset: preset.Name})
 			// Set the owner reference to the PluginPreset. This is used to trigger reconciliation, if the managed Plugin is modified.
@@ -196,7 +193,8 @@ func (r *PluginPresetReconciler) reconcilePluginPreset(ctx context.Context, pres
 			plugin.Spec = preset.Spec.Plugin
 			// Set the cluster name to the name of the cluster. The PluginSpec contained in the PluginPreset does not have a cluster name.
 			plugin.Spec.ClusterName = cluster.GetName()
-
+			// transport plugin preset labels to plugin
+			plugin = (lifecycle.NewPropagator(preset, plugin).ApplyLabels()).(*greenhousev1alpha1.Plugin) //nolint:errcheck
 			// overrides options based on preset definition
 			overridesPluginOptionValues(plugin, preset)
 			return nil
