@@ -89,8 +89,7 @@ var _ = Describe("Bootstrap controller", Ordered, func() {
 
 				By("Deleting the invalid cluster")
 				test.MustDeleteCluster(test.Ctx, test.K8sClient, client.ObjectKeyFromObject(cluster))
-			},
-		)
+			})
 		It("Should successfully propagate labels from the kubeconfig secret to the cluster resource", func() {
 			By("Creating a kubeconfig secret with labels")
 			kubeConfigSecret := setup.CreateSecret(test.Ctx, bootstrapTestCase+"-label-propagation",

@@ -12,8 +12,6 @@ import (
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	"github.com/onsi/gomega/gstruct"
-	gomegaTypes "github.com/onsi/gomega/types"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -71,7 +69,7 @@ func MustDeleteCluster(ctx context.Context, c client.Client, id client.ObjectKey
 	Eventually(func() bool {
 		err := c.Get(ctx, client.ObjectKeyFromObject(cluster), cluster)
 		return apierrors.IsNotFound(err)
-	}, time.Minute).Should(BeTrue(), "the object should be deleted eventually")
+	}).Should(BeTrue(), "the object should be deleted eventually")
 }
 
 // SetClusterReadyCondition sets the ready condition of the cluster resource.
@@ -93,13 +91,6 @@ func MustReturnJSONFor(val any) *apiextensionsv1.JSON {
 	raw, err := json.Marshal(val)
 	Expect(err).ShouldNot(HaveOccurred(), "there should be no error marshalling the value")
 	return &apiextensionsv1.JSON{Raw: raw}
-}
-
-var ClientObjectMatcherByName = func(name string) gomegaTypes.GomegaMatcher {
-	return gstruct.MatchFields(
-		gstruct.IgnoreExtras, gstruct.Fields{"ObjectMeta": gstruct.MatchFields(
-			gstruct.IgnoreExtras, gstruct.Fields{"Name": Equal(
-				name)})})
 }
 
 // GreenhouseV1Alpha1Scheme returns a new runtime.Scheme with the Greenhouse v1alpha1 scheme added.
