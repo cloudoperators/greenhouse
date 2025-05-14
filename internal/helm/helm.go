@@ -124,10 +124,10 @@ func ChartTest(ctx context.Context, restClientGetter genericclioptions.RESTClien
 	testAction.Timeout = GetHelmTimeout() // set a timeout for the release testing to avoid waiting forever
 	// Used for fetching logs from test pods
 	testAction.Namespace = plugin.Spec.ReleaseNamespace
-	results, err := testAction.Run(plugin.Name)
+	results, err := testAction.Run(plugin.GetReleaseName())
 	if err != nil {
 		// get the latest release to fetch the test pod logs
-		r, err2 := action.NewGet(cfg).Run(plugin.Name)
+		r, err2 := action.NewGet(cfg).Run(plugin.GetReleaseName())
 		if err2 != nil {
 			log.FromContext(ctx).Error(err2, "Failed to get latest release", "plugin", plugin.Name)
 			return hasTestHook, "", err
@@ -178,7 +178,7 @@ func UninstallHelmRelease(ctx context.Context, restClientGetter genericclioption
 	}
 	uninstallAction := action.NewUninstall(cfg)
 	uninstallAction.KeepHistory = false
-	_, err = uninstallAction.Run(plugin.Name)
+	_, err = uninstallAction.Run(plugin.GetReleaseName())
 	return false, err
 }
 
@@ -285,7 +285,7 @@ func getLatestUpgradeableRelease(restClientGetter genericclioptions.RESTClientGe
 		return nil, err
 	}
 	var latest *release.Release
-	releases, err := action.NewHistory(cfg).Run(plugin.Name)
+	releases, err := action.NewHistory(cfg).Run(plugin.GetReleaseName())
 	if err != nil {
 		return nil, fmt.Errorf("error retrieving releases: %w", err)
 	}
@@ -326,7 +326,7 @@ func GetReleaseForHelmChartFromPlugin(_ context.Context, restClientGetter generi
 	if err != nil {
 		return nil, err
 	}
-	return action.NewGet(cfg).Run(plugin.Name)
+	return action.NewGet(cfg).Run(plugin.GetReleaseName())
 }
 
 // TemplateHelmChartFromPlugin returns the rendered manifest or an error.
@@ -407,7 +407,7 @@ func upgradeRelease(ctx context.Context, local client.Client, restClientGetter g
 		return err
 	}
 	helmChart.Metadata.KubeVersion = ""
-	_, err = upgradeAction.RunWithContext(ctx, plugin.Name, helmChart, helmValues)
+	_, err = upgradeAction.RunWithContext(ctx, plugin.GetReleaseName(), helmChart, helmValues)
 	return err
 }
 
@@ -417,7 +417,7 @@ func installRelease(ctx context.Context, local client.Client, restClientGetter g
 		return nil, err
 	}
 	installAction := action.NewInstall(cfg)
-	installAction.ReleaseName = plugin.Name
+	installAction.ReleaseName = plugin.GetReleaseName()
 	installAction.Namespace = plugin.Spec.ReleaseNamespace
 	installAction.Timeout = GetHelmTimeout() // set a timeout for the installation to not be stuck in pending state
 	installAction.CreateNamespace = true
