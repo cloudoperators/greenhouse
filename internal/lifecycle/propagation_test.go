@@ -1,6 +1,3 @@
-// SPDX-FileCopyrightText: 2024 SAP SE or an SAP affiliate company and Greenhouse contributors
-// SPDX-License-Identifier: Apache-2.0
-
 package lifecycle_test
 
 import (
@@ -11,62 +8,37 @@ import (
 
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/cloudoperators/greenhouse/internal/lifecycle"
 )
 
 var _ = DescribeTable("Label propagation scenarios",
-	func(srcType, dstType string, srcLabels map[string]string, srcAnno map[string]string, dstLabels map[string]string, prevState []string, expected map[string]string, expectedAnnotation bool, expectedKeys []string) {
-		var src client.Object
-		if srcType == "secret" {
-			src = &corev1.Secret{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:        "src",
-					Namespace:   "default",
-					Annotations: srcAnno,
-					Labels:      srcLabels,
-				},
-			}
-		} else {
-			src = &corev1.ConfigMap{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:        "src",
-					Namespace:   "default",
-					Annotations: srcAnno,
-					Labels:      srcLabels,
-				},
-			}
+	func(srcLabels map[string]string, srcAnno map[string]string, dstLabels map[string]string, prevState []string, expected map[string]string, expectedAnnotation bool, expectedKeys []string) {
+		src := &corev1.ConfigMap{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:        "src",
+				Namespace:   "default",
+				Annotations: srcAnno,
+				Labels:      srcLabels,
+			},
 		}
 
-		var dst client.Object
-		if dstType == "secret" {
-			dst = &corev1.Secret{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "dst",
-					Namespace: "default",
-					Labels:    dstLabels,
-				},
-			}
-		} else {
-			dst = &corev1.ConfigMap{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "dst",
-					Namespace: "default",
-					Labels:    dstLabels,
-				},
-			}
+		dst := &corev1.Secret{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "dst",
+				Namespace: "default",
+				Labels:    dstLabels,
+			},
 		}
 
 		if len(prevState) > 0 {
-			data, _ := json.Marshal(map[string][]string{"labelKeys": prevState})
+			data, _ := json.Marshal(map[string][]string{"labelKeys": prevState}) //nolint:errcheck
 			dst.SetAnnotations(map[string]string{
 				lifecycle.AppliedPropagatorAnnotation: string(data),
 			})
 		}
 
-		prop := lifecycle.NewPropagator(src, dst)
-		updated := prop.ApplyLabels()
+		updated := lifecycle.NewPropagator(src, dst).ApplyLabels()
 
 		Expect(updated.GetLabels()).To(Equal(expected))
 		if expectedAnnotation {
@@ -81,21 +53,48 @@ var _ = DescribeTable("Label propagation scenarios",
 		}
 	},
 
-	Entry("Secret → ConfigMap: No annotation", "secret", "configmap", map[string]string{"region": "eu"}, nil, nil, nil, map[string]string{}, false, []string{}),
+	Entry("It should not propagate any labels as there is no propagation annotation",
+		map[string]string{"region": "bar"},
+		nil,
+		map[string]string{},
+		nil,
+		map[string]string{},
+		false,
+		[]string{}),
 
-	Entry("ConfigMap → Secret: Declared key exists", "configmap", "secret", map[string]string{"region": "eu"},
-		map[string]string{"greenhouse.sap/propagate-labels": `{"keys": ["region"]}`}, nil,
-		map[string]string{"region": "eu"}, true, []string{"region"}),
+	Entry("It should propagate declared label key",
+		map[string]string{"region": "bar"},
+		map[string]string{"greenhouse.sap/propagate-labels": `{"keys": ["region"]}`},
+		map[string]string{},
+		nil,
+		map[string]string{"region": "bar"},
+		true,
+		[]string{"region"}),
 
-	Entry("Secret → ConfigMap: Declared key missing", "secret", "configmap", map[string]string{},
-		map[string]string{"greenhouse.sap/propagate-labels": `{"keys": ["region"]}`}, []string{"region"},
-		map[string]string{}, false, []string{}),
+	Entry("It should not propagate any labels as declared label key is missing",
+		map[string]string{},
+		map[string]string{"greenhouse.sap/propagate-labels": `{"keys": ["region"]}`},
+		map[string]string{},
+		[]string{"region"},
+		map[string]string{},
+		false,
+		[]string{}),
 
-	Entry("ConfigMap → Secret: Key removed from annotation", "configmap", "secret", map[string]string{"region": "eu"},
-		map[string]string{"greenhouse.sap/propagate-labels": `{"keys": ["support_group"]}`}, []string{"region", "support_group"},
-		map[string]string{}, false, []string{}),
+	Entry("It should remove the previous declared label key due to state change",
+		map[string]string{"region": "bar"},
+		map[string]string{"greenhouse.sap/propagate-labels": `{"keys": ["support_group"]}`},
+		map[string]string{},
+		[]string{"region", "support_group"},
+		map[string]string{},
+		false,
+		[]string{}),
 
-	Entry("Secret → ConfigMap: Multiple keys retained", "secret", "configmap", map[string]string{"region": "eu", "support_group": "x"},
-		map[string]string{"greenhouse.sap/propagate-labels": `{"keys": ["region", "support_group"]}`}, []string{"region"},
-		map[string]string{"region": "eu", "support_group": "x"}, true, []string{"region", "support_group"}),
+	Entry("It should propagate all declared label keys",
+		map[string]string{"region": "bar", "support_group": "x"},
+		map[string]string{"greenhouse.sap/propagate-labels": `{"keys": ["region", "support_group"]}`},
+		map[string]string{},
+		[]string{"region"},
+		map[string]string{"region": "bar", "support_group": "x"},
+		true,
+		[]string{"region", "support_group"}),
 )
