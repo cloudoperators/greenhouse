@@ -164,7 +164,7 @@ func (t *TestSetup) CreateTeam(ctx context.Context, name string, opts ...func(*g
 // CreateSecret returns a Secret object. Opts can be used to set the desired state of the Secret.
 func (t *TestSetup) CreateSecret(ctx context.Context, name string, opts ...func(*corev1.Secret)) *corev1.Secret {
 	GinkgoHelper()
-	secret := NewSecret(ctx, name, t.Namespace(), opts...)
+	secret := NewSecret(name, t.Namespace(), opts...)
 	Expect(t.Create(ctx, secret)).Should(Succeed(), "there should be no error creating the Secret")
 	return secret
 }

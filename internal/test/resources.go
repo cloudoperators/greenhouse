@@ -380,6 +380,18 @@ func WithSecretType(secretType corev1.SecretType) func(*corev1.Secret) {
 	}
 }
 
+func WithSecretAnnotations(annotations map[string]string) func(*corev1.Secret) {
+	return func(s *corev1.Secret) {
+		s.SetAnnotations(annotations)
+	}
+}
+
+func WithSecretLabels(labels map[string]string) func(*corev1.Secret) {
+	return func(s *corev1.Secret) {
+		s.SetLabels(labels)
+	}
+}
+
 // WithSecretData sets the data of the Secret
 func WithSecretData(data map[string][]byte) func(*corev1.Secret) {
 	return func(s *corev1.Secret) {
@@ -395,7 +407,7 @@ func WithSecretNamespace(namespace string) func(*corev1.Secret) {
 }
 
 // NewSecret returns a Secret object. Opts can be used to set the desired state of the Secret.
-func NewSecret(ctx context.Context, name, namespace string, opts ...func(*corev1.Secret)) *corev1.Secret {
+func NewSecret(name, namespace string, opts ...func(*corev1.Secret)) *corev1.Secret {
 	secret := &corev1.Secret{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "Secret",
