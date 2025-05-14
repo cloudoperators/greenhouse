@@ -32,7 +32,7 @@ var _ = DescribeTable("Label propagation scenarios",
 		}
 
 		if len(prevState) > 0 {
-			data, _ := json.Marshal(map[string][]string{"labelKeys": prevState}) //nolint:errcheck
+			data, _ := json.Marshal(map[string][]string{"labelKeys": prevState})
 			dst.SetAnnotations(map[string]string{
 				lifecycle.AppliedPropagatorAnnotation: string(data),
 			})
@@ -46,7 +46,7 @@ var _ = DescribeTable("Label propagation scenarios",
 			var actual struct {
 				LabelKeys []string `json:"labelKeys"`
 			}
-			_ = json.Unmarshal([]byte(annotation), &actual)
+			_ = json.Unmarshal([]byte(annotation), &actual) //nolint:errcheck
 			Expect(actual.LabelKeys).To(ConsistOf(expectedKeys))
 		} else {
 			Expect(updated.GetAnnotations()).ToNot(HaveKey(lifecycle.AppliedPropagatorAnnotation))

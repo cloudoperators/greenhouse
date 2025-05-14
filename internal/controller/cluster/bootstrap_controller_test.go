@@ -37,7 +37,7 @@ var _ = Describe("Bootstrap controller", Ordered, func() {
 		Expect(remoteEnvTest.Stop()).To(Succeed(), "there should be no error stopping the remote environment")
 	})
 
-	Context("When reconciling a kubeConfig secret", Ordered, func() {
+	Context("When reconciling a kubeConfig secret", func() {
 
 		It("Should correctly set cluster.Spec.AccessMode and cluster.Status with valid remote kubeconfig and if remote api server is reachable",
 			func() {
