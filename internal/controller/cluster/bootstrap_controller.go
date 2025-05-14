@@ -29,6 +29,7 @@ import (
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
 	"github.com/cloudoperators/greenhouse/internal/clientutil"
 	"github.com/cloudoperators/greenhouse/internal/controller/cluster/utils"
+	"github.com/cloudoperators/greenhouse/internal/lifecycle"
 )
 
 type BootstrapReconciler struct {
@@ -133,61 +134,16 @@ func (r *BootstrapReconciler) createKubeConfigKey(ctx context.Context, secret *c
 }
 
 func (r *BootstrapReconciler) reconcileCluster(ctx context.Context, kubeConfigSecret *corev1.Secret) error {
-	cluster, isFound, err := r.getClusterAndIgnoreNotFoundError(ctx, kubeConfigSecret)
+	cluster := &greenhousev1alpha1.Cluster{}
+	err := r.Get(ctx, client.ObjectKeyFromObject(kubeConfigSecret), cluster)
 	// Anything other than an IsNotFound error is reflected in the status to ensure the cluster resource is created in any case.
 	if err != nil {
-		log.FromContext(ctx).Error(err, "failed to get cluster", "namespace", kubeConfigSecret.GetNamespace(), "name", kubeConfigSecret.GetName())
-		return err
+		if !apierrors.IsNotFound(err) {
+			log.FromContext(ctx).Error(err, "failed to get cluster", "namespace", kubeConfigSecret.GetNamespace(), "name", kubeConfigSecret.GetName())
+			return err
+		}
 	}
-
-	// This cluster has already been bootstrapped
-	// How does a customer provide a new KubeConfig ?
-	// TODO: The below is a short-term fix to avoid flapping accessModes and should be considered again.
-	// A new/updated KubeConfig should be handled and we shouldn't break here though
-	// avoiding flapping of the accessMode, e.g. due to apiserver downtime, network interruption, etc.
-	if isFound && cluster.Spec.AccessMode != "" {
-		return nil
-	}
-	return r.createOrPatchCluster(ctx, cluster, kubeConfigSecret)
-}
-
-// createOrPatchCluster creates or patches the cluster resource and persists input err in the cluster.status.message.
-func (r *BootstrapReconciler) createOrPatchCluster(
-	ctx context.Context,
-	cluster *greenhousev1alpha1.Cluster,
-	kubeConfigSecret *corev1.Secret,
-) error {
-	// Ignore clusters about to be deleted.
-	if cluster.DeletionTimestamp != nil {
-		return nil
-	}
-	accessMode := greenhousev1alpha1.ClusterAccessModeDirect
-
-	cluster.SetName(kubeConfigSecret.Name)
-	cluster.SetNamespace(kubeConfigSecret.Namespace)
-	annotations := make(map[string]string)
-	if cluster.GetAnnotations() != nil {
-		annotations = cluster.GetAnnotations()
-	}
-	if kubeConfigSecret.Type == greenhouseapis.SecretTypeKubeConfig {
-		annotations[greenhouseapis.ClusterConnectivityAnnotation] = greenhouseapis.ClusterConnectivityKubeconfig
-	}
-	if kubeConfigSecret.Type == greenhouseapis.SecretTypeOIDCConfig {
-		annotations[greenhouseapis.ClusterConnectivityAnnotation] = greenhouseapis.ClusterConnectivityOIDC
-	}
-	result, err := clientutil.CreateOrPatch(ctx, r.Client, cluster, func() error {
-		cluster.SetAnnotations(annotations)
-		cluster.Spec.AccessMode = accessMode
-		return nil
-	})
-	if err != nil {
-		return err
-	}
-	if result != clientutil.OperationResultNone {
-		logMessage := fmt.Sprintf("%s cluster", result)
-		log.FromContext(ctx).Info(logMessage, "namespace", cluster.Namespace, "name", cluster.Name)
-	}
-	return nil
+	return createOrPatchCluster(ctx, r.Client, cluster, kubeConfigSecret)
 }
 
 // ensureOwnerReferences adds the ownerReference to the secret containing the kubeconfig, so that it is garbage collected on cluster deletion.
@@ -202,10 +158,32 @@ func (r *BootstrapReconciler) ensureOwnerReferences(ctx context.Context, kubeCon
 	return err
 }
 
-func (r *BootstrapReconciler) getClusterAndIgnoreNotFoundError(ctx context.Context, kubeConfigSecret *corev1.Secret) (cluster *greenhousev1alpha1.Cluster, isFound bool, err error) {
-	cluster = new(greenhousev1alpha1.Cluster)
-	err = r.Get(ctx, client.ObjectKeyFromObject(kubeConfigSecret), cluster)
-	return cluster, !apierrors.IsNotFound(err), client.IgnoreNotFound(err)
+// createOrPatchCluster creates or patches the cluster resource and persists input err in the cluster.status.message.
+func createOrPatchCluster(ctx context.Context, c client.Client, cluster *greenhousev1alpha1.Cluster, kubeConfigSecret *corev1.Secret) error {
+	// Ignore clusters about to be deleted.
+	if cluster.DeletionTimestamp != nil {
+		return nil
+	}
+	cluster.SetName(kubeConfigSecret.Name)
+	cluster.SetNamespace(kubeConfigSecret.Namespace)
+	annotations := make(map[string]string)
+	if cluster.GetAnnotations() != nil {
+		annotations = cluster.GetAnnotations()
+	}
+	if kubeConfigSecret.Type == greenhouseapis.SecretTypeKubeConfig {
+		annotations[greenhouseapis.ClusterConnectivityAnnotation] = greenhouseapis.ClusterConnectivityKubeconfig
+	}
+	if kubeConfigSecret.Type == greenhouseapis.SecretTypeOIDCConfig {
+		annotations[greenhouseapis.ClusterConnectivityAnnotation] = greenhouseapis.ClusterConnectivityOIDC
+	}
+	cluster.SetAnnotations(annotations)
+	cluster.Spec.AccessMode = greenhousev1alpha1.ClusterAccessModeDirect
+	cluster = (lifecycle.NewPropagator(kubeConfigSecret, cluster).ApplyLabels()).(*greenhousev1alpha1.Cluster)
+	if err := c.Update(ctx, cluster); err != nil {
+		log.FromContext(ctx).Error(err, "failed to update cluster", "namespace", cluster.GetNamespace(), "name", cluster.GetName())
+		return err
+	}
+	return nil
 }
 
 func enqueueSecretForCluster(_ context.Context, o client.Object) []ctrl.Request {
