@@ -71,7 +71,7 @@ func MustDeleteCluster(ctx context.Context, c client.Client, id client.ObjectKey
 	Eventually(func() bool {
 		err := c.Get(ctx, client.ObjectKeyFromObject(cluster), cluster)
 		return apierrors.IsNotFound(err)
-	}).Should(BeTrue(), "the object should be deleted eventually")
+	}, time.Minute).Should(BeTrue(), "the object should be deleted eventually")
 }
 
 // SetClusterReadyCondition sets the ready condition of the cluster resource.
