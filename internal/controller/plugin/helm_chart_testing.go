@@ -13,6 +13,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	"sigs.k8s.io/controller-runtime/pkg/metrics"
 
+	greenhouseapis "github.com/cloudoperators/greenhouse/api"
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
 	"github.com/cloudoperators/greenhouse/internal/helm"
 )
@@ -64,9 +65,9 @@ func (r *PluginReconciler) reconcileHelmChartTest(ctx context.Context, plugin *g
 	if err != nil {
 		failedTestPodLogs := extractErrorsFromTestPodLogs(testPodLogs)
 		if failedTestPodLogs != "" {
-			plugin.SetCondition(greenhousev1alpha1.FalseCondition(greenhousev1alpha1.HelmChartTestSucceededCondition, "", failedTestPodLogs))
+			plugin.SetCondition(greenhouseapis.FalseCondition(greenhousev1alpha1.HelmChartTestSucceededCondition, "", failedTestPodLogs))
 		} else {
-			plugin.SetCondition(greenhousev1alpha1.FalseCondition(greenhousev1alpha1.HelmChartTestSucceededCondition, "", err.Error()))
+			plugin.SetCondition(greenhouseapis.FalseCondition(greenhousev1alpha1.HelmChartTestSucceededCondition, "", err.Error()))
 		}
 		prometheusLabels["result"] = "Error"
 		chartTestRunsTotal.With(prometheusLabels).Inc()
@@ -74,13 +75,13 @@ func (r *PluginReconciler) reconcileHelmChartTest(ctx context.Context, plugin *g
 	}
 
 	if !hasHelmChartTest {
-		plugin.SetCondition(greenhousev1alpha1.TrueCondition(greenhousev1alpha1.HelmChartTestSucceededCondition, "",
+		plugin.SetCondition(greenhouseapis.TrueCondition(greenhousev1alpha1.HelmChartTestSucceededCondition, "",
 			"No Helm Chart Tests defined by the PluginDefinition"))
 
 		prometheusLabels["result"] = "NoTests"
 		chartTestRunsTotal.With(prometheusLabels).Inc()
 	} else {
-		plugin.SetCondition(greenhousev1alpha1.TrueCondition(greenhousev1alpha1.HelmChartTestSucceededCondition, "",
+		plugin.SetCondition(greenhouseapis.TrueCondition(greenhousev1alpha1.HelmChartTestSucceededCondition, "",
 			"Helm Chart Test is successful"))
 
 		prometheusLabels["result"] = "Success"

@@ -5,6 +5,8 @@ package v1alpha1
 
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
+	greenhouseapis "github.com/cloudoperators/greenhouse/api"
 )
 
 // TeamSpec defines the desired state of Team
@@ -19,8 +21,8 @@ type TeamSpec struct {
 
 // TeamStatus defines the observed state of Team
 type TeamStatus struct {
-	StatusConditions StatusConditions `json:"statusConditions"`
-	Members          []User           `json:"members,omitempty"`
+	StatusConditions greenhouseapis.StatusConditions `json:"statusConditions"`
+	Members          []User                          `json:"members,omitempty"`
 }
 
 //+kubebuilder:object:root=true
@@ -52,10 +54,10 @@ func init() {
 	SchemeBuilder.Register(&Team{}, &TeamList{})
 }
 
-func (o *Team) GetConditions() StatusConditions {
+func (o *Team) GetConditions() greenhouseapis.StatusConditions {
 	return o.Status.StatusConditions
 }
 
-func (o *Team) SetCondition(condition Condition) {
+func (o *Team) SetCondition(condition greenhouseapis.Condition) {
 	o.Status.StatusConditions.SetConditions(condition)
 }
