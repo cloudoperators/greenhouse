@@ -154,7 +154,7 @@ func getGreenhouseValues(ctx context.Context, c client.Client, p greenhousev1alp
 		ValueFrom: nil,
 	})
 
-	//append owning team if set
+	// append owning team if set
 	if p.Labels[string(greenhouseapis.LabelKeyOwningTeam)] != "" {
 		owningTeamVal, err := json.Marshal(p.Labels[greenhouseapis.LabelKeyOwningTeam])
 		if err != nil {
