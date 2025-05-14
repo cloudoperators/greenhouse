@@ -178,7 +178,7 @@ func createOrPatchCluster(ctx context.Context, c client.Client, cluster *greenho
 	}
 	cluster.SetAnnotations(annotations)
 	cluster.Spec.AccessMode = greenhousev1alpha1.ClusterAccessModeDirect
-	cluster = (lifecycle.NewPropagator(kubeConfigSecret, cluster).ApplyLabels()).(*greenhousev1alpha1.Cluster)
+	cluster = (lifecycle.NewPropagator(kubeConfigSecret, cluster).ApplyLabels()).(*greenhousev1alpha1.Cluster) //nolint:errcheck
 	if err := c.Update(ctx, cluster); err != nil {
 		log.FromContext(ctx).Error(err, "failed to update cluster", "namespace", cluster.GetNamespace(), "name", cluster.GetName())
 		return err

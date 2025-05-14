@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2024 SAP SE or an SAP affiliate company and Greenhouse contributors
+// SPDX-License-Identifier: Apache-2.0
+
 package lifecycle
 
 import (
@@ -129,7 +132,9 @@ func (p *Propagator) getAppliedState() appliedPropagatorState {
 		return appliedPropagatorState{}
 	}
 	var state appliedPropagatorState
-	_ = json.Unmarshal([]byte(raw), &state)
+	if err := json.Unmarshal([]byte(raw), &state); err != nil {
+		return appliedPropagatorState{}
+	}
 	return state
 }
 

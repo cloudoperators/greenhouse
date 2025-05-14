@@ -93,7 +93,7 @@ var _ = Describe("Bootstrap controller", Ordered, func() {
 		)
 		It("Should successfully propagate labels from the kubeconfig secret to the cluster resource", func() {
 			By("Creating a kubeconfig secret with labels")
-			kubeConfigSecret := setup.CreateSecret(test.Ctx, "bootstrap-label-propagation",
+			kubeConfigSecret := setup.CreateSecret(test.Ctx, bootstrapTestCase+"-label-propagation",
 				test.WithSecretType(greenhouseapis.SecretTypeKubeConfig),
 				test.WithSecretAnnotations(map[string]string{
 					lifecycle.PropagateLabelsAnnotation: `{"keys": ["support_group", "region"]}`,
