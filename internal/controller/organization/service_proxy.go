@@ -79,8 +79,7 @@ func (r *OrganizationReconciler) reconcileOAuth2ProxySecret(ctx context.Context,
 		log.FromContext(ctx).Error(err, "failed to create oauth2 proxy client secret for org", "name", org.Name)
 		return err
 	}
-	_, sOK := intSecret.Data[dexOAuth2ProxyClientSecretKey]
-	if !sOK {
+	if _, exists := intSecret.Data[dexOAuth2ProxyClientSecretKey]; !exists {
 		intSecret.Data[dexOAuth2ProxyClientSecretKey] = []byte(oauthProxyClientSecret)
 	}
 
