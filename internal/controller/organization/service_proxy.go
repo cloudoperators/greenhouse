@@ -180,7 +180,6 @@ func (r *OrganizationReconciler) reconcileServiceProxyPlugin(ctx context.Context
 		if oauthProxyEnabled {
 			oauth2ProxyInternalSecretName := getInternalSecretName(org.GetName())
 			oauthProxyValues := []greenhousev1alpha1.PluginOptionValue{
-				// ingressOptionValue,
 				{
 					Name:  "oauth2proxy.enabled",
 					Value: &apiextensionsv1.JSON{Raw: []byte("\"true\"")},
