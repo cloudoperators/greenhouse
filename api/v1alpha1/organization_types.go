@@ -37,6 +37,8 @@ const (
 	DefaultConnectorRedirectsFailed ConditionReason = "DefaultConnectorRedirectsFailed"
 	// OrganizationAdminTeamConfigured is set when the admin team is configured for organization
 	OrganizationAdminTeamConfigured ConditionType = "OrganizationAdminTeamConfigured"
+	// OAuthProxySecretFailed is set when the secret for OAuth proxy is not successfully created
+	OAuthProxySecretFailed ConditionReason = "OAuthProxySecretFailed"
 )
 
 // OrganizationSpec defines the desired state of Organization
