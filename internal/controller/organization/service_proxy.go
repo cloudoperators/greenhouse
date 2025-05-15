@@ -57,31 +57,31 @@ func (r *OrganizationReconciler) reconcileOAuth2ProxySecret(ctx context.Context,
 		log.FromContext(ctx).Info("oauth-proxy feature is disabled for the organization")
 		return nil
 	}
-	intSecret, err := r.getOrCreateOrgSecret(ctx, org)
+	secret, err := r.getOrCreateOrgSecret(ctx, org)
 	if err != nil {
 		return err
 	}
-	if _, ok := intSecret.Data[cookieSecretKey]; !ok {
+	if _, ok := secret.Data[cookieSecretKey]; !ok {
 		cookieData, err := generateCookieSecret()
 		if err != nil {
 			log.FromContext(ctx).Info("failed to generate oauth2 proxy cookie secret", "name", org.Name, "error", err)
 			return err
 		}
-		if intSecret.Data == nil {
-			intSecret.Data = make(map[string][]byte)
+		if secret.Data == nil {
+			secret.Data = make(map[string][]byte)
 		}
-		intSecret.Data[cookieSecretKey] = []byte(cookieData)
+		secret.Data[cookieSecretKey] = []byte(cookieData)
 	}
 	oAuthProxyClientName := fmt.Sprintf("%s-%s", dexOAuth2ProxyClientPrefix, org.Name)
-	intSecret.Data[dexOAuth2ProxyClientIDKey] = []byte(oAuthProxyClientName)
-	oauthProxyClientSecret, err := generateOauth2ProxySecret()
-	if err != nil {
-		log.FromContext(ctx).Error(err, "failed to create oauth2 proxy client secret for org", "name", org.Name)
-		return err
-	}
-	_, sOK := intSecret.Data[dexOAuth2ProxyClientSecretKey]
-	if !sOK {
-		intSecret.Data[dexOAuth2ProxyClientSecretKey] = []byte(oauthProxyClientSecret)
+	secret.Data[dexOAuth2ProxyClientIDKey] = []byte(oAuthProxyClientName)
+	_, exists := secret.Data[dexOAuth2ProxyClientSecretKey]
+	if !exists {
+		oauthProxyClientSecret, err := generateOauth2ProxySecret()
+		if err != nil {
+			log.FromContext(ctx).Error(err, "failed to create oauth2 proxy client secret for org", "name", org.Name)
+			return err
+		}
+		secret.Data[dexOAuth2ProxyClientSecretKey] = []byte(oauthProxyClientSecret)
 	}
 
 	oAuthProxyClient, err := r.dex.GetClient(oAuthProxyClientName)
@@ -93,7 +93,7 @@ func (r *OrganizationReconciler) reconcileOAuth2ProxySecret(ctx context.Context,
 				ID:           oAuthProxyClientName,
 				Name:         org.Name + " Service Proxy",
 				RedirectURIs: []string{oAuthProxyCallbackURL}, // add service proxy redirect URI
-				Secret:       oauthProxyClientSecret,
+				Secret:       string(secret.Data[dexOAuth2ProxyClientSecretKey]),
 			}); err != nil {
 				log.FromContext(ctx).Error(err, "failed to create oauth-proxy client credentials", "name", org.Name)
 				return err
@@ -107,7 +107,7 @@ func (r *OrganizationReconciler) reconcileOAuth2ProxySecret(ctx context.Context,
 
 	if err = r.dex.UpdateClient(oAuthProxyClient.ID, func(authClient storage.Client) (storage.Client, error) {
 		authClient.Public = false
-		authClient.Secret = string(intSecret.Data[dexOAuth2ProxyClientSecretKey])
+		authClient.Secret = string(secret.Data[dexOAuth2ProxyClientSecretKey])
 		authClient.RedirectURIs = []string{oAuthProxyCallbackURL}
 		authClient.Name = org.Name + " Service Proxy"
 		return authClient, nil
@@ -117,7 +117,7 @@ func (r *OrganizationReconciler) reconcileOAuth2ProxySecret(ctx context.Context,
 	}
 	log.FromContext(ctx).Info("successfully updated oauth-proxy client credentials", "name", org.Name)
 
-	if err := r.Update(ctx, intSecret); err != nil {
+	if err := r.Update(ctx, secret); err != nil {
 		log.FromContext(ctx).Error(err, "failed to update oauth2-proxy secret", "name", org.Name)
 		return err
 	}
@@ -177,24 +177,6 @@ func (r *OrganizationReconciler) reconcileServiceProxyPlugin(ctx context.Context
 				Value: &apiextensionsv1.JSON{Raw: versionJSON},
 			},
 		}
-		/*
-			if operating under default cluster dns domain, we may need to set provider specific ingress annotations
-			example below for gardener
-			gardenAnnotations := map[string]string{
-						"cert.gardener.cloud/purpose": "managed",
-						"dns.gardener.cloud/class":    "garden",
-						"dns.gardener.cloud/dnsnames": "*",
-						"dns.gardener.cloud/ttl":      "600",
-					}
-					gardenAnnBytes, err := json.Marshal(gardenAnnotations)
-					if err != nil {
-						return fmt.Errorf("failed to marshal garden annotations: %w", err)
-					}
-					ingressOptionValue := greenhousev1alpha1.PluginOptionValue{
-						Name:  "ingress.annotations",
-						Value: &apiextensionsv1.JSON{Raw: gardenAnnBytes},
-					}
-		*/
 		if oauthProxyEnabled {
 			oauth2ProxyInternalSecretName := getInternalSecretName(org.GetName())
 			oauthProxyValues := []greenhousev1alpha1.PluginOptionValue{
