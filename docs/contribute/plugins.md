@@ -52,7 +52,7 @@ Here's a high-level overview of how to develop a plugin for Greenhouse:
      - `global.greenhouse.clusterNames`: All available `Clusters` in your `Organization`
      - `global.greenhouse.clusterName`: The `name` of the `Cluster` this `Plugin` instance is deployed to.
      - `global.greenhouse.baseDomain`: The base domain of your Greenhouse installation
-     - `global.greenhouse.owningTeam`: The owning `Team` of this `Plugin` instance
+     - `global.greenhouse.ownedBy`: The owner (usually a owning `Team`) of this `Plugin` instance
 
 3. **Plugin Components**:
 

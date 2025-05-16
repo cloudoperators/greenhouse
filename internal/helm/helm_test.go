@@ -79,7 +79,7 @@ var _ = Describe("helm package test", func() {
 			Expect(pluginOptionValues).To(
 				ContainElement(greenhousev1alpha1.PluginOptionValue{Name: "global.greenhouse.baseDomain", Value: test.MustReturnJSONFor(common.DNSDomain), ValueFrom: nil}), "the plugin option values should contain the baseDomain")
 			Expect(pluginOptionValues).To(
-				ContainElement(greenhousev1alpha1.PluginOptionValue{Name: "global.greenhouse.owningTeam", Value: test.MustReturnJSONFor(plugin.Labels[string(greenhouseapis.LabelKeyOwningTeam)]), ValueFrom: nil}), "the plugin option values should contain the owning team")
+				ContainElement(greenhousev1alpha1.PluginOptionValue{Name: "global.greenhouse.ownedBy", Value: test.MustReturnJSONFor(plugin.Labels[string(greenhouseapis.LabelKeyOwnedBy)]), ValueFrom: nil}), "the plugin option values should contain the owning team")
 		})
 	})
 

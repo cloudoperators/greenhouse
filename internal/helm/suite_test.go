@@ -144,7 +144,7 @@ var (
 			Name:      "test-plugin",
 			// add owning team label
 			Labels: map[string]string{
-				greenhouseapis.LabelKeyOwningTeam: "test-team-1",
+				greenhouseapis.LabelKeyOwnedBy: "test-team-1",
 			},
 		},
 		Spec: greenhousev1alpha1.PluginSpec{

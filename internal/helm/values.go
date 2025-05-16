@@ -155,13 +155,13 @@ func getGreenhouseValues(ctx context.Context, c client.Client, p greenhousev1alp
 	})
 
 	// append owning team if set
-	if p.Labels[string(greenhouseapis.LabelKeyOwningTeam)] != "" {
-		owningTeamVal, err := json.Marshal(p.Labels[greenhouseapis.LabelKeyOwningTeam])
+	if p.Labels[string(greenhouseapis.LabelKeyOwnedBy)] != "" {
+		owningTeamVal, err := json.Marshal(p.Labels[greenhouseapis.LabelKeyOwnedBy])
 		if err != nil {
 			return nil, err
 		}
 		greenhouseValues = append(greenhouseValues, greenhousev1alpha1.PluginOptionValue{
-			Name:      "global.greenhouse.owningTeam",
+			Name:      "global.greenhouse.ownedBy",
 			Value:     &apiextensionsv1.JSON{Raw: owningTeamVal},
 			ValueFrom: nil,
 		})
