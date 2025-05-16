@@ -18,6 +18,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
+	greenhouseapis "github.com/cloudoperators/greenhouse/api"
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
 	"github.com/cloudoperators/greenhouse/internal/common"
 	"github.com/cloudoperators/greenhouse/internal/helm"
@@ -68,15 +69,17 @@ var _ = Describe("helm package test", func() {
 			pluginOptionValues, err := helm.GetPluginOptionValuesForPlugin(test.Ctx, test.K8sClient, plugin)
 			Expect(err).ShouldNot(HaveOccurred(), "there should be no error getting the pluginDefinition option values")
 			Expect(pluginOptionValues).To(
-				ContainElement(greenhousev1alpha1.PluginOptionValue{Name: "key1", Value: test.MustReturnJSONFor("pluginValue1"), ValueFrom: nil}), "the pluginDefinition option values should contain default from pluginDefinition spec")
+				ContainElement(greenhousev1alpha1.PluginOptionValue{Name: "key1", Value: test.MustReturnJSONFor("pluginValue1"), ValueFrom: nil}), "the plugin option values should contain default from pluginDefinition spec")
 			Expect(pluginOptionValues).To(
-				ContainElement(greenhousev1alpha1.PluginOptionValue{Name: "global.greenhouse.teamNames", Value: test.MustReturnJSONFor([]string{"test-team-1"}), ValueFrom: nil}), "the pluginDefinition option values should contain greenhouse values")
+				ContainElement(greenhousev1alpha1.PluginOptionValue{Name: "global.greenhouse.teamNames", Value: test.MustReturnJSONFor([]string{"test-team-1"}), ValueFrom: nil}), "the plugin option values should contain greenhouse values")
 			Expect(pluginOptionValues).To(
-				ContainElement(greenhousev1alpha1.PluginOptionValue{Name: "global.greenhouse.clusterName", Value: test.MustReturnJSONFor(plugin.Spec.ClusterName), ValueFrom: nil}), "the pluginDefinition option values should contain the clusterName from the plugin")
+				ContainElement(greenhousev1alpha1.PluginOptionValue{Name: "global.greenhouse.clusterName", Value: test.MustReturnJSONFor(plugin.Spec.ClusterName), ValueFrom: nil}), "the plugin option values should contain the clusterName from the plugin")
 			Expect(pluginOptionValues).To(
-				ContainElement(greenhousev1alpha1.PluginOptionValue{Name: "global.greenhouse.organizationName", Value: test.MustReturnJSONFor(plugin.GetNamespace()), ValueFrom: nil}), "the pluginDefinition option values should contain the orgName from the plugin namespace")
+				ContainElement(greenhousev1alpha1.PluginOptionValue{Name: "global.greenhouse.organizationName", Value: test.MustReturnJSONFor(plugin.GetNamespace()), ValueFrom: nil}), "the plugin option values should contain the orgName from the plugin namespace")
 			Expect(pluginOptionValues).To(
-				ContainElement(greenhousev1alpha1.PluginOptionValue{Name: "global.greenhouse.baseDomain", Value: test.MustReturnJSONFor(common.DNSDomain), ValueFrom: nil}), "the pluginDefinition option values should contain the baseDomain")
+				ContainElement(greenhousev1alpha1.PluginOptionValue{Name: "global.greenhouse.baseDomain", Value: test.MustReturnJSONFor(common.DNSDomain), ValueFrom: nil}), "the plugin option values should contain the baseDomain")
+			Expect(pluginOptionValues).To(
+				ContainElement(greenhousev1alpha1.PluginOptionValue{Name: "global.greenhouse.ownedBy", Value: test.MustReturnJSONFor(plugin.Labels[string(greenhouseapis.LabelKeyOwnedBy)]), ValueFrom: nil}), "the plugin option values should contain the owning team")
 		})
 	})
 
