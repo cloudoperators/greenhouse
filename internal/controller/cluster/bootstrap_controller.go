@@ -29,6 +29,7 @@ import (
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
 	"github.com/cloudoperators/greenhouse/internal/clientutil"
 	"github.com/cloudoperators/greenhouse/internal/controller/cluster/utils"
+	"github.com/cloudoperators/greenhouse/internal/lifecycle"
 )
 
 type BootstrapReconciler struct {
@@ -84,6 +85,11 @@ func (r *BootstrapReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	}
 
 	if err := r.ensureOwnerReferences(ctx, kubeConfigSecret); err != nil {
+		return ctrl.Result{}, err
+	}
+
+	if err := r.ensureLabelPropagation(ctx, kubeConfigSecret); err != nil {
+		log.FromContext(ctx).Error(err, "unable to propagate labels for cluster", "namespace", kubeConfigSecret.Namespace, "name", kubeConfigSecret.Name)
 		return ctrl.Result{}, err
 	}
 
@@ -196,10 +202,29 @@ func (r *BootstrapReconciler) ensureOwnerReferences(ctx context.Context, kubeCon
 	if err := r.Get(ctx, types.NamespacedName{Namespace: kubeConfigSecret.GetNamespace(), Name: kubeConfigSecret.GetName()}, cluster); err != nil {
 		return err
 	}
+	if cluster.DeletionTimestamp != nil {
+		return nil
+	}
 	_, err := clientutil.CreateOrPatch(ctx, r.Client, kubeConfigSecret, func() error {
 		return controllerutil.SetOwnerReference(cluster, kubeConfigSecret, r.Scheme())
 	})
 	return err
+}
+
+func (r *BootstrapReconciler) ensureLabelPropagation(ctx context.Context, kubeConfigSecret *corev1.Secret) error {
+	cluster, isFound, err := r.getClusterAndIgnoreNotFoundError(ctx, kubeConfigSecret)
+	if err != nil {
+		log.FromContext(ctx).Error(err, "failed to get cluster", "namespace", kubeConfigSecret.GetNamespace(), "name", kubeConfigSecret.GetName())
+		return err
+	}
+	if !isFound {
+		return nil
+	}
+	if cluster.DeletionTimestamp != nil {
+		return nil
+	}
+	cluster = (lifecycle.NewPropagator(kubeConfigSecret, cluster).ApplyLabels()).(*greenhousev1alpha1.Cluster) //nolint:errcheck
+	return r.Update(ctx, cluster)
 }
 
 func (r *BootstrapReconciler) getClusterAndIgnoreNotFoundError(ctx context.Context, kubeConfigSecret *corev1.Secret) (cluster *greenhousev1alpha1.Cluster, isFound bool, err error) {
