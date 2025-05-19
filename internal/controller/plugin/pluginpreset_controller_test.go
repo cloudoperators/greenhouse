@@ -522,7 +522,7 @@ var _ = Describe("PluginPreset Controller Lifecycle", Ordered, func() {
 		pluginPreset := pluginPreset(pluginPresetName+"-label-propagation", clusterA)
 		pluginPreset.Spec.Plugin.PluginDefinition = pluginDefinition.Name
 		pluginPreset.SetAnnotations(map[string]string{
-			lifecycle.PropagateLabelsAnnotation: `{"keys": ["support_group", "region"]}`,
+			lifecycle.PropagateLabelsAnnotation: "support_group, region",
 		})
 		pluginPreset.SetLabels(map[string]string{
 			"support_group": "foo",
