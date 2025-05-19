@@ -78,6 +78,7 @@ func WithOIDCConfig(issuer, secretName, clientIDKey, clientSecretKey string) fun
 				Name: secretName,
 				Key:  clientSecretKey,
 			},
+			RedirectURI: issuer + "/callback",
 		}
 	}
 }
@@ -113,6 +114,20 @@ func WithVersion(version string) func(*greenhousev1alpha1.PluginDefinition) {
 func WithHelmChart(chart *greenhousev1alpha1.HelmChartReference) func(*greenhousev1alpha1.PluginDefinition) {
 	return func(pd *greenhousev1alpha1.PluginDefinition) {
 		pd.Spec.HelmChart = chart
+	}
+}
+
+// WithoutHelmChart sets the HelmChart of a PluginDefinition to nil
+func WithoutHelmChart() func(*greenhousev1alpha1.PluginDefinition) {
+	return func(pd *greenhousev1alpha1.PluginDefinition) {
+		pd.Spec.HelmChart = nil
+	}
+}
+
+// WithDescription sets the description of a PluginDefinition
+func WithUIApplication(ui *greenhousev1alpha1.UIApplicationReference) func(*greenhousev1alpha1.PluginDefinition) {
+	return func(pd *greenhousev1alpha1.PluginDefinition) {
+		pd.Spec.UIApplication = ui
 	}
 }
 
@@ -184,12 +199,12 @@ func WithPluginOptionValue(name string, value *apiextensionsv1.JSON, valueFrom *
 				p.Spec.OptionValues[i] = v
 				return
 			}
-			p.Spec.OptionValues = append(p.Spec.OptionValues, greenhousev1alpha1.PluginOptionValue{
-				Name:      name,
-				Value:     value,
-				ValueFrom: valueFrom,
-			})
 		}
+		p.Spec.OptionValues = append(p.Spec.OptionValues, greenhousev1alpha1.PluginOptionValue{
+			Name:      name,
+			Value:     value,
+			ValueFrom: valueFrom,
+		})
 	}
 }
 

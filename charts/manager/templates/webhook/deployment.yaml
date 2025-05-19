@@ -6,7 +6,7 @@ metadata:
   labels:
   {{- include "webhook.labels" . | nindent 4 }}
 spec:
-  replicas: {{ .Values.controllerManager.replicas }}
+  replicas: {{ .Values.webhook.replicas }}
   selector:
     matchLabels:
     {{- include "common.selectorLabels" . | nindent 6 }}

@@ -8,10 +8,10 @@ metadata:
     app.kubernetes.io/part-of: {{ include "manager.fullname" . }}
 {{- include "webhook.labels" . | nindent 4 }}
 spec:
-  type: {{ .Values.webhookService.type | default "ClusterIP" }}
+  type: {{ .Values.webhook.service.type | default "ClusterIP" }}
   selector:
 {{- include "common.selectorLabels" . | nindent 4 }}
 {{- include "webhook.selectorLabels" . | nindent 4 }}
   ports:
-{{- .Values.webhookService.ports | toYaml | nindent 4 }}
+{{- .Values.webhook.service.ports | toYaml | nindent 4 }}
 

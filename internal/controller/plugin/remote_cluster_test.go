@@ -17,6 +17,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
 
 	greenhouseapis "github.com/cloudoperators/greenhouse/api"
+	greenhousemetav1alpha1 "github.com/cloudoperators/greenhouse/api/meta/v1alpha1"
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
 	"github.com/cloudoperators/greenhouse/internal/clientutil"
 	"github.com/cloudoperators/greenhouse/internal/common"
@@ -215,7 +216,7 @@ var (
 // except for WorkloadReady condition, which is not a subject under test.
 // This is done because the cumulative Ready condition in tests will be false due to workload not being ready.
 func checkReadyConditionComponentsUnderTest(g Gomega, plugin *greenhousev1alpha1.Plugin) {
-	readyCondition := plugin.Status.GetConditionByType(greenhousev1alpha1.ReadyCondition)
+	readyCondition := plugin.Status.GetConditionByType(greenhousemetav1alpha1.ReadyCondition)
 	g.Expect(readyCondition).ToNot(BeNil(), "Ready condition should not be nil")
 	clusterAccessReadyCondition := plugin.Status.GetConditionByType(greenhousev1alpha1.ClusterAccessReadyCondition)
 	g.Expect(clusterAccessReadyCondition).ToNot(BeNil())
@@ -421,7 +422,7 @@ var _ = Describe("HelmController reconciliation", Ordered, func() {
 			err := test.K8sClient.Get(test.Ctx, types.NamespacedName{Name: testPluginWithCRDs.Name, Namespace: testPluginWithCRDs.Namespace}, testPluginWithCRDs)
 			g.Expect(err).ShouldNot(HaveOccurred(), "there should be no error getting the plugin")
 			clusterAccessReadyCondition := testPluginWithCRDs.Status.GetConditionByType(greenhousev1alpha1.ClusterAccessReadyCondition)
-			readyCondition := testPluginWithCRDs.Status.GetConditionByType(greenhousev1alpha1.ReadyCondition)
+			readyCondition := testPluginWithCRDs.Status.GetConditionByType(greenhousemetav1alpha1.ReadyCondition)
 			g.Expect(clusterAccessReadyCondition).ToNot(BeNil(), "the ClusterAccessReadyCondition should not be nil")
 			g.Expect(readyCondition).ToNot(BeNil(), "the ReadyCondition should not be nil")
 			return true

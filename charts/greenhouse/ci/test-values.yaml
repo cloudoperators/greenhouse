@@ -69,6 +69,10 @@ teams:
     description: The Admin Team
     mappedIdPGroup: Admin IDP Group
 
+thanos:
+  ingress:
+    host: thanos.local
+
 alerts:
   enabled: true
   tlsConfig:
@@ -95,12 +99,6 @@ team-membership:
 
 logshipping:
   enabled: true
-  opensearch:
-    host: opensearch.foo.bar
-    port: 9200
-    logstashPrefix: "greenhouse"
-    username: topSecret!
-    password: topSecret!
   octobus:
     host: audit.test
     path: /my/index

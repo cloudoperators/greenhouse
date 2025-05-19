@@ -23,6 +23,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	greenhouseapis "github.com/cloudoperators/greenhouse/api"
+	greenhousemetav1alpha1 "github.com/cloudoperators/greenhouse/api/meta/v1alpha1"
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
 	"github.com/cloudoperators/greenhouse/internal/clientutil"
 )
@@ -45,6 +46,21 @@ func UpdateClusterWithDeletionAnnotation(ctx context.Context, c client.Client, i
 	return cluster
 }
 
+func RemoveDeletionProjection(ctx context.Context, c client.Client, id client.ObjectKey) *greenhousev1alpha1.PluginPreset {
+	GinkgoHelper()
+	pluginPreset := &greenhousev1alpha1.PluginPreset{}
+	Eventually(func(g Gomega) {
+		g.Expect(c.Get(ctx, id, pluginPreset)).
+			To(Succeed(), "there must be no error getting the plugin preset")
+		base := pluginPreset.DeepCopy()
+		annotations := pluginPreset.GetAnnotations()
+		delete(annotations, greenhousev1alpha1.PreventDeletionAnnotation)
+		pluginPreset.SetAnnotations(annotations)
+		g.Expect(c.Patch(ctx, pluginPreset, client.MergeFrom(base))).To(Succeed(), "there must be no error updating the pluginpreset")
+	}).Should(Succeed(), "there should be no error removing the deletion projection")
+	return pluginPreset
+}
+
 // MustDeleteCluster is used in the test context only and removes a cluster by namespaced name.
 func MustDeleteCluster(ctx context.Context, c client.Client, id client.ObjectKey) {
 	GinkgoHelper()
@@ -62,8 +78,8 @@ func MustDeleteCluster(ctx context.Context, c client.Client, id client.ObjectKey
 // SetClusterReadyCondition sets the ready condition of the cluster resource.
 func SetClusterReadyCondition(ctx context.Context, c client.Client, cluster *greenhousev1alpha1.Cluster, readyStatus metav1.ConditionStatus) error {
 	_, err := clientutil.PatchStatus(ctx, c, cluster, func() error {
-		cluster.Status.SetConditions(greenhousev1alpha1.NewCondition(
-			greenhousev1alpha1.ReadyCondition,
+		cluster.Status.SetConditions(greenhousemetav1alpha1.NewCondition(
+			greenhousemetav1alpha1.ReadyCondition,
 			readyStatus,
 			"",
 			"",

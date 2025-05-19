@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"strings"
 
 	"gopkg.in/yaml.v3"
 
@@ -79,21 +80,22 @@ func processDevSetup(cmd *cobra.Command, args []string) error {
 	}
 
 	for _, cfg := range config.Config {
-		namespace := ""
 		if cfg.Cluster == nil {
 			return errors.New("cluster config is missing")
 		}
-		if cfg.Cluster.Namespace != nil {
-			namespace = *cfg.Cluster.Namespace
-		}
+		cfg.setClusterVersion()
 		// in case of plugin development we check if the plugin directory env exists
 		// if it does, we generate KinD config to enable hostPath mounts
-		hostPathConfig, err := createHostPathConfig()
+		hostPathConfig, err := createHostPathConfig(cfg.Cluster.ConfigPath)
 		if err != nil {
 			return err
 		}
+		// re-write the config file with the hostPath config
+		if hostPathConfig != "" {
+			cfg.Cluster.ConfigPath = hostPathConfig
+		}
 		env := setup.NewExecutionEnv().
-			WithClusterSetup(cfg.Cluster.Name, namespace, cfg.Cluster.Version, hostPathConfig)
+			WithClusterSetup(cfg.Cluster)
 		for _, dep := range cfg.Dependencies {
 			if overrideCRDOnly {
 				dep.Manifest.CRDOnly = onlyCRD
@@ -125,6 +127,17 @@ func processDevSetup(cmd *cobra.Command, args []string) error {
 		}
 	}
 	return nil
+}
+
+// setClusterVersion - set the cluster version via K8S_VERSION env var or default to v1.31.0
+func (c *clusterConfig) setClusterVersion() {
+	if strings.TrimSpace(c.Cluster.Version) == "" {
+		k8sVersion, ok := os.LookupEnv(k8sVersionEnvKey)
+		if !ok {
+			k8sVersion = defaultK8sVersion
+		}
+		c.Cluster.Version = k8sVersion
+	}
 }
 
 func init() {
