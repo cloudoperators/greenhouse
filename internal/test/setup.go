@@ -116,14 +116,15 @@ func (t *TestSetup) CreateOrganizationWithOIDCConfig(ctx context.Context, orgNam
 // CreateOrganization creates a Organization within the TestSetup and returns the created Organization resource.
 func (t *TestSetup) CreateOrganization(ctx context.Context, name string, opts ...func(*greenhousev1alpha1.Organization)) *greenhousev1alpha1.Organization {
 	GinkgoHelper()
-	org := &greenhousev1alpha1.Organization{}
-	err := t.Get(ctx, client.ObjectKey{Name: name}, org)
-	if client.IgnoreNotFound(err) == nil {
-		org := NewOrganization(ctx, name, opts...)
-		Expect(t.Create(ctx, org)).Should(Succeed(), "there should be no error creating the Organization")
-		return org
+	org := NewOrganization(ctx, name, opts...)
+	err := t.Create(ctx, org)
+	if err != nil {
+		if client.IgnoreAlreadyExists(err) == nil {
+			Expect(t.Get(ctx, client.ObjectKey{Name: name}, org)).Should(Succeed(), "there should be no error getting the Organization")
+			return org
+		}
 	}
-	Expect(err).NotTo(HaveOccurred(), "there should be no error getting the Organization")
+	Expect(err).ToNot(HaveOccurred(), "there should be no error creating the Organization")
 	return org
 }
 
