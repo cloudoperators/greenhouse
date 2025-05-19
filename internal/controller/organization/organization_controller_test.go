@@ -34,7 +34,7 @@ var _ = Describe("Test Organization reconciliation", Ordered, func() {
 		setup = test.NewTestSetup(test.Ctx, test.K8sClient, test.TestNamespace)
 	})
 
-	When("reconciling an organization", func() {
+	When("reconciling an organization", Ordered, func() {
 		It("should create a namespace for new organization", func() {
 			testOrgName := "test-org-1"
 			setup.CreateOrganization(test.Ctx, testOrgName)
