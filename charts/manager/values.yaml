@@ -15,7 +15,8 @@ controllerManager:
   image:
     repository: ghcr.io/cloudoperators/greenhouse
     tag: main
-
+    # Overrides the image tag to use a specific digest instead
+    # digest: ""
   resources:
     requests:
       cpu: 10m
