@@ -117,7 +117,14 @@ func (t *TestSetup) CreateOrganizationWithOIDCConfig(ctx context.Context, orgNam
 func (t *TestSetup) CreateOrganization(ctx context.Context, name string, opts ...func(*greenhousev1alpha1.Organization)) *greenhousev1alpha1.Organization {
 	GinkgoHelper()
 	org := NewOrganization(ctx, name, opts...)
-	Expect(t.Create(ctx, org)).Should(Succeed(), "there should be no error creating the Organization")
+	err := t.Create(ctx, org)
+	if err != nil {
+		if client.IgnoreAlreadyExists(err) == nil {
+			Expect(t.Get(ctx, client.ObjectKey{Name: name}, org)).Should(Succeed(), "there should be no error getting the Organization")
+			return org
+		}
+	}
+	Expect(err).ToNot(HaveOccurred(), "there should be no error creating the Organization")
 	return org
 }
 

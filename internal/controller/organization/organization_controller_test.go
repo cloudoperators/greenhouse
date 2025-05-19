@@ -12,6 +12,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/util/retry"
 
+	greenhousemetav1alpha1 "github.com/cloudoperators/greenhouse/api/meta/v1alpha1"
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
 	"github.com/cloudoperators/greenhouse/internal/clientutil"
 	"github.com/cloudoperators/greenhouse/internal/dex"
@@ -33,7 +34,7 @@ var _ = Describe("Test Organization reconciliation", Ordered, func() {
 		setup = test.NewTestSetup(test.Ctx, test.K8sClient, test.TestNamespace)
 	})
 
-	When("reconciling an organization", func() {
+	When("reconciling an organization", Ordered, func() {
 		It("should create a namespace for new organization", func() {
 			testOrgName := "test-org-1"
 			setup.CreateOrganization(test.Ctx, testOrgName)
@@ -231,7 +232,7 @@ var _ = Describe("Test Organization reconciliation", Ordered, func() {
 				scimAPIAvailableCondition := testOrg.Status.GetConditionByType(greenhousev1alpha1.SCIMAPIAvailableCondition)
 				g.Expect(scimAPIAvailableCondition).ToNot(BeNil(), "SCIMAPIAvailableCondition should be set on Organization")
 				g.Expect(scimAPIAvailableCondition.Status).To(Equal(metav1.ConditionUnknown), "SCIMAPIAvailableCondition should be set to Unknown on Organization")
-				readyCondition := testOrg.Status.GetConditionByType(greenhousev1alpha1.ReadyCondition)
+				readyCondition := testOrg.Status.GetConditionByType(greenhousemetav1alpha1.ReadyCondition)
 				g.Expect(readyCondition).ToNot(BeNil(), "ReadyCondition should be set on Organization")
 				g.Expect(readyCondition.IsTrue()).To(BeTrue(), "ReadyCondition should be True on Organization")
 			}).Should(Succeed(), "Organization should have set correct status condition")
@@ -269,7 +270,7 @@ var _ = Describe("Test Organization reconciliation", Ordered, func() {
 				scimAPIAvailableCondition := testOrg.Status.GetConditionByType(greenhousev1alpha1.SCIMAPIAvailableCondition)
 				g.Expect(scimAPIAvailableCondition).ToNot(BeNil(), "SCIMAPIAvailableCondition should be set on Organization")
 				g.Expect(scimAPIAvailableCondition.IsFalse()).To(BeTrue(), "SCIMAPIAvailableCondition should be False on Organization")
-				readyCondition := testOrg.Status.GetConditionByType(greenhousev1alpha1.ReadyCondition)
+				readyCondition := testOrg.Status.GetConditionByType(greenhousemetav1alpha1.ReadyCondition)
 				g.Expect(readyCondition).ToNot(BeNil(), "ReadyCondition should be set on Organization")
 				g.Expect(readyCondition.IsFalse()).To(BeTrue(), "ReadyCondition should be False on Organization")
 			}).Should(Succeed(), "Organization should have set correct status condition")
@@ -294,7 +295,7 @@ var _ = Describe("Test Organization reconciliation", Ordered, func() {
 				scimAPIAvailableCondition := testOrg.Status.GetConditionByType(greenhousev1alpha1.SCIMAPIAvailableCondition)
 				g.Expect(scimAPIAvailableCondition).ToNot(BeNil(), "SCIMAPIAvailableCondition should be set on Organization")
 				g.Expect(scimAPIAvailableCondition.IsTrue()).To(BeTrue(), "SCIMAPIAvailableCondition should be True on Organization")
-				readyCondition := testOrg.Status.GetConditionByType(greenhousev1alpha1.ReadyCondition)
+				readyCondition := testOrg.Status.GetConditionByType(greenhousemetav1alpha1.ReadyCondition)
 				g.Expect(readyCondition).ToNot(BeNil(), "ReadyCondition should be set on Organization")
 				g.Expect(readyCondition.IsTrue()).To(BeTrue(), "ReadyCondition should be True on Organization")
 			}).Should(Succeed(), "Organization should have set correct status condition")
@@ -383,7 +384,7 @@ func checkOrganizationReadyStatus(orgName string) {
 		org := &greenhousev1alpha1.Organization{}
 		err := test.K8sClient.Get(test.Ctx, types.NamespacedName{Name: orgName}, org)
 		g.Expect(err).ToNot(HaveOccurred(), "there should be no error getting the Organization")
-		readyCondition := org.Status.GetConditionByType(greenhousev1alpha1.ReadyCondition)
+		readyCondition := org.Status.GetConditionByType(greenhousemetav1alpha1.ReadyCondition)
 		g.Expect(readyCondition).ToNot(BeNil(), "ReadyCondition should be set on Organization")
 		g.Expect(readyCondition.IsTrue()).To(BeTrue(), "ReadyCondition should be True on Organization")
 		oidcCondition := org.Status.GetConditionByType(greenhousev1alpha1.OrganizationOICDConfigured)
