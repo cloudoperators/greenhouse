@@ -96,7 +96,7 @@ var _ = Describe("Bootstrap controller", Ordered, func() {
 			kubeConfigSecret := setup.CreateSecret(test.Ctx, bootstrapTestCase+"-label-propagation",
 				test.WithSecretType(greenhouseapis.SecretTypeKubeConfig),
 				test.WithSecretAnnotations(map[string]string{
-					lifecycle.PropagateLabelsAnnotation: `{"keys": ["support_group", "region"]}`,
+					lifecycle.PropagateLabelsAnnotation: "support_group, region",
 				}),
 				test.WithSecretLabels(map[string]string{
 					"support_group": "foo",
