@@ -1,20 +1,27 @@
-
-
 # Setting up a local development environment
 
 Greenhouse provides a couple of cli commands based on `make` to run a local Greenhouse instance.
 
-- [Setting up the development environment](#setting-up-the-development-environment)
-- [Run local Greenhouse](#run-local-greenhouse)
-- Developing Greenhouse core functionality:
-  - [Develop Controllers locally and run the webhook server in-cluster](#develop-controllers-locally-and-run-the-webhook-server-in-cluster)
-  - [Develop Admission Webhook server locally](#develop-admission-webhook-server-locally)
-- Greenhouse Dashboard
-  - [Running Greenhouse Dashboard in-cluster](#running-greenhouse-dashboard-in-cluster)
-  - [Run Greenhouse Core for UI development](#run-greenhouse-core-for-ui-development)
-- Greenhouse Extensions
-  - [Test Plugin / Greenhouse Extension charts locally](#test-plugin--greenhouse-extension-charts-locally)
-- [Additional information](#additional-information)
+
+- [Setting up a local development environment](#setting-up-a-local-development-environment)
+  - [Prerequisites](#prerequisites)
+  - [Usage](#usage)
+  - [Setting up the development environment](#setting-up-the-development-environment)
+    - [Run Greenhouse Locally](#run-greenhouse-locally)
+    - [Develop Controllers locally and run the webhook server in-cluster](#develop-controllers-locally-and-run-the-webhook-server-in-cluster)
+    - [Develop Admission Webhook server locally](#develop-admission-webhook-server-locally)
+    - [Develop Controllers and Admission Webhook server locally](#develop-controllers-and-admission-webhook-server-locally)
+    - [Running Greenhouse Dashboard in-cluster](#running-greenhouse-dashboard-in-cluster)
+    - [Run Greenhouse Core for UI development](#run-greenhouse-core-for-ui-development)
+    - [Test Plugin / Greenhouse Extension charts locally](#test-plugin--greenhouse-extension-charts-locally)
+  - [Additional information](#additional-information)
+  - [greenhousectl dev setup](#greenhousectl-dev-setup)
+    - [Examples](#examples)
+    - [Options](#options)
+  - [greenhousectl dev setup dashboard](#greenhousectl-dev-setup-dashboard)
+    - [Examples](#examples-1)
+    - [Options](#options-1)
+  - [Generating Docs](#generating-docs)
 
 This handy CLI tool will help you to setup your development environment in no time.
 
@@ -125,7 +132,7 @@ make setup-dashboard
 
 
 ### Run Greenhouse Core for UI development
-- Startup the environment as in [Run local Greenhouse](#run-local-greenhouse)
+- Startup the environment as in [Run local Greenhouse](#run-greenhouse-locally)
 - An `appProps.json` `ConfigMap` is created  in the `greenhouse` namespace to configure the dashboard.
 - You can now retrieve the generated `appProps.json` in-cluster by executing
   `kubectl get cm greenhouse-dashboard-app-props -n greenhouse -o=json | jq -r '.data.["appProps.json"]'`
