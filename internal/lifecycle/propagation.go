@@ -5,6 +5,7 @@ package lifecycle
 
 import (
 	"encoding/json"
+	"slices"
 	"strings"
 
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -44,11 +45,11 @@ func NewPropagator(src, dst client.Object) *Propagator {
 // It adds or updates only the specified label keys from src to dst, and removes any previously
 // propagated labels that were removed in src or are no longer declared.
 func (p *Propagator) ApplyLabels() client.Object {
-	keys := p.extractDeclaredLabelKeys()
+	keys := p.labelKeysToPropagate()
 	if keys == nil {
-		return p.cleanupLabelsAndState()
+		return p.cleanupTarget()
 	}
-	
+
 	srcLabels := p.src.GetLabels()
 	if srcLabels == nil {
 		srcLabels = map[string]string{}
@@ -58,13 +59,12 @@ func (p *Propagator) ApplyLabels() client.Object {
 		dstLabels = map[string]string{}
 	}
 
-
-	if !p.hasAtLeastOneValidSourceLabel(keys, srcLabels) {
-		return p.cleanupLabelsAndState()
+	if !p.containsLabelToPropagate(keys, srcLabels) {
+		return p.cleanupTarget()
 	}
 
 	state := p.getAppliedState()
-	appliedNow := p.syncLabels(keys, srcLabels, dstLabels, state)
+	appliedNow := p.syncTargetLabels(keys, srcLabels, dstLabels, state)
 
 	p.dst.SetLabels(dstLabels)
 	if len(appliedNow) > 0 {
@@ -80,19 +80,19 @@ func (p *Propagator) ApplyLabels() client.Object {
 // in the source object. Returns nil if missing, invalid, or empty.
 func (p *Propagator) labelKeysToPropagate() []string {
 	annotations := strings.TrimSpace(p.src.GetAnnotations()[PropagateLabelsAnnotation])
-	if annotationVal == "" {
+	if annotations == "" {
 		return nil
 	}
 	var declared struct {
 		Keys []string `json:"keys"`
 	}
-	if err := json.Unmarshal([]byte(annotationVal), &declared); err != nil || len(declared.Keys) == 0 {
+	if err := json.Unmarshal([]byte(annotations), &declared); err != nil || len(declared.Keys) == 0 {
 		return nil
 	}
 	return declared.Keys
 }
 
-// hasAtLeastOneValidSourceLabel - returns true if the source object contains
+// containsLabelToPropagate - returns true if the source object contains
 // at least one of the label keys declared for propagation.
 func (p *Propagator) containsLabelToPropagate(keys []string, srcLabels map[string]string) bool {
 	for _, k := range keys {
@@ -103,7 +103,7 @@ func (p *Propagator) containsLabelToPropagate(keys []string, srcLabels map[strin
 	return false
 }
 
-// syncLabels synchronizes label keys from src to dst and removes any previously applied keys
+// syncTargetLabels - synchronizes label keys from src to dst and removes any previously applied keys
 // that are no longer present. Returns the current list of successfully propagated keys.
 func (p *Propagator) syncTargetLabels(keys []string, srcLabels, dstLabels map[string]string, state appliedPropagatorState) []string {
 	var appliedNow []string
@@ -114,14 +114,14 @@ func (p *Propagator) syncTargetLabels(keys []string, srcLabels, dstLabels map[st
 		}
 	}
 	for _, k := range state.LabelKeys {
-		if !contains(keys, k) || srcLabels[k] == "" {
+		if !slices.Contains(keys, k) || srcLabels[k] == "" {
 			delete(dstLabels, k)
 		}
 	}
 	return appliedNow
 }
 
-// getAppliedState reads the last-applied-propagator annotation from the destination object and unmarshal the
+// getAppliedState - reads the last-applied-propagator annotation from the destination object and unmarshal the
 // previously applied label keys for later cleanup.
 func (p *Propagator) getAppliedState() appliedPropagatorState {
 	annotations := p.dst.GetAnnotations()
@@ -160,7 +160,7 @@ func (p *Propagator) removeAppliedState() {
 	p.dst.SetAnnotations(ann)
 }
 
-// cleanupLabelsAndState - removes any previously applied propagated labels from the destination object
+// cleanupTarget - removes any previously applied propagated labels from the destination object
 // and deletes the tracking annotation. It is called when no label propagation should occur.
 func (p *Propagator) cleanupTarget() client.Object {
 	labels := p.dst.GetLabels()
@@ -174,14 +174,4 @@ func (p *Propagator) cleanupTarget() client.Object {
 	p.dst.SetLabels(labels)
 	p.removeAppliedState()
 	return p.dst
-}
-
-// contains checks whether a given string exists within a list.
-func contains(list []string, key string) bool {
-	for _, item := range list {
-		if item == key {
-			return true
-		}
-	}
-	return false
 }
