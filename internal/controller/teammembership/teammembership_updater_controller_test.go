@@ -13,6 +13,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
+	greenhousemetav1alpha1 "github.com/cloudoperators/greenhouse/api/meta/v1alpha1"
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
 	"github.com/cloudoperators/greenhouse/internal/clientutil"
 	"github.com/cloudoperators/greenhouse/internal/test"
@@ -64,9 +65,9 @@ var _ = Describe("TeammembershipUpdaterController", Ordered, func() {
 				g.Expect(scimAccessReadyCondition).ToNot(BeNil())
 				g.Expect(scimAccessReadyCondition.Type).To(Equal(greenhousev1alpha1.SCIMAccessReadyCondition))
 				g.Expect(scimAccessReadyCondition.Status).To(Equal(metav1.ConditionTrue))
-				readyCondition := teamMembership.Status.GetConditionByType(greenhousev1alpha1.ReadyCondition)
+				readyCondition := teamMembership.Status.GetConditionByType(greenhousemetav1alpha1.ReadyCondition)
 				g.Expect(readyCondition).ToNot(BeNil())
-				g.Expect(readyCondition.Type).To(Equal(greenhousev1alpha1.ReadyCondition))
+				g.Expect(readyCondition.Type).To(Equal(greenhousemetav1alpha1.ReadyCondition))
 				g.Expect(readyCondition.Status).To(Equal(metav1.ConditionTrue))
 			}).Should(Succeed(), "TeamMembership should be reconciled")
 
@@ -102,9 +103,9 @@ var _ = Describe("TeammembershipUpdaterController", Ordered, func() {
 				g.Expect(scimAccessReadyCondition).ToNot(BeNil())
 				g.Expect(scimAccessReadyCondition.Type).To(Equal(greenhousev1alpha1.SCIMAccessReadyCondition))
 				g.Expect(scimAccessReadyCondition.Status).To(Equal(metav1.ConditionTrue))
-				readyCondition := firstTeamMembership.Status.GetConditionByType(greenhousev1alpha1.ReadyCondition)
+				readyCondition := firstTeamMembership.Status.GetConditionByType(greenhousemetav1alpha1.ReadyCondition)
 				g.Expect(readyCondition).ToNot(BeNil())
-				g.Expect(readyCondition.Type).To(Equal(greenhousev1alpha1.ReadyCondition))
+				g.Expect(readyCondition.Type).To(Equal(greenhousemetav1alpha1.ReadyCondition))
 				g.Expect(readyCondition.Status).To(Equal(metav1.ConditionTrue))
 			}).Should(Succeed(), "the TeamMembership should be reconciled")
 
@@ -333,9 +334,9 @@ var _ = Describe("TeammembershipUpdaterController", Ordered, func() {
 				g.Expect(scimAccessReadyCondition.Status).To(Equal(metav1.ConditionFalse))
 				g.Expect(scimAccessReadyCondition.Reason).To(Equal(greenhousev1alpha1.SCIMConfigErrorReason), "reason should be set to SCIMConfigErrorReason")
 				g.Expect(scimAccessReadyCondition.Message).To(Equal("secret for '.SCIMConfig.BasicAuthUser' is missing: Secret \"test-secret\" not found"))
-				readyCondition := firstTeamMembership.Status.GetConditionByType(greenhousev1alpha1.ReadyCondition)
+				readyCondition := firstTeamMembership.Status.GetConditionByType(greenhousemetav1alpha1.ReadyCondition)
 				g.Expect(readyCondition).ToNot(BeNil())
-				g.Expect(readyCondition.Type).To(Equal(greenhousev1alpha1.ReadyCondition))
+				g.Expect(readyCondition.Type).To(Equal(greenhousemetav1alpha1.ReadyCondition))
 				g.Expect(readyCondition.Status).To(Equal(metav1.ConditionFalse))
 			}).Should(Succeed(), "TeamMemberships should have been reconciled")
 		})
@@ -361,9 +362,9 @@ var _ = Describe("TeammembershipUpdaterController", Ordered, func() {
 				g.Expect(scimAccessReadyCondition.Type).To(Equal(greenhousev1alpha1.SCIMAccessReadyCondition))
 				g.Expect(scimAccessReadyCondition.Status).To(Equal(metav1.ConditionFalse))
 				g.Expect(scimAccessReadyCondition.Reason).To(Equal(greenhousev1alpha1.SCIMRequestFailedReason), "reason should be set to SCIMRequestFailed")
-				readyCondition := firstTeamMembership.Status.GetConditionByType(greenhousev1alpha1.ReadyCondition)
+				readyCondition := firstTeamMembership.Status.GetConditionByType(greenhousemetav1alpha1.ReadyCondition)
 				g.Expect(readyCondition).ToNot(BeNil())
-				g.Expect(readyCondition.Type).To(Equal(greenhousev1alpha1.ReadyCondition))
+				g.Expect(readyCondition.Type).To(Equal(greenhousemetav1alpha1.ReadyCondition))
 				g.Expect(readyCondition.Status).To(Equal(metav1.ConditionFalse))
 			}).Should(Succeed(), "TeamMemberships should have been reconciled")
 
@@ -601,7 +602,7 @@ func createTestOrgWithSecret(namespace string) {
 
 func updateOrganizationStatusWithSCIMAvailability(org *greenhousev1alpha1.Organization) {
 	orgStatus := org.Status
-	orgStatus.SetConditions(greenhousev1alpha1.TrueCondition(greenhousev1alpha1.SCIMAPIAvailableCondition, "", ""))
+	orgStatus.SetConditions(greenhousemetav1alpha1.TrueCondition(greenhousev1alpha1.SCIMAPIAvailableCondition, "", ""))
 	_, err := clientutil.PatchStatus(test.Ctx, setup.Client, org, func() error {
 		org.Status = orgStatus
 		return nil

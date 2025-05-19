@@ -5,15 +5,17 @@ package v1alpha1
 
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
+	greenhousemetav1alpha1 "github.com/cloudoperators/greenhouse/api/meta/v1alpha1"
 )
 
 const (
 	// SCIMAccessReadyCondition reflects if there is a connection to SCIM.
-	SCIMAccessReadyCondition ConditionType = "SCIMAccessReady"
+	SCIMAccessReadyCondition greenhousemetav1alpha1.ConditionType = "SCIMAccessReady"
 	// SCIMAPIUnavailableReason is set when the organization has set SCIMAPIAvailableCondition to false.
-	SCIMAPIUnavailableReason ConditionReason = "SCIMAPIUnavailable"
+	SCIMAPIUnavailableReason greenhousemetav1alpha1.ConditionReason = "SCIMAPIUnavailable"
 	// SCIMAllMembersValidCondition reflects if all members are valid. It is set to false if there are invalid or inactive members.
-	SCIMAllMembersValidCondition ConditionType = "SCIMAllMembersValid"
+	SCIMAllMembersValidCondition greenhousemetav1alpha1.ConditionType = "SCIMAllMembersValid"
 )
 
 // User specifies a human person.
@@ -44,7 +46,7 @@ type TeamMembershipStatus struct {
 	// +optional
 	LastChangedTime *metav1.Time `json:"lastUpdateTime,omitempty"`
 	// StatusConditions contain the different conditions that constitute the status of the TeamMembership.
-	StatusConditions `json:"statusConditions,omitempty"`
+	greenhousemetav1alpha1.StatusConditions `json:"statusConditions,omitempty"`
 }
 
 //+kubebuilder:object:root=true

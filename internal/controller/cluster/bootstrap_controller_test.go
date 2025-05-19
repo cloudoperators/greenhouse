@@ -14,6 +14,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
 
 	greenhouseapis "github.com/cloudoperators/greenhouse/api"
+	greenhousemetav1alpha1 "github.com/cloudoperators/greenhouse/api/meta/v1alpha1"
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
 	"github.com/cloudoperators/greenhouse/internal/lifecycle"
 	"github.com/cloudoperators/greenhouse/internal/test"
@@ -53,9 +54,9 @@ var _ = Describe("Bootstrap controller", Ordered, func() {
 				Eventually(func(g Gomega) bool {
 					g.Expect(test.K8sClient.Get(test.Ctx, id, cluster)).Should(Succeed(), "the cluster should have been created")
 					g.Expect(cluster.Spec.AccessMode).To(Equal(greenhousev1alpha1.ClusterAccessModeDirect), "the cluster accessmode should be set to direct")
-					readyCondition := cluster.Status.GetConditionByType(greenhousev1alpha1.ReadyCondition)
+					readyCondition := cluster.Status.GetConditionByType(greenhousemetav1alpha1.ReadyCondition)
 					g.Expect(readyCondition).ToNot(BeNil())
-					g.Expect(readyCondition.Type).To(Equal(greenhousev1alpha1.ReadyCondition))
+					g.Expect(readyCondition.Type).To(Equal(greenhousemetav1alpha1.ReadyCondition))
 					g.Expect(readyCondition.Status).To(Equal(metav1.ConditionTrue))
 					return true
 				}).Should(BeTrue(), "getting the cluster should succeed eventually and the cluster accessmode and status should be set correctly")
@@ -81,7 +82,7 @@ var _ = Describe("Bootstrap controller", Ordered, func() {
 					g.Expect(test.K8sClient.Get(test.Ctx, id, cluster)).Should(Succeed(), "the cluster should have been created")
 					g.Expect(cluster.Spec.AccessMode).To(Equal(greenhousev1alpha1.ClusterAccessModeDirect), "the cluster accessmode should still be direct")
 					g.Expect(cluster.Status.Conditions).ToNot(BeNil(), "status conditions should be present")
-					readyCondition := cluster.Status.GetConditionByType(greenhousev1alpha1.ReadyCondition)
+					readyCondition := cluster.Status.GetConditionByType(greenhousemetav1alpha1.ReadyCondition)
 					g.Expect(readyCondition).ToNot(BeNil())
 					g.Expect(readyCondition.Status).To(Equal(metav1.ConditionFalse), "the ready condition should be set to false")
 					return true
