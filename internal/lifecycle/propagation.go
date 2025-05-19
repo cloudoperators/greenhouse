@@ -46,7 +46,7 @@ func NewPropagator(src, dst client.Object) *Propagator {
 // propagated labels that were removed in src or are no longer declared.
 func (p *Propagator) ApplyLabels() client.Object {
 	keys := p.labelKeysToPropagate()
-	if keys == nil {
+	if len(keys) == 0 {
 		return p.cleanupTarget()
 	}
 
@@ -74,20 +74,22 @@ func (p *Propagator) ApplyLabels() client.Object {
 	return p.dst
 }
 
-// extractDeclaredLabelKeys - retrieves the list of label keys from the propagate-labels annotation
+// labelKeysToPropagate - retrieves the list of label keys from the propagate-labels annotation
 // in the source object. Returns nil if missing, invalid, or empty.
 func (p *Propagator) labelKeysToPropagate() []string {
-	annotations := strings.TrimSpace(p.src.GetAnnotations()[PropagateLabelsAnnotation])
-	if annotations == "" {
+	var keys []string
+	annotation := strings.TrimSpace(p.src.GetAnnotations()[PropagateLabelsAnnotation])
+	if strings.TrimSpace(annotation) == "" {
 		return nil
 	}
-	var declared struct {
-		Keys []string `json:"keys"`
+	rawKeys := strings.Split(annotation, ",")
+	for _, k := range rawKeys {
+		k = strings.TrimSpace(k)
+		if k != "" {
+			keys = append(keys, k)
+		}
 	}
-	if err := json.Unmarshal([]byte(annotations), &declared); err != nil || len(declared.Keys) == 0 {
-		return nil
-	}
-	return declared.Keys
+	return keys
 }
 
 // containsLabelToPropagate - returns true if the source object contains
