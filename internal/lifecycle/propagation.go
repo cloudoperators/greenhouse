@@ -63,9 +63,7 @@ func (p *Propagator) ApplyLabels() client.Object {
 		return p.cleanupTarget()
 	}
 
-	state := p.getAppliedState()
-	appliedNow := p.syncTargetLabels(keys, srcLabels, dstLabels, state)
-
+	appliedNow := p.syncTargetLabels(keys, srcLabels, dstLabels)
 	p.dst.SetLabels(dstLabels)
 	if len(appliedNow) > 0 {
 		p.storeAppliedState(appliedPropagatorState{LabelKeys: appliedNow})
@@ -105,8 +103,9 @@ func (p *Propagator) containsLabelToPropagate(keys []string, srcLabels map[strin
 
 // syncTargetLabels - synchronizes label keys from src to dst and removes any previously applied keys
 // that are no longer present. Returns the current list of successfully propagated keys.
-func (p *Propagator) syncTargetLabels(keys []string, srcLabels, dstLabels map[string]string, state appliedPropagatorState) []string {
+func (p *Propagator) syncTargetLabels(keys []string, srcLabels, dstLabels map[string]string) []string {
 	var appliedNow []string
+	state := p.getAppliedState()
 	for _, k := range keys {
 		if v, ok := srcLabels[k]; ok {
 			dstLabels[k] = v
