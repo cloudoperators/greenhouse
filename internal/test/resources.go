@@ -55,10 +55,29 @@ func NewCluster(ctx context.Context, name, namespace string, opts ...func(*green
 	return cluster
 }
 
-// WithMappedIDPGroup sets the MappedIDPGroup on an Organization
+// WithMappedAdminIDPGroup sets the MappedIDPGroup on an Organization
 func WithMappedAdminIDPGroup(group string) func(*greenhousev1alpha1.Organization) {
 	return func(org *greenhousev1alpha1.Organization) {
 		org.Spec.MappedOrgAdminIDPGroup = group
+	}
+}
+
+func WithOrgAnnotations(annotations map[string]string) func(*greenhousev1alpha1.Organization) {
+	return func(org *greenhousev1alpha1.Organization) {
+		org.SetAnnotations(annotations)
+	}
+}
+
+// WithAdditionalRedirects - sets the additional redirect URIs on an Organization. (To be used with WithOIDCConfig)
+func WithAdditionalRedirects(additionalRedirects ...string) func(organization *greenhousev1alpha1.Organization) {
+	return func(org *greenhousev1alpha1.Organization) {
+		if org.Spec.Authentication == nil {
+			org.Spec.Authentication = &greenhousev1alpha1.Authentication{}
+		}
+		if org.Spec.Authentication.OIDCConfig == nil {
+			org.Spec.Authentication.OIDCConfig = &greenhousev1alpha1.OIDCConfig{}
+		}
+		org.Spec.Authentication.OIDCConfig.OAuth2ClientRedirectURIs = additionalRedirects
 	}
 }
 
