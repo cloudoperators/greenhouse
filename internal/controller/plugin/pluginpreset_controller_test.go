@@ -527,7 +527,7 @@ var _ = Describe("PluginPreset Controller Lifecycle", Ordered, func() {
 		pluginPreset.SetLabels(map[string]string{
 			"support_group": "foo",
 			"region":        "bar",
-			"test-label":    "test-value",
+			"cluster_type":  "operations",
 		})
 		Expect(test.K8sClient.Create(test.Ctx, pluginPreset)).ToNot(HaveOccurred())
 		test.EventuallyCreated(test.Ctx, test.K8sClient, pluginPreset)
