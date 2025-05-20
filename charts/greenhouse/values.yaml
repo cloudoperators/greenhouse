@@ -110,6 +110,9 @@ monitoring:
   alertmanager:
     enabled: false
 
+thanos:
+  enabled: false
+
 tailscale-proxy:
   enabled: true
   image:

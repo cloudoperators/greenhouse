@@ -14,6 +14,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 
+	greenhousemetav1alpha1 "github.com/cloudoperators/greenhouse/api/meta/v1alpha1"
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
 )
 
@@ -104,8 +105,8 @@ func PredicatePluginWithStatusReadyChange() predicate.Predicate {
 			if !okOld || !okNew {
 				return false
 			}
-			oldReadyCondition := oldPlugin.Status.GetConditionByType(greenhousev1alpha1.ReadyCondition)
-			newReadyCondition := newPlugin.Status.GetConditionByType(greenhousev1alpha1.ReadyCondition)
+			oldReadyCondition := oldPlugin.Status.GetConditionByType(greenhousemetav1alpha1.ReadyCondition)
+			newReadyCondition := newPlugin.Status.GetConditionByType(greenhousemetav1alpha1.ReadyCondition)
 			if oldReadyCondition == nil && newReadyCondition == nil {
 				return false
 			}

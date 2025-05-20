@@ -44,7 +44,7 @@ spec:
               containerName: webhook
               divisor: "0"
               resource: limits.cpu
-        image: {{ .Values.controllerManager.image.repository }}:{{ .Values.controllerManager.image.tag | default .Chart.AppVersion }}
+        image: {{ include "manager.image" . }}
         livenessProbe:
           httpGet:
             path: /healthz

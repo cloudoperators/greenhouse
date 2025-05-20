@@ -13,27 +13,6 @@ type ConditionType string
 // ConditionReason is a valid reason for a condition of a resource.
 type ConditionReason string
 
-const (
-	// ReadyCondition reflects the overall readiness status of a resource.
-	ReadyCondition ConditionType = "Ready"
-
-	// DeleteCondition reflects that the resource has finished its cleanup process.
-	DeleteCondition ConditionType = "Delete"
-
-	// ClusterListEmpty is set when the resources ClusterSelector results in an empty ClusterList.
-	ClusterListEmpty ConditionType = "ClusterListEmpty"
-
-	// Mirroring corev1.NodeConditionType values
-	// NodeMemoryPressure means the kubelet is under pressure due to insufficient available memory.
-	NodeMemoryPressure ConditionType = "MemoryPressure"
-	// NodeDiskPressure means the kubelet is under pressure due to insufficient available disk.
-	NodeDiskPressure ConditionType = "DiskPressure"
-	// NodePIDPressure means the kubelet is under pressure due to insufficient available PID.
-	NodePIDPressure ConditionType = "PIDPressure"
-	// NodeNetworkUnavailable means that network for the node is not correctly configured.
-	NodeNetworkUnavailable ConditionType = "NetworkUnavailable"
-)
-
 // Condition contains additional information on the state of a resource.
 type Condition struct {
 	// Type of the condition.

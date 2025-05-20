@@ -20,6 +20,19 @@ global:
   region: greenhouse
   registry: keppel.eu-nl-1.cloud.sap/ccloud
 
+manager:
+  controllerManager:
+    image:
+      digest: "sha256:manager"
+      tag: 0.4.2
+idproxy:
+  image:
+    digest: "sha256:idproxy"
+cors-proxy:
+  host: "foo.bar"
+  image:
+    digest: "sha256:corsproxy"
+
 organization:
   enabled: true
   oauth2ClientRedirectURIs:
@@ -88,9 +101,6 @@ tailscale-proxy:
   preauthkeyProvosioner:
     userName: topSecret!
 
-cors-proxy:
-  host: "foo.bar"
-
 team-membership:
   env:
     SCIM_BASIC_AUTH_USER: topSecret!
@@ -99,12 +109,6 @@ team-membership:
 
 logshipping:
   enabled: true
-  opensearch:
-    host: opensearch.foo.bar
-    port: 9200
-    logstashPrefix: "greenhouse"
-    username: topSecret!
-    password: topSecret!
   octobus:
     host: audit.test
     path: /my/index

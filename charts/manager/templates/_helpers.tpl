@@ -31,6 +31,19 @@ Create chart name and version as used by the chart label.
 {{- end }}
 
 {{/*
+Print the image reference. Digest takes precedence over tag.
+*/}}
+{{- define "manager.image" -}}
+{{- $repository := .Values.controllerManager.image.repository -}}
+{{- $digest := .Values.controllerManager.image.digest -}}
+{{- if $digest -}}
+  {{- printf "%s@%s" $repository $digest -}}
+{{- else -}}
+  {{- printf "%s:%s" $repository (.Values.controllerManager.image.tag | default .Chart.AppVersion) -}}
+{{- end -}}
+{{- end -}}
+
+{{/*
 common helm lables
 */}}
 {{- define "common.labels" -}}

@@ -12,9 +12,11 @@ keepUpstreamGroups: false
 
 image:
   repository: ghcr.io/cloudoperators/greenhouse
-  pullPolicy: IfNotPresent
   # Overrides the image tag whose default is the chart appVersion.
   tag: latest
+  # Overrides the image tag to use a specific digest instead
+  # digest: ""
+  pullPolicy: IfNotPresent
 
 imagePullSecrets: []
 nameOverride: ""
