@@ -90,6 +90,10 @@ func processDevSetup(cmd *cobra.Command, args []string) error {
 		if err != nil {
 			return err
 		}
+		// re-write the config file with the hostPath config
+		if hostPathConfig != "" {
+			cfg.Cluster.ConfigPath = hostPathConfig
+		}
 		env := setup.NewExecutionEnv().
 			WithClusterSetup(cfg.Cluster)
 		for _, dep := range cfg.Dependencies {

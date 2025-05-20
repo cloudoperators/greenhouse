@@ -6,38 +6,40 @@ package v1alpha1
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	greenhouseapis "github.com/cloudoperators/greenhouse/api"
+	greenhousemetav1alpha1 "github.com/cloudoperators/greenhouse/api/meta/v1alpha1"
 	"github.com/cloudoperators/greenhouse/internal/scim"
 )
 
 const (
 	// SCIMAPIAvailableCondition reflects if there is a connection to SCIM API.
-	SCIMAPIAvailableCondition greenhouseapis.ConditionType = "SCIMAPIAvailable"
+	SCIMAPIAvailableCondition greenhousemetav1alpha1.ConditionType = "SCIMAPIAvailable"
 	// SecretNotFoundReason is set when the secret with credentials to SCIM is not found.
-	SecretNotFoundReason greenhouseapis.ConditionReason = "SecretNotFound"
+	SecretNotFoundReason greenhousemetav1alpha1.ConditionReason = "SecretNotFound"
 	// SCIMRequestFailedReason is set when a request to SCIM failed.
-	SCIMRequestFailedReason greenhouseapis.ConditionReason = "SCIMRequestFailed"
+	SCIMRequestFailedReason greenhousemetav1alpha1.ConditionReason = "SCIMRequestFailed"
 	// SCIMConfigErrorReason is set when scim config is not present in spec as it is optional
-	SCIMConfigErrorReason greenhouseapis.ConditionReason = "SCIMConfigErrorReason"
+	SCIMConfigErrorReason greenhousemetav1alpha1.ConditionReason = "SCIMConfigErrorReason"
 
 	// NamespaceCreated is set when the namespace for organization is created.
-	NamespaceCreated greenhouseapis.ConditionType = "NamespaceCreated"
+	NamespaceCreated greenhousemetav1alpha1.ConditionType = "NamespaceCreated"
 	// OrganizationRBACConfigured is set when the RBAC for organization is configured
-	OrganizationRBACConfigured greenhouseapis.ConditionType = "OrganizationRBACConfigured"
+	OrganizationRBACConfigured greenhousemetav1alpha1.ConditionType = "OrganizationRBACConfigured"
 	// OrganizationDefaultTeamRolesConfigured is set when default team roles are configured
-	OrganizationDefaultTeamRolesConfigured greenhouseapis.ConditionType = "OrganizationDefaultTeamRolesConfigured"
+	OrganizationDefaultTeamRolesConfigured greenhousemetav1alpha1.ConditionType = "OrganizationDefaultTeamRolesConfigured"
 	// ServiceProxyProvisioned is set when the service proxy is provisioned
-	ServiceProxyProvisioned greenhouseapis.ConditionType = "ServiceProxyProvisioned"
+	ServiceProxyProvisioned greenhousemetav1alpha1.ConditionType = "ServiceProxyProvisioned"
 	// OrganizationOICDConfigured is set when the OICD is configured
-	OrganizationOICDConfigured greenhouseapis.ConditionType = "OrganizationOICDConfigured"
+	OrganizationOICDConfigured greenhousemetav1alpha1.ConditionType = "OrganizationOICDConfigured"
 	// DexReconcileFailed is set when dex reconcile step has failed
-	DexReconcileFailed greenhouseapis.ConditionReason = "DexReconcileFailed"
+	DexReconcileFailed greenhousemetav1alpha1.ConditionReason = "DexReconcileFailed"
 	// OAuthOICDFailed is set when OAuth reconciler has failed
-	OAuthOICDFailed greenhouseapis.ConditionReason = "OAuthOICDFailed"
+	OAuthOICDFailed greenhousemetav1alpha1.ConditionReason = "OAuthOICDFailed"
 	// DefaultConnectorRedirectsFailed is set when the default connector redirects are not updated with new organization redirect URIs
-	DefaultConnectorRedirectsFailed greenhouseapis.ConditionReason = "DefaultConnectorRedirectsFailed"
+	DefaultConnectorRedirectsFailed greenhousemetav1alpha1.ConditionReason = "DefaultConnectorRedirectsFailed"
 	// OrganizationAdminTeamConfigured is set when the admin team is configured for organization
-	OrganizationAdminTeamConfigured greenhouseapis.ConditionType = "OrganizationAdminTeamConfigured"
+	OrganizationAdminTeamConfigured greenhousemetav1alpha1.ConditionType = "OrganizationAdminTeamConfigured"
+	// OAuthProxySecretFailed is set when the secret for OAuth proxy is not successfully created
+	OAuthProxySecretFailed greenhousemetav1alpha1.ConditionReason = "OAuthProxySecretFailed"
 )
 
 // OrganizationSpec defines the desired state of Organization
@@ -100,7 +102,7 @@ type SCIMConfig struct {
 // OrganizationStatus defines the observed state of an Organization
 type OrganizationStatus struct {
 	// StatusConditions contain the different conditions that constitute the status of the Organization.
-	greenhouseapis.StatusConditions `json:"statusConditions,omitempty"`
+	greenhousemetav1alpha1.StatusConditions `json:"statusConditions,omitempty"`
 }
 
 //+kubebuilder:object:root=true
@@ -133,11 +135,11 @@ func init() {
 	SchemeBuilder.Register(&Organization{}, &OrganizationList{})
 }
 
-func (o *Organization) GetConditions() greenhouseapis.StatusConditions {
+func (o *Organization) GetConditions() greenhousemetav1alpha1.StatusConditions {
 	return o.Status.StatusConditions
 }
 
-func (o *Organization) SetCondition(condition greenhouseapis.Condition) {
+func (o *Organization) SetCondition(condition greenhousemetav1alpha1.Condition) {
 	o.Status.SetConditions(condition)
 }
 

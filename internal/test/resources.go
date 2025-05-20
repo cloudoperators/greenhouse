@@ -79,6 +79,7 @@ func WithOIDCConfig(issuer, secretName, clientIDKey, clientSecretKey string) fun
 				Name: secretName,
 				Key:  clientSecretKey,
 			},
+			RedirectURI: issuer + "/callback",
 		}
 	}
 }

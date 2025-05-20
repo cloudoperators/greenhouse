@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2024 SAP SE or an SAP affiliate company and Greenhouse contributors
 // SPDX-License-Identifier: Apache-2.0
 
-package api
+package v1alpha1
 
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -12,58 +12,6 @@ type ConditionType string
 
 // ConditionReason is a valid reason for a condition of a resource.
 type ConditionReason string
-
-const (
-	// RBACReady is the condition type for the TeamRoleBinding when the rbacv1 resources are ready
-	RBACReady ConditionType = "RBACReady"
-
-	// RBACReconciled is the condition reason for the TeamRoleBinding when the rbacv1 resources are successfully reconciled
-	RBACReconciled ConditionReason = "RBACReconciled"
-
-	// RBACReconcileFailed is the condition reason for the TeamRoleBinding when not all of the rbacv1 resources have been successfully reconciled
-	RBACReconcileFailed ConditionReason = "RBACReconcileFailed"
-
-	// EmptyClusterList is the condition reason for a resource when the clusterSelector and clusterName do not provide any existing cluster
-	EmptyClusterList ConditionReason = "EmptyClusterList"
-
-	// TeamNotFound is the condition reason when the resources refers to a non-existing Team
-	TeamNotFound ConditionReason = "TeamNotFound"
-
-	// ClusterConnectionFailed is the condition reason for the TeamRoleBinding when the connection to the cluster failed
-	ClusterConnectionFailed ConditionReason = "ClusterConnectionFailed"
-
-	// ClusterRoleFailed is the condition reason for the TeamRoleBinding when the ClusterRole could not be created
-	ClusterRoleFailed ConditionReason = "ClusterRoleFailed"
-
-	// RoleBindingFailed is the condition reason for the TeamRoleBinding when the RoleBinding could not be created
-	RoleBindingFailed ConditionReason = "RoleBindingFailed"
-
-	// CreateNamespacesFailed is the condition reason for the TeamRoleBinding when the namespaces could not be created
-	CreateNamespacesFailed ConditionReason = "CreateNamespacesFailed"
-)
-
-const (
-	// ReadyCondition reflects the overall readiness status of a resource.
-	ReadyCondition ConditionType = "Ready"
-
-	// DeleteCondition reflects that the resource has finished its cleanup process.
-	DeleteCondition ConditionType = "Delete"
-
-	// ClusterListEmpty is set when the resources ClusterSelector results in an empty ClusterList.
-	ClusterListEmpty ConditionType = "ClusterListEmpty"
-
-	// Mirroring corev1.NodeConditionType values
-	// NodeMemoryPressure means the kubelet is under pressure due to insufficient available memory.
-	NodeMemoryPressure ConditionType = "MemoryPressure"
-	// NodeDiskPressure means the kubelet is under pressure due to insufficient available disk.
-	NodeDiskPressure ConditionType = "DiskPressure"
-	// NodePIDPressure means the kubelet is under pressure due to insufficient available PID.
-	NodePIDPressure ConditionType = "PIDPressure"
-	// NodeNetworkUnavailable means that network for the node is not correctly configured.
-	NodeNetworkUnavailable ConditionType = "NetworkUnavailable"
-)
-
-// +kubebuilder:object:generate=true
 
 // Condition contains additional information on the state of a resource.
 type Condition struct {

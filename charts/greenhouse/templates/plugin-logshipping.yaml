@@ -69,4 +69,13 @@ spec:
     - name: fluent-bit.backend.octobus.uri
       value: {{ index .Values "logshipping" "octobus" "uri" }}
 {{- end -}}
+{{- if not .Values.logshipping.opensearch }}
+    - name: fluent-bit.env
+      value:
+        - name: NODE_NAME
+          valueFrom:
+            fieldRef:
+              apiVersion: v1
+              fieldPath: spec.nodeName
+{{- end }}
 {{- end -}}

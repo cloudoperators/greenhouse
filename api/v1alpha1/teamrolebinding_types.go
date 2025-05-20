@@ -9,6 +9,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	greenhouseapis "github.com/cloudoperators/greenhouse/api"
+	greenhousemetav1alpha1 "github.com/cloudoperators/greenhouse/api/meta/v1alpha1"
 )
 
 // TeamRoleBindingSpec defines the desired state of a TeamRoleBinding
@@ -34,7 +35,7 @@ type TeamRoleBindingSpec struct {
 // TeamRoleBindingStatus defines the observed state of the TeamRoleBinding
 type TeamRoleBindingStatus struct {
 	// StatusConditions contain the different conditions that constitute the status of the TeamRoleBinding.
-	greenhouseapis.StatusConditions `json:"statusConditions,omitempty"`
+	greenhousemetav1alpha1.StatusConditions `json:"statusConditions,omitempty"`
 	// PropagationStatus is the list of clusters the TeamRoleBinding is applied to
 	// +listType="map"
 	// +listMapKey=clusterName
@@ -46,7 +47,7 @@ type PropagationStatus struct {
 	// ClusterName is the name of the cluster the rbacv1 resources are created on.
 	ClusterName string `json:"clusterName"`
 	// Condition is the overall Status of the rbacv1 resources created on the cluster
-	greenhouseapis.Condition `json:"condition,omitempty"`
+	greenhousemetav1alpha1.Condition `json:"condition,omitempty"`
 }
 
 //+kubebuilder:object:root=true
@@ -78,17 +79,17 @@ func init() {
 	SchemeBuilder.Register(&TeamRoleBinding{}, &TeamRoleBindingList{})
 }
 
-func (trb *TeamRoleBinding) GetConditions() greenhouseapis.StatusConditions {
+func (trb *TeamRoleBinding) GetConditions() greenhousemetav1alpha1.StatusConditions {
 	return trb.Status.StatusConditions
 }
 
-func (trb *TeamRoleBinding) SetCondition(condition greenhouseapis.Condition) {
+func (trb *TeamRoleBinding) SetCondition(condition greenhousemetav1alpha1.Condition) {
 	trb.Status.SetConditions(condition)
 }
 
 // SetPropagationStatus updates the TeamRoleBinding's PropagationStatus for the Cluster
-func (trb *TeamRoleBinding) SetPropagationStatus(cluster string, rbacReady metav1.ConditionStatus, reason greenhouseapis.ConditionReason, message string) {
-	condition := greenhouseapis.NewCondition(greenhouseapis.RBACReady, rbacReady, reason, message)
+func (trb *TeamRoleBinding) SetPropagationStatus(cluster string, rbacReady metav1.ConditionStatus, reason greenhousemetav1alpha1.ConditionReason, message string) {
+	condition := greenhousemetav1alpha1.NewCondition(RBACReady, rbacReady, reason, message)
 	for i, ps := range trb.Status.PropagationStatus {
 		if ps.ClusterName != cluster {
 			continue
@@ -119,3 +120,32 @@ func (trb *TeamRoleBinding) RemovePropagationStatus(cluster string) {
 func (trb *TeamRoleBinding) GetRBACName() string {
 	return greenhouseapis.RBACPrefix + trb.GetName()
 }
+
+const (
+	// RBACReady is the condition type for the TeamRoleBinding when the rbacv1 resources are ready
+	RBACReady greenhousemetav1alpha1.ConditionType = "RBACReady"
+
+	// RBACReconciled is the condition reason for the TeamRoleBinding when the rbacv1 resources are successfully reconciled
+	RBACReconciled greenhousemetav1alpha1.ConditionReason = "RBACReconciled"
+
+	// RBACReconcileFailed is the condition reason for the TeamRoleBinding when not all of the rbacv1 resources have been successfully reconciled
+	RBACReconcileFailed greenhousemetav1alpha1.ConditionReason = "RBACReconcileFailed"
+
+	// EmptyClusterList is the condition reason for a resource when the clusterSelector and clusterName do not provide any existing cluster
+	EmptyClusterList greenhousemetav1alpha1.ConditionReason = "EmptyClusterList"
+
+	// TeamNotFound is the condition reason when the resources refers to a non-existing Team
+	TeamNotFound greenhousemetav1alpha1.ConditionReason = "TeamNotFound"
+
+	// ClusterConnectionFailed is the condition reason for the TeamRoleBinding when the connection to the cluster failed
+	ClusterConnectionFailed greenhousemetav1alpha1.ConditionReason = "ClusterConnectionFailed"
+
+	// ClusterRoleFailed is the condition reason for the TeamRoleBinding when the ClusterRole could not be created
+	ClusterRoleFailed greenhousemetav1alpha1.ConditionReason = "ClusterRoleFailed"
+
+	// RoleBindingFailed is the condition reason for the TeamRoleBinding when the RoleBinding could not be created
+	RoleBindingFailed greenhousemetav1alpha1.ConditionReason = "RoleBindingFailed"
+
+	// CreateNamespacesFailed is the condition reason for the TeamRoleBinding when the namespaces could not be created
+	CreateNamespacesFailed greenhousemetav1alpha1.ConditionReason = "CreateNamespacesFailed"
+)
