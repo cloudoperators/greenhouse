@@ -79,7 +79,7 @@ func (p *Propagator) ApplyLabels() client.Object {
 func (p *Propagator) labelKeysToPropagate() []string {
 	var keys []string
 	annotation := strings.TrimSpace(p.src.GetAnnotations()[PropagateLabelsAnnotation])
-	if strings.TrimSpace(annotation) == "" {
+	if annotation == "" {
 		return nil
 	}
 	rawKeys := strings.Split(annotation, ",")
