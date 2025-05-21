@@ -6,6 +6,7 @@ package organization_test
 import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	. "github.com/onsi/gomega/gstruct"
 	"golang.org/x/exp/slices"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -373,9 +374,9 @@ var _ = Describe("Test Organization reconciliation", Ordered, func() {
 				By("checking if the dex resources are deleted")
 				err = setup.List(test.Ctx, oAuthClients)
 				Expect(err).ToNot(HaveOccurred(), "there should be no error listing dex oauth clients")
-				for _, orgClient := range oAuthClients.Items {
-					Expect(orgClient.ID).ToNot(Equal(oidcOrg.Name), "the oauth client ID should be equal to organization name")
-				}
+				Expect(oAuthClients.Items).ToNot(ContainElement(
+					MatchFields(IgnoreExtras, Fields{"ID": Equal(oidcOrg.Name)}),
+				), "the oauth client list should not contain the deleted organization")
 			}
 		})
 	})
