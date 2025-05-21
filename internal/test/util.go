@@ -23,6 +23,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	greenhouseapis "github.com/cloudoperators/greenhouse/api"
+	greenhousemetav1alpha1 "github.com/cloudoperators/greenhouse/api/meta/v1alpha1"
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
 	"github.com/cloudoperators/greenhouse/internal/clientutil"
 )
@@ -77,8 +78,8 @@ func MustDeleteCluster(ctx context.Context, c client.Client, id client.ObjectKey
 // SetClusterReadyCondition sets the ready condition of the cluster resource.
 func SetClusterReadyCondition(ctx context.Context, c client.Client, cluster *greenhousev1alpha1.Cluster, readyStatus metav1.ConditionStatus) error {
 	_, err := clientutil.PatchStatus(ctx, c, cluster, func() error {
-		cluster.Status.SetConditions(greenhousev1alpha1.NewCondition(
-			greenhousev1alpha1.ReadyCondition,
+		cluster.Status.SetConditions(greenhousemetav1alpha1.NewCondition(
+			greenhousemetav1alpha1.ReadyCondition,
 			readyStatus,
 			"",
 			"",

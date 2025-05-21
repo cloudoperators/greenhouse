@@ -4,3 +4,7 @@ global:
   dnsDomain: greenhouse.tld
   oidc:
     clientID: topSecret!
+
+image:
+  tag: ""
+  digest: "sha256@testing"

@@ -22,6 +22,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	greenhouseapis "github.com/cloudoperators/greenhouse/api"
+	greenhousemetav1alpha1 "github.com/cloudoperators/greenhouse/api/meta/v1alpha1"
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
 	"github.com/cloudoperators/greenhouse/internal/clientutil"
 	"github.com/cloudoperators/greenhouse/internal/lifecycle"
@@ -33,8 +34,8 @@ const (
 )
 
 // exposedConditions are the conditions that are exposed in the StatusConditions of the Plugin.
-var exposedConditions = []greenhousev1alpha1.ConditionType{
-	greenhousev1alpha1.ReadyCondition,
+var exposedConditions = []greenhousemetav1alpha1.ConditionType{
+	greenhousemetav1alpha1.ReadyCondition,
 	greenhousev1alpha1.ClusterAccessReadyCondition,
 	greenhousev1alpha1.HelmDriftDetectedCondition,
 	greenhousev1alpha1.HelmReconcileFailedCondition,
@@ -51,7 +52,7 @@ type reconcileResult struct {
 func initPluginStatus(plugin *greenhousev1alpha1.Plugin) greenhousev1alpha1.PluginStatus {
 	for _, t := range exposedConditions {
 		if plugin.Status.GetConditionByType(t) == nil {
-			plugin.SetCondition(greenhousev1alpha1.UnknownCondition(t, "", ""))
+			plugin.SetCondition(greenhousemetav1alpha1.UnknownCondition(t, "", ""))
 		}
 	}
 	if plugin.Status.HelmReleaseStatus == nil {
@@ -75,11 +76,11 @@ func initClientGetter(
 		restClientGetter, err := clientutil.NewRestClientGetterForInCluster(plugin.Spec.ReleaseNamespace, kubeClientOpts...)
 		if err != nil {
 			errorMessage := "cannot access greenhouse cluster: " + err.Error()
-			plugin.SetCondition(greenhousev1alpha1.FalseCondition(
+			plugin.SetCondition(greenhousemetav1alpha1.FalseCondition(
 				greenhousev1alpha1.ClusterAccessReadyCondition, "", errorMessage))
 			return nil, errors.New(errorMessage)
 		}
-		plugin.SetCondition(greenhousev1alpha1.TrueCondition(
+		plugin.SetCondition(greenhousemetav1alpha1.TrueCondition(
 			greenhousev1alpha1.ClusterAccessReadyCondition, "", ""))
 		return restClientGetter, nil
 	}
@@ -88,15 +89,15 @@ func initClientGetter(
 	err := k8sClient.Get(ctx, types.NamespacedName{Namespace: plugin.Namespace, Name: plugin.Spec.ClusterName}, cluster)
 	if err != nil {
 		errorMessage := fmt.Sprintf("Failed to get cluster %s: %s", plugin.Spec.ClusterName, err.Error())
-		plugin.SetCondition(greenhousev1alpha1.FalseCondition(
+		plugin.SetCondition(greenhousemetav1alpha1.FalseCondition(
 			greenhousev1alpha1.ClusterAccessReadyCondition, "", errorMessage))
 		return nil, errors.New(errorMessage)
 	}
 
-	readyConditionInCluster := cluster.Status.GetConditionByType(greenhousev1alpha1.ReadyCondition)
+	readyConditionInCluster := cluster.Status.GetConditionByType(greenhousemetav1alpha1.ReadyCondition)
 	if readyConditionInCluster == nil || readyConditionInCluster.Status != metav1.ConditionTrue {
 		errorMessage := fmt.Sprintf("cluster %s is not ready", plugin.Spec.ClusterName)
-		plugin.SetCondition(greenhousev1alpha1.FalseCondition(
+		plugin.SetCondition(greenhousemetav1alpha1.FalseCondition(
 			greenhousev1alpha1.ClusterAccessReadyCondition, "", errorMessage))
 		return nil, errors.New(errorMessage)
 	}
@@ -106,18 +107,18 @@ func initClientGetter(
 	err = k8sClient.Get(ctx, types.NamespacedName{Namespace: plugin.Namespace, Name: plugin.Spec.ClusterName}, &secret)
 	if err != nil {
 		errorMessage := fmt.Sprintf("Failed to get secret for cluster %s: %s", plugin.Spec.ClusterName, err.Error())
-		plugin.SetCondition(greenhousev1alpha1.FalseCondition(
+		plugin.SetCondition(greenhousemetav1alpha1.FalseCondition(
 			greenhousev1alpha1.ClusterAccessReadyCondition, "", errorMessage))
 		return nil, errors.New(errorMessage)
 	}
 	restClientGetter, err := clientutil.NewRestClientGetterFromSecret(&secret, plugin.Spec.ReleaseNamespace, kubeClientOpts...)
 	if err != nil {
 		errorMessage := fmt.Sprintf("cannot access cluster %s: %s", plugin.Spec.ClusterName, err.Error())
-		plugin.SetCondition(greenhousev1alpha1.FalseCondition(
+		plugin.SetCondition(greenhousemetav1alpha1.FalseCondition(
 			greenhousev1alpha1.ClusterAccessReadyCondition, "", errorMessage))
 		return nil, errors.New(errorMessage)
 	}
-	plugin.SetCondition(greenhousev1alpha1.TrueCondition(
+	plugin.SetCondition(greenhousemetav1alpha1.TrueCondition(
 		greenhousev1alpha1.ClusterAccessReadyCondition, "", ""))
 	return restClientGetter, nil
 }
@@ -229,12 +230,12 @@ func computeWorkloadCondition(plugin *greenhousev1alpha1.Plugin, release *Releas
 		}
 		errorMessage = strings.TrimPrefix(errorMessage, ", ")
 		errorMessage += " ]"
-		plugin.SetCondition(greenhousev1alpha1.FalseCondition(greenhousev1alpha1.WorkloadReadyCondition, "", errorMessage))
+		plugin.SetCondition(greenhousemetav1alpha1.FalseCondition(greenhousev1alpha1.WorkloadReadyCondition, "", errorMessage))
 		return
 	}
 
 	setWorkloadMetrics(plugin, 1)
-	plugin.SetCondition(greenhousev1alpha1.TrueCondition(greenhousev1alpha1.WorkloadReadyCondition, "", "Workload is running"))
+	plugin.SetCondition(greenhousemetav1alpha1.TrueCondition(greenhousev1alpha1.WorkloadReadyCondition, "", "Workload is running"))
 }
 
 // setWorkloadMetrics sets the workload status metric to the given status
@@ -244,10 +245,10 @@ func setWorkloadMetrics(plugin *greenhousev1alpha1.Plugin, status float64) {
 
 // computeReadyCondition computes the ReadyCondition for the Plugin based on various status conditions
 func computeReadyCondition(
-	conditions greenhousev1alpha1.StatusConditions,
-) (readyCondition greenhousev1alpha1.Condition) {
+	conditions greenhousemetav1alpha1.StatusConditions,
+) (readyCondition greenhousemetav1alpha1.Condition) {
 
-	readyCondition = *conditions.GetConditionByType(greenhousev1alpha1.ReadyCondition)
+	readyCondition = *conditions.GetConditionByType(greenhousemetav1alpha1.ReadyCondition)
 
 	// If the Cluster is not ready, the Plugin could not be ready
 	if conditions.GetConditionByType(greenhousev1alpha1.ClusterAccessReadyCondition).IsFalse() {
@@ -296,7 +297,7 @@ func shouldReconcileOrRequeue(ctx context.Context, c client.Client, plugin *gree
 	}
 	if scheduleExists {
 		msg := fmt.Sprintf("cluster %s is scheduled for deletion at %s", plugin.Spec.ClusterName, schedule)
-		plugin.SetCondition(greenhousev1alpha1.FalseCondition(greenhousev1alpha1.DeleteCondition, lifecycle.ScheduledDeletionReason, msg))
+		plugin.SetCondition(greenhousemetav1alpha1.FalseCondition(greenhousemetav1alpha1.DeleteCondition, lifecycle.ScheduledDeletionReason, msg))
 		requeueAfter := time.Until(schedule)
 		return &reconcileResult{
 			requeueAfter: requeueAfter,
