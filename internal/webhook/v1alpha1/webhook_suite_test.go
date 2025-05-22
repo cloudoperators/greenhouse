@@ -13,6 +13,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 
 	greenhouseapis "github.com/cloudoperators/greenhouse/api"
+	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
 	greenhousev1alpha2 "github.com/cloudoperators/greenhouse/api/v1alpha2"
 	"github.com/cloudoperators/greenhouse/internal/test"
 	"github.com/cloudoperators/greenhouse/internal/webhook/v1alpha2"
@@ -30,9 +31,9 @@ var _ = BeforeSuite(func() {
 	test.RegisterWebhook("clusterValidation", SetupClusterWebhookWithManager)
 	test.RegisterWebhook("secretsWebhook", SetupSecretWebhookWithManager)
 	test.RegisterWebhook("teamsWebhook", SetupTeamWebhookWithManager)
-	test.RegisterWebhook("roleWebhook", SetupTeamRoleWebhookWithManager)
-	test.RegisterWebhook("rolebindingWebhook", setupRoleBindingWebhookForTest)
-	test.RegisterWebhook("rolebindingV1alpha2Webhook", setupRoleBindingV1alpha2WebhookForTest)
+	test.RegisterWebhook("teamRoleWebhook", SetupTeamRoleWebhookWithManager)
+	test.RegisterWebhook("teamRoleBindingV1alpha1Webhook", setupTeamRoleBindingV1alpha1WebhookForTest)
+	test.RegisterWebhook("teamRolebindingV1alpha2Webhook", setupTeamRoleBindingV1alpha2WebhookForTest)
 	test.TestBeforeSuite()
 })
 
@@ -40,18 +41,32 @@ var _ = AfterSuite(func() {
 	test.TestAfterSuite()
 })
 
-// setupRoleBindingWebhookForTest adds an indexField for '.spec.teamRoleRef', additionally to setting up the webhook for the RoleBinding resource. It is used in the webhook tests.
-// we can't add this to the webhook setup because it's already indexed by the controller and indexing the field twice is not possible.
-// This is to have the webhook tests run independently of the controller.
-func setupRoleBindingV1alpha2WebhookForTest(mgr manager.Manager) error {
+// setupTeamRoleBindingV1alpha1WebhookForTest adds an indexField for '.spec.teamRoleRef', additionally to setting up the webhook for the v1alpha2 TeamRoleBinding resource. It is used in the integration tests.
+// We can't add this to the webhook setup because it's already indexed in the main.go and indexing the field twice is not possible.
+func setupTeamRoleBindingV1alpha1WebhookForTest(mgr manager.Manager) error {
+	err := mgr.GetFieldIndexer().IndexField(context.Background(), &greenhousev1alpha1.TeamRoleBinding{}, greenhouseapis.RolebindingTeamRoleRefField, func(rawObj client.Object) []string {
+		// Extract the TeamRole name from the TeamRoleBinding Spec, if one is provided
+		roleBinding, ok := rawObj.(*greenhousev1alpha1.TeamRoleBinding)
+		if roleBinding.Spec.TeamRoleRef == "" || !ok {
+			return nil
+		}
+		return []string{roleBinding.Spec.TeamRoleRef}
+	})
+	Expect(err).ToNot(HaveOccurred(), "there should be no error indexing the v1alpha1 TeamRoleBindings by teamRoleRef")
+	return SetupTeamRoleBindingWebhookWithManager(mgr)
+}
+
+// setupTeamRoleBindingV1alpha2WebhookForTest adds an indexField for '.spec.teamRoleRef', additionally to setting up the webhook for the v1alpha2 TeamRoleBinding resource. It is used in the integration tests.
+// We can't add this to the webhook setup because it's already indexed in the main.go and indexing the field twice is not possible.
+func setupTeamRoleBindingV1alpha2WebhookForTest(mgr manager.Manager) error {
 	err := mgr.GetFieldIndexer().IndexField(context.Background(), &greenhousev1alpha2.TeamRoleBinding{}, greenhouseapis.RolebindingTeamRoleRefField, func(rawObj client.Object) []string {
-		// Extract the Role name from the RoleBinding Spec, if one is provided
+		// Extract the TeamRole name from the TeamRoleBinding Spec, if one is provided
 		roleBinding, ok := rawObj.(*greenhousev1alpha2.TeamRoleBinding)
 		if roleBinding.Spec.TeamRoleRef == "" || !ok {
 			return nil
 		}
 		return []string{roleBinding.Spec.TeamRoleRef}
 	})
-	Expect(err).ToNot(HaveOccurred(), "there should be no error indexing the rolebindings by roleRef")
+	Expect(err).ToNot(HaveOccurred(), "there should be no error indexing the TeamRoleBindings by teamRoleRef")
 	return v1alpha2.SetupTeamRoleBindingWebhookWithManager(mgr)
 }

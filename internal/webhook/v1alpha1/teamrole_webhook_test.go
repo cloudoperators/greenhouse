@@ -4,17 +4,12 @@
 package v1alpha1
 
 import (
-	"context"
-
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/manager"
 
 	rbacv1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	greenhouseapis "github.com/cloudoperators/greenhouse/api"
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
 	greenhousev1alpha2 "github.com/cloudoperators/greenhouse/api/v1alpha2"
 	"github.com/cloudoperators/greenhouse/internal/clientutil"
@@ -106,19 +101,3 @@ var _ = Describe("Validate Role Admission", func() {
 		Expect(err).To(HaveOccurred(), "there should be an error deleting the role with references")
 	})
 })
-
-// setupRoleBindingWebhookForTest adds an indexField for '.spec.roleRef', additionally to setting up the webhook for the RoleBinding resource. It is used in the webhook tests.
-// we can't add this to the webhook setup because it's already indexed by the controller and indexing the field twice is not possible.
-// This is to have the webhook tests run independently of the controller.
-func setupRoleBindingWebhookForTest(mgr manager.Manager) error {
-	err := mgr.GetFieldIndexer().IndexField(context.Background(), &greenhousev1alpha1.TeamRoleBinding{}, greenhouseapis.RolebindingTeamRoleRefField, func(rawObj client.Object) []string {
-		// Extract the Role name from the RoleBinding Spec, if one is provided
-		roleBinding, ok := rawObj.(*greenhousev1alpha1.TeamRoleBinding)
-		if roleBinding.Spec.TeamRoleRef == "" || !ok {
-			return nil
-		}
-		return []string{roleBinding.Spec.TeamRoleRef}
-	})
-	Expect(err).ToNot(HaveOccurred(), "there should be no error indexing the rolebindings by roleRef")
-	return SetupTeamRoleBindingWebhookWithManager(mgr)
-}
