@@ -55,10 +55,29 @@ func NewCluster(ctx context.Context, name, namespace string, opts ...func(*green
 	return cluster
 }
 
-// WithMappedIDPGroup sets the MappedIDPGroup on an Organization
+// WithMappedAdminIDPGroup sets the MappedIDPGroup on an Organization
 func WithMappedAdminIDPGroup(group string) func(*greenhousev1alpha1.Organization) {
 	return func(org *greenhousev1alpha1.Organization) {
 		org.Spec.MappedOrgAdminIDPGroup = group
+	}
+}
+
+func WithOrgAnnotations(annotations map[string]string) func(*greenhousev1alpha1.Organization) {
+	return func(org *greenhousev1alpha1.Organization) {
+		org.SetAnnotations(annotations)
+	}
+}
+
+// WithAdditionalRedirects - sets the additional redirect URIs on an Organization. (To be used with WithOIDCConfig)
+func WithAdditionalRedirects(additionalRedirects ...string) func(organization *greenhousev1alpha1.Organization) {
+	return func(org *greenhousev1alpha1.Organization) {
+		if org.Spec.Authentication == nil {
+			org.Spec.Authentication = &greenhousev1alpha1.Authentication{}
+		}
+		if org.Spec.Authentication.OIDCConfig == nil {
+			org.Spec.Authentication.OIDCConfig = &greenhousev1alpha1.OIDCConfig{}
+		}
+		org.Spec.Authentication.OIDCConfig.OAuth2ClientRedirectURIs = additionalRedirects
 	}
 }
 
@@ -381,6 +400,18 @@ func WithSecretType(secretType corev1.SecretType) func(*corev1.Secret) {
 	}
 }
 
+func WithSecretAnnotations(annotations map[string]string) func(*corev1.Secret) {
+	return func(s *corev1.Secret) {
+		s.SetAnnotations(annotations)
+	}
+}
+
+func WithSecretLabels(labels map[string]string) func(*corev1.Secret) {
+	return func(s *corev1.Secret) {
+		s.SetLabels(labels)
+	}
+}
+
 // WithSecretData sets the data of the Secret
 func WithSecretData(data map[string][]byte) func(*corev1.Secret) {
 	return func(s *corev1.Secret) {
@@ -396,7 +427,7 @@ func WithSecretNamespace(namespace string) func(*corev1.Secret) {
 }
 
 // NewSecret returns a Secret object. Opts can be used to set the desired state of the Secret.
-func NewSecret(ctx context.Context, name, namespace string, opts ...func(*corev1.Secret)) *corev1.Secret {
+func NewSecret(name, namespace string, opts ...func(*corev1.Secret)) *corev1.Secret {
 	secret := &corev1.Secret{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "Secret",

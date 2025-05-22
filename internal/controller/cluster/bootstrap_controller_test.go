@@ -16,6 +16,7 @@ import (
 	greenhouseapis "github.com/cloudoperators/greenhouse/api"
 	greenhousemetav1alpha1 "github.com/cloudoperators/greenhouse/api/meta/v1alpha1"
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
+	"github.com/cloudoperators/greenhouse/internal/lifecycle"
 	"github.com/cloudoperators/greenhouse/internal/test"
 )
 
@@ -90,5 +91,33 @@ var _ = Describe("Bootstrap controller", Ordered, func() {
 				By("Deleting the invalid cluster")
 				test.MustDeleteCluster(test.Ctx, test.K8sClient, client.ObjectKeyFromObject(cluster))
 			})
+		It("Should successfully propagate labels from the kubeconfig secret to the cluster resource", func() {
+			By("Creating a kubeconfig secret with labels")
+			kubeConfigSecret := setup.CreateSecret(test.Ctx, bootstrapTestCase+"-label-propagation",
+				test.WithSecretType(greenhouseapis.SecretTypeKubeConfig),
+				test.WithSecretAnnotations(map[string]string{
+					lifecycle.PropagateLabelsAnnotation: "support_group, region",
+				}),
+				test.WithSecretLabels(map[string]string{
+					"support_group": "foo",
+					"region":        "bar",
+					"test-label":    "test-value",
+				}),
+				test.WithSecretData(map[string][]byte{greenhouseapis.KubeConfigKey: remoteKubeConfig}),
+			)
+
+			By("Checking the labels are propagated to the cluster resource")
+			cluster := &greenhousev1alpha1.Cluster{}
+			id := types.NamespacedName{Name: kubeConfigSecret.Name, Namespace: setup.Namespace()}
+			Eventually(func(g Gomega) bool {
+				g.Expect(test.K8sClient.Get(test.Ctx, id, cluster)).Should(Succeed(), "the cluster should have been created")
+				g.Expect(cluster.Labels).To(HaveKey("support_group"), "the cluster should have the support_group propagated label")
+				g.Expect(cluster.Labels).To(HaveKey("region"), "the cluster should have the region propagated label")
+				return true
+			}).Should(BeTrue(), "getting the cluster should succeed eventually")
+
+			By("Deleting the kubeconfig secret and checking the cluster is deleted")
+			test.MustDeleteCluster(test.Ctx, test.K8sClient, client.ObjectKeyFromObject(cluster))
+		})
 	})
 })
