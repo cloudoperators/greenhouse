@@ -10,27 +10,28 @@ import (
 	"testing"
 	"time"
 
-	greenhouseapis "github.com/cloudoperators/greenhouse/api"
-	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
-	greenhousev1alpha2 "github.com/cloudoperators/greenhouse/api/v1alpha2"
-	"github.com/cloudoperators/greenhouse/e2e/shared"
-	"github.com/cloudoperators/greenhouse/internal/clientutil"
-	"github.com/cloudoperators/greenhouse/internal/test"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	rbacv1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/util/rand"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
+
+	greenhouseapis "github.com/cloudoperators/greenhouse/api"
+	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
+	greenhousev1alpha2 "github.com/cloudoperators/greenhouse/api/v1alpha2"
+	"github.com/cloudoperators/greenhouse/e2e/shared"
+	"github.com/cloudoperators/greenhouse/internal/clientutil"
+	"github.com/cloudoperators/greenhouse/internal/test"
 )
 
 const (
-	remoteClusterName         = "remote-plugin-cluster"
-	preventDeletionAnnotation = "greenhouse.sap/prevent-deletion"
-	testTeamIDPGroup          = "test-idp-group"
+	remoteClusterName = "remote-plugin-cluster"
+	testTeamIDPGroup  = "test-idp-group"
 )
 
 var (
@@ -46,7 +47,7 @@ var (
 
 func TestE2e(t *testing.T) {
 	RegisterFailHandler(Fail)
-	RunSpecs(t, "Cluster E2E Suite")
+	RunSpecs(t, "Conversion E2E Suite")
 }
 
 var _ = BeforeSuite(func() {
@@ -63,25 +64,33 @@ var _ = BeforeSuite(func() {
 	env = env.WithOrganization(ctx, adminClient, "./testdata/organization.yaml")
 	testStartTime = time.Now().UTC()
 
-	indexTeamRoleRefField()
-})
+	By("onboarding remote cluster")
+	shared.OnboardRemoteCluster(ctx, adminClient, env.RemoteKubeConfigBytes, remoteClusterName, env.TestNamespace)
+	By("verifying if the cluster resource is created")
+	Eventually(func(g Gomega) {
+		err := adminClient.Get(ctx, client.ObjectKey{Name: remoteClusterName, Namespace: env.TestNamespace}, &greenhousev1alpha1.Cluster{})
+		g.Expect(err).ToNot(HaveOccurred())
+	}).Should(Succeed(), "cluster resource should be created")
 
-func indexTeamRoleRefField() {
-	mgr := test.K8sManager
-	if mgr == nil {
-		// TODO: mgr is missing here.
-		return
+	By("verifying the cluster status is ready")
+	shared.ClusterIsReady(ctx, adminClient, remoteClusterName, env.TestNamespace)
+
+	By("creating a Team on the admin cluster")
+	teamUT = &greenhousev1alpha1.Team{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "Team",
+			APIVersion: greenhousev1alpha1.GroupVersion.String(),
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "test-team",
+			Namespace: env.TestNamespace,
+		},
+		Spec: greenhousev1alpha1.TeamSpec{
+			MappedIDPGroup: testTeamIDPGroup,
+		},
 	}
-	err := mgr.GetFieldIndexer().IndexField(context.Background(), &greenhousev1alpha1.TeamRoleBinding{}, greenhouseapis.RolebindingTeamRoleRefField, func(rawObj client.Object) []string {
-		// Extract the Role name from the RoleBinding Spec, if one is provided
-		roleBinding, ok := rawObj.(*greenhousev1alpha1.TeamRoleBinding)
-		if roleBinding.Spec.TeamRoleRef == "" || !ok {
-			return nil
-		}
-		return []string{roleBinding.Spec.TeamRoleRef}
-	})
-	Expect(err).ToNot(HaveOccurred(), "there should be no error indexing the rolebindings by roleRef")
-}
+	Expect(adminClient.Create(ctx, teamUT)).To(Succeed(), "there should be no error creating a Team")
+})
 
 var _ = AfterSuite(func() {
 	shared.OffBoardRemoteCluster(ctx, adminClient, remoteClient, testStartTime, remoteClusterName, env.TestNamespace)
@@ -90,22 +99,6 @@ var _ = AfterSuite(func() {
 
 var _ = Describe("Conversion E2E", Ordered, func() {
 	BeforeEach(func() {
-		By("creating a Team on the admin cluster")
-		teamUT = &greenhousev1alpha1.Team{
-			TypeMeta: metav1.TypeMeta{
-				Kind:       "Team",
-				APIVersion: greenhousev1alpha1.GroupVersion.String(),
-			},
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      "test-team",
-				Namespace: env.TestNamespace,
-			},
-			Spec: greenhousev1alpha1.TeamSpec{
-				MappedIDPGroup: testTeamIDPGroup,
-			},
-		}
-		Expect(adminClient.Create(ctx, teamUT)).To(Succeed(), "there should be no error creating a Team")
-
 		By("creating a TeamRole on the admin cluster")
 		teamRoleUT = &greenhousev1alpha1.TeamRole{
 			TypeMeta: metav1.TypeMeta{
@@ -113,7 +106,7 @@ var _ = Describe("Conversion E2E", Ordered, func() {
 				APIVersion: greenhousev1alpha1.GroupVersion.String(),
 			},
 			ObjectMeta: metav1.ObjectMeta{
-				Name:      "test-role-1",
+				Name:      "test-role" + "-" + rand.String(8),
 				Namespace: env.TestNamespace,
 			},
 			Spec: greenhousev1alpha1.TeamRoleSpec{
@@ -131,22 +124,19 @@ var _ = Describe("Conversion E2E", Ordered, func() {
 	})
 
 	AfterEach(func() {
-		// test.EventuallyDeleted(ctx, adminClient, teamRoleUT)
-		// test.EventuallyDeleted(ctx, adminClient, teamUT)
+		By("cleaning the TeamRole")
 		Expect(adminClient.Delete(ctx, teamRoleUT)).To(Succeed(), "there should be no error deleting the TeamRole")
-		Expect(adminClient.Delete(ctx, teamUT)).To(Succeed(), "there should be no error deleting the Team")
 	})
 
 	// After all tests are run ensure there are no resources left behind on the remote cluster
 	// This ensures the deletion of the Remote Resources is working correctly.
 	AfterAll(func() {
-		// check that all ClusterRoleBindings are eventually deleted on the remote cluster
-		remoteCRBList := &rbacv1.ClusterRoleBindingList{}
-		listOpts := []client.ListOption{
-			client.HasLabels{greenhouseapis.LabelKeyRoleBinding},
-		}
+		By("cleaning the Team")
+		test.EventuallyDeleted(ctx, adminClient, teamUT)
+
 		Eventually(func() bool {
-			err := remoteClient.List(test.Ctx, remoteCRBList, listOpts...)
+			remoteCRBList := &rbacv1.ClusterRoleBindingList{}
+			err := remoteClient.List(ctx, remoteCRBList, client.HasLabels{greenhouseapis.LabelKeyRoleBinding})
 			if err != nil || len(remoteCRBList.Items) > 0 {
 				return false
 			}
@@ -156,7 +146,7 @@ var _ = Describe("Conversion E2E", Ordered, func() {
 		// check that all RoleBindings are eventually deleted on the remote cluster
 		remoteRBList := &rbacv1.RoleBindingList{}
 		Eventually(func() bool {
-			err := remoteClient.List(test.Ctx, remoteRBList, listOpts...)
+			err := remoteClient.List(ctx, remoteRBList, client.HasLabels{greenhouseapis.LabelKeyRoleBinding})
 			if err != nil || len(remoteRBList.Items) > 0 {
 				return false
 			}
@@ -165,31 +155,13 @@ var _ = Describe("Conversion E2E", Ordered, func() {
 
 		// check that all ClusterRoles are eventually deleted on the remote cluster
 		remoteList := &rbacv1.ClusterRoleList{}
-		listOpts = []client.ListOption{
-			client.HasLabels{greenhouseapis.LabelKeyRole},
-		}
 		Eventually(func() bool {
-			err := remoteClient.List(test.Ctx, remoteList, listOpts...)
+			err := remoteClient.List(ctx, remoteList, client.HasLabels{greenhouseapis.LabelKeyRole})
 			if err != nil || len(remoteList.Items) > 0 {
 				return false
 			}
 			return true
 		}).Should(BeTrue(), "there should be no ClusterRoles left to list on the remote cluster")
-	})
-
-	It("should onboard remote cluster", func() {
-		By("onboarding remote cluster")
-		shared.OnboardRemoteCluster(ctx, adminClient, env.RemoteKubeConfigBytes, remoteClusterName, env.TestNamespace)
-	})
-	It("should have a cluster resource created", func() {
-		By("verifying if the cluster resource is created")
-		Eventually(func(g Gomega) {
-			err := adminClient.Get(ctx, client.ObjectKey{Name: remoteClusterName, Namespace: env.TestNamespace}, &greenhousev1alpha1.Cluster{})
-			g.Expect(err).ToNot(HaveOccurred())
-		}).Should(Succeed(), "cluster resource should be created")
-
-		By("verifying the cluster status is ready")
-		shared.ClusterIsReady(ctx, adminClient, remoteClusterName, env.TestNamespace)
 	})
 
 	It("should correctly convert the TRB with ClusterName from v1alpha1 to the hub version (v1alpha2)", func() {
