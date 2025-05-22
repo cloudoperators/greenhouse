@@ -17,6 +17,7 @@ import (
 
 	greenhouseapis "github.com/cloudoperators/greenhouse/api"
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
+	"github.com/cloudoperators/greenhouse/internal/clientutil"
 )
 
 const errAggregationRuleAndRulesExclusive = ".spec.rules and .spec.aggregationRule are mutually exclusive"
@@ -24,6 +25,18 @@ const errAggregationRuleAndRulesExclusive = ".spec.rules and .spec.aggregationRu
 // Webhook for the Role custom resource.
 
 func SetupTeamRoleWebhookWithManager(mgr ctrl.Manager) error {
+	// index RoleBindings by the TeamRoleRef field for faster lookups
+	if err := mgr.GetFieldIndexer().IndexField(context.Background(), &greenhousev1alpha1.TeamRoleBinding{}, greenhouseapis.RolebindingRoleRefField, func(rawObj client.Object) []string {
+		// Extract the TeamRole name from the TeamRoleBinding Spec, if one is provided
+		teamRoleBinding, ok := rawObj.(*greenhousev1alpha1.TeamRoleBinding)
+		if teamRoleBinding.Spec.TeamRoleRef == "" || !ok {
+			return nil
+		}
+		return []string{teamRoleBinding.Spec.TeamRoleRef}
+	}); clientutil.IgnoreIndexerConflict(err) != nil {
+		return err
+	}
+
 	return setupWebhook(mgr,
 		&greenhousev1alpha1.TeamRole{},
 		webhookFuncs{
