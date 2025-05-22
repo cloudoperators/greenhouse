@@ -64,7 +64,7 @@ func (r *TeamRoleBindingReconciler) SetupWithManager(name string, mgr ctrl.Manag
 			return nil
 		}
 		return []string{teamRoleBinding.Spec.TeamRef}
-	}); err != nil {
+	}); clientutil.IgnoreIndexerConflict(err) != nil {
 		return err
 	}
 
