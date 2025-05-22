@@ -21,10 +21,13 @@ import (
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
+	"sigs.k8s.io/controller-runtime/pkg/manager"
 	metricsserver "sigs.k8s.io/controller-runtime/pkg/metrics/server"
 
+	greenhouseapis "github.com/cloudoperators/greenhouse/api"
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
 	greenhousev1alpha2 "github.com/cloudoperators/greenhouse/api/v1alpha2"
 	"github.com/cloudoperators/greenhouse/internal/clientutil"
@@ -182,6 +185,10 @@ func main() {
 			handleError(hookFunc(mgr), "unable to create webhook", "name", webhookName)
 		}
 	}
+
+	// Index TeamRoleBindings for both manager modes, because the TeamRole webhook relies on this index.
+	handleError(indexTeamRoleBindingTeamRoleRef(mgr), "failed to index TeamRoleBinding field")
+
 	//+kubebuilder:scaffold:builder
 
 	handleError(mgr.AddHealthzCheck("healthz", healthz.Ping), "unable to set up health check")
@@ -189,6 +196,19 @@ func main() {
 
 	setupLog.Info("starting manager")
 	handleError(mgr.Start(ctrl.SetupSignalHandler()), "problem running manager")
+}
+
+// indexTeamRoleBindingTeamRoleRef indexes .spec.teamRoleRef field of TeamRoleBindings for faster lookup.
+func indexTeamRoleBindingTeamRoleRef(mgr manager.Manager) error {
+	// index RoleBindings by the TeamRoleRef field for faster lookups
+	return mgr.GetFieldIndexer().IndexField(context.Background(), &greenhousev1alpha2.TeamRoleBinding{}, greenhouseapis.RolebindingTeamRoleRefField, func(rawObj client.Object) []string {
+		// Extract the TeamRole name from the TeamRoleBinding Spec, if one is provided
+		teamRoleBinding, ok := rawObj.(*greenhousev1alpha2.TeamRoleBinding)
+		if teamRoleBinding.Spec.TeamRoleRef == "" || !ok {
+			return nil
+		}
+		return []string{teamRoleBinding.Spec.TeamRoleRef}
+	})
 }
 
 func handleError(err error, msg string, keysAndValues ...any) {
