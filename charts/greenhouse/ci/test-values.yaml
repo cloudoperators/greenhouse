@@ -20,6 +20,19 @@ global:
   region: greenhouse
   registry: keppel.eu-nl-1.cloud.sap/ccloud
 
+manager:
+  controllerManager:
+    image:
+      digest: "sha256:manager"
+      tag: 0.4.2
+idproxy:
+  image:
+    digest: "sha256:idproxy"
+cors-proxy:
+  host: "foo.bar"
+  image:
+    digest: "sha256:corsproxy"
+
 organization:
   enabled: true
   oauth2ClientRedirectURIs:
@@ -87,9 +100,6 @@ alerts:
 tailscale-proxy:
   preauthkeyProvosioner:
     userName: topSecret!
-
-cors-proxy:
-  host: "foo.bar"
 
 team-membership:
   env:

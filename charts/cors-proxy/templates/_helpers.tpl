@@ -31,6 +31,19 @@ Create chart name and version as used by the chart label.
 {{- end }}
 
 {{/*
+Print the image reference. Digest takes precedence over tag.
+*/}}
+{{- define "cors-proxy.image" -}}
+{{- $repository := .Values.image.repository -}}
+{{- $digest := .Values.image.digest -}}
+{{- if $digest -}}
+  {{- printf "%s@%s" $repository $digest -}}
+{{- else -}}
+  {{- printf "%s:%s" $repository (.Values.image.tag | default .Chart.AppVersion) -}}
+{{- end -}}
+{{- end -}}
+
+{{/*
 Common labels
 */}}
 {{- define "cors-proxy.labels" -}}
