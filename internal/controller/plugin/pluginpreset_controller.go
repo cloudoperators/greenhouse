@@ -184,7 +184,7 @@ func (r *PluginPresetReconciler) reconcilePluginPreset(ctx context.Context, pres
 			return err
 		}
 
-		_, err = clientutil.CreateOrUpdate(ctx, r.Client, plugin, func() error {
+		_, err = controllerutil.CreateOrUpdate(ctx, r.Client, plugin, func() error {
 			// Label the plugin with the managed resource label to identify it as managed by the PluginPreset.
 			plugin.SetLabels(map[string]string{greenhouseapis.LabelKeyPluginPreset: preset.Name})
 			// Set the owner reference to the PluginPreset. This is used to trigger reconciliation, if the managed Plugin is modified.
