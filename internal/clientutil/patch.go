@@ -85,17 +85,6 @@ func patch(ctx context.Context, c client.Client, obj client.Object, mutate func(
 	return OperationResultUpdated, nil
 }
 
-func update(ctx context.Context, c client.Client, obj client.Object, mutate func() error) (OperationResult, error) {
-	if err := mutate(); err != nil {
-		return OperationResultNone, errors.Wrap(err, "mutating object failed")
-	}
-	err := c.Update(ctx, obj)
-	if err != nil {
-		return OperationResultNone, err
-	}
-	return OperationResultUpdated, nil
-}
-
 func logPatch(ctx context.Context, obj client.Object, patch client.Patch) {
 	patchData, err := patch.Data(obj)
 	if err != nil {
