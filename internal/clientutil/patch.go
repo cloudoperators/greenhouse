@@ -51,27 +51,6 @@ func CreateOrPatch(ctx context.Context, c client.Client, obj client.Object, muta
 	return patch(ctx, c, obj, mutate, false)
 }
 
-func CreateOrUpdate(ctx context.Context, c client.Client, obj client.Object, mutate func() error) (OperationResult, error) {
-	if err := c.Get(ctx, client.ObjectKeyFromObject(obj), obj); err != nil {
-		if !apierrors.IsNotFound(err) {
-			return OperationResultNone, err
-		}
-		if err := mutate(); err != nil {
-			return OperationResultNone, errors.Wrap(err, "mutating object failed")
-		}
-		if err := c.Create(ctx, obj); err != nil {
-			return OperationResultNone, IgnoreAlreadyExists(err)
-		}
-		return OperationResultCreated, nil
-	}
-	if o, err := meta.Accessor(obj); err == nil {
-		if o.GetDeletionTimestamp() != nil {
-			return OperationResultNone, fmt.Errorf("the resource %s/%s already exists but is marked for deletion", o.GetNamespace(), o.GetName())
-		}
-	}
-	return update(ctx, c, obj, mutate)
-}
-
 // Patch uses a PATCH operation on an object. Returns the Result or an error.
 func Patch(ctx context.Context, c client.Client, obj client.Object, mutate func() error) (OperationResult, error) {
 	return patch(ctx, c, obj, mutate, false)
