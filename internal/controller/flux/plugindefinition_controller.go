@@ -39,18 +39,9 @@ type PluginDefinitionReconciler struct {
 //+kubebuilder:rbac:groups=greenhouse.sap,resources=plugindefinitions,verbs=get;list;watch
 
 // Flux related RBAC rules for the FluxReconciler
-// +kubebuilder:rbac:groups=source.toolkit.fluxcd.io,resources=gitrepositories,verbs=get;list;watch;create;update;patch;delete
-// +kubebuilder:rbac:groups=source.toolkit.fluxcd.io,resources=gitrepositories/status,verbs=get;update;patch
-// +kubebuilder:rbac:groups=source.toolkit.fluxcd.io,resources=gitrepositories/finalizers,verbs=get;create;update;patch;delete
 // +kubebuilder:rbac:groups=source.toolkit.fluxcd.io,resources=helmrepositories,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=source.toolkit.fluxcd.io,resources=helmrepositories/status,verbs=get;update;patch
 // +kubebuilder:rbac:groups=source.toolkit.fluxcd.io,resources=helmrepositories/finalizers,verbs=get;create;update;patch;delete
-// +kubebuilder:rbac:groups=source.toolkit.fluxcd.io,resources=ocirepositories,verbs=get;list;watch;create;update;patch;delete
-// +kubebuilder:rbac:groups=source.toolkit.fluxcd.io,resources=ocirepositories/status,verbs=get;update;patch
-// +kubebuilder:rbac:groups=source.toolkit.fluxcd.io,resources=ocirepositories/finalizers,verbs=get;create;update;patch;delete
-// +kubebuilder:rbac:groups=source.toolkit.fluxcd.io,resources=helmcharts,verbs=get;list;watch;create;update;patch;delete
-// +kubebuilder:rbac:groups=source.toolkit.fluxcd.io,resources=helmcharts/status,verbs=get;update;patch
-// +kubebuilder:rbac:groups=source.toolkit.fluxcd.io,resources=helmcharts/finalizers,verbs=get;create;update;patch;delete
 // +kubebuilder:rbac:groups="",resources=events,verbs=create;patch
 
 // SetupWithManager sets up the controller with the Manager.
@@ -103,15 +94,6 @@ func (r *PluginDefinitionReconciler) Reconcile(ctx context.Context, req ctrl.Req
 		return ctrl.Result{}, err
 	}
 
-	// reconcileHelmChart is creating or update the helmChart out form PluginDefinition spec
-	// also creates or updates the helmRepository if it does not exist
-
-	/*
-		if err := r.reconcileHelmChart(ctx, pluginDefinition, nS); err != nil {
-			return ctrl.Result{}, err
-		}
-	*/
-
 	return ctrl.Result{RequeueAfter: utils.DefaultRequeueInterval}, nil
 }
 
@@ -135,44 +117,6 @@ func (r *PluginDefinitionReconciler) reconcileHelmRepository(ctx context.Context
 		log.FromContext(ctx).Info("Updated helmRepository", "name", helmRepository.Name)
 	case clientutil.OperationResultNone:
 		log.FromContext(ctx).Info("No changes to helmRepository", "name", helmRepository.Name)
-	}
-
-	return nil
-}
-
-func (r *PluginDefinitionReconciler) reconcileHelmChart(ctx context.Context, pluginDef *greenhousev1alpha1.PluginDefinition, nS string) error {
-	helmChart := new(sourcecontroller.HelmChart)
-	helmRepository := FindHelmRepositoryByUrl(ctx, r.Client, nS, pluginDef.Spec.HelmChart.Repository)
-
-	if helmRepository == nil {
-		if err := r.reconcileHelmRepository(ctx, pluginDef, nS); err != nil {
-			return err
-		}
-	}
-
-	result, err := clientutil.CreateOrPatch(ctx, r.Client, helmChart, func() error {
-		helmChart.Name = GenerateChartName(pluginDef)
-		helmChart.Namespace = nS
-		helmChart.Spec.Interval = metav1.Duration{Duration: 5 * time.Minute}
-		helmChart.Spec.Chart = pluginDef.Spec.HelmChart.Name
-		helmChart.Spec.SourceRef = sourcecontroller.LocalHelmChartSourceReference{
-			Kind: sourcecontroller.HelmRepositoryKind,
-			Name: helmRepository.Name,
-		}
-		helmChart.Spec.Version = pluginDef.Spec.HelmChart.Version
-		helmChart.Spec.ReconcileStrategy = sourcecontroller.ReconcileStrategyChartVersion
-		return controllerutil.SetOwnerReference(helmRepository, helmChart, r.Scheme())
-	})
-	if err != nil {
-		return err
-	}
-	switch result {
-	case clientutil.OperationResultCreated:
-		log.FromContext(ctx).Info("Created helmChart", "name", helmChart.Name)
-	case clientutil.OperationResultUpdated:
-		log.FromContext(ctx).Info("Updated helmChart", "name", helmChart.Name)
-	case clientutil.OperationResultNone:
-		log.FromContext(ctx).Info("No changes to helmChart", "name", helmChart.Name)
 	}
 
 	return nil
