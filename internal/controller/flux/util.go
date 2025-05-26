@@ -9,11 +9,10 @@ import (
 
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
 	sourcecontroller "github.com/fluxcd/source-controller/api/v1"
 )
 
-func convertName(repoName string) (convertedName string, repoType string) {
+func convertName(repoName string) (convertedName, repoType string) {
 	repoType = sourcecontroller.HelmRepositoryTypeDefault
 	// set the helm repository type to OCI if the repo name starts with oci://
 	if strings.HasPrefix(repoName, "oci://") {
@@ -35,10 +34,6 @@ func convertName(repoName string) (convertedName string, repoType string) {
 	convertedName = strings.ReplaceAll(convertedName, ".", "-")
 	convertedName = strings.ReplaceAll(convertedName, "/", "-")
 	return convertedName, repoType
-}
-
-func GenerateChartName(plDf *greenhousev1alpha1.PluginDefinition) string {
-	return strings.Join([]string{plDf.Spec.HelmChart.Name, plDf.Spec.HelmChart.Version}, "-")
 }
 
 func FindHelmRepositoryByUrl(ctx context.Context, k8sClient client.Client, nS, url string) *sourcecontroller.HelmRepository {
