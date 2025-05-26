@@ -4,7 +4,10 @@
 package flux
 
 import (
+	"context"
 	"strings"
+
+	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
 	sourcecontroller "github.com/fluxcd/source-controller/api/v1"
@@ -34,6 +37,19 @@ func convertName(repoName string) (convertedName string, repoType string) {
 	return convertedName, repoType
 }
 
-func generateChartName(plDf *greenhousev1alpha1.PluginDefinition) string {
+func GenerateChartName(plDf *greenhousev1alpha1.PluginDefinition) string {
 	return strings.Join([]string{plDf.Spec.HelmChart.Name, plDf.Spec.HelmChart.Version}, "-")
+}
+
+func FindHelmRepositoryByUrl(ctx context.Context, k8sClient client.Client, nS, url string) *sourcecontroller.HelmRepository {
+	helmRepositoryList := new(sourcecontroller.HelmRepositoryList)
+	if err := k8sClient.List(ctx, helmRepositoryList); err != nil {
+		return nil
+	}
+	for _, helmRepository := range helmRepositoryList.Items {
+		if helmRepository.Spec.URL == url {
+			return &helmRepository
+		}
+	}
+	return nil
 }

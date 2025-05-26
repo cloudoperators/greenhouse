@@ -105,24 +105,14 @@ func (r *PluginDefinitionReconciler) Reconcile(ctx context.Context, req ctrl.Req
 
 	// reconcileHelmChart is creating or update the helmChart out form PluginDefinition spec
 	// also creates or updates the helmRepository if it does not exist
-	if err := r.reconcileHelmChart(ctx, pluginDefinition, nS); err != nil {
-		return ctrl.Result{}, err
-	}
+
+	/*
+		if err := r.reconcileHelmChart(ctx, pluginDefinition, nS); err != nil {
+			return ctrl.Result{}, err
+		}
+	*/
 
 	return ctrl.Result{RequeueAfter: utils.DefaultRequeueInterval}, nil
-}
-
-func (r *PluginDefinitionReconciler) findHelmRepositoryByUrl(ctx context.Context, nS, url string) *sourcecontroller.HelmRepository {
-	helmRepositoryList := new(sourcecontroller.HelmRepositoryList)
-	if err := r.List(ctx, helmRepositoryList); err != nil {
-		return nil
-	}
-	for _, helmRepository := range helmRepositoryList.Items {
-		if helmRepository.Spec.URL == url {
-			return &helmRepository
-		}
-	}
-	return nil
 }
 
 func (r *PluginDefinitionReconciler) reconcileHelmRepository(ctx context.Context, pluginDef *greenhousev1alpha1.PluginDefinition, nS string) error {
@@ -152,7 +142,7 @@ func (r *PluginDefinitionReconciler) reconcileHelmRepository(ctx context.Context
 
 func (r *PluginDefinitionReconciler) reconcileHelmChart(ctx context.Context, pluginDef *greenhousev1alpha1.PluginDefinition, nS string) error {
 	helmChart := new(sourcecontroller.HelmChart)
-	helmRepository := r.findHelmRepositoryByUrl(ctx, nS, pluginDef.Spec.HelmChart.Repository)
+	helmRepository := FindHelmRepositoryByUrl(ctx, r.Client, nS, pluginDef.Spec.HelmChart.Repository)
 
 	if helmRepository == nil {
 		if err := r.reconcileHelmRepository(ctx, pluginDef, nS); err != nil {
@@ -161,7 +151,7 @@ func (r *PluginDefinitionReconciler) reconcileHelmChart(ctx context.Context, plu
 	}
 
 	result, err := clientutil.CreateOrPatch(ctx, r.Client, helmChart, func() error {
-		helmChart.Name = generateChartName(pluginDef)
+		helmChart.Name = GenerateChartName(pluginDef)
 		helmChart.Namespace = nS
 		helmChart.Spec.Interval = metav1.Duration{Duration: 5 * time.Minute}
 		helmChart.Spec.Chart = pluginDef.Spec.HelmChart.Name
