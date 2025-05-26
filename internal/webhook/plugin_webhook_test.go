@@ -392,7 +392,7 @@ var _ = Describe("Validation and defaulting of releaseName", func() {
 	)
 
 	BeforeEach(func() {
-		pluginDefinition = test.NewPluginDefinition(test.Ctx, "test-definition", "", test.WithHelmChart(&greenhousev1alpha1.HelmChartReference{Name: "test-helm-chart"}))
+		pluginDefinition = test.NewPluginDefinition(test.Ctx, "test-definition", test.WithHelmChart(&greenhousev1alpha1.HelmChartReference{Name: "test-helm-chart"}))
 
 		testPlugin = test.NewPlugin(test.Ctx, "test-plugin", "testing", test.WithPluginDefinition("test-definition"))
 		// ensure the Plugin is in the deployed state
