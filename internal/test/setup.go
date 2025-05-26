@@ -166,7 +166,7 @@ func (t *TestSetup) UpdateOrganization(ctx context.Context, name string, opts ..
 // CreatePluginDefinition creates and returns a PluginDefinition object. Opts can be used to set the desired state of the PluginDefinition.
 func (t *TestSetup) CreatePluginDefinition(ctx context.Context, name string, opts ...func(*greenhousev1alpha1.PluginDefinition)) *greenhousev1alpha1.PluginDefinition {
 	GinkgoHelper()
-	pd := NewPluginDefinition(ctx, t.RandomizeName(name), t.Namespace(), opts...)
+	pd := NewPluginDefinition(ctx, t.RandomizeName(name), opts...)
 	Expect(t.Create(ctx, pd)).Should(Succeed(), "there should be no error creating the PluginDefinition")
 	return pd
 }

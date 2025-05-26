@@ -13,6 +13,7 @@ import (
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
+	greenhouseapis "github.com/cloudoperators/greenhouse/api"
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
 )
 
@@ -158,15 +159,14 @@ func AppendPluginOption(option greenhousev1alpha1.PluginOption) func(*greenhouse
 }
 
 // NewPluginDefinition returns a greenhousev1alpha1.PluginDefinition object. Opts can be used to set the desired state of the PluginDefinition.
-func NewPluginDefinition(ctx context.Context, name, namespace string, opts ...func(*greenhousev1alpha1.PluginDefinition)) *greenhousev1alpha1.PluginDefinition {
+func NewPluginDefinition(ctx context.Context, name string, opts ...func(*greenhousev1alpha1.PluginDefinition)) *greenhousev1alpha1.PluginDefinition {
 	pd := &greenhousev1alpha1.PluginDefinition{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "PluginDefinition",
 			APIVersion: greenhousev1alpha1.GroupVersion.String(),
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      name,
-			Namespace: namespace,
+			Name: name,
 		},
 		Spec: greenhousev1alpha1.PluginDefinitionSpec{
 			Description: "TestPluginDefinition",
@@ -202,6 +202,17 @@ func WithReleaseNamespace(releaseNamespace string) func(*greenhousev1alpha1.Plug
 func WithCluster(cluster string) func(*greenhousev1alpha1.Plugin) {
 	return func(p *greenhousev1alpha1.Plugin) {
 		p.Spec.ClusterName = cluster
+	}
+}
+
+// WithPresetLabelValue sets the value of the greenhouseapis.LabelKeyPluginPreset label on a Plugin
+// This label is used to indicate that the Plugin is managed by a PluginPreset.
+func WithPresetLabelValue(value string) func(*greenhousev1alpha1.Plugin) {
+	return func(p *greenhousev1alpha1.Plugin) {
+		if p.Labels == nil {
+			p.Labels = make(map[string]string, 1)
+		}
+		p.Labels[greenhouseapis.LabelKeyPluginPreset] = value
 	}
 }
 
