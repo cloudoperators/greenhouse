@@ -52,14 +52,6 @@ var (
 		}),
 	)
 
-	// A PluginConfig in the central cluster, test namespace with a release in the remote cluster, made-up-namespace.
-	testPluginInDifferentNamespace = test.NewPlugin(test.Ctx, "test-plugin-in-made-up-namespace", test.TestNamespace,
-		test.WithCluster(testCluster.GetName()),
-		test.WithPluginDefinition(testPluginDefinition.GetName()),
-		test.WithReleaseName("made-up-releasenamespace"),
-		test.WithReleaseNamespace("made-up-namespace"),
-	)
-
 	testPluginWithCRDs = test.NewPlugin(test.Ctx, "test-plugin-crd", test.TestNamespace,
 		test.WithCluster(testCluster.GetName()),
 		test.WithPluginDefinition("test-plugindefinition-crd"),
