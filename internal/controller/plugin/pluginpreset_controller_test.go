@@ -65,6 +65,7 @@ var (
 )
 
 var _ = Describe("PluginPreset Controller Lifecycle", Ordered, func() {
+	var defaultPluginDefinition *greenhousev1alpha1.PluginDefinition
 	BeforeAll(func() {
 		format.MaxLength = 0
 		By("creating a test PluginDefinition")
@@ -103,6 +104,21 @@ var _ = Describe("PluginPreset Controller Lifecycle", Ordered, func() {
 			}
 			Expect(test.K8sClient.Create(test.Ctx, secretObj)).Should(Succeed())
 		}
+
+		By("creating PluginDefinition with default options")
+		defaultPluginDefinition = test.NewPluginDefinition(test.Ctx, pluginDefinitionWithDefaultsName, test.AppendPluginOption(
+			greenhousev1alpha1.PluginOption{
+				Name:    "test-plugin-definition-option-1",
+				Type:    "int",
+				Default: &apiextensionsv1.JSON{Raw: []byte("1")}},
+		),
+			test.WithUIApplication(&greenhousev1alpha1.UIApplicationReference{
+				Name:    "test-ui-app",
+				Version: "0.0.1",
+			}),
+		)
+		Expect(test.K8sClient.Create(test.Ctx, defaultPluginDefinition)).ToNot(HaveOccurred())
+		test.EventuallyCreated(test.Ctx, test.K8sClient, defaultPluginDefinition)
 	})
 
 	AfterAll(func() {
@@ -175,24 +191,10 @@ var _ = Describe("PluginPreset Controller Lifecycle", Ordered, func() {
 	})
 
 	It("should reconcile a PluginPreset with plugin definition defaults", func() {
-		By("ensuring a Plugin Definition has been created")
-		pluginDefinition := test.NewPluginDefinition(test.Ctx, pluginDefinitionWithDefaultsName, test.AppendPluginOption(
-			greenhousev1alpha1.PluginOption{
-				Name:    "test-plugin-definition-option-1",
-				Type:    "int",
-				Default: &apiextensionsv1.JSON{Raw: []byte("1")}},
-		),
-			test.WithUIApplication(&greenhousev1alpha1.UIApplicationReference{
-				Name:    "test-ui-app",
-				Version: "0.0.1",
-			}),
-		)
-		Expect(test.K8sClient.Create(test.Ctx, pluginDefinition)).ToNot(HaveOccurred())
-		test.EventuallyCreated(test.Ctx, test.K8sClient, pluginDefinition)
 
 		By("ensuring a Plugin Preset has been created")
 		pluginPreset := pluginPreset(pluginPresetName+"-2", clusterA)
-		pluginPreset.Spec.Plugin.PluginDefinition = pluginDefinition.Name
+		pluginPreset.Spec.Plugin.PluginDefinition = pluginDefinitionWithDefaultsName
 		Expect(test.K8sClient.Create(test.Ctx, pluginPreset)).ToNot(HaveOccurred())
 		test.EventuallyCreated(test.Ctx, test.K8sClient, pluginPreset)
 
@@ -206,8 +208,8 @@ var _ = Describe("PluginPreset Controller Lifecycle", Ordered, func() {
 		By("checking plugin options with plugin definition defaults and plugin preset values")
 		Expect(expPlugin.Spec.OptionValues).To(ContainElement(pluginPreset.Spec.Plugin.OptionValues[0]))
 		Expect(expPlugin.Spec.OptionValues).To(ContainElement(greenhousev1alpha1.PluginOptionValue{
-			Name:  pluginDefinition.Spec.Options[0].Name,
-			Value: pluginDefinition.Spec.Options[0].Default,
+			Name:  defaultPluginDefinition.Spec.Options[0].Name,
+			Value: defaultPluginDefinition.Spec.Options[0].Default,
 		}))
 
 		By("removing plugin preset")
@@ -523,11 +525,9 @@ var _ = Describe("PluginPreset Controller Lifecycle", Ordered, func() {
 	})
 
 	It("should successfully propagate labels from PluginPreset to Plugin", func() {
-		By("ensuring a Plugin Definition has been created")
-		pluginDefinition := pluginDefinitionWithDefaults()
 		By("ensuring a Plugin Preset has been created")
 		pluginPreset := pluginPreset(pluginPresetName+"-label-propagation", clusterA)
-		pluginPreset.Spec.Plugin.PluginDefinition = pluginDefinition.Name
+		pluginPreset.Spec.Plugin.PluginDefinition = pluginDefinitionWithDefaultsName
 		pluginPreset.SetAnnotations(map[string]string{
 			lifecycle.PropagateLabelsAnnotation: "support_group, region",
 		})
