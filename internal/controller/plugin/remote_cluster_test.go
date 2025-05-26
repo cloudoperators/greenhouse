@@ -34,92 +34,55 @@ var (
 
 // Test stimuli.
 var (
-	testPlugin = &greenhousev1alpha1.Plugin{
-		TypeMeta: metav1.TypeMeta{
-			Kind:       "Plugin",
-			APIVersion: greenhousev1alpha1.GroupVersion.String(),
-		},
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "test-plugindefinition",
-			Namespace: test.TestNamespace,
-		},
-		Spec: greenhousev1alpha1.PluginSpec{
-			ClusterName:      "test-cluster",
-			PluginDefinition: "test-plugindefinition",
-			ReleaseNamespace: test.TestNamespace,
-		},
-	}
+	testPlugin = test.NewPlugin(
+		test.Ctx,
+		"test-plugindefinition",
+		test.TestNamespace,
+		test.WithCluster(testCluster.GetName()),
+		test.WithPluginDefinition("test-plugindefinition"),
+		test.WithReleaseNamespace(test.TestNamespace))
 
-	testPluginwithSR = &greenhousev1alpha1.Plugin{
-		TypeMeta: metav1.TypeMeta{
-			Kind:       "Plugin",
-			APIVersion: greenhousev1alpha1.GroupVersion.String(),
-		},
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "test-plugin-secretref",
-			Namespace: test.TestNamespace,
-		},
-		Spec: greenhousev1alpha1.PluginSpec{
-			PluginDefinition: "test-plugindefinition",
-			ClusterName:      "test-cluster",
-			OptionValues: []greenhousev1alpha1.PluginOptionValue{
-				{
-					Name: "secretValue",
-					ValueFrom: &greenhousev1alpha1.ValueFromSource{
-						Secret: &greenhousev1alpha1.SecretKeyReference{
-							Name: "test-secret",
-							Key:  "test-key",
-						},
-					},
-				},
+	testPluginwithSR = test.NewPlugin(
+		test.Ctx,
+		"test-plugin-secretref",
+		test.TestNamespace,
+		test.WithCluster(testCluster.GetName()),
+		test.WithPluginDefinition("test-plugindefinition"),
+		test.WithPluginOptionValue("secretValue", nil, &greenhousev1alpha1.ValueFromSource{
+			Secret: &greenhousev1alpha1.SecretKeyReference{
+				Name: "test-secret",
+				Key:  "test-key",
 			},
-		},
-	}
+		}),
+	)
 
 	// A PluginConfig in the central cluster, test namespace with a release in the remote cluster, made-up-namespace.
-	testPluginInDifferentNamespace = &greenhousev1alpha1.Plugin{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "test-plugin-in-made-up-namespace",
-			Namespace: test.TestNamespace,
-		},
-		Spec: greenhousev1alpha1.PluginSpec{
-			PluginDefinition: testPluginDefinition.GetName(),
-			ClusterName:      testCluster.GetName(),
-			ReleaseNamespace: "made-up-namespace",
-		},
-	}
+	testPluginInDifferentNamespace = test.NewPlugin(
+		test.Ctx,
+		"test-plugin-in-made-up-namespace",
+		test.TestNamespace,
+		test.WithCluster(testCluster.GetName()),
+		test.WithPluginDefinition(testPluginDefinition.GetName()),
+		test.WithReleaseNamespace("made-up-namespace"),
+	)
 
-	testPluginWithCRDs = &greenhousev1alpha1.Plugin{
-		TypeMeta: metav1.TypeMeta{
-			Kind:       "Plugin",
-			APIVersion: greenhousev1alpha1.GroupVersion.String(),
-		},
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "test-plugin-crd",
-			Namespace: test.TestNamespace,
-		},
-		Spec: greenhousev1alpha1.PluginSpec{
-			ClusterName:      "test-cluster",
-			PluginDefinition: "test-plugindefinition-crd",
-			ReleaseNamespace: test.TestNamespace,
-		},
-	}
+	testPluginWithCRDs = test.NewPlugin(
+		test.Ctx,
+		"test-plugin-crd",
+		test.TestNamespace,
+		test.WithCluster(testCluster.GetName()),
+		test.WithPluginDefinition("test-plugindefinition-crd"),
+		test.WithReleaseNamespace(test.TestNamespace),
+	)
 
-	testPluginWithExposedService = &greenhousev1alpha1.Plugin{
-		TypeMeta: metav1.TypeMeta{
-			Kind:       "Plugin",
-			APIVersion: greenhousev1alpha1.GroupVersion.String(),
-		},
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "test-plugin-exposed",
-			Namespace: test.TestNamespace,
-		},
-		Spec: greenhousev1alpha1.PluginSpec{
-			ClusterName:      "test-cluster",
-			PluginDefinition: "test-plugindefinition-exposed",
-			ReleaseNamespace: test.TestNamespace,
-		},
-	}
+	testPluginWithExposedService = test.NewPlugin(
+		test.Ctx,
+		"test-plugin-exposed",
+		test.TestNamespace,
+		test.WithCluster(testCluster.GetName()),
+		test.WithPluginDefinition("test-plugindefinition-exposed"),
+		test.WithReleaseNamespace(test.TestNamespace),
+	)
 
 	testSecret = corev1.Secret{
 		TypeMeta: metav1.TypeMeta{
@@ -135,69 +98,36 @@ var (
 		},
 	}
 
-	testPluginDefinition = &greenhousev1alpha1.PluginDefinition{
-		TypeMeta: metav1.TypeMeta{
-			Kind:       "PluginDefinition",
-			APIVersion: greenhousev1alpha1.GroupVersion.String(),
-		},
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "test-plugindefinition",
-			Namespace: corev1.NamespaceDefault,
-		},
-		Spec: greenhousev1alpha1.PluginDefinitionSpec{
-			Description: "Testplugin",
-			Version:     "1.0.0",
-			HelmChart: &greenhousev1alpha1.HelmChartReference{
-				Name:       "./../../test/fixtures/myChart",
-				Repository: "dummy",
-				Version:    "1.0.0",
-			},
-		},
-	}
+	testPluginDefinition = test.NewPluginDefinition(
+		test.Ctx,
+		"test-plugindefinition",
+	)
 
-	testPluginWithHelmChartCRDs = &greenhousev1alpha1.PluginDefinition{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: test.TestNamespace,
-			Name:      "test-plugindefinition-crd",
-		},
-		Spec: greenhousev1alpha1.PluginDefinitionSpec{
-			Version: "1.0.0",
-			HelmChart: &greenhousev1alpha1.HelmChartReference{
-				Name:       "./../../test/fixtures/myChartWithCRDs",
-				Repository: "dummy",
-				Version:    "1.0.0",
-			},
-		},
-	}
+	testPluginWithHelmChartCRDs = test.NewPluginDefinition(
+		test.Ctx,
+		"test-plugindefinition-crd",
+		test.WithHelmChart(&greenhousev1alpha1.HelmChartReference{
+			Name:       "./../../test/fixtures/myChartWithCRDs",
+			Repository: "dummy",
+			Version:    "1.0.0",
+		}),
+	)
 
-	pluginDefinitionWithExposedService = &greenhousev1alpha1.PluginDefinition{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: test.TestNamespace,
-			Name:      "test-plugindefinition-exposed",
-		},
-		Spec: greenhousev1alpha1.PluginDefinitionSpec{
-			Version: "1.0.0",
-			HelmChart: &greenhousev1alpha1.HelmChartReference{
-				Name:       "./../../test/fixtures/chartWithExposedService",
-				Repository: "dummy",
-				Version:    "1.3.0",
-			},
-		},
-	}
+	pluginDefinitionWithExposedService = test.NewPluginDefinition(
+		test.Ctx,
+		"test-plugindefinition-exposed",
+		test.WithHelmChart(&greenhousev1alpha1.HelmChartReference{
+			Name:       "./../../test/fixtures/chartWithExposedService",
+			Repository: "dummy",
+			Version:    "1.3.0",
+		}),
+	)
 
-	testCluster = &greenhousev1alpha1.Cluster{
-		TypeMeta: metav1.TypeMeta{
-			Kind:       "Cluster",
-			APIVersion: greenhousev1alpha1.GroupVersion.String(),
-		},
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "test-cluster",
-			Namespace: test.TestNamespace,
-		},
-		Spec: greenhousev1alpha1.ClusterSpec{
-			AccessMode: greenhousev1alpha1.ClusterAccessModeDirect,
-		},
-	}
+	testCluster = test.NewCluster(
+		test.Ctx,
+		"test-cluster",
+		test.TestNamespace,
+	)
 
 	testClusterK8sSecret = corev1.Secret{
 		TypeMeta: metav1.TypeMeta{

@@ -125,45 +125,35 @@ var _ = Describe("HelmControllerTest", Serial, func() {
 			},
 		}))).To(Succeed(), "there must be no error creating the test namespace")
 
-		testPluginDefinition = &greenhousev1alpha1.PluginDefinition{
-			TypeMeta: metav1.TypeMeta{
-				Kind:       "PluginDefinition",
-				APIVersion: greenhousev1alpha1.GroupVersion.String(),
-			},
-			ObjectMeta: metav1.ObjectMeta{
-				Name: PluginDefinitionName,
-			},
-			Spec: greenhousev1alpha1.PluginDefinitionSpec{
-				Description: "Testplugin",
-				Version:     PluginDefinitionVersion,
-				HelmChart: &greenhousev1alpha1.HelmChartReference{
-					Name:       HelmChart,
-					Repository: HelmRepo,
-					Version:    PluginDefinitionChartVersion,
-				},
-				Options: []greenhousev1alpha1.PluginOption{
-					{
-						Name:        PluginOptionRequired,
-						Description: "This is my required test plugin option",
-						Required:    true,
-						Type:        greenhousev1alpha1.PluginOptionTypeString,
-					},
-					{
-						Name:        PluginOptionOptional,
-						Description: "This is my optional test plugin option",
-						Required:    false,
-						Type:        greenhousev1alpha1.PluginOptionTypeString,
-					},
-					{
-						Name:        PluginOptionDefault,
-						Description: "This is my default test plugin option",
-						Required:    false,
-						Default:     asAPIextensionJSON(PluginOptionDefaultValue),
-						Type:        greenhousev1alpha1.PluginOptionTypeString,
-					},
-				},
-			},
-		}
+		testPluginDefinition = test.NewPluginDefinition(
+			test.Ctx,
+			PluginDefinitionName,
+			test.WithVersion(PluginDefinitionVersion),
+			test.WithHelmChart(&greenhousev1alpha1.HelmChartReference{
+				Name:       HelmChart,
+				Repository: HelmRepo,
+				Version:    PluginDefinitionChartVersion,
+			}),
+			test.AppendPluginOption(greenhousev1alpha1.PluginOption{
+				Name:        PluginOptionRequired,
+				Description: "This is my required test plugin option",
+				Required:    true,
+				Type:        greenhousev1alpha1.PluginOptionTypeString,
+			}),
+			test.AppendPluginOption(greenhousev1alpha1.PluginOption{
+				Name:        PluginOptionOptional,
+				Description: "This is my optional test plugin option",
+				Required:    false,
+				Type:        greenhousev1alpha1.PluginOptionTypeString,
+			}),
+			test.AppendPluginOption(greenhousev1alpha1.PluginOption{
+				Name:        PluginOptionDefault,
+				Description: "This is my default test plugin option",
+				Required:    false,
+				Default:     asAPIextensionJSON(PluginOptionDefaultValue),
+				Type:        greenhousev1alpha1.PluginOptionTypeString,
+			}),
+		)
 		Expect(test.K8sClient.Create(test.Ctx, testPluginDefinition)).Should(Succeed())
 		actPluginDefinition := &greenhousev1alpha1.PluginDefinition{}
 		Eventually(func() bool {
@@ -174,25 +164,13 @@ var _ = Describe("HelmControllerTest", Serial, func() {
 			return actPluginDefinition.Spec.Version == PluginDefinitionVersion
 		}).Should(BeTrue())
 
-		testPlugin = &greenhousev1alpha1.Plugin{
-			TypeMeta: metav1.TypeMeta{
-				Kind:       "Plugin",
-				APIVersion: greenhousev1alpha1.GroupVersion.String(),
-			},
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      PluginName,
-				Namespace: Namespace,
-			},
-			Spec: greenhousev1alpha1.PluginSpec{
-				PluginDefinition: PluginDefinitionName,
-				OptionValues: []greenhousev1alpha1.PluginOptionValue{
-					{
-						Name:  PluginOptionRequired,
-						Value: asAPIextensionJSON(PluginRequiredOptionValue),
-					},
-				},
-			},
-		}
+		testPlugin = test.NewPlugin(
+			test.Ctx,
+			PluginName,
+			Namespace,
+			test.WithPluginDefinition(PluginDefinitionName),
+			test.WithPluginOptionValue(PluginOptionRequired, asAPIextensionJSON(PluginRequiredOptionValue), nil),
+		)
 		Expect(test.K8sClient.Create(test.Ctx, testPlugin)).Should(Succeed())
 
 		actPlugin := &greenhousev1alpha1.Plugin{}
@@ -452,61 +430,51 @@ var _ = Describe("HelmControllerTest", Serial, func() {
 		)
 
 		By("creating a pluginDefinition with every type of option", func() {
-			complexPluginDefinition = &greenhousev1alpha1.PluginDefinition{
-				TypeMeta: metav1.TypeMeta{
-					Kind:       "PluginDefinition",
-					APIVersion: greenhousev1alpha1.GroupVersion.String(),
-				},
-				ObjectMeta: metav1.ObjectMeta{
-					Name: pluginWithEveryOption,
-				},
-				Spec: greenhousev1alpha1.PluginDefinitionSpec{
-					Description: "Test PluginDefinition with all possible Option types",
-					Version:     PluginDefinitionVersion,
-					HelmChart: &greenhousev1alpha1.HelmChartReference{
-						Name:       HelmChartWithAllOptions,
-						Repository: HelmRepo,
-						Version:    PluginDefinitionChartVersion,
-					},
-					Options: []greenhousev1alpha1.PluginOption{
-						{
-							Name:        PluginOptionDefault,
-							Description: "This is my default test plugin option",
-							Required:    false,
-							Default:     asAPIextensionJSON(PluginOptionDefaultValue),
-							Type:        greenhousev1alpha1.PluginOptionTypeString,
-						},
-						{
-							Name:        PluginOptionBool,
-							Description: "This is my default test plugin option with a bool value",
-							Required:    false,
-							Default:     asAPIextensionJSON(PluginOptionBoolDefault),
-							Type:        greenhousev1alpha1.PluginOptionTypeBool,
-						},
-						{
-							Name:        PluginOptionInt,
-							Description: "This is my default test plugin option with a int value",
-							Required:    false,
-							Default:     asAPIextensionJSON(PluginOptionIntDefault),
-							Type:        greenhousev1alpha1.PluginOptionTypeInt,
-						},
-						{
-							Name:        PluginOptionList,
-							Description: "This is my default test plugin option with a list value",
-							Required:    false,
-							Default:     asAPIextensionJSON(PluginOptionListDefault),
-							Type:        greenhousev1alpha1.PluginOptionTypeList,
-						},
-						{
-							Name:        PluginOptionMap,
-							Description: "This is my default test plugin option with a map value",
-							Required:    false,
-							Default:     asAPIextensionJSON(PluginOptionMapDefault),
-							Type:        greenhousev1alpha1.PluginOptionTypeMap,
-						},
-					},
-				},
-			}
+			complexPluginDefinition = test.NewPluginDefinition(
+				test.Ctx,
+				pluginWithEveryOption,
+				test.WithVersion(PluginDefinitionVersion),
+				test.WithHelmChart(&greenhousev1alpha1.HelmChartReference{
+					Name:       HelmChartWithAllOptions,
+					Repository: HelmRepo,
+					Version:    PluginDefinitionChartVersion,
+				}),
+				test.AppendPluginOption(greenhousev1alpha1.PluginOption{
+					Name:        PluginOptionDefault,
+					Description: "This is my default test plugin option",
+					Required:    false,
+					Default:     asAPIextensionJSON(PluginOptionDefaultValue),
+					Type:        greenhousev1alpha1.PluginOptionTypeString,
+				}),
+				test.AppendPluginOption(greenhousev1alpha1.PluginOption{
+					Name:        PluginOptionBool,
+					Description: "This is my default test plugin option with a bool value",
+					Required:    false,
+					Default:     asAPIextensionJSON(PluginOptionBoolDefault),
+					Type:        greenhousev1alpha1.PluginOptionTypeBool,
+				}),
+				test.AppendPluginOption(greenhousev1alpha1.PluginOption{
+					Name:        PluginOptionInt,
+					Description: "This is my default test plugin option with a int value",
+					Required:    false,
+					Default:     asAPIextensionJSON(PluginOptionIntDefault),
+					Type:        greenhousev1alpha1.PluginOptionTypeInt,
+				}),
+				test.AppendPluginOption(greenhousev1alpha1.PluginOption{
+					Name:        PluginOptionList,
+					Description: "This is my default test plugin option with a list value",
+					Required:    false,
+					Default:     asAPIextensionJSON(PluginOptionListDefault),
+					Type:        greenhousev1alpha1.PluginOptionTypeList,
+				}),
+				test.AppendPluginOption(greenhousev1alpha1.PluginOption{
+					Name:        PluginOptionMap,
+					Description: "This is my default test plugin option with a map value",
+					Required:    false,
+					Default:     asAPIextensionJSON(PluginOptionMapDefault),
+					Type:        greenhousev1alpha1.PluginOptionTypeMap,
+				}),
+			)
 
 			Expect(test.K8sClient.Create(test.Ctx, complexPluginDefinition)).Should(Succeed())
 			complexPluginDefinitionID := types.NamespacedName{Name: complexPluginDefinition.Name, Namespace: ""}
@@ -521,41 +489,17 @@ var _ = Describe("HelmControllerTest", Serial, func() {
 		})
 
 		By("creating a Plugin with every type of OptionValue", func() {
-			complexPlugin = &greenhousev1alpha1.Plugin{
-				TypeMeta: metav1.TypeMeta{
-					Kind:       "Plugin",
-					APIVersion: greenhousev1alpha1.GroupVersion.String(),
-				},
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      pluginName,
-					Namespace: Namespace,
-				},
-				Spec: greenhousev1alpha1.PluginSpec{
-					PluginDefinition: pluginWithEveryOption,
-					OptionValues: []greenhousev1alpha1.PluginOptionValue{
-						{
-							Name:  PluginOptionDefault,
-							Value: asAPIextensionJSON(stringVal),
-						},
-						{
-							Name:  PluginOptionBool,
-							Value: asAPIextensionJSON(boolVal),
-						},
-						{
-							Name:  PluginOptionInt,
-							Value: asAPIextensionJSON(intVal),
-						},
-						{
-							Name:  PluginOptionList,
-							Value: asAPIextensionJSON(listVal),
-						},
-						{
-							Name:  PluginOptionMap,
-							Value: asAPIextensionJSON(mapVal),
-						},
-					},
-				},
-			}
+			complexPlugin = test.NewPlugin(
+				test.Ctx,
+				pluginName,
+				Namespace,
+				test.WithPluginDefinition(pluginWithEveryOption),
+				test.WithPluginOptionValue(PluginOptionDefault, asAPIextensionJSON(stringVal), nil),
+				test.WithPluginOptionValue(PluginOptionBool, asAPIextensionJSON(boolVal), nil),
+				test.WithPluginOptionValue(PluginOptionInt, asAPIextensionJSON(intVal), nil),
+				test.WithPluginOptionValue(PluginOptionList, asAPIextensionJSON(listVal), nil),
+				test.WithPluginOptionValue(PluginOptionMap, asAPIextensionJSON(mapVal), nil),
+			)
 
 			Expect(test.K8sClient.Create(test.Ctx, complexPlugin)).Should(Succeed())
 			actComplexPlugin := &greenhousev1alpha1.Plugin{}
@@ -645,37 +589,23 @@ var _ = When("the pluginDefinition is UI only", func() {
 	var uiPluginDefinition *greenhousev1alpha1.PluginDefinition
 	var uiPlugin *greenhousev1alpha1.Plugin
 	BeforeEach(func() {
-		uiPluginDefinition = &greenhousev1alpha1.PluginDefinition{
-			TypeMeta: metav1.TypeMeta{
-				Kind:       "PluginDefinition",
-				APIVersion: greenhousev1alpha1.GroupVersion.String(),
-			},
-			ObjectMeta: metav1.ObjectMeta{
-				Name: "myuiplugin",
-			},
-			Spec: greenhousev1alpha1.PluginDefinitionSpec{
-				Description: "Testplugin with UI only",
-				Version:     "1.0.0",
-				UIApplication: &greenhousev1alpha1.UIApplicationReference{
-					Name:    "myapp",
-					Version: "1.0.0",
-					URL:     "http://myapp.com",
-				},
-			},
-		}
-		uiPlugin = &greenhousev1alpha1.Plugin{
-			TypeMeta: metav1.TypeMeta{
-				Kind:       "Plugin",
-				APIVersion: greenhousev1alpha1.GroupVersion.String(),
-			},
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      "uiplugin",
-				Namespace: "default",
-			},
-			Spec: greenhousev1alpha1.PluginSpec{
-				PluginDefinition: "myuiplugin",
-			},
-		}
+		uiPluginDefinition = test.NewPluginDefinition(
+			test.Ctx,
+			"myuiplugin",
+			test.WithVersion("1.0.0"),
+			test.WithUIApplication(&greenhousev1alpha1.UIApplicationReference{
+				Name:    "myapp",
+				Version: "1.0.0",
+				URL:     "http://myapp.com",
+			}),
+			test.WithoutHelmChart(),
+		)
+		uiPlugin = test.NewPlugin(
+			test.Ctx,
+			"uiplugin",
+			corev1.NamespaceDefault,
+			test.WithPluginDefinition("myuiplugin"),
+		)
 
 		Expect(test.K8sClient.Create(test.Ctx, uiPluginDefinition)).Should(Succeed())
 		Expect(test.K8sClient.Create(test.Ctx, uiPlugin)).Should(Succeed())
