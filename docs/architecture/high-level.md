@@ -22,7 +22,7 @@ flowchart LR
     operator[Greenhouse Operators]
   end
 
-  subgraph "Customer Cluster"
+  subgraph "Remote Cluster"
     direction TB
     rbac[Kubernetes RBAC]
     helmRelease[Helm Releases]
@@ -74,7 +74,7 @@ api --- ...
 
 The Greenhouse API is the core of the Greenhouse, providing a familiar interface to interact with the platform. It is deliberately not exposing all the Kubernetes APIs to the users, but uses RBAC to limit the available resources to the ones that are relevant for the use of Greenhouse. For example it is not permitted to run arbitrary workload resources inside of the Greenhouse central clusters.
 
-# Greenhouse Clusters
+## Greenhouse Clusters
 
 When talking about clusters in the context of Greenhouse, we are referring to two different types of clusters:
 
@@ -138,4 +138,45 @@ flowchart TB
 
   k8s --> idproxy
 
+```
+
+## Remote Cluster management with Plugins & Team RBAC
+
+Greenhouse provides a way to manage access, observability and compliance of a Kubernetes cluster through the use of Plugins and TeameRoleBindings. Plugins are used to deploy and manage workloads (e.g. Prometheus, Open Telemetry, Cert-Manager, etc.) in the remote clusters, while TeamRoleBindings are used to manage access to the remote clusters through Kubernetes RBAC.
+
+Plugins are a key feature of Greenhouse, allowing users to extend the dashboard with custom functionality and to provide best practices for deploying observability, operations and security tools in the remote clusters. PluginDefinitions define the Helm chart and optional default values. With a PluginPreset, users can configure Plugins for a set of clusters or with a Plugin for one specific cluster.
+
+Access in the remote clusters is managed via TeamRole and TeamRoleBinding resources. TeamRoles define the permissions, similar to RBAC Roles & ClusterRoles. The Greenhouse operator will create the necessary Kubernetes RBAC resources in the remote clusters based on the TeamRoleBinding. The TeamRoleBinding combines the TeamRole with a Team and defines the target Clusters and Namespaces.
+
+```mermaid
+---
+title: Greenhouse Plugin & Team RBAC
+---
+flowchart TB
+
+  subgraph "Greenhouse Central Cluster"
+    direction TB
+    pluginDefinition[PluginDefinition]
+    pluginPreset[PluginPreset]
+    plugin[Plugin]
+    cluster[Cluster]
+    team[Team]
+    teamRole[TeamRole]
+    teamRoleBinding[TeamRoleBinding]
+  end
+
+  subgraph "Remote Cluster"
+    direction TB
+    helmRelease[Helm Release]
+    rbac[Kubernetes RBAC]
+  end
+
+  pluginDefinition --> pluginPreset
+  pluginPreset --> plugin
+  cluster --> plugin
+  plugin --> helmRelease
+  team --> teamRoleBinding
+  teamRole --> teamRoleBinding
+  cluster --> teamRoleBinding
+  teamRoleBinding --> rbac
 ```
