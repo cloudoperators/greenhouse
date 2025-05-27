@@ -6,59 +6,21 @@ package admission_test
 import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
 	"github.com/cloudoperators/greenhouse/internal/test"
 )
 
 var _ = Describe("Validate Team Creation", func() {
 
-	teamStub := greenhousev1alpha1.Team{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: "test-org",
-		},
-		Spec: greenhousev1alpha1.TeamSpec{
-			Description:    "Test Team",
-			MappedIDPGroup: "IDP_GROUP_NAME_MATCHING_TEAM",
-		},
-	}
+	teamStub := *test.NewTeam(test.Ctx, "", "test-org", test.WithMappedIDPGroup("IDP_GROUP_NAME_MATCHING_TEAM"))
 
 	BeforeEach(func() {
-		pluginDefinition := greenhousev1alpha1.PluginDefinition{
-			ObjectMeta: metav1.ObjectMeta{
-				Namespace: "test-org",
-				Name:      "test-plugindefinition-1",
-			},
-			Spec: greenhousev1alpha1.PluginDefinitionSpec{
-				Version:     "1.0.0",
-				Description: "Test PluginDefinition 1",
-				HelmChart: &greenhousev1alpha1.HelmChartReference{
-					Name:       "./../../test/fixtures/myChart",
-					Repository: "dummy",
-					Version:    "1.0.0",
-				},
-			},
-		}
-		err := test.K8sClient.Create(test.Ctx, &pluginDefinition)
+		pluginDefinition := test.NewPluginDefinition(test.Ctx, "test-plugindefinition-1")
+		err := test.K8sClient.Create(test.Ctx, pluginDefinition)
 		Expect(err).ToNot(HaveOccurred(), "There should be no error when creating a pluginDefinition")
 
-		pluginDefinition2 := greenhousev1alpha1.PluginDefinition{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      "test-plugindefinition-2",
-				Namespace: "test-org",
-			},
-			Spec: greenhousev1alpha1.PluginDefinitionSpec{
-				Version:     "1.0.0",
-				Description: "Test PluginDefinition 2",
-				HelmChart: &greenhousev1alpha1.HelmChartReference{
-					Name:       "./../../test/fixtures/myChart",
-					Repository: "dummy",
-					Version:    "1.0.0",
-				},
-			},
-		}
-		err = test.K8sClient.Create(test.Ctx, &pluginDefinition2)
+		pluginDefinition2 := test.NewPluginDefinition(test.Ctx, "test-plugindefinition-2")
+		err = test.K8sClient.Create(test.Ctx, pluginDefinition2)
 		Expect(err).ToNot(HaveOccurred(), "There should be no error when creating a pluginDefinition")
 	})
 

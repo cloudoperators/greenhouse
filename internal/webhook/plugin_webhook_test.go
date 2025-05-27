@@ -176,20 +176,10 @@ var _ = Describe("Validate Plugin OptionValues", func() {
 			},
 		}
 		It("should reject a Plugin with missing required options", func() {
-			plugin := &greenhousev1alpha1.Plugin{
-				TypeMeta: metav1.TypeMeta{
-					Kind:       "Plugin",
-					APIVersion: greenhousev1alpha1.GroupVersion.String(),
-				},
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "test-plugin",
-					Namespace: test.TestNamespace,
-				},
-				Spec: greenhousev1alpha1.PluginSpec{
-					PluginDefinition: "test",
-					ClusterName:      "test-cluster",
-				},
-			}
+			plugin := test.NewPlugin(test.Ctx, "test-plugin", test.TestNamespace,
+				test.WithPluginDefinition("test"),
+				test.WithCluster("test-cluster"),
+			)
 			optionsFieldPath := field.NewPath("spec").Child("optionValues")
 			errList := validatePluginOptionValues(plugin.Spec.OptionValues, pluginDefinition, true, optionsFieldPath)
 			Expect(errList).NotTo(BeEmpty(), "expected an error, got nil")
@@ -340,20 +330,10 @@ func expectReleaseNamespaceMustMatchError(err error) {
 }
 
 var _ = Describe("Validate Plugin with OwnerReference from PluginPresets", func() {
-	var testPlugin = &greenhousev1alpha1.Plugin{
-		TypeMeta: metav1.TypeMeta{
-			Kind:       "Plugin",
-			APIVersion: greenhousev1alpha1.GroupVersion.String(),
-		},
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "test-plugin",
-			Namespace: test.TestNamespace,
-		},
-		Spec: greenhousev1alpha1.PluginSpec{
-			PluginDefinition: "test-plugindefinition",
-			ClusterName:      "test-cluster",
-		},
-	}
+	testPlugin := test.NewPlugin(test.Ctx, "test-plugin", test.TestNamespace,
+		test.WithPluginDefinition("test-plugindefinition"),
+		test.WithCluster("test-cluster"),
+	)
 
 	var ownerReference = metav1.OwnerReference{
 		APIVersion: "greenhouse.cloud.sap/v1alpha1",
