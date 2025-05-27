@@ -1100,6 +1100,30 @@ var _ = Describe("overridesPluginOptionValues", Ordered, func() {
 	)
 })
 
+var _ = Describe("getReleaseName", func() {
+	It("returns plugin.Spec.ReleaseName if set", func() {
+		plugin := &greenhousev1alpha1.Plugin{Spec: greenhousev1alpha1.PluginSpec{ReleaseName: "explicit-release"}}
+		preset := &greenhousev1alpha1.PluginPreset{Spec: greenhousev1alpha1.PluginPresetSpec{Plugin: greenhousev1alpha1.PluginSpec{ReleaseName: "preset-release"}}}
+		Expect(getReleaseName(plugin, preset)).To(Equal("explicit-release"))
+	})
+
+	It("returns plugin.Name if HelmReleaseStatus is set and ReleaseName is empty", func() {
+		plugin := &greenhousev1alpha1.Plugin{
+			ObjectMeta: metav1.ObjectMeta{Name: "plugin-name"},
+			Spec:       greenhousev1alpha1.PluginSpec{ReleaseName: ""},
+			Status:     greenhousev1alpha1.PluginStatus{HelmReleaseStatus: &greenhousev1alpha1.HelmReleaseStatus{}},
+		}
+		preset := &greenhousev1alpha1.PluginPreset{Spec: greenhousev1alpha1.PluginPresetSpec{Plugin: greenhousev1alpha1.PluginSpec{ReleaseName: "preset-release"}}}
+		Expect(getReleaseName(plugin, preset)).To(Equal("plugin-name"))
+	})
+
+	It("returns preset.Spec.Plugin.ReleaseName if plugin.Spec.ReleaseName is empty and no HelmReleaseStatus", func() {
+		plugin := &greenhousev1alpha1.Plugin{Spec: greenhousev1alpha1.PluginSpec{ReleaseName: ""}}
+		preset := &greenhousev1alpha1.PluginPreset{Spec: greenhousev1alpha1.PluginPresetSpec{Plugin: greenhousev1alpha1.PluginSpec{ReleaseName: "preset-release"}}}
+		Expect(getReleaseName(plugin, preset)).To(Equal("preset-release"))
+	})
+})
+
 // clusterSecret returns the secret for a cluster.
 func clusterSecret(clusterName string) *corev1.Secret {
 	return &corev1.Secret{
