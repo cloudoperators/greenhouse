@@ -58,6 +58,15 @@ func main() {
 			contentStr = insertCRDConversionSpec(contentStr, conversionSpec)
 		}
 
+		caInjectionPatch, err := extractCAInjectionPatch(group, kind)
+		if err != nil {
+			log.Fatalf("failed to extract CAInjection patch: %s", err.Error())
+		}
+		caInjectionAnnotation := extractCAInjectionAnnotation(caInjectionPatch)
+		if caInjectionAnnotation != "" {
+			contentStr = insertCAInjectionAnnotation(contentStr, caInjectionAnnotation)
+		}
+
 		if err = os.MkdirAll(filepath.Dir(destFile), os.ModePerm); err != nil {
 			log.Fatalf("failed to create destination file directory: %s", err.Error())
 		}
@@ -125,4 +134,53 @@ func insertCRDConversionSpec(content, conversionSpec string) string {
 		return content
 	}
 	return content[:specIndex+5] + "\n  " + strings.TrimRight(conversionSpec, "\n") + content[specIndex+5:]
+}
+
+// extractCAInjectionPatch returns the cert-manager CAInjection patch for a given group and kind
+// first it looks for files in the format cainjection_<group>_<kind>.yaml
+// if no files are found it looks for files in the format cainjection_<kind>.yaml
+// if no files are found it returns an empty string
+func extractCAInjectionPatch(group, kind string) (string, error) {
+	groupKindCAInjectionPattern := filepath.Join(sourceCRDDir, "patches", fmt.Sprintf("cainjection_*%s*_*%s*.yaml", group, kind))
+	patches, err := filepath.Glob(groupKindCAInjectionPattern)
+	if err != nil {
+		return "", err
+	}
+	if len(patches) == 0 {
+		kindCAInjectionPattern := filepath.Join(sourceCRDDir, "patches", fmt.Sprintf("cainjection_*%s*.yaml", kind))
+		patches, err = filepath.Glob(kindCAInjectionPattern)
+		if err != nil {
+			return "", fmt.Errorf("failed to list patches: %w", err)
+		}
+	}
+	if len(patches) > 0 {
+		patchContent, err := os.ReadFile(patches[0])
+		if err != nil {
+			return "", fmt.Errorf("failed to read patch file: %w", err)
+		}
+		return string(patchContent), nil
+	}
+	return "", nil
+}
+
+// extractCAInjectionAnnotation returns the CAInjection annotation from a given patch
+// if no conversion spec is found it returns an empty string
+// it returns everything after the first occurrence of the string "conversion:"
+func extractCAInjectionAnnotation(patch string) string {
+	startIndex := strings.Index(patch, "cert-manager.io/inject-ca-from:")
+	if startIndex == -1 {
+		return ""
+	}
+	return patch[startIndex:]
+}
+
+// insertCAInjectionAnnotation inserts a conversion spec into a CRD file
+// it looks for the first occurrence of the string "annotations:" and inserts the CAInjection annotation after it
+// if "annotations:" is not found it returns the original content
+func insertCAInjectionAnnotation(content, caInjectionAnnotation string) string {
+	specIndex := strings.Index(content, "annotations:")
+	if specIndex == -1 {
+		return content
+	}
+	return content[:specIndex+12] + "\n    " + strings.TrimRight(caInjectionAnnotation, "\n") + content[specIndex+12:]
 }
