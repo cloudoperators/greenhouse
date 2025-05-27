@@ -72,7 +72,6 @@ var _ = AfterSuite(func() {
 })
 
 var _ = Describe("Cluster E2E", Ordered, func() {
-	// the context executes the tests for Cluster where a secret of type kubeconfig is provided
 	// scenario: Happy Path
 	Context("Cluster Happy Path 🤖", Ordered, func() {
 		It("should onboard remote cluster", func() {
