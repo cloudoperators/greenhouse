@@ -19,6 +19,11 @@ global:
       postgresqlPort:
       postgresqlUsername:
 
+manager:
+  controllerManager:
+    image:
+      tag: v0.4.0
+
 postgresqlng:
   enabled: true
   global:
@@ -46,6 +51,11 @@ organization:
     - "http://localhost:18000"
 idproxy:
   enabled: true
+  image:
+    tag: v0.4.0
+cors-proxy:
+  image:
+    tag: v0.4.0
 
 scim:
   enabled: false
