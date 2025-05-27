@@ -37,7 +37,7 @@ flowchart LR
 
 From a high-level perspective, the Greenhouse platform consists of these main components:
 
-1. **Greenhouse Central Cluster**: The API Server of the central Greenhouse cluster serves as the API endpoint that acts as the primary interface for users to interact with the Greenhouse platform. The API consists of the Greenhouse Custom Resource Definitions (CRDs). Interactions with the API are possible both via the Greenhouse dashboard and the `kubectl` command line tool. The Greenhouse operators run inside this central cluster.
+1. **Greenhouse Central Cluster**: The API Server of the central Greenhouse cluster serves as the API endpoint that acts as the primary interface for users to interact with the Greenhouse platform. The API consists of the Greenhouse Custom Resource Definitions (CRDs). Interactions with the API are possible via the Greenhouse dashboard and the `kubectl` command line tool. The Greenhouse operators run inside this central cluster.
 2. **Remote Clusters**: The are the clusters that are onboarded into Greenhouse, so that the Greenhouse operators can manage the lifecycle of Greenhouse resources in these clusters.
 
 ## Greenhouse API
