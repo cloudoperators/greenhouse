@@ -18,29 +18,8 @@ import (
 )
 
 var _ = Describe("Organization ServiceProxyReconciler", Ordered, func() {
-	var serviceProxyPluginDefinition = &greenhousev1alpha1.PluginDefinition{
-		TypeMeta: metav1.TypeMeta{
-			Kind:       "PluginDefinition",
-			APIVersion: greenhousev1alpha1.GroupVersion.String(),
-		},
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "service-proxy",
-			Namespace: corev1.NamespaceDefault,
-		},
-		Spec: greenhousev1alpha1.PluginDefinitionSpec{
-			Description: "Testplugin",
-			Version:     "1.0.0",
-			HelmChart: &greenhousev1alpha1.HelmChartReference{
-				Name:       "./../../test/fixtures/myChart",
-				Repository: "dummy",
-				Version:    "1.0.0",
-			},
-		},
-	}
-
-	var (
-		setup *test.TestSetup
-	)
+	var setup *test.TestSetup
+	serviceProxyPluginDefinition := test.NewPluginDefinition(test.Ctx, "service-proxy")
 
 	BeforeEach(func() {
 		setup = test.NewTestSetup(test.Ctx, test.K8sClient, "org-rbac-test")

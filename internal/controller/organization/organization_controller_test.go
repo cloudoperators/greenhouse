@@ -44,9 +44,7 @@ var _ = Describe("Test Organization reconciliation", Ordered, func() {
 
 		It("should create admin team for organization", func() {
 			testOrgName := "test-org-2"
-			testOrg := setup.CreateOrganization(test.Ctx, testOrgName, func(org *greenhousev1alpha1.Organization) {
-				org.Spec.MappedOrgAdminIDPGroup = validIdpGroupName
-			})
+			testOrg := setup.CreateOrganization(test.Ctx, testOrgName, test.WithMappedAdminIDPGroup(validIdpGroupName))
 			b := true
 			ownerRef := metav1.OwnerReference{
 				APIVersion:         greenhousev1alpha1.GroupVersion.String(),
@@ -146,9 +144,7 @@ var _ = Describe("Test Organization reconciliation", Ordered, func() {
 
 			By("creating Organization with SCIM Config")
 			testOrg := setup.CreateOrganization(test.Ctx, testOrgName,
-				func(o *greenhousev1alpha1.Organization) {
-					o.Spec.MappedOrgAdminIDPGroup = validIdpGroupName
-				},
+				test.WithMappedAdminIDPGroup(validIdpGroupName),
 				func(o *greenhousev1alpha1.Organization) {
 					o.Spec.Authentication = &greenhousev1alpha1.Authentication{
 						SCIMConfig: &greenhousev1alpha1.SCIMConfig{
@@ -190,9 +186,7 @@ var _ = Describe("Test Organization reconciliation", Ordered, func() {
 
 			By("creating Organization with SCIM Config")
 			testOrg := setup.CreateOrganization(test.Ctx, testOrgName,
-				func(o *greenhousev1alpha1.Organization) {
-					o.Spec.MappedOrgAdminIDPGroup = validIdpGroupName
-				},
+				test.WithMappedAdminIDPGroup(validIdpGroupName),
 				func(o *greenhousev1alpha1.Organization) {
 					o.Spec.Authentication = &greenhousev1alpha1.Authentication{
 						SCIMConfig: &greenhousev1alpha1.SCIMConfig{
