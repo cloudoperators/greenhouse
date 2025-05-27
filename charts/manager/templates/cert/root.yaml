@@ -1,6 +1,7 @@
 # SPDX-FileCopyrightText: 2024 SAP SE or an SAP affiliate company and Greenhouse contributors
 # SPDX-License-Identifier: Apache-2.0
 
+{{- if .Values.certManager.enabled }}
 kind: ClusterIssuer
 apiVersion: cert-manager.io/v1
 metadata:
@@ -8,3 +9,4 @@ metadata:
 spec:
   ca:
     secretName: {{ include "manager.fullname" . }}-ca-root
+{{ end -}}

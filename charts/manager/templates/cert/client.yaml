@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: Apache-2.0
 
 ## Certificate for APIServer
+{{- if .Values.certManager.enabled }}
 kind: Certificate
 apiVersion: cert-manager.io/v1
 metadata:
@@ -20,3 +21,4 @@ spec:
   privateKey:
     algorithm: RSA
     size: 2048
+{{ end -}}
