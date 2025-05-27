@@ -744,6 +744,123 @@ string
 </table>
 </div>
 </div>
+<h3 id="greenhouse.sap/v1alpha1.ClusterPluginDefinition">ClusterPluginDefinition
+</h3>
+<p>ClusterPluginDefinition is the Schema for the clusterplugindefinitions API.</p>
+<div class="md-typeset__scrollwrap">
+<div class="md-typeset__table">
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>metadata</code><br>
+<em>
+<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#objectmeta-v1-meta">
+Kubernetes meta/v1.ObjectMeta
+</a>
+</em>
+</td>
+<td>
+Refer to the Kubernetes API documentation for the fields of the
+<code>metadata</code> field.
+</td>
+</tr>
+<tr>
+<td>
+<code>spec</code><br>
+<em>
+<a href="#greenhouse.sap/v1alpha1.ClusterPluginDefinitionSpec">
+ClusterPluginDefinitionSpec
+</a>
+</em>
+</td>
+<td>
+<br/>
+<br/>
+<table>
+<tr>
+<td>
+<code>PluginDefinitionSpec</code><br>
+<em>
+<a href="#greenhouse.sap/v1alpha1.PluginDefinitionSpec">
+PluginDefinitionSpec
+</a>
+</em>
+</td>
+<td>
+<p>
+(Members of <code>PluginDefinitionSpec</code> are embedded into this type.)
+</p>
+</td>
+</tr>
+</table>
+</td>
+</tr>
+<tr>
+<td>
+<code>status</code><br>
+<em>
+<a href="#greenhouse.sap/v1alpha1.ClusterPluginDefinitionStatus">
+ClusterPluginDefinitionStatus
+</a>
+</em>
+</td>
+<td>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<h3 id="greenhouse.sap/v1alpha1.ClusterPluginDefinitionSpec">ClusterPluginDefinitionSpec
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#greenhouse.sap/v1alpha1.ClusterPluginDefinition">ClusterPluginDefinition</a>)
+</p>
+<p>ClusterPluginDefinitionSpec defines the desired state of ClusterPluginDefinition.</p>
+<div class="md-typeset__scrollwrap">
+<div class="md-typeset__table">
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>PluginDefinitionSpec</code><br>
+<em>
+<a href="#greenhouse.sap/v1alpha1.PluginDefinitionSpec">
+PluginDefinitionSpec
+</a>
+</em>
+</td>
+<td>
+<p>
+(Members of <code>PluginDefinitionSpec</code> are embedded into this type.)
+</p>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<h3 id="greenhouse.sap/v1alpha1.ClusterPluginDefinitionStatus">ClusterPluginDefinitionStatus
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#greenhouse.sap/v1alpha1.ClusterPluginDefinition">ClusterPluginDefinition</a>)
+</p>
+<p>ClusterPluginDefinitionStatus defines the observed state of ClusterPluginDefinition.</p>
 <h3 id="greenhouse.sap/v1alpha1.ClusterSelector">ClusterSelector
 </h3>
 <p>ClusterSelector specifies a selector for clusters by name or by label with the option to exclude specific clusters.</p>
@@ -1717,6 +1834,7 @@ PluginDefinitionStatus
 </h3>
 <p>
 (<em>Appears on:</em>
+<a href="#greenhouse.sap/v1alpha1.ClusterPluginDefinitionSpec">ClusterPluginDefinitionSpec</a>, 
 <a href="#greenhouse.sap/v1alpha1.PluginDefinition">PluginDefinition</a>)
 </p>
 <p>PluginDefinitionSpec defines the desired state of PluginDefinitionSpec</p>
