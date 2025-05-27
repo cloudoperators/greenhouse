@@ -72,7 +72,7 @@ api --- plugin
 api --- ...
 ```
 
-The Greenhouse API is the core of the Greenhouse, providing a familiar interface to interact with the platform. It is deliberately not exposing all the Kubernetes APIs to the users, but uses RBAC to limit the available resources to the ones that are relevant for the use of Greenhouse. For example it is not permitted to run arbitrary workload resources inside of the Greenhouse central clusters.
+The Greenhouse API serves as the backbone of the platform, offering a familiar interface for interacting with Greenhouse. It is deliberately not exposing all the Kubernetes APIs to the users, but uses RBAC to limit the available resources to the ones that are relevant for the use of Greenhouse. For example it is not permitted to run arbitrary workload resources inside of the Greenhouse central clusters.
 
 ## Greenhouse Clusters
 
