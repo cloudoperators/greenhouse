@@ -212,6 +212,13 @@ func WithReleaseNamespace(releaseNamespace string) func(*greenhousev1alpha1.Plug
 	}
 }
 
+// WithReleaseName sets the ReleaseName of a Plugin
+func WithReleaseName(releaseName string) func(*greenhousev1alpha1.Plugin) {
+	return func(p *greenhousev1alpha1.Plugin) {
+		p.Spec.ReleaseName = releaseName
+	}
+}
+
 // WithCluster sets the Cluster for a Plugin
 func WithCluster(cluster string) func(*greenhousev1alpha1.Plugin) {
 	return func(p *greenhousev1alpha1.Plugin) {

@@ -18,7 +18,6 @@ import (
 	"helm.sh/helm/v3/pkg/storage/driver"
 	corev1 "k8s.io/api/core/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/rest"
@@ -59,6 +58,7 @@ var _ = BeforeSuite(func() {
 // except for WorkloadReady condition, which is not a subject under test.
 // This is done because the cumulative Ready condition in tests will be false due to workload not being ready.
 func checkReadyConditionComponentsUnderTest(g Gomega, plugin *greenhousev1alpha1.Plugin) {
+	GinkgoHelper()
 	readyCondition := plugin.Status.GetConditionByType(greenhousemetav1alpha1.ReadyCondition)
 	g.Expect(readyCondition).ToNot(BeNil(), "Ready condition should not be nil")
 	clusterAccessReadyCondition := plugin.Status.GetConditionByType(greenhousev1alpha1.ClusterAccessReadyCondition)
@@ -95,6 +95,7 @@ var _ = Describe("HelmControllerTest", Serial, func() {
 		PluginRequiredOptionValue = "required"
 
 		Namespace               = "greenhouse"
+		ReleaseName             = "myplugin-release"
 		HelmRepo                = "dummy"
 		HelmChart               = "./../../test/fixtures/myChart"
 		HelmChartUpdated        = "./../../test/fixtures/myChartV2"
@@ -125,9 +126,10 @@ var _ = Describe("HelmControllerTest", Serial, func() {
 			},
 		}))).To(Succeed(), "there must be no error creating the test namespace")
 
-		testPluginDefinition = test.NewPluginDefinition(
-			test.Ctx,
-			PluginDefinitionName,
+		// remember original chart loader, which is overwritten in some tests
+		tempChartLoader = helm.ChartLoader
+
+		testPluginDefinition = test.NewPluginDefinition(test.Ctx, PluginDefinitionName,
 			test.WithVersion(PluginDefinitionVersion),
 			test.WithHelmChart(&greenhousev1alpha1.HelmChartReference{
 				Name:       HelmChart,
@@ -164,13 +166,11 @@ var _ = Describe("HelmControllerTest", Serial, func() {
 			return actPluginDefinition.Spec.Version == PluginDefinitionVersion
 		}).Should(BeTrue())
 
-		testPlugin = test.NewPlugin(
-			test.Ctx,
-			PluginName,
-			Namespace,
+		testPlugin = test.NewPlugin(test.Ctx, PluginName, Namespace,
 			test.WithPluginDefinition(PluginDefinitionName),
-			test.WithPluginOptionValue(PluginOptionRequired, asAPIextensionJSON(PluginRequiredOptionValue), nil),
-		)
+			test.WithReleaseName(ReleaseName),
+			test.WithPluginOptionValue(PluginOptionRequired, asAPIextensionJSON(PluginRequiredOptionValue), nil))
+
 		Expect(test.K8sClient.Create(test.Ctx, testPlugin)).Should(Succeed())
 
 		actPlugin := &greenhousev1alpha1.Plugin{}
@@ -184,33 +184,17 @@ var _ = Describe("HelmControllerTest", Serial, func() {
 			g.Expect(actPlugin.Status.HelmReleaseStatus.Status).To(Equal("deployed"))
 			return true
 		}).Should(BeTrue())
-
-		// remember original chart loader, which is overwritten in some tests
-		tempChartLoader = helm.ChartLoader
 	})
 
 	AfterEach(func() {
-		err := client.IgnoreNotFound(test.K8sClient.Delete(test.Ctx, testPlugin))
-		Expect(err).ToNot(HaveOccurred(), "error deleting plugin")
-		actPlugin := &greenhousev1alpha1.Plugin{}
-		Eventually(func() bool {
-			return apierrors.IsNotFound(test.K8sClient.Get(test.Ctx, pluginID, actPlugin))
-		}).Should(BeTrue())
-
-		err = test.K8sClient.Delete(test.Ctx, testPluginDefinition)
-		Expect(err).ToNot(HaveOccurred(), "error deleting pluginDefinition")
-		actPluginDefinition := &greenhousev1alpha1.PluginDefinition{}
-		Eventually(func() bool {
-			return apierrors.IsNotFound(test.K8sClient.Get(test.Ctx, pluginDefinitionID, actPluginDefinition))
-		}).Should(BeTrue())
-
+		test.EventuallyDeleted(test.Ctx, test.K8sClient, testPlugin)
+		test.EventuallyDeleted(test.Ctx, test.K8sClient, testPluginDefinition)
 		// revert to original chart loader
 		helm.ChartLoader = tempChartLoader
 	})
 
 	When("a pluginDefinition and its chart were updated", func() {
 		It("should reconcile the Plugin to a newer PluginDefinition version", func() {
-
 			testPluginDefinition.Spec.HelmChart.Name = HelmChartUpdated
 			testPluginDefinition.Spec.Version = PluginDefinitionVersionUpdated
 			Expect(test.K8sClient.Update(test.Ctx, testPluginDefinition)).Should(Succeed())
@@ -430,9 +414,7 @@ var _ = Describe("HelmControllerTest", Serial, func() {
 		)
 
 		By("creating a pluginDefinition with every type of option", func() {
-			complexPluginDefinition = test.NewPluginDefinition(
-				test.Ctx,
-				pluginWithEveryOption,
+			complexPluginDefinition = test.NewPluginDefinition(test.Ctx, pluginWithEveryOption,
 				test.WithVersion(PluginDefinitionVersion),
 				test.WithHelmChart(&greenhousev1alpha1.HelmChartReference{
 					Name:       HelmChartWithAllOptions,
@@ -455,7 +437,7 @@ var _ = Describe("HelmControllerTest", Serial, func() {
 				}),
 				test.AppendPluginOption(greenhousev1alpha1.PluginOption{
 					Name:        PluginOptionInt,
-					Description: "This is my default test plugin option with a int value",
+					Description: "This is my default test plugin option with an int value",
 					Required:    false,
 					Default:     asAPIextensionJSON(PluginOptionIntDefault),
 					Type:        greenhousev1alpha1.PluginOptionTypeInt,
@@ -489,11 +471,9 @@ var _ = Describe("HelmControllerTest", Serial, func() {
 		})
 
 		By("creating a Plugin with every type of OptionValue", func() {
-			complexPlugin = test.NewPlugin(
-				test.Ctx,
-				pluginName,
-				Namespace,
+			complexPlugin = test.NewPlugin(test.Ctx, pluginName, Namespace,
 				test.WithPluginDefinition(pluginWithEveryOption),
+				test.WithReleaseName(ReleaseName),
 				test.WithPluginOptionValue(PluginOptionDefault, asAPIextensionJSON(stringVal), nil),
 				test.WithPluginOptionValue(PluginOptionBool, asAPIextensionJSON(boolVal), nil),
 				test.WithPluginOptionValue(PluginOptionInt, asAPIextensionJSON(intVal), nil),
@@ -535,20 +515,14 @@ var _ = Describe("HelmControllerTest", Serial, func() {
 			Expect(release.Config).To(HaveKeyWithValue(PluginOptionList, listVal), "list value not set correctly")
 			Expect(release.Config).To(HaveKeyWithValue(PluginOptionMap, mapVal), "map value not set correctly")
 		})
+		test.EventuallyDeleted(test.Ctx, test.K8sClient, complexPlugin)
 	})
 
 	DescribeTable("creating of Plugins with wrong OptionValues", func(option string, value any) {
-		plugin := &greenhousev1alpha1.Plugin{
-			Spec: greenhousev1alpha1.PluginSpec{
-				PluginDefinition: "testPlugin",
-				OptionValues: []greenhousev1alpha1.PluginOptionValue{
-					{
-						Name:  option,
-						Value: asAPIextensionJSON(value),
-					},
-				},
-			},
-		}
+		plugin := test.NewPlugin(test.Ctx, "testPlugin", Namespace,
+			test.WithPluginDefinition("testPlugin"),
+			test.WithReleaseName(ReleaseName),
+			test.WithPluginOptionValue(option, asAPIextensionJSON(value), nil))
 		Expect(test.K8sClient.Create(test.Ctx, plugin)).Should(Not(Succeed()), "creating a plugin with wrong types should not be successful")
 	},
 		Entry("string with wrong type", PluginOptionRequired, 1),
@@ -593,19 +567,15 @@ var _ = When("the pluginDefinition is UI only", func() {
 			test.Ctx,
 			"myuiplugin",
 			test.WithVersion("1.0.0"),
+			test.WithoutHelmChart(),
 			test.WithUIApplication(&greenhousev1alpha1.UIApplicationReference{
 				Name:    "myapp",
 				Version: "1.0.0",
 				URL:     "http://myapp.com",
-			}),
-			test.WithoutHelmChart(),
-		)
-		uiPlugin = test.NewPlugin(
-			test.Ctx,
-			"uiplugin",
-			corev1.NamespaceDefault,
+			}))
+		uiPlugin = test.NewPlugin(test.Ctx, "uiplugin", "default",
 			test.WithPluginDefinition("myuiplugin"),
-		)
+			test.WithReleaseName("myuiplugin-release"))
 
 		Expect(test.K8sClient.Create(test.Ctx, uiPluginDefinition)).Should(Succeed())
 		Expect(test.K8sClient.Create(test.Ctx, uiPlugin)).Should(Succeed())
