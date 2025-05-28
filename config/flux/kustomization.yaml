@@ -18,7 +18,7 @@ images:
     newTag: v1.5.0
   - name: fluxcd/image-reflector-controller
     newName: ghcr.io/fluxcd/image-reflector-controller
-    newTag: v0.34.0
+    newTag: v0.35.0
   - name: fluxcd/image-automation-controller
     newName: ghcr.io/fluxcd/image-automation-controller
     newTag: v0.40.0
