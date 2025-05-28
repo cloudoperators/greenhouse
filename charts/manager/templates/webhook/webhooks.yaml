@@ -2,9 +2,9 @@
 apiVersion: admissionregistration.k8s.io/v1
 kind: MutatingWebhookConfiguration
 metadata:
-  annotations:
-    "cert-manager.io/inject-ca-from": "greenhouse/greenhouse-client-cert"
   name: greenhouse-mutating-webhook-configuration
+  annotations:
+    cert-manager.io/inject-ca-from: greenhouse/greenhouse-client-cert
 webhooks:
   - admissionReviewVersions:
       - v1
@@ -197,9 +197,9 @@ webhooks:
 apiVersion: admissionregistration.k8s.io/v1
 kind: ValidatingWebhookConfiguration
 metadata:
-  annotations:
-    "cert-manager.io/inject-ca-from": "greenhouse/greenhouse-client-cert"
   name: greenhouse-validating-webhook-configuration
+  annotations:
+    cert-manager.io/inject-ca-from: greenhouse/greenhouse-client-cert
 webhooks:
   - admissionReviewVersions:
       - v1
