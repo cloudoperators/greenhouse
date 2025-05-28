@@ -39,7 +39,7 @@ Greenhouse provides a suite of *Plugins* which consist of pre-packaged configura
 
 The following *Plugins* are available currently:
 
-- [Kubernetes Monitoring](https://cloudoperators.github.io/greenhouse/docs/reference/catalog/kube-monitoring): installs *[Prometheus](https://prometheus.io)*, used to collect custom and Kubernetes specific metrics with standard Kubernetes alerting enabled. 
+- [Kube-Monitoring](https://cloudoperators.github.io/greenhouse/docs/reference/catalog/kube-monitoring): installs *[Prometheus](https://prometheus.io)*, used to collect custom and Kubernetes specific metrics with standard Kubernetes alerting enabled. 
 - [Thanos](https://cloudoperators.github.io/greenhouse/docs/reference/catalog/thanos): installs *[Thanos](https://thanos.io)*, used to enable long term metric retention and unified metric accessibility.
 - [Perses](https://cloudoperators.github.io/greenhouse/docs/reference/catalog/perses): installs *[Perses](https://perses.dev)* an open specification for dashboards, an open dashboard tool for Prometheus and other data sources.
 - [Alerts](https://cloudoperators.github.io/greenhouse/docs/reference/catalog/alerts): installs *[Prometheus AlertManager](https://prometheus.io/docs/alerting/latest/alertmanager/)* and *[Supernova](https://github.com/sapcc/supernova)*, used to manage and visualize alerts sent by Prometheus.
