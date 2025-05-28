@@ -6,7 +6,7 @@ resources:
 images:
   - name: fluxcd/source-controller
     newName: ghcr.io/fluxcd/source-controller
-    newTag: v1.5.0
+    newTag: v1.6.0
   - name: fluxcd/kustomize-controller
     newName: ghcr.io/fluxcd/kustomize-controller
     newTag: v1.5.1
