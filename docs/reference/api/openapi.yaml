@@ -314,6 +314,13 @@ components:
                 pluginDefinition:
                   description: PluginDefinition is the name of the PluginDefinition this instance is for.
                   type: string
+                releaseName:
+                  description: ReleaseName is the name of the helm release in the remote cluster to which the backend is deployed.\nIf the Plugin was already deployed, the Plugin's name is used as the release name.\nIf this Plugin is newly created, the releaseName is defaulted to the PluginDefinitions HelmChart name.
+                  maxLength: 53
+                  type: string
+                  x-kubernetes-validations:
+                    - message: ReleaseName is immutable
+                      rule: self == oldSelf
                 releaseNamespace:
                   description: ReleaseNamespace is the namespace in the remote cluster to which the backend is deployed.\nDefaults to the Greenhouse managed namespace if not set.
                   type: string
@@ -927,6 +934,13 @@ components:
             pluginDefinition:
               description: PluginDefinition is the name of the PluginDefinition this instance is for.
               type: string
+            releaseName:
+              description: ReleaseName is the name of the helm release in the remote cluster to which the backend is deployed.\nIf the Plugin was already deployed, the Plugin's name is used as the release name.\nIf this Plugin is newly created, the releaseName is defaulted to the PluginDefinitions HelmChart name.
+              maxLength: 53
+              type: string
+              x-kubernetes-validations:
+                - message: ReleaseName is immutable
+                  rule: self == oldSelf
             releaseNamespace:
               description: ReleaseNamespace is the namespace in the remote cluster to which the backend is deployed.\nDefaults to the Greenhouse managed namespace if not set.
               type: string
@@ -1061,6 +1075,9 @@ components:
               type: integer
           type: object
       type: object
+      x-kubernetes-validations:
+        - message: ReleaseName is required once set
+          rule: '!has(oldSelf.spec.releaseName) || has(self.spec.releaseName)'
     TeamMembership:
       xml:
         name: greenhouse.sap

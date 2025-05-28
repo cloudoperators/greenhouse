@@ -1642,6 +1642,19 @@ string
 Defaults to the Greenhouse managed namespace if not set.</p>
 </td>
 </tr>
+<tr>
+<td>
+<code>releaseName</code><br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>ReleaseName is the name of the helm release in the remote cluster to which the backend is deployed.
+If the Plugin was already deployed, the Plugin&rsquo;s name is used as the release name.
+If this Plugin is newly created, the releaseName is defaulted to the PluginDefinitions HelmChart name.</p>
+</td>
+</tr>
 </table>
 </td>
 </tr>
@@ -2451,6 +2464,19 @@ string
 <td>
 <p>ReleaseNamespace is the namespace in the remote cluster to which the backend is deployed.
 Defaults to the Greenhouse managed namespace if not set.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>releaseName</code><br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>ReleaseName is the name of the helm release in the remote cluster to which the backend is deployed.
+If the Plugin was already deployed, the Plugin&rsquo;s name is used as the release name.
+If this Plugin is newly created, the releaseName is defaulted to the PluginDefinitions HelmChart name.</p>
 </td>
 </tr>
 </tbody>
