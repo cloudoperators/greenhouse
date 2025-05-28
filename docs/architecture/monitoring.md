@@ -43,7 +43,8 @@ The following *Plugins* are available currently:
 - [Thanos](https://cloudoperators.github.io/greenhouse/docs/reference/catalog/thanos): installs *[Thanos](https://thanos.io)*, used to enable long term metric retention and unified metric accessibility.
 - [Perses](https://cloudoperators.github.io/greenhouse/docs/reference/catalog/perses): installs *[Perses](https://perses.dev)* an open specification for dashboards, an open dashboard tool for Prometheus and other data sources.
 - [Alerts](https://cloudoperators.github.io/greenhouse/docs/reference/catalog/alerts): installs *[Prometheus AlertManager](https://prometheus.io/docs/alerting/latest/alertmanager/)* and *[Supernova](https://github.com/sapcc/supernova)*, used to manage and visualize alerts sent by Prometheus.
-- [OpenTelemetry](https://cloudoperators.github.io/greenhouse/docs/reference/catalog/logs): installs *[OpenTelemetry](https://opentelemetry.io)* in the form of *[OpenTelemetryCollectors](https://github.com/open-telemetry/opentelemetry-collector)* used to collect metrics and logs from applications and forward them to backends like Prometheus and OpenSearch.
+- [Logs](https://cloudoperators.github.io/greenhouse/docs/reference/catalog/logs): installs *[OpenTelemetry](https://opentelemetry.io)* in the form of *[OpenTelemetryCollectors](https://github.com/open-telemetry/opentelemetry-collector)* used to collect metrics and logs from applications and forward them to backends like Prometheus and OpenSearch.
+- [Audit-Logs](https://cloudoperators.github.io/greenhouse/docs/reference/catalog/audit-logs): installs *[OpenTelemetry](https://opentelemetry.io)* in the form of *[OpenTelemetryCollectors](https://github.com/open-telemetry/opentelemetry-collector)* used to collect *audit-relevant* logs from applications and forward them to backends like Prometheus and OpenSearch.
 
 ## Overview Architecture
 ![Observability architecture](./monitoring-architecture.png)
