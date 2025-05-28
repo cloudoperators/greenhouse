@@ -12,7 +12,7 @@ images:
     newTag: v1.5.1
   - name: fluxcd/helm-controller
     newName: ghcr.io/fluxcd/helm-controller
-    newTag: v1.2.0
+    newTag: v1.3.0
   - name: fluxcd/notification-controller
     newName: ghcr.io/fluxcd/notification-controller
     newTag: v1.6.0
