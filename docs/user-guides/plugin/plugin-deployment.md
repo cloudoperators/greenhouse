@@ -17,10 +17,12 @@ metadata:
   name: kube-monitoring-martin
   namespace: <organization namespace> # same namespace in remote cluster for resources
 spec:
-  clusterName: <name of the remote cluster > # k get cluster
+  clusterName: <name of the remote cluster >
   disabled: false
   displayName: <any human readable name>
-  pluginDefinition: <plugin name> # k get plugin
+  pluginDefinition: <pluginDefinition name>
+  releaseNamespace: <namespace> # namespace in remote cluster where the plugin is deployed
+  releaseName: <helm release name> # name of the helm release that will be created
   optionValues:
     - name: <from the plugin options>
       value: <from the plugin options>
