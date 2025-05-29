@@ -79,4 +79,4 @@ spec:
       - name: cert
         secret:
           defaultMode: 420
-          secretName: {{ include "manager.fullname" . }}-webhook-server-cert
+          secretName: {{ include "manager.fullname" . }}-webhook-cert
