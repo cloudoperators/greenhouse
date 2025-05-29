@@ -11,7 +11,7 @@ spec:
   issuerRef:
     name: {{ include "manager.fullname" . }}-ca-root
     kind: ClusterIssuer
-  secretName: {{ include "manager.fullname" . }}-webhook-server-cert
+  secretName: {{ include "manager.fullname" . }}-webhook-cert
   duration: 2160h
   renewBefore: 360h
   dnsNames:
