@@ -27,10 +27,9 @@ Logs are detailed records of system or application events. These can be in vario
 Traces follow a request's journey through the system, capturing latency and failures across microservices. Traces are key for understanding dependencies and diagnosing bottlenecks.
 
 ### Tools
-
-- **[Prometheus](https://prometheus.io)** is a common tool for collecting and querying metrics. It uses a time-series database optimized for real-time data, making it ideal for gathering system health data, enabling alerting, and visualizing trends.
-- **[OpenSearch](https://opensearch.org)** provides a scalable platform for log indexing, search, and analysis of logs. Enabling teams to sift through large volumes of logs to identify issues and understand system behaviour over time.
-- **[Jaeger](https://www.jaegertracing.io)** is a commonly used open-source tool for distributed tracing, providing a detailed view of request paths and performance across services.
+Common Open Source Tools to capture these signals are:
+- **[Prometheus](https://prometheus.io)** is a tool for collecting and querying metrics. It uses a time-series database optimized for real-time data, making it ideal for gathering system health data, enabling alerting, and visualizing trends.
+- **[Jaeger](https://www.jaegertracing.io)** is a tool for distributed tracing, providing a detailed view of request paths and performance across services.
 - **[OpenTelemetry](https://opentelemetry.io)** was developed as a framework for instrumenting applications and infrastructures to collect metrics, logs and traces. It defines a standard for unifying the processing of all three types of signals. In addition to providing an API and SDKs for multiple programming languages, **OpenTelemetry** also simplifies the integration with backend systems such as Prometheus, OpenSearch and Jaeger.
 
 ## Observability in Greenhouse
