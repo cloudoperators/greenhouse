@@ -191,6 +191,10 @@ openTelemetry:
       defaultRules:
         enabled: false
       enabled: false
+
+opensearch:
+  enabled: false
+
 perses:
   enabled: true
 
