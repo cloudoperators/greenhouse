@@ -2,23 +2,23 @@ apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 namespace: flux-system
 resources:
-  - https://github.com/fluxcd/flux2/manifests/install?ref=v2.5.1
+  - https://github.com/fluxcd/flux2/manifests/install?ref=v2.6.1
 images:
   - name: fluxcd/source-controller
     newName: ghcr.io/fluxcd/source-controller
     newTag: v1.6.0
   - name: fluxcd/kustomize-controller
     newName: ghcr.io/fluxcd/kustomize-controller
-    newTag: v1.5.1
+    newTag: v1.6.0
   - name: fluxcd/helm-controller
     newName: ghcr.io/fluxcd/helm-controller
-    newTag: v1.2.0
+    newTag: v1.3.0
   - name: fluxcd/notification-controller
     newName: ghcr.io/fluxcd/notification-controller
     newTag: v1.6.0
   - name: fluxcd/image-reflector-controller
     newName: ghcr.io/fluxcd/image-reflector-controller
-    newTag: v0.35.0
+    newTag: v0.35.1
   - name: fluxcd/image-automation-controller
     newName: ghcr.io/fluxcd/image-automation-controller
     newTag: v0.41.0

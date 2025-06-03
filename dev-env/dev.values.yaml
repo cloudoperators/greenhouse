@@ -7,3 +7,5 @@ global:
     backend: kubernetes
 alerts:
   enabled: false
+certManager:
+  enabled: false
