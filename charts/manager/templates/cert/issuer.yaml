@@ -6,7 +6,6 @@ kind: Certificate
 apiVersion: cert-manager.io/v1
 metadata:
   name: {{ include "manager.fullname" . }}-ca-root
-  namespace: cert-manager
 spec:
   secretName: {{ include "manager.fullname" . }}-ca-root
   isCA: true
