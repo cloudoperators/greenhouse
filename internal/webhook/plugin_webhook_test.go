@@ -4,6 +4,7 @@
 package admission
 
 import (
+	"context"
 	"errors"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -15,6 +16,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	"k8s.io/utils/ptr"
+	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	greenhouseapis "github.com/cloudoperators/greenhouse/api"
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
@@ -176,20 +178,10 @@ var _ = Describe("Validate Plugin OptionValues", func() {
 			},
 		}
 		It("should reject a Plugin with missing required options", func() {
-			plugin := &greenhousev1alpha1.Plugin{
-				TypeMeta: metav1.TypeMeta{
-					Kind:       "Plugin",
-					APIVersion: greenhousev1alpha1.GroupVersion.String(),
-				},
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "test-plugin",
-					Namespace: test.TestNamespace,
-				},
-				Spec: greenhousev1alpha1.PluginSpec{
-					PluginDefinition: "test",
-					ClusterName:      "test-cluster",
-				},
-			}
+			plugin := test.NewPlugin(test.Ctx, "test-plugin", test.TestNamespace,
+				test.WithPluginDefinition("test"),
+				test.WithCluster("test-cluster"),
+			)
 			optionsFieldPath := field.NewPath("spec").Child("optionValues")
 			errList := validatePluginOptionValues(plugin.Spec.OptionValues, pluginDefinition, true, optionsFieldPath)
 			Expect(errList).NotTo(BeEmpty(), "expected an error, got nil")
@@ -237,25 +229,34 @@ var _ = Describe("Validate plugin spec fields", Ordered, func() {
 	})
 
 	It("should not accept a plugin without a clusterName", func() {
-		testPlugin = test.NewPlugin(test.Ctx, "test-plugin", setup.Namespace(), test.WithPluginDefinition(testPluginDefinition.Name), test.WithReleaseNamespace("test-namespace"))
+		testPlugin = test.NewPlugin(test.Ctx, "test-plugin", setup.Namespace(), test.WithPluginDefinition(testPluginDefinition.Name), test.WithReleaseNamespace("test-namespace"), test.WithReleaseName("test-release"))
 		expectClusterMustBeSetError(test.K8sClient.Create(test.Ctx, testPlugin))
 	})
 
 	It("should not accept a plugin for the central cluster where releaseNamespace and Plugin Namespace do not match", func() {
-		testPlugin = test.NewPlugin(test.Ctx, "test-plugin", setup.Namespace(), test.WithPluginDefinition(testCentralPluginDefinition.Name), test.WithReleaseNamespace("test-namespace"))
+		testPlugin = test.NewPlugin(test.Ctx, "test-plugin", setup.Namespace(), test.WithPluginDefinition(testCentralPluginDefinition.Name), test.WithReleaseNamespace("test-namespace"), test.WithReleaseName("test-release"))
 		expectReleaseNamespaceMustMatchError(test.K8sClient.Create(test.Ctx, testPlugin))
+	})
+
+	It("should not accept a plugin if the releaseNamespace changes", func() {
+		testPlugin = setup.CreatePlugin(test.Ctx, "test-plugin", test.WithPluginDefinition(testPluginDefinition.Name), test.WithCluster(testCluster.Name), test.WithReleaseNamespace("test-namespace"), test.WithReleaseName("test-release"))
+
+		By("updating the plugin with a different releaseNamespace")
+		testPlugin.Spec.ReleaseNamespace = "new-namespace"
+		err := test.K8sClient.Update(test.Ctx, testPlugin)
+		Expect(err).To(HaveOccurred(), "there should be an error updating the plugin")
 	})
 
 	It("should reject the plugin when the cluster with clusterName does not exist", func() {
 		By("creating the plugin")
-		testPlugin = test.NewPlugin(test.Ctx, "test-plugin", setup.Namespace(), test.WithPluginDefinition(testPluginDefinition.Name), test.WithCluster("non-existent-cluster"), test.WithReleaseNamespace("test-namespace"))
+		testPlugin = test.NewPlugin(test.Ctx, "test-plugin", setup.Namespace(), test.WithPluginDefinition(testPluginDefinition.Name), test.WithCluster("non-existent-cluster"), test.WithReleaseNamespace("test-namespace"), test.WithReleaseName("test-release"))
 
 		expectClusterNotFoundError(test.K8sClient.Create(test.Ctx, testPlugin))
 	})
 
 	It("should accept the plugin when the cluster with clusterName exists", func() {
 		By("creating the plugin")
-		testPlugin = setup.CreatePlugin(test.Ctx, "test-plugin", test.WithPluginDefinition(testPluginDefinition.Name), test.WithCluster(testCluster.Name), test.WithReleaseNamespace("test-namespace"))
+		testPlugin = setup.CreatePlugin(test.Ctx, "test-plugin", test.WithPluginDefinition(testPluginDefinition.Name), test.WithCluster(testCluster.Name), test.WithReleaseNamespace("test-namespace"), test.WithReleaseName("test-release"))
 
 		By("checking the label on the plugin")
 		actPlugin := &greenhousev1alpha1.Plugin{}
@@ -267,7 +268,7 @@ var _ = Describe("Validate plugin spec fields", Ordered, func() {
 	})
 
 	It("should reject to update a plugin when the clusterName changes", func() {
-		testPlugin = setup.CreatePlugin(test.Ctx, "test-plugin", test.WithPluginDefinition(testPluginDefinition.Name), test.WithCluster(testCluster.Name), test.WithReleaseNamespace("test-namespace"))
+		testPlugin = setup.CreatePlugin(test.Ctx, "test-plugin", test.WithPluginDefinition(testPluginDefinition.Name), test.WithCluster(testCluster.Name), test.WithReleaseNamespace("test-namespace"), test.WithReleaseName("test-release"))
 		testPlugin.Spec.ClusterName = "wrong-cluster-name"
 		err := test.K8sClient.Update(test.Ctx, testPlugin)
 
@@ -276,7 +277,7 @@ var _ = Describe("Validate plugin spec fields", Ordered, func() {
 	})
 
 	It("should reject to update a plugin when the clustername is removed", func() {
-		testPlugin = setup.CreatePlugin(test.Ctx, "test-plugin", test.WithPluginDefinition(testPluginDefinition.Name), test.WithCluster(testCluster.Name), test.WithReleaseNamespace("test-namespace"))
+		testPlugin = setup.CreatePlugin(test.Ctx, "test-plugin", test.WithPluginDefinition(testPluginDefinition.Name), test.WithCluster(testCluster.Name), test.WithReleaseNamespace("test-namespace"), test.WithReleaseName("test-release"))
 		testPlugin.Spec.ClusterName = ""
 		err := test.K8sClient.Update(test.Ctx, testPlugin)
 		Expect(err).To(HaveOccurred(), "there should be an error changing the plugin's clusterName")
@@ -284,7 +285,7 @@ var _ = Describe("Validate plugin spec fields", Ordered, func() {
 	})
 
 	It("should reject to update a plugin when the releaseNamespace changes", func() {
-		testPlugin = setup.CreatePlugin(test.Ctx, "test-plugin", test.WithPluginDefinition(testPluginDefinition.Name), test.WithCluster(testCluster.Name), test.WithReleaseNamespace("test-namespace"))
+		testPlugin = setup.CreatePlugin(test.Ctx, "test-plugin", test.WithPluginDefinition(testPluginDefinition.Name), test.WithCluster(testCluster.Name), test.WithReleaseNamespace("test-namespace"), test.WithReleaseName("test-release"))
 		testPlugin.Spec.ReleaseNamespace = "foo-bar"
 		err := test.K8sClient.Update(test.Ctx, testPlugin)
 		Expect(err).To(HaveOccurred(), "there should be an error changing the plugin's releaseNamespace")
@@ -293,7 +294,7 @@ var _ = Describe("Validate plugin spec fields", Ordered, func() {
 
 	It("should reject to update a plugin when the pluginDefinition changes", func() {
 		secondPluginDefinition := setup.CreatePluginDefinition(test.Ctx, "foo-bar")
-		testPlugin = setup.CreatePlugin(test.Ctx, "test-plugin", test.WithPluginDefinition(testPluginDefinition.Name), test.WithCluster(testCluster.Name), test.WithReleaseNamespace("test-namespace"))
+		testPlugin = setup.CreatePlugin(test.Ctx, "test-plugin", test.WithPluginDefinition(testPluginDefinition.Name), test.WithCluster(testCluster.Name), test.WithReleaseNamespace("test-namespace"), test.WithReleaseName("test-release"))
 
 		testPlugin.Spec.PluginDefinition = secondPluginDefinition.Name
 		err := test.K8sClient.Update(test.Ctx, testPlugin)
@@ -340,20 +341,10 @@ func expectReleaseNamespaceMustMatchError(err error) {
 }
 
 var _ = Describe("Validate Plugin with OwnerReference from PluginPresets", func() {
-	var testPlugin = &greenhousev1alpha1.Plugin{
-		TypeMeta: metav1.TypeMeta{
-			Kind:       "Plugin",
-			APIVersion: greenhousev1alpha1.GroupVersion.String(),
-		},
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "test-plugin",
-			Namespace: test.TestNamespace,
-		},
-		Spec: greenhousev1alpha1.PluginSpec{
-			PluginDefinition: "test-plugindefinition",
-			ClusterName:      "test-cluster",
-		},
-	}
+	testPlugin := test.NewPlugin(test.Ctx, "test-plugin", test.TestNamespace,
+		test.WithPluginDefinition("test-plugindefinition"),
+		test.WithCluster("test-cluster"),
+	)
 
 	var ownerReference = metav1.OwnerReference{
 		APIVersion: "greenhouse.cloud.sap/v1alpha1",
@@ -371,5 +362,52 @@ var _ = Describe("Validate Plugin with OwnerReference from PluginPresets", func(
 	It("should return no warning if the Plugin has no OwnerReference from a PluginPreset", func() {
 		warnings := validateOwnerReference(testPlugin)
 		Expect(warnings).To(BeNil(), "expected no warning, got %v", warnings)
+	})
+})
+
+var _ = Describe("Validation and defaulting of releaseName", func() {
+	var (
+		testPlugin       *greenhousev1alpha1.Plugin
+		pluginDefinition *greenhousev1alpha1.PluginDefinition
+	)
+
+	BeforeEach(func() {
+		pluginDefinition = test.NewPluginDefinition(test.Ctx, "test-definition", test.WithHelmChart(&greenhousev1alpha1.HelmChartReference{Name: "test-helm-chart"}))
+
+		testPlugin = test.NewPlugin(test.Ctx, "test-plugin", "testing", test.WithPluginDefinition("test-definition"))
+		// ensure the Plugin is in the deployed state
+		testPlugin.Status.HelmReleaseStatus = &greenhousev1alpha1.HelmReleaseStatus{
+			Status: "deployed",
+		}
+	})
+
+	It("should default releaseName to the Plugin Name if previously deployed", func() {
+		fakeClient := fake.NewClientBuilder().WithScheme(test.GreenhouseV1Alpha1Scheme()).WithObjects(pluginDefinition).Build()
+		// Call the DefaultPlugin function
+		err := DefaultPlugin(context.TODO(), fakeClient, testPlugin)
+		Expect(err).ToNot(HaveOccurred(), "there should be no error defaulting the plugin")
+
+		// Assert that the releaseName is set to the existing Helm release name
+		Expect(testPlugin.Spec.ReleaseName).To(Equal(testPlugin.Name), "releaseName should be defaulted to the Plugin name")
+	})
+	It("should default releaseName to the Helm chart name from the PluginDefinition if not set and no Helm release exists", func() {
+		fakeClient := fake.NewClientBuilder().WithScheme(test.GreenhouseV1Alpha1Scheme()).WithObjects(pluginDefinition).Build()
+		testPlugin.Status.HelmReleaseStatus = nil // No existing Helm release
+		testPlugin.Spec.ReleaseName = ""          // ReleaseName not set
+
+		// Call the DefaultPlugin function
+		err := DefaultPlugin(context.TODO(), fakeClient, testPlugin)
+		Expect(err).ToNot(HaveOccurred(), "there should be no error defaulting the plugin")
+
+		// Assert that the releaseName is set to the Helm chart name
+		Expect(testPlugin.Spec.ReleaseName).To(Equal("test-helm-chart"), "releaseName should be defaulted to the Helm chart name from the PluginDefinition")
+	})
+
+	It("should not allow arbitrary releaseName if Plugin already deployed", func() {
+		fakeClient := fake.NewClientBuilder().WithScheme(test.GreenhouseV1Alpha1Scheme()).WithObjects(testPlugin, pluginDefinition).Build()
+		cut := testPlugin.DeepCopy()
+		cut.Spec.ReleaseName = "arbitrary-release-name"
+		_, err := ValidateUpdatePlugin(test.Ctx, fakeClient, testPlugin, cut)
+		Expect(err).To(HaveOccurred(), "there should be an error updating the plugin")
 	})
 })

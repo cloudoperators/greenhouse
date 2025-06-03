@@ -34,37 +34,19 @@ var _ = Describe("ensure helm diff against the release manifest works as expecte
 	)
 
 	BeforeEach(func() {
-		pluginDefinitionUT = &greenhousev1alpha1.PluginDefinition{
-			ObjectMeta: metav1.ObjectMeta{
-				Namespace: namespace,
-				Name:      "test-plugindefinition",
-			},
-			Spec: greenhousev1alpha1.PluginDefinitionSpec{
-				Description: "Testplugin",
-				Version:     "1.0.0",
-				HelmChart: &greenhousev1alpha1.HelmChartReference{
-					Name:       "./../test/fixtures/myChart",
-					Repository: "dummy",
-					Version:    "1.0.0",
-				},
-			},
-		}
-		pluginUT = &greenhousev1alpha1.Plugin{
-			ObjectMeta: metav1.ObjectMeta{
-				Namespace: namespace,
-				Name:      "test-plugin",
-			},
-			Spec: greenhousev1alpha1.PluginSpec{
-				PluginDefinition: "test-plugindefinition",
-				OptionValues: []greenhousev1alpha1.PluginOptionValue{
-					{
-						Name:  "enabled",
-						Value: test.MustReturnJSONFor("true"),
-					},
-				},
-				ReleaseNamespace: namespace,
-			},
-		}
+		pluginDefinitionUT = test.NewPluginDefinition(test.Ctx, "test-plugindefinition",
+			test.WithHelmChart(&greenhousev1alpha1.HelmChartReference{
+				Name:       "./../test/fixtures/myChart",
+				Repository: "dummy",
+				Version:    "1.0.0",
+			}),
+		)
+
+		pluginUT = test.NewPlugin(test.Ctx, "test-plugin", namespace,
+			test.WithPluginDefinition("test-plugindefinition"),
+			test.WithPluginOptionValue("enabled", test.MustReturnJSONFor(true), nil),
+			test.WithReleaseNamespace(namespace),
+		)
 
 		// install the chart
 		r, err := helm.ExportInstallHelmRelease(test.Ctx, test.K8sClient, test.RestClientGetter, pluginDefinitionUT, pluginUT, false)
@@ -185,37 +167,17 @@ var _ = Describe("ensure helm with hooks diff against the release manifest works
 	)
 
 	BeforeEach(func() {
-		pluginDefinitionUT = &greenhousev1alpha1.PluginDefinition{
-			ObjectMeta: metav1.ObjectMeta{
-				Namespace: namespace,
-				Name:      "test-plugindefinition",
-			},
-			Spec: greenhousev1alpha1.PluginDefinitionSpec{
-				Description: "Testplugin",
-				Version:     "1.0.0",
-				HelmChart: &greenhousev1alpha1.HelmChartReference{
-					Name:       "./../test/fixtures/testHook",
-					Repository: "dummy",
-					Version:    "1.0.0",
-				},
-			},
-		}
-		pluginUT = &greenhousev1alpha1.Plugin{
-			ObjectMeta: metav1.ObjectMeta{
-				Namespace: namespace,
-				Name:      "test-plugin",
-			},
-			Spec: greenhousev1alpha1.PluginSpec{
-				PluginDefinition: "test-plugindefinition",
-				OptionValues: []greenhousev1alpha1.PluginOptionValue{
-					{
-						Name:  "hook_enabled",
-						Value: test.MustReturnJSONFor(false),
-					},
-				},
-				ReleaseNamespace: namespace,
-			},
-		}
+		pluginDefinitionUT = test.NewPluginDefinition(test.Ctx, "test-plugindefinition",
+			test.WithHelmChart(&greenhousev1alpha1.HelmChartReference{
+				Name:       "./../test/fixtures/testHook",
+				Repository: "dummy",
+				Version:    "1.0.0",
+			}))
+		pluginUT = test.NewPlugin(test.Ctx, "test-plugin", namespace,
+			test.WithPluginDefinition("test-plugindefinition"),
+			test.WithPluginOptionValue("hook_enabled", test.MustReturnJSONFor(false), nil),
+			test.WithReleaseNamespace(namespace),
+		)
 
 		By("install the chart")
 		r, err := helm.ExportInstallHelmRelease(test.Ctx, test.K8sClient, test.RestClientGetter, pluginDefinitionUT, pluginUT, false)

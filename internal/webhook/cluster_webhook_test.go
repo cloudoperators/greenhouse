@@ -7,10 +7,9 @@ import (
 	"context"
 	"time"
 
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-
 	greenhouseapis "github.com/cloudoperators/greenhouse/api"
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
+	"github.com/cloudoperators/greenhouse/internal/test"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -55,77 +54,41 @@ var _ = Describe("Cluster Webhook", func() {
 			}
 		},
 		Entry("it should not add deletion schedule if cluster is not marked for deletion",
-			&greenhousev1alpha1.Cluster{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "test-cluster",
-					Namespace: "test-namespace",
-				},
-				Spec: greenhousev1alpha1.ClusterSpec{
-					AccessMode: greenhousev1alpha1.ClusterAccessModeDirect,
-				},
-			},
+			test.NewCluster(test.Ctx, "test-cluster", "test-namespace"),
 			false, false, "",
 		),
 		Entry("it should add deletion schedule if cluster is marked for deletion",
-			&greenhousev1alpha1.Cluster{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "test-cluster",
-					Namespace: "test-namespace",
-					Annotations: map[string]string{
-						greenhouseapis.MarkClusterDeletionAnnotation: "true",
-					},
-				},
-				Spec: greenhousev1alpha1.ClusterSpec{
-					AccessMode: greenhousev1alpha1.ClusterAccessModeDirect,
-				},
-			},
+			test.NewCluster(test.Ctx, "test-cluster", "test-namespace",
+				test.WithClusterAnnotations(map[string]string{
+					greenhouseapis.MarkClusterDeletionAnnotation: "true",
+				}),
+			),
 			false, true, "",
 		),
 		Entry("it should remove deletion schedule if cluster is not marked for deletion but schedule exists",
-			&greenhousev1alpha1.Cluster{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "test-cluster",
-					Namespace: "test-namespace",
-					Annotations: map[string]string{
-						greenhouseapis.ScheduleClusterDeletionAnnotation: now().Format(time.DateTime),
-					},
-				},
-				Spec: greenhousev1alpha1.ClusterSpec{
-					AccessMode: greenhousev1alpha1.ClusterAccessModeDirect,
-				},
-			},
+			test.NewCluster(test.Ctx, "test-cluster", "test-namespace",
+				test.WithClusterAnnotations(map[string]string{
+					greenhouseapis.ScheduleClusterDeletionAnnotation: now().Format(time.DateTime),
+				}),
+			),
 			false, false, "",
 		),
 		Entry("it should remove deletion schedule if cluster deletion marker has empty value",
-			&greenhousev1alpha1.Cluster{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "test-cluster",
-					Namespace: "test-namespace",
-					Annotations: map[string]string{
-						greenhouseapis.MarkClusterDeletionAnnotation:     "",
-						greenhouseapis.ScheduleClusterDeletionAnnotation: now().Format(time.DateTime),
-					},
-				},
-				Spec: greenhousev1alpha1.ClusterSpec{
-					AccessMode: greenhousev1alpha1.ClusterAccessModeDirect,
-				},
-			},
+			test.NewCluster(test.Ctx, "test-cluster", "test-namespace",
+				test.WithClusterAnnotations(map[string]string{
+					greenhouseapis.MarkClusterDeletionAnnotation:     "",
+					greenhouseapis.ScheduleClusterDeletionAnnotation: now().Format(time.DateTime),
+				}),
+			),
 			false, false, "",
 		),
 		Entry("it should not reset if deletion marker is not empty and schedule exists",
-			&greenhousev1alpha1.Cluster{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "test-cluster",
-					Namespace: "test-namespace",
-					Annotations: map[string]string{
-						greenhouseapis.MarkClusterDeletionAnnotation:     "true",
-						greenhouseapis.ScheduleClusterDeletionAnnotation: fortyEight(),
-					},
-				},
-				Spec: greenhousev1alpha1.ClusterSpec{
-					AccessMode: greenhousev1alpha1.ClusterAccessModeDirect,
-				},
-			},
+			test.NewCluster(test.Ctx, "test-cluster", "test-namespace",
+				test.WithClusterAnnotations(map[string]string{
+					greenhouseapis.MarkClusterDeletionAnnotation:     "true",
+					greenhouseapis.ScheduleClusterDeletionAnnotation: fortyEight(),
+				}),
+			),
 			false, true, fortyEight(),
 		),
 	)
@@ -145,45 +108,21 @@ var _ = Describe("Cluster Webhook", func() {
 			}
 		},
 		Entry("it should allow creation of cluster without deletion annotation",
-			&greenhousev1alpha1.Cluster{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "test-cluster",
-					Namespace: "test-namespace",
-				},
-				Spec: greenhousev1alpha1.ClusterSpec{
-					AccessMode: greenhousev1alpha1.ClusterAccessModeDirect,
-				},
-			},
+			test.NewCluster(test.Ctx, "test-cluster", "test-namespace"),
 			false,
 		),
 		Entry("it should deny creation of cluster with deletion marker annotation",
-			&greenhousev1alpha1.Cluster{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "test-cluster",
-					Namespace: "test-namespace",
-					Annotations: map[string]string{
-						greenhouseapis.MarkClusterDeletionAnnotation: "true",
-					},
-				},
-				Spec: greenhousev1alpha1.ClusterSpec{
-					AccessMode: greenhousev1alpha1.ClusterAccessModeDirect,
-				},
-			},
+			test.NewCluster(test.Ctx, "test-cluster", "test-namespace",
+				test.WithClusterAnnotations(map[string]string{
+					greenhouseapis.MarkClusterDeletionAnnotation: "true",
+				}),
+			),
 			true,
 		),
 		Entry("it should allow creation of cluster with not too long token validity",
-			&greenhousev1alpha1.Cluster{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "test-cluster",
-					Namespace: "test-namespace",
-				},
-				Spec: greenhousev1alpha1.ClusterSpec{
-					AccessMode: greenhousev1alpha1.ClusterAccessModeDirect,
-					KubeConfig: greenhousev1alpha1.ClusterKubeConfig{
-						MaxTokenValidity: 72,
-					},
-				},
-			},
+			test.NewCluster(test.Ctx, "test-cluster", "test-namespace",
+				test.WithMaxTokenValidity(72),
+			),
 			false,
 		),
 	)
@@ -198,50 +137,29 @@ var _ = Describe("Cluster Webhook", func() {
 			}
 		},
 		Entry("it should allow update without deletion markers",
-			&greenhousev1alpha1.Cluster{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "test-cluster",
-					Namespace: "test-namespace",
-					Annotations: map[string]string{
-						"custom-annotation": "custom-value",
-					},
-				},
-				Spec: greenhousev1alpha1.ClusterSpec{
-					AccessMode: greenhousev1alpha1.ClusterAccessModeDirect,
-				},
-			},
+			test.NewCluster(test.Ctx, "test-cluster", "test-namespace",
+				test.WithClusterAnnotations(map[string]string{
+					"custom-annotation": "custom-value",
+				}),
+			),
 			false,
 		),
 		Entry("it should allow update with valid deletion schedule",
-			&greenhousev1alpha1.Cluster{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "test-cluster",
-					Namespace: "test-namespace",
-					Annotations: map[string]string{
-						greenhouseapis.MarkClusterDeletionAnnotation:     "true",
-						greenhouseapis.ScheduleClusterDeletionAnnotation: fortyEight(),
-					},
-				},
-				Spec: greenhousev1alpha1.ClusterSpec{
-					AccessMode: greenhousev1alpha1.ClusterAccessModeDirect,
-				},
-			},
+			test.NewCluster(test.Ctx, "test-cluster", "test-namespace",
+				test.WithClusterAnnotations(map[string]string{
+					greenhouseapis.MarkClusterDeletionAnnotation:     "true",
+					greenhouseapis.ScheduleClusterDeletionAnnotation: fortyEight(),
+				}),
+			),
 			false,
 		),
 		Entry("it should deny update with invalid deletion schedule",
-			&greenhousev1alpha1.Cluster{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "test-cluster",
-					Namespace: "test-namespace",
-					Annotations: map[string]string{
-						greenhouseapis.MarkClusterDeletionAnnotation:     "true",
-						greenhouseapis.ScheduleClusterDeletionAnnotation: time.DateOnly,
-					},
-				},
-				Spec: greenhousev1alpha1.ClusterSpec{
-					AccessMode: greenhousev1alpha1.ClusterAccessModeDirect,
-				},
-			},
+			test.NewCluster(test.Ctx, "test-cluster", "test-namespace",
+				test.WithClusterAnnotations(map[string]string{
+					greenhouseapis.MarkClusterDeletionAnnotation:     "true",
+					greenhouseapis.ScheduleClusterDeletionAnnotation: time.DateOnly,
+				}),
+			),
 			true,
 		),
 	)
@@ -261,30 +179,13 @@ var _ = Describe("Cluster Webhook", func() {
 			}
 		},
 		Entry("it should deny deletion of cluster without deletion annotation",
-			&greenhousev1alpha1.Cluster{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "test-cluster",
-					Namespace: "test-namespace",
-				},
-				Spec: greenhousev1alpha1.ClusterSpec{
-					AccessMode: greenhousev1alpha1.ClusterAccessModeDirect,
-				},
-			},
+			test.NewCluster(test.Ctx, "test-cluster", "test-namespace"),
 			true,
 		),
 		Entry("it should deny deletion of cluster with deletion marker annotation",
-			&greenhousev1alpha1.Cluster{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "test-cluster",
-					Namespace: "test-namespace",
-					Annotations: map[string]string{
-						greenhouseapis.MarkClusterDeletionAnnotation: "true",
-					},
-				},
-				Spec: greenhousev1alpha1.ClusterSpec{
-					AccessMode: greenhousev1alpha1.ClusterAccessModeDirect,
-				},
-			},
+			test.NewCluster(test.Ctx, "test-cluster", "test-namespace",
+				test.WithClusterAnnotations(map[string]string{greenhouseapis.MarkClusterDeletionAnnotation: "true"}),
+			),
 			true,
 		),
 	)

@@ -249,21 +249,10 @@ var _ = DescribeTable("getting helm values from Plugin", func(defaultValue any, 
 		Values: make(map[string]any),
 	}
 
-	pluginWithOptionValue := &greenhousev1alpha1.Plugin{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: "green",
-			Name:      "house",
-		},
-		Spec: greenhousev1alpha1.PluginSpec{
-			PluginDefinition: "greenhouse",
-			OptionValues: []greenhousev1alpha1.PluginOptionValue{
-				{
-					Name:  "value1",
-					Value: test.MustReturnJSONFor(defaultValue),
-				},
-			},
-		},
-	}
+	pluginWithOptionValue := test.NewPlugin(test.Ctx, "green", "house",
+		test.WithPluginDefinition("greenhouse"),
+		test.WithPluginOptionValue("value1", test.MustReturnJSONFor(defaultValue), nil),
+	)
 
 	helmValues, err := helm.ExportGetValuesForHelmChart(context.Background(), test.K8sClient, helmChart, pluginWithOptionValue)
 	Expect(err).ShouldNot(HaveOccurred(),

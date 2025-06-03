@@ -16,12 +16,8 @@ import (
 )
 
 var _ = Describe("Test TeamRole Seeding", func() {
-	const (
-		orgName = "test-teamrole-seeding"
-	)
-	var (
-		setup *test.TestSetup
-	)
+	const orgName = "test-teamrole-seeding"
+	var setup *test.TestSetup
 
 	BeforeEach(func() {
 		setup = test.NewTestSetup(test.Ctx, test.K8sClient, "teamrole-seeding-test")
