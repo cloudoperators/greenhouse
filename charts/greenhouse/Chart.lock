@@ -18,4 +18,4 @@ dependencies:
   repository: oci://ghcr.io/sapcc/helm-charts
   version: 1.3.0
 digest: sha256:1e16b62504563761a1dbd9cdde56557eee5d8cc5e7a4ccc0171eb431e6b21c8f
-generated: "2025-05-19T14:33:36.578279+02:00"
+generated: "2025-06-03T10:39:31.740239+02:00"
