@@ -6,6 +6,8 @@ package v1alpha1
 import (
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
+	greenhousemetav1alpha1 "github.com/cloudoperators/greenhouse/api/meta/v1alpha1"
 )
 
 // PluginSpec defines the desired state of Plugin
@@ -27,6 +29,14 @@ type PluginSpec struct {
 	// ReleaseNamespace is the namespace in the remote cluster to which the backend is deployed.
 	// Defaults to the Greenhouse managed namespace if not set.
 	ReleaseNamespace string `json:"releaseNamespace,omitempty"`
+
+	// ReleaseName is the name of the helm release in the remote cluster to which the backend is deployed.
+	// If the Plugin was already deployed, the Plugin's name is used as the release name.
+	// If this Plugin is newly created, the releaseName is defaulted to the PluginDefinitions HelmChart name.
+	// +kubebuilder:validation:Optional
+	// +kubebuilder:validation:XValidation:rule="self == oldSelf",message="ReleaseName is immutable"
+	// +kubebuilder:validation:MaxLength=53
+	ReleaseName string `json:"releaseName,omitempty"`
 }
 
 // PluginOptionValue is the value for a PluginOption.
@@ -50,28 +60,28 @@ func (v *PluginOptionValue) ValueJSON() string {
 const (
 
 	// ClusterAccessReadyCondition reflects if we can access the cluster a Plugin is to be deployed to.
-	ClusterAccessReadyCondition ConditionType = "ClusterAccessReady"
+	ClusterAccessReadyCondition greenhousemetav1alpha1.ConditionType = "ClusterAccessReady"
 
 	// HelmReconcileFailedCondition reflects the failed reconciliation of the corresponding helm release.
-	HelmReconcileFailedCondition ConditionType = "HelmReconcileFailed"
+	HelmReconcileFailedCondition greenhousemetav1alpha1.ConditionType = "HelmReconcileFailed"
 
 	// HelmDriftDetectedCondition reflects the last time a drift between Release and Deployed Resources was detected.
-	HelmDriftDetectedCondition ConditionType = "HelmDriftDetected"
+	HelmDriftDetectedCondition greenhousemetav1alpha1.ConditionType = "HelmDriftDetected"
 
 	// WorkloadReadyCondition reflects the readiness of the workload resources belonging to the Plugin.
-	WorkloadReadyCondition ConditionType = "WorkloadReady"
+	WorkloadReadyCondition greenhousemetav1alpha1.ConditionType = "WorkloadReady"
 
 	// StatusUpToDateCondition reflects the failed reconciliation of the Plugin.
-	StatusUpToDateCondition ConditionType = "StatusUpToDate"
+	StatusUpToDateCondition greenhousemetav1alpha1.ConditionType = "StatusUpToDate"
 
 	// HelmChartTestSucceededCondition reflects the status of the HelmChart tests.
-	HelmChartTestSucceededCondition ConditionType = "HelmChartTestSucceeded"
+	HelmChartTestSucceededCondition greenhousemetav1alpha1.ConditionType = "HelmChartTestSucceeded"
 
 	// PluginDefinitionNotFoundReason is set when the pluginDefinition is not found.
-	PluginDefinitionNotFoundReason ConditionReason = "PluginDefinitionNotFound"
+	PluginDefinitionNotFoundReason greenhousemetav1alpha1.ConditionReason = "PluginDefinitionNotFound"
 
 	// HelmUninstallFailedReason is set when the helm release could not be uninstalled.
-	HelmUninstallFailedReason ConditionReason = "HelmUninstallFailed"
+	HelmUninstallFailedReason greenhousemetav1alpha1.ConditionReason = "HelmUninstallFailed"
 )
 
 // PluginStatus defines the observed state of Plugin
@@ -100,7 +110,7 @@ type PluginStatus struct {
 	ExposedServices map[string]Service `json:"exposedServices,omitempty"`
 
 	// StatusConditions contain the different conditions that constitute the status of the Plugin.
-	StatusConditions `json:"statusConditions,omitempty"`
+	greenhousemetav1alpha1.StatusConditions `json:"statusConditions,omitempty"`
 }
 
 // Service references a Kubernetes service of a Plugin.
@@ -141,6 +151,7 @@ type HelmReleaseStatus struct {
 //+kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp"
 
 // Plugin is the Schema for the plugins API
+// +kubebuilder:validation:XValidation:rule="!has(oldSelf.spec.releaseName) || has(self.spec.releaseName)", message="ReleaseName is required once set"
 type Plugin struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
@@ -162,10 +173,17 @@ func init() {
 	SchemeBuilder.Register(&Plugin{}, &PluginList{})
 }
 
-func (o *Plugin) GetConditions() StatusConditions {
+func (o *Plugin) GetConditions() greenhousemetav1alpha1.StatusConditions {
 	return o.Status.StatusConditions
 }
 
-func (o *Plugin) SetCondition(condition Condition) {
+func (o *Plugin) SetCondition(condition greenhousemetav1alpha1.Condition) {
 	o.Status.SetConditions(condition)
+}
+
+func (o *Plugin) GetReleaseName() string {
+	if o.Spec.ReleaseName != "" {
+		return o.Spec.ReleaseName
+	}
+	return o.Name
 }

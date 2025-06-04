@@ -13,6 +13,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
+	greenhousemetav1alpha1 "github.com/cloudoperators/greenhouse/api/meta/v1alpha1"
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
 	"github.com/cloudoperators/greenhouse/internal/clientutil"
 	"github.com/cloudoperators/greenhouse/internal/test"
@@ -64,9 +65,9 @@ var _ = Describe("TeammembershipUpdaterController", Ordered, func() {
 				g.Expect(scimAccessReadyCondition).ToNot(BeNil())
 				g.Expect(scimAccessReadyCondition.Type).To(Equal(greenhousev1alpha1.SCIMAccessReadyCondition))
 				g.Expect(scimAccessReadyCondition.Status).To(Equal(metav1.ConditionTrue))
-				readyCondition := teamMembership.Status.GetConditionByType(greenhousev1alpha1.ReadyCondition)
+				readyCondition := teamMembership.Status.GetConditionByType(greenhousemetav1alpha1.ReadyCondition)
 				g.Expect(readyCondition).ToNot(BeNil())
-				g.Expect(readyCondition.Type).To(Equal(greenhousev1alpha1.ReadyCondition))
+				g.Expect(readyCondition.Type).To(Equal(greenhousemetav1alpha1.ReadyCondition))
 				g.Expect(readyCondition.Status).To(Equal(metav1.ConditionTrue))
 			}).Should(Succeed(), "TeamMembership should be reconciled")
 
@@ -87,7 +88,7 @@ var _ = Describe("TeammembershipUpdaterController", Ordered, func() {
 			createTeamMembershipForFirstTeam(nil)
 
 			By("creating a test Team")
-			firstTeam := createFirstTeam(validIdpGroupName)
+			firstTeam := setup.CreateTeam(test.Ctx, firstTeamName, test.WithMappedIDPGroup(validIdpGroupName))
 
 			By("ensuring the TeamMembership has been reconciled")
 			Eventually(func(g Gomega) {
@@ -102,9 +103,9 @@ var _ = Describe("TeammembershipUpdaterController", Ordered, func() {
 				g.Expect(scimAccessReadyCondition).ToNot(BeNil())
 				g.Expect(scimAccessReadyCondition.Type).To(Equal(greenhousev1alpha1.SCIMAccessReadyCondition))
 				g.Expect(scimAccessReadyCondition.Status).To(Equal(metav1.ConditionTrue))
-				readyCondition := firstTeamMembership.Status.GetConditionByType(greenhousev1alpha1.ReadyCondition)
+				readyCondition := firstTeamMembership.Status.GetConditionByType(greenhousemetav1alpha1.ReadyCondition)
 				g.Expect(readyCondition).ToNot(BeNil())
-				g.Expect(readyCondition.Type).To(Equal(greenhousev1alpha1.ReadyCondition))
+				g.Expect(readyCondition.Type).To(Equal(greenhousemetav1alpha1.ReadyCondition))
 				g.Expect(readyCondition.Status).To(Equal(metav1.ConditionTrue))
 			}).Should(Succeed(), "the TeamMembership should be reconciled")
 
@@ -129,7 +130,7 @@ var _ = Describe("TeammembershipUpdaterController", Ordered, func() {
 			})
 
 			By("creating a test Team")
-			firstTeam := createFirstTeam(validIdpGroupName)
+			firstTeam := setup.CreateTeam(test.Ctx, firstTeamName, test.WithMappedIDPGroup(validIdpGroupName))
 
 			By("ensuring the TeamMembership has been reconciled")
 			Eventually(func(g Gomega) {
@@ -162,7 +163,7 @@ var _ = Describe("TeammembershipUpdaterController", Ordered, func() {
 			})
 
 			By("creating first test Team")
-			firstTeam := createFirstTeam(validIdpGroupName)
+			firstTeam := setup.CreateTeam(test.Ctx, firstTeamName, test.WithMappedIDPGroup(validIdpGroupName))
 
 			By("creating second test Team")
 			secondTeam := setup.CreateTeam(test.Ctx, secondTeamName, test.WithMappedIDPGroup(otherValidIdpGroupName))
@@ -241,7 +242,7 @@ var _ = Describe("TeammembershipUpdaterController", Ordered, func() {
 			createTeamMembershipForFirstTeam(nil)
 
 			By("creating a test Team without mappedIdpGroup")
-			createFirstTeam("")
+			setup.CreateTeam(test.Ctx, firstTeamName)
 
 			By("ensuring the TeamMembership has been deleted")
 			Eventually(func(g Gomega) {
@@ -316,7 +317,7 @@ var _ = Describe("TeammembershipUpdaterController", Ordered, func() {
 			createTeamMembershipForFirstTeam(nil)
 
 			By("creating a test Team with valid MappedIdpGroup")
-			createFirstTeam(validIdpGroupName)
+			setup.CreateTeam(test.Ctx, firstTeamName, test.WithMappedIDPGroup(validIdpGroupName))
 
 			By("ensuring TeamMemberships have been reconciled")
 			Eventually(func(g Gomega) {
@@ -333,9 +334,9 @@ var _ = Describe("TeammembershipUpdaterController", Ordered, func() {
 				g.Expect(scimAccessReadyCondition.Status).To(Equal(metav1.ConditionFalse))
 				g.Expect(scimAccessReadyCondition.Reason).To(Equal(greenhousev1alpha1.SCIMConfigErrorReason), "reason should be set to SCIMConfigErrorReason")
 				g.Expect(scimAccessReadyCondition.Message).To(Equal("secret for '.SCIMConfig.BasicAuthUser' is missing: Secret \"test-secret\" not found"))
-				readyCondition := firstTeamMembership.Status.GetConditionByType(greenhousev1alpha1.ReadyCondition)
+				readyCondition := firstTeamMembership.Status.GetConditionByType(greenhousemetav1alpha1.ReadyCondition)
 				g.Expect(readyCondition).ToNot(BeNil())
-				g.Expect(readyCondition.Type).To(Equal(greenhousev1alpha1.ReadyCondition))
+				g.Expect(readyCondition.Type).To(Equal(greenhousemetav1alpha1.ReadyCondition))
 				g.Expect(readyCondition.Status).To(Equal(metav1.ConditionFalse))
 			}).Should(Succeed(), "TeamMemberships should have been reconciled")
 		})
@@ -345,7 +346,7 @@ var _ = Describe("TeammembershipUpdaterController", Ordered, func() {
 			createTeamMembershipForFirstTeam(nil)
 
 			By("creating a test Team with invalid MappedIdpGroup")
-			team := createFirstTeam(nonExistingGroupName)
+			team := setup.CreateTeam(test.Ctx, firstTeamName, test.WithMappedIDPGroup(nonExistingGroupName))
 
 			By("ensuring TeamMemberships have been reconciled")
 			Eventually(func(g Gomega) {
@@ -361,9 +362,9 @@ var _ = Describe("TeammembershipUpdaterController", Ordered, func() {
 				g.Expect(scimAccessReadyCondition.Type).To(Equal(greenhousev1alpha1.SCIMAccessReadyCondition))
 				g.Expect(scimAccessReadyCondition.Status).To(Equal(metav1.ConditionFalse))
 				g.Expect(scimAccessReadyCondition.Reason).To(Equal(greenhousev1alpha1.SCIMRequestFailedReason), "reason should be set to SCIMRequestFailed")
-				readyCondition := firstTeamMembership.Status.GetConditionByType(greenhousev1alpha1.ReadyCondition)
+				readyCondition := firstTeamMembership.Status.GetConditionByType(greenhousemetav1alpha1.ReadyCondition)
 				g.Expect(readyCondition).ToNot(BeNil())
-				g.Expect(readyCondition.Type).To(Equal(greenhousev1alpha1.ReadyCondition))
+				g.Expect(readyCondition.Type).To(Equal(greenhousemetav1alpha1.ReadyCondition))
 				g.Expect(readyCondition.Status).To(Equal(metav1.ConditionFalse))
 			}).Should(Succeed(), "TeamMemberships should have been reconciled")
 
@@ -429,7 +430,7 @@ var _ = Describe("TeammembershipUpdaterController", Ordered, func() {
 			createTeamMembershipForFirstTeam(originalUsers)
 
 			By("creating test Team with valid idp group")
-			firstTeam := createFirstTeam(validIdpGroupName)
+			firstTeam := setup.CreateTeam(test.Ctx, firstTeamName, test.WithMappedIDPGroup(validIdpGroupName))
 
 			expectedUser1 := greenhousev1alpha1.User{
 				ID:        "I12345",
@@ -471,7 +472,7 @@ var _ = Describe("TeammembershipUpdaterController", Ordered, func() {
 				g.Expect(apierrors.IsNotFound(err)).To(BeTrue(), "Team should be deleted")
 			}).Should(Succeed())
 
-			team = createFirstTeam(validIdpGroupName)
+			team = setup.CreateTeam(test.Ctx, firstTeamName, test.WithMappedIDPGroup(validIdpGroupName))
 			Eventually(func(g Gomega) {
 				err := setup.Get(test.Ctx, types.NamespacedName{Namespace: setup.Namespace(), Name: firstTeamName}, team)
 				g.Expect(err).ShouldNot(HaveOccurred(), "unexpected error getting Team")
@@ -498,7 +499,7 @@ var _ = Describe("TeammembershipUpdaterController", Ordered, func() {
 	Context("reconciling with missing SCIM config in Organization", func() {
 		BeforeEach(func() {
 			setup = test.NewTestSetup(test.Ctx, test.K8sClient, test.TestNamespace)
-			createTestOrgWithoutSCIMConfig(setup.Namespace())
+			setup.CreateOrganization(test.Ctx, setup.Namespace())
 		})
 
 		It("should reconcile Teams when Org's SCIM config changes", func() {
@@ -507,7 +508,7 @@ var _ = Describe("TeammembershipUpdaterController", Ordered, func() {
 			By("creating TeamMembership for first Team")
 			createTeamMembershipForFirstTeam(nil)
 			By("creating first Team")
-			createFirstTeam(validIdpGroupName)
+			setup.CreateTeam(test.Ctx, firstTeamName, test.WithMappedIDPGroup(validIdpGroupName))
 			By("checking TeamMembership status")
 			teamMemberships := &greenhousev1alpha1.TeamMembershipList{}
 			Eventually(func(g Gomega) {
@@ -601,7 +602,7 @@ func createTestOrgWithSecret(namespace string) {
 
 func updateOrganizationStatusWithSCIMAvailability(org *greenhousev1alpha1.Organization) {
 	orgStatus := org.Status
-	orgStatus.SetConditions(greenhousev1alpha1.TrueCondition(greenhousev1alpha1.SCIMAPIAvailableCondition, "", ""))
+	orgStatus.SetConditions(greenhousemetav1alpha1.TrueCondition(greenhousev1alpha1.SCIMAPIAvailableCondition, "", ""))
 	_, err := clientutil.PatchStatus(test.Ctx, setup.Client, org, func() error {
 		org.Status = orgStatus
 		return nil
@@ -628,11 +629,6 @@ func createSecretForSCIMConfig(namespace string) {
 	Expect(err).ToNot(HaveOccurred(), "there must be no error creating a secret")
 }
 
-func createTestOrgWithoutSCIMConfig(namespace string) {
-	By("creating organization with name: " + namespace)
-	setup.CreateOrganization(test.Ctx, namespace)
-}
-
 func createTeamMembershipForFirstTeam(members []greenhousev1alpha1.User) {
 	err := setup.Create(test.Ctx, &greenhousev1alpha1.TeamMembership{
 		TypeMeta: metav1.TypeMeta{
@@ -648,23 +644,4 @@ func createTeamMembershipForFirstTeam(members []greenhousev1alpha1.User) {
 		},
 	})
 	Expect(err).NotTo(HaveOccurred(), "there must be no error creating a TeamMembership")
-}
-
-func createFirstTeam(mappedIDPGroup string) *greenhousev1alpha1.Team {
-	team := &greenhousev1alpha1.Team{
-		TypeMeta: metav1.TypeMeta{
-			Kind:       "Team",
-			APIVersion: greenhousev1alpha1.GroupVersion.String(),
-		},
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      firstTeamName,
-			Namespace: setup.Namespace(),
-		},
-		Spec: greenhousev1alpha1.TeamSpec{
-			MappedIDPGroup: mappedIDPGroup,
-		},
-	}
-	err := setup.Create(test.Ctx, team)
-	Expect(err).NotTo(HaveOccurred(), "there must be no error creating a Team")
-	return team
 }

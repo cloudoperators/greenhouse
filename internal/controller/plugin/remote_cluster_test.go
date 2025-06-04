@@ -17,6 +17,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
 
 	greenhouseapis "github.com/cloudoperators/greenhouse/api"
+	greenhousemetav1alpha1 "github.com/cloudoperators/greenhouse/api/meta/v1alpha1"
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
 	"github.com/cloudoperators/greenhouse/internal/clientutil"
 	"github.com/cloudoperators/greenhouse/internal/common"
@@ -33,92 +34,37 @@ var (
 
 // Test stimuli.
 var (
-	testPlugin = &greenhousev1alpha1.Plugin{
-		TypeMeta: metav1.TypeMeta{
-			Kind:       "Plugin",
-			APIVersion: greenhousev1alpha1.GroupVersion.String(),
-		},
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "test-plugindefinition",
-			Namespace: test.TestNamespace,
-		},
-		Spec: greenhousev1alpha1.PluginSpec{
-			ClusterName:      "test-cluster",
-			PluginDefinition: "test-plugindefinition",
-			ReleaseNamespace: test.TestNamespace,
-		},
-	}
+	testPlugin = test.NewPlugin(test.Ctx, "test-plugindefinition", test.TestNamespace,
+		test.WithCluster("test-cluster"),
+		test.WithPluginDefinition("test-plugindefinition"),
+		test.WithReleaseName("release-test"),
+		test.WithReleaseNamespace(test.TestNamespace))
 
-	testPluginwithSR = &greenhousev1alpha1.Plugin{
-		TypeMeta: metav1.TypeMeta{
-			Kind:       "Plugin",
-			APIVersion: greenhousev1alpha1.GroupVersion.String(),
-		},
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "test-plugin-secretref",
-			Namespace: test.TestNamespace,
-		},
-		Spec: greenhousev1alpha1.PluginSpec{
-			PluginDefinition: "test-plugindefinition",
-			ClusterName:      "test-cluster",
-			OptionValues: []greenhousev1alpha1.PluginOptionValue{
-				{
-					Name: "secretValue",
-					ValueFrom: &greenhousev1alpha1.ValueFromSource{
-						Secret: &greenhousev1alpha1.SecretKeyReference{
-							Name: "test-secret",
-							Key:  "test-key",
-						},
-					},
-				},
+	testPluginWithSR = test.NewPlugin(test.Ctx, "test-plugin-secretref", test.TestNamespace,
+		test.WithCluster("test-cluster"),
+		test.WithPluginDefinition("test-plugindefinition"),
+		test.WithReleaseName("release-with-secretref"),
+		test.WithPluginOptionValue("secretValue", nil, &greenhousev1alpha1.ValueFromSource{
+			Secret: &greenhousev1alpha1.SecretKeyReference{
+				Name: "test-secret",
+				Key:  "test-key",
 			},
-		},
-	}
+		}),
+	)
 
-	// A PluginConfig in the central cluster, test namespace with a release in the remote cluster, made-up-namespace.
-	testPluginInDifferentNamespace = &greenhousev1alpha1.Plugin{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "test-plugin-in-made-up-namespace",
-			Namespace: test.TestNamespace,
-		},
-		Spec: greenhousev1alpha1.PluginSpec{
-			PluginDefinition: testPluginDefinition.GetName(),
-			ClusterName:      testCluster.GetName(),
-			ReleaseNamespace: "made-up-namespace",
-		},
-	}
+	testPluginWithCRDs = test.NewPlugin(test.Ctx, "test-plugin-crd", test.TestNamespace,
+		test.WithCluster(testCluster.GetName()),
+		test.WithPluginDefinition("test-plugindefinition-crd"),
+		test.WithReleaseName("plugindefinition-crd"),
+		test.WithReleaseNamespace(test.TestNamespace),
+	)
 
-	testPluginWithCRDs = &greenhousev1alpha1.Plugin{
-		TypeMeta: metav1.TypeMeta{
-			Kind:       "Plugin",
-			APIVersion: greenhousev1alpha1.GroupVersion.String(),
-		},
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "test-plugin-crd",
-			Namespace: test.TestNamespace,
-		},
-		Spec: greenhousev1alpha1.PluginSpec{
-			ClusterName:      "test-cluster",
-			PluginDefinition: "test-plugindefinition-crd",
-			ReleaseNamespace: test.TestNamespace,
-		},
-	}
-
-	testPluginWithExposedService = &greenhousev1alpha1.Plugin{
-		TypeMeta: metav1.TypeMeta{
-			Kind:       "Plugin",
-			APIVersion: greenhousev1alpha1.GroupVersion.String(),
-		},
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "test-plugin-exposed",
-			Namespace: test.TestNamespace,
-		},
-		Spec: greenhousev1alpha1.PluginSpec{
-			ClusterName:      "test-cluster",
-			PluginDefinition: "test-plugindefinition-exposed",
-			ReleaseNamespace: test.TestNamespace,
-		},
-	}
+	testPluginWithExposedService = test.NewPlugin(test.Ctx, "test-plugin-exposed", test.TestNamespace,
+		test.WithCluster(testCluster.GetName()),
+		test.WithPluginDefinition("test-plugindefinition-exposed"),
+		test.WithReleaseName("plugindefinition-exposed"),
+		test.WithReleaseNamespace(test.TestNamespace),
+	)
 
 	testSecret = corev1.Secret{
 		TypeMeta: metav1.TypeMeta{
@@ -134,69 +80,32 @@ var (
 		},
 	}
 
-	testPluginDefinition = &greenhousev1alpha1.PluginDefinition{
-		TypeMeta: metav1.TypeMeta{
-			Kind:       "PluginDefinition",
-			APIVersion: greenhousev1alpha1.GroupVersion.String(),
-		},
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "test-plugindefinition",
-			Namespace: corev1.NamespaceDefault,
-		},
-		Spec: greenhousev1alpha1.PluginDefinitionSpec{
-			Description: "Testplugin",
-			Version:     "1.0.0",
-			HelmChart: &greenhousev1alpha1.HelmChartReference{
-				Name:       "./../../test/fixtures/myChart",
-				Repository: "dummy",
-				Version:    "1.0.0",
-			},
-		},
-	}
+	testPluginDefinition = test.NewPluginDefinition(
+		test.Ctx,
+		"test-plugindefinition",
+	)
 
-	testPluginWithHelmChartCRDs = &greenhousev1alpha1.PluginDefinition{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: test.TestNamespace,
-			Name:      "test-plugindefinition-crd",
-		},
-		Spec: greenhousev1alpha1.PluginDefinitionSpec{
-			Version: "1.0.0",
-			HelmChart: &greenhousev1alpha1.HelmChartReference{
-				Name:       "./../../test/fixtures/myChartWithCRDs",
-				Repository: "dummy",
-				Version:    "1.0.0",
-			},
-		},
-	}
+	testPluginWithHelmChartCRDs = test.NewPluginDefinition(
+		test.Ctx,
+		"test-plugindefinition-crd",
+		test.WithHelmChart(&greenhousev1alpha1.HelmChartReference{
+			Name:       "./../../test/fixtures/myChartWithCRDs",
+			Repository: "dummy",
+			Version:    "1.0.0",
+		}),
+	)
 
-	pluginDefinitionWithExposedService = &greenhousev1alpha1.PluginDefinition{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: test.TestNamespace,
-			Name:      "test-plugindefinition-exposed",
-		},
-		Spec: greenhousev1alpha1.PluginDefinitionSpec{
-			Version: "1.0.0",
-			HelmChart: &greenhousev1alpha1.HelmChartReference{
-				Name:       "./../../test/fixtures/chartWithExposedService",
-				Repository: "dummy",
-				Version:    "1.3.0",
-			},
-		},
-	}
+	pluginDefinitionWithExposedService = test.NewPluginDefinition(
+		test.Ctx,
+		"test-plugindefinition-exposed",
+		test.WithHelmChart(&greenhousev1alpha1.HelmChartReference{
+			Name:       "./../../test/fixtures/chartWithExposedService",
+			Repository: "dummy",
+			Version:    "1.3.0",
+		}))
 
-	testCluster = &greenhousev1alpha1.Cluster{
-		TypeMeta: metav1.TypeMeta{
-			Kind:       "Cluster",
-			APIVersion: greenhousev1alpha1.GroupVersion.String(),
-		},
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "test-cluster",
-			Namespace: test.TestNamespace,
-		},
-		Spec: greenhousev1alpha1.ClusterSpec{
-			AccessMode: greenhousev1alpha1.ClusterAccessModeDirect,
-		},
-	}
+	testCluster = test.NewCluster(test.Ctx, "test-cluster", test.TestNamespace,
+		test.WithAccessMode(greenhousev1alpha1.ClusterAccessModeDirect))
 
 	testClusterK8sSecret = corev1.Secret{
 		TypeMeta: metav1.TypeMeta{
@@ -215,7 +124,7 @@ var (
 // except for WorkloadReady condition, which is not a subject under test.
 // This is done because the cumulative Ready condition in tests will be false due to workload not being ready.
 func checkReadyConditionComponentsUnderTest(g Gomega, plugin *greenhousev1alpha1.Plugin) {
-	readyCondition := plugin.Status.GetConditionByType(greenhousev1alpha1.ReadyCondition)
+	readyCondition := plugin.Status.GetConditionByType(greenhousemetav1alpha1.ReadyCondition)
 	g.Expect(readyCondition).ToNot(BeNil(), "Ready condition should not be nil")
 	clusterAccessReadyCondition := plugin.Status.GetConditionByType(greenhousev1alpha1.ClusterAccessReadyCondition)
 	g.Expect(clusterAccessReadyCondition).ToNot(BeNil())
@@ -228,7 +137,6 @@ func checkReadyConditionComponentsUnderTest(g Gomega, plugin *greenhousev1alpha1
 	// g.Expect(helmChartTestSucceededCondition.Status).To(Equal(metav1.ConditionTrue), "HelmChartTestSucceeded condition should be true")
 }
 
-// Tests
 var _ = Describe("HelmController reconciliation", Ordered, func() {
 	BeforeAll(func() {
 		err := test.K8sClient.Create(test.Ctx, testPluginDefinition)
@@ -284,7 +192,7 @@ var _ = Describe("HelmController reconciliation", Ordered, func() {
 			releases, err := listAction.Run()
 			Expect(err).ShouldNot(HaveOccurred(), "there should be no error listing helm releases")
 			return releases
-		}).Should(ContainElement(gstruct.PointTo(gstruct.MatchFields(gstruct.IgnoreExtras, gstruct.Fields{"Name": Equal("test-plugindefinition")}))), "the helm release should be deployed to the remote cluster")
+		}).Should(ContainElement(gstruct.PointTo(gstruct.MatchFields(gstruct.IgnoreExtras, gstruct.Fields{"Name": Equal(testPlugin.Spec.ReleaseName)}))), "the helm release should be deployed to the remote cluster")
 
 		By("updating the plugin")
 		_, err = clientutil.CreateOrPatch(test.Ctx, test.K8sClient, testPlugin, func() error {
@@ -324,11 +232,11 @@ var _ = Describe("HelmController reconciliation", Ordered, func() {
 		Expect(test.K8sClient.Create(test.Ctx, &testSecret)).Should(Succeed())
 
 		By("creating a plugin referencing the cluster")
-		testPluginwithSR.Spec.ClusterName = "test-cluster"
-		Expect(test.K8sClient.Create(test.Ctx, testPluginwithSR)).Should(Succeed(), "there should be no error updating the plugin")
+		testPluginWithSR.Spec.ClusterName = "test-cluster"
+		Expect(test.K8sClient.Create(test.Ctx, testPluginWithSR)).Should(Succeed(), "there should be no error updating the plugin")
 
 		By("checking the helm releases deployed to the remote cluster")
-		helmConfig, err := helm.ExportNewHelmAction(remoteRestClientGetter, testPluginwithSR.Namespace)
+		helmConfig, err := helm.ExportNewHelmAction(remoteRestClientGetter, testPluginWithSR.Namespace)
 		Expect(err).ShouldNot(HaveOccurred(), "there should be no error creating helm config")
 		listAction := action.NewList(helmConfig)
 
@@ -340,11 +248,11 @@ var _ = Describe("HelmController reconciliation", Ordered, func() {
 			gstruct.PointTo(
 				gstruct.MatchFields(
 					gstruct.IgnoreExtras, gstruct.Fields{
-						"Name":   Equal("test-plugin-secretref"),
+						"Name":   Equal(testPluginWithSR.Spec.ReleaseName),
 						"Config": gstruct.MatchKeys(gstruct.IgnoreExtras, gstruct.Keys{"secretValue": Equal("secret-value")})}))), "the helm release should be deployed to the remote cluster")
 
 		By("deleting the plugin")
-		Expect(test.K8sClient.Delete(test.Ctx, testPluginwithSR)).Should(Succeed(), "there should be no error deleting the plugin")
+		Expect(test.K8sClient.Delete(test.Ctx, testPluginWithSR)).Should(Succeed(), "there should be no error deleting the plugin")
 
 		By("checking the helm releases deployed to the remote cluster")
 		Eventually(func(g Gomega) []*release.Release {
@@ -355,6 +263,12 @@ var _ = Describe("HelmController reconciliation", Ordered, func() {
 	})
 
 	It("should correctly handle the plugin on a referenced cluster with a different namespace", func() {
+		testPluginInDifferentNamespace := test.NewPlugin(test.Ctx, "test-plugin-in-made-up-namespace", test.TestNamespace,
+			test.WithCluster(testCluster.GetName()),
+			test.WithPluginDefinition(testPluginDefinition.GetName()),
+			test.WithReleaseName("release-test-in-made-up-namespace"),
+			test.WithReleaseNamespace("made-up-namespace"))
+
 		Expect(testPluginInDifferentNamespace.GetNamespace()).
 			Should(Equal(test.TestNamespace), "the namespace should be the test namespace")
 		Expect(testPluginInDifferentNamespace.Spec.ReleaseNamespace).
@@ -373,7 +287,7 @@ var _ = Describe("HelmController reconciliation", Ordered, func() {
 			ShouldNot(HaveOccurred(), "there should be no error creating helm config")
 
 		Eventually(func(g Gomega) string {
-			release, err := action.NewGet(helmConfig).Run(testPluginInDifferentNamespace.GetName())
+			release, err := action.NewGet(helmConfig).Run(testPluginInDifferentNamespace.GetReleaseName())
 			g.Expect(err).ShouldNot(HaveOccurred(), "there should be no error listing helm releases")
 			return release.Namespace
 		}).Should(
@@ -393,8 +307,7 @@ var _ = Describe("HelmController reconciliation", Ordered, func() {
 		)
 
 		By("deleting the plugin")
-		Expect(test.K8sClient.Delete(test.Ctx, testPluginInDifferentNamespace)).
-			Should(Succeed(), "there should be no error deleting the plugin")
+		test.EventuallyDeleted(test.Ctx, test.K8sClient, testPluginInDifferentNamespace)
 
 		By("checking the helm releases deployed to the remote cluster")
 		Eventually(func(g Gomega) []*release.Release {
@@ -421,7 +334,7 @@ var _ = Describe("HelmController reconciliation", Ordered, func() {
 			err := test.K8sClient.Get(test.Ctx, types.NamespacedName{Name: testPluginWithCRDs.Name, Namespace: testPluginWithCRDs.Namespace}, testPluginWithCRDs)
 			g.Expect(err).ShouldNot(HaveOccurred(), "there should be no error getting the plugin")
 			clusterAccessReadyCondition := testPluginWithCRDs.Status.GetConditionByType(greenhousev1alpha1.ClusterAccessReadyCondition)
-			readyCondition := testPluginWithCRDs.Status.GetConditionByType(greenhousev1alpha1.ReadyCondition)
+			readyCondition := testPluginWithCRDs.Status.GetConditionByType(greenhousemetav1alpha1.ReadyCondition)
 			g.Expect(clusterAccessReadyCondition).ToNot(BeNil(), "the ClusterAccessReadyCondition should not be nil")
 			g.Expect(readyCondition).ToNot(BeNil(), "the ReadyCondition should not be nil")
 			return true
@@ -435,7 +348,7 @@ var _ = Describe("HelmController reconciliation", Ordered, func() {
 			releases, err := listAction.Run()
 			Expect(err).ShouldNot(HaveOccurred(), "there should be no error listing helm releases")
 			return releases
-		}).Should(ContainElement(gstruct.PointTo(gstruct.MatchFields(gstruct.IgnoreExtras, gstruct.Fields{"Name": Equal(testPluginWithCRDs.Name)}))), "the helm release should be deployed to the remote cluster")
+		}).Should(ContainElement(gstruct.PointTo(gstruct.MatchFields(gstruct.IgnoreExtras, gstruct.Fields{"Name": Equal(testPluginWithCRDs.Spec.ReleaseName)}))), "the helm release should be deployed to the remote cluster")
 
 		By("checking if helm release exists")
 		Eventually(func() bool {
@@ -473,9 +386,8 @@ var _ = Describe("HelmController reconciliation", Ordered, func() {
 			g.Expect(teamCRD.Name).To(Equal(teamCRDName), "re-created Team CRD should have the correct name")
 		}).Should(Succeed(), "Team CRD should be re-created")
 
-		By("cleaning up test")
 		By("deleting the plugin")
-		Expect(test.K8sClient.Delete(test.Ctx, testPluginWithCRDs)).Should(Succeed(), "there should be no error deleting the plugin")
+		test.EventuallyDeleted(test.Ctx, test.K8sClient, testPluginWithCRDs)
 
 		By("checking the helm releases deployed to the remote cluster")
 		Eventually(func() []*release.Release {
@@ -509,7 +421,7 @@ var _ = Describe("HelmController reconciliation", Ordered, func() {
 				releases, err := listAction.Run()
 				Expect(err).ShouldNot(HaveOccurred(), "there should be no error listing helm releases")
 				return releases
-			}).Should(ContainElement(gstruct.PointTo(gstruct.MatchFields(gstruct.IgnoreExtras, gstruct.Fields{"Name": Equal(testPluginWithExposedService1.Name)}))), "the helm release should be deployed to the remote cluster")
+			}).Should(ContainElement(gstruct.PointTo(gstruct.MatchFields(gstruct.IgnoreExtras, gstruct.Fields{"Name": Equal(testPluginWithExposedService1.Spec.ReleaseName)}))), "the helm release should be deployed to the remote cluster")
 
 			By("checking plugin status")
 			Eventually(func(g Gomega) {
@@ -527,9 +439,8 @@ var _ = Describe("HelmController reconciliation", Ordered, func() {
 				g.Expect(exposedServiceURL).To(Equal(expectedURL), "exposed service URL should be generated correctly")
 			}).Should(Succeed(), "plugin should have correct status")
 
-			By("cleaning up test")
 			By("deleting the plugin")
-			Expect(test.K8sClient.Delete(test.Ctx, testPluginWithExposedService1)).Should(Succeed(), "there should be no error deleting the plugin")
+			test.EventuallyDeleted(test.Ctx, test.K8sClient, testPluginWithExposedService1)
 
 			By("checking the helm releases deployed to the remote cluster")
 			Eventually(func() []*release.Release {
@@ -571,7 +482,7 @@ var _ = Describe("HelmController reconciliation", Ordered, func() {
 			}).Should(Succeed(), "plugin should have correct status")
 
 			By("deleting the plugin")
-			Expect(test.K8sClient.Delete(test.Ctx, testPluginWithExposedService2)).Should(Succeed(), "there should be no error deleting the plugin")
+			test.EventuallyDeleted(test.Ctx, test.K8sClient, testPluginWithExposedService2)
 		})
 	})
 })

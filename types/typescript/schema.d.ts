@@ -1,5 +1,5 @@
 /*
- * SPDX-FileCopyrightText: 2024 SAP SE or an SAP affiliate company and Greenhouse contributors
+ * SPDX-FileCopyrightText: 2025 SAP SE or an SAP affiliate company and Greenhouse contributors
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -160,6 +160,39 @@ export interface paths {
             requestBody?: never;
             responses: {
                 /** @description TeamMembership */
+                default: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/ClusterPluginDefinition": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description ClusterPluginDefinition */
                 default: {
                     headers: {
                         [name: string]: unknown;
@@ -407,7 +440,7 @@ export interface components {
                         /** @description URL to the SCIM server. */
                         baseURL: string;
                         /** @description Password to be used for basic authentication. */
-                        basicAuthPw: {
+                        basicAuthPw?: {
                             /** @description Secret references the secret containing the value. */
                             secret?: {
                                 /** @description Key in the secret to select the value from. */
@@ -417,7 +450,7 @@ export interface components {
                             };
                         };
                         /** @description User to be used for basic authentication. */
-                        basicAuthUser: {
+                        basicAuthUser?: {
                             /** @description Secret references the secret containing the value. */
                             secret?: {
                                 /** @description Key in the secret to select the value from. */
@@ -426,18 +459,12 @@ export interface components {
                                 name: string;
                             };
                         };
-                        /**
-                         * @description BearerHeader to be used to defined bearer token header
-                         * @default Authorization
-                         */
-                        bearerHeader: string;
-                        /**
-                         * @description BearerPrefix to be used to defined bearer token prefix
-                         * @default Bearer
-                         */
-                        bearerPrefix: string;
+                        /** @description BearerHeader to be used to defined bearer token header */
+                        bearerHeader?: string;
+                        /** @description BearerPrefix to be used to defined bearer token prefix */
+                        bearerPrefix?: string;
                         /** @description BearerToken to be used for bearer token authorization */
-                        bearerToken: {
+                        bearerToken?: {
                             /** @description Secret references the secret containing the value. */
                             secret?: {
                                 /** @description Key in the secret to select the value from. */
@@ -802,6 +829,91 @@ export interface components {
                     }[];
                 };
             };
+        };
+        /**
+         * ClusterPluginDefinition
+         * @description ClusterPluginDefinition is the Schema for the clusterplugindefinitions API.
+         */
+        ClusterPluginDefinition: {
+            /** @description APIVersion defines the versioned schema of this representation of an object.\nServers should convert recognized schemas to the latest internal value, and\nmay reject unrecognized values.\nMore info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources */
+            apiVersion?: string;
+            /** @description Kind is a string value representing the REST resource this object represents.\nServers may infer this from the endpoint the client submits requests to.\nCannot be updated.\nIn CamelCase.\nMore info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds */
+            kind?: string;
+            metadata?: {
+                name?: string;
+                namespace?: string;
+                /** Format: uuid */
+                uid?: string;
+                resourceVersion?: string;
+                /** Format: date-time */
+                creationTimestamp?: string;
+                /** Format: date-time */
+                deletionTimestamp?: string;
+                labels?: {
+                    [key: string]: string;
+                };
+                annotations?: {
+                    [key: string]: string;
+                };
+            };
+            /** @description ClusterPluginDefinitionSpec defines the desired state of ClusterPluginDefinition. */
+            spec?: {
+                /** @description Description provides additional details of the pluginDefinition. */
+                description?: string;
+                /** @description DisplayName provides a human-readable label for the pluginDefinition. */
+                displayName?: string;
+                /** @description DocMarkDownUrl specifies the URL to the markdown documentation file for this plugin.\nSource needs to allow all CORS origins. */
+                docMarkDownUrl?: string;
+                /** @description HelmChart specifies where the Helm Chart for this pluginDefinition can be found. */
+                helmChart?: {
+                    /** @description Name of the HelmChart chart. */
+                    name: string;
+                    /** @description Repository of the HelmChart chart. */
+                    repository: string;
+                    /** @description Version of the HelmChart chart. */
+                    version: string;
+                };
+                /** @description Icon specifies the icon to be used for this plugin in the Greenhouse UI.\nIcons can be either:\n- A string representing a juno icon in camel case from this list: https://github.com/sapcc/juno/blob/main/libs/juno-ui-components/src/components/Icon/Icon.component.js#L6-L52\n- A publicly accessible image reference to a .png file. Will be displayed 100x100px */
+                icon?: string;
+                /** @description RequiredValues is a list of values required to create an instance of this PluginDefinition. */
+                options?: {
+                    /** @description Default provides a default value for the option */
+                    default?: unknown;
+                    /** @description Description provides a human-readable text for the value as shown in the UI. */
+                    description?: string;
+                    /** @description DisplayName provides a human-readable label for the configuration option */
+                    displayName?: string;
+                    /** @description Name/Key of the config option. */
+                    name: string;
+                    /** @description Regex specifies a match rule for validating configuration options. */
+                    regex?: string;
+                    /** @description Required indicates that this config option is required */
+                    required: boolean;
+                    /**
+                     * @description Type of this configuration option.
+                     * @enum {string}
+                     */
+                    type: "string" | "secret" | "bool" | "int" | "list" | "map";
+                }[];
+                /** @description UIApplication specifies a reference to a UI application */
+                uiApplication?: {
+                    /** @description Name of the UI application. */
+                    name: string;
+                    /** @description URL specifies the url to a built javascript asset.\nBy default, assets are loaded from the Juno asset server using the provided name and version. */
+                    url?: string;
+                    /** @description Version of the frontend application. */
+                    version: string;
+                };
+                /** @description Version of this pluginDefinition */
+                version: string;
+                /**
+                 * Format: int32
+                 * @description Weight configures the order in which Plugins are shown in the Greenhouse UI.\nDefaults to alphabetical sorting if not provided or on conflict.
+                 */
+                weight?: number;
+            };
+            /** @description ClusterPluginDefinitionStatus defines the observed state of ClusterPluginDefinition. */
+            status?: Record<string, never>;
         };
         /**
          * PluginPreset

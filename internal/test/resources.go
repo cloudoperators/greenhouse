@@ -13,6 +13,7 @@ import (
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
+	greenhouseapis "github.com/cloudoperators/greenhouse/api"
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
 )
 
@@ -30,6 +31,20 @@ func WithLabel(key, value string) func(*greenhousev1alpha1.Cluster) {
 			c.Labels = make(map[string]string, 1)
 		}
 		c.Labels[key] = value
+	}
+}
+
+// WithClusterAnnotations sets metadata annotations on a Cluster
+func WithClusterAnnotations(annotations map[string]string) func(*greenhousev1alpha1.Cluster) {
+	return func(c *greenhousev1alpha1.Cluster) {
+		c.SetAnnotations(annotations)
+	}
+}
+
+// WithKubeConfig sets the kubeconfig of a Cluster
+func WithMaxTokenValidity(maxTokenValidity int32) func(*greenhousev1alpha1.Cluster) {
+	return func(c *greenhousev1alpha1.Cluster) {
+		c.Spec.KubeConfig.MaxTokenValidity = maxTokenValidity
 	}
 }
 
@@ -55,10 +70,29 @@ func NewCluster(ctx context.Context, name, namespace string, opts ...func(*green
 	return cluster
 }
 
-// WithMappedIDPGroup sets the MappedIDPGroup on an Organization
+// WithMappedAdminIDPGroup sets the MappedIDPGroup on an Organization
 func WithMappedAdminIDPGroup(group string) func(*greenhousev1alpha1.Organization) {
 	return func(org *greenhousev1alpha1.Organization) {
 		org.Spec.MappedOrgAdminIDPGroup = group
+	}
+}
+
+func WithOrgAnnotations(annotations map[string]string) func(*greenhousev1alpha1.Organization) {
+	return func(org *greenhousev1alpha1.Organization) {
+		org.SetAnnotations(annotations)
+	}
+}
+
+// WithAdditionalRedirects - sets the additional redirect URIs on an Organization. (To be used with WithOIDCConfig)
+func WithAdditionalRedirects(additionalRedirects ...string) func(organization *greenhousev1alpha1.Organization) {
+	return func(org *greenhousev1alpha1.Organization) {
+		if org.Spec.Authentication == nil {
+			org.Spec.Authentication = &greenhousev1alpha1.Authentication{}
+		}
+		if org.Spec.Authentication.OIDCConfig == nil {
+			org.Spec.Authentication.OIDCConfig = &greenhousev1alpha1.OIDCConfig{}
+		}
+		org.Spec.Authentication.OIDCConfig.OAuth2ClientRedirectURIs = additionalRedirects
 	}
 }
 
@@ -78,6 +112,7 @@ func WithOIDCConfig(issuer, secretName, clientIDKey, clientSecretKey string) fun
 				Name: secretName,
 				Key:  clientSecretKey,
 			},
+			RedirectURI: issuer + "/callback",
 		}
 	}
 }
@@ -138,15 +173,14 @@ func AppendPluginOption(option greenhousev1alpha1.PluginOption) func(*greenhouse
 }
 
 // NewPluginDefinition returns a greenhousev1alpha1.PluginDefinition object. Opts can be used to set the desired state of the PluginDefinition.
-func NewPluginDefinition(ctx context.Context, name, namespace string, opts ...func(*greenhousev1alpha1.PluginDefinition)) *greenhousev1alpha1.PluginDefinition {
+func NewPluginDefinition(ctx context.Context, name string, opts ...func(*greenhousev1alpha1.PluginDefinition)) *greenhousev1alpha1.PluginDefinition {
 	pd := &greenhousev1alpha1.PluginDefinition{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "PluginDefinition",
 			APIVersion: greenhousev1alpha1.GroupVersion.String(),
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      name,
-			Namespace: namespace,
+			Name: name,
 		},
 		Spec: greenhousev1alpha1.PluginDefinitionSpec{
 			Description: "TestPluginDefinition",
@@ -178,10 +212,28 @@ func WithReleaseNamespace(releaseNamespace string) func(*greenhousev1alpha1.Plug
 	}
 }
 
+// WithReleaseName sets the ReleaseName of a Plugin
+func WithReleaseName(releaseName string) func(*greenhousev1alpha1.Plugin) {
+	return func(p *greenhousev1alpha1.Plugin) {
+		p.Spec.ReleaseName = releaseName
+	}
+}
+
 // WithCluster sets the Cluster for a Plugin
 func WithCluster(cluster string) func(*greenhousev1alpha1.Plugin) {
 	return func(p *greenhousev1alpha1.Plugin) {
 		p.Spec.ClusterName = cluster
+	}
+}
+
+// WithPresetLabelValue sets the value of the greenhouseapis.LabelKeyPluginPreset label on a Plugin
+// This label is used to indicate that the Plugin is managed by a PluginPreset.
+func WithPresetLabelValue(value string) func(*greenhousev1alpha1.Plugin) {
+	return func(p *greenhousev1alpha1.Plugin) {
+		if p.Labels == nil {
+			p.Labels = make(map[string]string, 1)
+		}
+		p.Labels[greenhouseapis.LabelKeyPluginPreset] = value
 	}
 }
 
@@ -380,6 +432,18 @@ func WithSecretType(secretType corev1.SecretType) func(*corev1.Secret) {
 	}
 }
 
+func WithSecretAnnotations(annotations map[string]string) func(*corev1.Secret) {
+	return func(s *corev1.Secret) {
+		s.SetAnnotations(annotations)
+	}
+}
+
+func WithSecretLabels(labels map[string]string) func(*corev1.Secret) {
+	return func(s *corev1.Secret) {
+		s.SetLabels(labels)
+	}
+}
+
 // WithSecretData sets the data of the Secret
 func WithSecretData(data map[string][]byte) func(*corev1.Secret) {
 	return func(s *corev1.Secret) {
@@ -395,7 +459,7 @@ func WithSecretNamespace(namespace string) func(*corev1.Secret) {
 }
 
 // NewSecret returns a Secret object. Opts can be used to set the desired state of the Secret.
-func NewSecret(ctx context.Context, name, namespace string, opts ...func(*corev1.Secret)) *corev1.Secret {
+func NewSecret(name, namespace string, opts ...func(*corev1.Secret)) *corev1.Secret {
 	secret := &corev1.Secret{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "Secret",

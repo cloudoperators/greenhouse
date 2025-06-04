@@ -24,17 +24,18 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 
 	greenhouseapis "github.com/cloudoperators/greenhouse/api"
+	greenhousemetav1alpha1 "github.com/cloudoperators/greenhouse/api/meta/v1alpha1"
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
 	"github.com/cloudoperators/greenhouse/internal/clientutil"
 	"github.com/cloudoperators/greenhouse/internal/lifecycle"
 )
 
 // presetExposedConditions contains the conditions that are exposed in the PluginPreset's StatusConditions.
-var presetExposedConditions = []greenhousev1alpha1.ConditionType{
-	greenhousev1alpha1.ReadyCondition,
+var presetExposedConditions = []greenhousemetav1alpha1.ConditionType{
+	greenhousemetav1alpha1.ReadyCondition,
 	greenhousev1alpha1.PluginSkippedCondition,
 	greenhousev1alpha1.PluginFailedCondition,
-	greenhousev1alpha1.ClusterListEmpty,
+	greenhousemetav1alpha1.ClusterListEmpty,
 }
 
 // PluginPresetReconciler reconciles a PluginPreset object
@@ -94,15 +95,15 @@ func (r *PluginPresetReconciler) EnsureCreated(ctx context.Context, resource lif
 
 	clusters, err := r.listClusters(ctx, pluginPreset)
 	if err != nil {
-		pluginPreset.SetCondition(greenhousev1alpha1.TrueCondition(greenhousev1alpha1.ClusterListEmpty, "", fmt.Sprintf("Invalid ClusterSelector: %v", err.Error())))
+		pluginPreset.SetCondition(greenhousemetav1alpha1.TrueCondition(greenhousemetav1alpha1.ClusterListEmpty, "", fmt.Sprintf("Invalid ClusterSelector: %v", err.Error())))
 		return ctrl.Result{}, lifecycle.Failed, err
 	}
 
 	switch {
 	case len(clusters.Items) == 0:
-		pluginPreset.SetCondition(greenhousev1alpha1.TrueCondition(greenhousev1alpha1.ClusterListEmpty, "", "No cluster matches ClusterSelector"))
+		pluginPreset.SetCondition(greenhousemetav1alpha1.TrueCondition(greenhousemetav1alpha1.ClusterListEmpty, "", "No cluster matches ClusterSelector"))
 	default:
-		pluginPreset.SetCondition(greenhousev1alpha1.FalseCondition(greenhousev1alpha1.ClusterListEmpty, "", ""))
+		pluginPreset.SetCondition(greenhousemetav1alpha1.FalseCondition(greenhousemetav1alpha1.ClusterListEmpty, "", ""))
 	}
 
 	if err := r.cleanupPlugins(ctx, pluginPreset, clusters); err != nil {
@@ -176,27 +177,29 @@ func (r *PluginPresetReconciler) reconcilePluginPreset(ctx context.Context, pres
 			}
 
 		case apierrors.IsNotFound(err):
-			plugin = &greenhousev1alpha1.Plugin{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      generatePluginName(preset, &cluster),
-					Namespace: preset.GetNamespace(),
-				},
-			}
+			plugin = &greenhousev1alpha1.Plugin{}
+			plugin.SetName(generatePluginName(preset, &cluster))
+			plugin.SetNamespace(preset.GetNamespace())
 		default:
 			return err
 		}
 
-		_, err = clientutil.CreateOrPatch(ctx, r.Client, plugin, func() error {
+		_, err = controllerutil.CreateOrUpdate(ctx, r.Client, plugin, func() error {
 			// Label the plugin with the managed resource label to identify it as managed by the PluginPreset.
 			plugin.SetLabels(map[string]string{greenhouseapis.LabelKeyPluginPreset: preset.Name})
 			// Set the owner reference to the PluginPreset. This is used to trigger reconciliation, if the managed Plugin is modified.
 			if err := controllerutil.SetControllerReference(preset, plugin, r.Scheme()); err != nil {
 				return err
 			}
+
+			releaseName := getReleaseName(plugin, preset)
+
 			plugin.Spec = preset.Spec.Plugin
+			plugin.Spec.ReleaseName = releaseName
 			// Set the cluster name to the name of the cluster. The PluginSpec contained in the PluginPreset does not have a cluster name.
 			plugin.Spec.ClusterName = cluster.GetName()
-
+			// transport plugin preset labels to plugin
+			plugin = (lifecycle.NewPropagator(preset, plugin).ApplyLabels()).(*greenhousev1alpha1.Plugin) //nolint:errcheck
 			// overrides options based on preset definition
 			overridesPluginOptionValues(plugin, preset)
 			return nil
@@ -214,15 +217,15 @@ func (r *PluginPresetReconciler) reconcilePluginPreset(ctx context.Context, pres
 	}
 	switch {
 	case len(skippedPlugins) > 0:
-		preset.SetCondition(greenhousev1alpha1.TrueCondition(greenhousev1alpha1.PluginSkippedCondition, "", "Skipped existing plugins: "+strings.Join(skippedPlugins, ", ")))
+		preset.SetCondition(greenhousemetav1alpha1.TrueCondition(greenhousev1alpha1.PluginSkippedCondition, "", "Skipped existing plugins: "+strings.Join(skippedPlugins, ", ")))
 	default:
-		preset.SetCondition(greenhousev1alpha1.FalseCondition(greenhousev1alpha1.PluginSkippedCondition, "", ""))
+		preset.SetCondition(greenhousemetav1alpha1.FalseCondition(greenhousev1alpha1.PluginSkippedCondition, "", ""))
 	}
 	switch {
 	case len(failedPlugins) > 0:
-		preset.SetCondition(greenhousev1alpha1.TrueCondition(greenhousev1alpha1.PluginFailedCondition, greenhousev1alpha1.PluginReconcileFailed, strings.Join(failedPlugins, "; ")))
+		preset.SetCondition(greenhousemetav1alpha1.TrueCondition(greenhousev1alpha1.PluginFailedCondition, greenhousev1alpha1.PluginReconcileFailed, strings.Join(failedPlugins, "; ")))
 	default:
-		preset.SetCondition(greenhousev1alpha1.FalseCondition(greenhousev1alpha1.PluginFailedCondition, "", ""))
+		preset.SetCondition(greenhousemetav1alpha1.FalseCondition(greenhousev1alpha1.PluginFailedCondition, "", ""))
 	}
 	return utilerrors.NewAggregate(allErrs)
 }
@@ -243,7 +246,7 @@ func (r *PluginPresetReconciler) reconcilePluginStatuses(
 	failedPluginsCount := 0
 
 	for _, plugin := range plugins.Items {
-		pluginReadyCondition := plugin.Status.GetConditionByType(greenhousev1alpha1.ReadyCondition)
+		pluginReadyCondition := plugin.Status.GetConditionByType(greenhousemetav1alpha1.ReadyCondition)
 
 		switch {
 		case pluginReadyCondition == nil:
@@ -364,17 +367,17 @@ func generatePluginName(p *greenhousev1alpha1.PluginPreset, cluster *greenhousev
 func initPluginPresetStatus(p *greenhousev1alpha1.PluginPreset) {
 	for _, ct := range presetExposedConditions {
 		if p.Status.GetConditionByType(ct) == nil {
-			p.SetCondition(greenhousev1alpha1.UnknownCondition(ct, "", ""))
+			p.SetCondition(greenhousemetav1alpha1.UnknownCondition(ct, "", ""))
 		}
 	}
 }
 
 // computeReadyCondition computes the ReadyCondition based on the PluginPreset's StatusConditions.
 func (r *PluginPresetReconciler) computeReadyCondition(
-	conditions greenhousev1alpha1.StatusConditions,
-) (readyCondition greenhousev1alpha1.Condition) {
+	conditions greenhousemetav1alpha1.StatusConditions,
+) (readyCondition greenhousemetav1alpha1.Condition) {
 
-	readyCondition = *conditions.GetConditionByType(greenhousev1alpha1.ReadyCondition)
+	readyCondition = *conditions.GetConditionByType(greenhousemetav1alpha1.ReadyCondition)
 
 	if conditions.GetConditionByType(greenhousev1alpha1.PluginFailedCondition).IsTrue() {
 		readyCondition.Status = metav1.ConditionFalse
@@ -388,7 +391,7 @@ func (r *PluginPresetReconciler) computeReadyCondition(
 		return readyCondition
 	}
 
-	if conditions.GetConditionByType(greenhousev1alpha1.ClusterListEmpty).IsTrue() {
+	if conditions.GetConditionByType(greenhousemetav1alpha1.ClusterListEmpty).IsTrue() {
 		readyCondition.Status = metav1.ConditionFalse
 		readyCondition.Message = "No cluster matches ClusterSelector"
 		return readyCondition
@@ -478,5 +481,19 @@ func equalPluginOptions(a, b greenhousev1alpha1.PluginOptionValue) bool {
 			a.ValueFrom.Secret.Key == b.ValueFrom.Secret.Key
 	default:
 		return false
+	}
+}
+
+// getReleaseName determines the release name for a plugin based on its current state and the preset.
+func getReleaseName(plugin *greenhousev1alpha1.Plugin, preset *greenhousev1alpha1.PluginPreset) string {
+	switch {
+	case plugin.Spec.ReleaseName != "":
+		// If the plugin already has a release name, keep it.
+		return plugin.Spec.ReleaseName
+	case plugin.Status.HelmReleaseStatus != nil && plugin.Spec.ReleaseName == "":
+		// If the plugin has a HelmReleaseStatus but no release name, set the release name to the plugin name. This is to avoid validation errors when the plugin is created, since the plugin is already deployed with the plugin name as the release name.
+		return plugin.Name
+	default:
+		return preset.Spec.Plugin.ReleaseName
 	}
 }
