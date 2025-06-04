@@ -191,7 +191,11 @@ func (r *PluginPresetReconciler) reconcilePluginPreset(ctx context.Context, pres
 			if err := controllerutil.SetControllerReference(preset, plugin, r.Scheme()); err != nil {
 				return err
 			}
+
+			releaseName := getReleaseName(plugin, preset)
+
 			plugin.Spec = preset.Spec.Plugin
+			plugin.Spec.ReleaseName = releaseName
 			// Set the cluster name to the name of the cluster. The PluginSpec contained in the PluginPreset does not have a cluster name.
 			plugin.Spec.ClusterName = cluster.GetName()
 			// transport plugin preset labels to plugin
@@ -477,5 +481,19 @@ func equalPluginOptions(a, b greenhousev1alpha1.PluginOptionValue) bool {
 			a.ValueFrom.Secret.Key == b.ValueFrom.Secret.Key
 	default:
 		return false
+	}
+}
+
+// getReleaseName determines the release name for a plugin based on its current state and the preset.
+func getReleaseName(plugin *greenhousev1alpha1.Plugin, preset *greenhousev1alpha1.PluginPreset) string {
+	switch {
+	case plugin.Spec.ReleaseName != "":
+		// If the plugin already has a release name, keep it.
+		return plugin.Spec.ReleaseName
+	case plugin.Status.HelmReleaseStatus != nil && plugin.Spec.ReleaseName == "":
+		// If the plugin has a HelmReleaseStatus but no release name, set the release name to the plugin name. This is to avoid validation errors when the plugin is created, since the plugin is already deployed with the plugin name as the release name.
+		return plugin.Name
+	default:
+		return preset.Spec.Plugin.ReleaseName
 	}
 }

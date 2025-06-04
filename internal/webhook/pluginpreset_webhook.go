@@ -73,6 +73,10 @@ func ValidateCreatePluginPreset(ctx context.Context, c client.Client, o runtime.
 		allErrs = append(allErrs, field.Invalid(field.NewPath("spec").Child("plugin").Child("clusterName"), pluginPreset.Spec.Plugin.ClusterName, "ClusterName must not be set"))
 	}
 
+	if err := validateReleaseName(pluginPreset.Spec.Plugin.ReleaseName); err != nil {
+		allErrs = append(allErrs, field.Invalid(field.NewPath("spec").Child("plugin").Child("releaseName"), pluginPreset.Spec.Plugin.ReleaseName, err.Error()))
+	}
+
 	// ensure PluginDefinition exists
 	pluginDefinition := new(greenhousev1alpha1.PluginDefinition)
 	err := c.Get(ctx, client.ObjectKey{Namespace: "", Name: pluginPreset.Spec.Plugin.PluginDefinition}, pluginDefinition)
