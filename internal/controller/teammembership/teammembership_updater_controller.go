@@ -10,7 +10,6 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/prometheus/client_golang/prometheus"
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/wait"
@@ -22,9 +21,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/metrics"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
-
-	corev1 "k8s.io/api/core/v1"
-	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
 	greenhousemetav1alpha1 "github.com/cloudoperators/greenhouse/api/meta/v1alpha1"
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
@@ -39,12 +35,12 @@ const RequeueInterval = 10 * time.Minute
 var (
 	membersCountMetric = prometheus.NewGaugeVec(
 		prometheus.GaugeOpts{
-			Name: "greenhouse_teammembership_members_count",
-			Help: "Members count in team membership",
+			Name: "greenhouse_team_members_count",
+			Help: "Members count in team",
 		},
 		[]string{"namespace", "team"},
 	)
-	// exposedConditions are the conditions that are exposed in the StatusConditions of the TeamMembership.
+	// exposedConditions are the conditions that are exposed in the StatusConditions of the Team.
 	exposedConditions = []greenhousemetav1alpha1.ConditionType{
 		greenhousemetav1alpha1.ReadyCondition,
 		greenhousev1alpha1.SCIMAccessReadyCondition,
@@ -64,8 +60,6 @@ type TeamMembershipUpdaterController struct {
 //+kubebuilder:rbac:groups=greenhouse.sap,resources=teams,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=greenhouse.sap,resources=teams/status,verbs=get;update;patch
 //+kubebuilder:rbac:groups=greenhouse.sap,resources=teams/finalizers,verbs=update
-//+kubebuilder:rbac:groups=greenhouse.sap,resources=teammemberships,verbs=get;list;watch;create;update;patch;delete
-//+kubebuilder:rbac:groups=greenhouse.sap,resources=teammemberships/status,verbs=get;update;patch
 //+kubebuilder:rbac:groups=greenhouse.sap,resources=organizations,verbs=get
 //+kubebuilder:rbac:groups="",resources=events,verbs=get;list;watch;update;patch
 
@@ -77,7 +71,6 @@ func (r *TeamMembershipUpdaterController) SetupWithManager(name string, mgr ctrl
 	return ctrl.NewControllerManagedBy(mgr).
 		Named(name).
 		For(&greenhousev1alpha1.Team{}).
-		Owns(&greenhousev1alpha1.TeamMembership{}).
 		// If an Organization's .Spec was changed, reconcile relevant Teams.
 		Watches(&greenhousev1alpha1.Organization{}, handler.EnqueueRequestsFromMapFunc(r.enqueueAllTeamsForOrganization),
 			builder.WithPredicates(
@@ -102,7 +95,21 @@ func listTeamsAsReconcileRequests(ctx context.Context, c client.Client, listOpts
 }
 
 func (r *TeamMembershipUpdaterController) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	return lifecycle.Reconcile(ctx, r.Client, req.NamespacedName, &greenhousev1alpha1.Team{}, r, nil)
+	return lifecycle.Reconcile(ctx, r.Client, req.NamespacedName, &greenhousev1alpha1.Team{}, r, r.setConditions())
+}
+
+func (r *TeamMembershipUpdaterController) setConditions() lifecycle.Conditioner {
+	return func(ctx context.Context, resource lifecycle.RuntimeObject) {
+		logger := ctrl.LoggerFrom(ctx)
+		team, ok := resource.(*greenhousev1alpha1.Team)
+		if !ok {
+			logger.Error(errors.New("resource is not a Plugin"), "status setup failed")
+			return
+		}
+
+		readyCondition := r.computeReadyCondition(team.Status.StatusConditions)
+		team.SetCondition(readyCondition)
+	}
 }
 
 func (r *TeamMembershipUpdaterController) EnsureDeleted(_ context.Context, _ lifecycle.RuntimeObject) (ctrl.Result, lifecycle.ReconcileResult, error) {
@@ -120,112 +127,52 @@ func (r *TeamMembershipUpdaterController) EnsureCreated(ctx context.Context, obj
 		return ctrl.Result{}, lifecycle.Failed, client.IgnoreNotFound(err)
 	}
 
-	teamNamespacedName := types.NamespacedName{Namespace: team.Namespace, Name: team.Name}
-	var teamMembership = new(greenhousev1alpha1.TeamMembership)
-	err := r.Get(ctx, teamNamespacedName, teamMembership)
-	if !apierrors.IsNotFound(err) && err != nil {
-		return ctrl.Result{}, lifecycle.Failed, err
-	}
-
-	teamMembershipExists := !apierrors.IsNotFound(err)
-
 	if team.Spec.MappedIDPGroup == "" {
-		if teamMembershipExists {
-			membersCountMetric.With(prometheus.Labels{
-				"namespace": team.Namespace,
-				"team":      team.Name,
-			}).Set(float64(0))
-
-			log.FromContext(ctx).Info("deleting TeamMembership, Team does not have MappedIdpGroup set", "team-membership", teamMembership.Name)
-			err = r.Delete(ctx, teamMembership, &client.DeleteOptions{})
-			if err != nil {
-				return ctrl.Result{}, lifecycle.Failed, err
-			}
-
-			return ctrl.Result{}, lifecycle.Success, nil
-		}
-
 		log.FromContext(ctx).Info("Team does not have MappedIdpGroup set", "team", team.Name)
 		return ctrl.Result{}, lifecycle.Success, nil
 	}
 
-	teamMembershipStatus := initTeamMembershipStatus(teamMembership)
-	defer func() {
-		// Set status only if TM exists.
-		if teamMembership.Name != "" {
-			if statusErr := r.setStatus(ctx, teamMembership, teamMembershipStatus); statusErr != nil {
-				log.FromContext(ctx).Error(statusErr, "failed to set status")
-			}
-		}
-	}()
+	initTeamStatus(team)
 
 	orgSCIMAPIAvailableCondition := organization.Status.GetConditionByType(greenhousev1alpha1.SCIMAPIAvailableCondition)
 	if orgSCIMAPIAvailableCondition == nil || !orgSCIMAPIAvailableCondition.IsTrue() {
-		if teamMembershipExists {
-			scimAccessReadyCondition := greenhousemetav1alpha1.FalseCondition(greenhousev1alpha1.SCIMAccessReadyCondition,
-				greenhousev1alpha1.SCIMAPIUnavailableReason, "SCIM API in Organization is unavailable")
-			teamMembershipStatus.SetConditions(scimAccessReadyCondition)
-			team.Status.StatusConditions.SetConditions(scimAccessReadyCondition)
-		}
+		team.SetCondition(greenhousemetav1alpha1.FalseCondition(greenhousev1alpha1.SCIMAccessReadyCondition,
+			greenhousev1alpha1.SCIMAPIUnavailableReason, "SCIM API in Organization is unavailable"))
 		return ctrl.Result{}, lifecycle.Success, nil
 	}
 
 	// Ignore organizations without SCIM configuration.
 	if organization.Spec.Authentication == nil || organization.Spec.Authentication.SCIMConfig == nil {
-		log.FromContext(ctx).Info("SCIM config is missing from org", "Name", teamNamespacedName)
-
-		c := greenhousemetav1alpha1.FalseCondition(greenhousev1alpha1.SCIMAccessReadyCondition, greenhousev1alpha1.SecretNotFoundReason, "SCIM config is missing from organization")
-		teamMembershipStatus.SetConditions(c)
-		team.Status.StatusConditions.SetConditions(c)
-
+		log.FromContext(ctx).Info("SCIM config is missing from org", "Name", organization.Name, "Namespace", organization.Namespace)
+		team.SetCondition(greenhousemetav1alpha1.FalseCondition(greenhousev1alpha1.SCIMAccessReadyCondition,
+			greenhousev1alpha1.SecretNotFoundReason, "SCIM config is missing from organization"))
 		return ctrl.Result{}, lifecycle.Success, nil
 	}
 
-	scimClient, err := r.createSCIMClient(ctx, team.Namespace, &teamMembershipStatus, organization.Spec.Authentication.SCIMConfig)
+	scimClient, err := r.createSCIMClient(ctx, team.Namespace, organization.Spec.Authentication.SCIMConfig)
 	if err != nil {
+		team.SetCondition(greenhousemetav1alpha1.FalseCondition(greenhousev1alpha1.SCIMAccessReadyCondition,
+			greenhousev1alpha1.SCIMConfigErrorReason, err.Error()))
 		return ctrl.Result{}, lifecycle.Failed, err
 	}
 
 	users, membersValidCondition, err := r.getUsersFromSCIM(ctx, scimClient, team.Spec.MappedIDPGroup)
 	if err != nil {
-		log.FromContext(ctx).Info("failed processing team-membership for team", "error", err)
-		scimAccessReadyCondition := greenhousemetav1alpha1.FalseCondition(greenhousev1alpha1.SCIMAccessReadyCondition, greenhousev1alpha1.SCIMRequestFailedReason, "")
-		teamMembershipStatus.SetConditions(scimAccessReadyCondition)
-		team.Status.StatusConditions.SetConditions(scimAccessReadyCondition)
+		log.FromContext(ctx).Info("failed getting users from SCIM", "error", err)
+		team.SetCondition(greenhousemetav1alpha1.FalseCondition(greenhousev1alpha1.SCIMAccessReadyCondition,
+			greenhousev1alpha1.SCIMRequestFailedReason, ""))
 		return ctrl.Result{}, lifecycle.Failed, err
 	}
+	team.SetCondition(membersValidCondition)
 
 	team.Status.Members = users
-	scimAccessReadyCondition := greenhousemetav1alpha1.TrueCondition(greenhousev1alpha1.SCIMAccessReadyCondition, "", "")
-	teamMembershipStatus.SetConditions(membersValidCondition, scimAccessReadyCondition)
-	team.Status.StatusConditions.SetConditions(membersValidCondition, scimAccessReadyCondition)
+	team.SetCondition(greenhousemetav1alpha1.TrueCondition(greenhousev1alpha1.SCIMAccessReadyCondition, "", ""))
 
 	membersCountMetric.With(prometheus.Labels{
 		"namespace": team.Namespace,
 		"team":      team.Name,
 	}).Set(float64(len(users)))
 
-	teamMembership.Namespace = team.Namespace
-	teamMembership.Name = team.Name
-	result, err := clientutil.CreateOrPatch(ctx, r.Client, teamMembership, func() error {
-		teamMembership.Spec.Members = users
-		return controllerutil.SetOwnerReference(team, teamMembership, r.Scheme())
-	})
-	if err != nil {
-		log.FromContext(ctx).Info("failed processing team-membership for team", "error", err)
-		return ctrl.Result{}, lifecycle.Failed, err
-	}
-	switch result {
-	case clientutil.OperationResultCreated:
-		log.FromContext(ctx).Info("created team-membership", "name", teamMembership.Name, "members count", len(teamMembership.Spec.Members))
-		r.recorder.Eventf(teamMembership, corev1.EventTypeNormal, "CreatedTeamMembership", "Created TeamMembership %s", teamMembership.Name)
-	case clientutil.OperationResultUpdated:
-		log.FromContext(ctx).Info("updated team-membership", "name", teamMembership.Name, "members count", len(teamMembership.Spec.Members))
-		r.recorder.Eventf(teamMembership, corev1.EventTypeNormal, "UpdatedTeamMembership", "Updated TeamMembership %s", teamMembership.Name)
-	}
-
-	now := metav1.NewTime(time.Now())
-	teamMembershipStatus.LastChangedTime = &now
 	return ctrl.Result{
 			RequeueAfter: wait.Jitter(RequeueInterval, 0.1),
 		},
@@ -235,13 +182,11 @@ func (r *TeamMembershipUpdaterController) EnsureCreated(ctx context.Context, obj
 func (r *TeamMembershipUpdaterController) createSCIMClient(
 	ctx context.Context,
 	namespace string,
-	teamMembershipStatus *greenhousev1alpha1.TeamMembershipStatus,
 	scimConfig *greenhousev1alpha1.SCIMConfig,
 ) (scim.ISCIMClient, error) {
 
 	clientConfig, err := util.GreenhouseSCIMConfigToSCIMConfig(ctx, r.Client, scimConfig, namespace)
 	if err != nil {
-		teamMembershipStatus.SetConditions(greenhousemetav1alpha1.FalseCondition(greenhousev1alpha1.SCIMAccessReadyCondition, greenhousev1alpha1.SCIMConfigErrorReason, err.Error()))
 		return nil, err
 	}
 
@@ -290,24 +235,13 @@ func (r *TeamMembershipUpdaterController) getUsersFromSCIM(ctx context.Context, 
 	return users, condition, nil
 }
 
-func initTeamMembershipStatus(teamMembership *greenhousev1alpha1.TeamMembership) greenhousev1alpha1.TeamMembershipStatus {
-	teamMembershipStatus := teamMembership.Status.DeepCopy()
+// initTeamStatus initializes all empty Team Conditions to "unknown".
+func initTeamStatus(team *greenhousev1alpha1.Team) {
 	for _, t := range exposedConditions {
-		if teamMembershipStatus.GetConditionByType(t) == nil {
-			teamMembershipStatus.SetConditions(greenhousemetav1alpha1.UnknownCondition(t, "", ""))
+		if team.Status.StatusConditions.GetConditionByType(t) == nil {
+			team.SetCondition(greenhousemetav1alpha1.UnknownCondition(t, "", ""))
 		}
 	}
-	return *teamMembershipStatus
-}
-
-func (r *TeamMembershipUpdaterController) setStatus(ctx context.Context, teamMembership *greenhousev1alpha1.TeamMembership, teamMembershipStatus greenhousev1alpha1.TeamMembershipStatus) error {
-	readyCondition := r.computeReadyCondition(teamMembershipStatus.StatusConditions)
-	teamMembershipStatus.SetConditions(readyCondition)
-	_, err := clientutil.PatchStatus(ctx, r.Client, teamMembership, func() error {
-		teamMembership.Status = teamMembershipStatus
-		return nil
-	})
-	return err
 }
 
 func (r *TeamMembershipUpdaterController) computeReadyCondition(
