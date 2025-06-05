@@ -7,7 +7,7 @@ The main terminologies used in this document can be found in [core-concepts](htt
 
 ## Introduction to Observability
 
-Observability in software and infrastructure is important for operating a complex cloud environment. High-quality observability will enable teams to:
+Observability in software and infrastructure is essential for operating a complex cloud environment. High-quality observability will enable teams to:
 
 - Detect and troubleshoot issues quickly,
 - Maintain performance and reliability,
