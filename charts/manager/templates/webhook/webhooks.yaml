@@ -32,6 +32,26 @@ webhooks:
       service:
         name: greenhouse-webhook-service
         namespace: greenhouse
+        path: /mutate-greenhouse-sap-v1alpha1-clusterplugindefinition
+    failurePolicy: Fail
+    name: mclusterplugindefinition.kb.io
+    rules:
+      - apiGroups:
+          - greenhouse.sap
+        apiVersions:
+          - v1alpha1
+        operations:
+          - CREATE
+          - UPDATE
+        resources:
+          - clusterplugindefinitions
+    sideEffects: None
+  - admissionReviewVersions:
+      - v1
+    clientConfig:
+      service:
+        name: greenhouse-webhook-service
+        namespace: greenhouse
         path: /mutate-greenhouse-sap-v1alpha1-organization
     failurePolicy: Fail
     name: morganization.kb.io
@@ -221,6 +241,27 @@ webhooks:
           - DELETE
         resources:
           - clusters
+    sideEffects: None
+  - admissionReviewVersions:
+      - v1
+    clientConfig:
+      service:
+        name: greenhouse-webhook-service
+        namespace: greenhouse
+        path: /validate-greenhouse-sap-v1alpha1-clusterplugindefinition
+    failurePolicy: Fail
+    name: vclusterplugindefinition.kb.io
+    rules:
+      - apiGroups:
+          - greenhouse.sap
+        apiVersions:
+          - v1alpha1
+        operations:
+          - CREATE
+          - UPDATE
+          - DELETE
+        resources:
+          - clusterplugindefinitions
     sideEffects: None
   - admissionReviewVersions:
       - v1
