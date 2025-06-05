@@ -7,6 +7,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"time"
 
 	"github.com/fluxcd/pkg/apis/meta"
@@ -31,10 +32,12 @@ import (
 	sourcecontroller "github.com/fluxcd/source-controller/api/v1"
 
 	greenhouseapis "github.com/cloudoperators/greenhouse/api"
+	greenhousemetav1alpha1 "github.com/cloudoperators/greenhouse/api/meta/v1alpha1"
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
 	"github.com/cloudoperators/greenhouse/internal/clientutil"
 	"github.com/cloudoperators/greenhouse/internal/controller/flux"
 	"github.com/cloudoperators/greenhouse/internal/lifecycle"
+	"github.com/cloudoperators/greenhouse/internal/metrics"
 )
 
 const (
@@ -140,6 +143,16 @@ func (r *FluxReconciler) setConditions() lifecycle.Conditioner {
 }
 
 func (r *FluxReconciler) EnsureDeleted(ctx context.Context, resource lifecycle.RuntimeObject) (ctrl.Result, lifecycle.ReconcileResult, error) {
+	plugin := resource.(*greenhousev1alpha1.Plugin) //nolint:errcheck
+
+	if err := r.Delete(ctx, &helmcontroller.HelmRelease{ObjectMeta: metav1.ObjectMeta{Name: plugin.Name, Namespace: plugin.Namespace}}); err != nil {
+		c := greenhousemetav1alpha1.TrueCondition(greenhousev1alpha1.HelmReconcileFailedCondition, greenhousev1alpha1.HelmUninstallFailedReason, err.Error())
+		plugin.SetCondition(c)
+		metrics.UpdateMetrics(plugin, metrics.MetricResultError, metrics.MetricReasonClusterAccessFailed)
+		return ctrl.Result{}, lifecycle.Failed, fmt.Errorf("cannot access cluster: %s", err.Error())
+	}
+
+	plugin.SetCondition(greenhousemetav1alpha1.FalseCondition(greenhousev1alpha1.HelmReconcileFailedCondition, "", ""))
 	return ctrl.Result{}, lifecycle.Success, nil
 }
 
@@ -190,7 +203,7 @@ func (r *FluxReconciler) EnsureCreated(ctx context.Context, resource lifecycle.R
 	helmRelease.Namespace = plugin.Namespace
 
 	result, err := ctrl.CreateOrUpdate(ctx, r.Client, helmRelease, func() error {
-		helmRelease.Spec.ReleaseName = plugin.Name
+		helmRelease.Spec.ReleaseName = plugin.GetReleaseName()
 		helmRelease.Spec.TargetNamespace = plugin.Spec.ReleaseNamespace
 		helmRelease.Spec.Chart = &helmcontroller.HelmChartTemplate{
 			Spec: helmcontroller.HelmChartTemplateSpec{
@@ -272,7 +285,9 @@ func (r *FluxReconciler) addValuestoHelmRelease(plugin *greenhousev1alpha1.Plugi
 		}
 	}
 	for _, value := range plugin.Spec.OptionValues {
-		jsonValue[value.Name] = value.Value
+		if value.ValueFrom == nil {
+			jsonValue[value.Name] = value.Value
+		}
 	}
 	byteValue, err := json.Marshal(jsonValue)
 	if err != nil {
@@ -287,9 +302,10 @@ func (r *FluxReconciler) addValueReferences(plugin *greenhousev1alpha1.Plugin) [
 	for _, value := range plugin.Spec.OptionValues {
 		if value.ValueFrom != nil {
 			valuesFrom = append(valuesFrom, helmcontroller.ValuesReference{
-				Kind:      secretKind,
-				Name:      value.ValueFrom.Secret.Name,
-				ValuesKey: value.ValueFrom.Secret.Key,
+				Kind:       secretKind,
+				Name:       value.ValueFrom.Secret.Name,
+				ValuesKey:  value.ValueFrom.Secret.Key,
+				TargetPath: value.Name,
 			})
 		}
 	}
