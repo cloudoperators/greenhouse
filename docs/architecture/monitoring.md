@@ -36,7 +36,7 @@ Common Open Source Tools to capture these signals are:
 
 Greenhouse provides a suite of *Plugins* which consist of pre-packaged configurations for monitoring and logging tools. These *Plugins* are designed to simplify the setup and configuration of observability components, enabling users to quickly deploy and manage monitoring and logging for their Greenhouse-onboarded Kubernetes clusters.
 
-The following *Plugins* are available currently:
+The following *Plugins* are currently available:
 
 - [Kube-Monitoring](https://cloudoperators.github.io/greenhouse/docs/reference/catalog/kube-monitoring): installs *[Prometheus](https://prometheus.io)*, used to collect custom and Kubernetes specific metrics with standard Kubernetes alerting enabled. 
 - [Thanos](https://cloudoperators.github.io/greenhouse/docs/reference/catalog/thanos): installs *[Thanos](https://thanos.io)*, used to enable long term metric retention and unified metric accessibility.
