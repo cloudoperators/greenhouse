@@ -9,11 +9,6 @@ import (
 
 // initially inline PluginDefinitionSpec to avoid duplication of fields
 
-// ClusterPluginDefinitionSpec defines the desired state of ClusterPluginDefinition.
-type ClusterPluginDefinitionSpec struct {
-	PluginDefinitionSpec `json:",inline"`
-}
-
 // ClusterPluginDefinitionStatus defines the observed state of ClusterPluginDefinition.
 type ClusterPluginDefinitionStatus struct {
 	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
@@ -32,7 +27,7 @@ type ClusterPluginDefinition struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec   ClusterPluginDefinitionSpec   `json:"spec,omitempty"`
+	Spec   PluginDefinitionSpec          `json:"spec,omitempty"`
 	Status ClusterPluginDefinitionStatus `json:"status,omitempty"`
 }
 
