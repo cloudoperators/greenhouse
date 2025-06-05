@@ -13,7 +13,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
 
 	greenhousemetav1alpha1 "github.com/cloudoperators/greenhouse/api/meta/v1alpha1"
-	greenhouseapisv1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
 	"github.com/cloudoperators/greenhouse/internal/test"
 )
@@ -33,7 +32,7 @@ const (
 	HelmChart = "./../../test/fixtures/myChart"
 )
 
-func mockPluginDefinition() *greenhouseapisv1alpha1.PluginDefinition {
+func mockPluginDefinition() *greenhousev1alpha1.PluginDefinition {
 	return test.NewPluginDefinition(test.Ctx, PluginDefinitionName,
 		test.WithVersion(PluginDefinitionVersion),
 		test.WithHelmChart(&greenhousev1alpha1.HelmChartReference{
