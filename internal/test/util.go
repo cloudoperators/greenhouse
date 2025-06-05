@@ -114,3 +114,10 @@ func KubeconfigFromEnvVar(envVar string) ([]byte, error) {
 	}
 	return kubeconfig, nil
 }
+
+// AsAPIExtensionJSON - marshals v into a JSON and returns an apiextensionsv1.JSON object
+func AsAPIExtensionJSON(v any) *apiextensionsv1.JSON {
+	bs, err := json.Marshal(v)
+	Expect(err).ToNot(HaveOccurred(), "error marshalling value")
+	return &apiextensionsv1.JSON{Raw: bs}
+}
