@@ -78,18 +78,6 @@ func (r *FluxReconciler) SetupWithManager(name string, mgr ctrl.Manager) error {
 		clientutil.WithPersistentConfig(),
 	}
 
-	// index Plugins by the ClusterName field for faster lookups
-	if err := mgr.GetFieldIndexer().IndexField(context.Background(), &greenhousev1alpha1.Plugin{}, greenhouseapis.PluginClusterNameField, func(rawObj client.Object) []string {
-		// Extract the TeamRole name from the TeamRoleBinding Spec, if one is provided
-		plugin, ok := rawObj.(*greenhousev1alpha1.Plugin)
-		if plugin.Spec.ClusterName == "" || !ok {
-			return nil
-		}
-		return []string{plugin.Spec.ClusterName}
-	}); err != nil {
-		return err
-	}
-
 	labelSelector := metav1.LabelSelector{
 		MatchExpressions: []metav1.LabelSelectorRequirement{
 			{
