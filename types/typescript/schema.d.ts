@@ -856,7 +856,7 @@ export interface components {
                     [key: string]: string;
                 };
             };
-            /** @description ClusterPluginDefinitionSpec defines the desired state of ClusterPluginDefinition. */
+            /** @description PluginDefinitionSpec defines the desired state of PluginDefinitionSpec */
             spec?: {
                 /** @description Description provides additional details of the pluginDefinition. */
                 description?: string;
@@ -1004,6 +1004,8 @@ export interface components {
                     }[];
                     /** @description PluginDefinition is the name of the PluginDefinition this instance is for. */
                     pluginDefinition: string;
+                    /** @description ReleaseName is the name of the helm release in the remote cluster to which the backend is deployed.\nIf the Plugin was already deployed, the Plugin's name is used as the release name.\nIf this Plugin is newly created, the releaseName is defaulted to the PluginDefinitions HelmChart name. */
+                    releaseName?: string;
                     /** @description ReleaseNamespace is the namespace in the remote cluster to which the backend is deployed.\nDefaults to the Greenhouse managed namespace if not set. */
                     releaseNamespace?: string;
                 };
@@ -1277,6 +1279,8 @@ export interface components {
                 }[];
                 /** @description PluginDefinition is the name of the PluginDefinition this instance is for. */
                 pluginDefinition: string;
+                /** @description ReleaseName is the name of the helm release in the remote cluster to which the backend is deployed.\nIf the Plugin was already deployed, the Plugin's name is used as the release name.\nIf this Plugin is newly created, the releaseName is defaulted to the PluginDefinitions HelmChart name. */
+                releaseName?: string;
                 /** @description ReleaseNamespace is the namespace in the remote cluster to which the backend is deployed.\nDefaults to the Greenhouse managed namespace if not set. */
                 releaseNamespace?: string;
             };
