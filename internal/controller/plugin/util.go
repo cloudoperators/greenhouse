@@ -28,6 +28,11 @@ import (
 	"github.com/cloudoperators/greenhouse/internal/lifecycle"
 )
 
+const (
+	deliveryToolLabel = "greenhouse.sap/deployment-tool"
+	deliveryToolFlux  = "flux"
+)
+
 // exposedConditions are the conditions that are exposed in the StatusConditions of the Plugin.
 var exposedConditions = []greenhousemetav1alpha1.ConditionType{
 	greenhousemetav1alpha1.ReadyCondition,
@@ -44,7 +49,7 @@ type reconcileResult struct {
 }
 
 // initPluginStatus initializes all empty Plugin Conditions to "unknown"
-func initPluginStatus(plugin *greenhousev1alpha1.Plugin) greenhousev1alpha1.PluginStatus {
+func initPluginStatus(plugin *greenhousev1alpha1.Plugin) greenhousev1alpha1.PluginStatus { //nolint:unparam
 	for _, t := range exposedConditions {
 		if plugin.Status.GetConditionByType(t) == nil {
 			plugin.SetCondition(greenhousemetav1alpha1.UnknownCondition(t, "", ""))

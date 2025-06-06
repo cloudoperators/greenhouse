@@ -342,3 +342,7 @@ cert-manager: kustomize
 	helm repo add jetstack https://charts.jetstack.io
 	helm upgrade --namespace cert-manager --version $(CERT_MANAGER_VERSION) --install cert-manager jetstack/cert-manager --set crds.enabled=true --create-namespace
 	-$(KUSTOMIZE) build config/samples/cert-manager | kubectl apply -f -
+
+.PHONY: flux
+flux: kustomize
+	-$(KUSTOMIZE) build config/flux | kubectl apply -f -
