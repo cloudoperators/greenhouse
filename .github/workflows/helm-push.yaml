@@ -60,7 +60,27 @@ jobs:
         with:
           files: |
             ${{ matrix.chartDir }}/**
-    
+
+      - name: Get current chart version
+        id: chart_version
+        if: steps.changed-files.outputs.all_changed_files != '' && matrix.chartName == "greenhouse"
+        run: |
+          CHART_VERSION=$(yq '.version' "${{ matrix.chartDir }}/Chart.yaml")
+          echo "chart_version=$CHART_VERSION" >> $GITHUB_OUTPUT
+
+      - name: Get short commit SHA
+        id: commit_sha
+        if: steps.changed-files.outputs.all_changed_files != '' && matrix.chartName == "greenhouse"
+        run: echo "sha_short=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
+
+      - name: Set new semantic version
+        id: new_version
+        if: steps.changed-files.outputs.all_changed_files != '' && matrix.chartName == "greenhouse"
+        run: |
+          NEW_VERSION="${{ steps.chart_version.outputs.chart_version }}-dev.${{ steps.commit_sha.outputs.sha_short }}"
+          yq -i ".version = \"$NEW_VERSION\"" "${{ matrix.chartDir }}/Chart.yaml"
+          echo "new_version=$NEW_VERSION" >> $GITHUB_OUTPUT
+
       - name: Check if Helm chart with same version already exists
         id: check-chart
         if: steps.changed-files.outputs.all_changed_files != ''

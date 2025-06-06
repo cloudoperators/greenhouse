@@ -44,6 +44,11 @@ At the end of the sprint, the release shepherd should create a new release branc
 1. Create a new release branch from `main` (`git checkout release-v<MAJOR.MINOR>`)
 2. Push the release branch to the repository
 3. Tag the release branch with the release candidate version tag `v<major>.<minor>.0-rc.0` (`git tag v<major>.<minor>.0-rc.0`)
+4. Push the tag to the repository (`git push origin v<major>.<minor>.0-rc.0`)
+
+### Bump HelmChart version
+
+The HelmChart version of the Greenhouse umberella chart needs to be bumped to the next minor version. This can be done by editing the `Chart.yaml` file in the `charts/greenhouse` directory of the repository. The development of the next version can start immediately after the release branch is created. Every change to the chart on the main branch will create a new version suffixed with `-dev.<commit-sha>`.
 
 ### How to release a new version
 
