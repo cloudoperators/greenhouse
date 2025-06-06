@@ -19,9 +19,6 @@ func TestWebhooks(t *testing.T) {
 }
 
 var _ = BeforeSuite(func() {
-	test.RegisterWebhook("pluginDefinitionWebhook", v1alpha1.SetupPluginDefinitionWebhookWithManager)
-	test.RegisterWebhook("pluginWebhook", v1alpha1.SetupPluginWebhookWithManager)
-	test.RegisterWebhook("pluginPresetWebhook", v1alpha1.SetupPluginPresetWebhookWithManager)
 	test.RegisterWebhook("clusterValidation", v1alpha1.SetupClusterWebhookWithManager)
 	test.RegisterWebhook("secretsWebhook", v1alpha1.SetupSecretWebhookWithManager)
 	test.RegisterWebhook("teamsWebhook", v1alpha1.SetupTeamWebhookWithManager)
