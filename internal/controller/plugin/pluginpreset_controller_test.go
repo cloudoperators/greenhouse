@@ -584,7 +584,7 @@ var _ = Describe("Plugin Preset skip changes", Ordered, func() {
 				test.WithPresetLabelValue(pluginPresetName),
 				test.WithPluginDefinition(pluginPresetDefinitionName),
 				test.WithPluginOptionValue("global.greenhouse.test_parameter",
-					asAPIextensionJSON(2), nil),
+					test.AsAPIExtensionJSON(2), nil),
 			),
 			&greenhousev1alpha1.PluginPreset{
 				ObjectMeta: metav1.ObjectMeta{
@@ -596,7 +596,7 @@ var _ = Describe("Plugin Preset skip changes", Ordered, func() {
 						OptionValues: []greenhousev1alpha1.PluginOptionValue{
 							{
 								Name:  "plugin_preset.test_parameter",
-								Value: asAPIextensionJSON(3),
+								Value: test.AsAPIExtensionJSON(3),
 							},
 						},
 					},
@@ -611,9 +611,9 @@ var _ = Describe("Plugin Preset skip changes", Ordered, func() {
 				test.WithPresetLabelValue(pluginPresetName),
 				test.WithPluginDefinition(pluginPresetDefinitionName),
 				test.WithPluginOptionValue("global.greenhouse.test_parameter",
-					asAPIextensionJSON(2), nil),
+					test.AsAPIExtensionJSON(2), nil),
 				test.WithPluginOptionValue("plugin_preset.test_parameter",
-					asAPIextensionJSON(2), nil),
+					test.AsAPIExtensionJSON(2), nil),
 			),
 			&greenhousev1alpha1.PluginPreset{
 				ObjectMeta: metav1.ObjectMeta{
@@ -625,7 +625,7 @@ var _ = Describe("Plugin Preset skip changes", Ordered, func() {
 						OptionValues: []greenhousev1alpha1.PluginOptionValue{
 							{
 								Name:  "plugin_preset.test_parameter",
-								Value: asAPIextensionJSON(3),
+								Value: test.AsAPIExtensionJSON(3),
 							},
 						},
 					},
@@ -640,13 +640,13 @@ var _ = Describe("Plugin Preset skip changes", Ordered, func() {
 				test.WithPresetLabelValue(pluginPresetName),
 				test.WithPluginDefinition(pluginPresetDefinitionName),
 				test.WithPluginOptionValue("global.greenhouse.test_parameter",
-					asAPIextensionJSON(2), nil),
+					test.AsAPIExtensionJSON(2), nil),
 				test.WithPluginOptionValue("plugin_preset.test_parameter_1",
-					asAPIextensionJSON(1), nil),
+					test.AsAPIExtensionJSON(1), nil),
 				test.WithPluginOptionValue("plugin_preset.test_parameter_2",
-					asAPIextensionJSON(2), nil),
+					test.AsAPIExtensionJSON(2), nil),
 				test.WithPluginOptionValue("plugin_preset.test_parameter_4",
-					asAPIextensionJSON(3), nil),
+					test.AsAPIExtensionJSON(3), nil),
 			),
 			&greenhousev1alpha1.PluginPreset{
 				ObjectMeta: metav1.ObjectMeta{
@@ -658,15 +658,15 @@ var _ = Describe("Plugin Preset skip changes", Ordered, func() {
 						OptionValues: []greenhousev1alpha1.PluginOptionValue{
 							{
 								Name:  "plugin_preset.test_parameter_1",
-								Value: asAPIextensionJSON(1),
+								Value: test.AsAPIExtensionJSON(1),
 							},
 							{
 								Name:  "plugin_preset.test_parameter_2",
-								Value: asAPIextensionJSON(2),
+								Value: test.AsAPIExtensionJSON(2),
 							},
 							{
 								Name:  "plugin_preset.test_parameter_4",
-								Value: asAPIextensionJSON(4),
+								Value: test.AsAPIExtensionJSON(4),
 							},
 						},
 					},
@@ -681,9 +681,9 @@ var _ = Describe("Plugin Preset skip changes", Ordered, func() {
 				test.WithPresetLabelValue(pluginPresetName),
 				test.WithPluginDefinition(pluginPresetDefinitionName),
 				test.WithPluginOptionValue("global.greenhouse.test_parameter",
-					asAPIextensionJSON(2), nil),
+					test.AsAPIExtensionJSON(2), nil),
 				test.WithPluginOptionValue("plugin_preset.test_parameter",
-					asAPIextensionJSON(3), nil),
+					test.AsAPIExtensionJSON(3), nil),
 			),
 			&greenhousev1alpha1.PluginPreset{
 				ObjectMeta: metav1.ObjectMeta{
@@ -695,7 +695,7 @@ var _ = Describe("Plugin Preset skip changes", Ordered, func() {
 						OptionValues: []greenhousev1alpha1.PluginOptionValue{
 							{
 								Name:  "plugin_preset.test_parameter",
-								Value: asAPIextensionJSON(3),
+								Value: test.AsAPIExtensionJSON(3),
 							},
 						},
 					},
@@ -710,11 +710,11 @@ var _ = Describe("Plugin Preset skip changes", Ordered, func() {
 				test.WithPresetLabelValue(pluginPresetName),
 				test.WithPluginDefinition(pluginPresetDefinitionName),
 				test.WithPluginOptionValue("global.greenhouse.test_parameter",
-					asAPIextensionJSON(2), nil),
+					test.AsAPIExtensionJSON(2), nil),
 				test.WithPluginOptionValue("plugin_preset.test_parameter",
-					asAPIextensionJSON(3), nil),
+					test.AsAPIExtensionJSON(3), nil),
 				test.WithPluginOptionValue("custom_parameter",
-					asAPIextensionJSON(123), nil),
+					test.AsAPIExtensionJSON(123), nil),
 			),
 			&greenhousev1alpha1.PluginPreset{
 				ObjectMeta: metav1.ObjectMeta{
@@ -726,7 +726,7 @@ var _ = Describe("Plugin Preset skip changes", Ordered, func() {
 						OptionValues: []greenhousev1alpha1.PluginOptionValue{
 							{
 								Name:  "plugin_preset.test_parameter",
-								Value: asAPIextensionJSON(3),
+								Value: test.AsAPIExtensionJSON(3),
 							},
 						},
 					},
@@ -741,9 +741,9 @@ var _ = Describe("Plugin Preset skip changes", Ordered, func() {
 				test.WithPresetLabelValue(pluginPresetName),
 				test.WithPluginDefinition(pluginPresetDefinitionName),
 				test.WithPluginOptionValue("global.greenhouse.test_parameter",
-					asAPIextensionJSON(2), nil),
+					test.AsAPIExtensionJSON(2), nil),
 				test.WithPluginOptionValue("plugin_definition.test_parameter",
-					asAPIextensionJSON(3), nil),
+					test.AsAPIExtensionJSON(3), nil),
 			),
 			&greenhousev1alpha1.PluginPreset{
 				ObjectMeta: metav1.ObjectMeta{
@@ -764,7 +764,7 @@ var _ = Describe("Plugin Preset skip changes", Ordered, func() {
 					Options: []greenhousev1alpha1.PluginOption{
 						{
 							Name:    "plugin_definition.test_parameter",
-							Default: asAPIextensionJSON(3),
+							Default: test.AsAPIExtensionJSON(3),
 						},
 					},
 				},
@@ -777,9 +777,9 @@ var _ = Describe("Plugin Preset skip changes", Ordered, func() {
 				test.WithPresetLabelValue(pluginPresetName),
 				test.WithPluginDefinition(pluginPresetDefinitionName),
 				test.WithPluginOptionValue("global.greenhouse.test_parameter",
-					asAPIextensionJSON(2), nil),
+					test.AsAPIExtensionJSON(2), nil),
 				test.WithPluginOptionValue("plugin_definition.test_parameter",
-					asAPIextensionJSON(3), nil),
+					test.AsAPIExtensionJSON(3), nil),
 			),
 			&greenhousev1alpha1.PluginPreset{
 				ObjectMeta: metav1.ObjectMeta{
@@ -800,7 +800,7 @@ var _ = Describe("Plugin Preset skip changes", Ordered, func() {
 					Options: []greenhousev1alpha1.PluginOption{
 						{
 							Name:    "plugin_definition.test_parameter",
-							Default: asAPIextensionJSON(4),
+							Default: test.AsAPIExtensionJSON(4),
 						},
 					},
 				},
@@ -812,7 +812,7 @@ var _ = Describe("Plugin Preset skip changes", Ordered, func() {
 				test.WithPresetLabelValue(pluginPresetName),
 				test.WithPluginDefinition(pluginPresetDefinitionName),
 				test.WithPluginOptionValue("global.greenhouse.test_parameter",
-					asAPIextensionJSON(2), nil),
+					test.AsAPIExtensionJSON(2), nil),
 				test.WithPluginOptionValue("plugin_definition.test_parameter",
 					nil, &greenhousev1alpha1.ValueFromSource{
 						Secret: &greenhousev1alpha1.SecretKeyReference{
@@ -840,7 +840,7 @@ var _ = Describe("Plugin Preset skip changes", Ordered, func() {
 					Options: []greenhousev1alpha1.PluginOption{
 						{
 							Name:    "plugin_definition.test_parameter",
-							Default: asAPIextensionJSON(4),
+							Default: test.AsAPIExtensionJSON(4),
 						},
 					},
 				},
@@ -852,7 +852,7 @@ var _ = Describe("Plugin Preset skip changes", Ordered, func() {
 				test.WithPresetLabelValue(pluginPresetName),
 				test.WithPluginDefinition(pluginPresetDefinitionName),
 				test.WithPluginOptionValue("global.greenhouse.test_parameter",
-					asAPIextensionJSON(2), nil),
+					test.AsAPIExtensionJSON(2), nil),
 				test.WithPluginOptionValue("plugin_definition.test_parameter",
 					nil, &greenhousev1alpha1.ValueFromSource{
 						Secret: &greenhousev1alpha1.SecretKeyReference{
@@ -889,7 +889,7 @@ var _ = Describe("Plugin Preset skip changes", Ordered, func() {
 					Options: []greenhousev1alpha1.PluginOption{
 						{
 							Name:    "plugin_definition.test_parameter",
-							Default: asAPIextensionJSON(4),
+							Default: test.AsAPIExtensionJSON(4),
 						},
 					},
 				},
@@ -901,7 +901,7 @@ var _ = Describe("Plugin Preset skip changes", Ordered, func() {
 				test.WithPresetLabelValue(pluginPresetName),
 				test.WithPluginDefinition(pluginPresetDefinitionName),
 				test.WithPluginOptionValue("global.greenhouse.test_parameter",
-					asAPIextensionJSON(2), nil),
+					test.AsAPIExtensionJSON(2), nil),
 			),
 			&greenhousev1alpha1.PluginPreset{
 				ObjectMeta: metav1.ObjectMeta{
@@ -913,7 +913,7 @@ var _ = Describe("Plugin Preset skip changes", Ordered, func() {
 						OptionValues: []greenhousev1alpha1.PluginOptionValue{
 							{
 								Name:  "global.greenhouse.test_parameter",
-								Value: asAPIextensionJSON(2),
+								Value: test.AsAPIExtensionJSON(2),
 							},
 						},
 					},
@@ -923,7 +923,7 @@ var _ = Describe("Plugin Preset skip changes", Ordered, func() {
 							Overrides: []greenhousev1alpha1.PluginOptionValue{
 								{
 									Name:  "global.greenhouse.test_parameter",
-									Value: asAPIextensionJSON(3),
+									Value: test.AsAPIExtensionJSON(3),
 								},
 							},
 						},
@@ -938,7 +938,7 @@ var _ = Describe("Plugin Preset skip changes", Ordered, func() {
 				test.WithPresetLabelValue(pluginPresetName),
 				test.WithPluginDefinition(pluginPresetDefinitionName),
 				test.WithPluginOptionValue("global.greenhouse.test_parameter",
-					asAPIextensionJSON(2), nil),
+					test.AsAPIExtensionJSON(2), nil),
 			),
 			&greenhousev1alpha1.PluginPreset{
 				ObjectMeta: metav1.ObjectMeta{
@@ -950,7 +950,7 @@ var _ = Describe("Plugin Preset skip changes", Ordered, func() {
 						OptionValues: []greenhousev1alpha1.PluginOptionValue{
 							{
 								Name:  "global.greenhouse.test_parameter",
-								Value: asAPIextensionJSON(2),
+								Value: test.AsAPIExtensionJSON(2),
 							},
 						},
 					},
@@ -960,7 +960,7 @@ var _ = Describe("Plugin Preset skip changes", Ordered, func() {
 							Overrides: []greenhousev1alpha1.PluginOptionValue{
 								{
 									Name:  "global.greenhouse.test_parameter",
-									Value: asAPIextensionJSON(3),
+									Value: test.AsAPIExtensionJSON(3),
 								},
 							},
 						},
@@ -980,14 +980,14 @@ var _ = Describe("overridesPluginOptionValues", Ordered, func() {
 		Expect(plugin).To(BeEquivalentTo(expectedPlugin))
 	},
 		Entry("with no defined pluginPresetOverrides",
-			test.NewPlugin(test.Ctx, "", "", test.WithPluginOptionValue("option-1", asAPIextensionJSON(2), nil)),
+			test.NewPlugin(test.Ctx, "", "", test.WithPluginOptionValue("option-1", test.AsAPIExtensionJSON(2), nil)),
 			&greenhousev1alpha1.PluginPreset{
 				Spec: greenhousev1alpha1.PluginPresetSpec{},
 			},
-			test.NewPlugin(test.Ctx, "", "", test.WithPluginOptionValue("option-1", asAPIextensionJSON(2), nil)),
+			test.NewPlugin(test.Ctx, "", "", test.WithPluginOptionValue("option-1", test.AsAPIExtensionJSON(2), nil)),
 		),
 		Entry("with defined pluginPresetOverrides but for another cluster",
-			test.NewPlugin(test.Ctx, "", clusterA, test.WithCluster(clusterA), test.WithPluginOptionValue("option-1", asAPIextensionJSON(2), nil)),
+			test.NewPlugin(test.Ctx, "", clusterA, test.WithCluster(clusterA), test.WithPluginOptionValue("option-1", test.AsAPIExtensionJSON(2), nil)),
 			&greenhousev1alpha1.PluginPreset{
 				Spec: greenhousev1alpha1.PluginPresetSpec{
 					ClusterOptionOverrides: []greenhousev1alpha1.ClusterOptionOverride{
@@ -996,7 +996,7 @@ var _ = Describe("overridesPluginOptionValues", Ordered, func() {
 							Overrides: []greenhousev1alpha1.PluginOptionValue{
 								{
 									Name:  "option-1",
-									Value: asAPIextensionJSON(1),
+									Value: test.AsAPIExtensionJSON(1),
 								},
 							},
 						},
@@ -1004,10 +1004,10 @@ var _ = Describe("overridesPluginOptionValues", Ordered, func() {
 				},
 			},
 			test.NewPlugin(test.Ctx, "", clusterA,
-				test.WithCluster(clusterA), test.WithPluginOptionValue("option-1", asAPIextensionJSON(2), nil)),
+				test.WithCluster(clusterA), test.WithPluginOptionValue("option-1", test.AsAPIExtensionJSON(2), nil)),
 		),
 		Entry("with defined pluginPresetOverrides for the correct cluster",
-			test.NewPlugin(test.Ctx, "", clusterA, test.WithCluster(clusterA), test.WithPluginOptionValue("option-1", asAPIextensionJSON(2), nil)),
+			test.NewPlugin(test.Ctx, "", clusterA, test.WithCluster(clusterA), test.WithPluginOptionValue("option-1", test.AsAPIExtensionJSON(2), nil)),
 			&greenhousev1alpha1.PluginPreset{
 				Spec: greenhousev1alpha1.PluginPresetSpec{
 					ClusterOptionOverrides: []greenhousev1alpha1.ClusterOptionOverride{
@@ -1016,14 +1016,14 @@ var _ = Describe("overridesPluginOptionValues", Ordered, func() {
 							Overrides: []greenhousev1alpha1.PluginOptionValue{
 								{
 									Name:  "option-1",
-									Value: asAPIextensionJSON(1),
+									Value: test.AsAPIExtensionJSON(1),
 								},
 							},
 						},
 					},
 				},
 			},
-			test.NewPlugin(test.Ctx, "", clusterA, test.WithCluster(clusterA), test.WithPluginOptionValue("option-1", asAPIextensionJSON(1), nil)),
+			test.NewPlugin(test.Ctx, "", clusterA, test.WithCluster(clusterA), test.WithPluginOptionValue("option-1", test.AsAPIExtensionJSON(1), nil)),
 		),
 		Entry("with defined pluginPresetOverrides for the cluster and plugin with empty option values",
 			test.NewPlugin(test.Ctx, "", clusterA, test.WithCluster(clusterA)),
@@ -1035,17 +1035,17 @@ var _ = Describe("overridesPluginOptionValues", Ordered, func() {
 							Overrides: []greenhousev1alpha1.PluginOptionValue{
 								{
 									Name:  "option-1",
-									Value: asAPIextensionJSON(1),
+									Value: test.AsAPIExtensionJSON(1),
 								},
 							},
 						},
 					},
 				},
 			},
-			test.NewPlugin(test.Ctx, "", clusterA, test.WithCluster(clusterA), test.WithPluginOptionValue("option-1", asAPIextensionJSON(1), nil)),
+			test.NewPlugin(test.Ctx, "", clusterA, test.WithCluster(clusterA), test.WithPluginOptionValue("option-1", test.AsAPIExtensionJSON(1), nil)),
 		),
 		Entry("with defined pluginPresetOverrides and plugin has two options",
-			test.NewPlugin(test.Ctx, "", clusterA, test.WithCluster(clusterA), test.WithPluginOptionValue("option-1", asAPIextensionJSON(1), nil), test.WithPluginOptionValue("option-2", asAPIextensionJSON(1), nil)),
+			test.NewPlugin(test.Ctx, "", clusterA, test.WithCluster(clusterA), test.WithPluginOptionValue("option-1", test.AsAPIExtensionJSON(1), nil), test.WithPluginOptionValue("option-2", test.AsAPIExtensionJSON(1), nil)),
 			&greenhousev1alpha1.PluginPreset{
 				Spec: greenhousev1alpha1.PluginPresetSpec{
 					ClusterOptionOverrides: []greenhousev1alpha1.ClusterOptionOverride{
@@ -1054,20 +1054,20 @@ var _ = Describe("overridesPluginOptionValues", Ordered, func() {
 							Overrides: []greenhousev1alpha1.PluginOptionValue{
 								{
 									Name:  "option-2",
-									Value: asAPIextensionJSON(2),
+									Value: test.AsAPIExtensionJSON(2),
 								},
 							},
 						},
 					},
 				},
 			},
-			test.NewPlugin(test.Ctx, "", clusterA, test.WithCluster(clusterA), test.WithPluginOptionValue("option-1", asAPIextensionJSON(1), nil), test.WithPluginOptionValue("option-2", asAPIextensionJSON(2), nil)),
+			test.NewPlugin(test.Ctx, "", clusterA, test.WithCluster(clusterA), test.WithPluginOptionValue("option-1", test.AsAPIExtensionJSON(1), nil), test.WithPluginOptionValue("option-2", test.AsAPIExtensionJSON(2), nil)),
 		),
 		Entry("with defined pluginPresetOverrides has multiple options to override",
 			test.NewPlugin(test.Ctx, "", clusterA, test.WithCluster(clusterA),
-				test.WithPluginOptionValue("option-1", asAPIextensionJSON(1), nil),
-				test.WithPluginOptionValue("option-2", asAPIextensionJSON(1), nil),
-				test.WithPluginOptionValue("option-3", asAPIextensionJSON(1), nil)),
+				test.WithPluginOptionValue("option-1", test.AsAPIExtensionJSON(1), nil),
+				test.WithPluginOptionValue("option-2", test.AsAPIExtensionJSON(1), nil),
+				test.WithPluginOptionValue("option-3", test.AsAPIExtensionJSON(1), nil)),
 			&greenhousev1alpha1.PluginPreset{
 				Spec: greenhousev1alpha1.PluginPresetSpec{
 					ClusterOptionOverrides: []greenhousev1alpha1.ClusterOptionOverride{
@@ -1076,15 +1076,15 @@ var _ = Describe("overridesPluginOptionValues", Ordered, func() {
 							Overrides: []greenhousev1alpha1.PluginOptionValue{
 								{
 									Name:  "option-2",
-									Value: asAPIextensionJSON(2),
+									Value: test.AsAPIExtensionJSON(2),
 								},
 								{
 									Name:  "option-3",
-									Value: asAPIextensionJSON(2),
+									Value: test.AsAPIExtensionJSON(2),
 								},
 								{
 									Name:  "option-4",
-									Value: asAPIextensionJSON(2),
+									Value: test.AsAPIExtensionJSON(2),
 								},
 							},
 						},
@@ -1092,10 +1092,10 @@ var _ = Describe("overridesPluginOptionValues", Ordered, func() {
 				},
 			},
 			test.NewPlugin(test.Ctx, "", clusterA, test.WithCluster(clusterA),
-				test.WithPluginOptionValue("option-1", asAPIextensionJSON(1), nil),
-				test.WithPluginOptionValue("option-2", asAPIextensionJSON(2), nil),
-				test.WithPluginOptionValue("option-3", asAPIextensionJSON(2), nil),
-				test.WithPluginOptionValue("option-4", asAPIextensionJSON(2), nil)),
+				test.WithPluginOptionValue("option-1", test.AsAPIExtensionJSON(1), nil),
+				test.WithPluginOptionValue("option-2", test.AsAPIExtensionJSON(2), nil),
+				test.WithPluginOptionValue("option-3", test.AsAPIExtensionJSON(2), nil),
+				test.WithPluginOptionValue("option-4", test.AsAPIExtensionJSON(2), nil)),
 		),
 	)
 })
