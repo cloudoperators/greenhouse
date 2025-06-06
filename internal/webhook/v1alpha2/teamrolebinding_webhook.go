@@ -64,11 +64,7 @@ func ValidateCreateRoleBinding(ctx context.Context, c client.Client, o runtime.O
 		return nil, apierrors.NewInternalError(err)
 	}
 
-	err := validateClusterSelector(rb)
-	if err != nil {
-		return nil, err
-	}
-	return nil, nil
+	return nil, validateClusterSelector(rb)
 }
 
 func ValidateUpdateRoleBinding(ctx context.Context, c client.Client, old, cur runtime.Object) (admission.Warnings, error) {
