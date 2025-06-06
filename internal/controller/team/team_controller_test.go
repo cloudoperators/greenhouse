@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2024 SAP SE or an SAP affiliate company and Greenhouse contributors
 // SPDX-License-Identifier: Apache-2.0
 
-package teammembership_test
+package team_test
 
 import (
 	. "github.com/onsi/ginkgo/v2"
@@ -31,7 +31,7 @@ var (
 	setup *test.TestSetup
 )
 
-var _ = Describe("TeammembershipUpdaterController", Ordered, func() {
+var _ = Describe("TeamController", Ordered, func() {
 	Context("reconciling with valid SCIM config in Organization", func() {
 		BeforeEach(func() {
 			By("creating new test setup")

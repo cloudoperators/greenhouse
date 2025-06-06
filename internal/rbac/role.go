@@ -17,7 +17,7 @@ func OrganizationAdminPolicyRules() []rbacv1.PolicyRule {
 		{
 			Verbs:     []string{"get", "list", "watch", "update", "patch", "delete", "create"},
 			APIGroups: []string{greenhouseapisv1alpha1.GroupVersion.Group},
-			Resources: []string{"teams", "teammemberships"},
+			Resources: []string{"teams"},
 		},
 		// Grant permissions for secrets referenced by other resources, e.g. Plugins for storing sensitive values.
 		// Retrieving these secrets is not permitted to the user.
@@ -93,11 +93,11 @@ func OrganizationPluginAdminPolicyRules() []rbacv1.PolicyRule {
 // OrganizationMemberPolicyRules returns the namespace-scoped PolicyRules for an organization member.
 func OrganizationMemberPolicyRules() []rbacv1.PolicyRule {
 	return []rbacv1.PolicyRule{
-		// Grant read permissions for Clusters, Plugins, Teams, TeamMemberships to organization members.
+		// Grant read permissions for Clusters, Plugins, Teams to organization members.
 		{
 			Verbs:     []string{"get", "list", "watch"},
 			APIGroups: []string{greenhouseapisv1alpha1.GroupVersion.Group},
-			Resources: []string{"clusters", "clusterkubeconfigs", "plugins", "pluginpresets", "teams", "teammemberships", "teamroles", "teamrolebindings"},
+			Resources: []string{"clusters", "clusterkubeconfigs", "plugins", "pluginpresets", "teams", "teamroles", "teamrolebindings"},
 		},
 	}
 }

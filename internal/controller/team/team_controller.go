@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2024 SAP SE or an SAP affiliate company and Greenhouse contributors
 // SPDX-License-Identifier: Apache-2.0
 
-package teammembership
+package team
 
 import (
 	"context"
@@ -52,7 +52,7 @@ func init() {
 	metrics.Registry.MustRegister(membersCountMetric)
 }
 
-type TeamMembershipUpdaterController struct {
+type TeamController struct {
 	client.Client
 	recorder record.EventRecorder
 }
@@ -64,7 +64,7 @@ type TeamMembershipUpdaterController struct {
 //+kubebuilder:rbac:groups="",resources=events,verbs=get;list;watch;update;patch
 
 // SetupWithManager sets up the controller with the Manager.
-func (r *TeamMembershipUpdaterController) SetupWithManager(name string, mgr ctrl.Manager) error {
+func (r *TeamController) SetupWithManager(name string, mgr ctrl.Manager) error {
 	r.Client = mgr.GetClient()
 	r.recorder = mgr.GetEventRecorderFor(name)
 
@@ -78,7 +78,7 @@ func (r *TeamMembershipUpdaterController) SetupWithManager(name string, mgr ctrl
 		Complete(r)
 }
 
-func (r *TeamMembershipUpdaterController) enqueueAllTeamsForOrganization(ctx context.Context, o client.Object) []ctrl.Request {
+func (r *TeamController) enqueueAllTeamsForOrganization(ctx context.Context, o client.Object) []ctrl.Request {
 	// Team's namespace corresponds to Organization's name.
 	return listTeamsAsReconcileRequests(ctx, r.Client, &client.ListOptions{Namespace: o.GetName()})
 }
@@ -94,11 +94,11 @@ func listTeamsAsReconcileRequests(ctx context.Context, c client.Client, listOpts
 	return res
 }
 
-func (r *TeamMembershipUpdaterController) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
+func (r *TeamController) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	return lifecycle.Reconcile(ctx, r.Client, req.NamespacedName, &greenhousev1alpha1.Team{}, r, r.setConditions())
 }
 
-func (r *TeamMembershipUpdaterController) setConditions() lifecycle.Conditioner {
+func (r *TeamController) setConditions() lifecycle.Conditioner {
 	return func(ctx context.Context, resource lifecycle.RuntimeObject) {
 		logger := ctrl.LoggerFrom(ctx)
 		team, ok := resource.(*greenhousev1alpha1.Team)
@@ -112,11 +112,11 @@ func (r *TeamMembershipUpdaterController) setConditions() lifecycle.Conditioner 
 	}
 }
 
-func (r *TeamMembershipUpdaterController) EnsureDeleted(_ context.Context, _ lifecycle.RuntimeObject) (ctrl.Result, lifecycle.ReconcileResult, error) {
+func (r *TeamController) EnsureDeleted(_ context.Context, _ lifecycle.RuntimeObject) (ctrl.Result, lifecycle.ReconcileResult, error) {
 	return ctrl.Result{}, lifecycle.Success, nil
 }
 
-func (r *TeamMembershipUpdaterController) EnsureCreated(ctx context.Context, object lifecycle.RuntimeObject) (ctrl.Result, lifecycle.ReconcileResult, error) {
+func (r *TeamController) EnsureCreated(ctx context.Context, object lifecycle.RuntimeObject) (ctrl.Result, lifecycle.ReconcileResult, error) {
 	team, ok := object.(*greenhousev1alpha1.Team)
 	if !ok {
 		return ctrl.Result{}, lifecycle.Failed, errors.Errorf("RuntimeObject has incompatible type.")
@@ -179,7 +179,7 @@ func (r *TeamMembershipUpdaterController) EnsureCreated(ctx context.Context, obj
 		lifecycle.Success, nil
 }
 
-func (r *TeamMembershipUpdaterController) createSCIMClient(
+func (r *TeamController) createSCIMClient(
 	ctx context.Context,
 	namespace string,
 	scimConfig *greenhousev1alpha1.SCIMConfig,
@@ -194,7 +194,7 @@ func (r *TeamMembershipUpdaterController) createSCIMClient(
 	return scim.NewSCIMClient(logger, clientConfig)
 }
 
-func (r *TeamMembershipUpdaterController) getUsersFromSCIM(ctx context.Context, scimClient scim.ISCIMClient, mappedIDPGroup string) ([]greenhousev1alpha1.User, greenhousemetav1alpha1.Condition, error) {
+func (r *TeamController) getUsersFromSCIM(ctx context.Context, scimClient scim.ISCIMClient, mappedIDPGroup string) ([]greenhousev1alpha1.User, greenhousemetav1alpha1.Condition, error) {
 	condition := greenhousemetav1alpha1.UnknownCondition(greenhousev1alpha1.SCIMAllMembersValidCondition, "", "")
 	opts := &scim.QueryOptions{
 		Filter:     scim.UserFilterByGroupDisplayName(mappedIDPGroup),
@@ -244,7 +244,7 @@ func initTeamStatus(team *greenhousev1alpha1.Team) {
 	}
 }
 
-func (r *TeamMembershipUpdaterController) computeReadyCondition(
+func (r *TeamController) computeReadyCondition(
 	conditions greenhousemetav1alpha1.StatusConditions,
 ) (readyCondition greenhousemetav1alpha1.Condition) {
 
