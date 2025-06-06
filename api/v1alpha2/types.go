@@ -7,7 +7,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// ClusterSelector specifies a selector for clusters by name or by label with the option to exclude specific clusters.
+// ClusterSelector specifies a selector for clusters by name or by label
 type ClusterSelector struct {
 	// Name of a single Cluster to select.
 	Name string `json:"clusterName,omitempty"`
