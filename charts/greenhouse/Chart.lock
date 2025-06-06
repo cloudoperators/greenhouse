@@ -10,12 +10,12 @@ dependencies:
   version: 0.3.3
 - name: dashboard
   repository: file://../dashboard
-  version: 0.1.1
+  version: 0.2.0
 - name: demo
   repository: file://../demo
   version: 0.1.2
 - name: postgresql-ng
   repository: oci://ghcr.io/sapcc/helm-charts
   version: 1.3.0
-digest: sha256:1e16b62504563761a1dbd9cdde56557eee5d8cc5e7a4ccc0171eb431e6b21c8f
-generated: "2025-06-03T10:39:31.740239+02:00"
+digest: sha256:9a6642a62428178085d62fdc13a89ae21c4d41088854f45393fea47c863868b0
+generated: "2025-06-06T16:17:05.44965+02:00"
