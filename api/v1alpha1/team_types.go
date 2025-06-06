@@ -9,6 +9,27 @@ import (
 	greenhousemetav1alpha1 "github.com/cloudoperators/greenhouse/api/meta/v1alpha1"
 )
 
+const (
+	// SCIMAccessReadyCondition reflects if there is a connection to SCIM.
+	SCIMAccessReadyCondition greenhousemetav1alpha1.ConditionType = "SCIMAccessReady"
+	// SCIMAPIUnavailableReason is set when the organization has set SCIMAPIAvailableCondition to false.
+	SCIMAPIUnavailableReason greenhousemetav1alpha1.ConditionReason = "SCIMAPIUnavailable"
+	// SCIMAllMembersValidCondition reflects if all members are valid. It is set to false if there are invalid or inactive members.
+	SCIMAllMembersValidCondition greenhousemetav1alpha1.ConditionType = "SCIMAllMembersValid"
+)
+
+// User specifies a human person.
+type User struct {
+	// ID is the unique identifier of the user.
+	ID string `json:"id"`
+	// FirstName of the user.
+	FirstName string `json:"firstName"`
+	// LastName of the user.
+	LastName string `json:"lastName"`
+	// Email of the user.
+	Email string `json:"email"`
+}
+
 // TeamSpec defines the desired state of Team
 type TeamSpec struct {
 	// Description provides additional details of the team.
