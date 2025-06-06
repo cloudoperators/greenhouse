@@ -8,7 +8,8 @@ global:
 image:
   repository: ghcr.io/cloudoperators/juno-app-greenhouse
   # Overrides the image tag to use a specific digest instead
-  digest: sha256:a0db5f8667b8ca9cd025c71ceee218060f6bf8b581d4620e8ce0a4317b74be04
+  digest: sha256:f9a731b8c76f4495875a1956bbccde39c09a1ba4d3cad6cf44d21a9828d6cffc
+
   pullPolicy: IfNotPresent
 
 replicas: 2
