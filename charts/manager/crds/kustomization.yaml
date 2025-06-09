@@ -11,4 +11,5 @@ resources:
 - greenhouse.sap_clusterkubeconfigs.yaml
 - greenhouse.sap_teamroles.yaml
 - greenhouse.sap_teamrolebindings.yaml
+- greenhouse.sap_clusterplugindefinitions.yaml
 #+kubebuilder:scaffold:crdkustomizeresource
