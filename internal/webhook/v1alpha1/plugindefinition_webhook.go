@@ -15,18 +15,19 @@ import (
 
 	greenhouseapis "github.com/cloudoperators/greenhouse/api"
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
+	"github.com/cloudoperators/greenhouse/internal/webhook"
 )
 
 // Webhook for the PluginDefinition custom resource.
 
 func SetupPluginDefinitionWebhookWithManager(mgr ctrl.Manager) error {
-	return setupWebhook(mgr,
+	return webhook.SetupWebhook(mgr,
 		&greenhousev1alpha1.PluginDefinition{},
-		webhookFuncs{
-			defaultFunc:        DefaultPluginDefinition,
-			validateCreateFunc: ValidateCreatePluginDefinition,
-			validateUpdateFunc: ValidateUpdatePluginDefinition,
-			validateDeleteFunc: ValidateDeletePluginDefinition,
+		webhook.WebhookFuncs{
+			DefaultFunc:        DefaultPluginDefinition,
+			ValidateCreateFunc: ValidateCreatePluginDefinition,
+			ValidateUpdateFunc: ValidateUpdatePluginDefinition,
+			ValidateDeleteFunc: ValidateDeletePluginDefinition,
 		},
 	)
 }

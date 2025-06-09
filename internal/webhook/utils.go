@@ -1,19 +1,26 @@
-// SPDX-FileCopyrightText: 2024 SAP SE or an SAP affiliate company and Greenhouse contributors
+// SPDX-FileCopyrightText: 2025 SAP SE or an SAP affiliate company and Greenhouse contributors
 // SPDX-License-Identifier: Apache-2.0
 
-package v1alpha2
+package webhook
 
 import (
 	"context"
+	"fmt"
+	"net/url"
+	"strings"
 
+	"github.com/go-logr/logr"
+
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/util/validation/field"
 
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 )
 
-func setupWebhook(mgr ctrl.Manager, obj runtime.Object, webhookFuncs webhookFuncs) error {
+func SetupWebhook(mgr ctrl.Manager, obj runtime.Object, webhookFuncs WebhookFuncs) error {
 	return ctrl.NewWebhookManagedBy(mgr).
 		For(obj).
 		WithDefaulter(setupCustomDefaulterWithManager(mgr, webhookFuncs)).
@@ -26,11 +33,11 @@ type (
 	genericFunc func(ctx context.Context, c client.Client, obj runtime.Object) (admission.Warnings, error)
 	updateFunc  func(ctx context.Context, c client.Client, oldObj, curObj runtime.Object) (admission.Warnings, error)
 
-	webhookFuncs struct {
-		defaultFunc        defaultFunc
-		validateCreateFunc genericFunc
-		validateUpdateFunc updateFunc
-		validateDeleteFunc genericFunc
+	WebhookFuncs struct {
+		DefaultFunc        defaultFunc
+		ValidateCreateFunc genericFunc
+		ValidateUpdateFunc updateFunc
+		ValidateDeleteFunc genericFunc
 	}
 )
 
@@ -41,10 +48,10 @@ type customDefaulter struct {
 	defaultFunc defaultFunc
 }
 
-func setupCustomDefaulterWithManager(mgr ctrl.Manager, webhookFuncs webhookFuncs) *customDefaulter {
+func setupCustomDefaulterWithManager(mgr ctrl.Manager, webhookFuncs WebhookFuncs) *customDefaulter {
 	return &customDefaulter{
 		Client:      mgr.GetClient(),
-		defaultFunc: webhookFuncs.defaultFunc,
+		defaultFunc: webhookFuncs.DefaultFunc,
 	}
 }
 
@@ -63,12 +70,12 @@ type customValidator struct {
 	validateUpdate                 updateFunc
 }
 
-func setupCustomValidatorWithManager(mgr ctrl.Manager, webhookFuncs webhookFuncs) *customValidator {
+func setupCustomValidatorWithManager(mgr ctrl.Manager, webhookFuncs WebhookFuncs) *customValidator {
 	return &customValidator{
 		Client:         mgr.GetClient(),
-		validateCreate: webhookFuncs.validateCreateFunc,
-		validateUpdate: webhookFuncs.validateUpdateFunc,
-		validateDelete: webhookFuncs.validateDeleteFunc,
+		validateCreate: webhookFuncs.ValidateCreateFunc,
+		validateUpdate: webhookFuncs.ValidateUpdateFunc,
+		validateDelete: webhookFuncs.ValidateDeleteFunc,
 	}
 }
 
@@ -94,6 +101,53 @@ func (c *customValidator) ValidateDelete(ctx context.Context, obj runtime.Object
 		return nil, nil
 	}
 	return c.validateDelete(ctx, c.Client, obj)
+}
+
+func ValidateImmutableField(oldValue, newValue string, path *field.Path) *field.Error {
+	if oldValue != newValue {
+		return field.Invalid(path, newValue, "field is immutable")
+	}
+	return nil
+}
+
+func ValidateURL(str string) bool {
+	parsedURL, err := url.Parse(str)
+	if err != nil || parsedURL.Scheme == "" || parsedURL.Host == "" {
+		return false
+	}
+	return parsedURL.Scheme == "https"
+}
+
+// invalidateDoubleDashes validates that the object name does not contain double dashes.
+func InvalidateDoubleDashesInName(obj client.Object, l logr.Logger) error {
+	if strings.Contains(obj.GetName(), "--") {
+		err := apierrors.NewInvalid(
+			obj.GetObjectKind().GroupVersionKind().GroupKind(),
+			obj.GetName(),
+			field.ErrorList{
+				field.Invalid(field.NewPath("metadata", "name"), obj.GetName(), "name cannot contain double dashes"),
+			},
+		)
+		l.Error(err, "found object name with double dashes, admission will be denied")
+		return err
+	}
+	return nil
+}
+
+// capName validates that the name is not longer than the provided length.
+func CapName(obj client.Object, l logr.Logger, length int) error {
+	if len(obj.GetName()) > length {
+		err := apierrors.NewInvalid(
+			obj.GetObjectKind().GroupVersionKind().GroupKind(),
+			obj.GetName(),
+			field.ErrorList{
+				field.Invalid(field.NewPath("metadata", "name"), obj.GetName(), fmt.Sprintf("name must be less than or equal to %d", length)),
+			},
+		)
+		l.Error(err, fmt.Sprintf("found object name too long, admission will be denied, name must be less than or equal to %d", length))
+		return err
+	}
+	return nil
 }
 
 // logAdmissionRequest logs the AdmissionRequest.

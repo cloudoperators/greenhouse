@@ -15,18 +15,19 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
+	"github.com/cloudoperators/greenhouse/internal/webhook"
 )
 
 // Webhook for the PluginPreset custom resource.
 
 func SetupPluginPresetWebhookWithManager(mgr ctrl.Manager) error {
-	return setupWebhook(mgr,
+	return webhook.SetupWebhook(mgr,
 		&greenhousev1alpha1.PluginPreset{},
-		webhookFuncs{
-			defaultFunc:        DefaultPluginPreset,
-			validateCreateFunc: ValidateCreatePluginPreset,
-			validateUpdateFunc: ValidateUpdatePluginPreset,
-			validateDeleteFunc: ValidateDeletePluginPreset,
+		webhook.WebhookFuncs{
+			DefaultFunc:        DefaultPluginPreset,
+			ValidateCreateFunc: ValidateCreatePluginPreset,
+			ValidateUpdateFunc: ValidateUpdatePluginPreset,
+			ValidateDeleteFunc: ValidateDeletePluginPreset,
 		},
 	)
 }
@@ -107,11 +108,11 @@ func ValidateUpdatePluginPreset(ctx context.Context, c client.Client, oldObj, cu
 
 	var allErrs field.ErrorList
 
-	if err := validateImmutableField(oldPluginPreset.Spec.Plugin.PluginDefinition, pluginPreset.Spec.Plugin.PluginDefinition, field.NewPath("spec", "plugin", "pluginDefinition")); err != nil {
+	if err := webhook.ValidateImmutableField(oldPluginPreset.Spec.Plugin.PluginDefinition, pluginPreset.Spec.Plugin.PluginDefinition, field.NewPath("spec", "plugin", "pluginDefinition")); err != nil {
 		allErrs = append(allErrs, err)
 	}
 
-	if err := validateImmutableField(oldPluginPreset.Spec.Plugin.ClusterName, pluginPreset.Spec.Plugin.ClusterName, field.NewPath("spec", "plugin", "clusterName")); err != nil {
+	if err := webhook.ValidateImmutableField(oldPluginPreset.Spec.Plugin.ClusterName, pluginPreset.Spec.Plugin.ClusterName, field.NewPath("spec", "plugin", "clusterName")); err != nil {
 		allErrs = append(allErrs, err)
 	}
 

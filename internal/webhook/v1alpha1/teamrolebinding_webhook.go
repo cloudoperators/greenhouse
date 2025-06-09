@@ -15,18 +15,19 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
+	"github.com/cloudoperators/greenhouse/internal/webhook"
 )
 
 // Webhook for the RoleBinding custom resource.
 
 func SetupTeamRoleBindingWebhookWithManager(mgr ctrl.Manager) error {
-	return setupWebhook(mgr,
+	return webhook.SetupWebhook(mgr,
 		&greenhousev1alpha1.TeamRoleBinding{},
-		webhookFuncs{
-			defaultFunc:        DefaultRoleBinding,
-			validateCreateFunc: ValidateCreateRoleBinding,
-			validateUpdateFunc: ValidateUpdateRoleBinding,
-			validateDeleteFunc: ValidateDeleteRoleBinding,
+		webhook.WebhookFuncs{
+			DefaultFunc:        DefaultRoleBinding,
+			ValidateCreateFunc: ValidateCreateRoleBinding,
+			ValidateUpdateFunc: ValidateUpdateRoleBinding,
+			ValidateDeleteFunc: ValidateDeleteRoleBinding,
 		},
 	)
 }

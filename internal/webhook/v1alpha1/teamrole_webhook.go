@@ -19,6 +19,7 @@ import (
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
 	greenhousev1alpha2 "github.com/cloudoperators/greenhouse/api/v1alpha2"
 	"github.com/cloudoperators/greenhouse/internal/clientutil"
+	"github.com/cloudoperators/greenhouse/internal/webhook"
 )
 
 const errAggregationRuleAndRulesExclusive = ".spec.rules and .spec.aggregationRule are mutually exclusive"
@@ -48,13 +49,13 @@ func SetupTeamRoleWebhookWithManager(mgr ctrl.Manager) error {
 		return err
 	}
 
-	return setupWebhook(mgr,
+	return webhook.SetupWebhook(mgr,
 		&greenhousev1alpha1.TeamRole{},
-		webhookFuncs{
-			defaultFunc:        DefaultRole,
-			validateCreateFunc: ValidateCreateRole,
-			validateUpdateFunc: ValidateUpdateRole,
-			validateDeleteFunc: ValidateDeleteRole,
+		webhook.WebhookFuncs{
+			DefaultFunc:        DefaultRole,
+			ValidateCreateFunc: ValidateCreateRole,
+			ValidateUpdateFunc: ValidateUpdateRole,
+			ValidateDeleteFunc: ValidateDeleteRole,
 		},
 	)
 }

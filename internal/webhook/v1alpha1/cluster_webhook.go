@@ -16,6 +16,7 @@ import (
 
 	apis "github.com/cloudoperators/greenhouse/api"
 	"github.com/cloudoperators/greenhouse/internal/clientutil"
+	"github.com/cloudoperators/greenhouse/internal/webhook"
 
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -28,13 +29,13 @@ import (
 // Webhook for the Cluster custom resource.
 
 func SetupClusterWebhookWithManager(mgr ctrl.Manager) error {
-	return setupWebhook(mgr,
+	return webhook.SetupWebhook(mgr,
 		&greenhousev1alpha1.Cluster{},
-		webhookFuncs{
-			defaultFunc:        DefaultCluster,
-			validateCreateFunc: ValidateCreateCluster,
-			validateUpdateFunc: ValidateUpdateCluster,
-			validateDeleteFunc: ValidateDeleteCluster,
+		webhook.WebhookFuncs{
+			DefaultFunc:        DefaultCluster,
+			ValidateCreateFunc: ValidateCreateCluster,
+			ValidateUpdateFunc: ValidateUpdateCluster,
+			ValidateDeleteFunc: ValidateDeleteCluster,
 		},
 	)
 }
@@ -88,11 +89,11 @@ func ValidateCreateCluster(ctx context.Context, _ client.Client, obj runtime.Obj
 	if !ok {
 		return nil, nil
 	}
-	if err := invalidateDoubleDashesInName(cluster, logger); err != nil {
+	if err := webhook.InvalidateDoubleDashesInName(cluster, logger); err != nil {
 		return nil, err
 	}
 	// capping the name at 40 chars, so we ensure to get unique urls for exposed services per cluster. service-name/namespace hash needs to fit (max 63 chars)
-	if err := capName(cluster, logger, 40); err != nil {
+	if err := webhook.CapName(cluster, logger, 40); err != nil {
 		return nil, err
 	}
 	annotations := cluster.GetAnnotations()
