@@ -76,19 +76,7 @@ var _ = BeforeSuite(func() {
 	shared.ClusterIsReady(ctx, adminClient, remoteClusterName, env.TestNamespace)
 
 	By("creating a Team on the admin cluster")
-	teamUT = &greenhousev1alpha1.Team{
-		TypeMeta: metav1.TypeMeta{
-			Kind:       "Team",
-			APIVersion: greenhousev1alpha1.GroupVersion.String(),
-		},
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "test-team",
-			Namespace: env.TestNamespace,
-		},
-		Spec: greenhousev1alpha1.TeamSpec{
-			MappedIDPGroup: testTeamIDPGroup,
-		},
-	}
+	teamUT = test.NewTeam(ctx, "test-team", env.TestNamespace, test.WithMappedIDPGroup(testTeamIDPGroup))
 	Expect(adminClient.Create(ctx, teamUT)).To(Succeed(), "there should be no error creating a Team")
 })
 
@@ -100,26 +88,8 @@ var _ = AfterSuite(func() {
 var _ = Describe("Conversion E2E", Ordered, func() {
 	BeforeEach(func() {
 		By("creating a TeamRole on the admin cluster")
-		teamRoleUT = &greenhousev1alpha1.TeamRole{
-			TypeMeta: metav1.TypeMeta{
-				Kind:       "TeamRole",
-				APIVersion: greenhousev1alpha1.GroupVersion.String(),
-			},
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      "test-role" + "-" + rand.String(8),
-				Namespace: env.TestNamespace,
-			},
-			Spec: greenhousev1alpha1.TeamRoleSpec{
-				Rules: []rbacv1.PolicyRule{
-					{
-						Verbs:     []string{"get"},
-						APIGroups: []string{"*"},
-						Resources: []string{"*"},
-					},
-				},
-				Labels: map[string]string{"aggregate": "true"},
-			},
-		}
+		teamRoleUT = test.NewTeamRole(ctx, "test-role"+"-"+rand.String(8), env.TestNamespace,
+			test.WithLabels(map[string]string{"aggregate": "true"}))
 		Expect(adminClient.Create(ctx, teamRoleUT)).To(Succeed(), "there should be no error creating a TeamRole")
 	})
 
@@ -218,25 +188,13 @@ var _ = Describe("Conversion E2E", Ordered, func() {
 
 	It("should correctly convert the TRB with ClusterName from v1alpha2 to v1alpha1", func() {
 		By("creating a TeamRoleBinding with v1alpha2 on the central cluster")
-		trbV1alpha2 := &greenhousev1alpha2.TeamRoleBinding{
-			TypeMeta: metav1.TypeMeta{
-				Kind:       "TeamRoleBinding",
-				APIVersion: greenhousev1alpha2.GroupVersion.String(),
-			},
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      "test-trb-2",
-				Namespace: env.TestNamespace,
-			},
-			Spec: greenhousev1alpha2.TeamRoleBindingSpec{
-				TeamRoleRef: teamRoleUT.Name,
-				TeamRef:     teamUT.Name,
-				ClusterSelector: greenhousev1alpha2.ClusterSelector{
-					Name: remoteClusterName,
-				},
-				Namespaces:       []string{env.TestNamespace},
-				CreateNamespaces: true,
-			},
-		}
+		trbV1alpha2 := test.NewTeamRoleBinding(ctx, "test-trb-2", env.TestNamespace,
+			test.WithTeamRoleRef(teamRoleUT.Name),
+			test.WithTeamRef(teamUT.Name),
+			test.WithClusterName(remoteClusterName),
+			test.WithNamespaces(env.TestNamespace),
+			test.WithCreateNamespace(true),
+		)
 		Expect(adminClient.Create(ctx, trbV1alpha2)).To(Succeed(), "there should be no error creating the TeamRoleBinding")
 
 		By("validating the conversion to v1alpha1 version")
@@ -334,27 +292,15 @@ var _ = Describe("Conversion E2E", Ordered, func() {
 
 	It("should correctly convert the TRB with LabelSelector from v1alpha2 to v1alpha1", func() {
 		By("creating a TeamRoleBinding with v1alpha2 on the central cluster")
-		trbV1alpha2 := &greenhousev1alpha2.TeamRoleBinding{
-			TypeMeta: metav1.TypeMeta{
-				Kind:       "TeamRoleBinding",
-				APIVersion: greenhousev1alpha2.GroupVersion.String(),
-			},
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      "test-trb-4",
-				Namespace: env.TestNamespace,
-			},
-			Spec: greenhousev1alpha2.TeamRoleBindingSpec{
-				TeamRoleRef: teamRoleUT.Name,
-				TeamRef:     teamUT.Name,
-				ClusterSelector: greenhousev1alpha2.ClusterSelector{
-					LabelSelector: metav1.LabelSelector{
-						MatchLabels: map[string]string{"app": "test-cluster"},
-					},
-				},
-				Namespaces:       []string{env.TestNamespace},
-				CreateNamespaces: true,
-			},
-		}
+		trbV1alpha2 := test.NewTeamRoleBinding(ctx, "test-trb-4", env.TestNamespace,
+			test.WithTeamRoleRef(teamRoleUT.Name),
+			test.WithTeamRef(teamUT.Name),
+			test.WithClusterSelector(metav1.LabelSelector{
+				MatchLabels: map[string]string{"app": "test-cluster"},
+			}),
+			test.WithNamespaces(env.TestNamespace),
+			test.WithCreateNamespace(true),
+		)
 		Expect(adminClient.Create(ctx, trbV1alpha2)).To(Succeed(), "there should be no error creating the TeamRoleBinding")
 
 		By("validating the conversion to v1alpha1 version")
