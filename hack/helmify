@@ -37,6 +37,12 @@ PREFIX="greenhouse" rename "mutating-webhook-configuration"
 PREFIX="greenhouse" rename "validating-webhook-configuration"
 PREFIX="greenhouse" rename "webhook-service"
 
+# Add cert-manager CA injection annotation to webhook configurations
+yq -i '
+  (. | select(.kind == "MutatingWebhookConfiguration" or .kind == "ValidatingWebhookConfiguration")
+     | .metadata.annotations["cert-manager.io/inject-ca-from"]) = "greenhouse/greenhouse-client-cert"
+' "$TEMPLATES_DIR/webhook/webhooks.yaml"
+
 yq -i '(.webhooks[] | select(.name == "*secret.kb.io") | .namespaceSelector) |= {"matchExpressions": [{"key":"kubernetes.io/metadata.name", "operator": "NotIn", "values":["kube-system"]}]}' "$TEMPLATES_DIR/webhook/webhooks.yaml"
 yq -i '(.metadata.annotations += {"cert-manager.io/inject-ca-from": "greenhouse/greenhouse-client-cert"})' "$TEMPLATES_DIR/webhook/webhooks.yaml"
 

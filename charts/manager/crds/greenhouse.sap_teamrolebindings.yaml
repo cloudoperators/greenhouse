@@ -21,7 +21,7 @@ spec:
       conversionReviewVersions:
       - v1alpha2
       - v1alpha1
-      - v1beta1
+      - v1beta1 # v1beta1 or v1 is required by Kubernetes to bundle the conversion webhook
   group: greenhouse.sap
   names:
     kind: TeamRoleBinding

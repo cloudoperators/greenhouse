@@ -5,6 +5,7 @@ IMG_LICENSE_EYE ?= ghcr.io/apache/skywalking-eyes/license-eye
 MANIFESTS_PATH=$(CURDIR)/charts/manager
 CRD_MANIFESTS_PATH=$(MANIFESTS_PATH)/crds
 TEMPLATES_MANIFESTS_PATH=$(MANIFESTS_PATH)/templates
+WEBHOOK_MANIFESTS_PATH=$(TEMPLATES_MANIFESTS_PATH)/webhook/webhooks.yaml
 
 # Get the currently used golang install path (in GOPATH/bin, unless GOBIN is set)
 ifeq (,$(shell go env GOBIN))
@@ -53,6 +54,10 @@ generate-all: generate generate-manifests generate-documentation  ## Generate co
 .PHONY: manifests
 manifests: generate-manifests generate-documentation generate-types
 
+.PHONY: install
+install: kustomize
+	$(KUSTOMIZE) build $(CRD_MANIFESTS_PATH) | kubectl apply -f -
+	kubectl apply -f $(WEBHOOK_MANIFESTS_PATH)
 ## Generate manifests for CRD, RBAC, Webhook and helmify the files
 ## CRD manifests are generated in hack/crd/bases
 ## Patches for CRD conversion webhooks need to be created under hack/crd/patches
@@ -255,7 +260,7 @@ setup-webhook-dev:
 
 .PHONY: setup-controller-dev
 setup-controller-dev:
-	WITH_CONTROLLER=false make setup-manager && INTERNAL= make setup-demo
+	WITH_CONTROLLER=false make setup-manager
 
 .PHONY: setup-manager
 setup-manager: cli

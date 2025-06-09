@@ -177,6 +177,10 @@ func (r *OrganizationReconciler) reconcileServiceProxyPlugin(ctx context.Context
 				Value: &apiextensionsv1.JSON{Raw: versionJSON},
 			},
 		}
+		// Set the release name
+		if plugin.Spec.ReleaseName == "" {
+			plugin.Spec.ReleaseName = serviceProxyName
+		}
 		if oauthProxyEnabled {
 			oauth2ProxyInternalSecretName := getInternalSecretName(org.GetName())
 			oauthProxyValues := []greenhousev1alpha1.PluginOptionValue{
