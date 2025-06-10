@@ -48,7 +48,7 @@ type PluginDefinitionReconciler struct {
 func (r *PluginDefinitionReconciler) SetupWithManager(name string, mgr ctrl.Manager) error {
 	r.Client = mgr.GetClient()
 
-	// index PluginDefinitions by the ClusterName field for faster lookups
+	// index PluginDefinitions by the URL field for faster lookups
 	if err := mgr.GetFieldIndexer().IndexField(context.Background(), &sourcecontroller.HelmRepository{}, pluginDefinitionUrlField, func(rawObj client.Object) []string {
 		helmRepository, ok := rawObj.(*sourcecontroller.HelmRepository)
 		if helmRepository.Spec.URL == "" || !ok {

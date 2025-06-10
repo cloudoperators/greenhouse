@@ -33,12 +33,12 @@ var knownControllers = map[string]func(controllerName string, mgr ctrl.Manager) 
 
 	// Flux controllers.
 	"pluginDefinitionToFlux": (&fluxcontrollers.PluginDefinitionReconciler{}).SetupWithManager,
+	"pluginToFlux": (&fluxcontrollers.FluxReconciler{
+		KubeRuntimeOpts: kubeClientOpts,
+	}).SetupWithManager,
 
 	// Plugin controllers.
 	"plugin": (&plugincontrollers.PluginReconciler{
-		KubeRuntimeOpts: kubeClientOpts,
-	}).SetupWithManager,
-	"pluginToFlux": (&plugincontrollers.FluxReconciler{
 		KubeRuntimeOpts: kubeClientOpts,
 	}).SetupWithManager,
 	"pluginPreset": (&plugincontrollers.PluginPresetReconciler{}).SetupWithManager,

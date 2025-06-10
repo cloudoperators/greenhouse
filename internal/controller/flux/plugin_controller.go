@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2024 SAP SE or an SAP affiliate company and Greenhouse contributors
 // SPDX-License-Identifier: Apache-2.0
 
-package plugin
+package flux
 
 import (
 	"context"
@@ -35,7 +35,7 @@ import (
 	greenhousemetav1alpha1 "github.com/cloudoperators/greenhouse/api/meta/v1alpha1"
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
 	"github.com/cloudoperators/greenhouse/internal/clientutil"
-	"github.com/cloudoperators/greenhouse/internal/controller/flux"
+	pluginController "github.com/cloudoperators/greenhouse/internal/controller/plugin"
 	"github.com/cloudoperators/greenhouse/internal/lifecycle"
 	"github.com/cloudoperators/greenhouse/internal/metrics"
 )
@@ -125,7 +125,7 @@ func (r *FluxReconciler) setConditions() lifecycle.Conditioner {
 			return
 		}
 
-		readyCondition := computeReadyCondition(plugin.Status.StatusConditions)
+		readyCondition := pluginController.ComputeReadyCondition(plugin.Status.StatusConditions)
 		plugin.SetCondition(readyCondition)
 	}
 }
@@ -156,7 +156,7 @@ func (r *FluxReconciler) EnsureCreated(ctx context.Context, resource lifecycle.R
 		return ctrl.Result{}, "", nil
 	}
 
-	initPluginStatus(plugin)
+	pluginController.InitPluginStatus(plugin)
 
 	pluginDef := r.getPluginDef(ctx, plugin)
 	if pluginDef == nil {
@@ -168,7 +168,7 @@ func (r *FluxReconciler) EnsureCreated(ctx context.Context, resource lifecycle.R
 	} else {
 		nS = pluginDef.Namespace
 	}
-	helmRepository := flux.FindHelmRepositoryByUrl(ctx, r.Client, nS, pluginDef.Spec.HelmChart.Repository)
+	helmRepository := findHelmRepositoryByUrl(ctx, r.Client, nS, pluginDef.Spec.HelmChart.Repository)
 	if helmRepository == nil {
 		return ctrl.Result{}, lifecycle.Failed, errors.New("helm repository not found")
 	}
@@ -235,7 +235,7 @@ func (r *FluxReconciler) EnsureCreated(ctx context.Context, resource lifecycle.R
 }
 
 func (r *FluxReconciler) enqueueAllPluginsForPluginDefinition(ctx context.Context, o client.Object) []ctrl.Request {
-	return listPluginsAsReconcileRequests(ctx, r.Client, client.MatchingLabels{greenhouseapis.LabelKeyPluginDefinition: o.GetName()})
+	return pluginController.ListPluginsAsReconcileRequests(ctx, r.Client, client.MatchingLabels{greenhouseapis.LabelKeyPluginDefinition: o.GetName()})
 }
 
 // enqueueAllPluginsForCluster enqueues all Plugins which have .spec.clusterName set to the name of the given Cluster.
@@ -244,11 +244,11 @@ func (r *FluxReconciler) enqueueAllPluginsForCluster(ctx context.Context, o clie
 		FieldSelector: fields.OneTermEqualSelector(greenhouseapis.PluginClusterNameField, o.GetName()),
 		Namespace:     o.GetNamespace(),
 	}
-	return listPluginsAsReconcileRequests(ctx, r.Client, listOpts)
+	return pluginController.ListPluginsAsReconcileRequests(ctx, r.Client, listOpts)
 }
 
 func (r *FluxReconciler) enqueueAllPluginsInNamespace(ctx context.Context, o client.Object) []ctrl.Request {
-	return listPluginsAsReconcileRequests(ctx, r.Client, client.InNamespace(o.GetNamespace()))
+	return pluginController.ListPluginsAsReconcileRequests(ctx, r.Client, client.InNamespace(o.GetNamespace()))
 }
 
 func (r *FluxReconciler) getPluginDef(ctx context.Context, plugin *greenhousev1alpha1.Plugin) *greenhousev1alpha1.PluginDefinition {
