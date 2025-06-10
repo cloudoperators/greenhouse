@@ -15,7 +15,7 @@ Observability in software and infrastructure is essential for operating a comple
 
 ### Core Signals
 
-The three key signals of observability are **metrics**, **logs**, and **traces**, each providing unique insights which contributes to a comprehensive view of a system's health.
+The three key signals of observability are **metrics**, **logs**, and **traces**, each providing unique insights contributing to a comprehensive view of a system's health.
 
 #### Metrics
 Metrics are numerical data points reporting on a system health over time. Examples of metrics can be CPU usage, memory usage, request latency.
