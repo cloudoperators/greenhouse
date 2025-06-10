@@ -44,7 +44,7 @@ type reconcileResult struct {
 }
 
 // InitPluginStatus initializes all empty Plugin Conditions to "unknown"
-func InitPluginStatus(plugin *greenhousev1alpha1.Plugin) greenhousev1alpha1.PluginStatus { //nolint:unparam
+func InitPluginStatus(plugin *greenhousev1alpha1.Plugin) greenhousev1alpha1.PluginStatus {
 	for _, t := range exposedConditions {
 		if plugin.Status.GetConditionByType(t) == nil {
 			plugin.SetCondition(greenhousemetav1alpha1.UnknownCondition(t, "", ""))
