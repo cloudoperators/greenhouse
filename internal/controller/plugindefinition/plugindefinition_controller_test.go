@@ -33,6 +33,7 @@ const (
 )
 
 func mockPluginDefinition() *greenhousev1alpha1.PluginDefinition {
+	GinkgoHelper()
 	return test.NewPluginDefinition(test.Ctx, PluginDefinitionName,
 		test.WithVersion(PluginDefinitionVersion),
 		test.WithHelmChart(&greenhousev1alpha1.HelmChartReference{
@@ -63,6 +64,7 @@ func mockPluginDefinition() *greenhousev1alpha1.PluginDefinition {
 }
 
 func listEvents(involvedObjectName string) *corev1.EventList {
+	GinkgoHelper()
 	events := &corev1.EventList{}
 	err := test.K8sClient.List(test.Ctx, events, cl.InNamespace(corev1.NamespaceDefault), cl.MatchingFields{"involvedObject.name": involvedObjectName})
 	Expect(err).ToNot(HaveOccurred(), "there should be no error listing events")
