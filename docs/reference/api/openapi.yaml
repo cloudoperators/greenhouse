@@ -77,7 +77,7 @@ components:
         metadata:
           type: object
         spec:
-          description: ClusterPluginDefinitionSpec defines the desired state of ClusterPluginDefinition.
+          description: PluginDefinitionSpec defines the desired state of PluginDefinitionSpec
           properties:
             description:
               description: Description provides additional details of the pluginDefinition.
