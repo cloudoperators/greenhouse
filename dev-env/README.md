@@ -23,6 +23,7 @@ This handy CLI tool will help you to setup your development environment in no ti
 - [docker](https://docs.docker.com/get-docker/)
 - [KinD](https://kind.sigs.k8s.io/docs/user/quick-start/)
 - [kubectl](https://kubernetes.io/docs/tasks/tools/install-kubectl/)
+- [yq](https://github.com/mikefarah/yq/?tab=readme-ov-file#install) `>= v4.34.1`
 
 ## Usage
 
