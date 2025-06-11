@@ -28,7 +28,7 @@ var _ = Describe("Organization ServiceProxyReconciler", Ordered, func() {
 	When("plugin definition for service proxy is missing", func() {
 		It("should log about missing plugin definition and create plugin when it's added", func() {
 			By("ensuring service-proxy plugin definition does not exist")
-			var pluginDefinition = new(greenhousev1alpha1.PluginDefinition)
+			var pluginDefinition = new(greenhousev1alpha1.ClusterPluginDefinition)
 			err := test.K8sClient.Get(test.Ctx, types.NamespacedName{Name: "service-proxy", Namespace: ""}, pluginDefinition)
 			Expect(err).To(HaveOccurred(), "there should be an error getting the service-proxy plugin definition")
 
@@ -62,7 +62,7 @@ var _ = Describe("Organization ServiceProxyReconciler", Ordered, func() {
 	When("plugin definition for service proxy is present", func() {
 		It("should create service-proxy plugin for organization", func() {
 			By("getting service-proxy plugin definition")
-			var pluginDefinition = new(greenhousev1alpha1.PluginDefinition)
+			var pluginDefinition = new(greenhousev1alpha1.ClusterPluginDefinition)
 			err := test.K8sClient.Get(test.Ctx, types.NamespacedName{Name: "service-proxy", Namespace: ""}, pluginDefinition)
 			Expect(err).ToNot(HaveOccurred(), "there should be no error getting the service-proxy plugin definition")
 
