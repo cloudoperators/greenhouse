@@ -7,7 +7,7 @@ on:
       - 'e2e/**'
       - 'cmd/**'
       - 'Dockerfile*'
-      - 'go.mod'
+      - 'go.mod'z
       - 'go.sum'
 
 jobs:
@@ -53,7 +53,7 @@ jobs:
   # check if the e2e tests passed for all scenarios
   checksOK:
     name: "E2E Check"
-    needs: [ artifacts, e2e ]
+    needs: [ e2e ]
     runs-on: [ default ]
     if: always()
     steps:
