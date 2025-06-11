@@ -90,7 +90,7 @@ var _ = Describe("Plugin E2E", Ordered, func() {
 		By("creating plugin definition")
 		testPluginDefinition := fixtures.PrepareNginxPluginDefinition(env.TestNamespace)
 		err := adminClient.Create(ctx, testPluginDefinition)
-		Expect(err).ToNot(HaveOccurred())
+		Expect(client.IgnoreAlreadyExists(err)).ToNot(HaveOccurred())
 
 		By("Checking the plugin definition is ready")
 		pluginDefinitionList := &greenhousev1alpha1.PluginDefinitionList{}
@@ -100,12 +100,12 @@ var _ = Describe("Plugin E2E", Ordered, func() {
 
 		By("Creating the plugin")
 		// Creating plugin with release name
-		testPlugin := fixtures.PreparePlugin("test-nginx-plugin", env.TestNamespace,
+		testPlugin := fixtures.PreparePlugin("test-nginx-plugin-1", env.TestNamespace,
 			test.WithPluginDefinition(testPluginDefinition.Name),
 			test.WithCluster(remoteClusterName),
 			test.WithReleaseNamespace(env.TestNamespace),
 			test.WithPluginOptionValue("replicaCount", &apiextensionsv1.JSON{Raw: []byte("1")}, nil),
-			test.WithReleaseName(testPluginDefinition.Name),
+			test.WithReleaseName("test-nginx-plugin-1"),
 		)
 		err = adminClient.Create(ctx, testPlugin)
 		Expect(err).ToNot(HaveOccurred())
@@ -187,7 +187,7 @@ var _ = Describe("Plugin E2E", Ordered, func() {
 		By("Creating plugin definition")
 		testPluginDefinition := fixtures.PrepareNginxPluginDefinition(env.TestNamespace)
 		err := adminClient.Create(ctx, testPluginDefinition)
-		Expect(err).ToNot(HaveOccurred())
+		Expect(client.IgnoreAlreadyExists(err)).ToNot(HaveOccurred())
 
 		By("Checking the plugin definition is ready")
 		pluginDefinitionList := &greenhousev1alpha1.PluginDefinitionList{}
@@ -197,11 +197,11 @@ var _ = Describe("Plugin E2E", Ordered, func() {
 
 		By("Prepare the plugin")
 		// Creating plugin with release name
-		testPlugin := fixtures.PreparePlugin("test-nginx-plugin", env.TestNamespace,
+		testPlugin := fixtures.PreparePlugin("test-nginx-plugin-2", env.TestNamespace,
 			test.WithPluginDefinition(testPluginDefinition.Name),
 			test.WithReleaseNamespace(env.TestNamespace),
 			test.WithPluginOptionValue("replicaCount", &apiextensionsv1.JSON{Raw: []byte("1")}, nil),
-			test.WithReleaseName(testPluginDefinition.Name),
+			test.WithReleaseName("test-nginx-plugin-2"),
 		)
 
 		By("Add labels to remote cluster")
@@ -345,7 +345,8 @@ var _ = Describe("Plugin E2E", Ordered, func() {
 	It("should rollback the first helm release on failed deployment", func() {
 		By("Creating a plugin definition with cert-manager helm chart")
 		pluginDefinition := fixtures.PrepareCertManagerPluginDefinition(env.TestNamespace)
-		Expect(adminClient.Create(ctx, pluginDefinition)).To(Succeed(), "there should be no error creating the plugin definition")
+		err := adminClient.Create(ctx, pluginDefinition)
+		Expect(client.IgnoreAlreadyExists(err)).To(Succeed(), "there should be no error creating the plugin definition")
 
 		By("Setting the HELM_RELEASE_TIMEOUT to 5 seconds")
 		os.Setenv("HELM_RELEASE_TIMEOUT", "5")
@@ -356,11 +357,11 @@ var _ = Describe("Plugin E2E", Ordered, func() {
 			test.WithPluginDefinition(pluginDefinition.Name),
 			test.WithCluster(remoteClusterName),
 			test.WithReleaseNamespace(env.TestNamespace),
-			test.WithReleaseName(pluginDefinition.Name),
+			test.WithReleaseName("test-cert-manager-plugin"),
 		)
 
 		By("Installing release manually on the remote cluster")
-		_, err := helm.ExportInstallHelmRelease(ctx, adminClient, env.RemoteRestClientGetter, pluginDefinition, plugin, false)
+		_, err = helm.ExportInstallHelmRelease(ctx, adminClient, env.RemoteRestClientGetter, pluginDefinition, plugin, false)
 		Expect(err).To(HaveOccurred(), "there should be an error installing the helm chart")
 
 		By("Creating helm config")
