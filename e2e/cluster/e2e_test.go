@@ -194,43 +194,4 @@ var _ = Describe("Cluster E2E", Ordered, func() {
 			Expect(apierrors.IsNotFound(err)).To(BeTrue(), "the service account should not exist")
 		})
 	})
-
-	// the context executes the tests for Cluster where a secret of type oidc is provided
-	// scenario: Fail Path
-	// TODO: remove this test case
-	Context("Cluster OIDC Fail Path 😵", Ordered, func() {
-		It("should setup role binding for OIDC on remote cluster", func() {
-			By("setting up cluster role binding for OIDC on remote cluster")
-			expect.SetupOIDCClusterRoleBinding(ctx, remoteClient, remoteOIDCClusterRoleBindingName, remoteOIDCClusterFName, env.TestNamespace)
-		})
-
-		It("should onboard remote cluster with OIDC", func() {
-			By("onboarding remote cluster with OIDC")
-			restClient := clientutil.NewRestClientGetterFromBytes(env.RemoteKubeConfigBytes, env.TestNamespace)
-			restConfig, err := restClient.ToRESTConfig()
-			Expect(err).NotTo(HaveOccurred(), "there should be no error creating the remote REST config")
-			remoteAPIServerURL := restConfig.Host
-			remoteCA := make([]byte, base64.StdEncoding.EncodedLen(len(restConfig.CAData)))
-			base64.StdEncoding.Encode(remoteCA, restConfig.CAData)
-			shared.OnboardRemoteOIDCCluster(ctx, adminClient, remoteCA, remoteAPIServerURL, remoteOIDCClusterFName, env.TestNamespace)
-
-			By("verifying the cluster status is ready")
-			shared.ClusterIsReady(ctx, adminClient, remoteOIDCClusterFName, env.TestNamespace)
-		})
-
-		It("should reach not ready state when remote OIDC cluster role binding does not exist", func() {
-			By("removing the OIDC cluster role binding")
-			expect.RevokingOIDCClusterAccess(ctx, adminClient, remoteClient, remoteOIDCClusterRoleBindingName, remoteOIDCClusterFName, env.TestNamespace)
-
-			By("verifying the allNodesReady condition is false")
-			expect.VerifyFalseAllNodesReady(ctx, adminClient, remoteOIDCClusterFName, env.TestNamespace)
-		})
-
-		It("should restore the cluster to ready state", func() {
-			By("restoring the OIDC cluster role binding")
-			expect.SetupOIDCClusterRoleBinding(ctx, remoteClient, remoteOIDCClusterRoleBindingName, remoteOIDCClusterFName, env.TestNamespace)
-			By("re-triggering the OIDC cluster reconciliation")
-			expect.ReconcileReadyNotReady(ctx, adminClient, remoteOIDCClusterFName, env.TestNamespace, true)
-		})
-	})
 })

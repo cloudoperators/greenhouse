@@ -104,7 +104,9 @@ var _ = Describe("Plugin E2E", Ordered, func() {
 			test.WithPluginDefinition(testPluginDefinition.Name),
 			test.WithCluster(remoteClusterName),
 			test.WithReleaseNamespace(env.TestNamespace),
-			test.WithPluginOptionValue("replicaCount", &apiextensionsv1.JSON{Raw: []byte("1")}, nil))
+			test.WithPluginOptionValue("replicaCount", &apiextensionsv1.JSON{Raw: []byte("1")}, nil),
+			test.WithReleaseName(testPluginDefinition.Name),
+		)
 		err = adminClient.Create(ctx, testPlugin)
 		Expect(err).ToNot(HaveOccurred())
 
@@ -197,7 +199,9 @@ var _ = Describe("Plugin E2E", Ordered, func() {
 		testPlugin := fixtures.PreparePlugin("test-nginx-plugin", env.TestNamespace,
 			test.WithPluginDefinition(testPluginDefinition.Name),
 			test.WithReleaseNamespace(env.TestNamespace),
-			test.WithPluginOptionValue("replicaCount", &apiextensionsv1.JSON{Raw: []byte("1")}, nil))
+			test.WithPluginOptionValue("replicaCount", &apiextensionsv1.JSON{Raw: []byte("1")}, nil),
+			test.WithReleaseName(testPluginDefinition.Name),
+		)
 
 		By("Add labels to remote cluster")
 		remoteCluster := &greenhousev1alpha1.Cluster{}
@@ -350,6 +354,7 @@ var _ = Describe("Plugin E2E", Ordered, func() {
 			test.WithPluginDefinition(pluginDefinition.Name),
 			test.WithCluster(remoteClusterName),
 			test.WithReleaseNamespace(env.TestNamespace),
+			test.WithReleaseName(pluginDefinition.Name),
 		)
 
 		By("Installing release manually on the remote cluster")
