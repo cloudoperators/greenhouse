@@ -99,7 +99,7 @@ var _ = Describe("Plugin E2E", Ordered, func() {
 		Expect(len(pluginDefinitionList.Items)).To(BeEquivalentTo(1))
 
 		By("Creating the plugin")
-		// Creating plugin
+		// Creating plugin with release name
 		testPlugin := fixtures.PreparePlugin("test-nginx-plugin", env.TestNamespace,
 			test.WithPluginDefinition(testPluginDefinition.Name),
 			test.WithCluster(remoteClusterName),
@@ -196,6 +196,7 @@ var _ = Describe("Plugin E2E", Ordered, func() {
 		Expect(len(pluginDefinitionList.Items)).To(BeEquivalentTo(1))
 
 		By("Prepare the plugin")
+		// Creating plugin with release name
 		testPlugin := fixtures.PreparePlugin("test-nginx-plugin", env.TestNamespace,
 			test.WithPluginDefinition(testPluginDefinition.Name),
 			test.WithReleaseNamespace(env.TestNamespace),
@@ -350,6 +351,7 @@ var _ = Describe("Plugin E2E", Ordered, func() {
 		os.Setenv("HELM_RELEASE_TIMEOUT", "5")
 
 		By("Preparing the plugin")
+		// Creating plugin with release name
 		plugin := fixtures.PreparePlugin("test-cert-manager-plugin", env.TestNamespace,
 			test.WithPluginDefinition(pluginDefinition.Name),
 			test.WithCluster(remoteClusterName),
