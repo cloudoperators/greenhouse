@@ -7,7 +7,7 @@ on:
       - 'e2e/**'
       - 'cmd/**'
       - 'Dockerfile*'
-      - 'go.mod'z
+      - 'go.mod'
       - 'go.sum'
 
 jobs:
