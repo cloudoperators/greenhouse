@@ -197,6 +197,7 @@ var _ = Describe("Cluster E2E", Ordered, func() {
 
 	// the context executes the tests for Cluster where a secret of type oidc is provided
 	// scenario: Fail Path
+	// TODO: remove this test case
 	Context("Cluster OIDC Fail Path 😵", Ordered, func() {
 		It("should setup role binding for OIDC on remote cluster", func() {
 			By("setting up cluster role binding for OIDC on remote cluster")
