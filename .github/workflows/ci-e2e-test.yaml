@@ -43,41 +43,17 @@ jobs:
       # run the e2e tests using composite common/workflows/e2e action
       - name: "E2E"
         id: e2e
-        uses: cloudoperators/common/workflows/e2e@main
+        uses: cloudoperators/common/workflows/e2e@feat/e2e_structured_auth
         with:
           k8s-version: ${{ matrix.k8s-version }}
           scenario: ${{ matrix.e2es }}
           admin-config: ${{ github.workspace }}/dev-env/greenhouse-admin-cluster.yaml
           remote-config: ${{ github.workspace }}/dev-env/greenhouse-remote-cluster.yaml
 
-      # v4 upload-artifact needs unique names for each artifact (see https://github.com/actions/upload-artifact/tree/main?tab=readme-ov-file#not-uploading-to-the-same-artifact)
-      - name: "Upload E2E Logs"
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
-        if: ${{ steps.e2e.outputs.result != '' }} # skip if nothing needs to be uploaded
-        with:
-          name: e2e-logs-${{ matrix.e2es }}-${{ matrix.k8s-version }}
-          path: ${{steps.e2e.outputs.result}}
-          retention-days: 7
-          if-no-files-found: ignore
-
-  artifacts:
-    name: "Merge Artifacts"
-    runs-on: [ default ]
-    needs: [ e2e ]
-    steps:
-      - name: "Merge Uploads"
-        continue-on-error: true # If there are no artifacts available, the merge step will fail so we need to continue on error
-        uses: actions/upload-artifact/merge@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
-        with:
-          name: e2e-logs
-          pattern: e2e-logs-*
-          retention-days: 7
-          delete-merged: true
-
   # check if the e2e tests passed for all scenarios
   checksOK:
     name: "E2E Check"
-    needs: [ artifacts, e2e ]
+    needs: [ e2e ]
     runs-on: [ default ]
     if: always()
     steps:
