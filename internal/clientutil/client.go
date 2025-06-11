@@ -16,6 +16,9 @@ import (
 	"k8s.io/client-go/rest"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
+	helmcontroller "github.com/fluxcd/helm-controller/api/v2"
+	sourcecontroller "github.com/fluxcd/source-controller/api/v1"
+
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
 	dexapi "github.com/cloudoperators/greenhouse/internal/dex/api"
 )
@@ -30,6 +33,8 @@ func init() {
 		dexapi.AddToScheme,
 	} {
 		utilruntime.Must(addToSchemeFunc(Scheme))
+		utilruntime.Must(sourcecontroller.AddToScheme(Scheme))
+		utilruntime.Must(helmcontroller.AddToScheme(Scheme))
 	}
 }
 
