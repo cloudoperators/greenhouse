@@ -15,6 +15,7 @@ import (
 	fluxcontrollers "github.com/cloudoperators/greenhouse/internal/controller/flux"
 	organizationcontrollers "github.com/cloudoperators/greenhouse/internal/controller/organization"
 	plugincontrollers "github.com/cloudoperators/greenhouse/internal/controller/plugin"
+	plugindefinitioncontroller "github.com/cloudoperators/greenhouse/internal/controller/plugindefinition"
 	teammembershipcontrollers "github.com/cloudoperators/greenhouse/internal/controller/teammembership"
 	teamrbaccontrollers "github.com/cloudoperators/greenhouse/internal/controller/teamrbac"
 	dexstore "github.com/cloudoperators/greenhouse/internal/dex"
@@ -42,6 +43,8 @@ var knownControllers = map[string]func(controllerName string, mgr ctrl.Manager) 
 		KubeRuntimeOpts: kubeClientOpts,
 	}).SetupWithManager,
 	"pluginPreset": (&plugincontrollers.PluginPresetReconciler{}).SetupWithManager,
+
+	"pluginDefinition": (&plugindefinitioncontroller.PluginDefinitionReconciler{}).SetupWithManager,
 
 	// Cluster controllers
 	"bootStrap":         (&clustercontrollers.BootstrapReconciler{}).SetupWithManager,
