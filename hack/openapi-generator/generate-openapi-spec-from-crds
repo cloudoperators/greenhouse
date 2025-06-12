@@ -3,7 +3,7 @@
 # SPDX-FileCopyrightText: 2024 SAP SE or an SAP affiliate company and Greenhouse contributors
 # SPDX-License-Identifier: Apache-2.0
 
-# Generates openapi documentation using https://github.com/srfrnk/crd-api-doc-gen
+# Generates openapi documentation
 
 set -o errexit
 set -o nounset
@@ -19,5 +19,33 @@ VERSION=$2
 OUTPUT_DIR=$3
 
 echo "generating openapi specification from manifests ${MANIFESTS_DIR} to ${OUTPUT_DIR}"
-REPO_ROOT="${REPO_ROOT:-$(cd "$(dirname "$0")/../.." && pwd)}"
-docker run --platform linux/amd64 --user 1001 --rm -v "${MANIFESTS_DIR}:/manifests" -v "${REPO_ROOT}":/src --entrypoint "/src/hack/openapi-generator/_generate-wrapper" --env VERSION="${VERSION}" ghcr.io/srfrnk/crd-api-doc-gen:latest "/manifests" "/src/${OUTPUT_DIR}" "/src/hack/openapi-generator/openapi-info.yaml"
+
+cat <<EOF > ${OUTPUT_DIR}/openapi.yaml
+openapi: 3.0.0
+info:
+  title: Greenhouse
+  version: ${VERSION}
+  description: Generated from CRDs
+paths: {}
+components:
+  schemas:
+EOF
+
+for file in ${MANIFESTS_DIR}/*.yaml; do
+  name=$(yq -r '.spec.names.kind' "$file")
+  kind=$(yq -r '.spec.names.kind' "$file")
+  group=$(yq -r '.spec.group' "$file")
+  yq -r '.spec.versions[] | select(.served == true and .storage == true) | .name' "$file" | while read -r version; do
+    schema_name="${name}"
+    echo "    $schema_name:" >> ${OUTPUT_DIR}/openapi.yaml
+    # Extract the openAPIV3Schema, and add title and xml
+    schema=$(yq -r ".spec.versions[] | select(.name == \"$version\" and .served == true) | .schema.openAPIV3Schema" "$file")
+    {
+      echo "      xml:"
+      echo "        name: $group"
+      echo "        namespace: $version"
+      echo "      title: $kind"
+      echo "$schema" | sed 's/^/      /'
+    } >> ${OUTPUT_DIR}/openapi.yaml
+  done
+done

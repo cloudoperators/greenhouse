@@ -92,7 +92,7 @@ generate: controller-gen ## Generate code containing DeepCopy, DeepCopyInto, and
 	$(CONTROLLER_GEN) object:headerFile="hack/boilerplate.go.txt" paths="./internal/dex/..."
 
 # Default values
-GEN_DOCS_API_DIR ?= "./api/v1alpha1" ## -app-dir should be Canonical Path Format so absolute path doesn't work. That's why we don't use $(CURDIR) here.
+GEN_DOCS_API_DIR ?= "../greenhouse/api" ## -app-dir should be Canonical Path Format so absolute path doesn't work. That's why we don't use $(CURDIR) here.
 GEN_DOCS_CONFIG ?= "$(CURDIR)/hack/docs-generator/config.json"
 GEN_DOCS_TEMPLATE_DIR ?= "$(CURDIR)/hack/docs-generator/templates"
 GEN_DOCS_OUT_FILE ?= "$(CURDIR)/docs/reference/api/index.html"

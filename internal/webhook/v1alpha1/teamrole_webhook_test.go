@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2024 SAP SE or an SAP affiliate company and Greenhouse contributors
 // SPDX-License-Identifier: Apache-2.0
 
-package admission
+package v1alpha1
 
 import (
 	. "github.com/onsi/ginkgo/v2"
@@ -11,6 +11,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
+	greenhousev1alpha2 "github.com/cloudoperators/greenhouse/api/v1alpha2"
 	"github.com/cloudoperators/greenhouse/internal/clientutil"
 	"github.com/cloudoperators/greenhouse/internal/test"
 )
@@ -19,7 +20,7 @@ var _ = Describe("Validate Role Admission", func() {
 	var (
 		setup           *test.TestSetup
 		teamRole        *greenhousev1alpha1.TeamRole
-		teamRoleBinding *greenhousev1alpha1.TeamRoleBinding
+		teamRoleBinding *greenhousev1alpha2.TeamRoleBinding
 
 		team    *greenhousev1alpha1.Team
 		cluster *greenhousev1alpha1.Cluster

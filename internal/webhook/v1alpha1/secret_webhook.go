@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2024 SAP SE or an SAP affiliate company and Greenhouse contributors
 // SPDX-License-Identifier: Apache-2.0
 
-package admission
+package v1alpha1
 
 import (
 	"context"
@@ -18,18 +18,19 @@ import (
 
 	greenhouseapis "github.com/cloudoperators/greenhouse/api"
 	"github.com/cloudoperators/greenhouse/internal/clientutil"
+	"github.com/cloudoperators/greenhouse/internal/webhook"
 )
 
 // Webhook for the core Secret type resource.
 
 func SetupSecretWebhookWithManager(mgr ctrl.Manager) error {
-	return setupWebhook(mgr,
+	return webhook.SetupWebhook(mgr,
 		&corev1.Secret{},
-		webhookFuncs{
-			defaultFunc:        DefaultSecret,
-			validateCreateFunc: ValidateCreateSecret,
-			validateUpdateFunc: ValidateUpdateSecret,
-			validateDeleteFunc: ValidateDeleteSecret,
+		webhook.WebhookFuncs{
+			DefaultFunc:        DefaultSecret,
+			ValidateCreateFunc: ValidateCreateSecret,
+			ValidateUpdateFunc: ValidateUpdateSecret,
+			ValidateDeleteFunc: ValidateDeleteSecret,
 		},
 	)
 }
@@ -83,11 +84,11 @@ func validateSecretGreenHouseType(ctx context.Context, secret *corev1.Secret) er
 	}
 	logger := ctrl.LoggerFrom(ctx)
 	// Check if the secret name is no longer than 40 characters
-	if err := capName(secret, logger, 40); err != nil {
+	if err := webhook.CapName(secret, logger, 40); err != nil {
 		return err
 	}
 	// Check if the secret name contains double dashes
-	if err := invalidateDoubleDashesInName(secret, logger); err != nil {
+	if err := webhook.InvalidateDoubleDashesInName(secret, logger); err != nil {
 		return err
 	}
 	// Check if the secret contains kubeconfig provided by the client
@@ -103,7 +104,7 @@ func validateSecretGreenHouseType(ctx context.Context, secret *corev1.Secret) er
 func validateGreenhouseOIDCType(secret *corev1.Secret) error {
 	annotations := secret.GetAnnotations()
 	serverURL, ok := annotations[greenhouseapis.SecretAPIServerURLAnnotation]
-	if !ok || !validateURL(serverURL) {
+	if !ok || !webhook.ValidateURL(serverURL) {
 		return apierrors.NewInvalid(secret.GroupVersionKind().GroupKind(), secret.GetName(), field.ErrorList{
 			field.Required(field.NewPath("metadata").Child(greenhouseapis.SecretAPIServerURLAnnotation), "The secret is missing the APIServerURL annotation."),
 		})

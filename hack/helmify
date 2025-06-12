@@ -44,6 +44,7 @@ yq -i '
 ' "$TEMPLATES_DIR/webhook/webhooks.yaml"
 
 yq -i '(.webhooks[] | select(.name == "*secret.kb.io") | .namespaceSelector) |= {"matchExpressions": [{"key":"kubernetes.io/metadata.name", "operator": "NotIn", "values":["kube-system"]}]}' "$TEMPLATES_DIR/webhook/webhooks.yaml"
+yq -i '(.metadata.annotations += {"cert-manager.io/inject-ca-from": "greenhouse/greenhouse-client-cert"})' "$TEMPLATES_DIR/webhook/webhooks.yaml"
 
 # Helmify RBAC.
 rename-file-if-exists "$TEMPLATES_DIR/role.yaml" "$TEMPLATES_DIR/rbac/manager-role.yaml"

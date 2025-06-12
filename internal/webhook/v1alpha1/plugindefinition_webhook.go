@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2024 SAP SE or an SAP affiliate company and Greenhouse contributors
 // SPDX-License-Identifier: Apache-2.0
 
-package admission
+package v1alpha1
 
 import (
 	"context"
@@ -16,30 +16,31 @@ import (
 
 	greenhouseapis "github.com/cloudoperators/greenhouse/api"
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
+	"github.com/cloudoperators/greenhouse/internal/webhook"
 )
 
 // Webhook for the PluginDefinition custom resource.
 
 func SetupPluginDefinitionWebhookWithManager(mgr ctrl.Manager) error {
-	return setupWebhook(mgr,
+	return webhook.SetupWebhook(mgr,
 		&greenhousev1alpha1.PluginDefinition{},
-		webhookFuncs{
-			defaultFunc:        DefaultPluginDefinition,
-			validateCreateFunc: ValidateCreatePluginDefinition,
-			validateUpdateFunc: ValidateUpdatePluginDefinition,
-			validateDeleteFunc: ValidateDeletePluginDefinition,
+		webhook.WebhookFuncs{
+			DefaultFunc:        DefaultPluginDefinition,
+			ValidateCreateFunc: ValidateCreatePluginDefinition,
+			ValidateUpdateFunc: ValidateUpdatePluginDefinition,
+			ValidateDeleteFunc: ValidateDeletePluginDefinition,
 		},
 	)
 }
 
 func SetupClusterPluginDefinitionWebhookWithManager(mgr ctrl.Manager) error {
-	return setupWebhook(mgr,
+	return webhook.SetupWebhook(mgr,
 		&greenhousev1alpha1.ClusterPluginDefinition{},
-		webhookFuncs{
-			defaultFunc:        DefaultPluginDefinition,
-			validateCreateFunc: ValidateCreateClusterPluginDefinition,
-			validateUpdateFunc: ValidateUpdateClusterPluginDefinition,
-			validateDeleteFunc: ValidateDeleteClusterPluginDefinition,
+		webhook.WebhookFuncs{
+			DefaultFunc:        DefaultPluginDefinition,
+			ValidateCreateFunc: ValidateCreateClusterPluginDefinition,
+			ValidateUpdateFunc: ValidateUpdateClusterPluginDefinition,
+			ValidateDeleteFunc: ValidateDeleteClusterPluginDefinition,
 		},
 	)
 }

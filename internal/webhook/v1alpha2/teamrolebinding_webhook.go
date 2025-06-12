@@ -1,7 +1,7 @@
-// SPDX-FileCopyrightText: 2024 SAP SE or an SAP affiliate company and Greenhouse contributors
+// SPDX-FileCopyrightText: 2025 SAP SE or an SAP affiliate company and Greenhouse contributors
 // SPDX-License-Identifier: Apache-2.0
 
-package admission
+package v1alpha2
 
 import (
 	"context"
@@ -15,32 +15,34 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
+	greenhousev1alpha2 "github.com/cloudoperators/greenhouse/api/v1alpha2"
+	"github.com/cloudoperators/greenhouse/internal/webhook"
 )
 
 // Webhook for the RoleBinding custom resource.
 
 func SetupTeamRoleBindingWebhookWithManager(mgr ctrl.Manager) error {
-	return setupWebhook(mgr,
-		&greenhousev1alpha1.TeamRoleBinding{},
-		webhookFuncs{
-			defaultFunc:        DefaultRoleBinding,
-			validateCreateFunc: ValidateCreateRoleBinding,
-			validateUpdateFunc: ValidateUpdateRoleBinding,
-			validateDeleteFunc: ValidateDeleteRoleBinding,
+	return webhook.SetupWebhook(mgr,
+		&greenhousev1alpha2.TeamRoleBinding{},
+		webhook.WebhookFuncs{
+			DefaultFunc:        DefaultRoleBinding,
+			ValidateCreateFunc: ValidateCreateRoleBinding,
+			ValidateUpdateFunc: ValidateUpdateRoleBinding,
+			ValidateDeleteFunc: ValidateDeleteRoleBinding,
 		},
 	)
 }
 
-//+kubebuilder:webhook:path=/mutate-greenhouse-sap-v1alpha1-teamrolebinding,mutating=true,failurePolicy=fail,sideEffects=None,groups=greenhouse.sap,resources=teamrolebindings,verbs=create;update,versions=v1alpha1,name=mrolebinding.kb.io,admissionReviewVersions=v1
+//+kubebuilder:webhook:path=/mutate-greenhouse-sap-v1alpha2-teamrolebinding,mutating=true,failurePolicy=fail,sideEffects=None,groups=greenhouse.sap,resources=teamrolebindings,verbs=create;update,versions=v1alpha2,name=mrolebinding-v1alpha2.kb.io,admissionReviewVersions=v1
 
 func DefaultRoleBinding(_ context.Context, _ client.Client, _ runtime.Object) error {
 	return nil
 }
 
-//+kubebuilder:webhook:path=/validate-greenhouse-sap-v1alpha1-teamrolebinding,mutating=false,failurePolicy=fail,sideEffects=None,groups=greenhouse.sap,resources=teamrolebindings,verbs=create;update;delete,versions=v1alpha1,name=vrolebinding.kb.io,admissionReviewVersions=v1
+//+kubebuilder:webhook:path=/validate-greenhouse-sap-v1alpha2-teamrolebinding,mutating=false,failurePolicy=fail,sideEffects=None,groups=greenhouse.sap,resources=teamrolebindings,verbs=create;update;delete,versions=v1alpha2,name=vrolebinding-v1alpha2.kb.io,admissionReviewVersions=v1
 
 func ValidateCreateRoleBinding(ctx context.Context, c client.Client, o runtime.Object) (admission.Warnings, error) {
-	rb, ok := o.(*greenhousev1alpha1.TeamRoleBinding)
+	rb, ok := o.(*greenhousev1alpha2.TeamRoleBinding)
 	if !ok {
 		return nil, nil
 	}
@@ -63,29 +65,25 @@ func ValidateCreateRoleBinding(ctx context.Context, c client.Client, o runtime.O
 		return nil, apierrors.NewInternalError(err)
 	}
 
-	err := validateClusterNameOrSelector(rb)
-	if err != nil {
-		return nil, err
-	}
-	return nil, nil
+	return nil, validateClusterSelector(rb)
 }
 
 func ValidateUpdateRoleBinding(ctx context.Context, c client.Client, old, cur runtime.Object) (admission.Warnings, error) {
-	oldRB, ok := old.(*greenhousev1alpha1.TeamRoleBinding)
+	oldRB, ok := old.(*greenhousev1alpha2.TeamRoleBinding)
 	if !ok {
 		return nil, nil
 	}
-	curRB, ok := cur.(*greenhousev1alpha1.TeamRoleBinding)
+	curRB, ok := cur.(*greenhousev1alpha2.TeamRoleBinding)
 	if !ok {
 		return nil, nil
 	}
 	switch {
-	case validateClusterNameOrSelector(curRB) != nil:
+	case validateClusterSelector(curRB) != nil:
 		return nil, apierrors.NewForbidden(
 			schema.GroupResource{
 				Group:    oldRB.GroupVersionKind().Group,
 				Resource: oldRB.Kind,
-			}, oldRB.Name, field.Forbidden(field.NewPath("spec"), "must contain either spec.clusterName or spec.clusterSelector"))
+			}, oldRB.Name, field.Forbidden(field.NewPath("spec"), "must contain either spec.clusterSelector.name or spec.clusterSelector.labelSelector"))
 	case oldRB.Spec.TeamRoleRef != curRB.Spec.TeamRoleRef:
 		return nil, apierrors.NewForbidden(
 			schema.GroupResource{
@@ -119,19 +117,19 @@ func ValidateDeleteRoleBinding(_ context.Context, _ client.Client, _ runtime.Obj
 	return nil, nil
 }
 
-// validateClusterNameOrSelector checks if the TeamRoleBinding has a valid clusterName or clusterSelector but not both.
-func validateClusterNameOrSelector(rb *greenhousev1alpha1.TeamRoleBinding) error {
-	if rb.Spec.ClusterName != "" && (len(rb.Spec.ClusterSelector.MatchLabels) > 0 || len(rb.Spec.ClusterSelector.MatchExpressions) > 0) {
-		return apierrors.NewInvalid(rb.GroupVersionKind().GroupKind(), rb.Name, field.ErrorList{field.Invalid(field.NewPath("spec", "clusterName"), rb.Spec.ClusterName, "cannot specify both spec.clusterName and spec.clusterSelector")})
+// validateClusterSelector checks if the TeamRoleBinding has a valid clusterSelector.
+func validateClusterSelector(rb *greenhousev1alpha2.TeamRoleBinding) error {
+	if rb.Spec.ClusterSelector.Name != "" && (len(rb.Spec.ClusterSelector.LabelSelector.MatchLabels) > 0 || len(rb.Spec.ClusterSelector.LabelSelector.MatchExpressions) > 0) {
+		return apierrors.NewInvalid(rb.GroupVersionKind().GroupKind(), rb.Name, field.ErrorList{field.Invalid(field.NewPath("spec", "clusterSelector", "name"), rb.Spec.ClusterSelector.Name, "cannot specify both spec.clusterSelector.Name and spec.clusterSelector.labelSelector")})
 	}
 
-	if rb.Spec.ClusterName == "" && (len(rb.Spec.ClusterSelector.MatchLabels) == 0 && len(rb.Spec.ClusterSelector.MatchExpressions) == 0) {
-		return apierrors.NewInvalid(rb.GroupVersionKind().GroupKind(), rb.Name, field.ErrorList{field.Invalid(field.NewPath("spec", "clusterName"), rb.Spec.ClusterName, "must specify either spec.clusterName or spec.clusterSelector")})
+	if rb.Spec.ClusterSelector.Name == "" && (len(rb.Spec.ClusterSelector.LabelSelector.MatchLabels) == 0 && len(rb.Spec.ClusterSelector.LabelSelector.MatchExpressions) == 0) {
+		return apierrors.NewInvalid(rb.GroupVersionKind().GroupKind(), rb.Name, field.ErrorList{field.Invalid(field.NewPath("spec", "clusterSelector", "name"), rb.Spec.ClusterSelector.Name, "must specify either spec.clusterSelector.name or spec.clusterSelector.labelSelector")})
 	}
 	return nil
 }
 
 // isClusterScoped returns true if the TeamRoleBinding will create ClusterRoleBindings.
-func isClusterScoped(trb *greenhousev1alpha1.TeamRoleBinding) bool {
+func isClusterScoped(trb *greenhousev1alpha2.TeamRoleBinding) bool {
 	return len(trb.Spec.Namespaces) == 0
 }

@@ -1,7 +1,7 @@
-// SPDX-FileCopyrightText: 2024 SAP SE or an SAP affiliate company and Greenhouse contributors
+// SPDX-FileCopyrightText: 2025 SAP SE or an SAP affiliate company and Greenhouse contributors
 // SPDX-License-Identifier: Apache-2.0
 
-package admission
+package v1alpha2
 
 import (
 	. "github.com/onsi/ginkgo/v2"
@@ -77,7 +77,7 @@ var _ = Describe("Validate Create RoleBinding", Ordered, func() {
 			warns, err := ValidateCreateRoleBinding(test.Ctx, test.K8sClient, rb)
 			Expect(warns).To(BeNil(), "expected no warnings")
 			Expect(err).To(HaveOccurred(), "expected an error")
-			Expect(err).To(MatchError(ContainSubstring("must specify either spec.clusterName or spec.clusterSelector")))
+			Expect(err).To(MatchError(ContainSubstring("must specify either spec.clusterSelector.name or spec.clusterSelector.labelSelector")))
 		})
 		It("should return an error if both clusterName and clusterSelector are specified", func() {
 			rb := test.NewTeamRoleBinding(test.Ctx, "testBinding", setup.Namespace(),
@@ -90,7 +90,7 @@ var _ = Describe("Validate Create RoleBinding", Ordered, func() {
 			warns, err := ValidateCreateRoleBinding(test.Ctx, test.K8sClient, rb)
 			Expect(warns).To(BeNil(), "expected no warnings")
 			Expect(err).To(HaveOccurred(), "expected an error")
-			Expect(err).To(MatchError(ContainSubstring("cannot specify both spec.clusterName and spec.clusterSelector")))
+			Expect(err).To(MatchError(ContainSubstring("cannot specify both spec.clusterSelector.Name and spec.clusterSelector.labelSelector")))
 		})
 	})
 
@@ -155,12 +155,16 @@ var _ = Describe("Validate Create RoleBinding", Ordered, func() {
 			Expect(warns).To(BeNil(), "expected no warnings")
 			Expect(err).ToNot(HaveOccurred(), "expected no error")
 
-			curRB.Spec.Namespaces = []string{"demoNamespace1"}
+			removedNamespaces := []string{"demoNamespace1"}
+			curRB.Spec.Namespaces = removedNamespaces
+
 			warns, err = ValidateUpdateRoleBinding(test.Ctx, test.K8sClient, oldRB, curRB)
 			Expect(warns).To(BeNil(), "expected no warnings")
 			Expect(err).ToNot(HaveOccurred(), "expected no error")
 
-			curRB.Spec.Namespaces = []string{"differentNamespace1", "differentNamespace2"}
+			differentNamespaces := []string{"differentNamespace1", "differentNamespace2"}
+			curRB.Spec.Namespaces = differentNamespaces
+
 			warns, err = ValidateUpdateRoleBinding(test.Ctx, test.K8sClient, oldRB, curRB)
 			Expect(warns).To(BeNil(), "expected no warnings")
 			Expect(err).ToNot(HaveOccurred(), "expected no error")

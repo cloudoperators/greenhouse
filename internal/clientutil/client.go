@@ -20,6 +20,7 @@ import (
 	sourcecontroller "github.com/fluxcd/source-controller/api/v1"
 
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
+	greenhousev1alpha2 "github.com/cloudoperators/greenhouse/api/v1alpha2"
 	dexapi "github.com/cloudoperators/greenhouse/internal/dex/api"
 )
 
@@ -30,6 +31,7 @@ func init() {
 		clientgoscheme.AddToScheme,
 		apiextensionsv1.AddToScheme,
 		greenhousev1alpha1.AddToScheme,
+		greenhousev1alpha2.AddToScheme,
 		dexapi.AddToScheme,
 	} {
 		utilruntime.Must(addToSchemeFunc(Scheme))
