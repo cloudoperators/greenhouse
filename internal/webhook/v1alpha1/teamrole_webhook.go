@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2024 SAP SE or an SAP affiliate company and Greenhouse contributors
 // SPDX-License-Identifier: Apache-2.0
 
-package admission
+package v1alpha1
 
 import (
 	"context"
@@ -17,7 +17,9 @@ import (
 
 	greenhouseapis "github.com/cloudoperators/greenhouse/api"
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
+	greenhousev1alpha2 "github.com/cloudoperators/greenhouse/api/v1alpha2"
 	"github.com/cloudoperators/greenhouse/internal/clientutil"
+	"github.com/cloudoperators/greenhouse/internal/webhook"
 )
 
 const errAggregationRuleAndRulesExclusive = ".spec.rules and .spec.aggregationRule are mutually exclusive"
@@ -26,7 +28,17 @@ const errAggregationRuleAndRulesExclusive = ".spec.rules and .spec.aggregationRu
 
 func SetupTeamRoleWebhookWithManager(mgr ctrl.Manager) error {
 	// index RoleBindings by the TeamRoleRef field for faster lookups
-	if err := mgr.GetFieldIndexer().IndexField(context.Background(), &greenhousev1alpha1.TeamRoleBinding{}, greenhouseapis.RolebindingRoleRefField, func(rawObj client.Object) []string {
+	if err := mgr.GetFieldIndexer().IndexField(context.Background(), &greenhousev1alpha2.TeamRoleBinding{}, greenhouseapis.RolebindingTeamRoleRefField, func(rawObj client.Object) []string {
+		// Extract the TeamRole name from the TeamRoleBinding Spec, if one is provided
+		teamRoleBinding, ok := rawObj.(*greenhousev1alpha2.TeamRoleBinding)
+		if teamRoleBinding.Spec.TeamRoleRef == "" || !ok {
+			return nil
+		}
+		return []string{teamRoleBinding.Spec.TeamRoleRef}
+	}); clientutil.IgnoreIndexerConflict(err) != nil {
+		return err
+	}
+	if err := mgr.GetFieldIndexer().IndexField(context.Background(), &greenhousev1alpha1.TeamRoleBinding{}, greenhouseapis.RolebindingTeamRoleRefField, func(rawObj client.Object) []string {
 		// Extract the TeamRole name from the TeamRoleBinding Spec, if one is provided
 		teamRoleBinding, ok := rawObj.(*greenhousev1alpha1.TeamRoleBinding)
 		if teamRoleBinding.Spec.TeamRoleRef == "" || !ok {
@@ -37,24 +49,24 @@ func SetupTeamRoleWebhookWithManager(mgr ctrl.Manager) error {
 		return err
 	}
 
-	return setupWebhook(mgr,
+	return webhook.SetupWebhook(mgr,
 		&greenhousev1alpha1.TeamRole{},
-		webhookFuncs{
-			defaultFunc:        DefaultRole,
-			validateCreateFunc: ValidateCreateRole,
-			validateUpdateFunc: ValidateUpdateRole,
-			validateDeleteFunc: ValidateDeleteRole,
+		webhook.WebhookFuncs{
+			DefaultFunc:        DefaultRole,
+			ValidateCreateFunc: ValidateCreateRole,
+			ValidateUpdateFunc: ValidateUpdateRole,
+			ValidateDeleteFunc: ValidateDeleteRole,
 		},
 	)
 }
 
-//+kubebuilder:webhook:path=/mutate-greenhouse-sap-v1alpha1-teamrole,mutating=true,failurePolicy=fail,sideEffects=None,groups=greenhouse.sap,resources=teamroles,verbs=create;update,versions=v1alpha1,name=mrole.kb.io,admissionReviewVersions=v1
+//+kubebuilder:webhook:path=/mutate-greenhouse-sap-v1alpha1-teamrole,mutating=true,failurePolicy=fail,sideEffects=None,groups=greenhouse.sap,resources=teamroles,verbs=create;update,versions=v1alpha1,name=mteamrole-v1alpha1.kb.io,admissionReviewVersions=v1
 
 func DefaultRole(_ context.Context, _ client.Client, _ runtime.Object) error {
 	return nil
 }
 
-//+kubebuilder:webhook:path=/validate-greenhouse-sap-v1alpha1-teamrole,mutating=false,failurePolicy=fail,sideEffects=None,groups=greenhouse.sap,resources=teamroles,verbs=create;update;delete,versions=v1alpha1,name=vrole.kb.io,admissionReviewVersions=v1
+//+kubebuilder:webhook:path=/validate-greenhouse-sap-v1alpha1-teamrole,mutating=false,failurePolicy=fail,sideEffects=None,groups=greenhouse.sap,resources=teamroles,verbs=create;update;delete,versions=v1alpha1,name=vteamrole-v1alpha1.kb.io,admissionReviewVersions=v1
 
 func ValidateCreateRole(_ context.Context, c client.Client, o runtime.Object) (admission.Warnings, error) {
 	role, ok := o.(*greenhousev1alpha1.TeamRole)
@@ -102,9 +114,9 @@ func ValidateDeleteRole(ctx context.Context, c client.Client, o runtime.Object) 
 
 // isRoleReferenced returns true if there are any rolebindings referencing the given role.
 func isRoleReferenced(ctx context.Context, c client.Client, r *greenhousev1alpha1.TeamRole) (bool, error) {
-	l := &greenhousev1alpha1.TeamRoleBindingList{}
+	l := &greenhousev1alpha2.TeamRoleBindingList{}
 	listOpts := &client.ListOptions{
-		FieldSelector: fields.OneTermEqualSelector(greenhouseapis.RolebindingRoleRefField, r.GetName()),
+		FieldSelector: fields.OneTermEqualSelector(greenhouseapis.RolebindingTeamRoleRefField, r.GetName()),
 		Namespace:     r.GetNamespace(),
 	}
 

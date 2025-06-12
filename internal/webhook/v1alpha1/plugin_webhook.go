@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2024 SAP SE or an SAP affiliate company and Greenhouse contributors
 // SPDX-License-Identifier: Apache-2.0
 
-package admission
+package v1alpha1
 
 import (
 	"context"
@@ -24,6 +24,7 @@ import (
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
 	"github.com/cloudoperators/greenhouse/internal/clientutil"
 	"github.com/cloudoperators/greenhouse/internal/helm"
+	"github.com/cloudoperators/greenhouse/internal/webhook"
 )
 
 // pluginsAllowedInCentralCluster is a list of PluginDefinitions that are allowed to be installed in the central cluster.
@@ -34,13 +35,13 @@ var pluginsAllowedInCentralCluster = []string{
 
 // SetupPluginWebhookWithManager configures the webhook for the Plugin custom resource.
 func SetupPluginWebhookWithManager(mgr ctrl.Manager) error {
-	return setupWebhook(mgr,
+	return webhook.SetupWebhook(mgr,
 		&greenhousev1alpha1.Plugin{},
-		webhookFuncs{
-			defaultFunc:        DefaultPlugin,
-			validateCreateFunc: ValidateCreatePlugin,
-			validateUpdateFunc: ValidateUpdatePlugin,
-			validateDeleteFunc: ValidateDeletePlugin,
+		webhook.WebhookFuncs{
+			DefaultFunc:        DefaultPlugin,
+			ValidateCreateFunc: ValidateCreatePlugin,
+			ValidateUpdateFunc: ValidateUpdatePlugin,
+			ValidateDeleteFunc: ValidateDeletePlugin,
 		},
 	)
 }

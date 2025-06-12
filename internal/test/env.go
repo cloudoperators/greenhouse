@@ -29,6 +29,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
+	greenhousev1alpha2 "github.com/cloudoperators/greenhouse/api/v1alpha2"
 	"github.com/cloudoperators/greenhouse/internal/clientutil"
 	dexapi "github.com/cloudoperators/greenhouse/internal/dex/api"
 
@@ -242,20 +243,28 @@ func StartControlPlane(port string, installCRDs, installWebhooks bool) (*rest.Co
 	testEnv.ControlPlane.GetAPIServer().Port = port
 	testEnv.ControlPlane.GetAPIServer().Configure().Append("enable-admission-plugins", "MutatingAdmissionWebhook", "ValidatingAdmissionWebhook")
 
-	// Start control plane
-	cfg, err := testEnv.Start()
-	Expect(err).
-		NotTo(HaveOccurred(), "there must be no error starting the test environment")
-	Expect(cfg).
-		NotTo(BeNil(), "the configuration of the test environment must not be nil")
 	Expect(greenhousev1alpha1.AddToScheme(scheme.Scheme)).
-		To(Succeed(), "there must be no error adding the greenhouse api to the scheme")
+		To(Succeed(), "there must be no error adding the greenhouse api v1alpha1 to the scheme")
+	Expect(greenhousev1alpha2.AddToScheme(scheme.Scheme)).
+		To(Succeed(), "there must be no error adding the greenhouse api v1alpha2 to the scheme")
 	Expect(clientgoscheme.AddToScheme(scheme.Scheme)).
 		To(Succeed(), "there must no error adding the clientgo api to the scheme")
 	Expect(apiextensionsv1.AddToScheme(scheme.Scheme)).
 		To(Succeed(), "there must be no error adding the apiextensions api to the scheme")
 	Expect(dexapi.AddToScheme(scheme.Scheme)).
 		To(Succeed(), "there must be no error adding the dex api to the scheme")
+
+	// Make sure all schemes are added before starting the envtest. This will enable conversion webhooks.
+	testEnv.CRDInstallOptions = envtest.CRDInstallOptions{
+		Scheme: scheme.Scheme,
+	}
+
+	// Start control plane
+	cfg, err := testEnv.Start()
+	Expect(err).
+		NotTo(HaveOccurred(), "there must be no error starting the test environment")
+	Expect(cfg).
+		NotTo(BeNil(), "the configuration of the test environment must not be nil")
 
 	// Create k8s client
 	k8sClient, err := clientutil.NewK8sClient(cfg)

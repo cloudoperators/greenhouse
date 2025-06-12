@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2024 SAP SE or an SAP affiliate company and Greenhouse contributors
 // SPDX-License-Identifier: Apache-2.0
 
-package admission
+package v1alpha1
 
 import (
 	"context"
@@ -16,18 +16,19 @@ import (
 
 	greenhouseapis "github.com/cloudoperators/greenhouse/api"
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
+	"github.com/cloudoperators/greenhouse/internal/webhook"
 )
 
 // Webhook for the Team custom resource.
 
 func SetupTeamWebhookWithManager(mgr ctrl.Manager) error {
-	return setupWebhook(mgr,
+	return webhook.SetupWebhook(mgr,
 		&greenhousev1alpha1.Team{},
-		webhookFuncs{
-			defaultFunc:        DefaultTeam,
-			validateCreateFunc: ValidateCreateTeam,
-			validateUpdateFunc: ValidateUpdateTeam,
-			validateDeleteFunc: ValidateDeleteTeam,
+		webhook.WebhookFuncs{
+			DefaultFunc:        DefaultTeam,
+			ValidateCreateFunc: ValidateCreateTeam,
+			ValidateUpdateFunc: ValidateUpdateTeam,
+			ValidateDeleteFunc: ValidateDeleteTeam,
 		},
 	)
 }
@@ -100,7 +101,7 @@ func validateJoinURL(team *greenhousev1alpha1.Team) error {
 	if team.Spec.JoinURL == "" {
 		return nil
 	}
-	if !validateURL(team.Spec.JoinURL) {
+	if !webhook.ValidateURL(team.Spec.JoinURL) {
 		return apierrors.NewInvalid(team.GroupVersionKind().GroupKind(), team.GetName(), field.ErrorList{
 			field.Invalid(field.NewPath("spec").Child("joinUrl"), team.Spec.JoinURL,
 				"JoinURL must be a valid 'http:' or 'https:' URL, like 'https://example.com'."),

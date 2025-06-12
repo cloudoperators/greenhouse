@@ -249,7 +249,7 @@ var _ = Describe("Plugin E2E", Ordered, func() {
 			g.Expect(deploymentList.Items[0].Spec.Replicas).To(PointTo(Equal(int32(1))))
 		}).Should(Succeed())
 
-		By("Update plugin preset with cluster overview")
+		By("Updating plugin preset with cluster overview")
 		err = adminClient.Get(ctx, client.ObjectKeyFromObject(testPluginPreset), testPluginPreset)
 		Expect(err).ToNot(HaveOccurred())
 		testPluginPreset.Spec.ClusterOptionOverrides = []greenhousev1alpha1.ClusterOptionOverride{
@@ -275,7 +275,7 @@ var _ = Describe("Plugin E2E", Ordered, func() {
 			g.Expect(deploymentList.Items[0].Spec.Replicas).To(PointTo(Equal(int32(2))))
 		}).Should(Succeed())
 
-		By("Update plugin preset with cluster option override")
+		By("Updating plugin preset with cluster option override")
 		err = adminClient.Get(ctx, client.ObjectKeyFromObject(testPluginPreset), testPluginPreset)
 		Expect(err).ToNot(HaveOccurred())
 		testPluginPreset.Spec.ClusterOptionOverrides = []greenhousev1alpha1.ClusterOptionOverride{
@@ -349,7 +349,7 @@ var _ = Describe("Plugin E2E", Ordered, func() {
 		Expect(client.IgnoreAlreadyExists(err)).To(Succeed(), "there should be no error creating the plugin definition")
 
 		By("Setting the HELM_RELEASE_TIMEOUT to 5 seconds")
-		os.Setenv("HELM_RELEASE_TIMEOUT", "5")
+		Expect(os.Setenv("HELM_RELEASE_TIMEOUT", "5")).To(Succeed(), "there should be no error setting HELM_RELEASE_TIMEOUT env")
 
 		By("Preparing the plugin")
 		// Creating plugin with release name
@@ -378,7 +378,7 @@ var _ = Describe("Plugin E2E", Ordered, func() {
 		}).Should(Succeed(), "helm release should be set to failed")
 
 		By("Setting the HELM_RELEASE_TIMEOUT to 5 minutes")
-		os.Setenv("HELM_RELEASE_TIMEOUT", "300")
+		Expect(os.Setenv("HELM_RELEASE_TIMEOUT", "300")).To(Succeed(), "there should be no error setting HELM_RELEASE_TIMEOUT env")
 
 		By("Creating the plugin")
 		Expect(adminClient.Create(ctx, plugin)).To(Succeed(), "there should be no error creating the plugin")
