@@ -1,0 +1,16 @@
+# SPDX-FileCopyrightText: 2025 SAP SE or an SAP affiliate company and Greenhouse contributors
+# SPDX-License-Identifier: Apache-2.0
+
+apiVersion: apiserver.config.k8s.io/v1beta1
+kind: AuthenticationConfiguration
+jwt:
+  - issuer:
+      url: https://greenhouse-admin-control-plane:6443
+      audiences:
+        - greenhouse
+      certificateAuthority: |-
+        <placeholder>
+    claimMappings:
+      username:
+        claim: 'sub'
+        prefix: 'greenhouse:'

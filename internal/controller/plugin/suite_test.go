@@ -4,7 +4,6 @@
 package plugin
 
 import (
-	"encoding/json"
 	"errors"
 	"testing"
 
@@ -17,7 +16,6 @@ import (
 	"helm.sh/helm/v3/pkg/chart/loader"
 	"helm.sh/helm/v3/pkg/storage/driver"
 	corev1 "k8s.io/api/core/v1"
-	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/rest"
@@ -152,7 +150,7 @@ var _ = Describe("HelmControllerTest", Serial, func() {
 				Name:        PluginOptionDefault,
 				Description: "This is my default test plugin option",
 				Required:    false,
-				Default:     asAPIextensionJSON(PluginOptionDefaultValue),
+				Default:     test.AsAPIExtensionJSON(PluginOptionDefaultValue),
 				Type:        greenhousev1alpha1.PluginOptionTypeString,
 			}),
 		)
@@ -169,7 +167,7 @@ var _ = Describe("HelmControllerTest", Serial, func() {
 		testPlugin = test.NewPlugin(test.Ctx, PluginName, Namespace,
 			test.WithPluginDefinition(PluginDefinitionName),
 			test.WithReleaseName(ReleaseName),
-			test.WithPluginOptionValue(PluginOptionRequired, asAPIextensionJSON(PluginRequiredOptionValue), nil))
+			test.WithPluginOptionValue(PluginOptionRequired, test.AsAPIExtensionJSON(PluginRequiredOptionValue), nil))
 
 		Expect(test.K8sClient.Create(test.Ctx, testPlugin)).Should(Succeed())
 
@@ -388,14 +386,14 @@ var _ = Describe("HelmControllerTest", Serial, func() {
 		Eventually(func() error {
 			return test.K8sClient.Get(test.Ctx, pluginDefinitionID, actPluginDefinition)
 		}).Should(Succeed())
-		Expect(actPluginDefinition.Spec.Options).To(ContainElement(gstruct.MatchFields(gstruct.IgnoreExtras, gstruct.Fields{"Name": Equal(PluginOptionDefault), "Default": Equal(asAPIextensionJSON(PluginOptionDefaultValue))})))
+		Expect(actPluginDefinition.Spec.Options).To(ContainElement(gstruct.MatchFields(gstruct.IgnoreExtras, gstruct.Fields{"Name": Equal(PluginOptionDefault), "Default": Equal(test.AsAPIExtensionJSON(PluginOptionDefaultValue))})))
 
 		actPlugin := &greenhousev1alpha1.Plugin{}
 		Eventually(func() error {
 			return test.K8sClient.Get(test.Ctx, pluginID, actPlugin)
 		}).Should(Succeed())
 
-		Expect(actPlugin.Spec.OptionValues).To(ContainElement(gstruct.MatchFields(gstruct.IgnoreExtras, gstruct.Fields{"Name": Equal(PluginOptionDefault), "Value": Equal(asAPIextensionJSON(PluginOptionDefaultValue))})))
+		Expect(actPlugin.Spec.OptionValues).To(ContainElement(gstruct.MatchFields(gstruct.IgnoreExtras, gstruct.Fields{"Name": Equal(PluginOptionDefault), "Value": Equal(test.AsAPIExtensionJSON(PluginOptionDefaultValue))})))
 	})
 
 	It("should successfully create a Plugin with every type of OptionValue", func() {
@@ -425,35 +423,35 @@ var _ = Describe("HelmControllerTest", Serial, func() {
 					Name:        PluginOptionDefault,
 					Description: "This is my default test plugin option",
 					Required:    false,
-					Default:     asAPIextensionJSON(PluginOptionDefaultValue),
+					Default:     test.AsAPIExtensionJSON(PluginOptionDefaultValue),
 					Type:        greenhousev1alpha1.PluginOptionTypeString,
 				}),
 				test.AppendPluginOption(greenhousev1alpha1.PluginOption{
 					Name:        PluginOptionBool,
 					Description: "This is my default test plugin option with a bool value",
 					Required:    false,
-					Default:     asAPIextensionJSON(PluginOptionBoolDefault),
+					Default:     test.AsAPIExtensionJSON(PluginOptionBoolDefault),
 					Type:        greenhousev1alpha1.PluginOptionTypeBool,
 				}),
 				test.AppendPluginOption(greenhousev1alpha1.PluginOption{
 					Name:        PluginOptionInt,
 					Description: "This is my default test plugin option with an int value",
 					Required:    false,
-					Default:     asAPIextensionJSON(PluginOptionIntDefault),
+					Default:     test.AsAPIExtensionJSON(PluginOptionIntDefault),
 					Type:        greenhousev1alpha1.PluginOptionTypeInt,
 				}),
 				test.AppendPluginOption(greenhousev1alpha1.PluginOption{
 					Name:        PluginOptionList,
 					Description: "This is my default test plugin option with a list value",
 					Required:    false,
-					Default:     asAPIextensionJSON(PluginOptionListDefault),
+					Default:     test.AsAPIExtensionJSON(PluginOptionListDefault),
 					Type:        greenhousev1alpha1.PluginOptionTypeList,
 				}),
 				test.AppendPluginOption(greenhousev1alpha1.PluginOption{
 					Name:        PluginOptionMap,
 					Description: "This is my default test plugin option with a map value",
 					Required:    false,
-					Default:     asAPIextensionJSON(PluginOptionMapDefault),
+					Default:     test.AsAPIExtensionJSON(PluginOptionMapDefault),
 					Type:        greenhousev1alpha1.PluginOptionTypeMap,
 				}),
 			)
@@ -474,11 +472,11 @@ var _ = Describe("HelmControllerTest", Serial, func() {
 			complexPlugin = test.NewPlugin(test.Ctx, pluginName, Namespace,
 				test.WithPluginDefinition(pluginWithEveryOption),
 				test.WithReleaseName(ReleaseName),
-				test.WithPluginOptionValue(PluginOptionDefault, asAPIextensionJSON(stringVal), nil),
-				test.WithPluginOptionValue(PluginOptionBool, asAPIextensionJSON(boolVal), nil),
-				test.WithPluginOptionValue(PluginOptionInt, asAPIextensionJSON(intVal), nil),
-				test.WithPluginOptionValue(PluginOptionList, asAPIextensionJSON(listVal), nil),
-				test.WithPluginOptionValue(PluginOptionMap, asAPIextensionJSON(mapVal), nil),
+				test.WithPluginOptionValue(PluginOptionDefault, test.AsAPIExtensionJSON(stringVal), nil),
+				test.WithPluginOptionValue(PluginOptionBool, test.AsAPIExtensionJSON(boolVal), nil),
+				test.WithPluginOptionValue(PluginOptionInt, test.AsAPIExtensionJSON(intVal), nil),
+				test.WithPluginOptionValue(PluginOptionList, test.AsAPIExtensionJSON(listVal), nil),
+				test.WithPluginOptionValue(PluginOptionMap, test.AsAPIExtensionJSON(mapVal), nil),
 			)
 
 			Expect(test.K8sClient.Create(test.Ctx, complexPlugin)).Should(Succeed())
@@ -522,7 +520,7 @@ var _ = Describe("HelmControllerTest", Serial, func() {
 		plugin := test.NewPlugin(test.Ctx, "testPlugin", Namespace,
 			test.WithPluginDefinition("testPlugin"),
 			test.WithReleaseName(ReleaseName),
-			test.WithPluginOptionValue(option, asAPIextensionJSON(value), nil))
+			test.WithPluginOptionValue(option, test.AsAPIExtensionJSON(value), nil))
 		Expect(test.K8sClient.Create(test.Ctx, plugin)).Should(Not(Succeed()), "creating a plugin with wrong types should not be successful")
 	},
 		Entry("string with wrong type", PluginOptionRequired, 1),
@@ -608,10 +606,3 @@ var _ = AfterSuite(func() {
 	By("tearing down the test environment")
 	test.TestAfterSuite()
 })
-
-// asAPIextensionJSON marshals v into a JSON and returns an apiextensionsv1.JSON object
-func asAPIextensionJSON(v any) *apiextensionsv1.JSON {
-	bs, err := json.Marshal(v)
-	Expect(err).ToNot(HaveOccurred(), "error marshalling value")
-	return &apiextensionsv1.JSON{Raw: bs}
-}

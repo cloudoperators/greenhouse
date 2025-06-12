@@ -551,7 +551,26 @@ export interface components {
                 weight?: number;
             };
             /** @description PluginDefinitionStatus defines the observed state of PluginDefinition */
-            status?: Record<string, never>;
+            status?: {
+                /** @description StatusConditions contain the different conditions that constitute the status of the Plugin. */
+                statusConditions?: {
+                    conditions?: {
+                        /**
+                         * Format: date-time
+                         * @description LastTransitionTime is the last time the condition transitioned from one status to another.
+                         */
+                        lastTransitionTime: string;
+                        /** @description Message is an optional human readable message indicating details about the last transition. */
+                        message?: string;
+                        /** @description Reason is a one-word, CamelCase reason for the condition's last transition. */
+                        reason?: string;
+                        /** @description Status of the condition. */
+                        status: string;
+                        /** @description Type of the condition. */
+                        type: string;
+                    }[];
+                };
+            };
         };
         /**
          * PluginPreset
