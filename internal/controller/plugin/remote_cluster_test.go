@@ -23,6 +23,7 @@ import (
 	"github.com/cloudoperators/greenhouse/internal/common"
 	"github.com/cloudoperators/greenhouse/internal/helm"
 	"github.com/cloudoperators/greenhouse/internal/test"
+	"github.com/cloudoperators/greenhouse/internal/test/mocks"
 )
 
 // Test environment.
@@ -34,17 +35,17 @@ var (
 
 // Test stimuli.
 var (
-	testPlugin = test.NewPlugin(test.Ctx, "test-plugindefinition", test.TestNamespace,
-		test.WithCluster("test-cluster"),
-		test.WithPluginDefinition("test-plugindefinition"),
-		test.WithReleaseName("release-test"),
-		test.WithReleaseNamespace(test.TestNamespace))
+	testPlugin = mocks.NewPlugin("test-plugindefinition", test.TestNamespace,
+		mocks.WithCluster("test-cluster"),
+		mocks.WithPluginDefinition("test-plugindefinition"),
+		mocks.WithReleaseName("release-test"),
+		mocks.WithReleaseNamespace(test.TestNamespace))
 
-	testPluginWithSR = test.NewPlugin(test.Ctx, "test-plugin-secretref", test.TestNamespace,
-		test.WithCluster("test-cluster"),
-		test.WithPluginDefinition("test-plugindefinition"),
-		test.WithReleaseName("release-with-secretref"),
-		test.WithPluginOptionValue("secretValue", nil, &greenhousev1alpha1.ValueFromSource{
+	testPluginWithSR = mocks.NewPlugin("test-plugin-secretref", test.TestNamespace,
+		mocks.WithCluster("test-cluster"),
+		mocks.WithPluginDefinition("test-plugindefinition"),
+		mocks.WithReleaseName("release-with-secretref"),
+		mocks.WithPluginOptionValue("secretValue", nil, &greenhousev1alpha1.ValueFromSource{
 			Secret: &greenhousev1alpha1.SecretKeyReference{
 				Name: "test-secret",
 				Key:  "test-key",
@@ -52,18 +53,18 @@ var (
 		}),
 	)
 
-	testPluginWithCRDs = test.NewPlugin(test.Ctx, "test-plugin-crd", test.TestNamespace,
-		test.WithCluster(testCluster.GetName()),
-		test.WithPluginDefinition("test-plugindefinition-crd"),
-		test.WithReleaseName("plugindefinition-crd"),
-		test.WithReleaseNamespace(test.TestNamespace),
+	testPluginWithCRDs = mocks.NewPlugin("test-plugin-crd", test.TestNamespace,
+		mocks.WithCluster(testCluster.GetName()),
+		mocks.WithPluginDefinition("test-plugindefinition-crd"),
+		mocks.WithReleaseName("plugindefinition-crd"),
+		mocks.WithReleaseNamespace(test.TestNamespace),
 	)
 
-	testPluginWithExposedService = test.NewPlugin(test.Ctx, "test-plugin-exposed", test.TestNamespace,
-		test.WithCluster(testCluster.GetName()),
-		test.WithPluginDefinition("test-plugindefinition-exposed"),
-		test.WithReleaseName("plugindefinition-exposed"),
-		test.WithReleaseNamespace(test.TestNamespace),
+	testPluginWithExposedService = mocks.NewPlugin("test-plugin-exposed", test.TestNamespace,
+		mocks.WithCluster(testCluster.GetName()),
+		mocks.WithPluginDefinition("test-plugindefinition-exposed"),
+		mocks.WithReleaseName("plugindefinition-exposed"),
+		mocks.WithReleaseNamespace(test.TestNamespace),
 	)
 
 	testSecret = corev1.Secret{
@@ -80,32 +81,27 @@ var (
 		},
 	}
 
-	testPluginDefinition = test.NewPluginDefinition(
-		test.Ctx,
-		"test-plugindefinition",
-	)
+	testPluginDefinition = mocks.NewPluginDefinition("test-plugindefinition")
 
-	testPluginWithHelmChartCRDs = test.NewPluginDefinition(
-		test.Ctx,
+	testPluginWithHelmChartCRDs = mocks.NewPluginDefinition(
 		"test-plugindefinition-crd",
-		test.WithHelmChart(&greenhousev1alpha1.HelmChartReference{
+		mocks.WithHelmChart(&greenhousev1alpha1.HelmChartReference{
 			Name:       "./../../test/fixtures/myChartWithCRDs",
 			Repository: "dummy",
 			Version:    "1.0.0",
 		}),
 	)
 
-	pluginDefinitionWithExposedService = test.NewPluginDefinition(
-		test.Ctx,
+	pluginDefinitionWithExposedService = mocks.NewPluginDefinition(
 		"test-plugindefinition-exposed",
-		test.WithHelmChart(&greenhousev1alpha1.HelmChartReference{
+		mocks.WithHelmChart(&greenhousev1alpha1.HelmChartReference{
 			Name:       "./../../test/fixtures/chartWithExposedService",
 			Repository: "dummy",
 			Version:    "1.3.0",
 		}))
 
-	testCluster = test.NewCluster(test.Ctx, "test-cluster", test.TestNamespace,
-		test.WithAccessMode(greenhousev1alpha1.ClusterAccessModeDirect))
+	testCluster = mocks.NewCluster("test-cluster", test.TestNamespace,
+		mocks.WithAccessMode(greenhousev1alpha1.ClusterAccessModeDirect))
 
 	testClusterK8sSecret = corev1.Secret{
 		TypeMeta: metav1.TypeMeta{
@@ -263,11 +259,11 @@ var _ = Describe("HelmController reconciliation", Ordered, func() {
 	})
 
 	It("should correctly handle the plugin on a referenced cluster with a different namespace", func() {
-		testPluginInDifferentNamespace := test.NewPlugin(test.Ctx, "test-plugin-in-made-up-namespace", test.TestNamespace,
-			test.WithCluster(testCluster.GetName()),
-			test.WithPluginDefinition(testPluginDefinition.GetName()),
-			test.WithReleaseName("release-test-in-made-up-namespace"),
-			test.WithReleaseNamespace("made-up-namespace"))
+		testPluginInDifferentNamespace := mocks.NewPlugin("test-plugin-in-made-up-namespace", test.TestNamespace,
+			mocks.WithCluster(testCluster.GetName()),
+			mocks.WithPluginDefinition(testPluginDefinition.GetName()),
+			mocks.WithReleaseName("release-test-in-made-up-namespace"),
+			mocks.WithReleaseNamespace("made-up-namespace"))
 
 		Expect(testPluginInDifferentNamespace.GetNamespace()).
 			Should(Equal(test.TestNamespace), "the namespace should be the test namespace")

@@ -13,6 +13,7 @@ import (
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
 	"github.com/cloudoperators/greenhouse/internal/clientutil"
 	"github.com/cloudoperators/greenhouse/internal/test"
+	"github.com/cloudoperators/greenhouse/internal/test/mocks"
 )
 
 var _ = Describe("Validate Role Admission", func() {
@@ -58,7 +59,7 @@ var _ = Describe("Validate Role Admission", func() {
 	})
 
 	It("should not allow creating a TeamRole with both Rules and AggregationRule set", func() {
-		teamRole = test.NewTeamRole(test.Ctx, "test-role", setup.Namespace(), test.WithRules(rules), test.WithAggregationRule(aggregationRule), test.WithRules(rules))
+		teamRole = mocks.NewTeamRole("test-role", setup.Namespace(), mocks.WithRules(rules), mocks.WithAggregationRule(aggregationRule), mocks.WithRules(rules))
 
 		err := test.K8sClient.Create(test.Ctx, teamRole)
 		Expect(err).To(HaveOccurred(), "there should be an error creating the role with both rules and aggregation rule set")
@@ -66,7 +67,7 @@ var _ = Describe("Validate Role Admission", func() {
 	})
 
 	It("should not allow to add Rules to a TeamRole with AggregationRule set", func() {
-		teamRole = setup.CreateTeamRole(test.Ctx, "test-role", test.WithAggregationRule(aggregationRule), test.WithRules(nil))
+		teamRole = setup.CreateTeamRole(test.Ctx, "test-role", mocks.WithAggregationRule(aggregationRule), mocks.WithRules(nil))
 
 		_, err := clientutil.CreateOrPatch(test.Ctx, test.K8sClient, teamRole, func() error {
 			teamRole.Spec.Rules = rules
@@ -77,7 +78,7 @@ var _ = Describe("Validate Role Admission", func() {
 	})
 
 	It("should not allow to add an AggregationRule to a TeamRole with Rules set", func() {
-		teamRole = setup.CreateTeamRole(test.Ctx, "test-role", test.WithRules(rules))
+		teamRole = setup.CreateTeamRole(test.Ctx, "test-role", mocks.WithRules(rules))
 
 		_, err := clientutil.CreateOrPatch(test.Ctx, test.K8sClient, teamRole, func() error {
 			teamRole.Spec.AggregationRule = aggregationRule
@@ -88,12 +89,12 @@ var _ = Describe("Validate Role Admission", func() {
 	})
 
 	It("should not allow deleting a role with references", func() {
-		teamRole = setup.CreateTeamRole(test.Ctx, "test-delete-role", test.WithRules(rules))
+		teamRole = setup.CreateTeamRole(test.Ctx, "test-delete-role", mocks.WithRules(rules))
 
 		teamRoleBinding = setup.CreateTeamRoleBinding(test.Ctx, "test-delete-rolebinding",
-			test.WithClusterName(cluster.Name),
-			test.WithTeamRef(team.Name),
-			test.WithTeamRoleRef(teamRole.Name),
+			mocks.WithClusterName(cluster.Name),
+			mocks.WithTeamRef(team.Name),
+			mocks.WithTeamRoleRef(teamRole.Name),
 		)
 
 		err := test.K8sClient.Delete(test.Ctx, teamRole)

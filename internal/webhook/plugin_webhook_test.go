@@ -21,6 +21,7 @@ import (
 	greenhouseapis "github.com/cloudoperators/greenhouse/api"
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
 	"github.com/cloudoperators/greenhouse/internal/test"
+	"github.com/cloudoperators/greenhouse/internal/test/mocks"
 )
 
 var _ = Describe("Validate Plugin OptionValues", func() {
@@ -178,9 +179,9 @@ var _ = Describe("Validate Plugin OptionValues", func() {
 			},
 		}
 		It("should reject a Plugin with missing required options", func() {
-			plugin := test.NewPlugin(test.Ctx, "test-plugin", test.TestNamespace,
-				test.WithPluginDefinition("test"),
-				test.WithCluster("test-cluster"),
+			plugin := mocks.NewPlugin("test-plugin", test.TestNamespace,
+				mocks.WithPluginDefinition("test"),
+				mocks.WithCluster("test-cluster"),
 			)
 			optionsFieldPath := field.NewPath("spec").Child("optionValues")
 			errList := validatePluginOptionValues(plugin.Spec.OptionValues, pluginDefinition, true, optionsFieldPath)
@@ -229,17 +230,17 @@ var _ = Describe("Validate plugin spec fields", Ordered, func() {
 	})
 
 	It("should not accept a plugin without a clusterName", func() {
-		testPlugin = test.NewPlugin(test.Ctx, "test-plugin", setup.Namespace(), test.WithPluginDefinition(testPluginDefinition.Name), test.WithReleaseNamespace("test-namespace"), test.WithReleaseName("test-release"))
+		testPlugin = mocks.NewPlugin("test-plugin", setup.Namespace(), mocks.WithPluginDefinition(testPluginDefinition.Name), mocks.WithReleaseNamespace("test-namespace"), mocks.WithReleaseName("test-release"))
 		expectClusterMustBeSetError(test.K8sClient.Create(test.Ctx, testPlugin))
 	})
 
 	It("should not accept a plugin for the central cluster where releaseNamespace and Plugin Namespace do not match", func() {
-		testPlugin = test.NewPlugin(test.Ctx, "test-plugin", setup.Namespace(), test.WithPluginDefinition(testCentralPluginDefinition.Name), test.WithReleaseNamespace("test-namespace"), test.WithReleaseName("test-release"))
+		testPlugin = mocks.NewPlugin("test-plugin", setup.Namespace(), mocks.WithPluginDefinition(testCentralPluginDefinition.Name), mocks.WithReleaseNamespace("test-namespace"), mocks.WithReleaseName("test-release"))
 		expectReleaseNamespaceMustMatchError(test.K8sClient.Create(test.Ctx, testPlugin))
 	})
 
 	It("should not accept a plugin if the releaseNamespace changes", func() {
-		testPlugin = setup.CreatePlugin(test.Ctx, "test-plugin", test.WithPluginDefinition(testPluginDefinition.Name), test.WithCluster(testCluster.Name), test.WithReleaseNamespace("test-namespace"), test.WithReleaseName("test-release"))
+		testPlugin = setup.CreatePlugin(test.Ctx, "test-plugin", mocks.WithPluginDefinition(testPluginDefinition.Name), mocks.WithCluster(testCluster.Name), mocks.WithReleaseNamespace("test-namespace"), mocks.WithReleaseName("test-release"))
 
 		By("updating the plugin with a different releaseNamespace")
 		testPlugin.Spec.ReleaseNamespace = "new-namespace"
@@ -249,14 +250,14 @@ var _ = Describe("Validate plugin spec fields", Ordered, func() {
 
 	It("should reject the plugin when the cluster with clusterName does not exist", func() {
 		By("creating the plugin")
-		testPlugin = test.NewPlugin(test.Ctx, "test-plugin", setup.Namespace(), test.WithPluginDefinition(testPluginDefinition.Name), test.WithCluster("non-existent-cluster"), test.WithReleaseNamespace("test-namespace"), test.WithReleaseName("test-release"))
+		testPlugin = mocks.NewPlugin("test-plugin", setup.Namespace(), mocks.WithPluginDefinition(testPluginDefinition.Name), mocks.WithCluster("non-existent-cluster"), mocks.WithReleaseNamespace("test-namespace"), mocks.WithReleaseName("test-release"))
 
 		expectClusterNotFoundError(test.K8sClient.Create(test.Ctx, testPlugin))
 	})
 
 	It("should accept the plugin when the cluster with clusterName exists", func() {
 		By("creating the plugin")
-		testPlugin = setup.CreatePlugin(test.Ctx, "test-plugin", test.WithPluginDefinition(testPluginDefinition.Name), test.WithCluster(testCluster.Name), test.WithReleaseNamespace("test-namespace"), test.WithReleaseName("test-release"))
+		testPlugin = setup.CreatePlugin(test.Ctx, "test-plugin", mocks.WithPluginDefinition(testPluginDefinition.Name), mocks.WithCluster(testCluster.Name), mocks.WithReleaseNamespace("test-namespace"), mocks.WithReleaseName("test-release"))
 
 		By("checking the label on the plugin")
 		actPlugin := &greenhousev1alpha1.Plugin{}
@@ -268,7 +269,7 @@ var _ = Describe("Validate plugin spec fields", Ordered, func() {
 	})
 
 	It("should reject to update a plugin when the clusterName changes", func() {
-		testPlugin = setup.CreatePlugin(test.Ctx, "test-plugin", test.WithPluginDefinition(testPluginDefinition.Name), test.WithCluster(testCluster.Name), test.WithReleaseNamespace("test-namespace"), test.WithReleaseName("test-release"))
+		testPlugin = setup.CreatePlugin(test.Ctx, "test-plugin", mocks.WithPluginDefinition(testPluginDefinition.Name), mocks.WithCluster(testCluster.Name), mocks.WithReleaseNamespace("test-namespace"), mocks.WithReleaseName("test-release"))
 		testPlugin.Spec.ClusterName = "wrong-cluster-name"
 		err := test.K8sClient.Update(test.Ctx, testPlugin)
 
@@ -277,7 +278,7 @@ var _ = Describe("Validate plugin spec fields", Ordered, func() {
 	})
 
 	It("should reject to update a plugin when the clustername is removed", func() {
-		testPlugin = setup.CreatePlugin(test.Ctx, "test-plugin", test.WithPluginDefinition(testPluginDefinition.Name), test.WithCluster(testCluster.Name), test.WithReleaseNamespace("test-namespace"), test.WithReleaseName("test-release"))
+		testPlugin = setup.CreatePlugin(test.Ctx, "test-plugin", mocks.WithPluginDefinition(testPluginDefinition.Name), mocks.WithCluster(testCluster.Name), mocks.WithReleaseNamespace("test-namespace"), mocks.WithReleaseName("test-release"))
 		testPlugin.Spec.ClusterName = ""
 		err := test.K8sClient.Update(test.Ctx, testPlugin)
 		Expect(err).To(HaveOccurred(), "there should be an error changing the plugin's clusterName")
@@ -285,7 +286,7 @@ var _ = Describe("Validate plugin spec fields", Ordered, func() {
 	})
 
 	It("should reject to update a plugin when the releaseNamespace changes", func() {
-		testPlugin = setup.CreatePlugin(test.Ctx, "test-plugin", test.WithPluginDefinition(testPluginDefinition.Name), test.WithCluster(testCluster.Name), test.WithReleaseNamespace("test-namespace"), test.WithReleaseName("test-release"))
+		testPlugin = setup.CreatePlugin(test.Ctx, "test-plugin", mocks.WithPluginDefinition(testPluginDefinition.Name), mocks.WithCluster(testCluster.Name), mocks.WithReleaseNamespace("test-namespace"), mocks.WithReleaseName("test-release"))
 		testPlugin.Spec.ReleaseNamespace = "foo-bar"
 		err := test.K8sClient.Update(test.Ctx, testPlugin)
 		Expect(err).To(HaveOccurred(), "there should be an error changing the plugin's releaseNamespace")
@@ -294,7 +295,7 @@ var _ = Describe("Validate plugin spec fields", Ordered, func() {
 
 	It("should reject to update a plugin when the pluginDefinition changes", func() {
 		secondPluginDefinition := setup.CreatePluginDefinition(test.Ctx, "foo-bar")
-		testPlugin = setup.CreatePlugin(test.Ctx, "test-plugin", test.WithPluginDefinition(testPluginDefinition.Name), test.WithCluster(testCluster.Name), test.WithReleaseNamespace("test-namespace"), test.WithReleaseName("test-release"))
+		testPlugin = setup.CreatePlugin(test.Ctx, "test-plugin", mocks.WithPluginDefinition(testPluginDefinition.Name), mocks.WithCluster(testCluster.Name), mocks.WithReleaseNamespace("test-namespace"), mocks.WithReleaseName("test-release"))
 
 		testPlugin.Spec.PluginDefinition = secondPluginDefinition.Name
 		err := test.K8sClient.Update(test.Ctx, testPlugin)
@@ -341,9 +342,9 @@ func expectReleaseNamespaceMustMatchError(err error) {
 }
 
 var _ = Describe("Validate Plugin with OwnerReference from PluginPresets", func() {
-	testPlugin := test.NewPlugin(test.Ctx, "test-plugin", test.TestNamespace,
-		test.WithPluginDefinition("test-plugindefinition"),
-		test.WithCluster("test-cluster"),
+	testPlugin := mocks.NewPlugin("test-plugin", test.TestNamespace,
+		mocks.WithPluginDefinition("test-plugindefinition"),
+		mocks.WithCluster("test-cluster"),
 	)
 
 	var ownerReference = metav1.OwnerReference{
@@ -372,9 +373,9 @@ var _ = Describe("Validation and defaulting of releaseName", func() {
 	)
 
 	BeforeEach(func() {
-		pluginDefinition = test.NewPluginDefinition(test.Ctx, "test-definition", test.WithHelmChart(&greenhousev1alpha1.HelmChartReference{Name: "test-helm-chart"}))
+		pluginDefinition = mocks.NewPluginDefinition("test-definition", mocks.WithHelmChart(&greenhousev1alpha1.HelmChartReference{Name: "test-helm-chart"}))
 
-		testPlugin = test.NewPlugin(test.Ctx, "test-plugin", "testing", test.WithPluginDefinition("test-definition"))
+		testPlugin = mocks.NewPlugin("test-plugin", "testing", mocks.WithPluginDefinition("test-definition"))
 		// ensure the Plugin is in the deployed state
 		testPlugin.Status.HelmReleaseStatus = &greenhousev1alpha1.HelmReleaseStatus{
 			Status: "deployed",

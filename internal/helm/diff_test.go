@@ -18,6 +18,7 @@ import (
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
 	"github.com/cloudoperators/greenhouse/internal/helm"
 	"github.com/cloudoperators/greenhouse/internal/test"
+	"github.com/cloudoperators/greenhouse/internal/test/mocks"
 )
 
 var (
@@ -34,18 +35,18 @@ var _ = Describe("ensure helm diff against the release manifest works as expecte
 	)
 
 	BeforeEach(func() {
-		pluginDefinitionUT = test.NewPluginDefinition(test.Ctx, "test-plugindefinition",
-			test.WithHelmChart(&greenhousev1alpha1.HelmChartReference{
+		pluginDefinitionUT = mocks.NewPluginDefinition("test-plugindefinition",
+			mocks.WithHelmChart(&greenhousev1alpha1.HelmChartReference{
 				Name:       "./../test/fixtures/myChart",
 				Repository: "dummy",
 				Version:    "1.0.0",
 			}),
 		)
 
-		pluginUT = test.NewPlugin(test.Ctx, "test-plugin", namespace,
-			test.WithPluginDefinition("test-plugindefinition"),
-			test.WithPluginOptionValue("enabled", test.MustReturnJSONFor(true), nil),
-			test.WithReleaseNamespace(namespace),
+		pluginUT = mocks.NewPlugin("test-plugin", namespace,
+			mocks.WithPluginDefinition("test-plugindefinition"),
+			mocks.WithPluginOptionValue("enabled", test.MustReturnJSONFor(true), nil),
+			mocks.WithReleaseNamespace(namespace),
 		)
 
 		// install the chart
@@ -167,16 +168,16 @@ var _ = Describe("ensure helm with hooks diff against the release manifest works
 	)
 
 	BeforeEach(func() {
-		pluginDefinitionUT = test.NewPluginDefinition(test.Ctx, "test-plugindefinition",
-			test.WithHelmChart(&greenhousev1alpha1.HelmChartReference{
+		pluginDefinitionUT = mocks.NewPluginDefinition("test-plugindefinition",
+			mocks.WithHelmChart(&greenhousev1alpha1.HelmChartReference{
 				Name:       "./../test/fixtures/testHook",
 				Repository: "dummy",
 				Version:    "1.0.0",
 			}))
-		pluginUT = test.NewPlugin(test.Ctx, "test-plugin", namespace,
-			test.WithPluginDefinition("test-plugindefinition"),
-			test.WithPluginOptionValue("hook_enabled", test.MustReturnJSONFor(false), nil),
-			test.WithReleaseNamespace(namespace),
+		pluginUT = mocks.NewPlugin("test-plugin", namespace,
+			mocks.WithPluginDefinition("test-plugindefinition"),
+			mocks.WithPluginOptionValue("hook_enabled", test.MustReturnJSONFor(false), nil),
+			mocks.WithReleaseNamespace(namespace),
 		)
 
 		By("install the chart")

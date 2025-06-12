@@ -23,6 +23,7 @@ import (
 	"github.com/cloudoperators/greenhouse/internal/common"
 	"github.com/cloudoperators/greenhouse/internal/helm"
 	"github.com/cloudoperators/greenhouse/internal/test"
+	"github.com/cloudoperators/greenhouse/internal/test/mocks"
 )
 
 var _ = Describe("helm package test", func() {
@@ -79,7 +80,7 @@ var _ = Describe("helm package test", func() {
 			Expect(pluginOptionValues).To(
 				ContainElement(greenhousev1alpha1.PluginOptionValue{Name: "global.greenhouse.baseDomain", Value: test.MustReturnJSONFor(common.DNSDomain), ValueFrom: nil}), "the plugin option values should contain the baseDomain")
 			Expect(pluginOptionValues).To(
-				ContainElement(greenhousev1alpha1.PluginOptionValue{Name: "global.greenhouse.ownedBy", Value: test.MustReturnJSONFor(plugin.Labels[string(greenhouseapis.LabelKeyOwnedBy)]), ValueFrom: nil}), "the plugin option values should contain the owning team")
+				ContainElement(greenhousev1alpha1.PluginOptionValue{Name: "global.greenhouse.ownedBy", Value: test.MustReturnJSONFor(plugin.Labels[greenhouseapis.LabelKeyOwnedBy]), ValueFrom: nil}), "the plugin option values should contain the owning team")
 		})
 	})
 
@@ -252,9 +253,9 @@ var _ = DescribeTable("getting helm values from Plugin", func(defaultValue any, 
 		Values: make(map[string]any),
 	}
 
-	pluginWithOptionValue := test.NewPlugin(test.Ctx, "green", "house",
-		test.WithPluginDefinition("greenhouse"),
-		test.WithPluginOptionValue("value1", test.MustReturnJSONFor(defaultValue), nil),
+	pluginWithOptionValue := mocks.NewPlugin("green", "house",
+		mocks.WithPluginDefinition("greenhouse"),
+		mocks.WithPluginOptionValue("value1", test.MustReturnJSONFor(defaultValue), nil),
 	)
 
 	helmValues, err := helm.ExportGetValuesForHelmChart(context.Background(), test.K8sClient, helmChart, pluginWithOptionValue)

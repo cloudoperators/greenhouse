@@ -15,6 +15,7 @@ import (
 	greenhousemetav1alpha1 "github.com/cloudoperators/greenhouse/api/meta/v1alpha1"
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
 	"github.com/cloudoperators/greenhouse/internal/test"
+	"github.com/cloudoperators/greenhouse/internal/test/mocks"
 )
 
 const (
@@ -34,26 +35,26 @@ const (
 
 func mockPluginDefinition() *greenhousev1alpha1.PluginDefinition {
 	GinkgoHelper()
-	return test.NewPluginDefinition(test.Ctx, PluginDefinitionName,
-		test.WithVersion(PluginDefinitionVersion),
-		test.WithHelmChart(&greenhousev1alpha1.HelmChartReference{
+	return mocks.NewPluginDefinition(PluginDefinitionName,
+		mocks.WithVersion(PluginDefinitionVersion),
+		mocks.WithHelmChart(&greenhousev1alpha1.HelmChartReference{
 			Name:       HelmChart,
 			Repository: HelmRepo,
 			Version:    PluginDefinitionChartVersion,
 		}),
-		test.AppendPluginOption(greenhousev1alpha1.PluginOption{
+		mocks.AppendPluginOption(greenhousev1alpha1.PluginOption{
 			Name:        PluginOptionRequired,
 			Description: "This is my required test plugin option",
 			Required:    true,
 			Type:        greenhousev1alpha1.PluginOptionTypeString,
 		}),
-		test.AppendPluginOption(greenhousev1alpha1.PluginOption{
+		mocks.AppendPluginOption(greenhousev1alpha1.PluginOption{
 			Name:        PluginOptionOptional,
 			Description: "This is my optional test plugin option",
 			Required:    false,
 			Type:        greenhousev1alpha1.PluginOptionTypeString,
 		}),
-		test.AppendPluginOption(greenhousev1alpha1.PluginOption{
+		mocks.AppendPluginOption(greenhousev1alpha1.PluginOption{
 			Name:        PluginOptionDefault,
 			Description: "This is my default test plugin option",
 			Required:    false,

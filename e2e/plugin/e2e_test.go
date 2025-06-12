@@ -31,6 +31,7 @@ import (
 	"github.com/cloudoperators/greenhouse/internal/clientutil"
 	"github.com/cloudoperators/greenhouse/internal/helm"
 	"github.com/cloudoperators/greenhouse/internal/test"
+	"github.com/cloudoperators/greenhouse/internal/test/mocks"
 )
 
 const (
@@ -101,11 +102,11 @@ var _ = Describe("Plugin E2E", Ordered, func() {
 		By("Creating the plugin")
 		// Creating plugin with release name
 		testPlugin := fixtures.PreparePlugin("test-nginx-plugin-1", env.TestNamespace,
-			test.WithPluginDefinition(testPluginDefinition.Name),
-			test.WithCluster(remoteClusterName),
-			test.WithReleaseNamespace(env.TestNamespace),
-			test.WithPluginOptionValue("replicaCount", &apiextensionsv1.JSON{Raw: []byte("1")}, nil),
-			test.WithReleaseName("test-nginx-plugin-1"),
+			mocks.WithPluginDefinition(testPluginDefinition.Name),
+			mocks.WithCluster(remoteClusterName),
+			mocks.WithReleaseNamespace(env.TestNamespace),
+			mocks.WithPluginOptionValue("replicaCount", &apiextensionsv1.JSON{Raw: []byte("1")}, nil),
+			mocks.WithReleaseName("test-nginx-plugin-1"),
 		)
 		err = adminClient.Create(ctx, testPlugin)
 		Expect(err).ToNot(HaveOccurred())
@@ -144,7 +145,7 @@ var _ = Describe("Plugin E2E", Ordered, func() {
 			namespacedName := types.NamespacedName{Name: testPlugin.Name, Namespace: env.TestNamespace}
 			err = adminClient.Get(ctx, namespacedName, testPlugin)
 			g.Expect(err).NotTo(HaveOccurred())
-			test.SetOptionValueForPlugin(testPlugin, "replicaCount", "2")
+			mocks.SetOptionValueForPlugin(testPlugin, "replicaCount", "2")
 			err = adminClient.Update(ctx, testPlugin)
 			g.Expect(err).NotTo(HaveOccurred())
 		}).Should(Succeed())
@@ -198,10 +199,10 @@ var _ = Describe("Plugin E2E", Ordered, func() {
 		By("Prepare the plugin")
 		// Creating plugin with release name
 		testPlugin := fixtures.PreparePlugin("test-nginx-plugin-2", env.TestNamespace,
-			test.WithPluginDefinition(testPluginDefinition.Name),
-			test.WithReleaseNamespace(env.TestNamespace),
-			test.WithPluginOptionValue("replicaCount", &apiextensionsv1.JSON{Raw: []byte("1")}, nil),
-			test.WithReleaseName("test-nginx-plugin-2"),
+			mocks.WithPluginDefinition(testPluginDefinition.Name),
+			mocks.WithReleaseNamespace(env.TestNamespace),
+			mocks.WithPluginOptionValue("replicaCount", &apiextensionsv1.JSON{Raw: []byte("1")}, nil),
+			mocks.WithReleaseName("test-nginx-plugin-2"),
 		)
 
 		By("Add labels to remote cluster")
@@ -349,15 +350,15 @@ var _ = Describe("Plugin E2E", Ordered, func() {
 		Expect(client.IgnoreAlreadyExists(err)).To(Succeed(), "there should be no error creating the plugin definition")
 
 		By("Setting the HELM_RELEASE_TIMEOUT to 5 seconds")
-		os.Setenv("HELM_RELEASE_TIMEOUT", "5")
+		Expect(os.Setenv("HELM_RELEASE_TIMEOUT", "5")).ToNot(HaveOccurred(), "there should be no error setting the HELM_RELEASE_TIMEOUT environment variable")
 
 		By("Preparing the plugin")
 		// Creating plugin with release name
 		plugin := fixtures.PreparePlugin("test-cert-manager-plugin", env.TestNamespace,
-			test.WithPluginDefinition(pluginDefinition.Name),
-			test.WithCluster(remoteClusterName),
-			test.WithReleaseNamespace(env.TestNamespace),
-			test.WithReleaseName("test-cert-manager-plugin"),
+			mocks.WithPluginDefinition(pluginDefinition.Name),
+			mocks.WithCluster(remoteClusterName),
+			mocks.WithReleaseNamespace(env.TestNamespace),
+			mocks.WithReleaseName("test-cert-manager-plugin"),
 		)
 
 		By("Installing release manually on the remote cluster")
@@ -378,7 +379,7 @@ var _ = Describe("Plugin E2E", Ordered, func() {
 		}).Should(Succeed(), "helm release should be set to failed")
 
 		By("Setting the HELM_RELEASE_TIMEOUT to 5 minutes")
-		os.Setenv("HELM_RELEASE_TIMEOUT", "300")
+		Expect(os.Setenv("HELM_RELEASE_TIMEOUT", "300")).ToNot(HaveOccurred(), "there should be no error setting the HELM_RELEASE_TIMEOUT environment variable")
 
 		By("Creating the plugin")
 		Expect(adminClient.Create(ctx, plugin)).To(Succeed(), "there should be no error creating the plugin")

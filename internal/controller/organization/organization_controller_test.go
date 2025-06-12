@@ -20,6 +20,7 @@ import (
 	dexapi "github.com/cloudoperators/greenhouse/internal/dex/api"
 	"github.com/cloudoperators/greenhouse/internal/scim"
 	"github.com/cloudoperators/greenhouse/internal/test"
+	"github.com/cloudoperators/greenhouse/internal/test/mocks"
 )
 
 var _ = Describe("Test Organization reconciliation", Ordered, func() {
@@ -44,7 +45,7 @@ var _ = Describe("Test Organization reconciliation", Ordered, func() {
 
 		It("should create admin team for organization", func() {
 			testOrgName := "test-org-2"
-			testOrg := setup.CreateOrganization(test.Ctx, testOrgName, test.WithMappedAdminIDPGroup(validIdpGroupName))
+			testOrg := setup.CreateOrganization(test.Ctx, testOrgName, mocks.WithMappedAdminIDPGroup(validIdpGroupName))
 			b := true
 			ownerRef := metav1.OwnerReference{
 				APIVersion:         greenhousev1alpha1.GroupVersion.String(),
@@ -144,7 +145,7 @@ var _ = Describe("Test Organization reconciliation", Ordered, func() {
 
 			By("creating Organization with SCIM Config")
 			testOrg := setup.CreateOrganization(test.Ctx, testOrgName,
-				test.WithMappedAdminIDPGroup(validIdpGroupName),
+				mocks.WithMappedAdminIDPGroup(validIdpGroupName),
 				func(o *greenhousev1alpha1.Organization) {
 					o.Spec.Authentication = &greenhousev1alpha1.Authentication{
 						SCIMConfig: &greenhousev1alpha1.SCIMConfig{
@@ -186,7 +187,7 @@ var _ = Describe("Test Organization reconciliation", Ordered, func() {
 
 			By("creating Organization with SCIM Config")
 			testOrg := setup.CreateOrganization(test.Ctx, testOrgName,
-				test.WithMappedAdminIDPGroup(validIdpGroupName),
+				mocks.WithMappedAdminIDPGroup(validIdpGroupName),
 				func(o *greenhousev1alpha1.Organization) {
 					o.Spec.Authentication = &greenhousev1alpha1.Authentication{
 						SCIMConfig: &greenhousev1alpha1.SCIMConfig{
@@ -309,7 +310,7 @@ var _ = Describe("Test Organization reconciliation", Ordered, func() {
 			}).Should(Succeed(), "Organization should have set correct status condition")
 
 			By("creating a test organization for OIDC")
-			oidcOrg := setup.CreateOrganization(test.Ctx, "test-oidc-org", test.WithMappedAdminIDPGroup(validIdpGroupName))
+			oidcOrg := setup.CreateOrganization(test.Ctx, "test-oidc-org", mocks.WithMappedAdminIDPGroup(validIdpGroupName))
 			test.EventuallyCreated(test.Ctx, test.K8sClient, &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: oidcOrg.Name}})
 
 			By("creating a secret for OIDC config")
@@ -317,10 +318,10 @@ var _ = Describe("Test Organization reconciliation", Ordered, func() {
 			By("updating the organization with OIDC config")
 			oidcOrg = setup.UpdateOrganization(test.Ctx,
 				oidcOrg.Name,
-				test.WithOIDCConfig(test.OIDCIssuer, oidcOrgSecret.Name, test.OIDCClientIDKey, test.OIDCClientSecretKey),
-				test.WithAdditionalRedirects("https://example.com/app", "http://localhost:33768/auth/callback"),
+				mocks.WithOIDCConfig(test.OIDCIssuer, oidcOrgSecret.Name, test.OIDCClientIDKey, test.OIDCClientSecretKey),
+				mocks.WithAdditionalRedirects("https://example.com/app", "http://localhost:33768/auth/callback"),
 			)
-			defaultOrg = setup.UpdateOrganization(test.Ctx, defaultOrg.Name, test.WithAdditionalRedirects("https://foo.bar/app"))
+			defaultOrg = setup.UpdateOrganization(test.Ctx, defaultOrg.Name, mocks.WithAdditionalRedirects("https://foo.bar/app"))
 
 			By("checking Organization status")
 			checkOrganizationReadyStatus(defaultOrg.Name)

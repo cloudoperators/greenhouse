@@ -17,6 +17,7 @@ import (
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
 	"github.com/cloudoperators/greenhouse/internal/clientutil"
 	"github.com/cloudoperators/greenhouse/internal/test"
+	"github.com/cloudoperators/greenhouse/internal/test/mocks"
 )
 
 const (
@@ -41,7 +42,7 @@ var _ = Describe("TeammembershipUpdaterController", Ordered, func() {
 
 		It("should create TeamMembership when Team is created", func() {
 			By("creating a test Team")
-			team := setup.CreateTeam(test.Ctx, firstTeamName, test.WithMappedIDPGroup(validIdpGroupName))
+			team := setup.CreateTeam(test.Ctx, firstTeamName, mocks.WithMappedIDPGroup(validIdpGroupName))
 
 			ownerRef := metav1.OwnerReference{
 				APIVersion:         greenhousev1alpha1.GroupVersion.String(),
@@ -88,7 +89,7 @@ var _ = Describe("TeammembershipUpdaterController", Ordered, func() {
 			createTeamMembershipForFirstTeam(nil)
 
 			By("creating a test Team")
-			firstTeam := setup.CreateTeam(test.Ctx, firstTeamName, test.WithMappedIDPGroup(validIdpGroupName))
+			firstTeam := setup.CreateTeam(test.Ctx, firstTeamName, mocks.WithMappedIDPGroup(validIdpGroupName))
 
 			By("ensuring the TeamMembership has been reconciled")
 			Eventually(func(g Gomega) {
@@ -130,7 +131,7 @@ var _ = Describe("TeammembershipUpdaterController", Ordered, func() {
 			})
 
 			By("creating a test Team")
-			firstTeam := setup.CreateTeam(test.Ctx, firstTeamName, test.WithMappedIDPGroup(validIdpGroupName))
+			firstTeam := setup.CreateTeam(test.Ctx, firstTeamName, mocks.WithMappedIDPGroup(validIdpGroupName))
 
 			By("ensuring the TeamMembership has been reconciled")
 			Eventually(func(g Gomega) {
@@ -163,10 +164,10 @@ var _ = Describe("TeammembershipUpdaterController", Ordered, func() {
 			})
 
 			By("creating first test Team")
-			firstTeam := setup.CreateTeam(test.Ctx, firstTeamName, test.WithMappedIDPGroup(validIdpGroupName))
+			firstTeam := setup.CreateTeam(test.Ctx, firstTeamName, mocks.WithMappedIDPGroup(validIdpGroupName))
 
 			By("creating second test Team")
-			secondTeam := setup.CreateTeam(test.Ctx, secondTeamName, test.WithMappedIDPGroup(otherValidIdpGroupName))
+			secondTeam := setup.CreateTeam(test.Ctx, secondTeamName, mocks.WithMappedIDPGroup(otherValidIdpGroupName))
 
 			By("ensuring two TeamMemberships have been created")
 			teamMemberships := &greenhousev1alpha1.TeamMembershipList{}
@@ -225,7 +226,7 @@ var _ = Describe("TeammembershipUpdaterController", Ordered, func() {
 			setup.CreateTeam(test.Ctx, firstTeamName)
 
 			By("creating a test Team with valid mappedIdpGroup")
-			secondTeam := setup.CreateTeam(test.Ctx, secondTeamName, test.WithMappedIDPGroup(validIdpGroupName))
+			secondTeam := setup.CreateTeam(test.Ctx, secondTeamName, mocks.WithMappedIDPGroup(validIdpGroupName))
 
 			By("ensuring there is only one TeamMembership")
 			Eventually(func(g Gomega) {
@@ -260,7 +261,7 @@ var _ = Describe("TeammembershipUpdaterController", Ordered, func() {
 			defer GinkgoWriter.ClearTeeWriters()
 
 			By("creating a Team with non existing idp group")
-			setup.CreateTeam(test.Ctx, firstTeamName, test.WithMappedIDPGroup(nonExistingGroupName))
+			setup.CreateTeam(test.Ctx, firstTeamName, mocks.WithMappedIDPGroup(nonExistingGroupName))
 
 			By("ensuring logger was called correctly")
 			failedProcessingLog := "failed processing team-membership for team"
@@ -286,7 +287,7 @@ var _ = Describe("TeammembershipUpdaterController", Ordered, func() {
 			defer GinkgoWriter.ClearTeeWriters()
 
 			By("creating a Team with faulty idp group")
-			setup.CreateTeam(test.Ctx, firstTeamName, test.WithMappedIDPGroup("GROUP_NAME_ERROR_404"))
+			setup.CreateTeam(test.Ctx, firstTeamName, mocks.WithMappedIDPGroup("GROUP_NAME_ERROR_404"))
 
 			By("ensuring logger was called correctly")
 			failedProcessingLog := "failed processing team-membership for team"
@@ -317,7 +318,7 @@ var _ = Describe("TeammembershipUpdaterController", Ordered, func() {
 			createTeamMembershipForFirstTeam(nil)
 
 			By("creating a test Team with valid MappedIdpGroup")
-			setup.CreateTeam(test.Ctx, firstTeamName, test.WithMappedIDPGroup(validIdpGroupName))
+			setup.CreateTeam(test.Ctx, firstTeamName, mocks.WithMappedIDPGroup(validIdpGroupName))
 
 			By("ensuring TeamMemberships have been reconciled")
 			Eventually(func(g Gomega) {
@@ -346,7 +347,7 @@ var _ = Describe("TeammembershipUpdaterController", Ordered, func() {
 			createTeamMembershipForFirstTeam(nil)
 
 			By("creating a test Team with invalid MappedIdpGroup")
-			team := setup.CreateTeam(test.Ctx, firstTeamName, test.WithMappedIDPGroup(nonExistingGroupName))
+			team := setup.CreateTeam(test.Ctx, firstTeamName, mocks.WithMappedIDPGroup(nonExistingGroupName))
 
 			By("ensuring TeamMemberships have been reconciled")
 			Eventually(func(g Gomega) {
@@ -393,7 +394,7 @@ var _ = Describe("TeammembershipUpdaterController", Ordered, func() {
 			defer GinkgoWriter.ClearTeeWriters()
 
 			By("creating a Team with valid idp group")
-			team := setup.CreateTeam(test.Ctx, firstTeamName, test.WithMappedIDPGroup(validIdpGroupName))
+			team := setup.CreateTeam(test.Ctx, firstTeamName, mocks.WithMappedIDPGroup(validIdpGroupName))
 
 			Eventually(func(g Gomega) {
 				teamMemberships := &greenhousev1alpha1.TeamMembershipList{}
@@ -430,7 +431,7 @@ var _ = Describe("TeammembershipUpdaterController", Ordered, func() {
 			createTeamMembershipForFirstTeam(originalUsers)
 
 			By("creating test Team with valid idp group")
-			firstTeam := setup.CreateTeam(test.Ctx, firstTeamName, test.WithMappedIDPGroup(validIdpGroupName))
+			firstTeam := setup.CreateTeam(test.Ctx, firstTeamName, mocks.WithMappedIDPGroup(validIdpGroupName))
 
 			expectedUser1 := greenhousev1alpha1.User{
 				ID:        "I12345",
@@ -472,7 +473,7 @@ var _ = Describe("TeammembershipUpdaterController", Ordered, func() {
 				g.Expect(apierrors.IsNotFound(err)).To(BeTrue(), "Team should be deleted")
 			}).Should(Succeed())
 
-			team = setup.CreateTeam(test.Ctx, firstTeamName, test.WithMappedIDPGroup(validIdpGroupName))
+			team = setup.CreateTeam(test.Ctx, firstTeamName, mocks.WithMappedIDPGroup(validIdpGroupName))
 			Eventually(func(g Gomega) {
 				err := setup.Get(test.Ctx, types.NamespacedName{Namespace: setup.Namespace(), Name: firstTeamName}, team)
 				g.Expect(err).ShouldNot(HaveOccurred(), "unexpected error getting Team")
@@ -504,11 +505,11 @@ var _ = Describe("TeammembershipUpdaterController", Ordered, func() {
 
 		It("should reconcile Teams when Org's SCIM config changes", func() {
 			By("creating second Team")
-			setup.CreateTeam(test.Ctx, secondTeamName, test.WithMappedIDPGroup(otherValidIdpGroupName))
+			setup.CreateTeam(test.Ctx, secondTeamName, mocks.WithMappedIDPGroup(otherValidIdpGroupName))
 			By("creating TeamMembership for first Team")
 			createTeamMembershipForFirstTeam(nil)
 			By("creating first Team")
-			setup.CreateTeam(test.Ctx, firstTeamName, test.WithMappedIDPGroup(validIdpGroupName))
+			setup.CreateTeam(test.Ctx, firstTeamName, mocks.WithMappedIDPGroup(validIdpGroupName))
 			By("checking TeamMembership status")
 			teamMemberships := &greenhousev1alpha1.TeamMembershipList{}
 			Eventually(func(g Gomega) {

@@ -19,6 +19,7 @@ import (
 	greenhouseapis "github.com/cloudoperators/greenhouse/api"
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
 	"github.com/cloudoperators/greenhouse/internal/clientutil"
+	"github.com/cloudoperators/greenhouse/internal/test/mocks"
 )
 
 const (
@@ -97,7 +98,7 @@ func (t *TestSetup) OnboardCluster(ctx context.Context, name string, kubeCfg []b
 // CreateCluster creates a new Cluster resource without creating a Secret
 func (t *TestSetup) CreateCluster(ctx context.Context, name string, opts ...func(*greenhousev1alpha1.Cluster)) *greenhousev1alpha1.Cluster {
 	GinkgoHelper()
-	cluster := NewCluster(ctx, name, t.Namespace(), opts...)
+	cluster := mocks.NewCluster(name, t.Namespace(), opts...)
 	Expect(t.Create(ctx, cluster)).To(Succeed(), "there should be no error creating the cluster during onboarding")
 	return cluster
 }
@@ -105,15 +106,20 @@ func (t *TestSetup) CreateCluster(ctx context.Context, name string, opts ...func
 func (t *TestSetup) CreateOrganizationWithOIDCConfig(ctx context.Context, orgName string) (*greenhousev1alpha1.Organization, *corev1.Secret) {
 	GinkgoHelper()
 	secret := t.CreateOrgOIDCSecret(ctx, orgName)
-	org := t.CreateOrganization(ctx, orgName, WithMappedAdminIDPGroup(orgName+" Admin E2e"), WithOIDCConfig(OIDCIssuer, secret.Name, OIDCClientIDKey, OIDCClientSecretKey))
+	org := t.CreateOrganization(
+		ctx,
+		orgName,
+		mocks.WithMappedAdminIDPGroup(orgName+" Admin E2e"),
+		mocks.WithOIDCConfig(OIDCIssuer, secret.Name, OIDCClientIDKey, OIDCClientSecretKey),
+	)
 	return org, secret
 }
 
 func (t *TestSetup) CreateOrgOIDCSecret(ctx context.Context, orgName string) *corev1.Secret {
 	GinkgoHelper()
 	secret := t.CreateSecret(ctx, OIDCSecretResource,
-		WithSecretNamespace(orgName),
-		WithSecretData(map[string][]byte{
+		mocks.WithSecretNamespace(orgName),
+		mocks.WithSecretData(map[string][]byte{
 			OIDCClientIDKey:     []byte(OIDCClientID),
 			OIDCClientSecretKey: []byte(OIDCClientSecret),
 		}))
@@ -123,7 +129,7 @@ func (t *TestSetup) CreateOrgOIDCSecret(ctx context.Context, orgName string) *co
 // CreateOrganization creates an Organization within the TestSetup and returns the created Organization resource.
 func (t *TestSetup) CreateOrganization(ctx context.Context, name string, opts ...func(*greenhousev1alpha1.Organization)) *greenhousev1alpha1.Organization {
 	GinkgoHelper()
-	org := NewOrganization(ctx, name, opts...)
+	org := mocks.NewOrganization(name, opts...)
 	Expect(t.Create(ctx, org)).Should(Succeed(), "there should be no error creating the Organization")
 	return org
 }
@@ -134,11 +140,11 @@ func (t *TestSetup) CreateDefaultOrgWithOIDCSecret(ctx context.Context) *greenho
 	err := t.Get(ctx, client.ObjectKey{Name: "greenhouse"}, org)
 	if err != nil {
 		if apierrors.IsNotFound(err) {
-			org = NewOrganization(ctx, "greenhouse", WithMappedAdminIDPGroup("Greenhouse Admin E2e"))
+			org = mocks.NewOrganization("greenhouse", mocks.WithMappedAdminIDPGroup("Greenhouse Admin E2e"))
 			Expect(t.Create(ctx, org)).Should(Succeed(), "there should be no error creating the default organization")
 			EventuallyCreated(ctx, t.Client, &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: org.Name}})
 			secret := t.CreateOrgOIDCSecret(ctx, org.Name)
-			org = t.UpdateOrganization(ctx, org.Name, WithOIDCConfig(OIDCIssuer, secret.Name, OIDCClientIDKey, OIDCClientSecretKey))
+			org = t.UpdateOrganization(ctx, org.Name, mocks.WithOIDCConfig(OIDCIssuer, secret.Name, OIDCClientIDKey, OIDCClientSecretKey))
 			return org
 		}
 	}
@@ -166,7 +172,7 @@ func (t *TestSetup) UpdateOrganization(ctx context.Context, name string, opts ..
 // CreatePluginDefinition creates and returns a PluginDefinition object. Opts can be used to set the desired state of the PluginDefinition.
 func (t *TestSetup) CreatePluginDefinition(ctx context.Context, name string, opts ...func(*greenhousev1alpha1.PluginDefinition)) *greenhousev1alpha1.PluginDefinition {
 	GinkgoHelper()
-	pd := NewPluginDefinition(ctx, t.RandomizeName(name), opts...)
+	pd := mocks.NewPluginDefinition(t.RandomizeName(name), opts...)
 	Expect(t.Create(ctx, pd)).Should(Succeed(), "there should be no error creating the PluginDefinition")
 	return pd
 }
@@ -174,7 +180,7 @@ func (t *TestSetup) CreatePluginDefinition(ctx context.Context, name string, opt
 // CreatePlugin creates and returns a Plugin object. Opts can be used to set the desired state of the Plugin.
 func (t *TestSetup) CreatePlugin(ctx context.Context, name string, opts ...func(*greenhousev1alpha1.Plugin)) *greenhousev1alpha1.Plugin {
 	GinkgoHelper()
-	plugin := NewPlugin(ctx, name, t.Namespace(), opts...)
+	plugin := mocks.NewPlugin(name, t.Namespace(), opts...)
 	Expect(t.Create(ctx, plugin)).Should(Succeed(), "there should be no error creating the Plugin")
 	return plugin
 }
@@ -182,7 +188,7 @@ func (t *TestSetup) CreatePlugin(ctx context.Context, name string, opts ...func(
 // CreateTeamRole returns a TeamRole object. Opts can be used to set the desired state of the TeamRole.
 func (t *TestSetup) CreateTeamRole(ctx context.Context, name string, opts ...func(*greenhousev1alpha1.TeamRole)) *greenhousev1alpha1.TeamRole {
 	GinkgoHelper()
-	tr := NewTeamRole(ctx, t.RandomizeName(name), t.namespace, opts...)
+	tr := mocks.NewTeamRole(t.RandomizeName(name), t.namespace, opts...)
 	Expect(t.Create(ctx, tr)).Should(Succeed(), "there should be no error creating the TeamRole")
 	return tr
 }
@@ -190,7 +196,7 @@ func (t *TestSetup) CreateTeamRole(ctx context.Context, name string, opts ...fun
 // CreateTeamRoleBinding returns a TeamRoleBinding object. Opts can be used to set the desired state of the TeamRoleBinding.
 func (t *TestSetup) CreateTeamRoleBinding(ctx context.Context, name string, opts ...func(*greenhousev1alpha1.TeamRoleBinding)) *greenhousev1alpha1.TeamRoleBinding {
 	GinkgoHelper()
-	trb := NewTeamRoleBinding(ctx, t.RandomizeName(name), t.Namespace(), opts...)
+	trb := mocks.NewTeamRoleBinding(t.RandomizeName(name), t.Namespace(), opts...)
 	Expect(t.Create(ctx, trb)).Should(Succeed(), "there should be no error creating the TeamRoleBinding")
 	return trb
 }
@@ -198,7 +204,7 @@ func (t *TestSetup) CreateTeamRoleBinding(ctx context.Context, name string, opts
 // CreateTeam returns a Team object. Opts can be used to set the desired state of the Team.st
 func (t *TestSetup) CreateTeam(ctx context.Context, name string, opts ...func(*greenhousev1alpha1.Team)) *greenhousev1alpha1.Team {
 	GinkgoHelper()
-	team := NewTeam(ctx, name, t.Namespace(), opts...)
+	team := mocks.NewTeam(name, t.Namespace(), opts...)
 	Expect(t.Create(ctx, team)).Should(Succeed(), "there should be no error creating the Team")
 	return team
 }
@@ -206,7 +212,7 @@ func (t *TestSetup) CreateTeam(ctx context.Context, name string, opts ...func(*g
 // CreateSecret returns a Secret object. Opts can be used to set the desired state of the Secret.
 func (t *TestSetup) CreateSecret(ctx context.Context, name string, opts ...func(*corev1.Secret)) *corev1.Secret {
 	GinkgoHelper()
-	secret := NewSecret(name, t.Namespace(), opts...)
+	secret := mocks.NewSecret(name, t.Namespace(), opts...)
 	Expect(t.Create(ctx, secret)).Should(Succeed(), "there should be no error creating the Secret")
 	return secret
 }

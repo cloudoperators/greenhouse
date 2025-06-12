@@ -16,6 +16,7 @@ import (
 	greenhouseapis "github.com/cloudoperators/greenhouse/api"
 	"github.com/cloudoperators/greenhouse/api/v1alpha1"
 	"github.com/cloudoperators/greenhouse/internal/test"
+	"github.com/cloudoperators/greenhouse/internal/test/mocks"
 
 	clusterpkg "github.com/cloudoperators/greenhouse/internal/controller/cluster"
 
@@ -51,23 +52,23 @@ var _ = Describe("ClusterKubeconfig controller", Ordered, func() {
 
 		By("Creating a secret with OIDC data")
 		oidcSecret = setup.CreateSecret(test.Ctx, oidcSecretResource,
-			test.WithSecretNamespace(setup.Namespace()),
-			test.WithSecretData(map[string][]byte{
+			mocks.WithSecretNamespace(setup.Namespace()),
+			mocks.WithSecretData(map[string][]byte{
 				oidcClientIDKey:     []byte(oidcClientID),
 				oidcClientSecretKey: []byte(oidcClientSecret),
 			}))
 
 		By("Creating an organization with OIDC config")
 		organization = setup.CreateOrganization(test.Ctx, setup.Namespace(),
-			test.WithMappedAdminIDPGroup(mappedAdminID),
-			test.WithOIDCConfig(oidcIssuer, oidcSecretResource, oidcClientIDKey, oidcClientSecretKey),
+			mocks.WithMappedAdminIDPGroup(mappedAdminID),
+			mocks.WithOIDCConfig(oidcIssuer, oidcSecretResource, oidcClientIDKey, oidcClientSecretKey),
 		)
 
 		By("Creating a Secret with a valid KubeConfig")
 		secret := setup.CreateSecret(test.Ctx, clusterName,
-			test.WithSecretType(greenhouseapis.SecretTypeKubeConfig),
-			test.WithSecretNamespace(organization.Name),
-			test.WithSecretData(map[string][]byte{
+			mocks.WithSecretType(greenhouseapis.SecretTypeKubeConfig),
+			mocks.WithSecretNamespace(organization.Name),
+			mocks.WithSecretData(map[string][]byte{
 				greenhouseapis.KubeConfigKey:           test.KubeConfig,
 				greenhouseapis.GreenHouseKubeConfigKey: test.KubeConfig,
 			}))

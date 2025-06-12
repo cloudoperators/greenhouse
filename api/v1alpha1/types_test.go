@@ -10,6 +10,7 @@ import (
 
 	"github.com/cloudoperators/greenhouse/api/v1alpha1"
 	"github.com/cloudoperators/greenhouse/internal/test"
+	"github.com/cloudoperators/greenhouse/internal/test/mocks"
 )
 
 var (
@@ -29,12 +30,12 @@ var _ = Describe("ClusterSelector type's ListClusters method", Ordered, func() {
 
 		By("creating test clusters")
 		clusterA = setup.CreateCluster(test.Ctx, "cluster-a")
-		clusterB = setup.CreateCluster(test.Ctx, "cluster-b", test.WithLabel("group", "first"))
-		clusterC = setup.CreateCluster(test.Ctx, "cluster-c", test.WithLabel("group", "second"))
-		clusterD = setup.CreateCluster(test.Ctx, "cluster-d", test.WithLabel("group", "first"))
-		clusterE = setup.CreateCluster(test.Ctx, "cluster-e", test.WithLabel("group", "second"))
-		clusterF = setup.CreateCluster(test.Ctx, "cluster-f", test.WithLabel("group", "second"))
-		clusterG = setup.CreateCluster(test.Ctx, "cluster-g", test.WithLabel("group", "second"))
+		clusterB = setup.CreateCluster(test.Ctx, "cluster-b", mocks.WithLabel("group", "first"))
+		clusterC = setup.CreateCluster(test.Ctx, "cluster-c", mocks.WithLabel("group", "second"))
+		clusterD = setup.CreateCluster(test.Ctx, "cluster-d", mocks.WithLabel("group", "first"))
+		clusterE = setup.CreateCluster(test.Ctx, "cluster-e", mocks.WithLabel("group", "second"))
+		clusterF = setup.CreateCluster(test.Ctx, "cluster-f", mocks.WithLabel("group", "second"))
+		clusterG = setup.CreateCluster(test.Ctx, "cluster-g", mocks.WithLabel("group", "second"))
 	})
 
 	AfterAll(func() {
