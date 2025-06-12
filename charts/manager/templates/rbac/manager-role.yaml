@@ -74,7 +74,6 @@ rules:
   - organizations
   - plugindefinitions
   - plugins
-  - teammemberships
   - teamrolebindings
   - teams
   verbs:
@@ -103,7 +102,6 @@ rules:
   - organizations/status
   - pluginpresets/status
   - plugins/status
-  - teammemberships/status
   - teamrolebindings/status
   - teams/status
   verbs:

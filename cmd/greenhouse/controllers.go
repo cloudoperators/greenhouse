@@ -17,7 +17,7 @@ import (
 	organizationcontrollers "github.com/cloudoperators/greenhouse/internal/controller/organization"
 	plugincontrollers "github.com/cloudoperators/greenhouse/internal/controller/plugin"
 	plugindefinitioncontroller "github.com/cloudoperators/greenhouse/internal/controller/plugindefinition"
-	teammembershipcontrollers "github.com/cloudoperators/greenhouse/internal/controller/teammembership"
+	teamcontrollers "github.com/cloudoperators/greenhouse/internal/controller/team"
 	teamrbaccontrollers "github.com/cloudoperators/greenhouse/internal/controller/teamrbac"
 	dexstore "github.com/cloudoperators/greenhouse/internal/dex"
 )
@@ -27,8 +27,8 @@ var knownControllers = map[string]func(controllerName string, mgr ctrl.Manager) 
 	// Organization controllers.
 	"organizationController": startOrganizationReconciler,
 
-	// TeamMembership controllers.
-	"teamMembershipUpdater": (&teammembershipcontrollers.TeamMembershipUpdaterController{}).SetupWithManager,
+	// Team controllers.
+	"teamController": (&teamcontrollers.TeamController{}).SetupWithManager,
 
 	// Team RBAC controllers.
 	"teamRoleBindingController": (&teamrbaccontrollers.TeamRoleBindingReconciler{}).SetupWithManager,
