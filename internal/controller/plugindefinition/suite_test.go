@@ -10,7 +10,7 @@ import (
 	. "github.com/onsi/gomega"
 
 	"github.com/cloudoperators/greenhouse/internal/test"
-	admission "github.com/cloudoperators/greenhouse/internal/webhook"
+	webhookv1alpha1 "github.com/cloudoperators/greenhouse/internal/webhook/v1alpha1"
 )
 
 func TestPluginDefinition(t *testing.T) {
@@ -20,8 +20,8 @@ func TestPluginDefinition(t *testing.T) {
 
 var _ = BeforeSuite(func() {
 	test.RegisterController("cluster", (&PluginDefinitionReconciler{}).SetupWithManager)
-	test.RegisterWebhook("pluginDefinitionWebhook", admission.SetupPluginDefinitionWebhookWithManager)
-	test.RegisterWebhook("clusterPluginDefinitionWebhook", admission.SetupClusterPluginDefinitionWebhookWithManager)
+	test.RegisterWebhook("pluginDefinitionWebhook", webhookv1alpha1.SetupPluginDefinitionWebhookWithManager)
+	test.RegisterWebhook("clusterPluginDefinitionWebhook", webhookv1alpha1.SetupClusterPluginDefinitionWebhookWithManager)
 	test.TestBeforeSuite()
 })
 

@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2024 SAP SE or an SAP affiliate company and Greenhouse contributors
 // SPDX-License-Identifier: Apache-2.0
 
-package teamrbac
+package teamrbac_test
 
 import (
 	"testing"
@@ -12,8 +12,11 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
 
+	teamrbacpkg "github.com/cloudoperators/greenhouse/internal/controller/teamrbac"
+
 	"github.com/cloudoperators/greenhouse/internal/test"
-	admission "github.com/cloudoperators/greenhouse/internal/webhook"
+	webhookv1alpha1 "github.com/cloudoperators/greenhouse/internal/webhook/v1alpha1"
+	webhookv1alpha2 "github.com/cloudoperators/greenhouse/internal/webhook/v1alpha2"
 	//+kubebuilder:scaffold:imports
 )
 
@@ -41,11 +44,12 @@ func TestRBACController(t *testing.T) {
 }
 
 var _ = BeforeSuite(func() {
-	test.RegisterController("roleBindingController", (&TeamRoleBindingReconciler{}).SetupWithManager)
-	test.RegisterWebhook("clusterWebhook", admission.SetupClusterWebhookWithManager)
-	test.RegisterWebhook("teamsWebhook", admission.SetupTeamWebhookWithManager)
-	test.RegisterWebhook("teamRoleBindingWebhook", admission.SetupTeamRoleBindingWebhookWithManager)
-	test.RegisterWebhook("teamRoleWebhook", admission.SetupTeamRoleWebhookWithManager)
+	test.RegisterController("roleBindingController", (&teamrbacpkg.TeamRoleBindingReconciler{}).SetupWithManager)
+	test.RegisterWebhook("clusterWebhook", webhookv1alpha1.SetupClusterWebhookWithManager)
+	test.RegisterWebhook("teamsWebhook", webhookv1alpha1.SetupTeamWebhookWithManager)
+	test.RegisterWebhook("teamRoleBindingWebhookV1alpha1", webhookv1alpha1.SetupTeamRoleBindingWebhookWithManager)
+	test.RegisterWebhook("teamRoleBindingWebhookV1alpha2", webhookv1alpha2.SetupTeamRoleBindingWebhookWithManager)
+	test.RegisterWebhook("teamRoleWebhook", webhookv1alpha1.SetupTeamRoleWebhookWithManager)
 	test.TestBeforeSuite()
 	k8sClient = test.K8sClient
 	bootstrapRemoteClusters()

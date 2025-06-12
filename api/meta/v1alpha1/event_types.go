@@ -4,12 +4,10 @@
 package v1alpha1
 
 const (
-	// Success is used if the resource was successfully reconciled
-	SuccessEvent = "Success"
 	// FailedEvent is used if the resource reconciliation failed
 	FailedEvent = "Failed"
 	// SuccessfulDeletedEvent is used if the resource was deleted successfully
 	SuccessfulDeletedEvent = "SuccessfulDeleted"
-	// FailedDeleteFailedReason is used if the delete failed
+	// FailedDeleteEvent is used if delete failed
 	FailedDeleteEvent = "FailedDelete"
 )

@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2024 SAP SE or an SAP affiliate company and Greenhouse contributors
 // SPDX-License-Identifier: Apache-2.0
 
-package admission
+package v1alpha1
 
 import (
 	"context"
@@ -15,18 +15,19 @@ import (
 
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
 	"github.com/cloudoperators/greenhouse/internal/scim"
+	"github.com/cloudoperators/greenhouse/internal/webhook"
 )
 
 // Webhook for the Organization custom resource.
 
 func SetupOrganizationWebhookWithManager(mgr ctrl.Manager) error {
-	return setupWebhook(mgr,
+	return webhook.SetupWebhook(mgr,
 		&greenhousev1alpha1.Organization{},
-		webhookFuncs{
-			defaultFunc:        DefaultOrganization,
-			validateCreateFunc: ValidateCreateOrganization,
-			validateUpdateFunc: ValidateUpdateOrganization,
-			validateDeleteFunc: ValidateDeleteOrganization,
+		webhook.WebhookFuncs{
+			DefaultFunc:        DefaultOrganization,
+			ValidateCreateFunc: ValidateCreateOrganization,
+			ValidateUpdateFunc: ValidateUpdateOrganization,
+			ValidateDeleteFunc: ValidateDeleteOrganization,
 		},
 	)
 }
