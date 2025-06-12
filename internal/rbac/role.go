@@ -23,7 +23,7 @@ func OrganizationAdminPolicyRules() []rbacv1.PolicyRule {
 		// Grant permissions for secrets referenced by other resources, e.g. Plugins for storing sensitive values.
 		// Retrieving these secrets is not permitted to the user.
 		{
-			Verbs:     []string{"get", "list", "watch", "create", "update", "patch"},
+			Verbs:     []string{"get", "list", "watch", "create", "update", "patch", "delete"},
 			APIGroups: []string{corev1.GroupName},
 			Resources: []string{"secrets"},
 		},
