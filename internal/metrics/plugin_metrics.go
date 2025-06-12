@@ -7,6 +7,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	controllerMetrics "sigs.k8s.io/controller-runtime/pkg/metrics"
 
+	greenhouseapis "github.com/cloudoperators/greenhouse/api"
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
 )
 
@@ -35,7 +36,7 @@ var (
 		prometheus.CounterOpts{
 			Name: "greenhouse_plugin_reconcile_total",
 		},
-		[]string{"pluginDefinition", "clusterName", "plugin", "organization", "result", "reason"})
+		[]string{"pluginDefinition", "clusterName", "plugin", "organization", "result", "reason", "owned_by"})
 )
 
 func init() {
@@ -50,6 +51,7 @@ func UpdateMetrics(plugin *greenhousev1alpha1.Plugin, result MetricResult, reaso
 		"organization":     plugin.Namespace,
 		"result":           string(result),
 		"reason":           string(reason),
+		"owned_by":         plugin.Labels[greenhouseapis.LabelKeyOwnedBy],
 	}
 	pluginReconcileTotal.With(pluginReconcileTotalLabels).Inc()
 }

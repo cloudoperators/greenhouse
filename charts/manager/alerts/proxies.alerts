@@ -10,6 +10,10 @@ groups:
       for: 15m
       labels:
         severity: warning
+        service: greenhouse-proxy
+        {{- range $k, $v := .Values.alerts.commonAlertLabels }}
+          {{ $key }}: {{ $value | quote }}
+        {{- end }}
     - alert: GreenhouseProxyRequestDurationHigh
       annotations:
         description: The 90th percentile latency of Greenhouse proxy - {{ $labels.service }} is {{ $value | humanizeDuration }}
@@ -19,6 +23,10 @@ groups:
       for: 15m
       labels:
         severity: warning
+        service: greenhouse-proxy
+        {{- range $k, $v := .Values.alerts.commonAlertLabels }}
+          {{ $key }}: {{ $value | quote }}
+        {{- end }}
     - alert: GreenhouseIDProxyErrorsHigh
       annotations:
         description: Greenhouse id-proxy is failing
@@ -28,3 +36,7 @@ groups:
       for: 5m
       labels:
         severity: critical
+        service: greenhouse-id-proxy
+        {{- range $k, $v := .Values.alerts.commonAlertLabels }}
+          {{ $key }}: {{ $value | quote }}
+        {{- end }}

@@ -52,7 +52,7 @@ var (
 			Name: "greenhouse_plugin_workload_status_up",
 			Help: "The workload status of the plugin",
 		},
-		[]string{"org", "plugin", "pluginDefinition"},
+		[]string{"org", "plugin", "pluginDefinition", "cluster", "owned_by"},
 	)
 )
 
