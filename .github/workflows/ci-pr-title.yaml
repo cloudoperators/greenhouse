@@ -43,7 +43,6 @@ jobs:
             plugindefinitions
             pluginpresets
             plugins
-            teammemberships
             teamrolebindings
             teamroles
             teams

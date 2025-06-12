@@ -1,5 +1,5 @@
 {{/* 
-SPDX-FileCopyrightText: 2024 SAP SE or an SAP affiliate company and Greenhouse contributors
+SPDX-FileCopyrightText: 2025 SAP SE or an SAP affiliate company and Greenhouse contributors
 SPDX-License-Identifier: Apache-2.0
 */}}
 
@@ -14,16 +14,9 @@ metadata:
   namespace: {{ $chartName }}
 spec:
   description: {{ $team.description | default (printf "Team %s" $teamName) }}
----
-apiVersion: greenhouse.sap/v1alpha1
-kind: TeamMembership
-metadata:
-  name: {{ required "Team name missing" $teamName | lower }}
-  namespace: {{ $chartName }}
-spec:
-  members:
-    - email: {{ required ".Values.demoUser.email missing" $demoUser.email }}
-      id: {{ required ".Values.demoUser.id missing" $demoUser.id }}
-      firstName: {{ required ".Values.demoUser.firstName missing" $demoUser.firstName }}
-      lastName: {{ required ".Values.demoUser.lastName missing" $demoUser.lastName }}
+  # members:
+  #   - email: {{ required ".Values.demoUser.email missing" $demoUser.email }}
+  #     id: {{ required ".Values.demoUser.id missing" $demoUser.id }}
+  #     firstName: {{ required ".Values.demoUser.firstName missing" $demoUser.firstName }}
+  #     lastName: {{ required ".Values.demoUser.lastName missing" $demoUser.lastName }}
 {{- end }}

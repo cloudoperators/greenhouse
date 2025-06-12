@@ -17,7 +17,7 @@ The team resource is used to structure members of your organization and assign f
 
 Each Team must be backed by a group in the identity provider (IdP) of the Organization.
    * IdP group should be set on the `mappedIdPGroup` field in Team configuration.
-   * This, along with SCIM API configured in the Organization, allows for synchronization of TeamMemberships with Greenhouse.
+   * This, along with SCIM API configured in the Organization, allows for synchronization of Team members with Greenhouse.
 
 ```
 NOTE: The UI is currently in development. For now this guides describes the onboarding workflow via command line.

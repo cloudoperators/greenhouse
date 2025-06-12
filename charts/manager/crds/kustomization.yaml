@@ -9,7 +9,6 @@ resources:
 - greenhouse.sap_pluginpresets.yaml
 - greenhouse.sap_clusters.yaml
 - greenhouse.sap_clusterkubeconfigs.yaml
-- greenhouse.sap_teammemberships.yaml
 - greenhouse.sap_teamroles.yaml
 - greenhouse.sap_teamrolebindings.yaml
 - greenhouse.sap_clusterplugindefinitions.yaml
