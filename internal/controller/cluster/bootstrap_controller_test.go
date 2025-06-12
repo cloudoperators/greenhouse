@@ -18,6 +18,7 @@ import (
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
 	"github.com/cloudoperators/greenhouse/internal/lifecycle"
 	"github.com/cloudoperators/greenhouse/internal/test"
+	"github.com/cloudoperators/greenhouse/internal/test/mocks"
 )
 
 var _ = Describe("Bootstrap controller", Ordered, func() {
@@ -45,8 +46,8 @@ var _ = Describe("Bootstrap controller", Ordered, func() {
 				By("Creating a secret with a valid kubeconfig for a remote cluster")
 
 				validKubeConfigSecret := setup.CreateSecret(test.Ctx, bootstrapTestCase,
-					test.WithSecretType(greenhouseapis.SecretTypeKubeConfig),
-					test.WithSecretData(map[string][]byte{greenhouseapis.KubeConfigKey: remoteKubeConfig}))
+					mocks.WithSecretType(greenhouseapis.SecretTypeKubeConfig),
+					mocks.WithSecretData(map[string][]byte{greenhouseapis.KubeConfigKey: remoteKubeConfig}))
 
 				By("Checking the accessmode is set correctly")
 				cluster := &greenhousev1alpha1.Cluster{}
@@ -72,8 +73,8 @@ var _ = Describe("Bootstrap controller", Ordered, func() {
 				// invalidate host
 				invalidKubeConfigString := strings.ReplaceAll(kubeConfigString, "127.0.0.1", "invalid.host")
 				invalidKubeConfigSecret := setup.CreateSecret(test.Ctx, bootstrapTestCase+"-invalid",
-					test.WithSecretType(greenhouseapis.SecretTypeKubeConfig),
-					test.WithSecretData(map[string][]byte{greenhouseapis.KubeConfigKey: []byte(invalidKubeConfigString)}))
+					mocks.WithSecretType(greenhouseapis.SecretTypeKubeConfig),
+					mocks.WithSecretData(map[string][]byte{greenhouseapis.KubeConfigKey: []byte(invalidKubeConfigString)}))
 
 				By("Checking the accessmode is set correctly")
 				cluster := &greenhousev1alpha1.Cluster{}
@@ -94,16 +95,16 @@ var _ = Describe("Bootstrap controller", Ordered, func() {
 		It("Should successfully propagate labels from the kubeconfig secret to the cluster resource", func() {
 			By("Creating a kubeconfig secret with labels")
 			kubeConfigSecret := setup.CreateSecret(test.Ctx, bootstrapTestCase+"-label-propagation",
-				test.WithSecretType(greenhouseapis.SecretTypeKubeConfig),
-				test.WithSecretAnnotations(map[string]string{
+				mocks.WithSecretType(greenhouseapis.SecretTypeKubeConfig),
+				mocks.WithSecretAnnotations(map[string]string{
 					lifecycle.PropagateLabelsAnnotation: "support_group, region",
 				}),
-				test.WithSecretLabels(map[string]string{
+				mocks.WithSecretLabels(map[string]string{
 					"support_group": "foo",
 					"region":        "bar",
 					"test-label":    "test-value",
 				}),
-				test.WithSecretData(map[string][]byte{greenhouseapis.KubeConfigKey: remoteKubeConfig}),
+				mocks.WithSecretData(map[string][]byte{greenhouseapis.KubeConfigKey: remoteKubeConfig}),
 			)
 
 			By("Checking the labels are propagated to the cluster resource")

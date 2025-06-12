@@ -20,6 +20,7 @@ import (
 	"github.com/cloudoperators/greenhouse/internal/clientutil"
 	clusterutils "github.com/cloudoperators/greenhouse/internal/controller/cluster/utils"
 	"github.com/cloudoperators/greenhouse/internal/test"
+	"github.com/cloudoperators/greenhouse/internal/test/mocks"
 )
 
 var _ = Describe("KubeConfig controller", func() {
@@ -52,8 +53,8 @@ var _ = Describe("KubeConfig controller", func() {
 				By("Creating a secret with a valid kubeconfig for a remote cluster")
 
 				secret := setup.CreateSecret(test.Ctx, directAccessTestCase,
-					test.WithSecretType(greenhouseapis.SecretTypeKubeConfig),
-					test.WithSecretData(map[string][]byte{greenhouseapis.KubeConfigKey: remoteKubeConfig}))
+					mocks.WithSecretType(greenhouseapis.SecretTypeKubeConfig),
+					mocks.WithSecretData(map[string][]byte{greenhouseapis.KubeConfigKey: remoteKubeConfig}))
 
 				By("Checking the cluster resource with the same name as the secret has been created")
 				Eventually(func() error {

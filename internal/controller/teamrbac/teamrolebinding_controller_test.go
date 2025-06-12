@@ -22,6 +22,7 @@ import (
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
 	"github.com/cloudoperators/greenhouse/internal/clientutil"
 	"github.com/cloudoperators/greenhouse/internal/test"
+	"github.com/cloudoperators/greenhouse/internal/test/mocks"
 )
 
 var (
@@ -35,15 +36,15 @@ var (
 var _ = Describe("Validate ClusterRole & RoleBinding on Remote Cluster", Ordered, func() {
 	BeforeEach(func() {
 		setup = test.NewTestSetup(test.Ctx, test.K8sClient, "teamrbac")
-		clusterA = setup.OnboardCluster(test.Ctx, "test-cluster-a", clusterAKubeConfig, test.WithLabel("cluster", "a"), test.WithLabel("rbac", "true"))
+		clusterA = setup.OnboardCluster(test.Ctx, "test-cluster-a", clusterAKubeConfig, mocks.WithLabel("cluster", "a"), mocks.WithLabel("rbac", "true"))
 		Expect(test.SetClusterReadyCondition(test.Ctx, test.K8sClient, clusterA, metav1.ConditionTrue)).To(Succeed(), "there should be no error setting the cluster to ready")
-		clusterB = setup.OnboardCluster(test.Ctx, "test-cluster-b", clusterBKubeConfig, test.WithLabel("cluster", "b"), test.WithLabel("rbac", "true"))
+		clusterB = setup.OnboardCluster(test.Ctx, "test-cluster-b", clusterBKubeConfig, mocks.WithLabel("cluster", "b"), mocks.WithLabel("rbac", "true"))
 		Expect(test.SetClusterReadyCondition(test.Ctx, test.K8sClient, clusterB, metav1.ConditionTrue)).To(Succeed(), "there should be no error setting the cluster to ready")
 
-		teamUT = setup.CreateTeam(test.Ctx, "test-team", test.WithMappedIDPGroup(testTeamIDPGroup))
+		teamUT = setup.CreateTeam(test.Ctx, "test-team", mocks.WithMappedIDPGroup(testTeamIDPGroup))
 
 		By("creating a TeamRole on the central cluster")
-		teamRoleUT = setup.CreateTeamRole(test.Ctx, "test-role", test.WithLabels(map[string]string{"aggregate": "true"}))
+		teamRoleUT = setup.CreateTeamRole(test.Ctx, "test-role", mocks.WithLabels(map[string]string{"aggregate": "true"}))
 	})
 
 	AfterEach(func() {
@@ -94,10 +95,10 @@ var _ = Describe("Validate ClusterRole & RoleBinding on Remote Cluster", Ordered
 		It("should remove the RoleBinding on the cluster that is no longer referenced by clusterName and reconcile the clusters referenced by clusterSelector", func() {
 			By("creating a TeamRoleBinding on the central cluster")
 			trb := setup.CreateTeamRoleBinding(test.Ctx, "test-rolebinding",
-				test.WithTeamRoleRef(teamRoleUT.Name),
-				test.WithTeamRef(teamUT.Name),
-				test.WithClusterName(clusterA.Name),
-				test.WithUsernames([]string{"test-user-1"}))
+				mocks.WithTeamRoleRef(teamRoleUT.Name),
+				mocks.WithTeamRef(teamUT.Name),
+				mocks.WithClusterName(clusterA.Name),
+				mocks.WithUsernames([]string{"test-user-1"}))
 			trbKey := types.NamespacedName{Name: trb.Name, Namespace: trb.Namespace}
 			By("validating the RoleBinding created on the remote clusterA")
 			remoteRoleBinding := &rbacv1.ClusterRoleBinding{}
@@ -163,9 +164,9 @@ var _ = Describe("Validate ClusterRole & RoleBinding on Remote Cluster", Ordered
 		It("should remove the RoleBinding on the cluster that is no longer referenced by the clusterSelector", func() {
 			By("creating a TeamRoleBinding on the central cluster")
 			trb := setup.CreateTeamRoleBinding(test.Ctx, "test-rolebinding",
-				test.WithTeamRoleRef(teamRoleUT.Name),
-				test.WithTeamRef(teamUT.Name),
-				test.WithClusterSelector(metav1.LabelSelector{MatchLabels: map[string]string{"rbac": "true"}}))
+				mocks.WithTeamRoleRef(teamRoleUT.Name),
+				mocks.WithTeamRef(teamUT.Name),
+				mocks.WithClusterSelector(metav1.LabelSelector{MatchLabels: map[string]string{"rbac": "true"}}))
 			trbKey := types.NamespacedName{Name: trb.Name, Namespace: trb.Namespace}
 			By("validating the RoleBinding created on the remote clusterA")
 			remoteRoleBinding := &rbacv1.ClusterRoleBinding{}
@@ -243,9 +244,9 @@ var _ = Describe("Validate ClusterRole & RoleBinding on Remote Cluster", Ordered
 
 			By("creating a TeamRoleBinding on the central cluster")
 			trb := setup.CreateTeamRoleBinding(test.Ctx, "test-rolebinding",
-				test.WithTeamRoleRef(teamRoleUT.Name),
-				test.WithTeamRef(teamUT.Name),
-				test.WithClusterSelector(metav1.LabelSelector{MatchLabels: map[string]string{"foo": "bar"}}))
+				mocks.WithTeamRoleRef(teamRoleUT.Name),
+				mocks.WithTeamRef(teamUT.Name),
+				mocks.WithClusterSelector(metav1.LabelSelector{MatchLabels: map[string]string{"foo": "bar"}}))
 			trbKey := types.NamespacedName{Name: trb.Name, Namespace: trb.Namespace}
 			By("validating the RoleBinding created on the remote clusterA")
 			remoteRoleBinding := &rbacv1.ClusterRoleBinding{}
@@ -311,11 +312,11 @@ var _ = Describe("Validate ClusterRole & RoleBinding on Remote Cluster", Ordered
 		It("Should create a ClusterRole and RoleBinding on the remote cluster", func() {
 			By("creating a TeamRoleBinding on the central cluster")
 			trb := setup.CreateTeamRoleBinding(test.Ctx, "test-rolebinding",
-				test.WithTeamRoleRef(teamRoleUT.Name),
-				test.WithTeamRef(teamUT.Name),
-				test.WithClusterName(clusterA.Name),
-				test.WithNamespaces(setup.Namespace()),
-				test.WithUsernames([]string{"test-user-1"}))
+				mocks.WithTeamRoleRef(teamRoleUT.Name),
+				mocks.WithTeamRef(teamUT.Name),
+				mocks.WithClusterName(clusterA.Name),
+				mocks.WithNamespaces(setup.Namespace()),
+				mocks.WithUsernames([]string{"test-user-1"}))
 
 			By("validating the RoleBinding created on the remote cluster")
 			remoteRoleBinding := &rbacv1.RoleBinding{}
@@ -351,10 +352,10 @@ var _ = Describe("Validate ClusterRole & RoleBinding on Remote Cluster", Ordered
 		It("Should propagate the error correctly when a non-existing Namespace was specified", func() {
 			By("creating a TeamRoleBinding on the central cluster")
 			trb := setup.CreateTeamRoleBinding(test.Ctx, "test-rolebinding",
-				test.WithTeamRoleRef(teamRoleUT.Name),
-				test.WithTeamRef(teamUT.Name),
-				test.WithClusterName(clusterA.Name),
-				test.WithNamespaces("non-existing-namespace"))
+				mocks.WithTeamRoleRef(teamRoleUT.Name),
+				mocks.WithTeamRef(teamUT.Name),
+				mocks.WithClusterName(clusterA.Name),
+				mocks.WithNamespaces("non-existing-namespace"))
 
 			By("validating the RoleBinding created on the remote cluster")
 			remoteRoleBinding := &rbacv1.RoleBinding{}
@@ -394,11 +395,11 @@ var _ = Describe("Validate ClusterRole & RoleBinding on Remote Cluster", Ordered
 		It("Should create namespaces when flag is set to true", func() {
 			By("creating a TeamRoleBinding on the central cluster")
 			trb := setup.CreateTeamRoleBinding(test.Ctx, "test-rolebinding",
-				test.WithTeamRoleRef(teamRoleUT.Name),
-				test.WithTeamRef(teamUT.Name),
-				test.WithClusterName(clusterB.Name),
-				test.WithNamespaces("non-existing-namespace-1", "non-existing-namespace-2"),
-				test.WithCreateNamespace(true))
+				mocks.WithTeamRoleRef(teamRoleUT.Name),
+				mocks.WithTeamRef(teamUT.Name),
+				mocks.WithClusterName(clusterB.Name),
+				mocks.WithNamespaces("non-existing-namespace-1", "non-existing-namespace-2"),
+				mocks.WithCreateNamespace(true))
 
 			By("checking that the Namespace is created")
 			namespace := &corev1.Namespace{}
@@ -430,10 +431,10 @@ var _ = Describe("Validate ClusterRole & RoleBinding on Remote Cluster", Ordered
 		It("Should fail to create ClusterRole and RoleBinding on the remote cluster", func() {
 			By("creating a TeamRoleBinding on the central cluster")
 			trb := setup.CreateTeamRoleBinding(test.Ctx, "test-rolebinding",
-				test.WithTeamRoleRef(teamRoleUT.Name),
-				test.WithTeamRef(teamUT.Name),
-				test.WithClusterName(clusterA.Name),
-				test.WithNamespaces("non-existing-namespace", setup.Namespace()))
+				mocks.WithTeamRoleRef(teamRoleUT.Name),
+				mocks.WithTeamRef(teamUT.Name),
+				mocks.WithClusterName(clusterA.Name),
+				mocks.WithNamespaces("non-existing-namespace", setup.Namespace()))
 
 			By("validating the RoleBinding created on the remote cluster")
 			remoteRoleBinding := &rbacv1.RoleBinding{}
@@ -482,9 +483,9 @@ var _ = Describe("Validate ClusterRole & RoleBinding on Remote Cluster", Ordered
 		It("Should create a ClusterRole and ClusterRoleBinding on the remote cluster", func() {
 			By("creating a TeamRoleBinding without Namespaces on the central cluster")
 			trb := setup.CreateTeamRoleBinding(test.Ctx, "test-teamrolebinding",
-				test.WithTeamRoleRef(teamRoleUT.Name),
-				test.WithTeamRef(teamUT.Name),
-				test.WithClusterName(clusterA.Name))
+				mocks.WithTeamRoleRef(teamRoleUT.Name),
+				mocks.WithTeamRef(teamUT.Name),
+				mocks.WithClusterName(clusterA.Name))
 
 			By("validating the ClusterRoleBinding created on the remote cluster")
 			remoteClusterRoleBinding := &rbacv1.ClusterRoleBinding{}
@@ -521,9 +522,9 @@ var _ = Describe("Validate ClusterRole & RoleBinding on Remote Cluster", Ordered
 		It("Should create a ClusterRole, ClusterRoleBinding and TeamRoleBinding on the remote cluster", func() {
 			By("creating a TeamRoleBinding without Namespaces on the central cluster")
 			trb := setup.CreateTeamRoleBinding(test.Ctx, "test-teamrolebinding",
-				test.WithTeamRoleRef(teamRoleUT.Name),
-				test.WithTeamRef(teamUT.Name),
-				test.WithClusterName(clusterA.Name))
+				mocks.WithTeamRoleRef(teamRoleUT.Name),
+				mocks.WithTeamRef(teamUT.Name),
+				mocks.WithClusterName(clusterA.Name))
 
 			By("validating the ClusterRoleBinding created on the remote cluster")
 			remoteClusterRoleBinding := &rbacv1.ClusterRoleBinding{}
@@ -553,10 +554,10 @@ var _ = Describe("Validate ClusterRole & RoleBinding on Remote Cluster", Ordered
 
 			By("creating a TeamRoleBinding on the central cluster")
 			trbNoNamespaces := setup.CreateTeamRoleBinding(test.Ctx, "teamrolebinding",
-				test.WithTeamRoleRef(teamRoleUT.Name),
-				test.WithTeamRef(teamUT.Name),
-				test.WithClusterName(clusterA.Name),
-				test.WithNamespaces(setup.Namespace()))
+				mocks.WithTeamRoleRef(teamRoleUT.Name),
+				mocks.WithTeamRef(teamUT.Name),
+				mocks.WithClusterName(clusterA.Name),
+				mocks.WithNamespaces(setup.Namespace()))
 
 			By("validating the RoleBinding created on the remote cluster")
 			remoteRoleBinding := &rbacv1.RoleBinding{}
@@ -581,9 +582,9 @@ var _ = Describe("Validate ClusterRole & RoleBinding on Remote Cluster", Ordered
 		It("Should reconcile the ClusterRole, ClusterRoleBinding for a TeamRoleBinding without Namespaces on the remote cluster", func() {
 			By("creating a TeamRoleBinding without Namespaces on the central cluster")
 			trb := setup.CreateTeamRoleBinding(test.Ctx, "test-teamrolebinding",
-				test.WithTeamRoleRef(teamRoleUT.Name),
-				test.WithTeamRef(teamUT.Name),
-				test.WithClusterName(clusterA.Name))
+				mocks.WithTeamRoleRef(teamRoleUT.Name),
+				mocks.WithTeamRef(teamUT.Name),
+				mocks.WithClusterName(clusterA.Name))
 
 			By("validating the ClusterRoleBinding created on the remote cluster")
 			remoteClusterRoleBinding := &rbacv1.ClusterRoleBinding{}
@@ -625,10 +626,10 @@ var _ = Describe("Validate ClusterRole & RoleBinding on Remote Cluster", Ordered
 		It("Should reconcile the ClusterRole, RoleBindings for a TeamRoleBinding with Namespaces on the remote cluster", func() {
 			By("creating a TeamRoleBinding with Namespaces on the central cluster")
 			trb := setup.CreateTeamRoleBinding(test.Ctx, "test-teamrolebinding",
-				test.WithTeamRoleRef(teamRoleUT.Name),
-				test.WithTeamRef(teamUT.Name),
-				test.WithClusterName(clusterA.Name),
-				test.WithNamespaces(setup.Namespace()))
+				mocks.WithTeamRoleRef(teamRoleUT.Name),
+				mocks.WithTeamRef(teamUT.Name),
+				mocks.WithClusterName(clusterA.Name),
+				mocks.WithNamespaces(setup.Namespace()))
 
 			By("validating the ClusterRole created on the remote cluster")
 			remoteClusterRole := &rbacv1.ClusterRole{}
@@ -673,21 +674,21 @@ var _ = Describe("Validate ClusterRole & RoleBinding on Remote Cluster", Ordered
 	Context("When creating a Greenhouse TeamRoleBinding with AggregationRule", func() {
 		It("Should create a ClusterRole with Aggregation Rules and RoleBinding on the remote cluster", func() {
 			trbBase := setup.CreateTeamRoleBinding(test.Ctx, "test-teamrolebinding",
-				test.WithTeamRef(teamUT.Name),
-				test.WithTeamRoleRef(teamRoleUT.Name),
-				test.WithClusterName(clusterA.Name),
+				mocks.WithTeamRef(teamUT.Name),
+				mocks.WithTeamRoleRef(teamRoleUT.Name),
+				mocks.WithClusterName(clusterA.Name),
 			)
 			By("creating a TeamRoleBinding with AggregationRule on the central cluster")
 			trAggregate := setup.CreateTeamRole(test.Ctx, "test-aggregation-teamrole",
-				test.WithRules(nil),
-				test.WithAggregationRule(&rbacv1.AggregationRule{
+				mocks.WithRules(nil),
+				mocks.WithAggregationRule(&rbacv1.AggregationRule{
 					ClusterRoleSelectors: []metav1.LabelSelector{
 						{MatchLabels: map[string]string{"aggregate": "true"}}},
 				}))
 			trbAggregate := setup.CreateTeamRoleBinding(test.Ctx, "test-aggregation-teamrolebinding",
-				test.WithTeamRef(teamUT.Name),
-				test.WithTeamRoleRef(trAggregate.Name),
-				test.WithClusterName(clusterA.Name),
+				mocks.WithTeamRef(teamUT.Name),
+				mocks.WithTeamRoleRef(trAggregate.Name),
+				mocks.WithClusterName(clusterA.Name),
 			)
 			By("validating the Base ClusterRole created on the remote cluster")
 			baseClusterRole := &rbacv1.ClusterRole{}
@@ -703,7 +704,7 @@ var _ = Describe("Validate ClusterRole & RoleBinding on Remote Cluster", Ordered
 			aggregateClusterRoleName := types.NamespacedName{Name: trAggregate.GetRBACName()}
 			Eventually(func(g Gomega) bool {
 				g.Expect(clusterAKubeClient.Get(test.Ctx, aggregateClusterRoleName, aggregateClusterRole)).To(Succeed(), "there should be no error getting the ClusterRole from the Remote Cluster")
-				// The dev-env does not start the Kubernetes ControllerManager, thus the ClusterRoles are not reconciled and we can only check that it was
+				// The dev-env does not start the Kubernetes ControllerManager, thus the ClusterRoles are not reconciled, and we can only check that it was
 				// created with the correct AggregationRule.
 				g.Expect(aggregateClusterRole.AggregationRule).To(Equal(trAggregate.Spec.AggregationRule), "the Aggregate ClusterRole should have the same AggregationRule as the Base ClusterRole")
 				return true
@@ -719,9 +720,9 @@ var _ = Describe("Validate ClusterRole & RoleBinding on Remote Cluster", Ordered
 		It("should reconcile the remote RoleBinding", func() {
 			By("creating a TeamRoleBinding without Namespaces on the central cluster")
 			trb := setup.CreateTeamRoleBinding(test.Ctx, "test-teamrolebinding",
-				test.WithTeamRoleRef(teamRoleUT.Name),
-				test.WithTeamRef(teamUT.Name),
-				test.WithClusterName(clusterA.Name))
+				mocks.WithTeamRoleRef(teamRoleUT.Name),
+				mocks.WithTeamRef(teamUT.Name),
+				mocks.WithClusterName(clusterA.Name))
 
 			By("validating the ClusterRoleBinding created on the remote cluster")
 			remoteClusterRoleBinding := &rbacv1.ClusterRoleBinding{}
@@ -776,10 +777,10 @@ var _ = Describe("Validate ClusterRole & RoleBinding on Remote Cluster", Ordered
 		It("Should create and delete RoleBindings based on .Spec.Namespaces in the remote cluster", func() {
 			By("creating a TeamRoleBinding on the central cluster")
 			trb := setup.CreateTeamRoleBinding(test.Ctx, "test-trb-1",
-				test.WithTeamRoleRef(teamRoleUT.Name),
-				test.WithTeamRef(teamUT.Name),
-				test.WithClusterName(clusterA.Name),
-				test.WithNamespaces(setup.Namespace()))
+				mocks.WithTeamRoleRef(teamRoleUT.Name),
+				mocks.WithTeamRef(teamUT.Name),
+				mocks.WithClusterName(clusterA.Name),
+				mocks.WithNamespaces(setup.Namespace()))
 
 			By("validating the RoleBinding created on the remote cluster")
 			var remoteRoleBindings = new(rbacv1.RoleBindingList)
@@ -880,10 +881,10 @@ var _ = Describe("Validate ClusterRole & RoleBinding on Remote Cluster", Ordered
 
 			By("creating a TeamRoleBinding with ClusterSelector and Namespaces on the central cluster")
 			trb := setup.CreateTeamRoleBinding(test.Ctx, "test-rolebinding",
-				test.WithTeamRoleRef(teamRoleUT.Name),
-				test.WithTeamRef(teamUT.Name),
-				test.WithClusterSelector(metav1.LabelSelector{MatchLabels: map[string]string{"cluster": "a"}}),
-				test.WithNamespaces(firstAdditionalNamespace, secondAdditionalNamespace))
+				mocks.WithTeamRoleRef(teamRoleUT.Name),
+				mocks.WithTeamRef(teamUT.Name),
+				mocks.WithClusterSelector(metav1.LabelSelector{MatchLabels: map[string]string{"cluster": "a"}}),
+				mocks.WithNamespaces(firstAdditionalNamespace, secondAdditionalNamespace))
 
 			trbKey := types.NamespacedName{Name: trb.Name, Namespace: trb.Namespace}
 
@@ -946,10 +947,10 @@ var _ = Describe("Validate ClusterRole & RoleBinding on Remote Cluster", Ordered
 
 			By("creating a TeamRoleBinding on the central cluster")
 			trb := setup.CreateTeamRoleBinding(test.Ctx, "test-trb-1",
-				test.WithTeamRoleRef(teamRoleUT.Name),
-				test.WithTeamRef(teamUT.Name),
-				test.WithClusterName(clusterA.Name),
-				test.WithNamespaces(setup.Namespace()))
+				mocks.WithTeamRoleRef(teamRoleUT.Name),
+				mocks.WithTeamRef(teamUT.Name),
+				mocks.WithClusterName(clusterA.Name),
+				mocks.WithNamespaces(setup.Namespace()))
 
 			By("validating the RoleBinding created on the remote cluster")
 			Eventually(func(g Gomega) {
@@ -987,9 +988,9 @@ var _ = Describe("Validate ClusterRole & RoleBinding on Remote Cluster", Ordered
 
 			By("creating a TeamRoleBinding on the central cluster")
 			trb := setup.CreateTeamRoleBinding(test.Ctx, "test-rolebinding",
-				test.WithTeamRoleRef(teamRoleUT.Name),
-				test.WithTeamRef(teamUT.Name),
-				test.WithClusterSelector(metav1.LabelSelector{MatchLabels: map[string]string{"rbac": "true"}}))
+				mocks.WithTeamRoleRef(teamRoleUT.Name),
+				mocks.WithTeamRef(teamUT.Name),
+				mocks.WithClusterSelector(metav1.LabelSelector{MatchLabels: map[string]string{"rbac": "true"}}))
 			trbKey := types.NamespacedName{Name: trb.Name, Namespace: trb.Namespace}
 
 			By("validating the TeamRoleBinding's status is updated")

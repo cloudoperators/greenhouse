@@ -15,11 +15,12 @@ import (
 
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
 	"github.com/cloudoperators/greenhouse/internal/test"
+	"github.com/cloudoperators/greenhouse/internal/test/mocks"
 )
 
 var _ = Describe("Organization ServiceProxyReconciler", Ordered, func() {
 	var setup *test.TestSetup
-	serviceProxyPluginDefinition := test.NewPluginDefinition(test.Ctx, "service-proxy")
+	serviceProxyPluginDefinition := mocks.NewPluginDefinition("service-proxy")
 
 	BeforeEach(func() {
 		setup = test.NewTestSetup(test.Ctx, test.K8sClient, "org-rbac-test")
@@ -96,7 +97,7 @@ var _ = Describe("Organization ServiceProxyReconciler", Ordered, func() {
 			org, _ := setup.CreateOrganizationWithOIDCConfig(test.Ctx, setup.Namespace())
 			test.EventuallyCreated(test.Ctx, test.K8sClient, &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: org.Name}})
 			By("annotating the organization")
-			org = setup.UpdateOrganization(test.Ctx, org.Name, test.WithOrgAnnotations(map[string]string{oauthPreviewAnnotation: "true"}))
+			org = setup.UpdateOrganization(test.Ctx, org.Name, mocks.WithOrgAnnotations(map[string]string{oauthPreviewAnnotation: "true"}))
 			By("ensuring a service-proxy plugin has been created for organization")
 			Eventually(func(g Gomega) {
 				var plugin = new(greenhousev1alpha1.Plugin)

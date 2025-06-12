@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	greenhousecluster "github.com/cloudoperators/greenhouse/internal/controller/cluster"
+	"github.com/cloudoperators/greenhouse/internal/test/mocks"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -65,9 +66,6 @@ func checkReadyConditionComponentsUnderTest(g Gomega, plugin *greenhousev1alpha1
 	helmReconcileFailedCondition := plugin.Status.GetConditionByType(greenhousev1alpha1.HelmReconcileFailedCondition)
 	g.Expect(helmReconcileFailedCondition).ToNot(BeNil())
 	g.Expect(helmReconcileFailedCondition.Status).To(Equal(metav1.ConditionFalse), "HelmReconcileFailed condition should be false")
-	// helmChartTestSucceededCondition := plugin.Status.GetConditionByType(greenhousev1alpha1.HelmChartTestSucceededCondition)
-	// g.Expect(helmChartTestSucceededCondition).ToNot(BeNil())
-	// g.Expect(helmChartTestSucceededCondition.Status).To(Equal(metav1.ConditionTrue), "HelmChartTestSucceeded condition should be true")
 }
 
 // HelmReconcilerTest performs tests in Serial mode to avoid conflicts with the k8s resources
@@ -77,7 +75,6 @@ var _ = Describe("HelmControllerTest", Serial, func() {
 		PluginDefinitionName           = "mytestplugin"
 		PluginDefinitionVersion        = "1.0.0"
 		PluginDefinitionVersionUpdated = "1.1.0"
-		PluginDefinitionChartName      = "myTestpluginChart"
 		PluginDefinitionChartVersion   = "1.0.0"
 
 		PluginOptionRequired     = "myRequiredOption"
@@ -127,26 +124,26 @@ var _ = Describe("HelmControllerTest", Serial, func() {
 		// remember original chart loader, which is overwritten in some tests
 		tempChartLoader = helm.ChartLoader
 
-		testPluginDefinition = test.NewPluginDefinition(test.Ctx, PluginDefinitionName,
-			test.WithVersion(PluginDefinitionVersion),
-			test.WithHelmChart(&greenhousev1alpha1.HelmChartReference{
+		testPluginDefinition = mocks.NewPluginDefinition(PluginDefinitionName,
+			mocks.WithVersion(PluginDefinitionVersion),
+			mocks.WithHelmChart(&greenhousev1alpha1.HelmChartReference{
 				Name:       HelmChart,
 				Repository: HelmRepo,
 				Version:    PluginDefinitionChartVersion,
 			}),
-			test.AppendPluginOption(greenhousev1alpha1.PluginOption{
+			mocks.AppendPluginOption(greenhousev1alpha1.PluginOption{
 				Name:        PluginOptionRequired,
 				Description: "This is my required test plugin option",
 				Required:    true,
 				Type:        greenhousev1alpha1.PluginOptionTypeString,
 			}),
-			test.AppendPluginOption(greenhousev1alpha1.PluginOption{
+			mocks.AppendPluginOption(greenhousev1alpha1.PluginOption{
 				Name:        PluginOptionOptional,
 				Description: "This is my optional test plugin option",
 				Required:    false,
 				Type:        greenhousev1alpha1.PluginOptionTypeString,
 			}),
-			test.AppendPluginOption(greenhousev1alpha1.PluginOption{
+			mocks.AppendPluginOption(greenhousev1alpha1.PluginOption{
 				Name:        PluginOptionDefault,
 				Description: "This is my default test plugin option",
 				Required:    false,
@@ -164,10 +161,10 @@ var _ = Describe("HelmControllerTest", Serial, func() {
 			return actPluginDefinition.Spec.Version == PluginDefinitionVersion
 		}).Should(BeTrue())
 
-		testPlugin = test.NewPlugin(test.Ctx, PluginName, Namespace,
-			test.WithPluginDefinition(PluginDefinitionName),
-			test.WithReleaseName(ReleaseName),
-			test.WithPluginOptionValue(PluginOptionRequired, test.AsAPIExtensionJSON(PluginRequiredOptionValue), nil))
+		testPlugin = mocks.NewPlugin(PluginName, Namespace,
+			mocks.WithPluginDefinition(PluginDefinitionName),
+			mocks.WithReleaseName(ReleaseName),
+			mocks.WithPluginOptionValue(PluginOptionRequired, test.AsAPIExtensionJSON(PluginRequiredOptionValue), nil))
 
 		Expect(test.K8sClient.Create(test.Ctx, testPlugin)).Should(Succeed())
 
@@ -412,42 +409,42 @@ var _ = Describe("HelmControllerTest", Serial, func() {
 		)
 
 		By("creating a pluginDefinition with every type of option", func() {
-			complexPluginDefinition = test.NewPluginDefinition(test.Ctx, pluginWithEveryOption,
-				test.WithVersion(PluginDefinitionVersion),
-				test.WithHelmChart(&greenhousev1alpha1.HelmChartReference{
+			complexPluginDefinition = mocks.NewPluginDefinition(pluginWithEveryOption,
+				mocks.WithVersion(PluginDefinitionVersion),
+				mocks.WithHelmChart(&greenhousev1alpha1.HelmChartReference{
 					Name:       HelmChartWithAllOptions,
 					Repository: HelmRepo,
 					Version:    PluginDefinitionChartVersion,
 				}),
-				test.AppendPluginOption(greenhousev1alpha1.PluginOption{
+				mocks.AppendPluginOption(greenhousev1alpha1.PluginOption{
 					Name:        PluginOptionDefault,
 					Description: "This is my default test plugin option",
 					Required:    false,
 					Default:     test.AsAPIExtensionJSON(PluginOptionDefaultValue),
 					Type:        greenhousev1alpha1.PluginOptionTypeString,
 				}),
-				test.AppendPluginOption(greenhousev1alpha1.PluginOption{
+				mocks.AppendPluginOption(greenhousev1alpha1.PluginOption{
 					Name:        PluginOptionBool,
 					Description: "This is my default test plugin option with a bool value",
 					Required:    false,
 					Default:     test.AsAPIExtensionJSON(PluginOptionBoolDefault),
 					Type:        greenhousev1alpha1.PluginOptionTypeBool,
 				}),
-				test.AppendPluginOption(greenhousev1alpha1.PluginOption{
+				mocks.AppendPluginOption(greenhousev1alpha1.PluginOption{
 					Name:        PluginOptionInt,
 					Description: "This is my default test plugin option with an int value",
 					Required:    false,
 					Default:     test.AsAPIExtensionJSON(PluginOptionIntDefault),
 					Type:        greenhousev1alpha1.PluginOptionTypeInt,
 				}),
-				test.AppendPluginOption(greenhousev1alpha1.PluginOption{
+				mocks.AppendPluginOption(greenhousev1alpha1.PluginOption{
 					Name:        PluginOptionList,
 					Description: "This is my default test plugin option with a list value",
 					Required:    false,
 					Default:     test.AsAPIExtensionJSON(PluginOptionListDefault),
 					Type:        greenhousev1alpha1.PluginOptionTypeList,
 				}),
-				test.AppendPluginOption(greenhousev1alpha1.PluginOption{
+				mocks.AppendPluginOption(greenhousev1alpha1.PluginOption{
 					Name:        PluginOptionMap,
 					Description: "This is my default test plugin option with a map value",
 					Required:    false,
@@ -469,14 +466,14 @@ var _ = Describe("HelmControllerTest", Serial, func() {
 		})
 
 		By("creating a Plugin with every type of OptionValue", func() {
-			complexPlugin = test.NewPlugin(test.Ctx, pluginName, Namespace,
-				test.WithPluginDefinition(pluginWithEveryOption),
-				test.WithReleaseName(ReleaseName),
-				test.WithPluginOptionValue(PluginOptionDefault, test.AsAPIExtensionJSON(stringVal), nil),
-				test.WithPluginOptionValue(PluginOptionBool, test.AsAPIExtensionJSON(boolVal), nil),
-				test.WithPluginOptionValue(PluginOptionInt, test.AsAPIExtensionJSON(intVal), nil),
-				test.WithPluginOptionValue(PluginOptionList, test.AsAPIExtensionJSON(listVal), nil),
-				test.WithPluginOptionValue(PluginOptionMap, test.AsAPIExtensionJSON(mapVal), nil),
+			complexPlugin = mocks.NewPlugin(pluginName, Namespace,
+				mocks.WithPluginDefinition(pluginWithEveryOption),
+				mocks.WithReleaseName(ReleaseName),
+				mocks.WithPluginOptionValue(PluginOptionDefault, test.AsAPIExtensionJSON(stringVal), nil),
+				mocks.WithPluginOptionValue(PluginOptionBool, test.AsAPIExtensionJSON(boolVal), nil),
+				mocks.WithPluginOptionValue(PluginOptionInt, test.AsAPIExtensionJSON(intVal), nil),
+				mocks.WithPluginOptionValue(PluginOptionList, test.AsAPIExtensionJSON(listVal), nil),
+				mocks.WithPluginOptionValue(PluginOptionMap, test.AsAPIExtensionJSON(mapVal), nil),
 			)
 
 			Expect(test.K8sClient.Create(test.Ctx, complexPlugin)).Should(Succeed())
@@ -517,10 +514,10 @@ var _ = Describe("HelmControllerTest", Serial, func() {
 	})
 
 	DescribeTable("creating of Plugins with wrong OptionValues", func(option string, value any) {
-		plugin := test.NewPlugin(test.Ctx, "testPlugin", Namespace,
-			test.WithPluginDefinition("testPlugin"),
-			test.WithReleaseName(ReleaseName),
-			test.WithPluginOptionValue(option, test.AsAPIExtensionJSON(value), nil))
+		plugin := mocks.NewPlugin("testPlugin", Namespace,
+			mocks.WithPluginDefinition("testPlugin"),
+			mocks.WithReleaseName(ReleaseName),
+			mocks.WithPluginOptionValue(option, test.AsAPIExtensionJSON(value), nil))
 		Expect(test.K8sClient.Create(test.Ctx, plugin)).Should(Not(Succeed()), "creating a plugin with wrong types should not be successful")
 	},
 		Entry("string with wrong type", PluginOptionRequired, 1),
@@ -561,19 +558,18 @@ var _ = When("the pluginDefinition is UI only", func() {
 	var uiPluginDefinition *greenhousev1alpha1.PluginDefinition
 	var uiPlugin *greenhousev1alpha1.Plugin
 	BeforeEach(func() {
-		uiPluginDefinition = test.NewPluginDefinition(
-			test.Ctx,
+		uiPluginDefinition = mocks.NewPluginDefinition(
 			"myuiplugin",
-			test.WithVersion("1.0.0"),
-			test.WithoutHelmChart(),
-			test.WithUIApplication(&greenhousev1alpha1.UIApplicationReference{
+			mocks.WithVersion("1.0.0"),
+			mocks.WithoutHelmChart(),
+			mocks.WithUIApplication(&greenhousev1alpha1.UIApplicationReference{
 				Name:    "myapp",
 				Version: "1.0.0",
 				URL:     "http://myapp.com",
 			}))
-		uiPlugin = test.NewPlugin(test.Ctx, "uiplugin", "default",
-			test.WithPluginDefinition("myuiplugin"),
-			test.WithReleaseName("myuiplugin-release"))
+		uiPlugin = mocks.NewPlugin("uiplugin", "default",
+			mocks.WithPluginDefinition("myuiplugin"),
+			mocks.WithReleaseName("myuiplugin-release"))
 
 		Expect(test.K8sClient.Create(test.Ctx, uiPluginDefinition)).Should(Succeed())
 		Expect(test.K8sClient.Create(test.Ctx, uiPlugin)).Should(Succeed())

@@ -9,7 +9,7 @@ import (
 
 	greenhouseapis "github.com/cloudoperators/greenhouse/api"
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
-	"github.com/cloudoperators/greenhouse/internal/test"
+	"github.com/cloudoperators/greenhouse/internal/test/mocks"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -54,28 +54,28 @@ var _ = Describe("Cluster Webhook", func() {
 			}
 		},
 		Entry("it should not add deletion schedule if cluster is not marked for deletion",
-			test.NewCluster(test.Ctx, "test-cluster", "test-namespace"),
+			mocks.NewCluster("test-cluster", "test-namespace"),
 			false, false, "",
 		),
 		Entry("it should add deletion schedule if cluster is marked for deletion",
-			test.NewCluster(test.Ctx, "test-cluster", "test-namespace",
-				test.WithClusterAnnotations(map[string]string{
+			mocks.NewCluster("test-cluster", "test-namespace",
+				mocks.WithClusterAnnotations(map[string]string{
 					greenhouseapis.MarkClusterDeletionAnnotation: "true",
 				}),
 			),
 			false, true, "",
 		),
 		Entry("it should remove deletion schedule if cluster is not marked for deletion but schedule exists",
-			test.NewCluster(test.Ctx, "test-cluster", "test-namespace",
-				test.WithClusterAnnotations(map[string]string{
+			mocks.NewCluster("test-cluster", "test-namespace",
+				mocks.WithClusterAnnotations(map[string]string{
 					greenhouseapis.ScheduleClusterDeletionAnnotation: now().Format(time.DateTime),
 				}),
 			),
 			false, false, "",
 		),
 		Entry("it should remove deletion schedule if cluster deletion marker has empty value",
-			test.NewCluster(test.Ctx, "test-cluster", "test-namespace",
-				test.WithClusterAnnotations(map[string]string{
+			mocks.NewCluster("test-cluster", "test-namespace",
+				mocks.WithClusterAnnotations(map[string]string{
 					greenhouseapis.MarkClusterDeletionAnnotation:     "",
 					greenhouseapis.ScheduleClusterDeletionAnnotation: now().Format(time.DateTime),
 				}),
@@ -83,8 +83,8 @@ var _ = Describe("Cluster Webhook", func() {
 			false, false, "",
 		),
 		Entry("it should not reset if deletion marker is not empty and schedule exists",
-			test.NewCluster(test.Ctx, "test-cluster", "test-namespace",
-				test.WithClusterAnnotations(map[string]string{
+			mocks.NewCluster("test-cluster", "test-namespace",
+				mocks.WithClusterAnnotations(map[string]string{
 					greenhouseapis.MarkClusterDeletionAnnotation:     "true",
 					greenhouseapis.ScheduleClusterDeletionAnnotation: fortyEight(),
 				}),
@@ -108,20 +108,20 @@ var _ = Describe("Cluster Webhook", func() {
 			}
 		},
 		Entry("it should allow creation of cluster without deletion annotation",
-			test.NewCluster(test.Ctx, "test-cluster", "test-namespace"),
+			mocks.NewCluster("test-cluster", "test-namespace"),
 			false,
 		),
 		Entry("it should deny creation of cluster with deletion marker annotation",
-			test.NewCluster(test.Ctx, "test-cluster", "test-namespace",
-				test.WithClusterAnnotations(map[string]string{
+			mocks.NewCluster("test-cluster", "test-namespace",
+				mocks.WithClusterAnnotations(map[string]string{
 					greenhouseapis.MarkClusterDeletionAnnotation: "true",
 				}),
 			),
 			true,
 		),
 		Entry("it should allow creation of cluster with not too long token validity",
-			test.NewCluster(test.Ctx, "test-cluster", "test-namespace",
-				test.WithMaxTokenValidity(72),
+			mocks.NewCluster("test-cluster", "test-namespace",
+				mocks.WithMaxTokenValidity(72),
 			),
 			false,
 		),
@@ -137,16 +137,16 @@ var _ = Describe("Cluster Webhook", func() {
 			}
 		},
 		Entry("it should allow update without deletion markers",
-			test.NewCluster(test.Ctx, "test-cluster", "test-namespace",
-				test.WithClusterAnnotations(map[string]string{
+			mocks.NewCluster("test-cluster", "test-namespace",
+				mocks.WithClusterAnnotations(map[string]string{
 					"custom-annotation": "custom-value",
 				}),
 			),
 			false,
 		),
 		Entry("it should allow update with valid deletion schedule",
-			test.NewCluster(test.Ctx, "test-cluster", "test-namespace",
-				test.WithClusterAnnotations(map[string]string{
+			mocks.NewCluster("test-cluster", "test-namespace",
+				mocks.WithClusterAnnotations(map[string]string{
 					greenhouseapis.MarkClusterDeletionAnnotation:     "true",
 					greenhouseapis.ScheduleClusterDeletionAnnotation: fortyEight(),
 				}),
@@ -154,8 +154,8 @@ var _ = Describe("Cluster Webhook", func() {
 			false,
 		),
 		Entry("it should deny update with invalid deletion schedule",
-			test.NewCluster(test.Ctx, "test-cluster", "test-namespace",
-				test.WithClusterAnnotations(map[string]string{
+			mocks.NewCluster("test-cluster", "test-namespace",
+				mocks.WithClusterAnnotations(map[string]string{
 					greenhouseapis.MarkClusterDeletionAnnotation:     "true",
 					greenhouseapis.ScheduleClusterDeletionAnnotation: time.DateOnly,
 				}),
@@ -179,12 +179,12 @@ var _ = Describe("Cluster Webhook", func() {
 			}
 		},
 		Entry("it should deny deletion of cluster without deletion annotation",
-			test.NewCluster(test.Ctx, "test-cluster", "test-namespace"),
+			mocks.NewCluster("test-cluster", "test-namespace"),
 			true,
 		),
 		Entry("it should deny deletion of cluster with deletion marker annotation",
-			test.NewCluster(test.Ctx, "test-cluster", "test-namespace",
-				test.WithClusterAnnotations(map[string]string{greenhouseapis.MarkClusterDeletionAnnotation: "true"}),
+			mocks.NewCluster("test-cluster", "test-namespace",
+				mocks.WithClusterAnnotations(map[string]string{greenhouseapis.MarkClusterDeletionAnnotation: "true"}),
 			),
 			true,
 		),

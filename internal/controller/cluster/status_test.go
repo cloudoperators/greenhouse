@@ -19,6 +19,7 @@ import (
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
 	"github.com/cloudoperators/greenhouse/internal/lifecycle"
 	"github.com/cloudoperators/greenhouse/internal/test"
+	"github.com/cloudoperators/greenhouse/internal/test/mocks"
 )
 
 var _ = Describe("Cluster status", Ordered, func() {
@@ -110,8 +111,8 @@ var _ = Describe("Cluster status", Ordered, func() {
 
 		By("Creating a Secret with a valid KubeConfig for the remote cluster")
 		secret := setup.CreateSecret(test.Ctx, validClusterName,
-			test.WithSecretType(greenhouseapis.SecretTypeKubeConfig),
-			test.WithSecretData(map[string][]byte{greenhouseapis.KubeConfigKey: remoteKubeConfig}))
+			mocks.WithSecretType(greenhouseapis.SecretTypeKubeConfig),
+			mocks.WithSecretData(map[string][]byte{greenhouseapis.KubeConfigKey: remoteKubeConfig}))
 
 		By("Checking the cluster resource has been created")
 		Eventually(func() error {
@@ -119,7 +120,7 @@ var _ = Describe("Cluster status", Ordered, func() {
 		}).Should(Succeed(), fmt.Sprintf("eventually the cluster %s should exist", secret.Name))
 
 		By("Creating a cluster without a secret")
-		invalidCluster = setup.CreateCluster(test.Ctx, invalidClusterName, test.WithAccessMode(greenhousev1alpha1.ClusterAccessModeDirect))
+		invalidCluster = setup.CreateCluster(test.Ctx, invalidClusterName, mocks.WithAccessMode(greenhousev1alpha1.ClusterAccessModeDirect))
 	})
 
 	AfterAll(func() {
