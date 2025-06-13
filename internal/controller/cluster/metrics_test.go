@@ -12,6 +12,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
 
+	greenhouseapis "github.com/cloudoperators/greenhouse/api"
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
 	"github.com/cloudoperators/greenhouse/internal/test"
 )
@@ -36,6 +37,9 @@ var _ = Describe("Metrics controller", Ordered, func() {
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      clusterName,
 				Namespace: setup.Namespace(),
+				Labels: map[string]string{
+					greenhouseapis.LabelKeyOwnedBy: "test-owner",
+				},
 			},
 			Status: greenhousev1alpha1.ClusterStatus{
 				KubernetesVersion:              "1.31.1",
@@ -44,9 +48,9 @@ var _ = Describe("Metrics controller", Ordered, func() {
 		}
 
 		updateMetrics(cluster)
-		counterAfter := prometheusTest.ToFloat64(kubernetesVersionsGauge.WithLabelValues(cluster.Name, cluster.Namespace, cluster.Status.KubernetesVersion))
+		counterAfter := prometheusTest.ToFloat64(kubernetesVersionsGauge.WithLabelValues(cluster.Name, cluster.Namespace, cluster.Status.KubernetesVersion, "test-owner"))
 		Expect(counterAfter).To(BeEquivalentTo(1))
-		tokenExpiry := prometheusTest.ToFloat64(secondsToTokenExpiryGauge.WithLabelValues(cluster.Name, cluster.Namespace))
+		tokenExpiry := prometheusTest.ToFloat64(secondsToTokenExpiryGauge.WithLabelValues(cluster.Name, cluster.Namespace, "test-owner"))
 		Expect(tokenExpiry).To(BeNumerically(">=", 595))
 		Expect(tokenExpiry).To(BeNumerically("<=", 600))
 	})
