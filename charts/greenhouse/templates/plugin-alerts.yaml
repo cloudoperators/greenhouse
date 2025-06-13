@@ -25,7 +25,7 @@ spec:
       valueFrom:
         secret:
           key: ca.crt
-          name: tls-alerts-{{ .Chart.Name }}-root-ca
+          name: tls-alerts-{{ .Release.Namespace  }}-root-ca
     - name: alerts.alertmanager.enabled
       value: {{ .Values.alerts.enabled }}
     - name: alerts.alertmanager.ingress.enabled
