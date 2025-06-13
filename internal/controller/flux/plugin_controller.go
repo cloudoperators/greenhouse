@@ -153,7 +153,7 @@ func (r *FluxReconciler) EnsureCreated(ctx context.Context, resource lifecycle.R
 
 	// Check if the deliveryToolLabel label exists and has the value "flux"
 	if value, ok := plugin.Labels[deliveryToolLabel]; !ok || value != deliveryToolFlux {
-		return ctrl.Result{}, "", nil
+		return ctrl.Result{}, lifecycle.Pending, nil
 	}
 
 	pluginController.InitPluginStatus(plugin)
@@ -231,7 +231,7 @@ func (r *FluxReconciler) EnsureCreated(ctx context.Context, resource lifecycle.R
 		log.FromContext(ctx).Info("Updated helmRelease", "name", helmRelease.Name)
 	}
 
-	return ctrl.Result{RequeueAfter: 1 * time.Minute}, lifecycle.Success, nil
+	return ctrl.Result{}, lifecycle.Success, nil
 }
 
 func (r *FluxReconciler) enqueueAllPluginsForPluginDefinition(ctx context.Context, o client.Object) []ctrl.Request {
