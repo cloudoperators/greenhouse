@@ -80,6 +80,12 @@ func PredicateHasFinalizer(finalizer string) predicate.Predicate {
 	})
 }
 
+func PredicateHasLabel(key, value string) predicate.Predicate {
+	return predicate.NewPredicateFuncs(func(o client.Object) bool {
+		return o.GetLabels()[key] == value
+	})
+}
+
 // LabelSelectorPredicate constructs a Predicate from a LabelSelector.
 // Only objects matching the LabelSelector will be admitted.
 // Credit https://github.com/kubernetes-sigs/controller-runtime/blob/v0.10.1/pkg/predicate/predicate.go#L323-L333.
