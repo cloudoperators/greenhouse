@@ -77,6 +77,15 @@ func (r *PluginReconciler) SetupWithManager(name string, mgr ctrl.Manager) error
 		return err
 	}
 
+	labelSelector := metav1.LabelSelector{
+		MatchExpressions: []metav1.LabelSelectorRequirement{
+			{
+				Key:      deliveryToolLabel,
+				Operator: metav1.LabelSelectorOpDoesNotExist,
+			},
+		},
+	}
+
 	return ctrl.NewControllerManagedBy(mgr).
 		Named(name).
 		WithOptions(controller.Options{
@@ -85,7 +94,9 @@ func (r *PluginReconciler) SetupWithManager(name string, mgr ctrl.Manager) error
 				&workqueue.TypedBucketRateLimiter[reconcile.Request]{Limiter: rate.NewLimiter(rate.Limit(10), 100)}),
 			MaxConcurrentReconciles: 3,
 		}).
-		For(&greenhousev1alpha1.Plugin{}).
+		For(&greenhousev1alpha1.Plugin{}, builder.WithPredicates(
+			clientutil.LabelSelectorPredicate(labelSelector),
+		)).
 		// If the release was (manually) modified the secret would have been modified. Reconcile it.
 		Watches(&corev1.Secret{},
 			handler.EnqueueRequestsFromMapFunc(enqueuePluginForReleaseSecret),
