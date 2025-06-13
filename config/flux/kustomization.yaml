@@ -21,4 +21,4 @@ images:
     newTag: v0.35.1
   - name: fluxcd/image-automation-controller
     newName: ghcr.io/fluxcd/image-automation-controller
-    newTag: v0.41.0
+    newTag: v0.41.1
