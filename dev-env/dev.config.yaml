@@ -20,6 +20,7 @@ config:
             clusterRole: system:service-account-issuer-discovery
             group: system:unauthenticated
         - command: make cert-manager
+        - command: make flux
     dependencies:
       - manifest:
           release: greenhouse

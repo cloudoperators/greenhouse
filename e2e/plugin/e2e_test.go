@@ -103,6 +103,7 @@ var _ = Describe("Plugin E2E", Ordered, func() {
 		testPlugin := fixtures.PreparePlugin("test-nginx-plugin-1", env.TestNamespace,
 			test.WithPluginDefinition(testPluginDefinition.Name),
 			test.WithCluster(remoteClusterName),
+			test.WithReleaseName("test-nginx-plugin"),
 			test.WithReleaseNamespace(env.TestNamespace),
 			test.WithPluginOptionValue("replicaCount", &apiextensionsv1.JSON{Raw: []byte("1")}, nil),
 			test.WithReleaseName("test-nginx-plugin-1"),
@@ -199,6 +200,7 @@ var _ = Describe("Plugin E2E", Ordered, func() {
 		// Creating plugin with release name
 		testPlugin := fixtures.PreparePlugin("test-nginx-plugin-2", env.TestNamespace,
 			test.WithPluginDefinition(testPluginDefinition.Name),
+			test.WithReleaseName("test-nginx-plugin"),
 			test.WithReleaseNamespace(env.TestNamespace),
 			test.WithPluginOptionValue("replicaCount", &apiextensionsv1.JSON{Raw: []byte("1")}, nil),
 			test.WithReleaseName("test-nginx-plugin-2"),
