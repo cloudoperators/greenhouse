@@ -63,8 +63,8 @@ const (
 	// PluginClusterNameField is the field in the Plugin spec mapping it to a Cluster.
 	PluginClusterNameField = ".spec.clusterName"
 
-	// RolebindingRoleRefField is the field in the RoleBinding spec that references the Role.
-	RolebindingRoleRefField = ".spec.roleRef"
+	// RolebindingTeamRoleRefField is the field in the RoleBinding spec that references the TeamRole.
+	RolebindingTeamRoleRefField = ".spec.teamRoleRef"
 
 	// RolebindingTeamRefField is the field in the RoleBinding spec that references the Team.
 	RolebindingTeamRefField = ".spec.teamRef"

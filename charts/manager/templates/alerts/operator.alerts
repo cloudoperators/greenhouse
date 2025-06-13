@@ -85,7 +85,7 @@ groups:
         description: The number of members for team `{{`{{ $labels.teams }}`}}` in organization `{{`{{ $labels.namespace }}`}}` has dropped by more than 5 in the last 5 minutes.
         summary: Team members count drop detected
       expr: |
-        sum by (namespace, team) (delta(greenhouse_teammembership_members_count{service="greenhouse-controller-manager-metrics-service"}[5m])) < -5
+        sum by (namespace, team) (delta(greenhouse_team_members_count{service="greenhouse-controller-manager-metrics-service"}[5m])) < -5
       for: 5m
       labels:
         severity: warning

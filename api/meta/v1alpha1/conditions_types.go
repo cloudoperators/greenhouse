@@ -80,6 +80,8 @@ func (c *Condition) IsFalse() bool {
 	return c.Status == metav1.ConditionFalse
 }
 
+// +kubebuilder:object:generate=true
+
 // A StatusConditions contains a list of conditions.
 // Only one condition of a given type may exist in the list.
 type StatusConditions struct {

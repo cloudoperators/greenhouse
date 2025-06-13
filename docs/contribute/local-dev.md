@@ -171,7 +171,6 @@ docker compose run bootstrap kubectl apply -f /bootstrap/additional_resources
 or by uncommenting the "additional resources" in the command of the bootstrap container in the [docker-compose](https://github.com/cloudoperators/greenhouse/blob/main/dev-env/docker-compose.yaml#L51) file, the following resources items would be created automatically:
 
 - [test-team-1, test-team-2, test-team-3](https://github.com/cloudoperators/greenhouse/tree/main/dev-env/bootstrap/teams.yaml) within Organization `test-org',
-- respective dummy `teammemberships` for both teams,
 - [cluster-1, cluster-2, cluster-3 and self](https://github.com/cloudoperators/greenhouse/tree/main/dev-env/bootstrap/clusters.yaml) with different conditions and states,
 - some [dummy nodes](https://github.com/cloudoperators/greenhouse/tree/main/dev-env/bootstrap/nodes.yaml) for clusters,
 - some [plugindefinitions with plugins](https://github.com/cloudoperators/greenhouse/tree/main/dev-env/bootstrap/plugins.yamls) across the clusters.

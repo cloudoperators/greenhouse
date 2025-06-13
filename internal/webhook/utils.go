@@ -1,7 +1,7 @@
-// SPDX-FileCopyrightText: 2024 SAP SE or an SAP affiliate company and Greenhouse contributors
+// SPDX-FileCopyrightText: 2025 SAP SE or an SAP affiliate company and Greenhouse contributors
 // SPDX-License-Identifier: Apache-2.0
 
-package admission
+package webhook
 
 import (
 	"context"
@@ -20,7 +20,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 )
 
-func setupWebhook(mgr ctrl.Manager, obj runtime.Object, webhookFuncs webhookFuncs) error {
+func SetupWebhook(mgr ctrl.Manager, obj runtime.Object, webhookFuncs WebhookFuncs) error {
 	return ctrl.NewWebhookManagedBy(mgr).
 		For(obj).
 		WithDefaulter(setupCustomDefaulterWithManager(mgr, webhookFuncs)).
@@ -33,11 +33,11 @@ type (
 	genericFunc func(ctx context.Context, c client.Client, obj runtime.Object) (admission.Warnings, error)
 	updateFunc  func(ctx context.Context, c client.Client, oldObj, curObj runtime.Object) (admission.Warnings, error)
 
-	webhookFuncs struct {
-		defaultFunc        defaultFunc
-		validateCreateFunc genericFunc
-		validateUpdateFunc updateFunc
-		validateDeleteFunc genericFunc
+	WebhookFuncs struct {
+		DefaultFunc        defaultFunc
+		ValidateCreateFunc genericFunc
+		ValidateUpdateFunc updateFunc
+		ValidateDeleteFunc genericFunc
 	}
 )
 
@@ -48,10 +48,10 @@ type customDefaulter struct {
 	defaultFunc defaultFunc
 }
 
-func setupCustomDefaulterWithManager(mgr ctrl.Manager, webhookFuncs webhookFuncs) *customDefaulter {
+func setupCustomDefaulterWithManager(mgr ctrl.Manager, webhookFuncs WebhookFuncs) *customDefaulter {
 	return &customDefaulter{
 		Client:      mgr.GetClient(),
-		defaultFunc: webhookFuncs.defaultFunc,
+		defaultFunc: webhookFuncs.DefaultFunc,
 	}
 }
 
@@ -70,12 +70,12 @@ type customValidator struct {
 	validateUpdate                 updateFunc
 }
 
-func setupCustomValidatorWithManager(mgr ctrl.Manager, webhookFuncs webhookFuncs) *customValidator {
+func setupCustomValidatorWithManager(mgr ctrl.Manager, webhookFuncs WebhookFuncs) *customValidator {
 	return &customValidator{
 		Client:         mgr.GetClient(),
-		validateCreate: webhookFuncs.validateCreateFunc,
-		validateUpdate: webhookFuncs.validateUpdateFunc,
-		validateDelete: webhookFuncs.validateDeleteFunc,
+		validateCreate: webhookFuncs.ValidateCreateFunc,
+		validateUpdate: webhookFuncs.ValidateUpdateFunc,
+		validateDelete: webhookFuncs.ValidateDeleteFunc,
 	}
 }
 
@@ -103,14 +103,14 @@ func (c *customValidator) ValidateDelete(ctx context.Context, obj runtime.Object
 	return c.validateDelete(ctx, c.Client, obj)
 }
 
-func validateImmutableField(oldValue, newValue string, path *field.Path) *field.Error {
+func ValidateImmutableField(oldValue, newValue string, path *field.Path) *field.Error {
 	if oldValue != newValue {
 		return field.Invalid(path, newValue, "field is immutable")
 	}
 	return nil
 }
 
-func validateURL(str string) bool {
+func ValidateURL(str string) bool {
 	parsedURL, err := url.Parse(str)
 	if err != nil || parsedURL.Scheme == "" || parsedURL.Host == "" {
 		return false
@@ -118,23 +118,8 @@ func validateURL(str string) bool {
 	return parsedURL.Scheme == "https"
 }
 
-// logAdmissionRequest logs the AdmissionRequest.
-// This is necessary to audit log the AdmissionRequest independently of the api server audit logs.
-func logAdmissionRequest(ctx context.Context) {
-	admissionRequest, err := admission.RequestFromContext(ctx)
-	if err != nil {
-		return
-	}
-
-	// Remove all objects from the log
-	admissionRequest.Object.Raw = nil
-	admissionRequest.OldObject.Raw = nil
-
-	ctrl.Log.Info("AdmissionRequest", "Request", admissionRequest)
-}
-
 // invalidateDoubleDashes validates that the object name does not contain double dashes.
-func invalidateDoubleDashesInName(obj client.Object, l logr.Logger) error {
+func InvalidateDoubleDashesInName(obj client.Object, l logr.Logger) error {
 	if strings.Contains(obj.GetName(), "--") {
 		err := apierrors.NewInvalid(
 			obj.GetObjectKind().GroupVersionKind().GroupKind(),
@@ -150,8 +135,7 @@ func invalidateDoubleDashesInName(obj client.Object, l logr.Logger) error {
 }
 
 // capName validates that the name is not longer than the provided length.
-
-func capName(obj client.Object, l logr.Logger, length int) error {
+func CapName(obj client.Object, l logr.Logger, length int) error {
 	if len(obj.GetName()) > length {
 		err := apierrors.NewInvalid(
 			obj.GetObjectKind().GroupVersionKind().GroupKind(),
@@ -164,4 +148,19 @@ func capName(obj client.Object, l logr.Logger, length int) error {
 		return err
 	}
 	return nil
+}
+
+// logAdmissionRequest logs the AdmissionRequest.
+// This is necessary to audit log the AdmissionRequest independently of the api server audit logs.
+func logAdmissionRequest(ctx context.Context) {
+	admissionRequest, err := admission.RequestFromContext(ctx)
+	if err != nil {
+		return
+	}
+
+	// Remove all objects from the log
+	admissionRequest.Object.Raw = nil
+	admissionRequest.OldObject.Raw = nil
+
+	ctrl.Log.Info("AdmissionRequest", "Request", admissionRequest)
 }
