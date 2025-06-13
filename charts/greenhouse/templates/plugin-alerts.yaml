@@ -21,6 +21,11 @@ spec:
           name: ingress-ca-cert
     - name: global.greenhouse.baseDomain
       value: {{ .Values.global.dnsDomain }}
+    - name: alerts.caCert
+      valueFrom:
+        secret:
+          key: ca.crt
+          name: tls-alerts-{{ .Chart.Name }}-root-ca
     - name: alerts.alertmanager.enabled
       value: {{ .Values.alerts.enabled }}
     - name: alerts.alertmanager.ingress.enabled
