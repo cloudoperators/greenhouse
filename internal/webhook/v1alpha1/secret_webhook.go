@@ -43,7 +43,7 @@ func DefaultSecret(_ context.Context, _ client.Client, _ runtime.Object) error {
 
 //+kubebuilder:webhook:path=/validate--v1-secret,mutating=false,failurePolicy=ignore,sideEffects=None,groups="",matchPolicy=Exact,resources=secrets,verbs=create;update;delete,versions=v1,name=vsecret.kb.io,admissionReviewVersions=v1
 
-func ValidateCreateSecret(ctx context.Context, _ client.Client, o runtime.Object) (admission.Warnings, error) {
+func ValidateCreateSecret(ctx context.Context, c client.Client, o runtime.Object) (admission.Warnings, error) {
 	secret, ok := o.(*corev1.Secret)
 	if !ok {
 		return nil, nil
@@ -55,10 +55,16 @@ func ValidateCreateSecret(ctx context.Context, _ client.Client, o runtime.Object
 	if err := validateSecretGreenHouseType(ctx, secret); err != nil {
 		return nil, err
 	}
-	return nil, validateKubeconfigInSecret(secret)
+	if err := validateKubeconfigInSecret(secret); err != nil {
+		return nil, err
+	}
+	if err := webhook.ValidateLabelOwnedBy(ctx, c, secret); err != nil {
+		return admission.Warnings{"secret must have a support group team set as its owner"}, err
+	}
+	return nil, nil
 }
 
-func ValidateUpdateSecret(ctx context.Context, _ client.Client, _, o runtime.Object) (admission.Warnings, error) {
+func ValidateUpdateSecret(ctx context.Context, c client.Client, _, o runtime.Object) (admission.Warnings, error) {
 	secret, ok := o.(*corev1.Secret)
 	if !ok {
 		return nil, nil
@@ -70,7 +76,13 @@ func ValidateUpdateSecret(ctx context.Context, _ client.Client, _, o runtime.Obj
 	if err := validateSecretGreenHouseType(ctx, secret); err != nil {
 		return nil, err
 	}
-	return nil, validateKubeconfigInSecret(secret)
+	if err := validateKubeconfigInSecret(secret); err != nil {
+		return nil, err
+	}
+	if err := webhook.ValidateLabelOwnedBy(ctx, c, secret); err != nil {
+		return admission.Warnings{"secret must have a support group team set as its owner"}, err
+	}
+	return nil, nil
 }
 
 func ValidateDeleteSecret(_ context.Context, _ client.Client, _ runtime.Object) (admission.Warnings, error) {

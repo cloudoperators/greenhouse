@@ -45,7 +45,7 @@ const (
 	// LabelKeyExposeNamedPort is specifying the port to be exposed by name. LabelKeyExposeService needs to be set. Defaults to the first port if the named port is not found.
 	LabelKeyExposeNamedPort = "greenhouse.sap/exposeNamedPort"
 
-	// LabelKeyOwnedBy is used to identify the owning team of a resource.
+	// LabelKeyOwnedBy is used to identify the owning support-group team of a resource.
 	LabelKeyOwnedBy = "greenhouse.sap/owned-by"
 )
 

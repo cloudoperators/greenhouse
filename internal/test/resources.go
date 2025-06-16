@@ -35,6 +35,16 @@ func WithLabel(key, value string) func(*greenhousev1alpha1.Cluster) {
 	}
 }
 
+// WithClusterOwnedByLabelValue sets the value of the greenhouseapis.LabelKeyOwnedBy label on a Cluster
+func WithClusterOwnedByLabelValue(value string) func(*greenhousev1alpha1.Cluster) {
+	return func(c *greenhousev1alpha1.Cluster) {
+		if c.Labels == nil {
+			c.Labels = make(map[string]string, 1)
+		}
+		c.Labels[greenhouseapis.LabelKeyOwnedBy] = value
+	}
+}
+
 // WithClusterAnnotations sets metadata annotations on a Cluster
 func WithClusterAnnotations(annotations map[string]string) func(*greenhousev1alpha1.Cluster) {
 	return func(c *greenhousev1alpha1.Cluster) {
@@ -235,6 +245,16 @@ func WithPresetLabelValue(value string) func(*greenhousev1alpha1.Plugin) {
 			p.Labels = make(map[string]string, 1)
 		}
 		p.Labels[greenhouseapis.LabelKeyPluginPreset] = value
+	}
+}
+
+// WithPluginOwnedByLabelValue sets the value of the greenhouseapis.LabelKeyOwnedBy label on a Plugin
+func WithPluginOwnedByLabelValue(value string) func(*greenhousev1alpha1.Plugin) {
+	return func(p *greenhousev1alpha1.Plugin) {
+		if p.Labels == nil {
+			p.Labels = make(map[string]string, 1)
+		}
+		p.Labels[greenhouseapis.LabelKeyOwnedBy] = value
 	}
 }
 

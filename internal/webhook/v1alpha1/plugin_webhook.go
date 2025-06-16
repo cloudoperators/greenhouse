@@ -120,6 +120,11 @@ func ValidateCreatePlugin(ctx context.Context, c client.Client, obj runtime.Obje
 		return nil, field.Invalid(field.NewPath("spec").Child("releaseName"), plugin.Spec.ReleaseName, err.Error())
 	}
 
+	labelValidationError := webhook.ValidateLabelOwnedBy(ctx, c, plugin)
+	if labelValidationError != nil {
+		return admission.Warnings{"plugin must have a support group team set as its owner"}, labelValidationError
+	}
+
 	optionsFieldPath := field.NewPath("spec").Child("optionValues")
 	errList := validatePluginOptionValues(plugin.Spec.OptionValues, pluginDefinition, true, optionsFieldPath)
 	if len(errList) > 0 {
@@ -159,6 +164,12 @@ func ValidateUpdatePlugin(ctx context.Context, c client.Client, old, obj runtime
 	}
 
 	allErrs = append(allErrs, validation.ValidateImmutableField(oldPlugin.Spec.PluginDefinition, plugin.Spec.PluginDefinition, field.NewPath("spec", "pluginDefinition"))...)
+
+	labelValidationError := webhook.ValidateLabelOwnedBy(ctx, c, plugin)
+	if labelValidationError != nil {
+		allWarns = append(allWarns, "plugin must have a support group team set as its owner")
+		allErrs = append(allErrs, labelValidationError)
+	}
 
 	optionsFieldPath := field.NewPath("spec").Child("optionValues")
 	allErrs = append(allErrs, validatePluginOptionValues(plugin.Spec.OptionValues, pluginDefinition, true, optionsFieldPath)...)

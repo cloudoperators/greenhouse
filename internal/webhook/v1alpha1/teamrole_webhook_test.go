@@ -44,8 +44,8 @@ var _ = Describe("Validate Role Admission", func() {
 
 	BeforeEach(func() {
 		setup = test.NewTestSetup(test.Ctx, test.K8sClient, "role-admission")
-		cluster = setup.CreateCluster(test.Ctx, "test-cluster")
-		team = setup.CreateTeam(test.Ctx, "test-team")
+		team = setup.CreateTeam(test.Ctx, "test-team", test.WithSupportGroupLabel("true"))
+		cluster = setup.CreateCluster(test.Ctx, "test-cluster", test.WithClusterOwnedByLabelValue(team.Name))
 	})
 
 	AfterEach(func() {
@@ -54,8 +54,8 @@ var _ = Describe("Validate Role Admission", func() {
 			teamRoleBinding = nil
 		}
 		test.EventuallyDeleted(test.Ctx, test.K8sClient, teamRole)
-		test.EventuallyDeleted(test.Ctx, test.K8sClient, team)
 		test.EventuallyDeleted(test.Ctx, test.K8sClient, cluster)
+		test.EventuallyDeleted(test.Ctx, test.K8sClient, team)
 	})
 
 	It("should not allow creating a TeamRole with both Rules and AggregationRule set", func() {
