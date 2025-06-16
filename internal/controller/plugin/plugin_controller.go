@@ -92,7 +92,7 @@ func (r *PluginReconciler) SetupWithManager(name string, mgr ctrl.Manager) error
 			builder.WithPredicates(clientutil.PredicateFilterBySecretTypes(helmReleaseSecretType), predicate.GenerationChangedPredicate{}),
 		).
 		// If a PluginDefinition was changed, reconcile relevant Plugins.
-		Watches(&greenhousev1alpha1.PluginDefinition{}, handler.EnqueueRequestsFromMapFunc(r.enqueueAllPluginsForPluginDefinition),
+		Watches(&greenhousev1alpha1.ClusterPluginDefinition{}, handler.EnqueueRequestsFromMapFunc(r.enqueueAllPluginsForPluginDefinition),
 			builder.WithPredicates(predicate.GenerationChangedPredicate{})).
 		// Clusters and teams are passed as values to each Helm operation. Reconcile on change.
 		Watches(&greenhousev1alpha1.Cluster{}, handler.EnqueueRequestsFromMapFunc(r.enqueueAllPluginsForCluster)).
