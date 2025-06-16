@@ -410,6 +410,16 @@ func WithMappedIDPGroup(group string) func(*greenhousev1alpha1.Team) {
 	}
 }
 
+// WithLabel sets the greenhous.sap/support-group label on a Team
+func WithSupportGroupLabel(value string) func(*greenhousev1alpha1.Team) {
+	return func(c *greenhousev1alpha1.Team) {
+		if c.Labels == nil {
+			c.Labels = make(map[string]string, 1)
+		}
+		c.Labels[greenhouseapis.LabelKeySupportGroup] = value
+	}
+}
+
 // NewTeam returns a greenhousev1alpha1.Team object. Opts can be used to set the desired state of the Team.
 func NewTeam(ctx context.Context, name, namespace string, opts ...func(*greenhousev1alpha1.Team)) *greenhousev1alpha1.Team {
 	team := &greenhousev1alpha1.Team{

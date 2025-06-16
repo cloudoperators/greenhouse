@@ -70,6 +70,12 @@ const (
 	RolebindingTeamRefField = ".spec.teamRef"
 )
 
+// Team constants
+const (
+	// LabelKeySupportGroup is the key of the label that is used to mark a Team as a support group (greenhouse.sap/support-group:true).
+	LabelKeySupportGroup = "greenhouse.sap/support-group"
+)
+
 // cluster annotations
 const (
 	// MarkClusterDeletionAnnotation is used to mark a cluster for deletion.
