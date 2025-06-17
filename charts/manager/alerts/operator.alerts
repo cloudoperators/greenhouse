@@ -11,6 +11,8 @@ groups:
       labels:
         severity: warning
         service: greenhouse
+        organization: '{{ $labels.namespace }}'
+        support_group: '{{ $labels.owned_by }}'
     - alert: GreenhouseOperatorReconcileDurationHigher10Min
       annotations:
         description: "Greenhouse Operator reconciliation takes longer than ({{ $value | humanizeDuration }})."
@@ -21,6 +23,8 @@ groups:
       labels:
         severity: warning
         service: greenhouse
+        organization: '{{ $labels.namespace }}'
+        support_group: '{{ $labels.owned_by }}'
     - alert: GreenhouseOperatorWorkqueueNotDrained
       annotations:
         description:  The workqueue backlog of Greenhouse Operator controller - {{ $labels.name }} is not getting drained.
@@ -31,6 +35,8 @@ groups:
       labels:
         severity: warning
         service: greenhouse
+        organization: '{{ $labels.namespace }}'
+        support_group: '{{ $labels.owned_by }}'
   - name: greenhouse-webhooks.rules
     rules:
     - alert: GreenhouseWebhookLatencyHigh
@@ -43,6 +49,8 @@ groups:
       labels:
         severity: warning
         service: greenhouse
+        organization: '{{ $labels.namespace }}'
+        support_group: '{{ $labels.owned_by }}'
     - alert: GreenhouseWebhookErrorsHigh
       annotations:
         description: '{{ $value | humanizePercentage }} of webhook operations failed for {{ $labels.webhook }} webhook'
@@ -53,3 +61,5 @@ groups:
       labels:
         severity: warning
         service: greenhouse
+        organization: '{{ $labels.namespace }}'
+        support_group: '{{ $labels.owned_by }}'

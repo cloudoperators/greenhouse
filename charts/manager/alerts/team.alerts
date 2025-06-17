@@ -11,3 +11,16 @@ groups:
       labels:
         severity: warning
         service: greenhouse
+        organization: '{{ $labels.organization }}'
+        support_group: '{{ $labels.namespace }}-admin'  # routed to the org-admin team
+    - alert: GreenhouseTeamRoleBindingNotReady
+      expr: avg_over_time(greenhouse_team_rbac_ready[15m]) == 0
+      for: 30m
+      labels:
+        severity: warning
+        service: greenhouse
+        organization: '{{ $labels.organization }}'
+        support_group: '{{ $labels.namespace }}-admin'  # routed to the org-admin team
+      annotations:
+        summary: "Plugin not ready for over 15 minutes"
+        description: "The plugin {{ $labels.plugin }} in organization {{ $labels.organization }} on cluster {{ $labels.clusterName }} has not been ready for more than 15 minutes."
