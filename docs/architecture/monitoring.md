@@ -21,7 +21,7 @@ The three key signals of observability are **metrics**, **logs**, and **traces**
 Metrics are numerical data points reporting on a system health over time. Examples of metrics can be CPU usage, memory usage, request latency.
 
 #### Logs
-Logs are detailed records of system or application events. These can be in various formats, structured/unstructured, single-/multi-line, written to files/streamed etc. Logs are essential for post-incident analysis and incredibly useful for troubleshooting or improving a system.
+Logs are detailed records of system or application events. These can be in various formats like structured/unstructured, single-/multi-line or written to files/streamed. Logs provide text-based data for post-incident analysis and crucial for auditing, troubleshooting or improving a system.
 
 #### Traces
 Traces follow a request's journey through the system, capturing latency and failures across microservices. Traces are key for understanding dependencies, diagnosing bottlenecks and debugging the source code with real system data.
