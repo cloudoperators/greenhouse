@@ -53,5 +53,7 @@ var _ = Describe("Metrics controller", Ordered, func() {
 		tokenExpiry := prometheusTest.ToFloat64(secondsToTokenExpiryGauge.WithLabelValues(cluster.Name, cluster.Namespace, "test-owner"))
 		Expect(tokenExpiry).To(BeNumerically(">=", 595))
 		Expect(tokenExpiry).To(BeNumerically("<=", 600))
+		readyGauge := prometheusTest.ToFloat64(clusterReadyGauge.WithLabelValues(cluster.Name, cluster.Namespace, "test-owner"))
+		Expect(readyGauge).To(BeEquivalentTo(float64(0)), "clusterReady metric should be present and the cluster should not be ready")
 	})
 })

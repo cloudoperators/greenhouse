@@ -14,6 +14,13 @@ import (
 )
 
 var (
+	clusterReadyGauge = prometheus.NewGaugeVec(
+		prometheus.GaugeOpts{
+			Name: "greenhouse_cluster_ready",
+			Help: "Indicates whether the cluster is ready",
+		},
+		[]string{"cluster", "organization", "owned_by"})
+
 	kubernetesVersionsGauge = prometheus.NewGaugeVec(
 		prometheus.GaugeOpts{
 			Name: "greenhouse_cluster_k8s_versions_total",
@@ -48,4 +55,15 @@ func updateMetrics(cluster *greenhousev1alpha1.Cluster) {
 		"owned_by":  cluster.Labels[greenhouseapis.LabelKeyOwnedBy],
 	}
 	secondsToTokenExpiryGauge.With(secondsToExpiryLabels).Set(float64(secondsToExpiry))
+
+	clusterReadyLabels := prometheus.Labels{
+		"cluster":      cluster.Name,
+		"organization": cluster.Namespace,
+		"owned_by":     cluster.Labels[greenhouseapis.LabelKeyOwnedBy],
+	}
+	if cluster.Status.IsReadyTrue() {
+		clusterReadyGauge.With(clusterReadyLabels).Set(float64(1))
+	} else {
+		clusterReadyGauge.With(clusterReadyLabels).Set(float64(0))
+	}
 }
