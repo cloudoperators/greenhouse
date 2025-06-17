@@ -10,6 +10,6 @@ metadata:
     plugin: kube-monitoring
   name: {{ printf "%s-%s" (include "manager.fullname" $) (trimPrefix "alerts/" $path) | replace "." "-"}}
 spec:
-{{ include (print $.Template.BasePath "/" $path) . | indent 2 }}
+{{ printf "%s" $bytes | indent 2 }}
 {{- end }}
 {{- end }}
