@@ -4,8 +4,9 @@
 package teamrbac
 
 import (
-	greenhousev1alpha2 "github.com/cloudoperators/greenhouse/api/v1alpha2"
 	"github.com/prometheus/client_golang/prometheus"
+
+	greenhousev1alpha2 "github.com/cloudoperators/greenhouse/api/v1alpha2"
 )
 
 var (

@@ -4,8 +4,9 @@
 package organization
 
 import (
-	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
 	"github.com/prometheus/client_golang/prometheus"
+
+	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
 )
 
 var (
