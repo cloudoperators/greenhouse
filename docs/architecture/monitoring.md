@@ -24,7 +24,7 @@ Metrics are numerical data points reporting on a system health over time. Exampl
 Logs are detailed records of system or application events. These can be in various formats, structured/unstructured, single-/multi-line, written to files/streamed etc. Logs are essential for post-incident analysis and incredibly useful for troubleshooting or improving a system.
 
 #### Traces
-Traces follow a request's journey through the system, capturing latency and failures across microservices. Traces are key for understanding dependencies and diagnosing bottlenecks.
+Traces follow a request's journey through the system, capturing latency and failures across microservices. Traces are key for understanding dependencies, diagnosing bottlenecks and debugging the source code with real system data.
 
 ### Tools
 Common Open Source Tools to capture these signals are:
