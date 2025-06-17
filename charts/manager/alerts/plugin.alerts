@@ -6,7 +6,7 @@ groups:
       for: 15m
       labels:
         severity: warning
-        service: {{ $labels.plugin }}
+        service: '{{ $labels.plugin }}'
         plugin: '{{ $labels.plugin }}'
         organization: '{{ $labels.organization }}'
         cluster: '{{ $labels.clusterName }}'
