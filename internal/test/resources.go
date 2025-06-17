@@ -477,6 +477,16 @@ func WithSecretLabels(labels map[string]string) func(*corev1.Secret) {
 	}
 }
 
+// WithSecretOwnedByLabelValue sets the value of the greenhouseapis.LabelKeyOwnedBy label on a Secret
+func WithSecretOwnedByLabelValue(value string) func(*corev1.Secret) {
+	return func(c *corev1.Secret) {
+		if c.Labels == nil {
+			c.Labels = make(map[string]string, 1)
+		}
+		c.Labels[greenhouseapis.LabelKeyOwnedBy] = value
+	}
+}
+
 // WithSecretData sets the data of the Secret
 func WithSecretData(data map[string][]byte) func(*corev1.Secret) {
 	return func(s *corev1.Secret) {

@@ -33,6 +33,7 @@ var _ = BeforeSuite(func() {
 		RenewRemoteClusterBearerTokenAfter: 9 * time.Minute,
 	}).SetupWithManager)
 
+	test.RegisterWebhook("teamsWebhook", webhookv1alpha1.SetupTeamWebhookWithManager)
 	test.RegisterWebhook("clusterValidation", webhookv1alpha1.SetupClusterWebhookWithManager)
 	test.RegisterWebhook("secretsWebhook", webhookv1alpha1.SetupSecretWebhookWithManager)
 
