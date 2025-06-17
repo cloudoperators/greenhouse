@@ -1,0 +1,25 @@
+groups:
+- name: organization.alerts
+    rules:
+    - alert: GreenhouseOrganizationNotReady
+        expr: avg_over_time(greenhouse_organization_ready[15m]) == 0
+        for: 30m
+        labels:
+            severity: warning
+            service: greenhouse
+            organization: '{{ $labels.namespace }}'
+            support_group: '{{ $labels.namespace }}-admin'  # routed to the org-admin team
+        annotations:
+            summary: "Greenhouse Organization is not ready"
+            description: "The Greenhouse Organization {{ $labels.organization }} has not been ready for more than 15 minutes."
+    - alert: GreenhouseSCIMAccessNotReady
+        expr: avg_over_time(greenhouse_scim_access_ready[15m]) == 0
+        for: 30m
+        labels:
+            severity: warning
+            service: greenhouse
+            organization: '{{ $labels.namespace }}'
+            support_group: '{{ $labels.namespace }}-admin'  # routed to the org-admin team
+        annotations:
+            summary: "Greenhouse SCIM Access is not ready"
+            description: "The greenhouse_scim_access_ready metric is 0 for more than 5 minutes. SCIM access may not be operational."

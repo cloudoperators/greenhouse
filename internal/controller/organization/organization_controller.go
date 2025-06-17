@@ -358,6 +358,7 @@ func (r *OrganizationReconciler) setStatus() lifecycle.Conditioner {
 		scimAPIAvailableCondition := r.checkSCIMAPIAvailability(ctx, org)
 		readyCondition := calculateReadyCondition(scimAPIAvailableCondition)
 		org.Status.SetConditions(scimAPIAvailableCondition, readyCondition)
+		UpdateMetrics(org)
 	}
 }
 
