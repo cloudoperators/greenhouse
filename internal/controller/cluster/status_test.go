@@ -37,6 +37,7 @@ var _ = Describe("Cluster status", Ordered, func() {
 		remoteKubeConfig []byte
 
 		setup test.TestSetup
+		team  *greenhousev1alpha1.Team
 	)
 
 	BeforeAll(func() {
@@ -108,10 +109,14 @@ var _ = Describe("Cluster status", Ordered, func() {
 		Expect(remoteClient.Create(test.Ctx, &node3, &client.CreateOptions{})).
 			Should(Succeed(), "there should be no error creating the node")
 
+		By("Creating a support-group Team")
+		team = setup.CreateTeam(test.Ctx, "test-team", test.WithSupportGroupLabel("true"))
+
 		By("Creating a Secret with a valid KubeConfig for the remote cluster")
 		secret := setup.CreateSecret(test.Ctx, validClusterName,
 			test.WithSecretType(greenhouseapis.SecretTypeKubeConfig),
-			test.WithSecretData(map[string][]byte{greenhouseapis.KubeConfigKey: remoteKubeConfig}))
+			test.WithSecretData(map[string][]byte{greenhouseapis.KubeConfigKey: remoteKubeConfig}),
+			test.WithSecretOwnedByLabelValue(team.Name))
 
 		By("Checking the cluster resource has been created")
 		Eventually(func() error {
@@ -119,12 +124,15 @@ var _ = Describe("Cluster status", Ordered, func() {
 		}).Should(Succeed(), fmt.Sprintf("eventually the cluster %s should exist", secret.Name))
 
 		By("Creating a cluster without a secret")
-		invalidCluster = setup.CreateCluster(test.Ctx, invalidClusterName, test.WithAccessMode(greenhousev1alpha1.ClusterAccessModeDirect))
+		invalidCluster = setup.CreateCluster(test.Ctx, invalidClusterName,
+			test.WithAccessMode(greenhousev1alpha1.ClusterAccessModeDirect),
+			test.WithClusterOwnedByLabelValue(team.Name))
 	})
 
 	AfterAll(func() {
 		test.MustDeleteCluster(test.Ctx, test.K8sClient, client.ObjectKeyFromObject(&validCluster))
 		test.MustDeleteCluster(test.Ctx, test.K8sClient, client.ObjectKeyFromObject(invalidCluster))
+		test.EventuallyDeleted(test.Ctx, test.K8sClient, team)
 		Expect(remoteEnv.Stop()).Should(Succeed(), "there should be no error stopping the remote environment")
 	})
 
@@ -175,7 +183,7 @@ var _ = Describe("Cluster status", Ordered, func() {
 
 		By("Triggering a cluster reconcile by adding a label to speed up things. Requeue interval is set to 2min")
 		Expect(test.K8sClient.Get(test.Ctx, types.NamespacedName{Name: validCluster.Name, Namespace: setup.Namespace()}, &validCluster)).ShouldNot(HaveOccurred(), "There should be no error getting the cluster resource")
-		validCluster.SetLabels(map[string]string{"reconcile-me": "true"})
+		validCluster.Labels["reconcile-me"] = "true"
 		Expect(test.K8sClient.Update(test.Ctx, &validCluster)).ShouldNot(HaveOccurred(), "There should be no error updating the cluster resource")
 
 		Eventually(func(g Gomega) bool {
