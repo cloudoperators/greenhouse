@@ -12,7 +12,7 @@ groups:
         severity: warning
         service: greenhouse
         organization: '{{ $labels.namespace }}'
-        support_group: '{{ $labels.owned_by }}'
+        support_group: '{{ $labels.namespace }}-admin'  # routed to the org-admin team
     - alert: GreenhouseOperatorReconcileDurationHigher10Min
       annotations:
         description: "Greenhouse Operator reconciliation takes longer than ({{ $value | humanizeDuration }})."
@@ -24,7 +24,7 @@ groups:
         severity: warning
         service: greenhouse
         organization: '{{ $labels.namespace }}'
-        support_group: '{{ $labels.owned_by }}'
+        support_group: '{{ $labels.namespace }}-admin'  # routed to the org-admin team
     - alert: GreenhouseOperatorWorkqueueNotDrained
       annotations:
         description:  The workqueue backlog of Greenhouse Operator controller - {{ $labels.name }} is not getting drained.
@@ -36,7 +36,7 @@ groups:
         severity: warning
         service: greenhouse
         organization: '{{ $labels.namespace }}'
-        support_group: '{{ $labels.owned_by }}'
+        support_group: '{{ $labels.namespace }}-admin'  # routed to the org-admin team
   - name: greenhouse-webhooks.rules
     rules:
     - alert: GreenhouseWebhookLatencyHigh
@@ -50,7 +50,7 @@ groups:
         severity: warning
         service: greenhouse
         organization: '{{ $labels.namespace }}'
-        support_group: '{{ $labels.owned_by }}'
+        support_group: '{{ $labels.namespace }}-admin'  # routed to the org-admin team
     - alert: GreenhouseWebhookErrorsHigh
       annotations:
         description: '{{ $value | humanizePercentage }} of webhook operations failed for {{ $labels.webhook }} webhook'
@@ -62,4 +62,4 @@ groups:
         severity: warning
         service: greenhouse
         organization: '{{ $labels.namespace }}'
-        support_group: '{{ $labels.owned_by }}'
+        support_group: '{{ $labels.namespace }}-admin'  # routed to the org-admin team
