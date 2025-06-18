@@ -445,10 +445,13 @@ var _ = Describe("Plugin E2E", Ordered, func() {
 		Expect(len(pluginDefinitionList.Items)).To(BeEquivalentTo(1))
 
 		By("Checking the helmrepository is ready")
-		helmRepositoryList := &sourcecontroller.HelmRepositoryList{}
-		err = adminClient.List(ctx, helmRepositoryList)
-		Expect(err).NotTo(HaveOccurred())
-		Expect(len(helmRepositoryList.Items)).To(BeEquivalentTo(1))
+		Eventually(func(g Gomega) {
+			helmRepositoryList := &sourcecontroller.HelmRepositoryList{}
+			err = adminClient.List(ctx, helmRepositoryList)
+			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(len(helmRepositoryList.Items)).To(BeEquivalentTo(1))
+			g.Expect(helmRepositoryList.Items[0].Spec.URL).To(Equal("oci://ghcr.io/stefanprodan/charts"), "the helm repository URL should match the expected value")
+		})
 
 		By("Prepare the plugin")
 		testPlugin := fixtures.PreparePlugin("test-podinfo-plugin", env.TestNamespace,
@@ -491,17 +494,36 @@ var _ = Describe("Plugin E2E", Ordered, func() {
 		err = adminClient.Create(ctx, testPluginPreset)
 		Expect(err).ToNot(HaveOccurred())
 
-		By("Checking the helmrelease is created")
-		helmReleaseList := &helmcontroller.HelmReleaseList{}
-		err = adminClient.List(ctx, helmReleaseList)
-		Expect(err).NotTo(HaveOccurred())
-		Expect(len(helmReleaseList.Items)).To(BeEquivalentTo(1))
+		By("Checking the plugin status is ready")
+		Eventually(func(g Gomega) {
+			pluginList := &greenhousev1alpha1.PluginList{}
+			err = adminClient.List(ctx, pluginList)
+			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(len(pluginList.Items)).To(BeEquivalentTo(1))
+			g.Expect(pluginList.Items[0].Labels).To(HaveKeyWithValue("greenhouse.sap/deployment-tool", "flux"), "plugin should have the greenhouse.sap/deployment-tool label set to flux")
+		}).Should(Succeed())
 
-		/*
-			By("Deleting the plugin definition")
-			test.EventuallyDeleted(ctx, adminClient, testPluginDefinition)
-			By("Deleting the plugin preset")
-			test.EventuallyDeleted(ctx, adminClient, testPluginPreset)
-		*/
+		By("Checking the helmRelease is created")
+		Eventually(func(g Gomega) {
+			helmReleaseList := &helmcontroller.HelmReleaseList{}
+			err = adminClient.List(ctx, helmReleaseList)
+			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(len(helmReleaseList.Items)).To(BeEquivalentTo(1))
+		}).Should(Succeed())
+
+		By("Checking the deployment is created on the remote cluster")
+		Eventually(func(g Gomega) {
+			deploymentList := &appsv1.DeploymentList{}
+			err = remoteClient.List(ctx, deploymentList, client.InNamespace(env.TestNamespace))
+			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(len(deploymentList.Items)).To(BeEquivalentTo(1), "there should be exactly one deployment")
+			g.Expect(deploymentList.Items[0].Spec.Replicas).To(PointTo(Equal(int32(1))), "the deployment should have 1 replica")
+		}).Should(Succeed())
+
+		By("Deleting the plugin preset")
+		test.EventuallyDeleted(ctx, adminClient, testPluginPreset)
+		By("Deleting the plugin definition")
+		test.EventuallyDeleted(ctx, adminClient, testPluginDefinition)
+
 	})
 })
