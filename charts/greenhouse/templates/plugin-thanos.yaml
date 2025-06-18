@@ -1,4 +1,12 @@
 {{- if .Values.thanos.enabled }}
+{{- $storeList := list }}
+{{- range $index, $plugin := (lookup "greenhouse.sap/v1alpha1" "Plugin" "ccloud" "").items }}
+{{- range $index, $option :=  $plugin.spec.optionValues  }}
+{{- if eq $option.name "thanos.query.ingress.grpc.hosts" }}
+{{- $storeList = append $storeList (index $option.value 0).host }}
+{{- end }}
+{{- end }}
+{{- end }}
 apiVersion: greenhouse.sap/v1alpha1
 kind: Plugin
 metadata:
@@ -20,7 +28,7 @@ spec:
     - name: thanos.query.standalone
       value: false
     - name: thanos.query.stores
-      value: []
+      value: {{ $storeList }}
     - name: thanos.query.ingress.enabled
       value: true
     - name: thanos.query.ingress.hosts
@@ -43,6 +51,8 @@ spec:
     - name: thanos.store.enabled
       value: true
     - name: thanos.compactor.enabled
+      value: true
+    - name: blackboxexporter.enabled
       value: true
   pluginDefinition: thanos
 {{- end }}

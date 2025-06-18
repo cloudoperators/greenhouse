@@ -72,4 +72,11 @@ spec:
         key: "tls.key"
         name: {{ .Values.monitoring.tlsSecretName }}
 {{- end }}
+  - name: blackboxExporter.enabled
+    value: true
+  - name: blackboxExporter.extraVolumes
+    - name: blackbox-exporter-tls
+      secret:
+        defaultMode: 420
+        secretName: tls-prometheus-kube-monitoring
 {{ end }}
