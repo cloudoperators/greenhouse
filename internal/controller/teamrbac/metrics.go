@@ -6,6 +6,7 @@ package teamrbac
 import (
 	"github.com/prometheus/client_golang/prometheus"
 
+	greenhouseapis "github.com/cloudoperators/greenhouse/api"
 	greenhousev1alpha2 "github.com/cloudoperators/greenhouse/api/v1alpha2"
 )
 
@@ -15,7 +16,7 @@ var (
 			Name: "greenhouse_team_rbac_ready",
 			Help: "Indicates whether the team RBAC is ready",
 		},
-		[]string{"team_role_binding", "team", "organization"},
+		[]string{"team_role_binding", "team", "organization", "owned_by"},
 	)
 )
 
@@ -28,6 +29,7 @@ func updateMetrics(teamRoleBinding *greenhousev1alpha2.TeamRoleBinding) {
 		"team_role_binding": teamRoleBinding.Name,
 		"team":              teamRoleBinding.Spec.TeamRef,
 		"organization":      teamRoleBinding.Namespace,
+		"owned_by":          teamRoleBinding.GetLabels()[greenhouseapis.LabelKeyOwnedBy],
 	}
 
 	if teamRoleBinding.Status.IsReadyTrue() {
