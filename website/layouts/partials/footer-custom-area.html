@@ -6,8 +6,9 @@
 <div class="container p-5">
   <div class="row align-items-center gx-4">
     <div class="col-auto">
-      <span class="navbar-logo">
-        {{ with resources.Get "icons/logo.svg" }}{{ ( . | minify ).Content |
+      <span class="footer-logo">
+        {{ with resources.Get "icons/logo.svg" }} {{ $svg := .Content |
+        replaceRE `fill="#[0-9a-fA-F]{3,6}"` `fill="currentColor"` }} {{ $svg |
         safeHTML }} {{ end }}
       </span>
     </div>
