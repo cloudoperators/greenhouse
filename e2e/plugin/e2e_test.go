@@ -25,6 +25,9 @@ import (
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
+	helmcontroller "github.com/fluxcd/helm-controller/api/v2"
+	sourcecontroller "github.com/fluxcd/source-controller/api/v1"
+
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
 	"github.com/cloudoperators/greenhouse/e2e/plugin/fixtures"
 	"github.com/cloudoperators/greenhouse/e2e/shared"
@@ -427,5 +430,78 @@ var _ = Describe("Plugin E2E", Ordered, func() {
 
 		By("Deleting the plugin definition")
 		test.EventuallyDeleted(ctx, adminClient, pluginDefinition)
+	})
+
+	It("should deploy the plugin with flux", func() {
+		By("Creating plugin definition")
+		testPluginDefinition := fixtures.PreparePodInfoPluginDefinition(env.TestNamespace)
+		err := adminClient.Create(ctx, testPluginDefinition)
+		Expect(err).ToNot(HaveOccurred())
+
+		By("Checking the plugin definition is ready")
+		pluginDefinitionList := &greenhousev1alpha1.PluginDefinitionList{}
+		err = adminClient.List(ctx, pluginDefinitionList)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(len(pluginDefinitionList.Items)).To(BeEquivalentTo(1))
+
+		By("Checking the helmrepository is ready")
+		helmRepositoryList := &sourcecontroller.HelmRepositoryList{}
+		err = adminClient.List(ctx, helmRepositoryList)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(len(helmRepositoryList.Items)).To(BeEquivalentTo(1))
+
+		By("Prepare the plugin")
+		testPlugin := fixtures.PreparePlugin("test-podinfo-plugin", env.TestNamespace,
+			test.WithPluginDefinition(testPluginDefinition.Name),
+			test.WithReleaseName("test-podinfo-plugin"),
+			test.WithReleaseNamespace(env.TestNamespace),
+			test.WithPluginOptionValue("replicaCount", &apiextensionsv1.JSON{Raw: []byte("1")}, nil))
+
+		By("Add labels to remote cluster")
+		remoteCluster := &greenhousev1alpha1.Cluster{}
+		err = adminClient.Get(ctx, client.ObjectKey{Name: remoteClusterName, Namespace: env.TestNamespace}, remoteCluster)
+		Expect(err).ToNot(HaveOccurred())
+		remoteCluster.Labels = map[string]string{
+			"app": "test-cluster",
+		}
+		err = adminClient.Update(ctx, remoteCluster)
+		Expect(err).ToNot(HaveOccurred())
+
+		By("Creating the plugin preset")
+		testPluginPreset := &greenhousev1alpha1.PluginPreset{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "test-podinfo-plugin-preset",
+				Namespace: env.TestNamespace,
+				Labels: map[string]string{
+					"greenhouse.sap/deployment-tool": "flux",
+				},
+				Annotations: map[string]string{
+					"greenhouse.sap/propagate-labels": "greenhouse.sap/deployment-tool",
+				},
+			},
+			Spec: greenhousev1alpha1.PluginPresetSpec{
+				Plugin: testPlugin.Spec,
+				ClusterSelector: metav1.LabelSelector{
+					MatchLabels: map[string]string{
+						"app": "test-cluster",
+					},
+				},
+			},
+		}
+		err = adminClient.Create(ctx, testPluginPreset)
+		Expect(err).ToNot(HaveOccurred())
+
+		By("Checking the helmrelease is created")
+		helmReleaseList := &helmcontroller.HelmReleaseList{}
+		err = adminClient.List(ctx, helmReleaseList)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(len(helmReleaseList.Items)).To(BeEquivalentTo(1))
+
+		/*
+			By("Deleting the plugin definition")
+			test.EventuallyDeleted(ctx, adminClient, testPluginDefinition)
+			By("Deleting the plugin preset")
+			test.EventuallyDeleted(ctx, adminClient, testPluginPreset)
+		*/
 	})
 })
