@@ -27,6 +27,7 @@ This is the process for releasing a new minor version of Greenhouse:
 flowchart TD
     main[main] --"create release branch"--> releaseBranch["release/v&lt;major&gt;.&lt;minor&gt;"]
     main --"action cherry-picks bugfix"--> releaseBranch
+    releaseBranch --"bump chart version & greenhouse image tags"-->releaseRCTag
     releaseBranch --"tag branch as release candidate"--> releaseRCTag["v&lt;major&gt;.&lt;minor&gt;.0-rc.*"]
     releaseRCTag --"action creates draft release"--> draftRCRelease["Draft Release Candidate"] 
     releaseRCTag --> hasBug@{ shape: diamond, label: "Bug within 3 days?" }
@@ -43,7 +44,8 @@ At the end of the sprint, the release shepherd should create a new release branc
 
 1. Create a new release branch from `main` (`git checkout release-v<MAJOR.MINOR>`)
 2. Push the release branch to the repository
-3. Tag the release branch with the release candidate version tag `v<major>.<minor>.0-rc.0` (`git tag v<major>.<minor>.0-rc.0`)
+3. Bump the version of the Greenhouse Helm chart and ensure that the greenhouse image tags are updated to the latest tag.
+4. Tag the release branch with the release candidate version tag `v<major>.<minor>.0-rc.0` (`git tag v<major>.<minor>.0-rc.0`)
 
 ### How to release a new version
 
