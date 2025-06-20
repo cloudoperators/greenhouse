@@ -1,0 +1,110 @@
+---
+title: "Ownership"
+weight: 3
+---
+
+## What is Ownership with Greenhouse
+
+`Ownership` in Greenhouse is the combination of two of the core features:
+
+- User and Organization management via [Teams](./../core-concepts/teams.md)
+- Resource deployment via [Plugins](./../core-concepts/plugins.md) to remote [Clusters](./../core-concepts/clusters.md)
+
+Greenhouse provides a `1:1` relationship between a `Team` and
+
+- `PluginPresets`
+- `Plugins`
+- `Clusters`
+- `TeamRoleBindings`
+- `Secrets`
+
+We call this relationship `Ownership`.
+
+## Why Ownership of Resources
+
+[Operational processes](processes.md) facilitaed via Greenhouse rely on `Ownership`:
+
+By identifying the owner of a resource it is possible to route operational tasks on the resource to the owner.
+
+## How is Ownership achieved
+
+Greenhouse expects a `label` with the key `greenhouse.sap/owned-by` with a value matching an existing `Team` on the following resources in the Greenhouse central cluster:
+
+- `PluginPresets`*
+- `Plugins`*
+- `Clusters`*
+- `TeamRoleBindings`*
+- `Secrets`
+
+and on all
+
+- k8s resources (e.g. `Deployments`, `Pods`, ...) exposing metrics on the remote clusters
+
+> *Presence of the `greenhouse.sap/owned-by` label is enforced via a validating webhook. Value needs to match a valid `Team.name`.
+
+### Label Transport
+
+#### On Greenhouse central Cluster
+
+The Greenhouse controller [transports labels from a source resource to a target resource](https://github.com/cloudoperators/greenhouse/blob/main/internal/lifecycle/propagation.go) on the Greenhouse cluster.
+This is currently active for:
+
+- `Secrets` that are used to bootsrap a `Cluster`
+- `PluginPresets` creating `Plugins`
+
+The transport works via an `metadat.annotation` on the source:
+
+```yaml
+metadata:
+  ...
+  labels:
+    foo: bar
+    qux: baz
+    owned_by: foo-team
+    ...
+  annotations:
+    greenhouse.sap/propagate-labels: "foo, owned_by"
+  ...
+```
+
+which results in `metadata.labels` and a state `metadata.annotation` added in the target:
+
+```yaml
+metadata:
+  annotations:
+   ...
+    greenhouse.sap/last-applied-propagator: '{"labelKeys":["foo","owned_by"]}'
+  labels:
+    foo: bar
+    owned_by: foo-team
+   ...
+```
+
+#### On Resources on Remote `Clusters`
+
+Greenhouse will provide the automation to label all resources created by a `Plugin` on the remote `Cluster` in the future:
+<https://github.com/cloudoperators/greenhouse-extensions/issues/704>
+
+Currently Greenhouse provides the `owned-by` label as a `OptionValue` [to be consumed by the underlying helm chart of the `Plugin`](./../../contribute/plugins.md#development).
+
+## Ownership and Operations
+
+Operational processes facilitated via Greenhouse heavily rely on the `Ownership` principle. It is used to route operational tasks to [Support Groups](./../core-concepts/teams.md##Support-groups).
+
+### Labels used for Operational Tasks
+
+We focus on `labels` in three different places:
+
+- On resources (e.g. `PluginPresets`, `Clusters` but also k8s `Deployments`, `Pods`, etc.)
+- On metrics exposed by those resources
+- Prometheus alerts based on metrics
+
+The following `labels` are used by Greenhouse automation:
+
+| label                                 | description                                                      | used on                | used by                |
+|---------------------------------------|------------------------------------------------------------------|------------------------|------------------------|
+| `greenhouse.sap/owned-by`             | Identifies the owning team of a resource                         | resources, metrics    | [Ownership](ownership.md) |
+| `support_group`     | Specifies the support group responsible for the alert          |  Alerts    | Alert routing, security management   |
+| `service` | Groups resources belonging to a service      | Resources, metrics, alerts             | Security management, alert routing            |
+| `region`           | Indicates the region an alert is firing in                     | Metrics, alerts   | Alert routing  |
+| `cluster`          | Specifies the cluster a metric is exposed on     | Metrics, alerts        | Greenhouse Metrics, Alerts       |
