@@ -86,25 +86,3 @@ Greenhouse will provide the automation to label all resources created by a `Plug
 <https://github.com/cloudoperators/greenhouse-extensions/issues/704>
 
 Currently Greenhouse provides the `owned-by` label as a `OptionValue` [to be consumed by the underlying helm chart of the `Plugin`](./../../contribute/plugins.md#development).
-
-## Ownership and Operations
-
-Operational processes facilitated via Greenhouse heavily rely on the `Ownership` principle. It is used to route operational tasks to [Support Groups](./../core-concepts/teams.md##Support-groups).
-
-### Labels used for Operational Tasks
-
-We focus on `labels` in three different places:
-
-- On resources (e.g. `PluginPresets`, `Clusters` but also k8s `Deployments`, `Pods`, etc.)
-- On metrics exposed by those resources
-- Prometheus alerts based on metrics
-
-The following `labels` are used by Greenhouse automation:
-
-| label                                 | description                                                      | used on                | used by                |
-|---------------------------------------|------------------------------------------------------------------|------------------------|------------------------|
-| `greenhouse.sap/owned-by`             | Identifies the owning team of a resource                         | resources, metrics    | [Ownership](ownership.md) |
-| `support_group`     | Specifies the support group responsible for the alert          |  Alerts    | Alert routing, security management   |
-| `service` | Groups resources belonging to a service      | Resources, metrics, alerts             | Security management, alert routing            |
-| `region`           | Indicates the region an alert is firing in                     | Metrics, alerts   | Alert routing  |
-| `cluster`          | Specifies the cluster a metric is exposed on     | Metrics, alerts        | Greenhouse Metrics, Alerts       |
