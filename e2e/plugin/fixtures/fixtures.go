@@ -97,6 +97,19 @@ func PrepareCertManagerPluginDefinition(namespace string) *greenhousev1alpha1.Pl
 	)
 }
 
+func PreparePodInfoPluginDefinition(namespace string) *greenhousev1alpha1.PluginDefinition {
+	return PreparePluginDefinition("podinfo", namespace,
+		test.WithVersion("6.9.0"),
+		test.WithHelmChart(
+			&greenhousev1alpha1.HelmChartReference{
+				Name:       "podinfo",
+				Repository: "oci://ghcr.io/stefanprodan/charts",
+				Version:    "6.9.0",
+			},
+		),
+	)
+}
+
 func PreparePlugin(name, namespace string, opts ...func(*greenhousev1alpha1.Plugin)) *greenhousev1alpha1.Plugin {
 	plugin := &greenhousev1alpha1.Plugin{
 		TypeMeta: metav1.TypeMeta{

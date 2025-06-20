@@ -8,6 +8,7 @@ config:
       postSetup:
         - command: kubectl config use-context kind-greenhouse-admin
         - command: make cert-manager
+        - command: make flux
     dependencies:
       - manifest:
           release: greenhouse
