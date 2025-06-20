@@ -10,6 +10,9 @@ groups:
       for: 15m
       labels:
         severity: warning
+        service: greenhouse
+        organization: '{{ $labels.namespace }}'
+        support_group: '{{ $labels.namespace }}-admin'  # routed to the org-admin team
     - alert: GreenhouseOperatorReconcileDurationHigher10Min
       annotations:
         description: "Greenhouse Operator reconciliation takes longer than ({{ $value | humanizeDuration }})."
@@ -19,6 +22,9 @@ groups:
       for: 15m
       labels:
         severity: warning
+        service: greenhouse
+        organization: '{{ $labels.namespace }}'
+        support_group: '{{ $labels.namespace }}-admin'  # routed to the org-admin team
     - alert: GreenhouseOperatorWorkqueueNotDrained
       annotations:
         description:  The workqueue backlog of Greenhouse Operator controller - {{ $labels.name }} is not getting drained.
@@ -28,15 +34,9 @@ groups:
       for: 15m
       labels:
         severity: warning
-    - alert: GreenhousePluginHelmChartTestFailures
-      expr: |
-        sum by(plugin, cluster, namespace)(rate(greenhouse_plugin_chart_test_runs_total{result="Error"}[15m])) > 0
-      for: 30m
-      labels:
-        severity: warning
-      annotations:
-        summary: "Helm Chart test failing for plugin {{ $labels.plugin }}"
-        description: "Helm Chart test for plugin {{ $labels.plugin }} in namespace {{ $labels.namespace }} on cluster {{ $labels.cluster }} has been failing for the last 30 minutes"
+        service: greenhouse
+        organization: '{{ $labels.namespace }}'
+        support_group: '{{ $labels.namespace }}-admin'  # routed to the org-admin team
   - name: greenhouse-webhooks.rules
     rules:
     - alert: GreenhouseWebhookLatencyHigh
@@ -48,6 +48,9 @@ groups:
       for: 15m
       labels:
         severity: warning
+        service: greenhouse
+        organization: '{{ $labels.namespace }}'
+        support_group: '{{ $labels.namespace }}-admin'  # routed to the org-admin team
     - alert: GreenhouseWebhookErrorsHigh
       annotations:
         description: '{{ $value | humanizePercentage }} of webhook operations failed for {{ $labels.webhook }} webhook'
@@ -57,39 +60,6 @@ groups:
       for: 15m
       labels:
         severity: warning
-  - name: greenhouse-cluster.rules
-    rules:
-    - alert: GreenhouseClusterTokenExpiry
-      annotations:
-        description: The kubeconfig token for {{ $labels.cluster }} in {{ $labels.namespace }} will expire less than 20 hours.
-        summary: The kubeconfig token is not refreshed.
-      expr: greenhouse_cluster_kubeconfig_validity_seconds < 3600 * 20
-      for: 30m
-      labels:
-        severity: warning
-    - alert: GreenhouseClusterKubernetesVersionOutOfMaintenance
-      annotations:
-        summary: "Kubernetes version out of maintenance"
-        description: "Cluster {{ $labels.cluster }} in namespace {{ $labels.namespace }} is running Kubernetes version {{ $labels.version }} which is out of maintenance."
-      expr: greenhouse_cluster_k8s_versions_total{version=~"v1\\.(1[0-9]|2[0-1])\\..*"} == 1
-      labels:
-        severity: warning
-    - alert: GreenhousePluginConstantlyFailing
-      annotations:
-        summary: "Plugin reconciliation is constantly failing"
-        description: "Plugin {{ $labels.plugin }} in organization {{ $labels.organization }} keeps failing with reason: {{ $labels.reason }}"
-      expr: sum by (organization, plugin) (increase(greenhouse_plugin_reconcile_total{result="error"}[5m])) > 0
-      for: 15m
-      labels:
-        severity: warning
-  - name: greenhouse-team.rules
-    rules:
-    - alert: GreenhouseTeamMembershipCountDrop
-      annotations:
-        description: The number of members for team {{ $labels.teams }} in organization {{ $labels.namespace }} has dropped by more than 5 in the last 5 minutes.
-        summary: Team members count drop detected
-      expr: |
-        sum by (namespace, team) (delta(greenhouse_team_members_count{service="greenhouse-controller-manager-metrics-service"}[5m])) < -5
-      for: 5m
-      labels:
-        severity: warning
+        service: greenhouse
+        organization: '{{ $labels.namespace }}'
+        support_group: '{{ $labels.namespace }}-admin'  # routed to the org-admin team
