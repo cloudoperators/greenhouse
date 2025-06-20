@@ -83,6 +83,7 @@ teams:
     mappedIdPGroup: Admin IDP Group
 
 thanos:
+  enabled: true
   ingress:
     host: thanos.local
 
