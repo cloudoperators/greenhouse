@@ -63,7 +63,7 @@ metadata:
     greenhouse.sap/owned_by: foo-team
     ...
   annotations:
-    greenhouse.sap/propagate-labels: "foo, owned_by"
+    greenhouse.sap/propagate-labels: "foo, greenhouse.sap/owned_by"
   ...
 ```
 
