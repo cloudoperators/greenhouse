@@ -45,10 +45,14 @@ With the [Alerts Plugin](https://github.com/cloudoperators/greenhouse-extensions
 
 It is good practice to also route alerts by Support Group and `severity` to specific Alertmanager receivers (e.g. Slack channels).
 
+## Lifecycle management of k8s Clusters
+
+All `Cluster` related alerts, including version expiration and other maintenance tasks are routed to the owning `support_group` of the `Cluster`.
+
 ## Security Management
 
-Security posture and vulnerability management is achieved through the [heureka Plugin](https://github.com/cloudoperators/heureka). It scans for security violations in running k8s `containers` and displays these by owning `Team` and `service`.
+Security posture and vulnerability management is achieved through the [heureka Plugin](https://github.com/cloudoperators/heureka). It scans for security violations in running k8s `containers` and displays these by `support_group` and `service`.
 
 ## Secret Management
 
-With secret management in Greenhouse we want to have alerts on expiring `Secrets` in need of rotation. These alerts will be routed to the respective owners.
+With secret management in Greenhouse we want to have alerts on expiring `Secrets` in need of rotation. These alerts will be routed to the respective `support_groups`. See [roadmap item](https://github.com/cloudoperators/greenhouse/issues/1211) for further information.
