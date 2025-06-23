@@ -22,13 +22,13 @@ We focus on `labels` in three different places:
 
 - On resources (e.g. `PluginPresets`, `Clusters` but also k8s `Deployments`, `Pods`, etc.)
 - On metrics exposed by those resources
-- Prometheus alerts based on metrics
+- On Prometheus alerts based on metrics
 
 The following `labels` are used by Greenhouse automation:
 
 | label                                 | description                                                      | used on                | used by                |
 |---------------------------------------|------------------------------------------------------------------|------------------------|------------------------|
-| `greenhouse.sap/owned-by`             | Identifies the owning team of a resource                         | resources, metrics    | Security management, lifecycle management, secret rotation |
+| `greenhouse.sap/owned-by`             | Identifies the owning team of a resource                         | Resources, metrics    | Security management, lifecycle management, secret rotation |
 | `support_group`     | Specifies the support group responsible for the alert          |  Alerts    | Alert routing   |
 | `service` | Groups resources belonging to a service      | Resources, metrics, alerts             | Security management, alert routing            |
 | `region`           | Indicates the region an alert is firing in                     | Metrics, alerts   | Alert routing  |

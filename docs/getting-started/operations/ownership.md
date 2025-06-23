@@ -22,7 +22,7 @@ We call this relationship `Ownership`.
 
 ## Why Ownership of Resources
 
-[Operational processes](processes.md) facilitaed via Greenhouse rely on `Ownership`:
+[Operational processes](processes.md) facilitated via Greenhouse rely on `Ownership`:
 
 By identifying the owner of a resource it is possible to route operational tasks on the resource to the owner.
 
