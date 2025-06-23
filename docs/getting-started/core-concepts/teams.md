@@ -29,7 +29,7 @@ flowchart LR
   subgraph "Greenhouse"
     subgraph "Organization"
         team[Team 'observability']
-        `TeamRole` [TeamRole 'cluster-admin']
+        teamRole [TeamRole 'cluster-admin']
         clusterA[Cluster 'observability']
         trb[TeamRoleBinding 'observability-admin']
     end
@@ -46,7 +46,7 @@ flowchart LR
   end
 
   trb -.- team
-  trb -.- `TeamRole` 
+  trb -.- teamRole 
   trb -."select by label".- clusterA
   trb --"creates"--> clusterARoleBinding1
   trb --"creates"--> clusterARoleBinding2
