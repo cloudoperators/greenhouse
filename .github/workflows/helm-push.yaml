@@ -2,8 +2,8 @@ name: Package Helm Chart and publish to GitHub Packages
 
 on:
   push:
-    branches:
-        - main
+    tags:
+      - "v*.*.*"
     paths:
         - 'charts/**'
 
@@ -60,7 +60,7 @@ jobs:
         with:
           files: |
             ${{ matrix.chartDir }}/**
-    
+
       - name: Check if Helm chart with same version already exists
         id: check-chart
         if: steps.changed-files.outputs.all_changed_files != ''
