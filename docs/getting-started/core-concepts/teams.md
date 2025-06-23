@@ -29,7 +29,7 @@ flowchart LR
   subgraph "Greenhouse"
     subgraph "Organization"
         team[Team 'observability']
-        teamRole [TeamRole 'cluster-admin']
+        teamRole[TeamRole 'cluster-admin']
         clusterA[Cluster 'observability']
         trb[TeamRoleBinding 'observability-admin']
     end
