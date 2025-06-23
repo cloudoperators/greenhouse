@@ -60,7 +60,7 @@ metadata:
   labels:
     foo: bar
     qux: baz
-    owned_by: foo-team
+    greenhouse.sap/owned_by: foo-team
     ...
   annotations:
     greenhouse.sap/propagate-labels: "foo, owned_by"
@@ -73,10 +73,10 @@ which results in `metadata.labels` and a state `metadata.annotation` added in th
 metadata:
   annotations:
    ...
-    greenhouse.sap/last-applied-propagator: '{"labelKeys":["foo","owned_by"]}'
+    greenhouse.sap/last-applied-propagator: '{"labelKeys":["foo","greenhouse.sap/owned_by"]}'
   labels:
     foo: bar
-    owned_by: foo-team
+    greenhouse.sap/owned_by: foo-team
    ...
 ```
 
