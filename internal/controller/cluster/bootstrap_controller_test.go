@@ -49,6 +49,7 @@ var _ = Describe("Bootstrap controller", Ordered, func() {
 					test.WithSecretType(greenhouseapis.SecretTypeKubeConfig),
 					test.WithSecretData(map[string][]byte{greenhouseapis.KubeConfigKey: remoteKubeConfig}),
 					test.WithSecretOwnedByLabelValue(team.Name),
+					test.WithSecretAnnotations(map[string]string{lifecycle.PropagateLabelsAnnotation: "owned-by"}),
 				)
 
 				By("Checking the accessmode is set correctly")

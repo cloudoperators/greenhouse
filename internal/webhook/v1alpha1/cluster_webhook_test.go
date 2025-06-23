@@ -153,28 +153,44 @@ var _ = Describe("Cluster Webhook", Ordered, func() {
 			),
 			false,
 		),
-		Entry("it should deny creation of cluster without owned-by label",
+	)
+
+	DescribeTable("Validate Create Cluster Warnings",
+		func(cluster *greenhousev1alpha1.Cluster, withWarning bool) {
+			err := DefaultCluster(test.Ctx, nil, cluster)
+			Expect(err).NotTo(HaveOccurred())
+
+			warnings, err := ValidateCreateCluster(test.Ctx, setup.Client, cluster)
+			if withWarning {
+				Expect(err).ToNot(HaveOccurred())
+				Expect(warnings).ToNot(BeEmpty())
+			} else {
+				Expect(err).ToNot(HaveOccurred())
+				Expect(warnings).To(BeEmpty())
+			}
+		},
+		Entry("it should set warning on creation of cluster without owned-by label",
 			test.NewCluster(test.Ctx, "test-cluster", test.TestNamespace),
 			true,
 		),
-		Entry("it should deny creation of cluster with owned-by label pointing to a non-existent Team",
+		Entry("it should set warning on creation of cluster with owned-by label pointing to a non-existent Team",
 			test.NewCluster(test.Ctx, "test-cluster", test.TestNamespace,
 				test.WithClusterOwnedByLabelValue("invalid-team"),
 			),
 			true,
 		),
-		Entry("it should deny creation of cluster with owned-by label pointing to a Team without support-group label",
-			test.NewCluster(test.Ctx, "test-cluster", test.TestNamespace,
-				test.WithClusterOwnedByLabelValue(teamWithoutSupportGroupName),
-			),
-			true,
-		),
-		Entry("it should deny creation of cluster with owned-by label pointing to a Team with support-group:false label",
-			test.NewCluster(test.Ctx, "test-cluster", test.TestNamespace,
-				test.WithClusterOwnedByLabelValue(teamWithFalseSupportGroupName),
-			),
-			true,
-		),
+		// Entry("it should set warning on creation of cluster with owned-by label pointing to a Team without support-group label",
+		// 	test.NewCluster(test.Ctx, "test-cluster", test.TestNamespace,
+		// 		test.WithClusterOwnedByLabelValue(teamWithoutSupportGroupName),
+		// 	),
+		// 	true,
+		// ),
+		// Entry("it should set warning on creation of cluster with owned-by label pointing to a Team with support-group:false label",
+		// 	test.NewCluster(test.Ctx, "test-cluster", test.TestNamespace,
+		// 		test.WithClusterOwnedByLabelValue(teamWithFalseSupportGroupName),
+		// 	),
+		// 	true,
+		// ),
 	)
 
 	DescribeTable("Validate Update Cluster",
@@ -215,28 +231,44 @@ var _ = Describe("Cluster Webhook", Ordered, func() {
 			),
 			true,
 		),
-		Entry("it should deny update of cluster without owned-by label",
+	)
+
+	DescribeTable("Validate Update Cluster Warnings",
+		func(cluster *greenhousev1alpha1.Cluster, withWarning bool) {
+			err := DefaultCluster(test.Ctx, nil, cluster)
+			Expect(err).NotTo(HaveOccurred())
+
+			warnings, err := ValidateCreateCluster(test.Ctx, setup.Client, cluster)
+			if withWarning {
+				Expect(err).ToNot(HaveOccurred())
+				Expect(warnings).ToNot(BeEmpty())
+			} else {
+				Expect(err).ToNot(HaveOccurred())
+				Expect(warnings).To(BeEmpty())
+			}
+		},
+		Entry("it should set warning on update of cluster without owned-by label",
 			test.NewCluster(test.Ctx, "test-cluster", test.TestNamespace),
 			true,
 		),
-		Entry("it should deny update of cluster with owned-by label pointing to a non-existent Team",
+		Entry("it should set warning on update of cluster with owned-by label pointing to a non-existent Team",
 			test.NewCluster(test.Ctx, "test-cluster", test.TestNamespace,
 				test.WithClusterOwnedByLabelValue("invalid-team"),
 			),
 			true,
 		),
-		Entry("it should deny update of cluster with owned-by label pointing to a Team without support-group label",
-			test.NewCluster(test.Ctx, "test-cluster", test.TestNamespace,
-				test.WithClusterOwnedByLabelValue(teamWithoutSupportGroupName),
-			),
-			true,
-		),
-		Entry("it should deny update of cluster with owned-by label pointing to a Team with support-group:false label",
-			test.NewCluster(test.Ctx, "test-cluster", test.TestNamespace,
-				test.WithClusterOwnedByLabelValue(teamWithFalseSupportGroupName),
-			),
-			true,
-		),
+		// Entry("it should set warning on update of cluster with owned-by label pointing to a Team without support-group label",
+		// 	test.NewCluster(test.Ctx, "test-cluster", test.TestNamespace,
+		// 		test.WithClusterOwnedByLabelValue(teamWithoutSupportGroupName),
+		// 	),
+		// 	true,
+		// ),
+		// Entry("it should set warning on update of cluster with owned-by label pointing to a Team with support-group:false label",
+		// 	test.NewCluster(test.Ctx, "test-cluster", test.TestNamespace,
+		// 		test.WithClusterOwnedByLabelValue(teamWithFalseSupportGroupName),
+		// 	),
+		// 	true,
+		// ),
 	)
 
 	DescribeTable("Validate Delete Cluster",

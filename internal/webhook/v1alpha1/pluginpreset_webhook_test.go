@@ -181,15 +181,6 @@ var _ = Describe("PluginPreset Admission Tests", Ordered, func() {
 		Expect(err.Error()).
 			To(ContainSubstring("field is immutable"), "the error must reflect the field is immutable")
 
-		_, err = clientutil.CreateOrPatch(test.Ctx, test.K8sClient, cut, func() error {
-			cut.Labels[greenhouseapis.LabelKeyOwnedBy] = ""
-			return nil
-		})
-		Expect(err).
-			To(HaveOccurred(), "there must be an error updating the PluginPreset owned-by label to empty value")
-		Expect(err.Error()).
-			To(ContainSubstring("label greenhouse.sap/owned-by value is required"), "the error must reflect the label value is required")
-
 		test.EventuallyDeleted(test.Ctx, test.K8sClient, cut)
 	})
 

@@ -49,6 +49,7 @@ var (
 	clusterBK8sClient  client.Client
 	clusterBRemote     *envtest.Environment
 
+	testTeam               = test.NewTeam(test.Ctx, "test-team", test.TestNamespace, test.WithSupportGroupLabel("true"))
 	pluginPresetDefinition = test.NewPluginDefinition(test.Ctx, pluginPresetDefinitionName, test.WithHelmChart(
 		&greenhousev1alpha1.HelmChartReference{
 			Name:       "./../../test/fixtures/chartWithConfigMap",
@@ -91,13 +92,16 @@ var _ = Describe("PluginPreset Controller Lifecycle", Ordered, func() {
 		err = otherRemoteK8sClient.Create(test.Ctx, &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: releaseNamespace}})
 		Expect(err).ShouldNot(HaveOccurred(), "there should be no error creating the namespace")
 
+		By("creating the test Team")
+		Expect(test.K8sClient.Create(test.Ctx, testTeam)).To(Succeed(), "there should be no error creating a test Team")
+
 		By("creating two test clusters")
 		for clusterName, kubeCfg := range map[string][]byte{clusterA: clusterAKubeConfig, clusterB: clusterBKubeConfig} {
-			err := test.K8sClient.Create(test.Ctx, cluster(clusterName))
+			err := test.K8sClient.Create(test.Ctx, cluster(clusterName, testTeam.Name))
 			Expect(err).Should(Succeed(), "failed to create test cluster: "+clusterName)
 
 			By("creating a secret with a valid kubeconfig for a remote cluster")
-			secretObj := clusterSecret(clusterName)
+			secretObj := clusterSecret(clusterName, testTeam.Name)
 			secretObj.Data = map[string][]byte{
 				greenhouseapis.KubeConfigKey: kubeCfg,
 			}
@@ -278,9 +282,9 @@ var _ = Describe("PluginPreset Controller Lifecycle", Ordered, func() {
 		err := test.K8sClient.Create(test.Ctx, testPluginPreset)
 		Expect(err).ToNot(HaveOccurred(), "failed to create test PluginPreset")
 
-		err = test.K8sClient.Create(test.Ctx, cluster(clusterB))
+		err = test.K8sClient.Create(test.Ctx, cluster(clusterB, testTeam.Name))
 		Expect(err).ToNot(HaveOccurred(), "failed to create test cluster: "+clusterB)
-		secretObj := clusterSecret(clusterB)
+		secretObj := clusterSecret(clusterB, testTeam.Name)
 		secretObj.Data = map[string][]byte{
 			greenhouseapis.KubeConfigKey: clusterBKubeConfig,
 		}
@@ -1125,7 +1129,7 @@ var _ = Describe("getReleaseName", func() {
 })
 
 // clusterSecret returns the secret for a cluster.
-func clusterSecret(clusterName string) *corev1.Secret {
+func clusterSecret(clusterName, ownerTeamName string) *corev1.Secret {
 	return &corev1.Secret{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "Secret",
@@ -1134,13 +1138,14 @@ func clusterSecret(clusterName string) *corev1.Secret {
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      clusterName,
 			Namespace: test.TestNamespace,
+			Labels:    map[string]string{greenhouseapis.LabelKeyOwnedBy: ownerTeamName},
 		},
 		Type: greenhouseapis.SecretTypeKubeConfig,
 	}
 }
 
 // cluster returns a cluster object with the given name.
-func cluster(name string) *greenhousev1alpha1.Cluster {
+func cluster(name, ownerTeamName string) *greenhousev1alpha1.Cluster {
 	return &greenhousev1alpha1.Cluster{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "Cluster",
@@ -1150,8 +1155,9 @@ func cluster(name string) *greenhousev1alpha1.Cluster {
 			Name:      name,
 			Namespace: test.TestNamespace,
 			Labels: map[string]string{
-				"cluster": name,
-				"foo":     "bar",
+				"cluster":                      name,
+				greenhouseapis.LabelKeyOwnedBy: ownerTeamName,
+				"foo":                          "bar",
 			},
 		},
 		Spec: greenhousev1alpha1.ClusterSpec{

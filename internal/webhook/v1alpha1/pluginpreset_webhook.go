@@ -89,10 +89,9 @@ func ValidateCreatePluginPreset(ctx context.Context, c client.Client, o runtime.
 		allErrs = append(allErrs, field.Invalid(field.NewPath("spec").Child("plugin").Child("pluginDefinition"), pluginPreset.Spec.Plugin.PluginDefinition, "PluginDefinition could not be retrieved: "+err.Error()))
 	}
 
-	labelValidationError := webhook.ValidateLabelOwnedBy(ctx, c, pluginPreset)
-	if labelValidationError != nil {
-		allErrs = append(allErrs, labelValidationError)
-		allWarns = append(allWarns, "plugin preset must have a support group team set as its owner")
+	labelValidationWarning := webhook.ValidateLabelOwnedBy(ctx, c, pluginPreset)
+	if labelValidationWarning != "" {
+		allWarns = append(allWarns, "PluginPreset should have a Team set as its owner", labelValidationWarning)
 	}
 
 	// validate OptionValues defined by the Preset
@@ -128,10 +127,9 @@ func ValidateUpdatePluginPreset(ctx context.Context, c client.Client, oldObj, cu
 		allErrs = append(allErrs, err)
 	}
 
-	labelValidationError := webhook.ValidateLabelOwnedBy(ctx, c, pluginPreset)
-	if labelValidationError != nil {
-		allErrs = append(allErrs, labelValidationError)
-		allWarns = append(allWarns, "plugin preset must have a support group team set as its owner")
+	labelValidationWarning := webhook.ValidateLabelOwnedBy(ctx, c, pluginPreset)
+	if labelValidationWarning != "" {
+		allWarns = append(allWarns, "PluginPreset should have a Team set as its owner", labelValidationWarning)
 	}
 
 	if len(allErrs) > 0 {

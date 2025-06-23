@@ -34,11 +34,14 @@ var (
 
 // Test stimuli.
 var (
+	testTeam = test.NewTeam(test.Ctx, "test-team", test.TestNamespace, test.WithSupportGroupLabel("true"))
+
 	testPlugin = test.NewPlugin(test.Ctx, "test-plugindefinition", test.TestNamespace,
 		test.WithCluster("test-cluster"),
 		test.WithPluginDefinition("test-plugindefinition"),
 		test.WithReleaseName("release-test"),
-		test.WithReleaseNamespace(test.TestNamespace))
+		test.WithReleaseNamespace(test.TestNamespace),
+		test.WithPluginOwnedByLabelValue(testTeam.Name))
 
 	testPluginWithSR = test.NewPlugin(test.Ctx, "test-plugin-secretref", test.TestNamespace,
 		test.WithCluster("test-cluster"),
@@ -50,6 +53,7 @@ var (
 				Key:  "test-key",
 			},
 		}),
+		test.WithPluginOwnedByLabelValue(testTeam.Name),
 	)
 
 	testPluginWithCRDs = test.NewPlugin(test.Ctx, "test-plugin-crd", test.TestNamespace,
@@ -57,6 +61,7 @@ var (
 		test.WithPluginDefinition("test-plugindefinition-crd"),
 		test.WithReleaseName("plugindefinition-crd"),
 		test.WithReleaseNamespace(test.TestNamespace),
+		test.WithPluginOwnedByLabelValue(testTeam.Name),
 	)
 
 	testPluginWithExposedService = test.NewPlugin(test.Ctx, "test-plugin-exposed", test.TestNamespace,
@@ -64,6 +69,7 @@ var (
 		test.WithPluginDefinition("test-plugindefinition-exposed"),
 		test.WithReleaseName("plugindefinition-exposed"),
 		test.WithReleaseNamespace(test.TestNamespace),
+		test.WithPluginOwnedByLabelValue(testTeam.Name),
 	)
 
 	testSecret = corev1.Secret{
@@ -74,6 +80,7 @@ var (
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "test-secret",
 			Namespace: test.TestNamespace,
+			Labels:    map[string]string{greenhouseapis.LabelKeyOwnedBy: testTeam.Name},
 		},
 		Data: map[string][]byte{
 			"test-key": []byte("secret-value"),
@@ -105,7 +112,8 @@ var (
 		}))
 
 	testCluster = test.NewCluster(test.Ctx, "test-cluster", test.TestNamespace,
-		test.WithAccessMode(greenhousev1alpha1.ClusterAccessModeDirect))
+		test.WithAccessMode(greenhousev1alpha1.ClusterAccessModeDirect),
+		test.WithClusterOwnedByLabelValue(testTeam.Name))
 
 	testClusterK8sSecret = corev1.Secret{
 		TypeMeta: metav1.TypeMeta{
@@ -115,6 +123,7 @@ var (
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "test-cluster",
 			Namespace: test.TestNamespace,
+			Labels:    map[string]string{greenhouseapis.LabelKeyOwnedBy: testTeam.Name},
 		},
 		Type: greenhouseapis.SecretTypeKubeConfig,
 	}
@@ -132,9 +141,6 @@ func checkReadyConditionComponentsUnderTest(g Gomega, plugin *greenhousev1alpha1
 	helmReconcileFailedCondition := plugin.Status.GetConditionByType(greenhousev1alpha1.HelmReconcileFailedCondition)
 	g.Expect(helmReconcileFailedCondition).ToNot(BeNil())
 	g.Expect(helmReconcileFailedCondition.Status).To(Equal(metav1.ConditionFalse), "HelmReconcileFailed condition should be false")
-	// helmChartTestSucceededCondition := plugin.Status.GetConditionByType(greenhousev1alpha1.HelmChartTestSucceededCondition)
-	// g.Expect(helmChartTestSucceededCondition).ToNot(BeNil())
-	// g.Expect(helmChartTestSucceededCondition.Status).To(Equal(metav1.ConditionTrue), "HelmChartTestSucceeded condition should be true")
 }
 
 var _ = Describe("HelmController reconciliation", Ordered, func() {
@@ -144,6 +150,9 @@ var _ = Describe("HelmController reconciliation", Ordered, func() {
 
 		By("bootstrapping remote cluster")
 		bootstrapRemoteCluster()
+
+		By("creating a Team")
+		Expect(test.K8sClient.Create(test.Ctx, testTeam)).Should(Succeed(), "there should be no error creating the Team")
 
 		By("creating a cluster")
 		Expect(test.K8sClient.Create(test.Ctx, testCluster)).Should(Succeed(), "there should be no error creating the cluster resource")
@@ -164,6 +173,7 @@ var _ = Describe("HelmController reconciliation", Ordered, func() {
 	})
 
 	AfterAll(func() {
+		test.EventuallyDeleted(test.Ctx, test.K8sClient, testTeam)
 		err := remoteEnvTest.Stop()
 		Expect(err).
 			NotTo(HaveOccurred(), "there must be no error stopping the remote environment")

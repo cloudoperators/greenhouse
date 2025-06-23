@@ -88,11 +88,6 @@ func (r *BootstrapReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		return ctrl.Result{}, err
 	}
 
-	if err := r.ensureLabelPropagation(ctx, kubeConfigSecret); err != nil {
-		log.FromContext(ctx).Error(err, "unable to propagate labels for cluster", "namespace", kubeConfigSecret.Namespace, "name", kubeConfigSecret.Name)
-		return ctrl.Result{}, err
-	}
-
 	return ctrl.Result{RequeueAfter: utils.DefaultRequeueInterval}, nil
 }
 
@@ -154,17 +149,17 @@ func (r *BootstrapReconciler) reconcileCluster(ctx context.Context, kubeConfigSe
 	if isFound && cluster.Spec.AccessMode != "" {
 		return nil
 	}
-	return r.createOrPatchCluster(ctx, cluster, kubeConfigSecret)
+	return r.createOrUpdateCluster(ctx, cluster, kubeConfigSecret)
 }
 
-// createOrPatchCluster creates or patches the cluster resource and persists input err in the cluster.status.message.
-func (r *BootstrapReconciler) createOrPatchCluster(
+// createOrUpdateCluster creates or updates the cluster resource and persists input err in the cluster.status.message.
+func (r *BootstrapReconciler) createOrUpdateCluster(
 	ctx context.Context,
 	cluster *greenhousev1alpha1.Cluster,
 	kubeConfigSecret *corev1.Secret,
 ) error {
 	// Ignore clusters about to be deleted.
-	if cluster.DeletionTimestamp != nil {
+	if !cluster.DeletionTimestamp.IsZero() {
 		return nil
 	}
 	accessMode := greenhousev1alpha1.ClusterAccessModeDirect
@@ -194,15 +189,17 @@ func (r *BootstrapReconciler) createOrPatchCluster(
 	if kubeConfigSecret.Type == greenhouseapis.SecretTypeOIDCConfig {
 		annotations[greenhouseapis.ClusterConnectivityAnnotation] = greenhouseapis.ClusterConnectivityOIDC
 	}
-	result, err := clientutil.CreateOrPatch(ctx, r.Client, cluster, func() error {
+	result, err := controllerutil.CreateOrUpdate(ctx, r.Client, cluster, func() error {
 		cluster.SetAnnotations(annotations)
 		cluster.Spec.AccessMode = accessMode
+		// Transport KubeConfigSecret labels to Cluster
+		cluster = (lifecycle.NewPropagator(kubeConfigSecret, cluster).ApplyLabels()).(*greenhousev1alpha1.Cluster) //nolint:errcheck
 		return nil
 	})
 	if err != nil {
 		return err
 	}
-	if result != clientutil.OperationResultNone {
+	if result != controllerutil.OperationResultNone {
 		logMessage := fmt.Sprintf("%s cluster", result)
 		log.FromContext(ctx).Info(logMessage, "namespace", cluster.Namespace, "name", cluster.Name)
 	}
@@ -222,22 +219,6 @@ func (r *BootstrapReconciler) ensureOwnerReferences(ctx context.Context, kubeCon
 		return controllerutil.SetOwnerReference(cluster, kubeConfigSecret, r.Scheme())
 	})
 	return err
-}
-
-func (r *BootstrapReconciler) ensureLabelPropagation(ctx context.Context, kubeConfigSecret *corev1.Secret) error {
-	cluster, isFound, err := r.getClusterAndIgnoreNotFoundError(ctx, kubeConfigSecret)
-	if err != nil {
-		log.FromContext(ctx).Error(err, "failed to get cluster", "namespace", kubeConfigSecret.GetNamespace(), "name", kubeConfigSecret.GetName())
-		return err
-	}
-	if !isFound {
-		return nil
-	}
-	if cluster.DeletionTimestamp != nil {
-		return nil
-	}
-	cluster = (lifecycle.NewPropagator(kubeConfigSecret, cluster).ApplyLabels()).(*greenhousev1alpha1.Cluster) //nolint:errcheck
-	return r.Update(ctx, cluster)
 }
 
 func (r *BootstrapReconciler) getClusterAndIgnoreNotFoundError(ctx context.Context, kubeConfigSecret *corev1.Secret) (cluster *greenhousev1alpha1.Cluster, isFound bool, err error) {

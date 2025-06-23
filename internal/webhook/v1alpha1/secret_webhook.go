@@ -58,8 +58,9 @@ func ValidateCreateSecret(ctx context.Context, c client.Client, o runtime.Object
 	if err := validateKubeconfigInSecret(secret); err != nil {
 		return nil, err
 	}
-	if err := webhook.ValidateLabelOwnedBy(ctx, c, secret); err != nil {
-		return admission.Warnings{"secret must have a support group team set as its owner"}, err
+	labelValidationWarning := webhook.ValidateLabelOwnedBy(ctx, c, secret)
+	if labelValidationWarning != "" {
+		return admission.Warnings{"Secret should have a Team set as its owner", labelValidationWarning}, nil
 	}
 	return nil, nil
 }
@@ -79,8 +80,9 @@ func ValidateUpdateSecret(ctx context.Context, c client.Client, _, o runtime.Obj
 	if err := validateKubeconfigInSecret(secret); err != nil {
 		return nil, err
 	}
-	if err := webhook.ValidateLabelOwnedBy(ctx, c, secret); err != nil {
-		return admission.Warnings{"secret must have a support group team set as its owner"}, err
+	labelValidationWarning := webhook.ValidateLabelOwnedBy(ctx, c, secret)
+	if labelValidationWarning != "" {
+		return admission.Warnings{"Secret should have a Team set as its owner", labelValidationWarning}, nil
 	}
 	return nil, nil
 }

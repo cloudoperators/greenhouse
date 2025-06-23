@@ -105,9 +105,9 @@ func ValidateCreateCluster(ctx context.Context, c client.Client, obj runtime.Obj
 		return admission.Warnings{"you cannot create a cluster with deletion annotation"}, err
 	}
 
-	labelValidationError := webhook.ValidateLabelOwnedBy(ctx, c, cluster)
-	if labelValidationError != nil {
-		return admission.Warnings{"cluster must have a support group team set as its owner"}, labelValidationError
+	labelValidationWarning := webhook.ValidateLabelOwnedBy(ctx, c, cluster)
+	if labelValidationWarning != "" {
+		return admission.Warnings{"Cluster should have a Team set as its owner", labelValidationWarning}, nil
 	}
 
 	return nil, nil
@@ -126,9 +126,9 @@ func ValidateUpdateCluster(ctx context.Context, c client.Client, _, currObj runt
 		logger.Error(err, "update request denied", "cluster", cluster.GetName())
 		return admission.Warnings{"update is not allowed"}, err
 	}
-	labelValidationError := webhook.ValidateLabelOwnedBy(ctx, c, cluster)
-	if labelValidationError != nil {
-		return admission.Warnings{"cluster must have a support group team set as its owner"}, labelValidationError
+	labelValidationWarning := webhook.ValidateLabelOwnedBy(ctx, c, cluster)
+	if labelValidationWarning != "" {
+		return admission.Warnings{"Cluster should have a Team set as its owner", labelValidationWarning}, nil
 	}
 	return nil, nil
 }
