@@ -43,7 +43,7 @@ All alerts processed with Greenhouse need the `support_group` label that can be 
 
 With the [Alerts Plugin](https://github.com/cloudoperators/greenhouse-extensions/tree/main/alerts) a holistic alerts dashboard is integrated to the Greenhouse UI. This dashboard is prefiltered on the support group a user is member of. It directly displays alerts by `region` and `severity`. Also `service` is prominently displayed.
 
-It is good practice to also route alerts by Support Group and `severity` to specific Alertmanager receivers (e.g. Slack channels).
+It is good practice to also route alerts by `support_group` and/or `severity` to specific Alertmanager receivers (e.g. Slack channels).
 
 ## Lifecycle management of k8s Clusters
 
