@@ -131,7 +131,7 @@ func ValidateCreatePlugin(ctx context.Context, c client.Client, obj runtime.Obje
 
 	labelValidationWarning := webhook.ValidateLabelOwnedBy(ctx, c, plugin)
 	if labelValidationWarning != "" {
-		return admission.Warnings{"Plugin should have a Team set as its owner", labelValidationWarning}, nil
+		return admission.Warnings{"Plugin should have a support-group Team set as its owner", labelValidationWarning}, nil
 	}
 	return nil, nil
 }

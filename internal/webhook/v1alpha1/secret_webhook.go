@@ -87,7 +87,7 @@ func ValidateUpdateSecret(ctx context.Context, c client.Client, _, o runtime.Obj
 	if secret.Type != helmReleaseSecretType {
 		labelValidationWarning := webhook.ValidateLabelOwnedBy(ctx, c, secret)
 		if labelValidationWarning != "" {
-			return admission.Warnings{"Secret should have a Team set as its owner", labelValidationWarning}, nil
+			return admission.Warnings{"Secret should have a support-group Team set as its owner", labelValidationWarning}, nil
 		}
 	}
 	return nil, nil

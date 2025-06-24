@@ -107,7 +107,7 @@ func ValidateCreateCluster(ctx context.Context, c client.Client, obj runtime.Obj
 
 	labelValidationWarning := webhook.ValidateLabelOwnedBy(ctx, c, cluster)
 	if labelValidationWarning != "" {
-		return admission.Warnings{"Cluster should have a Team set as its owner", labelValidationWarning}, nil
+		return admission.Warnings{"Cluster should have a support-group Team set as its owner", labelValidationWarning}, nil
 	}
 
 	return nil, nil

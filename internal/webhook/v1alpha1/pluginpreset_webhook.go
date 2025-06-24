@@ -91,7 +91,7 @@ func ValidateCreatePluginPreset(ctx context.Context, c client.Client, o runtime.
 
 	labelValidationWarning := webhook.ValidateLabelOwnedBy(ctx, c, pluginPreset)
 	if labelValidationWarning != "" {
-		allWarns = append(allWarns, "PluginPreset should have a Team set as its owner", labelValidationWarning)
+		allWarns = append(allWarns, "PluginPreset should have a support-group Team set as its owner", labelValidationWarning)
 	}
 
 	// validate OptionValues defined by the Preset
