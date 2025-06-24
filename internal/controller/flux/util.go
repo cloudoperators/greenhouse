@@ -13,6 +13,7 @@ import (
 )
 
 const (
+	defaultNameSpace  = "greenhouse"
 	deliveryToolLabel = "greenhouse.sap/deployment-tool"
 	deliveryToolFlux  = "flux"
 )
@@ -41,13 +42,13 @@ func convertName(repoName string) (convertedName, repoType string) {
 	return convertedName, repoType
 }
 
-func findHelmRepositoryByUrl(ctx context.Context, k8sClient client.Client, nS, url string) *sourcecontroller.HelmRepository {
+func findHelmRepositoryByURL(ctx context.Context, k8sClient client.Client, namespace, url string) *sourcecontroller.HelmRepository {
 	helmRepositoryList := new(sourcecontroller.HelmRepositoryList)
 	if err := k8sClient.List(ctx, helmRepositoryList); err != nil {
 		return nil
 	}
 	for _, helmRepository := range helmRepositoryList.Items {
-		if helmRepository.Namespace == nS && helmRepository.Spec.URL == url {
+		if helmRepository.Namespace == namespace && helmRepository.Spec.URL == url {
 			return &helmRepository
 		}
 	}

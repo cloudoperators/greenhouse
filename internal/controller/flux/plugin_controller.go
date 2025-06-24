@@ -8,25 +8,20 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"time"
 
-	"github.com/fluxcd/pkg/apis/meta"
-	"golang.org/x/time/rate"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/client-go/util/workqueue"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
-	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	helmcontroller "github.com/fluxcd/helm-controller/api/v2"
+	fluxmeta "github.com/fluxcd/pkg/apis/meta"
 	sourcecontroller "github.com/fluxcd/source-controller/api/v1"
 
 	greenhouseapis "github.com/cloudoperators/greenhouse/api"
@@ -39,9 +34,8 @@ import (
 )
 
 const (
-	defaultNameSpace = "greenhouse"
-	maxHistory       = 10
-	secretKind       = "Secret"
+	maxHistory = 10
+	secretKind = "Secret"
 )
 
 // FluxReconciler reconciles pluginpresets and plugins and translates them into Flux resources
@@ -90,17 +84,14 @@ func (r *FluxReconciler) SetupWithManager(name string, mgr ctrl.Manager) error {
 		},
 	}
 
+	labelSelectorPredicate, err := predicate.LabelSelectorPredicate(labelSelector)
+	if err != nil {
+		return err
+	}
+
 	return ctrl.NewControllerManagedBy(mgr).
 		Named(name).
-		WithOptions(controller.Options{
-			RateLimiter: workqueue.NewTypedMaxOfRateLimiter(
-				workqueue.NewTypedItemExponentialFailureRateLimiter[reconcile.Request](30*time.Second, 1*time.Hour),
-				&workqueue.TypedBucketRateLimiter[reconcile.Request]{Limiter: rate.NewLimiter(rate.Limit(10), 100)}),
-			MaxConcurrentReconciles: 3,
-		}).
-		For(&greenhousev1alpha1.Plugin{}, builder.WithPredicates(
-			clientutil.LabelSelectorPredicate(labelSelector),
-		)).
+		For(&greenhousev1alpha1.Plugin{}, builder.WithPredicates(labelSelectorPredicate)).
 		// If a PluginDefinition was changed, reconcile relevant Plugins.
 		Watches(&greenhousev1alpha1.PluginDefinition{}, handler.EnqueueRequestsFromMapFunc(r.enqueueAllPluginsForPluginDefinition),
 			builder.WithPredicates(predicate.GenerationChangedPredicate{})).
@@ -147,7 +138,7 @@ func (r *FluxReconciler) EnsureCreated(ctx context.Context, resource lifecycle.R
 	if !ok {
 		return ctrl.Result{}, lifecycle.Failed, errors.New("resource is not a Plugin")
 	}
-	var nS string
+	var namespace string
 
 	// Check if the deliveryToolLabel label exists and has the value "flux"
 	if value, ok := plugin.Labels[deliveryToolLabel]; !ok || value != deliveryToolFlux {
@@ -161,12 +152,16 @@ func (r *FluxReconciler) EnsureCreated(ctx context.Context, resource lifecycle.R
 		return ctrl.Result{}, lifecycle.Failed, errors.New("plugin definition not found")
 	}
 
-	if pluginDef.Namespace == "" {
-		nS = defaultNameSpace
-	} else {
-		nS = pluginDef.Namespace
+	switch {
+	case pluginDef.Namespace != "":
+		namespace = pluginDef.Namespace
+	default:
+		// if the namespace is empty, we use the default namespace
+		// preparation for the future when we will use the namespaced plugin definitions
+		namespace = defaultNameSpace
 	}
-	helmRepository := findHelmRepositoryByUrl(ctx, r.Client, nS, pluginDef.Spec.HelmChart.Repository)
+
+	helmRepository := findHelmRepositoryByURL(ctx, r.Client, namespace, pluginDef.Spec.HelmChart.Repository)
 	if helmRepository == nil {
 		return ctrl.Result{}, lifecycle.Failed, errors.New("helm repository not found")
 	}
@@ -174,7 +169,7 @@ func (r *FluxReconciler) EnsureCreated(ctx context.Context, resource lifecycle.R
 	helmRelease, err := NewHelmReleaseBuilder().New(plugin.Name, plugin.Namespace).
 		WithChart(helmcontroller.HelmChartTemplateSpec{
 			Chart:    pluginDef.Spec.HelmChart.Name,
-			Interval: &metav1.Duration{Duration: 5 * time.Minute},
+			Interval: &metav1.Duration{Duration: defaultInterval},
 			Version:  pluginDef.Spec.HelmChart.Version,
 			SourceRef: helmcontroller.CrossNamespaceObjectReference{
 				Kind:      sourcecontroller.HelmRepositoryKind,
@@ -182,8 +177,8 @@ func (r *FluxReconciler) EnsureCreated(ctx context.Context, resource lifecycle.R
 				Namespace: helmRepository.Namespace,
 			},
 		}).
-		WithInterval(5 * time.Minute).
-		WithTimeout(30 * time.Minute).
+		WithInterval(defaultInterval).
+		WithTimeout(defaultTimeout).
 		WithMaxHistory(maxHistory).
 		WithReleaseName(plugin.GetReleaseName()).
 		WithInstall(&helmcontroller.Install{
@@ -203,7 +198,7 @@ func (r *FluxReconciler) EnsureCreated(ctx context.Context, resource lifecycle.R
 		WithDriftDetection(&helmcontroller.DriftDetection{
 			Mode: helmcontroller.DriftDetectionEnabled,
 		}).
-		WithKubeConfig(meta.SecretKeyReference{
+		WithKubeConfig(fluxmeta.SecretKeyReference{
 			Name: plugin.Spec.ClusterName,
 			Key:  greenhouseapis.GreenHouseKubeConfigKey,
 		}).

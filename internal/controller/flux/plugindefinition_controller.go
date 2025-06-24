@@ -7,16 +7,12 @@ import (
 	"context"
 	"time"
 
-	"golang.org/x/time/rate"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/client-go/util/workqueue"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
-	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	sourcecontroller "github.com/fluxcd/source-controller/api/v1"
 
@@ -26,8 +22,7 @@ import (
 )
 
 const (
-	defautlNameSpace         = "greenhouse"
-	pluginDefinitionUrlField = "spec.url"
+	pluginDefinitionURLField = "spec.url"
 )
 
 // PluginDefinitionReconciler reconciles plugindefinitions and translates them into Flux resources
@@ -49,7 +44,7 @@ func (r *PluginDefinitionReconciler) SetupWithManager(name string, mgr ctrl.Mana
 	r.Client = mgr.GetClient()
 
 	// index PluginDefinitions by the URL field for faster lookups
-	if err := mgr.GetFieldIndexer().IndexField(context.Background(), &sourcecontroller.HelmRepository{}, pluginDefinitionUrlField, func(rawObj client.Object) []string {
+	if err := mgr.GetFieldIndexer().IndexField(context.Background(), &sourcecontroller.HelmRepository{}, pluginDefinitionURLField, func(rawObj client.Object) []string {
 		helmRepository, ok := rawObj.(*sourcecontroller.HelmRepository)
 		if helmRepository.Spec.URL == "" || !ok {
 			return nil
@@ -61,12 +56,6 @@ func (r *PluginDefinitionReconciler) SetupWithManager(name string, mgr ctrl.Mana
 
 	return ctrl.NewControllerManagedBy(mgr).
 		Named(name).
-		WithOptions(controller.Options{
-			RateLimiter: workqueue.NewTypedMaxOfRateLimiter(
-				workqueue.NewTypedItemExponentialFailureRateLimiter[reconcile.Request](30*time.Second, 1*time.Hour),
-				&workqueue.TypedBucketRateLimiter[reconcile.Request]{Limiter: rate.NewLimiter(rate.Limit(10), 100)}),
-			MaxConcurrentReconciles: 3,
-		}).
 		For(&greenhousev1alpha1.PluginDefinition{}).
 		WithEventFilter(predicate.Or(predicate.GenerationChangedPredicate{}, predicate.LabelChangedPredicate{}, predicate.AnnotationChangedPredicate{})).
 		Complete(r)
@@ -75,34 +64,36 @@ func (r *PluginDefinitionReconciler) SetupWithManager(name string, mgr ctrl.Mana
 // Reconcile reads the PluginDefinition object and makes creates a HelmRepository and a HelmChart flux object
 func (r *PluginDefinitionReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	var pluginDefinition = new(greenhousev1alpha1.PluginDefinition)
-	var nS string
+	var namespace string
 
 	if err := r.Get(ctx, req.NamespacedName, pluginDefinition); err != nil {
 		log.FromContext(ctx).Error(err, "Failed to get pluginDefinition")
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
 
-	nS = req.Namespace
-	if req.Namespace == "" {
+	switch {
+	case req.Namespace != "":
+		namespace = req.Namespace
+	default:
 		// if the namespace is empty, we use the default namespace
 		// preparation for the future when we will use the namespaced plugin definitions
-		nS = defautlNameSpace
+		namespace = defaultNameSpace
 	}
 
 	// reconcileHelmRepository is creating or updating the helmRepository out form PluginDefinition spec
-	if err := r.reconcileHelmRepository(ctx, pluginDefinition, nS); err != nil {
+	if err := r.reconcileHelmRepository(ctx, pluginDefinition, namespace); err != nil {
 		return ctrl.Result{}, err
 	}
 
 	return ctrl.Result{RequeueAfter: utils.DefaultRequeueInterval}, nil
 }
 
-func (r *PluginDefinitionReconciler) reconcileHelmRepository(ctx context.Context, pluginDef *greenhousev1alpha1.PluginDefinition, nS string) error {
+func (r *PluginDefinitionReconciler) reconcileHelmRepository(ctx context.Context, pluginDef *greenhousev1alpha1.PluginDefinition, namespace string) error {
 	var helmRepository = new(sourcecontroller.HelmRepository)
 
 	result, err := clientutil.CreateOrPatch(ctx, r.Client, helmRepository, func() error {
 		helmRepository.Name, helmRepository.Spec.Type = convertName(pluginDef.Spec.HelmChart.Repository)
-		helmRepository.Namespace = nS
+		helmRepository.Namespace = namespace
 		helmRepository.Spec.Interval = metav1.Duration{Duration: 5 * time.Minute}
 		helmRepository.Spec.URL = pluginDef.Spec.HelmChart.Repository
 		return controllerutil.SetOwnerReference(pluginDef, helmRepository, r.Scheme())

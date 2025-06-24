@@ -11,38 +11,39 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/utils/ptr"
 
-	helmv2 "github.com/fluxcd/helm-controller/api/v2"
+	helmcontroller "github.com/fluxcd/helm-controller/api/v2"
 	fluxmeta "github.com/fluxcd/pkg/apis/meta"
 )
 
 const (
-	defaultTimeout = 5 * time.Minute
-	defaultRetry   = 3
+	defaultInterval = 5 * time.Minute
+	defaultTimeout  = 5 * time.Minute
+	defaultRetry    = 3
 )
 
 type HelmReleaseBuilder interface {
 	New(name, namespace string) *helmReleaseBuilder
-	WithChart(specRef helmv2.HelmChartTemplateSpec) *helmReleaseBuilder
+	WithChart(specRef helmcontroller.HelmChartTemplateSpec) *helmReleaseBuilder
 	WithMaxHistory(num int) *helmReleaseBuilder
 	WithInterval(duration time.Duration) *helmReleaseBuilder
 	WithTimeout(timeout time.Duration) *helmReleaseBuilder
 	WithValues(byteValues []byte) *helmReleaseBuilder
-	WithValuesFrom(ref []helmv2.ValuesReference) *helmReleaseBuilder
+	WithValuesFrom(ref []helmcontroller.ValuesReference) *helmReleaseBuilder
 	WithReleaseName(name string) *helmReleaseBuilder
 	WithTargetNamespace(namespace string) *helmReleaseBuilder
-	WithInstall(install *helmv2.Install) *helmReleaseBuilder
-	WithUpgrade(upgrade *helmv2.Upgrade) *helmReleaseBuilder
-	WithRollback(rollback *helmv2.Rollback) *helmReleaseBuilder
-	WithDriftDetection(driftDetection *helmv2.DriftDetection) *helmReleaseBuilder
-	WithTest(test *helmv2.Test) *helmReleaseBuilder
-	WithUninstall(uninstall *helmv2.Uninstall) *helmReleaseBuilder
+	WithInstall(install *helmcontroller.Install) *helmReleaseBuilder
+	WithUpgrade(upgrade *helmcontroller.Upgrade) *helmReleaseBuilder
+	WithRollback(rollback *helmcontroller.Rollback) *helmReleaseBuilder
+	WithDriftDetection(driftDetection *helmcontroller.DriftDetection) *helmReleaseBuilder
+	WithTest(test *helmcontroller.Test) *helmReleaseBuilder
+	WithUninstall(uninstall *helmcontroller.Uninstall) *helmReleaseBuilder
 	WithDependsOn(dependencies []fluxmeta.NamespacedObjectReference) *helmReleaseBuilder
 	WithKubeConfig(kc fluxmeta.SecretKeyReference) *helmReleaseBuilder
-	Build() (*helmv2.HelmRelease, error)
+	Build() (*helmcontroller.HelmRelease, error)
 }
 
 type helmReleaseBuilder struct {
-	hr *helmv2.HelmRelease
+	hr *helmcontroller.HelmRelease
 }
 
 func NewHelmReleaseBuilder() HelmReleaseBuilder {
@@ -52,20 +53,20 @@ func NewHelmReleaseBuilder() HelmReleaseBuilder {
 // New creates a new HelmReleaseBuilder with the specified name and namespace.
 func (b *helmReleaseBuilder) New(name, namespace string) *helmReleaseBuilder {
 	return &helmReleaseBuilder{
-		hr: &helmv2.HelmRelease{
+		hr: &helmcontroller.HelmRelease{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      name,
 				Namespace: namespace,
 			},
-			Spec: helmv2.HelmReleaseSpec{
-				Install: &helmv2.Install{
-					Remediation: &helmv2.InstallRemediation{},
+			Spec: helmcontroller.HelmReleaseSpec{
+				Install: &helmcontroller.Install{
+					Remediation: &helmcontroller.InstallRemediation{},
 				},
-				Upgrade: &helmv2.Upgrade{
-					Remediation: &helmv2.UpgradeRemediation{},
+				Upgrade: &helmcontroller.Upgrade{
+					Remediation: &helmcontroller.UpgradeRemediation{},
 				},
-				DriftDetection: &helmv2.DriftDetection{},
-				Test:           &helmv2.Test{},
+				DriftDetection: &helmcontroller.DriftDetection{},
+				Test:           &helmcontroller.Test{},
 				KubeConfig:     &fluxmeta.KubeConfigReference{},
 				Values:         &v1.JSON{},
 			},
@@ -74,8 +75,8 @@ func (b *helmReleaseBuilder) New(name, namespace string) *helmReleaseBuilder {
 }
 
 // WithChart sets the chart specification for the Helm release.
-func (b *helmReleaseBuilder) WithChart(specRef helmv2.HelmChartTemplateSpec) *helmReleaseBuilder {
-	b.hr.Spec.Chart = &helmv2.HelmChartTemplate{
+func (b *helmReleaseBuilder) WithChart(specRef helmcontroller.HelmChartTemplateSpec) *helmReleaseBuilder {
+	b.hr.Spec.Chart = &helmcontroller.HelmChartTemplate{
 		Spec: specRef,
 	}
 	return b
@@ -118,7 +119,7 @@ func (b *helmReleaseBuilder) WithValues(byteValues []byte) *helmReleaseBuilder {
 }
 
 // WithValuesFrom sets the values references for the Helm release. Only secret references are supported on the plugin side
-func (b *helmReleaseBuilder) WithValuesFrom(ref []helmv2.ValuesReference) *helmReleaseBuilder {
+func (b *helmReleaseBuilder) WithValuesFrom(ref []helmcontroller.ValuesReference) *helmReleaseBuilder {
 	if len(ref) == 0 {
 		return b
 	}
@@ -145,11 +146,11 @@ func (b *helmReleaseBuilder) WithTargetNamespace(namespace string) *helmReleaseB
 }
 
 // WithInstall sets the installation configuration for the Helm release.
-func (b *helmReleaseBuilder) WithInstall(install *helmv2.Install) *helmReleaseBuilder {
+func (b *helmReleaseBuilder) WithInstall(install *helmcontroller.Install) *helmReleaseBuilder {
 	if install == nil {
-		install = &helmv2.Install{
+		install = &helmcontroller.Install{
 			Timeout: &metav1.Duration{Duration: defaultTimeout},
-			Remediation: &helmv2.InstallRemediation{
+			Remediation: &helmcontroller.InstallRemediation{
 				Retries: defaultRetry,
 			},
 		}
@@ -159,11 +160,11 @@ func (b *helmReleaseBuilder) WithInstall(install *helmv2.Install) *helmReleaseBu
 }
 
 // WithUpgrade sets the upgrade configuration for the Helm release.
-func (b *helmReleaseBuilder) WithUpgrade(upgrade *helmv2.Upgrade) *helmReleaseBuilder {
+func (b *helmReleaseBuilder) WithUpgrade(upgrade *helmcontroller.Upgrade) *helmReleaseBuilder {
 	if upgrade == nil {
-		upgrade = &helmv2.Upgrade{
+		upgrade = &helmcontroller.Upgrade{
 			Timeout: &metav1.Duration{Duration: defaultTimeout},
-			Remediation: &helmv2.UpgradeRemediation{
+			Remediation: &helmcontroller.UpgradeRemediation{
 				Retries: defaultRetry,
 			},
 		}
@@ -173,9 +174,9 @@ func (b *helmReleaseBuilder) WithUpgrade(upgrade *helmv2.Upgrade) *helmReleaseBu
 }
 
 // WithRollback sets the rollback configuration for the Helm release.
-func (b *helmReleaseBuilder) WithRollback(rollback *helmv2.Rollback) *helmReleaseBuilder {
+func (b *helmReleaseBuilder) WithRollback(rollback *helmcontroller.Rollback) *helmReleaseBuilder {
 	if rollback == nil {
-		rollback = &helmv2.Rollback{
+		rollback = &helmcontroller.Rollback{
 			Timeout: &metav1.Duration{Duration: defaultTimeout},
 		}
 	}
@@ -184,10 +185,10 @@ func (b *helmReleaseBuilder) WithRollback(rollback *helmv2.Rollback) *helmReleas
 }
 
 // WithDriftDetection sets the drift detection configuration for the Helm release.
-func (b *helmReleaseBuilder) WithDriftDetection(driftDetection *helmv2.DriftDetection) *helmReleaseBuilder {
+func (b *helmReleaseBuilder) WithDriftDetection(driftDetection *helmcontroller.DriftDetection) *helmReleaseBuilder {
 	if driftDetection == nil {
-		driftDetection = &helmv2.DriftDetection{
-			Mode: helmv2.DriftDetectionEnabled,
+		driftDetection = &helmcontroller.DriftDetection{
+			Mode: helmcontroller.DriftDetectionEnabled,
 		}
 	}
 	b.hr.Spec.DriftDetection = driftDetection
@@ -195,9 +196,9 @@ func (b *helmReleaseBuilder) WithDriftDetection(driftDetection *helmv2.DriftDete
 }
 
 // WithTest sets the test configuration for the Helm release.
-func (b *helmReleaseBuilder) WithTest(test *helmv2.Test) *helmReleaseBuilder {
+func (b *helmReleaseBuilder) WithTest(test *helmcontroller.Test) *helmReleaseBuilder {
 	if test == nil {
-		test = &helmv2.Test{
+		test = &helmcontroller.Test{
 			Enable:  true,
 			Timeout: &metav1.Duration{Duration: defaultTimeout},
 		}
@@ -207,9 +208,9 @@ func (b *helmReleaseBuilder) WithTest(test *helmv2.Test) *helmReleaseBuilder {
 }
 
 // WithUninstall sets the uninstallation configuration for the Helm release.
-func (b *helmReleaseBuilder) WithUninstall(uninstall *helmv2.Uninstall) *helmReleaseBuilder {
+func (b *helmReleaseBuilder) WithUninstall(uninstall *helmcontroller.Uninstall) *helmReleaseBuilder {
 	if uninstall == nil {
-		uninstall = &helmv2.Uninstall{
+		uninstall = &helmcontroller.Uninstall{
 			Timeout: &metav1.Duration{Duration: defaultTimeout},
 		}
 	}
@@ -236,7 +237,7 @@ func (b *helmReleaseBuilder) WithKubeConfig(kc fluxmeta.SecretKeyReference) *hel
 }
 
 // Build validates the HelmRelease and returns it.
-func (b *helmReleaseBuilder) Build() (*helmv2.HelmRelease, error) {
+func (b *helmReleaseBuilder) Build() (*helmcontroller.HelmRelease, error) {
 	if b.hr.Spec.Chart.Spec.Chart == "" {
 		return nil, errors.New("chart name is required")
 	}
