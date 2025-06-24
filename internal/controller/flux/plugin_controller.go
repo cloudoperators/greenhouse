@@ -12,12 +12,10 @@ import (
 
 	"github.com/fluxcd/pkg/apis/meta"
 	"golang.org/x/time/rate"
-	v1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/util/workqueue"
-	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -173,52 +171,52 @@ func (r *FluxReconciler) EnsureCreated(ctx context.Context, resource lifecycle.R
 		return ctrl.Result{}, lifecycle.Failed, errors.New("helm repository not found")
 	}
 
-	helmRelease := &helmcontroller.HelmRelease{
-		Spec: helmcontroller.HelmReleaseSpec{
-			Install: &helmcontroller.Install{
-				Remediation: &helmcontroller.InstallRemediation{},
+	helmRelease, err := NewHelmReleaseBuilder().New(plugin.Name, plugin.Namespace).
+		WithChart(helmcontroller.HelmChartTemplateSpec{
+			Chart:    pluginDef.Spec.HelmChart.Name,
+			Interval: &metav1.Duration{Duration: 5 * time.Minute},
+			Version:  pluginDef.Spec.HelmChart.Version,
+			SourceRef: helmcontroller.CrossNamespaceObjectReference{
+				Kind:      sourcecontroller.HelmRepositoryKind,
+				Name:      helmRepository.Name,
+				Namespace: helmRepository.Namespace,
 			},
-			Upgrade: &helmcontroller.Upgrade{
-				Remediation: &helmcontroller.UpgradeRemediation{},
+		}).
+		WithInterval(5 * time.Minute).
+		WithTimeout(30 * time.Minute).
+		WithMaxHistory(maxHistory).
+		WithReleaseName(plugin.GetReleaseName()).
+		WithInstall(&helmcontroller.Install{
+			CreateNamespace: true,
+			Remediation: &helmcontroller.InstallRemediation{
+				Retries: 3,
 			},
-			DriftDetection: &helmcontroller.DriftDetection{},
-			Test:           &helmcontroller.Test{},
-			KubeConfig:     &meta.KubeConfigReference{},
-			Values:         &v1.JSON{},
-		},
-	}
-	helmRelease.Name = plugin.Name
-	helmRelease.Namespace = plugin.Namespace
-
-	result, err := ctrl.CreateOrUpdate(ctx, r.Client, helmRelease, func() error {
-		helmRelease.Spec.ReleaseName = plugin.GetReleaseName()
-		helmRelease.Spec.TargetNamespace = plugin.Spec.ReleaseNamespace
-		helmRelease.Spec.Chart = &helmcontroller.HelmChartTemplate{
-			Spec: helmcontroller.HelmChartTemplateSpec{
-				Chart:    pluginDef.Spec.HelmChart.Name,
-				Interval: &metav1.Duration{Duration: 5 * time.Minute},
-				Version:  pluginDef.Spec.HelmChart.Version,
-				SourceRef: helmcontroller.CrossNamespaceObjectReference{
-					Kind:      sourcecontroller.HelmRepositoryKind,
-					Name:      helmRepository.Name,
-					Namespace: helmRepository.Namespace,
-				},
+		}).
+		WithUpgrade(&helmcontroller.Upgrade{
+			Remediation: &helmcontroller.UpgradeRemediation{
+				Retries: 3,
 			},
-		}
-		helmRelease.Spec.Interval = metav1.Duration{Duration: 5 * time.Minute}
-		helmRelease.Spec.Timeout = &metav1.Duration{Duration: 30 * time.Minute}
-		helmRelease.Spec.MaxHistory = ptr.To[int](maxHistory)
-		helmRelease.Spec.Install.CreateNamespace = true
-		helmRelease.Spec.Install.Remediation.Retries = 3
-		helmRelease.Spec.Upgrade.Remediation.Retries = 3
-		helmRelease.Spec.DriftDetection.Mode = helmcontroller.DriftDetectionEnabled
-		helmRelease.Spec.Test.Enable = false
-		helmRelease.Spec.KubeConfig.SecretRef = meta.SecretKeyReference{
+		}).
+		WithTest(&helmcontroller.Test{
+			Enable: false,
+		}).
+		WithDriftDetection(&helmcontroller.DriftDetection{
+			Mode: helmcontroller.DriftDetectionEnabled,
+		}).
+		WithKubeConfig(meta.SecretKeyReference{
 			Name: plugin.Spec.ClusterName,
 			Key:  greenhouseapis.GreenHouseKubeConfigKey,
-		}
-		helmRelease.Spec.Values = r.addValuestoHelmRelease(plugin, pluginDef)
-		helmRelease.Spec.ValuesFrom = r.addValueReferences(plugin)
+		}).
+		WithValues(r.addValuestoHelmRelease(plugin, pluginDef)).
+		WithValuesFrom(r.addValueReferences(plugin)).
+		WithTargetNamespace(plugin.Spec.ReleaseNamespace).Build()
+
+	if err != nil {
+		log.FromContext(ctx).Error(err, "Failed to create HelmRelease for plugin", "plugin", plugin.Name)
+		return ctrl.Result{}, lifecycle.Failed, fmt.Errorf("failed to create HelmRelease for plugin %s: %w", plugin.Name, err)
+	}
+
+	result, err := ctrl.CreateOrUpdate(ctx, r.Client, helmRelease, func() error {
 		return nil
 	})
 	if err != nil {
@@ -260,7 +258,7 @@ func (r *FluxReconciler) getPluginDef(ctx context.Context, plugin *greenhousev1a
 	return pluginDef
 }
 
-func (r *FluxReconciler) addValuestoHelmRelease(plugin *greenhousev1alpha1.Plugin, pluginDef *greenhousev1alpha1.PluginDefinition) *v1.JSON {
+func (r *FluxReconciler) addValuestoHelmRelease(plugin *greenhousev1alpha1.Plugin, pluginDef *greenhousev1alpha1.PluginDefinition) []byte {
 	jsonValue := make(map[string]any)
 	for _, value := range pluginDef.Spec.Options {
 		if value.Default != nil {
@@ -282,7 +280,7 @@ func (r *FluxReconciler) addValuestoHelmRelease(plugin *greenhousev1alpha1.Plugi
 		log.FromContext(context.Background()).Error(err, "Unable to marshal values for plugin", "plugin", plugin.Name)
 		return nil
 	}
-	return &v1.JSON{Raw: byteValue}
+	return byteValue
 }
 
 func (r *FluxReconciler) addValueReferences(plugin *greenhousev1alpha1.Plugin) []helmcontroller.ValuesReference {
