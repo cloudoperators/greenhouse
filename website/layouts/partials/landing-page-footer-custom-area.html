@@ -1,0 +1,36 @@
+<!--
+  ~ SPDX-FileCopyrightText: 2025 SAP SE or an SAP affiliate company and Greenhouse contributors
+  ~ SPDX-License-Identifier: Apache-2.0
+-->
+
+<div class="container p-5">
+  <div class="row align-items-center gx-4">
+    <div class="col-auto">
+      <span class="navbar-logo">
+        {{ with resources.Get "icons/logo.svg" }}{{ ( . | minify ).Content |
+        safeHTML }} {{ end }}
+      </span>
+    </div>
+    <div class="col">
+      <p class="mb-0 ps-2">
+        Copyright © Linux Foundation Europe. Greenhouse is a project of Linux
+        Foundation Europe. For applicable policies including privacy policy,
+        terms of use and trademark usage guidelines, please see&nbsp;<a
+          rel="noreferrer noopener"
+          href="https://linuxfoundation.eu"
+          target="_blank"
+          >https://linuxfoundation.eu</a
+        >. Linux is a registered trademark of Linus Torvalds.
+      </p>
+    </div>
+    <div class="col-auto">
+      {{ with resources.Get "icons/BMWE-EU.png" }}
+      <img
+        src="{{ .RelPermalink }}"
+        alt="Logo - Bundesministerium für Wirtschaft und Energie"
+        style="max-width:340px"
+      />
+      {{ end }}
+    </div>
+  </div>
+</div>

@@ -52,7 +52,7 @@ archives:
     ]
     name_template: >-
       {{ .ProjectName }}ctl_
-      {{.Version}}_
-      {{.Os}}-{{.Arch}}
+      {{- .Version -}}_
+      {{- .Os -}}-{{.Arch}}
     files:
       - README.md

@@ -1,16 +1,6 @@
 // SPDX-FileCopyrightText: 2024 SAP SE or an SAP affiliate company and Greenhouse contributors
 // SPDX-License-Identifier: Apache-2.0
 
-footer {
-  .footer-hero-link {
-    font-weight: 700;
-    font-size: 1.125rem;
-    line-height: 1.75rem;
-    padding-left: 1rem;
-    text-decoration: none;
-  }
-}
-
 .nav-header {
   .nav-header-buttons {
     margin-left: auto;
@@ -33,4 +23,12 @@ footer {
       text-decoration: underline;
     }
   }
+}
+
+[data-bs-theme="light"] .footer-logo svg {
+  color: #000; // or use a CSS variable like var(--bs-body-color)
+}
+
+[data-bs-theme="dark"] .footer-logo svg {
+  color: #fff; // or a light contrast color
 }
