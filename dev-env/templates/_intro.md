@@ -1,10 +1,24 @@
+---
+title: "Local development setup"
+linkTitle: "Local development setup"
+landingSectionIndex: false
+weight: 1
+description: >
+  How to run a local Greenhouse setup for development
+---
 
-# Setting up a local development environment
+## What is Greenhouse?
+
+Greenhouse is a [Kubernetes operator](https://Kubernetes.io/docs/concepts/extend-Kubernetes/operator/) build with [Kubebuilder](https://book.kubebuilder.io/introduction) and a UI on top of the k8s API.
+
+It expands the Kubernetes API via CustomResourceDefinitions. The different aspects of the CRDs are reconciled by several [controllers](https://book.kubebuilder.io/cronjob-tutorial/controller-overview.html). It also acts as [an admission webhook](https://book.kubebuilder.io/reference/admission-webhook.html).
+
+The Greenhouse Dashboard is a UI acting on the k8s apiserver of the cluster Greenhouse is running in. The UI itself is a [Juno](https://github.com/cloudoperators/juno) application containing several micro frontends.
 
 Greenhouse provides a couple of cli commands based on `make` to run a local Greenhouse instance.
 
 - [Setting up the development environment](#setting-up-the-development-environment)
-- [Run local Greenhouse](#run-local-greenhouse)
+- [Run local Greenhouse](#run-greenhouse-locally)
 - Developing Greenhouse core functionality:
   - [Develop Controllers locally and run the webhook server in-cluster](#develop-controllers-locally-and-run-the-webhook-server-in-cluster)
   - [Develop Admission Webhook server locally](#develop-admission-webhook-server-locally)
@@ -22,6 +36,8 @@ This handy CLI tool will help you to setup your development environment in no ti
 - [docker](https://docs.docker.com/get-docker/)
 - [KinD](https://kind.sigs.k8s.io/docs/user/quick-start/)
 - [kubectl](https://kubernetes.io/docs/tasks/tools/install-kubectl/)
+- [helm](https://helm.sh/docs/intro/install/)
+- [yq](https://github.com/mikefarah/yq/?tab=readme-ov-file#install) `>= v4.34.1`
 
 ## Usage
 
@@ -90,21 +106,17 @@ make setup-webhook-dev
 ### Develop Controllers and Admission Webhook server locally
 
 ```shell
-DEV_MODE=true WEBHOOK_ONLY=true make setup-manager
+WITH_CONTROLLERS=false DEV_MODE=true make setup-manager
 ```
 
 This will modify the `ValidatingWebhookConfiguration` and `MutatingWebhookConfiguration` to use the
-`host.docker.internal` (macOS / windows) or `ipv4` (linux) address for the webhook server
-Write the webhook certs to `/tmp/k8s-webhook-server/serving-certs`
-
-> [!NOTE]
-> The deployed controller-manager is running in webhook only mode, but it does not receive any requests
+`host.docker.internal` (macOS / windows) or `ipv4` (linux) address for the webhook server and write the
+webhook certs to `/tmp/k8s-webhook-server/serving-certs`
 
 Now you can run the webhook server and the controllers locally
 
 Since both need to be run locally no `CONTROLLERS_ONLY` or `WEBHOOK_ONLY` environment variables are needed in your
 debugger configuration
-
 
 > [!NOTE]
 > The dev setup will modify the webhook configurations to have 30s timeout for the webhook requests, but
@@ -122,17 +134,21 @@ make setup-dashboard
 >
 > Information on how to access the dashboard is displayed after the command is executed
 
-
 ### Run Greenhouse Core for UI development
-- Startup the environment as in [Run local Greenhouse](#run-local-greenhouse)
-- An `appProps.json` `ConfigMap` is created  in the `greenhouse` namespace to configure the dashboard.
-- You can now retrieve the generated `appProps.json` in-cluster by executing
-  `kubectl get cm greenhouse-dashboard-app-props -n greenhouse -o=json | jq -r '.data.["appProps.json"]'`
-- Optionally you can also redirect this output to `appProps.json`
-  in [Juno Repository](https://github.com/cloudoperators/juno/blob/main/apps/greenhouse/README.md)
+
+The Greenhouse UI consists of a [Juno application](https://github.com/cloudoperators/juno/tree/main/apps/greenhouse) hosting several micro frontends (MFEs). To develop the UI you will need a local Greenhouse cluster api-server as backend for your local UI:
+
+- Startup the environment as in [Run local Greenhouse](#run-greenhouse-locally)
+- The Greenhouse UI expects an `appProps.json` with [the necessary parameters to run](https://github.com/cloudoperators/juno/tree/main/apps/greenhouse#app-props)
+- This `appProps.json` `ConfigMap` is created  in the `greenhouse` namespace by the local installation to configure the in-cluster dashboard.
+- You can
+  - either create and use your own `appProps.json` file when running the UI locally
+  - or retrieve the generated `appProps.json` in-cluster by executing
+    `kubectl get cm greenhouse-dashboard-app-props -n greenhouse -o=json | jq -r '.data.["appProps.json"]'`
 - After port-forwarding `cors-proxy` service, it should be used as `apiEndpoint` in `appProps.json`
 - Start the dashboard locally (more information on how to run the dashboard locally can be found in
-  the [Juno Repository](https://github.com/cloudoperators/juno/blob/main/apps/greenhouse/README.md)
+  the [Juno Repository](https://github.com/cloudoperators/juno/blob/main/apps/greenhouse/README.md))
+
 ### Test Plugin / Greenhouse Extension charts locally
 
 ```shell
@@ -183,10 +199,15 @@ kubectl --kubeconfig=<your-kind-config> apply -f plugindefinition.yaml
 
 When setting up your development environment, certain resources are modified for development convenience -
 
-- The manager `Deployment` has environment variables `WEBHOOK_ONLY` and `CONTROLLERS_ONLY`
-- `WEBHOOK_ONLY=true` will only run the webhook server
-- `CONTROLLERS_ONLY=true` will only run the controllers
-- Only one of the above can be set to `true` at a time otherwise the manager will error out
+- The greenhouse controllers and webhook server deployments use the same image to run. The logic is separated by
+  environment variables.
+- The `greenhouse-controller-manager` deployment has environment variable `CONTROLLERS_ONLY`
+  - `CONTROLLERS_ONLY=true` will only run the controllers
+  - changing the value to `false` will run the webhook server and will error out due to missing certs
+- The `greenhouse-webhook` deployment has environment variable `WEBHOOK_ONLY`
+  - `WEBHOOK_ONLY=true` will only run the webhook server
+  - changing the value to `false` will skip the webhook server. When greenhouse `CustomResources` are applied,
+    the kubernetes Validating and Mutating Webhook phase will error out due to webhook endpoints not being available
 
 if `DevMode` is enabled for webhooks then depending on the OS the webhook manifests are altered by removing
 `clientConfig.service` and replacing it with `clientConfig.url`, allowing you to debug the code locally.
@@ -199,3 +220,4 @@ if `DevMode` is enabled for webhooks then depending on the OS the webhook manife
 - `kubeconfig` of the created cluster(s) are saved to `/tmp/greenhouse/<clusterName>.kubeconfig`
 
 ---
+
