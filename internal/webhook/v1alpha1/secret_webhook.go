@@ -21,6 +21,8 @@ import (
 	"github.com/cloudoperators/greenhouse/internal/webhook"
 )
 
+const helmReleaseSecretType = "helm.sh/release.v1" //nolint:gosec
+
 // Webhook for the core Secret type resource.
 
 func SetupSecretWebhookWithManager(mgr ctrl.Manager) error {
@@ -58,9 +60,11 @@ func ValidateCreateSecret(ctx context.Context, c client.Client, o runtime.Object
 	if err := validateKubeconfigInSecret(secret); err != nil {
 		return nil, err
 	}
-	labelValidationWarning := webhook.ValidateLabelOwnedBy(ctx, c, secret)
-	if labelValidationWarning != "" {
-		return admission.Warnings{"Secret should have a Team set as its owner", labelValidationWarning}, nil
+	if secret.Type != helmReleaseSecretType {
+		labelValidationWarning := webhook.ValidateLabelOwnedBy(ctx, c, secret)
+		if labelValidationWarning != "" {
+			return admission.Warnings{"Secret should have a Team set as its owner", labelValidationWarning}, nil
+		}
 	}
 	return nil, nil
 }
@@ -80,9 +84,11 @@ func ValidateUpdateSecret(ctx context.Context, c client.Client, _, o runtime.Obj
 	if err := validateKubeconfigInSecret(secret); err != nil {
 		return nil, err
 	}
-	labelValidationWarning := webhook.ValidateLabelOwnedBy(ctx, c, secret)
-	if labelValidationWarning != "" {
-		return admission.Warnings{"Secret should have a Team set as its owner", labelValidationWarning}, nil
+	if secret.Type != helmReleaseSecretType {
+		labelValidationWarning := webhook.ValidateLabelOwnedBy(ctx, c, secret)
+		if labelValidationWarning != "" {
+			return admission.Warnings{"Secret should have a Team set as its owner", labelValidationWarning}, nil
+		}
 	}
 	return nil, nil
 }

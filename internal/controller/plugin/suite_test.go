@@ -163,7 +163,7 @@ var _ = Describe("HelmControllerTest", Serial, func() {
 			return actPluginDefinition.Spec.Version == PluginDefinitionVersion
 		}).Should(BeTrue())
 
-		testTeam = test.NewTeam(test.Ctx, "test-team", Namespace, test.WithSupportGroupLabel("true"))
+		testTeam = test.NewTeam(test.Ctx, "suite-test-team", Namespace, test.WithSupportGroupLabel("true"))
 		Expect(test.K8sClient.Create(test.Ctx, testTeam)).Should(Succeed(), "there should be no error creating the Team")
 
 		testPlugin = test.NewPlugin(test.Ctx, PluginName, Namespace,

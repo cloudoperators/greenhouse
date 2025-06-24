@@ -190,12 +190,13 @@ func ValidateLabelOwnedBy(ctx context.Context, c client.Client, resourceObj v1.O
 		return warnErr.Error()
 	}
 
-	// supportGroup, ok := team.Labels[greenhouseapis.LabelKeySupportGroup]
-	// if !ok || supportGroup != "true" {
-	// 	return field.Invalid(field.NewPath("metadata").Child("labels").Key(greenhouseapis.LabelKeyOwnedBy),
-	// 		owningTeamName,
-	// 		fmt.Sprintf("referenced Team %s must have %s label set to true", owningTeamName, greenhouseapis.LabelKeySupportGroup))
-	// }
+	supportGroup, ok := team.Labels[greenhouseapis.LabelKeySupportGroup]
+	if !ok || supportGroup != "true" {
+		warnErr := field.Invalid(field.NewPath("metadata").Child("labels").Key(greenhouseapis.LabelKeyOwnedBy),
+			owningTeamName,
+			fmt.Sprintf("referenced Team %s must have %s label set to true", owningTeamName, greenhouseapis.LabelKeySupportGroup))
+		return warnErr.Error()
+	}
 	return ""
 }
 

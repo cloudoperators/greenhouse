@@ -34,7 +34,7 @@ var (
 
 // Test stimuli.
 var (
-	testTeam = test.NewTeam(test.Ctx, "test-team", test.TestNamespace, test.WithSupportGroupLabel("true"))
+	testTeam = test.NewTeam(test.Ctx, "test-remotecluster-team", test.TestNamespace, test.WithSupportGroupLabel("true"))
 
 	testPlugin = test.NewPlugin(test.Ctx, "test-plugindefinition", test.TestNamespace,
 		test.WithCluster("test-cluster"),
@@ -173,7 +173,7 @@ var _ = Describe("HelmController reconciliation", Ordered, func() {
 	})
 
 	AfterAll(func() {
-		test.EventuallyDeleted(test.Ctx, test.K8sClient, testTeam)
+		By("stopping the test environment")
 		err := remoteEnvTest.Stop()
 		Expect(err).
 			NotTo(HaveOccurred(), "there must be no error stopping the remote environment")
@@ -274,6 +274,7 @@ var _ = Describe("HelmController reconciliation", Ordered, func() {
 
 	It("should correctly handle the plugin on a referenced cluster with a different namespace", func() {
 		testPluginInDifferentNamespace := test.NewPlugin(test.Ctx, "test-plugin-in-made-up-namespace", test.TestNamespace,
+			test.WithPluginOwnedByLabelValue(testTeam.Name),
 			test.WithCluster(testCluster.GetName()),
 			test.WithPluginDefinition(testPluginDefinition.GetName()),
 			test.WithReleaseName("release-test-in-made-up-namespace"),
@@ -473,6 +474,11 @@ var _ = Describe("HelmController reconciliation", Ordered, func() {
 				Expect(err).ShouldNot(HaveOccurred(), "there should be no error creating the greenhouse namespace")
 			}
 
+			By("creating a test Team in greenhouse namespace")
+			testCentralTeam := test.NewTeam(test.Ctx, "test-central-team", "greenhouse", test.WithSupportGroupLabel("true"))
+			Expect(test.K8sClient.Create(test.Ctx, testCentralTeam)).To(Succeed(), "there should be no error creating a test Team in the greenhouse namespace")
+			test.WithPluginOwnedByLabelValue(testCentralTeam.Name)(testPluginWithExposedService2)
+
 			By("creating test plugin without ClusterName")
 			// Deploy plugin to central cluster.
 			testPluginWithExposedService2.Namespace = "greenhouse"
@@ -493,6 +499,8 @@ var _ = Describe("HelmController reconciliation", Ordered, func() {
 
 			By("deleting the plugin")
 			test.EventuallyDeleted(test.Ctx, test.K8sClient, testPluginWithExposedService2)
+			By("deleting the test team")
+			test.EventuallyDeleted(test.Ctx, test.K8sClient, testCentralTeam)
 		})
 	})
 })

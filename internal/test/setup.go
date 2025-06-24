@@ -103,14 +103,14 @@ func (t *TestSetup) CreateCluster(ctx context.Context, name string, opts ...func
 	return cluster
 }
 
-func (t *TestSetup) CreateOrganizationWithOIDCConfig(ctx context.Context, orgName, ownerTeamName string) (*greenhousev1alpha1.Organization, *corev1.Secret) {
+func (t *TestSetup) CreateOrganizationWithOIDCConfig(ctx context.Context, orgName, supportGroupTeamName string) (*greenhousev1alpha1.Organization, *corev1.Secret) {
 	GinkgoHelper()
-	secret := t.CreateOrgOIDCSecret(ctx, orgName, ownerTeamName)
+	secret := t.CreateOrgOIDCSecret(ctx, orgName, supportGroupTeamName)
 	org := t.CreateOrganization(ctx, orgName, WithMappedAdminIDPGroup(orgName+" Admin E2e"), WithOIDCConfig(OIDCIssuer, secret.Name, OIDCClientIDKey, OIDCClientSecretKey))
 	return org, secret
 }
 
-func (t *TestSetup) CreateOrgOIDCSecret(ctx context.Context, orgName, ownerTeamName string) *corev1.Secret {
+func (t *TestSetup) CreateOrgOIDCSecret(ctx context.Context, orgName, supportGroupTeamName string) *corev1.Secret {
 	GinkgoHelper()
 	secret := t.CreateSecret(ctx, OIDCSecretResource,
 		WithSecretNamespace(orgName),
@@ -118,7 +118,7 @@ func (t *TestSetup) CreateOrgOIDCSecret(ctx context.Context, orgName, ownerTeamN
 			OIDCClientIDKey:     []byte(OIDCClientID),
 			OIDCClientSecretKey: []byte(OIDCClientSecret),
 		}),
-		WithSecretOwnedByLabelValue(ownerTeamName))
+		WithSecretOwnedByLabelValue(supportGroupTeamName))
 	return secret
 }
 
