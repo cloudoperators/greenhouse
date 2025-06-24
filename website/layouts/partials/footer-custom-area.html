@@ -24,5 +24,14 @@
         >. Linux is a registered trademark of Linus Torvalds.
       </p>
     </div>
+    <div class="col-auto">
+      {{ with resources.Get "icons/BMWE-EU.png" }}
+      <img
+        src="{{ .RelPermalink }}"
+        alt="Logo - Bundesministerium für Wirtschaft und Energie"
+        style="max-width:340px"
+      />
+      {{ end }}
+    </div>
   </div>
 </div>
