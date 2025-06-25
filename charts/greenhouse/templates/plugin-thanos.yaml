@@ -1,6 +1,6 @@
 {{- if .Values.thanos.enabled }}
 {{- $storeList := list }}
-{{- range $index, $plugin := (lookup "greenhouse.sap/v1alpha1" "Plugin" "ccloud" "").items }}
+{{- range $index, $plugin := (lookup "greenhouse.sap/v1alpha1" "Plugin" "" "").items }}
 {{- range $index, $option :=  $plugin.spec.optionValues  }}
 {{- if eq $option.name "thanos.query.ingress.grpc.hosts" }}
 {{- $storeList = append $storeList (index $option.value 0).host }}
