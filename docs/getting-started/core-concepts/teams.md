@@ -7,7 +7,7 @@ weight: 2
 
 `Teams` in a Greenhouse `Organization` are used to group users by `group` claims on the token provided by the upstream identity provider (IdP).
 
-This can be used for i.a.
+This can be used, for example, for 
 
 - organizational management
 - access and permission management
