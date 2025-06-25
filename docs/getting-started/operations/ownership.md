@@ -3,7 +3,7 @@ title: "Ownership"
 weight: 3
 ---
 
-## What is Ownership with Greenhouse
+## What is Ownership within Greenhouse
 
 `Ownership` in Greenhouse is the combination of two of the core features:
 
