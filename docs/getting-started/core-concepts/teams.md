@@ -5,7 +5,7 @@ weight: 2
 
 ## What are Teams?
 
-`Teams` in a Greenhouse `Organization` are used to group users by `group` claims on the token provided by the upsream identity provider (IdP).
+`Teams` in a Greenhouse `Organization` are used to group users by `group` claims on the token provided by the upstream identity provider (IdP).
 
 This can be used for i.a.
 
