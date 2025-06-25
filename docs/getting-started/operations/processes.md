@@ -12,15 +12,15 @@ Operational processes facilitated via Greenhouse heavily rely on the `Ownership`
 Examples for these operational tasks are:
 
 - Alert routing based on metrics
-- Lifecycle management of k8s `Clusters`
+- Lifecycle management of k8s Clusters
 - Security posture and vulnerability patch management
 - `Secret` rotation and management
 
 ## Labels Used
 
-Greenhouse focus on `labels` in three different places:
+Greenhouse focuses on `labels` in three different places:
 
-- On resources (e.g. `PluginPresets`, `Clusters` but also k8s `Deployments`, `Pods`, etc.)
+- On resources (e.g. PluginPresets, Clusters but also k8s Deployments, Pods, etc.)
 - On metrics exposed by those resources
 - On Prometheus alerts based on metrics
 
@@ -33,11 +33,11 @@ The following `labels` are used by Greenhouse automation:
 | `service` | Groups resources belonging to a service      | Resources, metrics, alerts             | Security management, alert routing            |
 | `region`           | Indicates the region an alert is firing in                     | Metrics, alerts   | Alert routing  |
 | `severity`         | Indicates the importance or urgency of an alert                  | Alerts         | Alert routing         |
-| `cluster`          | Specifies the cluster a metric is exposed on     | Metrics, alerts        | Alert routing       |
+| Cluster          | Specifies the cluster a metric is exposed on     | Metrics, alerts        | Alert routing       |
 
 ## Alert Routing
 
-Monitoring and alert routing is achieved through a combination of `Plugins` running on the remote `Clusters` and the Greenhouse central cluster.
+Monitoring and alert routing is achieved through a combination of Plugins running on the remote Clusters and the Greenhouse central cluster.
 
 All alerts processed with Greenhouse need the `support_group` label that can be extracted from the `greenhouse.sap/owned-by`.
 
@@ -47,7 +47,7 @@ It is good practice to also route alerts by `support_group` and/or `severity` to
 
 ## Lifecycle management of k8s Clusters
 
-All `Cluster` related alerts, including version expiration and other maintenance tasks are routed to the owning `support_group` of the `Cluster`.
+All Cluster related alerts, including version expiration and other maintenance tasks are routed to the owning `support_group` of the Cluster.
 
 ## Security Management
 
@@ -55,4 +55,4 @@ Security posture and vulnerability management is achieved through the [heureka P
 
 ## Secret Management
 
-With secret managemen Greenhouse wants to have alerts on expiring `Secrets` in need of rotation. These alerts will be routed to the respective `support_groups`. See [roadmap item](https://github.com/cloudoperators/greenhouse/issues/1211) for further information.
+With secret managemen Greenhouse wants to have alerts on expiring Secrets in need of rotation. These alerts will be routed to the respective `support_groups`. See [roadmap item](https://github.com/cloudoperators/greenhouse/issues/1211) for further information.
