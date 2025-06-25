@@ -52,7 +52,7 @@ This is currently active for:
 - `Secrets` that are used to bootsrap a `Cluster`
 - `PluginPresets` creating `Plugins`
 
-The transport works via an `metadat.annotation` on the source:
+The transport works via an `metadata.annotation` on the source:
 
 ```yaml
 metadata:
