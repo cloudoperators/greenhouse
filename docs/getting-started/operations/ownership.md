@@ -49,7 +49,7 @@ and on all
 The Greenhouse controller [transports labels from a source resource to a target resource](https://github.com/cloudoperators/greenhouse/blob/main/internal/lifecycle/propagation.go) on the Greenhouse cluster.
 This is currently active for:
 
-- `Secrets` that are used to bootsrap a `Cluster`
+- `Secrets` that are used to bootstrap a `Cluster`
 - `PluginPresets` creating `Plugins`
 
 The transport works via an `metadata.annotation` on the source:
