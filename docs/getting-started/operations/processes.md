@@ -55,4 +55,4 @@ Security posture and vulnerability management is achieved through the [heureka P
 
 ## Secret Management
 
-With secret management in Greenhouse we want to have alerts on expiring `Secrets` in need of rotation. These alerts will be routed to the respective `support_groups`. See [roadmap item](https://github.com/cloudoperators/greenhouse/issues/1211) for further information.
+With secret managemen Greenhouse wants to have alerts on expiring `Secrets` in need of rotation. These alerts will be routed to the respective `support_groups`. See [roadmap item](https://github.com/cloudoperators/greenhouse/issues/1211) for further information.
