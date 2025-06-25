@@ -18,7 +18,7 @@ Examples for these operational tasks are:
 
 ## Labels Used
 
-We focus on `labels` in three different places:
+Greenhouse focus on `labels` in three different places:
 
 - On resources (e.g. `PluginPresets`, `Clusters` but also k8s `Deployments`, `Pods`, etc.)
 - On metrics exposed by those resources
