@@ -1,4 +1,4 @@
-{{ if and .Values.plugins.enabled .Values.perses.enabled }}
+{{ if .Values.perses.enabled }}
 {{- range $path, $bytes := .Files.Glob "perses-dashboards/*.json" }}
 ---
 apiVersion: v1
