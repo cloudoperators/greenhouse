@@ -40,3 +40,9 @@ postgresqlng:
 # demo organization
 demo:
   enabled: false
+
+# enabled greenhouse controller dashboards
+plutono:
+  enabled: true
+perses:
+  enabled: true
