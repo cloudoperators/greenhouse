@@ -156,45 +156,46 @@ func CapName(obj client.Object, l logr.Logger, length int) error {
 
 // ValidateLabelOwnedBy validates that the owned-by label is present and that it references an existing Team.
 func ValidateLabelOwnedBy(ctx context.Context, c client.Client, resourceObj v1.Object) string {
+	namespace := resourceObj.GetNamespace()
+	if namespace == "" {
+		warnErr := field.Required(field.NewPath("metadata").Child("namespace"),
+			"namespace is required to validate the owner")
+		return warnErr.Error()
+	}
+
 	resourceLabels := resourceObj.GetLabels()
-	owningTeamName, ok := resourceLabels[greenhouseapis.LabelKeyOwnedBy]
+	ownerName, ok := resourceLabels[greenhouseapis.LabelKeyOwnedBy]
 	if !ok {
 		warnErr := field.Required(field.NewPath("metadata").Child("labels").Key(greenhouseapis.LabelKeyOwnedBy),
 			fmt.Sprintf("label %s is required", greenhouseapis.LabelKeyOwnedBy))
 		return warnErr.Error()
 	}
-	if owningTeamName == "" {
+	if ownerName == "" {
 		warnErr := field.Required(field.NewPath("metadata").Child("labels").Key(greenhouseapis.LabelKeyOwnedBy),
 			fmt.Sprintf("label %s value is required", greenhouseapis.LabelKeyOwnedBy))
 		return warnErr.Error()
 	}
 
-	namespace := resourceObj.GetNamespace()
-	if namespace == "" {
-		warnErr := field.Required(field.NewPath("metadata").Child("namespace"), "Namespace is required")
-		return warnErr.Error()
-	}
-
 	team := new(greenhousev1alpha1.Team)
-	err := c.Get(ctx, client.ObjectKey{Namespace: namespace, Name: owningTeamName}, team)
+	err := c.Get(ctx, client.ObjectKey{Namespace: namespace, Name: ownerName}, team)
 	switch {
 	case err != nil && apierrors.IsNotFound(err):
 		warnErr := field.Invalid(field.NewPath("metadata").Child("labels").Key(greenhouseapis.LabelKeyOwnedBy),
-			owningTeamName,
-			fmt.Sprintf("referenced Team %s does not exist", owningTeamName))
+			ownerName,
+			fmt.Sprintf("team %s does not exist in the resource namespace", ownerName))
 		return warnErr.Error()
 	case err != nil:
 		warnErr := field.Invalid(field.NewPath("metadata").Child("labels").Key(greenhouseapis.LabelKeyOwnedBy),
-			owningTeamName,
-			fmt.Sprintf("referenced Team %s could not be retrieved: %s", owningTeamName, err.Error()))
+			ownerName,
+			fmt.Sprintf("team %s could not be retrieved: %s", ownerName, err.Error()))
 		return warnErr.Error()
 	}
 
 	supportGroup, ok := team.Labels[greenhouseapis.LabelKeySupportGroup]
 	if !ok || supportGroup != "true" {
 		warnErr := field.Invalid(field.NewPath("metadata").Child("labels").Key(greenhouseapis.LabelKeyOwnedBy),
-			owningTeamName,
-			fmt.Sprintf("referenced Team %s must have %s label set to true", owningTeamName, greenhouseapis.LabelKeySupportGroup))
+			ownerName,
+			fmt.Sprintf("owner team %s should be a support group", ownerName))
 		return warnErr.Error()
 	}
 	return ""
