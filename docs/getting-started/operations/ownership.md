@@ -18,7 +18,7 @@ Greenhouse provides a `1:1` relationship between a `Team` and
 - `TeamRoleBindings`
 - `Secrets`
 
-We call this relationship `Ownership`.
+Within the context of Greenhouse this relationship is called `Ownership`.
 
 ## Why Ownership of Resources
 
