@@ -84,7 +84,7 @@ func (r *OrganizationReconciler) reconcileOAuth2ProxySecret(ctx context.Context,
 		secret.Data[dexOAuth2ProxyClientSecretKey] = []byte(oauthProxyClientSecret)
 	}
 
-	oAuthProxyClient, err := r.dex.GetClient(oAuthProxyClientName)
+	oAuthProxyClient, err := r.dex.GetClient(ctx, oAuthProxyClientName)
 	oAuthProxyCallbackURL := fmt.Sprintf("https://auth-proxy.%s/oauth2/callback", getOauthProxyURL(org.Name))
 	if err != nil {
 		if errors.Is(err, storage.ErrNotFound) {
@@ -105,7 +105,7 @@ func (r *OrganizationReconciler) reconcileOAuth2ProxySecret(ctx context.Context,
 		return err
 	}
 
-	if err = r.dex.UpdateClient(oAuthProxyClient.ID, func(authClient storage.Client) (storage.Client, error) {
+	if err = r.dex.UpdateClient(ctx, oAuthProxyClient.ID, func(authClient storage.Client) (storage.Client, error) {
 		authClient.Public = false
 		authClient.Secret = string(secret.Data[dexOAuth2ProxyClientSecretKey])
 		authClient.RedirectURIs = []string{oAuthProxyCallbackURL}
