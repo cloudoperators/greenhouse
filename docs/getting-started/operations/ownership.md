@@ -67,7 +67,7 @@ metadata:
   ...
 ```
 
-which results in `metadata.labels` and a state `metadata.annotation` added in the target:
+which results in `metadata.labels` and a state in `metadata.annotations` added to the target:
 
 ```yaml
 metadata:
