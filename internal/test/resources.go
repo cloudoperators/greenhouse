@@ -406,6 +406,15 @@ func WithUsernames(usernames []string) func(*greenhousev1alpha2.TeamRoleBinding)
 	}
 }
 
+func WithTeamRoleBindingOwnedByLabel(value string) func(*greenhousev1alpha2.TeamRoleBinding) {
+	return func(c *greenhousev1alpha2.TeamRoleBinding) {
+		if c.Labels == nil {
+			c.Labels = make(map[string]string, 1)
+		}
+		c.Labels[greenhouseapis.LabelKeyOwnedBy] = value
+	}
+}
+
 // NewTeamRoleBinding returns a greenhousev1alpha2.TeamRoleBinding object. Opts can be used to set the desired state of the TeamRoleBinding.
 func NewTeamRoleBinding(ctx context.Context, name, namespace string, opts ...func(*greenhousev1alpha2.TeamRoleBinding)) *greenhousev1alpha2.TeamRoleBinding {
 	trb := &greenhousev1alpha2.TeamRoleBinding{

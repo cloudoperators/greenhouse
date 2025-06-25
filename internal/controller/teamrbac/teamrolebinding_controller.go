@@ -31,12 +31,14 @@ import (
 	greenhousev1alpha2 "github.com/cloudoperators/greenhouse/api/v1alpha2"
 	"github.com/cloudoperators/greenhouse/internal/clientutil"
 	"github.com/cloudoperators/greenhouse/internal/lifecycle"
+	"github.com/cloudoperators/greenhouse/internal/util"
 )
 
 var exposedConditions = []greenhousemetav1alpha1.ConditionType{
 	greenhousemetav1alpha1.ReadyCondition,
 	greenhousemetav1alpha1.ClusterListEmpty,
 	greenhousev1alpha2.RBACReady,
+	greenhousemetav1alpha1.OwnerLabelSetCondition,
 }
 
 // TeamRoleBindingReconciler reconciles a TeamRole object
@@ -94,7 +96,8 @@ func (r *TeamRoleBindingReconciler) setConditions() lifecycle.Conditioner {
 		}
 
 		readyCondition := computeReadyCondition(trb.Status)
-		trb.SetCondition(readyCondition)
+		ownerLabelCondition := util.ComputeOwnerLabelCondition(ctx, r.Client, trb)
+		trb.Status.SetConditions(readyCondition, ownerLabelCondition)
 	}
 }
 
