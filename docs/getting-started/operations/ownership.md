@@ -8,7 +8,7 @@ weight: 3
 `Ownership` in Greenhouse is the combination of two of the core features:
 
 - User and Organization management via [Teams](./../core-concepts/teams.md)
-- Resource deployment via [Plugins](./../core-concepts/plugins.md) to remote [Clusters](./../core-concepts/clusters.md)
+- Deployment of resources ([Plugins](./../core-concepts/plugins.md), [TeamRoleBindings](./../core-concepts/teams/#team-rbac)) to remote [Clusters](./../core-concepts/clusters.md)
 
 Greenhouse provides a `1:1` relationship between a `Team` and
 
