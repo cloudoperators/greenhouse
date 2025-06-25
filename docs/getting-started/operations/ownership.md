@@ -44,7 +44,7 @@ and on all
 
 ### Label Transport
 
-#### On Greenhouse central Cluster
+#### On Greenhouse central cluster
 
 The Greenhouse controller [transports labels from a source resource to a target resource](https://github.com/cloudoperators/greenhouse/blob/main/internal/lifecycle/propagation.go) on the Greenhouse cluster.
 This is currently active for:
