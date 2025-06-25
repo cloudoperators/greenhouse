@@ -59,6 +59,6 @@ flowchart LR
 
 Support Groups in Greenhouse are a subset of `Teams` in an `Organization`. These `Teams` are used to identify response groups for operational tasks and to prefilter UI content.
 
-Since a user can be part of many `Teams` the expectation is that he/she is only part of one Support Group.
+Since a user can be part of many Teams the expectation is that they are only part of one Support Group.
 
 To identify a `Team` as a Support Group in Greenhouse it needs to be labeled with `greenhouse.sap/support-group: "true"`.
