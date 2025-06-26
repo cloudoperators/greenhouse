@@ -1189,34 +1189,26 @@ func cluster(name, supportGroupTeamName string) *greenhousev1alpha1.Cluster {
 }
 
 func pluginPreset(name, selectorValue, supportGroupTeamName string) *greenhousev1alpha1.PluginPreset {
-	return &greenhousev1alpha1.PluginPreset{
-		TypeMeta: metav1.TypeMeta{
-			Kind:       greenhousev1alpha1.PluginPresetKind,
-			APIVersion: greenhousev1alpha1.GroupVersion.String(),
-		},
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      name,
-			Namespace: test.TestNamespace,
-			Labels:    map[string]string{greenhouseapis.LabelKeyOwnedBy: supportGroupTeamName},
-		},
-		Spec: greenhousev1alpha1.PluginPresetSpec{
-			Plugin: greenhousev1alpha1.PluginSpec{
-				PluginDefinition: pluginPresetDefinitionName,
-				ReleaseName:      releaseName,
-				ReleaseNamespace: releaseNamespace,
-				OptionValues: []greenhousev1alpha1.PluginOptionValue{
-					{
-						Name:  "myRequiredOption",
-						Value: test.MustReturnJSONFor("myValue"),
-					},
+	preset := test.NewPluginPreset(name, test.TestNamespace,
+		test.WithPluginPresetOwnedByLabelValue(supportGroupTeamName))
+	preset.Spec = greenhousev1alpha1.PluginPresetSpec{
+		Plugin: greenhousev1alpha1.PluginSpec{
+			PluginDefinition: pluginPresetDefinitionName,
+			ReleaseName:      releaseName,
+			ReleaseNamespace: releaseNamespace,
+			OptionValues: []greenhousev1alpha1.PluginOptionValue{
+				{
+					Name:  "myRequiredOption",
+					Value: test.MustReturnJSONFor("myValue"),
 				},
 			},
-			ClusterSelector: metav1.LabelSelector{
-				MatchLabels: map[string]string{
-					"cluster": selectorValue,
-				},
-			},
-			ClusterOptionOverrides: []greenhousev1alpha1.ClusterOptionOverride{},
 		},
+		ClusterSelector: metav1.LabelSelector{
+			MatchLabels: map[string]string{
+				"cluster": selectorValue,
+			},
+		},
+		ClusterOptionOverrides: []greenhousev1alpha1.ClusterOptionOverride{},
 	}
+	return preset
 }

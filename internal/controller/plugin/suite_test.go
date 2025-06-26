@@ -474,6 +474,7 @@ var _ = Describe("HelmControllerTest", Serial, func() {
 
 		By("creating a Plugin with every type of OptionValue", func() {
 			complexPlugin = test.NewPlugin(test.Ctx, pluginName, Namespace,
+				test.WithPluginOwnedByLabelValue(testTeam.Name),
 				test.WithPluginDefinition(pluginWithEveryOption),
 				test.WithReleaseName(ReleaseName),
 				test.WithPluginOptionValue(PluginOptionDefault, test.AsAPIExtensionJSON(stringVal), nil),
@@ -509,13 +510,15 @@ var _ = Describe("HelmControllerTest", Serial, func() {
 		})
 
 		By("checking the Helm Release has the expected values set", func() {
-			release, err := helm.GetReleaseForHelmChartFromPlugin(test.Ctx, clientutil.NewRestClientGetterFromRestConfig(test.Cfg, complexPlugin.Namespace), complexPlugin)
-			Expect(err).ToNot(HaveOccurred(), "error getting release")
-			Expect(release.Config).To(HaveKeyWithValue(PluginOptionDefault, stringVal), "string value not set correctly")
-			Expect(release.Config).To(HaveKeyWithValue(PluginOptionBool, boolVal), "bool value not set correctly")
-			Expect(release.Config).To(HaveKeyWithValue(PluginOptionInt, float64(intVal)), "int value not set correctly")
-			Expect(release.Config).To(HaveKeyWithValue(PluginOptionList, listVal), "list value not set correctly")
-			Expect(release.Config).To(HaveKeyWithValue(PluginOptionMap, mapVal), "map value not set correctly")
+			Eventually(func(g Gomega) {
+				release, err := helm.GetReleaseForHelmChartFromPlugin(test.Ctx, clientutil.NewRestClientGetterFromRestConfig(test.Cfg, complexPlugin.Spec.ReleaseNamespace, clientutil.WithPersistentConfig()), complexPlugin)
+				g.Expect(err).ToNot(HaveOccurred(), "error getting release")
+				g.Expect(release.Config).To(HaveKeyWithValue(PluginOptionDefault, stringVal), "string value not set correctly")
+				g.Expect(release.Config).To(HaveKeyWithValue(PluginOptionBool, boolVal), "bool value not set correctly")
+				g.Expect(release.Config).To(HaveKeyWithValue(PluginOptionInt, float64(intVal)), "int value not set correctly")
+				g.Expect(release.Config).To(HaveKeyWithValue(PluginOptionList, listVal), "list value not set correctly")
+				g.Expect(release.Config).To(HaveKeyWithValue(PluginOptionMap, mapVal), "map value not set correctly")
+			}).Should(Succeed(), "Helm Release should have the updated plugin option values")
 		})
 		test.EventuallyDeleted(test.Ctx, test.K8sClient, complexPlugin)
 	})

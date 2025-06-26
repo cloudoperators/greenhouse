@@ -314,6 +314,35 @@ func NewPlugin(ctx context.Context, name, namespace string, opts ...func(*greenh
 	return plugin
 }
 
+// WithPluginPresetOwnedByLabelValue sets the value of the greenhouseapis.LabelKeyOwnedBy label on a PluginPreset
+func WithPluginPresetOwnedByLabelValue(value string) func(*greenhousev1alpha1.PluginPreset) {
+	return func(pp *greenhousev1alpha1.PluginPreset) {
+		if pp.Labels == nil {
+			pp.Labels = make(map[string]string, 1)
+		}
+		pp.Labels[greenhouseapis.LabelKeyOwnedBy] = value
+	}
+}
+
+// NewPluginPreset returns a greenhousev1alpha1.PluginPreset object. Opts can be used to set the desired state of the PluginPreset.
+func NewPluginPreset(name, namespace string, opts ...func(*greenhousev1alpha1.PluginPreset)) *greenhousev1alpha1.PluginPreset {
+	GinkgoHelper()
+	pluginPreset := &greenhousev1alpha1.PluginPreset{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       greenhousev1alpha1.PluginPresetKind,
+			APIVersion: greenhousev1alpha1.GroupVersion.String(),
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      name,
+			Namespace: namespace,
+		},
+	}
+	for _, o := range opts {
+		o(pluginPreset)
+	}
+	return pluginPreset
+}
+
 // WithRules overrides the default rules of a TeamRole
 func WithRules(rules []rbacv1.PolicyRule) func(*greenhousev1alpha1.TeamRole) {
 	return func(tr *greenhousev1alpha1.TeamRole) {
@@ -406,12 +435,12 @@ func WithUsernames(usernames []string) func(*greenhousev1alpha2.TeamRoleBinding)
 	}
 }
 
-func WithTeamRoleBindingOwnedByLabel(value string) func(*greenhousev1alpha2.TeamRoleBinding) {
-	return func(c *greenhousev1alpha2.TeamRoleBinding) {
-		if c.Labels == nil {
-			c.Labels = make(map[string]string, 1)
+func WithTeamRoleBindingOwnedByLabelValue(value string) func(*greenhousev1alpha2.TeamRoleBinding) {
+	return func(trb *greenhousev1alpha2.TeamRoleBinding) {
+		if trb.Labels == nil {
+			trb.Labels = make(map[string]string, 1)
 		}
-		c.Labels[greenhouseapis.LabelKeyOwnedBy] = value
+		trb.Labels[greenhouseapis.LabelKeyOwnedBy] = value
 	}
 }
 

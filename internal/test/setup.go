@@ -181,6 +181,14 @@ func (t *TestSetup) CreatePlugin(ctx context.Context, name string, opts ...func(
 	return plugin
 }
 
+// CreatePluginPreset creates and returns a PluginPreset object. Opts can be used to set the desired state of the PluginPreset.
+func (t *TestSetup) CreatePluginPreset(ctx context.Context, name string, opts ...func(*greenhousev1alpha1.PluginPreset)) *greenhousev1alpha1.PluginPreset {
+	GinkgoHelper()
+	plugin := NewPluginPreset(name, t.Namespace(), opts...)
+	Expect(t.Create(ctx, plugin)).Should(Succeed(), "there should be no error creating the PluginPreset")
+	return plugin
+}
+
 // CreateTeamRole returns a TeamRole object. Opts can be used to set the desired state of the TeamRole.
 func (t *TestSetup) CreateTeamRole(ctx context.Context, name string, opts ...func(*greenhousev1alpha1.TeamRole)) *greenhousev1alpha1.TeamRole {
 	GinkgoHelper()

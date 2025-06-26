@@ -46,7 +46,7 @@ var _ = Describe("Validate Create RoleBinding", Ordered, func() {
 	Context("deny create if referenced resources do not exist", func() {
 		It("should return an error if the role does not exist", func() {
 			rb := test.NewTeamRoleBinding(test.Ctx, "testBinding", setup.Namespace(),
-				test.WithTeamRoleBindingOwnedByLabel(team.Name),
+				test.WithTeamRoleBindingOwnedByLabelValue(team.Name),
 				test.WithTeamRoleRef("non-existent-role"),
 				test.WithTeamRef(team.Name),
 				test.WithClusterName(cluster.Name),
@@ -59,7 +59,7 @@ var _ = Describe("Validate Create RoleBinding", Ordered, func() {
 		})
 		It("should return an error if the team does not exist", func() {
 			rb := test.NewTeamRoleBinding(test.Ctx, "testBinding", setup.Namespace(),
-				test.WithTeamRoleBindingOwnedByLabel(team.Name),
+				test.WithTeamRoleBindingOwnedByLabelValue(team.Name),
 				test.WithTeamRoleRef(teamRole.Name),
 				test.WithTeamRef("non-existent-team"),
 				test.WithClusterName(cluster.Name),
@@ -72,7 +72,7 @@ var _ = Describe("Validate Create RoleBinding", Ordered, func() {
 		})
 		It("should return an error if both clusterName and clusterSelector not specified", func() {
 			rb := test.NewTeamRoleBinding(test.Ctx, "testBinding", setup.Namespace(),
-				test.WithTeamRoleBindingOwnedByLabel(team.Name),
+				test.WithTeamRoleBindingOwnedByLabelValue(team.Name),
 				test.WithTeamRoleRef(teamRole.Name),
 				test.WithTeamRef(team.Name),
 			)
@@ -84,7 +84,7 @@ var _ = Describe("Validate Create RoleBinding", Ordered, func() {
 		})
 		It("should return an error if both clusterName and clusterSelector are specified", func() {
 			rb := test.NewTeamRoleBinding(test.Ctx, "testBinding", setup.Namespace(),
-				test.WithTeamRoleBindingOwnedByLabel(team.Name),
+				test.WithTeamRoleBindingOwnedByLabelValue(team.Name),
 				test.WithTeamRoleRef(teamRole.Name),
 				test.WithTeamRef(team.Name),
 				test.WithClusterName(cluster.Name),
@@ -101,7 +101,7 @@ var _ = Describe("Validate Create RoleBinding", Ordered, func() {
 	Context("Validate Update Rolebinding", func() {
 		It("Should deny changes to the empty Namespaces", func() {
 			oldRB := test.NewTeamRoleBinding(test.Ctx, "testBinding", setup.Namespace(),
-				test.WithTeamRoleBindingOwnedByLabel(team.Name),
+				test.WithTeamRoleBindingOwnedByLabelValue(team.Name),
 				test.WithTeamRoleRef(teamRole.Name),
 				test.WithTeamRef(team.Name),
 				test.WithClusterName(cluster.Name),
@@ -109,7 +109,7 @@ var _ = Describe("Validate Create RoleBinding", Ordered, func() {
 			)
 
 			curRB := test.NewTeamRoleBinding(test.Ctx, "testBinding", setup.Namespace(),
-				test.WithTeamRoleBindingOwnedByLabel(team.Name),
+				test.WithTeamRoleBindingOwnedByLabelValue(team.Name),
 				test.WithTeamRoleRef(teamRole.Name),
 				test.WithTeamRef(team.Name),
 				test.WithClusterName(cluster.Name),
@@ -124,7 +124,7 @@ var _ = Describe("Validate Create RoleBinding", Ordered, func() {
 
 		It("Should deny removing all Namespaces", func() {
 			oldRB := test.NewTeamRoleBinding(test.Ctx, "testBinding", setup.Namespace(),
-				test.WithTeamRoleBindingOwnedByLabel(team.Name),
+				test.WithTeamRoleBindingOwnedByLabelValue(team.Name),
 				test.WithTeamRoleRef(teamRole.Name),
 				test.WithTeamRef(team.Name),
 				test.WithClusterName(cluster.Name),
@@ -132,7 +132,7 @@ var _ = Describe("Validate Create RoleBinding", Ordered, func() {
 			)
 
 			curRB := test.NewTeamRoleBinding(test.Ctx, "testBinding", setup.Namespace(),
-				test.WithTeamRoleBindingOwnedByLabel(team.Name),
+				test.WithTeamRoleBindingOwnedByLabelValue(team.Name),
 				test.WithTeamRoleRef(teamRole.Name),
 				test.WithTeamRef(team.Name),
 				test.WithClusterName(cluster.Name),
@@ -146,7 +146,7 @@ var _ = Describe("Validate Create RoleBinding", Ordered, func() {
 
 		It("Should allow changing Namespaces", func() {
 			oldRB := test.NewTeamRoleBinding(test.Ctx, "testBinding", setup.Namespace(),
-				test.WithTeamRoleBindingOwnedByLabel(team.Name),
+				test.WithTeamRoleBindingOwnedByLabelValue(team.Name),
 				test.WithTeamRoleRef(teamRole.Name),
 				test.WithTeamRef(team.Name),
 				test.WithClusterName(cluster.Name),
@@ -154,7 +154,7 @@ var _ = Describe("Validate Create RoleBinding", Ordered, func() {
 			)
 
 			curRB := test.NewTeamRoleBinding(test.Ctx, "testBinding", setup.Namespace(),
-				test.WithTeamRoleBindingOwnedByLabel(team.Name),
+				test.WithTeamRoleBindingOwnedByLabelValue(team.Name),
 				test.WithTeamRoleRef(teamRole.Name),
 				test.WithTeamRef(team.Name),
 				test.WithClusterName(cluster.Name),
@@ -182,7 +182,7 @@ var _ = Describe("Validate Create RoleBinding", Ordered, func() {
 
 		It("Should deny changing the TeamRoleRef", func() {
 			oldRB := test.NewTeamRoleBinding(test.Ctx, "testBinding", setup.Namespace(),
-				test.WithTeamRoleBindingOwnedByLabel(team.Name),
+				test.WithTeamRoleBindingOwnedByLabelValue(team.Name),
 				test.WithTeamRoleRef(teamRole.Name),
 				test.WithTeamRef(team.Name),
 				test.WithClusterName(cluster.Name),
@@ -190,7 +190,7 @@ var _ = Describe("Validate Create RoleBinding", Ordered, func() {
 			)
 
 			curRB := test.NewTeamRoleBinding(test.Ctx, "testBinding", setup.Namespace(),
-				test.WithTeamRoleBindingOwnedByLabel(team.Name),
+				test.WithTeamRoleBindingOwnedByLabelValue(team.Name),
 				test.WithTeamRoleRef("differentTeamRole"),
 				test.WithTeamRef(team.Name),
 				test.WithClusterName(cluster.Name),
@@ -205,14 +205,14 @@ var _ = Describe("Validate Create RoleBinding", Ordered, func() {
 
 		It("Should deny changing the TeamRef", func() {
 			oldRB := test.NewTeamRoleBinding(test.Ctx, "testBinding", setup.Namespace(),
-				test.WithTeamRoleBindingOwnedByLabel(team.Name),
+				test.WithTeamRoleBindingOwnedByLabelValue(team.Name),
 				test.WithTeamRoleRef(teamRole.Name),
 				test.WithTeamRef(team.Name),
 				test.WithClusterName(cluster.Name),
 			)
 
 			curRB := test.NewTeamRoleBinding(test.Ctx, "testBinding", setup.Namespace(),
-				test.WithTeamRoleBindingOwnedByLabel(team.Name),
+				test.WithTeamRoleBindingOwnedByLabelValue(team.Name),
 				test.WithTeamRoleRef(teamRole.Name),
 				test.WithTeamRef("differentTeam"),
 				test.WithClusterName(cluster.Name),
@@ -226,14 +226,14 @@ var _ = Describe("Validate Create RoleBinding", Ordered, func() {
 
 		It("Should return a warning when the owner Team is in another namespace", func() {
 			oldRB := test.NewTeamRoleBinding(test.Ctx, "testBinding", setup.Namespace(),
-				test.WithTeamRoleBindingOwnedByLabel(team.Name),
+				test.WithTeamRoleBindingOwnedByLabelValue(team.Name),
 				test.WithTeamRoleRef(teamRole.Name),
 				test.WithTeamRef(team.Name),
 				test.WithClusterName(cluster.Name),
 			)
 
 			curRB := test.NewTeamRoleBinding(test.Ctx, "testBinding", "greenhouse",
-				test.WithTeamRoleBindingOwnedByLabel(team.Name),
+				test.WithTeamRoleBindingOwnedByLabelValue(team.Name),
 				test.WithTeamRoleRef(teamRole.Name),
 				test.WithTeamRef(team.Name),
 				test.WithClusterName(cluster.Name),
