@@ -6,6 +6,7 @@ package v1alpha1
 import (
 	"context"
 	"encoding/base64"
+	"slices"
 
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -21,7 +22,12 @@ import (
 	"github.com/cloudoperators/greenhouse/internal/webhook"
 )
 
-const helmReleaseSecretType = "helm.sh/release.v1" //nolint:gosec
+// greenhouseSecretTypes are the Secret Types that are custom to Greenhouse.
+var greenhouseSecretTypes = []corev1.SecretType{
+	greenhouseapis.SecretTypeKubeConfig,
+	greenhouseapis.SecretTypeOIDCConfig,
+	greenhouseapis.SecretTypeOrganization,
+}
 
 // Webhook for the core Secret type resource.
 
@@ -60,7 +66,7 @@ func ValidateCreateSecret(ctx context.Context, c client.Client, o runtime.Object
 	if err := validateKubeconfigInSecret(secret); err != nil {
 		return nil, err
 	}
-	if secret.Type != helmReleaseSecretType {
+	if slices.Contains(greenhouseSecretTypes, secret.Type) {
 		labelValidationWarning := webhook.ValidateLabelOwnedBy(ctx, c, secret)
 		if labelValidationWarning != "" {
 			return admission.Warnings{"Secret should have a Team set as its owner", labelValidationWarning}, nil
@@ -84,7 +90,7 @@ func ValidateUpdateSecret(ctx context.Context, c client.Client, _, o runtime.Obj
 	if err := validateKubeconfigInSecret(secret); err != nil {
 		return nil, err
 	}
-	if secret.Type != helmReleaseSecretType {
+	if slices.Contains(greenhouseSecretTypes, secret.Type) {
 		labelValidationWarning := webhook.ValidateLabelOwnedBy(ctx, c, secret)
 		if labelValidationWarning != "" {
 			return admission.Warnings{"Secret should have a support-group Team set as its owner", labelValidationWarning}, nil
