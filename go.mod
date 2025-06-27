@@ -20,6 +20,9 @@ replace (
 require (
 	github.com/cenkalti/backoff/v5 v5.0.2
 	github.com/dexidp/dex v0.0.0-20250522090151-6e602d3315ea
+	github.com/fluxcd/helm-controller/api v1.2.0
+	github.com/fluxcd/pkg/apis/meta v1.10.0
+	github.com/fluxcd/source-controller/api v1.5.0
 	github.com/go-jose/go-jose/v4 v4.1.0
 	github.com/jeremywohl/flatten/v2 v2.0.0-20211013061545-07e4a09fb8e4
 	github.com/oklog/run v1.1.1-0.20240127200640-eee6e044b77c
@@ -61,6 +64,8 @@ require (
 	github.com/cpuguy83/go-md2man/v2 v2.0.6 // indirect
 	github.com/creack/pty v1.1.23 // indirect
 	github.com/distribution/reference v0.6.0 // indirect
+	github.com/fluxcd/pkg/apis/acl v0.6.0 // indirect
+	github.com/fluxcd/pkg/apis/kustomize v1.9.0 // indirect
 	github.com/fsnotify/fsnotify v1.9.0 // indirect
 	github.com/fxamacker/cbor/v2 v2.7.0 // indirect
 	github.com/ghodss/yaml v1.0.0 // indirect
