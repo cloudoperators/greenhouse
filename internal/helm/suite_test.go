@@ -51,7 +51,7 @@ var (
 
 	testPluginWithoutHelmChart = &greenhousev1alpha1.PluginDefinition{
 		ObjectMeta: metav1.ObjectMeta{
-			Namespace: "test-org",
+			Namespace: namespace,
 			Name:      "test-plugindefinition",
 		},
 		Spec: greenhousev1alpha1.PluginDefinitionSpec{
@@ -69,7 +69,7 @@ var (
 
 	testPluginWithHelmChart = &greenhousev1alpha1.PluginDefinition{
 		ObjectMeta: metav1.ObjectMeta{
-			Namespace: "test-org",
+			Namespace: namespace,
 			Name:      "test-plugindefinition",
 		},
 		Spec: greenhousev1alpha1.PluginDefinitionSpec{
@@ -93,7 +93,7 @@ var (
 
 	testPluginWithHelmChartOCI = &greenhousev1alpha1.PluginDefinition{
 		ObjectMeta: metav1.ObjectMeta{
-			Namespace: "test-org",
+			Namespace: namespace,
 			Name:      "test-plugindefinition",
 		},
 		Spec: greenhousev1alpha1.PluginDefinitionSpec{
@@ -116,7 +116,7 @@ var (
 
 	testPluginWithHelmChartCRDs = &greenhousev1alpha1.PluginDefinition{
 		ObjectMeta: metav1.ObjectMeta{
-			Namespace: "test-org",
+			Namespace: namespace,
 			Name:      "test-plugindefinition",
 		},
 		Spec: greenhousev1alpha1.PluginDefinitionSpec{
@@ -140,7 +140,7 @@ var (
 
 	plugin = &greenhousev1alpha1.Plugin{
 		ObjectMeta: metav1.ObjectMeta{
-			Namespace: "test-org",
+			Namespace: namespace,
 			Name:      "test-plugin",
 			// add owning team label
 			Labels: map[string]string{
@@ -157,8 +157,9 @@ var (
 
 	pluginSecret = &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
-			Namespace: "test-org",
+			Namespace: namespace,
 			Name:      "plugindefinition-secret",
+			Labels:    map[string]string{greenhouseapis.LabelKeyOwnedBy: "test-team-1"},
 		},
 		Data: map[string][]byte{
 			"secretKey": []byte("pluginSecretValue1"),
@@ -173,7 +174,7 @@ var (
 
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "test-team-1",
-			Namespace: "test-org",
+			Namespace: namespace,
 		},
 		Spec: greenhousev1alpha1.TeamSpec{
 			Description:    "Test Team 1",

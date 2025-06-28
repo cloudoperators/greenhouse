@@ -31,16 +31,16 @@ var _ = Describe("Validate Create RoleBinding", Ordered, func() {
 
 	BeforeAll(func() {
 		setup = test.NewTestSetup(test.Ctx, test.K8sClient, "rolebinding-create")
-		team = setup.CreateTeam(test.Ctx, "test-team")
-		cluster = setup.CreateCluster(test.Ctx, "test-cluster")
+		team = setup.CreateTeam(test.Ctx, "test-team", test.WithSupportGroupLabel("true"))
+		cluster = setup.CreateCluster(test.Ctx, "test-cluster", test.WithClusterOwnedByLabelValue(team.Name))
 
 		teamRole = setup.CreateTeamRole(test.Ctx, "test-teamrole", test.WithRules(rules))
 	})
 
 	AfterAll(func() {
 		test.EventuallyDeleted(test.Ctx, test.K8sClient, teamRole)
-		test.EventuallyDeleted(test.Ctx, test.K8sClient, team)
 		test.EventuallyDeleted(test.Ctx, test.K8sClient, cluster)
+		test.EventuallyDeleted(test.Ctx, test.K8sClient, team)
 	})
 
 	Context("deny create if referenced resources do not exist", func() {

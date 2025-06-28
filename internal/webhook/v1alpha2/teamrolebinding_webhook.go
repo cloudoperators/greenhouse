@@ -65,7 +65,15 @@ func ValidateCreateRoleBinding(ctx context.Context, c client.Client, o runtime.O
 		return nil, apierrors.NewInternalError(err)
 	}
 
-	return nil, validateClusterSelector(rb)
+	if err := validateClusterSelector(rb); err != nil {
+		return nil, err
+	}
+
+	labelValidationWarning := webhook.ValidateLabelOwnedBy(ctx, c, rb)
+	if labelValidationWarning != "" {
+		return admission.Warnings{"TeamRoleBinding should have a support-group Team set as its owner", labelValidationWarning}, nil
+	}
+	return nil, nil
 }
 
 func ValidateUpdateRoleBinding(ctx context.Context, c client.Client, old, cur runtime.Object) (admission.Warnings, error) {
@@ -108,9 +116,13 @@ func ValidateUpdateRoleBinding(ctx context.Context, c client.Client, old, cur ru
 				Group:    oldRB.GroupVersionKind().Group,
 				Resource: oldRB.Kind,
 			}, oldRB.Name, field.Forbidden(field.NewPath("spec", "namespaces"), "cannot remove all namespaces in existing TeamRoleBinding"))
-	default:
-		return nil, nil
 	}
+
+	labelValidationWarning := webhook.ValidateLabelOwnedBy(ctx, c, curRB)
+	if labelValidationWarning != "" {
+		return admission.Warnings{"TeamRoleBinding should have a support-group Team set as its owner", labelValidationWarning}, nil
+	}
+	return nil, nil
 }
 
 func ValidateDeleteRoleBinding(_ context.Context, _ client.Client, _ runtime.Object) (admission.Warnings, error) {
