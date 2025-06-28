@@ -99,7 +99,7 @@ func (r *OrganizationReconciler) SetupWithManager(name string, mgr ctrl.Manager)
 		Watches(&corev1.Secret{},
 			handler.EnqueueRequestsFromMapFunc(r.enqueueOrganizationForReferencedSecret),
 			builder.WithPredicates(clientutil.PredicateFilterBySecretTypes(greenhouseapis.SecretTypeOrganization))).
-		Watches(&greenhousev1alpha1.PluginDefinition{},
+		Watches(&greenhousev1alpha1.ClusterPluginDefinition{},
 			handler.EnqueueRequestsFromMapFunc(r.enqueueAllOrganizationsForServiceProxyPluginDefinition),
 			builder.WithPredicates(predicate.And(
 				clientutil.PredicateByName(serviceProxyName),
