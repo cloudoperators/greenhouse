@@ -58,6 +58,8 @@ func (r *BootstrapReconciler) SetupWithManager(name string, mgr ctrl.Manager) er
 		Complete(r)
 }
 
+// BootstrapController is not refactored to use the lifecycle package, because the Secret resource does not implement lifecycle.RuntimeObject.
+
 func (r *BootstrapReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	var kubeConfigSecret = new(corev1.Secret)
 	if err := r.Get(ctx, req.NamespacedName, kubeConfigSecret); err != nil {

@@ -69,7 +69,7 @@ func ValidateCreateSecret(ctx context.Context, c client.Client, o runtime.Object
 	if slices.Contains(greenhouseSecretTypes, secret.Type) {
 		labelValidationWarning := webhook.ValidateLabelOwnedBy(ctx, c, secret)
 		if labelValidationWarning != "" {
-			return admission.Warnings{"Secret should have a Team set as its owner", labelValidationWarning}, nil
+			return admission.Warnings{"Secret should have a support-group Team set as its owner", labelValidationWarning}, nil
 		}
 	}
 	return nil, nil
