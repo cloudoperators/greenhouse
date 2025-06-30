@@ -67,9 +67,9 @@ var _ = Describe("Test common controllers utils", func() {
 				Expect(condition.Status).To(Equal(metav1.ConditionTrue), "OwnerLabelSet condition should be set to True")
 			})
 			It("should return True OwnerLabelSet condition for TeamRoleBinding", func() {
-				plugin := setup.CreateTeamRoleBinding(test.Ctx, "test-correct-trb",
+				teamRoleBinding := setup.CreateTeamRoleBinding(test.Ctx, "test-correct-trb",
 					test.WithTeamRoleBindingOwnedByLabelValue(testSupportGroupTeam.Name))
-				condition := util.ComputeOwnerLabelCondition(test.Ctx, test.K8sClient, plugin)
+				condition := util.ComputeOwnerLabelCondition(test.Ctx, test.K8sClient, teamRoleBinding)
 				Expect(condition.Status).To(Equal(metav1.ConditionTrue), "OwnerLabelSet condition should be set to True")
 			})
 		})
