@@ -36,14 +36,14 @@ var (
 		prometheus.CounterOpts{
 			Name: "greenhouse_plugin_reconcile_total",
 		},
-		[]string{"pluginDefinition", "clusterName", "plugin", "organization", "result", "reason", "owned_by"})
+		[]string{"pluginDefinition", "clusterName", "plugin", "namespace", "result", "reason", "owned_by"})
 
 	pluginReady = prometheus.NewGaugeVec(
 		prometheus.GaugeOpts{
 			Name: "greenhouse_plugin_ready",
 			Help: "Indicates whether the plugin is ready",
 		},
-		[]string{"pluginDefinition", "clusterName", "plugin", "organization", "owned_by"})
+		[]string{"pluginDefinition", "clusterName", "plugin", "namespace", "owned_by"})
 )
 
 func init() {
@@ -55,7 +55,7 @@ func UpdateReconcileTotalMetric(plugin *greenhousev1alpha1.Plugin, result Metric
 		"pluginDefinition": plugin.Spec.PluginDefinition,
 		"clusterName":      plugin.Spec.ClusterName,
 		"plugin":           plugin.Name,
-		"organization":     plugin.Namespace,
+		"namespace":        plugin.Namespace,
 		"result":           string(result),
 		"reason":           string(reason),
 		"owned_by":         plugin.Labels[greenhouseapis.LabelKeyOwnedBy],
@@ -68,7 +68,7 @@ func UpdatePluginReadyMetric(plugin *greenhousev1alpha1.Plugin, ready bool) {
 		"pluginDefinition": plugin.Spec.PluginDefinition,
 		"clusterName":      plugin.Spec.ClusterName,
 		"plugin":           plugin.Name,
-		"organization":     plugin.Namespace,
+		"namespace":        plugin.Namespace,
 		"owned_by":         plugin.Labels[greenhouseapis.LabelKeyOwnedBy],
 	}
 	if ready {

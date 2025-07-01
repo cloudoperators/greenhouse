@@ -16,7 +16,7 @@ var (
 			Name: "greenhouse_team_rbac_ready",
 			Help: "Indicates whether the team RBAC is ready",
 		},
-		[]string{"team_role_binding", "team", "organization", "owned_by"},
+		[]string{"team_role_binding", "team", "namespace", "owned_by"},
 	)
 )
 
@@ -28,7 +28,7 @@ func updateMetrics(teamRoleBinding *greenhousev1alpha2.TeamRoleBinding) {
 	labels := prometheus.Labels{
 		"team_role_binding": teamRoleBinding.Name,
 		"team":              teamRoleBinding.Spec.TeamRef,
-		"organization":      teamRoleBinding.Namespace,
+		"namespace":         teamRoleBinding.Namespace,
 		"owned_by":          teamRoleBinding.GetLabels()[greenhouseapis.LabelKeyOwnedBy],
 	}
 

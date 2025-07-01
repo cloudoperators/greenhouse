@@ -11,7 +11,7 @@ groups:
       labels:
         severity: warning
         service: greenhouse
-        organization: '{{ $labels.organization }}'
+        organization: '{{ $labels.namespace }}'
         support_group: '{{ $labels.namespace }}-admin'  # routed to the org-admin team
     - alert: GreenhouseTeamRoleBindingNotReady
       expr: avg_over_time(greenhouse_team_rbac_ready[15m]) == 0
@@ -19,8 +19,8 @@ groups:
       labels:
         severity: warning
         service: greenhouse
-        organization: '{{ $labels.organization }}'
+        organization: '{{ $labels.namespace }}'
         support_group: '{{ $labels.owned_by }}'  
       annotations:
         summary: "TeamRoleBinding not ready for over 15 minutes"
-        description: "The TeamRoleBinding {{ $labels.team_role_binding }} in organization {{ $labels.organization }} for team {{ $labels.team}} has not been ready for more than 15 minutes."
+        description: "The TeamRoleBinding {{ $labels.team_role_binding }} in organization {{ $labels.namespace }} for team {{ $labels.team}} has not been ready for more than 15 minutes."
