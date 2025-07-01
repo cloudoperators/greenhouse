@@ -95,6 +95,7 @@ func (r *TeamRoleBindingReconciler) setConditions() lifecycle.Conditioner {
 
 		readyCondition := computeReadyCondition(trb.Status)
 		trb.SetCondition(readyCondition)
+		updateMetrics(trb)
 	}
 }
 

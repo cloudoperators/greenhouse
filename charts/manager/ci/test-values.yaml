@@ -13,3 +13,9 @@ global:
 controllerManager:
   args:
     foo: bar
+
+alerts:
+  enabled: true
+  commonAlertLabels:
+    foo: bar
+    cluster: test
