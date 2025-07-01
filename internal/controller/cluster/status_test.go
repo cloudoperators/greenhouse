@@ -183,6 +183,9 @@ var _ = Describe("Cluster status", Ordered, func() {
 
 		By("Triggering a cluster reconcile by adding a label to speed up things. Requeue interval is set to 2min")
 		Expect(test.K8sClient.Get(test.Ctx, types.NamespacedName{Name: validCluster.Name, Namespace: setup.Namespace()}, &validCluster)).ShouldNot(HaveOccurred(), "There should be no error getting the cluster resource")
+		if validCluster.Labels == nil {
+			validCluster.Labels = make(map[string]string)
+		}
 		validCluster.Labels["reconcile-me"] = "true"
 		Expect(test.K8sClient.Update(test.Ctx, &validCluster)).ShouldNot(HaveOccurred(), "There should be no error updating the cluster resource")
 

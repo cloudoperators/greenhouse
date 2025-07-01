@@ -49,7 +49,7 @@ var _ = Describe("Bootstrap controller", Ordered, func() {
 					test.WithSecretType(greenhouseapis.SecretTypeKubeConfig),
 					test.WithSecretData(map[string][]byte{greenhouseapis.KubeConfigKey: remoteKubeConfig}),
 					test.WithSecretOwnedByLabelValue(team.Name),
-					test.WithSecretAnnotations(map[string]string{lifecycle.PropagateLabelsAnnotation: "owned-by"}),
+					test.WithSecretAnnotations(map[string]string{lifecycle.PropagateLabelsAnnotation: greenhouseapis.LabelKeyOwnedBy}),
 				)
 
 				By("Checking the accessmode is set correctly")
@@ -80,6 +80,7 @@ var _ = Describe("Bootstrap controller", Ordered, func() {
 					test.WithSecretType(greenhouseapis.SecretTypeKubeConfig),
 					test.WithSecretData(map[string][]byte{greenhouseapis.KubeConfigKey: []byte(invalidKubeConfigString)}),
 					test.WithSecretOwnedByLabelValue(team.Name),
+					test.WithSecretAnnotations(map[string]string{lifecycle.PropagateLabelsAnnotation: greenhouseapis.LabelKeyOwnedBy}),
 				)
 
 				By("Checking the accessmode is set correctly")
@@ -104,7 +105,7 @@ var _ = Describe("Bootstrap controller", Ordered, func() {
 			kubeConfigSecret := setup.CreateSecret(test.Ctx, bootstrapTestCase+"-label-propagation",
 				test.WithSecretType(greenhouseapis.SecretTypeKubeConfig),
 				test.WithSecretAnnotations(map[string]string{
-					lifecycle.PropagateLabelsAnnotation: "support_group, region",
+					lifecycle.PropagateLabelsAnnotation: "support_group, region, greenhouse.sap/owned-by",
 				}),
 				test.WithSecretLabels(map[string]string{
 					"support_group": "foo",

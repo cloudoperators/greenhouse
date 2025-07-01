@@ -169,18 +169,6 @@ func (r *BootstrapReconciler) createOrUpdateCluster(
 	cluster.SetName(kubeConfigSecret.Name)
 	cluster.SetNamespace(kubeConfigSecret.Namespace)
 
-	// Propagate the owned-by label value from kubeConfigSecret for new Clusters.
-	if _, ok := cluster.Labels[greenhouseapis.LabelKeyOwnedBy]; !ok {
-		if cluster.Labels == nil {
-			cluster.Labels = make(map[string]string)
-		}
-		if supportGroupTeam, ok := kubeConfigSecret.Labels[greenhouseapis.LabelKeyOwnedBy]; ok {
-			cluster.Labels[greenhouseapis.LabelKeyOwnedBy] = supportGroupTeam
-		} else {
-			return fmt.Errorf("failed to propagate %s label from Secret %s", greenhouseapis.LabelKeyOwnedBy, kubeConfigSecret.Name)
-		}
-	}
-
 	annotations := make(map[string]string)
 	if cluster.GetAnnotations() != nil {
 		annotations = cluster.GetAnnotations()

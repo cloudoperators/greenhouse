@@ -129,7 +129,7 @@ func ValidateUpdatePluginPreset(ctx context.Context, c client.Client, oldObj, cu
 
 	labelValidationWarning := webhook.ValidateLabelOwnedBy(ctx, c, pluginPreset)
 	if labelValidationWarning != "" {
-		allWarns = append(allWarns, "PluginPreset should have a Team set as its owner", labelValidationWarning)
+		allWarns = append(allWarns, "PluginPreset should have a support-group Team set as its owner", labelValidationWarning)
 	}
 
 	if len(allErrs) > 0 {

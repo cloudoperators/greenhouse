@@ -167,7 +167,7 @@ func ValidateUpdatePlugin(ctx context.Context, c client.Client, old, obj runtime
 
 	labelValidationWarning := webhook.ValidateLabelOwnedBy(ctx, c, plugin)
 	if labelValidationWarning != "" {
-		allWarns = append(allWarns, "Plugin should have a Team set as its owner", labelValidationWarning)
+		allWarns = append(allWarns, "Plugin should have a support-group Team set as its owner", labelValidationWarning)
 	}
 
 	optionsFieldPath := field.NewPath("spec").Child("optionValues")
