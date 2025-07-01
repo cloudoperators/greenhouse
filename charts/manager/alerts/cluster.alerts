@@ -29,7 +29,7 @@ groups:
       annotations:
         summary: "Kubernetes version out of maintenance"
         description: "Cluster {{ $labels.cluster }} in namespace {{ $labels.namespace }} is running Kubernetes version {{ $labels.version }} which is out of maintenance."
-      expr: greenhouse_cluster_k8s_versions_total{version=~"v1\\.(1[0-9]|2[0-1])\\..*"} == 1
+      expr: greenhouse_cluster_k8s_versions_total{version=~"v1\\.(1[0-9]|2[0-9])\\..*"} == 1
       labels:
         severity: warning
         service: greenhouse
