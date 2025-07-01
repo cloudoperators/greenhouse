@@ -11,6 +11,8 @@ groups:
       labels:
         severity: warning
         service: greenhouse
+        organization: greenhouse # default greenhouse organization
+        support_group: greenhouse-admin  # routed to the greenhouse-admin team
     - alert: GreenhouseProxyRequestDurationHigh
       annotations:
         description: The 90th percentile latency of Greenhouse proxy - {{ $labels.service }} is {{ $value | humanizeDuration }}
@@ -21,6 +23,8 @@ groups:
       labels:
         severity: warning
         service: greenhouse
+        organization: greenhouse # default greenhouse organization
+        support_group: greenhouse-admin  # routed to the greenhouse-admin team
     - alert: GreenhouseIDProxyErrorsHigh
       annotations:
         description: Greenhouse id-proxy is failing
@@ -31,3 +35,5 @@ groups:
       labels:
         severity: critical
         service: greenhouse
+        organization: greenhouse # default greenhouse organization
+        support_group: greenhouse-admin  # routed to the greenhouse-admin team
