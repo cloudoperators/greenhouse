@@ -22,4 +22,4 @@ groups:
         support_group: '{{ $labels.namespace }}-admin'  # routed to the org-admin team
     annotations:
         summary: "Greenhouse SCIM Access is not ready"
-        description: "The greenhouse_scim_access_ready metric is 0 for more than 5 minutes. SCIM access may not be operational."
+        description: "The SCIM access for organization '{{ $labels.namespace }}' is not ready for more than 15 minutes. Team member sync may not be operational."
