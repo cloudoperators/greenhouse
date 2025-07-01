@@ -14,7 +14,7 @@ Examples for these operational tasks are:
 - Alert routing based on metrics
 - Lifecycle management of k8s Clusters
 - Security posture and vulnerability patch management
-- `Secret` rotation and management
+- Secret rotation and management
 
 ## Labels Used
 
