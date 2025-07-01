@@ -1,0 +1,26 @@
+groups:
+  - name: greenhouse-team.rules
+    rules:
+    - alert: GreenhouseTeamMembershipCountDrop
+      annotations:
+        description: The number of members for team {{ $labels.teams }} in organization {{ $labels.namespace }} has dropped by more than 5 in the last 5 minutes.
+        summary: Team members count drop detected
+      expr: |
+        sum by (namespace, team) (delta(greenhouse_team_members_count{service="greenhouse-controller-manager-metrics-service"}[5m])) < -5
+      for: 5m
+      labels:
+        severity: warning
+        service: greenhouse
+        organization: '{{ $labels.namespace }}'
+        support_group: '{{ $labels.namespace }}-admin'  # routed to the org-admin team
+    - alert: GreenhouseTeamRoleBindingNotReady
+      expr: greenhouse_team_rbac_ready == 0
+      for: 15m
+      labels:
+        severity: warning
+        service: greenhouse
+        organization: '{{ $labels.namespace }}'
+        support_group: '{{ $labels.owned_by }}'  
+      annotations:
+        summary: "TeamRoleBinding not ready for over 15 minutes"
+        description: "The TeamRoleBinding {{ $labels.team_role_binding }} in organization {{ $labels.namespace }} for team {{ $labels.team}} has not been ready for more than 15 minutes."

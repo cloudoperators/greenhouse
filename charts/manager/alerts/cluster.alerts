@@ -1,0 +1,38 @@
+groups:
+  - name: greenhouse-cluster.rules
+    rules:
+    - alert: GreenhouseClusterNotReady
+      annotations:
+        summary: "Cluster not ready"
+        description: "Cluster {{ $labels.cluster }} in namespace {{ $labels.namespace }} has not been ready for more than 15 minutes."
+      expr: greenhouse_cluster_ready == 0
+      for: 15m
+      labels:
+        severity: warning
+        service: greenhouse
+        organization: '{{ $labels.namespace }}'
+        cluster: '{{ $labels.cluster }}'
+        support_group: '{{ $labels.owned_by }}'
+    - alert: GreenhouseClusterTokenExpiry
+      annotations:
+        description: The kubeconfig token for {{ $labels.cluster }} in {{ $labels.namespace }} will expire less than 20 hours.
+        summary: The kubeconfig token is not refreshed.
+      expr: greenhouse_cluster_kubeconfig_validity_seconds < 3600 * 20
+      for: 30m
+      labels:
+        severity: warning
+        service: greenhouse
+        organization: '{{ $labels.namespace }}'
+        cluster: '{{ $labels.cluster }}'
+        support_group: '{{ $labels.owned_by }}'
+    - alert: GreenhouseClusterKubernetesVersionOutOfMaintenance
+      annotations:
+        summary: "Kubernetes version out of maintenance"
+        description: "Cluster {{ $labels.cluster }} in namespace {{ $labels.namespace }} is running Kubernetes version {{ $labels.version }} which is out of maintenance."
+      expr: greenhouse_cluster_k8s_versions_total{version=~"v1\\.(1[0-9]|2[0-9])\\..*"} == 1
+      labels:
+        severity: warning
+        service: greenhouse
+        organization: '{{ $labels.namespace }}'
+        cluster: '{{ $labels.cluster }}'
+        support_group: '{{ $labels.owned_by }}'
