@@ -235,7 +235,7 @@ func computeWorkloadCondition(plugin *greenhousev1alpha1.Plugin, release *Releas
 
 // setWorkloadMetrics sets the workload status metric to the given status
 func setWorkloadMetrics(plugin *greenhousev1alpha1.Plugin, status float64) {
-	workloadStatus.WithLabelValues(plugin.GetNamespace(), plugin.Name, plugin.Spec.PluginDefinition).Set(status)
+	workloadStatus.WithLabelValues(plugin.GetNamespace(), plugin.Name, plugin.Spec.PluginDefinition, plugin.Spec.ClusterName, plugin.GetLabels()[greenhouseapis.LabelKeyOwnedBy]).Set(status)
 }
 
 // computeReadyCondition computes the ReadyCondition for the Plugin based on various status conditions
