@@ -14,8 +14,8 @@ groups:
         organization: '{{ $labels.namespace }}'
         support_group: '{{ $labels.namespace }}-admin'  # routed to the org-admin team
     - alert: GreenhouseTeamRoleBindingNotReady
-      expr: avg_over_time(greenhouse_team_rbac_ready[15m]) == 0
-      for: 30m
+      expr: greenhouse_team_rbac_ready == 0
+      for: 15m
       labels:
         severity: warning
         service: greenhouse

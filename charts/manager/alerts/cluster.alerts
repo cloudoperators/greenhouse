@@ -5,8 +5,8 @@ groups:
       annotations:
         summary: "Cluster not ready"
         description: "Cluster {{ $labels.cluster }} in namespace {{ $labels.namespace }} has not been ready for more than 15 minutes."
-      expr: avg_over_time(greenhouse_cluster_ready[15m]) == 0
-      for: 30m
+      expr: greenhouse_cluster_ready == 0
+      for: 15m
       labels:
         severity: warning
         service: greenhouse

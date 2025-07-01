@@ -2,7 +2,7 @@ groups:
   - name: greenhouse-plugin.rules
     rules:
     - alert: GreenhousePluginNotReady
-      expr: avg_over_time(greenhouse_plugin_ready[15m]) == 0
+      expr: greenhouse_plugin_ready == 0
       for: 15m
       labels:
         severity: warning
@@ -46,7 +46,7 @@ groups:
         summary: "Plugin workload not ready for over 15 minutes"
         description: "The workload for plugin {{ $labels.plugin }} in organization {{ $labels.namespace }} on cluster {{ $labels.clusterName }} has not been ready for more than 15 minutes."
       expr: |
-        avg_over_time(greenhouse_plugin_workload_status_up[15m]) == 0
+        greenhouse_plugin_workload_status_up == 0
       for: 15m
       labels:
         severity: warning
