@@ -127,7 +127,7 @@ func (r *PluginReconciler) setConditions() lifecycle.Conditioner {
 			return
 		}
 
-		readyCondition := computeReadyCondition(plugin.Status.StatusConditions)
+		readyCondition := ComputeReadyCondition(plugin.Status.StatusConditions)
 		metrics.UpdatePluginReadyMetric(plugin, readyCondition.Status == metav1.ConditionTrue)
 		plugin.SetCondition(readyCondition)
 	}
