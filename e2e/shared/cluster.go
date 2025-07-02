@@ -71,15 +71,14 @@ func OffBoardRemoteCluster(ctx context.Context, adminClient, remoteClient client
 	Expect(err).NotTo(HaveOccurred())
 
 	By("checking the cluster resource is eventually deleted")
-	Eventually(func(g Gomega) bool {
+	Eventually(func(g Gomega) {
 		err := adminClient.Get(ctx, client.ObjectKey{Name: name, Namespace: namespace}, cluster)
 		g.Expect(err).To(HaveOccurred())
 		g.Expect(client.IgnoreNotFound(err)).To(Succeed())
-		return true
-	}).Should(BeTrue(), "cluster resource should be deleted")
+	}).Should(Succeed(), "cluster resource should be deleted")
 
 	By("verifying that the remote cluster managed service account and cluster role binding is deleted")
-	Eventually(func(g Gomega) bool {
+	Eventually(func(g Gomega) {
 		crb := &rbacv1.ClusterRoleBinding{}
 		err := remoteClient.Get(ctx, client.ObjectKey{Name: ManagedResourceName}, crb)
 		GinkgoWriter.Printf("crb err: %v\n", err)
@@ -92,8 +91,7 @@ func OffBoardRemoteCluster(ctx context.Context, adminClient, remoteClient client
 		err = adminClient.Get(ctx, client.ObjectKey{Name: name, Namespace: namespace}, secret)
 		GinkgoWriter.Printf("secret err: %v\n", err)
 		g.Expect(client.IgnoreNotFound(err)).To(Succeed(), "cluster secret should be deleted")
-		return true
-	}).Should(BeTrue(), "managed service account should be deleted")
+	}).Should(Succeed(), "managed service account should be deleted")
 
 	By("verifying that the owned cluster secret is deleted")
 	Eventually(func(g Gomega) bool {
