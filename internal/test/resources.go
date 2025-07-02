@@ -314,6 +314,20 @@ func NewPlugin(ctx context.Context, name, namespace string, opts ...func(*greenh
 	return plugin
 }
 
+// WithPluginPresetClusterSelector sets the ClusterSelector on a PluginPreset.
+func WithPluginPresetClusterSelector(clusterSelector metav1.LabelSelector) func(*greenhousev1alpha1.PluginPreset) {
+	return func(pp *greenhousev1alpha1.PluginPreset) {
+		pp.Spec.ClusterSelector = clusterSelector
+	}
+}
+
+// WithPluginPresetPluginSpec sets the PluginSpec on a PluginPreset.
+func WithPluginPresetPluginSpec(pluginSpec greenhousev1alpha1.PluginSpec) func(*greenhousev1alpha1.PluginPreset) {
+	return func(pp *greenhousev1alpha1.PluginPreset) {
+		pp.Spec.Plugin = pluginSpec
+	}
+}
+
 // WithPluginPresetOwnedByLabelValue sets the value of the greenhouseapis.LabelKeyOwnedBy label on a PluginPreset
 func WithPluginPresetOwnedByLabelValue(value string) func(*greenhousev1alpha1.PluginPreset) {
 	return func(pp *greenhousev1alpha1.PluginPreset) {

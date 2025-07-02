@@ -25,6 +25,7 @@ import (
 	"github.com/cloudoperators/greenhouse/e2e/cluster/expect"
 	"github.com/cloudoperators/greenhouse/e2e/shared"
 	"github.com/cloudoperators/greenhouse/internal/clientutil"
+	"github.com/cloudoperators/greenhouse/internal/test"
 )
 
 const (
@@ -41,6 +42,7 @@ var (
 	adminClient      client.Client
 	remoteClient     client.Client
 	remoteRestClient *clientutil.RestClientGetter
+	team             *greenhousev1alpha1.Team
 	testStartTime    time.Time
 )
 
@@ -60,6 +62,9 @@ var _ = BeforeSuite(func() {
 	Expect(err).ToNot(HaveOccurred(), "there should be no error creating the remote client")
 	remoteRestClient = env.RemoteRestClientGetter
 	env = env.WithOrganization(ctx, adminClient, "./testdata/organization.yaml")
+	team = test.NewTeam(ctx, "test-cluster-e2e-team", env.TestNamespace, test.WithSupportGroupLabel("true"), test.WithMappedIDPGroup("SOME_IDP_GROUP_NAME"))
+	err = adminClient.Create(ctx, team)
+	Expect(err).ToNot(HaveOccurred(), "there should be no error creating a Team")
 	testStartTime = time.Now().UTC()
 })
 
@@ -68,6 +73,7 @@ var _ = AfterSuite(func() {
 	shared.OffBoardRemoteCluster(ctx, adminClient, remoteClient, testStartTime, remoteClusterFName, env.TestNamespace)
 	shared.OffBoardRemoteCluster(ctx, adminClient, remoteClient, testStartTime, remoteOIDCClusterHName, env.TestNamespace)
 	shared.OffBoardRemoteCluster(ctx, adminClient, remoteClient, testStartTime, remoteOIDCClusterFName, env.TestNamespace)
+	test.EventuallyDeleted(ctx, adminClient, team)
 	env.GenerateControllerLogs(ctx, testStartTime)
 })
 
@@ -77,7 +83,7 @@ var _ = Describe("Cluster E2E", Ordered, func() {
 	Context("Cluster Happy Path 🤖", Ordered, func() {
 		It("should onboard remote cluster", func() {
 			By("onboarding remote cluster")
-			shared.OnboardRemoteCluster(ctx, adminClient, env.RemoteKubeConfigBytes, remoteClusterHName, env.TestNamespace)
+			shared.OnboardRemoteCluster(ctx, adminClient, env.RemoteKubeConfigBytes, remoteClusterHName, env.TestNamespace, team.Name)
 		})
 		It("should have a cluster resource created", func() {
 			By("verifying if the cluster resource is created")
@@ -133,7 +139,7 @@ var _ = Describe("Cluster E2E", Ordered, func() {
 	Context("Cluster Fail Path 😵", Ordered, func() {
 		It("should onboard remote cluster", func() {
 			By("onboarding remote cluster")
-			shared.OnboardRemoteCluster(ctx, adminClient, env.RemoteKubeConfigBytes, remoteClusterFName, env.TestNamespace)
+			shared.OnboardRemoteCluster(ctx, adminClient, env.RemoteKubeConfigBytes, remoteClusterFName, env.TestNamespace, team.Name)
 		})
 		It("should have a cluster resource created", func() {
 			By("verifying if the cluster resource is created")
@@ -168,7 +174,7 @@ var _ = Describe("Cluster E2E", Ordered, func() {
 			remoteAPIServerURL := restConfig.Host
 			remoteCA := make([]byte, base64.StdEncoding.EncodedLen(len(restConfig.CAData)))
 			base64.StdEncoding.Encode(remoteCA, restConfig.CAData)
-			shared.OnboardRemoteOIDCCluster(ctx, adminClient, remoteCA, remoteAPIServerURL, remoteOIDCClusterHName, env.TestNamespace)
+			shared.OnboardRemoteOIDCCluster(ctx, adminClient, remoteCA, remoteAPIServerURL, remoteOIDCClusterHName, env.TestNamespace, team.Name)
 
 			By("verifying the cluster status is ready")
 			shared.ClusterIsReady(ctx, adminClient, remoteOIDCClusterHName, env.TestNamespace)

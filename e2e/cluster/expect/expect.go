@@ -152,9 +152,12 @@ func RevokingRemoteClusterAccess(ctx context.Context, adminClient, remoteClient 
 func ReconcileReadyNotReady(ctx context.Context, adminClient client.Client, clusterName, namespace string, readyStatus bool) {
 	err := shared.WaitUntilResourceReadyOrNotReady(ctx, adminClient, &greenhousev1alpha1.Cluster{}, clusterName, namespace, func(resource lifecycle.RuntimeObject) error {
 		By("triggering a reconcile of the cluster resource")
-		resource.SetLabels(map[string]string{
-			"greenhouse.sap/last-apply": strconv.FormatInt(time.Now().Unix(), 10),
-		})
+		resourceLabels := resource.GetLabels()
+		if resourceLabels == nil {
+			resourceLabels = make(map[string]string)
+		}
+		resourceLabels["greenhouse.sap/last-apply"] = strconv.FormatInt(time.Now().Unix(), 10)
+		resource.SetLabels(resourceLabels)
 		return adminClient.Update(ctx, resource)
 	}, readyStatus)
 	Expect(err).NotTo(HaveOccurred(), "cluster should be in desired status")

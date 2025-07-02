@@ -64,8 +64,12 @@ var _ = BeforeSuite(func() {
 	env = env.WithOrganization(ctx, adminClient, "./testdata/organization.yaml")
 	testStartTime = time.Now().UTC()
 
+	By("creating a Team on the admin cluster")
+	teamUT = test.NewTeam(ctx, "test-team", env.TestNamespace, test.WithMappedIDPGroup(testTeamIDPGroup), test.WithSupportGroupLabel("true"))
+	Expect(adminClient.Create(ctx, teamUT)).To(Succeed(), "there should be no error creating a Team")
+
 	By("onboarding remote cluster")
-	shared.OnboardRemoteCluster(ctx, adminClient, env.RemoteKubeConfigBytes, remoteClusterName, env.TestNamespace)
+	shared.OnboardRemoteCluster(ctx, adminClient, env.RemoteKubeConfigBytes, remoteClusterName, env.TestNamespace, teamUT.Name)
 	By("verifying if the cluster resource is created")
 	Eventually(func(g Gomega) {
 		err := adminClient.Get(ctx, client.ObjectKey{Name: remoteClusterName, Namespace: env.TestNamespace}, &greenhousev1alpha1.Cluster{})
@@ -74,10 +78,6 @@ var _ = BeforeSuite(func() {
 
 	By("verifying the cluster status is ready")
 	shared.ClusterIsReady(ctx, adminClient, remoteClusterName, env.TestNamespace)
-
-	By("creating a Team on the admin cluster")
-	teamUT = test.NewTeam(ctx, "test-team", env.TestNamespace, test.WithMappedIDPGroup(testTeamIDPGroup))
-	Expect(adminClient.Create(ctx, teamUT)).To(Succeed(), "there should be no error creating a Team")
 })
 
 var _ = AfterSuite(func() {
