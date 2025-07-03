@@ -84,7 +84,7 @@ func (r *PluginReconciler) SetupWithManager(name string, mgr ctrl.Manager) error
 			RateLimiter: workqueue.NewTypedMaxOfRateLimiter(
 				workqueue.NewTypedItemExponentialFailureRateLimiter[reconcile.Request](30*time.Second, 1*time.Hour),
 				&workqueue.TypedBucketRateLimiter[reconcile.Request]{Limiter: rate.NewLimiter(rate.Limit(10), 100)}),
-			MaxConcurrentReconciles: 3,
+			MaxConcurrentReconciles: 10,
 		}).
 		For(&greenhousev1alpha1.Plugin{}).
 		// If the release was (manually) modified the secret would have been modified. Reconcile it.
