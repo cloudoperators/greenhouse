@@ -30,7 +30,7 @@ import (
 // pluginsAllowedInCentralCluster is a list of PluginDefinitions that are allowed to be installed in the central cluster.
 // TODO: Make this configurable on pluginDefinition level (AdminPlugin discussion) instead of maintaining a list here.
 var pluginsAllowedInCentralCluster = []string{
-	"alerts", "doop", "heureka", "kube-monitoring", "kubeconfig-generator", "repo-guard", "service-proxy", "teams2slack", "thanos",
+	"alerts", "doop", "heureka", "kube-monitoring", "kubeconfig-generator", "perses", "repo-guard", "service-proxy", "teams2slack", "thanos",
 }
 
 // SetupPluginWebhookWithManager configures the webhook for the Plugin custom resource.
