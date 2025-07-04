@@ -97,7 +97,7 @@ var _ = Describe("Conversion E2E", Ordered, func() {
 
 	AfterEach(func() {
 		By("cleaning the TeamRole")
-		Expect(adminClient.Delete(ctx, teamRoleUT)).To(Succeed(), "there should be no error deleting the TeamRole")
+		test.EventuallyDeleted(ctx, adminClient, teamRoleUT)
 	})
 
 	// After all tests are run ensure there are no resources left behind on the remote cluster
