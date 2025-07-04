@@ -250,21 +250,23 @@ var _ = Describe("Plugin E2E", Ordered, func() {
 		}).Should(Succeed())
 
 		By("Updating plugin preset with cluster overview")
-		err = adminClient.Get(ctx, client.ObjectKeyFromObject(testPluginPreset), testPluginPreset)
-		Expect(err).ToNot(HaveOccurred())
-		testPluginPreset.Spec.ClusterOptionOverrides = []greenhousev1alpha1.ClusterOptionOverride{
-			{
-				ClusterName: remoteClusterName,
-				Overrides: []greenhousev1alpha1.PluginOptionValue{
-					{
-						Name:  "replicaCount",
-						Value: &apiextensionsv1.JSON{Raw: []byte("2")},
+		Eventually(func(g Gomega) {
+			err = adminClient.Get(ctx, client.ObjectKeyFromObject(testPluginPreset), testPluginPreset)
+			Expect(err).ToNot(HaveOccurred())
+			testPluginPreset.Spec.ClusterOptionOverrides = []greenhousev1alpha1.ClusterOptionOverride{
+				{
+					ClusterName: remoteClusterName,
+					Overrides: []greenhousev1alpha1.PluginOptionValue{
+						{
+							Name:  "replicaCount",
+							Value: &apiextensionsv1.JSON{Raw: []byte("2")},
+						},
 					},
 				},
-			},
-		}
-		err = adminClient.Update(ctx, testPluginPreset)
-		Expect(err).ToNot(HaveOccurred())
+			}
+			err = adminClient.Update(ctx, testPluginPreset)
+			Expect(err).ToNot(HaveOccurred())
+		}).Should(Succeed(), "PluginPreset should be updated successfully")
 
 		By("Check the replicas in deployment")
 		Eventually(func(g Gomega) {
