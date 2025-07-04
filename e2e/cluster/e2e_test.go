@@ -214,7 +214,7 @@ var _ = Describe("Cluster E2E", Ordered, func() {
 				restClient := clientutil.NewRestClientGetterFromBytes(secret.Data[greenhouseapis.GreenHouseKubeConfigKey], env.TestNamespace)
 				restConfig, err := restClient.ToRESTConfig()
 				g.Expect(err).NotTo(HaveOccurred(), "there should be no error creating the remote REST config")
-				g.Expect(restConfig.CAData).To(Equal(string(secretCABytes)), "the ca.crt in the secret should match the ca.crt in the kubeconfig")
+				g.Expect(string(restConfig.CAData)).To(Equal(string(secretCABytes)), "the ca.crt in the secret should match the ca.crt in the kubeconfig")
 				return true
 			}).Should(BeTrue(), "remote oidc cluster secret should have the updated ca.crt in greenhousekubeconfig")
 
