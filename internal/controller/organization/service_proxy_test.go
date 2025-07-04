@@ -80,7 +80,8 @@ var _ = Describe("Organization ServiceProxyReconciler", Ordered, func() {
 
 	When("organization is annotated with the oauth2proxy preview annotation", Ordered, func() {
 		It("should create default organization", func() {
-			defaultOrg := setup.CreateDefaultOrgWithOIDCSecret(test.Ctx)
+			team := setup.CreateTeam(test.Ctx, "test-team1", test.WithSupportGroupLabel("true"))
+			defaultOrg := setup.CreateDefaultOrgWithOIDCSecret(test.Ctx, team.Name)
 			test.EventuallyCreated(test.Ctx, test.K8sClient, &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: defaultOrg.Name}})
 			By("By check if the default organization is READY with oidc config")
 			Eventually(func(g Gomega) {
@@ -90,10 +91,12 @@ var _ = Describe("Organization ServiceProxyReconciler", Ordered, func() {
 				g.Expect(oidcCondition).ToNot(BeNil(), "OrganizationOICDConfigured should be set on Organization")
 				g.Expect(oidcCondition.IsTrue()).To(BeTrue(), "OrganizationOICDConfigured should be True on Organization")
 			}).Should(Succeed(), "Organization should have set correct status condition")
+			test.EventuallyDeleted(test.Ctx, test.K8sClient, team)
 		})
 		It("should enable the oauth-proxy feature for the organization", func() {
+			team := setup.CreateTeam(test.Ctx, "test-team2", test.WithSupportGroupLabel("true"))
 			By("creating an organization with the oauth preview annotation & oauth config")
-			org, _ := setup.CreateOrganizationWithOIDCConfig(test.Ctx, setup.Namespace())
+			org, _ := setup.CreateOrganizationWithOIDCConfig(test.Ctx, setup.Namespace(), team.Name)
 			test.EventuallyCreated(test.Ctx, test.K8sClient, &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: org.Name}})
 			By("annotating the organization")
 			org = setup.UpdateOrganization(test.Ctx, org.Name, test.WithOrgAnnotations(map[string]string{oauthPreviewAnnotation: "true"}))
@@ -108,6 +111,7 @@ var _ = Describe("Organization ServiceProxyReconciler", Ordered, func() {
 				g.Expect(secret.Data).To(HaveKeyWithValue(cookieSecretKey, Not(BeEmpty())), "org technical secret should contain a non-empty cookie secret")
 				g.Expect(plugin.Spec.OptionValues).To(ContainElement(greenhousev1alpha1.PluginOptionValue{Name: "oauth2proxy.enabled", Value: &apiextensionsv1.JSON{Raw: []byte("\"true\"")}}))
 			}).Should(Succeed(), "service-proxy plugin should have been created for organization")
+			test.EventuallyDeleted(test.Ctx, test.K8sClient, team)
 		})
 	})
 })

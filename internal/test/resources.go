@@ -35,6 +35,16 @@ func WithLabel(key, value string) func(*greenhousev1alpha1.Cluster) {
 	}
 }
 
+// WithClusterOwnedByLabelValue sets the value of the greenhouseapis.LabelKeyOwnedBy label on a Cluster
+func WithClusterOwnedByLabelValue(value string) func(*greenhousev1alpha1.Cluster) {
+	return func(c *greenhousev1alpha1.Cluster) {
+		if c.Labels == nil {
+			c.Labels = make(map[string]string, 1)
+		}
+		c.Labels[greenhouseapis.LabelKeyOwnedBy] = value
+	}
+}
+
 // WithClusterAnnotations sets metadata annotations on a Cluster
 func WithClusterAnnotations(annotations map[string]string) func(*greenhousev1alpha1.Cluster) {
 	return func(c *greenhousev1alpha1.Cluster) {
@@ -238,6 +248,16 @@ func WithPresetLabelValue(value string) func(*greenhousev1alpha1.Plugin) {
 	}
 }
 
+// WithPluginOwnedByLabelValue sets the value of the greenhouseapis.LabelKeyOwnedBy label on a Plugin
+func WithPluginOwnedByLabelValue(value string) func(*greenhousev1alpha1.Plugin) {
+	return func(p *greenhousev1alpha1.Plugin) {
+		if p.Labels == nil {
+			p.Labels = make(map[string]string, 1)
+		}
+		p.Labels[greenhouseapis.LabelKeyOwnedBy] = value
+	}
+}
+
 // WithPluginOptionValue sets the value of a PluginOptionValue
 func WithPluginOptionValue(name string, value *apiextensionsv1.JSON, valueFrom *greenhousev1alpha1.ValueFromSource) func(*greenhousev1alpha1.Plugin) {
 	return func(p *greenhousev1alpha1.Plugin) {
@@ -292,6 +312,49 @@ func NewPlugin(ctx context.Context, name, namespace string, opts ...func(*greenh
 		o(plugin)
 	}
 	return plugin
+}
+
+// WithPluginPresetClusterSelector sets the ClusterSelector on a PluginPreset.
+func WithPluginPresetClusterSelector(clusterSelector metav1.LabelSelector) func(*greenhousev1alpha1.PluginPreset) {
+	return func(pp *greenhousev1alpha1.PluginPreset) {
+		pp.Spec.ClusterSelector = clusterSelector
+	}
+}
+
+// WithPluginPresetPluginSpec sets the PluginSpec on a PluginPreset.
+func WithPluginPresetPluginSpec(pluginSpec greenhousev1alpha1.PluginSpec) func(*greenhousev1alpha1.PluginPreset) {
+	return func(pp *greenhousev1alpha1.PluginPreset) {
+		pp.Spec.Plugin = pluginSpec
+	}
+}
+
+// WithPluginPresetOwnedByLabelValue sets the value of the greenhouseapis.LabelKeyOwnedBy label on a PluginPreset
+func WithPluginPresetOwnedByLabelValue(value string) func(*greenhousev1alpha1.PluginPreset) {
+	return func(pp *greenhousev1alpha1.PluginPreset) {
+		if pp.Labels == nil {
+			pp.Labels = make(map[string]string, 1)
+		}
+		pp.Labels[greenhouseapis.LabelKeyOwnedBy] = value
+	}
+}
+
+// NewPluginPreset returns a greenhousev1alpha1.PluginPreset object. Opts can be used to set the desired state of the PluginPreset.
+func NewPluginPreset(name, namespace string, opts ...func(*greenhousev1alpha1.PluginPreset)) *greenhousev1alpha1.PluginPreset {
+	GinkgoHelper()
+	pluginPreset := &greenhousev1alpha1.PluginPreset{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       greenhousev1alpha1.PluginPresetKind,
+			APIVersion: greenhousev1alpha1.GroupVersion.String(),
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      name,
+			Namespace: namespace,
+		},
+	}
+	for _, o := range opts {
+		o(pluginPreset)
+	}
+	return pluginPreset
 }
 
 // WithRules overrides the default rules of a TeamRole
@@ -386,6 +449,15 @@ func WithUsernames(usernames []string) func(*greenhousev1alpha2.TeamRoleBinding)
 	}
 }
 
+func WithTeamRoleBindingOwnedByLabelValue(value string) func(*greenhousev1alpha2.TeamRoleBinding) {
+	return func(trb *greenhousev1alpha2.TeamRoleBinding) {
+		if trb.Labels == nil {
+			trb.Labels = make(map[string]string, 1)
+		}
+		trb.Labels[greenhouseapis.LabelKeyOwnedBy] = value
+	}
+}
+
 // NewTeamRoleBinding returns a greenhousev1alpha2.TeamRoleBinding object. Opts can be used to set the desired state of the TeamRoleBinding.
 func NewTeamRoleBinding(ctx context.Context, name, namespace string, opts ...func(*greenhousev1alpha2.TeamRoleBinding)) *greenhousev1alpha2.TeamRoleBinding {
 	trb := &greenhousev1alpha2.TeamRoleBinding{
@@ -407,6 +479,16 @@ func NewTeamRoleBinding(ctx context.Context, name, namespace string, opts ...fun
 func WithMappedIDPGroup(group string) func(*greenhousev1alpha1.Team) {
 	return func(t *greenhousev1alpha1.Team) {
 		t.Spec.MappedIDPGroup = group
+	}
+}
+
+// WithLabel sets the greenhous.sap/support-group label on a Team
+func WithSupportGroupLabel(value string) func(*greenhousev1alpha1.Team) {
+	return func(c *greenhousev1alpha1.Team) {
+		if c.Labels == nil {
+			c.Labels = make(map[string]string, 1)
+		}
+		c.Labels[greenhouseapis.LabelKeySupportGroup] = value
 	}
 }
 
@@ -444,6 +526,16 @@ func WithSecretAnnotations(annotations map[string]string) func(*corev1.Secret) {
 func WithSecretLabels(labels map[string]string) func(*corev1.Secret) {
 	return func(s *corev1.Secret) {
 		s.SetLabels(labels)
+	}
+}
+
+// WithSecretOwnedByLabelValue sets the value of the greenhouseapis.LabelKeyOwnedBy label on a Secret
+func WithSecretOwnedByLabelValue(value string) func(*corev1.Secret) {
+	return func(c *corev1.Secret) {
+		if c.Labels == nil {
+			c.Labels = make(map[string]string, 1)
+		}
+		c.Labels[greenhouseapis.LabelKeyOwnedBy] = value
 	}
 }
 

@@ -297,7 +297,9 @@ var _ = Describe("Test Organization reconciliation", Ordered, func() {
 		})
 
 		It("should create dex resources if oidc is enabled", func() {
-			defaultOrg := setup.CreateDefaultOrgWithOIDCSecret(test.Ctx)
+			team := setup.CreateTeam(test.Ctx, "test-team", test.WithSupportGroupLabel("true"))
+
+			defaultOrg := setup.CreateDefaultOrgWithOIDCSecret(test.Ctx, team.Name)
 			test.EventuallyCreated(test.Ctx, test.K8sClient, &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: defaultOrg.Name}})
 			By("By check if the default organization is READY with oidc config")
 			Eventually(func(g Gomega) {
@@ -313,7 +315,7 @@ var _ = Describe("Test Organization reconciliation", Ordered, func() {
 			test.EventuallyCreated(test.Ctx, test.K8sClient, &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: oidcOrg.Name}})
 
 			By("creating a secret for OIDC config")
-			oidcOrgSecret := setup.CreateOrgOIDCSecret(test.Ctx, oidcOrg.Name)
+			oidcOrgSecret := setup.CreateOrgOIDCSecret(test.Ctx, oidcOrg.Name, team.Name)
 			By("updating the organization with OIDC config")
 			oidcOrg = setup.UpdateOrganization(test.Ctx,
 				oidcOrg.Name,
@@ -372,6 +374,7 @@ var _ = Describe("Test Organization reconciliation", Ordered, func() {
 					MatchFields(IgnoreExtras, Fields{"ID": Equal(oidcOrg.Name)}),
 				), "the oauth client list should not contain the deleted organization")
 			}
+			test.EventuallyDeleted(test.Ctx, test.K8sClient, team)
 		})
 	})
 })
