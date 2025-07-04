@@ -30,7 +30,8 @@ postgresqlng:
     support_group: greenhouse
   resources: {}
   # The database that will be created in the database
-  postgresDatabase: dex
+  databases:
+    dex: {}
   users:
     dex:         # The user that will be created in the database
       grant:         # The grants that will be given to the user
