@@ -10,6 +10,7 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/util/retry"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
 	greenhouseapis "github.com/cloudoperators/greenhouse/api"
 	"github.com/cloudoperators/greenhouse/internal/clientutil"
@@ -45,7 +46,7 @@ func OnboardRemoteCluster(ctx context.Context, k8sClient client.Client, kubeConf
 	Expect(err).NotTo(HaveOccurred())
 }
 
-func OnboardRemoteOIDCCluster(ctx context.Context, k8sClient client.Client, caCert []byte, apiServerURL, name, namespace string) {
+func CreateUpdateRemoteOIDCCluster(ctx context.Context, k8sClient client.Client, caCert []byte, apiServerURL, name, namespace string) {
 	By("applying remote cluster OIDC configuration as greenhouse secret")
 	secret := &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
@@ -56,14 +57,13 @@ func OnboardRemoteOIDCCluster(ctx context.Context, k8sClient client.Client, caCe
 			},
 		},
 		Type: greenhouseapis.SecretTypeOIDCConfig,
-		Data: map[string][]byte{
+	}
+	_, err := controllerutil.CreateOrUpdate(ctx, k8sClient, secret, func() error {
+		secret.Data = map[string][]byte{
 			greenhouseapis.SecretAPIServerCAKey: caCert,
-		},
-	}
-	err := k8sClient.Create(ctx, secret)
-	if apierrors.IsAlreadyExists(err) {
-		err = k8sClient.Update(ctx, secret)
-	}
+		}
+		return nil
+	})
 	Expect(err).NotTo(HaveOccurred())
 }
 

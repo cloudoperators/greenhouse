@@ -21,6 +21,7 @@ import (
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
+	greenhouseapis "github.com/cloudoperators/greenhouse/api"
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
 	"github.com/cloudoperators/greenhouse/e2e/cluster/expect"
 	"github.com/cloudoperators/greenhouse/e2e/shared"
@@ -168,7 +169,7 @@ var _ = Describe("Cluster E2E", Ordered, func() {
 			remoteAPIServerURL := restConfig.Host
 			remoteCA := make([]byte, base64.StdEncoding.EncodedLen(len(restConfig.CAData)))
 			base64.StdEncoding.Encode(remoteCA, restConfig.CAData)
-			shared.OnboardRemoteOIDCCluster(ctx, adminClient, remoteCA, remoteAPIServerURL, remoteOIDCClusterHName, env.TestNamespace)
+			shared.CreateUpdateRemoteOIDCCluster(ctx, adminClient, remoteCA, remoteAPIServerURL, remoteOIDCClusterHName, env.TestNamespace)
 
 			By("verifying the cluster status is ready")
 			shared.ClusterIsReady(ctx, adminClient, remoteOIDCClusterHName, env.TestNamespace)
@@ -185,6 +186,32 @@ var _ = Describe("Cluster E2E", Ordered, func() {
 			ownerRef := clientutil.GetOwnerReference(sa, "Secret")
 			Expect(ownerRef).NotTo(BeNil(), "service account should have an owner reference")
 			Expect(ownerRef.Name).To(Equal(remoteOIDCClusterHName), "service account should have the correct owner reference")
+
+			By("updating the ca.crt in remote oidc cluster secret")
+			remoteKubeRootCrt := &corev1.ConfigMap{}
+			remoteKubeRootCrt.SetName("kube-root-ca.crt")
+			remoteKubeRootCrt.SetNamespace("default")
+			err = remoteClient.Get(ctx, client.ObjectKeyFromObject(remoteKubeRootCrt), remoteKubeRootCrt)
+			Expect(err).NotTo(HaveOccurred(), "there should be no error getting the kube-root-ca.crt configmap from remote cluster")
+
+			By("updating the remote oidc cluster secret with the new ca.crt")
+			remoteCA = make([]byte, base64.StdEncoding.EncodedLen(len(remoteKubeRootCrt.Data["ca.crt"])))
+			base64.StdEncoding.Encode(remoteCA, []byte(remoteKubeRootCrt.Data["ca.crt"]))
+			shared.CreateUpdateRemoteOIDCCluster(ctx, adminClient, remoteCA, remoteAPIServerURL, remoteOIDCClusterHName, env.TestNamespace)
+
+			By("verifying greenhousekubeconfig has updated ca.crt")
+			Eventually(func(g Gomega) bool {
+				secret := &corev1.Secret{}
+				err = adminClient.Get(ctx, client.ObjectKey{Name: remoteOIDCClusterHName, Namespace: env.TestNamespace}, secret)
+				Expect(err).NotTo(HaveOccurred(), "there should be no error getting the remote oidc cluster secret")
+				secretCABytes, err := base64.StdEncoding.DecodeString(string(secret.Data["ca.crt"]))
+				Expect(err).NotTo(HaveOccurred(), "there should be no error decoding the ca.crt from the secret")
+				restClient = clientutil.NewRestClientGetterFromBytes(secret.Data[greenhouseapis.GreenHouseKubeConfigKey], env.TestNamespace)
+				restConfig, err = restClient.ToRESTConfig()
+				Expect(err).NotTo(HaveOccurred(), "there should be no error creating the remote REST config")
+				Expect(restConfig.CAData).To(Equal(string(secretCABytes)), "the ca.crt in the secret should match the ca.crt in the kubeconfig")
+				return true
+			}).Should(BeTrue(), "remote oidc cluster secret should have the updated ca.crt in greenhousekubeconfig")
 		})
 
 		It("should successfully off-board remote oidc cluster", func() {
