@@ -1041,6 +1041,47 @@ map[string]../greenhouse/api/v1alpha1.NodeStatus
 </table>
 </div>
 </div>
+<h3 id="greenhouse.sap/v1alpha1.ConfigMapKeyReference">ConfigMapKeyReference
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#greenhouse.sap/v1alpha1.OrganizationSpec">OrganizationSpec</a>)
+</p>
+<p>ConfigMapKeyReference specifies the config map and key containing the value.</p>
+<div class="md-typeset__scrollwrap">
+<div class="md-typeset__table">
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>name</code><br>
+<em>
+string
+</em>
+</td>
+<td>
+</td>
+</tr>
+<tr>
+<td>
+<code>key</code><br>
+<em>
+string
+</em>
+</td>
+<td>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
 <h3 id="greenhouse.sap/v1alpha1.HelmChartReference">HelmChartReference
 </h3>
 <p>
@@ -1431,6 +1472,19 @@ string
 <p>MappedOrgAdminIDPGroup is the IDP group ID identifying org admins</p>
 </td>
 </tr>
+<tr>
+<td>
+<code>configMapKeyReferences</code><br>
+<em>
+<a href="#greenhouse.sap/v1alpha1.ConfigMapKeyReference">
+[]ConfigMapKeyReference
+</a>
+</em>
+</td>
+<td>
+<p>ConfigMapKeyReferences allows for multiple references to different config maps.</p>
+</td>
+</tr>
 </table>
 </td>
 </tr>
@@ -1512,6 +1566,19 @@ string
 </td>
 <td>
 <p>MappedOrgAdminIDPGroup is the IDP group ID identifying org admins</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>configMapKeyReferences</code><br>
+<em>
+<a href="#greenhouse.sap/v1alpha1.ConfigMapKeyReference">
+[]ConfigMapKeyReference
+</a>
+</em>
+</td>
+<td>
+<p>ConfigMapKeyReferences allows for multiple references to different config maps.</p>
 </td>
 </tr>
 </tbody>

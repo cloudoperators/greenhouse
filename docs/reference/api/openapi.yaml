@@ -583,6 +583,20 @@ components:
                     - baseURL
                   type: object
               type: object
+            configMapKeyReferences:
+              description: ConfigMapKeyReferences allows for multiple references to different config maps.
+              items:
+                description: ConfigMapKeyReference specifies the config map and key containing the value.
+                properties:
+                  key:
+                    type: string
+                  name:
+                    type: string
+                required:
+                  - key
+                  - name
+                type: object
+              type: array
             description:
               description: Description provides additional details of the organization.
               type: string
