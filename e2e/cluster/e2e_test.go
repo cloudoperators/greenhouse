@@ -203,21 +203,20 @@ var _ = Describe("Cluster E2E", Ordered, func() {
 			Eventually(func(g Gomega) bool {
 				secret := &corev1.Secret{}
 				err = adminClient.Get(ctx, client.ObjectKey{Name: remoteOIDCClusterHName, Namespace: env.TestNamespace}, secret)
-				Expect(err).NotTo(HaveOccurred(), "there should be no error getting the remote oidc cluster secret")
+				g.Expect(err).NotTo(HaveOccurred(), "there should be no error getting the remote oidc cluster secret")
+				g.Expect(string(secret.Data[greenhouseapis.GreenHouseKubeConfigKey])).NotTo(BeEmpty(), "the secret should contain the greenhouse kubeconfig key")
 				secretCABytes, err := base64.StdEncoding.DecodeString(string(secret.Data["ca.crt"]))
-				Expect(err).NotTo(HaveOccurred(), "there should be no error decoding the ca.crt from the secret")
-				restClient = clientutil.NewRestClientGetterFromBytes(secret.Data[greenhouseapis.GreenHouseKubeConfigKey], env.TestNamespace)
-				restConfig, err = restClient.ToRESTConfig()
-				Expect(err).NotTo(HaveOccurred(), "there should be no error creating the remote REST config")
-				Expect(restConfig.CAData).To(Equal(string(secretCABytes)), "the ca.crt in the secret should match the ca.crt in the kubeconfig")
+				g.Expect(err).NotTo(HaveOccurred(), "there should be no error decoding the ca.crt from the secret")
+				restClient := clientutil.NewRestClientGetterFromBytes(secret.Data[greenhouseapis.GreenHouseKubeConfigKey], env.TestNamespace)
+				restConfig, err := restClient.ToRESTConfig()
+				g.Expect(err).NotTo(HaveOccurred(), "there should be no error creating the remote REST config")
+				g.Expect(restConfig.CAData).To(Equal(string(secretCABytes)), "the ca.crt in the secret should match the ca.crt in the kubeconfig")
 				return true
 			}).Should(BeTrue(), "remote oidc cluster secret should have the updated ca.crt in greenhousekubeconfig")
-		})
 
-		It("should successfully off-board remote oidc cluster", func() {
 			shared.OffBoardRemoteCluster(ctx, adminClient, remoteClient, testStartTime, remoteOIDCClusterHName, env.TestNamespace)
-			sa := &corev1.ServiceAccount{}
-			err := adminClient.Get(ctx, client.ObjectKey{Name: remoteOIDCClusterHName, Namespace: env.TestNamespace}, sa)
+			sa = &corev1.ServiceAccount{}
+			err = adminClient.Get(ctx, client.ObjectKey{Name: remoteOIDCClusterHName, Namespace: env.TestNamespace}, sa)
 			Expect(apierrors.IsNotFound(err)).To(BeTrue(), "the service account should not exist")
 		})
 	})
