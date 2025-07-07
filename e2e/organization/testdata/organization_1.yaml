@@ -5,8 +5,8 @@
 apiVersion: greenhouse.sap/v1alpha1
 kind: Organization
 metadata:
-  name: organization-e2e
+  name: organization-1-e2e
 spec:
-  description: e2e organization for cluster
-  displayName: OrganizationE2E
+  description: e2e organization-1 for cluster
+  displayName: Organization1E2E
   mappedOrgAdminIdPGroup: TEST_ORG_ADMIN
