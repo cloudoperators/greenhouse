@@ -20,6 +20,9 @@ const (
 	// SecretTypeOrganization specifies a secret containing the kubeconfig for an organization.
 	SecretTypeOrganization corev1.SecretType = "greenhouse.sap/orgsecret"
 
+	// LabelKeyOrgConfigMap is used to identify organizational config map.
+	LabelKeyOrgConfigMap = "greenhouse.sap/orgconfigmap"
+
 	// KubeConfigKey is the key for the user-provided kubeconfig in the secret of type greenhouse.sap/kubeconfig.
 	KubeConfigKey = "kubeconfig"
 
@@ -69,7 +72,8 @@ const (
 	// RolebindingTeamRefField is the field in the RoleBinding spec that references the Team.
 	RolebindingTeamRefField = ".spec.teamRef"
 
-	ConfigMapKeyReferenceNameField = ".spec.configMapKeyReferences.name"
+	// ConfigMapKeyReferenceNameField is the field in the Organization spec that references the ConfigMap containing organizational configuration data.
+	ConfigMapKeyReferenceNameField = ".spec.configMapKeyReference.name"
 )
 
 // Team constants

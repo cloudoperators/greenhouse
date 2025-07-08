@@ -21,7 +21,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
-	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	greenhouseapis "github.com/cloudoperators/greenhouse/api"
 	greenhousemetav1alpha1 "github.com/cloudoperators/greenhouse/api/meta/v1alpha1"
@@ -51,7 +50,6 @@ var (
 
 const (
 	defaultGreenhouseConnectorID = "greenhouse"
-	organizationalConfigMapLabel = "greenhouse.cloudoperators.io/org-config"
 )
 
 // OrganizationReconciler reconciles an Organization object
@@ -88,27 +86,6 @@ func (r *OrganizationReconciler) SetupWithManager(name string, mgr ctrl.Manager)
 	}
 	r.dex = dexter
 
-	if err := mgr.GetFieldIndexer().IndexField(
-		context.Background(),
-		&greenhousev1alpha1.Organization{},
-		greenhouseapis.ConfigMapKeyReferenceNameField, func(obj client.Object) []string {
-			org, ok := obj.(*greenhousev1alpha1.Organization)
-			if !ok || len(org.Spec.ConfigMapKeyReferences) == 0 {
-				return nil
-			}
-
-			var names []string
-			for _, ref := range org.Spec.ConfigMapKeyReferences {
-				if ref.Name != "" {
-					names = append(names, ref.Name)
-				}
-			}
-
-			return names
-		}); err != nil {
-		return err
-	}
-
 	b := ctrl.NewControllerManagedBy(mgr).
 		Named(name).
 		For(&greenhousev1alpha1.Organization{}).
@@ -130,8 +107,8 @@ func (r *OrganizationReconciler) SetupWithManager(name string, mgr ctrl.Manager)
 				predicate.GenerationChangedPredicate{},
 			))).
 		Watches(&corev1.ConfigMap{},
-			handler.EnqueueRequestsFromMapFunc(r.enqueueOrganizationsForReferencedConfigMaps),
-			builder.WithPredicates(clientutil.PredicateHasLabel(organizationalConfigMapLabel, "true")))
+			handler.EnqueueRequestsFromMapFunc(r.enqueueOrganizationsForReferencedConfigMap),
+			builder.WithPredicates(clientutil.PredicateHasLabel(greenhouseapis.LabelKeyOrgConfigMap, "true")))
 	if r.DexStorageType == dexstore.K8s {
 		b.Owns(&dexapi.Connector{}).
 			Owns(&dexapi.OAuth2Client{})
@@ -398,21 +375,6 @@ func (r *OrganizationReconciler) enqueueOrganizationForReferencedSecret(_ contex
 	return []ctrl.Request{{NamespacedName: client.ObjectKeyFromObject(org)}}
 }
 
-func (r *OrganizationReconciler) enqueueOrganizationsForReferencedConfigMaps(_ context.Context, o client.Object) []reconcile.Request {
-	var orgList greenhousev1alpha1.OrganizationList
-
-	if err := r.List(context.Background(), &orgList,
-		client.MatchingFields{greenhouseapis.ConfigMapKeyReferenceNameField: o.GetName()},
-	); err != nil {
-		return nil
-	}
-
-	reqs := make([]reconcile.Request, 0, len(orgList.Items))
-	for _, org := range orgList.Items {
-		reqs = append(reqs, reconcile.Request{
-			NamespacedName: types.NamespacedName{Namespace: org.Namespace, Name: org.Name},
-		})
-	}
-
-	return reqs
+func (r *OrganizationReconciler) enqueueOrganizationsForReferencedConfigMap(ctx context.Context, o client.Object) []ctrl.Request {
+	return listOrganizationsAsReconcileRequests(ctx, r, client.MatchingFields{greenhouseapis.ConfigMapKeyReferenceNameField: o.GetName()})
 }

@@ -57,8 +57,8 @@ type OrganizationSpec struct {
 	// MappedOrgAdminIDPGroup is the IDP group ID identifying org admins
 	MappedOrgAdminIDPGroup string `json:"mappedOrgAdminIdPGroup,omitempty"`
 
-	// ConfigMapKeyReferences allows for multiple references to different config maps.
-	ConfigMapKeyReferences []ConfigMapKeyReference `json:"configMapKeyReferences,omitempty"`
+	// ConfigMapKeyReference allows to reference organizational config map.
+	ConfigMapKeyReference *ConfigMapKeyReference `json:"configMapKeyReference,omitempty"`
 }
 
 type Authentication struct {
