@@ -666,10 +666,10 @@ func (in *OrganizationSpec) DeepCopyInto(out *OrganizationSpec) {
 		*out = new(Authentication)
 		(*in).DeepCopyInto(*out)
 	}
-	if in.ConfigMapKeyReferences != nil {
-		in, out := &in.ConfigMapKeyReferences, &out.ConfigMapKeyReferences
-		*out = make([]ConfigMapKeyReference, len(*in))
-		copy(*out, *in)
+	if in.ConfigMapKeyReference != nil {
+		in, out := &in.ConfigMapKeyReference, &out.ConfigMapKeyReference
+		*out = new(ConfigMapKeyReference)
+		**out = **in
 	}
 }
 
