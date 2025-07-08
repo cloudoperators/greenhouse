@@ -47,4 +47,15 @@ The following *Plugins* are currently available:
 - [Audit-Logs](https://cloudoperators.github.io/greenhouse/docs/reference/catalog/audit-logs): installs *[OpenTelemetry](https://opentelemetry.io)* in the form of *[OpenTelemetryCollectors](https://github.com/open-telemetry/opentelemetry-collector)* to collect *audit-relevant* logs from applications and forward them to backends like Prometheus and OpenSearch.
 
 ## Overview Architecture
-![Observability architecture](./monitoring-architecture.png)
+<figure>
+  <img src="./monitoring-architecture.png" alt="High-Level view on the Observability Architecture">
+  <figcaption><i>This is a high-level depiction of how the Greenhouse Extensions (Plugins) interact on central and a remote-cluster.</i></figcaption>
+</figure>
+
+<figure>
+  <img src="./monitoring-architecture-detailed.png" alt="A detailed view on the Observability Architecture">
+  <figcaption><i>Traffic and data flow that happens for a particular application within its own domain has been omitted for simplicity. For more information please visit <a href=https://github.com/cloudoperators/greenhouse-extensions>Greenhouse Extensions</a> to read up more on the inner workings of each application.</i></figcaption>
+</figure>
+
+
+
