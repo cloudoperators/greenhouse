@@ -122,6 +122,8 @@ func (r *TeamController) EnsureCreated(ctx context.Context, object lifecycle.Run
 		return ctrl.Result{}, lifecycle.Failed, errors.Errorf("RuntimeObject has incompatible type.")
 	}
 
+	initTeamStatus(team)
+
 	var organization = new(greenhousev1alpha1.Organization)
 	if err := r.Get(ctx, types.NamespacedName{Name: object.GetNamespace()}, organization); err != nil {
 		return ctrl.Result{}, lifecycle.Failed, client.IgnoreNotFound(err)
@@ -131,8 +133,6 @@ func (r *TeamController) EnsureCreated(ctx context.Context, object lifecycle.Run
 		log.FromContext(ctx).Info("Team does not have MappedIdpGroup set", "team", team.Name)
 		return ctrl.Result{}, lifecycle.Success, nil
 	}
-
-	initTeamStatus(team)
 
 	orgSCIMAPIAvailableCondition := organization.Status.GetConditionByType(greenhousev1alpha1.SCIMAPIAvailableCondition)
 	if orgSCIMAPIAvailableCondition == nil || !orgSCIMAPIAvailableCondition.IsTrue() {
