@@ -14,13 +14,16 @@ import (
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	. "github.com/onsi/gomega/gstruct"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
+	greenhousemetav1alpha1 "github.com/cloudoperators/greenhouse/api/meta/v1alpha1"
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
 	"github.com/cloudoperators/greenhouse/e2e/shared"
 	"github.com/cloudoperators/greenhouse/internal/clientutil"
@@ -31,8 +34,6 @@ var (
 	ctx           context.Context
 	adminClient   client.Client
 	testStartTime time.Time
-	//go:embed testdata/organization_1.yaml
-	organization1Yaml string
 )
 
 func TestE2e(t *testing.T) {
@@ -57,19 +58,21 @@ var _ = AfterSuite(func() {
 })
 
 var _ = Describe("Organization E2E", Ordered, func() {
-	Context("Happy path - creating and deleting Organization", func() {
-		org := &greenhousev1alpha1.Organization{}
+	Context("Happy path - creating and deleting organization", func() {
+		org := &greenhousev1alpha1.Organization{
+			ObjectMeta: metav1.ObjectMeta{Name: "organization-1-e2e"},
+			Spec: greenhousev1alpha1.OrganizationSpec{
+				MappedOrgAdminIDPGroup: "TEST_ORG_1_ADMIN",
+			}}
 
-		It("should onboard Organization", func() {
-			err := shared.FromYamlToK8sObject(organization1Yaml, org)
-			Expect(err).NotTo(HaveOccurred(), "error converting organization yaml to k8s object")
-			err = adminClient.Create(ctx, org)
+		It("should onboard organization", func() {
+			err := adminClient.Create(ctx, org)
 			Expect(err).ToNot(HaveOccurred())
 		})
 
 		It("should have Organization CR created", func() {
 			Eventually(func(g Gomega) {
-				err := adminClient.Get(ctx, client.ObjectKeyFromObject(org), &greenhousev1alpha1.Organization{})
+				err := adminClient.Get(ctx, client.ObjectKeyFromObject(org), org)
 				g.Expect(err).ToNot(HaveOccurred())
 			}).Should(Succeed(), "organization should be created")
 		})
@@ -88,7 +91,7 @@ var _ = Describe("Organization E2E", Ordered, func() {
 				Eventually(func(g Gomega) {
 					err := adminClient.Get(ctx, objKey, obj)
 					g.Expect(err).ToNot(HaveOccurred())
-				}).Should(Succeed(), "expected %s to be created", entryLabel)
+				}).Should(Succeed(), "resource %s expected to be created", entryLabel)
 			},
 			// TeamRoles.
 			Entry("TeamRole cluster-admin", client.ObjectKey{Name: "cluster-admin", Namespace: "organization-1-e2e"}, &greenhousev1alpha1.TeamRole{}),
@@ -115,7 +118,20 @@ var _ = Describe("Organization E2E", Ordered, func() {
 			Entry("ClusterRole member", client.ObjectKey{Name: "organization:organization-1-e2e", Namespace: ""}, &rbacv1.ClusterRole{}),
 		)
 
-		It("should offboard Organization", func() {
+		It("should mark Organization CR as Ready", func() {
+			Eventually(func(g Gomega) {
+				err := adminClient.Get(ctx, client.ObjectKeyFromObject(org), org)
+				Expect(err).ToNot(HaveOccurred())
+
+				g.Expect(org.Status.Conditions).Should(ContainElement(
+					MatchFields(IgnoreExtras, Fields{
+						"Type":   Equal(greenhousemetav1alpha1.ReadyCondition),
+						"Status": Equal(metav1.ConditionTrue),
+					})))
+			}).Should(Succeed(), "organization should have Ready condition")
+		})
+
+		It("should offboard organization", func() {
 			if err := adminClient.Delete(ctx, org); err != nil && !apierrors.IsNotFound(err) {
 				Fail(fmt.Sprintf("deleting Organization should not error: %v", err))
 			}
@@ -123,7 +139,7 @@ var _ = Describe("Organization E2E", Ordered, func() {
 
 		It("should have Organization CR deleted", func() {
 			Eventually(func(g Gomega) {
-				err := adminClient.Get(ctx, client.ObjectKeyFromObject(org), &greenhousev1alpha1.Organization{})
+				err := adminClient.Get(ctx, client.ObjectKeyFromObject(org), org)
 				g.Expect(apierrors.IsNotFound(err)).To(BeTrue())
 			}).Should(Succeed(), "organization should be fully deleted")
 		})
@@ -142,7 +158,7 @@ var _ = Describe("Organization E2E", Ordered, func() {
 				Eventually(func(g Gomega) {
 					err := adminClient.Get(ctx, objKey, obj)
 					g.Expect(apierrors.IsNotFound(err)).To(BeTrue())
-				}).Should(Succeed(), "Resource %s should be fully deleted", entryLabel)
+				}).Should(Succeed(), "resource %s should be fully deleted", entryLabel)
 			},
 			// TeamRoles.
 			Entry("TeamRole cluster-admin", client.ObjectKey{Name: "cluster-admin", Namespace: "organization-1-e2e"}, &greenhousev1alpha1.TeamRole{}),
