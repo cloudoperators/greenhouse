@@ -7,13 +7,13 @@ replace (
 	github.com/dexidp/dex => github.com/dexidp/dex v0.0.0-20250522090151-6e602d3315ea
 	github.com/dexidp/dex/api/v2 => github.com/dexidp/dex/api/v2 v2.3.0
 	// Keep k8s dependencies in sync.
-	k8s.io/api => k8s.io/api v0.32.5
-	k8s.io/apiextensions-apiserver => k8s.io/apiextensions-apiserver v0.32.5
+	k8s.io/api => k8s.io/api v0.32.6
+	k8s.io/apiextensions-apiserver => k8s.io/apiextensions-apiserver v0.32.6
 	k8s.io/apimachinery => k8s.io/apimachinery v0.32.6
-	k8s.io/cli-runtime => k8s.io/cli-runtime v0.32.5
-	k8s.io/client-go => k8s.io/client-go v0.32.5
-	k8s.io/component-base => k8s.io/component-base v0.32.5
-	k8s.io/kubectl => k8s.io/kubectl v0.32.5
+	k8s.io/cli-runtime => k8s.io/cli-runtime v0.32.6
+	k8s.io/client-go => k8s.io/client-go v0.32.6
+	k8s.io/component-base => k8s.io/component-base v0.32.6
+	k8s.io/kubectl => k8s.io/kubectl v0.32.6
 	sigs.k8s.io/controller-runtime => sigs.k8s.io/controller-runtime v0.20.4
 )
 
