@@ -7,6 +7,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	controllerMetrics "sigs.k8s.io/controller-runtime/pkg/metrics"
 
+	greenhouseapis "github.com/cloudoperators/greenhouse/api"
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
 )
 
@@ -35,21 +36,44 @@ var (
 		prometheus.CounterOpts{
 			Name: "greenhouse_plugin_reconcile_total",
 		},
-		[]string{"pluginDefinition", "clusterName", "plugin", "organization", "result", "reason"})
+		[]string{"pluginDefinition", "clusterName", "plugin", "namespace", "result", "reason", "owned_by"})
+
+	pluginReady = prometheus.NewGaugeVec(
+		prometheus.GaugeOpts{
+			Name: "greenhouse_plugin_ready",
+			Help: "Indicates whether the plugin is ready",
+		},
+		[]string{"pluginDefinition", "clusterName", "plugin", "namespace", "owned_by"})
 )
 
 func init() {
 	controllerMetrics.Registry.MustRegister(pluginReconcileTotal)
 }
 
-func UpdateMetrics(plugin *greenhousev1alpha1.Plugin, result MetricResult, reason MetricReason) {
+func UpdateReconcileTotalMetric(plugin *greenhousev1alpha1.Plugin, result MetricResult, reason MetricReason) {
 	pluginReconcileTotalLabels := prometheus.Labels{
 		"pluginDefinition": plugin.Spec.PluginDefinition,
 		"clusterName":      plugin.Spec.ClusterName,
 		"plugin":           plugin.Name,
-		"organization":     plugin.Namespace,
+		"namespace":        plugin.Namespace,
 		"result":           string(result),
 		"reason":           string(reason),
+		"owned_by":         plugin.Labels[greenhouseapis.LabelKeyOwnedBy],
 	}
 	pluginReconcileTotal.With(pluginReconcileTotalLabels).Inc()
+}
+
+func UpdatePluginReadyMetric(plugin *greenhousev1alpha1.Plugin, ready bool) {
+	pluginReadyLabels := prometheus.Labels{
+		"pluginDefinition": plugin.Spec.PluginDefinition,
+		"clusterName":      plugin.Spec.ClusterName,
+		"plugin":           plugin.Name,
+		"namespace":        plugin.Namespace,
+		"owned_by":         plugin.Labels[greenhouseapis.LabelKeyOwnedBy],
+	}
+	if ready {
+		pluginReady.With(pluginReadyLabels).Set(1)
+	} else {
+		pluginReady.With(pluginReadyLabels).Set(0)
+	}
 }

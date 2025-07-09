@@ -35,7 +35,6 @@ import (
 
 var exposedConditions = []greenhousemetav1alpha1.ConditionType{
 	greenhousemetav1alpha1.ReadyCondition,
-	greenhousemetav1alpha1.ClusterListEmpty,
 	greenhousev1alpha2.RBACReady,
 }
 
@@ -95,6 +94,7 @@ func (r *TeamRoleBindingReconciler) setConditions() lifecycle.Conditioner {
 
 		readyCondition := computeReadyCondition(trb.Status)
 		trb.SetCondition(readyCondition)
+		updateMetrics(trb)
 	}
 }
 
@@ -119,17 +119,17 @@ func (r *TeamRoleBindingReconciler) EnsureCreated(ctx context.Context, resource 
 		trb.SetCondition(greenhousemetav1alpha1.FalseCondition(greenhousev1alpha2.RBACReady, greenhousev1alpha2.EmptyClusterList, "Failed to get clusters for TeamRoleBinding"))
 		return ctrl.Result{}, lifecycle.Failed, err
 	}
-	switch len(clusters.Items) {
-	case 0:
-		trb.SetCondition(greenhousemetav1alpha1.FalseCondition(greenhousev1alpha2.RBACReady, greenhousev1alpha2.EmptyClusterList, ""))
-		r.recorder.Eventf(trb, corev1.EventTypeWarning, greenhousemetav1alpha1.FailedEvent, "No clusters found for %s", trb.GetName())
-	default:
-		trb.SetCondition(greenhousemetav1alpha1.FalseCondition(greenhousemetav1alpha1.ClusterListEmpty, "", ""))
-	}
 
 	err = r.cleanupResources(ctx, trb, clusters)
 	if err != nil {
 		return ctrl.Result{}, lifecycle.Failed, err
+	}
+
+	// exit early if the cluster list is empty
+	if len(clusters.Items) == 0 {
+		trb.SetCondition(greenhousemetav1alpha1.FalseCondition(greenhousev1alpha2.RBACReady, greenhousev1alpha2.EmptyClusterList, ""))
+		r.recorder.Eventf(trb, corev1.EventTypeWarning, greenhousemetav1alpha1.FailedEvent, "No clusters found for %s", trb.GetName())
+		return ctrl.Result{}, lifecycle.Success, nil
 	}
 
 	team, err := getTeam(ctx, r.Client, trb)

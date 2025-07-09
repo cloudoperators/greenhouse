@@ -25,6 +25,9 @@ import (
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
+	helmcontroller "github.com/fluxcd/helm-controller/api/v2"
+	sourcecontroller "github.com/fluxcd/source-controller/api/v1"
+
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
 	"github.com/cloudoperators/greenhouse/e2e/plugin/fixtures"
 	"github.com/cloudoperators/greenhouse/e2e/shared"
@@ -103,6 +106,7 @@ var _ = Describe("Plugin E2E", Ordered, func() {
 		testPlugin := fixtures.PreparePlugin("test-nginx-plugin-1", env.TestNamespace,
 			test.WithPluginDefinition(testPluginDefinition.Name),
 			test.WithCluster(remoteClusterName),
+			test.WithReleaseName("test-nginx-plugin"),
 			test.WithReleaseNamespace(env.TestNamespace),
 			test.WithPluginOptionValue("replicaCount", &apiextensionsv1.JSON{Raw: []byte("1")}, nil),
 			test.WithReleaseName("test-nginx-plugin-1"),
@@ -199,6 +203,7 @@ var _ = Describe("Plugin E2E", Ordered, func() {
 		// Creating plugin with release name
 		testPlugin := fixtures.PreparePlugin("test-nginx-plugin-2", env.TestNamespace,
 			test.WithPluginDefinition(testPluginDefinition.Name),
+			test.WithReleaseName("test-nginx-plugin"),
 			test.WithReleaseNamespace(env.TestNamespace),
 			test.WithPluginOptionValue("replicaCount", &apiextensionsv1.JSON{Raw: []byte("1")}, nil),
 			test.WithReleaseName("test-nginx-plugin-2"),
@@ -425,5 +430,100 @@ var _ = Describe("Plugin E2E", Ordered, func() {
 
 		By("Deleting the plugin definition")
 		test.EventuallyDeleted(ctx, adminClient, pluginDefinition)
+	})
+
+	It("should deploy the plugin with flux", func() {
+		By("Creating plugin definition")
+		testPluginDefinition := fixtures.PreparePodInfoPluginDefinition(env.TestNamespace)
+		err := adminClient.Create(ctx, testPluginDefinition)
+		Expect(err).ToNot(HaveOccurred())
+
+		By("Checking the plugin definition is ready")
+		pluginDefinitionList := &greenhousev1alpha1.PluginDefinitionList{}
+		err = adminClient.List(ctx, pluginDefinitionList)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(len(pluginDefinitionList.Items)).To(BeEquivalentTo(1))
+
+		By("Checking the helmrepository is ready")
+		Eventually(func(g Gomega) {
+			helmRepositoryList := &sourcecontroller.HelmRepositoryList{}
+			err = adminClient.List(ctx, helmRepositoryList)
+			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(len(helmRepositoryList.Items)).To(BeEquivalentTo(1))
+			g.Expect(helmRepositoryList.Items[0].Spec.URL).To(Equal("oci://ghcr.io/stefanprodan/charts"), "the helm repository URL should match the expected value")
+		})
+
+		By("Prepare the plugin")
+		testPlugin := fixtures.PreparePlugin("test-podinfo-plugin", env.TestNamespace,
+			test.WithPluginDefinition(testPluginDefinition.Name),
+			test.WithReleaseName("test-podinfo-plugin"),
+			test.WithReleaseNamespace(env.TestNamespace),
+			test.WithPluginOptionValue("replicaCount", &apiextensionsv1.JSON{Raw: []byte("1")}, nil))
+
+		By("Add labels to remote cluster")
+		remoteCluster := &greenhousev1alpha1.Cluster{}
+		err = adminClient.Get(ctx, client.ObjectKey{Name: remoteClusterName, Namespace: env.TestNamespace}, remoteCluster)
+		Expect(err).ToNot(HaveOccurred())
+		remoteCluster.Labels = map[string]string{
+			"app": "test-cluster",
+		}
+		err = adminClient.Update(ctx, remoteCluster)
+		Expect(err).ToNot(HaveOccurred())
+
+		By("Creating the plugin preset")
+		testPluginPreset := &greenhousev1alpha1.PluginPreset{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "test-podinfo-plugin-preset",
+				Namespace: env.TestNamespace,
+				Labels: map[string]string{
+					"greenhouse.sap/deployment-tool": "flux",
+				},
+				Annotations: map[string]string{
+					"greenhouse.sap/propagate-labels": "greenhouse.sap/deployment-tool",
+				},
+			},
+			Spec: greenhousev1alpha1.PluginPresetSpec{
+				Plugin: testPlugin.Spec,
+				ClusterSelector: metav1.LabelSelector{
+					MatchLabels: map[string]string{
+						"app": "test-cluster",
+					},
+				},
+			},
+		}
+		err = adminClient.Create(ctx, testPluginPreset)
+		Expect(err).ToNot(HaveOccurred())
+
+		By("Checking the plugin status is ready")
+		Eventually(func(g Gomega) {
+			pluginList := &greenhousev1alpha1.PluginList{}
+			err = adminClient.List(ctx, pluginList)
+			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(len(pluginList.Items)).To(BeEquivalentTo(1))
+			g.Expect(pluginList.Items[0].Labels).To(HaveKeyWithValue("greenhouse.sap/deployment-tool", "flux"), "plugin should have the greenhouse.sap/deployment-tool label set to flux")
+		}).Should(Succeed())
+
+		By("Checking the helmRelease is created")
+		Eventually(func(g Gomega) {
+			helmReleaseList := &helmcontroller.HelmReleaseList{}
+			err = adminClient.List(ctx, helmReleaseList)
+			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(len(helmReleaseList.Items)).To(BeEquivalentTo(1))
+		}).Should(Succeed())
+
+		By("Checking the deployment is created on the remote cluster")
+		Eventually(func(g Gomega) {
+			deploymentList := &appsv1.DeploymentList{}
+			err = remoteClient.List(ctx, deploymentList, client.InNamespace(env.TestNamespace))
+			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(len(deploymentList.Items)).To(BeEquivalentTo(1), "there should be exactly one deployment")
+			g.Expect(deploymentList.Items[0].Spec.Replicas).To(PointTo(Equal(int32(1))), "the deployment should have 1 replica")
+		}).Should(Succeed())
+
+		By("Deleting the plugin preset")
+		test.EventuallyDeleted(ctx, adminClient, testPluginPreset)
+		By("Deleting the plugin definition")
+		test.EventuallyDeleted(ctx, adminClient, testPluginDefinition)
+
 	})
 })
