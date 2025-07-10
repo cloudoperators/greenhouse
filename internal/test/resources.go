@@ -97,9 +97,9 @@ func WithAdditionalRedirects(additionalRedirects ...string) func(organization *g
 	}
 }
 
-func WithConfigMapKeyReference(configMapKeyReference *greenhousev1alpha1.ConfigMapKeyReference) func(*greenhousev1alpha1.Organization) {
+func WithConfigMapRef(configMapRef string) func(*greenhousev1alpha1.Organization) {
 	return func(org *greenhousev1alpha1.Organization) {
-		org.Spec.ConfigMapKeyReference = configMapKeyReference
+		org.Spec.ConfigMapRef = configMapRef
 	}
 }
 
