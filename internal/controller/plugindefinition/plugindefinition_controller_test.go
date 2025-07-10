@@ -142,7 +142,7 @@ var _ = Describe("PluginDefinition controller", func() {
 				g.Expect(err).ToNot(HaveOccurred(), "there should be no error getting the HelmRepository")
 				g.Expect(repository.Spec.URL).To(Equal(HelmRepo), "the HelmRepository URL should match the PluginDefinition repository URL")
 				return nil
-			})
+			}).Should(Succeed(), "the HelmRepository should be created successfully")
 		})
 	})
 })
