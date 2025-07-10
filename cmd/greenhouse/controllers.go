@@ -5,7 +5,6 @@ package main
 
 import (
 	"context"
-
 	"sort"
 
 	"k8s.io/utils/ptr"
@@ -34,7 +33,6 @@ var knownControllers = map[string]func(controllerName string, mgr ctrl.Manager) 
 	"teamRoleBindingController": (&teamrbaccontrollers.TeamRoleBindingReconciler{}).SetupWithManager,
 
 	// Flux controllers.
-	"pluginDefinitionToFlux": (&fluxcontrollers.PluginDefinitionReconciler{}).SetupWithManager,
 	"pluginToFlux": (&fluxcontrollers.FluxReconciler{
 		KubeRuntimeOpts: kubeClientOpts,
 	}).SetupWithManager,
