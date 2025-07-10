@@ -14,7 +14,7 @@ import (
 )
 
 func TestHelmReleaseBuilder_CreatesValidHelmRelease(t *testing.T) {
-	builder := NewHelmReleaseBuilder().New("my-release", "my-namespace").
+	builder := NewHelmReleaseSpecBuilder().New("my-release", "my-namespace").
 		WithChart(helmv2.HelmChartTemplateSpec{
 			Chart:   "nginx",
 			Version: "1.2.3",
@@ -38,7 +38,7 @@ func TestHelmReleaseBuilder_CreatesValidHelmRelease(t *testing.T) {
 }
 
 func TestHelmReleaseBuilder_ChartNameRequired(t *testing.T) {
-	builder := NewHelmReleaseBuilder().New("release", "ns").
+	builder := NewHelmReleaseSpecBuilder().New("release", "ns").
 		WithChart(helmv2.HelmChartTemplateSpec{
 			Chart:   "",
 			Version: "1.0.0",
@@ -51,7 +51,7 @@ func TestHelmReleaseBuilder_ChartNameRequired(t *testing.T) {
 }
 
 func TestHelmReleaseBuilder_ChartVersionRequired(t *testing.T) {
-	builder := NewHelmReleaseBuilder().New("release", "ns").
+	builder := NewHelmReleaseSpecBuilder().New("release", "ns").
 		WithChart(helmv2.HelmChartTemplateSpec{
 			Chart:   "nginx",
 			Version: "",
@@ -64,7 +64,7 @@ func TestHelmReleaseBuilder_ChartVersionRequired(t *testing.T) {
 }
 
 func TestHelmReleaseBuilder_WithMaxHistoryNegativeValueIgnored(t *testing.T) {
-	builder := NewHelmReleaseBuilder().New("release", "ns").
+	builder := NewHelmReleaseSpecBuilder().New("release", "ns").
 		WithChart(helmv2.HelmChartTemplateSpec{
 			Chart:   "nginx",
 			Version: "1.0.0",
@@ -77,7 +77,7 @@ func TestHelmReleaseBuilder_WithMaxHistoryNegativeValueIgnored(t *testing.T) {
 }
 
 func TestHelmReleaseBuilder_WithIntervalZeroOrNegativeIgnored(t *testing.T) {
-	builder := NewHelmReleaseBuilder().New("release", "ns").
+	builder := NewHelmReleaseSpecBuilder().New("release", "ns").
 		WithChart(helmv2.HelmChartTemplateSpec{
 			Chart:   "nginx",
 			Version: "1.0.0",
@@ -90,7 +90,7 @@ func TestHelmReleaseBuilder_WithIntervalZeroOrNegativeIgnored(t *testing.T) {
 }
 
 func TestHelmReleaseBuilder_WithTimeoutZeroOrNegativeIgnored(t *testing.T) {
-	builder := NewHelmReleaseBuilder().New("release", "ns").
+	builder := NewHelmReleaseSpecBuilder().New("release", "ns").
 		WithChart(helmv2.HelmChartTemplateSpec{
 			Chart:   "nginx",
 			Version: "1.0.0",
@@ -103,7 +103,7 @@ func TestHelmReleaseBuilder_WithTimeoutZeroOrNegativeIgnored(t *testing.T) {
 }
 
 func TestHelmReleaseBuilder_WithValuesNilIgnored(t *testing.T) {
-	builder := NewHelmReleaseBuilder().New("release", "ns").
+	builder := NewHelmReleaseSpecBuilder().New("release", "ns").
 		WithChart(helmv2.HelmChartTemplateSpec{
 			Chart:   "nginx",
 			Version: "1.0.0",
@@ -116,7 +116,7 @@ func TestHelmReleaseBuilder_WithValuesNilIgnored(t *testing.T) {
 }
 
 func TestHelmReleaseBuilder_WithValuesFromEmptyIgnored(t *testing.T) {
-	builder := NewHelmReleaseBuilder().New("release", "ns").
+	builder := NewHelmReleaseSpecBuilder().New("release", "ns").
 		WithChart(helmv2.HelmChartTemplateSpec{
 			Chart:   "nginx",
 			Version: "1.0.0",
@@ -129,7 +129,7 @@ func TestHelmReleaseBuilder_WithValuesFromEmptyIgnored(t *testing.T) {
 }
 
 func TestHelmReleaseBuilder_WithReleaseNameEmptyIgnored(t *testing.T) {
-	builder := NewHelmReleaseBuilder().New("release", "ns").
+	builder := NewHelmReleaseSpecBuilder().New("release", "ns").
 		WithChart(helmv2.HelmChartTemplateSpec{
 			Chart:   "nginx",
 			Version: "1.0.0",
@@ -142,7 +142,7 @@ func TestHelmReleaseBuilder_WithReleaseNameEmptyIgnored(t *testing.T) {
 }
 
 func TestHelmReleaseBuilder_WithTargetNamespaceEmptyIgnored(t *testing.T) {
-	builder := NewHelmReleaseBuilder().New("release", "ns").
+	builder := NewHelmReleaseSpecBuilder().New("release", "ns").
 		WithChart(helmv2.HelmChartTemplateSpec{
 			Chart:   "nginx",
 			Version: "1.0.0",
@@ -155,7 +155,7 @@ func TestHelmReleaseBuilder_WithTargetNamespaceEmptyIgnored(t *testing.T) {
 }
 
 func TestHelmReleaseBuilder_WithDependsOnEmptyIgnored(t *testing.T) {
-	builder := NewHelmReleaseBuilder().New("release", "ns").
+	builder := NewHelmReleaseSpecBuilder().New("release", "ns").
 		WithChart(helmv2.HelmChartTemplateSpec{
 			Chart:   "nginx",
 			Version: "1.0.0",
@@ -168,7 +168,7 @@ func TestHelmReleaseBuilder_WithDependsOnEmptyIgnored(t *testing.T) {
 }
 
 func TestHelmReleaseBuilder_WithKubeConfigEmptyIgnored(t *testing.T) {
-	builder := NewHelmReleaseBuilder().New("release", "ns").
+	builder := NewHelmReleaseSpecBuilder().New("release", "ns").
 		WithChart(helmv2.HelmChartTemplateSpec{
 			Chart:   "nginx",
 			Version: "1.0.0",
