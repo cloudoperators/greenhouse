@@ -376,5 +376,5 @@ func (r *OrganizationReconciler) enqueueOrganizationForReferencedSecret(_ contex
 }
 
 func (r *OrganizationReconciler) enqueueOrganizationsForReferencedConfigMap(ctx context.Context, o client.Object) []ctrl.Request {
-	return listOrganizationsAsReconcileRequests(ctx, r, client.MatchingFields{greenhouseapis.ConfigMapKeyReferenceNameField: o.GetName()})
+	return listOrganizationsAsReconcileRequests(ctx, r, client.MatchingFields{greenhouseapis.ConfigMapRefField: o.GetName()})
 }
