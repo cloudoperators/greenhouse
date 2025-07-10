@@ -6,6 +6,7 @@ package plugindefinition
 import (
 	"slices"
 
+	sourcev1 "github.com/fluxcd/source-controller/api/v1"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
@@ -131,6 +132,17 @@ var _ = Describe("PluginDefinition controller", func() {
 				return event.Reason == "Updated" && event.InvolvedObject.Name == clusterDef.Name
 			})
 			Expect(updatedEvent).To(BeTrue(), "there should be an Updated event for the ClusterPluginDefinition")
+
+			By("checking if flux HelmRepository is created")
+			repository := &sourcev1.HelmRepository{}
+			repository.SetName(HelmRepo)
+			repository.SetNamespace(test.TestGreenhouseNamespace)
+			Eventually(func(g Gomega) error {
+				err := test.K8sClient.Get(test.Ctx, cl.ObjectKeyFromObject(repository), repository)
+				g.Expect(err).ToNot(HaveOccurred(), "there should be no error getting the HelmRepository")
+				g.Expect(repository.Spec.URL).To(Equal(HelmRepo), "the HelmRepository URL should match the PluginDefinition repository URL")
+				return nil
+			})
 		})
 	})
 })
