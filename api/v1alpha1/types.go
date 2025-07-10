@@ -36,12 +36,6 @@ type SecretKeyReference struct {
 	Key string `json:"key"`
 }
 
-// ConfigMapKeyReference specifies the config map and key containing the value.
-type ConfigMapKeyReference struct {
-	Name string `json:"name"`
-	Key  string `json:"key"`
-}
-
 // UIApplicationReference references the UI pluginDefinition to use.
 type UIApplicationReference struct {
 	// URL specifies the url to a built javascript asset.

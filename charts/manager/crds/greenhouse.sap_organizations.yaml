@@ -194,18 +194,10 @@ spec:
                     - baseURL
                     type: object
                 type: object
-              configMapKeyReference:
-                description: ConfigMapKeyReference allows to reference organizational
-                  config map.
-                properties:
-                  key:
-                    type: string
-                  name:
-                    type: string
-                required:
-                - key
-                - name
-                type: object
+              configMapRef:
+                description: ConfigMapRef allows to reference organizational config
+                  map.
+                type: string
               description:
                 description: Description provides additional details of the organization.
                 type: string
