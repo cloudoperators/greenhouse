@@ -14,7 +14,7 @@ import (
 )
 
 func TestHelmReleaseBuilder_CreatesValidHelmRelease(t *testing.T) {
-	builder := NewHelmReleaseSpecBuilder().New("my-release", "my-namespace").
+	builder := NewHelmReleaseSpecBuilder().New().
 		WithChart(helmv2.HelmChartTemplateSpec{
 			Chart:   "nginx",
 			Version: "1.2.3",
@@ -25,157 +25,152 @@ func TestHelmReleaseBuilder_CreatesValidHelmRelease(t *testing.T) {
 		WithReleaseName("custom-release").
 		WithTargetNamespace("target-ns")
 
-	hr, err := builder.Build()
+	spec, err := builder.Build()
 	assert.NoError(t, err)
-	assert.NotNil(t, hr)
-	assert.Equal(t, "my-release", hr.Name)
-	assert.Equal(t, "my-namespace", hr.Namespace)
-	assert.Equal(t, "nginx", hr.Spec.Chart.Spec.Chart)
-	assert.Equal(t, "1.2.3", hr.Spec.Chart.Spec.Version)
-	assert.Equal(t, 5, *hr.Spec.MaxHistory)
-	assert.Equal(t, "custom-release", hr.Spec.ReleaseName)
-	assert.Equal(t, "target-ns", hr.Spec.TargetNamespace)
+	assert.Equal(t, "nginx", spec.Chart.Spec.Chart)
+	assert.Equal(t, "1.2.3", spec.Chart.Spec.Version)
+	assert.Equal(t, 5, *spec.MaxHistory)
+	assert.Equal(t, "custom-release", spec.ReleaseName)
+	assert.Equal(t, "target-ns", spec.TargetNamespace)
 }
 
 func TestHelmReleaseBuilder_ChartNameRequired(t *testing.T) {
-	builder := NewHelmReleaseSpecBuilder().New("release", "ns").
+	builder := NewHelmReleaseSpecBuilder().New().
 		WithChart(helmv2.HelmChartTemplateSpec{
 			Chart:   "",
 			Version: "1.0.0",
 		})
 
-	hr, err := builder.Build()
+	_, err := builder.Build()
 	assert.Error(t, err)
-	assert.Nil(t, hr)
 	assert.Equal(t, "chart name is required", err.Error())
 }
 
 func TestHelmReleaseBuilder_ChartVersionRequired(t *testing.T) {
-	builder := NewHelmReleaseSpecBuilder().New("release", "ns").
+	builder := NewHelmReleaseSpecBuilder().New().
 		WithChart(helmv2.HelmChartTemplateSpec{
 			Chart:   "nginx",
 			Version: "",
 		})
 
-	hr, err := builder.Build()
+	_, err := builder.Build()
 	assert.Error(t, err)
-	assert.Nil(t, hr)
 	assert.Equal(t, "chart version is required", err.Error())
 }
 
 func TestHelmReleaseBuilder_WithMaxHistoryNegativeValueIgnored(t *testing.T) {
-	builder := NewHelmReleaseSpecBuilder().New("release", "ns").
+	builder := NewHelmReleaseSpecBuilder().New().
 		WithChart(helmv2.HelmChartTemplateSpec{
 			Chart:   "nginx",
 			Version: "1.0.0",
 		}).
 		WithMaxHistory(-1)
 
-	hr, err := builder.Build()
+	spec, err := builder.Build()
 	assert.NoError(t, err)
-	assert.Nil(t, hr.Spec.MaxHistory)
+	assert.Nil(t, spec.MaxHistory)
 }
 
 func TestHelmReleaseBuilder_WithIntervalZeroOrNegativeIgnored(t *testing.T) {
-	builder := NewHelmReleaseSpecBuilder().New("release", "ns").
+	builder := NewHelmReleaseSpecBuilder().New().
 		WithChart(helmv2.HelmChartTemplateSpec{
 			Chart:   "nginx",
 			Version: "1.0.0",
 		}).
 		WithInterval(0)
 
-	hr, err := builder.Build()
+	spec, err := builder.Build()
 	assert.NoError(t, err)
-	assert.Equal(t, metav1.Duration{}, hr.Spec.Interval)
+	assert.Equal(t, metav1.Duration{}, spec.Interval)
 }
 
 func TestHelmReleaseBuilder_WithTimeoutZeroOrNegativeIgnored(t *testing.T) {
-	builder := NewHelmReleaseSpecBuilder().New("release", "ns").
+	builder := NewHelmReleaseSpecBuilder().New().
 		WithChart(helmv2.HelmChartTemplateSpec{
 			Chart:   "nginx",
 			Version: "1.0.0",
 		}).
 		WithTimeout(-5 * time.Second)
 
-	hr, err := builder.Build()
+	spec, err := builder.Build()
 	assert.NoError(t, err)
-	assert.Nil(t, hr.Spec.Timeout)
+	assert.Nil(t, spec.Timeout)
 }
 
 func TestHelmReleaseBuilder_WithValuesNilIgnored(t *testing.T) {
-	builder := NewHelmReleaseSpecBuilder().New("release", "ns").
+	builder := NewHelmReleaseSpecBuilder().New().
 		WithChart(helmv2.HelmChartTemplateSpec{
 			Chart:   "nginx",
 			Version: "1.0.0",
 		}).
 		WithValues(nil)
 
-	hr, err := builder.Build()
+	spec, err := builder.Build()
 	assert.NoError(t, err)
-	assert.NotNil(t, hr.Spec.Values)
+	assert.NotNil(t, spec.Values)
 }
 
 func TestHelmReleaseBuilder_WithValuesFromEmptyIgnored(t *testing.T) {
-	builder := NewHelmReleaseSpecBuilder().New("release", "ns").
+	builder := NewHelmReleaseSpecBuilder().New().
 		WithChart(helmv2.HelmChartTemplateSpec{
 			Chart:   "nginx",
 			Version: "1.0.0",
 		}).
 		WithValuesFrom([]helmv2.ValuesReference{})
 
-	hr, err := builder.Build()
+	spec, err := builder.Build()
 	assert.NoError(t, err)
-	assert.Nil(t, hr.Spec.ValuesFrom)
+	assert.Nil(t, spec.ValuesFrom)
 }
 
 func TestHelmReleaseBuilder_WithReleaseNameEmptyIgnored(t *testing.T) {
-	builder := NewHelmReleaseSpecBuilder().New("release", "ns").
+	builder := NewHelmReleaseSpecBuilder().New().
 		WithChart(helmv2.HelmChartTemplateSpec{
 			Chart:   "nginx",
 			Version: "1.0.0",
 		}).
 		WithReleaseName("")
 
-	hr, err := builder.Build()
+	spec, err := builder.Build()
 	assert.NoError(t, err)
-	assert.Equal(t, "", hr.Spec.ReleaseName)
+	assert.Equal(t, "", spec.ReleaseName)
 }
 
 func TestHelmReleaseBuilder_WithTargetNamespaceEmptyIgnored(t *testing.T) {
-	builder := NewHelmReleaseSpecBuilder().New("release", "ns").
+	builder := NewHelmReleaseSpecBuilder().New().
 		WithChart(helmv2.HelmChartTemplateSpec{
 			Chart:   "nginx",
 			Version: "1.0.0",
 		}).
 		WithTargetNamespace("")
 
-	hr, err := builder.Build()
+	spec, err := builder.Build()
 	assert.NoError(t, err)
-	assert.Equal(t, "", hr.Spec.TargetNamespace)
+	assert.Equal(t, "", spec.TargetNamespace)
 }
 
 func TestHelmReleaseBuilder_WithDependsOnEmptyIgnored(t *testing.T) {
-	builder := NewHelmReleaseSpecBuilder().New("release", "ns").
+	builder := NewHelmReleaseSpecBuilder().New().
 		WithChart(helmv2.HelmChartTemplateSpec{
 			Chart:   "nginx",
 			Version: "1.0.0",
 		}).
 		WithDependsOn([]meta.NamespacedObjectReference{})
 
-	hr, err := builder.Build()
+	spec, err := builder.Build()
 	assert.NoError(t, err)
-	assert.Nil(t, hr.Spec.DependsOn)
+	assert.Nil(t, spec.DependsOn)
 }
 
 func TestHelmReleaseBuilder_WithKubeConfigEmptyIgnored(t *testing.T) {
-	builder := NewHelmReleaseSpecBuilder().New("release", "ns").
+	builder := NewHelmReleaseSpecBuilder().New().
 		WithChart(helmv2.HelmChartTemplateSpec{
 			Chart:   "nginx",
 			Version: "1.0.0",
 		}).
 		WithKubeConfig(meta.SecretKeyReference{})
 
-	hr, err := builder.Build()
+	spec, err := builder.Build()
 	assert.NoError(t, err)
-	assert.Equal(t, meta.SecretKeyReference{}, hr.Spec.KubeConfig.SecretRef)
+	assert.Equal(t, meta.SecretKeyReference{}, spec.KubeConfig.SecretRef)
 }
