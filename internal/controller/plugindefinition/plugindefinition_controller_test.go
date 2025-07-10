@@ -82,7 +82,7 @@ var _ = Describe("PluginDefinition controller", func() {
 	AfterEach(func() {
 		Expect(remoteEnvTest.Stop()).To(Succeed(), "there should be no error stopping the remote environment")
 	})
-	Context("When creating or updating a PluginDefinition", func() {
+	Context("When creating or updating a PluginDefinition", Ordered, func() {
 		It("should successfully create or update a ClusterPluginDefinition from PluginDefinition", func() {
 			By("creating a PluginDefinition")
 			pluginDef := mockPluginDefinition()
