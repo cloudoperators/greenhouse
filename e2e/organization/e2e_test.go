@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2025 SAP SE or an SAP affiliate company and Greenhouse contributors
 // SPDX-License-Identifier: Apache-2.0
 
-//go:build organizationE2E
+////go:build organizationE2E
 
 package organization
 
@@ -27,6 +27,7 @@ import (
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
 	"github.com/cloudoperators/greenhouse/e2e/shared"
 	"github.com/cloudoperators/greenhouse/internal/clientutil"
+	testutil "github.com/cloudoperators/greenhouse/internal/test"
 )
 
 var (
@@ -59,11 +60,7 @@ var _ = AfterSuite(func() {
 
 var _ = Describe("Organization E2E", Ordered, func() {
 	Context("Happy path - creating and deleting organization", func() {
-		org := &greenhousev1alpha1.Organization{
-			ObjectMeta: metav1.ObjectMeta{Name: "organization-1-e2e"},
-			Spec: greenhousev1alpha1.OrganizationSpec{
-				MappedOrgAdminIDPGroup: "TEST_ORG_1_ADMIN",
-			}}
+		org := testutil.NewOrganization(ctx, "organization-1-e2e")
 
 		It("should onboard organization", func() {
 			err := adminClient.Create(ctx, org)
