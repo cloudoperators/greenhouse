@@ -15,6 +15,7 @@ import (
 
 	greenhousemetav1alpha1 "github.com/cloudoperators/greenhouse/api/meta/v1alpha1"
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
+	"github.com/cloudoperators/greenhouse/internal/flux"
 	"github.com/cloudoperators/greenhouse/internal/test"
 )
 
@@ -29,7 +30,7 @@ const (
 	PluginOptionDefault      = "myDefaultOption"
 	PluginOptionDefaultValue = "myDefaultValue"
 
-	HelmRepo  = "dummy"
+	HelmRepo  = "https://my.dummy.io"
 	HelmChart = "./../../test/fixtures/myChart"
 )
 
@@ -72,7 +73,7 @@ func listEvents(involvedObjectName string) *corev1.EventList {
 	return events
 }
 
-var _ = Describe("PluginDefinition controller", func() {
+var _ = FDescribe("PluginDefinition controller", func() {
 	var (
 		remoteEnvTest *envtest.Environment
 	)
@@ -134,8 +135,9 @@ var _ = Describe("PluginDefinition controller", func() {
 			Expect(updatedEvent).To(BeTrue(), "there should be an Updated event for the ClusterPluginDefinition")
 
 			By("checking if flux HelmRepository is created")
+			repositoryURL := flux.ChartURLToName(HelmRepo)
 			repository := &sourcev1.HelmRepository{}
-			repository.SetName(HelmRepo)
+			repository.SetName(repositoryURL)
 			repository.SetNamespace(test.TestGreenhouseNamespace)
 			Eventually(func(g Gomega) error {
 				err := test.K8sClient.Get(test.Ctx, cl.ObjectKeyFromObject(repository), repository)
