@@ -139,7 +139,6 @@ func (r *FluxReconciler) EnsureCreated(ctx context.Context, resource lifecycle.R
 	if !ok {
 		return ctrl.Result{}, lifecycle.Failed, errors.New("resource is not a Plugin")
 	}
-	namespace := flux.HelmRepositoryDefaultNamespace
 
 	pluginController.InitPluginStatus(plugin)
 
@@ -148,6 +147,7 @@ func (r *FluxReconciler) EnsureCreated(ctx context.Context, resource lifecycle.R
 		return ctrl.Result{}, lifecycle.Failed, errors.New("plugin definition not found")
 	}
 
+	namespace := flux.HelmRepositoryDefaultNamespace
 	if pluginDef.Namespace != "" {
 		namespace = pluginDef.Namespace
 	}
