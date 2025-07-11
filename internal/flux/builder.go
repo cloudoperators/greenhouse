@@ -22,7 +22,6 @@ const (
 )
 
 type HelmReleaseBuilder interface {
-	New() *helmReleaseBuilder
 	WithChart(specRef helmcontroller.HelmChartTemplateSpec) *helmReleaseBuilder
 	WithMaxHistory(num int) *helmReleaseBuilder
 	WithInterval(duration time.Duration) *helmReleaseBuilder
@@ -47,11 +46,6 @@ type helmReleaseBuilder struct {
 }
 
 func NewHelmReleaseSpecBuilder() HelmReleaseBuilder {
-	return &helmReleaseBuilder{}
-}
-
-// New creates a new HelmReleaseBuilder with the specified name and namespace.
-func (b *helmReleaseBuilder) New() *helmReleaseBuilder {
 	return &helmReleaseBuilder{
 		spec: helmcontroller.HelmReleaseSpec{
 			Install: &helmcontroller.Install{

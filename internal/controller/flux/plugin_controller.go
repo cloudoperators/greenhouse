@@ -143,7 +143,7 @@ func (r *FluxReconciler) EnsureCreated(ctx context.Context, resource lifecycle.R
 
 	// Check if the deliveryToolLabel label exists and has the value "flux"
 	if value, ok := plugin.Labels[greenhouseapis.GreenhouseHelmDeliveryToolLabel]; !ok || value != greenhouseapis.GreenhouseHelmDeliveryToolFlux {
-		return ctrl.Result{}, lifecycle.Pending, nil
+		return ctrl.Result{}, lifecycle.Success, nil
 	}
 
 	pluginController.InitPluginStatus(plugin)
@@ -162,15 +162,15 @@ func (r *FluxReconciler) EnsureCreated(ctx context.Context, resource lifecycle.R
 		namespace = flux.HelmRepositoryDefaultNamespace
 	}
 
-	helmRepository := flux.FindHelmRepositoryByURL(ctx, r.Client, namespace, pluginDef.Spec.HelmChart.Repository)
-	if helmRepository == nil {
+	helmRepository, err := flux.FindHelmRepositoryByURL(ctx, r.Client, pluginDef.Spec.HelmChart.Repository, namespace)
+	if err != nil {
 		return ctrl.Result{}, lifecycle.Failed, errors.New("helm repository not found")
 	}
 
 	release := &helmcontroller.HelmRelease{}
 	release.SetName(plugin.Name)
 	release.SetNamespace(plugin.Namespace)
-	specBuilder := flux.NewHelmReleaseSpecBuilder().New()
+	specBuilder := flux.NewHelmReleaseSpecBuilder()
 
 	result, err := ctrl.CreateOrUpdate(ctx, r.Client, release, func() error {
 		spec, err := specBuilder.
