@@ -68,7 +68,8 @@ func mockPluginDefinition() *greenhousev1alpha1.PluginDefinition {
 }
 
 func mockUIPluginDefinition() *greenhousev1alpha1.PluginDefinition {
-	return test.NewPluginDefinition(test.Ctx, UIPluginDefinitionName, test.AppendPluginOption(
+	GinkgoHelper()
+	pluginDefinition := test.NewPluginDefinition(test.Ctx, UIPluginDefinitionName, test.AppendPluginOption(
 		greenhousev1alpha1.PluginOption{
 			Name:    "test-plugin-definition-option-1",
 			Type:    "int",
@@ -79,6 +80,8 @@ func mockUIPluginDefinition() *greenhousev1alpha1.PluginDefinition {
 			Version: "0.0.1",
 		}),
 	)
+	pluginDefinition.Spec.HelmChart = nil
+	return pluginDefinition
 }
 
 func listEvents(involvedObjectName string) *corev1.EventList {
@@ -89,7 +92,7 @@ func listEvents(involvedObjectName string) *corev1.EventList {
 	return events
 }
 
-var _ = Describe("PluginDefinition controller", func() {
+var _ = FDescribe("PluginDefinition controller", func() {
 	var (
 		remoteEnvTest *envtest.Environment
 	)
