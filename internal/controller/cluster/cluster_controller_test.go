@@ -34,26 +34,29 @@ var _ = Describe("KubeConfig controller", func() {
 			remoteEnvTest    *envtest.Environment
 			remoteKubeConfig []byte
 			setup            *test.TestSetup
+			team             *greenhousev1alpha1.Team
 		)
 
 		BeforeEach(func() {
 			_, _, remoteEnvTest, remoteKubeConfig = test.StartControlPlane("6885", false, false)
 			setup = test.NewTestSetup(test.Ctx, test.K8sClient, directAccessTestCase)
-			setup.CreateOrganizationWithOIDCConfig(test.Ctx, setup.Namespace())
+			team = setup.CreateTeam(test.Ctx, "test-team", test.WithTeamLabel(greenhouseapis.LabelKeySupportGroup, "true"))
+			setup.CreateOrganizationWithOIDCConfig(test.Ctx, setup.Namespace(), team.Name)
 		})
 
 		AfterEach(func() {
 			test.MustDeleteCluster(test.Ctx, test.K8sClient, types.NamespacedName{Name: cluster.Name, Namespace: setup.Namespace()})
+			test.EventuallyDeleted(test.Ctx, test.K8sClient, team)
 			Expect(remoteEnvTest.Stop()).To(Succeed(), "there should be no error stopping the remote environment")
 		})
 
 		It("Should correctly have created resources in remote cluster and provided a valid greenhouse kubeconfig secret",
 			func() {
 				By("Creating a secret with a valid kubeconfig for a remote cluster")
-
 				secret := setup.CreateSecret(test.Ctx, directAccessTestCase,
 					test.WithSecretType(greenhouseapis.SecretTypeKubeConfig),
-					test.WithSecretData(map[string][]byte{greenhouseapis.KubeConfigKey: remoteKubeConfig}))
+					test.WithSecretData(map[string][]byte{greenhouseapis.KubeConfigKey: remoteKubeConfig}),
+					test.WithSecretLabel(greenhouseapis.LabelKeyOwnedBy, team.Name))
 
 				By("Checking the cluster resource with the same name as the secret has been created")
 				Eventually(func() error {

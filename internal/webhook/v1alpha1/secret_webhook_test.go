@@ -107,5 +107,4 @@ var _ = Describe("Validate Secret Creation based on type", func() {
 		Entry("Invalid APIServerURL (malformed URL)", map[string]string{greenhouseapis.SecretAPIServerURLAnnotation: "not-a-url"}, []byte("validBase64EncodedCert"), true),
 		Entry("Valid APIServerURL with valid base64 certificate", map[string]string{greenhouseapis.SecretAPIServerURLAnnotation: "https://example.com"}, []byte(base64.StdEncoding.EncodeToString([]byte("valid-cert"))), false),
 	)
-
 })

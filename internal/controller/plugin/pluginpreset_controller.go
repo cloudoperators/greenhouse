@@ -28,6 +28,7 @@ import (
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
 	"github.com/cloudoperators/greenhouse/internal/clientutil"
 	"github.com/cloudoperators/greenhouse/internal/lifecycle"
+	"github.com/cloudoperators/greenhouse/internal/util"
 )
 
 // presetExposedConditions contains the conditions that are exposed in the PluginPreset's StatusConditions.
@@ -36,6 +37,7 @@ var presetExposedConditions = []greenhousemetav1alpha1.ConditionType{
 	greenhousev1alpha1.PluginSkippedCondition,
 	greenhousev1alpha1.PluginFailedCondition,
 	greenhousemetav1alpha1.ClusterListEmpty,
+	greenhousemetav1alpha1.OwnerLabelSetCondition,
 }
 
 // PluginPresetReconciler reconciles a PluginPreset object
@@ -82,7 +84,9 @@ func (r *PluginPresetReconciler) setConditions() lifecycle.Conditioner {
 		}
 
 		readyCondition := r.computeReadyCondition(pluginPreset.Status.StatusConditions)
-		pluginPreset.SetCondition(readyCondition)
+		ownerLabelCondition := *pluginPreset.Status.GetConditionByType(greenhousemetav1alpha1.OwnerLabelSetCondition)
+		ownerLabelCondition = util.ComputeOwnerLabelCondition(ctx, r.Client, pluginPreset, ownerLabelCondition)
+		pluginPreset.Status.SetConditions(readyCondition, ownerLabelCondition)
 	}
 }
 

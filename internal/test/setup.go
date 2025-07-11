@@ -103,21 +103,22 @@ func (t *TestSetup) CreateCluster(ctx context.Context, name string, opts ...func
 	return cluster
 }
 
-func (t *TestSetup) CreateOrganizationWithOIDCConfig(ctx context.Context, orgName string) (*greenhousev1alpha1.Organization, *corev1.Secret) {
+func (t *TestSetup) CreateOrganizationWithOIDCConfig(ctx context.Context, orgName, supportGroupTeamName string) (*greenhousev1alpha1.Organization, *corev1.Secret) {
 	GinkgoHelper()
-	secret := t.CreateOrgOIDCSecret(ctx, orgName)
+	secret := t.CreateOrgOIDCSecret(ctx, orgName, supportGroupTeamName)
 	org := t.CreateOrganization(ctx, orgName, WithMappedAdminIDPGroup(orgName+" Admin E2e"), WithOIDCConfig(OIDCIssuer, secret.Name, OIDCClientIDKey, OIDCClientSecretKey))
 	return org, secret
 }
 
-func (t *TestSetup) CreateOrgOIDCSecret(ctx context.Context, orgName string) *corev1.Secret {
+func (t *TestSetup) CreateOrgOIDCSecret(ctx context.Context, orgName, supportGroupTeamName string) *corev1.Secret {
 	GinkgoHelper()
 	secret := t.CreateSecret(ctx, OIDCSecretResource,
 		WithSecretNamespace(orgName),
 		WithSecretData(map[string][]byte{
 			OIDCClientIDKey:     []byte(OIDCClientID),
 			OIDCClientSecretKey: []byte(OIDCClientSecret),
-		}))
+		}),
+		WithSecretLabel(greenhouseapis.LabelKeyOwnedBy, supportGroupTeamName))
 	return secret
 }
 
@@ -129,7 +130,7 @@ func (t *TestSetup) CreateOrganization(ctx context.Context, name string, opts ..
 	return org
 }
 
-func (t *TestSetup) CreateDefaultOrgWithOIDCSecret(ctx context.Context) *greenhousev1alpha1.Organization {
+func (t *TestSetup) CreateDefaultOrgWithOIDCSecret(ctx context.Context, supportGroupTeamName string) *greenhousev1alpha1.Organization {
 	GinkgoHelper()
 	org := &greenhousev1alpha1.Organization{}
 	err := t.Get(ctx, client.ObjectKey{Name: "greenhouse"}, org)
@@ -138,7 +139,7 @@ func (t *TestSetup) CreateDefaultOrgWithOIDCSecret(ctx context.Context) *greenho
 			org = NewOrganization(ctx, "greenhouse", WithMappedAdminIDPGroup("Greenhouse Admin E2e"))
 			Expect(t.Create(ctx, org)).Should(Succeed(), "there should be no error creating the default organization")
 			EventuallyCreated(ctx, t.Client, &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: org.Name}})
-			secret := t.CreateOrgOIDCSecret(ctx, org.Name)
+			secret := t.CreateOrgOIDCSecret(ctx, org.Name, supportGroupTeamName)
 			org = t.UpdateOrganization(ctx, org.Name, WithOIDCConfig(OIDCIssuer, secret.Name, OIDCClientIDKey, OIDCClientSecretKey))
 			return org
 		}
@@ -177,6 +178,14 @@ func (t *TestSetup) CreatePlugin(ctx context.Context, name string, opts ...func(
 	GinkgoHelper()
 	plugin := NewPlugin(ctx, name, t.Namespace(), opts...)
 	Expect(t.Create(ctx, plugin)).Should(Succeed(), "there should be no error creating the Plugin")
+	return plugin
+}
+
+// CreatePluginPreset creates and returns a PluginPreset object. Opts can be used to set the desired state of the PluginPreset.
+func (t *TestSetup) CreatePluginPreset(ctx context.Context, name string, opts ...func(*greenhousev1alpha1.PluginPreset)) *greenhousev1alpha1.PluginPreset {
+	GinkgoHelper()
+	plugin := NewPluginPreset(name, t.Namespace(), opts...)
+	Expect(t.Create(ctx, plugin)).Should(Succeed(), "there should be no error creating the PluginPreset")
 	return plugin
 }
 

@@ -35,6 +35,7 @@ import (
 	"github.com/cloudoperators/greenhouse/internal/helm"
 	"github.com/cloudoperators/greenhouse/internal/lifecycle"
 	"github.com/cloudoperators/greenhouse/internal/metrics"
+	"github.com/cloudoperators/greenhouse/internal/util"
 )
 
 const helmReleaseSecretType = "helm.sh/release.v1" //nolint:gosec
@@ -129,7 +130,10 @@ func (r *PluginReconciler) setConditions() lifecycle.Conditioner {
 
 		readyCondition := ComputeReadyCondition(plugin.Status.StatusConditions)
 		metrics.UpdatePluginReadyMetric(plugin, readyCondition.Status == metav1.ConditionTrue)
-		plugin.SetCondition(readyCondition)
+
+		ownerLabelCondition := *plugin.Status.GetConditionByType(greenhousemetav1alpha1.OwnerLabelSetCondition)
+		ownerLabelCondition = util.ComputeOwnerLabelCondition(ctx, r.Client, plugin, ownerLabelCondition)
+		plugin.Status.SetConditions(readyCondition, ownerLabelCondition)
 	}
 }
 

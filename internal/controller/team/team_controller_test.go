@@ -143,10 +143,10 @@ var _ = Describe("TeamController", Ordered, func() {
 
 		It("should set ready condition to false on missing secret", func() {
 			By("deleting the secret")
-			var secret corev1.Secret
-			err := setup.Get(test.Ctx, types.NamespacedName{Name: "test-secret", Namespace: setup.Namespace()}, &secret)
+			secret := &corev1.Secret{}
+			err := setup.Get(test.Ctx, types.NamespacedName{Name: "test-secret", Namespace: setup.Namespace()}, secret)
 			Expect(err).ToNot(HaveOccurred(), "there must be no error getting the secret")
-			err = setup.Delete(test.Ctx, &secret)
+			err = setup.Delete(test.Ctx, secret)
 			Expect(err).ToNot(HaveOccurred(), "there must be no error deleting the secret")
 
 			By("creating a test Team with valid MappedIdpGroup")

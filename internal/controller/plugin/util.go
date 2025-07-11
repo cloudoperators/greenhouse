@@ -41,6 +41,7 @@ var exposedConditions = []greenhousemetav1alpha1.ConditionType{
 	greenhousev1alpha1.StatusUpToDateCondition,
 	greenhousev1alpha1.HelmChartTestSucceededCondition,
 	greenhousev1alpha1.WorkloadReadyCondition,
+	greenhousemetav1alpha1.OwnerLabelSetCondition,
 }
 
 type reconcileResult struct {

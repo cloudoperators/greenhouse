@@ -15,6 +15,7 @@ import (
 	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
+	greenhouseapis "github.com/cloudoperators/greenhouse/api"
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
 	"github.com/cloudoperators/greenhouse/internal/helm"
 	"github.com/cloudoperators/greenhouse/internal/test"
@@ -43,6 +44,7 @@ var _ = Describe("ensure helm diff against the release manifest works as expecte
 		)
 
 		pluginUT = test.NewPlugin(test.Ctx, "test-plugin", namespace,
+			test.WithPluginLabel(greenhouseapis.LabelKeyOwnedBy, "test-team-1"),
 			test.WithPluginDefinition("test-plugindefinition"),
 			test.WithPluginOptionValue("enabled", test.MustReturnJSONFor(true), nil),
 			test.WithReleaseNamespace(namespace),
@@ -174,6 +176,7 @@ var _ = Describe("ensure helm with hooks diff against the release manifest works
 				Version:    "1.0.0",
 			}))
 		pluginUT = test.NewPlugin(test.Ctx, "test-plugin", namespace,
+			test.WithPluginLabel(greenhouseapis.LabelKeyOwnedBy, "test-team-1"),
 			test.WithPluginDefinition("test-plugindefinition"),
 			test.WithPluginOptionValue("hook_enabled", test.MustReturnJSONFor(false), nil),
 			test.WithReleaseNamespace(namespace),
@@ -270,8 +273,12 @@ var _ = Describe("ensure errors with Manifests are handled correctly", func() {
 })
 
 var _ = Describe("Ensure helm diff does not leak secrets", Ordered, func() {
+	var teamForDiffLeak *greenhousev1alpha1.Team
 	BeforeAll(func() {
-		// setup the secrets for diffing
+		By("creating a test Team")
+		teamForDiffLeak = test.NewTeam(test.Ctx, "test-diff-leak-team", namespace, test.WithTeamLabel(greenhouseapis.LabelKeySupportGroup, "true"))
+		Expect(test.K8sClient.Create(test.Ctx, teamForDiffLeak)).To(Succeed(), "there should be no error creating a Team")
+		By("setting up the secrets for diffing")
 		secret = &corev1.Secret{
 			TypeMeta: metav1.TypeMeta{
 				Kind:       "Secret",
@@ -280,6 +287,7 @@ var _ = Describe("Ensure helm diff does not leak secrets", Ordered, func() {
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      secretName,
 				Namespace: namespace,
+				Labels:    map[string]string{greenhouseapis.LabelKeyOwnedBy: "test-diff-leak-team"},
 			},
 			Data: map[string][]byte{
 				"test": []byte("test-value"),       // test-value => dGVzdC12YWx1ZQ==
@@ -304,6 +312,7 @@ var _ = Describe("Ensure helm diff does not leak secrets", Ordered, func() {
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      stringSecretName,
 				Namespace: namespace,
+				Labels:    map[string]string{greenhouseapis.LabelKeyOwnedBy: "test-diff-leak-team"},
 			},
 			StringData: map[string]string{
 				"test": "test-value",
@@ -320,6 +329,9 @@ var _ = Describe("Ensure helm diff does not leak secrets", Ordered, func() {
 			return test.K8sClient.Get(test.Ctx, secretID, stringSecret)
 		}).Should(Succeed(), "the stringData secret should be created")
 	})
+	AfterAll(func() {
+		test.EventuallyDeleted(test.Ctx, test.K8sClient, teamForDiffLeak)
+	})
 	When("a secret is changed", func() {
 		It("should redact the original and changed values under data", func() {
 			manifest := `
@@ -328,6 +340,9 @@ var _ = Describe("Ensure helm diff does not leak secrets", Ordered, func() {
       metadata:
         name: test-secret
         namespace: test-org
+        labels: {
+          greenhouse.sap/owned-by: test-diff-leak-team
+        }
       type: Opaque
       data:
         test: bmV3LXZhbHVlCg==
@@ -347,6 +362,9 @@ var _ = Describe("Ensure helm diff does not leak secrets", Ordered, func() {
       metadata:
         name: test-data-secret
         namespace: test-org
+        labels: {
+          greenhouse.sap/owned-by: test-diff-leak-team
+        }
       type: Opaque
       data:
         test: dGVzdC12YWx1ZQ==`
@@ -364,6 +382,9 @@ var _ = Describe("Ensure helm diff does not leak secrets", Ordered, func() {
       metadata:
         name: test-secret
         namespace: test-org
+        labels: {
+          greenhouse.sap/owned-by: test-diff-leak-team
+        }
       type: Opaque
       data:
         test: dGVzdC12YWx1ZQ==
@@ -384,6 +405,9 @@ var _ = Describe("Ensure helm diff does not leak secrets", Ordered, func() {
       metadata:
         name: test-string-secret
         namespace: test-org
+        labels: {
+          greenhouse.sap/owned-by: test-diff-leak-team
+        }
       type: Opaque
       stringData:
         test: modified
@@ -422,6 +446,9 @@ var _ = Describe("Ensure helm diff does not leak secrets", Ordered, func() {
       metadata:
         name: test-string-secret
         namespace: test-org
+        labels: {
+          greenhouse.sap/owned-by: test-diff-leak-team
+        }
       type: Opaque
       stringData:
         test: test-value
@@ -442,6 +469,9 @@ var _ = Describe("Ensure helm diff does not leak secrets", Ordered, func() {
       metadata:
         name: new-secret
         namespace: test-org
+        labels: {
+          greenhouse.sap/owned-by: test-diff-leak-team
+        }
       type: Opaque
       data:
         test: dGVzdC12YWx1ZQ==
@@ -461,6 +491,9 @@ var _ = Describe("Ensure helm diff does not leak secrets", Ordered, func() {
       metadata:
         name: test-secret
         namespace: test-org
+        labels: {
+          greenhouse.sap/owned-by: test-diff-leak-team
+        }
       type: Opaque
       data:`
 
