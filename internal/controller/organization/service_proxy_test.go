@@ -13,6 +13,7 @@ import (
 
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 
+	greenhouseapis "github.com/cloudoperators/greenhouse/api"
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
 	"github.com/cloudoperators/greenhouse/internal/test"
 )
@@ -80,7 +81,7 @@ var _ = Describe("Organization ServiceProxyReconciler", Ordered, func() {
 
 	When("organization is annotated with the oauth2proxy preview annotation", Ordered, func() {
 		It("should create default organization", func() {
-			team := setup.CreateTeam(test.Ctx, "test-team1", test.WithSupportGroupLabel("true"))
+			team := setup.CreateTeam(test.Ctx, "test-team1", test.WithTeamLabel(greenhouseapis.LabelKeySupportGroup, "true"))
 			defaultOrg := setup.CreateDefaultOrgWithOIDCSecret(test.Ctx, team.Name)
 			test.EventuallyCreated(test.Ctx, test.K8sClient, &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: defaultOrg.Name}})
 			By("By check if the default organization is READY with oidc config")
@@ -94,7 +95,7 @@ var _ = Describe("Organization ServiceProxyReconciler", Ordered, func() {
 			test.EventuallyDeleted(test.Ctx, test.K8sClient, team)
 		})
 		It("should enable the oauth-proxy feature for the organization", func() {
-			team := setup.CreateTeam(test.Ctx, "test-team2", test.WithSupportGroupLabel("true"))
+			team := setup.CreateTeam(test.Ctx, "test-team2", test.WithTeamLabel(greenhouseapis.LabelKeySupportGroup, "true"))
 			By("creating an organization with the oauth preview annotation & oauth config")
 			org, _ := setup.CreateOrganizationWithOIDCConfig(test.Ctx, setup.Namespace(), team.Name)
 			test.EventuallyCreated(test.Ctx, test.K8sClient, &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: org.Name}})

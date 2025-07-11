@@ -42,13 +42,13 @@ var _ = Describe("Cluster Webhook", Ordered, func() {
 		By("creating a new test setup")
 		setup = test.NewTestSetup(test.Ctx, test.K8sClient, "cluster-webhook-test")
 		By("creating a support-group:true Team")
-		teamWithSupportGroupTrue = test.NewTeam(test.Ctx, teamWithSupportGroupName, test.TestNamespace, test.WithSupportGroupLabel("true"))
+		teamWithSupportGroupTrue = test.NewTeam(test.Ctx, teamWithSupportGroupName, test.TestNamespace, test.WithTeamLabel(greenhouseapis.LabelKeySupportGroup, "true"))
 		Expect(setup.Create(test.Ctx, teamWithSupportGroupTrue)).To(Succeed(), "there should be no error creating the Team")
 		By("creating a Team without support-group label")
 		teamWithoutSupportGroup = test.NewTeam(test.Ctx, teamWithoutSupportGroupName, test.TestNamespace)
 		Expect(setup.Create(test.Ctx, teamWithoutSupportGroup)).To(Succeed(), "there should be no error creating the Team")
 		By("creating a Team with support-group:false")
-		teamWithSupportGroupFalse = test.NewTeam(test.Ctx, teamWithFalseSupportGroupName, test.TestNamespace, test.WithSupportGroupLabel("false"))
+		teamWithSupportGroupFalse = test.NewTeam(test.Ctx, teamWithFalseSupportGroupName, test.TestNamespace, test.WithTeamLabel(greenhouseapis.LabelKeySupportGroup, "false"))
 		Expect(setup.Create(test.Ctx, teamWithSupportGroupFalse)).To(Succeed(), "there should be no error creating the Team")
 	})
 	AfterAll(func() {
@@ -78,7 +78,7 @@ var _ = Describe("Cluster Webhook", Ordered, func() {
 			}
 		},
 		Entry("it should not add deletion schedule if cluster is not marked for deletion",
-			test.NewCluster(test.Ctx, "test-cluster", "test-namespace", test.WithClusterOwnedByLabelValue(teamWithSupportGroupName)),
+			test.NewCluster(test.Ctx, "test-cluster", "test-namespace", test.WithClusterLabel(greenhouseapis.LabelKeyOwnedBy, teamWithSupportGroupName)),
 			false, false, "",
 		),
 		Entry("it should add deletion schedule if cluster is marked for deletion",
@@ -86,7 +86,7 @@ var _ = Describe("Cluster Webhook", Ordered, func() {
 				test.WithClusterAnnotations(map[string]string{
 					greenhouseapis.MarkClusterDeletionAnnotation: "true",
 				}),
-				test.WithClusterOwnedByLabelValue(teamWithSupportGroupName),
+				test.WithClusterLabel(greenhouseapis.LabelKeyOwnedBy, teamWithSupportGroupName),
 			),
 			false, true, "",
 		),
@@ -95,7 +95,7 @@ var _ = Describe("Cluster Webhook", Ordered, func() {
 				test.WithClusterAnnotations(map[string]string{
 					greenhouseapis.ScheduleClusterDeletionAnnotation: now().Format(time.DateTime),
 				}),
-				test.WithClusterOwnedByLabelValue(teamWithSupportGroupName),
+				test.WithClusterLabel(greenhouseapis.LabelKeyOwnedBy, teamWithSupportGroupName),
 			),
 			false, false, "",
 		),
@@ -105,7 +105,7 @@ var _ = Describe("Cluster Webhook", Ordered, func() {
 					greenhouseapis.MarkClusterDeletionAnnotation:     "",
 					greenhouseapis.ScheduleClusterDeletionAnnotation: now().Format(time.DateTime),
 				}),
-				test.WithClusterOwnedByLabelValue(teamWithSupportGroupName),
+				test.WithClusterLabel(greenhouseapis.LabelKeyOwnedBy, teamWithSupportGroupName),
 			),
 			false, false, "",
 		),
@@ -115,7 +115,7 @@ var _ = Describe("Cluster Webhook", Ordered, func() {
 					greenhouseapis.MarkClusterDeletionAnnotation:     "true",
 					greenhouseapis.ScheduleClusterDeletionAnnotation: fortyEight(),
 				}),
-				test.WithClusterOwnedByLabelValue(teamWithSupportGroupName),
+				test.WithClusterLabel(greenhouseapis.LabelKeyOwnedBy, teamWithSupportGroupName),
 			),
 			false, true, fortyEight(),
 		),
@@ -126,7 +126,7 @@ var _ = Describe("Cluster Webhook", Ordered, func() {
 			err := DefaultCluster(test.Ctx, nil, cluster)
 			Expect(err).NotTo(HaveOccurred())
 
-			test.WithClusterOwnedByLabelValue(teamWithSupportGroupName)(cluster)
+			test.WithClusterLabel(greenhouseapis.LabelKeyOwnedBy, teamWithSupportGroupName)(cluster)
 
 			warnings, err := ValidateCreateCluster(test.Ctx, setup.Client, cluster)
 			if withError {
@@ -139,7 +139,7 @@ var _ = Describe("Cluster Webhook", Ordered, func() {
 		},
 		Entry("it should allow creation of cluster without deletion annotation",
 			test.NewCluster(test.Ctx, "test-cluster", test.TestNamespace,
-				test.WithClusterOwnedByLabelValue(teamWithSupportGroupName),
+				test.WithClusterLabel(greenhouseapis.LabelKeyOwnedBy, teamWithSupportGroupName),
 			),
 			false,
 		),
@@ -148,14 +148,14 @@ var _ = Describe("Cluster Webhook", Ordered, func() {
 				test.WithClusterAnnotations(map[string]string{
 					greenhouseapis.MarkClusterDeletionAnnotation: "true",
 				}),
-				test.WithClusterOwnedByLabelValue(teamWithSupportGroupName),
+				test.WithClusterLabel(greenhouseapis.LabelKeyOwnedBy, teamWithSupportGroupName),
 			),
 			true,
 		),
 		Entry("it should allow creation of cluster with not too long token validity",
 			test.NewCluster(test.Ctx, "test-cluster", test.TestNamespace,
 				test.WithMaxTokenValidity(72),
-				test.WithClusterOwnedByLabelValue(teamWithSupportGroupName),
+				test.WithClusterLabel(greenhouseapis.LabelKeyOwnedBy, teamWithSupportGroupName),
 			),
 			false,
 		),
@@ -181,19 +181,19 @@ var _ = Describe("Cluster Webhook", Ordered, func() {
 		),
 		Entry("it should set warning on creation of cluster with owned-by label pointing to a non-existent Team",
 			test.NewCluster(test.Ctx, "test-cluster", test.TestNamespace,
-				test.WithClusterOwnedByLabelValue("invalid-team"),
+				test.WithClusterLabel(greenhouseapis.LabelKeyOwnedBy, "invalid-team"),
 			),
 			true,
 		),
 		Entry("it should set warning on creation of cluster with owned-by label pointing to a Team without support-group label",
 			test.NewCluster(test.Ctx, "test-cluster", test.TestNamespace,
-				test.WithClusterOwnedByLabelValue(teamWithoutSupportGroupName),
+				test.WithClusterLabel(greenhouseapis.LabelKeyOwnedBy, teamWithoutSupportGroupName),
 			),
 			true,
 		),
 		Entry("it should set warning on creation of cluster with owned-by label pointing to a Team with support-group:false label",
 			test.NewCluster(test.Ctx, "test-cluster", test.TestNamespace,
-				test.WithClusterOwnedByLabelValue(teamWithFalseSupportGroupName),
+				test.WithClusterLabel(greenhouseapis.LabelKeyOwnedBy, teamWithFalseSupportGroupName),
 			),
 			true,
 		),
@@ -213,7 +213,7 @@ var _ = Describe("Cluster Webhook", Ordered, func() {
 				test.WithClusterAnnotations(map[string]string{
 					"custom-annotation": "custom-value",
 				}),
-				test.WithClusterOwnedByLabelValue(teamWithSupportGroupName),
+				test.WithClusterLabel(greenhouseapis.LabelKeyOwnedBy, teamWithSupportGroupName),
 			),
 			false,
 		),
@@ -223,7 +223,7 @@ var _ = Describe("Cluster Webhook", Ordered, func() {
 					greenhouseapis.MarkClusterDeletionAnnotation:     "true",
 					greenhouseapis.ScheduleClusterDeletionAnnotation: fortyEight(),
 				}),
-				test.WithClusterOwnedByLabelValue(teamWithSupportGroupName),
+				test.WithClusterLabel(greenhouseapis.LabelKeyOwnedBy, teamWithSupportGroupName),
 			),
 			false,
 		),
@@ -233,7 +233,7 @@ var _ = Describe("Cluster Webhook", Ordered, func() {
 					greenhouseapis.MarkClusterDeletionAnnotation:     "true",
 					greenhouseapis.ScheduleClusterDeletionAnnotation: time.DateOnly,
 				}),
-				test.WithClusterOwnedByLabelValue(teamWithSupportGroupName),
+				test.WithClusterLabel(greenhouseapis.LabelKeyOwnedBy, teamWithSupportGroupName),
 			),
 			true,
 		),
@@ -259,19 +259,19 @@ var _ = Describe("Cluster Webhook", Ordered, func() {
 		),
 		Entry("it should set warning on update of cluster with owned-by label pointing to a non-existent Team",
 			test.NewCluster(test.Ctx, "test-cluster", test.TestNamespace,
-				test.WithClusterOwnedByLabelValue("invalid-team"),
+				test.WithClusterLabel(greenhouseapis.LabelKeyOwnedBy, "invalid-team"),
 			),
 			true,
 		),
 		Entry("it should set warning on update of cluster with owned-by label pointing to a Team without support-group label",
 			test.NewCluster(test.Ctx, "test-cluster", test.TestNamespace,
-				test.WithClusterOwnedByLabelValue(teamWithoutSupportGroupName),
+				test.WithClusterLabel(greenhouseapis.LabelKeyOwnedBy, teamWithoutSupportGroupName),
 			),
 			true,
 		),
 		Entry("it should set warning on update of cluster with owned-by label pointing to a Team with support-group:false label",
 			test.NewCluster(test.Ctx, "test-cluster", test.TestNamespace,
-				test.WithClusterOwnedByLabelValue(teamWithFalseSupportGroupName),
+				test.WithClusterLabel(greenhouseapis.LabelKeyOwnedBy, teamWithFalseSupportGroupName),
 			),
 			true,
 		),
@@ -282,7 +282,7 @@ var _ = Describe("Cluster Webhook", Ordered, func() {
 			err := DefaultCluster(test.Ctx, nil, cluster)
 			Expect(err).NotTo(HaveOccurred())
 
-			test.WithClusterOwnedByLabelValue(teamWithSupportGroupName)(cluster)
+			test.WithClusterLabel(greenhouseapis.LabelKeyOwnedBy, teamWithSupportGroupName)(cluster)
 
 			warnings, err := ValidateDeleteCluster(test.Ctx, nil, cluster)
 			if withError {

@@ -7,6 +7,7 @@ import (
 	"errors"
 	"testing"
 
+	greenhouseapis "github.com/cloudoperators/greenhouse/api"
 	greenhousecluster "github.com/cloudoperators/greenhouse/internal/controller/cluster"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -163,12 +164,12 @@ var _ = Describe("HelmControllerTest", Serial, func() {
 			return actPluginDefinition.Spec.Version == PluginDefinitionVersion
 		}).Should(BeTrue())
 
-		testTeam = test.NewTeam(test.Ctx, "suite-test-team", Namespace, test.WithSupportGroupLabel("true"))
+		testTeam = test.NewTeam(test.Ctx, "suite-test-team", Namespace, test.WithTeamLabel(greenhouseapis.LabelKeySupportGroup, "true"))
 		Expect(test.K8sClient.Create(test.Ctx, testTeam)).Should(Succeed(), "there should be no error creating the Team")
 
 		testPlugin = test.NewPlugin(test.Ctx, PluginName, Namespace,
 			test.WithPluginDefinition(PluginDefinitionName),
-			test.WithPluginOwnedByLabelValue(testTeam.Name),
+			test.WithPluginLabel(greenhouseapis.LabelKeyOwnedBy, testTeam.Name),
 			test.WithReleaseName(ReleaseName),
 			test.WithPluginOptionValue(PluginOptionRequired, test.AsAPIExtensionJSON(PluginRequiredOptionValue), nil))
 
@@ -474,7 +475,7 @@ var _ = Describe("HelmControllerTest", Serial, func() {
 
 		By("creating a Plugin with every type of OptionValue", func() {
 			complexPlugin = test.NewPlugin(test.Ctx, pluginName, Namespace,
-				test.WithPluginOwnedByLabelValue(testTeam.Name),
+				test.WithPluginLabel(greenhouseapis.LabelKeyOwnedBy, testTeam.Name),
 				test.WithPluginDefinition(pluginWithEveryOption),
 				test.WithReleaseName(ReleaseName),
 				test.WithPluginOptionValue(PluginOptionDefault, test.AsAPIExtensionJSON(stringVal), nil),

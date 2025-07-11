@@ -33,7 +33,7 @@ var _ = Describe("Bootstrap controller", Ordered, func() {
 		_, _, remoteEnvTest, remoteKubeConfig = test.StartControlPlane("6888", false, false)
 		setup = test.NewTestSetup(test.Ctx, test.K8sClient, bootstrapTestCase)
 		setup.CreateOrganization(test.Ctx, setup.Namespace())
-		team = setup.CreateTeam(test.Ctx, "test-team", test.WithSupportGroupLabel("true"))
+		team = setup.CreateTeam(test.Ctx, "test-team", test.WithTeamLabel(greenhouseapis.LabelKeySupportGroup, "true"))
 	})
 
 	AfterAll(func() {
@@ -48,7 +48,7 @@ var _ = Describe("Bootstrap controller", Ordered, func() {
 				validKubeConfigSecret := setup.CreateSecret(test.Ctx, bootstrapTestCase,
 					test.WithSecretType(greenhouseapis.SecretTypeKubeConfig),
 					test.WithSecretData(map[string][]byte{greenhouseapis.KubeConfigKey: remoteKubeConfig}),
-					test.WithSecretOwnedByLabelValue(team.Name),
+					test.WithSecretLabel(greenhouseapis.LabelKeyOwnedBy, team.Name),
 					test.WithSecretAnnotations(map[string]string{lifecycle.PropagateLabelsAnnotation: greenhouseapis.LabelKeyOwnedBy}),
 				)
 
@@ -79,7 +79,7 @@ var _ = Describe("Bootstrap controller", Ordered, func() {
 				invalidKubeConfigSecret := setup.CreateSecret(test.Ctx, bootstrapTestCase+"-invalid",
 					test.WithSecretType(greenhouseapis.SecretTypeKubeConfig),
 					test.WithSecretData(map[string][]byte{greenhouseapis.KubeConfigKey: []byte(invalidKubeConfigString)}),
-					test.WithSecretOwnedByLabelValue(team.Name),
+					test.WithSecretLabel(greenhouseapis.LabelKeyOwnedBy, team.Name),
 					test.WithSecretAnnotations(map[string]string{lifecycle.PropagateLabelsAnnotation: greenhouseapis.LabelKeyOwnedBy}),
 				)
 
@@ -112,7 +112,7 @@ var _ = Describe("Bootstrap controller", Ordered, func() {
 					"region":        "bar",
 					"test-label":    "test-value",
 				}),
-				test.WithSecretOwnedByLabelValue(team.Name),
+				test.WithSecretLabel(greenhouseapis.LabelKeyOwnedBy, team.Name),
 				test.WithSecretData(map[string][]byte{greenhouseapis.KubeConfigKey: remoteKubeConfig}),
 			)
 

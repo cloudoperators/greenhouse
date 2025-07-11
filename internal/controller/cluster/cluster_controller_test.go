@@ -40,7 +40,7 @@ var _ = Describe("KubeConfig controller", func() {
 		BeforeEach(func() {
 			_, _, remoteEnvTest, remoteKubeConfig = test.StartControlPlane("6885", false, false)
 			setup = test.NewTestSetup(test.Ctx, test.K8sClient, directAccessTestCase)
-			team = setup.CreateTeam(test.Ctx, "test-team", test.WithSupportGroupLabel("true"))
+			team = setup.CreateTeam(test.Ctx, "test-team", test.WithTeamLabel(greenhouseapis.LabelKeySupportGroup, "true"))
 			setup.CreateOrganizationWithOIDCConfig(test.Ctx, setup.Namespace(), team.Name)
 		})
 
@@ -56,7 +56,7 @@ var _ = Describe("KubeConfig controller", func() {
 				secret := setup.CreateSecret(test.Ctx, directAccessTestCase,
 					test.WithSecretType(greenhouseapis.SecretTypeKubeConfig),
 					test.WithSecretData(map[string][]byte{greenhouseapis.KubeConfigKey: remoteKubeConfig}),
-					test.WithSecretOwnedByLabelValue(team.Name))
+					test.WithSecretLabel(greenhouseapis.LabelKeyOwnedBy, team.Name))
 
 				By("Checking the cluster resource with the same name as the secret has been created")
 				Eventually(func() error {

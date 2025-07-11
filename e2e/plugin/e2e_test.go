@@ -25,6 +25,7 @@ import (
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
+	greenhouseapis "github.com/cloudoperators/greenhouse/api"
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
 	"github.com/cloudoperators/greenhouse/e2e/plugin/fixtures"
 	"github.com/cloudoperators/greenhouse/e2e/shared"
@@ -63,7 +64,7 @@ var _ = BeforeSuite(func() {
 	remoteClient, err = clientutil.NewK8sClientFromRestClientGetter(env.RemoteRestClientGetter)
 	Expect(err).ToNot(HaveOccurred(), "there should be no error creating the remote client")
 	env = env.WithOrganization(ctx, adminClient, "./testdata/organization.yaml")
-	team = test.NewTeam(ctx, "test-plugin-e2e-team", env.TestNamespace, test.WithSupportGroupLabel("true"))
+	team = test.NewTeam(ctx, "test-plugin-e2e-team", env.TestNamespace, test.WithTeamLabel(greenhouseapis.LabelKeySupportGroup, "true"))
 	err = adminClient.Create(ctx, team)
 	Expect(err).ToNot(HaveOccurred(), "there should be no error creating a Team")
 	testStartTime = time.Now().UTC()
@@ -111,7 +112,7 @@ var _ = Describe("Plugin E2E", Ordered, func() {
 			test.WithReleaseNamespace(env.TestNamespace),
 			test.WithPluginOptionValue("replicaCount", &apiextensionsv1.JSON{Raw: []byte("1")}, nil),
 			test.WithReleaseName("test-nginx-plugin-1"),
-			test.WithPluginOwnedByLabelValue(team.Name),
+			test.WithPluginLabel(greenhouseapis.LabelKeyOwnedBy, team.Name),
 		)
 		err = adminClient.Create(ctx, testPlugin)
 		Expect(err).ToNot(HaveOccurred())
@@ -208,7 +209,7 @@ var _ = Describe("Plugin E2E", Ordered, func() {
 			test.WithReleaseNamespace(env.TestNamespace),
 			test.WithPluginOptionValue("replicaCount", &apiextensionsv1.JSON{Raw: []byte("1")}, nil),
 			test.WithReleaseName("test-nginx-plugin-2"),
-			test.WithPluginOwnedByLabelValue(team.Name),
+			test.WithPluginLabel(greenhouseapis.LabelKeyOwnedBy, team.Name),
 		)
 
 		By("Add labels to remote cluster")
@@ -221,7 +222,7 @@ var _ = Describe("Plugin E2E", Ordered, func() {
 
 		By("Creating the plugin preset")
 		testPluginPreset := test.NewPluginPreset("test-nginx-plugin-preset", env.TestNamespace,
-			test.WithPluginPresetOwnedByLabelValue(team.Name),
+			test.WithPluginPresetLabel(greenhouseapis.LabelKeyOwnedBy, team.Name),
 			test.WithPluginPresetPluginSpec(testPlugin.Spec),
 			test.WithPluginPresetClusterSelector(metav1.LabelSelector{
 				MatchLabels: map[string]string{
@@ -360,7 +361,7 @@ var _ = Describe("Plugin E2E", Ordered, func() {
 			test.WithCluster(remoteClusterName),
 			test.WithReleaseNamespace(env.TestNamespace),
 			test.WithReleaseName("test-cert-manager-plugin"),
-			test.WithPluginOwnedByLabelValue(team.Name),
+			test.WithPluginLabel(greenhouseapis.LabelKeyOwnedBy, team.Name),
 		)
 
 		By("Installing release manually on the remote cluster")

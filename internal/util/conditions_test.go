@@ -29,10 +29,10 @@ var _ = Describe("Test common controllers utils", func() {
 		)
 		BeforeAll(func() {
 			setup = test.NewTestSetup(test.Ctx, test.K8sClient, "ownerlabel")
-			testSupportGroupTeam = setup.CreateTeam(test.Ctx, "test-support-group-team", test.WithSupportGroupLabel("true"))
+			testSupportGroupTeam = setup.CreateTeam(test.Ctx, "test-support-group-team", test.WithTeamLabel(greenhouseapis.LabelKeySupportGroup, "true"))
 			var namespace = &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: otherNamespace}}
 			Expect(setup.Create(test.Ctx, namespace)).To(Succeed(), "there should be no error creating a namespace")
-			testOtherNamespaceTeam = test.NewTeam(test.Ctx, "test-other-namespace-team", otherNamespace, test.WithSupportGroupLabel("true"))
+			testOtherNamespaceTeam = test.NewTeam(test.Ctx, "test-other-namespace-team", otherNamespace, test.WithTeamLabel(greenhouseapis.LabelKeySupportGroup, "true"))
 			Expect(setup.Create(test.Ctx, testOtherNamespaceTeam)).To(Succeed(), "there should be no error creating the other Team")
 			testNonSupportGroupTeam = setup.CreateTeam(test.Ctx, "test-non-support-group-team")
 		})
@@ -44,31 +44,31 @@ var _ = Describe("Test common controllers utils", func() {
 		When("owner label is set to an existing support-group Team in the same namespace", func() {
 			It("should return True OwnerLabelSet condition for Cluster", func() {
 				cluster := setup.CreateCluster(test.Ctx, "test-correct-cluster",
-					test.WithClusterOwnedByLabelValue(testSupportGroupTeam.Name))
+					test.WithClusterLabel(greenhouseapis.LabelKeyOwnedBy, testSupportGroupTeam.Name))
 				condition := util.ComputeOwnerLabelCondition(test.Ctx, test.K8sClient, cluster)
 				Expect(condition.Status).To(Equal(metav1.ConditionTrue), "OwnerLabelSet condition should be set to True")
 			})
 			It("should return True OwnerLabelSet condition for Secret", func() {
 				secret := setup.CreateSecret(test.Ctx, "test-correct-secret",
-					test.WithSecretOwnedByLabelValue(testSupportGroupTeam.Name))
+					test.WithSecretLabel(greenhouseapis.LabelKeyOwnedBy, testSupportGroupTeam.Name))
 				condition := util.ComputeOwnerLabelCondition(test.Ctx, test.K8sClient, secret)
 				Expect(condition.Status).To(Equal(metav1.ConditionTrue), "OwnerLabelSet condition should be set to True")
 			})
 			It("should return True OwnerLabelSet condition for Plugin", func() {
 				plugin := setup.CreatePlugin(test.Ctx, "test-correct-plugin",
-					test.WithPluginOwnedByLabelValue(testSupportGroupTeam.Name))
+					test.WithPluginLabel(greenhouseapis.LabelKeyOwnedBy, testSupportGroupTeam.Name))
 				condition := util.ComputeOwnerLabelCondition(test.Ctx, test.K8sClient, plugin)
 				Expect(condition.Status).To(Equal(metav1.ConditionTrue), "OwnerLabelSet condition should be set to True")
 			})
 			It("should return True OwnerLabelSet condition for PluginPreset", func() {
 				plugin := setup.CreatePluginPreset(test.Ctx, "test-correct-preset",
-					test.WithPluginPresetOwnedByLabelValue(testSupportGroupTeam.Name))
+					test.WithPluginPresetLabel(greenhouseapis.LabelKeyOwnedBy, testSupportGroupTeam.Name))
 				condition := util.ComputeOwnerLabelCondition(test.Ctx, test.K8sClient, plugin)
 				Expect(condition.Status).To(Equal(metav1.ConditionTrue), "OwnerLabelSet condition should be set to True")
 			})
 			It("should return True OwnerLabelSet condition for TeamRoleBinding", func() {
 				teamRoleBinding := setup.CreateTeamRoleBinding(test.Ctx, "test-correct-trb",
-					test.WithTeamRoleBindingOwnedByLabelValue(testSupportGroupTeam.Name))
+					test.WithTeamRoleBindingLabel(greenhouseapis.LabelKeyOwnedBy, testSupportGroupTeam.Name))
 				condition := util.ComputeOwnerLabelCondition(test.Ctx, test.K8sClient, teamRoleBinding)
 				Expect(condition.Status).To(Equal(metav1.ConditionTrue), "OwnerLabelSet condition should be set to True")
 			})
@@ -76,7 +76,7 @@ var _ = Describe("Test common controllers utils", func() {
 		When("owner label is set to an existing Team in other namespace", func() {
 			It("should return False OwnerLabelSet condition with proper reason and message", func() {
 				cluster := setup.CreateCluster(test.Ctx, "test-other-team-cluster",
-					test.WithClusterOwnedByLabelValue(testOtherNamespaceTeam.Name))
+					test.WithClusterLabel(greenhouseapis.LabelKeyOwnedBy, testOtherNamespaceTeam.Name))
 				condition := util.ComputeOwnerLabelCondition(test.Ctx, test.K8sClient, cluster)
 				Expect(condition.Status).To(Equal(metav1.ConditionFalse), "OwnerLabelSet condition should be set to False")
 				Expect(condition.Reason).To(Equal(greenhousemetav1alpha1.OwnerLabelSetToNotExistingTeamReason), "OwnerLabelSet condition should have a correct reason")
@@ -86,7 +86,7 @@ var _ = Describe("Test common controllers utils", func() {
 		When("owner label is set to an existing non-support-group Team", func() {
 			It("should return False OwnerLabelSet condition with proper reason and message", func() {
 				cluster := setup.CreateCluster(test.Ctx, "test-non-support-group-cluster",
-					test.WithClusterOwnedByLabelValue(testNonSupportGroupTeam.Name))
+					test.WithClusterLabel(greenhouseapis.LabelKeyOwnedBy, testNonSupportGroupTeam.Name))
 				condition := util.ComputeOwnerLabelCondition(test.Ctx, test.K8sClient, cluster)
 				Expect(condition.Status).To(Equal(metav1.ConditionFalse), "OwnerLabelSet condition should be set to False")
 				Expect(condition.Reason).To(Equal(greenhousemetav1alpha1.OwnerLabelSetToNonSupportGroupTeamReason), "OwnerLabelSet condition should have a correct reason")
@@ -96,7 +96,7 @@ var _ = Describe("Test common controllers utils", func() {
 		When("owner label is set to a non-existing Team", func() {
 			It("should return False OwnerLabelSet condition with proper reason and message", func() {
 				cluster := setup.CreateCluster(test.Ctx, "test-invalid-team-cluster",
-					test.WithClusterOwnedByLabelValue("not-existing-team"))
+					test.WithClusterLabel(greenhouseapis.LabelKeyOwnedBy, "not-existing-team"))
 				condition := util.ComputeOwnerLabelCondition(test.Ctx, test.K8sClient, cluster)
 				Expect(condition.Status).To(Equal(metav1.ConditionFalse), "OwnerLabelSet condition should be set to False")
 				Expect(condition.Reason).To(Equal(greenhousemetav1alpha1.OwnerLabelSetToNotExistingTeamReason), "OwnerLabelSet condition should have a correct reason")
@@ -106,7 +106,7 @@ var _ = Describe("Test common controllers utils", func() {
 		When("owner label value is missing", func() {
 			It("should return False OwnerLabelSet condition with proper reason and message", func() {
 				cluster := setup.CreateCluster(test.Ctx, "test-missing-owner-value-cluster",
-					test.WithClusterOwnedByLabelValue(""))
+					test.WithClusterLabel(greenhouseapis.LabelKeyOwnedBy, ""))
 				condition := util.ComputeOwnerLabelCondition(test.Ctx, test.K8sClient, cluster)
 				Expect(condition.Status).To(Equal(metav1.ConditionFalse), "OwnerLabelSet condition should be set to False")
 				Expect(condition.Reason).To(Equal(greenhousemetav1alpha1.OwnerLabelMissingReason), "OwnerLabelSet condition should have a correct reason")

@@ -44,7 +44,7 @@ var _ = Describe("ensure helm diff against the release manifest works as expecte
 		)
 
 		pluginUT = test.NewPlugin(test.Ctx, "test-plugin", namespace,
-			test.WithPluginOwnedByLabelValue("test-team-1"),
+			test.WithPluginLabel(greenhouseapis.LabelKeyOwnedBy, "test-team-1"),
 			test.WithPluginDefinition("test-plugindefinition"),
 			test.WithPluginOptionValue("enabled", test.MustReturnJSONFor(true), nil),
 			test.WithReleaseNamespace(namespace),
@@ -176,7 +176,7 @@ var _ = Describe("ensure helm with hooks diff against the release manifest works
 				Version:    "1.0.0",
 			}))
 		pluginUT = test.NewPlugin(test.Ctx, "test-plugin", namespace,
-			test.WithPluginOwnedByLabelValue("test-team-1"),
+			test.WithPluginLabel(greenhouseapis.LabelKeyOwnedBy, "test-team-1"),
 			test.WithPluginDefinition("test-plugindefinition"),
 			test.WithPluginOptionValue("hook_enabled", test.MustReturnJSONFor(false), nil),
 			test.WithReleaseNamespace(namespace),
@@ -276,7 +276,7 @@ var _ = Describe("Ensure helm diff does not leak secrets", Ordered, func() {
 	var teamForDiffLeak *greenhousev1alpha1.Team
 	BeforeAll(func() {
 		By("creating a test Team")
-		teamForDiffLeak = test.NewTeam(test.Ctx, "test-diff-leak-team", namespace, test.WithSupportGroupLabel("true"))
+		teamForDiffLeak = test.NewTeam(test.Ctx, "test-diff-leak-team", namespace, test.WithTeamLabel(greenhouseapis.LabelKeySupportGroup, "true"))
 		Expect(test.K8sClient.Create(test.Ctx, teamForDiffLeak)).To(Succeed(), "there should be no error creating a Team")
 		By("setting up the secrets for diffing")
 		secret = &corev1.Secret{

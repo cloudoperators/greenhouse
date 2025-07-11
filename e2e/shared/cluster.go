@@ -31,7 +31,7 @@ func OnboardRemoteCluster(ctx context.Context, k8sClient client.Client, kubeConf
 	By("applying remote cluster kubeconfig as greenhouse secret")
 	secret := test.NewSecret(name, namespace, test.WithSecretType(greenhouseapis.SecretTypeKubeConfig),
 		test.WithSecretData(map[string][]byte{greenhouseapis.KubeConfigKey: kubeConfigBytes}),
-		test.WithSecretOwnedByLabelValue(supportGroupTeamName),
+		test.WithSecretLabel(greenhouseapis.LabelKeyOwnedBy, supportGroupTeamName),
 		test.WithSecretAnnotations(map[string]string{lifecycle.PropagateLabelsAnnotation: greenhouseapis.LabelKeyOwnedBy}),
 	)
 	err := k8sClient.Create(ctx, secret)
@@ -45,7 +45,7 @@ func OnboardRemoteOIDCCluster(ctx context.Context, k8sClient client.Client, caCe
 	By("applying remote cluster OIDC configuration as greenhouse secret")
 	secret := test.NewSecret(name, namespace, test.WithSecretType(greenhouseapis.SecretTypeOIDCConfig),
 		test.WithSecretData(map[string][]byte{greenhouseapis.SecretAPIServerCAKey: caCert}),
-		test.WithSecretOwnedByLabelValue(supportGroupTeamName),
+		test.WithSecretLabel(greenhouseapis.LabelKeyOwnedBy, supportGroupTeamName),
 		test.WithSecretAnnotations(map[string]string{
 			greenhouseapis.SecretAPIServerURLAnnotation: apiServerURL,
 			lifecycle.PropagateLabelsAnnotation:         greenhouseapis.LabelKeyOwnedBy,

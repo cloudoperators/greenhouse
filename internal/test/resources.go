@@ -25,23 +25,13 @@ func WithAccessMode(mode greenhousev1alpha1.ClusterAccessMode) func(*greenhousev
 	}
 }
 
-// WithLabel sets the label on a Cluster
-func WithLabel(key, value string) func(*greenhousev1alpha1.Cluster) {
+// WithClusterLabel sets the label on a Cluster
+func WithClusterLabel(key, value string) func(*greenhousev1alpha1.Cluster) {
 	return func(c *greenhousev1alpha1.Cluster) {
 		if c.Labels == nil {
 			c.Labels = make(map[string]string, 1)
 		}
 		c.Labels[key] = value
-	}
-}
-
-// WithClusterOwnedByLabelValue sets the value of the greenhouseapis.LabelKeyOwnedBy label on a Cluster
-func WithClusterOwnedByLabelValue(value string) func(*greenhousev1alpha1.Cluster) {
-	return func(c *greenhousev1alpha1.Cluster) {
-		if c.Labels == nil {
-			c.Labels = make(map[string]string, 1)
-		}
-		c.Labels[greenhouseapis.LabelKeyOwnedBy] = value
 	}
 }
 
@@ -248,13 +238,13 @@ func WithPresetLabelValue(value string) func(*greenhousev1alpha1.Plugin) {
 	}
 }
 
-// WithPluginOwnedByLabelValue sets the value of the greenhouseapis.LabelKeyOwnedBy label on a Plugin
-func WithPluginOwnedByLabelValue(value string) func(*greenhousev1alpha1.Plugin) {
+// WithPluginLabel sets the label on a Plugin
+func WithPluginLabel(key, value string) func(*greenhousev1alpha1.Plugin) {
 	return func(p *greenhousev1alpha1.Plugin) {
 		if p.Labels == nil {
 			p.Labels = make(map[string]string, 1)
 		}
-		p.Labels[greenhouseapis.LabelKeyOwnedBy] = value
+		p.Labels[key] = value
 	}
 }
 
@@ -328,13 +318,13 @@ func WithPluginPresetPluginSpec(pluginSpec greenhousev1alpha1.PluginSpec) func(*
 	}
 }
 
-// WithPluginPresetOwnedByLabelValue sets the value of the greenhouseapis.LabelKeyOwnedBy label on a PluginPreset
-func WithPluginPresetOwnedByLabelValue(value string) func(*greenhousev1alpha1.PluginPreset) {
+// WithPluginPresetLabel sets the label on a PluginPreset
+func WithPluginPresetLabel(key, value string) func(*greenhousev1alpha1.PluginPreset) {
 	return func(pp *greenhousev1alpha1.PluginPreset) {
 		if pp.Labels == nil {
 			pp.Labels = make(map[string]string, 1)
 		}
-		pp.Labels[greenhouseapis.LabelKeyOwnedBy] = value
+		pp.Labels[key] = value
 	}
 }
 
@@ -449,12 +439,13 @@ func WithUsernames(usernames []string) func(*greenhousev1alpha2.TeamRoleBinding)
 	}
 }
 
-func WithTeamRoleBindingOwnedByLabelValue(value string) func(*greenhousev1alpha2.TeamRoleBinding) {
+// WithTeamRoleBindingLabel sets the label on a TeamRoleBinding
+func WithTeamRoleBindingLabel(key, value string) func(*greenhousev1alpha2.TeamRoleBinding) {
 	return func(trb *greenhousev1alpha2.TeamRoleBinding) {
 		if trb.Labels == nil {
 			trb.Labels = make(map[string]string, 1)
 		}
-		trb.Labels[greenhouseapis.LabelKeyOwnedBy] = value
+		trb.Labels[key] = value
 	}
 }
 
@@ -482,13 +473,13 @@ func WithMappedIDPGroup(group string) func(*greenhousev1alpha1.Team) {
 	}
 }
 
-// WithLabel sets the greenhous.sap/support-group label on a Team
-func WithSupportGroupLabel(value string) func(*greenhousev1alpha1.Team) {
-	return func(c *greenhousev1alpha1.Team) {
-		if c.Labels == nil {
-			c.Labels = make(map[string]string, 1)
+// WithTeamLabel sets the label on a Team
+func WithTeamLabel(key, value string) func(*greenhousev1alpha1.Team) {
+	return func(t *greenhousev1alpha1.Team) {
+		if t.Labels == nil {
+			t.Labels = make(map[string]string, 1)
 		}
-		c.Labels[greenhouseapis.LabelKeySupportGroup] = value
+		t.Labels[key] = value
 	}
 }
 
@@ -529,13 +520,13 @@ func WithSecretLabels(labels map[string]string) func(*corev1.Secret) {
 	}
 }
 
-// WithSecretOwnedByLabelValue sets the value of the greenhouseapis.LabelKeyOwnedBy label on a Secret
-func WithSecretOwnedByLabelValue(value string) func(*corev1.Secret) {
-	return func(c *corev1.Secret) {
-		if c.Labels == nil {
-			c.Labels = make(map[string]string, 1)
+// WithSecretLabel sets the label on a Secret
+func WithSecretLabel(key, value string) func(*corev1.Secret) {
+	return func(s *corev1.Secret) {
+		if s.Labels == nil {
+			s.Labels = make(map[string]string, 1)
 		}
-		c.Labels[greenhouseapis.LabelKeyOwnedBy] = value
+		s.Labels[key] = value
 	}
 }
 

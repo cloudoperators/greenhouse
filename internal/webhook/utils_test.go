@@ -28,10 +28,10 @@ var _ = Describe("Test webhook utils", func() {
 		)
 		BeforeAll(func() {
 			setup = test.NewTestSetup(test.Ctx, test.K8sClient, "webhookutils")
-			testSupportGroupTeam = setup.CreateTeam(test.Ctx, "test-support-group-team", test.WithSupportGroupLabel("true"))
+			testSupportGroupTeam = setup.CreateTeam(test.Ctx, "test-support-group-team", test.WithTeamLabel(greenhouseapis.LabelKeySupportGroup, "true"))
 			var namespace = &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: otherNamespace}}
 			Expect(setup.Create(test.Ctx, namespace)).To(Succeed(), "there should be no error creating a namespace")
-			testOtherNamespaceTeam = test.NewTeam(test.Ctx, "test-other-namespace-team", otherNamespace, test.WithSupportGroupLabel("true"))
+			testOtherNamespaceTeam = test.NewTeam(test.Ctx, "test-other-namespace-team", otherNamespace, test.WithTeamLabel(greenhouseapis.LabelKeySupportGroup, "true"))
 			Expect(setup.Create(test.Ctx, testOtherNamespaceTeam)).To(Succeed(), "there should be no error creating the other Team")
 			testNonSupportGroupTeam = setup.CreateTeam(test.Ctx, "test-non-support-group-team")
 		})
@@ -43,31 +43,31 @@ var _ = Describe("Test webhook utils", func() {
 		When("owner label is set to an existing support-group Team in the same namespace", func() {
 			It("should return no warning for Cluster", func() {
 				cluster := setup.CreateCluster(test.Ctx, "test-correct-cluster",
-					test.WithClusterOwnedByLabelValue(testSupportGroupTeam.Name))
+					test.WithClusterLabel(greenhouseapis.LabelKeyOwnedBy, testSupportGroupTeam.Name))
 				warning := webhook.ValidateLabelOwnedBy(test.Ctx, test.K8sClient, cluster)
 				Expect(warning).To(BeEmpty(), "warning message should be empty")
 			})
 			It("should return no warning for Secret", func() {
 				secret := setup.CreateSecret(test.Ctx, "test-correct-secret",
-					test.WithSecretOwnedByLabelValue(testSupportGroupTeam.Name))
+					test.WithSecretLabel(greenhouseapis.LabelKeyOwnedBy, testSupportGroupTeam.Name))
 				warning := webhook.ValidateLabelOwnedBy(test.Ctx, test.K8sClient, secret)
 				Expect(warning).To(BeEmpty(), "warning message should be empty")
 			})
 			It("should return no warning for Plugin", func() {
 				plugin := setup.CreatePlugin(test.Ctx, "test-correct-plugin",
-					test.WithPluginOwnedByLabelValue(testSupportGroupTeam.Name))
+					test.WithPluginLabel(greenhouseapis.LabelKeyOwnedBy, testSupportGroupTeam.Name))
 				warning := webhook.ValidateLabelOwnedBy(test.Ctx, test.K8sClient, plugin)
 				Expect(warning).To(BeEmpty(), "warning message should be empty")
 			})
 			It("should return no warning for PluginPreset", func() {
 				plugin := setup.CreatePluginPreset(test.Ctx, "test-correct-preset",
-					test.WithPluginPresetOwnedByLabelValue(testSupportGroupTeam.Name))
+					test.WithPluginPresetLabel(greenhouseapis.LabelKeyOwnedBy, testSupportGroupTeam.Name))
 				warning := webhook.ValidateLabelOwnedBy(test.Ctx, test.K8sClient, plugin)
 				Expect(warning).To(BeEmpty(), "warning message should be empty")
 			})
 			It("should return no warning for TeamRoleBinding", func() {
 				teamRoleBinding := setup.CreateTeamRoleBinding(test.Ctx, "test-correct-trb",
-					test.WithTeamRoleBindingOwnedByLabelValue(testSupportGroupTeam.Name))
+					test.WithTeamRoleBindingLabel(greenhouseapis.LabelKeyOwnedBy, testSupportGroupTeam.Name))
 				warning := webhook.ValidateLabelOwnedBy(test.Ctx, test.K8sClient, teamRoleBinding)
 				Expect(warning).To(BeEmpty(), "warning message should be empty")
 			})
@@ -75,7 +75,7 @@ var _ = Describe("Test webhook utils", func() {
 		When("owner label is set to an existing Team in other namespace", func() {
 			It("should return a proper warning message", func() {
 				cluster := setup.CreateCluster(test.Ctx, "test-other-team-cluster",
-					test.WithClusterOwnedByLabelValue(testOtherNamespaceTeam.Name))
+					test.WithClusterLabel(greenhouseapis.LabelKeyOwnedBy, testOtherNamespaceTeam.Name))
 				warning := webhook.ValidateLabelOwnedBy(test.Ctx, test.K8sClient, cluster)
 				Expect(warning).To(ContainSubstring(fmt.Sprintf("team %s does not exist in the resource namespace", testOtherNamespaceTeam.Name)), "warning should have a correct message")
 			})
@@ -83,7 +83,7 @@ var _ = Describe("Test webhook utils", func() {
 		When("owner label is set to an existing non-support-group Team", func() {
 			It("should return a proper warning message", func() {
 				cluster := setup.CreateCluster(test.Ctx, "test-non-support-group-cluster",
-					test.WithClusterOwnedByLabelValue(testNonSupportGroupTeam.Name))
+					test.WithClusterLabel(greenhouseapis.LabelKeyOwnedBy, testNonSupportGroupTeam.Name))
 				warning := webhook.ValidateLabelOwnedBy(test.Ctx, test.K8sClient, cluster)
 				Expect(warning).To(ContainSubstring(fmt.Sprintf("owner team %s should be a support group", testNonSupportGroupTeam.Name)), "warning should have a correct message")
 			})
@@ -91,7 +91,7 @@ var _ = Describe("Test webhook utils", func() {
 		When("owner label is set to a non-existing Team", func() {
 			It("should return a proper warning message", func() {
 				cluster := setup.CreateCluster(test.Ctx, "test-invalid-team-cluster",
-					test.WithClusterOwnedByLabelValue("not-existing-team"))
+					test.WithClusterLabel(greenhouseapis.LabelKeyOwnedBy, "not-existing-team"))
 				warning := webhook.ValidateLabelOwnedBy(test.Ctx, test.K8sClient, cluster)
 				Expect(warning).To(ContainSubstring(fmt.Sprintf("team %s does not exist in the resource namespace", "not-existing-team")), "warning should have a correct message")
 			})
@@ -99,7 +99,7 @@ var _ = Describe("Test webhook utils", func() {
 		When("owner label value is missing", func() {
 			It("should return a proper warning message", func() {
 				cluster := setup.CreateCluster(test.Ctx, "test-missing-owner-value-cluster",
-					test.WithClusterOwnedByLabelValue(""))
+					test.WithClusterLabel(greenhouseapis.LabelKeyOwnedBy, ""))
 				warning := webhook.ValidateLabelOwnedBy(test.Ctx, test.K8sClient, cluster)
 				Expect(warning).To(ContainSubstring(fmt.Sprintf("label %s value is required", greenhouseapis.LabelKeyOwnedBy)), "warning should have a correct message")
 			})

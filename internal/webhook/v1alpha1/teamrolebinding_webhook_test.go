@@ -32,8 +32,8 @@ var _ = Describe("Validate Create RoleBinding", Ordered, func() {
 
 	BeforeAll(func() {
 		setup = test.NewTestSetup(test.Ctx, test.K8sClient, "rolebinding-create")
-		team = setup.CreateTeam(test.Ctx, "test-team", test.WithSupportGroupLabel("true"))
-		cluster = setup.CreateCluster(test.Ctx, "test-cluster", test.WithClusterOwnedByLabelValue(team.Name))
+		team = setup.CreateTeam(test.Ctx, "test-team", test.WithTeamLabel(greenhouseapis.LabelKeySupportGroup, "true"))
+		cluster = setup.CreateCluster(test.Ctx, "test-cluster", test.WithClusterLabel(greenhouseapis.LabelKeyOwnedBy, team.Name))
 
 		teamRole = setup.CreateTeamRole(test.Ctx, "test-teamrole", test.WithRules(rules))
 	})

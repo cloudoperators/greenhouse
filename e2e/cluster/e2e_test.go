@@ -62,7 +62,7 @@ var _ = BeforeSuite(func() {
 	Expect(err).ToNot(HaveOccurred(), "there should be no error creating the remote client")
 	remoteRestClient = env.RemoteRestClientGetter
 	env = env.WithOrganization(ctx, adminClient, "./testdata/organization.yaml")
-	team = test.NewTeam(ctx, "test-cluster-e2e-team", env.TestNamespace, test.WithSupportGroupLabel("true"), test.WithMappedIDPGroup("SOME_IDP_GROUP_NAME"))
+	team = test.NewTeam(ctx, "test-cluster-e2e-team", env.TestNamespace, test.WithTeamLabel(greenhouseapis.LabelKeySupportGroup, "true"), test.WithMappedIDPGroup("SOME_IDP_GROUP_NAME"))
 	err = adminClient.Create(ctx, team)
 	Expect(err).ToNot(HaveOccurred(), "there should be no error creating a Team")
 	testStartTime = time.Now().UTC()

@@ -49,7 +49,7 @@ var (
 	clusterBK8sClient  client.Client
 	clusterBRemote     *envtest.Environment
 
-	testTeam               = test.NewTeam(test.Ctx, "test-pluginpreset-team", test.TestNamespace, test.WithSupportGroupLabel("true"))
+	testTeam               = test.NewTeam(test.Ctx, "test-pluginpreset-team", test.TestNamespace, test.WithTeamLabel(greenhouseapis.LabelKeySupportGroup, "true"))
 	pluginPresetDefinition = test.NewPluginDefinition(test.Ctx, pluginPresetDefinitionName, test.WithHelmChart(
 		&greenhousev1alpha1.HelmChartReference{
 			Name:       "./../../test/fixtures/chartWithConfigMap",
@@ -986,17 +986,17 @@ var _ = Describe("overridesPluginOptionValues", Ordered, func() {
 		Expect(plugin).To(BeEquivalentTo(expectedPlugin))
 	},
 		Entry("with no defined pluginPresetOverrides",
-			test.NewPlugin(test.Ctx, "", "", test.WithPluginOptionValue("option-1", test.AsAPIExtensionJSON(2), nil), test.WithPluginOwnedByLabelValue(testTeam.Name)),
+			test.NewPlugin(test.Ctx, "", "", test.WithPluginOptionValue("option-1", test.AsAPIExtensionJSON(2), nil), test.WithPluginLabel(greenhouseapis.LabelKeyOwnedBy, testTeam.Name)),
 			&greenhousev1alpha1.PluginPreset{
 				ObjectMeta: metav1.ObjectMeta{
 					Labels: map[string]string{greenhouseapis.LabelKeyOwnedBy: testTeam.Name},
 				},
 				Spec: greenhousev1alpha1.PluginPresetSpec{},
 			},
-			test.NewPlugin(test.Ctx, "", "", test.WithPluginOptionValue("option-1", test.AsAPIExtensionJSON(2), nil), test.WithPluginOwnedByLabelValue(testTeam.Name)),
+			test.NewPlugin(test.Ctx, "", "", test.WithPluginOptionValue("option-1", test.AsAPIExtensionJSON(2), nil), test.WithPluginLabel(greenhouseapis.LabelKeyOwnedBy, testTeam.Name)),
 		),
 		Entry("with defined pluginPresetOverrides but for another cluster",
-			test.NewPlugin(test.Ctx, "", clusterA, test.WithPluginOwnedByLabelValue(testTeam.Name),
+			test.NewPlugin(test.Ctx, "", clusterA, test.WithPluginLabel(greenhouseapis.LabelKeyOwnedBy, testTeam.Name),
 				test.WithCluster(clusterA), test.WithPluginOptionValue("option-1", test.AsAPIExtensionJSON(2), nil)),
 			&greenhousev1alpha1.PluginPreset{
 				ObjectMeta: metav1.ObjectMeta{
@@ -1016,11 +1016,11 @@ var _ = Describe("overridesPluginOptionValues", Ordered, func() {
 					},
 				},
 			},
-			test.NewPlugin(test.Ctx, "", clusterA, test.WithPluginOwnedByLabelValue(testTeam.Name),
+			test.NewPlugin(test.Ctx, "", clusterA, test.WithPluginLabel(greenhouseapis.LabelKeyOwnedBy, testTeam.Name),
 				test.WithCluster(clusterA), test.WithPluginOptionValue("option-1", test.AsAPIExtensionJSON(2), nil)),
 		),
 		Entry("with defined pluginPresetOverrides for the correct cluster",
-			test.NewPlugin(test.Ctx, "", clusterA, test.WithCluster(clusterA), test.WithPluginOptionValue("option-1", test.AsAPIExtensionJSON(2), nil), test.WithPluginOwnedByLabelValue(testTeam.Name)),
+			test.NewPlugin(test.Ctx, "", clusterA, test.WithCluster(clusterA), test.WithPluginOptionValue("option-1", test.AsAPIExtensionJSON(2), nil), test.WithPluginLabel(greenhouseapis.LabelKeyOwnedBy, testTeam.Name)),
 			&greenhousev1alpha1.PluginPreset{
 				ObjectMeta: metav1.ObjectMeta{
 					Labels: map[string]string{greenhouseapis.LabelKeyOwnedBy: testTeam.Name},
@@ -1039,10 +1039,10 @@ var _ = Describe("overridesPluginOptionValues", Ordered, func() {
 					},
 				},
 			},
-			test.NewPlugin(test.Ctx, "", clusterA, test.WithCluster(clusterA), test.WithPluginOptionValue("option-1", test.AsAPIExtensionJSON(1), nil), test.WithPluginOwnedByLabelValue(testTeam.Name)),
+			test.NewPlugin(test.Ctx, "", clusterA, test.WithCluster(clusterA), test.WithPluginOptionValue("option-1", test.AsAPIExtensionJSON(1), nil), test.WithPluginLabel(greenhouseapis.LabelKeyOwnedBy, testTeam.Name)),
 		),
 		Entry("with defined pluginPresetOverrides for the cluster and plugin with empty option values",
-			test.NewPlugin(test.Ctx, "", clusterA, test.WithCluster(clusterA), test.WithPluginOwnedByLabelValue(testTeam.Name)),
+			test.NewPlugin(test.Ctx, "", clusterA, test.WithCluster(clusterA), test.WithPluginLabel(greenhouseapis.LabelKeyOwnedBy, testTeam.Name)),
 			&greenhousev1alpha1.PluginPreset{
 				ObjectMeta: metav1.ObjectMeta{
 					Labels: map[string]string{greenhouseapis.LabelKeyOwnedBy: testTeam.Name},
@@ -1061,10 +1061,10 @@ var _ = Describe("overridesPluginOptionValues", Ordered, func() {
 					},
 				},
 			},
-			test.NewPlugin(test.Ctx, "", clusterA, test.WithCluster(clusterA), test.WithPluginOptionValue("option-1", test.AsAPIExtensionJSON(1), nil), test.WithPluginOwnedByLabelValue(testTeam.Name)),
+			test.NewPlugin(test.Ctx, "", clusterA, test.WithCluster(clusterA), test.WithPluginOptionValue("option-1", test.AsAPIExtensionJSON(1), nil), test.WithPluginLabel(greenhouseapis.LabelKeyOwnedBy, testTeam.Name)),
 		),
 		Entry("with defined pluginPresetOverrides and plugin has two options",
-			test.NewPlugin(test.Ctx, "", clusterA, test.WithCluster(clusterA), test.WithPluginOptionValue("option-1", test.AsAPIExtensionJSON(1), nil), test.WithPluginOptionValue("option-2", test.AsAPIExtensionJSON(1), nil), test.WithPluginOwnedByLabelValue(testTeam.Name)),
+			test.NewPlugin(test.Ctx, "", clusterA, test.WithCluster(clusterA), test.WithPluginOptionValue("option-1", test.AsAPIExtensionJSON(1), nil), test.WithPluginOptionValue("option-2", test.AsAPIExtensionJSON(1), nil), test.WithPluginLabel(greenhouseapis.LabelKeyOwnedBy, testTeam.Name)),
 			&greenhousev1alpha1.PluginPreset{
 				ObjectMeta: metav1.ObjectMeta{
 					Labels: map[string]string{greenhouseapis.LabelKeyOwnedBy: testTeam.Name},
@@ -1083,14 +1083,14 @@ var _ = Describe("overridesPluginOptionValues", Ordered, func() {
 					},
 				},
 			},
-			test.NewPlugin(test.Ctx, "", clusterA, test.WithCluster(clusterA), test.WithPluginOptionValue("option-1", test.AsAPIExtensionJSON(1), nil), test.WithPluginOptionValue("option-2", test.AsAPIExtensionJSON(2), nil), test.WithPluginOwnedByLabelValue(testTeam.Name)),
+			test.NewPlugin(test.Ctx, "", clusterA, test.WithCluster(clusterA), test.WithPluginOptionValue("option-1", test.AsAPIExtensionJSON(1), nil), test.WithPluginOptionValue("option-2", test.AsAPIExtensionJSON(2), nil), test.WithPluginLabel(greenhouseapis.LabelKeyOwnedBy, testTeam.Name)),
 		),
 		Entry("with defined pluginPresetOverrides has multiple options to override",
 			test.NewPlugin(test.Ctx, "", clusterA, test.WithCluster(clusterA),
 				test.WithPluginOptionValue("option-1", test.AsAPIExtensionJSON(1), nil),
 				test.WithPluginOptionValue("option-2", test.AsAPIExtensionJSON(1), nil),
 				test.WithPluginOptionValue("option-3", test.AsAPIExtensionJSON(1), nil),
-				test.WithPluginOwnedByLabelValue(testTeam.Name)),
+				test.WithPluginLabel(greenhouseapis.LabelKeyOwnedBy, testTeam.Name)),
 			&greenhousev1alpha1.PluginPreset{
 				ObjectMeta: metav1.ObjectMeta{
 					Labels: map[string]string{greenhouseapis.LabelKeyOwnedBy: testTeam.Name},
@@ -1117,7 +1117,7 @@ var _ = Describe("overridesPluginOptionValues", Ordered, func() {
 					},
 				},
 			},
-			test.NewPlugin(test.Ctx, "", clusterA, test.WithCluster(clusterA), test.WithPluginOwnedByLabelValue(testTeam.Name),
+			test.NewPlugin(test.Ctx, "", clusterA, test.WithCluster(clusterA), test.WithPluginLabel(greenhouseapis.LabelKeyOwnedBy, testTeam.Name),
 				test.WithPluginOptionValue("option-1", test.AsAPIExtensionJSON(1), nil),
 				test.WithPluginOptionValue("option-2", test.AsAPIExtensionJSON(2), nil),
 				test.WithPluginOptionValue("option-3", test.AsAPIExtensionJSON(2), nil),
@@ -1190,7 +1190,7 @@ func cluster(name, supportGroupTeamName string) *greenhousev1alpha1.Cluster {
 
 func pluginPreset(name, selectorValue, supportGroupTeamName string) *greenhousev1alpha1.PluginPreset {
 	preset := test.NewPluginPreset(name, test.TestNamespace,
-		test.WithPluginPresetOwnedByLabelValue(supportGroupTeamName))
+		test.WithPluginPresetLabel(greenhouseapis.LabelKeyOwnedBy, supportGroupTeamName))
 	preset.Spec = greenhousev1alpha1.PluginPresetSpec{
 		Plugin: greenhousev1alpha1.PluginSpec{
 			PluginDefinition: pluginPresetDefinitionName,

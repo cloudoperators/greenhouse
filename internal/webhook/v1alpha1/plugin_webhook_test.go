@@ -213,8 +213,8 @@ var _ = Describe("Validate plugin spec fields", Ordered, func() {
 
 	BeforeAll(func() {
 		setup = test.NewTestSetup(test.Ctx, test.K8sClient, "plugin-webhook")
-		team = setup.CreateTeam(test.Ctx, "test-team", test.WithSupportGroupLabel("true"))
-		testCluster = setup.CreateCluster(test.Ctx, "test-cluster", test.WithClusterOwnedByLabelValue(team.Name))
+		team = setup.CreateTeam(test.Ctx, "test-team", test.WithTeamLabel(greenhouseapis.LabelKeySupportGroup, "true"))
+		testCluster = setup.CreateCluster(test.Ctx, "test-cluster", test.WithClusterLabel(greenhouseapis.LabelKeyOwnedBy, team.Name))
 		testPluginDefinition = setup.CreatePluginDefinition(test.Ctx, "test-plugindefinition")
 		testCentralPluginDefinition = setup.CreatePluginDefinition(test.Ctx, "central-plugin")
 		pluginsAllowedInCentralCluster = append(pluginsAllowedInCentralCluster, testCentralPluginDefinition.Name)
@@ -236,7 +236,7 @@ var _ = Describe("Validate plugin spec fields", Ordered, func() {
 			test.WithPluginDefinition(testPluginDefinition.Name),
 			test.WithReleaseNamespace("test-namespace"),
 			test.WithReleaseName("test-release"),
-			test.WithPluginOwnedByLabelValue(team.Name))
+			test.WithPluginLabel(greenhouseapis.LabelKeyOwnedBy, team.Name))
 		expectClusterMustBeSetError(test.K8sClient.Create(test.Ctx, testPlugin))
 	})
 
@@ -245,7 +245,7 @@ var _ = Describe("Validate plugin spec fields", Ordered, func() {
 			test.WithPluginDefinition(testCentralPluginDefinition.Name),
 			test.WithReleaseNamespace("test-namespace"),
 			test.WithReleaseName("test-release"),
-			test.WithPluginOwnedByLabelValue(team.Name))
+			test.WithPluginLabel(greenhouseapis.LabelKeyOwnedBy, team.Name))
 		expectReleaseNamespaceMustMatchError(test.K8sClient.Create(test.Ctx, testPlugin))
 	})
 
@@ -255,7 +255,7 @@ var _ = Describe("Validate plugin spec fields", Ordered, func() {
 			test.WithCluster(testCluster.Name),
 			test.WithReleaseNamespace("test-namespace"),
 			test.WithReleaseName("test-release"),
-			test.WithPluginOwnedByLabelValue(team.Name))
+			test.WithPluginLabel(greenhouseapis.LabelKeyOwnedBy, team.Name))
 
 		By("updating the plugin with a different releaseNamespace")
 		testPlugin.Spec.ReleaseNamespace = "new-namespace"
@@ -270,7 +270,7 @@ var _ = Describe("Validate plugin spec fields", Ordered, func() {
 			test.WithCluster("non-existent-cluster"),
 			test.WithReleaseNamespace("test-namespace"),
 			test.WithReleaseName("test-release"),
-			test.WithPluginOwnedByLabelValue(team.Name))
+			test.WithPluginLabel(greenhouseapis.LabelKeyOwnedBy, team.Name))
 
 		expectClusterNotFoundError(test.K8sClient.Create(test.Ctx, testPlugin))
 	})
@@ -282,7 +282,7 @@ var _ = Describe("Validate plugin spec fields", Ordered, func() {
 			test.WithCluster(testCluster.Name),
 			test.WithReleaseNamespace("test-namespace"),
 			test.WithReleaseName("test-release"),
-			test.WithPluginOwnedByLabelValue(team.Name))
+			test.WithPluginLabel(greenhouseapis.LabelKeyOwnedBy, team.Name))
 
 		By("checking the label on the plugin")
 		actPlugin := &greenhousev1alpha1.Plugin{}
@@ -299,7 +299,7 @@ var _ = Describe("Validate plugin spec fields", Ordered, func() {
 			test.WithCluster(testCluster.Name),
 			test.WithReleaseNamespace("test-namespace"),
 			test.WithReleaseName("test-release"),
-			test.WithPluginOwnedByLabelValue(team.Name))
+			test.WithPluginLabel(greenhouseapis.LabelKeyOwnedBy, team.Name))
 		testPlugin.Spec.ClusterName = "wrong-cluster-name"
 		err := test.K8sClient.Update(test.Ctx, testPlugin)
 
@@ -313,7 +313,7 @@ var _ = Describe("Validate plugin spec fields", Ordered, func() {
 			test.WithCluster(testCluster.Name),
 			test.WithReleaseNamespace("test-namespace"),
 			test.WithReleaseName("test-release"),
-			test.WithPluginOwnedByLabelValue(team.Name))
+			test.WithPluginLabel(greenhouseapis.LabelKeyOwnedBy, team.Name))
 		testPlugin.Spec.ClusterName = ""
 		err := test.K8sClient.Update(test.Ctx, testPlugin)
 		Expect(err).To(HaveOccurred(), "there should be an error changing the plugin's clusterName")
@@ -326,7 +326,7 @@ var _ = Describe("Validate plugin spec fields", Ordered, func() {
 			test.WithCluster(testCluster.Name),
 			test.WithReleaseNamespace("test-namespace"),
 			test.WithReleaseName("test-release"),
-			test.WithPluginOwnedByLabelValue(team.Name))
+			test.WithPluginLabel(greenhouseapis.LabelKeyOwnedBy, team.Name))
 		testPlugin.Spec.ReleaseNamespace = "foo-bar"
 		err := test.K8sClient.Update(test.Ctx, testPlugin)
 		Expect(err).To(HaveOccurred(), "there should be an error changing the plugin's releaseNamespace")
@@ -340,7 +340,7 @@ var _ = Describe("Validate plugin spec fields", Ordered, func() {
 			test.WithCluster(testCluster.Name),
 			test.WithReleaseNamespace("test-namespace"),
 			test.WithReleaseName("test-release"),
-			test.WithPluginOwnedByLabelValue(team.Name))
+			test.WithPluginLabel(greenhouseapis.LabelKeyOwnedBy, team.Name))
 
 		testPlugin.Spec.PluginDefinition = secondPluginDefinition.Name
 		err := test.K8sClient.Update(test.Ctx, testPlugin)

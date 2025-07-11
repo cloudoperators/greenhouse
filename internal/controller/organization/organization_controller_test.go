@@ -13,6 +13,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/util/retry"
 
+	greenhouseapis "github.com/cloudoperators/greenhouse/api"
 	greenhousemetav1alpha1 "github.com/cloudoperators/greenhouse/api/meta/v1alpha1"
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
 	"github.com/cloudoperators/greenhouse/internal/clientutil"
@@ -297,7 +298,7 @@ var _ = Describe("Test Organization reconciliation", Ordered, func() {
 		})
 
 		It("should create dex resources if oidc is enabled", func() {
-			team := setup.CreateTeam(test.Ctx, "test-team", test.WithSupportGroupLabel("true"))
+			team := setup.CreateTeam(test.Ctx, "test-team", test.WithTeamLabel(greenhouseapis.LabelKeySupportGroup, "true"))
 
 			defaultOrg := setup.CreateDefaultOrgWithOIDCSecret(test.Ctx, team.Name)
 			test.EventuallyCreated(test.Ctx, test.K8sClient, &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: defaultOrg.Name}})

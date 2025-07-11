@@ -65,7 +65,7 @@ var _ = BeforeSuite(func() {
 	testStartTime = time.Now().UTC()
 
 	By("creating a Team on the admin cluster")
-	teamUT = test.NewTeam(ctx, "test-team", env.TestNamespace, test.WithMappedIDPGroup(testTeamIDPGroup), test.WithSupportGroupLabel("true"))
+	teamUT = test.NewTeam(ctx, "test-team", env.TestNamespace, test.WithMappedIDPGroup(testTeamIDPGroup), test.WithTeamLabel(greenhouseapis.LabelKeySupportGroup, "true"))
 	Expect(adminClient.Create(ctx, teamUT)).To(Succeed(), "there should be no error creating a Team")
 
 	By("onboarding remote cluster")
@@ -195,7 +195,7 @@ var _ = Describe("Conversion E2E", Ordered, func() {
 			test.WithClusterName(remoteClusterName),
 			test.WithNamespaces(env.TestNamespace),
 			test.WithCreateNamespace(true),
-			test.WithTeamRoleBindingOwnedByLabelValue(teamUT.Name),
+			test.WithTeamRoleBindingLabel(greenhouseapis.LabelKeyOwnedBy, teamUT.Name),
 		)
 		Expect(adminClient.Create(ctx, trbV1alpha2)).To(Succeed(), "there should be no error creating the TeamRoleBinding")
 
@@ -306,7 +306,7 @@ var _ = Describe("Conversion E2E", Ordered, func() {
 			}),
 			test.WithNamespaces(env.TestNamespace),
 			test.WithCreateNamespace(true),
-			test.WithTeamRoleBindingOwnedByLabelValue(teamUT.Name),
+			test.WithTeamRoleBindingLabel(greenhouseapis.LabelKeyOwnedBy, teamUT.Name),
 		)
 		Expect(adminClient.Create(ctx, trbV1alpha2)).To(Succeed(), "there should be no error creating the TeamRoleBinding")
 

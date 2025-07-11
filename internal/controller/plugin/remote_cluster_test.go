@@ -34,14 +34,14 @@ var (
 
 // Test stimuli.
 var (
-	testTeam = test.NewTeam(test.Ctx, "test-remotecluster-team", test.TestNamespace, test.WithSupportGroupLabel("true"))
+	testTeam = test.NewTeam(test.Ctx, "test-remotecluster-team", test.TestNamespace, test.WithTeamLabel(greenhouseapis.LabelKeySupportGroup, "true"))
 
 	testPlugin = test.NewPlugin(test.Ctx, "test-plugindefinition", test.TestNamespace,
 		test.WithCluster("test-cluster"),
 		test.WithPluginDefinition("test-plugindefinition"),
 		test.WithReleaseName("release-test"),
 		test.WithReleaseNamespace(test.TestNamespace),
-		test.WithPluginOwnedByLabelValue(testTeam.Name))
+		test.WithPluginLabel(greenhouseapis.LabelKeyOwnedBy, testTeam.Name))
 
 	testPluginWithSR = test.NewPlugin(test.Ctx, "test-plugin-secretref", test.TestNamespace,
 		test.WithCluster("test-cluster"),
@@ -53,7 +53,7 @@ var (
 				Key:  "test-key",
 			},
 		}),
-		test.WithPluginOwnedByLabelValue(testTeam.Name),
+		test.WithPluginLabel(greenhouseapis.LabelKeyOwnedBy, testTeam.Name),
 	)
 
 	testPluginWithCRDs = test.NewPlugin(test.Ctx, "test-plugin-crd", test.TestNamespace,
@@ -61,7 +61,7 @@ var (
 		test.WithPluginDefinition("test-plugindefinition-crd"),
 		test.WithReleaseName("plugindefinition-crd"),
 		test.WithReleaseNamespace(test.TestNamespace),
-		test.WithPluginOwnedByLabelValue(testTeam.Name),
+		test.WithPluginLabel(greenhouseapis.LabelKeyOwnedBy, testTeam.Name),
 	)
 
 	testPluginWithExposedService = test.NewPlugin(test.Ctx, "test-plugin-exposed", test.TestNamespace,
@@ -69,7 +69,7 @@ var (
 		test.WithPluginDefinition("test-plugindefinition-exposed"),
 		test.WithReleaseName("plugindefinition-exposed"),
 		test.WithReleaseNamespace(test.TestNamespace),
-		test.WithPluginOwnedByLabelValue(testTeam.Name),
+		test.WithPluginLabel(greenhouseapis.LabelKeyOwnedBy, testTeam.Name),
 	)
 
 	testSecret = corev1.Secret{
@@ -113,7 +113,7 @@ var (
 
 	testCluster = test.NewCluster(test.Ctx, "test-cluster", test.TestNamespace,
 		test.WithAccessMode(greenhousev1alpha1.ClusterAccessModeDirect),
-		test.WithClusterOwnedByLabelValue(testTeam.Name))
+		test.WithClusterLabel(greenhouseapis.LabelKeyOwnedBy, testTeam.Name))
 
 	testClusterK8sSecret = corev1.Secret{
 		TypeMeta: metav1.TypeMeta{
@@ -274,7 +274,7 @@ var _ = Describe("HelmController reconciliation", Ordered, func() {
 
 	It("should correctly handle the plugin on a referenced cluster with a different namespace", func() {
 		testPluginInDifferentNamespace := test.NewPlugin(test.Ctx, "test-plugin-in-made-up-namespace", test.TestNamespace,
-			test.WithPluginOwnedByLabelValue(testTeam.Name),
+			test.WithPluginLabel(greenhouseapis.LabelKeyOwnedBy, testTeam.Name),
 			test.WithCluster(testCluster.GetName()),
 			test.WithPluginDefinition(testPluginDefinition.GetName()),
 			test.WithReleaseName("release-test-in-made-up-namespace"),
@@ -475,9 +475,9 @@ var _ = Describe("HelmController reconciliation", Ordered, func() {
 			}
 
 			By("creating a test Team in greenhouse namespace")
-			testCentralTeam := test.NewTeam(test.Ctx, "test-central-team", "greenhouse", test.WithSupportGroupLabel("true"))
+			testCentralTeam := test.NewTeam(test.Ctx, "test-central-team", "greenhouse", test.WithTeamLabel(greenhouseapis.LabelKeySupportGroup, "true"))
 			Expect(test.K8sClient.Create(test.Ctx, testCentralTeam)).To(Succeed(), "there should be no error creating a test Team in the greenhouse namespace")
-			test.WithPluginOwnedByLabelValue(testCentralTeam.Name)(testPluginWithExposedService2)
+			test.WithPluginLabel(greenhouseapis.LabelKeyOwnedBy, testCentralTeam.Name)(testPluginWithExposedService2)
 
 			By("creating test plugin without ClusterName")
 			// Deploy plugin to central cluster.

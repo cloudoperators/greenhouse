@@ -110,13 +110,13 @@ var _ = Describe("Cluster status", Ordered, func() {
 			Should(Succeed(), "there should be no error creating the node")
 
 		By("Creating a support-group Team")
-		team = setup.CreateTeam(test.Ctx, "test-team", test.WithSupportGroupLabel("true"))
+		team = setup.CreateTeam(test.Ctx, "test-team", test.WithTeamLabel(greenhouseapis.LabelKeySupportGroup, "true"))
 
 		By("Creating a Secret with a valid KubeConfig for the remote cluster")
 		secret := setup.CreateSecret(test.Ctx, validClusterName,
 			test.WithSecretType(greenhouseapis.SecretTypeKubeConfig),
 			test.WithSecretData(map[string][]byte{greenhouseapis.KubeConfigKey: remoteKubeConfig}),
-			test.WithSecretOwnedByLabelValue(team.Name))
+			test.WithSecretLabel(greenhouseapis.LabelKeyOwnedBy, team.Name))
 
 		By("Checking the cluster resource has been created")
 		Eventually(func() error {
@@ -126,7 +126,7 @@ var _ = Describe("Cluster status", Ordered, func() {
 		By("Creating a cluster without a secret")
 		invalidCluster = setup.CreateCluster(test.Ctx, invalidClusterName,
 			test.WithAccessMode(greenhousev1alpha1.ClusterAccessModeDirect),
-			test.WithClusterOwnedByLabelValue(team.Name))
+			test.WithClusterLabel(greenhouseapis.LabelKeyOwnedBy, team.Name))
 	})
 
 	AfterAll(func() {

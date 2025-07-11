@@ -118,7 +118,7 @@ func (t *TestSetup) CreateOrgOIDCSecret(ctx context.Context, orgName, supportGro
 			OIDCClientIDKey:     []byte(OIDCClientID),
 			OIDCClientSecretKey: []byte(OIDCClientSecret),
 		}),
-		WithSecretOwnedByLabelValue(supportGroupTeamName))
+		WithSecretLabel(greenhouseapis.LabelKeyOwnedBy, supportGroupTeamName))
 	return secret
 }
 
