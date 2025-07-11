@@ -102,6 +102,11 @@ func (r *PluginDefinitionReconciler) createOrPatchClusterPluginDefinition(ctx co
 		log.FromContext(ctx).Info("updated cluster plugin definition from plugin definition", "name", pluginDef.Name)
 		r.recorder.Eventf(clusterDef, corev1.EventTypeNormal, "Updated", "Updated ClusterPluginDefinition %s", clusterDef.Name)
 	}
+	if clusterDef.Spec.HelmChart == nil {
+		log.FromContext(ctx).Info("No HelmChart defined in ClusterPluginDefinition, skipping HelmRepository creation")
+		r.recorder.Event(clusterDef, corev1.EventTypeNormal, "Skipped", "Skipped HelmRepository creation")
+		return nil
+	}
 	return r.reconcileHelmRepository(ctx, clusterDef)
 }
 
@@ -118,13 +123,17 @@ func (r *PluginDefinitionReconciler) reconcileHelmRepository(ctx context.Context
 		return controllerutil.SetOwnerReference(clusterDef, helmRepository, r.Scheme)
 	})
 	if err != nil {
+		log.FromContext(ctx).Error(err, "Failed to create or update HelmRepository", "name", helmRepository.Name)
+		r.recorder.Eventf(clusterDef, corev1.EventTypeWarning, "Failed", "Failed to create or update HelmRepository %s: %s", helmRepository.Name, err.Error())
 		return err
 	}
 	switch result {
 	case controllerutil.OperationResultCreated:
 		log.FromContext(ctx).Info("Created helmRepository", "name", helmRepository.Name)
+		r.recorder.Eventf(clusterDef, corev1.EventTypeNormal, "Created", "Created HelmRepository %s", helmRepository.Name)
 	case controllerutil.OperationResultUpdated:
 		log.FromContext(ctx).Info("Updated helmRepository", "name", helmRepository.Name)
+		r.recorder.Eventf(clusterDef, corev1.EventTypeNormal, "Updated", "Updated HelmRepository %s", helmRepository.Name)
 	case controllerutil.OperationResultNone:
 		log.FromContext(ctx).Info("No changes to helmRepository", "name", helmRepository.Name)
 	}
