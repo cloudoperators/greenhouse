@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	sourcev1 "github.com/fluxcd/source-controller/api/v1"
+	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -41,15 +42,11 @@ func ChartURLToName(repositoryURL string) (repositoryName string) {
 	return
 }
 
-func FindHelmRepositoryByURL(ctx context.Context, k8sClient client.Client, namespace, url string) *sourcev1.HelmRepository {
-	helmRepositoryList := &sourcev1.HelmRepositoryList{}
-	if err := k8sClient.List(ctx, helmRepositoryList); err != nil {
-		return nil
+func FindHelmRepositoryByURL(ctx context.Context, k8sClient client.Client, url, namespace string) (*sourcev1.HelmRepository, error) {
+	repositoryName := ChartURLToName(url)
+	helmRepository := &sourcev1.HelmRepository{}
+	if err := k8sClient.Get(ctx, types.NamespacedName{Name: repositoryName, Namespace: namespace}, helmRepository); err != nil {
+		return nil, err
 	}
-	for _, helmRepository := range helmRepositoryList.Items {
-		if helmRepository.Namespace == namespace && helmRepository.Spec.URL == url {
-			return &helmRepository
-		}
-	}
-	return nil
+	return helmRepository, nil
 }
