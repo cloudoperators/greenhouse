@@ -10,6 +10,7 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
+	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	cl "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
 
@@ -21,6 +22,7 @@ import (
 
 const (
 	PluginDefinitionName           = "my-test-plugin"
+	UIPluginDefinitionName         = "my-test-ui-plugin"
 	PluginDefinitionVersion        = "1.0.0"
 	PluginDefinitionVersionUpdated = "1.1.0"
 	PluginDefinitionChartVersion   = "1.0.0"
@@ -61,6 +63,20 @@ func mockPluginDefinition() *greenhousev1alpha1.PluginDefinition {
 			Required:    false,
 			Default:     test.AsAPIExtensionJSON(PluginOptionDefaultValue),
 			Type:        greenhousev1alpha1.PluginOptionTypeString,
+		}),
+	)
+}
+
+func mockUIPluginDefinition() *greenhousev1alpha1.PluginDefinition {
+	return test.NewPluginDefinition(test.Ctx, UIPluginDefinitionName, test.AppendPluginOption(
+		greenhousev1alpha1.PluginOption{
+			Name:    "test-plugin-definition-option-1",
+			Type:    "int",
+			Default: &apiextensionsv1.JSON{Raw: []byte("1")}},
+	),
+		test.WithUIApplication(&greenhousev1alpha1.UIApplicationReference{
+			Name:    "test-ui-app",
+			Version: "0.0.1",
 		}),
 	)
 }
@@ -145,6 +161,35 @@ var _ = Describe("PluginDefinition controller", func() {
 				g.Expect(repository.Spec.URL).To(Equal(HelmRepo), "the HelmRepository URL should match the PluginDefinition repository URL")
 				return nil
 			}).Should(Succeed(), "the HelmRepository should be created successfully")
+		})
+		It("should successfully create a ClusterPluginDefinition for a UI PluginDefinition", func() {
+			By("creating a PluginDefinition")
+			pluginDef := mockUIPluginDefinition()
+			err := test.K8sClient.Create(test.Ctx, pluginDef)
+			Expect(err).ToNot(HaveOccurred(), "there should be no error creating the PluginDefinition")
+
+			clusterDef := new(greenhousev1alpha1.ClusterPluginDefinition)
+			clusterDef.SetName(pluginDef.Name)
+
+			By("checking if the PluginDefinition is Ready and ClusterPluginDefinition is created")
+			Eventually(func(g Gomega) error {
+				err := test.K8sClient.Get(test.Ctx, cl.ObjectKeyFromObject(pluginDef), pluginDef)
+				g.Expect(err).ToNot(HaveOccurred(), "there should be no error getting the PluginDefinition")
+				readyCondition := pluginDef.Status.GetConditionByType(greenhousemetav1alpha1.ReadyCondition)
+				g.Expect(readyCondition).ToNot(BeNil(), "the PluginDefinition should have a Ready condition")
+				err = test.K8sClient.Get(test.Ctx, cl.ObjectKeyFromObject(clusterDef), clusterDef)
+				g.Expect(err).ToNot(HaveOccurred(), "there should be no error getting the ClusterPluginDefinition")
+				g.Expect(pluginDef.Spec).To(Equal(clusterDef.Spec), "the PluginDefinition Spec should match the ClusterPluginDefinition Spec")
+				return nil
+			}).Should(Succeed(), "the PluginDefinition should be created successfully")
+
+			By("checking if the Skipped event is present for the ClusterPluginDefinition")
+			events := listEvents(clusterDef.Name)
+			Expect(events.Items).ToNot(BeEmpty(), "there should be at least one event for the ClusterPluginDefinition")
+			skippedEvent := slices.ContainsFunc(events.Items, func(event corev1.Event) bool {
+				return event.Reason == "Skipped" && event.InvolvedObject.Name == clusterDef.Name
+			})
+			Expect(skippedEvent).To(BeTrue(), "there should be a Skipped event for the ClusterPluginDefinition")
 		})
 	})
 })
