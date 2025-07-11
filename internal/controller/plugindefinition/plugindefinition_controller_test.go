@@ -6,6 +6,7 @@ package plugindefinition
 import (
 	"slices"
 
+	sourcev1 "github.com/fluxcd/source-controller/api/v1"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
@@ -14,6 +15,7 @@ import (
 
 	greenhousemetav1alpha1 "github.com/cloudoperators/greenhouse/api/meta/v1alpha1"
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
+	"github.com/cloudoperators/greenhouse/internal/flux"
 	"github.com/cloudoperators/greenhouse/internal/test"
 )
 
@@ -28,7 +30,7 @@ const (
 	PluginOptionDefault      = "myDefaultOption"
 	PluginOptionDefaultValue = "myDefaultValue"
 
-	HelmRepo  = "dummy"
+	HelmRepo  = "https://my.dummy.io"
 	HelmChart = "./../../test/fixtures/myChart"
 )
 
@@ -81,7 +83,7 @@ var _ = Describe("PluginDefinition controller", func() {
 	AfterEach(func() {
 		Expect(remoteEnvTest.Stop()).To(Succeed(), "there should be no error stopping the remote environment")
 	})
-	Context("When creating or updating a PluginDefinition", func() {
+	Context("When creating or updating a PluginDefinition", Ordered, func() {
 		It("should successfully create or update a ClusterPluginDefinition from PluginDefinition", func() {
 			By("creating a PluginDefinition")
 			pluginDef := mockPluginDefinition()
@@ -131,6 +133,18 @@ var _ = Describe("PluginDefinition controller", func() {
 				return event.Reason == "Updated" && event.InvolvedObject.Name == clusterDef.Name
 			})
 			Expect(updatedEvent).To(BeTrue(), "there should be an Updated event for the ClusterPluginDefinition")
+
+			By("checking if flux HelmRepository is created")
+			repositoryURL := flux.ChartURLToName(HelmRepo)
+			repository := &sourcev1.HelmRepository{}
+			repository.SetName(repositoryURL)
+			repository.SetNamespace(test.TestGreenhouseNamespace)
+			Eventually(func(g Gomega) error {
+				err := test.K8sClient.Get(test.Ctx, cl.ObjectKeyFromObject(repository), repository)
+				g.Expect(err).ToNot(HaveOccurred(), "there should be no error getting the HelmRepository")
+				g.Expect(repository.Spec.URL).To(Equal(HelmRepo), "the HelmRepository URL should match the PluginDefinition repository URL")
+				return nil
+			}).Should(Succeed(), "the HelmRepository should be created successfully")
 		})
 	})
 })

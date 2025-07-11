@@ -29,6 +29,7 @@ import (
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
 	"github.com/cloudoperators/greenhouse/internal/clientutil"
 	pluginController "github.com/cloudoperators/greenhouse/internal/controller/plugin"
+	"github.com/cloudoperators/greenhouse/internal/flux"
 	"github.com/cloudoperators/greenhouse/internal/lifecycle"
 	"github.com/cloudoperators/greenhouse/internal/metrics"
 )
@@ -73,13 +74,13 @@ func (r *FluxReconciler) SetupWithManager(name string, mgr ctrl.Manager) error {
 	labelSelector := metav1.LabelSelector{
 		MatchExpressions: []metav1.LabelSelectorRequirement{
 			{
-				Key:      deliveryToolLabel,
+				Key:      greenhouseapis.GreenhouseHelmDeliveryToolLabel,
 				Operator: metav1.LabelSelectorOpExists,
 			},
 			{
-				Key:      deliveryToolLabel,
+				Key:      greenhouseapis.GreenhouseHelmDeliveryToolLabel,
 				Operator: metav1.LabelSelectorOpIn,
-				Values:   []string{deliveryToolFlux},
+				Values:   []string{greenhouseapis.GreenhouseHelmDeliveryToolFlux},
 			},
 		},
 	}
@@ -141,8 +142,8 @@ func (r *FluxReconciler) EnsureCreated(ctx context.Context, resource lifecycle.R
 	var namespace string
 
 	// Check if the deliveryToolLabel label exists and has the value "flux"
-	if value, ok := plugin.Labels[deliveryToolLabel]; !ok || value != deliveryToolFlux {
-		return ctrl.Result{}, lifecycle.Pending, nil
+	if value, ok := plugin.Labels[greenhouseapis.GreenhouseHelmDeliveryToolLabel]; !ok || value != greenhouseapis.GreenhouseHelmDeliveryToolFlux {
+		return ctrl.Result{}, lifecycle.Success, nil
 	}
 
 	pluginController.InitPluginStatus(plugin)
@@ -158,60 +159,64 @@ func (r *FluxReconciler) EnsureCreated(ctx context.Context, resource lifecycle.R
 	default:
 		// if the namespace is empty, we use the default namespace
 		// preparation for the future when we will use the namespaced plugin definitions
-		namespace = defaultNameSpace
+		namespace = flux.HelmRepositoryDefaultNamespace
 	}
 
-	helmRepository := findHelmRepositoryByURL(ctx, r.Client, namespace, pluginDef.Spec.HelmChart.Repository)
-	if helmRepository == nil {
+	helmRepository, err := flux.FindHelmRepositoryByURL(ctx, r.Client, pluginDef.Spec.HelmChart.Repository, namespace)
+	if err != nil {
 		return ctrl.Result{}, lifecycle.Failed, errors.New("helm repository not found")
 	}
 
-	helmRelease, err := NewHelmReleaseBuilder().New(plugin.Name, plugin.Namespace).
-		WithChart(helmcontroller.HelmChartTemplateSpec{
-			Chart:    pluginDef.Spec.HelmChart.Name,
-			Interval: &metav1.Duration{Duration: defaultInterval},
-			Version:  pluginDef.Spec.HelmChart.Version,
-			SourceRef: helmcontroller.CrossNamespaceObjectReference{
-				Kind:      sourcecontroller.HelmRepositoryKind,
-				Name:      helmRepository.Name,
-				Namespace: helmRepository.Namespace,
-			},
-		}).
-		WithInterval(defaultInterval).
-		WithTimeout(defaultTimeout).
-		WithMaxHistory(maxHistory).
-		WithReleaseName(plugin.GetReleaseName()).
-		WithInstall(&helmcontroller.Install{
-			CreateNamespace: true,
-			Remediation: &helmcontroller.InstallRemediation{
-				Retries: 3,
-			},
-		}).
-		WithUpgrade(&helmcontroller.Upgrade{
-			Remediation: &helmcontroller.UpgradeRemediation{
-				Retries: 3,
-			},
-		}).
-		WithTest(&helmcontroller.Test{
-			Enable: false,
-		}).
-		WithDriftDetection(&helmcontroller.DriftDetection{
-			Mode: helmcontroller.DriftDetectionEnabled,
-		}).
-		WithKubeConfig(fluxmeta.SecretKeyReference{
-			Name: plugin.Spec.ClusterName,
-			Key:  greenhouseapis.GreenHouseKubeConfigKey,
-		}).
-		WithValues(r.addValuestoHelmRelease(plugin, pluginDef)).
-		WithValuesFrom(r.addValueReferences(plugin)).
-		WithTargetNamespace(plugin.Spec.ReleaseNamespace).Build()
+	release := &helmcontroller.HelmRelease{}
+	release.SetName(plugin.Name)
+	release.SetNamespace(plugin.Namespace)
+	specBuilder := flux.NewHelmReleaseSpecBuilder()
 
-	if err != nil {
-		log.FromContext(ctx).Error(err, "Failed to create HelmRelease for plugin", "plugin", plugin.Name)
-		return ctrl.Result{}, lifecycle.Failed, fmt.Errorf("failed to create HelmRelease for plugin %s: %w", plugin.Name, err)
-	}
-
-	result, err := ctrl.CreateOrUpdate(ctx, r.Client, helmRelease, func() error {
+	result, err := ctrl.CreateOrUpdate(ctx, r.Client, release, func() error {
+		spec, err := specBuilder.
+			WithChart(helmcontroller.HelmChartTemplateSpec{
+				Chart:    pluginDef.Spec.HelmChart.Name,
+				Interval: &metav1.Duration{Duration: flux.DefaultInterval},
+				Version:  pluginDef.Spec.HelmChart.Version,
+				SourceRef: helmcontroller.CrossNamespaceObjectReference{
+					Kind:      sourcecontroller.HelmRepositoryKind,
+					Name:      helmRepository.Name,
+					Namespace: helmRepository.Namespace,
+				},
+			}).
+			WithInterval(flux.DefaultInterval).
+			WithTimeout(flux.DefaultTimeout).
+			WithMaxHistory(maxHistory).
+			WithReleaseName(plugin.GetReleaseName()).
+			WithInstall(&helmcontroller.Install{
+				CreateNamespace: true,
+				Remediation: &helmcontroller.InstallRemediation{
+					Retries: 3,
+				},
+			}).
+			WithUpgrade(&helmcontroller.Upgrade{
+				Remediation: &helmcontroller.UpgradeRemediation{
+					Retries: 3,
+				},
+			}).
+			WithTest(&helmcontroller.Test{
+				Enable: false,
+			}).
+			WithDriftDetection(&helmcontroller.DriftDetection{
+				Mode: helmcontroller.DriftDetectionEnabled,
+			}).
+			WithKubeConfig(fluxmeta.SecretKeyReference{
+				Name: plugin.Spec.ClusterName,
+				Key:  greenhouseapis.GreenHouseKubeConfigKey,
+			}).
+			WithValues(r.addValuestoHelmRelease(plugin, pluginDef)).
+			WithValuesFrom(r.addValueReferences(plugin)).
+			WithTargetNamespace(plugin.Spec.ReleaseNamespace).Build()
+		if err != nil {
+			log.FromContext(ctx).Error(err, "Failed to create HelmRelease for plugin", "plugin", plugin.Name)
+			return fmt.Errorf("failed to create HelmRelease for plugin %s: %w", plugin.Name, err)
+		}
+		release.Spec = spec
 		return nil
 	})
 	if err != nil {
@@ -219,9 +224,9 @@ func (r *FluxReconciler) EnsureCreated(ctx context.Context, resource lifecycle.R
 	}
 	switch result {
 	case controllerutil.OperationResultCreated:
-		log.FromContext(ctx).Info("Created helmRelease", "name", helmRelease.Name)
+		log.FromContext(ctx).Info("Created helmRelease", "name", release.Name)
 	case controllerutil.OperationResultUpdated:
-		log.FromContext(ctx).Info("Updated helmRelease", "name", helmRelease.Name)
+		log.FromContext(ctx).Info("Updated helmRelease", "name", release.Name)
 	}
 
 	return ctrl.Result{}, lifecycle.Success, nil

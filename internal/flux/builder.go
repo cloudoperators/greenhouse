@@ -16,13 +16,12 @@ import (
 )
 
 const (
-	defaultInterval = 5 * time.Minute
-	defaultTimeout  = 5 * time.Minute
-	defaultRetry    = 3
+	DefaultInterval = 5 * time.Minute
+	DefaultTimeout  = 5 * time.Minute // TODO: make this configurable via annotations on plugin / environment variable (Test scenarios)
+	DefaultRetry    = 3               // TODO: make this also configurable via annotations on plugin
 )
 
 type HelmReleaseBuilder interface {
-	New(name, namespace string) *helmReleaseBuilder
 	WithChart(specRef helmcontroller.HelmChartTemplateSpec) *helmReleaseBuilder
 	WithMaxHistory(num int) *helmReleaseBuilder
 	WithInterval(duration time.Duration) *helmReleaseBuilder
@@ -39,44 +38,33 @@ type HelmReleaseBuilder interface {
 	WithUninstall(uninstall *helmcontroller.Uninstall) *helmReleaseBuilder
 	WithDependsOn(dependencies []fluxmeta.NamespacedObjectReference) *helmReleaseBuilder
 	WithKubeConfig(kc fluxmeta.SecretKeyReference) *helmReleaseBuilder
-	Build() (*helmcontroller.HelmRelease, error)
+	Build() (helmcontroller.HelmReleaseSpec, error)
 }
 
 type helmReleaseBuilder struct {
-	hr *helmcontroller.HelmRelease
+	spec helmcontroller.HelmReleaseSpec
 }
 
-func NewHelmReleaseBuilder() HelmReleaseBuilder {
-	return &helmReleaseBuilder{}
-}
-
-// New creates a new HelmReleaseBuilder with the specified name and namespace.
-func (b *helmReleaseBuilder) New(name, namespace string) *helmReleaseBuilder {
+func NewHelmReleaseSpecBuilder() HelmReleaseBuilder {
 	return &helmReleaseBuilder{
-		hr: &helmcontroller.HelmRelease{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      name,
-				Namespace: namespace,
+		spec: helmcontroller.HelmReleaseSpec{
+			Install: &helmcontroller.Install{
+				Remediation: &helmcontroller.InstallRemediation{},
 			},
-			Spec: helmcontroller.HelmReleaseSpec{
-				Install: &helmcontroller.Install{
-					Remediation: &helmcontroller.InstallRemediation{},
-				},
-				Upgrade: &helmcontroller.Upgrade{
-					Remediation: &helmcontroller.UpgradeRemediation{},
-				},
-				DriftDetection: &helmcontroller.DriftDetection{},
-				Test:           &helmcontroller.Test{},
-				KubeConfig:     &fluxmeta.KubeConfigReference{},
-				Values:         &v1.JSON{},
+			Upgrade: &helmcontroller.Upgrade{
+				Remediation: &helmcontroller.UpgradeRemediation{},
 			},
+			DriftDetection: &helmcontroller.DriftDetection{},
+			Test:           &helmcontroller.Test{},
+			KubeConfig:     &fluxmeta.KubeConfigReference{},
+			Values:         &v1.JSON{},
 		},
 	}
 }
 
 // WithChart sets the chart specification for the Helm release.
 func (b *helmReleaseBuilder) WithChart(specRef helmcontroller.HelmChartTemplateSpec) *helmReleaseBuilder {
-	b.hr.Spec.Chart = &helmcontroller.HelmChartTemplate{
+	b.spec.Chart = &helmcontroller.HelmChartTemplate{
 		Spec: specRef,
 	}
 	return b
@@ -87,7 +75,7 @@ func (b *helmReleaseBuilder) WithMaxHistory(num int) *helmReleaseBuilder {
 	if num < 0 {
 		return b
 	}
-	b.hr.Spec.MaxHistory = ptr.To[int](num)
+	b.spec.MaxHistory = ptr.To[int](num)
 	return b
 }
 
@@ -96,7 +84,7 @@ func (b *helmReleaseBuilder) WithInterval(duration time.Duration) *helmReleaseBu
 	if duration <= 0 {
 		return b
 	}
-	b.hr.Spec.Interval = metav1.Duration{Duration: duration}
+	b.spec.Interval = metav1.Duration{Duration: duration}
 	return b
 }
 
@@ -105,7 +93,7 @@ func (b *helmReleaseBuilder) WithTimeout(timeout time.Duration) *helmReleaseBuil
 	if timeout <= 0 {
 		return b
 	}
-	b.hr.Spec.Timeout = &metav1.Duration{Duration: timeout}
+	b.spec.Timeout = &metav1.Duration{Duration: timeout}
 	return b
 }
 
@@ -114,7 +102,7 @@ func (b *helmReleaseBuilder) WithValues(byteValues []byte) *helmReleaseBuilder {
 	if byteValues == nil {
 		return b
 	}
-	b.hr.Spec.Values = &v1.JSON{Raw: byteValues}
+	b.spec.Values = &v1.JSON{Raw: byteValues}
 	return b
 }
 
@@ -123,7 +111,7 @@ func (b *helmReleaseBuilder) WithValuesFrom(ref []helmcontroller.ValuesReference
 	if len(ref) == 0 {
 		return b
 	}
-	b.hr.Spec.ValuesFrom = ref
+	b.spec.ValuesFrom = ref
 	return b
 }
 
@@ -132,7 +120,7 @@ func (b *helmReleaseBuilder) WithReleaseName(name string) *helmReleaseBuilder {
 	if name == "" {
 		return b
 	}
-	b.hr.Spec.ReleaseName = name
+	b.spec.ReleaseName = name
 	return b
 }
 
@@ -141,7 +129,7 @@ func (b *helmReleaseBuilder) WithTargetNamespace(namespace string) *helmReleaseB
 	if namespace == "" {
 		return b
 	}
-	b.hr.Spec.TargetNamespace = namespace
+	b.spec.TargetNamespace = namespace
 	return b
 }
 
@@ -149,13 +137,13 @@ func (b *helmReleaseBuilder) WithTargetNamespace(namespace string) *helmReleaseB
 func (b *helmReleaseBuilder) WithInstall(install *helmcontroller.Install) *helmReleaseBuilder {
 	if install == nil {
 		install = &helmcontroller.Install{
-			Timeout: &metav1.Duration{Duration: defaultTimeout},
+			Timeout: &metav1.Duration{Duration: DefaultTimeout},
 			Remediation: &helmcontroller.InstallRemediation{
-				Retries: defaultRetry,
+				Retries: DefaultRetry,
 			},
 		}
 	}
-	b.hr.Spec.Install = install
+	b.spec.Install = install
 	return b
 }
 
@@ -163,13 +151,13 @@ func (b *helmReleaseBuilder) WithInstall(install *helmcontroller.Install) *helmR
 func (b *helmReleaseBuilder) WithUpgrade(upgrade *helmcontroller.Upgrade) *helmReleaseBuilder {
 	if upgrade == nil {
 		upgrade = &helmcontroller.Upgrade{
-			Timeout: &metav1.Duration{Duration: defaultTimeout},
+			Timeout: &metav1.Duration{Duration: DefaultTimeout},
 			Remediation: &helmcontroller.UpgradeRemediation{
-				Retries: defaultRetry,
+				Retries: DefaultRetry,
 			},
 		}
 	}
-	b.hr.Spec.Upgrade = upgrade
+	b.spec.Upgrade = upgrade
 	return b
 }
 
@@ -177,10 +165,10 @@ func (b *helmReleaseBuilder) WithUpgrade(upgrade *helmcontroller.Upgrade) *helmR
 func (b *helmReleaseBuilder) WithRollback(rollback *helmcontroller.Rollback) *helmReleaseBuilder {
 	if rollback == nil {
 		rollback = &helmcontroller.Rollback{
-			Timeout: &metav1.Duration{Duration: defaultTimeout},
+			Timeout: &metav1.Duration{Duration: DefaultTimeout},
 		}
 	}
-	b.hr.Spec.Rollback = rollback
+	b.spec.Rollback = rollback
 	return b
 }
 
@@ -191,7 +179,7 @@ func (b *helmReleaseBuilder) WithDriftDetection(driftDetection *helmcontroller.D
 			Mode: helmcontroller.DriftDetectionEnabled,
 		}
 	}
-	b.hr.Spec.DriftDetection = driftDetection
+	b.spec.DriftDetection = driftDetection
 	return b
 }
 
@@ -200,10 +188,10 @@ func (b *helmReleaseBuilder) WithTest(test *helmcontroller.Test) *helmReleaseBui
 	if test == nil {
 		test = &helmcontroller.Test{
 			Enable:  true,
-			Timeout: &metav1.Duration{Duration: defaultTimeout},
+			Timeout: &metav1.Duration{Duration: DefaultTimeout},
 		}
 	}
-	b.hr.Spec.Test = test
+	b.spec.Test = test
 	return b
 }
 
@@ -211,10 +199,10 @@ func (b *helmReleaseBuilder) WithTest(test *helmcontroller.Test) *helmReleaseBui
 func (b *helmReleaseBuilder) WithUninstall(uninstall *helmcontroller.Uninstall) *helmReleaseBuilder {
 	if uninstall == nil {
 		uninstall = &helmcontroller.Uninstall{
-			Timeout: &metav1.Duration{Duration: defaultTimeout},
+			Timeout: &metav1.Duration{Duration: DefaultTimeout},
 		}
 	}
-	b.hr.Spec.Uninstall = uninstall
+	b.spec.Uninstall = uninstall
 	return b
 }
 
@@ -223,7 +211,7 @@ func (b *helmReleaseBuilder) WithDependsOn(dependencies []fluxmeta.NamespacedObj
 	if len(dependencies) == 0 {
 		return b
 	}
-	b.hr.Spec.DependsOn = dependencies
+	b.spec.DependsOn = dependencies
 	return b
 }
 
@@ -232,19 +220,18 @@ func (b *helmReleaseBuilder) WithKubeConfig(kc fluxmeta.SecretKeyReference) *hel
 	if kc == (fluxmeta.SecretKeyReference{}) {
 		return b
 	}
-	b.hr.Spec.KubeConfig.SecretRef = kc
+	b.spec.KubeConfig.SecretRef = kc
 	return b
 }
 
 // Build validates the HelmRelease and returns it.
-func (b *helmReleaseBuilder) Build() (*helmcontroller.HelmRelease, error) {
-	if b.hr.Spec.Chart.Spec.Chart == "" {
-		return nil, errors.New("chart name is required")
+func (b *helmReleaseBuilder) Build() (helmcontroller.HelmReleaseSpec, error) {
+	if b.spec.Chart.Spec.Chart == "" {
+		return helmcontroller.HelmReleaseSpec{}, errors.New("chart name is required")
 	}
 
-	if b.hr.Spec.Chart.Spec.Version == "" {
-		return nil, errors.New("chart version is required")
+	if b.spec.Chart.Spec.Version == "" {
+		return helmcontroller.HelmReleaseSpec{}, errors.New("chart version is required")
 	}
-
-	return b.hr, nil
+	return b.spec, nil
 }
