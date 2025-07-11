@@ -110,9 +110,13 @@ generate-documentation: check-gen-crd-api-reference-docs
 	$(GEN_DOCS) -api-dir=$(GEN_DOCS_API_DIR) -config=$(GEN_DOCS_CONFIG) -template-dir=$(GEN_DOCS_TEMPLATE_DIR) -out-file=$(GEN_DOCS_OUT_FILE)
 
 .PHONY: test
-test: generate-manifests generate envtest ## Run tests.
+test: generate-manifests generate envtest flux-crds ## Run tests.
 	KUBEBUILDER_ASSETS="$(shell $(ENVTEST) use $(ENVTEST_K8S_VERSION) -p path)" go test ./... -coverprofile cover.out -v
 
+.PHONY: flux-crds
+flux-crds: kustomize
+	mkdir -p bin/flux
+	$(KUSTOMIZE) build config/samples/flux > bin/flux/crds.yaml
 .PHONY: fmt
 fmt: goimports
 	GOBIN=$(LOCALBIN) go fmt ./...
@@ -183,10 +187,10 @@ HELMIFY ?= $(LOCALBIN)/helmify
 KUSTOMIZE_VERSION ?= 5.6.0
 CERT_MANAGER_VERSION ?= v1.17.1
 CONTROLLER_TOOLS_VERSION ?= 0.18.0
-GOLINT_VERSION ?= 2.1.6
-GINKGOLINTER_VERSION ?= 0.19.1
+GOLINT_VERSION ?= 2.2.1
+GINKGOLINTER_VERSION ?= 0.20.0
 # ENVTEST_K8S_VERSION refers to the version of kubebuilder assets to be downloaded by envtest binary.
-ENVTEST_K8S_VERSION ?= 1.32.0
+ENVTEST_K8S_VERSION ?= 1.33.0
 
 KUSTOMIZE_INSTALL_SCRIPT ?= "https://raw.githubusercontent.com/kubernetes-sigs/kustomize/master/hack/install_kustomize.sh"
 .PHONY: kustomize
@@ -342,3 +346,7 @@ cert-manager: kustomize
 	helm repo add jetstack https://charts.jetstack.io
 	helm upgrade --namespace cert-manager --version $(CERT_MANAGER_VERSION) --install cert-manager jetstack/cert-manager --set crds.enabled=true --create-namespace
 	-$(KUSTOMIZE) build config/samples/cert-manager | kubectl apply -f -
+
+.PHONY: flux
+flux: kustomize
+	-$(KUSTOMIZE) build config/flux | kubectl apply -f -
