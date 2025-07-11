@@ -92,7 +92,7 @@ func listEvents(involvedObjectName string) *corev1.EventList {
 	return events
 }
 
-var _ = FDescribe("PluginDefinition controller", func() {
+var _ = Describe("PluginDefinition controller", func() {
 	var (
 		remoteEnvTest *envtest.Environment
 	)
