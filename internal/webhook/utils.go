@@ -163,8 +163,7 @@ func ValidateLabelOwnedBy(ctx context.Context, c client.Client, resourceObj v1.O
 		return warnErr.Error()
 	}
 
-	resourceLabels := resourceObj.GetLabels()
-	ownerName, ok := resourceLabels[greenhouseapis.LabelKeyOwnedBy]
+	ownerName, ok := resourceObj.GetLabels()[greenhouseapis.LabelKeyOwnedBy]
 	if !ok {
 		warnErr := field.Required(field.NewPath("metadata").Child("labels").Key(greenhouseapis.LabelKeyOwnedBy),
 			fmt.Sprintf("label %s is required", greenhouseapis.LabelKeyOwnedBy))

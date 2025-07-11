@@ -16,9 +16,7 @@ import (
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
 )
 
-func ComputeOwnerLabelCondition(ctx context.Context, c client.Client, resourceObj metav1.Object) greenhousemetav1alpha1.Condition {
-	ownerLabelSetCondition := greenhousemetav1alpha1.UnknownCondition(greenhousemetav1alpha1.OwnerLabelSetCondition, "", "")
-
+func ComputeOwnerLabelCondition(ctx context.Context, c client.Client, resourceObj metav1.Object, ownerLabelSetCondition greenhousemetav1alpha1.Condition) greenhousemetav1alpha1.Condition {
 	namespace := resourceObj.GetNamespace()
 	if namespace == "" {
 		ownerLabelSetCondition.Message = "Resource namespace is required to validate the owner"
@@ -26,18 +24,10 @@ func ComputeOwnerLabelCondition(ctx context.Context, c client.Client, resourceOb
 		return ownerLabelSetCondition
 	}
 
-	resourceLabels := resourceObj.GetLabels()
-
-	ownerName, ok := resourceLabels[greenhouseapis.LabelKeyOwnedBy]
-	if !ok {
+	ownerName, ok := resourceObj.GetLabels()[greenhouseapis.LabelKeyOwnedBy]
+	if !ok || ownerName == "" {
 		ownerLabelSetCondition.Reason = greenhousemetav1alpha1.OwnerLabelMissingReason
 		ownerLabelSetCondition.Message = fmt.Sprintf("Label %s is missing", greenhouseapis.LabelKeyOwnedBy)
-		ownerLabelSetCondition.Status = metav1.ConditionFalse
-		return ownerLabelSetCondition
-	}
-	if ownerName == "" {
-		ownerLabelSetCondition.Reason = greenhousemetav1alpha1.OwnerLabelMissingReason
-		ownerLabelSetCondition.Message = fmt.Sprintf("Label %s value is missing", greenhouseapis.LabelKeyOwnedBy)
 		ownerLabelSetCondition.Status = metav1.ConditionFalse
 		return ownerLabelSetCondition
 	}
@@ -45,7 +35,7 @@ func ComputeOwnerLabelCondition(ctx context.Context, c client.Client, resourceOb
 	team := new(greenhousev1alpha1.Team)
 	err := c.Get(ctx, client.ObjectKey{Namespace: namespace, Name: ownerName}, team)
 	switch {
-	case err != nil && apierrors.IsNotFound(err):
+	case apierrors.IsNotFound(err):
 		ownerLabelSetCondition.Reason = greenhousemetav1alpha1.OwnerLabelSetToNotExistingTeamReason
 		ownerLabelSetCondition.Message = fmt.Sprintf("team %s does not exist in resource namespace", ownerName)
 		ownerLabelSetCondition.Status = metav1.ConditionFalse

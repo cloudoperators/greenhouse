@@ -56,28 +56,7 @@ func ValidateCreateSecret(ctx context.Context, c client.Client, o runtime.Object
 	if !ok {
 		return nil, nil
 	}
-	if secret.Type == greenhouseapis.SecretTypeOIDCConfig {
-		err := validateGreenhouseOIDCType(secret)
-		return nil, err
-	}
-	if err := validateSecretGreenHouseType(ctx, secret); err != nil {
-		return nil, err
-	}
-	if err := validateKubeconfigInSecret(secret); err != nil {
-		return nil, err
-	}
-	if slices.Contains(greenhouseSecretTypes, secret.Type) {
-		labelValidationWarning := webhook.ValidateLabelOwnedBy(ctx, c, secret)
-		if labelValidationWarning != "" {
-			return admission.Warnings{"Secret should have a support-group Team set as its owner", labelValidationWarning}, nil
-		}
-	}
-	return nil, nil
-}
-
-func ValidateUpdateSecret(ctx context.Context, c client.Client, _, o runtime.Object) (admission.Warnings, error) {
-	secret, ok := o.(*corev1.Secret)
-	if !ok {
+	if !slices.Contains(greenhouseSecretTypes, secret.Type) {
 		return nil, nil
 	}
 	if secret.Type == greenhouseapis.SecretTypeOIDCConfig {
@@ -90,11 +69,36 @@ func ValidateUpdateSecret(ctx context.Context, c client.Client, _, o runtime.Obj
 	if err := validateKubeconfigInSecret(secret); err != nil {
 		return nil, err
 	}
-	if slices.Contains(greenhouseSecretTypes, secret.Type) {
-		labelValidationWarning := webhook.ValidateLabelOwnedBy(ctx, c, secret)
-		if labelValidationWarning != "" {
-			return admission.Warnings{"Secret should have a support-group Team set as its owner", labelValidationWarning}, nil
-		}
+
+	labelValidationWarning := webhook.ValidateLabelOwnedBy(ctx, c, secret)
+	if labelValidationWarning != "" {
+		return admission.Warnings{"Secret should have a support-group Team set as its owner", labelValidationWarning}, nil
+	}
+	return nil, nil
+}
+
+func ValidateUpdateSecret(ctx context.Context, c client.Client, _, o runtime.Object) (admission.Warnings, error) {
+	secret, ok := o.(*corev1.Secret)
+	if !ok {
+		return nil, nil
+	}
+	if !slices.Contains(greenhouseSecretTypes, secret.Type) {
+		return nil, nil
+	}
+	if secret.Type == greenhouseapis.SecretTypeOIDCConfig {
+		err := validateGreenhouseOIDCType(secret)
+		return nil, err
+	}
+	if err := validateSecretGreenHouseType(ctx, secret); err != nil {
+		return nil, err
+	}
+	if err := validateKubeconfigInSecret(secret); err != nil {
+		return nil, err
+	}
+
+	labelValidationWarning := webhook.ValidateLabelOwnedBy(ctx, c, secret)
+	if labelValidationWarning != "" {
+		return admission.Warnings{"Secret should have a support-group Team set as its owner", labelValidationWarning}, nil
 	}
 	return nil, nil
 }
