@@ -139,12 +139,7 @@ func (r *FluxReconciler) EnsureCreated(ctx context.Context, resource lifecycle.R
 	if !ok {
 		return ctrl.Result{}, lifecycle.Failed, errors.New("resource is not a Plugin")
 	}
-	var namespace string
-
-	// Check if the deliveryToolLabel label exists and has the value "flux"
-	if value, ok := plugin.Labels[greenhouseapis.GreenhouseHelmDeliveryToolLabel]; !ok || value != greenhouseapis.GreenhouseHelmDeliveryToolFlux {
-		return ctrl.Result{}, lifecycle.Success, nil
-	}
+	namespace := flux.HelmRepositoryDefaultNamespace
 
 	pluginController.InitPluginStatus(plugin)
 
@@ -153,13 +148,15 @@ func (r *FluxReconciler) EnsureCreated(ctx context.Context, resource lifecycle.R
 		return ctrl.Result{}, lifecycle.Failed, errors.New("plugin definition not found")
 	}
 
-	switch {
-	case pluginDef.Namespace != "":
+	if pluginDef.Namespace != "" {
 		namespace = pluginDef.Namespace
-	default:
-		// if the namespace is empty, we use the default namespace
-		// preparation for the future when we will use the namespaced plugin definitions
-		namespace = flux.HelmRepositoryDefaultNamespace
+	}
+
+	if pluginDef.Spec.HelmChart == nil {
+		log.FromContext(ctx).Info("No HelmChart defined in PluginDefinition, skipping HelmRelease creation", "plugin", plugin.Name)
+		plugin.SetCondition(greenhousemetav1alpha1.FalseCondition(
+			greenhousev1alpha1.HelmReconcileFailedCondition, "", "PluginDefinition is not backed by HelmChart"))
+		return ctrl.Result{}, lifecycle.Success, nil
 	}
 
 	helmRepository, err := flux.FindHelmRepositoryByURL(ctx, r.Client, pluginDef.Spec.HelmChart.Repository, namespace)
