@@ -65,6 +65,11 @@ var _ = BeforeSuite(func() {
 	env = env.WithOrganization(ctx, adminClient, "./testdata/organization.yaml")
 	testStartTime = time.Now().UTC()
 
+	By("Re-runing the Manager Deployment Pod with all controllers except for plugin and kubeconfig")
+	// Disable the plugin and kubeconfig controllers to not interfere with Plugin deletion. Only Plugin creation is tested here.
+	desiredValue := "organizationController,teamController,teamRoleBindingController,pluginDefinition,bootStrap,clusterReconciler"
+	shared.RerunManagerDeploymentPodWithDifferentControllers(ctx, adminClient, desiredValue)
+
 	By("creating a Team")
 	testTeam = test.NewTeam(ctx, testTeamName, env.TestNamespace, test.WithTeamLabel(greenhouseapis.LabelKeySupportGroup, "true"))
 	err = client.IgnoreAlreadyExists(adminClient.Create(ctx, testTeam))
@@ -137,6 +142,9 @@ var _ = AfterSuite(func() {
 	test.EventuallyDeleted(ctx, adminClient, testTeam)
 
 	env.GenerateControllerLogs(ctx, testStartTime)
+
+	By("Re-runing the Manager Deployment Pod with all controllers")
+	shared.RerunManagerDeploymentPodWithAllControllers(ctx, adminClient)
 })
 
 var _ = Describe("Webhook Performance", Ordered, func() {
