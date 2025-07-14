@@ -140,6 +140,11 @@ func (r *FluxReconciler) EnsureCreated(ctx context.Context, resource lifecycle.R
 		return ctrl.Result{}, lifecycle.Failed, errors.New("resource is not a Plugin")
 	}
 
+	// ignore plugins that are not managed by Flux
+	if plugin.GetLabels() != nil && plugin.GetLabels()[greenhouseapis.GreenhouseHelmDeliveryToolLabel] != greenhouseapis.GreenhouseHelmDeliveryToolFlux {
+		return ctrl.Result{}, lifecycle.Pending, nil
+	}
+
 	pluginController.InitPluginStatus(plugin)
 
 	pluginDef := r.getPluginDef(ctx, plugin)
