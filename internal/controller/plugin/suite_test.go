@@ -512,7 +512,7 @@ var _ = Describe("HelmControllerTest", Serial, func() {
 
 		By("checking the Helm Release has the expected values set", func() {
 			Eventually(func(g Gomega) {
-				release, err := helm.GetReleaseForHelmChartFromPlugin(test.Ctx, clientutil.NewRestClientGetterFromRestConfig(test.Cfg, complexPlugin.Spec.ReleaseNamespace, clientutil.WithPersistentConfig()), complexPlugin)
+				release, err := helm.GetReleaseForHelmChartFromPlugin(test.Ctx, clientutil.NewRestClientGetterFromRestConfig(test.Cfg, complexPlugin.Namespace), complexPlugin)
 				g.Expect(err).ToNot(HaveOccurred(), "error getting release")
 				g.Expect(release.Config).To(HaveKeyWithValue(PluginOptionDefault, stringVal), "string value not set correctly")
 				g.Expect(release.Config).To(HaveKeyWithValue(PluginOptionBool, boolVal), "bool value not set correctly")

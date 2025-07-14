@@ -258,7 +258,7 @@ var _ = Describe("Plugin E2E", Ordered, func() {
 		By("Updating plugin preset with cluster overview")
 		Eventually(func(g Gomega) {
 			err = adminClient.Get(ctx, client.ObjectKeyFromObject(testPluginPreset), testPluginPreset)
-			Expect(err).ToNot(HaveOccurred())
+			g.Expect(err).ToNot(HaveOccurred(), "failed to get the PluginPreset")
 			testPluginPreset.Spec.ClusterOptionOverrides = []greenhousev1alpha1.ClusterOptionOverride{
 				{
 					ClusterName: remoteClusterName,
@@ -271,8 +271,8 @@ var _ = Describe("Plugin E2E", Ordered, func() {
 				},
 			}
 			err = adminClient.Update(ctx, testPluginPreset)
-			Expect(err).ToNot(HaveOccurred())
-		}).Should(Succeed(), "PluginPreset should be updated successfully")
+			g.Expect(err).ToNot(HaveOccurred(), "failed to update the PluginPreset")
+		}).Should(Succeed(), "there should be no error updating the PluginPreset")
 
 		By("Check the replicas in deployment")
 		Eventually(func(g Gomega) {
