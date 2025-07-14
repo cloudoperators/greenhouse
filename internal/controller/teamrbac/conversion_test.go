@@ -28,7 +28,7 @@ var _ = Describe("TeamRoleBinding Conversion", Ordered, func() {
 
 	BeforeEach(func() {
 		setup = test.NewTestSetup(test.Ctx, test.K8sClient, "teamrbac-conversion")
-		clusterA = setup.OnboardCluster(test.Ctx, "test-cluster-a", clusterAKubeConfig, test.WithLabel("cluster", "a"), test.WithLabel("rbac", "true"))
+		clusterA = setup.OnboardCluster(test.Ctx, "test-cluster-a", clusterAKubeConfig, test.WithClusterLabel("cluster", "a"), test.WithClusterLabel("rbac", "true"))
 		Expect(test.SetClusterReadyCondition(test.Ctx, test.K8sClient, clusterA, metav1.ConditionTrue)).To(Succeed(), "there should be no error setting the cluster to ready")
 
 		teamUT = setup.CreateTeam(test.Ctx, "test-team-conversion", test.WithMappedIDPGroup(testTeamIDPGroup))

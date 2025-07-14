@@ -59,6 +59,7 @@ func ValidateCreatePluginPreset(ctx context.Context, c client.Client, o runtime.
 		return nil, nil
 	}
 	var allErrs field.ErrorList
+	var allWarns admission.Warnings
 
 	// ensure PluginDefinition and ClusterSelector are set
 	if pluginPreset.Spec.Plugin.PluginDefinition == "" {
@@ -88,16 +89,21 @@ func ValidateCreatePluginPreset(ctx context.Context, c client.Client, o runtime.
 		allErrs = append(allErrs, field.Invalid(field.NewPath("spec").Child("plugin").Child("pluginDefinition"), pluginPreset.Spec.Plugin.PluginDefinition, "PluginDefinition could not be retrieved: "+err.Error()))
 	}
 
+	labelValidationWarning := webhook.ValidateLabelOwnedBy(ctx, c, pluginPreset)
+	if labelValidationWarning != "" {
+		allWarns = append(allWarns, "PluginPreset should have a support-group Team set as its owner", labelValidationWarning)
+	}
+
 	// validate OptionValues defined by the Preset
 	if errList := validatePluginOptionValuesForPreset(pluginPreset, pluginDefinition); len(errList) > 0 {
 		allErrs = append(allErrs, errList...)
 	}
 
 	if len(allErrs) > 0 {
-		return nil, apierrors.NewInvalid(pluginPreset.GroupVersionKind().GroupKind(), pluginPreset.Name, allErrs)
+		return allWarns, apierrors.NewInvalid(pluginPreset.GroupVersionKind().GroupKind(), pluginPreset.Name, allErrs)
 	}
 
-	return nil, nil
+	return allWarns, nil
 }
 
 func ValidateUpdatePluginPreset(ctx context.Context, c client.Client, oldObj, curObj runtime.Object) (admission.Warnings, error) {
@@ -111,6 +117,7 @@ func ValidateUpdatePluginPreset(ctx context.Context, c client.Client, oldObj, cu
 	}
 
 	var allErrs field.ErrorList
+	var allWarns admission.Warnings
 
 	if err := webhook.ValidateImmutableField(oldPluginPreset.Spec.Plugin.PluginDefinition, pluginPreset.Spec.Plugin.PluginDefinition, field.NewPath("spec", "plugin", "pluginDefinition")); err != nil {
 		allErrs = append(allErrs, err)
@@ -120,11 +127,16 @@ func ValidateUpdatePluginPreset(ctx context.Context, c client.Client, oldObj, cu
 		allErrs = append(allErrs, err)
 	}
 
-	if len(allErrs) > 0 {
-		return nil, apierrors.NewInvalid(pluginPreset.GroupVersionKind().GroupKind(), pluginPreset.Name, allErrs)
+	labelValidationWarning := webhook.ValidateLabelOwnedBy(ctx, c, pluginPreset)
+	if labelValidationWarning != "" {
+		allWarns = append(allWarns, "PluginPreset should have a support-group Team set as its owner", labelValidationWarning)
 	}
 
-	return nil, nil
+	if len(allErrs) > 0 {
+		return allWarns, apierrors.NewInvalid(pluginPreset.GroupVersionKind().GroupKind(), pluginPreset.Name, allErrs)
+	}
+
+	return allWarns, nil
 }
 
 func ValidateDeletePluginPreset(_ context.Context, _ client.Client, obj runtime.Object) (admission.Warnings, error) {
