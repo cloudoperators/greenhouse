@@ -131,8 +131,7 @@ func (r *PluginReconciler) setConditions() lifecycle.Conditioner {
 		readyCondition := ComputeReadyCondition(plugin.Status.StatusConditions)
 		metrics.UpdatePluginReadyMetric(plugin, readyCondition.Status == metav1.ConditionTrue)
 
-		ownerLabelCondition := *plugin.Status.GetConditionByType(greenhousemetav1alpha1.OwnerLabelSetCondition)
-		ownerLabelCondition = util.ComputeOwnerLabelCondition(ctx, r.Client, plugin, ownerLabelCondition)
+		ownerLabelCondition := util.ComputeOwnerLabelCondition(ctx, r.Client, plugin)
 		plugin.Status.SetConditions(readyCondition, ownerLabelCondition)
 	}
 }
