@@ -65,10 +65,6 @@ var _ = BeforeSuite(func() {
 	env = env.WithOrganization(ctx, adminClient, "./testdata/organization.yaml")
 	testStartTime = time.Now().UTC()
 
-	By("Re-runing the Manager Deployment Pod with all controllers except for plugin and kubeconfig")
-	desiredValue := "organizationController,teamController,teamRoleBindingController,pluginDefinition,bootStrap,clusterReconciler"
-	shared.RerunManagerDeploymentPodWithDifferentControllers(ctx, adminClient, desiredValue)
-
 	By("creating a Team")
 	testTeam = test.NewTeam(ctx, testTeamName, env.TestNamespace, test.WithTeamLabel(greenhouseapis.LabelKeySupportGroup, "true"))
 	err = client.IgnoreAlreadyExists(adminClient.Create(ctx, testTeam))
@@ -124,6 +120,13 @@ var _ = AfterSuite(func() {
 	GinkgoWriter.Printf("- Parallel create with owner label latency: %.1fms (%d runs)\n", float64(mean.Milliseconds()), len(measurement.Durations))
 	GinkgoWriter.Println("[Report End]\n")
 
+	By("Checking if all Plugins have been deleted")
+	Eventually(func(g Gomega) {
+		pluginList := &greenhousev1alpha1.PluginList{}
+		g.Expect(adminClient.List(ctx, pluginList)).To(Succeed(), "failed listing the Plugins")
+		g.Expect(pluginList.Items).To(BeEmpty(), "there should be no Plugins left")
+	}).Should(Succeed(), "All Plugins should have been deleted in the tests")
+
 	By("Offboarding remote cluster")
 	shared.OffBoardRemoteCluster(ctx, adminClient, remoteClient, testStartTime, remoteClusterName, env.TestNamespace)
 
@@ -158,6 +161,8 @@ var _ = Describe("Webhook Performance", Ordered, func() {
 
 					test.EventuallyDeleted(ctx, adminClient, testPlugin)
 				}).MustPassRepeatedly(10).
+					// Polling is required to avoid race conditions in repeated tests.
+					WithPolling(500*time.Millisecond).
 					Should(Succeed(), "Creation and deletion failed")
 			})
 
@@ -223,6 +228,8 @@ var _ = Describe("Webhook Performance", Ordered, func() {
 
 					test.EventuallyDeleted(ctx, adminClient, testPlugin)
 				}).MustPassRepeatedly(10).
+					// Polling is required to avoid race conditions in repeated tests.
+					WithPolling(500*time.Millisecond).
 					Should(Succeed(), "Creation and deletion failed")
 			})
 
