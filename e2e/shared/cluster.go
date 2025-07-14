@@ -64,7 +64,7 @@ func OffBoardRemoteCluster(ctx context.Context, adminClient, remoteClient client
 	if apierrors.IsNotFound(err) {
 		return
 	}
-	Expect(err).NotTo(HaveOccurred())
+	Expect(err).NotTo(HaveOccurred(), "failed to get the Cluster resource")
 
 	By("marking the cluster for deletion")
 	err = triggerClusterDeletion(ctx, adminClient, cluster, testStartTime)
@@ -73,8 +73,8 @@ func OffBoardRemoteCluster(ctx context.Context, adminClient, remoteClient client
 	By("checking the cluster resource is eventually deleted")
 	Eventually(func(g Gomega) {
 		err := adminClient.Get(ctx, client.ObjectKey{Name: name, Namespace: namespace}, cluster)
-		g.Expect(err).To(HaveOccurred())
-		g.Expect(client.IgnoreNotFound(err)).To(Succeed())
+		g.Expect(err).To(HaveOccurred(), "getting the Cluster should throw an error")
+		g.Expect(client.IgnoreNotFound(err)).To(Succeed(), "the returned error should be a NotFound error")
 	}).Should(Succeed(), "cluster resource should be deleted")
 
 	By("verifying that the remote cluster managed service account and cluster role binding is deleted")

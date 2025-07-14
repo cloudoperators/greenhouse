@@ -16,6 +16,7 @@ import (
 	"k8s.io/client-go/tools/clientcmd"
 
 	"github.com/cenkalti/backoff/v5"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
 
 	. "github.com/onsi/gomega"
@@ -33,6 +34,7 @@ import (
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
 	"github.com/cloudoperators/greenhouse/internal/clientutil"
 	"github.com/cloudoperators/greenhouse/internal/lifecycle"
+	"github.com/cloudoperators/greenhouse/internal/local/utils"
 )
 
 const (
@@ -364,4 +366,96 @@ func (env *TestEnv) GenerateControllerLogs(ctx context.Context, startTime time.T
 		return
 	}
 	Logf("pod %s logs written to file: %s", podName, podLogsPath)
+}
+
+// RerunManagerDeploymentPodWithDifferentControllers scales the manager deployment replicas down to zero, sets the controllers arg for Manager to the desiredValue and scales up the deployment replicas back to 1.
+func RerunManagerDeploymentPodWithDifferentControllers(ctx context.Context, k8sClient client.Client, desiredValue string) {
+	scaleManagerDeploymentReplicas(ctx, k8sClient, 0)
+	setManagerContainerControllersArg(ctx, k8sClient, desiredValue)
+	scaleManagerDeploymentReplicas(ctx, k8sClient, 1)
+}
+
+func scaleManagerDeploymentReplicas(ctx context.Context, k8sClient client.Client, replicas int32) {
+	deployment := &appsv1.Deployment{}
+	err := k8sClient.Get(ctx, types.NamespacedName{Name: managerDeploymentName, Namespace: managerDeploymentNamespace}, deployment)
+	Expect(err).ToNot(HaveOccurred(), "error getting the greenhouse-controller-manager deployment")
+
+	var podName string
+	if replicas == 0 {
+		podName = getManagerDeploymentPodName(ctx, k8sClient, deployment)
+		Expect(podName).ToNot(BeEmpty(), "manager Pod was not found")
+	}
+
+	_, err = clientutil.Patch(ctx, k8sClient, deployment, func() error {
+		deployment.Spec.Replicas = utils.Int32P(replicas)
+		return nil
+	})
+	Expect(err).ToNot(HaveOccurred(), "error patching the manager deployment")
+
+	if replicas == 0 {
+		pod := &corev1.Pod{}
+		Eventually(func(g Gomega) {
+			err = k8sClient.Get(ctx, types.NamespacedName{Name: podName, Namespace: managerDeploymentNamespace}, pod)
+			g.Expect(apierrors.IsNotFound(err)).To(BeTrue(), "getting the Pod should return a NotFound error")
+		}).Should(Succeed(), "the Pod should be not found")
+	} else {
+		Eventually(func(g Gomega) {
+			podName = getManagerDeploymentPodName(ctx, k8sClient, deployment)
+			g.Expect(podName).ToNot(BeEmpty(), "manager Pod was not found")
+		}).Should(Succeed(), "manager Pod should be re-created")
+	}
+}
+
+func getManagerDeploymentPodName(ctx context.Context, k8sClient client.Client, deployment *appsv1.Deployment) string {
+	pods := &corev1.PodList{}
+	err := k8sClient.List(ctx, pods, &client.ListOptions{
+		LabelSelector: labels.SelectorFromSet(deployment.Spec.Selector.MatchLabels),
+		Namespace:     deployment.Namespace,
+	})
+	if err != nil {
+		return ""
+	}
+	if len(pods.Items) == 0 {
+		return ""
+	}
+	return pods.Items[0].Name
+}
+
+func setManagerContainerControllersArg(ctx context.Context, k8sClient client.Client, desiredValue string) {
+	deployment := &appsv1.Deployment{}
+	err := k8sClient.Get(ctx, types.NamespacedName{Name: managerDeploymentName, Namespace: managerDeploymentNamespace}, deployment)
+	Expect(err).ToNot(HaveOccurred(), "error getting the greenhouse-controller-manager deployment")
+
+	index := getContainerIndex(deployment, "manager")
+	Expect(index).ToNot(Equal(-1), "manager container not found in deployment")
+
+	container := deployment.Spec.Template.Spec.Containers[index]
+	newArgs := []string{}
+
+	controllersArgFound := false
+	for _, arg := range container.Args {
+		if strings.HasPrefix(arg, "--controllers=") {
+			newArgs = append(newArgs, "controllers="+desiredValue)
+			controllersArgFound = true
+		} else {
+			newArgs = append(newArgs, arg)
+		}
+	}
+
+	if !controllersArgFound {
+		newArgs = append(newArgs, "--controllers="+desiredValue)
+	}
+
+	deployment.Spec.Template.Spec.Containers[index].Args = newArgs
+
+	err = k8sClient.Update(ctx, deployment)
+	Expect(err).ToNot(HaveOccurred(), "error updating the deployment")
+}
+func getContainerIndex(deployment *appsv1.Deployment, containerName string) int {
+	for i, container := range deployment.Spec.Template.Spec.Containers {
+		if container.Name == containerName {
+			return i
+		}
+	}
+	return -1
 }
