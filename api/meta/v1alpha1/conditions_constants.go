@@ -3,7 +3,7 @@
 
 package v1alpha1
 
-// Common condition types used across Greenhouse resources.
+// Common condition types and reasons used across Greenhouse resources.
 const (
 	// ReadyCondition reflects the overall readiness status of a resource.
 	ReadyCondition ConditionType = "Ready"
@@ -13,4 +13,13 @@ const (
 
 	// ClusterListEmpty is set when the resources ClusterSelector results in an empty ClusterList.
 	ClusterListEmpty ConditionType = "ClusterListEmpty"
+
+	// OwnerLabelSetCondition reflects that the resource has the owned-by label set to an existing support-group Team.
+	OwnerLabelSetCondition ConditionType = "OwnerLabelSet"
+	// OwnerLabelMissingReason is set when the resource is missing the owned-by label.
+	OwnerLabelMissingReason ConditionReason = "OwnerLabelMissing"
+	// OwnerLabelSetToNotExistingTeamReason is set when the resource has the owned-by label set to a non-existing Team.
+	OwnerLabelSetToNotExistingTeamReason ConditionReason = "OwnerLabelNotExistingTeam"
+	// OwnerLabelSetToNonSupportGroupTeamReason is set when the resource has the owned-by label set to a non-support-group Team.
+	OwnerLabelSetToNonSupportGroupTeamReason ConditionReason = "OwnerLabelSetToNonSupportGroupTeam"
 )

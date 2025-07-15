@@ -183,17 +183,17 @@ func (r *OrganizationReconciler) EnsureCreated(ctx context.Context, object lifec
 		org.SetCondition(greenhousemetav1alpha1.TrueCondition(greenhousev1alpha1.OrganizationOICDConfigured, "", ""))
 	}
 
-	if err := r.reconcileServiceProxy(ctx, org); err != nil {
-		org.SetCondition(greenhousemetav1alpha1.FalseCondition(greenhousev1alpha1.ServiceProxyProvisioned, "", err.Error()))
-		return ctrl.Result{}, lifecycle.Failed, err
-	}
-	org.SetCondition(greenhousemetav1alpha1.TrueCondition(greenhousev1alpha1.ServiceProxyProvisioned, "", ""))
-
 	if err := r.reconcileAdminTeam(ctx, org); err != nil {
 		org.SetCondition(greenhousemetav1alpha1.FalseCondition(greenhousev1alpha1.OrganizationAdminTeamConfigured, "", err.Error()))
 		return ctrl.Result{}, lifecycle.Failed, err
 	}
 	org.SetCondition(greenhousemetav1alpha1.TrueCondition(greenhousev1alpha1.OrganizationAdminTeamConfigured, "", ""))
+
+	if err := r.reconcileServiceProxy(ctx, org, org.Name+"-admin"); err != nil {
+		org.SetCondition(greenhousemetav1alpha1.FalseCondition(greenhousev1alpha1.ServiceProxyProvisioned, "", err.Error()))
+		return ctrl.Result{}, lifecycle.Failed, err
+	}
+	org.SetCondition(greenhousemetav1alpha1.TrueCondition(greenhousev1alpha1.ServiceProxyProvisioned, "", ""))
 
 	return ctrl.Result{}, lifecycle.Success, nil
 }
@@ -229,6 +229,7 @@ func (r *OrganizationReconciler) reconcileAdminTeam(ctx context.Context, org *gr
 	result, err := clientutil.CreateOrPatch(ctx, r.Client, team, func() error {
 		team.Spec.Description = "Admin team for the organization"
 		team.Spec.MappedIDPGroup = org.Spec.MappedOrgAdminIDPGroup
+		team.SetLabels(map[string]string{greenhouseapis.LabelKeySupportGroup: "true"})
 		return controllerutil.SetControllerReference(org, team, r.Scheme())
 	})
 	if err != nil {

@@ -28,6 +28,10 @@ import (
 	"github.com/cloudoperators/greenhouse/internal/lifecycle"
 )
 
+const (
+	deliveryToolLabel = "greenhouse.sap/deployment-tool"
+)
+
 // exposedConditions are the conditions that are exposed in the StatusConditions of the Plugin.
 var exposedConditions = []greenhousemetav1alpha1.ConditionType{
 	greenhousemetav1alpha1.ReadyCondition,
@@ -37,14 +41,15 @@ var exposedConditions = []greenhousemetav1alpha1.ConditionType{
 	greenhousev1alpha1.StatusUpToDateCondition,
 	greenhousev1alpha1.HelmChartTestSucceededCondition,
 	greenhousev1alpha1.WorkloadReadyCondition,
+	greenhousemetav1alpha1.OwnerLabelSetCondition,
 }
 
 type reconcileResult struct {
 	requeueAfter time.Duration
 }
 
-// initPluginStatus initializes all empty Plugin Conditions to "unknown"
-func initPluginStatus(plugin *greenhousev1alpha1.Plugin) greenhousev1alpha1.PluginStatus {
+// InitPluginStatus initializes all empty Plugin Conditions to "unknown"
+func InitPluginStatus(plugin *greenhousev1alpha1.Plugin) greenhousev1alpha1.PluginStatus {
 	for _, t := range exposedConditions {
 		if plugin.Status.GetConditionByType(t) == nil {
 			plugin.SetCondition(greenhousemetav1alpha1.UnknownCondition(t, "", ""))
@@ -238,8 +243,8 @@ func setWorkloadMetrics(plugin *greenhousev1alpha1.Plugin, status float64) {
 	workloadStatus.WithLabelValues(plugin.GetNamespace(), plugin.Name, plugin.Spec.PluginDefinition, plugin.Spec.ClusterName, plugin.GetLabels()[greenhouseapis.LabelKeyOwnedBy]).Set(status)
 }
 
-// computeReadyCondition computes the ReadyCondition for the Plugin based on various status conditions
-func computeReadyCondition(
+// ComputeReadyCondition computes the ReadyCondition for the Plugin based on various status conditions
+func ComputeReadyCondition(
 	conditions greenhousemetav1alpha1.StatusConditions,
 ) (readyCondition greenhousemetav1alpha1.Condition) {
 

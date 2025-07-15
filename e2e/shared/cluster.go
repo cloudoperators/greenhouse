@@ -8,11 +8,12 @@ import (
 	"time"
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/util/retry"
 
 	greenhouseapis "github.com/cloudoperators/greenhouse/api"
 	"github.com/cloudoperators/greenhouse/internal/clientutil"
+	"github.com/cloudoperators/greenhouse/internal/lifecycle"
+	"github.com/cloudoperators/greenhouse/internal/test"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -26,18 +27,13 @@ import (
 
 const ManagedResourceName = "greenhouse"
 
-func OnboardRemoteCluster(ctx context.Context, k8sClient client.Client, kubeConfigBytes []byte, name, namespace string) {
+func OnboardRemoteCluster(ctx context.Context, k8sClient client.Client, kubeConfigBytes []byte, name, namespace, supportGroupTeamName string) {
 	By("applying remote cluster kubeconfig as greenhouse secret")
-	secret := &corev1.Secret{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      name,
-			Namespace: namespace,
-		},
-		Type: greenhouseapis.SecretTypeKubeConfig,
-		Data: map[string][]byte{
-			greenhouseapis.KubeConfigKey: kubeConfigBytes,
-		},
-	}
+	secret := test.NewSecret(name, namespace, test.WithSecretType(greenhouseapis.SecretTypeKubeConfig),
+		test.WithSecretData(map[string][]byte{greenhouseapis.KubeConfigKey: kubeConfigBytes}),
+		test.WithSecretLabel(greenhouseapis.LabelKeyOwnedBy, supportGroupTeamName),
+		test.WithSecretAnnotations(map[string]string{lifecycle.PropagateLabelsAnnotation: greenhouseapis.LabelKeyOwnedBy}),
+	)
 	err := k8sClient.Create(ctx, secret)
 	if apierrors.IsAlreadyExists(err) {
 		err = k8sClient.Update(ctx, secret)
@@ -45,21 +41,16 @@ func OnboardRemoteCluster(ctx context.Context, k8sClient client.Client, kubeConf
 	Expect(err).NotTo(HaveOccurred())
 }
 
-func OnboardRemoteOIDCCluster(ctx context.Context, k8sClient client.Client, caCert []byte, apiServerURL, name, namespace string) {
+func OnboardRemoteOIDCCluster(ctx context.Context, k8sClient client.Client, caCert []byte, apiServerURL, name, namespace, supportGroupTeamName string) {
 	By("applying remote cluster OIDC configuration as greenhouse secret")
-	secret := &corev1.Secret{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      name,
-			Namespace: namespace,
-			Annotations: map[string]string{
-				greenhouseapis.SecretAPIServerURLAnnotation: apiServerURL,
-			},
-		},
-		Type: greenhouseapis.SecretTypeOIDCConfig,
-		Data: map[string][]byte{
-			greenhouseapis.SecretAPIServerCAKey: caCert,
-		},
-	}
+	secret := test.NewSecret(name, namespace, test.WithSecretType(greenhouseapis.SecretTypeOIDCConfig),
+		test.WithSecretData(map[string][]byte{greenhouseapis.SecretAPIServerCAKey: caCert}),
+		test.WithSecretLabel(greenhouseapis.LabelKeyOwnedBy, supportGroupTeamName),
+		test.WithSecretAnnotations(map[string]string{
+			greenhouseapis.SecretAPIServerURLAnnotation: apiServerURL,
+			lifecycle.PropagateLabelsAnnotation:         greenhouseapis.LabelKeyOwnedBy,
+		}),
+	)
 	err := k8sClient.Create(ctx, secret)
 	if apierrors.IsAlreadyExists(err) {
 		err = k8sClient.Update(ctx, secret)
@@ -80,15 +71,14 @@ func OffBoardRemoteCluster(ctx context.Context, adminClient, remoteClient client
 	Expect(err).NotTo(HaveOccurred())
 
 	By("checking the cluster resource is eventually deleted")
-	Eventually(func(g Gomega) bool {
+	Eventually(func(g Gomega) {
 		err := adminClient.Get(ctx, client.ObjectKey{Name: name, Namespace: namespace}, cluster)
 		g.Expect(err).To(HaveOccurred())
 		g.Expect(client.IgnoreNotFound(err)).To(Succeed())
-		return true
-	}).Should(BeTrue(), "cluster resource should be deleted")
+	}).Should(Succeed(), "cluster resource should be deleted")
 
 	By("verifying that the remote cluster managed service account and cluster role binding is deleted")
-	Eventually(func(g Gomega) bool {
+	Eventually(func(g Gomega) {
 		crb := &rbacv1.ClusterRoleBinding{}
 		err := remoteClient.Get(ctx, client.ObjectKey{Name: ManagedResourceName}, crb)
 		GinkgoWriter.Printf("crb err: %v\n", err)
@@ -101,8 +91,7 @@ func OffBoardRemoteCluster(ctx context.Context, adminClient, remoteClient client
 		err = adminClient.Get(ctx, client.ObjectKey{Name: name, Namespace: namespace}, secret)
 		GinkgoWriter.Printf("secret err: %v\n", err)
 		g.Expect(client.IgnoreNotFound(err)).To(Succeed(), "cluster secret should be deleted")
-		return true
-	}).Should(BeTrue(), "managed service account should be deleted")
+	}).Should(Succeed(), "managed service account should be deleted")
 
 	By("verifying that the owned cluster secret is deleted")
 	Eventually(func(g Gomega) bool {
@@ -116,7 +105,7 @@ func OffBoardRemoteCluster(ctx context.Context, adminClient, remoteClient client
 
 func ClusterIsReady(ctx context.Context, adminClient client.Client, clusterName, namespace string) {
 	By("verifying if the cluster is in ready state")
-	Eventually(func(g Gomega) bool {
+	Eventually(func(g Gomega) {
 		cluster := &greenhousev1alpha1.Cluster{}
 		err := adminClient.Get(ctx, client.ObjectKey{Name: clusterName, Namespace: namespace}, cluster)
 		g.Expect(err).ToNot(HaveOccurred())
@@ -125,8 +114,7 @@ func ClusterIsReady(ctx context.Context, adminClient client.Client, clusterName,
 		g.Expect(readyCondition).ToNot(BeNil(), "cluster should have ready condition")
 		g.Expect(readyCondition.IsTrue()).To(BeTrue(), "cluster should be ready")
 		g.Expect(cluster.Status.KubernetesVersion).ToNot(BeEmpty(), "cluster should have kubernetes version")
-		return true
-	}).Should(BeTrue(), "cluster should be ready")
+	}).Should(Succeed(), "cluster should be ready")
 }
 
 func triggerClusterDeletion(ctx context.Context, k8sClient client.Client, cluster *greenhousev1alpha1.Cluster, testStartTime time.Time) error {

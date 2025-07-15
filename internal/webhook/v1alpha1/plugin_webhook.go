@@ -30,7 +30,7 @@ import (
 // pluginsAllowedInCentralCluster is a list of PluginDefinitions that are allowed to be installed in the central cluster.
 // TODO: Make this configurable on pluginDefinition level (AdminPlugin discussion) instead of maintaining a list here.
 var pluginsAllowedInCentralCluster = []string{
-	"alerts", "doop", "heureka", "service-proxy", "teams2slack", "kubeconfig-generator", "repo-guard",
+	"alerts", "doop", "heureka", "kube-monitoring", "kubeconfig-generator", "perses", "repo-guard", "service-proxy", "teams2slack", "thanos",
 }
 
 // SetupPluginWebhookWithManager configures the webhook for the Plugin custom resource.
@@ -128,6 +128,11 @@ func ValidateCreatePlugin(ctx context.Context, c client.Client, obj runtime.Obje
 	if err := validatePluginForCluster(ctx, c, plugin, pluginDefinition); err != nil {
 		return nil, err
 	}
+
+	labelValidationWarning := webhook.ValidateLabelOwnedBy(ctx, c, plugin)
+	if labelValidationWarning != "" {
+		return admission.Warnings{"Plugin should have a support-group Team set as its owner", labelValidationWarning}, nil
+	}
 	return nil, nil
 }
 
@@ -159,6 +164,11 @@ func ValidateUpdatePlugin(ctx context.Context, c client.Client, old, obj runtime
 	}
 
 	allErrs = append(allErrs, validation.ValidateImmutableField(oldPlugin.Spec.PluginDefinition, plugin.Spec.PluginDefinition, field.NewPath("spec", "pluginDefinition"))...)
+
+	labelValidationWarning := webhook.ValidateLabelOwnedBy(ctx, c, plugin)
+	if labelValidationWarning != "" {
+		allWarns = append(allWarns, "Plugin should have a support-group Team set as its owner", labelValidationWarning)
+	}
 
 	optionsFieldPath := field.NewPath("spec").Child("optionValues")
 	allErrs = append(allErrs, validatePluginOptionValues(plugin.Spec.OptionValues, pluginDefinition, true, optionsFieldPath)...)
