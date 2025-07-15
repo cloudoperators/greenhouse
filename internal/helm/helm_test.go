@@ -181,7 +181,7 @@ var _ = Describe("helm package test", func() {
 
 			By("getting the Team CRD")
 			var teamCRD = &apiextensionsv1.CustomResourceDefinition{}
-			teamCRDName := "teams.greenhouse.sap"
+			teamCRDName := "teams.greenhouse.fixtures"
 			teamCRDKey := types.NamespacedName{Name: teamCRDName, Namespace: ""}
 			err = test.K8sClient.Get(test.Ctx, teamCRDKey, teamCRD)
 			Expect(err).ToNot(HaveOccurred(), "there must be no error getting Team CRD")
@@ -253,6 +253,7 @@ var _ = DescribeTable("getting helm values from Plugin", func(defaultValue any, 
 	}
 
 	pluginWithOptionValue := test.NewPlugin(test.Ctx, "green", "house",
+		test.WithPluginLabel(greenhouseapis.LabelKeyOwnedBy, "test-team-1"),
 		test.WithPluginDefinition("greenhouse"),
 		test.WithPluginOptionValue("value1", test.MustReturnJSONFor(defaultValue), nil),
 	)
