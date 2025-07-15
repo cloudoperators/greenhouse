@@ -281,11 +281,11 @@ func getMergedObject(live *resource.Info, local runtime.Object) (runtime.Object,
 
 // maskSecret masks the secret data in the live and merged object.
 func maskSecret(live, merged runtime.Object) (maskedBefore, maskedAfter runtime.Object, err error) {
-	unstrucBefore, err := toUnstructeredContent(live)
+	unstrucBefore, err := toUnstructuredContent(live)
 	if err != nil {
 		return nil, nil, err
 	}
-	unstrucAfter, err := toUnstructeredContent(merged)
+	unstrucAfter, err := toUnstructuredContent(merged)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -339,8 +339,8 @@ func maskSecret(live, merged runtime.Object) (maskedBefore, maskedAfter runtime.
 	return live, merged, nil
 }
 
-// toUnstructeredContent returns the unstructured content of an runtime.Object.
-func toUnstructeredContent(o runtime.Object) (map[string]any, error) {
+// toUnstructuredContent returns the unstructured content of runtime.Object.
+func toUnstructuredContent(o runtime.Object) (map[string]any, error) {
 	if o == nil {
 		return nil, nil
 	}
