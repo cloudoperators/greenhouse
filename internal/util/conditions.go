@@ -16,44 +16,38 @@ import (
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
 )
 
-func ComputeOwnerLabelCondition(ctx context.Context, c client.Client, resourceObj metav1.Object, ownerLabelSetCondition greenhousemetav1alpha1.Condition) greenhousemetav1alpha1.Condition {
+func ComputeOwnerLabelCondition(ctx context.Context, c client.Client, resourceObj metav1.Object) greenhousemetav1alpha1.Condition {
 	namespace := resourceObj.GetNamespace()
 	if namespace == "" {
-		ownerLabelSetCondition.Message = "Resource namespace is required to validate the owner"
-		ownerLabelSetCondition.Status = metav1.ConditionFalse
-		return ownerLabelSetCondition
+		return greenhousemetav1alpha1.FalseCondition(greenhousemetav1alpha1.OwnerLabelSetCondition,
+			"", "Resource namespace is required to validate the owner")
 	}
 
 	ownerName, ok := resourceObj.GetLabels()[greenhouseapis.LabelKeyOwnedBy]
 	if !ok || ownerName == "" {
-		ownerLabelSetCondition.Reason = greenhousemetav1alpha1.OwnerLabelMissingReason
-		ownerLabelSetCondition.Message = fmt.Sprintf("Label %s is missing", greenhouseapis.LabelKeyOwnedBy)
-		ownerLabelSetCondition.Status = metav1.ConditionFalse
-		return ownerLabelSetCondition
+		return greenhousemetav1alpha1.FalseCondition(greenhousemetav1alpha1.OwnerLabelSetCondition,
+			greenhousemetav1alpha1.OwnerLabelMissingReason,
+			fmt.Sprintf("Label %s is missing", greenhouseapis.LabelKeyOwnedBy))
 	}
 
 	team := new(greenhousev1alpha1.Team)
 	err := c.Get(ctx, client.ObjectKey{Namespace: namespace, Name: ownerName}, team)
 	switch {
 	case apierrors.IsNotFound(err):
-		ownerLabelSetCondition.Reason = greenhousemetav1alpha1.OwnerLabelSetToNotExistingTeamReason
-		ownerLabelSetCondition.Message = fmt.Sprintf("team %s does not exist in resource namespace", ownerName)
-		ownerLabelSetCondition.Status = metav1.ConditionFalse
-		return ownerLabelSetCondition
+		return greenhousemetav1alpha1.FalseCondition(greenhousemetav1alpha1.OwnerLabelSetCondition,
+			greenhousemetav1alpha1.OwnerLabelSetToNotExistingTeamReason,
+			fmt.Sprintf("team %s does not exist in resource namespace", ownerName))
 	case err != nil:
-		ownerLabelSetCondition.Reason = greenhousemetav1alpha1.OwnerLabelSetToNotExistingTeamReason
-		ownerLabelSetCondition.Message = fmt.Sprintf("team %s could not be retrieved", ownerName)
-		ownerLabelSetCondition.Status = metav1.ConditionFalse
-		return ownerLabelSetCondition
+		return greenhousemetav1alpha1.FalseCondition(greenhousemetav1alpha1.OwnerLabelSetCondition,
+			greenhousemetav1alpha1.OwnerLabelSetToNotExistingTeamReason,
+			fmt.Sprintf("team %s could not be retrieved", ownerName))
 	}
 	supportGroup, ok := team.Labels[greenhouseapis.LabelKeySupportGroup]
 	if !ok || supportGroup != "true" {
-		ownerLabelSetCondition.Reason = greenhousemetav1alpha1.OwnerLabelSetToNonSupportGroupTeamReason
-		ownerLabelSetCondition.Message = fmt.Sprintf("owner team %s should be a support group", ownerName)
-		ownerLabelSetCondition.Status = metav1.ConditionFalse
-		return ownerLabelSetCondition
+		return greenhousemetav1alpha1.FalseCondition(greenhousemetav1alpha1.OwnerLabelSetCondition,
+			greenhousemetav1alpha1.OwnerLabelSetToNonSupportGroupTeamReason,
+			fmt.Sprintf("owner team %s should be a support group", ownerName))
 	}
 
-	ownerLabelSetCondition.Status = metav1.ConditionTrue
-	return ownerLabelSetCondition
+	return greenhousemetav1alpha1.TrueCondition(greenhousemetav1alpha1.OwnerLabelSetCondition, "", "")
 }

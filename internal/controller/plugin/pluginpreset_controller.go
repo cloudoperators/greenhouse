@@ -84,8 +84,7 @@ func (r *PluginPresetReconciler) setConditions() lifecycle.Conditioner {
 		}
 
 		readyCondition := r.computeReadyCondition(pluginPreset.Status.StatusConditions)
-		ownerLabelCondition := *pluginPreset.Status.GetConditionByType(greenhousemetav1alpha1.OwnerLabelSetCondition)
-		ownerLabelCondition = util.ComputeOwnerLabelCondition(ctx, r.Client, pluginPreset, ownerLabelCondition)
+		ownerLabelCondition := util.ComputeOwnerLabelCondition(ctx, r.Client, pluginPreset)
 		pluginPreset.Status.SetConditions(readyCondition, ownerLabelCondition)
 	}
 }

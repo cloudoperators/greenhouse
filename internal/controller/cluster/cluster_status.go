@@ -48,9 +48,7 @@ func (r *RemoteClusterReconciler) setConditions() lifecycle.Conditioner {
 
 		readyCondition := r.reconcileReadyStatus(kubeConfigValidCondition)
 
-		cluster.Status.GetConditionByType(greenhousemetav1alpha1.OwnerLabelSetCondition)
-		ownerLabelCondition := greenhousemetav1alpha1.UnknownCondition(greenhousemetav1alpha1.OwnerLabelSetCondition, "", "")
-		ownerLabelCondition = util.ComputeOwnerLabelCondition(ctx, r.Client, cluster, ownerLabelCondition)
+		ownerLabelCondition := util.ComputeOwnerLabelCondition(ctx, r.Client, cluster)
 
 		conditions = append(conditions, readyCondition, allNodesReadyCondition, kubeConfigValidCondition, ownerLabelCondition)
 
