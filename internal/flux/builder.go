@@ -215,9 +215,12 @@ func (b *helmReleaseBuilder) WithDependsOn(dependencies []fluxmeta.NamespacedObj
 	return b
 }
 
-// WithKubeConfig sets the kubeconfig reference for the Helm release.
+// WithKubeConfig sets the kubeconfig reference for the Helm release. If the fluxmeta.SecretKeyReference does not contain a name, the Plugin targets the central cluster and no specific kubeconfig is needed.
 func (b *helmReleaseBuilder) WithKubeConfig(kc fluxmeta.SecretKeyReference) *helmReleaseBuilder {
 	if kc == (fluxmeta.SecretKeyReference{}) {
+		return b
+	}
+	if kc.Name == "" { // Name is empty if Plugin is deployed in central cluster
 		return b
 	}
 	b.spec.KubeConfig.SecretRef = kc
