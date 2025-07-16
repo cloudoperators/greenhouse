@@ -5,7 +5,6 @@ package test
 
 import (
 	"context"
-	"time"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -35,7 +34,7 @@ func EventuallyDeleted(ctx context.Context, c client.Client, obj client.Object) 
 
 	Eventually(func() bool {
 		return apierrors.IsNotFound(c.Get(ctx, client.ObjectKeyFromObject(obj), obj))
-	}, 10*time.Second, 250*time.Millisecond).Should(BeTrue(), "getting the object should return NotFound error")
+	}).Should(BeTrue(), "there should be no error deleting the object")
 }
 
 // EventuallyGet gets the object and retries until it is available.
