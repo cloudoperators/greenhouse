@@ -5,7 +5,9 @@ package shared
 
 import (
 	"bytes"
+	"fmt"
 	"io"
+	"sort"
 
 	kyaml "k8s.io/apimachinery/pkg/util/yaml"
 	"k8s.io/klog/v2"
@@ -42,4 +44,23 @@ func FromYamlToK8sObject(doc string, resources ...any) error {
 		}
 	}
 	return nil
+}
+
+type ReportEntryStringer struct {
+	Data map[string]string
+}
+
+func (s ReportEntryStringer) String() string {
+	result := ""
+
+	keys := make([]string, 0, len(s.Data))
+	for k := range s.Data {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+
+	for _, k := range keys {
+		result += fmt.Sprintf("%s: %s\n", k, s.Data[k])
+	}
+	return result
 }

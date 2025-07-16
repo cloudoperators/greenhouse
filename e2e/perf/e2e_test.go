@@ -7,6 +7,8 @@ package perf
 
 import (
 	"context"
+	"fmt"
+	"math"
 	"sync"
 	"testing"
 	"time"
@@ -26,7 +28,6 @@ import (
 	"github.com/cloudoperators/greenhouse/e2e/shared"
 	"github.com/cloudoperators/greenhouse/internal/clientutil"
 	"github.com/cloudoperators/greenhouse/internal/test"
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
 )
 
 const (
@@ -34,6 +35,7 @@ const (
 	preventDeletionAnnotation = "greenhouse.sap/prevent-deletion"
 	testTeamIDPGroup          = "test-idp-group"
 	testTeamName              = "test-perf-team"
+	numTestRuns               = 10
 )
 
 var (
@@ -93,38 +95,7 @@ var _ = BeforeSuite(func() {
 	experiment = gmeasure.NewExperiment("Plugin Creation")
 })
 
-func computeMeanDurationFromMeasurement(measurement gmeasure.Measurement) time.Duration {
-	durations := measurement.Durations
-	if len(durations) == 0 {
-		return 0
-	}
-	var total time.Duration
-	for _, d := range durations {
-		total += d
-	}
-	mean := total / time.Duration(len(durations))
-	return mean
-}
-
 var _ = AfterSuite(func() {
-	GinkgoWriter.Println("[Report] Mean duration of creating the Plugin resource:")
-	measurement := experiment.Get("Create Plugin without owner-label 1 request")
-	mean := computeMeanDurationFromMeasurement(measurement)
-	GinkgoWriter.Printf("- 1 request create without owner label latency: %.1fms (%d runs)\n", float64(mean.Milliseconds()), len(measurement.Durations))
-
-	measurement = experiment.Get("Create Plugin without owner-label parallel")
-	mean = computeMeanDurationFromMeasurement(measurement)
-	GinkgoWriter.Printf("- Parallel create without owner label latency: %.1fms (%d runs)\n", float64(mean.Milliseconds()), len(measurement.Durations))
-
-	measurement = experiment.Get("Create Plugin with owner-label 1 request")
-	mean = computeMeanDurationFromMeasurement(measurement)
-	GinkgoWriter.Printf("- 1 request create with owner label latency: %.1fms (%d runs)\n", float64(mean.Milliseconds()), len(measurement.Durations))
-
-	measurement = experiment.Get("Create Plugin with owner-label parallel")
-	mean = computeMeanDurationFromMeasurement(measurement)
-	GinkgoWriter.Printf("- Parallel create with owner label latency: %.1fms (%d runs)\n", float64(mean.Milliseconds()), len(measurement.Durations))
-	GinkgoWriter.Println("[Report End]\n")
-
 	By("Checking if all Plugins have been deleted")
 	Eventually(func(g Gomega) {
 		pluginList := &greenhousev1alpha1.PluginList{}
@@ -147,14 +118,46 @@ var _ = AfterSuite(func() {
 	shared.RerunManagerDeploymentPodWithAllControllers(ctx, adminClient)
 })
 
+var _ = ReportAfterSuite("Plugin validating webhook latency", func(_ Report) {
+	measurement := experiment.Get("Single Create - No Owner Label")
+	meanWithStdDev := formatMeanAndStdDevFromDurations(measurement.Durations)
+	AddReportEntry(measurement.Name, shared.ReportEntryStringer{Data: map[string]string{
+		"Mean": meanWithStdDev,
+	}})
+
+	measurement = experiment.Get("Single Create - With Owner Label")
+	meanWithStdDev = formatMeanAndStdDevFromDurations(measurement.Durations)
+	AddReportEntry(measurement.Name, shared.ReportEntryStringer{Data: map[string]string{
+		"Mean": meanWithStdDev,
+	}})
+
+	measurement = experiment.Get("Parallel Create - No Owner Label")
+	total := getTotalDuration(measurement.Durations)
+	durationsCount := len(measurement.Durations)
+	AddReportEntry(measurement.Name, shared.ReportEntryStringer{Data: map[string]string{
+		"Mean":       fmt.Sprintf("%.2f ms/resource", (float64(total.Milliseconds()) / float64(durationsCount))),
+		"Throughput": fmt.Sprintf("%.2f resources/sec", float64(durationsCount)/total.Seconds()),
+		fmt.Sprintf("Total time to create %d resources", durationsCount): fmt.Sprintf("%.2fs", total.Seconds()),
+	}})
+
+	measurement = experiment.Get("Parallel Create - With Owner Label")
+	total = getTotalDuration(measurement.Durations)
+	durationsCount = len(measurement.Durations)
+	AddReportEntry(measurement.Name, shared.ReportEntryStringer{Data: map[string]string{
+		"Mean":       fmt.Sprintf("%.2f ms/resource", (float64(total.Milliseconds()) / float64(durationsCount))),
+		"Throughput": fmt.Sprintf("%.2f resources/sec", float64(durationsCount)/total.Seconds()),
+		fmt.Sprintf("Total time to create %d resources", durationsCount): fmt.Sprintf("%.2fs", total.Seconds()),
+	}})
+})
+
 var _ = Describe("Webhook Performance", Ordered, func() {
 	Context("Validating Plugin webhook latency", func() {
 		When("Plugin does not have an owner label", func() {
-			It("1 request", func() {
+			It("Measures performance of a single creation", func() {
 				Eventually(func(g Gomega) {
 					var testPlugin *greenhousev1alpha1.Plugin
 					pluginName := "test-1-plugin-without-" + rand.String(8)
-					duration := experiment.MeasureDuration("Create Plugin without owner-label 1 request", func() {
+					duration := experiment.MeasureDuration("Single Create - No Owner Label", func() {
 						testPlugin = fixtures.PreparePlugin(pluginName, env.TestNamespace,
 							test.WithPluginDefinition(testPluginDefinition.Name),
 							test.WithCluster(remoteClusterName),
@@ -165,18 +168,18 @@ var _ = Describe("Webhook Performance", Ordered, func() {
 						err := adminClient.Create(ctx, testPlugin)
 						g.Expect(err).ToNot(HaveOccurred(), "error creating the Plugin")
 					})
-					GinkgoWriter.Printf("Report: Create latency: %.1fms\n", float64(duration.Milliseconds()))
+					GinkgoWriter.Printf("Create latency: %.1fms\n", float64(duration.Milliseconds()))
 
 					test.EventuallyDeleted(ctx, adminClient, testPlugin)
-				}).MustPassRepeatedly(10).
-					// Polling is required to avoid race conditions in repeated tests.
+				}).MustPassRepeatedly(numTestRuns).
+					// Polling is used to avoid race conditions in repeated tests.
 					WithPolling(500*time.Millisecond).
 					Should(Succeed(), "Creation and deletion failed")
 			})
 
-			It("Concurrent requests (manual parallelism)", func() {
+			It("Measures performance under concurrent creation", func() {
 				var wg sync.WaitGroup
-				numWorkers := 10
+				numWorkers := numTestRuns
 
 				wg.Add(numWorkers)
 				for i := range numWorkers {
@@ -189,7 +192,7 @@ var _ = Describe("Webhook Performance", Ordered, func() {
 						Eventually(func(g Gomega) {
 							var testPlugin *greenhousev1alpha1.Plugin
 							pluginName := "test-paral-plugin-without-" + rand.String(8)
-							duration := experiment.MeasureDuration("Create Plugin without owner-label parallel", func() {
+							duration := experiment.MeasureDuration("Parallel Create - No Owner Label", func() {
 								testPlugin = fixtures.PreparePlugin(pluginName, env.TestNamespace,
 									test.WithPluginDefinition(testPluginDefinition.Name),
 									test.WithCluster(remoteClusterName),
@@ -200,14 +203,9 @@ var _ = Describe("Webhook Performance", Ordered, func() {
 								err := adminClient.Create(localCtx, testPlugin)
 								g.Expect(err).ToNot(HaveOccurred(), "error creating the Plugin")
 							})
-							GinkgoWriter.Printf("Report: Create latency: %.1fms\n", float64(duration.Milliseconds()))
+							GinkgoWriter.Printf("Create latency: %.1fms\n", float64(duration.Milliseconds()))
 
-							g.Eventually(func() bool {
-								if err := adminClient.Delete(localCtx, testPlugin); err != nil {
-									return apierrors.IsNotFound(err)
-								}
-								return true
-							}).Should(BeTrue(), "deletion failed")
+							test.EventuallyDeleted(localCtx, adminClient, testPlugin)
 						}).Should(Succeed(), "Creation and deletion failed")
 					}(i)
 				}
@@ -216,11 +214,11 @@ var _ = Describe("Webhook Performance", Ordered, func() {
 		})
 
 		When("Plugin has an owner label", func() {
-			It("1 request", func() {
+			It("Measures performance of a single creation", func() {
 				Eventually(func(g Gomega) {
 					var testPlugin *greenhousev1alpha1.Plugin
 					pluginName := "test-1-plugin-with-" + rand.String(8)
-					duration := experiment.MeasureDuration("Create Plugin with owner-label 1 request", func() {
+					duration := experiment.MeasureDuration("Single Create - With Owner Label", func() {
 						testPlugin = fixtures.PreparePlugin(pluginName, env.TestNamespace,
 							test.WithPluginDefinition(testPluginDefinition.Name),
 							test.WithCluster(remoteClusterName),
@@ -232,18 +230,18 @@ var _ = Describe("Webhook Performance", Ordered, func() {
 						err := adminClient.Create(ctx, testPlugin)
 						g.Expect(err).ToNot(HaveOccurred(), "error creating the Plugin")
 					})
-					GinkgoWriter.Printf("Report: Create latency: %.1fms\n", float64(duration.Milliseconds()))
+					GinkgoWriter.Printf("Create latency: %.1fms\n", float64(duration.Milliseconds()))
 
 					test.EventuallyDeleted(ctx, adminClient, testPlugin)
-				}).MustPassRepeatedly(10).
-					// Polling is required to avoid race conditions in repeated tests.
+				}).MustPassRepeatedly(numTestRuns).
+					// Polling is used to avoid race conditions in repeated tests.
 					WithPolling(500*time.Millisecond).
 					Should(Succeed(), "Creation and deletion failed")
 			})
 
-			It("Concurrent requests (manual parallelism)", func() {
+			It("Measures performance under concurrent creation", func() {
 				var wg sync.WaitGroup
-				numWorkers := 10
+				numWorkers := numTestRuns
 
 				wg.Add(numWorkers)
 				for i := range numWorkers {
@@ -255,7 +253,7 @@ var _ = Describe("Webhook Performance", Ordered, func() {
 						Eventually(func(g Gomega) {
 							var testPlugin *greenhousev1alpha1.Plugin
 							pluginName := "test-paral-plugin-with-" + rand.String(8)
-							duration := experiment.MeasureDuration("Create Plugin with owner-label parallel", func() {
+							duration := experiment.MeasureDuration("Parallel Create - With Owner Label", func() {
 								testPlugin = fixtures.PreparePlugin(pluginName, env.TestNamespace,
 									test.WithPluginDefinition(testPluginDefinition.Name),
 									test.WithCluster(remoteClusterName),
@@ -267,14 +265,9 @@ var _ = Describe("Webhook Performance", Ordered, func() {
 								err := adminClient.Create(localCtx, testPlugin)
 								Expect(err).ToNot(HaveOccurred(), "error creating the Plugin")
 							})
-							GinkgoWriter.Printf("Report: Create latency: %.1fms\n", float64(duration.Milliseconds()))
+							GinkgoWriter.Printf("Create latency: %.1fms\n", float64(duration.Milliseconds()))
 
-							g.Eventually(func() bool {
-								if err := adminClient.Delete(localCtx, testPlugin); err != nil {
-									return apierrors.IsNotFound(err)
-								}
-								return true
-							}).Should(BeTrue(), "deletion failed")
+							test.EventuallyDeleted(localCtx, adminClient, testPlugin)
 						}).Should(Succeed(), "Creation and deletion failed")
 					}(i)
 				}
@@ -283,3 +276,29 @@ var _ = Describe("Webhook Performance", Ordered, func() {
 		})
 	})
 })
+
+func formatMeanAndStdDevFromDurations(durations []time.Duration) string {
+	if len(durations) == 0 {
+		return "No durations recorded"
+	}
+	totalDuration := getTotalDuration(durations)
+	mean := float64(totalDuration.Milliseconds()) / float64(len(durations))
+
+	var variance float64
+	for _, d := range durations {
+		ms := d.Seconds() * 1000
+		variance += (ms - mean) * (ms - mean)
+	}
+	stdDev := math.Sqrt(variance / float64(len(durations)))
+	return fmt.Sprintf("%.1fms ± %.1fms", mean, stdDev)
+}
+func getTotalDuration(durations []time.Duration) time.Duration {
+	if len(durations) == 0 {
+		return 0
+	}
+	var total time.Duration
+	for _, d := range durations {
+		total += d
+	}
+	return total
+}
