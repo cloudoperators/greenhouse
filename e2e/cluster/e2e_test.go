@@ -204,18 +204,19 @@ var _ = Describe("Cluster E2E", Ordered, func() {
 			remoteOIDCSecret := &corev1.Secret{}
 			err = adminClient.Get(ctx, client.ObjectKey{Name: remoteOIDCClusterHName, Namespace: env.TestNamespace}, remoteOIDCSecret)
 			Expect(err).NotTo(HaveOccurred(), "there should be no error getting the remote oidc cluster secret")
-			remoteCA = make([]byte, base64.StdEncoding.EncodedLen(len(remoteKubeRootCrt.Data["ca.crt"])))
-			base64.StdEncoding.Encode(remoteCA, []byte(remoteKubeRootCrt.Data["ca.crt"]))
-			remoteOIDCSecret.Data[greenhouseapis.SecretAPIServerCAKey] = remoteCA
+			remoteReplacedCA := make([]byte, base64.StdEncoding.EncodedLen(len(remoteKubeRootCrt.Data["ca.crt"])))
+			base64.StdEncoding.Encode(remoteReplacedCA, []byte(remoteKubeRootCrt.Data["ca.crt"]))
+			remoteOIDCSecret.Data[greenhouseapis.SecretAPIServerCAKey] = remoteReplacedCA
 			Expect(adminClient.Update(ctx, remoteOIDCSecret)).To(Succeed(), "there should be no error updating the remote oidc cluster secret with the new ca.crt")
 
 			By("verifying greenhousekubeconfig has updated ca.crt")
+			Expect(string(remoteCA)).NotTo(Equal(string(remoteReplacedCA)), "the ca.crt in the kubeconfig should not match the ca.crt in the kube-root-ca.crt configmap")
 			Eventually(func(g Gomega) bool {
 				secret := &corev1.Secret{}
 				err = adminClient.Get(ctx, client.ObjectKey{Name: remoteOIDCClusterHName, Namespace: env.TestNamespace}, secret)
 				g.Expect(err).NotTo(HaveOccurred(), "there should be no error getting the remote oidc cluster secret")
 				g.Expect(string(secret.Data[greenhouseapis.GreenHouseKubeConfigKey])).NotTo(BeEmpty(), "the secret should contain the greenhouse kubeconfig key")
-				secretCABytes, err := base64.StdEncoding.DecodeString(string(secret.Data["ca.crt"]))
+				secretCABytes, err := base64.StdEncoding.DecodeString(string(secret.Data[greenhouseapis.SecretAPIServerCAKey]))
 				g.Expect(err).NotTo(HaveOccurred(), "there should be no error decoding the ca.crt from the secret")
 				restClient := clientutil.NewRestClientGetterFromBytes(secret.Data[greenhouseapis.GreenHouseKubeConfigKey], env.TestNamespace)
 				restConfig, err := restClient.ToRESTConfig()
