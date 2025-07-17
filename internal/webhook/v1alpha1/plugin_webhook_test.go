@@ -249,6 +249,22 @@ var _ = Describe("Validate plugin spec fields", Ordered, func() {
 		expectReleaseNamespaceMustMatchError(test.K8sClient.Create(test.Ctx, testPlugin))
 	})
 
+	It("should accept a plugin for a remote cluster where releaseNamespace and Plugin Namespace do not match and the PluginDefinition is allowed on the central cluster", func() {
+		tempPluginsAllowedInCentralCluster := pluginsAllowedInCentralCluster
+		defer func() {
+			pluginsAllowedInCentralCluster = tempPluginsAllowedInCentralCluster
+		}()
+		pluginsAllowedInCentralCluster = []string{testPluginDefinition.Name}
+		testPlugin = test.NewPlugin(test.Ctx, "test-plugin", setup.Namespace(),
+			test.WithPluginDefinition(testPluginDefinition.Name),
+			test.WithCluster(testCluster.Name),
+			test.WithReleaseNamespace("test-namespace"),
+			test.WithReleaseName("test-release"),
+			test.WithPluginLabel(greenhouseapis.LabelKeyOwnedBy, team.Name))
+		err := test.K8sClient.Create(test.Ctx, testPlugin)
+		Expect(err).ToNot(HaveOccurred(), "there should be no error creating the plugin")
+	})
+
 	It("should not accept a plugin if the releaseNamespace changes", func() {
 		testPlugin = setup.CreatePlugin(test.Ctx, "test-plugin",
 			test.WithPluginDefinition(testPluginDefinition.Name),

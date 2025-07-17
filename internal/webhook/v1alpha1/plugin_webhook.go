@@ -298,7 +298,7 @@ func validatePluginForCluster(ctx context.Context, c client.Client, plugin *gree
 		return nil
 	}
 	// Ensure whitelisted plugins are deployed in the organization namespace
-	if slices.Contains(pluginsAllowedInCentralCluster, plugin.Spec.PluginDefinition) {
+	if plugin.Spec.ClusterName == "" && slices.Contains(pluginsAllowedInCentralCluster, plugin.Spec.PluginDefinition) {
 		if plugin.Spec.ReleaseNamespace != plugin.GetNamespace() {
 			return field.Forbidden(field.NewPath("spec").Child("releaseNamespace"), "plugins running in the central cluster can only be deployed in the same namespace as the plugin")
 		}
