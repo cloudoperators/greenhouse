@@ -104,14 +104,14 @@ func (r *PluginReconciler) SetupWithManager(name string, mgr ctrl.Manager) error
 		// If the release was (manually) modified the secret would have been modified. Reconcile it.
 		Watches(&corev1.Secret{},
 			handler.EnqueueRequestsFromMapFunc(enqueuePluginForReleaseSecret),
-			builder.WithPredicates(clientutil.PredicateFilterBySecretTypes(helmReleaseSecretType), predicate.GenerationChangedPredicate{}),
+			builder.WithPredicates(clientutil.PredicateFilterBySecretTypes(helmReleaseSecretType), predicate.GenerationChangedPredicate{}, labelSelectorPredicate),
 		).
 		// If a PluginDefinition was changed, reconcile relevant Plugins.
 		Watches(&greenhousev1alpha1.PluginDefinition{}, handler.EnqueueRequestsFromMapFunc(r.enqueueAllPluginsForPluginDefinition),
-			builder.WithPredicates(predicate.GenerationChangedPredicate{})).
+			builder.WithPredicates(predicate.GenerationChangedPredicate{}, labelSelectorPredicate)).
 		// Clusters and teams are passed as values to each Helm operation. Reconcile on change.
-		Watches(&greenhousev1alpha1.Cluster{}, handler.EnqueueRequestsFromMapFunc(r.enqueueAllPluginsForCluster)).
-		Watches(&greenhousev1alpha1.Team{}, handler.EnqueueRequestsFromMapFunc(r.enqueueAllPluginsInNamespace), builder.WithPredicates(predicate.GenerationChangedPredicate{})).
+		Watches(&greenhousev1alpha1.Cluster{}, handler.EnqueueRequestsFromMapFunc(r.enqueueAllPluginsForCluster), builder.WithPredicates(labelSelectorPredicate)).
+		Watches(&greenhousev1alpha1.Team{}, handler.EnqueueRequestsFromMapFunc(r.enqueueAllPluginsInNamespace), builder.WithPredicates(predicate.GenerationChangedPredicate{}, labelSelectorPredicate)).
 		Complete(r)
 }
 
@@ -163,6 +163,11 @@ func (r *PluginReconciler) EnsureDeleted(ctx context.Context, resource lifecycle
 
 func (r *PluginReconciler) EnsureCreated(ctx context.Context, resource lifecycle.RuntimeObject) (ctrl.Result, lifecycle.ReconcileResult, error) {
 	plugin := resource.(*greenhousev1alpha1.Plugin) //nolint:errcheck
+
+	// ignore plugins that are managed by Flux
+	if plugin.GetLabels() != nil && plugin.GetLabels()[greenhouseapis.GreenhouseHelmDeliveryToolLabel] == greenhouseapis.GreenhouseHelmDeliveryToolFlux {
+		return ctrl.Result{}, lifecycle.Pending, nil
+	}
 
 	InitPluginStatus(plugin)
 
