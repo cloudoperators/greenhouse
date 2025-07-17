@@ -108,7 +108,7 @@ func (r *OrganizationReconciler) SetupWithManager(name string, mgr ctrl.Manager)
 			))).
 		Watches(&corev1.ConfigMap{},
 			handler.EnqueueRequestsFromMapFunc(r.enqueueOrganizationsForReferencedConfigMap),
-			builder.WithPredicates(clientutil.PredicateHasLabel(greenhouseapis.LabelKeyOrgConfigMap, "true")))
+			builder.WithPredicates(clientutil.PredicateHasLabelWithValue(greenhouseapis.LabelKeyOrgConfigMap, "true")))
 	if r.DexStorageType == dexstore.K8s {
 		b.Owns(&dexapi.Connector{}).
 			Owns(&dexapi.OAuth2Client{})

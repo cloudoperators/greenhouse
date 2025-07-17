@@ -50,7 +50,7 @@ func PredicateByName(name string) predicate.Predicate {
 	})
 }
 
-func PredicateHasLabel(key, value string) predicate.Predicate {
+func PredicateHasLabelWithValue(key, value string) predicate.Predicate {
 	return predicate.NewPredicateFuncs(func(o client.Object) bool {
 		return o.GetLabels()[key] == value
 	})
