@@ -132,6 +132,8 @@ func (r *PluginReconciler) setConditions() lifecycle.Conditioner {
 		metrics.UpdatePluginReadyMetric(plugin, readyCondition.Status == metav1.ConditionTrue)
 
 		ownerLabelCondition := util.ComputeOwnerLabelCondition(ctx, r.Client, plugin)
+		metrics.UpdateOwnedByLabelMissingMetric(plugin, ownerLabelCondition.IsFalse())
+
 		plugin.Status.SetConditions(readyCondition, ownerLabelCondition)
 	}
 }
@@ -141,7 +143,7 @@ func (r *PluginReconciler) EnsureDeleted(ctx context.Context, resource lifecycle
 
 	restClientGetter, err := initClientGetter(ctx, r.Client, r.kubeClientOpts, *plugin)
 	if err != nil {
-		metrics.UpdateReconcileTotalMetric(plugin, metrics.MetricResultError, metrics.MetricReasonClusterAccessFailed)
+		metrics.UpdatePluginReconcileTotalMetric(plugin, metrics.MetricResultError, metrics.MetricReasonClusterAccessFailed)
 		return ctrl.Result{}, lifecycle.Failed, fmt.Errorf("cannot access cluster: %s", err.Error())
 	}
 
@@ -149,7 +151,7 @@ func (r *PluginReconciler) EnsureDeleted(ctx context.Context, resource lifecycle
 	if err != nil {
 		c := greenhousemetav1alpha1.TrueCondition(greenhousev1alpha1.HelmReconcileFailedCondition, greenhousev1alpha1.HelmUninstallFailedReason, err.Error())
 		plugin.SetCondition(c)
-		metrics.UpdateReconcileTotalMetric(plugin, metrics.MetricResultError, metrics.MetricReasonUninstallHelmFailed)
+		metrics.UpdatePluginReconcileTotalMetric(plugin, metrics.MetricResultError, metrics.MetricReasonUninstallHelmFailed)
 		return ctrl.Result{}, lifecycle.Failed, err
 	}
 	if !isDeleted {
@@ -173,7 +175,7 @@ func (r *PluginReconciler) EnsureCreated(ctx context.Context, resource lifecycle
 
 	restClientGetter, err := initClientGetter(ctx, r.Client, r.kubeClientOpts, *plugin)
 	if err != nil {
-		metrics.UpdateReconcileTotalMetric(plugin, metrics.MetricResultError, metrics.MetricReasonClusterAccessFailed)
+		metrics.UpdatePluginReconcileTotalMetric(plugin, metrics.MetricResultError, metrics.MetricReasonClusterAccessFailed)
 		return ctrl.Result{}, lifecycle.Failed, fmt.Errorf("cannot access cluster: %s", err.Error())
 	}
 
@@ -188,7 +190,7 @@ func (r *PluginReconciler) EnsureCreated(ctx context.Context, resource lifecycle
 
 	pluginDefinition, err := r.getPluginDefinition(ctx, plugin)
 	if err != nil {
-		metrics.UpdateReconcileTotalMetric(plugin, metrics.MetricResultError, metrics.MetricReasonPluginDefinitionNotFound)
+		metrics.UpdatePluginReconcileTotalMetric(plugin, metrics.MetricResultError, metrics.MetricReasonPluginDefinitionNotFound)
 		return ctrl.Result{}, lifecycle.Failed, fmt.Errorf("pluginDefinition not found: %s", err.Error())
 	}
 
@@ -267,7 +269,7 @@ func (r *PluginReconciler) reconcileHelmRelease(
 		errorMessage := "Helm template failed: " + err.Error()
 		plugin.SetCondition(greenhousemetav1alpha1.TrueCondition(
 			greenhousev1alpha1.HelmReconcileFailedCondition, "", errorMessage))
-		metrics.UpdateReconcileTotalMetric(plugin, metrics.MetricResultError, metrics.MetricReasonTemplateFailed)
+		metrics.UpdatePluginReconcileTotalMetric(plugin, metrics.MetricResultError, metrics.MetricReasonTemplateFailed)
 		return errors.New(errorMessage)
 	}
 
@@ -277,7 +279,7 @@ func (r *PluginReconciler) reconcileHelmRelease(
 		errorMessage := "Helm diff failed: " + err.Error()
 		plugin.SetCondition(greenhousemetav1alpha1.TrueCondition(
 			greenhousev1alpha1.HelmReconcileFailedCondition, "", errorMessage))
-		metrics.UpdateReconcileTotalMetric(plugin, metrics.MetricResultError, metrics.MetricReasonDiffFailed)
+		metrics.UpdatePluginReconcileTotalMetric(plugin, metrics.MetricResultError, metrics.MetricReasonDiffFailed)
 		return errors.New(errorMessage)
 	}
 
@@ -309,7 +311,7 @@ func (r *PluginReconciler) reconcileHelmRelease(
 
 	plugin.SetCondition(greenhousemetav1alpha1.FalseCondition(
 		greenhousev1alpha1.HelmReconcileFailedCondition, "", "Helm install/upgrade successful"))
-	metrics.UpdateReconcileTotalMetric(plugin, metrics.MetricResultSuccess, metrics.MetricReasonEmpty)
+	metrics.UpdatePluginReconcileTotalMetric(plugin, metrics.MetricResultSuccess, metrics.MetricReasonEmpty)
 	return nil
 }
 

@@ -22,7 +22,7 @@ var _ = Describe("Metrics controller", Ordered, func() {
 
 	DescribeTable("update metrics", func(plugin *greenhouseapisv1alpha1.Plugin, expectedCounter string, result metrics.MetricResult, reason metrics.MetricReason) {
 		registerMetrics()
-		metrics.UpdateReconcileTotalMetric(plugin, result, reason)
+		metrics.UpdatePluginReconcileTotalMetric(plugin, result, reason)
 
 		err := prometheusTest.CollectAndCompare(metrics.PluginReconcileTotal, strings.NewReader(expectedCounter))
 		Expect(err).ShouldNot(HaveOccurred())

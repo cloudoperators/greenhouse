@@ -50,7 +50,7 @@ func init() {
 	crmetrics.Registry.MustRegister(PluginReconcileTotal)
 }
 
-func UpdateReconcileTotalMetric(plugin *greenhousev1alpha1.Plugin, result MetricResult, reason MetricReason) {
+func UpdatePluginReconcileTotalMetric(plugin *greenhousev1alpha1.Plugin, result MetricResult, reason MetricReason) {
 	pluginReconcileTotalLabels := prometheus.Labels{
 		"pluginDefinition": plugin.Spec.PluginDefinition,
 		"clusterName":      plugin.Spec.ClusterName,

@@ -19,7 +19,7 @@ import (
 	"github.com/cloudoperators/greenhouse/internal/test"
 )
 
-var _ = Describe("Metrics controller", Ordered, func() {
+var _ = Describe("Cluster Metrics", Ordered, func() {
 	var (
 		remoteEnvTest *envtest.Environment
 	)
@@ -34,7 +34,7 @@ var _ = Describe("Metrics controller", Ordered, func() {
 
 	It("Should return metrics when reconciler is calling", func() {
 		const clusterName = "test-cluster-a"
-		setup := test.NewTestSetup(test.Ctx, test.K8sClient, "teamrbac")
+		setup := test.NewTestSetup(test.Ctx, test.K8sClient, "clustermetrics")
 		cluster := &greenhousev1alpha1.Cluster{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      clusterName,
