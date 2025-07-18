@@ -6,12 +6,13 @@ package metrics_test
 import (
 	"time"
 
-	greenhousemetrics "github.com/cloudoperators/greenhouse/internal/metrics"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	prometheusTest "github.com/prometheus/client_golang/prometheus/testutil"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
+
+	"github.com/cloudoperators/greenhouse/internal/metrics"
 
 	greenhouseapis "github.com/cloudoperators/greenhouse/api"
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
@@ -48,13 +49,13 @@ var _ = Describe("Metrics controller", Ordered, func() {
 			},
 		}
 
-		greenhousemetrics.UpdateClusterMetrics(cluster)
-		counterAfter := prometheusTest.ToFloat64(greenhousemetrics.KubernetesVersionsGauge.WithLabelValues(cluster.Name, cluster.Namespace, cluster.Status.KubernetesVersion, "test-owner"))
+		metrics.UpdateClusterMetrics(cluster)
+		counterAfter := prometheusTest.ToFloat64(metrics.KubernetesVersionsGauge.WithLabelValues(cluster.Name, cluster.Namespace, cluster.Status.KubernetesVersion, "test-owner"))
 		Expect(counterAfter).To(BeEquivalentTo(1))
-		tokenExpiry := prometheusTest.ToFloat64(greenhousemetrics.SecondsToTokenExpiryGauge.WithLabelValues(cluster.Name, cluster.Namespace, "test-owner"))
+		tokenExpiry := prometheusTest.ToFloat64(metrics.SecondsToTokenExpiryGauge.WithLabelValues(cluster.Name, cluster.Namespace, "test-owner"))
 		Expect(tokenExpiry).To(BeNumerically(">=", 595))
 		Expect(tokenExpiry).To(BeNumerically("<=", 600))
-		readyGauge := prometheusTest.ToFloat64(greenhousemetrics.ClusterReadyGauge.WithLabelValues(cluster.Name, cluster.Namespace, "test-owner"))
+		readyGauge := prometheusTest.ToFloat64(metrics.ClusterReadyGauge.WithLabelValues(cluster.Name, cluster.Namespace, "test-owner"))
 		Expect(readyGauge).To(BeEquivalentTo(float64(0)), "clusterReady metric should be present and the cluster should not be ready")
 	})
 })

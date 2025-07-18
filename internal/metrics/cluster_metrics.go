@@ -37,7 +37,6 @@ var (
 func init() {
 	crmetrics.Registry.MustRegister(KubernetesVersionsGauge)
 	crmetrics.Registry.MustRegister(SecondsToTokenExpiryGauge)
-	crmetrics.Registry.MustRegister(OwnedByLabelMissingGauge)
 }
 
 func UpdateClusterMetrics(cluster *greenhousev1alpha1.Cluster) {
