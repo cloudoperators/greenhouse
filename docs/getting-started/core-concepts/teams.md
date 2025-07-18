@@ -22,10 +22,25 @@ TeamRoles and TeamRoleBindings  provide a mechanism to control the permissions o
 Team role-based access control (RBAC) wraps the concept of Kubernetes RBAC in TeamRoles and TeamRoleBindings . TeamRoles are used to define a set of RBAC permissions. These permissions can be granted to Teams with TeamRoleBindings . A TeamRoleBinding refers to a Team, a TeamRole , Cluster(s) and optional Namespaces. Depending on the latter, Greenhouse will create the appropriate `rbacv1` resources on the targeted cluster(s) in either Cluster or Namespace scope.
 More information about how this can be configured is mentioned in this [user guide](../../user-guides/team/rbac.md).
 
-Example of a TeamRoleBinding for a `observability-admin` which grants the `cluster-admin` role on the `observability` cluster in the `logs` and `metrics` namespaces. The TeamRoleBinding contains a list of namespaces and a label selector to select the cluster(s) to target. If no Namespaces are provided, then Greenhouse will create a ClusterRoleBinding instead of a RoleBinding.
+Example of a TeamRoleBinding for a `observability-admin` which grants the `cluster-admin` TeamRole on the `observability` Cluster in the `logs` and `metrics` Namespaces. The TeamRoleBinding contains a list of Namespaces and a ClusterSelector to select the cluster(s) to target. Setting the `.spec.namespaces` field decides whether the created RBAC resources will be namespace-scoped or cluster-scoped.
+
+```yaml
+apiVersion: greenhouse.sap/v1alpha2
+kind: TeamRoleBinding
+metadata:
+  name: observability-admin
+spec:
+  teamRef: observability
+  roleRef: cluster-admin
+  clusterSelector:
+    clusterName: observability
+  namespaces:
+    - logs
+    - metrics
+```
 
 ```mermaid
-flowchart LR
+flowchart TB
   subgraph "Greenhouse"
     subgraph "Organization"
         team[Team 'observability']
@@ -35,7 +50,7 @@ flowchart LR
     end
   end
 
-  subgraph "Cluster A"
+  subgraph "Cluster 'observability'"
     subgraph "logs"
       clusterARoleBinding1[RoleBinding 'greenhouse:observability-admin']
     end
@@ -45,9 +60,9 @@ flowchart LR
       clusterAClusterRole[ClusterRole 'greenhouse:cluster-admin']
   end
 
-  trb -.- team
-  trb -.- teamRole 
-  trb -."select by label".- clusterA
+  team -.- trb
+  teamRole -.- trb 
+  clusterA -."select by label".- trb
   trb --"creates"--> clusterARoleBinding1
   trb --"creates"--> clusterARoleBinding2
   trb --"creates"--> clusterAClusterRole
