@@ -39,7 +39,7 @@ var _ = Describe("Organization ServiceProxyReconciler", Ordered, func() {
 			defer GinkgoWriter.ClearTeeWriters()
 
 			By("creating an organization")
-			org := setup.CreateOrganization(test.Ctx, "test-serviceproxy-org1")
+			org := setup.CreateDefaultOrgWithOIDCSecret(test.Ctx, "test-serviceproxy-org1")
 
 			By("ensuring ServiceProxyController logged about missing plugin definition")
 			Eventually(func() []byte {
@@ -61,25 +61,6 @@ var _ = Describe("Organization ServiceProxyReconciler", Ordered, func() {
 	})
 
 	When("plugin definition for service proxy is present", func() {
-		It("should create service-proxy plugin for organization", func() {
-			By("getting service-proxy plugin definition")
-			var pluginDefinition = new(greenhousev1alpha1.PluginDefinition)
-			err := test.K8sClient.Get(test.Ctx, types.NamespacedName{Name: "service-proxy", Namespace: ""}, pluginDefinition)
-			Expect(err).ToNot(HaveOccurred(), "there should be no error getting the service-proxy plugin definition")
-
-			By("creating an organization")
-			org := setup.CreateOrganization(test.Ctx, "test-serviceproxy-org2")
-
-			By("ensuring a service-proxy plugin has been created for organization")
-			Eventually(func(g Gomega) {
-				var plugin = new(greenhousev1alpha1.Plugin)
-				err = test.K8sClient.Get(test.Ctx, types.NamespacedName{Name: "service-proxy", Namespace: org.Name}, plugin)
-				g.Expect(err).ToNot(HaveOccurred(), "service-proxy plugin should have been created by controller")
-			}).Should(Succeed(), "service-proxy plugin should have been created for organization")
-		})
-	})
-
-	When("organization is annotated with the oauth2proxy preview annotation", Ordered, func() {
 		It("should create default organization", func() {
 			team := setup.CreateTeam(test.Ctx, "test-team1", test.WithTeamLabel(greenhouseapis.LabelKeySupportGroup, "true"))
 			defaultOrg := setup.CreateDefaultOrgWithOIDCSecret(test.Ctx, team.Name)
@@ -89,25 +70,13 @@ var _ = Describe("Organization ServiceProxyReconciler", Ordered, func() {
 				err := test.K8sClient.Get(test.Ctx, types.NamespacedName{Name: defaultOrg.Name}, defaultOrg)
 				g.Expect(err).ToNot(HaveOccurred(), "there should be no error getting the organization")
 				oidcCondition := defaultOrg.Status.GetConditionByType(greenhousev1alpha1.OrganizationOICDConfigured)
-				g.Expect(oidcCondition).ToNot(BeNil(), "OrganizationOICDConfigured should be set on Organization")
 				g.Expect(oidcCondition.IsTrue()).To(BeTrue(), "OrganizationOICDConfigured should be True on Organization")
-			}).Should(Succeed(), "Organization should have set correct status condition")
-			test.EventuallyDeleted(test.Ctx, test.K8sClient, team)
-		})
-		It("should enable the oauth-proxy feature for the organization", func() {
-			team := setup.CreateTeam(test.Ctx, "test-team2", test.WithTeamLabel(greenhouseapis.LabelKeySupportGroup, "true"))
-			By("creating an organization with the oauth preview annotation & oauth config")
-			org, _ := setup.CreateOrganizationWithOIDCConfig(test.Ctx, setup.Namespace(), team.Name)
-			test.EventuallyCreated(test.Ctx, test.K8sClient, &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: org.Name}})
-			By("annotating the organization")
-			org = setup.UpdateOrganization(test.Ctx, org.Name, test.WithOrgAnnotations(map[string]string{oauthPreviewAnnotation: "true"}))
-			By("ensuring a service-proxy plugin has been created for organization")
-			Eventually(func(g Gomega) {
+				// Check if the service-proxy plugin is created and the technical secret is created
 				var plugin = new(greenhousev1alpha1.Plugin)
-				err := test.K8sClient.Get(test.Ctx, types.NamespacedName{Name: "service-proxy", Namespace: org.Name}, plugin)
+				err = test.K8sClient.Get(test.Ctx, types.NamespacedName{Name: "service-proxy", Namespace: defaultOrg.Name}, plugin)
 				g.Expect(err).ToNot(HaveOccurred(), "service-proxy plugin should have been created by controller")
 				var secret = new(corev1.Secret)
-				err = test.K8sClient.Get(test.Ctx, types.NamespacedName{Name: org.Name + technicalSecretSuffix, Namespace: org.Name}, secret)
+				err = test.K8sClient.Get(test.Ctx, types.NamespacedName{Name: defaultOrg.Name + technicalSecretSuffix, Namespace: defaultOrg.Name}, secret)
 				g.Expect(err).ToNot(HaveOccurred(), "org technical secret should have been created by controller")
 				g.Expect(secret.Data).To(HaveKeyWithValue(cookieSecretKey, Not(BeEmpty())), "org technical secret should contain a non-empty cookie secret")
 				g.Expect(plugin.Spec.OptionValues).To(ContainElement(greenhousev1alpha1.PluginOptionValue{Name: "oauth2proxy.enabled", Value: &apiextensionsv1.JSON{Raw: []byte("\"true\"")}}))
