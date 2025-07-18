@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/prometheus/client_golang/prometheus"
-	"sigs.k8s.io/controller-runtime/pkg/metrics"
+	crmetrics "sigs.k8s.io/controller-runtime/pkg/metrics"
 
 	greenhouseapis "github.com/cloudoperators/greenhouse/api"
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
@@ -35,9 +35,9 @@ var (
 )
 
 func init() {
-	metrics.Registry.MustRegister(KubernetesVersionsGauge)
-	metrics.Registry.MustRegister(SecondsToTokenExpiryGauge)
-	metrics.Registry.MustRegister(ownedByLabelMissingGauge)
+	crmetrics.Registry.MustRegister(KubernetesVersionsGauge)
+	crmetrics.Registry.MustRegister(SecondsToTokenExpiryGauge)
+	crmetrics.Registry.MustRegister(OwnedByLabelMissingGauge)
 }
 
 func UpdateClusterMetrics(cluster *greenhousev1alpha1.Cluster) {

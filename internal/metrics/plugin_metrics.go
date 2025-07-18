@@ -5,7 +5,7 @@ package metrics
 
 import (
 	"github.com/prometheus/client_golang/prometheus"
-	controllerMetrics "sigs.k8s.io/controller-runtime/pkg/metrics"
+	crmetrics "sigs.k8s.io/controller-runtime/pkg/metrics"
 
 	greenhouseapis "github.com/cloudoperators/greenhouse/api"
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
@@ -32,7 +32,7 @@ const (
 )
 
 var (
-	pluginReconcileTotal = prometheus.NewCounterVec(
+	PluginReconcileTotal = prometheus.NewCounterVec(
 		prometheus.CounterOpts{
 			Name: "greenhouse_plugin_reconcile_total",
 		},
@@ -47,7 +47,7 @@ var (
 )
 
 func init() {
-	controllerMetrics.Registry.MustRegister(pluginReconcileTotal)
+	crmetrics.Registry.MustRegister(PluginReconcileTotal)
 }
 
 func UpdateReconcileTotalMetric(plugin *greenhousev1alpha1.Plugin, result MetricResult, reason MetricReason) {
@@ -60,7 +60,7 @@ func UpdateReconcileTotalMetric(plugin *greenhousev1alpha1.Plugin, result Metric
 		"reason":           string(reason),
 		"owned_by":         plugin.Labels[greenhouseapis.LabelKeyOwnedBy],
 	}
-	pluginReconcileTotal.With(pluginReconcileTotalLabels).Inc()
+	PluginReconcileTotal.With(pluginReconcileTotalLabels).Inc()
 }
 
 func UpdatePluginReadyMetric(plugin *greenhousev1alpha1.Plugin, ready bool) {
