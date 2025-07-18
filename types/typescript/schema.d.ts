@@ -425,6 +425,8 @@ export interface components {
                         };
                     };
                 };
+                /** @description ConfigMapRef allows to reference organizational config map. */
+                configMapRef?: string;
                 /** @description Description provides additional details of the organization. */
                 description?: string;
                 /** @description DisplayName is an optional name for the organization to be displayed in the Greenhouse UI.

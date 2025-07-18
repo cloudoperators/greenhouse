@@ -220,3 +220,11 @@ func (t *TestSetup) CreateSecret(ctx context.Context, name string, opts ...func(
 	Expect(t.Create(ctx, secret)).Should(Succeed(), "there should be no error creating the Secret")
 	return secret
 }
+
+// CreateConfigMap returns a ConfigMap object. Opts can be used to set the desired state of the ConfigMap.
+func (t *TestSetup) CreateConfigMap(ctx context.Context, name string, opts ...func(*corev1.ConfigMap)) *corev1.ConfigMap {
+	GinkgoHelper()
+	cm := NewConfigMap(name, t.Namespace(), opts...)
+	Expect(t.Create(ctx, cm)).Should(Succeed(), "there should be no error creating the ConfigMap")
+	return cm
+}
