@@ -1,11 +1,12 @@
-// SPDX-FileCopyrightText: 2024 SAP SE or an SAP affiliate company and Greenhouse contributors
+// SPDX-FileCopyrightText: 2025 SAP SE or an SAP affiliate company and Greenhouse contributors
 // SPDX-License-Identifier: Apache-2.0
 
-package cluster
+package metrics_test
 
 import (
 	"time"
 
+	greenhousemetrics "github.com/cloudoperators/greenhouse/internal/metrics"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	prometheusTest "github.com/prometheus/client_golang/prometheus/testutil"
@@ -47,13 +48,13 @@ var _ = Describe("Metrics controller", Ordered, func() {
 			},
 		}
 
-		updateMetrics(cluster)
-		counterAfter := prometheusTest.ToFloat64(kubernetesVersionsGauge.WithLabelValues(cluster.Name, cluster.Namespace, cluster.Status.KubernetesVersion, "test-owner"))
+		greenhousemetrics.UpdateClusterMetrics(cluster)
+		counterAfter := prometheusTest.ToFloat64(greenhousemetrics.KubernetesVersionsGauge.WithLabelValues(cluster.Name, cluster.Namespace, cluster.Status.KubernetesVersion, "test-owner"))
 		Expect(counterAfter).To(BeEquivalentTo(1))
-		tokenExpiry := prometheusTest.ToFloat64(secondsToTokenExpiryGauge.WithLabelValues(cluster.Name, cluster.Namespace, "test-owner"))
+		tokenExpiry := prometheusTest.ToFloat64(greenhousemetrics.SecondsToTokenExpiryGauge.WithLabelValues(cluster.Name, cluster.Namespace, "test-owner"))
 		Expect(tokenExpiry).To(BeNumerically(">=", 595))
 		Expect(tokenExpiry).To(BeNumerically("<=", 600))
-		readyGauge := prometheusTest.ToFloat64(clusterReadyGauge.WithLabelValues(cluster.Name, cluster.Namespace, "test-owner"))
+		readyGauge := prometheusTest.ToFloat64(greenhousemetrics.ClusterReadyGauge.WithLabelValues(cluster.Name, cluster.Namespace, "test-owner"))
 		Expect(readyGauge).To(BeEquivalentTo(float64(0)), "clusterReady metric should be present and the cluster should not be ready")
 	})
 })
