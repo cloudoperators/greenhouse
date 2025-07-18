@@ -112,5 +112,5 @@ The namespace has the same name as your organization in Greenhouse.
 
 ## Troubleshooting
 
-If the bootstrapping failed, you can find details about why it failed in the `Cluster.statusConditions`. More precisely there will be a condition of `type=KubeConfigValid` which might have hints in the `message` field. This is also displayed in the UI on the `Cluster` details view.
+If bootstrapping fails, you can inspect the `Cluster.statusConditions` for more details. The `type=KubeConfigValid` condition may contain hints in the `message` field. Additional insights can be found in the `type=Accessible` and `type=ManagedResourcesDeployed` conditions, which indicate whether the cluster is reachable and whether required resources were successfully deployed. These conditions are also visible in the UI on the `Cluster` details view.
 Reruning the onboarding command with an updated `kubeConfig` file will fix these issues.
