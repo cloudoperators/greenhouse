@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2025 SAP SE or an SAP affiliate company and Greenhouse contributors
 // SPDX-License-Identifier: Apache-2.0
 
-package organization
+package metrics
 
 import (
 	"github.com/prometheus/client_golang/prometheus"
@@ -32,7 +32,7 @@ func init() {
 	prometheus.MustRegister(scimAccessReadyGauge)
 }
 
-func UpdateMetrics(organization *greenhousev1alpha1.Organization) {
+func UpdateOrganizationMetrics(organization *greenhousev1alpha1.Organization) {
 	organizationLabels := prometheus.Labels{
 		"organization": organization.Name,
 	}

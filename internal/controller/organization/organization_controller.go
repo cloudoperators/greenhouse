@@ -29,6 +29,7 @@ import (
 	dexstore "github.com/cloudoperators/greenhouse/internal/dex"
 	dexapi "github.com/cloudoperators/greenhouse/internal/dex/api"
 	"github.com/cloudoperators/greenhouse/internal/lifecycle"
+	"github.com/cloudoperators/greenhouse/internal/metrics"
 	"github.com/cloudoperators/greenhouse/internal/scim"
 	"github.com/cloudoperators/greenhouse/internal/util"
 )
@@ -359,7 +360,7 @@ func (r *OrganizationReconciler) setStatus() lifecycle.Conditioner {
 		scimAPIAvailableCondition := r.checkSCIMAPIAvailability(ctx, org)
 		readyCondition := calculateReadyCondition(scimAPIAvailableCondition)
 		org.Status.SetConditions(scimAPIAvailableCondition, readyCondition)
-		UpdateMetrics(org)
+		metrics.UpdateOrganizationMetrics(org)
 	}
 }
 
