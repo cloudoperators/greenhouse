@@ -74,13 +74,13 @@ func (r *FluxReconciler) SetupWithManager(name string, mgr ctrl.Manager) error {
 	labelSelector := metav1.LabelSelector{
 		MatchExpressions: []metav1.LabelSelectorRequirement{
 			{
-				Key:      greenhouseapis.GreenhouseHelmDeliveryToolLabel,
+				Key:      greenhouseapis.HelmDeliveryToolLabel,
 				Operator: metav1.LabelSelectorOpExists,
 			},
 			{
-				Key:      greenhouseapis.GreenhouseHelmDeliveryToolLabel,
+				Key:      greenhouseapis.HelmDeliveryToolLabel,
 				Operator: metav1.LabelSelectorOpIn,
-				Values:   []string{greenhouseapis.GreenhouseHelmDeliveryToolFlux},
+				Values:   []string{greenhouseapis.HelmDeliveryToolFlux},
 			},
 		},
 	}

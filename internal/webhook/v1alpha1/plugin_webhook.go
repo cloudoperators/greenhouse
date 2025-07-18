@@ -9,9 +9,11 @@ import (
 	"fmt"
 	"strings"
 
+	helmcontroller "github.com/fluxcd/helm-controller/api/v2"
 	"helm.sh/helm/v3/pkg/chartutil"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/validation"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/validation/field"
@@ -60,6 +62,13 @@ func DefaultPlugin(ctx context.Context, c client.Client, obj runtime.Object) err
 	delete(plugin.Labels, greenhouseapis.LabelKeyPlugin)
 	plugin.Labels[greenhouseapis.LabelKeyPluginDefinition] = plugin.Spec.PluginDefinition
 	plugin.Labels[greenhouseapis.LabelKeyCluster] = plugin.Spec.ClusterName
+
+	fluxHelmRelease := helmcontroller.HelmRelease{ObjectMeta: metav1.ObjectMeta{Name: plugin.Name, Namespace: plugin.GetNamespace()}}
+	err := c.Get(ctx, client.ObjectKeyFromObject(&fluxHelmRelease), &fluxHelmRelease)
+	if err == nil {
+		// If the HelmRelease exists, we ensure the Plugin's labels match the deployment tool
+		plugin.Labels[greenhouseapis.HelmDeliveryToolLabel] = greenhouseapis.HelmDeliveryToolFlux
+	}
 
 	// Default the displayName to a normalized version of metadata.name.
 	if plugin.Spec.DisplayName == "" {

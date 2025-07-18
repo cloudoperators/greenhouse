@@ -86,8 +86,8 @@ const (
 	ClusterConnectivityAnnotation     = "greenhouse.sap/cluster-connectivity"
 	ClusterConnectivityKubeconfig     = "kubeconfig"
 	ClusterConnectivityOIDC           = "oidc"
-	GreenhouseHelmDeliveryToolLabel   = "greenhouse.sap/deployment-tool"
-	GreenhouseHelmDeliveryToolFlux    = "flux"
+	HelmDeliveryToolLabel             = "greenhouse.sap/deployment-tool"
+	HelmDeliveryToolFlux              = "flux"
 )
 
 const (
