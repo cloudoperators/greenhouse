@@ -5,9 +5,9 @@ package metrics
 
 import (
 	"github.com/prometheus/client_golang/prometheus"
+	crmetrics "sigs.k8s.io/controller-runtime/pkg/metrics"
 
 	greenhouseapis "github.com/cloudoperators/greenhouse/api"
-	greenhousemetav1alpha1 "github.com/cloudoperators/greenhouse/api/meta/v1alpha1"
 	greenhousev1alpha2 "github.com/cloudoperators/greenhouse/api/v1alpha2"
 )
 
@@ -19,18 +19,10 @@ var (
 		},
 		[]string{"team_role_binding", "team", "namespace", "owned_by"},
 	)
-	ownedByLabelMissingGauge = prometheus.NewGaugeVec(
-		prometheus.GaugeOpts{
-			Name: "greenhouse_owned_by_label_missing",
-			Help: "Indicates if the greenhouse.sap/owned-by label is missing or invalid",
-		},
-		[]string{"resource_kind", "resource_name", "organization"},
-	)
 )
 
 func init() {
-	prometheus.MustRegister(teamRBACReadyGauge)
-	prometheus.MustRegister(ownedByLabelMissingGauge)
+	crmetrics.Registry.MustRegister(teamRBACReadyGauge)
 }
 
 func UpdateTeamrbacMetrics(teamRoleBinding *greenhousev1alpha2.TeamRoleBinding) {
@@ -44,16 +36,5 @@ func UpdateTeamrbacMetrics(teamRoleBinding *greenhousev1alpha2.TeamRoleBinding) 
 		teamRBACReadyGauge.With(teamRBACReadyLabels).Set(1)
 	} else {
 		teamRBACReadyGauge.With(teamRBACReadyLabels).Set(0)
-	}
-
-	ownedByLabelMissingLabels := prometheus.Labels{
-		"resource_kind": teamRoleBinding.Kind,
-		"resource_name": teamRoleBinding.Name,
-		"organization":  teamRoleBinding.Namespace,
-	}
-	if teamRoleBinding.Status.GetConditionByType(greenhousemetav1alpha1.OwnerLabelSetCondition).IsFalse() {
-		ownedByLabelMissingGauge.With(ownedByLabelMissingLabels).Set(float64(1))
-	} else {
-		ownedByLabelMissingGauge.With(ownedByLabelMissingLabels).Set(float64(0))
 	}
 }
