@@ -1,3 +1,4 @@
+
 ---
 title: "Local development setup"
 linkTitle: "Local development setup"
@@ -106,15 +107,12 @@ make setup-webhook-dev
 ### Develop Controllers and Admission Webhook server locally
 
 ```shell
-DEV_MODE=true WEBHOOK_ONLY=true make setup-manager
+WITH_CONTROLLERS=false DEV_MODE=true make setup-manager
 ```
 
 This will modify the `ValidatingWebhookConfiguration` and `MutatingWebhookConfiguration` to use the
-`host.docker.internal` (macOS / windows) or `ipv4` (linux) address for the webhook server
-Write the webhook certs to `/tmp/k8s-webhook-server/serving-certs`
-
-> [!NOTE]
-> The deployed controller-manager is running in webhook only mode, but it does not receive any requests
+`host.docker.internal` (macOS / windows) or `ipv4` (linux) address for the webhook server and write the
+webhook certs to `/tmp/k8s-webhook-server/serving-certs`
 
 Now you can run the webhook server and the controllers locally
 
@@ -147,7 +145,7 @@ The Greenhouse UI consists of a [Juno application](https://github.com/cloudopera
 - You can
   - either create and use your own `appProps.json` file when running the UI locally
   - or retrieve the generated `appProps.json` in-cluster by executing
-  `kubectl get cm greenhouse-dashboard-app-props -n greenhouse -o=json | jq -r '.data.["appProps.json"]'`
+    `kubectl get cm greenhouse-dashboard-app-props -n greenhouse -o=json | jq -r '.data.["appProps.json"]'`
 - After port-forwarding `cors-proxy` service, it should be used as `apiEndpoint` in `appProps.json`
 - Start the dashboard locally (more information on how to run the dashboard locally can be found in
   the [Juno Repository](https://github.com/cloudoperators/juno/blob/main/apps/greenhouse/README.md))
@@ -202,10 +200,15 @@ kubectl --kubeconfig=<your-kind-config> apply -f plugindefinition.yaml
 
 When setting up your development environment, certain resources are modified for development convenience -
 
-- The manager `Deployment` has environment variables `WEBHOOK_ONLY` and `CONTROLLERS_ONLY`
-- `WEBHOOK_ONLY=true` will only run the webhook server
-- `CONTROLLERS_ONLY=true` will only run the controllers
-- Only one of the above can be set to `true` at a time otherwise the manager will error out
+- The greenhouse controllers and webhook server deployments use the same image to run. The logic is separated by
+  environment variables.
+- The `greenhouse-controller-manager` deployment has environment variable `CONTROLLERS_ONLY`
+  - `CONTROLLERS_ONLY=true` will only run the controllers
+  - changing the value to `false` will run the webhook server and will error out due to missing certs
+- The `greenhouse-webhook` deployment has environment variable `WEBHOOK_ONLY`
+  - `WEBHOOK_ONLY=true` will only run the webhook server
+  - changing the value to `false` will skip the webhook server. When greenhouse `CustomResources` are applied,
+    the webhook server will error out due to webhook endpoints not being available
 
 if `DevMode` is enabled for webhooks then depending on the OS the webhook manifests are altered by removing
 `clientConfig.service` and replacing it with `clientConfig.url`, allowing you to debug the code locally.
@@ -219,17 +222,18 @@ if `DevMode` is enabled for webhooks then depending on the OS the webhook manife
 
 ---
 
+
 ## greenhousectl dev setup
 
 setup dev environment with a configuration file
 
-```bash
+```
 greenhousectl dev setup [flags]
 ```
 
 ### Examples
 
-```bash
+```
 
 # Setup Greenhouse dev environment with a configuration file
 greenhousectl dev setup -f dev-env/dev.config.yaml
@@ -242,15 +246,14 @@ Overriding certain values in dev.config.yaml:
 
 - Override devMode for webhook development with d=true or devMode=true
 - Override helm chart installation with c=true or crdOnly=true
-- Override environment variables for manager deployment with e="ENV_NAME=VALUE" or env="ENV_NAME=VALUE" (can be repeated)
 
-e.g. greenhousectl dev setup -f dev-env/dev.config.yaml d=true e="WEBHOOK_ONLY=false" e="CONTROLLERS_ONLY=true"
+e.g. greenhousectl dev setup -f dev-env/dev.config.yaml d=true
 
 ```
 
 ### Options
 
-```bash
+```
   -f, --config string   configuration file path - e.g. -f dev-env/dev.config.yaml
   -h, --help            help for setup
 ```
@@ -259,13 +262,13 @@ e.g. greenhousectl dev setup -f dev-env/dev.config.yaml d=true e="WEBHOOK_ONLY=f
 
 setup dashboard for local development with a configuration file
 
-```bash
+```
 greenhousectl dev setup dashboard [flags]
 ```
 
 ### Examples
 
-```bash
+```
 
 # Setup Greenhouse dev environment with a configuration file
 greenhousectl dev setup dashboard -f dev-env/ui.config.yaml
@@ -276,15 +279,14 @@ greenhousectl dev setup dashboard -f dev-env/ui.config.yaml
 
 ### Options
 
-```bash
+```
   -f, --config string   configuration file path - e.g. -f dev-env/ui.config.yaml
   -h, --help            help for dashboard
 ```
 
+
 ## Generating Docs
-
 To generate the markdown documentation, run the following command:
-
 ```shell
 make dev-docs
 ```
