@@ -1,4 +1,3 @@
-
 ---
 title: "Local development setup"
 linkTitle: "Local development setup"

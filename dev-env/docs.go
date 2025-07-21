@@ -31,8 +31,7 @@ type docsTemplateData struct {
 }
 
 // extend the template for future additions
-const docsTemplate = `
-{{.Intro}}
+const docsTemplate = `{{.Intro}}
 {{.Commands}}
 {{.DocGen}}
 `
