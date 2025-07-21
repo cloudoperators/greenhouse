@@ -208,7 +208,7 @@ When setting up your development environment, certain resources are modified for
 - The `greenhouse-webhook` deployment has environment variable `WEBHOOK_ONLY`
   - `WEBHOOK_ONLY=true` will only run the webhook server
   - changing the value to `false` will skip the webhook server. When greenhouse `CustomResources` are applied,
-    the webhook server will error out due to webhook endpoints not being available
+    the kubernetes Validating and Mutating Webhook phase will error out due to webhook endpoints not being available
 
 if `DevMode` is enabled for webhooks then depending on the OS the webhook manifests are altered by removing
 `clientConfig.service` and replacing it with `clientConfig.url`, allowing you to debug the code locally.
