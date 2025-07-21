@@ -13,6 +13,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	"sigs.k8s.io/controller-runtime/pkg/metrics"
 
+	greenhouseapis "github.com/cloudoperators/greenhouse/api"
 	greenhousemetav1alpha1 "github.com/cloudoperators/greenhouse/api/meta/v1alpha1"
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
 	"github.com/cloudoperators/greenhouse/internal/helm"
@@ -24,7 +25,7 @@ var (
 			Name: "greenhouse_plugin_chart_test_runs_total",
 			Help: "Total number of Helm Chart test runs with their results",
 		},
-		[]string{"cluster", "plugin", "namespace", "result"})
+		[]string{"cluster", "plugin", "namespace", "result", "owned_by"})
 )
 
 func init() {
@@ -60,6 +61,7 @@ func (r *PluginReconciler) reconcileHelmChartTest(ctx context.Context, plugin *g
 		"cluster":   plugin.Spec.ClusterName,
 		"plugin":    plugin.Name,
 		"namespace": plugin.Namespace,
+		"owned_by":  plugin.GetLabels()[greenhouseapis.LabelKeyOwnedBy],
 	}
 	hasHelmChartTest, testPodLogs, err := helm.ChartTest(ctx, restClientGetter, plugin)
 	if err != nil {

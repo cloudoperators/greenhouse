@@ -9,6 +9,7 @@ import (
 	rbacv1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
+	greenhouseapis "github.com/cloudoperators/greenhouse/api"
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
 	"github.com/cloudoperators/greenhouse/internal/test"
 )
@@ -31,16 +32,16 @@ var _ = Describe("Validate Create RoleBinding", Ordered, func() {
 
 	BeforeAll(func() {
 		setup = test.NewTestSetup(test.Ctx, test.K8sClient, "rolebinding-create")
-		team = setup.CreateTeam(test.Ctx, "test-team")
-		cluster = setup.CreateCluster(test.Ctx, "test-cluster")
+		team = setup.CreateTeam(test.Ctx, "test-team", test.WithTeamLabel(greenhouseapis.LabelKeySupportGroup, "true"))
+		cluster = setup.CreateCluster(test.Ctx, "test-cluster", test.WithClusterLabel(greenhouseapis.LabelKeyOwnedBy, team.Name))
 
 		teamRole = setup.CreateTeamRole(test.Ctx, "test-teamrole", test.WithRules(rules))
 	})
 
 	AfterAll(func() {
 		test.EventuallyDeleted(test.Ctx, test.K8sClient, teamRole)
-		test.EventuallyDeleted(test.Ctx, test.K8sClient, team)
 		test.EventuallyDeleted(test.Ctx, test.K8sClient, cluster)
+		test.EventuallyDeleted(test.Ctx, test.K8sClient, team)
 	})
 
 	Context("deny create if referenced resources do not exist", func() {
@@ -125,7 +126,7 @@ var _ = Describe("Validate Create RoleBinding", Ordered, func() {
 			emptyNamespaces := []string{}
 			oldRB := &greenhousev1alpha1.TeamRoleBinding{
 				ObjectMeta: metav1.ObjectMeta{
-					Namespace: "greenhouse",
+					Namespace: setup.Namespace(),
 					Name:      "testBinding",
 				},
 				Spec: greenhousev1alpha1.TeamRoleBindingSpec{
@@ -138,7 +139,7 @@ var _ = Describe("Validate Create RoleBinding", Ordered, func() {
 			editedNamespaces := []string{"demoNamespace"}
 			curRB := &greenhousev1alpha1.TeamRoleBinding{
 				ObjectMeta: metav1.ObjectMeta{
-					Namespace: "greenhouse",
+					Namespace: setup.Namespace(),
 					Name:      "testBinding",
 				},
 				Spec: greenhousev1alpha1.TeamRoleBindingSpec{
@@ -159,7 +160,7 @@ var _ = Describe("Validate Create RoleBinding", Ordered, func() {
 			filledNamespaces := []string{"demoNamespace1", "demoNamespace2"}
 			oldRB := &greenhousev1alpha1.TeamRoleBinding{
 				ObjectMeta: metav1.ObjectMeta{
-					Namespace: "greenhouse",
+					Namespace: setup.Namespace(),
 					Name:      "testBinding",
 				},
 				Spec: greenhousev1alpha1.TeamRoleBindingSpec{
@@ -173,7 +174,7 @@ var _ = Describe("Validate Create RoleBinding", Ordered, func() {
 			emptyNamespaces := []string{}
 			curRB := &greenhousev1alpha1.TeamRoleBinding{
 				ObjectMeta: metav1.ObjectMeta{
-					Namespace: "greenhouse",
+					Namespace: setup.Namespace(),
 					Name:      "testBinding",
 				},
 				Spec: greenhousev1alpha1.TeamRoleBindingSpec{
@@ -194,8 +195,9 @@ var _ = Describe("Validate Create RoleBinding", Ordered, func() {
 			filledNamespaces := []string{"demoNamespace1", "demoNamespace2"}
 			oldRB := &greenhousev1alpha1.TeamRoleBinding{
 				ObjectMeta: metav1.ObjectMeta{
-					Namespace: "greenhouse",
+					Namespace: setup.Namespace(),
 					Name:      "testBinding",
+					Labels:    map[string]string{greenhouseapis.LabelKeyOwnedBy: team.Name},
 				},
 				Spec: greenhousev1alpha1.TeamRoleBindingSpec{
 					TeamRoleRef: teamRole.Name,
@@ -208,8 +210,9 @@ var _ = Describe("Validate Create RoleBinding", Ordered, func() {
 			addedNamespaces := []string{"demoNamespace1", "demoNamespace2", "demoNamespace3"}
 			curRB := &greenhousev1alpha1.TeamRoleBinding{
 				ObjectMeta: metav1.ObjectMeta{
-					Namespace: "greenhouse",
+					Namespace: setup.Namespace(),
 					Name:      "testBinding",
+					Labels:    map[string]string{greenhouseapis.LabelKeyOwnedBy: team.Name},
 				},
 				Spec: greenhousev1alpha1.TeamRoleBindingSpec{
 					TeamRoleRef: teamRole.Name,
@@ -237,7 +240,7 @@ var _ = Describe("Validate Create RoleBinding", Ordered, func() {
 		It("Should deny changing the TeamRoleRef", func() {
 			oldRB := &greenhousev1alpha1.TeamRoleBinding{
 				ObjectMeta: metav1.ObjectMeta{
-					Namespace: "greenhouse",
+					Namespace: setup.Namespace(),
 					Name:      "testBinding",
 				},
 				Spec: greenhousev1alpha1.TeamRoleBindingSpec{
@@ -250,7 +253,7 @@ var _ = Describe("Validate Create RoleBinding", Ordered, func() {
 
 			curRB := &greenhousev1alpha1.TeamRoleBinding{
 				ObjectMeta: metav1.ObjectMeta{
-					Namespace: "greenhouse",
+					Namespace: setup.Namespace(),
 					Name:      "testBinding",
 				},
 				Spec: greenhousev1alpha1.TeamRoleBindingSpec{
@@ -270,7 +273,7 @@ var _ = Describe("Validate Create RoleBinding", Ordered, func() {
 		It("Should deny changing the TeamRef", func() {
 			oldRB := &greenhousev1alpha1.TeamRoleBinding{
 				ObjectMeta: metav1.ObjectMeta{
-					Namespace: "greenhouse",
+					Namespace: setup.Namespace(),
 					Name:      "testBinding",
 				},
 				Spec: greenhousev1alpha1.TeamRoleBindingSpec{
@@ -283,7 +286,7 @@ var _ = Describe("Validate Create RoleBinding", Ordered, func() {
 
 			curRB := &greenhousev1alpha1.TeamRoleBinding{
 				ObjectMeta: metav1.ObjectMeta{
-					Namespace: "greenhouse",
+					Namespace: setup.Namespace(),
 					Name:      "testBinding",
 				},
 				Spec: greenhousev1alpha1.TeamRoleBindingSpec{

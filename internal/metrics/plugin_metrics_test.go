@@ -13,6 +13,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/metrics"
 
+	greenhouseapis "github.com/cloudoperators/greenhouse/api"
 	greenhouseapisv1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
 )
 
@@ -20,7 +21,7 @@ var _ = Describe("Metrics controller", Ordered, func() {
 
 	DescribeTable("update metrics", func(plugin *greenhouseapisv1alpha1.Plugin, expectedCounter string, result MetricResult, reason MetricReason) {
 		registerMetrics()
-		UpdateMetrics(plugin, result, reason)
+		UpdateReconcileTotalMetric(plugin, result, reason)
 
 		err := prometheusTest.CollectAndCompare(pluginReconcileTotal, strings.NewReader(expectedCounter))
 		Expect(err).ShouldNot(HaveOccurred())
@@ -30,7 +31,7 @@ var _ = Describe("Metrics controller", Ordered, func() {
 			`
         	# HELP greenhouse_plugin_reconcile_total 
       		# TYPE greenhouse_plugin_reconcile_total counter
-      		greenhouse_plugin_reconcile_total{clusterName="",organization="",plugin="",pluginDefinition="",reason="",result="success"} 1
+      		greenhouse_plugin_reconcile_total{clusterName="",namespace="",owned_by="",plugin="",pluginDefinition="",reason="",result="success"} 1
     		`,
 			MetricResultSuccess,
 			MetricReasonEmpty),
@@ -39,6 +40,9 @@ var _ = Describe("Metrics controller", Ordered, func() {
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "test_success_plugin",
 					Namespace: "test_organization",
+					Labels: map[string]string{
+						greenhouseapis.LabelKeyOwnedBy: "test_owner",
+					},
 				},
 				Spec: greenhouseapisv1alpha1.PluginSpec{
 					ClusterName:      "cluster-a",
@@ -48,7 +52,7 @@ var _ = Describe("Metrics controller", Ordered, func() {
 			`
         	# HELP greenhouse_plugin_reconcile_total 
       		# TYPE greenhouse_plugin_reconcile_total counter
-      		greenhouse_plugin_reconcile_total{clusterName="cluster-a",organization="test_organization",plugin="test_success_plugin",pluginDefinition="test-plugin-definition",reason="",result="success"} 1
+      		greenhouse_plugin_reconcile_total{clusterName="cluster-a",namespace="test_organization",owned_by="test_owner",plugin="test_success_plugin",pluginDefinition="test-plugin-definition",reason="",result="success"} 1
     		`,
 			MetricResultSuccess,
 			MetricReasonEmpty),
@@ -65,7 +69,7 @@ var _ = Describe("Metrics controller", Ordered, func() {
 			`
         	# HELP greenhouse_plugin_reconcile_total 
       		# TYPE greenhouse_plugin_reconcile_total counter
-      		greenhouse_plugin_reconcile_total{clusterName="cluster-a",organization="test_organization",plugin="test_error_plugin",pluginDefinition="",reason="template_failed",result="error"} 1
+      		greenhouse_plugin_reconcile_total{clusterName="cluster-a",namespace="test_organization",owned_by="",plugin="test_error_plugin",pluginDefinition="",reason="template_failed",result="error"} 1
     		`,
 			MetricResultError,
 			MetricReasonTemplateFailed),
@@ -82,7 +86,7 @@ var _ = Describe("Metrics controller", Ordered, func() {
 			`
         	# HELP greenhouse_plugin_reconcile_total 
       		# TYPE greenhouse_plugin_reconcile_total counter
-      		greenhouse_plugin_reconcile_total{clusterName="cluster-a",organization="test_organization",plugin="test_error_plugin",pluginDefinition="",reason="diff_failed",result="error"} 1
+      		greenhouse_plugin_reconcile_total{clusterName="cluster-a",namespace="test_organization",owned_by="",plugin="test_error_plugin",pluginDefinition="",reason="diff_failed",result="error"} 1
     		`,
 			MetricResultError,
 			MetricReasonDiffFailed,
@@ -96,6 +100,6 @@ func registerMetrics() {
 		prometheus.CounterOpts{
 			Name: "greenhouse_plugin_reconcile_total",
 		},
-		[]string{"pluginDefinition", "clusterName", "plugin", "organization", "result", "reason"})
+		[]string{"pluginDefinition", "clusterName", "plugin", "namespace", "result", "reason", "owned_by"})
 	metrics.Registry.MustRegister(pluginReconcileTotal)
 }

@@ -6,6 +6,7 @@ package v1alpha1
 import (
 	"context"
 	"encoding/base64"
+	"slices"
 
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -20,6 +21,13 @@ import (
 	"github.com/cloudoperators/greenhouse/internal/clientutil"
 	"github.com/cloudoperators/greenhouse/internal/webhook"
 )
+
+// greenhouseSecretTypes are the Secret Types that are custom to Greenhouse.
+var greenhouseSecretTypes = []corev1.SecretType{
+	greenhouseapis.SecretTypeKubeConfig,
+	greenhouseapis.SecretTypeOIDCConfig,
+	greenhouseapis.SecretTypeOrganization,
+}
 
 // Webhook for the core Secret type resource.
 
@@ -43,9 +51,12 @@ func DefaultSecret(_ context.Context, _ client.Client, _ runtime.Object) error {
 
 //+kubebuilder:webhook:path=/validate--v1-secret,mutating=false,failurePolicy=ignore,sideEffects=None,groups="",matchPolicy=Exact,resources=secrets,verbs=create;update;delete,versions=v1,name=vsecret.kb.io,admissionReviewVersions=v1
 
-func ValidateCreateSecret(ctx context.Context, _ client.Client, o runtime.Object) (admission.Warnings, error) {
+func ValidateCreateSecret(ctx context.Context, c client.Client, o runtime.Object) (admission.Warnings, error) {
 	secret, ok := o.(*corev1.Secret)
 	if !ok {
+		return nil, nil
+	}
+	if !slices.Contains(greenhouseSecretTypes, secret.Type) {
 		return nil, nil
 	}
 	if secret.Type == greenhouseapis.SecretTypeOIDCConfig {
@@ -55,12 +66,23 @@ func ValidateCreateSecret(ctx context.Context, _ client.Client, o runtime.Object
 	if err := validateSecretGreenHouseType(ctx, secret); err != nil {
 		return nil, err
 	}
-	return nil, validateKubeconfigInSecret(secret)
+	if err := validateKubeconfigInSecret(secret); err != nil {
+		return nil, err
+	}
+
+	labelValidationWarning := webhook.ValidateLabelOwnedBy(ctx, c, secret)
+	if labelValidationWarning != "" {
+		return admission.Warnings{"Secret should have a support-group Team set as its owner", labelValidationWarning}, nil
+	}
+	return nil, nil
 }
 
-func ValidateUpdateSecret(ctx context.Context, _ client.Client, _, o runtime.Object) (admission.Warnings, error) {
+func ValidateUpdateSecret(ctx context.Context, c client.Client, _, o runtime.Object) (admission.Warnings, error) {
 	secret, ok := o.(*corev1.Secret)
 	if !ok {
+		return nil, nil
+	}
+	if !slices.Contains(greenhouseSecretTypes, secret.Type) {
 		return nil, nil
 	}
 	if secret.Type == greenhouseapis.SecretTypeOIDCConfig {
@@ -70,7 +92,15 @@ func ValidateUpdateSecret(ctx context.Context, _ client.Client, _, o runtime.Obj
 	if err := validateSecretGreenHouseType(ctx, secret); err != nil {
 		return nil, err
 	}
-	return nil, validateKubeconfigInSecret(secret)
+	if err := validateKubeconfigInSecret(secret); err != nil {
+		return nil, err
+	}
+
+	labelValidationWarning := webhook.ValidateLabelOwnedBy(ctx, c, secret)
+	if labelValidationWarning != "" {
+		return admission.Warnings{"Secret should have a support-group Team set as its owner", labelValidationWarning}, nil
+	}
+	return nil, nil
 }
 
 func ValidateDeleteSecret(_ context.Context, _ client.Client, _ runtime.Object) (admission.Warnings, error) {

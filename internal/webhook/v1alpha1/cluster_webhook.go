@@ -83,7 +83,7 @@ func DefaultCluster(ctx context.Context, _ client.Client, obj runtime.Object) er
 //+kubebuilder:webhook:path=/validate-greenhouse-sap-v1alpha1-cluster,mutating=false,failurePolicy=fail,sideEffects=None,groups=greenhouse.sap,resources=clusters,verbs=create;update;delete,versions=v1alpha1,name=vcluster.kb.io,admissionReviewVersions=v1
 
 // ValidateCreateCluster disallows creating clusters with deletionMarked or deletionSchedule annotations
-func ValidateCreateCluster(ctx context.Context, _ client.Client, obj runtime.Object) (admission.Warnings, error) {
+func ValidateCreateCluster(ctx context.Context, c client.Client, obj runtime.Object) (admission.Warnings, error) {
 	logger := ctrl.LoggerFrom(ctx)
 	cluster, ok := obj.(*greenhousev1alpha1.Cluster)
 	if !ok {
@@ -105,11 +105,16 @@ func ValidateCreateCluster(ctx context.Context, _ client.Client, obj runtime.Obj
 		return admission.Warnings{"you cannot create a cluster with deletion annotation"}, err
 	}
 
+	labelValidationWarning := webhook.ValidateLabelOwnedBy(ctx, c, cluster)
+	if labelValidationWarning != "" {
+		return admission.Warnings{"Cluster should have a support-group Team set as its owner", labelValidationWarning}, nil
+	}
+
 	return nil, nil
 }
 
 // ValidateUpdateCluster disallows cluster updates with invalid deletion schedules
-func ValidateUpdateCluster(ctx context.Context, _ client.Client, _, currObj runtime.Object) (admission.Warnings, error) {
+func ValidateUpdateCluster(ctx context.Context, c client.Client, _, currObj runtime.Object) (admission.Warnings, error) {
 	cluster, ok := currObj.(*greenhousev1alpha1.Cluster)
 	logger := ctrl.LoggerFrom(ctx)
 	if !ok {
@@ -120,6 +125,10 @@ func ValidateUpdateCluster(ctx context.Context, _ client.Client, _, currObj runt
 		err = apierrors.NewBadRequest("invalid deletion schedule provided - expected format 2006-01-02 15:04:05")
 		logger.Error(err, "update request denied", "cluster", cluster.GetName())
 		return admission.Warnings{"update is not allowed"}, err
+	}
+	labelValidationWarning := webhook.ValidateLabelOwnedBy(ctx, c, cluster)
+	if labelValidationWarning != "" {
+		return admission.Warnings{"Cluster should have a support-group Team set as its owner", labelValidationWarning}, nil
 	}
 	return nil, nil
 }

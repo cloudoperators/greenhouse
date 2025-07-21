@@ -70,6 +70,7 @@ rules:
 - apiGroups:
   - greenhouse.sap
   resources:
+  - clusterplugindefinitions
   - clusters
   - organizations
   - plugindefinitions
@@ -87,19 +88,21 @@ rules:
 - apiGroups:
   - greenhouse.sap
   resources:
-  - clusters/finalizers
-  - organizations/finalizers
-  - pluginpresets/finalizers
-  - plugins/finalizers
-  - teamrolebindings/finalizers
-  - teams/finalizers
+  - clusterplugindefinitions/finalizers
+  - plugindefinitions/finalizers
   verbs:
+  - create
+  - delete
+  - get
+  - patch
   - update
 - apiGroups:
   - greenhouse.sap
   resources:
+  - clusterplugindefinitions/status
   - clusters/status
   - organizations/status
+  - plugindefinitions/status
   - pluginpresets/status
   - plugins/status
   - teamrolebindings/status
@@ -111,12 +114,53 @@ rules:
 - apiGroups:
   - greenhouse.sap
   resources:
+  - clusters/finalizers
+  - organizations/finalizers
+  - pluginpresets/finalizers
+  - plugins/finalizers
+  - teamrolebindings/finalizers
+  - teams/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - greenhouse.sap
+  resources:
   - pluginpresets
   verbs:
   - get
   - list
   - update
   - watch
+- apiGroups:
+  - helm.toolkit.fluxcd.io
+  resources:
+  - helmreleases
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - helm.toolkit.fluxcd.io
+  resources:
+  - helmreleases/finalizers
+  verbs:
+  - create
+  - delete
+  - get
+  - patch
+  - update
+- apiGroups:
+  - helm.toolkit.fluxcd.io
+  resources:
+  - helmreleases/status
+  verbs:
+  - get
+  - patch
+  - update
 - apiGroups:
   - rbac
   resources:
@@ -142,3 +186,49 @@ rules:
   - patch
   - update
   - watch
+- apiGroups:
+  - source.toolkit.fluxcd.io
+  resources:
+  - helmcharts
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - source.toolkit.fluxcd.io
+  resources:
+  - helmcharts/status
+  - ocirepositories/status
+  verbs:
+  - get
+- apiGroups:
+  - source.toolkit.fluxcd.io
+  resources:
+  - helmrepositories
+  - ocirepositories
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - source.toolkit.fluxcd.io
+  resources:
+  - helmrepositories/finalizers
+  verbs:
+  - create
+  - delete
+  - get
+  - patch
+  - update
+- apiGroups:
+  - source.toolkit.fluxcd.io
+  resources:
+  - helmrepositories/status
+  verbs:
+  - get
+  - patch
+  - update

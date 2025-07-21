@@ -11,6 +11,7 @@ import (
 	rbacv1 "k8s.io/api/rbac/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
@@ -59,6 +60,7 @@ func (r *RemoteClusterReconciler) SetupWithManager(name string, mgr ctrl.Manager
 		)).
 		// Watch the secret owned by this cluster.
 		Watches(&corev1.Secret{}, handler.EnqueueRequestForOwner(mgr.GetScheme(), mgr.GetRESTMapper(), &greenhousev1alpha1.Cluster{})).
+		WithOptions(controller.Options{MaxConcurrentReconciles: 5}).
 		Complete(r)
 }
 
@@ -105,9 +107,17 @@ func (r *RemoteClusterReconciler) EnsureCreated(ctx context.Context, resource li
 		return ctrl.Result{}, lifecycle.Failed, err
 	}
 
+	// check token validity and renew if needed
+	// for OIDC kubeconfig this needs to be done first before any other operations for OIDC clusters
+	if clusterSecret.Type == greenhouseapis.SecretTypeOIDCConfig {
+		if err := r.reconcileServiceAccountToken(ctx, restClientGetter, remoteClient, cluster, clusterSecret.Type); err != nil {
+			return ctrl.Result{}, lifecycle.Failed, err
+		}
+	}
+
 	var crb *rbacv1.ClusterRoleBinding
 	if clusterSecret.Type != greenhouseapis.SecretTypeOIDCConfig {
-		// Create ClusterRoleBinding first so it can be added as an owner in ServiceAccount
+		// Create ClusterRoleBinding first so it can be added as an owner to namespace
 		var err error
 		crb, err = r.reconcileClusterRoleBindingInRemoteCluster(ctx, remoteClient, cluster)
 		if err != nil {
@@ -115,17 +125,20 @@ func (r *RemoteClusterReconciler) EnsureCreated(ctx context.Context, resource li
 		}
 	}
 
-	// Create the namespace in the remote cluster (use crb as owner reference if applicable)
+	// Create the namespace in the remote cluster
 	if err := r.reconcileNamespaceInRemoteCluster(ctx, remoteClient, cluster); err != nil {
 		return ctrl.Result{}, lifecycle.Failed, err
 	}
 
 	// Create greenhouse service account in managed namespace only for non-OIDC clusters
+	// use crb as owner reference if applicable
 	if clusterSecret.Type != greenhouseapis.SecretTypeOIDCConfig {
 		if err := r.reconcileServiceAccountInRemoteCluster(ctx, remoteClient, crb, cluster); err != nil {
 			return ctrl.Result{}, lifecycle.Failed, err
 		}
 	}
+	// reconcile the service account token in the remote cluster
+	// for OIDC this will early exit as it is already done above
 	if err := r.reconcileServiceAccountToken(ctx, restClientGetter, remoteClient, cluster, clusterSecret.Type); err != nil {
 		return ctrl.Result{}, lifecycle.Failed, err
 	}

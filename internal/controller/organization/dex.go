@@ -49,12 +49,12 @@ func (r *OrganizationReconciler) discoverOIDCRedirectURL(ctx context.Context, or
 // removeAuthRedirectFromDefaultConnector - removes oauth redirects of the org being deleted
 // in the default connector's OAuth2Client
 func (r *OrganizationReconciler) removeAuthRedirectFromDefaultConnector(ctx context.Context, org *greenhousev1alpha1.Organization) error {
-	defaultClient, err := r.dex.GetClient(defaultGreenhouseConnectorID)
+	defaultClient, err := r.dex.GetClient(ctx, defaultGreenhouseConnectorID)
 	if err != nil {
 		log.FromContext(ctx).Error(err, "failed to get default oauth2client", "name", defaultGreenhouseConnectorID)
 		return err
 	}
-	err = r.dex.UpdateClient(defaultClient.Name, func(authClient storage.Client) (storage.Client, error) {
+	err = r.dex.UpdateClient(ctx, defaultClient.Name, func(authClient storage.Client) (storage.Client, error) {
 		orgRedirect := getRedirectForOrg(org.Name)
 		updatedRedirects := slices.DeleteFunc(authClient.RedirectURIs, func(s string) bool {
 			return s == orgRedirect
@@ -71,7 +71,7 @@ func (r *OrganizationReconciler) removeAuthRedirectFromDefaultConnector(ctx cont
 }
 
 func (r *OrganizationReconciler) deleteDexConnector(ctx context.Context, org *greenhousev1alpha1.Organization) error {
-	if err := r.dex.DeleteConnector(org.Name); err != nil {
+	if err := r.dex.DeleteConnector(ctx, org.Name); err != nil {
 		if errors.Is(err, storage.ErrNotFound) {
 			log.FromContext(ctx).Info("dex connector not found", "name", org.Name)
 			return nil
@@ -84,7 +84,7 @@ func (r *OrganizationReconciler) deleteDexConnector(ctx context.Context, org *gr
 }
 
 func (r *OrganizationReconciler) deleteOAuth2Client(ctx context.Context, org *greenhousev1alpha1.Organization) error {
-	if err := r.dex.DeleteClient(org.Name); err != nil {
+	if err := r.dex.DeleteClient(ctx, org.Name); err != nil {
 		if errors.Is(err, storage.ErrNotFound) {
 			log.FromContext(ctx).Info("oauth2client not found", "name", org.Name)
 			return nil
@@ -124,7 +124,7 @@ func (r *OrganizationReconciler) reconcileDexConnector(ctx context.Context, org 
 	if err != nil {
 		return err
 	}
-	oidcConnector, err := r.dex.GetConnector(org.Name)
+	oidcConnector, err := r.dex.GetConnector(ctx, org.Name)
 	if err != nil {
 		if errors.Is(err, storage.ErrNotFound) {
 			if err = r.dex.CreateConnector(ctx, storage.Connector{
@@ -142,7 +142,7 @@ func (r *OrganizationReconciler) reconcileDexConnector(ctx context.Context, org 
 		log.FromContext(ctx).Error(err, "failed to get dex connector", "name", org.Name)
 		return err
 	}
-	if err = r.dex.UpdateConnector(oidcConnector.ID, func(c storage.Connector) (storage.Connector, error) {
+	if err = r.dex.UpdateConnector(ctx, oidcConnector.ID, func(c storage.Connector) (storage.Connector, error) {
 		c.ID = org.Name
 		c.Type = dexConnectorTypeGreenhouse
 		c.Name = cases.Title(language.English).String(org.Name)
@@ -158,7 +158,7 @@ func (r *OrganizationReconciler) reconcileDexConnector(ctx context.Context, org 
 
 // reconcileOAuth2Client - creates or updates oauth2client
 func (r *OrganizationReconciler) reconcileOAuth2Client(ctx context.Context, org *greenhousev1alpha1.Organization) error {
-	oAuthClient, err := r.dex.GetClient(org.Name)
+	oAuthClient, err := r.dex.GetClient(ctx, org.Name)
 	if err != nil {
 		if errors.Is(err, storage.ErrNotFound) {
 			if err = r.dex.CreateClient(ctx, storage.Client{
@@ -176,7 +176,7 @@ func (r *OrganizationReconciler) reconcileOAuth2Client(ctx context.Context, org 
 		log.FromContext(ctx).Error(err, "failed to get oauth2client", "name", org.Name)
 		return err
 	}
-	if err = r.dex.UpdateClient(oAuthClient.ID, func(authClient storage.Client) (storage.Client, error) {
+	if err = r.dex.UpdateClient(ctx, oAuthClient.ID, func(authClient storage.Client) (storage.Client, error) {
 		authClient.Public = true
 		authClient.ID = org.Name
 		authClient.Name = org.Name
@@ -200,13 +200,13 @@ func (r *OrganizationReconciler) reconcileOAuth2Client(ctx context.Context, org 
 // It is also not safe when using MaxConcurrentReconciles > 1 as the default connector's redirect URIs can be updated concurrently and
 // the last update will win
 func (r *OrganizationReconciler) appendRedirectsToDefaultConnector(ctx context.Context, orgName string) error {
-	defaultOAuthClient, err := r.dex.GetClient(defaultGreenhouseConnectorID)
+	defaultOAuthClient, err := r.dex.GetClient(ctx, defaultGreenhouseConnectorID)
 	if err != nil {
 		log.FromContext(ctx).Error(err, "failed to get default connector's oauth2client", "ID", defaultGreenhouseConnectorID)
 		return err
 	}
 	orgRedirect := getRedirectForOrg(orgName)
-	err = r.dex.UpdateClient(defaultOAuthClient.Name, func(authClient storage.Client) (storage.Client, error) {
+	err = r.dex.UpdateClient(ctx, defaultOAuthClient.Name, func(authClient storage.Client) (storage.Client, error) {
 		appendedRedirects := appendRedirects(authClient.RedirectURIs, orgRedirect)
 		authClient.RedirectURIs = appendedRedirects
 		return authClient, nil

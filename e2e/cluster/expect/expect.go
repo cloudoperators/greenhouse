@@ -10,6 +10,7 @@ import (
 	"time"
 
 	rbacv1 "k8s.io/api/rbac/v1"
+	"k8s.io/client-go/rest"
 
 	"github.com/cloudoperators/greenhouse/e2e/shared"
 
@@ -52,21 +53,6 @@ func SetupOIDCClusterRoleBinding(ctx context.Context, remoteClient client.Client
 	Expect(err).NotTo(HaveOccurred(), "there should be no error creating the oidc cluster role binding")
 }
 
-func RevokingOIDCClusterAccess(ctx context.Context, adminClient, remoteClient client.Client, clusterRoleBindingName, clusterName, namespace string) {
-	By("deleting the cluster role binding in the remote cluster")
-	Eventually(func(g Gomega) bool {
-		crb := &rbacv1.ClusterRoleBinding{}
-		err := remoteClient.Get(ctx, client.ObjectKey{Name: clusterRoleBindingName}, crb)
-		if err != nil && apierrors.IsNotFound(err) {
-			return true
-		}
-		err = remoteClient.Delete(ctx, crb)
-		g.Expect(err).NotTo(HaveOccurred(), "there should be no error deleting the cluster role binding")
-		return true
-	}).Should(BeTrue(), "remote service account should be deleted")
-	ReconcileReadyNotReady(ctx, adminClient, clusterName, namespace, false)
-}
-
 func VerifyClusterVersion(ctx context.Context, adminClient client.Client, remoteRestClient *clientutil.RestClientGetter, name, namespace string) {
 	cluster := &greenhousev1alpha1.Cluster{}
 	err := adminClient.Get(ctx, client.ObjectKey{Name: name, Namespace: namespace}, cluster)
@@ -77,16 +63,6 @@ func VerifyClusterVersion(ctx context.Context, adminClient client.Client, remote
 	expectedKubeVersion, err := dc.ServerVersion()
 	Expect(err).NotTo(HaveOccurred(), "there should be no error getting the server version")
 	Expect(statusKubeVersion).To(Equal(expectedKubeVersion.String()))
-}
-
-func VerifyFalseAllNodesReady(ctx context.Context, adminClient client.Client, name, namespace string) {
-	cluster := &greenhousev1alpha1.Cluster{}
-	err := adminClient.Get(ctx, client.ObjectKey{Name: name, Namespace: namespace}, cluster)
-	Expect(err).NotTo(HaveOccurred(), "there should be no error getting the cluster")
-	conditions := cluster.GetConditions()
-	allNodesReadyCondition := conditions.GetConditionByType(greenhousev1alpha1.AllNodesReady)
-	Expect(allNodesReadyCondition.IsFalse()).To(BeTrue(), "cluster should have false allNodesReady condition")
-	Expect(allNodesReadyCondition.Message).To(ContainSubstring("forbidden"), "allNodesReady condition message should contain 'forbidden'")
 }
 
 func ClusterDeletionIsScheduled(ctx context.Context, adminClient client.Client, name, namespace string) {
@@ -152,9 +128,12 @@ func RevokingRemoteClusterAccess(ctx context.Context, adminClient, remoteClient 
 func ReconcileReadyNotReady(ctx context.Context, adminClient client.Client, clusterName, namespace string, readyStatus bool) {
 	err := shared.WaitUntilResourceReadyOrNotReady(ctx, adminClient, &greenhousev1alpha1.Cluster{}, clusterName, namespace, func(resource lifecycle.RuntimeObject) error {
 		By("triggering a reconcile of the cluster resource")
-		resource.SetLabels(map[string]string{
-			"greenhouse.sap/last-apply": strconv.FormatInt(time.Now().Unix(), 10),
-		})
+		resourceLabels := resource.GetLabels()
+		if resourceLabels == nil {
+			resourceLabels = make(map[string]string)
+		}
+		resourceLabels["greenhouse.sap/last-apply"] = strconv.FormatInt(time.Now().Unix(), 10)
+		resource.SetLabels(resourceLabels)
 		return adminClient.Update(ctx, resource)
 	}, readyStatus)
 	Expect(err).NotTo(HaveOccurred(), "cluster should be in desired status")
@@ -165,4 +144,10 @@ func markClusterToBeDeleted(ctx context.Context, k8sClient client.Client, cluste
 		greenhouseapis.MarkClusterDeletionAnnotation: "true",
 	})
 	return k8sClient.Update(ctx, cluster)
+}
+
+func GetRestConfig(restClientGetter *clientutil.RestClientGetter) *rest.Config {
+	restConfig, err := restClientGetter.ToRESTConfig()
+	Expect(err).NotTo(HaveOccurred(), "there should be no error creating the remote REST config")
+	return restConfig
 }

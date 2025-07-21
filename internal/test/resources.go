@@ -25,8 +25,8 @@ func WithAccessMode(mode greenhousev1alpha1.ClusterAccessMode) func(*greenhousev
 	}
 }
 
-// WithLabel sets the label on a Cluster
-func WithLabel(key, value string) func(*greenhousev1alpha1.Cluster) {
+// WithClusterLabel sets the label on a Cluster
+func WithClusterLabel(key, value string) func(*greenhousev1alpha1.Cluster) {
 	return func(c *greenhousev1alpha1.Cluster) {
 		if c.Labels == nil {
 			c.Labels = make(map[string]string, 1)
@@ -94,6 +94,12 @@ func WithAdditionalRedirects(additionalRedirects ...string) func(organization *g
 			org.Spec.Authentication.OIDCConfig = &greenhousev1alpha1.OIDCConfig{}
 		}
 		org.Spec.Authentication.OIDCConfig.OAuth2ClientRedirectURIs = additionalRedirects
+	}
+}
+
+func WithConfigMapRef(configMapRef string) func(*greenhousev1alpha1.Organization) {
+	return func(org *greenhousev1alpha1.Organization) {
+		org.Spec.ConfigMapRef = configMapRef
 	}
 }
 
@@ -238,6 +244,16 @@ func WithPresetLabelValue(value string) func(*greenhousev1alpha1.Plugin) {
 	}
 }
 
+// WithPluginLabel sets the label on a Plugin
+func WithPluginLabel(key, value string) func(*greenhousev1alpha1.Plugin) {
+	return func(p *greenhousev1alpha1.Plugin) {
+		if p.Labels == nil {
+			p.Labels = make(map[string]string, 1)
+		}
+		p.Labels[key] = value
+	}
+}
+
 // WithPluginOptionValue sets the value of a PluginOptionValue
 func WithPluginOptionValue(name string, value *apiextensionsv1.JSON, valueFrom *greenhousev1alpha1.ValueFromSource) func(*greenhousev1alpha1.Plugin) {
 	return func(p *greenhousev1alpha1.Plugin) {
@@ -292,6 +308,49 @@ func NewPlugin(ctx context.Context, name, namespace string, opts ...func(*greenh
 		o(plugin)
 	}
 	return plugin
+}
+
+// WithPluginPresetClusterSelector sets the ClusterSelector on a PluginPreset.
+func WithPluginPresetClusterSelector(clusterSelector metav1.LabelSelector) func(*greenhousev1alpha1.PluginPreset) {
+	return func(pp *greenhousev1alpha1.PluginPreset) {
+		pp.Spec.ClusterSelector = clusterSelector
+	}
+}
+
+// WithPluginPresetPluginSpec sets the PluginSpec on a PluginPreset.
+func WithPluginPresetPluginSpec(pluginSpec greenhousev1alpha1.PluginSpec) func(*greenhousev1alpha1.PluginPreset) {
+	return func(pp *greenhousev1alpha1.PluginPreset) {
+		pp.Spec.Plugin = pluginSpec
+	}
+}
+
+// WithPluginPresetLabel sets the label on a PluginPreset
+func WithPluginPresetLabel(key, value string) func(*greenhousev1alpha1.PluginPreset) {
+	return func(pp *greenhousev1alpha1.PluginPreset) {
+		if pp.Labels == nil {
+			pp.Labels = make(map[string]string, 1)
+		}
+		pp.Labels[key] = value
+	}
+}
+
+// NewPluginPreset returns a greenhousev1alpha1.PluginPreset object. Opts can be used to set the desired state of the PluginPreset.
+func NewPluginPreset(name, namespace string, opts ...func(*greenhousev1alpha1.PluginPreset)) *greenhousev1alpha1.PluginPreset {
+	GinkgoHelper()
+	pluginPreset := &greenhousev1alpha1.PluginPreset{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       greenhousev1alpha1.PluginPresetKind,
+			APIVersion: greenhousev1alpha1.GroupVersion.String(),
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      name,
+			Namespace: namespace,
+		},
+	}
+	for _, o := range opts {
+		o(pluginPreset)
+	}
+	return pluginPreset
 }
 
 // WithRules overrides the default rules of a TeamRole
@@ -386,6 +445,16 @@ func WithUsernames(usernames []string) func(*greenhousev1alpha2.TeamRoleBinding)
 	}
 }
 
+// WithTeamRoleBindingLabel sets the label on a TeamRoleBinding
+func WithTeamRoleBindingLabel(key, value string) func(*greenhousev1alpha2.TeamRoleBinding) {
+	return func(trb *greenhousev1alpha2.TeamRoleBinding) {
+		if trb.Labels == nil {
+			trb.Labels = make(map[string]string, 1)
+		}
+		trb.Labels[key] = value
+	}
+}
+
 // NewTeamRoleBinding returns a greenhousev1alpha2.TeamRoleBinding object. Opts can be used to set the desired state of the TeamRoleBinding.
 func NewTeamRoleBinding(ctx context.Context, name, namespace string, opts ...func(*greenhousev1alpha2.TeamRoleBinding)) *greenhousev1alpha2.TeamRoleBinding {
 	trb := &greenhousev1alpha2.TeamRoleBinding{
@@ -407,6 +476,16 @@ func NewTeamRoleBinding(ctx context.Context, name, namespace string, opts ...fun
 func WithMappedIDPGroup(group string) func(*greenhousev1alpha1.Team) {
 	return func(t *greenhousev1alpha1.Team) {
 		t.Spec.MappedIDPGroup = group
+	}
+}
+
+// WithTeamLabel sets the label on a Team
+func WithTeamLabel(key, value string) func(*greenhousev1alpha1.Team) {
+	return func(t *greenhousev1alpha1.Team) {
+		if t.Labels == nil {
+			t.Labels = make(map[string]string, 1)
+		}
+		t.Labels[key] = value
 	}
 }
 
@@ -447,6 +526,16 @@ func WithSecretLabels(labels map[string]string) func(*corev1.Secret) {
 	}
 }
 
+// WithSecretLabel sets the label on a Secret
+func WithSecretLabel(key, value string) func(*corev1.Secret) {
+	return func(s *corev1.Secret) {
+		if s.Labels == nil {
+			s.Labels = make(map[string]string, 1)
+		}
+		s.Labels[key] = value
+	}
+}
+
 // WithSecretData sets the data of the Secret
 func WithSecretData(data map[string][]byte) func(*corev1.Secret) {
 	return func(s *corev1.Secret) {
@@ -477,4 +566,27 @@ func NewSecret(name, namespace string, opts ...func(*corev1.Secret)) *corev1.Sec
 		opt(secret)
 	}
 	return secret
+}
+
+func WithConfigMapLabels(labels map[string]string) func(*corev1.ConfigMap) {
+	return func(cm *corev1.ConfigMap) {
+		cm.SetLabels(labels)
+	}
+}
+
+func WithConfigMapData(data map[string]string) func(*corev1.ConfigMap) {
+	return func(cm *corev1.ConfigMap) {
+		cm.Data = data
+	}
+}
+
+func NewConfigMap(name, namespace string, opts ...func(*corev1.ConfigMap)) *corev1.ConfigMap {
+	cm := &corev1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      name,
+			Namespace: namespace,
+		},
+	}
+
+	return cm
 }

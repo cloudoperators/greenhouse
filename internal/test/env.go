@@ -12,6 +12,8 @@ import (
 	"path/filepath"
 	"time"
 
+	helmv2 "github.com/fluxcd/helm-controller/api/v2"
+	sourcev1 "github.com/fluxcd/source-controller/api/v1"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
@@ -84,7 +86,8 @@ func UnregisterWebhook(webhookName string) {
 
 const (
 	// TestNamespace is the namespace used for testing. Name reflects it represents a greenhouse org.
-	TestNamespace = "test-org"
+	TestNamespace           = "test-org"
+	TestGreenhouseNamespace = "greenhouse"
 )
 
 var (
@@ -199,6 +202,8 @@ var (
 		// Create test namespace and thereby test connection to the cluster
 		err := K8sClient.Create(Ctx, &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: TestNamespace}})
 		Expect(err).NotTo(HaveOccurred(), "there should be no error creating the test namespace")
+		err = K8sClient.Create(Ctx, &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: TestGreenhouseNamespace}})
+		Expect(err).NotTo(HaveOccurred(), "there should be no error creating the greenhouse namespace")
 	}
 
 	// TestAfterSuite configures the test suite.
@@ -226,10 +231,14 @@ func StartControlPlane(port string, installCRDs, installWebhooks bool) (*rest.Co
 	absPathConfigBasePath, err := clientutil.FindDirUpwards(".", "charts", 10)
 	Expect(err).
 		NotTo(HaveOccurred(), "there must be no error finding the config directory")
+	binPathBasePath, err := clientutil.FindDirUpwards(".", "bin", 10)
+	Expect(err).
+		NotTo(HaveOccurred(), "there must be no error finding the flux crd directory")
 	if installCRDs {
 		crdPaths := []string{
 			filepath.Join(absPathConfigBasePath, "manager", "crds"),
 			filepath.Join(absPathConfigBasePath, "idproxy", "crds"),
+			filepath.Join(binPathBasePath, "flux"),
 		}
 		testEnv.CRDDirectoryPaths = crdPaths
 		testEnv.ErrorIfCRDPathMissing = true
@@ -253,6 +262,8 @@ func StartControlPlane(port string, installCRDs, installWebhooks bool) (*rest.Co
 		To(Succeed(), "there must be no error adding the apiextensions api to the scheme")
 	Expect(dexapi.AddToScheme(scheme.Scheme)).
 		To(Succeed(), "there must be no error adding the dex api to the scheme")
+	Expect(sourcev1.AddToScheme(scheme.Scheme)).To(Succeed(), "there must be no error adding the flux source api to the scheme")
+	Expect(helmv2.AddToScheme(scheme.Scheme)).To(Succeed(), "there must be no error adding the flux helm api to the scheme")
 
 	// Make sure all schemes are added before starting the envtest. This will enable conversion webhooks.
 	testEnv.CRDInstallOptions = envtest.CRDInstallOptions{

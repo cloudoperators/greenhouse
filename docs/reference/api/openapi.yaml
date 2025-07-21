@@ -583,6 +583,9 @@ components:
                     - baseURL
                   type: object
               type: object
+            configMapRef:
+              description: ConfigMapRef allows to reference organizational config map.
+              type: string
             description:
               description: Description provides additional details of the organization.
               type: string

@@ -36,7 +36,7 @@ const (
 	WebhookDeploymentNameSuffix        = "-webhook"
 	MutatingWebhookConfigurationKind   = "MutatingWebhookConfiguration"
 	ValidatingWebhookConfigurationKind = "ValidatingWebhookConfiguration"
-	webhookCertSecSuffix               = "-webhook-server-cert"
+	webhookCertSecSuffix               = "-webhook-cert"
 	webhookCertInjectionSuffix         = "-client-cert"
 )
 
