@@ -41,8 +41,8 @@ const (
 	// KubeConfigValid reflects the validity of the kubeconfig of a cluster.
 	KubeConfigValid greenhousemetav1alpha1.ConditionType = "KubeConfigValid"
 
-	// Accessible reflects the accessability of a cluster.
-	Accessible greenhousemetav1alpha1.ConditionType = "Accessible"
+	// PermissionsVerified reflects the validity of required permissions.
+	PermissionsVerified greenhousemetav1alpha1.ConditionType = "PermissionsVerified"
 
 	// ManagedResourcesDeployed reflects whether the resources were created on the cluster.
 	ManagedResourcesDeployed greenhousemetav1alpha1.ConditionType = "ManagedResourcesDeployed"

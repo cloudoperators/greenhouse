@@ -141,10 +141,10 @@ var _ = Describe("Cluster status", Ordered, func() {
 		Eventually(func(g Gomega) {
 			g.Expect(test.K8sClient.Get(test.Ctx, types.NamespacedName{Name: validCluster.Name, Namespace: setup.Namespace()}, &validCluster)).ShouldNot(HaveOccurred(), "There should be no error getting the cluster resource")
 			// Accessible condition validation.
-			accessibleCondition := validCluster.Status.GetConditionByType(greenhousev1alpha1.Accessible)
+			accessibleCondition := validCluster.Status.GetConditionByType(greenhousev1alpha1.PermissionsVerified)
 			g.Expect(accessibleCondition).ToNot(BeNil(), "The Accessible condition should be present")
 			g.Expect(accessibleCondition.Status).To(Equal(metav1.ConditionTrue), "The Accessible condition should be true")
-			g.Expect(accessibleCondition.Message).To(BeEmpty())
+			g.Expect(accessibleCondition.Message).To(Equal("ServiceAccount has cluster admin permissions"))
 			// ManagedResourcesDeployed condition validation.
 			managedResourcesDeployes := validCluster.Status.GetConditionByType(greenhousev1alpha1.ManagedResourcesDeployed)
 			g.Expect(managedResourcesDeployes).ToNot(BeNil(), "The ManagedResourcesDeployed condition should be present")
@@ -201,10 +201,10 @@ var _ = Describe("Cluster status", Ordered, func() {
 		Eventually(func(g Gomega) {
 			g.Expect(test.K8sClient.Get(test.Ctx, types.NamespacedName{Name: validCluster.Name, Namespace: setup.Namespace()}, &validCluster)).ShouldNot(HaveOccurred(), "There should be no error getting the cluster resource")
 			// Accessible condition validation.
-			accessibleCondition := validCluster.Status.GetConditionByType(greenhousev1alpha1.Accessible)
+			accessibleCondition := validCluster.Status.GetConditionByType(greenhousev1alpha1.PermissionsVerified)
 			g.Expect(accessibleCondition).ToNot(BeNil(), "The Accessible condition should be present")
 			g.Expect(accessibleCondition.Status).To(Equal(metav1.ConditionTrue), "The Accessible condition should be true")
-			g.Expect(accessibleCondition.Message).To(BeEmpty())
+			g.Expect(accessibleCondition.Message).To(Equal("ServiceAccount has cluster admin permissions"))
 			// ManagedResourcesDeployed condition validation.
 			managedResourcesDeployes := validCluster.Status.GetConditionByType(greenhousev1alpha1.ManagedResourcesDeployed)
 			g.Expect(managedResourcesDeployes).ToNot(BeNil(), "The ManagedResourcesDeployed condition should be present")
@@ -237,15 +237,15 @@ var _ = Describe("Cluster status", Ordered, func() {
 			g.Expect(test.K8sClient.Get(test.Ctx, types.NamespacedName{Name: invalidCluster.Name, Namespace: setup.Namespace()}, invalidCluster)).ShouldNot(HaveOccurred(), "There should be no error getting the cluster resource")
 			g.Expect(invalidCluster.Status.StatusConditions).ToNot(BeNil())
 			// Accessible condition validation.
-			accessibleCondition := invalidCluster.Status.GetConditionByType(greenhousev1alpha1.Accessible)
+			accessibleCondition := invalidCluster.Status.GetConditionByType(greenhousev1alpha1.PermissionsVerified)
 			g.Expect(accessibleCondition).ToNot(BeNil(), "The Accessible condition should be present")
 			g.Expect(accessibleCondition.Status).To(Equal(metav1.ConditionUnknown), "The Accessible condition should be unknown")
-			g.Expect(accessibleCondition.Message).To(Equal("accessibility could not be validated"))
+			g.Expect(accessibleCondition.Message).To(Equal("kubeconfig not valid - cannot validate cluster access"))
 			// ManagedResourcesDeployed condition validation.
 			managedResourcesDeployes := invalidCluster.Status.GetConditionByType(greenhousev1alpha1.ManagedResourcesDeployed)
 			g.Expect(managedResourcesDeployes).ToNot(BeNil(), "The ManagedResourcesDeployed condition should be present")
 			g.Expect(managedResourcesDeployes.Status).To(Equal(metav1.ConditionUnknown), "The ManagedResourcesDeployed condition should be unknown")
-			g.Expect(managedResourcesDeployes.Message).To(Equal("managed resources could not be validated"))
+			g.Expect(managedResourcesDeployes.Message).To(Equal("kubeconfig not valid - cannot validate managed resources"))
 			// KubeConfigValid condition validation.
 			kubeConfigValidCondition := invalidCluster.Status.GetConditionByType(greenhousev1alpha1.KubeConfigValid)
 			g.Expect(kubeConfigValidCondition).ToNot(BeNil(), "The KubeConfigValid condition should be present")

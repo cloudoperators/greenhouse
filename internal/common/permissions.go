@@ -41,18 +41,18 @@ var (
 )
 
 // CheckGreenhousePermission returns names of missing greenhouse permissions for the user.
-func CheckGreenhousePermission(ctx context.Context, kubeClient client.Client, user, nameSpace string) (missingPermission []Permission) {
-	return checkPermissionMap(ctx, kubeClient, greenhousePermissions, user, nameSpace)
+func CheckGreenhousePermission(ctx context.Context, kubeClient client.Client, user, namespace string) (missingPermission []Permission) {
+	return checkPermissionMap(ctx, kubeClient, greenhousePermissions, user, namespace)
 }
 
 // CheckClientClusterPermission returns names of missing client-cluster permissions.
-func CheckClientClusterPermission(ctx context.Context, kubeClient client.Client, user, nameSpace string) (missingPermission []Permission) {
-	return checkPermissionMap(ctx, kubeClient, clientClusterPermissions, user, nameSpace)
+func CheckClientClusterPermission(ctx context.Context, kubeClient client.Client, user, namespace string) (missingPermission []Permission) {
+	return checkPermissionMap(ctx, kubeClient, clientClusterPermissions, user, namespace)
 }
 
-func checkPermissionMap(ctx context.Context, kubeClient client.Client, permissionMap []Permission, user, nameSpace string) (missingPermission []Permission) {
+func checkPermissionMap(ctx context.Context, kubeClient client.Client, permissionMap []Permission, user, namespace string) (missingPermission []Permission) {
 	for _, permission := range permissionMap {
-		if !canI(ctx, kubeClient, nameSpace, user, permission) {
+		if !canI(ctx, kubeClient, namespace, user, permission) {
 			missingPermission = append(missingPermission, permission)
 		}
 	}
