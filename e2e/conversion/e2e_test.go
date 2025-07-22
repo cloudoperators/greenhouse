@@ -64,8 +64,12 @@ var _ = BeforeSuite(func() {
 	env = env.WithOrganization(ctx, adminClient, "./testdata/organization.yaml")
 	testStartTime = time.Now().UTC()
 
+	By("creating a Team on the admin cluster")
+	teamUT = test.NewTeam(ctx, "test-team", env.TestNamespace, test.WithMappedIDPGroup(testTeamIDPGroup), test.WithTeamLabel(greenhouseapis.LabelKeySupportGroup, "true"))
+	Expect(adminClient.Create(ctx, teamUT)).To(Succeed(), "there should be no error creating a Team")
+
 	By("onboarding remote cluster")
-	shared.OnboardRemoteCluster(ctx, adminClient, env.RemoteKubeConfigBytes, remoteClusterName, env.TestNamespace)
+	shared.OnboardRemoteCluster(ctx, adminClient, env.RemoteKubeConfigBytes, remoteClusterName, env.TestNamespace, teamUT.Name)
 	By("verifying if the cluster resource is created")
 	Eventually(func(g Gomega) {
 		err := adminClient.Get(ctx, client.ObjectKey{Name: remoteClusterName, Namespace: env.TestNamespace}, &greenhousev1alpha1.Cluster{})
@@ -74,14 +78,12 @@ var _ = BeforeSuite(func() {
 
 	By("verifying the cluster status is ready")
 	shared.ClusterIsReady(ctx, adminClient, remoteClusterName, env.TestNamespace)
-
-	By("creating a Team on the admin cluster")
-	teamUT = test.NewTeam(ctx, "test-team", env.TestNamespace, test.WithMappedIDPGroup(testTeamIDPGroup))
-	Expect(adminClient.Create(ctx, teamUT)).To(Succeed(), "there should be no error creating a Team")
 })
 
 var _ = AfterSuite(func() {
 	shared.OffBoardRemoteCluster(ctx, adminClient, remoteClient, testStartTime, remoteClusterName, env.TestNamespace)
+	By("cleaning the Team")
+	test.EventuallyDeleted(ctx, adminClient, teamUT)
 	env.GenerateControllerLogs(ctx, testStartTime)
 })
 
@@ -95,15 +97,12 @@ var _ = Describe("Conversion E2E", Ordered, func() {
 
 	AfterEach(func() {
 		By("cleaning the TeamRole")
-		Expect(adminClient.Delete(ctx, teamRoleUT)).To(Succeed(), "there should be no error deleting the TeamRole")
+		test.EventuallyDeleted(ctx, adminClient, teamRoleUT)
 	})
 
 	// After all tests are run ensure there are no resources left behind on the remote cluster
 	// This ensures the deletion of the Remote Resources is working correctly.
 	AfterAll(func() {
-		By("cleaning the Team")
-		test.EventuallyDeleted(ctx, adminClient, teamUT)
-
 		Eventually(func() bool {
 			remoteCRBList := &rbacv1.ClusterRoleBindingList{}
 			err := remoteClient.List(ctx, remoteCRBList, client.HasLabels{greenhouseapis.LabelKeyRoleBinding})
@@ -144,6 +143,7 @@ var _ = Describe("Conversion E2E", Ordered, func() {
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "test-trb-1",
 				Namespace: env.TestNamespace,
+				Labels:    map[string]string{greenhouseapis.LabelKeyOwnedBy: teamUT.Name},
 			},
 			Spec: greenhousev1alpha1.TeamRoleBindingSpec{
 				TeamRoleRef:      teamRoleUT.Name,
@@ -167,6 +167,7 @@ var _ = Describe("Conversion E2E", Ordered, func() {
 		Expect(trbV1alpha2.Spec.TeamRef).To(Equal(trbV1alpha1.Spec.TeamRef), ".Spec.TeamRef in TRB should be correctly converted between versions")
 		Expect(trbV1alpha2.Spec.Namespaces).To(Equal(trbV1alpha1.Spec.Namespaces), ".Spec.Namespaces in TRB should be correctly converted between versions")
 		Expect(trbV1alpha2.Spec.CreateNamespaces).To(Equal(trbV1alpha1.Spec.CreateNamespaces), ".Spec.CreateNamespaces in TRB should be correctly converted between versions")
+		Expect(trbV1alpha2.Labels).To(HaveKeyWithValue(greenhouseapis.LabelKeyOwnedBy, teamUT.Name), "owned-by label should be correctly converted between versions")
 
 		By("validating the RoleBinding created on the remote cluster")
 		var remoteRoleBindings = new(rbacv1.RoleBindingList)
@@ -194,6 +195,7 @@ var _ = Describe("Conversion E2E", Ordered, func() {
 			test.WithClusterName(remoteClusterName),
 			test.WithNamespaces(env.TestNamespace),
 			test.WithCreateNamespace(true),
+			test.WithTeamRoleBindingLabel(greenhouseapis.LabelKeyOwnedBy, teamUT.Name),
 		)
 		Expect(adminClient.Create(ctx, trbV1alpha2)).To(Succeed(), "there should be no error creating the TeamRoleBinding")
 
@@ -209,6 +211,7 @@ var _ = Describe("Conversion E2E", Ordered, func() {
 		Expect(trbV1alpha1.Spec.TeamRef).To(Equal(trbV1alpha2.Spec.TeamRef), ".Spec.TeamRef in TRB should be correctly converted between versions")
 		Expect(trbV1alpha1.Spec.Namespaces).To(Equal(trbV1alpha2.Spec.Namespaces), ".Spec.Namespaces in TRB should be correctly converted between versions")
 		Expect(trbV1alpha1.Spec.CreateNamespaces).To(Equal(trbV1alpha2.Spec.CreateNamespaces), ".Spec.CreateNamespaces in TRB should be correctly converted between versions")
+		Expect(trbV1alpha1.Labels).To(HaveKeyWithValue(greenhouseapis.LabelKeyOwnedBy, teamUT.Name), "owned-by label should be correctly converted between versions")
 
 		By("validating the RoleBinding created on the remote cluster")
 		var remoteRoleBindings = new(rbacv1.RoleBindingList)
@@ -233,9 +236,10 @@ var _ = Describe("Conversion E2E", Ordered, func() {
 		remoteCluster := &greenhousev1alpha1.Cluster{}
 		err := adminClient.Get(ctx, client.ObjectKey{Name: remoteClusterName, Namespace: env.TestNamespace}, remoteCluster)
 		Expect(err).ToNot(HaveOccurred())
-		remoteCluster.Labels = map[string]string{
-			"app": "test-cluster",
+		if remoteCluster.Labels == nil {
+			remoteCluster.Labels = make(map[string]string, 1)
 		}
+		remoteCluster.Labels["app"] = "test-cluster"
 		err = adminClient.Update(ctx, remoteCluster)
 		Expect(err).ToNot(HaveOccurred())
 
@@ -248,6 +252,7 @@ var _ = Describe("Conversion E2E", Ordered, func() {
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "test-trb-3",
 				Namespace: env.TestNamespace,
+				Labels:    map[string]string{greenhouseapis.LabelKeyOwnedBy: teamUT.Name},
 			},
 			Spec: greenhousev1alpha1.TeamRoleBindingSpec{
 				TeamRoleRef:      teamRoleUT.Name,
@@ -271,6 +276,7 @@ var _ = Describe("Conversion E2E", Ordered, func() {
 		Expect(trbV1alpha2.Spec.TeamRef).To(Equal(trbV1alpha1.Spec.TeamRef), ".Spec.TeamRef in TRB should be correctly converted between versions")
 		Expect(trbV1alpha2.Spec.Namespaces).To(Equal(trbV1alpha1.Spec.Namespaces), ".Spec.Namespaces in TRB should be correctly converted between versions")
 		Expect(trbV1alpha2.Spec.CreateNamespaces).To(Equal(trbV1alpha1.Spec.CreateNamespaces), ".Spec.CreateNamespaces in TRB should be correctly converted between versions")
+		Expect(trbV1alpha2.Labels).To(HaveKeyWithValue(greenhouseapis.LabelKeyOwnedBy, teamUT.Name), "owned-by label should be correctly converted between versions")
 
 		By("validating the RoleBinding created on the remote cluster")
 		var remoteRoleBindings = new(rbacv1.RoleBindingList)
@@ -300,6 +306,7 @@ var _ = Describe("Conversion E2E", Ordered, func() {
 			}),
 			test.WithNamespaces(env.TestNamespace),
 			test.WithCreateNamespace(true),
+			test.WithTeamRoleBindingLabel(greenhouseapis.LabelKeyOwnedBy, teamUT.Name),
 		)
 		Expect(adminClient.Create(ctx, trbV1alpha2)).To(Succeed(), "there should be no error creating the TeamRoleBinding")
 
@@ -315,6 +322,7 @@ var _ = Describe("Conversion E2E", Ordered, func() {
 		Expect(trbV1alpha1.Spec.TeamRef).To(Equal(trbV1alpha2.Spec.TeamRef), ".Spec.TeamRef in TRB should be correctly converted between versions")
 		Expect(trbV1alpha1.Spec.Namespaces).To(Equal(trbV1alpha2.Spec.Namespaces), ".Spec.Namespaces in TRB should be correctly converted between versions")
 		Expect(trbV1alpha1.Spec.CreateNamespaces).To(Equal(trbV1alpha2.Spec.CreateNamespaces), ".Spec.CreateNamespaces in TRB should be correctly converted between versions")
+		Expect(trbV1alpha1.Labels).To(HaveKeyWithValue(greenhouseapis.LabelKeyOwnedBy, teamUT.Name), "owned-by label should be correctly converted between versions")
 
 		By("validating the RoleBinding created on the remote cluster")
 		var remoteRoleBindings = new(rbacv1.RoleBindingList)

@@ -20,6 +20,9 @@ const (
 	// SecretTypeOrganization specifies a secret containing the kubeconfig for an organization.
 	SecretTypeOrganization corev1.SecretType = "greenhouse.sap/orgsecret"
 
+	// LabelKeyOrgConfigMap is used to identify organizational config map.
+	LabelKeyOrgConfigMap = "greenhouse.sap/orgconfigmap"
+
 	// KubeConfigKey is the key for the user-provided kubeconfig in the secret of type greenhouse.sap/kubeconfig.
 	KubeConfigKey = "kubeconfig"
 
@@ -45,7 +48,7 @@ const (
 	// LabelKeyExposeNamedPort is specifying the port to be exposed by name. LabelKeyExposeService needs to be set. Defaults to the first port if the named port is not found.
 	LabelKeyExposeNamedPort = "greenhouse.sap/exposeNamedPort"
 
-	// LabelKeyOwnedBy is used to identify the owning team of a resource.
+	// LabelKeyOwnedBy is used to identify the owning support-group team of a resource.
 	LabelKeyOwnedBy = "greenhouse.sap/owned-by"
 )
 
@@ -68,6 +71,15 @@ const (
 
 	// RolebindingTeamRefField is the field in the RoleBinding spec that references the Team.
 	RolebindingTeamRefField = ".spec.teamRef"
+
+	// ConfigMapRefField is the field in the Organization spec that references the ConfigMap containing organizational configuration data.
+	ConfigMapRefField = ".spec.configMapRef"
+)
+
+// Team constants
+const (
+	// LabelKeySupportGroup is the key of the label that is used to mark a Team as a support group (greenhouse.sap/support-group:true).
+	LabelKeySupportGroup = "greenhouse.sap/support-group"
 )
 
 // cluster annotations
@@ -80,6 +92,8 @@ const (
 	ClusterConnectivityAnnotation     = "greenhouse.sap/cluster-connectivity"
 	ClusterConnectivityKubeconfig     = "kubeconfig"
 	ClusterConnectivityOIDC           = "oidc"
+	GreenhouseHelmDeliveryToolLabel   = "greenhouse.sap/deployment-tool"
+	GreenhouseHelmDeliveryToolFlux    = "flux"
 )
 
 const (

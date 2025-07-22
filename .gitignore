@@ -54,3 +54,4 @@ gen-crd-api-reference-docs
 # Hugo
 public
 .hugo_build.lock
+*.drawio.bkp

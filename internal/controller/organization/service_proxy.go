@@ -41,11 +41,11 @@ const (
 	dexOAuth2ProxyClientSecretKey = "oauth2proxy-clientSecret" //nolint:gosec
 )
 
-func (r *OrganizationReconciler) reconcileServiceProxy(ctx context.Context, org *greenhousev1alpha1.Organization) error {
+func (r *OrganizationReconciler) reconcileServiceProxy(ctx context.Context, org *greenhousev1alpha1.Organization, supportGroupTeamName string) error {
 	if err := r.reconcileOAuth2ProxySecret(ctx, org); err != nil {
 		return err
 	}
-	if err := r.reconcileServiceProxyPlugin(ctx, org); err != nil {
+	if err := r.reconcileServiceProxyPlugin(ctx, org, supportGroupTeamName); err != nil {
 		return err
 	}
 	return nil
@@ -124,7 +124,7 @@ func (r *OrganizationReconciler) reconcileOAuth2ProxySecret(ctx context.Context,
 	return nil
 }
 
-func (r *OrganizationReconciler) reconcileServiceProxyPlugin(ctx context.Context, org *greenhousev1alpha1.Organization) error {
+func (r *OrganizationReconciler) reconcileServiceProxyPlugin(ctx context.Context, org *greenhousev1alpha1.Organization, supportGroupTeamName string) error {
 	domain := getOauthProxyURL(org.Name)
 	domainJSON, err := json.Marshal(domain)
 	if err != nil {
@@ -166,6 +166,7 @@ func (r *OrganizationReconciler) reconcileServiceProxyPlugin(ctx context.Context
 	}
 
 	result, err := clientutil.CreateOrPatch(ctx, r.Client, plugin, func() error {
+		plugin.SetLabels(map[string]string{greenhouseapis.LabelKeyOwnedBy: supportGroupTeamName})
 		plugin.Spec.DisplayName = "Remote service proxy"
 		plugin.Spec.OptionValues = []greenhousev1alpha1.PluginOptionValue{
 			{
@@ -269,18 +270,6 @@ func (r *OrganizationReconciler) getOrCreateOrgSecret(ctx context.Context, org *
 
 func (r *OrganizationReconciler) enqueueAllOrganizationsForServiceProxyPluginDefinition(ctx context.Context, _ client.Object) []ctrl.Request {
 	return listOrganizationsAsReconcileRequests(ctx, r.Client)
-}
-
-func listOrganizationsAsReconcileRequests(ctx context.Context, c client.Client, listOpts ...client.ListOption) []ctrl.Request {
-	var organizationList = new(greenhousev1alpha1.OrganizationList)
-	if err := c.List(ctx, organizationList, listOpts...); err != nil {
-		return nil
-	}
-	res := make([]ctrl.Request, len(organizationList.Items))
-	for idx, organization := range organizationList.Items {
-		res[idx] = ctrl.Request{NamespacedName: types.NamespacedName{Name: organization.Name, Namespace: organization.Namespace}}
-	}
-	return res
 }
 
 func getInternalSecretName(orgName string) string {
