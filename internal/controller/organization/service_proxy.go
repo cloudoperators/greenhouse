@@ -261,18 +261,6 @@ func (r *OrganizationReconciler) enqueueAllOrganizationsForServiceProxyPluginDef
 	return listOrganizationsAsReconcileRequests(ctx, r.Client)
 }
 
-func listOrganizationsAsReconcileRequests(ctx context.Context, c client.Client, listOpts ...client.ListOption) []ctrl.Request {
-	var organizationList = new(greenhousev1alpha1.OrganizationList)
-	if err := c.List(ctx, organizationList, listOpts...); err != nil {
-		return nil
-	}
-	res := make([]ctrl.Request, len(organizationList.Items))
-	for idx, organization := range organizationList.Items {
-		res[idx] = ctrl.Request{NamespacedName: types.NamespacedName{Name: organization.Name, Namespace: organization.Namespace}}
-	}
-	return res
-}
-
 func getInternalSecretName(orgName string) string {
 	return orgName + technicalSecretSuffix
 }

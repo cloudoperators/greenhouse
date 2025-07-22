@@ -22,6 +22,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
 	greenhouseapis "github.com/cloudoperators/greenhouse/api"
+	greenhousemetav1alpha1 "github.com/cloudoperators/greenhouse/api/meta/v1alpha1"
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
 	"github.com/cloudoperators/greenhouse/e2e/cluster/expect"
 	"github.com/cloudoperators/greenhouse/e2e/shared"
@@ -33,6 +34,7 @@ const (
 	remoteClusterHName               = "remote-int-h-cluster"
 	remoteClusterFName               = "remote-int-f-cluster"
 	remoteOIDCClusterHName           = "remote-int-oidc-h-cluster"
+	remoteOIDCClusterCName           = "remote-int-oidc-c-cluster"
 	remoteOIDCClusterFName           = "remote-int-oidc-f-cluster"
 	remoteOIDCClusterRoleBindingName = "greenhouse-odic-cluster-role-binding"
 )
@@ -42,6 +44,7 @@ var (
 	ctx              context.Context
 	adminClient      client.Client
 	remoteClient     client.Client
+	adminRestClient  *clientutil.RestClientGetter
 	remoteRestClient *clientutil.RestClientGetter
 	team             *greenhousev1alpha1.Team
 	testStartTime    time.Time
@@ -62,6 +65,7 @@ var _ = BeforeSuite(func() {
 	remoteClient, err = clientutil.NewK8sClientFromRestClientGetter(env.RemoteRestClientGetter)
 	Expect(err).ToNot(HaveOccurred(), "there should be no error creating the remote client")
 	remoteRestClient = env.RemoteRestClientGetter
+	adminRestClient = env.AdminRestClientGetter
 	env = env.WithOrganization(ctx, adminClient, "./testdata/organization.yaml")
 	team = test.NewTeam(ctx, "test-cluster-e2e-team", env.TestNamespace, test.WithTeamLabel(greenhouseapis.LabelKeySupportGroup, "true"), test.WithMappedIDPGroup("SOME_IDP_GROUP_NAME"))
 	err = adminClient.Create(ctx, team)
@@ -74,6 +78,7 @@ var _ = AfterSuite(func() {
 	shared.OffBoardRemoteCluster(ctx, adminClient, remoteClient, testStartTime, remoteClusterFName, env.TestNamespace)
 	shared.OffBoardRemoteCluster(ctx, adminClient, remoteClient, testStartTime, remoteOIDCClusterHName, env.TestNamespace)
 	shared.OffBoardRemoteCluster(ctx, adminClient, remoteClient, testStartTime, remoteOIDCClusterFName, env.TestNamespace)
+	shared.OffBoardRemoteCluster(ctx, adminClient, remoteClient, testStartTime, remoteOIDCClusterCName, env.TestNamespace)
 	test.EventuallyDeleted(ctx, adminClient, team)
 	env.GenerateControllerLogs(ctx, testStartTime)
 })
@@ -199,6 +204,51 @@ var _ = Describe("Cluster E2E", Ordered, func() {
 			sa := &corev1.ServiceAccount{}
 			err := adminClient.Get(ctx, client.ObjectKey{Name: remoteOIDCClusterHName, Namespace: env.TestNamespace}, sa)
 			Expect(apierrors.IsNotFound(err)).To(BeTrue(), "the service account should not exist")
+		})
+	})
+
+	Context("Cluster OIDC CA Update 🤖", Ordered, func() {
+		It("should setup role binding for OIDC on remote cluster", func() {
+			By("setting up cluster role binding for OIDC on remote cluster")
+			expect.SetupOIDCClusterRoleBinding(ctx, remoteClient, remoteOIDCClusterRoleBindingName, remoteOIDCClusterCName, env.TestNamespace)
+		})
+
+		It("should onboard remote cluster with OIDC", func() {
+			By("onboarding remote cluster with OIDC and incorrect CA")
+			remoteIntRESTClient := clientutil.NewRestClientGetterFromBytes(env.RemoteKubeConfigBytes, env.TestNamespace)
+			remoteIntConfig := expect.GetRestConfig(remoteIntRESTClient)
+			adminConfig := expect.GetRestConfig(adminRestClient)
+
+			remoteAPIServerURL := remoteIntConfig.Host
+			remoteCA := make([]byte, base64.StdEncoding.EncodedLen(len(adminConfig.CAData)))
+			base64.StdEncoding.Encode(remoteCA, adminConfig.CAData)
+			shared.OnboardRemoteOIDCCluster(ctx, adminClient, remoteCA, remoteAPIServerURL, remoteOIDCClusterCName, env.TestNamespace, team.Name)
+
+			By("verifying the cluster status is not ready")
+			Eventually(func(g Gomega) bool {
+				cluster := &greenhousev1alpha1.Cluster{}
+				err := adminClient.Get(ctx, client.ObjectKey{Name: remoteOIDCClusterCName, Namespace: env.TestNamespace}, cluster)
+				g.Expect(err).ToNot(HaveOccurred(), "there should be no error getting the cluster resource")
+				conditions := cluster.GetConditions()
+				readyCondition := conditions.GetConditionByType(greenhousemetav1alpha1.ReadyCondition)
+				g.Expect(readyCondition).ToNot(BeNil(), "cluster should have ready condition")
+				g.Expect(readyCondition.IsTrue()).To(BeFalse(), "cluster should not be ready")
+				g.Expect(readyCondition.Message).To(ContainSubstring("tls: failed to verify certificate: x509: certificate signed by unknown authority"), "cluster ready condition message should indicate incorrect CA")
+				return readyCondition.IsFalse()
+			}).Should(BeTrue(), "cluster should not be ready, due to incorrect CA")
+
+			By("updating the ca.crt in remote oidc cluster secret")
+			remoteOIDCSecret := &corev1.Secret{}
+			err := adminClient.Get(ctx, client.ObjectKey{Name: remoteOIDCClusterCName, Namespace: env.TestNamespace}, remoteOIDCSecret)
+			Expect(err).NotTo(HaveOccurred(), "there should be no error getting the remote oidc cluster secret")
+
+			remoteReplacedCA := make([]byte, base64.StdEncoding.EncodedLen(len(remoteIntConfig.CAData)))
+			base64.StdEncoding.Encode(remoteReplacedCA, remoteIntConfig.CAData)
+			remoteOIDCSecret.Data[greenhouseapis.SecretAPIServerCAKey] = remoteReplacedCA
+			Expect(adminClient.Update(ctx, remoteOIDCSecret)).To(Succeed(), "there should be no error updating the remote oidc cluster secret with the new ca.crt")
+
+			By("verifying the cluster status is ready")
+			shared.ClusterIsReady(ctx, adminClient, remoteOIDCClusterCName, env.TestNamespace)
 		})
 	})
 })
