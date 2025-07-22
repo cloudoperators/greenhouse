@@ -50,6 +50,12 @@ func PredicateByName(name string) predicate.Predicate {
 	})
 }
 
+func PredicateHasLabelWithValue(key, value string) predicate.Predicate {
+	return predicate.NewPredicateFuncs(func(o client.Object) bool {
+		return o.GetLabels()[key] == value
+	})
+}
+
 func PredicatePluginWithStatusReadyChange() predicate.Predicate {
 	return predicate.Funcs{
 		CreateFunc: func(_ event.CreateEvent) bool { return false },

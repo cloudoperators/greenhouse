@@ -86,6 +86,7 @@ func (r *OrganizationReconciler) SetupWithManager(name string, mgr ctrl.Manager)
 		return err
 	}
 	r.dex = dexter
+
 	b := ctrl.NewControllerManagedBy(mgr).
 		Named(name).
 		For(&greenhousev1alpha1.Organization{}).
@@ -105,7 +106,10 @@ func (r *OrganizationReconciler) SetupWithManager(name string, mgr ctrl.Manager)
 			builder.WithPredicates(predicate.And(
 				clientutil.PredicateByName(serviceProxyName),
 				predicate.GenerationChangedPredicate{},
-			)))
+			))).
+		Watches(&corev1.ConfigMap{},
+			handler.EnqueueRequestsFromMapFunc(r.enqueueOrganizationsForReferencedConfigMap),
+			builder.WithPredicates(clientutil.PredicateHasLabelWithValue(greenhouseapis.LabelKeyOrgConfigMap, "true")))
 	if r.DexStorageType == dexstore.K8s {
 		b.Owns(&dexapi.Connector{}).
 			Owns(&dexapi.OAuth2Client{})
@@ -370,4 +374,8 @@ func (r *OrganizationReconciler) enqueueOrganizationForReferencedSecret(_ contex
 		return nil
 	}
 	return []ctrl.Request{{NamespacedName: client.ObjectKeyFromObject(org)}}
+}
+
+func (r *OrganizationReconciler) enqueueOrganizationsForReferencedConfigMap(ctx context.Context, o client.Object) []ctrl.Request {
+	return listOrganizationsAsReconcileRequests(ctx, r, client.MatchingFields{greenhouseapis.ConfigMapRefField: o.GetName()})
 }

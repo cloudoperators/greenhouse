@@ -7,6 +7,7 @@ import (
 	"context"
 	"encoding/base64"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/pkg/errors"
@@ -78,6 +79,14 @@ func (r *BootstrapReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 				return ctrl.Result{}, errors.Wrap(err, "failed creating service account for OIDC config")
 			}
 			log.FromContext(ctx).Info("OIDC config generated", "date", genTime, "namespace", kubeConfigSecret.GetNamespace(), "name", kubeConfigSecret.GetName())
+			return ctrl.Result{}, r.createKubeConfigKey(ctx, kubeConfigSecret)
+		}
+		equality, err := compareCAWithKubeConfigCA(kubeConfigSecret)
+		if err != nil {
+			return ctrl.Result{}, errors.Wrap(err, "failed to create rest client from secret")
+		}
+		if !equality {
+			log.FromContext(ctx).Info("KubeConfig CA does not match with secret CA, updating kubeconfig", "namespace", kubeConfigSecret.GetNamespace(), "name", kubeConfigSecret.GetName())
 			return ctrl.Result{}, r.createKubeConfigKey(ctx, kubeConfigSecret)
 		}
 	}
@@ -227,4 +236,20 @@ func enqueueSecretForCluster(_ context.Context, o client.Object) []ctrl.Request 
 		return nil
 	}
 	return []ctrl.Request{{NamespacedName: types.NamespacedName{Namespace: cluster.GetNamespace(), Name: cluster.GetSecretName()}}}
+}
+
+func compareCAWithKubeConfigCA(secret *corev1.Secret) (bool, error) {
+	restClient, err := clientutil.NewRestClientGetterFromSecret(secret, secret.GetNamespace())
+	if err != nil {
+		return false, err
+	}
+	restConfig, err := restClient.ToRESTConfig()
+	if err != nil {
+		return false, err
+	}
+	secretCertBytes, err := base64.StdEncoding.DecodeString(string(secret.Data[greenhouseapis.SecretAPIServerCAKey]))
+	if err != nil {
+		return false, errors.Wrap(err, "failed decoding certificate data from secret")
+	}
+	return strings.Compare(string(secretCertBytes), string(restConfig.CAData)) == 0, nil
 }
