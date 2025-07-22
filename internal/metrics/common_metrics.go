@@ -4,9 +4,10 @@
 package metrics
 
 import (
-	"github.com/cloudoperators/greenhouse/internal/lifecycle"
 	"github.com/prometheus/client_golang/prometheus"
 	crmetrics "sigs.k8s.io/controller-runtime/pkg/metrics"
+
+	"github.com/cloudoperators/greenhouse/internal/lifecycle"
 )
 
 var (
