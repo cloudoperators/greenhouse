@@ -30,9 +30,8 @@ import (
 )
 
 const (
-	serviceProxyName       = "service-proxy"
-	oauthPreviewAnnotation = "greenhouse.sap/oauth-proxy-preview"
-	cookieSecretKey        = "oauth2proxy-cookie-secret" //nolint:gosec
+	serviceProxyName = "service-proxy"
+	cookieSecretKey  = "oauth2proxy-cookie-secret" //nolint:gosec
 	// internalSuffix is used for the internal secret of the organization
 	// this secret is used to store secrets that are not created by the user
 	technicalSecretSuffix         = "-internal"
@@ -42,6 +41,22 @@ const (
 )
 
 func (r *OrganizationReconciler) reconcileServiceProxy(ctx context.Context, org *greenhousev1alpha1.Organization, supportGroupTeamName string) error {
+	var pluginDefinition = new(greenhousev1alpha1.PluginDefinition)
+	if err := r.Get(ctx, types.NamespacedName{Name: serviceProxyName, Namespace: ""}, pluginDefinition); err != nil {
+		if apierrors.IsNotFound(err) {
+			log.FromContext(ctx).Info("plugin definition for service-proxy not found")
+			return nil
+		}
+		log.FromContext(ctx).Info("failed to get plugin definition for service-proxy", "error", err)
+		return nil
+	}
+
+	// oauth2-proxy requires OIDC Client config
+	if org.Spec.Authentication == nil || org.Spec.Authentication.OIDCConfig == nil {
+		log.FromContext(ctx).Info("skipping service-proxy Plugin reconciliation, Organization has no OIDCConfig")
+		return nil
+	}
+
 	if err := r.reconcileOAuth2ProxySecret(ctx, org); err != nil {
 		return err
 	}
@@ -53,10 +68,6 @@ func (r *OrganizationReconciler) reconcileServiceProxy(ctx context.Context, org 
 
 // reconcileOAuth2ProxySecret - creates oauth2client redirect in dex for oauth2-proxy to authenticate
 func (r *OrganizationReconciler) reconcileOAuth2ProxySecret(ctx context.Context, org *greenhousev1alpha1.Organization) error {
-	if !isOauthProxyEnabled(org) {
-		log.FromContext(ctx).Info("oauth-proxy feature is disabled for the organization")
-		return nil
-	}
 	secret, err := r.getOrCreateOrgSecret(ctx, org)
 	if err != nil {
 		return err
@@ -135,26 +146,6 @@ func (r *OrganizationReconciler) reconcileServiceProxyPlugin(ctx context.Context
 		return fmt.Errorf("failed to marshal version.GitCommit: %w", err)
 	}
 
-	var pluginDefinition = new(greenhousev1alpha1.PluginDefinition)
-	if err := r.Get(ctx, types.NamespacedName{Name: serviceProxyName, Namespace: ""}, pluginDefinition); err != nil {
-		if apierrors.IsNotFound(err) {
-			log.FromContext(ctx).Info("plugin definition for service-proxy not found")
-			return nil
-		}
-		log.FromContext(ctx).Info("failed to get plugin definition for service-proxy", "error", err)
-		return nil
-	}
-
-	oauthProxyEnabled := isOauthProxyEnabled(org)
-
-	if oauthProxyEnabled {
-		// oauth2-proxy requires OIDC Client config
-		if org.Spec.Authentication == nil || org.Spec.Authentication.OIDCConfig == nil {
-			log.FromContext(ctx).Info("skipping service-proxy Plugin reconciliation, Organization has no OIDCConfig")
-			return nil
-		}
-	}
-
 	plugin := &greenhousev1alpha1.Plugin{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      serviceProxyName,
@@ -182,44 +173,42 @@ func (r *OrganizationReconciler) reconcileServiceProxyPlugin(ctx context.Context
 		if plugin.Spec.ReleaseName == "" {
 			plugin.Spec.ReleaseName = serviceProxyName
 		}
-		if oauthProxyEnabled {
-			oauth2ProxyInternalSecretName := getInternalSecretName(org.GetName())
-			oauthProxyValues := []greenhousev1alpha1.PluginOptionValue{
-				{
-					Name:  "oauth2proxy.enabled",
-					Value: &apiextensionsv1.JSON{Raw: []byte("\"true\"")},
-				},
-				{
-					Name:  "oauth2proxy.issuerURL",
-					Value: &apiextensionsv1.JSON{Raw: []byte(fmt.Sprintf("\"%s\"", "https://auth."+common.DNSDomain))},
-				},
-				{
-					Name:  "oauth2proxy.clientIDRef.secret",
-					Value: &apiextensionsv1.JSON{Raw: []byte(fmt.Sprintf("\"%s\"", oauth2ProxyInternalSecretName))},
-				},
-				{
-					Name:  "oauth2proxy.clientIDRef.key",
-					Value: &apiextensionsv1.JSON{Raw: []byte(fmt.Sprintf("\"%s\"", dexOAuth2ProxyClientIDKey))},
-				},
-				{
-					Name:  "oauth2proxy.clientSecretRef.secret",
-					Value: &apiextensionsv1.JSON{Raw: []byte(fmt.Sprintf("\"%s\"", oauth2ProxyInternalSecretName))},
-				},
-				{
-					Name:  "oauth2proxy.clientSecretRef.key",
-					Value: &apiextensionsv1.JSON{Raw: []byte(fmt.Sprintf("\"%s\"", dexOAuth2ProxyClientSecretKey))},
-				},
-				{
-					Name:  "oauth2proxy.cookieSecretRef.secret",
-					Value: &apiextensionsv1.JSON{Raw: []byte(fmt.Sprintf("\"%s\"", org.Name+technicalSecretSuffix))},
-				},
-				{
-					Name:  "oauth2proxy.cookieSecretRef.key",
-					Value: &apiextensionsv1.JSON{Raw: []byte(fmt.Sprintf("\"%s\"", cookieSecretKey))},
-				},
-			}
-			plugin.Spec.OptionValues = append(plugin.Spec.OptionValues, oauthProxyValues...)
+		oauth2ProxyInternalSecretName := getInternalSecretName(org.GetName())
+		oauthProxyValues := []greenhousev1alpha1.PluginOptionValue{
+			{
+				Name:  "oauth2proxy.enabled",
+				Value: &apiextensionsv1.JSON{Raw: []byte("\"true\"")},
+			},
+			{
+				Name:  "oauth2proxy.issuerURL",
+				Value: &apiextensionsv1.JSON{Raw: []byte(fmt.Sprintf("\"%s\"", "https://auth."+common.DNSDomain))},
+			},
+			{
+				Name:  "oauth2proxy.clientIDRef.secret",
+				Value: &apiextensionsv1.JSON{Raw: []byte(fmt.Sprintf("\"%s\"", oauth2ProxyInternalSecretName))},
+			},
+			{
+				Name:  "oauth2proxy.clientIDRef.key",
+				Value: &apiextensionsv1.JSON{Raw: []byte(fmt.Sprintf("\"%s\"", dexOAuth2ProxyClientIDKey))},
+			},
+			{
+				Name:  "oauth2proxy.clientSecretRef.secret",
+				Value: &apiextensionsv1.JSON{Raw: []byte(fmt.Sprintf("\"%s\"", oauth2ProxyInternalSecretName))},
+			},
+			{
+				Name:  "oauth2proxy.clientSecretRef.key",
+				Value: &apiextensionsv1.JSON{Raw: []byte(fmt.Sprintf("\"%s\"", dexOAuth2ProxyClientSecretKey))},
+			},
+			{
+				Name:  "oauth2proxy.cookieSecretRef.secret",
+				Value: &apiextensionsv1.JSON{Raw: []byte(fmt.Sprintf("\"%s\"", org.Name+technicalSecretSuffix))},
+			},
+			{
+				Name:  "oauth2proxy.cookieSecretRef.key",
+				Value: &apiextensionsv1.JSON{Raw: []byte(fmt.Sprintf("\"%s\"", cookieSecretKey))},
+			},
 		}
+		plugin.Spec.OptionValues = append(plugin.Spec.OptionValues, oauthProxyValues...)
 		return controllerutil.SetControllerReference(org, plugin, r.Scheme())
 	})
 	if err != nil {
@@ -274,17 +263,6 @@ func (r *OrganizationReconciler) enqueueAllOrganizationsForServiceProxyPluginDef
 
 func getInternalSecretName(orgName string) string {
 	return orgName + technicalSecretSuffix
-}
-
-// TODO: remove this once the feature is considered stable.
-// This allows to enable/disable the oauth-proxy feature for a specific organization
-// isOauthProxyEnabled - checks if the oauth-proxy feature is enabled for the organization
-func isOauthProxyEnabled(org *greenhousev1alpha1.Organization) bool {
-	oauthProxyEnabled := false
-	if val, ok := org.GetAnnotations()[oauthPreviewAnnotation]; ok {
-		oauthProxyEnabled = val == "true"
-	}
-	return oauthProxyEnabled
 }
 
 func generateOauth2ProxySecret() (string, error) {
