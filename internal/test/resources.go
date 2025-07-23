@@ -97,6 +97,12 @@ func WithAdditionalRedirects(additionalRedirects ...string) func(organization *g
 	}
 }
 
+func WithConfigMapRef(configMapRef string) func(*greenhousev1alpha1.Organization) {
+	return func(org *greenhousev1alpha1.Organization) {
+		org.Spec.ConfigMapRef = configMapRef
+	}
+}
+
 // WithOIDCConfig sets the OIDCConfig on an Organization
 func WithOIDCConfig(issuer, secretName, clientIDKey, clientSecretKey string) func(*greenhousev1alpha1.Organization) {
 	return func(org *greenhousev1alpha1.Organization) {
@@ -560,4 +566,27 @@ func NewSecret(name, namespace string, opts ...func(*corev1.Secret)) *corev1.Sec
 		opt(secret)
 	}
 	return secret
+}
+
+func WithConfigMapLabels(labels map[string]string) func(*corev1.ConfigMap) {
+	return func(cm *corev1.ConfigMap) {
+		cm.SetLabels(labels)
+	}
+}
+
+func WithConfigMapData(data map[string]string) func(*corev1.ConfigMap) {
+	return func(cm *corev1.ConfigMap) {
+		cm.Data = data
+	}
+}
+
+func NewConfigMap(name, namespace string, opts ...func(*corev1.ConfigMap)) *corev1.ConfigMap {
+	cm := &corev1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      name,
+			Namespace: namespace,
+		},
+	}
+
+	return cm
 }
