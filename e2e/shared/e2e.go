@@ -125,6 +125,19 @@ func clientGetter(kubeconfigEnv string) *clientutil.RestClientGetter {
 	return clientutil.NewRestClientGetterFromRestConfig(config, "")
 }
 
+func NewClientGetterWithOptions(kubeconfigEnv string, QPS, burst int) *clientutil.RestClientGetter {
+	kubeconfigPath, err := fromEnv(kubeconfigEnv)
+	Expect(err).NotTo(HaveOccurred(), "error getting kubeconfig path from env")
+	kubeconfigBytes, err := readFileContent(kubeconfigPath)
+	Expect(err).NotTo(HaveOccurred(), "error reading kubeconfig file")
+	config, err := clientcmd.RESTConfigFromKubeConfig(kubeconfigBytes)
+	Expect(err).NotTo(HaveOccurred(), "error getting rest config from kubeconfig")
+
+	config.QPS = float32(QPS)
+	config.Burst = burst
+	return clientutil.NewRestClientGetterFromRestConfig(config, "")
+}
+
 func readFileContent(path string) ([]byte, error) {
 	_, err := os.Stat(path)
 	if err != nil {

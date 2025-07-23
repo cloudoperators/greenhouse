@@ -60,7 +60,9 @@ var _ = BeforeSuite(func() {
 	env = shared.NewExecutionEnv()
 
 	var err error
-	adminClient, err = clientutil.NewK8sClientFromRestClientGetter(env.AdminRestClientGetter)
+	By("Setting QPS and Burst to the number of test runs")
+	adminClientGetter := shared.NewClientGetterWithOptions(shared.AdminKubeConfigPathEnv, numTestRuns, numTestRuns)
+	adminClient, err = clientutil.NewK8sClientFromRestClientGetter(adminClientGetter)
 	Expect(err).ToNot(HaveOccurred(), "there should be no error creating the admin client")
 	remoteClient, err = clientutil.NewK8sClientFromRestClientGetter(env.RemoteRestClientGetter)
 	Expect(err).ToNot(HaveOccurred(), "there should be no error creating the remote client")
