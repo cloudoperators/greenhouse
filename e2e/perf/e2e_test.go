@@ -88,7 +88,7 @@ var _ = BeforeSuite(func() {
 	shared.ClusterIsReady(ctx, adminClient, remoteClusterName, env.TestNamespace)
 
 	By("Creating a plugin definition with cert-manager helm chart")
-	testPluginDefinition = fixtures.PrepareCertManagerPluginDefinition(env.TestNamespace)
+	testPluginDefinition = fixtures.PrepareCertManagerPluginDefinition()
 	err = adminClient.Create(ctx, testPluginDefinition)
 	Expect(client.IgnoreAlreadyExists(err)).To(Succeed(), "there should be no error creating the plugin definition")
 
@@ -157,14 +157,15 @@ var _ = Describe("Webhook Performance", Ordered, func() {
 				Eventually(func(g Gomega) {
 					var testPlugin *greenhousev1alpha1.Plugin
 					pluginName := "test-1-plugin-without-" + rand.String(8)
+					testPlugin = test.NewPlugin(pluginName, env.TestNamespace,
+						test.WithPluginDefinition(testPluginDefinition.Name),
+						test.WithCluster(remoteClusterName),
+						test.WithReleaseNamespace(env.TestNamespace),
+						test.WithPluginOptionValue("replicaCount", &apiextensionsv1.JSON{Raw: []byte("1")}, nil),
+						test.WithReleaseName(pluginName),
+					)
+
 					duration := experiment.MeasureDuration("Single Create - No Owner Label", func() {
-						testPlugin = fixtures.PreparePlugin(pluginName, env.TestNamespace,
-							test.WithPluginDefinition(testPluginDefinition.Name),
-							test.WithCluster(remoteClusterName),
-							test.WithReleaseNamespace(env.TestNamespace),
-							test.WithPluginOptionValue("replicaCount", &apiextensionsv1.JSON{Raw: []byte("1")}, nil),
-							test.WithReleaseName(pluginName),
-						)
 						err := adminClient.Create(ctx, testPlugin)
 						g.Expect(err).ToNot(HaveOccurred(), "error creating the Plugin")
 					})
@@ -192,14 +193,15 @@ var _ = Describe("Webhook Performance", Ordered, func() {
 						Eventually(func(g Gomega) {
 							var testPlugin *greenhousev1alpha1.Plugin
 							pluginName := "test-paral-plugin-without-" + rand.String(8)
+							testPlugin = test.NewPlugin(pluginName, env.TestNamespace,
+								test.WithPluginDefinition(testPluginDefinition.Name),
+								test.WithCluster(remoteClusterName),
+								test.WithReleaseNamespace(env.TestNamespace),
+								test.WithPluginOptionValue("replicaCount", &apiextensionsv1.JSON{Raw: []byte("1")}, nil),
+								test.WithReleaseName(pluginName),
+							)
+
 							duration := experiment.MeasureDuration("Parallel Create - No Owner Label", func() {
-								testPlugin = fixtures.PreparePlugin(pluginName, env.TestNamespace,
-									test.WithPluginDefinition(testPluginDefinition.Name),
-									test.WithCluster(remoteClusterName),
-									test.WithReleaseNamespace(env.TestNamespace),
-									test.WithPluginOptionValue("replicaCount", &apiextensionsv1.JSON{Raw: []byte("1")}, nil),
-									test.WithReleaseName(pluginName),
-								)
 								err := adminClient.Create(localCtx, testPlugin)
 								g.Expect(err).ToNot(HaveOccurred(), "error creating the Plugin")
 							})
@@ -218,15 +220,16 @@ var _ = Describe("Webhook Performance", Ordered, func() {
 				Eventually(func(g Gomega) {
 					var testPlugin *greenhousev1alpha1.Plugin
 					pluginName := "test-1-plugin-with-" + rand.String(8)
+					testPlugin = test.NewPlugin(pluginName, env.TestNamespace,
+						test.WithPluginDefinition(testPluginDefinition.Name),
+						test.WithCluster(remoteClusterName),
+						test.WithReleaseNamespace(env.TestNamespace),
+						test.WithPluginOptionValue("replicaCount", &apiextensionsv1.JSON{Raw: []byte("1")}, nil),
+						test.WithReleaseName(pluginName),
+						test.WithPluginLabel(greenhouseapis.LabelKeyOwnedBy, testTeamName),
+					)
+
 					duration := experiment.MeasureDuration("Single Create - With Owner Label", func() {
-						testPlugin = fixtures.PreparePlugin(pluginName, env.TestNamespace,
-							test.WithPluginDefinition(testPluginDefinition.Name),
-							test.WithCluster(remoteClusterName),
-							test.WithReleaseNamespace(env.TestNamespace),
-							test.WithPluginOptionValue("replicaCount", &apiextensionsv1.JSON{Raw: []byte("1")}, nil),
-							test.WithReleaseName(pluginName),
-							test.WithPluginLabel(greenhouseapis.LabelKeyOwnedBy, testTeamName),
-						)
 						err := adminClient.Create(ctx, testPlugin)
 						g.Expect(err).ToNot(HaveOccurred(), "error creating the Plugin")
 					})
@@ -253,15 +256,16 @@ var _ = Describe("Webhook Performance", Ordered, func() {
 						Eventually(func(g Gomega) {
 							var testPlugin *greenhousev1alpha1.Plugin
 							pluginName := "test-paral-plugin-with-" + rand.String(8)
+							testPlugin = test.NewPlugin(pluginName, env.TestNamespace,
+								test.WithPluginDefinition(testPluginDefinition.Name),
+								test.WithCluster(remoteClusterName),
+								test.WithReleaseNamespace(env.TestNamespace),
+								test.WithPluginOptionValue("replicaCount", &apiextensionsv1.JSON{Raw: []byte("1")}, nil),
+								test.WithReleaseName(pluginName),
+								test.WithPluginLabel(greenhouseapis.LabelKeyOwnedBy, testTeamName),
+							)
+
 							duration := experiment.MeasureDuration("Parallel Create - With Owner Label", func() {
-								testPlugin = fixtures.PreparePlugin(pluginName, env.TestNamespace,
-									test.WithPluginDefinition(testPluginDefinition.Name),
-									test.WithCluster(remoteClusterName),
-									test.WithReleaseNamespace(env.TestNamespace),
-									test.WithPluginOptionValue("replicaCount", &apiextensionsv1.JSON{Raw: []byte("1")}, nil),
-									test.WithReleaseName(pluginName),
-									test.WithPluginLabel(greenhouseapis.LabelKeyOwnedBy, testTeamName),
-								)
 								err := adminClient.Create(localCtx, testPlugin)
 								Expect(err).ToNot(HaveOccurred(), "error creating the Plugin")
 							})

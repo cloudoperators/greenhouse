@@ -127,7 +127,7 @@ var _ = Describe("HelmControllerTest", Serial, func() {
 		// remember original chart loader, which is overwritten in some tests
 		tempChartLoader = helm.ChartLoader
 
-		testPluginDefinition = test.NewPluginDefinition(test.Ctx, PluginDefinitionName,
+		testPluginDefinition = test.NewPluginDefinition(PluginDefinitionName,
 			test.WithVersion(PluginDefinitionVersion),
 			test.WithHelmChart(&greenhousev1alpha1.HelmChartReference{
 				Name:       HelmChart,
@@ -167,7 +167,7 @@ var _ = Describe("HelmControllerTest", Serial, func() {
 		testTeam = test.NewTeam(test.Ctx, "suite-test-team", Namespace, test.WithTeamLabel(greenhouseapis.LabelKeySupportGroup, "true"))
 		Expect(test.K8sClient.Create(test.Ctx, testTeam)).Should(Succeed(), "there should be no error creating the Team")
 
-		testPlugin = test.NewPlugin(test.Ctx, PluginName, Namespace,
+		testPlugin = test.NewPlugin(PluginName, Namespace,
 			test.WithPluginDefinition(PluginDefinitionName),
 			test.WithPluginLabel(greenhouseapis.LabelKeyOwnedBy, testTeam.Name),
 			test.WithReleaseName(ReleaseName),
@@ -417,7 +417,7 @@ var _ = Describe("HelmControllerTest", Serial, func() {
 		)
 
 		By("creating a pluginDefinition with every type of option", func() {
-			complexPluginDefinition = test.NewPluginDefinition(test.Ctx, pluginWithEveryOption,
+			complexPluginDefinition = test.NewPluginDefinition(pluginWithEveryOption,
 				test.WithVersion(PluginDefinitionVersion),
 				test.WithHelmChart(&greenhousev1alpha1.HelmChartReference{
 					Name:       HelmChartWithAllOptions,
@@ -474,7 +474,7 @@ var _ = Describe("HelmControllerTest", Serial, func() {
 		})
 
 		By("creating a Plugin with every type of OptionValue", func() {
-			complexPlugin = test.NewPlugin(test.Ctx, pluginName, Namespace,
+			complexPlugin = test.NewPlugin(pluginName, Namespace,
 				test.WithPluginLabel(greenhouseapis.LabelKeyOwnedBy, testTeam.Name),
 				test.WithPluginDefinition(pluginWithEveryOption),
 				test.WithReleaseName(ReleaseName),
@@ -525,7 +525,7 @@ var _ = Describe("HelmControllerTest", Serial, func() {
 	})
 
 	DescribeTable("creating of Plugins with wrong OptionValues", func(option string, value any) {
-		plugin := test.NewPlugin(test.Ctx, "testPlugin", Namespace,
+		plugin := test.NewPlugin("testPlugin", Namespace,
 			test.WithPluginDefinition("testPlugin"),
 			test.WithReleaseName(ReleaseName),
 			test.WithPluginOptionValue(option, test.AsAPIExtensionJSON(value), nil))
@@ -570,7 +570,6 @@ var _ = When("the pluginDefinition is UI only", func() {
 	var uiPlugin *greenhousev1alpha1.Plugin
 	BeforeEach(func() {
 		uiPluginDefinition = test.NewPluginDefinition(
-			test.Ctx,
 			"myuiplugin",
 			test.WithVersion("1.0.0"),
 			test.WithoutHelmChart(),
@@ -579,7 +578,7 @@ var _ = When("the pluginDefinition is UI only", func() {
 				Version: "1.0.0",
 				URL:     "http://myapp.com",
 			}))
-		uiPlugin = test.NewPlugin(test.Ctx, "uiplugin", "default",
+		uiPlugin = test.NewPlugin("uiplugin", "default",
 			test.WithPluginDefinition("myuiplugin"),
 			test.WithReleaseName("myuiplugin-release"))
 

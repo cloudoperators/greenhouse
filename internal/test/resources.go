@@ -174,7 +174,7 @@ func AppendPluginOption(option greenhousev1alpha1.PluginOption) func(*greenhouse
 }
 
 // NewPluginDefinition returns a greenhousev1alpha1.PluginDefinition object. Opts can be used to set the desired state of the PluginDefinition.
-func NewPluginDefinition(ctx context.Context, name string, opts ...func(*greenhousev1alpha1.PluginDefinition)) *greenhousev1alpha1.PluginDefinition {
+func NewPluginDefinition(name string, opts ...func(*greenhousev1alpha1.PluginDefinition)) *greenhousev1alpha1.PluginDefinition {
 	pd := &greenhousev1alpha1.PluginDefinition{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "PluginDefinition",
@@ -286,7 +286,7 @@ func SetOptionValueForPlugin(plugin *greenhousev1alpha1.Plugin, key, value strin
 }
 
 // NewPlugin returns a greenhousev1alpha1.Plugin object. Opts can be used to set the desired state of the Plugin.
-func NewPlugin(ctx context.Context, name, namespace string, opts ...func(*greenhousev1alpha1.Plugin)) *greenhousev1alpha1.Plugin {
+func NewPlugin(name, namespace string, opts ...func(*greenhousev1alpha1.Plugin)) *greenhousev1alpha1.Plugin {
 	GinkgoHelper()
 	plugin := &greenhousev1alpha1.Plugin{
 		TypeMeta: metav1.TypeMeta{

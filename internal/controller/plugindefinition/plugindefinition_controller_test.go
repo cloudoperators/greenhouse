@@ -38,7 +38,7 @@ const (
 
 func mockPluginDefinition() *greenhousev1alpha1.PluginDefinition {
 	GinkgoHelper()
-	return test.NewPluginDefinition(test.Ctx, PluginDefinitionName,
+	return test.NewPluginDefinition(PluginDefinitionName,
 		test.WithVersion(PluginDefinitionVersion),
 		test.WithHelmChart(&greenhousev1alpha1.HelmChartReference{
 			Name:       HelmChart,
@@ -69,7 +69,7 @@ func mockPluginDefinition() *greenhousev1alpha1.PluginDefinition {
 
 func mockUIPluginDefinition() *greenhousev1alpha1.PluginDefinition {
 	GinkgoHelper()
-	pluginDefinition := test.NewPluginDefinition(test.Ctx, UIPluginDefinitionName, test.AppendPluginOption(
+	pluginDefinition := test.NewPluginDefinition(UIPluginDefinitionName, test.AppendPluginOption(
 		greenhousev1alpha1.PluginOption{
 			Name:    "test-plugin-definition-option-1",
 			Type:    "int",
