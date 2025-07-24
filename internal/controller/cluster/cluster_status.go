@@ -61,7 +61,7 @@ func (r *RemoteClusterReconciler) setConditions() lifecycle.Conditioner {
 		} else {
 			allNodesReadyCondition, clusterNodeStatus = r.reconcileNodeStatus(ctx, restClientGetter)
 			clusterAccessibleCondition = r.reconcilePermissions(ctx, restClientGetter)
-			resourcesDeployedCondition = r.reconcileBootstrapResources(ctx, cluster, restClientGetter, clusterSecret)
+			resourcesDeployedCondition = r.reconcileBootstrapResources(ctx, restClientGetter, clusterSecret)
 		}
 
 		readyCondition := r.reconcileReadyStatus(kubeConfigValidCondition, resourcesDeployedCondition)
@@ -117,7 +117,7 @@ func (r *RemoteClusterReconciler) checkDeletionSchedule(logger logr.Logger, clus
 	return deletionCondition
 }
 
-func (r *RemoteClusterReconciler) reconcileBootstrapResources(ctx context.Context, cluster *greenhousev1alpha1.Cluster, clientGetter genericclioptions.RESTClientGetter, secret *corev1.Secret) greenhousemetav1alpha1.Condition {
+func (r *RemoteClusterReconciler) reconcileBootstrapResources(ctx context.Context, clientGetter genericclioptions.RESTClientGetter, secret *corev1.Secret) greenhousemetav1alpha1.Condition {
 	if secret == nil {
 		return greenhousemetav1alpha1.UnknownCondition(greenhousev1alpha1.ManagedResourcesDeployed, "", "managed resources could not be validated")
 	}
@@ -127,20 +127,20 @@ func (r *RemoteClusterReconciler) reconcileBootstrapResources(ctx context.Contex
 		return greenhousemetav1alpha1.FalseCondition(greenhousev1alpha1.ManagedResourcesDeployed, "", err.Error())
 	}
 
-	if err := remoteClient.Get(ctx, client.ObjectKey{Name: cluster.GetNamespace()}, &corev1.Namespace{}); err != nil {
+	if err := remoteClient.Get(ctx, client.ObjectKey{Name: secret.GetNamespace()}, &corev1.Namespace{}); err != nil {
 		if apierrors.IsNotFound(err) {
 			return greenhousemetav1alpha1.FalseCondition(greenhousev1alpha1.ManagedResourcesDeployed, "",
-				fmt.Sprintf("Namespace %s not found in remote cluster", cluster.GetNamespace()))
+				fmt.Sprintf("Namespace %s not found in remote cluster", secret.GetNamespace()))
 		}
 
 		return greenhousemetav1alpha1.FalseCondition(greenhousev1alpha1.ManagedResourcesDeployed, "", err.Error())
 	}
 
 	if secret.Type != greenhouseapis.SecretTypeOIDCConfig {
-		if err := remoteClient.Get(ctx, client.ObjectKey{Namespace: cluster.GetNamespace(), Name: utils.ServiceAccountName}, &corev1.ServiceAccount{}); err != nil {
+		if err := remoteClient.Get(ctx, client.ObjectKey{Namespace: secret.GetNamespace(), Name: utils.ServiceAccountName}, &corev1.ServiceAccount{}); err != nil {
 			if apierrors.IsNotFound(err) {
 				return greenhousemetav1alpha1.FalseCondition(greenhousev1alpha1.ManagedResourcesDeployed, "",
-					fmt.Sprintf("ServiceAccount %s in namespace %s not found in remote cluster", utils.ServiceAccountName, cluster.GetNamespace()))
+					fmt.Sprintf("ServiceAccount %s in namespace %s not found in remote cluster", utils.ServiceAccountName, secret.GetNamespace()))
 			}
 
 			return greenhousemetav1alpha1.FalseCondition(greenhousev1alpha1.ManagedResourcesDeployed, "", err.Error())
