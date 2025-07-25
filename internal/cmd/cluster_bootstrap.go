@@ -7,6 +7,7 @@ import (
 	"context"
 	"errors"
 	"flag"
+	"fmt"
 	"os"
 	"strings"
 	"time"
@@ -14,7 +15,6 @@ import (
 	"github.com/spf13/cobra"
 	"go.uber.org/zap/zapcore"
 	authenticationv1 "k8s.io/api/authentication/v1"
-	authorizationv1 "k8s.io/api/authorization/v1"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -33,6 +33,7 @@ import (
 	greenhouseapis "github.com/cloudoperators/greenhouse/api"
 	greenhouseapisv1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
 	"github.com/cloudoperators/greenhouse/internal/clientutil"
+	"github.com/cloudoperators/greenhouse/internal/common"
 	clustercontroller "github.com/cloudoperators/greenhouse/internal/controller/cluster/utils"
 )
 
@@ -44,20 +45,6 @@ var (
 	setupLog                 = ctrl.Log.WithName("setup")
 	clusterBootstrapCmdUsage = "bootstrap"
 	ctx                      = context.Background()
-	// Permission map for the greenhouse cluster
-	greenhousePermission = map[string][]string{
-		"createCluster": {"create", "greenhouse.sap", "clusters"},
-		"deleteCluster": {"delete", "greenhouse.sap", "clusters"},
-		"updateCluster": {"update", "greenhouse.sap", "clusters"},
-		"patchCluster":  {"patch", "greenhouse.sap", "clusters"},
-		"createSecret":  {"create", "", "secrets"},
-		"updateSecret":  {"update", "", "secrets"},
-		"patchSecret":   {"patch", "", "secrets"},
-	}
-	// Permission map for the customer cluster
-	clientClusterPermission = map[string][]string{
-		"clusterAdmin": {"*", "*", "*"},
-	}
 )
 
 type newClusterBootstrapOptions struct {
@@ -146,14 +133,14 @@ func (o *newClusterBootstrapOptions) permissionCheck() (err error) {
 		setupLog.Error(clientErr, "", "clusterName", o.customerConfig.Host)
 		return clientErr
 	}
-	greenhouseMissingPermissions := checkPermissionMap(o.ghClient, greenhousePermission, o.onBehafOfUser, o.orgName)
+	greenhouseMissingPermissions := common.CheckGreenhousePermission(ctx, o.ghClient, o.onBehafOfUser, o.orgName)
 	if len(greenhouseMissingPermissions) > 0 {
-		setupLog.Info("Missing permissions: "+strings.Join(greenhouseMissingPermissions, ","), "clusterName", o.ghConfig.Host)
+		setupLog.Info("Missing permissions: "+fmt.Sprintf("%v", greenhouseMissingPermissions)+" clusterName", o.ghConfig.Host)
 	}
 
-	clientMissingPermissions := checkPermissionMap(o.customerClient, clientClusterPermission, o.onBehafOfUser, corev1.NamespaceDefault)
+	clientMissingPermissions := common.CheckClientClusterPermission(ctx, o.customerClient, o.onBehafOfUser, corev1.NamespaceDefault)
 	if len(clientMissingPermissions) > 0 {
-		setupLog.Info("Missing permissions: "+strings.Join(clientMissingPermissions, ","), "clusterName", o.customerConfig.Host)
+		setupLog.Info("Missing permissions: "+fmt.Sprintf("%v", clientMissingPermissions)+" clusterName", o.customerConfig.Host)
 	}
 
 	if clientMissingPermissions != nil || greenhouseMissingPermissions != nil {
@@ -293,46 +280,6 @@ func createClusterRoleBindingInRemoteCluster(ctx context.Context, k8sClient clie
 		setupLog.Info("updated clusterRoleBinding", "name", clusterRoleBinding.Name)
 	}
 	return nil
-}
-
-func canI(kubeClient client.Client, namespace, user, verb, group, resourceType string) bool {
-	if user == "" {
-		accessReview := &authorizationv1.SelfSubjectAccessReview{
-			Spec: authorizationv1.SelfSubjectAccessReviewSpec{
-				ResourceAttributes: &authorizationv1.ResourceAttributes{
-					Namespace: namespace,
-					Verb:      verb,
-					Group:     group,
-					Resource:  resourceType,
-				},
-			},
-		}
-
-		return kubeClient.Create(ctx, accessReview) == nil && accessReview.Status.Allowed
-	} else {
-		accessReview := &authorizationv1.SubjectAccessReview{
-			Spec: authorizationv1.SubjectAccessReviewSpec{
-				ResourceAttributes: &authorizationv1.ResourceAttributes{
-					Namespace: namespace,
-					Verb:      verb,
-					Group:     group,
-					Resource:  resourceType,
-				},
-				User: user,
-			},
-		}
-
-		return kubeClient.Create(ctx, accessReview) == nil && accessReview.Status.Allowed
-	}
-}
-
-func checkPermissionMap(kubeClient client.Client, permissionMap map[string][]string, user, nameSpace string) (missingPermission []string) {
-	for permissionName, permission := range permissionMap {
-		if !canI(kubeClient, nameSpace, user, permission[0], permission[1], permission[2]) {
-			missingPermission = append(missingPermission, permissionName)
-		}
-	}
-	return missingPermission
 }
 
 func (o *newClusterBootstrapOptions) isClusterAlreadyBootstraped(ctx context.Context) bool {
