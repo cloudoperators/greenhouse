@@ -1,0 +1,16 @@
+groups:
+  - name: greenhouse-resource.rules
+    rules:
+    - alert: GreenhouseResourceOwnedByLabelMissing
+      annotations:
+        summary: "The greenhouse.sap/owned-by label is missing on resource"
+        description: "{{ $labels.resource_kind }} {{ $labels.resource_name }} in organization {{ $labels.organization }} is missing the greenhouse.sap/owned-by label"
+      expr: greenhouse_owned_by_label_missing == 1
+      for: 15m
+      labels:
+        severity: warning
+        service: greenhouse
+        resource_kind: '{{ $labels.resource_kind }}'
+        resource_name: '{{ $labels.resource_name }}'
+        organization: '{{ $labels.organization }}'
+        support_group: '{{ $labels.organization }}-admin'  # routed to the org-admin team
