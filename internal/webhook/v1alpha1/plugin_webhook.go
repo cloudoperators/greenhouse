@@ -110,10 +110,15 @@ func ValidateCreatePlugin(ctx context.Context, c client.Client, obj runtime.Obje
 	}
 
 	pluginDefinition := new(greenhousev1alpha1.PluginDefinition)
+	if plugin.Spec.PluginDefinition == "" {
+		return nil, field.Required(field.NewPath("spec").Child("pluginDefinition"), "PluginDefinition must be set")
+	}
 	err := c.Get(ctx, client.ObjectKey{Namespace: "", Name: plugin.Spec.PluginDefinition}, pluginDefinition)
 	if err != nil {
-		// TODO: provide actual APIError
-		return nil, err
+		if apierrors.IsNotFound(err) {
+			return nil, field.NotFound(field.NewPath("spec").Child("pluginDefinition"), plugin.Spec.PluginDefinition)
+		}
+		return nil, field.InternalError(field.NewPath("spec").Child("pluginDefinition"), err)
 	}
 
 	if err := validateReleaseName(plugin.Spec.ReleaseName); err != nil {
