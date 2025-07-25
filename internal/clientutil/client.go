@@ -5,6 +5,7 @@ package clientutil
 
 import (
 	"context"
+	"time"
 
 	corev1 "k8s.io/api/core/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
@@ -14,6 +15,7 @@ import (
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
+	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	helmv2 "github.com/fluxcd/helm-controller/api/v2"
@@ -38,6 +40,28 @@ func init() {
 	} {
 		utilruntime.Must(addToSchemeFunc(Scheme))
 	}
+}
+
+// GetConfigOrDie wraps ctrl.GetConfigOrDie and checks if the Kubernetes apiserver
+// has PriorityAndFairness flow control filter enabled. If true, it returns a rest.Config
+// with client side throttling disabled. Otherwise, it returns plain rest.Config
+// TODO: pass burst options if we want to enable client side throttling, can come as args
+
+func GetConfigOrDieWithPriorityAndFairness() *rest.Config {
+	// create a context with a timeout to avoid hanging indefinitely
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	config := ctrl.GetConfigOrDie()
+	enabled, err := isPriorityAndFairnessEnabled(ctx, config)
+	if err == nil && enabled {
+		// A negative QPS and Burst indicates that the client should not have a rate limiter.
+		// Ref: https://github.com/kubernetes/kubernetes/blob/v1.24.0/staging/src/k8s.io/client-go/rest/config.go#L354-L364
+		config.QPS = -1
+		config.Burst = -1
+		return config
+	}
+	// in case of an error, return the config as is with default throttling settings done under the hood.
+	return config
 }
 
 // NewK8sClient returns a Kubernetes client with registered schemes for the given config or an error.

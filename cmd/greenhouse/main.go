@@ -141,7 +141,9 @@ func main() {
 		isEnableLeaderElection = false
 	}
 
-	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
+	restConfig := clientutil.GetConfigOrDieWithPriorityAndFairness()
+
+	mgr, err := ctrl.NewManager(restConfig, ctrl.Options{
 		Scheme: scheme,
 		Metrics: metricsserver.Options{
 			BindAddress: metricsAddr,
