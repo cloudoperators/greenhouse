@@ -9,6 +9,7 @@ import (
 
 	greenhouseapis "github.com/cloudoperators/greenhouse/api"
 	greenhousecluster "github.com/cloudoperators/greenhouse/internal/controller/cluster"
+	greenhouseDef "github.com/cloudoperators/greenhouse/internal/controller/plugindefinition"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -39,9 +40,11 @@ func TestHelmController(t *testing.T) {
 var _ = BeforeSuite(func() {
 	test.RegisterController("plugin", (&PluginReconciler{KubeRuntimeOpts: clientutil.RuntimeOptions{QPS: 5, Burst: 10}}).SetupWithManager)
 	test.RegisterController("pluginPreset", (&PluginPresetReconciler{}).SetupWithManager)
+	test.RegisterController("pluginDefinition", (&greenhouseDef.PluginDefinitionReconciler{}).SetupWithManager)
 	test.RegisterController("cluster", (&greenhousecluster.RemoteClusterReconciler{}).SetupWithManager)
 	test.RegisterWebhook("TeamWebhook", webhookv1alpha1.SetupTeamWebhookWithManager)
 	test.RegisterWebhook("pluginDefinitionWebhook", webhookv1alpha1.SetupPluginDefinitionWebhookWithManager)
+	test.RegisterWebhook("clusterPluginDefinitionWebhook", webhookv1alpha1.SetupClusterPluginDefinitionWebhookWithManager)
 	test.RegisterWebhook("pluginWebhook", webhookv1alpha1.SetupPluginWebhookWithManager)
 	test.RegisterWebhook("clusterWebhook", webhookv1alpha1.SetupClusterWebhookWithManager)
 	test.RegisterWebhook("secretsWebhook", webhookv1alpha1.SetupSecretWebhookWithManager)
@@ -76,7 +79,6 @@ var _ = Describe("HelmControllerTest", Serial, func() {
 		PluginDefinitionName           = "mytestplugin"
 		PluginDefinitionVersion        = "1.0.0"
 		PluginDefinitionVersionUpdated = "1.1.0"
-		PluginDefinitionChartName      = "myTestpluginChart"
 		PluginDefinitionChartVersion   = "1.0.0"
 
 		PluginOptionRequired     = "myRequiredOption"
@@ -198,9 +200,14 @@ var _ = Describe("HelmControllerTest", Serial, func() {
 
 	When("a pluginDefinition and its chart were updated", func() {
 		It("should reconcile the Plugin to a newer PluginDefinition version", func() {
-			testPluginDefinition.Spec.HelmChart.Name = HelmChartUpdated
-			testPluginDefinition.Spec.Version = PluginDefinitionVersionUpdated
-			Expect(test.K8sClient.Update(test.Ctx, testPluginDefinition)).Should(Succeed())
+			Eventually(func(g Gomega) bool {
+				err := test.K8sClient.Get(test.Ctx, pluginDefinitionID, testPluginDefinition)
+				g.Expect(err).ToNot(HaveOccurred(), "there should be no error getting the pluginDefinition")
+				testPluginDefinition.Spec.HelmChart.Name = HelmChartUpdated
+				testPluginDefinition.Spec.Version = PluginDefinitionVersionUpdated
+				g.Expect(test.K8sClient.Update(test.Ctx, testPluginDefinition)).Should(Succeed())
+				return true
+			}).Should(BeTrue())
 
 			actPluginDefinition := &greenhousev1alpha1.PluginDefinition{}
 			Eventually(func(g Gomega) bool {
@@ -243,8 +250,13 @@ var _ = Describe("HelmControllerTest", Serial, func() {
 	When("the pluginDefinition version was increased", func() {
 		It("should reconcile the Plugin", func() {
 			By("increasing the pluginDefinition version")
-			testPluginDefinition.Spec.Version = PluginDefinitionVersionUpdated
-			Expect(test.K8sClient.Update(test.Ctx, testPluginDefinition)).Should(Succeed())
+			Eventually(func(g Gomega) bool {
+				err := test.K8sClient.Get(test.Ctx, pluginDefinitionID, testPluginDefinition)
+				g.Expect(err).ToNot(HaveOccurred(), "there should be no error getting the pluginDefinition")
+				testPluginDefinition.Spec.Version = PluginDefinitionVersionUpdated
+				g.Expect(test.K8sClient.Update(test.Ctx, testPluginDefinition)).Should(Succeed())
+				return true
+			}).Should(BeTrue())
 			actPluginDefinition := &greenhousev1alpha1.PluginDefinition{}
 			Eventually(func(g Gomega) bool {
 				err := test.K8sClient.Get(test.Ctx, pluginDefinitionID, actPluginDefinition)
@@ -274,7 +286,7 @@ var _ = Describe("HelmControllerTest", Serial, func() {
 	When("the pluginDefinition version was increased but the chart was changed without increasing the version", func() {
 		It("should verify the Plugin was reconciled", func() {
 			By("injecting different helm values for the same chart version")
-			helm.ChartLoader = helm.ChartLoaderFunc(func(name string) (*chart.Chart, error) {
+			helm.ChartLoader = func(name string) (*chart.Chart, error) {
 				values := map[string]any{
 					"imageTag": UpdatedImageVersion,
 				}
@@ -284,10 +296,15 @@ var _ = Describe("HelmControllerTest", Serial, func() {
 				}
 				chart.Values = values
 				return chart, nil
-			})
+			}
 			By("increasing the pluginDefinition version")
-			testPluginDefinition.Spec.Version = PluginDefinitionVersionUpdated
-			Expect(test.K8sClient.Update(test.Ctx, testPluginDefinition)).Should(Succeed())
+			Eventually(func(g Gomega) bool {
+				err := test.K8sClient.Get(test.Ctx, pluginDefinitionID, testPluginDefinition)
+				g.Expect(err).ToNot(HaveOccurred(), "there should be no error getting the pluginDefinition")
+				testPluginDefinition.Spec.Version = PluginDefinitionVersionUpdated
+				g.Expect(test.K8sClient.Update(test.Ctx, testPluginDefinition)).Should(Succeed())
+				return true
+			}).Should(BeTrue())
 			actPluginDefinition := &greenhousev1alpha1.PluginDefinition{}
 			Eventually(func(g Gomega) bool {
 				err := test.K8sClient.Get(test.Ctx, pluginDefinitionID, actPluginDefinition)
@@ -327,20 +344,24 @@ var _ = Describe("HelmControllerTest", Serial, func() {
 
 	When("the pluginDefinition has a chart depending on an older version of kubernetes", func() {
 		It("should not reconcile the Plugin", func() {
-
 			By("injecting an old kubernetes version for the chart")
-			helm.ChartLoader = helm.ChartLoaderFunc(func(name string) (*chart.Chart, error) {
+			helm.ChartLoader = func(name string) (*chart.Chart, error) {
 				chart, err := loader.Load(name)
 				if err != nil {
 					return nil, err
 				}
 				chart.Metadata.KubeVersion = "<=1.20.0-0"
 				return chart, nil
-			})
+			}
 
 			By("increasing the pluginDefinition version")
-			testPluginDefinition.Spec.Version = PluginDefinitionVersionUpdated
-			Expect(test.K8sClient.Update(test.Ctx, testPluginDefinition)).Should(Succeed())
+			Eventually(func(g Gomega) bool {
+				err := test.K8sClient.Get(test.Ctx, pluginDefinitionID, testPluginDefinition)
+				g.Expect(err).ToNot(HaveOccurred(), "there should be no error getting the pluginDefinition")
+				testPluginDefinition.Spec.Version = PluginDefinitionVersionUpdated
+				g.Expect(test.K8sClient.Update(test.Ctx, testPluginDefinition)).Should(Succeed())
+				return true
+			}).Should(BeTrue())
 			actPluginDefinition := &greenhousev1alpha1.PluginDefinition{}
 			Eventually(func(g Gomega) bool {
 				err := test.K8sClient.Get(test.Ctx, pluginDefinitionID, actPluginDefinition)
