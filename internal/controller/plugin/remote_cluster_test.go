@@ -36,14 +36,14 @@ var (
 var (
 	testTeam = test.NewTeam(test.Ctx, "test-remotecluster-team", test.TestNamespace, test.WithTeamLabel(greenhouseapis.LabelKeySupportGroup, "true"))
 
-	testPlugin = test.NewPlugin(test.Ctx, "test-plugindefinition", test.TestNamespace,
+	testPlugin = test.NewPlugin("test-plugindefinition", test.TestNamespace,
 		test.WithCluster("test-cluster"),
 		test.WithPluginDefinition("test-plugindefinition"),
 		test.WithReleaseName("release-test"),
 		test.WithReleaseNamespace(test.TestNamespace),
 		test.WithPluginLabel(greenhouseapis.LabelKeyOwnedBy, testTeam.Name))
 
-	testPluginWithSR = test.NewPlugin(test.Ctx, "test-plugin-secretref", test.TestNamespace,
+	testPluginWithSR = test.NewPlugin("test-plugin-secretref", test.TestNamespace,
 		test.WithCluster("test-cluster"),
 		test.WithPluginDefinition("test-plugindefinition"),
 		test.WithReleaseName("release-with-secretref"),
@@ -56,7 +56,7 @@ var (
 		test.WithPluginLabel(greenhouseapis.LabelKeyOwnedBy, testTeam.Name),
 	)
 
-	testPluginWithCRDs = test.NewPlugin(test.Ctx, "test-plugin-crd", test.TestNamespace,
+	testPluginWithCRDs = test.NewPlugin("test-plugin-crd", test.TestNamespace,
 		test.WithCluster(testCluster.GetName()),
 		test.WithPluginDefinition("test-plugindefinition-crd"),
 		test.WithReleaseName("plugindefinition-crd"),
@@ -64,7 +64,7 @@ var (
 		test.WithPluginLabel(greenhouseapis.LabelKeyOwnedBy, testTeam.Name),
 	)
 
-	testPluginWithExposedService = test.NewPlugin(test.Ctx, "test-plugin-exposed", test.TestNamespace,
+	testPluginWithExposedService = test.NewPlugin("test-plugin-exposed", test.TestNamespace,
 		test.WithCluster(testCluster.GetName()),
 		test.WithPluginDefinition("test-plugindefinition-exposed"),
 		test.WithReleaseName("plugindefinition-exposed"),
@@ -87,13 +87,9 @@ var (
 		},
 	}
 
-	testPluginDefinition = test.NewPluginDefinition(
-		test.Ctx,
-		"test-plugindefinition",
-	)
+	testPluginDefinition = test.NewPluginDefinition("test-plugindefinition")
 
 	testPluginWithHelmChartCRDs = test.NewPluginDefinition(
-		test.Ctx,
 		"test-plugindefinition-crd",
 		test.WithHelmChart(&greenhousev1alpha1.HelmChartReference{
 			Name:       "./../../test/fixtures/myChartWithCRDs",
@@ -103,7 +99,6 @@ var (
 	)
 
 	pluginDefinitionWithExposedService = test.NewPluginDefinition(
-		test.Ctx,
 		"test-plugindefinition-exposed",
 		test.WithHelmChart(&greenhousev1alpha1.HelmChartReference{
 			Name:       "./../../test/fixtures/chartWithExposedService",
@@ -273,7 +268,7 @@ var _ = Describe("HelmController reconciliation", Ordered, func() {
 	})
 
 	It("should correctly handle the plugin on a referenced cluster with a different namespace", func() {
-		testPluginInDifferentNamespace := test.NewPlugin(test.Ctx, "test-plugin-in-made-up-namespace", test.TestNamespace,
+		testPluginInDifferentNamespace := test.NewPlugin("test-plugin-in-made-up-namespace", test.TestNamespace,
 			test.WithPluginLabel(greenhouseapis.LabelKeyOwnedBy, testTeam.Name),
 			test.WithCluster(testCluster.GetName()),
 			test.WithPluginDefinition(testPluginDefinition.GetName()),
