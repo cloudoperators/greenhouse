@@ -154,9 +154,11 @@ var _ = Describe("Cluster status", Ordered, func() {
 			g.Expect(validCluster.Status.GetConditionByType(greenhousev1alpha1.AllNodesReady)).ToNot(BeNil(), "The AllNodesReady condition should be present")
 			g.Expect(validCluster.Status.GetConditionByType(greenhousev1alpha1.AllNodesReady).Status).To(Equal(metav1.ConditionFalse))
 			g.Expect(validCluster.Status.GetConditionByType(greenhousev1alpha1.AllNodesReady).Message).To(ContainSubstring("test-node not ready, test-node-3 not ready"))
-			g.Expect(validCluster.Status.Nodes).ToNot(BeEmpty())
-			g.Expect(validCluster.Status.Nodes["test-node"].Conditions).ToNot(BeEmpty())
-			g.Expect(validCluster.Status.Nodes["test-node"].Ready).To(BeFalse())
+			// Validate the counts of total and ready nodes.
+			g.Expect(validCluster.Status.Nodes).ToNot((BeNil()))
+			g.Expect(validCluster.Status.Nodes.Total).To(Equal(int32(3)))
+			g.Expect(validCluster.Status.Nodes.Ready).To(Equal(int32(1)))
+			g.Expect(validCluster.Status.Nodes.NotReady).To(HaveLen(2))
 		}).Should(Succeed())
 
 		By("updating the node ready condition")
@@ -214,9 +216,11 @@ var _ = Describe("Cluster status", Ordered, func() {
 			g.Expect(validCluster.Status.GetConditionByType(greenhousev1alpha1.AllNodesReady)).ToNot(BeNil(), "The AllNodesReady condition should be present")
 			g.Expect(validCluster.Status.GetConditionByType(greenhousev1alpha1.AllNodesReady).Status).To(Equal(metav1.ConditionTrue), "The AllNodesReady condition should be true")
 			g.Expect(validCluster.Status.GetConditionByType(greenhousev1alpha1.AllNodesReady).Message).To(BeEmpty())
-			g.Expect(validCluster.Status.Nodes).ToNot(BeEmpty())
-			g.Expect(validCluster.Status.Nodes["test-node"].Conditions).ToNot(BeEmpty())
-			g.Expect(validCluster.Status.Nodes["test-node"].Ready).To(BeTrue())
+			// Validate the counts of total and ready nodes.
+			g.Expect(validCluster.Status.Nodes).ToNot((BeNil()))
+			g.Expect(validCluster.Status.Nodes.Total).To(Equal(int32(3)))
+			g.Expect(validCluster.Status.Nodes.Ready).To(Equal(int32(3)))
+			g.Expect(validCluster.Status.Nodes.NotReady).To(BeEmpty())
 		}).Should(Succeed())
 
 		By("checking cluster ready condition")
