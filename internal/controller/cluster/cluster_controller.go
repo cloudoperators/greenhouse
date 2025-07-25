@@ -142,7 +142,18 @@ func (r *RemoteClusterReconciler) EnsureCreated(ctx context.Context, resource li
 	if err := r.reconcileServiceAccountToken(ctx, restClientGetter, remoteClient, cluster, clusterSecret.Type); err != nil {
 		return ctrl.Result{}, lifecycle.Failed, err
 	}
+
+	setOwnerStatus(cluster)
 	return ctrl.Result{RequeueAfter: utils.DefaultRequeueInterval}, lifecycle.Success, nil
+}
+
+func setOwnerStatus(cluster *greenhousev1alpha1.Cluster) {
+	labels := cluster.GetLabels()
+	if labels != nil {
+		if owner, ok := labels[greenhouseapis.LabelKeyOwnedBy]; ok {
+			cluster.Status.OwnedBy = owner
+		}
+	}
 }
 
 // reconcileClusterRoleBindingInRemoteCluster - creates or updates the cluster role binding in the remote cluster

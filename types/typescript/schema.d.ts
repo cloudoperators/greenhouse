@@ -297,6 +297,8 @@ export interface components {
                         };
                     };
                 };
+                /** @description OwnedBy reflects the owner of the cluster. */
+                ownedBy?: string;
                 /** @description StatusConditions contain the different conditions that constitute the status of the Cluster. */
                 statusConditions?: {
                     conditions?: {

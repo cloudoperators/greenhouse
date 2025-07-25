@@ -395,6 +395,9 @@ components:
                 type: object
               description: Nodes provides a map of cluster node names to node statuses
               type: object
+            ownedBy:
+              description: OwnedBy reflects the owner of the cluster.
+              type: string
             statusConditions:
               description: StatusConditions contain the different conditions that constitute the status of the Cluster.
               properties:

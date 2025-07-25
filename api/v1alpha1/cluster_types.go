@@ -58,6 +58,8 @@ type ClusterStatus struct {
 	greenhousemetav1alpha1.StatusConditions `json:"statusConditions,omitempty"`
 	// Nodes provides a map of cluster node names to node statuses
 	Nodes map[string]NodeStatus `json:"nodes,omitempty"`
+	// OwnedBy reflects the owner of the cluster.
+	OwnedBy string `json:"ownedBy,omitempty"`
 }
 
 // ClusterConditionType is a valid condition of a cluster.
@@ -75,6 +77,7 @@ type NodeStatus struct {
 //+kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp"
 //+kubebuilder:printcolumn:name="AccessMode",type="string",JSONPath=".spec.accessMode"
 //+kubebuilder:printcolumn:name="Ready",type="string",JSONPath=`.status.statusConditions.conditions[?(@.type == "Ready")].status`
+//+kubebuilder:printcolumn:name="OwnedBy",type="string",JSONPath=".status.ownedBy"
 
 // Cluster is the Schema for the clusters API
 type Cluster struct {

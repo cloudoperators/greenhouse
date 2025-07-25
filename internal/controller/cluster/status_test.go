@@ -116,7 +116,11 @@ var _ = Describe("Cluster status", Ordered, func() {
 		secret := setup.CreateSecret(test.Ctx, validClusterName,
 			test.WithSecretType(greenhouseapis.SecretTypeKubeConfig),
 			test.WithSecretData(map[string][]byte{greenhouseapis.KubeConfigKey: remoteKubeConfig}),
-			test.WithSecretLabel(greenhouseapis.LabelKeyOwnedBy, team.Name))
+			test.WithSecretLabel(greenhouseapis.LabelKeyOwnedBy, team.Name),
+			test.WithSecretAnnotations(map[string]string{
+				lifecycle.PropagateLabelsAnnotation: greenhouseapis.LabelKeyOwnedBy,
+			}),
+		)
 
 		By("Checking the cluster resource has been created")
 		Eventually(func() error {
@@ -208,6 +212,7 @@ var _ = Describe("Cluster status", Ordered, func() {
 			g.Expect(readyCondition).ToNot(BeNil(), "The ClusterReady condition should be present")
 			g.Expect(readyCondition.Status).To(Equal(metav1.ConditionTrue))
 			g.Expect(validCluster.Status.KubernetesVersion).ToNot(BeNil())
+			g.Expect(validCluster.Status.OwnedBy).To(Equal(team.Name), "The cluster should be owned by the team")
 			return true
 		}).Should(BeTrue())
 
