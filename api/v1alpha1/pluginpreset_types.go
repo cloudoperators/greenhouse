@@ -84,12 +84,12 @@ type PluginPreset struct {
 	Status PluginPresetStatus `json:"status,omitempty"`
 }
 
-func (c *PluginPreset) GetConditions() greenhousemetav1alpha1.StatusConditions {
-	return c.Status.StatusConditions
+func (pp *PluginPreset) GetConditions() greenhousemetav1alpha1.StatusConditions {
+	return pp.Status.StatusConditions
 }
 
-func (c *PluginPreset) SetCondition(condition greenhousemetav1alpha1.Condition) {
-	c.Status.SetConditions(condition)
+func (pp *PluginPreset) SetCondition(condition greenhousemetav1alpha1.Condition) {
+	pp.Status.SetConditions(condition)
 }
 
 //+kubebuilder:object:root=true
