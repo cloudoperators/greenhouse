@@ -114,7 +114,7 @@ webhooks:
         namespace: greenhouse
         path: /mutate-greenhouse-sap-v1alpha1-pluginpreset
     failurePolicy: Fail
-    name: mpluginpreset.kb.io
+    name: mpluginpreset-v1alpha1.kb.io
     rules:
       - apiGroups:
           - greenhouse.sap
@@ -212,6 +212,26 @@ webhooks:
           - UPDATE
         resources:
           - teamroles
+    sideEffects: None
+  - admissionReviewVersions:
+      - v1
+    clientConfig:
+      service:
+        name: greenhouse-webhook-service
+        namespace: greenhouse
+        path: /mutate-greenhouse-sap-v1alpha2-pluginpreset
+    failurePolicy: Fail
+    name: mpluginpreset-v1alpha2.kb.io
+    rules:
+      - apiGroups:
+          - greenhouse.sap
+        apiVersions:
+          - v1alpha2
+        operations:
+          - CREATE
+          - UPDATE
+        resources:
+          - pluginpresets
     sideEffects: None
   - admissionReviewVersions:
       - v1
@@ -354,7 +374,7 @@ webhooks:
         namespace: greenhouse
         path: /validate-greenhouse-sap-v1alpha1-pluginpreset
     failurePolicy: Fail
-    name: vpluginpreset.kb.io
+    name: vpluginpreset-v1alpha1.kb.io
     rules:
       - apiGroups:
           - greenhouse.sap
@@ -457,6 +477,27 @@ webhooks:
           - DELETE
         resources:
           - teamroles
+    sideEffects: None
+  - admissionReviewVersions:
+      - v1
+    clientConfig:
+      service:
+        name: greenhouse-webhook-service
+        namespace: greenhouse
+        path: /validate-greenhouse-sap-v1alpha2-pluginpreset
+    failurePolicy: Fail
+    name: vpluginpreset-v1alpha2.kb.io
+    rules:
+      - apiGroups:
+          - greenhouse.sap
+        apiVersions:
+          - v1alpha2
+        operations:
+          - CREATE
+          - UPDATE
+          - DELETE
+        resources:
+          - pluginpresets
     sideEffects: None
   - admissionReviewVersions:
       - v1

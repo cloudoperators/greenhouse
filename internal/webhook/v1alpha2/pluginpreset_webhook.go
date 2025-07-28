@@ -33,7 +33,7 @@ func SetupPluginPresetWebhookWithManager(mgr ctrl.Manager) error {
 	)
 }
 
-//+kubebuilder:webhook:path=/mutate-greenhouse-sap-v1alpha1-pluginpreset,mutating=true,failurePolicy=fail,sideEffects=None,groups=greenhouse.sap,resources=pluginpresets,verbs=create;update,versions=v1alpha1,name=mpluginpreset.kb.io,admissionReviewVersions=v1
+//+kubebuilder:webhook:path=/mutate-greenhouse-sap-v1alpha2-pluginpreset,mutating=true,failurePolicy=fail,sideEffects=None,groups=greenhouse.sap,resources=pluginpresets,verbs=create;update,versions=v1alpha2,name=mpluginpreset-v1alpha2.kb.io,admissionReviewVersions=v1
 
 func DefaultPluginPreset(_ context.Context, _ client.Client, o runtime.Object) error {
 	pluginPreset, ok := o.(*greenhousev1alpha2.PluginPreset)
@@ -52,7 +52,7 @@ func DefaultPluginPreset(_ context.Context, _ client.Client, o runtime.Object) e
 	return nil
 }
 
-//+kubebuilder:webhook:path=/validate-greenhouse-sap-v1alpha1-pluginpreset,mutating=false,failurePolicy=fail,sideEffects=None,groups=greenhouse.sap,resources=pluginpresets,verbs=create;update;delete,versions=v1alpha1,name=vpluginpreset.kb.io,admissionReviewVersions=v1
+//+kubebuilder:webhook:path=/validate-greenhouse-sap-v1alpha2-pluginpreset,mutating=false,failurePolicy=fail,sideEffects=None,groups=greenhouse.sap,resources=pluginpresets,verbs=create;update;delete,versions=v1alpha2,name=vpluginpreset-v1alpha2.kb.io,admissionReviewVersions=v1
 
 func ValidateCreatePluginPreset(ctx context.Context, c client.Client, o runtime.Object) (admission.Warnings, error) {
 	pluginPreset, ok := o.(*greenhousev1alpha2.PluginPreset)

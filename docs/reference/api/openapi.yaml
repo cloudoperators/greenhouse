@@ -807,7 +807,7 @@ components:
     PluginPreset:
       xml:
         name: greenhouse.sap
-        namespace: v1alpha1
+        namespace: v1alpha2
       title: PluginPreset
       description: PluginPreset is the Schema for the PluginPresets API
       properties:
@@ -875,51 +875,58 @@ components:
                 type: object
               type: array
             clusterSelector:
-              description: ClusterSelector is a label selector to select the clusters the plugin bundle should be deployed to.
+              description: ClusterSelector is used to select a Cluster or Clusters the plugin bundle should be deployed to.
               properties:
-                matchExpressions:
-                  description: matchExpressions is a list of label selector requirements. The requirements are ANDed.
-                  items:
-                    description: |-
-                      A label selector requirement is a selector that contains values, a key, and an operator that
-                      relates the key and values.
-                    properties:
-                      key:
-                        description: key is the label key that the selector applies to.
-                        type: string
-                      operator:
+                clusterName:
+                  description: Name of a single Cluster to select.
+                  type: string
+                labelSelector:
+                  description: LabelSelector is a label query over a set of Clusters.
+                  properties:
+                    matchExpressions:
+                      description: matchExpressions is a list of label selector requirements. The requirements are ANDed.
+                      items:
                         description: |-
-                          operator represents a key's relationship to a set of values.
-                          Valid operators are In, NotIn, Exists and DoesNotExist.
+                          A label selector requirement is a selector that contains values, a key, and an operator that
+                          relates the key and values.
+                        properties:
+                          key:
+                            description: key is the label key that the selector applies to.
+                            type: string
+                          operator:
+                            description: |-
+                              operator represents a key's relationship to a set of values.
+                              Valid operators are In, NotIn, Exists and DoesNotExist.
+                            type: string
+                          values:
+                            description: |-
+                              values is an array of string values. If the operator is In or NotIn,
+                              the values array must be non-empty. If the operator is Exists or DoesNotExist,
+                              the values array must be empty. This array is replaced during a strategic
+                              merge patch.
+                            items:
+                              type: string
+                            type: array
+                            x-kubernetes-list-type: atomic
+                        required:
+                          - key
+                          - operator
+                        type: object
+                      type: array
+                      x-kubernetes-list-type: atomic
+                    matchLabels:
+                      additionalProperties:
                         type: string
-                      values:
-                        description: |-
-                          values is an array of string values. If the operator is In or NotIn,
-                          the values array must be non-empty. If the operator is Exists or DoesNotExist,
-                          the values array must be empty. This array is replaced during a strategic
-                          merge patch.
-                        items:
-                          type: string
-                        type: array
-                        x-kubernetes-list-type: atomic
-                    required:
-                      - key
-                      - operator
-                    type: object
-                  type: array
-                  x-kubernetes-list-type: atomic
-                matchLabels:
-                  additionalProperties:
-                    type: string
-                  description: |-
-                    matchLabels is a map of {key,value} pairs. A single {key,value} in the matchLabels
-                    map is equivalent to an element of matchExpressions, whose key field is "key", the
-                    operator is "In", and the values array contains only "value". The requirements are ANDed.
+                      description: |-
+                        matchLabels is a map of {key,value} pairs. A single {key,value} in the matchLabels
+                        map is equivalent to an element of matchExpressions, whose key field is "key", the
+                        operator is "In", and the values array contains only "value". The requirements are ANDed.
+                      type: object
                   type: object
+                  x-kubernetes-map-type: atomic
               type: object
-              x-kubernetes-map-type: atomic
             plugin:
-              description: PluginSpec is the spec of the plugin to be deployed by the PluginPreset.
+              description: Plugin is a template of the spec of the plugin to be deployed by the PluginPreset.
               properties:
                 clusterName:
                   description: ClusterName is the name of the cluster the plugin is deployed to. If not set, the plugin is deployed to the greenhouse cluster.
