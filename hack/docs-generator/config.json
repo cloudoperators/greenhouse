@@ -20,7 +20,7 @@
     },
     {
       "typeMatchPrefix": "^github\\.com/(cloudoperators/greenhouse/api/meta)/",
-      "docsURLTemplate": "https://pkg.go.dev/github.com/cloudoperators/greenhouse/api/v1alpha1#{{ .TypeIdentifier }}"
+      "docsURLTemplate": "https://pkg.go.dev/github.com/cloudoperators/greenhouse/api/meta/v1alpha1#{{ .TypeIdentifier }}"
     }
   ],
   "typeDisplayNamePrefixOverrides": {

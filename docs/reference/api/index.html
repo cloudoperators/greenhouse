@@ -692,7 +692,7 @@ ClusterKubeconfigData
 <td>
 <code>statusConditions</code><br>
 <em>
-<a href="https://pkg.go.dev/github.com/cloudoperators/greenhouse/api/v1alpha1#StatusConditions">
+<a href="https://pkg.go.dev/github.com/cloudoperators/greenhouse/api/meta/v1alpha1#StatusConditions">
 Greenhouse meta/v1alpha1.StatusConditions
 </a>
 </em>
@@ -735,8 +735,8 @@ string
 <td>
 <code>overrides</code><br>
 <em>
-<a href="#greenhouse.sap/v1alpha1.PluginOptionValue">
-[]PluginOptionValue
+<a href="https://pkg.go.dev/github.com/cloudoperators/greenhouse/api/meta/v1alpha1#PluginOptionValue">
+[]Greenhouse meta/v1alpha1.PluginOptionValue
 </a>
 </em>
 </td>
@@ -1015,7 +1015,7 @@ Kubernetes meta/v1.Time
 <td>
 <code>statusConditions</code><br>
 <em>
-<a href="https://pkg.go.dev/github.com/cloudoperators/greenhouse/api/v1alpha1#StatusConditions">
+<a href="https://pkg.go.dev/github.com/cloudoperators/greenhouse/api/meta/v1alpha1#StatusConditions">
 Greenhouse meta/v1alpha1.StatusConditions
 </a>
 </em>
@@ -1207,7 +1207,7 @@ string
 <td>
 <code>readyCondition</code><br>
 <em>
-<a href="https://pkg.go.dev/github.com/cloudoperators/greenhouse/api/v1alpha1#Condition">
+<a href="https://pkg.go.dev/github.com/cloudoperators/greenhouse/api/meta/v1alpha1#Condition">
 Greenhouse meta/v1alpha1.Condition
 </a>
 </em>
@@ -1239,7 +1239,7 @@ Greenhouse meta/v1alpha1.Condition
 <td>
 <code>statusConditions</code><br>
 <em>
-<a href="https://pkg.go.dev/github.com/cloudoperators/greenhouse/api/v1alpha1#StatusConditions">
+<a href="https://pkg.go.dev/github.com/cloudoperators/greenhouse/api/meta/v1alpha1#StatusConditions">
 Greenhouse meta/v1alpha1.StatusConditions
 </a>
 </em>
@@ -1306,8 +1306,8 @@ If none is specified, the Greenhouse ID proxy will be used.</p>
 <td>
 <code>clientIDReference</code><br>
 <em>
-<a href="#greenhouse.sap/v1alpha1.SecretKeyReference">
-SecretKeyReference
+<a href="https://pkg.go.dev/github.com/cloudoperators/greenhouse/api/meta/v1alpha1#SecretKeyReference">
+Greenhouse meta/v1alpha1.SecretKeyReference
 </a>
 </em>
 </td>
@@ -1319,8 +1319,8 @@ SecretKeyReference
 <td>
 <code>clientSecretReference</code><br>
 <em>
-<a href="#greenhouse.sap/v1alpha1.SecretKeyReference">
-SecretKeyReference
+<a href="https://pkg.go.dev/github.com/cloudoperators/greenhouse/api/meta/v1alpha1#SecretKeyReference">
+Greenhouse meta/v1alpha1.SecretKeyReference
 </a>
 </em>
 </td>
@@ -1561,7 +1561,7 @@ string
 <td>
 <code>statusConditions</code><br>
 <em>
-<a href="https://pkg.go.dev/github.com/cloudoperators/greenhouse/api/v1alpha1#StatusConditions">
+<a href="https://pkg.go.dev/github.com/cloudoperators/greenhouse/api/meta/v1alpha1#StatusConditions">
 Greenhouse meta/v1alpha1.StatusConditions
 </a>
 </em>
@@ -1642,8 +1642,8 @@ Defaults to a normalized version of metadata.name.</p>
 <td>
 <code>optionValues</code><br>
 <em>
-<a href="#greenhouse.sap/v1alpha1.PluginOptionValue">
-[]PluginOptionValue
+<a href="https://pkg.go.dev/github.com/cloudoperators/greenhouse/api/meta/v1alpha1#PluginOptionValue">
+[]Greenhouse meta/v1alpha1.PluginOptionValue
 </a>
 </em>
 </td>
@@ -2028,7 +2028,7 @@ Source needs to allow all CORS origins.</p>
 <td>
 <code>statusConditions</code><br>
 <em>
-<a href="https://pkg.go.dev/github.com/cloudoperators/greenhouse/api/v1alpha1#StatusConditions">
+<a href="https://pkg.go.dev/github.com/cloudoperators/greenhouse/api/meta/v1alpha1#StatusConditions">
 Greenhouse meta/v1alpha1.StatusConditions
 </a>
 </em>
@@ -2150,65 +2150,6 @@ string
 <a href="#greenhouse.sap/v1alpha1.PluginOption">PluginOption</a>)
 </p>
 <p>PluginOptionType specifies the type of PluginOption.</p>
-<h3 id="greenhouse.sap/v1alpha1.PluginOptionValue">PluginOptionValue
-</h3>
-<p>
-(<em>Appears on:</em>
-<a href="#greenhouse.sap/v1alpha1.ClusterOptionOverride">ClusterOptionOverride</a>, 
-<a href="#greenhouse.sap/v1alpha1.PluginSpec">PluginSpec</a>)
-</p>
-<p>PluginOptionValue is the value for a PluginOption.</p>
-<div class="md-typeset__scrollwrap">
-<div class="md-typeset__table">
-<table>
-<thead>
-<tr>
-<th>Field</th>
-<th>Description</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>
-<code>name</code><br>
-<em>
-string
-</em>
-</td>
-<td>
-<p>Name of the values.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>value</code><br>
-<em>
-<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#json-v1-apiextensions-k8s-io">
-Kubernetes apiextensions/v1.JSON
-</a>
-</em>
-</td>
-<td>
-<p>Value is the actual value in plain text.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>valueFrom</code><br>
-<em>
-<a href="#greenhouse.sap/v1alpha1.ValueFromSource">
-ValueFromSource
-</a>
-</em>
-</td>
-<td>
-<p>ValueFrom references a potentially confidential value in another source.</p>
-</td>
-</tr>
-</tbody>
-</table>
-</div>
-</div>
 <h3 id="greenhouse.sap/v1alpha1.PluginPreset">PluginPreset
 </h3>
 <p>PluginPreset is the Schema for the PluginPresets API</p>
@@ -2388,7 +2329,7 @@ Kubernetes meta/v1.LabelSelector
 <td>
 <code>statusConditions</code><br>
 <em>
-<a href="https://pkg.go.dev/github.com/cloudoperators/greenhouse/api/v1alpha1#StatusConditions">
+<a href="https://pkg.go.dev/github.com/cloudoperators/greenhouse/api/meta/v1alpha1#StatusConditions">
 Greenhouse meta/v1alpha1.StatusConditions
 </a>
 </em>
@@ -2493,8 +2434,8 @@ Defaults to a normalized version of metadata.name.</p>
 <td>
 <code>optionValues</code><br>
 <em>
-<a href="#greenhouse.sap/v1alpha1.PluginOptionValue">
-[]PluginOptionValue
+<a href="https://pkg.go.dev/github.com/cloudoperators/greenhouse/api/meta/v1alpha1#PluginOptionValue">
+[]Greenhouse meta/v1alpha1.PluginOptionValue
 </a>
 </em>
 </td>
@@ -2650,7 +2591,7 @@ It maps the exposed URL to the service found in the manifest.</p>
 <td>
 <code>statusConditions</code><br>
 <em>
-<a href="https://pkg.go.dev/github.com/cloudoperators/greenhouse/api/v1alpha1#StatusConditions">
+<a href="https://pkg.go.dev/github.com/cloudoperators/greenhouse/api/meta/v1alpha1#StatusConditions">
 Greenhouse meta/v1alpha1.StatusConditions
 </a>
 </em>
@@ -2695,7 +2636,7 @@ string
 <td>
 <code>condition</code><br>
 <em>
-<a href="https://pkg.go.dev/github.com/cloudoperators/greenhouse/api/v1alpha1#Condition">
+<a href="https://pkg.go.dev/github.com/cloudoperators/greenhouse/api/meta/v1alpha1#Condition">
 Greenhouse meta/v1alpha1.Condition
 </a>
 </em>
@@ -2750,8 +2691,8 @@ github.com/cloudoperators/greenhouse/internal/scim.AuthType
 <td>
 <code>basicAuthUser</code><br>
 <em>
-<a href="#greenhouse.sap/v1alpha1.ValueFromSource">
-ValueFromSource
+<a href="https://pkg.go.dev/github.com/cloudoperators/greenhouse/api/meta/v1alpha1#ValueFromSource">
+Greenhouse meta/v1alpha1.ValueFromSource
 </a>
 </em>
 </td>
@@ -2763,8 +2704,8 @@ ValueFromSource
 <td>
 <code>basicAuthPw</code><br>
 <em>
-<a href="#greenhouse.sap/v1alpha1.ValueFromSource">
-ValueFromSource
+<a href="https://pkg.go.dev/github.com/cloudoperators/greenhouse/api/meta/v1alpha1#ValueFromSource">
+Greenhouse meta/v1alpha1.ValueFromSource
 </a>
 </em>
 </td>
@@ -2776,8 +2717,8 @@ ValueFromSource
 <td>
 <code>bearerToken</code><br>
 <em>
-<a href="#greenhouse.sap/v1alpha1.ValueFromSource">
-ValueFromSource
+<a href="https://pkg.go.dev/github.com/cloudoperators/greenhouse/api/meta/v1alpha1#ValueFromSource">
+Greenhouse meta/v1alpha1.ValueFromSource
 </a>
 </em>
 </td>
@@ -2805,50 +2746,6 @@ string
 </td>
 <td>
 <p>BearerHeader to be used to defined bearer token header</p>
-</td>
-</tr>
-</tbody>
-</table>
-</div>
-</div>
-<h3 id="greenhouse.sap/v1alpha1.SecretKeyReference">SecretKeyReference
-</h3>
-<p>
-(<em>Appears on:</em>
-<a href="#greenhouse.sap/v1alpha1.OIDCConfig">OIDCConfig</a>, 
-<a href="#greenhouse.sap/v1alpha1.ValueFromSource">ValueFromSource</a>)
-</p>
-<p>SecretKeyReference specifies the secret and key containing the value.</p>
-<div class="md-typeset__scrollwrap">
-<div class="md-typeset__table">
-<table>
-<thead>
-<tr>
-<th>Field</th>
-<th>Description</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>
-<code>name</code><br>
-<em>
-string
-</em>
-</td>
-<td>
-<p>Name of the secret in the same namespace.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>key</code><br>
-<em>
-string
-</em>
-</td>
-<td>
-<p>Key in the secret to select the value from.</p>
 </td>
 </tr>
 </tbody>
@@ -3370,7 +3267,7 @@ bool
 <td>
 <code>statusConditions</code><br>
 <em>
-<a href="https://pkg.go.dev/github.com/cloudoperators/greenhouse/api/v1alpha1#StatusConditions">
+<a href="https://pkg.go.dev/github.com/cloudoperators/greenhouse/api/meta/v1alpha1#StatusConditions">
 Greenhouse meta/v1alpha1.StatusConditions
 </a>
 </em>
@@ -3537,7 +3434,7 @@ string
 <td>
 <code>statusConditions</code><br>
 <em>
-<a href="https://pkg.go.dev/github.com/cloudoperators/greenhouse/api/v1alpha1#StatusConditions">
+<a href="https://pkg.go.dev/github.com/cloudoperators/greenhouse/api/meta/v1alpha1#StatusConditions">
 Greenhouse meta/v1alpha1.StatusConditions
 </a>
 </em>
@@ -3682,14 +3579,16 @@ string
 </table>
 </div>
 </div>
-<h3 id="greenhouse.sap/v1alpha1.ValueFromSource">ValueFromSource
+<h2 id="greenhouse.sap/v1alpha2">greenhouse.sap/v1alpha2</h2>
+Resource Types:
+<ul class="simple"></ul>
+<h3 id="greenhouse.sap/v1alpha2.ClusterOptionOverride">ClusterOptionOverride
 </h3>
 <p>
 (<em>Appears on:</em>
-<a href="#greenhouse.sap/v1alpha1.PluginOptionValue">PluginOptionValue</a>, 
-<a href="#greenhouse.sap/v1alpha1.SCIMConfig">SCIMConfig</a>)
+<a href="#greenhouse.sap/v1alpha2.PluginPresetSpec">PluginPresetSpec</a>)
 </p>
-<p>ValueFromSource is a valid source for a value.</p>
+<p>ClusterOptionOverride defines which plugin option should be override in which cluster</p>
 <div class="md-typeset__scrollwrap">
 <div class="md-typeset__table">
 <table>
@@ -3702,28 +3601,35 @@ string
 <tbody>
 <tr>
 <td>
-<code>secret</code><br>
+<code>clusterName</code><br>
 <em>
-<a href="#greenhouse.sap/v1alpha1.SecretKeyReference">
-SecretKeyReference
+string
+</em>
+</td>
+<td>
+</td>
+</tr>
+<tr>
+<td>
+<code>overrides</code><br>
+<em>
+<a href="https://pkg.go.dev/github.com/cloudoperators/greenhouse/api/meta/v1alpha1#PluginOptionValue">
+[]Greenhouse meta/v1alpha1.PluginOptionValue
 </a>
 </em>
 </td>
 <td>
-<p>Secret references the secret containing the value.</p>
 </td>
 </tr>
 </tbody>
 </table>
 </div>
 </div>
-<h2 id="greenhouse.sap/v1alpha2">greenhouse.sap/v1alpha2</h2>
-Resource Types:
-<ul class="simple"></ul>
 <h3 id="greenhouse.sap/v1alpha2.ClusterSelector">ClusterSelector
 </h3>
 <p>
 (<em>Appears on:</em>
+<a href="#greenhouse.sap/v1alpha2.PluginPresetSpec">PluginPresetSpec</a>, 
 <a href="#greenhouse.sap/v1alpha2.TeamRoleBindingSpec">TeamRoleBindingSpec</a>)
 </p>
 <p>ClusterSelector specifies a selector for clusters by name or by label</p>
@@ -3765,6 +3671,381 @@ Kubernetes meta/v1.LabelSelector
 </table>
 </div>
 </div>
+<h3 id="greenhouse.sap/v1alpha2.ManagedPluginStatus">ManagedPluginStatus
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#greenhouse.sap/v1alpha2.PluginPresetStatus">PluginPresetStatus</a>)
+</p>
+<p>ManagedPluginStatus defines the Ready condition of a managed Plugin identified by its name.</p>
+<div class="md-typeset__scrollwrap">
+<div class="md-typeset__table">
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>pluginName</code><br>
+<em>
+string
+</em>
+</td>
+<td>
+</td>
+</tr>
+<tr>
+<td>
+<code>readyCondition</code><br>
+<em>
+<a href="https://pkg.go.dev/github.com/cloudoperators/greenhouse/api/meta/v1alpha1#Condition">
+Greenhouse meta/v1alpha1.Condition
+</a>
+</em>
+</td>
+<td>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<h3 id="greenhouse.sap/v1alpha2.PluginPreset">PluginPreset
+</h3>
+<p>PluginPreset is the Schema for the PluginPresets API</p>
+<div class="md-typeset__scrollwrap">
+<div class="md-typeset__table">
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>metadata</code><br>
+<em>
+<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#objectmeta-v1-meta">
+Kubernetes meta/v1.ObjectMeta
+</a>
+</em>
+</td>
+<td>
+Refer to the Kubernetes API documentation for the fields of the
+<code>metadata</code> field.
+</td>
+</tr>
+<tr>
+<td>
+<code>spec</code><br>
+<em>
+<a href="#greenhouse.sap/v1alpha2.PluginPresetSpec">
+PluginPresetSpec
+</a>
+</em>
+</td>
+<td>
+<br/>
+<br/>
+<table>
+<tr>
+<td>
+<code>plugin</code><br>
+<em>
+<a href="#greenhouse.sap/v1alpha2.PluginTemplateSpec">
+PluginTemplateSpec
+</a>
+</em>
+</td>
+<td>
+<p>Plugin is a template of the spec of the plugin to be deployed by the PluginPreset.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>clusterSelector</code><br>
+<em>
+<a href="#greenhouse.sap/v1alpha2.ClusterSelector">
+ClusterSelector
+</a>
+</em>
+</td>
+<td>
+<p>ClusterSelector is used to select a Cluster or Clusters the plugin bundle should be deployed to.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>clusterOptionOverrides</code><br>
+<em>
+<a href="#greenhouse.sap/v1alpha2.ClusterOptionOverride">
+[]ClusterOptionOverride
+</a>
+</em>
+</td>
+<td>
+<p>ClusterOptionOverrides define plugin option values to override by the PluginPreset</p>
+</td>
+</tr>
+</table>
+</td>
+</tr>
+<tr>
+<td>
+<code>status</code><br>
+<em>
+<a href="#greenhouse.sap/v1alpha2.PluginPresetStatus">
+PluginPresetStatus
+</a>
+</em>
+</td>
+<td>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<h3 id="greenhouse.sap/v1alpha2.PluginPresetSpec">PluginPresetSpec
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#greenhouse.sap/v1alpha2.PluginPreset">PluginPreset</a>)
+</p>
+<p>PluginPresetSpec defines the desired state of PluginPreset</p>
+<div class="md-typeset__scrollwrap">
+<div class="md-typeset__table">
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>plugin</code><br>
+<em>
+<a href="#greenhouse.sap/v1alpha2.PluginTemplateSpec">
+PluginTemplateSpec
+</a>
+</em>
+</td>
+<td>
+<p>Plugin is a template of the spec of the plugin to be deployed by the PluginPreset.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>clusterSelector</code><br>
+<em>
+<a href="#greenhouse.sap/v1alpha2.ClusterSelector">
+ClusterSelector
+</a>
+</em>
+</td>
+<td>
+<p>ClusterSelector is used to select a Cluster or Clusters the plugin bundle should be deployed to.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>clusterOptionOverrides</code><br>
+<em>
+<a href="#greenhouse.sap/v1alpha2.ClusterOptionOverride">
+[]ClusterOptionOverride
+</a>
+</em>
+</td>
+<td>
+<p>ClusterOptionOverrides define plugin option values to override by the PluginPreset</p>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<h3 id="greenhouse.sap/v1alpha2.PluginPresetStatus">PluginPresetStatus
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#greenhouse.sap/v1alpha2.PluginPreset">PluginPreset</a>)
+</p>
+<p>PluginPresetStatus defines the observed state of PluginPreset</p>
+<div class="md-typeset__scrollwrap">
+<div class="md-typeset__table">
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>statusConditions</code><br>
+<em>
+<a href="https://pkg.go.dev/github.com/cloudoperators/greenhouse/api/meta/v1alpha1#StatusConditions">
+Greenhouse meta/v1alpha1.StatusConditions
+</a>
+</em>
+</td>
+<td>
+<p>StatusConditions contain the different conditions that constitute the status of the PluginPreset.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>pluginStatuses</code><br>
+<em>
+<a href="#greenhouse.sap/v1alpha2.ManagedPluginStatus">
+[]ManagedPluginStatus
+</a>
+</em>
+</td>
+<td>
+<p>PluginStatuses contains statuses of Plugins managed by the PluginPreset.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>availablePlugins</code><br>
+<em>
+int
+</em>
+</td>
+<td>
+<p>AvailablePlugins is the number of available Plugins managed by the PluginPreset.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>readyPlugins</code><br>
+<em>
+int
+</em>
+</td>
+<td>
+<p>ReadyPlugins is the number of ready Plugins managed by the PluginPreset.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>failedPlugins</code><br>
+<em>
+int
+</em>
+</td>
+<td>
+<p>FailedPlugins is the number of failed Plugins managed by the PluginPreset.</p>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<h3 id="greenhouse.sap/v1alpha2.PluginTemplateSpec">PluginTemplateSpec
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#greenhouse.sap/v1alpha2.PluginPresetSpec">PluginPresetSpec</a>)
+</p>
+<p>PluginTemplateSpec defines the template state of Plugin to be used by PluginPreset.</p>
+<div class="md-typeset__scrollwrap">
+<div class="md-typeset__table">
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>pluginDefinition</code><br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>PluginDefinition is the name of the PluginDefinition this instance is for.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>displayName</code><br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>DisplayName is an optional name for the Plugin to be displayed in the Greenhouse UI.
+This is especially helpful to distinguish multiple instances of a PluginDefinition in the same context.
+Defaults to a normalized version of metadata.name.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>optionValues</code><br>
+<em>
+<a href="https://pkg.go.dev/github.com/cloudoperators/greenhouse/api/meta/v1alpha1#PluginOptionValue">
+[]Greenhouse meta/v1alpha1.PluginOptionValue
+</a>
+</em>
+</td>
+<td>
+<p>Values are the values for a PluginDefinition instance.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>clusterName</code><br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>ClusterName is the name of the cluster the plugin is deployed to. If not set, the plugin is deployed to the greenhouse cluster.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>releaseNamespace</code><br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>ReleaseNamespace is the namespace in the remote cluster to which the backend is deployed.
+Defaults to the Greenhouse managed namespace if not set.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>releaseName</code><br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>ReleaseName is the name of the helm release in the remote cluster to which the backend is deployed.
+If the Plugin was already deployed, the Plugin&rsquo;s name is used as the release name.
+If this Plugin is newly created, the releaseName is defaulted to the PluginDefinitions HelmChart name.</p>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
 <h3 id="greenhouse.sap/v1alpha2.PropagationStatus">PropagationStatus
 </h3>
 <p>
@@ -3797,7 +4078,7 @@ string
 <td>
 <code>condition</code><br>
 <em>
-<a href="https://pkg.go.dev/github.com/cloudoperators/greenhouse/api/v1alpha1#Condition">
+<a href="https://pkg.go.dev/github.com/cloudoperators/greenhouse/api/meta/v1alpha1#Condition">
 Greenhouse meta/v1alpha1.Condition
 </a>
 </em>
@@ -4049,7 +4330,7 @@ bool
 <td>
 <code>statusConditions</code><br>
 <em>
-<a href="https://pkg.go.dev/github.com/cloudoperators/greenhouse/api/v1alpha1#StatusConditions">
+<a href="https://pkg.go.dev/github.com/cloudoperators/greenhouse/api/meta/v1alpha1#StatusConditions">
 Greenhouse meta/v1alpha1.StatusConditions
 </a>
 </em>
