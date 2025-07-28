@@ -19,6 +19,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	greenhouseapis "github.com/cloudoperators/greenhouse/api"
+	greenhousemetav1alpha1 "github.com/cloudoperators/greenhouse/api/meta/v1alpha1"
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
 	"github.com/cloudoperators/greenhouse/internal/common"
 	"github.com/cloudoperators/greenhouse/internal/helm"
@@ -35,7 +36,7 @@ var _ = Describe("helm package test", func() {
 
 	When("getting the values for the Helm chart of a plugin", func() {
 		It("should correctly get regular values and overwrite helm values", func() {
-			plugin.Spec.OptionValues = []greenhousev1alpha1.PluginOptionValue{*optionValue}
+			plugin.Spec.OptionValues = []greenhousemetav1alpha1.PluginOptionValue{*optionValue}
 			helmValues, err := helm.ExportGetValuesForHelmChart(context.Background(), test.K8sClient, helmChart, plugin)
 			Expect(err).ShouldNot(HaveOccurred(),
 				"there should be no error getting the values")
@@ -47,7 +48,7 @@ var _ = Describe("helm package test", func() {
 		})
 
 		It("should correctly get a value stored in a secret", func() {
-			plugin.Spec.OptionValues = []greenhousev1alpha1.PluginOptionValue{*secretOptionValue}
+			plugin.Spec.OptionValues = []greenhousemetav1alpha1.PluginOptionValue{*secretOptionValue}
 			Expect(test.K8sClient.Create(test.Ctx, pluginSecret, &client.CreateOptions{})).
 				Should(Succeed(), "creating an secret should be successful")
 
@@ -61,7 +62,7 @@ var _ = Describe("helm package test", func() {
 		})
 
 		It("should correctly merge default values from the pluginDefinition spec and greenhouse values with plugin", func() {
-			plugin.Spec.OptionValues = []greenhousev1alpha1.PluginOptionValue{*optionValue}
+			plugin.Spec.OptionValues = []greenhousemetav1alpha1.PluginOptionValue{*optionValue}
 			Expect(test.K8sClient.Create(test.Ctx, testPluginWithHelmChart)).
 				Should(Succeed(), "creating a pluginDefinition should be successful")
 			Expect(test.K8sClient.Create(test.Ctx, team)).
@@ -69,23 +70,23 @@ var _ = Describe("helm package test", func() {
 			pluginOptionValues, err := helm.GetPluginOptionValuesForPlugin(test.Ctx, test.K8sClient, plugin)
 			Expect(err).ShouldNot(HaveOccurred(), "there should be no error getting the pluginDefinition option values")
 			Expect(pluginOptionValues).To(
-				ContainElement(greenhousev1alpha1.PluginOptionValue{Name: "key1", Value: test.MustReturnJSONFor("pluginValue1"), ValueFrom: nil}), "the plugin option values should contain default from pluginDefinition spec")
+				ContainElement(greenhousemetav1alpha1.PluginOptionValue{Name: "key1", Value: test.MustReturnJSONFor("pluginValue1"), ValueFrom: nil}), "the plugin option values should contain default from pluginDefinition spec")
 			Expect(pluginOptionValues).To(
-				ContainElement(greenhousev1alpha1.PluginOptionValue{Name: "global.greenhouse.teamNames", Value: test.MustReturnJSONFor([]string{"test-team-1"}), ValueFrom: nil}), "the plugin option values should contain greenhouse values")
+				ContainElement(greenhousemetav1alpha1.PluginOptionValue{Name: "global.greenhouse.teamNames", Value: test.MustReturnJSONFor([]string{"test-team-1"}), ValueFrom: nil}), "the plugin option values should contain greenhouse values")
 			Expect(pluginOptionValues).To(
-				ContainElement(greenhousev1alpha1.PluginOptionValue{Name: "global.greenhouse.clusterName", Value: test.MustReturnJSONFor(plugin.Spec.ClusterName), ValueFrom: nil}), "the plugin option values should contain the clusterName from the plugin")
+				ContainElement(greenhousemetav1alpha1.PluginOptionValue{Name: "global.greenhouse.clusterName", Value: test.MustReturnJSONFor(plugin.Spec.ClusterName), ValueFrom: nil}), "the plugin option values should contain the clusterName from the plugin")
 			Expect(pluginOptionValues).To(
-				ContainElement(greenhousev1alpha1.PluginOptionValue{Name: "global.greenhouse.organizationName", Value: test.MustReturnJSONFor(plugin.GetNamespace()), ValueFrom: nil}), "the plugin option values should contain the orgName from the plugin namespace")
+				ContainElement(greenhousemetav1alpha1.PluginOptionValue{Name: "global.greenhouse.organizationName", Value: test.MustReturnJSONFor(plugin.GetNamespace()), ValueFrom: nil}), "the plugin option values should contain the orgName from the plugin namespace")
 			Expect(pluginOptionValues).To(
-				ContainElement(greenhousev1alpha1.PluginOptionValue{Name: "global.greenhouse.baseDomain", Value: test.MustReturnJSONFor(common.DNSDomain), ValueFrom: nil}), "the plugin option values should contain the baseDomain")
+				ContainElement(greenhousemetav1alpha1.PluginOptionValue{Name: "global.greenhouse.baseDomain", Value: test.MustReturnJSONFor(common.DNSDomain), ValueFrom: nil}), "the plugin option values should contain the baseDomain")
 			Expect(pluginOptionValues).To(
-				ContainElement(greenhousev1alpha1.PluginOptionValue{Name: "global.greenhouse.ownedBy", Value: test.MustReturnJSONFor(plugin.Labels[string(greenhouseapis.LabelKeyOwnedBy)]), ValueFrom: nil}), "the plugin option values should contain the owning team")
+				ContainElement(greenhousemetav1alpha1.PluginOptionValue{Name: "global.greenhouse.ownedBy", Value: test.MustReturnJSONFor(plugin.Labels[string(greenhouseapis.LabelKeyOwnedBy)]), ValueFrom: nil}), "the plugin option values should contain the owning team")
 		})
 	})
 
 	When("handling a helm chart from a pluginDefinition", func() {
 		It("should correctly error on missing helm chart reference", func() {
-			plugin.Spec.OptionValues = []greenhousev1alpha1.PluginOptionValue{*optionValue}
+			plugin.Spec.OptionValues = []greenhousemetav1alpha1.PluginOptionValue{*optionValue}
 			err := helm.InstallOrUpgradeHelmChartFromPlugin(context.Background(), test.K8sClient, test.RestClientGetter, testPluginWithoutHelmChart, plugin)
 			Expect(err).Should(HaveOccurred(),
 				"there should be an error for pluginDefinitions without helm chart")
@@ -307,43 +308,43 @@ var _ = Describe("Plugin option checksum", Ordered, func() {
 			},
 		}
 
-		optionValuesOneRequired = []greenhousev1alpha1.PluginOptionValue{
+		optionValuesOneRequired = []greenhousemetav1alpha1.PluginOptionValue{
 			{
 				Name:  "stringRequired",
 				Value: test.MustReturnJSONFor("required"),
 			},
 		}
-		optionValuesOneSecret = []greenhousev1alpha1.PluginOptionValue{
+		optionValuesOneSecret = []greenhousemetav1alpha1.PluginOptionValue{
 			{
 				Name: "secret",
-				ValueFrom: &greenhousev1alpha1.ValueFromSource{
-					Secret: &greenhousev1alpha1.SecretKeyReference{
+				ValueFrom: &greenhousemetav1alpha1.ValueFromSource{
+					Secret: &greenhousemetav1alpha1.SecretKeyReference{
 						Name: "plugin-secret",
 						Key:  "secretKey",
 					},
 				},
 			},
 		}
-		optionValuesRequiredAndSecret = []greenhousev1alpha1.PluginOptionValue{
+		optionValuesRequiredAndSecret = []greenhousemetav1alpha1.PluginOptionValue{
 			{
 				Name:  "stringRequired",
 				Value: test.MustReturnJSONFor("required"),
 			},
 			{
 				Name: "secret",
-				ValueFrom: &greenhousev1alpha1.ValueFromSource{
-					Secret: &greenhousev1alpha1.SecretKeyReference{
+				ValueFrom: &greenhousemetav1alpha1.ValueFromSource{
+					Secret: &greenhousemetav1alpha1.SecretKeyReference{
 						Name: "plugin-secret",
 						Key:  "secretKey",
 					},
 				},
 			},
 		}
-		optionValuesSecretAndRequired = []greenhousev1alpha1.PluginOptionValue{
+		optionValuesSecretAndRequired = []greenhousemetav1alpha1.PluginOptionValue{
 			{
 				Name: "secret",
-				ValueFrom: &greenhousev1alpha1.ValueFromSource{
-					Secret: &greenhousev1alpha1.SecretKeyReference{
+				ValueFrom: &greenhousemetav1alpha1.ValueFromSource{
+					Secret: &greenhousemetav1alpha1.SecretKeyReference{
 						Name: "plugin-secret",
 						Key:  "secretKey",
 					},
@@ -354,7 +355,7 @@ var _ = Describe("Plugin option checksum", Ordered, func() {
 				Value: test.MustReturnJSONFor("required"),
 			},
 		}
-		optionValuesRequiredAndOptional = []greenhousev1alpha1.PluginOptionValue{
+		optionValuesRequiredAndOptional = []greenhousemetav1alpha1.PluginOptionValue{
 			{
 				Name:  "stringRequired",
 				Value: test.MustReturnJSONFor("required"),
@@ -364,7 +365,7 @@ var _ = Describe("Plugin option checksum", Ordered, func() {
 				Value: test.MustReturnJSONFor("pluginValue1"),
 			},
 		}
-		optionValuesEmpty []greenhousev1alpha1.PluginOptionValue
+		optionValuesEmpty []greenhousemetav1alpha1.PluginOptionValue
 	)
 
 	BeforeAll(func() {
@@ -377,7 +378,7 @@ var _ = Describe("Plugin option checksum", Ordered, func() {
 	})
 
 	var _ = DescribeTable("comparing plugin option checksums",
-		func(optionValues1 []greenhousev1alpha1.PluginOptionValue, optionValues2 []greenhousev1alpha1.PluginOptionValue, expected bool) {
+		func(optionValues1 []greenhousemetav1alpha1.PluginOptionValue, optionValues2 []greenhousemetav1alpha1.PluginOptionValue, expected bool) {
 			plugin1 := greenhousev1alpha1.Plugin{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "test-hashing-plugin1",

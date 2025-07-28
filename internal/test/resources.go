@@ -14,6 +14,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	greenhouseapis "github.com/cloudoperators/greenhouse/api"
+	greenhousemetav1alpha1 "github.com/cloudoperators/greenhouse/api/meta/v1alpha1"
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
 	greenhousev1alpha2 "github.com/cloudoperators/greenhouse/api/v1alpha2"
 )
@@ -111,11 +112,11 @@ func WithOIDCConfig(issuer, secretName, clientIDKey, clientSecretKey string) fun
 		}
 		org.Spec.Authentication.OIDCConfig = &greenhousev1alpha1.OIDCConfig{
 			Issuer: issuer,
-			ClientIDReference: greenhousev1alpha1.SecretKeyReference{
+			ClientIDReference: greenhousemetav1alpha1.SecretKeyReference{
 				Name: secretName,
 				Key:  clientIDKey,
 			},
-			ClientSecretReference: greenhousev1alpha1.SecretKeyReference{
+			ClientSecretReference: greenhousemetav1alpha1.SecretKeyReference{
 				Name: secretName,
 				Key:  clientSecretKey,
 			},
@@ -255,7 +256,7 @@ func WithPluginLabel(key, value string) func(*greenhousev1alpha1.Plugin) {
 }
 
 // WithPluginOptionValue sets the value of a PluginOptionValue
-func WithPluginOptionValue(name string, value *apiextensionsv1.JSON, valueFrom *greenhousev1alpha1.ValueFromSource) func(*greenhousev1alpha1.Plugin) {
+func WithPluginOptionValue(name string, value *apiextensionsv1.JSON, valueFrom *greenhousemetav1alpha1.ValueFromSource) func(*greenhousev1alpha1.Plugin) {
 	return func(p *greenhousev1alpha1.Plugin) {
 		if value != nil && valueFrom != nil {
 			Fail("value and valueFrom are mutually exclusive")
@@ -268,7 +269,7 @@ func WithPluginOptionValue(name string, value *apiextensionsv1.JSON, valueFrom *
 				return
 			}
 		}
-		p.Spec.OptionValues = append(p.Spec.OptionValues, greenhousev1alpha1.PluginOptionValue{
+		p.Spec.OptionValues = append(p.Spec.OptionValues, greenhousemetav1alpha1.PluginOptionValue{
 			Name:      name,
 			Value:     value,
 			ValueFrom: valueFrom,
@@ -285,7 +286,7 @@ func SetOptionValueForPlugin(plugin *greenhousev1alpha1.Plugin, key, value strin
 		}
 	}
 
-	plugin.Spec.OptionValues = append(plugin.Spec.OptionValues, greenhousev1alpha1.PluginOptionValue{
+	plugin.Spec.OptionValues = append(plugin.Spec.OptionValues, greenhousemetav1alpha1.PluginOptionValue{
 		Name:  key,
 		Value: &apiextensionsv1.JSON{Raw: []byte(value)},
 	})

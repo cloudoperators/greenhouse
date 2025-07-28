@@ -14,6 +14,7 @@ import (
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 
 	greenhouseapis "github.com/cloudoperators/greenhouse/api"
+	greenhousemetav1alpha1 "github.com/cloudoperators/greenhouse/api/meta/v1alpha1"
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
 	"github.com/cloudoperators/greenhouse/internal/test"
 )
@@ -79,7 +80,7 @@ var _ = Describe("Organization ServiceProxyReconciler", Ordered, func() {
 				err = test.K8sClient.Get(test.Ctx, types.NamespacedName{Name: defaultOrg.Name + technicalSecretSuffix, Namespace: defaultOrg.Name}, secret)
 				g.Expect(err).ToNot(HaveOccurred(), "org technical secret should have been created by controller")
 				g.Expect(secret.Data).To(HaveKeyWithValue(cookieSecretKey, Not(BeEmpty())), "org technical secret should contain a non-empty cookie secret")
-				g.Expect(plugin.Spec.OptionValues).To(ContainElement(greenhousev1alpha1.PluginOptionValue{Name: "oauth2proxy.enabled", Value: &apiextensionsv1.JSON{Raw: []byte("\"true\"")}}))
+				g.Expect(plugin.Spec.OptionValues).To(ContainElement(greenhousemetav1alpha1.PluginOptionValue{Name: "oauth2proxy.enabled", Value: &apiextensionsv1.JSON{Raw: []byte("\"true\"")}}))
 			}).Should(Succeed(), "service-proxy plugin should have been created for organization")
 			test.EventuallyDeleted(test.Ctx, test.K8sClient, team)
 		})

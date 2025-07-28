@@ -5,11 +5,13 @@ package webhook
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"net/url"
 	"strings"
 
 	"github.com/go-logr/logr"
+	"helm.sh/helm/v3/pkg/chartutil"
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -21,6 +23,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
 	greenhouseapis "github.com/cloudoperators/greenhouse/api"
+	greenhousemetav1alpha1 "github.com/cloudoperators/greenhouse/api/meta/v1alpha1"
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
 )
 
@@ -152,6 +155,88 @@ func CapName(obj client.Object, l logr.Logger, length int) error {
 		return err
 	}
 	return nil
+}
+
+// validateReleaseName checks if the release name is valid according to Helm's rules.
+func ValidateReleaseName(name string) error {
+	if name == "" {
+		return nil
+	}
+	return chartutil.ValidateReleaseName(name)
+}
+
+func ValidatePluginOptionValues(
+	optionValues []greenhousemetav1alpha1.PluginOptionValue,
+	pluginDefinition *greenhousev1alpha1.PluginDefinition,
+	checkRequiredOptions bool,
+	optionsFieldPath *field.Path,
+) field.ErrorList {
+
+	var allErrs field.ErrorList
+	var isOptionValueSet bool
+	for _, pluginOption := range pluginDefinition.Spec.Options {
+		isOptionValueSet = false
+		for idx, val := range optionValues {
+			if pluginOption.Name != val.Name {
+				continue
+			}
+			// If the option is required, it must be set.
+			isOptionValueSet = true
+			fieldPathWithIndex := optionsFieldPath.Index(idx)
+
+			// Value and ValueFrom are mutually exclusive, but one must be provided.
+			if (val.Value == nil && val.ValueFrom == nil) || (val.Value != nil && val.ValueFrom != nil) {
+				allErrs = append(allErrs, field.Required(
+					fieldPathWithIndex,
+					"must provide either value or valueFrom for value "+val.Name,
+				))
+				continue
+			}
+
+			// Validate that OptionValue has a secret reference.
+			if pluginOption.Type == greenhousev1alpha1.PluginOptionTypeSecret {
+				switch {
+				case val.Value != nil:
+					allErrs = append(allErrs, field.TypeInvalid(fieldPathWithIndex.Child("value"), "*****",
+						fmt.Sprintf("optionValue %s of type secret must use valueFrom to reference a secret", val.Name)))
+					continue
+				case val.ValueFrom != nil:
+					if val.ValueFrom.Secret.Name == "" {
+						allErrs = append(allErrs, field.Required(fieldPathWithIndex.Child("valueFrom").Child("name"),
+							fmt.Sprintf("optionValue %s of type secret must reference a secret by name", val.Name)))
+						continue
+					}
+					if val.ValueFrom.Secret.Key == "" {
+						allErrs = append(allErrs, field.Required(fieldPathWithIndex.Child("valueFrom").Child("key"),
+							fmt.Sprintf("optionValue %s of type secret must reference a key in a secret", val.Name)))
+						continue
+					}
+				}
+				continue
+			}
+
+			// validate that the Plugin.OptionValue matches the type of the PluginDefinition.Option
+			if val.Value != nil {
+				if err := pluginOption.IsValidValue(val.Value); err != nil {
+					var v any
+					if err := json.Unmarshal(val.Value.Raw, &v); err != nil {
+						v = err
+					}
+					allErrs = append(allErrs, field.Invalid(
+						fieldPathWithIndex.Child("value"), v, err.Error(),
+					))
+				}
+			}
+		}
+		if checkRequiredOptions && pluginOption.Required && !isOptionValueSet {
+			allErrs = append(allErrs, field.Required(optionsFieldPath,
+				fmt.Sprintf("Option '%s' is required by PluginDefinition '%s'", pluginOption.Name, pluginDefinition.Name)))
+		}
+	}
+	if len(allErrs) == 0 {
+		return nil
+	}
+	return allErrs
 }
 
 // ValidateLabelOwnedBy validates that the owned-by label is present and that it references an existing Team.

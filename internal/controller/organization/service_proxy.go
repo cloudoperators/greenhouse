@@ -23,6 +23,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
 	greenhouseapis "github.com/cloudoperators/greenhouse/api"
+	greenhousemetav1alpha1 "github.com/cloudoperators/greenhouse/api/meta/v1alpha1"
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
 	"github.com/cloudoperators/greenhouse/internal/clientutil"
 	"github.com/cloudoperators/greenhouse/internal/common"
@@ -159,7 +160,7 @@ func (r *OrganizationReconciler) reconcileServiceProxyPlugin(ctx context.Context
 	result, err := clientutil.CreateOrPatch(ctx, r.Client, plugin, func() error {
 		plugin.SetLabels(map[string]string{greenhouseapis.LabelKeyOwnedBy: supportGroupTeamName})
 		plugin.Spec.DisplayName = "Remote service proxy"
-		plugin.Spec.OptionValues = []greenhousev1alpha1.PluginOptionValue{
+		plugin.Spec.OptionValues = []greenhousemetav1alpha1.PluginOptionValue{
 			{
 				Name:  "domain",
 				Value: &apiextensionsv1.JSON{Raw: domainJSON},
@@ -174,7 +175,7 @@ func (r *OrganizationReconciler) reconcileServiceProxyPlugin(ctx context.Context
 			plugin.Spec.ReleaseName = serviceProxyName
 		}
 		oauth2ProxyInternalSecretName := getInternalSecretName(org.GetName())
-		oauthProxyValues := []greenhousev1alpha1.PluginOptionValue{
+		oauthProxyValues := []greenhousemetav1alpha1.PluginOptionValue{
 			{
 				Name:  "oauth2proxy.enabled",
 				Value: &apiextensionsv1.JSON{Raw: []byte("\"true\"")},

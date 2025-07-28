@@ -36,6 +36,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/yaml"
 
+	greenhousemetav1alpha1 "github.com/cloudoperators/greenhouse/api/meta/v1alpha1"
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
 	"github.com/cloudoperators/greenhouse/internal/clientutil"
 	"github.com/cloudoperators/greenhouse/internal/metrics"
@@ -512,7 +513,7 @@ is transformed to
 	  image:
 	    registry: foobar
 */
-func convertFlatValuesToHelmValues(values []greenhousev1alpha1.PluginOptionValue) (map[string]any, error) {
+func convertFlatValuesToHelmValues(values []greenhousemetav1alpha1.PluginOptionValue) (map[string]any, error) {
 	if values == nil {
 		return make(map[string]any, 0), nil
 	}
@@ -563,8 +564,8 @@ func getValuesForHelmChart(ctx context.Context, c client.Client, helmChart *char
 	return helmValues, nil
 }
 
-func getValuesFromPlugin(ctx context.Context, c client.Client, plugin *greenhousev1alpha1.Plugin) ([]greenhousev1alpha1.PluginOptionValue, error) {
-	namedValues := make([]greenhousev1alpha1.PluginOptionValue, len(plugin.Spec.OptionValues))
+func getValuesFromPlugin(ctx context.Context, c client.Client, plugin *greenhousev1alpha1.Plugin) ([]greenhousemetav1alpha1.PluginOptionValue, error) {
+	namedValues := make([]greenhousemetav1alpha1.PluginOptionValue, len(plugin.Spec.OptionValues))
 	copy(namedValues, plugin.Spec.OptionValues)
 	for idx, val := range namedValues {
 		// Values already provided on plain text don't need to be extracted.

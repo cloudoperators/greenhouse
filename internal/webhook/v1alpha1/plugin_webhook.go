@@ -9,7 +9,6 @@ import (
 	"fmt"
 	"strings"
 
-	"helm.sh/helm/v3/pkg/chartutil"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/validation"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -21,6 +20,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
 	greenhouseapis "github.com/cloudoperators/greenhouse/api"
+	greenhousemetav1alpha1 "github.com/cloudoperators/greenhouse/api/meta/v1alpha1"
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
 	"github.com/cloudoperators/greenhouse/internal/clientutil"
 	"github.com/cloudoperators/greenhouse/internal/helm"
@@ -116,7 +116,7 @@ func ValidateCreatePlugin(ctx context.Context, c client.Client, obj runtime.Obje
 		return nil, err
 	}
 
-	if err := validateReleaseName(plugin.Spec.ReleaseName); err != nil {
+	if err := webhook.ValidateReleaseName(plugin.Spec.ReleaseName); err != nil {
 		return nil, field.Invalid(field.NewPath("spec").Child("releaseName"), plugin.Spec.ReleaseName, err.Error())
 	}
 
@@ -159,7 +159,7 @@ func ValidateUpdatePlugin(ctx context.Context, c client.Client, old, obj runtime
 		return allWarns, field.InternalError(field.NewPath("spec").Child("pluginDefinition"), err)
 	}
 
-	if err := validateReleaseName(plugin.Spec.ReleaseName); err != nil {
+	if err := webhook.ValidateReleaseName(plugin.Spec.ReleaseName); err != nil {
 		return allWarns, field.Invalid(field.NewPath("spec").Child("releaseName"), plugin.Spec.ReleaseName, err.Error())
 	}
 
@@ -202,7 +202,7 @@ func validateOwnerReference(plugin *greenhousev1alpha1.Plugin) admission.Warning
 }
 
 func validatePluginOptionValues(
-	optionValues []greenhousev1alpha1.PluginOptionValue,
+	optionValues []greenhousemetav1alpha1.PluginOptionValue,
 	pluginDefinition *greenhousev1alpha1.PluginDefinition,
 	checkRequiredOptions bool,
 	optionsFieldPath *field.Path,
@@ -273,14 +273,6 @@ func validatePluginOptionValues(
 		return nil
 	}
 	return allErrs
-}
-
-// validateReleaseName checks if the release name is valid according to Helm's rules.
-func validateReleaseName(name string) error {
-	if name == "" {
-		return nil
-	}
-	return chartutil.ValidateReleaseName(name)
 }
 
 func validatePluginForCluster(ctx context.Context, c client.Client, plugin *greenhousev1alpha1.Plugin, pluginDefinition *greenhousev1alpha1.PluginDefinition) error {

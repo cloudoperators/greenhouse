@@ -16,6 +16,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	greenhouseapis "github.com/cloudoperators/greenhouse/api"
+	greenhousemetav1alpha1 "github.com/cloudoperators/greenhouse/api/meta/v1alpha1"
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
 	"github.com/cloudoperators/greenhouse/internal/helm"
 	"github.com/cloudoperators/greenhouse/internal/test"
@@ -83,7 +84,7 @@ var _ = Describe("ensure helm diff against the release manifest works as expecte
 
 	It("should show a diff and a drift if the Plugin is changed", func() {
 		By("changing the Plugin's PluginOptionValues")
-		pluginUT.Spec.OptionValues = []greenhousev1alpha1.PluginOptionValue{
+		pluginUT.Spec.OptionValues = []greenhousemetav1alpha1.PluginOptionValue{
 			{
 				Name:  "imageTag",
 				Value: test.MustReturnJSONFor("3.19"),
@@ -111,7 +112,7 @@ var _ = Describe("ensure helm diff against the release manifest works as expecte
 
 	It("should show a diff if a template was disabled", func() {
 		By("changing the Plugin's PluginOptionValues")
-		pluginUT.Spec.OptionValues = []greenhousev1alpha1.PluginOptionValue{
+		pluginUT.Spec.OptionValues = []greenhousemetav1alpha1.PluginOptionValue{
 			{
 				Name:  "enabled",
 				Value: test.MustReturnJSONFor(false),
@@ -211,7 +212,7 @@ var _ = Describe("ensure helm with hooks diff against the release manifest works
 
 	It("should show a diff if a plugin was installed", func() {
 		By("changing the Plugin's PluginOptionValues")
-		pluginUT.Spec.OptionValues = []greenhousev1alpha1.PluginOptionValue{
+		pluginUT.Spec.OptionValues = []greenhousemetav1alpha1.PluginOptionValue{
 			{
 				Name:  "hook_enabled",
 				Value: test.MustReturnJSONFor(true),

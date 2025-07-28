@@ -19,13 +19,14 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	greenhouseapis "github.com/cloudoperators/greenhouse/api"
+	greenhousemetav1alpha1 "github.com/cloudoperators/greenhouse/api/meta/v1alpha1"
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
 	"github.com/cloudoperators/greenhouse/internal/test"
 )
 
 var _ = Describe("Validate Plugin OptionValues", func() {
-	DescribeTable("Validate PluginType contains either Value or ValueFrom", func(value *apiextensionsv1.JSON, valueFrom *greenhousev1alpha1.ValueFromSource, expErr bool) {
-		optionValues := []greenhousev1alpha1.PluginOptionValue{
+	DescribeTable("Validate PluginType contains either Value or ValueFrom", func(value *apiextensionsv1.JSON, valueFrom *greenhousemetav1alpha1.ValueFromSource, expErr bool) {
+		optionValues := []greenhousemetav1alpha1.PluginOptionValue{
 			{
 				Name:      "test",
 				Value:     value,
@@ -70,9 +71,9 @@ var _ = Describe("Validate Plugin OptionValues", func() {
 		}
 	},
 		Entry("Value and ValueFrom nil", nil, nil, true),
-		Entry("Value and ValueFrom not nil", test.MustReturnJSONFor("test"), &greenhousev1alpha1.ValueFromSource{Secret: &greenhousev1alpha1.SecretKeyReference{Name: "my-secret"}}, true),
+		Entry("Value and ValueFrom not nil", test.MustReturnJSONFor("test"), &greenhousemetav1alpha1.ValueFromSource{Secret: &greenhousemetav1alpha1.SecretKeyReference{Name: "my-secret"}}, true),
 		Entry("Value not nil", test.MustReturnJSONFor("test"), nil, false),
-		Entry("ValueFrom not nil", nil, &greenhousev1alpha1.ValueFromSource{Secret: &greenhousev1alpha1.SecretKeyReference{Name: "my-secret", Key: "secret-key"}}, false),
+		Entry("ValueFrom not nil", nil, &greenhousemetav1alpha1.ValueFromSource{Secret: &greenhousemetav1alpha1.SecretKeyReference{Name: "my-secret", Key: "secret-key"}}, false),
 	)
 
 	DescribeTable("Validate PluginOptionValue is consistent with PluginOption Type", func(defaultValue any, defaultType greenhousev1alpha1.PluginOptionType, actValue any, expErr bool) {
@@ -92,7 +93,7 @@ var _ = Describe("Validate Plugin OptionValues", func() {
 			},
 		}
 
-		optionValues := []greenhousev1alpha1.PluginOptionValue{
+		optionValues := []greenhousemetav1alpha1.PluginOptionValue{
 			{
 				Name:  "test",
 				Value: test.MustReturnJSONFor(actValue),
@@ -123,7 +124,7 @@ var _ = Describe("Validate Plugin OptionValues", func() {
 		Entry("PluginOption Value not supported With PluginOption Type Secret", "", greenhousev1alpha1.PluginOptionTypeSecret, "string", true),
 	)
 
-	DescribeTable("Validate PluginOptionValue references a Secret", func(actValue *greenhousev1alpha1.ValueFromSource, expErr bool) {
+	DescribeTable("Validate PluginOptionValue references a Secret", func(actValue *greenhousemetav1alpha1.ValueFromSource, expErr bool) {
 		pluginDefinition := &greenhousev1alpha1.PluginDefinition{
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: "greenhouse",
@@ -139,7 +140,7 @@ var _ = Describe("Validate Plugin OptionValues", func() {
 			},
 		}
 
-		optionValues := []greenhousev1alpha1.PluginOptionValue{
+		optionValues := []greenhousemetav1alpha1.PluginOptionValue{
 			{
 				Name:      "test",
 				ValueFrom: actValue,
@@ -155,9 +156,9 @@ var _ = Describe("Validate Plugin OptionValues", func() {
 			Expect(errList).To(BeEmpty(), "expected no error, got %v", errList)
 		}
 	},
-		Entry("PluginOption ValueFrom has a valid SecretReference", &greenhousev1alpha1.ValueFromSource{Secret: &greenhousev1alpha1.SecretKeyReference{Name: "secret", Key: "key"}}, false),
-		Entry("PluginOption ValueFrom is missing SecretReference Name", &greenhousev1alpha1.ValueFromSource{Secret: &greenhousev1alpha1.SecretKeyReference{Key: "key"}}, true),
-		Entry("PluginOption ValueFrom is missing SecretReference Key", &greenhousev1alpha1.ValueFromSource{Secret: &greenhousev1alpha1.SecretKeyReference{Name: "secret"}}, true),
+		Entry("PluginOption ValueFrom has a valid SecretReference", &greenhousemetav1alpha1.ValueFromSource{Secret: &greenhousemetav1alpha1.SecretKeyReference{Name: "secret", Key: "key"}}, false),
+		Entry("PluginOption ValueFrom is missing SecretReference Name", &greenhousemetav1alpha1.ValueFromSource{Secret: &greenhousemetav1alpha1.SecretKeyReference{Key: "key"}}, true),
+		Entry("PluginOption ValueFrom is missing SecretReference Key", &greenhousemetav1alpha1.ValueFromSource{Secret: &greenhousemetav1alpha1.SecretKeyReference{Name: "secret"}}, true),
 		Entry("PluginOption ValueFrom does not contain a SecretReference", nil, true),
 	)
 
@@ -187,7 +188,7 @@ var _ = Describe("Validate Plugin OptionValues", func() {
 			Expect(errList).NotTo(BeEmpty(), "expected an error, got nil")
 		})
 		It("should accept a Plugin with supplied required options", func() {
-			optionValues := []greenhousev1alpha1.PluginOptionValue{
+			optionValues := []greenhousemetav1alpha1.PluginOptionValue{
 				{
 					Name:  "test",
 					Value: test.MustReturnJSONFor("test"),

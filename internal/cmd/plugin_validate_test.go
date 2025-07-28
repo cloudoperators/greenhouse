@@ -8,6 +8,7 @@ import (
 	. "github.com/onsi/gomega"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
+	greenhousemetav1alpha1 "github.com/cloudoperators/greenhouse/api/meta/v1alpha1"
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
 	"github.com/cloudoperators/greenhouse/internal/test"
 )
@@ -43,7 +44,7 @@ var _ = Describe("Validate PluginDefinition against Plugin ", func() {
 			plugin := &greenhousev1alpha1.Plugin{
 				Spec: greenhousev1alpha1.PluginSpec{
 					PluginDefinition: "testPlugin",
-					OptionValues:     []greenhousev1alpha1.PluginOptionValue{},
+					OptionValues:     []greenhousemetav1alpha1.PluginOptionValue{},
 				},
 			}
 			err := validateOptions(pluginDefinition, plugin)
@@ -56,7 +57,7 @@ var _ = Describe("Validate PluginDefinition against Plugin ", func() {
 			plugin := &greenhousev1alpha1.Plugin{
 				Spec: greenhousev1alpha1.PluginSpec{
 					PluginDefinition: "testPlugin",
-					OptionValues: []greenhousev1alpha1.PluginOptionValue{
+					OptionValues: []greenhousemetav1alpha1.PluginOptionValue{
 						{
 							Name:  "stringRequired",
 							Value: test.MustReturnJSONFor("required"),
@@ -74,7 +75,7 @@ var _ = Describe("Validate PluginDefinition against Plugin ", func() {
 			plugin := &greenhousev1alpha1.Plugin{
 				Spec: greenhousev1alpha1.PluginSpec{
 					PluginDefinition: "testPlugin",
-					OptionValues: []greenhousev1alpha1.PluginOptionValue{
+					OptionValues: []greenhousemetav1alpha1.PluginOptionValue{
 						{
 							Name:  "stringRequired",
 							Value: test.MustReturnJSONFor(true),
@@ -92,7 +93,7 @@ var _ = Describe("Validate PluginDefinition against Plugin ", func() {
 			plugin := &greenhousev1alpha1.Plugin{
 				Spec: greenhousev1alpha1.PluginSpec{
 					PluginDefinition: "testPlugin",
-					OptionValues: []greenhousev1alpha1.PluginOptionValue{
+					OptionValues: []greenhousemetav1alpha1.PluginOptionValue{
 						{
 							Name:  "secret",
 							Value: test.MustReturnJSONFor(true),
@@ -107,11 +108,11 @@ var _ = Describe("Validate PluginDefinition against Plugin ", func() {
 			plugin := &greenhousev1alpha1.Plugin{
 				Spec: greenhousev1alpha1.PluginSpec{
 					PluginDefinition: "testPlugin",
-					OptionValues: []greenhousev1alpha1.PluginOptionValue{
+					OptionValues: []greenhousemetav1alpha1.PluginOptionValue{
 						{
 							Name: "secret",
-							ValueFrom: &greenhousev1alpha1.ValueFromSource{
-								Secret: &greenhousev1alpha1.SecretKeyReference{
+							ValueFrom: &greenhousemetav1alpha1.ValueFromSource{
+								Secret: &greenhousemetav1alpha1.SecretKeyReference{
 									Name: "secret",
 									Key:  "key",
 								},

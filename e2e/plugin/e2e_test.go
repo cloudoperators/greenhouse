@@ -29,6 +29,7 @@ import (
 	sourcecontroller "github.com/fluxcd/source-controller/api/v1"
 
 	greenhouseapis "github.com/cloudoperators/greenhouse/api"
+	greenhousemetav1alpha1 "github.com/cloudoperators/greenhouse/api/meta/v1alpha1"
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
 	"github.com/cloudoperators/greenhouse/e2e/plugin/fixtures"
 	"github.com/cloudoperators/greenhouse/e2e/shared"
@@ -262,7 +263,7 @@ var _ = Describe("Plugin E2E", Ordered, func() {
 			testPluginPreset.Spec.ClusterOptionOverrides = []greenhousev1alpha1.ClusterOptionOverride{
 				{
 					ClusterName: remoteClusterName,
-					Overrides: []greenhousev1alpha1.PluginOptionValue{
+					Overrides: []greenhousemetav1alpha1.PluginOptionValue{
 						{
 							Name:  "replicaCount",
 							Value: &apiextensionsv1.JSON{Raw: []byte("2")},
@@ -289,7 +290,7 @@ var _ = Describe("Plugin E2E", Ordered, func() {
 		testPluginPreset.Spec.ClusterOptionOverrides = []greenhousev1alpha1.ClusterOptionOverride{
 			{
 				ClusterName: remoteClusterName,
-				Overrides: []greenhousev1alpha1.PluginOptionValue{
+				Overrides: []greenhousemetav1alpha1.PluginOptionValue{
 					{
 						Name:  "replicaCount",
 						Value: &apiextensionsv1.JSON{Raw: []byte("3")},

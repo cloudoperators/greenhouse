@@ -288,7 +288,7 @@ func shouldSkipPlugin(plugin *greenhousev1alpha1.Plugin, preset *greenhousev1alp
 		}
 
 		for _, overrideOptionValue := range override.Overrides {
-			if !slices.ContainsFunc(plugin.Spec.OptionValues, func(item greenhousev1alpha1.PluginOptionValue) bool {
+			if !slices.ContainsFunc(plugin.Spec.OptionValues, func(item greenhousemetav1alpha1.PluginOptionValue) bool {
 				return equalPluginOptions(overrideOptionValue, item)
 			}) {
 				return false
@@ -298,7 +298,7 @@ func shouldSkipPlugin(plugin *greenhousev1alpha1.Plugin, preset *greenhousev1alp
 
 	// need to reconcile when plugin does not have option which exists in plugin preset
 	for _, presetOptionValue := range preset.Spec.Plugin.OptionValues {
-		if !slices.ContainsFunc(plugin.Spec.OptionValues, func(item greenhousev1alpha1.PluginOptionValue) bool {
+		if !slices.ContainsFunc(plugin.Spec.OptionValues, func(item greenhousemetav1alpha1.PluginOptionValue) bool {
 			return equalPluginOptions(presetOptionValue, item)
 		}) {
 			return false
@@ -311,7 +311,7 @@ func shouldSkipPlugin(plugin *greenhousev1alpha1.Plugin, preset *greenhousev1alp
 			continue
 		}
 
-		if slices.ContainsFunc(preset.Spec.Plugin.OptionValues, func(item greenhousev1alpha1.PluginOptionValue) bool {
+		if slices.ContainsFunc(preset.Spec.Plugin.OptionValues, func(item greenhousemetav1alpha1.PluginOptionValue) bool {
 			return equalPluginOptions(item, pluginOption)
 		}) {
 			// optionValue is set by the PluginPreset, nothing to doen plugin does not have option which exists in plugin p
@@ -350,7 +350,7 @@ func overridesPluginOptionValues(plugin *greenhousev1alpha1.Plugin, preset *gree
 
 	// overrides value
 	for _, overrideValue := range preset.Spec.ClusterOptionOverrides[index].Overrides {
-		valueIndex := slices.IndexFunc(plugin.Spec.OptionValues, func(value greenhousev1alpha1.PluginOptionValue) bool {
+		valueIndex := slices.IndexFunc(plugin.Spec.OptionValues, func(value greenhousemetav1alpha1.PluginOptionValue) bool {
 			return value.Name == overrideValue.Name
 		})
 
@@ -466,7 +466,7 @@ func listPluginPresetAsReconcileRequests(ctx context.Context, c client.Client, l
 }
 
 // equalPluginOptions compares two PluginOptionValue objects.
-func equalPluginOptions(a, b greenhousev1alpha1.PluginOptionValue) bool {
+func equalPluginOptions(a, b greenhousemetav1alpha1.PluginOptionValue) bool {
 	if a.Name != b.Name {
 		return false
 	}

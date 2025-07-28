@@ -18,6 +18,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	greehouseapis "github.com/cloudoperators/greenhouse/api"
+	greenhousemetav1alpha1 "github.com/cloudoperators/greenhouse/api/meta/v1alpha1"
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
 )
 
@@ -31,7 +32,7 @@ func IsSecretContainsKey(s *corev1.Secret, key string) bool {
 }
 
 // GetSecretKeyFromSecretKeyReference returns the value of the secret identified by SecretKeyReference or an error.
-func GetSecretKeyFromSecretKeyReference(ctx context.Context, c client.Client, namespace string, secretReference greenhousev1alpha1.SecretKeyReference) (string, error) {
+func GetSecretKeyFromSecretKeyReference(ctx context.Context, c client.Client, namespace string, secretReference greenhousemetav1alpha1.SecretKeyReference) (string, error) {
 	var secret = new(corev1.Secret)
 	if err := c.Get(ctx, types.NamespacedName{Namespace: namespace, Name: secretReference.Name}, secret); err != nil {
 		return "", err

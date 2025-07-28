@@ -1,7 +1,7 @@
-// SPDX-FileCopyrightText: 2024 SAP SE or an SAP affiliate company and Greenhouse contributors
+// SPDX-FileCopyrightText: 2025 SAP SE or an SAP affiliate company and Greenhouse contributors
 // SPDX-License-Identifier: Apache-2.0
 
-package v1alpha1
+package v1alpha2
 
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -23,15 +23,44 @@ const (
 
 // PluginPresetSpec defines the desired state of PluginPreset
 type PluginPresetSpec struct {
-	// PluginSpec is the spec of the plugin to be deployed by the PluginPreset.
-	Plugin PluginSpec `json:"plugin"`
+	// Plugin is a template of the spec of the plugin to be deployed by the PluginPreset.
+	Plugin PluginTemplateSpec `json:"plugin"`
 
-	// ClusterSelector is a label selector to select the clusters the plugin bundle should be deployed to.
-	ClusterSelector metav1.LabelSelector `json:"clusterSelector"`
+	// ClusterSelector is used to select a Cluster or Clusters the plugin bundle should be deployed to.
+	ClusterSelector ClusterSelector `json:"clusterSelector"`
 
 	// ClusterOptionOverrides define plugin option values to override by the PluginPreset
 	// +kubebuilder:validation:Optional
 	ClusterOptionOverrides []ClusterOptionOverride `json:"clusterOptionOverrides,omitempty"`
+}
+
+// PluginTemplateSpec defines the template state of Plugin to be used by PluginPreset.
+type PluginTemplateSpec struct {
+	// PluginDefinition is the name of the PluginDefinition this instance is for.
+	PluginDefinition string `json:"pluginDefinition"`
+
+	// DisplayName is an optional name for the Plugin to be displayed in the Greenhouse UI.
+	// This is especially helpful to distinguish multiple instances of a PluginDefinition in the same context.
+	// Defaults to a normalized version of metadata.name.
+	DisplayName string `json:"displayName,omitempty"`
+
+	// Values are the values for a PluginDefinition instance.
+	OptionValues []greenhousemetav1alpha1.PluginOptionValue `json:"optionValues,omitempty"`
+
+	// ClusterName is the name of the cluster the plugin is deployed to. If not set, the plugin is deployed to the greenhouse cluster.
+	ClusterName string `json:"clusterName,omitempty"`
+
+	// ReleaseNamespace is the namespace in the remote cluster to which the backend is deployed.
+	// Defaults to the Greenhouse managed namespace if not set.
+	ReleaseNamespace string `json:"releaseNamespace,omitempty"`
+
+	// ReleaseName is the name of the helm release in the remote cluster to which the backend is deployed.
+	// If the Plugin was already deployed, the Plugin's name is used as the release name.
+	// If this Plugin is newly created, the releaseName is defaulted to the PluginDefinitions HelmChart name.
+	// +kubebuilder:validation:Optional
+	// +kubebuilder:validation:XValidation:rule="self == oldSelf",message="ReleaseName is immutable"
+	// +kubebuilder:validation:MaxLength=53
+	ReleaseName string `json:"releaseName,omitempty"`
 }
 
 // ClusterOptionOverride defines which plugin option should be override in which cluster

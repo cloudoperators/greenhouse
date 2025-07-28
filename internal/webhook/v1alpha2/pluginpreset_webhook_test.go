@@ -1,7 +1,7 @@
-// SPDX-FileCopyrightText: 2024 SAP SE or an SAP affiliate company and Greenhouse contributors
+// SPDX-FileCopyrightText: 2025 SAP SE or an SAP affiliate company and Greenhouse contributors
 // SPDX-License-Identifier: Apache-2.0
 
-package v1alpha1
+package v1alpha2_test
 
 import (
 	. "github.com/onsi/ginkgo/v2"
@@ -12,8 +12,10 @@ import (
 	greenhouseapis "github.com/cloudoperators/greenhouse/api"
 	greenhousemetav1alpha1 "github.com/cloudoperators/greenhouse/api/meta/v1alpha1"
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
+	greenhousev1alpha2 "github.com/cloudoperators/greenhouse/api/v1alpha2"
 	"github.com/cloudoperators/greenhouse/internal/clientutil"
 	"github.com/cloudoperators/greenhouse/internal/test"
+	webhookv1alpha2 "github.com/cloudoperators/greenhouse/internal/webhook/v1alpha2"
 )
 
 const (
@@ -220,7 +222,7 @@ var _ = Describe("PluginPreset Admission Tests", Ordered, func() {
 
 var _ = Describe("Validate Plugin OptionValues for PluginPreset", func() {
 	DescribeTable("Validate OptionValues in .Spec.Plugin contain either Value or ValueFrom", func(value *apiextensionsv1.JSON, valueFrom *greenhousemetav1alpha1.ValueFromSource, expErr bool) {
-		pluginPreset := &greenhousev1alpha1.PluginPreset{
+		pluginPreset := &greenhousev1alpha2.PluginPreset{
 			TypeMeta: metav1.TypeMeta{
 				Kind:       "PluginPreset",
 				APIVersion: greenhousev1alpha1.GroupVersion.String(),
@@ -229,8 +231,8 @@ var _ = Describe("Validate Plugin OptionValues for PluginPreset", func() {
 				Name:      "test-plugin-preset",
 				Namespace: test.TestNamespace,
 			},
-			Spec: greenhousev1alpha1.PluginPresetSpec{
-				Plugin: greenhousev1alpha1.PluginSpec{
+			Spec: greenhousev1alpha2.PluginPresetSpec{
+				Plugin: greenhousev1alpha2.PluginTemplateSpec{
 					PluginDefinition: "test",
 					OptionValues: []greenhousemetav1alpha1.PluginOptionValue{
 						{
@@ -270,7 +272,7 @@ var _ = Describe("Validate Plugin OptionValues for PluginPreset", func() {
 			},
 		}
 
-		errList := validatePluginOptionValuesForPreset(pluginPreset, pluginDefinition)
+		errList := webhookv1alpha2.ValidatePluginOptionValuesForPreset(pluginPreset, pluginDefinition)
 		switch expErr {
 		case true:
 			Expect(errList).ToNot(BeEmpty(), "expected an error, got nil")
@@ -285,7 +287,7 @@ var _ = Describe("Validate Plugin OptionValues for PluginPreset", func() {
 	)
 
 	DescribeTable("Validate OptionValues in .Spec.ClusterOptionOverrides contain either Value or ValueFrom", func(value *apiextensionsv1.JSON, valueFrom *greenhousemetav1alpha1.ValueFromSource, expErr bool) {
-		pluginPreset := &greenhousev1alpha1.PluginPreset{
+		pluginPreset := &greenhousev1alpha2.PluginPreset{
 			TypeMeta: metav1.TypeMeta{
 				Kind:       "PluginPreset",
 				APIVersion: greenhousev1alpha1.GroupVersion.String(),
@@ -294,12 +296,12 @@ var _ = Describe("Validate Plugin OptionValues for PluginPreset", func() {
 				Name:      "test-plugin-preset",
 				Namespace: test.TestNamespace,
 			},
-			Spec: greenhousev1alpha1.PluginPresetSpec{
-				Plugin: greenhousev1alpha1.PluginSpec{
+			Spec: greenhousev1alpha2.PluginPresetSpec{
+				Plugin: greenhousev1alpha2.PluginTemplateSpec{
 					PluginDefinition: "test",
 					OptionValues:     []greenhousemetav1alpha1.PluginOptionValue{},
 				},
-				ClusterOptionOverrides: []greenhousev1alpha1.ClusterOptionOverride{
+				ClusterOptionOverrides: []greenhousev1alpha2.ClusterOptionOverride{
 					{
 						ClusterName: "test-cluster",
 						Overrides: []greenhousemetav1alpha1.PluginOptionValue{
@@ -341,7 +343,7 @@ var _ = Describe("Validate Plugin OptionValues for PluginPreset", func() {
 			},
 		}
 
-		errList := validatePluginOptionValuesForPreset(pluginPreset, pluginDefinition)
+		errList := webhookv1alpha2.ValidatePluginOptionValuesForPreset(pluginPreset, pluginDefinition)
 		switch expErr {
 		case true:
 			Expect(errList).ToNot(BeEmpty(), "expected an error, got nil")
@@ -372,7 +374,7 @@ var _ = Describe("Validate Plugin OptionValues for PluginPreset", func() {
 			},
 		}
 
-		pluginPreset := &greenhousev1alpha1.PluginPreset{
+		pluginPreset := &greenhousev1alpha2.PluginPreset{
 			TypeMeta: metav1.TypeMeta{
 				Kind:       "PluginPreset",
 				APIVersion: greenhousev1alpha1.GroupVersion.String(),
@@ -381,8 +383,8 @@ var _ = Describe("Validate Plugin OptionValues for PluginPreset", func() {
 				Name:      "test-plugin-preset",
 				Namespace: test.TestNamespace,
 			},
-			Spec: greenhousev1alpha1.PluginPresetSpec{
-				Plugin: greenhousev1alpha1.PluginSpec{
+			Spec: greenhousev1alpha2.PluginPresetSpec{
+				Plugin: greenhousev1alpha2.PluginTemplateSpec{
 					PluginDefinition: "test",
 					OptionValues: []greenhousemetav1alpha1.PluginOptionValue{
 						{
@@ -394,7 +396,7 @@ var _ = Describe("Validate Plugin OptionValues for PluginPreset", func() {
 			},
 		}
 
-		errList := validatePluginOptionValuesForPreset(pluginPreset, pluginDefinition)
+		errList := webhookv1alpha2.ValidatePluginOptionValuesForPreset(pluginPreset, pluginDefinition)
 		switch expErr {
 		case true:
 			Expect(errList).ToNot(BeEmpty(), "expected an error, got nil")
@@ -434,7 +436,7 @@ var _ = Describe("Validate Plugin OptionValues for PluginPreset", func() {
 			},
 		}
 
-		pluginPreset := &greenhousev1alpha1.PluginPreset{
+		pluginPreset := &greenhousev1alpha2.PluginPreset{
 			TypeMeta: metav1.TypeMeta{
 				Kind:       "PluginPreset",
 				APIVersion: greenhousev1alpha1.GroupVersion.String(),
@@ -443,12 +445,12 @@ var _ = Describe("Validate Plugin OptionValues for PluginPreset", func() {
 				Name:      "test-plugin-preset",
 				Namespace: test.TestNamespace,
 			},
-			Spec: greenhousev1alpha1.PluginPresetSpec{
-				Plugin: greenhousev1alpha1.PluginSpec{
+			Spec: greenhousev1alpha2.PluginPresetSpec{
+				Plugin: greenhousev1alpha2.PluginTemplateSpec{
 					PluginDefinition: "test",
 					OptionValues:     []greenhousemetav1alpha1.PluginOptionValue{},
 				},
-				ClusterOptionOverrides: []greenhousev1alpha1.ClusterOptionOverride{
+				ClusterOptionOverrides: []greenhousev1alpha2.ClusterOptionOverride{
 					{
 						ClusterName: "test-cluster",
 						Overrides: []greenhousemetav1alpha1.PluginOptionValue{
@@ -462,7 +464,7 @@ var _ = Describe("Validate Plugin OptionValues for PluginPreset", func() {
 			},
 		}
 
-		errList := validatePluginOptionValuesForPreset(pluginPreset, pluginDefinition)
+		errList := webhookv1alpha2.ValidatePluginOptionValuesForPreset(pluginPreset, pluginDefinition)
 		switch expErr {
 		case true:
 			Expect(errList).ToNot(BeEmpty(), "expected an error, got nil")
@@ -501,7 +503,7 @@ var _ = Describe("Validate Plugin OptionValues for PluginPreset", func() {
 			},
 		}
 
-		pluginPreset := &greenhousev1alpha1.PluginPreset{
+		pluginPreset := &greenhousev1alpha2.PluginPreset{
 			TypeMeta: metav1.TypeMeta{
 				Kind:       "PluginPreset",
 				APIVersion: greenhousev1alpha1.GroupVersion.String(),
@@ -510,8 +512,8 @@ var _ = Describe("Validate Plugin OptionValues for PluginPreset", func() {
 				Name:      "test-plugin-preset",
 				Namespace: test.TestNamespace,
 			},
-			Spec: greenhousev1alpha1.PluginPresetSpec{
-				Plugin: greenhousev1alpha1.PluginSpec{
+			Spec: greenhousev1alpha2.PluginPresetSpec{
+				Plugin: greenhousev1alpha2.PluginTemplateSpec{
 					PluginDefinition: "test",
 					OptionValues: []greenhousemetav1alpha1.PluginOptionValue{
 						{
@@ -523,7 +525,7 @@ var _ = Describe("Validate Plugin OptionValues for PluginPreset", func() {
 			},
 		}
 
-		errList := validatePluginOptionValuesForPreset(pluginPreset, pluginDefinition)
+		errList := webhookv1alpha2.ValidatePluginOptionValuesForPreset(pluginPreset, pluginDefinition)
 		switch expErr {
 		case true:
 			Expect(errList).ToNot(BeEmpty(), "expected an error, got nil")
@@ -553,7 +555,7 @@ var _ = Describe("Validate Plugin OptionValues for PluginPreset", func() {
 			},
 		}
 
-		pluginPreset := &greenhousev1alpha1.PluginPreset{
+		pluginPreset := &greenhousev1alpha2.PluginPreset{
 			TypeMeta: metav1.TypeMeta{
 				Kind:       "PluginPreset",
 				APIVersion: greenhousev1alpha1.GroupVersion.String(),
@@ -562,12 +564,12 @@ var _ = Describe("Validate Plugin OptionValues for PluginPreset", func() {
 				Name:      "test-plugin-preset",
 				Namespace: test.TestNamespace,
 			},
-			Spec: greenhousev1alpha1.PluginPresetSpec{
-				Plugin: greenhousev1alpha1.PluginSpec{
+			Spec: greenhousev1alpha2.PluginPresetSpec{
+				Plugin: greenhousev1alpha2.PluginTemplateSpec{
 					PluginDefinition: "test",
 					OptionValues:     []greenhousemetav1alpha1.PluginOptionValue{},
 				},
-				ClusterOptionOverrides: []greenhousev1alpha1.ClusterOptionOverride{
+				ClusterOptionOverrides: []greenhousev1alpha2.ClusterOptionOverride{
 					{
 						ClusterName: "test-cluster",
 						Overrides: []greenhousemetav1alpha1.PluginOptionValue{
@@ -581,7 +583,7 @@ var _ = Describe("Validate Plugin OptionValues for PluginPreset", func() {
 			},
 		}
 
-		errList := validatePluginOptionValuesForPreset(pluginPreset, pluginDefinition)
+		errList := webhookv1alpha2.ValidatePluginOptionValuesForPreset(pluginPreset, pluginDefinition)
 		switch expErr {
 		case true:
 			Expect(errList).ToNot(BeEmpty(), "expected an error, got nil")
@@ -612,7 +614,7 @@ var _ = Describe("Validate Plugin OptionValues for PluginPreset", func() {
 			},
 		}
 		It("should accept a PluginPreset with missing required options", func() {
-			pluginPreset := &greenhousev1alpha1.PluginPreset{
+			pluginPreset := &greenhousev1alpha2.PluginPreset{
 				TypeMeta: metav1.TypeMeta{
 					Kind:       "PluginPreset",
 					APIVersion: greenhousev1alpha1.GroupVersion.String(),
@@ -621,12 +623,12 @@ var _ = Describe("Validate Plugin OptionValues for PluginPreset", func() {
 					Name:      "test-plugin-preset",
 					Namespace: test.TestNamespace,
 				},
-				Spec: greenhousev1alpha1.PluginPresetSpec{
-					Plugin: greenhousev1alpha1.PluginSpec{
+				Spec: greenhousev1alpha2.PluginPresetSpec{
+					Plugin: greenhousev1alpha2.PluginTemplateSpec{
 						PluginDefinition: "test",
 						OptionValues:     []greenhousemetav1alpha1.PluginOptionValue{},
 					},
-					ClusterOptionOverrides: []greenhousev1alpha1.ClusterOptionOverride{
+					ClusterOptionOverrides: []greenhousev1alpha2.ClusterOptionOverride{
 						{
 							ClusterName: "test-cluster",
 							Overrides:   []greenhousemetav1alpha1.PluginOptionValue{},
@@ -634,7 +636,7 @@ var _ = Describe("Validate Plugin OptionValues for PluginPreset", func() {
 					},
 				},
 			}
-			errList := validatePluginOptionValuesForPreset(pluginPreset, pluginDefinition)
+			errList := webhookv1alpha2.ValidatePluginOptionValuesForPreset(pluginPreset, pluginDefinition)
 			Expect(errList).To(BeEmpty(), "unexpected error")
 		})
 	})
