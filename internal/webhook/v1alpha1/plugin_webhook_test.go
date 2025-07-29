@@ -240,6 +240,16 @@ var _ = Describe("Validate plugin spec fields", Ordered, func() {
 		expectClusterMustBeSetError(test.K8sClient.Create(test.Ctx, testPlugin))
 	})
 
+	It("should not accept a plugin without a plugindefinition", func() {
+		testPlugin = test.NewPlugin(test.Ctx, "test-plugin", setup.Namespace(),
+			test.WithCluster(testCluster.Name),
+			test.WithReleaseNamespace("test-namespace"),
+			test.WithReleaseName("test-release"),
+			test.WithPluginLabel(greenhouseapis.LabelKeyOwnedBy, team.Name))
+		err := test.K8sClient.Create(test.Ctx, testPlugin)
+		expectPluginDefinitionMustMatchError(err)
+	})
+
 	It("should not accept a plugin for the central cluster where releaseNamespace and Plugin Namespace do not match", func() {
 		testPlugin = test.NewPlugin(test.Ctx, "test-plugin", setup.Namespace(),
 			test.WithPluginDefinition(testCentralPluginDefinition.Name),
@@ -387,6 +397,16 @@ func expectClusterMustBeSetError(err error) {
 		ContainSubstring("spec.clusterName: Required value: the clusterName must be set"),
 		"the error message should reflect that the clusterName must be set",
 	)
+}
+
+func expectPluginDefinitionMustMatchError(err error) {
+	GinkgoHelper()
+	Expect(err).To(HaveOccurred(), "there should be an error creating/updating the plugin")
+	var statusErr *apierrors.StatusError
+	ok := errors.As(err, &statusErr)
+	Expect(ok).To(BeTrue(), "error should be a status error")
+	Expect(statusErr.ErrStatus.Reason).To(Equal(metav1.StatusReasonForbidden), "the error should be a status forbidden error")
+	Expect(err.Error()).To(And(ContainSubstring("spec.pluginDefinition"), ContainSubstring("field is required")), "the error message should reflect that the pluginDefinition must be set")
 }
 
 func expectReleaseNamespaceMustMatchError(err error) {
