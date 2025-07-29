@@ -4,7 +4,7 @@
 package v1alpha1
 
 import (
-	"fmt"
+	"errors"
 
 	"sigs.k8s.io/controller-runtime/pkg/conversion"
 
@@ -60,7 +60,7 @@ func (pp *PluginPreset) ConvertFrom(srcRaw conversion.Hub) error {
 
 	// Convert the new ClusterSelector to the old selector.
 	if src.Spec.ClusterSelector.Name != "" {
-		return fmt.Errorf("cannot convert v1alpha2 with spec.clusterSelector.clusterName field to v1alpha1")
+		return errors.New("cannot convert v1alpha2 with spec.clusterSelector.clusterName field to v1alpha1")
 	}
 	pp.Spec.ClusterSelector = src.Spec.ClusterSelector.LabelSelector
 

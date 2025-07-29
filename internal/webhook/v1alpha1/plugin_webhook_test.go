@@ -22,6 +22,7 @@ import (
 	greenhousemetav1alpha1 "github.com/cloudoperators/greenhouse/api/meta/v1alpha1"
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
 	"github.com/cloudoperators/greenhouse/internal/test"
+	"github.com/cloudoperators/greenhouse/internal/webhook"
 )
 
 var _ = Describe("Validate Plugin OptionValues", func() {
@@ -62,7 +63,7 @@ var _ = Describe("Validate Plugin OptionValues", func() {
 		}
 
 		optionsFieldPath := field.NewPath("spec").Child("optionValues")
-		errList := validatePluginOptionValues(optionValues, pluginDefinition, true, optionsFieldPath)
+		errList := webhook.ValidatePluginOptionValues(optionValues, pluginDefinition, true, optionsFieldPath)
 		switch expErr {
 		case true:
 			Expect(errList).ToNot(BeEmpty(), "expected an error, got nil")
@@ -101,7 +102,7 @@ var _ = Describe("Validate Plugin OptionValues", func() {
 		}
 
 		optionsFieldPath := field.NewPath("spec").Child("optionValues")
-		errList := validatePluginOptionValues(optionValues, pluginDefinition, true, optionsFieldPath)
+		errList := webhook.ValidatePluginOptionValues(optionValues, pluginDefinition, true, optionsFieldPath)
 		switch expErr {
 		case true:
 			Expect(errList).ToNot(BeEmpty(), "expected an error, got nil")
@@ -148,7 +149,7 @@ var _ = Describe("Validate Plugin OptionValues", func() {
 		}
 
 		optionsFieldPath := field.NewPath("spec").Child("optionValues")
-		errList := validatePluginOptionValues(optionValues, pluginDefinition, true, optionsFieldPath)
+		errList := webhook.ValidatePluginOptionValues(optionValues, pluginDefinition, true, optionsFieldPath)
 		switch expErr {
 		case true:
 			Expect(errList).ToNot(BeEmpty(), "expected an error, got nil")
@@ -184,7 +185,7 @@ var _ = Describe("Validate Plugin OptionValues", func() {
 				test.WithCluster("test-cluster"),
 			)
 			optionsFieldPath := field.NewPath("spec").Child("optionValues")
-			errList := validatePluginOptionValues(plugin.Spec.OptionValues, pluginDefinition, true, optionsFieldPath)
+			errList := webhook.ValidatePluginOptionValues(plugin.Spec.OptionValues, pluginDefinition, true, optionsFieldPath)
 			Expect(errList).NotTo(BeEmpty(), "expected an error, got nil")
 		})
 		It("should accept a Plugin with supplied required options", func() {
@@ -195,7 +196,7 @@ var _ = Describe("Validate Plugin OptionValues", func() {
 				},
 			}
 			optionsFieldPath := field.NewPath("spec").Child("optionValues")
-			errList := validatePluginOptionValues(optionValues, pluginDefinition, true, optionsFieldPath)
+			errList := webhook.ValidatePluginOptionValues(optionValues, pluginDefinition, true, optionsFieldPath)
 			Expect(errList).To(BeEmpty(), "unexpected error")
 		})
 	})

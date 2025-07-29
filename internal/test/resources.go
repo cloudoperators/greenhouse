@@ -312,22 +312,22 @@ func NewPlugin(ctx context.Context, name, namespace string, opts ...func(*greenh
 }
 
 // WithPluginPresetClusterSelector sets the ClusterSelector on a PluginPreset.
-func WithPluginPresetClusterSelector(clusterSelector metav1.LabelSelector) func(*greenhousev1alpha1.PluginPreset) {
-	return func(pp *greenhousev1alpha1.PluginPreset) {
+func WithPluginPresetClusterSelector(clusterSelector greenhousev1alpha2.ClusterSelector) func(*greenhousev1alpha2.PluginPreset) {
+	return func(pp *greenhousev1alpha2.PluginPreset) {
 		pp.Spec.ClusterSelector = clusterSelector
 	}
 }
 
 // WithPluginPresetPluginSpec sets the PluginSpec on a PluginPreset.
-func WithPluginPresetPluginSpec(pluginSpec greenhousev1alpha1.PluginSpec) func(*greenhousev1alpha1.PluginPreset) {
-	return func(pp *greenhousev1alpha1.PluginPreset) {
+func WithPluginPresetPluginSpec(pluginSpec greenhousev1alpha2.PluginTemplateSpec) func(*greenhousev1alpha2.PluginPreset) {
+	return func(pp *greenhousev1alpha2.PluginPreset) {
 		pp.Spec.Plugin = pluginSpec
 	}
 }
 
 // WithPluginPresetLabel sets the label on a PluginPreset
-func WithPluginPresetLabel(key, value string) func(*greenhousev1alpha1.PluginPreset) {
-	return func(pp *greenhousev1alpha1.PluginPreset) {
+func WithPluginPresetLabel(key, value string) func(*greenhousev1alpha2.PluginPreset) {
+	return func(pp *greenhousev1alpha2.PluginPreset) {
 		if pp.Labels == nil {
 			pp.Labels = make(map[string]string, 1)
 		}
@@ -336,9 +336,9 @@ func WithPluginPresetLabel(key, value string) func(*greenhousev1alpha1.PluginPre
 }
 
 // NewPluginPreset returns a greenhousev1alpha1.PluginPreset object. Opts can be used to set the desired state of the PluginPreset.
-func NewPluginPreset(name, namespace string, opts ...func(*greenhousev1alpha1.PluginPreset)) *greenhousev1alpha1.PluginPreset {
+func NewPluginPreset(name, namespace string, opts ...func(*greenhousev1alpha2.PluginPreset)) *greenhousev1alpha2.PluginPreset {
 	GinkgoHelper()
-	pluginPreset := &greenhousev1alpha1.PluginPreset{
+	pluginPreset := &greenhousev1alpha2.PluginPreset{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       greenhousev1alpha1.PluginPresetKind,
 			APIVersion: greenhousev1alpha1.GroupVersion.String(),

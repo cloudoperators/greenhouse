@@ -4,12 +4,13 @@
 package v1alpha2
 
 import (
-	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
-	greenhousev1alpha2 "github.com/cloudoperators/greenhouse/api/v1alpha2"
-	"github.com/cloudoperators/greenhouse/internal/webhook"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/validation/field"
+
+	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
+	greenhousev1alpha2 "github.com/cloudoperators/greenhouse/api/v1alpha2"
+	"github.com/cloudoperators/greenhouse/internal/webhook"
 )
 
 // validateClusterSelector checks if the resource has a valid clusterSelector.

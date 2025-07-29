@@ -405,10 +405,10 @@ var _ = Describe("PluginPreset Controller Lifecycle", Ordered, func() {
 			g.Expect(err).ToNot(HaveOccurred(), "failed to get the PluginPreset")
 
 			g.Expect(testPluginPreset.Status.PluginStatuses).To(HaveLen(2), "there should be exactly two plugin statuses")
-			g.Expect(slices.ContainsFunc(testPluginPreset.Status.PluginStatuses, func(status greenhousev1alpha1.ManagedPluginStatus) bool {
+			g.Expect(slices.ContainsFunc(testPluginPreset.Status.PluginStatuses, func(status greenhousev1alpha2.ManagedPluginStatus) bool {
 				return status.PluginName == testPluginPreset.Name+"-"+clusterA && status.ReadyCondition.IsTrue()
 			})).To(BeTrue(), "Ready true status should be reported for the first plugin")
-			g.Expect(slices.ContainsFunc(testPluginPreset.Status.PluginStatuses, func(status greenhousev1alpha1.ManagedPluginStatus) bool {
+			g.Expect(slices.ContainsFunc(testPluginPreset.Status.PluginStatuses, func(status greenhousev1alpha2.ManagedPluginStatus) bool {
 				return status.PluginName == testPluginPreset.Name+"-"+clusterB && status.ReadyCondition.IsTrue()
 			})).To(BeTrue(), "Ready true status should be reported for the additional plugin")
 			g.Expect(testPluginPreset.Status.AvailablePlugins).To(Equal(2), "PluginPreset Status should show exactly two available plugins")
@@ -468,7 +468,7 @@ var _ = Describe("PluginPreset Controller Lifecycle", Ordered, func() {
 		By("creating a PluginPreset with overrides")
 		pluginPreset := pluginPreset(pluginPresetName+"-override1", clusterA, testTeam.Name)
 		pluginPreset.Spec.Plugin.PluginDefinition = pluginDefinition.Name
-		pluginPreset.Spec.ClusterOptionOverrides = append(pluginPreset.Spec.ClusterOptionOverrides, greenhousev1alpha1.ClusterOptionOverride{
+		pluginPreset.Spec.ClusterOptionOverrides = append(pluginPreset.Spec.ClusterOptionOverrides, greenhousev1alpha2.ClusterOptionOverride{
 			ClusterName: clusterA,
 			Overrides: []greenhousemetav1alpha1.PluginOptionValue{
 				{
@@ -1189,11 +1189,11 @@ func cluster(name, supportGroupTeamName string) *greenhousev1alpha1.Cluster {
 	}
 }
 
-func pluginPreset(name, selectorValue, supportGroupTeamName string) *greenhousev1alpha1.PluginPreset {
+func pluginPreset(name, selectorValue, supportGroupTeamName string) *greenhousev1alpha2.PluginPreset {
 	preset := test.NewPluginPreset(name, test.TestNamespace,
 		test.WithPluginPresetLabel(greenhouseapis.LabelKeyOwnedBy, supportGroupTeamName))
-	preset.Spec = greenhousev1alpha1.PluginPresetSpec{
-		Plugin: greenhousev1alpha1.PluginSpec{
+	preset.Spec = greenhousev1alpha2.PluginPresetSpec{
+		Plugin: greenhousev1alpha2.PluginTemplateSpec{
 			PluginDefinition: pluginPresetDefinitionName,
 			ReleaseName:      releaseName,
 			ReleaseNamespace: releaseNamespace,
@@ -1204,12 +1204,14 @@ func pluginPreset(name, selectorValue, supportGroupTeamName string) *greenhousev
 				},
 			},
 		},
-		ClusterSelector: metav1.LabelSelector{
-			MatchLabels: map[string]string{
-				"cluster": selectorValue,
+		ClusterSelector: greenhousev1alpha2.ClusterSelector{
+			LabelSelector: metav1.LabelSelector{
+				MatchLabels: map[string]string{
+					"cluster": selectorValue,
+				},
 			},
 		},
-		ClusterOptionOverrides: []greenhousev1alpha1.ClusterOptionOverride{},
+		ClusterOptionOverrides: []greenhousev1alpha2.ClusterOptionOverride{},
 	}
 	return preset
 }

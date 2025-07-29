@@ -5,7 +5,6 @@ package v1alpha1
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"strings"
 
@@ -20,7 +19,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
 	greenhouseapis "github.com/cloudoperators/greenhouse/api"
-	greenhousemetav1alpha1 "github.com/cloudoperators/greenhouse/api/meta/v1alpha1"
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
 	"github.com/cloudoperators/greenhouse/internal/clientutil"
 	"github.com/cloudoperators/greenhouse/internal/helm"
@@ -121,7 +119,7 @@ func ValidateCreatePlugin(ctx context.Context, c client.Client, obj runtime.Obje
 	}
 
 	optionsFieldPath := field.NewPath("spec").Child("optionValues")
-	errList := validatePluginOptionValues(plugin.Spec.OptionValues, pluginDefinition, true, optionsFieldPath)
+	errList := webhook.ValidatePluginOptionValues(plugin.Spec.OptionValues, pluginDefinition, true, optionsFieldPath)
 	if len(errList) > 0 {
 		return nil, apierrors.NewInvalid(plugin.GroupVersionKind().GroupKind(), plugin.Name, errList)
 	}
@@ -171,7 +169,7 @@ func ValidateUpdatePlugin(ctx context.Context, c client.Client, old, obj runtime
 	}
 
 	optionsFieldPath := field.NewPath("spec").Child("optionValues")
-	allErrs = append(allErrs, validatePluginOptionValues(plugin.Spec.OptionValues, pluginDefinition, true, optionsFieldPath)...)
+	allErrs = append(allErrs, webhook.ValidatePluginOptionValues(plugin.Spec.OptionValues, pluginDefinition, true, optionsFieldPath)...)
 
 	allErrs = append(allErrs, validation.ValidateImmutableField(oldPlugin.Spec.ClusterName, plugin.Spec.ClusterName,
 		field.NewPath("spec", "clusterName"))...)
@@ -199,80 +197,6 @@ func validateOwnerReference(plugin *greenhousev1alpha1.Plugin) admission.Warning
 		return admission.Warnings{fmt.Sprintf("Plugin is managed by PluginPreset '%s'. Plugin will be reconciled to the desired state specified in the PluginPreset.", ref.Name)}
 	}
 	return nil
-}
-
-func validatePluginOptionValues(
-	optionValues []greenhousemetav1alpha1.PluginOptionValue,
-	pluginDefinition *greenhousev1alpha1.PluginDefinition,
-	checkRequiredOptions bool,
-	optionsFieldPath *field.Path,
-) field.ErrorList {
-
-	var allErrs field.ErrorList
-	var isOptionValueSet bool
-	for _, pluginOption := range pluginDefinition.Spec.Options {
-		isOptionValueSet = false
-		for idx, val := range optionValues {
-			if pluginOption.Name != val.Name {
-				continue
-			}
-			// If the option is required, it must be set.
-			isOptionValueSet = true
-			fieldPathWithIndex := optionsFieldPath.Index(idx)
-
-			// Value and ValueFrom are mutually exclusive, but one must be provided.
-			if (val.Value == nil && val.ValueFrom == nil) || (val.Value != nil && val.ValueFrom != nil) {
-				allErrs = append(allErrs, field.Required(
-					fieldPathWithIndex,
-					"must provide either value or valueFrom for value "+val.Name,
-				))
-				continue
-			}
-
-			// Validate that OptionValue has a secret reference.
-			if pluginOption.Type == greenhousev1alpha1.PluginOptionTypeSecret {
-				switch {
-				case val.Value != nil:
-					allErrs = append(allErrs, field.TypeInvalid(fieldPathWithIndex.Child("value"), "*****",
-						fmt.Sprintf("optionValue %s of type secret must use valueFrom to reference a secret", val.Name)))
-					continue
-				case val.ValueFrom != nil:
-					if val.ValueFrom.Secret.Name == "" {
-						allErrs = append(allErrs, field.Required(fieldPathWithIndex.Child("valueFrom").Child("name"),
-							fmt.Sprintf("optionValue %s of type secret must reference a secret by name", val.Name)))
-						continue
-					}
-					if val.ValueFrom.Secret.Key == "" {
-						allErrs = append(allErrs, field.Required(fieldPathWithIndex.Child("valueFrom").Child("key"),
-							fmt.Sprintf("optionValue %s of type secret must reference a key in a secret", val.Name)))
-						continue
-					}
-				}
-				continue
-			}
-
-			// validate that the Plugin.OptionValue matches the type of the PluginDefinition.Option
-			if val.Value != nil {
-				if err := pluginOption.IsValidValue(val.Value); err != nil {
-					var v any
-					if err := json.Unmarshal(val.Value.Raw, &v); err != nil {
-						v = err
-					}
-					allErrs = append(allErrs, field.Invalid(
-						fieldPathWithIndex.Child("value"), v, err.Error(),
-					))
-				}
-			}
-		}
-		if checkRequiredOptions && pluginOption.Required && !isOptionValueSet {
-			allErrs = append(allErrs, field.Required(optionsFieldPath,
-				fmt.Sprintf("Option '%s' is required by PluginDefinition '%s'", pluginOption.Name, pluginDefinition.Name)))
-		}
-	}
-	if len(allErrs) == 0 {
-		return nil
-	}
-	return allErrs
 }
 
 func validatePluginForCluster(ctx context.Context, c client.Client, plugin *greenhousev1alpha1.Plugin, pluginDefinition *greenhousev1alpha1.PluginDefinition) error {
