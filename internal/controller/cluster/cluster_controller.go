@@ -17,7 +17,6 @@ import (
 
 	"github.com/cloudoperators/greenhouse/internal/controller/cluster/utils"
 	"github.com/cloudoperators/greenhouse/internal/lifecycle"
-	"github.com/cloudoperators/greenhouse/internal/metrics"
 
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -92,7 +91,7 @@ func (r *RemoteClusterReconciler) EnsureCreated(ctx context.Context, resource li
 			return ctrl.Result{}, lifecycle.Success, nil
 		}
 	}
-	defer metrics.UpdateClusterMetrics(cluster)
+	defer UpdateClusterMetrics(cluster)
 	clusterSecret := &corev1.Secret{}
 	if err := r.Get(ctx, types.NamespacedName{Name: cluster.GetSecretName(), Namespace: cluster.GetNamespace()}, clusterSecret); err != nil {
 		return ctrl.Result{}, lifecycle.Failed, err

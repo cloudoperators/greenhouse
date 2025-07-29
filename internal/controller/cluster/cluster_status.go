@@ -20,7 +20,6 @@ import (
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
 	"github.com/cloudoperators/greenhouse/internal/clientutil"
 	"github.com/cloudoperators/greenhouse/internal/lifecycle"
-	"github.com/cloudoperators/greenhouse/internal/metrics"
 	"github.com/cloudoperators/greenhouse/internal/util"
 )
 
@@ -50,7 +49,7 @@ func (r *RemoteClusterReconciler) setConditions() lifecycle.Conditioner {
 		readyCondition := r.reconcileReadyStatus(kubeConfigValidCondition)
 
 		ownerLabelCondition := util.ComputeOwnerLabelCondition(ctx, r.Client, cluster)
-		metrics.UpdateOwnedByLabelMissingMetric(cluster, ownerLabelCondition.IsFalse())
+		util.UpdateOwnedByLabelMissingMetric(cluster, ownerLabelCondition.IsFalse())
 
 		conditions = append(conditions, readyCondition, allNodesReadyCondition, kubeConfigValidCondition, ownerLabelCondition)
 

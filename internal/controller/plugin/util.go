@@ -26,7 +26,6 @@ import (
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
 	"github.com/cloudoperators/greenhouse/internal/clientutil"
 	"github.com/cloudoperators/greenhouse/internal/lifecycle"
-	"github.com/cloudoperators/greenhouse/internal/metrics"
 )
 
 const (
@@ -222,7 +221,7 @@ func allResourceReady(payloadStatus []PayloadStatus) bool {
 // computeWorkloadCondition computes the ReadyCondition for the Plugin and sets the workload metrics and condition message.
 func computeWorkloadCondition(plugin *greenhousev1alpha1.Plugin, release *ReleaseStatus) {
 	if !allResourceReady(release.PayloadStatus) {
-		metrics.UpdatePluginWorkloadMetrics(plugin, 0)
+		UpdatePluginWorkloadMetrics(plugin, 0)
 		errorMessage := "Following workload resources are not ready: [ "
 		for _, status := range release.PayloadStatus {
 			if !status.Ready {
@@ -235,7 +234,7 @@ func computeWorkloadCondition(plugin *greenhousev1alpha1.Plugin, release *Releas
 		return
 	}
 
-	metrics.UpdatePluginWorkloadMetrics(plugin, 1)
+	UpdatePluginWorkloadMetrics(plugin, 1)
 	plugin.SetCondition(greenhousemetav1alpha1.TrueCondition(greenhousev1alpha1.WorkloadReadyCondition, "", "Workload is running"))
 }
 

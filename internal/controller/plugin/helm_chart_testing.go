@@ -13,7 +13,6 @@ import (
 	greenhousemetav1alpha1 "github.com/cloudoperators/greenhouse/api/meta/v1alpha1"
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
 	"github.com/cloudoperators/greenhouse/internal/helm"
-	"github.com/cloudoperators/greenhouse/internal/metrics"
 )
 
 func (r *PluginReconciler) reconcileHelmChartTest(ctx context.Context, plugin *greenhousev1alpha1.Plugin) (*reconcileResult, error) {
@@ -49,7 +48,7 @@ func (r *PluginReconciler) reconcileHelmChartTest(ctx context.Context, plugin *g
 		} else {
 			plugin.SetCondition(greenhousemetav1alpha1.FalseCondition(greenhousev1alpha1.HelmChartTestSucceededCondition, "", err.Error()))
 		}
-		metrics.IncrementHelmChartTestRunsTotal(plugin, "Error")
+		IncrementHelmChartTestRunsTotal(plugin, "Error")
 		return nil, err
 	}
 
@@ -57,12 +56,12 @@ func (r *PluginReconciler) reconcileHelmChartTest(ctx context.Context, plugin *g
 		plugin.SetCondition(greenhousemetav1alpha1.TrueCondition(greenhousev1alpha1.HelmChartTestSucceededCondition, "",
 			"No Helm Chart Tests defined by the PluginDefinition"))
 
-		metrics.IncrementHelmChartTestRunsTotal(plugin, "NoTests")
+		IncrementHelmChartTestRunsTotal(plugin, "NoTests")
 	} else {
 		plugin.SetCondition(greenhousemetav1alpha1.TrueCondition(greenhousev1alpha1.HelmChartTestSucceededCondition, "",
 			"Helm Chart Test is successful"))
 
-		metrics.IncrementHelmChartTestRunsTotal(plugin, "Success")
+		IncrementHelmChartTestRunsTotal(plugin, "Success")
 	}
 
 	return nil, nil

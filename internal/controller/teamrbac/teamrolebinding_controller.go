@@ -31,7 +31,6 @@ import (
 	greenhousev1alpha2 "github.com/cloudoperators/greenhouse/api/v1alpha2"
 	"github.com/cloudoperators/greenhouse/internal/clientutil"
 	"github.com/cloudoperators/greenhouse/internal/lifecycle"
-	"github.com/cloudoperators/greenhouse/internal/metrics"
 	"github.com/cloudoperators/greenhouse/internal/util"
 )
 
@@ -97,9 +96,9 @@ func (r *TeamRoleBindingReconciler) setConditions() lifecycle.Conditioner {
 
 		readyCondition := computeReadyCondition(trb.Status)
 		ownerLabelCondition := util.ComputeOwnerLabelCondition(ctx, r.Client, trb)
-		metrics.UpdateOwnedByLabelMissingMetric(trb, ownerLabelCondition.IsFalse())
+		util.UpdateOwnedByLabelMissingMetric(trb, ownerLabelCondition.IsFalse())
 		trb.Status.SetConditions(readyCondition, ownerLabelCondition)
-		metrics.UpdateTeamrbacMetrics(trb)
+		UpdateTeamrbacMetrics(trb)
 	}
 }
 

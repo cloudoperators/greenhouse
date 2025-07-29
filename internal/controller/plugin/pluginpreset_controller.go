@@ -28,7 +28,6 @@ import (
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
 	"github.com/cloudoperators/greenhouse/internal/clientutil"
 	"github.com/cloudoperators/greenhouse/internal/lifecycle"
-	"github.com/cloudoperators/greenhouse/internal/metrics"
 	"github.com/cloudoperators/greenhouse/internal/util"
 )
 
@@ -86,7 +85,7 @@ func (r *PluginPresetReconciler) setConditions() lifecycle.Conditioner {
 
 		readyCondition := r.computeReadyCondition(pluginPreset.Status.StatusConditions)
 		ownerLabelCondition := util.ComputeOwnerLabelCondition(ctx, r.Client, pluginPreset)
-		metrics.UpdateOwnedByLabelMissingMetric(pluginPreset, ownerLabelCondition.IsFalse())
+		util.UpdateOwnedByLabelMissingMetric(pluginPreset, ownerLabelCondition.IsFalse())
 		pluginPreset.Status.SetConditions(readyCondition, ownerLabelCondition)
 	}
 }

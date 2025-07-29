@@ -38,7 +38,7 @@ import (
 
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
 	"github.com/cloudoperators/greenhouse/internal/clientutil"
-	"github.com/cloudoperators/greenhouse/internal/metrics"
+	"github.com/cloudoperators/greenhouse/internal/util"
 )
 
 func init() {
@@ -60,7 +60,7 @@ const driftDetectionInterval = 60 * time.Minute
 func InstallOrUpgradeHelmChartFromPlugin(ctx context.Context, local client.Client, restClientGetter genericclioptions.RESTClientGetter, pluginDefinition *greenhousev1alpha1.PluginDefinition, plugin *greenhousev1alpha1.Plugin) error {
 	// Early return if the pluginDefinition is not helm based
 	if pluginDefinition.Spec.HelmChart == nil {
-		metrics.UpdatePluginReconcileTotalMetric(plugin, metrics.MetricResultError, metrics.MetricReasonHelmChartIsNotDefined)
+		util.UpdatePluginReconcileTotalMetric(plugin, util.MetricResultError, util.MetricReasonHelmChartIsNotDefined)
 		return fmt.Errorf("no helm chart defined in pluginDefinition.Spec.HelmChart for pluginDefinition %s", plugin.Spec.PluginDefinition)
 	}
 	latestRelease, isReleaseExists, err := isReleaseExistsForPlugin(ctx, restClientGetter, plugin)
@@ -71,42 +71,42 @@ func InstallOrUpgradeHelmChartFromPlugin(ctx context.Context, local client.Clien
 	if !isReleaseExists {
 		log.FromContext(ctx).Info("installing release for plugin", "namespace", plugin.Spec.ReleaseNamespace, "name", plugin.Name)
 		_, err = installRelease(ctx, local, restClientGetter, pluginDefinition, plugin, false)
-		metrics.UpdatePluginReconcileTotalMetric(plugin, metrics.MetricResultError, metrics.MetricReasonInstallFailed)
+		util.UpdatePluginReconcileTotalMetric(plugin, util.MetricResultError, util.MetricReasonInstallFailed)
 		return err
 	}
 	helmChart, err := locateChartForPlugin(restClientGetter, pluginDefinition)
 	if err != nil {
-		metrics.UpdatePluginReconcileTotalMetric(plugin, metrics.MetricResultError, metrics.MetricReasonUpgradeFailed)
+		util.UpdatePluginReconcileTotalMetric(plugin, util.MetricResultError, util.MetricReasonUpgradeFailed)
 		return err
 	}
 	// Avoid attempts to upgrade a failed release and attempt to resurrect it.
 	if latestRelease.Info != nil && latestRelease.Info.Status == release.StatusFailed {
 		log.FromContext(ctx).Info("attempting to reset release status", "current status", latestRelease.Info.Status.String())
 		if err := ResetHelmReleaseStatusToDeployed(restClientGetter, plugin); err != nil {
-			metrics.UpdatePluginReconcileTotalMetric(plugin, metrics.MetricResultError, metrics.MetricReasonUpgradeFailed)
+			util.UpdatePluginReconcileTotalMetric(plugin, util.MetricResultError, util.MetricReasonUpgradeFailed)
 			return err
 		}
 	}
 	// Avoid upgrading a currently pending release.
 	if releaseStatus, ok := isCanReleaseBeUpgraded(latestRelease); !ok {
-		metrics.UpdatePluginReconcileTotalMetric(plugin, metrics.MetricResultError, metrics.MetricReasonUpgradeFailed)
+		util.UpdatePluginReconcileTotalMetric(plugin, util.MetricResultError, util.MetricReasonUpgradeFailed)
 		return fmt.Errorf("cannot upgrade release %s/%s in status %s", latestRelease.Namespace, latestRelease.Name, releaseStatus.String())
 	}
 	log.FromContext(ctx).Info("upgrading release", "namespace", plugin.Spec.ReleaseNamespace, "name", plugin.Name)
 
 	c, err := clientutil.NewK8sClientFromRestClientGetter(restClientGetter)
 	if err != nil {
-		metrics.UpdatePluginReconcileTotalMetric(plugin, metrics.MetricResultError, metrics.MetricReasonUpgradeFailed)
+		util.UpdatePluginReconcileTotalMetric(plugin, util.MetricResultError, util.MetricReasonUpgradeFailed)
 		return err
 	}
 
 	if err := replaceCustomResourceDefinitions(ctx, c, helmChart.CRDObjects(), true); err != nil {
-		metrics.UpdatePluginReconcileTotalMetric(plugin, metrics.MetricResultError, metrics.MetricReasonUpgradeFailed)
+		util.UpdatePluginReconcileTotalMetric(plugin, util.MetricResultError, util.MetricReasonUpgradeFailed)
 		return err
 	}
 
 	if err := upgradeRelease(ctx, local, restClientGetter, pluginDefinition, plugin); err != nil {
-		metrics.UpdatePluginReconcileTotalMetric(plugin, metrics.MetricResultError, metrics.MetricReasonUpgradeFailed)
+		util.UpdatePluginReconcileTotalMetric(plugin, util.MetricResultError, util.MetricReasonUpgradeFailed)
 		return err
 	}
 

@@ -24,7 +24,6 @@ import (
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
 	"github.com/cloudoperators/greenhouse/internal/clientutil"
 	"github.com/cloudoperators/greenhouse/internal/lifecycle"
-	"github.com/cloudoperators/greenhouse/internal/metrics"
 	"github.com/cloudoperators/greenhouse/internal/scim"
 	"github.com/cloudoperators/greenhouse/internal/util"
 )
@@ -156,7 +155,7 @@ func (r *TeamController) EnsureCreated(ctx context.Context, object lifecycle.Run
 	team.Status.Members = users
 	team.SetCondition(greenhousemetav1alpha1.TrueCondition(greenhousev1alpha1.SCIMAccessReadyCondition, "", ""))
 
-	metrics.UpdateTeamMembersCountMetric(team, len(users))
+	UpdateTeamMembersCountMetric(team, len(users))
 
 	return ctrl.Result{
 			RequeueAfter: wait.Jitter(RequeueInterval, 0.1),

@@ -34,7 +34,6 @@ import (
 	"github.com/cloudoperators/greenhouse/internal/common"
 	"github.com/cloudoperators/greenhouse/internal/helm"
 	"github.com/cloudoperators/greenhouse/internal/lifecycle"
-	"github.com/cloudoperators/greenhouse/internal/metrics"
 	"github.com/cloudoperators/greenhouse/internal/util"
 )
 
@@ -129,10 +128,10 @@ func (r *PluginReconciler) setConditions() lifecycle.Conditioner {
 		}
 
 		readyCondition := ComputeReadyCondition(plugin.Status.StatusConditions)
-		metrics.UpdatePluginReadyMetric(plugin, readyCondition.Status == metav1.ConditionTrue)
+		UpdatePluginReadyMetric(plugin, readyCondition.Status == metav1.ConditionTrue)
 
 		ownerLabelCondition := util.ComputeOwnerLabelCondition(ctx, r.Client, plugin)
-		metrics.UpdateOwnedByLabelMissingMetric(plugin, ownerLabelCondition.IsFalse())
+		util.UpdateOwnedByLabelMissingMetric(plugin, ownerLabelCondition.IsFalse())
 
 		plugin.Status.SetConditions(readyCondition, ownerLabelCondition)
 	}
@@ -143,7 +142,7 @@ func (r *PluginReconciler) EnsureDeleted(ctx context.Context, resource lifecycle
 
 	restClientGetter, err := initClientGetter(ctx, r.Client, r.kubeClientOpts, *plugin)
 	if err != nil {
-		metrics.UpdatePluginReconcileTotalMetric(plugin, metrics.MetricResultError, metrics.MetricReasonClusterAccessFailed)
+		util.UpdatePluginReconcileTotalMetric(plugin, util.MetricResultError, util.MetricReasonClusterAccessFailed)
 		return ctrl.Result{}, lifecycle.Failed, fmt.Errorf("cannot access cluster: %s", err.Error())
 	}
 
@@ -151,7 +150,7 @@ func (r *PluginReconciler) EnsureDeleted(ctx context.Context, resource lifecycle
 	if err != nil {
 		c := greenhousemetav1alpha1.TrueCondition(greenhousev1alpha1.HelmReconcileFailedCondition, greenhousev1alpha1.HelmUninstallFailedReason, err.Error())
 		plugin.SetCondition(c)
-		metrics.UpdatePluginReconcileTotalMetric(plugin, metrics.MetricResultError, metrics.MetricReasonUninstallHelmFailed)
+		util.UpdatePluginReconcileTotalMetric(plugin, util.MetricResultError, util.MetricReasonUninstallHelmFailed)
 		return ctrl.Result{}, lifecycle.Failed, err
 	}
 	if !isDeleted {
@@ -175,7 +174,7 @@ func (r *PluginReconciler) EnsureCreated(ctx context.Context, resource lifecycle
 
 	restClientGetter, err := initClientGetter(ctx, r.Client, r.kubeClientOpts, *plugin)
 	if err != nil {
-		metrics.UpdatePluginReconcileTotalMetric(plugin, metrics.MetricResultError, metrics.MetricReasonClusterAccessFailed)
+		util.UpdatePluginReconcileTotalMetric(plugin, util.MetricResultError, util.MetricReasonClusterAccessFailed)
 		return ctrl.Result{}, lifecycle.Failed, fmt.Errorf("cannot access cluster: %s", err.Error())
 	}
 
@@ -190,7 +189,7 @@ func (r *PluginReconciler) EnsureCreated(ctx context.Context, resource lifecycle
 
 	pluginDefinition, err := r.getPluginDefinition(ctx, plugin)
 	if err != nil {
-		metrics.UpdatePluginReconcileTotalMetric(plugin, metrics.MetricResultError, metrics.MetricReasonPluginDefinitionNotFound)
+		util.UpdatePluginReconcileTotalMetric(plugin, util.MetricResultError, util.MetricReasonPluginDefinitionNotFound)
 		return ctrl.Result{}, lifecycle.Failed, fmt.Errorf("pluginDefinition not found: %s", err.Error())
 	}
 
@@ -269,7 +268,7 @@ func (r *PluginReconciler) reconcileHelmRelease(
 		errorMessage := "Helm template failed: " + err.Error()
 		plugin.SetCondition(greenhousemetav1alpha1.TrueCondition(
 			greenhousev1alpha1.HelmReconcileFailedCondition, "", errorMessage))
-		metrics.UpdatePluginReconcileTotalMetric(plugin, metrics.MetricResultError, metrics.MetricReasonTemplateFailed)
+		util.UpdatePluginReconcileTotalMetric(plugin, util.MetricResultError, util.MetricReasonTemplateFailed)
 		return errors.New(errorMessage)
 	}
 
@@ -279,7 +278,7 @@ func (r *PluginReconciler) reconcileHelmRelease(
 		errorMessage := "Helm diff failed: " + err.Error()
 		plugin.SetCondition(greenhousemetav1alpha1.TrueCondition(
 			greenhousev1alpha1.HelmReconcileFailedCondition, "", errorMessage))
-		metrics.UpdatePluginReconcileTotalMetric(plugin, metrics.MetricResultError, metrics.MetricReasonDiffFailed)
+		util.UpdatePluginReconcileTotalMetric(plugin, util.MetricResultError, util.MetricReasonDiffFailed)
 		return errors.New(errorMessage)
 	}
 
@@ -311,7 +310,7 @@ func (r *PluginReconciler) reconcileHelmRelease(
 
 	plugin.SetCondition(greenhousemetav1alpha1.FalseCondition(
 		greenhousev1alpha1.HelmReconcileFailedCondition, "", "Helm install/upgrade successful"))
-	metrics.UpdatePluginReconcileTotalMetric(plugin, metrics.MetricResultSuccess, metrics.MetricReasonEmpty)
+	util.UpdatePluginReconcileTotalMetric(plugin, util.MetricResultSuccess, util.MetricReasonEmpty)
 	return nil
 }
 
