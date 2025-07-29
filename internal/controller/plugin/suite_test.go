@@ -29,6 +29,7 @@ import (
 	"github.com/cloudoperators/greenhouse/internal/helm"
 	"github.com/cloudoperators/greenhouse/internal/test"
 	webhookv1alpha1 "github.com/cloudoperators/greenhouse/internal/webhook/v1alpha1"
+	webhookv1alpha2 "github.com/cloudoperators/greenhouse/internal/webhook/v1alpha2"
 )
 
 func TestHelmController(t *testing.T) {
@@ -45,7 +46,7 @@ var _ = BeforeSuite(func() {
 	test.RegisterWebhook("pluginWebhook", webhookv1alpha1.SetupPluginWebhookWithManager)
 	test.RegisterWebhook("clusterWebhook", webhookv1alpha1.SetupClusterWebhookWithManager)
 	test.RegisterWebhook("secretsWebhook", webhookv1alpha1.SetupSecretWebhookWithManager)
-	test.RegisterWebhook("pluginPresetWebhook", webhookv1alpha1.SetupPluginPresetWebhookWithManager)
+	test.RegisterWebhook("pluginPresetWebhook", webhookv1alpha2.SetupPluginPresetWebhookWithManager)
 	test.TestBeforeSuite()
 
 	// return the test.Cfg, as the in-cluster config is not available
