@@ -89,9 +89,9 @@ func (o *pluginValidateOptions) run() error {
 }
 
 // validateOptions validates that all required options are set and that the values are valid.
-func validateOptions(pluginDefinition *greenhousev1alpha1.PluginDefinition, plugin *greenhousev1alpha1.Plugin) error {
+func validateOptions(pluginDefinition *greenhousev1alpha1.ClusterPluginDefinition, plugin *greenhousev1alpha1.Plugin) error {
 	// Validate that all required options are set.
-	errList := []error{}
+	var errList []error
 	for _, option := range pluginDefinition.Spec.Options {
 		var isSet = false
 		for _, optionValue := range plugin.Spec.OptionValues {
@@ -118,7 +118,7 @@ func validateOptions(pluginDefinition *greenhousev1alpha1.PluginDefinition, plug
 	}
 }
 
-func validateHelmChart(pluginDefinition *greenhousev1alpha1.PluginDefinition, plugin *greenhousev1alpha1.Plugin) error {
+func validateHelmChart(pluginDefinition *greenhousev1alpha1.ClusterPluginDefinition, plugin *greenhousev1alpha1.Plugin) error {
 	if pluginDefinition.Spec.HelmChart == nil {
 		return nil
 	}
@@ -132,12 +132,12 @@ func validateHelmChart(pluginDefinition *greenhousev1alpha1.PluginDefinition, pl
 	}
 
 	fmt.Printf("rendering helm chart %s\n", pluginDefinition.Spec.HelmChart.String())
-	_, err = helm.TemplateHelmChartFromPlugin(context.Background(), local, restClientGetter, pluginDefinition, plugin)
+	_, err = helm.TemplateHelmChartFromPlugin(context.Background(), local, restClientGetter, pluginDefinition.Spec, plugin)
 	return err
 }
 
-func loadPluginDefinition(path string) (*greenhousev1alpha1.PluginDefinition, error) {
-	var pluginDefinition *greenhousev1alpha1.PluginDefinition
+func loadPluginDefinition(path string) (*greenhousev1alpha1.ClusterPluginDefinition, error) {
+	var pluginDefinition *greenhousev1alpha1.ClusterPluginDefinition
 	err := loadAndUnmarshalObject(path, &pluginDefinition)
 	return pluginDefinition, err
 }

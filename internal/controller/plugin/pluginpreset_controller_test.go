@@ -50,7 +50,7 @@ var (
 	clusterBRemote     *envtest.Environment
 
 	testTeam               = test.NewTeam(test.Ctx, "test-pluginpreset-team", test.TestNamespace, test.WithTeamLabel(greenhouseapis.LabelKeySupportGroup, "true"))
-	pluginPresetDefinition = test.NewPluginDefinition(test.Ctx, pluginPresetDefinitionName, test.WithHelmChart(
+	pluginPresetDefinition = test.NewClusterPluginDefinition(test.Ctx, pluginPresetDefinitionName, test.WithHelmChart(
 		&greenhousev1alpha1.HelmChartReference{
 			Name:       "./../../test/fixtures/chartWithConfigMap",
 			Repository: "dummy",
@@ -65,7 +65,7 @@ var (
 )
 
 var _ = Describe("PluginPreset Controller Lifecycle", Ordered, func() {
-	var defaultPluginDefinition *greenhousev1alpha1.PluginDefinition
+	var defaultPluginDefinition *greenhousev1alpha1.ClusterPluginDefinition
 	BeforeAll(func() {
 		format.MaxLength = 0
 		By("creating a test PluginDefinition")
@@ -109,7 +109,7 @@ var _ = Describe("PluginPreset Controller Lifecycle", Ordered, func() {
 		}
 
 		By("creating PluginDefinition with default options")
-		defaultPluginDefinition = test.NewPluginDefinition(test.Ctx, pluginDefinitionWithDefaultsName, test.AppendPluginOption(
+		defaultPluginDefinition = test.NewClusterPluginDefinition(test.Ctx, pluginDefinitionWithDefaultsName, test.AppendPluginOption(
 			greenhousev1alpha1.PluginOption{
 				Name:    "test-plugin-definition-option-1",
 				Type:    "int",
@@ -451,7 +451,7 @@ var _ = Describe("PluginPreset Controller Lifecycle", Ordered, func() {
 
 	It("should create a Plugin with required options taken from PluginPreset overrides", func() {
 		By("creating PluginDefinition with required option values")
-		pluginDefinition := test.NewPluginDefinition(test.Ctx, pluginDefinitionWithRequiredOptionName,
+		pluginDefinition := test.NewClusterPluginDefinition(test.Ctx, pluginDefinitionWithRequiredOptionName,
 			test.AppendPluginOption(
 				greenhousev1alpha1.PluginOption{
 					Name:     "test-required-option-1",
@@ -569,7 +569,7 @@ var _ = Describe("PluginPreset Controller Lifecycle", Ordered, func() {
 
 var _ = Describe("Plugin Preset skip changes", Ordered, func() {
 	DescribeTable("",
-		func(testPlugin *greenhousev1alpha1.Plugin, testPresetPlugin *greenhousev1alpha1.PluginPreset, testPluginDefinition *greenhousev1alpha1.PluginDefinition, clusterName string, expected bool) {
+		func(testPlugin *greenhousev1alpha1.Plugin, testPresetPlugin *greenhousev1alpha1.PluginPreset, testPluginDefinition *greenhousev1alpha1.ClusterPluginDefinition, clusterName string, expected bool) {
 			Expect(shouldSkipPlugin(testPlugin, testPresetPlugin, testPluginDefinition, clusterName)).To(BeEquivalentTo(expected))
 		},
 		Entry("should skip when plugin preset name in plugin's labels is different then defined name in plugin preset",

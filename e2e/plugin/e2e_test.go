@@ -102,7 +102,7 @@ var _ = Describe("Plugin E2E", Ordered, func() {
 		Expect(client.IgnoreAlreadyExists(err)).ToNot(HaveOccurred())
 
 		By("Checking the plugin definition is ready")
-		pluginDefinitionList := &greenhousev1alpha1.PluginDefinitionList{}
+		pluginDefinitionList := &greenhousev1alpha1.ClusterPluginDefinitionList{}
 		err = adminClient.List(ctx, pluginDefinitionList)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(len(pluginDefinitionList.Items)).To(BeEquivalentTo(1))
@@ -201,7 +201,7 @@ var _ = Describe("Plugin E2E", Ordered, func() {
 		Expect(client.IgnoreAlreadyExists(err)).ToNot(HaveOccurred())
 
 		By("Checking the plugin definition is ready")
-		pluginDefinitionList := &greenhousev1alpha1.PluginDefinitionList{}
+		pluginDefinitionList := &greenhousev1alpha1.ClusterPluginDefinitionList{}
 		err = adminClient.List(ctx, pluginDefinitionList)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(len(pluginDefinitionList.Items)).To(BeEquivalentTo(1))
@@ -370,7 +370,7 @@ var _ = Describe("Plugin E2E", Ordered, func() {
 		)
 
 		By("Installing release manually on the remote cluster")
-		_, err = helm.ExportInstallHelmRelease(ctx, adminClient, env.RemoteRestClientGetter, pluginDefinition, plugin, false)
+		_, err = helm.ExportInstallHelmRelease(ctx, adminClient, env.RemoteRestClientGetter, pluginDefinition.Spec, plugin, false)
 		Expect(err).To(HaveOccurred(), "there should be an error installing the helm chart")
 
 		By("Creating helm config")
@@ -443,7 +443,7 @@ var _ = Describe("Plugin E2E", Ordered, func() {
 		Expect(err).ToNot(HaveOccurred())
 
 		By("Checking the plugin definition is ready")
-		pluginDefinitionList := &greenhousev1alpha1.PluginDefinitionList{}
+		pluginDefinitionList := &greenhousev1alpha1.ClusterPluginDefinitionList{}
 		err = adminClient.List(ctx, pluginDefinitionList)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(len(pluginDefinitionList.Items)).To(BeEquivalentTo(1))

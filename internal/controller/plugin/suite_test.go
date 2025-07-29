@@ -112,7 +112,7 @@ var _ = Describe("HelmControllerTest", Serial, func() {
 		PluginOptionMapDefault  = map[string]any{"myMapKey1": "myMapValue1", "myMapKey2": "myMapValue2"}
 
 		testTeam             *greenhousev1alpha1.Team
-		testPluginDefinition *greenhousev1alpha1.PluginDefinition
+		testPluginDefinition *greenhousev1alpha1.ClusterPluginDefinition
 		testPlugin           *greenhousev1alpha1.Plugin
 		pluginDefinitionID   = types.NamespacedName{Name: PluginDefinitionName, Namespace: ""}
 		pluginID             = types.NamespacedName{Name: PluginName, Namespace: Namespace}
@@ -129,7 +129,7 @@ var _ = Describe("HelmControllerTest", Serial, func() {
 		// remember original chart loader, which is overwritten in some tests
 		tempChartLoader = helm.ChartLoader
 
-		testPluginDefinition = test.NewPluginDefinition(test.Ctx, PluginDefinitionName,
+		testPluginDefinition = test.NewClusterPluginDefinition(test.Ctx, PluginDefinitionName,
 			test.WithVersion(PluginDefinitionVersion),
 			test.WithHelmChart(&greenhousev1alpha1.HelmChartReference{
 				Name:       HelmChart,
@@ -425,7 +425,7 @@ var _ = Describe("HelmControllerTest", Serial, func() {
 	It("should successfully create a Plugin with every type of OptionValue", func() {
 		const pluginWithEveryOption = "mytestpluginwitheveryoption"
 		var (
-			complexPluginDefinition *greenhousev1alpha1.PluginDefinition
+			complexPluginDefinition *greenhousev1alpha1.ClusterPluginDefinition
 			complexPlugin           *greenhousev1alpha1.Plugin
 			pluginName              = "mypluginwitheveryoption"
 			complexPluginID         = types.NamespacedName{Name: pluginName, Namespace: Namespace}
@@ -438,7 +438,7 @@ var _ = Describe("HelmControllerTest", Serial, func() {
 		)
 
 		By("creating a pluginDefinition with every type of option", func() {
-			complexPluginDefinition = test.NewPluginDefinition(test.Ctx, pluginWithEveryOption,
+			complexPluginDefinition = test.NewClusterPluginDefinition(test.Ctx, pluginWithEveryOption,
 				test.WithVersion(PluginDefinitionVersion),
 				test.WithHelmChart(&greenhousev1alpha1.HelmChartReference{
 					Name:       HelmChartWithAllOptions,
@@ -587,10 +587,10 @@ var _ = Describe("HelmControllerTest", Serial, func() {
 })
 
 var _ = When("the pluginDefinition is UI only", func() {
-	var uiPluginDefinition *greenhousev1alpha1.PluginDefinition
+	var uiPluginDefinition *greenhousev1alpha1.ClusterPluginDefinition
 	var uiPlugin *greenhousev1alpha1.Plugin
 	BeforeEach(func() {
-		uiPluginDefinition = test.NewPluginDefinition(
+		uiPluginDefinition = test.NewClusterPluginDefinition(
 			test.Ctx,
 			"myuiplugin",
 			test.WithVersion("1.0.0"),

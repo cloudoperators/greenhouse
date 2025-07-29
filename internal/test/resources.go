@@ -145,47 +145,43 @@ func NewOrganization(ctx context.Context, name string, opts ...func(*greenhousev
 }
 
 // WithVersion sets the version of a PluginDefinition
-func WithVersion(version string) func(*greenhousev1alpha1.PluginDefinition) {
-	return func(pd *greenhousev1alpha1.PluginDefinition) {
-		pd.Spec.Version = version
+func WithVersion(version string) func(spec greenhousev1alpha1.PluginDefinitionSpec) {
+	return func(spec greenhousev1alpha1.PluginDefinitionSpec) {
+		spec.Version = version
 	}
 }
 
 // WithHelmChart sets the HelmChart of a PluginDefinition
-func WithHelmChart(chart *greenhousev1alpha1.HelmChartReference) func(*greenhousev1alpha1.PluginDefinition) {
-	return func(pd *greenhousev1alpha1.PluginDefinition) {
-		pd.Spec.HelmChart = chart
+func WithHelmChart(chart *greenhousev1alpha1.HelmChartReference) func(definition greenhousev1alpha1.PluginDefinitionSpec) {
+	return func(spec greenhousev1alpha1.PluginDefinitionSpec) {
+		spec.HelmChart = chart
 	}
 }
 
 // WithoutHelmChart sets the HelmChart of a PluginDefinition to nil
-func WithoutHelmChart() func(*greenhousev1alpha1.PluginDefinition) {
-	return func(pd *greenhousev1alpha1.PluginDefinition) {
-		pd.Spec.HelmChart = nil
+func WithoutHelmChart() func(spec greenhousev1alpha1.PluginDefinitionSpec) {
+	return func(spec greenhousev1alpha1.PluginDefinitionSpec) {
+		spec.HelmChart = nil
 	}
 }
 
-// WithDescription sets the description of a PluginDefinition
-func WithUIApplication(ui *greenhousev1alpha1.UIApplicationReference) func(*greenhousev1alpha1.PluginDefinition) {
-	return func(pd *greenhousev1alpha1.PluginDefinition) {
-		pd.Spec.UIApplication = ui
+// WithUIApplication sets the UI for PluginDefinition
+func WithUIApplication(ui *greenhousev1alpha1.UIApplicationReference) func(spec greenhousev1alpha1.PluginDefinitionSpec) {
+	return func(spec greenhousev1alpha1.PluginDefinitionSpec) {
+		spec.UIApplication = ui
 	}
 }
 
 // AppendPluginOption sets the plugin option in plugin definition
-func AppendPluginOption(option greenhousev1alpha1.PluginOption) func(*greenhousev1alpha1.PluginDefinition) {
-	return func(pd *greenhousev1alpha1.PluginDefinition) {
-		pd.Spec.Options = append(pd.Spec.Options, option)
+func AppendPluginOption(option greenhousev1alpha1.PluginOption) func(spec greenhousev1alpha1.PluginDefinitionSpec) {
+	return func(spec greenhousev1alpha1.PluginDefinitionSpec) {
+		spec.Options = append(spec.Options, option)
 	}
 }
 
 // NewPluginDefinition returns a greenhousev1alpha1.PluginDefinition object. Opts can be used to set the desired state of the PluginDefinition.
-func NewPluginDefinition(ctx context.Context, name string, opts ...func(*greenhousev1alpha1.PluginDefinition)) *greenhousev1alpha1.PluginDefinition {
+func NewPluginDefinition(ctx context.Context, name string, opts ...func(spec greenhousev1alpha1.PluginDefinitionSpec)) *greenhousev1alpha1.PluginDefinition {
 	pd := &greenhousev1alpha1.PluginDefinition{
-		TypeMeta: metav1.TypeMeta{
-			Kind:       "PluginDefinition",
-			APIVersion: greenhousev1alpha1.GroupVersion.String(),
-		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name: name,
 		},
@@ -200,7 +196,29 @@ func NewPluginDefinition(ctx context.Context, name string, opts ...func(*greenho
 		},
 	}
 	for _, o := range opts {
-		o(pd)
+		o(pd.Spec)
+	}
+	return pd
+}
+
+// NewClusterPluginDefinition returns a greenhousev1alpha1.ClusterPluginDefinition object. Opts can be used to set the desired state of the ClusterPluginDefinition.
+func NewClusterPluginDefinition(ctx context.Context, name string, opts ...func(spec greenhousev1alpha1.PluginDefinitionSpec)) *greenhousev1alpha1.ClusterPluginDefinition {
+	pd := &greenhousev1alpha1.ClusterPluginDefinition{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: name,
+		},
+		Spec: greenhousev1alpha1.PluginDefinitionSpec{
+			Description: "TestPluginDefinition",
+			Version:     "1.0.0",
+			HelmChart: &greenhousev1alpha1.HelmChartReference{
+				Name:       "./../../test/fixtures/myChart",
+				Repository: "dummy",
+				Version:    "1.0.0",
+			},
+		},
+	}
+	for _, o := range opts {
+		o(pd.Spec)
 	}
 	return pd
 }
