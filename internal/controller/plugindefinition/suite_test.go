@@ -19,7 +19,8 @@ func TestPluginDefinition(t *testing.T) {
 }
 
 var _ = BeforeSuite(func() {
-	test.RegisterController("cluster", (&PluginDefinitionReconciler{}).SetupWithManager)
+	test.RegisterController("pluginDefinition", (&PluginDefinitionReconciler{}).SetupWithManager)
+	test.RegisterController("clusterPluginDefinition", (&ClusterPluginDefinitionReconciler{}).SetupWithManager)
 	test.RegisterWebhook("pluginDefinitionWebhook", webhookv1alpha1.SetupPluginDefinitionWebhookWithManager)
 	test.RegisterWebhook("clusterPluginDefinitionWebhook", webhookv1alpha1.SetupClusterPluginDefinitionWebhookWithManager)
 	test.TestBeforeSuite()
