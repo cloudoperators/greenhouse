@@ -581,7 +581,7 @@ var _ = Describe("Plugin Preset skip changes", Ordered, func() {
 					Name: pluginPresetName,
 				},
 			},
-			&greenhousev1alpha1.PluginDefinition{},
+			&greenhousev1alpha1.ClusterPluginDefinition{},
 			"",
 			true,
 		),
@@ -608,7 +608,7 @@ var _ = Describe("Plugin Preset skip changes", Ordered, func() {
 					},
 				},
 			},
-			&greenhousev1alpha1.PluginDefinition{},
+			&greenhousev1alpha1.ClusterPluginDefinition{},
 			"",
 			false,
 		),
@@ -637,7 +637,7 @@ var _ = Describe("Plugin Preset skip changes", Ordered, func() {
 					},
 				},
 			},
-			&greenhousev1alpha1.PluginDefinition{},
+			&greenhousev1alpha1.ClusterPluginDefinition{},
 			"",
 			false,
 		),
@@ -678,7 +678,7 @@ var _ = Describe("Plugin Preset skip changes", Ordered, func() {
 					},
 				},
 			},
-			&greenhousev1alpha1.PluginDefinition{},
+			&greenhousev1alpha1.ClusterPluginDefinition{},
 			"",
 			false,
 		),
@@ -707,7 +707,7 @@ var _ = Describe("Plugin Preset skip changes", Ordered, func() {
 					},
 				},
 			},
-			&greenhousev1alpha1.PluginDefinition{},
+			&greenhousev1alpha1.ClusterPluginDefinition{},
 			"",
 			true,
 		),
@@ -738,7 +738,7 @@ var _ = Describe("Plugin Preset skip changes", Ordered, func() {
 					},
 				},
 			},
-			&greenhousev1alpha1.PluginDefinition{},
+			&greenhousev1alpha1.ClusterPluginDefinition{},
 			"",
 			false,
 		),
@@ -762,7 +762,7 @@ var _ = Describe("Plugin Preset skip changes", Ordered, func() {
 					},
 				},
 			},
-			&greenhousev1alpha1.PluginDefinition{
+			&greenhousev1alpha1.ClusterPluginDefinition{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: pluginPresetDefinitionName,
 				},
@@ -798,7 +798,7 @@ var _ = Describe("Plugin Preset skip changes", Ordered, func() {
 					},
 				},
 			},
-			&greenhousev1alpha1.PluginDefinition{
+			&greenhousev1alpha1.ClusterPluginDefinition{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: pluginPresetDefinitionName,
 				},
@@ -838,7 +838,7 @@ var _ = Describe("Plugin Preset skip changes", Ordered, func() {
 					},
 				},
 			},
-			&greenhousev1alpha1.PluginDefinition{
+			&greenhousev1alpha1.ClusterPluginDefinition{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: pluginPresetDefinitionName,
 				},
@@ -887,7 +887,7 @@ var _ = Describe("Plugin Preset skip changes", Ordered, func() {
 					},
 				},
 			},
-			&greenhousev1alpha1.PluginDefinition{
+			&greenhousev1alpha1.ClusterPluginDefinition{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: pluginPresetDefinitionName,
 				},
@@ -936,7 +936,7 @@ var _ = Describe("Plugin Preset skip changes", Ordered, func() {
 					},
 				},
 			},
-			&greenhousev1alpha1.PluginDefinition{},
+			&greenhousev1alpha1.ClusterPluginDefinition{},
 			clusterA,
 			false,
 		), Entry("should skip when Plugin has different value then plugin override but cluster name is different",
@@ -973,7 +973,7 @@ var _ = Describe("Plugin Preset skip changes", Ordered, func() {
 					},
 				},
 			},
-			&greenhousev1alpha1.PluginDefinition{},
+			&greenhousev1alpha1.ClusterPluginDefinition{},
 			clusterB,
 			true,
 		),

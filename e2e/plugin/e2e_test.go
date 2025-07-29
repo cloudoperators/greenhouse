@@ -69,7 +69,7 @@ var _ = BeforeSuite(func() {
 	env = env.WithOrganization(ctx, adminClient, "./testdata/organization.yaml")
 	team = test.NewTeam(ctx, "test-plugin-e2e-team", env.TestNamespace, test.WithTeamLabel(greenhouseapis.LabelKeySupportGroup, "true"))
 	err = adminClient.Create(ctx, team)
-	Expect(err).ToNot(HaveOccurred(), "there should be no error creating a Team")
+	Expect(client.IgnoreAlreadyExists(err)).ToNot(HaveOccurred(), "there should be no error creating a Team")
 	testStartTime = time.Now().UTC()
 })
 
@@ -496,7 +496,7 @@ var _ = Describe("Plugin E2E", Ordered, func() {
 			},
 		}
 		err = adminClient.Create(ctx, testPluginPreset)
-		Expect(err).ToNot(HaveOccurred())
+		Expect(client.IgnoreAlreadyExists(err)).ToNot(HaveOccurred())
 
 		By("Checking the plugin status is ready")
 		Eventually(func(g Gomega) {
