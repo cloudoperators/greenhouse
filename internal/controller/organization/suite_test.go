@@ -40,6 +40,7 @@ var _ = BeforeSuite(func() {
 
 	test.RegisterController("organizationController", (&organizationpkg.OrganizationReconciler{Namespace: "default", DexStorageType: DexStorageType}).SetupWithManager)
 	test.RegisterController("pluginDefinitionController", (&defpkg.PluginDefinitionReconciler{}).SetupWithManager)
+	test.RegisterController("clusterPluginDefinition", (&defpkg.ClusterPluginDefinitionReconciler{}).SetupWithManager)
 	test.RegisterWebhook("orgWebhook", webhookv1alpha1.SetupOrganizationWebhookWithManager)
 	test.RegisterWebhook("teamWebhook", webhookv1alpha1.SetupTeamWebhookWithManager)
 	test.RegisterWebhook("clusterPluginDefinitionWebhook", webhookv1alpha1.SetupClusterPluginDefinitionWebhookWithManager)

@@ -41,6 +41,7 @@ var _ = BeforeSuite(func() {
 	test.RegisterController("plugin", (&PluginReconciler{KubeRuntimeOpts: clientutil.RuntimeOptions{QPS: 5, Burst: 10}}).SetupWithManager)
 	test.RegisterController("pluginPreset", (&PluginPresetReconciler{}).SetupWithManager)
 	test.RegisterController("pluginDefinition", (&greenhouseDef.PluginDefinitionReconciler{}).SetupWithManager)
+	test.RegisterController("clusterPluginDefinition", (&greenhouseDef.ClusterPluginDefinitionReconciler{}).SetupWithManager)
 	test.RegisterController("cluster", (&greenhousecluster.RemoteClusterReconciler{}).SetupWithManager)
 	test.RegisterWebhook("TeamWebhook", webhookv1alpha1.SetupTeamWebhookWithManager)
 	test.RegisterWebhook("clusterPluginDefinitionWebhook", webhookv1alpha1.SetupClusterPluginDefinitionWebhookWithManager)
@@ -156,7 +157,7 @@ var _ = Describe("HelmControllerTest", Serial, func() {
 			}),
 		)
 		Expect(test.K8sClient.Create(test.Ctx, testPluginDefinition)).Should(Succeed())
-		actPluginDefinition := &greenhousev1alpha1.PluginDefinition{}
+		actPluginDefinition := &greenhousev1alpha1.ClusterPluginDefinition{}
 		Eventually(func() bool {
 			err := test.K8sClient.Get(test.Ctx, pluginDefinitionID, actPluginDefinition)
 			if err != nil {
@@ -208,7 +209,7 @@ var _ = Describe("HelmControllerTest", Serial, func() {
 				return true
 			}).Should(BeTrue())
 
-			actPluginDefinition := &greenhousev1alpha1.PluginDefinition{}
+			actPluginDefinition := &greenhousev1alpha1.ClusterPluginDefinition{}
 			Eventually(func(g Gomega) bool {
 				err := test.K8sClient.Get(test.Ctx, pluginDefinitionID, actPluginDefinition)
 				if err != nil {
@@ -256,7 +257,7 @@ var _ = Describe("HelmControllerTest", Serial, func() {
 				g.Expect(test.K8sClient.Update(test.Ctx, testPluginDefinition)).Should(Succeed())
 				return true
 			}).Should(BeTrue())
-			actPluginDefinition := &greenhousev1alpha1.PluginDefinition{}
+			actPluginDefinition := &greenhousev1alpha1.ClusterPluginDefinition{}
 			Eventually(func(g Gomega) bool {
 				err := test.K8sClient.Get(test.Ctx, pluginDefinitionID, actPluginDefinition)
 				if err != nil {
@@ -304,7 +305,7 @@ var _ = Describe("HelmControllerTest", Serial, func() {
 				g.Expect(test.K8sClient.Update(test.Ctx, testPluginDefinition)).Should(Succeed())
 				return true
 			}).Should(BeTrue())
-			actPluginDefinition := &greenhousev1alpha1.PluginDefinition{}
+			actPluginDefinition := &greenhousev1alpha1.ClusterPluginDefinition{}
 			Eventually(func(g Gomega) bool {
 				err := test.K8sClient.Get(test.Ctx, pluginDefinitionID, actPluginDefinition)
 				if err != nil {
@@ -361,7 +362,7 @@ var _ = Describe("HelmControllerTest", Serial, func() {
 				g.Expect(test.K8sClient.Update(test.Ctx, testPluginDefinition)).Should(Succeed())
 				return true
 			}).Should(BeTrue())
-			actPluginDefinition := &greenhousev1alpha1.PluginDefinition{}
+			actPluginDefinition := &greenhousev1alpha1.ClusterPluginDefinition{}
 			Eventually(func(g Gomega) bool {
 				err := test.K8sClient.Get(test.Ctx, pluginDefinitionID, actPluginDefinition)
 				if err != nil {
@@ -407,7 +408,7 @@ var _ = Describe("HelmControllerTest", Serial, func() {
 	})
 
 	It("should correctly get a default value from the pluginDefinition spec", func() {
-		actPluginDefinition := &greenhousev1alpha1.PluginDefinition{}
+		actPluginDefinition := &greenhousev1alpha1.ClusterPluginDefinition{}
 		Eventually(func() error {
 			return test.K8sClient.Get(test.Ctx, pluginDefinitionID, actPluginDefinition)
 		}).Should(Succeed())
@@ -483,7 +484,7 @@ var _ = Describe("HelmControllerTest", Serial, func() {
 
 			Expect(test.K8sClient.Create(test.Ctx, complexPluginDefinition)).Should(Succeed())
 			complexPluginDefinitionID := types.NamespacedName{Name: complexPluginDefinition.Name, Namespace: ""}
-			actComplexPluginDefinition := &greenhousev1alpha1.PluginDefinition{}
+			actComplexPluginDefinition := &greenhousev1alpha1.ClusterPluginDefinition{}
 			Eventually(func() bool {
 				err := test.K8sClient.Get(test.Ctx, complexPluginDefinitionID, actComplexPluginDefinition)
 				if err != nil {
@@ -563,7 +564,7 @@ var _ = Describe("HelmControllerTest", Serial, func() {
 	// It("should correctly set PluginFoundCondition if corresponding pluginDefinition was not found", func() {
 	// 	By("deleting the pluginDefinition")
 	// 	Expect(test.K8sClient.Delete(test.Ctx, testPlugin)).Should(Succeed())
-	// 	actPluginDefinition := &greenhousev1alpha1.PluginDefinition{}
+	// 	actPluginDefinition := &greenhousev1alpha1.ClusterPluginDefinition{}
 	// 	Eventually(func() bool {
 	// 		err := test.K8sClient.Get(test.Ctx, pluginDefinitionID, actPluginDefinition)
 	// 		return apierrors.IsNotFound(err)

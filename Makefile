@@ -110,7 +110,7 @@ generate-documentation: check-gen-crd-api-reference-docs
 	$(GEN_DOCS) -api-dir=$(GEN_DOCS_API_DIR) -config=$(GEN_DOCS_CONFIG) -template-dir=$(GEN_DOCS_TEMPLATE_DIR) -out-file=$(GEN_DOCS_OUT_FILE)
 
 .PHONY: test
-test: generate-manifests generate envtest flux-crds ## Run tests.
+test: envtest flux-crds ## Run tests.
 	KUBEBUILDER_ASSETS="$(shell $(ENVTEST) use $(ENVTEST_K8S_VERSION) -p path)" go test ./... -coverprofile cover.out -v
 
 .PHONY: flux-crds
