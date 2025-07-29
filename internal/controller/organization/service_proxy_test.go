@@ -41,11 +41,11 @@ var _ = Describe("Organization ServiceProxyReconciler", Ordered, func() {
 			By("creating an organization")
 			org := setup.CreateDefaultOrgWithOIDCSecret(test.Ctx, "test-serviceproxy-org1")
 
-			//By("ensuring ServiceProxyController logged about missing plugin definition")
-			//Eventually(func() []byte {
-			//	return tee.Contents()
-			//}).Should(ContainSubstring("plugin definition for service-proxy not found"),
-			//	"ServiceProxyController should log about missing plugin definition")
+			By("ensuring ServiceProxyController logged about missing plugin definition")
+			Eventually(func() []byte {
+				return tee.Contents()
+			}).Should(ContainSubstring("plugin definition for service-proxy not found"),
+				"ServiceProxyController should log about missing plugin definition")
 
 			By("creating service-proxy plugin definition")
 			err = test.K8sClient.Create(test.Ctx, serviceProxyPluginDefinition)
