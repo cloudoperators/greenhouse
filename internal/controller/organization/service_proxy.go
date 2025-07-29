@@ -41,7 +41,7 @@ const (
 )
 
 func (r *OrganizationReconciler) reconcileServiceProxy(ctx context.Context, org *greenhousev1alpha1.Organization, supportGroupTeamName string) error {
-	var pluginDefinition = new(greenhousev1alpha1.PluginDefinition)
+	var pluginDefinition = new(greenhousev1alpha1.ClusterPluginDefinition)
 	if err := r.Get(ctx, types.NamespacedName{Name: serviceProxyName, Namespace: ""}, pluginDefinition); err != nil {
 		if apierrors.IsNotFound(err) {
 			log.FromContext(ctx).Info("plugin definition for service-proxy not found")

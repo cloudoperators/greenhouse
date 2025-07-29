@@ -20,7 +20,7 @@ import (
 
 var _ = Describe("Organization ServiceProxyReconciler", Ordered, func() {
 	var setup *test.TestSetup
-	serviceProxyPluginDefinition := test.NewPluginDefinition(test.Ctx, "service-proxy")
+	serviceProxyPluginDefinition := test.NewClusterPluginDefinition(test.Ctx, "service-proxy")
 
 	BeforeEach(func() {
 		setup = test.NewTestSetup(test.Ctx, test.K8sClient, "org-rbac-test")
@@ -29,7 +29,7 @@ var _ = Describe("Organization ServiceProxyReconciler", Ordered, func() {
 	When("plugin definition for service proxy is missing", func() {
 		It("should log about missing plugin definition and create plugin when it's added", func() {
 			By("ensuring service-proxy plugin definition does not exist")
-			var pluginDefinition = new(greenhousev1alpha1.PluginDefinition)
+			var pluginDefinition = new(greenhousev1alpha1.ClusterPluginDefinition)
 			err := test.K8sClient.Get(test.Ctx, types.NamespacedName{Name: "service-proxy", Namespace: ""}, pluginDefinition)
 			Expect(err).To(HaveOccurred(), "there should be an error getting the service-proxy plugin definition")
 

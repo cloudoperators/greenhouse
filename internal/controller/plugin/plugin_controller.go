@@ -106,7 +106,7 @@ func (r *PluginReconciler) SetupWithManager(name string, mgr ctrl.Manager) error
 			builder.WithPredicates(clientutil.PredicateFilterBySecretTypes(helmReleaseSecretType), predicate.GenerationChangedPredicate{}, labelSelectorPredicate),
 		).
 		// If a PluginDefinition was changed, reconcile relevant Plugins.
-		Watches(&greenhousev1alpha1.PluginDefinition{}, handler.EnqueueRequestsFromMapFunc(r.enqueueAllPluginsForPluginDefinition),
+		Watches(&greenhousev1alpha1.ClusterPluginDefinition{}, handler.EnqueueRequestsFromMapFunc(r.enqueueAllPluginsForPluginDefinition),
 			builder.WithPredicates(predicate.GenerationChangedPredicate{}, labelSelectorPredicate)).
 		// Clusters and teams are passed as values to each Helm operation. Reconcile on change.
 		Watches(&greenhousev1alpha1.Cluster{}, handler.EnqueueRequestsFromMapFunc(r.enqueueAllPluginsForCluster), builder.WithPredicates(labelSelectorPredicate)).
@@ -193,7 +193,7 @@ func (r *PluginReconciler) EnsureCreated(ctx context.Context, resource lifecycle
 		return ctrl.Result{}, lifecycle.Failed, fmt.Errorf("pluginDefinition not found: %s", err.Error())
 	}
 
-	reconcileErr := r.reconcileHelmRelease(ctx, restClientGetter, plugin, pluginDefinition)
+	reconcileErr := r.reconcileHelmRelease(ctx, restClientGetter, plugin, pluginDefinition.Spec)
 
 	// PluginStatus, WorkloadStatus and ChartTest should be reconciled regardless of Helm reconciliation result.
 	r.reconcileStatus(ctx, restClientGetter, plugin, pluginDefinition, &plugin.Status)
@@ -225,11 +225,11 @@ func (r *PluginReconciler) getPluginDefinition(
 	ctx context.Context,
 	plugin *greenhousev1alpha1.Plugin,
 ) (
-	*greenhousev1alpha1.PluginDefinition, error,
+	*greenhousev1alpha1.ClusterPluginDefinition, error,
 ) {
 
 	var err error
-	pluginDefinition := new(greenhousev1alpha1.PluginDefinition)
+	pluginDefinition := new(greenhousev1alpha1.ClusterPluginDefinition)
 
 	if err = r.Get(ctx, types.NamespacedName{Namespace: plugin.GetNamespace(), Name: plugin.Spec.PluginDefinition}, pluginDefinition); err != nil {
 		var errorMessage string
@@ -252,11 +252,11 @@ func (r *PluginReconciler) reconcileHelmRelease(
 	ctx context.Context,
 	restClientGetter genericclioptions.RESTClientGetter,
 	plugin *greenhousev1alpha1.Plugin,
-	pluginDefinition *greenhousev1alpha1.PluginDefinition,
+	pluginDefinitionSpec greenhousev1alpha1.PluginDefinitionSpec,
 ) error {
 
 	// Not a HelmChart pluginDefinition. Ignore it.
-	if pluginDefinition.Spec.HelmChart == nil {
+	if pluginDefinitionSpec.HelmChart == nil {
 		plugin.SetCondition(greenhousemetav1alpha1.FalseCondition(
 			greenhousev1alpha1.HelmReconcileFailedCondition, "", "PluginDefinition is not backed by HelmChart"))
 		return nil
@@ -264,7 +264,7 @@ func (r *PluginReconciler) reconcileHelmRelease(
 
 	// Validate before attempting the installation/upgrade.
 	// Any error is reflected in the status of the Plugin.
-	if _, err := helm.TemplateHelmChartFromPlugin(ctx, r.Client, restClientGetter, pluginDefinition, plugin); err != nil {
+	if _, err := helm.TemplateHelmChartFromPlugin(ctx, r.Client, restClientGetter, pluginDefinitionSpec, plugin); err != nil {
 		errorMessage := "Helm template failed: " + err.Error()
 		plugin.SetCondition(greenhousemetav1alpha1.TrueCondition(
 			greenhousev1alpha1.HelmReconcileFailedCondition, "", errorMessage))
@@ -273,7 +273,7 @@ func (r *PluginReconciler) reconcileHelmRelease(
 	}
 
 	// Check whether the deployed resources match the ones we expect.
-	diffObjects, isHelmDrift, err := helm.DiffChartToDeployedResources(ctx, r.Client, restClientGetter, pluginDefinition, plugin)
+	diffObjects, isHelmDrift, err := helm.DiffChartToDeployedResources(ctx, r.Client, restClientGetter, pluginDefinitionSpec, plugin)
 	if err != nil {
 		errorMessage := "Helm diff failed: " + err.Error()
 		plugin.SetCondition(greenhousemetav1alpha1.TrueCondition(
@@ -301,7 +301,7 @@ func (r *PluginReconciler) reconcileHelmRelease(
 
 	plugin.Status.HelmReleaseStatus.Diff = diffObjects.String()
 
-	if err := helm.InstallOrUpgradeHelmChartFromPlugin(ctx, r.Client, restClientGetter, pluginDefinition, plugin); err != nil {
+	if err := helm.InstallOrUpgradeHelmChartFromPlugin(ctx, r.Client, restClientGetter, pluginDefinitionSpec, plugin); err != nil {
 		errorMessage := "Helm install/upgrade failed: " + err.Error()
 		plugin.SetCondition(greenhousemetav1alpha1.TrueCondition(
 			greenhousev1alpha1.HelmReconcileFailedCondition, "", errorMessage))
@@ -317,7 +317,7 @@ func (r *PluginReconciler) reconcileHelmRelease(
 func (r *PluginReconciler) reconcileStatus(ctx context.Context,
 	restClientGetter genericclioptions.RESTClientGetter,
 	plugin *greenhousev1alpha1.Plugin,
-	pluginDefinition *greenhousev1alpha1.PluginDefinition,
+	pluginDefinition *greenhousev1alpha1.ClusterPluginDefinition,
 	pluginStatus *greenhousev1alpha1.PluginStatus,
 ) {
 

@@ -68,7 +68,7 @@ func (r *PluginReconciler) reconcilePluginWorkloadStatus(
 	ctx context.Context,
 	restClientGetter genericclioptions.RESTClientGetter,
 	plugin *greenhousev1alpha1.Plugin,
-	pluginDefinition *greenhousev1alpha1.PluginDefinition,
+	pluginDefinition *greenhousev1alpha1.ClusterPluginDefinition,
 ) (*reconcileResult, error) {
 
 	var releaseStatus = new(ReleaseStatus)
