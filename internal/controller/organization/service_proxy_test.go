@@ -20,8 +20,6 @@ import (
 
 var _ = Describe("Organization ServiceProxyReconciler", Ordered, func() {
 	var setup *test.TestSetup
-	serviceProxyPluginDefinition := test.NewClusterPluginDefinition(test.Ctx, "service-proxy")
-
 	BeforeEach(func() {
 		setup = test.NewTestSetup(test.Ctx, test.K8sClient, "org-rbac-test")
 	})
@@ -47,6 +45,7 @@ var _ = Describe("Organization ServiceProxyReconciler", Ordered, func() {
 			}).Should(ContainSubstring("plugin definition for service-proxy not found"),
 				"ServiceProxyController should log about missing plugin definition")
 
+			serviceProxyPluginDefinition := test.NewClusterPluginDefinition(test.Ctx, "service-proxy")
 			By("creating service-proxy plugin definition")
 			err = test.K8sClient.Create(test.Ctx, serviceProxyPluginDefinition)
 			Expect(err).ToNot(HaveOccurred(), "there should be no error creating the service-proxy plugin definition")
