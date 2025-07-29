@@ -144,65 +144,43 @@ func NewOrganization(ctx context.Context, name string, opts ...func(*greenhousev
 	return org
 }
 
-// WithVersion sets the version of a PluginDefinition
-func WithVersion(version string) func(spec greenhousev1alpha1.PluginDefinitionSpec) {
-	return func(spec greenhousev1alpha1.PluginDefinitionSpec) {
-		spec.Version = version
+// WithVersion sets the version of a ClusterPluginDefinition
+func WithVersion(version string) func(*greenhousev1alpha1.ClusterPluginDefinition) {
+	return func(pd *greenhousev1alpha1.ClusterPluginDefinition) {
+		pd.Spec.Version = version
 	}
 }
 
-// WithHelmChart sets the HelmChart of a PluginDefinition
-func WithHelmChart(chart *greenhousev1alpha1.HelmChartReference) func(definition greenhousev1alpha1.PluginDefinitionSpec) {
-	return func(spec greenhousev1alpha1.PluginDefinitionSpec) {
-		spec.HelmChart = chart
+// WithHelmChart sets the HelmChart of a ClusterPluginDefinition
+func WithHelmChart(chart *greenhousev1alpha1.HelmChartReference) func(*greenhousev1alpha1.ClusterPluginDefinition) {
+	return func(pd *greenhousev1alpha1.ClusterPluginDefinition) {
+		pd.Spec.HelmChart = chart
 	}
 }
 
-// WithoutHelmChart sets the HelmChart of a PluginDefinition to nil
-func WithoutHelmChart() func(spec greenhousev1alpha1.PluginDefinitionSpec) {
-	return func(spec greenhousev1alpha1.PluginDefinitionSpec) {
-		spec.HelmChart = nil
+// WithoutHelmChart sets the HelmChart of a ClusterPluginDefinition to nil
+func WithoutHelmChart() func(*greenhousev1alpha1.ClusterPluginDefinition) {
+	return func(pd *greenhousev1alpha1.ClusterPluginDefinition) {
+		pd.Spec.HelmChart = nil
 	}
 }
 
-// WithUIApplication sets the UI for PluginDefinition
-func WithUIApplication(ui *greenhousev1alpha1.UIApplicationReference) func(spec greenhousev1alpha1.PluginDefinitionSpec) {
-	return func(spec greenhousev1alpha1.PluginDefinitionSpec) {
-		spec.UIApplication = ui
+// WithDescription sets the description of a ClusterPluginDefinition
+func WithUIApplication(ui *greenhousev1alpha1.UIApplicationReference) func(*greenhousev1alpha1.ClusterPluginDefinition) {
+	return func(pd *greenhousev1alpha1.ClusterPluginDefinition) {
+		pd.Spec.UIApplication = ui
 	}
 }
 
-// AppendPluginOption sets the plugin option in plugin definition
-func AppendPluginOption(option greenhousev1alpha1.PluginOption) func(spec greenhousev1alpha1.PluginDefinitionSpec) {
-	return func(spec greenhousev1alpha1.PluginDefinitionSpec) {
-		spec.Options = append(spec.Options, option)
+// AppendPluginOption sets the plugin option in ClusterPluginDefinition
+func AppendPluginOption(option greenhousev1alpha1.PluginOption) func(*greenhousev1alpha1.ClusterPluginDefinition) {
+	return func(pd *greenhousev1alpha1.ClusterPluginDefinition) {
+		pd.Spec.Options = append(pd.Spec.Options, option)
 	}
-}
-
-// NewPluginDefinition returns a greenhousev1alpha1.PluginDefinition object. Opts can be used to set the desired state of the PluginDefinition.
-func NewPluginDefinition(ctx context.Context, name string, opts ...func(spec greenhousev1alpha1.PluginDefinitionSpec)) *greenhousev1alpha1.PluginDefinition {
-	pd := &greenhousev1alpha1.PluginDefinition{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: name,
-		},
-		Spec: greenhousev1alpha1.PluginDefinitionSpec{
-			Description: "TestPluginDefinition",
-			Version:     "1.0.0",
-			HelmChart: &greenhousev1alpha1.HelmChartReference{
-				Name:       "./../../test/fixtures/myChart",
-				Repository: "dummy",
-				Version:    "1.0.0",
-			},
-		},
-	}
-	for _, o := range opts {
-		o(pd.Spec)
-	}
-	return pd
 }
 
 // NewClusterPluginDefinition returns a greenhousev1alpha1.ClusterPluginDefinition object. Opts can be used to set the desired state of the ClusterPluginDefinition.
-func NewClusterPluginDefinition(ctx context.Context, name string, opts ...func(spec greenhousev1alpha1.PluginDefinitionSpec)) *greenhousev1alpha1.ClusterPluginDefinition {
+func NewClusterPluginDefinition(ctx context.Context, name string, opts ...func(definition *greenhousev1alpha1.ClusterPluginDefinition)) *greenhousev1alpha1.ClusterPluginDefinition {
 	pd := &greenhousev1alpha1.ClusterPluginDefinition{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: name,
@@ -218,7 +196,7 @@ func NewClusterPluginDefinition(ctx context.Context, name string, opts ...func(s
 		},
 	}
 	for _, o := range opts {
-		o(pd.Spec)
+		o(pd)
 	}
 	return pd
 }

@@ -12,7 +12,7 @@ import (
 	"github.com/cloudoperators/greenhouse/internal/test"
 )
 
-func PreparePluginDefinition(name, namespace string, opts ...func(spec greenhousev1alpha1.PluginDefinitionSpec)) *greenhousev1alpha1.ClusterPluginDefinition {
+func PreparePluginDefinition(name, namespace string, opts ...func(definition *greenhousev1alpha1.ClusterPluginDefinition)) *greenhousev1alpha1.ClusterPluginDefinition {
 	pd := &greenhousev1alpha1.ClusterPluginDefinition{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
@@ -25,7 +25,7 @@ func PreparePluginDefinition(name, namespace string, opts ...func(spec greenhous
 		},
 	}
 	for _, o := range opts {
-		o(pd.Spec)
+		o(pd)
 	}
 
 	return pd
