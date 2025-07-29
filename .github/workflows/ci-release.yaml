@@ -31,7 +31,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Build Changelog
-        uses: mikepenz/release-changelog-builder-action@5fb6e51e44d4aea73f66549f425aa3ed5008109e # v5
+        uses: mikepenz/release-changelog-builder-action@c9dc8369bccbc41e0ac887f8fd674f5925d315f7 # v5
         with:
           configuration: .github/changelog-config.json
           ignorePreReleases: true
