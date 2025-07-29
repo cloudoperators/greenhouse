@@ -68,6 +68,11 @@ func DefaultPlugin(ctx context.Context, c client.Client, obj runtime.Object) err
 		plugin.Spec.DisplayName = normalizedName
 	}
 
+	// Validate before ValidateCreatePlugin is called. Because defaulting PluginOptionValues & ReleaseName requires the PluginDefinition to be set.
+	if plugin.Spec.PluginDefinition == "" {
+		return field.Required(field.NewPath("spec").Child("pluginDefinition"), "field is required")
+	}
+
 	// Default option values and merge with PluginDefinition values.
 	optionValues, err := helm.GetPluginOptionValuesForPlugin(ctx, c, plugin)
 	if err != nil {
@@ -110,10 +115,15 @@ func ValidateCreatePlugin(ctx context.Context, c client.Client, obj runtime.Obje
 	}
 
 	pluginDefinition := new(greenhousev1alpha1.ClusterPluginDefinition)
+	if plugin.Spec.PluginDefinition == "" {
+		return nil, field.Required(field.NewPath("spec").Child("pluginDefinition"), "field is required")
+	}
 	err := c.Get(ctx, client.ObjectKey{Namespace: "", Name: plugin.Spec.PluginDefinition}, pluginDefinition)
 	if err != nil {
-		// TODO: provide actual APIError
-		return nil, err
+		if apierrors.IsNotFound(err) {
+			return nil, field.NotFound(field.NewPath("spec").Child("pluginDefinition"), plugin.Spec.PluginDefinition)
+		}
+		return nil, field.InternalError(field.NewPath("spec").Child("pluginDefinition"), err)
 	}
 
 	if err := validateReleaseName(plugin.Spec.ReleaseName); err != nil {
@@ -150,6 +160,8 @@ func ValidateUpdatePlugin(ctx context.Context, c client.Client, old, obj runtime
 	allWarns = append(allWarns, validateOwnerReference(oldPlugin)...)
 	allErrs := field.ErrorList{}
 
+	allErrs = append(allErrs, validation.ValidateImmutableField(oldPlugin.Spec.PluginDefinition, plugin.Spec.PluginDefinition, field.NewPath("spec", "pluginDefinition"))...)
+
 	pluginDefinition := new(greenhousev1alpha1.ClusterPluginDefinition)
 	err := c.Get(ctx, client.ObjectKey{Namespace: "", Name: plugin.Spec.PluginDefinition}, pluginDefinition)
 	if err != nil {
@@ -162,8 +174,6 @@ func ValidateUpdatePlugin(ctx context.Context, c client.Client, old, obj runtime
 	if err := validateReleaseName(plugin.Spec.ReleaseName); err != nil {
 		return allWarns, field.Invalid(field.NewPath("spec").Child("releaseName"), plugin.Spec.ReleaseName, err.Error())
 	}
-
-	allErrs = append(allErrs, validation.ValidateImmutableField(oldPlugin.Spec.PluginDefinition, plugin.Spec.PluginDefinition, field.NewPath("spec", "pluginDefinition"))...)
 
 	labelValidationWarning := webhook.ValidateLabelOwnedBy(ctx, c, plugin)
 	if labelValidationWarning != "" {
