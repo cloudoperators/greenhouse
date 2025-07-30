@@ -566,9 +566,9 @@ func (in *Nodes) DeepCopyInto(out *Nodes) {
 	*out = *in
 	if in.NotReady != nil {
 		in, out := &in.NotReady, &out.NotReady
-		*out = make(map[string]NodeStatus, len(*in))
-		for key, val := range *in {
-			(*out)[key] = *val.DeepCopy()
+		*out = make([]NodeStatus, len(*in))
+		for i := range *in {
+			(*in)[i].DeepCopyInto(&(*out)[i])
 		}
 	}
 }

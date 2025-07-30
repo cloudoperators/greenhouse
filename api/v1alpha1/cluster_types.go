@@ -75,12 +75,16 @@ type Nodes struct {
 	Total int32 `json:"total,omitempty"`
 	// ReadyNodes represent the number of ready nodes in the cluster.
 	Ready int32 `json:"ready,omitempty"`
-	// NotReady maps node names to their non-ready status details.
-	NotReady map[string]NodeStatus `json:"notReady,omitempty"`
+	// NotReady is slice of non-ready nodes status details.
+	// +listType="map"
+	// +listMapKey=name
+	NotReady []NodeStatus `json:"notReady,omitempty"`
 }
 
 // NodeStatus represents a status of non-ready node.
 type NodeStatus struct {
+	// Name of the node.
+	Name string `json:"name"`
 	// Message represents the error message.
 	Message string `json:"message,omitempty"`
 	// LastTransitionTime represents latest transition time of status.

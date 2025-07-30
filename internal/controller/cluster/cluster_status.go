@@ -8,7 +8,6 @@ import (
 	"errors"
 	"fmt"
 	"slices"
-	"strings"
 	"time"
 
 	"github.com/go-logr/logr"
@@ -223,20 +222,20 @@ func (r *RemoteClusterReconciler) reconcileNodeStatus(
 		return greenhousemetav1alpha1.FalseCondition(greenhousev1alpha1.AllNodesReady, "", err.Error()), nil
 	}
 
-	notReadyNodes := make(map[string]greenhousev1alpha1.NodeStatus)
+	notReadyNodes := []greenhousev1alpha1.NodeStatus{}
 	var totalNodes, readyNodes int32
 	allNodesReadyCondition = greenhousemetav1alpha1.TrueCondition(greenhousev1alpha1.AllNodesReady, "", "")
 
 	for _, node := range nodeList.Items {
 		totalNodes++
 
-		nodeStatus := computeNodeStatus(node)
+		nodeStatus := getNodeStatusIfNodeNotReady(node)
 		if nodeStatus == nil {
 			readyNodes++
 			continue
 		}
 
-		notReadyNodes[node.GetName()] = *nodeStatus
+		notReadyNodes = append(notReadyNodes, *nodeStatus)
 
 		allNodesReadyCondition.Status = metav1.ConditionFalse
 		if allNodesReadyCondition.Message != "" {
@@ -249,39 +248,19 @@ func (r *RemoteClusterReconciler) reconcileNodeStatus(
 	return allNodesReadyCondition, &greenhousev1alpha1.Nodes{Total: totalNodes, Ready: readyNodes, NotReady: notReadyNodes}
 }
 
-// computeNodeStatus checks whether a node is Ready and optionally computes the node status.
-// If node is ready, then it returns nil. Otherwise returns a node status containing:
-//   - Message: problem details or "node not ready"
-//   - LastTransitionTime: most recent condition timestamp
-func computeNodeStatus(node corev1.Node) *greenhousev1alpha1.NodeStatus {
-	var problems []string
-	var latestTransitiomTime metav1.Time
-
-	// Start tracking latest transition time from beginning of the conditions list.
-	if len(node.Status.Conditions) > 0 {
-		latestTransitiomTime = node.Status.Conditions[0].LastTransitionTime
-	}
-
-	for _, condition := range node.Status.Conditions {
-		// Current node is ready, no need to compute its status.
-		if condition.Type == corev1.NodeReady && condition.Status == corev1.ConditionTrue {
-			return nil
-		}
-
-		// Track latest transition time.
-		if condition.LastTransitionTime.After(latestTransitiomTime.Time) {
-			latestTransitiomTime = condition.LastTransitionTime
-		}
-
-		if condition.Type != corev1.NodeReady && condition.Status == corev1.ConditionTrue && condition.Message != "" {
-			problems = append(problems, fmt.Sprintf("%s: %s", condition.Type, condition.Message))
+// getNodeStatusIfNodeNotReady returns a NodeStatus when the NodeReady condition is explicitly False; otherwise nil.
+func getNodeStatusIfNodeNotReady(node corev1.Node) *greenhousev1alpha1.NodeStatus {
+	var readyCondition *corev1.NodeCondition
+	for i := range node.Status.Conditions {
+		if node.Status.Conditions[i].Type == corev1.NodeReady {
+			readyCondition = &node.Status.Conditions[i]
+			break
 		}
 	}
 
-	statusMsg := "node not ready"
-	if len(problems) > 0 {
-		statusMsg = strings.Join(problems, "; ")
+	if readyCondition == nil || readyCondition.Status == corev1.ConditionTrue {
+		return nil
 	}
 
-	return &greenhousev1alpha1.NodeStatus{Message: statusMsg, LastTransitionTime: latestTransitiomTime}
+	return &greenhousev1alpha1.NodeStatus{Name: node.Name, Message: readyCondition.Message, LastTransitionTime: readyCondition.LastTransitionTime}
 }

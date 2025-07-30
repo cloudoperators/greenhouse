@@ -91,7 +91,8 @@ spec:
                   ready nodes status.
                 properties:
                   notReady:
-                    additionalProperties:
+                    description: NotReady is slice of non-ready nodes status details.
+                    items:
                       description: NodeStatus represents a status of non-ready node.
                       properties:
                         lastTransitionTime:
@@ -102,10 +103,15 @@ spec:
                         message:
                           description: Message represents the error message.
                           type: string
+                        name:
+                          type: string
+                      required:
+                      - name
                       type: object
-                    description: NotReady maps node names to their non-ready status
-                      details.
-                    type: object
+                    type: array
+                    x-kubernetes-list-map-keys:
+                    - name
+                    x-kubernetes-list-type: map
                   ready:
                     description: ReadyNodes represent the number of ready nodes in
                       the cluster.
