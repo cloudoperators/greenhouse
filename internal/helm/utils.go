@@ -4,8 +4,13 @@
 package helm
 
 import (
+	"fmt"
+	"sort"
 	"time"
 
+	"helm.sh/helm/v3/pkg/strvals"
+
+	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
 	"github.com/cloudoperators/greenhouse/internal/clientutil"
 )
 
@@ -18,4 +23,64 @@ const helmReleaseTimeoutSeconds int = 300
 func GetHelmTimeout() time.Duration {
 	val := clientutil.GetIntEnvWithDefault("HELM_RELEASE_TIMEOUT", helmReleaseTimeoutSeconds)
 	return time.Duration(val) * time.Second
+}
+
+func MergePluginAndPluginOptionValueSlice(pluginOptions []greenhousev1alpha1.PluginOption, pluginOptionValues []greenhousev1alpha1.PluginOptionValue) []greenhousev1alpha1.PluginOptionValue {
+	// Make sure there's always a non-nil slice.
+	out := make([]greenhousev1alpha1.PluginOptionValue, 0)
+	defer func() {
+		sort.Slice(out, func(i, j int) bool {
+			return out[i].Name < out[j].Name
+		})
+	}()
+	// If the PluginDefinition doesn't define values, we're done.
+	if pluginOptions == nil {
+		return pluginOptionValues
+	}
+	for _, option := range pluginOptions {
+		if option.Default != nil {
+			out = append(out, greenhousev1alpha1.PluginOptionValue{Name: option.Name, Value: option.Default})
+		}
+	}
+	for _, pluginVal := range pluginOptionValues {
+		out = setOrAppendNameValue(out, pluginVal)
+	}
+	return out
+}
+
+// MergePluginOptionValues merges the given src into the dst PluginOptionValue slice.
+func MergePluginOptionValues(dst, src []greenhousev1alpha1.PluginOptionValue) []greenhousev1alpha1.PluginOptionValue {
+	if dst == nil {
+		dst = make([]greenhousev1alpha1.PluginOptionValue, 0)
+	}
+	for _, srcOptionValue := range src {
+		dst = setOrAppendNameValue(dst, srcOptionValue)
+	}
+	return dst
+}
+
+/*
+convertFlatValuesToHelmValues shall converts flat values for a Helm chart yaml-compatible structure.
+Example:
+The input
+
+	global.image.registry=foobar
+
+is transformed to
+
+	global:
+	  image:
+	    registry: foobar
+*/
+func ConvertFlatValuesToHelmValues(values []greenhousev1alpha1.PluginOptionValue) (map[string]any, error) {
+	if values == nil {
+		return make(map[string]any, 0), nil
+	}
+	helmValues := make(map[string]any, 0)
+	for _, v := range values {
+		if err := strvals.ParseJSON(fmt.Sprintf("%s=%s", v.Name, v.ValueJSON()), helmValues); err != nil {
+			return nil, err
+		}
+	}
+	return helmValues, nil
 }

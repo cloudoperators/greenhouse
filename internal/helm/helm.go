@@ -25,7 +25,6 @@ import (
 	"helm.sh/helm/v3/pkg/registry"
 	"helm.sh/helm/v3/pkg/release"
 	"helm.sh/helm/v3/pkg/storage/driver"
-	"helm.sh/helm/v3/pkg/strvals"
 	corev1 "k8s.io/api/core/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -499,32 +498,6 @@ func debug(format string, v ...any) {
 	}
 }
 
-/*
-convertFlatValuesToHelmValues shall converts flat values for a Helm chart yaml-compatible structure.
-Example:
-The input
-
-	global.image.registry=foobar
-
-is transformed to
-
-	global:
-	  image:
-	    registry: foobar
-*/
-func convertFlatValuesToHelmValues(values []greenhousev1alpha1.PluginOptionValue) (map[string]any, error) {
-	if values == nil {
-		return make(map[string]any, 0), nil
-	}
-	helmValues := make(map[string]any, 0)
-	for _, v := range values {
-		if err := strvals.ParseJSON(fmt.Sprintf("%s=%s", v.Name, v.ValueJSON()), helmValues); err != nil {
-			return nil, err
-		}
-	}
-	return helmValues, nil
-}
-
 // Taken from: https://github.com/helm/helm/blob/v3.10.3/pkg/cli/values/options.go#L99-L116
 func mergeMaps(a, b map[string]any) map[string]any {
 	out := make(map[string]any, len(a))
@@ -555,7 +528,7 @@ func getValuesForHelmChart(ctx context.Context, c client.Client, helmChart *char
 	if err != nil {
 		return nil, err
 	}
-	helmPluginValues, err := convertFlatValuesToHelmValues(pluginValues)
+	helmPluginValues, err := ConvertFlatValuesToHelmValues(pluginValues)
 	if err != nil {
 		return nil, err
 	}
