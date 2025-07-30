@@ -7,11 +7,9 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"os"
 	"path/filepath"
 
 	"github.com/spf13/cobra"
-	"k8s.io/apimachinery/pkg/util/yaml"
 	ctrl "sigs.k8s.io/controller-runtime"
 
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
@@ -133,30 +131,5 @@ func validateHelmChart(pluginDefinition *greenhousev1alpha1.ClusterPluginDefinit
 
 	fmt.Printf("rendering helm chart %s\n", pluginDefinition.Spec.HelmChart.String())
 	_, err = helm.TemplateHelmChartFromPlugin(context.Background(), local, restClientGetter, pluginDefinition.Spec, plugin)
-	return err
-}
-
-func loadPluginDefinition(path string) (*greenhousev1alpha1.ClusterPluginDefinition, error) {
-	var pluginDefinition *greenhousev1alpha1.ClusterPluginDefinition
-	err := loadAndUnmarshalObject(path, &pluginDefinition)
-	return pluginDefinition, err
-}
-
-func loadPlugin(path string) (*greenhousev1alpha1.Plugin, error) {
-	var plugin *greenhousev1alpha1.Plugin
-	err := loadAndUnmarshalObject(path, &plugin)
-	return plugin, err
-}
-
-func loadAndUnmarshalObject(path string, o any) error {
-	absPath, err := filepath.Abs(path)
-	if err != nil {
-		return err
-	}
-	f, err := os.ReadFile(absPath)
-	if err != nil {
-		return err
-	}
-	err = yaml.Unmarshal(f, &o)
 	return err
 }
