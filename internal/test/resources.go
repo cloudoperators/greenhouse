@@ -318,10 +318,17 @@ func WithPluginPresetClusterSelector(clusterSelector greenhousev1alpha2.ClusterS
 	}
 }
 
-// WithPluginPresetPluginSpec sets the PluginSpec on a PluginPreset.
-func WithPluginPresetPluginSpec(pluginSpec greenhousev1alpha2.PluginTemplateSpec) func(*greenhousev1alpha2.PluginPreset) {
+// WithPluginPresetPluginTemplateSpec sets the PluginSpec on a PluginPreset.
+func WithPluginPresetPluginTemplateSpec(pluginSpec greenhousev1alpha2.PluginTemplateSpec) func(*greenhousev1alpha2.PluginPreset) {
 	return func(pp *greenhousev1alpha2.PluginPreset) {
 		pp.Spec.Plugin = pluginSpec
+	}
+}
+
+// WithPluginPresetClusterOptionOverrides sets the ClusterOptionOverrides on PluginPreset spec.
+func WithPluginPresetClusterOptionOverrides(overrides []greenhousev1alpha2.ClusterOptionOverride) func(*greenhousev1alpha2.PluginPreset) {
+	return func(pp *greenhousev1alpha2.PluginPreset) {
+		pp.Spec.ClusterOptionOverrides = overrides
 	}
 }
 
@@ -335,13 +342,20 @@ func WithPluginPresetLabel(key, value string) func(*greenhousev1alpha2.PluginPre
 	}
 }
 
+// WithPluginPresetAnnotations sets metadata annotations on a PluginPreset.
+func WithPluginPresetAnnotations(annotations map[string]string) func(*greenhousev1alpha2.PluginPreset) {
+	return func(c *greenhousev1alpha2.PluginPreset) {
+		c.SetAnnotations(annotations)
+	}
+}
+
 // NewPluginPreset returns a greenhousev1alpha1.PluginPreset object. Opts can be used to set the desired state of the PluginPreset.
 func NewPluginPreset(name, namespace string, opts ...func(*greenhousev1alpha2.PluginPreset)) *greenhousev1alpha2.PluginPreset {
 	GinkgoHelper()
 	pluginPreset := &greenhousev1alpha2.PluginPreset{
 		TypeMeta: metav1.TypeMeta{
-			Kind:       greenhousev1alpha1.PluginPresetKind,
-			APIVersion: greenhousev1alpha1.GroupVersion.String(),
+			Kind:       greenhousev1alpha2.PluginPresetKind,
+			APIVersion: greenhousev1alpha2.GroupVersion.String(),
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,

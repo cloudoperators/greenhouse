@@ -12,6 +12,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
+	greenhousev1alpha2 "github.com/cloudoperators/greenhouse/api/v1alpha2"
 )
 
 // EventuallyDeleted deletes the object and waits until it is gone. Early return if the delete fails with NotFound
@@ -22,7 +23,7 @@ func EventuallyDeleted(ctx context.Context, c client.Client, obj client.Object) 
 		if ok {
 			UpdateClusterWithDeletionAnnotation(ctx, c, client.ObjectKeyFromObject(cluster))
 		}
-		pluginPreset, ok := obj.(*greenhousev1alpha1.PluginPreset)
+		pluginPreset, ok := obj.(*greenhousev1alpha2.PluginPreset)
 		if ok {
 			RemoveDeletionProjection(ctx, c, client.ObjectKeyFromObject(pluginPreset))
 		}

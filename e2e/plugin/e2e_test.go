@@ -230,7 +230,7 @@ var _ = Describe("Plugin E2E", Ordered, func() {
 		By("Creating the plugin preset")
 		testPluginPreset := test.NewPluginPreset("test-nginx-plugin-preset", env.TestNamespace,
 			test.WithPluginPresetLabel(greenhouseapis.LabelKeyOwnedBy, team.Name),
-			test.WithPluginPresetPluginSpec(greenhousev1alpha2.PluginTemplateSpec(testPlugin.Spec)),
+			test.WithPluginPresetPluginTemplateSpec(greenhousev1alpha2.PluginTemplateSpec(testPlugin.Spec)),
 			test.WithPluginPresetClusterSelector(greenhousev1alpha2.ClusterSelector{
 				LabelSelector: metav1.LabelSelector{
 					MatchLabels: map[string]string{

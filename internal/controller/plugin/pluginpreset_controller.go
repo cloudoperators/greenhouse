@@ -36,8 +36,8 @@ import (
 // presetExposedConditions contains the conditions that are exposed in the PluginPreset's StatusConditions.
 var presetExposedConditions = []greenhousemetav1alpha1.ConditionType{
 	greenhousemetav1alpha1.ReadyCondition,
-	greenhousev1alpha1.PluginSkippedCondition,
-	greenhousev1alpha1.PluginFailedCondition,
+	greenhousev1alpha2.PluginSkippedCondition,
+	greenhousev1alpha2.PluginFailedCondition,
 	greenhousemetav1alpha1.ClusterListEmpty,
 	greenhousemetav1alpha1.OwnerLabelSetCondition,
 }
@@ -222,15 +222,15 @@ func (r *PluginPresetReconciler) reconcilePluginPreset(ctx context.Context, pres
 	}
 	switch {
 	case len(skippedPlugins) > 0:
-		preset.SetCondition(greenhousemetav1alpha1.TrueCondition(greenhousev1alpha1.PluginSkippedCondition, "", "Skipped existing plugins: "+strings.Join(skippedPlugins, ", ")))
+		preset.SetCondition(greenhousemetav1alpha1.TrueCondition(greenhousev1alpha2.PluginSkippedCondition, "", "Skipped existing plugins: "+strings.Join(skippedPlugins, ", ")))
 	default:
-		preset.SetCondition(greenhousemetav1alpha1.FalseCondition(greenhousev1alpha1.PluginSkippedCondition, "", ""))
+		preset.SetCondition(greenhousemetav1alpha1.FalseCondition(greenhousev1alpha2.PluginSkippedCondition, "", ""))
 	}
 	switch {
 	case len(failedPlugins) > 0:
-		preset.SetCondition(greenhousemetav1alpha1.TrueCondition(greenhousev1alpha1.PluginFailedCondition, greenhousev1alpha1.PluginReconcileFailed, strings.Join(failedPlugins, "; ")))
+		preset.SetCondition(greenhousemetav1alpha1.TrueCondition(greenhousev1alpha2.PluginFailedCondition, greenhousev1alpha2.PluginReconcileFailed, strings.Join(failedPlugins, "; ")))
 	default:
-		preset.SetCondition(greenhousemetav1alpha1.FalseCondition(greenhousev1alpha1.PluginFailedCondition, "", ""))
+		preset.SetCondition(greenhousemetav1alpha1.FalseCondition(greenhousev1alpha2.PluginFailedCondition, "", ""))
 	}
 	return utilerrors.NewAggregate(allErrs)
 }
@@ -384,13 +384,13 @@ func (r *PluginPresetReconciler) computeReadyCondition(
 
 	readyCondition = *conditions.GetConditionByType(greenhousemetav1alpha1.ReadyCondition)
 
-	if conditions.GetConditionByType(greenhousev1alpha1.PluginFailedCondition).IsTrue() {
+	if conditions.GetConditionByType(greenhousev1alpha2.PluginFailedCondition).IsTrue() {
 		readyCondition.Status = metav1.ConditionFalse
 		readyCondition.Message = "Plugin reconciliation failed"
 		return readyCondition
 	}
 
-	if conditions.GetConditionByType(greenhousev1alpha1.PluginSkippedCondition).IsTrue() {
+	if conditions.GetConditionByType(greenhousev1alpha2.PluginSkippedCondition).IsTrue() {
 		readyCondition.Status = metav1.ConditionFalse
 		readyCondition.Message = "Existing plugins skipped"
 		return readyCondition
@@ -469,7 +469,7 @@ func (r *PluginPresetReconciler) enqueueAllPluginPresetsInNamespace(ctx context.
 
 // listPluginPresetsAsReconcileRequests returns a list of reconcile requests for all PluginPresets that match the given list options.
 func listPluginPresetAsReconcileRequests(ctx context.Context, c client.Client, listOpts ...client.ListOption) []ctrl.Request {
-	var allPluginPresets = new(greenhousev1alpha1.PluginPresetList)
+	var allPluginPresets = new(greenhousev1alpha2.PluginPresetList)
 	if err := c.List(ctx, allPluginPresets, listOpts...); err != nil {
 		return nil
 	}

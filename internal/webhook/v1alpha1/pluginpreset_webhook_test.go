@@ -8,6 +8,7 @@ import (
 	. "github.com/onsi/gomega"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	greenhouseapis "github.com/cloudoperators/greenhouse/api"
 	greenhousemetav1alpha1 "github.com/cloudoperators/greenhouse/api/meta/v1alpha1"
@@ -116,7 +117,7 @@ var _ = Describe("PluginPreset Admission Tests", Ordered, func() {
 
 		err := test.K8sClient.Create(test.Ctx, cut)
 		Expect(err).To(HaveOccurred())
-		Expect(err.Error()).To(ContainSubstring("ClusterSelector must be set"))
+		Expect(err.Error()).To(Or(ContainSubstring("ClusterSelector must be set"), ContainSubstring("must specify either spec.clusterSelector.clusterName or spec.clusterSelector.labelSelector")))
 	})
 
 	It("should reject PluginPreset with non-existing PluginDefinition", func() {
@@ -182,6 +183,15 @@ var _ = Describe("PluginPreset Admission Tests", Ordered, func() {
 		Expect(err.Error()).
 			To(ContainSubstring("field is immutable"), "the error must reflect the field is immutable")
 
+		Eventually(func(g Gomega) {
+			g.Expect(test.K8sClient.Get(test.Ctx, client.ObjectKeyFromObject(cut), cut)).
+				To(Succeed(), "there must be no error getting the plugin preset")
+			base := cut.DeepCopy()
+			annotations := cut.GetAnnotations()
+			delete(annotations, greenhousev1alpha1.PreventDeletionAnnotation)
+			cut.SetAnnotations(annotations)
+			g.Expect(test.K8sClient.Patch(test.Ctx, cut, client.MergeFrom(base))).To(Succeed(), "there must be no error updating the pluginpreset")
+		}).Should(Succeed(), "there should be no error removing the deletion projection")
 		test.EventuallyDeleted(test.Ctx, test.K8sClient, cut)
 	})
 

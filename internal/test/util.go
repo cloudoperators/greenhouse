@@ -23,6 +23,7 @@ import (
 	greenhouseapis "github.com/cloudoperators/greenhouse/api"
 	greenhousemetav1alpha1 "github.com/cloudoperators/greenhouse/api/meta/v1alpha1"
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
+	greenhousev1alpha2 "github.com/cloudoperators/greenhouse/api/v1alpha2"
 	"github.com/cloudoperators/greenhouse/internal/clientutil"
 )
 
@@ -44,15 +45,15 @@ func UpdateClusterWithDeletionAnnotation(ctx context.Context, c client.Client, i
 	return cluster
 }
 
-func RemoveDeletionProjection(ctx context.Context, c client.Client, id client.ObjectKey) *greenhousev1alpha1.PluginPreset {
+func RemoveDeletionProjection(ctx context.Context, c client.Client, id client.ObjectKey) *greenhousev1alpha2.PluginPreset {
 	GinkgoHelper()
-	pluginPreset := &greenhousev1alpha1.PluginPreset{}
+	pluginPreset := &greenhousev1alpha2.PluginPreset{}
 	Eventually(func(g Gomega) {
 		g.Expect(c.Get(ctx, id, pluginPreset)).
 			To(Succeed(), "there must be no error getting the plugin preset")
 		base := pluginPreset.DeepCopy()
 		annotations := pluginPreset.GetAnnotations()
-		delete(annotations, greenhousev1alpha1.PreventDeletionAnnotation)
+		delete(annotations, greenhousev1alpha2.PreventDeletionAnnotation)
 		pluginPreset.SetAnnotations(annotations)
 		g.Expect(c.Patch(ctx, pluginPreset, client.MergeFrom(base))).To(Succeed(), "there must be no error updating the pluginpreset")
 	}).Should(Succeed(), "there should be no error removing the deletion projection")

@@ -17,17 +17,17 @@ import (
 func validateClusterSelector(cs greenhousev1alpha2.ClusterSelector, resourceGroupKind schema.GroupKind) error {
 	if cs.Name != "" && (len(cs.LabelSelector.MatchLabels) > 0 || len(cs.LabelSelector.MatchExpressions) > 0) {
 		return apierrors.NewInvalid(resourceGroupKind, cs.Name, field.ErrorList{field.Invalid(
-			field.NewPath("spec", "clusterSelector", "name"),
+			field.NewPath("spec", "clusterSelector"),
 			cs.Name,
-			"cannot specify both spec.clusterSelector.Name and spec.clusterSelector.labelSelector",
+			"cannot specify both spec.clusterSelector.clusterName and spec.clusterSelector.labelSelector",
 		)})
 	}
 
 	if cs.Name == "" && (len(cs.LabelSelector.MatchLabels) == 0 && len(cs.LabelSelector.MatchExpressions) == 0) {
 		return apierrors.NewInvalid(resourceGroupKind, cs.Name, field.ErrorList{field.Invalid(
-			field.NewPath("spec", "clusterSelector", "name"),
+			field.NewPath("spec", "clusterSelector"),
 			cs.Name,
-			"must specify either spec.clusterSelector.name or spec.clusterSelector.labelSelector",
+			"must specify either spec.clusterSelector.clusterName or spec.clusterSelector.labelSelector",
 		)})
 	}
 	return nil
