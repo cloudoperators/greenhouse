@@ -1265,6 +1265,17 @@ Greenhouse meta/v1alpha1.Condition
 <tbody>
 <tr>
 <td>
+<code>name</code><br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Name of the node.</p>
+</td>
+</tr>
+<tr>
+<td>
 <code>message</code><br>
 <em>
 string
@@ -1335,12 +1346,12 @@ int32
 <code>notReady</code><br>
 <em>
 <a href="#greenhouse.sap/v1alpha1.NodeStatus">
-map[string]../greenhouse/api/v1alpha1.NodeStatus
+[]NodeStatus
 </a>
 </em>
 </td>
 <td>
-<p>NotReady maps node names to their non-ready status details.</p>
+<p>NotReady is slice of non-ready nodes status details.</p>
 </td>
 </tr>
 </tbody>
