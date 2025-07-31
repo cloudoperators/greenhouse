@@ -53,8 +53,8 @@ In particular for <span style="color:red">Gardener Clusters</span> setting a sho
 A typical output when you run the command looks like
 
 ```commandline
-2024-02-01T09:34:55.522+0100	INFO	setup	Loaded kubeconfig	{"context": "default", "host": "https://api.greenhouse-qa.eu-nl-1.cloud.sap"}
-2024-02-01T09:34:55.523+0100	INFO	setup	Loaded client kubeconfig	{"host": "https://api.monitoring.greenhouse.shoot.canary.k8s-hana.ondemand.com"}
+2024-02-01T09:34:55.522+0100	INFO	setup	Loaded kubeconfig	{"context": "default", "host": "https://api.greenhouse.tld"}
+2024-02-01T09:34:55.523+0100	INFO	setup	Loaded client kubeconfig	{"host": "https://api.remote.tld"}
 2024-02-01T09:34:56.579+0100	INFO	setup	Bootstraping cluster	{"clusterName": "monitoring", "orgName": "ccloud"}
 2024-02-01T09:34:56.639+0100	INFO	setup	created namespace	{"name": "ccloud"}
 2024-02-01T09:34:56.696+0100	INFO	setup	created serviceAccount	{"name": "greenhouse"}

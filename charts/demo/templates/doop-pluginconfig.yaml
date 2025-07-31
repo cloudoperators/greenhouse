@@ -15,7 +15,7 @@ spec:
   displayName: {{ required ".Values.doop.displayName missing" .Values.doop.displayName }}
   optionValues:
     - name: apiEndpoint
-      value: "https://demo.greenhouse.cloud.sap" # Mandatory URL. Not used in demo mode.
+      value: "https://demo.{{ .Values.global.dnsDomain }}" # Mandatory URL. Not used in demo mode.
     - name: mock
       value: true
 {{ end }}
