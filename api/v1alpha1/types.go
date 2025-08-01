@@ -22,20 +22,6 @@ func (h *HelmChartReference) String() string {
 	return fmt.Sprintf("%s/%s:%s", h.Repository, h.Name, h.Version)
 }
 
-// ValueFromSource is a valid source for a value.
-type ValueFromSource struct {
-	// Secret references the secret containing the value.
-	Secret *SecretKeyReference `json:"secret,omitempty"`
-}
-
-// SecretKeyReference specifies the secret and key containing the value.
-type SecretKeyReference struct {
-	// Name of the secret in the same namespace.
-	Name string `json:"name"`
-	// Key in the secret to select the value from.
-	Key string `json:"key"`
-}
-
 // UIApplicationReference references the UI pluginDefinition to use.
 type UIApplicationReference struct {
 	// URL specifies the url to a built javascript asset.

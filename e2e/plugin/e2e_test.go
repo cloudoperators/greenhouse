@@ -29,7 +29,9 @@ import (
 	sourcecontroller "github.com/fluxcd/source-controller/api/v1"
 
 	greenhouseapis "github.com/cloudoperators/greenhouse/api"
+	greenhousemetav1alpha1 "github.com/cloudoperators/greenhouse/api/meta/v1alpha1"
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
+	greenhousev1alpha2 "github.com/cloudoperators/greenhouse/api/v1alpha2"
 	"github.com/cloudoperators/greenhouse/e2e/plugin/fixtures"
 	"github.com/cloudoperators/greenhouse/e2e/shared"
 	"github.com/cloudoperators/greenhouse/internal/clientutil"
@@ -228,10 +230,12 @@ var _ = Describe("Plugin E2E", Ordered, func() {
 		By("Creating the plugin preset")
 		testPluginPreset := test.NewPluginPreset("test-nginx-plugin-preset", env.TestNamespace,
 			test.WithPluginPresetLabel(greenhouseapis.LabelKeyOwnedBy, team.Name),
-			test.WithPluginPresetPluginSpec(testPlugin.Spec),
-			test.WithPluginPresetClusterSelector(metav1.LabelSelector{
-				MatchLabels: map[string]string{
-					"app": "test-cluster",
+			test.WithPluginPresetPluginTemplateSpec(greenhousev1alpha2.PluginTemplateSpec(testPlugin.Spec)),
+			test.WithPluginPresetClusterSelector(greenhousev1alpha2.ClusterSelector{
+				LabelSelector: metav1.LabelSelector{
+					MatchLabels: map[string]string{
+						"app": "test-cluster",
+					},
 				},
 			}),
 		)
@@ -259,10 +263,10 @@ var _ = Describe("Plugin E2E", Ordered, func() {
 		Eventually(func(g Gomega) {
 			err = adminClient.Get(ctx, client.ObjectKeyFromObject(testPluginPreset), testPluginPreset)
 			g.Expect(err).ToNot(HaveOccurred(), "failed to get the PluginPreset")
-			testPluginPreset.Spec.ClusterOptionOverrides = []greenhousev1alpha1.ClusterOptionOverride{
+			testPluginPreset.Spec.ClusterOptionOverrides = []greenhousev1alpha2.ClusterOptionOverride{
 				{
 					ClusterName: remoteClusterName,
-					Overrides: []greenhousev1alpha1.PluginOptionValue{
+					Overrides: []greenhousemetav1alpha1.PluginOptionValue{
 						{
 							Name:  "replicaCount",
 							Value: &apiextensionsv1.JSON{Raw: []byte("2")},
@@ -286,10 +290,10 @@ var _ = Describe("Plugin E2E", Ordered, func() {
 		By("Updating plugin preset with cluster option override")
 		err = adminClient.Get(ctx, client.ObjectKeyFromObject(testPluginPreset), testPluginPreset)
 		Expect(err).ToNot(HaveOccurred())
-		testPluginPreset.Spec.ClusterOptionOverrides = []greenhousev1alpha1.ClusterOptionOverride{
+		testPluginPreset.Spec.ClusterOptionOverrides = []greenhousev1alpha2.ClusterOptionOverride{
 			{
 				ClusterName: remoteClusterName,
-				Overrides: []greenhousev1alpha1.PluginOptionValue{
+				Overrides: []greenhousemetav1alpha1.PluginOptionValue{
 					{
 						Name:  "replicaCount",
 						Value: &apiextensionsv1.JSON{Raw: []byte("3")},

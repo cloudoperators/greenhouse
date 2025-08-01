@@ -75,9 +75,9 @@ type OIDCConfig struct {
 	// If none is specified, the Greenhouse ID proxy will be used.
 	RedirectURI string `json:"redirectURI,omitempty"`
 	// ClientIDReference references the Kubernetes secret containing the client id.
-	ClientIDReference SecretKeyReference `json:"clientIDReference"`
+	ClientIDReference greenhousemetav1alpha1.SecretKeyReference `json:"clientIDReference"`
 	// ClientSecretReference references the Kubernetes secret containing the client secret.
-	ClientSecretReference SecretKeyReference `json:"clientSecretReference"`
+	ClientSecretReference greenhousemetav1alpha1.SecretKeyReference `json:"clientSecretReference"`
 	// OAuth2ClientRedirectURIs are a registered set of redirect URIs. When redirecting from the idproxy to
 	// the client application, the URI requested to redirect to must be contained in this list.
 	OAuth2ClientRedirectURIs []string `json:"oauth2ClientRedirectURIs,omitempty"`
@@ -91,11 +91,11 @@ type SCIMConfig struct {
 	// +kubebuilder:default="basic"
 	AuthType scim.AuthType `json:"authType,omitempty"`
 	// User to be used for basic authentication.
-	BasicAuthUser *ValueFromSource `json:"basicAuthUser,omitempty"`
+	BasicAuthUser *greenhousemetav1alpha1.ValueFromSource `json:"basicAuthUser,omitempty"`
 	// Password to be used for basic authentication.
-	BasicAuthPw *ValueFromSource `json:"basicAuthPw,omitempty"`
+	BasicAuthPw *greenhousemetav1alpha1.ValueFromSource `json:"basicAuthPw,omitempty"`
 	// BearerToken to be used for bearer token authorization
-	BearerToken *ValueFromSource `json:"bearerToken,omitempty"`
+	BearerToken *greenhousemetav1alpha1.ValueFromSource `json:"bearerToken,omitempty"`
 	// BearerPrefix to be used to defined bearer token prefix
 	BearerPrefix string `json:"bearerPrefix,omitempty"`
 	// BearerHeader to be used to defined bearer token header

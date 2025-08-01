@@ -291,30 +291,30 @@ export interface components {
                 bearerTokenExpirationTimestamp?: string;
                 /** @description KubernetesVersion reflects the detected Kubernetes version of the cluster. */
                 kubernetesVersion?: string;
-                /** @description Nodes provides a map of cluster node names to node statuses */
+                /** @description Nodes contain a short summary of nodes count and not ready nodes status. */
                 nodes?: {
-                    [key: string]: {
-                        /** @description Fast track to the node ready condition. */
-                        ready?: boolean;
-                        /** @description We mirror the node conditions here for faster reference */
-                        statusConditions?: {
-                            conditions?: {
-                                /**
-                                 * Format: date-time
-                                 * @description LastTransitionTime is the last time the condition transitioned from one status to another.
-                                 */
-                                lastTransitionTime: string;
-                                /** @description Message is an optional human readable message indicating details about the last transition. */
-                                message?: string;
-                                /** @description Reason is a one-word, CamelCase reason for the condition's last transition. */
-                                reason?: string;
-                                /** @description Status of the condition. */
-                                status: string;
-                                /** @description Type of the condition. */
-                                type: string;
-                            }[];
-                        };
-                    };
+                    /** @description NotReady is slice of non-ready nodes status details. */
+                    notReady?: {
+                        /**
+                         * Format: date-time
+                         * @description LastTransitionTime represents latest transition time of status.
+                         */
+                        lastTransitionTime?: string;
+                        /** @description Message represents the error message. */
+                        message?: string;
+                        /** @description Name of the node. */
+                        name: string;
+                    }[];
+                    /**
+                     * Format: int32
+                     * @description ReadyNodes represent the number of ready nodes in the cluster.
+                     */
+                    ready?: number;
+                    /**
+                     * Format: int32
+                     * @description Total represent the number of all the nodes in the cluster.
+                     */
+                    total?: number;
                 };
                 /** @description StatusConditions contain the different conditions that constitute the status of the Cluster. */
                 statusConditions?: {
@@ -648,29 +648,34 @@ export interface components {
                         };
                     }[];
                 }[];
-                /** @description ClusterSelector is a label selector to select the clusters the plugin bundle should be deployed to. */
+                /** @description ClusterSelector is used to select a Cluster or Clusters the plugin bundle should be deployed to. */
                 clusterSelector: {
-                    /** @description matchExpressions is a list of label selector requirements. The requirements are ANDed. */
-                    matchExpressions?: {
-                        /** @description key is the label key that the selector applies to. */
-                        key: string;
-                        /** @description operator represents a key's relationship to a set of values.
-                         *     Valid operators are In, NotIn, Exists and DoesNotExist. */
-                        operator: string;
-                        /** @description values is an array of string values. If the operator is In or NotIn,
-                         *     the values array must be non-empty. If the operator is Exists or DoesNotExist,
-                         *     the values array must be empty. This array is replaced during a strategic
-                         *     merge patch. */
-                        values?: string[];
-                    }[];
-                    /** @description matchLabels is a map of {key,value} pairs. A single {key,value} in the matchLabels
-                     *     map is equivalent to an element of matchExpressions, whose key field is "key", the
-                     *     operator is "In", and the values array contains only "value". The requirements are ANDed. */
-                    matchLabels?: {
-                        [key: string]: string;
+                    /** @description Name of a single Cluster to select. */
+                    clusterName?: string;
+                    /** @description LabelSelector is a label query over a set of Clusters. */
+                    labelSelector?: {
+                        /** @description matchExpressions is a list of label selector requirements. The requirements are ANDed. */
+                        matchExpressions?: {
+                            /** @description key is the label key that the selector applies to. */
+                            key: string;
+                            /** @description operator represents a key's relationship to a set of values.
+                             *     Valid operators are In, NotIn, Exists and DoesNotExist. */
+                            operator: string;
+                            /** @description values is an array of string values. If the operator is In or NotIn,
+                             *     the values array must be non-empty. If the operator is Exists or DoesNotExist,
+                             *     the values array must be empty. This array is replaced during a strategic
+                             *     merge patch. */
+                            values?: string[];
+                        }[];
+                        /** @description matchLabels is a map of {key,value} pairs. A single {key,value} in the matchLabels
+                         *     map is equivalent to an element of matchExpressions, whose key field is "key", the
+                         *     operator is "In", and the values array contains only "value". The requirements are ANDed. */
+                        matchLabels?: {
+                            [key: string]: string;
+                        };
                     };
                 };
-                /** @description PluginSpec is the spec of the plugin to be deployed by the PluginPreset. */
+                /** @description Plugin is a template of the spec of the plugin to be deployed by the PluginPreset. */
                 plugin: {
                     /** @description ClusterName is the name of the cluster the plugin is deployed to. If not set, the plugin is deployed to the greenhouse cluster. */
                     clusterName?: string;
