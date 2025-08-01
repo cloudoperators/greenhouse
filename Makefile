@@ -49,10 +49,8 @@ help: ## Display this help.
 ##@ Development
 
 .PHONY: generate-all
-generate-all: generate generate-manifests generate-documentation  ## Generate code, manifests and documentation.
-
-.PHONY: manifests
-manifests: generate-manifests generate-documentation generate-types
+generate-all: generate generate-manifests generate-documentation generate-types ## Generate code, manifests and documentation.
+	docker run --rm -v $(shell pwd):/github/workspace $(IMG_LICENSE_EYE) -c .github/licenserc.yaml header fix
 
 .PHONY: install
 install: kustomize
@@ -70,7 +68,6 @@ generate-manifests: controller-gen ## Generate WebhookConfiguration, ClusterRole
 
 	$(CONTROLLER_GEN) rbac:roleName=manager-role webhook paths="./internal/webhook/..." paths="./internal/controller/..." output:artifacts:config=$(TEMPLATES_MANIFESTS_PATH)
 	hack/helmify $(TEMPLATES_MANIFESTS_PATH)
-	docker run --rm -v $(shell pwd):/github/workspace $(IMG_LICENSE_EYE) -c .github/licenserc.yaml header fix
 
 .PHONY: generate-open-api-spec
 generate-open-api-spec: VERSION = main
