@@ -197,7 +197,6 @@ func (r *OrganizationReconciler) EnsureCreated(ctx context.Context, object lifec
 		org.SetCondition(greenhousemetav1alpha1.FalseCondition(greenhousev1alpha1.ServiceProxyProvisioned, "", err.Error()))
 		return ctrl.Result{}, lifecycle.Failed, err
 	}
-	org.SetCondition(greenhousemetav1alpha1.TrueCondition(greenhousev1alpha1.ServiceProxyProvisioned, "", ""))
 
 	return ctrl.Result{}, lifecycle.Success, nil
 }
