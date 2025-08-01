@@ -52,14 +52,14 @@ func (r *RemoteClusterReconciler) setConditions() lifecycle.Conditioner {
 		}
 
 		var allNodesReadyCondition, clusterAccessibleCondition, resourcesDeployedCondition greenhousemetav1alpha1.Condition
-		clusterNodeStatus := make(map[string]greenhousev1alpha1.NodeStatus)
+		var nodes *greenhousev1alpha1.Nodes
 		// Can only reconcile detailed status if kubeconfig is valid.
 		if kubeConfigValidCondition.IsFalse() {
 			allNodesReadyCondition = greenhousemetav1alpha1.UnknownCondition(greenhousev1alpha1.AllNodesReady, "", "kubeconfig not valid - cannot know node status")
 			clusterAccessibleCondition = greenhousemetav1alpha1.UnknownCondition(greenhousev1alpha1.PermissionsVerified, "", "kubeconfig not valid - cannot validate cluster access")
 			resourcesDeployedCondition = greenhousemetav1alpha1.UnknownCondition(greenhousev1alpha1.ManagedResourcesDeployed, "", "kubeconfig not valid - cannot validate managed resources")
 		} else {
-			allNodesReadyCondition, clusterNodeStatus = r.reconcileNodeStatus(ctx, restClientGetter)
+			allNodesReadyCondition, nodes = r.reconcileNodeStatus(ctx, restClientGetter)
 			clusterAccessibleCondition = r.reconcilePermissions(ctx, restClientGetter)
 			resourcesDeployedCondition = r.reconcileBootstrapResources(ctx, restClientGetter, clusterSecret)
 		}
@@ -83,7 +83,8 @@ func (r *RemoteClusterReconciler) setConditions() lifecycle.Conditioner {
 		}
 		cluster.Status.KubernetesVersion = k8sVersion
 		cluster.Status.SetConditions(conditions...)
-		cluster.Status.Nodes = clusterNodeStatus
+
+		cluster.Status.Nodes = nodes
 	}
 }
 
@@ -199,58 +200,68 @@ func (r *RemoteClusterReconciler) reconcileReadyStatus(conditions ...greenhousem
 	return
 }
 
-// reconcileNodeStatus returns the status of all nodes of the cluster and an all nodes ready condition.
+// reconcileNodeStatus fetches the list of nodes from a remote cluster,
+// evaluates each node's readiness, and compiles summary metrics and statuses.
+// It returns:
+//   - allNodesReadyCondition: a Condition indicating if all nodes are ready (true) or not (false), with a message summarizing non-ready nodes.
+//   - nodes: a Nodes struct containing total count, ready count, and a map of non-ready node statuses.
 func (r *RemoteClusterReconciler) reconcileNodeStatus(
 	ctx context.Context,
 	restClientGetter genericclioptions.RESTClientGetter,
 ) (
 	allNodesReadyCondition greenhousemetav1alpha1.Condition,
-	clusterNodeStatus map[string]greenhousev1alpha1.NodeStatus,
+	nodes *greenhousev1alpha1.Nodes,
 ) {
-
-	clusterNodeStatus = make(map[string]greenhousev1alpha1.NodeStatus)
-	allNodesReadyCondition = greenhousemetav1alpha1.TrueCondition(greenhousev1alpha1.AllNodesReady, "", "")
 
 	remoteClient, err := clientutil.NewK8sClientFromRestClientGetter(restClientGetter)
 	if err != nil {
-		allNodesReadyCondition.Status = metav1.ConditionFalse
-		allNodesReadyCondition.Message = err.Error()
-		return
+		return greenhousemetav1alpha1.FalseCondition(greenhousev1alpha1.AllNodesReady, "", err.Error()), nil
 	}
 
 	nodeList := &corev1.NodeList{}
-
 	if err := remoteClient.List(ctx, nodeList); err != nil {
-		allNodesReadyCondition.Status = metav1.ConditionFalse
-		allNodesReadyCondition.Message = err.Error()
-		return
+		return greenhousemetav1alpha1.FalseCondition(greenhousev1alpha1.AllNodesReady, "", err.Error()), nil
 	}
+
+	notReadyNodes := []greenhousev1alpha1.NodeStatus{}
+	var totalNodes, readyNodes int32
+	allNodesReadyCondition = greenhousemetav1alpha1.TrueCondition(greenhousev1alpha1.AllNodesReady, "", "")
 
 	for _, node := range nodeList.Items {
-		greenhouseNodeStatusConditions := greenhousemetav1alpha1.StatusConditions{}
-		for _, condition := range node.Status.Conditions {
-			greenhouseNodeStatusConditions.SetConditions(greenhousemetav1alpha1.Condition{
-				Type:               greenhousemetav1alpha1.ConditionType(condition.Type),
-				Status:             metav1.ConditionStatus(condition.Status),
-				LastTransitionTime: condition.LastTransitionTime,
-				Message:            condition.Message,
-			})
+		totalNodes++
+
+		nodeStatus := getNodeStatusIfNodeNotReady(node)
+		if nodeStatus == nil {
+			readyNodes++
+			continue
 		}
 
-		nodeReady := greenhouseNodeStatusConditions.IsReadyTrue()
+		notReadyNodes = append(notReadyNodes, *nodeStatus)
 
-		clusterNodeStatus[node.GetName()] = greenhousev1alpha1.NodeStatus{
-			Ready:            greenhouseNodeStatusConditions.IsReadyTrue(),
-			StatusConditions: greenhouseNodeStatusConditions,
+		allNodesReadyCondition.Status = metav1.ConditionFalse
+		if allNodesReadyCondition.Message != "" {
+			allNodesReadyCondition.Message += ", "
 		}
 
-		if !nodeReady {
-			allNodesReadyCondition.Status = metav1.ConditionFalse
-			if allNodesReadyCondition.Message != "" {
-				allNodesReadyCondition.Message += ", "
-			}
-			allNodesReadyCondition.Message += node.GetName() + " not ready"
+		allNodesReadyCondition.Message += node.GetName() + " not ready"
+	}
+
+	return allNodesReadyCondition, &greenhousev1alpha1.Nodes{Total: totalNodes, Ready: readyNodes, NotReady: notReadyNodes}
+}
+
+// getNodeStatusIfNodeNotReady returns a NodeStatus when the NodeReady condition is explicitly False; otherwise nil.
+func getNodeStatusIfNodeNotReady(node corev1.Node) *greenhousev1alpha1.NodeStatus {
+	var readyCondition *corev1.NodeCondition
+	for i := range node.Status.Conditions {
+		if node.Status.Conditions[i].Type == corev1.NodeReady {
+			readyCondition = &node.Status.Conditions[i]
+			break
 		}
 	}
-	return
+
+	if readyCondition == nil || readyCondition.Status == corev1.ConditionTrue {
+		return nil
+	}
+
+	return &greenhousev1alpha1.NodeStatus{Name: node.Name, Message: readyCondition.Message, LastTransitionTime: readyCondition.LastTransitionTime}
 }
