@@ -42,7 +42,6 @@ const (
 )
 
 func (r *OrganizationReconciler) reconcileServiceProxy(ctx context.Context, org *greenhousev1alpha1.Organization, supportGroupTeamName string) error {
-	org.SetCondition(greenhousemetav1alpha1.FalseCondition(greenhousev1alpha1.ServiceProxyProvisioned, "", ""))
 	var pluginDefinition = new(greenhousev1alpha1.ClusterPluginDefinition)
 	if err := r.Get(ctx, types.NamespacedName{Name: serviceProxyName, Namespace: ""}, pluginDefinition); err != nil {
 		if apierrors.IsNotFound(err) {
