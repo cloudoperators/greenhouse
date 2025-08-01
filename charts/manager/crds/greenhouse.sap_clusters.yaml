@@ -104,6 +104,7 @@ spec:
                           description: Message represents the error message.
                           type: string
                         name:
+                          description: Name of the node.
                           type: string
                       required:
                       - name
