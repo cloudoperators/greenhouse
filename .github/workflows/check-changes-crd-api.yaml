@@ -27,7 +27,7 @@ jobs:
       - name: Generate manifests, documentation and types
         run: |
           chmod o+rw docs/reference/api/openapi.yaml
-          make manifests
+          make generate-all
 
       - name: Apply Changes
         uses: EndBug/add-and-commit@a94899bca583c204427a224a7af87c02f9b325d5 # v9
