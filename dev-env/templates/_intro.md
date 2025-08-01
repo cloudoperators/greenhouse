@@ -106,7 +106,7 @@ make setup-webhook-dev
 ### Develop Controllers and Admission Webhook server locally
 
 ```shell
-WITH_CONTROLLERS=false DEV_MODE=true make setup-manager
+CONTROLLERS_ONLY=false DEV_MODE=true make setup-manager
 ```
 
 This will modify the `ValidatingWebhookConfiguration` and `MutatingWebhookConfiguration` to use the
