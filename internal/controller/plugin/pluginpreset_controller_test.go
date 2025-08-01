@@ -137,7 +137,83 @@ var _ = Describe("PluginPreset Controller Lifecycle", Ordered, func() {
 			NotTo(HaveOccurred(), "there must be no error stopping the other remote environment")
 	})
 
-	It("should reconcile a PluginPreset", func() {
+	It("should reconcile a PluginPreset with ClusterName set in ClusterSelector", func() {
+		By("creating a PluginPreset")
+		testPluginPreset := test.NewPluginPreset(pluginPresetName, test.TestNamespace,
+			test.WithPluginPresetLabel(greenhouseapis.LabelKeyOwnedBy, testTeam.Name),
+			test.WithPluginPresetClusterSelector(greenhousev1alpha2.ClusterSelector{
+				Name: clusterA,
+			}),
+			test.WithPluginPresetClusterOptionOverrides([]greenhousev1alpha2.ClusterOptionOverride{}),
+			test.WithPluginPresetPluginTemplateSpec(greenhousev1alpha2.PluginTemplateSpec{
+				PluginDefinition: pluginPresetDefinitionName,
+				ReleaseName:      releaseName,
+				ReleaseNamespace: releaseNamespace,
+				OptionValues: []greenhousemetav1alpha1.PluginOptionValue{
+					{
+						Name:  "myRequiredOption",
+						Value: test.MustReturnJSONFor("myValue"),
+					},
+				},
+			}),
+		)
+		err := test.K8sClient.Create(test.Ctx, testPluginPreset)
+		Expect(err).ToNot(HaveOccurred(), "failed to create test PluginPreset")
+
+		By("ensuring a Plugin has been created")
+		expPluginName := types.NamespacedName{Name: pluginPresetName + "-" + clusterA, Namespace: test.TestNamespace}
+		expPlugin := &greenhousev1alpha1.Plugin{}
+		Eventually(func() error {
+			return test.K8sClient.Get(test.Ctx, expPluginName, expPlugin)
+		}).Should(Succeed(), "the Plugin should be created")
+
+		Expect(expPlugin.Labels).To(HaveKeyWithValue(greenhouseapis.LabelKeyPluginPreset, pluginPresetName), "the Plugin should be labeled as managed by the PluginPreset")
+
+		By("modifying the Plugin and ensuring it is reconciled")
+		_, err = clientutil.CreateOrPatch(test.Ctx, test.K8sClient, expPlugin, func() error {
+			// add a new option value that is not specified by the PluginPreset
+			opt := greenhousemetav1alpha1.PluginOptionValue{Name: "option1", Value: test.MustReturnJSONFor("value1")}
+			expPlugin.Spec.OptionValues = append(expPlugin.Spec.OptionValues, opt)
+			return nil
+		})
+		Expect(err).NotTo(HaveOccurred(), "failed to update Plugin")
+
+		Eventually(func(g Gomega) {
+			err := test.K8sClient.Get(test.Ctx, expPluginName, expPlugin)
+			g.Expect(err).ShouldNot(HaveOccurred(), "unexpected error getting Plugin")
+			g.Expect(expPlugin.Spec.OptionValues).ToNot(ContainElement(greenhousemetav1alpha1.PluginOptionValue{Name: "option1", Value: test.MustReturnJSONFor("value1")}), "the Plugin should be reconciled")
+		}).Should(Succeed(), "the Plugin should be reconciled")
+
+		By("removing the preset label from the Plugin")
+		_, err = clientutil.CreateOrPatch(test.Ctx, test.K8sClient, expPlugin, func() error {
+			delete(expPlugin.Labels, greenhouseapis.LabelKeyPluginPreset)
+			return controllerutil.RemoveControllerReference(testPluginPreset, expPlugin, test.K8sClient.Scheme())
+		})
+		Expect(err).NotTo(HaveOccurred(), "failed to update Plugin")
+
+		Eventually(func(g Gomega) bool {
+			err := test.K8sClient.Get(test.Ctx, types.NamespacedName{Namespace: testPluginPreset.Namespace, Name: testPluginPreset.Name}, testPluginPreset)
+			g.Expect(err).ShouldNot(HaveOccurred(), "unexpected error getting PluginPreset")
+			return testPluginPreset.Status.StatusConditions.GetConditionByType(greenhousev1alpha2.PluginSkippedCondition).IsTrue()
+		}).Should(BeTrue(), "PluginPreset should have the SkippedCondition set to true")
+
+		By("re-adding the preset label to the Plugin")
+		_, err = clientutil.CreateOrPatch(test.Ctx, test.K8sClient, expPlugin, func() error {
+			expPlugin.Labels[greenhouseapis.LabelKeyPluginPreset] = testPluginPreset.Name
+			return controllerutil.SetControllerReference(testPluginPreset, expPlugin, test.K8sClient.Scheme())
+		})
+		Expect(err).NotTo(HaveOccurred(), "failed to update Plugin")
+
+		By("deleting the PluginPreset")
+		err = test.K8sClient.Get(test.Ctx, types.NamespacedName{Namespace: testPluginPreset.Namespace, Name: testPluginPreset.Name}, testPluginPreset)
+		Expect(err).ShouldNot(HaveOccurred(), "unexpected error getting PluginPreset")
+		testPluginPreset.Annotations = map[string]string{}
+		err = test.K8sClient.Update(test.Ctx, testPluginPreset)
+		Expect(err).ToNot(HaveOccurred())
+		test.EventuallyDeleted(test.Ctx, test.K8sClient, testPluginPreset)
+	})
+
+	It("should reconcile a PluginPreset with LabelSelector set in ClusterSelector", func() {
 		By("creating a PluginPreset")
 		testPluginPreset := pluginPreset(pluginPresetName, clusterA, testTeam.Name)
 		err := test.K8sClient.Create(test.Ctx, testPluginPreset)

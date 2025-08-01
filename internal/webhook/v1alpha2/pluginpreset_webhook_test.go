@@ -66,6 +66,21 @@ var _ = Describe("PluginPreset Admission Tests", Ordered, func() {
 		test.EventuallyDeleted(test.Ctx, test.K8sClient, teamWithSupportGroupTrue)
 	})
 
+	It("should accept creating the PluginPreset with ClusterName set in ClusterSelector", func() {
+		cut := test.NewPluginPreset(pluginPresetCreate, test.TestNamespace,
+			test.WithPluginPresetClusterSelector(greenhousev1alpha2.ClusterSelector{
+				Name: "cluster-a",
+			}),
+			test.WithPluginPresetLabel(greenhouseapis.LabelKeyOwnedBy, teamWithSupportGroupName),
+			test.WithPluginPresetPluginTemplateSpec(greenhousev1alpha2.PluginTemplateSpec{
+				PluginDefinition: pluginPresetDefinition,
+			}),
+		)
+		warns, err := webhookv1alpha2.ValidateCreatePluginPreset(test.Ctx, test.K8sClient, cut)
+		Expect(warns).To(BeNil(), "expected no warnings")
+		Expect(err).ToNot(HaveOccurred(), "expected no error")
+	})
+
 	It("should reject PluginPreset without PluginDefinition", func() {
 		cut := test.NewPluginPreset(pluginPresetCreate, test.TestNamespace,
 			test.WithPluginPresetClusterSelector(greenhousev1alpha2.ClusterSelector{
@@ -97,7 +112,7 @@ var _ = Describe("PluginPreset Admission Tests", Ordered, func() {
 		Expect(err).To(MatchError(ContainSubstring("ClusterName must not be set")), "the error message should reflect that plugin.clusterName should not be set")
 	})
 
-	It("should reject PluginPreset without ClusterSelector", func() {
+	It("should reject PluginPreset without clusterName or labelSelector in ClusterSelector", func() {
 		cut := test.NewPluginPreset(pluginPresetCreate, test.TestNamespace,
 			test.WithPluginPresetPluginTemplateSpec(greenhousev1alpha2.PluginTemplateSpec{
 				PluginDefinition: pluginPresetDefinition,
@@ -111,10 +126,28 @@ var _ = Describe("PluginPreset Admission Tests", Ordered, func() {
 		Expect(err).To(MatchError(ContainSubstring("must specify either spec.clusterSelector.clusterName or spec.clusterSelector.labelSelector")), "the error message should reflect that plugin.clusterSelector should be set")
 	})
 
+	It("should reject PluginPreset with both clusterName and labelSelector in ClusterSelector", func() {
+		cut := test.NewPluginPreset(pluginPresetCreate, test.TestNamespace,
+			test.WithPluginPresetPluginTemplateSpec(greenhousev1alpha2.PluginTemplateSpec{
+				PluginDefinition: pluginPresetDefinition,
+			}),
+			test.WithPluginPresetLabel(greenhouseapis.LabelKeyOwnedBy, teamWithSupportGroupName),
+			test.WithPluginPresetClusterSelector(greenhousev1alpha2.ClusterSelector{
+				Name:          "cluster-a",
+				LabelSelector: metav1.LabelSelector{MatchLabels: map[string]string{"foo": "bar"}},
+			}),
+		)
+
+		warns, err := webhookv1alpha2.ValidateCreatePluginPreset(test.Ctx, test.K8sClient, cut)
+		Expect(warns).To(BeNil(), "expected no warnings")
+		Expect(err).To(HaveOccurred(), "there should be an error that ClusterSelector must have only one value set")
+		Expect(err).To(MatchError(ContainSubstring("cannot specify both spec.clusterSelector.clusterName and spec.clusterSelector.labelSelector")), "the error message should reflect that only one value in plugin.clusterSelector should be set")
+	})
+
 	It("should reject PluginPreset with non-existing PluginDefinition", func() {
 		cut := test.NewPluginPreset(pluginPresetCreate, test.TestNamespace,
 			test.WithPluginPresetClusterSelector(greenhousev1alpha2.ClusterSelector{
-				LabelSelector: metav1.LabelSelector{MatchLabels: map[string]string{"foo": "bar"}},
+				Name: "cluster-a",
 			}),
 			test.WithPluginPresetPluginTemplateSpec(greenhousev1alpha2.PluginTemplateSpec{
 				PluginDefinition: "non-existing",
