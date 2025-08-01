@@ -30,6 +30,7 @@ import (
 	"github.com/cloudoperators/greenhouse/internal/clientutil"
 	pluginController "github.com/cloudoperators/greenhouse/internal/controller/plugin"
 	"github.com/cloudoperators/greenhouse/internal/flux"
+	"github.com/cloudoperators/greenhouse/internal/helm"
 	"github.com/cloudoperators/greenhouse/internal/lifecycle"
 	"github.com/cloudoperators/greenhouse/internal/metrics"
 )
@@ -172,10 +173,14 @@ func (r *FluxReconciler) EnsureCreated(ctx context.Context, resource lifecycle.R
 	release := &helmcontroller.HelmRelease{}
 	release.SetName(plugin.Name)
 	release.SetNamespace(plugin.Namespace)
-	specBuilder := flux.NewHelmReleaseSpecBuilder()
 
 	result, err := ctrl.CreateOrUpdate(ctx, r.Client, release, func() error {
-		spec, err := specBuilder.
+		values, err := addValuesToHelmRelease(ctx, r.Client, plugin)
+		if err != nil {
+			return fmt.Errorf("failed to compute HelmRelease values for Plugin %s: %w", plugin.Name, err)
+		}
+
+		spec, err := flux.NewHelmReleaseSpecBuilder().
 			WithChart(helmcontroller.HelmChartTemplateSpec{
 				Chart:    pluginDef.Spec.HelmChart.Name,
 				Interval: &metav1.Duration{Duration: flux.DefaultInterval},
@@ -211,7 +216,7 @@ func (r *FluxReconciler) EnsureCreated(ctx context.Context, resource lifecycle.R
 				Name: plugin.Spec.ClusterName,
 				Key:  greenhouseapis.GreenHouseKubeConfigKey,
 			}).
-			WithValues(r.addValuestoHelmRelease(plugin, pluginDef)).
+			WithValues(values).
 			WithValuesFrom(r.addValueReferences(plugin)).
 			WithTargetNamespace(plugin.Spec.ReleaseNamespace).Build()
 		if err != nil {
@@ -260,29 +265,23 @@ func (r *FluxReconciler) getPluginDef(ctx context.Context, plugin *greenhousev1a
 	return pluginDef
 }
 
-func (r *FluxReconciler) addValuestoHelmRelease(plugin *greenhousev1alpha1.Plugin, pluginDef *greenhousev1alpha1.ClusterPluginDefinition) []byte {
-	jsonValue := make(map[string]any)
-	for _, value := range pluginDef.Spec.Options {
-		if value.Default != nil {
-			defValue, err := json.Marshal(value.Default)
-			if err != nil {
-				log.FromContext(context.Background()).Error(err, "Unable to marshal default value for plugin", "plugin", plugin.Name)
-				continue
-			}
-			jsonValue[value.Name] = string(defValue)
-		}
+func addValuesToHelmRelease(ctx context.Context, c client.Client, plugin *greenhousev1alpha1.Plugin) ([]byte, error) {
+	optionValues, err := helm.GetPluginOptionValuesForPlugin(ctx, c, plugin)
+	if err != nil {
+		return nil, err
 	}
-	for _, value := range plugin.Spec.OptionValues {
-		if value.ValueFrom == nil {
-			jsonValue[value.Name] = value.Value
-		}
+
+	jsonValue, err := helm.ConvertFlatValuesToHelmValues(optionValues)
+	if err != nil {
+		return nil, fmt.Errorf("failed to convert plugin option values to JSON: %w", err)
 	}
+
 	byteValue, err := json.Marshal(jsonValue)
 	if err != nil {
 		log.FromContext(context.Background()).Error(err, "Unable to marshal values for plugin", "plugin", plugin.Name)
-		return nil
+		return nil, err
 	}
-	return byteValue
+	return byteValue, nil
 }
 
 func (r *FluxReconciler) addValueReferences(plugin *greenhousev1alpha1.Plugin) []helmcontroller.ValuesReference {
