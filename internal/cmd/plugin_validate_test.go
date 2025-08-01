@@ -14,7 +14,7 @@ import (
 )
 
 var _ = Describe("Validate PluginDefinition against Plugin ", func() {
-	pluginDefinition := &greenhousev1alpha1.PluginDefinition{
+	pluginDefinition := &greenhousev1alpha1.ClusterPluginDefinition{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: "greenhouse",
 			Name:      "testPlugin",

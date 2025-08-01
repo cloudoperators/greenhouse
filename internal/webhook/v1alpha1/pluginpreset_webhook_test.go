@@ -29,11 +29,7 @@ var _ = Describe("PluginPreset Admission Tests", Ordered, func() {
 	var teamWithSupportGroupTrue *greenhousev1alpha1.Team
 
 	BeforeAll(func() {
-		pluginDefinition := &greenhousev1alpha1.PluginDefinition{
-			TypeMeta: metav1.TypeMeta{
-				Kind:       "PluginDefinition",
-				APIVersion: greenhousev1alpha1.GroupVersion.String(),
-			},
+		pluginDefinition := &greenhousev1alpha1.ClusterPluginDefinition{
 			ObjectMeta: metav1.ObjectMeta{
 				Name: pluginPresetDefinition,
 			},
@@ -55,7 +51,7 @@ var _ = Describe("PluginPreset Admission Tests", Ordered, func() {
 	})
 
 	AfterAll(func() {
-		pluginDefinition := &greenhousev1alpha1.PluginDefinition{
+		pluginDefinition := &greenhousev1alpha1.ClusterPluginDefinition{
 			ObjectMeta: metav1.ObjectMeta{
 				Name: pluginPresetDefinition,
 			},
@@ -264,7 +260,7 @@ var _ = Describe("Validate Plugin OptionValues for PluginPreset", func() {
 			optionType = greenhousev1alpha1.PluginOptionTypeSecret
 		}
 
-		pluginDefinition := &greenhousev1alpha1.PluginDefinition{
+		pluginDefinition := &greenhousev1alpha1.ClusterPluginDefinition{
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: "greenhouse",
 				Name:      "testPlugin",
@@ -335,7 +331,7 @@ var _ = Describe("Validate Plugin OptionValues for PluginPreset", func() {
 			optionType = greenhousev1alpha1.PluginOptionTypeSecret
 		}
 
-		pluginDefinition := &greenhousev1alpha1.PluginDefinition{
+		pluginDefinition := &greenhousev1alpha1.ClusterPluginDefinition{
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: "greenhouse",
 				Name:      "testPlugin",
@@ -366,7 +362,7 @@ var _ = Describe("Validate Plugin OptionValues for PluginPreset", func() {
 	)
 
 	DescribeTable("Validate OptionValues in .Spec.Plugin are consistent with PluginOption Type", func(defaultValue any, defaultType greenhousev1alpha1.PluginOptionType, actValue any, expErr bool) {
-		pluginDefinition := &greenhousev1alpha1.PluginDefinition{
+		pluginDefinition := &greenhousev1alpha1.ClusterPluginDefinition{
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: "greenhouse",
 				Name:      "testPlugin",
@@ -428,7 +424,7 @@ var _ = Describe("Validate Plugin OptionValues for PluginPreset", func() {
 	)
 
 	DescribeTable("Validate OptionValues in .Spec.ClusterOptionOverrides are consistent with PluginOption Type", func(defaultValue any, defaultType greenhousev1alpha1.PluginOptionType, actValue any, expErr bool) {
-		pluginDefinition := &greenhousev1alpha1.PluginDefinition{
+		pluginDefinition := &greenhousev1alpha1.ClusterPluginDefinition{
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: "greenhouse",
 				Name:      "testPlugin",
@@ -496,7 +492,7 @@ var _ = Describe("Validate Plugin OptionValues for PluginPreset", func() {
 	)
 
 	DescribeTable("Validate OptionValues in .Spec.Plugin reference a Secret", func(actValue *greenhousemetav1alpha1.ValueFromSource, expErr bool) {
-		pluginDefinition := &greenhousev1alpha1.PluginDefinition{
+		pluginDefinition := &greenhousev1alpha1.ClusterPluginDefinition{
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: "greenhouse",
 				Name:      "testPlugin",
@@ -548,7 +544,7 @@ var _ = Describe("Validate Plugin OptionValues for PluginPreset", func() {
 	)
 
 	DescribeTable("Validate OptionValues in .Spec.ClusterOptionOverrides reference a Secret", func(actValue *greenhousemetav1alpha1.ValueFromSource, expErr bool) {
-		pluginDefinition := &greenhousev1alpha1.PluginDefinition{
+		pluginDefinition := &greenhousev1alpha1.ClusterPluginDefinition{
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: "greenhouse",
 				Name:      "testPlugin",
@@ -606,7 +602,7 @@ var _ = Describe("Validate Plugin OptionValues for PluginPreset", func() {
 	)
 
 	Describe("Validate PluginPreset does not have to specify required options", func() {
-		pluginDefinition := &greenhousev1alpha1.PluginDefinition{
+		pluginDefinition := &greenhousev1alpha1.ClusterPluginDefinition{
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: "greenhouse",
 				Name:      "testPlugin",

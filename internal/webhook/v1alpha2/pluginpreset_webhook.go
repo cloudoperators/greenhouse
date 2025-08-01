@@ -81,7 +81,7 @@ func ValidateCreatePluginPreset(ctx context.Context, c client.Client, o runtime.
 	}
 
 	// ensure PluginDefinition exists
-	pluginDefinition := new(greenhousev1alpha1.PluginDefinition)
+	pluginDefinition := new(greenhousev1alpha1.ClusterPluginDefinition)
 	err := c.Get(ctx, client.ObjectKey{Namespace: "", Name: pluginPreset.Spec.Plugin.PluginDefinition}, pluginDefinition)
 	switch {
 	case err != nil && apierrors.IsNotFound(err):

@@ -87,12 +87,12 @@ var (
 		},
 	}
 
-	testPluginDefinition = test.NewPluginDefinition(
+	testPluginDefinition = test.NewClusterPluginDefinition(
 		test.Ctx,
 		"test-plugindefinition",
 	)
 
-	testPluginWithHelmChartCRDs = test.NewPluginDefinition(
+	testPluginWithHelmChartCRDs = test.NewClusterPluginDefinition(
 		test.Ctx,
 		"test-plugindefinition-crd",
 		test.WithHelmChart(&greenhousev1alpha1.HelmChartReference{
@@ -102,7 +102,7 @@ var (
 		}),
 	)
 
-	pluginDefinitionWithExposedService = test.NewPluginDefinition(
+	pluginDefinitionWithExposedService = test.NewClusterPluginDefinition(
 		test.Ctx,
 		"test-plugindefinition-exposed",
 		test.WithHelmChart(&greenhousev1alpha1.HelmChartReference{

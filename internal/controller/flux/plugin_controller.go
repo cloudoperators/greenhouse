@@ -94,7 +94,7 @@ func (r *FluxReconciler) SetupWithManager(name string, mgr ctrl.Manager) error {
 		Named(name).
 		For(&greenhousev1alpha1.Plugin{}, builder.WithPredicates(labelSelectorPredicate)).
 		// If a PluginDefinition was changed, reconcile relevant Plugins.
-		Watches(&greenhousev1alpha1.PluginDefinition{}, handler.EnqueueRequestsFromMapFunc(r.enqueueAllPluginsForPluginDefinition),
+		Watches(&greenhousev1alpha1.ClusterPluginDefinition{}, handler.EnqueueRequestsFromMapFunc(r.enqueueAllPluginsForPluginDefinition),
 			builder.WithPredicates(predicate.GenerationChangedPredicate{}, labelSelectorPredicate)).
 		// Clusters and teams are passed as values to each Helm operation. Reconcile on change.
 		Watches(&greenhousev1alpha1.Cluster{}, handler.EnqueueRequestsFromMapFunc(r.enqueueAllPluginsForCluster), builder.WithPredicates(labelSelectorPredicate)).
@@ -251,8 +251,8 @@ func (r *FluxReconciler) enqueueAllPluginsInNamespace(ctx context.Context, o cli
 	return pluginController.ListPluginsAsReconcileRequests(ctx, r.Client, client.InNamespace(o.GetNamespace()))
 }
 
-func (r *FluxReconciler) getPluginDef(ctx context.Context, plugin *greenhousev1alpha1.Plugin) *greenhousev1alpha1.PluginDefinition {
-	pluginDef := new(greenhousev1alpha1.PluginDefinition)
+func (r *FluxReconciler) getPluginDef(ctx context.Context, plugin *greenhousev1alpha1.Plugin) *greenhousev1alpha1.ClusterPluginDefinition {
+	pluginDef := new(greenhousev1alpha1.ClusterPluginDefinition)
 	if err := r.Get(ctx, types.NamespacedName{Name: plugin.Spec.PluginDefinition}, pluginDef); err != nil {
 		log.FromContext(ctx).Error(err, "Unable to find pluginDefinition for ", "plugin", plugin.Name, "namespace", plugin.Namespace)
 		return nil
@@ -260,7 +260,7 @@ func (r *FluxReconciler) getPluginDef(ctx context.Context, plugin *greenhousev1a
 	return pluginDef
 }
 
-func (r *FluxReconciler) addValuestoHelmRelease(plugin *greenhousev1alpha1.Plugin, pluginDef *greenhousev1alpha1.PluginDefinition) []byte {
+func (r *FluxReconciler) addValuestoHelmRelease(plugin *greenhousev1alpha1.Plugin, pluginDef *greenhousev1alpha1.ClusterPluginDefinition) []byte {
 	jsonValue := make(map[string]any)
 	for _, value := range pluginDef.Spec.Options {
 		if value.Default != nil {

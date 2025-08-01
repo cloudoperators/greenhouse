@@ -27,7 +27,7 @@ var _ = Describe("PluginPreset Conversion", Ordered, func() {
 		setup *test.TestSetup
 		// clusterA           *greenhousev1alpha1.Cluster
 		team             *greenhousev1alpha1.Team
-		pluginDefinition *greenhousev1alpha1.PluginDefinition
+		pluginDefinition *greenhousev1alpha1.ClusterPluginDefinition
 		// clusterAKubeClient client.Client
 		clusterARemoteEnv  *envtest.Environment
 		clusterAKubeConfig []byte
@@ -65,7 +65,7 @@ var _ = Describe("PluginPreset Conversion", Ordered, func() {
 		)
 
 		By("creating the PluginDefinition")
-		pluginDefinition = setup.CreatePluginDefinition(test.Ctx, "test-plugin-definition-1")
+		pluginDefinition = setup.CreateClusterPluginDefinition(test.Ctx, "test-plugin-definition-1")
 	})
 
 	AfterAll(func() {

@@ -160,7 +160,7 @@ func (r *PluginPresetReconciler) reconcilePluginPreset(ctx context.Context, pres
 	var skippedPlugins = make([]string, 0)
 	var failedPlugins = make([]string, 0)
 
-	pluginDefinition := &greenhousev1alpha1.PluginDefinition{}
+	pluginDefinition := &greenhousev1alpha1.ClusterPluginDefinition{}
 	err := r.Get(ctx, client.ObjectKey{Name: preset.Spec.Plugin.PluginDefinition}, pluginDefinition)
 	if err != nil {
 		allErrs = append(allErrs, err)
@@ -278,7 +278,7 @@ func isPluginManagedByPreset(plugin *greenhousev1alpha1.Plugin, presetName strin
 	return plugin.Labels[greenhouseapis.LabelKeyPluginPreset] == presetName
 }
 
-func shouldSkipPlugin(plugin *greenhousev1alpha1.Plugin, preset *greenhousev1alpha2.PluginPreset, definition *greenhousev1alpha1.PluginDefinition, clusterName string) bool {
+func shouldSkipPlugin(plugin *greenhousev1alpha1.Plugin, preset *greenhousev1alpha2.PluginPreset, definition *greenhousev1alpha1.ClusterPluginDefinition, clusterName string) bool {
 	if !isPluginManagedByPreset(plugin, preset.Name) {
 		return true
 	}

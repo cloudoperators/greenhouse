@@ -31,12 +31,12 @@ var (
 
 var _ = Describe("ensure helm diff against the release manifest works as expected", func() {
 	var (
-		pluginDefinitionUT *greenhousev1alpha1.PluginDefinition
+		pluginDefinitionUT *greenhousev1alpha1.ClusterPluginDefinition
 		pluginUT           *greenhousev1alpha1.Plugin
 	)
 
 	BeforeEach(func() {
-		pluginDefinitionUT = test.NewPluginDefinition(test.Ctx, "test-plugindefinition",
+		pluginDefinitionUT = test.NewClusterPluginDefinition(test.Ctx, "test-plugindefinition",
 			test.WithHelmChart(&greenhousev1alpha1.HelmChartReference{
 				Name:       "./../test/fixtures/myChart",
 				Repository: "dummy",
@@ -52,7 +52,7 @@ var _ = Describe("ensure helm diff against the release manifest works as expecte
 		)
 
 		// install the chart
-		r, err := helm.ExportInstallHelmRelease(test.Ctx, test.K8sClient, test.RestClientGetter, pluginDefinitionUT, pluginUT, false)
+		r, err := helm.ExportInstallHelmRelease(test.Ctx, test.K8sClient, test.RestClientGetter, pluginDefinitionUT.Spec, pluginUT, false)
 		Expect(err).NotTo(HaveOccurred(), "there should be no error installing the helm release")
 		Expect(r).NotTo(BeNil(), "the release should not be nil")
 	})
@@ -64,7 +64,7 @@ var _ = Describe("ensure helm diff against the release manifest works as expecte
 
 	It("should no diff or drift if nothing changes", func() {
 		By("templating the Helm Chart from the Plugin")
-		templateUT, err := helm.TemplateHelmChartFromPlugin(test.Ctx, test.K8sClient, test.RestClientGetter, pluginDefinitionUT, pluginUT)
+		templateUT, err := helm.TemplateHelmChartFromPlugin(test.Ctx, test.K8sClient, test.RestClientGetter, pluginDefinitionUT.Spec, pluginUT)
 		Expect(err).NotTo(HaveOccurred(), "there should be no error templating the helm chart")
 
 		By("retrieving the Release for the Plugin")
@@ -92,7 +92,7 @@ var _ = Describe("ensure helm diff against the release manifest works as expecte
 		}
 
 		By("templating the Helm Chart from the Plugin")
-		templateUT, err := helm.TemplateHelmChartFromPlugin(test.Ctx, test.K8sClient, test.RestClientGetter, pluginDefinitionUT, pluginUT)
+		templateUT, err := helm.TemplateHelmChartFromPlugin(test.Ctx, test.K8sClient, test.RestClientGetter, pluginDefinitionUT.Spec, pluginUT)
 		Expect(err).NotTo(HaveOccurred(), "there should be no error templating the helm chart")
 
 		By("retrieving the Release for the Plugin")
@@ -120,7 +120,7 @@ var _ = Describe("ensure helm diff against the release manifest works as expecte
 		}
 
 		By("templating the Helm Chart from the Plugin")
-		manifestUT, err := helm.TemplateHelmChartFromPlugin(test.Ctx, test.K8sClient, test.RestClientGetter, pluginDefinitionUT, pluginUT)
+		manifestUT, err := helm.TemplateHelmChartFromPlugin(test.Ctx, test.K8sClient, test.RestClientGetter, pluginDefinitionUT.Spec, pluginUT)
 		Expect(err).NotTo(HaveOccurred(), "there should be no error templating the helm chart")
 
 		By("retrieving the Release for the Plugin")
@@ -144,7 +144,7 @@ var _ = Describe("ensure helm diff against the release manifest works as expecte
 		Expect(test.K8sClient.Update(test.Ctx, podUT)).To(Succeed(), "the pod should be updated")
 
 		By("templating the Helm Chart from the Plugin")
-		templateUT, err := helm.TemplateHelmChartFromPlugin(test.Ctx, test.K8sClient, test.RestClientGetter, pluginDefinitionUT, pluginUT)
+		templateUT, err := helm.TemplateHelmChartFromPlugin(test.Ctx, test.K8sClient, test.RestClientGetter, pluginDefinitionUT.Spec, pluginUT)
 		Expect(err).NotTo(HaveOccurred(), "there should be no error templating the helm chart")
 
 		By("retrieving the Release for the Plugin")
@@ -165,12 +165,12 @@ var _ = Describe("ensure helm diff against the release manifest works as expecte
 
 var _ = Describe("ensure helm with hooks diff against the release manifest works as expected", Ordered, func() {
 	var (
-		pluginDefinitionUT *greenhousev1alpha1.PluginDefinition
+		pluginDefinitionUT *greenhousev1alpha1.ClusterPluginDefinition
 		pluginUT           *greenhousev1alpha1.Plugin
 	)
 
 	BeforeEach(func() {
-		pluginDefinitionUT = test.NewPluginDefinition(test.Ctx, "test-plugindefinition",
+		pluginDefinitionUT = test.NewClusterPluginDefinition(test.Ctx, "test-plugindefinition",
 			test.WithHelmChart(&greenhousev1alpha1.HelmChartReference{
 				Name:       "./../test/fixtures/testHook",
 				Repository: "dummy",
@@ -184,7 +184,7 @@ var _ = Describe("ensure helm with hooks diff against the release manifest works
 		)
 
 		By("install the chart")
-		r, err := helm.ExportInstallHelmRelease(test.Ctx, test.K8sClient, test.RestClientGetter, pluginDefinitionUT, pluginUT, false)
+		r, err := helm.ExportInstallHelmRelease(test.Ctx, test.K8sClient, test.RestClientGetter, pluginDefinitionUT.Spec, pluginUT, false)
 		Expect(err).NotTo(HaveOccurred(), "there should be no error installing the helm release")
 		Expect(r).NotTo(BeNil(), "the release should not be nil")
 	})
@@ -196,7 +196,7 @@ var _ = Describe("ensure helm with hooks diff against the release manifest works
 
 	It("should show a diff if a plugin was installed", func() {
 		By("templating the Helm Chart from the Plugin")
-		manifestUT, err := helm.TemplateHelmChartFromPlugin(test.Ctx, test.K8sClient, test.RestClientGetter, pluginDefinitionUT, pluginUT)
+		manifestUT, err := helm.TemplateHelmChartFromPlugin(test.Ctx, test.K8sClient, test.RestClientGetter, pluginDefinitionUT.Spec, pluginUT)
 		Expect(err).NotTo(HaveOccurred(), "there should be no error templating the helm chart")
 
 		By("retrieving the Release for the Plugin")
@@ -220,7 +220,7 @@ var _ = Describe("ensure helm with hooks diff against the release manifest works
 		}
 
 		By("templating the Helm Chart from the Plugin")
-		manifestUT, err := helm.TemplateHelmChartFromPlugin(test.Ctx, test.K8sClient, test.RestClientGetter, pluginDefinitionUT, pluginUT)
+		manifestUT, err := helm.TemplateHelmChartFromPlugin(test.Ctx, test.K8sClient, test.RestClientGetter, pluginDefinitionUT.Spec, pluginUT)
 		Expect(err).NotTo(HaveOccurred(), "there should be no error templating the helm chart")
 
 		By("retrieving the Release for the Plugin")

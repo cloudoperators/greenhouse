@@ -71,7 +71,7 @@ var _ = BeforeSuite(func() {
 	env = env.WithOrganization(ctx, adminClient, "./testdata/organization.yaml")
 	team = test.NewTeam(ctx, "test-plugin-e2e-team", env.TestNamespace, test.WithTeamLabel(greenhouseapis.LabelKeySupportGroup, "true"))
 	err = adminClient.Create(ctx, team)
-	Expect(err).ToNot(HaveOccurred(), "there should be no error creating a Team")
+	Expect(client.IgnoreAlreadyExists(err)).ToNot(HaveOccurred(), "there should be no error creating a Team")
 	testStartTime = time.Now().UTC()
 })
 
@@ -104,7 +104,7 @@ var _ = Describe("Plugin E2E", Ordered, func() {
 		Expect(client.IgnoreAlreadyExists(err)).ToNot(HaveOccurred())
 
 		By("Checking the plugin definition is ready")
-		pluginDefinitionList := &greenhousev1alpha1.PluginDefinitionList{}
+		pluginDefinitionList := &greenhousev1alpha1.ClusterPluginDefinitionList{}
 		err = adminClient.List(ctx, pluginDefinitionList)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(len(pluginDefinitionList.Items)).To(BeEquivalentTo(1))
@@ -203,7 +203,7 @@ var _ = Describe("Plugin E2E", Ordered, func() {
 		Expect(client.IgnoreAlreadyExists(err)).ToNot(HaveOccurred())
 
 		By("Checking the plugin definition is ready")
-		pluginDefinitionList := &greenhousev1alpha1.PluginDefinitionList{}
+		pluginDefinitionList := &greenhousev1alpha1.ClusterPluginDefinitionList{}
 		err = adminClient.List(ctx, pluginDefinitionList)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(len(pluginDefinitionList.Items)).To(BeEquivalentTo(1))
@@ -374,7 +374,7 @@ var _ = Describe("Plugin E2E", Ordered, func() {
 		)
 
 		By("Installing release manually on the remote cluster")
-		_, err = helm.ExportInstallHelmRelease(ctx, adminClient, env.RemoteRestClientGetter, pluginDefinition, plugin, false)
+		_, err = helm.ExportInstallHelmRelease(ctx, adminClient, env.RemoteRestClientGetter, pluginDefinition.Spec, plugin, false)
 		Expect(err).To(HaveOccurred(), "there should be an error installing the helm chart")
 
 		By("Creating helm config")
@@ -447,7 +447,7 @@ var _ = Describe("Plugin E2E", Ordered, func() {
 		Expect(err).ToNot(HaveOccurred())
 
 		By("Checking the plugin definition is ready")
-		pluginDefinitionList := &greenhousev1alpha1.PluginDefinitionList{}
+		pluginDefinitionList := &greenhousev1alpha1.ClusterPluginDefinitionList{}
 		err = adminClient.List(ctx, pluginDefinitionList)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(len(pluginDefinitionList.Items)).To(BeEquivalentTo(1))
@@ -500,7 +500,7 @@ var _ = Describe("Plugin E2E", Ordered, func() {
 			},
 		}
 		err = adminClient.Create(ctx, testPluginPreset)
-		Expect(err).ToNot(HaveOccurred())
+		Expect(client.IgnoreAlreadyExists(err)).ToNot(HaveOccurred())
 
 		By("Checking the plugin status is ready")
 		Eventually(func(g Gomega) {

@@ -41,6 +41,12 @@ const (
 	// KubeConfigValid reflects the validity of the kubeconfig of a cluster.
 	KubeConfigValid greenhousemetav1alpha1.ConditionType = "KubeConfigValid"
 
+	// PermissionsVerified reflects the validity of required permissions.
+	PermissionsVerified greenhousemetav1alpha1.ConditionType = "PermissionsVerified"
+
+	// ManagedResourcesDeployed reflects whether the resources were created on the cluster.
+	ManagedResourcesDeployed greenhousemetav1alpha1.ConditionType = "ManagedResourcesDeployed"
+
 	// MaxTokenValidity contains maximum bearer token validity duration. It is also default value.
 	MaxTokenValidity = 72
 
@@ -56,18 +62,33 @@ type ClusterStatus struct {
 	BearerTokenExpirationTimestamp metav1.Time `json:"bearerTokenExpirationTimestamp,omitempty"`
 	// StatusConditions contain the different conditions that constitute the status of the Cluster.
 	greenhousemetav1alpha1.StatusConditions `json:"statusConditions,omitempty"`
-	// Nodes provides a map of cluster node names to node statuses
-	Nodes map[string]NodeStatus `json:"nodes,omitempty"`
+	// Nodes contain a short summary of nodes count and not ready nodes status.
+	Nodes *Nodes `json:"nodes,omitempty"`
 }
 
 // ClusterConditionType is a valid condition of a cluster.
 type ClusterConditionType string
 
+// Nodes contains node count metrics and tracks non-ready nodes in a cluster.
+type Nodes struct {
+	// Total represent the number of all the nodes in the cluster.
+	Total int32 `json:"total,omitempty"`
+	// ReadyNodes represent the number of ready nodes in the cluster.
+	Ready int32 `json:"ready,omitempty"`
+	// NotReady is slice of non-ready nodes status details.
+	// +listType="map"
+	// +listMapKey=name
+	NotReady []NodeStatus `json:"notReady,omitempty"`
+}
+
+// NodeStatus represents a status of non-ready node.
 type NodeStatus struct {
-	// We mirror the node conditions here for faster reference
-	greenhousemetav1alpha1.StatusConditions `json:"statusConditions,omitempty"`
-	// Fast track to the node ready condition.
-	Ready bool `json:"ready,omitempty"`
+	// Name of the node.
+	Name string `json:"name"`
+	// Message represents the error message.
+	Message string `json:"message,omitempty"`
+	// LastTransitionTime represents latest transition time of status.
+	LastTransitionTime metav1.Time `json:"lastTransitionTime,omitempty"`
 }
 
 //+kubebuilder:object:root=true
