@@ -96,8 +96,9 @@ func (r *TeamRoleBindingReconciler) setConditions() lifecycle.Conditioner {
 
 		readyCondition := computeReadyCondition(trb.Status)
 		ownerLabelCondition := util.ComputeOwnerLabelCondition(ctx, r.Client, trb)
+		util.UpdateOwnedByLabelMissingMetric(trb, ownerLabelCondition.IsFalse())
 		trb.Status.SetConditions(readyCondition, ownerLabelCondition)
-		updateMetrics(trb)
+		UpdateTeamrbacMetrics(trb)
 	}
 }
 

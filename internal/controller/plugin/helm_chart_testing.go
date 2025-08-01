@@ -10,27 +10,10 @@ import (
 	"reflect"
 	"strings"
 
-	"github.com/prometheus/client_golang/prometheus"
-	"sigs.k8s.io/controller-runtime/pkg/metrics"
-
-	greenhouseapis "github.com/cloudoperators/greenhouse/api"
 	greenhousemetav1alpha1 "github.com/cloudoperators/greenhouse/api/meta/v1alpha1"
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
 	"github.com/cloudoperators/greenhouse/internal/helm"
 )
-
-var (
-	chartTestRunsTotal = prometheus.NewCounterVec(
-		prometheus.CounterOpts{
-			Name: "greenhouse_plugin_chart_test_runs_total",
-			Help: "Total number of Helm Chart test runs with their results",
-		},
-		[]string{"cluster", "plugin", "namespace", "result", "owned_by"})
-)
-
-func init() {
-	metrics.Registry.MustRegister(chartTestRunsTotal)
-}
 
 func (r *PluginReconciler) reconcileHelmChartTest(ctx context.Context, plugin *greenhousev1alpha1.Plugin) (*reconcileResult, error) {
 	// Nothing to do when the status of the plugin is empty and when the plugin does not have a Helm Chart
@@ -57,12 +40,6 @@ func (r *PluginReconciler) reconcileHelmChartTest(ctx context.Context, plugin *g
 		return &reconcileResult{requeueAfter: result.requeueAfter}, nil
 	}
 
-	prometheusLabels := prometheus.Labels{
-		"cluster":   plugin.Spec.ClusterName,
-		"plugin":    plugin.Name,
-		"namespace": plugin.Namespace,
-		"owned_by":  plugin.GetLabels()[greenhouseapis.LabelKeyOwnedBy],
-	}
 	hasHelmChartTest, testPodLogs, err := helm.ChartTest(ctx, restClientGetter, plugin)
 	if err != nil {
 		failedTestPodLogs := extractErrorsFromTestPodLogs(testPodLogs)
@@ -71,8 +48,7 @@ func (r *PluginReconciler) reconcileHelmChartTest(ctx context.Context, plugin *g
 		} else {
 			plugin.SetCondition(greenhousemetav1alpha1.FalseCondition(greenhousev1alpha1.HelmChartTestSucceededCondition, "", err.Error()))
 		}
-		prometheusLabels["result"] = "Error"
-		chartTestRunsTotal.With(prometheusLabels).Inc()
+		IncrementHelmChartTestRunsTotal(plugin, "Error")
 		return nil, err
 	}
 
@@ -80,14 +56,12 @@ func (r *PluginReconciler) reconcileHelmChartTest(ctx context.Context, plugin *g
 		plugin.SetCondition(greenhousemetav1alpha1.TrueCondition(greenhousev1alpha1.HelmChartTestSucceededCondition, "",
 			"No Helm Chart Tests defined by the PluginDefinition"))
 
-		prometheusLabels["result"] = "NoTests"
-		chartTestRunsTotal.With(prometheusLabels).Inc()
+		IncrementHelmChartTestRunsTotal(plugin, "NoTests")
 	} else {
 		plugin.SetCondition(greenhousemetav1alpha1.TrueCondition(greenhousev1alpha1.HelmChartTestSucceededCondition, "",
 			"Helm Chart Test is successful"))
 
-		prometheusLabels["result"] = "Success"
-		chartTestRunsTotal.With(prometheusLabels).Inc()
+		IncrementHelmChartTestRunsTotal(plugin, "Success")
 	}
 
 	return nil, nil

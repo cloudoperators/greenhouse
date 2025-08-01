@@ -9,7 +9,6 @@ import (
 	"reflect"
 	"time"
 
-	"github.com/prometheus/client_golang/prometheus"
 	appsv1 "k8s.io/api/apps/v1"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -21,7 +20,6 @@ import (
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
-	"sigs.k8s.io/controller-runtime/pkg/metrics"
 
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
 	"github.com/cloudoperators/greenhouse/internal/clientutil"
@@ -46,16 +44,6 @@ var objectFilter = []helm.ManifestObjectFilter{
 	{APIVersion: "monitoring.coreos.com/v1", Kind: "Alertmanager"},
 }
 
-var (
-	workloadStatus = prometheus.NewGaugeVec(
-		prometheus.GaugeOpts{
-			Name: "greenhouse_plugin_workload_status_up",
-			Help: "The workload status of the plugin",
-		},
-		[]string{"namespace", "plugin", "pluginDefinition", "cluster", "owned_by"},
-	)
-)
-
 type PayloadStatus struct {
 	Kind                string `json:"kind,omitempty"`
 	Name                string `json:"name,omitempty"`
@@ -74,11 +62,6 @@ type ReleaseStatus struct {
 	HelmStatus       string `json:"helmStatus,omitempty"`
 	ClusterName      string `json:"clusterName,omitempty"`
 	PayloadStatus    []PayloadStatus
-}
-
-func init() {
-	// Register custom metrics with the global prometheus registry
-	metrics.Registry.MustRegister(workloadStatus)
 }
 
 func (r *PluginReconciler) reconcilePluginWorkloadStatus(

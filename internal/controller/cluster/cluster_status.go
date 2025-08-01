@@ -67,6 +67,7 @@ func (r *RemoteClusterReconciler) setConditions() lifecycle.Conditioner {
 		readyCondition := r.reconcileReadyStatus(kubeConfigValidCondition, resourcesDeployedCondition)
 
 		ownerLabelCondition := util.ComputeOwnerLabelCondition(ctx, r.Client, cluster)
+		util.UpdateOwnedByLabelMissingMetric(cluster, ownerLabelCondition.IsFalse())
 
 		conditions := []greenhousemetav1alpha1.Condition{
 			readyCondition,
