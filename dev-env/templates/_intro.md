@@ -106,7 +106,7 @@ make setup-webhook-dev
 ### Develop Controllers and Admission Webhook server locally
 
 ```shell
-CONTROLLERS_ONLY=false DEV_MODE=true make setup-manager
+WITH_CONTROLLERS=false DEV_MODE=true make setup-manager
 ```
 
 This will modify the `ValidatingWebhookConfiguration` and `MutatingWebhookConfiguration` to use the
@@ -220,4 +220,3 @@ if `DevMode` is enabled for webhooks then depending on the OS the webhook manife
 - `kubeconfig` of the created cluster(s) are saved to `/tmp/greenhouse/<clusterName>.kubeconfig`
 
 ---
-
