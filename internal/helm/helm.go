@@ -11,6 +11,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"maps"
 	"os"
 	"path/filepath"
 	"slices"
@@ -500,7 +501,7 @@ func debug(format string, v ...any) {
 }
 
 /*
-convertFlatValuesToHelmValues shall converts flat values for a Helm chart yaml-compatible structure.
+ConvertFlatValuesToHelmValues shall converts flat values for a Helm chart yaml-compatible structure.
 Example:
 The input
 
@@ -512,7 +513,7 @@ is transformed to
 	  image:
 	    registry: foobar
 */
-func convertFlatValuesToHelmValues(values []greenhousev1alpha1.PluginOptionValue) (map[string]any, error) {
+func ConvertFlatValuesToHelmValues(values []greenhousev1alpha1.PluginOptionValue) (map[string]any, error) {
 	if values == nil {
 		return make(map[string]any, 0), nil
 	}
@@ -526,16 +527,14 @@ func convertFlatValuesToHelmValues(values []greenhousev1alpha1.PluginOptionValue
 }
 
 // Taken from: https://github.com/helm/helm/blob/v3.10.3/pkg/cli/values/options.go#L99-L116
-func mergeMaps(a, b map[string]any) map[string]any {
+func MergeMaps(a, b map[string]any) map[string]any {
 	out := make(map[string]any, len(a))
-	for k, v := range a {
-		out[k] = v
-	}
+	maps.Copy(out, a)
 	for k, v := range b {
 		if v, ok := v.(map[string]any); ok {
 			if bv, ok := out[k]; ok {
 				if bv, ok := bv.(map[string]any); ok {
-					out[k] = mergeMaps(bv, v)
+					out[k] = MergeMaps(bv, v)
 					continue
 				}
 			}
@@ -549,17 +548,17 @@ func mergeMaps(a, b map[string]any) map[string]any {
 // The order is important as the values defined in the Helm chart can be overridden by the values defined in the Plugin.
 func getValuesForHelmChart(ctx context.Context, c client.Client, helmChart *chart.Chart, plugin *greenhousev1alpha1.Plugin) (map[string]any, error) {
 	// Copy the values from the Helm chart ensuring a non-nil map.
-	helmValues := mergeMaps(make(map[string]any), helmChart.Values)
+	helmValues := MergeMaps(make(map[string]any), helmChart.Values)
 	// Get values defined in plugin.
 	pluginValues, err := getValuesFromPlugin(ctx, c, plugin)
 	if err != nil {
 		return nil, err
 	}
-	helmPluginValues, err := convertFlatValuesToHelmValues(pluginValues)
+	helmPluginValues, err := ConvertFlatValuesToHelmValues(pluginValues)
 	if err != nil {
 		return nil, err
 	}
-	helmValues = mergeMaps(helmValues, helmPluginValues)
+	helmValues = MergeMaps(helmValues, helmPluginValues)
 	return helmValues, nil
 }
 
