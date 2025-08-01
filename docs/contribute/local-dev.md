@@ -53,7 +53,7 @@ fits your needs.
 
 `All commands will spin up KinD clusters and setup the necessary components`
 
-if you have a `~/.kube/config` file then `KinD` will automatically merge the `kubeconfig` of the created cluster(s)
+If you have a `~/.kube/config` file then `KinD` will automatically merge the `kubeconfig` of the created cluster(s).
 
 Use `kubectl config use-context kind-greenhouse-admin` to switch to `greenhouse admin` cluster context.
 Use `kubectl config use-context kind-greenhouse-remote` to switch to `greenhouse remote` cluster context.
