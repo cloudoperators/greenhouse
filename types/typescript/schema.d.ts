@@ -211,7 +211,26 @@ export interface components {
                 weight?: number;
             };
             /** @description ClusterPluginDefinitionStatus defines the observed state of ClusterPluginDefinition. */
-            status?: Record<string, never>;
+            status?: {
+                /** @description StatusConditions contain the different conditions that constitute the status of the Plugin. */
+                statusConditions?: {
+                    conditions?: {
+                        /**
+                         * Format: date-time
+                         * @description LastTransitionTime is the last time the condition transitioned from one status to another.
+                         */
+                        lastTransitionTime: string;
+                        /** @description Message is an optional human readable message indicating details about the last transition. */
+                        message?: string;
+                        /** @description Reason is a one-word, CamelCase reason for the condition's last transition. */
+                        reason?: string;
+                        /** @description Status of the condition. */
+                        status: string;
+                        /** @description Type of the condition. */
+                        type: string;
+                    }[];
+                };
+            };
         };
         /**
          * Cluster
@@ -272,30 +291,30 @@ export interface components {
                 bearerTokenExpirationTimestamp?: string;
                 /** @description KubernetesVersion reflects the detected Kubernetes version of the cluster. */
                 kubernetesVersion?: string;
-                /** @description Nodes provides a map of cluster node names to node statuses */
+                /** @description Nodes contain a short summary of nodes count and not ready nodes status. */
                 nodes?: {
-                    [key: string]: {
-                        /** @description Fast track to the node ready condition. */
-                        ready?: boolean;
-                        /** @description We mirror the node conditions here for faster reference */
-                        statusConditions?: {
-                            conditions?: {
-                                /**
-                                 * Format: date-time
-                                 * @description LastTransitionTime is the last time the condition transitioned from one status to another.
-                                 */
-                                lastTransitionTime: string;
-                                /** @description Message is an optional human readable message indicating details about the last transition. */
-                                message?: string;
-                                /** @description Reason is a one-word, CamelCase reason for the condition's last transition. */
-                                reason?: string;
-                                /** @description Status of the condition. */
-                                status: string;
-                                /** @description Type of the condition. */
-                                type: string;
-                            }[];
-                        };
-                    };
+                    /** @description NotReady is slice of non-ready nodes status details. */
+                    notReady?: {
+                        /**
+                         * Format: date-time
+                         * @description LastTransitionTime represents latest transition time of status.
+                         */
+                        lastTransitionTime?: string;
+                        /** @description Message represents the error message. */
+                        message?: string;
+                        /** @description Name of the node. */
+                        name: string;
+                    }[];
+                    /**
+                     * Format: int32
+                     * @description ReadyNodes represent the number of ready nodes in the cluster.
+                     */
+                    ready?: number;
+                    /**
+                     * Format: int32
+                     * @description Total represent the number of all the nodes in the cluster.
+                     */
+                    total?: number;
                 };
                 /** @description StatusConditions contain the different conditions that constitute the status of the Cluster. */
                 statusConditions?: {

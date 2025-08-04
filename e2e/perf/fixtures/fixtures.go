@@ -8,8 +8,8 @@ import (
 	"github.com/cloudoperators/greenhouse/internal/test"
 )
 
-func PrepareCertManagerPluginDefinition() *greenhousev1alpha1.PluginDefinition {
-	return test.NewPluginDefinition("cert-manager-v1.17.0",
+func PrepareCertManagerPluginDefinition() *greenhousev1alpha1.ClusterPluginDefinition {
+	return test.NewClusterPluginDefinition("cert-manager-v1.17.0",
 		test.WithVersion("v1.17.0"),
 		test.WithHelmChart(
 			&greenhousev1alpha1.HelmChartReference{

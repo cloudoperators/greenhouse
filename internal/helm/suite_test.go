@@ -21,7 +21,7 @@ func TestHelm(t *testing.T) {
 }
 
 var _ = BeforeSuite(func() {
-	test.RegisterWebhook("pluginDefinitionWebhook", webhookv1alpha1.SetupPluginDefinitionWebhookWithManager)
+	test.RegisterWebhook("clusterPluginDefinitionWebhook", webhookv1alpha1.SetupClusterPluginDefinitionWebhookWithManager)
 	test.RegisterWebhook("pluginWebhook", webhookv1alpha1.SetupPluginWebhookWithManager)
 	test.RegisterWebhook("teamWebhook", webhookv1alpha1.SetupTeamWebhookWithManager)
 	test.RegisterWebhook("secretsWebhook", webhookv1alpha1.SetupSecretWebhookWithManager)
@@ -49,7 +49,7 @@ var (
 		},
 	}
 
-	testPluginWithoutHelmChart = &greenhousev1alpha1.PluginDefinition{
+	testPluginWithoutHelmChart = &greenhousev1alpha1.ClusterPluginDefinition{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: namespace,
 			Name:      "test-plugindefinition",
@@ -67,7 +67,7 @@ var (
 		},
 	}
 
-	testPluginWithHelmChart = &greenhousev1alpha1.PluginDefinition{
+	testPluginWithHelmChart = &greenhousev1alpha1.ClusterPluginDefinition{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: namespace,
 			Name:      "test-plugindefinition",
@@ -91,7 +91,7 @@ var (
 		},
 	}
 
-	testPluginWithHelmChartOCI = &greenhousev1alpha1.PluginDefinition{
+	testPluginWithHelmChartOCI = &greenhousev1alpha1.ClusterPluginDefinition{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: namespace,
 			Name:      "test-plugindefinition",
@@ -114,7 +114,7 @@ var (
 		},
 	}
 
-	testPluginWithHelmChartCRDs = &greenhousev1alpha1.PluginDefinition{
+	testPluginWithHelmChartCRDs = &greenhousev1alpha1.ClusterPluginDefinition{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: namespace,
 			Name:      "test-plugindefinition",

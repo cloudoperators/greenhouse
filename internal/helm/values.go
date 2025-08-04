@@ -18,7 +18,7 @@ import (
 )
 
 func GetPluginOptionValuesForPlugin(ctx context.Context, c client.Client, plugin *greenhousev1alpha1.Plugin) ([]greenhousev1alpha1.PluginOptionValue, error) {
-	var pluginDefinition = new(greenhousev1alpha1.PluginDefinition)
+	var pluginDefinition = new(greenhousev1alpha1.ClusterPluginDefinition)
 	if err := c.Get(ctx, types.NamespacedName{Namespace: "", Name: plugin.Spec.PluginDefinition}, pluginDefinition); err != nil {
 		return nil, err
 	}

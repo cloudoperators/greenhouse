@@ -50,7 +50,7 @@ var (
 	clusterBRemote     *envtest.Environment
 
 	testTeam               = test.NewTeam(test.Ctx, "test-pluginpreset-team", test.TestNamespace, test.WithTeamLabel(greenhouseapis.LabelKeySupportGroup, "true"))
-	pluginPresetDefinition = test.NewPluginDefinition(pluginPresetDefinitionName, test.WithHelmChart(
+	pluginPresetDefinition = test.NewClusterPluginDefinition(pluginPresetDefinitionName, test.WithHelmChart(
 		&greenhousev1alpha1.HelmChartReference{
 			Name:       "./../../test/fixtures/chartWithConfigMap",
 			Repository: "dummy",
@@ -65,7 +65,7 @@ var (
 )
 
 var _ = Describe("PluginPreset Controller Lifecycle", Ordered, func() {
-	var defaultPluginDefinition *greenhousev1alpha1.PluginDefinition
+	var defaultPluginDefinition *greenhousev1alpha1.ClusterPluginDefinition
 	BeforeAll(func() {
 		format.MaxLength = 0
 		By("creating a test PluginDefinition")
@@ -109,7 +109,7 @@ var _ = Describe("PluginPreset Controller Lifecycle", Ordered, func() {
 		}
 
 		By("creating PluginDefinition with default options")
-		defaultPluginDefinition = test.NewPluginDefinition(pluginDefinitionWithDefaultsName, test.AppendPluginOption(
+		defaultPluginDefinition = test.NewClusterPluginDefinition(pluginDefinitionWithDefaultsName, test.AppendPluginOption(
 			greenhousev1alpha1.PluginOption{
 				Name:    "test-plugin-definition-option-1",
 				Type:    "int",
@@ -451,7 +451,7 @@ var _ = Describe("PluginPreset Controller Lifecycle", Ordered, func() {
 
 	It("should create a Plugin with required options taken from PluginPreset overrides", func() {
 		By("creating PluginDefinition with required option values")
-		pluginDefinition := test.NewPluginDefinition(pluginDefinitionWithRequiredOptionName,
+		pluginDefinition := test.NewClusterPluginDefinition(pluginDefinitionWithRequiredOptionName,
 			test.AppendPluginOption(
 				greenhousev1alpha1.PluginOption{
 					Name:     "test-required-option-1",
@@ -569,7 +569,7 @@ var _ = Describe("PluginPreset Controller Lifecycle", Ordered, func() {
 
 var _ = Describe("Plugin Preset skip changes", Ordered, func() {
 	DescribeTable("",
-		func(testPlugin *greenhousev1alpha1.Plugin, testPresetPlugin *greenhousev1alpha1.PluginPreset, testPluginDefinition *greenhousev1alpha1.PluginDefinition, clusterName string, expected bool) {
+		func(testPlugin *greenhousev1alpha1.Plugin, testPresetPlugin *greenhousev1alpha1.PluginPreset, testPluginDefinition *greenhousev1alpha1.ClusterPluginDefinition, clusterName string, expected bool) {
 			Expect(shouldSkipPlugin(testPlugin, testPresetPlugin, testPluginDefinition, clusterName)).To(BeEquivalentTo(expected))
 		},
 		Entry("should skip when plugin preset name in plugin's labels is different then defined name in plugin preset",
@@ -581,7 +581,7 @@ var _ = Describe("Plugin Preset skip changes", Ordered, func() {
 					Name: pluginPresetName,
 				},
 			},
-			&greenhousev1alpha1.PluginDefinition{},
+			&greenhousev1alpha1.ClusterPluginDefinition{},
 			"",
 			true,
 		),
@@ -608,7 +608,7 @@ var _ = Describe("Plugin Preset skip changes", Ordered, func() {
 					},
 				},
 			},
-			&greenhousev1alpha1.PluginDefinition{},
+			&greenhousev1alpha1.ClusterPluginDefinition{},
 			"",
 			false,
 		),
@@ -637,7 +637,7 @@ var _ = Describe("Plugin Preset skip changes", Ordered, func() {
 					},
 				},
 			},
-			&greenhousev1alpha1.PluginDefinition{},
+			&greenhousev1alpha1.ClusterPluginDefinition{},
 			"",
 			false,
 		),
@@ -678,7 +678,7 @@ var _ = Describe("Plugin Preset skip changes", Ordered, func() {
 					},
 				},
 			},
-			&greenhousev1alpha1.PluginDefinition{},
+			&greenhousev1alpha1.ClusterPluginDefinition{},
 			"",
 			false,
 		),
@@ -707,7 +707,7 @@ var _ = Describe("Plugin Preset skip changes", Ordered, func() {
 					},
 				},
 			},
-			&greenhousev1alpha1.PluginDefinition{},
+			&greenhousev1alpha1.ClusterPluginDefinition{},
 			"",
 			true,
 		),
@@ -738,7 +738,7 @@ var _ = Describe("Plugin Preset skip changes", Ordered, func() {
 					},
 				},
 			},
-			&greenhousev1alpha1.PluginDefinition{},
+			&greenhousev1alpha1.ClusterPluginDefinition{},
 			"",
 			false,
 		),
@@ -762,7 +762,7 @@ var _ = Describe("Plugin Preset skip changes", Ordered, func() {
 					},
 				},
 			},
-			&greenhousev1alpha1.PluginDefinition{
+			&greenhousev1alpha1.ClusterPluginDefinition{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: pluginPresetDefinitionName,
 				},
@@ -798,7 +798,7 @@ var _ = Describe("Plugin Preset skip changes", Ordered, func() {
 					},
 				},
 			},
-			&greenhousev1alpha1.PluginDefinition{
+			&greenhousev1alpha1.ClusterPluginDefinition{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: pluginPresetDefinitionName,
 				},
@@ -838,7 +838,7 @@ var _ = Describe("Plugin Preset skip changes", Ordered, func() {
 					},
 				},
 			},
-			&greenhousev1alpha1.PluginDefinition{
+			&greenhousev1alpha1.ClusterPluginDefinition{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: pluginPresetDefinitionName,
 				},
@@ -887,7 +887,7 @@ var _ = Describe("Plugin Preset skip changes", Ordered, func() {
 					},
 				},
 			},
-			&greenhousev1alpha1.PluginDefinition{
+			&greenhousev1alpha1.ClusterPluginDefinition{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: pluginPresetDefinitionName,
 				},
@@ -936,7 +936,7 @@ var _ = Describe("Plugin Preset skip changes", Ordered, func() {
 					},
 				},
 			},
-			&greenhousev1alpha1.PluginDefinition{},
+			&greenhousev1alpha1.ClusterPluginDefinition{},
 			clusterA,
 			false,
 		), Entry("should skip when Plugin has different value then plugin override but cluster name is different",
@@ -973,7 +973,7 @@ var _ = Describe("Plugin Preset skip changes", Ordered, func() {
 					},
 				},
 			},
-			&greenhousev1alpha1.PluginDefinition{},
+			&greenhousev1alpha1.ClusterPluginDefinition{},
 			clusterB,
 			true,
 		),

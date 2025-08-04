@@ -23,6 +23,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
 	greenhouseapis "github.com/cloudoperators/greenhouse/api"
+	greenhousemetav1alpha1 "github.com/cloudoperators/greenhouse/api/meta/v1alpha1"
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
 	"github.com/cloudoperators/greenhouse/internal/clientutil"
 	"github.com/cloudoperators/greenhouse/internal/common"
@@ -41,13 +42,15 @@ const (
 )
 
 func (r *OrganizationReconciler) reconcileServiceProxy(ctx context.Context, org *greenhousev1alpha1.Organization, supportGroupTeamName string) error {
-	var pluginDefinition = new(greenhousev1alpha1.PluginDefinition)
+	var pluginDefinition = new(greenhousev1alpha1.ClusterPluginDefinition)
 	if err := r.Get(ctx, types.NamespacedName{Name: serviceProxyName, Namespace: ""}, pluginDefinition); err != nil {
 		if apierrors.IsNotFound(err) {
 			log.FromContext(ctx).Info("plugin definition for service-proxy not found")
+			org.SetCondition(greenhousemetav1alpha1.FalseCondition(greenhousev1alpha1.ServiceProxyProvisioned, greenhousev1alpha1.ServiceProxyNotFound, "plugin definition for service-proxy not found"))
 			return nil
 		}
 		log.FromContext(ctx).Info("failed to get plugin definition for service-proxy", "error", err)
+		org.SetCondition(greenhousemetav1alpha1.FalseCondition(greenhousev1alpha1.ServiceProxyProvisioned, greenhousev1alpha1.ServiceProxyFailed, err.Error()))
 		return nil
 	}
 
@@ -58,11 +61,14 @@ func (r *OrganizationReconciler) reconcileServiceProxy(ctx context.Context, org 
 	}
 
 	if err := r.reconcileOAuth2ProxySecret(ctx, org); err != nil {
+		org.SetCondition(greenhousemetav1alpha1.FalseCondition(greenhousev1alpha1.ServiceProxyProvisioned, greenhousev1alpha1.ServiceProxyFailed, err.Error()))
 		return err
 	}
 	if err := r.reconcileServiceProxyPlugin(ctx, org, supportGroupTeamName); err != nil {
+		org.SetCondition(greenhousemetav1alpha1.FalseCondition(greenhousev1alpha1.ServiceProxyProvisioned, greenhousev1alpha1.ServiceProxyFailed, err.Error()))
 		return err
 	}
+	org.SetCondition(greenhousemetav1alpha1.TrueCondition(greenhousev1alpha1.ServiceProxyProvisioned, "", ""))
 	return nil
 }
 

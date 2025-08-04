@@ -5,14 +5,16 @@ package v1alpha1
 
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
+	greenhousemetav1alpha1 "github.com/cloudoperators/greenhouse/api/meta/v1alpha1"
 )
 
 // initially inline PluginDefinitionSpec to avoid duplication of fields
 
 // ClusterPluginDefinitionStatus defines the observed state of ClusterPluginDefinition.
 type ClusterPluginDefinitionStatus struct {
-	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
-	// Important: Run "make" to regenerate code after modifying this file
+	// StatusConditions contain the different conditions that constitute the status of the Plugin.
+	greenhousemetav1alpha1.StatusConditions `json:"statusConditions,omitempty"`
 }
 
 //+kubebuilder:object:root=true
@@ -38,6 +40,14 @@ type ClusterPluginDefinitionList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
 	Items           []ClusterPluginDefinition `json:"items"`
+}
+
+func (c *ClusterPluginDefinition) GetConditions() greenhousemetav1alpha1.StatusConditions {
+	return c.Status.StatusConditions
+}
+
+func (c *ClusterPluginDefinition) SetCondition(condition greenhousemetav1alpha1.Condition) {
+	c.Status.SetConditions(condition)
 }
 
 func init() {
