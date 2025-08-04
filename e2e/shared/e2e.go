@@ -125,7 +125,7 @@ func clientGetter(kubeconfigEnv string) *clientutil.RestClientGetter {
 	return clientutil.NewRestClientGetterFromRestConfig(config, "")
 }
 
-func NewClientGetterWithOptions(kubeconfigEnv string, qps, burst int) *clientutil.RestClientGetter {
+func NewClientGetterWithServerSideThrottling(kubeconfigEnv string) *clientutil.RestClientGetter {
 	kubeconfigPath, err := fromEnv(kubeconfigEnv)
 	Expect(err).NotTo(HaveOccurred(), "error getting kubeconfig path from env")
 	kubeconfigBytes, err := readFileContent(kubeconfigPath)
@@ -133,8 +133,9 @@ func NewClientGetterWithOptions(kubeconfigEnv string, qps, burst int) *clientuti
 	config, err := clientcmd.RESTConfigFromKubeConfig(kubeconfigBytes)
 	Expect(err).NotTo(HaveOccurred(), "error getting rest config from kubeconfig")
 
-	config.QPS = float32(qps)
-	config.Burst = burst
+	// Disable the client-side rate limiter and enable server-side throttling.
+	config.QPS = float32(-1)
+	config.Burst = -1
 	return clientutil.NewRestClientGetterFromRestConfig(config, "")
 }
 
