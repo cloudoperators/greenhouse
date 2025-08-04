@@ -28,9 +28,9 @@ type templatePluginPresetOptions struct {
 	pluginDefinitionPath string
 	clusterName          string
 
-	pluginPreset     *greenhousev1alpha1.PluginPreset
-	pluginDefinition *greenhousev1alpha1.ClusterPluginDefinition
-	values           []greenhousev1alpha1.PluginOptionValue
+	pluginPreset            *greenhousev1alpha1.PluginPreset
+	clusterPluginDefinition *greenhousev1alpha1.ClusterPluginDefinition
+	values                  []greenhousev1alpha1.PluginOptionValue
 }
 
 func newTemplatePluginPresetCmd() *cobra.Command {
@@ -38,7 +38,7 @@ func newTemplatePluginPresetCmd() *cobra.Command {
 
 	cmd := &cobra.Command{
 		Use:   "pluginpreset",
-		Short: "Template a PluginDefinition for a particular cluster",
+		Short: "Template a ClusterPluginDefinition for a particular cluster",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if err := o.validate(); err != nil {
 				return err
@@ -53,7 +53,7 @@ func newTemplatePluginPresetCmd() *cobra.Command {
 	}
 
 	cmd.Flags().StringVar(&o.pluginPresetPath, "pluginpreset", "", "Path to PluginPreset YAML file (required)")
-	cmd.Flags().StringVar(&o.pluginDefinitionPath, "plugindefinition", "", "Path to PluginDefinition YAML file (required)")
+	cmd.Flags().StringVar(&o.pluginDefinitionPath, "plugindefinition", "", "Path to ClusterPluginDefinition YAML file (required)")
 	cmd.Flags().StringVar(&o.clusterName, "cluster", "", "Cluster name (required)")
 
 	if err := cmd.MarkFlagRequired("pluginpreset"); err != nil {
@@ -77,7 +77,7 @@ func (o *templatePluginPresetOptions) validate() error {
 	}
 
 	if _, err := os.Stat(o.pluginDefinitionPath); os.IsNotExist(err) {
-		return fmt.Errorf("PluginDefinition file does not exist: %s", o.pluginDefinitionPath)
+		return fmt.Errorf("ClusterPluginDefinition file does not exist: %s", o.pluginDefinitionPath)
 	}
 
 	return nil
@@ -85,12 +85,12 @@ func (o *templatePluginPresetOptions) validate() error {
 
 func (o *templatePluginPresetOptions) complete() error {
 	var err error
-	o.pluginDefinition, err = loadPluginDefinition(o.pluginDefinitionPath)
+	o.clusterPluginDefinition, err = loadFromFile[greenhousev1alpha1.ClusterPluginDefinition](o.pluginDefinitionPath)
 	if err != nil {
 		return err
 	}
 
-	o.pluginPreset, err = loadPluginPreset(o.pluginPresetPath)
+	o.pluginPreset, err = loadFromFile[greenhousev1alpha1.PluginPreset](o.pluginPresetPath)
 	if err != nil {
 		return err
 	}
@@ -135,14 +135,14 @@ func (o *templatePluginPresetOptions) run() error {
 
 func (o *templatePluginPresetOptions) validateCompatibility() error {
 	expectedPluginDef := o.pluginPreset.Spec.Plugin.PluginDefinition
-	actualPluginDef := o.pluginDefinition.Name
+	actualPluginDef := o.clusterPluginDefinition.Name
 
 	if expectedPluginDef != actualPluginDef {
-		return fmt.Errorf("PluginPreset references PluginDefinition '%s' but provided file defines '%s'", expectedPluginDef, actualPluginDef)
+		return fmt.Errorf("PluginPreset references ClusterPluginDefinition '%s' but provided file defines '%s'", expectedPluginDef, actualPluginDef)
 	}
 
-	if o.pluginDefinition.Spec.HelmChart == nil {
-		return fmt.Errorf("PluginDefinition '%s' must have a HelmChart reference", actualPluginDef)
+	if o.clusterPluginDefinition.Spec.HelmChart == nil {
+		return fmt.Errorf("ClusterPluginDefinition '%s' must have a HelmChart reference", actualPluginDef)
 	}
 
 	return nil
@@ -155,9 +155,9 @@ func (o *templatePluginPresetOptions) prepareValues() error {
 		return err
 	}
 
-	// Start with PluginDefinition defaults and merge with default greenhouse values.
+	// Start with ClusterPluginDefinition defaults and merge with default greenhouse values.
 	values := helminternal.MergePluginAndPluginOptionValueSlice(
-		o.pluginDefinition.Spec.Options,
+		o.clusterPluginDefinition.Spec.Options,
 		greenhouseValues,
 	)
 
@@ -178,7 +178,7 @@ func (o *templatePluginPresetOptions) prepareValues() error {
 }
 
 func (o *templatePluginPresetOptions) runHelmTemplate(valuesFile string) error {
-	chartRef := o.pluginDefinition.Spec.HelmChart
+	chartRef := o.clusterPluginDefinition.Spec.HelmChart
 
 	var args []string
 	if strings.HasPrefix(chartRef.Repository, "oci://") {
@@ -248,6 +248,7 @@ func (o *templatePluginPresetOptions) getGreenhouseValuesForTemplate() ([]greenh
 
 	return values, nil
 }
+
 func createPluginOptionValue(name, value string) (*greenhousev1alpha1.PluginOptionValue, error) {
 	raw, err := json.Marshal(value)
 	if err != nil {

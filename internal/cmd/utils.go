@@ -7,27 +7,13 @@ import (
 	"os"
 	"path/filepath"
 
-	"gopkg.in/yaml.v3"
-
-	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
+	"k8s.io/apimachinery/pkg/util/yaml"
 )
 
-func loadPluginDefinition(path string) (*greenhousev1alpha1.ClusterPluginDefinition, error) {
-	var pluginDefinition *greenhousev1alpha1.ClusterPluginDefinition
-	err := loadAndUnmarshalObject(path, &pluginDefinition)
-	return pluginDefinition, err
-}
-
-func loadPluginPreset(path string) (*greenhousev1alpha1.PluginPreset, error) {
-	var pluginPreset *greenhousev1alpha1.PluginPreset
-	err := loadAndUnmarshalObject(path, &pluginPreset)
-	return pluginPreset, err
-}
-
-func loadPlugin(path string) (*greenhousev1alpha1.Plugin, error) {
-	var plugin *greenhousev1alpha1.Plugin
-	err := loadAndUnmarshalObject(path, &plugin)
-	return plugin, err
+func loadFromFile[T any](path string) (*T, error) {
+	var result T
+	err := loadAndUnmarshalObject(path, &result)
+	return &result, err
 }
 
 func loadAndUnmarshalObject(path string, o any) error {
@@ -39,6 +25,6 @@ func loadAndUnmarshalObject(path string, o any) error {
 	if err != nil {
 		return err
 	}
-	err = yaml.Unmarshal(f, &o)
-	return err
+
+	return yaml.Unmarshal(f, o)
 }

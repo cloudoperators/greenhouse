@@ -64,11 +64,11 @@ func (o *pluginValidateOptions) complete(args []string) error {
 func (o *pluginValidateOptions) run() error {
 	fmt.Printf("validating pluginDefinition %s with plugin %s\n", o.pathToPluginDefinition, o.pathToPlugin)
 	// Load both the PluginDefinition and Plugin from the provided files.
-	pluginDefinition, err := loadPluginDefinition(o.pathToPluginDefinition)
+	pluginDefinition, err := loadFromFile[greenhousev1alpha1.ClusterPluginDefinition](o.pathToPluginDefinition)
 	if err != nil {
 		return err
 	}
-	plugin, err := loadPlugin(o.pathToPlugin)
+	plugin, err := loadFromFile[greenhousev1alpha1.Plugin](o.pathToPlugin)
 	if err != nil {
 		return err
 	}
