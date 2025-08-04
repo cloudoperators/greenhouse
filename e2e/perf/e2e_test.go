@@ -43,7 +43,7 @@ var (
 	ctx                  context.Context
 	adminClient          client.Client
 	remoteClient         client.Client
-	testPluginDefinition *greenhousev1alpha1.PluginDefinition
+	testPluginDefinition *greenhousev1alpha1.ClusterPluginDefinition
 	testTeam             *greenhousev1alpha1.Team
 	testStartTime        time.Time
 	experiment           *gmeasure.Experiment
@@ -60,9 +60,7 @@ var _ = BeforeSuite(func() {
 	env = shared.NewExecutionEnv()
 
 	var err error
-	By("Disabling client-side throttling")
-	adminClientGetter := shared.NewClientGetterWithServerSideThrottling(shared.AdminKubeConfigPathEnv)
-	adminClient, err = clientutil.NewK8sClientFromRestClientGetter(adminClientGetter)
+	adminClient, err = clientutil.NewK8sClientFromRestClientGetter(env.AdminRestClientGetter)
 	Expect(err).ToNot(HaveOccurred(), "there should be no error creating the admin client")
 	remoteClient, err = clientutil.NewK8sClientFromRestClientGetter(env.RemoteRestClientGetter)
 	Expect(err).ToNot(HaveOccurred(), "there should be no error creating the remote client")

@@ -122,21 +122,11 @@ func clientGetter(kubeconfigEnv string) *clientutil.RestClientGetter {
 	Expect(err).NotTo(HaveOccurred(), "error reading kubeconfig file")
 	config, err := clientcmd.RESTConfigFromKubeConfig(kubeconfigBytes)
 	Expect(err).NotTo(HaveOccurred(), "error getting rest config from kubeconfig")
-	return clientutil.NewRestClientGetterFromRestConfig(config, "")
-}
 
-func NewClientGetterWithServerSideThrottling(kubeconfigEnv string) *clientutil.RestClientGetter {
-	kubeconfigPath, err := fromEnv(kubeconfigEnv)
-	Expect(err).NotTo(HaveOccurred(), "error getting kubeconfig path from env")
-	kubeconfigBytes, err := readFileContent(kubeconfigPath)
-	Expect(err).NotTo(HaveOccurred(), "error reading kubeconfig file")
-	config, err := clientcmd.RESTConfigFromKubeConfig(kubeconfigBytes)
-	Expect(err).NotTo(HaveOccurred(), "error getting rest config from kubeconfig")
-
-	// Disable the client-side rate limiter and enable server-side throttling.
-	config.QPS = float32(-1)
-	config.Burst = -1
-	return clientutil.NewRestClientGetterFromRestConfig(config, "")
+	return clientutil.NewRestClientGetterFromRestConfig(config, "",
+		// Enable server-side throttling.
+		clientutil.WithRestClientRateLimits(-1, -1),
+	)
 }
 
 func readFileContent(path string) ([]byte, error) {
