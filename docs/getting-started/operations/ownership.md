@@ -36,7 +36,7 @@ Greenhouse expects a `label` with the key `greenhouse.sap/owned-by` with a value
 - TeamRoleBindings
 - Secrets
 
-> Missing `greenhouse.sap/owned-by` label results in a `StatusCondition` called `OwnerLabelValidCondition` set to `false`. A metric on missing owner labels is exposed and alerted on.
+> Missing `greenhouse.sap/owned-by` label results in a `StatusCondition` called `OwnerLabelSetCondition` set to `false`. A `greenhouse_owned_by_label_missing` metric on missing owner labels is exposed and alerted on.
 
 The owner label is also expected on k8s resources (e.g. Deployments, Pods, ...) exposing metrics on the remote clusters.
 

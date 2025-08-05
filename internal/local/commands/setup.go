@@ -42,9 +42,8 @@ Overriding certain values in dev.config.yaml:
 
 - Override devMode for webhook development with d=true or devMode=true
 - Override helm chart installation with c=true or crdOnly=true
-- Override environment variables for manager deployment with e="ENV_NAME=VALUE" or env="ENV_NAME=VALUE" (can be repeated)
 
-e.g. greenhousectl dev setup -f dev-env/dev.config.yaml d=true e="WEBHOOK_ONLY=false" e="CONTROLLERS_ONLY=true"
+e.g. greenhousectl dev setup -f dev-env/dev.config.yaml d=true
 `
 }
 
@@ -62,8 +61,8 @@ var (
 func processDevSetup(cmd *cobra.Command, args []string) error {
 	ctx := cmd.Context()
 
-	overrideWebhookDev, webhookDev := getBoolArg([]string{"d", "devMode"}, args)
-	overrideCRDOnly, onlyCRD := getBoolArg([]string{"c", "crdOnly"}, args)
+	devMode := getBoolArg([]string{"d", "devMode"}, args)
+	crdOnly := getBoolArg([]string{"c", "crdOnly"}, args)
 
 	_, err := os.Stat(setupConfigFile)
 	if err != nil {
@@ -94,11 +93,11 @@ func processDevSetup(cmd *cobra.Command, args []string) error {
 		if hostPathConfig != "" {
 			cfg.Cluster.ConfigPath = hostPathConfig
 		}
-		env := setup.NewExecutionEnv().
+		env := setup.NewExecutionEnv(devMode).
 			WithClusterSetup(cfg.Cluster)
 		for _, dep := range cfg.Dependencies {
-			if overrideCRDOnly {
-				dep.Manifest.CRDOnly = onlyCRD
+			if crdOnly {
+				dep.Manifest.CRDOnly = crdOnly
 			}
 			if dep.Manifest != nil && (dep.Manifest.CRDOnly || dep.Manifest.Webhook == nil) {
 				env = env.WithLimitedManifests(ctx, dep.Manifest)
@@ -108,9 +107,6 @@ func processDevSetup(cmd *cobra.Command, args []string) error {
 				if hostPathConfig != "" {
 					env = env.WithLocalPluginDev(dep.Manifest)
 				}
-				if overrideWebhookDev {
-					dep.Manifest.Webhook.DevMode = webhookDev
-				}
 				dep.Manifest.ExcludeKinds = append(
 					dep.Manifest.ExcludeKinds,
 					"Deployment",
@@ -118,7 +114,7 @@ func processDevSetup(cmd *cobra.Command, args []string) error {
 					"MutatingWebhookConfiguration",
 					"ValidatingWebhookConfiguration",
 				)
-				env = env.WithWebhookDevelopment(ctx, dep.Manifest)
+				env = env.WithGreenhouseDevelopment(ctx, dep.Manifest)
 			}
 		}
 		err = env.Run()

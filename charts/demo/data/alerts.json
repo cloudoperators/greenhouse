@@ -1,6 +1,6 @@
 [{
   "annotations": {
-    "description": "Kublet on minion0.cc.eu-de-1.cloud.sap is DOWN.",
+    "description": "Kublet on minion0.cluster01.eu-de-1.cloud is DOWN.",
     "summary": "A Kubelet is DOWN"
   },
   "status": {
@@ -16,9 +16,9 @@
     "endpoint": "https-metrics",
     "inhibited_by": "node-maintenance",
     "job": "kubernetes-kubelet",
-    "meta": "minion0.cc.eu-de-1.cloud.sap",
+    "meta": "minion0.cluster01.eu-de-1.cloud",
     "namespace": "kube-system",
-    "node": "minion0.cc.eu-de-1.cloud.sap",
+    "node": "minion0.cluster01.eu-de-1.cloud",
     "playbook": "docs/support/playbook/kubernetes/k8s_node_not_ready",
     "prometheus": "kube-monitoring/collector-kubernetes",
     "region": "eu-de-1",
@@ -45,9 +45,9 @@
     "endpoint": "https-metrics",
     "inhibited_by": "node-maintenance",
     "job": "kubernetes-kubelet",
-    "meta": "somemetadata.ap-sa-1.cloud.sap",
+    "meta": "somemetadata.cluster01.ap-sa-1.cloud",
     "namespace": "kube-system",
-    "node": "storage-e5ba2b8d6df2.cc.ap-sa-1.cloud.sap",
+    "node": "storage-e5ba2b8d6df2.cc.cluster01.ap-sa-1.cloud",
     "playbook": "docs/support/playbook/demo/greenhouse",
     "prometheus": "kube-monitoring/collector-kubernetes",
     "region": "ap-sa-1",
@@ -75,9 +75,9 @@
       "endpoint": "https-metrics",
       "instance": "1.2.3.4:10250",
       "job": "pod-servicediscovery",
-      "meta": "myservice.eu-nl-1.cloud.sap",
+      "meta": "myservice.cluster01.eu-nl-1.cloud",
       "namespace": "myservice",
-      "node": "node.eu-nl-1.cloud.sap",
+      "node": "node.cluster01.eu-nl-1.cloud",
       "playbook": "docs/support/playbook/myservice/higherrorrate",
       "prometheus": "kube-monitoring/collector-kubernetes",
       "region": "eu-nl-1",
@@ -89,7 +89,7 @@
   },
   {
     "annotations": {
-      "description": "Based on recent sampling, the disk is likely within the next 4 hours for instance node.la-br-1.cloud.sap.",
+      "description": "Based on recent sampling, the disk is likely within the next 4 hours for instance node.cluster01.la-br-1.cloud.",
       "summary": "Predictive Disk Space Utilisation Alert"
     },
     "status": {
@@ -105,9 +105,9 @@
       "endpoint": "https-metrics",
       "instance": "1.2.3.4:10250",
       "job": "kubernetes-nodes",
-      "meta": "node.la-br-1.cloud.sap",
+      "meta": "node.cluster01.la-br-1.cloud",
       "namespace": "kube-system",
-      "node": "node.la-br-1.cloud.sap",
+      "node": "node.cluster01.la-br-1.cloud",
       "playbook": "docs/support/playbook/kubernetes/k8s_node_disk_space",
       "prometheus": "kube-monitoring/collector-kubernetes",
       "region": "la-br-1",
@@ -119,7 +119,7 @@
   },
   {
     "annotations": {
-      "description": "High CPU utilisation detected for instance node.na-us-1.cloud.sap",
+      "description": "High CPU utilisation detected for instance node.cluster01.na-us-1.cloud",
       "summary": "CPU Utilisation Alert"
     },
     "status": {
@@ -136,9 +136,9 @@
       "inhibited_by": "node-maintenance",
       "instance": "1.2.3.4:10250",
       "job": "kubernetes-kubelet",
-      "meta": "node.na-us-1.cloud.sap",
+      "meta": "node.cluster01.na-us-1.cloud",
       "namespace": "kube-system",
-      "node": "node.na-us-1.cloud.sap",
+      "node": "node.cluster01.na-us-1.cloud",
       "playbook": "docs/support/playbook/kubernetes/k8s_node_cpu_utilization",
       "prometheus": "kube-monitoring/collector-kubernetes",
       "region": "na-us-1",
@@ -150,8 +150,8 @@
   },
   {
     "annotations": {
-      "description": "The inbound network traffic on host node.na-ca-1.cloud.sap has exceeded 100 MB/s for 5 minutes",
-      "summary": "High network traffic on host node.na-ca-1.cloud.sap"
+      "description": "The inbound network traffic on host node.cluster01.na-ca-1.cloud has exceeded 100 MB/s for 5 minutes",
+      "summary": "High network traffic on host node.cluster01.na-ca-1.cloud"
     },
     "status": {
       "state": "active"
@@ -166,9 +166,9 @@
       "endpoint": "https-metrics",
       "instance": "1.2.3.4:10250",
       "job": "kubernetes-kubelet",
-      "meta": "node.na-ca-1.cloud.sap",
+      "meta": "node.cluster01.na-ca-1.cloud",
       "namespace": "kube-system",
-      "node": "node.na-ca-1.cloud.sap",
+      "node": "node.cluster01.na-ca-1.cloud",
       "playbook": "docs/support/playbook/kubernetes/k8s_node_high_network_traffic",
       "prometheus": "kube-monitoring/collector-kubernetes",
       "region": "na-ca-1",
@@ -196,9 +196,9 @@
       "endpoint": "https-metrics",
       "instance": "1.2.3.4:10250",
       "job": "kubernetes-kubelet",
-      "meta": "node.na-us-2.cloud.sap",
+      "meta": "node.cluster01.na-us-2.cloud",
       "namespace": "openstack",
-      "node": "node.na-us-2.cloud.sap",
+      "node": "node.cluster01.na-us-2.cloud",
       "playbook": "docs/support/playbook/blackbox/test_failure",
       "prometheus": "kube-monitoring/openstack",
       "region": "na-us-2",
@@ -226,9 +226,9 @@
       "endpoint": "https-metrics",
       "instance": "1.2.3.4:10250",
       "job": "kubernetes-kubelet",
-      "meta": "node.ap-cn-1.cloud.sap",
+      "meta": "node.cluster01.ap-cn-1.cloud",
       "namespace": "openstack",
-      "node": "node.ap-cn-1.cloud.sap",
+      "node": "node.cluster01.ap-cn-1.cloud",
       "playbook": "docs/support/playbook/kubernetes/daemonset_rollout_stuck",
       "prometheus": "kube-monitoring/openstack",
       "region": "ap-cn-1",
