@@ -68,4 +68,21 @@ Once the release candidate is stable, the release shepherd can create a new rele
 ### Bugfixes
 
 Any bugs found (either during the release candidate period or after) need to be fixed on the main branch and cherry-picked to the release branch.
-A bugfix can be cherry-picked onto the release branch by commenting on the PR with `/cherry-pick release-v<major>.<minor>`. This will trigger a GitHub Action that will create a new PR on the release branch with the cherry-picked commit.
+
+#### Cherry-picking with Labels
+
+The recommended way to cherry-pick a PR to a release branch is by adding a label in the format `cherry-pick/v<major>.<minor>` to the merged PR. For example, adding the label `cherry-pick/v0.4` will create a cherry-pick PR targeting the `release/v0.4` branch.
+
+When you add this label, a GitHub Action will automatically:
+1. Create a new branch from the target release branch
+2. Cherry-pick the merged commit
+3. Create a new PR with the title format `cherry-pick(v<major>.<minor>): Original PR Title`
+4. Add appropriate labels and assign the original author
+
+Requirements:
+- The PR must be merged before adding the cherry-pick label
+- The target release branch must exist (e.g., `release/v0.4`)
+
+If the cherry-pick results in conflicts, the PR will be created as a draft with conflict markers included in the code, and you'll need to resolve them manually.
+
+You can add multiple cherry-pick labels to cherry-pick to multiple release branches.

@@ -1,0 +1,170 @@
+name: Cherry Pick to Release Branch
+
+on:
+  pull_request:
+    types: [labeled]
+
+jobs:
+  cherry-pick:
+    name: Cherry Pick to Release Branch
+    # Only run when a cherry-pick label is added
+    if: startsWith(github.event.label.name, 'cherry-pick/v')
+    runs-on: [default]
+    permissions:
+      contents: write
+      pull-requests: write
+      actions: read
+
+    steps:
+      - name: Extract version from label
+        id: extract-version
+        run: |
+          LABEL="${{ github.event.label.name }}"
+          VERSION="${LABEL#cherry-pick/}"
+          RELEASE_BRANCH="release/$VERSION"
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "release_branch=$RELEASE_BRANCH" >> $GITHUB_OUTPUT
+          echo "Extracted version: $VERSION"
+          echo "Target release branch: $RELEASE_BRANCH"
+
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Check if release branch exists
+        id: check-branch
+        run: |
+          if git ls-remote --heads origin ${{ steps.extract-version.outputs.release_branch }} | grep -q ${{ steps.extract-version.outputs.release_branch }}; then
+            echo "branch_exists=true" >> $GITHUB_OUTPUT
+            echo "Release branch ${{ steps.extract-version.outputs.release_branch }} exists"
+          else
+            echo "branch_exists=false" >> $GITHUB_OUTPUT
+            echo "::error::Release branch ${{ steps.extract-version.outputs.release_branch }} does not exist"
+          fi
+
+      - name: Check if PR is merged
+        id: check-merged
+        if: steps.check-branch.outputs.branch_exists == 'true'
+        run: |
+          PR_STATE=$(gh pr view ${{ github.event.pull_request.number }} --json state --jq .state)
+          if [ "$PR_STATE" = "MERGED" ]; then
+            echo "is_merged=true" >> $GITHUB_OUTPUT
+            echo "PR is merged, proceeding with cherry-pick"
+            
+            # Get the merge commit SHA
+            MERGE_SHA=$(gh pr view ${{ github.event.pull_request.number }} --json mergeCommit --jq .mergeCommit.oid)
+            echo "merge_sha=$MERGE_SHA" >> $GITHUB_OUTPUT
+          else
+            echo "is_merged=false" >> $GITHUB_OUTPUT
+            echo "::warning::PR is not merged yet. Cherry-pick will be skipped."
+          fi
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Create cherry-pick branch
+        if: steps.check-branch.outputs.branch_exists == 'true' && steps.check-merged.outputs.is_merged == 'true'
+        id: create-branch
+        run: |
+          # Create a unique branch name for the cherry-pick
+          CHERRY_PICK_BRANCH="cherry-pick-${{ github.event.pull_request.number }}-to-${{ steps.extract-version.outputs.version }}"
+          echo "cherry_pick_branch=$CHERRY_PICK_BRANCH" >> $GITHUB_OUTPUT
+          
+          # Create branch from the release branch
+          git fetch origin ${{ steps.extract-version.outputs.release_branch }}:${{ steps.extract-version.outputs.release_branch }}
+          git checkout -b $CHERRY_PICK_BRANCH ${{ steps.extract-version.outputs.release_branch }}
+          
+          echo "Created branch $CHERRY_PICK_BRANCH from ${{ steps.extract-version.outputs.release_branch }}"
+
+      - name: Cherry-pick the commit
+        if: steps.check-branch.outputs.branch_exists == 'true' && steps.check-merged.outputs.is_merged == 'true'
+        id: cherry-pick
+        run: |
+          # Configure Git
+          git config user.name "GitHub Actions"
+          git config user.email "actions@github.com"
+          
+          # Attempt cherry-pick
+          if git cherry-pick ${{ steps.check-merged.outputs.merge_sha }} --mainline 1; then
+            echo "cherry_pick_success=true" >> $GITHUB_OUTPUT
+            echo "Cherry-pick successful"
+          else
+            echo "cherry_pick_success=false" >> $GITHUB_OUTPUT
+            echo "::warning::Cherry-pick resulted in conflicts"
+            
+            # Add conflict markers and create PR as draft
+            git add --renormalize .
+            git cherry-pick --continue --no-commit || true
+            git commit -m "Cherry-pick ${{ github.event.pull_request.number }} with conflicts" || true
+          fi
+          
+          # Push the branch
+          git push origin ${{ steps.create-branch.outputs.cherry_pick_branch }}
+
+      - name: Create Pull Request
+        if: steps.check-branch.outputs.branch_exists == 'true' && steps.check-merged.outputs.is_merged == 'true'
+        id: create-pr
+        run: |
+          # Get original PR title
+          ORIGINAL_TITLE=$(gh pr view ${{ github.event.pull_request.number }} --json title --jq .title)
+          
+          # Create PR title in the format cherry-pick(v0.4): Original PR Title
+          PR_TITLE="cherry-pick(${{ steps.extract-version.outputs.version }}): $ORIGINAL_TITLE"
+          
+          # Create PR body
+          PR_BODY="This PR cherry-picks changes from #${{ github.event.pull_request.number }} to the ${{ steps.extract-version.outputs.release_branch }} branch.
+
+          Original PR: #${{ github.event.pull_request.number }}
+          Original Author: @${{ github.event.pull_request.user.login }}
+          "
+          
+          # Add conflict warning if needed
+          if [ "${{ steps.cherry-pick.outputs.cherry_pick_success }}" = "false" ]; then
+            PR_BODY="$PR_BODY
+
+            ⚠️ **This cherry-pick resulted in conflicts that need to be resolved manually.**
+            "
+            DRAFT="--draft"
+          else
+            DRAFT=""
+          fi
+          
+          # Create the PR
+          PR_URL=$(gh pr create \
+            --title "$PR_TITLE" \
+            --body "$PR_BODY" \
+            --base ${{ steps.extract-version.outputs.release_branch }} \
+            --head ${{ steps.create-branch.outputs.cherry_pick_branch }} \
+            $DRAFT)
+          
+          echo "pr_url=$PR_URL" >> $GITHUB_OUTPUT
+          echo "Created PR: $PR_URL"
+          
+          # Add labels
+          gh pr edit $PR_URL --add-label "cherry-pick,${{ github.event.label.name }}"
+          
+          # Assign to original author
+          gh pr edit $PR_URL --assignee ${{ github.event.pull_request.user.login }}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Comment on original PR
+        if: steps.create-pr.outputs.pr_url != ''
+        run: |
+          gh pr comment ${{ github.event.pull_request.number }} --body "🍒 Cherry-pick PR created: ${{ steps.create-pr.outputs.pr_url }}"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Handle errors
+        if: |
+          (steps.check-branch.outputs.branch_exists == 'false') || 
+          (steps.check-merged.outputs.is_merged == 'false')
+        run: |
+          if [ "${{ steps.check-branch.outputs.branch_exists }}" = "false" ]; then
+            gh pr comment ${{ github.event.pull_request.number }} --body "❌ Cherry-pick failed: Release branch ${{ steps.extract-version.outputs.release_branch }} does not exist."
+          elif [ "${{ steps.check-merged.outputs.is_merged }}" = "false" ]; then
+            gh pr comment ${{ github.event.pull_request.number }} --body "⏳ Cherry-pick pending: This PR needs to be merged first before cherry-picking to ${{ steps.extract-version.outputs.release_branch }}."
+          fi
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

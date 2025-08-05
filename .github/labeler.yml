@@ -37,3 +37,6 @@ dependencies:
 
 feature:
  - head-branch: ['^feature', '^feat']
+
+cherry-pick:
+ - label: ['^cherry-pick/v']
