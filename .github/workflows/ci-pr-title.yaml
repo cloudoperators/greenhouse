@@ -42,6 +42,7 @@ jobs:
             dex
             flux
             idproxy
+            pluginDefintionCatalog
             clusterplugindefinitions
             plugindefinitions
             pluginpresets
