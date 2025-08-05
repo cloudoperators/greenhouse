@@ -15,29 +15,19 @@ on:
   pull_request:
     types: [opened, synchronize, reopened]
     paths:
+      - "api/meta/**"
       - "api/v1alpha1/**"
-
+      - "api/v1alpha2/**"
 jobs:
   generate-docs-types-specs:
     runs-on: [default]
     permissions:
       contents: write
     steps:
-      - name: Checkout
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
-        with:
-          token: ${{ secrets.CLOUOPERATOR_REPO_WRITE }}
-          repository: ${{ github.event.pull_request.head.repo.full_name }}
-          ref: ${{ github.event.pull_request.head.ref }}
-
-      - name: Generate CRD API Reference Docs
-        run: |
-          make generate-documentation
-
-      - name: Generate OpenAPI specs and typescript types from CRDs
+      - name: Generate manifests, documentation and types
         run: |
           chmod o+rw docs/reference/api/openapi.yaml
-          make generate-types
+          make generate-all
 
       - name: Apply Changes
         uses: EndBug/add-and-commit@a94899bca583c204427a224a7af87c02f9b325d5 # v9
