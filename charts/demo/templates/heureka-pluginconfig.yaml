@@ -15,5 +15,5 @@ spec:
   displayName: {{ required ".Values.heureka.displayName missing" .Values.heureka.displayName }}
   optionValues:
     - name: apiEndpoint
-      value: "https://demo.greenhouse.cloud.sap"
+      value: "https://demo.{{ .Values.global.dnsDomain }}"
 {{ end }}

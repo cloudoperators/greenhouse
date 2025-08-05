@@ -261,8 +261,8 @@ setup: setup-manager setup-dashboard setup-demo
 
 .PHONY: setup-webhook-dev
 setup-webhook-dev:
-	DEV_MODE=true make setup-manager
-
+	WITH_CONTROLLER=false DEV_MODE=true make setup-manager
+	
 .PHONY: setup-controller-dev
 setup-controller-dev:
 	WITH_CONTROLLER=false make setup-manager

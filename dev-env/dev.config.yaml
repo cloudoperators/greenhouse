@@ -30,7 +30,6 @@ config:
             - Job # exclude kube-webhook-cert-gen Job (managed by cert-manager)
           crdOnly: false
           webhook:
-            devMode: false
             dockerFile: "./"
   - cluster:
       name: greenhouse-remote

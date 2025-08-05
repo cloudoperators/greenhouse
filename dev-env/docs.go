@@ -31,13 +31,12 @@ type docsTemplateData struct {
 }
 
 // extend the template for future additions
-const docsTemplate = `
-{{.Intro}}
+const docsTemplate = `{{.Intro}}
 {{.Commands}}
 {{.DocGen}}
 `
 
-func getCWD() string {
+func getDocsDir() string {
 	// Determine the current working directory
 	cwd, err := os.Getwd()
 	if err != nil {
@@ -46,10 +45,10 @@ func getCWD() string {
 
 	// Check if the current working directory is hack/localenv
 	var outputPath string
-	if filepath.Base(cwd) == "localenv" && filepath.Base(filepath.Dir(cwd)) == "dev-env" {
+	if filepath.Base(filepath.Dir(cwd)) == "dev-env" {
 		outputPath = cwd
 	} else {
-		outputPath = filepath.Join(cwd, "dev-env", "localenv")
+		outputPath = filepath.Join(cwd, "dev-env")
 	}
 	return outputPath
 }
@@ -86,12 +85,13 @@ func main() {
 			docs = append(docs, content)
 		}
 	}
-	outputPath := getCWD()
-	intro, err := getTemplate(outputPath, "_intro.md")
+	outputPath := "./docs/contribute"
+	docsDir := getDocsDir()
+	intro, err := getTemplate(docsDir, "_intro.md")
 	if err != nil {
 		log.Fatalf("error getting intro: %s", err.Error())
 	}
-	docGen, err := getTemplate(outputPath, "_generate-docs.md")
+	docGen, err := getTemplate(docsDir, "_generate-docs.md")
 	if err != nil {
 		log.Fatalf("error getting doc gen: %s", err.Error())
 	}
@@ -104,7 +104,7 @@ func main() {
 	if err != nil {
 		log.Fatalf("Error generating markdown: %s", err.Error())
 	}
-	err = os.WriteFile(filepath.Join(outputPath, "README.md"), markdown, 0644)
+	err = os.WriteFile(filepath.Join(outputPath, "local-dev.md"), markdown, 0644)
 	if err != nil {
 		log.Fatalf("Error writing docs: %s", err.Error())
 	}
