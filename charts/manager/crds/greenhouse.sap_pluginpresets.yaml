@@ -65,6 +65,10 @@ spec:
           spec:
             description: PluginPresetSpec defines the desired state of PluginPreset
             properties:
+              clusterName:
+                description: ClusterName is a name of the cluster that the plugin
+                  bundle should be deployed to. Mutually exclusive with ClusterSelector.
+                type: string
               clusterOptionOverrides:
                 description: ClusterOptionOverrides define plugin option values to
                   override by the PluginPreset

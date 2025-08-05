@@ -26,6 +26,9 @@ type PluginPresetSpec struct {
 	// PluginSpec is the spec of the plugin to be deployed by the PluginPreset.
 	Plugin PluginSpec `json:"plugin"`
 
+	// ClusterName is a name of the cluster that the plugin bundle should be deployed to. Mutually exclusive with ClusterSelector.
+	ClusterName string `json:"clusterName,omitempty"`
+
 	// ClusterSelector is a label selector to select the clusters the plugin bundle should be deployed to.
 	ClusterSelector metav1.LabelSelector `json:"clusterSelector"`
 

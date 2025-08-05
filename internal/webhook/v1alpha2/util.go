@@ -15,7 +15,7 @@ import (
 
 // validateClusterSelector checks if the resource has a valid clusterSelector.
 func validateClusterSelector(cs greenhousev1alpha2.ClusterSelector, resourceGroupKind schema.GroupKind) error {
-	if cs.Name != "" && (len(cs.LabelSelector.MatchLabels) > 0 || len(cs.LabelSelector.MatchExpressions) > 0) {
+	if cs.Name != "" && cs.LabelSelector.Size() > 0 {
 		return apierrors.NewInvalid(resourceGroupKind, cs.Name, field.ErrorList{field.Invalid(
 			field.NewPath("spec", "clusterSelector"),
 			cs.Name,
@@ -23,7 +23,7 @@ func validateClusterSelector(cs greenhousev1alpha2.ClusterSelector, resourceGrou
 		)})
 	}
 
-	if cs.Name == "" && (len(cs.LabelSelector.MatchLabels) == 0 && len(cs.LabelSelector.MatchExpressions) == 0) {
+	if cs.Name == "" && cs.LabelSelector.Size() == 0 {
 		return apierrors.NewInvalid(resourceGroupKind, cs.Name, field.ErrorList{field.Invalid(
 			field.NewPath("spec", "clusterSelector"),
 			cs.Name,

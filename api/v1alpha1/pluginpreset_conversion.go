@@ -4,8 +4,6 @@
 package v1alpha1
 
 import (
-	"errors"
-
 	"sigs.k8s.io/controller-runtime/pkg/conversion"
 
 	"github.com/cloudoperators/greenhouse/api/v1alpha2"
@@ -17,7 +15,7 @@ func (pp *PluginPreset) ConvertTo(dstRaw conversion.Hub) error {
 
 	// Convert old selectors to the new ClusterSelector.
 	dst.Spec.ClusterSelector = v1alpha2.ClusterSelector{
-		Name:          "", // not present in v1alpha1
+		Name:          pp.Spec.ClusterName,
 		LabelSelector: pp.Spec.ClusterSelector,
 	}
 
@@ -59,9 +57,7 @@ func (pp *PluginPreset) ConvertFrom(srcRaw conversion.Hub) error {
 	src := srcRaw.(*v1alpha2.PluginPreset) //nolint:errcheck
 
 	// Convert the new ClusterSelector to the old selector.
-	if src.Spec.ClusterSelector.Name != "" {
-		return errors.New("cannot convert v1alpha2 with spec.clusterSelector.clusterName field to v1alpha1")
-	}
+	pp.Spec.ClusterName = src.Spec.ClusterSelector.Name
 	pp.Spec.ClusterSelector = src.Spec.ClusterSelector.LabelSelector
 
 	// Rote conversion.

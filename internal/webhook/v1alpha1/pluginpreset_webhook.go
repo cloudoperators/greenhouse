@@ -61,16 +61,28 @@ func ValidateCreatePluginPreset(ctx context.Context, c client.Client, o runtime.
 	var allErrs field.ErrorList
 	var allWarns admission.Warnings
 
-	// ensure PluginDefinition and ClusterSelector are set
+	// ensure PluginDefinition is set
 	if pluginPreset.Spec.Plugin.PluginDefinition == "" {
 		allErrs = append(allErrs, field.Invalid(field.NewPath("spec").Child("plugin").Child("pluginDefinition"), pluginPreset.Spec.Plugin.PluginDefinition, "PluginDefinition must be set"))
 	}
 
-	if pluginPreset.Spec.ClusterSelector.Size() == 0 {
-		allErrs = append(allErrs, field.Invalid(field.NewPath("spec").Child("clusterSelector"), pluginPreset.Spec.ClusterSelector, "ClusterSelector must be set"))
+	// ensure only one of ClusterName and Cluster selector is set
+	if pluginPreset.Spec.ClusterName != "" && pluginPreset.Spec.ClusterSelector.Size() > 0 {
+		allErrs = append(allErrs, field.Invalid(
+			field.NewPath("spec", "clusterName"),
+			pluginPreset.Spec.ClusterName,
+			"cannot specify both spec.clusterName and spec.clusterSelector",
+		))
+	}
+	if pluginPreset.Spec.ClusterName == "" && pluginPreset.Spec.ClusterSelector.Size() == 0 {
+		allErrs = append(allErrs, field.Invalid(
+			field.NewPath("spec", "clusterSelector"),
+			pluginPreset.Spec.ClusterSelector,
+			"must specify either spec.clusterName or spec.clusterSelector",
+		))
 	}
 
-	// ensure ClusterName is not set
+	// ensure ClusterName is not set in PluginSpec
 	if pluginPreset.Spec.Plugin.ClusterName != "" {
 		allErrs = append(allErrs, field.Invalid(field.NewPath("spec").Child("plugin").Child("clusterName"), pluginPreset.Spec.Plugin.ClusterName, "ClusterName must not be set"))
 	}

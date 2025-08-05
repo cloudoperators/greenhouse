@@ -139,7 +139,7 @@ var _ = Describe("PluginPreset Controller Lifecycle", Ordered, func() {
 
 	It("should reconcile a PluginPreset with ClusterName set in ClusterSelector", func() {
 		By("creating a PluginPreset")
-		testPluginPreset := test.NewPluginPreset(pluginPresetName, test.TestNamespace,
+		testPluginPreset := test.NewPluginPreset(pluginPresetName+"-1", test.TestNamespace,
 			test.WithPluginPresetLabel(greenhouseapis.LabelKeyOwnedBy, testTeam.Name),
 			test.WithPluginPresetClusterSelector(greenhousev1alpha2.ClusterSelector{
 				Name: clusterA,
@@ -161,13 +161,13 @@ var _ = Describe("PluginPreset Controller Lifecycle", Ordered, func() {
 		Expect(err).ToNot(HaveOccurred(), "failed to create test PluginPreset")
 
 		By("ensuring a Plugin has been created")
-		expPluginName := types.NamespacedName{Name: pluginPresetName + "-" + clusterA, Namespace: test.TestNamespace}
+		expPluginName := types.NamespacedName{Name: testPluginPreset.Name + "-" + clusterA, Namespace: test.TestNamespace}
 		expPlugin := &greenhousev1alpha1.Plugin{}
 		Eventually(func() error {
 			return test.K8sClient.Get(test.Ctx, expPluginName, expPlugin)
 		}).Should(Succeed(), "the Plugin should be created")
 
-		Expect(expPlugin.Labels).To(HaveKeyWithValue(greenhouseapis.LabelKeyPluginPreset, pluginPresetName), "the Plugin should be labeled as managed by the PluginPreset")
+		Expect(expPlugin.Labels).To(HaveKeyWithValue(greenhouseapis.LabelKeyPluginPreset, testPluginPreset.Name), "the Plugin should be labeled as managed by the PluginPreset")
 
 		By("modifying the Plugin and ensuring it is reconciled")
 		_, err = clientutil.CreateOrPatch(test.Ctx, test.K8sClient, expPlugin, func() error {
@@ -215,18 +215,18 @@ var _ = Describe("PluginPreset Controller Lifecycle", Ordered, func() {
 
 	It("should reconcile a PluginPreset with LabelSelector set in ClusterSelector", func() {
 		By("creating a PluginPreset")
-		testPluginPreset := pluginPreset(pluginPresetName, clusterA, testTeam.Name)
+		testPluginPreset := pluginPreset(pluginPresetName+"-2", clusterA, testTeam.Name)
 		err := test.K8sClient.Create(test.Ctx, testPluginPreset)
 		Expect(err).ToNot(HaveOccurred(), "failed to create test PluginPreset")
 
 		By("ensuring a Plugin has been created")
-		expPluginName := types.NamespacedName{Name: pluginPresetName + "-" + clusterA, Namespace: test.TestNamespace}
+		expPluginName := types.NamespacedName{Name: testPluginPreset.Name + "-" + clusterA, Namespace: test.TestNamespace}
 		expPlugin := &greenhousev1alpha1.Plugin{}
 		Eventually(func() error {
 			return test.K8sClient.Get(test.Ctx, expPluginName, expPlugin)
 		}).Should(Succeed(), "the Plugin should be created")
 
-		Expect(expPlugin.Labels).To(HaveKeyWithValue(greenhouseapis.LabelKeyPluginPreset, pluginPresetName), "the Plugin should be labeled as managed by the PluginPreset")
+		Expect(expPlugin.Labels).To(HaveKeyWithValue(greenhouseapis.LabelKeyPluginPreset, testPluginPreset.Name), "the Plugin should be labeled as managed by the PluginPreset")
 
 		By("modifying the Plugin and ensuring it is reconciled")
 		_, err = clientutil.CreateOrPatch(test.Ctx, test.K8sClient, expPlugin, func() error {
@@ -274,13 +274,13 @@ var _ = Describe("PluginPreset Controller Lifecycle", Ordered, func() {
 
 	It("should reconcile a PluginPreset with plugin definition defaults", func() {
 		By("ensuring a Plugin Preset has been created")
-		pluginPreset := pluginPreset(pluginPresetName+"-2", clusterA, testTeam.Name)
+		pluginPreset := pluginPreset(pluginPresetName+"-3", clusterA, testTeam.Name)
 		pluginPreset.Spec.Plugin.PluginDefinition = pluginDefinitionWithDefaultsName
 		Expect(test.K8sClient.Create(test.Ctx, pluginPreset)).ToNot(HaveOccurred())
 		test.EventuallyCreated(test.Ctx, test.K8sClient, pluginPreset)
 
 		By("ensuring a Plugin has been created")
-		expPluginName := types.NamespacedName{Name: pluginPresetName + "-2-" + clusterA, Namespace: test.TestNamespace}
+		expPluginName := types.NamespacedName{Name: pluginPreset.Name + "-" + clusterA, Namespace: test.TestNamespace}
 		expPlugin := &greenhousev1alpha1.Plugin{}
 		Eventually(func() error {
 			return test.K8sClient.Get(test.Ctx, expPluginName, expPlugin)
