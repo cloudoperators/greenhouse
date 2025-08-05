@@ -477,6 +477,116 @@ export interface components {
             };
         };
         /**
+         * PluginDefinitionCatalog
+         * @description PluginDefinitionCatalog is the Schema for the plugindefinitioncatalogs API.
+         */
+        PluginDefinitionCatalog: {
+            /** @description APIVersion defines the versioned schema of this representation of an object.
+             *     Servers should convert recognized schemas to the latest internal value, and
+             *     may reject unrecognized values.
+             *     More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources */
+            apiVersion?: string;
+            /** @description Kind is a string value representing the REST resource this object represents.
+             *     Servers may infer this from the endpoint the client submits requests to.
+             *     Cannot be updated.
+             *     In CamelCase.
+             *     More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds */
+            kind?: string;
+            metadata?: {
+                name?: string;
+                namespace?: string;
+                /** Format: uuid */
+                uid?: string;
+                resourceVersion?: string;
+                /** Format: date-time */
+                creationTimestamp?: string;
+                /** Format: date-time */
+                deletionTimestamp?: string;
+                labels?: {
+                    [key: string]: string;
+                };
+                annotations?: {
+                    [key: string]: string;
+                };
+            };
+            /** @description PluginDefinitionCatalogSpec defines the desired state of PluginDefinitionCatalog. */
+            spec?: {
+                source: {
+                    /**
+                     * @description Interval is the interval at which the Catalog should be reconciled to check for updates
+                     *
+                     *     generally unauthenticated calls to GitHub API are rate-limited to 60 requests per hour
+                     *     but flux underneath uses go-git which is not incurring the API rate limiting
+                     *     but has GitHub’s Git over HTTPS/SSH rate limits (Undocumented, but has significantly higher limits than the API)
+                     *     but can still be limited / throttled by aggressive clones coming from the same IP address
+                     *
+                     *     Additionally, offload the defaulting of interval to flux (which has default of 5m)
+                     * @default 1h
+                     */
+                    interval: string;
+                    /** @description Patches is a list of patches to apply to the PluginDefinition Catalog
+                     *     Currently, this only supports aliasing the PluginDefinition names */
+                    patches?: {
+                        /** @description Alias is the alias to apply to the PluginDefinition Name via Kustomize patches
+                         *     For SourceType Helm, this field is passed to postRender Kustomize patch */
+                        alias: string;
+                        /** @description Name is the name of the PluginDefinition to patch with an alias */
+                        name: string;
+                    }[];
+                    /** @description Path is the path within the repository where the ClusterPluginDefinition / PluginDefinition Catalog is located
+                     *     an empty path indicates the root of the repository and will be considered only if the SourceType is Kustomize
+                     *     an empty path with SourceType Helm will be considered invalid */
+                    path?: string;
+                    /** @description Ref is the Git reference (branch, tag, or SHA) to resolve the ClusterPluginDefinition / PluginDefinition Catalog */
+                    ref: {
+                        branch?: string;
+                        sha?: string;
+                        tag?: string;
+                    };
+                    /** @description Repository is the URL of the GitHub repository containing the ClusterPluginDefinition / PluginDefinition Catalog */
+                    repositoryURL: string;
+                    /**
+                     * @default kustomize
+                     * @enum {string}
+                     */
+                    type: "helm" | "kustomize";
+                };
+            };
+            /** @description PluginDefinitionCatalogStatus defines the observed state of PluginDefinitionCatalog. */
+            status?: {
+                /** @description ResourceInventory contains a list of Kubernetes resource object references
+                 *     that have been applied by a Kustomization. */
+                inventory?: {
+                    /** @description Entries of Kubernetes resource object references. */
+                    entries: {
+                        /** @description ID is the string representation of the Kubernetes resource object's metadata,
+                         *     in the format '<namespace>_<name>_<group>_<kind>'. */
+                        id: string;
+                        /** @description Version is the API version of the Kubernetes resource object's kind. */
+                        v: string;
+                    }[];
+                };
+                /** @description StatusConditions contain the different conditions that constitute the status of the PluginDefinitionCatalog */
+                statusConditions?: {
+                    conditions?: {
+                        /**
+                         * Format: date-time
+                         * @description LastTransitionTime is the last time the condition transitioned from one status to another.
+                         */
+                        lastTransitionTime: string;
+                        /** @description Message is an optional human readable message indicating details about the last transition. */
+                        message?: string;
+                        /** @description Reason is a one-word, CamelCase reason for the condition's last transition. */
+                        reason?: string;
+                        /** @description Status of the condition. */
+                        status: string;
+                        /** @description Type of the condition. */
+                        type: string;
+                    }[];
+                };
+            };
+        };
+        /**
          * PluginDefinition
          * @description PluginDefinition is the Schema for the PluginDefinitions API
          */

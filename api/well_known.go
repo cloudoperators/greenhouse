@@ -50,6 +50,12 @@ const (
 
 	// LabelKeyOwnedBy is used to identify the owning support-group team of a resource.
 	LabelKeyOwnedBy = "greenhouse.sap/owned-by"
+
+	// LabelKeyCatalog is used to identify the Catalog that a PluginDefinition belongs to
+	LabelKeyCatalog = "greenhouse.sap/catalog"
+
+	// LabelKeyCatalogNamespace is used to identify the namespace of Catalog that a PluginDefinition belongs to
+	LabelKeyCatalogNamespace = "greenhouse.sap/catalog-namespace"
 )
 
 // TeamRole and TeamRoleBinding constants

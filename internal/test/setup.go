@@ -165,6 +165,32 @@ func (t *TestSetup) UpdateOrganization(ctx context.Context, name string, opts ..
 	return org
 }
 
+func (t *TestSetup) CreatePluginDefinitionCatalog(ctx context.Context, name string, opts ...func(*greenhousev1alpha1.PluginDefinitionCatalog)) *greenhousev1alpha1.PluginDefinitionCatalog {
+	GinkgoHelper()
+	ns := t.Namespace()
+	catalog := NewPluginDefinitionCatalog(name, ns, opts...)
+	Expect(t.Create(ctx, catalog)).Should(Succeed(), "there should be no error creating the PluginDefinitionCatalog")
+	return catalog
+}
+
+func (t *TestSetup) UpdatePluginDefinitionCatalog(ctx context.Context, name string, opts ...func(catalog *greenhousev1alpha1.PluginDefinitionCatalog)) *greenhousev1alpha1.PluginDefinitionCatalog {
+	GinkgoHelper()
+	catalog := &greenhousev1alpha1.PluginDefinitionCatalog{}
+	err := retry.RetryOnConflict(retry.DefaultRetry, func() error {
+		ns := t.Namespace()
+		err := t.Get(ctx, client.ObjectKey{Name: name, Namespace: ns}, catalog)
+		if err != nil {
+			return err
+		}
+		for _, opt := range opts {
+			opt(catalog)
+		}
+		return t.Update(ctx, catalog)
+	})
+	Expect(err).NotTo(HaveOccurred(), "there should be no error updating the Organization")
+	return catalog
+}
+
 // CreateClusterPluginDefinition creates and returns a PluginDefinition object. Opts can be used to set the desired state of the PluginDefinition.
 func (t *TestSetup) CreateClusterPluginDefinition(ctx context.Context, name string, opts ...func(definition *greenhousev1alpha1.ClusterPluginDefinition)) *greenhousev1alpha1.ClusterPluginDefinition {
 	GinkgoHelper()

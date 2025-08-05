@@ -17,6 +17,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	helmv2 "github.com/fluxcd/helm-controller/api/v2"
+	kustomizev1 "github.com/fluxcd/kustomize-controller/api/v1"
 	sourcev1 "github.com/fluxcd/source-controller/api/v1"
 
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
@@ -35,6 +36,7 @@ func init() {
 		dexapi.AddToScheme,
 		sourcev1.AddToScheme,
 		helmv2.AddToScheme,
+		kustomizev1.AddToScheme,
 	} {
 		utilruntime.Must(addToSchemeFunc(Scheme))
 	}

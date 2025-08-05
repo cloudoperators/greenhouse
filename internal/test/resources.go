@@ -7,6 +7,7 @@ import (
 	"context"
 
 	. "github.com/onsi/ginkgo/v2"
+	"k8s.io/utils/ptr"
 
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
@@ -585,4 +586,76 @@ func NewConfigMap(name, namespace string, opts ...func(*corev1.ConfigMap)) *core
 	}
 
 	return cm
+}
+
+func WithRepositoryURL(url string) func(*greenhousev1alpha1.PluginDefinitionCatalog) {
+	return func(catalog *greenhousev1alpha1.PluginDefinitionCatalog) {
+		catalog.Spec.Source.Git.URL = url
+	}
+}
+
+func WithRepositoryBranch(branch string) func(*greenhousev1alpha1.PluginDefinitionCatalog) {
+	return func(catalog *greenhousev1alpha1.PluginDefinitionCatalog) {
+		catalog.Spec.Source.Git.Ref.Branch = ptr.To(branch)
+	}
+}
+
+func WithRepositoryTag(tag string) func(*greenhousev1alpha1.PluginDefinitionCatalog) {
+	return func(catalog *greenhousev1alpha1.PluginDefinitionCatalog) {
+		catalog.Spec.Source.Git.Ref.Tag = ptr.To(tag)
+	}
+}
+
+func WithRepositorySHA(sha string) func(*greenhousev1alpha1.PluginDefinitionCatalog) {
+	return func(catalog *greenhousev1alpha1.PluginDefinitionCatalog) {
+		catalog.Spec.Source.Git.Ref.SHA = ptr.To(sha)
+	}
+}
+
+func WithSourcePath(path string) func(*greenhousev1alpha1.PluginDefinitionCatalog) {
+	return func(catalog *greenhousev1alpha1.PluginDefinitionCatalog) {
+		catalog.Spec.Source.Path = path
+	}
+}
+
+func WithSuspend(suspended bool) func(*greenhousev1alpha1.PluginDefinitionCatalog) {
+	return func(catalog *greenhousev1alpha1.PluginDefinitionCatalog) {
+		catalog.Spec.Suspend = suspended
+	}
+}
+
+func WithInterval(interval metav1.Duration) func(*greenhousev1alpha1.PluginDefinitionCatalog) {
+	return func(catalog *greenhousev1alpha1.PluginDefinitionCatalog) {
+		catalog.Spec.Interval = ptr.To(interval)
+	}
+}
+
+func WithTimeOut(timeout metav1.Duration) func(*greenhousev1alpha1.PluginDefinitionCatalog) {
+	return func(catalog *greenhousev1alpha1.PluginDefinitionCatalog) {
+		catalog.Spec.Timeout = ptr.To(timeout)
+	}
+}
+
+func NewPluginDefinitionCatalog(name, namespace string, opts ...func(*greenhousev1alpha1.PluginDefinitionCatalog)) *greenhousev1alpha1.PluginDefinitionCatalog {
+	catalog := &greenhousev1alpha1.PluginDefinitionCatalog{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      name,
+			Namespace: namespace,
+		},
+		Spec: greenhousev1alpha1.PluginDefinitionCatalogSpec{
+			Source: greenhousev1alpha1.CatalogSource{
+				Git: &greenhousev1alpha1.GitSource{
+					Ref: &greenhousev1alpha1.GitRef{
+						Branch: nil,
+						Tag:    nil,
+						SHA:    nil,
+					},
+				},
+			},
+		},
+	}
+	for _, o := range opts {
+		o(catalog)
+	}
+	return catalog
 }

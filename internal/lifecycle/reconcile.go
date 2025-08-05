@@ -5,9 +5,11 @@ package lifecycle
 
 import (
 	"context"
+	"time"
 
 	"github.com/go-logr/logr"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
+	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -199,4 +201,72 @@ func removeFinalizer(ctx context.Context, c client.Client, o client.Object, fina
 		return c.Update(ctx, o)
 	}
 	return nil
+}
+
+type Result struct {
+	reconcile.Result
+	Exit  bool
+	Break bool
+}
+
+type ReconcileRoutine func(context.Context) (Result, error)
+
+func ExecuteReconcileRoutine(ctx context.Context, routines []ReconcileRoutine) (ctrl.Result, ReconcileResult, error) {
+	var result Result
+	var err error
+
+	for _, operation := range routines {
+		result, err = operation(ctx)
+		if result.Exit {
+			return ctrl.Result{}, Success, nil
+		}
+		if result.Break {
+			return ctrl.Result{}, Failed, err
+		}
+		if result.RequeueAfter > 0 {
+			return result.Result, Pending, err
+		}
+		if err != nil {
+			return result.Result, Failed, err
+		}
+	}
+
+	return result.Result, Success, nil
+}
+
+// Requeue - returns a Result that indicates the controller should requeue the request after a short delay of 5 seconds
+func Requeue() Result {
+	return Result{Result: ctrl.Result{RequeueAfter: 5 * time.Second}}
+}
+
+// RequeueAfter - returns a Result that indicates the controller should requeue the request after the specified duration
+func RequeueAfter(duration time.Duration) Result {
+	return Result{Result: ctrl.Result{RequeueAfter: duration}}
+}
+
+// Exit - returns a Result that indicates the controller should exit the reconciliation loop with a success status
+// This is typically used when there is no further reconciliation routine needs to be executed
+// early exit strategy
+func Exit() Result {
+	return Result{Exit: true}
+}
+
+// Continue - returns a Result that indicates the controller should continue with the next reconciliation routine
+func Continue() Result {
+	return Result{}
+}
+
+// Break - returns a Result that indicates the controller should break out of the reconciliation routine
+// This should be used when an error occurs
+func Break() Result {
+	return Result{Break: true}
+}
+
+func InitConditions(runtimeObject RuntimeObject, conditionTypes []greenhousemetav1alpha1.ConditionType) {
+	statusConditions := runtimeObject.GetConditions()
+	for _, t := range conditionTypes {
+		if statusConditions.GetConditionByType(t) == nil {
+			runtimeObject.SetCondition(greenhousemetav1alpha1.UnknownCondition(t, "", ""))
+		}
+	}
 }

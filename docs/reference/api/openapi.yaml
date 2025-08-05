@@ -662,6 +662,162 @@ components:
               type: object
           type: object
       type: object
+    PluginDefinitionCatalog:
+      xml:
+        name: greenhouse.sap
+        namespace: v1alpha1
+      title: PluginDefinitionCatalog
+      description: PluginDefinitionCatalog is the Schema for the plugindefinitioncatalogs API.
+      properties:
+        apiVersion:
+          description: |-
+            APIVersion defines the versioned schema of this representation of an object.
+            Servers should convert recognized schemas to the latest internal value, and
+            may reject unrecognized values.
+            More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+          type: string
+        kind:
+          description: |-
+            Kind is a string value representing the REST resource this object represents.
+            Servers may infer this from the endpoint the client submits requests to.
+            Cannot be updated.
+            In CamelCase.
+            More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+          type: string
+        metadata:
+          type: object
+        spec:
+          description: PluginDefinitionCatalogSpec defines the desired state of PluginDefinitionCatalog.
+          properties:
+            source:
+              properties:
+                interval:
+                  default: 1h
+                  description: |-
+                    Interval is the interval at which the Catalog should be reconciled to check for updates
+      
+                    generally unauthenticated calls to GitHub API are rate-limited to 60 requests per hour
+                    but flux underneath uses go-git which is not incurring the API rate limiting
+                    but has GitHub’s Git over HTTPS/SSH rate limits (Undocumented, but has significantly higher limits than the API)
+                    but can still be limited / throttled by aggressive clones coming from the same IP address
+      
+                    Additionally, offload the defaulting of interval to flux (which has default of 5m)
+                  type: string
+                patches:
+                  description: |-
+                    Patches is a list of patches to apply to the PluginDefinition Catalog
+                    Currently, this only supports aliasing the PluginDefinition names
+                  items:
+                    properties:
+                      alias:
+                        description: |-
+                          Alias is the alias to apply to the PluginDefinition Name via Kustomize patches
+                          For SourceType Helm, this field is passed to postRender Kustomize patch
+                        type: string
+                      name:
+                        description: Name is the name of the PluginDefinition to patch with an alias
+                        type: string
+                    required:
+                      - alias
+                      - name
+                    type: object
+                  type: array
+                path:
+                  description: |-
+                    Path is the path within the repository where the ClusterPluginDefinition / PluginDefinition Catalog is located
+                    an empty path indicates the root of the repository and will be considered only if the SourceType is Kustomize
+                    an empty path with SourceType Helm will be considered invalid
+                  type: string
+                ref:
+                  description: Ref is the Git reference (branch, tag, or SHA) to resolve the ClusterPluginDefinition / PluginDefinition Catalog
+                  properties:
+                    branch:
+                      type: string
+                    sha:
+                      type: string
+                    tag:
+                      type: string
+                  type: object
+                repositoryURL:
+                  description: Repository is the URL of the GitHub repository containing the ClusterPluginDefinition / PluginDefinition Catalog
+                  type: string
+                type:
+                  default: kustomize
+                  enum:
+                    - helm
+                    - kustomize
+                  type: string
+              required:
+                - ref
+                - repositoryURL
+              type: object
+          required:
+            - source
+          type: object
+        status:
+          description: PluginDefinitionCatalogStatus defines the observed state of PluginDefinitionCatalog.
+          properties:
+            inventory:
+              description: |-
+                ResourceInventory contains a list of Kubernetes resource object references
+                that have been applied by a Kustomization.
+              properties:
+                entries:
+                  description: Entries of Kubernetes resource object references.
+                  items:
+                    description: ResourceRef contains the information necessary to locate a resource within a cluster.
+                    properties:
+                      id:
+                        description: |-
+                          ID is the string representation of the Kubernetes resource object's metadata,
+                          in the format '<namespace>_<name>_<group>_<kind>'.
+                        type: string
+                      v:
+                        description: Version is the API version of the Kubernetes resource object's kind.
+                        type: string
+                    required:
+                      - id
+                      - v
+                    type: object
+                  type: array
+              required:
+                - entries
+              type: object
+            statusConditions:
+              description: StatusConditions contain the different conditions that constitute the status of the PluginDefinitionCatalog
+              properties:
+                conditions:
+                  items:
+                    description: Condition contains additional information on the state of a resource.
+                    properties:
+                      lastTransitionTime:
+                        description: LastTransitionTime is the last time the condition transitioned from one status to another.
+                        format: date-time
+                        type: string
+                      message:
+                        description: Message is an optional human readable message indicating details about the last transition.
+                        type: string
+                      reason:
+                        description: Reason is a one-word, CamelCase reason for the condition's last transition.
+                        type: string
+                      status:
+                        description: Status of the condition.
+                        type: string
+                      type:
+                        description: Type of the condition.
+                        type: string
+                    required:
+                      - lastTransitionTime
+                      - status
+                      - type
+                    type: object
+                  type: array
+                  x-kubernetes-list-map-keys:
+                    - type
+                  x-kubernetes-list-type: map
+              type: object
+          type: object
+      type: object
     PluginDefinition:
       xml:
         name: greenhouse.sap

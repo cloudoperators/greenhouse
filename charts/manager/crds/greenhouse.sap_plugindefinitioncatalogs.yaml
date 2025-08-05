@@ -1,0 +1,237 @@
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.18.0
+  name: plugindefinitioncatalogs.greenhouse.sap
+spec:
+  group: greenhouse.sap
+  names:
+    kind: PluginDefinitionCatalog
+    listKind: PluginDefinitionCatalogList
+    plural: plugindefinitioncatalogs
+    singular: plugindefinitioncatalog
+  scope: Namespaced
+  versions:
+  - additionalPrinterColumns:
+    - jsonPath: .status.statusConditions.conditions[?(@.type == "Ready")].status
+      name: Ready
+      type: string
+    name: v1alpha1
+    schema:
+      openAPIV3Schema:
+        description: PluginDefinitionCatalog is the Schema for the plugindefinitioncatalogs
+          API.
+        properties:
+          apiVersion:
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+            type: string
+          kind:
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: PluginDefinitionCatalogSpec defines the desired state of
+              PluginDefinitionCatalog.
+            properties:
+              interval:
+                default: 15m
+                description: Interval is the interval at which the Catalog should
+                  be reconciled to check for updates
+                type: string
+              overrides:
+                description: Overrides are the PluginDefinition overrides to be applied
+                items:
+                  properties:
+                    alias:
+                      description: |-
+                        Alias is the alias to apply to the PluginDefinition Name via Kustomize patches
+                        For SourceType Helm, this field is passed to postRender Kustomize patch
+                      type: string
+                    name:
+                      description: Name is the name of the PluginDefinition to patch
+                        with an alias
+                      type: string
+                  required:
+                  - alias
+                  - name
+                  type: object
+                type: array
+              source:
+                description: Source is the medium from which the PluginDefinition
+                  needs to be fetched
+                properties:
+                  git:
+                    description: Git is the Git repository source for the PluginDefinition
+                      Catalog
+                    properties:
+                      ref:
+                        description: Ref is the Git reference (branch, tag, or SHA)
+                          to resolve the ClusterPluginDefinition / PluginDefinition
+                          Catalog
+                        properties:
+                          branch:
+                            type: string
+                          sha:
+                            type: string
+                          tag:
+                            type: string
+                        type: object
+                      url:
+                        description: Repository is the URL of the GitHub repository
+                          containing the ClusterPluginDefinition / PluginDefinition
+                          Catalog
+                        type: string
+                    required:
+                    - url
+                    type: object
+                  path:
+                    description: |-
+                      Path is the path within the repository where the ClusterPluginDefinition / PluginDefinition Catalog is located
+                      an empty path indicates the root of the repository
+                    type: string
+                type: object
+              suspend:
+                description: Suspend indicates whether the reconciliation of the Catalog
+                  is suspended
+                type: boolean
+              timeout:
+                default: 5m
+                description: Timeout is the timeout for the reconciliation of the
+                  Catalog
+                type: string
+            required:
+            - source
+            type: object
+          status:
+            description: PluginDefinitionCatalogStatus defines the observed state
+              of PluginDefinitionCatalog.
+            properties:
+              kustomizeInventory:
+                description: |-
+                  ResourceInventory contains a list of Kubernetes resource object references
+                  that have been applied by a Kustomization.
+                properties:
+                  entries:
+                    description: Entries of Kubernetes resource object references.
+                    items:
+                      description: ResourceRef contains the information necessary
+                        to locate a resource within a cluster.
+                      properties:
+                        id:
+                          description: |-
+                            ID is the string representation of the Kubernetes resource object's metadata,
+                            in the format '<namespace>_<name>_<group>_<kind>'.
+                          type: string
+                        v:
+                          description: Version is the API version of the Kubernetes
+                            resource object's kind.
+                          type: string
+                      required:
+                      - id
+                      - v
+                      type: object
+                    type: array
+                required:
+                - entries
+                type: object
+              repositoryArtifact:
+                description: Artifact represents the output of a Source reconciliation.
+                properties:
+                  digest:
+                    description: Digest is the digest of the file in the form of '<algorithm>:<checksum>'.
+                    pattern: ^[a-z0-9]+(?:[.+_-][a-z0-9]+)*:[a-zA-Z0-9=_-]+$
+                    type: string
+                  lastUpdateTime:
+                    description: |-
+                      LastUpdateTime is the timestamp corresponding to the last update of the
+                      Artifact.
+                    format: date-time
+                    type: string
+                  metadata:
+                    additionalProperties:
+                      type: string
+                    description: Metadata holds upstream information such as OCI annotations.
+                    type: object
+                  path:
+                    description: |-
+                      Path is the relative file path of the Artifact. It can be used to locate
+                      the file in the root of the Artifact storage on the local file system of
+                      the controller managing the Source.
+                    type: string
+                  revision:
+                    description: |-
+                      Revision is a human-readable identifier traceable in the origin source
+                      system. It can be a Git commit SHA, Git tag, a Helm chart version, etc.
+                    type: string
+                  size:
+                    description: Size is the number of bytes in the file.
+                    format: int64
+                    type: integer
+                  url:
+                    description: |-
+                      URL is the HTTP address of the Artifact as exposed by the controller
+                      managing the Source. It can be used to retrieve the Artifact for
+                      consumption, e.g. by another controller applying the Artifact contents.
+                    type: string
+                required:
+                - lastUpdateTime
+                - path
+                - revision
+                - url
+                type: object
+              statusConditions:
+                description: StatusConditions contain the different conditions that
+                  constitute the status of the PluginDefinitionCatalog
+                properties:
+                  conditions:
+                    items:
+                      description: Condition contains additional information on the
+                        state of a resource.
+                      properties:
+                        lastTransitionTime:
+                          description: LastTransitionTime is the last time the condition
+                            transitioned from one status to another.
+                          format: date-time
+                          type: string
+                        message:
+                          description: Message is an optional human readable message
+                            indicating details about the last transition.
+                          type: string
+                        reason:
+                          description: Reason is a one-word, CamelCase reason for
+                            the condition's last transition.
+                          type: string
+                        status:
+                          description: Status of the condition.
+                          type: string
+                        type:
+                          description: Type of the condition.
+                          type: string
+                      required:
+                      - lastTransitionTime
+                      - status
+                      - type
+                      type: object
+                    type: array
+                    x-kubernetes-list-map-keys:
+                    - type
+                    x-kubernetes-list-type: map
+                type: object
+            type: object
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}
