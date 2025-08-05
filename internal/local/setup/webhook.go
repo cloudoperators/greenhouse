@@ -26,7 +26,6 @@ import (
 
 type Webhook struct {
 	DockerFile string `yaml:"dockerFile" json:"dockerFile"`
-	DevMode    bool   `yaml:"devMode" json:"devMode"`
 }
 
 const (
@@ -40,13 +39,27 @@ const (
 	webhookCertInjectionSuffix         = "-client-cert"
 )
 
-// setupWebhookManifest - sets up the webhook manifest by modifying the manager deployment, cert job and webhook configurations
-// deploys manager in WEBHOOK_ONLY mode so that you don't need to run webhooks locally during controller development
-// modifies cert job (charts/manager/templates/kube-webhook-certgen.yaml) to include host.docker.internal
-// if devMode is enabled, modifies mutating and validating webhook configurations to use host.docker.internal URL and removes service from clientConfig
-// extracts the webhook certs from the secret and writes them to tmp/k8s-webhook-server/serving-certs directory
-func (m *Manifest) setupWebhookManifest(resources []map[string]any) ([]map[string]any, error) {
+// setupWebhookManifest - sets up the webhook manifest by modifying the webhook configurations and deployment.
+// If devMode is true, it modifies the webhook configurations to use host.docker.internal URL and removes service from clientConfig.
+// It does not deploy the webhook deployment in devMode.
+func (m *Manifest) setupWebhookManifest(resources []map[string]any, devMode bool) ([]map[string]any, error) {
 	webhookManifests := make([]map[string]any, 0)
+	webhookURL := getWebhookURL()
+	webhookResources := extractResourcesByKinds(resources, MutatingWebhookConfigurationKind, ValidatingWebhookConfigurationKind)
+	utils.Log("setting cert-manager annotation for webhook resources...")
+	webhookResources = m.setCertManagerAnnotation(webhookResources)
+	if devMode {
+		utils.Log("enabling webhook local development...")
+		webhooks, err := m.modifyWebhooks(webhookResources, webhookURL)
+		if err != nil {
+			return nil, err
+		}
+		if len(webhooks) > 0 {
+			webhookManifests = append(webhookManifests, webhooks...)
+		}
+		return webhookManifests, nil
+	}
+	webhookManifests = append(webhookManifests, webhookResources...)
 	releaseName := m.ReleaseName
 	webhookDeployment, err := extractResourceByNameKind(resources, releaseName+WebhookDeploymentNameSuffix, DeploymentKind)
 	if err != nil {
@@ -58,26 +71,7 @@ func (m *Manifest) setupWebhookManifest(resources []map[string]any) ([]map[strin
 	if err != nil {
 		return nil, err
 	}
-
-	webhookURL := getWebhookURL()
 	webhookManifests = append(webhookManifests, webhookDeployment)
-	webhookResources := extractResourcesByKinds(resources, MutatingWebhookConfigurationKind, ValidatingWebhookConfigurationKind)
-	utils.Log("setting cert-manager annotation for webhook resources...")
-	webhookResources = m.setCertManagerAnnotation(webhookResources)
-	if m.Webhook.DevMode {
-		utils.Log("enabling webhook local development...")
-		if webhookURL != "" {
-			webhooks, err := m.modifyWebhooks(webhookResources, webhookURL)
-			if err != nil {
-				return nil, err
-			}
-			if len(webhooks) > 0 {
-				webhookManifests = append(webhookManifests, webhooks...)
-			}
-		}
-	} else {
-		webhookManifests = append(webhookManifests, webhookResources...)
-	}
 	return webhookManifests, nil
 }
 
@@ -362,18 +356,19 @@ func writeCertsToTemp(ctx context.Context, cl client.Client, name, namespace str
 	return nil
 }
 
-func getWebhookURL() string {
+func getWebhookURL() (webhookURL string) {
 	switch runtime.GOOS {
 	case "darwin":
 		utils.Log("detected macOS...")
-		return "host.docker.internal"
+		webhookURL = "host.docker.internal"
 	case "linux":
 		utils.Log("detected linux...")
-		return strings.TrimSpace(getHostIPFromInterface())
+		webhookURL = strings.TrimSpace(getHostIPFromInterface())
 	default:
 		utils.Logf("detected %s ...", runtime.GOOS)
-		return "host.docker.internal"
+		webhookURL = "host.docker.internal"
 	}
+	return
 }
 
 // getHostIPFromInterface - returns the IP address of the docker0 interface (only for linux)
