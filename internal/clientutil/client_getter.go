@@ -74,14 +74,6 @@ func WithDiscoveryOpts(qps float32, burst int) KubeClientOption {
 	}
 }
 
-// WithRestClientRateLimits allows overwriting the QPS and Burst in rest config
-func WithRestClientRateLimits(qps float32, burst int) KubeClientOption {
-	return func(cg *RestClientGetter) {
-		cg.restConfig.QPS = qps
-		cg.restConfig.Burst = burst
-	}
-}
-
 // WithRuntimeOptions allows overwriting client QPS and Burst
 func WithRuntimeOptions(o RuntimeOptions) KubeClientOption {
 	return func(cg *RestClientGetter) {

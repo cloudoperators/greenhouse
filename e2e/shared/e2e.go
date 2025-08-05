@@ -125,7 +125,7 @@ func clientGetter(kubeconfigEnv string) *clientutil.RestClientGetter {
 
 	return clientutil.NewRestClientGetterFromRestConfig(config, "",
 		// Enable server-side throttling.
-		clientutil.WithRestClientRateLimits(-1, -1),
+		clientutil.WithRuntimeOptions(clientutil.RuntimeOptions{QPS: -1, Burst: -1}),
 	)
 }
 
