@@ -113,7 +113,7 @@ test: manifests generate envtest flux-crds ## Run tests.
 .PHONY: flux-crds
 flux-crds: kustomize
 	mkdir -p bin/flux
-	$(KUSTOMIZE) build config/samples/flux > bin/flux/crds.yaml
+	$(KUSTOMIZE) build config/samples/flux/crds > bin/flux/crds.yaml
 .PHONY: fmt
 fmt: goimports
 	GOBIN=$(LOCALBIN) go fmt ./...
@@ -350,4 +350,4 @@ cert-manager: kustomize
 
 .PHONY: flux
 flux: kustomize
-	-$(KUSTOMIZE) build config/flux | kubectl apply -f -
+	-$(KUSTOMIZE) build config/samples/flux/local | kubectl apply -f -
