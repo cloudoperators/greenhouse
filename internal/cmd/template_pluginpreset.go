@@ -19,6 +19,12 @@ import (
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
 )
 
+const (
+	PluginDefinitionKind        = "PluginDefinition"
+	ClusterPluginDefinitionKind = "ClusterPluginDefinition"
+	PluginPresetKind            = "PluginPreset"
+)
+
 func init() {
 	templateCmd.AddCommand(newTemplatePluginPresetCmd())
 }
@@ -28,9 +34,9 @@ type templatePluginPresetOptions struct {
 	pluginDefinitionPath string
 	clusterName          string
 
-	pluginPreset            *greenhousev1alpha1.PluginPreset
-	clusterPluginDefinition *greenhousev1alpha1.ClusterPluginDefinition
-	values                  []greenhousev1alpha1.PluginOptionValue
+	pluginPreset     *greenhousev1alpha1.PluginPreset
+	pluginDefinition *greenhousev1alpha1.ClusterPluginDefinition
+	values           []greenhousev1alpha1.PluginOptionValue
 }
 
 func newTemplatePluginPresetCmd() *cobra.Command {
@@ -38,7 +44,12 @@ func newTemplatePluginPresetCmd() *cobra.Command {
 
 	cmd := &cobra.Command{
 		Use:   "pluginpreset",
-		Short: "Template a ClusterPluginDefinition for a particular cluster",
+		Short: "Template the Helm Chart for a Plugin created from a given PluginPreset",
+		Long: `The command performs a helm template on the Helm Chart referenced by the PluginPreset.
+		PluginPreset and (Cluster-)PluginDefinition needs to match. Values are defaulted from (Cluster-)PluginDefinition,
+		PluginPreset and optionally from ClusterOptionOverrides. References to Secrets and .global.greenhouse
+		values are defaulted to their value name. 
+		e.g. .global.greenhouse.baseDomain: ".global.greenhouse.baseDomain"`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if err := o.validate(); err != nil {
 				return err
@@ -53,7 +64,7 @@ func newTemplatePluginPresetCmd() *cobra.Command {
 	}
 
 	cmd.Flags().StringVar(&o.pluginPresetPath, "pluginpreset", "", "Path to PluginPreset YAML file (required)")
-	cmd.Flags().StringVar(&o.pluginDefinitionPath, "plugindefinition", "", "Path to ClusterPluginDefinition YAML file (required)")
+	cmd.Flags().StringVar(&o.pluginDefinitionPath, "plugindefinition", "", "Path to (Cluster-)PluginDefinition YAML file (required)")
 	cmd.Flags().StringVar(&o.clusterName, "cluster", "", "Cluster name (required)")
 
 	if err := cmd.MarkFlagRequired("pluginpreset"); err != nil {
@@ -85,7 +96,7 @@ func (o *templatePluginPresetOptions) validate() error {
 
 func (o *templatePluginPresetOptions) complete() error {
 	var err error
-	o.clusterPluginDefinition, err = loadFromFile[greenhousev1alpha1.ClusterPluginDefinition](o.pluginDefinitionPath)
+	o.pluginDefinition, err = loadFromFile[greenhousev1alpha1.ClusterPluginDefinition](o.pluginDefinitionPath)
 	if err != nil {
 		return err
 	}
@@ -134,15 +145,22 @@ func (o *templatePluginPresetOptions) run() error {
 }
 
 func (o *templatePluginPresetOptions) validateCompatibility() error {
-	expectedPluginDef := o.pluginPreset.Spec.Plugin.PluginDefinition
-	actualPluginDef := o.clusterPluginDefinition.Name
-
-	if expectedPluginDef != actualPluginDef {
-		return fmt.Errorf("PluginPreset references ClusterPluginDefinition '%s' but provided file defines '%s'", expectedPluginDef, actualPluginDef)
+	if o.pluginPreset.Kind != "PluginPreset" {
+		return fmt.Errorf("expected PluginPreset kind, got %q in file %s", o.pluginPreset.Kind, o.pluginPresetPath)
 	}
 
-	if o.clusterPluginDefinition.Spec.HelmChart == nil {
-		return fmt.Errorf("ClusterPluginDefinition '%s' must have a HelmChart reference", actualPluginDef)
+	if o.pluginDefinition.Kind != ClusterPluginDefinitionKind && o.pluginDefinition.Kind != PluginDefinitionKind {
+		return fmt.Errorf("expected either %s or %s kind, got %q in file %s", ClusterPluginDefinitionKind, PluginDefinitionKind, o.pluginDefinition.Kind, o.pluginDefinitionPath)
+	}
+
+	expectedPluginDef := o.pluginPreset.Spec.Plugin.PluginDefinition
+	actualPluginDef := o.pluginDefinition.Name
+	if expectedPluginDef != actualPluginDef {
+		return fmt.Errorf("PluginPreset references (Cluster-)PluginDefinition '%s' but provided file defines '%s'", expectedPluginDef, actualPluginDef)
+	}
+
+	if o.pluginDefinition.Spec.HelmChart == nil {
+		return fmt.Errorf("(Cluster-)PluginDefinition '%s' must have a HelmChart reference", actualPluginDef)
 	}
 
 	return nil
@@ -157,7 +175,7 @@ func (o *templatePluginPresetOptions) prepareValues() error {
 
 	// Start with ClusterPluginDefinition defaults and merge with default greenhouse values.
 	values := helminternal.MergePluginAndPluginOptionValueSlice(
-		o.clusterPluginDefinition.Spec.Options,
+		o.pluginDefinition.Spec.Options,
 		greenhouseValues,
 	)
 
@@ -178,7 +196,7 @@ func (o *templatePluginPresetOptions) prepareValues() error {
 }
 
 func (o *templatePluginPresetOptions) runHelmTemplate(valuesFile string) error {
-	chartRef := o.clusterPluginDefinition.Spec.HelmChart
+	chartRef := o.pluginDefinition.Spec.HelmChart
 
 	var args []string
 	if strings.HasPrefix(chartRef.Repository, "oci://") {

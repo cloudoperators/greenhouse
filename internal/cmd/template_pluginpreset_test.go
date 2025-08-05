@@ -18,10 +18,12 @@ var _ = Describe("validateCompatibility", func() {
 	Context("with mismatched plugin definition names", func() {
 		BeforeEach(func() {
 			opts = &templatePluginPresetOptions{
-				clusterPluginDefinition: &greenhousev1alpha1.ClusterPluginDefinition{
+				pluginDefinition: &greenhousev1alpha1.ClusterPluginDefinition{
+					TypeMeta:   metav1.TypeMeta{Kind: ClusterPluginDefinitionKind},
 					ObjectMeta: metav1.ObjectMeta{Name: "nginx"},
 				},
 				pluginPreset: &greenhousev1alpha1.PluginPreset{
+					TypeMeta: metav1.TypeMeta{Kind: PluginPresetKind},
 					Spec: greenhousev1alpha1.PluginPresetSpec{
 						Plugin: greenhousev1alpha1.PluginSpec{
 							PluginDefinition: "apache",
@@ -34,20 +36,22 @@ var _ = Describe("validateCompatibility", func() {
 		It("should return an error", func() {
 			err := opts.validateCompatibility()
 			Expect(err).To(HaveOccurred())
-			Expect(err.Error()).To(ContainSubstring("references ClusterPluginDefinition 'apache' but provided file defines 'nginx'"))
+			Expect(err.Error()).To(ContainSubstring("references (Cluster-)PluginDefinition 'apache' but provided file defines 'nginx'"))
 		})
 	})
 
 	Context("with missing helm chart reference", func() {
 		BeforeEach(func() {
 			opts = &templatePluginPresetOptions{
-				clusterPluginDefinition: &greenhousev1alpha1.ClusterPluginDefinition{
+				pluginDefinition: &greenhousev1alpha1.ClusterPluginDefinition{
+					TypeMeta:   metav1.TypeMeta{Kind: ClusterPluginDefinitionKind},
 					ObjectMeta: metav1.ObjectMeta{Name: "nginx"},
 					Spec: greenhousev1alpha1.PluginDefinitionSpec{
 						HelmChart: nil,
 					},
 				},
 				pluginPreset: &greenhousev1alpha1.PluginPreset{
+					TypeMeta: metav1.TypeMeta{Kind: PluginPresetKind},
 					Spec: greenhousev1alpha1.PluginPresetSpec{
 						Plugin: greenhousev1alpha1.PluginSpec{
 							PluginDefinition: "nginx",
@@ -68,7 +72,8 @@ var _ = Describe("validateCompatibility", func() {
 	Context("with valid configuration", func() {
 		BeforeEach(func() {
 			opts = &templatePluginPresetOptions{
-				clusterPluginDefinition: &greenhousev1alpha1.ClusterPluginDefinition{
+				pluginDefinition: &greenhousev1alpha1.ClusterPluginDefinition{
+					TypeMeta:   metav1.TypeMeta{Kind: ClusterPluginDefinitionKind},
 					ObjectMeta: metav1.ObjectMeta{Name: "nginx"},
 					Spec: greenhousev1alpha1.PluginDefinitionSpec{
 						HelmChart: &greenhousev1alpha1.HelmChartReference{
@@ -79,6 +84,7 @@ var _ = Describe("validateCompatibility", func() {
 					},
 				},
 				pluginPreset: &greenhousev1alpha1.PluginPreset{
+					TypeMeta: metav1.TypeMeta{Kind: PluginPresetKind},
 					Spec: greenhousev1alpha1.PluginPresetSpec{
 						Plugin: greenhousev1alpha1.PluginSpec{
 							PluginDefinition: "nginx",
@@ -108,6 +114,7 @@ var _ = Describe("prepareValues", func() {
 		}
 
 		pluginDef = &greenhousev1alpha1.ClusterPluginDefinition{
+			TypeMeta:   metav1.TypeMeta{Kind: ClusterPluginDefinitionKind},
 			ObjectMeta: metav1.ObjectMeta{Name: "nginx"},
 			Spec: greenhousev1alpha1.PluginDefinitionSpec{
 				Options: []greenhousev1alpha1.PluginOption{
@@ -120,6 +127,7 @@ var _ = Describe("prepareValues", func() {
 		}
 
 		pluginPreset = &greenhousev1alpha1.PluginPreset{
+			TypeMeta: metav1.TypeMeta{Kind: PluginPresetKind},
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "nginx-preset",
 				Namespace: "test-org",
@@ -131,7 +139,7 @@ var _ = Describe("prepareValues", func() {
 			},
 		}
 
-		opts.clusterPluginDefinition = pluginDef
+		opts.pluginDefinition = pluginDef
 		opts.pluginPreset = pluginPreset
 	})
 
