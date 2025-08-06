@@ -54,6 +54,13 @@ var (
 		test.WithPluginLabel(greenhouseapis.LabelKeyOwnedBy, testTeam.Name),
 		test.WithPluginOptionValue("flatOption", test.AsAPIExtensionJSON("flatValue"), nil),
 		test.WithPluginOptionValue("nested.option", test.AsAPIExtensionJSON("nestedValue"), nil),
+		test.WithPluginOptionValue("nested.secretOption", nil, &greenhousev1alpha1.ValueFromSource{
+			Secret: &greenhousev1alpha1.SecretKeyReference{
+				Name: "test-cluster",
+				Key:  greenhouseapis.GreenHouseKubeConfigKey,
+			},
+		},
+		),
 	)
 	testPluginDefinition = test.NewClusterPluginDefinition(
 		test.Ctx,
