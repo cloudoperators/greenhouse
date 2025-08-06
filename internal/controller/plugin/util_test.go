@@ -50,8 +50,8 @@ var _ = Describe("validate utility functions", Ordered, func() {
 				"metadata": map[string]any{
 					"name":      "example-service",
 					"namespace": "default",
-					"labels": map[string]string{
-						"greenhouse.sap/exposeNamedPort": "https",
+					"annotations": map[string]string{
+						"greenhouse.sap/expose": "https",
 					},
 				},
 				"spec": map[string]any{
