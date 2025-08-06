@@ -197,7 +197,6 @@ func (r *OrganizationReconciler) EnsureCreated(ctx context.Context, object lifec
 		org.SetCondition(greenhousemetav1alpha1.FalseCondition(greenhousev1alpha1.ServiceProxyProvisioned, "", err.Error()))
 		return ctrl.Result{}, lifecycle.Failed, err
 	}
-	org.SetCondition(greenhousemetav1alpha1.TrueCondition(greenhousev1alpha1.ServiceProxyProvisioned, "", ""))
 
 	return ctrl.Result{}, lifecycle.Success, nil
 }
@@ -363,7 +362,7 @@ func (r *OrganizationReconciler) setStatus() lifecycle.Conditioner {
 		scimAPIAvailableCondition := r.checkSCIMAPIAvailability(ctx, org)
 		readyCondition := calculateReadyCondition(scimAPIAvailableCondition)
 		org.Status.SetConditions(scimAPIAvailableCondition, readyCondition)
-		UpdateMetrics(org)
+		UpdateOrganizationMetrics(org)
 	}
 }
 

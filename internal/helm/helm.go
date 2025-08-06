@@ -11,6 +11,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"maps"
 	"os"
 	"path/filepath"
 	"slices"
@@ -39,7 +40,7 @@ import (
 	greenhousemetav1alpha1 "github.com/cloudoperators/greenhouse/api/meta/v1alpha1"
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
 	"github.com/cloudoperators/greenhouse/internal/clientutil"
-	"github.com/cloudoperators/greenhouse/internal/metrics"
+	"github.com/cloudoperators/greenhouse/internal/util"
 )
 
 func init() {
@@ -61,7 +62,7 @@ const driftDetectionInterval = 60 * time.Minute
 func InstallOrUpgradeHelmChartFromPlugin(ctx context.Context, local client.Client, restClientGetter genericclioptions.RESTClientGetter, pluginDefinitionSpec greenhousev1alpha1.PluginDefinitionSpec, plugin *greenhousev1alpha1.Plugin) error {
 	// Early return if the pluginDefinition is not helm based
 	if pluginDefinitionSpec.HelmChart == nil {
-		metrics.UpdateReconcileTotalMetric(plugin, metrics.MetricResultError, metrics.MetricReasonHelmChartIsNotDefined)
+		util.UpdatePluginReconcileTotalMetric(plugin, util.MetricResultError, util.MetricReasonHelmChartIsNotDefined)
 		return fmt.Errorf("no helm chart defined in pluginDefinition.Spec.HelmChart for pluginDefinition %s", plugin.Spec.PluginDefinition)
 	}
 	latestRelease, isReleaseExists, err := isReleaseExistsForPlugin(ctx, restClientGetter, plugin)
@@ -72,42 +73,42 @@ func InstallOrUpgradeHelmChartFromPlugin(ctx context.Context, local client.Clien
 	if !isReleaseExists {
 		log.FromContext(ctx).Info("installing release for plugin", "namespace", plugin.Spec.ReleaseNamespace, "name", plugin.Name)
 		_, err = installRelease(ctx, local, restClientGetter, pluginDefinitionSpec, plugin, false)
-		metrics.UpdateReconcileTotalMetric(plugin, metrics.MetricResultError, metrics.MetricReasonInstallFailed)
+		util.UpdatePluginReconcileTotalMetric(plugin, util.MetricResultError, util.MetricReasonInstallFailed)
 		return err
 	}
 	helmChart, err := locateChartForPlugin(restClientGetter, pluginDefinitionSpec)
 	if err != nil {
-		metrics.UpdateReconcileTotalMetric(plugin, metrics.MetricResultError, metrics.MetricReasonUpgradeFailed)
+		util.UpdatePluginReconcileTotalMetric(plugin, util.MetricResultError, util.MetricReasonUpgradeFailed)
 		return err
 	}
 	// Avoid attempts to upgrade a failed release and attempt to resurrect it.
 	if latestRelease.Info != nil && latestRelease.Info.Status == release.StatusFailed {
 		log.FromContext(ctx).Info("attempting to reset release status", "current status", latestRelease.Info.Status.String())
 		if err := ResetHelmReleaseStatusToDeployed(restClientGetter, plugin); err != nil {
-			metrics.UpdateReconcileTotalMetric(plugin, metrics.MetricResultError, metrics.MetricReasonUpgradeFailed)
+			util.UpdatePluginReconcileTotalMetric(plugin, util.MetricResultError, util.MetricReasonUpgradeFailed)
 			return err
 		}
 	}
 	// Avoid upgrading a currently pending release.
 	if releaseStatus, ok := isCanReleaseBeUpgraded(latestRelease); !ok {
-		metrics.UpdateReconcileTotalMetric(plugin, metrics.MetricResultError, metrics.MetricReasonUpgradeFailed)
+		util.UpdatePluginReconcileTotalMetric(plugin, util.MetricResultError, util.MetricReasonUpgradeFailed)
 		return fmt.Errorf("cannot upgrade release %s/%s in status %s", latestRelease.Namespace, latestRelease.Name, releaseStatus.String())
 	}
 	log.FromContext(ctx).Info("upgrading release", "namespace", plugin.Spec.ReleaseNamespace, "name", plugin.Name)
 
 	c, err := clientutil.NewK8sClientFromRestClientGetter(restClientGetter)
 	if err != nil {
-		metrics.UpdateReconcileTotalMetric(plugin, metrics.MetricResultError, metrics.MetricReasonUpgradeFailed)
+		util.UpdatePluginReconcileTotalMetric(plugin, util.MetricResultError, util.MetricReasonUpgradeFailed)
 		return err
 	}
 
 	if err := replaceCustomResourceDefinitions(ctx, c, helmChart.CRDObjects(), true); err != nil {
-		metrics.UpdateReconcileTotalMetric(plugin, metrics.MetricResultError, metrics.MetricReasonUpgradeFailed)
+		util.UpdatePluginReconcileTotalMetric(plugin, util.MetricResultError, util.MetricReasonUpgradeFailed)
 		return err
 	}
 
 	if err := upgradeRelease(ctx, local, restClientGetter, pluginDefinitionSpec, plugin); err != nil {
-		metrics.UpdateReconcileTotalMetric(plugin, metrics.MetricResultError, metrics.MetricReasonUpgradeFailed)
+		util.UpdatePluginReconcileTotalMetric(plugin, util.MetricResultError, util.MetricReasonUpgradeFailed)
 		return err
 	}
 
@@ -501,7 +502,7 @@ func debug(format string, v ...any) {
 }
 
 /*
-convertFlatValuesToHelmValues shall converts flat values for a Helm chart yaml-compatible structure.
+ConvertFlatValuesToHelmValues shall converts flat values for a Helm chart yaml-compatible structure.
 Example:
 The input
 
@@ -513,7 +514,7 @@ is transformed to
 	  image:
 	    registry: foobar
 */
-func convertFlatValuesToHelmValues(values []greenhousemetav1alpha1.PluginOptionValue) (map[string]any, error) {
+func ConvertFlatValuesToHelmValues(values []greenhousemetav1alpha1.PluginOptionValue) (map[string]any, error) {
 	if values == nil {
 		return make(map[string]any, 0), nil
 	}
@@ -527,16 +528,14 @@ func convertFlatValuesToHelmValues(values []greenhousemetav1alpha1.PluginOptionV
 }
 
 // Taken from: https://github.com/helm/helm/blob/v3.10.3/pkg/cli/values/options.go#L99-L116
-func mergeMaps(a, b map[string]any) map[string]any {
+func MergeMaps(a, b map[string]any) map[string]any {
 	out := make(map[string]any, len(a))
-	for k, v := range a {
-		out[k] = v
-	}
+	maps.Copy(out, a)
 	for k, v := range b {
 		if v, ok := v.(map[string]any); ok {
 			if bv, ok := out[k]; ok {
 				if bv, ok := bv.(map[string]any); ok {
-					out[k] = mergeMaps(bv, v)
+					out[k] = MergeMaps(bv, v)
 					continue
 				}
 			}
@@ -550,17 +549,17 @@ func mergeMaps(a, b map[string]any) map[string]any {
 // The order is important as the values defined in the Helm chart can be overridden by the values defined in the Plugin.
 func getValuesForHelmChart(ctx context.Context, c client.Client, helmChart *chart.Chart, plugin *greenhousev1alpha1.Plugin) (map[string]any, error) {
 	// Copy the values from the Helm chart ensuring a non-nil map.
-	helmValues := mergeMaps(make(map[string]any), helmChart.Values)
+	helmValues := MergeMaps(make(map[string]any), helmChart.Values)
 	// Get values defined in plugin.
 	pluginValues, err := getValuesFromPlugin(ctx, c, plugin)
 	if err != nil {
 		return nil, err
 	}
-	helmPluginValues, err := convertFlatValuesToHelmValues(pluginValues)
+	helmPluginValues, err := ConvertFlatValuesToHelmValues(pluginValues)
 	if err != nil {
 		return nil, err
 	}
-	helmValues = mergeMaps(helmValues, helmPluginValues)
+	helmValues = MergeMaps(helmValues, helmPluginValues)
 	return helmValues, nil
 }
 

@@ -6,7 +6,6 @@ package organization
 import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	"github.com/onsi/gomega/gbytes"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -21,35 +20,38 @@ import (
 
 var _ = Describe("Organization ServiceProxyReconciler", Ordered, func() {
 	var setup *test.TestSetup
+	var org *greenhousev1alpha1.Organization
 	serviceProxyPluginDefinition := test.NewClusterPluginDefinition(test.Ctx, "service-proxy")
 
 	BeforeEach(func() {
 		setup = test.NewTestSetup(test.Ctx, test.K8sClient, "org-rbac-test")
 	})
 
-	When("plugin definition for service proxy is missing", func() {
-		It("should log about missing plugin definition and create plugin when it's added", func() {
+	Context("plugin definition for service proxy is missing", Ordered, func() {
+		It("should skip creating service-proxy", func() {
 			By("ensuring service-proxy plugin definition does not exist")
 			var pluginDefinition = new(greenhousev1alpha1.ClusterPluginDefinition)
 			err := test.K8sClient.Get(test.Ctx, types.NamespacedName{Name: "service-proxy", Namespace: ""}, pluginDefinition)
 			Expect(err).To(HaveOccurred(), "there should be an error getting the service-proxy plugin definition")
 
-			By("teeing logger to a custom writer")
-			tee := gbytes.NewBuffer()
-			GinkgoWriter.TeeTo(tee)
-			defer GinkgoWriter.ClearTeeWriters()
-
 			By("creating an organization")
-			org := setup.CreateDefaultOrgWithOIDCSecret(test.Ctx, "test-serviceproxy-org1")
+			org = setup.CreateDefaultOrgWithOIDCSecret(test.Ctx, "test-serviceproxy-org1")
 
-			By("ensuring ServiceProxyController logged about missing plugin definition")
-			Eventually(func() []byte {
-				return tee.Contents()
-			}).Should(ContainSubstring("plugin definition for service-proxy not found"),
-				"ServiceProxyController should log about missing plugin definition")
+			By("ensuring service-proxy plugin is not created for organization")
+			Eventually(func(g Gomega) {
+				err = test.K8sClient.Get(test.Ctx, types.NamespacedName{Name: org.Name}, org)
+				g.Expect(err).ToNot(HaveOccurred(), "there should be no error getting the organization")
+				serviceProxyCondition := org.Status.GetConditionByType(greenhousev1alpha1.ServiceProxyProvisioned)
+				g.Expect(serviceProxyCondition).ToNot(BeNil(), "ServiceProxyProvisioned condition should not be nil on Organization")
+				g.Expect(serviceProxyCondition.IsFalse()).To(BeTrue(), "ServiceProxyProvisioned condition should be False on Organization")
+				g.Expect(serviceProxyCondition.Reason).To(Equal(greenhousev1alpha1.ServiceProxyNotFound), "ServiceProxyProvisioned condition reason should be ServiceProxyNotFound")
+			}).Should(Succeed(), "service-proxy plugin should not be created for organization")
+		})
+	})
 
-			By("creating service-proxy plugin definition")
-			err = test.K8sClient.Create(test.Ctx, serviceProxyPluginDefinition)
+	Context("plugin definition for service proxy is present", Ordered, func() {
+		It("should create service-proxy plugin definition", func() {
+			err := test.K8sClient.Create(test.Ctx, serviceProxyPluginDefinition)
 			Expect(err).ToNot(HaveOccurred(), "there should be no error creating the service-proxy plugin definition")
 
 			By("ensuring a service-proxy plugin has been created for organization")
@@ -59,9 +61,6 @@ var _ = Describe("Organization ServiceProxyReconciler", Ordered, func() {
 				g.Expect(err).ToNot(HaveOccurred(), "service-proxy plugin should have been created by controller")
 			}).Should(Succeed(), "service-proxy plugin should have been created for organization")
 		})
-	})
-
-	When("plugin definition for service proxy is present", func() {
 		It("should create default organization", func() {
 			team := setup.CreateTeam(test.Ctx, "test-team1", test.WithTeamLabel(greenhouseapis.LabelKeySupportGroup, "true"))
 			defaultOrg := setup.CreateDefaultOrgWithOIDCSecret(test.Ctx, team.Name)

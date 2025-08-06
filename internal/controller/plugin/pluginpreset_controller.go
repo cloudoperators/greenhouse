@@ -87,6 +87,7 @@ func (r *PluginPresetReconciler) setConditions() lifecycle.Conditioner {
 
 		readyCondition := r.computeReadyCondition(pluginPreset.Status.StatusConditions)
 		ownerLabelCondition := util.ComputeOwnerLabelCondition(ctx, r.Client, pluginPreset)
+		util.UpdateOwnedByLabelMissingMetric(pluginPreset, ownerLabelCondition.IsFalse())
 		pluginPreset.Status.SetConditions(readyCondition, ownerLabelCondition)
 	}
 }
