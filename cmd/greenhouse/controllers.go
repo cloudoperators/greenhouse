@@ -11,6 +11,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 
 	"github.com/cloudoperators/greenhouse/internal/clientutil"
+	"github.com/cloudoperators/greenhouse/internal/controller/catalog"
 	clustercontrollers "github.com/cloudoperators/greenhouse/internal/controller/cluster"
 	fluxcontrollers "github.com/cloudoperators/greenhouse/internal/controller/flux"
 	organizationcontrollers "github.com/cloudoperators/greenhouse/internal/controller/organization"
@@ -43,6 +44,7 @@ var knownControllers = map[string]func(controllerName string, mgr ctrl.Manager) 
 	}).SetupWithManager,
 	"pluginPreset": (&plugincontrollers.PluginPresetReconciler{}).SetupWithManager,
 
+	"catalog":                 (&catalog.CatalogReconciler{}).SetupWithManager,
 	"pluginDefinition":        (&plugindefinitioncontroller.PluginDefinitionReconciler{}).SetupWithManager,
 	"clusterPluginDefinition": (&plugindefinitioncontroller.ClusterPluginDefinitionReconciler{}).SetupWithManager,
 

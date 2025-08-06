@@ -6,6 +6,7 @@ package flux
 import (
 	"context"
 	"strings"
+	"time"
 
 	sourcev1 "github.com/fluxcd/source-controller/api/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -14,6 +15,12 @@ import (
 
 const (
 	HelmRepositoryDefaultNamespace = "greenhouse" // TODO: make this configurable via args or env var
+)
+
+const (
+	DefaultInterval = 5 * time.Minute
+	DefaultTimeout  = 5 * time.Minute // TODO: make this configurable via annotations on plugin / environment variable (Test scenarios)
+	DefaultRetry    = 3               // TODO: make this also configurable via annotations on plugin
 )
 
 func GetSourceRepositoryType(repositoryURL string) string {
