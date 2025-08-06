@@ -94,10 +94,10 @@ var _ = Describe("PluginPreset Admission Tests", Ordered, func() {
 
 		err := test.K8sClient.Create(test.Ctx, cut)
 		Expect(err).To(HaveOccurred(), "there should be an error creating the PluginPreset with invalid fields")
-		Expect(err.Error()).To(ContainSubstring("ClusterName must not be set"), "the error message should reflect that plugin.clusterName should not be set")
+		Expect(err.Error()).To(ContainSubstring("spec.plugin.clusterName must not be set"), "the error message should reflect that plugin.clusterName should not be set")
 	})
 
-	It("should reject PluginPreset without ClusterSelector", func() {
+	It("should reject PluginPreset without ClusterName or ClusterSelector", func() {
 		cut := &greenhousev1alpha1.PluginPreset{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      pluginPresetCreate,
@@ -113,7 +113,34 @@ var _ = Describe("PluginPreset Admission Tests", Ordered, func() {
 
 		err := test.K8sClient.Create(test.Ctx, cut)
 		Expect(err).To(HaveOccurred())
-		Expect(err.Error()).To(Or(ContainSubstring("ClusterSelector must be set"), ContainSubstring("must specify either spec.clusterSelector.clusterName or spec.clusterSelector.labelSelector")))
+		Expect(err.Error()).To(Or(
+			ContainSubstring("must specify either spec.clusterName or spec.clusterSelector"),
+			ContainSubstring("must specify either spec.clusterSelector.clusterName or spec.clusterSelector.labelSelector"),
+		))
+	})
+
+	It("should reject PluginPreset with both ClusterName and ClusterSelector", func() {
+		cut := &greenhousev1alpha1.PluginPreset{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      pluginPresetCreate,
+				Namespace: test.TestNamespace,
+			},
+			Spec: greenhousev1alpha1.PluginPresetSpec{
+				ClusterName:     "cluster-a",
+				ClusterSelector: metav1.LabelSelector{MatchLabels: map[string]string{"foo": "bar"}},
+				Plugin: greenhousev1alpha1.PluginSpec{
+					PluginDefinition: pluginPresetDefinition,
+				},
+				ClusterOptionOverrides: []greenhousev1alpha1.ClusterOptionOverride{},
+			},
+		}
+
+		err := test.K8sClient.Create(test.Ctx, cut)
+		Expect(err).To(HaveOccurred())
+		Expect(err.Error()).To(Or(
+			ContainSubstring("cannot specify both spec.clusterName and spec.clusterSelector"),
+			ContainSubstring("cannot specify both spec.clusterSelector.clusterName and spec.clusterSelector.labelSelector"),
+		))
 	})
 
 	It("should reject PluginPreset with non-existing PluginDefinition", func() {
@@ -134,6 +161,25 @@ var _ = Describe("PluginPreset Admission Tests", Ordered, func() {
 		err := test.K8sClient.Create(test.Ctx, cut)
 		Expect(err).To(HaveOccurred())
 		Expect(err.Error()).To(ContainSubstring("PluginDefinition non-existing does not exist"))
+	})
+
+	It("should accept PluginPreset with ClusterName set", func() {
+		cut := &greenhousev1alpha1.PluginPreset{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      pluginPresetCreate + "-singlecluster",
+				Namespace: test.TestNamespace,
+				Labels:    map[string]string{greenhouseapis.LabelKeyOwnedBy: teamWithSupportGroupName},
+			},
+			Spec: greenhousev1alpha1.PluginPresetSpec{
+				Plugin: greenhousev1alpha1.PluginSpec{
+					PluginDefinition: pluginPresetDefinition,
+				},
+				ClusterName: "cluster-a",
+			},
+		}
+
+		Expect(test.K8sClient.Create(test.Ctx, cut)).
+			To(Succeed(), "there must be no error creating the PluginPreset")
 	})
 
 	It("should accept and reject updates to the PluginPreset", func() {

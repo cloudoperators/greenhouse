@@ -109,7 +109,7 @@ var _ = Describe("PluginPreset Admission Tests", Ordered, func() {
 		warns, err := webhookv1alpha2.ValidateCreatePluginPreset(test.Ctx, test.K8sClient, cut)
 		Expect(warns).To(BeNil(), "expected no warnings")
 		Expect(err).To(HaveOccurred(), "there should be an error creating the PluginPreset with invalid fields")
-		Expect(err).To(MatchError(ContainSubstring("ClusterName must not be set")), "the error message should reflect that plugin.clusterName should not be set")
+		Expect(err).To(MatchError(ContainSubstring("spec.plugin.clusterName must not be set")), "the error message should reflect that plugin.clusterName should not be set")
 	})
 
 	It("should reject PluginPreset without clusterName or labelSelector in ClusterSelector", func() {

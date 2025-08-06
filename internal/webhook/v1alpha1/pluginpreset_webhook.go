@@ -84,7 +84,7 @@ func ValidateCreatePluginPreset(ctx context.Context, c client.Client, o runtime.
 
 	// ensure ClusterName is not set in PluginSpec
 	if pluginPreset.Spec.Plugin.ClusterName != "" {
-		allErrs = append(allErrs, field.Invalid(field.NewPath("spec").Child("plugin").Child("clusterName"), pluginPreset.Spec.Plugin.ClusterName, "ClusterName must not be set"))
+		allErrs = append(allErrs, field.Invalid(field.NewPath("spec").Child("plugin").Child("clusterName"), pluginPreset.Spec.Plugin.ClusterName, "spec.plugin.clusterName must not be set"))
 	}
 
 	if err := webhook.ValidateReleaseName(pluginPreset.Spec.Plugin.ReleaseName); err != nil {
