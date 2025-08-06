@@ -45,11 +45,18 @@ const (
 	// LabelKeyCluster is used to identify corresponding Cluster for the resource.
 	LabelKeyCluster = "greenhouse.sap/cluster"
 
-	// LabelKeyExposeService is applied to services that are part of a PluginDefinitions Helm chart to expose them via the central Greenhouse infrastructure.
-	LabelKeyExposeService = "greenhouse.sap/expose"
+	// AnnotationKeyExpose marks services and ingresses for exposure via Plugin status.
+	// For services: set to "true" or specify a named port to be exposed via service-proxy.
+	// For ingresses: set to "true" to expose the ingress URL directly.
+	AnnotationKeyExpose = "greenhouse.sap/expose"
 
-	// LabelKeyExposeNamedPort is specifying the port to be exposed by name. LabelKeyExposeService needs to be set. Defaults to the first port if the named port is not found.
-	LabelKeyExposeNamedPort = "greenhouse.sap/exposeNamedPort"
+	// AnnotationKeyExposeNamedPort specifies which service port to expose by name when AnnotationKeyExpose is set.
+	// Only applies to services. Defaults to the first port if the named port is not found.
+	AnnotationKeyExposeNamedPort = "greenhouse.sap/exposeNamedPort"
+
+	// AnnotationKeyExposeIngressHost specifies which host to expose when an ingress has multiple host rules.
+	// Only applies to ingresses with AnnotationKeyExpose set. Defaults to the first host if not specified.
+	AnnotationKeyExposeIngressHost = "greenhouse.sap/exposeHost"
 
 	// LabelKeyOwnedBy is used to identify the owning support-group team of a resource.
 	LabelKeyOwnedBy = "greenhouse.sap/owned-by"

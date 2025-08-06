@@ -29,13 +29,38 @@ spec:
     - ...
 ```
 
-### Exposed services
+### Exposed services and ingresses
 
-Plugins deploying Helm Charts into remote clusters support exposed services.
+Plugins deploying Helm Charts into remote clusters support exposing their services and ingresses in two ways:
 
-By adding the following label to a service in helm chart it will become accessible from the central greenhouse system via a service proxy:
+#### Service exposure via service-proxy
 
-`greenhouse.sap/expose: "true"`
+Services can be exposed through Greenhouse's central service-proxy by adding this annotation:
+
+```yaml
+annotations:
+  greenhouse.sap/expose: "true"
+```
+
+For services with multiple ports, you can specify which port to expose:
+
+```yaml
+annotations:
+  greenhouse.sap/expose: "true"
+  greenhouse.sap/exposeNamedPort: "http"  # optional, defaults to first port
+```
+
+#### Direct ingress exposure
+
+Ingresses can be exposed directly using their external URLs:
+
+```yaml
+annotations:
+  greenhouse.sap/expose: "true"
+  greenhouse.sap/exposeHost: "api.example.com"  # optional, for multi-host ingresses
+```
+
+Both types of exposures appear in the Plugin's `status.exposedServices` with different types: `service` or `ingress`.
 
 ## Deploying a Plugin
 
@@ -51,9 +76,19 @@ kubectl --namespace=<organization name> create -f plugin.yaml
 
 2. Check in the remote cluster that all plugin resources are created in the organization namespace.
 
-### URLs for exposed services
+### URLs for exposed services and ingresses
 
-After deploying the plugin to a remote cluster, ExposedServices section in Plugin's status provides an overview of the Plugins services that are centrally exposed. It maps the exposed URL to the service found in the manifest.
+After deploying the plugin to a remote cluster, the ExposedServices section in Plugin's status provides an overview of the exposed resources. It maps URLs to both services and ingresses found in the manifest.
 
-- The URLs for exposed services are created in the following pattern: `$https://$cluster--$hash.$organisation.$basedomain`. The `$hash` is computed from `service--$namespace`.
-- When deploying a plugin to the central cluster, the exposed services won't have their URLs defined, which will be reflected in the Plugin's Status.
+#### Service-proxy URLs (for services)
+
+- Services exposed through service-proxy use the pattern: `https://$cluster--$hash.$organization.$basedomain`
+- The `$hash` is computed from `service--$namespace`
+
+#### Direct ingress URLs (for ingresses)
+
+- Ingresses are exposed using their actual hostnames: `https://api.example.com` or `http://internal.service.com`
+- Protocol (http/https) is automatically detected from the ingress TLS configuration
+- The host is taken from `greenhouse.sap/exposeHost` annotation or defaults to the first host rule
+
+Both types are listed together in `status.exposedServices` with their respective types for easy identification.
