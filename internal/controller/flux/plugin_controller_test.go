@@ -46,7 +46,7 @@ var (
 		Type: greenhouseapis.SecretTypeKubeConfig,
 	}
 
-	testPlugin = test.NewPlugin(test.Ctx, "test-plugindefinition", test.TestNamespace,
+	testPlugin = test.NewPlugin("test-plugindefinition", test.TestNamespace,
 		test.WithCluster("test-cluster"),
 		test.WithPluginDefinition("test-plugindefinition"),
 		test.WithReleaseName("release-test"),
@@ -63,7 +63,6 @@ var (
 		),
 	)
 	testPluginDefinition = test.NewClusterPluginDefinition(
-		test.Ctx,
 		"test-plugindefinition",
 		test.AppendPluginOption(
 			greenhousev1alpha1.PluginOption{
