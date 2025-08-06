@@ -540,7 +540,6 @@ func getExposedIngressesForPluginFromHelmRelease(restClientGetter genericcliopti
 // 1. Services (ServiceTypeService): Exposed via service-proxy for internal routing
 //   - Discovered from services with "greenhouse.sap/expose" annotation
 //   - URLs are generated using the service-proxy pattern
-//   - Requires plugin.Spec.ClusterName to be set for routing
 //
 // 2. Ingresses (ServiceTypeIngress): Exposed directly via external URLs
 //   - Discovered from ingresses with "greenhouse.sap/expose" annotation

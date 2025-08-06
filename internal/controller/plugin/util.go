@@ -155,27 +155,47 @@ func getHostAndPortForExposedIngress(o runtime.Object) (host string, port int32,
 		return "", 0, errors.New("ingress has no rules")
 	}
 
-	isHTTPS := len(ingress.Spec.TLS) > 0
-	port = int32(80)
-	if isHTTPS {
-		port = 443
-	}
-
 	if specificHost := ingress.Annotations[greenhouseapis.AnnotationKeyExposeIngressHost]; specificHost != "" {
 		for _, rule := range ingress.Spec.Rules {
 			if rule.Host == specificHost {
-				return rule.Host, port, nil
+				host = rule.Host
+				break
 			}
 		}
-		return "", 0, fmt.Errorf("specified host %q not found in ingress rules", specificHost)
+		if host == "" {
+			return "", 0, fmt.Errorf("specified host %q not found in ingress rules", specificHost)
+		}
+	} else {
+		if ingress.Spec.Rules[0].Host == "" {
+			return "", 0, errors.New("first ingress rule has no host")
+		}
+		host = ingress.Spec.Rules[0].Host
 	}
 
-	firstRule := ingress.Spec.Rules[0]
-	if firstRule.Host == "" {
-		return "", 0, errors.New("first ingress rule has no host")
+	isTLS := false
+	for _, tls := range ingress.Spec.TLS {
+		if len(tls.Hosts) == 0 {
+			isTLS = true
+			break
+		}
+		for _, h := range tls.Hosts {
+			if h == host {
+				isTLS = true
+				break
+			}
+		}
+		if isTLS {
+			break
+		}
 	}
 
-	return firstRule.Host, port, nil
+	if isTLS {
+		port = 443
+	} else {
+		port = 80
+	}
+
+	return host, port, nil
 }
 
 func convertRuntimeObject[T any](o any) (*T, error) {
