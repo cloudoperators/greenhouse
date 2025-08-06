@@ -24,7 +24,7 @@ func GetPluginOptionValuesForPlugin(ctx context.Context, c client.Client, plugin
 	}
 	values := mergePluginAndPluginOptionValueSlice(pluginDefinition.Spec.Options, plugin.Spec.OptionValues)
 	// Enrich with default greenhouse values.
-	greenhouseValues, err := getGreenhouseValues(ctx, c, *plugin)
+	greenhouseValues, err := GetGreenhouseValues(ctx, c, *plugin)
 	if err != nil {
 		return nil, err
 	}
@@ -66,7 +66,7 @@ func mergePluginOptionValues(dst, src []greenhousev1alpha1.PluginOptionValue) []
 	return dst
 }
 
-// getGreenhouseValues generate values for greenhouse core resources in the form:
+// GetGreenhouseValues generate values for greenhouse core resources in the form:
 //
 //	global:
 //	  greenhouse:
@@ -74,7 +74,7 @@ func mergePluginOptionValues(dst, src []greenhousev1alpha1.PluginOptionValue) []
 //		  - <name>
 //		teams:
 //		  - <name>
-func getGreenhouseValues(ctx context.Context, c client.Client, p greenhousev1alpha1.Plugin) ([]greenhousev1alpha1.PluginOptionValue, error) {
+func GetGreenhouseValues(ctx context.Context, c client.Client, p greenhousev1alpha1.Plugin) ([]greenhousev1alpha1.PluginOptionValue, error) {
 	greenhouseValues := make([]greenhousev1alpha1.PluginOptionValue, 0)
 	var clusterList = new(greenhousev1alpha1.ClusterList)
 	if err := c.List(ctx, clusterList, &client.ListOptions{Namespace: p.GetNamespace()}); err != nil {

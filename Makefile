@@ -49,10 +49,8 @@ help: ## Display this help.
 ##@ Development
 
 .PHONY: generate-all
-generate-all: generate generate-manifests generate-documentation  ## Generate code, manifests and documentation.
-
-.PHONY: manifests
-manifests: generate-manifests generate-documentation generate-types
+generate-all: generate manifests generate-documentation generate-types ## Generate code, manifests and documentation.
+	docker run --rm -v $(shell pwd):/github/workspace $(IMG_LICENSE_EYE) -c .github/licenserc.yaml header fix
 
 .PHONY: install
 install: kustomize
@@ -62,15 +60,14 @@ install: kustomize
 ## CRD manifests are generated in hack/crd/bases
 ## Patches for CRD conversion webhooks need to be created under hack/crd/patches
 ## filename should be in the format webhook.*<group>*.*<kind>*.yaml"
-.PHONY: generate-manifests
-generate-manifests: controller-gen ## Generate WebhookConfiguration, ClusterRole and CustomResourceDefinition objects.
+.PHONY: manifests
+manifests: controller-gen ## Generate WebhookConfiguration, ClusterRole and CustomResourceDefinition objects.
 	$(CONTROLLER_GEN) crd paths="./api/..." output:crd:artifacts:config=hack/crd/bases
 	GOBIN=$(LOCALBIN) go run ./hack/generate.go --crd-dir="./hack/crd" --charts-crd-dir=$(CRD_MANIFESTS_PATH)
 	rm -rf hack/crd/bases
 
 	$(CONTROLLER_GEN) rbac:roleName=manager-role webhook paths="./internal/webhook/..." paths="./internal/controller/..." output:artifacts:config=$(TEMPLATES_MANIFESTS_PATH)
 	hack/helmify $(TEMPLATES_MANIFESTS_PATH)
-	docker run --rm -v $(shell pwd):/github/workspace $(IMG_LICENSE_EYE) -c .github/licenserc.yaml header fix
 
 .PHONY: generate-open-api-spec
 generate-open-api-spec: VERSION = main
@@ -110,7 +107,7 @@ generate-documentation: check-gen-crd-api-reference-docs
 	$(GEN_DOCS) -api-dir=$(GEN_DOCS_API_DIR) -config=$(GEN_DOCS_CONFIG) -template-dir=$(GEN_DOCS_TEMPLATE_DIR) -out-file=$(GEN_DOCS_OUT_FILE)
 
 .PHONY: test
-test: generate-manifests generate envtest flux-crds ## Run tests.
+test: manifests generate envtest flux-crds ## Run tests.
 	KUBEBUILDER_ASSETS="$(shell $(ENVTEST) use $(ENVTEST_K8S_VERSION) -p path)" go test ./... -coverprofile cover.out -v
 
 .PHONY: flux-crds
@@ -168,7 +165,7 @@ ifndef ignore-not-found
 endif
 
 .PHONY: kustomize-build-crds
-kustomize-build-crds: generate-manifests kustomize
+kustomize-build-crds: manifests kustomize
 	$(KUSTOMIZE) build $(CRD_MANIFESTS_PATH)
 	
 ##@ Build Dependencies
@@ -238,7 +235,7 @@ $(GOLINT): $(LOCALBIN)
 	GOBIN=$(LOCALBIN) go install github.com/nunnatsa/ginkgolinter/cmd/ginkgolinter@v$(GINKGOLINTER_VERSION)
 
 .PHONY: serve-docs
-serve-docs: generate-manifests
+serve-docs: manifests
 ifeq (, $(shell which hugo))
 	@echo "Hugo is not installed in your machine. Please install it to serve the documentation locally. Please refer to https://gohugo.io/installation/ for installation instructions."
 else
