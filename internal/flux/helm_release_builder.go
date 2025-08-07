@@ -15,12 +15,6 @@ import (
 	fluxmeta "github.com/fluxcd/pkg/apis/meta"
 )
 
-const (
-	DefaultInterval = 5 * time.Minute
-	DefaultTimeout  = 5 * time.Minute // TODO: make this configurable via annotations on plugin / environment variable (Test scenarios)
-	DefaultRetry    = 3               // TODO: make this also configurable via annotations on plugin
-)
-
 type HelmReleaseBuilder interface {
 	WithChart(specRef helmcontroller.HelmChartTemplateSpec) *helmReleaseBuilder
 	WithMaxHistory(num int) *helmReleaseBuilder

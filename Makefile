@@ -108,12 +108,13 @@ generate-documentation: check-gen-crd-api-reference-docs
 
 .PHONY: test
 test: manifests generate envtest flux-crds ## Run tests.
-	KUBEBUILDER_ASSETS="$(shell $(ENVTEST) use $(ENVTEST_K8S_VERSION) -p path)" go test ./... -coverprofile cover.out -v
+	KUBEBUILDER_ASSETS="$(shell $(ENVTEST) use $(ENVTEST_K8S_VERSION) -p path)" go test ./... -coverprofile cover.out -v > ginkgo.log 2>&1
 
 .PHONY: flux-crds
 flux-crds: kustomize
 	mkdir -p bin/flux
-	$(KUSTOMIZE) build config/samples/flux > bin/flux/crds.yaml
+	$(KUSTOMIZE) build config/samples/flux/crds > bin/flux/crds.yaml
+
 .PHONY: fmt
 fmt: goimports
 	GOBIN=$(LOCALBIN) go fmt ./...
@@ -350,4 +351,8 @@ cert-manager: kustomize
 
 .PHONY: flux
 flux: kustomize
-	-$(KUSTOMIZE) build config/flux | kubectl apply -f -
+	-$(KUSTOMIZE) build config/samples/flux | kubectl apply -f -
+
+.PHONY: license
+license:
+	docker run --rm -v $(shell pwd):/github/workspace $(IMG_LICENSE_EYE) -c .github/licenserc.yaml header fix
