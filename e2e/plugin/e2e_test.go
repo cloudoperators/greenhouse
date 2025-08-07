@@ -109,8 +109,7 @@ var _ = Describe("Plugin E2E", Ordered, func() {
 		Expect(err).NotTo(HaveOccurred())
 		Expect(len(pluginDefinitionList.Items)).To(BeEquivalentTo(1))
 
-		By("Creating the plugin")
-		// Creating plugin with release name
+		By("Creating the plugin with release name")
 		testPlugin := fixtures.PreparePlugin("test-nginx-plugin-1", env.TestNamespace,
 			test.WithPluginDefinition(testPluginDefinition.Name),
 			test.WithCluster(remoteClusterName),
@@ -208,8 +207,7 @@ var _ = Describe("Plugin E2E", Ordered, func() {
 		Expect(err).NotTo(HaveOccurred())
 		Expect(len(pluginDefinitionList.Items)).To(BeEquivalentTo(1))
 
-		By("Prepare the plugin")
-		// Creating plugin with release name
+		By("Prepare the plugin with release name")
 		testPlugin := fixtures.PreparePlugin("test-nginx-plugin-2", env.TestNamespace,
 			test.WithPluginDefinition(testPluginDefinition.Name),
 			test.WithReleaseName("test-nginx-plugin"),
@@ -363,8 +361,7 @@ var _ = Describe("Plugin E2E", Ordered, func() {
 		By("Setting the HELM_RELEASE_TIMEOUT to 5 seconds")
 		Expect(os.Setenv("HELM_RELEASE_TIMEOUT", "5")).To(Succeed(), "there should be no error setting HELM_RELEASE_TIMEOUT env")
 
-		By("Preparing the plugin")
-		// Creating plugin with release name
+		By("Preparing the plugin with release name")
 		plugin := fixtures.PreparePlugin("test-cert-manager-plugin", env.TestNamespace,
 			test.WithPluginDefinition(pluginDefinition.Name),
 			test.WithCluster(remoteClusterName),
@@ -450,14 +447,14 @@ var _ = Describe("Plugin E2E", Ordered, func() {
 		pluginDefinitionList := &greenhousev1alpha1.ClusterPluginDefinitionList{}
 		err = adminClient.List(ctx, pluginDefinitionList)
 		Expect(err).NotTo(HaveOccurred())
-		Expect(len(pluginDefinitionList.Items)).To(BeEquivalentTo(1))
+		Expect(pluginDefinitionList.Items).To(HaveLen(1))
 
 		By("Checking the helmrepository is ready")
 		Eventually(func(g Gomega) {
 			helmRepositoryList := &sourcecontroller.HelmRepositoryList{}
 			err = adminClient.List(ctx, helmRepositoryList)
 			g.Expect(err).NotTo(HaveOccurred())
-			g.Expect(len(helmRepositoryList.Items)).To(BeEquivalentTo(1))
+			g.Expect(helmRepositoryList.Items).To(HaveLen(1))
 			g.Expect(helmRepositoryList.Items[0].Spec.URL).To(Equal("oci://ghcr.io/stefanprodan/charts"), "the helm repository URL should match the expected value")
 		})
 
@@ -466,7 +463,9 @@ var _ = Describe("Plugin E2E", Ordered, func() {
 			test.WithPluginDefinition(testPluginDefinition.Name),
 			test.WithReleaseName("test-podinfo-plugin"),
 			test.WithReleaseNamespace(env.TestNamespace),
-			test.WithPluginOptionValue("replicaCount", &apiextensionsv1.JSON{Raw: []byte("1")}, nil))
+			test.WithPluginOptionValue("replicaCount", &apiextensionsv1.JSON{Raw: []byte("1")}, nil),
+			test.WithPluginLabel(greenhouseapis.LabelKeyOwnedBy, team.Name),
+		)
 
 		By("Add labels to remote cluster")
 		remoteCluster := &greenhousev1alpha1.Cluster{}
@@ -479,26 +478,21 @@ var _ = Describe("Plugin E2E", Ordered, func() {
 		Expect(err).ToNot(HaveOccurred())
 
 		By("Creating the plugin preset")
-		testPluginPreset := &greenhousev1alpha1.PluginPreset{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      "test-podinfo-plugin-preset",
-				Namespace: env.TestNamespace,
-				Labels: map[string]string{
-					"greenhouse.sap/deployment-tool": "flux",
-				},
-				Annotations: map[string]string{
-					"greenhouse.sap/propagate-labels": "greenhouse.sap/deployment-tool",
-				},
-			},
-			Spec: greenhousev1alpha1.PluginPresetSpec{
-				Plugin: testPlugin.Spec,
-				ClusterSelector: metav1.LabelSelector{
+		testPluginPreset := test.NewPluginPreset("test-podinfo-plugin-preset", env.TestNamespace,
+			test.WithPluginPresetLabel(greenhouseapis.LabelKeyOwnedBy, team.Name),
+			test.WithPluginPresetLabel("greenhouse.sap/deployment-tool", "flux"),
+			test.WithPluginPresetAnnotations(map[string]string{
+				"greenhouse.sap/propagate-labels": "greenhouse.sap/deployment-tool",
+			}),
+			test.WithPluginPresetClusterSelector(greenhousev1alpha2.ClusterSelector{
+				LabelSelector: metav1.LabelSelector{
 					MatchLabels: map[string]string{
 						"app": "test-cluster",
 					},
 				},
-			},
-		}
+			}),
+			test.WithPluginPresetPluginTemplateSpec(greenhousev1alpha2.PluginTemplateSpec(testPlugin.Spec)),
+		)
 		err = adminClient.Create(ctx, testPluginPreset)
 		Expect(client.IgnoreAlreadyExists(err)).ToNot(HaveOccurred())
 
@@ -507,7 +501,7 @@ var _ = Describe("Plugin E2E", Ordered, func() {
 			pluginList := &greenhousev1alpha1.PluginList{}
 			err = adminClient.List(ctx, pluginList)
 			g.Expect(err).NotTo(HaveOccurred())
-			g.Expect(len(pluginList.Items)).To(BeEquivalentTo(1))
+			g.Expect(pluginList.Items).To(HaveLen(1))
 			g.Expect(pluginList.Items[0].Labels).To(HaveKeyWithValue("greenhouse.sap/deployment-tool", "flux"), "plugin should have the greenhouse.sap/deployment-tool label set to flux")
 		}).Should(Succeed())
 
@@ -516,7 +510,7 @@ var _ = Describe("Plugin E2E", Ordered, func() {
 			helmReleaseList := &helmcontroller.HelmReleaseList{}
 			err = adminClient.List(ctx, helmReleaseList)
 			g.Expect(err).NotTo(HaveOccurred())
-			g.Expect(len(helmReleaseList.Items)).To(BeEquivalentTo(1))
+			g.Expect(helmReleaseList.Items).To(HaveLen(1))
 		}).Should(Succeed())
 
 		By("Checking the deployment is created on the remote cluster")
@@ -524,7 +518,7 @@ var _ = Describe("Plugin E2E", Ordered, func() {
 			deploymentList := &appsv1.DeploymentList{}
 			err = remoteClient.List(ctx, deploymentList, client.InNamespace(env.TestNamespace))
 			g.Expect(err).NotTo(HaveOccurred())
-			g.Expect(len(deploymentList.Items)).To(BeEquivalentTo(1), "there should be exactly one deployment")
+			g.Expect(deploymentList.Items).To(HaveLen(1), "there should be exactly one deployment")
 			g.Expect(deploymentList.Items[0].Spec.Replicas).To(PointTo(Equal(int32(1))), "the deployment should have 1 replica")
 		}).Should(Succeed())
 
@@ -532,6 +526,5 @@ var _ = Describe("Plugin E2E", Ordered, func() {
 		test.EventuallyDeleted(ctx, adminClient, testPluginPreset)
 		By("Deleting the plugin definition")
 		test.EventuallyDeleted(ctx, adminClient, testPluginDefinition)
-
 	})
 })
