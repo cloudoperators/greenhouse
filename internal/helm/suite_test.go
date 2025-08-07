@@ -11,6 +11,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	greenhouseapis "github.com/cloudoperators/greenhouse/api"
+	greenhousemetav1alpha1 "github.com/cloudoperators/greenhouse/api/meta/v1alpha1"
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
 	"github.com/cloudoperators/greenhouse/internal/test"
 	webhookv1alpha1 "github.com/cloudoperators/greenhouse/internal/webhook/v1alpha1"
@@ -35,14 +36,14 @@ var _ = AfterSuite(func() {
 var (
 	namespace = "test-org"
 
-	optionValue = &greenhousev1alpha1.PluginOptionValue{
+	optionValue = &greenhousemetav1alpha1.PluginOptionValue{
 		Name:  "key1",
 		Value: test.MustReturnJSONFor("pluginValue1"),
 	}
-	secretOptionValue = &greenhousev1alpha1.PluginOptionValue{
+	secretOptionValue = &greenhousemetav1alpha1.PluginOptionValue{
 		Name: "secretValue",
-		ValueFrom: &greenhousev1alpha1.ValueFromSource{
-			Secret: &greenhousev1alpha1.SecretKeyReference{
+		ValueFrom: &greenhousemetav1alpha1.ValueFromSource{
+			Secret: &greenhousemetav1alpha1.SecretKeyReference{
 				Name: "plugindefinition-secret",
 				Key:  "secretKey",
 			},
@@ -150,7 +151,7 @@ var (
 		Spec: greenhousev1alpha1.PluginSpec{
 			PluginDefinition: "test-plugindefinition",
 			ClusterName:      "test-cluster",
-			OptionValues:     []greenhousev1alpha1.PluginOptionValue{},
+			OptionValues:     []greenhousemetav1alpha1.PluginOptionValue{},
 			ReleaseNamespace: "test-release-namespace",
 		},
 	}

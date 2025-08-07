@@ -4,7 +4,6 @@
 package v1alpha1
 
 import (
-	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	greenhousemetav1alpha1 "github.com/cloudoperators/greenhouse/api/meta/v1alpha1"
@@ -21,7 +20,7 @@ type PluginSpec struct {
 	DisplayName string `json:"displayName,omitempty"`
 
 	// Values are the values for a PluginDefinition instance.
-	OptionValues []PluginOptionValue `json:"optionValues,omitempty"`
+	OptionValues []greenhousemetav1alpha1.PluginOptionValue `json:"optionValues,omitempty"`
 
 	// ClusterName is the name of the cluster the plugin is deployed to. If not set, the plugin is deployed to the greenhouse cluster.
 	ClusterName string `json:"clusterName,omitempty"`
@@ -37,24 +36,6 @@ type PluginSpec struct {
 	// +kubebuilder:validation:XValidation:rule="self == oldSelf",message="ReleaseName is immutable"
 	// +kubebuilder:validation:MaxLength=53
 	ReleaseName string `json:"releaseName,omitempty"`
-}
-
-// PluginOptionValue is the value for a PluginOption.
-type PluginOptionValue struct {
-	// Name of the values.
-	Name string `json:"name"`
-	// Value is the actual value in plain text.
-	Value *apiextensionsv1.JSON `json:"value,omitempty"`
-	// ValueFrom references a potentially confidential value in another source.
-	ValueFrom *ValueFromSource `json:"valueFrom,omitempty"`
-}
-
-// ValueJSON returns the value as JSON.
-func (v *PluginOptionValue) ValueJSON() string {
-	if v.Value == nil {
-		return ""
-	}
-	return string(v.Value.Raw)
 }
 
 const (

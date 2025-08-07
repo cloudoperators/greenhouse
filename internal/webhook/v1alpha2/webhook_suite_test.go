@@ -19,10 +19,12 @@ func TestWebhooks(t *testing.T) {
 }
 
 var _ = BeforeSuite(func() {
+	test.RegisterWebhook("clusterPluginDefinitionWebhook", v1alpha1.SetupClusterPluginDefinitionWebhookWithManager)
 	test.RegisterWebhook("clusterValidation", v1alpha1.SetupClusterWebhookWithManager)
 	test.RegisterWebhook("secretsWebhook", v1alpha1.SetupSecretWebhookWithManager)
 	test.RegisterWebhook("teamsWebhook", v1alpha1.SetupTeamWebhookWithManager)
 	test.RegisterWebhook("teamRoleWebhook", v1alpha1.SetupTeamRoleWebhookWithManager)
+	test.RegisterWebhook("pluginPresetV1alpha2Webhook", SetupPluginPresetWebhookWithManager)
 	test.RegisterWebhook("teamRolebindingV1alpha2Webhook", SetupTeamRoleBindingWebhookWithManager)
 	test.TestBeforeSuite()
 })

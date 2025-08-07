@@ -65,7 +65,7 @@ func ValidateCreateRoleBinding(ctx context.Context, c client.Client, o runtime.O
 		return nil, apierrors.NewInternalError(err)
 	}
 
-	if err := validateClusterSelector(rb); err != nil {
+	if err := validateClusterSelector(rb.Spec.ClusterSelector, rb.GroupVersionKind().GroupKind()); err != nil {
 		return nil, err
 	}
 
@@ -86,7 +86,7 @@ func ValidateUpdateRoleBinding(ctx context.Context, c client.Client, old, cur ru
 		return nil, nil
 	}
 	switch {
-	case validateClusterSelector(curRB) != nil:
+	case validateClusterSelector(curRB.Spec.ClusterSelector, curRB.GroupVersionKind().GroupKind()) != nil:
 		return nil, apierrors.NewForbidden(
 			schema.GroupResource{
 				Group:    oldRB.GroupVersionKind().Group,
@@ -127,18 +127,6 @@ func ValidateUpdateRoleBinding(ctx context.Context, c client.Client, old, cur ru
 
 func ValidateDeleteRoleBinding(_ context.Context, _ client.Client, _ runtime.Object) (admission.Warnings, error) {
 	return nil, nil
-}
-
-// validateClusterSelector checks if the TeamRoleBinding has a valid clusterSelector.
-func validateClusterSelector(rb *greenhousev1alpha2.TeamRoleBinding) error {
-	if rb.Spec.ClusterSelector.Name != "" && (len(rb.Spec.ClusterSelector.LabelSelector.MatchLabels) > 0 || len(rb.Spec.ClusterSelector.LabelSelector.MatchExpressions) > 0) {
-		return apierrors.NewInvalid(rb.GroupVersionKind().GroupKind(), rb.Name, field.ErrorList{field.Invalid(field.NewPath("spec", "clusterSelector", "name"), rb.Spec.ClusterSelector.Name, "cannot specify both spec.clusterSelector.Name and spec.clusterSelector.labelSelector")})
-	}
-
-	if rb.Spec.ClusterSelector.Name == "" && (len(rb.Spec.ClusterSelector.LabelSelector.MatchLabels) == 0 && len(rb.Spec.ClusterSelector.LabelSelector.MatchExpressions) == 0) {
-		return apierrors.NewInvalid(rb.GroupVersionKind().GroupKind(), rb.Name, field.ErrorList{field.Invalid(field.NewPath("spec", "clusterSelector", "name"), rb.Spec.ClusterSelector.Name, "must specify either spec.clusterSelector.name or spec.clusterSelector.labelSelector")})
-	}
-	return nil
 }
 
 // isClusterScoped returns true if the TeamRoleBinding will create ClusterRoleBindings.
