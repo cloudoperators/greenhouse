@@ -162,6 +162,7 @@ func TestURLGenerationWithProtocols(t *testing.T) {
 								Name:      "test",
 								Port:      8080,
 								Protocol:  tc.protocol,
+								Type:      greenhousev1alpha1.ServiceTypeService,
 							},
 						},
 					},
