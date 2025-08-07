@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"slices"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/fields"
@@ -270,6 +271,11 @@ func addValuesToHelmRelease(ctx context.Context, c client.Client, plugin *greenh
 	if err != nil {
 		return nil, err
 	}
+
+	// remove all option values that are set from a secret, as these have a nil value
+	optionValues = slices.DeleteFunc(optionValues, func(v greenhousev1alpha1.PluginOptionValue) bool {
+		return v.ValueFrom != nil && v.ValueFrom.Secret != nil
+	})
 
 	jsonValue, err := helm.ConvertFlatValuesToHelmValues(optionValues)
 	if err != nil {
