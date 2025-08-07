@@ -33,7 +33,7 @@ type ManifestObject struct {
 type ManifestObjectFilter struct {
 	APIVersion,
 	Kind string
-	Labels map[string]string
+	Annotations map[string]string
 }
 
 type ObjectList struct {
@@ -68,16 +68,17 @@ func (o *ManifestObjectFilter) Matches(obj *resource.Info) bool {
 	if o.APIVersion != "" && o.APIVersion != gvk.Version {
 		return false
 	}
-	if o.Labels != nil {
+	if o.Annotations != nil {
 		metaAccessor, err := meta.Accessor(obj.Object)
 		if err != nil {
 			return false
 		}
-		if metaAccessor.GetLabels() == nil {
+
+		if metaAccessor.GetAnnotations() == nil {
 			return false
 		}
-		for k, v := range o.Labels {
-			val, ok := metaAccessor.GetLabels()[k]
+		for k, v := range o.Annotations {
+			val, ok := metaAccessor.GetAnnotations()[k]
 			if !ok || v != val {
 				return false
 			}
