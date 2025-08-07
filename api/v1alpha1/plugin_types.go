@@ -133,8 +133,8 @@ type Service struct {
 	Namespace string `json:"namespace"`
 	// Name is the name of the service in the target cluster.
 	Name string `json:"name"`
-	// Port is the port of the service.
-	Port int32 `json:"port"`
+	// Port is the port of the service. Zero for ingresses where port is not applicable.
+	Port int32 `json:"port,omitempty"`
 	// Protocol is the protocol of the service.
 	Protocol *string `json:"protocol,omitempty"`
 	// Type is the type of exposed service.

@@ -132,6 +132,10 @@ func (pm *ProxyManager) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.R
 	}
 	for _, plugin := range plugins {
 		for url, svc := range plugin.Status.ExposedServices {
+			if svc.Type != greenhousev1alpha1.ServiceTypeService {
+				continue
+			}
+
 			u := *k8sAPIURL // copy URL struct
 
 			if svc.Protocol != nil && *svc.Protocol == "https" {

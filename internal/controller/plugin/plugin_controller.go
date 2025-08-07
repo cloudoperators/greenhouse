@@ -490,8 +490,8 @@ func getExposedServicesForPluginFromHelmRelease(restClientGetter genericclioptio
 // For each discovered ingress:
 // - Automatically detects HTTPS protocol based on TLS configuration
 // - Selects the host using greenhouse.sap/exposeHost annotation or defaults to the first host rule
-// - Constructs full URLs with protocol (http:// or https://)
-// - Returns them as Service entries with type ServiceTypeIngress
+// - Constructs complete URLs with protocol (http:// or https://)
+// - Returns them as Service entries with type ServiceTypeIngress (port set to 0 as not applicable)
 //
 // The function filters ingresses from the Helm release manifest (not templates) to ensure they are actually deployed.
 func getExposedIngressesForPluginFromHelmRelease(restClientGetter genericclioptions.RESTClientGetter, helmRelease *release.Release) (map[string]greenhousev1alpha1.Service, error) {
@@ -508,7 +508,7 @@ func getExposedIngressesForPluginFromHelmRelease(restClientGetter genericcliopti
 
 	var exposedServices = make(map[string]greenhousev1alpha1.Service, 0)
 	for _, ingress := range exposedIngressList {
-		host, port, err := getHostAndPortForExposedIngress(ingress.Object)
+		fullURL, err := getURLForExposedIngress(ingress.Object)
 		if err != nil {
 			return nil, err
 		}
@@ -518,16 +518,9 @@ func getExposedIngressesForPluginFromHelmRelease(restClientGetter genericcliopti
 			namespace = helmRelease.Namespace
 		}
 
-		protocol := "http"
-		if port == 443 {
-			protocol = "https"
-		}
-		fullURL := fmt.Sprintf("%s://%s", protocol, host)
-
 		exposedServices[fullURL] = greenhousev1alpha1.Service{
 			Namespace: namespace,
 			Name:      ingress.Name,
-			Port:      port,
 			Type:      greenhousev1alpha1.ServiceTypeIngress,
 		}
 	}
@@ -546,8 +539,7 @@ func getExposedIngressesForPluginFromHelmRelease(restClientGetter genericcliopti
 //   - URLs are the actual ingress hostnames with proper protocol (http/https)
 //   - Protocol automatically detected from TLS configuration
 //
-// The function fails fast - if either service or ingress discovery encounters an error,
-// the entire operation fails to ensure consistent plugin status reporting.
+// The function fails fast - if either service or ingress discovery encounters an error, the entire operation fails.
 func getAllExposedServicesForPlugin(restClientGetter genericclioptions.RESTClientGetter, helmRelease *release.Release, plugin *greenhousev1alpha1.Plugin) (map[string]greenhousev1alpha1.Service, error) {
 	var errorMessages []string
 	exposedServices := make(map[string]greenhousev1alpha1.Service)
@@ -566,7 +558,6 @@ func getAllExposedServicesForPlugin(restClientGetter genericclioptions.RESTClien
 		maps.Copy(exposedServices, ingressList)
 	}
 
-	// If there are any errors, fail the entire operation
 	if len(errorMessages) > 0 {
 		return nil, fmt.Errorf("failed to get exposed resources: %s", strings.Join(errorMessages, "; "))
 	}

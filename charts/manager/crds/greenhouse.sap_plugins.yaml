@@ -157,7 +157,8 @@ spec:
                         target cluster.
                       type: string
                     port:
-                      description: Port is the port of the service.
+                      description: Port is the port of the service. Zero for ingresses
+                        where port is not applicable.
                       format: int32
                       type: integer
                     protocol:
@@ -172,7 +173,6 @@ spec:
                   required:
                   - name
                   - namespace
-                  - port
                   - type
                   type: object
                 description: |-

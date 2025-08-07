@@ -6,6 +6,7 @@ package plugin
 import (
 	"context"
 	"fmt"
+	"slices"
 	"strings"
 	"time"
 
@@ -145,16 +146,17 @@ func getPortForExposedService(o runtime.Object) (*corev1.ServicePort, error) {
 	return svc.Spec.Ports[0].DeepCopy(), nil
 }
 
-func getHostAndPortForExposedIngress(o runtime.Object) (host string, port int32, err error) {
+func getURLForExposedIngress(o runtime.Object) (url string, err error) {
 	ingress, err := convertRuntimeObject[networkingv1.Ingress](o)
 	if err != nil {
-		return "", 0, err
+		return "", err
 	}
 
 	if len(ingress.Spec.Rules) == 0 {
-		return "", 0, errors.New("ingress has no rules")
+		return "", errors.New("ingress has no rules")
 	}
 
+	var host string
 	if specificHost := ingress.Annotations[greenhouseapis.AnnotationKeyExposeIngressHost]; specificHost != "" {
 		for _, rule := range ingress.Spec.Rules {
 			if rule.Host == specificHost {
@@ -163,39 +165,24 @@ func getHostAndPortForExposedIngress(o runtime.Object) (host string, port int32,
 			}
 		}
 		if host == "" {
-			return "", 0, fmt.Errorf("specified host %q not found in ingress rules", specificHost)
+			return "", fmt.Errorf("specified host %q not found in ingress rules", specificHost)
 		}
 	} else {
 		if ingress.Spec.Rules[0].Host == "" {
-			return "", 0, errors.New("first ingress rule has no host")
+			return "", errors.New("first ingress rule has no host")
 		}
 		host = ingress.Spec.Rules[0].Host
 	}
 
-	isTLS := false
+	protocol := "http"
 	for _, tls := range ingress.Spec.TLS {
-		if len(tls.Hosts) == 0 {
-			isTLS = true
-			break
-		}
-		for _, h := range tls.Hosts {
-			if h == host {
-				isTLS = true
-				break
-			}
-		}
-		if isTLS {
+		if len(tls.Hosts) == 0 || slices.Contains(tls.Hosts, host) {
+			protocol = "https"
 			break
 		}
 	}
 
-	if isTLS {
-		port = 443
-	} else {
-		port = 80
-	}
-
-	return host, port, nil
+	return fmt.Sprintf("%s://%s", protocol, host), nil
 }
 
 func convertRuntimeObject[T any](o any) (*T, error) {
