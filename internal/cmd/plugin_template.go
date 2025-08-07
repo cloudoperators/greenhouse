@@ -4,12 +4,14 @@
 package cmd
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"os/exec"
 	"strings"
 
 	"github.com/spf13/cobra"
+	"github.com/vladimirvivien/gexe"
 	"gopkg.in/yaml.v3"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"k8s.io/apimachinery/pkg/util/json"
@@ -26,10 +28,10 @@ const (
 )
 
 func init() {
-	templateCmd.AddCommand(newTemplatePluginPresetCmd())
+	pluginCmd.AddCommand(newPluginTemplatePresetCmd())
 }
 
-type templatePluginPresetOptions struct {
+type PluginTemplatePresetOptions struct {
 	pluginPresetPath     string
 	pluginDefinitionPath string
 	clusterName          string
@@ -39,17 +41,24 @@ type templatePluginPresetOptions struct {
 	values           []greenhousev1alpha1.PluginOptionValue
 }
 
-func newTemplatePluginPresetCmd() *cobra.Command {
-	o := &templatePluginPresetOptions{}
+func newPluginTemplatePresetCmd() *cobra.Command {
+	o := &PluginTemplatePresetOptions{}
 
 	cmd := &cobra.Command{
-		Use:   "pluginpreset",
+		Use:   "template",
 		Short: "Template the Helm Chart for a Plugin created from a given PluginPreset",
 		Long: `The command performs a helm template on the Helm Chart referenced by the PluginPreset.
 		PluginPreset and (Cluster-)PluginDefinition needs to match. Values are defaulted from (Cluster-)PluginDefinition,
 		PluginPreset and optionally from ClusterOptionOverrides. References to Secrets and .global.greenhouse
 		values are defaulted to their value name. 
 		e.g. .global.greenhouse.baseDomain: ".global.greenhouse.baseDomain"`,
+		PreRunE: func(cmd *cobra.Command, args []string) error {
+			helm := gexe.ProgAvail("helm")
+			if strings.TrimSpace(helm) == "" {
+				return errors.New("please install helm first, see https://helm.sh/docs/intro/install/")
+			}
+			return nil
+		},
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if err := o.validate(); err != nil {
 				return err
@@ -82,7 +91,7 @@ func newTemplatePluginPresetCmd() *cobra.Command {
 	return cmd
 }
 
-func (o *templatePluginPresetOptions) validate() error {
+func (o *PluginTemplatePresetOptions) validate() error {
 	if _, err := os.Stat(o.pluginPresetPath); os.IsNotExist(err) {
 		return fmt.Errorf("PluginPreset file does not exist: %s", o.pluginPresetPath)
 	}
@@ -94,7 +103,7 @@ func (o *templatePluginPresetOptions) validate() error {
 	return nil
 }
 
-func (o *templatePluginPresetOptions) complete() error {
+func (o *PluginTemplatePresetOptions) complete() error {
 	var err error
 	o.pluginDefinition, err = loadFromFile[greenhousev1alpha1.ClusterPluginDefinition](o.pluginDefinitionPath)
 	if err != nil {
@@ -117,7 +126,7 @@ func (o *templatePluginPresetOptions) complete() error {
 	return nil
 }
 
-func (o *templatePluginPresetOptions) run() error {
+func (o *PluginTemplatePresetOptions) run() error {
 	helmValues, err := helminternal.ConvertFlatValuesToHelmValues(o.values)
 	if err != nil {
 		return err
@@ -144,7 +153,7 @@ func (o *templatePluginPresetOptions) run() error {
 	return o.runHelmTemplate(f.Name())
 }
 
-func (o *templatePluginPresetOptions) validateCompatibility() error {
+func (o *PluginTemplatePresetOptions) validateCompatibility() error {
 	if o.pluginPreset.Kind != "PluginPreset" {
 		return fmt.Errorf("expected PluginPreset kind, got %q in file %s", o.pluginPreset.Kind, o.pluginPresetPath)
 	}
@@ -166,7 +175,7 @@ func (o *templatePluginPresetOptions) validateCompatibility() error {
 	return nil
 }
 
-func (o *templatePluginPresetOptions) prepareValues() error {
+func (o *PluginTemplatePresetOptions) prepareValues() error {
 	// Get greenhouse values.
 	greenhouseValues, err := o.getGreenhouseValuesForTemplate()
 	if err != nil {
@@ -195,7 +204,7 @@ func (o *templatePluginPresetOptions) prepareValues() error {
 	return nil
 }
 
-func (o *templatePluginPresetOptions) runHelmTemplate(valuesFile string) error {
+func (o *PluginTemplatePresetOptions) runHelmTemplate(valuesFile string) error {
 	chartRef := o.pluginDefinition.Spec.HelmChart
 
 	var args []string
@@ -230,7 +239,7 @@ func (o *templatePluginPresetOptions) runHelmTemplate(valuesFile string) error {
 	return nil
 }
 
-func (o *templatePluginPresetOptions) getGreenhouseValuesForTemplate() ([]greenhousev1alpha1.PluginOptionValue, error) {
+func (o *PluginTemplatePresetOptions) getGreenhouseValuesForTemplate() ([]greenhousev1alpha1.PluginOptionValue, error) {
 	literalPaths := []string{
 		"global.greenhouse.clusterNames",
 		"global.greenhouse.teamNames",
@@ -276,7 +285,7 @@ func createPluginOptionValue(name, value string) (*greenhousev1alpha1.PluginOpti
 	return &greenhousev1alpha1.PluginOptionValue{Name: name, Value: &apiextensionsv1.JSON{Raw: raw}}, nil
 }
 
-func (o *templatePluginPresetOptions) getClusterSpecificOverrides() []greenhousev1alpha1.PluginOptionValue {
+func (o *PluginTemplatePresetOptions) getClusterSpecificOverrides() []greenhousev1alpha1.PluginOptionValue {
 	for _, override := range o.pluginPreset.Spec.ClusterOptionOverrides {
 		if override.ClusterName == o.clusterName {
 			return override.Overrides
@@ -285,7 +294,7 @@ func (o *templatePluginPresetOptions) getClusterSpecificOverrides() []greenhouse
 	return []greenhousev1alpha1.PluginOptionValue{}
 }
 
-func (o *templatePluginPresetOptions) processSecretsToLiterals(values []greenhousev1alpha1.PluginOptionValue) ([]greenhousev1alpha1.PluginOptionValue, error) {
+func (o *PluginTemplatePresetOptions) processSecretsToLiterals(values []greenhousev1alpha1.PluginOptionValue) ([]greenhousev1alpha1.PluginOptionValue, error) {
 	for i := range values {
 		if values[i].ValueFrom != nil && values[i].ValueFrom.Secret != nil {
 			literal := fmt.Sprintf("%s/%s", values[i].ValueFrom.Secret.Name, values[i].ValueFrom.Secret.Key)

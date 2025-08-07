@@ -13,11 +13,11 @@ import (
 )
 
 var _ = Describe("validateCompatibility", func() {
-	var opts *templatePluginPresetOptions
+	var opts *PluginTemplatePresetOptions
 
 	Context("with mismatched plugin definition names", func() {
 		BeforeEach(func() {
-			opts = &templatePluginPresetOptions{
+			opts = &PluginTemplatePresetOptions{
 				pluginDefinition: &greenhousev1alpha1.ClusterPluginDefinition{
 					TypeMeta:   metav1.TypeMeta{Kind: ClusterPluginDefinitionKind},
 					ObjectMeta: metav1.ObjectMeta{Name: "nginx"},
@@ -42,7 +42,7 @@ var _ = Describe("validateCompatibility", func() {
 
 	Context("with missing helm chart reference", func() {
 		BeforeEach(func() {
-			opts = &templatePluginPresetOptions{
+			opts = &PluginTemplatePresetOptions{
 				pluginDefinition: &greenhousev1alpha1.ClusterPluginDefinition{
 					TypeMeta:   metav1.TypeMeta{Kind: ClusterPluginDefinitionKind},
 					ObjectMeta: metav1.ObjectMeta{Name: "nginx"},
@@ -71,7 +71,7 @@ var _ = Describe("validateCompatibility", func() {
 
 	Context("with valid configuration", func() {
 		BeforeEach(func() {
-			opts = &templatePluginPresetOptions{
+			opts = &PluginTemplatePresetOptions{
 				pluginDefinition: &greenhousev1alpha1.ClusterPluginDefinition{
 					TypeMeta:   metav1.TypeMeta{Kind: ClusterPluginDefinitionKind},
 					ObjectMeta: metav1.ObjectMeta{Name: "nginx"},
@@ -103,13 +103,13 @@ var _ = Describe("validateCompatibility", func() {
 
 var _ = Describe("prepareValues", func() {
 	var (
-		opts         *templatePluginPresetOptions
+		opts         *PluginTemplatePresetOptions
 		pluginDef    *greenhousev1alpha1.ClusterPluginDefinition
 		pluginPreset *greenhousev1alpha1.PluginPreset
 	)
 
 	BeforeEach(func() {
-		opts = &templatePluginPresetOptions{
+		opts = &PluginTemplatePresetOptions{
 			clusterName: "test-cluster",
 		}
 
@@ -238,10 +238,10 @@ var _ = Describe("prepareValues", func() {
 })
 
 var _ = Describe("processSecretsToLiterals", func() {
-	var opts *templatePluginPresetOptions
+	var opts *PluginTemplatePresetOptions
 
 	BeforeEach(func() {
-		opts = &templatePluginPresetOptions{}
+		opts = &PluginTemplatePresetOptions{}
 	})
 
 	Context("with secret references", func() {
