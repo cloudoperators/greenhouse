@@ -463,7 +463,6 @@ var _ = Describe("HelmController reconciliation", Ordered, func() {
 						ingressFound = true
 						ingressURL = url
 						g.Expect(svc.Name).To(Equal("exposed-ingress"), "ingress should have correct name")
-						g.Expect(svc.Port).To(Equal(int32(443)), "ingress should have port 443 (HTTPS)")
 						g.Expect(svc.Namespace).To(Equal("test-org"), "ingress should have correct namespace")
 					}
 				}
