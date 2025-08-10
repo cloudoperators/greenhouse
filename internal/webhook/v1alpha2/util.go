@@ -8,13 +8,14 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 
+	greenhousemetav1alpha1 "github.com/cloudoperators/greenhouse/api/meta/v1alpha1"
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
 	greenhousev1alpha2 "github.com/cloudoperators/greenhouse/api/v1alpha2"
 	"github.com/cloudoperators/greenhouse/internal/webhook"
 )
 
 // validateClusterSelector checks if the resource has a valid clusterSelector.
-func validateClusterSelector(cs greenhousev1alpha2.ClusterSelector, resourceGroupKind schema.GroupKind) error {
+func validateClusterSelector(cs greenhousemetav1alpha1.ClusterSelector, resourceGroupKind schema.GroupKind) error {
 	if cs.Name != "" && cs.LabelSelector.Size() > 0 {
 		return apierrors.NewInvalid(resourceGroupKind, cs.Name, field.ErrorList{field.Invalid(
 			field.NewPath("spec", "clusterSelector"),

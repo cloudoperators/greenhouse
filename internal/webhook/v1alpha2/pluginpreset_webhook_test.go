@@ -68,7 +68,7 @@ var _ = Describe("PluginPreset Admission Tests", Ordered, func() {
 
 	It("should accept creating the PluginPreset with ClusterName set in ClusterSelector", func() {
 		cut := test.NewPluginPreset(pluginPresetCreate, test.TestNamespace,
-			test.WithPluginPresetClusterSelector(greenhousev1alpha2.ClusterSelector{
+			test.WithPluginPresetClusterSelector(greenhousemetav1alpha1.ClusterSelector{
 				Name: "cluster-a",
 			}),
 			test.WithPluginPresetLabel(greenhouseapis.LabelKeyOwnedBy, teamWithSupportGroupName),
@@ -83,7 +83,7 @@ var _ = Describe("PluginPreset Admission Tests", Ordered, func() {
 
 	It("should reject PluginPreset without PluginDefinition", func() {
 		cut := test.NewPluginPreset(pluginPresetCreate, test.TestNamespace,
-			test.WithPluginPresetClusterSelector(greenhousev1alpha2.ClusterSelector{
+			test.WithPluginPresetClusterSelector(greenhousemetav1alpha1.ClusterSelector{
 				LabelSelector: metav1.LabelSelector{MatchLabels: map[string]string{"foo": "bar"}},
 			}),
 			test.WithPluginPresetLabel(greenhouseapis.LabelKeyOwnedBy, teamWithSupportGroupName),
@@ -97,7 +97,7 @@ var _ = Describe("PluginPreset Admission Tests", Ordered, func() {
 
 	It("should reject PluginPreset with a PluginSpec containing a ClusterName", func() {
 		cut := test.NewPluginPreset(pluginPresetCreate, test.TestNamespace,
-			test.WithPluginPresetClusterSelector(greenhousev1alpha2.ClusterSelector{
+			test.WithPluginPresetClusterSelector(greenhousemetav1alpha1.ClusterSelector{
 				LabelSelector: metav1.LabelSelector{MatchLabels: map[string]string{"foo": "bar"}},
 			}),
 			test.WithPluginPresetPluginTemplateSpec(greenhousev1alpha2.PluginTemplateSpec{
@@ -132,7 +132,7 @@ var _ = Describe("PluginPreset Admission Tests", Ordered, func() {
 				PluginDefinition: pluginPresetDefinition,
 			}),
 			test.WithPluginPresetLabel(greenhouseapis.LabelKeyOwnedBy, teamWithSupportGroupName),
-			test.WithPluginPresetClusterSelector(greenhousev1alpha2.ClusterSelector{
+			test.WithPluginPresetClusterSelector(greenhousemetav1alpha1.ClusterSelector{
 				Name:          "cluster-a",
 				LabelSelector: metav1.LabelSelector{MatchLabels: map[string]string{"foo": "bar"}},
 			}),
@@ -146,7 +146,7 @@ var _ = Describe("PluginPreset Admission Tests", Ordered, func() {
 
 	It("should reject PluginPreset with non-existing PluginDefinition", func() {
 		cut := test.NewPluginPreset(pluginPresetCreate, test.TestNamespace,
-			test.WithPluginPresetClusterSelector(greenhousev1alpha2.ClusterSelector{
+			test.WithPluginPresetClusterSelector(greenhousemetav1alpha1.ClusterSelector{
 				Name: "cluster-a",
 			}),
 			test.WithPluginPresetPluginTemplateSpec(greenhousev1alpha2.PluginTemplateSpec{
@@ -163,7 +163,7 @@ var _ = Describe("PluginPreset Admission Tests", Ordered, func() {
 
 	It("should accept and reject updates to the PluginPreset", func() {
 		originalPreset := test.NewPluginPreset(pluginPresetUpdate, test.TestNamespace,
-			test.WithPluginPresetClusterSelector(greenhousev1alpha2.ClusterSelector{
+			test.WithPluginPresetClusterSelector(greenhousemetav1alpha1.ClusterSelector{
 				LabelSelector: metav1.LabelSelector{MatchLabels: map[string]string{"foo": "bar"}},
 			}),
 			test.WithPluginPresetPluginTemplateSpec(greenhousev1alpha2.PluginTemplateSpec{
@@ -199,7 +199,7 @@ var _ = Describe("PluginPreset Admission Tests", Ordered, func() {
 
 	It("should reject delete operation when PluginPreset has prevent deletion annotation", func() {
 		pluginPreset := test.NewPluginPreset(pluginPresetUpdate, test.TestNamespace,
-			test.WithPluginPresetClusterSelector(greenhousev1alpha2.ClusterSelector{
+			test.WithPluginPresetClusterSelector(greenhousemetav1alpha1.ClusterSelector{
 				LabelSelector: metav1.LabelSelector{MatchLabels: map[string]string{"foo": "bar"}},
 			}),
 			test.WithPluginPresetPluginTemplateSpec(greenhousev1alpha2.PluginTemplateSpec{

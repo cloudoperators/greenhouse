@@ -206,7 +206,7 @@ var _ = Describe("PluginPreset Conversion", Ordered, func() {
 			By("creating v1alpha2 PluginPreset")
 			pluginPreset := test.NewPluginPreset(setup.RandomizeName("test-preset-3"), test.TestNamespace,
 				test.WithPluginPresetLabel(greenhouseapis.LabelKeyOwnedBy, team.Name),
-				test.WithPluginPresetClusterSelector(greenhousev1alpha2.ClusterSelector{
+				test.WithPluginPresetClusterSelector(greenhousemetav1alpha1.ClusterSelector{
 					LabelSelector: metav1.LabelSelector{
 						MatchLabels: map[string]string{"cluster": "a"},
 					},
@@ -264,7 +264,7 @@ var _ = Describe("PluginPreset Conversion", Ordered, func() {
 			By("creating v1alpha2 PluginPreset")
 			pluginPreset := test.NewPluginPreset(setup.RandomizeName("test-preset-4"), test.TestNamespace,
 				test.WithPluginPresetLabel(greenhouseapis.LabelKeyOwnedBy, team.Name),
-				test.WithPluginPresetClusterSelector(greenhousev1alpha2.ClusterSelector{
+				test.WithPluginPresetClusterSelector(greenhousemetav1alpha1.ClusterSelector{
 					Name: "cluster-a",
 				}),
 				test.WithPluginPresetPluginTemplateSpec(greenhousev1alpha2.PluginTemplateSpec{

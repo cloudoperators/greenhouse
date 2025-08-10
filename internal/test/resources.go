@@ -308,7 +308,7 @@ func NewPlugin(ctx context.Context, name, namespace string, opts ...func(*greenh
 }
 
 // WithPluginPresetClusterSelector sets the ClusterSelector on a PluginPreset.
-func WithPluginPresetClusterSelector(clusterSelector greenhousev1alpha2.ClusterSelector) func(*greenhousev1alpha2.PluginPreset) {
+func WithPluginPresetClusterSelector(clusterSelector greenhousemetav1alpha1.ClusterSelector) func(*greenhousev1alpha2.PluginPreset) {
 	return func(pp *greenhousev1alpha2.PluginPreset) {
 		pp.Spec.ClusterSelector = clusterSelector
 	}
@@ -426,7 +426,7 @@ func WithTeamRef(teamRef string) func(*greenhousev1alpha2.TeamRoleBinding) {
 
 func WithClusterName(clusterName string) func(*greenhousev1alpha2.TeamRoleBinding) {
 	return func(trb *greenhousev1alpha2.TeamRoleBinding) {
-		trb.Spec.ClusterSelector = greenhousev1alpha2.ClusterSelector{
+		trb.Spec.ClusterSelector = greenhousemetav1alpha1.ClusterSelector{
 			Name: clusterName,
 		}
 	}

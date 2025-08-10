@@ -229,7 +229,7 @@ var _ = Describe("Plugin E2E", Ordered, func() {
 		testPluginPreset := test.NewPluginPreset("test-nginx-plugin-preset", env.TestNamespace,
 			test.WithPluginPresetLabel(greenhouseapis.LabelKeyOwnedBy, team.Name),
 			test.WithPluginPresetPluginTemplateSpec(greenhousev1alpha2.PluginTemplateSpec(testPlugin.Spec)),
-			test.WithPluginPresetClusterSelector(greenhousev1alpha2.ClusterSelector{
+			test.WithPluginPresetClusterSelector(greenhousemetav1alpha1.ClusterSelector{
 				LabelSelector: metav1.LabelSelector{
 					MatchLabels: map[string]string{
 						"app": "test-cluster",
@@ -484,7 +484,7 @@ var _ = Describe("Plugin E2E", Ordered, func() {
 			test.WithPluginPresetAnnotations(map[string]string{
 				"greenhouse.sap/propagate-labels": "greenhouse.sap/deployment-tool",
 			}),
-			test.WithPluginPresetClusterSelector(greenhousev1alpha2.ClusterSelector{
+			test.WithPluginPresetClusterSelector(greenhousemetav1alpha1.ClusterSelector{
 				LabelSelector: metav1.LabelSelector{
 					MatchLabels: map[string]string{
 						"app": "test-cluster",

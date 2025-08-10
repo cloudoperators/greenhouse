@@ -141,7 +141,7 @@ var _ = Describe("PluginPreset Controller Lifecycle", Ordered, func() {
 		By("creating a PluginPreset")
 		testPluginPreset := test.NewPluginPreset(pluginPresetName+"-1", test.TestNamespace,
 			test.WithPluginPresetLabel(greenhouseapis.LabelKeyOwnedBy, testTeam.Name),
-			test.WithPluginPresetClusterSelector(greenhousev1alpha2.ClusterSelector{
+			test.WithPluginPresetClusterSelector(greenhousemetav1alpha1.ClusterSelector{
 				Name: clusterA,
 			}),
 			test.WithPluginPresetClusterOptionOverrides([]greenhousev1alpha2.ClusterOptionOverride{}),
@@ -1188,7 +1188,7 @@ func cluster(name, supportGroupTeamName string) *greenhousev1alpha1.Cluster {
 func pluginPreset(name, selectorValue, supportGroupTeamName string) *greenhousev1alpha2.PluginPreset {
 	return test.NewPluginPreset(name, test.TestNamespace,
 		test.WithPluginPresetLabel(greenhouseapis.LabelKeyOwnedBy, supportGroupTeamName),
-		test.WithPluginPresetClusterSelector(greenhousev1alpha2.ClusterSelector{
+		test.WithPluginPresetClusterSelector(greenhousemetav1alpha1.ClusterSelector{
 			LabelSelector: metav1.LabelSelector{
 				MatchLabels: map[string]string{
 					"cluster": selectorValue,
