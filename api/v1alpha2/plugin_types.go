@@ -1,21 +1,17 @@
-// SPDX-FileCopyrightText: 2024 SAP SE or an SAP affiliate company and Greenhouse contributors
+// SPDX-FileCopyrightText: 2025 SAP SE or an SAP affiliate company and Greenhouse contributors
 // SPDX-License-Identifier: Apache-2.0
 
-package v1alpha1
+package v1alpha2
 
 import (
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-
 	greenhousemetav1alpha1 "github.com/cloudoperators/greenhouse/api/meta/v1alpha1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 // PluginSpec defines the desired state of Plugin
 type PluginSpec struct {
-	// PluginDefinition is the name of the PluginDefinition this instance is for.
-	PluginDefinition string `json:"pluginDefinition"`
-
-	// PluginDefinitionNamespace is the namespace of the PluginDefinition this instance is for.
-	PluginDefinitionNamespace string `json:"pluginDefinitionNamespace,omitempty"`
+	// PluginDefinitionRef is the reference to the PluginDefinition this instance is for.
+	PluginDefinitionRef greenhousemetav1alpha1.PluginDefinitionReference `json:"pluginDefinitionRef"`
 
 	// DisplayName is an optional name for the Plugin to be displayed in the Greenhouse UI.
 	// This is especially helpful to distinguish multiple instances of a PluginDefinition in the same context.
@@ -157,17 +153,17 @@ func init() {
 	SchemeBuilder.Register(&Plugin{}, &PluginList{})
 }
 
-func (p *Plugin) GetConditions() greenhousemetav1alpha1.StatusConditions {
-	return p.Status.StatusConditions
+func (o *Plugin) GetConditions() greenhousemetav1alpha1.StatusConditions {
+	return o.Status.StatusConditions
 }
 
-func (p *Plugin) SetCondition(condition greenhousemetav1alpha1.Condition) {
-	p.Status.SetConditions(condition)
+func (o *Plugin) SetCondition(condition greenhousemetav1alpha1.Condition) {
+	o.Status.SetConditions(condition)
 }
 
-func (p *Plugin) GetReleaseName() string {
-	if p.Spec.ReleaseName != "" {
-		return p.Spec.ReleaseName
+func (o *Plugin) GetReleaseName() string {
+	if o.Spec.ReleaseName != "" {
+		return o.Spec.ReleaseName
 	}
-	return p.Name
+	return o.Name
 }

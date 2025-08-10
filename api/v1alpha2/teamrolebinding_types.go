@@ -21,7 +21,7 @@ type TeamRoleBindingSpec struct {
 	// Usernames defines list of users to add to the (Cluster-)RoleBindings
 	Usernames []string `json:"usernames,omitempty"`
 	// ClusterSelector is used to select a Cluster or Clusters the TeamRoleBinding should be deployed to.
-	ClusterSelector ClusterSelector `json:"clusterSelector,omitempty"`
+	ClusterSelector greenhousemetav1alpha1.ClusterSelector `json:"clusterSelector,omitempty"`
 	// Namespaces is a list of namespaces in the Greenhouse Clusters to apply the RoleBinding to.
 	// If empty, a ClusterRoleBinding will be created on the remote cluster, otherwise a RoleBinding per namespace.
 	Namespaces []string `json:"namespaces,omitempty"`

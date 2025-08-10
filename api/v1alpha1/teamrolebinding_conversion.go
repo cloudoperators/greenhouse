@@ -6,6 +6,7 @@ package v1alpha1
 import (
 	"sigs.k8s.io/controller-runtime/pkg/conversion"
 
+	greenhousemetav1alpha1 "github.com/cloudoperators/greenhouse/api/meta/v1alpha1"
 	"github.com/cloudoperators/greenhouse/api/v1alpha2"
 )
 
@@ -14,7 +15,7 @@ func (trb *TeamRoleBinding) ConvertTo(dstRaw conversion.Hub) error {
 	dst := dstRaw.(*v1alpha2.TeamRoleBinding) //nolint:errcheck
 
 	// Convert old selectors to the new ClusterSelector.
-	dst.Spec.ClusterSelector = v1alpha2.ClusterSelector{
+	dst.Spec.ClusterSelector = greenhousemetav1alpha1.ClusterSelector{
 		Name:          trb.Spec.ClusterName,
 		LabelSelector: trb.Spec.ClusterSelector,
 	}
