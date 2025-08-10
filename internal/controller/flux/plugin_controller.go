@@ -28,6 +28,7 @@ import (
 	greenhouseapis "github.com/cloudoperators/greenhouse/api"
 	greenhousemetav1alpha1 "github.com/cloudoperators/greenhouse/api/meta/v1alpha1"
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
+	greenhousev1alpha2 "github.com/cloudoperators/greenhouse/api/v1alpha2"
 	"github.com/cloudoperators/greenhouse/internal/clientutil"
 	pluginController "github.com/cloudoperators/greenhouse/internal/controller/plugin"
 	"github.com/cloudoperators/greenhouse/internal/flux"
@@ -94,7 +95,7 @@ func (r *FluxReconciler) SetupWithManager(name string, mgr ctrl.Manager) error {
 
 	return ctrl.NewControllerManagedBy(mgr).
 		Named(name).
-		For(&greenhousev1alpha1.Plugin{}, builder.WithPredicates(labelSelectorPredicate)).
+		For(&greenhousev1alpha2.Plugin{}, builder.WithPredicates(labelSelectorPredicate)).
 		// If a PluginDefinition was changed, reconcile relevant Plugins.
 		Watches(&greenhousev1alpha1.ClusterPluginDefinition{}, handler.EnqueueRequestsFromMapFunc(r.enqueueAllPluginsForPluginDefinition),
 			builder.WithPredicates(predicate.GenerationChangedPredicate{}, labelSelectorPredicate)).
@@ -105,13 +106,13 @@ func (r *FluxReconciler) SetupWithManager(name string, mgr ctrl.Manager) error {
 }
 
 func (r *FluxReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	return lifecycle.Reconcile(ctx, r.Client, req.NamespacedName, &greenhousev1alpha1.Plugin{}, r, r.setConditions())
+	return lifecycle.Reconcile(ctx, r.Client, req.NamespacedName, &greenhousev1alpha2.Plugin{}, r, r.setConditions())
 }
 
 func (r *FluxReconciler) setConditions() lifecycle.Conditioner {
 	return func(ctx context.Context, resource lifecycle.RuntimeObject) {
 		logger := ctrl.LoggerFrom(ctx)
-		plugin, ok := resource.(*greenhousev1alpha1.Plugin)
+		plugin, ok := resource.(*greenhousev1alpha2.Plugin)
 		if !ok {
 			logger.Error(errors.New("resource is not a Plugin"), "status setup failed")
 			return
@@ -123,21 +124,21 @@ func (r *FluxReconciler) setConditions() lifecycle.Conditioner {
 }
 
 func (r *FluxReconciler) EnsureDeleted(ctx context.Context, resource lifecycle.RuntimeObject) (ctrl.Result, lifecycle.ReconcileResult, error) {
-	plugin := resource.(*greenhousev1alpha1.Plugin) //nolint:errcheck
+	plugin := resource.(*greenhousev1alpha2.Plugin) //nolint:errcheck
 
 	if err := r.Delete(ctx, &helmcontroller.HelmRelease{ObjectMeta: metav1.ObjectMeta{Name: plugin.Name, Namespace: plugin.Namespace}}); err != nil {
-		c := greenhousemetav1alpha1.TrueCondition(greenhousev1alpha1.HelmReconcileFailedCondition, greenhousev1alpha1.HelmUninstallFailedReason, err.Error())
+		c := greenhousemetav1alpha1.TrueCondition(greenhousev1alpha2.HelmReconcileFailedCondition, greenhousev1alpha2.HelmUninstallFailedReason, err.Error())
 		plugin.SetCondition(c)
 		util.UpdatePluginReconcileTotalMetric(plugin, util.MetricResultError, util.MetricReasonClusterAccessFailed)
 		return ctrl.Result{}, lifecycle.Failed, fmt.Errorf("cannot access cluster: %s", err.Error())
 	}
 
-	plugin.SetCondition(greenhousemetav1alpha1.FalseCondition(greenhousev1alpha1.HelmReconcileFailedCondition, "", ""))
+	plugin.SetCondition(greenhousemetav1alpha1.FalseCondition(greenhousev1alpha2.HelmReconcileFailedCondition, "", ""))
 	return ctrl.Result{}, lifecycle.Success, nil
 }
 
 func (r *FluxReconciler) EnsureCreated(ctx context.Context, resource lifecycle.RuntimeObject) (ctrl.Result, lifecycle.ReconcileResult, error) {
-	plugin, ok := resource.(*greenhousev1alpha1.Plugin)
+	plugin, ok := resource.(*greenhousev1alpha2.Plugin)
 	if !ok {
 		return ctrl.Result{}, lifecycle.Failed, errors.New("resource is not a Plugin")
 	}
@@ -162,7 +163,7 @@ func (r *FluxReconciler) EnsureCreated(ctx context.Context, resource lifecycle.R
 	if pluginDef.Spec.HelmChart == nil {
 		log.FromContext(ctx).Info("No HelmChart defined in PluginDefinition, skipping HelmRelease creation", "plugin", plugin.Name)
 		plugin.SetCondition(greenhousemetav1alpha1.FalseCondition(
-			greenhousev1alpha1.HelmReconcileFailedCondition, "", "PluginDefinition is not backed by HelmChart"))
+			greenhousev1alpha2.HelmReconcileFailedCondition, "", "PluginDefinition is not backed by HelmChart"))
 		return ctrl.Result{}, lifecycle.Success, nil
 	}
 
@@ -257,16 +258,19 @@ func (r *FluxReconciler) enqueueAllPluginsInNamespace(ctx context.Context, o cli
 	return pluginController.ListPluginsAsReconcileRequests(ctx, r.Client, client.InNamespace(o.GetNamespace()))
 }
 
-func (r *FluxReconciler) getPluginDef(ctx context.Context, plugin *greenhousev1alpha1.Plugin) *greenhousev1alpha1.ClusterPluginDefinition {
+func (r *FluxReconciler) getPluginDef(ctx context.Context, plugin *greenhousev1alpha2.Plugin) *greenhousev1alpha1.ClusterPluginDefinition {
 	pluginDef := new(greenhousev1alpha1.ClusterPluginDefinition)
-	if err := r.Get(ctx, types.NamespacedName{Name: plugin.Spec.PluginDefinition}, pluginDef); err != nil {
+	if err := r.Get(ctx, types.NamespacedName{
+		Namespace: plugin.Spec.PluginDefinitionRef.Namespace,
+		Name:      plugin.Spec.PluginDefinitionRef.Name,
+	}, pluginDef); err != nil {
 		log.FromContext(ctx).Error(err, "Unable to find pluginDefinition for ", "plugin", plugin.Name, "namespace", plugin.Namespace)
 		return nil
 	}
 	return pluginDef
 }
 
-func addValuesToHelmRelease(ctx context.Context, c client.Client, plugin *greenhousev1alpha1.Plugin) ([]byte, error) {
+func addValuesToHelmRelease(ctx context.Context, c client.Client, plugin *greenhousev1alpha2.Plugin) ([]byte, error) {
 	optionValues, err := helm.GetPluginOptionValuesForPlugin(ctx, c, plugin)
 	if err != nil {
 		return nil, err
@@ -290,7 +294,7 @@ func addValuesToHelmRelease(ctx context.Context, c client.Client, plugin *greenh
 	return byteValue, nil
 }
 
-func (r *FluxReconciler) addValueReferences(plugin *greenhousev1alpha1.Plugin) []helmcontroller.ValuesReference {
+func (r *FluxReconciler) addValueReferences(plugin *greenhousev1alpha2.Plugin) []helmcontroller.ValuesReference {
 	var valuesFrom []helmcontroller.ValuesReference
 	for _, value := range plugin.Spec.OptionValues {
 		if value.ValueFrom != nil {

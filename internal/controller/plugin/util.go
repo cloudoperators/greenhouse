@@ -24,6 +24,7 @@ import (
 	greenhouseapis "github.com/cloudoperators/greenhouse/api"
 	greenhousemetav1alpha1 "github.com/cloudoperators/greenhouse/api/meta/v1alpha1"
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
+	greenhousev1alpha2 "github.com/cloudoperators/greenhouse/api/v1alpha2"
 	"github.com/cloudoperators/greenhouse/internal/clientutil"
 	"github.com/cloudoperators/greenhouse/internal/lifecycle"
 )
@@ -35,12 +36,12 @@ const (
 // exposedConditions are the conditions that are exposed in the StatusConditions of the Plugin.
 var exposedConditions = []greenhousemetav1alpha1.ConditionType{
 	greenhousemetav1alpha1.ReadyCondition,
-	greenhousev1alpha1.ClusterAccessReadyCondition,
-	greenhousev1alpha1.HelmDriftDetectedCondition,
-	greenhousev1alpha1.HelmReconcileFailedCondition,
-	greenhousev1alpha1.StatusUpToDateCondition,
-	greenhousev1alpha1.HelmChartTestSucceededCondition,
-	greenhousev1alpha1.WorkloadReadyCondition,
+	greenhousev1alpha2.ClusterAccessReadyCondition,
+	greenhousev1alpha2.HelmDriftDetectedCondition,
+	greenhousev1alpha2.HelmReconcileFailedCondition,
+	greenhousev1alpha2.StatusUpToDateCondition,
+	greenhousev1alpha2.HelmChartTestSucceededCondition,
+	greenhousev1alpha2.WorkloadReadyCondition,
 	greenhousemetav1alpha1.OwnerLabelSetCondition,
 }
 
@@ -49,14 +50,14 @@ type reconcileResult struct {
 }
 
 // InitPluginStatus initializes all empty Plugin Conditions to "unknown"
-func InitPluginStatus(plugin *greenhousev1alpha1.Plugin) greenhousev1alpha1.PluginStatus {
+func InitPluginStatus(plugin *greenhousev1alpha2.Plugin) greenhousev1alpha2.PluginStatus {
 	for _, t := range exposedConditions {
 		if plugin.Status.GetConditionByType(t) == nil {
 			plugin.SetCondition(greenhousemetav1alpha1.UnknownCondition(t, "", ""))
 		}
 	}
 	if plugin.Status.HelmReleaseStatus == nil {
-		plugin.Status.HelmReleaseStatus = &greenhousev1alpha1.HelmReleaseStatus{Status: "unknown"}
+		plugin.Status.HelmReleaseStatus = &greenhousev1alpha2.HelmReleaseStatus{Status: "unknown"}
 	}
 	return plugin.Status
 }
@@ -68,7 +69,7 @@ func initClientGetter(
 	ctx context.Context,
 	k8sClient client.Client,
 	kubeClientOpts []clientutil.KubeClientOption,
-	plugin greenhousev1alpha1.Plugin,
+	plugin greenhousev1alpha2.Plugin,
 ) (genericclioptions.RESTClientGetter, error) {
 
 	// early return if spec.clusterName is not set
@@ -219,7 +220,7 @@ func allResourceReady(payloadStatus []PayloadStatus) bool {
 }
 
 // computeWorkloadCondition computes the ReadyCondition for the Plugin and sets the workload metrics and condition message.
-func computeWorkloadCondition(plugin *greenhousev1alpha1.Plugin, release *ReleaseStatus) {
+func computeWorkloadCondition(plugin *greenhousev1alpha2.Plugin, release *ReleaseStatus) {
 	if !allResourceReady(release.PayloadStatus) {
 		UpdatePluginWorkloadMetrics(plugin, 0)
 		errorMessage := "Following workload resources are not ready: [ "
@@ -275,7 +276,7 @@ func ComputeReadyCondition(
 	return readyCondition
 }
 
-func shouldReconcileOrRequeue(ctx context.Context, c client.Client, plugin *greenhousev1alpha1.Plugin) (*reconcileResult, error) {
+func shouldReconcileOrRequeue(ctx context.Context, c client.Client, plugin *greenhousev1alpha2.Plugin) (*reconcileResult, error) {
 	logger := ctrl.LoggerFrom(ctx)
 	if plugin.Spec.ClusterName == "" {
 		logger.Info("plugin does not have a clusterName set, will skip requeue")

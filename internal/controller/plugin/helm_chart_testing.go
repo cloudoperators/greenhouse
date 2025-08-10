@@ -12,12 +12,13 @@ import (
 
 	greenhousemetav1alpha1 "github.com/cloudoperators/greenhouse/api/meta/v1alpha1"
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
+	greenhousev1alpha2 "github.com/cloudoperators/greenhouse/api/v1alpha2"
 	"github.com/cloudoperators/greenhouse/internal/helm"
 )
 
-func (r *PluginReconciler) reconcileHelmChartTest(ctx context.Context, plugin *greenhousev1alpha1.Plugin) (*reconcileResult, error) {
+func (r *PluginReconciler) reconcileHelmChartTest(ctx context.Context, plugin *greenhousev1alpha2.Plugin) (*reconcileResult, error) {
 	// Nothing to do when the status of the plugin is empty and when the plugin does not have a Helm Chart
-	if reflect.DeepEqual(plugin.Status, greenhousev1alpha1.PluginStatus{}) || plugin.Status.HelmChart == nil {
+	if reflect.DeepEqual(plugin.Status, greenhousev1alpha2.PluginStatus{}) || plugin.Status.HelmChart == nil {
 		return nil, nil
 	}
 

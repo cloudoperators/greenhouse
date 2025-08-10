@@ -8,7 +8,7 @@ import (
 	crmetrics "sigs.k8s.io/controller-runtime/pkg/metrics"
 
 	greenhouseapis "github.com/cloudoperators/greenhouse/api"
-	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
+	greenhousev1alpha2 "github.com/cloudoperators/greenhouse/api/v1alpha2"
 	"github.com/cloudoperators/greenhouse/internal/lifecycle"
 )
 
@@ -52,9 +52,9 @@ func init() {
 	crmetrics.Registry.MustRegister(OwnedByLabelMissingGauge)
 }
 
-func UpdatePluginReconcileTotalMetric(plugin *greenhousev1alpha1.Plugin, result MetricResult, reason MetricReason) {
+func UpdatePluginReconcileTotalMetric(plugin *greenhousev1alpha2.Plugin, result MetricResult, reason MetricReason) {
 	pluginReconcileTotalLabels := prometheus.Labels{
-		"pluginDefinition": plugin.Spec.PluginDefinition,
+		"pluginDefinition": plugin.Spec.PluginDefinitionRef.Name,
 		"clusterName":      plugin.Spec.ClusterName,
 		"plugin":           plugin.Name,
 		"namespace":        plugin.Namespace,

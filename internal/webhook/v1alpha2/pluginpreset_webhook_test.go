@@ -40,7 +40,7 @@ var _ = Describe("PluginPreset Admission Tests", Ordered, func() {
 			Spec: greenhousev1alpha1.PluginDefinitionSpec{
 				Description: "Testplugin",
 				Version:     "1.0.0",
-				HelmChart: &greenhousev1alpha1.HelmChartReference{
+				HelmChart: &greenhousemetav1alpha1.HelmChartReference{
 					Name:       "./../../test/fixtures/myChart",
 					Repository: "dummy",
 					Version:    "1.0.0",

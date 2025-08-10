@@ -74,10 +74,10 @@ type PluginStatus struct {
 	Version string `json:"version,omitempty"`
 
 	// HelmChart contains a reference the helm chart used for the deployed pluginDefinition version.
-	HelmChart *HelmChartReference `json:"helmChart,omitempty"`
+	HelmChart *greenhousemetav1alpha1.HelmChartReference `json:"helmChart,omitempty"`
 
 	// UIApplication contains a reference to the frontend that is used for the deployed pluginDefinition version.
-	UIApplication *UIApplicationReference `json:"uiApplication,omitempty"`
+	UIApplication *greenhousemetav1alpha1.UIApplicationReference `json:"uiApplication,omitempty"`
 
 	// Weight configures the order in which Plugins are shown in the Greenhouse UI.
 	Weight *int32 `json:"weight,omitempty"`

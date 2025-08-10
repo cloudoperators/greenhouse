@@ -15,12 +15,16 @@ import (
 	greenhouseapis "github.com/cloudoperators/greenhouse/api"
 	greenhousemetav1alpha1 "github.com/cloudoperators/greenhouse/api/meta/v1alpha1"
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
+	greenhousev1alpha2 "github.com/cloudoperators/greenhouse/api/v1alpha2"
 	"github.com/cloudoperators/greenhouse/internal/common"
 )
 
-func GetPluginOptionValuesForPlugin(ctx context.Context, c client.Client, plugin *greenhousev1alpha1.Plugin) ([]greenhousemetav1alpha1.PluginOptionValue, error) {
+func GetPluginOptionValuesForPlugin(ctx context.Context, c client.Client, plugin *greenhousev1alpha2.Plugin) ([]greenhousemetav1alpha1.PluginOptionValue, error) {
 	var pluginDefinition = new(greenhousev1alpha1.ClusterPluginDefinition)
-	if err := c.Get(ctx, types.NamespacedName{Namespace: "", Name: plugin.Spec.PluginDefinition}, pluginDefinition); err != nil {
+	if err := c.Get(ctx, types.NamespacedName{
+		Namespace: plugin.Spec.PluginDefinitionRef.Namespace,
+		Name:      plugin.Spec.PluginDefinitionRef.Name,
+	}, pluginDefinition); err != nil {
 		return nil, err
 	}
 	values := mergePluginAndPluginOptionValueSlice(pluginDefinition.Spec.Options, plugin.Spec.OptionValues)
@@ -75,7 +79,7 @@ func mergePluginOptionValues(dst, src []greenhousemetav1alpha1.PluginOptionValue
 //		  - <name>
 //		teams:
 //		  - <name>
-func GetGreenhouseValues(ctx context.Context, c client.Client, p greenhousev1alpha1.Plugin) ([]greenhousemetav1alpha1.PluginOptionValue, error) {
+func GetGreenhouseValues(ctx context.Context, c client.Client, p greenhousev1alpha2.Plugin) ([]greenhousemetav1alpha1.PluginOptionValue, error) {
 	greenhouseValues := make([]greenhousemetav1alpha1.PluginOptionValue, 0)
 	var clusterList = new(greenhousev1alpha1.ClusterList)
 	if err := c.List(ctx, clusterList, &client.ListOptions{Namespace: p.GetNamespace()}); err != nil {

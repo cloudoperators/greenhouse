@@ -75,7 +75,7 @@ var (
 		},
 		Spec: greenhousev1alpha1.PluginDefinitionSpec{
 			Version: "1.0.0",
-			HelmChart: &greenhousev1alpha1.HelmChartReference{
+			HelmChart: &greenhousemetav1alpha1.HelmChartReference{
 				Name:       "./../test/fixtures/myChart",
 				Repository: "dummy",
 				Version:    "1.0.0",
@@ -98,7 +98,7 @@ var (
 			Name:      "test-plugindefinition",
 		},
 		Spec: greenhousev1alpha1.PluginDefinitionSpec{
-			HelmChart: &greenhousev1alpha1.HelmChartReference{
+			HelmChart: &greenhousemetav1alpha1.HelmChartReference{
 				Name:       "dummy",
 				Repository: "oci://greenhouse/helm-charts",
 				Version:    "1.0.0",
@@ -122,7 +122,7 @@ var (
 		},
 		Spec: greenhousev1alpha1.PluginDefinitionSpec{
 			Version: "1.0.0",
-			HelmChart: &greenhousev1alpha1.HelmChartReference{
+			HelmChart: &greenhousemetav1alpha1.HelmChartReference{
 				Name:       "./../test/fixtures/myChartWithCRDs",
 				Repository: "dummy",
 				Version:    "1.0.0",

@@ -41,7 +41,7 @@ func mockPluginDefinition() *greenhousev1alpha1.PluginDefinition {
 
 	clusterDef := test.NewClusterPluginDefinition(test.Ctx, PluginDefinitionName,
 		test.WithVersion(PluginDefinitionVersion),
-		test.WithHelmChart(&greenhousev1alpha1.HelmChartReference{
+		test.WithHelmChart(&greenhousemetav1alpha1.HelmChartReference{
 			Name:       HelmChart,
 			Repository: HelmRepo,
 			Version:    PluginDefinitionChartVersion,
@@ -80,7 +80,7 @@ func mockUIPluginDefinition() *greenhousev1alpha1.PluginDefinition {
 			Type:    "int",
 			Default: &apiextensionsv1.JSON{Raw: []byte("1")}},
 	),
-		test.WithUIApplication(&greenhousev1alpha1.UIApplicationReference{
+		test.WithUIApplication(&greenhousemetav1alpha1.UIApplicationReference{
 			Name:    "test-ui-app",
 			Version: "0.0.1",
 		}),

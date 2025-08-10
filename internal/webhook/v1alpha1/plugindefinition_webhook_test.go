@@ -14,6 +14,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	greenhouseapis "github.com/cloudoperators/greenhouse/api"
+	greenhousemetav1alpha1 "github.com/cloudoperators/greenhouse/api/meta/v1alpha1"
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
 	"github.com/cloudoperators/greenhouse/internal/test"
 )
@@ -65,7 +66,7 @@ var _ = Describe("Validate PluginDefinition Creation", func() {
 		pluginDefinition := &greenhousev1alpha1.ClusterPluginDefinition{
 			Spec: greenhousev1alpha1.PluginDefinitionSpec{
 				Version: "1.0.0",
-				UIApplication: &greenhousev1alpha1.UIApplicationReference{
+				UIApplication: &greenhousemetav1alpha1.UIApplicationReference{
 					Name:    "test-ui",
 					Version: "1.0.0",
 				},
@@ -89,7 +90,7 @@ var _ = Describe("Validate PluginDefinition Creation", func() {
 	It("should deny creation of PluginDefinition without spec.Version", func() {
 		pluginDefinition := &greenhousev1alpha1.ClusterPluginDefinition{
 			Spec: greenhousev1alpha1.PluginDefinitionSpec{
-				UIApplication: &greenhousev1alpha1.UIApplicationReference{
+				UIApplication: &greenhousemetav1alpha1.UIApplicationReference{
 					Name: "test-no-version",
 				},
 				Options: []greenhousev1alpha1.PluginOption{},
@@ -110,7 +111,7 @@ var _ = Describe("Validate PluginDefinition Update", func() {
 		pluginDefinition := &greenhousev1alpha1.ClusterPluginDefinition{
 			Spec: greenhousev1alpha1.PluginDefinitionSpec{
 				Version: "1.0.0",
-				UIApplication: &greenhousev1alpha1.UIApplicationReference{
+				UIApplication: &greenhousemetav1alpha1.UIApplicationReference{
 					Name:    "test-ui",
 					Version: "1.0.0",
 				},
@@ -134,7 +135,7 @@ var _ = Describe("Validate PluginDefinition Update", func() {
 	It("should deny updating PluginDefinition without spec.Version", func() {
 		pluginDefinition := &greenhousev1alpha1.ClusterPluginDefinition{
 			Spec: greenhousev1alpha1.PluginDefinitionSpec{
-				UIApplication: &greenhousev1alpha1.UIApplicationReference{
+				UIApplication: &greenhousemetav1alpha1.UIApplicationReference{
 					Name: "test-no-version",
 				},
 				Options: []greenhousev1alpha1.PluginOption{},

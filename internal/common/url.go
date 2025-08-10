@@ -9,7 +9,7 @@ import (
 	"fmt"
 	"strings"
 
-	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
+	greenhousev1alpha2 "github.com/cloudoperators/greenhouse/api/v1alpha2"
 )
 
 // DNSDomain is the DNS domain under which all services shall be exposed.
@@ -18,7 +18,7 @@ var DNSDomain string
 // URLForExposedServiceInPlugin returns the URL that shall be used to expose a service centrally via Greenhouse.
 // The pattern shall be $https://$cluster--$hash.$organisation.$basedomain, where $hash = $service--$namespace
 // We know $cluster is no longer than 40 characters and does not contain "--"
-func URLForExposedServiceInPlugin(serviceName string, plugin *greenhousev1alpha1.Plugin) string {
+func URLForExposedServiceInPlugin(serviceName string, plugin *greenhousev1alpha2.Plugin) string {
 	hash := sha256.Sum256([]byte(fmt.Sprintf("%s--%s", serviceName, plugin.Spec.ReleaseNamespace)))
 	hashString := hex.EncodeToString(hash[:])
 	subdomain := fmt.Sprintf("%s--%s", plugin.Spec.ClusterName, hashString[:7])

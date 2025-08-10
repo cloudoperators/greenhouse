@@ -22,10 +22,10 @@ type PluginDefinitionSpec struct {
 	Description string `json:"description,omitempty"`
 
 	// HelmChart specifies where the Helm Chart for this pluginDefinition can be found.
-	HelmChart *HelmChartReference `json:"helmChart,omitempty"`
+	HelmChart *greenhousemetav1alpha1.HelmChartReference `json:"helmChart,omitempty"`
 
 	// UIApplication specifies a reference to a UI application
-	UIApplication *UIApplicationReference `json:"uiApplication,omitempty"`
+	UIApplication *greenhousemetav1alpha1.UIApplicationReference `json:"uiApplication,omitempty"`
 
 	// RequiredValues is a list of values required to create an instance of this PluginDefinition.
 	Options []PluginOption `json:"options,omitempty"`

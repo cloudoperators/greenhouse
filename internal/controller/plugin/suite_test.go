@@ -133,7 +133,7 @@ var _ = Describe("HelmControllerTest", Serial, func() {
 
 		testPluginDefinition = test.NewClusterPluginDefinition(test.Ctx, PluginDefinitionName,
 			test.WithVersion(PluginDefinitionVersion),
-			test.WithHelmChart(&greenhousev1alpha1.HelmChartReference{
+			test.WithHelmChart(&greenhousemetav1alpha1.HelmChartReference{
 				Name:       HelmChart,
 				Repository: HelmRepo,
 				Version:    PluginDefinitionChartVersion,
@@ -442,7 +442,7 @@ var _ = Describe("HelmControllerTest", Serial, func() {
 		By("creating a pluginDefinition with every type of option", func() {
 			complexPluginDefinition = test.NewClusterPluginDefinition(test.Ctx, pluginWithEveryOption,
 				test.WithVersion(PluginDefinitionVersion),
-				test.WithHelmChart(&greenhousev1alpha1.HelmChartReference{
+				test.WithHelmChart(&greenhousemetav1alpha1.HelmChartReference{
 					Name:       HelmChartWithAllOptions,
 					Repository: HelmRepo,
 					Version:    PluginDefinitionChartVersion,
@@ -597,7 +597,7 @@ var _ = When("the pluginDefinition is UI only", func() {
 			"myuiplugin",
 			test.WithVersion("1.0.0"),
 			test.WithoutHelmChart(),
-			test.WithUIApplication(&greenhousev1alpha1.UIApplicationReference{
+			test.WithUIApplication(&greenhousemetav1alpha1.UIApplicationReference{
 				Name:    "myapp",
 				Version: "1.0.0",
 				URL:     "http://myapp.com",

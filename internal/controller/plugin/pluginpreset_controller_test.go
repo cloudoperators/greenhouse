@@ -52,7 +52,7 @@ var (
 
 	testTeam               = test.NewTeam(test.Ctx, "test-pluginpreset-team", test.TestNamespace, test.WithTeamLabel(greenhouseapis.LabelKeySupportGroup, "true"))
 	pluginPresetDefinition = test.NewClusterPluginDefinition(test.Ctx, pluginPresetDefinitionName, test.WithHelmChart(
-		&greenhousev1alpha1.HelmChartReference{
+		&greenhousemetav1alpha1.HelmChartReference{
 			Name:       "./../../test/fixtures/chartWithConfigMap",
 			Repository: "dummy",
 			Version:    "1.0.0",
@@ -116,7 +116,7 @@ var _ = Describe("PluginPreset Controller Lifecycle", Ordered, func() {
 				Type:    "int",
 				Default: &apiextensionsv1.JSON{Raw: []byte("1")}},
 		),
-			test.WithUIApplication(&greenhousev1alpha1.UIApplicationReference{
+			test.WithUIApplication(&greenhousemetav1alpha1.UIApplicationReference{
 				Name:    "test-ui-app",
 				Version: "0.0.1",
 			}),
@@ -533,7 +533,7 @@ var _ = Describe("PluginPreset Controller Lifecycle", Ordered, func() {
 					Name:     "test-required-option-1",
 					Type:     "int",
 					Required: true}),
-			test.WithUIApplication(&greenhousev1alpha1.UIApplicationReference{
+			test.WithUIApplication(&greenhousemetav1alpha1.UIApplicationReference{
 				Name:    "test-ui-app",
 				Version: "0.0.1"}),
 		)

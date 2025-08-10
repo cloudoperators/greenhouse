@@ -22,6 +22,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
+	greenhousev1alpha2 "github.com/cloudoperators/greenhouse/api/v1alpha2"
 	"github.com/cloudoperators/greenhouse/internal/clientutil"
 	"github.com/cloudoperators/greenhouse/internal/helm"
 )
@@ -67,14 +68,14 @@ type ReleaseStatus struct {
 func (r *PluginReconciler) reconcilePluginWorkloadStatus(
 	ctx context.Context,
 	restClientGetter genericclioptions.RESTClientGetter,
-	plugin *greenhousev1alpha1.Plugin,
+	plugin *greenhousev1alpha2.Plugin,
 	pluginDefinition *greenhousev1alpha1.ClusterPluginDefinition,
 ) (*reconcileResult, error) {
 
 	var releaseStatus = new(ReleaseStatus)
 
 	// Nothing to do when the status of the plugin is empty and when the plugin does not have a Helm Chart
-	if reflect.DeepEqual(plugin.Status, greenhousev1alpha1.PluginStatus{}) || plugin.Status.HelmChart == nil {
+	if reflect.DeepEqual(plugin.Status, greenhousev1alpha2.PluginStatus{}) || plugin.Status.HelmChart == nil {
 		return nil, nil
 	}
 	if pluginDefinition.Spec.HelmChart == nil {

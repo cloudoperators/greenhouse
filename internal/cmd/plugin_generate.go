@@ -19,6 +19,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/json"
 
+	greenhousemetav1alpha1 "github.com/cloudoperators/greenhouse/api/meta/v1alpha1"
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
 )
 
@@ -116,12 +117,12 @@ func helmChartToPlugin(helmChart *chart.Chart) (*greenhousev1alpha1.ClusterPlugi
 		Spec: greenhousev1alpha1.PluginDefinitionSpec{
 			Version:     pluginVersion,
 			Description: helmChart.Name(),
-			HelmChart: &greenhousev1alpha1.HelmChartReference{
+			HelmChart: &greenhousemetav1alpha1.HelmChartReference{
 				Name:       helmChart.Name(),
 				Repository: "TODO: Repository for this Helm chart.",
 				Version:    helmChart.Metadata.Version,
 			},
-			UIApplication: &greenhousev1alpha1.UIApplicationReference{
+			UIApplication: &greenhousemetav1alpha1.UIApplicationReference{
 				URL:     "TODO: Javascript asset server URL.",
 				Name:    helmChart.Name(),
 				Version: "latest",

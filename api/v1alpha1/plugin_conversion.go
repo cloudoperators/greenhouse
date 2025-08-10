@@ -35,8 +35,8 @@ func (p *Plugin) ConvertTo(dstRaw conversion.Hub) error {
 	// Status
 	dst.Status.HelmReleaseStatus = (*v1alpha2.HelmReleaseStatus)(p.Status.HelmReleaseStatus)
 	dst.Status.Version = p.Status.Version
-	dst.Status.HelmChart = (*v1alpha2.HelmChartReference)(p.Status.HelmChart)
-	dst.Status.UIApplication = (*v1alpha2.UIApplicationReference)(p.Status.UIApplication)
+	dst.Status.HelmChart = p.Status.HelmChart
+	dst.Status.UIApplication = p.Status.UIApplication
 	dst.Status.Weight = p.Status.Weight
 	dst.Status.Description = p.Status.Description
 	dstExposedServices := make(map[string]v1alpha2.Service, len(p.Status.ExposedServices))
@@ -72,8 +72,8 @@ func (p *Plugin) ConvertFrom(srcRaw conversion.Hub) error {
 	// Status
 	p.Status.HelmReleaseStatus = (*HelmReleaseStatus)(src.Status.HelmReleaseStatus)
 	p.Status.Version = src.Status.Version
-	p.Status.HelmChart = (*HelmChartReference)(src.Status.HelmChart)
-	p.Status.UIApplication = (*UIApplicationReference)(src.Status.UIApplication)
+	p.Status.HelmChart = src.Status.HelmChart
+	p.Status.UIApplication = src.Status.UIApplication
 	p.Status.Weight = src.Status.Weight
 	p.Status.Description = src.Status.Description
 	dstExposedServices := make(map[string]Service, len(src.Status.ExposedServices))

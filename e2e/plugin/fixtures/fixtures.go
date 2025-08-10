@@ -21,7 +21,7 @@ func PreparePluginDefinition(name, namespace string, opts ...func(definition *gr
 		Spec: greenhousev1alpha1.PluginDefinitionSpec{
 			Description: "TestPluginDefinition",
 			Version:     "1.0.0",
-			HelmChart:   &greenhousev1alpha1.HelmChartReference{}, // helm chart values are override later
+			HelmChart:   &greenhousemetav1alpha1.HelmChartReference{}, // helm chart values are override later
 		},
 	}
 	for _, o := range opts {
@@ -35,7 +35,7 @@ func PrepareNginxPluginDefinition(namespace string) *greenhousev1alpha1.ClusterP
 	return PreparePluginDefinition("nginx-18.1.7", namespace,
 		test.WithVersion("18.1.7"),
 		test.WithHelmChart(
-			&greenhousev1alpha1.HelmChartReference{
+			&greenhousemetav1alpha1.HelmChartReference{
 				Name:       "bitnamicharts/nginx",
 				Repository: "oci://registry-1.docker.io",
 				Version:    "18.1.7",
@@ -84,7 +84,7 @@ func PrepareCertManagerPluginDefinition(namespace string) *greenhousev1alpha1.Cl
 	return PreparePluginDefinition("cert-manager-v1.17.0", namespace,
 		test.WithVersion("v1.17.0"),
 		test.WithHelmChart(
-			&greenhousev1alpha1.HelmChartReference{
+			&greenhousemetav1alpha1.HelmChartReference{
 				Name:       "cert-manager",
 				Repository: "https://charts.jetstack.io",
 				Version:    "v1.17.0",
@@ -97,7 +97,7 @@ func PreparePodInfoPluginDefinition(namespace string) *greenhousev1alpha1.Cluste
 	return PreparePluginDefinition("podinfo", namespace,
 		test.WithVersion("6.9.0"),
 		test.WithHelmChart(
-			&greenhousev1alpha1.HelmChartReference{
+			&greenhousemetav1alpha1.HelmChartReference{
 				Name:       "podinfo",
 				Repository: "oci://ghcr.io/stefanprodan/charts",
 				Version:    "6.9.0",

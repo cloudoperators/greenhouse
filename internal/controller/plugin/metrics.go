@@ -8,7 +8,7 @@ import (
 	crmetrics "sigs.k8s.io/controller-runtime/pkg/metrics"
 
 	greenhouseapis "github.com/cloudoperators/greenhouse/api"
-	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
+	greenhousev1alpha2 "github.com/cloudoperators/greenhouse/api/v1alpha2"
 )
 
 var (
@@ -39,9 +39,9 @@ func init() {
 	crmetrics.Registry.MustRegister(workloadStatusGauge)
 }
 
-func UpdatePluginReadyMetric(plugin *greenhousev1alpha1.Plugin, ready bool) {
+func UpdatePluginReadyMetric(plugin *greenhousev1alpha2.Plugin, ready bool) {
 	pluginReadyLabels := prometheus.Labels{
-		"pluginDefinition": plugin.Spec.PluginDefinition,
+		"pluginDefinition": plugin.Spec.PluginDefinitionRef.Name,
 		"clusterName":      plugin.Spec.ClusterName,
 		"plugin":           plugin.Name,
 		"namespace":        plugin.Namespace,
@@ -54,7 +54,7 @@ func UpdatePluginReadyMetric(plugin *greenhousev1alpha1.Plugin, ready bool) {
 	}
 }
 
-func IncrementHelmChartTestRunsTotal(plugin *greenhousev1alpha1.Plugin, testRunResult string) {
+func IncrementHelmChartTestRunsTotal(plugin *greenhousev1alpha2.Plugin, testRunResult string) {
 	prometheusLabels := prometheus.Labels{
 		"cluster":   plugin.Spec.ClusterName,
 		"plugin":    plugin.Name,
@@ -66,11 +66,11 @@ func IncrementHelmChartTestRunsTotal(plugin *greenhousev1alpha1.Plugin, testRunR
 }
 
 // setWorkloadMetrics sets the workload status metric to the given status
-func UpdatePluginWorkloadMetrics(plugin *greenhousev1alpha1.Plugin, status float64) {
+func UpdatePluginWorkloadMetrics(plugin *greenhousev1alpha2.Plugin, status float64) {
 	workloadStatusGauge.WithLabelValues(
 		plugin.GetNamespace(),
 		plugin.Name,
-		plugin.Spec.PluginDefinition,
+		plugin.Spec.PluginDefinitionRef.Name,
 		plugin.Spec.ClusterName,
 		plugin.GetLabels()[greenhouseapis.LabelKeyOwnedBy],
 	).Set(status)

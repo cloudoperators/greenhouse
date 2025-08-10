@@ -15,6 +15,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
+	greenhousev1alpha2 "github.com/cloudoperators/greenhouse/api/v1alpha2"
 	"github.com/cloudoperators/greenhouse/internal/clientutil"
 	"github.com/cloudoperators/greenhouse/internal/helm"
 )
@@ -89,7 +90,7 @@ func (o *pluginValidateOptions) run() error {
 }
 
 // validateOptions validates that all required options are set and that the values are valid.
-func validateOptions(pluginDefinition *greenhousev1alpha1.ClusterPluginDefinition, plugin *greenhousev1alpha1.Plugin) error {
+func validateOptions(pluginDefinition *greenhousev1alpha1.ClusterPluginDefinition, plugin *greenhousev1alpha2.Plugin) error {
 	// Validate that all required options are set.
 	var errList []error
 	for _, option := range pluginDefinition.Spec.Options {
@@ -118,7 +119,7 @@ func validateOptions(pluginDefinition *greenhousev1alpha1.ClusterPluginDefinitio
 	}
 }
 
-func validateHelmChart(pluginDefinition *greenhousev1alpha1.ClusterPluginDefinition, plugin *greenhousev1alpha1.Plugin) error {
+func validateHelmChart(pluginDefinition *greenhousev1alpha1.ClusterPluginDefinition, plugin *greenhousev1alpha2.Plugin) error {
 	if pluginDefinition.Spec.HelmChart == nil {
 		return nil
 	}
@@ -142,8 +143,8 @@ func loadPluginDefinition(path string) (*greenhousev1alpha1.ClusterPluginDefinit
 	return pluginDefinition, err
 }
 
-func loadPlugin(path string) (*greenhousev1alpha1.Plugin, error) {
-	var plugin *greenhousev1alpha1.Plugin
+func loadPlugin(path string) (*greenhousev1alpha2.Plugin, error) {
+	var plugin *greenhousev1alpha2.Plugin
 	err := loadAndUnmarshalObject(path, &plugin)
 	return plugin, err
 }
