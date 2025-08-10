@@ -65,7 +65,7 @@ func ValidateCreateRoleBinding(ctx context.Context, c client.Client, o runtime.O
 		return nil, apierrors.NewInternalError(err)
 	}
 
-	if err := validateClusterSelector(rb.Spec.ClusterSelector, rb.GroupVersionKind().GroupKind()); err != nil {
+	if err := webhook.ValidateClusterSelector(rb.Spec.ClusterSelector, rb.GroupVersionKind().GroupKind()); err != nil {
 		return nil, err
 	}
 
@@ -86,7 +86,7 @@ func ValidateUpdateRoleBinding(ctx context.Context, c client.Client, old, cur ru
 		return nil, nil
 	}
 	switch {
-	case validateClusterSelector(curRB.Spec.ClusterSelector, curRB.GroupVersionKind().GroupKind()) != nil:
+	case webhook.ValidateClusterSelector(curRB.Spec.ClusterSelector, curRB.GroupVersionKind().GroupKind()) != nil:
 		return nil, apierrors.NewForbidden(
 			schema.GroupResource{
 				Group:    oldRB.GroupVersionKind().Group,

@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2025 SAP SE or an SAP affiliate company and Greenhouse contributors
 // SPDX-License-Identifier: Apache-2.0
 
-package v1alpha2
+package v1alpha3
 
 import (
 	"context"
@@ -15,7 +15,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
-	greenhousev1alpha2 "github.com/cloudoperators/greenhouse/api/v1alpha2"
+	greenhousev1alpha3 "github.com/cloudoperators/greenhouse/api/v1alpha3"
 	"github.com/cloudoperators/greenhouse/internal/webhook"
 )
 
@@ -23,7 +23,7 @@ import (
 
 func SetupPluginPresetWebhookWithManager(mgr ctrl.Manager) error {
 	return webhook.SetupWebhook(mgr,
-		&greenhousev1alpha2.PluginPreset{},
+		&greenhousev1alpha3.PluginPreset{},
 		webhook.WebhookFuncs{
 			DefaultFunc:        DefaultPluginPreset,
 			ValidateCreateFunc: ValidateCreatePluginPreset,
@@ -33,10 +33,10 @@ func SetupPluginPresetWebhookWithManager(mgr ctrl.Manager) error {
 	)
 }
 
-//+kubebuilder:webhook:path=/mutate-greenhouse-sap-v1alpha2-pluginpreset,mutating=true,failurePolicy=fail,sideEffects=None,groups=greenhouse.sap,resources=pluginpresets,verbs=create;update,versions=v1alpha2,name=mpluginpreset-v1alpha2.kb.io,admissionReviewVersions=v1
+//+kubebuilder:webhook:path=/mutate-greenhouse-sap-v1alpha3-pluginpreset,mutating=true,failurePolicy=fail,sideEffects=None,groups=greenhouse.sap,resources=pluginpresets,verbs=create;update,versions=v1alpha3,name=mpluginpreset-v1alpha3.kb.io,admissionReviewVersions=v1
 
 func DefaultPluginPreset(_ context.Context, _ client.Client, o runtime.Object) error {
-	pluginPreset, ok := o.(*greenhousev1alpha2.PluginPreset)
+	pluginPreset, ok := o.(*greenhousev1alpha3.PluginPreset)
 	if !ok {
 		return nil
 	}
@@ -46,16 +46,16 @@ func DefaultPluginPreset(_ context.Context, _ client.Client, o runtime.Object) e
 		pluginPreset.Annotations = map[string]string{}
 	}
 	if pluginPreset.CreationTimestamp.IsZero() {
-		pluginPreset.Annotations[greenhousev1alpha2.PreventDeletionAnnotation] = "true"
+		pluginPreset.Annotations[greenhousev1alpha3.PreventDeletionAnnotation] = "true"
 	}
 
 	return nil
 }
 
-//+kubebuilder:webhook:path=/validate-greenhouse-sap-v1alpha2-pluginpreset,mutating=false,failurePolicy=fail,sideEffects=None,groups=greenhouse.sap,resources=pluginpresets,verbs=create;update;delete,versions=v1alpha2,name=vpluginpreset-v1alpha2.kb.io,admissionReviewVersions=v1
+//+kubebuilder:webhook:path=/validate-greenhouse-sap-v1alpha3-pluginpreset,mutating=false,failurePolicy=fail,sideEffects=None,groups=greenhouse.sap,resources=pluginpresets,verbs=create;update;delete,versions=v1alpha3,name=vpluginpreset-v1alpha3.kb.io,admissionReviewVersions=v1
 
 func ValidateCreatePluginPreset(ctx context.Context, c client.Client, o runtime.Object) (admission.Warnings, error) {
-	pluginPreset, ok := o.(*greenhousev1alpha2.PluginPreset)
+	pluginPreset, ok := o.(*greenhousev1alpha3.PluginPreset)
 	if !ok {
 		return nil, nil
 	}
@@ -63,8 +63,8 @@ func ValidateCreatePluginPreset(ctx context.Context, c client.Client, o runtime.
 	var allWarns admission.Warnings
 
 	// ensure PluginDefinition and ClusterSelector are set
-	if pluginPreset.Spec.Plugin.PluginDefinition == "" {
-		allErrs = append(allErrs, field.Invalid(field.NewPath("spec").Child("plugin").Child("pluginDefinition"), pluginPreset.Spec.Plugin.PluginDefinition, "PluginDefinition must be set"))
+	if pluginPreset.Spec.Plugin.PluginDefinitionRef.Name == "" {
+		allErrs = append(allErrs, field.Invalid(field.NewPath("spec").Child("plugin").Child("pluginDefinitionRef").Child("name"), pluginPreset.Spec.Plugin.PluginDefinitionRef, "PluginDefinitionRef must be set"))
 	}
 
 	if err := webhook.ValidateClusterSelector(pluginPreset.Spec.ClusterSelector, pluginPreset.GroupVersionKind().GroupKind()); err != nil {
@@ -82,12 +82,15 @@ func ValidateCreatePluginPreset(ctx context.Context, c client.Client, o runtime.
 
 	// ensure PluginDefinition exists
 	pluginDefinition := new(greenhousev1alpha1.ClusterPluginDefinition)
-	err := c.Get(ctx, client.ObjectKey{Namespace: "", Name: pluginPreset.Spec.Plugin.PluginDefinition}, pluginDefinition)
+	err := c.Get(ctx, client.ObjectKey{
+		Namespace: pluginPreset.Spec.Plugin.PluginDefinitionRef.Namespace,
+		Name:      pluginPreset.Spec.Plugin.PluginDefinitionRef.Name,
+	}, pluginDefinition)
 	switch {
 	case err != nil && apierrors.IsNotFound(err):
-		allErrs = append(allErrs, field.Invalid(field.NewPath("spec").Child("plugin").Child("pluginDefinition"), pluginPreset.Spec.Plugin.PluginDefinition, fmt.Sprintf("PluginDefinition %s does not exist", pluginPreset.Spec.Plugin.PluginDefinition)))
+		allErrs = append(allErrs, field.Invalid(field.NewPath("spec").Child("plugin").Child("pluginDefinitionRef"), pluginPreset.Spec.Plugin.PluginDefinitionRef, fmt.Sprintf("PluginDefinition %s does not exist", pluginPreset.Spec.Plugin.PluginDefinitionRef.Name)))
 	case err != nil:
-		allErrs = append(allErrs, field.Invalid(field.NewPath("spec").Child("plugin").Child("pluginDefinition"), pluginPreset.Spec.Plugin.PluginDefinition, "PluginDefinition could not be retrieved: "+err.Error()))
+		allErrs = append(allErrs, field.Invalid(field.NewPath("spec").Child("plugin").Child("pluginDefinitionRef"), pluginPreset.Spec.Plugin.PluginDefinitionRef, "PluginDefinition could not be retrieved: "+err.Error()))
 	}
 
 	labelValidationWarning := webhook.ValidateLabelOwnedBy(ctx, c, pluginPreset)
@@ -108,11 +111,11 @@ func ValidateCreatePluginPreset(ctx context.Context, c client.Client, o runtime.
 }
 
 func ValidateUpdatePluginPreset(ctx context.Context, c client.Client, oldObj, curObj runtime.Object) (admission.Warnings, error) {
-	oldPluginPreset, ok := oldObj.(*greenhousev1alpha2.PluginPreset)
+	oldPluginPreset, ok := oldObj.(*greenhousev1alpha3.PluginPreset)
 	if !ok {
 		return nil, nil
 	}
-	pluginPreset, ok := curObj.(*greenhousev1alpha2.PluginPreset)
+	pluginPreset, ok := curObj.(*greenhousev1alpha3.PluginPreset)
 	if !ok {
 		return nil, nil
 	}
@@ -120,9 +123,12 @@ func ValidateUpdatePluginPreset(ctx context.Context, c client.Client, oldObj, cu
 	var allErrs field.ErrorList
 	var allWarns admission.Warnings
 
-	if err := webhook.ValidateImmutableField(oldPluginPreset.Spec.Plugin.PluginDefinition, pluginPreset.Spec.Plugin.PluginDefinition, field.NewPath("spec", "plugin", "pluginDefinition")); err != nil {
+	if err := webhook.ValidateImmutableField(oldPluginPreset.Spec.Plugin.PluginDefinitionRef.Name, pluginPreset.Spec.Plugin.PluginDefinitionRef.Name, field.NewPath("spec", "plugin", "pluginDefinitionRef", "name")); err != nil {
 		allErrs = append(allErrs, err)
 	}
+	// if err := webhook.ValidateImmutableField(oldPluginPreset.Spec.Plugin.PluginDefinitionRef.Namespace, pluginPreset.Spec.Plugin.PluginDefinitionRef.Namespace, field.NewPath("spec", "plugin", "pluginDefinitionRef", "namespace")); err != nil {
+	// 	allErrs = append(allErrs, err)
+	// }
 
 	if err := webhook.ValidateImmutableField(oldPluginPreset.Spec.Plugin.ClusterName, pluginPreset.Spec.Plugin.ClusterName, field.NewPath("spec", "plugin", "clusterName")); err != nil {
 		allErrs = append(allErrs, err)
@@ -141,15 +147,15 @@ func ValidateUpdatePluginPreset(ctx context.Context, c client.Client, oldObj, cu
 }
 
 func ValidateDeletePluginPreset(_ context.Context, _ client.Client, obj runtime.Object) (admission.Warnings, error) {
-	pluginPreset, ok := obj.(*greenhousev1alpha2.PluginPreset)
+	pluginPreset, ok := obj.(*greenhousev1alpha3.PluginPreset)
 	if !ok {
 		return nil, nil
 	}
 
 	var allErrs field.ErrorList
-	if _, ok := pluginPreset.Annotations[greenhousev1alpha2.PreventDeletionAnnotation]; ok {
-		allErrs = append(allErrs, field.Invalid(field.NewPath("metadata").Child("annotation").Child(greenhousev1alpha2.PreventDeletionAnnotation),
-			pluginPreset.Annotations, fmt.Sprintf("PluginPreset with annotation '%s' set may not be deleted.", greenhousev1alpha2.PreventDeletionAnnotation)))
+	if _, ok := pluginPreset.Annotations[greenhousev1alpha3.PreventDeletionAnnotation]; ok {
+		allErrs = append(allErrs, field.Invalid(field.NewPath("metadata").Child("annotation").Child(greenhousev1alpha3.PreventDeletionAnnotation),
+			pluginPreset.Annotations, fmt.Sprintf("PluginPreset with annotation '%s' set may not be deleted.", greenhousev1alpha3.PreventDeletionAnnotation)))
 	}
 
 	if len(allErrs) > 0 {

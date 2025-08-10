@@ -1,7 +1,7 @@
-// SPDX-FileCopyrightText: 2024 SAP SE or an SAP affiliate company and Greenhouse contributors
+// SPDX-FileCopyrightText: 2025 SAP SE or an SAP affiliate company and Greenhouse contributors
 // SPDX-License-Identifier: Apache-2.0
 
-package v1alpha1
+package v1alpha2
 
 import (
 	"context"
@@ -20,6 +20,7 @@ import (
 
 	greenhouseapis "github.com/cloudoperators/greenhouse/api"
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
+	greenhousev1alpha2 "github.com/cloudoperators/greenhouse/api/v1alpha2"
 	"github.com/cloudoperators/greenhouse/internal/clientutil"
 	"github.com/cloudoperators/greenhouse/internal/helm"
 	"github.com/cloudoperators/greenhouse/internal/webhook"
@@ -34,7 +35,7 @@ var pluginsAllowedInCentralCluster = []string{
 // SetupPluginWebhookWithManager configures the webhook for the Plugin custom resource.
 func SetupPluginWebhookWithManager(mgr ctrl.Manager) error {
 	return webhook.SetupWebhook(mgr,
-		&greenhousev1alpha1.Plugin{},
+		&greenhousev1alpha2.Plugin{},
 		webhook.WebhookFuncs{
 			DefaultFunc:        DefaultPlugin,
 			ValidateCreateFunc: ValidateCreatePlugin,
@@ -44,10 +45,10 @@ func SetupPluginWebhookWithManager(mgr ctrl.Manager) error {
 	)
 }
 
-//+kubebuilder:webhook:path=/mutate-greenhouse-sap-v1alpha1-plugin,mutating=true,failurePolicy=fail,sideEffects=None,groups=greenhouse.sap,resources=plugins,verbs=create;update,versions=v1alpha1,name=mplugin-v1alpha1.kb.io,admissionReviewVersions=v1
+//+kubebuilder:webhook:path=/mutate-greenhouse-sap-v1alpha2-plugin,mutating=true,failurePolicy=fail,sideEffects=None,groups=greenhouse.sap,resources=plugins,verbs=create;update,versions=v1alpha2,name=mplugin-v1alpha2.kb.io,admissionReviewVersions=v1
 
 func DefaultPlugin(ctx context.Context, c client.Client, obj runtime.Object) error {
-	plugin, ok := obj.(*greenhousev1alpha1.Plugin)
+	plugin, ok := obj.(*greenhousev1alpha2.Plugin)
 	if !ok {
 		return nil
 	}
@@ -56,7 +57,7 @@ func DefaultPlugin(ctx context.Context, c client.Client, obj runtime.Object) err
 	}
 	// The label is used to help identifying Plugins, e.g. if a PluginDefinition changes.
 	delete(plugin.Labels, greenhouseapis.LabelKeyPlugin)
-	plugin.Labels[greenhouseapis.LabelKeyPluginDefinition] = plugin.Spec.PluginDefinition
+	plugin.Labels[greenhouseapis.LabelKeyPluginDefinition] = plugin.Spec.PluginDefinitionRef.Name
 	plugin.Labels[greenhouseapis.LabelKeyCluster] = plugin.Spec.ClusterName
 
 	// Default the displayName to a normalized version of metadata.name.
@@ -67,8 +68,8 @@ func DefaultPlugin(ctx context.Context, c client.Client, obj runtime.Object) err
 	}
 
 	// Validate before ValidateCreatePlugin is called. Because defaulting PluginOptionValues & ReleaseName requires the PluginDefinition to be set.
-	if plugin.Spec.PluginDefinition == "" {
-		return field.Required(field.NewPath("spec").Child("pluginDefinition"), "field is required")
+	if plugin.Spec.PluginDefinitionRef.Name == "" {
+		return field.Required(field.NewPath("spec").Child("pluginDefinitionRef"), "field is required")
 	}
 
 	// Default option values and merge with PluginDefinition values.
@@ -91,12 +92,15 @@ func DefaultPlugin(ctx context.Context, c client.Client, obj runtime.Object) err
 		} else {
 			// The Plugin is newly created, use the PluginDefinition's HelmChart name as the release name.
 			pluginDefinition := new(greenhousev1alpha1.ClusterPluginDefinition)
-			err := c.Get(ctx, client.ObjectKey{Namespace: "", Name: plugin.Spec.PluginDefinition}, pluginDefinition)
+			err := c.Get(ctx, client.ObjectKey{
+				Namespace: plugin.Spec.PluginDefinitionRef.Namespace,
+				Name:      plugin.Spec.PluginDefinitionRef.Name,
+			}, pluginDefinition)
 			if err != nil {
 				return err
 			}
 			if pluginDefinition.Spec.HelmChart == nil {
-				return field.InternalError(field.NewPath("spec").Child("pluginDefinition"), fmt.Errorf("PluginDefinition %s does not have a HelmChart", plugin.Spec.PluginDefinition))
+				return field.InternalError(field.NewPath("spec").Child("pluginDefinition"), fmt.Errorf("PluginDefinition %s does not have a HelmChart", plugin.Spec.PluginDefinitionRef.Name))
 			}
 			plugin.Spec.ReleaseName = pluginDefinition.Spec.HelmChart.Name
 		}
@@ -104,24 +108,27 @@ func DefaultPlugin(ctx context.Context, c client.Client, obj runtime.Object) err
 	return nil
 }
 
-//+kubebuilder:webhook:path=/validate-greenhouse-sap-v1alpha1-plugin,mutating=false,failurePolicy=fail,sideEffects=None,groups=greenhouse.sap,resources=plugins,verbs=create;update;delete,versions=v1alpha1,name=vplugin-v1alpha1.kb.io,admissionReviewVersions=v1
+//+kubebuilder:webhook:path=/validate-greenhouse-sap-v1alpha2-plugin,mutating=false,failurePolicy=fail,sideEffects=None,groups=greenhouse.sap,resources=plugins,verbs=create;update;delete,versions=v1alpha2,name=vplugin-v1alpha2.kb.io,admissionReviewVersions=v1
 
 func ValidateCreatePlugin(ctx context.Context, c client.Client, obj runtime.Object) (admission.Warnings, error) {
-	plugin, ok := obj.(*greenhousev1alpha1.Plugin)
+	plugin, ok := obj.(*greenhousev1alpha2.Plugin)
 	if !ok {
 		return nil, nil
 	}
 
 	pluginDefinition := new(greenhousev1alpha1.ClusterPluginDefinition)
-	if plugin.Spec.PluginDefinition == "" {
-		return nil, field.Required(field.NewPath("spec").Child("pluginDefinition"), "field is required")
+	if plugin.Spec.PluginDefinitionRef.Name == "" {
+		return nil, field.Required(field.NewPath("spec").Child("pluginDefinitionRef").Child("name"), "field is required")
 	}
-	err := c.Get(ctx, client.ObjectKey{Namespace: "", Name: plugin.Spec.PluginDefinition}, pluginDefinition)
+	err := c.Get(ctx, client.ObjectKey{
+		Namespace: plugin.Spec.PluginDefinitionRef.Namespace,
+		Name:      plugin.Spec.PluginDefinitionRef.Name,
+	}, pluginDefinition)
 	if err != nil {
 		if apierrors.IsNotFound(err) {
-			return nil, field.NotFound(field.NewPath("spec").Child("pluginDefinition"), plugin.Spec.PluginDefinition)
+			return nil, field.NotFound(field.NewPath("spec").Child("pluginDefinitionRef"), plugin.Spec.PluginDefinitionRef.Name)
 		}
-		return nil, field.InternalError(field.NewPath("spec").Child("pluginDefinition"), err)
+		return nil, field.InternalError(field.NewPath("spec").Child("pluginDefinitionRef"), err)
 	}
 
 	if err := webhook.ValidateReleaseName(plugin.Spec.ReleaseName); err != nil {
@@ -146,11 +153,11 @@ func ValidateCreatePlugin(ctx context.Context, c client.Client, obj runtime.Obje
 
 func ValidateUpdatePlugin(ctx context.Context, c client.Client, old, obj runtime.Object) (admission.Warnings, error) {
 	var allWarns admission.Warnings
-	oldPlugin, ok := old.(*greenhousev1alpha1.Plugin)
+	oldPlugin, ok := old.(*greenhousev1alpha2.Plugin)
 	if !ok {
 		return nil, nil
 	}
-	plugin, ok := obj.(*greenhousev1alpha1.Plugin)
+	plugin, ok := obj.(*greenhousev1alpha2.Plugin)
 	if !ok {
 		return nil, nil
 	}
@@ -158,15 +165,18 @@ func ValidateUpdatePlugin(ctx context.Context, c client.Client, old, obj runtime
 	allWarns = append(allWarns, validateOwnerReference(oldPlugin)...)
 	allErrs := field.ErrorList{}
 
-	allErrs = append(allErrs, validation.ValidateImmutableField(oldPlugin.Spec.PluginDefinition, plugin.Spec.PluginDefinition, field.NewPath("spec", "pluginDefinition"))...)
+	allErrs = append(allErrs, validation.ValidateImmutableField(oldPlugin.Spec.PluginDefinitionRef.Name, plugin.Spec.PluginDefinitionRef.Name, field.NewPath("spec", "pluginDefinitionRef", "name"))...)
 
 	pluginDefinition := new(greenhousev1alpha1.ClusterPluginDefinition)
-	err := c.Get(ctx, client.ObjectKey{Namespace: "", Name: plugin.Spec.PluginDefinition}, pluginDefinition)
+	err := c.Get(ctx, client.ObjectKey{
+		Namespace: oldPlugin.Spec.PluginDefinitionRef.Namespace,
+		Name:      plugin.Spec.PluginDefinitionRef.Name,
+	}, pluginDefinition)
 	if err != nil {
 		if apierrors.IsNotFound(err) {
-			return allWarns, field.NotFound(field.NewPath("spec").Child("pluginDefinition"), plugin.Spec.PluginDefinition)
+			return allWarns, field.NotFound(field.NewPath("spec").Child("pluginDefinitionRef"), plugin.Spec.PluginDefinitionRef.Name)
 		}
-		return allWarns, field.InternalError(field.NewPath("spec").Child("pluginDefinition"), err)
+		return allWarns, field.InternalError(field.NewPath("spec").Child("pluginDefinitionRef"), err)
 	}
 
 	if err := webhook.ValidateReleaseName(plugin.Spec.ReleaseName); err != nil {
@@ -202,20 +212,20 @@ func ValidateDeletePlugin(_ context.Context, _ client.Client, _ runtime.Object) 
 
 // validateOwnerRefernce returns a Warning if the Plugin is managed by a PluginPreset
 // The user is warned that the Plugin will be reconciled to the desired state specified in the PluginPreset.
-func validateOwnerReference(plugin *greenhousev1alpha1.Plugin) admission.Warnings {
-	if ref := clientutil.GetOwnerReference(plugin, greenhousev1alpha1.PluginPresetKind); ref != nil {
+func validateOwnerReference(plugin *greenhousev1alpha2.Plugin) admission.Warnings {
+	if ref := clientutil.GetOwnerReference(plugin, greenhousev1alpha2.PluginPresetKind); ref != nil {
 		return admission.Warnings{fmt.Sprintf("Plugin is managed by PluginPreset '%s'. Plugin will be reconciled to the desired state specified in the PluginPreset.", ref.Name)}
 	}
 	return nil
 }
 
-func validatePluginForCluster(ctx context.Context, c client.Client, plugin *greenhousev1alpha1.Plugin, pluginDefinition *greenhousev1alpha1.ClusterPluginDefinition) error {
+func validatePluginForCluster(ctx context.Context, c client.Client, plugin *greenhousev1alpha2.Plugin, pluginDefinition *greenhousev1alpha1.ClusterPluginDefinition) error {
 	// Exclude front-end only Plugins as well as the greenhouse namespace from the below check.
 	if pluginDefinition.Spec.HelmChart == nil || plugin.GetNamespace() == "greenhouse" {
 		return nil
 	}
 	// Ensure whitelisted plugins are deployed in the organization namespace
-	if plugin.Spec.ClusterName == "" && slices.Contains(pluginsAllowedInCentralCluster, plugin.Spec.PluginDefinition) {
+	if plugin.Spec.ClusterName == "" && slices.Contains(pluginsAllowedInCentralCluster, plugin.Spec.PluginDefinitionRef.Name) {
 		if plugin.Spec.ReleaseNamespace != plugin.GetNamespace() {
 			return field.Forbidden(field.NewPath("spec").Child("releaseNamespace"), "plugins running in the central cluster can only be deployed in the same namespace as the plugin")
 		}

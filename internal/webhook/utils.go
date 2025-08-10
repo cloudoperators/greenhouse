@@ -16,6 +16,7 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -284,6 +285,26 @@ func ValidateLabelOwnedBy(ctx context.Context, c client.Client, resourceObj v1.O
 		return warnErr.Error()
 	}
 	return ""
+}
+
+// ValidateClusterSelector checks if the resource has a valid clusterSelector.
+func ValidateClusterSelector(cs greenhousemetav1alpha1.ClusterSelector, resourceGroupKind schema.GroupKind) error {
+	if cs.Name != "" && cs.LabelSelector.Size() > 0 {
+		return apierrors.NewInvalid(resourceGroupKind, cs.Name, field.ErrorList{field.Invalid(
+			field.NewPath("spec", "clusterSelector"),
+			cs.Name,
+			"cannot specify both spec.clusterSelector.clusterName and spec.clusterSelector.labelSelector",
+		)})
+	}
+
+	if cs.Name == "" && cs.LabelSelector.Size() == 0 {
+		return apierrors.NewInvalid(resourceGroupKind, cs.Name, field.ErrorList{field.Invalid(
+			field.NewPath("spec", "clusterSelector"),
+			cs.Name,
+			"must specify either spec.clusterSelector.clusterName or spec.clusterSelector.labelSelector",
+		)})
+	}
+	return nil
 }
 
 // logAdmissionRequest logs the AdmissionRequest.
