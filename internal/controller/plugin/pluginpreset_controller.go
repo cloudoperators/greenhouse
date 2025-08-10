@@ -169,7 +169,7 @@ func (r *PluginPresetReconciler) reconcilePluginPreset(ctx context.Context, pres
 	}
 
 	for _, cluster := range clusters.Items {
-		plugin := &greenhousev1alpha1.Plugin{}
+		plugin := &greenhousev1alpha2.Plugin{}
 		err := r.Get(ctx, client.ObjectKey{Namespace: preset.GetNamespace(), Name: generatePluginName(preset, &cluster)}, plugin)
 
 		switch {
@@ -183,7 +183,7 @@ func (r *PluginPresetReconciler) reconcilePluginPreset(ctx context.Context, pres
 			}
 
 		case apierrors.IsNotFound(err):
-			plugin = &greenhousev1alpha1.Plugin{}
+			plugin = &greenhousev1alpha2.Plugin{}
 			plugin.SetName(generatePluginName(preset, &cluster))
 			plugin.SetNamespace(preset.GetNamespace())
 		default:
@@ -200,12 +200,12 @@ func (r *PluginPresetReconciler) reconcilePluginPreset(ctx context.Context, pres
 
 			releaseName := getReleaseName(plugin, preset)
 
-			plugin.Spec = greenhousev1alpha1.PluginSpec(preset.Spec.Plugin)
+			plugin.Spec = greenhousev1alpha2.PluginSpec(preset.Spec.Plugin)
 			plugin.Spec.ReleaseName = releaseName
 			// Set the cluster name to the name of the cluster. The PluginSpec contained in the PluginPreset does not have a cluster name.
 			plugin.Spec.ClusterName = cluster.GetName()
 			// transport plugin preset labels to plugin
-			plugin = (lifecycle.NewPropagator(preset, plugin).ApplyLabels()).(*greenhousev1alpha1.Plugin) //nolint:errcheck
+			plugin = (lifecycle.NewPropagator(preset, plugin).ApplyLabels()).(*greenhousev1alpha2.Plugin) //nolint:errcheck
 			// overrides options based on preset definition
 			overridesPluginOptionValues(plugin, preset)
 			return nil
@@ -275,11 +275,11 @@ func (r *PluginPresetReconciler) reconcilePluginStatuses(
 	return nil
 }
 
-func isPluginManagedByPreset(plugin *greenhousev1alpha1.Plugin, presetName string) bool {
+func isPluginManagedByPreset(plugin *greenhousev1alpha2.Plugin, presetName string) bool {
 	return plugin.Labels[greenhouseapis.LabelKeyPluginPreset] == presetName
 }
 
-func shouldSkipPlugin(plugin *greenhousev1alpha1.Plugin, preset *greenhousev1alpha2.PluginPreset, definition *greenhousev1alpha1.ClusterPluginDefinition, clusterName string) bool {
+func shouldSkipPlugin(plugin *greenhousev1alpha2.Plugin, preset *greenhousev1alpha2.PluginPreset, definition *greenhousev1alpha1.ClusterPluginDefinition, clusterName string) bool {
 	if !isPluginManagedByPreset(plugin, preset.Name) {
 		return true
 	}
@@ -341,7 +341,7 @@ func shouldSkipPlugin(plugin *greenhousev1alpha1.Plugin, preset *greenhousev1alp
 	return true
 }
 
-func overridesPluginOptionValues(plugin *greenhousev1alpha1.Plugin, preset *greenhousev1alpha2.PluginPreset) {
+func overridesPluginOptionValues(plugin *greenhousev1alpha2.Plugin, preset *greenhousev1alpha2.PluginPreset) {
 	index := slices.IndexFunc(preset.Spec.ClusterOptionOverrides, func(override greenhousev1alpha2.ClusterOptionOverride) bool {
 		return override.ClusterName == plugin.Spec.ClusterName
 	})
@@ -504,7 +504,7 @@ func equalPluginOptions(a, b greenhousemetav1alpha1.PluginOptionValue) bool {
 }
 
 // getReleaseName determines the release name for a plugin based on its current state and the preset.
-func getReleaseName(plugin *greenhousev1alpha1.Plugin, preset *greenhousev1alpha2.PluginPreset) string {
+func getReleaseName(plugin *greenhousev1alpha2.Plugin, preset *greenhousev1alpha2.PluginPreset) string {
 	switch {
 	case plugin.Spec.ReleaseName != "":
 		// If the plugin already has a release name, keep it.

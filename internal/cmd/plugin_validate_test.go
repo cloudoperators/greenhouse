@@ -10,6 +10,7 @@ import (
 
 	greenhousemetav1alpha1 "github.com/cloudoperators/greenhouse/api/meta/v1alpha1"
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
+	greenhousev1alpha2 "github.com/cloudoperators/greenhouse/api/v1alpha2"
 	"github.com/cloudoperators/greenhouse/internal/test"
 )
 
@@ -41,10 +42,10 @@ var _ = Describe("Validate PluginDefinition against Plugin ", func() {
 
 	When("plugin is missing required OptionValues", func() {
 		It("should raise an validation error", func() {
-			plugin := &greenhousev1alpha1.Plugin{
-				Spec: greenhousev1alpha1.PluginSpec{
-					PluginDefinition: "testPlugin",
-					OptionValues:     []greenhousemetav1alpha1.PluginOptionValue{},
+			plugin := &greenhousev1alpha2.Plugin{
+				Spec: greenhousev1alpha2.PluginSpec{
+					PluginDefinitionRef: greenhousemetav1alpha1.PluginDefinitionReference{Name: "testPlugin"},
+					OptionValues:        []greenhousemetav1alpha1.PluginOptionValue{},
 				},
 			}
 			err := validateOptions(pluginDefinition, plugin)
@@ -54,9 +55,9 @@ var _ = Describe("Validate PluginDefinition against Plugin ", func() {
 
 	When("plugin has OptionValues for all required Options", func() {
 		It("should not return an error", func() {
-			plugin := &greenhousev1alpha1.Plugin{
-				Spec: greenhousev1alpha1.PluginSpec{
-					PluginDefinition: "testPlugin",
+			plugin := &greenhousev1alpha2.Plugin{
+				Spec: greenhousev1alpha2.PluginSpec{
+					PluginDefinitionRef: greenhousemetav1alpha1.PluginDefinitionReference{Name: "testPlugin"},
 					OptionValues: []greenhousemetav1alpha1.PluginOptionValue{
 						{
 							Name:  "stringRequired",
@@ -72,9 +73,9 @@ var _ = Describe("Validate PluginDefinition against Plugin ", func() {
 
 	When("plugin has OptionValues with wrong types", func() {
 		It("should raise an validation error", func() {
-			plugin := &greenhousev1alpha1.Plugin{
-				Spec: greenhousev1alpha1.PluginSpec{
-					PluginDefinition: "testPlugin",
+			plugin := &greenhousev1alpha2.Plugin{
+				Spec: greenhousev1alpha2.PluginSpec{
+					PluginDefinitionRef: greenhousemetav1alpha1.PluginDefinitionReference{Name: "testPlugin"},
 					OptionValues: []greenhousemetav1alpha1.PluginOptionValue{
 						{
 							Name:  "stringRequired",
@@ -90,9 +91,9 @@ var _ = Describe("Validate PluginDefinition against Plugin ", func() {
 
 	When("plugin has OptionValues with type secret", func() {
 		It("should raise an validation error if there is no secret reference", func() {
-			plugin := &greenhousev1alpha1.Plugin{
-				Spec: greenhousev1alpha1.PluginSpec{
-					PluginDefinition: "testPlugin",
+			plugin := &greenhousev1alpha2.Plugin{
+				Spec: greenhousev1alpha2.PluginSpec{
+					PluginDefinitionRef: greenhousemetav1alpha1.PluginDefinitionReference{Name: "testPlugin"},
 					OptionValues: []greenhousemetav1alpha1.PluginOptionValue{
 						{
 							Name:  "secret",
@@ -105,9 +106,9 @@ var _ = Describe("Validate PluginDefinition against Plugin ", func() {
 			Expect(err).To(HaveOccurred(), "expected an error, got nil")
 		})
 		It("should reference a secret", func() {
-			plugin := &greenhousev1alpha1.Plugin{
-				Spec: greenhousev1alpha1.PluginSpec{
-					PluginDefinition: "testPlugin",
+			plugin := &greenhousev1alpha2.Plugin{
+				Spec: greenhousev1alpha2.PluginSpec{
+					PluginDefinitionRef: greenhousemetav1alpha1.PluginDefinitionReference{Name: "testPlugin"},
 					OptionValues: []greenhousemetav1alpha1.PluginOptionValue{
 						{
 							Name: "secret",

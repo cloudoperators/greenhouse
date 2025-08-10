@@ -9,7 +9,7 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
-	"github.com/cloudoperators/greenhouse/api/v1alpha1"
+	greenhousev1alpha2 "github.com/cloudoperators/greenhouse/api/v1alpha2"
 	"github.com/cloudoperators/greenhouse/internal/common"
 )
 
@@ -21,8 +21,8 @@ func TestCommonURL(t *testing.T) {
 var _ = Describe("validate url methods", Ordered, func() {
 	It("should correctly generate the url for an exposed service", func() {
 		common.DNSDomain = "example.com"
-		plugin := &v1alpha1.Plugin{
-			Spec: v1alpha1.PluginSpec{
+		plugin := &greenhousev1alpha2.Plugin{
+			Spec: greenhousev1alpha2.PluginSpec{
 				ReleaseNamespace: "test-namespace",
 				ClusterName:      "test-cluster",
 			},

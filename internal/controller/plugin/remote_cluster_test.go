@@ -19,6 +19,7 @@ import (
 	greenhouseapis "github.com/cloudoperators/greenhouse/api"
 	greenhousemetav1alpha1 "github.com/cloudoperators/greenhouse/api/meta/v1alpha1"
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
+	greenhousev1alpha2 "github.com/cloudoperators/greenhouse/api/v1alpha2"
 	"github.com/cloudoperators/greenhouse/internal/clientutil"
 	"github.com/cloudoperators/greenhouse/internal/common"
 	"github.com/cloudoperators/greenhouse/internal/helm"
@@ -36,16 +37,16 @@ var (
 var (
 	testTeam = test.NewTeam(test.Ctx, "test-remotecluster-team", test.TestNamespace, test.WithTeamLabel(greenhouseapis.LabelKeySupportGroup, "true"))
 
-	testPlugin = test.NewPlugin(test.Ctx, "test-plugindefinition", test.TestNamespace,
+	testPlugin = test.NewPlugin("test-plugindefinition", test.TestNamespace,
 		test.WithCluster("test-cluster"),
-		test.WithPluginDefinition("test-plugindefinition"),
+		test.WithPluginDefinitionRef("test-plugindefinition", ""),
 		test.WithReleaseName("release-test"),
 		test.WithReleaseNamespace(test.TestNamespace),
 		test.WithPluginLabel(greenhouseapis.LabelKeyOwnedBy, testTeam.Name))
 
-	testPluginWithSR = test.NewPlugin(test.Ctx, "test-plugin-secretref", test.TestNamespace,
+	testPluginWithSR = test.NewPlugin("test-plugin-secretref", test.TestNamespace,
 		test.WithCluster("test-cluster"),
-		test.WithPluginDefinition("test-plugindefinition"),
+		test.WithPluginDefinitionRef("test-plugindefinition", ""),
 		test.WithReleaseName("release-with-secretref"),
 		test.WithPluginOptionValue("secretValue", nil, &greenhousemetav1alpha1.ValueFromSource{
 			Secret: &greenhousemetav1alpha1.SecretKeyReference{
@@ -56,17 +57,17 @@ var (
 		test.WithPluginLabel(greenhouseapis.LabelKeyOwnedBy, testTeam.Name),
 	)
 
-	testPluginWithCRDs = test.NewPlugin(test.Ctx, "test-plugin-crd", test.TestNamespace,
+	testPluginWithCRDs = test.NewPlugin("test-plugin-crd", test.TestNamespace,
 		test.WithCluster(testCluster.GetName()),
-		test.WithPluginDefinition("test-plugindefinition-crd"),
+		test.WithPluginDefinitionRef("test-plugindefinition-crd", ""),
 		test.WithReleaseName("plugindefinition-crd"),
 		test.WithReleaseNamespace(test.TestNamespace),
 		test.WithPluginLabel(greenhouseapis.LabelKeyOwnedBy, testTeam.Name),
 	)
 
-	testPluginWithExposedService = test.NewPlugin(test.Ctx, "test-plugin-exposed", test.TestNamespace,
+	testPluginWithExposedService = test.NewPlugin("test-plugin-exposed", test.TestNamespace,
 		test.WithCluster(testCluster.GetName()),
-		test.WithPluginDefinition("test-plugindefinition-exposed"),
+		test.WithPluginDefinitionRef("test-plugindefinition-exposed", ""),
 		test.WithReleaseName("plugindefinition-exposed"),
 		test.WithReleaseNamespace(test.TestNamespace),
 		test.WithPluginLabel(greenhouseapis.LabelKeyOwnedBy, testTeam.Name),
@@ -132,7 +133,7 @@ var (
 // checkReadyConditionComponentsUnderTest asserts that components of plugin's ReadyCondition are ready,
 // except for WorkloadReady condition, which is not a subject under test.
 // This is done because the cumulative Ready condition in tests will be false due to workload not being ready.
-func checkReadyConditionComponentsUnderTest(g Gomega, plugin *greenhousev1alpha1.Plugin) {
+func checkReadyConditionComponentsUnderTest(g Gomega, plugin *greenhousev1alpha2.Plugin) {
 	readyCondition := plugin.Status.GetConditionByType(greenhousemetav1alpha1.ReadyCondition)
 	g.Expect(readyCondition).ToNot(BeNil(), "Ready condition should not be nil")
 	clusterAccessReadyCondition := plugin.Status.GetConditionByType(greenhousev1alpha1.ClusterAccessReadyCondition)
@@ -273,10 +274,10 @@ var _ = Describe("HelmController reconciliation", Ordered, func() {
 	})
 
 	It("should correctly handle the plugin on a referenced cluster with a different namespace", func() {
-		testPluginInDifferentNamespace := test.NewPlugin(test.Ctx, "test-plugin-in-made-up-namespace", test.TestNamespace,
+		testPluginInDifferentNamespace := test.NewPlugin("test-plugin-in-made-up-namespace", test.TestNamespace,
 			test.WithPluginLabel(greenhouseapis.LabelKeyOwnedBy, testTeam.Name),
 			test.WithCluster(testCluster.GetName()),
-			test.WithPluginDefinition(testPluginDefinition.GetName()),
+			test.WithPluginDefinitionRef(testPluginDefinition.GetName(), ""),
 			test.WithReleaseName("release-test-in-made-up-namespace"),
 			test.WithReleaseNamespace("made-up-namespace"))
 

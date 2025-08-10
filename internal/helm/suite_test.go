@@ -13,6 +13,7 @@ import (
 	greenhouseapis "github.com/cloudoperators/greenhouse/api"
 	greenhousemetav1alpha1 "github.com/cloudoperators/greenhouse/api/meta/v1alpha1"
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
+	greenhousev1alpha2 "github.com/cloudoperators/greenhouse/api/v1alpha2"
 	"github.com/cloudoperators/greenhouse/internal/test"
 	webhookv1alpha1 "github.com/cloudoperators/greenhouse/internal/webhook/v1alpha1"
 )
@@ -139,7 +140,7 @@ var (
 		},
 	}
 
-	plugin = &greenhousev1alpha1.Plugin{
+	plugin = &greenhousev1alpha2.Plugin{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: namespace,
 			Name:      "test-plugin",
@@ -148,11 +149,11 @@ var (
 				greenhouseapis.LabelKeyOwnedBy: "test-team-1",
 			},
 		},
-		Spec: greenhousev1alpha1.PluginSpec{
-			PluginDefinition: "test-plugindefinition",
-			ClusterName:      "test-cluster",
-			OptionValues:     []greenhousemetav1alpha1.PluginOptionValue{},
-			ReleaseNamespace: "test-release-namespace",
+		Spec: greenhousev1alpha2.PluginSpec{
+			PluginDefinitionRef: greenhousemetav1alpha1.PluginDefinitionReference{Name: "test-plugindefinition"},
+			ClusterName:         "test-cluster",
+			OptionValues:        []greenhousemetav1alpha1.PluginOptionValue{},
+			ReleaseNamespace:    "test-release-namespace",
 		},
 	}
 

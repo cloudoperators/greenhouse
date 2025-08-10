@@ -26,6 +26,7 @@ import (
 
 	greenhousemetav1alpha1 "github.com/cloudoperators/greenhouse/api/meta/v1alpha1"
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
+	greenhousev1alpha2 "github.com/cloudoperators/greenhouse/api/v1alpha2"
 	"github.com/cloudoperators/greenhouse/internal/clientutil"
 	"github.com/cloudoperators/greenhouse/internal/helm"
 	"github.com/cloudoperators/greenhouse/internal/test"
@@ -115,7 +116,7 @@ var _ = Describe("HelmControllerTest", Serial, func() {
 
 		testTeam             *greenhousev1alpha1.Team
 		testPluginDefinition *greenhousev1alpha1.ClusterPluginDefinition
-		testPlugin           *greenhousev1alpha1.Plugin
+		testPlugin           *greenhousev1alpha2.Plugin
 		pluginDefinitionID   = types.NamespacedName{Name: PluginDefinitionName, Namespace: ""}
 		pluginID             = types.NamespacedName{Name: PluginName, Namespace: Namespace}
 		tempChartLoader      helm.ChartLoaderFunc
@@ -171,8 +172,8 @@ var _ = Describe("HelmControllerTest", Serial, func() {
 		testTeam = test.NewTeam(test.Ctx, "suite-test-team", Namespace, test.WithTeamLabel(greenhouseapis.LabelKeySupportGroup, "true"))
 		Expect(test.K8sClient.Create(test.Ctx, testTeam)).Should(Succeed(), "there should be no error creating the Team")
 
-		testPlugin = test.NewPlugin(test.Ctx, PluginName, Namespace,
-			test.WithPluginDefinition(PluginDefinitionName),
+		testPlugin = test.NewPlugin(PluginName, Namespace,
+			test.WithPluginDefinitionRef(PluginDefinitionName, ""),
 			test.WithPluginLabel(greenhouseapis.LabelKeyOwnedBy, testTeam.Name),
 			test.WithReleaseName(ReleaseName),
 			test.WithPluginOptionValue(PluginOptionRequired, test.AsAPIExtensionJSON(PluginRequiredOptionValue), nil))
@@ -416,7 +417,7 @@ var _ = Describe("HelmControllerTest", Serial, func() {
 		}).Should(Succeed())
 		Expect(actPluginDefinition.Spec.Options).To(ContainElement(gstruct.MatchFields(gstruct.IgnoreExtras, gstruct.Fields{"Name": Equal(PluginOptionDefault), "Default": Equal(test.AsAPIExtensionJSON(PluginOptionDefaultValue))})))
 
-		actPlugin := &greenhousev1alpha1.Plugin{}
+		actPlugin := &greenhousev1alpha2.Plugin{}
 		Eventually(func() error {
 			return test.K8sClient.Get(test.Ctx, pluginID, actPlugin)
 		}).Should(Succeed())
@@ -428,7 +429,7 @@ var _ = Describe("HelmControllerTest", Serial, func() {
 		const pluginWithEveryOption = "mytestpluginwitheveryoption"
 		var (
 			complexPluginDefinition *greenhousev1alpha1.ClusterPluginDefinition
-			complexPlugin           *greenhousev1alpha1.Plugin
+			complexPlugin           *greenhousev1alpha2.Plugin
 			pluginName              = "mypluginwitheveryoption"
 			complexPluginID         = types.NamespacedName{Name: pluginName, Namespace: Namespace}
 
@@ -497,9 +498,9 @@ var _ = Describe("HelmControllerTest", Serial, func() {
 		})
 
 		By("creating a Plugin with every type of OptionValue", func() {
-			complexPlugin = test.NewPlugin(test.Ctx, pluginName, Namespace,
+			complexPlugin = test.NewPlugin(pluginName, Namespace,
 				test.WithPluginLabel(greenhouseapis.LabelKeyOwnedBy, testTeam.Name),
-				test.WithPluginDefinition(pluginWithEveryOption),
+				test.WithPluginDefinitionRef(pluginWithEveryOption, ""),
 				test.WithReleaseName(ReleaseName),
 				test.WithPluginOptionValue(PluginOptionDefault, test.AsAPIExtensionJSON(stringVal), nil),
 				test.WithPluginOptionValue(PluginOptionBool, test.AsAPIExtensionJSON(boolVal), nil),
@@ -548,8 +549,8 @@ var _ = Describe("HelmControllerTest", Serial, func() {
 	})
 
 	DescribeTable("creating of Plugins with wrong OptionValues", func(option string, value any) {
-		plugin := test.NewPlugin(test.Ctx, "testPlugin", Namespace,
-			test.WithPluginDefinition("testPlugin"),
+		plugin := test.NewPlugin("testPlugin", Namespace,
+			test.WithPluginDefinitionRef("testPlugin", ""),
 			test.WithReleaseName(ReleaseName),
 			test.WithPluginOptionValue(option, test.AsAPIExtensionJSON(value), nil))
 		Expect(test.K8sClient.Create(test.Ctx, plugin)).Should(Not(Succeed()), "creating a plugin with wrong types should not be successful")
@@ -590,7 +591,7 @@ var _ = Describe("HelmControllerTest", Serial, func() {
 
 var _ = When("the pluginDefinition is UI only", func() {
 	var uiPluginDefinition *greenhousev1alpha1.ClusterPluginDefinition
-	var uiPlugin *greenhousev1alpha1.Plugin
+	var uiPlugin *greenhousev1alpha2.Plugin
 	BeforeEach(func() {
 		uiPluginDefinition = test.NewClusterPluginDefinition(
 			test.Ctx,
@@ -602,8 +603,8 @@ var _ = When("the pluginDefinition is UI only", func() {
 				Version: "1.0.0",
 				URL:     "http://myapp.com",
 			}))
-		uiPlugin = test.NewPlugin(test.Ctx, "uiplugin", "default",
-			test.WithPluginDefinition("myuiplugin"),
+		uiPlugin = test.NewPlugin("uiplugin", "default",
+			test.WithPluginDefinitionRef("myuiplugin", ""),
 			test.WithReleaseName("myuiplugin-release"))
 
 		Expect(test.K8sClient.Create(test.Ctx, uiPluginDefinition)).Should(Succeed())

@@ -8,7 +8,9 @@ import (
 
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 
+	greenhousemetav1alpha1 "github.com/cloudoperators/greenhouse/api/meta/v1alpha1"
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
+	greenhousev1alpha2 "github.com/cloudoperators/greenhouse/api/v1alpha2"
 	"github.com/cloudoperators/greenhouse/internal/test"
 )
 
@@ -106,11 +108,11 @@ func PreparePodInfoPluginDefinition(namespace string) *greenhousev1alpha1.Cluste
 	)
 }
 
-func PreparePlugin(name, namespace string, opts ...func(*greenhousev1alpha1.Plugin)) *greenhousev1alpha1.Plugin {
-	plugin := &greenhousev1alpha1.Plugin{
+func PreparePlugin(name, namespace string, opts ...func(*greenhousev1alpha2.Plugin)) *greenhousev1alpha2.Plugin {
+	plugin := &greenhousev1alpha2.Plugin{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "Plugin",
-			APIVersion: greenhousev1alpha1.GroupVersion.String(),
+			APIVersion: greenhousev1alpha2.GroupVersion.String(),
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:         name,

@@ -16,6 +16,7 @@ import (
 
 	greenhouseapis "github.com/cloudoperators/greenhouse/api"
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
+	greenhousev1alpha2 "github.com/cloudoperators/greenhouse/api/v1alpha2"
 	"github.com/cloudoperators/greenhouse/internal/test"
 	"github.com/cloudoperators/greenhouse/internal/util"
 )
@@ -52,7 +53,7 @@ var _ = Describe("Common Metrics", Ordered, func() {
 	})
 
 	It("Should update the OwnedByLabelMissingMetric when Plugin reconciler is calling", func() {
-		plugin := test.NewPlugin(test.Ctx, "test-plugin-a", setup.Namespace())
+		plugin := test.NewPlugin("test-plugin-a", setup.Namespace())
 
 		util.UpdateOwnedByLabelMissingMetric(plugin, true)
 
@@ -69,7 +70,7 @@ var _ = Describe("Common Metrics", Ordered, func() {
 })
 
 var _ = Describe("Shared Plugin metrics", Ordered, func() {
-	DescribeTable("update metrics", func(plugin *greenhousev1alpha1.Plugin, expectedCounter string, result util.MetricResult, reason util.MetricReason) {
+	DescribeTable("update metrics", func(plugin *greenhousev1alpha2.Plugin, expectedCounter string, result util.MetricResult, reason util.MetricReason) {
 		registerPluginMetrics()
 		util.UpdatePluginReconcileTotalMetric(plugin, result, reason)
 

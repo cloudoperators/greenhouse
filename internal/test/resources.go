@@ -202,38 +202,41 @@ func NewClusterPluginDefinition(ctx context.Context, name string, opts ...func(d
 	return pd
 }
 
-// WithPluginDefinition sets the PluginDefinition of a Plugin
-func WithPluginDefinition(pluginDefinition string) func(*greenhousev1alpha1.Plugin) {
-	return func(p *greenhousev1alpha1.Plugin) {
-		p.Spec.PluginDefinition = pluginDefinition
+// WithPluginDefinitionRef sets the PluginDefinition of a Plugin
+func WithPluginDefinitionRef(pluginDefinitionName, pluginDefinitionNamespace string) func(*greenhousev1alpha2.Plugin) {
+	return func(p *greenhousev1alpha2.Plugin) {
+		p.Spec.PluginDefinitionRef = greenhousemetav1alpha1.PluginDefinitionReference{
+			Namespace: pluginDefinitionNamespace,
+			Name:      pluginDefinitionName,
+		}
 	}
 }
 
 // WithReleaseNamespace sets the ReleaseNamespace of a Plugin
-func WithReleaseNamespace(releaseNamespace string) func(*greenhousev1alpha1.Plugin) {
-	return func(p *greenhousev1alpha1.Plugin) {
+func WithReleaseNamespace(releaseNamespace string) func(*greenhousev1alpha2.Plugin) {
+	return func(p *greenhousev1alpha2.Plugin) {
 		p.Spec.ReleaseNamespace = releaseNamespace
 	}
 }
 
 // WithReleaseName sets the ReleaseName of a Plugin
-func WithReleaseName(releaseName string) func(*greenhousev1alpha1.Plugin) {
-	return func(p *greenhousev1alpha1.Plugin) {
+func WithReleaseName(releaseName string) func(*greenhousev1alpha2.Plugin) {
+	return func(p *greenhousev1alpha2.Plugin) {
 		p.Spec.ReleaseName = releaseName
 	}
 }
 
 // WithCluster sets the Cluster for a Plugin
-func WithCluster(cluster string) func(*greenhousev1alpha1.Plugin) {
-	return func(p *greenhousev1alpha1.Plugin) {
+func WithCluster(cluster string) func(*greenhousev1alpha2.Plugin) {
+	return func(p *greenhousev1alpha2.Plugin) {
 		p.Spec.ClusterName = cluster
 	}
 }
 
 // WithPresetLabelValue sets the value of the greenhouseapis.LabelKeyPluginPreset label on a Plugin
 // This label is used to indicate that the Plugin is managed by a PluginPreset.
-func WithPresetLabelValue(value string) func(*greenhousev1alpha1.Plugin) {
-	return func(p *greenhousev1alpha1.Plugin) {
+func WithPresetLabelValue(value string) func(*greenhousev1alpha2.Plugin) {
+	return func(p *greenhousev1alpha2.Plugin) {
 		if p.Labels == nil {
 			p.Labels = make(map[string]string, 1)
 		}
@@ -242,8 +245,8 @@ func WithPresetLabelValue(value string) func(*greenhousev1alpha1.Plugin) {
 }
 
 // WithPluginLabel sets the label on a Plugin
-func WithPluginLabel(key, value string) func(*greenhousev1alpha1.Plugin) {
-	return func(p *greenhousev1alpha1.Plugin) {
+func WithPluginLabel(key, value string) func(*greenhousev1alpha2.Plugin) {
+	return func(p *greenhousev1alpha2.Plugin) {
 		if p.Labels == nil {
 			p.Labels = make(map[string]string, 1)
 		}
@@ -252,8 +255,8 @@ func WithPluginLabel(key, value string) func(*greenhousev1alpha1.Plugin) {
 }
 
 // WithPluginOptionValue sets the value of a PluginOptionValue
-func WithPluginOptionValue(name string, value *apiextensionsv1.JSON, valueFrom *greenhousemetav1alpha1.ValueFromSource) func(*greenhousev1alpha1.Plugin) {
-	return func(p *greenhousev1alpha1.Plugin) {
+func WithPluginOptionValue(name string, value *apiextensionsv1.JSON, valueFrom *greenhousemetav1alpha1.ValueFromSource) func(*greenhousev1alpha2.Plugin) {
+	return func(p *greenhousev1alpha2.Plugin) {
 		if value != nil && valueFrom != nil {
 			Fail("value and valueFrom are mutually exclusive")
 		}
@@ -274,7 +277,7 @@ func WithPluginOptionValue(name string, value *apiextensionsv1.JSON, valueFrom *
 }
 
 // SetOptionValueForPlugin sets the value of a PluginOptionValue in plugin
-func SetOptionValueForPlugin(plugin *greenhousev1alpha1.Plugin, key, value string) {
+func SetOptionValueForPlugin(plugin *greenhousev1alpha2.Plugin, key, value string) {
 	for i, keyValue := range plugin.Spec.OptionValues {
 		if keyValue.Name == key {
 			plugin.Spec.OptionValues[i].Value.Raw = []byte(value)
@@ -289,12 +292,12 @@ func SetOptionValueForPlugin(plugin *greenhousev1alpha1.Plugin, key, value strin
 }
 
 // NewPlugin returns a greenhousev1alpha1.Plugin object. Opts can be used to set the desired state of the Plugin.
-func NewPlugin(ctx context.Context, name, namespace string, opts ...func(*greenhousev1alpha1.Plugin)) *greenhousev1alpha1.Plugin {
+func NewPlugin(name, namespace string, opts ...func(*greenhousev1alpha2.Plugin)) *greenhousev1alpha2.Plugin {
 	GinkgoHelper()
-	plugin := &greenhousev1alpha1.Plugin{
+	plugin := &greenhousev1alpha2.Plugin{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "Plugin",
-			APIVersion: greenhousev1alpha1.GroupVersion.String(),
+			APIVersion: greenhousev1alpha2.GroupVersion.String(),
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,

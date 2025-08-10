@@ -18,6 +18,7 @@ import (
 	greenhouseapis "github.com/cloudoperators/greenhouse/api"
 	greenhousemetav1alpha1 "github.com/cloudoperators/greenhouse/api/meta/v1alpha1"
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
+	greenhousev1alpha2 "github.com/cloudoperators/greenhouse/api/v1alpha2"
 	"github.com/cloudoperators/greenhouse/internal/helm"
 	"github.com/cloudoperators/greenhouse/internal/test"
 )
@@ -32,7 +33,7 @@ var (
 var _ = Describe("ensure helm diff against the release manifest works as expected", func() {
 	var (
 		pluginDefinitionUT *greenhousev1alpha1.ClusterPluginDefinition
-		pluginUT           *greenhousev1alpha1.Plugin
+		pluginUT           *greenhousev1alpha2.Plugin
 	)
 
 	BeforeEach(func() {
@@ -44,9 +45,9 @@ var _ = Describe("ensure helm diff against the release manifest works as expecte
 			}),
 		)
 
-		pluginUT = test.NewPlugin(test.Ctx, "test-plugin", namespace,
+		pluginUT = test.NewPlugin("test-plugin", namespace,
 			test.WithPluginLabel(greenhouseapis.LabelKeyOwnedBy, "test-team-1"),
-			test.WithPluginDefinition("test-plugindefinition"),
+			test.WithPluginDefinitionRef("test-plugindefinition", ""),
 			test.WithPluginOptionValue("enabled", test.MustReturnJSONFor(true), nil),
 			test.WithReleaseNamespace(namespace),
 		)
@@ -166,7 +167,7 @@ var _ = Describe("ensure helm diff against the release manifest works as expecte
 var _ = Describe("ensure helm with hooks diff against the release manifest works as expected", Ordered, func() {
 	var (
 		pluginDefinitionUT *greenhousev1alpha1.ClusterPluginDefinition
-		pluginUT           *greenhousev1alpha1.Plugin
+		pluginUT           *greenhousev1alpha2.Plugin
 	)
 
 	BeforeEach(func() {
@@ -176,9 +177,9 @@ var _ = Describe("ensure helm with hooks diff against the release manifest works
 				Repository: "dummy",
 				Version:    "1.0.0",
 			}))
-		pluginUT = test.NewPlugin(test.Ctx, "test-plugin", namespace,
+		pluginUT = test.NewPlugin("test-plugin", namespace,
 			test.WithPluginLabel(greenhouseapis.LabelKeyOwnedBy, "test-team-1"),
-			test.WithPluginDefinition("test-plugindefinition"),
+			test.WithPluginDefinitionRef("test-plugindefinition", ""),
 			test.WithPluginOptionValue("hook_enabled", test.MustReturnJSONFor(false), nil),
 			test.WithReleaseNamespace(namespace),
 		)

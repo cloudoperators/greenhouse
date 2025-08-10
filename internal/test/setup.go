@@ -174,9 +174,9 @@ func (t *TestSetup) CreateClusterPluginDefinition(ctx context.Context, name stri
 }
 
 // CreatePlugin creates and returns a Plugin object. Opts can be used to set the desired state of the Plugin.
-func (t *TestSetup) CreatePlugin(ctx context.Context, name string, opts ...func(*greenhousev1alpha1.Plugin)) *greenhousev1alpha1.Plugin {
+func (t *TestSetup) CreatePlugin(ctx context.Context, name string, opts ...func(*greenhousev1alpha2.Plugin)) *greenhousev1alpha2.Plugin {
 	GinkgoHelper()
-	plugin := NewPlugin(ctx, name, t.Namespace(), opts...)
+	plugin := NewPlugin(name, t.Namespace(), opts...)
 	Expect(t.Create(ctx, plugin)).Should(Succeed(), "there should be no error creating the Plugin")
 	return plugin
 }

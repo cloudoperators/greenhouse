@@ -20,7 +20,7 @@ import (
 
 	greenhouseapis "github.com/cloudoperators/greenhouse/api"
 	greenhousemetav1alpha1 "github.com/cloudoperators/greenhouse/api/meta/v1alpha1"
-	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
+	greenhousev1alpha2 "github.com/cloudoperators/greenhouse/api/v1alpha2"
 	"github.com/cloudoperators/greenhouse/internal/common"
 	"github.com/cloudoperators/greenhouse/internal/helm"
 	"github.com/cloudoperators/greenhouse/internal/test"
@@ -67,7 +67,13 @@ var _ = Describe("helm package test", func() {
 				Should(Succeed(), "creating a pluginDefinition should be successful")
 			Expect(test.K8sClient.Create(test.Ctx, team)).
 				Should(Succeed(), "creating a team should be successful")
-			pluginOptionValues, err := helm.GetPluginOptionValuesForPlugin(test.Ctx, test.K8sClient, plugin)
+			pluginOptionValues, err := helm.GetPluginOptionValuesForPlugin(
+				test.Ctx, test.K8sClient,
+				plugin.Spec.PluginDefinitionRef,
+				plugin.GetNamespace(),
+				plugin.Spec.ClusterName,
+				plugin.Labels[string(greenhouseapis.LabelKeyOwnedBy)],
+				plugin.Spec.OptionValues)
 			Expect(err).ShouldNot(HaveOccurred(), "there should be no error getting the pluginDefinition option values")
 			Expect(pluginOptionValues).To(
 				ContainElement(greenhousemetav1alpha1.PluginOptionValue{Name: "key1", Value: test.MustReturnJSONFor("pluginValue1"), ValueFrom: nil}), "the plugin option values should contain default from pluginDefinition spec")
@@ -253,9 +259,9 @@ var _ = DescribeTable("getting helm values from Plugin", func(defaultValue any, 
 		Values: make(map[string]any),
 	}
 
-	pluginWithOptionValue := test.NewPlugin(test.Ctx, "green", "house",
+	pluginWithOptionValue := test.NewPlugin("green", "house",
 		test.WithPluginLabel(greenhouseapis.LabelKeyOwnedBy, "test-team-1"),
-		test.WithPluginDefinition("greenhouse"),
+		test.WithPluginDefinitionRef("greenhouse", ""),
 		test.WithPluginOptionValue("value1", test.MustReturnJSONFor(defaultValue), nil),
 	)
 
@@ -379,13 +385,13 @@ var _ = Describe("Plugin option checksum", Ordered, func() {
 
 	var _ = DescribeTable("comparing plugin option checksums",
 		func(optionValues1 []greenhousemetav1alpha1.PluginOptionValue, optionValues2 []greenhousemetav1alpha1.PluginOptionValue, expected bool) {
-			plugin1 := greenhousev1alpha1.Plugin{
+			plugin1 := greenhousev1alpha2.Plugin{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "test-hashing-plugin1",
 					Namespace: "test-org",
 				},
 			}
-			plugin2 := greenhousev1alpha1.Plugin{
+			plugin2 := greenhousev1alpha2.Plugin{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "test-hashing-plugin2",
 					Namespace: "test-org",
