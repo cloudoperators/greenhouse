@@ -8,6 +8,7 @@ import (
 
 	webhookv1alpha1 "github.com/cloudoperators/greenhouse/internal/webhook/v1alpha1"
 	webhookv1alpha2 "github.com/cloudoperators/greenhouse/internal/webhook/v1alpha2"
+	webhookv1alpha3 "github.com/cloudoperators/greenhouse/internal/webhook/v1alpha3"
 )
 
 var knownWebhooks = map[string]func(mgr ctrl.Manager) error{
@@ -15,9 +16,11 @@ var knownWebhooks = map[string]func(mgr ctrl.Manager) error{
 	"secrets":                  webhookv1alpha1.SetupSecretWebhookWithManager,
 	"organization":             webhookv1alpha1.SetupOrganizationWebhookWithManager,
 	"pluginDefinition":         webhookv1alpha1.SetupPluginDefinitionWebhookWithManager,
-	"plugin":                   webhookv1alpha1.SetupPluginWebhookWithManager,
+	"plugin_v1alpha1":          webhookv1alpha1.SetupPluginWebhookWithManager,
+	"plugin_v1alpha2":          webhookv1alpha2.SetupPluginWebhookWithManager,
 	"pluginPreset_v1alpha1":    webhookv1alpha1.SetupPluginPresetWebhookWithManager,
 	"pluginPreset_v1alpha2":    webhookv1alpha2.SetupPluginPresetWebhookWithManager,
+	"pluginPreset_v1alpha3":    webhookv1alpha3.SetupPluginPresetWebhookWithManager,
 	"teamrole":                 webhookv1alpha1.SetupTeamRoleWebhookWithManager,
 	"teamrolebinding_v1alpha1": webhookv1alpha1.SetupTeamRoleBindingWebhookWithManager,
 	"teamrolebinding_v1alpha2": webhookv1alpha2.SetupTeamRoleBindingWebhookWithManager,
