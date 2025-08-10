@@ -19,6 +19,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
 	greenhouseapis "github.com/cloudoperators/greenhouse/api"
+	greenhousemetav1alpha1 "github.com/cloudoperators/greenhouse/api/meta/v1alpha1"
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
 	"github.com/cloudoperators/greenhouse/internal/clientutil"
 	"github.com/cloudoperators/greenhouse/internal/helm"
@@ -72,7 +73,17 @@ func DefaultPlugin(ctx context.Context, c client.Client, obj runtime.Object) err
 	}
 
 	// Default option values and merge with PluginDefinition values.
-	optionValues, err := helm.GetPluginOptionValuesForPlugin(ctx, c, plugin)
+	optionValues, err := helm.GetPluginOptionValuesForPlugin(
+		ctx, c,
+		greenhousemetav1alpha1.PluginDefinitionReference{
+			Namespace: plugin.Spec.PluginDefinitionNamespace,
+			Name:      plugin.Spec.PluginDefinition,
+		},
+		plugin.GetNamespace(),
+		plugin.Spec.ClusterName,
+		plugin.Labels[string(greenhouseapis.LabelKeyOwnedBy)],
+		plugin.Spec.OptionValues,
+	)
 	if err != nil {
 		return err
 	}

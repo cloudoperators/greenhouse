@@ -271,7 +271,14 @@ func (r *FluxReconciler) getPluginDef(ctx context.Context, plugin *greenhousev1a
 }
 
 func addValuesToHelmRelease(ctx context.Context, c client.Client, plugin *greenhousev1alpha2.Plugin) ([]byte, error) {
-	optionValues, err := helm.GetPluginOptionValuesForPlugin(ctx, c, plugin)
+	optionValues, err := helm.GetPluginOptionValuesForPlugin(
+		ctx, c,
+		plugin.Spec.PluginDefinitionRef,
+		plugin.GetNamespace(),
+		plugin.Spec.ClusterName,
+		plugin.Labels[string(greenhouseapis.LabelKeyOwnedBy)],
+		plugin.Spec.OptionValues,
+	)
 	if err != nil {
 		return nil, err
 	}

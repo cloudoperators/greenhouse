@@ -121,7 +121,12 @@ var _ = Describe("Flux Plugin Controller", Ordered, func() {
 		}
 
 		// compute the expected global.greenhouse values
-		greenhouseValues, err := helm.GetGreenhouseValues(test.Ctx, test.K8sClient, *testPlugin)
+		greenhouseValues, err := helm.GetGreenhouseValues(
+			test.Ctx, test.K8sClient,
+			testPlugin.GetNamespace(),
+			testPlugin.Spec.ClusterName,
+			testPlugin.Labels[string(greenhouseapis.LabelKeyOwnedBy)],
+		)
 		Expect(err).ToNot(HaveOccurred(), "there should be no error getting the greenhouse values")
 		greenhouseValueMap, err := helm.ConvertFlatValuesToHelmValues(greenhouseValues)
 		Expect(err).ToNot(HaveOccurred(), "there should be no error converting the greenhouse values to Helm values")

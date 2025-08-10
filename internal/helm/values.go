@@ -12,24 +12,29 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	greenhouseapis "github.com/cloudoperators/greenhouse/api"
 	greenhousemetav1alpha1 "github.com/cloudoperators/greenhouse/api/meta/v1alpha1"
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
-	greenhousev1alpha2 "github.com/cloudoperators/greenhouse/api/v1alpha2"
 	"github.com/cloudoperators/greenhouse/internal/common"
 )
 
-func GetPluginOptionValuesForPlugin(ctx context.Context, c client.Client, plugin *greenhousev1alpha2.Plugin) ([]greenhousemetav1alpha1.PluginOptionValue, error) {
+func GetPluginOptionValuesForPlugin(
+	ctx context.Context,
+	c client.Client,
+	pluginDefinitionRef greenhousemetav1alpha1.PluginDefinitionReference,
+	pluginNamespace, pluginClusterName, pluginOwnerLabelValue string,
+	pluginOptionValues []greenhousemetav1alpha1.PluginOptionValue,
+) ([]greenhousemetav1alpha1.PluginOptionValue, error) {
+
 	var pluginDefinition = new(greenhousev1alpha1.ClusterPluginDefinition)
 	if err := c.Get(ctx, types.NamespacedName{
-		Namespace: plugin.Spec.PluginDefinitionRef.Namespace,
-		Name:      plugin.Spec.PluginDefinitionRef.Name,
+		Namespace: pluginDefinitionRef.Namespace,
+		Name:      pluginDefinitionRef.Name,
 	}, pluginDefinition); err != nil {
 		return nil, err
 	}
-	values := mergePluginAndPluginOptionValueSlice(pluginDefinition.Spec.Options, plugin.Spec.OptionValues)
+	values := mergePluginAndPluginOptionValueSlice(pluginDefinition.Spec.Options, pluginOptionValues)
 	// Enrich with default greenhouse values.
-	greenhouseValues, err := GetGreenhouseValues(ctx, c, *plugin)
+	greenhouseValues, err := GetGreenhouseValues(ctx, c, pluginNamespace, pluginClusterName, pluginOwnerLabelValue)
 	if err != nil {
 		return nil, err
 	}
@@ -79,10 +84,10 @@ func mergePluginOptionValues(dst, src []greenhousemetav1alpha1.PluginOptionValue
 //		  - <name>
 //		teams:
 //		  - <name>
-func GetGreenhouseValues(ctx context.Context, c client.Client, p greenhousev1alpha2.Plugin) ([]greenhousemetav1alpha1.PluginOptionValue, error) {
+func GetGreenhouseValues(ctx context.Context, c client.Client, pluginNamespace, pluginClusterName, pluginOwnerLabelValue string) ([]greenhousemetav1alpha1.PluginOptionValue, error) {
 	greenhouseValues := make([]greenhousemetav1alpha1.PluginOptionValue, 0)
 	var clusterList = new(greenhousev1alpha1.ClusterList)
-	if err := c.List(ctx, clusterList, &client.ListOptions{Namespace: p.GetNamespace()}); err != nil {
+	if err := c.List(ctx, clusterList, &client.ListOptions{Namespace: pluginNamespace}); err != nil {
 		return nil, err
 	}
 	clusterNames := make([]string, len(clusterList.Items))
@@ -103,7 +108,7 @@ func GetGreenhouseValues(ctx context.Context, c client.Client, p greenhousev1alp
 
 	// Teams within the organization.
 	var teamList = new(greenhousev1alpha1.TeamList)
-	if err := c.List(ctx, teamList, client.InNamespace(p.GetNamespace())); err != nil {
+	if err := c.List(ctx, teamList, client.InNamespace(pluginNamespace)); err != nil {
 		return nil, err
 	}
 	teamNames := make([]string, len(teamList.Items))
@@ -123,7 +128,7 @@ func GetGreenhouseValues(ctx context.Context, c client.Client, p greenhousev1alp
 	})
 
 	// append orgName
-	orgNameVal, err := json.Marshal(p.GetNamespace())
+	orgNameVal, err := json.Marshal(pluginNamespace)
 	if err != nil {
 		return nil, err
 	}
@@ -135,8 +140,8 @@ func GetGreenhouseValues(ctx context.Context, c client.Client, p greenhousev1alp
 	})
 
 	// append clusterName if set
-	if p.Spec.ClusterName != "" {
-		clusterNameVal, err := json.Marshal(p.Spec.ClusterName)
+	if pluginClusterName != "" {
+		clusterNameVal, err := json.Marshal(pluginClusterName)
 		if err != nil {
 			return nil, err
 		}
@@ -160,8 +165,8 @@ func GetGreenhouseValues(ctx context.Context, c client.Client, p greenhousev1alp
 	})
 
 	// append owning team if set
-	if p.Labels[string(greenhouseapis.LabelKeyOwnedBy)] != "" {
-		owningTeamVal, err := json.Marshal(p.Labels[greenhouseapis.LabelKeyOwnedBy])
+	if pluginOwnerLabelValue != "" {
+		owningTeamVal, err := json.Marshal(pluginOwnerLabelValue)
 		if err != nil {
 			return nil, err
 		}

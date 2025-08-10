@@ -73,7 +73,14 @@ func DefaultPlugin(ctx context.Context, c client.Client, obj runtime.Object) err
 	}
 
 	// Default option values and merge with PluginDefinition values.
-	optionValues, err := helm.GetPluginOptionValuesForPlugin(ctx, c, plugin)
+	optionValues, err := helm.GetPluginOptionValuesForPlugin(
+		ctx, c,
+		plugin.Spec.PluginDefinitionRef,
+		plugin.GetNamespace(),
+		plugin.Spec.ClusterName,
+		plugin.Labels[string(greenhouseapis.LabelKeyOwnedBy)],
+		plugin.Spec.OptionValues,
+	)
 	if err != nil {
 		return err
 	}
