@@ -20,6 +20,7 @@ import (
 
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
 	greenhousev1alpha2 "github.com/cloudoperators/greenhouse/api/v1alpha2"
+	greenhousev1alpha3 "github.com/cloudoperators/greenhouse/api/v1alpha3"
 	dexapi "github.com/cloudoperators/greenhouse/internal/dex/api"
 )
 
@@ -28,6 +29,7 @@ var KnownSchemes = []func(*runtime.Scheme) error{
 	apiextensionsv1.AddToScheme,
 	greenhousev1alpha1.AddToScheme,
 	greenhousev1alpha2.AddToScheme,
+	greenhousev1alpha3.AddToScheme,
 	dexapi.AddToScheme,
 	sourcev1.AddToScheme,
 	helmv2.AddToScheme,

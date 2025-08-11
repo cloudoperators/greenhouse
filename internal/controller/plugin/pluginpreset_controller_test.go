@@ -999,18 +999,13 @@ var _ = Describe("Plugin Preset skip changes", Ordered, func() {
 })
 
 var _ = Describe("overridesPluginOptionValues", Ordered, func() {
-	DescribeTable("test cases", func(plugin *greenhousev1alpha2.Plugin, preset *greenhousev1alpha3.PluginPreset, expectedPlugin *greenhousev1alpha1.Plugin) {
+	DescribeTable("test cases", func(plugin *greenhousev1alpha2.Plugin, preset *greenhousev1alpha3.PluginPreset, expectedPlugin *greenhousev1alpha2.Plugin) {
 		overridesPluginOptionValues(plugin, preset)
 		Expect(plugin).To(BeEquivalentTo(expectedPlugin))
 	},
 		Entry("with no defined pluginPresetOverrides",
 			test.NewPlugin("", "", test.WithPluginOptionValue("option-1", test.AsAPIExtensionJSON(2), nil), test.WithPluginLabel(greenhouseapis.LabelKeyOwnedBy, testTeam.Name)),
-			&greenhousev1alpha2.PluginPreset{
-				ObjectMeta: metav1.ObjectMeta{
-					Labels: map[string]string{greenhouseapis.LabelKeyOwnedBy: testTeam.Name},
-				},
-				Spec: greenhousev1alpha2.PluginPresetSpec{},
-			},
+			test.NewPluginPreset("", "", test.WithPluginPresetLabel(greenhouseapis.LabelKeyOwnedBy, testTeam.Name)),
 			test.NewPlugin("", "", test.WithPluginOptionValue("option-1", test.AsAPIExtensionJSON(2), nil), test.WithPluginLabel(greenhouseapis.LabelKeyOwnedBy, testTeam.Name)),
 		),
 		Entry("with defined pluginPresetOverrides but for another cluster",

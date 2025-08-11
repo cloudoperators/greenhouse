@@ -15,6 +15,7 @@ import (
 	greenhouseapis "github.com/cloudoperators/greenhouse/api"
 	greenhousemetav1alpha1 "github.com/cloudoperators/greenhouse/api/meta/v1alpha1"
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
+	greenhousev1alpha2 "github.com/cloudoperators/greenhouse/api/v1alpha2"
 	"github.com/cloudoperators/greenhouse/internal/test"
 )
 
@@ -55,7 +56,7 @@ var _ = Describe("Organization ServiceProxyReconciler", Ordered, func() {
 			Expect(err).ToNot(HaveOccurred(), "there should be no error creating the service-proxy plugin definition")
 
 			By("ensuring a service-proxy plugin has been created for organization")
-			var plugin = new(greenhousev1alpha1.Plugin)
+			var plugin = new(greenhousev1alpha2.Plugin)
 			Eventually(func(g Gomega) {
 				err = test.K8sClient.Get(test.Ctx, types.NamespacedName{Name: "service-proxy", Namespace: org.Name}, plugin)
 				g.Expect(err).ToNot(HaveOccurred(), "service-proxy plugin should have been created by controller")
@@ -72,7 +73,7 @@ var _ = Describe("Organization ServiceProxyReconciler", Ordered, func() {
 				oidcCondition := defaultOrg.Status.GetConditionByType(greenhousev1alpha1.OrganizationOICDConfigured)
 				g.Expect(oidcCondition.IsTrue()).To(BeTrue(), "OrganizationOICDConfigured should be True on Organization")
 				// Check if the service-proxy plugin is created and the technical secret is created
-				var plugin = new(greenhousev1alpha1.Plugin)
+				var plugin = new(greenhousev1alpha2.Plugin)
 				err = test.K8sClient.Get(test.Ctx, types.NamespacedName{Name: "service-proxy", Namespace: defaultOrg.Name}, plugin)
 				g.Expect(err).ToNot(HaveOccurred(), "service-proxy plugin should have been created by controller")
 				var secret = new(corev1.Secret)

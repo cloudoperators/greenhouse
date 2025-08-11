@@ -16,6 +16,7 @@ import (
 	"github.com/cloudoperators/greenhouse/internal/scim"
 	"github.com/cloudoperators/greenhouse/internal/test"
 	webhookv1alpha1 "github.com/cloudoperators/greenhouse/internal/webhook/v1alpha1"
+	webhookv1alpha2 "github.com/cloudoperators/greenhouse/internal/webhook/v1alpha2"
 )
 
 var (
@@ -44,7 +45,8 @@ var _ = BeforeSuite(func() {
 	test.RegisterWebhook("orgWebhook", webhookv1alpha1.SetupOrganizationWebhookWithManager)
 	test.RegisterWebhook("teamWebhook", webhookv1alpha1.SetupTeamWebhookWithManager)
 	test.RegisterWebhook("clusterPluginDefinitionWebhook", webhookv1alpha1.SetupClusterPluginDefinitionWebhookWithManager)
-	test.RegisterWebhook("pluginWebhook", webhookv1alpha1.SetupPluginWebhookWithManager)
+	test.RegisterWebhook("pluginWebhookV1alpha1", webhookv1alpha1.SetupPluginWebhookWithManager)
+	test.RegisterWebhook("pluginWebhookV1alpha2", webhookv1alpha2.SetupPluginWebhookWithManager)
 	test.RegisterWebhook("teamRoleWebhook", webhookv1alpha1.SetupTeamRoleWebhookWithManager)
 	test.TestBeforeSuite()
 })

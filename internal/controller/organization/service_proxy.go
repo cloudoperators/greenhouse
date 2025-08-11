@@ -25,6 +25,7 @@ import (
 	greenhouseapis "github.com/cloudoperators/greenhouse/api"
 	greenhousemetav1alpha1 "github.com/cloudoperators/greenhouse/api/meta/v1alpha1"
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
+	greenhousev1alpha2 "github.com/cloudoperators/greenhouse/api/v1alpha2"
 	"github.com/cloudoperators/greenhouse/internal/clientutil"
 	"github.com/cloudoperators/greenhouse/internal/common"
 	"github.com/cloudoperators/greenhouse/internal/version"
@@ -152,13 +153,13 @@ func (r *OrganizationReconciler) reconcileServiceProxyPlugin(ctx context.Context
 		return fmt.Errorf("failed to marshal version.GitCommit: %w", err)
 	}
 
-	plugin := &greenhousev1alpha1.Plugin{
+	plugin := &greenhousev1alpha2.Plugin{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      serviceProxyName,
 			Namespace: org.Name,
 		},
-		Spec: greenhousev1alpha1.PluginSpec{
-			PluginDefinition: serviceProxyName,
+		Spec: greenhousev1alpha2.PluginSpec{
+			PluginDefinitionRef: greenhousemetav1alpha1.PluginDefinitionReference{Name: serviceProxyName},
 		},
 	}
 

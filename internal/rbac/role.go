@@ -9,6 +9,7 @@ import (
 
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
 	greenhousev1alpha2 "github.com/cloudoperators/greenhouse/api/v1alpha2"
+	greenhousev1alpha3 "github.com/cloudoperators/greenhouse/api/v1alpha3"
 )
 
 // OrganizationAdminPolicyRules returns the namespace-scoped PolicyRules for an organization admin.
@@ -77,7 +78,7 @@ func OrganizationPluginAdminPolicyRules() []rbacv1.PolicyRule {
 		// Grant read permissions for PluginDefinitions to organization cluster admins.
 		{
 			Verbs:     []string{"get", "list", "watch", "update", "patch", "delete", "create"},
-			APIGroups: []string{greenhousev1alpha1.GroupVersion.Group},
+			APIGroups: []string{greenhousev1alpha1.GroupVersion.Group, greenhousev1alpha2.GroupVersion.Group, greenhousev1alpha3.GroupVersion.Group},
 			Resources: []string{"plugins", "pluginpresets"},
 		},
 		// Grant permissions for secrets referenced by other resources, e.g. Plugins for storing sensitive values.
@@ -97,7 +98,7 @@ func OrganizationMemberPolicyRules() []rbacv1.PolicyRule {
 		// Grant read permissions for Clusters, Plugins, Teams to organization members.
 		{
 			Verbs:     []string{"get", "list", "watch"},
-			APIGroups: []string{greenhousev1alpha1.GroupVersion.Group, greenhousev1alpha2.GroupVersion.Group},
+			APIGroups: []string{greenhousev1alpha1.GroupVersion.Group, greenhousev1alpha2.GroupVersion.Group, greenhousev1alpha3.GroupVersion.Group},
 			Resources: []string{"clusters", "clusterkubeconfigs", "plugins", "pluginpresets", "teams", "teamroles", "teamrolebindings"},
 		},
 	}
