@@ -93,7 +93,7 @@ var _ = Describe("PluginPreset Admission Tests", Ordered, func() {
 		warns, err := webhookv1alpha3.ValidateCreatePluginPreset(test.Ctx, test.K8sClient, cut)
 		Expect(warns).To(BeNil(), "expected no warnings")
 		Expect(err).To(HaveOccurred(), "expected an error")
-		Expect(err).To(MatchError(ContainSubstring("PluginDefinition must be set")))
+		Expect(err).To(MatchError(ContainSubstring("PluginDefinitionRef must be set")))
 	})
 
 	It("should reject PluginPreset with a PluginSpec containing a ClusterName", func() {

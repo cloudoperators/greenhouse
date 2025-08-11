@@ -32,6 +32,7 @@ import (
 	"github.com/cloudoperators/greenhouse/internal/test"
 	webhookv1alpha1 "github.com/cloudoperators/greenhouse/internal/webhook/v1alpha1"
 	webhookv1alpha2 "github.com/cloudoperators/greenhouse/internal/webhook/v1alpha2"
+	webhookv1alpha3 "github.com/cloudoperators/greenhouse/internal/webhook/v1alpha3"
 )
 
 func TestHelmController(t *testing.T) {
@@ -47,11 +48,13 @@ var _ = BeforeSuite(func() {
 	test.RegisterController("cluster", (&greenhousecluster.RemoteClusterReconciler{}).SetupWithManager)
 	test.RegisterWebhook("TeamWebhook", webhookv1alpha1.SetupTeamWebhookWithManager)
 	test.RegisterWebhook("clusterPluginDefinitionWebhook", webhookv1alpha1.SetupClusterPluginDefinitionWebhookWithManager)
-	test.RegisterWebhook("pluginWebhook", webhookv1alpha1.SetupPluginWebhookWithManager)
+	test.RegisterWebhook("pluginWebhookV1alpha1", webhookv1alpha1.SetupPluginWebhookWithManager)
+	test.RegisterWebhook("pluginWebhookV1alpha2", webhookv1alpha2.SetupPluginWebhookWithManager)
 	test.RegisterWebhook("clusterWebhook", webhookv1alpha1.SetupClusterWebhookWithManager)
 	test.RegisterWebhook("secretsWebhook", webhookv1alpha1.SetupSecretWebhookWithManager)
 	test.RegisterWebhook("pluginPresetWebhookV1alpha1", webhookv1alpha1.SetupPluginPresetWebhookWithManager)
 	test.RegisterWebhook("pluginPresetWebhookV1alpha2", webhookv1alpha2.SetupPluginPresetWebhookWithManager)
+	test.RegisterWebhook("pluginPresetWebhookV1alpha3", webhookv1alpha3.SetupPluginPresetWebhookWithManager)
 	test.TestBeforeSuite()
 
 	// return the test.Cfg, as the in-cluster config is not available

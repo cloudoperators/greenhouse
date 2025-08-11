@@ -15,7 +15,7 @@ import (
 	crmetrics "sigs.k8s.io/controller-runtime/pkg/metrics"
 
 	greenhouseapis "github.com/cloudoperators/greenhouse/api"
-	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
+	"github.com/cloudoperators/greenhouse/api/meta/v1alpha1"
 	greenhousev1alpha2 "github.com/cloudoperators/greenhouse/api/v1alpha2"
 	"github.com/cloudoperators/greenhouse/internal/test"
 	"github.com/cloudoperators/greenhouse/internal/util"
@@ -78,7 +78,7 @@ var _ = Describe("Shared Plugin metrics", Ordered, func() {
 		Expect(err).ShouldNot(HaveOccurred())
 	},
 		Entry("empty plugin",
-			&greenhousev1alpha1.Plugin{},
+			&greenhousev1alpha2.Plugin{},
 			`
         	# HELP greenhouse_plugin_reconcile_total 
       		# TYPE greenhouse_plugin_reconcile_total counter
@@ -87,7 +87,7 @@ var _ = Describe("Shared Plugin metrics", Ordered, func() {
 			util.MetricResultSuccess,
 			util.MetricReasonEmpty),
 		Entry("success plugin with data",
-			&greenhousev1alpha1.Plugin{
+			&greenhousev1alpha2.Plugin{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "test_success_plugin",
 					Namespace: "test_organization",
@@ -95,9 +95,9 @@ var _ = Describe("Shared Plugin metrics", Ordered, func() {
 						greenhouseapis.LabelKeyOwnedBy: "test_owner",
 					},
 				},
-				Spec: greenhousev1alpha1.PluginSpec{
-					ClusterName:      "cluster-a",
-					PluginDefinition: "test-plugin-definition",
+				Spec: greenhousev1alpha2.PluginSpec{
+					ClusterName:         "cluster-a",
+					PluginDefinitionRef: v1alpha1.PluginDefinitionReference{Name: "test-plugin-definition"},
 				},
 			},
 			`
@@ -108,12 +108,12 @@ var _ = Describe("Shared Plugin metrics", Ordered, func() {
 			util.MetricResultSuccess,
 			util.MetricReasonEmpty),
 		Entry("error plugin with reconcile conditions",
-			&greenhousev1alpha1.Plugin{
+			&greenhousev1alpha2.Plugin{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "test_error_plugin",
 					Namespace: "test_organization",
 				},
-				Spec: greenhousev1alpha1.PluginSpec{
+				Spec: greenhousev1alpha2.PluginSpec{
 					ClusterName: "cluster-a",
 				},
 			},
@@ -125,12 +125,12 @@ var _ = Describe("Shared Plugin metrics", Ordered, func() {
 			util.MetricResultError,
 			util.MetricReasonTemplateFailed),
 		Entry("error plugin with drift conditions",
-			&greenhousev1alpha1.Plugin{
+			&greenhousev1alpha2.Plugin{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "test_error_plugin",
 					Namespace: "test_organization",
 				},
-				Spec: greenhousev1alpha1.PluginSpec{
+				Spec: greenhousev1alpha2.PluginSpec{
 					ClusterName: "cluster-a",
 				},
 			},

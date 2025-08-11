@@ -32,6 +32,7 @@ import (
 
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
 	greenhousev1alpha2 "github.com/cloudoperators/greenhouse/api/v1alpha2"
+	greenhousev1alpha3 "github.com/cloudoperators/greenhouse/api/v1alpha3"
 	"github.com/cloudoperators/greenhouse/internal/clientutil"
 	dexapi "github.com/cloudoperators/greenhouse/internal/dex/api"
 
@@ -256,6 +257,8 @@ func StartControlPlane(port string, installCRDs, installWebhooks bool) (*rest.Co
 		To(Succeed(), "there must be no error adding the greenhouse api v1alpha1 to the scheme")
 	Expect(greenhousev1alpha2.AddToScheme(scheme.Scheme)).
 		To(Succeed(), "there must be no error adding the greenhouse api v1alpha2 to the scheme")
+	Expect(greenhousev1alpha3.AddToScheme(scheme.Scheme)).
+		To(Succeed(), "there must be no error adding the greenhouse api v1alpha3 to the scheme")
 	Expect(clientgoscheme.AddToScheme(scheme.Scheme)).
 		To(Succeed(), "there must no error adding the clientgo api to the scheme")
 	Expect(apiextensionsv1.AddToScheme(scheme.Scheme)).

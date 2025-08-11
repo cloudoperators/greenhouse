@@ -4,8 +4,9 @@
 package v1alpha2
 
 import (
-	greenhousemetav1alpha1 "github.com/cloudoperators/greenhouse/api/meta/v1alpha1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
+	greenhousemetav1alpha1 "github.com/cloudoperators/greenhouse/api/meta/v1alpha1"
 )
 
 // PluginSpec defines the desired state of Plugin
@@ -121,6 +122,7 @@ type HelmReleaseStatus struct {
 
 //+kubebuilder:object:root=true
 //+kubebuilder:subresource:status
+//+kubebuilder:storageversion
 //+kubebuilder:printcolumn:name="Display name",type=string,JSONPath=`.spec.displayName`
 //+kubebuilder:printcolumn:name="Plugin Definition",type=string,JSONPath=`.spec.pluginDefinition`
 //+kubebuilder:printcolumn:name="Cluster",type=string,JSONPath=`.spec.clusterName`
