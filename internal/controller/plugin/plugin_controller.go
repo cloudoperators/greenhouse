@@ -539,7 +539,7 @@ func getExposedIngressesForPluginFromHelmRelease(restClientGetter genericcliopti
 //   - URLs are the actual ingress hostnames with proper protocol (http/https)
 //   - Protocol automatically detected from TLS configuration
 //
-// The function fails fast - if either service or ingress discovery encounters an error, the entire operation fails.
+// If either service or ingress discovery encounters an error, the entire operation fails.
 func getAllExposedServicesForPlugin(restClientGetter genericclioptions.RESTClientGetter, helmRelease *release.Release, plugin *greenhousev1alpha1.Plugin) (map[string]greenhousev1alpha1.Service, error) {
 	var errorMessages []string
 	exposedServices := make(map[string]greenhousev1alpha1.Service)
