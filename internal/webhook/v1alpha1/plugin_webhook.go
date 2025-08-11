@@ -116,6 +116,16 @@ func DefaultPlugin(ctx context.Context, c client.Client, obj runtime.Object) err
 			plugin.Spec.ReleaseName = pluginDefinition.Spec.HelmChart.Name
 		}
 	}
+
+	if plugin.Status.ExposedServices != nil {
+		for url, svc := range plugin.Status.ExposedServices {
+			if svc.Type == "" {
+				svc.Type = greenhousev1alpha1.ServiceTypeService
+				plugin.Status.ExposedServices[url] = svc
+			}
+		}
+	}
+
 	return nil
 }
 

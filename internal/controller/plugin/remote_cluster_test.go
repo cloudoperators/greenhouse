@@ -442,7 +442,7 @@ var _ = Describe("HelmController reconciliation", Ordered, func() {
 				g.Expect(statusUpToDateCondition.Status).To(Equal(metav1.ConditionTrue), "plugin status up to date condition should be set to true")
 			}).Should(Succeed(), "plugin should have correct status")
 
-			By("checking pluing exposed services")
+			By("checking Plugin exposed services")
 			Eventually(func(g Gomega) {
 				g.Expect(testPluginWithExposedService1.Status.ExposedServices).ToNot(BeEmpty(), "exposed services in plugin status should not be empty")
 				g.Expect(testPluginWithExposedService1.Status.ExposedServices).To(HaveLen(2), "there should be two exposed services (service + ingress)")
