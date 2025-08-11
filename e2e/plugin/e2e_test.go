@@ -31,7 +31,7 @@ import (
 	greenhouseapis "github.com/cloudoperators/greenhouse/api"
 	greenhousemetav1alpha1 "github.com/cloudoperators/greenhouse/api/meta/v1alpha1"
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
-	greenhousev1alpha2 "github.com/cloudoperators/greenhouse/api/v1alpha2"
+	greenhousev1alpha3 "github.com/cloudoperators/greenhouse/api/v1alpha3"
 	"github.com/cloudoperators/greenhouse/e2e/plugin/fixtures"
 	"github.com/cloudoperators/greenhouse/e2e/shared"
 	"github.com/cloudoperators/greenhouse/internal/clientutil"
@@ -111,7 +111,7 @@ var _ = Describe("Plugin E2E", Ordered, func() {
 
 		By("Creating the plugin with release name")
 		testPlugin := fixtures.PreparePlugin("test-nginx-plugin-1", env.TestNamespace,
-			test.WithPluginDefinitionRef(testPluginDefinition.Name),
+			test.WithPluginDefinitionRef(testPluginDefinition.Name, ""),
 			test.WithCluster(remoteClusterName),
 			test.WithReleaseName("test-nginx-plugin"),
 			test.WithReleaseNamespace(env.TestNamespace),
@@ -209,7 +209,7 @@ var _ = Describe("Plugin E2E", Ordered, func() {
 
 		By("Prepare the plugin with release name")
 		testPlugin := fixtures.PreparePlugin("test-nginx-plugin-2", env.TestNamespace,
-			test.WithPluginDefinitionRef(testPluginDefinition.Name),
+			test.WithPluginDefinitionRef(testPluginDefinition.Name, ""),
 			test.WithReleaseName("test-nginx-plugin"),
 			test.WithReleaseNamespace(env.TestNamespace),
 			test.WithPluginOptionValue("replicaCount", &apiextensionsv1.JSON{Raw: []byte("1")}, nil),
@@ -228,7 +228,7 @@ var _ = Describe("Plugin E2E", Ordered, func() {
 		By("Creating the plugin preset")
 		testPluginPreset := test.NewPluginPreset("test-nginx-plugin-preset", env.TestNamespace,
 			test.WithPluginPresetLabel(greenhouseapis.LabelKeyOwnedBy, team.Name),
-			test.WithPluginPresetPluginTemplateSpec(greenhousev1alpha2.PluginTemplateSpec(testPlugin.Spec)),
+			test.WithPluginPresetPluginTemplateSpec(greenhousev1alpha3.PluginTemplateSpec(testPlugin.Spec)),
 			test.WithPluginPresetClusterSelector(greenhousemetav1alpha1.ClusterSelector{
 				LabelSelector: metav1.LabelSelector{
 					MatchLabels: map[string]string{
@@ -261,7 +261,7 @@ var _ = Describe("Plugin E2E", Ordered, func() {
 		Eventually(func(g Gomega) {
 			err = adminClient.Get(ctx, client.ObjectKeyFromObject(testPluginPreset), testPluginPreset)
 			g.Expect(err).ToNot(HaveOccurred(), "failed to get the PluginPreset")
-			testPluginPreset.Spec.ClusterOptionOverrides = []greenhousev1alpha2.ClusterOptionOverride{
+			testPluginPreset.Spec.ClusterOptionOverrides = []greenhousev1alpha3.ClusterOptionOverride{
 				{
 					ClusterName: remoteClusterName,
 					Overrides: []greenhousemetav1alpha1.PluginOptionValue{
@@ -288,7 +288,7 @@ var _ = Describe("Plugin E2E", Ordered, func() {
 		By("Updating plugin preset with cluster option override")
 		err = adminClient.Get(ctx, client.ObjectKeyFromObject(testPluginPreset), testPluginPreset)
 		Expect(err).ToNot(HaveOccurred())
-		testPluginPreset.Spec.ClusterOptionOverrides = []greenhousev1alpha2.ClusterOptionOverride{
+		testPluginPreset.Spec.ClusterOptionOverrides = []greenhousev1alpha3.ClusterOptionOverride{
 			{
 				ClusterName: remoteClusterName,
 				Overrides: []greenhousemetav1alpha1.PluginOptionValue{
@@ -363,7 +363,7 @@ var _ = Describe("Plugin E2E", Ordered, func() {
 
 		By("Preparing the plugin with release name")
 		plugin := fixtures.PreparePlugin("test-cert-manager-plugin", env.TestNamespace,
-			test.WithPluginDefinitionRef(pluginDefinition.Name),
+			test.WithPluginDefinitionRef(pluginDefinition.Name, ""),
 			test.WithCluster(remoteClusterName),
 			test.WithReleaseNamespace(env.TestNamespace),
 			test.WithReleaseName("test-cert-manager-plugin"),
@@ -460,7 +460,7 @@ var _ = Describe("Plugin E2E", Ordered, func() {
 
 		By("Prepare the plugin")
 		testPlugin := fixtures.PreparePlugin("test-podinfo-plugin", env.TestNamespace,
-			test.WithPluginDefinitionRef(testPluginDefinition.Name),
+			test.WithPluginDefinitionRef(testPluginDefinition.Name, ""),
 			test.WithReleaseName("test-podinfo-plugin"),
 			test.WithReleaseNamespace(env.TestNamespace),
 			test.WithPluginOptionValue("replicaCount", &apiextensionsv1.JSON{Raw: []byte("1")}, nil),
@@ -491,7 +491,7 @@ var _ = Describe("Plugin E2E", Ordered, func() {
 					},
 				},
 			}),
-			test.WithPluginPresetPluginTemplateSpec(greenhousev1alpha2.PluginTemplateSpec(testPlugin.Spec)),
+			test.WithPluginPresetPluginTemplateSpec(greenhousev1alpha3.PluginTemplateSpec(testPlugin.Spec)),
 		)
 		err = adminClient.Create(ctx, testPluginPreset)
 		Expect(client.IgnoreAlreadyExists(err)).ToNot(HaveOccurred())

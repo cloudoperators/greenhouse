@@ -204,32 +204,40 @@ var _ = Describe("PluginPreset Conversion", Ordered, func() {
 
 		It("should correctly convert the PluginPreset with LabelSelector from v1alpha2 to the v1alpha1 version", func() {
 			By("creating v1alpha2 PluginPreset")
-			pluginPreset := test.NewPluginPreset(setup.RandomizeName("test-preset-3"), test.TestNamespace,
-				test.WithPluginPresetLabel(greenhouseapis.LabelKeyOwnedBy, team.Name),
-				test.WithPluginPresetClusterSelector(greenhousemetav1alpha1.ClusterSelector{
-					LabelSelector: metav1.LabelSelector{
-						MatchLabels: map[string]string{"cluster": "a"},
+			pluginPreset := &greenhousev1alpha2.PluginPreset{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      setup.RandomizeName("test-preset-3"),
+					Namespace: test.TestNamespace,
+					Labels: map[string]string{
+						greenhouseapis.LabelKeyOwnedBy: team.Name,
 					},
-				}),
-				test.WithPluginPresetPluginTemplateSpec(greenhousev1alpha2.PluginTemplateSpec{
-					PluginDefinition: pluginDefinition.Name,
-					ReleaseName:      "test-release-1",
-					ReleaseNamespace: "release-namespace",
-					DisplayName:      "Display name 1",
-					OptionValues: []greenhousemetav1alpha1.PluginOptionValue{
-						{Name: "option1", Value: test.MustReturnJSONFor("value1")},
-						{Name: "option2", Value: test.MustReturnJSONFor("value11")},
-					},
-				}),
-				test.WithPluginPresetClusterOptionOverrides([]greenhousev1alpha2.ClusterOptionOverride{
-					{
-						ClusterName: "cluster-a", Overrides: []greenhousemetav1alpha1.PluginOptionValue{
-							{Name: "option1", Value: test.MustReturnJSONFor("value2")},
-							{Name: "option2", Value: test.MustReturnJSONFor("value12")},
+				},
+				Spec: greenhousev1alpha2.PluginPresetSpec{
+					ClusterSelector: greenhousemetav1alpha1.ClusterSelector{
+						LabelSelector: metav1.LabelSelector{
+							MatchLabels: map[string]string{"cluster": "a"},
 						},
 					},
-				}),
-			)
+					Plugin: greenhousev1alpha2.PluginTemplateSpec{
+						PluginDefinition: pluginDefinition.Name,
+						ReleaseName:      "test-release-1",
+						ReleaseNamespace: "release-namespace",
+						DisplayName:      "Display name 1",
+						OptionValues: []greenhousemetav1alpha1.PluginOptionValue{
+							{Name: "option1", Value: test.MustReturnJSONFor("value1")},
+							{Name: "option2", Value: test.MustReturnJSONFor("value11")},
+						},
+					},
+					ClusterOptionOverrides: []greenhousev1alpha2.ClusterOptionOverride{
+						{
+							ClusterName: "cluster-a", Overrides: []greenhousemetav1alpha1.PluginOptionValue{
+								{Name: "option1", Value: test.MustReturnJSONFor("value2")},
+								{Name: "option2", Value: test.MustReturnJSONFor("value12")},
+							},
+						},
+					},
+				},
+			}
 			err := setup.Create(test.Ctx, pluginPreset)
 			Expect(err).ToNot(HaveOccurred(), "there should be no error creating the PluginPreset in v1alpha2")
 
@@ -262,30 +270,38 @@ var _ = Describe("PluginPreset Conversion", Ordered, func() {
 
 		It("should correctly convert the PluginPreset with ClusterName from v1alpha2 to the v1alpha1 version", func() {
 			By("creating v1alpha2 PluginPreset")
-			pluginPreset := test.NewPluginPreset(setup.RandomizeName("test-preset-4"), test.TestNamespace,
-				test.WithPluginPresetLabel(greenhouseapis.LabelKeyOwnedBy, team.Name),
-				test.WithPluginPresetClusterSelector(greenhousemetav1alpha1.ClusterSelector{
-					Name: "cluster-a",
-				}),
-				test.WithPluginPresetPluginTemplateSpec(greenhousev1alpha2.PluginTemplateSpec{
-					PluginDefinition: pluginDefinition.Name,
-					ReleaseName:      "test-release-1",
-					ReleaseNamespace: "release-namespace",
-					DisplayName:      "Display name 1",
-					OptionValues: []greenhousemetav1alpha1.PluginOptionValue{
-						{Name: "option3", Value: test.MustReturnJSONFor("value3")},
-						{Name: "option4", Value: test.MustReturnJSONFor("value4")},
+			pluginPreset := &greenhousev1alpha2.PluginPreset{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      setup.RandomizeName("test-preset-4"),
+					Namespace: test.TestNamespace,
+					Labels: map[string]string{
+						greenhouseapis.LabelKeyOwnedBy: team.Name,
 					},
-				}),
-				test.WithPluginPresetClusterOptionOverrides([]greenhousev1alpha2.ClusterOptionOverride{
-					{
-						ClusterName: "cluster-a", Overrides: []greenhousemetav1alpha1.PluginOptionValue{
-							{Name: "option3", Value: test.MustReturnJSONFor("value2")},
-							{Name: "option4", Value: test.MustReturnJSONFor("value12")},
+				},
+				Spec: greenhousev1alpha2.PluginPresetSpec{
+					ClusterSelector: greenhousemetav1alpha1.ClusterSelector{
+						Name: "cluster-a",
+					},
+					Plugin: greenhousev1alpha2.PluginTemplateSpec{
+						PluginDefinition: pluginDefinition.Name,
+						ReleaseName:      "test-release-1",
+						ReleaseNamespace: "release-namespace",
+						DisplayName:      "Display name 1",
+						OptionValues: []greenhousemetav1alpha1.PluginOptionValue{
+							{Name: "option3", Value: test.MustReturnJSONFor("value3")},
+							{Name: "option4", Value: test.MustReturnJSONFor("value4")},
 						},
 					},
-				}),
-			)
+					ClusterOptionOverrides: []greenhousev1alpha2.ClusterOptionOverride{
+						{
+							ClusterName: "cluster-a", Overrides: []greenhousemetav1alpha1.PluginOptionValue{
+								{Name: "option3", Value: test.MustReturnJSONFor("value2")},
+								{Name: "option4", Value: test.MustReturnJSONFor("value12")},
+							},
+						},
+					},
+				},
+			}
 			err := setup.Create(test.Ctx, pluginPreset)
 			Expect(err).ToNot(HaveOccurred(), "there should be no error creating the PluginPreset in v1alpha2")
 

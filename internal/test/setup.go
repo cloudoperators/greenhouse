@@ -19,6 +19,7 @@ import (
 	greenhouseapis "github.com/cloudoperators/greenhouse/api"
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
 	greenhousev1alpha2 "github.com/cloudoperators/greenhouse/api/v1alpha2"
+	greenhousev1alpha3 "github.com/cloudoperators/greenhouse/api/v1alpha3"
 	"github.com/cloudoperators/greenhouse/internal/clientutil"
 )
 
@@ -182,7 +183,7 @@ func (t *TestSetup) CreatePlugin(ctx context.Context, name string, opts ...func(
 }
 
 // CreatePluginPreset creates and returns a PluginPreset object. Opts can be used to set the desired state of the PluginPreset.
-func (t *TestSetup) CreatePluginPreset(ctx context.Context, name string, opts ...func(*greenhousev1alpha2.PluginPreset)) *greenhousev1alpha2.PluginPreset {
+func (t *TestSetup) CreatePluginPreset(ctx context.Context, name string, opts ...func(*greenhousev1alpha3.PluginPreset)) *greenhousev1alpha3.PluginPreset {
 	GinkgoHelper()
 	pluginPreset := NewPluginPreset(name, t.Namespace(), opts...)
 	Expect(t.Create(ctx, pluginPreset)).Should(Succeed(), "there should be no error creating the PluginPreset")
