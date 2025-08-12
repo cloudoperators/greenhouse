@@ -21,14 +21,21 @@ on:
 jobs:
   generate-docs-types-specs:
     runs-on: [default]
-    permissions:
-      contents: write
     steps:
+      - name: Generate GitHub App Token
+        id: github-app-token
+        uses: actions/create-github-app-token@v1
+        with:
+          app-id: ${{ secrets.CLOUDOPERATOR_APP_ID }}
+          private-key: ${{ secrets.CLOUDOPERATOR_APP_PRIVATE_KEY }}
+          permission-contents: write
+
       - name: Checkout
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
         with:
           repository: ${{ github.event.pull_request.head.repo.full_name }}
           ref: ${{ github.event.pull_request.head.ref }}
+
       - name: Generate manifests, documentation and types
         run: |
           chmod o+rw docs/reference/api/openapi.yaml
@@ -37,8 +44,8 @@ jobs:
       - name: Apply Changes
         uses: EndBug/add-and-commit@a94899bca583c204427a224a7af87c02f9b325d5 # v9
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ steps.github-app-token.outputs.token }}
         with:
-          author_name: Cloud Operator
-          author_email: 169066274+cloud-operator@users.noreply.github.com
+          author_name: cloud-operator-bot[bot]
+          author_email: 224791424+cloud-operator-bot[bot]@users.noreply.github.com
           message: "Automatic generation of CRD API Docs"

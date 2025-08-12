@@ -16,13 +16,12 @@ jobs:
         with:
           app-id: ${{ secrets.CLOUDOPERATOR_APP_ID }}
           private-key: ${{ secrets.CLOUDOPERATOR_APP_PRIVATE_KEY }}
+          permission-contents: write
 
   build-license-eye:
     name: Check & Fix License Headers
     needs: generate-token
     runs-on: default
-    permissions:
-      contents: write # Only used when `apply_header: true` else the permission is `read`
     steps:
       - uses: cloudoperators/common/.github/workflows/shared-license.yaml@main
         with:

@@ -172,5 +172,23 @@ func TestHelmReleaseBuilder_WithKubeConfigEmptyIgnored(t *testing.T) {
 
 	spec, err := builder.Build()
 	assert.NoError(t, err)
-	assert.Equal(t, meta.SecretKeyReference{}, spec.KubeConfig.SecretRef)
+	assert.Nil(t, spec.KubeConfig)
+}
+
+func TestHelmReleaseBuilder_WithKubeConfigFromSecret(t *testing.T) {
+	builder := NewHelmReleaseSpecBuilder().
+		WithChart(helmv2.HelmChartTemplateSpec{
+			Chart:   "nginx",
+			Version: "1.0.0",
+		}).
+		WithKubeConfig(meta.SecretKeyReference{
+			Name: "kubeconfig-secret",
+			Key:  "kubeconfig",
+		})
+
+	spec, err := builder.Build()
+	assert.NoError(t, err)
+	assert.NotNil(t, spec.KubeConfig)
+	assert.Equal(t, "kubeconfig-secret", spec.KubeConfig.SecretRef.Name)
+	assert.Equal(t, "kubeconfig", spec.KubeConfig.SecretRef.Key)
 }
