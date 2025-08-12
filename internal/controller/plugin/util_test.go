@@ -55,7 +55,7 @@ var _ = Describe("validate utility functions", Ordered, func() {
 					"name":      "example-service",
 					"namespace": "default",
 					"annotations": map[string]string{
-						"greenhouse.sap/expose": "https",
+						"greenhouse.sap/exposed-named-port": "https",
 					},
 				},
 				"spec": map[string]any{
@@ -174,8 +174,8 @@ var _ = Describe("validate utility functions", Ordered, func() {
 					},
 				},
 				map[string]string{
-					greenhouseapis.AnnotationKeyExpose:            "true",
-					greenhouseapis.AnnotationKeyExposeIngressHost: "admin.example.com",
+					greenhouseapis.AnnotationKeyExpose:             "true",
+					greenhouseapis.AnnotationKeyExposedIngressHost: "admin.example.com",
 				},
 				"http://admin.example.com",
 				false,
@@ -191,8 +191,8 @@ var _ = Describe("validate utility functions", Ordered, func() {
 					},
 				},
 				map[string]string{
-					greenhouseapis.AnnotationKeyExpose:            "true",
-					greenhouseapis.AnnotationKeyExposeIngressHost: "secure.example.com",
+					greenhouseapis.AnnotationKeyExpose:             "true",
+					greenhouseapis.AnnotationKeyExposedIngressHost: "secure.example.com",
 				},
 				"https://secure.example.com",
 				false,
@@ -226,8 +226,8 @@ var _ = Describe("validate utility functions", Ordered, func() {
 					},
 				},
 				map[string]string{
-					greenhouseapis.AnnotationKeyExpose:            "true",
-					greenhouseapis.AnnotationKeyExposeIngressHost: "nonexistent.example.com",
+					greenhouseapis.AnnotationKeyExpose:             "true",
+					greenhouseapis.AnnotationKeyExposedIngressHost: "nonexistent.example.com",
 				},
 				"",
 				true,
