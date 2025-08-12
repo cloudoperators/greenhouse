@@ -47,7 +47,7 @@ For services with multiple ports, you can specify which port to expose:
 ```yaml
 annotations:
   greenhouse.sap/expose: "true"
-  greenhouse.sap/exposeNamedPort: "http"  # optional, defaults to first port
+  greenhouse.sap/exposed-named-port: "https"  # optional, defaults to first port
 ```
 
 #### Direct ingress exposure
@@ -57,7 +57,7 @@ Ingresses can be exposed directly using their external URLs:
 ```yaml
 annotations:
   greenhouse.sap/expose: "true"
-  greenhouse.sap/exposeHost: "api.example.com"  # optional, for multi-host ingresses
+  greenhouse.sap/exposed-host: "api.example.com"  # optional, for multi-host ingresses
 ```
 
 Both types of exposures appear in the Plugin's `status.exposedServices` with different types: `service` or `ingress`.
@@ -89,6 +89,6 @@ After deploying the plugin to a remote cluster, the ExposedServices section in P
 
 - Ingresses are exposed using their actual hostnames: `https://api.example.com` or `http://internal.service.com`
 - Protocol (http/https) is automatically detected from the ingress TLS configuration
-- The host is taken from `greenhouse.sap/exposeHost` annotation or defaults to the first host rule
+- The host is taken from `greenhouse.sap/exposed-host` annotation or defaults to the first host rule
 
 Both types are listed together in `status.exposedServices` with their respective types for easy identification.

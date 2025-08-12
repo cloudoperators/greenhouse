@@ -8,7 +8,7 @@ metadata:
   namespace: test-org
   annotations:
     greenhouse.sap/expose: "true"
-    greenhouse.sap/exposeHost: "api.test.example.com"
+    greenhouse.sap/exposed-host: "api.test.example.com"
 spec:
   tls:
   - hosts:

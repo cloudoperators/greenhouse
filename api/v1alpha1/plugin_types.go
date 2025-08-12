@@ -138,6 +138,7 @@ type Service struct {
 	// Protocol is the protocol of the service.
 	Protocol *string `json:"protocol,omitempty"`
 	// Type is the type of exposed service.
+	// +kubebuilder:default="service"
 	Type ServiceType `json:"type"`
 }
 

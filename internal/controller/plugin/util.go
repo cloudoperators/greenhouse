@@ -132,7 +132,7 @@ func getPortForExposedService(o runtime.Object) (*corev1.ServicePort, error) {
 	}
 
 	// Check for matching of named port set by label
-	var namedPort = svc.Annotations[greenhouseapis.AnnotationKeyExpose]
+	var namedPort = svc.Annotations[greenhouseapis.AnnotationKeyExposedNamedPort]
 
 	if namedPort != "" {
 		for _, port := range svc.Spec.Ports {
@@ -157,7 +157,7 @@ func getURLForExposedIngress(o runtime.Object) (url string, err error) {
 	}
 
 	var host string
-	if specificHost := ingress.Annotations[greenhouseapis.AnnotationKeyExposeIngressHost]; specificHost != "" {
+	if specificHost := ingress.Annotations[greenhouseapis.AnnotationKeyExposedIngressHost]; specificHost != "" {
 		for _, rule := range ingress.Spec.Rules {
 			if rule.Host == specificHost {
 				host = rule.Host

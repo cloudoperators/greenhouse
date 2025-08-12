@@ -165,6 +165,7 @@ spec:
                       description: Protocol is the protocol of the service.
                       type: string
                     type:
+                      default: service
                       description: Type is the type of exposed service.
                       enum:
                       - service

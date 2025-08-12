@@ -489,7 +489,7 @@ func getExposedServicesForPluginFromHelmRelease(restClientGetter genericclioptio
 //
 // For each discovered ingress:
 // - Automatically detects HTTPS protocol based on TLS configuration
-// - Selects the host using greenhouse.sap/exposeHost annotation or defaults to the first host rule
+// - Selects the host using greenhouse.sap/exposed-host annotation or defaults to the first host rule
 // - Constructs complete URLs with protocol (http:// or https://)
 // - Returns them as Service entries with type ServiceTypeIngress (port set to 0 as not applicable)
 //
