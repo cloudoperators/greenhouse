@@ -20,6 +20,7 @@ import (
 
 	greenhousemetav1alpha1 "github.com/cloudoperators/greenhouse/api/meta/v1alpha1"
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
+	greenhousev1alpha2 "github.com/cloudoperators/greenhouse/api/v1alpha2"
 )
 
 const (
@@ -37,7 +38,7 @@ type PluginTemplatePresetOptions struct {
 	pluginDefinitionPath string
 	clusterName          string
 
-	pluginPreset     *greenhousev1alpha1.PluginPreset
+	pluginPreset     *greenhousev1alpha2.PluginPreset
 	pluginDefinition *greenhousev1alpha1.ClusterPluginDefinition
 	values           []greenhousemetav1alpha1.PluginOptionValue
 }
@@ -111,7 +112,7 @@ func (o *PluginTemplatePresetOptions) complete() error {
 		return err
 	}
 
-	o.pluginPreset, err = loadFromFile[greenhousev1alpha1.PluginPreset](o.pluginPresetPath)
+	o.pluginPreset, err = loadFromFile[greenhousev1alpha2.PluginPreset](o.pluginPresetPath)
 	if err != nil {
 		return err
 	}

@@ -11,6 +11,7 @@ import (
 
 	greenhousemetav1alpha1 "github.com/cloudoperators/greenhouse/api/meta/v1alpha1"
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
+	greenhousev1alpha2 "github.com/cloudoperators/greenhouse/api/v1alpha2"
 )
 
 var _ = Describe("validateCompatibility", func() {
@@ -23,10 +24,10 @@ var _ = Describe("validateCompatibility", func() {
 					TypeMeta:   metav1.TypeMeta{Kind: ClusterPluginDefinitionKind},
 					ObjectMeta: metav1.ObjectMeta{Name: "nginx"},
 				},
-				pluginPreset: &greenhousev1alpha1.PluginPreset{
+				pluginPreset: &greenhousev1alpha2.PluginPreset{
 					TypeMeta: metav1.TypeMeta{Kind: PluginPresetKind},
-					Spec: greenhousev1alpha1.PluginPresetSpec{
-						Plugin: greenhousev1alpha1.PluginSpec{
+					Spec: greenhousev1alpha2.PluginPresetSpec{
+						Plugin: greenhousev1alpha2.PluginTemplateSpec{
 							PluginDefinition: "apache",
 						},
 					},
@@ -51,10 +52,10 @@ var _ = Describe("validateCompatibility", func() {
 						HelmChart: nil,
 					},
 				},
-				pluginPreset: &greenhousev1alpha1.PluginPreset{
+				pluginPreset: &greenhousev1alpha2.PluginPreset{
 					TypeMeta: metav1.TypeMeta{Kind: PluginPresetKind},
-					Spec: greenhousev1alpha1.PluginPresetSpec{
-						Plugin: greenhousev1alpha1.PluginSpec{
+					Spec: greenhousev1alpha2.PluginPresetSpec{
+						Plugin: greenhousev1alpha2.PluginTemplateSpec{
 							PluginDefinition: "nginx",
 						},
 					},
@@ -84,10 +85,10 @@ var _ = Describe("validateCompatibility", func() {
 						},
 					},
 				},
-				pluginPreset: &greenhousev1alpha1.PluginPreset{
+				pluginPreset: &greenhousev1alpha2.PluginPreset{
 					TypeMeta: metav1.TypeMeta{Kind: PluginPresetKind},
-					Spec: greenhousev1alpha1.PluginPresetSpec{
-						Plugin: greenhousev1alpha1.PluginSpec{
+					Spec: greenhousev1alpha2.PluginPresetSpec{
+						Plugin: greenhousev1alpha2.PluginTemplateSpec{
 							PluginDefinition: "nginx",
 						},
 					},
@@ -106,7 +107,7 @@ var _ = Describe("prepareValues", func() {
 	var (
 		opts         *PluginTemplatePresetOptions
 		pluginDef    *greenhousev1alpha1.ClusterPluginDefinition
-		pluginPreset *greenhousev1alpha1.PluginPreset
+		pluginPreset *greenhousev1alpha2.PluginPreset
 	)
 
 	BeforeEach(func() {
@@ -127,14 +128,14 @@ var _ = Describe("prepareValues", func() {
 			},
 		}
 
-		pluginPreset = &greenhousev1alpha1.PluginPreset{
+		pluginPreset = &greenhousev1alpha2.PluginPreset{
 			TypeMeta: metav1.TypeMeta{Kind: PluginPresetKind},
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "nginx-preset",
 				Namespace: "test-org",
 			},
-			Spec: greenhousev1alpha1.PluginPresetSpec{
-				Plugin: greenhousev1alpha1.PluginSpec{
+			Spec: greenhousev1alpha2.PluginPresetSpec{
+				Plugin: greenhousev1alpha2.PluginTemplateSpec{
 					PluginDefinition: "nginx",
 				},
 			},
@@ -207,7 +208,7 @@ var _ = Describe("prepareValues", func() {
 
 	Context("with cluster-specific overrides", func() {
 		BeforeEach(func() {
-			pluginPreset.Spec.ClusterOptionOverrides = []greenhousev1alpha1.ClusterOptionOverride{
+			pluginPreset.Spec.ClusterOptionOverrides = []greenhousev1alpha2.ClusterOptionOverride{
 				{
 					ClusterName: "test-cluster",
 					Overrides: []greenhousemetav1alpha1.PluginOptionValue{

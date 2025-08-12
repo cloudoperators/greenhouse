@@ -345,7 +345,7 @@ func WithPluginPresetAnnotations(annotations map[string]string) func(*greenhouse
 	}
 }
 
-// NewPluginPreset returns a greenhousev1alpha1.PluginPreset object. Opts can be used to set the desired state of the PluginPreset.
+// NewPluginPreset returns a PluginPreset object. Opts can be used to set the desired state of the PluginPreset.
 func NewPluginPreset(name, namespace string, opts ...func(*greenhousev1alpha2.PluginPreset)) *greenhousev1alpha2.PluginPreset {
 	GinkgoHelper()
 	pluginPreset := &greenhousev1alpha2.PluginPreset{
