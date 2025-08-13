@@ -140,7 +140,7 @@ components:
                         format: date-time
                         type: string
                       message:
-                        description: Message is an optional human readable message indicating details about the last transition.
+                        description: Message is an optional human-readable message indicating details about the last transition.
                         type: string
                       reason:
                         description: Reason is a one-word, CamelCase reason for the condition's last transition.
@@ -308,7 +308,7 @@ components:
                         format: date-time
                         type: string
                       message:
-                        description: Message is an optional human readable message indicating details about the last transition.
+                        description: Message is an optional human-readable message indicating details about the last transition.
                         type: string
                       reason:
                         description: Reason is a one-word, CamelCase reason for the condition's last transition.
@@ -433,7 +433,7 @@ components:
                         format: date-time
                         type: string
                       message:
-                        description: Message is an optional human readable message indicating details about the last transition.
+                        description: Message is an optional human-readable message indicating details about the last transition.
                         type: string
                       reason:
                         description: Reason is a one-word, CamelCase reason for the condition's last transition.
@@ -639,7 +639,7 @@ components:
                         format: date-time
                         type: string
                       message:
-                        description: Message is an optional human readable message indicating details about the last transition.
+                        description: Message is an optional human-readable message indicating details about the last transition.
                         type: string
                       reason:
                         description: Reason is a one-word, CamelCase reason for the condition's last transition.
@@ -807,7 +807,7 @@ components:
                         format: date-time
                         type: string
                       message:
-                        description: Message is an optional human readable message indicating details about the last transition.
+                        description: Message is an optional human-readable message indicating details about the last transition.
                         type: string
                       reason:
                         description: Reason is a one-word, CamelCase reason for the condition's last transition.
@@ -1037,7 +1037,7 @@ components:
                         format: date-time
                         type: string
                       message:
-                        description: Message is an optional human readable message indicating details about the last transition.
+                        description: Message is an optional human-readable message indicating details about the last transition.
                         type: string
                       reason:
                         description: Reason is a one-word, CamelCase reason for the condition's last transition.
@@ -1070,7 +1070,7 @@ components:
                         format: date-time
                         type: string
                       message:
-                        description: Message is an optional human readable message indicating details about the last transition.
+                        description: Message is an optional human-readable message indicating details about the last transition.
                         type: string
                       reason:
                         description: Reason is a one-word, CamelCase reason for the condition's last transition.
@@ -1268,7 +1268,7 @@ components:
                         format: date-time
                         type: string
                       message:
-                        description: Message is an optional human readable message indicating details about the last transition.
+                        description: Message is an optional human-readable message indicating details about the last transition.
                         type: string
                       reason:
                         description: Reason is a one-word, CamelCase reason for the condition's last transition.
@@ -1439,7 +1439,7 @@ components:
                         format: date-time
                         type: string
                       message:
-                        description: Message is an optional human readable message indicating details about the last transition.
+                        description: Message is an optional human-readable message indicating details about the last transition.
                         type: string
                       reason:
                         description: Reason is a one-word, CamelCase reason for the condition's last transition.
@@ -1474,7 +1474,7 @@ components:
                         format: date-time
                         type: string
                       message:
-                        description: Message is an optional human readable message indicating details about the last transition.
+                        description: Message is an optional human-readable message indicating details about the last transition.
                         type: string
                       reason:
                         description: Reason is a one-word, CamelCase reason for the condition's last transition.
@@ -1716,7 +1716,7 @@ components:
                         format: date-time
                         type: string
                       message:
-                        description: Message is an optional human readable message indicating details about the last transition.
+                        description: Message is an optional human-readable message indicating details about the last transition.
                         type: string
                       reason:
                         description: Reason is a one-word, CamelCase reason for the condition's last transition.
