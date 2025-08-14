@@ -41,29 +41,29 @@ func mockPluginDefinition() *greenhousev1alpha1.PluginDefinition {
 
 	clusterDef := test.NewClusterPluginDefinition(test.Ctx, PluginDefinitionName,
 		test.WithVersion(PluginDefinitionVersion),
-		test.WithHelmChart(&greenhousev1alpha1.HelmChartReference{
+		test.WithHelmChart(&greenhousemetav1alpha1.HelmChartReference{
 			Name:       HelmChart,
 			Repository: HelmRepo,
 			Version:    PluginDefinitionChartVersion,
 		}),
-		test.AppendPluginOption(greenhousev1alpha1.PluginOption{
+		test.AppendPluginOption(greenhousemetav1alpha1.PluginOption{
 			Name:        PluginOptionRequired,
 			Description: "This is my required test plugin option",
 			Required:    true,
-			Type:        greenhousev1alpha1.PluginOptionTypeString,
+			Type:        greenhousemetav1alpha1.PluginOptionTypeString,
 		}),
-		test.AppendPluginOption(greenhousev1alpha1.PluginOption{
+		test.AppendPluginOption(greenhousemetav1alpha1.PluginOption{
 			Name:        PluginOptionOptional,
 			Description: "This is my optional test plugin option",
 			Required:    false,
-			Type:        greenhousev1alpha1.PluginOptionTypeString,
+			Type:        greenhousemetav1alpha1.PluginOptionTypeString,
 		}),
-		test.AppendPluginOption(greenhousev1alpha1.PluginOption{
+		test.AppendPluginOption(greenhousemetav1alpha1.PluginOption{
 			Name:        PluginOptionDefault,
 			Description: "This is my default test plugin option",
 			Required:    false,
 			Default:     test.AsAPIExtensionJSON(PluginOptionDefaultValue),
-			Type:        greenhousev1alpha1.PluginOptionTypeString,
+			Type:        greenhousemetav1alpha1.PluginOptionTypeString,
 		}),
 	)
 	pluginDef := &greenhousev1alpha1.PluginDefinition{}
@@ -75,12 +75,12 @@ func mockPluginDefinition() *greenhousev1alpha1.PluginDefinition {
 func mockUIPluginDefinition() *greenhousev1alpha1.PluginDefinition {
 	GinkgoHelper()
 	clusterDef := test.NewClusterPluginDefinition(test.Ctx, UIPluginDefinitionName, test.AppendPluginOption(
-		greenhousev1alpha1.PluginOption{
+		greenhousemetav1alpha1.PluginOption{
 			Name:    "test-plugin-definition-option-1",
 			Type:    "int",
 			Default: &apiextensionsv1.JSON{Raw: []byte("1")}},
 	),
-		test.WithUIApplication(&greenhousev1alpha1.UIApplicationReference{
+		test.WithUIApplication(&greenhousemetav1alpha1.UIApplicationReference{
 			Name:    "test-ui-app",
 			Version: "0.0.1",
 		}),

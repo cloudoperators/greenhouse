@@ -29,8 +29,8 @@ type ClusterPluginDefinition struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec   PluginDefinitionSpec          `json:"spec,omitempty"`
-	Status ClusterPluginDefinitionStatus `json:"status,omitempty"`
+	Spec   greenhousemetav1alpha1.PluginDefinitionTemplateSpec `json:"spec,omitempty"`
+	Status ClusterPluginDefinitionStatus                       `json:"status,omitempty"`
 }
 
 // +kubebuilder:object:root=true

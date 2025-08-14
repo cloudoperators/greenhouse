@@ -52,16 +52,16 @@ var (
 
 	testTeam               = test.NewTeam(test.Ctx, "test-pluginpreset-team", test.TestNamespace, test.WithTeamLabel(greenhouseapis.LabelKeySupportGroup, "true"))
 	pluginPresetDefinition = test.NewClusterPluginDefinition(test.Ctx, pluginPresetDefinitionName, test.WithHelmChart(
-		&greenhousev1alpha1.HelmChartReference{
+		&greenhousemetav1alpha1.HelmChartReference{
 			Name:       "./../../test/fixtures/chartWithConfigMap",
 			Repository: "dummy",
 			Version:    "1.0.0",
 		}),
-		test.AppendPluginOption(greenhousev1alpha1.PluginOption{
+		test.AppendPluginOption(greenhousemetav1alpha1.PluginOption{
 			Name:        "myRequiredOption",
 			Description: "This is my required test plugin option",
 			Required:    true,
-			Type:        greenhousev1alpha1.PluginOptionTypeString,
+			Type:        greenhousemetav1alpha1.PluginOptionTypeString,
 		}))
 )
 
@@ -111,12 +111,12 @@ var _ = Describe("PluginPreset Controller Lifecycle", Ordered, func() {
 
 		By("creating PluginDefinition with default options")
 		defaultPluginDefinition = test.NewClusterPluginDefinition(test.Ctx, pluginDefinitionWithDefaultsName, test.AppendPluginOption(
-			greenhousev1alpha1.PluginOption{
+			greenhousemetav1alpha1.PluginOption{
 				Name:    "test-plugin-definition-option-1",
 				Type:    "int",
 				Default: &apiextensionsv1.JSON{Raw: []byte("1")}},
 		),
-			test.WithUIApplication(&greenhousev1alpha1.UIApplicationReference{
+			test.WithUIApplication(&greenhousemetav1alpha1.UIApplicationReference{
 				Name:    "test-ui-app",
 				Version: "0.0.1",
 			}),
@@ -529,11 +529,11 @@ var _ = Describe("PluginPreset Controller Lifecycle", Ordered, func() {
 		By("creating PluginDefinition with required option values")
 		pluginDefinition := test.NewClusterPluginDefinition(test.Ctx, pluginDefinitionWithRequiredOptionName,
 			test.AppendPluginOption(
-				greenhousev1alpha1.PluginOption{
+				greenhousemetav1alpha1.PluginOption{
 					Name:     "test-required-option-1",
 					Type:     "int",
 					Required: true}),
-			test.WithUIApplication(&greenhousev1alpha1.UIApplicationReference{
+			test.WithUIApplication(&greenhousemetav1alpha1.UIApplicationReference{
 				Name:    "test-ui-app",
 				Version: "0.0.1"}),
 		)
@@ -808,8 +808,8 @@ var _ = Describe("Plugin Preset skip changes", Ordered, func() {
 				ObjectMeta: metav1.ObjectMeta{
 					Name: pluginPresetDefinitionName,
 				},
-				Spec: greenhousev1alpha1.PluginDefinitionSpec{
-					Options: []greenhousev1alpha1.PluginOption{
+				Spec: greenhousemetav1alpha1.PluginDefinitionTemplateSpec{
+					Options: []greenhousemetav1alpha1.PluginOption{
 						{
 							Name:    "plugin_definition.test_parameter",
 							Default: test.AsAPIExtensionJSON(3),
@@ -839,8 +839,8 @@ var _ = Describe("Plugin Preset skip changes", Ordered, func() {
 				ObjectMeta: metav1.ObjectMeta{
 					Name: pluginPresetDefinitionName,
 				},
-				Spec: greenhousev1alpha1.PluginDefinitionSpec{
-					Options: []greenhousev1alpha1.PluginOption{
+				Spec: greenhousemetav1alpha1.PluginDefinitionTemplateSpec{
+					Options: []greenhousemetav1alpha1.PluginOption{
 						{
 							Name:    "plugin_definition.test_parameter",
 							Default: test.AsAPIExtensionJSON(4),
@@ -874,8 +874,8 @@ var _ = Describe("Plugin Preset skip changes", Ordered, func() {
 				ObjectMeta: metav1.ObjectMeta{
 					Name: pluginPresetDefinitionName,
 				},
-				Spec: greenhousev1alpha1.PluginDefinitionSpec{
-					Options: []greenhousev1alpha1.PluginOption{
+				Spec: greenhousemetav1alpha1.PluginDefinitionTemplateSpec{
+					Options: []greenhousemetav1alpha1.PluginOption{
 						{
 							Name:    "plugin_definition.test_parameter",
 							Default: test.AsAPIExtensionJSON(4),
@@ -918,8 +918,8 @@ var _ = Describe("Plugin Preset skip changes", Ordered, func() {
 				ObjectMeta: metav1.ObjectMeta{
 					Name: pluginPresetDefinitionName,
 				},
-				Spec: greenhousev1alpha1.PluginDefinitionSpec{
-					Options: []greenhousev1alpha1.PluginOption{
+				Spec: greenhousemetav1alpha1.PluginDefinitionTemplateSpec{
+					Options: []greenhousemetav1alpha1.PluginOption{
 						{
 							Name:    "plugin_definition.test_parameter",
 							Default: test.AsAPIExtensionJSON(4),

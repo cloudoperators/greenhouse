@@ -168,7 +168,7 @@ func ValidateReleaseName(name string) error {
 func ValidatePluginOptionValues(
 	optionValues []greenhousemetav1alpha1.PluginOptionValue,
 	pluginDefinitionName string,
-	pluginDefinitionSpec greenhousev1alpha1.PluginDefinitionSpec,
+	pluginDefinitionSpec greenhousemetav1alpha1.PluginDefinitionTemplateSpec,
 	checkRequiredOptions bool,
 	optionsFieldPath *field.Path,
 ) field.ErrorList {
@@ -195,7 +195,7 @@ func ValidatePluginOptionValues(
 			}
 
 			// Validate that OptionValue has a secret reference.
-			if pluginOption.Type == greenhousev1alpha1.PluginOptionTypeSecret {
+			if pluginOption.Type == greenhousemetav1alpha1.PluginOptionTypeSecret {
 				switch {
 				case val.Value != nil:
 					allErrs = append(allErrs, field.TypeInvalid(fieldPathWithIndex.Child("value"), "*****",

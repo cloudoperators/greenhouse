@@ -19,6 +19,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/json"
 
+	greenhousemetav1alpha1 "github.com/cloudoperators/greenhouse/api/meta/v1alpha1"
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
 )
 
@@ -113,15 +114,15 @@ func helmChartToPlugin(helmChart *chart.Chart) (*greenhousev1alpha1.ClusterPlugi
 		ObjectMeta: metav1.ObjectMeta{
 			Name: fmt.Sprintf("%s-%s", helmChart.Name(), helmChart.Metadata.Version),
 		},
-		Spec: greenhousev1alpha1.PluginDefinitionSpec{
+		Spec: greenhousemetav1alpha1.PluginDefinitionTemplateSpec{
 			Version:     pluginVersion,
 			Description: helmChart.Name(),
-			HelmChart: &greenhousev1alpha1.HelmChartReference{
+			HelmChart: &greenhousemetav1alpha1.HelmChartReference{
 				Name:       helmChart.Name(),
 				Repository: "TODO: Repository for this Helm chart.",
 				Version:    helmChart.Metadata.Version,
 			},
-			UIApplication: &greenhousev1alpha1.UIApplicationReference{
+			UIApplication: &greenhousemetav1alpha1.UIApplicationReference{
 				URL:     "TODO: Javascript asset server URL.",
 				Name:    helmChart.Name(),
 				Version: "latest",
@@ -131,7 +132,7 @@ func helmChartToPlugin(helmChart *chart.Chart) (*greenhousev1alpha1.ClusterPlugi
 	}, nil
 }
 
-func chartValuesToNamedValues(chartValues map[string]any) ([]greenhousev1alpha1.PluginOption, error) {
+func chartValuesToNamedValues(chartValues map[string]any) ([]greenhousemetav1alpha1.PluginOption, error) {
 	if chartValues == nil {
 		return nil, nil
 	}
@@ -140,13 +141,13 @@ func chartValuesToNamedValues(chartValues map[string]any) ([]greenhousev1alpha1.
 		return nil, err
 	}
 
-	namedValues := make([]greenhousev1alpha1.PluginOption, 0)
+	namedValues := make([]greenhousemetav1alpha1.PluginOption, 0)
 	for k, v := range flatChartValues {
 		raw, err := json.Marshal(v)
 		if err != nil {
 			return nil, err
 		}
-		namedValues = append(namedValues, greenhousev1alpha1.PluginOption{
+		namedValues = append(namedValues, greenhousemetav1alpha1.PluginOption{
 			Name:        k,
 			Description: k,
 			Default:     &apiextensionsv1.JSON{Raw: raw},

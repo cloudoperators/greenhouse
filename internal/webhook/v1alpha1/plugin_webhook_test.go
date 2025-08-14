@@ -36,14 +36,14 @@ var _ = Describe("Validate Plugin OptionValues", func() {
 		}
 
 		var defaultVal *apiextensionsv1.JSON
-		var optionType greenhousev1alpha1.PluginOptionType
+		var optionType greenhousemetav1alpha1.PluginOptionType
 		switch {
 		case value != nil:
 			defaultVal = value
-			optionType = greenhousev1alpha1.PluginOptionTypeString
+			optionType = greenhousemetav1alpha1.PluginOptionTypeString
 		case valueFrom != nil:
 			defaultVal = test.MustReturnJSONFor(valueFrom.Secret.Name)
-			optionType = greenhousev1alpha1.PluginOptionTypeSecret
+			optionType = greenhousemetav1alpha1.PluginOptionTypeSecret
 		}
 
 		pluginDefinition := &greenhousev1alpha1.ClusterPluginDefinition{
@@ -51,8 +51,8 @@ var _ = Describe("Validate Plugin OptionValues", func() {
 				Namespace: "greenhouse",
 				Name:      "testPlugin",
 			},
-			Spec: greenhousev1alpha1.PluginDefinitionSpec{
-				Options: []greenhousev1alpha1.PluginOption{
+			Spec: greenhousemetav1alpha1.PluginDefinitionTemplateSpec{
+				Options: []greenhousemetav1alpha1.PluginOption{
 					{
 						Name:    "test",
 						Default: defaultVal,
@@ -77,14 +77,14 @@ var _ = Describe("Validate Plugin OptionValues", func() {
 		Entry("ValueFrom not nil", nil, &greenhousemetav1alpha1.ValueFromSource{Secret: &greenhousemetav1alpha1.SecretKeyReference{Name: "my-secret", Key: "secret-key"}}, false),
 	)
 
-	DescribeTable("Validate PluginOptionValue is consistent with PluginOption Type", func(defaultValue any, defaultType greenhousev1alpha1.PluginOptionType, actValue any, expErr bool) {
+	DescribeTable("Validate PluginOptionValue is consistent with PluginOption Type", func(defaultValue any, defaultType greenhousemetav1alpha1.PluginOptionType, actValue any, expErr bool) {
 		pluginDefinition := &greenhousev1alpha1.ClusterPluginDefinition{
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: "greenhouse",
 				Name:      "testPlugin",
 			},
-			Spec: greenhousev1alpha1.PluginDefinitionSpec{
-				Options: []greenhousev1alpha1.PluginOption{
+			Spec: greenhousemetav1alpha1.PluginDefinitionTemplateSpec{
+				Options: []greenhousemetav1alpha1.PluginOption{
 					{
 						Name:    "test",
 						Default: test.MustReturnJSONFor(defaultValue),
@@ -110,19 +110,19 @@ var _ = Describe("Validate Plugin OptionValues", func() {
 			Expect(errList).To(BeEmpty(), "expected no error, got %v", errList)
 		}
 	},
-		Entry("PluginOption Value Consistent With PluginOption Type Bool", false, greenhousev1alpha1.PluginOptionTypeBool, true, false),
-		Entry("PluginOption Value Inconsistent With PluginOption Type Bool", true, greenhousev1alpha1.PluginOptionTypeBool, "notabool", true),
-		Entry("PluginOption Value Consistent With PluginOption Type String", "string", greenhousev1alpha1.PluginOptionTypeString, "mystring", false),
-		Entry("PluginOption Value Consistent With PluginOption Type String Escaped Integer", "1", greenhousev1alpha1.PluginOptionTypeString, "1", false),
-		Entry("PluginOption Value Inconsistent With PluginOption Type String", "string", greenhousev1alpha1.PluginOptionTypeString, 1, true),
-		Entry("PluginOption Value Consistent With PluginOption Type Int", 1, greenhousev1alpha1.PluginOptionTypeInt, 1, false),
-		Entry("PluginOption Value Inconsistent With PluginOption Type Int", 1, greenhousev1alpha1.PluginOptionTypeInt, "one", true),
-		Entry("PluginOption Value Consistent With PluginOption Type List", []string{"one", "two"}, greenhousev1alpha1.PluginOptionTypeList, []string{"one", "two", "three"}, false),
-		Entry("PluginOption Value Inconsistent With PluginOption Type List", []string{"one", "two"}, greenhousev1alpha1.PluginOptionTypeList, "one,two", true),
-		Entry("PluginOption Value Consistent With PluginOption Type Map", map[string]any{"key": "value"}, greenhousev1alpha1.PluginOptionTypeMap, map[string]any{"key": "custom"}, false),
-		Entry("PluginOption Value Inconsistent With PluginOption Type Map", map[string]any{"key": "value"}, greenhousev1alpha1.PluginOptionTypeMap, "one", true),
-		Entry("PluginOption Value Consistent With PluginOption Type Map Nested Map", map[string]any{"key": map[string]any{"nestedKey": "value"}}, greenhousev1alpha1.PluginOptionTypeMap, map[string]any{"key": map[string]any{"nestedKey": "custom"}}, false),
-		Entry("PluginOption Value not supported With PluginOption Type Secret", "", greenhousev1alpha1.PluginOptionTypeSecret, "string", true),
+		Entry("PluginOption Value Consistent With PluginOption Type Bool", false, greenhousemetav1alpha1.PluginOptionTypeBool, true, false),
+		Entry("PluginOption Value Inconsistent With PluginOption Type Bool", true, greenhousemetav1alpha1.PluginOptionTypeBool, "notabool", true),
+		Entry("PluginOption Value Consistent With PluginOption Type String", "string", greenhousemetav1alpha1.PluginOptionTypeString, "mystring", false),
+		Entry("PluginOption Value Consistent With PluginOption Type String Escaped Integer", "1", greenhousemetav1alpha1.PluginOptionTypeString, "1", false),
+		Entry("PluginOption Value Inconsistent With PluginOption Type String", "string", greenhousemetav1alpha1.PluginOptionTypeString, 1, true),
+		Entry("PluginOption Value Consistent With PluginOption Type Int", 1, greenhousemetav1alpha1.PluginOptionTypeInt, 1, false),
+		Entry("PluginOption Value Inconsistent With PluginOption Type Int", 1, greenhousemetav1alpha1.PluginOptionTypeInt, "one", true),
+		Entry("PluginOption Value Consistent With PluginOption Type List", []string{"one", "two"}, greenhousemetav1alpha1.PluginOptionTypeList, []string{"one", "two", "three"}, false),
+		Entry("PluginOption Value Inconsistent With PluginOption Type List", []string{"one", "two"}, greenhousemetav1alpha1.PluginOptionTypeList, "one,two", true),
+		Entry("PluginOption Value Consistent With PluginOption Type Map", map[string]any{"key": "value"}, greenhousemetav1alpha1.PluginOptionTypeMap, map[string]any{"key": "custom"}, false),
+		Entry("PluginOption Value Inconsistent With PluginOption Type Map", map[string]any{"key": "value"}, greenhousemetav1alpha1.PluginOptionTypeMap, "one", true),
+		Entry("PluginOption Value Consistent With PluginOption Type Map Nested Map", map[string]any{"key": map[string]any{"nestedKey": "value"}}, greenhousemetav1alpha1.PluginOptionTypeMap, map[string]any{"key": map[string]any{"nestedKey": "custom"}}, false),
+		Entry("PluginOption Value not supported With PluginOption Type Secret", "", greenhousemetav1alpha1.PluginOptionTypeSecret, "string", true),
 	)
 
 	DescribeTable("Validate PluginOptionValue references a Secret", func(actValue *greenhousemetav1alpha1.ValueFromSource, expErr bool) {
@@ -131,11 +131,11 @@ var _ = Describe("Validate Plugin OptionValues", func() {
 				Namespace: "greenhouse",
 				Name:      "testPlugin",
 			},
-			Spec: greenhousev1alpha1.PluginDefinitionSpec{
-				Options: []greenhousev1alpha1.PluginOption{
+			Spec: greenhousemetav1alpha1.PluginDefinitionTemplateSpec{
+				Options: []greenhousemetav1alpha1.PluginOption{
 					{
 						Name: "test",
-						Type: greenhousev1alpha1.PluginOptionTypeSecret,
+						Type: greenhousemetav1alpha1.PluginOptionTypeSecret,
 					},
 				},
 			},
@@ -169,11 +169,11 @@ var _ = Describe("Validate Plugin OptionValues", func() {
 				Namespace: "greenhouse",
 				Name:      "testPlugin",
 			},
-			Spec: greenhousev1alpha1.PluginDefinitionSpec{
-				Options: []greenhousev1alpha1.PluginOption{
+			Spec: greenhousemetav1alpha1.PluginDefinitionTemplateSpec{
+				Options: []greenhousemetav1alpha1.PluginOption{
 					{
 						Name:     "test",
-						Type:     greenhousev1alpha1.PluginOptionTypeString,
+						Type:     greenhousemetav1alpha1.PluginOptionTypeString,
 						Required: true,
 					},
 				},
@@ -456,7 +456,7 @@ var _ = Describe("Validation and defaulting of releaseName", func() {
 	)
 
 	BeforeEach(func() {
-		pluginDefinition = test.NewClusterPluginDefinition(test.Ctx, "test-definition", test.WithHelmChart(&greenhousev1alpha1.HelmChartReference{Name: "test-helm-chart"}))
+		pluginDefinition = test.NewClusterPluginDefinition(test.Ctx, "test-definition", test.WithHelmChart(&greenhousemetav1alpha1.HelmChartReference{Name: "test-helm-chart"}))
 
 		testPlugin = test.NewPlugin(test.Ctx, "test-plugin", "testing", test.WithPluginDefinition("test-definition"))
 		// ensure the Plugin is in the deployed state

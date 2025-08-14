@@ -19,21 +19,21 @@ var _ = Describe("Validate PluginDefinition against Plugin ", func() {
 			Namespace: "greenhouse",
 			Name:      "testPlugin",
 		},
-		Spec: greenhousev1alpha1.PluginDefinitionSpec{
-			Options: []greenhousev1alpha1.PluginOption{
+		Spec: greenhousemetav1alpha1.PluginDefinitionTemplateSpec{
+			Options: []greenhousemetav1alpha1.PluginOption{
 				{
 					Name:    "stringWithDefault",
-					Type:    greenhousev1alpha1.PluginOptionTypeString,
+					Type:    greenhousemetav1alpha1.PluginOptionTypeString,
 					Default: test.MustReturnJSONFor("defaulted"),
 				},
 				{
 					Name:     "stringRequired",
-					Type:     greenhousev1alpha1.PluginOptionTypeString,
+					Type:     greenhousemetav1alpha1.PluginOptionTypeString,
 					Required: true,
 				},
 				{
 					Name: "secretValue",
-					Type: greenhousev1alpha1.PluginOptionTypeSecret,
+					Type: greenhousemetav1alpha1.PluginOptionTypeSecret,
 				},
 			},
 		},

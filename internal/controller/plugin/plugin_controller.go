@@ -252,7 +252,7 @@ func (r *PluginReconciler) reconcileHelmRelease(
 	ctx context.Context,
 	restClientGetter genericclioptions.RESTClientGetter,
 	plugin *greenhousev1alpha1.Plugin,
-	pluginDefinitionSpec greenhousev1alpha1.PluginDefinitionSpec,
+	pluginDefinitionSpec greenhousemetav1alpha1.PluginDefinitionTemplateSpec,
 ) error {
 
 	// Not a HelmChart pluginDefinition. Ignore it.
@@ -368,8 +368,8 @@ func (r *PluginReconciler) reconcileStatus(ctx context.Context,
 	}
 
 	var (
-		uiApplication      *greenhousev1alpha1.UIApplicationReference
-		helmChartReference *greenhousev1alpha1.HelmChartReference
+		uiApplication      *greenhousemetav1alpha1.UIApplicationReference
+		helmChartReference *greenhousemetav1alpha1.HelmChartReference
 	)
 	// Ensure the status is always reported.
 	uiApplication = pluginDefinition.Spec.UIApplication

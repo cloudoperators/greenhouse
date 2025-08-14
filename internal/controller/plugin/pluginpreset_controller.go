@@ -320,7 +320,7 @@ func shouldSkipPlugin(plugin *greenhousev1alpha1.Plugin, preset *greenhousev1alp
 			// optionValue is set by the PluginPreset, nothing to doen plugin does not have option which exists in plugin p
 			continue
 		}
-		if slices.ContainsFunc(definition.Spec.Options, func(item greenhousev1alpha1.PluginOption) bool {
+		if slices.ContainsFunc(definition.Spec.Options, func(item greenhousemetav1alpha1.PluginOption) bool {
 			if item.Default == nil {
 				return false
 			}

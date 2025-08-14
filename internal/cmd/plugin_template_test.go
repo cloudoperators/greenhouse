@@ -48,7 +48,7 @@ var _ = Describe("validateCompatibility", func() {
 				pluginDefinition: &greenhousev1alpha1.ClusterPluginDefinition{
 					TypeMeta:   metav1.TypeMeta{Kind: ClusterPluginDefinitionKind},
 					ObjectMeta: metav1.ObjectMeta{Name: "nginx"},
-					Spec: greenhousev1alpha1.PluginDefinitionSpec{
+					Spec: greenhousemetav1alpha1.PluginDefinitionTemplateSpec{
 						HelmChart: nil,
 					},
 				},
@@ -77,8 +77,8 @@ var _ = Describe("validateCompatibility", func() {
 				pluginDefinition: &greenhousev1alpha1.ClusterPluginDefinition{
 					TypeMeta:   metav1.TypeMeta{Kind: ClusterPluginDefinitionKind},
 					ObjectMeta: metav1.ObjectMeta{Name: "nginx"},
-					Spec: greenhousev1alpha1.PluginDefinitionSpec{
-						HelmChart: &greenhousev1alpha1.HelmChartReference{
+					Spec: greenhousemetav1alpha1.PluginDefinitionTemplateSpec{
+						HelmChart: &greenhousemetav1alpha1.HelmChartReference{
 							Name:       "nginx",
 							Repository: "https://charts.bitnami.com/bitnami",
 							Version:    "15.4.4",
@@ -118,8 +118,8 @@ var _ = Describe("prepareValues", func() {
 		pluginDef = &greenhousev1alpha1.ClusterPluginDefinition{
 			TypeMeta:   metav1.TypeMeta{Kind: ClusterPluginDefinitionKind},
 			ObjectMeta: metav1.ObjectMeta{Name: "nginx"},
-			Spec: greenhousev1alpha1.PluginDefinitionSpec{
-				Options: []greenhousev1alpha1.PluginOption{
+			Spec: greenhousemetav1alpha1.PluginDefinitionTemplateSpec{
+				Options: []greenhousemetav1alpha1.PluginOption{
 					{
 						Name:    "replicas",
 						Default: &apiextensionsv1.JSON{Raw: []byte("2")},

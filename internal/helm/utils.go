@@ -8,7 +8,6 @@ import (
 	"time"
 
 	greenhousemetav1alpha1 "github.com/cloudoperators/greenhouse/api/meta/v1alpha1"
-	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
 	"github.com/cloudoperators/greenhouse/internal/clientutil"
 )
 
@@ -23,7 +22,7 @@ func GetHelmTimeout() time.Duration {
 	return time.Duration(val) * time.Second
 }
 
-func MergePluginAndPluginOptionValueSlice(pluginOptions []greenhousev1alpha1.PluginOption, pluginOptionValues []greenhousemetav1alpha1.PluginOptionValue) []greenhousemetav1alpha1.PluginOptionValue {
+func MergePluginAndPluginOptionValueSlice(pluginOptions []greenhousemetav1alpha1.PluginOption, pluginOptionValues []greenhousemetav1alpha1.PluginOptionValue) []greenhousemetav1alpha1.PluginOptionValue {
 	// Make sure there's always a non-nil slice.
 	out := make([]greenhousemetav1alpha1.PluginOptionValue, 0)
 	defer func() {

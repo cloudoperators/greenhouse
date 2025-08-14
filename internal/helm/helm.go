@@ -59,7 +59,7 @@ var (
 const driftDetectionInterval = 60 * time.Minute
 
 // InstallOrUpgradeHelmChartFromPlugin installs a new or upgrades an existing Helm release for the given PluginDefinition and Plugin.
-func InstallOrUpgradeHelmChartFromPlugin(ctx context.Context, local client.Client, restClientGetter genericclioptions.RESTClientGetter, pluginDefinitionSpec greenhousev1alpha1.PluginDefinitionSpec, plugin *greenhousev1alpha1.Plugin) error {
+func InstallOrUpgradeHelmChartFromPlugin(ctx context.Context, local client.Client, restClientGetter genericclioptions.RESTClientGetter, pluginDefinitionSpec greenhousemetav1alpha1.PluginDefinitionTemplateSpec, plugin *greenhousev1alpha1.Plugin) error {
 	// Early return if the pluginDefinition is not helm based
 	if pluginDefinitionSpec.HelmChart == nil {
 		util.UpdatePluginReconcileTotalMetric(plugin, util.MetricResultError, util.MetricReasonHelmChartIsNotDefined)
@@ -185,7 +185,7 @@ func UninstallHelmRelease(ctx context.Context, restClientGetter genericclioption
 }
 
 // DiffChartToDeployedResources returns whether the Kubernetes objects, as specified in the Helm chart manifest, differ from the deployed state.
-func DiffChartToDeployedResources(ctx context.Context, local client.Client, restClientGetter genericclioptions.RESTClientGetter, pluginDefinitionSpec greenhousev1alpha1.PluginDefinitionSpec, plugin *greenhousev1alpha1.Plugin) (diffs DiffObjectList, isDrift bool, err error) {
+func DiffChartToDeployedResources(ctx context.Context, local client.Client, restClientGetter genericclioptions.RESTClientGetter, pluginDefinitionSpec greenhousemetav1alpha1.PluginDefinitionTemplateSpec, plugin *greenhousev1alpha1.Plugin) (diffs DiffObjectList, isDrift bool, err error) {
 	// Shortcut: If the Helm chart was changed we can skip below templating and diffing.
 	var pluginStatusHelmChart string
 	if plugin.Status.HelmReleaseStatus != nil && plugin.Status.HelmChart != nil {
@@ -332,7 +332,7 @@ func GetReleaseForHelmChartFromPlugin(_ context.Context, restClientGetter generi
 }
 
 // TemplateHelmChartFromPlugin returns the rendered manifest or an error.
-func TemplateHelmChartFromPlugin(ctx context.Context, local client.Client, restClientGetter genericclioptions.RESTClientGetter, pluginDefinitionSpec greenhousev1alpha1.PluginDefinitionSpec, plugin *greenhousev1alpha1.Plugin) (*release.Release, error) {
+func TemplateHelmChartFromPlugin(ctx context.Context, local client.Client, restClientGetter genericclioptions.RESTClientGetter, pluginDefinitionSpec greenhousemetav1alpha1.PluginDefinitionTemplateSpec, plugin *greenhousev1alpha1.Plugin) (*release.Release, error) {
 	helmRelease, err := installRelease(ctx, local, restClientGetter, pluginDefinitionSpec, plugin, true)
 	if err != nil {
 		return nil, err
@@ -344,7 +344,7 @@ type ChartLoaderFunc func(name string) (*chart.Chart, error)
 
 var ChartLoader ChartLoaderFunc = loader.Load
 
-func locateChartForPlugin(restClientGetter genericclioptions.RESTClientGetter, pluginDefinitionSpec greenhousev1alpha1.PluginDefinitionSpec) (*chart.Chart, error) {
+func locateChartForPlugin(restClientGetter genericclioptions.RESTClientGetter, pluginDefinitionSpec greenhousemetav1alpha1.PluginDefinitionTemplateSpec) (*chart.Chart, error) {
 	cfg, err := newHelmAction(restClientGetter, corev1.NamespaceAll)
 	if err != nil {
 		return nil, err
@@ -362,7 +362,7 @@ func locateChartForPlugin(restClientGetter genericclioptions.RESTClientGetter, p
 }
 
 // configureChartPathOptions configures the ChartPathOptions and chartName considering OCI repositories.
-func configureChartPathOptions(cpo *action.ChartPathOptions, c *greenhousev1alpha1.HelmChartReference) string {
+func configureChartPathOptions(cpo *action.ChartPathOptions, c *greenhousemetav1alpha1.HelmChartReference) string {
 	cpo.RepoURL = c.Repository
 	cpo.Version = c.Version
 	chartName := c.Name
@@ -374,7 +374,7 @@ func configureChartPathOptions(cpo *action.ChartPathOptions, c *greenhousev1alph
 	return chartName
 }
 
-func upgradeRelease(ctx context.Context, local client.Client, restClientGetter genericclioptions.RESTClientGetter, pluginDefinitionSpec greenhousev1alpha1.PluginDefinitionSpec, plugin *greenhousev1alpha1.Plugin) error {
+func upgradeRelease(ctx context.Context, local client.Client, restClientGetter genericclioptions.RESTClientGetter, pluginDefinitionSpec greenhousemetav1alpha1.PluginDefinitionTemplateSpec, plugin *greenhousev1alpha1.Plugin) error {
 	cfg, err := newHelmAction(restClientGetter, plugin.Spec.ReleaseNamespace)
 	if err != nil {
 		return err
@@ -413,7 +413,7 @@ func upgradeRelease(ctx context.Context, local client.Client, restClientGetter g
 	return err
 }
 
-func installRelease(ctx context.Context, local client.Client, restClientGetter genericclioptions.RESTClientGetter, pluginDefinitionSpec greenhousev1alpha1.PluginDefinitionSpec, plugin *greenhousev1alpha1.Plugin, isDryRun bool) (*release.Release, error) {
+func installRelease(ctx context.Context, local client.Client, restClientGetter genericclioptions.RESTClientGetter, pluginDefinitionSpec greenhousemetav1alpha1.PluginDefinitionTemplateSpec, plugin *greenhousev1alpha1.Plugin, isDryRun bool) (*release.Release, error) {
 	cfg, err := newHelmAction(restClientGetter, plugin.Spec.ReleaseNamespace)
 	if err != nil {
 		return nil, err
@@ -454,7 +454,7 @@ func installRelease(ctx context.Context, local client.Client, restClientGetter g
 	return installAction.RunWithContext(ctx, helmChart, helmValues)
 }
 
-func loadHelmChart(chartPathOptions *action.ChartPathOptions, reference *greenhousev1alpha1.HelmChartReference, settings *cli.EnvSettings) (*chart.Chart, error) {
+func loadHelmChart(chartPathOptions *action.ChartPathOptions, reference *greenhousemetav1alpha1.HelmChartReference, settings *cli.EnvSettings) (*chart.Chart, error) {
 	name := filepath.Base(reference.Name)
 	chartPath := settings.RepositoryCache + "/" + name + "-" + reference.Version + ".tgz"
 

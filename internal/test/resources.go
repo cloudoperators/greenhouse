@@ -153,7 +153,7 @@ func WithVersion(version string) func(*greenhousev1alpha1.ClusterPluginDefinitio
 }
 
 // WithHelmChart sets the HelmChart of a ClusterPluginDefinition
-func WithHelmChart(chart *greenhousev1alpha1.HelmChartReference) func(*greenhousev1alpha1.ClusterPluginDefinition) {
+func WithHelmChart(chart *greenhousemetav1alpha1.HelmChartReference) func(*greenhousev1alpha1.ClusterPluginDefinition) {
 	return func(pd *greenhousev1alpha1.ClusterPluginDefinition) {
 		pd.Spec.HelmChart = chart
 	}
@@ -167,14 +167,14 @@ func WithoutHelmChart() func(*greenhousev1alpha1.ClusterPluginDefinition) {
 }
 
 // WithDescription sets the description of a ClusterPluginDefinition
-func WithUIApplication(ui *greenhousev1alpha1.UIApplicationReference) func(*greenhousev1alpha1.ClusterPluginDefinition) {
+func WithUIApplication(ui *greenhousemetav1alpha1.UIApplicationReference) func(*greenhousev1alpha1.ClusterPluginDefinition) {
 	return func(pd *greenhousev1alpha1.ClusterPluginDefinition) {
 		pd.Spec.UIApplication = ui
 	}
 }
 
 // AppendPluginOption sets the plugin option in ClusterPluginDefinition
-func AppendPluginOption(option greenhousev1alpha1.PluginOption) func(*greenhousev1alpha1.ClusterPluginDefinition) {
+func AppendPluginOption(option greenhousemetav1alpha1.PluginOption) func(*greenhousev1alpha1.ClusterPluginDefinition) {
 	return func(pd *greenhousev1alpha1.ClusterPluginDefinition) {
 		pd.Spec.Options = append(pd.Spec.Options, option)
 	}
@@ -186,10 +186,10 @@ func NewClusterPluginDefinition(ctx context.Context, name string, opts ...func(d
 		ObjectMeta: metav1.ObjectMeta{
 			Name: name,
 		},
-		Spec: greenhousev1alpha1.PluginDefinitionSpec{
+		Spec: greenhousemetav1alpha1.PluginDefinitionTemplateSpec{
 			Description: "TestPluginDefinition",
 			Version:     "1.0.0",
-			HelmChart: &greenhousev1alpha1.HelmChartReference{
+			HelmChart: &greenhousemetav1alpha1.HelmChartReference{
 				Name:       "./../../test/fixtures/myChart",
 				Repository: "dummy",
 				Version:    "1.0.0",

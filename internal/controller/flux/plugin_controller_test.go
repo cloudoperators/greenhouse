@@ -67,15 +67,15 @@ var (
 		test.Ctx,
 		"test-plugindefinition",
 		test.AppendPluginOption(
-			greenhousev1alpha1.PluginOption{
+			greenhousemetav1alpha1.PluginOption{
 				Name:    "flatOptionDefault",
-				Type:    greenhousev1alpha1.PluginOptionTypeString,
+				Type:    greenhousemetav1alpha1.PluginOptionTypeString,
 				Default: test.AsAPIExtensionJSON("flatDefault"),
 			}),
 		test.AppendPluginOption(
-			greenhousev1alpha1.PluginOption{
+			greenhousemetav1alpha1.PluginOption{
 				Name:    "nested.optionDefault",
-				Type:    greenhousev1alpha1.PluginOptionTypeString,
+				Type:    greenhousemetav1alpha1.PluginOptionTypeString,
 				Default: test.AsAPIExtensionJSON("nestedDefault"),
 			},
 		),

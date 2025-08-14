@@ -14,15 +14,16 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	greenhouseapis "github.com/cloudoperators/greenhouse/api"
+	greenhousemetav1alpha1 "github.com/cloudoperators/greenhouse/api/meta/v1alpha1"
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
 	"github.com/cloudoperators/greenhouse/internal/test"
 )
 
-var _ = DescribeTable("Validate PluginOption Type and Value are consistent", func(expectedType greenhousev1alpha1.PluginOptionType, defaultValue any, expErr bool) {
+var _ = DescribeTable("Validate PluginOption Type and Value are consistent", func(expectedType greenhousemetav1alpha1.PluginOptionType, defaultValue any, expErr bool) {
 
 	pluginDefinition := &greenhousev1alpha1.ClusterPluginDefinition{
-		Spec: greenhousev1alpha1.PluginDefinitionSpec{
-			Options: []greenhousev1alpha1.PluginOption{
+		Spec: greenhousemetav1alpha1.PluginDefinitionTemplateSpec{
+			Options: []greenhousemetav1alpha1.PluginOption{
 				{
 					Name:    "test",
 					Default: test.MustReturnJSONFor(defaultValue),
@@ -42,38 +43,38 @@ var _ = DescribeTable("Validate PluginOption Type and Value are consistent", fun
 		Expect(err.ErrStatus.Reason).To(Equal(metav1.StatusReasonInvalid), "expected an error with reason %s, got %s", metav1.StatusReasonInvalid, err.ErrStatus)
 	}
 },
-	Entry("PluginOptionTypeBool Consistent", greenhousev1alpha1.PluginOptionTypeBool, true, false),
-	Entry("PluginOptionTypeBool Inconsistent", greenhousev1alpha1.PluginOptionTypeBool, "notabool", true),
-	Entry("PluginOptionTypeString Consistent", greenhousev1alpha1.PluginOptionTypeString, "string", nil),
-	Entry("PluginOptionTypeString Consistent Integer as String", greenhousev1alpha1.PluginOptionTypeString, "1", false),
-	Entry("PluginOptionTypeString Inconsistent", greenhousev1alpha1.PluginOptionTypeString, 1, true),
-	Entry("PluginOptionTypeInt Consistent", greenhousev1alpha1.PluginOptionTypeInt, 1, false),
-	Entry("PluginOptionTypeInt Inconsistent", greenhousev1alpha1.PluginOptionTypeInt, "one", true),
-	Entry("PluginOptionTypeList Consistent", greenhousev1alpha1.PluginOptionTypeList, []string{"one", "two"}, false),
-	Entry("PluginOptionTypeList Inconsistent", greenhousev1alpha1.PluginOptionTypeList, "one", true),
-	Entry("PluginOptionTypeMap Consistent", greenhousev1alpha1.PluginOptionTypeMap, map[string]any{"key": "value"}, false),
-	Entry("PluginOptionTypeMap Inconsistent", greenhousev1alpha1.PluginOptionTypeMap, "one", true),
-	Entry("PluginOptionTypeMap Consistent Nested Map", greenhousev1alpha1.PluginOptionTypeMap, map[string]any{"key": map[string]any{"nestedKey": "value"}}, false),
-	Entry("PluginOptionTypeSecret Consistent Nil", greenhousev1alpha1.PluginOptionTypeSecret, nil, false),
-	Entry("PluginOptionTypeSecret Consistent Empty", greenhousev1alpha1.PluginOptionTypeSecret, "", false),
-	Entry("PluginOptionTypeSecret Defaulted", greenhousev1alpha1.PluginOptionTypeSecret, "secret", true),
-	Entry("PluginOptionTypeSecret Inconsistent", greenhousev1alpha1.PluginOptionTypeSecret, []string{"one", "two"}, true),
+	Entry("PluginOptionTypeBool Consistent", greenhousemetav1alpha1.PluginOptionTypeBool, true, false),
+	Entry("PluginOptionTypeBool Inconsistent", greenhousemetav1alpha1.PluginOptionTypeBool, "notabool", true),
+	Entry("PluginOptionTypeString Consistent", greenhousemetav1alpha1.PluginOptionTypeString, "string", nil),
+	Entry("PluginOptionTypeString Consistent Integer as String", greenhousemetav1alpha1.PluginOptionTypeString, "1", false),
+	Entry("PluginOptionTypeString Inconsistent", greenhousemetav1alpha1.PluginOptionTypeString, 1, true),
+	Entry("PluginOptionTypeInt Consistent", greenhousemetav1alpha1.PluginOptionTypeInt, 1, false),
+	Entry("PluginOptionTypeInt Inconsistent", greenhousemetav1alpha1.PluginOptionTypeInt, "one", true),
+	Entry("PluginOptionTypeList Consistent", greenhousemetav1alpha1.PluginOptionTypeList, []string{"one", "two"}, false),
+	Entry("PluginOptionTypeList Inconsistent", greenhousemetav1alpha1.PluginOptionTypeList, "one", true),
+	Entry("PluginOptionTypeMap Consistent", greenhousemetav1alpha1.PluginOptionTypeMap, map[string]any{"key": "value"}, false),
+	Entry("PluginOptionTypeMap Inconsistent", greenhousemetav1alpha1.PluginOptionTypeMap, "one", true),
+	Entry("PluginOptionTypeMap Consistent Nested Map", greenhousemetav1alpha1.PluginOptionTypeMap, map[string]any{"key": map[string]any{"nestedKey": "value"}}, false),
+	Entry("PluginOptionTypeSecret Consistent Nil", greenhousemetav1alpha1.PluginOptionTypeSecret, nil, false),
+	Entry("PluginOptionTypeSecret Consistent Empty", greenhousemetav1alpha1.PluginOptionTypeSecret, "", false),
+	Entry("PluginOptionTypeSecret Defaulted", greenhousemetav1alpha1.PluginOptionTypeSecret, "secret", true),
+	Entry("PluginOptionTypeSecret Inconsistent", greenhousemetav1alpha1.PluginOptionTypeSecret, []string{"one", "two"}, true),
 )
 
 var _ = Describe("Validate PluginDefinition Creation", func() {
 	It("should deny creation of PluginDefinition with defaulted Secret OptionValue", func() {
 		pluginDefinition := &greenhousev1alpha1.ClusterPluginDefinition{
-			Spec: greenhousev1alpha1.PluginDefinitionSpec{
+			Spec: greenhousemetav1alpha1.PluginDefinitionTemplateSpec{
 				Version: "1.0.0",
-				UIApplication: &greenhousev1alpha1.UIApplicationReference{
+				UIApplication: &greenhousemetav1alpha1.UIApplicationReference{
 					Name:    "test-ui",
 					Version: "1.0.0",
 				},
-				Options: []greenhousev1alpha1.PluginOption{
+				Options: []greenhousemetav1alpha1.PluginOption{
 					{
 						Name:    "test-secret",
 						Default: test.MustReturnJSONFor("some-secret"),
-						Type:    greenhousev1alpha1.PluginOptionTypeSecret,
+						Type:    greenhousemetav1alpha1.PluginOptionTypeSecret,
 					},
 				},
 			},
@@ -88,11 +89,11 @@ var _ = Describe("Validate PluginDefinition Creation", func() {
 
 	It("should deny creation of PluginDefinition without spec.Version", func() {
 		pluginDefinition := &greenhousev1alpha1.ClusterPluginDefinition{
-			Spec: greenhousev1alpha1.PluginDefinitionSpec{
-				UIApplication: &greenhousev1alpha1.UIApplicationReference{
+			Spec: greenhousemetav1alpha1.PluginDefinitionTemplateSpec{
+				UIApplication: &greenhousemetav1alpha1.UIApplicationReference{
 					Name: "test-no-version",
 				},
-				Options: []greenhousev1alpha1.PluginOption{},
+				Options: []greenhousemetav1alpha1.PluginOption{},
 			},
 		}
 
@@ -108,17 +109,17 @@ var _ = Describe("Validate PluginDefinition Creation", func() {
 var _ = Describe("Validate PluginDefinition Update", func() {
 	It("should deny updating PluginDefinition with defaulted Secret OptionValue", func() {
 		pluginDefinition := &greenhousev1alpha1.ClusterPluginDefinition{
-			Spec: greenhousev1alpha1.PluginDefinitionSpec{
+			Spec: greenhousemetav1alpha1.PluginDefinitionTemplateSpec{
 				Version: "1.0.0",
-				UIApplication: &greenhousev1alpha1.UIApplicationReference{
+				UIApplication: &greenhousemetav1alpha1.UIApplicationReference{
 					Name:    "test-ui",
 					Version: "1.0.0",
 				},
-				Options: []greenhousev1alpha1.PluginOption{
+				Options: []greenhousemetav1alpha1.PluginOption{
 					{
 						Name:    "test-secret",
 						Default: test.MustReturnJSONFor("some-secret"),
-						Type:    greenhousev1alpha1.PluginOptionTypeSecret,
+						Type:    greenhousemetav1alpha1.PluginOptionTypeSecret,
 					},
 				},
 			},
@@ -133,11 +134,11 @@ var _ = Describe("Validate PluginDefinition Update", func() {
 
 	It("should deny updating PluginDefinition without spec.Version", func() {
 		pluginDefinition := &greenhousev1alpha1.ClusterPluginDefinition{
-			Spec: greenhousev1alpha1.PluginDefinitionSpec{
-				UIApplication: &greenhousev1alpha1.UIApplicationReference{
+			Spec: greenhousemetav1alpha1.PluginDefinitionTemplateSpec{
+				UIApplication: &greenhousemetav1alpha1.UIApplicationReference{
 					Name: "test-no-version",
 				},
-				Options: []greenhousev1alpha1.PluginOption{},
+				Options: []greenhousemetav1alpha1.PluginOption{},
 			},
 		}
 

@@ -55,8 +55,8 @@ var (
 			Namespace: namespace,
 			Name:      "test-plugindefinition",
 		},
-		Spec: greenhousev1alpha1.PluginDefinitionSpec{
-			Options: []greenhousev1alpha1.PluginOption{
+		Spec: greenhousemetav1alpha1.PluginDefinitionTemplateSpec{
+			Options: []greenhousemetav1alpha1.PluginOption{
 				{
 					Name:        "key1",
 					Description: "key1 description",
@@ -73,14 +73,14 @@ var (
 			Namespace: namespace,
 			Name:      "test-plugindefinition",
 		},
-		Spec: greenhousev1alpha1.PluginDefinitionSpec{
+		Spec: greenhousemetav1alpha1.PluginDefinitionTemplateSpec{
 			Version: "1.0.0",
-			HelmChart: &greenhousev1alpha1.HelmChartReference{
+			HelmChart: &greenhousemetav1alpha1.HelmChartReference{
 				Name:       "./../test/fixtures/myChart",
 				Repository: "dummy",
 				Version:    "1.0.0",
 			},
-			Options: []greenhousev1alpha1.PluginOption{
+			Options: []greenhousemetav1alpha1.PluginOption{
 				{
 					Name:        "key1",
 					Description: "key1 description",
@@ -97,13 +97,13 @@ var (
 			Namespace: namespace,
 			Name:      "test-plugindefinition",
 		},
-		Spec: greenhousev1alpha1.PluginDefinitionSpec{
-			HelmChart: &greenhousev1alpha1.HelmChartReference{
+		Spec: greenhousemetav1alpha1.PluginDefinitionTemplateSpec{
+			HelmChart: &greenhousemetav1alpha1.HelmChartReference{
 				Name:       "dummy",
 				Repository: "oci://greenhouse/helm-charts",
 				Version:    "1.0.0",
 			},
-			Options: []greenhousev1alpha1.PluginOption{
+			Options: []greenhousemetav1alpha1.PluginOption{
 				{
 					Name:        "key1",
 					Description: "key1 description",
@@ -120,14 +120,14 @@ var (
 			Namespace: namespace,
 			Name:      "test-plugindefinition",
 		},
-		Spec: greenhousev1alpha1.PluginDefinitionSpec{
+		Spec: greenhousemetav1alpha1.PluginDefinitionTemplateSpec{
 			Version: "1.0.0",
-			HelmChart: &greenhousev1alpha1.HelmChartReference{
+			HelmChart: &greenhousemetav1alpha1.HelmChartReference{
 				Name:       "./../test/fixtures/myChartWithCRDs",
 				Repository: "dummy",
 				Version:    "1.0.0",
 			},
-			Options: []greenhousev1alpha1.PluginOption{
+			Options: []greenhousemetav1alpha1.PluginOption{
 				{
 					Name:        "key1",
 					Description: "key1 description",

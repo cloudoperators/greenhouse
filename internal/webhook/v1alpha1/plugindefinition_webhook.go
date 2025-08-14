@@ -15,6 +15,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
 	greenhouseapis "github.com/cloudoperators/greenhouse/api"
+	greenhousemetav1alpha1 "github.com/cloudoperators/greenhouse/api/meta/v1alpha1"
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
 	"github.com/cloudoperators/greenhouse/internal/webhook"
 )
@@ -72,7 +73,7 @@ func ValidateCreateClusterPluginDefinition(_ context.Context, _ client.Client, o
 	return nil, validateCreate(pluginDefinition.Spec, pluginDefinition.GroupVersionKind(), pluginDefinition.GetName())
 }
 
-func validateCreate(pluginDefinitionSpec greenhousev1alpha1.PluginDefinitionSpec, gvk schema.GroupVersionKind, name string) error {
+func validateCreate(pluginDefinitionSpec greenhousemetav1alpha1.PluginDefinitionTemplateSpec, gvk schema.GroupVersionKind, name string) error {
 	if err := validatePluginDefinitionMustSpecifyHelmChartOrUIApplication(pluginDefinitionSpec, gvk, name); err != nil {
 		return err
 	}
@@ -98,7 +99,7 @@ func ValidateUpdateClusterPluginDefinition(_ context.Context, _ client.Client, _
 	return nil, validateUpdate(pluginDefinition.Spec, pluginDefinition.GroupVersionKind(), pluginDefinition.GetName())
 }
 
-func validateUpdate(pluginDefinitionSpec greenhousev1alpha1.PluginDefinitionSpec, gvk schema.GroupVersionKind, name string) error {
+func validateUpdate(pluginDefinitionSpec greenhousemetav1alpha1.PluginDefinitionTemplateSpec, gvk schema.GroupVersionKind, name string) error {
 	if err := validatePluginDefinitionMustSpecifyHelmChartOrUIApplication(pluginDefinitionSpec, gvk, name); err != nil {
 		return err
 	}
@@ -139,14 +140,14 @@ func validateDelete(ctx context.Context, c client.Client, name string) (admissio
 	return nil, nil
 }
 
-func validatePluginDefinitionMustSpecifyVersion(pluginDefinitionSpec greenhousev1alpha1.PluginDefinitionSpec) error {
+func validatePluginDefinitionMustSpecifyVersion(pluginDefinitionSpec greenhousemetav1alpha1.PluginDefinitionTemplateSpec) error {
 	if pluginDefinitionSpec.Version == "" {
 		return field.Required(field.NewPath("spec", "version"), "PluginDefinition without spec.version is invalid.")
 	}
 	return nil
 }
 
-func validatePluginDefinitionMustSpecifyHelmChartOrUIApplication(pluginDefinitionSpec greenhousev1alpha1.PluginDefinitionSpec, gvk schema.GroupVersionKind, name string) error {
+func validatePluginDefinitionMustSpecifyHelmChartOrUIApplication(pluginDefinitionSpec greenhousemetav1alpha1.PluginDefinitionTemplateSpec, gvk schema.GroupVersionKind, name string) error {
 	if pluginDefinitionSpec.HelmChart == nil && pluginDefinitionSpec.UIApplication == nil {
 		return apierrors.NewInvalid(gvk.GroupKind(), name, field.ErrorList{
 			field.Required(field.NewPath("spec").Child("helmChart", "uiApplication"),
@@ -157,7 +158,7 @@ func validatePluginDefinitionMustSpecifyHelmChartOrUIApplication(pluginDefinitio
 }
 
 // validatePluginDefinitionOptionValueAndType validates that the type and value of each PluginOption matches.
-func validatePluginDefinitionOptionValueAndType(pluginDefinitionSpec greenhousev1alpha1.PluginDefinitionSpec, gvk schema.GroupVersionKind, name string) error {
+func validatePluginDefinitionOptionValueAndType(pluginDefinitionSpec greenhousemetav1alpha1.PluginDefinitionTemplateSpec, gvk schema.GroupVersionKind, name string) error {
 	for _, option := range pluginDefinitionSpec.Options {
 		if err := option.IsValid(); err != nil {
 			return apierrors.NewInvalid(gvk.GroupKind(), name, field.ErrorList{
