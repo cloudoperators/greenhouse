@@ -279,14 +279,14 @@ var _ = Describe("TeamController", Ordered, func() {
 			organization.Spec.Authentication = &greenhousev1alpha1.Authentication{
 				SCIMConfig: &greenhousev1alpha1.SCIMConfig{
 					BaseURL: usersServer.URL + "/scim",
-					BasicAuthUser: &greenhousev1alpha1.ValueFromSource{
-						Secret: &greenhousev1alpha1.SecretKeyReference{
+					BasicAuthUser: &greenhousemetav1alpha1.ValueFromSource{
+						Secret: &greenhousemetav1alpha1.SecretKeyReference{
 							Name: "test-secret",
 							Key:  "basicAuthUser",
 						},
 					},
-					BasicAuthPw: &greenhousev1alpha1.ValueFromSource{
-						Secret: &greenhousev1alpha1.SecretKeyReference{
+					BasicAuthPw: &greenhousemetav1alpha1.ValueFromSource{
+						Secret: &greenhousemetav1alpha1.SecretKeyReference{
 							Name: "test-secret",
 							Key:  "basicAuthPw",
 						},
@@ -317,14 +317,14 @@ func createTestOrgWithSecret(namespace string) {
 		o.Spec.Authentication = &greenhousev1alpha1.Authentication{
 			SCIMConfig: &greenhousev1alpha1.SCIMConfig{
 				BaseURL: usersServer.URL + "/scim",
-				BasicAuthUser: &greenhousev1alpha1.ValueFromSource{
-					Secret: &greenhousev1alpha1.SecretKeyReference{
+				BasicAuthUser: &greenhousemetav1alpha1.ValueFromSource{
+					Secret: &greenhousemetav1alpha1.SecretKeyReference{
 						Name: "test-secret",
 						Key:  "basicAuthUser",
 					},
 				},
-				BasicAuthPw: &greenhousev1alpha1.ValueFromSource{
-					Secret: &greenhousev1alpha1.SecretKeyReference{
+				BasicAuthPw: &greenhousemetav1alpha1.ValueFromSource{
+					Secret: &greenhousemetav1alpha1.SecretKeyReference{
 						Name: "test-secret",
 						Key:  "basicAuthPw",
 					},

@@ -15,6 +15,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
 
 	greenhouseapis "github.com/cloudoperators/greenhouse/api"
+	greenhousemetav1alpha1 "github.com/cloudoperators/greenhouse/api/meta/v1alpha1"
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
 	"github.com/cloudoperators/greenhouse/internal/helm"
 	"github.com/cloudoperators/greenhouse/internal/test"
@@ -54,8 +55,8 @@ var (
 		test.WithPluginLabel(greenhouseapis.LabelKeyOwnedBy, testTeam.Name),
 		test.WithPluginOptionValue("flatOption", test.AsAPIExtensionJSON("flatValue"), nil),
 		test.WithPluginOptionValue("nested.option", test.AsAPIExtensionJSON("nestedValue"), nil),
-		test.WithPluginOptionValue("nested.secretOption", nil, &greenhousev1alpha1.ValueFromSource{
-			Secret: &greenhousev1alpha1.SecretKeyReference{
+		test.WithPluginOptionValue("nested.secretOption", nil, &greenhousemetav1alpha1.ValueFromSource{
+			Secret: &greenhousemetav1alpha1.SecretKeyReference{
 				Name: "test-cluster",
 				Key:  greenhouseapis.GreenHouseKubeConfigKey,
 			},

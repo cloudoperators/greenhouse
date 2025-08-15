@@ -9,7 +9,9 @@ import (
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
+	greenhousemetav1alpha1 "github.com/cloudoperators/greenhouse/api/meta/v1alpha1"
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
+	greenhousev1alpha2 "github.com/cloudoperators/greenhouse/api/v1alpha2"
 )
 
 var _ = Describe("validateCompatibility", func() {
@@ -22,10 +24,10 @@ var _ = Describe("validateCompatibility", func() {
 					TypeMeta:   metav1.TypeMeta{Kind: ClusterPluginDefinitionKind},
 					ObjectMeta: metav1.ObjectMeta{Name: "nginx"},
 				},
-				pluginPreset: &greenhousev1alpha1.PluginPreset{
+				pluginPreset: &greenhousev1alpha2.PluginPreset{
 					TypeMeta: metav1.TypeMeta{Kind: PluginPresetKind},
-					Spec: greenhousev1alpha1.PluginPresetSpec{
-						Plugin: greenhousev1alpha1.PluginSpec{
+					Spec: greenhousev1alpha2.PluginPresetSpec{
+						Plugin: greenhousev1alpha2.PluginTemplateSpec{
 							PluginDefinition: "apache",
 						},
 					},
@@ -50,10 +52,10 @@ var _ = Describe("validateCompatibility", func() {
 						HelmChart: nil,
 					},
 				},
-				pluginPreset: &greenhousev1alpha1.PluginPreset{
+				pluginPreset: &greenhousev1alpha2.PluginPreset{
 					TypeMeta: metav1.TypeMeta{Kind: PluginPresetKind},
-					Spec: greenhousev1alpha1.PluginPresetSpec{
-						Plugin: greenhousev1alpha1.PluginSpec{
+					Spec: greenhousev1alpha2.PluginPresetSpec{
+						Plugin: greenhousev1alpha2.PluginTemplateSpec{
 							PluginDefinition: "nginx",
 						},
 					},
@@ -83,10 +85,10 @@ var _ = Describe("validateCompatibility", func() {
 						},
 					},
 				},
-				pluginPreset: &greenhousev1alpha1.PluginPreset{
+				pluginPreset: &greenhousev1alpha2.PluginPreset{
 					TypeMeta: metav1.TypeMeta{Kind: PluginPresetKind},
-					Spec: greenhousev1alpha1.PluginPresetSpec{
-						Plugin: greenhousev1alpha1.PluginSpec{
+					Spec: greenhousev1alpha2.PluginPresetSpec{
+						Plugin: greenhousev1alpha2.PluginTemplateSpec{
 							PluginDefinition: "nginx",
 						},
 					},
@@ -105,7 +107,7 @@ var _ = Describe("prepareValues", func() {
 	var (
 		opts         *PluginTemplatePresetOptions
 		pluginDef    *greenhousev1alpha1.ClusterPluginDefinition
-		pluginPreset *greenhousev1alpha1.PluginPreset
+		pluginPreset *greenhousev1alpha2.PluginPreset
 	)
 
 	BeforeEach(func() {
@@ -126,14 +128,14 @@ var _ = Describe("prepareValues", func() {
 			},
 		}
 
-		pluginPreset = &greenhousev1alpha1.PluginPreset{
+		pluginPreset = &greenhousev1alpha2.PluginPreset{
 			TypeMeta: metav1.TypeMeta{Kind: PluginPresetKind},
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "nginx-preset",
 				Namespace: "test-org",
 			},
-			Spec: greenhousev1alpha1.PluginPresetSpec{
-				Plugin: greenhousev1alpha1.PluginSpec{
+			Spec: greenhousev1alpha2.PluginPresetSpec{
+				Plugin: greenhousev1alpha2.PluginTemplateSpec{
 					PluginDefinition: "nginx",
 				},
 			},
@@ -148,7 +150,7 @@ var _ = Describe("prepareValues", func() {
 			err := opts.prepareValues()
 			Expect(err).NotTo(HaveOccurred())
 
-			var replicasValue *greenhousev1alpha1.PluginOptionValue
+			var replicasValue *greenhousemetav1alpha1.PluginOptionValue
 			for _, v := range opts.values {
 				if v.Name == "replicas" {
 					replicasValue = &v
@@ -164,7 +166,7 @@ var _ = Describe("prepareValues", func() {
 			err := opts.prepareValues()
 			Expect(err).NotTo(HaveOccurred())
 
-			var clusterNameValue *greenhousev1alpha1.PluginOptionValue
+			var clusterNameValue *greenhousemetav1alpha1.PluginOptionValue
 			for _, v := range opts.values {
 				if v.Name == "global.greenhouse.clusterName" {
 					clusterNameValue = &v
@@ -179,7 +181,7 @@ var _ = Describe("prepareValues", func() {
 
 	Context("with PluginPreset overrides", func() {
 		BeforeEach(func() {
-			pluginPreset.Spec.Plugin.OptionValues = []greenhousev1alpha1.PluginOptionValue{
+			pluginPreset.Spec.Plugin.OptionValues = []greenhousemetav1alpha1.PluginOptionValue{
 				{
 					Name:  "replicas",
 					Value: &apiextensionsv1.JSON{Raw: []byte("3")},
@@ -191,7 +193,7 @@ var _ = Describe("prepareValues", func() {
 			err := opts.prepareValues()
 			Expect(err).NotTo(HaveOccurred())
 
-			var replicasValue *greenhousev1alpha1.PluginOptionValue
+			var replicasValue *greenhousemetav1alpha1.PluginOptionValue
 			for _, v := range opts.values {
 				if v.Name == "replicas" {
 					replicasValue = &v
@@ -206,10 +208,10 @@ var _ = Describe("prepareValues", func() {
 
 	Context("with cluster-specific overrides", func() {
 		BeforeEach(func() {
-			pluginPreset.Spec.ClusterOptionOverrides = []greenhousev1alpha1.ClusterOptionOverride{
+			pluginPreset.Spec.ClusterOptionOverrides = []greenhousev1alpha2.ClusterOptionOverride{
 				{
 					ClusterName: "test-cluster",
-					Overrides: []greenhousev1alpha1.PluginOptionValue{
+					Overrides: []greenhousemetav1alpha1.PluginOptionValue{
 						{
 							Name:  "replicas",
 							Value: &apiextensionsv1.JSON{Raw: []byte("5")},
@@ -223,7 +225,7 @@ var _ = Describe("prepareValues", func() {
 			err := opts.prepareValues()
 			Expect(err).NotTo(HaveOccurred())
 
-			var replicasValue *greenhousev1alpha1.PluginOptionValue
+			var replicasValue *greenhousemetav1alpha1.PluginOptionValue
 			for _, v := range opts.values {
 				if v.Name == "replicas" {
 					replicasValue = &v
@@ -246,11 +248,11 @@ var _ = Describe("processSecretsToLiterals", func() {
 
 	Context("with secret references", func() {
 		It("should convert to literal format", func() {
-			input := []greenhousev1alpha1.PluginOptionValue{
+			input := []greenhousemetav1alpha1.PluginOptionValue{
 				{
 					Name: "password",
-					ValueFrom: &greenhousev1alpha1.ValueFromSource{
-						Secret: &greenhousev1alpha1.SecretKeyReference{
+					ValueFrom: &greenhousemetav1alpha1.ValueFromSource{
+						Secret: &greenhousemetav1alpha1.SecretKeyReference{
 							Name: "my-secret",
 							Key:  "password",
 						},

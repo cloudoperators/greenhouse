@@ -47,8 +47,8 @@ var (
 		test.WithCluster("test-cluster"),
 		test.WithPluginDefinition("test-plugindefinition"),
 		test.WithReleaseName("release-with-secretref"),
-		test.WithPluginOptionValue("secretValue", nil, &greenhousev1alpha1.ValueFromSource{
-			Secret: &greenhousev1alpha1.SecretKeyReference{
+		test.WithPluginOptionValue("secretValue", nil, &greenhousemetav1alpha1.ValueFromSource{
+			Secret: &greenhousemetav1alpha1.SecretKeyReference{
 				Name: "test-secret",
 				Key:  "test-key",
 			},
@@ -207,7 +207,7 @@ var _ = Describe("HelmController reconciliation", Ordered, func() {
 		By("updating the plugin")
 		_, err = clientutil.CreateOrPatch(test.Ctx, test.K8sClient, testPlugin, func() error {
 			// this value enables the template of another pod
-			testPlugin.Spec.OptionValues = append(testPlugin.Spec.OptionValues, greenhousev1alpha1.PluginOptionValue{Name: "enabled", Value: test.MustReturnJSONFor("true")})
+			testPlugin.Spec.OptionValues = append(testPlugin.Spec.OptionValues, greenhousemetav1alpha1.PluginOptionValue{Name: "enabled", Value: test.MustReturnJSONFor("true")})
 			return nil
 		})
 		Expect(err).ShouldNot(HaveOccurred(), "there should be no error updating the plugin")
@@ -439,6 +439,7 @@ var _ = Describe("HelmController reconciliation", Ordered, func() {
 				err = test.K8sClient.Get(test.Ctx, types.NamespacedName{Name: testPluginWithExposedService1.Name, Namespace: testPluginWithExposedService1.Namespace}, testPluginWithExposedService1)
 				g.Expect(err).ToNot(HaveOccurred(), "there should be no error getting plugin")
 				statusUpToDateCondition := testPluginWithExposedService1.Status.GetConditionByType(greenhousev1alpha1.StatusUpToDateCondition)
+				g.Expect(statusUpToDateCondition).ToNot(BeNil(), "StatusUpToDateCondition should be set")
 				g.Expect(statusUpToDateCondition.Status).To(Equal(metav1.ConditionTrue), "plugin status up to date condition should be set to true")
 				g.Expect(testPluginWithExposedService1.Status.ExposedServices).ToNot(BeEmpty(), "exposed services in plugin status should not be empty")
 				g.Expect(testPluginWithExposedService1.Status.ExposedServices).To(HaveLen(1), "there should be only one exposed service in plugin status")
