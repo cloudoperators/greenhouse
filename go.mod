@@ -21,7 +21,7 @@ require (
 	github.com/cenkalti/backoff/v5 v5.0.2
 	github.com/dexidp/dex v0.0.0-20250522090151-6e602d3315ea
 	github.com/fluxcd/helm-controller/api v1.2.0
-	github.com/fluxcd/pkg/apis/meta v1.10.0
+	github.com/fluxcd/pkg/apis/meta v1.18.0
 	github.com/fluxcd/source-controller/api v1.5.0
 	github.com/go-jose/go-jose/v4 v4.1.1
 	github.com/jeremywohl/flatten/v2 v2.0.0-20211013061545-07e4a09fb8e4
@@ -215,5 +215,5 @@ require (
 	sigs.k8s.io/json v0.0.0-20241010143419-9aa6b5e7a4b3 // indirect
 	sigs.k8s.io/kustomize/api v0.19.0 // indirect
 	sigs.k8s.io/kustomize/kyaml v0.19.0 // indirect
-	sigs.k8s.io/structured-merge-diff/v4 v4.6.0 // indirect
+	sigs.k8s.io/structured-merge-diff/v4 v4.7.0 // indirect
 )
