@@ -1,5 +1,45 @@
 # SPDX-FileCopyrightText: 2025 SAP SE or an SAP affiliate company and Greenhouse contributors
 # SPDX-License-Identifier: Apache-2.0
 
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
 resources:
-  - https://github.com/fluxcd/flux2//manifests/crds?ref=v2.6.1
+  - https://github.com/fluxcd/flux2/manifests/install?ref=v2.6.1
+
+patches:
+  # do not apply image-reflector-controller and image-automation-controller
+  - target:
+      kind: Deployment
+      name: (image-reflector-controller|image-automation-controller)
+    patch: |
+      apiVersion: apps/v1
+      kind: Deployment
+      metadata:
+        name: all
+      $patch: delete
+  # increase liveness and readiness probes for flux controllers
+  - target:
+      kind: Deployment
+      labelSelector:
+        app.kubernetes.io/part-of=flux
+    patch: |
+      apiVersion: apps/v1
+      kind: Deployment
+      metadata:
+        name: all
+      spec:
+        template:
+          spec:
+            containers:
+              - name: manager
+                livenessProbe:
+                  initialDelaySeconds: 30
+                  periodSeconds: 20
+                  timeoutSeconds: 5
+                  failureThreshold: 3
+                readinessProbe:
+                  initialDelaySeconds: 15
+                  periodSeconds: 20
+                  timeoutSeconds: 5
+                  failureThreshold: 3

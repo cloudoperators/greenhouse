@@ -49,8 +49,7 @@ help: ## Display this help.
 ##@ Development
 
 .PHONY: generate-all
-generate-all: generate manifests generate-documentation generate-types ## Generate code, manifests and documentation.
-	docker run --rm -v $(shell pwd):/github/workspace $(IMG_LICENSE_EYE) -c .github/licenserc.yaml header fix
+generate-all: generate manifests generate-documentation generate-types license ## Generate code, manifests and documentation.
 
 .PHONY: install
 install: kustomize
@@ -113,7 +112,8 @@ test: manifests generate envtest flux-crds ## Run tests.
 .PHONY: flux-crds
 flux-crds: kustomize
 	mkdir -p bin/flux
-	$(KUSTOMIZE) build config/samples/flux > bin/flux/crds.yaml
+	$(KUSTOMIZE) build config/samples/flux/crds > bin/flux/crds.yaml
+
 .PHONY: fmt
 fmt: goimports
 	GOBIN=$(LOCALBIN) go fmt ./...
@@ -350,4 +350,8 @@ cert-manager: kustomize
 
 .PHONY: flux
 flux: kustomize
-	-$(KUSTOMIZE) build config/flux | kubectl apply -f -
+	-$(KUSTOMIZE) build config/samples/flux | kubectl apply -f -
+
+.PHONY: license
+license:
+	docker run --rm -v $(shell pwd):/github/workspace $(IMG_LICENSE_EYE) -c .github/licenserc.yaml header fix

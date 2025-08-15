@@ -6,6 +6,14 @@ replace (
 	// DEX import matches version v2.43.1.
 	github.com/dexidp/dex => github.com/dexidp/dex v0.0.0-20250522090151-6e602d3315ea
 	github.com/dexidp/dex/api/v2 => github.com/dexidp/dex/api/v2 v2.3.0
+
+	// Keep Flux dependencies in sync with v2.6.1.
+	github.com/fluxcd/helm-controller/api => github.com/fluxcd/helm-controller/api v1.3.0
+	github.com/fluxcd/kustomize-controller/api => github.com/fluxcd/kustomize-controller/api v1.6.0
+	github.com/fluxcd/pkg/apis/kustomize => github.com/fluxcd/pkg/apis/kustomize v1.10.0
+	github.com/fluxcd/pkg/apis/meta => github.com/fluxcd/pkg/apis/meta v1.12.0
+	github.com/fluxcd/source-controller/api => github.com/fluxcd/source-controller/api v1.6.0
+
 	// Keep k8s dependencies in sync.
 	k8s.io/api => k8s.io/api v0.33.2
 	k8s.io/apiextensions-apiserver => k8s.io/apiextensions-apiserver v0.33.2
@@ -20,9 +28,11 @@ replace (
 require (
 	github.com/cenkalti/backoff/v5 v5.0.2
 	github.com/dexidp/dex v0.0.0-20250522090151-6e602d3315ea
-	github.com/fluxcd/helm-controller/api v1.2.0
-	github.com/fluxcd/pkg/apis/meta v1.10.0
-	github.com/fluxcd/source-controller/api v1.5.0
+	github.com/fluxcd/helm-controller/api v1.3.0
+	github.com/fluxcd/kustomize-controller/api v1.6.0
+	github.com/fluxcd/pkg/apis/kustomize v1.10.0
+	github.com/fluxcd/pkg/apis/meta v1.12.0
+	github.com/fluxcd/source-controller/api v1.6.0
 	github.com/go-jose/go-jose/v4 v4.1.1
 	github.com/jeremywohl/flatten/v2 v2.0.0-20211013061545-07e4a09fb8e4
 	github.com/oklog/run v1.2.0
@@ -62,10 +72,9 @@ require (
 	github.com/containerd/platforms v0.2.1 // indirect
 	github.com/cpuguy83/go-md2man/v2 v2.0.6 // indirect
 	github.com/creack/pty v1.1.23 // indirect
-	github.com/fluxcd/pkg/apis/acl v0.6.0 // indirect
-	github.com/fluxcd/pkg/apis/kustomize v1.9.0 // indirect
+	github.com/fluxcd/pkg/apis/acl v0.7.0 // indirect
 	github.com/fsnotify/fsnotify v1.9.0 // indirect
-	github.com/fxamacker/cbor/v2 v2.7.0 // indirect
+	github.com/fxamacker/cbor/v2 v2.8.0 // indirect
 	github.com/ghodss/yaml v1.0.0 // indirect
 	github.com/go-sql-driver/mysql v1.9.2 // indirect
 	github.com/go-task/slim-sprig/v3 v3.0.0 // indirect
@@ -212,8 +221,8 @@ require (
 	k8s.io/component-base v0.33.3 // indirect
 	k8s.io/klog/v2 v2.130.1
 	k8s.io/kube-openapi v0.0.0-20250318190949-c8a335a9a2ff // indirect
-	sigs.k8s.io/json v0.0.0-20241010143419-9aa6b5e7a4b3 // indirect
+	sigs.k8s.io/json v0.0.0-20241014173422-cfa47c3a1cc8 // indirect
 	sigs.k8s.io/kustomize/api v0.19.0 // indirect
 	sigs.k8s.io/kustomize/kyaml v0.19.0 // indirect
-	sigs.k8s.io/structured-merge-diff/v4 v4.6.0 // indirect
+	sigs.k8s.io/structured-merge-diff/v4 v4.7.0 // indirect
 )

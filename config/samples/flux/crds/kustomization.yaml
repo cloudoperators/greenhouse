@@ -1,0 +1,5 @@
+# SPDX-FileCopyrightText: 2025 SAP SE or an SAP affiliate company and Greenhouse contributors
+# SPDX-License-Identifier: Apache-2.0
+
+resources:
+  - https://github.com/fluxcd/flux2//manifests/crds?ref=v2.6.1
