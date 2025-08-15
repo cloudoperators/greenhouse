@@ -9,7 +9,7 @@ spec:
   timeout: 60s
   url: https://github.com/cloudoperators/greenhouse
   ref:
-    tag: "v0.4.0-rc.1"
+    tag: "v0.5.0-rc.0"
 ---
 apiVersion: kustomize.toolkit.fluxcd.io/v1
 kind: Kustomization
