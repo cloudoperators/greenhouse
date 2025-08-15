@@ -14,6 +14,7 @@ import (
 
 const (
 	HelmRepositoryDefaultNamespace = "greenhouse" // TODO: make this configurable via args or env var
+	localHelmRepositoryName        = "registry-local"
 )
 
 func GetSourceRepositoryType(repositoryURL string) string {
@@ -35,6 +36,10 @@ func ChartURLToName(repositoryURL string) (repositoryName string) {
 			repositoryName = strings.TrimPrefix(repositoryURL, prefix)
 			break
 		}
+	}
+
+	if strings.Contains(repositoryName, "svc.cluster.local") {
+		return localHelmRepositoryName
 	}
 
 	repositoryName = strings.ReplaceAll(repositoryName, ".", "-")
