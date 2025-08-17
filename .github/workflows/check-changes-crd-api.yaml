@@ -35,6 +35,7 @@ jobs:
         with:
           repository: ${{ github.event.pull_request.head.repo.full_name }}
           ref: ${{ github.event.pull_request.head.ref }}
+          token: ${{ steps.github-app-token.outputs.token }}
 
       - name: Generate manifests, documentation and types
         run: |
@@ -43,8 +44,6 @@ jobs:
 
       - name: Apply Changes
         uses: EndBug/add-and-commit@a94899bca583c204427a224a7af87c02f9b325d5 # v9
-        env:
-          GITHUB_TOKEN: ${{ steps.github-app-token.outputs.token }}
         with:
           author_name: cloud-operator-bot[bot]
           author_email: 224791424+cloud-operator-bot[bot]@users.noreply.github.com

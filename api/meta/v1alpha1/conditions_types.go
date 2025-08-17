@@ -27,7 +27,7 @@ type Condition struct {
 	// LastTransitionTime is the last time the condition transitioned from one status to another.
 	LastTransitionTime metav1.Time `json:"lastTransitionTime"`
 
-	// Message is an optional human readable message indicating details about the last transition.
+	// Message is an optional human-readable message indicating details about the last transition.
 	Message string `json:"message,omitempty"`
 }
 

@@ -215,7 +215,7 @@ func (o *PluginTemplatePresetOptions) runHelmTemplate(valuesFile string) error {
 			"template",
 			o.pluginPreset.Name,
 			fmt.Sprintf("%s/%s", chartRef.Repository, chartRef.Name),
-			"--namespace", o.pluginPreset.Namespace,
+			"--namespace", o.pluginPreset.Spec.Plugin.ReleaseNamespace,
 			"--values", valuesFile,
 			"--version", chartRef.Version,
 		}
@@ -226,7 +226,7 @@ func (o *PluginTemplatePresetOptions) runHelmTemplate(valuesFile string) error {
 			chartRef.Name,
 			"--repo", chartRef.Repository,
 			"--version", chartRef.Version,
-			"--namespace", o.pluginPreset.Namespace,
+			"--namespace", o.pluginPreset.Spec.Plugin.ReleaseNamespace,
 			"--values", valuesFile,
 		}
 	}
