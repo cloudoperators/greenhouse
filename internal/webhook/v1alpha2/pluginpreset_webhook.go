@@ -51,7 +51,9 @@ func DefaultPluginPreset(ctx context.Context, c client.Client, o runtime.Object)
 	}
 
 	// Migrate the deprecated PluginDefinition reference
+	//nolint:staticcheck
 	if pluginPreset.Spec.Plugin.PluginDefinitionRef.Name == "" && pluginPreset.Spec.Plugin.PluginDefinition != "" {
+		//nolint:staticcheck
 		pluginPreset.Spec.Plugin.PluginDefinitionRef.Name = pluginPreset.Spec.Plugin.PluginDefinition
 	}
 
@@ -163,13 +165,17 @@ func ValidateCreatePluginPreset(ctx context.Context, c client.Client, o runtime.
 
 func validatePluginDefinitionReference(pp *greenhousev1alpha2.PluginPreset) *field.Error {
 	// Require at least one
+	//nolint:staticcheck
 	if pp.Spec.Plugin.PluginDefinitionRef.Name == "" && pp.Spec.Plugin.PluginDefinition == "" {
 		return field.Required(field.NewPath("spec", "plugin", "pluginDefinitionRef", "name"), "either pluginDefinitionRef or pluginDefinition must be set")
 	}
 
 	// If both set, they must match
+	//nolint:staticcheck
 	if pp.Spec.Plugin.PluginDefinitionRef.Name != "" && pp.Spec.Plugin.PluginDefinition != "" &&
+		//nolint:staticcheck
 		pp.Spec.Plugin.PluginDefinitionRef.Name != pp.Spec.Plugin.PluginDefinition {
+		//nolint:staticcheck
 		return field.Invalid(field.NewPath("spec", "plugin", "pluginDefinition"), pp.Spec.Plugin.PluginDefinition, "pluginDefinitionRef.name does not match deprecated pluginDefinition")
 	}
 

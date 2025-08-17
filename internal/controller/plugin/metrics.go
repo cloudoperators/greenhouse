@@ -9,6 +9,7 @@ import (
 
 	greenhouseapis "github.com/cloudoperators/greenhouse/api"
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
+	"github.com/cloudoperators/greenhouse/internal/util"
 )
 
 var (
@@ -41,7 +42,7 @@ func init() {
 
 func UpdatePluginReadyMetric(plugin *greenhousev1alpha1.Plugin, ready bool) {
 	pluginReadyLabels := prometheus.Labels{
-		"pluginDefinition": plugin.Spec.PluginDefinition,
+		"pluginDefinition": util.EffectivePluginDefinitionNameFromPlugin(plugin),
 		"clusterName":      plugin.Spec.ClusterName,
 		"plugin":           plugin.Name,
 		"namespace":        plugin.Namespace,
@@ -70,7 +71,7 @@ func UpdatePluginWorkloadMetrics(plugin *greenhousev1alpha1.Plugin, status float
 	workloadStatusGauge.WithLabelValues(
 		plugin.GetNamespace(),
 		plugin.Name,
-		plugin.Spec.PluginDefinition,
+		util.EffectivePluginDefinitionNameFromPlugin(plugin),
 		plugin.Spec.ClusterName,
 		plugin.GetLabels()[greenhouseapis.LabelKeyOwnedBy],
 	).Set(status)

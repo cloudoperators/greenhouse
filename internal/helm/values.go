@@ -9,21 +9,21 @@ import (
 	"sort"
 
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
-	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	greenhouseapis "github.com/cloudoperators/greenhouse/api"
 	greenhousemetav1alpha1 "github.com/cloudoperators/greenhouse/api/meta/v1alpha1"
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
 	"github.com/cloudoperators/greenhouse/internal/common"
+	"github.com/cloudoperators/greenhouse/internal/util"
 )
 
 func GetPluginOptionValuesForPlugin(ctx context.Context, c client.Client, plugin *greenhousev1alpha1.Plugin) ([]greenhousemetav1alpha1.PluginOptionValue, error) {
-	var pluginDefinition = new(greenhousev1alpha1.ClusterPluginDefinition)
-	if err := c.Get(ctx, types.NamespacedName{Namespace: "", Name: plugin.Spec.PluginDefinition}, pluginDefinition); err != nil {
+	pluginDefinitionSpec, err := util.EffectivePluginDefinitionSpecFromPlugin(ctx, c, plugin)
+	if err != nil {
 		return nil, err
 	}
-	values := MergePluginAndPluginOptionValueSlice(pluginDefinition.Spec.Options, plugin.Spec.OptionValues)
+	values := MergePluginAndPluginOptionValueSlice(pluginDefinitionSpec.Options, plugin.Spec.OptionValues)
 	// Enrich with default greenhouse values.
 	greenhouseValues, err := GetGreenhouseValues(ctx, c, *plugin)
 	if err != nil {

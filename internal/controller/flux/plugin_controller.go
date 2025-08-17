@@ -12,7 +12,6 @@ import (
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/fields"
-	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -149,24 +148,25 @@ func (r *FluxReconciler) EnsureCreated(ctx context.Context, resource lifecycle.R
 
 	pluginController.InitPluginStatus(plugin)
 
-	pluginDef := r.getPluginDef(ctx, plugin)
-	if pluginDef == nil {
-		return ctrl.Result{}, lifecycle.Failed, errors.New("plugin definition not found")
+	pluginDefSpec, err := util.EffectivePluginDefinitionSpecFromPlugin(ctx, r.Client, plugin)
+	if err != nil {
+		log.FromContext(ctx).Error(err, "Unable to find pluginDefinition for ", "plugin", plugin.Name, "namespace", plugin.Namespace)
+		return ctrl.Result{}, lifecycle.Failed, err
 	}
 
 	namespace := flux.HelmRepositoryDefaultNamespace
-	if pluginDef.Namespace != "" {
-		namespace = pluginDef.Namespace
+	if plugin.Spec.PluginDefinitionRef.Namespace != "" {
+		namespace = plugin.Spec.PluginDefinitionRef.Namespace
 	}
 
-	if pluginDef.Spec.HelmChart == nil {
+	if pluginDefSpec.HelmChart == nil {
 		log.FromContext(ctx).Info("No HelmChart defined in PluginDefinition, skipping HelmRelease creation", "plugin", plugin.Name)
 		plugin.SetCondition(greenhousemetav1alpha1.FalseCondition(
 			greenhousev1alpha1.HelmReconcileFailedCondition, "", "PluginDefinition is not backed by HelmChart"))
 		return ctrl.Result{}, lifecycle.Success, nil
 	}
 
-	helmRepository, err := flux.FindHelmRepositoryByURL(ctx, r.Client, pluginDef.Spec.HelmChart.Repository, namespace)
+	helmRepository, err := flux.FindHelmRepositoryByURL(ctx, r.Client, pluginDefSpec.HelmChart.Repository, namespace)
 	if err != nil {
 		return ctrl.Result{}, lifecycle.Failed, errors.New("helm repository not found")
 	}
@@ -183,9 +183,9 @@ func (r *FluxReconciler) EnsureCreated(ctx context.Context, resource lifecycle.R
 
 		spec, err := flux.NewHelmReleaseSpecBuilder().
 			WithChart(helmcontroller.HelmChartTemplateSpec{
-				Chart:    pluginDef.Spec.HelmChart.Name,
+				Chart:    pluginDefSpec.HelmChart.Name,
 				Interval: &metav1.Duration{Duration: flux.DefaultInterval},
-				Version:  pluginDef.Spec.HelmChart.Version,
+				Version:  pluginDefSpec.HelmChart.Version,
 				SourceRef: helmcontroller.CrossNamespaceObjectReference{
 					Kind:      sourcecontroller.HelmRepositoryKind,
 					Name:      helmRepository.Name,
@@ -255,15 +255,6 @@ func (r *FluxReconciler) enqueueAllPluginsForCluster(ctx context.Context, o clie
 
 func (r *FluxReconciler) enqueueAllPluginsInNamespace(ctx context.Context, o client.Object) []ctrl.Request {
 	return pluginController.ListPluginsAsReconcileRequests(ctx, r.Client, client.InNamespace(o.GetNamespace()))
-}
-
-func (r *FluxReconciler) getPluginDef(ctx context.Context, plugin *greenhousev1alpha1.Plugin) *greenhousev1alpha1.ClusterPluginDefinition {
-	pluginDef := new(greenhousev1alpha1.ClusterPluginDefinition)
-	if err := r.Get(ctx, types.NamespacedName{Name: plugin.Spec.PluginDefinition}, pluginDef); err != nil {
-		log.FromContext(ctx).Error(err, "Unable to find pluginDefinition for ", "plugin", plugin.Name, "namespace", plugin.Namespace)
-		return nil
-	}
-	return pluginDef
 }
 
 func addValuesToHelmRelease(ctx context.Context, c client.Client, plugin *greenhousev1alpha1.Plugin) ([]byte, error) {

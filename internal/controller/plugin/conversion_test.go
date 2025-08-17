@@ -124,7 +124,9 @@ var _ = Describe("PluginPreset Conversion", Ordered, func() {
 			Expect(pluginPresetV1alpha2.Spec.Plugin.ReleaseName).To(Equal(pluginPresetV1alpha1.Spec.Plugin.ReleaseName))
 			Expect(pluginPresetV1alpha2.Spec.Plugin.ReleaseNamespace).To(Equal(pluginPresetV1alpha1.Spec.Plugin.ReleaseNamespace))
 			Expect(pluginPresetV1alpha2.Spec.Plugin.DisplayName).To(Equal(pluginPresetV1alpha1.Spec.Plugin.DisplayName))
+			//nolint:staticcheck
 			Expect(pluginPresetV1alpha2.Spec.Plugin.PluginDefinition).To(Equal(pluginPresetV1alpha1.Spec.Plugin.PluginDefinition))
+			Expect(pluginPresetV1alpha2.Spec.Plugin.PluginDefinitionRef).To(Equal(pluginPresetV1alpha1.Spec.Plugin.PluginDefinitionRef))
 			Expect(pluginPresetV1alpha2.Spec.Plugin.OptionValues).To(Equal(pluginPresetV1alpha1.Spec.Plugin.OptionValues))
 			Expect(toComparableClusterOptionsOverrides(pluginPresetV1alpha2.Spec.ClusterOptionOverrides)).
 				To(ConsistOf(toComparableClusterOptionsOverrides(pluginPresetV1alpha1.Spec.ClusterOptionOverrides)))
@@ -186,7 +188,9 @@ var _ = Describe("PluginPreset Conversion", Ordered, func() {
 			Expect(pluginPresetV1alpha2.Spec.Plugin.ReleaseName).To(Equal(pluginPresetV1alpha1.Spec.Plugin.ReleaseName))
 			Expect(pluginPresetV1alpha2.Spec.Plugin.ReleaseNamespace).To(Equal(pluginPresetV1alpha1.Spec.Plugin.ReleaseNamespace))
 			Expect(pluginPresetV1alpha2.Spec.Plugin.DisplayName).To(Equal(pluginPresetV1alpha1.Spec.Plugin.DisplayName))
+			//nolint:staticcheck
 			Expect(pluginPresetV1alpha2.Spec.Plugin.PluginDefinition).To(Equal(pluginPresetV1alpha1.Spec.Plugin.PluginDefinition))
+			Expect(pluginPresetV1alpha2.Spec.Plugin.PluginDefinitionRef).To(Equal(pluginPresetV1alpha1.Spec.Plugin.PluginDefinitionRef))
 			Expect(pluginPresetV1alpha2.Spec.Plugin.OptionValues).To(Equal(pluginPresetV1alpha1.Spec.Plugin.OptionValues))
 			Expect(toComparableClusterOptionsOverrides(pluginPresetV1alpha2.Spec.ClusterOptionOverrides)).
 				To(ConsistOf(toComparableClusterOptionsOverrides(pluginPresetV1alpha1.Spec.ClusterOptionOverrides)))
@@ -244,7 +248,9 @@ var _ = Describe("PluginPreset Conversion", Ordered, func() {
 			Expect(pluginPresetV1alpha1.Spec.Plugin.ReleaseName).To(Equal(pluginPreset.Spec.Plugin.ReleaseName))
 			Expect(pluginPresetV1alpha1.Spec.Plugin.ReleaseNamespace).To(Equal(pluginPreset.Spec.Plugin.ReleaseNamespace))
 			Expect(pluginPresetV1alpha1.Spec.Plugin.DisplayName).To(Equal(pluginPreset.Spec.Plugin.DisplayName))
+			//nolint:staticcheck
 			Expect(pluginPresetV1alpha1.Spec.Plugin.PluginDefinition).To(Equal(pluginPreset.Spec.Plugin.PluginDefinition))
+			Expect(pluginPresetV1alpha1.Spec.Plugin.PluginDefinitionRef).To(Equal(pluginPreset.Spec.Plugin.PluginDefinitionRef))
 			Expect(pluginPresetV1alpha1.Spec.Plugin.OptionValues).To(Equal(pluginPreset.Spec.Plugin.OptionValues))
 			Expect(toComparableClusterOptionsOverrides(pluginPresetV1alpha1.Spec.ClusterOptionOverrides)).
 				To(ConsistOf(toComparableClusterOptionsOverrides(pluginPreset.Spec.ClusterOptionOverrides)))
@@ -300,7 +306,9 @@ var _ = Describe("PluginPreset Conversion", Ordered, func() {
 			Expect(pluginPresetV1alpha1.Spec.Plugin.ReleaseName).To(Equal(pluginPreset.Spec.Plugin.ReleaseName))
 			Expect(pluginPresetV1alpha1.Spec.Plugin.ReleaseNamespace).To(Equal(pluginPreset.Spec.Plugin.ReleaseNamespace))
 			Expect(pluginPresetV1alpha1.Spec.Plugin.DisplayName).To(Equal(pluginPreset.Spec.Plugin.DisplayName))
+			//nolint:staticcheck
 			Expect(pluginPresetV1alpha1.Spec.Plugin.PluginDefinition).To(Equal(pluginPreset.Spec.Plugin.PluginDefinition))
+			Expect(pluginPresetV1alpha1.Spec.Plugin.PluginDefinitionRef).To(Equal(pluginPreset.Spec.Plugin.PluginDefinitionRef))
 			Expect(pluginPresetV1alpha1.Spec.Plugin.OptionValues).To(Equal(pluginPreset.Spec.Plugin.OptionValues))
 			Expect(toComparableClusterOptionsOverrides(pluginPresetV1alpha1.Spec.ClusterOptionOverrides)).
 				To(ConsistOf(toComparableClusterOptionsOverrides(pluginPreset.Spec.ClusterOptionOverrides)))

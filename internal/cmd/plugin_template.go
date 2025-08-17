@@ -165,7 +165,7 @@ func (o *PluginTemplatePresetOptions) validateCompatibility() error {
 		return fmt.Errorf("expected either %s or %s kind, got %q in file %s", ClusterPluginDefinitionKind, PluginDefinitionKind, o.pluginDefinition.Kind, o.pluginDefinitionPath)
 	}
 
-	expectedPluginDef := util.EffectivePluginDefinitionName(o.pluginPreset)
+	expectedPluginDef := util.EffectivePluginDefinitionNameFromPluginPreset(o.pluginPreset)
 	actualPluginDef := o.pluginDefinition.Name
 	if expectedPluginDef != actualPluginDef {
 		return fmt.Errorf("PluginPreset references (Cluster-)PluginDefinition '%s' but provided file defines '%s'", expectedPluginDef, actualPluginDef)

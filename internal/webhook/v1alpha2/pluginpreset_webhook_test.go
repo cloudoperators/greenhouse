@@ -192,7 +192,7 @@ var _ = Describe("PluginPreset Admission Tests", Ordered, func() {
 		Expect(err).ToNot(HaveOccurred(), "there must be no error updating the PluginPreset clusterSelector")
 
 		updatedPluginDefinitionPreset := updatedSelectorPreset.DeepCopy()
-		updatedPluginDefinitionPreset.Spec.Plugin.PluginDefinition = "new-definition"
+		updatedPluginDefinitionPreset.Spec.Plugin.PluginDefinitionRef.Name = "new-definition"
 		warns, err = webhookv1alpha2.ValidateUpdatePluginPreset(test.Ctx, test.K8sClient, originalPreset, updatedPluginDefinitionPreset)
 		Expect(warns).To(BeNil(), "expected no warnings")
 		Expect(err).To(HaveOccurred(), "there must be an error updating the PluginPreset pluginDefinition")

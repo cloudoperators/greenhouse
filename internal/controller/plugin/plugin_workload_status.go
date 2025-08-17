@@ -21,6 +21,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
+	greenhousemetav1alpha1 "github.com/cloudoperators/greenhouse/api/meta/v1alpha1"
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
 	"github.com/cloudoperators/greenhouse/internal/clientutil"
 	"github.com/cloudoperators/greenhouse/internal/helm"
@@ -68,7 +69,7 @@ func (r *PluginReconciler) reconcilePluginWorkloadStatus(
 	ctx context.Context,
 	restClientGetter genericclioptions.RESTClientGetter,
 	plugin *greenhousev1alpha1.Plugin,
-	pluginDefinition *greenhousev1alpha1.ClusterPluginDefinition,
+	pluginDefinitionSpec greenhousemetav1alpha1.PluginDefinitionTemplateSpec,
 ) (*reconcileResult, error) {
 
 	var releaseStatus = new(ReleaseStatus)
@@ -77,7 +78,7 @@ func (r *PluginReconciler) reconcilePluginWorkloadStatus(
 	if reflect.DeepEqual(plugin.Status, greenhousev1alpha1.PluginStatus{}) || plugin.Status.HelmChart == nil {
 		return nil, nil
 	}
-	if pluginDefinition.Spec.HelmChart == nil {
+	if pluginDefinitionSpec.HelmChart == nil {
 		return nil, nil
 	}
 

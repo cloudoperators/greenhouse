@@ -161,7 +161,7 @@ func (r *PluginPresetReconciler) reconcilePluginPreset(ctx context.Context, pres
 	var skippedPlugins = make([]string, 0)
 	var failedPlugins = make([]string, 0)
 
-	pluginDefinitionSpec, err := util.EffectivePluginDefinitionSpec(ctx, r.Client, preset)
+	pluginDefinitionSpec, err := util.EffectivePluginDefinitionSpecFromPluginPreset(ctx, r.Client, preset)
 	if err != nil {
 		allErrs = append(allErrs, err)
 		return utilerrors.NewAggregate(allErrs)
