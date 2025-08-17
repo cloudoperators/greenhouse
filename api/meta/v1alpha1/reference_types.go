@@ -9,6 +9,21 @@ import (
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 )
 
+// PluginDefinitionReference defines the reference to the PluginDefinition or ClusterPluginDefinition.
+type PluginDefinitionReference struct {
+	// Name is the name of the PluginDefinition or ClusterPluginDefinition resource.
+	// +required
+	Name string `json:"name"`
+
+	// Namespace is the namespace of the PluginDefinition resource.
+	// +optional
+	Namespace string `json:"namespace,omitempty"`
+
+	// Kind of the referent.
+	// +kubebuilder:validation:Enum=PluginDefinition;ClusterPluginDefinition
+	Kind string `json:"kind"`
+}
+
 // PluginOptionValue is the value for a PluginOption.
 type PluginOptionValue struct {
 	// Name of the values.

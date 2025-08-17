@@ -73,7 +73,10 @@ var _ = Describe("PluginPreset Admission Tests", Ordered, func() {
 			}),
 			test.WithPluginPresetLabel(greenhouseapis.LabelKeyOwnedBy, teamWithSupportGroupName),
 			test.WithPluginPresetPluginTemplateSpec(greenhousev1alpha2.PluginTemplateSpec{
-				PluginDefinition: pluginPresetDefinition,
+				PluginDefinitionRef: greenhousemetav1alpha1.PluginDefinitionReference{
+					Name: pluginPresetDefinition,
+					Kind: "ClusterPluginDefinition",
+				},
 			}),
 		)
 		warns, err := webhookv1alpha2.ValidateCreatePluginPreset(test.Ctx, test.K8sClient, cut)
@@ -92,7 +95,7 @@ var _ = Describe("PluginPreset Admission Tests", Ordered, func() {
 		warns, err := webhookv1alpha2.ValidateCreatePluginPreset(test.Ctx, test.K8sClient, cut)
 		Expect(warns).To(BeNil(), "expected no warnings")
 		Expect(err).To(HaveOccurred(), "expected an error")
-		Expect(err).To(MatchError(ContainSubstring("PluginDefinition must be set")))
+		Expect(err).To(MatchError(ContainSubstring("either pluginDefinitionRef or pluginDefinition must be set")))
 	})
 
 	It("should reject PluginPreset with a PluginSpec containing a ClusterName", func() {
@@ -150,7 +153,10 @@ var _ = Describe("PluginPreset Admission Tests", Ordered, func() {
 				Name: "cluster-a",
 			}),
 			test.WithPluginPresetPluginTemplateSpec(greenhousev1alpha2.PluginTemplateSpec{
-				PluginDefinition: "non-existing",
+				PluginDefinitionRef: greenhousemetav1alpha1.PluginDefinitionReference{
+					Name: "non-existing",
+					Kind: "ClusterPluginDefinition",
+				},
 			}),
 			test.WithPluginPresetLabel(greenhouseapis.LabelKeyOwnedBy, teamWithSupportGroupName),
 		)
@@ -158,7 +164,7 @@ var _ = Describe("PluginPreset Admission Tests", Ordered, func() {
 		warns, err := webhookv1alpha2.ValidateCreatePluginPreset(test.Ctx, test.K8sClient, cut)
 		Expect(warns).To(BeNil(), "expected no warnings")
 		Expect(err).To(HaveOccurred(), "there should be an error creating the PluginPreset with non-existing PluginDefinition")
-		Expect(err).To(MatchError(ContainSubstring("PluginDefinition non-existing does not exist")), "the error message should reflect that referenced PluginDefinition must exist")
+		Expect(err).To(MatchError(ContainSubstring("referenced ClusterPluginDefinition non-existing does not exist")), "the error message should reflect that referenced PluginDefinition must exist")
 	})
 
 	It("should accept and reject updates to the PluginPreset", func() {
@@ -167,7 +173,10 @@ var _ = Describe("PluginPreset Admission Tests", Ordered, func() {
 				LabelSelector: metav1.LabelSelector{MatchLabels: map[string]string{"foo": "bar"}},
 			}),
 			test.WithPluginPresetPluginTemplateSpec(greenhousev1alpha2.PluginTemplateSpec{
-				PluginDefinition: pluginPresetDefinition,
+				PluginDefinitionRef: greenhousemetav1alpha1.PluginDefinitionReference{
+					Name: pluginPresetDefinition,
+					Kind: "ClusterPluginDefinition",
+				},
 			}),
 			test.WithPluginPresetLabel(greenhouseapis.LabelKeyOwnedBy, teamWithSupportGroupName),
 		)
@@ -203,7 +212,10 @@ var _ = Describe("PluginPreset Admission Tests", Ordered, func() {
 				LabelSelector: metav1.LabelSelector{MatchLabels: map[string]string{"foo": "bar"}},
 			}),
 			test.WithPluginPresetPluginTemplateSpec(greenhousev1alpha2.PluginTemplateSpec{
-				PluginDefinition: pluginPresetDefinition,
+				PluginDefinitionRef: greenhousemetav1alpha1.PluginDefinitionReference{
+					Name: pluginPresetDefinition,
+					Kind: "ClusterPluginDefinition",
+				},
 			}),
 			test.WithPluginPresetLabel(greenhouseapis.LabelKeyOwnedBy, teamWithSupportGroupName),
 			test.WithPluginPresetAnnotations(map[string]string{
@@ -283,7 +295,7 @@ var _ = Describe("Validate Plugin OptionValues for PluginPreset", func() {
 			},
 		}
 
-		errList := webhookv1alpha2.ValidatePluginOptionValuesForPreset(pluginPreset, pluginDefinition)
+		errList := webhookv1alpha2.ValidatePluginOptionValuesForPreset(pluginPreset, pluginDefinition.Name, pluginDefinition.Spec.Options)
 		switch expErr {
 		case true:
 			Expect(errList).ToNot(BeEmpty(), "expected an error, got nil")
@@ -354,7 +366,7 @@ var _ = Describe("Validate Plugin OptionValues for PluginPreset", func() {
 			},
 		}
 
-		errList := webhookv1alpha2.ValidatePluginOptionValuesForPreset(pluginPreset, pluginDefinition)
+		errList := webhookv1alpha2.ValidatePluginOptionValuesForPreset(pluginPreset, pluginDefinition.Name, pluginDefinition.Spec.Options)
 		switch expErr {
 		case true:
 			Expect(errList).ToNot(BeEmpty(), "expected an error, got nil")
@@ -407,7 +419,7 @@ var _ = Describe("Validate Plugin OptionValues for PluginPreset", func() {
 			},
 		}
 
-		errList := webhookv1alpha2.ValidatePluginOptionValuesForPreset(pluginPreset, pluginDefinition)
+		errList := webhookv1alpha2.ValidatePluginOptionValuesForPreset(pluginPreset, pluginDefinition.Name, pluginDefinition.Spec.Options)
 		switch expErr {
 		case true:
 			Expect(errList).ToNot(BeEmpty(), "expected an error, got nil")
@@ -475,7 +487,7 @@ var _ = Describe("Validate Plugin OptionValues for PluginPreset", func() {
 			},
 		}
 
-		errList := webhookv1alpha2.ValidatePluginOptionValuesForPreset(pluginPreset, pluginDefinition)
+		errList := webhookv1alpha2.ValidatePluginOptionValuesForPreset(pluginPreset, pluginDefinition.Name, pluginDefinition.Spec.Options)
 		switch expErr {
 		case true:
 			Expect(errList).ToNot(BeEmpty(), "expected an error, got nil")
@@ -536,7 +548,7 @@ var _ = Describe("Validate Plugin OptionValues for PluginPreset", func() {
 			},
 		}
 
-		errList := webhookv1alpha2.ValidatePluginOptionValuesForPreset(pluginPreset, pluginDefinition)
+		errList := webhookv1alpha2.ValidatePluginOptionValuesForPreset(pluginPreset, pluginDefinition.Name, pluginDefinition.Spec.Options)
 		switch expErr {
 		case true:
 			Expect(errList).ToNot(BeEmpty(), "expected an error, got nil")
@@ -594,7 +606,7 @@ var _ = Describe("Validate Plugin OptionValues for PluginPreset", func() {
 			},
 		}
 
-		errList := webhookv1alpha2.ValidatePluginOptionValuesForPreset(pluginPreset, pluginDefinition)
+		errList := webhookv1alpha2.ValidatePluginOptionValuesForPreset(pluginPreset, pluginDefinition.Name, pluginDefinition.Spec.Options)
 		switch expErr {
 		case true:
 			Expect(errList).ToNot(BeEmpty(), "expected an error, got nil")
@@ -647,7 +659,7 @@ var _ = Describe("Validate Plugin OptionValues for PluginPreset", func() {
 					},
 				},
 			}
-			errList := webhookv1alpha2.ValidatePluginOptionValuesForPreset(pluginPreset, pluginDefinition)
+			errList := webhookv1alpha2.ValidatePluginOptionValuesForPreset(pluginPreset, pluginDefinition.Name, pluginDefinition.Spec.Options)
 			Expect(errList).To(BeEmpty(), "unexpected error")
 		})
 	})

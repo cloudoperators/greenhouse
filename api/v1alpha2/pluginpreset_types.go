@@ -36,8 +36,11 @@ type PluginPresetSpec struct {
 
 // PluginTemplateSpec defines the template state of Plugin to be used by PluginPreset.
 type PluginTemplateSpec struct {
-	// PluginDefinition is the name of the PluginDefinition this instance is for.
+	// Deprecated: Use PluginDefinitionRef instead. Future releases of greenhouse will remove this field.
 	PluginDefinition string `json:"pluginDefinition"`
+
+	// PluginDefinitionRef is the reference to the (Cluster-)PluginDefinition this instance is for.
+	PluginDefinitionRef greenhousemetav1alpha1.PluginDefinitionReference `json:"pluginDefinitionRef"`
 
 	// DisplayName is an optional name for the Plugin to be displayed in the Greenhouse UI.
 	// This is especially helpful to distinguish multiple instances of a PluginDefinition in the same context.
