@@ -581,7 +581,7 @@ spec:
                           format: date-time
                           type: string
                         message:
-                          description: Message is an optional human readable message
+                          description: Message is an optional human-readable message
                             indicating details about the last transition.
                           type: string
                         reason:
@@ -620,7 +620,7 @@ spec:
                           format: date-time
                           type: string
                         message:
-                          description: Message is an optional human readable message
+                          description: Message is an optional human-readable message
                             indicating details about the last transition.
                           type: string
                         reason:
