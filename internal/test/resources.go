@@ -202,10 +202,24 @@ func NewClusterPluginDefinition(ctx context.Context, name string, opts ...func(d
 	return pd
 }
 
-// WithPluginDefinition sets the PluginDefinition of a Plugin
-func WithPluginDefinition(pluginDefinition string) func(*greenhousev1alpha1.Plugin) {
+// WithClusterPluginDefinition sets the PluginDefinitionRef of a Plugin to ClusterPluginDefinition
+func WithClusterPluginDefinition(pluginDefinitionName string) func(*greenhousev1alpha1.Plugin) {
 	return func(p *greenhousev1alpha1.Plugin) {
-		p.Spec.PluginDefinition = pluginDefinition
+		p.Spec.PluginDefinitionRef = greenhousemetav1alpha1.PluginDefinitionReference{
+			Name: pluginDefinitionName,
+			Kind: "ClusterPluginDefinition",
+		}
+	}
+}
+
+// WithPluginDefinition sets the PluginDefinitionRef of a Plugin to PluginDefinition
+func WithPluginDefinition(pluginDefinitionName, pluginDefinitionNamespace string) func(*greenhousev1alpha1.Plugin) {
+	return func(p *greenhousev1alpha1.Plugin) {
+		p.Spec.PluginDefinitionRef = greenhousemetav1alpha1.PluginDefinitionReference{
+			Name:      pluginDefinitionName,
+			Kind:      "PluginDefinition",
+			Namespace: pluginDefinitionNamespace,
+		}
 	}
 }
 
