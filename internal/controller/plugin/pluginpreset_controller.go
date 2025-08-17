@@ -161,8 +161,7 @@ func (r *PluginPresetReconciler) reconcilePluginPreset(ctx context.Context, pres
 	var skippedPlugins = make([]string, 0)
 	var failedPlugins = make([]string, 0)
 
-	pluginDefinition := &greenhousev1alpha1.ClusterPluginDefinition{}
-	err := r.Get(ctx, client.ObjectKey{Name: preset.Spec.Plugin.PluginDefinition}, pluginDefinition)
+	pluginDefinitionSpec, err := util.EffectivePluginDefinitionSpec(ctx, r.Client, preset)
 	if err != nil {
 		allErrs = append(allErrs, err)
 		return utilerrors.NewAggregate(allErrs)
@@ -177,7 +176,7 @@ func (r *PluginPresetReconciler) reconcilePluginPreset(ctx context.Context, pres
 			continue
 		case err == nil:
 			// The Plugin exists but does not contain the labels of the PluginPreset. This Plugin is not managed by the PluginPreset and must not be touched.
-			if shouldSkipPlugin(plugin, preset, pluginDefinition, cluster.Name) {
+			if shouldSkipPlugin(plugin, preset, *pluginDefinitionSpec, cluster.Name) {
 				skippedPlugins = append(skippedPlugins, plugin.Name)
 				continue
 			}
@@ -279,7 +278,7 @@ func isPluginManagedByPreset(plugin *greenhousev1alpha1.Plugin, presetName strin
 	return plugin.Labels[greenhouseapis.LabelKeyPluginPreset] == presetName
 }
 
-func shouldSkipPlugin(plugin *greenhousev1alpha1.Plugin, preset *greenhousev1alpha2.PluginPreset, definition *greenhousev1alpha1.ClusterPluginDefinition, clusterName string) bool {
+func shouldSkipPlugin(plugin *greenhousev1alpha1.Plugin, preset *greenhousev1alpha2.PluginPreset, definitionSpec greenhousemetav1alpha1.PluginDefinitionTemplateSpec, clusterName string) bool {
 	if !isPluginManagedByPreset(plugin, preset.Name) {
 		return true
 	}
@@ -320,7 +319,7 @@ func shouldSkipPlugin(plugin *greenhousev1alpha1.Plugin, preset *greenhousev1alp
 			// optionValue is set by the PluginPreset, nothing to doen plugin does not have option which exists in plugin p
 			continue
 		}
-		if slices.ContainsFunc(definition.Spec.Options, func(item greenhousemetav1alpha1.PluginOption) bool {
+		if slices.ContainsFunc(definitionSpec.Options, func(item greenhousemetav1alpha1.PluginOption) bool {
 			if item.Default == nil {
 				return false
 			}

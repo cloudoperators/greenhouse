@@ -17,6 +17,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/json"
 
 	helminternal "github.com/cloudoperators/greenhouse/internal/helm"
+	"github.com/cloudoperators/greenhouse/internal/util"
 
 	greenhousemetav1alpha1 "github.com/cloudoperators/greenhouse/api/meta/v1alpha1"
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
@@ -164,7 +165,7 @@ func (o *PluginTemplatePresetOptions) validateCompatibility() error {
 		return fmt.Errorf("expected either %s or %s kind, got %q in file %s", ClusterPluginDefinitionKind, PluginDefinitionKind, o.pluginDefinition.Kind, o.pluginDefinitionPath)
 	}
 
-	expectedPluginDef := o.pluginPreset.Spec.Plugin.PluginDefinition
+	expectedPluginDef := util.EffectivePluginDefinitionName(o.pluginPreset)
 	actualPluginDef := o.pluginDefinition.Name
 	if expectedPluginDef != actualPluginDef {
 		return fmt.Errorf("PluginPreset references (Cluster-)PluginDefinition '%s' but provided file defines '%s'", expectedPluginDef, actualPluginDef)
