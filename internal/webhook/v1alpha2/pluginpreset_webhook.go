@@ -132,7 +132,7 @@ func ValidateCreatePluginPreset(ctx context.Context, c client.Client, o runtime.
 				fmt.Sprintf("referenced PluginDefinition %s could not be retrieved from namespace %s: %s", pp.Spec.Plugin.PluginDefinitionRef.Name, pp.Spec.Plugin.PluginDefinitionRef.Namespace, err.Error())))
 		}
 		// validate OptionValues defined by the Preset
-		if errList := ValidatePluginOptionValuesForPreset(pp, pluginDefinition.Name, pluginDefinition.Spec.Options); len(errList) > 0 {
+		if errList := ValidatePluginOptionValuesForPreset(pp, pluginDefinition.Name, pluginDefinition.Spec); len(errList) > 0 {
 			allErrs = append(allErrs, errList...)
 		}
 	case "ClusterPluginDefinition":
@@ -149,7 +149,7 @@ func ValidateCreatePluginPreset(ctx context.Context, c client.Client, o runtime.
 				fmt.Sprintf("referenced ClusterPluginDefinition %s could not be retrieved: %s", pp.Spec.Plugin.PluginDefinitionRef.Name, err.Error())))
 		}
 		// validate OptionValues defined by the Preset
-		if errList := ValidatePluginOptionValuesForPreset(pp, clusterPluginDefinition.Name, clusterPluginDefinition.Spec.Options); len(errList) > 0 {
+		if errList := ValidatePluginOptionValuesForPreset(pp, clusterPluginDefinition.Name, clusterPluginDefinition.Spec); len(errList) > 0 {
 			allErrs = append(allErrs, errList...)
 		}
 	default:

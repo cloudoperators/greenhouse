@@ -168,14 +168,14 @@ func ValidateReleaseName(name string) error {
 func ValidatePluginOptionValues(
 	optionValues []greenhousemetav1alpha1.PluginOptionValue,
 	pluginDefinitionName string,
-	pluginDefinitionSpecOptions []greenhousemetav1alpha1.PluginOption,
+	pluginDefinitionSpec greenhousemetav1alpha1.PluginDefinitionTemplateSpec,
 	checkRequiredOptions bool,
 	optionsFieldPath *field.Path,
 ) field.ErrorList {
 
 	var allErrs field.ErrorList
 	var isOptionValueSet bool
-	for _, pluginOption := range pluginDefinitionSpecOptions {
+	for _, pluginOption := range pluginDefinitionSpec.Options {
 		isOptionValueSet = false
 		for idx, val := range optionValues {
 			if pluginOption.Name != val.Name {
