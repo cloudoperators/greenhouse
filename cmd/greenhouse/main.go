@@ -25,8 +25,9 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 	metricsserver "sigs.k8s.io/controller-runtime/pkg/metrics/server"
 
-	helmcontroller "github.com/fluxcd/helm-controller/api/v2"
-	sourcecontroller "github.com/fluxcd/source-controller/api/v1"
+	helmv2 "github.com/fluxcd/helm-controller/api/v2"
+	kustomizev1 "github.com/fluxcd/kustomize-controller/api/v1"
+	sourcev1 "github.com/fluxcd/source-controller/api/v1"
 
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
 	greenhousev1alpha2 "github.com/cloudoperators/greenhouse/api/v1alpha2"
@@ -77,8 +78,9 @@ func init() {
 	utilruntime.Must(greenhousev1alpha1.AddToScheme(scheme))
 	utilruntime.Must(greenhousev1alpha2.AddToScheme(scheme))
 	utilruntime.Must(dexapi.AddToScheme(scheme))
-	utilruntime.Must(sourcecontroller.AddToScheme(scheme))
-	utilruntime.Must(helmcontroller.AddToScheme(scheme))
+	utilruntime.Must(sourcev1.AddToScheme(scheme))
+	utilruntime.Must(helmv2.AddToScheme(scheme))
+	utilruntime.Must(kustomizev1.AddToScheme(scheme))
 	//+kubebuilder:scaffold:scheme
 }
 
