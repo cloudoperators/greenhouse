@@ -322,7 +322,7 @@ var _ = Describe("Validate Plugin OptionValues for PluginPreset", func() {
 			},
 		}
 
-		errList := validatePluginOptionValuesForPreset(pluginPreset, pluginDefinition)
+		errList := validatePluginOptionValuesForPreset(pluginPreset, pluginDefinition.Name, pluginDefinition.Spec)
 		switch expErr {
 		case true:
 			Expect(errList).ToNot(BeEmpty(), "expected an error, got nil")
@@ -393,7 +393,7 @@ var _ = Describe("Validate Plugin OptionValues for PluginPreset", func() {
 			},
 		}
 
-		errList := validatePluginOptionValuesForPreset(pluginPreset, pluginDefinition)
+		errList := validatePluginOptionValuesForPreset(pluginPreset, pluginDefinition.Name, pluginDefinition.Spec)
 		switch expErr {
 		case true:
 			Expect(errList).ToNot(BeEmpty(), "expected an error, got nil")
@@ -446,7 +446,7 @@ var _ = Describe("Validate Plugin OptionValues for PluginPreset", func() {
 			},
 		}
 
-		errList := validatePluginOptionValuesForPreset(pluginPreset, pluginDefinition)
+		errList := validatePluginOptionValuesForPreset(pluginPreset, pluginDefinition.Name, pluginDefinition.Spec)
 		switch expErr {
 		case true:
 			Expect(errList).ToNot(BeEmpty(), "expected an error, got nil")
@@ -514,7 +514,7 @@ var _ = Describe("Validate Plugin OptionValues for PluginPreset", func() {
 			},
 		}
 
-		errList := validatePluginOptionValuesForPreset(pluginPreset, pluginDefinition)
+		errList := validatePluginOptionValuesForPreset(pluginPreset, pluginDefinition.Name, pluginDefinition.Spec)
 		switch expErr {
 		case true:
 			Expect(errList).ToNot(BeEmpty(), "expected an error, got nil")
@@ -575,7 +575,7 @@ var _ = Describe("Validate Plugin OptionValues for PluginPreset", func() {
 			},
 		}
 
-		errList := validatePluginOptionValuesForPreset(pluginPreset, pluginDefinition)
+		errList := validatePluginOptionValuesForPreset(pluginPreset, pluginDefinition.Name, pluginDefinition.Spec)
 		switch expErr {
 		case true:
 			Expect(errList).ToNot(BeEmpty(), "expected an error, got nil")
@@ -633,7 +633,7 @@ var _ = Describe("Validate Plugin OptionValues for PluginPreset", func() {
 			},
 		}
 
-		errList := validatePluginOptionValuesForPreset(pluginPreset, pluginDefinition)
+		errList := validatePluginOptionValuesForPreset(pluginPreset, pluginDefinition.Name, pluginDefinition.Spec)
 		switch expErr {
 		case true:
 			Expect(errList).ToNot(BeEmpty(), "expected an error, got nil")
@@ -686,7 +686,7 @@ var _ = Describe("Validate Plugin OptionValues for PluginPreset", func() {
 					},
 				},
 			}
-			errList := validatePluginOptionValuesForPreset(pluginPreset, pluginDefinition)
+			errList := validatePluginOptionValuesForPreset(pluginPreset, pluginDefinition.Name, pluginDefinition.Spec)
 			Expect(errList).To(BeEmpty(), "unexpected error")
 		})
 	})

@@ -209,7 +209,17 @@ func ValidateUpdatePluginPreset(ctx context.Context, c client.Client, oldObj, cu
 	var allErrs field.ErrorList
 	var allWarns admission.Warnings
 
+	//nolint:staticcheck
 	if err := webhook.ValidateImmutableField(oldPluginPreset.Spec.Plugin.PluginDefinition, pluginPreset.Spec.Plugin.PluginDefinition, field.NewPath("spec", "plugin", "pluginDefinition")); err != nil {
+		allErrs = append(allErrs, err)
+	}
+	if err := webhook.ValidateImmutableField(oldPluginPreset.Spec.Plugin.PluginDefinitionRef.Name, pluginPreset.Spec.Plugin.PluginDefinitionRef.Name, field.NewPath("spec", "plugin", "pluginDefinitionRef", "name")); err != nil {
+		allErrs = append(allErrs, err)
+	}
+	if err := webhook.ValidateImmutableField(oldPluginPreset.Spec.Plugin.PluginDefinitionRef.Kind, pluginPreset.Spec.Plugin.PluginDefinitionRef.Kind, field.NewPath("spec", "plugin", "pluginDefinitionRef", "kind")); err != nil {
+		allErrs = append(allErrs, err)
+	}
+	if err := webhook.ValidateImmutableField(oldPluginPreset.Spec.Plugin.PluginDefinitionRef.Namespace, pluginPreset.Spec.Plugin.PluginDefinitionRef.Namespace, field.NewPath("spec", "plugin", "pluginDefinitionRef", "namespace")); err != nil {
 		allErrs = append(allErrs, err)
 	}
 
