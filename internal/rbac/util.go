@@ -26,3 +26,13 @@ func OrganizationPluginAdminRoleName(orgName string) string {
 func OrganizationRoleName(orgName string) string {
 	return "organization:" + orgName
 }
+
+// OrganizationPluginDefinitionCatalogServiceAccountName returns the name of the ServiceAccount for PluginDefinitionCatalog operations.
+func OrganizationPluginDefinitionCatalogServiceAccountName(orgName string) string {
+	return orgName + "-plugin-definition-catalog"
+}
+
+// OrganizationPluginDefinitionCatalogRoleName returns the name of the Role for PluginDefinitionCatalog operations.
+func OrganizationPluginDefinitionCatalogRoleName(orgName string) string {
+	return orgName + "-plugin-definition-catalog"
+}

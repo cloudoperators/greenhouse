@@ -107,3 +107,27 @@ func OrganizationMemberPolicyRules() []rbacv1.PolicyRule {
 func GetTeamRoleName(teamName string) string {
 	return "team:" + teamName
 }
+
+// OrganizationPluginDefinitionCatalogPolicyRules returns the PolicyRules for PluginDefinitionCatalog ServiceAccount.
+// This grants CRUD permissions on PluginDefinitions within the organization namespace.
+func OrganizationPluginDefinitionCatalogPolicyRules() []rbacv1.PolicyRule {
+	return []rbacv1.PolicyRule{
+		{
+			Verbs:     []string{"get", "list", "watch", "create", "update", "patch", "delete"},
+			APIGroups: []string{greenhousev1alpha1.GroupVersion.Group},
+			Resources: []string{"plugindefinitions"},
+		},
+	}
+}
+
+// GreenhousePluginDefinitionCatalogClusterPolicyRules returns the cluster-scoped PolicyRules for the Greenhouse organization's PluginDefinitionCatalog ServiceAccount.
+// This grants CRUD permissions on both PluginDefinitions and ClusterPluginDefinitions.
+func GreenhousePluginDefinitionCatalogClusterPolicyRules() []rbacv1.PolicyRule {
+	return []rbacv1.PolicyRule{
+		{
+			Verbs:     []string{"get", "list", "watch", "create", "update", "patch", "delete"},
+			APIGroups: []string{greenhousev1alpha1.GroupVersion.Group},
+			Resources: []string{"plugindefinitions", "clusterplugindefinitions"},
+		},
+	}
+}

@@ -17,6 +17,7 @@ import (
 	greenhousemetav1alpha1 "github.com/cloudoperators/greenhouse/api/meta/v1alpha1"
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
 	"github.com/cloudoperators/greenhouse/internal/flux"
+	"github.com/cloudoperators/greenhouse/internal/rbac"
 	"github.com/cloudoperators/greenhouse/internal/test"
 )
 
@@ -119,6 +120,24 @@ var _ = Describe("Catalog controller", Ordered, func() {
 				g.Expect(kustomization.Spec.Interval).To(Equal(defaultInterval), "Flux Kustomization interval should match the catalog interval")
 				g.Expect(kustomization.Spec.Path).To(Equal(catalog.ResourcePath()), "Flux Kustomization path should match the catalog source path")
 			}).Should(Succeed(), "Flux Kustomization should be created for the Catalog")
+		})
+
+		It("should reference the organization's ServiceAccount in the flux kustomization", func() {
+			By("mocking a flux git repository ready condition")
+			gitRepository := &sourcev1.GitRepository{}
+			gitRepository.SetName(catalog.Name)
+			gitRepository.SetNamespace(catalog.Namespace)
+			Expect(mockGitRepositoryReady(gitRepository)).To(Succeed(), "there should be no error mocking the GitRepository ready condition")
+
+			expectedServiceAccountName := rbac.OrganizationPluginDefinitionCatalogServiceAccountName(catalog.Namespace)
+
+			kustomization := &kustomizev1.Kustomization{}
+			kustomization.SetName(catalog.Name)
+			kustomization.SetNamespace(catalog.Namespace)
+			Eventually(func(g Gomega) {
+				g.Expect(test.K8sClient.Get(test.Ctx, cl.ObjectKeyFromObject(kustomization), kustomization)).To(Succeed(), "there should be no error getting the Kustomization")
+				g.Expect(kustomization.Spec.ServiceAccountName).To(Equal(expectedServiceAccountName), "Flux Kustomization should reference the organization's ServiceAccount")
+			}).Should(Succeed(), "Flux Kustomization should have the correct ServiceAccount reference")
 		})
 
 		It("should reach Ready=True for catalog status when flux kustomization is ready", func() {

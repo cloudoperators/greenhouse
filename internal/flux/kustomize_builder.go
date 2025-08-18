@@ -131,6 +131,13 @@ func (k *KustomizeBuilder) WithPatches(patches []fluxkust.Patch) *KustomizeBuild
 	return k
 }
 
+func (k *KustomizeBuilder) WithServiceAccountName(name string) *KustomizeBuilder {
+	if name != "" {
+		k.spec.ServiceAccountName = name
+	}
+	return k
+}
+
 func (k *KustomizeBuilder) Build() (kustomizev1.KustomizationSpec, error) {
 	if k.spec.SourceRef.Kind == "" {
 		return kustomizev1.KustomizationSpec{}, errors.New("source reference kind is required")

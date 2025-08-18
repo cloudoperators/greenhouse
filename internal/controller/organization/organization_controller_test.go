@@ -9,6 +9,8 @@ import (
 	. "github.com/onsi/gomega/gstruct"
 	"golang.org/x/exp/slices"
 	corev1 "k8s.io/api/core/v1"
+	rbacv1 "k8s.io/api/rbac/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/util/retry"
@@ -376,6 +378,113 @@ var _ = Describe("Test Organization reconciliation", Ordered, func() {
 				), "the oauth client list should not contain the deleted organization")
 			}
 			test.EventuallyDeleted(test.Ctx, test.K8sClient, team)
+		})
+	})
+
+	When("reconciling PluginDefinitionCatalog ServiceAccount", Ordered, func() {
+		It("should create ServiceAccount, Role and RoleBinding for regular organization", func() {
+			testOrgName := "test-org-serviceaccount"
+			setup.CreateOrganization(test.Ctx, testOrgName)
+
+			// Check ServiceAccount creation
+			serviceAccountName := testOrgName + "-plugin-definition-catalog"
+			serviceAccount := &corev1.ServiceAccount{}
+			Eventually(func() error {
+				return setup.Get(test.Ctx, types.NamespacedName{Name: serviceAccountName, Namespace: testOrgName}, serviceAccount)
+			}).ShouldNot(HaveOccurred(), "ServiceAccount should be created")
+
+			Expect(serviceAccount.Name).To(Equal(serviceAccountName))
+			Expect(serviceAccount.Namespace).To(Equal(testOrgName))
+			Expect(serviceAccount.OwnerReferences).To(HaveLen(1))
+			Expect(serviceAccount.OwnerReferences[0].Kind).To(Equal("Organization"))
+			Expect(serviceAccount.OwnerReferences[0].Name).To(Equal(testOrgName))
+
+			// Check Role creation
+			roleName := testOrgName + "-plugin-definition-catalog"
+			role := &rbacv1.Role{}
+			Eventually(func() error {
+				return setup.Get(test.Ctx, types.NamespacedName{Name: roleName, Namespace: testOrgName}, role)
+			}).ShouldNot(HaveOccurred(), "Role should be created")
+
+			Expect(role.Name).To(Equal(roleName))
+			Expect(role.Namespace).To(Equal(testOrgName))
+			Expect(role.Rules).To(HaveLen(1))
+			Expect(role.Rules[0].APIGroups).To(ContainElement("greenhouse.sap"))
+			Expect(role.Rules[0].Resources).To(ContainElement("plugindefinitions"))
+			Expect(role.Rules[0].Verbs).To(ContainElements("get", "list", "watch", "create", "update", "patch", "delete"))
+			Expect(role.OwnerReferences).To(HaveLen(1))
+			Expect(role.OwnerReferences[0].Kind).To(Equal("Organization"))
+
+			// Check RoleBinding creation
+			roleBinding := &rbacv1.RoleBinding{}
+			Eventually(func() error {
+				return setup.Get(test.Ctx, types.NamespacedName{Name: roleName, Namespace: testOrgName}, roleBinding)
+			}).ShouldNot(HaveOccurred(), "RoleBinding should be created")
+
+			Expect(roleBinding.Name).To(Equal(roleName))
+			Expect(roleBinding.Namespace).To(Equal(testOrgName))
+			Expect(roleBinding.RoleRef.Kind).To(Equal("Role"))
+			Expect(roleBinding.RoleRef.Name).To(Equal(roleName))
+			Expect(roleBinding.Subjects).To(HaveLen(1))
+			Expect(roleBinding.Subjects[0].Kind).To(Equal("ServiceAccount"))
+			Expect(roleBinding.Subjects[0].Name).To(Equal(serviceAccountName))
+			Expect(roleBinding.Subjects[0].Namespace).To(Equal(testOrgName))
+			Expect(roleBinding.OwnerReferences).To(HaveLen(1))
+			Expect(roleBinding.OwnerReferences[0].Kind).To(Equal("Organization"))
+		})
+
+		It("should create additional ClusterRole and ClusterRoleBinding for greenhouse organization", func() {
+			testOrgName := "greenhouse"
+
+			// Check if greenhouse organization already exists, create if not
+			org := &greenhousev1alpha1.Organization{}
+			err := setup.Get(test.Ctx, types.NamespacedName{Name: testOrgName}, org)
+			if err != nil {
+				if apierrors.IsNotFound(err) {
+					setup.CreateOrganization(test.Ctx, testOrgName)
+				} else {
+					Fail("unexpected error checking greenhouse organization: " + err.Error())
+				}
+			}
+
+			// Wait for regular RBAC to be created first
+			serviceAccountName := testOrgName + "-plugin-definition-catalog"
+			serviceAccount := &corev1.ServiceAccount{}
+			Eventually(func() error {
+				return setup.Get(test.Ctx, types.NamespacedName{Name: serviceAccountName, Namespace: testOrgName}, serviceAccount)
+			}).ShouldNot(HaveOccurred(), "ServiceAccount should be created")
+
+			// Check ClusterRole creation
+			clusterRoleName := "greenhouse-plugin-definition-catalog"
+			clusterRole := &rbacv1.ClusterRole{}
+			Eventually(func() error {
+				return setup.Get(test.Ctx, types.NamespacedName{Name: clusterRoleName}, clusterRole)
+			}).ShouldNot(HaveOccurred(), "ClusterRole should be created for greenhouse organization")
+
+			Expect(clusterRole.Name).To(Equal(clusterRoleName))
+			Expect(clusterRole.Rules).To(HaveLen(1))
+			Expect(clusterRole.Rules[0].APIGroups).To(ContainElement("greenhouse.sap"))
+			Expect(clusterRole.Rules[0].Resources).To(ContainElements("plugindefinitions", "clusterplugindefinitions"))
+			Expect(clusterRole.Rules[0].Verbs).To(ContainElements("get", "list", "watch", "create", "update", "patch", "delete"))
+			Expect(clusterRole.OwnerReferences).To(HaveLen(1))
+			Expect(clusterRole.OwnerReferences[0].Kind).To(Equal("Organization"))
+			Expect(clusterRole.OwnerReferences[0].Name).To(Equal(testOrgName))
+
+			// Check ClusterRoleBinding creation
+			clusterRoleBinding := &rbacv1.ClusterRoleBinding{}
+			Eventually(func() error {
+				return setup.Get(test.Ctx, types.NamespacedName{Name: clusterRoleName}, clusterRoleBinding)
+			}).ShouldNot(HaveOccurred(), "ClusterRoleBinding should be created for greenhouse organization")
+
+			Expect(clusterRoleBinding.Name).To(Equal(clusterRoleName))
+			Expect(clusterRoleBinding.RoleRef.Kind).To(Equal("ClusterRole"))
+			Expect(clusterRoleBinding.RoleRef.Name).To(Equal(clusterRoleName))
+			Expect(clusterRoleBinding.Subjects).To(HaveLen(1))
+			Expect(clusterRoleBinding.Subjects[0].Kind).To(Equal("ServiceAccount"))
+			Expect(clusterRoleBinding.Subjects[0].Name).To(Equal(serviceAccountName))
+			Expect(clusterRoleBinding.Subjects[0].Namespace).To(Equal(testOrgName))
+			Expect(clusterRoleBinding.OwnerReferences).To(HaveLen(1))
+			Expect(clusterRoleBinding.OwnerReferences[0].Kind).To(Equal("Organization"))
 		})
 	})
 })
