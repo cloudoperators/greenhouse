@@ -25,6 +25,8 @@ const (
 	member
 	clusterAdmin
 	pluginAdmin
+
+	clusterRoleKind = "ClusterRole"
 )
 
 func (r *OrganizationReconciler) reconcileClusterRole(ctx context.Context, org *greenhouseapisv1alpha1.Organization, group userGroup) error {
@@ -84,7 +86,7 @@ func (r *OrganizationReconciler) reconcileClusterRoleBinding(ctx context.Context
 	result, err := clientutil.CreateOrPatch(ctx, r.Client, clusterRoleBinding, func() error {
 		clusterRoleBinding.RoleRef = rbacv1.RoleRef{
 			APIGroup: rbacv1.GroupName,
-			Kind:     "ClusterRole",
+			Kind:     clusterRoleKind,
 			Name:     clusterRoleBindingName,
 		}
 		clusterRoleBinding.Subjects = []rbacv1.Subject{
@@ -265,7 +267,7 @@ func (r *OrganizationReconciler) reconcileCatalogClusterRoleBinding(ctx context.
 	result, err := clientutil.CreateOrPatch(ctx, r.Client, clusterRoleBinding, func() error {
 		clusterRoleBinding.RoleRef = rbacv1.RoleRef{
 			APIGroup: rbacv1.GroupName,
-			Kind:     rbacv1.ClusteRoleKind,
+			Kind:     clusterRoleKind,
 			Name:     rbac.OrgCatalogRoleName(org.Name),
 		}
 		clusterRoleBinding.Subjects = []rbacv1.Subject{
