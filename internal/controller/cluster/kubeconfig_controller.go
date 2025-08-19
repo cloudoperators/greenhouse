@@ -268,29 +268,52 @@ func (r *KubeconfigReconciler) organizationSecretToClusters(ctx context.Context,
 }
 
 func calculateKubeconfigStatus(ck *v1alpha1.ClusterKubeconfig) v1alpha1.ClusterKubeconfigStatus {
-	// new creation
+	// start from current status
 	status := ck.Status.DeepCopy()
+
+	// on first creation
 	if len(status.Conditions.Conditions) == 0 {
-		status.Conditions.SetConditions(greenhousemetav1alpha1.TrueCondition(v1alpha1.KubeconfigCreatedCondition, "NewCreation", ""))
+		status.Conditions.SetConditions(
+			greenhousemetav1alpha1.TrueCondition(v1alpha1.KubeconfigCreatedCondition, "NewCreation", ""),
+		)
 	}
 
+	// ensure all exposed conditions exist
 	for _, ct := range ExposedKubeconfigConditions {
 		if status.Conditions.GetConditionByType(ct) == nil {
 			status.Conditions.SetConditions(greenhousemetav1alpha1.UnknownCondition(ct, "", ""))
 		}
 	}
-	// check for failure
-	reconcileFailedStatus := status.Conditions.GetConditionByType(v1alpha1.KubeconfigReconcileFailedCondition)
-	if reconcileFailedStatus != nil && reconcileFailedStatus.IsTrue() {
-		status.Conditions.SetConditions(greenhousemetav1alpha1.FalseCondition(v1alpha1.KubeconfigReadyCondition, "ReconcileFailed", ""))
-		status.Conditions.SetConditions(greenhousemetav1alpha1.FalseCondition(v1alpha1.KubeconfigCreatedCondition, "ReconcileFailed", ""))
+
+	// determine whether the kubeconfig data is now present/usable
+	hasCluster := len(ck.Spec.Kubeconfig.Clusters) > 0
+	hasAuth    := len(ck.Spec.Kubeconfig.AuthInfo) > 0
+	hasContext := len(ck.Spec.Kubeconfig.Contexts) > 0 && ck.Spec.Kubeconfig.CurrentContext != ""
+
+	isConfigured := hasCluster && hasAuth && hasContext
+
+	if isConfigured {
+		// Spec is populated -> we're ready now; clear any previous failure.
+		status.Conditions.SetConditions(
+			greenhousemetav1alpha1.TrueCondition(v1alpha1.KubeconfigReadyCondition, "Complete", ""),
+		)
+		status.Conditions.SetConditions(
+			greenhousemetav1alpha1.FalseCondition(v1alpha1.KubeconfigReconcileFailedCondition, "ReadyState", ""),
+		)
+		status.Conditions.SetConditions(
+			greenhousemetav1alpha1.FalseCondition(v1alpha1.KubeconfigCreatedCondition, "ReadyState", ""),
+		)
 	} else {
-		status.Conditions.SetConditions(greenhousemetav1alpha1.TrueCondition(v1alpha1.KubeconfigReadyCondition, "Complete", ""))
-		status.Conditions.SetConditions(greenhousemetav1alpha1.FalseCondition(v1alpha1.KubeconfigReconcileFailedCondition, "ReadyState", ""))
-		status.Conditions.SetConditions(greenhousemetav1alpha1.FalseCondition(v1alpha1.KubeconfigCreatedCondition, "ReadyState", ""))
+		// Not yet configured; if there was a failure in this reconcile it will be True already.
+		// Reflect that by ensuring Ready stays false.
+		status.Conditions.SetConditions(
+			greenhousemetav1alpha1.FalseCondition(v1alpha1.KubeconfigReadyCondition, "Incomplete", ""),
+		)
 	}
+
 	return *status
 }
+
 
 var ExposedKubeconfigConditions = []greenhousemetav1alpha1.ConditionType{
 	v1alpha1.KubeconfigCreatedCondition,
