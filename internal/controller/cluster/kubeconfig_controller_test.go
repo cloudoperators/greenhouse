@@ -14,6 +14,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	greenhouseapis "github.com/cloudoperators/greenhouse/api"
+	greenhousemetav1alpha1 "github.com/cloudoperators/greenhouse/api/meta/v1alpha1"
 	"github.com/cloudoperators/greenhouse/api/v1alpha1"
 	"github.com/cloudoperators/greenhouse/internal/test"
 
@@ -81,7 +82,6 @@ var _ = Describe("ClusterKubeconfig controller", Ordered, func() {
 		Eventually(func() error {
 			return test.K8sClient.Get(test.Ctx, types.NamespacedName{Name: secret.Name, Namespace: setup.Namespace()}, &cluster)
 		}).Should(Succeed(), fmt.Sprintf("eventually the cluster %s should exist", secret.Name))
-
 	})
 
 	AfterAll(func() {
@@ -99,6 +99,10 @@ var _ = Describe("ClusterKubeconfig controller", Ordered, func() {
 
 		// ensure conditions are initialized
 		Expect(clusterKubeconfig.Status.Conditions.Conditions).Should(HaveLen(len(clusterpkg.ExposedKubeconfigConditions)))
+		// and reconcile failed should be false on success
+		failed := clusterKubeconfig.Status.Conditions.GetConditionByType(v1alpha1.KubeconfigReconcileFailedCondition)
+		Expect(failed).NotTo(BeNil())
+		Expect(failed.Status).To(Equal(metav1.ConditionFalse))
 	})
 
 	It("should ClusterKubeconfig has correct kubeconfig data", func() {
@@ -171,7 +175,6 @@ users:
 		Expect(clusterKubeconfig.Status.Conditions.IsReadyTrue()).To(BeTrue())
 		Expect(clusterKubeconfig.Spec.Kubeconfig.Clusters).Should(HaveLen(1))
 		Expect(clusterKubeconfig.Spec.Kubeconfig.Clusters[0].Cluster.CertificateAuthorityData).Should(Equal(cfg.Clusters[cfg.Contexts[cfg.CurrentContext].Cluster].CertificateAuthorityData))
-
 	})
 
 	It("should update ClusterKubeconfig when organization OIDC data changes", func() {
@@ -192,7 +195,6 @@ users:
 		Expect(clusterKubeconfig.Spec.Kubeconfig.AuthInfo[0].AuthInfo.AuthProvider.Config).Should(HaveLen(3))
 		Expect(clusterKubeconfig.Spec.Kubeconfig.AuthInfo[0].AuthInfo.AuthProvider.Config["client-id"]).Should(Equal(oidcClientID))
 		Expect(clusterKubeconfig.Spec.Kubeconfig.AuthInfo[0].AuthInfo.AuthProvider.Config["client-secret"]).Should(Equal(oidcClientSecret))
-
 	})
 
 	It("should update ClusterKubeconfig when organization OIDC secret changes", func() {
@@ -212,24 +214,59 @@ users:
 		Expect(clusterKubeconfig.Spec.Kubeconfig.AuthInfo).Should(HaveLen(1))
 		Expect(clusterKubeconfig.Spec.Kubeconfig.AuthInfo[0].AuthInfo.AuthProvider.Config).Should(HaveLen(3))
 		Expect(clusterKubeconfig.Spec.Kubeconfig.AuthInfo[0].AuthInfo.AuthProvider.Config["client-secret"]).Should(Equal(oidcClientSecret))
-
 	})
 
-	It("should fail with ClusterKubeconfig when organization OIDC data is not found", func() {
-		organization := v1alpha1.Organization{}
-		Expect(test.K8sClient.Get(test.Ctx, types.NamespacedName{Name: setup.Namespace(), Namespace: setup.Namespace()}, &organization)).To(Succeed())
-		organization.Spec.Authentication.OIDCConfig = nil
-		Expect(test.K8sClient.Update(test.Ctx, &organization)).To(Succeed())
+	It("should fail with ClusterKubeconfig when organization OIDC data is not found (fresh reconcile)", func() {
+		// Delete the existing ClusterKubeconfig so the next reconcile starts from a clean slate
+		existing := v1alpha1.ClusterKubeconfig{}
+		Expect(test.K8sClient.Get(test.Ctx, types.NamespacedName{Name: cluster.Name, Namespace: setup.Namespace()}, &existing)).To(Succeed())
+		Expect(test.K8sClient.Delete(test.Ctx, &existing)).To(Succeed())
+		test.EventuallyDeleted(test.Ctx, test.K8sClient, &existing)
 
+		// Now remove OIDC from the organization so reconcile cannot populate AuthInfo
+		org := v1alpha1.Organization{}
+		Expect(test.K8sClient.Get(test.Ctx, types.NamespacedName{Name: setup.Namespace(), Namespace: setup.Namespace()}, &org)).To(Succeed())
+		org.Spec.Authentication.OIDCConfig = nil
+		Expect(test.K8sClient.Update(test.Ctx, &org)).To(Succeed())
+
+		// A newly created ClusterKubeconfig should report failure and not be Ready
 		clusterKubeconfig := v1alpha1.ClusterKubeconfig{}
-
 		Eventually(func(g Gomega) bool {
-			g.Expect(test.K8sClient.Get(test.Ctx, types.NamespacedName{Name: cluster.Name, Namespace: setup.Namespace()}, &clusterKubeconfig)).ShouldNot(HaveOccurred(), "There should be no error getting the ClusterKubeconfig resource")
+			g.Expect(test.K8sClient.Get(test.Ctx, types.NamespacedName{Name: cluster.Name, Namespace: setup.Namespace()}, &clusterKubeconfig)).Should(Succeed())
 			return clusterKubeconfig.Status.Conditions.IsReadyTrue()
 		}).Should(BeFalse())
 
-		// check for reconcile failed condition
-		Expect(clusterKubeconfig.Status.Conditions.GetConditionByType(v1alpha1.KubeconfigReconcileFailedCondition)).NotTo(BeNil())
-		Expect(clusterKubeconfig.Status.Conditions.GetConditionByType(v1alpha1.KubeconfigReconcileFailedCondition).Status).To(Equal(metav1.ConditionTrue))
+		cond := clusterKubeconfig.Status.Conditions.GetConditionByType(v1alpha1.KubeconfigReconcileFailedCondition)
+		Expect(cond).NotTo(BeNil())
+		Expect(cond.Status).To(Equal(metav1.ConditionTrue))
+	})
+
+	It("should clear ReconcileFailed once OIDC data is restored (no sticky failure)", func() {
+		// Restore OIDC config
+		org := v1alpha1.Organization{}
+		Expect(test.K8sClient.Get(test.Ctx, types.NamespacedName{Name: setup.Namespace(), Namespace: setup.Namespace()}, &org)).To(Succeed())
+		org.Spec.Authentication.OIDCConfig = &v1alpha1.OIDCConfig{
+			Issuer: oidcIssuer,
+			ClientIDReference: greenhousemetav1alpha1.SecretKeyReference{
+				Name: oidcSecretResource,
+				Key:  oidcClientIDKey,
+			},
+			ClientSecretReference: greenhousemetav1alpha1.SecretKeyReference{
+				Name: oidcSecretResource,
+				Key:  oidcClientSecretKey,
+			},
+		}
+		Expect(test.K8sClient.Update(test.Ctx, &org)).To(Succeed())
+
+		// After a successful reconcile, Ready should be True and ReconcileFailed cleared
+		clusterKubeconfig := v1alpha1.ClusterKubeconfig{}
+		Eventually(func(g Gomega) bool {
+			g.Expect(test.K8sClient.Get(test.Ctx, types.NamespacedName{Name: cluster.Name, Namespace: setup.Namespace()}, &clusterKubeconfig)).Should(Succeed())
+			return clusterKubeconfig.Status.Conditions.IsReadyTrue()
+		}).Should(BeTrue())
+
+		failed := clusterKubeconfig.Status.Conditions.GetConditionByType(v1alpha1.KubeconfigReconcileFailedCondition)
+		Expect(failed).NotTo(BeNil())
+		Expect(failed.Status).To(Equal(metav1.ConditionFalse))
 	})
 })
