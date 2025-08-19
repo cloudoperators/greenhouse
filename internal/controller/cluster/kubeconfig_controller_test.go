@@ -14,7 +14,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	greenhouseapis "github.com/cloudoperators/greenhouse/api"
-	greenhousemetav1alpha1 "github.com/cloudoperators/greenhouse/api/meta/v1alpha1"
 	"github.com/cloudoperators/greenhouse/api/v1alpha1"
 	"github.com/cloudoperators/greenhouse/internal/test"
 
@@ -247,11 +246,11 @@ users:
 		Expect(test.K8sClient.Get(test.Ctx, types.NamespacedName{Name: setup.Namespace(), Namespace: setup.Namespace()}, &org)).To(Succeed())
 		org.Spec.Authentication.OIDCConfig = &v1alpha1.OIDCConfig{
 			Issuer: oidcIssuer,
-			ClientIDReference: greenhousemetav1alpha1.SecretKeyReference{
+			ClientIDReference: v1alpha1.SecretKeyReference{
 				Name: oidcSecretResource,
 				Key:  oidcClientIDKey,
 			},
-			ClientSecretReference: greenhousemetav1alpha1.SecretKeyReference{
+			ClientSecretReference: v1alpha1.SecretKeyReference{
 				Name: oidcSecretResource,
 				Key:  oidcClientSecretKey,
 			},
