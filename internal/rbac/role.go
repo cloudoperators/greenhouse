@@ -107,3 +107,13 @@ func OrganizationMemberPolicyRules() []rbacv1.PolicyRule {
 func GetTeamRoleName(teamName string) string {
 	return "team:" + teamName
 }
+
+func OrgCatalogPolicyRules(resources []string) []rbacv1.PolicyRule {
+	return []rbacv1.PolicyRule{
+		{
+			Verbs:     []string{"*"},
+			APIGroups: []string{greenhousev1alpha1.GroupVersion.Group},
+			Resources: resources,
+		},
+	}
+}
