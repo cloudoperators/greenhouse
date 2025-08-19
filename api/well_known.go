@@ -74,6 +74,9 @@ const (
 
 	// ConfigMapRefField is the field in the Organization spec that references the ConfigMap containing organizational configuration data.
 	ConfigMapRefField = ".spec.configMapRef"
+
+	// KindClusterPluginDefinitionPlural is the plural form of ClusterPluginDefinition kind.
+	KindClusterPluginDefinitionPlural = "clusterplugindefinitions"
 )
 
 // Team constants
