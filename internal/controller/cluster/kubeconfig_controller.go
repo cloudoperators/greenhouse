@@ -287,7 +287,7 @@ func calculateKubeconfigStatus(ck *v1alpha1.ClusterKubeconfig) v1alpha1.ClusterK
 
 	// determine whether the kubeconfig data is now present/usable
 	hasCluster := len(ck.Spec.Kubeconfig.Clusters) > 0
-	hasAuth    := len(ck.Spec.Kubeconfig.AuthInfo) > 0
+	hasAuth := len(ck.Spec.Kubeconfig.AuthInfo) > 0
 	hasContext := len(ck.Spec.Kubeconfig.Contexts) > 0 && ck.Spec.Kubeconfig.CurrentContext != ""
 
 	isConfigured := hasCluster && hasAuth && hasContext
@@ -313,7 +313,6 @@ func calculateKubeconfigStatus(ck *v1alpha1.ClusterKubeconfig) v1alpha1.ClusterK
 
 	return *status
 }
-
 
 var ExposedKubeconfigConditions = []greenhousemetav1alpha1.ConditionType{
 	v1alpha1.KubeconfigCreatedCondition,
