@@ -125,4 +125,12 @@ resources:
   kind: ClusterPluginDefinition
   path: github.com/cloudoperators/greenhouse/api/v1alpha1
   version: v1alpha1
+- api:
+    crdVersion: v1
+    namespaced: true
+  domain: sap
+  group: greenhouse
+  kind: Catalog
+  path: github.com/cloudoperators/greenhouse/api/greenhouse/v1alpha1
+  version: v1alpha1
 version: "3"

@@ -13,6 +13,89 @@ export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
         /**
+         * Catalog
+         * @description Catalog is the Schema for the catalogs API.
+         */
+        Catalog: {
+            /** @description APIVersion defines the versioned schema of this representation of an object.
+             *     Servers should convert recognized schemas to the latest internal value, and
+             *     may reject unrecognized values.
+             *     More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources */
+            apiVersion?: string;
+            /** @description Kind is a string value representing the REST resource this object represents.
+             *     Servers may infer this from the endpoint the client submits requests to.
+             *     Cannot be updated.
+             *     In CamelCase.
+             *     More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds */
+            kind?: string;
+            metadata?: {
+                name?: string;
+                namespace?: string;
+                /** Format: uuid */
+                uid?: string;
+                resourceVersion?: string;
+                /** Format: date-time */
+                creationTimestamp?: string;
+                /** Format: date-time */
+                deletionTimestamp?: string;
+                labels?: {
+                    [key: string]: string;
+                };
+                annotations?: {
+                    [key: string]: string;
+                };
+            };
+            /** @description CatalogSpec defines the desired state of Catalog. */
+            spec?: {
+                /** @description Overrides are the PluginDefinition overrides to be applied */
+                overrides?: {
+                    /** @description Alias is the alias to apply to the PluginDefinition Name via Kustomize patches
+                     *     For SourceType Helm, this field is passed to postRender Kustomize patch */
+                    alias: string;
+                    /** @description Name is the name of the PluginDefinition to patch with an alias */
+                    name: string;
+                }[];
+                /** @description Source is the medium from which the PluginDefinition needs to be fetched */
+                source: {
+                    /** @description Git is the Git repository source for the PluginDefinition Catalog */
+                    git: {
+                        /** @description Ref is the Git reference (branch, tag, or SHA) to resolve the ClusterPluginDefinition / PluginDefinition Catalog */
+                        ref?: {
+                            branch?: string;
+                            sha?: string;
+                            tag?: string;
+                        };
+                        /** @description Repository is the URL of the GitHub repository containing the ClusterPluginDefinition / PluginDefinition Catalog */
+                        url: string;
+                    };
+                    /** @description Path is the path within the repository where the ClusterPluginDefinition / PluginDefinition Catalog is located
+                     *     an empty path indicates the root of the repository */
+                    path?: string;
+                };
+            };
+            /** @description CatalogStatus defines the observed state of Catalog. */
+            status?: {
+                /** @description StatusConditions contain the different conditions that constitute the status of the Catalog */
+                statusConditions?: {
+                    conditions?: {
+                        /**
+                         * Format: date-time
+                         * @description LastTransitionTime is the last time the condition transitioned from one status to another.
+                         */
+                        lastTransitionTime: string;
+                        /** @description Message is an optional human readable message indicating details about the last transition. */
+                        message?: string;
+                        /** @description Reason is a one-word, CamelCase reason for the condition's last transition. */
+                        reason?: string;
+                        /** @description Status of the condition. */
+                        status: string;
+                        /** @description Type of the condition. */
+                        type: string;
+                    }[];
+                };
+            };
+        };
+        /**
          * ClusterKubeconfig
          * @description ClusterKubeconfig is the Schema for the clusterkubeconfigs API
          *     ObjectMeta.OwnerReferences is used to link the ClusterKubeconfig to the Cluster
