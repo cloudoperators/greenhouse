@@ -144,7 +144,7 @@ var _ = Describe("ClusterKubeconfig controller", Ordered, func() {
 			return clusterKubeconfig.Labels["key"]
 		}).Should(Equal("value"))
 	})
-	
+
 	It("should update ClusterKubeconfig when cluster secret data changes", func() {
 
 		nextKubeconfig := []byte(`

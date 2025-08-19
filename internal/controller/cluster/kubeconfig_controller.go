@@ -146,7 +146,7 @@ func (r *KubeconfigReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 
 		// Mirror the cluster's labels
 		kubeconfig.Labels = cluster.GetLabels()
-		
+
 		kubeconfig.Spec.Kubeconfig.Clusters = []v1alpha1.ClusterKubeconfigClusterItem{
 			{
 				Name: cluster.Name,
