@@ -215,57 +215,62 @@ users:
 		Expect(clusterKubeconfig.Spec.Kubeconfig.AuthInfo[0].AuthInfo.AuthProvider.Config["client-secret"]).Should(Equal(oidcClientSecret))
 	})
 
-	It("should fail with ClusterKubeconfig when organization OIDC data is not found (fresh reconcile)", func() {
-		// Delete the existing ClusterKubeconfig so the next reconcile starts from a clean slate
-		existing := v1alpha1.ClusterKubeconfig{}
-		Expect(test.K8sClient.Get(test.Ctx, types.NamespacedName{Name: cluster.Name, Namespace: setup.Namespace()}, &existing)).To(Succeed())
-		Expect(test.K8sClient.Delete(test.Ctx, &existing)).To(Succeed())
-		test.EventuallyDeleted(test.Ctx, test.K8sClient, &existing)
-
-		// Now remove OIDC from the organization so reconcile cannot populate AuthInfo
+	It("should fail with ClusterKubeconfig when organization OIDC data is not found", func() {
 		org := v1alpha1.Organization{}
 		Expect(test.K8sClient.Get(test.Ctx, types.NamespacedName{Name: setup.Namespace(), Namespace: setup.Namespace()}, &org)).To(Succeed())
 		org.Spec.Authentication.OIDCConfig = nil
 		Expect(test.K8sClient.Update(test.Ctx, &org)).To(Succeed())
 
-		// A newly created ClusterKubeconfig should report failure and not be Ready
 		clusterKubeconfig := v1alpha1.ClusterKubeconfig{}
 		Eventually(func(g Gomega) bool {
 			g.Expect(test.K8sClient.Get(test.Ctx, types.NamespacedName{Name: cluster.Name, Namespace: setup.Namespace()}, &clusterKubeconfig)).Should(Succeed())
 			return clusterKubeconfig.Status.Conditions.IsReadyTrue()
 		}).Should(BeFalse())
 
+		// reconcile failed must be True
 		cond := clusterKubeconfig.Status.Conditions.GetConditionByType(v1alpha1.KubeconfigReconcileFailedCondition)
 		Expect(cond).NotTo(BeNil())
 		Expect(cond.Status).To(Equal(metav1.ConditionTrue))
 	})
 
 	It("should clear ReconcileFailed once OIDC data is restored (no sticky failure)", func() {
-		// Restore OIDC config
 		org := v1alpha1.Organization{}
-		Expect(test.K8sClient.Get(test.Ctx, types.NamespacedName{Name: setup.Namespace(), Namespace: setup.Namespace()}, &org)).To(Succeed())
+		Expect(test.K8sClient.Get(test.Ctx, types.NamespacedName{
+			Name: setup.Namespace(), Namespace: setup.Namespace(),
+		}, &org)).To(Succeed())
+
 		org.Spec.Authentication.OIDCConfig = &v1alpha1.OIDCConfig{
 			Issuer: oidcIssuer,
 			ClientIDReference: v1alpha1.SecretKeyReference{
-				Name: oidcSecretResource,
-				Key:  oidcClientIDKey,
+				Name: oidcSecretResource, Key: oidcClientIDKey,
 			},
 			ClientSecretReference: v1alpha1.SecretKeyReference{
-				Name: oidcSecretResource,
-				Key:  oidcClientSecretKey,
+				Name: oidcSecretResource, Key: oidcClientSecretKey,
 			},
 		}
 		Expect(test.K8sClient.Update(test.Ctx, &org)).To(Succeed())
 
-		// After a successful reconcile, Ready should be True and ReconcileFailed cleared
-		clusterKubeconfig := v1alpha1.ClusterKubeconfig{}
+		// 1) Ready should flip to True
 		Eventually(func(g Gomega) bool {
-			g.Expect(test.K8sClient.Get(test.Ctx, types.NamespacedName{Name: cluster.Name, Namespace: setup.Namespace()}, &clusterKubeconfig)).Should(Succeed())
-			return clusterKubeconfig.Status.Conditions.IsReadyTrue()
+			ck := v1alpha1.ClusterKubeconfig{}
+			g.Expect(test.K8sClient.Get(test.Ctx, types.NamespacedName{
+				Name: cluster.Name, Namespace: setup.Namespace(),
+			}, &ck)).Should(Succeed())
+			return ck.Status.Conditions.IsReadyTrue()
 		}).Should(BeTrue())
 
-		failed := clusterKubeconfig.Status.Conditions.GetConditionByType(v1alpha1.KubeconfigReconcileFailedCondition)
-		Expect(failed).NotTo(BeNil())
-		Expect(failed.Status).To(Equal(metav1.ConditionFalse))
+		// 2) ReconcileFailed should be False
+		Eventually(func(g Gomega) metav1.ConditionStatus {
+			ck := v1alpha1.ClusterKubeconfig{}
+			g.Expect(test.K8sClient.Get(test.Ctx, types.NamespacedName{
+				Name: cluster.Name, Namespace: setup.Namespace(),
+			}, &ck)).Should(Succeed())
+			failed := ck.Status.Conditions.GetConditionByType(v1alpha1.KubeconfigReconcileFailedCondition)
+			if failed == nil {
+				return metav1.ConditionUnknown
+			}
+			return failed.Status
+		}).Should(Equal(metav1.ConditionFalse))
 	})
+
 })

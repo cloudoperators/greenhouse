@@ -292,23 +292,20 @@ func calculateKubeconfigStatus(ck *v1alpha1.ClusterKubeconfig) v1alpha1.ClusterK
 
 	isConfigured := hasCluster && hasAuth && hasContext
 
-	if isConfigured {
-		// Spec is populated -> we're ready now; clear any previous failure.
-		status.Conditions.SetConditions(
-			greenhousemetav1alpha1.TrueCondition(v1alpha1.KubeconfigReadyCondition, "Complete", ""),
-		)
-		status.Conditions.SetConditions(
-			greenhousemetav1alpha1.FalseCondition(v1alpha1.KubeconfigReconcileFailedCondition, "ReadyState", ""),
-		)
-		status.Conditions.SetConditions(
-			greenhousemetav1alpha1.FalseCondition(v1alpha1.KubeconfigCreatedCondition, "ReadyState", ""),
-		)
-	} else {
-		// Not yet configured; if there was a failure in this reconcile it will be True already.
-		// Reflect that by ensuring Ready stays false.
-		status.Conditions.SetConditions(
-			greenhousemetav1alpha1.FalseCondition(v1alpha1.KubeconfigReadyCondition, "Incomplete", ""),
-		)
+	failed := status.Conditions.GetConditionByType(v1alpha1.KubeconfigReconcileFailedCondition)
+
+	switch {
+	// Success path: spec is configured AND we didn't set a failure in this reconcile.
+	case isConfigured && (failed == nil || failed.Status != metav1.ConditionTrue):
+		status.Conditions.SetConditions(greenhousemetav1alpha1.TrueCondition(v1alpha1.KubeconfigReadyCondition, "Complete", ""))
+		status.Conditions.SetConditions(greenhousemetav1alpha1.FalseCondition(v1alpha1.KubeconfigReconcileFailedCondition, "ReadyState", ""))
+		status.Conditions.SetConditions(greenhousemetav1alpha1.FalseCondition(v1alpha1.KubeconfigCreatedCondition, "ReadyState", ""))
+	// Error path: controller explicitly marked failure this run.
+	case failed != nil && failed.Status == metav1.ConditionTrue:
+		status.Conditions.SetConditions(greenhousemetav1alpha1.FalseCondition(v1alpha1.KubeconfigReadyCondition, "ReconcileFailed", ""))
+	// Incomplete but no explicit failure (should still not be Ready).
+	default:
+		status.Conditions.SetConditions(greenhousemetav1alpha1.FalseCondition(v1alpha1.KubeconfigReadyCondition, "Incomplete", ""))
 	}
 
 	return *status
