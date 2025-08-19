@@ -132,9 +132,7 @@ func (k *KustomizeBuilder) WithPatches(patches []fluxkust.Patch) *KustomizeBuild
 }
 
 func (k *KustomizeBuilder) WithServiceAccountName(name string) *KustomizeBuilder {
-	if name != "" {
-		k.spec.ServiceAccountName = name
-	}
+	k.spec.ServiceAccountName = name
 	return k
 }
 

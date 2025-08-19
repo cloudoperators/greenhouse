@@ -198,17 +198,17 @@ func (r *OrganizationReconciler) reconcileRoleBinding(ctx context.Context, org *
 	return nil
 }
 
-// reconcilePluginDefinitionCatalogServiceAccountResource creates the ServiceAccount for PluginDefinitionCatalog operations.
-func (r *OrganizationReconciler) reconcilePluginDefinitionCatalogServiceAccountResource(ctx context.Context, org *greenhouseapisv1alpha1.Organization) error {
+// reconcileCatalogServiceAccount creates the ServiceAccount for PluginDefinitionCatalog operations.
+func (r *OrganizationReconciler) reconcileCatalogServiceAccount(ctx context.Context, org *greenhouseapisv1alpha1.Organization) error {
 	serviceAccount := &corev1.ServiceAccount{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      rbac.OrganizationPluginDefinitionCatalogServiceAccountName(org.Name),
+			Name:      rbac.OrgCatalogServiceAccountName(org.Name),
 			Namespace: org.Name,
 		},
 	}
 
 	result, err := clientutil.CreateOrPatch(ctx, r.Client, serviceAccount, func() error {
-		return controllerutil.SetControllerReference(org, serviceAccount, r.Scheme())
+		return controllerutil.SetOwnerReference(org, serviceAccount, r.Scheme())
 	})
 	if err != nil {
 		return err
@@ -226,85 +226,16 @@ func (r *OrganizationReconciler) reconcilePluginDefinitionCatalogServiceAccountR
 	return nil
 }
 
-// reconcilePluginDefinitionCatalogRole creates the Role for PluginDefinitionCatalog operations.
-func (r *OrganizationReconciler) reconcilePluginDefinitionCatalogRole(ctx context.Context, org *greenhouseapisv1alpha1.Organization) error {
-	role := &rbacv1.Role{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      rbac.OrganizationPluginDefinitionCatalogRoleName(org.Name),
-			Namespace: org.Name,
-		},
-	}
-
-	result, err := clientutil.CreateOrPatch(ctx, r.Client, role, func() error {
-		role.Rules = rbac.OrganizationPluginDefinitionCatalogPolicyRules()
-		return controllerutil.SetControllerReference(org, role, r.Scheme())
-	})
-	if err != nil {
-		return err
-	}
-
-	switch result {
-	case clientutil.OperationResultCreated:
-		log.FromContext(ctx).Info("created PluginDefinitionCatalog Role", "name", role.Name, "namespace", role.Namespace)
-		r.recorder.Eventf(org, corev1.EventTypeNormal, "CreatedRole", "Created Role %s/%s", role.Namespace, role.Name)
-	case clientutil.OperationResultUpdated:
-		log.FromContext(ctx).Info("updated PluginDefinitionCatalog Role", "name", role.Name, "namespace", role.Namespace)
-		r.recorder.Eventf(org, corev1.EventTypeNormal, "UpdatedRole", "Updated Role %s/%s", role.Namespace, role.Name)
-	}
-
-	return nil
-}
-
-// reconcilePluginDefinitionCatalogRoleBinding creates the RoleBinding for PluginDefinitionCatalog operations.
-func (r *OrganizationReconciler) reconcilePluginDefinitionCatalogRoleBinding(ctx context.Context, org *greenhouseapisv1alpha1.Organization) error {
-	roleBinding := &rbacv1.RoleBinding{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      rbac.OrganizationPluginDefinitionCatalogRoleName(org.Name),
-			Namespace: org.Name,
-		},
-	}
-
-	result, err := clientutil.CreateOrPatch(ctx, r.Client, roleBinding, func() error {
-		roleBinding.RoleRef = rbacv1.RoleRef{
-			APIGroup: rbacv1.GroupName,
-			Kind:     "Role",
-			Name:     rbac.OrganizationPluginDefinitionCatalogRoleName(org.Name),
-		}
-		roleBinding.Subjects = []rbacv1.Subject{
-			{
-				Kind:      "ServiceAccount",
-				Name:      rbac.OrganizationPluginDefinitionCatalogServiceAccountName(org.Name),
-				Namespace: org.Name,
-			},
-		}
-		return controllerutil.SetControllerReference(org, roleBinding, r.Scheme())
-	})
-	if err != nil {
-		return err
-	}
-
-	switch result {
-	case clientutil.OperationResultCreated:
-		log.FromContext(ctx).Info("created PluginDefinitionCatalog RoleBinding", "name", roleBinding.Name, "namespace", roleBinding.Namespace)
-		r.recorder.Eventf(org, corev1.EventTypeNormal, "CreatedRoleBinding", "Created RoleBinding %s/%s", roleBinding.Namespace, roleBinding.Name)
-	case clientutil.OperationResultUpdated:
-		log.FromContext(ctx).Info("updated PluginDefinitionCatalog RoleBinding", "name", roleBinding.Name, "namespace", roleBinding.Namespace)
-		r.recorder.Eventf(org, corev1.EventTypeNormal, "UpdatedRoleBinding", "Updated RoleBinding %s/%s", roleBinding.Namespace, roleBinding.Name)
-	}
-
-	return nil
-}
-
-// reconcileGreenhousePluginDefinitionCatalogClusterRole creates the ClusterRole for Greenhouse organization's PluginDefinitionCatalog operations.
-func (r *OrganizationReconciler) reconcileGreenhousePluginDefinitionCatalogClusterRole(ctx context.Context, org *greenhouseapisv1alpha1.Organization) error {
+// reconcileCatalogClusterRole creates the ClusterRole for Greenhouse organization's PluginDefinitionCatalog operations.
+func (r *OrganizationReconciler) reconcileCatalogClusterRole(ctx context.Context, org *greenhouseapisv1alpha1.Organization) error {
 	clusterRole := &rbacv1.ClusterRole{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: "greenhouse-plugin-definition-catalog",
+			Name: rbac.OrgCatalogRoleName(org.Name),
 		},
 	}
 
 	result, err := clientutil.CreateOrPatch(ctx, r.Client, clusterRole, func() error {
-		clusterRole.Rules = rbac.GreenhousePluginDefinitionCatalogClusterPolicyRules()
+		clusterRole.Rules = rbac.OrgCatalogPolicyRules([]string{"clusterplugindefinitions"})
 		return controllerutil.SetOwnerReference(org, clusterRole, r.Scheme())
 	})
 	if err != nil {
@@ -323,24 +254,24 @@ func (r *OrganizationReconciler) reconcileGreenhousePluginDefinitionCatalogClust
 	return nil
 }
 
-// reconcileGreenhousePluginDefinitionCatalogClusterRoleBinding creates the ClusterRoleBinding for Greenhouse organization's PluginDefinitionCatalog operations.
-func (r *OrganizationReconciler) reconcileGreenhousePluginDefinitionCatalogClusterRoleBinding(ctx context.Context, org *greenhouseapisv1alpha1.Organization) error {
+// reconcileCatalogClusterRoleBinding creates the ClusterRoleBinding for Greenhouse organization's PluginDefinitionCatalog operations.
+func (r *OrganizationReconciler) reconcileCatalogClusterRoleBinding(ctx context.Context, org *greenhouseapisv1alpha1.Organization) error {
 	clusterRoleBinding := &rbacv1.ClusterRoleBinding{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: "greenhouse-plugin-definition-catalog",
+			Name: rbac.OrgCatalogRoleName(org.Name),
 		},
 	}
 
 	result, err := clientutil.CreateOrPatch(ctx, r.Client, clusterRoleBinding, func() error {
 		clusterRoleBinding.RoleRef = rbacv1.RoleRef{
 			APIGroup: rbacv1.GroupName,
-			Kind:     "ClusterRole",
-			Name:     "greenhouse-plugin-definition-catalog",
+			Kind:     rbacv1.ClusteRoleKind,
+			Name:     rbac.OrgCatalogRoleName(org.Name),
 		}
 		clusterRoleBinding.Subjects = []rbacv1.Subject{
 			{
-				Kind:      "ServiceAccount",
-				Name:      rbac.OrganizationPluginDefinitionCatalogServiceAccountName(org.Name),
+				Kind:      rbacv1.ServiceAccountKind,
+				Name:      rbac.OrgCatalogServiceAccountName(org.Name),
 				Namespace: org.Name,
 			},
 		}

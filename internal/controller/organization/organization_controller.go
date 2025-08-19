@@ -388,24 +388,15 @@ func (r *OrganizationReconciler) enqueueOrganizationsForReferencedConfigMap(ctx 
 
 // reconcilePluginDefinitionCatalogServiceAccount creates a ServiceAccount and associated RBAC for PluginDefinitionCatalog operations.
 func (r *OrganizationReconciler) reconcilePluginDefinitionCatalogServiceAccount(ctx context.Context, org *greenhousev1alpha1.Organization) error {
-	if err := r.reconcilePluginDefinitionCatalogServiceAccountResource(ctx, org); err != nil {
+	if err := r.reconcileCatalogServiceAccount(ctx, org); err != nil {
 		return err
 	}
 
-	if err := r.reconcilePluginDefinitionCatalogRole(ctx, org); err != nil {
-		return err
-	}
-
-	if err := r.reconcilePluginDefinitionCatalogRoleBinding(ctx, org); err != nil {
-		return err
-	}
-
-	// For the greenhouse organization, also create cluster-scoped permissions.
 	if org.Name == defaultGreenhouseConnectorID {
-		if err := r.reconcileGreenhousePluginDefinitionCatalogClusterRole(ctx, org); err != nil {
+		if err := r.reconcileCatalogClusterRole(ctx, org); err != nil {
 			return err
 		}
-		if err := r.reconcileGreenhousePluginDefinitionCatalogClusterRoleBinding(ctx, org); err != nil {
+		if err := r.reconcileCatalogClusterRoleBinding(ctx, org); err != nil {
 			return err
 		}
 	}

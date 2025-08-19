@@ -21,6 +21,7 @@ import (
 	"github.com/cloudoperators/greenhouse/internal/clientutil"
 	"github.com/cloudoperators/greenhouse/internal/dex"
 	dexapi "github.com/cloudoperators/greenhouse/internal/dex/api"
+	"github.com/cloudoperators/greenhouse/internal/rbac"
 	"github.com/cloudoperators/greenhouse/internal/scim"
 	"github.com/cloudoperators/greenhouse/internal/test"
 )
@@ -382,57 +383,6 @@ var _ = Describe("Test Organization reconciliation", Ordered, func() {
 	})
 
 	When("reconciling PluginDefinitionCatalog ServiceAccount", Ordered, func() {
-		It("should create ServiceAccount, Role and RoleBinding for regular organization", func() {
-			testOrgName := "test-org-serviceaccount"
-			setup.CreateOrganization(test.Ctx, testOrgName)
-
-			// Check ServiceAccount creation
-			serviceAccountName := testOrgName + "-plugin-definition-catalog"
-			serviceAccount := &corev1.ServiceAccount{}
-			Eventually(func() error {
-				return setup.Get(test.Ctx, types.NamespacedName{Name: serviceAccountName, Namespace: testOrgName}, serviceAccount)
-			}).ShouldNot(HaveOccurred(), "ServiceAccount should be created")
-
-			Expect(serviceAccount.Name).To(Equal(serviceAccountName))
-			Expect(serviceAccount.Namespace).To(Equal(testOrgName))
-			Expect(serviceAccount.OwnerReferences).To(HaveLen(1))
-			Expect(serviceAccount.OwnerReferences[0].Kind).To(Equal("Organization"))
-			Expect(serviceAccount.OwnerReferences[0].Name).To(Equal(testOrgName))
-
-			// Check Role creation
-			roleName := testOrgName + "-plugin-definition-catalog"
-			role := &rbacv1.Role{}
-			Eventually(func() error {
-				return setup.Get(test.Ctx, types.NamespacedName{Name: roleName, Namespace: testOrgName}, role)
-			}).ShouldNot(HaveOccurred(), "Role should be created")
-
-			Expect(role.Name).To(Equal(roleName))
-			Expect(role.Namespace).To(Equal(testOrgName))
-			Expect(role.Rules).To(HaveLen(1))
-			Expect(role.Rules[0].APIGroups).To(ContainElement("greenhouse.sap"))
-			Expect(role.Rules[0].Resources).To(ContainElement("plugindefinitions"))
-			Expect(role.Rules[0].Verbs).To(ContainElements("get", "list", "watch", "create", "update", "patch", "delete"))
-			Expect(role.OwnerReferences).To(HaveLen(1))
-			Expect(role.OwnerReferences[0].Kind).To(Equal("Organization"))
-
-			// Check RoleBinding creation
-			roleBinding := &rbacv1.RoleBinding{}
-			Eventually(func() error {
-				return setup.Get(test.Ctx, types.NamespacedName{Name: roleName, Namespace: testOrgName}, roleBinding)
-			}).ShouldNot(HaveOccurred(), "RoleBinding should be created")
-
-			Expect(roleBinding.Name).To(Equal(roleName))
-			Expect(roleBinding.Namespace).To(Equal(testOrgName))
-			Expect(roleBinding.RoleRef.Kind).To(Equal("Role"))
-			Expect(roleBinding.RoleRef.Name).To(Equal(roleName))
-			Expect(roleBinding.Subjects).To(HaveLen(1))
-			Expect(roleBinding.Subjects[0].Kind).To(Equal("ServiceAccount"))
-			Expect(roleBinding.Subjects[0].Name).To(Equal(serviceAccountName))
-			Expect(roleBinding.Subjects[0].Namespace).To(Equal(testOrgName))
-			Expect(roleBinding.OwnerReferences).To(HaveLen(1))
-			Expect(roleBinding.OwnerReferences[0].Kind).To(Equal("Organization"))
-		})
-
 		It("should create additional ClusterRole and ClusterRoleBinding for greenhouse organization", func() {
 			testOrgName := "greenhouse"
 
@@ -448,14 +398,14 @@ var _ = Describe("Test Organization reconciliation", Ordered, func() {
 			}
 
 			// Wait for regular RBAC to be created first
-			serviceAccountName := testOrgName + "-plugin-definition-catalog"
+			serviceAccountName := rbac.OrgCatalogServiceAccountName(testOrgName)
 			serviceAccount := &corev1.ServiceAccount{}
 			Eventually(func() error {
 				return setup.Get(test.Ctx, types.NamespacedName{Name: serviceAccountName, Namespace: testOrgName}, serviceAccount)
 			}).ShouldNot(HaveOccurred(), "ServiceAccount should be created")
 
 			// Check ClusterRole creation
-			clusterRoleName := "greenhouse-plugin-definition-catalog"
+			clusterRoleName := rbac.OrgCatalogRoleName(testOrgName)
 			clusterRole := &rbacv1.ClusterRole{}
 			Eventually(func() error {
 				return setup.Get(test.Ctx, types.NamespacedName{Name: clusterRoleName}, clusterRole)
@@ -464,8 +414,8 @@ var _ = Describe("Test Organization reconciliation", Ordered, func() {
 			Expect(clusterRole.Name).To(Equal(clusterRoleName))
 			Expect(clusterRole.Rules).To(HaveLen(1))
 			Expect(clusterRole.Rules[0].APIGroups).To(ContainElement("greenhouse.sap"))
-			Expect(clusterRole.Rules[0].Resources).To(ContainElements("plugindefinitions", "clusterplugindefinitions"))
-			Expect(clusterRole.Rules[0].Verbs).To(ContainElements("get", "list", "watch", "create", "update", "patch", "delete"))
+			Expect(clusterRole.Rules[0].Resources).To(ContainElements("clusterplugindefinitions"))
+			Expect(clusterRole.Rules[0].Verbs).To(ContainElements("*"))
 			Expect(clusterRole.OwnerReferences).To(HaveLen(1))
 			Expect(clusterRole.OwnerReferences[0].Kind).To(Equal("Organization"))
 			Expect(clusterRole.OwnerReferences[0].Name).To(Equal(testOrgName))

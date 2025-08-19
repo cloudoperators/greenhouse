@@ -129,7 +129,7 @@ var _ = Describe("Catalog controller", Ordered, func() {
 			gitRepository.SetNamespace(catalog.Namespace)
 			Expect(mockGitRepositoryReady(gitRepository)).To(Succeed(), "there should be no error mocking the GitRepository ready condition")
 
-			expectedServiceAccountName := rbac.OrganizationPluginDefinitionCatalogServiceAccountName(catalog.Namespace)
+			expectedServiceAccountName := rbac.OrgCatalogServiceAccountName(catalog.Namespace)
 
 			kustomization := &kustomizev1.Kustomization{}
 			kustomization.SetName(catalog.Name)

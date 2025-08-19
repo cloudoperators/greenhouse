@@ -276,7 +276,7 @@ func (r *CatalogReconciler) ensureKustomization(ctx context.Context, gitReposito
 		kuz = kuz.WithPatches(patches)
 	}
 	// Set the ServiceAccount for the organization's PluginDefinitionCatalog operations
-	serviceAccountName := rbac.OrganizationPluginDefinitionCatalogServiceAccountName(catalog.Namespace)
+	serviceAccountName := rbac.OrgCatalogServiceAccountName(catalog.Namespace)
 	kuz = kuz.WithServiceAccountName(serviceAccountName)
 	kustomizationSpec, err := kuz.Build()
 	if err != nil {
