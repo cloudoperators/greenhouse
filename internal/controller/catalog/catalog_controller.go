@@ -28,6 +28,7 @@ import (
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
 	"github.com/cloudoperators/greenhouse/internal/flux"
 	"github.com/cloudoperators/greenhouse/internal/lifecycle"
+	"github.com/cloudoperators/greenhouse/internal/rbac"
 )
 
 type CatalogReconciler struct {
@@ -274,6 +275,9 @@ func (r *CatalogReconciler) ensureKustomization(ctx context.Context, gitReposito
 		}
 		kuz = kuz.WithPatches(patches)
 	}
+	// Set the ServiceAccount for the organization's PluginDefinitionCatalog operations
+	serviceAccountName := rbac.OrgCatalogServiceAccountName(catalog.Namespace)
+	kuz = kuz.WithServiceAccountName(serviceAccountName)
 	kustomizationSpec, err := kuz.Build()
 	if err != nil {
 		return err
