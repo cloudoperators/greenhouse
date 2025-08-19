@@ -75,7 +75,7 @@ var _ = Describe("PluginPreset Admission Tests", Ordered, func() {
 
 		err := test.K8sClient.Create(test.Ctx, cut)
 		Expect(err).To(HaveOccurred())
-		Expect(err.Error()).To(ContainSubstring("PluginDefinition must be set"))
+		Expect(err.Error()).To(ContainSubstring("either pluginDefinitionRef or pluginDefinition must be set"))
 	})
 
 	It("should reject PluginPreset with a PluginSpec containing a ClusterName", func() {
@@ -88,6 +88,10 @@ var _ = Describe("PluginPreset Admission Tests", Ordered, func() {
 				ClusterSelector: metav1.LabelSelector{MatchLabels: map[string]string{"foo": "bar"}},
 				Plugin: greenhousev1alpha1.PluginSpec{
 					ClusterName: "cluster",
+					PluginDefinitionRef: greenhousemetav1alpha1.PluginDefinitionReference{
+						Name: pluginPresetDefinition,
+						Kind: "ClusterPluginDefinition",
+					},
 				},
 			},
 		}

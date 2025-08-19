@@ -105,6 +105,10 @@ var _ = Describe("PluginPreset Admission Tests", Ordered, func() {
 			}),
 			test.WithPluginPresetPluginTemplateSpec(greenhousev1alpha2.PluginTemplateSpec{
 				ClusterName: "cluster",
+				PluginDefinitionRef: greenhousemetav1alpha1.PluginDefinitionReference{
+					Name: pluginPresetDefinition,
+					Kind: "ClusterPluginDefinition",
+				},
 			}),
 			test.WithPluginPresetLabel(greenhouseapis.LabelKeyOwnedBy, teamWithSupportGroupName),
 		)
@@ -118,7 +122,10 @@ var _ = Describe("PluginPreset Admission Tests", Ordered, func() {
 	It("should reject PluginPreset without clusterName or labelSelector in ClusterSelector", func() {
 		cut := test.NewPluginPreset(pluginPresetCreate, test.TestNamespace,
 			test.WithPluginPresetPluginTemplateSpec(greenhousev1alpha2.PluginTemplateSpec{
-				PluginDefinition: pluginPresetDefinition,
+				PluginDefinitionRef: greenhousemetav1alpha1.PluginDefinitionReference{
+					Name: pluginPresetDefinition,
+					Kind: "ClusterPluginDefinition",
+				},
 			}),
 			test.WithPluginPresetLabel(greenhouseapis.LabelKeyOwnedBy, teamWithSupportGroupName),
 		)
@@ -132,7 +139,10 @@ var _ = Describe("PluginPreset Admission Tests", Ordered, func() {
 	It("should reject PluginPreset with both clusterName and labelSelector in ClusterSelector", func() {
 		cut := test.NewPluginPreset(pluginPresetCreate, test.TestNamespace,
 			test.WithPluginPresetPluginTemplateSpec(greenhousev1alpha2.PluginTemplateSpec{
-				PluginDefinition: pluginPresetDefinition,
+				PluginDefinitionRef: greenhousemetav1alpha1.PluginDefinitionReference{
+					Name: pluginPresetDefinition,
+					Kind: "ClusterPluginDefinition",
+				},
 			}),
 			test.WithPluginPresetLabel(greenhouseapis.LabelKeyOwnedBy, teamWithSupportGroupName),
 			test.WithPluginPresetClusterSelector(greenhousev1alpha2.ClusterSelector{
@@ -241,6 +251,23 @@ var _ = Describe("PluginPreset Admission Tests", Ordered, func() {
 		Expect(warns).To(BeNil(), "expected no warnings")
 		Expect(err).ToNot(HaveOccurred(), "there should be no error deleting PluginPreset without annotations")
 	})
+
+	It("should accept creating the PluginPreset after defaulting with deprecated PluginDefinition field set", func() {
+		cut := test.NewPluginPreset(pluginPresetCreate, test.TestNamespace,
+			test.WithPluginPresetClusterSelector(greenhousev1alpha2.ClusterSelector{
+				Name: "cluster-a",
+			}),
+			test.WithPluginPresetLabel(greenhouseapis.LabelKeyOwnedBy, teamWithSupportGroupName),
+			test.WithPluginPresetPluginTemplateSpec(greenhousev1alpha2.PluginTemplateSpec{
+				PluginDefinition: pluginPresetDefinition,
+			}),
+		)
+		err := webhookv1alpha2.DefaultPluginPreset(test.Ctx, test.K8sClient, cut)
+		Expect(err).ToNot(HaveOccurred(), "expected no error on defaulting")
+		warns, err := webhookv1alpha2.ValidateCreatePluginPreset(test.Ctx, test.K8sClient, cut)
+		Expect(warns).To(BeNil(), "expected no warnings")
+		Expect(err).ToNot(HaveOccurred(), "expected no error")
+	})
 })
 
 var _ = Describe("Validate Plugin OptionValues for PluginPreset", func() {
@@ -256,7 +283,10 @@ var _ = Describe("Validate Plugin OptionValues for PluginPreset", func() {
 			},
 			Spec: greenhousev1alpha2.PluginPresetSpec{
 				Plugin: greenhousev1alpha2.PluginTemplateSpec{
-					PluginDefinition: "test",
+					PluginDefinitionRef: greenhousemetav1alpha1.PluginDefinitionReference{
+						Name: "test",
+						Kind: "ClusterPluginDefinition",
+					},
 					OptionValues: []greenhousemetav1alpha1.PluginOptionValue{
 						{
 							Name:      "test",
@@ -321,8 +351,11 @@ var _ = Describe("Validate Plugin OptionValues for PluginPreset", func() {
 			},
 			Spec: greenhousev1alpha2.PluginPresetSpec{
 				Plugin: greenhousev1alpha2.PluginTemplateSpec{
-					PluginDefinition: "test",
-					OptionValues:     []greenhousemetav1alpha1.PluginOptionValue{},
+					PluginDefinitionRef: greenhousemetav1alpha1.PluginDefinitionReference{
+						Name: "test",
+						Kind: "ClusterPluginDefinition",
+					},
+					OptionValues: []greenhousemetav1alpha1.PluginOptionValue{},
 				},
 				ClusterOptionOverrides: []greenhousev1alpha2.ClusterOptionOverride{
 					{
@@ -408,7 +441,10 @@ var _ = Describe("Validate Plugin OptionValues for PluginPreset", func() {
 			},
 			Spec: greenhousev1alpha2.PluginPresetSpec{
 				Plugin: greenhousev1alpha2.PluginTemplateSpec{
-					PluginDefinition: "test",
+					PluginDefinitionRef: greenhousemetav1alpha1.PluginDefinitionReference{
+						Name: "test",
+						Kind: "ClusterPluginDefinition",
+					},
 					OptionValues: []greenhousemetav1alpha1.PluginOptionValue{
 						{
 							Name:  "test",
@@ -470,8 +506,11 @@ var _ = Describe("Validate Plugin OptionValues for PluginPreset", func() {
 			},
 			Spec: greenhousev1alpha2.PluginPresetSpec{
 				Plugin: greenhousev1alpha2.PluginTemplateSpec{
-					PluginDefinition: "test",
-					OptionValues:     []greenhousemetav1alpha1.PluginOptionValue{},
+					PluginDefinitionRef: greenhousemetav1alpha1.PluginDefinitionReference{
+						Name: "test",
+						Kind: "ClusterPluginDefinition",
+					},
+					OptionValues: []greenhousemetav1alpha1.PluginOptionValue{},
 				},
 				ClusterOptionOverrides: []greenhousev1alpha2.ClusterOptionOverride{
 					{
@@ -537,7 +576,10 @@ var _ = Describe("Validate Plugin OptionValues for PluginPreset", func() {
 			},
 			Spec: greenhousev1alpha2.PluginPresetSpec{
 				Plugin: greenhousev1alpha2.PluginTemplateSpec{
-					PluginDefinition: "test",
+					PluginDefinitionRef: greenhousemetav1alpha1.PluginDefinitionReference{
+						Name: "test",
+						Kind: "ClusterPluginDefinition",
+					},
 					OptionValues: []greenhousemetav1alpha1.PluginOptionValue{
 						{
 							Name:      "test",
@@ -589,8 +631,11 @@ var _ = Describe("Validate Plugin OptionValues for PluginPreset", func() {
 			},
 			Spec: greenhousev1alpha2.PluginPresetSpec{
 				Plugin: greenhousev1alpha2.PluginTemplateSpec{
-					PluginDefinition: "test",
-					OptionValues:     []greenhousemetav1alpha1.PluginOptionValue{},
+					PluginDefinitionRef: greenhousemetav1alpha1.PluginDefinitionReference{
+						Name: "test",
+						Kind: "ClusterPluginDefinition",
+					},
+					OptionValues: []greenhousemetav1alpha1.PluginOptionValue{},
 				},
 				ClusterOptionOverrides: []greenhousev1alpha2.ClusterOptionOverride{
 					{
@@ -648,8 +693,11 @@ var _ = Describe("Validate Plugin OptionValues for PluginPreset", func() {
 				},
 				Spec: greenhousev1alpha2.PluginPresetSpec{
 					Plugin: greenhousev1alpha2.PluginTemplateSpec{
-						PluginDefinition: "test",
-						OptionValues:     []greenhousemetav1alpha1.PluginOptionValue{},
+						PluginDefinitionRef: greenhousemetav1alpha1.PluginDefinitionReference{
+							Name: "test",
+							Kind: "ClusterPluginDefinition",
+						},
+						OptionValues: []greenhousemetav1alpha1.PluginOptionValue{},
 					},
 					ClusterOptionOverrides: []greenhousev1alpha2.ClusterOptionOverride{
 						{

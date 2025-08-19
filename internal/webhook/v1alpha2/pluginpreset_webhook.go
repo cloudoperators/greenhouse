@@ -92,14 +92,19 @@ func ValidateCreatePluginPreset(ctx context.Context, c client.Client, o runtime.
 	var allErrs field.ErrorList
 	var allWarns admission.Warnings
 
+	labelValidationWarning := webhook.ValidateLabelOwnedBy(ctx, c, pp)
+	if labelValidationWarning != "" {
+		allWarns = append(allWarns, "PluginPreset should have a support-group Team set as its owner", labelValidationWarning)
+	}
+
 	// Ensure PluginDefinitionRef is set correctly
-	if fieldErr := validatePluginDefinitionReference(pp); fieldErr != nil {
-		allErrs = append(allErrs, fieldErr)
+	if fieldErr := validatePluginDefinitionReferenceForPluginPreset(pp); fieldErr != nil {
+		return allWarns, fieldErr
 	}
 
 	// Ensure ClusterSelector is set
 	if err := validateClusterSelector(pp.Spec.ClusterSelector, pp.GroupVersionKind().GroupKind()); err != nil {
-		return nil, err
+		return allWarns, err
 	}
 
 	// Ensure ClusterName is not set
@@ -109,11 +114,6 @@ func ValidateCreatePluginPreset(ctx context.Context, c client.Client, o runtime.
 
 	if err := webhook.ValidateReleaseName(pp.Spec.Plugin.ReleaseName); err != nil {
 		allErrs = append(allErrs, field.Invalid(field.NewPath("spec").Child("plugin").Child("releaseName"), pp.Spec.Plugin.ReleaseName, err.Error()))
-	}
-
-	labelValidationWarning := webhook.ValidateLabelOwnedBy(ctx, c, pp)
-	if labelValidationWarning != "" {
-		allWarns = append(allWarns, "PluginPreset should have a support-group Team set as its owner", labelValidationWarning)
 	}
 
 	// ensure PluginDefinition exists and validate OptionValues
@@ -127,9 +127,12 @@ func ValidateCreatePluginPreset(ctx context.Context, c client.Client, o runtime.
 		if apierrors.IsNotFound(err) {
 			allErrs = append(allErrs, field.Invalid(field.NewPath("spec", "plugin", "pluginDefinitionRef", "name"), pp.Spec.Plugin.PluginDefinitionRef.Name,
 				fmt.Sprintf("referenced PluginDefinition %s does not exist in namespace %s", pp.Spec.Plugin.PluginDefinitionRef.Name, pp.Spec.Plugin.PluginDefinitionRef.Namespace)))
-		} else if err != nil {
+			break
+		}
+		if err != nil {
 			allErrs = append(allErrs, field.Invalid(field.NewPath("spec", "plugin", "pluginDefinitionRef", "name"), pp.Spec.Plugin.PluginDefinitionRef.Name,
 				fmt.Sprintf("referenced PluginDefinition %s could not be retrieved from namespace %s: %s", pp.Spec.Plugin.PluginDefinitionRef.Name, pp.Spec.Plugin.PluginDefinitionRef.Namespace, err.Error())))
+			break
 		}
 		// validate OptionValues defined by the Preset
 		if errList := ValidatePluginOptionValuesForPreset(pp, pluginDefinition.Name, pluginDefinition.Spec); len(errList) > 0 {
@@ -144,9 +147,12 @@ func ValidateCreatePluginPreset(ctx context.Context, c client.Client, o runtime.
 		if apierrors.IsNotFound(err) {
 			allErrs = append(allErrs, field.Invalid(field.NewPath("spec", "plugin", "pluginDefinitionRef", "name"), pp.Spec.Plugin.PluginDefinitionRef.Name,
 				fmt.Sprintf("referenced ClusterPluginDefinition %s does not exist", pp.Spec.Plugin.PluginDefinitionRef.Name)))
-		} else if err != nil {
+			break
+		}
+		if err != nil {
 			allErrs = append(allErrs, field.Invalid(field.NewPath("spec", "plugin", "pluginDefinitionRef", "name"), pp.Spec.Plugin.PluginDefinitionRef.Name,
 				fmt.Sprintf("referenced ClusterPluginDefinition %s could not be retrieved: %s", pp.Spec.Plugin.PluginDefinitionRef.Name, err.Error())))
+			break
 		}
 		// validate OptionValues defined by the Preset
 		if errList := ValidatePluginOptionValuesForPreset(pp, clusterPluginDefinition.Name, clusterPluginDefinition.Spec); len(errList) > 0 {
@@ -163,7 +169,7 @@ func ValidateCreatePluginPreset(ctx context.Context, c client.Client, o runtime.
 	return allWarns, nil
 }
 
-func validatePluginDefinitionReference(pp *greenhousev1alpha2.PluginPreset) *field.Error {
+func validatePluginDefinitionReferenceForPluginPreset(pp *greenhousev1alpha2.PluginPreset) *field.Error {
 	// Require at least one
 	//nolint:staticcheck
 	if pp.Spec.Plugin.PluginDefinitionRef.Name == "" && pp.Spec.Plugin.PluginDefinition == "" {

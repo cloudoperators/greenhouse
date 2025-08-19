@@ -82,49 +82,49 @@ func EffectivePluginDefinitionNameFromPluginPreset(pp *greenhousev1alpha2.Plugin
 // EffectivePluginDefinitionSpecFromPlugin returns the Spec of a PluginDefinition/ClusterPluginDefinition referenced by the Plugin. To be removed with the deprecated .spec.pluginDefinition field.
 //
 //nolint:staticcheck
-func EffectivePluginDefinitionSpecFromPlugin(ctx context.Context, c client.Client, pp *greenhousev1alpha1.Plugin) (*greenhousemetav1alpha1.PluginDefinitionTemplateSpec, error) {
-	if pp.Spec.PluginDefinitionRef.Name != "" {
-		switch pp.Spec.PluginDefinitionRef.Kind {
+func EffectivePluginDefinitionSpecFromPlugin(ctx context.Context, c client.Client, p *greenhousev1alpha1.Plugin) (*greenhousemetav1alpha1.PluginDefinitionTemplateSpec, error) {
+	if p.Spec.PluginDefinitionRef.Name != "" {
+		switch p.Spec.PluginDefinitionRef.Kind {
 		case "PluginDefinition":
 			pluginDefinition := &greenhousev1alpha1.PluginDefinition{}
 			err := c.Get(ctx, types.NamespacedName{
-				Namespace: pp.Spec.PluginDefinitionRef.Namespace,
-				Name:      pp.Spec.PluginDefinitionRef.Name,
+				Namespace: p.Spec.PluginDefinitionRef.Namespace,
+				Name:      p.Spec.PluginDefinitionRef.Name,
 			}, pluginDefinition)
 			if apierrors.IsNotFound(err) {
 				return nil, fmt.Errorf("PluginDefinition %s does not exist in namespace %s",
-					pp.Spec.PluginDefinitionRef.Name, pp.Spec.PluginDefinitionRef.Name)
+					p.Spec.PluginDefinitionRef.Name, p.Spec.PluginDefinitionRef.Name)
 			}
 			if err != nil {
 				return nil, fmt.Errorf("failed to get PluginDefinition %s in namespace %s: %s",
-					pp.Spec.PluginDefinitionRef.Name, pp.Spec.PluginDefinitionRef.Namespace, err.Error())
+					p.Spec.PluginDefinitionRef.Name, p.Spec.PluginDefinitionRef.Namespace, err.Error())
 			}
 			return &pluginDefinition.Spec, nil
 		case "ClusterPluginDefinition":
 			clusterPluginDefinition := &greenhousev1alpha1.ClusterPluginDefinition{}
-			err := c.Get(ctx, types.NamespacedName{Name: pp.Spec.PluginDefinitionRef.Name}, clusterPluginDefinition)
+			err := c.Get(ctx, types.NamespacedName{Name: p.Spec.PluginDefinitionRef.Name}, clusterPluginDefinition)
 			if apierrors.IsNotFound(err) {
 				return nil, fmt.Errorf("ClusterPluginDefinition %s does not exist",
-					pp.Spec.PluginDefinitionRef.Name)
+					p.Spec.PluginDefinitionRef.Name)
 			}
 			if err != nil {
 				return nil, fmt.Errorf("failed to get ClusterPluginDefinition %s: %s",
-					pp.Spec.PluginDefinitionRef.Name, err.Error())
+					p.Spec.PluginDefinitionRef.Name, err.Error())
 			}
 			return &clusterPluginDefinition.Spec, nil
 		}
 	}
 	// For already existing PluginPresets get the value from the deprecated field.
-	if pp.Spec.PluginDefinition != "" {
+	if p.Spec.PluginDefinition != "" {
 		clusterPluginDefinition := &greenhousev1alpha1.ClusterPluginDefinition{}
-		err := c.Get(ctx, types.NamespacedName{Name: pp.Spec.PluginDefinition}, clusterPluginDefinition)
+		err := c.Get(ctx, types.NamespacedName{Name: p.Spec.PluginDefinition}, clusterPluginDefinition)
 		if apierrors.IsNotFound(err) {
 			return nil, fmt.Errorf("ClusterPluginDefinition %s does not exist",
-				pp.Spec.PluginDefinition)
+				p.Spec.PluginDefinition)
 		}
 		if err != nil {
 			return nil, fmt.Errorf("failed to get ClusterPluginDefinition %s: %s",
-				pp.Spec.PluginDefinition, err.Error())
+				p.Spec.PluginDefinition, err.Error())
 		}
 		return &clusterPluginDefinition.Spec, nil
 	}
@@ -134,9 +134,9 @@ func EffectivePluginDefinitionSpecFromPlugin(ctx context.Context, c client.Clien
 // EffectivePluginDefinitionNameFromPlugin returns the name of the PluginDefinition/ClusterPluginDefinition referenced by the Plugin. To be removed with the deprecated .spec.pluginDefinition field.
 //
 //nolint:staticcheck
-func EffectivePluginDefinitionNameFromPlugin(pp *greenhousev1alpha1.Plugin) string {
-	if pp.Spec.PluginDefinitionRef.Name != "" {
-		return pp.Spec.PluginDefinitionRef.Name
+func EffectivePluginDefinitionNameFromPlugin(p *greenhousev1alpha1.Plugin) string {
+	if p.Spec.PluginDefinitionRef.Name != "" {
+		return p.Spec.PluginDefinitionRef.Name
 	}
-	return pp.Spec.PluginDefinition
+	return p.Spec.PluginDefinition
 }
