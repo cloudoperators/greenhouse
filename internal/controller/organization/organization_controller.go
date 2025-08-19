@@ -91,7 +91,6 @@ func (r *OrganizationReconciler) SetupWithManager(name string, mgr ctrl.Manager)
 		Named(name).
 		For(&greenhousev1alpha1.Organization{}).
 		Owns(&corev1.Namespace{}).
-		Owns(&corev1.ServiceAccount{}).
 		Owns(&greenhousev1alpha1.Team{}).
 		Owns(&greenhousev1alpha1.TeamRole{}).
 		Owns(&greenhousev1alpha1.Plugin{}).
