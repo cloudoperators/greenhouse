@@ -143,7 +143,6 @@ func (r *KubeconfigReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 
 	// collect oidc data and update kubeconfig
 	result, err := clientutil.CreateOrPatch(ctx, r.Client, &kubeconfig, func() error {
-
 		// Mirror the cluster's labels
 		kubeconfig.Labels = cluster.GetLabels()
 
