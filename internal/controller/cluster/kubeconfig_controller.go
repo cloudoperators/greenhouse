@@ -98,7 +98,7 @@ func (r *KubeconfigReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 					AuthInfo:  "oidc@" + cluster.Name,
 					Namespace: "default",
 				},
-			}},
+			}}
 		kubeconfig.Spec.Kubeconfig.CurrentContext = cluster.Name
 	}
 
@@ -162,7 +162,7 @@ func (r *KubeconfigReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 					Server:                   clusterCfg.Server,
 					CertificateAuthorityData: clusterCfg.CertificateAuthorityData,
 				},
-			}},
+			}}
 		kubeconfig.Spec.Kubeconfig.AuthInfo = []v1alpha1.ClusterKubeconfigAuthInfoItem{
 			{
 				Name: "oidc@" + cluster.Name,
