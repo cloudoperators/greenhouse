@@ -81,7 +81,7 @@ var _ = Describe("Validate Create RoleBinding", Ordered, func() {
 			warns, err := ValidateCreateRoleBinding(test.Ctx, test.K8sClient, rb)
 			Expect(warns).To(BeNil(), "expected no warnings")
 			Expect(err).To(HaveOccurred(), "expected an error")
-			Expect(err).To(MatchError(ContainSubstring("must specify either spec.clusterSelector.name or spec.clusterSelector.labelSelector")))
+			Expect(err).To(MatchError(ContainSubstring("must specify either spec.clusterSelector.clusterName or spec.clusterSelector.labelSelector")))
 		})
 		It("should return an error if both clusterName and clusterSelector are specified", func() {
 			rb := test.NewTeamRoleBinding(test.Ctx, "testBinding", setup.Namespace(),
@@ -95,7 +95,7 @@ var _ = Describe("Validate Create RoleBinding", Ordered, func() {
 			warns, err := ValidateCreateRoleBinding(test.Ctx, test.K8sClient, rb)
 			Expect(warns).To(BeNil(), "expected no warnings")
 			Expect(err).To(HaveOccurred(), "expected an error")
-			Expect(err).To(MatchError(ContainSubstring("cannot specify both spec.clusterSelector.Name and spec.clusterSelector.labelSelector")))
+			Expect(err).To(MatchError(ContainSubstring("cannot specify both spec.clusterSelector.clusterName and spec.clusterSelector.labelSelector")))
 		})
 	})
 

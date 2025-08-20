@@ -13,11 +13,12 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	greenhouseapis "github.com/cloudoperators/greenhouse/api"
+	greenhousemetav1alpha1 "github.com/cloudoperators/greenhouse/api/meta/v1alpha1"
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
 	"github.com/cloudoperators/greenhouse/internal/common"
 )
 
-func GetPluginOptionValuesForPlugin(ctx context.Context, c client.Client, plugin *greenhousev1alpha1.Plugin) ([]greenhousev1alpha1.PluginOptionValue, error) {
+func GetPluginOptionValuesForPlugin(ctx context.Context, c client.Client, plugin *greenhousev1alpha1.Plugin) ([]greenhousemetav1alpha1.PluginOptionValue, error) {
 	var pluginDefinition = new(greenhousev1alpha1.ClusterPluginDefinition)
 	if err := c.Get(ctx, types.NamespacedName{Namespace: "", Name: plugin.Spec.PluginDefinition}, pluginDefinition); err != nil {
 		return nil, err
@@ -40,8 +41,8 @@ func GetPluginOptionValuesForPlugin(ctx context.Context, c client.Client, plugin
 //		  - <name>
 //		teams:
 //		  - <name>
-func GetGreenhouseValues(ctx context.Context, c client.Client, p greenhousev1alpha1.Plugin) ([]greenhousev1alpha1.PluginOptionValue, error) {
-	greenhouseValues := make([]greenhousev1alpha1.PluginOptionValue, 0)
+func GetGreenhouseValues(ctx context.Context, c client.Client, p greenhousev1alpha1.Plugin) ([]greenhousemetav1alpha1.PluginOptionValue, error) {
+	greenhouseValues := make([]greenhousemetav1alpha1.PluginOptionValue, 0)
 	var clusterList = new(greenhousev1alpha1.ClusterList)
 	if err := c.List(ctx, clusterList, &client.ListOptions{Namespace: p.GetNamespace()}); err != nil {
 		return nil, err
@@ -56,7 +57,7 @@ func GetGreenhouseValues(ctx context.Context, c client.Client, p greenhousev1alp
 		return nil, err
 	}
 
-	greenhouseValues = append(greenhouseValues, greenhousev1alpha1.PluginOptionValue{
+	greenhouseValues = append(greenhouseValues, greenhousemetav1alpha1.PluginOptionValue{
 		Name:      "global.greenhouse.clusterNames",
 		Value:     clusterNamesVal,
 		ValueFrom: nil,
@@ -77,7 +78,7 @@ func GetGreenhouseValues(ctx context.Context, c client.Client, p greenhousev1alp
 		return nil, err
 	}
 
-	greenhouseValues = append(greenhouseValues, greenhousev1alpha1.PluginOptionValue{
+	greenhouseValues = append(greenhouseValues, greenhousemetav1alpha1.PluginOptionValue{
 		Name:      "global.greenhouse.teamNames",
 		Value:     teamNamesVal,
 		ValueFrom: nil,
@@ -89,7 +90,7 @@ func GetGreenhouseValues(ctx context.Context, c client.Client, p greenhousev1alp
 		return nil, err
 	}
 
-	greenhouseValues = append(greenhouseValues, greenhousev1alpha1.PluginOptionValue{
+	greenhouseValues = append(greenhouseValues, greenhousemetav1alpha1.PluginOptionValue{
 		Name:      "global.greenhouse.organizationName",
 		Value:     &apiextensionsv1.JSON{Raw: orgNameVal},
 		ValueFrom: nil,
@@ -102,7 +103,7 @@ func GetGreenhouseValues(ctx context.Context, c client.Client, p greenhousev1alp
 			return nil, err
 		}
 
-		greenhouseValues = append(greenhouseValues, greenhousev1alpha1.PluginOptionValue{
+		greenhouseValues = append(greenhouseValues, greenhousemetav1alpha1.PluginOptionValue{
 			Name:      "global.greenhouse.clusterName",
 			Value:     &apiextensionsv1.JSON{Raw: clusterNameVal},
 			ValueFrom: nil,
@@ -114,7 +115,7 @@ func GetGreenhouseValues(ctx context.Context, c client.Client, p greenhousev1alp
 	if err != nil {
 		return nil, err
 	}
-	greenhouseValues = append(greenhouseValues, greenhousev1alpha1.PluginOptionValue{
+	greenhouseValues = append(greenhouseValues, greenhousemetav1alpha1.PluginOptionValue{
 		Name:      "global.greenhouse.baseDomain",
 		Value:     &apiextensionsv1.JSON{Raw: baseDomainVal},
 		ValueFrom: nil,
@@ -126,7 +127,7 @@ func GetGreenhouseValues(ctx context.Context, c client.Client, p greenhousev1alp
 		if err != nil {
 			return nil, err
 		}
-		greenhouseValues = append(greenhouseValues, greenhousev1alpha1.PluginOptionValue{
+		greenhouseValues = append(greenhouseValues, greenhousemetav1alpha1.PluginOptionValue{
 			Name:      "global.greenhouse.ownedBy",
 			Value:     &apiextensionsv1.JSON{Raw: owningTeamVal},
 			ValueFrom: nil,
@@ -135,7 +136,7 @@ func GetGreenhouseValues(ctx context.Context, c client.Client, p greenhousev1alp
 	return greenhouseValues, nil
 }
 
-func setOrAppendNameValue(valueSlice []greenhousev1alpha1.PluginOptionValue, valueToSetOrAppend greenhousev1alpha1.PluginOptionValue) []greenhousev1alpha1.PluginOptionValue {
+func setOrAppendNameValue(valueSlice []greenhousemetav1alpha1.PluginOptionValue, valueToSetOrAppend greenhousemetav1alpha1.PluginOptionValue) []greenhousemetav1alpha1.PluginOptionValue {
 	for idx, val := range valueSlice {
 		if val.Name == valueToSetOrAppend.Name {
 			valueSlice[idx].Value = valueToSetOrAppend.Value

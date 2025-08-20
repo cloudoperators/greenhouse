@@ -15,6 +15,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	greenhouseapis "github.com/cloudoperators/greenhouse/api"
+	greenhousemetav1alpha1 "github.com/cloudoperators/greenhouse/api/meta/v1alpha1"
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
 	greenhousev1alpha2 "github.com/cloudoperators/greenhouse/api/v1alpha2"
 )
@@ -112,11 +113,11 @@ func WithOIDCConfig(issuer, secretName, clientIDKey, clientSecretKey string) fun
 		}
 		org.Spec.Authentication.OIDCConfig = &greenhousev1alpha1.OIDCConfig{
 			Issuer: issuer,
-			ClientIDReference: greenhousev1alpha1.SecretKeyReference{
+			ClientIDReference: greenhousemetav1alpha1.SecretKeyReference{
 				Name: secretName,
 				Key:  clientIDKey,
 			},
-			ClientSecretReference: greenhousev1alpha1.SecretKeyReference{
+			ClientSecretReference: greenhousemetav1alpha1.SecretKeyReference{
 				Name: secretName,
 				Key:  clientSecretKey,
 			},
@@ -252,7 +253,7 @@ func WithPluginLabel(key, value string) func(*greenhousev1alpha1.Plugin) {
 }
 
 // WithPluginOptionValue sets the value of a PluginOptionValue
-func WithPluginOptionValue(name string, value *apiextensionsv1.JSON, valueFrom *greenhousev1alpha1.ValueFromSource) func(*greenhousev1alpha1.Plugin) {
+func WithPluginOptionValue(name string, value *apiextensionsv1.JSON, valueFrom *greenhousemetav1alpha1.ValueFromSource) func(*greenhousev1alpha1.Plugin) {
 	return func(p *greenhousev1alpha1.Plugin) {
 		if value != nil && valueFrom != nil {
 			Fail("value and valueFrom are mutually exclusive")
@@ -265,7 +266,7 @@ func WithPluginOptionValue(name string, value *apiextensionsv1.JSON, valueFrom *
 				return
 			}
 		}
-		p.Spec.OptionValues = append(p.Spec.OptionValues, greenhousev1alpha1.PluginOptionValue{
+		p.Spec.OptionValues = append(p.Spec.OptionValues, greenhousemetav1alpha1.PluginOptionValue{
 			Name:      name,
 			Value:     value,
 			ValueFrom: valueFrom,
@@ -282,7 +283,7 @@ func SetOptionValueForPlugin(plugin *greenhousev1alpha1.Plugin, key, value strin
 		}
 	}
 
-	plugin.Spec.OptionValues = append(plugin.Spec.OptionValues, greenhousev1alpha1.PluginOptionValue{
+	plugin.Spec.OptionValues = append(plugin.Spec.OptionValues, greenhousemetav1alpha1.PluginOptionValue{
 		Name:  key,
 		Value: &apiextensionsv1.JSON{Raw: []byte(value)},
 	})
@@ -308,22 +309,29 @@ func NewPlugin(ctx context.Context, name, namespace string, opts ...func(*greenh
 }
 
 // WithPluginPresetClusterSelector sets the ClusterSelector on a PluginPreset.
-func WithPluginPresetClusterSelector(clusterSelector metav1.LabelSelector) func(*greenhousev1alpha1.PluginPreset) {
-	return func(pp *greenhousev1alpha1.PluginPreset) {
+func WithPluginPresetClusterSelector(clusterSelector greenhousev1alpha2.ClusterSelector) func(*greenhousev1alpha2.PluginPreset) {
+	return func(pp *greenhousev1alpha2.PluginPreset) {
 		pp.Spec.ClusterSelector = clusterSelector
 	}
 }
 
-// WithPluginPresetPluginSpec sets the PluginSpec on a PluginPreset.
-func WithPluginPresetPluginSpec(pluginSpec greenhousev1alpha1.PluginSpec) func(*greenhousev1alpha1.PluginPreset) {
-	return func(pp *greenhousev1alpha1.PluginPreset) {
+// WithPluginPresetPluginTemplateSpec sets the PluginSpec on a PluginPreset.
+func WithPluginPresetPluginTemplateSpec(pluginSpec greenhousev1alpha2.PluginTemplateSpec) func(*greenhousev1alpha2.PluginPreset) {
+	return func(pp *greenhousev1alpha2.PluginPreset) {
 		pp.Spec.Plugin = pluginSpec
 	}
 }
 
+// WithPluginPresetClusterOptionOverrides sets the ClusterOptionOverrides on PluginPreset spec.
+func WithPluginPresetClusterOptionOverrides(overrides []greenhousev1alpha2.ClusterOptionOverride) func(*greenhousev1alpha2.PluginPreset) {
+	return func(pp *greenhousev1alpha2.PluginPreset) {
+		pp.Spec.ClusterOptionOverrides = overrides
+	}
+}
+
 // WithPluginPresetLabel sets the label on a PluginPreset
-func WithPluginPresetLabel(key, value string) func(*greenhousev1alpha1.PluginPreset) {
-	return func(pp *greenhousev1alpha1.PluginPreset) {
+func WithPluginPresetLabel(key, value string) func(*greenhousev1alpha2.PluginPreset) {
+	return func(pp *greenhousev1alpha2.PluginPreset) {
 		if pp.Labels == nil {
 			pp.Labels = make(map[string]string, 1)
 		}
@@ -331,13 +339,20 @@ func WithPluginPresetLabel(key, value string) func(*greenhousev1alpha1.PluginPre
 	}
 }
 
-// NewPluginPreset returns a greenhousev1alpha1.PluginPreset object. Opts can be used to set the desired state of the PluginPreset.
-func NewPluginPreset(name, namespace string, opts ...func(*greenhousev1alpha1.PluginPreset)) *greenhousev1alpha1.PluginPreset {
+// WithPluginPresetAnnotations sets metadata annotations on a PluginPreset.
+func WithPluginPresetAnnotations(annotations map[string]string) func(*greenhousev1alpha2.PluginPreset) {
+	return func(c *greenhousev1alpha2.PluginPreset) {
+		c.SetAnnotations(annotations)
+	}
+}
+
+// NewPluginPreset returns a PluginPreset object. Opts can be used to set the desired state of the PluginPreset.
+func NewPluginPreset(name, namespace string, opts ...func(*greenhousev1alpha2.PluginPreset)) *greenhousev1alpha2.PluginPreset {
 	GinkgoHelper()
-	pluginPreset := &greenhousev1alpha1.PluginPreset{
+	pluginPreset := &greenhousev1alpha2.PluginPreset{
 		TypeMeta: metav1.TypeMeta{
-			Kind:       greenhousev1alpha1.PluginPresetKind,
-			APIVersion: greenhousev1alpha1.GroupVersion.String(),
+			Kind:       greenhousev1alpha2.PluginPresetKind,
+			APIVersion: greenhousev1alpha2.GroupVersion.String(),
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,

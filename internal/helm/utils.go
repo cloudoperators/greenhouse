@@ -7,6 +7,7 @@ import (
 	"sort"
 	"time"
 
+	greenhousemetav1alpha1 "github.com/cloudoperators/greenhouse/api/meta/v1alpha1"
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
 	"github.com/cloudoperators/greenhouse/internal/clientutil"
 )
@@ -22,9 +23,9 @@ func GetHelmTimeout() time.Duration {
 	return time.Duration(val) * time.Second
 }
 
-func MergePluginAndPluginOptionValueSlice(pluginOptions []greenhousev1alpha1.PluginOption, pluginOptionValues []greenhousev1alpha1.PluginOptionValue) []greenhousev1alpha1.PluginOptionValue {
+func MergePluginAndPluginOptionValueSlice(pluginOptions []greenhousev1alpha1.PluginOption, pluginOptionValues []greenhousemetav1alpha1.PluginOptionValue) []greenhousemetav1alpha1.PluginOptionValue {
 	// Make sure there's always a non-nil slice.
-	out := make([]greenhousev1alpha1.PluginOptionValue, 0)
+	out := make([]greenhousemetav1alpha1.PluginOptionValue, 0)
 	defer func() {
 		sort.Slice(out, func(i, j int) bool {
 			return out[i].Name < out[j].Name
@@ -36,7 +37,7 @@ func MergePluginAndPluginOptionValueSlice(pluginOptions []greenhousev1alpha1.Plu
 	}
 	for _, option := range pluginOptions {
 		if option.Default != nil {
-			out = append(out, greenhousev1alpha1.PluginOptionValue{Name: option.Name, Value: option.Default})
+			out = append(out, greenhousemetav1alpha1.PluginOptionValue{Name: option.Name, Value: option.Default})
 		}
 	}
 	for _, pluginVal := range pluginOptionValues {
@@ -46,9 +47,9 @@ func MergePluginAndPluginOptionValueSlice(pluginOptions []greenhousev1alpha1.Plu
 }
 
 // MergePluginOptionValues merges the given src into the dst PluginOptionValue slice.
-func MergePluginOptionValues(dst, src []greenhousev1alpha1.PluginOptionValue) []greenhousev1alpha1.PluginOptionValue {
+func MergePluginOptionValues(dst, src []greenhousemetav1alpha1.PluginOptionValue) []greenhousemetav1alpha1.PluginOptionValue {
 	if dst == nil {
-		dst = make([]greenhousev1alpha1.PluginOptionValue, 0)
+		dst = make([]greenhousemetav1alpha1.PluginOptionValue, 0)
 	}
 	for _, srcOptionValue := range src {
 		dst = setOrAppendNameValue(dst, srcOptionValue)

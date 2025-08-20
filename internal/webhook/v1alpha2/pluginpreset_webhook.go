@@ -1,7 +1,7 @@
-// SPDX-FileCopyrightText: 2024 SAP SE or an SAP affiliate company and Greenhouse contributors
+// SPDX-FileCopyrightText: 2025 SAP SE or an SAP affiliate company and Greenhouse contributors
 // SPDX-License-Identifier: Apache-2.0
 
-package v1alpha1
+package v1alpha2
 
 import (
 	"context"
@@ -15,6 +15,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
+	greenhousev1alpha2 "github.com/cloudoperators/greenhouse/api/v1alpha2"
 	"github.com/cloudoperators/greenhouse/internal/webhook"
 )
 
@@ -22,7 +23,7 @@ import (
 
 func SetupPluginPresetWebhookWithManager(mgr ctrl.Manager) error {
 	return webhook.SetupWebhook(mgr,
-		&greenhousev1alpha1.PluginPreset{},
+		&greenhousev1alpha2.PluginPreset{},
 		webhook.WebhookFuncs{
 			DefaultFunc:        DefaultPluginPreset,
 			ValidateCreateFunc: ValidateCreatePluginPreset,
@@ -32,10 +33,10 @@ func SetupPluginPresetWebhookWithManager(mgr ctrl.Manager) error {
 	)
 }
 
-//+kubebuilder:webhook:path=/mutate-greenhouse-sap-v1alpha1-pluginpreset,mutating=true,failurePolicy=fail,sideEffects=None,groups=greenhouse.sap,resources=pluginpresets,verbs=create;update,versions=v1alpha1,name=mpluginpreset-v1alpha1.kb.io,admissionReviewVersions=v1
+//+kubebuilder:webhook:path=/mutate-greenhouse-sap-v1alpha2-pluginpreset,mutating=true,failurePolicy=fail,sideEffects=None,groups=greenhouse.sap,resources=pluginpresets,verbs=create;update,versions=v1alpha2,name=mpluginpreset-v1alpha2.kb.io,admissionReviewVersions=v1
 
 func DefaultPluginPreset(_ context.Context, _ client.Client, o runtime.Object) error {
-	pluginPreset, ok := o.(*greenhousev1alpha1.PluginPreset)
+	pluginPreset, ok := o.(*greenhousev1alpha2.PluginPreset)
 	if !ok {
 		return nil
 	}
@@ -45,44 +46,32 @@ func DefaultPluginPreset(_ context.Context, _ client.Client, o runtime.Object) e
 		pluginPreset.Annotations = map[string]string{}
 	}
 	if pluginPreset.CreationTimestamp.IsZero() {
-		pluginPreset.Annotations[greenhousev1alpha1.PreventDeletionAnnotation] = "true"
+		pluginPreset.Annotations[greenhousev1alpha2.PreventDeletionAnnotation] = "true"
 	}
 
 	return nil
 }
 
-//+kubebuilder:webhook:path=/validate-greenhouse-sap-v1alpha1-pluginpreset,mutating=false,failurePolicy=fail,sideEffects=None,groups=greenhouse.sap,resources=pluginpresets,verbs=create;update;delete,versions=v1alpha1,name=vpluginpreset-v1alpha1.kb.io,admissionReviewVersions=v1
+//+kubebuilder:webhook:path=/validate-greenhouse-sap-v1alpha2-pluginpreset,mutating=false,failurePolicy=fail,sideEffects=None,groups=greenhouse.sap,resources=pluginpresets,verbs=create;update;delete,versions=v1alpha2,name=vpluginpreset-v1alpha2.kb.io,admissionReviewVersions=v1
 
 func ValidateCreatePluginPreset(ctx context.Context, c client.Client, o runtime.Object) (admission.Warnings, error) {
-	pluginPreset, ok := o.(*greenhousev1alpha1.PluginPreset)
+	pluginPreset, ok := o.(*greenhousev1alpha2.PluginPreset)
 	if !ok {
 		return nil, nil
 	}
 	var allErrs field.ErrorList
 	var allWarns admission.Warnings
 
-	// ensure PluginDefinition is set
+	// ensure PluginDefinition and ClusterSelector are set
 	if pluginPreset.Spec.Plugin.PluginDefinition == "" {
 		allErrs = append(allErrs, field.Invalid(field.NewPath("spec").Child("plugin").Child("pluginDefinition"), pluginPreset.Spec.Plugin.PluginDefinition, "PluginDefinition must be set"))
 	}
 
-	// ensure only one of ClusterName and Cluster selector is set
-	if pluginPreset.Spec.ClusterName != "" && pluginPreset.Spec.ClusterSelector.Size() > 0 {
-		allErrs = append(allErrs, field.Invalid(
-			field.NewPath("spec", "clusterName"),
-			pluginPreset.Spec.ClusterName,
-			"cannot specify both spec.clusterName and spec.clusterSelector",
-		))
-	}
-	if pluginPreset.Spec.ClusterName == "" && pluginPreset.Spec.ClusterSelector.Size() == 0 {
-		allErrs = append(allErrs, field.Invalid(
-			field.NewPath("spec", "clusterSelector"),
-			pluginPreset.Spec.ClusterSelector,
-			"must specify either spec.clusterName or spec.clusterSelector",
-		))
+	if err := validateClusterSelector(pluginPreset.Spec.ClusterSelector, pluginPreset.GroupVersionKind().GroupKind()); err != nil {
+		return nil, err
 	}
 
-	// ensure ClusterName is not set in PluginSpec
+	// ensure ClusterName is not set
 	if pluginPreset.Spec.Plugin.ClusterName != "" {
 		allErrs = append(allErrs, field.Invalid(field.NewPath("spec").Child("plugin").Child("clusterName"), pluginPreset.Spec.Plugin.ClusterName, "spec.plugin.clusterName must not be set"))
 	}
@@ -107,7 +96,7 @@ func ValidateCreatePluginPreset(ctx context.Context, c client.Client, o runtime.
 	}
 
 	// validate OptionValues defined by the Preset
-	if errList := validatePluginOptionValuesForPreset(pluginPreset, pluginDefinition); len(errList) > 0 {
+	if errList := ValidatePluginOptionValuesForPreset(pluginPreset, pluginDefinition); len(errList) > 0 {
 		allErrs = append(allErrs, errList...)
 	}
 
@@ -119,11 +108,11 @@ func ValidateCreatePluginPreset(ctx context.Context, c client.Client, o runtime.
 }
 
 func ValidateUpdatePluginPreset(ctx context.Context, c client.Client, oldObj, curObj runtime.Object) (admission.Warnings, error) {
-	oldPluginPreset, ok := oldObj.(*greenhousev1alpha1.PluginPreset)
+	oldPluginPreset, ok := oldObj.(*greenhousev1alpha2.PluginPreset)
 	if !ok {
 		return nil, nil
 	}
-	pluginPreset, ok := curObj.(*greenhousev1alpha1.PluginPreset)
+	pluginPreset, ok := curObj.(*greenhousev1alpha2.PluginPreset)
 	if !ok {
 		return nil, nil
 	}
@@ -152,15 +141,15 @@ func ValidateUpdatePluginPreset(ctx context.Context, c client.Client, oldObj, cu
 }
 
 func ValidateDeletePluginPreset(_ context.Context, _ client.Client, obj runtime.Object) (admission.Warnings, error) {
-	pluginPreset, ok := obj.(*greenhousev1alpha1.PluginPreset)
+	pluginPreset, ok := obj.(*greenhousev1alpha2.PluginPreset)
 	if !ok {
 		return nil, nil
 	}
 
 	var allErrs field.ErrorList
-	if _, ok := pluginPreset.Annotations[greenhousev1alpha1.PreventDeletionAnnotation]; ok {
-		allErrs = append(allErrs, field.Invalid(field.NewPath("metadata").Child("annotation").Child(greenhousev1alpha1.PreventDeletionAnnotation),
-			pluginPreset.Annotations, fmt.Sprintf("PluginPreset with annotation '%s' set may not be deleted.", greenhousev1alpha1.PreventDeletionAnnotation)))
+	if _, ok := pluginPreset.Annotations[greenhousev1alpha2.PreventDeletionAnnotation]; ok {
+		allErrs = append(allErrs, field.Invalid(field.NewPath("metadata").Child("annotation").Child(greenhousev1alpha2.PreventDeletionAnnotation),
+			pluginPreset.Annotations, fmt.Sprintf("PluginPreset with annotation '%s' set may not be deleted.", greenhousev1alpha2.PreventDeletionAnnotation)))
 	}
 
 	if len(allErrs) > 0 {
@@ -168,21 +157,4 @@ func ValidateDeletePluginPreset(_ context.Context, _ client.Client, obj runtime.
 	}
 
 	return nil, nil
-}
-
-// validatePluginOptionValuesForPreset validates plugin options and their values, but skips the check for required options.
-// Required options are checked at the Plugin creation level, because the preset can override options and we cannot predict what clusters will be a part of the PluginPreset later on.
-func validatePluginOptionValuesForPreset(pluginPreset *greenhousev1alpha1.PluginPreset, pluginDefinition *greenhousev1alpha1.ClusterPluginDefinition) field.ErrorList {
-	var allErrs field.ErrorList
-
-	optionValuesPath := field.NewPath("spec").Child("plugin").Child("optionValues")
-	errors := webhook.ValidatePluginOptionValues(pluginPreset.Spec.Plugin.OptionValues, pluginDefinition.Name, pluginDefinition.Spec, false, optionValuesPath)
-	allErrs = append(allErrs, errors...)
-
-	for idx, overridesForSingleCluster := range pluginPreset.Spec.ClusterOptionOverrides {
-		optionOverridesPath := field.NewPath("spec").Child("clusterOptionOverrides").Index(idx).Child("overrides")
-		errors = webhook.ValidatePluginOptionValues(overridesForSingleCluster.Overrides, pluginDefinition.Name, pluginDefinition.Spec, false, optionOverridesPath)
-		allErrs = append(allErrs, errors...)
-	}
-	return allErrs
 }

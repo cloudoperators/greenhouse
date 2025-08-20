@@ -18,7 +18,9 @@ import (
 
 	helminternal "github.com/cloudoperators/greenhouse/internal/helm"
 
+	greenhousemetav1alpha1 "github.com/cloudoperators/greenhouse/api/meta/v1alpha1"
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
+	greenhousev1alpha2 "github.com/cloudoperators/greenhouse/api/v1alpha2"
 )
 
 const (
@@ -36,9 +38,9 @@ type PluginTemplatePresetOptions struct {
 	pluginDefinitionPath string
 	clusterName          string
 
-	pluginPreset     *greenhousev1alpha1.PluginPreset
+	pluginPreset     *greenhousev1alpha2.PluginPreset
 	pluginDefinition *greenhousev1alpha1.ClusterPluginDefinition
-	values           []greenhousev1alpha1.PluginOptionValue
+	values           []greenhousemetav1alpha1.PluginOptionValue
 }
 
 func newPluginTemplatePresetCmd() *cobra.Command {
@@ -110,7 +112,7 @@ func (o *PluginTemplatePresetOptions) complete() error {
 		return err
 	}
 
-	o.pluginPreset, err = loadFromFile[greenhousev1alpha1.PluginPreset](o.pluginPresetPath)
+	o.pluginPreset, err = loadFromFile[greenhousev1alpha2.PluginPreset](o.pluginPresetPath)
 	if err != nil {
 		return err
 	}
@@ -239,7 +241,7 @@ func (o *PluginTemplatePresetOptions) runHelmTemplate(valuesFile string) error {
 	return nil
 }
 
-func (o *PluginTemplatePresetOptions) getGreenhouseValuesForTemplate() ([]greenhousev1alpha1.PluginOptionValue, error) {
+func (o *PluginTemplatePresetOptions) getGreenhouseValuesForTemplate() ([]greenhousemetav1alpha1.PluginOptionValue, error) {
 	literalPaths := []string{
 		"global.greenhouse.clusterNames",
 		"global.greenhouse.teamNames",
@@ -247,7 +249,7 @@ func (o *PluginTemplatePresetOptions) getGreenhouseValuesForTemplate() ([]greenh
 		"global.greenhouse.ownedBy",
 	}
 
-	var values []greenhousev1alpha1.PluginOptionValue
+	var values []greenhousemetav1alpha1.PluginOptionValue
 
 	for _, path := range literalPaths {
 		value, err := createPluginOptionValue(path, path)
@@ -276,25 +278,25 @@ func (o *PluginTemplatePresetOptions) getGreenhouseValuesForTemplate() ([]greenh
 	return values, nil
 }
 
-func createPluginOptionValue(name, value string) (*greenhousev1alpha1.PluginOptionValue, error) {
+func createPluginOptionValue(name, value string) (*greenhousemetav1alpha1.PluginOptionValue, error) {
 	raw, err := json.Marshal(value)
 	if err != nil {
 		return nil, err
 	}
 
-	return &greenhousev1alpha1.PluginOptionValue{Name: name, Value: &apiextensionsv1.JSON{Raw: raw}}, nil
+	return &greenhousemetav1alpha1.PluginOptionValue{Name: name, Value: &apiextensionsv1.JSON{Raw: raw}}, nil
 }
 
-func (o *PluginTemplatePresetOptions) getClusterSpecificOverrides() []greenhousev1alpha1.PluginOptionValue {
+func (o *PluginTemplatePresetOptions) getClusterSpecificOverrides() []greenhousemetav1alpha1.PluginOptionValue {
 	for _, override := range o.pluginPreset.Spec.ClusterOptionOverrides {
 		if override.ClusterName == o.clusterName {
 			return override.Overrides
 		}
 	}
-	return []greenhousev1alpha1.PluginOptionValue{}
+	return []greenhousemetav1alpha1.PluginOptionValue{}
 }
 
-func (o *PluginTemplatePresetOptions) processSecretsToLiterals(values []greenhousev1alpha1.PluginOptionValue) ([]greenhousev1alpha1.PluginOptionValue, error) {
+func (o *PluginTemplatePresetOptions) processSecretsToLiterals(values []greenhousemetav1alpha1.PluginOptionValue) ([]greenhousemetav1alpha1.PluginOptionValue, error) {
 	for i := range values {
 		if values[i].ValueFrom != nil && values[i].ValueFrom.Secret != nil {
 			literal := fmt.Sprintf("%s/%s", values[i].ValueFrom.Secret.Name, values[i].ValueFrom.Secret.Key)
