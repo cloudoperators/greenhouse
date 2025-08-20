@@ -94,6 +94,7 @@ const (
 	ClusterConnectivityOIDC           = "oidc"
 	GreenhouseHelmDeliveryToolLabel   = "greenhouse.sap/deployment-tool"
 	GreenhouseHelmDeliveryToolFlux    = "flux"
+	FluxReconcileRequestAnnotation    = "reconcile.fluxcd.io/requestedAt"
 )
 
 const (
