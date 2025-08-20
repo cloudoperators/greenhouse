@@ -71,6 +71,7 @@ type OrganizationReconciler struct {
 //+kubebuilder:rbac:groups=greenhouse.sap,resources=teamroles,verbs=get;list;watch;create;update;patch
 //+kubebuilder:rbac:groups="",resources=events,verbs=get;list;watch;create;update;patch
 //+kubebuilder:rbac:groups="",resources=namespaces,verbs=get;list;watch;create;update;patch
+//+kubebuilder:rbac:groups="",resources=serviceaccounts,verbs=get;list;watch;create;update;patch
 //+kubebuilder:rbac:groups=dex.coreos.com,resources=connectors;oauth2clients,verbs=get;list;watch;create;update;patch
 //+kubebuilder:rbac:groups="",resources=secrets,verbs=get;list;watch
 //+kubebuilder:rbac:groups="",resources=configmaps,verbs=get;list;watch
@@ -159,6 +160,12 @@ func (r *OrganizationReconciler) EnsureCreated(ctx context.Context, object lifec
 		org.SetCondition(greenhousemetav1alpha1.FalseCondition(greenhousev1alpha1.OrganizationRBACConfigured, "", err.Error()))
 		return ctrl.Result{}, lifecycle.Failed, err
 	}
+
+	if err := r.reconcilePluginDefinitionCatalogServiceAccount(ctx, org); err != nil {
+		org.SetCondition(greenhousemetav1alpha1.FalseCondition(greenhousev1alpha1.OrganizationRBACConfigured, "", err.Error()))
+		return ctrl.Result{}, lifecycle.Failed, err
+	}
+
 	org.SetCondition(greenhousemetav1alpha1.TrueCondition(greenhousev1alpha1.OrganizationRBACConfigured, "", ""))
 
 	if err := r.reconcileDefaultTeamRoles(ctx, org); err != nil {
@@ -376,4 +383,22 @@ func (r *OrganizationReconciler) enqueueOrganizationForReferencedSecret(_ contex
 
 func (r *OrganizationReconciler) enqueueOrganizationsForReferencedConfigMap(ctx context.Context, o client.Object) []ctrl.Request {
 	return listOrganizationsAsReconcileRequests(ctx, r, client.MatchingFields{greenhouseapis.ConfigMapRefField: o.GetName()})
+}
+
+// reconcilePluginDefinitionCatalogServiceAccount creates a ServiceAccount and associated RBAC for PluginDefinitionCatalog operations.
+func (r *OrganizationReconciler) reconcilePluginDefinitionCatalogServiceAccount(ctx context.Context, org *greenhousev1alpha1.Organization) error {
+	if err := r.reconcileCatalogServiceAccount(ctx, org); err != nil {
+		return err
+	}
+
+	if org.Name == defaultGreenhouseConnectorID {
+		if err := r.reconcileCatalogClusterRole(ctx, org); err != nil {
+			return err
+		}
+		if err := r.reconcileCatalogClusterRoleBinding(ctx, org); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
