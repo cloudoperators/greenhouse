@@ -33,6 +33,14 @@ var pluginsAllowedInCentralCluster = []string{
 	"alerts", "doop", "heureka", "kube-monitoring", "kubeconfig-generator", "perses", "repo-guard", "service-proxy", "teams2slack", "thanos",
 }
 
+// This is the prefix to identify secrets referenced directly from vault/openBao.
+// TODO: Consume this constant from the tool integrating Greenhouse with vault/openBao, once implemented.
+// TODO: Update docs once the complete flow is implemented
+// https://github.com/cloudoperators/greenhouse/issues/1211
+const (
+	VaultPrefix string = "vault+kvv2:///"
+)
+
 // SetupPluginWebhookWithManager configures the webhook for the Plugin custom resource.
 func SetupPluginWebhookWithManager(mgr ctrl.Manager) error {
 	return webhook.SetupWebhook(mgr,
@@ -244,8 +252,14 @@ func validatePluginOptionValues(
 			if pluginOption.Type == greenhousev1alpha1.PluginOptionTypeSecret {
 				switch {
 				case val.Value != nil:
-					allErrs = append(allErrs, field.TypeInvalid(fieldPathWithIndex.Child("value"), "*****",
-						fmt.Sprintf("optionValue %s of type secret must use valueFrom to reference a secret", val.Name)))
+					var valStr string
+					if err := json.Unmarshal(val.Value.Raw, &valStr); err != nil {
+						allErrs = append(allErrs, field.TypeInvalid(fieldPathWithIndex.Child("value"), "*****", err.Error()))
+					}
+					if !strings.HasPrefix(valStr, VaultPrefix) {
+						allErrs = append(allErrs, field.TypeInvalid(fieldPathWithIndex.Child("value"), "*****",
+							fmt.Sprintf("optionValue %s of type secret without secret reference must use value with vault reference prefixed by schema %q", val.Name, VaultPrefix)))
+					}
 					continue
 				case val.ValueFrom != nil:
 					if val.ValueFrom.Secret.Name == "" {
