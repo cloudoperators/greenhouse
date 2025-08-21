@@ -39,6 +39,9 @@ const (
 	// LabelKeyPluginDefinition is used to identify corresponding PluginDefinition for the resource.
 	LabelKeyPluginDefinition = "greenhouse.sap/plugindefinition"
 
+	// LabelKeyClusterPluginDefinition is used to identify the corresponding ClusterPluginDefinition for the resource.
+	LabelKeyClusterPluginDefinition = "greenhouse.sap/clusterplugindefinition"
+
 	// LabelKeyCluster is used to identify corresponding Cluster for the resource.
 	LabelKeyCluster = "greenhouse.sap/cluster"
 
