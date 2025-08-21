@@ -179,7 +179,7 @@ var _ = Describe("Validate PluginDefinition Deletion", func() {
 						Name:      "test-plugin",
 						Namespace: "default",
 						Labels: map[string]string{
-							greenhouseapis.LabelKeyPluginDefinition: "test",
+							greenhouseapis.LabelKeyClusterPluginDefinition: "test",
 						},
 					},
 				},

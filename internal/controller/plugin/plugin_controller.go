@@ -413,7 +413,7 @@ func (r *PluginReconciler) enqueueAllPluginsForPluginDefinition(ctx context.Cont
 	return ListPluginsAsReconcileRequests(
 		ctx,
 		r.Client,
-		client.MatchingLabels{greenhouseapis.LabelKeyPluginDefinition: o.GetName()},
+		client.MatchingLabels{greenhouseapis.LabelKeyClusterPluginDefinition: o.GetName()},
 	)
 }
 
