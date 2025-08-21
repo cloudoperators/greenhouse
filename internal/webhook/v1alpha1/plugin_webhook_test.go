@@ -406,7 +406,7 @@ func expectPluginDefinitionMustMatchError(err error) {
 	ok := errors.As(err, &statusErr)
 	Expect(ok).To(BeTrue(), "error should be a status error")
 	Expect(statusErr.ErrStatus.Reason).To(Equal(metav1.StatusReasonForbidden), "the error should be a status forbidden error")
-	Expect(err.Error()).To(And(ContainSubstring("spec.pluginDefinition"), ContainSubstring("field is required")), "the error message should reflect that the pluginDefinition must be set")
+	Expect(err.Error()).To(And(ContainSubstring("spec.pluginDefinition"), ContainSubstring("PluginDefinition must be set")), "the error message should reflect that the pluginDefinition must be set")
 }
 
 func expectReleaseNamespaceMustMatchError(err error) {

@@ -109,6 +109,8 @@ func ValidateCreatePluginPreset(ctx context.Context, c client.Client, o runtime.
 		return allWarns, apierrors.NewInvalid(pluginPreset.GroupVersionKind().GroupKind(), pluginPreset.Name, allErrs)
 	}
 
+	var pluginDefinitionSpec greenhousev1alpha1.PluginDefinitionSpec
+
 	// ensure (Cluster-)PluginDefinition exists and validate OptionValues defined by the Preset
 	switch pluginPreset.Spec.Plugin.PluginDefinitionKind {
 	case "PluginDefinition":
@@ -118,19 +120,14 @@ func ValidateCreatePluginPreset(ctx context.Context, c client.Client, o runtime.
 			Name:      pluginPreset.Spec.Plugin.PluginDefinition,
 		}, pluginDefinition)
 		if apierrors.IsNotFound(err) {
-			allErrs = append(allErrs, field.Invalid(field.NewPath("spec", "plugin", "pluginDefinition"), pluginPreset.Spec.Plugin.PluginDefinition,
-				fmt.Sprintf("PluginDefinition %s does not exist in namespace %s", pluginPreset.Spec.Plugin.PluginDefinition, pluginPreset.GetNamespace())))
-			break
+			return allWarns, field.Invalid(field.NewPath("spec", "plugin", "pluginDefinition"), pluginPreset.Spec.Plugin.PluginDefinition,
+				fmt.Sprintf("PluginDefinition %s does not exist in namespace %s", pluginPreset.Spec.Plugin.PluginDefinition, pluginPreset.GetNamespace()))
 		}
 		if err != nil {
-			allErrs = append(allErrs, field.Invalid(field.NewPath("spec", "plugin", "pluginDefinition"), pluginPreset.Spec.Plugin.PluginDefinition,
-				fmt.Sprintf("PluginDefinition %s could not be retrieved from namespace %s: %s", pluginPreset.Spec.Plugin.PluginDefinition, pluginPreset.GetNamespace(), err.Error())))
-			break
+			return allWarns, field.Invalid(field.NewPath("spec", "plugin", "pluginDefinition"), pluginPreset.Spec.Plugin.PluginDefinition,
+				fmt.Sprintf("PluginDefinition %s could not be retrieved from namespace %s: %s", pluginPreset.Spec.Plugin.PluginDefinition, pluginPreset.GetNamespace(), err.Error()))
 		}
-		// validate OptionValues defined by the Preset
-		if errList := validatePluginOptionValuesForPreset(pluginPreset, pluginDefinition.Name, pluginDefinition.Spec); len(errList) > 0 {
-			allErrs = append(allErrs, errList...)
-		}
+		pluginDefinitionSpec = pluginDefinition.Spec
 	case "ClusterPluginDefinition":
 		clusterPluginDefinition := &greenhousev1alpha1.ClusterPluginDefinition{}
 		err := c.Get(ctx, types.NamespacedName{
@@ -138,26 +135,23 @@ func ValidateCreatePluginPreset(ctx context.Context, c client.Client, o runtime.
 			Name:      pluginPreset.Spec.Plugin.PluginDefinition,
 		}, clusterPluginDefinition)
 		if apierrors.IsNotFound(err) {
-			allErrs = append(allErrs, field.Invalid(field.NewPath("spec", "plugin", "pluginDefinition"), pluginPreset.Spec.Plugin.PluginDefinition,
-				fmt.Sprintf("ClusterPluginDefinition %s does not exist", pluginPreset.Spec.Plugin.PluginDefinition)))
-			break
+			return allWarns, field.Invalid(field.NewPath("spec", "plugin", "pluginDefinition"), pluginPreset.Spec.Plugin.PluginDefinition,
+				fmt.Sprintf("ClusterPluginDefinition %s does not exist", pluginPreset.Spec.Plugin.PluginDefinition))
 		}
 		if err != nil {
-			allErrs = append(allErrs, field.Invalid(field.NewPath("spec", "plugin", "pluginDefinition"), pluginPreset.Spec.Plugin.PluginDefinition,
-				fmt.Sprintf("ClusterPluginDefinition %s could not be retrieved: %s", pluginPreset.Spec.Plugin.PluginDefinition, err.Error())))
-			break
+			return allWarns, field.Invalid(field.NewPath("spec", "plugin", "pluginDefinition"), pluginPreset.Spec.Plugin.PluginDefinition,
+				fmt.Sprintf("ClusterPluginDefinition %s could not be retrieved: %s", pluginPreset.Spec.Plugin.PluginDefinition, err.Error()))
 		}
-		// validate OptionValues defined by the Preset
-		if errList := validatePluginOptionValuesForPreset(pluginPreset, clusterPluginDefinition.Name, clusterPluginDefinition.Spec); len(errList) > 0 {
-			allErrs = append(allErrs, errList...)
-		}
+		pluginDefinitionSpec = clusterPluginDefinition.Spec
 	default:
-		allErrs = append(allErrs, field.Invalid(field.NewPath("spec", "plugin", "pluginDefinitionKind"), pluginPreset.Spec.Plugin.PluginDefinitionKind, "unsupported PluginDefinitionKind"))
+		return allWarns, field.Invalid(field.NewPath("spec", "plugin", "pluginDefinitionKind"), pluginPreset.Spec.Plugin.PluginDefinitionKind, "unsupported PluginDefinitionKind")
 	}
 
-	if len(allErrs) > 0 {
-		return allWarns, apierrors.NewInvalid(pluginPreset.GroupVersionKind().GroupKind(), pluginPreset.Name, allErrs)
+	// validate OptionValues defined by the Preset
+	if errList := validatePluginOptionValuesForPreset(pluginPreset, pluginPreset.Spec.Plugin.PluginDefinition, pluginDefinitionSpec); len(errList) > 0 {
+		return allWarns, apierrors.NewInvalid(pluginPreset.GroupVersionKind().GroupKind(), pluginPreset.Name, errList)
 	}
+
 	return allWarns, nil
 }
 

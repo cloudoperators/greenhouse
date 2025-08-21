@@ -114,6 +114,27 @@ var _ = Describe("PluginPreset Admission Tests", Ordered, func() {
 		Expect(err.Error()).To(ContainSubstring("ClusterSelector must be set"))
 	})
 
+	It("should reject PluginPreset with non-existing ClusterPluginDefinition", func() {
+		cut := &greenhousev1alpha1.PluginPreset{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      pluginPresetCreate,
+				Namespace: test.TestNamespace,
+			},
+			Spec: greenhousev1alpha1.PluginPresetSpec{
+				Plugin: greenhousev1alpha1.PluginSpec{
+					PluginDefinition:     "non-existing",
+					PluginDefinitionKind: "ClusterPluginDefinition",
+				},
+				ClusterSelector:        metav1.LabelSelector{MatchLabels: map[string]string{"foo": "bar"}},
+				ClusterOptionOverrides: []greenhousev1alpha1.ClusterOptionOverride{},
+			},
+		}
+
+		err := test.K8sClient.Create(test.Ctx, cut)
+		Expect(err).To(HaveOccurred())
+		Expect(err.Error()).To(ContainSubstring("PluginDefinition non-existing does not exist"))
+	})
+
 	It("should reject PluginPreset with non-existing PluginDefinition", func() {
 		cut := &greenhousev1alpha1.PluginPreset{
 			ObjectMeta: metav1.ObjectMeta{
@@ -122,7 +143,8 @@ var _ = Describe("PluginPreset Admission Tests", Ordered, func() {
 			},
 			Spec: greenhousev1alpha1.PluginPresetSpec{
 				Plugin: greenhousev1alpha1.PluginSpec{
-					PluginDefinition: "non-existing",
+					PluginDefinition:     "non-existing",
+					PluginDefinitionKind: "PluginDefinition",
 				},
 				ClusterSelector:        metav1.LabelSelector{MatchLabels: map[string]string{"foo": "bar"}},
 				ClusterOptionOverrides: []greenhousev1alpha1.ClusterOptionOverride{},
@@ -265,7 +287,7 @@ var _ = Describe("Validate Plugin OptionValues for PluginPreset", func() {
 			},
 		}
 
-		errList := validatePluginOptionValuesForPreset(pluginPreset, pluginDefinition)
+		errList := validatePluginOptionValuesForPreset(pluginPreset, pluginDefinition.Name, pluginDefinition.Spec)
 		switch expErr {
 		case true:
 			Expect(errList).ToNot(BeEmpty(), "expected an error, got nil")
@@ -336,7 +358,7 @@ var _ = Describe("Validate Plugin OptionValues for PluginPreset", func() {
 			},
 		}
 
-		errList := validatePluginOptionValuesForPreset(pluginPreset, pluginDefinition)
+		errList := validatePluginOptionValuesForPreset(pluginPreset, pluginDefinition.Name, pluginDefinition.Spec)
 		switch expErr {
 		case true:
 			Expect(errList).ToNot(BeEmpty(), "expected an error, got nil")
@@ -389,7 +411,7 @@ var _ = Describe("Validate Plugin OptionValues for PluginPreset", func() {
 			},
 		}
 
-		errList := validatePluginOptionValuesForPreset(pluginPreset, pluginDefinition)
+		errList := validatePluginOptionValuesForPreset(pluginPreset, pluginDefinition.Name, pluginDefinition.Spec)
 		switch expErr {
 		case true:
 			Expect(errList).ToNot(BeEmpty(), "expected an error, got nil")
@@ -457,7 +479,7 @@ var _ = Describe("Validate Plugin OptionValues for PluginPreset", func() {
 			},
 		}
 
-		errList := validatePluginOptionValuesForPreset(pluginPreset, pluginDefinition)
+		errList := validatePluginOptionValuesForPreset(pluginPreset, pluginDefinition.Name, pluginDefinition.Spec)
 		switch expErr {
 		case true:
 			Expect(errList).ToNot(BeEmpty(), "expected an error, got nil")
@@ -518,7 +540,7 @@ var _ = Describe("Validate Plugin OptionValues for PluginPreset", func() {
 			},
 		}
 
-		errList := validatePluginOptionValuesForPreset(pluginPreset, pluginDefinition)
+		errList := validatePluginOptionValuesForPreset(pluginPreset, pluginDefinition.Name, pluginDefinition.Spec)
 		switch expErr {
 		case true:
 			Expect(errList).ToNot(BeEmpty(), "expected an error, got nil")
@@ -576,7 +598,7 @@ var _ = Describe("Validate Plugin OptionValues for PluginPreset", func() {
 			},
 		}
 
-		errList := validatePluginOptionValuesForPreset(pluginPreset, pluginDefinition)
+		errList := validatePluginOptionValuesForPreset(pluginPreset, pluginDefinition.Name, pluginDefinition.Spec)
 		switch expErr {
 		case true:
 			Expect(errList).ToNot(BeEmpty(), "expected an error, got nil")
@@ -629,7 +651,7 @@ var _ = Describe("Validate Plugin OptionValues for PluginPreset", func() {
 					},
 				},
 			}
-			errList := validatePluginOptionValuesForPreset(pluginPreset, pluginDefinition)
+			errList := validatePluginOptionValuesForPreset(pluginPreset, pluginDefinition.Name, pluginDefinition.Spec)
 			Expect(errList).To(BeEmpty(), "unexpected error")
 		})
 	})
