@@ -23,6 +23,7 @@ jobs:
           # Default: https://github.com/commitizen/conventional-commit-types
           types: |
             build
+            backport
             chore
             fix
             feat
@@ -71,6 +72,7 @@ jobs:
             version
             webhook
             ISSUE-\d+
+            release\/v[0-9]+.[0-9]+
           # Configure that a scope must always be provided.
           requireScope: true
           # Configure which scopes are disallowed in PR titles (newline-delimited).
