@@ -83,7 +83,7 @@ export interface components {
                          * @description LastTransitionTime is the last time the condition transitioned from one status to another.
                          */
                         lastTransitionTime: string;
-                        /** @description Message is an optional human readable message indicating details about the last transition. */
+                        /** @description Message is an optional human-readable message indicating details about the last transition. */
                         message?: string;
                         /** @description Reason is a one-word, CamelCase reason for the condition's last transition. */
                         reason?: string;
@@ -186,7 +186,7 @@ export interface components {
                          * @description LastTransitionTime is the last time the condition transitioned from one status to another.
                          */
                         lastTransitionTime: string;
-                        /** @description Message is an optional human readable message indicating details about the last transition. */
+                        /** @description Message is an optional human-readable message indicating details about the last transition. */
                         message?: string;
                         /** @description Reason is a one-word, CamelCase reason for the condition's last transition. */
                         reason?: string;
@@ -303,7 +303,7 @@ export interface components {
                          * @description LastTransitionTime is the last time the condition transitioned from one status to another.
                          */
                         lastTransitionTime: string;
-                        /** @description Message is an optional human readable message indicating details about the last transition. */
+                        /** @description Message is an optional human-readable message indicating details about the last transition. */
                         message?: string;
                         /** @description Reason is a one-word, CamelCase reason for the condition's last transition. */
                         reason?: string;
@@ -407,7 +407,7 @@ export interface components {
                          * @description LastTransitionTime is the last time the condition transitioned from one status to another.
                          */
                         lastTransitionTime: string;
-                        /** @description Message is an optional human readable message indicating details about the last transition. */
+                        /** @description Message is an optional human-readable message indicating details about the last transition. */
                         message?: string;
                         /** @description Reason is a one-word, CamelCase reason for the condition's last transition. */
                         reason?: string;
@@ -547,7 +547,7 @@ export interface components {
                          * @description LastTransitionTime is the last time the condition transitioned from one status to another.
                          */
                         lastTransitionTime: string;
-                        /** @description Message is an optional human readable message indicating details about the last transition. */
+                        /** @description Message is an optional human-readable message indicating details about the last transition. */
                         message?: string;
                         /** @description Reason is a one-word, CamelCase reason for the condition's last transition. */
                         reason?: string;
@@ -664,7 +664,7 @@ export interface components {
                          * @description LastTransitionTime is the last time the condition transitioned from one status to another.
                          */
                         lastTransitionTime: string;
-                        /** @description Message is an optional human readable message indicating details about the last transition. */
+                        /** @description Message is an optional human-readable message indicating details about the last transition. */
                         message?: string;
                         /** @description Reason is a one-word, CamelCase reason for the condition's last transition. */
                         reason?: string;
@@ -805,7 +805,7 @@ export interface components {
                          * @description LastTransitionTime is the last time the condition transitioned from one status to another.
                          */
                         lastTransitionTime: string;
-                        /** @description Message is an optional human readable message indicating details about the last transition. */
+                        /** @description Message is an optional human-readable message indicating details about the last transition. */
                         message?: string;
                         /** @description Reason is a one-word, CamelCase reason for the condition's last transition. */
                         reason?: string;
@@ -825,7 +825,7 @@ export interface components {
                          * @description LastTransitionTime is the last time the condition transitioned from one status to another.
                          */
                         lastTransitionTime: string;
-                        /** @description Message is an optional human readable message indicating details about the last transition. */
+                        /** @description Message is an optional human-readable message indicating details about the last transition. */
                         message?: string;
                         /** @description Reason is a one-word, CamelCase reason for the condition's last transition. */
                         reason?: string;
@@ -963,7 +963,7 @@ export interface components {
                          * @description LastTransitionTime is the last time the condition transitioned from one status to another.
                          */
                         lastTransitionTime: string;
-                        /** @description Message is an optional human readable message indicating details about the last transition. */
+                        /** @description Message is an optional human-readable message indicating details about the last transition. */
                         message?: string;
                         /** @description Reason is a one-word, CamelCase reason for the condition's last transition. */
                         reason?: string;
@@ -1082,7 +1082,7 @@ export interface components {
                          * @description LastTransitionTime is the last time the condition transitioned from one status to another.
                          */
                         lastTransitionTime: string;
-                        /** @description Message is an optional human readable message indicating details about the last transition. */
+                        /** @description Message is an optional human-readable message indicating details about the last transition. */
                         message?: string;
                         /** @description Reason is a one-word, CamelCase reason for the condition's last transition. */
                         reason?: string;
@@ -1100,7 +1100,7 @@ export interface components {
                          * @description LastTransitionTime is the last time the condition transitioned from one status to another.
                          */
                         lastTransitionTime: string;
-                        /** @description Message is an optional human readable message indicating details about the last transition. */
+                        /** @description Message is an optional human-readable message indicating details about the last transition. */
                         message?: string;
                         /** @description Reason is a one-word, CamelCase reason for the condition's last transition. */
                         reason?: string;
@@ -1261,7 +1261,7 @@ export interface components {
                          * @description LastTransitionTime is the last time the condition transitioned from one status to another.
                          */
                         lastTransitionTime: string;
-                        /** @description Message is an optional human readable message indicating details about the last transition. */
+                        /** @description Message is an optional human-readable message indicating details about the last transition. */
                         message?: string;
                         /** @description Reason is a one-word, CamelCase reason for the condition's last transition. */
                         reason?: string;

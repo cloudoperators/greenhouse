@@ -66,7 +66,12 @@ func DefaultPlugin(ctx context.Context, c client.Client, obj runtime.Object) err
 	}
 	// The label is used to help identifying Plugins, e.g. if a PluginDefinition changes.
 	delete(plugin.Labels, greenhouseapis.LabelKeyPlugin)
-	plugin.Labels[greenhouseapis.LabelKeyPluginDefinition] = plugin.Spec.PluginDefinition
+
+	// TODO: remove this once migration to CPD is done
+	delete(plugin.Labels, greenhouseapis.LabelKeyPluginDefinition)
+
+	// TODO: Once namespaced PluginDefinitions are supported, we need a logic here to handle the correct label
+	plugin.Labels[greenhouseapis.LabelKeyClusterPluginDefinition] = plugin.Spec.PluginDefinition
 	plugin.Labels[greenhouseapis.LabelKeyCluster] = plugin.Spec.ClusterName
 
 	// Default the displayName to a normalized version of metadata.name.
