@@ -6,6 +6,7 @@ package helm
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"sort"
 
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
@@ -18,11 +19,25 @@ import (
 )
 
 func GetPluginOptionValuesForPlugin(ctx context.Context, c client.Client, plugin *greenhousev1alpha1.Plugin) ([]greenhousev1alpha1.PluginOptionValue, error) {
-	var pluginDefinition = new(greenhousev1alpha1.ClusterPluginDefinition)
-	if err := c.Get(ctx, types.NamespacedName{Namespace: "", Name: plugin.Spec.PluginDefinition}, pluginDefinition); err != nil {
-		return nil, err
+	var pluginDefinitionSpec greenhousev1alpha1.PluginDefinitionSpec
+	switch plugin.Spec.PluginDefinitionKind {
+	case "PluginDefinition":
+		var pluginDefinition = new(greenhousev1alpha1.PluginDefinition)
+		if err := c.Get(ctx, types.NamespacedName{Namespace: plugin.GetNamespace(), Name: plugin.Spec.PluginDefinition}, pluginDefinition); err != nil {
+			return nil, err
+		}
+		pluginDefinitionSpec = pluginDefinition.Spec
+	case "ClusterPluginDefinition":
+		var clusterPluginDefinition = new(greenhousev1alpha1.ClusterPluginDefinition)
+		if err := c.Get(ctx, types.NamespacedName{Namespace: "", Name: plugin.Spec.PluginDefinition}, clusterPluginDefinition); err != nil {
+			return nil, err
+		}
+		pluginDefinitionSpec = clusterPluginDefinition.Spec
+	default:
+		return nil, fmt.Errorf("PluginDefinitionKind %s is not supported", plugin.Spec.PluginDefinitionKind)
 	}
-	values := MergePluginAndPluginOptionValueSlice(pluginDefinition.Spec.Options, plugin.Spec.OptionValues)
+
+	values := MergePluginAndPluginOptionValueSlice(pluginDefinitionSpec.Options, plugin.Spec.OptionValues)
 	// Enrich with default greenhouse values.
 	greenhouseValues, err := GetGreenhouseValues(ctx, c, *plugin)
 	if err != nil {

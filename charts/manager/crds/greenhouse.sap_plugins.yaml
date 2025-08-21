@@ -113,8 +113,11 @@ spec:
                   type: object
                 type: array
               pluginDefinition:
-                description: PluginDefinition is the name of the PluginDefinition
+                description: PluginDefinition is the name of the (Cluster-)PluginDefinition
                   this instance is for.
+                type: string
+              pluginDefinitionKind:
+                description: PluginDefinitionKind is the kind of the referred PluginDefinition.
                 type: string
               releaseName:
                 description: |-
@@ -133,6 +136,7 @@ spec:
                 type: string
             required:
             - pluginDefinition
+            - pluginDefinitionKind
             type: object
           status:
             description: PluginStatus defines the observed state of Plugin
