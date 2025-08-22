@@ -280,6 +280,187 @@ func TestModifyResponse(t *testing.T) {
 	}
 }
 
+// TestSetImpersonationHeaders tests the conversion of OAuth headers to Kubernetes impersonation headers
+func TestSetImpersonationHeaders(t *testing.T) {
+	tests := []struct {
+		name                string
+		inputHeaders        map[string]string
+		expectedUser        string
+		expectedGroups      []string
+		expectedEmail       string
+		expectImpersonation bool
+	}{
+		{
+			name: "valid oauth headers with comma-separated groups",
+			inputHeaders: map[string]string{
+				"X-Forwarded-User":   "john.doe",
+				"X-Forwarded-Groups": "admin,developers,viewers",
+				"X-Forwarded-Email":  "john.doe@example.com",
+			},
+			expectedUser:        "john.doe",
+			expectedGroups:      []string{"admin", "developers", "viewers"},
+			expectedEmail:       "john.doe@example.com",
+			expectImpersonation: true,
+		},
+		{
+			name: "valid oauth headers with space-separated groups",
+			inputHeaders: map[string]string{
+				"X-Forwarded-User":   "jane.smith",
+				"X-Forwarded-Groups": "admin developers viewers",
+				"X-Forwarded-Email":  "jane.smith@example.com",
+			},
+			expectedUser:        "jane.smith",
+			expectedGroups:      []string{"admin", "developers", "viewers"},
+			expectedEmail:       "jane.smith@example.com",
+			expectImpersonation: true,
+		},
+		{
+			name: "user only, no groups or email",
+			inputHeaders: map[string]string{
+				"X-Forwarded-User": "test.user",
+			},
+			expectedUser:        "test.user",
+			expectedGroups:      []string{},
+			expectedEmail:       "",
+			expectImpersonation: true,
+		},
+		{
+			name: "no user header - should not impersonate",
+			inputHeaders: map[string]string{
+				"X-Forwarded-Groups": "admin,developers",
+				"X-Forwarded-Email":  "test@example.com",
+			},
+			expectedUser:        "",
+			expectedGroups:      []string{},
+			expectedEmail:       "",
+			expectImpersonation: false,
+		},
+		{
+			name: "groups with extra whitespace",
+			inputHeaders: map[string]string{
+				"X-Forwarded-User":   "whitespace.user",
+				"X-Forwarded-Groups": " admin , developers , viewers ",
+				"X-Forwarded-Email":  "whitespace@example.com",
+			},
+			expectedUser:        "whitespace.user",
+			expectedGroups:      []string{"admin", "developers", "viewers"},
+			expectedEmail:       "whitespace@example.com",
+			expectImpersonation: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			pm := &ProxyManager{}
+
+			// Create mock request
+			inReq, _ := http.NewRequest("GET", "https://example.com/test", nil)
+			outReq, _ := http.NewRequest("GET", "https://upstream.com/test", nil)
+
+			// Set input headers
+			for key, value := range tt.inputHeaders {
+				inReq.Header.Set(key, value)
+			}
+
+			proxyReq := &httputil.ProxyRequest{
+				In:  inReq,
+				Out: outReq,
+			}
+
+			// Call the function
+			pm.setImpersonationHeaders(proxyReq)
+
+			if tt.expectImpersonation {
+				// Check impersonation user
+				if got := outReq.Header.Get("Impersonate-User"); got != tt.expectedUser {
+					t.Errorf("expected Impersonate-User=%q, got %q", tt.expectedUser, got)
+				}
+
+				// Check impersonation groups
+				gotGroups := outReq.Header.Values("Impersonate-Group")
+				if len(gotGroups) != len(tt.expectedGroups) {
+					t.Errorf("expected %d groups, got %d", len(tt.expectedGroups), len(gotGroups))
+				}
+				for i, expected := range tt.expectedGroups {
+					if i >= len(gotGroups) || gotGroups[i] != expected {
+						t.Errorf("expected group[%d]=%q, got %q", i, expected, gotGroups[i])
+					}
+				}
+
+				// Check email if expected
+				if tt.expectedEmail != "" {
+					if got := outReq.Header.Get("Impersonate-Extra-Email"); got != tt.expectedEmail {
+						t.Errorf("expected Impersonate-Extra-Email=%q, got %q", tt.expectedEmail, got)
+					}
+				}
+			} else {
+				// Should not have any impersonation headers
+				if got := outReq.Header.Get("Impersonate-User"); got != "" {
+					t.Errorf("expected no Impersonate-User, got %q", got)
+				}
+				if groups := outReq.Header.Values("Impersonate-Group"); len(groups) > 0 {
+					t.Errorf("expected no Impersonate-Group headers, got %v", groups)
+				}
+			}
+		})
+	}
+}
+
+// TestParseGroups tests the parseGroups helper function
+func TestParseGroups(t *testing.T) {
+	tests := []struct {
+		name     string
+		input    string
+		expected []string
+	}{
+		{
+			name:     "comma-separated groups",
+			input:    "admin,developers,viewers",
+			expected: []string{"admin", "developers", "viewers"},
+		},
+		{
+			name:     "space-separated groups",
+			input:    "admin developers viewers",
+			expected: []string{"admin", "developers", "viewers"},
+		},
+		{
+			name:     "groups with extra whitespace",
+			input:    " admin , developers , viewers ",
+			expected: []string{"admin", "developers", "viewers"},
+		},
+		{
+			name:     "single group",
+			input:    "admin",
+			expected: []string{"admin"},
+		},
+		{
+			name:     "empty string",
+			input:    "",
+			expected: []string{},
+		},
+		{
+			name:     "only whitespace",
+			input:    "   ",
+			expected: []string{},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := parseGroups(tt.input)
+			if len(result) != len(tt.expected) {
+				t.Errorf("expected %d groups, got %d", len(tt.expected), len(result))
+				return
+			}
+			for i, expected := range tt.expected {
+				if result[i] != expected {
+					t.Errorf("expected group[%d]=%q, got %q", i, expected, result[i])
+				}
+			}
+		})
+	}
+}
+
 // helper function to create string pointer
 func pointer(s string) *string {
 	return &s

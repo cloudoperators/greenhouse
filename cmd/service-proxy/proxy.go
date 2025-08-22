@@ -6,6 +6,13 @@
 // When reconciling cluster routes from a Plugin with an exposed service, the ProxyManager persists the transport and URL necessary to proxy an incoming request in the clusters map.
 // The transport is created using the credentials from the Secret associated with the cluster.
 // The URL is created using the k8s API server proxy: https://kubernetes.io/docs/tasks/access-application-cluster/access-cluster-services/#discovering-builtin-services
+//
+// OAuth Identity Preservation:
+// The proxy extracts OAuth2 headers (X-Forwarded-User, X-Forwarded-Groups, etc.) from incoming requests
+// and converts them to Kubernetes impersonation headers (Impersonate-User, Impersonate-Group).
+// This allows the identity information to be preserved through the Kubernetes API server proxy,
+// enabling downstream services to receive user and group information.
+//
 // Entries are saved by cluster and exposed URL. E.g., if a Plugin exposes a service with the URL "https://cluster1--1234567.example.com" on cluster-1, the route is saved in
 // clusters["cluster-1"]clusterRoutes{
 //   transport: net/http.RoundTripper{$TransportCreatedFromClusterKubeConfig},
@@ -196,8 +203,53 @@ func (pm *ProxyManager) RoundTrip(req *http.Request) (resp *http.Response, err e
 	return
 }
 
+// setImpersonationHeaders converts OAuth2 proxy headers to Kubernetes impersonation headers
+// which will be accepted by the k8s API server proxy.
+func (pm *ProxyManager) setImpersonationHeaders(req *httputil.ProxyRequest) {
+	user := req.In.Header.Get("X-Forwarded-User")
+	if user == "" {
+		return
+	}
+
+	// Set user identity
+	req.Out.Header.Set("Impersonate-User", user)
+
+	// Set groups
+	if groups := req.In.Header.Get("X-Forwarded-Groups"); groups != "" {
+		for _, group := range parseGroups(groups) {
+			req.Out.Header.Add("Impersonate-Group", group)
+		}
+	}
+
+	// Set email
+	if email := req.In.Header.Get("X-Forwarded-Email"); email != "" {
+		req.Out.Header.Set("Impersonate-Extra-Email", email)
+	}
+}
+
+// parseGroups splits group string by comma or space and returns clean group names
+func parseGroups(groups string) []string {
+	var separator string
+	if strings.Contains(groups, ",") {
+		separator = ","
+	} else {
+		separator = " "
+	}
+
+	var result []string
+	for _, group := range strings.Split(groups, separator) {
+		if clean := strings.TrimSpace(group); clean != "" {
+			result = append(result, clean)
+		}
+	}
+	return result
+}
+
 func (pm *ProxyManager) rewrite(req *httputil.ProxyRequest) {
 	req.SetXForwarded()
+
+	// Extract OAuth headers and convert to Kubernetes impersonation headers
+	pm.setImpersonationHeaders(req)
 
 	// Create a logger with relevant request details
 	l := pm.logger.WithValues(
@@ -243,11 +295,18 @@ func (pm *ProxyManager) rewrite(req *httputil.ProxyRequest) {
 	req.Out = req.Out.WithContext(ctx)
 
 	// Log the successful rewrite for debugging purposes
+	impersonateUser := req.Out.Header.Get("Impersonate-User")
+	impersonateGroups := req.Out.Header.Values("Impersonate-Group")
+	impersonateExtraEmail := req.Out.Header.Get("Impersonate-Extra-Email")
+
 	l.Info("Request rewrite completed",
 		"cluster", cluster,
 		"namespace", route.namespace,
 		"serviceName", route.serviceName,
 		"upstreamServiceRouteURL", req.Out.URL.String(),
+		"impersonateUser", impersonateUser,
+		"impersonateGroups", strings.Join(impersonateGroups, ","),
+		"impersonateExtraEmail", impersonateExtraEmail,
 	)
 }
 
