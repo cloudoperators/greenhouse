@@ -68,7 +68,7 @@ func (r *PluginReconciler) reconcilePluginWorkloadStatus(
 	ctx context.Context,
 	restClientGetter genericclioptions.RESTClientGetter,
 	plugin *greenhousev1alpha1.Plugin,
-	pluginDefinition *greenhousev1alpha1.ClusterPluginDefinition,
+	pluginDefinitionSpec greenhousev1alpha1.PluginDefinitionSpec,
 ) (*reconcileResult, error) {
 
 	var releaseStatus = new(ReleaseStatus)
@@ -77,7 +77,7 @@ func (r *PluginReconciler) reconcilePluginWorkloadStatus(
 	if reflect.DeepEqual(plugin.Status, greenhousev1alpha1.PluginStatus{}) || plugin.Status.HelmChart == nil {
 		return nil, nil
 	}
-	if pluginDefinition.Spec.HelmChart == nil {
+	if pluginDefinitionSpec.HelmChart == nil {
 		return nil, nil
 	}
 
