@@ -12,7 +12,7 @@ jobs:
     steps:
       - name: Generate GitHub App Token
         id: github-app-token
-        uses: actions/create-github-app-token@v1
+        uses: actions/create-github-app-token@d72941d797fd3113feb6b93fd0dec494b13a2547 # v1
         with:
           app-id: ${{ secrets.CLOUDOPERATOR_APP_ID }}
           private-key: ${{ secrets.CLOUDOPERATOR_APP_PRIVATE_KEY }}
@@ -21,8 +21,9 @@ jobs:
   build-license-eye:
     name: Check & Fix License Headers
     needs: generate-token
-    runs-on: default
-    steps:
-      - uses: cloudoperators/common/.github/workflows/shared-license.yaml@main
-        with:
-          pas: ${{ needs.generate-token.outputs.token }}
+    permissions:
+      # Only used when `apply_header: true` else the permission is `read` see: https://github.com/cloudoperators/common/blob/8f15c13b6f4c1631c7e6f6dff5c3300452e9b5b6/.github/workflows/shared-license.yaml#L21-L22
+      contents: write 
+    uses: cloudoperators/common/.github/workflows/shared-license.yaml@main
+    secrets:
+      pas: ${{ needs.generate-token.outputs.token }}
