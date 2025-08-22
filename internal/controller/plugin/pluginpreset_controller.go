@@ -399,15 +399,15 @@ func (r *PluginPresetReconciler) computeReadyCondition(
 		return readyCondition
 	}
 
-	if conditions.GetConditionByType(greenhousev1alpha1.PluginSkippedCondition).IsTrue() {
-		readyCondition.Status = metav1.ConditionFalse
-		readyCondition.Message = "Existing plugins skipped"
-		return readyCondition
-	}
-
 	if conditions.GetConditionByType(greenhousemetav1alpha1.ClusterListEmpty).IsTrue() {
 		readyCondition.Status = metav1.ConditionFalse
 		readyCondition.Message = "No cluster matches ClusterSelector"
+		return readyCondition
+	}
+
+	if conditions.GetConditionByType(greenhousev1alpha1.AllPluginsReadyCondition).IsFalse() {
+		readyCondition.Status = metav1.ConditionFalse
+		readyCondition.Message = "Not all plugins are ready"
 		return readyCondition
 	}
 
