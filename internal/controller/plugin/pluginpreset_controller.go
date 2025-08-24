@@ -157,14 +157,14 @@ func (r *PluginPresetReconciler) EnsureDeleted(ctx context.Context, resource lif
 func (r *PluginPresetReconciler) reconcilePluginPreset(ctx context.Context, preset *greenhousev1alpha1.PluginPreset, clusters *greenhousev1alpha1.ClusterList) error {
 	var pluginDefinitionSpec greenhousev1alpha1.PluginDefinitionSpec
 	switch preset.Spec.Plugin.PluginDefinitionKind {
-	case "PluginDefinition":
+	case greenhousev1alpha1.PluginDefinitionKind:
 		pluginDefinition := &greenhousev1alpha1.PluginDefinition{}
 		err := r.Get(ctx, client.ObjectKey{Namespace: preset.GetNamespace(), Name: preset.Spec.Plugin.PluginDefinition}, pluginDefinition)
 		if err != nil {
 			return err
 		}
 		pluginDefinitionSpec = pluginDefinition.Spec
-	case "ClusterPluginDefinition":
+	case greenhousev1alpha1.ClusterPluginDefinitionKind:
 		clusterPluginDefinition := &greenhousev1alpha1.ClusterPluginDefinition{}
 		err := r.Get(ctx, client.ObjectKey{Name: preset.Spec.Plugin.PluginDefinition}, clusterPluginDefinition)
 		if err != nil {

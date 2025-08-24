@@ -55,13 +55,13 @@ func DefaultPluginPreset(ctx context.Context, c client.Client, o runtime.Object)
 		pluginDefinition := &greenhousev1alpha1.PluginDefinition{}
 		err := c.Get(ctx, types.NamespacedName{Namespace: pluginPreset.GetNamespace(), Name: pluginPreset.Spec.Plugin.PluginDefinition}, pluginDefinition)
 		if err == nil {
-			pluginPreset.Spec.Plugin.PluginDefinitionKind = "PluginDefinition"
+			pluginPreset.Spec.Plugin.PluginDefinitionKind = greenhousev1alpha1.PluginDefinitionKind
 		} else {
 			// check if ClusterPluginDefinition exists
 			clusterPluginDefinition := &greenhousev1alpha1.ClusterPluginDefinition{}
 			err = c.Get(ctx, types.NamespacedName{Name: pluginPreset.Spec.Plugin.PluginDefinition}, clusterPluginDefinition)
 			if err == nil {
-				pluginPreset.Spec.Plugin.PluginDefinitionKind = "ClusterPluginDefinition"
+				pluginPreset.Spec.Plugin.PluginDefinitionKind = greenhousev1alpha1.ClusterPluginDefinitionKind
 			}
 		}
 	}
@@ -113,7 +113,7 @@ func ValidateCreatePluginPreset(ctx context.Context, c client.Client, o runtime.
 
 	// ensure (Cluster-)PluginDefinition exists and validate OptionValues defined by the Preset
 	switch pluginPreset.Spec.Plugin.PluginDefinitionKind {
-	case "PluginDefinition":
+	case greenhousev1alpha1.PluginDefinitionKind:
 		pluginDefinition := &greenhousev1alpha1.PluginDefinition{}
 		err := c.Get(ctx, types.NamespacedName{
 			Namespace: pluginPreset.GetNamespace(),
@@ -128,7 +128,7 @@ func ValidateCreatePluginPreset(ctx context.Context, c client.Client, o runtime.
 				fmt.Sprintf("PluginDefinition %s could not be retrieved from namespace %s: %s", pluginPreset.Spec.Plugin.PluginDefinition, pluginPreset.GetNamespace(), err.Error()))
 		}
 		pluginDefinitionSpec = pluginDefinition.Spec
-	case "ClusterPluginDefinition":
+	case greenhousev1alpha1.ClusterPluginDefinitionKind:
 		clusterPluginDefinition := &greenhousev1alpha1.ClusterPluginDefinition{}
 		err := c.Get(ctx, types.NamespacedName{
 			Namespace: "",

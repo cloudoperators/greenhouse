@@ -225,34 +225,37 @@ func (r *PluginReconciler) getPluginDefinitionSpec(ctx context.Context, plugin *
 	var pluginDefinitionSpec greenhousev1alpha1.PluginDefinitionSpec
 	var errorMessage string
 	switch plugin.Spec.PluginDefinitionKind {
-	case "PluginDefinition":
+	case greenhousev1alpha1.PluginDefinitionKind:
 		pluginDefinition := &greenhousev1alpha1.PluginDefinition{}
 		err := r.Get(ctx, client.ObjectKey{Namespace: plugin.GetNamespace(), Name: plugin.Spec.PluginDefinition}, pluginDefinition)
-		if err == nil {
+		switch {
+		case err == nil:
 			pluginDefinitionSpec = pluginDefinition.Spec
-		} else if apierrors.IsNotFound(err) {
+		case apierrors.IsNotFound(err):
 			errorMessage = fmt.Sprintf("PluginDefinition %s does not exist in namespace %s", plugin.Spec.PluginDefinition, plugin.GetNamespace())
-		} else {
+		default:
 			errorMessage = fmt.Sprintf("Failed to get PluginDefinition %s from namespace %s: %s", plugin.Spec.PluginDefinition, plugin.GetNamespace(), err.Error())
 		}
-	case "ClusterPluginDefinition":
+	case greenhousev1alpha1.ClusterPluginDefinitionKind:
 		clusterPluginDefinition := &greenhousev1alpha1.ClusterPluginDefinition{}
 		err := r.Get(ctx, client.ObjectKey{Name: plugin.Spec.PluginDefinition}, clusterPluginDefinition)
-		if err == nil {
+		switch {
+		case err == nil:
 			pluginDefinitionSpec = clusterPluginDefinition.Spec
-		} else if apierrors.IsNotFound(err) {
+		case apierrors.IsNotFound(err):
 			errorMessage = fmt.Sprintf("ClusterPluginDefinition %s does not exist", plugin.Spec.PluginDefinition)
-		} else {
+		default:
 			errorMessage = fmt.Sprintf("Failed to get ClusterPluginDefinition %s: %s", plugin.Spec.PluginDefinition, err.Error())
 		}
 	case "": // existing Plugins created without PluginDefinitionKind
 		clusterPluginDefinition := &greenhousev1alpha1.ClusterPluginDefinition{}
 		err := r.Get(ctx, client.ObjectKey{Name: plugin.Spec.PluginDefinition}, clusterPluginDefinition)
-		if err == nil {
+		switch {
+		case err == nil:
 			pluginDefinitionSpec = clusterPluginDefinition.Spec
-		} else if apierrors.IsNotFound(err) {
+		case apierrors.IsNotFound(err):
 			errorMessage = fmt.Sprintf("ClusterPluginDefinition %s does not exist", plugin.Spec.PluginDefinition)
-		} else {
+		default:
 			errorMessage = fmt.Sprintf("Failed to get ClusterPluginDefinition %s: %s", plugin.Spec.PluginDefinition, err.Error())
 		}
 	default:

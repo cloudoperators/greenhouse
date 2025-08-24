@@ -21,13 +21,13 @@ import (
 func GetPluginOptionValuesForPlugin(ctx context.Context, c client.Client, plugin *greenhousev1alpha1.Plugin) ([]greenhousev1alpha1.PluginOptionValue, error) {
 	var pluginDefinitionSpec greenhousev1alpha1.PluginDefinitionSpec
 	switch plugin.Spec.PluginDefinitionKind {
-	case "PluginDefinition":
+	case greenhousev1alpha1.PluginDefinitionKind:
 		var pluginDefinition = new(greenhousev1alpha1.PluginDefinition)
 		if err := c.Get(ctx, types.NamespacedName{Namespace: plugin.GetNamespace(), Name: plugin.Spec.PluginDefinition}, pluginDefinition); err != nil {
 			return nil, err
 		}
 		pluginDefinitionSpec = pluginDefinition.Spec
-	case "ClusterPluginDefinition":
+	case greenhousev1alpha1.ClusterPluginDefinitionKind:
 		var clusterPluginDefinition = new(greenhousev1alpha1.ClusterPluginDefinition)
 		if err := c.Get(ctx, types.NamespacedName{Namespace: "", Name: plugin.Spec.PluginDefinition}, clusterPluginDefinition); err != nil {
 			return nil, err

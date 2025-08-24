@@ -83,14 +83,14 @@ func DefaultPlugin(ctx context.Context, c client.Client, obj runtime.Object) err
 		pluginDefinition := &greenhousev1alpha1.PluginDefinition{}
 		err := c.Get(ctx, types.NamespacedName{Namespace: plugin.GetNamespace(), Name: plugin.Spec.PluginDefinition}, pluginDefinition)
 		if err == nil {
-			plugin.Spec.PluginDefinitionKind = "PluginDefinition"
+			plugin.Spec.PluginDefinitionKind = greenhousev1alpha1.PluginDefinitionKind
 			pluginDefinitionSpec = pluginDefinition.Spec
 		} else {
 			// Check if ClusterPluginDefinition exists
 			clusterPluginDefinition := &greenhousev1alpha1.ClusterPluginDefinition{}
 			err = c.Get(ctx, types.NamespacedName{Name: plugin.Spec.PluginDefinition}, clusterPluginDefinition)
 			if err == nil {
-				plugin.Spec.PluginDefinitionKind = "ClusterPluginDefinition"
+				plugin.Spec.PluginDefinitionKind = greenhousev1alpha1.ClusterPluginDefinitionKind
 				pluginDefinitionSpec = clusterPluginDefinition.Spec
 			} else {
 				return err // PluginDefinition must exist to default the PluginOptionValues and ReleaseName
@@ -98,14 +98,14 @@ func DefaultPlugin(ctx context.Context, c client.Client, obj runtime.Object) err
 		}
 	} else {
 		switch plugin.Spec.PluginDefinitionKind {
-		case "PluginDefinition":
+		case greenhousev1alpha1.PluginDefinitionKind:
 			pluginDefinition := &greenhousev1alpha1.PluginDefinition{}
 			err := c.Get(ctx, types.NamespacedName{Namespace: plugin.GetNamespace(), Name: plugin.Spec.PluginDefinition}, pluginDefinition)
 			if err != nil {
 				return err // PluginDefinition must exist to default the PluginOptionValues and ReleaseName
 			}
 			pluginDefinitionSpec = pluginDefinition.Spec
-		case "ClusterPluginDefinition":
+		case greenhousev1alpha1.ClusterPluginDefinitionKind:
 			clusterPluginDefinition := &greenhousev1alpha1.ClusterPluginDefinition{}
 			err := c.Get(ctx, types.NamespacedName{Name: plugin.Spec.PluginDefinition}, clusterPluginDefinition)
 			if err != nil {
@@ -185,7 +185,7 @@ func ValidateCreatePlugin(ctx context.Context, c client.Client, obj runtime.Obje
 
 	// ensure (Cluster-)PluginDefinition exists, validate OptionValues and Plugin for Cluster
 	switch plugin.Spec.PluginDefinitionKind {
-	case "PluginDefinition":
+	case greenhousev1alpha1.PluginDefinitionKind:
 		pluginDefinition := &greenhousev1alpha1.PluginDefinition{}
 		err := c.Get(ctx, types.NamespacedName{
 			Namespace: plugin.GetNamespace(),
@@ -200,7 +200,7 @@ func ValidateCreatePlugin(ctx context.Context, c client.Client, obj runtime.Obje
 				fmt.Sprintf("PluginDefinition %s could not be retrieved from namespace %s: %s", plugin.Spec.PluginDefinition, plugin.GetNamespace(), err.Error()))
 		}
 		pluginDefinitionSpec = pluginDefinition.Spec
-	case "ClusterPluginDefinition":
+	case greenhousev1alpha1.ClusterPluginDefinitionKind:
 		clusterPluginDefinition := &greenhousev1alpha1.ClusterPluginDefinition{}
 		err := c.Get(ctx, types.NamespacedName{
 			Namespace: "",
@@ -277,7 +277,7 @@ func ValidateUpdatePlugin(ctx context.Context, c client.Client, old, obj runtime
 	// ensure (Cluster-)PluginDefinition exists, validate OptionValues and Plugin for Cluster
 	optionsFieldPath := field.NewPath("spec").Child("optionValues")
 	switch plugin.Spec.PluginDefinitionKind {
-	case "PluginDefinition":
+	case greenhousev1alpha1.PluginDefinitionKind:
 		pluginDefinition := &greenhousev1alpha1.PluginDefinition{}
 		err := c.Get(ctx, types.NamespacedName{
 			Namespace: plugin.GetNamespace(),
@@ -292,7 +292,7 @@ func ValidateUpdatePlugin(ctx context.Context, c client.Client, old, obj runtime
 				fmt.Sprintf("PluginDefinition %s could not be retrieved from namespace %s: %s", plugin.Spec.PluginDefinition, plugin.GetNamespace(), err.Error()))
 		}
 		pluginDefinitionSpec = pluginDefinition.Spec
-	case "ClusterPluginDefinition":
+	case greenhousev1alpha1.ClusterPluginDefinitionKind:
 		clusterPluginDefinition := &greenhousev1alpha1.ClusterPluginDefinition{}
 		err := c.Get(ctx, types.NamespacedName{
 			Namespace: "",

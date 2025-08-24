@@ -53,6 +53,9 @@ type PluginDefinitionSpec struct {
 type PluginOptionType string
 
 const (
+	// PluginDefinitionKind is the kind of the PluginDefinition resource
+	PluginDefinitionKind = "PluginDefinition"
+
 	// PluginOptionTypeString is a valid value for PluginOptionType.
 	PluginOptionTypeString PluginOptionType = "string"
 	// PluginOptionTypeSecret is a valid value for PluginOptionType.
