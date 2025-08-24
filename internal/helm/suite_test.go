@@ -148,10 +148,11 @@ var (
 			},
 		},
 		Spec: greenhousev1alpha1.PluginSpec{
-			PluginDefinition: "test-plugindefinition",
-			ClusterName:      "test-cluster",
-			OptionValues:     []greenhousev1alpha1.PluginOptionValue{},
-			ReleaseNamespace: "test-release-namespace",
+			PluginDefinition:     "test-plugindefinition",
+			PluginDefinitionKind: "ClusterPluginDefinition",
+			ClusterName:          "test-cluster",
+			OptionValues:         []greenhousev1alpha1.PluginOptionValue{},
+			ReleaseNamespace:     "test-release-namespace",
 		},
 	}
 
