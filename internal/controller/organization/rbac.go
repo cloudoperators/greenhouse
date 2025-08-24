@@ -213,23 +213,28 @@ func (r *OrganizationReconciler) reconcileCatalogServiceAccount(ctx context.Cont
 		return controllerutil.SetOwnerReference(org, serviceAccount, r.Scheme())
 	})
 	if err != nil {
+		r.recorder.Eventf(serviceAccount, corev1.EventTypeWarning, "FailedCatalogSA", "Failed to create or update ServiceAccount %s/%s: %s", serviceAccount.Namespace, serviceAccount.Name, err.Error())
 		return err
 	}
 
 	switch result {
 	case clientutil.OperationResultCreated:
-		log.FromContext(ctx).Info("created PluginDefinitionCatalog ServiceAccount", "name", serviceAccount.Name, "namespace", serviceAccount.Namespace)
-		r.recorder.Eventf(org, corev1.EventTypeNormal, "CreatedServiceAccount", "Created ServiceAccount %s/%s", serviceAccount.Namespace, serviceAccount.Name)
+		log.FromContext(ctx).Info("created catalog service account", "name", serviceAccount.Name, "namespace", serviceAccount.Namespace)
+		r.recorder.Eventf(serviceAccount, corev1.EventTypeNormal, "CreatedCatalogSA", "Created ServiceAccount %s/%s", serviceAccount.Namespace, serviceAccount.Name)
 	case clientutil.OperationResultUpdated:
-		log.FromContext(ctx).Info("updated PluginDefinitionCatalog ServiceAccount", "name", serviceAccount.Name, "namespace", serviceAccount.Namespace)
-		r.recorder.Eventf(org, corev1.EventTypeNormal, "UpdatedServiceAccount", "Updated ServiceAccount %s/%s", serviceAccount.Namespace, serviceAccount.Name)
+		log.FromContext(ctx).Info("updated catalog service account", "name", serviceAccount.Name, "namespace", serviceAccount.Namespace)
+		r.recorder.Eventf(serviceAccount, corev1.EventTypeNormal, "UpdatedCatalogSA", "Updated ServiceAccount %s/%s", serviceAccount.Namespace, serviceAccount.Name)
+	case clientutil.OperationResultNone:
+		log.FromContext(ctx).Info("no changes made to catalog service account", "name", serviceAccount.Name, "namespace", serviceAccount.Namespace)
+	default:
+		log.FromContext(ctx).Info("unknown operation result for catalog service account", "name", serviceAccount.Name, "namespace", serviceAccount.Namespace, "result", result)
 	}
 
 	return nil
 }
 
 // reconcileCatalogClusterRole creates the ClusterRole for Greenhouse organization's PluginDefinitionCatalog operations.
-func (r *OrganizationReconciler) reconcileCatalogClusterRole(ctx context.Context, org *greenhouseapisv1alpha1.Organization) error {
+func (r *OrganizationReconciler) reconcileCatalogClusterRole(ctx context.Context, org *greenhouseapisv1alpha1.Organization, resources []string) error {
 	clusterRole := &rbacv1.ClusterRole{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: rbac.OrgCatalogRoleName(org.Name),
@@ -237,20 +242,25 @@ func (r *OrganizationReconciler) reconcileCatalogClusterRole(ctx context.Context
 	}
 
 	result, err := clientutil.CreateOrPatch(ctx, r.Client, clusterRole, func() error {
-		clusterRole.Rules = rbac.OrgCatalogPolicyRules([]string{"clusterplugindefinitions"})
+		clusterRole.Rules = rbac.OrgCatalogPolicyRules(resources)
 		return controllerutil.SetOwnerReference(org, clusterRole, r.Scheme())
 	})
 	if err != nil {
+		r.recorder.Eventf(org, corev1.EventTypeWarning, "FailedCatalogCRole", "Failed to create or update ClusterRole %s: %s", clusterRole.Name, err.Error())
 		return err
 	}
 
 	switch result {
 	case clientutil.OperationResultCreated:
-		log.FromContext(ctx).Info("created Greenhouse PluginDefinitionCatalog ClusterRole", "name", clusterRole.Name)
-		r.recorder.Eventf(org, corev1.EventTypeNormal, "CreatedClusterRole", "Created ClusterRole %s", clusterRole.Name)
+		log.FromContext(ctx).Info("created catalog cluster role", "org", org.Name, "name", clusterRole.Name)
+		r.recorder.Eventf(org, corev1.EventTypeNormal, "CreatedCatalogCRole", "Created ClusterRole %s", clusterRole.Name)
 	case clientutil.OperationResultUpdated:
-		log.FromContext(ctx).Info("updated Greenhouse PluginDefinitionCatalog ClusterRole", "name", clusterRole.Name)
-		r.recorder.Eventf(org, corev1.EventTypeNormal, "UpdatedClusterRole", "Updated ClusterRole %s", clusterRole.Name)
+		log.FromContext(ctx).Info("updated catalog cluster role", "org", org.Name, "name", clusterRole.Name)
+		r.recorder.Eventf(org, corev1.EventTypeNormal, "UpdatedCatalogCRole", "Updated ClusterRole %s", clusterRole.Name)
+	case clientutil.OperationResultNone:
+		log.FromContext(ctx).Info("no changes made to catalog cluster role", "org", org.Name, "name", clusterRole.Name)
+	default:
+		log.FromContext(ctx).Info("unknown operation result for catalog cluster role", "org", org.Name, "name", clusterRole.Name, "result", result)
 	}
 
 	return nil
@@ -280,16 +290,21 @@ func (r *OrganizationReconciler) reconcileCatalogClusterRoleBinding(ctx context.
 		return controllerutil.SetOwnerReference(org, clusterRoleBinding, r.Scheme())
 	})
 	if err != nil {
+		r.recorder.Eventf(org, corev1.EventTypeWarning, "FailedCatalogCRoleBinding", "Failed to create or update ClusterRoleBinding %s: %s", clusterRoleBinding.Name, err.Error())
 		return err
 	}
 
 	switch result {
 	case clientutil.OperationResultCreated:
-		log.FromContext(ctx).Info("created Greenhouse PluginDefinitionCatalog ClusterRoleBinding", "name", clusterRoleBinding.Name)
-		r.recorder.Eventf(org, corev1.EventTypeNormal, "CreatedClusterRoleBinding", "Created ClusterRoleBinding %s", clusterRoleBinding.Name)
+		log.FromContext(ctx).Info("created catalog cluster roleBinding", "name", clusterRoleBinding.Name)
+		r.recorder.Eventf(org, corev1.EventTypeNormal, "CreatedCatalogCRoleBinding", "Created ClusterRoleBinding %s", clusterRoleBinding.Name)
 	case clientutil.OperationResultUpdated:
-		log.FromContext(ctx).Info("updated Greenhouse PluginDefinitionCatalog ClusterRoleBinding", "name", clusterRoleBinding.Name)
-		r.recorder.Eventf(org, corev1.EventTypeNormal, "UpdatedClusterRoleBinding", "Updated ClusterRoleBinding %s", clusterRoleBinding.Name)
+		log.FromContext(ctx).Info("updated catalog cluster roleBinding", "name", clusterRoleBinding.Name)
+		r.recorder.Eventf(org, corev1.EventTypeNormal, "UpdatedCatalogCRoleBinding", "Updated ClusterRoleBinding %s", clusterRoleBinding.Name)
+	case clientutil.OperationResultNone:
+		log.FromContext(ctx).Info("no changes made to catalog cluster roleBinding", "name", clusterRoleBinding.Name)
+	default:
+		log.FromContext(ctx).Info("unknown operation result for catalog cluster roleBinding", "name", clusterRoleBinding.Name, "result", result)
 	}
 
 	return nil

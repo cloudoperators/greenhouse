@@ -184,7 +184,7 @@ HELMIFY ?= $(LOCALBIN)/helmify
 KUSTOMIZE_VERSION ?= 5.7.1
 CERT_MANAGER_VERSION ?= v1.17.1
 CONTROLLER_TOOLS_VERSION ?= 0.18.0
-GOLINT_VERSION ?= 2.2.2
+GOLINT_VERSION ?= 2.4.0
 GINKGOLINTER_VERSION ?= 0.20.0
 # ENVTEST_K8S_VERSION refers to the version of kubebuilder assets to be downloaded by envtest binary.
 ENVTEST_K8S_VERSION ?= 1.33.0
@@ -251,7 +251,7 @@ ADMIN_RELEASE ?= greenhouse
 ADMIN_CHART_PATH ?= charts/manager
 E2E_REPORT_PATH="$(shell pwd)/bin/$(SCENARIO)-e2e-report.json"
 PLUGIN_DIR ?=
-GREENHOUSE_ORG ?= demo
+DEMO_ORG ?= demo
 DEV_MODE ?= false
 INTERNAL ?= -int
 WITH_CONTROLLER ?= true
@@ -280,21 +280,25 @@ setup-demo: prepare-e2e samples
 	kubectl config use-context kind-$(ADMIN_CLUSTER)
 	kubectl create secret generic kind-$(REMOTE_CLUSTER) \
 		--from-literal=kubeconfig="$$(cat ${PWD}/bin/$(REMOTE_CLUSTER)$(INTERNAL).kubeconfig)" \
-		--namespace=$(GREENHOUSE_ORG) \
+		--namespace=$(DEMO_ORG) \
 		--type="greenhouse.sap/kubeconfig" \
 		--dry-run=client -o yaml | kubectl apply -f -
 
 .PHONY: samples
 samples: kustomize
-	$(KUSTOMIZE) build dev-env/samples | kubectl apply -n $(GREENHOUSE_ORG) --kubeconfig=$(shell pwd)/bin/$(ADMIN_CLUSTER).kubeconfig -f -
+	$(KUSTOMIZE) build config/samples/organization | kubectl --kubeconfig=$(shell pwd)/bin/$(ADMIN_CLUSTER).kubeconfig apply -f -
 	while true; do \
-		if kubectl get organizations $(GREENHOUSE_ORG) --kubeconfig=$(shell pwd)/bin/$(ADMIN_CLUSTER).kubeconfig -o json | \
+		if kubectl get organizations $(DEMO_ORG) --kubeconfig=$(shell pwd)/bin/$(ADMIN_CLUSTER).kubeconfig -o json | \
 			jq -e '.status.statusConditions.conditions[] | select(.type == "Ready") | select(.status == "True")' > /dev/null; then \
 			echo "Organization is ready"; \
 			exit 0; \
 		fi; \
 		sleep 5; \
 	done
+
+.PHONY: catalog
+catalog: kustomize
+	$(KUSTOMIZE) build config/samples/catalog | kubectl --kubeconfig=$(shell pwd)/bin/$(ADMIN_CLUSTER).kubeconfig apply -f -
 
 .PHONY: setup-e2e
 setup-e2e: cli

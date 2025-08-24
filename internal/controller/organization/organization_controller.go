@@ -161,7 +161,7 @@ func (r *OrganizationReconciler) EnsureCreated(ctx context.Context, object lifec
 		return ctrl.Result{}, lifecycle.Failed, err
 	}
 
-	if err := r.reconcilePluginDefinitionCatalogServiceAccount(ctx, org); err != nil {
+	if err := r.reconcileCatalogPermissions(ctx, org); err != nil {
 		org.SetCondition(greenhousemetav1alpha1.FalseCondition(greenhousev1alpha1.OrganizationRBACConfigured, "", err.Error()))
 		return ctrl.Result{}, lifecycle.Failed, err
 	}
@@ -385,14 +385,15 @@ func (r *OrganizationReconciler) enqueueOrganizationsForReferencedConfigMap(ctx 
 	return listOrganizationsAsReconcileRequests(ctx, r, client.MatchingFields{greenhouseapis.ConfigMapRefField: o.GetName()})
 }
 
-// reconcilePluginDefinitionCatalogServiceAccount creates a ServiceAccount and associated RBAC for PluginDefinitionCatalog operations.
-func (r *OrganizationReconciler) reconcilePluginDefinitionCatalogServiceAccount(ctx context.Context, org *greenhousev1alpha1.Organization) error {
+// reconcileCatalogServiceAccount creates a ServiceAccount and associated RBAC for PluginDefinitionCatalog operations.
+func (r *OrganizationReconciler) reconcileCatalogPermissions(ctx context.Context, org *greenhousev1alpha1.Organization) error {
+	clusterResources := []string{greenhouseapis.KindClusterPluginDefinitionPlural}
 	if err := r.reconcileCatalogServiceAccount(ctx, org); err != nil {
 		return err
 	}
 
 	if org.Name == defaultGreenhouseConnectorID {
-		if err := r.reconcileCatalogClusterRole(ctx, org); err != nil {
+		if err := r.reconcileCatalogClusterRole(ctx, org, clusterResources); err != nil {
 			return err
 		}
 		if err := r.reconcileCatalogClusterRoleBinding(ctx, org); err != nil {

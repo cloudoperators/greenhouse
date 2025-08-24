@@ -14,7 +14,7 @@ jobs:
     runs-on: [default]
     steps:
       - name: CI Check Title
-        uses: amannn/action-semantic-pull-request@0723387faaf9b38adef4775cd42cfd5155ed6017 # v5
+        uses: amannn/action-semantic-pull-request@e32d7e603df1aa1ba07e981f2a23455dee596825 # v5
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
@@ -23,6 +23,7 @@ jobs:
           # Default: https://github.com/commitizen/conventional-commit-types
           types: |
             build
+            backport
             chore
             fix
             feat
@@ -71,6 +72,7 @@ jobs:
             version
             webhook
             ISSUE-\d+
+            release\/v[0-9]+.[0-9]+
           # Configure that a scope must always be provided.
           requireScope: true
           # Configure which scopes are disallowed in PR titles (newline-delimited).
