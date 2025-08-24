@@ -15,7 +15,7 @@ spec:
     listKind: PluginDefinitionList
     plural: plugindefinitions
     singular: plugindefinition
-  scope: Namespace
+  scope: Namespaced
   versions:
   - additionalPrinterColumns:
     - jsonPath: .spec.version
