@@ -128,6 +128,23 @@ var _ = Describe("ClusterKubeconfig controller", Ordered, func() {
 		Expect(clusterKubeconfig.Spec.Kubeconfig.Contexts[0].Context.Cluster).Should(Equal(clusterKubeconfig.Spec.Kubeconfig.Clusters[0].Name))
 	})
 
+	It("should have cluster labels on ClusterKubeconfig", func() {
+
+		clusterToBeUpdated := v1alpha1.Cluster{}
+		Expect(test.K8sClient.Get(test.Ctx, types.NamespacedName{Name: cluster.Name, Namespace: setup.Namespace()}, &clusterToBeUpdated)).To(Succeed())
+		if clusterToBeUpdated.Labels == nil {
+			clusterToBeUpdated.Labels = map[string]string{}
+		}
+		clusterToBeUpdated.Labels["key"] = "value"
+		Expect(test.K8sClient.Update(test.Ctx, &clusterToBeUpdated)).To(Succeed())
+
+		clusterKubeconfig := v1alpha1.ClusterKubeconfig{}
+		Eventually(func(g Gomega) string {
+			g.Expect(test.K8sClient.Get(test.Ctx, types.NamespacedName{Name: cluster.Name, Namespace: setup.Namespace()}, &clusterKubeconfig)).ShouldNot(HaveOccurred(), "There should be no error getting the ClusterKubeconfig resource")
+			return clusterKubeconfig.Labels["key"]
+		}).Should(Equal("value"))
+	})
+
 	It("should update ClusterKubeconfig when cluster secret data changes", func() {
 
 		nextKubeconfig := []byte(`
