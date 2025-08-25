@@ -36,6 +36,7 @@ var presetExposedConditions = []greenhousemetav1alpha1.ConditionType{
 	greenhousemetav1alpha1.ReadyCondition,
 	greenhousev1alpha1.PluginSkippedCondition,
 	greenhousev1alpha1.PluginFailedCondition,
+	greenhousev1alpha1.AllPluginsReadyCondition,
 	greenhousemetav1alpha1.ClusterListEmpty,
 	greenhousemetav1alpha1.OwnerLabelSetCondition,
 }
@@ -267,9 +268,18 @@ func (r *PluginPresetReconciler) reconcilePluginStatuses(
 	}
 
 	preset.Status.PluginStatuses = pluginStatuses
-	preset.Status.AvailablePlugins = len(pluginStatuses)
+	preset.Status.TotalPlugins = len(pluginStatuses)
 	preset.Status.ReadyPlugins = readyPluginsCount
 	preset.Status.FailedPlugins = failedPluginsCount
+
+	// Set AllPluginsReadyCondition based on plugin readiness.
+	allPluginsReady := len(pluginStatuses) > 0 && readyPluginsCount == len(pluginStatuses)
+	if allPluginsReady {
+		preset.SetCondition(greenhousemetav1alpha1.TrueCondition(greenhousev1alpha1.AllPluginsReadyCondition, "", "All plugins are ready"))
+	} else {
+		preset.SetCondition(greenhousemetav1alpha1.FalseCondition(greenhousev1alpha1.AllPluginsReadyCondition, "", fmt.Sprintf("%d of %d plugins are ready", readyPluginsCount, len(pluginStatuses))))
+	}
+
 	return nil
 }
 
@@ -389,15 +399,16 @@ func (r *PluginPresetReconciler) computeReadyCondition(
 		return readyCondition
 	}
 
-	if conditions.GetConditionByType(greenhousev1alpha1.PluginSkippedCondition).IsTrue() {
-		readyCondition.Status = metav1.ConditionFalse
-		readyCondition.Message = "Existing plugins skipped"
-		return readyCondition
-	}
-
 	if conditions.GetConditionByType(greenhousemetav1alpha1.ClusterListEmpty).IsTrue() {
 		readyCondition.Status = metav1.ConditionFalse
 		readyCondition.Message = "No cluster matches ClusterSelector"
+		return readyCondition
+	}
+
+	allPluginsReadyCondition := conditions.GetConditionByType(greenhousev1alpha1.AllPluginsReadyCondition)
+	if allPluginsReadyCondition != nil && allPluginsReadyCondition.IsFalse() {
+		readyCondition.Status = metav1.ConditionFalse
+		readyCondition.Message = allPluginsReadyCondition.Message
 		return readyCondition
 	}
 

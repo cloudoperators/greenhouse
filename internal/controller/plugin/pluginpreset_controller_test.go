@@ -353,6 +353,7 @@ var _ = Describe("PluginPreset Controller Lifecycle", Ordered, func() {
 			g.Expect(pluginPreset.Status.StatusConditions.Conditions).NotTo(BeNil(), "the PluginPreset should have a StatusConditions")
 			g.Expect(pluginPreset.Status.StatusConditions.GetConditionByType(greenhousemetav1alpha1.ClusterListEmpty).IsTrue()).Should(BeTrue(), "PluginPreset should have the ClusterListEmptyCondition set to true")
 			g.Expect(pluginPreset.Status.StatusConditions.GetConditionByType(greenhousemetav1alpha1.ReadyCondition).IsFalse()).Should(BeTrue(), "PluginPreset should have the ReadyCondition set to false")
+			g.Expect(pluginPreset.Status.GetConditionByType(greenhousev1alpha1.AllPluginsReadyCondition).IsFalse()).Should(BeTrue(), "AllPluginsReadyCondition should be set to false")
 		}).Should(Succeed(), "the PluginPreset should be reconciled")
 		test.EventuallyDeleted(test.Ctx, test.K8sClient, pluginPreset)
 	})
@@ -372,9 +373,10 @@ var _ = Describe("PluginPreset Controller Lifecycle", Ordered, func() {
 			expectedPluginName := testPluginPreset.Name + "-" + clusterA
 			g.Expect(managedPluginStatus.PluginName).To(Equal(expectedPluginName), "managed plugin status should have the correct PluginName set")
 			g.Expect(managedPluginStatus.ReadyCondition.IsTrue()).To(BeTrue(), "reported Ready condition for managed plugin should be set to true")
-			g.Expect(testPluginPreset.Status.AvailablePlugins).To(Equal(1), "PluginPreset Status should show exactly one available plugin")
+			g.Expect(testPluginPreset.Status.TotalPlugins).To(Equal(1), "PluginPreset Status should show exactly one plugin in total")
 			g.Expect(testPluginPreset.Status.ReadyPlugins).To(Equal(1), "PluginPreset Status should show exactly one ready plugin")
 			g.Expect(testPluginPreset.Status.FailedPlugins).To(Equal(0), "PluginPreset Status should show exactly zero failed plugins")
+			g.Expect(testPluginPreset.Status.GetConditionByType(greenhousev1alpha1.AllPluginsReadyCondition).IsTrue()).To(BeTrue(), "AllPluginsReadyCondition should be true when all plugins are ready")
 		}).Should(Succeed())
 
 		By("making clusterB match the clusterSelector")
@@ -410,9 +412,10 @@ var _ = Describe("PluginPreset Controller Lifecycle", Ordered, func() {
 			g.Expect(slices.ContainsFunc(testPluginPreset.Status.PluginStatuses, func(status greenhousev1alpha1.ManagedPluginStatus) bool {
 				return status.PluginName == testPluginPreset.Name+"-"+clusterB && status.ReadyCondition.IsTrue()
 			})).To(BeTrue(), "Ready true status should be reported for the additional plugin")
-			g.Expect(testPluginPreset.Status.AvailablePlugins).To(Equal(2), "PluginPreset Status should show exactly two available plugins")
+			g.Expect(testPluginPreset.Status.TotalPlugins).To(Equal(2), "PluginPreset Status should show exactly two plugins in total")
 			g.Expect(testPluginPreset.Status.ReadyPlugins).To(Equal(2), "PluginPreset Status should show exactly two ready plugins")
 			g.Expect(testPluginPreset.Status.FailedPlugins).To(Equal(0), "PluginPreset Status should show exactly zero failed plugins")
+			g.Expect(testPluginPreset.Status.GetConditionByType(greenhousev1alpha1.AllPluginsReadyCondition).IsTrue()).To(BeTrue(), "AllPluginsReadyCondition should be true when all plugins are ready")
 		}).Should(Succeed())
 
 		By("deleting otherTestCluster to ensure the Plugin is deleted")
@@ -432,9 +435,10 @@ var _ = Describe("PluginPreset Controller Lifecycle", Ordered, func() {
 			expectedPluginName := testPluginPreset.Name + "-" + clusterA
 			g.Expect(managedPluginStatus.PluginName).To(Equal(expectedPluginName), "managed plugin status should have the correct PluginName set")
 			g.Expect(managedPluginStatus.ReadyCondition.IsTrue()).To(BeTrue(), "reported Ready condition for managed plugin should be set to true")
-			g.Expect(testPluginPreset.Status.AvailablePlugins).To(Equal(1), "PluginPreset Status should show exactly one available plugin")
+			g.Expect(testPluginPreset.Status.TotalPlugins).To(Equal(1), "PluginPreset Status should show exactly one plugin in total")
 			g.Expect(testPluginPreset.Status.ReadyPlugins).To(Equal(1), "PluginPreset Status should show exactly one ready plugin")
 			g.Expect(testPluginPreset.Status.FailedPlugins).To(Equal(0), "PluginPreset Status should show exactly zero failed plugins")
+			g.Expect(testPluginPreset.Status.GetConditionByType(greenhousev1alpha1.AllPluginsReadyCondition).IsTrue()).To(BeTrue(), "AllPluginsReadyCondition should be true when all plugins are ready")
 		}).Should(Succeed())
 
 		By("removing the PluginPreset")
