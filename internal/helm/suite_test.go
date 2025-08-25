@@ -149,7 +149,7 @@ var (
 		},
 		Spec: greenhousev1alpha1.PluginSpec{
 			PluginDefinition:     "test-plugindefinition",
-			PluginDefinitionKind: "ClusterPluginDefinition",
+			PluginDefinitionKind: greenhousev1alpha1.ClusterPluginDefinitionKind,
 			ClusterName:          "test-cluster",
 			OptionValues:         []greenhousev1alpha1.PluginOptionValue{},
 			ReleaseNamespace:     "test-release-namespace",

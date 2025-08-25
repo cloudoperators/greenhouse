@@ -95,8 +95,9 @@ var _ = Describe("Shared Plugin metrics", Ordered, func() {
 					},
 				},
 				Spec: greenhousev1alpha1.PluginSpec{
-					ClusterName:      "cluster-a",
-					PluginDefinition: "test-plugin-definition",
+					ClusterName:          "cluster-a",
+					PluginDefinition:     "test-plugin-definition",
+					PluginDefinitionKind: greenhousev1alpha1.ClusterPluginDefinitionKind,
 				},
 			},
 			`

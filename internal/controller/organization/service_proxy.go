@@ -158,7 +158,8 @@ func (r *OrganizationReconciler) reconcileServiceProxyPlugin(ctx context.Context
 			Namespace: org.Name,
 		},
 		Spec: greenhousev1alpha1.PluginSpec{
-			PluginDefinition: serviceProxyName,
+			PluginDefinition:     serviceProxyName,
+			PluginDefinitionKind: greenhousev1alpha1.ClusterPluginDefinitionKind,
 		},
 	}
 
