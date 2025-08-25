@@ -155,31 +155,9 @@ func (r *PluginPresetReconciler) EnsureDeleted(ctx context.Context, resource lif
 // reconcilePluginPreset reconciles the PluginPreset by creating or updating the Plugins for the given clusters.
 // It skips reconciliation for Plugins that do not have the labels of the PluginPreset.
 func (r *PluginPresetReconciler) reconcilePluginPreset(ctx context.Context, preset *greenhousev1alpha1.PluginPreset, clusters *greenhousev1alpha1.ClusterList) error {
-	var pluginDefinitionSpec greenhousev1alpha1.PluginDefinitionSpec
-	switch preset.Spec.Plugin.PluginDefinitionKind {
-	case greenhousev1alpha1.PluginDefinitionKind:
-		pluginDefinition := &greenhousev1alpha1.PluginDefinition{}
-		err := r.Get(ctx, client.ObjectKey{Namespace: preset.GetNamespace(), Name: preset.Spec.Plugin.PluginDefinition}, pluginDefinition)
-		if err != nil {
-			return err
-		}
-		pluginDefinitionSpec = pluginDefinition.Spec
-	case greenhousev1alpha1.ClusterPluginDefinitionKind:
-		clusterPluginDefinition := &greenhousev1alpha1.ClusterPluginDefinition{}
-		err := r.Get(ctx, client.ObjectKey{Name: preset.Spec.Plugin.PluginDefinition}, clusterPluginDefinition)
-		if err != nil {
-			return err
-		}
-		pluginDefinitionSpec = clusterPluginDefinition.Spec
-	case "": // existing PluginPresets created without PluginDefinitionKind
-		clusterPluginDefinition := &greenhousev1alpha1.ClusterPluginDefinition{}
-		err := r.Get(ctx, client.ObjectKey{Name: preset.Spec.Plugin.PluginDefinition}, clusterPluginDefinition)
-		if err != nil {
-			return err
-		}
-		pluginDefinitionSpec = clusterPluginDefinition.Spec
-	default:
-		return errors.New("unsupported PluginDefinitionKind: " + preset.Spec.Plugin.PluginDefinitionKind)
+	pluginDefinitionSpec, err := util.GetPluginDefinitionSpec(ctx, r.Client, preset.Spec.Plugin.PluginDefinition, preset.Spec.Plugin.PluginDefinitionKind, preset.GetNamespace())
+	if err != nil {
+		return err
 	}
 
 	var allErrs = make([]error, 0)
@@ -195,7 +173,7 @@ func (r *PluginPresetReconciler) reconcilePluginPreset(ctx context.Context, pres
 			continue
 		case err == nil:
 			// The Plugin exists but does not contain the labels of the PluginPreset. This Plugin is not managed by the PluginPreset and must not be touched.
-			if shouldSkipPlugin(plugin, preset, pluginDefinitionSpec, cluster.Name) {
+			if shouldSkipPlugin(plugin, preset, *pluginDefinitionSpec, cluster.Name) {
 				skippedPlugins = append(skippedPlugins, plugin.Name)
 				continue
 			}

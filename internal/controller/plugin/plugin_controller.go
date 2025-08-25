@@ -12,7 +12,6 @@ import (
 	"golang.org/x/time/rate"
 	"helm.sh/helm/v3/pkg/release"
 	corev1 "k8s.io/api/core/v1"
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apimachinery/pkg/types"
@@ -187,8 +186,10 @@ func (r *PluginReconciler) EnsureCreated(ctx context.Context, resource lifecycle
 		return ctrl.Result{RequeueAfter: result.requeueAfter}, lifecycle.Pending, nil
 	}
 
-	pluginDefinitionSpec, err := r.getPluginDefinitionSpec(ctx, plugin)
+	pluginDefinitionSpec, err := util.GetPluginDefinitionSpec(ctx, r.Client, plugin.Spec.PluginDefinition, plugin.Spec.PluginDefinitionKind, plugin.GetNamespace())
 	if err != nil {
+		plugin.SetCondition(greenhousemetav1alpha1.TrueCondition(
+			greenhousev1alpha1.HelmReconcileFailedCondition, greenhousev1alpha1.PluginDefinitionNotFoundReason, err.Error()))
 		util.UpdatePluginReconcileTotalMetric(plugin, util.MetricResultError, util.MetricReasonPluginDefinitionNotFound)
 		return ctrl.Result{}, lifecycle.Failed, fmt.Errorf("pluginDefinition not found: %s", err.Error())
 	}
@@ -219,55 +220,6 @@ func (r *PluginReconciler) EnsureCreated(ctx context.Context, resource lifecycle
 	}
 
 	return ctrl.Result{}, lifecycle.Success, nil
-}
-
-func (r *PluginReconciler) getPluginDefinitionSpec(ctx context.Context, plugin *greenhousev1alpha1.Plugin) (*greenhousev1alpha1.PluginDefinitionSpec, error) {
-	var pluginDefinitionSpec greenhousev1alpha1.PluginDefinitionSpec
-	var errorMessage string
-	switch plugin.Spec.PluginDefinitionKind {
-	case greenhousev1alpha1.PluginDefinitionKind:
-		pluginDefinition := &greenhousev1alpha1.PluginDefinition{}
-		err := r.Get(ctx, client.ObjectKey{Namespace: plugin.GetNamespace(), Name: plugin.Spec.PluginDefinition}, pluginDefinition)
-		switch {
-		case err == nil:
-			pluginDefinitionSpec = pluginDefinition.Spec
-		case apierrors.IsNotFound(err):
-			errorMessage = fmt.Sprintf("PluginDefinition %s does not exist in namespace %s", plugin.Spec.PluginDefinition, plugin.GetNamespace())
-		default:
-			errorMessage = fmt.Sprintf("Failed to get PluginDefinition %s from namespace %s: %s", plugin.Spec.PluginDefinition, plugin.GetNamespace(), err.Error())
-		}
-	case greenhousev1alpha1.ClusterPluginDefinitionKind:
-		clusterPluginDefinition := &greenhousev1alpha1.ClusterPluginDefinition{}
-		err := r.Get(ctx, client.ObjectKey{Name: plugin.Spec.PluginDefinition}, clusterPluginDefinition)
-		switch {
-		case err == nil:
-			pluginDefinitionSpec = clusterPluginDefinition.Spec
-		case apierrors.IsNotFound(err):
-			errorMessage = fmt.Sprintf("ClusterPluginDefinition %s does not exist", plugin.Spec.PluginDefinition)
-		default:
-			errorMessage = fmt.Sprintf("Failed to get ClusterPluginDefinition %s: %s", plugin.Spec.PluginDefinition, err.Error())
-		}
-	case "": // existing Plugins created without PluginDefinitionKind
-		clusterPluginDefinition := &greenhousev1alpha1.ClusterPluginDefinition{}
-		err := r.Get(ctx, client.ObjectKey{Name: plugin.Spec.PluginDefinition}, clusterPluginDefinition)
-		switch {
-		case err == nil:
-			pluginDefinitionSpec = clusterPluginDefinition.Spec
-		case apierrors.IsNotFound(err):
-			errorMessage = fmt.Sprintf("ClusterPluginDefinition %s does not exist", plugin.Spec.PluginDefinition)
-		default:
-			errorMessage = fmt.Sprintf("Failed to get ClusterPluginDefinition %s: %s", plugin.Spec.PluginDefinition, err.Error())
-		}
-	default:
-		errorMessage = "unsupported PluginDefinitionKind: " + plugin.Spec.PluginDefinitionKind
-	}
-
-	if errorMessage != "" {
-		plugin.SetCondition(greenhousemetav1alpha1.TrueCondition(
-			greenhousev1alpha1.HelmReconcileFailedCondition, greenhousev1alpha1.PluginDefinitionNotFoundReason, errorMessage))
-		return nil, errors.New(errorMessage)
-	}
-	return &pluginDefinitionSpec, nil
 }
 
 func (r *PluginReconciler) reconcileHelmRelease(
