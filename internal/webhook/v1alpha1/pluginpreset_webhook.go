@@ -119,30 +119,32 @@ func ValidateCreatePluginPreset(ctx context.Context, c client.Client, o runtime.
 			Namespace: pluginPreset.GetNamespace(),
 			Name:      pluginPreset.Spec.Plugin.PluginDefinition,
 		}, pluginDefinition)
-		if apierrors.IsNotFound(err) {
+		switch {
+		case apierrors.IsNotFound(err):
 			return allWarns, field.Invalid(field.NewPath("spec", "plugin", "pluginDefinition"), pluginPreset.Spec.Plugin.PluginDefinition,
 				fmt.Sprintf("PluginDefinition %s does not exist in namespace %s", pluginPreset.Spec.Plugin.PluginDefinition, pluginPreset.GetNamespace()))
-		}
-		if err != nil {
+		case err != nil:
 			return allWarns, field.Invalid(field.NewPath("spec", "plugin", "pluginDefinition"), pluginPreset.Spec.Plugin.PluginDefinition,
 				fmt.Sprintf("PluginDefinition %s could not be retrieved from namespace %s: %s", pluginPreset.Spec.Plugin.PluginDefinition, pluginPreset.GetNamespace(), err.Error()))
+		default:
+			pluginDefinitionSpec = pluginDefinition.Spec
 		}
-		pluginDefinitionSpec = pluginDefinition.Spec
 	case greenhousev1alpha1.ClusterPluginDefinitionKind:
 		clusterPluginDefinition := &greenhousev1alpha1.ClusterPluginDefinition{}
 		err := c.Get(ctx, types.NamespacedName{
 			Namespace: "",
 			Name:      pluginPreset.Spec.Plugin.PluginDefinition,
 		}, clusterPluginDefinition)
-		if apierrors.IsNotFound(err) {
+		switch {
+		case apierrors.IsNotFound(err):
 			return allWarns, field.Invalid(field.NewPath("spec", "plugin", "pluginDefinition"), pluginPreset.Spec.Plugin.PluginDefinition,
 				fmt.Sprintf("ClusterPluginDefinition %s does not exist", pluginPreset.Spec.Plugin.PluginDefinition))
-		}
-		if err != nil {
+		case err != nil:
 			return allWarns, field.Invalid(field.NewPath("spec", "plugin", "pluginDefinition"), pluginPreset.Spec.Plugin.PluginDefinition,
 				fmt.Sprintf("ClusterPluginDefinition %s could not be retrieved: %s", pluginPreset.Spec.Plugin.PluginDefinition, err.Error()))
+		default:
+			pluginDefinitionSpec = clusterPluginDefinition.Spec
 		}
-		pluginDefinitionSpec = clusterPluginDefinition.Spec
 	default:
 		return allWarns, field.Invalid(field.NewPath("spec", "plugin", "pluginDefinitionKind"), pluginPreset.Spec.Plugin.PluginDefinitionKind, "unsupported PluginDefinitionKind")
 	}

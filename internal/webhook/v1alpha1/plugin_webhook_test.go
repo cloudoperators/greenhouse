@@ -434,7 +434,6 @@ var _ = Describe("Validate ClusterPluginDefinition label on Defaulting", Ordered
 			g.Expect(labels).ToNot(HaveKeyWithValue(greenhouseapis.LabelKeyPluginDefinition, testPluginDefinition.Name),
 				"the plugin should not have the plugindefinition label set to the pluginDefinition name")
 		}).Should(Succeed(), " the plugin should have only clusterpluginDefinition label set")
-
 	})
 })
 

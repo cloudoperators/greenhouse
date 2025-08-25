@@ -123,7 +123,7 @@ var _ = Describe("PluginPreset Admission Tests", Ordered, func() {
 			Spec: greenhousev1alpha1.PluginPresetSpec{
 				Plugin: greenhousev1alpha1.PluginSpec{
 					PluginDefinition:     "non-existing",
-					PluginDefinitionKind: "ClusterPluginDefinition",
+					PluginDefinitionKind: greenhousev1alpha1.ClusterPluginDefinitionKind,
 				},
 				ClusterSelector:        metav1.LabelSelector{MatchLabels: map[string]string{"foo": "bar"}},
 				ClusterOptionOverrides: []greenhousev1alpha1.ClusterOptionOverride{},
@@ -144,7 +144,7 @@ var _ = Describe("PluginPreset Admission Tests", Ordered, func() {
 			Spec: greenhousev1alpha1.PluginPresetSpec{
 				Plugin: greenhousev1alpha1.PluginSpec{
 					PluginDefinition:     "non-existing",
-					PluginDefinitionKind: "PluginDefinition",
+					PluginDefinitionKind: greenhousev1alpha1.PluginDefinitionKind,
 				},
 				ClusterSelector:        metav1.LabelSelector{MatchLabels: map[string]string{"foo": "bar"}},
 				ClusterOptionOverrides: []greenhousev1alpha1.ClusterOptionOverride{},
