@@ -405,9 +405,10 @@ func (r *PluginPresetReconciler) computeReadyCondition(
 		return readyCondition
 	}
 
-	if conditions.GetConditionByType(greenhousev1alpha1.AllPluginsReadyCondition).IsFalse() {
+	allPluginsReadyCondition := conditions.GetConditionByType(greenhousev1alpha1.AllPluginsReadyCondition)
+	if allPluginsReadyCondition != nil && allPluginsReadyCondition.IsFalse() {
 		readyCondition.Status = metav1.ConditionFalse
-		readyCondition.Message = "Not all plugins are ready"
+		readyCondition.Message = allPluginsReadyCondition.Message
 		return readyCondition
 	}
 
