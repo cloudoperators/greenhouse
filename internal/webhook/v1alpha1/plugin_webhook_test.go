@@ -301,7 +301,7 @@ var _ = Describe("Validate plugin spec fields", Ordered, func() {
 		expectClusterNotFoundError(test.K8sClient.Create(test.Ctx, testPlugin))
 	})
 
-	It("should accept the plugin when the cluster with clusterName exists", func() {
+	It("should accept the plugin with reference to ClusterPluginDefinition", func() {
 		By("creating the plugin")
 		testPlugin = setup.CreatePlugin(test.Ctx, "test-plugin",
 			test.WithClusterPluginDefinition(testPluginDefinition.Name),
@@ -317,6 +317,30 @@ var _ = Describe("Validate plugin spec fields", Ordered, func() {
 		Eventually(func() map[string]string {
 			return actPlugin.GetLabels()
 		}).Should(HaveKeyWithValue(greenhouseapis.LabelKeyCluster, testCluster.Name), "the plugin should have a matching cluster label")
+	})
+
+	It("should accept the plugin with reference to namespaced PluginDefinition", func() {
+		By("creating namespaced PluginDefinition")
+		namespacedPluginDefinition := test.NewPluginDefinition(test.Ctx, "pd-namespaced", setup.Namespace())
+		Expect(setup.Create(test.Ctx, namespacedPluginDefinition)).To(Succeed(), "failed to create namespaced PluginDefinition")
+
+		By("creating the plugin")
+		testPlugin = setup.CreatePlugin(test.Ctx, "test-plugin",
+			test.WithPluginDefinition(namespacedPluginDefinition.Name),
+			test.WithCluster(testCluster.Name),
+			test.WithReleaseNamespace("test-namespace"),
+			test.WithReleaseName("test-release"),
+			test.WithPluginLabel(greenhouseapis.LabelKeyOwnedBy, team.Name))
+
+		By("checking the label on the plugin")
+		actPlugin := &greenhousev1alpha1.Plugin{}
+		err := test.K8sClient.Get(test.Ctx, types.NamespacedName{Name: testPlugin.Name, Namespace: testPlugin.Namespace}, actPlugin)
+		Expect(err).ToNot(HaveOccurred(), "there should be no error getting the plugin")
+		Eventually(func() map[string]string {
+			return actPlugin.GetLabels()
+		}).Should(HaveKeyWithValue(greenhouseapis.LabelKeyCluster, testCluster.Name), "the plugin should have a matching cluster label")
+
+		test.EventuallyDeleted(test.Ctx, test.K8sClient, namespacedPluginDefinition)
 	})
 
 	It("should reject to update a plugin when the clusterName changes", func() {
@@ -359,8 +383,8 @@ var _ = Describe("Validate plugin spec fields", Ordered, func() {
 		Expect(err.Error()).To(ContainSubstring(validation.FieldImmutableErrorMsg))
 	})
 
-	It("should reject to update a plugin when the pluginDefinition changes", func() {
-		secondPluginDefinition := setup.CreateClusterPluginDefinition(test.Ctx, "foo-bar")
+	It("should reject to update a plugin when the pluginDefinition reference changes", func() {
+		secondClusterPluginDefinition := setup.CreateClusterPluginDefinition(test.Ctx, "foo-bar")
 		testPlugin = setup.CreatePlugin(test.Ctx, "test-plugin",
 			test.WithClusterPluginDefinition(testPluginDefinition.Name),
 			test.WithCluster(testCluster.Name),
@@ -368,11 +392,53 @@ var _ = Describe("Validate plugin spec fields", Ordered, func() {
 			test.WithReleaseName("test-release"),
 			test.WithPluginLabel(greenhouseapis.LabelKeyOwnedBy, team.Name))
 
-		testPlugin.Spec.PluginDefinition = secondPluginDefinition.Name
+		namespacedPluginDefinition := test.NewPluginDefinition(test.Ctx, testPluginDefinition.Name, testPlugin.GetNamespace())
+		Expect(setup.Create(test.Ctx, namespacedPluginDefinition)).To(Succeed(), "failed to create namespaced PluginDefinition")
+
+		testPlugin.Spec.PluginDefinitionKind = greenhousev1alpha1.PluginDefinitionKind
 		err := test.K8sClient.Update(test.Ctx, testPlugin)
+		Expect(err).To(HaveOccurred(), "there should be an error changing the plugin's pluginDefinitionKind")
+		Expect(err.Error()).To(ContainSubstring(validation.FieldImmutableErrorMsg))
+
+		testPlugin.Spec.PluginDefinitionKind = greenhousev1alpha1.ClusterPluginDefinitionKind
+		testPlugin.Spec.PluginDefinition = secondClusterPluginDefinition.Name
+		err = test.K8sClient.Update(test.Ctx, testPlugin)
 		Expect(err).To(HaveOccurred(), "there should be an error changing the plugin's pluginDefinition")
 		Expect(err.Error()).To(ContainSubstring(validation.FieldImmutableErrorMsg))
-		test.EventuallyDeleted(test.Ctx, test.K8sClient, secondPluginDefinition)
+
+		test.EventuallyDeleted(test.Ctx, test.K8sClient, secondClusterPluginDefinition)
+		test.EventuallyDeleted(test.Ctx, test.K8sClient, namespacedPluginDefinition)
+	})
+
+	It("should correctly default the PluginDefinitionKind for existing PluginDefinition", func() {
+		namespacedPluginDefinition := test.NewPluginDefinition(test.Ctx, "pd-namespaced", setup.Namespace())
+		Expect(setup.Create(test.Ctx, namespacedPluginDefinition)).To(Succeed(), "failed to create namespaced PluginDefinition")
+
+		testPlugin := test.NewPlugin(test.Ctx, "test-plugin", setup.Namespace(),
+			test.WithCluster(testCluster.Name),
+			test.WithReleaseNamespace("test-namespace"),
+			test.WithReleaseName("test-release"),
+			test.WithPluginLabel(greenhouseapis.LabelKeyOwnedBy, team.Name),
+		)
+		testPlugin.Spec.PluginDefinition = namespacedPluginDefinition.Name
+
+		Expect(test.K8sClient.Create(test.Ctx, testPlugin)).To(Succeed(), "there must be no error creating the Plugin")
+		Expect(testPlugin.Spec.PluginDefinitionKind).To(Equal(greenhousev1alpha1.PluginDefinitionKind), "PluginDefinitionKind should be defaulted to PluginDefinition")
+
+		test.EventuallyDeleted(test.Ctx, test.K8sClient, namespacedPluginDefinition)
+	})
+
+	It("should correctly default the PluginDefinitionKind for existing ClusterPluginDefinition", func() {
+		testPlugin := test.NewPlugin(test.Ctx, "test-plugin", setup.Namespace(),
+			test.WithCluster(testCluster.Name),
+			test.WithReleaseNamespace("test-namespace"),
+			test.WithReleaseName("test-release"),
+			test.WithPluginLabel(greenhouseapis.LabelKeyOwnedBy, team.Name),
+		)
+		testPlugin.Spec.PluginDefinition = testPluginDefinition.Name
+
+		Expect(test.K8sClient.Create(test.Ctx, testPlugin)).To(Succeed(), "there must be no error creating the Plugin")
+		Expect(testPlugin.Spec.PluginDefinitionKind).To(Equal(greenhousev1alpha1.ClusterPluginDefinitionKind), "PluginDefinitionKind should be defaulted to ClusterPluginDefinition")
 	})
 })
 
