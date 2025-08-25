@@ -20,7 +20,7 @@ import (
 var _ = Describe("Organization ServiceProxyReconciler", Ordered, func() {
 	var setup *test.TestSetup
 	var org *greenhousev1alpha1.Organization
-	serviceProxyPluginDefinition := test.NewClusterPluginDefinition(test.Ctx, "service-proxy")
+	serviceProxyPluginDefinition := test.NewClusterPluginDefinition("service-proxy")
 
 	BeforeEach(func() {
 		setup = test.NewTestSetup(test.Ctx, test.K8sClient, "org-rbac-test")
