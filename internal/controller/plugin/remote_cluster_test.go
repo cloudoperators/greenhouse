@@ -38,14 +38,14 @@ var (
 
 	testPlugin = test.NewPlugin(test.Ctx, "test-plugindefinition", test.TestNamespace,
 		test.WithCluster("test-cluster"),
-		test.WithPluginDefinition("test-plugindefinition"),
+		test.WithClusterPluginDefinition("test-plugindefinition"),
 		test.WithReleaseName("release-test"),
 		test.WithReleaseNamespace(test.TestNamespace),
 		test.WithPluginLabel(greenhouseapis.LabelKeyOwnedBy, testTeam.Name))
 
 	testPluginWithSR = test.NewPlugin(test.Ctx, "test-plugin-secretref", test.TestNamespace,
 		test.WithCluster("test-cluster"),
-		test.WithPluginDefinition("test-plugindefinition"),
+		test.WithClusterPluginDefinition("test-plugindefinition"),
 		test.WithReleaseName("release-with-secretref"),
 		test.WithPluginOptionValue("secretValue", nil, &greenhousev1alpha1.ValueFromSource{
 			Secret: &greenhousev1alpha1.SecretKeyReference{
@@ -58,7 +58,7 @@ var (
 
 	testPluginWithCRDs = test.NewPlugin(test.Ctx, "test-plugin-crd", test.TestNamespace,
 		test.WithCluster(testCluster.GetName()),
-		test.WithPluginDefinition("test-plugindefinition-crd"),
+		test.WithClusterPluginDefinition("test-plugindefinition-crd"),
 		test.WithReleaseName("plugindefinition-crd"),
 		test.WithReleaseNamespace(test.TestNamespace),
 		test.WithPluginLabel(greenhouseapis.LabelKeyOwnedBy, testTeam.Name),
@@ -66,7 +66,7 @@ var (
 
 	testPluginWithExposedService = test.NewPlugin(test.Ctx, "test-plugin-exposed", test.TestNamespace,
 		test.WithCluster(testCluster.GetName()),
-		test.WithPluginDefinition("test-plugindefinition-exposed"),
+		test.WithClusterPluginDefinition("test-plugindefinition-exposed"),
 		test.WithReleaseName("plugindefinition-exposed"),
 		test.WithReleaseNamespace(test.TestNamespace),
 		test.WithPluginLabel(greenhouseapis.LabelKeyOwnedBy, testTeam.Name),
@@ -276,7 +276,7 @@ var _ = Describe("HelmController reconciliation", Ordered, func() {
 		testPluginInDifferentNamespace := test.NewPlugin(test.Ctx, "test-plugin-in-made-up-namespace", test.TestNamespace,
 			test.WithPluginLabel(greenhouseapis.LabelKeyOwnedBy, testTeam.Name),
 			test.WithCluster(testCluster.GetName()),
-			test.WithPluginDefinition(testPluginDefinition.GetName()),
+			test.WithClusterPluginDefinition(testPluginDefinition.GetName()),
 			test.WithReleaseName("release-test-in-made-up-namespace"),
 			test.WithReleaseNamespace("made-up-namespace"))
 

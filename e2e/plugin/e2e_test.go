@@ -110,7 +110,7 @@ var _ = Describe("Plugin E2E", Ordered, func() {
 		By("Creating the plugin")
 		// Creating plugin with release name
 		testPlugin := fixtures.PreparePlugin("test-nginx-plugin-1", env.TestNamespace,
-			test.WithPluginDefinition(testPluginDefinition.Name),
+			test.WithClusterPluginDefinition(testPluginDefinition.Name),
 			test.WithCluster(remoteClusterName),
 			test.WithReleaseName("test-nginx-plugin"),
 			test.WithReleaseNamespace(env.TestNamespace),
@@ -209,7 +209,7 @@ var _ = Describe("Plugin E2E", Ordered, func() {
 		By("Prepare the plugin")
 		// Creating plugin with release name
 		testPlugin := fixtures.PreparePlugin("test-nginx-plugin-2", env.TestNamespace,
-			test.WithPluginDefinition(testPluginDefinition.Name),
+			test.WithClusterPluginDefinition(testPluginDefinition.Name),
 			test.WithReleaseName("test-nginx-plugin"),
 			test.WithReleaseNamespace(env.TestNamespace),
 			test.WithPluginOptionValue("replicaCount", &apiextensionsv1.JSON{Raw: []byte("1")}, nil),
@@ -362,7 +362,7 @@ var _ = Describe("Plugin E2E", Ordered, func() {
 		By("Preparing the plugin")
 		// Creating plugin with release name
 		plugin := fixtures.PreparePlugin("test-cert-manager-plugin", env.TestNamespace,
-			test.WithPluginDefinition(pluginDefinition.Name),
+			test.WithClusterPluginDefinition(pluginDefinition.Name),
 			test.WithCluster(remoteClusterName),
 			test.WithReleaseNamespace(env.TestNamespace),
 			test.WithReleaseName("test-cert-manager-plugin"),
@@ -459,7 +459,7 @@ var _ = Describe("Plugin E2E", Ordered, func() {
 
 		By("Prepare the plugin")
 		testPlugin := fixtures.PreparePlugin("test-podinfo-plugin", env.TestNamespace,
-			test.WithPluginDefinition(testPluginDefinition.Name),
+			test.WithClusterPluginDefinition(testPluginDefinition.Name),
 			test.WithReleaseName("test-podinfo-plugin"),
 			test.WithReleaseNamespace(env.TestNamespace),
 			test.WithPluginOptionValue("replicaCount", &apiextensionsv1.JSON{Raw: []byte("1")}, nil))

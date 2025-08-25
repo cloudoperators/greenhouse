@@ -179,7 +179,7 @@ var _ = Describe("Validate Plugin OptionValues", func() {
 		}
 		It("should reject a Plugin with missing required options", func() {
 			plugin := test.NewPlugin(test.Ctx, "test-plugin", test.TestNamespace,
-				test.WithPluginDefinition("test"),
+				test.WithClusterPluginDefinition("test"),
 				test.WithCluster("test-cluster"),
 			)
 			optionsFieldPath := field.NewPath("spec").Child("optionValues")
@@ -233,7 +233,7 @@ var _ = Describe("Validate plugin spec fields", Ordered, func() {
 
 	It("should not accept a plugin without a clusterName", func() {
 		testPlugin = test.NewPlugin(test.Ctx, "test-plugin", setup.Namespace(),
-			test.WithPluginDefinition(testPluginDefinition.Name),
+			test.WithClusterPluginDefinition(testPluginDefinition.Name),
 			test.WithReleaseNamespace("test-namespace"),
 			test.WithReleaseName("test-release"),
 			test.WithPluginLabel(greenhouseapis.LabelKeyOwnedBy, team.Name))
@@ -252,7 +252,7 @@ var _ = Describe("Validate plugin spec fields", Ordered, func() {
 
 	It("should not accept a plugin for the central cluster where releaseNamespace and Plugin Namespace do not match", func() {
 		testPlugin = test.NewPlugin(test.Ctx, "test-plugin", setup.Namespace(),
-			test.WithPluginDefinition(testCentralPluginDefinition.Name),
+			test.WithClusterPluginDefinition(testCentralPluginDefinition.Name),
 			test.WithReleaseNamespace("test-namespace"),
 			test.WithReleaseName("test-release"),
 			test.WithPluginLabel(greenhouseapis.LabelKeyOwnedBy, team.Name))
@@ -266,7 +266,7 @@ var _ = Describe("Validate plugin spec fields", Ordered, func() {
 		}()
 		pluginsAllowedInCentralCluster = []string{testPluginDefinition.Name}
 		testPlugin = test.NewPlugin(test.Ctx, "test-plugin", setup.Namespace(),
-			test.WithPluginDefinition(testPluginDefinition.Name),
+			test.WithClusterPluginDefinition(testPluginDefinition.Name),
 			test.WithCluster(testCluster.Name),
 			test.WithReleaseNamespace("test-namespace"),
 			test.WithReleaseName("test-release"),
@@ -277,7 +277,7 @@ var _ = Describe("Validate plugin spec fields", Ordered, func() {
 
 	It("should not accept a plugin if the releaseNamespace changes", func() {
 		testPlugin = setup.CreatePlugin(test.Ctx, "test-plugin",
-			test.WithPluginDefinition(testPluginDefinition.Name),
+			test.WithClusterPluginDefinition(testPluginDefinition.Name),
 			test.WithCluster(testCluster.Name),
 			test.WithReleaseNamespace("test-namespace"),
 			test.WithReleaseName("test-release"),
@@ -292,7 +292,7 @@ var _ = Describe("Validate plugin spec fields", Ordered, func() {
 	It("should reject the plugin when the cluster with clusterName does not exist", func() {
 		By("creating the plugin")
 		testPlugin = test.NewPlugin(test.Ctx, "test-plugin", setup.Namespace(),
-			test.WithPluginDefinition(testPluginDefinition.Name),
+			test.WithClusterPluginDefinition(testPluginDefinition.Name),
 			test.WithCluster("non-existent-cluster"),
 			test.WithReleaseNamespace("test-namespace"),
 			test.WithReleaseName("test-release"),
@@ -304,7 +304,7 @@ var _ = Describe("Validate plugin spec fields", Ordered, func() {
 	It("should accept the plugin when the cluster with clusterName exists", func() {
 		By("creating the plugin")
 		testPlugin = setup.CreatePlugin(test.Ctx, "test-plugin",
-			test.WithPluginDefinition(testPluginDefinition.Name),
+			test.WithClusterPluginDefinition(testPluginDefinition.Name),
 			test.WithCluster(testCluster.Name),
 			test.WithReleaseNamespace("test-namespace"),
 			test.WithReleaseName("test-release"),
@@ -321,7 +321,7 @@ var _ = Describe("Validate plugin spec fields", Ordered, func() {
 
 	It("should reject to update a plugin when the clusterName changes", func() {
 		testPlugin = setup.CreatePlugin(test.Ctx, "test-plugin",
-			test.WithPluginDefinition(testPluginDefinition.Name),
+			test.WithClusterPluginDefinition(testPluginDefinition.Name),
 			test.WithCluster(testCluster.Name),
 			test.WithReleaseNamespace("test-namespace"),
 			test.WithReleaseName("test-release"),
@@ -335,7 +335,7 @@ var _ = Describe("Validate plugin spec fields", Ordered, func() {
 
 	It("should reject to update a plugin when the clustername is removed", func() {
 		testPlugin = setup.CreatePlugin(test.Ctx, "test-plugin",
-			test.WithPluginDefinition(testPluginDefinition.Name),
+			test.WithClusterPluginDefinition(testPluginDefinition.Name),
 			test.WithCluster(testCluster.Name),
 			test.WithReleaseNamespace("test-namespace"),
 			test.WithReleaseName("test-release"),
@@ -348,7 +348,7 @@ var _ = Describe("Validate plugin spec fields", Ordered, func() {
 
 	It("should reject to update a plugin when the releaseNamespace changes", func() {
 		testPlugin = setup.CreatePlugin(test.Ctx, "test-plugin",
-			test.WithPluginDefinition(testPluginDefinition.Name),
+			test.WithClusterPluginDefinition(testPluginDefinition.Name),
 			test.WithCluster(testCluster.Name),
 			test.WithReleaseNamespace("test-namespace"),
 			test.WithReleaseName("test-release"),
@@ -362,7 +362,7 @@ var _ = Describe("Validate plugin spec fields", Ordered, func() {
 	It("should reject to update a plugin when the pluginDefinition changes", func() {
 		secondPluginDefinition := setup.CreateClusterPluginDefinition(test.Ctx, "foo-bar")
 		testPlugin = setup.CreatePlugin(test.Ctx, "test-plugin",
-			test.WithPluginDefinition(testPluginDefinition.Name),
+			test.WithClusterPluginDefinition(testPluginDefinition.Name),
 			test.WithCluster(testCluster.Name),
 			test.WithReleaseNamespace("test-namespace"),
 			test.WithReleaseName("test-release"),
@@ -414,7 +414,7 @@ var _ = Describe("Validate ClusterPluginDefinition label on Defaulting", Ordered
 		}()
 		pluginsAllowedInCentralCluster = []string{testPluginDefinition.Name}
 		testPlugin = test.NewPlugin(test.Ctx, "test-plugin", setup.Namespace(),
-			test.WithPluginDefinition(testPluginDefinition.Name),
+			test.WithClusterPluginDefinition(testPluginDefinition.Name),
 			test.WithCluster(testCluster.Name),
 			test.WithReleaseNamespace("test-namespace"),
 			test.WithReleaseName("test-release"),
@@ -486,7 +486,7 @@ func expectReleaseNamespaceMustMatchError(err error) {
 
 var _ = Describe("Validate Plugin with OwnerReference from PluginPresets", func() {
 	testPlugin := test.NewPlugin(test.Ctx, "test-plugin", test.TestNamespace,
-		test.WithPluginDefinition("test-plugindefinition"),
+		test.WithClusterPluginDefinition("test-plugindefinition"),
 		test.WithCluster("test-cluster"),
 	)
 
@@ -518,7 +518,7 @@ var _ = Describe("Validation and defaulting of releaseName", func() {
 	BeforeEach(func() {
 		pluginDefinition = test.NewClusterPluginDefinition(test.Ctx, "test-definition", test.WithHelmChart(&greenhousev1alpha1.HelmChartReference{Name: "test-helm-chart"}))
 
-		testPlugin = test.NewPlugin(test.Ctx, "test-plugin", "testing", test.WithPluginDefinition("test-definition"))
+		testPlugin = test.NewPlugin(test.Ctx, "test-plugin", "testing", test.WithClusterPluginDefinition("test-definition"))
 		// ensure the Plugin is in the deployed state
 		testPlugin.Status.HelmReleaseStatus = &greenhousev1alpha1.HelmReleaseStatus{
 			Status: "deployed",
