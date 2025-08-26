@@ -54,7 +54,7 @@ func init() {
 
 func UpdatePluginReconcileTotalMetric(plugin *greenhousev1alpha1.Plugin, result MetricResult, reason MetricReason) {
 	pluginReconcileTotalLabels := prometheus.Labels{
-		"pluginDefinition": plugin.Spec.PluginDefinition,
+		"pluginDefinition": plugin.Spec.PluginDefinitionRef.Name,
 		"clusterName":      plugin.Spec.ClusterName,
 		"plugin":           plugin.Name,
 		"namespace":        plugin.Namespace,

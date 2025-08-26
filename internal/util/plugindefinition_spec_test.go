@@ -55,8 +55,7 @@ var _ = Describe("Test common GetPluginDefinitionSpec", func() {
 
 				By("checking GetPluginDefinitionSpec func outcome")
 				pluginDefinitionSpec, err := util.GetPluginDefinitionSpec(test.Ctx, setup.Client,
-					testPlugin.Spec.PluginDefinition,
-					testPlugin.Spec.PluginDefinitionRef.Kind,
+					testPlugin.Spec.PluginDefinitionRef,
 					testPlugin.GetNamespace(),
 				)
 				Expect(err).ToNot(HaveOccurred(), "expected no error getting PluginDefinitionSpec for Plugin")
@@ -66,14 +65,15 @@ var _ = Describe("Test common GetPluginDefinitionSpec", func() {
 
 			It("should return the correct Spec when the PluginDefinitionKind is not specified in Plugin", func() {
 				By("creating Plugin with ClusterPluginDefinition reference")
-				testPlugin.Spec.PluginDefinition = clusterPluginDefinition.Name
-				testPlugin.Spec.PluginDefinitionRef.Kind = ""
+				testPlugin.Spec.PluginDefinitionRef = greenhousev1alpha1.PluginDefinitionReference{
+					Name: clusterPluginDefinition.Name,
+					Kind: "",
+				}
 				Expect(setup.Create(test.Ctx, testPlugin)).To(Succeed(), "failed to create test Plugin")
 
 				By("checking GetPluginDefinitionSpec func outcome")
 				pluginDefinitionSpec, err := util.GetPluginDefinitionSpec(test.Ctx, setup.Client,
-					testPlugin.Spec.PluginDefinition,
-					testPlugin.Spec.PluginDefinitionRef.Kind,
+					testPlugin.Spec.PluginDefinitionRef,
 					testPlugin.GetNamespace(),
 				)
 				Expect(err).ToNot(HaveOccurred(), "expected no error getting PluginDefinitionSpec for Plugin")
@@ -100,8 +100,7 @@ var _ = Describe("Test common GetPluginDefinitionSpec", func() {
 
 				By("checking GetPluginDefinitionSpec func outcome")
 				pluginDefinitionSpec, err := util.GetPluginDefinitionSpec(test.Ctx, setup.Client,
-					testPlugin.Spec.PluginDefinition,
-					testPlugin.Spec.PluginDefinitionRef.Kind,
+					testPlugin.Spec.PluginDefinitionRef,
 					testPlugin.GetNamespace(),
 				)
 				Expect(err).ToNot(HaveOccurred(), "expected no error getting PluginDefinitionSpec for Plugin")
@@ -113,14 +112,15 @@ var _ = Describe("Test common GetPluginDefinitionSpec", func() {
 		When("PluginDefinition does not exist", func() {
 			It("should return an error when PluginDefinitionKind is not supported", func() {
 				By("creating Plugin with incorrect PluginDefinition reference")
-				testPlugin.Spec.PluginDefinition = "non-existing-pd"
-				testPlugin.Spec.PluginDefinitionRef.Kind = "NotSupportedKind"
+				testPlugin.Spec.PluginDefinitionRef = greenhousev1alpha1.PluginDefinitionReference{
+					Name: "non-existing-pd",
+					Kind: "NotSupportedKind",
+				}
 				Expect(setup.Create(test.Ctx, testPlugin)).To(Succeed(), "failed to create test Plugin")
 
 				By("checking GetPluginDefinitionSpec func outcome")
 				pluginDefinitionSpec, err := util.GetPluginDefinitionSpec(test.Ctx, setup.Client,
-					testPlugin.Spec.PluginDefinition,
-					testPlugin.Spec.PluginDefinitionRef.Kind,
+					testPlugin.Spec.PluginDefinitionRef,
 					testPlugin.GetNamespace(),
 				)
 				Expect(err).To(HaveOccurred(), "expected an error getting PluginDefinitionSpec for Plugin")
@@ -135,8 +135,7 @@ var _ = Describe("Test common GetPluginDefinitionSpec", func() {
 
 				By("checking GetPluginDefinitionSpec func outcome")
 				pluginDefinitionSpec, err := util.GetPluginDefinitionSpec(test.Ctx, setup.Client,
-					testPlugin.Spec.PluginDefinition,
-					testPlugin.Spec.PluginDefinitionRef.Kind,
+					testPlugin.Spec.PluginDefinitionRef,
 					testPlugin.GetNamespace(),
 				)
 				Expect(err).To(HaveOccurred(), "expected an error getting PluginDefinitionSpec for Plugin")
@@ -151,8 +150,7 @@ var _ = Describe("Test common GetPluginDefinitionSpec", func() {
 
 				By("checking GetPluginDefinitionSpec func outcome")
 				pluginDefinitionSpec, err := util.GetPluginDefinitionSpec(test.Ctx, setup.Client,
-					testPlugin.Spec.PluginDefinition,
-					testPlugin.Spec.PluginDefinitionRef.Kind,
+					testPlugin.Spec.PluginDefinitionRef,
 					testPlugin.GetNamespace(),
 				)
 				Expect(err).To(HaveOccurred(), "expected an error getting PluginDefinitionSpec for Plugin")

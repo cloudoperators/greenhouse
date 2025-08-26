@@ -397,20 +397,19 @@ var _ = Describe("Validate plugin spec fields", Ordered, func() {
 
 		testPlugin.Spec.PluginDefinitionRef.Kind = greenhousev1alpha1.PluginDefinitionKind
 		err := test.K8sClient.Update(test.Ctx, testPlugin)
-		Expect(err).To(HaveOccurred(), "there should be an error changing the plugin's pluginDefinitionKind")
-		Expect(err.Error()).To(ContainSubstring(validation.FieldImmutableErrorMsg))
+		Expect(err).ToNot(HaveOccurred(), "there should be no error changing the plugin's pluginDefinition kind")
 
 		testPlugin.Spec.PluginDefinitionRef.Kind = greenhousev1alpha1.ClusterPluginDefinitionKind
-		testPlugin.Spec.PluginDefinition = secondClusterPluginDefinition.Name
+		testPlugin.Spec.PluginDefinitionRef.Name = secondClusterPluginDefinition.Name
 		err = test.K8sClient.Update(test.Ctx, testPlugin)
-		Expect(err).To(HaveOccurred(), "there should be an error changing the plugin's pluginDefinition")
+		Expect(err).To(HaveOccurred(), "there should be an error changing the plugin's pluginDefinition name")
 		Expect(err.Error()).To(ContainSubstring(validation.FieldImmutableErrorMsg))
 
 		test.EventuallyDeleted(test.Ctx, test.K8sClient, secondClusterPluginDefinition)
 		test.EventuallyDeleted(test.Ctx, test.K8sClient, namespacedPluginDefinition)
 	})
 
-	It("should correctly default the PluginDefinitionKind for existing PluginDefinition", func() {
+	It("should correctly default the PluginDefinitionKind", func() {
 		namespacedPluginDefinition := test.NewPluginDefinition(test.Ctx, "pd-namespaced", setup.Namespace())
 		Expect(setup.Create(test.Ctx, namespacedPluginDefinition)).To(Succeed(), "failed to create namespaced PluginDefinition")
 
@@ -426,19 +425,6 @@ var _ = Describe("Validate plugin spec fields", Ordered, func() {
 		Expect(testPlugin.Spec.PluginDefinitionRef.Kind).To(Equal(greenhousev1alpha1.PluginDefinitionKind), "PluginDefinitionKind should be defaulted to PluginDefinition")
 
 		test.EventuallyDeleted(test.Ctx, test.K8sClient, namespacedPluginDefinition)
-	})
-
-	It("should correctly default the PluginDefinitionKind for existing ClusterPluginDefinition", func() {
-		testPlugin := test.NewPlugin(test.Ctx, "test-plugin", setup.Namespace(),
-			test.WithCluster(testCluster.Name),
-			test.WithReleaseNamespace("test-namespace"),
-			test.WithReleaseName("test-release"),
-			test.WithPluginLabel(greenhouseapis.LabelKeyOwnedBy, team.Name),
-		)
-		testPlugin.Spec.PluginDefinition = testPluginDefinition.Name
-
-		Expect(test.K8sClient.Create(test.Ctx, testPlugin)).To(Succeed(), "there must be no error creating the Plugin")
-		Expect(testPlugin.Spec.PluginDefinitionRef.Kind).To(Equal(greenhousev1alpha1.ClusterPluginDefinitionKind), "PluginDefinitionKind should be defaulted to ClusterPluginDefinition")
 	})
 })
 
@@ -533,7 +519,7 @@ func expectPluginDefinitionMustMatchError(err error) {
 	ok := errors.As(err, &statusErr)
 	Expect(ok).To(BeTrue(), "error should be a status error")
 	Expect(statusErr.ErrStatus.Reason).To(Equal(metav1.StatusReasonForbidden), "the error should be a status forbidden error")
-	Expect(err.Error()).To(And(ContainSubstring("spec.pluginDefinition"), ContainSubstring("PluginDefinition must be set")), "the error message should reflect that the pluginDefinition must be set")
+	Expect(err.Error()).To(And(ContainSubstring("spec.pluginDefinitionRef.name"), ContainSubstring("PluginDefinition name must be set")), "the error message should reflect that the pluginDefinition name must be set")
 }
 
 func expectReleaseNamespaceMustMatchError(err error) {

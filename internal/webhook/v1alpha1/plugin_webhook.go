@@ -221,7 +221,7 @@ func ValidateCreatePlugin(ctx context.Context, c client.Client, obj runtime.Obje
 
 	// validate OptionValues defined by the Plugin
 	optionsFieldPath := field.NewPath("spec").Child("optionValues")
-	if errList := validatePluginOptionValues(plugin.Spec.OptionValues, plugin.Spec.PluginDefinition, pluginDefinitionSpec, true, optionsFieldPath); len(errList) > 0 {
+	if errList := validatePluginOptionValues(plugin.Spec.OptionValues, plugin.Spec.PluginDefinitionRef.Name, pluginDefinitionSpec, true, optionsFieldPath); len(errList) > 0 {
 		return allWarns, apierrors.NewInvalid(plugin.GroupVersionKind().GroupKind(), plugin.Name, errList)
 	}
 
@@ -429,7 +429,7 @@ func validatePluginForCluster(ctx context.Context, c client.Client, plugin *gree
 		return nil
 	}
 	// Ensure whitelisted plugins are deployed in the organization namespace
-	if plugin.Spec.ClusterName == "" && slices.Contains(pluginsAllowedInCentralCluster, plugin.Spec.PluginDefinition) {
+	if plugin.Spec.ClusterName == "" && slices.Contains(pluginsAllowedInCentralCluster, plugin.Spec.PluginDefinitionRef.Name) {
 		if plugin.Spec.ReleaseNamespace != plugin.GetNamespace() {
 			return field.Forbidden(field.NewPath("spec").Child("releaseNamespace"), "plugins running in the central cluster can only be deployed in the same namespace as the plugin")
 		}

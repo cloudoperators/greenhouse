@@ -198,8 +198,10 @@ var _ = Describe("PluginPreset Controller Lifecycle", Ordered, func() {
 	It("should reconcile a PluginPreset with plugin definition defaults", func() {
 		By("ensuring a Plugin Preset has been created")
 		pluginPreset := pluginPreset(pluginPresetName+"-2", clusterA, testTeam.Name)
-		pluginPreset.Spec.Plugin.PluginDefinition = pluginDefinitionWithDefaultsName
-		pluginPreset.Spec.Plugin.PluginDefinitionRef.Kind = greenhousev1alpha1.ClusterPluginDefinitionKind
+		pluginPreset.Spec.Plugin.PluginDefinitionRef = greenhousev1alpha1.PluginDefinitionReference{
+			Name: pluginDefinitionWithDefaultsName,
+			Kind: greenhousev1alpha1.ClusterPluginDefinitionKind,
+		}
 		Expect(test.K8sClient.Create(test.Ctx, pluginPreset)).ToNot(HaveOccurred())
 		test.EventuallyCreated(test.Ctx, test.K8sClient, pluginPreset)
 
@@ -470,8 +472,10 @@ var _ = Describe("PluginPreset Controller Lifecycle", Ordered, func() {
 
 		By("creating a PluginPreset with overrides")
 		pluginPreset := pluginPreset(pluginPresetName+"-override1", clusterA, testTeam.Name)
-		pluginPreset.Spec.Plugin.PluginDefinition = pluginDefinition.Name
-		pluginPreset.Spec.Plugin.PluginDefinitionRef.Kind = greenhousev1alpha1.ClusterPluginDefinitionKind
+		pluginPreset.Spec.Plugin.PluginDefinitionRef = greenhousev1alpha1.PluginDefinitionReference{
+			Name: pluginDefinition.Name,
+			Kind: greenhousev1alpha1.ClusterPluginDefinitionKind,
+		}
 		pluginPreset.Spec.ClusterOptionOverrides = append(pluginPreset.Spec.ClusterOptionOverrides, greenhousev1alpha1.ClusterOptionOverride{
 			ClusterName: clusterA,
 			Overrides: []greenhousev1alpha1.PluginOptionValue{
@@ -507,8 +511,10 @@ var _ = Describe("PluginPreset Controller Lifecycle", Ordered, func() {
 	It("should save an error when Plugin creation failed due to required options being unset", func() {
 		By("creating a PluginPreset based on PluginDefinition with required option")
 		pluginPreset := pluginPreset(pluginPresetName+"-missing1", clusterA, testTeam.Name)
-		pluginPreset.Spec.Plugin.PluginDefinition = pluginDefinitionWithRequiredOptionName
-		pluginPreset.Spec.Plugin.PluginDefinitionRef.Kind = greenhousev1alpha1.ClusterPluginDefinitionKind
+		pluginPreset.Spec.Plugin.PluginDefinitionRef = greenhousev1alpha1.PluginDefinitionReference{
+			Name: pluginDefinitionWithRequiredOptionName,
+			Kind: greenhousev1alpha1.ClusterPluginDefinitionKind,
+		}
 		Expect(test.K8sClient.Create(test.Ctx, pluginPreset)).To(Succeed(), "failed to create PluginPreset")
 		test.EventuallyCreated(test.Ctx, test.K8sClient, pluginPreset)
 
@@ -538,8 +544,10 @@ var _ = Describe("PluginPreset Controller Lifecycle", Ordered, func() {
 	It("should successfully propagate labels from PluginPreset to Plugin", func() {
 		By("ensuring a Plugin Preset has been created")
 		pluginPreset := pluginPreset(pluginPresetName+"-label-propagation", clusterA, testTeam.Name)
-		pluginPreset.Spec.Plugin.PluginDefinition = pluginDefinitionWithDefaultsName
-		pluginPreset.Spec.Plugin.PluginDefinitionRef.Kind = greenhousev1alpha1.ClusterPluginDefinitionKind
+		pluginPreset.Spec.Plugin.PluginDefinitionRef = greenhousev1alpha1.PluginDefinitionReference{
+			Name: pluginDefinitionWithDefaultsName,
+			Kind: greenhousev1alpha1.ClusterPluginDefinitionKind,
+		}
 		pluginPreset.SetAnnotations(map[string]string{
 			lifecycle.PropagateLabelsAnnotation: "support_group, region",
 		})

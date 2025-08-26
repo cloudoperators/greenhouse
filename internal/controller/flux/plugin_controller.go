@@ -148,7 +148,7 @@ func (r *FluxReconciler) EnsureCreated(ctx context.Context, resource lifecycle.R
 
 	pluginController.InitPluginStatus(plugin)
 
-	pluginDefinitionSpec, err := util.GetPluginDefinitionSpec(ctx, r.Client, plugin.Spec.PluginDefinition, plugin.Spec.PluginDefinitionRef.Kind, plugin.GetNamespace())
+	pluginDefinitionSpec, err := util.GetPluginDefinitionSpec(ctx, r.Client, plugin.Spec.PluginDefinitionRef, plugin.GetNamespace())
 	if err != nil {
 		log.FromContext(ctx).Error(err, "Unable to find pluginDefinition for ", "plugin", plugin.Name, "namespace", plugin.Namespace)
 		return ctrl.Result{}, lifecycle.Failed, err

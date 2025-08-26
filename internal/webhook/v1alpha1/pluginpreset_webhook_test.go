@@ -64,7 +64,7 @@ var _ = Describe("PluginPreset Admission Tests", Ordered, func() {
 
 		err := test.K8sClient.Create(test.Ctx, cut)
 		Expect(err).To(HaveOccurred())
-		Expect(err.Error()).To(ContainSubstring("PluginDefinition must be set"))
+		Expect(err.Error()).To(ContainSubstring("PluginDefinition name must be set"))
 	})
 
 	It("should reject PluginPreset with a PluginSpec containing a ClusterName", func() {
@@ -154,7 +154,7 @@ var _ = Describe("PluginPreset Admission Tests", Ordered, func() {
 		Expect(err.Error()).To(ContainSubstring("PluginDefinition non-existing does not exist"))
 	})
 
-	It("should correctly default the PluginDefinitionKind for existing PluginDefinition", func() {
+	It("should correctly default the PluginDefinitionRef for existing PluginDefinition", func() {
 		cut := test.NewPluginPreset(pluginPresetCreate, test.TestNamespace,
 			test.WithPluginPresetLabel(greenhouseapis.LabelKeyOwnedBy, teamWithSupportGroupName),
 			test.WithPluginPresetClusterSelector(metav1.LabelSelector{MatchLabels: map[string]string{"foo": "bar"}}),
@@ -164,21 +164,8 @@ var _ = Describe("PluginPreset Admission Tests", Ordered, func() {
 		)
 		Expect(test.K8sClient.Create(test.Ctx, cut)).
 			To(Succeed(), "there must be no error creating the PluginPreset")
-		Expect(cut.Spec.Plugin.PluginDefinitionRef.Kind).To(Equal(greenhousev1alpha1.PluginDefinitionKind), "PluginDefinitionKind should be defaulted to PluginDefinition")
-		test.EventuallyDeleted(test.Ctx, test.K8sClient, cut)
-	})
-
-	It("should correctly default the PluginDefinitionKind for existing ClusterPluginDefinition", func() {
-		cut := test.NewPluginPreset(pluginPresetCreate, test.TestNamespace,
-			test.WithPluginPresetLabel(greenhouseapis.LabelKeyOwnedBy, teamWithSupportGroupName),
-			test.WithPluginPresetClusterSelector(metav1.LabelSelector{MatchLabels: map[string]string{"foo": "bar"}}),
-			test.WithPluginPresetPluginSpec(greenhousev1alpha1.PluginSpec{
-				PluginDefinition: pluginPresetClusterDefinition,
-			}),
-		)
-		Expect(test.K8sClient.Create(test.Ctx, cut)).
-			To(Succeed(), "there must be no error creating the PluginPreset")
-		Expect(cut.Spec.Plugin.PluginDefinitionRef.Kind).To(Equal(greenhousev1alpha1.ClusterPluginDefinitionKind), "PluginDefinitionKind should be defaulted to ClusterPluginDefinition")
+		Expect(cut.Spec.Plugin.PluginDefinitionRef.Name).To(Equal(pluginPresetNamespacedDefinition), "PluginDefinitionRef name should be defaulted")
+		Expect(cut.Spec.Plugin.PluginDefinitionRef.Kind).To(Equal(greenhousev1alpha1.PluginDefinitionKind), "PluginDefinitionRef kind should be defaulted to PluginDefinition")
 		test.EventuallyDeleted(test.Ctx, test.K8sClient, cut)
 	})
 
@@ -220,11 +207,11 @@ var _ = Describe("PluginPreset Admission Tests", Ordered, func() {
 			NotTo(HaveOccurred(), "there must be no error updating the PluginPreset clusterSelector")
 
 		_, err = clientutil.CreateOrPatch(test.Ctx, test.K8sClient, cut, func() error {
-			cut.Spec.Plugin.PluginDefinition = "new-definition"
+			cut.Spec.Plugin.PluginDefinitionRef.Name = "new-definition"
 			return nil
 		})
 		Expect(err).
-			To(HaveOccurred(), "there must be an error updating the PluginPreset pluginDefinition")
+			To(HaveOccurred(), "there must be an error updating the PluginPreset pluginDefinition name")
 		Expect(err.Error()).
 			To(ContainSubstring("field is immutable"), "the error must reflect the field is immutable")
 
@@ -233,9 +220,7 @@ var _ = Describe("PluginPreset Admission Tests", Ordered, func() {
 			return nil
 		})
 		Expect(err).
-			To(HaveOccurred(), "there must be an error updating the PluginPreset pluginDefinitionKind")
-		Expect(err.Error()).
-			To(ContainSubstring("field is immutable"), "the error must reflect the field is immutable")
+			NotTo(HaveOccurred(), "there must be no error updating the PluginPreset pluginDefinition kind")
 
 		_, err = clientutil.CreateOrPatch(test.Ctx, test.K8sClient, cut, func() error {
 			cut.Spec.Plugin.ClusterName = "foo"
