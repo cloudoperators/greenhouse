@@ -56,7 +56,7 @@ var _ = Describe("Test common GetPluginDefinitionSpec", func() {
 				By("checking GetPluginDefinitionSpec func outcome")
 				pluginDefinitionSpec, err := util.GetPluginDefinitionSpec(test.Ctx, setup.Client,
 					testPlugin.Spec.PluginDefinition,
-					testPlugin.Spec.PluginDefinitionKind,
+					testPlugin.Spec.PluginDefinitionRef.Kind,
 					testPlugin.GetNamespace(),
 				)
 				Expect(err).ToNot(HaveOccurred(), "expected no error getting PluginDefinitionSpec for Plugin")
@@ -67,13 +67,13 @@ var _ = Describe("Test common GetPluginDefinitionSpec", func() {
 			It("should return the correct Spec when the PluginDefinitionKind is not specified in Plugin", func() {
 				By("creating Plugin with ClusterPluginDefinition reference")
 				testPlugin.Spec.PluginDefinition = clusterPluginDefinition.Name
-				testPlugin.Spec.PluginDefinitionKind = ""
+				testPlugin.Spec.PluginDefinitionRef.Kind = ""
 				Expect(setup.Create(test.Ctx, testPlugin)).To(Succeed(), "failed to create test Plugin")
 
 				By("checking GetPluginDefinitionSpec func outcome")
 				pluginDefinitionSpec, err := util.GetPluginDefinitionSpec(test.Ctx, setup.Client,
 					testPlugin.Spec.PluginDefinition,
-					testPlugin.Spec.PluginDefinitionKind,
+					testPlugin.Spec.PluginDefinitionRef.Kind,
 					testPlugin.GetNamespace(),
 				)
 				Expect(err).ToNot(HaveOccurred(), "expected no error getting PluginDefinitionSpec for Plugin")
@@ -101,7 +101,7 @@ var _ = Describe("Test common GetPluginDefinitionSpec", func() {
 				By("checking GetPluginDefinitionSpec func outcome")
 				pluginDefinitionSpec, err := util.GetPluginDefinitionSpec(test.Ctx, setup.Client,
 					testPlugin.Spec.PluginDefinition,
-					testPlugin.Spec.PluginDefinitionKind,
+					testPlugin.Spec.PluginDefinitionRef.Kind,
 					testPlugin.GetNamespace(),
 				)
 				Expect(err).ToNot(HaveOccurred(), "expected no error getting PluginDefinitionSpec for Plugin")
@@ -114,13 +114,13 @@ var _ = Describe("Test common GetPluginDefinitionSpec", func() {
 			It("should return an error when PluginDefinitionKind is not supported", func() {
 				By("creating Plugin with incorrect PluginDefinition reference")
 				testPlugin.Spec.PluginDefinition = "non-existing-pd"
-				testPlugin.Spec.PluginDefinitionKind = "NotSupportedKind"
+				testPlugin.Spec.PluginDefinitionRef.Kind = "NotSupportedKind"
 				Expect(setup.Create(test.Ctx, testPlugin)).To(Succeed(), "failed to create test Plugin")
 
 				By("checking GetPluginDefinitionSpec func outcome")
 				pluginDefinitionSpec, err := util.GetPluginDefinitionSpec(test.Ctx, setup.Client,
 					testPlugin.Spec.PluginDefinition,
-					testPlugin.Spec.PluginDefinitionKind,
+					testPlugin.Spec.PluginDefinitionRef.Kind,
 					testPlugin.GetNamespace(),
 				)
 				Expect(err).To(HaveOccurred(), "expected an error getting PluginDefinitionSpec for Plugin")
@@ -136,7 +136,7 @@ var _ = Describe("Test common GetPluginDefinitionSpec", func() {
 				By("checking GetPluginDefinitionSpec func outcome")
 				pluginDefinitionSpec, err := util.GetPluginDefinitionSpec(test.Ctx, setup.Client,
 					testPlugin.Spec.PluginDefinition,
-					testPlugin.Spec.PluginDefinitionKind,
+					testPlugin.Spec.PluginDefinitionRef.Kind,
 					testPlugin.GetNamespace(),
 				)
 				Expect(err).To(HaveOccurred(), "expected an error getting PluginDefinitionSpec for Plugin")
@@ -152,7 +152,7 @@ var _ = Describe("Test common GetPluginDefinitionSpec", func() {
 				By("checking GetPluginDefinitionSpec func outcome")
 				pluginDefinitionSpec, err := util.GetPluginDefinitionSpec(test.Ctx, setup.Client,
 					testPlugin.Spec.PluginDefinition,
-					testPlugin.Spec.PluginDefinitionKind,
+					testPlugin.Spec.PluginDefinitionRef.Kind,
 					testPlugin.GetNamespace(),
 				)
 				Expect(err).To(HaveOccurred(), "expected an error getting PluginDefinitionSpec for Plugin")

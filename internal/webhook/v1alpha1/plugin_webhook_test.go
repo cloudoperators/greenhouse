@@ -395,12 +395,12 @@ var _ = Describe("Validate plugin spec fields", Ordered, func() {
 		namespacedPluginDefinition := test.NewPluginDefinition(test.Ctx, testPluginDefinition.Name, testPlugin.GetNamespace())
 		Expect(setup.Create(test.Ctx, namespacedPluginDefinition)).To(Succeed(), "failed to create namespaced PluginDefinition")
 
-		testPlugin.Spec.PluginDefinitionKind = greenhousev1alpha1.PluginDefinitionKind
+		testPlugin.Spec.PluginDefinitionRef.Kind = greenhousev1alpha1.PluginDefinitionKind
 		err := test.K8sClient.Update(test.Ctx, testPlugin)
 		Expect(err).To(HaveOccurred(), "there should be an error changing the plugin's pluginDefinitionKind")
 		Expect(err.Error()).To(ContainSubstring(validation.FieldImmutableErrorMsg))
 
-		testPlugin.Spec.PluginDefinitionKind = greenhousev1alpha1.ClusterPluginDefinitionKind
+		testPlugin.Spec.PluginDefinitionRef.Kind = greenhousev1alpha1.ClusterPluginDefinitionKind
 		testPlugin.Spec.PluginDefinition = secondClusterPluginDefinition.Name
 		err = test.K8sClient.Update(test.Ctx, testPlugin)
 		Expect(err).To(HaveOccurred(), "there should be an error changing the plugin's pluginDefinition")
@@ -423,7 +423,7 @@ var _ = Describe("Validate plugin spec fields", Ordered, func() {
 		testPlugin.Spec.PluginDefinition = namespacedPluginDefinition.Name
 
 		Expect(test.K8sClient.Create(test.Ctx, testPlugin)).To(Succeed(), "there must be no error creating the Plugin")
-		Expect(testPlugin.Spec.PluginDefinitionKind).To(Equal(greenhousev1alpha1.PluginDefinitionKind), "PluginDefinitionKind should be defaulted to PluginDefinition")
+		Expect(testPlugin.Spec.PluginDefinitionRef.Kind).To(Equal(greenhousev1alpha1.PluginDefinitionKind), "PluginDefinitionKind should be defaulted to PluginDefinition")
 
 		test.EventuallyDeleted(test.Ctx, test.K8sClient, namespacedPluginDefinition)
 	})
@@ -438,7 +438,7 @@ var _ = Describe("Validate plugin spec fields", Ordered, func() {
 		testPlugin.Spec.PluginDefinition = testPluginDefinition.Name
 
 		Expect(test.K8sClient.Create(test.Ctx, testPlugin)).To(Succeed(), "there must be no error creating the Plugin")
-		Expect(testPlugin.Spec.PluginDefinitionKind).To(Equal(greenhousev1alpha1.ClusterPluginDefinitionKind), "PluginDefinitionKind should be defaulted to ClusterPluginDefinition")
+		Expect(testPlugin.Spec.PluginDefinitionRef.Kind).To(Equal(greenhousev1alpha1.ClusterPluginDefinitionKind), "PluginDefinitionKind should be defaulted to ClusterPluginDefinition")
 	})
 })
 

@@ -156,7 +156,7 @@ func (r *PluginPresetReconciler) EnsureDeleted(ctx context.Context, resource lif
 // reconcilePluginPreset reconciles the PluginPreset by creating or updating the Plugins for the given clusters.
 // It skips reconciliation for Plugins that do not have the labels of the PluginPreset.
 func (r *PluginPresetReconciler) reconcilePluginPreset(ctx context.Context, preset *greenhousev1alpha1.PluginPreset, clusters *greenhousev1alpha1.ClusterList) error {
-	pluginDefinitionSpec, err := util.GetPluginDefinitionSpec(ctx, r.Client, preset.Spec.Plugin.PluginDefinition, preset.Spec.Plugin.PluginDefinitionKind, preset.GetNamespace())
+	pluginDefinitionSpec, err := util.GetPluginDefinitionSpec(ctx, r.Client, preset.Spec.Plugin.PluginDefinition, preset.Spec.Plugin.PluginDefinitionRef.Kind, preset.GetNamespace())
 	if err != nil {
 		return err
 	}

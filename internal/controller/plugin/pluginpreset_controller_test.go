@@ -199,7 +199,7 @@ var _ = Describe("PluginPreset Controller Lifecycle", Ordered, func() {
 		By("ensuring a Plugin Preset has been created")
 		pluginPreset := pluginPreset(pluginPresetName+"-2", clusterA, testTeam.Name)
 		pluginPreset.Spec.Plugin.PluginDefinition = pluginDefinitionWithDefaultsName
-		pluginPreset.Spec.Plugin.PluginDefinitionKind = greenhousev1alpha1.ClusterPluginDefinitionKind
+		pluginPreset.Spec.Plugin.PluginDefinitionRef.Kind = greenhousev1alpha1.ClusterPluginDefinitionKind
 		Expect(test.K8sClient.Create(test.Ctx, pluginPreset)).ToNot(HaveOccurred())
 		test.EventuallyCreated(test.Ctx, test.K8sClient, pluginPreset)
 
@@ -471,7 +471,7 @@ var _ = Describe("PluginPreset Controller Lifecycle", Ordered, func() {
 		By("creating a PluginPreset with overrides")
 		pluginPreset := pluginPreset(pluginPresetName+"-override1", clusterA, testTeam.Name)
 		pluginPreset.Spec.Plugin.PluginDefinition = pluginDefinition.Name
-		pluginPreset.Spec.Plugin.PluginDefinitionKind = greenhousev1alpha1.ClusterPluginDefinitionKind
+		pluginPreset.Spec.Plugin.PluginDefinitionRef.Kind = greenhousev1alpha1.ClusterPluginDefinitionKind
 		pluginPreset.Spec.ClusterOptionOverrides = append(pluginPreset.Spec.ClusterOptionOverrides, greenhousev1alpha1.ClusterOptionOverride{
 			ClusterName: clusterA,
 			Overrides: []greenhousev1alpha1.PluginOptionValue{
@@ -508,7 +508,7 @@ var _ = Describe("PluginPreset Controller Lifecycle", Ordered, func() {
 		By("creating a PluginPreset based on PluginDefinition with required option")
 		pluginPreset := pluginPreset(pluginPresetName+"-missing1", clusterA, testTeam.Name)
 		pluginPreset.Spec.Plugin.PluginDefinition = pluginDefinitionWithRequiredOptionName
-		pluginPreset.Spec.Plugin.PluginDefinitionKind = greenhousev1alpha1.ClusterPluginDefinitionKind
+		pluginPreset.Spec.Plugin.PluginDefinitionRef.Kind = greenhousev1alpha1.ClusterPluginDefinitionKind
 		Expect(test.K8sClient.Create(test.Ctx, pluginPreset)).To(Succeed(), "failed to create PluginPreset")
 		test.EventuallyCreated(test.Ctx, test.K8sClient, pluginPreset)
 
@@ -539,7 +539,7 @@ var _ = Describe("PluginPreset Controller Lifecycle", Ordered, func() {
 		By("ensuring a Plugin Preset has been created")
 		pluginPreset := pluginPreset(pluginPresetName+"-label-propagation", clusterA, testTeam.Name)
 		pluginPreset.Spec.Plugin.PluginDefinition = pluginDefinitionWithDefaultsName
-		pluginPreset.Spec.Plugin.PluginDefinitionKind = greenhousev1alpha1.ClusterPluginDefinitionKind
+		pluginPreset.Spec.Plugin.PluginDefinitionRef.Kind = greenhousev1alpha1.ClusterPluginDefinitionKind
 		pluginPreset.SetAnnotations(map[string]string{
 			lifecycle.PropagateLabelsAnnotation: "support_group, region",
 		})
@@ -605,8 +605,10 @@ var _ = Describe("Plugin Preset skip changes", Ordered, func() {
 				},
 				Spec: greenhousev1alpha1.PluginPresetSpec{
 					Plugin: greenhousev1alpha1.PluginSpec{
-						PluginDefinition:     pluginPresetDefinitionName,
-						PluginDefinitionKind: greenhousev1alpha1.ClusterPluginDefinitionKind,
+						PluginDefinitionRef: greenhousev1alpha1.PluginDefinitionReference{
+							Name: pluginPresetDefinitionName,
+							Kind: greenhousev1alpha1.ClusterPluginDefinitionKind,
+						},
 						OptionValues: []greenhousev1alpha1.PluginOptionValue{
 							{
 								Name:  "plugin_preset.test_parameter",
@@ -635,8 +637,10 @@ var _ = Describe("Plugin Preset skip changes", Ordered, func() {
 				},
 				Spec: greenhousev1alpha1.PluginPresetSpec{
 					Plugin: greenhousev1alpha1.PluginSpec{
-						PluginDefinition:     pluginPresetDefinitionName,
-						PluginDefinitionKind: greenhousev1alpha1.ClusterPluginDefinitionKind,
+						PluginDefinitionRef: greenhousev1alpha1.PluginDefinitionReference{
+							Name: pluginPresetDefinitionName,
+							Kind: greenhousev1alpha1.ClusterPluginDefinitionKind,
+						},
 						OptionValues: []greenhousev1alpha1.PluginOptionValue{
 							{
 								Name:  "plugin_preset.test_parameter",
@@ -669,8 +673,10 @@ var _ = Describe("Plugin Preset skip changes", Ordered, func() {
 				},
 				Spec: greenhousev1alpha1.PluginPresetSpec{
 					Plugin: greenhousev1alpha1.PluginSpec{
-						PluginDefinition:     pluginPresetDefinitionName,
-						PluginDefinitionKind: greenhousev1alpha1.ClusterPluginDefinitionKind,
+						PluginDefinitionRef: greenhousev1alpha1.PluginDefinitionReference{
+							Name: pluginPresetDefinitionName,
+							Kind: greenhousev1alpha1.ClusterPluginDefinitionKind,
+						},
 						OptionValues: []greenhousev1alpha1.PluginOptionValue{
 							{
 								Name:  "plugin_preset.test_parameter_1",
@@ -707,8 +713,10 @@ var _ = Describe("Plugin Preset skip changes", Ordered, func() {
 				},
 				Spec: greenhousev1alpha1.PluginPresetSpec{
 					Plugin: greenhousev1alpha1.PluginSpec{
-						PluginDefinition:     pluginPresetDefinitionName,
-						PluginDefinitionKind: greenhousev1alpha1.ClusterPluginDefinitionKind,
+						PluginDefinitionRef: greenhousev1alpha1.PluginDefinitionReference{
+							Name: pluginPresetDefinitionName,
+							Kind: greenhousev1alpha1.ClusterPluginDefinitionKind,
+						},
 						OptionValues: []greenhousev1alpha1.PluginOptionValue{
 							{
 								Name:  "plugin_preset.test_parameter",
@@ -739,8 +747,10 @@ var _ = Describe("Plugin Preset skip changes", Ordered, func() {
 				},
 				Spec: greenhousev1alpha1.PluginPresetSpec{
 					Plugin: greenhousev1alpha1.PluginSpec{
-						PluginDefinition:     pluginPresetDefinitionName,
-						PluginDefinitionKind: greenhousev1alpha1.ClusterPluginDefinitionKind,
+						PluginDefinitionRef: greenhousev1alpha1.PluginDefinitionReference{
+							Name: pluginPresetDefinitionName,
+							Kind: greenhousev1alpha1.ClusterPluginDefinitionKind,
+						},
 						OptionValues: []greenhousev1alpha1.PluginOptionValue{
 							{
 								Name:  "plugin_preset.test_parameter",
@@ -769,9 +779,11 @@ var _ = Describe("Plugin Preset skip changes", Ordered, func() {
 				},
 				Spec: greenhousev1alpha1.PluginPresetSpec{
 					Plugin: greenhousev1alpha1.PluginSpec{
-						PluginDefinition:     pluginPresetDefinitionName,
-						PluginDefinitionKind: greenhousev1alpha1.ClusterPluginDefinitionKind,
-						OptionValues:         []greenhousev1alpha1.PluginOptionValue{},
+						PluginDefinitionRef: greenhousev1alpha1.PluginDefinitionReference{
+							Name: pluginPresetDefinitionName,
+							Kind: greenhousev1alpha1.ClusterPluginDefinitionKind,
+						},
+						OptionValues: []greenhousev1alpha1.PluginOptionValue{},
 					},
 				},
 			},
@@ -806,9 +818,11 @@ var _ = Describe("Plugin Preset skip changes", Ordered, func() {
 				},
 				Spec: greenhousev1alpha1.PluginPresetSpec{
 					Plugin: greenhousev1alpha1.PluginSpec{
-						PluginDefinition:     pluginPresetDefinitionName,
-						PluginDefinitionKind: greenhousev1alpha1.ClusterPluginDefinitionKind,
-						OptionValues:         []greenhousev1alpha1.PluginOptionValue{},
+						PluginDefinitionRef: greenhousev1alpha1.PluginDefinitionReference{
+							Name: pluginPresetDefinitionName,
+							Kind: greenhousev1alpha1.ClusterPluginDefinitionKind,
+						},
+						OptionValues: []greenhousev1alpha1.PluginOptionValue{},
 					},
 				},
 			},
@@ -847,9 +861,11 @@ var _ = Describe("Plugin Preset skip changes", Ordered, func() {
 				},
 				Spec: greenhousev1alpha1.PluginPresetSpec{
 					Plugin: greenhousev1alpha1.PluginSpec{
-						PluginDefinition:     pluginPresetDefinitionName,
-						PluginDefinitionKind: greenhousev1alpha1.ClusterPluginDefinitionKind,
-						OptionValues:         []greenhousev1alpha1.PluginOptionValue{},
+						PluginDefinitionRef: greenhousev1alpha1.PluginDefinitionReference{
+							Name: pluginPresetDefinitionName,
+							Kind: greenhousev1alpha1.ClusterPluginDefinitionKind,
+						},
+						OptionValues: []greenhousev1alpha1.PluginOptionValue{},
 					},
 				},
 			},
@@ -888,8 +904,10 @@ var _ = Describe("Plugin Preset skip changes", Ordered, func() {
 				},
 				Spec: greenhousev1alpha1.PluginPresetSpec{
 					Plugin: greenhousev1alpha1.PluginSpec{
-						PluginDefinition:     pluginPresetDefinitionName,
-						PluginDefinitionKind: greenhousev1alpha1.ClusterPluginDefinitionKind,
+						PluginDefinitionRef: greenhousev1alpha1.PluginDefinitionReference{
+							Name: pluginPresetDefinitionName,
+							Kind: greenhousev1alpha1.ClusterPluginDefinitionKind,
+						},
 						OptionValues: []greenhousev1alpha1.PluginOptionValue{
 							{Name: "plugin_definition.test_parameter",
 								ValueFrom: &greenhousev1alpha1.ValueFromSource{
@@ -931,8 +949,10 @@ var _ = Describe("Plugin Preset skip changes", Ordered, func() {
 				},
 				Spec: greenhousev1alpha1.PluginPresetSpec{
 					Plugin: greenhousev1alpha1.PluginSpec{
-						PluginDefinition:     pluginPresetDefinitionName,
-						PluginDefinitionKind: greenhousev1alpha1.ClusterPluginDefinitionKind,
+						PluginDefinitionRef: greenhousev1alpha1.PluginDefinitionReference{
+							Name: pluginPresetDefinitionName,
+							Kind: greenhousev1alpha1.ClusterPluginDefinitionKind,
+						},
 						OptionValues: []greenhousev1alpha1.PluginOptionValue{
 							{
 								Name:  "global.greenhouse.test_parameter",
@@ -969,8 +989,10 @@ var _ = Describe("Plugin Preset skip changes", Ordered, func() {
 				},
 				Spec: greenhousev1alpha1.PluginPresetSpec{
 					Plugin: greenhousev1alpha1.PluginSpec{
-						PluginDefinition:     pluginPresetDefinitionName,
-						PluginDefinitionKind: greenhousev1alpha1.ClusterPluginDefinitionKind,
+						PluginDefinitionRef: greenhousev1alpha1.PluginDefinitionReference{
+							Name: pluginPresetDefinitionName,
+							Kind: greenhousev1alpha1.ClusterPluginDefinitionKind,
+						},
 						OptionValues: []greenhousev1alpha1.PluginOptionValue{
 							{
 								Name:  "global.greenhouse.test_parameter",
@@ -1211,10 +1233,12 @@ func pluginPreset(name, selectorValue, supportGroupTeamName string) *greenhousev
 		test.WithPluginPresetLabel(greenhouseapis.LabelKeyOwnedBy, supportGroupTeamName))
 	preset.Spec = greenhousev1alpha1.PluginPresetSpec{
 		Plugin: greenhousev1alpha1.PluginSpec{
-			PluginDefinition:     pluginPresetDefinitionName,
-			PluginDefinitionKind: greenhousev1alpha1.ClusterPluginDefinitionKind,
-			ReleaseName:          releaseName,
-			ReleaseNamespace:     releaseNamespace,
+			PluginDefinitionRef: greenhousev1alpha1.PluginDefinitionReference{
+				Name: pluginPresetDefinitionName,
+				Kind: greenhousev1alpha1.ClusterPluginDefinitionKind,
+			},
+			ReleaseName:      releaseName,
+			ReleaseNamespace: releaseNamespace,
 			OptionValues: []greenhousev1alpha1.PluginOptionValue{
 				{
 					Name:  "myRequiredOption",

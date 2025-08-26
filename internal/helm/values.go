@@ -20,7 +20,7 @@ import (
 
 func GetPluginOptionValuesForPlugin(ctx context.Context, c client.Client, plugin *greenhousev1alpha1.Plugin) ([]greenhousev1alpha1.PluginOptionValue, error) {
 	var pluginDefinitionSpec greenhousev1alpha1.PluginDefinitionSpec
-	switch plugin.Spec.PluginDefinitionKind {
+	switch plugin.Spec.PluginDefinitionRef.Kind {
 	case greenhousev1alpha1.PluginDefinitionKind:
 		var pluginDefinition = new(greenhousev1alpha1.PluginDefinition)
 		if err := c.Get(ctx, types.NamespacedName{Namespace: plugin.GetNamespace(), Name: plugin.Spec.PluginDefinition}, pluginDefinition); err != nil {
@@ -34,7 +34,7 @@ func GetPluginOptionValuesForPlugin(ctx context.Context, c client.Client, plugin
 		}
 		pluginDefinitionSpec = clusterPluginDefinition.Spec
 	default:
-		return nil, fmt.Errorf("PluginDefinitionKind %s is not supported", plugin.Spec.PluginDefinitionKind)
+		return nil, fmt.Errorf("PluginDefinitionKind %s is not supported", plugin.Spec.PluginDefinitionRef.Kind)
 	}
 
 	values := MergePluginAndPluginOptionValueSlice(pluginDefinitionSpec.Options, plugin.Spec.OptionValues)

@@ -94,8 +94,10 @@ var _ = Describe("PluginPreset Admission Tests", Ordered, func() {
 			},
 			Spec: greenhousev1alpha1.PluginPresetSpec{
 				Plugin: greenhousev1alpha1.PluginSpec{
-					PluginDefinition:     pluginPresetClusterDefinition,
-					PluginDefinitionKind: greenhousev1alpha1.ClusterPluginDefinitionKind,
+					PluginDefinitionRef: greenhousev1alpha1.PluginDefinitionReference{
+						Name: pluginPresetClusterDefinition,
+						Kind: greenhousev1alpha1.ClusterPluginDefinitionKind,
+					},
 				},
 				ClusterOptionOverrides: []greenhousev1alpha1.ClusterOptionOverride{},
 			},
@@ -114,8 +116,10 @@ var _ = Describe("PluginPreset Admission Tests", Ordered, func() {
 			},
 			Spec: greenhousev1alpha1.PluginPresetSpec{
 				Plugin: greenhousev1alpha1.PluginSpec{
-					PluginDefinition:     "non-existing",
-					PluginDefinitionKind: greenhousev1alpha1.ClusterPluginDefinitionKind,
+					PluginDefinitionRef: greenhousev1alpha1.PluginDefinitionReference{
+						Name: "non-existing",
+						Kind: greenhousev1alpha1.ClusterPluginDefinitionKind,
+					},
 				},
 				ClusterSelector:        metav1.LabelSelector{MatchLabels: map[string]string{"foo": "bar"}},
 				ClusterOptionOverrides: []greenhousev1alpha1.ClusterOptionOverride{},
@@ -135,8 +139,10 @@ var _ = Describe("PluginPreset Admission Tests", Ordered, func() {
 			},
 			Spec: greenhousev1alpha1.PluginPresetSpec{
 				Plugin: greenhousev1alpha1.PluginSpec{
-					PluginDefinition:     "non-existing",
-					PluginDefinitionKind: greenhousev1alpha1.PluginDefinitionKind,
+					PluginDefinitionRef: greenhousev1alpha1.PluginDefinitionReference{
+						Name: "non-existing",
+						Kind: greenhousev1alpha1.PluginDefinitionKind,
+					},
 				},
 				ClusterSelector:        metav1.LabelSelector{MatchLabels: map[string]string{"foo": "bar"}},
 				ClusterOptionOverrides: []greenhousev1alpha1.ClusterOptionOverride{},
@@ -158,7 +164,7 @@ var _ = Describe("PluginPreset Admission Tests", Ordered, func() {
 		)
 		Expect(test.K8sClient.Create(test.Ctx, cut)).
 			To(Succeed(), "there must be no error creating the PluginPreset")
-		Expect(cut.Spec.Plugin.PluginDefinitionKind).To(Equal(greenhousev1alpha1.PluginDefinitionKind), "PluginDefinitionKind should be defaulted to PluginDefinition")
+		Expect(cut.Spec.Plugin.PluginDefinitionRef.Kind).To(Equal(greenhousev1alpha1.PluginDefinitionKind), "PluginDefinitionKind should be defaulted to PluginDefinition")
 		test.EventuallyDeleted(test.Ctx, test.K8sClient, cut)
 	})
 
@@ -172,7 +178,7 @@ var _ = Describe("PluginPreset Admission Tests", Ordered, func() {
 		)
 		Expect(test.K8sClient.Create(test.Ctx, cut)).
 			To(Succeed(), "there must be no error creating the PluginPreset")
-		Expect(cut.Spec.Plugin.PluginDefinitionKind).To(Equal(greenhousev1alpha1.ClusterPluginDefinitionKind), "PluginDefinitionKind should be defaulted to ClusterPluginDefinition")
+		Expect(cut.Spec.Plugin.PluginDefinitionRef.Kind).To(Equal(greenhousev1alpha1.ClusterPluginDefinitionKind), "PluginDefinitionKind should be defaulted to ClusterPluginDefinition")
 		test.EventuallyDeleted(test.Ctx, test.K8sClient, cut)
 	})
 
@@ -181,8 +187,10 @@ var _ = Describe("PluginPreset Admission Tests", Ordered, func() {
 			test.WithPluginPresetLabel(greenhouseapis.LabelKeyOwnedBy, teamWithSupportGroupName),
 			test.WithPluginPresetClusterSelector(metav1.LabelSelector{MatchLabels: map[string]string{"foo": "bar"}}),
 			test.WithPluginPresetPluginSpec(greenhousev1alpha1.PluginSpec{
-				PluginDefinition:     pluginPresetNamespacedDefinition,
-				PluginDefinitionKind: greenhousev1alpha1.PluginDefinitionKind,
+				PluginDefinitionRef: greenhousev1alpha1.PluginDefinitionReference{
+					Name: pluginPresetNamespacedDefinition,
+					Kind: greenhousev1alpha1.PluginDefinitionKind,
+				},
 			}),
 		)
 		Expect(test.K8sClient.Create(test.Ctx, cut)).
@@ -195,8 +203,10 @@ var _ = Describe("PluginPreset Admission Tests", Ordered, func() {
 			test.WithPluginPresetLabel(greenhouseapis.LabelKeyOwnedBy, teamWithSupportGroupName),
 			test.WithPluginPresetClusterSelector(metav1.LabelSelector{MatchLabels: map[string]string{"foo": "bar"}}),
 			test.WithPluginPresetPluginSpec(greenhousev1alpha1.PluginSpec{
-				PluginDefinition:     pluginPresetClusterDefinition,
-				PluginDefinitionKind: greenhousev1alpha1.ClusterPluginDefinitionKind,
+				PluginDefinitionRef: greenhousev1alpha1.PluginDefinitionReference{
+					Name: pluginPresetClusterDefinition,
+					Kind: greenhousev1alpha1.ClusterPluginDefinitionKind,
+				},
 			}),
 		)
 		Expect(test.K8sClient.Create(test.Ctx, cut)).
@@ -219,7 +229,7 @@ var _ = Describe("PluginPreset Admission Tests", Ordered, func() {
 			To(ContainSubstring("field is immutable"), "the error must reflect the field is immutable")
 
 		_, err = clientutil.CreateOrPatch(test.Ctx, test.K8sClient, cut, func() error {
-			cut.Spec.Plugin.PluginDefinitionKind = greenhousev1alpha1.PluginDefinitionKind
+			cut.Spec.Plugin.PluginDefinitionRef.Kind = greenhousev1alpha1.PluginDefinitionKind
 			return nil
 		})
 		Expect(err).
@@ -251,8 +261,10 @@ var _ = Describe("PluginPreset Admission Tests", Ordered, func() {
 			},
 			Spec: greenhousev1alpha1.PluginPresetSpec{
 				Plugin: greenhousev1alpha1.PluginSpec{
-					PluginDefinition:     pluginPresetClusterDefinition,
-					PluginDefinitionKind: greenhousev1alpha1.ClusterPluginDefinitionKind,
+					PluginDefinitionRef: greenhousev1alpha1.PluginDefinitionReference{
+						Name: pluginPresetClusterDefinition,
+						Kind: greenhousev1alpha1.ClusterPluginDefinitionKind,
+					},
 				},
 				ClusterSelector: metav1.LabelSelector{MatchLabels: map[string]string{"foo": "bar"}},
 			},
@@ -286,8 +298,10 @@ var _ = Describe("Validate Plugin OptionValues for PluginPreset", func() {
 			},
 			Spec: greenhousev1alpha1.PluginPresetSpec{
 				Plugin: greenhousev1alpha1.PluginSpec{
-					PluginDefinition:     "test",
-					PluginDefinitionKind: greenhousev1alpha1.ClusterPluginDefinitionKind,
+					PluginDefinitionRef: greenhousev1alpha1.PluginDefinitionReference{
+						Name: "test",
+						Kind: greenhousev1alpha1.ClusterPluginDefinitionKind,
+					},
 					OptionValues: []greenhousev1alpha1.PluginOptionValue{
 						{
 							Name:      "test",
@@ -352,9 +366,11 @@ var _ = Describe("Validate Plugin OptionValues for PluginPreset", func() {
 			},
 			Spec: greenhousev1alpha1.PluginPresetSpec{
 				Plugin: greenhousev1alpha1.PluginSpec{
-					PluginDefinition:     "test",
-					PluginDefinitionKind: greenhousev1alpha1.ClusterPluginDefinitionKind,
-					OptionValues:         []greenhousev1alpha1.PluginOptionValue{},
+					PluginDefinitionRef: greenhousev1alpha1.PluginDefinitionReference{
+						Name: "test",
+						Kind: greenhousev1alpha1.ClusterPluginDefinitionKind,
+					},
+					OptionValues: []greenhousev1alpha1.PluginOptionValue{},
 				},
 				ClusterOptionOverrides: []greenhousev1alpha1.ClusterOptionOverride{
 					{
@@ -440,8 +456,10 @@ var _ = Describe("Validate Plugin OptionValues for PluginPreset", func() {
 			},
 			Spec: greenhousev1alpha1.PluginPresetSpec{
 				Plugin: greenhousev1alpha1.PluginSpec{
-					PluginDefinition:     "test",
-					PluginDefinitionKind: greenhousev1alpha1.ClusterPluginDefinitionKind,
+					PluginDefinitionRef: greenhousev1alpha1.PluginDefinitionReference{
+						Name: "test",
+						Kind: greenhousev1alpha1.ClusterPluginDefinitionKind,
+					},
 					OptionValues: []greenhousev1alpha1.PluginOptionValue{
 						{
 							Name:  "test",
@@ -503,9 +521,11 @@ var _ = Describe("Validate Plugin OptionValues for PluginPreset", func() {
 			},
 			Spec: greenhousev1alpha1.PluginPresetSpec{
 				Plugin: greenhousev1alpha1.PluginSpec{
-					PluginDefinition:     "test",
-					PluginDefinitionKind: greenhousev1alpha1.ClusterPluginDefinitionKind,
-					OptionValues:         []greenhousev1alpha1.PluginOptionValue{},
+					PluginDefinitionRef: greenhousev1alpha1.PluginDefinitionReference{
+						Name: "test",
+						Kind: greenhousev1alpha1.ClusterPluginDefinitionKind,
+					},
+					OptionValues: []greenhousev1alpha1.PluginOptionValue{},
 				},
 				ClusterOptionOverrides: []greenhousev1alpha1.ClusterOptionOverride{
 					{
@@ -571,8 +591,10 @@ var _ = Describe("Validate Plugin OptionValues for PluginPreset", func() {
 			},
 			Spec: greenhousev1alpha1.PluginPresetSpec{
 				Plugin: greenhousev1alpha1.PluginSpec{
-					PluginDefinition:     "test",
-					PluginDefinitionKind: greenhousev1alpha1.ClusterPluginDefinitionKind,
+					PluginDefinitionRef: greenhousev1alpha1.PluginDefinitionReference{
+						Name: "test",
+						Kind: greenhousev1alpha1.ClusterPluginDefinitionKind,
+					},
 					OptionValues: []greenhousev1alpha1.PluginOptionValue{
 						{
 							Name:      "test",
@@ -624,9 +646,11 @@ var _ = Describe("Validate Plugin OptionValues for PluginPreset", func() {
 			},
 			Spec: greenhousev1alpha1.PluginPresetSpec{
 				Plugin: greenhousev1alpha1.PluginSpec{
-					PluginDefinition:     "test",
-					PluginDefinitionKind: greenhousev1alpha1.ClusterPluginDefinitionKind,
-					OptionValues:         []greenhousev1alpha1.PluginOptionValue{},
+					PluginDefinitionRef: greenhousev1alpha1.PluginDefinitionReference{
+						Name: "test",
+						Kind: greenhousev1alpha1.ClusterPluginDefinitionKind,
+					},
+					OptionValues: []greenhousev1alpha1.PluginOptionValue{},
 				},
 				ClusterOptionOverrides: []greenhousev1alpha1.ClusterOptionOverride{
 					{
@@ -684,9 +708,11 @@ var _ = Describe("Validate Plugin OptionValues for PluginPreset", func() {
 				},
 				Spec: greenhousev1alpha1.PluginPresetSpec{
 					Plugin: greenhousev1alpha1.PluginSpec{
-						PluginDefinition:     "test",
-						PluginDefinitionKind: greenhousev1alpha1.ClusterPluginDefinitionKind,
-						OptionValues:         []greenhousev1alpha1.PluginOptionValue{},
+						PluginDefinitionRef: greenhousev1alpha1.PluginDefinitionReference{
+							Name: "test",
+							Kind: greenhousev1alpha1.ClusterPluginDefinitionKind,
+						},
+						OptionValues: []greenhousev1alpha1.PluginOptionValue{},
 					},
 					ClusterOptionOverrides: []greenhousev1alpha1.ClusterOptionOverride{
 						{

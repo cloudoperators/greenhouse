@@ -148,14 +148,14 @@ func (r *FluxReconciler) EnsureCreated(ctx context.Context, resource lifecycle.R
 
 	pluginController.InitPluginStatus(plugin)
 
-	pluginDefinitionSpec, err := util.GetPluginDefinitionSpec(ctx, r.Client, plugin.Spec.PluginDefinition, plugin.Spec.PluginDefinitionKind, plugin.GetNamespace())
+	pluginDefinitionSpec, err := util.GetPluginDefinitionSpec(ctx, r.Client, plugin.Spec.PluginDefinition, plugin.Spec.PluginDefinitionRef.Kind, plugin.GetNamespace())
 	if err != nil {
 		log.FromContext(ctx).Error(err, "Unable to find pluginDefinition for ", "plugin", plugin.Name, "namespace", plugin.Namespace)
 		return ctrl.Result{}, lifecycle.Failed, err
 	}
 
 	namespace := flux.HelmRepositoryDefaultNamespace
-	if plugin.Spec.PluginDefinitionKind == greenhousev1alpha1.PluginDefinitionKind {
+	if plugin.Spec.PluginDefinitionRef.Kind == greenhousev1alpha1.PluginDefinitionKind {
 		namespace = plugin.GetNamespace()
 	}
 
