@@ -1104,7 +1104,10 @@ components:
                     type: object
                   type: array
                 pluginDefinition:
-                  description: PluginDefinition is the name of the PluginDefinition this instance is for.
+                  description: PluginDefinition is the name of the (Cluster-)PluginDefinition this instance is for.
+                  type: string
+                pluginDefinitionKind:
+                  description: PluginDefinitionKind is the kind of the referred PluginDefinition.
                   type: string
                 releaseName:
                   description: |-
@@ -1123,6 +1126,7 @@ components:
                   type: string
               required:
                 - pluginDefinition
+                - pluginDefinitionKind
               type: object
           required:
             - clusterSelector
@@ -1277,7 +1281,10 @@ components:
                 type: object
               type: array
             pluginDefinition:
-              description: PluginDefinition is the name of the PluginDefinition this instance is for.
+              description: PluginDefinition is the name of the (Cluster-)PluginDefinition this instance is for.
+              type: string
+            pluginDefinitionKind:
+              description: PluginDefinitionKind is the kind of the referred PluginDefinition.
               type: string
             releaseName:
               description: |-
@@ -1296,6 +1303,7 @@ components:
               type: string
           required:
             - pluginDefinition
+            - pluginDefinitionKind
           type: object
         status:
           description: PluginStatus defines the observed state of Plugin
