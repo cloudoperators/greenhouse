@@ -63,7 +63,7 @@ var _ = Describe("Test common GetPluginDefinitionSpec", func() {
 				Expect(*pluginDefinitionSpec).To(Equal(clusterPluginDefinition.Spec), "GetPluginDefinitionSpec should return the correct Spec")
 			})
 
-			It("should return the correct Spec when the PluginDefinitionKind is not specified in Plugin", func() {
+			It("should return an error when the PluginDefinitionKind is not specified in Plugin", func() {
 				By("creating Plugin with ClusterPluginDefinition reference")
 				testPlugin.Spec.PluginDefinitionRef = greenhousev1alpha1.PluginDefinitionReference{
 					Name: clusterPluginDefinition.Name,
@@ -76,9 +76,9 @@ var _ = Describe("Test common GetPluginDefinitionSpec", func() {
 					testPlugin.Spec.PluginDefinitionRef,
 					testPlugin.GetNamespace(),
 				)
-				Expect(err).ToNot(HaveOccurred(), "expected no error getting PluginDefinitionSpec for Plugin")
-				Expect(pluginDefinitionSpec).ToNot(BeNil(), "returned PluginDefinitionSpec cannot be nil")
-				Expect(*pluginDefinitionSpec).To(Equal(clusterPluginDefinition.Spec), "GetPluginDefinitionSpec should return the correct Spec")
+				Expect(err).To(HaveOccurred(), "expected error getting PluginDefinitionSpec for Plugin")
+				Expect(pluginDefinitionSpec).To(BeNil(), "returned PluginDefinitionSpec should be nil")
+				Expect(err.Error()).To(ContainSubstring("PluginDefinitionRef.Kind has not been set"), "error should contain the correct message")
 			})
 		})
 
@@ -125,7 +125,7 @@ var _ = Describe("Test common GetPluginDefinitionSpec", func() {
 				)
 				Expect(err).To(HaveOccurred(), "expected an error getting PluginDefinitionSpec for Plugin")
 				Expect(pluginDefinitionSpec).To(BeNil(), "returned PluginDefinitionSpec should be nil")
-				Expect(err.Error()).To(ContainSubstring("unsupported PluginDefinitionKind: NotSupportedKind"), "error should contain the correct message")
+				Expect(err.Error()).To(ContainSubstring("unsupported PluginDefinition kind: NotSupportedKind"), "error should contain the correct message")
 			})
 
 			It("should return an error when non-existing ClusterPluginDefinition is referenced", func() {

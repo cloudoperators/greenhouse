@@ -419,6 +419,7 @@ var _ = Describe("Validate plugin spec fields", Ordered, func() {
 			test.WithReleaseName("test-release"),
 			test.WithPluginLabel(greenhouseapis.LabelKeyOwnedBy, team.Name),
 		)
+		//nolint:staticcheck
 		testPlugin.Spec.PluginDefinition = namespacedPluginDefinition.Name
 
 		Expect(test.K8sClient.Create(test.Ctx, testPlugin)).To(Succeed(), "there must be no error creating the Plugin")
