@@ -8,9 +8,11 @@ import (
 	"errors"
 	"fmt"
 
-	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
+
+	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
 )
 
 // GetPluginDefinitionSpec resolves the (Cluster-)PluginDefinition reference and returns shared PluginDefinitionSpec
