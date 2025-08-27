@@ -198,8 +198,10 @@ spec:
                       type: object
                     type: array
                   pluginDefinition:
-                    description: 'Deprecated: Use PluginDefinitionRef instead. Future
-                      releases of greenhouse will remove this field.'
+                    description: |-
+                      PluginDefinition is the name of the PluginDefinition this instance is for.
+
+                      Deprecated: Use PluginDefinitionRef instead. Future releases of greenhouse will remove this field.
                     type: string
                   pluginDefinitionRef:
                     description: PluginDefinitionRef is the reference to the (Cluster-)PluginDefinition.
