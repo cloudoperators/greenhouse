@@ -1104,11 +1104,21 @@ components:
                     type: object
                   type: array
                 pluginDefinition:
-                  description: PluginDefinition is the name of the (Cluster-)PluginDefinition this instance is for.
+                  description: 'Deprecated: Use PluginDefinitionRef instead. Future releases of greenhouse will remove this field.'
                   type: string
-                pluginDefinitionKind:
-                  description: PluginDefinitionKind is the kind of the referred PluginDefinition.
-                  type: string
+                pluginDefinitionRef:
+                  description: PluginDefinitionRef is the reference to the (Cluster-)PluginDefinition.
+                  properties:
+                    kind:
+                      description: 'Kind of the referent. Supported values: PluginDefinition, ClusterPluginDefinition.'
+                      type: string
+                    name:
+                      description: Name is the name of the PluginDefinition or ClusterPluginDefinition resource.
+                      type: string
+                  required:
+                    - kind
+                    - name
+                  type: object
                 releaseName:
                   description: |-
                     ReleaseName is the name of the helm release in the remote cluster to which the backend is deployed.
@@ -1126,7 +1136,7 @@ components:
                   type: string
               required:
                 - pluginDefinition
-                - pluginDefinitionKind
+                - pluginDefinitionRef
               type: object
           required:
             - clusterSelector
@@ -1281,11 +1291,21 @@ components:
                 type: object
               type: array
             pluginDefinition:
-              description: PluginDefinition is the name of the (Cluster-)PluginDefinition this instance is for.
+              description: 'Deprecated: Use PluginDefinitionRef instead. Future releases of greenhouse will remove this field.'
               type: string
-            pluginDefinitionKind:
-              description: PluginDefinitionKind is the kind of the referred PluginDefinition.
-              type: string
+            pluginDefinitionRef:
+              description: PluginDefinitionRef is the reference to the (Cluster-)PluginDefinition.
+              properties:
+                kind:
+                  description: 'Kind of the referent. Supported values: PluginDefinition, ClusterPluginDefinition.'
+                  type: string
+                name:
+                  description: Name is the name of the PluginDefinition or ClusterPluginDefinition resource.
+                  type: string
+              required:
+                - kind
+                - name
+              type: object
             releaseName:
               description: |-
                 ReleaseName is the name of the helm release in the remote cluster to which the backend is deployed.
@@ -1303,7 +1323,7 @@ components:
               type: string
           required:
             - pluginDefinition
-            - pluginDefinitionKind
+            - pluginDefinitionRef
           type: object
         status:
           description: PluginStatus defines the observed state of Plugin
