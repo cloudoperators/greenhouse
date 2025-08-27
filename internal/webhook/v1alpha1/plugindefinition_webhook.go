@@ -113,7 +113,7 @@ func ValidateDeletePluginDefinition(ctx context.Context, c client.Client, o runt
 	if !ok {
 		return nil, nil
 	}
-	return validateDelete(ctx, c, greenhouseapis.LabelKeyPluginDefinition, pluginDefinition.GetName())
+	return validateDelete(ctx, c, greenhouseapis.LabelKeyPluginDefinition, pluginDefinition.GetName(), pluginDefinition.GetNamespace())
 }
 
 func ValidateDeleteClusterPluginDefinition(ctx context.Context, c client.Client, o runtime.Object) (admission.Warnings, error) {
@@ -121,13 +121,14 @@ func ValidateDeleteClusterPluginDefinition(ctx context.Context, c client.Client,
 	if !ok {
 		return nil, nil
 	}
-	return validateDelete(ctx, c, greenhouseapis.LabelKeyClusterPluginDefinition, pluginDefinition.GetName())
+	return validateDelete(ctx, c, greenhouseapis.LabelKeyClusterPluginDefinition, pluginDefinition.GetName(), "")
 }
 
-func validateDelete(ctx context.Context, c client.Client, labelKey, name string) (admission.Warnings, error) {
+func validateDelete(ctx context.Context, c client.Client, labelKey, name, namespace string) (admission.Warnings, error) {
 	list := &greenhousev1alpha1.PluginList{}
 	opt := client.MatchingLabels{labelKey: name}
-	if err := c.List(ctx, list, opt); err != nil {
+	ns := client.InNamespace(namespace)
+	if err := c.List(ctx, list, opt, ns); err != nil {
 		if apierrors.IsNotFound(err) {
 			return nil, nil
 		}

@@ -12,6 +12,8 @@ import (
 
 // PluginSpec defines the desired state of Plugin
 type PluginSpec struct {
+	// PluginDefinition is the name of the PluginDefinition this instance is for.
+	//
 	// Deprecated: Use PluginDefinitionRef instead. Future releases of greenhouse will remove this field.
 	PluginDefinition string `json:"pluginDefinition"`
 

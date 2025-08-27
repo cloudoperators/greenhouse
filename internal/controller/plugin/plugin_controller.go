@@ -104,8 +104,11 @@ func (r *PluginReconciler) SetupWithManager(name string, mgr ctrl.Manager) error
 			handler.EnqueueRequestsFromMapFunc(enqueuePluginForReleaseSecret),
 			builder.WithPredicates(clientutil.PredicateFilterBySecretTypes(helmReleaseSecretType), predicate.GenerationChangedPredicate{}, labelSelectorPredicate),
 		).
+		// If a ClusterPluginDefinition was changed, reconcile relevant Plugins.
+		Watches(&greenhousev1alpha1.ClusterPluginDefinition{}, handler.EnqueueRequestsFromMapFunc(r.enqueueAllPluginsForClusterPluginDefinition),
+			builder.WithPredicates(predicate.GenerationChangedPredicate{}, labelSelectorPredicate)).
 		// If a PluginDefinition was changed, reconcile relevant Plugins.
-		Watches(&greenhousev1alpha1.ClusterPluginDefinition{}, handler.EnqueueRequestsFromMapFunc(r.enqueueAllPluginsForPluginDefinition),
+		Watches(&greenhousev1alpha1.PluginDefinition{}, handler.EnqueueRequestsFromMapFunc(r.enqueueAllPluginsForPluginDefinition),
 			builder.WithPredicates(predicate.GenerationChangedPredicate{}, labelSelectorPredicate)).
 		// Clusters and teams are passed as values to each Helm operation. Reconcile on change.
 		Watches(&greenhousev1alpha1.Cluster{}, handler.EnqueueRequestsFromMapFunc(r.enqueueAllPluginsForCluster), builder.WithPredicates(labelSelectorPredicate)).
@@ -376,9 +379,17 @@ func (r *PluginReconciler) enqueueAllPluginsInNamespace(ctx context.Context, o c
 	return ListPluginsAsReconcileRequests(ctx, r.Client, client.InNamespace(o.GetNamespace()))
 }
 
+func (r *PluginReconciler) enqueueAllPluginsForClusterPluginDefinition(ctx context.Context, o client.Object) []ctrl.Request {
+	return ListPluginsAsReconcileRequests(ctx, r.Client,
+		client.MatchingLabels{greenhouseapis.LabelKeyClusterPluginDefinition: o.GetName()},
+	)
+}
+
 func (r *PluginReconciler) enqueueAllPluginsForPluginDefinition(ctx context.Context, o client.Object) []ctrl.Request {
-	// TODO: Once namespaced PluginDefinitions are supported, we need a logic here to handle the correct label key
-	return ListPluginsAsReconcileRequests(ctx, r.Client, client.MatchingLabels{greenhouseapis.LabelKeyClusterPluginDefinition: o.GetName()})
+	return ListPluginsAsReconcileRequests(ctx, r.Client,
+		client.MatchingLabels{greenhouseapis.LabelKeyPluginDefinition: o.GetName()},
+		client.InNamespace(o.GetNamespace()),
+	)
 }
 
 func ListPluginsAsReconcileRequests(ctx context.Context, c client.Client, listOpts ...client.ListOption) []ctrl.Request {

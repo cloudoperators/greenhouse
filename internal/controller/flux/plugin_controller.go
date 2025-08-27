@@ -94,8 +94,11 @@ func (r *FluxReconciler) SetupWithManager(name string, mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		Named(name).
 		For(&greenhousev1alpha1.Plugin{}, builder.WithPredicates(labelSelectorPredicate)).
+		// If a ClusterPluginDefinition was changed, reconcile relevant Plugins.
+		Watches(&greenhousev1alpha1.ClusterPluginDefinition{}, handler.EnqueueRequestsFromMapFunc(r.enqueueAllPluginsForClusterPluginDefinition),
+			builder.WithPredicates(predicate.GenerationChangedPredicate{}, labelSelectorPredicate)).
 		// If a PluginDefinition was changed, reconcile relevant Plugins.
-		Watches(&greenhousev1alpha1.ClusterPluginDefinition{}, handler.EnqueueRequestsFromMapFunc(r.enqueueAllPluginsForPluginDefinition),
+		Watches(&greenhousev1alpha1.PluginDefinition{}, handler.EnqueueRequestsFromMapFunc(r.enqueueAllPluginsForPluginDefinition),
 			builder.WithPredicates(predicate.GenerationChangedPredicate{}, labelSelectorPredicate)).
 		// Clusters and teams are passed as values to each Helm operation. Reconcile on change.
 		Watches(&greenhousev1alpha1.Cluster{}, handler.EnqueueRequestsFromMapFunc(r.enqueueAllPluginsForCluster), builder.WithPredicates(labelSelectorPredicate)).
@@ -240,9 +243,17 @@ func (r *FluxReconciler) EnsureCreated(ctx context.Context, resource lifecycle.R
 	return ctrl.Result{}, lifecycle.Success, nil
 }
 
+func (r *FluxReconciler) enqueueAllPluginsForClusterPluginDefinition(ctx context.Context, o client.Object) []ctrl.Request {
+	return pluginController.ListPluginsAsReconcileRequests(ctx, r.Client,
+		client.MatchingLabels{greenhouseapis.LabelKeyClusterPluginDefinition: o.GetName()},
+	)
+}
+
 func (r *FluxReconciler) enqueueAllPluginsForPluginDefinition(ctx context.Context, o client.Object) []ctrl.Request {
-	// TODO: Once namespaced PluginDefinitions are supported, we need a logic here to handle the correct label key
-	return pluginController.ListPluginsAsReconcileRequests(ctx, r.Client, client.MatchingLabels{greenhouseapis.LabelKeyClusterPluginDefinition: o.GetName()})
+	return pluginController.ListPluginsAsReconcileRequests(ctx, r.Client,
+		client.MatchingLabels{greenhouseapis.LabelKeyPluginDefinition: o.GetName()},
+		client.InNamespace(o.GetNamespace()),
+	)
 }
 
 // enqueueAllPluginsForCluster enqueues all Plugins which have .spec.clusterName set to the name of the given Cluster.
