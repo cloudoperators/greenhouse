@@ -12,7 +12,6 @@ import (
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/fields"
-	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -95,8 +94,11 @@ func (r *FluxReconciler) SetupWithManager(name string, mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		Named(name).
 		For(&greenhousev1alpha1.Plugin{}, builder.WithPredicates(labelSelectorPredicate)).
+		// If a ClusterPluginDefinition was changed, reconcile relevant Plugins.
+		Watches(&greenhousev1alpha1.ClusterPluginDefinition{}, handler.EnqueueRequestsFromMapFunc(r.enqueueAllPluginsForClusterPluginDefinition),
+			builder.WithPredicates(predicate.GenerationChangedPredicate{}, labelSelectorPredicate)).
 		// If a PluginDefinition was changed, reconcile relevant Plugins.
-		Watches(&greenhousev1alpha1.ClusterPluginDefinition{}, handler.EnqueueRequestsFromMapFunc(r.enqueueAllPluginsForPluginDefinition),
+		Watches(&greenhousev1alpha1.PluginDefinition{}, handler.EnqueueRequestsFromMapFunc(r.enqueueAllPluginsForPluginDefinition),
 			builder.WithPredicates(predicate.GenerationChangedPredicate{}, labelSelectorPredicate)).
 		// Clusters and teams are passed as values to each Helm operation. Reconcile on change.
 		Watches(&greenhousev1alpha1.Cluster{}, handler.EnqueueRequestsFromMapFunc(r.enqueueAllPluginsForCluster), builder.WithPredicates(labelSelectorPredicate)).
@@ -149,24 +151,25 @@ func (r *FluxReconciler) EnsureCreated(ctx context.Context, resource lifecycle.R
 
 	pluginController.InitPluginStatus(plugin)
 
-	pluginDef := r.getPluginDef(ctx, plugin)
-	if pluginDef == nil {
-		return ctrl.Result{}, lifecycle.Failed, errors.New("plugin definition not found")
+	pluginDefinitionSpec, err := util.GetPluginDefinitionSpec(ctx, r.Client, plugin.Spec.PluginDefinitionRef, plugin.GetNamespace())
+	if err != nil {
+		log.FromContext(ctx).Error(err, "Unable to find pluginDefinition for ", "plugin", plugin.Name, "namespace", plugin.Namespace)
+		return ctrl.Result{}, lifecycle.Failed, err
 	}
 
 	namespace := flux.HelmRepositoryDefaultNamespace
-	if pluginDef.Namespace != "" {
-		namespace = pluginDef.Namespace
+	if plugin.Spec.PluginDefinitionRef.Kind == greenhousev1alpha1.PluginDefinitionKind {
+		namespace = plugin.GetNamespace()
 	}
 
-	if pluginDef.Spec.HelmChart == nil {
+	if pluginDefinitionSpec.HelmChart == nil {
 		log.FromContext(ctx).Info("No HelmChart defined in PluginDefinition, skipping HelmRelease creation", "plugin", plugin.Name)
 		plugin.SetCondition(greenhousemetav1alpha1.FalseCondition(
 			greenhousev1alpha1.HelmReconcileFailedCondition, "", "PluginDefinition is not backed by HelmChart"))
 		return ctrl.Result{}, lifecycle.Success, nil
 	}
 
-	helmRepository, err := flux.FindHelmRepositoryByURL(ctx, r.Client, pluginDef.Spec.HelmChart.Repository, namespace)
+	helmRepository, err := flux.FindHelmRepositoryByURL(ctx, r.Client, pluginDefinitionSpec.HelmChart.Repository, namespace)
 	if err != nil {
 		return ctrl.Result{}, lifecycle.Failed, errors.New("helm repository not found")
 	}
@@ -183,9 +186,9 @@ func (r *FluxReconciler) EnsureCreated(ctx context.Context, resource lifecycle.R
 
 		spec, err := flux.NewHelmReleaseSpecBuilder().
 			WithChart(helmcontroller.HelmChartTemplateSpec{
-				Chart:    pluginDef.Spec.HelmChart.Name,
+				Chart:    pluginDefinitionSpec.HelmChart.Name,
 				Interval: &metav1.Duration{Duration: flux.DefaultInterval},
-				Version:  pluginDef.Spec.HelmChart.Version,
+				Version:  pluginDefinitionSpec.HelmChart.Version,
 				SourceRef: helmcontroller.CrossNamespaceObjectReference{
 					Kind:      sourcecontroller.HelmRepositoryKind,
 					Name:      helmRepository.Name,
@@ -240,9 +243,17 @@ func (r *FluxReconciler) EnsureCreated(ctx context.Context, resource lifecycle.R
 	return ctrl.Result{}, lifecycle.Success, nil
 }
 
+func (r *FluxReconciler) enqueueAllPluginsForClusterPluginDefinition(ctx context.Context, o client.Object) []ctrl.Request {
+	return pluginController.ListPluginsAsReconcileRequests(ctx, r.Client,
+		client.MatchingLabels{greenhouseapis.LabelKeyClusterPluginDefinition: o.GetName()},
+	)
+}
+
 func (r *FluxReconciler) enqueueAllPluginsForPluginDefinition(ctx context.Context, o client.Object) []ctrl.Request {
-	// TODO: Once namespaced PluginDefinitions are supported, we need a logic here to handle the correct label key
-	return pluginController.ListPluginsAsReconcileRequests(ctx, r.Client, client.MatchingLabels{greenhouseapis.LabelKeyClusterPluginDefinition: o.GetName()})
+	return pluginController.ListPluginsAsReconcileRequests(ctx, r.Client,
+		client.MatchingLabels{greenhouseapis.LabelKeyPluginDefinition: o.GetName()},
+		client.InNamespace(o.GetNamespace()),
+	)
 }
 
 // enqueueAllPluginsForCluster enqueues all Plugins which have .spec.clusterName set to the name of the given Cluster.
@@ -256,15 +267,6 @@ func (r *FluxReconciler) enqueueAllPluginsForCluster(ctx context.Context, o clie
 
 func (r *FluxReconciler) enqueueAllPluginsInNamespace(ctx context.Context, o client.Object) []ctrl.Request {
 	return pluginController.ListPluginsAsReconcileRequests(ctx, r.Client, client.InNamespace(o.GetNamespace()))
-}
-
-func (r *FluxReconciler) getPluginDef(ctx context.Context, plugin *greenhousev1alpha1.Plugin) *greenhousev1alpha1.ClusterPluginDefinition {
-	pluginDef := new(greenhousev1alpha1.ClusterPluginDefinition)
-	if err := r.Get(ctx, types.NamespacedName{Name: plugin.Spec.PluginDefinition}, pluginDef); err != nil {
-		log.FromContext(ctx).Error(err, "Unable to find pluginDefinition for ", "plugin", plugin.Name, "namespace", plugin.Namespace)
-		return nil
-	}
-	return pluginDef
 }
 
 func addValuesToHelmRelease(ctx context.Context, c client.Client, plugin *greenhousev1alpha1.Plugin) ([]byte, error) {

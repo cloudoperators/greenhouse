@@ -16,9 +16,10 @@ import (
 )
 
 const (
-	pluginPresetDefinition = "pluginpreset-admission"
-	pluginPresetUpdate     = "pluginpreset-update"
-	pluginPresetCreate     = "pluginpreset-create"
+	pluginPresetClusterDefinition    = "pluginpreset-admission"
+	pluginPresetNamespacedDefinition = "pluginpreset-namespaced"
+	pluginPresetUpdate               = "pluginpreset-update"
+	pluginPresetCreate               = "pluginpreset-create"
 
 	teamWithSupportGroupName = "team-support-true"
 )
@@ -27,34 +28,24 @@ var _ = Describe("PluginPreset Admission Tests", Ordered, func() {
 	var teamWithSupportGroupTrue *greenhousev1alpha1.Team
 
 	BeforeAll(func() {
-		pluginDefinition := &greenhousev1alpha1.ClusterPluginDefinition{
-			ObjectMeta: metav1.ObjectMeta{
-				Name: pluginPresetDefinition,
-			},
-			Spec: greenhousev1alpha1.PluginDefinitionSpec{
-				Description: "Testplugin",
-				Version:     "1.0.0",
-				HelmChart: &greenhousev1alpha1.HelmChartReference{
-					Name:       "./../../test/fixtures/myChart",
-					Repository: "dummy",
-					Version:    "1.0.0",
-				},
-			},
-		}
-		Expect(test.K8sClient.Create(test.Ctx, pluginDefinition)).To(Succeed(), "failed to create test PluginDefinition")
-
+		clusterPluginDefinition := test.NewClusterPluginDefinition(test.Ctx, pluginPresetClusterDefinition)
+		Expect(test.K8sClient.Create(test.Ctx, clusterPluginDefinition)).To(Succeed(), "failed to create test ClusterPluginDefinition")
+		namespacedPluginDefinition := test.NewPluginDefinition(test.Ctx, pluginPresetNamespacedDefinition, test.TestNamespace)
+		Expect(test.K8sClient.Create(test.Ctx, namespacedPluginDefinition)).To(Succeed(), "failed to create test PluginDefinition")
 		By("creating a support-group:true Team")
 		teamWithSupportGroupTrue = test.NewTeam(test.Ctx, teamWithSupportGroupName, test.TestNamespace, test.WithTeamLabel(greenhouseapis.LabelKeySupportGroup, "true"))
 		Expect(test.K8sClient.Create(test.Ctx, teamWithSupportGroupTrue)).To(Succeed(), "there should be no error creating the Team")
 	})
 
 	AfterAll(func() {
-		pluginDefinition := &greenhousev1alpha1.ClusterPluginDefinition{
-			ObjectMeta: metav1.ObjectMeta{
-				Name: pluginPresetDefinition,
-			},
+		clusterPluginDefinition := &greenhousev1alpha1.ClusterPluginDefinition{
+			ObjectMeta: metav1.ObjectMeta{Name: pluginPresetClusterDefinition},
 		}
-		Expect(test.K8sClient.Delete(test.Ctx, pluginDefinition)).To(Succeed(), "failed to delete test PluginDefinition")
+		Expect(test.K8sClient.Delete(test.Ctx, clusterPluginDefinition)).To(Succeed(), "failed to delete test ClusterPluginDefinition")
+		namespacedPluginDefinition := &greenhousev1alpha1.PluginDefinition{
+			ObjectMeta: metav1.ObjectMeta{Name: pluginPresetNamespacedDefinition, Namespace: test.TestNamespace},
+		}
+		Expect(test.K8sClient.Delete(test.Ctx, namespacedPluginDefinition)).To(Succeed(), "failed to delete test PluginDefinition")
 
 		By("deleting the test Team")
 		test.EventuallyDeleted(test.Ctx, test.K8sClient, teamWithSupportGroupTrue)
@@ -73,7 +64,7 @@ var _ = Describe("PluginPreset Admission Tests", Ordered, func() {
 
 		err := test.K8sClient.Create(test.Ctx, cut)
 		Expect(err).To(HaveOccurred())
-		Expect(err.Error()).To(ContainSubstring("PluginDefinition must be set"))
+		Expect(err.Error()).To(ContainSubstring("PluginDefinition name must be set"))
 	})
 
 	It("should reject PluginPreset with a PluginSpec containing a ClusterName", func() {
@@ -103,7 +94,10 @@ var _ = Describe("PluginPreset Admission Tests", Ordered, func() {
 			},
 			Spec: greenhousev1alpha1.PluginPresetSpec{
 				Plugin: greenhousev1alpha1.PluginSpec{
-					PluginDefinition: pluginPresetDefinition,
+					PluginDefinitionRef: greenhousev1alpha1.PluginDefinitionReference{
+						Name: pluginPresetClusterDefinition,
+						Kind: greenhousev1alpha1.ClusterPluginDefinitionKind,
+					},
 				},
 				ClusterOptionOverrides: []greenhousev1alpha1.ClusterOptionOverride{},
 			},
@@ -114,7 +108,7 @@ var _ = Describe("PluginPreset Admission Tests", Ordered, func() {
 		Expect(err.Error()).To(ContainSubstring("ClusterSelector must be set"))
 	})
 
-	It("should reject PluginPreset with non-existing PluginDefinition", func() {
+	It("should reject PluginPreset with non-existing ClusterPluginDefinition", func() {
 		cut := &greenhousev1alpha1.PluginPreset{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      pluginPresetCreate,
@@ -122,7 +116,10 @@ var _ = Describe("PluginPreset Admission Tests", Ordered, func() {
 			},
 			Spec: greenhousev1alpha1.PluginPresetSpec{
 				Plugin: greenhousev1alpha1.PluginSpec{
-					PluginDefinition: "non-existing",
+					PluginDefinitionRef: greenhousev1alpha1.PluginDefinitionReference{
+						Name: "non-existing",
+						Kind: greenhousev1alpha1.ClusterPluginDefinitionKind,
+					},
 				},
 				ClusterSelector:        metav1.LabelSelector{MatchLabels: map[string]string{"foo": "bar"}},
 				ClusterOptionOverrides: []greenhousev1alpha1.ClusterOptionOverride{},
@@ -134,21 +131,71 @@ var _ = Describe("PluginPreset Admission Tests", Ordered, func() {
 		Expect(err.Error()).To(ContainSubstring("PluginDefinition non-existing does not exist"))
 	})
 
-	It("should accept and reject updates to the PluginPreset", func() {
+	It("should reject PluginPreset with non-existing PluginDefinition", func() {
 		cut := &greenhousev1alpha1.PluginPreset{
 			ObjectMeta: metav1.ObjectMeta{
-				Name:      pluginPresetUpdate,
+				Name:      pluginPresetCreate,
 				Namespace: test.TestNamespace,
-				Labels:    map[string]string{greenhouseapis.LabelKeyOwnedBy: teamWithSupportGroupName},
 			},
 			Spec: greenhousev1alpha1.PluginPresetSpec{
 				Plugin: greenhousev1alpha1.PluginSpec{
-					PluginDefinition: pluginPresetDefinition,
+					PluginDefinitionRef: greenhousev1alpha1.PluginDefinitionReference{
+						Name: "non-existing",
+						Kind: greenhousev1alpha1.PluginDefinitionKind,
+					},
 				},
-				ClusterSelector: metav1.LabelSelector{MatchLabels: map[string]string{"foo": "bar"}},
+				ClusterSelector:        metav1.LabelSelector{MatchLabels: map[string]string{"foo": "bar"}},
+				ClusterOptionOverrides: []greenhousev1alpha1.ClusterOptionOverride{},
 			},
 		}
 
+		err := test.K8sClient.Create(test.Ctx, cut)
+		Expect(err).To(HaveOccurred())
+		Expect(err.Error()).To(ContainSubstring("PluginDefinition non-existing does not exist"))
+	})
+
+	It("should correctly default the PluginDefinitionRef for existing PluginDefinition", func() {
+		cut := test.NewPluginPreset(pluginPresetCreate, test.TestNamespace,
+			test.WithPluginPresetLabel(greenhouseapis.LabelKeyOwnedBy, teamWithSupportGroupName),
+			test.WithPluginPresetClusterSelector(metav1.LabelSelector{MatchLabels: map[string]string{"foo": "bar"}}),
+			test.WithPluginPresetPluginSpec(greenhousev1alpha1.PluginSpec{
+				PluginDefinition: pluginPresetNamespacedDefinition,
+			}),
+		)
+		Expect(test.K8sClient.Create(test.Ctx, cut)).
+			To(Succeed(), "there must be no error creating the PluginPreset")
+		Expect(cut.Spec.Plugin.PluginDefinitionRef.Name).To(Equal(pluginPresetNamespacedDefinition), "PluginDefinitionRef name should be defaulted")
+		Expect(cut.Spec.Plugin.PluginDefinitionRef.Kind).To(Equal(greenhousev1alpha1.PluginDefinitionKind), "PluginDefinitionRef kind should be defaulted to PluginDefinition")
+		test.EventuallyDeleted(test.Ctx, test.K8sClient, cut)
+	})
+
+	It("should accept PluginPreset with namespaced PluginDefinition", func() {
+		cut := test.NewPluginPreset(pluginPresetCreate, test.TestNamespace,
+			test.WithPluginPresetLabel(greenhouseapis.LabelKeyOwnedBy, teamWithSupportGroupName),
+			test.WithPluginPresetClusterSelector(metav1.LabelSelector{MatchLabels: map[string]string{"foo": "bar"}}),
+			test.WithPluginPresetPluginSpec(greenhousev1alpha1.PluginSpec{
+				PluginDefinitionRef: greenhousev1alpha1.PluginDefinitionReference{
+					Name: pluginPresetNamespacedDefinition,
+					Kind: greenhousev1alpha1.PluginDefinitionKind,
+				},
+			}),
+		)
+		Expect(test.K8sClient.Create(test.Ctx, cut)).
+			To(Succeed(), "there must be no error creating the PluginPreset")
+		test.EventuallyDeleted(test.Ctx, test.K8sClient, cut)
+	})
+
+	It("should accept and reject updates to the PluginPreset", func() {
+		cut := test.NewPluginPreset(pluginPresetUpdate, test.TestNamespace,
+			test.WithPluginPresetLabel(greenhouseapis.LabelKeyOwnedBy, teamWithSupportGroupName),
+			test.WithPluginPresetClusterSelector(metav1.LabelSelector{MatchLabels: map[string]string{"foo": "bar"}}),
+			test.WithPluginPresetPluginSpec(greenhousev1alpha1.PluginSpec{
+				PluginDefinitionRef: greenhousev1alpha1.PluginDefinitionReference{
+					Name: pluginPresetClusterDefinition,
+					Kind: greenhousev1alpha1.ClusterPluginDefinitionKind,
+				},
+			}),
+		)
 		Expect(test.K8sClient.Create(test.Ctx, cut)).
 			To(Succeed(), "there must be no error creating the PluginPreset")
 
@@ -160,13 +207,20 @@ var _ = Describe("PluginPreset Admission Tests", Ordered, func() {
 			NotTo(HaveOccurred(), "there must be no error updating the PluginPreset clusterSelector")
 
 		_, err = clientutil.CreateOrPatch(test.Ctx, test.K8sClient, cut, func() error {
-			cut.Spec.Plugin.PluginDefinition = "new-definition"
+			cut.Spec.Plugin.PluginDefinitionRef.Name = "new-definition"
 			return nil
 		})
 		Expect(err).
-			To(HaveOccurred(), "there must be an error updating the PluginPreset pluginDefinition")
+			To(HaveOccurred(), "there must be an error updating the PluginPreset pluginDefinition name")
 		Expect(err.Error()).
 			To(ContainSubstring("field is immutable"), "the error must reflect the field is immutable")
+
+		_, err = clientutil.CreateOrPatch(test.Ctx, test.K8sClient, cut, func() error {
+			cut.Spec.Plugin.PluginDefinitionRef.Kind = greenhousev1alpha1.PluginDefinitionKind
+			return nil
+		})
+		Expect(err).
+			NotTo(HaveOccurred(), "there must be no error updating the PluginPreset pluginDefinition kind")
 
 		_, err = clientutil.CreateOrPatch(test.Ctx, test.K8sClient, cut, func() error {
 			cut.Spec.Plugin.ClusterName = "foo"
@@ -192,7 +246,10 @@ var _ = Describe("PluginPreset Admission Tests", Ordered, func() {
 			},
 			Spec: greenhousev1alpha1.PluginPresetSpec{
 				Plugin: greenhousev1alpha1.PluginSpec{
-					PluginDefinition: pluginPresetDefinition,
+					PluginDefinitionRef: greenhousev1alpha1.PluginDefinitionReference{
+						Name: pluginPresetClusterDefinition,
+						Kind: greenhousev1alpha1.ClusterPluginDefinitionKind,
+					},
 				},
 				ClusterSelector: metav1.LabelSelector{MatchLabels: map[string]string{"foo": "bar"}},
 			},
@@ -226,7 +283,10 @@ var _ = Describe("Validate Plugin OptionValues for PluginPreset", func() {
 			},
 			Spec: greenhousev1alpha1.PluginPresetSpec{
 				Plugin: greenhousev1alpha1.PluginSpec{
-					PluginDefinition: "test",
+					PluginDefinitionRef: greenhousev1alpha1.PluginDefinitionReference{
+						Name: "test",
+						Kind: greenhousev1alpha1.ClusterPluginDefinitionKind,
+					},
 					OptionValues: []greenhousev1alpha1.PluginOptionValue{
 						{
 							Name:      "test",
@@ -265,7 +325,7 @@ var _ = Describe("Validate Plugin OptionValues for PluginPreset", func() {
 			},
 		}
 
-		errList := validatePluginOptionValuesForPreset(pluginPreset, pluginDefinition)
+		errList := validatePluginOptionValuesForPreset(pluginPreset, pluginDefinition.Name, pluginDefinition.Spec)
 		switch expErr {
 		case true:
 			Expect(errList).ToNot(BeEmpty(), "expected an error, got nil")
@@ -291,8 +351,11 @@ var _ = Describe("Validate Plugin OptionValues for PluginPreset", func() {
 			},
 			Spec: greenhousev1alpha1.PluginPresetSpec{
 				Plugin: greenhousev1alpha1.PluginSpec{
-					PluginDefinition: "test",
-					OptionValues:     []greenhousev1alpha1.PluginOptionValue{},
+					PluginDefinitionRef: greenhousev1alpha1.PluginDefinitionReference{
+						Name: "test",
+						Kind: greenhousev1alpha1.ClusterPluginDefinitionKind,
+					},
+					OptionValues: []greenhousev1alpha1.PluginOptionValue{},
 				},
 				ClusterOptionOverrides: []greenhousev1alpha1.ClusterOptionOverride{
 					{
@@ -336,7 +399,7 @@ var _ = Describe("Validate Plugin OptionValues for PluginPreset", func() {
 			},
 		}
 
-		errList := validatePluginOptionValuesForPreset(pluginPreset, pluginDefinition)
+		errList := validatePluginOptionValuesForPreset(pluginPreset, pluginDefinition.Name, pluginDefinition.Spec)
 		switch expErr {
 		case true:
 			Expect(errList).ToNot(BeEmpty(), "expected an error, got nil")
@@ -378,7 +441,10 @@ var _ = Describe("Validate Plugin OptionValues for PluginPreset", func() {
 			},
 			Spec: greenhousev1alpha1.PluginPresetSpec{
 				Plugin: greenhousev1alpha1.PluginSpec{
-					PluginDefinition: "test",
+					PluginDefinitionRef: greenhousev1alpha1.PluginDefinitionReference{
+						Name: "test",
+						Kind: greenhousev1alpha1.ClusterPluginDefinitionKind,
+					},
 					OptionValues: []greenhousev1alpha1.PluginOptionValue{
 						{
 							Name:  "test",
@@ -389,7 +455,7 @@ var _ = Describe("Validate Plugin OptionValues for PluginPreset", func() {
 			},
 		}
 
-		errList := validatePluginOptionValuesForPreset(pluginPreset, pluginDefinition)
+		errList := validatePluginOptionValuesForPreset(pluginPreset, pluginDefinition.Name, pluginDefinition.Spec)
 		switch expErr {
 		case true:
 			Expect(errList).ToNot(BeEmpty(), "expected an error, got nil")
@@ -440,8 +506,11 @@ var _ = Describe("Validate Plugin OptionValues for PluginPreset", func() {
 			},
 			Spec: greenhousev1alpha1.PluginPresetSpec{
 				Plugin: greenhousev1alpha1.PluginSpec{
-					PluginDefinition: "test",
-					OptionValues:     []greenhousev1alpha1.PluginOptionValue{},
+					PluginDefinitionRef: greenhousev1alpha1.PluginDefinitionReference{
+						Name: "test",
+						Kind: greenhousev1alpha1.ClusterPluginDefinitionKind,
+					},
+					OptionValues: []greenhousev1alpha1.PluginOptionValue{},
 				},
 				ClusterOptionOverrides: []greenhousev1alpha1.ClusterOptionOverride{
 					{
@@ -457,7 +526,7 @@ var _ = Describe("Validate Plugin OptionValues for PluginPreset", func() {
 			},
 		}
 
-		errList := validatePluginOptionValuesForPreset(pluginPreset, pluginDefinition)
+		errList := validatePluginOptionValuesForPreset(pluginPreset, pluginDefinition.Name, pluginDefinition.Spec)
 		switch expErr {
 		case true:
 			Expect(errList).ToNot(BeEmpty(), "expected an error, got nil")
@@ -507,7 +576,10 @@ var _ = Describe("Validate Plugin OptionValues for PluginPreset", func() {
 			},
 			Spec: greenhousev1alpha1.PluginPresetSpec{
 				Plugin: greenhousev1alpha1.PluginSpec{
-					PluginDefinition: "test",
+					PluginDefinitionRef: greenhousev1alpha1.PluginDefinitionReference{
+						Name: "test",
+						Kind: greenhousev1alpha1.ClusterPluginDefinitionKind,
+					},
 					OptionValues: []greenhousev1alpha1.PluginOptionValue{
 						{
 							Name:      "test",
@@ -518,7 +590,7 @@ var _ = Describe("Validate Plugin OptionValues for PluginPreset", func() {
 			},
 		}
 
-		errList := validatePluginOptionValuesForPreset(pluginPreset, pluginDefinition)
+		errList := validatePluginOptionValuesForPreset(pluginPreset, pluginDefinition.Name, pluginDefinition.Spec)
 		switch expErr {
 		case true:
 			Expect(errList).ToNot(BeEmpty(), "expected an error, got nil")
@@ -559,8 +631,11 @@ var _ = Describe("Validate Plugin OptionValues for PluginPreset", func() {
 			},
 			Spec: greenhousev1alpha1.PluginPresetSpec{
 				Plugin: greenhousev1alpha1.PluginSpec{
-					PluginDefinition: "test",
-					OptionValues:     []greenhousev1alpha1.PluginOptionValue{},
+					PluginDefinitionRef: greenhousev1alpha1.PluginDefinitionReference{
+						Name: "test",
+						Kind: greenhousev1alpha1.ClusterPluginDefinitionKind,
+					},
+					OptionValues: []greenhousev1alpha1.PluginOptionValue{},
 				},
 				ClusterOptionOverrides: []greenhousev1alpha1.ClusterOptionOverride{
 					{
@@ -576,7 +651,7 @@ var _ = Describe("Validate Plugin OptionValues for PluginPreset", func() {
 			},
 		}
 
-		errList := validatePluginOptionValuesForPreset(pluginPreset, pluginDefinition)
+		errList := validatePluginOptionValuesForPreset(pluginPreset, pluginDefinition.Name, pluginDefinition.Spec)
 		switch expErr {
 		case true:
 			Expect(errList).ToNot(BeEmpty(), "expected an error, got nil")
@@ -618,8 +693,11 @@ var _ = Describe("Validate Plugin OptionValues for PluginPreset", func() {
 				},
 				Spec: greenhousev1alpha1.PluginPresetSpec{
 					Plugin: greenhousev1alpha1.PluginSpec{
-						PluginDefinition: "test",
-						OptionValues:     []greenhousev1alpha1.PluginOptionValue{},
+						PluginDefinitionRef: greenhousev1alpha1.PluginDefinitionReference{
+							Name: "test",
+							Kind: greenhousev1alpha1.ClusterPluginDefinitionKind,
+						},
+						OptionValues: []greenhousev1alpha1.PluginOptionValue{},
 					},
 					ClusterOptionOverrides: []greenhousev1alpha1.ClusterOptionOverride{
 						{
@@ -629,7 +707,7 @@ var _ = Describe("Validate Plugin OptionValues for PluginPreset", func() {
 					},
 				},
 			}
-			errList := validatePluginOptionValuesForPreset(pluginPreset, pluginDefinition)
+			errList := validatePluginOptionValuesForPreset(pluginPreset, pluginDefinition.Name, pluginDefinition.Spec)
 			Expect(errList).To(BeEmpty(), "unexpected error")
 		})
 	})

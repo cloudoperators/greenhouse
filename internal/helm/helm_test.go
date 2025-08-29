@@ -254,7 +254,7 @@ var _ = DescribeTable("getting helm values from Plugin", func(defaultValue any, 
 
 	pluginWithOptionValue := test.NewPlugin(test.Ctx, "green", "house",
 		test.WithPluginLabel(greenhouseapis.LabelKeyOwnedBy, "test-team-1"),
-		test.WithPluginDefinition("greenhouse"),
+		test.WithClusterPluginDefinition("greenhouse"),
 		test.WithPluginOptionValue("value1", test.MustReturnJSONFor(defaultValue), nil),
 	)
 

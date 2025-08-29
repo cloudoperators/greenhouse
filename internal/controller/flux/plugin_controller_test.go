@@ -48,7 +48,7 @@ var (
 
 	testPlugin = test.NewPlugin(test.Ctx, "test-plugindefinition", test.TestNamespace,
 		test.WithCluster("test-cluster"),
-		test.WithPluginDefinition("test-plugindefinition"),
+		test.WithClusterPluginDefinition("test-plugindefinition"),
 		test.WithReleaseName("release-test"),
 		test.WithReleaseNamespace(test.TestNamespace),
 		test.WithPluginLabel(greenhouseapis.LabelKeyOwnedBy, testTeam.Name),
