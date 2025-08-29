@@ -28,6 +28,7 @@ import (
 	greenhousemetav1alpha1 "github.com/cloudoperators/greenhouse/api/meta/v1alpha1"
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
 	"github.com/cloudoperators/greenhouse/internal/clientutil"
+	"github.com/cloudoperators/greenhouse/internal/common"
 	pluginController "github.com/cloudoperators/greenhouse/internal/controller/plugin"
 	"github.com/cloudoperators/greenhouse/internal/flux"
 	"github.com/cloudoperators/greenhouse/internal/helm"
@@ -151,9 +152,9 @@ func (r *FluxReconciler) EnsureCreated(ctx context.Context, resource lifecycle.R
 
 	pluginController.InitPluginStatus(plugin)
 
-	pluginDefinitionSpec, err := util.GetPluginDefinitionSpec(ctx, r.Client, plugin.Spec.PluginDefinitionRef, plugin.GetNamespace())
+	pluginDefinitionSpec, err := common.GetPluginDefinitionSpec(ctx, r.Client, plugin.Spec.PluginDefinitionRef, plugin.GetNamespace())
 	if err != nil {
-		log.FromContext(ctx).Error(err, "Unable to find pluginDefinition for ", "plugin", plugin.Name, "namespace", plugin.Namespace)
+		log.FromContext(ctx).Error(err, "Unable to find "+plugin.Spec.PluginDefinitionRef.Kind, "plugin", plugin.Name, "namespace", plugin.Namespace)
 		return ctrl.Result{}, lifecycle.Failed, err
 	}
 

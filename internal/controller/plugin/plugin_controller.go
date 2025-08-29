@@ -189,7 +189,7 @@ func (r *PluginReconciler) EnsureCreated(ctx context.Context, resource lifecycle
 		return ctrl.Result{RequeueAfter: result.requeueAfter}, lifecycle.Pending, nil
 	}
 
-	pluginDefinitionSpec, err := util.GetPluginDefinitionSpec(ctx, r.Client, plugin.Spec.PluginDefinitionRef, plugin.GetNamespace())
+	pluginDefinitionSpec, err := common.GetPluginDefinitionSpec(ctx, r.Client, plugin.Spec.PluginDefinitionRef, plugin.GetNamespace())
 	if err != nil {
 		plugin.SetCondition(greenhousemetav1alpha1.TrueCondition(
 			greenhousev1alpha1.HelmReconcileFailedCondition, greenhousev1alpha1.PluginDefinitionNotFoundReason, err.Error()))

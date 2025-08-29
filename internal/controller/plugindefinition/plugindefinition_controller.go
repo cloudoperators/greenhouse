@@ -63,7 +63,7 @@ func (r *PluginDefinitionReconciler) EnsureCreated(ctx context.Context, obj life
 	pluginDef := obj.(*greenhousev1alpha1.PluginDefinition) //nolint:errcheck
 
 	if pluginDef.Spec.HelmChart == nil {
-		log.FromContext(ctx).Info("No HelmChart defined in ClusterPluginDefinition, skipping HelmRepository creation")
+		log.FromContext(ctx).Info("No HelmChart defined in PluginDefinition, skipping HelmRepository creation", "name", pluginDef.Name)
 		r.recorder.Event(pluginDef, corev1.EventTypeNormal, "Skipped", "Skipped HelmRepository creation")
 		return ctrl.Result{}, lifecycle.Success, nil
 	}

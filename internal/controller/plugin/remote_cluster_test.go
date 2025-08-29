@@ -439,6 +439,7 @@ var _ = Describe("HelmController reconciliation", Ordered, func() {
 				err = test.K8sClient.Get(test.Ctx, types.NamespacedName{Name: testPluginWithExposedService1.Name, Namespace: testPluginWithExposedService1.Namespace}, testPluginWithExposedService1)
 				g.Expect(err).ToNot(HaveOccurred(), "there should be no error getting plugin")
 				statusUpToDateCondition := testPluginWithExposedService1.Status.GetConditionByType(greenhousev1alpha1.StatusUpToDateCondition)
+				g.Expect(statusUpToDateCondition).ToNot(BeNil(), "StatusUpToDate condition should not be nil")
 				g.Expect(statusUpToDateCondition.Status).To(Equal(metav1.ConditionTrue), "plugin status up to date condition should be set to true")
 				g.Expect(testPluginWithExposedService1.Status.ExposedServices).ToNot(BeEmpty(), "exposed services in plugin status should not be empty")
 				g.Expect(testPluginWithExposedService1.Status.ExposedServices).To(HaveLen(1), "there should be only one exposed service in plugin status")

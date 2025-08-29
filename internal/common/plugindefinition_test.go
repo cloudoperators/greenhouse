@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2025 SAP SE or an SAP affiliate company and Greenhouse contributors
 // SPDX-License-Identifier: Apache-2.0
 
-package util_test
+package common_test
 
 import (
 	. "github.com/onsi/ginkgo/v2"
@@ -9,8 +9,8 @@ import (
 
 	greenhouseapis "github.com/cloudoperators/greenhouse/api"
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
+	"github.com/cloudoperators/greenhouse/internal/common"
 	"github.com/cloudoperators/greenhouse/internal/test"
-	"github.com/cloudoperators/greenhouse/internal/util"
 )
 
 var _ = Describe("Test common GetPluginDefinitionSpec", func() {
@@ -54,7 +54,7 @@ var _ = Describe("Test common GetPluginDefinitionSpec", func() {
 				Expect(setup.Create(test.Ctx, testPlugin)).To(Succeed(), "failed to create test Plugin")
 
 				By("checking GetPluginDefinitionSpec func outcome")
-				pluginDefinitionSpec, err := util.GetPluginDefinitionSpec(test.Ctx, setup.Client,
+				pluginDefinitionSpec, err := common.GetPluginDefinitionSpec(test.Ctx, setup.Client,
 					testPlugin.Spec.PluginDefinitionRef,
 					testPlugin.GetNamespace(),
 				)
@@ -72,7 +72,7 @@ var _ = Describe("Test common GetPluginDefinitionSpec", func() {
 				Expect(setup.Create(test.Ctx, testPlugin)).To(Succeed(), "failed to create test Plugin")
 
 				By("checking GetPluginDefinitionSpec func outcome")
-				pluginDefinitionSpec, err := util.GetPluginDefinitionSpec(test.Ctx, setup.Client,
+				pluginDefinitionSpec, err := common.GetPluginDefinitionSpec(test.Ctx, setup.Client,
 					testPlugin.Spec.PluginDefinitionRef,
 					testPlugin.GetNamespace(),
 				)
@@ -99,7 +99,7 @@ var _ = Describe("Test common GetPluginDefinitionSpec", func() {
 				Expect(setup.Create(test.Ctx, testPlugin)).To(Succeed(), "failed to create test Plugin")
 
 				By("checking GetPluginDefinitionSpec func outcome")
-				pluginDefinitionSpec, err := util.GetPluginDefinitionSpec(test.Ctx, setup.Client,
+				pluginDefinitionSpec, err := common.GetPluginDefinitionSpec(test.Ctx, setup.Client,
 					testPlugin.Spec.PluginDefinitionRef,
 					testPlugin.GetNamespace(),
 				)
@@ -119,7 +119,7 @@ var _ = Describe("Test common GetPluginDefinitionSpec", func() {
 				Expect(setup.Create(test.Ctx, testPlugin)).To(Succeed(), "failed to create test Plugin")
 
 				By("checking GetPluginDefinitionSpec func outcome")
-				pluginDefinitionSpec, err := util.GetPluginDefinitionSpec(test.Ctx, setup.Client,
+				pluginDefinitionSpec, err := common.GetPluginDefinitionSpec(test.Ctx, setup.Client,
 					testPlugin.Spec.PluginDefinitionRef,
 					testPlugin.GetNamespace(),
 				)
@@ -134,7 +134,7 @@ var _ = Describe("Test common GetPluginDefinitionSpec", func() {
 				Expect(setup.Create(test.Ctx, testPlugin)).To(Succeed(), "failed to create test Plugin")
 
 				By("checking GetPluginDefinitionSpec func outcome")
-				pluginDefinitionSpec, err := util.GetPluginDefinitionSpec(test.Ctx, setup.Client,
+				pluginDefinitionSpec, err := common.GetPluginDefinitionSpec(test.Ctx, setup.Client,
 					testPlugin.Spec.PluginDefinitionRef,
 					testPlugin.GetNamespace(),
 				)
@@ -149,7 +149,7 @@ var _ = Describe("Test common GetPluginDefinitionSpec", func() {
 				Expect(setup.Create(test.Ctx, testPlugin)).To(Succeed(), "failed to create test Plugin")
 
 				By("checking GetPluginDefinitionSpec func outcome")
-				pluginDefinitionSpec, err := util.GetPluginDefinitionSpec(test.Ctx, setup.Client,
+				pluginDefinitionSpec, err := common.GetPluginDefinitionSpec(test.Ctx, setup.Client,
 					testPlugin.Spec.PluginDefinitionRef,
 					testPlugin.GetNamespace(),
 				)

@@ -27,6 +27,7 @@ import (
 	greenhousemetav1alpha1 "github.com/cloudoperators/greenhouse/api/meta/v1alpha1"
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
 	"github.com/cloudoperators/greenhouse/internal/clientutil"
+	"github.com/cloudoperators/greenhouse/internal/common"
 	"github.com/cloudoperators/greenhouse/internal/lifecycle"
 	"github.com/cloudoperators/greenhouse/internal/util"
 )
@@ -156,7 +157,7 @@ func (r *PluginPresetReconciler) EnsureDeleted(ctx context.Context, resource lif
 // reconcilePluginPreset reconciles the PluginPreset by creating or updating the Plugins for the given clusters.
 // It skips reconciliation for Plugins that do not have the labels of the PluginPreset.
 func (r *PluginPresetReconciler) reconcilePluginPreset(ctx context.Context, preset *greenhousev1alpha1.PluginPreset, clusters *greenhousev1alpha1.ClusterList) error {
-	pluginDefinitionSpec, err := util.GetPluginDefinitionSpec(ctx, r.Client, preset.Spec.Plugin.PluginDefinitionRef, preset.GetNamespace())
+	pluginDefinitionSpec, err := common.GetPluginDefinitionSpec(ctx, r.Client, preset.Spec.Plugin.PluginDefinitionRef, preset.GetNamespace())
 	if err != nil {
 		return err
 	}
