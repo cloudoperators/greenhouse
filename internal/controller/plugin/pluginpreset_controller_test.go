@@ -156,6 +156,9 @@ var _ = Describe("PluginPreset Controller Lifecycle", Ordered, func() {
 			// add a new option value that is not specified by the PluginPreset
 			opt := greenhousev1alpha1.PluginOptionValue{Name: "option1", Value: test.MustReturnJSONFor("value1")}
 			expPlugin.Spec.OptionValues = append(expPlugin.Spec.OptionValues, opt)
+			expLabels := expPlugin.GetLabels()
+			expLabels["foo"] = "bar"
+			expPlugin.SetLabels(expLabels)
 			return nil
 		})
 		Expect(err).NotTo(HaveOccurred(), "failed to update Plugin")
@@ -164,6 +167,7 @@ var _ = Describe("PluginPreset Controller Lifecycle", Ordered, func() {
 			err := test.K8sClient.Get(test.Ctx, expPluginName, expPlugin)
 			g.Expect(err).ShouldNot(HaveOccurred(), "unexpected error getting Plugin")
 			g.Expect(expPlugin.Spec.OptionValues).ToNot(ContainElement(greenhousev1alpha1.PluginOptionValue{Name: "option1", Value: test.MustReturnJSONFor("value1")}), "the Plugin should be reconciled")
+			g.Expect(expPlugin.Labels).To(HaveKeyWithValue("foo", "bar"), "the Plugin should keep manual label changes")
 		}).Should(Succeed(), "the Plugin should be reconciled")
 
 		By("removing the preset label from the Plugin")
