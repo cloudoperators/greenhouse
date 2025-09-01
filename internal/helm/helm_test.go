@@ -90,7 +90,7 @@ var _ = Describe("helm package test", func() {
 			Expect(err).Should(HaveOccurred(),
 				"there should be an error for pluginDefinitions without helm chart")
 
-			Expect(err.Error()).To(ContainSubstring("no helm chart defined in pluginDefinition.Spec.HelmChart"), "the error should contain the correct message")
+			Expect(err.Error()).To(ContainSubstring("no helm chart defined in .Spec.HelmChart for ClusterPluginDefinition"), "the error should contain the correct message")
 		})
 
 		It("should correctly install a helm chart from a pluginDefinition", func() {
