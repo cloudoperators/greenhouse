@@ -1113,13 +1113,16 @@ components:
                   description: PluginDefinitionRef is the reference to the (Cluster-)PluginDefinition.
                   properties:
                     kind:
+                      default: PluginDefinition
                       description: 'Kind of the referent. Supported values: PluginDefinition, ClusterPluginDefinition.'
+                      enum:
+                        - PluginDefinition
+                        - ClusterPluginDefinition
                       type: string
                     name:
-                      description: Name is the name of the PluginDefinition or ClusterPluginDefinition resource.
+                      description: Name of the referenced PluginDefinition or ClusterPluginDefinition resource.
                       type: string
                   required:
-                    - kind
                     - name
                   type: object
                 releaseName:
@@ -1303,13 +1306,16 @@ components:
               description: PluginDefinitionRef is the reference to the (Cluster-)PluginDefinition.
               properties:
                 kind:
+                  default: PluginDefinition
                   description: 'Kind of the referent. Supported values: PluginDefinition, ClusterPluginDefinition.'
+                  enum:
+                    - PluginDefinition
+                    - ClusterPluginDefinition
                   type: string
                 name:
-                  description: Name is the name of the PluginDefinition or ClusterPluginDefinition resource.
+                  description: Name of the referenced PluginDefinition or ClusterPluginDefinition resource.
                   type: string
               required:
-                - kind
                 - name
               type: object
             releaseName:
