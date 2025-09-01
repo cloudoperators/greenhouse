@@ -84,8 +84,7 @@ func (r *PluginDefinitionReconciler) reconcileHelmRepository(ctx context.Context
 		helmRepository.Spec.Type = flux.GetSourceRepositoryType(repositoryURL)
 		helmRepository.Spec.Interval = metav1.Duration{Duration: 5 * time.Minute}
 		helmRepository.Spec.URL = repositoryURL
-		// Do not set owner reference for HelmRepositories created from namespaced PluginDefinitions
-		return nil
+		return controllerutil.SetOwnerReference(pluginDef, helmRepository, r.Scheme)
 	})
 	if err != nil {
 		log.FromContext(ctx).Error(err, "Failed to create or update HelmRepository", "name", helmRepository.Name)
