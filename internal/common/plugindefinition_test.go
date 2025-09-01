@@ -69,7 +69,6 @@ var _ = Describe("Test common GetPluginDefinitionSpec", func() {
 					Name: clusterPluginDefinition.Name,
 					Kind: "",
 				}
-				Expect(setup.Create(test.Ctx, testPlugin)).To(Succeed(), "failed to create test Plugin")
 
 				By("checking GetPluginDefinitionSpec func outcome")
 				pluginDefinitionSpec, err := common.GetPluginDefinitionSpec(test.Ctx, setup.Client,
@@ -116,7 +115,6 @@ var _ = Describe("Test common GetPluginDefinitionSpec", func() {
 					Name: "non-existing-pd",
 					Kind: "NotSupportedKind",
 				}
-				Expect(setup.Create(test.Ctx, testPlugin)).To(Succeed(), "failed to create test Plugin")
 
 				By("checking GetPluginDefinitionSpec func outcome")
 				pluginDefinitionSpec, err := common.GetPluginDefinitionSpec(test.Ctx, setup.Client,
