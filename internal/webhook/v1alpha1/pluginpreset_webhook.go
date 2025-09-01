@@ -6,6 +6,7 @@ package v1alpha1
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -56,8 +57,8 @@ func DefaultPluginPreset(ctx context.Context, c client.Client, o runtime.Object)
 		pluginPreset.Spec.Plugin.PluginDefinitionRef.Name = pluginPreset.Spec.Plugin.PluginDefinition
 	}
 
-	// Default the pluginDefinitionRef.kind if not set
-	if pluginPreset.Spec.Plugin.PluginDefinitionRef.Kind == "" {
+	// Default the pluginDefinitionRef.kind if set to empty
+	if strings.TrimSpace(pluginPreset.Spec.Plugin.PluginDefinitionRef.Kind) == "" {
 		pluginPreset.Spec.Plugin.PluginDefinitionRef.Kind = greenhousev1alpha1.PluginDefinitionKind
 	}
 

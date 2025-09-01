@@ -69,6 +69,11 @@ func DefaultPlugin(ctx context.Context, c client.Client, obj runtime.Object) err
 		plugin.Spec.PluginDefinitionRef.Name = plugin.Spec.PluginDefinition
 	}
 
+	// Default the pluginDefinitionRef.kind if set to empty
+	if strings.TrimSpace(plugin.Spec.PluginDefinitionRef.Kind) == "" {
+		plugin.Spec.PluginDefinitionRef.Kind = greenhousev1alpha1.PluginDefinitionKind
+	}
+
 	// Validate before ValidateCreatePlugin is called. Because defaulting PluginOptionValues & ReleaseName requires the PluginDefinition to be set.
 	if plugin.Spec.PluginDefinitionRef.Name == "" {
 		return field.Required(field.NewPath("spec", "pluginDefinitionRef", "name"), "PluginDefinition name must be set")
