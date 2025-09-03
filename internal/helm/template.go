@@ -20,14 +20,13 @@ import (
 // ResolveTemplatedValues processes PluginOptionValues with templates and resolves them to concrete values.
 func ResolveTemplatedValues(ctx context.Context, c client.Client, plugin *greenhousev1alpha1.Plugin, optionValues []greenhousev1alpha1.PluginOptionValue) ([]greenhousev1alpha1.PluginOptionValue, error) {
 	resolvedValues := make([]greenhousev1alpha1.PluginOptionValue, 0, len(optionValues))
+	templateData, err := buildTemplateData(ctx, c, plugin)
+	if err != nil {
+		return nil, fmt.Errorf("failed to build template data: %w", err)
+	}
 
 	for _, optionValue := range optionValues {
 		if optionValue.Template != nil {
-			templateData, err := buildTemplateData(ctx, c, plugin)
-			if err != nil {
-				return nil, fmt.Errorf("failed to build template data: %w", err)
-			}
-
 			resolvedValue, err := resolveTemplate(*optionValue.Template, templateData)
 			if err != nil {
 				return nil, fmt.Errorf("failed to resolve template for option %s: %w", optionValue.Name, err)
