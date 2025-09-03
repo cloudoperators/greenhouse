@@ -598,7 +598,7 @@ var _ = Describe("Plugin Preset skip changes", Ordered, func() {
 				test.WithPresetLabelValue(pluginPresetName),
 				test.WithPluginDefinition(pluginPresetDefinitionName),
 				test.WithPluginOptionValue("global.greenhouse.test_parameter",
-					test.MustReturnJSONFor(2), nil),
+					test.MustReturnJSONFor(2)),
 			),
 			&greenhousev1alpha1.PluginPreset{
 				ObjectMeta: metav1.ObjectMeta{
@@ -625,9 +625,9 @@ var _ = Describe("Plugin Preset skip changes", Ordered, func() {
 				test.WithPresetLabelValue(pluginPresetName),
 				test.WithPluginDefinition(pluginPresetDefinitionName),
 				test.WithPluginOptionValue("global.greenhouse.test_parameter",
-					test.MustReturnJSONFor(2), nil),
+					test.MustReturnJSONFor(2)),
 				test.WithPluginOptionValue("plugin_preset.test_parameter",
-					test.MustReturnJSONFor(2), nil),
+					test.MustReturnJSONFor(2)),
 			),
 			&greenhousev1alpha1.PluginPreset{
 				ObjectMeta: metav1.ObjectMeta{
@@ -654,13 +654,13 @@ var _ = Describe("Plugin Preset skip changes", Ordered, func() {
 				test.WithPresetLabelValue(pluginPresetName),
 				test.WithPluginDefinition(pluginPresetDefinitionName),
 				test.WithPluginOptionValue("global.greenhouse.test_parameter",
-					test.MustReturnJSONFor(2), nil),
+					test.MustReturnJSONFor(2)),
 				test.WithPluginOptionValue("plugin_preset.test_parameter_1",
-					test.MustReturnJSONFor(1), nil),
+					test.MustReturnJSONFor(1)),
 				test.WithPluginOptionValue("plugin_preset.test_parameter_2",
-					test.MustReturnJSONFor(2), nil),
+					test.MustReturnJSONFor(2)),
 				test.WithPluginOptionValue("plugin_preset.test_parameter_4",
-					test.MustReturnJSONFor(3), nil),
+					test.MustReturnJSONFor(3)),
 			),
 			&greenhousev1alpha1.PluginPreset{
 				ObjectMeta: metav1.ObjectMeta{
@@ -695,9 +695,9 @@ var _ = Describe("Plugin Preset skip changes", Ordered, func() {
 				test.WithPresetLabelValue(pluginPresetName),
 				test.WithPluginDefinition(pluginPresetDefinitionName),
 				test.WithPluginOptionValue("global.greenhouse.test_parameter",
-					test.MustReturnJSONFor(2), nil),
+					test.MustReturnJSONFor(2)),
 				test.WithPluginOptionValue("plugin_preset.test_parameter",
-					test.MustReturnJSONFor(3), nil),
+					test.MustReturnJSONFor(3)),
 			),
 			&greenhousev1alpha1.PluginPreset{
 				ObjectMeta: metav1.ObjectMeta{
@@ -724,11 +724,11 @@ var _ = Describe("Plugin Preset skip changes", Ordered, func() {
 				test.WithPresetLabelValue(pluginPresetName),
 				test.WithPluginDefinition(pluginPresetDefinitionName),
 				test.WithPluginOptionValue("global.greenhouse.test_parameter",
-					test.MustReturnJSONFor(2), nil),
+					test.MustReturnJSONFor(2)),
 				test.WithPluginOptionValue("plugin_preset.test_parameter",
-					test.MustReturnJSONFor(3), nil),
+					test.MustReturnJSONFor(3)),
 				test.WithPluginOptionValue("custom_parameter",
-					test.MustReturnJSONFor(123), nil),
+					test.MustReturnJSONFor(123)),
 			),
 			&greenhousev1alpha1.PluginPreset{
 				ObjectMeta: metav1.ObjectMeta{
@@ -755,9 +755,9 @@ var _ = Describe("Plugin Preset skip changes", Ordered, func() {
 				test.WithPresetLabelValue(pluginPresetName),
 				test.WithPluginDefinition(pluginPresetDefinitionName),
 				test.WithPluginOptionValue("global.greenhouse.test_parameter",
-					test.MustReturnJSONFor(2), nil),
+					test.MustReturnJSONFor(2)),
 				test.WithPluginOptionValue("plugin_definition.test_parameter",
-					test.MustReturnJSONFor(3), nil),
+					test.MustReturnJSONFor(3)),
 			),
 			&greenhousev1alpha1.PluginPreset{
 				ObjectMeta: metav1.ObjectMeta{
@@ -791,9 +791,9 @@ var _ = Describe("Plugin Preset skip changes", Ordered, func() {
 				test.WithPresetLabelValue(pluginPresetName),
 				test.WithPluginDefinition(pluginPresetDefinitionName),
 				test.WithPluginOptionValue("global.greenhouse.test_parameter",
-					test.MustReturnJSONFor(2), nil),
+					test.MustReturnJSONFor(2)),
 				test.WithPluginOptionValue("plugin_definition.test_parameter",
-					test.MustReturnJSONFor(3), nil),
+					test.MustReturnJSONFor(3)),
 			),
 			&greenhousev1alpha1.PluginPreset{
 				ObjectMeta: metav1.ObjectMeta{
@@ -826,9 +826,9 @@ var _ = Describe("Plugin Preset skip changes", Ordered, func() {
 				test.WithPresetLabelValue(pluginPresetName),
 				test.WithPluginDefinition(pluginPresetDefinitionName),
 				test.WithPluginOptionValue("global.greenhouse.test_parameter",
-					test.MustReturnJSONFor(2), nil),
-				test.WithPluginOptionValue("plugin_definition.test_parameter",
-					nil, &greenhousev1alpha1.ValueFromSource{
+					test.MustReturnJSONFor(2)),
+				test.WithPluginOptionValueFrom("plugin_definition.test_parameter",
+					&greenhousev1alpha1.ValueFromSource{
 						Secret: &greenhousev1alpha1.SecretKeyReference{
 							Name: "test-secret",
 							Key:  "test-key",
@@ -866,9 +866,9 @@ var _ = Describe("Plugin Preset skip changes", Ordered, func() {
 				test.WithPresetLabelValue(pluginPresetName),
 				test.WithPluginDefinition(pluginPresetDefinitionName),
 				test.WithPluginOptionValue("global.greenhouse.test_parameter",
-					test.MustReturnJSONFor(2), nil),
-				test.WithPluginOptionValue("plugin_definition.test_parameter",
-					nil, &greenhousev1alpha1.ValueFromSource{
+					test.MustReturnJSONFor(2)),
+				test.WithPluginOptionValueFrom("plugin_definition.test_parameter",
+					&greenhousev1alpha1.ValueFromSource{
 						Secret: &greenhousev1alpha1.SecretKeyReference{
 							Name: "test-secret",
 							Key:  "test-key",
@@ -915,7 +915,7 @@ var _ = Describe("Plugin Preset skip changes", Ordered, func() {
 				test.WithPresetLabelValue(pluginPresetName),
 				test.WithPluginDefinition(pluginPresetDefinitionName),
 				test.WithPluginOptionValue("global.greenhouse.test_parameter",
-					test.MustReturnJSONFor(2), nil),
+					test.MustReturnJSONFor(2)),
 			),
 			&greenhousev1alpha1.PluginPreset{
 				ObjectMeta: metav1.ObjectMeta{
@@ -952,7 +952,7 @@ var _ = Describe("Plugin Preset skip changes", Ordered, func() {
 				test.WithPresetLabelValue(pluginPresetName),
 				test.WithPluginDefinition(pluginPresetDefinitionName),
 				test.WithPluginOptionValue("global.greenhouse.test_parameter",
-					test.MustReturnJSONFor(2), nil),
+					test.MustReturnJSONFor(2)),
 			),
 			&greenhousev1alpha1.PluginPreset{
 				ObjectMeta: metav1.ObjectMeta{
@@ -994,18 +994,18 @@ var _ = Describe("overridesPluginOptionValues", Ordered, func() {
 		Expect(plugin).To(BeEquivalentTo(expectedPlugin))
 	},
 		Entry("with no defined pluginPresetOverrides",
-			test.NewPlugin(test.Ctx, "", "", test.WithPluginOptionValue("option-1", test.MustReturnJSONFor(2), nil), test.WithPluginLabel(greenhouseapis.LabelKeyOwnedBy, testTeam.Name)),
+			test.NewPlugin(test.Ctx, "", "", test.WithPluginOptionValue("option-1", test.MustReturnJSONFor(2)), test.WithPluginLabel(greenhouseapis.LabelKeyOwnedBy, testTeam.Name)),
 			&greenhousev1alpha1.PluginPreset{
 				ObjectMeta: metav1.ObjectMeta{
 					Labels: map[string]string{greenhouseapis.LabelKeyOwnedBy: testTeam.Name},
 				},
 				Spec: greenhousev1alpha1.PluginPresetSpec{},
 			},
-			test.NewPlugin(test.Ctx, "", "", test.WithPluginOptionValue("option-1", test.MustReturnJSONFor(2), nil), test.WithPluginLabel(greenhouseapis.LabelKeyOwnedBy, testTeam.Name)),
+			test.NewPlugin(test.Ctx, "", "", test.WithPluginOptionValue("option-1", test.MustReturnJSONFor(2)), test.WithPluginLabel(greenhouseapis.LabelKeyOwnedBy, testTeam.Name)),
 		),
 		Entry("with defined pluginPresetOverrides but for another cluster",
 			test.NewPlugin(test.Ctx, "", clusterA, test.WithPluginLabel(greenhouseapis.LabelKeyOwnedBy, testTeam.Name),
-				test.WithCluster(clusterA), test.WithPluginOptionValue("option-1", test.MustReturnJSONFor(2), nil)),
+				test.WithCluster(clusterA), test.WithPluginOptionValue("option-1", test.MustReturnJSONFor(2))),
 			&greenhousev1alpha1.PluginPreset{
 				ObjectMeta: metav1.ObjectMeta{
 					Labels: map[string]string{greenhouseapis.LabelKeyOwnedBy: testTeam.Name},
@@ -1025,10 +1025,10 @@ var _ = Describe("overridesPluginOptionValues", Ordered, func() {
 				},
 			},
 			test.NewPlugin(test.Ctx, "", clusterA, test.WithPluginLabel(greenhouseapis.LabelKeyOwnedBy, testTeam.Name),
-				test.WithCluster(clusterA), test.WithPluginOptionValue("option-1", test.MustReturnJSONFor(2), nil)),
+				test.WithCluster(clusterA), test.WithPluginOptionValue("option-1", test.MustReturnJSONFor(2))),
 		),
 		Entry("with defined pluginPresetOverrides for the correct cluster",
-			test.NewPlugin(test.Ctx, "", clusterA, test.WithCluster(clusterA), test.WithPluginOptionValue("option-1", test.MustReturnJSONFor(2), nil), test.WithPluginLabel(greenhouseapis.LabelKeyOwnedBy, testTeam.Name)),
+			test.NewPlugin(test.Ctx, "", clusterA, test.WithCluster(clusterA), test.WithPluginOptionValue("option-1", test.MustReturnJSONFor(2)), test.WithPluginLabel(greenhouseapis.LabelKeyOwnedBy, testTeam.Name)),
 			&greenhousev1alpha1.PluginPreset{
 				ObjectMeta: metav1.ObjectMeta{
 					Labels: map[string]string{greenhouseapis.LabelKeyOwnedBy: testTeam.Name},
@@ -1047,7 +1047,7 @@ var _ = Describe("overridesPluginOptionValues", Ordered, func() {
 					},
 				},
 			},
-			test.NewPlugin(test.Ctx, "", clusterA, test.WithCluster(clusterA), test.WithPluginOptionValue("option-1", test.MustReturnJSONFor(1), nil), test.WithPluginLabel(greenhouseapis.LabelKeyOwnedBy, testTeam.Name)),
+			test.NewPlugin(test.Ctx, "", clusterA, test.WithCluster(clusterA), test.WithPluginOptionValue("option-1", test.MustReturnJSONFor(1)), test.WithPluginLabel(greenhouseapis.LabelKeyOwnedBy, testTeam.Name)),
 		),
 		Entry("with defined pluginPresetOverrides for the cluster and plugin with empty option values",
 			test.NewPlugin(test.Ctx, "", clusterA, test.WithCluster(clusterA), test.WithPluginLabel(greenhouseapis.LabelKeyOwnedBy, testTeam.Name)),
@@ -1069,10 +1069,10 @@ var _ = Describe("overridesPluginOptionValues", Ordered, func() {
 					},
 				},
 			},
-			test.NewPlugin(test.Ctx, "", clusterA, test.WithCluster(clusterA), test.WithPluginOptionValue("option-1", test.MustReturnJSONFor(1), nil), test.WithPluginLabel(greenhouseapis.LabelKeyOwnedBy, testTeam.Name)),
+			test.NewPlugin(test.Ctx, "", clusterA, test.WithCluster(clusterA), test.WithPluginOptionValue("option-1", test.MustReturnJSONFor(1)), test.WithPluginLabel(greenhouseapis.LabelKeyOwnedBy, testTeam.Name)),
 		),
 		Entry("with defined pluginPresetOverrides and plugin has two options",
-			test.NewPlugin(test.Ctx, "", clusterA, test.WithCluster(clusterA), test.WithPluginOptionValue("option-1", test.MustReturnJSONFor(1), nil), test.WithPluginOptionValue("option-2", test.MustReturnJSONFor(1), nil), test.WithPluginLabel(greenhouseapis.LabelKeyOwnedBy, testTeam.Name)),
+			test.NewPlugin(test.Ctx, "", clusterA, test.WithCluster(clusterA), test.WithPluginOptionValue("option-1", test.MustReturnJSONFor(1)), test.WithPluginOptionValue("option-2", test.MustReturnJSONFor(1)), test.WithPluginLabel(greenhouseapis.LabelKeyOwnedBy, testTeam.Name)),
 			&greenhousev1alpha1.PluginPreset{
 				ObjectMeta: metav1.ObjectMeta{
 					Labels: map[string]string{greenhouseapis.LabelKeyOwnedBy: testTeam.Name},
@@ -1091,13 +1091,13 @@ var _ = Describe("overridesPluginOptionValues", Ordered, func() {
 					},
 				},
 			},
-			test.NewPlugin(test.Ctx, "", clusterA, test.WithCluster(clusterA), test.WithPluginOptionValue("option-1", test.MustReturnJSONFor(1), nil), test.WithPluginOptionValue("option-2", test.MustReturnJSONFor(2), nil), test.WithPluginLabel(greenhouseapis.LabelKeyOwnedBy, testTeam.Name)),
+			test.NewPlugin(test.Ctx, "", clusterA, test.WithCluster(clusterA), test.WithPluginOptionValue("option-1", test.MustReturnJSONFor(1)), test.WithPluginOptionValue("option-2", test.MustReturnJSONFor(2)), test.WithPluginLabel(greenhouseapis.LabelKeyOwnedBy, testTeam.Name)),
 		),
 		Entry("with defined pluginPresetOverrides has multiple options to override",
 			test.NewPlugin(test.Ctx, "", clusterA, test.WithCluster(clusterA),
-				test.WithPluginOptionValue("option-1", test.MustReturnJSONFor(1), nil),
-				test.WithPluginOptionValue("option-2", test.MustReturnJSONFor(1), nil),
-				test.WithPluginOptionValue("option-3", test.MustReturnJSONFor(1), nil),
+				test.WithPluginOptionValue("option-1", test.MustReturnJSONFor(1)),
+				test.WithPluginOptionValue("option-2", test.MustReturnJSONFor(1)),
+				test.WithPluginOptionValue("option-3", test.MustReturnJSONFor(1)),
 				test.WithPluginLabel(greenhouseapis.LabelKeyOwnedBy, testTeam.Name)),
 			&greenhousev1alpha1.PluginPreset{
 				ObjectMeta: metav1.ObjectMeta{
@@ -1126,10 +1126,10 @@ var _ = Describe("overridesPluginOptionValues", Ordered, func() {
 				},
 			},
 			test.NewPlugin(test.Ctx, "", clusterA, test.WithCluster(clusterA), test.WithPluginLabel(greenhouseapis.LabelKeyOwnedBy, testTeam.Name),
-				test.WithPluginOptionValue("option-1", test.MustReturnJSONFor(1), nil),
-				test.WithPluginOptionValue("option-2", test.MustReturnJSONFor(2), nil),
-				test.WithPluginOptionValue("option-3", test.MustReturnJSONFor(2), nil),
-				test.WithPluginOptionValue("option-4", test.MustReturnJSONFor(2), nil)),
+				test.WithPluginOptionValue("option-1", test.MustReturnJSONFor(1)),
+				test.WithPluginOptionValue("option-2", test.MustReturnJSONFor(2)),
+				test.WithPluginOptionValue("option-3", test.MustReturnJSONFor(2)),
+				test.WithPluginOptionValue("option-4", test.MustReturnJSONFor(2))),
 		),
 	)
 })

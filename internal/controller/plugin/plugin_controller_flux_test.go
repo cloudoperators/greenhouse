@@ -59,8 +59,7 @@ var (
 				Name: "test-cluster",
 				Key:  greenhouseapis.GreenHouseKubeConfigKey,
 			},
-		},
-		),
+		}),
 	)
 	testPluginDefinition = test.NewClusterPluginDefinition(
 		test.Ctx,
