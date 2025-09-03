@@ -89,6 +89,7 @@ func SetClusterReadyCondition(ctx context.Context, c client.Client, cluster *gre
 
 // MustReturnJSONFor marshals val to JSON and returns an apiextensionsv1.JSON.
 func MustReturnJSONFor(val any) *apiextensionsv1.JSON {
+	GinkgoHelper()
 	raw, err := json.Marshal(val)
 	Expect(err).ShouldNot(HaveOccurred(), "there should be no error marshalling the value")
 	return &apiextensionsv1.JSON{Raw: raw}
@@ -113,12 +114,4 @@ func KubeconfigFromEnvVar(envVar string) ([]byte, error) {
 		return nil, err
 	}
 	return kubeconfig, nil
-}
-
-// AsAPIExtensionJSON - marshals v into a JSON and returns an apiextensionsv1.JSON object
-func AsAPIExtensionJSON(v any) *apiextensionsv1.JSON {
-	GinkgoHelper()
-	bs, err := json.Marshal(v)
-	Expect(err).ToNot(HaveOccurred(), "error marshalling value")
-	return &apiextensionsv1.JSON{Raw: bs}
 }
