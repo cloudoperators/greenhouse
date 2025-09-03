@@ -76,7 +76,6 @@ func (r *KubeconfigReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 		l.Info("kubeconfig not found, will be created")
 		kubeconfig.Name = cluster.Name
 		kubeconfig.Namespace = cluster.Namespace
-		kubeconfig.Labels = cluster.GetLabels()
 		kubeconfig.Spec.Kubeconfig = v1alpha1.ClusterKubeconfigData{
 			Kind:       "Config",
 			APIVersion: "v1",
