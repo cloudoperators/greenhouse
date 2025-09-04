@@ -238,8 +238,8 @@ func computeWorkloadCondition(plugin *greenhousev1alpha1.Plugin, release *Releas
 	plugin.SetCondition(greenhousemetav1alpha1.TrueCondition(greenhousev1alpha1.WorkloadReadyCondition, "", "Workload is running"))
 }
 
-// ComputeReadyCondition computes the ReadyCondition for the Plugin based on various status conditions
-func ComputeReadyCondition(
+// computeReadyCondition computes the ReadyCondition for the Plugin based on various status conditions
+func computeReadyCondition(
 	conditions greenhousemetav1alpha1.StatusConditions,
 ) (readyCondition greenhousemetav1alpha1.Condition) {
 

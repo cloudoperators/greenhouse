@@ -9,7 +9,9 @@ import (
 	"errors"
 	"fmt"
 	"slices"
+	"strings"
 
+	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apimachinery/pkg/types"
@@ -39,6 +41,9 @@ import (
 const (
 	maxHistory = 10
 	secretKind = "Secret"
+
+	PluginDefinitionVersionAnnotation = "greenhouse.sap/pd-version"
+	StatusUnknown                     = "Unknown"
 )
 
 // FluxReconciler reconciles pluginpresets and plugins and translates them into Flux resources
@@ -94,7 +99,8 @@ func (r *FluxReconciler) SetupWithManager(name string, mgr ctrl.Manager) error {
 
 	return ctrl.NewControllerManagedBy(mgr).
 		Named(name).
-		For(&greenhousev1alpha1.Plugin{}, builder.WithPredicates(labelSelectorPredicate)).
+		For(&greenhousev1alpha1.Plugin{}, builder.WithPredicates(labelSelectorPredicate, predicate.GenerationChangedPredicate{})).
+		Owns(&helmcontroller.HelmRelease{}, builder.WithPredicates(clientutil.PredicateHelmReleaseWithStatusReadyChange())).
 		// If a PluginDefinition was changed, reconcile relevant Plugins.
 		Watches(&greenhousev1alpha1.ClusterPluginDefinition{}, handler.EnqueueRequestsFromMapFunc(r.enqueueAllPluginsForPluginDefinition),
 			builder.WithPredicates(predicate.GenerationChangedPredicate{}, labelSelectorPredicate)).
@@ -117,8 +123,9 @@ func (r *FluxReconciler) setConditions() lifecycle.Conditioner {
 			return
 		}
 
-		readyCondition := pluginController.ComputeReadyCondition(plugin.Status.StatusConditions)
-		plugin.SetCondition(readyCondition)
+		readyCondition := computeReadyCondition(plugin.Status.StatusConditions)
+		ownerLabelCondition := util.ComputeOwnerLabelCondition(ctx, r.Client, plugin)
+		plugin.Status.SetConditions(readyCondition, ownerLabelCondition)
 	}
 }
 
@@ -171,6 +178,191 @@ func (r *FluxReconciler) EnsureCreated(ctx context.Context, resource lifecycle.R
 		return ctrl.Result{}, lifecycle.Failed, errors.New("helm repository not found")
 	}
 
+	if err := r.ensureHelmRelease(ctx, plugin, pluginDef.Spec, helmRepository); err != nil {
+		log.FromContext(ctx).Error(err, "failed to ensure HelmRelease for Plugin", "name", plugin.Name, "namespace", plugin.Namespace)
+		return ctrl.Result{}, lifecycle.Failed, err
+	}
+
+	r.reconcilePluginStatus(ctx, plugin, pluginDef, &plugin.Status)
+
+	return ctrl.Result{}, lifecycle.Success, nil
+}
+
+func (r *FluxReconciler) reconcilePluginStatus(ctx context.Context,
+	plugin *greenhousev1alpha1.Plugin,
+	pluginDefinition *greenhousev1alpha1.ClusterPluginDefinition,
+	pluginStatus *greenhousev1alpha1.PluginStatus,
+) {
+
+	var (
+		pluginVersion   string
+		exposedServices = make(map[string]greenhousev1alpha1.Service, 0)
+		releaseStatus   = &greenhousev1alpha1.HelmReleaseStatus{
+			Status:        StatusUnknown,
+			FirstDeployed: metav1.Time{},
+			LastDeployed:  metav1.Time{},
+			Diff:          pluginStatus.HelmReleaseStatus.Diff,
+		}
+	)
+
+	// Collect status from the Helm release.
+	helmRelease := &helmcontroller.HelmRelease{}
+	err := r.Get(ctx, types.NamespacedName{Name: plugin.Name, Namespace: plugin.Namespace}, helmRelease)
+	if err == nil {
+		helmReleaseReady := meta.FindStatusCondition(helmRelease.Status.Conditions, "Ready")
+		if helmReleaseReady != nil && helmRelease.Status.ObservedGeneration >= helmRelease.Generation {
+			plugin.SetCondition(greenhousemetav1alpha1.TrueCondition(greenhousev1alpha1.StatusUpToDateCondition, "", ""))
+
+			if helmReleaseReady.Status == metav1.ConditionTrue {
+				plugin.SetCondition(greenhousemetav1alpha1.FalseCondition(greenhousev1alpha1.HelmReconcileFailedCondition,
+					greenhousemetav1alpha1.ConditionReason(helmReleaseReady.Reason), helmReleaseReady.Message))
+
+				plugin.SetCondition(greenhousemetav1alpha1.TrueCondition(greenhousev1alpha1.ClusterAccessReadyCondition, "", ""))
+			} else {
+				plugin.SetCondition(greenhousemetav1alpha1.TrueCondition(greenhousev1alpha1.HelmReconcileFailedCondition,
+					greenhousemetav1alpha1.ConditionReason(helmReleaseReady.Reason), helmReleaseReady.Message))
+
+				// Approximate access to the cluster based on reason and message returned by flux helmcontroller.
+				if helmReleaseReady.Reason == helmcontroller.TestFailedReason ||
+					helmReleaseReady.Reason == helmcontroller.ArtifactFailedReason ||
+					!looksLikeClusterAccessError(helmReleaseReady.Message) {
+					plugin.SetCondition(greenhousemetav1alpha1.TrueCondition(greenhousev1alpha1.ClusterAccessReadyCondition, "", ""))
+				} else {
+					plugin.SetCondition(greenhousemetav1alpha1.FalseCondition(greenhousev1alpha1.ClusterAccessReadyCondition,
+						greenhousemetav1alpha1.ConditionReason(helmReleaseReady.Reason), helmReleaseReady.Message))
+				}
+			}
+		} else {
+			plugin.SetCondition(greenhousemetav1alpha1.FalseCondition(greenhousev1alpha1.StatusUpToDateCondition, "", "Waiting for HelmRelease Status"))
+		}
+
+		// Get the release status.
+		latestSnapshot := helmRelease.Status.History.Latest()
+		if latestSnapshot != nil {
+			releaseStatus.FirstDeployed = latestSnapshot.FirstDeployed
+			releaseStatus.LastDeployed = latestSnapshot.LastDeployed
+		}
+		releasedCondition := meta.FindStatusCondition(helmRelease.Status.Conditions, helmcontroller.ReleasedCondition)
+		if releasedCondition != nil && releasedCondition.Status == metav1.ConditionTrue &&
+			releasedCondition.ObservedGeneration >= helmRelease.Generation {
+			if v := helmRelease.Annotations[PluginDefinitionVersionAnnotation]; v != "" {
+				pluginVersion = v
+			}
+			if releaseStatus.LastDeployed.IsZero() {
+				releaseStatus.LastDeployed = releasedCondition.LastTransitionTime
+			}
+		}
+		releaseStatus.Status = getReleaseStatus(helmRelease)
+
+		if plugin.Spec.OptionValues != nil {
+			checksum, err := helm.CalculatePluginOptionChecksum(ctx, r.Client, plugin)
+			if err == nil {
+				releaseStatus.PluginOptionChecksum = checksum
+			} else {
+				releaseStatus.PluginOptionChecksum = ""
+			}
+		}
+	} else {
+		errMsg := "failed to get Helm release: " + err.Error()
+		plugin.SetCondition(greenhousemetav1alpha1.FalseCondition(greenhousev1alpha1.StatusUpToDateCondition, "", errMsg))
+		plugin.SetCondition(greenhousemetav1alpha1.TrueCondition(greenhousev1alpha1.HelmReconcileFailedCondition, "", errMsg))
+	}
+
+	var (
+		uiApplication      *greenhousev1alpha1.UIApplicationReference
+		helmChartReference *greenhousev1alpha1.HelmChartReference
+	)
+	// Ensure the status is always reported.
+	uiApplication = pluginDefinition.Spec.UIApplication
+	// only set the helm chart reference if the pluginVersion matches the pluginDefinition version or the release status is unknown
+	if pluginVersion == pluginDefinition.Spec.Version || releaseStatus.Status == StatusUnknown {
+		helmChartReference = pluginDefinition.Spec.HelmChart
+	} else {
+		helmChartReference = plugin.Status.HelmChart
+	}
+
+	pluginStatus.HelmReleaseStatus = releaseStatus
+	pluginStatus.Version = pluginVersion
+	pluginStatus.UIApplication = uiApplication
+	pluginStatus.HelmChart = helmChartReference
+	pluginStatus.Weight = pluginDefinition.Spec.Weight
+	pluginStatus.Description = pluginDefinition.Spec.Description
+	pluginStatus.ExposedServices = exposedServices
+}
+
+func getReleaseStatus(helmRelease *helmcontroller.HelmRelease) string {
+	conditions := helmRelease.Status.Conditions
+	currentGen := helmRelease.Generation
+
+	isCurrent := func(c *metav1.Condition) bool {
+		return c != nil && c.ObservedGeneration >= currentGen
+	}
+	isTrue := func(c *metav1.Condition) bool {
+		return isCurrent(c) && c.Status == metav1.ConditionTrue
+	}
+
+	stalled := meta.FindStatusCondition(conditions, fluxmeta.StalledCondition)
+	if isTrue(stalled) {
+		return fluxmeta.StalledCondition
+	}
+	ready := meta.FindStatusCondition(conditions, fluxmeta.ReadyCondition)
+	if isTrue(ready) {
+		return fluxmeta.ReadyCondition
+	}
+	reconciling := meta.FindStatusCondition(conditions, fluxmeta.ReconcilingCondition)
+	// As per meta contract the ReadyCondition == False should be treated as Reconciling.
+	if isTrue(reconciling) || isCurrent(ready) {
+		return fluxmeta.ReconcilingCondition
+	}
+	return StatusUnknown
+}
+
+func looksLikeClusterAccessError(msg string) bool {
+	msg = strings.ToLower(msg)
+	patterns := []string{"kubeconfig", "cannot create kubernetes client", "failed to build rest",
+		"unauthorized", "forbidden", "x509", "certificate", "dial tcp", "timeout", "connection refused"}
+	for _, p := range patterns {
+		if strings.Contains(msg, p) {
+			return true
+		}
+	}
+	return false
+}
+
+func (r *FluxReconciler) enqueueAllPluginsForPluginDefinition(ctx context.Context, o client.Object) []ctrl.Request {
+	// TODO: Once namespaced PluginDefinitions are supported, we need a logic here to handle the correct label key
+	return pluginController.ListPluginsAsReconcileRequests(ctx, r.Client, client.MatchingLabels{greenhouseapis.LabelKeyClusterPluginDefinition: o.GetName()})
+}
+
+// enqueueAllPluginsForCluster enqueues all Plugins which have .spec.clusterName set to the name of the given Cluster.
+func (r *FluxReconciler) enqueueAllPluginsForCluster(ctx context.Context, o client.Object) []ctrl.Request {
+	listOpts := &client.ListOptions{
+		FieldSelector: fields.OneTermEqualSelector(greenhouseapis.PluginClusterNameField, o.GetName()),
+		Namespace:     o.GetNamespace(),
+	}
+	return pluginController.ListPluginsAsReconcileRequests(ctx, r.Client, listOpts)
+}
+
+func (r *FluxReconciler) enqueueAllPluginsInNamespace(ctx context.Context, o client.Object) []ctrl.Request {
+	return pluginController.ListPluginsAsReconcileRequests(ctx, r.Client, client.InNamespace(o.GetNamespace()))
+}
+
+func (r *FluxReconciler) getPluginDef(ctx context.Context, plugin *greenhousev1alpha1.Plugin) *greenhousev1alpha1.ClusterPluginDefinition {
+	pluginDef := new(greenhousev1alpha1.ClusterPluginDefinition)
+	if err := r.Get(ctx, types.NamespacedName{Name: plugin.Spec.PluginDefinition}, pluginDef); err != nil {
+		log.FromContext(ctx).Error(err, "Unable to find pluginDefinition for ", "plugin", plugin.Name, "namespace", plugin.Namespace)
+		return nil
+	}
+	return pluginDef
+}
+
+func (r *FluxReconciler) ensureHelmRelease(
+	ctx context.Context,
+	plugin *greenhousev1alpha1.Plugin,
+	pluginDefinitionSpec greenhousev1alpha1.PluginDefinitionSpec,
+	helmRepository *sourcecontroller.HelmRepository,
+) error {
+
 	release := &helmcontroller.HelmRelease{}
 	release.SetName(plugin.Name)
 	release.SetNamespace(plugin.Namespace)
@@ -183,9 +375,9 @@ func (r *FluxReconciler) EnsureCreated(ctx context.Context, resource lifecycle.R
 
 		spec, err := flux.NewHelmReleaseSpecBuilder().
 			WithChart(helmcontroller.HelmChartTemplateSpec{
-				Chart:    pluginDef.Spec.HelmChart.Name,
+				Chart:    pluginDefinitionSpec.HelmChart.Name,
 				Interval: &metav1.Duration{Duration: flux.DefaultInterval},
-				Version:  pluginDef.Spec.HelmChart.Version,
+				Version:  pluginDefinitionSpec.HelmChart.Version,
 				SourceRef: helmcontroller.CrossNamespaceObjectReference{
 					Kind:      sourcecontroller.HelmRepositoryKind,
 					Name:      helmRepository.Name,
@@ -221,14 +413,22 @@ func (r *FluxReconciler) EnsureCreated(ctx context.Context, resource lifecycle.R
 			WithValuesFrom(r.addValueReferences(plugin)).
 			WithTargetNamespace(plugin.Spec.ReleaseNamespace).Build()
 		if err != nil {
-			log.FromContext(ctx).Error(err, "Failed to create HelmRelease for plugin", "plugin", plugin.Name)
 			return fmt.Errorf("failed to create HelmRelease for plugin %s: %w", plugin.Name, err)
 		}
 		release.Spec = spec
-		return nil
+
+		// Set PluginDefinition.Spec.Version in the release.
+		if release.Annotations == nil {
+			release.Annotations = map[string]string{}
+		}
+		release.Annotations[PluginDefinitionVersionAnnotation] = pluginDefinitionSpec.Version
+
+		return controllerutil.SetControllerReference(plugin, release, r.Scheme())
 	})
 	if err != nil {
-		return ctrl.Result{}, lifecycle.Failed, err
+		plugin.SetCondition(greenhousemetav1alpha1.FalseCondition(
+			greenhousev1alpha1.StatusUpToDateCondition, "", "failed to create/update Helm release: "+err.Error()))
+		return err
 	}
 	switch result {
 	case controllerutil.OperationResultCreated:
@@ -236,35 +436,7 @@ func (r *FluxReconciler) EnsureCreated(ctx context.Context, resource lifecycle.R
 	case controllerutil.OperationResultUpdated:
 		log.FromContext(ctx).Info("Updated helmRelease", "name", release.Name)
 	}
-
-	return ctrl.Result{}, lifecycle.Success, nil
-}
-
-func (r *FluxReconciler) enqueueAllPluginsForPluginDefinition(ctx context.Context, o client.Object) []ctrl.Request {
-	// TODO: Once namespaced PluginDefinitions are supported, we need a logic here to handle the correct label key
-	return pluginController.ListPluginsAsReconcileRequests(ctx, r.Client, client.MatchingLabels{greenhouseapis.LabelKeyClusterPluginDefinition: o.GetName()})
-}
-
-// enqueueAllPluginsForCluster enqueues all Plugins which have .spec.clusterName set to the name of the given Cluster.
-func (r *FluxReconciler) enqueueAllPluginsForCluster(ctx context.Context, o client.Object) []ctrl.Request {
-	listOpts := &client.ListOptions{
-		FieldSelector: fields.OneTermEqualSelector(greenhouseapis.PluginClusterNameField, o.GetName()),
-		Namespace:     o.GetNamespace(),
-	}
-	return pluginController.ListPluginsAsReconcileRequests(ctx, r.Client, listOpts)
-}
-
-func (r *FluxReconciler) enqueueAllPluginsInNamespace(ctx context.Context, o client.Object) []ctrl.Request {
-	return pluginController.ListPluginsAsReconcileRequests(ctx, r.Client, client.InNamespace(o.GetNamespace()))
-}
-
-func (r *FluxReconciler) getPluginDef(ctx context.Context, plugin *greenhousev1alpha1.Plugin) *greenhousev1alpha1.ClusterPluginDefinition {
-	pluginDef := new(greenhousev1alpha1.ClusterPluginDefinition)
-	if err := r.Get(ctx, types.NamespacedName{Name: plugin.Spec.PluginDefinition}, pluginDef); err != nil {
-		log.FromContext(ctx).Error(err, "Unable to find pluginDefinition for ", "plugin", plugin.Name, "namespace", plugin.Namespace)
-		return nil
-	}
-	return pluginDef
+	return nil
 }
 
 func addValuesToHelmRelease(ctx context.Context, c client.Client, plugin *greenhousev1alpha1.Plugin) ([]byte, error) {
