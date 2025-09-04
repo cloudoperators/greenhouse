@@ -52,7 +52,7 @@ var _ = Describe("Common Metrics", Ordered, func() {
 	})
 
 	It("Should update the OwnedByLabelMissingMetric when Plugin reconciler is calling", func() {
-		plugin := test.NewPlugin(test.Ctx, "test-plugin-a", setup.Namespace())
+		plugin := test.NewPlugin("test-plugin-a", setup.Namespace())
 
 		util.UpdateOwnedByLabelMissingMetric(plugin, true)
 
