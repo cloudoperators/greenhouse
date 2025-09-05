@@ -116,16 +116,30 @@ type PluginStatus struct {
 	greenhousemetav1alpha1.StatusConditions `json:"statusConditions,omitempty"`
 }
 
+// ServiceType defines the type of exposed service.
+// +kubebuilder:validation:Enum=service;ingress
+type ServiceType string
+
+const (
+	// ServiceTypeService indicates the service is exposed via service-proxy.
+	ServiceTypeService ServiceType = "service"
+	// ServiceTypeIngress indicates the service is exposed via ingress.
+	ServiceTypeIngress ServiceType = "ingress"
+)
+
 // Service references a Kubernetes service of a Plugin.
 type Service struct {
 	// Namespace is the namespace of the service in the target cluster.
 	Namespace string `json:"namespace"`
 	// Name is the name of the service in the target cluster.
 	Name string `json:"name"`
-	// Port is the port of the service.
-	Port int32 `json:"port"`
+	// Port is the port of the service. Zero for ingresses where port is not applicable.
+	Port int32 `json:"port,omitempty"`
 	// Protocol is the protocol of the service.
 	Protocol *string `json:"protocol,omitempty"`
+	// Type is the type of exposed service.
+	// +kubebuilder:default="service"
+	Type ServiceType `json:"type"`
 }
 
 // HelmReleaseStatus reflects the status of a Helm release.

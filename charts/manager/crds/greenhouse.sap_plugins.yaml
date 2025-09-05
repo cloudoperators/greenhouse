@@ -157,16 +157,24 @@ spec:
                         target cluster.
                       type: string
                     port:
-                      description: Port is the port of the service.
+                      description: Port is the port of the service. Zero for ingresses
+                        where port is not applicable.
                       format: int32
                       type: integer
                     protocol:
                       description: Protocol is the protocol of the service.
                       type: string
+                    type:
+                      default: service
+                      description: Type is the type of exposed service.
+                      enum:
+                      - service
+                      - ingress
+                      type: string
                   required:
                   - name
                   - namespace
-                  - port
+                  - type
                   type: object
                 description: |-
                   ExposedServices provides an overview of the Plugins services that are centrally exposed.
