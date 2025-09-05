@@ -173,7 +173,7 @@ var _ = Describe("HelmControllerTest", Serial, func() {
 			test.WithPluginDefinition(PluginDefinitionName),
 			test.WithPluginLabel(greenhouseapis.LabelKeyOwnedBy, testTeam.Name),
 			test.WithReleaseName(ReleaseName),
-			test.WithPluginOptionValue(PluginOptionRequired, test.MustReturnJSONFor(PluginRequiredOptionValue), nil))
+			test.WithPluginOptionValue(PluginOptionRequired, test.MustReturnJSONFor(PluginRequiredOptionValue)))
 
 		Expect(test.K8sClient.Create(test.Ctx, testPlugin)).Should(Succeed())
 
@@ -499,11 +499,11 @@ var _ = Describe("HelmControllerTest", Serial, func() {
 				test.WithPluginLabel(greenhouseapis.LabelKeyOwnedBy, testTeam.Name),
 				test.WithPluginDefinition(pluginWithEveryOption),
 				test.WithReleaseName(ReleaseName),
-				test.WithPluginOptionValue(PluginOptionDefault, test.MustReturnJSONFor(stringVal), nil),
-				test.WithPluginOptionValue(PluginOptionBool, test.MustReturnJSONFor(boolVal), nil),
-				test.WithPluginOptionValue(PluginOptionInt, test.MustReturnJSONFor(intVal), nil),
-				test.WithPluginOptionValue(PluginOptionList, test.MustReturnJSONFor(listVal), nil),
-				test.WithPluginOptionValue(PluginOptionMap, test.MustReturnJSONFor(mapVal), nil),
+				test.WithPluginOptionValue(PluginOptionDefault, test.MustReturnJSONFor(stringVal)),
+				test.WithPluginOptionValue(PluginOptionBool, test.MustReturnJSONFor(boolVal)),
+				test.WithPluginOptionValue(PluginOptionInt, test.MustReturnJSONFor(intVal)),
+				test.WithPluginOptionValue(PluginOptionList, test.MustReturnJSONFor(listVal)),
+				test.WithPluginOptionValue(PluginOptionMap, test.MustReturnJSONFor(mapVal)),
 			)
 
 			Expect(test.K8sClient.Create(test.Ctx, complexPlugin)).Should(Succeed())
@@ -549,7 +549,7 @@ var _ = Describe("HelmControllerTest", Serial, func() {
 		plugin := test.NewPlugin(test.Ctx, "testPlugin", Namespace,
 			test.WithPluginDefinition("testPlugin"),
 			test.WithReleaseName(ReleaseName),
-			test.WithPluginOptionValue(option, test.MustReturnJSONFor(value), nil))
+			test.WithPluginOptionValue(option, test.MustReturnJSONFor(value)))
 		Expect(test.K8sClient.Create(test.Ctx, plugin)).Should(Not(Succeed()), "creating a plugin with wrong types should not be successful")
 	},
 		Entry("string with wrong type", PluginOptionRequired, 1),

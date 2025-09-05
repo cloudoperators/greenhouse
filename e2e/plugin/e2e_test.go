@@ -114,7 +114,7 @@ var _ = Describe("Plugin E2E", Ordered, func() {
 			test.WithCluster(remoteClusterName),
 			test.WithReleaseName("test-nginx-plugin"),
 			test.WithReleaseNamespace(env.TestNamespace),
-			test.WithPluginOptionValue("replicaCount", &apiextensionsv1.JSON{Raw: []byte("1")}, nil),
+			test.WithPluginOptionValue("replicaCount", &apiextensionsv1.JSON{Raw: []byte("1")}),
 			test.WithReleaseName("test-nginx-plugin-1"),
 			test.WithPluginLabel(greenhouseapis.LabelKeyOwnedBy, team.Name),
 		)
@@ -212,7 +212,7 @@ var _ = Describe("Plugin E2E", Ordered, func() {
 			test.WithPluginDefinition(testPluginDefinition.Name),
 			test.WithReleaseName("test-nginx-plugin"),
 			test.WithReleaseNamespace(env.TestNamespace),
-			test.WithPluginOptionValue("replicaCount", &apiextensionsv1.JSON{Raw: []byte("1")}, nil),
+			test.WithPluginOptionValue("replicaCount", &apiextensionsv1.JSON{Raw: []byte("1")}),
 			test.WithReleaseName("test-nginx-plugin-2"),
 			test.WithPluginLabel(greenhouseapis.LabelKeyOwnedBy, team.Name),
 		)
@@ -462,7 +462,7 @@ var _ = Describe("Plugin E2E", Ordered, func() {
 			test.WithPluginDefinition(testPluginDefinition.Name),
 			test.WithReleaseName("test-podinfo-plugin"),
 			test.WithReleaseNamespace(env.TestNamespace),
-			test.WithPluginOptionValue("replicaCount", &apiextensionsv1.JSON{Raw: []byte("1")}, nil))
+			test.WithPluginOptionValue("replicaCount", &apiextensionsv1.JSON{Raw: []byte("1")}))
 
 		By("Add labels to remote cluster")
 		remoteCluster := &greenhousev1alpha1.Cluster{}
