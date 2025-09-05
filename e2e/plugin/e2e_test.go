@@ -12,6 +12,7 @@ import (
 	"testing"
 	"time"
 
+	fluxmeta "github.com/fluxcd/pkg/apis/meta"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/gstruct"
@@ -19,6 +20,7 @@ import (
 	"helm.sh/helm/v3/pkg/release"
 	appsv1 "k8s.io/api/apps/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
+	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -29,6 +31,7 @@ import (
 	sourcecontroller "github.com/fluxcd/source-controller/api/v1"
 
 	greenhouseapis "github.com/cloudoperators/greenhouse/api"
+	greenhousemetav1alpha1 "github.com/cloudoperators/greenhouse/api/meta/v1alpha1"
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
 	"github.com/cloudoperators/greenhouse/e2e/plugin/fixtures"
 	"github.com/cloudoperators/greenhouse/e2e/shared"
@@ -442,6 +445,11 @@ var _ = Describe("Plugin E2E", Ordered, func() {
 		err := adminClient.Create(ctx, testPluginDefinition)
 		Expect(err).ToNot(HaveOccurred())
 
+		DeferCleanup(func() {
+			By("Deleting the plugin definition")
+			test.EventuallyDeleted(ctx, adminClient, testPluginDefinition)
+		})
+
 		By("Checking the plugin definition is ready")
 		pluginDefinitionList := &greenhousev1alpha1.ClusterPluginDefinitionList{}
 		err = adminClient.List(ctx, pluginDefinitionList)
@@ -498,13 +506,20 @@ var _ = Describe("Plugin E2E", Ordered, func() {
 		err = adminClient.Create(ctx, testPluginPreset)
 		Expect(client.IgnoreAlreadyExists(err)).ToNot(HaveOccurred())
 
-		By("Checking the plugin status is ready")
+		DeferCleanup(func() {
+			By("Deleting the plugin preset")
+			test.EventuallyDeleted(ctx, adminClient, testPluginPreset)
+		})
+
+		By("Checking the plugin has been created")
 		Eventually(func(g Gomega) {
-			pluginList := &greenhousev1alpha1.PluginList{}
-			err = adminClient.List(ctx, pluginList)
+			err = adminClient.Get(ctx,
+				types.NamespacedName{
+					Name:      testPluginPreset.Name + "-" + remoteClusterName,
+					Namespace: env.TestNamespace,
+				}, testPlugin)
 			g.Expect(err).NotTo(HaveOccurred())
-			g.Expect(len(pluginList.Items)).To(BeEquivalentTo(1))
-			g.Expect(pluginList.Items[0].Labels).To(HaveKeyWithValue("greenhouse.sap/deployment-tool", "flux"), "plugin should have the greenhouse.sap/deployment-tool label set to flux")
+			g.Expect(testPlugin.Labels).To(HaveKeyWithValue("greenhouse.sap/deployment-tool", "flux"), "plugin should have the greenhouse.sap/deployment-tool label set to flux")
 		}).Should(Succeed())
 
 		By("Checking the helmRelease is created")
@@ -512,7 +527,7 @@ var _ = Describe("Plugin E2E", Ordered, func() {
 			helmReleaseList := &helmcontroller.HelmReleaseList{}
 			err = adminClient.List(ctx, helmReleaseList)
 			g.Expect(err).NotTo(HaveOccurred())
-			g.Expect(len(helmReleaseList.Items)).To(BeEquivalentTo(1))
+			g.Expect(helmReleaseList.Items).To(HaveLen(1))
 		}).Should(Succeed())
 
 		By("Checking the deployment is created on the remote cluster")
@@ -524,10 +539,34 @@ var _ = Describe("Plugin E2E", Ordered, func() {
 			g.Expect(deploymentList.Items[0].Spec.Replicas).To(PointTo(Equal(int32(1))), "the deployment should have 1 replica")
 		}).Should(Succeed())
 
-		By("Deleting the plugin preset")
-		test.EventuallyDeleted(ctx, adminClient, testPluginPreset)
-		By("Deleting the plugin definition")
-		test.EventuallyDeleted(ctx, adminClient, testPluginDefinition)
+		By("Checking the HelmRelease Ready condition is True")
+		Eventually(func(g Gomega) {
+			helmRelease := &helmcontroller.HelmRelease{}
+			err = adminClient.Get(ctx, client.ObjectKeyFromObject(testPlugin), helmRelease)
+			g.Expect(err).ToNot(HaveOccurred(), "failed to get the HelmRelease")
+			releaseReady := meta.FindStatusCondition(helmRelease.Status.Conditions, fluxmeta.ReadyCondition)
+			g.Expect(releaseReady).ToNot(BeNil(), "HelmRelease Ready condition must be set")
+			g.Expect(helmRelease.Status.ObservedGeneration).To(BeNumerically(">=", helmRelease.Generation), "HelmRelease status must be current")
+			g.Expect(releaseReady.Status).To(Equal(metav1.ConditionTrue), "HelmRelease Ready condition must be true")
+			g.Expect(releaseReady.Reason).To(Equal("InstallSucceeded"), "HelmRelease Ready condition should have the correct Reason")
+		}).Should(Succeed())
 
+		By("ensuring Plugin status has been updated")
+		Eventually(func(g Gomega) {
+			err := adminClient.Get(ctx, client.ObjectKeyFromObject(testPlugin), testPlugin)
+			g.Expect(err).ToNot(HaveOccurred(), "failed to get the Plugin")
+
+			reconcileFailed := testPlugin.Status.StatusConditions.GetConditionByType(greenhousev1alpha1.HelmReconcileFailedCondition)
+			g.Expect(reconcileFailed).ToNot(BeNil(), "Plugin reconcileFailed condition must be set")
+			g.Expect(reconcileFailed.Status).To(Equal(metav1.ConditionFalse), "Plugin reconcileFailed condition must be false")
+
+			clusterAccess := testPlugin.Status.StatusConditions.GetConditionByType(greenhousev1alpha1.ClusterAccessReadyCondition)
+			g.Expect(clusterAccess).ToNot(BeNil(), "Plugin clusterAccess condition must be set")
+			g.Expect(clusterAccess.Status).To(Equal(metav1.ConditionTrue), "Plugin clusterAccess condition must be true")
+
+			ready := testPlugin.Status.StatusConditions.GetConditionByType(greenhousemetav1alpha1.ReadyCondition)
+			g.Expect(ready).ToNot(BeNil(), "Plugin Ready condition must be set")
+			g.Expect(ready.Status).To(Equal(metav1.ConditionTrue), "Plugin Ready condition must be true")
+		}).Should(Succeed())
 	})
 })

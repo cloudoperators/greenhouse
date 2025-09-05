@@ -99,7 +99,7 @@ func (r *FluxReconciler) SetupWithManager(name string, mgr ctrl.Manager) error {
 
 	return ctrl.NewControllerManagedBy(mgr).
 		Named(name).
-		For(&greenhousev1alpha1.Plugin{}, builder.WithPredicates(labelSelectorPredicate, predicate.GenerationChangedPredicate{})).
+		For(&greenhousev1alpha1.Plugin{}, builder.WithPredicates(labelSelectorPredicate)).
 		Owns(&helmcontroller.HelmRelease{}, builder.WithPredicates(clientutil.PredicateHelmReleaseWithStatusReadyChange())).
 		// If a PluginDefinition was changed, reconcile relevant Plugins.
 		Watches(&greenhousev1alpha1.ClusterPluginDefinition{}, handler.EnqueueRequestsFromMapFunc(r.enqueueAllPluginsForPluginDefinition),
@@ -209,7 +209,7 @@ func (r *FluxReconciler) reconcilePluginStatus(ctx context.Context,
 	helmRelease := &helmcontroller.HelmRelease{}
 	err := r.Get(ctx, types.NamespacedName{Name: plugin.Name, Namespace: plugin.Namespace}, helmRelease)
 	if err == nil {
-		helmReleaseReady := meta.FindStatusCondition(helmRelease.Status.Conditions, "Ready")
+		helmReleaseReady := meta.FindStatusCondition(helmRelease.Status.Conditions, fluxmeta.ReadyCondition)
 		if helmReleaseReady != nil && helmRelease.Status.ObservedGeneration >= helmRelease.Generation {
 			plugin.SetCondition(greenhousemetav1alpha1.TrueCondition(greenhousev1alpha1.StatusUpToDateCondition, "", ""))
 
