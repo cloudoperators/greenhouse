@@ -47,6 +47,9 @@ type PluginOptionValue struct {
 	Value *apiextensionsv1.JSON `json:"value,omitempty"`
 	// ValueFrom references a potentially confidential value in another source.
 	ValueFrom *ValueFromSource `json:"valueFrom,omitempty"`
+	// Template is a Go string template that will be dynamically resolved for cluster-specific values.
+	// Only PluginOptionValues declared as template will be templated by the PluginController for Flux.
+	Template *string `json:"template,omitempty"`
 }
 
 // ValueJSON returns the value as JSON.

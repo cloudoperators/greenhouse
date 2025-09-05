@@ -52,8 +52,8 @@ var (
 		test.WithReleaseName("release-test"),
 		test.WithReleaseNamespace(test.TestNamespace),
 		test.WithPluginLabel(greenhouseapis.LabelKeyOwnedBy, testTeam.Name),
-		test.WithPluginOptionValue("flatOption", test.AsAPIExtensionJSON("flatValue"), nil),
-		test.WithPluginOptionValue("nested.option", test.AsAPIExtensionJSON("nestedValue"), nil),
+		test.WithPluginOptionValue("flatOption", test.MustReturnJSONFor("flatValue"), nil),
+		test.WithPluginOptionValue("nested.option", test.MustReturnJSONFor("nestedValue"), nil),
 		test.WithPluginOptionValue("nested.secretOption", nil, &greenhousev1alpha1.ValueFromSource{
 			Secret: &greenhousev1alpha1.SecretKeyReference{
 				Name: "test-cluster",
@@ -69,13 +69,13 @@ var (
 			greenhousev1alpha1.PluginOption{
 				Name:    "flatOptionDefault",
 				Type:    greenhousev1alpha1.PluginOptionTypeString,
-				Default: test.AsAPIExtensionJSON("flatDefault"),
+				Default: test.MustReturnJSONFor("flatDefault"),
 			}),
 		test.AppendPluginOption(
 			greenhousev1alpha1.PluginOption{
 				Name:    "nested.optionDefault",
 				Type:    greenhousev1alpha1.PluginOptionTypeString,
-				Default: test.AsAPIExtensionJSON("nestedDefault"),
+				Default: test.MustReturnJSONFor("nestedDefault"),
 			},
 		),
 	)
