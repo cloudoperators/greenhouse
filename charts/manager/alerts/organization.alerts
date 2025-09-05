@@ -7,8 +7,8 @@ groups:
     labels:
         severity: warning
         service: greenhouse
-        organization: '{{ $labels.namespace }}'
-        support_group: '{{ $labels.namespace }}-admin'  # routed to the org-admin team
+        organization: '{{ $labels.organization }}'
+        support_group: '{{ $labels.organization }}-admin'  # routed to the org-admin team
     annotations:
         summary: "Greenhouse Organization is not ready"
         description: "The Greenhouse Organization {{ $labels.organization }} has not been ready for more than 15 minutes."
@@ -18,8 +18,8 @@ groups:
     labels:
         severity: warning
         service: greenhouse
-        organization: '{{ $labels.namespace }}'
-        support_group: '{{ $labels.namespace }}-admin'  # routed to the org-admin team
+        organization: '{{ $labels.organization }}'
+        support_group: '{{ $labels.organization }}-admin'  # routed to the org-admin team
     annotations:
         summary: "Greenhouse SCIM Access is not ready"
-        description: "The SCIM access for organization '{{ $labels.namespace }}' is not ready for more than 15 minutes. Team member sync may not be operational."
+        description: "The SCIM access for organization '{{ $labels.organization }}' is not ready for more than 15 minutes. Team member sync may not be operational."
