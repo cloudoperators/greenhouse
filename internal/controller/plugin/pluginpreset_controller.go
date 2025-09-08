@@ -63,6 +63,7 @@ func (r *PluginPresetReconciler) SetupWithManager(name string, mgr ctrl.Manager)
 		Owns(&greenhousev1alpha1.Plugin{}, builder.WithPredicates(
 			predicate.Or(
 				predicate.GenerationChangedPredicate{},
+				predicate.AnnotationChangedPredicate{},
 				clientutil.PredicatePluginWithStatusReadyChange(),
 			))).
 		// Clusters and teams are passed as values to each Helm operation. Reconcile on change.
