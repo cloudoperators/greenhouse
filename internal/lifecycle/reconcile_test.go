@@ -18,6 +18,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 
 	greenhousemetav1alpha1 "github.com/cloudoperators/greenhouse/api/meta/v1alpha1"
+	"github.com/cloudoperators/greenhouse/api/v1alpha1"
 	"github.com/cloudoperators/greenhouse/internal/controller/fixtures"
 	"github.com/cloudoperators/greenhouse/internal/lifecycle"
 	"github.com/cloudoperators/greenhouse/internal/mocks"
@@ -267,5 +268,77 @@ var _ = Describe("Reconcile", func() {
 				deletionTime:    &deletionTime,
 			},
 		}),
+	)
+})
+
+var _ = Describe("Greenhouse Operation Annotations", func() {
+
+	var (
+		mockClient      *mocks.MockClient
+		mockReconciler  *mocks.MockReconciler
+		statusWriter    *mocks.MockSubResourceWriter
+		ctx             context.Context
+		namespacedName  types.NamespacedName
+		resourceForTest *fixtures.Dummy
+	)
+
+	BeforeEach(func() {
+		statusWriter = &mocks.MockSubResourceWriter{}
+		statusWriter.On("Patch", mock.Anything, mock.Anything, mock.Anything).Return(nil)
+		mockClient = &mocks.MockClient{}
+		mockClient.On("Get", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil)
+		mockClient.On("Update", mock.Anything, mock.Anything, mock.Anything).Return(nil)
+		mockClient.On("Patch", mock.Anything, mock.Anything, mock.Anything).Return(nil)
+		mockClient.On("Status").Return(statusWriter)
+
+		mockReconciler = &mocks.MockReconciler{}
+
+		ctx = context.Background()
+		namespacedName = types.NamespacedName{Name: "DummyResource", Namespace: "Dummy"}
+	})
+
+	type testCase struct {
+		annotations             map[string]string
+		wantMethod              string
+		verifyAnnotationRemoval bool
+	}
+
+	DescribeTable("Reconcile Greenhouse Operations",
+		func(tt testCase) {
+			resourceForTest = &fixtures.Dummy{
+				TypeMeta: metav1.TypeMeta{Kind: "Pod", APIVersion: "v1"},
+				ObjectMeta: metav1.ObjectMeta{
+					Name:              "DummyResource",
+					Namespace:         "default",
+					Annotations:       tt.annotations,
+					CreationTimestamp: metav1.NewTime(time.Now())},
+				Spec: fixtures.DummySpec{},
+			}
+
+			_, err := lifecycle.Reconcile(ctx, mockClient, namespacedName, resourceForTest, mockReconciler, nil)
+			Expect(err).ToNot(HaveOccurred())
+
+			switch tt.verifyAnnotationRemoval {
+			case true:
+				Expect(resourceForTest.GetAnnotations()).NotTo(ContainElement(v1alpha1.GreenhouseOperation))
+			default:
+				Expect(resourceForTest.GetAnnotations()).To(Equal(tt.annotations))
+			}
+		},
+		Entry("Greenhouse Operation 'reconcile' should be removed",
+			testCase{
+				verifyAnnotationRemoval: true,
+				annotations:             map[string]string{v1alpha1.GreenhouseOperation: v1alpha1.GreenhouseOperationReconcile},
+			}),
+		Entry("Other Greenhouse Operation should not be removed",
+			testCase{
+				verifyAnnotationRemoval: false,
+				annotations:             map[string]string{v1alpha1.GreenhouseOperation: "other"},
+			}),
+		Entry("No Greenhouse Operation should not be removed",
+			testCase{
+				verifyAnnotationRemoval: false,
+				annotations:             map[string]string{},
+			}),
 	)
 })
