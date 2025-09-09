@@ -4,8 +4,12 @@
 package flux
 
 import (
+	"errors"
+
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
+	greenhouseapis "github.com/cloudoperators/greenhouse/api"
 	greenhousemetav1alpha1 "github.com/cloudoperators/greenhouse/api/meta/v1alpha1"
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
 )
@@ -34,4 +38,24 @@ func computeReadyCondition(
 	readyCondition.Status = metav1.ConditionTrue
 	readyCondition.Message = "ready"
 	return readyCondition
+}
+
+func getPortForExposedService(svc corev1.Service) (*corev1.ServicePort, error) {
+	if len(svc.Spec.Ports) == 0 {
+		return nil, errors.New("service has no ports")
+	}
+
+	// Check for matching of named port set by label
+	var namedPort = svc.Labels[greenhouseapis.LabelKeyExposeNamedPort]
+
+	if namedPort != "" {
+		for _, port := range svc.Spec.Ports {
+			if port.Name == namedPort {
+				return port.DeepCopy(), nil
+			}
+		}
+	}
+
+	// Default to first port
+	return svc.Spec.Ports[0].DeepCopy(), nil
 }
