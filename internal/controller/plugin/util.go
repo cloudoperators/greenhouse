@@ -61,10 +61,10 @@ func InitPluginStatus(plugin *greenhousev1alpha1.Plugin) greenhousev1alpha1.Plug
 	return plugin.Status
 }
 
-// initClientGetter returns a RestClientGetter for the given Plugin.
+// InitClientGetter returns a RestClientGetter for the given Plugin.
 // If the Plugin has a clusterName set, the RestClientGetter is initialized from the cluster secret.
 // Otherwise, the RestClientGetter is initialized with in-cluster config
-func initClientGetter(
+func InitClientGetter(
 	ctx context.Context,
 	k8sClient client.Client,
 	kubeClientOpts []clientutil.KubeClientOption,

@@ -556,17 +556,23 @@ var _ = Describe("Plugin E2E", Ordered, func() {
 			err := adminClient.Get(ctx, client.ObjectKeyFromObject(testPlugin), testPlugin)
 			g.Expect(err).ToNot(HaveOccurred(), "failed to get the Plugin")
 
-			reconcileFailed := testPlugin.Status.StatusConditions.GetConditionByType(greenhousev1alpha1.HelmReconcileFailedCondition)
-			g.Expect(reconcileFailed).ToNot(BeNil(), "Plugin reconcileFailed condition must be set")
-			g.Expect(reconcileFailed.Status).To(Equal(metav1.ConditionFalse), "Plugin reconcileFailed condition must be false")
-
 			clusterAccess := testPlugin.Status.StatusConditions.GetConditionByType(greenhousev1alpha1.ClusterAccessReadyCondition)
 			g.Expect(clusterAccess).ToNot(BeNil(), "Plugin clusterAccess condition must be set")
 			g.Expect(clusterAccess.Status).To(Equal(metav1.ConditionTrue), "Plugin clusterAccess condition must be true")
 
+			reconcileFailed := testPlugin.Status.StatusConditions.GetConditionByType(greenhousev1alpha1.HelmReconcileFailedCondition)
+			g.Expect(reconcileFailed).ToNot(BeNil(), "Plugin reconcileFailed condition must be set")
+			g.Expect(reconcileFailed.Status).To(Equal(metav1.ConditionFalse), "Plugin reconcileFailed condition must be false")
+
 			ready := testPlugin.Status.StatusConditions.GetConditionByType(greenhousemetav1alpha1.ReadyCondition)
 			g.Expect(ready).ToNot(BeNil(), "Plugin Ready condition must be set")
 			g.Expect(ready.Status).To(Equal(metav1.ConditionTrue), "Plugin Ready condition must be true")
+
+			statusUpToDate := testPlugin.Status.StatusConditions.GetConditionByType(greenhousev1alpha1.StatusUpToDateCondition)
+			g.Expect(statusUpToDate).ToNot(BeNil(), "Plugin StatusUpToDate condition must be set")
+			g.Expect(statusUpToDate.Status).To(Equal(metav1.ConditionTrue), "Plugin statusUpToDate condition must be true")
+
+			g.Expect(testPlugin.Status.ExposedServices).To(BeEmpty(), "exposed services in plugin status should be empty")
 		}).Should(Succeed())
 	})
 })

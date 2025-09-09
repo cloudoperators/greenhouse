@@ -26,7 +26,7 @@ func (r *PluginReconciler) reconcileHelmChartTest(ctx context.Context, plugin *g
 		return nil, nil
 	}
 
-	restClientGetter, err := initClientGetter(ctx, r.Client, r.kubeClientOpts, *plugin)
+	restClientGetter, err := InitClientGetter(ctx, r.Client, r.kubeClientOpts, *plugin)
 	if err != nil {
 		return nil, fmt.Errorf("cannot access cluster: %s", err.Error())
 	}

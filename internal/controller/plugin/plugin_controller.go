@@ -140,7 +140,7 @@ func (r *PluginReconciler) setConditions() lifecycle.Conditioner {
 func (r *PluginReconciler) EnsureDeleted(ctx context.Context, resource lifecycle.RuntimeObject) (ctrl.Result, lifecycle.ReconcileResult, error) {
 	plugin := resource.(*greenhousev1alpha1.Plugin) //nolint:errcheck
 
-	restClientGetter, err := initClientGetter(ctx, r.Client, r.kubeClientOpts, *plugin)
+	restClientGetter, err := InitClientGetter(ctx, r.Client, r.kubeClientOpts, *plugin)
 	if err != nil {
 		util.UpdatePluginReconcileTotalMetric(plugin, util.MetricResultError, util.MetricReasonClusterAccessFailed)
 		return ctrl.Result{}, lifecycle.Failed, fmt.Errorf("cannot access cluster: %s", err.Error())
@@ -172,7 +172,7 @@ func (r *PluginReconciler) EnsureCreated(ctx context.Context, resource lifecycle
 
 	InitPluginStatus(plugin)
 
-	restClientGetter, err := initClientGetter(ctx, r.Client, r.kubeClientOpts, *plugin)
+	restClientGetter, err := InitClientGetter(ctx, r.Client, r.kubeClientOpts, *plugin)
 	if err != nil {
 		util.UpdatePluginReconcileTotalMetric(plugin, util.MetricResultError, util.MetricReasonClusterAccessFailed)
 		return ctrl.Result{}, lifecycle.Failed, fmt.Errorf("cannot access cluster: %s", err.Error())

@@ -21,6 +21,7 @@ import (
 	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/yaml"
+	"k8s.io/cli-runtime/pkg/genericclioptions"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -165,6 +166,11 @@ func (r *FluxReconciler) EnsureCreated(ctx context.Context, resource lifecycle.R
 
 	pluginController.InitPluginStatus(plugin)
 
+	restClientGetter, err := pluginController.InitClientGetter(ctx, r.Client, r.kubeClientOpts, *plugin)
+	if err != nil {
+		return ctrl.Result{}, lifecycle.Failed, fmt.Errorf("cannot access cluster: %s", err.Error())
+	}
+
 	pluginDef := r.getPluginDef(ctx, plugin)
 	if pluginDef == nil {
 		return ctrl.Result{}, lifecycle.Failed, errors.New("plugin definition not found")
@@ -192,12 +198,13 @@ func (r *FluxReconciler) EnsureCreated(ctx context.Context, resource lifecycle.R
 		return ctrl.Result{}, lifecycle.Failed, err
 	}
 
-	r.reconcilePluginStatus(ctx, plugin, pluginDef, &plugin.Status)
+	r.reconcilePluginStatus(ctx, restClientGetter, plugin, pluginDef, &plugin.Status)
 
 	return ctrl.Result{}, lifecycle.Success, nil
 }
 
 func (r *FluxReconciler) reconcilePluginStatus(ctx context.Context,
+	restClientGetter genericclioptions.RESTClientGetter,
 	plugin *greenhousev1alpha1.Plugin,
 	pluginDefinition *greenhousev1alpha1.ClusterPluginDefinition,
 	pluginStatus *greenhousev1alpha1.PluginStatus,
@@ -218,7 +225,7 @@ func (r *FluxReconciler) reconcilePluginStatus(ctx context.Context,
 	helmRelease := &helmcontroller.HelmRelease{}
 	err := r.Get(ctx, types.NamespacedName{Name: plugin.Name, Namespace: plugin.Namespace}, helmRelease)
 	if err == nil {
-		serviceList, err := getExposedServicesForPluginFromHelmRelease(ctx, r.Client, helmRelease, plugin)
+		serviceList, err := getExposedServicesForPluginFromHelmRelease(ctx, restClientGetter, helmRelease, plugin)
 		if err == nil {
 			exposedServices = serviceList
 			plugin.SetCondition(greenhousemetav1alpha1.TrueCondition(greenhousev1alpha1.StatusUpToDateCondition, "", ""))
@@ -279,7 +286,7 @@ func (r *FluxReconciler) reconcilePluginStatus(ctx context.Context,
 	pluginStatus.ExposedServices = exposedServices
 }
 
-func getExposedServicesForPluginFromHelmRelease(ctx context.Context, c client.Client, hr *helmcontroller.HelmRelease, plugin *greenhousev1alpha1.Plugin) (map[string]greenhousev1alpha1.Service, error) {
+func getExposedServicesForPluginFromHelmRelease(ctx context.Context, remoteRestClientGetter genericclioptions.RESTClientGetter, hr *helmcontroller.HelmRelease, plugin *greenhousev1alpha1.Plugin) (map[string]greenhousev1alpha1.Service, error) {
 	latest := hr.Status.History.Latest()
 	if latest == nil {
 		return nil, nil
@@ -291,9 +298,13 @@ func getExposedServicesForPluginFromHelmRelease(ctx context.Context, c client.Cl
 	storageNamespace := hr.GetStorageNamespace()
 	releaseName := hr.GetReleaseName()
 
+	remoteClient, err := clientutil.NewK8sClientFromRestClientGetter(remoteRestClientGetter)
+	if err != nil {
+		return nil, err
+	}
+
 	var storageSecret corev1.Secret
-	// TODO: change to remote kube client!
-	if err := c.Get(ctx, client.ObjectKey{
+	if err := remoteClient.Get(ctx, client.ObjectKey{
 		Namespace: storageNamespace,
 		Name:      fmt.Sprintf("sh.helm.release.v1.%s.v%d", releaseName, latest.Version),
 	}, &storageSecret); err != nil {
@@ -533,21 +544,9 @@ func (r *FluxReconciler) ensureHelmRelease(
 		if helmReleaseReady.Status == metav1.ConditionTrue {
 			plugin.SetCondition(greenhousemetav1alpha1.FalseCondition(greenhousev1alpha1.HelmReconcileFailedCondition,
 				greenhousemetav1alpha1.ConditionReason(helmReleaseReady.Reason), helmReleaseReady.Message))
-
-			plugin.SetCondition(greenhousemetav1alpha1.TrueCondition(greenhousev1alpha1.ClusterAccessReadyCondition, "", ""))
 		} else {
 			plugin.SetCondition(greenhousemetav1alpha1.TrueCondition(greenhousev1alpha1.HelmReconcileFailedCondition,
 				greenhousemetav1alpha1.ConditionReason(helmReleaseReady.Reason), helmReleaseReady.Message))
-
-			// Approximate access to the cluster based on reason and message returned by flux helmcontroller.
-			if helmReleaseReady.Reason == helmcontroller.TestFailedReason ||
-				helmReleaseReady.Reason == helmcontroller.ArtifactFailedReason ||
-				!looksLikeClusterAccessError(helmReleaseReady.Message) {
-				plugin.SetCondition(greenhousemetav1alpha1.TrueCondition(greenhousev1alpha1.ClusterAccessReadyCondition, "", ""))
-			} else {
-				plugin.SetCondition(greenhousemetav1alpha1.FalseCondition(greenhousev1alpha1.ClusterAccessReadyCondition,
-					greenhousemetav1alpha1.ConditionReason(helmReleaseReady.Reason), helmReleaseReady.Message))
-			}
 		}
 	}
 
