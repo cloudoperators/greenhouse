@@ -419,18 +419,6 @@ func getReleaseStatus(helmRelease *helmcontroller.HelmRelease) string {
 	return StatusUnknown
 }
 
-func looksLikeClusterAccessError(msg string) bool {
-	msg = strings.ToLower(msg)
-	patterns := []string{"kubeconfig", "cannot create kubernetes client", "failed to build rest",
-		"unauthorized", "forbidden", "x509", "certificate", "dial tcp", "timeout", "connection refused"}
-	for _, p := range patterns {
-		if strings.Contains(msg, p) {
-			return true
-		}
-	}
-	return false
-}
-
 func (r *FluxReconciler) enqueueAllPluginsForPluginDefinition(ctx context.Context, o client.Object) []ctrl.Request {
 	// TODO: Once namespaced PluginDefinitions are supported, we need a logic here to handle the correct label key
 	return pluginController.ListPluginsAsReconcileRequests(ctx, r.Client, client.MatchingLabels{greenhouseapis.LabelKeyClusterPluginDefinition: o.GetName()})
