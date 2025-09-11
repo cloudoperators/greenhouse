@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2024 SAP SE or an SAP affiliate company and Greenhouse contributors
 // SPDX-License-Identifier: Apache-2.0
 
-package flux
+package plugin
 
 import (
 	"encoding/json"
@@ -27,11 +27,11 @@ var (
 )
 
 var (
-	testTeam = test.NewTeam(test.Ctx, "test-remotecluster-team", test.TestNamespace, test.WithTeamLabel(greenhouseapis.LabelKeySupportGroup, "true"))
+	testPluginTeam = test.NewTeam(test.Ctx, "test-remote-cluster-team", test.TestNamespace, test.WithTeamLabel(greenhouseapis.LabelKeySupportGroup, "true"))
 
-	testCluster = test.NewCluster(test.Ctx, "test-cluster", test.TestNamespace,
+	testCluster = test.NewCluster(test.Ctx, "test-flux-cluster", test.TestNamespace,
 		test.WithAccessMode(greenhousev1alpha1.ClusterAccessModeDirect),
-		test.WithClusterLabel(greenhouseapis.LabelKeyOwnedBy, testTeam.Name))
+		test.WithClusterLabel(greenhouseapis.LabelKeyOwnedBy, testPluginTeam.Name))
 
 	testClusterK8sSecret = corev1.Secret{
 		TypeMeta: metav1.TypeMeta{
@@ -39,19 +39,19 @@ var (
 			APIVersion: corev1.GroupName,
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      "test-cluster",
+			Name:      "test-flux-cluster",
 			Namespace: test.TestNamespace,
-			Labels:    map[string]string{greenhouseapis.LabelKeyOwnedBy: testTeam.Name},
+			Labels:    map[string]string{greenhouseapis.LabelKeyOwnedBy: testPluginTeam.Name},
 		},
 		Type: greenhouseapis.SecretTypeKubeConfig,
 	}
 
-	testPlugin = test.NewPlugin(test.Ctx, "test-plugindefinition", test.TestNamespace,
+	testPlugin = test.NewPlugin(test.Ctx, "test-flux-plugindefinition", test.TestNamespace,
 		test.WithCluster("test-cluster"),
-		test.WithPluginDefinition("test-plugindefinition"),
-		test.WithReleaseName("release-test"),
+		test.WithPluginDefinition("test-flux-plugindefinition"),
+		test.WithReleaseName("release-test-flux"),
 		test.WithReleaseNamespace(test.TestNamespace),
-		test.WithPluginLabel(greenhouseapis.LabelKeyOwnedBy, testTeam.Name),
+		test.WithPluginLabel(greenhouseapis.LabelKeyOwnedBy, testPluginTeam.Name),
 		test.WithPluginOptionValue("flatOption", test.MustReturnJSONFor("flatValue"), nil),
 		test.WithPluginOptionValue("nested.option", test.MustReturnJSONFor("nestedValue"), nil),
 		test.WithPluginOptionValue("nested.secretOption", nil, &greenhousev1alpha1.ValueFromSource{
@@ -64,7 +64,7 @@ var (
 	)
 	testPluginDefinition = test.NewClusterPluginDefinition(
 		test.Ctx,
-		"test-plugindefinition",
+		"test-flux-plugindefinition",
 		test.AppendPluginOption(
 			greenhousev1alpha1.PluginOption{
 				Name:    "flatOptionDefault",
@@ -90,7 +90,7 @@ var _ = Describe("Flux Plugin Controller", Ordered, func() {
 		_, remoteK8sClient, remoteEnvTest, remoteKubeConfig = test.StartControlPlane("6885", false, false)
 
 		By("creating a Team")
-		Expect(test.K8sClient.Create(test.Ctx, testTeam)).Should(Succeed(), "there should be no error creating the Team")
+		Expect(test.K8sClient.Create(test.Ctx, testPluginTeam)).Should(Succeed(), "there should be no error creating the Team")
 
 		By("creating a cluster")
 		Expect(test.K8sClient.Create(test.Ctx, testCluster)).Should(Succeed(), "there should be no error creating the cluster resource")

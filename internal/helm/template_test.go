@@ -28,8 +28,6 @@ var _ = Describe("Template Processing", func() {
 	BeforeEach(func() {
 		ctx = context.Background()
 
-		Expect(greenhousev1alpha1.AddToScheme(scheme.Scheme)).To(Succeed())
-
 		c = fake.NewClientBuilder().WithScheme(scheme.Scheme).WithObjects(
 			&greenhousev1alpha1.Cluster{
 				ObjectMeta: metav1.ObjectMeta{
