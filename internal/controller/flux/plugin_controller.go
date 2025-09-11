@@ -306,7 +306,7 @@ func (r *FluxReconciler) reconcilePluginStatus(ctx context.Context,
 
 	// Collect status from the Helm release.
 	helmRelease := &helmcontroller.HelmRelease{}
-	err := r.Client.Get(ctx, types.NamespacedName{Name: plugin.Name, Namespace: plugin.Namespace}, helmRelease)
+	err := r.Get(ctx, types.NamespacedName{Name: plugin.Name, Namespace: plugin.Namespace}, helmRelease)
 	if err == nil {
 		helmSDKRelease, err := helm.GetReleaseForHelmChartFromPlugin(ctx, restClientGetter, plugin)
 		if err == nil {
