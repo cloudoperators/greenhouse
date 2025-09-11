@@ -336,7 +336,7 @@ func (r *PluginReconciler) reconcileStatus(ctx context.Context,
 	helmRelease, err := helm.GetReleaseForHelmChartFromPlugin(ctx, restClientGetter, plugin)
 	if err == nil {
 		// Ensure the status is always reported.
-		serviceList, err := getExposedServicesForPluginFromHelmRelease(restClientGetter, helmRelease, plugin)
+		serviceList, err := GetExposedServicesForPluginFromHelmRelease(restClientGetter, helmRelease, plugin)
 		if err == nil {
 			exposedServices = serviceList
 			plugin.SetCondition(greenhousemetav1alpha1.TrueCondition(greenhousev1alpha1.StatusUpToDateCondition, "", ""))
@@ -430,9 +430,9 @@ func enqueuePluginForReleaseSecret(_ context.Context, o client.Object) []ctrl.Re
 	return nil
 }
 
-// getExposedServicesForPluginFromHelmRelease returns a map of exposed services for a plugin from a Helm release.
+// GetExposedServicesForPluginFromHelmRelease returns a map of exposed services for a plugin from a Helm release.
 // The exposed services are collected from Helm release manifest and not from the template to make sure they are deployed.
-func getExposedServicesForPluginFromHelmRelease(restClientGetter genericclioptions.RESTClientGetter, helmRelease *release.Release, plugin *greenhousev1alpha1.Plugin) (map[string]greenhousev1alpha1.Service, error) {
+func GetExposedServicesForPluginFromHelmRelease(restClientGetter genericclioptions.RESTClientGetter, helmRelease *release.Release, plugin *greenhousev1alpha1.Plugin) (map[string]greenhousev1alpha1.Service, error) {
 	// Collect exposed services from the manifest.
 	exposedServiceList, err := helm.ObjectMapFromRelease(restClientGetter, helmRelease, &helm.ManifestObjectFilter{
 		APIVersion: "v1",
