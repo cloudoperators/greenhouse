@@ -33,6 +33,11 @@ var _ = Describe("Template Processing", func() {
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "obs-eu-de-1",
 					Namespace: "test-org",
+					Labels: map[string]string{
+						"metadata.greenhouse.sap/region":      "eu-de-1",
+						"metadata.greenhouse.sap/environment": "production",
+						"other-label":                         "should-be-ignored",
+					},
 				},
 			},
 			&greenhousev1alpha1.Cluster{
@@ -64,7 +69,7 @@ var _ = Describe("Template Processing", func() {
 	})
 
 	Describe("Template Data Building", func() {
-		It("should build template data with all greenhouse values", func() {
+		It("should build template data with all greenhouse values including cluster metadata", func() {
 			templateData, err := buildTemplateData(ctx, c, plugin)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(templateData).ToNot(BeNil())
@@ -79,6 +84,43 @@ var _ = Describe("Template Processing", func() {
 			Expect(greenhouse["clusterNames"]).To(ContainElements("obs-eu-de-1", "obs-eu-de-2"))
 			Expect(greenhouse["teamNames"]).To(ContainElement("test-team"))
 			Expect(greenhouse["baseDomain"]).To(Equal(""))
+
+			metadata, exists := greenhouse["metadata"].(map[string]interface{})
+			Expect(exists).To(BeTrue())
+
+			Expect(metadata["region"]).To(Equal("eu-de-1"))
+			Expect(metadata["environment"]).To(Equal("production"))
+
+			// Should not include non-metadata labels.
+			_, exists = metadata["other-label"]
+			Expect(exists).To(BeFalse())
+		})
+
+		It("should handle plugins without cluster name gracefully", func() {
+			pluginWithoutCluster := &greenhousev1alpha1.Plugin{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "test-plugin-no-cluster",
+					Namespace: "test-org",
+				},
+				Spec: greenhousev1alpha1.PluginSpec{
+					ReleaseNamespace: "test-org",
+					PluginDefinition: "disco",
+				},
+			}
+
+			templateData, err := buildTemplateData(ctx, c, pluginWithoutCluster)
+			Expect(err).ToNot(HaveOccurred())
+
+			global, exists := templateData["global"].(map[string]interface{})
+			Expect(exists).To(BeTrue())
+			greenhouse, exists := global["greenhouse"].(map[string]interface{})
+			Expect(exists).To(BeTrue())
+
+			// Should not have metadata when no cluster is specified.
+			_, exists = greenhouse["metadata"]
+			Expect(exists).To(BeFalse())
+			_, exists = greenhouse["clusterName"]
+			Expect(exists).To(BeFalse())
 		})
 	})
 
@@ -167,6 +209,20 @@ var _ = Describe("Template Processing", func() {
 				`{{ len .global.greenhouse.clusterName }}`,
 				"11", false),
 
+			// Cluster metadata tests.
+			Entry("cluster metadata region",
+				"{{ .global.greenhouse.metadata.region }}",
+				"eu-de-1", false),
+			Entry("cluster metadata environment",
+				"{{ .global.greenhouse.metadata.environment }}",
+				"production", false),
+			Entry("metadata-based URL construction",
+				"https://api.{{ .global.greenhouse.metadata.region }}.example.com",
+				"https://api.eu-de-1.example.com", false),
+			Entry("conditional with metadata environment",
+				`{{ if eq .global.greenhouse.metadata.environment "production" }}prod-config{{ else }}dev-config{{ end }}`,
+				"prod-config", false),
+
 			Entry("database connection string",
 				`postgres://user:pass@{{ .global.greenhouse.clusterName }}.db.example.com:5432/myapp`,
 				"postgres://user:pass@obs-eu-de-1.db.example.com:5432/myapp", false),
@@ -208,5 +264,21 @@ var _ = Describe("Template Processing", func() {
 			Expect(resolvedValues[0].Template).To(BeNil())
 			Expect(resolvedValues[0].Value).ToNot(BeNil())
 		})
+	})
+
+	Describe("extractMetadataKey helper function", func() {
+		DescribeTable("extracting metadata keys from various labels",
+			func(labelKey, expectedKey string) {
+				result := extractMetadataKey(labelKey)
+				Expect(result).To(Equal(expectedKey))
+			},
+			Entry("valid metadata label region", "metadata.greenhouse.sap/region", "region"),
+			Entry("valid metadata label environment", "metadata.greenhouse.sap/environment", "environment"),
+			Entry("valid metadata label zone", "metadata.greenhouse.sap/zone", "zone"),
+			Entry("non-metadata label", "other-label", ""),
+			Entry("greenhouse label but not metadata", "greenhouse.sap/some-label", ""),
+			Entry("empty label", "", ""),
+			Entry("label starting with metadata but wrong format", "metadata/region", ""),
+		)
 	})
 })
