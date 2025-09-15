@@ -58,7 +58,7 @@ func PluginControllerNginxByPlugin(ctx context.Context, adminClient, remoteClien
 		test.WithPluginDefinition(testPluginDefinition.Name),
 		test.WithCluster(remoteClusterName),
 		test.WithReleaseNamespace(env.TestNamespace),
-		test.WithPluginOptionValue("replicaCount", &apiextensionsv1.JSON{Raw: []byte("1")}, nil),
+		test.WithPluginOptionValue("replicaCount", &apiextensionsv1.JSON{Raw: []byte("1")}),
 		test.WithReleaseName(nginxPluginOne),
 		test.WithPluginLabel(greenhouseapis.LabelKeyOwnedBy, teamName),
 	)
@@ -130,7 +130,7 @@ func PluginControllerNginxByPreset(ctx context.Context, adminClient, remoteClien
 	testPlugin := fixtures.PreparePlugin(nginxPluginTwo, env.TestNamespace,
 		test.WithPluginDefinition(testPluginDefinition.Name),
 		test.WithReleaseNamespace(env.TestNamespace),
-		test.WithPluginOptionValue("replicaCount", &apiextensionsv1.JSON{Raw: []byte("1")}, nil),
+		test.WithPluginOptionValue("replicaCount", &apiextensionsv1.JSON{Raw: []byte("1")}),
 		test.WithReleaseName(nginxPluginTwo),
 		test.WithPluginLabel(greenhouseapis.LabelKeyOwnedBy, teamName),
 	)
