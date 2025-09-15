@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -42,6 +43,8 @@ const (
 	ControllerLogsPathEnv      = "CONTROLLER_LOGS_PATH"
 	managerDeploymentName      = "greenhouse-controller-manager"
 	managerDeploymentNamespace = "greenhouse"
+	fluxDeploymentNamespace    = "flux-system"
+	fluxDeploymentName         = "helm-controller"
 	remoteExecutionEnv         = "EXECUTION_ENV"
 	realCluster                = "GARDENER"
 
@@ -326,6 +329,98 @@ func (env *TestEnv) GenerateControllerLogs(ctx context.Context, startTime time.T
 		SinceTime: &metav1.Time{Time: startTime},
 	}
 	req := clientSet.CoreV1().Pods(managerDeploymentNamespace).GetLogs(podName, &podLogOpts)
+	logStream, err := req.Stream(ctx)
+	if err != nil {
+		Logf("error getting pod logs stream %s", err.Error())
+		return
+	}
+	defer func(logStream io.ReadCloser) {
+		err := logStream.Close()
+		if err != nil {
+			Logf("error closing pod logs stream in defer %s", err.Error())
+		}
+	}(logStream)
+
+	// Create or open the log file
+	file, err := os.Create(podLogsPath)
+	if err != nil {
+		Logf("error creating log file %s: %s", podLogsPath, err.Error())
+		return
+	}
+	defer func(file *os.File) {
+		err := file.Close()
+		if err != nil {
+			Logf("error closing log file in defer %s", err.Error())
+		}
+	}(file)
+
+	buf := new(bytes.Buffer)
+	_, err = io.Copy(buf, logStream)
+	if err != nil {
+		Logf("error copying pod logs %s", err.Error())
+		return
+	}
+	// Write the logs to the file
+	_, err = file.WriteString(buf.String())
+	if err != nil {
+		Logf("error writing pod logs to file %s: %s", podLogsPath, err.Error())
+		return
+	}
+	Logf("pod %s logs written to file: %s", podName, podLogsPath)
+}
+
+func (env *TestEnv) GenerateFluxHelmControllerLogs(ctx context.Context, startTime time.Time) {
+	path, err := fromEnv(ControllerLogsPathEnv)
+	if err != nil {
+		Logf("%s", err.Error())
+		return
+	}
+
+	podLogsPath := filepath.Join(filepath.Dir(path), "flux-"+filepath.Base(path))
+
+	config, err := env.AdminRestClientGetter.ToRESTConfig()
+	if err != nil {
+		Logf("error getting admin rest config: %s", err.Error())
+		return
+	}
+	k8sClient, err := clientutil.NewK8sClientFromRestClientGetter(env.AdminRestClientGetter)
+	if err != nil {
+		Logf("error creating k8s client: %s", err.Error())
+		return
+	}
+	clientSet, err := kubernetes.NewForConfig(config)
+	if err != nil {
+		Logf("error creating k8s clientset: %s", err.Error())
+		return
+	}
+	deployment := &appsv1.Deployment{}
+
+	err = k8sClient.Get(ctx, client.ObjectKey{Name: fluxDeploymentName, Namespace: fluxDeploymentNamespace}, deployment)
+	if err != nil {
+		Logf("error getting deployment: %s", err.Error())
+		return
+	}
+
+	pods := &corev1.PodList{}
+	err = k8sClient.List(ctx, pods, &client.ListOptions{
+		LabelSelector: labels.SelectorFromSet(deployment.Spec.Selector.MatchLabels),
+		Namespace:     deployment.Namespace,
+	})
+	if err != nil {
+		Logf("error listing pods: %s", err.Error())
+		return
+	}
+	if len(pods.Items) == 0 {
+		Logf("no pods found for deployment %s", fluxDeploymentName)
+		return
+	}
+
+	podName := pods.Items[0].Name
+	podLogOpts := corev1.PodLogOptions{
+		Container: "manager",
+		SinceTime: &metav1.Time{Time: startTime},
+	}
+	req := clientSet.CoreV1().Pods(fluxDeploymentNamespace).GetLogs(podName, &podLogOpts)
 	logStream, err := req.Stream(ctx)
 	if err != nil {
 		Logf("error getting pod logs stream %s", err.Error())

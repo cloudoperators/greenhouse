@@ -44,7 +44,7 @@ func UpdateClusterWithDeletionAnnotation(ctx context.Context, c client.Client, i
 	return cluster
 }
 
-func RemoveDeletionProjection(ctx context.Context, c client.Client, id client.ObjectKey) *greenhousev1alpha1.PluginPreset {
+func RemoveDeletionProtection(ctx context.Context, c client.Client, id client.ObjectKey) *greenhousev1alpha1.PluginPreset {
 	GinkgoHelper()
 	pluginPreset := &greenhousev1alpha1.PluginPreset{}
 	Eventually(func(g Gomega) {

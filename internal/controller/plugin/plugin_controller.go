@@ -47,12 +47,19 @@ type PluginReconciler struct {
 }
 
 //+kubebuilder:rbac:groups=greenhouse.sap,resources=plugindefinitions,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups=greenhouse.sap,resources=clusterplugindefinitions,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=greenhouse.sap,resources=plugins,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=greenhouse.sap,resources=plugins/status;,verbs=get;update;patch
 //+kubebuilder:rbac:groups=greenhouse.sap,resources=plugins/finalizers,verbs=update
 //+kubebuilder:rbac:groups=greenhouse.sap,resources=clusters;teams,verbs=get;list;watch
 //+kubebuilder:rbac:groups="",resources=secrets,verbs=get;list;watch
 //+kubebuilder:rbac:groups="",resources=events,verbs=get;list;watch;create;patch;update
+// +kubebuilder:rbac:groups=helm.toolkit.fluxcd.io,resources=helmreleases,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=helm.toolkit.fluxcd.io,resources=helmreleases/status,verbs=get;update;patch
+// +kubebuilder:rbac:groups=helm.toolkit.fluxcd.io,resources=helmreleases/finalizers,verbs=get;create;update;patch;delete
+// +kubebuilder:rbac:groups=source.toolkit.fluxcd.io,resources=helmcharts,verbs=get;list;watch
+// +kubebuilder:rbac:groups=source.toolkit.fluxcd.io,resources=ocirepositories,verbs=get;list;watch
+// +kubebuilder:rbac:groups="",resources=events,verbs=create;patch
 
 // These broad permissions are required as the controller manages Helm charts which contain arbitrary Kubernetes resources.
 //+kubebuilder:rbac:groups=*,resources=*,verbs=*
@@ -77,20 +84,6 @@ func (r *PluginReconciler) SetupWithManager(name string, mgr ctrl.Manager) error
 		return err
 	}
 
-	labelSelector := metav1.LabelSelector{
-		MatchExpressions: []metav1.LabelSelectorRequirement{
-			{
-				Key:      deliveryToolLabel,
-				Operator: metav1.LabelSelectorOpDoesNotExist,
-			},
-		},
-	}
-
-	labelSelectorPredicate, err := predicate.LabelSelectorPredicate(labelSelector)
-	if err != nil {
-		return err
-	}
-
 	return ctrl.NewControllerManagedBy(mgr).
 		Named(name).
 		WithOptions(controller.Options{
@@ -99,18 +92,27 @@ func (r *PluginReconciler) SetupWithManager(name string, mgr ctrl.Manager) error
 				&workqueue.TypedBucketRateLimiter[reconcile.Request]{Limiter: rate.NewLimiter(rate.Limit(10), 100)}),
 			MaxConcurrentReconciles: 10,
 		}).
-		For(&greenhousev1alpha1.Plugin{}, builder.WithPredicates(labelSelectorPredicate)).
+		For(&greenhousev1alpha1.Plugin{}).
 		// If the release was (manually) modified the secret would have been modified. Reconcile it.
 		Watches(&corev1.Secret{},
 			handler.EnqueueRequestsFromMapFunc(enqueuePluginForReleaseSecret),
-			builder.WithPredicates(clientutil.PredicateFilterBySecretTypes(helmReleaseSecretType), predicate.GenerationChangedPredicate{}, labelSelectorPredicate),
+			builder.WithPredicates(clientutil.PredicateFilterBySecretTypes(helmReleaseSecretType)),
 		).
 		// If a PluginDefinition was changed, reconcile relevant Plugins.
-		Watches(&greenhousev1alpha1.ClusterPluginDefinition{}, handler.EnqueueRequestsFromMapFunc(r.enqueueAllPluginsForPluginDefinition),
-			builder.WithPredicates(predicate.GenerationChangedPredicate{}, labelSelectorPredicate)).
+		Watches(
+			&greenhousev1alpha1.ClusterPluginDefinition{},
+			handler.EnqueueRequestsFromMapFunc(r.enqueueAllPluginsForPluginDefinition),
+		).
 		// Clusters and teams are passed as values to each Helm operation. Reconcile on change.
-		Watches(&greenhousev1alpha1.Cluster{}, handler.EnqueueRequestsFromMapFunc(r.enqueueAllPluginsForCluster), builder.WithPredicates(labelSelectorPredicate)).
-		Watches(&greenhousev1alpha1.Team{}, handler.EnqueueRequestsFromMapFunc(r.enqueueAllPluginsInNamespace), builder.WithPredicates(predicate.GenerationChangedPredicate{}, labelSelectorPredicate)).
+		Watches(
+			&greenhousev1alpha1.Cluster{},
+			handler.EnqueueRequestsFromMapFunc(r.enqueueAllPluginsForCluster),
+		).
+		Watches(
+			&greenhousev1alpha1.Team{},
+			handler.EnqueueRequestsFromMapFunc(r.enqueueAllPluginsInNamespace),
+			builder.WithPredicates(predicate.GenerationChangedPredicate{}),
+		).
 		Complete(r)
 }
 
@@ -140,6 +142,11 @@ func (r *PluginReconciler) setConditions() lifecycle.Conditioner {
 func (r *PluginReconciler) EnsureDeleted(ctx context.Context, resource lifecycle.RuntimeObject) (ctrl.Result, lifecycle.ReconcileResult, error) {
 	plugin := resource.(*greenhousev1alpha1.Plugin) //nolint:errcheck
 
+	// redirect plugins that are managed by Flux
+	if plugin.GetLabels() != nil && plugin.GetLabels()[greenhouseapis.GreenhouseHelmDeliveryToolLabel] == greenhouseapis.GreenhouseHelmDeliveryToolFlux {
+		return r.EnsureFluxDeleted(ctx, plugin)
+	}
+
 	restClientGetter, err := initClientGetter(ctx, r.Client, r.kubeClientOpts, *plugin)
 	if err != nil {
 		util.UpdatePluginReconcileTotalMetric(plugin, util.MetricResultError, util.MetricReasonClusterAccessFailed)
@@ -164,13 +171,12 @@ func (r *PluginReconciler) EnsureDeleted(ctx context.Context, resource lifecycle
 
 func (r *PluginReconciler) EnsureCreated(ctx context.Context, resource lifecycle.RuntimeObject) (ctrl.Result, lifecycle.ReconcileResult, error) {
 	plugin := resource.(*greenhousev1alpha1.Plugin) //nolint:errcheck
-
-	// ignore plugins that are managed by Flux
-	if plugin.GetLabels() != nil && plugin.GetLabels()[greenhouseapis.GreenhouseHelmDeliveryToolLabel] == greenhouseapis.GreenhouseHelmDeliveryToolFlux {
-		return ctrl.Result{}, lifecycle.Pending, nil
-	}
-
 	InitPluginStatus(plugin)
+
+	// redirect plugins that are managed by Flux
+	if plugin.GetLabels() != nil && plugin.GetLabels()[greenhouseapis.GreenhouseHelmDeliveryToolLabel] == greenhouseapis.GreenhouseHelmDeliveryToolFlux {
+		return r.EnsureFluxCreated(ctx, plugin)
+	}
 
 	restClientGetter, err := initClientGetter(ctx, r.Client, r.kubeClientOpts, *plugin)
 	if err != nil {
@@ -404,17 +410,23 @@ func (r *PluginReconciler) enqueueAllPluginsInNamespace(ctx context.Context, o c
 
 func (r *PluginReconciler) enqueueAllPluginsForPluginDefinition(ctx context.Context, o client.Object) []ctrl.Request {
 	// TODO: Once namespaced PluginDefinitions are supported, we need a logic here to handle the correct label key
-	return ListPluginsAsReconcileRequests(ctx, r.Client, client.MatchingLabels{greenhouseapis.LabelKeyClusterPluginDefinition: o.GetName()})
+	return ListPluginsAsReconcileRequests(
+		ctx,
+		r.Client,
+		client.MatchingLabels{greenhouseapis.LabelKeyClusterPluginDefinition: o.GetName()},
+	)
 }
 
 func ListPluginsAsReconcileRequests(ctx context.Context, c client.Client, listOpts ...client.ListOption) []ctrl.Request {
 	var pluginList = new(greenhousev1alpha1.PluginList)
 	if err := c.List(ctx, pluginList, listOpts...); err != nil {
+		ctrl.LoggerFrom(ctx).Error(err, "failed to list Plugins for reconcile requests")
 		return nil
 	}
 	res := make([]ctrl.Request, len(pluginList.Items))
 	for idx, plugin := range pluginList.Items {
-		res[idx] = ctrl.Request{NamespacedName: client.ObjectKeyFromObject(plugin.DeepCopy())}
+		namespacedName := types.NamespacedName{Namespace: plugin.GetNamespace(), Name: plugin.GetName()}
+		res[idx] = ctrl.Request{NamespacedName: namespacedName}
 	}
 	return res
 }
