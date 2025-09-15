@@ -196,6 +196,7 @@ $(KUSTOMIZE): $(LOCALBIN)
 	@if [ -z "$$GITHUB_TOKEN" ]; then \
 		test -s $(LOCALBIN)/kustomize || curl -s $(KUSTOMIZE_INSTALL_SCRIPT) | bash -s -- $(subst v,,$(KUSTOMIZE_VERSION)) $(LOCALBIN); \
 	else \
+	  	echo "pulling kustomize from source"; \
 		test -s $(LOCALBIN)/kustomize || curl -sH "Authorization: Bearer $$GITHUB_TOKEN" $(KUSTOMIZE_INSTALL_SCRIPT) | bash -s -- $(subst v,,$(KUSTOMIZE_VERSION)) $(LOCALBIN); \
 	fi
 
