@@ -28,10 +28,6 @@ import (
 	"github.com/cloudoperators/greenhouse/internal/lifecycle"
 )
 
-const (
-	deliveryToolLabel = "greenhouse.sap/deployment-tool"
-)
-
 // exposedConditions are the conditions that are exposed in the StatusConditions of the Plugin.
 var exposedConditions = []greenhousemetav1alpha1.ConditionType{
 	greenhousemetav1alpha1.ReadyCondition,

@@ -34,6 +34,8 @@ jobs:
     if: needs.init.outputs.tests != '[]'
     needs: [ init ]
     runs-on: [ default ]
+    env:
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     strategy:
       fail-fast: false
       matrix:
@@ -43,12 +45,24 @@ jobs:
       # run the e2e tests using composite common/workflows/e2e action
       - name: "E2E"
         id: e2e
+        continue-on-error: true
         uses: cloudoperators/common/workflows/e2e@main
         with:
           k8s-version: ${{ matrix.k8s-version }}
           scenario: ${{ matrix.e2es }}
           admin-config: ${{ github.workspace }}/dev-env/greenhouse-admin-cluster.yaml
           remote-config: ${{ github.workspace }}/dev-env/greenhouse-remote-cluster.yaml
+
+      - name: "Display Logs"
+        if: ${{ steps.e2e.outcome == 'failure' }}
+        run: |
+          echo "Displaying greenhouse controller logs for failed scenario: ${{ matrix.e2es }}"
+          cat ${{ github.workspace }}/bin/${{ matrix.e2es }}-${{ matrix.k8s-version }}.txt
+          echo "----------------------------------------"
+          echo "Displaying flux logs for failed scenario: ${{ matrix.e2es }}"
+          cat ${{ github.workspace }}/bin/flux-${{ matrix.e2es }}-${{ matrix.k8s-version }}.txt
+          exit 1
+        
 
   # check if the e2e tests passed for all scenarios
   checksOK:
