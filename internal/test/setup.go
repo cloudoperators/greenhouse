@@ -221,6 +221,24 @@ func (t *TestSetup) CreateSecret(ctx context.Context, name string, opts ...func(
 	return secret
 }
 
+// UpdateSecret updates a Secret object. Opts can be used to set the desired state of the Secret.
+func (t *TestSetup) UpdateSecret(ctx context.Context, name string, opts ...func(*corev1.Secret)) *corev1.Secret {
+	GinkgoHelper()
+	secret := &corev1.Secret{}
+	err := retry.RetryOnConflict(retry.DefaultRetry, func() error {
+		err := t.Get(ctx, client.ObjectKey{Name: name, Namespace: t.Namespace()}, secret)
+		if err != nil {
+			return err
+		}
+		for _, opt := range opts {
+			opt(secret)
+		}
+		return t.Update(ctx, secret)
+	})
+	Expect(err).NotTo(HaveOccurred(), "there should be no error updating the Secret")
+	return secret
+}
+
 // CreateConfigMap returns a ConfigMap object. Opts can be used to set the desired state of the ConfigMap.
 func (t *TestSetup) CreateConfigMap(ctx context.Context, name string, opts ...func(*corev1.ConfigMap)) *corev1.ConfigMap {
 	GinkgoHelper()
