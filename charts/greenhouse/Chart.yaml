@@ -6,7 +6,7 @@ name: greenhouse
 description: A Helm chart for deploying greenhouse
 type: application
 version: 0.12.1
-appVersion: "0.6.0-rc.3"
+appVersion: "0.6.0-rc.4"
 
 dependencies:
   - condition: idproxy.enabled
