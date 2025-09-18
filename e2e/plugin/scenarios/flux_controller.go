@@ -92,12 +92,14 @@ func FluxControllerPodInfoByPlugin(ctx context.Context, adminClient, remoteClien
 	err = adminClient.Create(ctx, testPluginPreset)
 	Expect(client.IgnoreAlreadyExists(err)).ToNot(HaveOccurred())
 
+	plugin := &greenhousev1alpha1.Plugin{}
 	By("Checking the plugin is created")
 	Eventually(func(g Gomega) {
 		pluginList := &greenhousev1alpha1.PluginList{}
 		err = adminClient.List(ctx, pluginList, client.MatchingLabels{greenhouseapis.GreenhouseHelmDeliveryToolLabel: greenhouseapis.GreenhouseHelmDeliveryToolFlux})
 		g.Expect(err).NotTo(HaveOccurred())
-		g.Expect(len(pluginList.Items)).To(BeEquivalentTo(1))
+		g.Expect(pluginList.Items).To(HaveLen(1))
+		plugin = &pluginList.Items[0]
 	}).Should(Succeed())
 
 	helmRelease := &helmv2.HelmRelease{}
@@ -106,13 +108,18 @@ func FluxControllerPodInfoByPlugin(ctx context.Context, adminClient, remoteClien
 		helmReleaseList := &helmv2.HelmReleaseList{}
 		err = adminClient.List(ctx, helmReleaseList, client.InNamespace(env.TestNamespace))
 		g.Expect(err).NotTo(HaveOccurred())
-		g.Expect(len(helmReleaseList.Items)).To(BeEquivalentTo(1))
+		g.Expect(helmReleaseList.Items).To(HaveLen(1))
 		helmRelease = &helmReleaseList.Items[0]
 		g.Expect(helmRelease.Status.Conditions).To(ContainElement(MatchFields(IgnoreExtras, Fields{
 			"Type":   Equal(helmv2.ReleasedCondition),
 			"Reason": Equal(helmv2.InstallSucceededReason),
 			"Status": Equal(metav1.ConditionTrue),
 		})))
+		releaseReady := meta.FindStatusCondition(helmRelease.Status.Conditions, fluxmeta.ReadyCondition)
+		g.Expect(releaseReady).ToNot(BeNil(), "HelmRelease Ready condition must be set")
+		g.Expect(helmRelease.Status.ObservedGeneration).To(BeNumerically(">=", helmRelease.Generation), "HelmRelease status must be current")
+		g.Expect(releaseReady.Status).To(Equal(metav1.ConditionTrue), "HelmRelease Ready condition must be true")
+		g.Expect(releaseReady.Reason).To(Equal("InstallSucceeded"), "HelmRelease Ready condition should have the correct Reason")
 	}).Should(Succeed())
 
 	By("Checking the deployment is created on the remote cluster")
@@ -124,20 +131,9 @@ func FluxControllerPodInfoByPlugin(ctx context.Context, adminClient, remoteClien
 		g.Expect(deploymentList.Items[0].Spec.Replicas).To(PointTo(Equal(int32(1))), "the deployment should have 1 replica")
 	}).Should(Succeed())
 
-	By("Checking the HelmRelease Ready condition is True")
-	Eventually(func(g Gomega) {
-		err = adminClient.Get(ctx, client.ObjectKeyFromObject(testPlugin), helmRelease)
-		g.Expect(err).ToNot(HaveOccurred(), "failed to get the HelmRelease")
-		releaseReady := meta.FindStatusCondition(helmRelease.Status.Conditions, fluxmeta.ReadyCondition)
-		g.Expect(releaseReady).ToNot(BeNil(), "HelmRelease Ready condition must be set")
-		g.Expect(helmRelease.Status.ObservedGeneration).To(BeNumerically(">=", helmRelease.Generation), "HelmRelease status must be current")
-		g.Expect(releaseReady.Status).To(Equal(metav1.ConditionTrue), "HelmRelease Ready condition must be true")
-		g.Expect(releaseReady.Reason).To(Equal("InstallSucceeded"), "HelmRelease Ready condition should have the correct Reason")
-	}).Should(Succeed())
-
 	By("ensuring Plugin status has been updated")
 	Eventually(func(g Gomega) {
-		err := adminClient.Get(ctx, client.ObjectKeyFromObject(testPlugin), testPlugin)
+		err := adminClient.Get(ctx, client.ObjectKeyFromObject(plugin), plugin)
 		g.Expect(err).ToNot(HaveOccurred(), "failed to get the Plugin")
 
 		clusterAccess := testPlugin.Status.StatusConditions.GetConditionByType(greenhousev1alpha1.ClusterAccessReadyCondition)
@@ -185,7 +181,7 @@ func FluxControllerPodInfoByPlugin(ctx context.Context, adminClient, remoteClien
 		deploymentList := &appsv1.DeploymentList{}
 		err = remoteClient.List(ctx, deploymentList, client.InNamespace(env.TestNamespace), client.MatchingLabels{"helm.sh/chart": "podinfo-6.9.2"})
 		g.Expect(err).NotTo(HaveOccurred())
-		g.Expect(len(deploymentList.Items)).To(BeEquivalentTo(1), "there should be exactly one deployment")
+		g.Expect(deploymentList.Items).To(HaveLen(1), "there should be exactly one deployment")
 		g.Expect(deploymentList.Items[0].Spec.Replicas).To(PointTo(Equal(int32(1))), "the deployment should have 1 replica")
 	}).Should(Succeed())
 

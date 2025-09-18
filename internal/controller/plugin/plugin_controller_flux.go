@@ -208,7 +208,7 @@ func (r *PluginReconciler) reconcilePluginStatus(ctx context.Context,
 	if err == nil {
 		helmSDKRelease, err := helm.GetReleaseForHelmChartFromPlugin(ctx, restClientGetter, plugin)
 		if err == nil {
-			serviceList, err := GetExposedServicesForPluginFromHelmRelease(restClientGetter, helmSDKRelease, plugin)
+			serviceList, err := getExposedServicesForPluginFromHelmRelease(restClientGetter, helmSDKRelease, plugin)
 			if err == nil {
 				exposedServices = serviceList
 				plugin.SetCondition(greenhousemetav1alpha1.TrueCondition(greenhousev1alpha1.StatusUpToDateCondition, "", ""))
