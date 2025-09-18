@@ -54,7 +54,7 @@ func FluxControllerPodInfoByPlugin(ctx context.Context, adminClient, remoteClien
 		test.WithPluginDefinition(testPluginDefinition.Name),
 		test.WithReleaseName("test-podinfo-plugin"),
 		test.WithReleaseNamespace(env.TestNamespace),
-		test.WithPluginOptionValue("replicaCount", &apiextensionsv1.JSON{Raw: []byte("1")}, nil))
+		test.WithPluginOptionValue("replicaCount", &apiextensionsv1.JSON{Raw: []byte("1")}))
 
 	By("Add labels to remote cluster")
 	remoteCluster := &greenhousev1alpha1.Cluster{}
