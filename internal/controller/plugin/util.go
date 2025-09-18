@@ -28,10 +28,6 @@ import (
 	"github.com/cloudoperators/greenhouse/internal/lifecycle"
 )
 
-const (
-	deliveryToolLabel = "greenhouse.sap/deployment-tool"
-)
-
 // exposedConditions are the conditions that are exposed in the StatusConditions of the Plugin.
 var exposedConditions = []greenhousemetav1alpha1.ConditionType{
 	greenhousemetav1alpha1.ReadyCondition,
@@ -61,10 +57,10 @@ func InitPluginStatus(plugin *greenhousev1alpha1.Plugin) greenhousev1alpha1.Plug
 	return plugin.Status
 }
 
-// InitClientGetter returns a RestClientGetter for the given Plugin.
+// initClientGetter returns a RestClientGetter for the given Plugin.
 // If the Plugin has a clusterName set, the RestClientGetter is initialized from the cluster secret.
 // Otherwise, the RestClientGetter is initialized with in-cluster config
-func InitClientGetter(
+func initClientGetter(
 	ctx context.Context,
 	k8sClient client.Client,
 	kubeClientOpts []clientutil.KubeClientOption,
@@ -269,6 +265,32 @@ func computeReadyCondition(
 		readyCondition.Message = workloadCondition.Message
 		return readyCondition
 	}
+	// In other cases, the Plugin is ready
+	readyCondition.Status = metav1.ConditionTrue
+	readyCondition.Message = "ready"
+	return readyCondition
+}
+
+// computeFluxReadyCondition computes the ReadyCondition for the Plugin based on various status conditions
+func computeFluxReadyCondition(
+	conditions greenhousemetav1alpha1.StatusConditions,
+) (readyCondition greenhousemetav1alpha1.Condition) {
+
+	readyCondition = *conditions.GetConditionByType(greenhousemetav1alpha1.ReadyCondition)
+
+	// If the Cluster is not ready, the Plugin could not be ready
+	if conditions.GetConditionByType(greenhousev1alpha1.ClusterAccessReadyCondition).IsFalse() {
+		readyCondition.Status = metav1.ConditionFalse
+		readyCondition.Message = "cluster access not ready"
+		return readyCondition
+	}
+	// If the HelmRelease reconcile failed, the Plugin is not up to date / ready
+	if conditions.GetConditionByType(greenhousev1alpha1.HelmReconcileFailedCondition).IsTrue() {
+		readyCondition.Status = metav1.ConditionFalse
+		readyCondition.Message = "Helm reconcile failed"
+		return readyCondition
+	}
+
 	// In other cases, the Plugin is ready
 	readyCondition.Status = metav1.ConditionTrue
 	readyCondition.Message = "ready"

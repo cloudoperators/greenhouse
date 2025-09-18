@@ -24,7 +24,7 @@ func EventuallyDeleted(ctx context.Context, c client.Client, obj client.Object) 
 		}
 		pluginPreset, ok := obj.(*greenhousev1alpha1.PluginPreset)
 		if ok {
-			RemoveDeletionProjection(ctx, c, client.ObjectKeyFromObject(pluginPreset))
+			RemoveDeletionProtection(ctx, c, client.ObjectKeyFromObject(pluginPreset))
 		}
 		if err := c.Delete(ctx, obj); err != nil {
 			return apierrors.IsNotFound(err)
@@ -37,7 +37,7 @@ func EventuallyDeleted(ctx context.Context, c client.Client, obj client.Object) 
 	}).Should(BeTrue(), "there should be no error deleting the object")
 }
 
-// EventuallyGet gets the object and retries until it is available.
+// EventuallyCreated verifies if the object is created
 func EventuallyCreated(ctx context.Context, c client.Client, obj client.Object) {
 	GinkgoHelper()
 	Eventually(func() bool {
