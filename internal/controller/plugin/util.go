@@ -275,8 +275,8 @@ func computeWorkloadCondition(plugin *greenhousev1alpha1.Plugin, release *Releas
 	plugin.SetCondition(greenhousemetav1alpha1.TrueCondition(greenhousev1alpha1.WorkloadReadyCondition, "", "Workload is running"))
 }
 
-// ComputeReadyCondition computes the ReadyCondition for the Plugin based on various status conditions
-func ComputeReadyCondition(
+// computeReadyCondition computes the ReadyCondition for the Plugin based on various status conditions
+func computeReadyCondition(
 	conditions greenhousemetav1alpha1.StatusConditions,
 ) (readyCondition greenhousemetav1alpha1.Condition) {
 
@@ -306,6 +306,32 @@ func ComputeReadyCondition(
 		readyCondition.Message = workloadCondition.Message
 		return readyCondition
 	}
+	// In other cases, the Plugin is ready
+	readyCondition.Status = metav1.ConditionTrue
+	readyCondition.Message = "ready"
+	return readyCondition
+}
+
+// computeFluxReadyCondition computes the ReadyCondition for the Plugin based on various status conditions
+func computeFluxReadyCondition(
+	conditions greenhousemetav1alpha1.StatusConditions,
+) (readyCondition greenhousemetav1alpha1.Condition) {
+
+	readyCondition = *conditions.GetConditionByType(greenhousemetav1alpha1.ReadyCondition)
+
+	// If the Cluster is not ready, the Plugin could not be ready
+	if conditions.GetConditionByType(greenhousev1alpha1.ClusterAccessReadyCondition).IsFalse() {
+		readyCondition.Status = metav1.ConditionFalse
+		readyCondition.Message = "cluster access not ready"
+		return readyCondition
+	}
+	// If the HelmRelease reconcile failed, the Plugin is not up to date / ready
+	if conditions.GetConditionByType(greenhousev1alpha1.HelmReconcileFailedCondition).IsTrue() {
+		readyCondition.Status = metav1.ConditionFalse
+		readyCondition.Message = "Helm reconcile failed"
+		return readyCondition
+	}
+
 	// In other cases, the Plugin is ready
 	readyCondition.Status = metav1.ConditionTrue
 	readyCondition.Message = "ready"

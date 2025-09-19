@@ -13,7 +13,10 @@ import (
 	helmv2 "github.com/fluxcd/helm-controller/api/v2"
 	fluxmeta "github.com/fluxcd/pkg/apis/meta"
 	sourcecontroller "github.com/fluxcd/source-controller/api/v1"
+	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/cli-runtime/pkg/genericclioptions"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -31,7 +34,15 @@ import (
 const (
 	maxHistory = 10
 	secretKind = "Secret"
+
+	PluginDefinitionVersionAnnotation = "greenhouse.sap/pd-version"
 )
+
+func (r *PluginReconciler) setFluxConditions(ctx context.Context, plugin *greenhousev1alpha1.Plugin) {
+	readyCondition := computeFluxReadyCondition(plugin.Status.StatusConditions)
+	ownerLabelCondition := util.ComputeOwnerLabelCondition(ctx, r.Client, plugin)
+	plugin.Status.SetConditions(readyCondition, ownerLabelCondition)
+}
 
 func (r *PluginReconciler) EnsureFluxDeleted(ctx context.Context, plugin *greenhousev1alpha1.Plugin) (ctrl.Result, lifecycle.ReconcileResult, error) {
 	if err := r.Delete(ctx, &helmv2.HelmRelease{ObjectMeta: metav1.ObjectMeta{Name: plugin.Name, Namespace: plugin.Namespace}}); err != nil {
@@ -45,7 +56,7 @@ func (r *PluginReconciler) EnsureFluxDeleted(ctx context.Context, plugin *greenh
 	return ctrl.Result{}, lifecycle.Success, nil
 }
 
-func (r *PluginReconciler) EnsureFluxCreated(ctx context.Context, plugin *greenhousev1alpha1.Plugin) (ctrl.Result, lifecycle.ReconcileResult, error) {
+func (r *PluginReconciler) EnsureFluxCreated(ctx context.Context, restClientGetter genericclioptions.RESTClientGetter, plugin *greenhousev1alpha1.Plugin) (ctrl.Result, lifecycle.ReconcileResult, error) {
 	pluginDef, err := r.getPluginDefinition(ctx, plugin)
 	if err != nil {
 		util.UpdatePluginReconcileTotalMetric(plugin, util.MetricResultError, util.MetricReasonPluginDefinitionNotFound)
@@ -69,11 +80,28 @@ func (r *PluginReconciler) EnsureFluxCreated(ctx context.Context, plugin *greenh
 		return ctrl.Result{}, lifecycle.Failed, errors.New("helm repository not found")
 	}
 
-	release := &helmv2.HelmRelease{}
-	release.SetName(plugin.Name)
-	release.SetNamespace(plugin.Namespace)
+	if err := r.ensureHelmRelease(ctx, plugin, pluginDef.Spec, helmRepository); err != nil {
+		log.FromContext(ctx).Error(err, "failed to ensure HelmRelease for Plugin", "name", plugin.Name, "namespace", plugin.Namespace)
+		return ctrl.Result{}, lifecycle.Failed, err
+	}
 
-	result, err := ctrl.CreateOrUpdate(ctx, r.Client, release, func() error {
+	r.reconcilePluginStatus(ctx, restClientGetter, plugin, pluginDef, &plugin.Status)
+
+	return ctrl.Result{}, lifecycle.Success, nil
+}
+
+func (r *PluginReconciler) ensureHelmRelease(
+	ctx context.Context,
+	plugin *greenhousev1alpha1.Plugin,
+	pluginDefinitionSpec greenhousev1alpha1.PluginDefinitionSpec,
+	helmRepository *sourcecontroller.HelmRepository,
+) error {
+
+	helmRelease := &helmv2.HelmRelease{}
+	helmRelease.SetName(plugin.Name)
+	helmRelease.SetNamespace(plugin.Namespace)
+
+	result, err := ctrl.CreateOrUpdate(ctx, r.Client, helmRelease, func() error {
 		values, err := addValuesToHelmRelease(ctx, r.Client, plugin)
 		if err != nil {
 			return fmt.Errorf("failed to compute HelmRelease values for Plugin %s: %w", plugin.Name, err)
@@ -81,9 +109,9 @@ func (r *PluginReconciler) EnsureFluxCreated(ctx context.Context, plugin *greenh
 
 		spec, err := flux.NewHelmReleaseSpecBuilder().
 			WithChart(helmv2.HelmChartTemplateSpec{
-				Chart:    pluginDef.Spec.HelmChart.Name,
+				Chart:    pluginDefinitionSpec.HelmChart.Name,
 				Interval: &metav1.Duration{Duration: flux.DefaultInterval},
-				Version:  pluginDef.Spec.HelmChart.Version,
+				Version:  pluginDefinitionSpec.HelmChart.Version,
 				SourceRef: helmv2.CrossNamespaceObjectReference{
 					Kind:      sourcecontroller.HelmRepositoryKind,
 					Name:      helmRepository.Name,
@@ -120,23 +148,125 @@ func (r *PluginReconciler) EnsureFluxCreated(ctx context.Context, plugin *greenh
 			WithValuesFrom(r.addValueReferences(plugin)).
 			WithTargetNamespace(plugin.Spec.ReleaseNamespace).Build()
 		if err != nil {
-			log.FromContext(ctx).Error(err, "Failed to create HelmRelease for plugin", "plugin", plugin.Name)
 			return fmt.Errorf("failed to create HelmRelease for plugin %s: %w", plugin.Name, err)
 		}
-		release.Spec = spec
-		return nil
+		helmRelease.Spec = spec
+
+		// Set PluginDefinition.Spec.Version in the release.
+		if helmRelease.Annotations == nil {
+			helmRelease.Annotations = map[string]string{}
+		}
+		helmRelease.Annotations[PluginDefinitionVersionAnnotation] = pluginDefinitionSpec.Version
+
+		return controllerutil.SetControllerReference(plugin, helmRelease, r.Scheme())
 	})
 	if err != nil {
-		return ctrl.Result{}, lifecycle.Failed, err
+		plugin.SetCondition(greenhousemetav1alpha1.FalseCondition(
+			greenhousev1alpha1.StatusUpToDateCondition, "", "failed to create/update Helm release: "+err.Error()))
+		return err
 	}
 	switch result {
 	case controllerutil.OperationResultCreated:
-		log.FromContext(ctx).Info("Created helmRelease", "name", release.Name)
+		log.FromContext(ctx).Info("Created helmRelease", "name", helmRelease.Name)
 	case controllerutil.OperationResultUpdated:
-		log.FromContext(ctx).Info("Updated helmRelease", "name", release.Name)
+		log.FromContext(ctx).Info("Updated helmRelease", "name", helmRelease.Name)
 	}
 
-	return ctrl.Result{}, lifecycle.Success, nil
+	helmReleaseReady := meta.FindStatusCondition(helmRelease.Status.Conditions, fluxmeta.ReadyCondition)
+	if helmReleaseReady != nil && helmRelease.Status.ObservedGeneration >= helmRelease.Generation {
+		if helmReleaseReady.Status == metav1.ConditionTrue {
+			plugin.SetCondition(greenhousemetav1alpha1.FalseCondition(greenhousev1alpha1.HelmReconcileFailedCondition,
+				greenhousemetav1alpha1.ConditionReason(helmReleaseReady.Reason), helmReleaseReady.Message))
+		} else {
+			plugin.SetCondition(greenhousemetav1alpha1.TrueCondition(greenhousev1alpha1.HelmReconcileFailedCondition,
+				greenhousemetav1alpha1.ConditionReason(helmReleaseReady.Reason), helmReleaseReady.Message))
+		}
+	}
+
+	return nil
+}
+
+func (r *PluginReconciler) reconcilePluginStatus(ctx context.Context,
+	restClientGetter genericclioptions.RESTClientGetter,
+	plugin *greenhousev1alpha1.Plugin,
+	pluginDefinition *greenhousev1alpha1.ClusterPluginDefinition,
+	pluginStatus *greenhousev1alpha1.PluginStatus,
+) {
+
+	var (
+		pluginVersion   string
+		exposedServices = make(map[string]greenhousev1alpha1.Service, 0)
+		releaseStatus   = &greenhousev1alpha1.HelmReleaseStatus{
+			Status:        "unknown",
+			FirstDeployed: metav1.Time{},
+			LastDeployed:  metav1.Time{},
+		}
+	)
+
+	// Collect status from the Helm release.
+	helmRelease := &helmv2.HelmRelease{}
+	err := r.Get(ctx, types.NamespacedName{Name: plugin.Name, Namespace: plugin.Namespace}, helmRelease)
+	if err == nil {
+		helmSDKRelease, err := helm.GetReleaseForHelmChartFromPlugin(ctx, restClientGetter, plugin)
+		if err == nil {
+			serviceList, err := getExposedServicesForPluginFromHelmRelease(restClientGetter, helmSDKRelease, plugin)
+			if err == nil {
+				exposedServices = serviceList
+				plugin.SetCondition(greenhousemetav1alpha1.TrueCondition(greenhousev1alpha1.StatusUpToDateCondition, "", ""))
+			} else {
+				plugin.SetCondition(greenhousemetav1alpha1.FalseCondition(
+					greenhousev1alpha1.StatusUpToDateCondition, "", "failed to get exposed services: "+err.Error()))
+			}
+		} else {
+			plugin.SetCondition(greenhousemetav1alpha1.FalseCondition(
+				greenhousev1alpha1.StatusUpToDateCondition, "", "failed to get Helm SDK release: "+err.Error()))
+		}
+
+		// Get the release status.
+		latestSnapshot := helmRelease.Status.History.Latest()
+		if latestSnapshot != nil {
+			releaseStatus.Status = latestSnapshot.Status
+			releaseStatus.FirstDeployed = latestSnapshot.FirstDeployed
+			releaseStatus.LastDeployed = latestSnapshot.LastDeployed
+			if latestSnapshot.Status == "deployed" {
+				if v := helmRelease.Annotations[PluginDefinitionVersionAnnotation]; v != "" {
+					pluginVersion = v
+				}
+			}
+		}
+
+		if plugin.Spec.OptionValues != nil {
+			checksum, err := helm.CalculatePluginOptionChecksum(ctx, r.Client, plugin)
+			if err == nil {
+				releaseStatus.PluginOptionChecksum = checksum
+			} else {
+				releaseStatus.PluginOptionChecksum = ""
+			}
+		}
+	} else {
+		plugin.SetCondition(greenhousemetav1alpha1.FalseCondition(greenhousev1alpha1.StatusUpToDateCondition, "", "failed to get Helm release: "+err.Error()))
+	}
+
+	var (
+		uiApplication      *greenhousev1alpha1.UIApplicationReference
+		helmChartReference *greenhousev1alpha1.HelmChartReference
+	)
+	// Ensure the status is always reported.
+	uiApplication = pluginDefinition.Spec.UIApplication
+	// only set the helm chart reference if the pluginVersion matches the pluginDefinition version or the release status is unknown
+	if pluginVersion == pluginDefinition.Spec.Version || releaseStatus.Status == "unknown" {
+		helmChartReference = pluginDefinition.Spec.HelmChart
+	} else {
+		helmChartReference = plugin.Status.HelmChart
+	}
+
+	pluginStatus.HelmReleaseStatus = releaseStatus
+	pluginStatus.Version = pluginVersion
+	pluginStatus.UIApplication = uiApplication
+	pluginStatus.HelmChart = helmChartReference
+	pluginStatus.Weight = pluginDefinition.Spec.Weight
+	pluginStatus.Description = pluginDefinition.Spec.Description
+	pluginStatus.ExposedServices = exposedServices
 }
 
 func addValuesToHelmRelease(ctx context.Context, c client.Client, plugin *greenhousev1alpha1.Plugin) ([]byte, error) {
