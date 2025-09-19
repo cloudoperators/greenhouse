@@ -7,6 +7,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"maps"
+	"strings"
 	"time"
 
 	"golang.org/x/time/rate"
@@ -351,14 +353,12 @@ func (r *PluginReconciler) reconcileStatus(ctx context.Context,
 	// Collect status from the Helm release.
 	helmRelease, err := helm.GetReleaseForHelmChartFromPlugin(ctx, restClientGetter, plugin)
 	if err == nil {
-		// Ensure the status is always reported.
-		serviceList, err := getExposedServicesForPluginFromHelmRelease(restClientGetter, helmRelease, plugin)
-		if err == nil {
+		serviceList, err := getAllExposedServicesForPlugin(restClientGetter, helmRelease, plugin)
+		if err != nil {
+			plugin.SetCondition(greenhousemetav1alpha1.FalseCondition(greenhousev1alpha1.StatusUpToDateCondition, "", "failed to get exposed services: "+err.Error()))
+		} else {
 			exposedServices = serviceList
 			plugin.SetCondition(greenhousemetav1alpha1.TrueCondition(greenhousev1alpha1.StatusUpToDateCondition, "", ""))
-		} else {
-			plugin.SetCondition(greenhousemetav1alpha1.FalseCondition(
-				greenhousev1alpha1.StatusUpToDateCondition, "", "failed to get exposed services: "+err.Error()))
 		}
 
 		// Get the release status.
@@ -459,8 +459,8 @@ func getExposedServicesForPluginFromHelmRelease(restClientGetter genericclioptio
 	exposedServiceList, err := helm.ObjectMapFromRelease(restClientGetter, helmRelease, &helm.ManifestObjectFilter{
 		APIVersion: "v1",
 		Kind:       "Service",
-		Labels: map[string]string{
-			greenhouseapis.LabelKeyExposeService: "true",
+		Annotations: map[string]string{
+			greenhouseapis.AnnotationKeyExpose: "true",
 		},
 	})
 	if err != nil {
@@ -488,7 +488,89 @@ func getExposedServicesForPluginFromHelmRelease(restClientGetter genericclioptio
 			Name:      svc.Name,
 			Protocol:  svcPort.AppProtocol,
 			Port:      svcPort.Port,
+			Type:      greenhousev1alpha1.ServiceTypeService,
 		}
 	}
+	return exposedServices, nil
+}
+
+// getExposedIngressesForPluginFromHelmRelease discovers ingress resources from a Helm release that are marked for exposure.
+// It searches for ingresses with the annotation "greenhouse.sap/expose": "true" and extracts their URLs.
+//
+// For each discovered ingress:
+// - Automatically detects HTTPS protocol based on TLS configuration
+// - Selects the host using greenhouse.sap/exposed-host annotation or defaults to the first host rule
+// - Constructs complete URLs with protocol (http:// or https://)
+// - Returns them as Service entries with type ServiceTypeIngress (port set to 0 as not applicable)
+//
+// The function filters ingresses from the Helm release manifest (not templates) to ensure they are actually deployed.
+func getExposedIngressesForPluginFromHelmRelease(restClientGetter genericclioptions.RESTClientGetter, helmRelease *release.Release) (map[string]greenhousev1alpha1.Service, error) {
+	exposedIngressList, err := helm.ObjectMapFromRelease(restClientGetter, helmRelease, &helm.ManifestObjectFilter{
+		APIVersion: "v1",
+		Kind:       "Ingress",
+		Annotations: map[string]string{
+			greenhouseapis.AnnotationKeyExpose: "true",
+		},
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	var exposedServices = make(map[string]greenhousev1alpha1.Service, 0)
+	for _, ingress := range exposedIngressList {
+		fullURL, err := getURLForExposedIngress(ingress.Object)
+		if err != nil {
+			return nil, err
+		}
+
+		namespace := ingress.Namespace
+		if namespace == "" {
+			namespace = helmRelease.Namespace
+		}
+
+		exposedServices[fullURL] = greenhousev1alpha1.Service{
+			Namespace: namespace,
+			Name:      ingress.Name,
+			Type:      greenhousev1alpha1.ServiceTypeIngress,
+		}
+	}
+	return exposedServices, nil
+}
+
+// getAllExposedServicesForPlugin aggregates all exposed services and ingresses for a plugin from its Helm release.
+// This function combines two types of exposures into a unified map for Plugin.status.exposedServices:
+//
+// 1. Services (ServiceTypeService): Exposed via service-proxy for internal routing
+//   - Discovered from services with "greenhouse.sap/expose" annotation
+//   - URLs are generated using the service-proxy pattern
+//
+// 2. Ingresses (ServiceTypeIngress): Exposed directly via external URLs
+//   - Discovered from ingresses with "greenhouse.sap/expose" annotation
+//   - URLs are the actual ingress hostnames with proper protocol (http/https)
+//   - Protocol automatically detected from TLS configuration
+//
+// If either service or ingress discovery encounters an error, the entire operation fails.
+func getAllExposedServicesForPlugin(restClientGetter genericclioptions.RESTClientGetter, helmRelease *release.Release, plugin *greenhousev1alpha1.Plugin) (map[string]greenhousev1alpha1.Service, error) {
+	var errorMessages []string
+	exposedServices := make(map[string]greenhousev1alpha1.Service)
+
+	serviceList, err := getExposedServicesForPluginFromHelmRelease(restClientGetter, helmRelease, plugin)
+	if err != nil {
+		errorMessages = append(errorMessages, "services: "+err.Error())
+	} else {
+		maps.Copy(exposedServices, serviceList)
+	}
+
+	ingressList, err := getExposedIngressesForPluginFromHelmRelease(restClientGetter, helmRelease)
+	if err != nil {
+		errorMessages = append(errorMessages, "ingresses: "+err.Error())
+	} else {
+		maps.Copy(exposedServices, ingressList)
+	}
+
+	if len(errorMessages) > 0 {
+		return nil, fmt.Errorf("failed to get exposed resources: %s", strings.Join(errorMessages, "; "))
+	}
+
 	return exposedServices, nil
 }

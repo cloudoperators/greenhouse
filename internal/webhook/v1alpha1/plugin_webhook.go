@@ -116,6 +116,7 @@ func DefaultPlugin(ctx context.Context, c client.Client, obj runtime.Object) err
 			plugin.Spec.ReleaseName = pluginDefinition.Spec.HelmChart.Name
 		}
 	}
+
 	return nil
 }
 
