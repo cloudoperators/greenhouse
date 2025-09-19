@@ -52,15 +52,14 @@ var (
 		test.WithReleaseName("release-test-flux"),
 		test.WithReleaseNamespace(test.TestNamespace),
 		test.WithPluginLabel(greenhouseapis.LabelKeyOwnedBy, testPluginTeam.Name),
-		test.WithPluginOptionValue("flatOption", test.MustReturnJSONFor("flatValue"), nil),
-		test.WithPluginOptionValue("nested.option", test.MustReturnJSONFor("nestedValue"), nil),
-		test.WithPluginOptionValue("nested.secretOption", nil, &greenhousev1alpha1.ValueFromSource{
+		test.WithPluginOptionValue("flatOption", test.MustReturnJSONFor("flatValue")),
+		test.WithPluginOptionValue("nested.option", test.MustReturnJSONFor("nestedValue")),
+		test.WithPluginOptionValueFrom("nested.secretOption", &greenhousev1alpha1.ValueFromSource{
 			Secret: &greenhousev1alpha1.SecretKeyReference{
 				Name: "test-cluster",
 				Key:  greenhouseapis.GreenHouseKubeConfigKey,
 			},
-		},
-		),
+		}),
 	)
 	testPluginDefinition = test.NewClusterPluginDefinition(
 		test.Ctx,
