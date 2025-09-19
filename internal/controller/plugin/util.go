@@ -6,6 +6,7 @@ package plugin
 import (
 	"context"
 	"fmt"
+	"slices"
 	"strings"
 	"time"
 
@@ -13,6 +14,7 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
+	networkingv1 "k8s.io/api/networking/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -120,7 +122,7 @@ func initClientGetter(
 }
 
 func getPortForExposedService(o runtime.Object) (*corev1.ServicePort, error) {
-	svc, err := convertRuntimeObjectToCoreV1Service(o)
+	svc, err := convertRuntimeObject[corev1.Service](o)
 	if err != nil {
 		return nil, err
 	}
@@ -130,7 +132,7 @@ func getPortForExposedService(o runtime.Object) (*corev1.ServicePort, error) {
 	}
 
 	// Check for matching of named port set by label
-	var namedPort = svc.Labels[greenhouseapis.LabelKeyExposeNamedPort]
+	var namedPort = svc.Annotations[greenhouseapis.AnnotationKeyExposedNamedPort]
 
 	if namedPort != "" {
 		for _, port := range svc.Spec.Ports {
@@ -144,16 +146,55 @@ func getPortForExposedService(o runtime.Object) (*corev1.ServicePort, error) {
 	return svc.Spec.Ports[0].DeepCopy(), nil
 }
 
-func convertRuntimeObjectToCoreV1Service(o any) (*corev1.Service, error) {
+func getURLForExposedIngress(o runtime.Object) (url string, err error) {
+	ingress, err := convertRuntimeObject[networkingv1.Ingress](o)
+	if err != nil {
+		return "", err
+	}
+
+	if len(ingress.Spec.Rules) == 0 {
+		return "", errors.New("ingress has no rules")
+	}
+
+	var host string
+	if specificHost := ingress.Annotations[greenhouseapis.AnnotationKeyExposedIngressHost]; specificHost != "" {
+		for _, rule := range ingress.Spec.Rules {
+			if rule.Host == specificHost {
+				host = rule.Host
+				break
+			}
+		}
+		if host == "" {
+			return "", fmt.Errorf("specified host %q not found in ingress rules", specificHost)
+		}
+	} else {
+		if ingress.Spec.Rules[0].Host == "" {
+			return "", errors.New("first ingress rule has no host")
+		}
+		host = ingress.Spec.Rules[0].Host
+	}
+
+	protocol := "http"
+	for _, tls := range ingress.Spec.TLS {
+		if len(tls.Hosts) == 0 || slices.Contains(tls.Hosts, host) {
+			protocol = "https"
+			break
+		}
+	}
+
+	return fmt.Sprintf("%s://%s", protocol, host), nil
+}
+
+func convertRuntimeObject[T any](o any) (*T, error) {
 	switch obj := o.(type) {
-	case *corev1.Service:
-		// If it's already a corev1.Service, no conversion needed
+	case *T:
+		// If it's already the target type, no conversion needed
 		return obj, nil
 	case *unstructured.Unstructured:
-		// If it's an unstructured object, convert it to corev1.Service
-		var service corev1.Service
-		err := runtime.DefaultUnstructuredConverter.FromUnstructured(obj.Object, &service)
-		return &service, errors.Wrap(err, "failed to convert to corev1.Service from unstructured object")
+		// If it's an unstructured object, convert it to the target type.
+		var target T
+		err := runtime.DefaultUnstructuredConverter.FromUnstructured(obj.Object, &target)
+		return &target, errors.Wrap(err, fmt.Sprintf("failed to convert to %T from unstructured object", target))
 	default:
 		return nil, fmt.Errorf("unsupported runtime.Object type: %T", obj)
 	}
