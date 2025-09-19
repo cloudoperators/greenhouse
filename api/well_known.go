@@ -60,6 +60,9 @@ const (
 
 	// LabelKeyOwnedBy is used to identify the owning support-group team of a resource.
 	LabelKeyOwnedBy = "greenhouse.sap/owned-by"
+
+	// LabelKeyMetadataPrefix is the prefix for cluster metadata labels that are transferred to Plugin template data.
+	LabelKeyMetadataPrefix = "metadata.greenhouse.sap/"
 )
 
 // TeamRole and TeamRoleBinding constants
