@@ -33,6 +33,14 @@ var pluginsAllowedInCentralCluster = []string{
 	"alerts", "doop", "heureka", "kube-monitoring", "kubeconfig-generator", "perses", "repo-guard", "service-proxy", "teams2slack", "thanos",
 }
 
+// This is the prefix to identify secrets referenced directly from vault/openBao.
+// TODO: Consume this constant from the tool integrating Greenhouse with vault/openBao, once implemented.
+// TODO: Update docs once the complete flow is implemented
+// https://github.com/cloudoperators/greenhouse/issues/1211
+const (
+	VaultPrefix string = "vault+kvv2:///"
+)
+
 // SetupPluginWebhookWithManager configures the webhook for the Plugin custom resource.
 func SetupPluginWebhookWithManager(mgr ctrl.Manager) error {
 	return webhook.SetupWebhook(mgr,
@@ -54,11 +62,16 @@ func DefaultPlugin(ctx context.Context, c client.Client, obj runtime.Object) err
 		return nil
 	}
 	if plugin.Labels == nil {
-		plugin.Labels = make(map[string]string, 0)
+		plugin.Labels = make(map[string]string)
 	}
 	// The label is used to help identifying Plugins, e.g. if a PluginDefinition changes.
 	delete(plugin.Labels, greenhouseapis.LabelKeyPlugin)
-	plugin.Labels[greenhouseapis.LabelKeyPluginDefinition] = plugin.Spec.PluginDefinition
+
+	// TODO: remove this once migration to CPD is done
+	delete(plugin.Labels, greenhouseapis.LabelKeyPluginDefinition)
+
+	// TODO: Once namespaced PluginDefinitions are supported, we need a logic here to handle the correct label
+	plugin.Labels[greenhouseapis.LabelKeyClusterPluginDefinition] = plugin.Spec.PluginDefinition
 	plugin.Labels[greenhouseapis.LabelKeyCluster] = plugin.Spec.ClusterName
 
 	// Default the displayName to a normalized version of metadata.name.
@@ -66,6 +79,11 @@ func DefaultPlugin(ctx context.Context, c client.Client, obj runtime.Object) err
 		normalizedName := strings.ReplaceAll(plugin.GetName(), "-", " ")
 		normalizedName = strings.TrimSpace(normalizedName)
 		plugin.Spec.DisplayName = normalizedName
+	}
+
+	// Validate before ValidateCreatePlugin is called. Because defaulting PluginOptionValues & ReleaseName requires the PluginDefinition to be set.
+	if plugin.Spec.PluginDefinition == "" {
+		return field.Required(field.NewPath("spec").Child("pluginDefinition"), "field is required")
 	}
 
 	// Default option values and merge with PluginDefinition values.
@@ -87,7 +105,7 @@ func DefaultPlugin(ctx context.Context, c client.Client, obj runtime.Object) err
 			plugin.Spec.ReleaseName = plugin.Name
 		} else {
 			// The Plugin is newly created, use the PluginDefinition's HelmChart name as the release name.
-			pluginDefinition := new(greenhousev1alpha1.PluginDefinition)
+			pluginDefinition := new(greenhousev1alpha1.ClusterPluginDefinition)
 			err := c.Get(ctx, client.ObjectKey{Namespace: "", Name: plugin.Spec.PluginDefinition}, pluginDefinition)
 			if err != nil {
 				return err
@@ -98,6 +116,7 @@ func DefaultPlugin(ctx context.Context, c client.Client, obj runtime.Object) err
 			plugin.Spec.ReleaseName = pluginDefinition.Spec.HelmChart.Name
 		}
 	}
+
 	return nil
 }
 
@@ -109,11 +128,16 @@ func ValidateCreatePlugin(ctx context.Context, c client.Client, obj runtime.Obje
 		return nil, nil
 	}
 
-	pluginDefinition := new(greenhousev1alpha1.PluginDefinition)
+	pluginDefinition := new(greenhousev1alpha1.ClusterPluginDefinition)
+	if plugin.Spec.PluginDefinition == "" {
+		return nil, field.Required(field.NewPath("spec").Child("pluginDefinition"), "field is required")
+	}
 	err := c.Get(ctx, client.ObjectKey{Namespace: "", Name: plugin.Spec.PluginDefinition}, pluginDefinition)
 	if err != nil {
-		// TODO: provide actual APIError
-		return nil, err
+		if apierrors.IsNotFound(err) {
+			return nil, field.NotFound(field.NewPath("spec").Child("pluginDefinition"), plugin.Spec.PluginDefinition)
+		}
+		return nil, field.InternalError(field.NewPath("spec").Child("pluginDefinition"), err)
 	}
 
 	if err := validateReleaseName(plugin.Spec.ReleaseName); err != nil {
@@ -121,12 +145,17 @@ func ValidateCreatePlugin(ctx context.Context, c client.Client, obj runtime.Obje
 	}
 
 	optionsFieldPath := field.NewPath("spec").Child("optionValues")
-	errList := validatePluginOptionValues(plugin.Spec.OptionValues, pluginDefinition, true, optionsFieldPath)
+	errList := validatePluginOptionValues(plugin.Spec.OptionValues, pluginDefinition.Name, pluginDefinition.Spec, true, optionsFieldPath)
 	if len(errList) > 0 {
 		return nil, apierrors.NewInvalid(plugin.GroupVersionKind().GroupKind(), plugin.Name, errList)
 	}
 	if err := validatePluginForCluster(ctx, c, plugin, pluginDefinition); err != nil {
 		return nil, err
+	}
+
+	labelValidationWarning := webhook.ValidateLabelOwnedBy(ctx, c, plugin)
+	if labelValidationWarning != "" {
+		return admission.Warnings{"Plugin should have a support-group Team set as its owner", labelValidationWarning}, nil
 	}
 	return nil, nil
 }
@@ -145,7 +174,9 @@ func ValidateUpdatePlugin(ctx context.Context, c client.Client, old, obj runtime
 	allWarns = append(allWarns, validateOwnerReference(oldPlugin)...)
 	allErrs := field.ErrorList{}
 
-	pluginDefinition := new(greenhousev1alpha1.PluginDefinition)
+	allErrs = append(allErrs, validation.ValidateImmutableField(oldPlugin.Spec.PluginDefinition, plugin.Spec.PluginDefinition, field.NewPath("spec", "pluginDefinition"))...)
+
+	pluginDefinition := new(greenhousev1alpha1.ClusterPluginDefinition)
 	err := c.Get(ctx, client.ObjectKey{Namespace: "", Name: plugin.Spec.PluginDefinition}, pluginDefinition)
 	if err != nil {
 		if apierrors.IsNotFound(err) {
@@ -158,10 +189,13 @@ func ValidateUpdatePlugin(ctx context.Context, c client.Client, old, obj runtime
 		return allWarns, field.Invalid(field.NewPath("spec").Child("releaseName"), plugin.Spec.ReleaseName, err.Error())
 	}
 
-	allErrs = append(allErrs, validation.ValidateImmutableField(oldPlugin.Spec.PluginDefinition, plugin.Spec.PluginDefinition, field.NewPath("spec", "pluginDefinition"))...)
+	labelValidationWarning := webhook.ValidateLabelOwnedBy(ctx, c, plugin)
+	if labelValidationWarning != "" {
+		allWarns = append(allWarns, "Plugin should have a support-group Team set as its owner", labelValidationWarning)
+	}
 
 	optionsFieldPath := field.NewPath("spec").Child("optionValues")
-	allErrs = append(allErrs, validatePluginOptionValues(plugin.Spec.OptionValues, pluginDefinition, true, optionsFieldPath)...)
+	allErrs = append(allErrs, validatePluginOptionValues(plugin.Spec.OptionValues, pluginDefinition.Name, pluginDefinition.Spec, true, optionsFieldPath)...)
 
 	allErrs = append(allErrs, validation.ValidateImmutableField(oldPlugin.Spec.ClusterName, plugin.Spec.ClusterName,
 		field.NewPath("spec", "clusterName"))...)
@@ -193,14 +227,15 @@ func validateOwnerReference(plugin *greenhousev1alpha1.Plugin) admission.Warning
 
 func validatePluginOptionValues(
 	optionValues []greenhousev1alpha1.PluginOptionValue,
-	pluginDefinition *greenhousev1alpha1.PluginDefinition,
+	pluginDefinitionName string,
+	pluginDefinitionSpec greenhousev1alpha1.PluginDefinitionSpec,
 	checkRequiredOptions bool,
 	optionsFieldPath *field.Path,
 ) field.ErrorList {
 
 	var allErrs field.ErrorList
 	var isOptionValueSet bool
-	for _, pluginOption := range pluginDefinition.Spec.Options {
+	for _, pluginOption := range pluginDefinitionSpec.Options {
 		isOptionValueSet = false
 		for idx, val := range optionValues {
 			if pluginOption.Name != val.Name {
@@ -210,11 +245,11 @@ func validatePluginOptionValues(
 			isOptionValueSet = true
 			fieldPathWithIndex := optionsFieldPath.Index(idx)
 
-			// Value and ValueFrom are mutually exclusive, but one must be provided.
-			if (val.Value == nil && val.ValueFrom == nil) || (val.Value != nil && val.ValueFrom != nil) {
+			// Value, ValueFrom, and Template are mutually exclusive, but exactly one must be provided.
+			if !hasExactlyOneValueSource(val) {
 				allErrs = append(allErrs, field.Required(
 					fieldPathWithIndex,
-					"must provide either value or valueFrom for value "+val.Name,
+					"must provide exactly one of value, valueFrom, or template for value "+val.Name,
 				))
 				continue
 			}
@@ -223,8 +258,14 @@ func validatePluginOptionValues(
 			if pluginOption.Type == greenhousev1alpha1.PluginOptionTypeSecret {
 				switch {
 				case val.Value != nil:
-					allErrs = append(allErrs, field.TypeInvalid(fieldPathWithIndex.Child("value"), "*****",
-						fmt.Sprintf("optionValue %s of type secret must use valueFrom to reference a secret", val.Name)))
+					var valStr string
+					if err := json.Unmarshal(val.Value.Raw, &valStr); err != nil {
+						allErrs = append(allErrs, field.TypeInvalid(fieldPathWithIndex.Child("value"), "*****", err.Error()))
+					}
+					if !strings.HasPrefix(valStr, VaultPrefix) {
+						allErrs = append(allErrs, field.TypeInvalid(fieldPathWithIndex.Child("value"), "*****",
+							fmt.Sprintf("optionValue %s of type secret without secret reference must use value with vault reference prefixed by schema %q", val.Name, VaultPrefix)))
+					}
 					continue
 				case val.ValueFrom != nil:
 					if val.ValueFrom.Secret.Name == "" {
@@ -256,7 +297,7 @@ func validatePluginOptionValues(
 		}
 		if checkRequiredOptions && pluginOption.Required && !isOptionValueSet {
 			allErrs = append(allErrs, field.Required(optionsFieldPath,
-				fmt.Sprintf("Option '%s' is required by PluginDefinition '%s'", pluginOption.Name, pluginDefinition.Name)))
+				fmt.Sprintf("Option '%s' is required by PluginDefinition '%s'", pluginOption.Name, pluginDefinitionName)))
 		}
 	}
 	if len(allErrs) == 0 {
@@ -273,13 +314,13 @@ func validateReleaseName(name string) error {
 	return chartutil.ValidateReleaseName(name)
 }
 
-func validatePluginForCluster(ctx context.Context, c client.Client, plugin *greenhousev1alpha1.Plugin, pluginDefinition *greenhousev1alpha1.PluginDefinition) error {
+func validatePluginForCluster(ctx context.Context, c client.Client, plugin *greenhousev1alpha1.Plugin, pluginDefinition *greenhousev1alpha1.ClusterPluginDefinition) error {
 	// Exclude front-end only Plugins as well as the greenhouse namespace from the below check.
 	if pluginDefinition.Spec.HelmChart == nil || plugin.GetNamespace() == "greenhouse" {
 		return nil
 	}
 	// Ensure whitelisted plugins are deployed in the organization namespace
-	if slices.Contains(pluginsAllowedInCentralCluster, plugin.Spec.PluginDefinition) {
+	if plugin.Spec.ClusterName == "" && slices.Contains(pluginsAllowedInCentralCluster, plugin.Spec.PluginDefinition) {
 		if plugin.Spec.ReleaseNamespace != plugin.GetNamespace() {
 			return field.Forbidden(field.NewPath("spec").Child("releaseNamespace"), "plugins running in the central cluster can only be deployed in the same namespace as the plugin")
 		}
@@ -302,4 +343,21 @@ func validatePluginForCluster(ctx context.Context, c client.Client, plugin *gree
 		}
 	}
 	return nil
+}
+
+// hasExactlyOneValueSource checks if exactly one of Value, ValueFrom, or Template is set.
+func hasExactlyOneValueSource(val greenhousev1alpha1.PluginOptionValue) bool {
+	sources := []bool{
+		val.Value != nil,
+		val.ValueFrom != nil,
+		val.Template != nil,
+	}
+
+	count := 0
+	for _, isSet := range sources {
+		if isSet {
+			count++
+		}
+	}
+	return count == 1
 }

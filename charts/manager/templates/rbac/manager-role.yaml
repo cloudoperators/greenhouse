@@ -58,18 +58,7 @@ rules:
 - apiGroups:
   - greenhouse.sap
   resources:
-  - cluster-kubeconfigs
-  - teamroles
-  verbs:
-  - create
-  - get
-  - list
-  - patch
-  - update
-  - watch
-- apiGroups:
-  - greenhouse.sap
-  resources:
+  - catalogs
   - clusterplugindefinitions
   - clusters
   - organizations
@@ -88,6 +77,7 @@ rules:
 - apiGroups:
   - greenhouse.sap
   resources:
+  - catalogs/finalizers
   - clusterplugindefinitions/finalizers
   - plugindefinitions/finalizers
   verbs:
@@ -99,6 +89,7 @@ rules:
 - apiGroups:
   - greenhouse.sap
   resources:
+  - catalogs/status
   - clusterplugindefinitions/status
   - clusters/status
   - organizations/status
@@ -111,6 +102,18 @@ rules:
   - get
   - patch
   - update
+- apiGroups:
+  - greenhouse.sap
+  resources:
+  - cluster-kubeconfigs
+  - teamroles
+  verbs:
+  - create
+  - get
+  - list
+  - patch
+  - update
+  - watch
 - apiGroups:
   - greenhouse.sap
   resources:
@@ -162,6 +165,18 @@ rules:
   - patch
   - update
 - apiGroups:
+  - kustomize.toolkit.fluxcd.io
+  resources:
+  - kustomizations
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
   - rbac
   resources:
   - clusterrolebindings
@@ -189,21 +204,7 @@ rules:
 - apiGroups:
   - source.toolkit.fluxcd.io
   resources:
-  - helmcharts
-  verbs:
-  - get
-  - list
-  - watch
-- apiGroups:
-  - source.toolkit.fluxcd.io
-  resources:
-  - helmcharts/status
-  - ocirepositories/status
-  verbs:
-  - get
-- apiGroups:
-  - source.toolkit.fluxcd.io
-  resources:
+  - gitrepositories
   - helmrepositories
   - ocirepositories
   verbs:
@@ -213,6 +214,14 @@ rules:
   - list
   - patch
   - update
+  - watch
+- apiGroups:
+  - source.toolkit.fluxcd.io
+  resources:
+  - helmcharts
+  verbs:
+  - get
+  - list
   - watch
 - apiGroups:
   - source.toolkit.fluxcd.io

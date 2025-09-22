@@ -47,6 +47,8 @@ const (
 	PluginSkippedCondition greenhousemetav1alpha1.ConditionType = "PluginSkipped"
 	// PluginFailedCondition is set when the pluginPreset encounters a failure during the reconciliation of a plugin.
 	PluginFailedCondition greenhousemetav1alpha1.ConditionType = "PluginFailed"
+	// AllPluginsReadyCondition is set when all Plugins managed by the PluginPreset are created and ready.
+	AllPluginsReadyCondition greenhousemetav1alpha1.ConditionType = "AllPluginsReady"
 )
 
 // PluginPresetStatus defines the observed state of PluginPreset
@@ -56,8 +58,8 @@ type PluginPresetStatus struct {
 
 	// PluginStatuses contains statuses of Plugins managed by the PluginPreset.
 	PluginStatuses []ManagedPluginStatus `json:"pluginStatuses,omitempty"`
-	// AvailablePlugins is the number of available Plugins managed by the PluginPreset.
-	AvailablePlugins int `json:"availablePlugins,omitempty"`
+	// TotalPlugins is the number of Plugins in total managed by the PluginPreset.
+	TotalPlugins int `json:"totalPlugins,omitempty"`
 	// ReadyPlugins is the number of ready Plugins managed by the PluginPreset.
 	ReadyPlugins int `json:"readyPlugins,omitempty"`
 	// FailedPlugins is the number of failed Plugins managed by the PluginPreset.

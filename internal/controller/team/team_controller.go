@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
-	"github.com/prometheus/client_golang/prometheus"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/wait"
@@ -19,7 +18,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/log"
-	"sigs.k8s.io/controller-runtime/pkg/metrics"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 
 	greenhousemetav1alpha1 "github.com/cloudoperators/greenhouse/api/meta/v1alpha1"
@@ -33,13 +31,6 @@ import (
 const RequeueInterval = 10 * time.Minute
 
 var (
-	membersCountMetric = prometheus.NewGaugeVec(
-		prometheus.GaugeOpts{
-			Name: "greenhouse_team_members_count",
-			Help: "Members count in team",
-		},
-		[]string{"namespace", "team"},
-	)
 	// exposedConditions are the conditions that are exposed in the StatusConditions of the Team.
 	exposedConditions = []greenhousemetav1alpha1.ConditionType{
 		greenhousemetav1alpha1.ReadyCondition,
@@ -47,10 +38,6 @@ var (
 		greenhousev1alpha1.SCIMAllMembersValidCondition,
 	}
 )
-
-func init() {
-	metrics.Registry.MustRegister(membersCountMetric)
-}
 
 type TeamController struct {
 	client.Client
@@ -168,10 +155,7 @@ func (r *TeamController) EnsureCreated(ctx context.Context, object lifecycle.Run
 	team.Status.Members = users
 	team.SetCondition(greenhousemetav1alpha1.TrueCondition(greenhousev1alpha1.SCIMAccessReadyCondition, "", ""))
 
-	membersCountMetric.With(prometheus.Labels{
-		"namespace": team.Namespace,
-		"team":      team.Name,
-	}).Set(float64(len(users)))
+	UpdateTeamMembersCountMetric(team, len(users))
 
 	return ctrl.Result{
 			RequeueAfter: wait.Jitter(RequeueInterval, 0.1),

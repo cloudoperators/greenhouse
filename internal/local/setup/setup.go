@@ -13,13 +13,15 @@ type ExecutionEnv struct {
 	cluster *Cluster
 	steps   []Step
 	info    []string // info messages to be displayed at the end of run
+	devMode bool
 }
 
 type Step func(builder *ExecutionEnv) error
 
-func NewExecutionEnv() *ExecutionEnv {
+func NewExecutionEnv(devMode bool) *ExecutionEnv {
 	return &ExecutionEnv{
-		steps: make([]Step, 0),
+		steps:   make([]Step, 0),
+		devMode: devMode,
 	}
 }
 
@@ -47,8 +49,8 @@ func (env *ExecutionEnv) WithLimitedManifests(ctx context.Context, manifest *Man
 	return env
 }
 
-func (env *ExecutionEnv) WithWebhookDevelopment(ctx context.Context, manifest *Manifest) *ExecutionEnv {
-	env.steps = append(env.steps, webhookManifestSetup(ctx, manifest))
+func (env *ExecutionEnv) WithGreenhouseDevelopment(ctx context.Context, manifest *Manifest) *ExecutionEnv {
+	env.steps = append(env.steps, greenhouseManifestSetup(ctx, manifest))
 	return env
 }
 

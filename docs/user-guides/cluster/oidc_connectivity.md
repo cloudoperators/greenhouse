@@ -184,9 +184,9 @@ $ kubectl apply -f <oidc-secret-file>.yaml
 
 ### Troubleshooting
 
-If the bootstrapping failed, you can find details about why it failed in the `Cluster.status.statusConditions`. More precisely
-there will be a condition of `type=KubeConfigValid` and `type=Ready` which contain more information in the `message` field.
-This is also displayed in the UI on the `Cluster` details view.
+If the bootstrapping failed, you can find details about why it failed in the `Cluster.status.statusConditions`. 
+More precisely, there will be conditions of `type=KubeConfigValid`, `type=PermissionsVerified`, `type=ManagedResourcesDeployed`, and `type=Ready`, each of which may provide helpful context in the message field. 
+These conditions are also displayed in the UI on the Cluster details view.
 
 If there is any error message regarding RBAC then check the `ClusterRoleBinding` and ensure the subject name is correct
 

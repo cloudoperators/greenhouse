@@ -20,6 +20,9 @@ const (
 	// SecretTypeOrganization specifies a secret containing the kubeconfig for an organization.
 	SecretTypeOrganization corev1.SecretType = "greenhouse.sap/orgsecret"
 
+	// LabelKeyOrgConfigMap is used to identify organizational config map.
+	LabelKeyOrgConfigMap = "greenhouse.sap/orgconfigmap"
+
 	// KubeConfigKey is the key for the user-provided kubeconfig in the secret of type greenhouse.sap/kubeconfig.
 	KubeConfigKey = "kubeconfig"
 
@@ -36,16 +39,26 @@ const (
 	// LabelKeyPluginDefinition is used to identify corresponding PluginDefinition for the resource.
 	LabelKeyPluginDefinition = "greenhouse.sap/plugindefinition"
 
+	// LabelKeyClusterPluginDefinition is used to identify the corresponding ClusterPluginDefinition for the resource.
+	LabelKeyClusterPluginDefinition = "greenhouse.sap/clusterplugindefinition"
+
 	// LabelKeyCluster is used to identify corresponding Cluster for the resource.
 	LabelKeyCluster = "greenhouse.sap/cluster"
 
-	// LabelKeyExposeService is applied to services that are part of a PluginDefinitions Helm chart to expose them via the central Greenhouse infrastructure.
-	LabelKeyExposeService = "greenhouse.sap/expose"
+	// AnnotationKeyExpose marks services and ingresses for exposure via Plugin status.
+	// For services: set to "true" or specify a named port to be exposed via service-proxy.
+	// For ingresses: set to "true" to expose the ingress URL directly.
+	AnnotationKeyExpose = "greenhouse.sap/expose"
 
-	// LabelKeyExposeNamedPort is specifying the port to be exposed by name. LabelKeyExposeService needs to be set. Defaults to the first port if the named port is not found.
-	LabelKeyExposeNamedPort = "greenhouse.sap/exposeNamedPort"
+	// AnnotationKeyExposedNamedPort specifies which service port to expose by name when AnnotationKeyExpose is set.
+	// Only applies to services. Defaults to the first port if the named port is not found.
+	AnnotationKeyExposedNamedPort = "greenhouse.sap/exposed-named-port"
 
-	// LabelKeyOwnedBy is used to identify the owning team of a resource.
+	// AnnotationKeyExposedIngressHost specifies which host to expose when an ingress has multiple host rules.
+	// Only applies to ingresses with AnnotationKeyExpose set. Defaults to the first host if not specified.
+	AnnotationKeyExposedIngressHost = "greenhouse.sap/exposed-host"
+
+	// LabelKeyOwnedBy is used to identify the owning support-group team of a resource.
 	LabelKeyOwnedBy = "greenhouse.sap/owned-by"
 )
 
@@ -68,6 +81,18 @@ const (
 
 	// RolebindingTeamRefField is the field in the RoleBinding spec that references the Team.
 	RolebindingTeamRefField = ".spec.teamRef"
+
+	// ConfigMapRefField is the field in the Organization spec that references the ConfigMap containing organizational configuration data.
+	ConfigMapRefField = ".spec.configMapRef"
+
+	// KindClusterPluginDefinitionPlural is the plural form of ClusterPluginDefinition kind.
+	KindClusterPluginDefinitionPlural = "clusterplugindefinitions"
+)
+
+// Team constants
+const (
+	// LabelKeySupportGroup is the key of the label that is used to mark a Team as a support group (greenhouse.sap/support-group:true).
+	LabelKeySupportGroup = "greenhouse.sap/support-group"
 )
 
 // cluster annotations
@@ -82,6 +107,7 @@ const (
 	ClusterConnectivityOIDC           = "oidc"
 	GreenhouseHelmDeliveryToolLabel   = "greenhouse.sap/deployment-tool"
 	GreenhouseHelmDeliveryToolFlux    = "flux"
+	FluxReconcileRequestAnnotation    = "reconcile.fluxcd.io/requestedAt"
 )
 
 const (

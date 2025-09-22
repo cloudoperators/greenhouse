@@ -62,6 +62,260 @@ SCIMConfig
 </table>
 </div>
 </div>
+<h3 id="greenhouse.sap/v1alpha1.Catalog">Catalog
+</h3>
+<p>Catalog is the Schema for the catalogs API.</p>
+<div class="md-typeset__scrollwrap">
+<div class="md-typeset__table">
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>metadata</code><br>
+<em>
+<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#objectmeta-v1-meta">
+Kubernetes meta/v1.ObjectMeta
+</a>
+</em>
+</td>
+<td>
+Refer to the Kubernetes API documentation for the fields of the
+<code>metadata</code> field.
+</td>
+</tr>
+<tr>
+<td>
+<code>spec</code><br>
+<em>
+<a href="#greenhouse.sap/v1alpha1.CatalogSpec">
+CatalogSpec
+</a>
+</em>
+</td>
+<td>
+<br/>
+<br/>
+<table>
+<tr>
+<td>
+<code>source</code><br>
+<em>
+<a href="#greenhouse.sap/v1alpha1.CatalogSource">
+CatalogSource
+</a>
+</em>
+</td>
+<td>
+<p>Source is the medium from which the PluginDefinition needs to be fetched</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>overrides</code><br>
+<em>
+<a href="#greenhouse.sap/v1alpha1.CatalogOverrides">
+[]CatalogOverrides
+</a>
+</em>
+</td>
+<td>
+<p>Overrides are the PluginDefinition overrides to be applied</p>
+</td>
+</tr>
+</table>
+</td>
+</tr>
+<tr>
+<td>
+<code>status</code><br>
+<em>
+<a href="#greenhouse.sap/v1alpha1.CatalogStatus">
+CatalogStatus
+</a>
+</em>
+</td>
+<td>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<h3 id="greenhouse.sap/v1alpha1.CatalogOverrides">CatalogOverrides
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#greenhouse.sap/v1alpha1.CatalogSpec">CatalogSpec</a>)
+</p>
+<div class="md-typeset__scrollwrap">
+<div class="md-typeset__table">
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>name</code><br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Name is the name of the PluginDefinition to patch with an alias</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>alias</code><br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Alias is the alias to apply to the PluginDefinition Name via Kustomize patches
+For SourceType Helm, this field is passed to postRender Kustomize patch</p>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<h3 id="greenhouse.sap/v1alpha1.CatalogSource">CatalogSource
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#greenhouse.sap/v1alpha1.CatalogSpec">CatalogSpec</a>)
+</p>
+<div class="md-typeset__scrollwrap">
+<div class="md-typeset__table">
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>git</code><br>
+<em>
+<a href="#greenhouse.sap/v1alpha1.GitSource">
+GitSource
+</a>
+</em>
+</td>
+<td>
+<p>Git is the Git repository source for the PluginDefinition Catalog</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>path</code><br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Path is the path within the repository where the ClusterPluginDefinition / PluginDefinition Catalog is located
+an empty path indicates the root of the repository</p>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<h3 id="greenhouse.sap/v1alpha1.CatalogSpec">CatalogSpec
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#greenhouse.sap/v1alpha1.Catalog">Catalog</a>)
+</p>
+<p>CatalogSpec defines the desired state of Catalog.</p>
+<div class="md-typeset__scrollwrap">
+<div class="md-typeset__table">
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>source</code><br>
+<em>
+<a href="#greenhouse.sap/v1alpha1.CatalogSource">
+CatalogSource
+</a>
+</em>
+</td>
+<td>
+<p>Source is the medium from which the PluginDefinition needs to be fetched</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>overrides</code><br>
+<em>
+<a href="#greenhouse.sap/v1alpha1.CatalogOverrides">
+[]CatalogOverrides
+</a>
+</em>
+</td>
+<td>
+<p>Overrides are the PluginDefinition overrides to be applied</p>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<h3 id="greenhouse.sap/v1alpha1.CatalogStatus">CatalogStatus
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#greenhouse.sap/v1alpha1.Catalog">Catalog</a>)
+</p>
+<p>CatalogStatus defines the observed state of Catalog.</p>
+<div class="md-typeset__scrollwrap">
+<div class="md-typeset__table">
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>statusConditions</code><br>
+<em>
+<a href="https://pkg.go.dev/github.com/cloudoperators/greenhouse/api/v1alpha1#StatusConditions">
+Greenhouse meta/v1alpha1.StatusConditions
+</a>
+</em>
+</td>
+<td>
+<p>StatusConditions contain the different conditions that constitute the status of the Catalog</p>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
 <h3 id="greenhouse.sap/v1alpha1.Cluster">Cluster
 </h3>
 <p>Cluster is the Schema for the clusters API</p>
@@ -923,6 +1177,33 @@ ClusterPluginDefinitionStatus
 <a href="#greenhouse.sap/v1alpha1.ClusterPluginDefinition">ClusterPluginDefinition</a>)
 </p>
 <p>ClusterPluginDefinitionStatus defines the observed state of ClusterPluginDefinition.</p>
+<div class="md-typeset__scrollwrap">
+<div class="md-typeset__table">
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>statusConditions</code><br>
+<em>
+<a href="https://pkg.go.dev/github.com/cloudoperators/greenhouse/api/v1alpha1#StatusConditions">
+Greenhouse meta/v1alpha1.StatusConditions
+</a>
+</em>
+</td>
+<td>
+<p>StatusConditions contain the different conditions that constitute the status of the Plugin.</p>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
 <h3 id="greenhouse.sap/v1alpha1.ClusterSpec">ClusterSpec
 </h3>
 <p>
@@ -1028,13 +1309,107 @@ Greenhouse meta/v1alpha1.StatusConditions
 <td>
 <code>nodes</code><br>
 <em>
-<a href="#greenhouse.sap/v1alpha1.NodeStatus">
-map[string]../greenhouse/api/v1alpha1.NodeStatus
+<a href="#greenhouse.sap/v1alpha1.Nodes">
+Nodes
 </a>
 </em>
 </td>
 <td>
-<p>Nodes provides a map of cluster node names to node statuses</p>
+<p>Nodes contain a short summary of nodes count and not ready nodes status.</p>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<h3 id="greenhouse.sap/v1alpha1.GitRef">GitRef
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#greenhouse.sap/v1alpha1.GitSource">GitSource</a>)
+</p>
+<div class="md-typeset__scrollwrap">
+<div class="md-typeset__table">
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>branch</code><br>
+<em>
+string
+</em>
+</td>
+<td>
+</td>
+</tr>
+<tr>
+<td>
+<code>tag</code><br>
+<em>
+string
+</em>
+</td>
+<td>
+</td>
+</tr>
+<tr>
+<td>
+<code>sha</code><br>
+<em>
+string
+</em>
+</td>
+<td>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<h3 id="greenhouse.sap/v1alpha1.GitSource">GitSource
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#greenhouse.sap/v1alpha1.CatalogSource">CatalogSource</a>)
+</p>
+<div class="md-typeset__scrollwrap">
+<div class="md-typeset__table">
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>url</code><br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Repository is the URL of the GitHub repository containing the ClusterPluginDefinition / PluginDefinition Catalog</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>ref</code><br>
+<em>
+<a href="#greenhouse.sap/v1alpha1.GitRef">
+GitRef
+</a>
+</em>
+</td>
+<td>
+<p>Ref is the Git reference (branch, tag, or SHA) to resolve the ClusterPluginDefinition / PluginDefinition Catalog</p>
 </td>
 </tr>
 </tbody>
@@ -1223,8 +1598,9 @@ Greenhouse meta/v1alpha1.Condition
 </h3>
 <p>
 (<em>Appears on:</em>
-<a href="#greenhouse.sap/v1alpha1.ClusterStatus">ClusterStatus</a>)
+<a href="#greenhouse.sap/v1alpha1.Nodes">Nodes</a>)
 </p>
+<p>NodeStatus represents a status of non-ready node.</p>
 <div class="md-typeset__scrollwrap">
 <div class="md-typeset__table">
 <table>
@@ -1237,26 +1613,93 @@ Greenhouse meta/v1alpha1.Condition
 <tbody>
 <tr>
 <td>
-<code>statusConditions</code><br>
+<code>name</code><br>
 <em>
-<a href="https://pkg.go.dev/github.com/cloudoperators/greenhouse/api/v1alpha1#StatusConditions">
-Greenhouse meta/v1alpha1.StatusConditions
+string
+</em>
+</td>
+<td>
+<p>Name of the node.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>message</code><br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Message represents the error message.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>lastTransitionTime</code><br>
+<em>
+<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#time-v1-meta">
+Kubernetes meta/v1.Time
 </a>
 </em>
 </td>
 <td>
-<p>We mirror the node conditions here for faster reference</p>
+<p>LastTransitionTime represents latest transition time of status.</p>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<h3 id="greenhouse.sap/v1alpha1.Nodes">Nodes
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#greenhouse.sap/v1alpha1.ClusterStatus">ClusterStatus</a>)
+</p>
+<p>Nodes contains node count metrics and tracks non-ready nodes in a cluster.</p>
+<div class="md-typeset__scrollwrap">
+<div class="md-typeset__table">
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>total</code><br>
+<em>
+int32
+</em>
+</td>
+<td>
+<p>Total represent the number of all the nodes in the cluster.</p>
 </td>
 </tr>
 <tr>
 <td>
 <code>ready</code><br>
 <em>
-bool
+int32
 </em>
 </td>
 <td>
-<p>Fast track to the node ready condition.</p>
+<p>ReadyNodes represent the number of ready nodes in the cluster.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>notReady</code><br>
+<em>
+<a href="#greenhouse.sap/v1alpha1.NodeStatus">
+[]NodeStatus
+</a>
+</em>
+</td>
+<td>
+<p>NotReady is slice of non-ready nodes status details.</p>
 </td>
 </tr>
 </tbody>
@@ -1431,6 +1874,17 @@ string
 <p>MappedOrgAdminIDPGroup is the IDP group ID identifying org admins</p>
 </td>
 </tr>
+<tr>
+<td>
+<code>configMapRef</code><br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>ConfigMapRef allows to reference organizational config map.</p>
+</td>
+</tr>
 </table>
 </td>
 </tr>
@@ -1512,6 +1966,17 @@ string
 </td>
 <td>
 <p>MappedOrgAdminIDPGroup is the IDP group ID identifying org admins</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>configMapRef</code><br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>ConfigMapRef allows to reference organizational config map.</p>
 </td>
 </tr>
 </tbody>
@@ -2183,6 +2648,18 @@ ValueFromSource
 <p>ValueFrom references a potentially confidential value in another source.</p>
 </td>
 </tr>
+<tr>
+<td>
+<code>template</code><br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Template is a Go string template that will be dynamically resolved for cluster-specific values.
+Only PluginOptionValues declared as template will be templated by the PluginController for Flux.</p>
+</td>
+</tr>
 </tbody>
 </table>
 </div>
@@ -2390,13 +2867,13 @@ Greenhouse meta/v1alpha1.StatusConditions
 </tr>
 <tr>
 <td>
-<code>availablePlugins</code><br>
+<code>totalPlugins</code><br>
 <em>
 int
 </em>
 </td>
 <td>
-<p>AvailablePlugins is the number of available Plugins managed by the PluginPreset.</p>
+<p>TotalPlugins is the number of Plugins in total managed by the PluginPreset.</p>
 </td>
 </tr>
 <tr>
@@ -2880,7 +3357,7 @@ int32
 </em>
 </td>
 <td>
-<p>Port is the port of the service.</p>
+<p>Port is the port of the service. Zero for ingresses where port is not applicable.</p>
 </td>
 </tr>
 <tr>
@@ -2894,10 +3371,30 @@ string
 <p>Protocol is the protocol of the service.</p>
 </td>
 </tr>
+<tr>
+<td>
+<code>type</code><br>
+<em>
+<a href="#greenhouse.sap/v1alpha1.ServiceType">
+ServiceType
+</a>
+</em>
+</td>
+<td>
+<p>Type is the type of exposed service.</p>
+</td>
+</tr>
 </tbody>
 </table>
 </div>
 </div>
+<h3 id="greenhouse.sap/v1alpha1.ServiceType">ServiceType
+(<code>string</code> alias)</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#greenhouse.sap/v1alpha1.Service">Service</a>)
+</p>
+<p>ServiceType defines the type of exposed service.</p>
 <h3 id="greenhouse.sap/v1alpha1.Team">Team
 </h3>
 <p>Team is the Schema for the teams API</p>

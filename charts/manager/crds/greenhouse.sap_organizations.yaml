@@ -194,6 +194,10 @@ spec:
                     - baseURL
                     type: object
                 type: object
+              configMapRef:
+                description: ConfigMapRef allows to reference organizational config
+                  map.
+                type: string
               description:
                 description: Description provides additional details of the organization.
                 type: string
@@ -225,7 +229,7 @@ spec:
                           format: date-time
                           type: string
                         message:
-                          description: Message is an optional human readable message
+                          description: Message is an optional human-readable message
                             indicating details about the last transition.
                           type: string
                         reason:

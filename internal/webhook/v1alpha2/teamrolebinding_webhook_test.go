@@ -9,6 +9,7 @@ import (
 	rbacv1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
+	greenhouseapis "github.com/cloudoperators/greenhouse/api"
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
 	"github.com/cloudoperators/greenhouse/internal/test"
 )
@@ -31,21 +32,22 @@ var _ = Describe("Validate Create RoleBinding", Ordered, func() {
 
 	BeforeAll(func() {
 		setup = test.NewTestSetup(test.Ctx, test.K8sClient, "rolebinding-create")
-		team = setup.CreateTeam(test.Ctx, "test-team")
-		cluster = setup.CreateCluster(test.Ctx, "test-cluster")
+		team = setup.CreateTeam(test.Ctx, "test-setup-team", test.WithTeamLabel(greenhouseapis.LabelKeySupportGroup, "true"))
+		cluster = setup.CreateCluster(test.Ctx, "test-cluster", test.WithClusterLabel(greenhouseapis.LabelKeyOwnedBy, team.Name))
 
 		teamRole = setup.CreateTeamRole(test.Ctx, "test-teamrole", test.WithRules(rules))
 	})
 
 	AfterAll(func() {
 		test.EventuallyDeleted(test.Ctx, test.K8sClient, teamRole)
-		test.EventuallyDeleted(test.Ctx, test.K8sClient, team)
 		test.EventuallyDeleted(test.Ctx, test.K8sClient, cluster)
+		test.EventuallyDeleted(test.Ctx, test.K8sClient, team)
 	})
 
 	Context("deny create if referenced resources do not exist", func() {
 		It("should return an error if the role does not exist", func() {
 			rb := test.NewTeamRoleBinding(test.Ctx, "testBinding", setup.Namespace(),
+				test.WithTeamRoleBindingLabel(greenhouseapis.LabelKeyOwnedBy, team.Name),
 				test.WithTeamRoleRef("non-existent-role"),
 				test.WithTeamRef(team.Name),
 				test.WithClusterName(cluster.Name),
@@ -58,6 +60,7 @@ var _ = Describe("Validate Create RoleBinding", Ordered, func() {
 		})
 		It("should return an error if the team does not exist", func() {
 			rb := test.NewTeamRoleBinding(test.Ctx, "testBinding", setup.Namespace(),
+				test.WithTeamRoleBindingLabel(greenhouseapis.LabelKeyOwnedBy, team.Name),
 				test.WithTeamRoleRef(teamRole.Name),
 				test.WithTeamRef("non-existent-team"),
 				test.WithClusterName(cluster.Name),
@@ -70,6 +73,7 @@ var _ = Describe("Validate Create RoleBinding", Ordered, func() {
 		})
 		It("should return an error if both clusterName and clusterSelector not specified", func() {
 			rb := test.NewTeamRoleBinding(test.Ctx, "testBinding", setup.Namespace(),
+				test.WithTeamRoleBindingLabel(greenhouseapis.LabelKeyOwnedBy, team.Name),
 				test.WithTeamRoleRef(teamRole.Name),
 				test.WithTeamRef(team.Name),
 			)
@@ -81,6 +85,7 @@ var _ = Describe("Validate Create RoleBinding", Ordered, func() {
 		})
 		It("should return an error if both clusterName and clusterSelector are specified", func() {
 			rb := test.NewTeamRoleBinding(test.Ctx, "testBinding", setup.Namespace(),
+				test.WithTeamRoleBindingLabel(greenhouseapis.LabelKeyOwnedBy, team.Name),
 				test.WithTeamRoleRef(teamRole.Name),
 				test.WithTeamRef(team.Name),
 				test.WithClusterName(cluster.Name),
@@ -96,14 +101,16 @@ var _ = Describe("Validate Create RoleBinding", Ordered, func() {
 
 	Context("Validate Update Rolebinding", func() {
 		It("Should deny changes to the empty Namespaces", func() {
-			oldRB := test.NewTeamRoleBinding(test.Ctx, "testBinding", "greenhouse",
+			oldRB := test.NewTeamRoleBinding(test.Ctx, "testBinding", setup.Namespace(),
+				test.WithTeamRoleBindingLabel(greenhouseapis.LabelKeyOwnedBy, team.Name),
 				test.WithTeamRoleRef(teamRole.Name),
 				test.WithTeamRef(team.Name),
 				test.WithClusterName(cluster.Name),
 				test.WithNamespaces(),
 			)
 
-			curRB := test.NewTeamRoleBinding(test.Ctx, "testBinding", "greenhouse",
+			curRB := test.NewTeamRoleBinding(test.Ctx, "testBinding", setup.Namespace(),
+				test.WithTeamRoleBindingLabel(greenhouseapis.LabelKeyOwnedBy, team.Name),
 				test.WithTeamRoleRef(teamRole.Name),
 				test.WithTeamRef(team.Name),
 				test.WithClusterName(cluster.Name),
@@ -117,14 +124,16 @@ var _ = Describe("Validate Create RoleBinding", Ordered, func() {
 		})
 
 		It("Should deny removing all Namespaces", func() {
-			oldRB := test.NewTeamRoleBinding(test.Ctx, "testBinding", "greenhouse",
+			oldRB := test.NewTeamRoleBinding(test.Ctx, "testBinding", setup.Namespace(),
+				test.WithTeamRoleBindingLabel(greenhouseapis.LabelKeyOwnedBy, team.Name),
 				test.WithTeamRoleRef(teamRole.Name),
 				test.WithTeamRef(team.Name),
 				test.WithClusterName(cluster.Name),
 				test.WithNamespaces("demoNamespace1", "demoNamespace2"),
 			)
 
-			curRB := test.NewTeamRoleBinding(test.Ctx, "testBinding", "greenhouse",
+			curRB := test.NewTeamRoleBinding(test.Ctx, "testBinding", setup.Namespace(),
+				test.WithTeamRoleBindingLabel(greenhouseapis.LabelKeyOwnedBy, team.Name),
 				test.WithTeamRoleRef(teamRole.Name),
 				test.WithTeamRef(team.Name),
 				test.WithClusterName(cluster.Name),
@@ -137,14 +146,16 @@ var _ = Describe("Validate Create RoleBinding", Ordered, func() {
 		})
 
 		It("Should allow changing Namespaces", func() {
-			oldRB := test.NewTeamRoleBinding(test.Ctx, "testBinding", "greenhouse",
+			oldRB := test.NewTeamRoleBinding(test.Ctx, "testBinding", setup.Namespace(),
+				test.WithTeamRoleBindingLabel(greenhouseapis.LabelKeyOwnedBy, team.Name),
 				test.WithTeamRoleRef(teamRole.Name),
 				test.WithTeamRef(team.Name),
 				test.WithClusterName(cluster.Name),
 				test.WithNamespaces("demoNamespace1", "demoNamespace2"),
 			)
 
-			curRB := test.NewTeamRoleBinding(test.Ctx, "testBinding", "greenhouse",
+			curRB := test.NewTeamRoleBinding(test.Ctx, "testBinding", setup.Namespace(),
+				test.WithTeamRoleBindingLabel(greenhouseapis.LabelKeyOwnedBy, team.Name),
 				test.WithTeamRoleRef(teamRole.Name),
 				test.WithTeamRef(team.Name),
 				test.WithClusterName(cluster.Name),
@@ -171,14 +182,16 @@ var _ = Describe("Validate Create RoleBinding", Ordered, func() {
 		})
 
 		It("Should deny changing the TeamRoleRef", func() {
-			oldRB := test.NewTeamRoleBinding(test.Ctx, "testBinding", "greenhouse",
+			oldRB := test.NewTeamRoleBinding(test.Ctx, "testBinding", setup.Namespace(),
+				test.WithTeamRoleBindingLabel(greenhouseapis.LabelKeyOwnedBy, team.Name),
 				test.WithTeamRoleRef(teamRole.Name),
 				test.WithTeamRef(team.Name),
 				test.WithClusterName(cluster.Name),
 				test.WithNamespaces("demoNamespace"),
 			)
 
-			curRB := test.NewTeamRoleBinding(test.Ctx, "testBinding", "greenhouse",
+			curRB := test.NewTeamRoleBinding(test.Ctx, "testBinding", setup.Namespace(),
+				test.WithTeamRoleBindingLabel(greenhouseapis.LabelKeyOwnedBy, team.Name),
 				test.WithTeamRoleRef("differentTeamRole"),
 				test.WithTeamRef(team.Name),
 				test.WithClusterName(cluster.Name),
@@ -192,13 +205,15 @@ var _ = Describe("Validate Create RoleBinding", Ordered, func() {
 		})
 
 		It("Should deny changing the TeamRef", func() {
-			oldRB := test.NewTeamRoleBinding(test.Ctx, "testBinding", "greenhouse",
+			oldRB := test.NewTeamRoleBinding(test.Ctx, "testBinding", setup.Namespace(),
+				test.WithTeamRoleBindingLabel(greenhouseapis.LabelKeyOwnedBy, team.Name),
 				test.WithTeamRoleRef(teamRole.Name),
 				test.WithTeamRef(team.Name),
 				test.WithClusterName(cluster.Name),
 			)
 
-			curRB := test.NewTeamRoleBinding(test.Ctx, "testBinding", "greenhouse",
+			curRB := test.NewTeamRoleBinding(test.Ctx, "testBinding", setup.Namespace(),
+				test.WithTeamRoleBindingLabel(greenhouseapis.LabelKeyOwnedBy, team.Name),
 				test.WithTeamRoleRef(teamRole.Name),
 				test.WithTeamRef("differentTeam"),
 				test.WithClusterName(cluster.Name),
@@ -208,6 +223,28 @@ var _ = Describe("Validate Create RoleBinding", Ordered, func() {
 			Expect(warns).To(BeNil(), "expected no warnings")
 			Expect(err).To(HaveOccurred(), "expected an error")
 			Expect(err).To(MatchError(ContainSubstring("cannot change TeamRef of an existing TeamRoleBinding")))
+		})
+
+		It("Should return a warning when the owner Team is in another namespace", func() {
+			oldRB := test.NewTeamRoleBinding(test.Ctx, "testBinding", setup.Namespace(),
+				test.WithTeamRoleBindingLabel(greenhouseapis.LabelKeyOwnedBy, team.Name),
+				test.WithTeamRoleRef(teamRole.Name),
+				test.WithTeamRef(team.Name),
+				test.WithClusterName(cluster.Name),
+			)
+
+			curRB := test.NewTeamRoleBinding(test.Ctx, "testBinding", "greenhouse",
+				test.WithTeamRoleBindingLabel(greenhouseapis.LabelKeyOwnedBy, team.Name),
+				test.WithTeamRoleRef(teamRole.Name),
+				test.WithTeamRef(team.Name),
+				test.WithClusterName(cluster.Name),
+			)
+
+			warns, err := ValidateUpdateRoleBinding(test.Ctx, test.K8sClient, oldRB, curRB)
+			Expect(err).ToNot(HaveOccurred(), "expected no error")
+			Expect(warns).Should(ContainElement(
+				ContainSubstring("TeamRoleBinding should have a support-group Team set as its owner"),
+			), "expected a warning")
 		})
 	})
 })

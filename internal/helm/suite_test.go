@@ -21,7 +21,7 @@ func TestHelm(t *testing.T) {
 }
 
 var _ = BeforeSuite(func() {
-	test.RegisterWebhook("pluginDefinitionWebhook", webhookv1alpha1.SetupPluginDefinitionWebhookWithManager)
+	test.RegisterWebhook("clusterPluginDefinitionWebhook", webhookv1alpha1.SetupClusterPluginDefinitionWebhookWithManager)
 	test.RegisterWebhook("pluginWebhook", webhookv1alpha1.SetupPluginWebhookWithManager)
 	test.RegisterWebhook("teamWebhook", webhookv1alpha1.SetupTeamWebhookWithManager)
 	test.RegisterWebhook("secretsWebhook", webhookv1alpha1.SetupSecretWebhookWithManager)
@@ -49,9 +49,9 @@ var (
 		},
 	}
 
-	testPluginWithoutHelmChart = &greenhousev1alpha1.PluginDefinition{
+	testPluginWithoutHelmChart = &greenhousev1alpha1.ClusterPluginDefinition{
 		ObjectMeta: metav1.ObjectMeta{
-			Namespace: "test-org",
+			Namespace: namespace,
 			Name:      "test-plugindefinition",
 		},
 		Spec: greenhousev1alpha1.PluginDefinitionSpec{
@@ -67,9 +67,9 @@ var (
 		},
 	}
 
-	testPluginWithHelmChart = &greenhousev1alpha1.PluginDefinition{
+	testPluginWithHelmChart = &greenhousev1alpha1.ClusterPluginDefinition{
 		ObjectMeta: metav1.ObjectMeta{
-			Namespace: "test-org",
+			Namespace: namespace,
 			Name:      "test-plugindefinition",
 		},
 		Spec: greenhousev1alpha1.PluginDefinitionSpec{
@@ -91,9 +91,9 @@ var (
 		},
 	}
 
-	testPluginWithHelmChartOCI = &greenhousev1alpha1.PluginDefinition{
+	testPluginWithHelmChartOCI = &greenhousev1alpha1.ClusterPluginDefinition{
 		ObjectMeta: metav1.ObjectMeta{
-			Namespace: "test-org",
+			Namespace: namespace,
 			Name:      "test-plugindefinition",
 		},
 		Spec: greenhousev1alpha1.PluginDefinitionSpec{
@@ -114,9 +114,9 @@ var (
 		},
 	}
 
-	testPluginWithHelmChartCRDs = &greenhousev1alpha1.PluginDefinition{
+	testPluginWithHelmChartCRDs = &greenhousev1alpha1.ClusterPluginDefinition{
 		ObjectMeta: metav1.ObjectMeta{
-			Namespace: "test-org",
+			Namespace: namespace,
 			Name:      "test-plugindefinition",
 		},
 		Spec: greenhousev1alpha1.PluginDefinitionSpec{
@@ -140,7 +140,7 @@ var (
 
 	plugin = &greenhousev1alpha1.Plugin{
 		ObjectMeta: metav1.ObjectMeta{
-			Namespace: "test-org",
+			Namespace: namespace,
 			Name:      "test-plugin",
 			// add owning team label
 			Labels: map[string]string{
@@ -157,8 +157,9 @@ var (
 
 	pluginSecret = &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
-			Namespace: "test-org",
+			Namespace: namespace,
 			Name:      "plugindefinition-secret",
+			Labels:    map[string]string{greenhouseapis.LabelKeyOwnedBy: "test-team-1"},
 		},
 		Data: map[string][]byte{
 			"secretKey": []byte("pluginSecretValue1"),
@@ -173,7 +174,7 @@ var (
 
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "test-team-1",
-			Namespace: "test-org",
+			Namespace: namespace,
 		},
 		Spec: greenhousev1alpha1.TeamSpec{
 			Description:    "Test Team 1",

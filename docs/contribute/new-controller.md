@@ -33,7 +33,7 @@ The new Kind should be added to the list under `charts/manager/crds/kustomizatio
 The new Controller needs to be registered in the controllers manager `cmd/greenhouse/main.go`.
 All other generated files can be deleted.
 
-Now you can generate all manifests with `make generate-manifests` and start implementing your controller logic.
+Now you can generate all manifests with `make manifests` and start implementing your controller logic.
 
 ## Implementing the Controller
 

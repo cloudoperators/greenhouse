@@ -59,6 +59,7 @@ func ValidateCreatePluginPreset(ctx context.Context, c client.Client, o runtime.
 		return nil, nil
 	}
 	var allErrs field.ErrorList
+	var allWarns admission.Warnings
 
 	// ensure PluginDefinition and ClusterSelector are set
 	if pluginPreset.Spec.Plugin.PluginDefinition == "" {
@@ -79,7 +80,7 @@ func ValidateCreatePluginPreset(ctx context.Context, c client.Client, o runtime.
 	}
 
 	// ensure PluginDefinition exists
-	pluginDefinition := new(greenhousev1alpha1.PluginDefinition)
+	pluginDefinition := new(greenhousev1alpha1.ClusterPluginDefinition)
 	err := c.Get(ctx, client.ObjectKey{Namespace: "", Name: pluginPreset.Spec.Plugin.PluginDefinition}, pluginDefinition)
 	switch {
 	case err != nil && apierrors.IsNotFound(err):
@@ -88,16 +89,21 @@ func ValidateCreatePluginPreset(ctx context.Context, c client.Client, o runtime.
 		allErrs = append(allErrs, field.Invalid(field.NewPath("spec").Child("plugin").Child("pluginDefinition"), pluginPreset.Spec.Plugin.PluginDefinition, "PluginDefinition could not be retrieved: "+err.Error()))
 	}
 
+	labelValidationWarning := webhook.ValidateLabelOwnedBy(ctx, c, pluginPreset)
+	if labelValidationWarning != "" {
+		allWarns = append(allWarns, "PluginPreset should have a support-group Team set as its owner", labelValidationWarning)
+	}
+
 	// validate OptionValues defined by the Preset
 	if errList := validatePluginOptionValuesForPreset(pluginPreset, pluginDefinition); len(errList) > 0 {
 		allErrs = append(allErrs, errList...)
 	}
 
 	if len(allErrs) > 0 {
-		return nil, apierrors.NewInvalid(pluginPreset.GroupVersionKind().GroupKind(), pluginPreset.Name, allErrs)
+		return allWarns, apierrors.NewInvalid(pluginPreset.GroupVersionKind().GroupKind(), pluginPreset.Name, allErrs)
 	}
 
-	return nil, nil
+	return allWarns, nil
 }
 
 func ValidateUpdatePluginPreset(ctx context.Context, c client.Client, oldObj, curObj runtime.Object) (admission.Warnings, error) {
@@ -111,6 +117,7 @@ func ValidateUpdatePluginPreset(ctx context.Context, c client.Client, oldObj, cu
 	}
 
 	var allErrs field.ErrorList
+	var allWarns admission.Warnings
 
 	if err := webhook.ValidateImmutableField(oldPluginPreset.Spec.Plugin.PluginDefinition, pluginPreset.Spec.Plugin.PluginDefinition, field.NewPath("spec", "plugin", "pluginDefinition")); err != nil {
 		allErrs = append(allErrs, err)
@@ -120,11 +127,16 @@ func ValidateUpdatePluginPreset(ctx context.Context, c client.Client, oldObj, cu
 		allErrs = append(allErrs, err)
 	}
 
-	if len(allErrs) > 0 {
-		return nil, apierrors.NewInvalid(pluginPreset.GroupVersionKind().GroupKind(), pluginPreset.Name, allErrs)
+	labelValidationWarning := webhook.ValidateLabelOwnedBy(ctx, c, pluginPreset)
+	if labelValidationWarning != "" {
+		allWarns = append(allWarns, "PluginPreset should have a support-group Team set as its owner", labelValidationWarning)
 	}
 
-	return nil, nil
+	if len(allErrs) > 0 {
+		return allWarns, apierrors.NewInvalid(pluginPreset.GroupVersionKind().GroupKind(), pluginPreset.Name, allErrs)
+	}
+
+	return allWarns, nil
 }
 
 func ValidateDeletePluginPreset(_ context.Context, _ client.Client, obj runtime.Object) (admission.Warnings, error) {
@@ -148,16 +160,16 @@ func ValidateDeletePluginPreset(_ context.Context, _ client.Client, obj runtime.
 
 // validatePluginOptionValuesForPreset validates plugin options and their values, but skips the check for required options.
 // Required options are checked at the Plugin creation level, because the preset can override options and we cannot predict what clusters will be a part of the PluginPreset later on.
-func validatePluginOptionValuesForPreset(pluginPreset *greenhousev1alpha1.PluginPreset, pluginDefinition *greenhousev1alpha1.PluginDefinition) field.ErrorList {
+func validatePluginOptionValuesForPreset(pluginPreset *greenhousev1alpha1.PluginPreset, pluginDefinition *greenhousev1alpha1.ClusterPluginDefinition) field.ErrorList {
 	var allErrs field.ErrorList
 
 	optionValuesPath := field.NewPath("spec").Child("plugin").Child("optionValues")
-	errors := validatePluginOptionValues(pluginPreset.Spec.Plugin.OptionValues, pluginDefinition, false, optionValuesPath)
+	errors := validatePluginOptionValues(pluginPreset.Spec.Plugin.OptionValues, pluginDefinition.Name, pluginDefinition.Spec, false, optionValuesPath)
 	allErrs = append(allErrs, errors...)
 
 	for idx, overridesForSingleCluster := range pluginPreset.Spec.ClusterOptionOverrides {
 		optionOverridesPath := field.NewPath("spec").Child("clusterOptionOverrides").Index(idx).Child("overrides")
-		errors = validatePluginOptionValues(overridesForSingleCluster.Overrides, pluginDefinition, false, optionOverridesPath)
+		errors = validatePluginOptionValues(overridesForSingleCluster.Overrides, pluginDefinition.Name, pluginDefinition.Spec, false, optionOverridesPath)
 		allErrs = append(allErrs, errors...)
 	}
 	return allErrs

@@ -6,6 +6,121 @@ info:
 paths: {}
 components:
   schemas:
+    Catalog:
+      xml:
+        name: greenhouse.sap
+        namespace: v1alpha1
+      title: Catalog
+      description: Catalog is the Schema for the catalogs API.
+      properties:
+        apiVersion:
+          description: |-
+            APIVersion defines the versioned schema of this representation of an object.
+            Servers should convert recognized schemas to the latest internal value, and
+            may reject unrecognized values.
+            More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+          type: string
+        kind:
+          description: |-
+            Kind is a string value representing the REST resource this object represents.
+            Servers may infer this from the endpoint the client submits requests to.
+            Cannot be updated.
+            In CamelCase.
+            More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+          type: string
+        metadata:
+          type: object
+        spec:
+          description: CatalogSpec defines the desired state of Catalog.
+          properties:
+            overrides:
+              description: Overrides are the PluginDefinition overrides to be applied
+              items:
+                properties:
+                  alias:
+                    description: |-
+                      Alias is the alias to apply to the PluginDefinition Name via Kustomize patches
+                      For SourceType Helm, this field is passed to postRender Kustomize patch
+                    type: string
+                  name:
+                    description: Name is the name of the PluginDefinition to patch with an alias
+                    type: string
+                required:
+                  - alias
+                  - name
+                type: object
+              type: array
+            source:
+              description: Source is the medium from which the PluginDefinition needs to be fetched
+              properties:
+                git:
+                  description: Git is the Git repository source for the PluginDefinition Catalog
+                  properties:
+                    ref:
+                      description: Ref is the Git reference (branch, tag, or SHA) to resolve the ClusterPluginDefinition / PluginDefinition Catalog
+                      properties:
+                        branch:
+                          type: string
+                        sha:
+                          type: string
+                        tag:
+                          type: string
+                      type: object
+                    url:
+                      description: Repository is the URL of the GitHub repository containing the ClusterPluginDefinition / PluginDefinition Catalog
+                      type: string
+                  required:
+                    - url
+                  type: object
+                path:
+                  description: |-
+                    Path is the path within the repository where the ClusterPluginDefinition / PluginDefinition Catalog is located
+                    an empty path indicates the root of the repository
+                  type: string
+              required:
+                - git
+              type: object
+          required:
+            - source
+          type: object
+        status:
+          description: CatalogStatus defines the observed state of Catalog.
+          properties:
+            statusConditions:
+              description: StatusConditions contain the different conditions that constitute the status of the Catalog
+              properties:
+                conditions:
+                  items:
+                    description: Condition contains additional information on the state of a resource.
+                    properties:
+                      lastTransitionTime:
+                        description: LastTransitionTime is the last time the condition transitioned from one status to another.
+                        format: date-time
+                        type: string
+                      message:
+                        description: Message is an optional human-readable message indicating details about the last transition.
+                        type: string
+                      reason:
+                        description: Reason is a one-word, CamelCase reason for the condition's last transition.
+                        type: string
+                      status:
+                        description: Status of the condition.
+                        type: string
+                      type:
+                        description: Type of the condition.
+                        type: string
+                    required:
+                      - lastTransitionTime
+                      - status
+                      - type
+                    type: object
+                  type: array
+                  x-kubernetes-list-map-keys:
+                    - type
+                  x-kubernetes-list-type: map
+              type: object
+          type: object
+      type: object
     ClusterKubeconfig:
       xml:
         name: greenhouse.sap
@@ -140,7 +255,7 @@ components:
                         format: date-time
                         type: string
                       message:
-                        description: Message is an optional human readable message indicating details about the last transition.
+                        description: Message is an optional human-readable message indicating details about the last transition.
                         type: string
                       reason:
                         description: Reason is a one-word, CamelCase reason for the condition's last transition.
@@ -295,6 +410,40 @@ components:
           type: object
         status:
           description: ClusterPluginDefinitionStatus defines the observed state of ClusterPluginDefinition.
+          properties:
+            statusConditions:
+              description: StatusConditions contain the different conditions that constitute the status of the Plugin.
+              properties:
+                conditions:
+                  items:
+                    description: Condition contains additional information on the state of a resource.
+                    properties:
+                      lastTransitionTime:
+                        description: LastTransitionTime is the last time the condition transitioned from one status to another.
+                        format: date-time
+                        type: string
+                      message:
+                        description: Message is an optional human-readable message indicating details about the last transition.
+                        type: string
+                      reason:
+                        description: Reason is a one-word, CamelCase reason for the condition's last transition.
+                        type: string
+                      status:
+                        description: Status of the condition.
+                        type: string
+                      type:
+                        description: Type of the condition.
+                        type: string
+                    required:
+                      - lastTransitionTime
+                      - status
+                      - type
+                    type: object
+                  type: array
+                  x-kubernetes-list-map-keys:
+                    - type
+                  x-kubernetes-list-type: map
+              type: object
           type: object
       type: object
     Cluster:
@@ -354,46 +503,38 @@ components:
               description: KubernetesVersion reflects the detected Kubernetes version of the cluster.
               type: string
             nodes:
-              additionalProperties:
-                properties:
-                  ready:
-                    description: Fast track to the node ready condition.
-                    type: boolean
-                  statusConditions:
-                    description: We mirror the node conditions here for faster reference
+              description: Nodes contain a short summary of nodes count and not ready nodes status.
+              properties:
+                notReady:
+                  description: NotReady is slice of non-ready nodes status details.
+                  items:
+                    description: NodeStatus represents a status of non-ready node.
                     properties:
-                      conditions:
-                        items:
-                          description: Condition contains additional information on the state of a resource.
-                          properties:
-                            lastTransitionTime:
-                              description: LastTransitionTime is the last time the condition transitioned from one status to another.
-                              format: date-time
-                              type: string
-                            message:
-                              description: Message is an optional human readable message indicating details about the last transition.
-                              type: string
-                            reason:
-                              description: Reason is a one-word, CamelCase reason for the condition's last transition.
-                              type: string
-                            status:
-                              description: Status of the condition.
-                              type: string
-                            type:
-                              description: Type of the condition.
-                              type: string
-                          required:
-                            - lastTransitionTime
-                            - status
-                            - type
-                          type: object
-                        type: array
-                        x-kubernetes-list-map-keys:
-                          - type
-                        x-kubernetes-list-type: map
+                      lastTransitionTime:
+                        description: LastTransitionTime represents latest transition time of status.
+                        format: date-time
+                        type: string
+                      message:
+                        description: Message represents the error message.
+                        type: string
+                      name:
+                        description: Name of the node.
+                        type: string
+                    required:
+                      - name
                     type: object
-                type: object
-              description: Nodes provides a map of cluster node names to node statuses
+                  type: array
+                  x-kubernetes-list-map-keys:
+                    - name
+                  x-kubernetes-list-type: map
+                ready:
+                  description: ReadyNodes represent the number of ready nodes in the cluster.
+                  format: int32
+                  type: integer
+                total:
+                  description: Total represent the number of all the nodes in the cluster.
+                  format: int32
+                  type: integer
               type: object
             statusConditions:
               description: StatusConditions contain the different conditions that constitute the status of the Cluster.
@@ -407,7 +548,7 @@ components:
                         format: date-time
                         type: string
                       message:
-                        description: Message is an optional human readable message indicating details about the last transition.
+                        description: Message is an optional human-readable message indicating details about the last transition.
                         type: string
                       reason:
                         description: Reason is a one-word, CamelCase reason for the condition's last transition.
@@ -583,6 +724,9 @@ components:
                     - baseURL
                   type: object
               type: object
+            configMapRef:
+              description: ConfigMapRef allows to reference organizational config map.
+              type: string
             description:
               description: Description provides additional details of the organization.
               type: string
@@ -610,7 +754,7 @@ components:
                         format: date-time
                         type: string
                       message:
-                        description: Message is an optional human readable message indicating details about the last transition.
+                        description: Message is an optional human-readable message indicating details about the last transition.
                         type: string
                       reason:
                         description: Reason is a one-word, CamelCase reason for the condition's last transition.
@@ -778,7 +922,7 @@ components:
                         format: date-time
                         type: string
                       message:
-                        description: Message is an optional human readable message indicating details about the last transition.
+                        description: Message is an optional human-readable message indicating details about the last transition.
                         type: string
                       reason:
                         description: Reason is a one-word, CamelCase reason for the condition's last transition.
@@ -841,6 +985,11 @@ components:
                       properties:
                         name:
                           description: Name of the values.
+                          type: string
+                        template:
+                          description: |-
+                            Template is a Go string template that will be dynamically resolved for cluster-specific values.
+                            Only PluginOptionValues declared as template will be templated by the PluginController for Flux.
                           type: string
                         value:
                           description: Value is the actual value in plain text.
@@ -935,6 +1084,11 @@ components:
                       name:
                         description: Name of the values.
                         type: string
+                      template:
+                        description: |-
+                          Template is a Go string template that will be dynamically resolved for cluster-specific values.
+                          Only PluginOptionValues declared as template will be templated by the PluginController for Flux.
+                        type: string
                       value:
                         description: Value is the actual value in plain text.
                         x-kubernetes-preserve-unknown-fields: true
@@ -987,9 +1141,6 @@ components:
         status:
           description: PluginPresetStatus defines the observed state of PluginPreset
           properties:
-            availablePlugins:
-              description: AvailablePlugins is the number of available Plugins managed by the PluginPreset.
-              type: integer
             failedPlugins:
               description: FailedPlugins is the number of failed Plugins managed by the PluginPreset.
               type: integer
@@ -1008,7 +1159,7 @@ components:
                         format: date-time
                         type: string
                       message:
-                        description: Message is an optional human readable message indicating details about the last transition.
+                        description: Message is an optional human-readable message indicating details about the last transition.
                         type: string
                       reason:
                         description: Reason is a one-word, CamelCase reason for the condition's last transition.
@@ -1041,7 +1192,7 @@ components:
                         format: date-time
                         type: string
                       message:
-                        description: Message is an optional human readable message indicating details about the last transition.
+                        description: Message is an optional human-readable message indicating details about the last transition.
                         type: string
                       reason:
                         description: Reason is a one-word, CamelCase reason for the condition's last transition.
@@ -1062,6 +1213,9 @@ components:
                     - type
                   x-kubernetes-list-type: map
               type: object
+            totalPlugins:
+              description: TotalPlugins is the number of Plugins in total managed by the PluginPreset.
+              type: integer
           type: object
       type: object
     Plugin:
@@ -1107,6 +1261,11 @@ components:
                 properties:
                   name:
                     description: Name of the values.
+                    type: string
+                  template:
+                    description: |-
+                      Template is a Go string template that will be dynamically resolved for cluster-specific values.
+                      Only PluginOptionValues declared as template will be templated by the PluginController for Flux.
                     type: string
                   value:
                     description: Value is the actual value in plain text.
@@ -1170,16 +1329,23 @@ components:
                     description: Namespace is the namespace of the service in the target cluster.
                     type: string
                   port:
-                    description: Port is the port of the service.
+                    description: Port is the port of the service. Zero for ingresses where port is not applicable.
                     format: int32
                     type: integer
                   protocol:
                     description: Protocol is the protocol of the service.
                     type: string
+                  type:
+                    default: service
+                    description: Type is the type of exposed service.
+                    enum:
+                      - service
+                      - ingress
+                    type: string
                 required:
                   - name
                   - namespace
-                  - port
+                  - type
                 type: object
               description: |-
                 ExposedServices provides an overview of the Plugins services that are centrally exposed.
@@ -1239,7 +1405,7 @@ components:
                         format: date-time
                         type: string
                       message:
-                        description: Message is an optional human readable message indicating details about the last transition.
+                        description: Message is an optional human-readable message indicating details about the last transition.
                         type: string
                       reason:
                         description: Reason is a one-word, CamelCase reason for the condition's last transition.
@@ -1410,7 +1576,7 @@ components:
                         format: date-time
                         type: string
                       message:
-                        description: Message is an optional human readable message indicating details about the last transition.
+                        description: Message is an optional human-readable message indicating details about the last transition.
                         type: string
                       reason:
                         description: Reason is a one-word, CamelCase reason for the condition's last transition.
@@ -1445,7 +1611,7 @@ components:
                         format: date-time
                         type: string
                       message:
-                        description: Message is an optional human readable message indicating details about the last transition.
+                        description: Message is an optional human-readable message indicating details about the last transition.
                         type: string
                       reason:
                         description: Reason is a one-word, CamelCase reason for the condition's last transition.
@@ -1687,7 +1853,7 @@ components:
                         format: date-time
                         type: string
                       message:
-                        description: Message is an optional human readable message indicating details about the last transition.
+                        description: Message is an optional human-readable message indicating details about the last transition.
                         type: string
                       reason:
                         description: Reason is a one-word, CamelCase reason for the condition's last transition.

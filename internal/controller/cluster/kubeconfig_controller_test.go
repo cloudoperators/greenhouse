@@ -38,6 +38,7 @@ var _ = Describe("ClusterKubeconfig controller", Ordered, func() {
 	)
 
 	var (
+		team         *v1alpha1.Team
 		cluster      = v1alpha1.Cluster{}
 		organization = &v1alpha1.Organization{}
 		oidcSecret   = &corev1.Secret{}
@@ -46,12 +47,15 @@ var _ = Describe("ClusterKubeconfig controller", Ordered, func() {
 	)
 
 	BeforeAll(func() {
-
 		setup = *test.NewTestSetup(test.Ctx, test.K8sClient, kubeconfigTestCase)
+
+		By("Creating a support-group Team")
+		team = setup.CreateTeam(test.Ctx, "test-team", test.WithTeamLabel(greenhouseapis.LabelKeySupportGroup, "true"))
 
 		By("Creating a secret with OIDC data")
 		oidcSecret = setup.CreateSecret(test.Ctx, oidcSecretResource,
 			test.WithSecretNamespace(setup.Namespace()),
+			test.WithSecretLabel(greenhouseapis.LabelKeyOwnedBy, team.Name),
 			test.WithSecretData(map[string][]byte{
 				oidcClientIDKey:     []byte(oidcClientID),
 				oidcClientSecretKey: []byte(oidcClientSecret),
@@ -67,6 +71,7 @@ var _ = Describe("ClusterKubeconfig controller", Ordered, func() {
 		secret := setup.CreateSecret(test.Ctx, clusterName,
 			test.WithSecretType(greenhouseapis.SecretTypeKubeConfig),
 			test.WithSecretNamespace(organization.Name),
+			test.WithSecretLabel(greenhouseapis.LabelKeyOwnedBy, team.Name),
 			test.WithSecretData(map[string][]byte{
 				greenhouseapis.KubeConfigKey:           test.KubeConfig,
 				greenhouseapis.GreenHouseKubeConfigKey: test.KubeConfig,
@@ -82,6 +87,7 @@ var _ = Describe("ClusterKubeconfig controller", Ordered, func() {
 	AfterAll(func() {
 		test.MustDeleteCluster(test.Ctx, test.K8sClient, client.ObjectKeyFromObject(&cluster))
 		Expect(test.K8sClient.Delete(test.Ctx, oidcSecret)).To(Succeed())
+		test.EventuallyDeleted(test.Ctx, test.K8sClient, team)
 	})
 
 	clusterKubeconfig := v1alpha1.ClusterKubeconfig{}

@@ -103,21 +103,22 @@ func (t *TestSetup) CreateCluster(ctx context.Context, name string, opts ...func
 	return cluster
 }
 
-func (t *TestSetup) CreateOrganizationWithOIDCConfig(ctx context.Context, orgName string) (*greenhousev1alpha1.Organization, *corev1.Secret) {
+func (t *TestSetup) CreateOrganizationWithOIDCConfig(ctx context.Context, orgName, supportGroupTeamName string) (*greenhousev1alpha1.Organization, *corev1.Secret) {
 	GinkgoHelper()
-	secret := t.CreateOrgOIDCSecret(ctx, orgName)
+	secret := t.CreateOrgOIDCSecret(ctx, orgName, supportGroupTeamName)
 	org := t.CreateOrganization(ctx, orgName, WithMappedAdminIDPGroup(orgName+" Admin E2e"), WithOIDCConfig(OIDCIssuer, secret.Name, OIDCClientIDKey, OIDCClientSecretKey))
 	return org, secret
 }
 
-func (t *TestSetup) CreateOrgOIDCSecret(ctx context.Context, orgName string) *corev1.Secret {
+func (t *TestSetup) CreateOrgOIDCSecret(ctx context.Context, orgName, supportGroupTeamName string) *corev1.Secret {
 	GinkgoHelper()
 	secret := t.CreateSecret(ctx, OIDCSecretResource,
 		WithSecretNamespace(orgName),
 		WithSecretData(map[string][]byte{
 			OIDCClientIDKey:     []byte(OIDCClientID),
 			OIDCClientSecretKey: []byte(OIDCClientSecret),
-		}))
+		}),
+		WithSecretLabel(greenhouseapis.LabelKeyOwnedBy, supportGroupTeamName))
 	return secret
 }
 
@@ -129,7 +130,7 @@ func (t *TestSetup) CreateOrganization(ctx context.Context, name string, opts ..
 	return org
 }
 
-func (t *TestSetup) CreateDefaultOrgWithOIDCSecret(ctx context.Context) *greenhousev1alpha1.Organization {
+func (t *TestSetup) CreateDefaultOrgWithOIDCSecret(ctx context.Context, supportGroupTeamName string) *greenhousev1alpha1.Organization {
 	GinkgoHelper()
 	org := &greenhousev1alpha1.Organization{}
 	err := t.Get(ctx, client.ObjectKey{Name: "greenhouse"}, org)
@@ -138,7 +139,7 @@ func (t *TestSetup) CreateDefaultOrgWithOIDCSecret(ctx context.Context) *greenho
 			org = NewOrganization(ctx, "greenhouse", WithMappedAdminIDPGroup("Greenhouse Admin E2e"))
 			Expect(t.Create(ctx, org)).Should(Succeed(), "there should be no error creating the default organization")
 			EventuallyCreated(ctx, t.Client, &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: org.Name}})
-			secret := t.CreateOrgOIDCSecret(ctx, org.Name)
+			secret := t.CreateOrgOIDCSecret(ctx, org.Name, supportGroupTeamName)
 			org = t.UpdateOrganization(ctx, org.Name, WithOIDCConfig(OIDCIssuer, secret.Name, OIDCClientIDKey, OIDCClientSecretKey))
 			return org
 		}
@@ -164,10 +165,10 @@ func (t *TestSetup) UpdateOrganization(ctx context.Context, name string, opts ..
 	return org
 }
 
-// CreatePluginDefinition creates and returns a PluginDefinition object. Opts can be used to set the desired state of the PluginDefinition.
-func (t *TestSetup) CreatePluginDefinition(ctx context.Context, name string, opts ...func(*greenhousev1alpha1.PluginDefinition)) *greenhousev1alpha1.PluginDefinition {
+// CreateClusterPluginDefinition creates and returns a PluginDefinition object. Opts can be used to set the desired state of the PluginDefinition.
+func (t *TestSetup) CreateClusterPluginDefinition(ctx context.Context, name string, opts ...func(definition *greenhousev1alpha1.ClusterPluginDefinition)) *greenhousev1alpha1.ClusterPluginDefinition {
 	GinkgoHelper()
-	pd := NewPluginDefinition(ctx, t.RandomizeName(name), opts...)
+	pd := NewClusterPluginDefinition(ctx, t.RandomizeName(name), opts...)
 	Expect(t.Create(ctx, pd)).Should(Succeed(), "there should be no error creating the PluginDefinition")
 	return pd
 }
@@ -177,6 +178,14 @@ func (t *TestSetup) CreatePlugin(ctx context.Context, name string, opts ...func(
 	GinkgoHelper()
 	plugin := NewPlugin(ctx, name, t.Namespace(), opts...)
 	Expect(t.Create(ctx, plugin)).Should(Succeed(), "there should be no error creating the Plugin")
+	return plugin
+}
+
+// CreatePluginPreset creates and returns a PluginPreset object. Opts can be used to set the desired state of the PluginPreset.
+func (t *TestSetup) CreatePluginPreset(ctx context.Context, name string, opts ...func(*greenhousev1alpha1.PluginPreset)) *greenhousev1alpha1.PluginPreset {
+	GinkgoHelper()
+	plugin := NewPluginPreset(name, t.Namespace(), opts...)
+	Expect(t.Create(ctx, plugin)).Should(Succeed(), "there should be no error creating the PluginPreset")
 	return plugin
 }
 
@@ -210,4 +219,56 @@ func (t *TestSetup) CreateSecret(ctx context.Context, name string, opts ...func(
 	secret := NewSecret(name, t.Namespace(), opts...)
 	Expect(t.Create(ctx, secret)).Should(Succeed(), "there should be no error creating the Secret")
 	return secret
+}
+
+// UpdateSecret updates a Secret object. Opts can be used to set the desired state of the Secret.
+func (t *TestSetup) UpdateSecret(ctx context.Context, name string, opts ...func(*corev1.Secret)) *corev1.Secret {
+	GinkgoHelper()
+	secret := &corev1.Secret{}
+	err := retry.RetryOnConflict(retry.DefaultRetry, func() error {
+		err := t.Get(ctx, client.ObjectKey{Name: name, Namespace: t.Namespace()}, secret)
+		if err != nil {
+			return err
+		}
+		for _, opt := range opts {
+			opt(secret)
+		}
+		return t.Update(ctx, secret)
+	})
+	Expect(err).NotTo(HaveOccurred(), "there should be no error updating the Secret")
+	return secret
+}
+
+// CreateConfigMap returns a ConfigMap object. Opts can be used to set the desired state of the ConfigMap.
+func (t *TestSetup) CreateConfigMap(ctx context.Context, name string, opts ...func(*corev1.ConfigMap)) *corev1.ConfigMap {
+	GinkgoHelper()
+	cm := NewConfigMap(name, t.Namespace(), opts...)
+	Expect(t.Create(ctx, cm)).Should(Succeed(), "there should be no error creating the ConfigMap")
+	return cm
+}
+
+func (t *TestSetup) CreateCatalog(ctx context.Context, name string, opts ...func(catalog *greenhousev1alpha1.Catalog)) *greenhousev1alpha1.Catalog {
+	GinkgoHelper()
+	ns := t.Namespace()
+	catalog := NewCatalog(name, ns, opts...)
+	Expect(t.Create(ctx, catalog)).Should(Succeed(), "there should be no error creating the Catalog")
+	return catalog
+}
+
+func (t *TestSetup) UpdateCatalog(ctx context.Context, name string, opts ...func(catalog *greenhousev1alpha1.Catalog)) *greenhousev1alpha1.Catalog {
+	GinkgoHelper()
+	catalog := &greenhousev1alpha1.Catalog{}
+	err := retry.RetryOnConflict(retry.DefaultRetry, func() error {
+		ns := t.Namespace()
+		err := t.Get(ctx, client.ObjectKey{Name: name, Namespace: ns}, catalog)
+		if err != nil {
+			return err
+		}
+		for _, opt := range opts {
+			opt(catalog)
+		}
+		return t.Update(ctx, catalog)
+	})
+	Expect(err).NotTo(HaveOccurred(), "there should be no error updating the Organization")
+	return catalog
 }

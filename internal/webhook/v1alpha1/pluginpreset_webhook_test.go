@@ -9,6 +9,7 @@ import (
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
+	greenhouseapis "github.com/cloudoperators/greenhouse/api"
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
 	"github.com/cloudoperators/greenhouse/internal/clientutil"
 	"github.com/cloudoperators/greenhouse/internal/test"
@@ -18,15 +19,15 @@ const (
 	pluginPresetDefinition = "pluginpreset-admission"
 	pluginPresetUpdate     = "pluginpreset-update"
 	pluginPresetCreate     = "pluginpreset-create"
+
+	teamWithSupportGroupName = "team-support-true"
 )
 
 var _ = Describe("PluginPreset Admission Tests", Ordered, func() {
+	var teamWithSupportGroupTrue *greenhousev1alpha1.Team
+
 	BeforeAll(func() {
-		pluginDefinition := &greenhousev1alpha1.PluginDefinition{
-			TypeMeta: metav1.TypeMeta{
-				Kind:       "PluginDefinition",
-				APIVersion: greenhousev1alpha1.GroupVersion.String(),
-			},
+		pluginDefinition := &greenhousev1alpha1.ClusterPluginDefinition{
 			ObjectMeta: metav1.ObjectMeta{
 				Name: pluginPresetDefinition,
 			},
@@ -41,15 +42,22 @@ var _ = Describe("PluginPreset Admission Tests", Ordered, func() {
 			},
 		}
 		Expect(test.K8sClient.Create(test.Ctx, pluginDefinition)).To(Succeed(), "failed to create test PluginDefinition")
+
+		By("creating a support-group:true Team")
+		teamWithSupportGroupTrue = test.NewTeam(test.Ctx, teamWithSupportGroupName, test.TestNamespace, test.WithTeamLabel(greenhouseapis.LabelKeySupportGroup, "true"))
+		Expect(test.K8sClient.Create(test.Ctx, teamWithSupportGroupTrue)).To(Succeed(), "there should be no error creating the Team")
 	})
 
 	AfterAll(func() {
-		pluginDefinition := &greenhousev1alpha1.PluginDefinition{
+		pluginDefinition := &greenhousev1alpha1.ClusterPluginDefinition{
 			ObjectMeta: metav1.ObjectMeta{
 				Name: pluginPresetDefinition,
 			},
 		}
 		Expect(test.K8sClient.Delete(test.Ctx, pluginDefinition)).To(Succeed(), "failed to delete test PluginDefinition")
+
+		By("deleting the test Team")
+		test.EventuallyDeleted(test.Ctx, test.K8sClient, teamWithSupportGroupTrue)
 	})
 
 	It("should reject PluginPreset without PluginDefinition", func() {
@@ -131,6 +139,7 @@ var _ = Describe("PluginPreset Admission Tests", Ordered, func() {
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      pluginPresetUpdate,
 				Namespace: test.TestNamespace,
+				Labels:    map[string]string{greenhouseapis.LabelKeyOwnedBy: teamWithSupportGroupName},
 			},
 			Spec: greenhousev1alpha1.PluginPresetSpec{
 				Plugin: greenhousev1alpha1.PluginSpec{
@@ -176,6 +185,7 @@ var _ = Describe("PluginPreset Admission Tests", Ordered, func() {
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      pluginPresetUpdate,
 				Namespace: test.TestNamespace,
+				Labels:    map[string]string{greenhouseapis.LabelKeyOwnedBy: teamWithSupportGroupName},
 				Annotations: map[string]string{
 					greenhousev1alpha1.PreventDeletionAnnotation: "true",
 				},
@@ -239,7 +249,7 @@ var _ = Describe("Validate Plugin OptionValues for PluginPreset", func() {
 			optionType = greenhousev1alpha1.PluginOptionTypeSecret
 		}
 
-		pluginDefinition := &greenhousev1alpha1.PluginDefinition{
+		pluginDefinition := &greenhousev1alpha1.ClusterPluginDefinition{
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: "greenhouse",
 				Name:      "testPlugin",
@@ -310,7 +320,7 @@ var _ = Describe("Validate Plugin OptionValues for PluginPreset", func() {
 			optionType = greenhousev1alpha1.PluginOptionTypeSecret
 		}
 
-		pluginDefinition := &greenhousev1alpha1.PluginDefinition{
+		pluginDefinition := &greenhousev1alpha1.ClusterPluginDefinition{
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: "greenhouse",
 				Name:      "testPlugin",
@@ -341,7 +351,7 @@ var _ = Describe("Validate Plugin OptionValues for PluginPreset", func() {
 	)
 
 	DescribeTable("Validate OptionValues in .Spec.Plugin are consistent with PluginOption Type", func(defaultValue any, defaultType greenhousev1alpha1.PluginOptionType, actValue any, expErr bool) {
-		pluginDefinition := &greenhousev1alpha1.PluginDefinition{
+		pluginDefinition := &greenhousev1alpha1.ClusterPluginDefinition{
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: "greenhouse",
 				Name:      "testPlugin",
@@ -403,7 +413,7 @@ var _ = Describe("Validate Plugin OptionValues for PluginPreset", func() {
 	)
 
 	DescribeTable("Validate OptionValues in .Spec.ClusterOptionOverrides are consistent with PluginOption Type", func(defaultValue any, defaultType greenhousev1alpha1.PluginOptionType, actValue any, expErr bool) {
-		pluginDefinition := &greenhousev1alpha1.PluginDefinition{
+		pluginDefinition := &greenhousev1alpha1.ClusterPluginDefinition{
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: "greenhouse",
 				Name:      "testPlugin",
@@ -471,7 +481,7 @@ var _ = Describe("Validate Plugin OptionValues for PluginPreset", func() {
 	)
 
 	DescribeTable("Validate OptionValues in .Spec.Plugin reference a Secret", func(actValue *greenhousev1alpha1.ValueFromSource, expErr bool) {
-		pluginDefinition := &greenhousev1alpha1.PluginDefinition{
+		pluginDefinition := &greenhousev1alpha1.ClusterPluginDefinition{
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: "greenhouse",
 				Name:      "testPlugin",
@@ -523,7 +533,7 @@ var _ = Describe("Validate Plugin OptionValues for PluginPreset", func() {
 	)
 
 	DescribeTable("Validate OptionValues in .Spec.ClusterOptionOverrides reference a Secret", func(actValue *greenhousev1alpha1.ValueFromSource, expErr bool) {
-		pluginDefinition := &greenhousev1alpha1.PluginDefinition{
+		pluginDefinition := &greenhousev1alpha1.ClusterPluginDefinition{
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: "greenhouse",
 				Name:      "testPlugin",
@@ -581,7 +591,7 @@ var _ = Describe("Validate Plugin OptionValues for PluginPreset", func() {
 	)
 
 	Describe("Validate PluginPreset does not have to specify required options", func() {
-		pluginDefinition := &greenhousev1alpha1.PluginDefinition{
+		pluginDefinition := &greenhousev1alpha1.ClusterPluginDefinition{
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: "greenhouse",
 				Name:      "testPlugin",

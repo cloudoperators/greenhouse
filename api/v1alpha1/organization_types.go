@@ -27,7 +27,9 @@ const (
 	// OrganizationDefaultTeamRolesConfigured is set when default team roles are configured
 	OrganizationDefaultTeamRolesConfigured greenhousemetav1alpha1.ConditionType = "OrganizationDefaultTeamRolesConfigured"
 	// ServiceProxyProvisioned is set when the service proxy is provisioned
-	ServiceProxyProvisioned greenhousemetav1alpha1.ConditionType = "ServiceProxyProvisioned"
+	ServiceProxyProvisioned greenhousemetav1alpha1.ConditionType   = "ServiceProxyProvisioned"
+	ServiceProxyNotFound    greenhousemetav1alpha1.ConditionReason = "ServiceProxyNotFound"
+	ServiceProxyFailed      greenhousemetav1alpha1.ConditionReason = "ServiceProxyFailed"
 	// OrganizationOICDConfigured is set when the OICD is configured
 	OrganizationOICDConfigured greenhousemetav1alpha1.ConditionType = "OrganizationOICDConfigured"
 	// DexReconcileFailed is set when dex reconcile step has failed
@@ -56,6 +58,9 @@ type OrganizationSpec struct {
 
 	// MappedOrgAdminIDPGroup is the IDP group ID identifying org admins
 	MappedOrgAdminIDPGroup string `json:"mappedOrgAdminIdPGroup,omitempty"`
+
+	// ConfigMapRef allows to reference organizational config map.
+	ConfigMapRef string `json:"configMapRef,omitempty"`
 }
 
 type Authentication struct {

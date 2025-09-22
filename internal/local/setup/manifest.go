@@ -70,10 +70,10 @@ func dashboardSetup(ctx context.Context, m *Manifest) Step {
 	}
 }
 
-// webhookManifestSetup - generates and applies manifest to the Cluster
+// greenhouseManifestSetup - generates and applies manifest to the Cluster
 // if webhook configuration is provided, modified webhook manifest are generated and applied
 // if dev mode is enabled, webhook certs are extracted from the Cluster and saved to the local filesystem
-func webhookManifestSetup(ctx context.Context, m *Manifest) Step {
+func greenhouseManifestSetup(ctx context.Context, m *Manifest) Step {
 	return func(env *ExecutionEnv) error {
 		var clusterName, namespace string
 		if env.cluster != nil {
@@ -102,7 +102,7 @@ func webhookManifestSetup(ctx context.Context, m *Manifest) Step {
 		if err != nil {
 			return err
 		}
-		webHookManifests, err := m.setupWebhookManifest(resources)
+		webHookManifests, err := m.setupWebhookManifest(resources, env.devMode)
 		if err != nil {
 			return err
 		}
@@ -118,11 +118,12 @@ func webhookManifestSetup(ctx context.Context, m *Manifest) Step {
 		if err != nil {
 			return err
 		}
-		if m.Webhook.DevMode {
+		if env.devMode {
 			err = m.extractWebhookCerts(ctx, clusterName, namespace)
 			if err != nil {
 				return err
 			}
+			return nil
 		}
 		deployments := filterResourcesBy(filtered, "Deployment")
 		if len(deployments) > 0 {

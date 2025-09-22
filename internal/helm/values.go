@@ -18,55 +18,21 @@ import (
 )
 
 func GetPluginOptionValuesForPlugin(ctx context.Context, c client.Client, plugin *greenhousev1alpha1.Plugin) ([]greenhousev1alpha1.PluginOptionValue, error) {
-	var pluginDefinition = new(greenhousev1alpha1.PluginDefinition)
+	var pluginDefinition = new(greenhousev1alpha1.ClusterPluginDefinition)
 	if err := c.Get(ctx, types.NamespacedName{Namespace: "", Name: plugin.Spec.PluginDefinition}, pluginDefinition); err != nil {
 		return nil, err
 	}
-	values := mergePluginAndPluginOptionValueSlice(pluginDefinition.Spec.Options, plugin.Spec.OptionValues)
+	values := MergePluginAndPluginOptionValueSlice(pluginDefinition.Spec.Options, plugin.Spec.OptionValues)
 	// Enrich with default greenhouse values.
-	greenhouseValues, err := getGreenhouseValues(ctx, c, *plugin)
+	greenhouseValues, err := GetGreenhouseValues(ctx, c, *plugin)
 	if err != nil {
 		return nil, err
 	}
-	values = mergePluginOptionValues(values, greenhouseValues)
+	values = MergePluginOptionValues(values, greenhouseValues)
 	return values, nil
 }
 
-func mergePluginAndPluginOptionValueSlice(pluginOptions []greenhousev1alpha1.PluginOption, pluginOptionValues []greenhousev1alpha1.PluginOptionValue) []greenhousev1alpha1.PluginOptionValue {
-	// Make sure there's always a non-nil slice.
-	out := make([]greenhousev1alpha1.PluginOptionValue, 0)
-	defer func() {
-		sort.Slice(out, func(i, j int) bool {
-			return out[i].Name < out[j].Name
-		})
-	}()
-	// If the PluginDefinition doesn't define values, we're done.
-	if pluginOptions == nil {
-		return pluginOptionValues
-	}
-	for _, option := range pluginOptions {
-		if option.Default != nil {
-			out = append(out, greenhousev1alpha1.PluginOptionValue{Name: option.Name, Value: option.Default})
-		}
-	}
-	for _, pluginVal := range pluginOptionValues {
-		out = setOrAppendNameValue(out, pluginVal)
-	}
-	return out
-}
-
-// mergePluginOptionValues merges the given src into the dst PluginOptionValue slice.
-func mergePluginOptionValues(dst, src []greenhousev1alpha1.PluginOptionValue) []greenhousev1alpha1.PluginOptionValue {
-	if dst == nil {
-		dst = make([]greenhousev1alpha1.PluginOptionValue, 0)
-	}
-	for _, srcOptionValue := range src {
-		dst = setOrAppendNameValue(dst, srcOptionValue)
-	}
-	return dst
-}
-
-// getGreenhouseValues generate values for greenhouse core resources in the form:
+// GetGreenhouseValues generate values for greenhouse core resources in the form:
 //
 //	global:
 //	  greenhouse:
@@ -74,7 +40,7 @@ func mergePluginOptionValues(dst, src []greenhousev1alpha1.PluginOptionValue) []
 //		  - <name>
 //		teams:
 //		  - <name>
-func getGreenhouseValues(ctx context.Context, c client.Client, p greenhousev1alpha1.Plugin) ([]greenhousev1alpha1.PluginOptionValue, error) {
+func GetGreenhouseValues(ctx context.Context, c client.Client, p greenhousev1alpha1.Plugin) ([]greenhousev1alpha1.PluginOptionValue, error) {
 	greenhouseValues := make([]greenhousev1alpha1.PluginOptionValue, 0)
 	var clusterList = new(greenhousev1alpha1.ClusterList)
 	if err := c.List(ctx, clusterList, &client.ListOptions{Namespace: p.GetNamespace()}); err != nil {

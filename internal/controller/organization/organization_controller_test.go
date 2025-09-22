@@ -9,15 +9,19 @@ import (
 	. "github.com/onsi/gomega/gstruct"
 	"golang.org/x/exp/slices"
 	corev1 "k8s.io/api/core/v1"
+	rbacv1 "k8s.io/api/rbac/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/util/retry"
 
+	greenhouseapis "github.com/cloudoperators/greenhouse/api"
 	greenhousemetav1alpha1 "github.com/cloudoperators/greenhouse/api/meta/v1alpha1"
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
 	"github.com/cloudoperators/greenhouse/internal/clientutil"
 	"github.com/cloudoperators/greenhouse/internal/dex"
 	dexapi "github.com/cloudoperators/greenhouse/internal/dex/api"
+	"github.com/cloudoperators/greenhouse/internal/rbac"
 	"github.com/cloudoperators/greenhouse/internal/scim"
 	"github.com/cloudoperators/greenhouse/internal/test"
 )
@@ -297,7 +301,9 @@ var _ = Describe("Test Organization reconciliation", Ordered, func() {
 		})
 
 		It("should create dex resources if oidc is enabled", func() {
-			defaultOrg := setup.CreateDefaultOrgWithOIDCSecret(test.Ctx)
+			team := setup.CreateTeam(test.Ctx, "test-team", test.WithTeamLabel(greenhouseapis.LabelKeySupportGroup, "true"))
+
+			defaultOrg := setup.CreateDefaultOrgWithOIDCSecret(test.Ctx, team.Name)
 			test.EventuallyCreated(test.Ctx, test.K8sClient, &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: defaultOrg.Name}})
 			By("By check if the default organization is READY with oidc config")
 			Eventually(func(g Gomega) {
@@ -313,7 +319,7 @@ var _ = Describe("Test Organization reconciliation", Ordered, func() {
 			test.EventuallyCreated(test.Ctx, test.K8sClient, &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: oidcOrg.Name}})
 
 			By("creating a secret for OIDC config")
-			oidcOrgSecret := setup.CreateOrgOIDCSecret(test.Ctx, oidcOrg.Name)
+			oidcOrgSecret := setup.CreateOrgOIDCSecret(test.Ctx, oidcOrg.Name, team.Name)
 			By("updating the organization with OIDC config")
 			oidcOrg = setup.UpdateOrganization(test.Ctx,
 				oidcOrg.Name,
@@ -372,6 +378,63 @@ var _ = Describe("Test Organization reconciliation", Ordered, func() {
 					MatchFields(IgnoreExtras, Fields{"ID": Equal(oidcOrg.Name)}),
 				), "the oauth client list should not contain the deleted organization")
 			}
+			test.EventuallyDeleted(test.Ctx, test.K8sClient, team)
+		})
+	})
+
+	When("reconciling PluginDefinitionCatalog ServiceAccount", Ordered, func() {
+		It("should create additional ClusterRole and ClusterRoleBinding for greenhouse organization", func() {
+			testOrgName := "greenhouse"
+
+			// Check if greenhouse organization already exists, create if not
+			org := &greenhousev1alpha1.Organization{}
+			err := setup.Get(test.Ctx, types.NamespacedName{Name: testOrgName}, org)
+			if err != nil {
+				if apierrors.IsNotFound(err) {
+					setup.CreateOrganization(test.Ctx, testOrgName)
+				} else {
+					Fail("unexpected error checking greenhouse organization: " + err.Error())
+				}
+			}
+
+			// Wait for regular RBAC to be created first
+			serviceAccountName := rbac.OrgCatalogServiceAccountName(testOrgName)
+			serviceAccount := &corev1.ServiceAccount{}
+			Eventually(func() error {
+				return setup.Get(test.Ctx, types.NamespacedName{Name: serviceAccountName, Namespace: testOrgName}, serviceAccount)
+			}).ShouldNot(HaveOccurred(), "ServiceAccount should be created")
+
+			// Check ClusterRole creation
+			clusterRoleName := rbac.OrgCatalogRoleName(testOrgName)
+			clusterRole := &rbacv1.ClusterRole{}
+			Eventually(func() error {
+				return setup.Get(test.Ctx, types.NamespacedName{Name: clusterRoleName}, clusterRole)
+			}).ShouldNot(HaveOccurred(), "ClusterRole should be created for greenhouse organization")
+
+			Expect(clusterRole.Name).To(Equal(clusterRoleName))
+			Expect(clusterRole.Rules).To(HaveLen(1))
+			Expect(clusterRole.Rules[0].APIGroups).To(ContainElement("greenhouse.sap"))
+			Expect(clusterRole.Rules[0].Resources).To(ContainElements("clusterplugindefinitions"))
+			Expect(clusterRole.Rules[0].Verbs).To(ContainElements("*"))
+			Expect(clusterRole.OwnerReferences).To(HaveLen(1))
+			Expect(clusterRole.OwnerReferences[0].Kind).To(Equal("Organization"))
+			Expect(clusterRole.OwnerReferences[0].Name).To(Equal(testOrgName))
+
+			// Check ClusterRoleBinding creation
+			clusterRoleBinding := &rbacv1.ClusterRoleBinding{}
+			Eventually(func() error {
+				return setup.Get(test.Ctx, types.NamespacedName{Name: clusterRoleName}, clusterRoleBinding)
+			}).ShouldNot(HaveOccurred(), "ClusterRoleBinding should be created for greenhouse organization")
+
+			Expect(clusterRoleBinding.Name).To(Equal(clusterRoleName))
+			Expect(clusterRoleBinding.RoleRef.Kind).To(Equal("ClusterRole"))
+			Expect(clusterRoleBinding.RoleRef.Name).To(Equal(clusterRoleName))
+			Expect(clusterRoleBinding.Subjects).To(HaveLen(1))
+			Expect(clusterRoleBinding.Subjects[0].Kind).To(Equal("ServiceAccount"))
+			Expect(clusterRoleBinding.Subjects[0].Name).To(Equal(serviceAccountName))
+			Expect(clusterRoleBinding.Subjects[0].Namespace).To(Equal(testOrgName))
+			Expect(clusterRoleBinding.OwnerReferences).To(HaveLen(1))
+			Expect(clusterRoleBinding.OwnerReferences[0].Kind).To(Equal("Organization"))
 		})
 	})
 })

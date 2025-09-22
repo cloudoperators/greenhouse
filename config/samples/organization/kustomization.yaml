@@ -3,4 +3,5 @@
 
 # Add more resources in the future to setup a complete environment with plugins
 resources:
-  - organization.yaml
+  - demo.yaml
+  - greenhouse.yaml

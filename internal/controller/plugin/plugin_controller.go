@@ -7,6 +7,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"maps"
+	"strings"
 	"time"
 
 	"golang.org/x/time/rate"
@@ -34,7 +36,7 @@ import (
 	"github.com/cloudoperators/greenhouse/internal/common"
 	"github.com/cloudoperators/greenhouse/internal/helm"
 	"github.com/cloudoperators/greenhouse/internal/lifecycle"
-	"github.com/cloudoperators/greenhouse/internal/metrics"
+	"github.com/cloudoperators/greenhouse/internal/util"
 )
 
 const helmReleaseSecretType = "helm.sh/release.v1" //nolint:gosec
@@ -47,12 +49,19 @@ type PluginReconciler struct {
 }
 
 //+kubebuilder:rbac:groups=greenhouse.sap,resources=plugindefinitions,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups=greenhouse.sap,resources=clusterplugindefinitions,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=greenhouse.sap,resources=plugins,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=greenhouse.sap,resources=plugins/status;,verbs=get;update;patch
 //+kubebuilder:rbac:groups=greenhouse.sap,resources=plugins/finalizers,verbs=update
 //+kubebuilder:rbac:groups=greenhouse.sap,resources=clusters;teams,verbs=get;list;watch
 //+kubebuilder:rbac:groups="",resources=secrets,verbs=get;list;watch
 //+kubebuilder:rbac:groups="",resources=events,verbs=get;list;watch;create;patch;update
+// +kubebuilder:rbac:groups=helm.toolkit.fluxcd.io,resources=helmreleases,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=helm.toolkit.fluxcd.io,resources=helmreleases/status,verbs=get;update;patch
+// +kubebuilder:rbac:groups=helm.toolkit.fluxcd.io,resources=helmreleases/finalizers,verbs=get;create;update;patch;delete
+// +kubebuilder:rbac:groups=source.toolkit.fluxcd.io,resources=helmcharts,verbs=get;list;watch
+// +kubebuilder:rbac:groups=source.toolkit.fluxcd.io,resources=ocirepositories,verbs=get;list;watch
+// +kubebuilder:rbac:groups="",resources=events,verbs=create;patch
 
 // These broad permissions are required as the controller manages Helm charts which contain arbitrary Kubernetes resources.
 //+kubebuilder:rbac:groups=*,resources=*,verbs=*
@@ -77,20 +86,6 @@ func (r *PluginReconciler) SetupWithManager(name string, mgr ctrl.Manager) error
 		return err
 	}
 
-	labelSelector := metav1.LabelSelector{
-		MatchExpressions: []metav1.LabelSelectorRequirement{
-			{
-				Key:      deliveryToolLabel,
-				Operator: metav1.LabelSelectorOpDoesNotExist,
-			},
-		},
-	}
-
-	labelSelectorPredicate, err := predicate.LabelSelectorPredicate(labelSelector)
-	if err != nil {
-		return err
-	}
-
 	return ctrl.NewControllerManagedBy(mgr).
 		Named(name).
 		WithOptions(controller.Options{
@@ -99,18 +94,27 @@ func (r *PluginReconciler) SetupWithManager(name string, mgr ctrl.Manager) error
 				&workqueue.TypedBucketRateLimiter[reconcile.Request]{Limiter: rate.NewLimiter(rate.Limit(10), 100)}),
 			MaxConcurrentReconciles: 10,
 		}).
-		For(&greenhousev1alpha1.Plugin{}, builder.WithPredicates(labelSelectorPredicate)).
+		For(&greenhousev1alpha1.Plugin{}).
 		// If the release was (manually) modified the secret would have been modified. Reconcile it.
 		Watches(&corev1.Secret{},
 			handler.EnqueueRequestsFromMapFunc(enqueuePluginForReleaseSecret),
-			builder.WithPredicates(clientutil.PredicateFilterBySecretTypes(helmReleaseSecretType), predicate.GenerationChangedPredicate{}),
+			builder.WithPredicates(clientutil.PredicateFilterBySecretTypes(helmReleaseSecretType)),
 		).
 		// If a PluginDefinition was changed, reconcile relevant Plugins.
-		Watches(&greenhousev1alpha1.PluginDefinition{}, handler.EnqueueRequestsFromMapFunc(r.enqueueAllPluginsForPluginDefinition),
-			builder.WithPredicates(predicate.GenerationChangedPredicate{})).
+		Watches(
+			&greenhousev1alpha1.ClusterPluginDefinition{},
+			handler.EnqueueRequestsFromMapFunc(r.enqueueAllPluginsForPluginDefinition),
+		).
 		// Clusters and teams are passed as values to each Helm operation. Reconcile on change.
-		Watches(&greenhousev1alpha1.Cluster{}, handler.EnqueueRequestsFromMapFunc(r.enqueueAllPluginsForCluster)).
-		Watches(&greenhousev1alpha1.Team{}, handler.EnqueueRequestsFromMapFunc(r.enqueueAllPluginsInNamespace), builder.WithPredicates(predicate.GenerationChangedPredicate{})).
+		Watches(
+			&greenhousev1alpha1.Cluster{},
+			handler.EnqueueRequestsFromMapFunc(r.enqueueAllPluginsForCluster),
+		).
+		Watches(
+			&greenhousev1alpha1.Team{},
+			handler.EnqueueRequestsFromMapFunc(r.enqueueAllPluginsInNamespace),
+			builder.WithPredicates(predicate.GenerationChangedPredicate{}),
+		).
 		Complete(r)
 }
 
@@ -128,17 +132,26 @@ func (r *PluginReconciler) setConditions() lifecycle.Conditioner {
 		}
 
 		readyCondition := ComputeReadyCondition(plugin.Status.StatusConditions)
-		metrics.UpdatePluginReadyMetric(plugin, readyCondition.Status == metav1.ConditionTrue)
-		plugin.SetCondition(readyCondition)
+		UpdatePluginReadyMetric(plugin, readyCondition.Status == metav1.ConditionTrue)
+
+		ownerLabelCondition := util.ComputeOwnerLabelCondition(ctx, r.Client, plugin)
+		util.UpdateOwnedByLabelMissingMetric(plugin, ownerLabelCondition.IsFalse())
+
+		plugin.Status.SetConditions(readyCondition, ownerLabelCondition)
 	}
 }
 
 func (r *PluginReconciler) EnsureDeleted(ctx context.Context, resource lifecycle.RuntimeObject) (ctrl.Result, lifecycle.ReconcileResult, error) {
 	plugin := resource.(*greenhousev1alpha1.Plugin) //nolint:errcheck
 
+	// redirect plugins that are managed by Flux
+	if plugin.GetLabels() != nil && plugin.GetLabels()[greenhouseapis.GreenhouseHelmDeliveryToolLabel] == greenhouseapis.GreenhouseHelmDeliveryToolFlux {
+		return r.EnsureFluxDeleted(ctx, plugin)
+	}
+
 	restClientGetter, err := initClientGetter(ctx, r.Client, r.kubeClientOpts, *plugin)
 	if err != nil {
-		metrics.UpdateReconcileTotalMetric(plugin, metrics.MetricResultError, metrics.MetricReasonClusterAccessFailed)
+		util.UpdatePluginReconcileTotalMetric(plugin, util.MetricResultError, util.MetricReasonClusterAccessFailed)
 		return ctrl.Result{}, lifecycle.Failed, fmt.Errorf("cannot access cluster: %s", err.Error())
 	}
 
@@ -146,7 +159,7 @@ func (r *PluginReconciler) EnsureDeleted(ctx context.Context, resource lifecycle
 	if err != nil {
 		c := greenhousemetav1alpha1.TrueCondition(greenhousev1alpha1.HelmReconcileFailedCondition, greenhousev1alpha1.HelmUninstallFailedReason, err.Error())
 		plugin.SetCondition(c)
-		metrics.UpdateReconcileTotalMetric(plugin, metrics.MetricResultError, metrics.MetricReasonUninstallHelmFailed)
+		util.UpdatePluginReconcileTotalMetric(plugin, util.MetricResultError, util.MetricReasonUninstallHelmFailed)
 		return ctrl.Result{}, lifecycle.Failed, err
 	}
 	if !isDeleted {
@@ -160,12 +173,16 @@ func (r *PluginReconciler) EnsureDeleted(ctx context.Context, resource lifecycle
 
 func (r *PluginReconciler) EnsureCreated(ctx context.Context, resource lifecycle.RuntimeObject) (ctrl.Result, lifecycle.ReconcileResult, error) {
 	plugin := resource.(*greenhousev1alpha1.Plugin) //nolint:errcheck
-
 	InitPluginStatus(plugin)
+
+	// redirect plugins that are managed by Flux
+	if plugin.GetLabels() != nil && plugin.GetLabels()[greenhouseapis.GreenhouseHelmDeliveryToolLabel] == greenhouseapis.GreenhouseHelmDeliveryToolFlux {
+		return r.EnsureFluxCreated(ctx, plugin)
+	}
 
 	restClientGetter, err := initClientGetter(ctx, r.Client, r.kubeClientOpts, *plugin)
 	if err != nil {
-		metrics.UpdateReconcileTotalMetric(plugin, metrics.MetricResultError, metrics.MetricReasonClusterAccessFailed)
+		util.UpdatePluginReconcileTotalMetric(plugin, util.MetricResultError, util.MetricReasonClusterAccessFailed)
 		return ctrl.Result{}, lifecycle.Failed, fmt.Errorf("cannot access cluster: %s", err.Error())
 	}
 
@@ -180,11 +197,11 @@ func (r *PluginReconciler) EnsureCreated(ctx context.Context, resource lifecycle
 
 	pluginDefinition, err := r.getPluginDefinition(ctx, plugin)
 	if err != nil {
-		metrics.UpdateReconcileTotalMetric(plugin, metrics.MetricResultError, metrics.MetricReasonPluginDefinitionNotFound)
+		util.UpdatePluginReconcileTotalMetric(plugin, util.MetricResultError, util.MetricReasonPluginDefinitionNotFound)
 		return ctrl.Result{}, lifecycle.Failed, fmt.Errorf("pluginDefinition not found: %s", err.Error())
 	}
 
-	reconcileErr := r.reconcileHelmRelease(ctx, restClientGetter, plugin, pluginDefinition)
+	reconcileErr := r.reconcileHelmRelease(ctx, restClientGetter, plugin, pluginDefinition.Spec)
 
 	// PluginStatus, WorkloadStatus and ChartTest should be reconciled regardless of Helm reconciliation result.
 	r.reconcileStatus(ctx, restClientGetter, plugin, pluginDefinition, &plugin.Status)
@@ -216,11 +233,11 @@ func (r *PluginReconciler) getPluginDefinition(
 	ctx context.Context,
 	plugin *greenhousev1alpha1.Plugin,
 ) (
-	*greenhousev1alpha1.PluginDefinition, error,
+	*greenhousev1alpha1.ClusterPluginDefinition, error,
 ) {
 
 	var err error
-	pluginDefinition := new(greenhousev1alpha1.PluginDefinition)
+	pluginDefinition := new(greenhousev1alpha1.ClusterPluginDefinition)
 
 	if err = r.Get(ctx, types.NamespacedName{Namespace: plugin.GetNamespace(), Name: plugin.Spec.PluginDefinition}, pluginDefinition); err != nil {
 		var errorMessage string
@@ -243,11 +260,11 @@ func (r *PluginReconciler) reconcileHelmRelease(
 	ctx context.Context,
 	restClientGetter genericclioptions.RESTClientGetter,
 	plugin *greenhousev1alpha1.Plugin,
-	pluginDefinition *greenhousev1alpha1.PluginDefinition,
+	pluginDefinitionSpec greenhousev1alpha1.PluginDefinitionSpec,
 ) error {
 
 	// Not a HelmChart pluginDefinition. Ignore it.
-	if pluginDefinition.Spec.HelmChart == nil {
+	if pluginDefinitionSpec.HelmChart == nil {
 		plugin.SetCondition(greenhousemetav1alpha1.FalseCondition(
 			greenhousev1alpha1.HelmReconcileFailedCondition, "", "PluginDefinition is not backed by HelmChart"))
 		return nil
@@ -255,21 +272,21 @@ func (r *PluginReconciler) reconcileHelmRelease(
 
 	// Validate before attempting the installation/upgrade.
 	// Any error is reflected in the status of the Plugin.
-	if _, err := helm.TemplateHelmChartFromPlugin(ctx, r.Client, restClientGetter, pluginDefinition, plugin); err != nil {
+	if _, err := helm.TemplateHelmChartFromPlugin(ctx, r.Client, restClientGetter, pluginDefinitionSpec, plugin); err != nil {
 		errorMessage := "Helm template failed: " + err.Error()
 		plugin.SetCondition(greenhousemetav1alpha1.TrueCondition(
 			greenhousev1alpha1.HelmReconcileFailedCondition, "", errorMessage))
-		metrics.UpdateReconcileTotalMetric(plugin, metrics.MetricResultError, metrics.MetricReasonTemplateFailed)
+		util.UpdatePluginReconcileTotalMetric(plugin, util.MetricResultError, util.MetricReasonTemplateFailed)
 		return errors.New(errorMessage)
 	}
 
 	// Check whether the deployed resources match the ones we expect.
-	diffObjects, isHelmDrift, err := helm.DiffChartToDeployedResources(ctx, r.Client, restClientGetter, pluginDefinition, plugin)
+	diffObjects, isHelmDrift, err := helm.DiffChartToDeployedResources(ctx, r.Client, restClientGetter, pluginDefinitionSpec, plugin)
 	if err != nil {
 		errorMessage := "Helm diff failed: " + err.Error()
 		plugin.SetCondition(greenhousemetav1alpha1.TrueCondition(
 			greenhousev1alpha1.HelmReconcileFailedCondition, "", errorMessage))
-		metrics.UpdateReconcileTotalMetric(plugin, metrics.MetricResultError, metrics.MetricReasonDiffFailed)
+		util.UpdatePluginReconcileTotalMetric(plugin, util.MetricResultError, util.MetricReasonDiffFailed)
 		return errors.New(errorMessage)
 	}
 
@@ -292,7 +309,7 @@ func (r *PluginReconciler) reconcileHelmRelease(
 
 	plugin.Status.HelmReleaseStatus.Diff = diffObjects.String()
 
-	if err := helm.InstallOrUpgradeHelmChartFromPlugin(ctx, r.Client, restClientGetter, pluginDefinition, plugin); err != nil {
+	if err := helm.InstallOrUpgradeHelmChartFromPlugin(ctx, r.Client, restClientGetter, pluginDefinitionSpec, plugin); err != nil {
 		errorMessage := "Helm install/upgrade failed: " + err.Error()
 		plugin.SetCondition(greenhousemetav1alpha1.TrueCondition(
 			greenhousev1alpha1.HelmReconcileFailedCondition, "", errorMessage))
@@ -301,14 +318,14 @@ func (r *PluginReconciler) reconcileHelmRelease(
 
 	plugin.SetCondition(greenhousemetav1alpha1.FalseCondition(
 		greenhousev1alpha1.HelmReconcileFailedCondition, "", "Helm install/upgrade successful"))
-	metrics.UpdateReconcileTotalMetric(plugin, metrics.MetricResultSuccess, metrics.MetricReasonEmpty)
+	util.UpdatePluginReconcileTotalMetric(plugin, util.MetricResultSuccess, util.MetricReasonEmpty)
 	return nil
 }
 
 func (r *PluginReconciler) reconcileStatus(ctx context.Context,
 	restClientGetter genericclioptions.RESTClientGetter,
 	plugin *greenhousev1alpha1.Plugin,
-	pluginDefinition *greenhousev1alpha1.PluginDefinition,
+	pluginDefinition *greenhousev1alpha1.ClusterPluginDefinition,
 	pluginStatus *greenhousev1alpha1.PluginStatus,
 ) {
 
@@ -326,14 +343,12 @@ func (r *PluginReconciler) reconcileStatus(ctx context.Context,
 	// Collect status from the Helm release.
 	helmRelease, err := helm.GetReleaseForHelmChartFromPlugin(ctx, restClientGetter, plugin)
 	if err == nil {
-		// Ensure the status is always reported.
-		serviceList, err := getExposedServicesForPluginFromHelmRelease(restClientGetter, helmRelease, plugin)
-		if err == nil {
+		serviceList, err := getAllExposedServicesForPlugin(restClientGetter, helmRelease, plugin)
+		if err != nil {
+			plugin.SetCondition(greenhousemetav1alpha1.FalseCondition(greenhousev1alpha1.StatusUpToDateCondition, "", "failed to get exposed services: "+err.Error()))
+		} else {
 			exposedServices = serviceList
 			plugin.SetCondition(greenhousemetav1alpha1.TrueCondition(greenhousev1alpha1.StatusUpToDateCondition, "", ""))
-		} else {
-			plugin.SetCondition(greenhousemetav1alpha1.FalseCondition(
-				greenhousev1alpha1.StatusUpToDateCondition, "", "failed to get exposed services: "+err.Error()))
 		}
 
 		// Get the release status.
@@ -394,17 +409,24 @@ func (r *PluginReconciler) enqueueAllPluginsInNamespace(ctx context.Context, o c
 }
 
 func (r *PluginReconciler) enqueueAllPluginsForPluginDefinition(ctx context.Context, o client.Object) []ctrl.Request {
-	return ListPluginsAsReconcileRequests(ctx, r.Client, client.MatchingLabels{greenhouseapis.LabelKeyPluginDefinition: o.GetName()})
+	// TODO: Once namespaced PluginDefinitions are supported, we need a logic here to handle the correct label key
+	return ListPluginsAsReconcileRequests(
+		ctx,
+		r.Client,
+		client.MatchingLabels{greenhouseapis.LabelKeyClusterPluginDefinition: o.GetName()},
+	)
 }
 
 func ListPluginsAsReconcileRequests(ctx context.Context, c client.Client, listOpts ...client.ListOption) []ctrl.Request {
 	var pluginList = new(greenhousev1alpha1.PluginList)
 	if err := c.List(ctx, pluginList, listOpts...); err != nil {
+		ctrl.LoggerFrom(ctx).Error(err, "failed to list Plugins for reconcile requests")
 		return nil
 	}
 	res := make([]ctrl.Request, len(pluginList.Items))
 	for idx, plugin := range pluginList.Items {
-		res[idx] = ctrl.Request{NamespacedName: client.ObjectKeyFromObject(plugin.DeepCopy())}
+		namespacedName := types.NamespacedName{Namespace: plugin.GetNamespace(), Name: plugin.GetName()}
+		res[idx] = ctrl.Request{NamespacedName: namespacedName}
 	}
 	return res
 }
@@ -427,8 +449,8 @@ func getExposedServicesForPluginFromHelmRelease(restClientGetter genericclioptio
 	exposedServiceList, err := helm.ObjectMapFromRelease(restClientGetter, helmRelease, &helm.ManifestObjectFilter{
 		APIVersion: "v1",
 		Kind:       "Service",
-		Labels: map[string]string{
-			greenhouseapis.LabelKeyExposeService: "true",
+		Annotations: map[string]string{
+			greenhouseapis.AnnotationKeyExpose: "true",
 		},
 	})
 	if err != nil {
@@ -456,7 +478,89 @@ func getExposedServicesForPluginFromHelmRelease(restClientGetter genericclioptio
 			Name:      svc.Name,
 			Protocol:  svcPort.AppProtocol,
 			Port:      svcPort.Port,
+			Type:      greenhousev1alpha1.ServiceTypeService,
 		}
 	}
+	return exposedServices, nil
+}
+
+// getExposedIngressesForPluginFromHelmRelease discovers ingress resources from a Helm release that are marked for exposure.
+// It searches for ingresses with the annotation "greenhouse.sap/expose": "true" and extracts their URLs.
+//
+// For each discovered ingress:
+// - Automatically detects HTTPS protocol based on TLS configuration
+// - Selects the host using greenhouse.sap/exposed-host annotation or defaults to the first host rule
+// - Constructs complete URLs with protocol (http:// or https://)
+// - Returns them as Service entries with type ServiceTypeIngress (port set to 0 as not applicable)
+//
+// The function filters ingresses from the Helm release manifest (not templates) to ensure they are actually deployed.
+func getExposedIngressesForPluginFromHelmRelease(restClientGetter genericclioptions.RESTClientGetter, helmRelease *release.Release) (map[string]greenhousev1alpha1.Service, error) {
+	exposedIngressList, err := helm.ObjectMapFromRelease(restClientGetter, helmRelease, &helm.ManifestObjectFilter{
+		APIVersion: "v1",
+		Kind:       "Ingress",
+		Annotations: map[string]string{
+			greenhouseapis.AnnotationKeyExpose: "true",
+		},
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	var exposedServices = make(map[string]greenhousev1alpha1.Service, 0)
+	for _, ingress := range exposedIngressList {
+		fullURL, err := getURLForExposedIngress(ingress.Object)
+		if err != nil {
+			return nil, err
+		}
+
+		namespace := ingress.Namespace
+		if namespace == "" {
+			namespace = helmRelease.Namespace
+		}
+
+		exposedServices[fullURL] = greenhousev1alpha1.Service{
+			Namespace: namespace,
+			Name:      ingress.Name,
+			Type:      greenhousev1alpha1.ServiceTypeIngress,
+		}
+	}
+	return exposedServices, nil
+}
+
+// getAllExposedServicesForPlugin aggregates all exposed services and ingresses for a plugin from its Helm release.
+// This function combines two types of exposures into a unified map for Plugin.status.exposedServices:
+//
+// 1. Services (ServiceTypeService): Exposed via service-proxy for internal routing
+//   - Discovered from services with "greenhouse.sap/expose" annotation
+//   - URLs are generated using the service-proxy pattern
+//
+// 2. Ingresses (ServiceTypeIngress): Exposed directly via external URLs
+//   - Discovered from ingresses with "greenhouse.sap/expose" annotation
+//   - URLs are the actual ingress hostnames with proper protocol (http/https)
+//   - Protocol automatically detected from TLS configuration
+//
+// If either service or ingress discovery encounters an error, the entire operation fails.
+func getAllExposedServicesForPlugin(restClientGetter genericclioptions.RESTClientGetter, helmRelease *release.Release, plugin *greenhousev1alpha1.Plugin) (map[string]greenhousev1alpha1.Service, error) {
+	var errorMessages []string
+	exposedServices := make(map[string]greenhousev1alpha1.Service)
+
+	serviceList, err := getExposedServicesForPluginFromHelmRelease(restClientGetter, helmRelease, plugin)
+	if err != nil {
+		errorMessages = append(errorMessages, "services: "+err.Error())
+	} else {
+		maps.Copy(exposedServices, serviceList)
+	}
+
+	ingressList, err := getExposedIngressesForPluginFromHelmRelease(restClientGetter, helmRelease)
+	if err != nil {
+		errorMessages = append(errorMessages, "ingresses: "+err.Error())
+	} else {
+		maps.Copy(exposedServices, ingressList)
+	}
+
+	if len(errorMessages) > 0 {
+		return nil, fmt.Errorf("failed to get exposed resources: %s", strings.Join(errorMessages, "; "))
+	}
+
 	return exposedServices, nil
 }

@@ -6,23 +6,34 @@ replace (
 	// DEX import matches version v2.43.1.
 	github.com/dexidp/dex => github.com/dexidp/dex v0.0.0-20250522090151-6e602d3315ea
 	github.com/dexidp/dex/api/v2 => github.com/dexidp/dex/api/v2 v2.3.0
+
+	// Keep Flux dependencies in sync with v2.6.1.
+	github.com/fluxcd/helm-controller/api => github.com/fluxcd/helm-controller/api v1.3.0
+	github.com/fluxcd/kustomize-controller/api => github.com/fluxcd/kustomize-controller/api v1.6.0
+	github.com/fluxcd/pkg/apis/kustomize => github.com/fluxcd/pkg/apis/kustomize v1.10.0
+	github.com/fluxcd/pkg/apis/meta => github.com/fluxcd/pkg/apis/meta v1.12.0
+	github.com/fluxcd/source-controller/api => github.com/fluxcd/source-controller/api v1.6.0
+
 	// Keep k8s dependencies in sync.
-	k8s.io/api => k8s.io/api v0.33.2
-	k8s.io/apiextensions-apiserver => k8s.io/apiextensions-apiserver v0.33.2
-	k8s.io/apimachinery => k8s.io/apimachinery v0.33.2
-	k8s.io/cli-runtime => k8s.io/cli-runtime v0.33.2
-	k8s.io/client-go => k8s.io/client-go v0.33.2
-	k8s.io/component-base => k8s.io/component-base v0.33.2
-	k8s.io/kubectl => k8s.io/kubectl v0.33.2
+	k8s.io/api => k8s.io/api v0.33.3
+	k8s.io/apiextensions-apiserver => k8s.io/apiextensions-apiserver v0.33.3
+	k8s.io/apimachinery => k8s.io/apimachinery v0.33.4
+	k8s.io/cli-runtime => k8s.io/cli-runtime v0.33.3
+	k8s.io/client-go => k8s.io/client-go v0.33.3
+	k8s.io/component-base => k8s.io/component-base v0.33.3
+	k8s.io/kubectl => k8s.io/kubectl v0.33.3
 	sigs.k8s.io/controller-runtime => sigs.k8s.io/controller-runtime v0.21.0
 )
 
 require (
-	github.com/cenkalti/backoff/v5 v5.0.2
+	github.com/Masterminds/sprig/v3 v3.3.0
+	github.com/cenkalti/backoff/v5 v5.0.3
 	github.com/dexidp/dex v0.0.0-20250522090151-6e602d3315ea
-	github.com/fluxcd/helm-controller/api v1.2.0
-	github.com/fluxcd/pkg/apis/meta v1.10.0
-	github.com/fluxcd/source-controller/api v1.5.0
+	github.com/fluxcd/helm-controller/api v1.3.0
+	github.com/fluxcd/kustomize-controller/api v1.6.0
+	github.com/fluxcd/pkg/apis/kustomize v1.10.0
+	github.com/fluxcd/pkg/apis/meta v1.12.0
+	github.com/fluxcd/source-controller/api v1.6.0
 	github.com/go-jose/go-jose/v4 v4.1.1
 	github.com/jeremywohl/flatten/v2 v2.0.0-20211013061545-07e4a09fb8e4
 	github.com/oklog/run v1.2.0
@@ -31,21 +42,21 @@ require (
 	github.com/pkg/errors v0.9.1
 	github.com/prometheus/client_golang v1.22.0
 	github.com/spf13/cobra v1.9.1
-	github.com/spf13/pflag v1.0.6
+	github.com/spf13/pflag v1.0.7
 	github.com/stretchr/testify v1.10.0
 	github.com/vladimirvivien/gexe v0.5.0
 	github.com/wI2L/jsondiff v0.7.0
 	go.uber.org/zap v1.27.0
-	golang.org/x/text v0.27.0
+	golang.org/x/text v0.28.0
 	gopkg.in/yaml.v3 v3.0.1
-	helm.sh/helm/v3 v3.18.4
-	k8s.io/api v0.33.2
-	k8s.io/apiextensions-apiserver v0.33.2
-	k8s.io/apimachinery v0.33.2
-	k8s.io/cli-runtime v0.33.2
-	k8s.io/client-go v0.33.2
-	k8s.io/kubectl v0.33.2
-	k8s.io/utils v0.0.0-20250604170112-4c0f3b243397
+	helm.sh/helm/v3 v3.18.5
+	k8s.io/api v0.33.3
+	k8s.io/apiextensions-apiserver v0.33.3
+	k8s.io/apimachinery v0.33.4
+	k8s.io/cli-runtime v0.33.3
+	k8s.io/client-go v0.33.3
+	k8s.io/kubectl v0.33.3
+	k8s.io/utils v0.0.0-20250820121507-0af2bda4dd1d
 	sigs.k8s.io/controller-runtime v0.21.0
 	sigs.k8s.io/kind v0.29.0
 	sigs.k8s.io/yaml v1.5.0
@@ -62,10 +73,9 @@ require (
 	github.com/containerd/platforms v0.2.1 // indirect
 	github.com/cpuguy83/go-md2man/v2 v2.0.6 // indirect
 	github.com/creack/pty v1.1.23 // indirect
-	github.com/fluxcd/pkg/apis/acl v0.6.0 // indirect
-	github.com/fluxcd/pkg/apis/kustomize v1.9.0 // indirect
+	github.com/fluxcd/pkg/apis/acl v0.7.0 // indirect
 	github.com/fsnotify/fsnotify v1.9.0 // indirect
-	github.com/fxamacker/cbor/v2 v2.7.0 // indirect
+	github.com/fxamacker/cbor/v2 v2.8.0 // indirect
 	github.com/ghodss/yaml v1.0.0 // indirect
 	github.com/go-sql-driver/mysql v1.9.2 // indirect
 	github.com/go-task/slim-sprig/v3 v3.0.0 // indirect
@@ -76,6 +86,7 @@ require (
 	github.com/miekg/dns v1.1.58 // indirect
 	github.com/mxk/go-flowrate v0.0.0-20140419014527-cca7078d478f // indirect
 	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 // indirect
+	github.com/santhosh-tekuri/jsonschema/v6 v6.0.2 // indirect
 	github.com/sergi/go-diff v1.3.1 // indirect
 	github.com/sirupsen/logrus v1.9.3 // indirect
 	github.com/stretchr/objx v0.5.2 // indirect
@@ -105,7 +116,6 @@ require (
 	github.com/Masterminds/goutils v1.1.1 // indirect
 	github.com/Masterminds/semver v1.5.0 // indirect
 	github.com/Masterminds/semver/v3 v3.3.0 // indirect
-	github.com/Masterminds/sprig/v3 v3.3.0 // indirect
 	github.com/Masterminds/squirrel v1.5.4 // indirect
 	github.com/asaskevich/govalidator v0.0.0-20230301143203-a9d515a09cc2 // indirect
 	github.com/beevik/etree v1.5.1 // indirect
@@ -186,23 +196,20 @@ require (
 	github.com/russross/blackfriday/v2 v2.1.0 // indirect
 	github.com/shopspring/decimal v1.4.0 // indirect
 	github.com/spf13/cast v1.7.0 // indirect
-	github.com/xeipuuv/gojsonpointer v0.0.0-20190905194746-02993c407bfb // indirect
-	github.com/xeipuuv/gojsonreference v0.0.0-20180127040603-bd5ef7bd5415 // indirect
-	github.com/xeipuuv/gojsonschema v1.2.0 // indirect
 	github.com/xlab/treeprint v1.2.0 // indirect
 	go.opentelemetry.io/otel v1.35.0 // indirect
 	go.opentelemetry.io/otel/metric v1.35.0 // indirect
 	go.opentelemetry.io/otel/trace v1.35.0 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
-	golang.org/x/crypto v0.39.0 // indirect
-	golang.org/x/exp v0.0.0-20250620022241-b7579e27df2b
-	golang.org/x/net v0.41.0 // indirect
+	golang.org/x/crypto v0.41.0 // indirect
+	golang.org/x/exp v0.0.0-20250819193227-8b4c13bb791b
+	golang.org/x/net v0.43.0 // indirect
 	golang.org/x/oauth2 v0.30.0 // indirect
 	golang.org/x/sync v0.16.0 // indirect
-	golang.org/x/sys v0.33.0 // indirect
-	golang.org/x/term v0.32.0 // indirect
+	golang.org/x/sys v0.35.0 // indirect
+	golang.org/x/term v0.34.0 // indirect
 	golang.org/x/time v0.12.0
-	golang.org/x/tools v0.34.0 // indirect
+	golang.org/x/tools v0.36.0 // indirect
 	gomodules.xyz/jsonpatch/v2 v2.4.0 // indirect
 	google.golang.org/api v0.233.0 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20250505200425-f936aa4a68b2 // indirect
@@ -210,12 +217,12 @@ require (
 	google.golang.org/protobuf v1.36.6 // indirect
 	gopkg.in/inf.v0 v0.9.1 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
-	k8s.io/apiserver v0.33.2 // indirect
-	k8s.io/component-base v0.33.2 // indirect
+	k8s.io/apiserver v0.33.3 // indirect
+	k8s.io/component-base v0.33.3 // indirect
 	k8s.io/klog/v2 v2.130.1
 	k8s.io/kube-openapi v0.0.0-20250318190949-c8a335a9a2ff // indirect
-	sigs.k8s.io/json v0.0.0-20241010143419-9aa6b5e7a4b3 // indirect
+	sigs.k8s.io/json v0.0.0-20241014173422-cfa47c3a1cc8 // indirect
 	sigs.k8s.io/kustomize/api v0.19.0 // indirect
 	sigs.k8s.io/kustomize/kyaml v0.19.0 // indirect
-	sigs.k8s.io/structured-merge-diff/v4 v4.6.0 // indirect
+	sigs.k8s.io/structured-merge-diff/v4 v4.7.0 // indirect
 )

@@ -5,6 +5,7 @@ package organization
 
 import (
 	"github.com/prometheus/client_golang/prometheus"
+	crmetrics "sigs.k8s.io/controller-runtime/pkg/metrics"
 
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
 )
@@ -28,11 +29,11 @@ var (
 )
 
 func init() {
-	prometheus.MustRegister(organizationReadyGauge)
-	prometheus.MustRegister(scimAccessReadyGauge)
+	crmetrics.Registry.MustRegister(organizationReadyGauge)
+	crmetrics.Registry.MustRegister(scimAccessReadyGauge)
 }
 
-func UpdateMetrics(organization *greenhousev1alpha1.Organization) {
+func UpdateOrganizationMetrics(organization *greenhousev1alpha1.Organization) {
 	organizationLabels := prometheus.Labels{
 		"organization": organization.Name,
 	}

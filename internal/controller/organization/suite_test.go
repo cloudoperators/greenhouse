@@ -11,6 +11,7 @@ import (
 	. "github.com/onsi/gomega"
 
 	organizationpkg "github.com/cloudoperators/greenhouse/internal/controller/organization"
+	defpkg "github.com/cloudoperators/greenhouse/internal/controller/plugindefinition"
 	"github.com/cloudoperators/greenhouse/internal/dex"
 	"github.com/cloudoperators/greenhouse/internal/scim"
 	"github.com/cloudoperators/greenhouse/internal/test"
@@ -38,9 +39,11 @@ var _ = BeforeSuite(func() {
 	DexStorageType = dex.K8s
 
 	test.RegisterController("organizationController", (&organizationpkg.OrganizationReconciler{Namespace: "default", DexStorageType: DexStorageType}).SetupWithManager)
+	test.RegisterController("pluginDefinitionController", (&defpkg.PluginDefinitionReconciler{}).SetupWithManager)
+	test.RegisterController("clusterPluginDefinition", (&defpkg.ClusterPluginDefinitionReconciler{}).SetupWithManager)
 	test.RegisterWebhook("orgWebhook", webhookv1alpha1.SetupOrganizationWebhookWithManager)
 	test.RegisterWebhook("teamWebhook", webhookv1alpha1.SetupTeamWebhookWithManager)
-	test.RegisterWebhook("pluginDefinitionWebhook", webhookv1alpha1.SetupPluginDefinitionWebhookWithManager)
+	test.RegisterWebhook("clusterPluginDefinitionWebhook", webhookv1alpha1.SetupClusterPluginDefinitionWebhookWithManager)
 	test.RegisterWebhook("pluginWebhook", webhookv1alpha1.SetupPluginWebhookWithManager)
 	test.RegisterWebhook("teamRoleWebhook", webhookv1alpha1.SetupTeamRoleWebhookWithManager)
 	test.TestBeforeSuite()

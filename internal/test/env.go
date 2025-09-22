@@ -13,6 +13,7 @@ import (
 	"time"
 
 	helmv2 "github.com/fluxcd/helm-controller/api/v2"
+	kustomizev1 "github.com/fluxcd/kustomize-controller/api/v1"
 	sourcev1 "github.com/fluxcd/source-controller/api/v1"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -264,6 +265,7 @@ func StartControlPlane(port string, installCRDs, installWebhooks bool) (*rest.Co
 		To(Succeed(), "there must be no error adding the dex api to the scheme")
 	Expect(sourcev1.AddToScheme(scheme.Scheme)).To(Succeed(), "there must be no error adding the flux source api to the scheme")
 	Expect(helmv2.AddToScheme(scheme.Scheme)).To(Succeed(), "there must be no error adding the flux helm api to the scheme")
+	Expect(kustomizev1.AddToScheme(scheme.Scheme)).To(Succeed(), "there must be no error adding the flux kustomize api to the scheme")
 
 	// Make sure all schemes are added before starting the envtest. This will enable conversion webhooks.
 	testEnv.CRDInstallOptions = envtest.CRDInstallOptions{

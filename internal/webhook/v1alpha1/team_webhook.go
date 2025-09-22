@@ -72,7 +72,7 @@ func validateGreenhouseLabels(team *greenhousev1alpha1.Team, ctx context.Context
 		"support-group": {},
 	}
 
-	pluginDefinitions := greenhousev1alpha1.PluginDefinitionList{}
+	pluginDefinitions := greenhousev1alpha1.ClusterPluginDefinitionList{}
 	if err := c.List(ctx, &pluginDefinitions); !apierrors.IsNotFound(err) && err != nil {
 		return err
 	}

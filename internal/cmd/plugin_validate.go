@@ -7,11 +7,9 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"os"
 	"path/filepath"
 
 	"github.com/spf13/cobra"
-	"k8s.io/apimachinery/pkg/util/yaml"
 	ctrl "sigs.k8s.io/controller-runtime"
 
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
@@ -66,11 +64,11 @@ func (o *pluginValidateOptions) complete(args []string) error {
 func (o *pluginValidateOptions) run() error {
 	fmt.Printf("validating pluginDefinition %s with plugin %s\n", o.pathToPluginDefinition, o.pathToPlugin)
 	// Load both the PluginDefinition and Plugin from the provided files.
-	pluginDefinition, err := loadPluginDefinition(o.pathToPluginDefinition)
+	pluginDefinition, err := loadFromFile[greenhousev1alpha1.ClusterPluginDefinition](o.pathToPluginDefinition)
 	if err != nil {
 		return err
 	}
-	plugin, err := loadPlugin(o.pathToPlugin)
+	plugin, err := loadFromFile[greenhousev1alpha1.Plugin](o.pathToPlugin)
 	if err != nil {
 		return err
 	}
@@ -89,9 +87,9 @@ func (o *pluginValidateOptions) run() error {
 }
 
 // validateOptions validates that all required options are set and that the values are valid.
-func validateOptions(pluginDefinition *greenhousev1alpha1.PluginDefinition, plugin *greenhousev1alpha1.Plugin) error {
+func validateOptions(pluginDefinition *greenhousev1alpha1.ClusterPluginDefinition, plugin *greenhousev1alpha1.Plugin) error {
 	// Validate that all required options are set.
-	errList := []error{}
+	var errList []error
 	for _, option := range pluginDefinition.Spec.Options {
 		var isSet = false
 		for _, optionValue := range plugin.Spec.OptionValues {
@@ -118,7 +116,7 @@ func validateOptions(pluginDefinition *greenhousev1alpha1.PluginDefinition, plug
 	}
 }
 
-func validateHelmChart(pluginDefinition *greenhousev1alpha1.PluginDefinition, plugin *greenhousev1alpha1.Plugin) error {
+func validateHelmChart(pluginDefinition *greenhousev1alpha1.ClusterPluginDefinition, plugin *greenhousev1alpha1.Plugin) error {
 	if pluginDefinition.Spec.HelmChart == nil {
 		return nil
 	}
@@ -132,31 +130,6 @@ func validateHelmChart(pluginDefinition *greenhousev1alpha1.PluginDefinition, pl
 	}
 
 	fmt.Printf("rendering helm chart %s\n", pluginDefinition.Spec.HelmChart.String())
-	_, err = helm.TemplateHelmChartFromPlugin(context.Background(), local, restClientGetter, pluginDefinition, plugin)
-	return err
-}
-
-func loadPluginDefinition(path string) (*greenhousev1alpha1.PluginDefinition, error) {
-	var pluginDefinition *greenhousev1alpha1.PluginDefinition
-	err := loadAndUnmarshalObject(path, &pluginDefinition)
-	return pluginDefinition, err
-}
-
-func loadPlugin(path string) (*greenhousev1alpha1.Plugin, error) {
-	var plugin *greenhousev1alpha1.Plugin
-	err := loadAndUnmarshalObject(path, &plugin)
-	return plugin, err
-}
-
-func loadAndUnmarshalObject(path string, o any) error {
-	absPath, err := filepath.Abs(path)
-	if err != nil {
-		return err
-	}
-	f, err := os.ReadFile(absPath)
-	if err != nil {
-		return err
-	}
-	err = yaml.Unmarshal(f, &o)
+	_, err = helm.TemplateHelmChartFromPlugin(context.Background(), local, restClientGetter, pluginDefinition.Spec, plugin)
 	return err
 }

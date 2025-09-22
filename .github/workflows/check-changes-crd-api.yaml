@@ -15,35 +15,36 @@ on:
   pull_request:
     types: [opened, synchronize, reopened]
     paths:
+      - "api/meta/**"
       - "api/v1alpha1/**"
-
+      - "api/v1alpha2/**"
 jobs:
   generate-docs-types-specs:
     runs-on: [default]
-    permissions:
-      contents: write
     steps:
-      - name: Checkout
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+      - name: Generate GitHub App Token
+        id: github-app-token
+        uses: actions/create-github-app-token@d72941d797fd3113feb6b93fd0dec494b13a2547 # v1
         with:
-          token: ${{ secrets.CLOUOPERATOR_REPO_WRITE }}
+          app-id: ${{ secrets.CLOUDOPERATOR_APP_ID }}
+          private-key: ${{ secrets.CLOUDOPERATOR_APP_PRIVATE_KEY }}
+          permission-contents: write
+
+      - name: Checkout
+        uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955 # v4
+        with:
           repository: ${{ github.event.pull_request.head.repo.full_name }}
           ref: ${{ github.event.pull_request.head.ref }}
+          token: ${{ steps.github-app-token.outputs.token }}
 
-      - name: Generate CRD API Reference Docs
-        run: |
-          make generate-documentation
-
-      - name: Generate OpenAPI specs and typescript types from CRDs
+      - name: Generate manifests, documentation and types
         run: |
           chmod o+rw docs/reference/api/openapi.yaml
-          make generate-types
+          make generate-all
 
       - name: Apply Changes
         uses: EndBug/add-and-commit@a94899bca583c204427a224a7af87c02f9b325d5 # v9
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          author_name: Cloud Operator
-          author_email: 169066274+cloud-operator@users.noreply.github.com
+          author_name: cloud-operator-bot[bot]
+          author_email: 224791424+cloud-operator-bot[bot]@users.noreply.github.com
           message: "Automatic generation of CRD API Docs"

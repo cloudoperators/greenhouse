@@ -20,7 +20,7 @@ import (
 
 var _ = DescribeTable("Validate PluginOption Type and Value are consistent", func(expectedType greenhousev1alpha1.PluginOptionType, defaultValue any, expErr bool) {
 
-	pluginDefinition := &greenhousev1alpha1.PluginDefinition{
+	pluginDefinition := &greenhousev1alpha1.ClusterPluginDefinition{
 		Spec: greenhousev1alpha1.PluginDefinitionSpec{
 			Options: []greenhousev1alpha1.PluginOption{
 				{
@@ -62,7 +62,7 @@ var _ = DescribeTable("Validate PluginOption Type and Value are consistent", fun
 
 var _ = Describe("Validate PluginDefinition Creation", func() {
 	It("should deny creation of PluginDefinition with defaulted Secret OptionValue", func() {
-		pluginDefinition := &greenhousev1alpha1.PluginDefinition{
+		pluginDefinition := &greenhousev1alpha1.ClusterPluginDefinition{
 			Spec: greenhousev1alpha1.PluginDefinitionSpec{
 				Version: "1.0.0",
 				UIApplication: &greenhousev1alpha1.UIApplicationReference{
@@ -81,13 +81,13 @@ var _ = Describe("Validate PluginDefinition Creation", func() {
 
 		c := fake.NewClientBuilder().WithScheme(test.GreenhouseV1Alpha1Scheme()).Build()
 
-		_, err := ValidateCreatePluginDefinition(context.TODO(), c, pluginDefinition)
+		_, err := ValidateCreateClusterPluginDefinition(context.TODO(), c, pluginDefinition)
 		Expect(err).To(HaveOccurred(), "there should be an error creating the PluginDefinition")
 		Expect(err.Error()).To(ContainSubstring("defaults are not allowed in PluginOptions of the 'Secret' type"))
 	})
 
 	It("should deny creation of PluginDefinition without spec.Version", func() {
-		pluginDefinition := &greenhousev1alpha1.PluginDefinition{
+		pluginDefinition := &greenhousev1alpha1.ClusterPluginDefinition{
 			Spec: greenhousev1alpha1.PluginDefinitionSpec{
 				UIApplication: &greenhousev1alpha1.UIApplicationReference{
 					Name: "test-no-version",
@@ -98,7 +98,7 @@ var _ = Describe("Validate PluginDefinition Creation", func() {
 
 		c := fake.NewClientBuilder().WithScheme(test.GreenhouseV1Alpha1Scheme()).Build()
 
-		_, err := ValidateCreatePluginDefinition(context.TODO(), c, pluginDefinition)
+		_, err := ValidateCreateClusterPluginDefinition(context.TODO(), c, pluginDefinition)
 
 		Expect(err).To(HaveOccurred(), "there should be an error creating the PluginDefinition")
 		Expect(err.Error()).To(ContainSubstring("PluginDefinition without spec.version is invalid."))
@@ -107,7 +107,7 @@ var _ = Describe("Validate PluginDefinition Creation", func() {
 
 var _ = Describe("Validate PluginDefinition Update", func() {
 	It("should deny updating PluginDefinition with defaulted Secret OptionValue", func() {
-		pluginDefinition := &greenhousev1alpha1.PluginDefinition{
+		pluginDefinition := &greenhousev1alpha1.ClusterPluginDefinition{
 			Spec: greenhousev1alpha1.PluginDefinitionSpec{
 				Version: "1.0.0",
 				UIApplication: &greenhousev1alpha1.UIApplicationReference{
@@ -126,13 +126,13 @@ var _ = Describe("Validate PluginDefinition Update", func() {
 
 		c := fake.NewClientBuilder().WithScheme(test.GreenhouseV1Alpha1Scheme()).Build()
 
-		_, err := ValidateCreatePluginDefinition(context.TODO(), c, pluginDefinition)
+		_, err := ValidateCreateClusterPluginDefinition(context.TODO(), c, pluginDefinition)
 		Expect(err).To(HaveOccurred(), "there should be an error updating the PluginDefinition")
 		Expect(err.Error()).To(ContainSubstring("defaults are not allowed in PluginOptions of the 'Secret' type"))
 	})
 
 	It("should deny updating PluginDefinition without spec.Version", func() {
-		pluginDefinition := &greenhousev1alpha1.PluginDefinition{
+		pluginDefinition := &greenhousev1alpha1.ClusterPluginDefinition{
 			Spec: greenhousev1alpha1.PluginDefinitionSpec{
 				UIApplication: &greenhousev1alpha1.UIApplicationReference{
 					Name: "test-no-version",
@@ -143,7 +143,7 @@ var _ = Describe("Validate PluginDefinition Update", func() {
 
 		c := fake.NewClientBuilder().WithScheme(test.GreenhouseV1Alpha1Scheme()).Build()
 
-		_, err := ValidateUpdatePluginDefinition(context.TODO(), c, nil, pluginDefinition)
+		_, err := ValidateUpdateClusterPluginDefinition(context.TODO(), c, nil, pluginDefinition)
 
 		Expect(err).To(HaveOccurred(), "there should be an error updating the PluginDefinition")
 		Expect(err.Error()).To(ContainSubstring("PluginDefinition without spec.version is invalid."))
@@ -153,7 +153,7 @@ var _ = Describe("Validate PluginDefinition Update", func() {
 var _ = Describe("Validate PluginDefinition Deletion", func() {
 
 	It("should allow deletion of PluginDefinition without Plugin", func() {
-		pluginDefinition := &greenhousev1alpha1.PluginDefinition{
+		pluginDefinition := &greenhousev1alpha1.ClusterPluginDefinition{
 			ObjectMeta: metav1.ObjectMeta{
 				Name: "test",
 			},
@@ -162,12 +162,12 @@ var _ = Describe("Validate PluginDefinition Deletion", func() {
 
 		c := fake.NewClientBuilder().WithScheme(test.GreenhouseV1Alpha1Scheme()).WithLists(pluginList).Build()
 
-		_, err := ValidateDeletePluginDefinition(context.TODO(), c, pluginDefinition)
+		_, err := ValidateDeleteClusterPluginDefinition(context.TODO(), c, pluginDefinition)
 		Expect(err).ToNot(HaveOccurred(), "there should be no error deleting the PluginDefinition")
 	})
 
 	It("should prevent deletion of PluginDefinition with Plugin", func() {
-		pluginDefinition := &greenhousev1alpha1.PluginDefinition{
+		pluginDefinition := &greenhousev1alpha1.ClusterPluginDefinition{
 			ObjectMeta: metav1.ObjectMeta{
 				Name: "test",
 			},
@@ -179,7 +179,7 @@ var _ = Describe("Validate PluginDefinition Deletion", func() {
 						Name:      "test-plugin",
 						Namespace: "default",
 						Labels: map[string]string{
-							greenhouseapis.LabelKeyPluginDefinition: "test",
+							greenhouseapis.LabelKeyClusterPluginDefinition: "test",
 						},
 					},
 				},
@@ -188,7 +188,7 @@ var _ = Describe("Validate PluginDefinition Deletion", func() {
 
 		c := fake.NewClientBuilder().WithScheme(test.GreenhouseV1Alpha1Scheme()).WithLists(pluginList).Build()
 
-		_, err := ValidateDeletePluginDefinition(context.TODO(), c, pluginDefinition)
+		_, err := ValidateDeleteClusterPluginDefinition(context.TODO(), c, pluginDefinition)
 		Expect(err).To(HaveOccurred(), "there should be an error deleting the PluginDefinition when Plugins still exist")
 	})
 })

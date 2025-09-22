@@ -7,6 +7,7 @@ import (
 	"context"
 
 	. "github.com/onsi/ginkgo/v2"
+	"k8s.io/utils/ptr"
 
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
@@ -25,8 +26,8 @@ func WithAccessMode(mode greenhousev1alpha1.ClusterAccessMode) func(*greenhousev
 	}
 }
 
-// WithLabel sets the label on a Cluster
-func WithLabel(key, value string) func(*greenhousev1alpha1.Cluster) {
+// WithClusterLabel sets the label on a Cluster
+func WithClusterLabel(key, value string) func(*greenhousev1alpha1.Cluster) {
 	return func(c *greenhousev1alpha1.Cluster) {
 		if c.Labels == nil {
 			c.Labels = make(map[string]string, 1)
@@ -97,6 +98,12 @@ func WithAdditionalRedirects(additionalRedirects ...string) func(organization *g
 	}
 }
 
+func WithConfigMapRef(configMapRef string) func(*greenhousev1alpha1.Organization) {
+	return func(org *greenhousev1alpha1.Organization) {
+		org.Spec.ConfigMapRef = configMapRef
+	}
+}
+
 // WithOIDCConfig sets the OIDCConfig on an Organization
 func WithOIDCConfig(issuer, secretName, clientIDKey, clientSecretKey string) func(*greenhousev1alpha1.Organization) {
 	return func(org *greenhousev1alpha1.Organization) {
@@ -138,48 +145,44 @@ func NewOrganization(ctx context.Context, name string, opts ...func(*greenhousev
 	return org
 }
 
-// WithVersion sets the version of a PluginDefinition
-func WithVersion(version string) func(*greenhousev1alpha1.PluginDefinition) {
-	return func(pd *greenhousev1alpha1.PluginDefinition) {
+// WithVersion sets the version of a ClusterPluginDefinition
+func WithVersion(version string) func(*greenhousev1alpha1.ClusterPluginDefinition) {
+	return func(pd *greenhousev1alpha1.ClusterPluginDefinition) {
 		pd.Spec.Version = version
 	}
 }
 
-// WithHelmChart sets the HelmChart of a PluginDefinition
-func WithHelmChart(chart *greenhousev1alpha1.HelmChartReference) func(*greenhousev1alpha1.PluginDefinition) {
-	return func(pd *greenhousev1alpha1.PluginDefinition) {
+// WithHelmChart sets the HelmChart of a ClusterPluginDefinition
+func WithHelmChart(chart *greenhousev1alpha1.HelmChartReference) func(*greenhousev1alpha1.ClusterPluginDefinition) {
+	return func(pd *greenhousev1alpha1.ClusterPluginDefinition) {
 		pd.Spec.HelmChart = chart
 	}
 }
 
-// WithoutHelmChart sets the HelmChart of a PluginDefinition to nil
-func WithoutHelmChart() func(*greenhousev1alpha1.PluginDefinition) {
-	return func(pd *greenhousev1alpha1.PluginDefinition) {
+// WithoutHelmChart sets the HelmChart of a ClusterPluginDefinition to nil
+func WithoutHelmChart() func(*greenhousev1alpha1.ClusterPluginDefinition) {
+	return func(pd *greenhousev1alpha1.ClusterPluginDefinition) {
 		pd.Spec.HelmChart = nil
 	}
 }
 
-// WithDescription sets the description of a PluginDefinition
-func WithUIApplication(ui *greenhousev1alpha1.UIApplicationReference) func(*greenhousev1alpha1.PluginDefinition) {
-	return func(pd *greenhousev1alpha1.PluginDefinition) {
+// WithDescription sets the description of a ClusterPluginDefinition
+func WithUIApplication(ui *greenhousev1alpha1.UIApplicationReference) func(*greenhousev1alpha1.ClusterPluginDefinition) {
+	return func(pd *greenhousev1alpha1.ClusterPluginDefinition) {
 		pd.Spec.UIApplication = ui
 	}
 }
 
-// AppendPluginOption sets the plugin option in plugin definition
-func AppendPluginOption(option greenhousev1alpha1.PluginOption) func(*greenhousev1alpha1.PluginDefinition) {
-	return func(pd *greenhousev1alpha1.PluginDefinition) {
+// AppendPluginOption sets the plugin option in ClusterPluginDefinition
+func AppendPluginOption(option greenhousev1alpha1.PluginOption) func(*greenhousev1alpha1.ClusterPluginDefinition) {
+	return func(pd *greenhousev1alpha1.ClusterPluginDefinition) {
 		pd.Spec.Options = append(pd.Spec.Options, option)
 	}
 }
 
-// NewPluginDefinition returns a greenhousev1alpha1.PluginDefinition object. Opts can be used to set the desired state of the PluginDefinition.
-func NewPluginDefinition(ctx context.Context, name string, opts ...func(*greenhousev1alpha1.PluginDefinition)) *greenhousev1alpha1.PluginDefinition {
-	pd := &greenhousev1alpha1.PluginDefinition{
-		TypeMeta: metav1.TypeMeta{
-			Kind:       "PluginDefinition",
-			APIVersion: greenhousev1alpha1.GroupVersion.String(),
-		},
+// NewClusterPluginDefinition returns a greenhousev1alpha1.ClusterPluginDefinition object. Opts can be used to set the desired state of the ClusterPluginDefinition.
+func NewClusterPluginDefinition(ctx context.Context, name string, opts ...func(definition *greenhousev1alpha1.ClusterPluginDefinition)) *greenhousev1alpha1.ClusterPluginDefinition {
+	pd := &greenhousev1alpha1.ClusterPluginDefinition{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: name,
 		},
@@ -238,16 +241,24 @@ func WithPresetLabelValue(value string) func(*greenhousev1alpha1.Plugin) {
 	}
 }
 
-// WithPluginOptionValue sets the value of a PluginOptionValue
-func WithPluginOptionValue(name string, value *apiextensionsv1.JSON, valueFrom *greenhousev1alpha1.ValueFromSource) func(*greenhousev1alpha1.Plugin) {
+// WithPluginLabel sets the label on a Plugin
+func WithPluginLabel(key, value string) func(*greenhousev1alpha1.Plugin) {
 	return func(p *greenhousev1alpha1.Plugin) {
-		if value != nil && valueFrom != nil {
-			Fail("value and valueFrom are mutually exclusive")
+		if p.Labels == nil {
+			p.Labels = make(map[string]string, 1)
 		}
+		p.Labels[key] = value
+	}
+}
+
+// WithPluginOptionValue sets the value of a PluginOptionValue, clears ValueFrom and Template
+func WithPluginOptionValue(name string, value *apiextensionsv1.JSON) func(*greenhousev1alpha1.Plugin) {
+	return func(p *greenhousev1alpha1.Plugin) {
 		for i, v := range p.Spec.OptionValues {
 			if v.Name == name {
 				v.Value = value
-				v.ValueFrom = valueFrom
+				v.ValueFrom = nil
+				v.Template = nil
 				p.Spec.OptionValues[i] = v
 				return
 			}
@@ -255,7 +266,50 @@ func WithPluginOptionValue(name string, value *apiextensionsv1.JSON, valueFrom *
 		p.Spec.OptionValues = append(p.Spec.OptionValues, greenhousev1alpha1.PluginOptionValue{
 			Name:      name,
 			Value:     value,
+			ValueFrom: nil,
+			Template:  nil,
+		})
+	}
+}
+
+// WithPluginOptionValue sets the value of a PluginOptionValue, clears Value and Template
+func WithPluginOptionValueFrom(name string, valueFrom *greenhousev1alpha1.ValueFromSource) func(*greenhousev1alpha1.Plugin) {
+	return func(p *greenhousev1alpha1.Plugin) {
+		for i, v := range p.Spec.OptionValues {
+			if v.Name == name {
+				v.Value = nil
+				v.ValueFrom = valueFrom
+				v.Template = nil
+				p.Spec.OptionValues[i] = v
+				return
+			}
+		}
+		p.Spec.OptionValues = append(p.Spec.OptionValues, greenhousev1alpha1.PluginOptionValue{
+			Name:      name,
+			Value:     nil,
 			ValueFrom: valueFrom,
+			Template:  nil,
+		})
+	}
+}
+
+// WithPluginOptionValue sets the template of a PluginOptionValue,
+func WithPluginOptionValueTemplate(name string, template *string) func(*greenhousev1alpha1.Plugin) {
+	return func(p *greenhousev1alpha1.Plugin) {
+		for i, v := range p.Spec.OptionValues {
+			if v.Name == name {
+				v.Value = nil
+				v.Template = template
+				v.ValueFrom = nil
+				p.Spec.OptionValues[i] = v
+				return
+			}
+		}
+		p.Spec.OptionValues = append(p.Spec.OptionValues, greenhousev1alpha1.PluginOptionValue{
+			Name:      name,
+			Value:     nil,
+			Template:  template,
+			ValueFrom: nil,
 		})
 	}
 }
@@ -292,6 +346,49 @@ func NewPlugin(ctx context.Context, name, namespace string, opts ...func(*greenh
 		o(plugin)
 	}
 	return plugin
+}
+
+// WithPluginPresetClusterSelector sets the ClusterSelector on a PluginPreset.
+func WithPluginPresetClusterSelector(clusterSelector metav1.LabelSelector) func(*greenhousev1alpha1.PluginPreset) {
+	return func(pp *greenhousev1alpha1.PluginPreset) {
+		pp.Spec.ClusterSelector = clusterSelector
+	}
+}
+
+// WithPluginPresetPluginSpec sets the PluginSpec on a PluginPreset.
+func WithPluginPresetPluginSpec(pluginSpec greenhousev1alpha1.PluginSpec) func(*greenhousev1alpha1.PluginPreset) {
+	return func(pp *greenhousev1alpha1.PluginPreset) {
+		pp.Spec.Plugin = pluginSpec
+	}
+}
+
+// WithPluginPresetLabel sets the label on a PluginPreset
+func WithPluginPresetLabel(key, value string) func(*greenhousev1alpha1.PluginPreset) {
+	return func(pp *greenhousev1alpha1.PluginPreset) {
+		if pp.Labels == nil {
+			pp.Labels = make(map[string]string, 1)
+		}
+		pp.Labels[key] = value
+	}
+}
+
+// NewPluginPreset returns a greenhousev1alpha1.PluginPreset object. Opts can be used to set the desired state of the PluginPreset.
+func NewPluginPreset(name, namespace string, opts ...func(*greenhousev1alpha1.PluginPreset)) *greenhousev1alpha1.PluginPreset {
+	GinkgoHelper()
+	pluginPreset := &greenhousev1alpha1.PluginPreset{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       greenhousev1alpha1.PluginPresetKind,
+			APIVersion: greenhousev1alpha1.GroupVersion.String(),
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      name,
+			Namespace: namespace,
+		},
+	}
+	for _, o := range opts {
+		o(pluginPreset)
+	}
+	return pluginPreset
 }
 
 // WithRules overrides the default rules of a TeamRole
@@ -386,6 +483,16 @@ func WithUsernames(usernames []string) func(*greenhousev1alpha2.TeamRoleBinding)
 	}
 }
 
+// WithTeamRoleBindingLabel sets the label on a TeamRoleBinding
+func WithTeamRoleBindingLabel(key, value string) func(*greenhousev1alpha2.TeamRoleBinding) {
+	return func(trb *greenhousev1alpha2.TeamRoleBinding) {
+		if trb.Labels == nil {
+			trb.Labels = make(map[string]string, 1)
+		}
+		trb.Labels[key] = value
+	}
+}
+
 // NewTeamRoleBinding returns a greenhousev1alpha2.TeamRoleBinding object. Opts can be used to set the desired state of the TeamRoleBinding.
 func NewTeamRoleBinding(ctx context.Context, name, namespace string, opts ...func(*greenhousev1alpha2.TeamRoleBinding)) *greenhousev1alpha2.TeamRoleBinding {
 	trb := &greenhousev1alpha2.TeamRoleBinding{
@@ -407,6 +514,16 @@ func NewTeamRoleBinding(ctx context.Context, name, namespace string, opts ...fun
 func WithMappedIDPGroup(group string) func(*greenhousev1alpha1.Team) {
 	return func(t *greenhousev1alpha1.Team) {
 		t.Spec.MappedIDPGroup = group
+	}
+}
+
+// WithTeamLabel sets the label on a Team
+func WithTeamLabel(key, value string) func(*greenhousev1alpha1.Team) {
+	return func(t *greenhousev1alpha1.Team) {
+		if t.Labels == nil {
+			t.Labels = make(map[string]string, 1)
+		}
+		t.Labels[key] = value
 	}
 }
 
@@ -447,6 +564,16 @@ func WithSecretLabels(labels map[string]string) func(*corev1.Secret) {
 	}
 }
 
+// WithSecretLabel sets the label on a Secret
+func WithSecretLabel(key, value string) func(*corev1.Secret) {
+	return func(s *corev1.Secret) {
+		if s.Labels == nil {
+			s.Labels = make(map[string]string, 1)
+		}
+		s.Labels[key] = value
+	}
+}
+
 // WithSecretData sets the data of the Secret
 func WithSecretData(data map[string][]byte) func(*corev1.Secret) {
 	return func(s *corev1.Secret) {
@@ -477,4 +604,87 @@ func NewSecret(name, namespace string, opts ...func(*corev1.Secret)) *corev1.Sec
 		opt(secret)
 	}
 	return secret
+}
+
+func WithConfigMapLabels(labels map[string]string) func(*corev1.ConfigMap) {
+	return func(cm *corev1.ConfigMap) {
+		cm.SetLabels(labels)
+	}
+}
+
+func WithConfigMapData(data map[string]string) func(*corev1.ConfigMap) {
+	return func(cm *corev1.ConfigMap) {
+		cm.Data = data
+	}
+}
+
+func NewConfigMap(name, namespace string, opts ...func(*corev1.ConfigMap)) *corev1.ConfigMap {
+	cm := &corev1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      name,
+			Namespace: namespace,
+		},
+	}
+
+	return cm
+}
+
+func WithRepositoryURL(url string) func(*greenhousev1alpha1.Catalog) {
+	return func(catalog *greenhousev1alpha1.Catalog) {
+		catalog.Spec.Source.Git.URL = url
+	}
+}
+
+func WithRepositoryBranch(branch string) func(*greenhousev1alpha1.Catalog) {
+	return func(catalog *greenhousev1alpha1.Catalog) {
+		catalog.Spec.Source.Git.Ref.Branch = ptr.To(branch)
+	}
+}
+
+func WithRepositoryTag(tag string) func(*greenhousev1alpha1.Catalog) {
+	return func(catalog *greenhousev1alpha1.Catalog) {
+		catalog.Spec.Source.Git.Ref.Tag = ptr.To(tag)
+	}
+}
+
+func WithRepositorySHA(sha string) func(*greenhousev1alpha1.Catalog) {
+	return func(catalog *greenhousev1alpha1.Catalog) {
+		catalog.Spec.Source.Git.Ref.SHA = ptr.To(sha)
+	}
+}
+
+func WithSourcePath(path string) func(*greenhousev1alpha1.Catalog) {
+	return func(catalog *greenhousev1alpha1.Catalog) {
+		catalog.Spec.Source.Path = path
+	}
+}
+
+func WithOverrides(overrides []greenhousev1alpha1.CatalogOverrides) func(*greenhousev1alpha1.Catalog) {
+	return func(catalog *greenhousev1alpha1.Catalog) {
+		catalog.Spec.Overrides = overrides
+	}
+}
+
+func NewCatalog(name, namespace string, opts ...func(*greenhousev1alpha1.Catalog)) *greenhousev1alpha1.Catalog {
+	catalog := &greenhousev1alpha1.Catalog{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      name,
+			Namespace: namespace,
+		},
+		Spec: greenhousev1alpha1.CatalogSpec{
+			Source: greenhousev1alpha1.CatalogSource{
+				Git: greenhousev1alpha1.GitSource{
+					Ref: &greenhousev1alpha1.GitRef{
+						Branch: nil,
+						Tag:    nil,
+						SHA:    nil,
+					},
+				},
+			},
+		},
+	}
+	for _, o := range opts {
+		o(catalog)
+	}
+	return catalog
 }

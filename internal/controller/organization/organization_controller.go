@@ -71,6 +71,7 @@ type OrganizationReconciler struct {
 //+kubebuilder:rbac:groups=greenhouse.sap,resources=teamroles,verbs=get;list;watch;create;update;patch
 //+kubebuilder:rbac:groups="",resources=events,verbs=get;list;watch;create;update;patch
 //+kubebuilder:rbac:groups="",resources=namespaces,verbs=get;list;watch;create;update;patch
+//+kubebuilder:rbac:groups="",resources=serviceaccounts,verbs=get;list;watch;create;update;patch
 //+kubebuilder:rbac:groups=dex.coreos.com,resources=connectors;oauth2clients,verbs=get;list;watch;create;update;patch
 //+kubebuilder:rbac:groups="",resources=secrets,verbs=get;list;watch
 //+kubebuilder:rbac:groups="",resources=configmaps,verbs=get;list;watch
@@ -85,6 +86,7 @@ func (r *OrganizationReconciler) SetupWithManager(name string, mgr ctrl.Manager)
 		return err
 	}
 	r.dex = dexter
+
 	b := ctrl.NewControllerManagedBy(mgr).
 		Named(name).
 		For(&greenhousev1alpha1.Organization{}).
@@ -99,12 +101,15 @@ func (r *OrganizationReconciler) SetupWithManager(name string, mgr ctrl.Manager)
 		Watches(&corev1.Secret{},
 			handler.EnqueueRequestsFromMapFunc(r.enqueueOrganizationForReferencedSecret),
 			builder.WithPredicates(clientutil.PredicateFilterBySecretTypes(greenhouseapis.SecretTypeOrganization))).
-		Watches(&greenhousev1alpha1.PluginDefinition{},
+		Watches(&greenhousev1alpha1.ClusterPluginDefinition{},
 			handler.EnqueueRequestsFromMapFunc(r.enqueueAllOrganizationsForServiceProxyPluginDefinition),
 			builder.WithPredicates(predicate.And(
 				clientutil.PredicateByName(serviceProxyName),
 				predicate.GenerationChangedPredicate{},
-			)))
+			))).
+		Watches(&corev1.ConfigMap{},
+			handler.EnqueueRequestsFromMapFunc(r.enqueueOrganizationsForReferencedConfigMap),
+			builder.WithPredicates(clientutil.PredicateHasLabelWithValue(greenhouseapis.LabelKeyOrgConfigMap, "true")))
 	if r.DexStorageType == dexstore.K8s {
 		b.Owns(&dexapi.Connector{}).
 			Owns(&dexapi.OAuth2Client{})
@@ -155,6 +160,12 @@ func (r *OrganizationReconciler) EnsureCreated(ctx context.Context, object lifec
 		org.SetCondition(greenhousemetav1alpha1.FalseCondition(greenhousev1alpha1.OrganizationRBACConfigured, "", err.Error()))
 		return ctrl.Result{}, lifecycle.Failed, err
 	}
+
+	if err := r.reconcileCatalogPermissions(ctx, org); err != nil {
+		org.SetCondition(greenhousemetav1alpha1.FalseCondition(greenhousev1alpha1.OrganizationRBACConfigured, "", err.Error()))
+		return ctrl.Result{}, lifecycle.Failed, err
+	}
+
 	org.SetCondition(greenhousemetav1alpha1.TrueCondition(greenhousev1alpha1.OrganizationRBACConfigured, "", ""))
 
 	if err := r.reconcileDefaultTeamRoles(ctx, org); err != nil {
@@ -183,17 +194,16 @@ func (r *OrganizationReconciler) EnsureCreated(ctx context.Context, object lifec
 		org.SetCondition(greenhousemetav1alpha1.TrueCondition(greenhousev1alpha1.OrganizationOICDConfigured, "", ""))
 	}
 
-	if err := r.reconcileServiceProxy(ctx, org); err != nil {
-		org.SetCondition(greenhousemetav1alpha1.FalseCondition(greenhousev1alpha1.ServiceProxyProvisioned, "", err.Error()))
-		return ctrl.Result{}, lifecycle.Failed, err
-	}
-	org.SetCondition(greenhousemetav1alpha1.TrueCondition(greenhousev1alpha1.ServiceProxyProvisioned, "", ""))
-
 	if err := r.reconcileAdminTeam(ctx, org); err != nil {
 		org.SetCondition(greenhousemetav1alpha1.FalseCondition(greenhousev1alpha1.OrganizationAdminTeamConfigured, "", err.Error()))
 		return ctrl.Result{}, lifecycle.Failed, err
 	}
 	org.SetCondition(greenhousemetav1alpha1.TrueCondition(greenhousev1alpha1.OrganizationAdminTeamConfigured, "", ""))
+
+	if err := r.reconcileServiceProxy(ctx, org, org.Name+"-admin"); err != nil {
+		org.SetCondition(greenhousemetav1alpha1.FalseCondition(greenhousev1alpha1.ServiceProxyProvisioned, "", err.Error()))
+		return ctrl.Result{}, lifecycle.Failed, err
+	}
 
 	return ctrl.Result{}, lifecycle.Success, nil
 }
@@ -229,6 +239,7 @@ func (r *OrganizationReconciler) reconcileAdminTeam(ctx context.Context, org *gr
 	result, err := clientutil.CreateOrPatch(ctx, r.Client, team, func() error {
 		team.Spec.Description = "Admin team for the organization"
 		team.Spec.MappedIDPGroup = org.Spec.MappedOrgAdminIDPGroup
+		team.SetLabels(map[string]string{greenhouseapis.LabelKeySupportGroup: "true"})
 		return controllerutil.SetControllerReference(org, team, r.Scheme())
 	})
 	if err != nil {
@@ -358,7 +369,7 @@ func (r *OrganizationReconciler) setStatus() lifecycle.Conditioner {
 		scimAPIAvailableCondition := r.checkSCIMAPIAvailability(ctx, org)
 		readyCondition := calculateReadyCondition(scimAPIAvailableCondition)
 		org.Status.SetConditions(scimAPIAvailableCondition, readyCondition)
-		UpdateMetrics(org)
+		UpdateOrganizationMetrics(org)
 	}
 }
 
@@ -368,4 +379,27 @@ func (r *OrganizationReconciler) enqueueOrganizationForReferencedSecret(_ contex
 		return nil
 	}
 	return []ctrl.Request{{NamespacedName: client.ObjectKeyFromObject(org)}}
+}
+
+func (r *OrganizationReconciler) enqueueOrganizationsForReferencedConfigMap(ctx context.Context, o client.Object) []ctrl.Request {
+	return listOrganizationsAsReconcileRequests(ctx, r, client.MatchingFields{greenhouseapis.ConfigMapRefField: o.GetName()})
+}
+
+// reconcileCatalogServiceAccount creates a ServiceAccount and associated RBAC for PluginDefinitionCatalog operations.
+func (r *OrganizationReconciler) reconcileCatalogPermissions(ctx context.Context, org *greenhousev1alpha1.Organization) error {
+	clusterResources := []string{greenhouseapis.KindClusterPluginDefinitionPlural}
+	if err := r.reconcileCatalogServiceAccount(ctx, org); err != nil {
+		return err
+	}
+
+	if org.Name == defaultGreenhouseConnectorID {
+		if err := r.reconcileCatalogClusterRole(ctx, org, clusterResources); err != nil {
+			return err
+		}
+		if err := r.reconcileCatalogClusterRoleBinding(ctx, org); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }

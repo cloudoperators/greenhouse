@@ -12,12 +12,8 @@ import (
 	"github.com/cloudoperators/greenhouse/internal/test"
 )
 
-func PreparePluginDefinition(name, namespace string, opts ...func(*greenhousev1alpha1.PluginDefinition)) *greenhousev1alpha1.PluginDefinition {
-	pd := &greenhousev1alpha1.PluginDefinition{
-		TypeMeta: metav1.TypeMeta{
-			Kind:       "PluginDefinition",
-			APIVersion: greenhousev1alpha1.GroupVersion.String(),
-		},
+func PreparePluginDefinition(name, namespace string, opts ...func(definition *greenhousev1alpha1.ClusterPluginDefinition)) *greenhousev1alpha1.ClusterPluginDefinition {
+	pd := &greenhousev1alpha1.ClusterPluginDefinition{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
 			Namespace: namespace,
@@ -35,7 +31,7 @@ func PreparePluginDefinition(name, namespace string, opts ...func(*greenhousev1a
 	return pd
 }
 
-func PrepareNginxPluginDefinition(namespace string) *greenhousev1alpha1.PluginDefinition {
+func PrepareNginxPluginDefinition(namespace string) *greenhousev1alpha1.ClusterPluginDefinition {
 	return PreparePluginDefinition("nginx-18.1.7", namespace,
 		test.WithVersion("18.1.7"),
 		test.WithHelmChart(
@@ -84,7 +80,7 @@ func PrepareNginxPluginDefinition(namespace string) *greenhousev1alpha1.PluginDe
 	)
 }
 
-func PrepareCertManagerPluginDefinition(namespace string) *greenhousev1alpha1.PluginDefinition {
+func PrepareCertManagerPluginDefinition(namespace string) *greenhousev1alpha1.ClusterPluginDefinition {
 	return PreparePluginDefinition("cert-manager-v1.17.0", namespace,
 		test.WithVersion("v1.17.0"),
 		test.WithHelmChart(
@@ -97,14 +93,14 @@ func PrepareCertManagerPluginDefinition(namespace string) *greenhousev1alpha1.Pl
 	)
 }
 
-func PreparePodInfoPluginDefinition(namespace string) *greenhousev1alpha1.PluginDefinition {
+func PreparePodInfoPluginDefinition(namespace, version string) *greenhousev1alpha1.ClusterPluginDefinition {
 	return PreparePluginDefinition("podinfo", namespace,
-		test.WithVersion("6.9.0"),
+		test.WithVersion(version),
 		test.WithHelmChart(
 			&greenhousev1alpha1.HelmChartReference{
 				Name:       "podinfo",
 				Repository: "oci://ghcr.io/stefanprodan/charts",
-				Version:    "6.9.0",
+				Version:    version,
 			},
 		),
 	)

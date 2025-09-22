@@ -100,7 +100,7 @@ func (o *pluginGenerateOptions) run() error {
 	return nil
 }
 
-func helmChartToPlugin(helmChart *chart.Chart) (*greenhousev1alpha1.PluginDefinition, error) {
+func helmChartToPlugin(helmChart *chart.Chart) (*greenhousev1alpha1.ClusterPluginDefinition, error) {
 	pluginVersion := "1.0.0"
 	if helmChart.Metadata != nil && helmChart.Metadata.Version != "" {
 		pluginVersion = helmChart.Metadata.Version
@@ -109,11 +109,7 @@ func helmChartToPlugin(helmChart *chart.Chart) (*greenhousev1alpha1.PluginDefini
 	if err != nil {
 		return nil, err
 	}
-	return &greenhousev1alpha1.PluginDefinition{
-		TypeMeta: metav1.TypeMeta{
-			Kind:       "PluginDefinition",
-			APIVersion: greenhousev1alpha1.GroupVersion.String(),
-		},
+	return &greenhousev1alpha1.ClusterPluginDefinition{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: fmt.Sprintf("%s-%s", helmChart.Name(), helmChart.Metadata.Version),
 		},

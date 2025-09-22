@@ -11,8 +11,8 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 
 	"github.com/cloudoperators/greenhouse/internal/clientutil"
+	"github.com/cloudoperators/greenhouse/internal/controller/catalog"
 	clustercontrollers "github.com/cloudoperators/greenhouse/internal/controller/cluster"
-	fluxcontrollers "github.com/cloudoperators/greenhouse/internal/controller/flux"
 	organizationcontrollers "github.com/cloudoperators/greenhouse/internal/controller/organization"
 	plugincontrollers "github.com/cloudoperators/greenhouse/internal/controller/plugin"
 	plugindefinitioncontroller "github.com/cloudoperators/greenhouse/internal/controller/plugindefinition"
@@ -32,18 +32,15 @@ var knownControllers = map[string]func(controllerName string, mgr ctrl.Manager) 
 	// Team RBAC controllers.
 	"teamRoleBindingController": (&teamrbaccontrollers.TeamRoleBindingReconciler{}).SetupWithManager,
 
-	// Flux controllers.
-	"pluginToFlux": (&fluxcontrollers.FluxReconciler{
-		KubeRuntimeOpts: kubeClientOpts,
-	}).SetupWithManager,
-
 	// Plugin controllers.
 	"plugin": (&plugincontrollers.PluginReconciler{
 		KubeRuntimeOpts: kubeClientOpts,
 	}).SetupWithManager,
 	"pluginPreset": (&plugincontrollers.PluginPresetReconciler{}).SetupWithManager,
 
-	"pluginDefinition": (&plugindefinitioncontroller.PluginDefinitionReconciler{}).SetupWithManager,
+	"catalog":                 (&catalog.CatalogReconciler{}).SetupWithManager,
+	"pluginDefinition":        (&plugindefinitioncontroller.PluginDefinitionReconciler{}).SetupWithManager,
+	"clusterPluginDefinition": (&plugindefinitioncontroller.ClusterPluginDefinitionReconciler{}).SetupWithManager,
 
 	// Cluster controllers
 	"bootStrap":         (&clustercontrollers.BootstrapReconciler{}).SetupWithManager,

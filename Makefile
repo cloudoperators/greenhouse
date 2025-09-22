@@ -49,10 +49,7 @@ help: ## Display this help.
 ##@ Development
 
 .PHONY: generate-all
-generate-all: generate generate-manifests generate-documentation  ## Generate code, manifests and documentation.
-
-.PHONY: manifests
-manifests: generate-manifests generate-documentation generate-types
+generate-all: generate manifests generate-documentation generate-types license ## Generate code, manifests and documentation.
 
 .PHONY: install
 install: kustomize
@@ -62,15 +59,14 @@ install: kustomize
 ## CRD manifests are generated in hack/crd/bases
 ## Patches for CRD conversion webhooks need to be created under hack/crd/patches
 ## filename should be in the format webhook.*<group>*.*<kind>*.yaml"
-.PHONY: generate-manifests
-generate-manifests: controller-gen ## Generate WebhookConfiguration, ClusterRole and CustomResourceDefinition objects.
+.PHONY: manifests
+manifests: controller-gen ## Generate WebhookConfiguration, ClusterRole and CustomResourceDefinition objects.
 	$(CONTROLLER_GEN) crd paths="./api/..." output:crd:artifacts:config=hack/crd/bases
 	GOBIN=$(LOCALBIN) go run ./hack/generate.go --crd-dir="./hack/crd" --charts-crd-dir=$(CRD_MANIFESTS_PATH)
 	rm -rf hack/crd/bases
 
 	$(CONTROLLER_GEN) rbac:roleName=manager-role webhook paths="./internal/webhook/..." paths="./internal/controller/..." output:artifacts:config=$(TEMPLATES_MANIFESTS_PATH)
 	hack/helmify $(TEMPLATES_MANIFESTS_PATH)
-	docker run --rm -v $(shell pwd):/github/workspace $(IMG_LICENSE_EYE) -c .github/licenserc.yaml header fix
 
 .PHONY: generate-open-api-spec
 generate-open-api-spec: VERSION = main
@@ -110,13 +106,14 @@ generate-documentation: check-gen-crd-api-reference-docs
 	$(GEN_DOCS) -api-dir=$(GEN_DOCS_API_DIR) -config=$(GEN_DOCS_CONFIG) -template-dir=$(GEN_DOCS_TEMPLATE_DIR) -out-file=$(GEN_DOCS_OUT_FILE)
 
 .PHONY: test
-test: generate-manifests generate envtest flux-crds ## Run tests.
+test: manifests generate envtest flux-crds ## Run tests.
 	KUBEBUILDER_ASSETS="$(shell $(ENVTEST) use $(ENVTEST_K8S_VERSION) -p path)" go test ./... -coverprofile cover.out -v
 
 .PHONY: flux-crds
 flux-crds: kustomize
 	mkdir -p bin/flux
-	$(KUSTOMIZE) build config/samples/flux > bin/flux/crds.yaml
+	$(KUSTOMIZE) build config/samples/flux/crds > bin/flux/crds.yaml
+
 .PHONY: fmt
 fmt: goimports
 	GOBIN=$(LOCALBIN) go fmt ./...
@@ -168,7 +165,7 @@ ifndef ignore-not-found
 endif
 
 .PHONY: kustomize-build-crds
-kustomize-build-crds: generate-manifests kustomize
+kustomize-build-crds: manifests kustomize
 	$(KUSTOMIZE) build $(CRD_MANIFESTS_PATH)
 	
 ##@ Build Dependencies
@@ -184,10 +181,10 @@ ENVTEST_ACTION ?= $(LOCALBIN)/setup-envtest
 HELMIFY ?= $(LOCALBIN)/helmify
 
 ## Tool Versions
-KUSTOMIZE_VERSION ?= 5.6.0
+KUSTOMIZE_VERSION ?= 5.7.1
 CERT_MANAGER_VERSION ?= v1.17.1
 CONTROLLER_TOOLS_VERSION ?= 0.18.0
-GOLINT_VERSION ?= 2.2.1
+GOLINT_VERSION ?= 2.4.0
 GINKGOLINTER_VERSION ?= 0.20.0
 # ENVTEST_K8S_VERSION refers to the version of kubebuilder assets to be downloaded by envtest binary.
 ENVTEST_K8S_VERSION ?= 1.33.0
@@ -196,7 +193,12 @@ KUSTOMIZE_INSTALL_SCRIPT ?= "https://raw.githubusercontent.com/kubernetes-sigs/k
 .PHONY: kustomize
 kustomize: $(KUSTOMIZE) ## Download kustomize locally if necessary.
 $(KUSTOMIZE): $(LOCALBIN)
-	test -s $(LOCALBIN)/kustomize || curl -s $(KUSTOMIZE_INSTALL_SCRIPT) | bash -s -- $(subst v,,$(KUSTOMIZE_VERSION)) $(LOCALBIN)
+	@if [ -z "$$GITHUB_TOKEN" ]; then \
+		test -s $(LOCALBIN)/kustomize || curl -s $(KUSTOMIZE_INSTALL_SCRIPT) | bash -s -- $(subst v,,$(KUSTOMIZE_VERSION)) $(LOCALBIN); \
+	else \
+	  	echo "pulling kustomize from source"; \
+		test -s $(LOCALBIN)/kustomize || curl -sH "Authorization: Bearer $$GITHUB_TOKEN" $(KUSTOMIZE_INSTALL_SCRIPT) | bash -s -- $(subst v,,$(KUSTOMIZE_VERSION)) $(LOCALBIN); \
+	fi
 
 .PHONY: action-controllergen
 action-controllergen:: $(CONTROLLER_GEN_ACTION) ## Download controller-gen locally if necessary.
@@ -234,7 +236,7 @@ $(GOLINT): $(LOCALBIN)
 	GOBIN=$(LOCALBIN) go install github.com/nunnatsa/ginkgolinter/cmd/ginkgolinter@v$(GINKGOLINTER_VERSION)
 
 .PHONY: serve-docs
-serve-docs: generate-manifests
+serve-docs: manifests
 ifeq (, $(shell which hugo))
 	@echo "Hugo is not installed in your machine. Please install it to serve the documentation locally. Please refer to https://gohugo.io/installation/ for installation instructions."
 else
@@ -250,7 +252,7 @@ ADMIN_RELEASE ?= greenhouse
 ADMIN_CHART_PATH ?= charts/manager
 E2E_REPORT_PATH="$(shell pwd)/bin/$(SCENARIO)-e2e-report.json"
 PLUGIN_DIR ?=
-GREENHOUSE_ORG ?= demo
+DEMO_ORG ?= demo
 DEV_MODE ?= false
 INTERNAL ?= -int
 WITH_CONTROLLER ?= true
@@ -260,8 +262,8 @@ setup: setup-manager setup-dashboard setup-demo
 
 .PHONY: setup-webhook-dev
 setup-webhook-dev:
-	DEV_MODE=true make setup-manager
-
+	WITH_CONTROLLER=false DEV_MODE=true make setup-manager
+	
 .PHONY: setup-controller-dev
 setup-controller-dev:
 	WITH_CONTROLLER=false make setup-manager
@@ -279,21 +281,25 @@ setup-demo: prepare-e2e samples
 	kubectl config use-context kind-$(ADMIN_CLUSTER)
 	kubectl create secret generic kind-$(REMOTE_CLUSTER) \
 		--from-literal=kubeconfig="$$(cat ${PWD}/bin/$(REMOTE_CLUSTER)$(INTERNAL).kubeconfig)" \
-		--namespace=$(GREENHOUSE_ORG) \
+		--namespace=$(DEMO_ORG) \
 		--type="greenhouse.sap/kubeconfig" \
 		--dry-run=client -o yaml | kubectl apply -f -
 
 .PHONY: samples
 samples: kustomize
-	$(KUSTOMIZE) build dev-env/samples | kubectl apply -n $(GREENHOUSE_ORG) --kubeconfig=$(shell pwd)/bin/$(ADMIN_CLUSTER).kubeconfig -f -
+	$(KUSTOMIZE) build config/samples/organization | kubectl --kubeconfig=$(shell pwd)/bin/$(ADMIN_CLUSTER).kubeconfig apply -f -
 	while true; do \
-		if kubectl get organizations $(GREENHOUSE_ORG) --kubeconfig=$(shell pwd)/bin/$(ADMIN_CLUSTER).kubeconfig -o json | \
+		if kubectl get organizations $(DEMO_ORG) --kubeconfig=$(shell pwd)/bin/$(ADMIN_CLUSTER).kubeconfig -o json | \
 			jq -e '.status.statusConditions.conditions[] | select(.type == "Ready") | select(.status == "True")' > /dev/null; then \
 			echo "Organization is ready"; \
 			exit 0; \
 		fi; \
 		sleep 5; \
 	done
+
+.PHONY: catalog
+catalog: kustomize
+	$(KUSTOMIZE) build config/samples/catalog | kubectl --kubeconfig=$(shell pwd)/bin/$(ADMIN_CLUSTER).kubeconfig apply -f -
 
 .PHONY: setup-e2e
 setup-e2e: cli
@@ -349,4 +355,8 @@ cert-manager: kustomize
 
 .PHONY: flux
 flux: kustomize
-	-$(KUSTOMIZE) build config/flux | kubectl apply -f -
+	-$(KUSTOMIZE) build config/samples/flux | kubectl apply -f -
+
+.PHONY: license
+license:
+	docker run --rm -v $(shell pwd):/github/workspace $(IMG_LICENSE_EYE) -c .github/licenserc.yaml header fix

@@ -1,0 +1,39 @@
+name: backport
+on:
+  pull_request_target:
+    types: [closed, labeled]
+
+jobs:
+  backport:
+    if: github.event.pull_request.state == 'closed' && github.event.pull_request.merged && (github.event_name != 'labeled' || startsWith('backport:', github.event.label.name))
+    runs-on: [default]
+    steps:
+      - name: Generate GitHub App Token
+        id: github-app-token
+        uses: actions/create-github-app-token@d72941d797fd3113feb6b93fd0dec494b13a2547 # v1
+        with:
+          app-id: ${{ secrets.CLOUDOPERATOR_APP_ID }}
+          private-key: ${{ secrets.CLOUDOPERATOR_APP_PRIVATE_KEY }}
+          permission-contents: write
+          permission-pull-requests: write
+      - name: Checkout
+        uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955 # v4.3.0
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          token: ${{ steps.github-app-token.outputs.token }}
+      - name: Create backport PRs
+        uses: korthout/backport-action@0193454f0c5947491d348f33a275c119f30eb736 # v3.2.1
+        # xref: https://github.com/korthout/backport-action#inputs
+        with:
+          # Use token to allow workflows to be triggered for the created PR
+          github_token: ${{ steps.github-app-token.outputs.token }}
+          # Match labels with a pattern `backport:<target-branch>`
+          label_pattern: '^backport:(release\/v[0-9]+.[0-9]+)$'
+          # A bit shorter pull-request title than the default
+          pull_title: 'backport(${target_branch}): ${pull_title}'
+          # Simpler PR description than default
+          pull_description: |-
+            Automated cherry-pick to `${target_branch}`, triggered by a label in PR#${pull_number}.
+          # Name and Email of the cloud-operator-bot, used commit the cherry-pick & create the PR
+          git_commiter_name: cloud-operator-bot[bot]
+          git_commiter_email: 224791424+cloud-operator-bot[bot]@users.noreply.github.com

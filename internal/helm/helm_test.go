@@ -86,7 +86,7 @@ var _ = Describe("helm package test", func() {
 	When("handling a helm chart from a pluginDefinition", func() {
 		It("should correctly error on missing helm chart reference", func() {
 			plugin.Spec.OptionValues = []greenhousev1alpha1.PluginOptionValue{*optionValue}
-			err := helm.InstallOrUpgradeHelmChartFromPlugin(context.Background(), test.K8sClient, test.RestClientGetter, testPluginWithoutHelmChart, plugin)
+			err := helm.InstallOrUpgradeHelmChartFromPlugin(context.Background(), test.K8sClient, test.RestClientGetter, testPluginWithoutHelmChart.Spec, plugin)
 			Expect(err).Should(HaveOccurred(),
 				"there should be an error for pluginDefinitions without helm chart")
 
@@ -94,7 +94,7 @@ var _ = Describe("helm package test", func() {
 		})
 
 		It("should correctly install a helm chart from a pluginDefinition", func() {
-			err := helm.InstallOrUpgradeHelmChartFromPlugin(test.Ctx, test.K8sClient, test.RestClientGetter, testPluginWithHelmChart, plugin)
+			err := helm.InstallOrUpgradeHelmChartFromPlugin(test.Ctx, test.K8sClient, test.RestClientGetter, testPluginWithHelmChart.Spec, plugin)
 			Expect(err).ShouldNot(HaveOccurred(),
 				"there should be no error for plugindefinitions with helm chart")
 
@@ -142,7 +142,7 @@ var _ = Describe("helm package test", func() {
 	When("handling a helm chart with CRDs", Ordered, func() {
 		It("should re-create CRDs from Helm chart when CRD is missing on upgrade", func() {
 			By("installing helm chart")
-			err := helm.InstallOrUpgradeHelmChartFromPlugin(test.Ctx, test.K8sClient, test.RestClientGetter, testPluginWithHelmChartCRDs, plugin)
+			err := helm.InstallOrUpgradeHelmChartFromPlugin(test.Ctx, test.K8sClient, test.RestClientGetter, testPluginWithHelmChartCRDs.Spec, plugin)
 			Expect(err).ShouldNot(HaveOccurred(),
 				"there should be no error installing helm chart")
 
@@ -157,7 +157,7 @@ var _ = Describe("helm package test", func() {
 			test.EventuallyDeleted(test.Ctx, test.K8sClient, teamCRD)
 
 			By("upgrading helm chart")
-			err = helm.InstallOrUpgradeHelmChartFromPlugin(test.Ctx, test.K8sClient, test.RestClientGetter, testPluginWithHelmChartCRDs, plugin)
+			err = helm.InstallOrUpgradeHelmChartFromPlugin(test.Ctx, test.K8sClient, test.RestClientGetter, testPluginWithHelmChartCRDs.Spec, plugin)
 			Expect(err).ShouldNot(HaveOccurred(),
 				"there should be no error upgrading helm chart")
 
@@ -175,13 +175,13 @@ var _ = Describe("helm package test", func() {
 
 		It("should not create CRDs from Helm chart when CRD is missing on templating", func() {
 			By("installing helm chart")
-			err := helm.InstallOrUpgradeHelmChartFromPlugin(test.Ctx, test.K8sClient, test.RestClientGetter, testPluginWithHelmChartCRDs, plugin)
+			err := helm.InstallOrUpgradeHelmChartFromPlugin(test.Ctx, test.K8sClient, test.RestClientGetter, testPluginWithHelmChartCRDs.Spec, plugin)
 			Expect(err).ShouldNot(HaveOccurred(),
 				"there should be no error installing helm chart")
 
 			By("getting the Team CRD")
 			var teamCRD = &apiextensionsv1.CustomResourceDefinition{}
-			teamCRDName := "teams.greenhouse.sap"
+			teamCRDName := "teams.greenhouse.fixtures"
 			teamCRDKey := types.NamespacedName{Name: teamCRDName, Namespace: ""}
 			err = test.K8sClient.Get(test.Ctx, teamCRDKey, teamCRD)
 			Expect(err).ToNot(HaveOccurred(), "there must be no error getting Team CRD")
@@ -190,7 +190,7 @@ var _ = Describe("helm package test", func() {
 			test.EventuallyDeleted(test.Ctx, test.K8sClient, teamCRD)
 
 			By("templating the Helm Chart from the Plugin")
-			_, err = helm.TemplateHelmChartFromPlugin(test.Ctx, test.K8sClient, test.RestClientGetter, testPluginWithHelmChartCRDs, plugin)
+			_, err = helm.TemplateHelmChartFromPlugin(test.Ctx, test.K8sClient, test.RestClientGetter, testPluginWithHelmChartCRDs.Spec, plugin)
 			Expect(err).NotTo(HaveOccurred(), "there should be no error templating the helm chart")
 
 			By("getting the Team CRD")
@@ -206,7 +206,7 @@ var _ = Describe("helm package test", func() {
 	When("helm install fails at initial release", func() {
 		It("should rollback to the same initial version", func() {
 			By("installing a helm chart from a pluginDefinition")
-			err := helm.InstallOrUpgradeHelmChartFromPlugin(test.Ctx, test.K8sClient, test.RestClientGetter, testPluginWithHelmChartCRDs, plugin)
+			err := helm.InstallOrUpgradeHelmChartFromPlugin(test.Ctx, test.K8sClient, test.RestClientGetter, testPluginWithHelmChartCRDs.Spec, plugin)
 			Expect(err).ShouldNot(HaveOccurred(),
 				"there should be no error for installing helm chart from plugin")
 
@@ -230,7 +230,7 @@ var _ = Describe("helm package test", func() {
 			Expect(helmRelease.Info.Status).To(Equal(release.StatusFailed), "helm release should be set to failed")
 
 			By("running install or upgrade again")
-			err = helm.InstallOrUpgradeHelmChartFromPlugin(test.Ctx, test.K8sClient, test.RestClientGetter, testPluginWithHelmChartCRDs, plugin)
+			err = helm.InstallOrUpgradeHelmChartFromPlugin(test.Ctx, test.K8sClient, test.RestClientGetter, testPluginWithHelmChartCRDs.Spec, plugin)
 			Expect(err).ShouldNot(HaveOccurred(),
 				"there should be no error for upgrading the helm chart")
 
@@ -253,8 +253,9 @@ var _ = DescribeTable("getting helm values from Plugin", func(defaultValue any, 
 	}
 
 	pluginWithOptionValue := test.NewPlugin(test.Ctx, "green", "house",
+		test.WithPluginLabel(greenhouseapis.LabelKeyOwnedBy, "test-team-1"),
 		test.WithPluginDefinition("greenhouse"),
-		test.WithPluginOptionValue("value1", test.MustReturnJSONFor(defaultValue), nil),
+		test.WithPluginOptionValue("value1", test.MustReturnJSONFor(defaultValue)),
 	)
 
 	helmValues, err := helm.ExportGetValuesForHelmChart(context.Background(), test.K8sClient, helmChart, pluginWithOptionValue)

@@ -12,12 +12,16 @@ import (
 	"github.com/go-logr/logr"
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
+
+	greenhouseapis "github.com/cloudoperators/greenhouse/api"
+	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
 )
 
 func SetupWebhook(mgr ctrl.Manager, obj runtime.Object, webhookFuncs WebhookFuncs) error {
@@ -148,6 +152,52 @@ func CapName(obj client.Object, l logr.Logger, length int) error {
 		return err
 	}
 	return nil
+}
+
+// ValidateLabelOwnedBy validates that the owned-by label is present and that it references an existing Team.
+func ValidateLabelOwnedBy(ctx context.Context, c client.Client, resourceObj v1.Object) string {
+	namespace := resourceObj.GetNamespace()
+	if namespace == "" {
+		warnErr := field.Required(field.NewPath("metadata").Child("namespace"),
+			"namespace is required to validate the owner")
+		return warnErr.Error()
+	}
+
+	ownerName, ok := resourceObj.GetLabels()[greenhouseapis.LabelKeyOwnedBy]
+	if !ok {
+		warnErr := field.Required(field.NewPath("metadata").Child("labels").Key(greenhouseapis.LabelKeyOwnedBy),
+			fmt.Sprintf("label %s is required", greenhouseapis.LabelKeyOwnedBy))
+		return warnErr.Error()
+	}
+	if ownerName == "" {
+		warnErr := field.Required(field.NewPath("metadata").Child("labels").Key(greenhouseapis.LabelKeyOwnedBy),
+			fmt.Sprintf("label %s value is required", greenhouseapis.LabelKeyOwnedBy))
+		return warnErr.Error()
+	}
+
+	team := new(greenhousev1alpha1.Team)
+	err := c.Get(ctx, client.ObjectKey{Namespace: namespace, Name: ownerName}, team)
+	switch {
+	case err != nil && apierrors.IsNotFound(err):
+		warnErr := field.Invalid(field.NewPath("metadata").Child("labels").Key(greenhouseapis.LabelKeyOwnedBy),
+			ownerName,
+			fmt.Sprintf("team %s does not exist in the resource namespace", ownerName))
+		return warnErr.Error()
+	case err != nil:
+		warnErr := field.Invalid(field.NewPath("metadata").Child("labels").Key(greenhouseapis.LabelKeyOwnedBy),
+			ownerName,
+			fmt.Sprintf("team %s could not be retrieved: %s", ownerName, err.Error()))
+		return warnErr.Error()
+	}
+
+	supportGroup, ok := team.Labels[greenhouseapis.LabelKeySupportGroup]
+	if !ok || supportGroup != "true" {
+		warnErr := field.Invalid(field.NewPath("metadata").Child("labels").Key(greenhouseapis.LabelKeyOwnedBy),
+			ownerName,
+			fmt.Sprintf("owner team %s should be a support group", ownerName))
+		return warnErr.Error()
+	}
+	return ""
 }
 
 // logAdmissionRequest logs the AdmissionRequest.

@@ -91,7 +91,7 @@ func (r *RemoteClusterReconciler) EnsureCreated(ctx context.Context, resource li
 			return ctrl.Result{}, lifecycle.Success, nil
 		}
 	}
-	defer updateMetrics(cluster)
+	defer UpdateClusterMetrics(cluster)
 	clusterSecret := &corev1.Secret{}
 	if err := r.Get(ctx, types.NamespacedName{Name: cluster.GetSecretName(), Namespace: cluster.GetNamespace()}, clusterSecret); err != nil {
 		return ctrl.Result{}, lifecycle.Failed, err

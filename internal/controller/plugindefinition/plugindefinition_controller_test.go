@@ -38,7 +38,8 @@ const (
 
 func mockPluginDefinition() *greenhousev1alpha1.PluginDefinition {
 	GinkgoHelper()
-	return test.NewPluginDefinition(test.Ctx, PluginDefinitionName,
+
+	clusterDef := test.NewClusterPluginDefinition(test.Ctx, PluginDefinitionName,
 		test.WithVersion(PluginDefinitionVersion),
 		test.WithHelmChart(&greenhousev1alpha1.HelmChartReference{
 			Name:       HelmChart,
@@ -61,15 +62,19 @@ func mockPluginDefinition() *greenhousev1alpha1.PluginDefinition {
 			Name:        PluginOptionDefault,
 			Description: "This is my default test plugin option",
 			Required:    false,
-			Default:     test.AsAPIExtensionJSON(PluginOptionDefaultValue),
+			Default:     test.MustReturnJSONFor(PluginOptionDefaultValue),
 			Type:        greenhousev1alpha1.PluginOptionTypeString,
 		}),
 	)
+	pluginDef := &greenhousev1alpha1.PluginDefinition{}
+	pluginDef.SetName(clusterDef.Name)
+	pluginDef.Spec = clusterDef.Spec
+	return pluginDef
 }
 
 func mockUIPluginDefinition() *greenhousev1alpha1.PluginDefinition {
 	GinkgoHelper()
-	pluginDefinition := test.NewPluginDefinition(test.Ctx, UIPluginDefinitionName, test.AppendPluginOption(
+	clusterDef := test.NewClusterPluginDefinition(test.Ctx, UIPluginDefinitionName, test.AppendPluginOption(
 		greenhousev1alpha1.PluginOption{
 			Name:    "test-plugin-definition-option-1",
 			Type:    "int",
@@ -79,8 +84,11 @@ func mockUIPluginDefinition() *greenhousev1alpha1.PluginDefinition {
 			Name:    "test-ui-app",
 			Version: "0.0.1",
 		}),
+		test.WithoutHelmChart(),
 	)
-	pluginDefinition.Spec.HelmChart = nil
+	pluginDefinition := &greenhousev1alpha1.PluginDefinition{}
+	pluginDefinition.SetName(clusterDef.Name)
+	pluginDefinition.Spec = clusterDef.Spec
 	return pluginDefinition
 }
 

@@ -15,11 +15,11 @@ var _ = Describe("Validate Team Creation", func() {
 	teamStub := *test.NewTeam(test.Ctx, "", "test-org", test.WithMappedIDPGroup("IDP_GROUP_NAME_MATCHING_TEAM"))
 
 	BeforeEach(func() {
-		pluginDefinition := test.NewPluginDefinition(test.Ctx, "test-plugindefinition-1")
+		pluginDefinition := test.NewClusterPluginDefinition(test.Ctx, "test-plugindefinition-1")
 		err := test.K8sClient.Create(test.Ctx, pluginDefinition)
 		Expect(err).ToNot(HaveOccurred(), "There should be no error when creating a pluginDefinition")
 
-		pluginDefinition2 := test.NewPluginDefinition(test.Ctx, "test-plugindefinition-2")
+		pluginDefinition2 := test.NewClusterPluginDefinition(test.Ctx, "test-plugindefinition-2")
 		err = test.K8sClient.Create(test.Ctx, pluginDefinition2)
 		Expect(err).ToNot(HaveOccurred(), "There should be no error when creating a pluginDefinition")
 	})

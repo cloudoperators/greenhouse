@@ -6,20 +6,28 @@ package cluster
 import (
 	"context"
 	"errors"
+	"fmt"
 	"slices"
 	"time"
 
 	"github.com/go-logr/logr"
 	corev1 "k8s.io/api/core/v1"
+	rbacv1 "k8s.io/api/rbac/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 
+	greenhouseapis "github.com/cloudoperators/greenhouse/api"
 	greenhousemetav1alpha1 "github.com/cloudoperators/greenhouse/api/meta/v1alpha1"
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
 	"github.com/cloudoperators/greenhouse/internal/clientutil"
+	"github.com/cloudoperators/greenhouse/internal/common"
+	"github.com/cloudoperators/greenhouse/internal/controller/cluster/utils"
 	"github.com/cloudoperators/greenhouse/internal/lifecycle"
+	"github.com/cloudoperators/greenhouse/internal/util"
 )
 
 const clusterK8sVersionUnknown = "unknown"
@@ -32,31 +40,66 @@ func (r *RemoteClusterReconciler) setConditions() lifecycle.Conditioner {
 			logger.Error(errors.New("resource is not a cluster"), "status setup failed")
 			return
 		}
-		var conditions []greenhousemetav1alpha1.Condition
 
-		kubeConfigValidCondition, restClientGetter, k8sVersion := r.reconcileClusterSecret(ctx, cluster)
-
-		allNodesReadyCondition := greenhousemetav1alpha1.UnknownCondition(greenhousev1alpha1.AllNodesReady, "", "")
-		clusterNodeStatus := make(map[string]greenhousev1alpha1.NodeStatus)
-		// Can only reconcile node status if kubeconfig is valid
-		if restClientGetter == nil || kubeConfigValidCondition.IsFalse() {
-			allNodesReadyCondition.Message = "kubeconfig not valid - cannot know node status"
+		var kubeConfigValidCondition greenhousemetav1alpha1.Condition
+		var k8sVersion string
+		clusterSecret, restClientGetter, err := r.getClusterSecretAndClientGetter(ctx, cluster)
+		if err != nil {
+			kubeConfigValidCondition = greenhousemetav1alpha1.FalseCondition(greenhousev1alpha1.KubeConfigValid, "", err.Error())
+			k8sVersion = clusterK8sVersionUnknown
 		} else {
-			allNodesReadyCondition, clusterNodeStatus = r.reconcileNodeStatus(ctx, restClientGetter)
+			kubeConfigValidCondition, k8sVersion = r.reconcileKubeConfigValid(restClientGetter)
 		}
 
-		readyCondition := r.reconcileReadyStatus(kubeConfigValidCondition)
+		var allNodesReadyCondition, clusterAccessibleCondition, resourcesDeployedCondition greenhousemetav1alpha1.Condition
+		var nodes *greenhousev1alpha1.Nodes
+		// Can only reconcile detailed status if kubeconfig is valid.
+		if kubeConfigValidCondition.IsFalse() {
+			allNodesReadyCondition = greenhousemetav1alpha1.UnknownCondition(greenhousev1alpha1.AllNodesReady, "", "kubeconfig not valid - cannot know node status")
+			clusterAccessibleCondition = greenhousemetav1alpha1.UnknownCondition(greenhousev1alpha1.PermissionsVerified, "", "kubeconfig not valid - cannot validate cluster access")
+			resourcesDeployedCondition = greenhousemetav1alpha1.UnknownCondition(greenhousev1alpha1.ManagedResourcesDeployed, "", "kubeconfig not valid - cannot validate managed resources")
+		} else {
+			allNodesReadyCondition, nodes = r.reconcileNodeStatus(ctx, restClientGetter)
+			clusterAccessibleCondition = r.reconcilePermissions(ctx, restClientGetter)
+			resourcesDeployedCondition = r.reconcileBootstrapResources(ctx, restClientGetter, clusterSecret)
+		}
 
-		conditions = append(conditions, readyCondition, allNodesReadyCondition, kubeConfigValidCondition)
+		readyCondition := r.reconcileReadyStatus(kubeConfigValidCondition, resourcesDeployedCondition)
 
+		ownerLabelCondition := util.ComputeOwnerLabelCondition(ctx, r.Client, cluster)
+		util.UpdateOwnedByLabelMissingMetric(cluster, ownerLabelCondition.IsFalse())
+
+		conditions := []greenhousemetav1alpha1.Condition{
+			readyCondition,
+			allNodesReadyCondition,
+			kubeConfigValidCondition,
+			ownerLabelCondition,
+			clusterAccessibleCondition,
+			resourcesDeployedCondition,
+		}
 		deletionCondition := r.checkDeletionSchedule(logger, cluster)
 		if !deletionCondition.IsUnknown() {
 			conditions = append(conditions, deletionCondition)
 		}
 		cluster.Status.KubernetesVersion = k8sVersion
 		cluster.Status.SetConditions(conditions...)
-		cluster.Status.Nodes = clusterNodeStatus
+
+		cluster.Status.Nodes = nodes
 	}
+}
+
+func (r *RemoteClusterReconciler) getClusterSecretAndClientGetter(ctx context.Context, cluster *greenhousev1alpha1.Cluster) (*corev1.Secret, genericclioptions.RESTClientGetter, error) {
+	clusterSecret := &corev1.Secret{}
+	if err := r.Get(ctx, types.NamespacedName{Name: cluster.GetSecretName(), Namespace: cluster.GetNamespace()}, clusterSecret); err != nil {
+		return nil, nil, fmt.Errorf("failed to get cluster secret: %w", err)
+	}
+
+	restClientGetter, err := clientutil.NewRestClientGetterFromSecret(clusterSecret, clusterSecret.Namespace, clientutil.WithPersistentConfig())
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to create REST client getter: %w", err)
+	}
+
+	return clusterSecret, restClientGetter, nil
 }
 
 func (r *RemoteClusterReconciler) checkDeletionSchedule(logger logr.Logger, cluster *greenhousev1alpha1.Cluster) greenhousemetav1alpha1.Condition {
@@ -76,40 +119,69 @@ func (r *RemoteClusterReconciler) checkDeletionSchedule(logger logr.Logger, clus
 	return deletionCondition
 }
 
-func (r *RemoteClusterReconciler) reconcileClusterSecret(
-	ctx context.Context,
-	cluster *greenhousev1alpha1.Cluster,
-) (
-	kubeConfigValidCondition greenhousemetav1alpha1.Condition,
-	restClientGetter genericclioptions.RESTClientGetter,
-	k8sVersion string,
-) {
-
-	kubeConfigValidCondition = greenhousemetav1alpha1.UnknownCondition(greenhousev1alpha1.KubeConfigValid, "", "")
-	var clusterSecret = new(corev1.Secret)
-	if err := r.Get(ctx, types.NamespacedName{Name: cluster.GetSecretName(), Namespace: cluster.GetNamespace()}, clusterSecret); err != nil {
-		kubeConfigValidCondition.Status = metav1.ConditionFalse
-		kubeConfigValidCondition.Message = err.Error()
-		return
+func (r *RemoteClusterReconciler) reconcileBootstrapResources(ctx context.Context, clientGetter genericclioptions.RESTClientGetter, secret *corev1.Secret) greenhousemetav1alpha1.Condition {
+	if secret == nil {
+		return greenhousemetav1alpha1.UnknownCondition(greenhousev1alpha1.ManagedResourcesDeployed, "", "managed resources could not be validated")
 	}
 
-	restClientGetter, err := clientutil.NewRestClientGetterFromSecret(clusterSecret, clusterSecret.Namespace, clientutil.WithPersistentConfig())
+	remoteClient, err := clientutil.NewK8sClientFromRestClientGetter(clientGetter)
 	if err != nil {
-		kubeConfigValidCondition.Status = metav1.ConditionFalse
-		kubeConfigValidCondition.Message = err.Error()
-		return
+		return greenhousemetav1alpha1.FalseCondition(greenhousev1alpha1.ManagedResourcesDeployed, "", err.Error())
 	}
 
-	if kubernetesVersion, err := clientutil.GetKubernetesVersion(restClientGetter); err == nil {
-		k8sVersion = kubernetesVersion.String()
-		kubeConfigValidCondition.Status = metav1.ConditionTrue
-	} else {
-		k8sVersion = clusterK8sVersionUnknown
-		kubeConfigValidCondition.Status = metav1.ConditionFalse
-		kubeConfigValidCondition.Message = err.Error()
+	if err := remoteClient.Get(ctx, client.ObjectKey{Name: secret.GetNamespace()}, &corev1.Namespace{}); err != nil {
+		if apierrors.IsNotFound(err) {
+			return greenhousemetav1alpha1.FalseCondition(greenhousev1alpha1.ManagedResourcesDeployed, "",
+				fmt.Sprintf("Namespace %s not found in remote cluster", secret.GetNamespace()))
+		}
+
+		return greenhousemetav1alpha1.FalseCondition(greenhousev1alpha1.ManagedResourcesDeployed, "", err.Error())
 	}
 
-	return
+	if secret.Type != greenhouseapis.SecretTypeOIDCConfig {
+		if err := remoteClient.Get(ctx, client.ObjectKey{Namespace: secret.GetNamespace(), Name: utils.ServiceAccountName}, &corev1.ServiceAccount{}); err != nil {
+			if apierrors.IsNotFound(err) {
+				return greenhousemetav1alpha1.FalseCondition(greenhousev1alpha1.ManagedResourcesDeployed, "",
+					fmt.Sprintf("ServiceAccount %s in namespace %s not found in remote cluster", utils.ServiceAccountName, secret.GetNamespace()))
+			}
+
+			return greenhousemetav1alpha1.FalseCondition(greenhousev1alpha1.ManagedResourcesDeployed, "", err.Error())
+		}
+
+		if err := remoteClient.Get(ctx, client.ObjectKey{Name: utils.ServiceAccountName}, &rbacv1.ClusterRoleBinding{}); err != nil {
+			if apierrors.IsNotFound(err) {
+				return greenhousemetav1alpha1.FalseCondition(greenhousev1alpha1.ManagedResourcesDeployed, "",
+					fmt.Sprintf("ClusterRoleBinding %s not found in remote cluster", utils.ServiceAccountName))
+			}
+
+			return greenhousemetav1alpha1.FalseCondition(greenhousev1alpha1.ManagedResourcesDeployed, "", err.Error())
+		}
+	}
+
+	return greenhousemetav1alpha1.TrueCondition(greenhousev1alpha1.ManagedResourcesDeployed, "", "")
+}
+
+func (r *RemoteClusterReconciler) reconcilePermissions(ctx context.Context, clientGetter genericclioptions.RESTClientGetter) greenhousemetav1alpha1.Condition {
+	remoteClient, err := clientutil.NewK8sClientFromRestClientGetter(clientGetter)
+	if err != nil {
+		return greenhousemetav1alpha1.FalseCondition(greenhousev1alpha1.PermissionsVerified, "", err.Error())
+	}
+
+	missing := common.CheckClientClusterPermission(ctx, remoteClient, "", corev1.NamespaceAll)
+	if len(missing) > 0 {
+		return greenhousemetav1alpha1.FalseCondition(greenhousev1alpha1.PermissionsVerified, "", "missing cluster admin permission")
+	}
+
+	return greenhousemetav1alpha1.TrueCondition(greenhousev1alpha1.PermissionsVerified, "", "ServiceAccount has cluster admin permissions")
+}
+
+func (r *RemoteClusterReconciler) reconcileKubeConfigValid(restClientGetter genericclioptions.RESTClientGetter) (condition greenhousemetav1alpha1.Condition, version string) {
+	kubernetesVersion, err := clientutil.GetKubernetesVersion(restClientGetter)
+	if err != nil {
+		return greenhousemetav1alpha1.FalseCondition(greenhousev1alpha1.KubeConfigValid, "", err.Error()), clusterK8sVersionUnknown
+	}
+
+	return greenhousemetav1alpha1.TrueCondition(greenhousev1alpha1.KubeConfigValid, "", ""), kubernetesVersion.String()
 }
 
 func (r *RemoteClusterReconciler) reconcileReadyStatus(conditions ...greenhousemetav1alpha1.Condition) (readyCondition greenhousemetav1alpha1.Condition) {
@@ -117,7 +189,7 @@ func (r *RemoteClusterReconciler) reconcileReadyStatus(conditions ...greenhousem
 	for _, condition := range conditions {
 		if condition.IsFalse() {
 			readyCondition.Status = metav1.ConditionFalse
-			readyCondition.Message = "kubeconfig not valid - cannot access cluster"
+			readyCondition.Message = "cannot access cluster"
 			if condition.Message != "" {
 				readyCondition.Message = condition.Message
 			}
@@ -128,58 +200,68 @@ func (r *RemoteClusterReconciler) reconcileReadyStatus(conditions ...greenhousem
 	return
 }
 
-// reconcileNodeStatus returns the status of all nodes of the cluster and an all nodes ready condition.
+// reconcileNodeStatus fetches the list of nodes from a remote cluster,
+// evaluates each node's readiness, and compiles summary metrics and statuses.
+// It returns:
+//   - allNodesReadyCondition: a Condition indicating if all nodes are ready (true) or not (false), with a message summarizing non-ready nodes.
+//   - nodes: a Nodes struct containing total count, ready count, and a map of non-ready node statuses.
 func (r *RemoteClusterReconciler) reconcileNodeStatus(
 	ctx context.Context,
 	restClientGetter genericclioptions.RESTClientGetter,
 ) (
 	allNodesReadyCondition greenhousemetav1alpha1.Condition,
-	clusterNodeStatus map[string]greenhousev1alpha1.NodeStatus,
+	nodes *greenhousev1alpha1.Nodes,
 ) {
-
-	clusterNodeStatus = make(map[string]greenhousev1alpha1.NodeStatus)
-	allNodesReadyCondition = greenhousemetav1alpha1.TrueCondition(greenhousev1alpha1.AllNodesReady, "", "")
 
 	remoteClient, err := clientutil.NewK8sClientFromRestClientGetter(restClientGetter)
 	if err != nil {
-		allNodesReadyCondition.Status = metav1.ConditionFalse
-		allNodesReadyCondition.Message = err.Error()
-		return
+		return greenhousemetav1alpha1.FalseCondition(greenhousev1alpha1.AllNodesReady, "", err.Error()), nil
 	}
 
 	nodeList := &corev1.NodeList{}
-
 	if err := remoteClient.List(ctx, nodeList); err != nil {
-		allNodesReadyCondition.Status = metav1.ConditionFalse
-		allNodesReadyCondition.Message = err.Error()
-		return
+		return greenhousemetav1alpha1.FalseCondition(greenhousev1alpha1.AllNodesReady, "", err.Error()), nil
 	}
+
+	notReadyNodes := []greenhousev1alpha1.NodeStatus{}
+	var totalNodes, readyNodes int32
+	allNodesReadyCondition = greenhousemetav1alpha1.TrueCondition(greenhousev1alpha1.AllNodesReady, "", "")
 
 	for _, node := range nodeList.Items {
-		greenhouseNodeStatusConditions := greenhousemetav1alpha1.StatusConditions{}
-		for _, condition := range node.Status.Conditions {
-			greenhouseNodeStatusConditions.SetConditions(greenhousemetav1alpha1.Condition{
-				Type:               greenhousemetav1alpha1.ConditionType(condition.Type),
-				Status:             metav1.ConditionStatus(condition.Status),
-				LastTransitionTime: condition.LastTransitionTime,
-				Message:            condition.Message,
-			})
+		totalNodes++
+
+		nodeStatus := getNodeStatusIfNodeNotReady(node)
+		if nodeStatus == nil {
+			readyNodes++
+			continue
 		}
 
-		nodeReady := greenhouseNodeStatusConditions.IsReadyTrue()
+		notReadyNodes = append(notReadyNodes, *nodeStatus)
 
-		clusterNodeStatus[node.GetName()] = greenhousev1alpha1.NodeStatus{
-			Ready:            greenhouseNodeStatusConditions.IsReadyTrue(),
-			StatusConditions: greenhouseNodeStatusConditions,
+		allNodesReadyCondition.Status = metav1.ConditionFalse
+		if allNodesReadyCondition.Message != "" {
+			allNodesReadyCondition.Message += ", "
 		}
 
-		if !nodeReady {
-			allNodesReadyCondition.Status = metav1.ConditionFalse
-			if allNodesReadyCondition.Message != "" {
-				allNodesReadyCondition.Message += ", "
-			}
-			allNodesReadyCondition.Message += node.GetName() + " not ready"
+		allNodesReadyCondition.Message += node.GetName() + " not ready"
+	}
+
+	return allNodesReadyCondition, &greenhousev1alpha1.Nodes{Total: totalNodes, Ready: readyNodes, NotReady: notReadyNodes}
+}
+
+// getNodeStatusIfNodeNotReady returns a NodeStatus when the NodeReady condition is explicitly False; otherwise nil.
+func getNodeStatusIfNodeNotReady(node corev1.Node) *greenhousev1alpha1.NodeStatus {
+	var readyCondition *corev1.NodeCondition
+	for i := range node.Status.Conditions {
+		if node.Status.Conditions[i].Type == corev1.NodeReady {
+			readyCondition = &node.Status.Conditions[i]
+			break
 		}
 	}
-	return
+
+	if readyCondition == nil || readyCondition.Status == corev1.ConditionTrue {
+		return nil
+	}
+
+	return &greenhousev1alpha1.NodeStatus{Name: node.Name, Message: readyCondition.Message, LastTransitionTime: readyCondition.LastTransitionTime}
 }

@@ -13,218 +13,279 @@ Greenhouse is a [Kubernetes operator](https://Kubernetes.io/docs/concepts/extend
 
 It expands the Kubernetes API via CustomResourceDefinitions. The different aspects of the CRDs are reconciled by several [controllers](https://book.kubebuilder.io/cronjob-tutorial/controller-overview.html). It also acts as [an admission webhook](https://book.kubebuilder.io/reference/admission-webhook.html).
 
-The Greenhouse Dashboard is a UI acting on the k8s apiserver of the cluster Greenhouse is running in. It includes a dashboard and an Organization admin consisting of several [Juno](https://github.com/cloudoperators/juno) micro frontends.
+The Greenhouse Dashboard is a UI acting on the k8s apiserver of the cluster Greenhouse is running in. The UI itself is a [Juno](https://github.com/cloudoperators/juno) application containing several micro frontends.
 
-This guide provides the following:
+Greenhouse provides a couple of cli commands based on `make` to run a local Greenhouse instance.
 
-1. [Local Setup](#local-setup)
-   1.1 [Mock k8s Server](local-dev.md#mock-k8s-server-aka-envtest)
+- [Setting up the development environment](#setting-up-the-development-environment)
+- [Run local Greenhouse](#run-greenhouse-locally)
+- Developing Greenhouse core functionality:
+  - [Develop Controllers locally and run the webhook server in-cluster](#develop-controllers-locally-and-run-the-webhook-server-in-cluster)
+  - [Develop Admission Webhook server locally](#develop-admission-webhook-server-locally)
+- Greenhouse Dashboard
+  - [Running Greenhouse Dashboard in-cluster](#running-greenhouse-dashboard-in-cluster)
+  - [Run Greenhouse Core for UI development](#run-greenhouse-core-for-ui-development)
+- Greenhouse Extensions
+  - [Test Plugin / Greenhouse Extension charts locally](#test-plugin--greenhouse-extension-charts-locally)
+- [Additional information](#additional-information)
 
-   1.2 [Greenhouse Controller](#greenhouse-controller)
+This handy CLI tool will help you to setup your development environment in no time.
 
-   1.3 [Greenhouse UI](#greenhouse-ui)
+## Prerequisites
 
-   1.4 [docker compose](#docker-compose)
+- [docker](https://docs.docker.com/get-docker/)
+- [KinD](https://kind.sigs.k8s.io/docs/user/quick-start/)
+- [kubectl](https://kubernetes.io/docs/tasks/tools/install-kubectl/)
+- [helm](https://helm.sh/docs/intro/install/)
+- [yq](https://github.com/mikefarah/yq/?tab=readme-ov-file#install) `>= v4.34.1`
 
-   1.5 [Bootstrap](#bootstrap)
+## Usage
 
-2. [Run And Debug The Code](#run-and-debug-the-code)
+Build `greenhousectl` from source by running the following command: `make cli`
 
-3. [Run The Tests](#run-the-tests)
+> [!NOTE]  
+> The CLI binary will be available in the `bin` folder
 
-## Local Setup
+## Setting up the development environment
 
-Quick start the local setup with [docker compose](#docker-compose)
+There are multiple local development environment setup available for the Greenhouse project. You can choose the one that
+fits your needs.
 
-> Note: As for the time being, the images published in our registry are `linux/amd64` only. Export env var to set your docker to use this architecture, if your default differs:
+`All commands will spin up KinD clusters and setup the necessary components`
 
-> ```bash
-> export DOCKER_DEFAULT_PLATFORM=linux/amd64
-> ```
+If you have a `~/.kube/config` file then `KinD` will automatically merge the `kubeconfig` of the created cluster(s).
 
-### Env Var Overview
+Use `kubectl config use-context kind-greenhouse-admin` to switch to `greenhouse admin` cluster context.
+Use `kubectl config use-context kind-greenhouse-remote` to switch to `greenhouse remote` cluster context.
 
-| Env Var | Meaning |
-| --- | --- |
-| `KUBEBUILDER_ATTACH_CONTROL_PLANE_OUTPUT` | If set to `true`, the mock server will additionally log apiserver and etcd logs |
-| `DEV_ENV_CONTEXT` | Mocks permissions on the mock api server, see [Mock k8s Server](#mock-k8s-server-aka-envtest) for details |
+If you do not have the contexts of the created cluster(s) in `~/.kube/config` file then you can extract it from the
+operating system's `tmp` folder, where the CLI will write `kubeconfig` of the created `KinD` clusters.
 
-### Mock k8s Server, a.k.a. `envtest`
+> [!NOTE]
+> `linux / macOS`: in `unix` like systems you can find the `kubeconfig` at `$TMPDIR/greenhouse/<clusterName>.kubeconfig`
+>
+> `windows`: in `windows` many tmp folders exist so the CLI can write the `kubeconfig` to the first non-empty value from
+`%TMP%`, `%TEMP%`, `%USERPROFILE%`
+>
+> The path where the `kubeconfig` is written will be displayed in the terminal after the command is executed by the CLI
 
-The Greenhouse controller needs a Kubernetes API to run it's reconciliation against. This k8s API needs to know about the Greenhouse CRDs to maintain the state of their respective resources. It also needs to know about any running admission/validation webhooks.
+use `kubectl --kubeconfig=<path to admin / remote kubeconfig>` to interact with the local `greenhouse` clusters
 
-We provide a local mock k8s apiserver and etcd leveraging the [envtest](https://pkg.go.dev/sigs.k8s.io/controller-runtime/pkg/envtest) package of SIG controller-runtime. This comes with the CRDs and MutatingWebhookConfiguration installed and provides a little bit of utility. Find the [docker image on our registry](https://github.com/cloudoperators/greenhouse/pkgs/container/greenhouse-dev-env).
+### Run Greenhouse Locally
 
-Additionally it will bootstrap some users with different permissions in a `test-org`. The `test-org` resource does not yet exist on the apiserver, but can be bootstrapped from the [test-org.yaml](./../../dev-env/bootstrap/test-org.yaml) which is done for you if you use the [docker compose](#docker-compose) setup.
-
-Running the image will:
-
-- spin up the apiserver and etcd
-- deploy CRDs and the webhook
-- create some users with respective contexts and certificates
-- finally proxy the apiserver via `kubectl proxy` to `127.0.0.1:8090`.
-
-The latter is done to avoid painful authentication to the local apiserver.
-
-We still can showcase different permission levels on the apiserver, by setting `context` via the env var `DEV_ENV_CONTEXT`.
-| `DEV_ENV_CONTEXT` | Permissions |
-| -------- | ------- |
-| unset | all, a.k.a. k8s `cluster-admin` |
-| `test-org-member` | [`org-member` as provided by the org controller](https://github.com/cloudoperators/greenhouse/blob/main/pkg/rbac/role.go#L102) |
-| `test-org-admin` | [`org-admin` as provided by the org controller](https://github.com/cloudoperators/greenhouse/blob/main/pkg/rbac/role.go#L16) |
-| `test-org-cluster-admin` | [`cluster-admin` as provided by the org controller](https://github.com/cloudoperators/greenhouse/blob/main/pkg/rbac/role.go#L56) |
-| `test-org-plugin-admin` | [`plugin-admin` as provided by the org controller](https://github.com/cloudoperators/greenhouse/blob/main/pkg/rbac/role.go#L82) |
-
-To access the running apiserver instance, some `kubeconfig` files and client certificates are created on the container in the `/envtest` folder.
-
-The `internal.kubeconfig` file uses the different certificates and contextes to directly address the apiserver running on port `6884`.
-
-The `kubeconfig` file uses the proxied context without authentication running on port `8090`. It is also scoped to the namespace `test-org`.
-
-Chose the respective ports to be exposed on your localhost when running the image or expose them all by running in network host mode.
-
-We are reusing the autogenerated certificates of the `dev-env` for authenticating the webhook server on `localhost`. The files are stored on `/webhook-certs` on the container.
-
-It is good practice to mount local volumes to these folders, running the image as such:
-
-```bash
-docker run --network host -e DEV_ENV_CONTEXT=<your-context> -v ./envtest:/envtest -v /tmp/k8s-webhook-server/serving-certs:/webhook-certs  ghcr.io/cloudoperators/greenhouse-dev-env:main
+```shell
+make setup
 ```
 
-## Greenhouse Controller
+- This will install the operator, the dashboard, cors-proxy and a sample organization with an onboarded remote cluster
+- port-forward the `cors-proxy` by `kubectl port-forward svc/greenhouse-cors-proxy 9090:80 -n greenhouse &`
+- port-forward the `dashboard` by `kubectl port-forward svc/greenhouse-dashboard 5001:80 -n greenhouse &`
+- Access the local `demo` organization on the Greenhouse dashboard on [localhost:5001](http://localhost:5001/?org=demo)
 
-Run your local go code from `./cmd/greenhouse` with the minimal configuration necessary (this example points the controller to run against the [local mock apiserver](#mock-k8s-server-aka-envtest)):
+### Develop Controllers locally and run the webhook server in-cluster
 
-```bash
-go run . --dns-domain localhost --kubeconfig ./envtest/kubeconfig
+```shell
+make setup-controller-dev
 ```
 
-Make sure the webhook server certs are placed in `/tmp/k8s-webhook-server/serving-certs`
+> [!NOTE]
+> set the environment variable `CONTROLLERS_ONLY=true` in your debugger configuration
+>
+> If no environment variable is set, the webhook server will error out due to the missing certs
 
-Or run our [greenhouse image](https://github.com/cloudoperators/greenhouse/pkgs/container/greenhouse) as such:
+### Develop Admission Webhook server locally
 
-```bash
-docker run --network host -e KUBECONFIG=/envtest/kubeconfig -v ./envtest:/envtest -v /tmp/k8s-webhook-server/serving-certs:/tmp/k8s-webhook-server/serving-certs ghcr.io/cloudoperators/greenhouse:main --dns-domain localhost
+```shell
+make setup-webhook-dev
 ```
 
-See all available flags [here](https://github.com/cloudoperators/greenhouse/blob/main/cmd/greenhouse/main.go#L59-L87).
+> [!NOTE]
+> set the environment variable `WEBHOOK_ONLY=true` in your debugger configuration if you only want to run the webhook
+> server
 
-## Greenhouse UI
+### Develop Controllers and Admission Webhook server locally
 
-### Use the latest upstream
-
-Either pull or start the docker-compose to retrieve the latest [juno-app-greenhouse](https://github.com/cloudoperators/juno/pkgs/container/juno-app-greenhouse) release.
-
-### Building the UI locally
-
-The Greenhouse UI is located in the [cloudoperators/juno](https://github.com/cloudoperators/juno/tree/main/apps/greenhouse) repository.
-
-1. Clone the repository [cloudoperators/juno](https://github.com/cloudoperators/juno)
-1. Run [docker buildx build](https://docs.docker.com/reference/cli/docker/buildx/):
-
-    ```bash
-    $ docker buildx build --platform=linux/amd64 -t ghcr.io/cloudoperators/juno-app-greenhouse:latest -f apps/greenhouse/docker/Dockerfile .  
-    ```
-    > NOTE: Building the image is rather resource heavy on your machine. For reference, using [colima](https://github.com/abiosoft/colima):
-
-    | Able to build? | PROFILE | STATUS | ARCH | CPUS | MEMORY | DISK | RUNTIME | ADDRESS 
-    | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
-    | ❌ |   default | Running | aarch64 | 2 | 4GiB | 100GiB | docker |
-    | ✅ |   default | Running | aarch64 | 4 | 8GiB | 100GiB | docker |
-
-1. Start the UI Docker
-    ```bash
-    $ docker run -p 3000:80 -v ./ui/appProps.json:/appProps.json ghcr.io/cloudoperators/juno-app-greenhouse:latest
-    ```
-    > Note: We inject a [props template prepared for dev-env](https://github.com/cloudoperators/greenhouse/tree/main/dev-env/ui/appProps.json) expecting the k8s api to run on `127.0.0.1:8090`, which is the default exported by the [mock api server image](#mock-k8s-server-aka-envtest). Also authentication will be mocked. Have a look at the [props template](https://github.com/cloudoperators/juno/blob/main/apps/greenhouse/appProps.template.json) to point your local UI to other running Greenhouse instances.
-
-1. Start the UI with `node` (with support for live reloads). Follow the instructions in the `cloudoperators/juno`, [here](https://github.com/cloudoperators/juno/tree/main/apps/greenhouse).
-
-1. Access the UI on [localhost:3000](http://localhost:3000/).
-
-> Note: Running the code locally only watches and live reloads the local code (changes) of the [dashboard](https://github.com/cloudoperators/juno/blob/main/apps/greenhouse) micro frontend (MFE). This is not true for the embedded MFEs. Run those separately with respective props pointing to the mock k8s apiserver for development.
-
-## docker compose
-
-If you do not need or want to run your local code but want to run a set of Greenhouse images we provide a setup with [docker compose](https://github.com/cloudoperators/greenhouse/blob/main/dev-env/docker-compose.yaml):
-
-1. Navigate to the [dev-env](https://github.com/cloudoperators/greenhouse/tree/main/dev-env) dir, and start `docker compose`.
-    ```bash
-    cd ./dev-env
-    docker compose up
-    ```
-
-1. You might need to build the `dev-ui` image manually, in that case follow [the steps above](#building-the-ui-locally).
-
-1. (Alternative) The [network-host.docker-compose.yaml](https://github.com/cloudoperators/greenhouse/blob/main/dev-env/network-host.docker-compose.yaml) provides the same setup but starts all containers in **host** network mode instead.
-
-## Bootstrap
-
-The [docker-compose](#docker-compose) setup per default bootstraps an Organization [test-org](https://github.com/cloudoperators/greenhouse/tree/main/dev-env/bootstrap/test-org.yaml) to your cluster, which is the bare minimum to get the `dev-env` working.
-
-By running:
-
-```bash
-docker compose run bootstrap kubectl apply -f /bootstrap/additional_resources
+```shell
+WITH_CONTROLLERS=false DEV_MODE=true make setup-manager
 ```
 
-or by uncommenting the "additional resources" in the command of the bootstrap container in the [docker-compose](https://github.com/cloudoperators/greenhouse/blob/main/dev-env/docker-compose.yaml#L51) file, the following resources items would be created automatically:
+This will modify the `ValidatingWebhookConfiguration` and `MutatingWebhookConfiguration` to use the
+`host.docker.internal` (macOS / windows) or `ipv4` (linux) address for the webhook server and write the
+webhook certs to `/tmp/k8s-webhook-server/serving-certs`.
 
-- [test-team-1, test-team-2, test-team-3](https://github.com/cloudoperators/greenhouse/tree/main/dev-env/bootstrap/teams.yaml) within Organization `test-org',
-- [cluster-1, cluster-2, cluster-3 and self](https://github.com/cloudoperators/greenhouse/tree/main/dev-env/bootstrap/clusters.yaml) with different conditions and states,
-- some [dummy nodes](https://github.com/cloudoperators/greenhouse/tree/main/dev-env/bootstrap/nodes.yaml) for clusters,
-- some [plugindefinitions with plugins](https://github.com/cloudoperators/greenhouse/tree/main/dev-env/bootstrap/plugins.yamls) across the clusters.
+Now you can run the webhook server and the controllers locally
 
-> Note: These resources are intended to showcase the UI and produce a lot of _"noise"_ on the Greenhouse controller.
+Since both need to be run locally no `CONTROLLERS_ONLY` or `WEBHOOK_ONLY` environment variables are needed in your
+debugger configuration
 
-Add any additional resources you need to the `./bootstrap` folder.
+> [!NOTE]
+> The dev setup will modify the webhook configurations to have 30s timeout for the webhook requests, but
+> when break points are used to debug webhook requests, it can result into timeouts.
+> In such cases, modify the CR with a dummy annotation to re-trigger the webhook request and reconciliation
 
-## Run And Debug The Code
+### Running Greenhouse Dashboard in-cluster
 
-Spin up the `envtest` container only, e.g. via:
-
-```bash
-docker compose up envtest
+```shell
+make setup-dashboard
 ```
 
-Reuse the certs created by `envtest` for locally serving the webhooks by copying them to the default location kubebuilder expects webhook certs at:
+> [!NOTE]
+> You will need to port-forward the cors-proxy service and the dashboard service to access the dashboard
+>
+> Information on how to access the dashboard is displayed after the command is executed
 
-```
-cp ./webhook-certs/* /tmp/k8s-webhook-server/serving-certs
-```
+### Run Greenhouse Core for UI development
 
-> Note: use `$TMPDIR` on MacOS for `/tmp`
+The Greenhouse UI consists of a [Juno application](https://github.com/cloudoperators/juno/tree/main/apps/greenhouse) hosting several micro frontends (MFEs). To develop the UI you will need a local Greenhouse cluster api-server as backend for your local UI:
 
-Start your debugging process in respective IDE exposing the `envtest` kubeconfig at `./envtest/kubeconfig`. Do not forget to pass the `--dns-domain=localhost` flag.
+- Startup the environment as in [Run local Greenhouse](#run-greenhouse-locally)
+- The Greenhouse UI expects an `appProps.json` with [the necessary parameters to run](https://github.com/cloudoperators/juno/tree/main/apps/greenhouse#app-props)
+- This `appProps.json` `ConfigMap` is created in the `greenhouse` namespace by the local installation to configure the in-cluster dashboard.
+- You can
+  - either create and use your own `appProps.json` file when running the UI locally
+  - or retrieve the generated `appProps.json` in-cluster by executing
+    `kubectl get cm greenhouse-dashboard-app-props -n greenhouse -o=json | jq -r '.data.["appProps.json"]'`
+- After port-forwarding `cors-proxy` service, it should be used as `apiEndpoint` in `appProps.json`
+- Start the dashboard locally (more information on how to run the dashboard locally can be found in
+  the [Juno Repository](https://github.com/cloudoperators/juno/blob/main/apps/greenhouse/README.md))
 
-## Run The Tests
+### Test Plugin / Greenhouse Extension charts locally
 
-For running `e2e` tests see [here](https://github.com/cloudoperators/greenhouse/blob/main/test/e2e/README.md).
-
-Same as the local setup our `unit` tests run against an `envtest` mock cluster. To install [the setup-envtest tool](https://pkg.go.dev/sigs.k8s.io/controller-runtime/tools/setup-envtest) run
-
-```bash
-make envtest
-```
-
-which will install `setup-envtest` to your `$(LOCALBIN)`, usually `./bin`.
-
-To run all tests from cli:
-
-```bash
-make test
+```shell
+PLUGIN_DIR=<absolute-path-to-charts-dir> make setup
 ```
 
-To run tests independently make sure the `$(KUBEBUILDER_ASSETS)` env var is set. This variable contains the path to the binary to use for starting up the mock controlplane with the respective k8s version on your architecture.
+- This will install a full running setup of operator, dashboard, sample organization with an onboarded remote cluster
+- Additionally, it will mount the plugin charts directory on to the `node` of the `KinD` cluster
+- The operator deployment has a hostPath volume mount to the plugin charts directory from the `node` of the `KinD`
+  cluster
 
-Print the path by executing:
+To test your local Chart (now mounted to the KinD cluster) with a `plugindefinition.yaml` you would need to adjust `.spec.helmChart.name` to use the local chart.
+With the provided mounting mechanism it will always live in `local/plugins/` within the KinD cluster.
 
-```bash
-./bin/setup-envtest use <your-preferred-k8s-version> -p path
+Modify `spec.helmChart.name` to point to the local file path of the chart that needs to be tested
+
+Example Scenario:
+
+You have cloned the [Greenhouse Extensions](https://github.com/cloudoperators/greenhouse-extensions) repository,
+and you want to test `cert-manager` plugin chart locally.
+
+```yaml
+
+apiVersion: greenhouse.sap/v1alpha1
+kind: PluginDefinition
+metadata:
+  name: cert-manager
+spec:
+  description: Automated TLS certificate management
+  displayName: Certificate manager
+  docMarkDownUrl: >-
+    https://raw.githubusercontent.com/cloudoperators/greenhouse-extensions/main/cert-manager/README.md
+  helmChart:
+    name: 'local/plugins/<path-to-cert-manager-chart-folder>'
+    repository: '' # <- has to be empty
+    version: '' # <- has to be empty
+...
+
 ```
 
-### Env Vars Overview In Testing
+Apply the `plugindefinition.yaml` to the `admin` cluster
 
-| Env Var | Meaning |
-| --- | --- |
-| `TEST_EXPORT_KUBECONFIG` | If set to `true`, the kubeconfigs of the envtest controlplanes will be written to temporary files and their location will be printed on screen. Usefull for accessing the mock clusters when setting break points in tests. |
+```shell
+kubectl --kubeconfig=<your-kind-config> apply -f plugindefinition.yaml
+```
+
+## Additional information
+
+When setting up your development environment, certain resources are modified for development convenience.
+
+- The Greenhouse controllers and webhook server deployments use the same image to run. The logic is separated by
+  environment variables.
+- The `greenhouse-controller-manager` deployment has environment variable `CONTROLLERS_ONLY`
+  - `CONTROLLERS_ONLY=true` will only run the controllers
+  - changing the value to `false` will run the webhook server and will error out due to missing certs
+- The `greenhouse-webhook` deployment has environment variable `WEBHOOK_ONLY`
+  - `WEBHOOK_ONLY=true` will only run the webhook server
+  - changing the value to `false` will skip the webhook server. When greenhouse `CustomResources` are applied,
+    the Kubernetes Validating and Mutating Webhook phase will error out due to webhook endpoints not being available
+
+if `DevMode` is enabled for webhooks then depending on the OS the webhook manifests are altered by removing
+`clientConfig.service` and replacing it with `clientConfig.url`, allowing you to debug the code locally.
+
+- `linux` - the ipv4 addr from `docker0` interface is used - ex: `https://172.17.0.2:9443/<path>`
+- `macOS` - host.docker.internal is used - ex: `https://host.docker.internal:9443/<path>`
+- `windows` - ideally `host.docker.internal` should work, otherwise please reach out with a contribution <3
+- webhook certs are generated by `cert-manager` in-cluster, and they are
+  extracted and saved to `/tmp/k8s-webhook-server/serving-certs`
+- `kubeconfig` of the created cluster(s) are saved to `/tmp/greenhouse/<clusterName>.kubeconfig`
+
+---
+
+
+## greenhousectl dev setup
+
+setup dev environment with a configuration file
+
+```
+greenhousectl dev setup [flags]
+```
+
+### Examples
+
+```
+
+# Setup Greenhouse dev environment with a configuration file
+greenhousectl dev setup -f dev-env/dev.config.yaml
+
+- This will create an admin and a remote cluster
+- Install CRDs, Webhook definitions, RBACs, Certs, etc... for Greenhouse into the admin cluster
+- Depending on the devMode, it will install the webhook in-cluster or enable it for local development
+
+Overriding certain values in dev.config.yaml:
+
+- Override devMode for webhook development with d=true or devMode=true
+- Override helm chart installation with c=true or crdOnly=true
+
+e.g. greenhousectl dev setup -f dev-env/dev.config.yaml d=true
+
+```
+
+### Options
+
+```
+  -f, --config string   configuration file path - e.g. -f dev-env/dev.config.yaml
+  -h, --help            help for setup
+```
+
+## greenhousectl dev setup dashboard
+
+setup dashboard for local development with a configuration file
+
+```
+greenhousectl dev setup dashboard [flags]
+```
+
+### Examples
+
+```
+
+# Setup Greenhouse dev environment with a configuration file
+greenhousectl dev setup dashboard -f dev-env/ui.config.yaml
+
+- Installs the Greenhouse dashboard and CORS proxy into the admin cluster
+
+```
+
+### Options
+
+```
+  -f, --config string   configuration file path - e.g. -f dev-env/ui.config.yaml
+  -h, --help            help for dashboard
+```
+
+
+## Generating Docs
+To generate the markdown documentation, run the following command:
+```shell
+make dev-docs
+```
