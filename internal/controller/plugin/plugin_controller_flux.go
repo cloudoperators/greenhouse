@@ -34,8 +34,6 @@ import (
 const (
 	maxHistory = 10
 	secretKind = "Secret"
-
-	PluginDefinitionVersionAnnotation = "greenhouse.sap/pd-version"
 )
 
 func (r *PluginReconciler) EnsureFluxDeleted(ctx context.Context, plugin *greenhousev1alpha1.Plugin) (ctrl.Result, lifecycle.ReconcileResult, error) {
@@ -145,12 +143,6 @@ func (r *PluginReconciler) ensureHelmRelease(
 		}
 		helmRelease.Spec = spec
 
-		// Set PluginDefinition.Spec.Version in the release.
-		if helmRelease.Annotations == nil {
-			helmRelease.Annotations = map[string]string{}
-		}
-		helmRelease.Annotations[PluginDefinitionVersionAnnotation] = pluginDefinitionSpec.Version
-
 		return controllerutil.SetControllerReference(plugin, helmRelease, r.Scheme())
 	})
 	if err != nil {
@@ -222,9 +214,7 @@ func (r *PluginReconciler) reconcilePluginStatus(ctx context.Context,
 			releaseStatus.FirstDeployed = latestSnapshot.FirstDeployed
 			releaseStatus.LastDeployed = latestSnapshot.LastDeployed
 			if latestSnapshot.Status == "deployed" {
-				if v := helmRelease.Annotations[PluginDefinitionVersionAnnotation]; v != "" {
-					pluginVersion = v
-				}
+				pluginVersion = pluginDefinition.Spec.Version
 			}
 		}
 
@@ -246,7 +236,7 @@ func (r *PluginReconciler) reconcilePluginStatus(ctx context.Context,
 	)
 	// Ensure the status is always reported.
 	uiApplication = pluginDefinition.Spec.UIApplication
-	// only set the helm chart reference if the pluginVersion matches the pluginDefinition version or the release status is unknown
+	// Only set the helm chart reference if the helm release has been applied successfully or the release status is unknown.
 	if pluginVersion == pluginDefinition.Spec.Version || releaseStatus.Status == "unknown" {
 		helmChartReference = pluginDefinition.Spec.HelmChart
 	} else {
