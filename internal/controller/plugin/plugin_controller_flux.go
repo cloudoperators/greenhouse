@@ -191,20 +191,22 @@ func (r *PluginReconciler) reconcilePluginStatus(ctx context.Context,
 	// Collect status from the Helm release.
 	helmRelease := &helmv2.HelmRelease{}
 	err := r.Get(ctx, types.NamespacedName{Name: plugin.Name, Namespace: plugin.Namespace}, helmRelease)
-	if err == nil {
+	if err != nil {
+		plugin.SetCondition(greenhousemetav1alpha1.FalseCondition(greenhousev1alpha1.StatusUpToDateCondition, "", "failed to get Helm release: "+err.Error()))
+	} else {
 		helmSDKRelease, err := helm.GetReleaseForHelmChartFromPlugin(ctx, restClientGetter, plugin)
-		if err == nil {
-			serviceList, err := getExposedServicesForPluginFromHelmRelease(restClientGetter, helmSDKRelease, plugin)
-			if err == nil {
-				exposedServices = serviceList
-				plugin.SetCondition(greenhousemetav1alpha1.TrueCondition(greenhousev1alpha1.StatusUpToDateCondition, "", ""))
-			} else {
-				plugin.SetCondition(greenhousemetav1alpha1.FalseCondition(
-					greenhousev1alpha1.StatusUpToDateCondition, "", "failed to get exposed services: "+err.Error()))
-			}
-		} else {
+		if err != nil {
 			plugin.SetCondition(greenhousemetav1alpha1.FalseCondition(
 				greenhousev1alpha1.StatusUpToDateCondition, "", "failed to get Helm SDK release: "+err.Error()))
+		} else {
+			serviceList, err := getExposedServicesForPluginFromHelmRelease(restClientGetter, helmSDKRelease, plugin)
+			if err != nil {
+				plugin.SetCondition(greenhousemetav1alpha1.FalseCondition(
+					greenhousev1alpha1.StatusUpToDateCondition, "", "failed to get exposed services: "+err.Error()))
+			} else {
+				exposedServices = serviceList
+				plugin.SetCondition(greenhousemetav1alpha1.TrueCondition(greenhousev1alpha1.StatusUpToDateCondition, "", ""))
+			}
 		}
 
 		// Get the release status.
@@ -220,14 +222,12 @@ func (r *PluginReconciler) reconcilePluginStatus(ctx context.Context,
 
 		if plugin.Spec.OptionValues != nil {
 			checksum, err := helm.CalculatePluginOptionChecksum(ctx, r.Client, plugin)
-			if err == nil {
-				releaseStatus.PluginOptionChecksum = checksum
-			} else {
+			if err != nil {
 				releaseStatus.PluginOptionChecksum = ""
+			} else {
+				releaseStatus.PluginOptionChecksum = checksum
 			}
 		}
-	} else {
-		plugin.SetCondition(greenhousemetav1alpha1.FalseCondition(greenhousev1alpha1.StatusUpToDateCondition, "", "failed to get Helm release: "+err.Error()))
 	}
 
 	var (
