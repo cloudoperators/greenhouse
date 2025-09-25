@@ -157,14 +157,14 @@ func (r *PluginReconciler) ensureHelmRelease(
 		log.FromContext(ctx).Info("Updated helmRelease", "name", helmRelease.Name)
 	}
 
-	helmReleaseReady := meta.FindStatusCondition(helmRelease.Status.Conditions, fluxmeta.ReadyCondition)
-	if helmReleaseReady != nil && helmRelease.Status.ObservedGeneration >= helmRelease.Generation {
-		if helmReleaseReady.Status == metav1.ConditionTrue {
+	ready := meta.FindStatusCondition(helmRelease.Status.Conditions, fluxmeta.ReadyCondition)
+	if ready != nil && ready.ObservedGeneration == helmRelease.Generation {
+		if ready.Status == metav1.ConditionTrue {
 			plugin.SetCondition(greenhousemetav1alpha1.FalseCondition(greenhousev1alpha1.HelmReconcileFailedCondition,
-				greenhousemetav1alpha1.ConditionReason(helmReleaseReady.Reason), helmReleaseReady.Message))
+				greenhousemetav1alpha1.ConditionReason(ready.Reason), ready.Message))
 		} else {
 			plugin.SetCondition(greenhousemetav1alpha1.TrueCondition(greenhousev1alpha1.HelmReconcileFailedCondition,
-				greenhousemetav1alpha1.ConditionReason(helmReleaseReady.Reason), helmReleaseReady.Message))
+				greenhousemetav1alpha1.ConditionReason(ready.Reason), ready.Message))
 		}
 	}
 
@@ -209,15 +209,39 @@ func (r *PluginReconciler) reconcilePluginStatus(ctx context.Context,
 			}
 		}
 
-		// Get the release status.
+		// Get the latest successfully deployed release to set the dates.
 		latestSnapshot := helmRelease.Status.History.Latest()
 		if latestSnapshot != nil {
-			releaseStatus.Status = latestSnapshot.Status
 			releaseStatus.FirstDeployed = latestSnapshot.FirstDeployed
 			releaseStatus.LastDeployed = latestSnapshot.LastDeployed
-			if latestSnapshot.Status == "deployed" {
-				pluginVersion = pluginDefinition.Spec.Version
+		}
+
+		// HelmRelease Ready condition is the best representation of the release status.
+		ready := meta.FindStatusCondition(helmRelease.Status.Conditions, fluxmeta.ReadyCondition)
+		isReadyCurrent := ready != nil && ready.ObservedGeneration == helmRelease.Generation
+
+		switch {
+		case isReadyCurrent && ready.Status == metav1.ConditionTrue:
+			// If the current release is successfully deployed, get the status from history.
+			if latestSnapshot != nil {
+				releaseStatus.Status = latestSnapshot.Status
+			} else {
+				releaseStatus.Status = "deployed"
 			}
+			pluginVersion = pluginDefinition.Spec.Version
+		case isReadyCurrent && ready.Status == metav1.ConditionUnknown:
+			switch helmRelease.Status.LastAttemptedReleaseAction {
+			case helmv2.ReleaseActionInstall:
+				releaseStatus.Status = "pending-install"
+			case helmv2.ReleaseActionUpgrade:
+				releaseStatus.Status = "pending-upgrade"
+			default:
+				releaseStatus.Status = "progressing"
+			}
+		case isReadyCurrent && ready.Status == metav1.ConditionFalse:
+			releaseStatus.Status = "failed"
+		default:
+			releaseStatus.Status = "progressing"
 		}
 
 		if plugin.Spec.OptionValues != nil {
