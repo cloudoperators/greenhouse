@@ -135,12 +135,6 @@ func (r *PluginReconciler) setConditions() lifecycle.Conditioner {
 			return
 		}
 
-		// redirect plugins that are managed by Flux
-		if plugin.GetLabels() != nil && plugin.GetLabels()[greenhouseapis.GreenhouseHelmDeliveryToolLabel] == greenhouseapis.GreenhouseHelmDeliveryToolFlux {
-			r.setFluxConditions(ctx, plugin)
-			return
-		}
-
 		readyCondition := computeReadyCondition(plugin.Status.StatusConditions)
 		UpdatePluginReadyMetric(plugin, readyCondition.Status == metav1.ConditionTrue)
 

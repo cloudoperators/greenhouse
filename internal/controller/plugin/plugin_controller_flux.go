@@ -38,12 +38,6 @@ const (
 	PluginDefinitionVersionAnnotation = "greenhouse.sap/pd-version"
 )
 
-func (r *PluginReconciler) setFluxConditions(ctx context.Context, plugin *greenhousev1alpha1.Plugin) {
-	readyCondition := computeFluxReadyCondition(plugin.Status.StatusConditions)
-	ownerLabelCondition := util.ComputeOwnerLabelCondition(ctx, r.Client, plugin)
-	plugin.Status.SetConditions(readyCondition, ownerLabelCondition)
-}
-
 func (r *PluginReconciler) EnsureFluxDeleted(ctx context.Context, plugin *greenhousev1alpha1.Plugin) (ctrl.Result, lifecycle.ReconcileResult, error) {
 	if err := r.Delete(ctx, &helmv2.HelmRelease{ObjectMeta: metav1.ObjectMeta{Name: plugin.Name, Namespace: plugin.Namespace}}); err != nil {
 		c := greenhousemetav1alpha1.TrueCondition(greenhousev1alpha1.HelmReconcileFailedCondition, greenhousev1alpha1.HelmUninstallFailedReason, err.Error())
