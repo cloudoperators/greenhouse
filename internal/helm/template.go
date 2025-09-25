@@ -8,19 +8,19 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"strings"
 	"text/template"
 
 	"github.com/Masterminds/sprig/v3"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
 )
 
 // ResolveTemplatedValues processes PluginOptionValues with templates and resolves them to concrete values.
-func ResolveTemplatedValues(ctx context.Context, c client.Client, plugin *greenhousev1alpha1.Plugin, optionValues []greenhousev1alpha1.PluginOptionValue) ([]greenhousev1alpha1.PluginOptionValue, error) {
+func ResolveTemplatedValues(ctx context.Context, optionValues []greenhousev1alpha1.PluginOptionValue) ([]greenhousev1alpha1.PluginOptionValue, error) {
 	resolvedValues := make([]greenhousev1alpha1.PluginOptionValue, 0, len(optionValues))
-	templateData, err := buildTemplateData(ctx, c, plugin)
+	templateData, err := buildTemplateData(optionValues)
 	if err != nil {
 		return nil, fmt.Errorf("failed to build template data: %w", err)
 	}
@@ -53,14 +53,16 @@ func ResolveTemplatedValues(ctx context.Context, c client.Client, plugin *greenh
 	return resolvedValues, nil
 }
 
-// buildTemplateData creates template data using the same data as existing greenhouse values.
-func buildTemplateData(ctx context.Context, c client.Client, plugin *greenhousev1alpha1.Plugin) (map[string]interface{}, error) {
-	greenhouseValues, err := GetGreenhouseValues(ctx, c, *plugin)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get greenhouse values: %w", err)
+// buildTemplateData creates template data by extracting only the global greenhouse values from existing option values.
+func buildTemplateData(optionValues []greenhousev1alpha1.PluginOptionValue) (map[string]any, error) {
+	greenhouseValues := make([]greenhousev1alpha1.PluginOptionValue, 0)
+	for _, optionValue := range optionValues {
+		// Include global.greenhouse.* values for templating.
+		if strings.HasPrefix(optionValue.Name, "global.greenhouse") {
+			greenhouseValues = append(greenhouseValues, optionValue)
+		}
 	}
 
-	// Convert flat values to nested structure using existing Helm conversion
 	templateData, err := ConvertFlatValuesToHelmValues(greenhouseValues)
 	if err != nil {
 		return nil, fmt.Errorf("failed to convert values to helm structure: %w", err)

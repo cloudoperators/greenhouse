@@ -131,6 +131,7 @@ func (r *PluginReconciler) ensureHelmRelease(
 			WithDriftDetection(&helmv2.DriftDetection{
 				Mode: helmv2.DriftDetectionEnabled,
 			}).
+			WithSuspend(release.Spec.Suspend).
 			WithKubeConfig(fluxmeta.SecretKeyReference{
 				Name: plugin.Spec.ClusterName,
 				Key:  greenhouseapis.GreenHouseKubeConfigKey,
@@ -282,7 +283,7 @@ func addValuesToHelmRelease(ctx context.Context, c client.Client, plugin *greenh
 		return nil, err
 	}
 
-	optionValues, err = helm.ResolveTemplatedValues(ctx, c, plugin, optionValues)
+	optionValues, err = helm.ResolveTemplatedValues(ctx, optionValues)
 	if err != nil {
 		return nil, fmt.Errorf("failed to resolve templated values: %w", err)
 	}
