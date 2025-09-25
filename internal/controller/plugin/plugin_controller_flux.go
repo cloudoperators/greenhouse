@@ -64,6 +64,8 @@ func (r *PluginReconciler) EnsureFluxCreated(ctx context.Context, restClientGett
 		log.FromContext(ctx).Info("No HelmChart defined in PluginDefinition, skipping HelmRelease creation", "plugin", plugin.Name)
 		plugin.SetCondition(greenhousemetav1alpha1.FalseCondition(
 			greenhousev1alpha1.HelmReconcileFailedCondition, "", "PluginDefinition is not backed by HelmChart"))
+		// Update status for UI Applications.
+		plugin.Status.UIApplication = pluginDef.Spec.UIApplication
 		return ctrl.Result{}, lifecycle.Success, nil
 	}
 
