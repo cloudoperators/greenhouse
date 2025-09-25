@@ -89,11 +89,11 @@ func (r *PluginReconciler) ensureHelmRelease(
 	helmRepository *sourcecontroller.HelmRepository,
 ) error {
 
-	helmRelease := &helmv2.HelmRelease{}
-	helmRelease.SetName(plugin.Name)
-	helmRelease.SetNamespace(plugin.Namespace)
+	release := &helmv2.HelmRelease{}
+	release.SetName(plugin.Name)
+	release.SetNamespace(plugin.Namespace)
 
-	result, err := ctrl.CreateOrUpdate(ctx, r.Client, helmRelease, func() error {
+	result, err := ctrl.CreateOrUpdate(ctx, r.Client, release, func() error {
 		values, err := addValuesToHelmRelease(ctx, r.Client, plugin)
 		if err != nil {
 			return fmt.Errorf("failed to compute HelmRelease values for Plugin %s: %w", plugin.Name, err)
@@ -142,9 +142,9 @@ func (r *PluginReconciler) ensureHelmRelease(
 		if err != nil {
 			return fmt.Errorf("failed to create HelmRelease for plugin %s: %w", plugin.Name, err)
 		}
-		helmRelease.Spec = spec
+		release.Spec = spec
 
-		return controllerutil.SetControllerReference(plugin, helmRelease, r.Scheme())
+		return controllerutil.SetControllerReference(plugin, release, r.Scheme())
 	})
 	if err != nil {
 		plugin.SetCondition(greenhousemetav1alpha1.FalseCondition(
@@ -153,13 +153,13 @@ func (r *PluginReconciler) ensureHelmRelease(
 	}
 	switch result {
 	case controllerutil.OperationResultCreated:
-		log.FromContext(ctx).Info("Created helmRelease", "name", helmRelease.Name)
+		log.FromContext(ctx).Info("Created helmRelease", "name", release.Name)
 	case controllerutil.OperationResultUpdated:
-		log.FromContext(ctx).Info("Updated helmRelease", "name", helmRelease.Name)
+		log.FromContext(ctx).Info("Updated helmRelease", "name", release.Name)
 	}
 
-	ready := meta.FindStatusCondition(helmRelease.Status.Conditions, fluxmeta.ReadyCondition)
-	if ready != nil && ready.ObservedGeneration == helmRelease.Generation {
+	ready := meta.FindStatusCondition(release.Status.Conditions, fluxmeta.ReadyCondition)
+	if ready != nil && ready.ObservedGeneration == release.Generation {
 		if ready.Status == metav1.ConditionTrue {
 			plugin.SetCondition(greenhousemetav1alpha1.FalseCondition(greenhousev1alpha1.HelmReconcileFailedCondition,
 				greenhousemetav1alpha1.ConditionReason(ready.Reason), ready.Message))
@@ -222,6 +222,8 @@ func (r *PluginReconciler) reconcilePluginStatus(ctx context.Context,
 		isReadyCurrent := ready != nil && ready.ObservedGeneration == helmRelease.Generation
 
 		switch {
+		case helmRelease.Spec.Suspend:
+			releaseStatus.Status = "suspended"
 		case isReadyCurrent && ready.Status == metav1.ConditionTrue:
 			// If the current release is successfully deployed, get the status from history.
 			if latestSnapshot != nil {
