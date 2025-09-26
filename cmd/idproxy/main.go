@@ -124,7 +124,7 @@ func main() {
 	}
 	s := &http.Server{Handler: serv}
 	g.Add(func() error {
-		ln, err := net.Listen("tcp", listenAddr)
+		ln, err := (&net.ListenConfig{}).Listen(ctx, "tcp", listenAddr)
 		if err != nil {
 			return fmt.Errorf("failed to listen on %s: %w", listenAddr, err)
 		}
@@ -140,7 +140,7 @@ func main() {
 	// metrics server
 	ms := &http.Server{Handler: promhttp.HandlerFor(registry, promhttp.HandlerOpts{Registry: registry})}
 	g.Add(func() error {
-		ln, err := net.Listen("tcp", metricsAddr)
+		ln, err := (&net.ListenConfig{}).Listen(ctx, "tcp", metricsAddr)
 		if err != nil {
 			return fmt.Errorf("failed to listen on %s: %w", metricsAddr, err)
 		}

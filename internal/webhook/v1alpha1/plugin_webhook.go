@@ -116,6 +116,7 @@ func DefaultPlugin(ctx context.Context, c client.Client, obj runtime.Object) err
 			plugin.Spec.ReleaseName = pluginDefinition.Spec.HelmChart.Name
 		}
 	}
+
 	return nil
 }
 
@@ -244,11 +245,11 @@ func validatePluginOptionValues(
 			isOptionValueSet = true
 			fieldPathWithIndex := optionsFieldPath.Index(idx)
 
-			// Value and ValueFrom are mutually exclusive, but one must be provided.
-			if (val.Value == nil && val.ValueFrom == nil) || (val.Value != nil && val.ValueFrom != nil) {
+			// Value, ValueFrom, and Template are mutually exclusive, but exactly one must be provided.
+			if !hasExactlyOneValueSource(val) {
 				allErrs = append(allErrs, field.Required(
 					fieldPathWithIndex,
-					"must provide either value or valueFrom for value "+val.Name,
+					"must provide exactly one of value, valueFrom, or template for value "+val.Name,
 				))
 				continue
 			}
@@ -342,4 +343,21 @@ func validatePluginForCluster(ctx context.Context, c client.Client, plugin *gree
 		}
 	}
 	return nil
+}
+
+// hasExactlyOneValueSource checks if exactly one of Value, ValueFrom, or Template is set.
+func hasExactlyOneValueSource(val greenhousev1alpha1.PluginOptionValue) bool {
+	sources := []bool{
+		val.Value != nil,
+		val.ValueFrom != nil,
+		val.Template != nil,
+	}
+
+	count := 0
+	for _, isSet := range sources {
+		if isSet {
+			count++
+		}
+	}
+	return count == 1
 }

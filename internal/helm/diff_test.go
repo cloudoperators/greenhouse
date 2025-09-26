@@ -46,7 +46,7 @@ var _ = Describe("ensure helm diff against the release manifest works as expecte
 		pluginUT = test.NewPlugin(test.Ctx, "test-plugin", namespace,
 			test.WithPluginLabel(greenhouseapis.LabelKeyOwnedBy, "test-team-1"),
 			test.WithPluginDefinition("test-plugindefinition"),
-			test.WithPluginOptionValue("enabled", test.MustReturnJSONFor(true), nil),
+			test.WithPluginOptionValue("enabled", test.MustReturnJSONFor(true)),
 			test.WithReleaseNamespace(namespace),
 		)
 
@@ -178,7 +178,7 @@ var _ = Describe("ensure helm with hooks diff against the release manifest works
 		pluginUT = test.NewPlugin(test.Ctx, "test-plugin", namespace,
 			test.WithPluginLabel(greenhouseapis.LabelKeyOwnedBy, "test-team-1"),
 			test.WithPluginDefinition("test-plugindefinition"),
-			test.WithPluginOptionValue("hook_enabled", test.MustReturnJSONFor(false), nil),
+			test.WithPluginOptionValue("hook_enabled", test.MustReturnJSONFor(false)),
 			test.WithReleaseNamespace(namespace),
 		)
 

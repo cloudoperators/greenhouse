@@ -28,6 +28,7 @@ type HelmReleaseBuilder interface {
 	WithUpgrade(upgrade *helmv2.Upgrade) *helmReleaseBuilder
 	WithRollback(rollback *helmv2.Rollback) *helmReleaseBuilder
 	WithDriftDetection(driftDetection *helmv2.DriftDetection) *helmReleaseBuilder
+	WithSuspend(suspend bool) *helmReleaseBuilder
 	WithTest(test *helmv2.Test) *helmReleaseBuilder
 	WithUninstall(uninstall *helmv2.Uninstall) *helmReleaseBuilder
 	WithDependsOn(dependencies []fluxmeta.NamespacedObjectReference) *helmReleaseBuilder
@@ -174,6 +175,12 @@ func (b *helmReleaseBuilder) WithDriftDetection(driftDetection *helmv2.DriftDete
 		}
 	}
 	b.spec.DriftDetection = driftDetection
+	return b
+}
+
+// WithSuspend sets the suspend flag for the Helm release.
+func (b *helmReleaseBuilder) WithSuspend(suspend bool) *helmReleaseBuilder {
+	b.spec.Suspend = suspend
 	return b
 }
 

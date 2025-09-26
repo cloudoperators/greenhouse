@@ -47,7 +47,7 @@ var (
 		test.WithCluster("test-cluster"),
 		test.WithPluginDefinition("test-plugindefinition"),
 		test.WithReleaseName("release-with-secretref"),
-		test.WithPluginOptionValue("secretValue", nil, &greenhousev1alpha1.ValueFromSource{
+		test.WithPluginOptionValueFrom("secretValue", &greenhousev1alpha1.ValueFromSource{
 			Secret: &greenhousev1alpha1.SecretKeyReference{
 				Name: "test-secret",
 				Key:  "test-key",
@@ -440,14 +440,40 @@ var _ = Describe("HelmController reconciliation", Ordered, func() {
 				g.Expect(err).ToNot(HaveOccurred(), "there should be no error getting plugin")
 				statusUpToDateCondition := testPluginWithExposedService1.Status.GetConditionByType(greenhousev1alpha1.StatusUpToDateCondition)
 				g.Expect(statusUpToDateCondition.Status).To(Equal(metav1.ConditionTrue), "plugin status up to date condition should be set to true")
+			}).Should(Succeed(), "plugin should have correct status")
+
+			By("checking Plugin exposed services")
+			Eventually(func(g Gomega) {
 				g.Expect(testPluginWithExposedService1.Status.ExposedServices).ToNot(BeEmpty(), "exposed services in plugin status should not be empty")
-				g.Expect(testPluginWithExposedService1.Status.ExposedServices).To(HaveLen(1), "there should be only one exposed service in plugin status")
-				exposedServiceURL := ""
-				for exposedServiceURL = range testPluginWithExposedService1.Status.ExposedServices {
-					break
+				g.Expect(testPluginWithExposedService1.Status.ExposedServices).To(HaveLen(2), "there should be two exposed services (service + ingress)")
+
+				serviceFound := false
+				ingressFound := false
+				var serviceURL, ingressURL string
+
+				for url, svc := range testPluginWithExposedService1.Status.ExposedServices {
+					if svc.Type == greenhousev1alpha1.ServiceTypeService {
+						serviceFound = true
+						serviceURL = url
+						g.Expect(svc.Name).To(Equal("exposed-service"), "service should have correct name")
+						g.Expect(svc.Port).To(Equal(int32(80)), "service should have port 80")
+						g.Expect(svc.Namespace).To(Equal("test-org"), "service should have correct namespace")
+					}
+					if svc.Type == greenhousev1alpha1.ServiceTypeIngress {
+						ingressFound = true
+						ingressURL = url
+						g.Expect(svc.Name).To(Equal("exposed-ingress"), "ingress should have correct name")
+						g.Expect(svc.Namespace).To(Equal("test-org"), "ingress should have correct namespace")
+					}
 				}
-				expectedURL := common.URLForExposedServiceInPlugin("exposed-service", testPluginWithExposedService)
-				g.Expect(exposedServiceURL).To(Equal(expectedURL), "exposed service URL should be generated correctly")
+
+				g.Expect(serviceFound).To(BeTrue(), "should find service type exposure")
+				g.Expect(ingressFound).To(BeTrue(), "should find ingress type exposure")
+
+				expectedServiceURL := common.URLForExposedServiceInPlugin("exposed-service", testPluginWithExposedService1)
+				g.Expect(serviceURL).To(Equal(expectedServiceURL), "service URL should be generated correctly")
+
+				g.Expect(ingressURL).To(Equal("https://api.test.example.com"), "ingress URL should match the specified host with HTTPS")
 			}).Should(Succeed(), "plugin should have correct status")
 
 			By("deleting the plugin")

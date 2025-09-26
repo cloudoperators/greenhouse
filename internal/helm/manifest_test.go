@@ -32,7 +32,7 @@ kind: Service
 metadata:
   name: exposed-service
   namespace: greenhouse
-  labels:
+  annotations:
     greenhouse.sap/expose: "true"
 spec:
   selector:
@@ -48,8 +48,8 @@ spec:
 		manifestObjectMap, err := helm.ObjectMapFromRelease(clientutil.NewRestClientGetterFromRestConfig(test.Cfg, "greenhouse", clientutil.WithPersistentConfig()), helmReleaseWithManifest, &helm.ManifestObjectFilter{
 			APIVersion: "v1",
 			Kind:       "Service",
-			Labels: map[string]string{
-				greenhouseapis.LabelKeyExposeService: "true",
+			Annotations: map[string]string{
+				greenhouseapis.AnnotationKeyExpose: "true",
 			},
 		})
 		Ω(err).

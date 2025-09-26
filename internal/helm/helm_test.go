@@ -255,7 +255,7 @@ var _ = DescribeTable("getting helm values from Plugin", func(defaultValue any, 
 	pluginWithOptionValue := test.NewPlugin(test.Ctx, "green", "house",
 		test.WithPluginLabel(greenhouseapis.LabelKeyOwnedBy, "test-team-1"),
 		test.WithPluginDefinition("greenhouse"),
-		test.WithPluginOptionValue("value1", test.MustReturnJSONFor(defaultValue), nil),
+		test.WithPluginOptionValue("value1", test.MustReturnJSONFor(defaultValue)),
 	)
 
 	helmValues, err := helm.ExportGetValuesForHelmChart(context.Background(), test.K8sClient, helmChart, pluginWithOptionValue)

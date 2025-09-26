@@ -4,6 +4,7 @@
 package cmd
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"os"
@@ -229,7 +230,7 @@ func (o *PluginTemplatePresetOptions) runHelmTemplate(valuesFile string) error {
 		}
 	}
 
-	cmd := exec.Command("helm", args...)
+	cmd := exec.CommandContext(context.Background(), "helm", args...)
 	output, err := cmd.CombinedOutput()
 	if err != nil {
 		return fmt.Errorf("helm template failed: %w\nCommand: helm %s\nOutput: %s", err, strings.Join(args, " "), string(output))
