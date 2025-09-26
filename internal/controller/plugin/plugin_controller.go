@@ -14,7 +14,6 @@ import (
 	"golang.org/x/time/rate"
 	"helm.sh/helm/v3/pkg/release"
 	corev1 "k8s.io/api/core/v1"
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apimachinery/pkg/types"
@@ -100,9 +99,14 @@ func (r *PluginReconciler) SetupWithManager(name string, mgr ctrl.Manager) error
 			handler.EnqueueRequestsFromMapFunc(enqueuePluginForReleaseSecret),
 			builder.WithPredicates(clientutil.PredicateFilterBySecretTypes(helmReleaseSecretType)),
 		).
-		// If a PluginDefinition was changed, reconcile relevant Plugins.
+		// If a ClusterPluginDefinition was changed, reconcile relevant Plugins.
 		Watches(
 			&greenhousev1alpha1.ClusterPluginDefinition{},
+			handler.EnqueueRequestsFromMapFunc(r.enqueueAllPluginsForClusterPluginDefinition),
+		).
+		// If a PluginDefinition was changed, reconcile relevant Plugins.
+		Watches(
+			&greenhousev1alpha1.PluginDefinition{},
 			handler.EnqueueRequestsFromMapFunc(r.enqueueAllPluginsForPluginDefinition),
 		).
 		// Clusters and teams are passed as values to each Helm operation. Reconcile on change.
@@ -195,18 +199,20 @@ func (r *PluginReconciler) EnsureCreated(ctx context.Context, resource lifecycle
 		return ctrl.Result{RequeueAfter: result.requeueAfter}, lifecycle.Pending, nil
 	}
 
-	pluginDefinition, err := r.getPluginDefinition(ctx, plugin)
+	pluginDefinitionSpec, err := common.GetPluginDefinitionSpec(ctx, r.Client, plugin.Spec.PluginDefinitionRef, plugin.GetNamespace())
 	if err != nil {
+		plugin.SetCondition(greenhousemetav1alpha1.TrueCondition(
+			greenhousev1alpha1.HelmReconcileFailedCondition, greenhousev1alpha1.PluginDefinitionNotFoundReason, err.Error()))
 		util.UpdatePluginReconcileTotalMetric(plugin, util.MetricResultError, util.MetricReasonPluginDefinitionNotFound)
-		return ctrl.Result{}, lifecycle.Failed, fmt.Errorf("pluginDefinition not found: %s", err.Error())
+		return ctrl.Result{}, lifecycle.Failed, fmt.Errorf("%s not found: %s", plugin.Spec.PluginDefinitionRef.Kind, err.Error())
 	}
 
-	reconcileErr := r.reconcileHelmRelease(ctx, restClientGetter, plugin, pluginDefinition.Spec)
+	reconcileErr := r.reconcileHelmRelease(ctx, restClientGetter, plugin, *pluginDefinitionSpec)
 
 	// PluginStatus, WorkloadStatus and ChartTest should be reconciled regardless of Helm reconciliation result.
-	r.reconcileStatus(ctx, restClientGetter, plugin, pluginDefinition, &plugin.Status)
+	r.reconcileStatus(ctx, restClientGetter, plugin, *pluginDefinitionSpec, &plugin.Status)
 
-	workloadStatusResult, workloadStatusErr := r.reconcilePluginWorkloadStatus(ctx, restClientGetter, plugin, pluginDefinition)
+	workloadStatusResult, workloadStatusErr := r.reconcilePluginWorkloadStatus(ctx, restClientGetter, plugin, *pluginDefinitionSpec)
 
 	helmChartTestResult, helmChartTestErr := r.reconcileHelmChartTest(ctx, plugin)
 
@@ -227,33 +233,6 @@ func (r *PluginReconciler) EnsureCreated(ctx context.Context, resource lifecycle
 	}
 
 	return ctrl.Result{}, lifecycle.Success, nil
-}
-
-func (r *PluginReconciler) getPluginDefinition(
-	ctx context.Context,
-	plugin *greenhousev1alpha1.Plugin,
-) (
-	*greenhousev1alpha1.ClusterPluginDefinition, error,
-) {
-
-	var err error
-	pluginDefinition := new(greenhousev1alpha1.ClusterPluginDefinition)
-
-	if err = r.Get(ctx, types.NamespacedName{Namespace: plugin.GetNamespace(), Name: plugin.Spec.PluginDefinition}, pluginDefinition); err != nil {
-		var errorMessage string
-
-		if apierrors.IsNotFound(err) {
-			errorMessage = fmt.Sprintf("PluginDefinition %s does not exist", plugin.Spec.PluginDefinition)
-		} else {
-			errorMessage = fmt.Sprintf("Failed to get pluginDefinition %s: %s", plugin.Spec.PluginDefinition, err.Error())
-		}
-
-		plugin.SetCondition(greenhousemetav1alpha1.TrueCondition(
-			greenhousev1alpha1.HelmReconcileFailedCondition, greenhousev1alpha1.PluginDefinitionNotFoundReason, errorMessage))
-
-		return nil, errors.New(errorMessage)
-	}
-	return pluginDefinition, nil
 }
 
 func (r *PluginReconciler) reconcileHelmRelease(
@@ -325,7 +304,7 @@ func (r *PluginReconciler) reconcileHelmRelease(
 func (r *PluginReconciler) reconcileStatus(ctx context.Context,
 	restClientGetter genericclioptions.RESTClientGetter,
 	plugin *greenhousev1alpha1.Plugin,
-	pluginDefinition *greenhousev1alpha1.ClusterPluginDefinition,
+	pluginDefinitionSpec greenhousev1alpha1.PluginDefinitionSpec,
 	pluginStatus *greenhousev1alpha1.PluginStatus,
 ) {
 
@@ -378,10 +357,10 @@ func (r *PluginReconciler) reconcileStatus(ctx context.Context,
 		helmChartReference *greenhousev1alpha1.HelmChartReference
 	)
 	// Ensure the status is always reported.
-	uiApplication = pluginDefinition.Spec.UIApplication
+	uiApplication = pluginDefinitionSpec.UIApplication
 	// only set the helm chart reference if the pluginVersion matches the pluginDefinition version or the release status is unknown
-	if pluginVersion == pluginDefinition.Spec.Version || releaseStatus.Status == "unknown" {
-		helmChartReference = pluginDefinition.Spec.HelmChart
+	if pluginVersion == pluginDefinitionSpec.Version || releaseStatus.Status == "unknown" {
+		helmChartReference = pluginDefinitionSpec.HelmChart
 	} else {
 		helmChartReference = plugin.Status.HelmChart
 	}
@@ -390,8 +369,8 @@ func (r *PluginReconciler) reconcileStatus(ctx context.Context,
 	pluginStatus.Version = pluginVersion
 	pluginStatus.UIApplication = uiApplication
 	pluginStatus.HelmChart = helmChartReference
-	pluginStatus.Weight = pluginDefinition.Spec.Weight
-	pluginStatus.Description = pluginDefinition.Spec.Description
+	pluginStatus.Weight = pluginDefinitionSpec.Weight
+	pluginStatus.Description = pluginDefinitionSpec.Description
 	pluginStatus.ExposedServices = exposedServices
 }
 
@@ -408,12 +387,20 @@ func (r *PluginReconciler) enqueueAllPluginsInNamespace(ctx context.Context, o c
 	return ListPluginsAsReconcileRequests(ctx, r.Client, client.InNamespace(o.GetNamespace()))
 }
 
-func (r *PluginReconciler) enqueueAllPluginsForPluginDefinition(ctx context.Context, o client.Object) []ctrl.Request {
-	// TODO: Once namespaced PluginDefinitions are supported, we need a logic here to handle the correct label key
+func (r *PluginReconciler) enqueueAllPluginsForClusterPluginDefinition(ctx context.Context, o client.Object) []ctrl.Request {
 	return ListPluginsAsReconcileRequests(
 		ctx,
 		r.Client,
 		client.MatchingLabels{greenhouseapis.LabelKeyClusterPluginDefinition: o.GetName()},
+	)
+}
+
+func (r *PluginReconciler) enqueueAllPluginsForPluginDefinition(ctx context.Context, o client.Object) []ctrl.Request {
+	return ListPluginsAsReconcileRequests(
+		ctx,
+		r.Client,
+		client.MatchingLabels{greenhouseapis.LabelKeyPluginDefinition: o.GetName()},
+		client.InNamespace(o.GetNamespace()),
 	)
 }
 

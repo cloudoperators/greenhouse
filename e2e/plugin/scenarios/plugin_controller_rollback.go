@@ -40,7 +40,7 @@ func PluginControllerHelmRollback(ctx context.Context, adminClient, remoteClient
 	By("Preparing the plugin")
 	// Creating plugin with release name
 	plugin := fixtures.PreparePlugin(certManagerPluginTest, env.TestNamespace,
-		test.WithPluginDefinition(pluginDefinition.Name),
+		test.WithClusterPluginDefinition(pluginDefinition.Name),
 		test.WithCluster(remoteClusterName),
 		test.WithReleaseNamespace(env.TestNamespace),
 		test.WithReleaseName(certManagerPluginTest),

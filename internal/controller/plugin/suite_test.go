@@ -170,7 +170,7 @@ var _ = Describe("HelmControllerTest", Serial, func() {
 		Expect(test.K8sClient.Create(test.Ctx, testTeam)).Should(Succeed(), "there should be no error creating the Team")
 
 		testPlugin = test.NewPlugin(test.Ctx, PluginName, Namespace,
-			test.WithPluginDefinition(PluginDefinitionName),
+			test.WithClusterPluginDefinition(PluginDefinitionName),
 			test.WithPluginLabel(greenhouseapis.LabelKeyOwnedBy, testTeam.Name),
 			test.WithReleaseName(ReleaseName),
 			test.WithPluginOptionValue(PluginOptionRequired, test.MustReturnJSONFor(PluginRequiredOptionValue)))
@@ -497,7 +497,7 @@ var _ = Describe("HelmControllerTest", Serial, func() {
 		By("creating a Plugin with every type of OptionValue", func() {
 			complexPlugin = test.NewPlugin(test.Ctx, pluginName, Namespace,
 				test.WithPluginLabel(greenhouseapis.LabelKeyOwnedBy, testTeam.Name),
-				test.WithPluginDefinition(pluginWithEveryOption),
+				test.WithClusterPluginDefinition(pluginWithEveryOption),
 				test.WithReleaseName(ReleaseName),
 				test.WithPluginOptionValue(PluginOptionDefault, test.MustReturnJSONFor(stringVal)),
 				test.WithPluginOptionValue(PluginOptionBool, test.MustReturnJSONFor(boolVal)),
@@ -547,7 +547,7 @@ var _ = Describe("HelmControllerTest", Serial, func() {
 
 	DescribeTable("creating of Plugins with wrong OptionValues", func(option string, value any) {
 		plugin := test.NewPlugin(test.Ctx, "testPlugin", Namespace,
-			test.WithPluginDefinition("testPlugin"),
+			test.WithClusterPluginDefinition("testPlugin"),
 			test.WithReleaseName(ReleaseName),
 			test.WithPluginOptionValue(option, test.MustReturnJSONFor(value)))
 		Expect(test.K8sClient.Create(test.Ctx, plugin)).Should(Not(Succeed()), "creating a plugin with wrong types should not be successful")
@@ -601,7 +601,7 @@ var _ = When("the pluginDefinition is UI only", func() {
 				URL:     "http://myapp.com",
 			}))
 		uiPlugin = test.NewPlugin(test.Ctx, "uiplugin", "default",
-			test.WithPluginDefinition("myuiplugin"),
+			test.WithClusterPluginDefinition("myuiplugin"),
 			test.WithReleaseName("myuiplugin-release"))
 
 		Expect(test.K8sClient.Create(test.Ctx, uiPluginDefinition)).Should(Succeed())

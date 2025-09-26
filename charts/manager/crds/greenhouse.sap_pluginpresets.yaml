@@ -208,9 +208,29 @@ spec:
                       type: object
                     type: array
                   pluginDefinition:
-                    description: PluginDefinition is the name of the PluginDefinition
-                      this instance is for.
+                    description: |-
+                      PluginDefinition is the name of the PluginDefinition this instance is for.
+
+                      Deprecated: Use PluginDefinitionRef instead. Future releases of greenhouse will remove this field.
                     type: string
+                  pluginDefinitionRef:
+                    description: PluginDefinitionRef is the reference to the (Cluster-)PluginDefinition.
+                    properties:
+                      kind:
+                        default: PluginDefinition
+                        description: 'Kind of the referent. Supported values: PluginDefinition,
+                          ClusterPluginDefinition.'
+                        enum:
+                        - PluginDefinition
+                        - ClusterPluginDefinition
+                        type: string
+                      name:
+                        description: Name of the referenced PluginDefinition or ClusterPluginDefinition
+                          resource.
+                        type: string
+                    required:
+                    - name
+                    type: object
                   releaseName:
                     description: |-
                       ReleaseName is the name of the helm release in the remote cluster to which the backend is deployed.
@@ -228,6 +248,7 @@ spec:
                     type: string
                 required:
                 - pluginDefinition
+                - pluginDefinitionRef
                 type: object
             required:
             - clusterSelector

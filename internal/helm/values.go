@@ -19,11 +19,12 @@ import (
 )
 
 func GetPluginOptionValuesForPlugin(ctx context.Context, c client.Client, plugin *greenhousev1alpha1.Plugin) ([]greenhousev1alpha1.PluginOptionValue, error) {
-	var pluginDefinition = new(greenhousev1alpha1.ClusterPluginDefinition)
-	if err := c.Get(ctx, types.NamespacedName{Namespace: "", Name: plugin.Spec.PluginDefinition}, pluginDefinition); err != nil {
+	pluginDefinitionSpec, err := common.GetPluginDefinitionSpec(ctx, c, plugin.Spec.PluginDefinitionRef, plugin.GetNamespace())
+	if err != nil {
 		return nil, err
 	}
-	values := MergePluginAndPluginOptionValueSlice(pluginDefinition.Spec.Options, plugin.Spec.OptionValues)
+
+	values := MergePluginAndPluginOptionValueSlice(pluginDefinitionSpec.Options, plugin.Spec.OptionValues)
 	// Enrich with default greenhouse values.
 	greenhouseValues, err := GetGreenhouseValues(ctx, c, *plugin)
 	if err != nil {

@@ -165,10 +165,18 @@ func (t *TestSetup) UpdateOrganization(ctx context.Context, name string, opts ..
 	return org
 }
 
-// CreateClusterPluginDefinition creates and returns a PluginDefinition object. Opts can be used to set the desired state of the PluginDefinition.
+// CreateClusterPluginDefinition creates and returns a ClusterPluginDefinition object. Opts can be used to set the desired state of the ClusterPluginDefinition.
 func (t *TestSetup) CreateClusterPluginDefinition(ctx context.Context, name string, opts ...func(definition *greenhousev1alpha1.ClusterPluginDefinition)) *greenhousev1alpha1.ClusterPluginDefinition {
 	GinkgoHelper()
 	pd := NewClusterPluginDefinition(ctx, t.RandomizeName(name), opts...)
+	Expect(t.Create(ctx, pd)).Should(Succeed(), "there should be no error creating the ClusterPluginDefinition")
+	return pd
+}
+
+// CreatePluginDefinition creates and returns a PluginDefinition object. Opts can be used to set the desired state of the PluginDefinition.
+func (t *TestSetup) CreatePluginDefinition(ctx context.Context, name string, opts ...func(definition *greenhousev1alpha1.PluginDefinition)) *greenhousev1alpha1.PluginDefinition {
+	GinkgoHelper()
+	pd := NewPluginDefinition(ctx, t.RandomizeName(name), t.Namespace(), opts...)
 	Expect(t.Create(ctx, pd)).Should(Succeed(), "there should be no error creating the PluginDefinition")
 	return pd
 }
