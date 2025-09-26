@@ -7,7 +7,6 @@ jobs:
   backport:
     if: github.event.pull_request.state == 'closed' && github.event.pull_request.merged && (github.event_name != 'labeled' || startsWith('backport:', github.event.label.name))
     runs-on: [default]
-    environment: backport
     steps:
       - name: Generate GitHub App Token
         id: github-app-token
@@ -18,7 +17,7 @@ jobs:
           permission-contents: write
           permission-pull-requests: write
       - name: Checkout
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955 # v4.3.0
         with:
           ref: ${{ github.event.pull_request.head.sha }}
           token: ${{ steps.github-app-token.outputs.token }}
@@ -29,7 +28,7 @@ jobs:
           # Use token to allow workflows to be triggered for the created PR
           github_token: ${{ steps.github-app-token.outputs.token }}
           # Match labels with a pattern `backport:<target-branch>`
-          label_pattern: '^backport (release\/v[0-9]+.[0-9]+)$'
+          label_pattern: '^backport:(release\/v[0-9]+.[0-9]+)$'
           # A bit shorter pull-request title than the default
           pull_title: 'backport(${target_branch}): ${pull_title}'
           # Simpler PR description than default

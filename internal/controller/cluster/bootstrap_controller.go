@@ -13,7 +13,6 @@ import (
 	"github.com/pkg/errors"
 	authenticationv1 "k8s.io/api/authentication/v1"
 	corev1 "k8s.io/api/core/v1"
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/clientcmd"
@@ -145,20 +144,11 @@ func (r *BootstrapReconciler) createKubeConfigKey(ctx context.Context, secret *c
 }
 
 func (r *BootstrapReconciler) reconcileCluster(ctx context.Context, kubeConfigSecret *corev1.Secret) error {
-	cluster, isFound, err := r.getClusterAndIgnoreNotFoundError(ctx, kubeConfigSecret)
+	cluster, err := r.getCluster(ctx, kubeConfigSecret)
 	// Anything other than an IsNotFound error is reflected in the status to ensure the cluster resource is created in any case.
 	if err != nil {
 		log.FromContext(ctx).Error(err, "failed to get cluster", "namespace", kubeConfigSecret.GetNamespace(), "name", kubeConfigSecret.GetName())
 		return err
-	}
-
-	// This cluster has already been bootstrapped
-	// How does a customer provide a new KubeConfig ?
-	// TODO: The below is a short-term fix to avoid flapping accessModes and should be considered again.
-	// A new/updated KubeConfig should be handled and we shouldn't break here though
-	// avoiding flapping of the accessMode, e.g. due to apiserver downtime, network interruption, etc.
-	if isFound && cluster.Spec.AccessMode != "" {
-		return nil
 	}
 	return r.createOrUpdateCluster(ctx, cluster, kubeConfigSecret)
 }
@@ -220,10 +210,10 @@ func (r *BootstrapReconciler) ensureOwnerReferences(ctx context.Context, kubeCon
 	return err
 }
 
-func (r *BootstrapReconciler) getClusterAndIgnoreNotFoundError(ctx context.Context, kubeConfigSecret *corev1.Secret) (cluster *greenhousev1alpha1.Cluster, isFound bool, err error) {
+func (r *BootstrapReconciler) getCluster(ctx context.Context, kubeConfigSecret *corev1.Secret) (cluster *greenhousev1alpha1.Cluster, err error) {
 	cluster = new(greenhousev1alpha1.Cluster)
 	err = r.Get(ctx, client.ObjectKeyFromObject(kubeConfigSecret), cluster)
-	return cluster, !apierrors.IsNotFound(err), client.IgnoreNotFound(err)
+	return cluster, client.IgnoreNotFound(err)
 }
 
 func enqueueSecretForCluster(_ context.Context, o client.Object) []ctrl.Request {

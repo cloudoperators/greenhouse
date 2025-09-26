@@ -15,18 +15,19 @@ replace (
 	github.com/fluxcd/source-controller/api => github.com/fluxcd/source-controller/api v1.6.0
 
 	// Keep k8s dependencies in sync.
-	k8s.io/api => k8s.io/api v0.33.2
-	k8s.io/apiextensions-apiserver => k8s.io/apiextensions-apiserver v0.33.2
-	k8s.io/apimachinery => k8s.io/apimachinery v0.33.2
-	k8s.io/cli-runtime => k8s.io/cli-runtime v0.33.2
-	k8s.io/client-go => k8s.io/client-go v0.33.2
-	k8s.io/component-base => k8s.io/component-base v0.33.2
-	k8s.io/kubectl => k8s.io/kubectl v0.33.2
+	k8s.io/api => k8s.io/api v0.33.3
+	k8s.io/apiextensions-apiserver => k8s.io/apiextensions-apiserver v0.33.3
+	k8s.io/apimachinery => k8s.io/apimachinery v0.33.4
+	k8s.io/cli-runtime => k8s.io/cli-runtime v0.33.3
+	k8s.io/client-go => k8s.io/client-go v0.33.3
+	k8s.io/component-base => k8s.io/component-base v0.33.3
+	k8s.io/kubectl => k8s.io/kubectl v0.33.3
 	sigs.k8s.io/controller-runtime => sigs.k8s.io/controller-runtime v0.21.0
 )
 
 require (
-	github.com/cenkalti/backoff/v5 v5.0.2
+	github.com/Masterminds/sprig/v3 v3.3.0
+	github.com/cenkalti/backoff/v5 v5.0.3
 	github.com/dexidp/dex v0.0.0-20250522090151-6e602d3315ea
 	github.com/fluxcd/helm-controller/api v1.3.0
 	github.com/fluxcd/kustomize-controller/api v1.6.0
@@ -51,11 +52,11 @@ require (
 	helm.sh/helm/v3 v3.18.5
 	k8s.io/api v0.33.3
 	k8s.io/apiextensions-apiserver v0.33.3
-	k8s.io/apimachinery v0.33.3
+	k8s.io/apimachinery v0.33.4
 	k8s.io/cli-runtime v0.33.3
 	k8s.io/client-go v0.33.3
 	k8s.io/kubectl v0.33.3
-	k8s.io/utils v0.0.0-20250604170112-4c0f3b243397
+	k8s.io/utils v0.0.0-20250820121507-0af2bda4dd1d
 	sigs.k8s.io/controller-runtime v0.21.0
 	sigs.k8s.io/kind v0.29.0
 	sigs.k8s.io/yaml v1.5.0
@@ -115,7 +116,6 @@ require (
 	github.com/Masterminds/goutils v1.1.1 // indirect
 	github.com/Masterminds/semver v1.5.0 // indirect
 	github.com/Masterminds/semver/v3 v3.3.0 // indirect
-	github.com/Masterminds/sprig/v3 v3.3.0 // indirect
 	github.com/Masterminds/squirrel v1.5.4 // indirect
 	github.com/asaskevich/govalidator v0.0.0-20230301143203-a9d515a09cc2 // indirect
 	github.com/beevik/etree v1.5.1 // indirect

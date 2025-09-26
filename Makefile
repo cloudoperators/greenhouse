@@ -184,7 +184,7 @@ HELMIFY ?= $(LOCALBIN)/helmify
 KUSTOMIZE_VERSION ?= 5.7.1
 CERT_MANAGER_VERSION ?= v1.17.1
 CONTROLLER_TOOLS_VERSION ?= 0.18.0
-GOLINT_VERSION ?= 2.2.2
+GOLINT_VERSION ?= 2.4.0
 GINKGOLINTER_VERSION ?= 0.20.0
 # ENVTEST_K8S_VERSION refers to the version of kubebuilder assets to be downloaded by envtest binary.
 ENVTEST_K8S_VERSION ?= 1.33.0
@@ -196,6 +196,7 @@ $(KUSTOMIZE): $(LOCALBIN)
 	@if [ -z "$$GITHUB_TOKEN" ]; then \
 		test -s $(LOCALBIN)/kustomize || curl -s $(KUSTOMIZE_INSTALL_SCRIPT) | bash -s -- $(subst v,,$(KUSTOMIZE_VERSION)) $(LOCALBIN); \
 	else \
+	  	echo "pulling kustomize from source"; \
 		test -s $(LOCALBIN)/kustomize || curl -sH "Authorization: Bearer $$GITHUB_TOKEN" $(KUSTOMIZE_INSTALL_SCRIPT) | bash -s -- $(subst v,,$(KUSTOMIZE_VERSION)) $(LOCALBIN); \
 	fi
 
