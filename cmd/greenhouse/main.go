@@ -20,6 +20,7 @@ import (
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
+	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
@@ -61,6 +62,19 @@ const (
 	defaultFeatureFlagConfigMapName           = "greenhouse-feature-flags" // default feature flags configMap name.
 )
 
+const (
+	flagHelmDebug                          = "helm-debug"
+	flagControllers                        = "controllers"
+	flagMetricsBindAddress                 = "metrics-bind-address"
+	flagHealthProbeBindAddress             = "health-probe-bind-address"
+	flagRemoteClusterBearerTokenValidity   = "remote-cluster-bearer-token-validity"
+	flagRenewRemoteClusterBearerTokenAfter = "renew-remote-cluster-bearer-token-after" //nolint:gosec
+	flagDNSDomain                          = "dns-domain"
+	flagLeaseDuration                      = "leader-election-lease-duration"
+	flagRenewDeadline                      = "leader-election-renew-deadline"
+	flagRetryPeriod                        = "leader-election-retry-period"
+)
+
 var (
 	scheme   = runtime.NewScheme()
 	setupLog = ctrl.Log.WithName("setup")
@@ -84,28 +98,27 @@ func init() {
 	//+kubebuilder:scaffold:scheme
 }
 
+var metricsAddr, probeAddr string
+var leaseDuration, renewDeadline, retryPeriod time.Duration
+
 func main() {
-	flag.BoolVar(&helm.IsHelmDebug, "helm-debug", false,
+	flag.BoolVar(&helm.IsHelmDebug, flagHelmDebug, false,
 		"Enable debug logging for underlying Helm client.")
-	flag.StringSliceVar(&enabledControllers, "controllers", knownControllersNames(),
+	flag.StringSliceVar(&enabledControllers, flagControllers, knownControllersNames(),
 		"A list of controllers to enable.")
-
-	var metricsAddr string
-	flag.StringVar(&metricsAddr, "metrics-bind-address", ":8080",
+	flag.StringVar(&metricsAddr, flagMetricsBindAddress, ":8080",
 		"The address the metric endpoint binds to.")
-
-	var probeAddr string
-	flag.StringVar(&probeAddr, "health-probe-bind-address", ":8081",
+	flag.StringVar(&probeAddr, flagHealthProbeBindAddress, ":8081",
 		"The address the probe endpoint binds to.")
-
-	flag.DurationVar(&remoteClusterBearerTokenValidity, "remote-cluster-bearer-token-validity", defaultRemoteClusterBearerTokenValidity,
+	flag.DurationVar(&remoteClusterBearerTokenValidity, flagRemoteClusterBearerTokenValidity, defaultRemoteClusterBearerTokenValidity,
 		"Validity of the bearer token we request to access the remote clusters")
-
-	flag.DurationVar(&renewRemoteClusterBearerTokenAfter, "renew-remote-cluster-bearer-token-after", defaultRenewRemoteClusterBearerTokenAfter,
+	flag.DurationVar(&renewRemoteClusterBearerTokenAfter, flagRenewRemoteClusterBearerTokenAfter, defaultRenewRemoteClusterBearerTokenAfter,
 		"Renew the bearer token we requested for remote clusters after this duration")
-
-	flag.StringVar(&common.DNSDomain, "dns-domain", "",
+	flag.StringVar(&common.DNSDomain, flagDNSDomain, "",
 		"The DNS domain to use for the Greenhouse central cluster")
+	flag.DurationVar(&leaseDuration, flagLeaseDuration, 60*time.Second, "Leader election lease duration")
+	flag.DurationVar(&renewDeadline, flagRenewDeadline, 30*time.Second, "Leader election renew deadline")
+	flag.DurationVar(&retryPeriod, flagRetryPeriod, 5*time.Second, "Leader election retry period")
 
 	opts := zap.Options{
 		Development: true,
@@ -152,6 +165,9 @@ func main() {
 		LeaderElection:                isEnableLeaderElection,
 		LeaderElectionID:              "operator.greenhouse.sap",
 		LeaderElectionReleaseOnCancel: true,
+		LeaseDuration:                 ptr.To(leaseDuration),
+		RenewDeadline:                 ptr.To(renewDeadline),
+		RetryPeriod:                   ptr.To(retryPeriod),
 	})
 	handleError(err, "unable to start manager")
 
