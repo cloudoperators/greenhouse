@@ -51,9 +51,6 @@ func (r *KubeconfigReconciler) SetupWithManager(name string, mgr ctrl.Manager) e
 
 func (r *KubeconfigReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	l := log.FromContext(ctx).WithValues("cluster", req.Name, "namespace", req.Namespace)
-	// Track if this reconcile encountered an explicit failure so we can avoid sticky failures across runs.
-	failedThisRun := false
-
 	var cluster v1alpha1.Cluster
 	if err := r.Get(ctx, req.NamespacedName, &cluster); err != nil {
 		if client.IgnoreNotFound(err) != nil {
@@ -102,30 +99,19 @@ func (r *KubeconfigReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 		kubeconfig.Spec.Kubeconfig.CurrentContext = cluster.Name
 	}
 
-	defer func() {
-		// If this reconcile didn’t set a failure, proactively clear any old
-		// KubeconfigReconcileFailed condition so it doesn’t stick forever.
-		if !failedThisRun {
-			kubeconfig.Status.Conditions.SetConditions(
-				greenhousemetav1alpha1.FalseCondition(v1alpha1.KubeconfigReconcileFailedCondition, "NoError", ""),
-			)
-		}
-
-		result, err := clientutil.PatchStatus(ctx, r.Client, &kubeconfig, func() error {
-			kubeconfig.Status = calculateKubeconfigStatus(&kubeconfig)
-			return nil
-		})
-		if err != nil {
-			log.FromContext(ctx).Error(err, "error setting status")
-		}
-		l.Info("status updated", "result", result)
-	}()
-
 	// get oidc info from organization
 	oidc, err := r.getOIDCInfo(ctx, cluster.Namespace)
 	if err != nil {
 		kubeconfig.Status.Conditions.SetConditions(greenhousemetav1alpha1.TrueCondition(v1alpha1.KubeconfigReconcileFailedCondition, "OIDCInfoError", err.Error()))
-		failedThisRun = true
+		// patch status before returning on error
+		result, perr := clientutil.PatchStatus(ctx, r.Client, &kubeconfig, func() error {
+			kubeconfig.Status = calculateKubeconfigStatus(&kubeconfig)
+			return nil
+		})
+		if perr != nil {
+			log.FromContext(ctx).Error(perr, "error setting status")
+		}
+		l.Info("status updated", "result", result)
 		return ctrl.Result{}, nil
 	}
 
@@ -134,7 +120,15 @@ func (r *KubeconfigReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 	err = r.Get(ctx, client.ObjectKey{Name: req.Name, Namespace: req.Namespace}, &secret)
 	if err != nil {
 		kubeconfig.Status.Conditions.SetConditions(greenhousemetav1alpha1.TrueCondition(v1alpha1.KubeconfigReconcileFailedCondition, "SecretDataError", err.Error()))
-		failedThisRun = true
+		// patch status before returning on error
+		result, perr := clientutil.PatchStatus(ctx, r.Client, &kubeconfig, func() error {
+			kubeconfig.Status = calculateKubeconfigStatus(&kubeconfig)
+			return nil
+		})
+		if perr != nil {
+			log.FromContext(ctx).Error(perr, "error setting status")
+		}
+		l.Info("status updated", "result", result)
 		return ctrl.Result{}, nil
 	}
 
@@ -143,7 +137,15 @@ func (r *KubeconfigReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 	kubeCfg, err := clientcmd.Load(rootKubeCfg)
 	if err != nil {
 		kubeconfig.Status.Conditions.SetConditions(greenhousemetav1alpha1.TrueCondition(v1alpha1.KubeconfigReconcileFailedCondition, "KubeconfigLoadError", err.Error()))
-		failedThisRun = true
+		// patch status before returning on error
+		result, perr := clientutil.PatchStatus(ctx, r.Client, &kubeconfig, func() error {
+			kubeconfig.Status = calculateKubeconfigStatus(&kubeconfig)
+			return nil
+		})
+		if perr != nil {
+			log.FromContext(ctx).Error(perr, "error setting status")
+		}
+		l.Info("status updated", "result", result)
 		return ctrl.Result{}, nil
 	}
 
@@ -186,10 +188,31 @@ func (r *KubeconfigReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 		kubeconfig.Status.Conditions.SetConditions(
 			greenhousemetav1alpha1.TrueCondition(v1alpha1.KubeconfigReconcileFailedCondition, "PatchError", err.Error()),
 		)
-		failedThisRun = true
+		// patch status before returning on error
+		sResult, perr := clientutil.PatchStatus(ctx, r.Client, &kubeconfig, func() error {
+			kubeconfig.Status = calculateKubeconfigStatus(&kubeconfig)
+			return nil
+		})
+		if perr != nil {
+			log.FromContext(ctx).Error(perr, "error setting status")
+		}
+		l.Info("status updated", "result", sResult)
 		return ctrl.Result{}, err
 	}
 	l.Info("kubeconfig updated", "result", result)
+
+	// Success path: clear any previous failure condition and patch status.
+	kubeconfig.Status.Conditions.SetConditions(
+		greenhousemetav1alpha1.FalseCondition(v1alpha1.KubeconfigReconcileFailedCondition, "NoError", ""),
+	)
+	sResult, sErr := clientutil.PatchStatus(ctx, r.Client, &kubeconfig, func() error {
+		kubeconfig.Status = calculateKubeconfigStatus(&kubeconfig)
+		return nil
+	})
+	if sErr != nil {
+		log.FromContext(ctx).Error(sErr, "error setting status")
+	}
+	l.Info("status updated", "result", sResult)
 	return ctrl.Result{}, nil
 }
 
