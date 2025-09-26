@@ -97,6 +97,14 @@ func DefaultPlugin(ctx context.Context, c client.Client, obj runtime.Object) err
 	if plugin.Spec.ReleaseNamespace == "" {
 		plugin.Spec.ReleaseNamespace = plugin.GetNamespace()
 	}
+	pluginDefinition := new(greenhousev1alpha1.ClusterPluginDefinition)
+	if err = c.Get(ctx, client.ObjectKey{Namespace: "", Name: plugin.Spec.PluginDefinition}, pluginDefinition); err != nil {
+		return err
+	}
+	// skip releaseName defaulting for UIApplications
+	if pluginDefinition.Spec.UIApplication != nil && pluginDefinition.Spec.HelmChart == nil {
+		return nil
+	}
 	// Default the ReleaseName.
 	if plugin.Spec.ReleaseName == "" {
 		if plugin.Status.HelmReleaseStatus != nil {
@@ -105,18 +113,12 @@ func DefaultPlugin(ctx context.Context, c client.Client, obj runtime.Object) err
 			plugin.Spec.ReleaseName = plugin.Name
 		} else {
 			// The Plugin is newly created, use the PluginDefinition's HelmChart name as the release name.
-			pluginDefinition := new(greenhousev1alpha1.ClusterPluginDefinition)
-			err := c.Get(ctx, client.ObjectKey{Namespace: "", Name: plugin.Spec.PluginDefinition}, pluginDefinition)
-			if err != nil {
-				return err
-			}
 			if pluginDefinition.Spec.HelmChart == nil {
 				return field.InternalError(field.NewPath("spec").Child("pluginDefinition"), fmt.Errorf("PluginDefinition %s does not have a HelmChart", plugin.Spec.PluginDefinition))
 			}
 			plugin.Spec.ReleaseName = pluginDefinition.Spec.HelmChart.Name
 		}
 	}
-
 	return nil
 }
 
@@ -203,7 +205,8 @@ func ValidateUpdatePlugin(ctx context.Context, c client.Client, old, obj runtime
 	allErrs = append(allErrs, validation.ValidateImmutableField(oldPlugin.Spec.ReleaseNamespace, plugin.Spec.ReleaseNamespace,
 		field.NewPath("spec", "releaseNamespace"))...)
 
-	if oldPlugin.Spec.ReleaseName == "" && plugin.Status.HelmReleaseStatus != nil {
+	// validate releaseName only if the Plugin is not a UIApplication
+	if oldPlugin.Spec.ReleaseName == "" && plugin.Status.HelmReleaseStatus != nil && pluginDefinition.Spec.UIApplication == nil {
 		if plugin.Name != plugin.Spec.ReleaseName {
 			allErrs = append(allErrs, field.Forbidden(field.NewPath("spec").Child("releaseName"), "ReleaseName for existing Plugin cannot be changed"))
 		}
