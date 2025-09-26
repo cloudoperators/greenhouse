@@ -102,6 +102,14 @@ func (r *PluginReconciler) ensureHelmRelease(
 			return fmt.Errorf("failed to compute HelmRelease values for Plugin %s: %w", plugin.Name, err)
 		}
 
+		// TODO: Use registry mirrors config.
+		// _, err = flux.GetRegistryMirrorConfig(ctx, r.Client, plugin)
+		// if err != nil {
+		// 	log.FromContext(ctx).Error(err, "Failed to read registry mirror configuration", "plugin", plugin.Name)
+		// 	flux.SetPluginConditionForRegistryMirrorError(plugin, err)
+		// 	return fmt.Errorf("failed to read registry mirror configuration: %w", err)
+		// }
+
 		spec, err := flux.NewHelmReleaseSpecBuilder().
 			WithChart(helmv2.HelmChartTemplateSpec{
 				Chart:    pluginDefinitionSpec.HelmChart.Name,
