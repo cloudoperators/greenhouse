@@ -152,7 +152,7 @@ var _ = Describe("HelmControllerTest", Serial, func() {
 				Name:        PluginOptionDefault,
 				Description: "This is my default test plugin option",
 				Required:    false,
-				Default:     test.AsAPIExtensionJSON(PluginOptionDefaultValue),
+				Default:     test.MustReturnJSONFor(PluginOptionDefaultValue),
 				Type:        greenhousev1alpha1.PluginOptionTypeString,
 			}),
 		)
@@ -173,7 +173,7 @@ var _ = Describe("HelmControllerTest", Serial, func() {
 			test.WithClusterPluginDefinition(PluginDefinitionName),
 			test.WithPluginLabel(greenhouseapis.LabelKeyOwnedBy, testTeam.Name),
 			test.WithReleaseName(ReleaseName),
-			test.WithPluginOptionValue(PluginOptionRequired, test.AsAPIExtensionJSON(PluginRequiredOptionValue), nil))
+			test.WithPluginOptionValue(PluginOptionRequired, test.MustReturnJSONFor(PluginRequiredOptionValue)))
 
 		Expect(test.K8sClient.Create(test.Ctx, testPlugin)).Should(Succeed())
 
@@ -412,14 +412,14 @@ var _ = Describe("HelmControllerTest", Serial, func() {
 		Eventually(func() error {
 			return test.K8sClient.Get(test.Ctx, pluginDefinitionID, actPluginDefinition)
 		}).Should(Succeed())
-		Expect(actPluginDefinition.Spec.Options).To(ContainElement(gstruct.MatchFields(gstruct.IgnoreExtras, gstruct.Fields{"Name": Equal(PluginOptionDefault), "Default": Equal(test.AsAPIExtensionJSON(PluginOptionDefaultValue))})))
+		Expect(actPluginDefinition.Spec.Options).To(ContainElement(gstruct.MatchFields(gstruct.IgnoreExtras, gstruct.Fields{"Name": Equal(PluginOptionDefault), "Default": Equal(test.MustReturnJSONFor(PluginOptionDefaultValue))})))
 
 		actPlugin := &greenhousev1alpha1.Plugin{}
 		Eventually(func() error {
 			return test.K8sClient.Get(test.Ctx, pluginID, actPlugin)
 		}).Should(Succeed())
 
-		Expect(actPlugin.Spec.OptionValues).To(ContainElement(gstruct.MatchFields(gstruct.IgnoreExtras, gstruct.Fields{"Name": Equal(PluginOptionDefault), "Value": Equal(test.AsAPIExtensionJSON(PluginOptionDefaultValue))})))
+		Expect(actPlugin.Spec.OptionValues).To(ContainElement(gstruct.MatchFields(gstruct.IgnoreExtras, gstruct.Fields{"Name": Equal(PluginOptionDefault), "Value": Equal(test.MustReturnJSONFor(PluginOptionDefaultValue))})))
 	})
 
 	It("should successfully create a Plugin with every type of OptionValue", func() {
@@ -449,35 +449,35 @@ var _ = Describe("HelmControllerTest", Serial, func() {
 					Name:        PluginOptionDefault,
 					Description: "This is my default test plugin option",
 					Required:    false,
-					Default:     test.AsAPIExtensionJSON(PluginOptionDefaultValue),
+					Default:     test.MustReturnJSONFor(PluginOptionDefaultValue),
 					Type:        greenhousev1alpha1.PluginOptionTypeString,
 				}),
 				test.AppendPluginOption(greenhousev1alpha1.PluginOption{
 					Name:        PluginOptionBool,
 					Description: "This is my default test plugin option with a bool value",
 					Required:    false,
-					Default:     test.AsAPIExtensionJSON(PluginOptionBoolDefault),
+					Default:     test.MustReturnJSONFor(PluginOptionBoolDefault),
 					Type:        greenhousev1alpha1.PluginOptionTypeBool,
 				}),
 				test.AppendPluginOption(greenhousev1alpha1.PluginOption{
 					Name:        PluginOptionInt,
 					Description: "This is my default test plugin option with an int value",
 					Required:    false,
-					Default:     test.AsAPIExtensionJSON(PluginOptionIntDefault),
+					Default:     test.MustReturnJSONFor(PluginOptionIntDefault),
 					Type:        greenhousev1alpha1.PluginOptionTypeInt,
 				}),
 				test.AppendPluginOption(greenhousev1alpha1.PluginOption{
 					Name:        PluginOptionList,
 					Description: "This is my default test plugin option with a list value",
 					Required:    false,
-					Default:     test.AsAPIExtensionJSON(PluginOptionListDefault),
+					Default:     test.MustReturnJSONFor(PluginOptionListDefault),
 					Type:        greenhousev1alpha1.PluginOptionTypeList,
 				}),
 				test.AppendPluginOption(greenhousev1alpha1.PluginOption{
 					Name:        PluginOptionMap,
 					Description: "This is my default test plugin option with a map value",
 					Required:    false,
-					Default:     test.AsAPIExtensionJSON(PluginOptionMapDefault),
+					Default:     test.MustReturnJSONFor(PluginOptionMapDefault),
 					Type:        greenhousev1alpha1.PluginOptionTypeMap,
 				}),
 			)
@@ -499,11 +499,11 @@ var _ = Describe("HelmControllerTest", Serial, func() {
 				test.WithPluginLabel(greenhouseapis.LabelKeyOwnedBy, testTeam.Name),
 				test.WithClusterPluginDefinition(pluginWithEveryOption),
 				test.WithReleaseName(ReleaseName),
-				test.WithPluginOptionValue(PluginOptionDefault, test.AsAPIExtensionJSON(stringVal), nil),
-				test.WithPluginOptionValue(PluginOptionBool, test.AsAPIExtensionJSON(boolVal), nil),
-				test.WithPluginOptionValue(PluginOptionInt, test.AsAPIExtensionJSON(intVal), nil),
-				test.WithPluginOptionValue(PluginOptionList, test.AsAPIExtensionJSON(listVal), nil),
-				test.WithPluginOptionValue(PluginOptionMap, test.AsAPIExtensionJSON(mapVal), nil),
+				test.WithPluginOptionValue(PluginOptionDefault, test.MustReturnJSONFor(stringVal)),
+				test.WithPluginOptionValue(PluginOptionBool, test.MustReturnJSONFor(boolVal)),
+				test.WithPluginOptionValue(PluginOptionInt, test.MustReturnJSONFor(intVal)),
+				test.WithPluginOptionValue(PluginOptionList, test.MustReturnJSONFor(listVal)),
+				test.WithPluginOptionValue(PluginOptionMap, test.MustReturnJSONFor(mapVal)),
 			)
 
 			Expect(test.K8sClient.Create(test.Ctx, complexPlugin)).Should(Succeed())
@@ -549,7 +549,7 @@ var _ = Describe("HelmControllerTest", Serial, func() {
 		plugin := test.NewPlugin(test.Ctx, "testPlugin", Namespace,
 			test.WithClusterPluginDefinition("testPlugin"),
 			test.WithReleaseName(ReleaseName),
-			test.WithPluginOptionValue(option, test.AsAPIExtensionJSON(value), nil))
+			test.WithPluginOptionValue(option, test.MustReturnJSONFor(value)))
 		Expect(test.K8sClient.Create(test.Ctx, plugin)).Should(Not(Succeed()), "creating a plugin with wrong types should not be successful")
 	},
 		Entry("string with wrong type", PluginOptionRequired, 1),

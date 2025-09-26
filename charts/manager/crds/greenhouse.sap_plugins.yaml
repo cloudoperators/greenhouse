@@ -86,6 +86,11 @@ spec:
                     name:
                       description: Name of the values.
                       type: string
+                    template:
+                      description: |-
+                        Template is a Go string template that will be dynamically resolved for cluster-specific values.
+                        Only PluginOptionValues declared as template will be templated by the PluginController for Flux.
+                      type: string
                     value:
                       description: Value is the actual value in plain text.
                       x-kubernetes-preserve-unknown-fields: true
@@ -173,16 +178,24 @@ spec:
                         target cluster.
                       type: string
                     port:
-                      description: Port is the port of the service.
+                      description: Port is the port of the service. Zero for ingresses
+                        where port is not applicable.
                       format: int32
                       type: integer
                     protocol:
                       description: Protocol is the protocol of the service.
                       type: string
+                    type:
+                      default: service
+                      description: Type is the type of exposed service.
+                      enum:
+                      - service
+                      - ingress
+                      type: string
                   required:
                   - name
                   - namespace
-                  - port
+                  - type
                   type: object
                 description: |-
                   ExposedServices provides an overview of the Plugins services that are centrally exposed.

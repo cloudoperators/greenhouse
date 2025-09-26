@@ -58,7 +58,7 @@ func mockClusterPluginDefinition() *greenhousev1alpha1.ClusterPluginDefinition {
 			Name:        PluginOptionDefault,
 			Description: "This is my default test plugin option",
 			Required:    false,
-			Default:     test.AsAPIExtensionJSON(PluginOptionDefaultValue),
+			Default:     test.MustReturnJSONFor(PluginOptionDefaultValue),
 			Type:        greenhousev1alpha1.PluginOptionTypeString,
 		}),
 	)
@@ -90,7 +90,7 @@ func mockPluginDefinition() *greenhousev1alpha1.PluginDefinition {
 			Name:        PluginOptionDefault,
 			Description: "This is my default test plugin option",
 			Required:    false,
-			Default:     test.AsAPIExtensionJSON(PluginOptionDefaultValue),
+			Default:     test.MustReturnJSONFor(PluginOptionDefaultValue),
 			Type:        greenhousev1alpha1.PluginOptionTypeString,
 		}),
 	)

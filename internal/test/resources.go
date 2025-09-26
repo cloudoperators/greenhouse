@@ -322,16 +322,14 @@ func WithPluginLabel(key, value string) func(*greenhousev1alpha1.Plugin) {
 	}
 }
 
-// WithPluginOptionValue sets the value of a PluginOptionValue
-func WithPluginOptionValue(name string, value *apiextensionsv1.JSON, valueFrom *greenhousev1alpha1.ValueFromSource) func(*greenhousev1alpha1.Plugin) {
+// WithPluginOptionValue sets the value of a PluginOptionValue, clears ValueFrom and Template
+func WithPluginOptionValue(name string, value *apiextensionsv1.JSON) func(*greenhousev1alpha1.Plugin) {
 	return func(p *greenhousev1alpha1.Plugin) {
-		if value != nil && valueFrom != nil {
-			Fail("value and valueFrom are mutually exclusive")
-		}
 		for i, v := range p.Spec.OptionValues {
 			if v.Name == name {
 				v.Value = value
-				v.ValueFrom = valueFrom
+				v.ValueFrom = nil
+				v.Template = nil
 				p.Spec.OptionValues[i] = v
 				return
 			}
@@ -339,7 +337,50 @@ func WithPluginOptionValue(name string, value *apiextensionsv1.JSON, valueFrom *
 		p.Spec.OptionValues = append(p.Spec.OptionValues, greenhousev1alpha1.PluginOptionValue{
 			Name:      name,
 			Value:     value,
+			ValueFrom: nil,
+			Template:  nil,
+		})
+	}
+}
+
+// WithPluginOptionValue sets the value of a PluginOptionValue, clears Value and Template
+func WithPluginOptionValueFrom(name string, valueFrom *greenhousev1alpha1.ValueFromSource) func(*greenhousev1alpha1.Plugin) {
+	return func(p *greenhousev1alpha1.Plugin) {
+		for i, v := range p.Spec.OptionValues {
+			if v.Name == name {
+				v.Value = nil
+				v.ValueFrom = valueFrom
+				v.Template = nil
+				p.Spec.OptionValues[i] = v
+				return
+			}
+		}
+		p.Spec.OptionValues = append(p.Spec.OptionValues, greenhousev1alpha1.PluginOptionValue{
+			Name:      name,
+			Value:     nil,
 			ValueFrom: valueFrom,
+			Template:  nil,
+		})
+	}
+}
+
+// WithPluginOptionValue sets the template of a PluginOptionValue,
+func WithPluginOptionValueTemplate(name string, template *string) func(*greenhousev1alpha1.Plugin) {
+	return func(p *greenhousev1alpha1.Plugin) {
+		for i, v := range p.Spec.OptionValues {
+			if v.Name == name {
+				v.Value = nil
+				v.Template = template
+				v.ValueFrom = nil
+				p.Spec.OptionValues[i] = v
+				return
+			}
+		}
+		p.Spec.OptionValues = append(p.Spec.OptionValues, greenhousev1alpha1.PluginOptionValue{
+			Name:      name,
+			Value:     nil,
+			Template:  template,
+			ValueFrom: nil,
 		})
 	}
 }

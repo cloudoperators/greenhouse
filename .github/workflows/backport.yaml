@@ -28,7 +28,7 @@ jobs:
           # Use token to allow workflows to be triggered for the created PR
           github_token: ${{ steps.github-app-token.outputs.token }}
           # Match labels with a pattern `backport:<target-branch>`
-          label_pattern: '^backport (release\/v[0-9]+.[0-9]+)$'
+          label_pattern: '^backport:(release\/v[0-9]+.[0-9]+)$'
           # A bit shorter pull-request title than the default
           pull_title: 'backport(${target_branch}): ${pull_title}'
           # Simpler PR description than default

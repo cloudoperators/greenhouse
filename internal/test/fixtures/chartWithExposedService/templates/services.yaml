@@ -6,7 +6,7 @@ kind: Service
 metadata:
   name: exposed-service
   namespace: test-org
-  labels:
+  annotations:
     greenhouse.sap/expose: "true"
 spec:
   selector:

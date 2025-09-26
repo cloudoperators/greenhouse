@@ -2705,6 +2705,18 @@ ValueFromSource
 <p>ValueFrom references a potentially confidential value in another source.</p>
 </td>
 </tr>
+<tr>
+<td>
+<code>template</code><br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Template is a Go string template that will be dynamically resolved for cluster-specific values.
+Only PluginOptionValues declared as template will be templated by the PluginController for Flux.</p>
+</td>
+</tr>
 </tbody>
 </table>
 </div>
@@ -3416,7 +3428,7 @@ int32
 </em>
 </td>
 <td>
-<p>Port is the port of the service.</p>
+<p>Port is the port of the service. Zero for ingresses where port is not applicable.</p>
 </td>
 </tr>
 <tr>
@@ -3430,10 +3442,30 @@ string
 <p>Protocol is the protocol of the service.</p>
 </td>
 </tr>
+<tr>
+<td>
+<code>type</code><br>
+<em>
+<a href="#greenhouse.sap/v1alpha1.ServiceType">
+ServiceType
+</a>
+</em>
+</td>
+<td>
+<p>Type is the type of exposed service.</p>
+</td>
+</tr>
 </tbody>
 </table>
 </div>
 </div>
+<h3 id="greenhouse.sap/v1alpha1.ServiceType">ServiceType
+(<code>string</code> alias)</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#greenhouse.sap/v1alpha1.Service">Service</a>)
+</p>
+<p>ServiceType defines the type of exposed service.</p>
 <h3 id="greenhouse.sap/v1alpha1.Team">Team
 </h3>
 <p>Team is the Schema for the teams API</p>
