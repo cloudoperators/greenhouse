@@ -33,6 +33,9 @@ type PluginPresetSpec struct {
 	// ClusterOptionOverrides define plugin option values to override by the PluginPreset
 	// +kubebuilder:validation:Optional
 	ClusterOptionOverrides []ClusterOptionOverride `json:"clusterOptionOverrides,omitempty"`
+
+	// WaitFor defines other Plugins to wait for before creating the Plugin.
+	WaitFor []WaitForItem `json:"waitFor,omitempty"`
 }
 
 // ClusterOptionOverride defines which plugin option should be override in which cluster

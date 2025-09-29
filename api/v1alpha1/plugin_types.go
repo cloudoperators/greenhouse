@@ -37,6 +37,9 @@ type PluginSpec struct {
 	// +kubebuilder:validation:XValidation:rule="self == oldSelf",message="ReleaseName is immutable"
 	// +kubebuilder:validation:MaxLength=53
 	ReleaseName string `json:"releaseName,omitempty"`
+
+	// WaitFor defines other Plugins to wait for before installing this Plugin.
+	WaitFor []WaitForItem `json:"waitFor,omitempty"`
 }
 
 // PluginOptionValue is the value for a PluginOption.
