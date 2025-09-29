@@ -17,6 +17,12 @@ import (
 	greenhouseapisv1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
 )
 
+const (
+	kustomizeOperationReplace = "replace"
+	kustomizeMetadataNamePath = "/metadata/name"
+	kustomizeHelmRepoPatch    = "/spec/helmChart/repository"
+)
+
 // Operation model for patch operations
 type Operation struct {
 	Op    string
@@ -32,8 +38,7 @@ type Data struct {
 const opsTmpl = `{{- range .Operations}}
 - op: {{ .Op }}
   path: {{ .Path }}
-  value: |
-{{ .Value | indent 4 }}
+  value: {{ .Value }}
 {{- end}}`
 
 // indent is a small helper to indent a multi-line string
@@ -50,7 +55,15 @@ func indent(spaces int, s string) string {
 	return out.String()
 }
 
-func metadataPatchTemplate(alias string) (string, error) {
+func constructPatchOperations(op, path, value string) Operation {
+	return Operation{
+		Op:    op,
+		Path:  path,
+		Value: value,
+	}
+}
+
+func patchTemplate(ops []Operation) (string, error) {
 	tmpl, err := template.New("patchOps").Funcs(template.FuncMap{
 		"indent": indent,
 	}).Parse(opsTmpl)
@@ -58,13 +71,7 @@ func metadataPatchTemplate(alias string) (string, error) {
 		return "", err
 	}
 	d := Data{
-		Operations: []Operation{
-			{
-				Op:    "replace",
-				Path:  "/metadata/name",
-				Value: alias,
-			},
-		},
+		Operations: ops,
 	}
 	var buf bytes.Buffer
 	if err := tmpl.Execute(&buf, d); err != nil {
@@ -78,7 +85,12 @@ func metadataPatchTemplate(alias string) (string, error) {
 func PrepareKustomizePatches(overrides []greenhouseapisv1alpha1.CatalogOverrides, group string) ([]fluxkust.Patch, error) {
 	patches := make([]fluxkust.Patch, 0)
 	for _, override := range overrides {
-		metadataPatch, err := metadataPatchTemplate(override.Alias)
+		operations := make([]Operation, 0, len(overrides))
+		operations = append(operations, constructPatchOperations(kustomizeOperationReplace, kustomizeMetadataNamePath, override.Alias))
+		if override.Repository != "" {
+			operations = append(operations, constructPatchOperations(kustomizeOperationReplace, kustomizeHelmRepoPatch, override.Repository))
+		}
+		metadataPatch, err := patchTemplate(operations)
 		if err != nil {
 			return nil, err
 		}
