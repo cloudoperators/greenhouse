@@ -459,6 +459,13 @@ func WithClusterOverride(clusterName string, optionValues []greenhousev1alpha1.P
 	}
 }
 
+// WithPluginPresetDeletionPolicy sets the DeletionPolicy on a PluginPreset.
+func WithPluginPresetDeletionPolicy(deletionPolicy string) func(*greenhousev1alpha1.PluginPreset) {
+	return func(pp *greenhousev1alpha1.PluginPreset) {
+		pp.Spec.DeletionPolicy = deletionPolicy
+	}
+}
+
 // NewPluginPreset returns a greenhousev1alpha1.PluginPreset object. Opts can be used to set the desired state of the PluginPreset.
 func NewPluginPreset(name, namespace string, opts ...func(*greenhousev1alpha1.PluginPreset)) *greenhousev1alpha1.PluginPreset {
 	GinkgoHelper()
