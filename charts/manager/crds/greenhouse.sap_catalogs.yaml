@@ -61,6 +61,10 @@ spec:
                       description: Name is the name of the PluginDefinition to patch
                         with an alias
                       type: string
+                    repository:
+                      description: Repository is the repository to override in the
+                        PluginDefinition .spec.helmChart.repository
+                      type: string
                   required:
                   - alias
                   - name
