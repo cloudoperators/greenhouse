@@ -20,9 +20,9 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
-	"k8s.io/kubectl/pkg/scheme"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
@@ -150,7 +150,7 @@ var (
 			//+kubebuilder:scaffold:scheme
 			var err error
 			K8sManager, err = ctrl.NewManager(Cfg, ctrl.Options{
-				Scheme: scheme.Scheme,
+				Scheme: testEnv.Scheme,
 				Metrics: metricsserver.Options{
 					BindAddress: "0",
 				},
@@ -253,24 +253,26 @@ func StartControlPlane(port string, installCRDs, installWebhooks bool) (*rest.Co
 	testEnv.ControlPlane.GetAPIServer().Port = port
 	testEnv.ControlPlane.GetAPIServer().Configure().Append("enable-admission-plugins", "MutatingAdmissionWebhook", "ValidatingAdmissionWebhook")
 
-	Expect(greenhousev1alpha1.AddToScheme(scheme.Scheme)).
+	testEnvScheme := runtime.NewScheme()
+	Expect(greenhousev1alpha1.AddToScheme(testEnvScheme)).
 		To(Succeed(), "there must be no error adding the greenhouse api v1alpha1 to the scheme")
-	Expect(greenhousev1alpha2.AddToScheme(scheme.Scheme)).
+	Expect(greenhousev1alpha2.AddToScheme(testEnvScheme)).
 		To(Succeed(), "there must be no error adding the greenhouse api v1alpha2 to the scheme")
-	Expect(clientgoscheme.AddToScheme(scheme.Scheme)).
+	Expect(clientgoscheme.AddToScheme(testEnvScheme)).
 		To(Succeed(), "there must no error adding the clientgo api to the scheme")
-	Expect(apiextensionsv1.AddToScheme(scheme.Scheme)).
+	Expect(apiextensionsv1.AddToScheme(testEnvScheme)).
 		To(Succeed(), "there must be no error adding the apiextensions api to the scheme")
-	Expect(dexapi.AddToScheme(scheme.Scheme)).
+	Expect(dexapi.AddToScheme(testEnvScheme)).
 		To(Succeed(), "there must be no error adding the dex api to the scheme")
-	Expect(sourcev1.AddToScheme(scheme.Scheme)).To(Succeed(), "there must be no error adding the flux source api to the scheme")
-	Expect(helmv2.AddToScheme(scheme.Scheme)).To(Succeed(), "there must be no error adding the flux helm api to the scheme")
-	Expect(kustomizev1.AddToScheme(scheme.Scheme)).To(Succeed(), "there must be no error adding the flux kustomize api to the scheme")
+	Expect(sourcev1.AddToScheme(testEnvScheme)).To(Succeed(), "there must be no error adding the flux source api to the scheme")
+	Expect(helmv2.AddToScheme(testEnvScheme)).To(Succeed(), "there must be no error adding the flux helm api to the scheme")
+	Expect(kustomizev1.AddToScheme(testEnvScheme)).To(Succeed(), "there must be no error adding the flux kustomize api to the scheme")
 
 	// Make sure all schemes are added before starting the envtest. This will enable conversion webhooks.
 	testEnv.CRDInstallOptions = envtest.CRDInstallOptions{
-		Scheme: scheme.Scheme,
+		Scheme: testEnvScheme,
 	}
+	testEnv.Scheme = testEnvScheme
 
 	// Start control plane
 	cfg, err := testEnv.Start()
