@@ -82,13 +82,19 @@ func (r *PluginReconciler) EnsureFluxCreated(ctx context.Context, plugin *greenh
 			return fmt.Errorf("failed to compute HelmRelease values for Plugin %s: %w", plugin.Name, err)
 		}
 
-		// TODO: Use registry mirrors config.
-		// _, err = flux.GetRegistryMirrorConfig(ctx, r.Client, plugin)
-		// if err != nil {
-		// 	log.FromContext(ctx).Error(err, "Failed to read registry mirror configuration", "plugin", plugin.Name)
-		// 	flux.SetPluginConditionForRegistryMirrorError(plugin, err)
-		// 	return fmt.Errorf("failed to read registry mirror configuration: %w", err)
-		// }
+		// Get registry mirror configuration and create PostRenderer.
+		registryMirrorConfig, err := flux.GetRegistryMirrorConfig(ctx, r.Client, plugin)
+		if err != nil {
+			log.FromContext(ctx).Error(err, "Failed to read registry mirror configuration", "plugin", plugin.Name)
+			plugin.SetCondition(greenhousemetav1alpha1.TrueCondition(
+				greenhousev1alpha1.HelmReconcileFailedCondition, "", "Failed to read registry mirror configuration"))
+			return fmt.Errorf("failed to read registry mirror configuration: %w", err)
+		}
+
+		var postRenderers []helmv2.PostRenderer
+		if postRenderer := flux.CreateRegistryMirrorPostRenderer(registryMirrorConfig); postRenderer != nil {
+			postRenderers = append(postRenderers, *postRenderer)
+		}
 
 		spec, err := flux.NewHelmReleaseSpecBuilder().
 			WithChart(helmv2.HelmChartTemplateSpec{
@@ -129,7 +135,8 @@ func (r *PluginReconciler) EnsureFluxCreated(ctx context.Context, plugin *greenh
 			}).
 			WithValues(values).
 			WithValuesFrom(r.addValueReferences(plugin)).
-			WithTargetNamespace(plugin.Spec.ReleaseNamespace).Build()
+			WithTargetNamespace(plugin.Spec.ReleaseNamespace).
+			WithPostRenderers(postRenderers).Build()
 		if err != nil {
 			log.FromContext(ctx).Error(err, "Failed to create HelmRelease for plugin", "plugin", plugin.Name)
 			return fmt.Errorf("failed to create HelmRelease for plugin %s: %w", plugin.Name, err)
