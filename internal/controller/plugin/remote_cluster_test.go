@@ -38,14 +38,14 @@ var (
 
 	testPlugin = test.NewPlugin(test.Ctx, "test-plugindefinition", test.TestNamespace,
 		test.WithCluster("test-cluster"),
-		test.WithPluginDefinition("test-plugindefinition"),
+		test.WithClusterPluginDefinition("test-plugindefinition"),
 		test.WithReleaseName("release-test"),
 		test.WithReleaseNamespace(test.TestNamespace),
 		test.WithPluginLabel(greenhouseapis.LabelKeyOwnedBy, testTeam.Name))
 
 	testPluginWithSR = test.NewPlugin(test.Ctx, "test-plugin-secretref", test.TestNamespace,
 		test.WithCluster("test-cluster"),
-		test.WithPluginDefinition("test-plugindefinition"),
+		test.WithClusterPluginDefinition("test-plugindefinition"),
 		test.WithReleaseName("release-with-secretref"),
 		test.WithPluginOptionValueFrom("secretValue", &greenhousev1alpha1.ValueFromSource{
 			Secret: &greenhousev1alpha1.SecretKeyReference{
@@ -58,7 +58,7 @@ var (
 
 	testPluginWithCRDs = test.NewPlugin(test.Ctx, "test-plugin-crd", test.TestNamespace,
 		test.WithCluster(testCluster.GetName()),
-		test.WithPluginDefinition("test-plugindefinition-crd"),
+		test.WithClusterPluginDefinition("test-plugindefinition-crd"),
 		test.WithReleaseName("plugindefinition-crd"),
 		test.WithReleaseNamespace(test.TestNamespace),
 		test.WithPluginLabel(greenhouseapis.LabelKeyOwnedBy, testTeam.Name),
@@ -66,7 +66,7 @@ var (
 
 	testPluginWithExposedService = test.NewPlugin(test.Ctx, "test-plugin-exposed", test.TestNamespace,
 		test.WithCluster(testCluster.GetName()),
-		test.WithPluginDefinition("test-plugindefinition-exposed"),
+		test.WithClusterPluginDefinition("test-plugindefinition-exposed"),
 		test.WithReleaseName("plugindefinition-exposed"),
 		test.WithReleaseNamespace(test.TestNamespace),
 		test.WithPluginLabel(greenhouseapis.LabelKeyOwnedBy, testTeam.Name),
@@ -276,7 +276,7 @@ var _ = Describe("HelmController reconciliation", Ordered, func() {
 		testPluginInDifferentNamespace := test.NewPlugin(test.Ctx, "test-plugin-in-made-up-namespace", test.TestNamespace,
 			test.WithPluginLabel(greenhouseapis.LabelKeyOwnedBy, testTeam.Name),
 			test.WithCluster(testCluster.GetName()),
-			test.WithPluginDefinition(testPluginDefinition.GetName()),
+			test.WithClusterPluginDefinition(testPluginDefinition.GetName()),
 			test.WithReleaseName("release-test-in-made-up-namespace"),
 			test.WithReleaseNamespace("made-up-namespace"))
 
@@ -439,6 +439,7 @@ var _ = Describe("HelmController reconciliation", Ordered, func() {
 				err = test.K8sClient.Get(test.Ctx, types.NamespacedName{Name: testPluginWithExposedService1.Name, Namespace: testPluginWithExposedService1.Namespace}, testPluginWithExposedService1)
 				g.Expect(err).ToNot(HaveOccurred(), "there should be no error getting plugin")
 				statusUpToDateCondition := testPluginWithExposedService1.Status.GetConditionByType(greenhousev1alpha1.StatusUpToDateCondition)
+				g.Expect(statusUpToDateCondition).ToNot(BeNil(), "StatusUpToDate condition should not be nil")
 				g.Expect(statusUpToDateCondition.Status).To(Equal(metav1.ConditionTrue), "plugin status up to date condition should be set to true")
 			}).Should(Succeed(), "plugin should have correct status")
 

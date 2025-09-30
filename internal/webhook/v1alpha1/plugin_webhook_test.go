@@ -179,7 +179,7 @@ var _ = Describe("Validate Plugin OptionValues", func() {
 		}
 		It("should reject a Plugin with missing required options", func() {
 			plugin := test.NewPlugin(test.Ctx, "test-plugin", test.TestNamespace,
-				test.WithPluginDefinition("test"),
+				test.WithClusterPluginDefinition("test"),
 				test.WithCluster("test-cluster"),
 			)
 			optionsFieldPath := field.NewPath("spec").Child("optionValues")
@@ -207,16 +207,18 @@ var _ = Describe("Validate plugin spec fields", Ordered, func() {
 		team                        *greenhousev1alpha1.Team
 		testCluster                 *greenhousev1alpha1.Cluster
 		testPlugin                  *greenhousev1alpha1.Plugin
-		testPluginDefinition        *greenhousev1alpha1.ClusterPluginDefinition
+		testClusterPluginDefinition *greenhousev1alpha1.ClusterPluginDefinition
 		testCentralPluginDefinition *greenhousev1alpha1.ClusterPluginDefinition
+		testPluginDefinition        *greenhousev1alpha1.PluginDefinition
 	)
 
 	BeforeAll(func() {
 		setup = test.NewTestSetup(test.Ctx, test.K8sClient, "plugin-webhook")
 		team = setup.CreateTeam(test.Ctx, "test-team", test.WithTeamLabel(greenhouseapis.LabelKeySupportGroup, "true"))
 		testCluster = setup.CreateCluster(test.Ctx, "test-cluster", test.WithClusterLabel(greenhouseapis.LabelKeyOwnedBy, team.Name))
-		testPluginDefinition = setup.CreateClusterPluginDefinition(test.Ctx, "test-plugindefinition")
+		testClusterPluginDefinition = setup.CreateClusterPluginDefinition(test.Ctx, "test-plugindefinition")
 		testCentralPluginDefinition = setup.CreateClusterPluginDefinition(test.Ctx, "central-plugin")
+		testPluginDefinition = setup.CreatePluginDefinition(test.Ctx, "pd-namespaced")
 		pluginsAllowedInCentralCluster = append(pluginsAllowedInCentralCluster, testCentralPluginDefinition.Name)
 	})
 
@@ -227,13 +229,14 @@ var _ = Describe("Validate plugin spec fields", Ordered, func() {
 	AfterAll(func() {
 		test.EventuallyDeleted(test.Ctx, test.K8sClient, testCluster)
 		test.EventuallyDeleted(test.Ctx, test.K8sClient, team)
-		test.EventuallyDeleted(test.Ctx, test.K8sClient, testPluginDefinition)
+		test.EventuallyDeleted(test.Ctx, test.K8sClient, testClusterPluginDefinition)
 		test.EventuallyDeleted(test.Ctx, test.K8sClient, testCentralPluginDefinition)
+		test.EventuallyDeleted(test.Ctx, test.K8sClient, testPluginDefinition)
 	})
 
 	It("should not accept a plugin without a clusterName", func() {
 		testPlugin = test.NewPlugin(test.Ctx, "test-plugin", setup.Namespace(),
-			test.WithPluginDefinition(testPluginDefinition.Name),
+			test.WithClusterPluginDefinition(testClusterPluginDefinition.Name),
 			test.WithReleaseNamespace("test-namespace"),
 			test.WithReleaseName("test-release"),
 			test.WithPluginLabel(greenhouseapis.LabelKeyOwnedBy, team.Name))
@@ -252,7 +255,7 @@ var _ = Describe("Validate plugin spec fields", Ordered, func() {
 
 	It("should not accept a plugin for the central cluster where releaseNamespace and Plugin Namespace do not match", func() {
 		testPlugin = test.NewPlugin(test.Ctx, "test-plugin", setup.Namespace(),
-			test.WithPluginDefinition(testCentralPluginDefinition.Name),
+			test.WithClusterPluginDefinition(testCentralPluginDefinition.Name),
 			test.WithReleaseNamespace("test-namespace"),
 			test.WithReleaseName("test-release"),
 			test.WithPluginLabel(greenhouseapis.LabelKeyOwnedBy, team.Name))
@@ -264,9 +267,9 @@ var _ = Describe("Validate plugin spec fields", Ordered, func() {
 		defer func() {
 			pluginsAllowedInCentralCluster = tempPluginsAllowedInCentralCluster
 		}()
-		pluginsAllowedInCentralCluster = []string{testPluginDefinition.Name}
+		pluginsAllowedInCentralCluster = []string{testClusterPluginDefinition.Name}
 		testPlugin = test.NewPlugin(test.Ctx, "test-plugin", setup.Namespace(),
-			test.WithPluginDefinition(testPluginDefinition.Name),
+			test.WithClusterPluginDefinition(testClusterPluginDefinition.Name),
 			test.WithCluster(testCluster.Name),
 			test.WithReleaseNamespace("test-namespace"),
 			test.WithReleaseName("test-release"),
@@ -277,7 +280,7 @@ var _ = Describe("Validate plugin spec fields", Ordered, func() {
 
 	It("should not accept a plugin if the releaseNamespace changes", func() {
 		testPlugin = setup.CreatePlugin(test.Ctx, "test-plugin",
-			test.WithPluginDefinition(testPluginDefinition.Name),
+			test.WithClusterPluginDefinition(testClusterPluginDefinition.Name),
 			test.WithCluster(testCluster.Name),
 			test.WithReleaseNamespace("test-namespace"),
 			test.WithReleaseName("test-release"),
@@ -292,7 +295,7 @@ var _ = Describe("Validate plugin spec fields", Ordered, func() {
 	It("should reject the plugin when the cluster with clusterName does not exist", func() {
 		By("creating the plugin")
 		testPlugin = test.NewPlugin(test.Ctx, "test-plugin", setup.Namespace(),
-			test.WithPluginDefinition(testPluginDefinition.Name),
+			test.WithClusterPluginDefinition(testClusterPluginDefinition.Name),
 			test.WithCluster("non-existent-cluster"),
 			test.WithReleaseNamespace("test-namespace"),
 			test.WithReleaseName("test-release"),
@@ -325,7 +328,25 @@ var _ = Describe("Validate plugin spec fields", Ordered, func() {
 		}).Should(BeTrue(), "the plugin should have the template field set on the optionValue")
 	})
 
-	It("should accept the plugin when the cluster with clusterName exists", func() {
+	It("should accept the plugin with reference to ClusterPluginDefinition", func() {
+		By("creating the plugin")
+		testPlugin = setup.CreatePlugin(test.Ctx, "test-plugin",
+			test.WithClusterPluginDefinition(testClusterPluginDefinition.Name),
+			test.WithCluster(testCluster.Name),
+			test.WithReleaseNamespace("test-namespace"),
+			test.WithReleaseName("test-release"),
+			test.WithPluginLabel(greenhouseapis.LabelKeyOwnedBy, team.Name))
+
+		By("checking the label on the plugin")
+		actPlugin := &greenhousev1alpha1.Plugin{}
+		err := test.K8sClient.Get(test.Ctx, types.NamespacedName{Name: testPlugin.Name, Namespace: testPlugin.Namespace}, actPlugin)
+		Expect(err).ToNot(HaveOccurred(), "there should be no error getting the plugin")
+		Eventually(func() map[string]string {
+			return actPlugin.GetLabels()
+		}).Should(HaveKeyWithValue(greenhouseapis.LabelKeyCluster, testCluster.Name), "the plugin should have a matching cluster label")
+	})
+
+	It("should accept the plugin with reference to namespaced PluginDefinition", func() {
 		By("creating the plugin")
 		testPlugin = setup.CreatePlugin(test.Ctx, "test-plugin",
 			test.WithPluginDefinition(testPluginDefinition.Name),
@@ -345,7 +366,7 @@ var _ = Describe("Validate plugin spec fields", Ordered, func() {
 
 	It("should reject to update a plugin when the clusterName changes", func() {
 		testPlugin = setup.CreatePlugin(test.Ctx, "test-plugin",
-			test.WithPluginDefinition(testPluginDefinition.Name),
+			test.WithClusterPluginDefinition(testClusterPluginDefinition.Name),
 			test.WithCluster(testCluster.Name),
 			test.WithReleaseNamespace("test-namespace"),
 			test.WithReleaseName("test-release"),
@@ -359,7 +380,7 @@ var _ = Describe("Validate plugin spec fields", Ordered, func() {
 
 	It("should reject to update a plugin when the clustername is removed", func() {
 		testPlugin = setup.CreatePlugin(test.Ctx, "test-plugin",
-			test.WithPluginDefinition(testPluginDefinition.Name),
+			test.WithClusterPluginDefinition(testClusterPluginDefinition.Name),
 			test.WithCluster(testCluster.Name),
 			test.WithReleaseNamespace("test-namespace"),
 			test.WithReleaseName("test-release"),
@@ -372,7 +393,7 @@ var _ = Describe("Validate plugin spec fields", Ordered, func() {
 
 	It("should reject to update a plugin when the releaseNamespace changes", func() {
 		testPlugin = setup.CreatePlugin(test.Ctx, "test-plugin",
-			test.WithPluginDefinition(testPluginDefinition.Name),
+			test.WithClusterPluginDefinition(testClusterPluginDefinition.Name),
 			test.WithCluster(testCluster.Name),
 			test.WithReleaseNamespace("test-namespace"),
 			test.WithReleaseName("test-release"),
@@ -383,40 +404,105 @@ var _ = Describe("Validate plugin spec fields", Ordered, func() {
 		Expect(err.Error()).To(ContainSubstring(validation.FieldImmutableErrorMsg))
 	})
 
-	It("should reject to update a plugin when the pluginDefinition changes", func() {
-		secondPluginDefinition := setup.CreateClusterPluginDefinition(test.Ctx, "foo-bar")
+	It("should reject to update a plugin when the pluginDefinition reference name changes", func() {
+		secondClusterPluginDefinition := setup.CreateClusterPluginDefinition(test.Ctx, "foo-bar")
 		testPlugin = setup.CreatePlugin(test.Ctx, "test-plugin",
-			test.WithPluginDefinition(testPluginDefinition.Name),
+			test.WithClusterPluginDefinition(testClusterPluginDefinition.Name),
 			test.WithCluster(testCluster.Name),
 			test.WithReleaseNamespace("test-namespace"),
 			test.WithReleaseName("test-release"),
 			test.WithPluginLabel(greenhouseapis.LabelKeyOwnedBy, team.Name))
 
-		testPlugin.Spec.PluginDefinition = secondPluginDefinition.Name
+		testPlugin.Spec.PluginDefinitionRef.Name = secondClusterPluginDefinition.Name
 		err := test.K8sClient.Update(test.Ctx, testPlugin)
-		Expect(err).To(HaveOccurred(), "there should be an error changing the plugin's pluginDefinition")
+		Expect(err).To(HaveOccurred(), "there should be an error changing the plugin's pluginDefinition name")
 		Expect(err.Error()).To(ContainSubstring(validation.FieldImmutableErrorMsg))
+
+		test.EventuallyDeleted(test.Ctx, test.K8sClient, secondClusterPluginDefinition)
+	})
+
+	It("should accept to update a plugin when the pluginDefinition reference kind changes to PluginDefinition", func() {
+		By("creating ClusterPluginDefinition with the same name as namespaced PluginDefinition")
+		secondClusterPluginDefinition := test.NewClusterPluginDefinition(test.Ctx, testPluginDefinition.Name)
+		Expect(setup.Create(test.Ctx, secondClusterPluginDefinition)).To(Succeed(), "failed to create ClusterPluginDefinition")
+
+		testPlugin = setup.CreatePlugin(test.Ctx, "test-plugin",
+			test.WithClusterPluginDefinition(secondClusterPluginDefinition.Name),
+			test.WithCluster(testCluster.Name),
+			test.WithReleaseNamespace("test-namespace"),
+			test.WithReleaseName("test-release"),
+			test.WithPluginLabel(greenhouseapis.LabelKeyOwnedBy, team.Name))
+
+		testPlugin.Spec.PluginDefinitionRef.Kind = greenhousev1alpha1.PluginDefinitionKind
+		err := test.K8sClient.Update(test.Ctx, testPlugin)
+		Expect(err).ToNot(HaveOccurred(), "there should be no error changing the plugin's pluginDefinition kind")
+		labels := testPlugin.GetLabels()
+		Expect(labels).To(HaveKeyWithValue(greenhouseapis.LabelKeyPluginDefinition, testPluginDefinition.Name),
+			"the plugin should have the plugindefinition label set to the pluginDefinition name")
+		Expect(labels).ToNot(HaveKey(greenhouseapis.LabelKeyClusterPluginDefinition),
+			"the plugin should not have the clusterplugindefinition label set")
+
+		test.EventuallyDeleted(test.Ctx, test.K8sClient, secondClusterPluginDefinition)
+	})
+
+	It("should accept to update a plugin when the pluginDefinition reference kind changes to ClusterPluginDefinition", func() {
+		By("creating PluginDefinition with the same name as ClusterPluginDefinition")
+		secondPluginDefinition := test.NewPluginDefinition(test.Ctx, testClusterPluginDefinition.Name, setup.Namespace())
+		Expect(setup.Create(test.Ctx, secondPluginDefinition)).To(Succeed(), "failed to create PluginDefinition")
+
+		testPlugin = setup.CreatePlugin(test.Ctx, "test-plugin",
+			test.WithPluginDefinition(secondPluginDefinition.Name),
+			test.WithCluster(testCluster.Name),
+			test.WithReleaseNamespace("test-namespace"),
+			test.WithReleaseName("test-release"),
+			test.WithPluginLabel(greenhouseapis.LabelKeyOwnedBy, team.Name))
+
+		testPlugin.Spec.PluginDefinitionRef.Kind = greenhousev1alpha1.ClusterPluginDefinitionKind
+		err := test.K8sClient.Update(test.Ctx, testPlugin)
+		Expect(err).ToNot(HaveOccurred(), "there should be no error changing the plugin's pluginDefinition kind")
+		labels := testPlugin.GetLabels()
+		Expect(labels).To(HaveKeyWithValue(greenhouseapis.LabelKeyClusterPluginDefinition, testClusterPluginDefinition.Name),
+			"the plugin should have the plugindefinition label set to the pluginDefinition name")
+		Expect(labels).ToNot(HaveKey(greenhouseapis.LabelKeyPluginDefinition),
+			"the plugin should not have the clusterplugindefinition label set")
+
 		test.EventuallyDeleted(test.Ctx, test.K8sClient, secondPluginDefinition)
+	})
+
+	It("should correctly default the PluginDefinitionKind", func() {
+		testPlugin := test.NewPlugin(test.Ctx, "test-plugin", setup.Namespace(),
+			test.WithCluster(testCluster.Name),
+			test.WithReleaseNamespace("test-namespace"),
+			test.WithReleaseName("test-release"),
+			test.WithPluginLabel(greenhouseapis.LabelKeyOwnedBy, team.Name),
+		)
+		//nolint:staticcheck
+		testPlugin.Spec.PluginDefinition = testPluginDefinition.Name
+
+		Expect(test.K8sClient.Create(test.Ctx, testPlugin)).To(Succeed(), "there must be no error creating the Plugin")
+		Expect(testPlugin.Spec.PluginDefinitionRef.Kind).To(Equal(greenhousev1alpha1.PluginDefinitionKind), "PluginDefinitionKind should be defaulted to PluginDefinition")
 	})
 })
 
-var _ = Describe("Validate ClusterPluginDefinition label on Defaulting", Ordered, func() {
+var _ = Describe("Validate PluginDefinition labels on Defaulting", Ordered, func() {
 	var (
 		setup *test.TestSetup
 
 		team                        *greenhousev1alpha1.Team
 		testCluster                 *greenhousev1alpha1.Cluster
 		testPlugin                  *greenhousev1alpha1.Plugin
-		testPluginDefinition        *greenhousev1alpha1.ClusterPluginDefinition
+		testClusterPluginDefinition *greenhousev1alpha1.ClusterPluginDefinition
 		testCentralPluginDefinition *greenhousev1alpha1.ClusterPluginDefinition
+		testPluginDefinition        *greenhousev1alpha1.PluginDefinition
 	)
 
 	BeforeAll(func() {
 		setup = test.NewTestSetup(test.Ctx, test.K8sClient, "plugin-webhook")
 		team = setup.CreateTeam(test.Ctx, "test-team", test.WithTeamLabel(greenhouseapis.LabelKeySupportGroup, "true"))
 		testCluster = setup.CreateCluster(test.Ctx, "test-cluster", test.WithClusterLabel(greenhouseapis.LabelKeyOwnedBy, team.Name))
-		testPluginDefinition = setup.CreateClusterPluginDefinition(test.Ctx, "test-plugindefinition")
+		testClusterPluginDefinition = setup.CreateClusterPluginDefinition(test.Ctx, "test-clusterplugindefinition")
 		testCentralPluginDefinition = setup.CreateClusterPluginDefinition(test.Ctx, "central-plugin")
+		testPluginDefinition = setup.CreatePluginDefinition(test.Ctx, "test-plugindefinition")
 		pluginsAllowedInCentralCluster = append(pluginsAllowedInCentralCluster, testCentralPluginDefinition.Name)
 	})
 
@@ -427,23 +513,24 @@ var _ = Describe("Validate ClusterPluginDefinition label on Defaulting", Ordered
 	AfterAll(func() {
 		test.EventuallyDeleted(test.Ctx, test.K8sClient, testCluster)
 		test.EventuallyDeleted(test.Ctx, test.K8sClient, team)
-		test.EventuallyDeleted(test.Ctx, test.K8sClient, testPluginDefinition)
+		test.EventuallyDeleted(test.Ctx, test.K8sClient, testClusterPluginDefinition)
 		test.EventuallyDeleted(test.Ctx, test.K8sClient, testCentralPluginDefinition)
+		test.EventuallyDeleted(test.Ctx, test.K8sClient, testPluginDefinition)
 	})
 
-	It("should accept a plugin for a remote cluster where releaseNamespace and Plugin Namespace do not match and the PluginDefinition is allowed on the central cluster", func() {
+	It("should accept a plugin for a remote cluster where releaseNamespace and Plugin Namespace do not match and the ClusterPluginDefinition is allowed on the central cluster", func() {
 		tempPluginsAllowedInCentralCluster := pluginsAllowedInCentralCluster
 		defer func() {
 			pluginsAllowedInCentralCluster = tempPluginsAllowedInCentralCluster
 		}()
-		pluginsAllowedInCentralCluster = []string{testPluginDefinition.Name}
+		pluginsAllowedInCentralCluster = []string{testClusterPluginDefinition.Name}
 		testPlugin = test.NewPlugin(test.Ctx, "test-plugin", setup.Namespace(),
-			test.WithPluginDefinition(testPluginDefinition.Name),
+			test.WithClusterPluginDefinition(testClusterPluginDefinition.Name),
 			test.WithCluster(testCluster.Name),
 			test.WithReleaseNamespace("test-namespace"),
 			test.WithReleaseName("test-release"),
 			test.WithPluginLabel(greenhouseapis.LabelKeyOwnedBy, team.Name),
-			test.WithPluginLabel(greenhouseapis.LabelKeyPluginDefinition, testPluginDefinition.Name),
+			test.WithPluginLabel(greenhouseapis.LabelKeyPluginDefinition, testClusterPluginDefinition.Name),
 		)
 		err := test.K8sClient.Create(test.Ctx, testPlugin)
 		Expect(err).ToNot(HaveOccurred(), "there should be no error creating the plugin")
@@ -453,12 +540,35 @@ var _ = Describe("Validate ClusterPluginDefinition label on Defaulting", Ordered
 			err = test.K8sClient.Get(test.Ctx, types.NamespacedName{Name: testPlugin.Name, Namespace: testPlugin.Namespace}, testPlugin)
 			Expect(err).ToNot(HaveOccurred(), "there should be no error getting the plugin")
 			labels := testPlugin.GetLabels()
-			g.Expect(labels).To(HaveKeyWithValue(greenhouseapis.LabelKeyClusterPluginDefinition, testPluginDefinition.Name),
+			g.Expect(labels).To(HaveKeyWithValue(greenhouseapis.LabelKeyClusterPluginDefinition, testClusterPluginDefinition.Name),
 				"the plugin should have the clusterplugindefinition label set to the pluginDefinition name")
-			g.Expect(labels).ToNot(HaveKeyWithValue(greenhouseapis.LabelKeyPluginDefinition, testPluginDefinition.Name),
-				"the plugin should not have the plugindefinition label set to the pluginDefinition name")
-		}).Should(Succeed(), " the plugin should have only clusterpluginDefinition label set")
+			g.Expect(labels).ToNot(HaveKey(greenhouseapis.LabelKeyPluginDefinition),
+				"the plugin should not have the plugindefinition label set")
+		}).Should(Succeed(), "the plugin should have only clusterplugindefinition label set")
+	})
 
+	It("should only set the plugindefinition label when referencing namespaced PluginDefinition", func() {
+		testPlugin = test.NewPlugin(test.Ctx, "test-plugin", setup.Namespace(),
+			test.WithPluginDefinition(testPluginDefinition.Name),
+			test.WithCluster(testCluster.Name),
+			test.WithReleaseNamespace("test-namespace"),
+			test.WithReleaseName("test-release"),
+			test.WithPluginLabel(greenhouseapis.LabelKeyOwnedBy, team.Name),
+			test.WithPluginLabel(greenhouseapis.LabelKeyClusterPluginDefinition, testPluginDefinition.Name),
+		)
+		err := test.K8sClient.Create(test.Ctx, testPlugin)
+		Expect(err).ToNot(HaveOccurred(), "there should be no error creating the plugin")
+
+		By("checking the label on the plugin")
+		Eventually(func(g Gomega) {
+			err = test.K8sClient.Get(test.Ctx, types.NamespacedName{Name: testPlugin.Name, Namespace: testPlugin.Namespace}, testPlugin)
+			Expect(err).ToNot(HaveOccurred(), "there should be no error getting the plugin")
+			labels := testPlugin.GetLabels()
+			g.Expect(labels).To(HaveKeyWithValue(greenhouseapis.LabelKeyPluginDefinition, testPluginDefinition.Name),
+				"the plugin should have the plugindefinition label set to the pluginDefinition name")
+			g.Expect(labels).ToNot(HaveKey(greenhouseapis.LabelKeyClusterPluginDefinition),
+				"the plugin should not have the clusterplugindefinition label set")
+		}).Should(Succeed(), "the plugin should have only plugindefinition label set")
 	})
 })
 
@@ -492,7 +602,7 @@ func expectPluginDefinitionMustMatchError(err error) {
 	ok := errors.As(err, &statusErr)
 	Expect(ok).To(BeTrue(), "error should be a status error")
 	Expect(statusErr.ErrStatus.Reason).To(Equal(metav1.StatusReasonForbidden), "the error should be a status forbidden error")
-	Expect(err.Error()).To(And(ContainSubstring("spec.pluginDefinition"), ContainSubstring("field is required")), "the error message should reflect that the pluginDefinition must be set")
+	Expect(err.Error()).To(And(ContainSubstring("spec.pluginDefinitionRef.name"), ContainSubstring("PluginDefinition name must be set")), "the error message should reflect that the pluginDefinition name must be set")
 }
 
 func expectReleaseNamespaceMustMatchError(err error) {
@@ -510,7 +620,7 @@ func expectReleaseNamespaceMustMatchError(err error) {
 
 var _ = Describe("Validate Plugin with OwnerReference from PluginPresets", func() {
 	testPlugin := test.NewPlugin(test.Ctx, "test-plugin", test.TestNamespace,
-		test.WithPluginDefinition("test-plugindefinition"),
+		test.WithClusterPluginDefinition("test-plugindefinition"),
 		test.WithCluster("test-cluster"),
 	)
 
@@ -542,7 +652,7 @@ var _ = Describe("Validation and defaulting of releaseName", func() {
 	BeforeEach(func() {
 		pluginDefinition = test.NewClusterPluginDefinition(test.Ctx, "test-definition", test.WithHelmChart(&greenhousev1alpha1.HelmChartReference{Name: "test-helm-chart"}))
 
-		testPlugin = test.NewPlugin(test.Ctx, "test-plugin", "testing", test.WithPluginDefinition("test-definition"))
+		testPlugin = test.NewPlugin(test.Ctx, "test-plugin", "testing", test.WithClusterPluginDefinition("test-definition"))
 		// ensure the Plugin is in the deployed state
 		testPlugin.Status.HelmReleaseStatus = &greenhousev1alpha1.HelmReleaseStatus{
 			Status: "deployed",

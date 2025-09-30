@@ -2066,6 +2066,20 @@ string
 </td>
 <td>
 <p>PluginDefinition is the name of the PluginDefinition this instance is for.</p>
+<p>Deprecated: Use PluginDefinitionRef instead. Future releases of greenhouse will remove this field.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>pluginDefinitionRef</code><br>
+<em>
+<a href="#greenhouse.sap/v1alpha1.PluginDefinitionReference">
+PluginDefinitionReference
+</a>
+</em>
+</td>
+<td>
+<p>PluginDefinitionRef is the reference to the (Cluster-)PluginDefinition.</p>
 </td>
 </tr>
 <tr>
@@ -2312,6 +2326,49 @@ PluginDefinitionStatus
 </em>
 </td>
 <td>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<h3 id="greenhouse.sap/v1alpha1.PluginDefinitionReference">PluginDefinitionReference
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#greenhouse.sap/v1alpha1.PluginSpec">PluginSpec</a>)
+</p>
+<p>PluginDefinitionReference defines the reference to the PluginDefinition or ClusterPluginDefinition.</p>
+<div class="md-typeset__scrollwrap">
+<div class="md-typeset__table">
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>name</code><br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Name of the referenced PluginDefinition or ClusterPluginDefinition resource.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>kind</code><br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Kind of the referent. Supported values: PluginDefinition, ClusterPluginDefinition.</p>
 </td>
 </tr>
 </tbody>
@@ -2929,6 +2986,20 @@ string
 </td>
 <td>
 <p>PluginDefinition is the name of the PluginDefinition this instance is for.</p>
+<p>Deprecated: Use PluginDefinitionRef instead. Future releases of greenhouse will remove this field.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>pluginDefinitionRef</code><br>
+<em>
+<a href="#greenhouse.sap/v1alpha1.PluginDefinitionReference">
+PluginDefinitionReference
+</a>
+</em>
+</td>
+<td>
+<p>PluginDefinitionRef is the reference to the (Cluster-)PluginDefinition.</p>
 </td>
 </tr>
 <tr>
