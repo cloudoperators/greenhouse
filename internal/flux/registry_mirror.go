@@ -8,13 +8,14 @@ import (
 	"errors"
 	"fmt"
 
+	helmv2 "github.com/fluxcd/helm-controller/api/v2"
+	"github.com/fluxcd/pkg/apis/kustomize"
 	"gopkg.in/yaml.v3"
 	corev1 "k8s.io/api/core/v1"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	greenhousemetav1alpha1 "github.com/cloudoperators/greenhouse/api/meta/v1alpha1"
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
 )
 
@@ -104,11 +105,26 @@ func validateRegistryMirrorConfig(config *RegistryMirrorConfig) error {
 	return nil
 }
 
-// SetPluginConditionForRegistryMirrorError sets an error condition on the plugin for registry mirror configuration errors.
-func SetPluginConditionForRegistryMirrorError(plugin *greenhousev1alpha1.Plugin, err error) {
-	condition := greenhousemetav1alpha1.TrueCondition(
-		greenhousev1alpha1.HelmReconcileFailedCondition,
-		"RegistryMirrorConfigError",
-		"Failed to read registry mirror configuration: "+err.Error())
-	plugin.SetCondition(condition)
+// CreateRegistryMirrorPostRenderer creates a Kustomize PostRenderer for registry mirroring.
+// It transforms container images to use mirror registries based on the provided configuration.
+func CreateRegistryMirrorPostRenderer(mirrorConfig *RegistryMirrorConfig) *helmv2.PostRenderer {
+	if mirrorConfig == nil || len(mirrorConfig.RegistryMirrors) == 0 {
+		return nil
+	}
+
+	var images []kustomize.Image
+	for originalRegistry, mirror := range mirrorConfig.RegistryMirrors {
+		newName := fmt.Sprintf("%s/%s", mirror.BaseDomain, mirror.SubPath)
+
+		images = append(images, kustomize.Image{
+			Name:    originalRegistry,
+			NewName: newName,
+		})
+	}
+
+	return &helmv2.PostRenderer{
+		Kustomize: &helmv2.Kustomize{
+			Images: images,
+		},
+	}
 }

@@ -5,6 +5,7 @@ package flux
 
 import (
 	"context"
+	"fmt"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -298,6 +299,69 @@ registryMirrors:
 						},
 					},
 				}, false, "basedomain cannot be empty for registry ghcr.io"),
+		)
+	})
+
+	Describe("CreateRegistryMirrorPostRenderer", func() {
+		DescribeTable("PostRenderer creation scenarios",
+			func(config *RegistryMirrorConfig, expectPostRenderer bool, expectedImageCount int) {
+				postRenderer := CreateRegistryMirrorPostRenderer(config)
+
+				if expectPostRenderer {
+					Expect(postRenderer).NotTo(BeNil())
+					Expect(postRenderer.Kustomize).NotTo(BeNil())
+					Expect(postRenderer.Kustomize.Images).To(HaveLen(expectedImageCount))
+
+					// Verify image transformations
+					if config != nil {
+						for originalRegistry, mirror := range config.RegistryMirrors {
+							expectedNewName := fmt.Sprintf("%s/%s", mirror.BaseDomain, mirror.SubPath)
+
+							var found bool
+							for _, img := range postRenderer.Kustomize.Images {
+								if img.Name == originalRegistry && img.NewName == expectedNewName {
+									found = true
+									break
+								}
+							}
+							Expect(found).To(BeTrue(), fmt.Sprintf("Expected transformation %s -> %s not found", originalRegistry, expectedNewName))
+						}
+					}
+				} else {
+					Expect(postRenderer).To(BeNil())
+				}
+			},
+			Entry("nil config returns nil",
+				nil, false, 0),
+			Entry("empty registry mirrors returns nil",
+				&RegistryMirrorConfig{
+					PrimaryMirror:   "primary.registry.com",
+					RegistryMirrors: map[string]RegistryMirror{},
+				}, false, 0),
+			Entry("single registry mirror",
+				&RegistryMirrorConfig{
+					PrimaryMirror: "primary.registry.com",
+					RegistryMirrors: map[string]RegistryMirror{
+						"ghcr.io": {
+							BaseDomain: "keppel.eu-de-1.cloud.sap",
+							SubPath:    "ccloud-ghcr-io-mirror",
+						},
+					},
+				}, true, 1),
+			Entry("multiple registry mirrors",
+				&RegistryMirrorConfig{
+					PrimaryMirror: "primary.registry.com",
+					RegistryMirrors: map[string]RegistryMirror{
+						"ghcr.io": {
+							BaseDomain: "keppel.eu-de-1.cloud.sap",
+							SubPath:    "ccloud-ghcr-io-mirror",
+						},
+						"docker.io": {
+							BaseDomain: "keppel.eu-de-1.cloud.sap",
+							SubPath:    "ccloud-dockerhub-mirror",
+						},
+					},
+				}, true, 2),
 		)
 	})
 })
