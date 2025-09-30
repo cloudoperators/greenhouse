@@ -11,6 +11,11 @@ import (
 
 // initially inline PluginDefinitionSpec to avoid duplication of fields
 
+const (
+	// ClusterPluginDefinitionKind is the kind of the ClusterPluginDefinition resource
+	ClusterPluginDefinitionKind = "ClusterPluginDefinition"
+)
+
 // ClusterPluginDefinitionStatus defines the observed state of ClusterPluginDefinition.
 type ClusterPluginDefinitionStatus struct {
 	// StatusConditions contain the different conditions that constitute the status of the Plugin.

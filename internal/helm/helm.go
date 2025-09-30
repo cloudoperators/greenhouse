@@ -62,7 +62,7 @@ func InstallOrUpgradeHelmChartFromPlugin(ctx context.Context, local client.Clien
 	// Early return if the pluginDefinition is not helm based
 	if pluginDefinitionSpec.HelmChart == nil {
 		util.UpdatePluginReconcileTotalMetric(plugin, util.MetricResultError, util.MetricReasonHelmChartIsNotDefined)
-		return fmt.Errorf("no helm chart defined in pluginDefinition.Spec.HelmChart for pluginDefinition %s", plugin.Spec.PluginDefinition)
+		return fmt.Errorf("no helm chart defined in .Spec.HelmChart for %s %s", plugin.Spec.PluginDefinitionRef.Kind, plugin.Spec.PluginDefinitionRef.Name)
 	}
 	latestRelease, isReleaseExists, err := isReleaseExistsForPlugin(ctx, restClientGetter, plugin)
 	if err != nil {

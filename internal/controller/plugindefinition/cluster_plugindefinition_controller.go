@@ -63,8 +63,6 @@ func (r *ClusterPluginDefinitionReconciler) Reconcile(ctx context.Context, req c
 	return lifecycle.Reconcile(ctx, r.Client, req.NamespacedName, &greenhousev1alpha1.ClusterPluginDefinition{}, r, nil)
 }
 
-// EnsureCreated - ensures that the ClusterPluginDefinition is created in the cluster from PluginDefinition
-// this is used for transitioning from Cluster Scoped PluginDefinition to Namespaced PluginDefinition
 func (r *ClusterPluginDefinitionReconciler) EnsureCreated(ctx context.Context, obj lifecycle.RuntimeObject) (ctrl.Result, lifecycle.ReconcileResult, error) {
 	clusterDef := obj.(*greenhousev1alpha1.ClusterPluginDefinition) //nolint:errcheck
 	if clusterDef.Spec.HelmChart == nil {
