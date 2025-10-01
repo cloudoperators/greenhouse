@@ -36,8 +36,6 @@ const (
 
 	clusterA = "cluster-a"
 	clusterB = "cluster-b"
-
-	preventDeletionAnnotation = "greenhouse.sap/prevent-deletion"
 )
 
 var (
@@ -191,11 +189,6 @@ var _ = Describe("PluginPreset Controller Lifecycle", Ordered, func() {
 		Expect(err).NotTo(HaveOccurred(), "failed to update Plugin")
 
 		By("deleting the PluginPreset")
-		err = test.K8sClient.Get(test.Ctx, types.NamespacedName{Namespace: testPluginPreset.Namespace, Name: testPluginPreset.Name}, testPluginPreset)
-		Expect(err).ShouldNot(HaveOccurred(), "unexpected error getting PluginPreset")
-		testPluginPreset.Annotations = map[string]string{}
-		err = test.K8sClient.Update(test.Ctx, testPluginPreset)
-		Expect(err).ToNot(HaveOccurred())
 		test.EventuallyDeleted(test.Ctx, test.K8sClient, testPluginPreset)
 	})
 
@@ -224,12 +217,6 @@ var _ = Describe("PluginPreset Controller Lifecycle", Ordered, func() {
 		}))
 
 		By("removing plugin preset")
-		Eventually(func(g Gomega) {
-			err := test.K8sClient.Get(test.Ctx, client.ObjectKeyFromObject(pluginPreset), pluginPreset)
-			g.Expect(err).ShouldNot(HaveOccurred(), "unexpected error getting PluginPreset")
-			pluginPreset.Annotations = map[string]string{}
-			Expect(test.K8sClient.Update(test.Ctx, pluginPreset)).ToNot(HaveOccurred())
-		}).Should(Succeed(), "failed to update PluginPreset")
 		test.EventuallyDeleted(test.Ctx, test.K8sClient, pluginPreset)
 	})
 
@@ -273,14 +260,6 @@ var _ = Describe("PluginPreset Controller Lifecycle", Ordered, func() {
 		}).Should(Succeed(), "the PluginPreset should have removed the Plugin for the deleted Cluster")
 
 		By("removing the PluginPreset")
-		err = test.K8sClient.Get(test.Ctx, client.ObjectKeyFromObject(testPluginPreset), testPluginPreset)
-		Expect(err).ToNot(HaveOccurred(), "failed to get PluginPreset")
-		// Remove prevent-deletion annotation before deleting PluginPreset.
-		_, err = clientutil.Patch(test.Ctx, test.K8sClient, testPluginPreset, func() error {
-			delete(testPluginPreset.Annotations, preventDeletionAnnotation)
-			return nil
-		})
-		Expect(err).ToNot(HaveOccurred(), "failed to patch PluginPreset")
 		test.EventuallyDeleted(test.Ctx, test.K8sClient, testPluginPreset)
 	})
 
@@ -337,14 +316,6 @@ var _ = Describe("PluginPreset Controller Lifecycle", Ordered, func() {
 		}).Should(Succeed(), "the PluginPreset should have removed the Plugin for the deleted Cluster")
 
 		By("removing the PluginPreset")
-		err = test.K8sClient.Get(test.Ctx, client.ObjectKeyFromObject(testPluginPreset), testPluginPreset)
-		Expect(err).ToNot(HaveOccurred(), "failed to get PluginPreset")
-		// Remove prevent-deletion annotation before deleting PluginPreset.
-		_, err = clientutil.Patch(test.Ctx, test.K8sClient, testPluginPreset, func() error {
-			delete(testPluginPreset.Annotations, preventDeletionAnnotation)
-			return nil
-		})
-		Expect(err).ToNot(HaveOccurred(), "failed to patch PluginPreset")
 		test.EventuallyDeleted(test.Ctx, test.K8sClient, testPluginPreset)
 	})
 
@@ -448,14 +419,6 @@ var _ = Describe("PluginPreset Controller Lifecycle", Ordered, func() {
 		}).Should(Succeed())
 
 		By("removing the PluginPreset")
-		err = test.K8sClient.Get(test.Ctx, client.ObjectKeyFromObject(testPluginPreset), testPluginPreset)
-		Expect(err).ToNot(HaveOccurred(), "failed to get PluginPreset")
-		// Remove prevent-deletion annotation before deleting PluginPreset.
-		_, err = clientutil.Patch(test.Ctx, test.K8sClient, testPluginPreset, func() error {
-			delete(testPluginPreset.Annotations, preventDeletionAnnotation)
-			return nil
-		})
-		Expect(err).ToNot(HaveOccurred(), "failed to patch PluginPreset")
 		test.EventuallyDeleted(test.Ctx, test.K8sClient, testPluginPreset)
 	})
 
@@ -502,13 +465,6 @@ var _ = Describe("PluginPreset Controller Lifecycle", Ordered, func() {
 			"ClusterOptionOverrides should be applied to the Plugin OptionValues")
 
 		By("removing plugin preset")
-		err := test.K8sClient.Get(test.Ctx, client.ObjectKeyFromObject(pluginPreset), pluginPreset)
-		Expect(err).ShouldNot(HaveOccurred(), "unexpected error getting PluginPreset")
-		_, err = clientutil.Patch(test.Ctx, test.K8sClient, pluginPreset, func() error {
-			delete(pluginPreset.Annotations, preventDeletionAnnotation)
-			return nil
-		})
-		Expect(err).ToNot(HaveOccurred(), "failed to remove prevent-deletion annotation from PluginPreset")
 		test.EventuallyDeleted(test.Ctx, test.K8sClient, pluginPreset)
 	})
 
@@ -535,13 +491,6 @@ var _ = Describe("PluginPreset Controller Lifecycle", Ordered, func() {
 		}).Should(Succeed(), "Plugin creation error not found in PluginPreset")
 
 		By("removing plugin preset")
-		err := test.K8sClient.Get(test.Ctx, client.ObjectKeyFromObject(pluginPreset), pluginPreset)
-		Expect(err).ShouldNot(HaveOccurred(), "unexpected error getting PluginPreset")
-		_, err = clientutil.Patch(test.Ctx, test.K8sClient, pluginPreset, func() error {
-			delete(pluginPreset.Annotations, preventDeletionAnnotation)
-			return nil
-		})
-		Expect(err).ToNot(HaveOccurred(), "failed to remove prevent-deletion annotation from PluginPreset")
 		test.EventuallyDeleted(test.Ctx, test.K8sClient, pluginPreset)
 	})
 
@@ -575,13 +524,6 @@ var _ = Describe("PluginPreset Controller Lifecycle", Ordered, func() {
 		Expect(expPlugin.Labels).To(HaveKey("region"), "the plugin should have the region propagated label")
 
 		By("removing plugin preset")
-		Eventually(func(g Gomega) {
-			err := test.K8sClient.Get(test.Ctx, client.ObjectKeyFromObject(pluginPreset), pluginPreset)
-			g.Expect(err).ShouldNot(HaveOccurred(), "unexpected error getting PluginPreset")
-			pluginPreset.Annotations = map[string]string{}
-			Expect(test.K8sClient.Update(test.Ctx, pluginPreset)).ToNot(HaveOccurred())
-		}).Should(Succeed(), "failed to update PluginPreset")
-		Expect(test.K8sClient.Delete(test.Ctx, pluginPreset)).ToNot(HaveOccurred())
 		test.EventuallyDeleted(test.Ctx, test.K8sClient, pluginPreset)
 	})
 })
