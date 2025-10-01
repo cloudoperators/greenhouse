@@ -1,0 +1,12 @@
+# SPDX-FileCopyrightText: 2025 SAP SE or an SAP affiliate company and Greenhouse contributors
+# SPDX-License-Identifier: Apache-2.0
+
+# Cluster Scoped Resource
+apiVersion: greenhouse.sap/v1alpha1
+kind: Organization
+metadata:
+  name: greenhouse
+spec:
+  description: greenhouse organization
+  displayName: CatalogE2E
+  mappedOrgAdminIdPGroup: TEST_ORG_ADMIN
