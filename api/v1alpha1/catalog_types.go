@@ -42,7 +42,34 @@ type GitSource struct {
 	URL string `json:"url"`
 
 	// Ref is the Git reference (branch, tag, or SHA) to resolve the ClusterPluginDefinition / PluginDefinition Catalog
+	// +Optional
 	Ref *GitRef `json:"ref,omitempty"`
+
+	// SecretName is the name of v1.Secret containing credentials to access the Git repository
+	// the secret must be in the same namespace as the Catalog resource
+	/*
+	  GitHub App Example:
+	  -------------------
+	  githubAppID: "<app-id>"
+	  githubAppInstallationID: "<app-installation-id>"
+	  githubAppPrivateKey: |
+	    -----BEGIN RSA PRIVATE KEY-----
+	    ...
+	    -----END RSA PRIVATE KEY-----
+	  githubAppBaseURL: "<github-enterprise-api-url>" #optional, required only for GitHub Enterprise Server users
+	  ca.crt: | #optional, for GitHub Enterprise Server users
+	    -----BEGIN CERTIFICATE-----
+	    ...
+	    -----END CERTIFICATE-----
+
+	  GitHub Token Example:
+	  -------------------
+	  username: <BASE64>
+	  password: <BASE64>
+	  ca.crt: <BASE64> #optional, for GitHub Enterprise Server users
+	*/
+	// +Optional
+	SecretName *string `json:"secretName,omitempty"`
 }
 
 type GitRef struct {

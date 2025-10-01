@@ -9,6 +9,7 @@ import (
 	"time"
 
 	kustomizev1 "github.com/fluxcd/kustomize-controller/api/v1"
+	fluxmeta "github.com/fluxcd/pkg/apis/meta"
 	sourcev1 "github.com/fluxcd/source-controller/api/v1"
 	"github.com/go-logr/logr"
 	corev1 "k8s.io/api/core/v1"
@@ -17,11 +18,11 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/tools/record"
-	"k8s.io/client-go/util/retry"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
+	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 
 	greenhouseapis "github.com/cloudoperators/greenhouse/api"
@@ -29,6 +30,11 @@ import (
 	"github.com/cloudoperators/greenhouse/internal/flux"
 	"github.com/cloudoperators/greenhouse/internal/lifecycle"
 	"github.com/cloudoperators/greenhouse/internal/rbac"
+)
+
+const (
+	githubAppAuthProvider = "github"
+	githubAppIDKey        = "githubAppID"
 )
 
 type CatalogReconciler struct {
@@ -55,8 +61,8 @@ func (r *CatalogReconciler) SetupWithManager(name string, mgr ctrl.Manager) erro
 				),
 			),
 		).
-		Owns(&sourcev1.GitRepository{}).
-		Owns(&kustomizev1.Kustomization{}).
+		Owns(&sourcev1.GitRepository{}, builder.WithPredicates(ignoreObjectBeingDeleted())).
+		Owns(&kustomizev1.Kustomization{}, builder.WithPredicates(ignoreObjectBeingDeleted())).
 		Complete(r)
 }
 
@@ -87,7 +93,6 @@ func (r *CatalogReconciler) EnsureDeleted(ctx context.Context, obj lifecycle.Run
 		log.Info("waiting for kustomization to be deleted", "name", catalog.Name, "namespace", catalog.Namespace)
 		return ctrl.Result{RequeueAfter: 5 * time.Second}, lifecycle.Pending, nil
 	}
-	r.recorder.Eventf(catalog, corev1.EventTypeNormal, "Deleted", "Deleted Kustomization for catalog: %s/%s", catalog.Namespace, catalog.Name)
 
 	gitRepository := &sourcev1.GitRepository{}
 	gitRepository.SetName(catalog.Name)
@@ -100,8 +105,9 @@ func (r *CatalogReconciler) EnsureDeleted(ctx context.Context, obj lifecycle.Run
 		log.Info("waiting for git repository to be deleted", "name", catalog.Name, "namespace", catalog.Namespace)
 		return ctrl.Result{RequeueAfter: 5 * time.Second}, lifecycle.Pending, nil
 	}
-	r.recorder.Eventf(catalog, corev1.EventTypeNormal, "Deleted", "Deleted GitRepository for catalog: %s/%s", catalog.Namespace, catalog.Name)
 
+	r.recorder.Eventf(catalog, corev1.EventTypeNormal, "Deleted", "Deleted Kustomization for catalog: %s/%s", catalog.Namespace, catalog.Name)
+	r.recorder.Eventf(catalog, corev1.EventTypeNormal, "Deleted", "Deleted GitRepository for catalog: %s/%s", catalog.Namespace, catalog.Name)
 	log.Info("catalog deleted", "name", catalog.Name, "namespace", catalog.Namespace)
 	return ctrl.Result{}, lifecycle.Success, nil
 }
@@ -128,6 +134,11 @@ func (r *CatalogReconciler) ensureResourceIsDeleted(ctx context.Context, catalog
 			greenhouseapis.FluxReconcileRequestAnnotation: time.Now().Format(time.DateTime),
 		})
 		if err = r.Update(ctx, obj); err != nil {
+			if errors.IsConflict(err) {
+				err = nil
+				requeue = true
+				return
+			}
 			return
 		}
 	}
@@ -189,40 +200,54 @@ func (r *CatalogReconciler) ensureGitRepository(ctx context.Context, catalog *gr
 			gitReference.Branch = *gitSource.Ref.Branch
 		}
 	}
+	authProvider := "generic"
+
+	if gitSource.SecretName != nil {
+		// ensure the secret exists
+		secret := &corev1.Secret{}
+		secret.SetName(*gitSource.SecretName)
+		secret.SetNamespace(catalog.Namespace)
+		err = r.Get(ctx, client.ObjectKeyFromObject(secret), secret)
+		if err != nil {
+			r.recorder.Eventf(catalog, corev1.EventTypeWarning, "Error", "Error: fetching Secret %s for catalog: %s/%s - %s", *gitSource.SecretName, catalog.GetNamespace(), catalog.GetName(), err.Error())
+			return fmt.Errorf("failed to get secret %s for catalog %s/%s: %w", *gitSource.SecretName, catalog.Namespace, catalog.Name, err)
+		}
+		if _, ok := secret.Data[githubAppIDKey]; ok {
+			authProvider = githubAppAuthProvider
+		}
+	}
 
 	gitRepository := &sourcev1.GitRepository{}
 	gitRepository.SetName(catalog.Name)
 	gitRepository.SetNamespace(catalog.Namespace)
 	// when flux resources is being updated by greenhouse controller and in parallel by flux controller, we need to retryOnConflict
-	err = retry.RetryOnConflict(retry.DefaultRetry, func() error {
-		result, err := ctrl.CreateOrUpdate(ctx, r.Client, gitRepository, func() error {
-			gitRepository.Spec = sourcev1.GitRepositorySpec{
-				URL:       gitSource.URL,
-				Interval:  metav1.Duration{Duration: flux.DefaultInterval},
-				Reference: gitReference,
-			}
-			return controllerutil.SetControllerReference(catalog, gitRepository, r.Scheme)
-		})
-		if err != nil && !errors.IsAlreadyExists(err) {
-			return err
+	result, err := controllerutil.CreateOrPatch(ctx, r.Client, gitRepository, func() error {
+		gitRepository.Spec = sourcev1.GitRepositorySpec{
+			URL:       gitSource.URL,
+			Interval:  metav1.Duration{Duration: flux.DefaultInterval},
+			Reference: gitReference,
+			Provider:  authProvider,
 		}
-		switch result {
-		case controllerutil.OperationResultCreated:
-			r.log.Info("created git repository for catalog", "name", catalog.Name, "namespace", catalog.Namespace)
-			r.recorder.Eventf(catalog, corev1.EventTypeNormal, "Created", "Created GitRepository %s", gitRepository.Name)
-		case controllerutil.OperationResultUpdated:
-			r.log.Info("updated git repository for catalog", "name", catalog.Name, "namespace", catalog.Namespace)
-			r.recorder.Eventf(catalog, corev1.EventTypeNormal, "Updated", "Updated GitRepository %s", gitRepository.Name)
-		case controllerutil.OperationResultNone:
-			r.log.Info("No changes to catalog git repository", "name", gitRepository.Name, "namespace", gitRepository.Namespace)
-		default:
-			r.log.Info("result is unknown for catalog git repository", "name", catalog.Name, "namespace", catalog.Namespace, "result", result)
+		if gitSource.SecretName != nil {
+			gitRepository.Spec.SecretRef = &fluxmeta.LocalObjectReference{Name: *gitSource.SecretName}
 		}
-		return nil
+		return controllerutil.SetControllerReference(catalog, gitRepository, r.Scheme)
 	})
 	if err != nil {
 		r.recorder.Eventf(catalog, corev1.EventTypeWarning, "Error", "Error: GitRepository %s - %s", gitRepository.Name, err.Error())
 		return err
+	}
+	switch result {
+	case controllerutil.OperationResultCreated:
+		r.log.Info("created git repository for catalog", "name", catalog.Name, "namespace", catalog.Namespace)
+		r.recorder.Eventf(catalog, corev1.EventTypeNormal, "Created", "Created GitRepository %s", gitRepository.Name)
+	case controllerutil.OperationResultUpdated:
+		r.log.Info("updated git repository for catalog", "name", catalog.Name, "namespace", catalog.Namespace)
+		r.recorder.Eventf(catalog, corev1.EventTypeNormal, "Updated", "Updated GitRepository %s", gitRepository.Name)
+	case controllerutil.OperationResultNone:
+		r.log.Info("No changes to catalog git repository", "name", gitRepository.Name, "namespace", gitRepository.Namespace)
+	default:
+		r.log.Info("result is unknown for catalog git repository", "name", catalog.Name, "namespace", catalog.Namespace, "result", result)
 	}
 	return nil
 }
@@ -233,6 +258,7 @@ func (r *CatalogReconciler) ensureGitRepositoryIsReady(ctx context.Context, cata
 	gitRepository.SetNamespace(catalog.Namespace)
 	err = r.Get(ctx, client.ObjectKeyFromObject(gitRepository), gitRepository)
 	if err != nil {
+		r.log.Error(err, "failed to get git repository for catalog", "name", catalog.Name, "namespace", catalog.Namespace)
 		return
 	}
 
@@ -283,31 +309,25 @@ func (r *CatalogReconciler) ensureKustomization(ctx context.Context, gitReposito
 		return err
 	}
 	// when flux resources is being updated by greenhouse controller and in parallel by flux controller, we need to retryOnConflict
-	err = retry.RetryOnConflict(retry.DefaultRetry, func() error {
-		result, err := ctrl.CreateOrUpdate(ctx, r.Client, kustomization, func() error {
-			kustomization.Spec = kustomizationSpec
-			return controllerutil.SetControllerReference(catalog, kustomization, r.Scheme)
-		})
-		if err != nil {
-			return err
-		}
-		switch result {
-		case controllerutil.OperationResultCreated:
-			r.log.Info("created kustomization for catalog", "name", catalog.Name, "namespace", catalog.Namespace)
-			r.recorder.Eventf(catalog, corev1.EventTypeNormal, "Created", "Created Kustomization %s", kustomization.Name)
-		case controllerutil.OperationResultUpdated:
-			r.log.Info("updated kustomization for catalog", "name", catalog.Name, "namespace", catalog.Namespace)
-			r.recorder.Eventf(catalog, corev1.EventTypeNormal, "Updated", "Updated Kustomization %s", kustomization.Name)
-		case controllerutil.OperationResultNone:
-			r.log.Info("No changes to catalog kustomization", "name", kustomization.Name, "namespace", kustomization.Namespace)
-		default:
-			r.log.Info("result is unknown for catalog kustomization", "name", catalog.Name, "namespace", catalog.Namespace, "result", result)
-		}
-		return nil
+	result, err := controllerutil.CreateOrPatch(ctx, r.Client, kustomization, func() error {
+		kustomization.Spec = kustomizationSpec
+		return controllerutil.SetControllerReference(catalog, kustomization, r.Scheme)
 	})
 	if err != nil {
 		r.recorder.Eventf(catalog, corev1.EventTypeWarning, "Error", "Error: Kustomization %s - %s", kustomization.Name, err.Error())
 		return err
+	}
+	switch result {
+	case controllerutil.OperationResultCreated:
+		r.log.Info("created kustomization for catalog", "name", catalog.Name, "namespace", catalog.Namespace)
+		r.recorder.Eventf(catalog, corev1.EventTypeNormal, "Created", "Created Kustomization %s", kustomization.Name)
+	case controllerutil.OperationResultUpdated:
+		r.log.Info("updated kustomization for catalog", "name", catalog.Name, "namespace", catalog.Namespace)
+		r.recorder.Eventf(catalog, corev1.EventTypeNormal, "Updated", "Updated Kustomization %s", kustomization.Name)
+	case controllerutil.OperationResultNone:
+		r.log.Info("No changes to catalog kustomization", "name", kustomization.Name, "namespace", kustomization.Namespace)
+	default:
+		r.log.Info("result is unknown for catalog kustomization", "name", catalog.Name, "namespace", catalog.Namespace, "result", result)
 	}
 	return nil
 }
@@ -341,4 +361,15 @@ func (r *CatalogReconciler) ensureKustomizationIsReady(ctx context.Context, cata
 	}
 	r.log.Info("kustomization resource is ready", "name", kustomization.Name, "namespace", kustomization.Namespace)
 	return
+}
+
+func ignoreObjectBeingDeleted() predicate.Predicate {
+	return predicate.Funcs{
+		UpdateFunc: func(e event.UpdateEvent) bool {
+			return e.ObjectNew.GetDeletionTimestamp().IsZero()
+		},
+		DeleteFunc: func(_ event.DeleteEvent) bool {
+			return false
+		},
+	}
 }
