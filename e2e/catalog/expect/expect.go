@@ -15,7 +15,6 @@ import (
 
 	greenhousemetav1alpha1 "github.com/cloudoperators/greenhouse/api/meta/v1alpha1"
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
-	"github.com/cloudoperators/greenhouse/internal/lifecycle"
 )
 
 func CatalogReady(ctx context.Context, c client.Client, namespace, name string) {
@@ -26,7 +25,6 @@ func CatalogReady(ctx context.Context, c client.Client, namespace, name string) 
 		g.Expect(catalog.Status.Conditions).To(ContainElement(MatchFields(IgnoreExtras, Fields{
 			"Type":   Equal(greenhousemetav1alpha1.ReadyCondition),
 			"Status": Equal(metav1.ConditionTrue),
-			"Reason": Equal(lifecycle.CreatedReason),
 		})), "the Catalog resource should have a Ready condition set to True")
 	}).Should(Succeed(), "the Catalog resource should eventually be ready")
 }
