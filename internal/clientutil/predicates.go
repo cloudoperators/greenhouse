@@ -6,9 +6,7 @@ package clientutil
 import (
 	"slices"
 
-	helmcontroller "github.com/fluxcd/helm-controller/api/v2"
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/meta"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
@@ -82,37 +80,6 @@ func PredicatePluginWithStatusReadyChange() predicate.Predicate {
 		},
 		DeleteFunc:  func(_ event.DeleteEvent) bool { return false },
 		GenericFunc: func(_ event.GenericEvent) bool { return false },
-	}
-}
-
-func PredicateHelmReleaseWithStatusReadyChange() predicate.Predicate {
-	return predicate.Funcs{
-		UpdateFunc: func(e event.UpdateEvent) bool {
-			if e.ObjectOld == nil || e.ObjectNew == nil {
-				return false
-			}
-			oldHelmRelease, okOld := e.ObjectOld.(*helmcontroller.HelmRelease)
-			newHelmRelease, okNew := e.ObjectNew.(*helmcontroller.HelmRelease)
-			if !okOld || !okNew {
-				return false
-			}
-			oldReady := meta.FindStatusCondition(oldHelmRelease.Status.Conditions, "Ready")
-			newReady := meta.FindStatusCondition(newHelmRelease.Status.Conditions, "Ready")
-			// Enqueue on first appearance or change in Status/Reason/Message.
-			switch {
-			case oldReady == nil && newReady != nil:
-				return true
-			case oldReady != nil && newReady != nil:
-				return oldReady.Status != newReady.Status ||
-					oldReady.Reason != newReady.Reason ||
-					oldReady.Message != newReady.Message
-			default:
-				return false
-			}
-		},
-		CreateFunc:  func(event.CreateEvent) bool { return false },
-		DeleteFunc:  func(event.DeleteEvent) bool { return false },
-		GenericFunc: func(event.GenericEvent) bool { return false },
 	}
 }
 

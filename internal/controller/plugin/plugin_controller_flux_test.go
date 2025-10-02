@@ -9,7 +9,7 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
-	helmcontroller "github.com/fluxcd/helm-controller/api/v2"
+	helmv2 "github.com/fluxcd/helm-controller/api/v2"
 	sourcecontroller "github.com/fluxcd/source-controller/api/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -161,7 +161,7 @@ var _ = Describe("Flux Plugin Controller", Ordered, func() {
 
 		By("ensuring HelmRelease has been created")
 		Eventually(func(g Gomega) {
-			release := &helmcontroller.HelmRelease{}
+			release := &helmv2.HelmRelease{}
 			err := test.K8sClient.Get(test.Ctx, types.NamespacedName{Name: testPlugin.Name, Namespace: testPlugin.Namespace}, release)
 			g.Expect(err).ToNot(HaveOccurred(), "failed to get HelmRelease")
 		}).Should(Succeed())
