@@ -36,8 +36,6 @@ const (
 
 	clusterA = "cluster-a"
 	clusterB = "cluster-b"
-
-	preventDeletionAnnotation = "greenhouse.sap/prevent-deletion"
 )
 
 var (
@@ -191,19 +189,16 @@ var _ = Describe("PluginPreset Controller Lifecycle", Ordered, func() {
 		Expect(err).NotTo(HaveOccurred(), "failed to update Plugin")
 
 		By("deleting the PluginPreset")
-		err = test.K8sClient.Get(test.Ctx, types.NamespacedName{Namespace: testPluginPreset.Namespace, Name: testPluginPreset.Name}, testPluginPreset)
-		Expect(err).ShouldNot(HaveOccurred(), "unexpected error getting PluginPreset")
-		testPluginPreset.Annotations = map[string]string{}
-		err = test.K8sClient.Update(test.Ctx, testPluginPreset)
-		Expect(err).ToNot(HaveOccurred())
 		test.EventuallyDeleted(test.Ctx, test.K8sClient, testPluginPreset)
 	})
 
 	It("should reconcile a PluginPreset with plugin definition defaults", func() {
-
 		By("ensuring a Plugin Preset has been created")
 		pluginPreset := pluginPreset(pluginPresetName+"-2", clusterA, testTeam.Name)
-		pluginPreset.Spec.Plugin.PluginDefinition = pluginDefinitionWithDefaultsName
+		pluginPreset.Spec.Plugin.PluginDefinitionRef = greenhousev1alpha1.PluginDefinitionReference{
+			Name: pluginDefinitionWithDefaultsName,
+			Kind: greenhousev1alpha1.ClusterPluginDefinitionKind,
+		}
 		Expect(test.K8sClient.Create(test.Ctx, pluginPreset)).ToNot(HaveOccurred())
 		test.EventuallyCreated(test.Ctx, test.K8sClient, pluginPreset)
 
@@ -222,12 +217,6 @@ var _ = Describe("PluginPreset Controller Lifecycle", Ordered, func() {
 		}))
 
 		By("removing plugin preset")
-		Eventually(func(g Gomega) {
-			err := test.K8sClient.Get(test.Ctx, client.ObjectKeyFromObject(pluginPreset), pluginPreset)
-			g.Expect(err).ShouldNot(HaveOccurred(), "unexpected error getting PluginPreset")
-			pluginPreset.Annotations = map[string]string{}
-			Expect(test.K8sClient.Update(test.Ctx, pluginPreset)).ToNot(HaveOccurred())
-		}).Should(Succeed(), "failed to update PluginPreset")
 		test.EventuallyDeleted(test.Ctx, test.K8sClient, pluginPreset)
 	})
 
@@ -271,14 +260,6 @@ var _ = Describe("PluginPreset Controller Lifecycle", Ordered, func() {
 		}).Should(Succeed(), "the PluginPreset should have removed the Plugin for the deleted Cluster")
 
 		By("removing the PluginPreset")
-		err = test.K8sClient.Get(test.Ctx, client.ObjectKeyFromObject(testPluginPreset), testPluginPreset)
-		Expect(err).ToNot(HaveOccurred(), "failed to get PluginPreset")
-		// Remove prevent-deletion annotation before deleting PluginPreset.
-		_, err = clientutil.Patch(test.Ctx, test.K8sClient, testPluginPreset, func() error {
-			delete(testPluginPreset.Annotations, preventDeletionAnnotation)
-			return nil
-		})
-		Expect(err).ToNot(HaveOccurred(), "failed to patch PluginPreset")
 		test.EventuallyDeleted(test.Ctx, test.K8sClient, testPluginPreset)
 	})
 
@@ -335,14 +316,6 @@ var _ = Describe("PluginPreset Controller Lifecycle", Ordered, func() {
 		}).Should(Succeed(), "the PluginPreset should have removed the Plugin for the deleted Cluster")
 
 		By("removing the PluginPreset")
-		err = test.K8sClient.Get(test.Ctx, client.ObjectKeyFromObject(testPluginPreset), testPluginPreset)
-		Expect(err).ToNot(HaveOccurred(), "failed to get PluginPreset")
-		// Remove prevent-deletion annotation before deleting PluginPreset.
-		_, err = clientutil.Patch(test.Ctx, test.K8sClient, testPluginPreset, func() error {
-			delete(testPluginPreset.Annotations, preventDeletionAnnotation)
-			return nil
-		})
-		Expect(err).ToNot(HaveOccurred(), "failed to patch PluginPreset")
 		test.EventuallyDeleted(test.Ctx, test.K8sClient, testPluginPreset)
 	})
 
@@ -446,14 +419,6 @@ var _ = Describe("PluginPreset Controller Lifecycle", Ordered, func() {
 		}).Should(Succeed())
 
 		By("removing the PluginPreset")
-		err = test.K8sClient.Get(test.Ctx, client.ObjectKeyFromObject(testPluginPreset), testPluginPreset)
-		Expect(err).ToNot(HaveOccurred(), "failed to get PluginPreset")
-		// Remove prevent-deletion annotation before deleting PluginPreset.
-		_, err = clientutil.Patch(test.Ctx, test.K8sClient, testPluginPreset, func() error {
-			delete(testPluginPreset.Annotations, preventDeletionAnnotation)
-			return nil
-		})
-		Expect(err).ToNot(HaveOccurred(), "failed to patch PluginPreset")
 		test.EventuallyDeleted(test.Ctx, test.K8sClient, testPluginPreset)
 	})
 
@@ -474,7 +439,10 @@ var _ = Describe("PluginPreset Controller Lifecycle", Ordered, func() {
 
 		By("creating a PluginPreset with overrides")
 		pluginPreset := pluginPreset(pluginPresetName+"-override1", clusterA, testTeam.Name)
-		pluginPreset.Spec.Plugin.PluginDefinition = pluginDefinition.Name
+		pluginPreset.Spec.Plugin.PluginDefinitionRef = greenhousev1alpha1.PluginDefinitionReference{
+			Name: pluginDefinition.Name,
+			Kind: greenhousev1alpha1.ClusterPluginDefinitionKind,
+		}
 		pluginPreset.Spec.ClusterOptionOverrides = append(pluginPreset.Spec.ClusterOptionOverrides, greenhousev1alpha1.ClusterOptionOverride{
 			ClusterName: clusterA,
 			Overrides: []greenhousev1alpha1.PluginOptionValue{
@@ -497,20 +465,16 @@ var _ = Describe("PluginPreset Controller Lifecycle", Ordered, func() {
 			"ClusterOptionOverrides should be applied to the Plugin OptionValues")
 
 		By("removing plugin preset")
-		err := test.K8sClient.Get(test.Ctx, client.ObjectKeyFromObject(pluginPreset), pluginPreset)
-		Expect(err).ShouldNot(HaveOccurred(), "unexpected error getting PluginPreset")
-		_, err = clientutil.Patch(test.Ctx, test.K8sClient, pluginPreset, func() error {
-			delete(pluginPreset.Annotations, preventDeletionAnnotation)
-			return nil
-		})
-		Expect(err).ToNot(HaveOccurred(), "failed to remove prevent-deletion annotation from PluginPreset")
 		test.EventuallyDeleted(test.Ctx, test.K8sClient, pluginPreset)
 	})
 
 	It("should save an error when Plugin creation failed due to required options being unset", func() {
 		By("creating a PluginPreset based on PluginDefinition with required option")
 		pluginPreset := pluginPreset(pluginPresetName+"-missing1", clusterA, testTeam.Name)
-		pluginPreset.Spec.Plugin.PluginDefinition = pluginDefinitionWithRequiredOptionName
+		pluginPreset.Spec.Plugin.PluginDefinitionRef = greenhousev1alpha1.PluginDefinitionReference{
+			Name: pluginDefinitionWithRequiredOptionName,
+			Kind: greenhousev1alpha1.ClusterPluginDefinitionKind,
+		}
 		Expect(test.K8sClient.Create(test.Ctx, pluginPreset)).To(Succeed(), "failed to create PluginPreset")
 		test.EventuallyCreated(test.Ctx, test.K8sClient, pluginPreset)
 
@@ -527,20 +491,16 @@ var _ = Describe("PluginPreset Controller Lifecycle", Ordered, func() {
 		}).Should(Succeed(), "Plugin creation error not found in PluginPreset")
 
 		By("removing plugin preset")
-		err := test.K8sClient.Get(test.Ctx, client.ObjectKeyFromObject(pluginPreset), pluginPreset)
-		Expect(err).ShouldNot(HaveOccurred(), "unexpected error getting PluginPreset")
-		_, err = clientutil.Patch(test.Ctx, test.K8sClient, pluginPreset, func() error {
-			delete(pluginPreset.Annotations, preventDeletionAnnotation)
-			return nil
-		})
-		Expect(err).ToNot(HaveOccurred(), "failed to remove prevent-deletion annotation from PluginPreset")
 		test.EventuallyDeleted(test.Ctx, test.K8sClient, pluginPreset)
 	})
 
 	It("should successfully propagate labels from PluginPreset to Plugin", func() {
 		By("ensuring a Plugin Preset has been created")
 		pluginPreset := pluginPreset(pluginPresetName+"-label-propagation", clusterA, testTeam.Name)
-		pluginPreset.Spec.Plugin.PluginDefinition = pluginDefinitionWithDefaultsName
+		pluginPreset.Spec.Plugin.PluginDefinitionRef = greenhousev1alpha1.PluginDefinitionReference{
+			Name: pluginDefinitionWithDefaultsName,
+			Kind: greenhousev1alpha1.ClusterPluginDefinitionKind,
+		}
 		pluginPreset.SetAnnotations(map[string]string{
 			lifecycle.PropagateLabelsAnnotation: "support_group, region",
 		})
@@ -564,13 +524,6 @@ var _ = Describe("PluginPreset Controller Lifecycle", Ordered, func() {
 		Expect(expPlugin.Labels).To(HaveKey("region"), "the plugin should have the region propagated label")
 
 		By("removing plugin preset")
-		Eventually(func(g Gomega) {
-			err := test.K8sClient.Get(test.Ctx, client.ObjectKeyFromObject(pluginPreset), pluginPreset)
-			g.Expect(err).ShouldNot(HaveOccurred(), "unexpected error getting PluginPreset")
-			pluginPreset.Annotations = map[string]string{}
-			Expect(test.K8sClient.Update(test.Ctx, pluginPreset)).ToNot(HaveOccurred())
-		}).Should(Succeed(), "failed to update PluginPreset")
-		Expect(test.K8sClient.Delete(test.Ctx, pluginPreset)).ToNot(HaveOccurred())
 		test.EventuallyDeleted(test.Ctx, test.K8sClient, pluginPreset)
 	})
 })
@@ -578,7 +531,7 @@ var _ = Describe("PluginPreset Controller Lifecycle", Ordered, func() {
 var _ = Describe("Plugin Preset skip changes", Ordered, func() {
 	DescribeTable("",
 		func(testPlugin *greenhousev1alpha1.Plugin, testPresetPlugin *greenhousev1alpha1.PluginPreset, testPluginDefinition *greenhousev1alpha1.ClusterPluginDefinition, clusterName string, expected bool) {
-			Expect(shouldSkipPlugin(testPlugin, testPresetPlugin, testPluginDefinition, clusterName)).To(BeEquivalentTo(expected))
+			Expect(shouldSkipPlugin(testPlugin, testPresetPlugin, testPluginDefinition.Spec, clusterName)).To(BeEquivalentTo(expected))
 		},
 		Entry("should skip when plugin preset name in plugin's labels is different then defined name in plugin preset",
 			test.NewPlugin(test.Ctx, "", "",
@@ -596,7 +549,7 @@ var _ = Describe("Plugin Preset skip changes", Ordered, func() {
 		Entry("should not skip when plugin preset contains options which is not present in plugin",
 			test.NewPlugin(test.Ctx, "", "",
 				test.WithPresetLabelValue(pluginPresetName),
-				test.WithPluginDefinition(pluginPresetDefinitionName),
+				test.WithClusterPluginDefinition(pluginPresetDefinitionName),
 				test.WithPluginOptionValue("global.greenhouse.test_parameter",
 					test.MustReturnJSONFor(2)),
 			),
@@ -606,7 +559,10 @@ var _ = Describe("Plugin Preset skip changes", Ordered, func() {
 				},
 				Spec: greenhousev1alpha1.PluginPresetSpec{
 					Plugin: greenhousev1alpha1.PluginSpec{
-						PluginDefinition: pluginPresetDefinitionName,
+						PluginDefinitionRef: greenhousev1alpha1.PluginDefinitionReference{
+							Name: pluginPresetDefinitionName,
+							Kind: greenhousev1alpha1.ClusterPluginDefinitionKind,
+						},
 						OptionValues: []greenhousev1alpha1.PluginOptionValue{
 							{
 								Name:  "plugin_preset.test_parameter",
@@ -623,7 +579,7 @@ var _ = Describe("Plugin Preset skip changes", Ordered, func() {
 		Entry("should not skip when plugin preset has option with different value",
 			test.NewPlugin(test.Ctx, "", "",
 				test.WithPresetLabelValue(pluginPresetName),
-				test.WithPluginDefinition(pluginPresetDefinitionName),
+				test.WithClusterPluginDefinition(pluginPresetDefinitionName),
 				test.WithPluginOptionValue("global.greenhouse.test_parameter",
 					test.MustReturnJSONFor(2)),
 				test.WithPluginOptionValue("plugin_preset.test_parameter",
@@ -635,7 +591,10 @@ var _ = Describe("Plugin Preset skip changes", Ordered, func() {
 				},
 				Spec: greenhousev1alpha1.PluginPresetSpec{
 					Plugin: greenhousev1alpha1.PluginSpec{
-						PluginDefinition: pluginPresetDefinitionName,
+						PluginDefinitionRef: greenhousev1alpha1.PluginDefinitionReference{
+							Name: pluginPresetDefinitionName,
+							Kind: greenhousev1alpha1.ClusterPluginDefinitionKind,
+						},
 						OptionValues: []greenhousev1alpha1.PluginOptionValue{
 							{
 								Name:  "plugin_preset.test_parameter",
@@ -652,7 +611,7 @@ var _ = Describe("Plugin Preset skip changes", Ordered, func() {
 		Entry("should not skip when one of plugin preset option has more then one value and one of them is different then option in plugin",
 			test.NewPlugin(test.Ctx, "", "",
 				test.WithPresetLabelValue(pluginPresetName),
-				test.WithPluginDefinition(pluginPresetDefinitionName),
+				test.WithClusterPluginDefinition(pluginPresetDefinitionName),
 				test.WithPluginOptionValue("global.greenhouse.test_parameter",
 					test.MustReturnJSONFor(2)),
 				test.WithPluginOptionValue("plugin_preset.test_parameter_1",
@@ -668,7 +627,10 @@ var _ = Describe("Plugin Preset skip changes", Ordered, func() {
 				},
 				Spec: greenhousev1alpha1.PluginPresetSpec{
 					Plugin: greenhousev1alpha1.PluginSpec{
-						PluginDefinition: pluginPresetDefinitionName,
+						PluginDefinitionRef: greenhousev1alpha1.PluginDefinitionReference{
+							Name: pluginPresetDefinitionName,
+							Kind: greenhousev1alpha1.ClusterPluginDefinitionKind,
+						},
 						OptionValues: []greenhousev1alpha1.PluginOptionValue{
 							{
 								Name:  "plugin_preset.test_parameter_1",
@@ -693,7 +655,7 @@ var _ = Describe("Plugin Preset skip changes", Ordered, func() {
 		Entry("should skip when plugin preset has the same values like plugin",
 			test.NewPlugin(test.Ctx, "", "",
 				test.WithPresetLabelValue(pluginPresetName),
-				test.WithPluginDefinition(pluginPresetDefinitionName),
+				test.WithClusterPluginDefinition(pluginPresetDefinitionName),
 				test.WithPluginOptionValue("global.greenhouse.test_parameter",
 					test.MustReturnJSONFor(2)),
 				test.WithPluginOptionValue("plugin_preset.test_parameter",
@@ -705,7 +667,10 @@ var _ = Describe("Plugin Preset skip changes", Ordered, func() {
 				},
 				Spec: greenhousev1alpha1.PluginPresetSpec{
 					Plugin: greenhousev1alpha1.PluginSpec{
-						PluginDefinition: pluginPresetDefinitionName,
+						PluginDefinitionRef: greenhousev1alpha1.PluginDefinitionReference{
+							Name: pluginPresetDefinitionName,
+							Kind: greenhousev1alpha1.ClusterPluginDefinitionKind,
+						},
 						OptionValues: []greenhousev1alpha1.PluginOptionValue{
 							{
 								Name:  "plugin_preset.test_parameter",
@@ -722,7 +687,7 @@ var _ = Describe("Plugin Preset skip changes", Ordered, func() {
 		Entry("should not skip when plugin has custom values",
 			test.NewPlugin(test.Ctx, "", "",
 				test.WithPresetLabelValue(pluginPresetName),
-				test.WithPluginDefinition(pluginPresetDefinitionName),
+				test.WithClusterPluginDefinition(pluginPresetDefinitionName),
 				test.WithPluginOptionValue("global.greenhouse.test_parameter",
 					test.MustReturnJSONFor(2)),
 				test.WithPluginOptionValue("plugin_preset.test_parameter",
@@ -736,7 +701,10 @@ var _ = Describe("Plugin Preset skip changes", Ordered, func() {
 				},
 				Spec: greenhousev1alpha1.PluginPresetSpec{
 					Plugin: greenhousev1alpha1.PluginSpec{
-						PluginDefinition: pluginPresetDefinitionName,
+						PluginDefinitionRef: greenhousev1alpha1.PluginDefinitionReference{
+							Name: pluginPresetDefinitionName,
+							Kind: greenhousev1alpha1.ClusterPluginDefinitionKind,
+						},
 						OptionValues: []greenhousev1alpha1.PluginOptionValue{
 							{
 								Name:  "plugin_preset.test_parameter",
@@ -753,7 +721,7 @@ var _ = Describe("Plugin Preset skip changes", Ordered, func() {
 		Entry("should skip when plugin has default values from plugin definition",
 			test.NewPlugin(test.Ctx, "", "",
 				test.WithPresetLabelValue(pluginPresetName),
-				test.WithPluginDefinition(pluginPresetDefinitionName),
+				test.WithClusterPluginDefinition(pluginPresetDefinitionName),
 				test.WithPluginOptionValue("global.greenhouse.test_parameter",
 					test.MustReturnJSONFor(2)),
 				test.WithPluginOptionValue("plugin_definition.test_parameter",
@@ -765,8 +733,11 @@ var _ = Describe("Plugin Preset skip changes", Ordered, func() {
 				},
 				Spec: greenhousev1alpha1.PluginPresetSpec{
 					Plugin: greenhousev1alpha1.PluginSpec{
-						PluginDefinition: pluginPresetDefinitionName,
-						OptionValues:     []greenhousev1alpha1.PluginOptionValue{},
+						PluginDefinitionRef: greenhousev1alpha1.PluginDefinitionReference{
+							Name: pluginPresetDefinitionName,
+							Kind: greenhousev1alpha1.ClusterPluginDefinitionKind,
+						},
+						OptionValues: []greenhousev1alpha1.PluginOptionValue{},
 					},
 				},
 			},
@@ -789,7 +760,7 @@ var _ = Describe("Plugin Preset skip changes", Ordered, func() {
 		Entry("should not skip when plugin has different values then plugin definition",
 			test.NewPlugin(test.Ctx, "", "",
 				test.WithPresetLabelValue(pluginPresetName),
-				test.WithPluginDefinition(pluginPresetDefinitionName),
+				test.WithClusterPluginDefinition(pluginPresetDefinitionName),
 				test.WithPluginOptionValue("global.greenhouse.test_parameter",
 					test.MustReturnJSONFor(2)),
 				test.WithPluginOptionValue("plugin_definition.test_parameter",
@@ -801,8 +772,11 @@ var _ = Describe("Plugin Preset skip changes", Ordered, func() {
 				},
 				Spec: greenhousev1alpha1.PluginPresetSpec{
 					Plugin: greenhousev1alpha1.PluginSpec{
-						PluginDefinition: pluginPresetDefinitionName,
-						OptionValues:     []greenhousev1alpha1.PluginOptionValue{},
+						PluginDefinitionRef: greenhousev1alpha1.PluginDefinitionReference{
+							Name: pluginPresetDefinitionName,
+							Kind: greenhousev1alpha1.ClusterPluginDefinitionKind,
+						},
+						OptionValues: []greenhousev1alpha1.PluginOptionValue{},
 					},
 				},
 			},
@@ -824,7 +798,7 @@ var _ = Describe("Plugin Preset skip changes", Ordered, func() {
 		), Entry("should not skip when Plugin has different valueFrom then PluginDefinition",
 			test.NewPlugin(test.Ctx, "", "",
 				test.WithPresetLabelValue(pluginPresetName),
-				test.WithPluginDefinition(pluginPresetDefinitionName),
+				test.WithClusterPluginDefinition(pluginPresetDefinitionName),
 				test.WithPluginOptionValue("global.greenhouse.test_parameter",
 					test.MustReturnJSONFor(2)),
 				test.WithPluginOptionValueFrom("plugin_definition.test_parameter",
@@ -841,8 +815,11 @@ var _ = Describe("Plugin Preset skip changes", Ordered, func() {
 				},
 				Spec: greenhousev1alpha1.PluginPresetSpec{
 					Plugin: greenhousev1alpha1.PluginSpec{
-						PluginDefinition: pluginPresetDefinitionName,
-						OptionValues:     []greenhousev1alpha1.PluginOptionValue{},
+						PluginDefinitionRef: greenhousev1alpha1.PluginDefinitionReference{
+							Name: pluginPresetDefinitionName,
+							Kind: greenhousev1alpha1.ClusterPluginDefinitionKind,
+						},
+						OptionValues: []greenhousev1alpha1.PluginOptionValue{},
 					},
 				},
 			},
@@ -864,7 +841,7 @@ var _ = Describe("Plugin Preset skip changes", Ordered, func() {
 		), Entry("should skip when Plugin has same valueFrom as PluginPreset",
 			test.NewPlugin(test.Ctx, "", "",
 				test.WithPresetLabelValue(pluginPresetName),
-				test.WithPluginDefinition(pluginPresetDefinitionName),
+				test.WithClusterPluginDefinition(pluginPresetDefinitionName),
 				test.WithPluginOptionValue("global.greenhouse.test_parameter",
 					test.MustReturnJSONFor(2)),
 				test.WithPluginOptionValueFrom("plugin_definition.test_parameter",
@@ -881,7 +858,10 @@ var _ = Describe("Plugin Preset skip changes", Ordered, func() {
 				},
 				Spec: greenhousev1alpha1.PluginPresetSpec{
 					Plugin: greenhousev1alpha1.PluginSpec{
-						PluginDefinition: pluginPresetDefinitionName,
+						PluginDefinitionRef: greenhousev1alpha1.PluginDefinitionReference{
+							Name: pluginPresetDefinitionName,
+							Kind: greenhousev1alpha1.ClusterPluginDefinitionKind,
+						},
 						OptionValues: []greenhousev1alpha1.PluginOptionValue{
 							{Name: "plugin_definition.test_parameter",
 								ValueFrom: &greenhousev1alpha1.ValueFromSource{
@@ -913,7 +893,7 @@ var _ = Describe("Plugin Preset skip changes", Ordered, func() {
 		), Entry("should not skip when Plugin has different value then plugin override",
 			test.NewPlugin(test.Ctx, "", "",
 				test.WithPresetLabelValue(pluginPresetName),
-				test.WithPluginDefinition(pluginPresetDefinitionName),
+				test.WithClusterPluginDefinition(pluginPresetDefinitionName),
 				test.WithPluginOptionValue("global.greenhouse.test_parameter",
 					test.MustReturnJSONFor(2)),
 			),
@@ -923,7 +903,10 @@ var _ = Describe("Plugin Preset skip changes", Ordered, func() {
 				},
 				Spec: greenhousev1alpha1.PluginPresetSpec{
 					Plugin: greenhousev1alpha1.PluginSpec{
-						PluginDefinition: pluginPresetDefinitionName,
+						PluginDefinitionRef: greenhousev1alpha1.PluginDefinitionReference{
+							Name: pluginPresetDefinitionName,
+							Kind: greenhousev1alpha1.ClusterPluginDefinitionKind,
+						},
 						OptionValues: []greenhousev1alpha1.PluginOptionValue{
 							{
 								Name:  "global.greenhouse.test_parameter",
@@ -950,7 +933,7 @@ var _ = Describe("Plugin Preset skip changes", Ordered, func() {
 		), Entry("should skip when Plugin has different value then plugin override but cluster name is different",
 			test.NewPlugin(test.Ctx, "", "",
 				test.WithPresetLabelValue(pluginPresetName),
-				test.WithPluginDefinition(pluginPresetDefinitionName),
+				test.WithClusterPluginDefinition(pluginPresetDefinitionName),
 				test.WithPluginOptionValue("global.greenhouse.test_parameter",
 					test.MustReturnJSONFor(2)),
 			),
@@ -960,7 +943,10 @@ var _ = Describe("Plugin Preset skip changes", Ordered, func() {
 				},
 				Spec: greenhousev1alpha1.PluginPresetSpec{
 					Plugin: greenhousev1alpha1.PluginSpec{
-						PluginDefinition: pluginPresetDefinitionName,
+						PluginDefinitionRef: greenhousev1alpha1.PluginDefinitionReference{
+							Name: pluginPresetDefinitionName,
+							Kind: greenhousev1alpha1.ClusterPluginDefinitionKind,
+						},
 						OptionValues: []greenhousev1alpha1.PluginOptionValue{
 							{
 								Name:  "global.greenhouse.test_parameter",
@@ -1201,7 +1187,10 @@ func pluginPreset(name, selectorValue, supportGroupTeamName string) *greenhousev
 		test.WithPluginPresetLabel(greenhouseapis.LabelKeyOwnedBy, supportGroupTeamName))
 	preset.Spec = greenhousev1alpha1.PluginPresetSpec{
 		Plugin: greenhousev1alpha1.PluginSpec{
-			PluginDefinition: pluginPresetDefinitionName,
+			PluginDefinitionRef: greenhousev1alpha1.PluginDefinitionReference{
+				Name: pluginPresetDefinitionName,
+				Kind: greenhousev1alpha1.ClusterPluginDefinitionKind,
+			},
 			ReleaseName:      releaseName,
 			ReleaseNamespace: releaseNamespace,
 			OptionValues: []greenhousev1alpha1.PluginOptionValue{

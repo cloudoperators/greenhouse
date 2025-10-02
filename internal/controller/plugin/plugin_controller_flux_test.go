@@ -52,7 +52,7 @@ var (
 
 	testPlugin = test.NewPlugin(test.Ctx, "test-flux-plugindefinition", test.TestNamespace,
 		test.WithCluster("test-flux-cluster"),
-		test.WithPluginDefinition("test-flux-plugindefinition"),
+		test.WithClusterPluginDefinition("test-flux-plugindefinition"),
 		test.WithReleaseName("release-test-flux"),
 		test.WithReleaseNamespace(test.TestNamespace),
 		test.WithPluginLabel(greenhouseapis.GreenhouseHelmDeliveryToolLabel, greenhouseapis.GreenhouseHelmDeliveryToolFlux),

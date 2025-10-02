@@ -202,10 +202,81 @@ func NewClusterPluginDefinition(ctx context.Context, name string, opts ...func(d
 	return pd
 }
 
-// WithPluginDefinition sets the PluginDefinition of a Plugin
+// WithPluginDefinitionVersion sets the version of a ClusterPluginDefinition
+func WithPluginDefinitionVersion(version string) func(*greenhousev1alpha1.PluginDefinition) {
+	return func(pd *greenhousev1alpha1.PluginDefinition) {
+		pd.Spec.Version = version
+	}
+}
+
+// WithPluginDefinitionHelmChart sets the HelmChart of a ClusterPluginDefinition
+func WithPluginDefinitionHelmChart(chart *greenhousev1alpha1.HelmChartReference) func(*greenhousev1alpha1.PluginDefinition) {
+	return func(pd *greenhousev1alpha1.PluginDefinition) {
+		pd.Spec.HelmChart = chart
+	}
+}
+
+// WithoutPluginDefinitionHelmChart sets the HelmChart of a ClusterPluginDefinition to nil
+func WithoutPluginDefinitionHelmChart() func(*greenhousev1alpha1.PluginDefinition) {
+	return func(pd *greenhousev1alpha1.PluginDefinition) {
+		pd.Spec.HelmChart = nil
+	}
+}
+
+// WithPluginDefinitionUIApplication sets the description of a ClusterPluginDefinition
+func WithPluginDefinitionUIApplication(ui *greenhousev1alpha1.UIApplicationReference) func(*greenhousev1alpha1.PluginDefinition) {
+	return func(pd *greenhousev1alpha1.PluginDefinition) {
+		pd.Spec.UIApplication = ui
+	}
+}
+
+// AppendPluginDefinitionPluginOption sets the plugin option in ClusterPluginDefinition
+func AppendPluginDefinitionPluginOption(option greenhousev1alpha1.PluginOption) func(*greenhousev1alpha1.PluginDefinition) {
+	return func(pd *greenhousev1alpha1.PluginDefinition) {
+		pd.Spec.Options = append(pd.Spec.Options, option)
+	}
+}
+
+// NewPluginDefinition returns a namespaced greenhousev1alpha1.PluginDefinition object. Opts can be used to set the desired state of the PluginDefinition.
+func NewPluginDefinition(ctx context.Context, name, namespace string, opts ...func(definition *greenhousev1alpha1.PluginDefinition)) *greenhousev1alpha1.PluginDefinition {
+	pd := &greenhousev1alpha1.PluginDefinition{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      name,
+			Namespace: namespace,
+		},
+		Spec: greenhousev1alpha1.PluginDefinitionSpec{
+			Description: "TestPluginDefinition",
+			Version:     "1.0.0",
+			HelmChart: &greenhousev1alpha1.HelmChartReference{
+				Name:       "./../../test/fixtures/myChart",
+				Repository: "dummy",
+				Version:    "1.0.0",
+			},
+		},
+	}
+	for _, o := range opts {
+		o(pd)
+	}
+	return pd
+}
+
+// WithClusterPluginDefinition sets the PluginDefinition reference to ClusterPluginDefinition in the Plugin
+func WithClusterPluginDefinition(pluginDefinition string) func(*greenhousev1alpha1.Plugin) {
+	return func(p *greenhousev1alpha1.Plugin) {
+		p.Spec.PluginDefinitionRef = greenhousev1alpha1.PluginDefinitionReference{
+			Name: pluginDefinition,
+			Kind: greenhousev1alpha1.ClusterPluginDefinitionKind,
+		}
+	}
+}
+
+// WithPluginDefinition sets the PluginDefinition reference to namespaced PluginDefinition in the Plugin
 func WithPluginDefinition(pluginDefinition string) func(*greenhousev1alpha1.Plugin) {
 	return func(p *greenhousev1alpha1.Plugin) {
-		p.Spec.PluginDefinition = pluginDefinition
+		p.Spec.PluginDefinitionRef = greenhousev1alpha1.PluginDefinitionReference{
+			Name: pluginDefinition,
+			Kind: greenhousev1alpha1.PluginDefinitionKind,
+		}
 	}
 }
 

@@ -4,19 +4,12 @@
 package common_test
 
 import (
-	"testing"
-
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
 	"github.com/cloudoperators/greenhouse/api/v1alpha1"
 	"github.com/cloudoperators/greenhouse/internal/common"
 )
-
-func TestCommonURL(t *testing.T) {
-	RegisterFailHandler(Fail)
-	RunSpecs(t, "CommonURl")
-}
 
 var _ = Describe("validate url methods", Ordered, func() {
 	It("should correctly generate the url for an exposed service", func() {
@@ -52,5 +45,4 @@ var _ = Describe("validate url methods", Ordered, func() {
 			Expect(err).To(HaveOccurred(), "Expected error for host: %s", host)
 		}
 	})
-
 })

@@ -25,6 +25,7 @@ import (
 	greenhouseapis "github.com/cloudoperators/greenhouse/api"
 	greenhousemetav1alpha1 "github.com/cloudoperators/greenhouse/api/meta/v1alpha1"
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
+	"github.com/cloudoperators/greenhouse/internal/common"
 	"github.com/cloudoperators/greenhouse/internal/flux"
 	"github.com/cloudoperators/greenhouse/internal/helm"
 	"github.com/cloudoperators/greenhouse/internal/lifecycle"
@@ -49,37 +50,39 @@ func (r *PluginReconciler) EnsureFluxDeleted(ctx context.Context, plugin *greenh
 }
 
 func (r *PluginReconciler) EnsureFluxCreated(ctx context.Context, restClientGetter genericclioptions.RESTClientGetter, plugin *greenhousev1alpha1.Plugin) (ctrl.Result, lifecycle.ReconcileResult, error) {
-	pluginDef, err := r.getPluginDefinition(ctx, plugin)
+	pluginDefinitionSpec, err := common.GetPluginDefinitionSpec(ctx, r.Client, plugin.Spec.PluginDefinitionRef, plugin.GetNamespace())
 	if err != nil {
+		plugin.SetCondition(greenhousemetav1alpha1.TrueCondition(
+			greenhousev1alpha1.HelmReconcileFailedCondition, greenhousev1alpha1.PluginDefinitionNotFoundReason, err.Error()))
 		util.UpdatePluginReconcileTotalMetric(plugin, util.MetricResultError, util.MetricReasonPluginDefinitionNotFound)
-		return ctrl.Result{}, lifecycle.Failed, fmt.Errorf("pluginDefinition not found: %s", err.Error())
+		return ctrl.Result{}, lifecycle.Failed, fmt.Errorf("%s not found: %s", plugin.Spec.PluginDefinitionRef.Kind, err.Error())
 	}
 
 	namespace := flux.HelmRepositoryDefaultNamespace
-	if pluginDef.Namespace != "" {
-		namespace = pluginDef.Namespace
+	if plugin.Spec.PluginDefinitionRef.Kind == greenhousev1alpha1.PluginDefinitionKind {
+		namespace = plugin.GetNamespace()
 	}
 
-	if pluginDef.Spec.HelmChart == nil {
+	if pluginDefinitionSpec.HelmChart == nil {
 		log.FromContext(ctx).Info("No HelmChart defined in PluginDefinition, skipping HelmRelease creation", "plugin", plugin.Name)
 		plugin.SetCondition(greenhousemetav1alpha1.FalseCondition(
 			greenhousev1alpha1.HelmReconcileFailedCondition, "", "PluginDefinition is not backed by HelmChart"))
 		// Update status for UI Applications.
-		plugin.Status.UIApplication = pluginDef.Spec.UIApplication
+		plugin.Status.UIApplication = pluginDefinitionSpec.UIApplication
 		return ctrl.Result{}, lifecycle.Success, nil
 	}
 
-	helmRepository, err := flux.FindHelmRepositoryByURL(ctx, r.Client, pluginDef.Spec.HelmChart.Repository, namespace)
+	helmRepository, err := flux.FindHelmRepositoryByURL(ctx, r.Client, pluginDefinitionSpec.HelmChart.Repository, namespace)
 	if err != nil {
 		return ctrl.Result{}, lifecycle.Failed, errors.New("helm repository not found")
 	}
 
-	if err := r.ensureHelmRelease(ctx, plugin, pluginDef.Spec, helmRepository); err != nil {
+	if err := r.ensureHelmRelease(ctx, plugin, *pluginDefinitionSpec, helmRepository); err != nil {
 		log.FromContext(ctx).Error(err, "failed to ensure HelmRelease for Plugin", "name", plugin.Name, "namespace", plugin.Namespace)
 		return ctrl.Result{}, lifecycle.Failed, err
 	}
 
-	r.reconcilePluginStatus(ctx, restClientGetter, plugin, pluginDef, &plugin.Status)
+	r.reconcilePluginStatus(ctx, restClientGetter, plugin, *pluginDefinitionSpec, &plugin.Status)
 
 	return ctrl.Result{}, lifecycle.Success, nil
 }
@@ -177,7 +180,7 @@ func (r *PluginReconciler) ensureHelmRelease(
 func (r *PluginReconciler) reconcilePluginStatus(ctx context.Context,
 	restClientGetter genericclioptions.RESTClientGetter,
 	plugin *greenhousev1alpha1.Plugin,
-	pluginDefinition *greenhousev1alpha1.ClusterPluginDefinition,
+	pluginDefinitionSpec greenhousev1alpha1.PluginDefinitionSpec,
 	pluginStatus *greenhousev1alpha1.PluginStatus,
 ) {
 
@@ -233,7 +236,7 @@ func (r *PluginReconciler) reconcilePluginStatus(ctx context.Context,
 			} else {
 				releaseStatus.Status = "deployed"
 			}
-			pluginVersion = pluginDefinition.Spec.Version
+			pluginVersion = pluginDefinitionSpec.Version
 		case isReadyCurrent && ready.Status == metav1.ConditionUnknown:
 			switch helmRelease.Status.LastAttemptedReleaseAction {
 			case helmv2.ReleaseActionInstall:
@@ -264,10 +267,10 @@ func (r *PluginReconciler) reconcilePluginStatus(ctx context.Context,
 		helmChartReference *greenhousev1alpha1.HelmChartReference
 	)
 	// Ensure the status is always reported.
-	uiApplication = pluginDefinition.Spec.UIApplication
+	uiApplication = pluginDefinitionSpec.UIApplication
 	// Only set the helm chart reference if the helm release has been applied successfully or the release status is unknown.
-	if pluginVersion == pluginDefinition.Spec.Version || releaseStatus.Status == "unknown" {
-		helmChartReference = pluginDefinition.Spec.HelmChart
+	if pluginVersion == pluginDefinitionSpec.Version || releaseStatus.Status == "unknown" {
+		helmChartReference = pluginDefinitionSpec.HelmChart
 	} else {
 		helmChartReference = plugin.Status.HelmChart
 	}
@@ -276,8 +279,8 @@ func (r *PluginReconciler) reconcilePluginStatus(ctx context.Context,
 	pluginStatus.Version = pluginVersion
 	pluginStatus.UIApplication = uiApplication
 	pluginStatus.HelmChart = helmChartReference
-	pluginStatus.Weight = pluginDefinition.Spec.Weight
-	pluginStatus.Description = pluginDefinition.Spec.Description
+	pluginStatus.Weight = pluginDefinitionSpec.Weight
+	pluginStatus.Description = pluginDefinitionSpec.Description
 	pluginStatus.ExposedServices = exposedServices
 }
 

@@ -53,7 +53,7 @@ func FluxControllerPodInfoByPlugin(ctx context.Context, adminClient, remoteClien
 
 	By("Prepare the plugin spec for PluginPreset")
 	testPlugin := fixtures.PreparePlugin("test-podinfo-plugin", env.TestNamespace,
-		test.WithPluginDefinition(testPluginDefinition.Name),
+		test.WithClusterPluginDefinition(testPluginDefinition.Name),
 		test.WithReleaseName("test-podinfo-plugin"),
 		test.WithReleaseNamespace(env.TestNamespace),
 		test.WithPluginOptionValue("replicaCount", &apiextensionsv1.JSON{Raw: []byte("1")}))
