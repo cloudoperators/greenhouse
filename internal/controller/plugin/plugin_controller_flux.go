@@ -116,6 +116,7 @@ func (r *PluginReconciler) EnsureFluxCreated(ctx context.Context, plugin *greenh
 				Name: plugin.Spec.ClusterName,
 				Key:  greenhouseapis.GreenHouseKubeConfigKey,
 			}).
+			WithDependsOn(convertWaitForToDependsOn(plugin.Spec.WaitFor)).
 			WithValues(values).
 			WithValuesFrom(r.addValueReferences(plugin)).
 			WithTargetNamespace(plugin.Spec.ReleaseNamespace).Build()
