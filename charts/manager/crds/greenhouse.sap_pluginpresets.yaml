@@ -228,8 +228,6 @@ spec:
                         description: Name of the referenced PluginDefinition or ClusterPluginDefinition
                           resource.
                         type: string
-                    required:
-                    - name
                     type: object
                   releaseName:
                     description: |-
