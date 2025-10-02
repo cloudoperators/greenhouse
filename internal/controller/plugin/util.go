@@ -339,7 +339,8 @@ func shouldReconcileOrRequeue(ctx context.Context, c client.Client, plugin *gree
 	return nil, nil
 }
 
-func resolvePluginDependencies(dependencies []greenhousev1alpha1.WaitForItem, clusterName string) ([]greenhousev1alpha1.WaitForItem, error) {
+// resolvePluginDependencies transforms the WaitFor PluginRefs so that only Plugin names are set in the output.
+func resolvePluginDependencies(dependencies []greenhousev1alpha1.WaitForItem, clusterName string) []greenhousev1alpha1.WaitForItem {
 	out := make([]greenhousev1alpha1.WaitForItem, len(dependencies))
 
 	for i, d := range dependencies {
@@ -350,5 +351,5 @@ func resolvePluginDependencies(dependencies []greenhousev1alpha1.WaitForItem, cl
 		out[i] = d
 	}
 
-	return out, nil
+	return out
 }

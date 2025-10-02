@@ -57,8 +57,8 @@ type WaitForItem struct {
 
 // PluginRef defines a reference to the Plugin, either by its name or the PluginPreset that it's created from.
 type PluginRef struct {
-	// Name of the Plugin in the current namespace.
+	// Name of the Plugin.
 	Name string `json:"name,omitempty"`
-	// PluginPreset is the name of the PluginPreset which creates the Plugin in the current namespace.
+	// PluginPreset is the name of the PluginPreset which creates the Plugin.
 	PluginPreset string `json:"pluginPreset,omitempty"`
 }
