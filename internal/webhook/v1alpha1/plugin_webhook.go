@@ -144,6 +144,14 @@ func ValidateCreatePlugin(ctx context.Context, c client.Client, obj runtime.Obje
 		return nil, field.Invalid(field.NewPath("spec").Child("releaseName"), plugin.Spec.ReleaseName, err.Error())
 	}
 
+	// Name and PluginPreset are mutually exclusive in PluginRef.
+	for _, item := range plugin.Spec.WaitFor {
+		if item.PluginRef.Name != "" && item.PluginRef.PluginPreset != "" {
+			return nil, field.Invalid(field.NewPath("spec", "waitFor", "pluginRef", "name"),
+				item.PluginRef.Name, "cannot specify both pluginRef.name and pluginRef.pluginPreset")
+		}
+	}
+
 	optionsFieldPath := field.NewPath("spec").Child("optionValues")
 	errList := validatePluginOptionValues(plugin.Spec.OptionValues, pluginDefinition.Name, pluginDefinition.Spec, true, optionsFieldPath)
 	if len(errList) > 0 {
@@ -187,6 +195,14 @@ func ValidateUpdatePlugin(ctx context.Context, c client.Client, old, obj runtime
 
 	if err := validateReleaseName(plugin.Spec.ReleaseName); err != nil {
 		return allWarns, field.Invalid(field.NewPath("spec").Child("releaseName"), plugin.Spec.ReleaseName, err.Error())
+	}
+
+	// Name and PluginPreset are mutually exclusive in PluginRef.
+	for _, item := range plugin.Spec.WaitFor {
+		if item.PluginRef.Name != "" && item.PluginRef.PluginPreset != "" {
+			return allWarns, field.Invalid(field.NewPath("spec", "waitFor", "pluginRef", "name"),
+				item.PluginRef.Name, "cannot specify both pluginRef.name and pluginRef.pluginPreset")
+		}
 	}
 
 	labelValidationWarning := webhook.ValidateLabelOwnedBy(ctx, c, plugin)

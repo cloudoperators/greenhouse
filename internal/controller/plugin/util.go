@@ -338,3 +338,17 @@ func shouldReconcileOrRequeue(ctx context.Context, c client.Client, plugin *gree
 
 	return nil, nil
 }
+
+func resolvePluginDependencies(dependencies []greenhousev1alpha1.WaitForItem, clusterName string) ([]greenhousev1alpha1.WaitForItem, error) {
+	out := make([]greenhousev1alpha1.WaitForItem, len(dependencies))
+
+	for i, d := range dependencies {
+		if d.PluginPreset != "" {
+			d.Name = fmt.Sprintf("%s-%s", d.PluginPreset, clusterName)
+			d.PluginPreset = ""
+		}
+		out[i] = d
+	}
+
+	return out, nil
+}

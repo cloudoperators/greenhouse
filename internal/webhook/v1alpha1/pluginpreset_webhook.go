@@ -79,6 +79,14 @@ func ValidateCreatePluginPreset(ctx context.Context, c client.Client, o runtime.
 		allErrs = append(allErrs, field.Invalid(field.NewPath("spec").Child("plugin").Child("releaseName"), pluginPreset.Spec.Plugin.ReleaseName, err.Error()))
 	}
 
+	// Name and PluginPreset are mutually exclusive in PluginRef.
+	for _, item := range pluginPreset.Spec.WaitFor {
+		if item.PluginRef.Name != "" && item.PluginRef.PluginPreset != "" {
+			allErrs = append(allErrs, field.Invalid(field.NewPath("spec", "waitFor", "pluginRef", "name"),
+				item.PluginRef.Name, "cannot specify both pluginRef.name and pluginRef.pluginPreset"))
+		}
+	}
+
 	// ensure PluginDefinition exists
 	pluginDefinition := new(greenhousev1alpha1.ClusterPluginDefinition)
 	err := c.Get(ctx, client.ObjectKey{Namespace: "", Name: pluginPreset.Spec.Plugin.PluginDefinition}, pluginDefinition)
@@ -125,6 +133,14 @@ func ValidateUpdatePluginPreset(ctx context.Context, c client.Client, oldObj, cu
 
 	if err := webhook.ValidateImmutableField(oldPluginPreset.Spec.Plugin.ClusterName, pluginPreset.Spec.Plugin.ClusterName, field.NewPath("spec", "plugin", "clusterName")); err != nil {
 		allErrs = append(allErrs, err)
+	}
+
+	// Name and PluginPreset are mutually exclusive in PluginRef.
+	for _, item := range pluginPreset.Spec.WaitFor {
+		if item.PluginRef.Name != "" && item.PluginRef.PluginPreset != "" {
+			allErrs = append(allErrs, field.Invalid(field.NewPath("spec", "waitFor", "pluginRef", "name"),
+				item.PluginRef.Name, "cannot specify both pluginRef.name and pluginRef.pluginPreset"))
+		}
 	}
 
 	labelValidationWarning := webhook.ValidateLabelOwnedBy(ctx, c, pluginPreset)
