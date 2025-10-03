@@ -27,6 +27,8 @@ spec:
     kind: TeamRoleBinding
     listKind: TeamRoleBindingList
     plural: teamrolebindings
+    shortNames:
+    - trb
     singular: teamrolebinding
   scope: Namespaced
   versions:

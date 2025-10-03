@@ -14,6 +14,8 @@ spec:
     kind: PluginDefinition
     listKind: PluginDefinitionList
     plural: plugindefinitions
+    shortNames:
+    - pd
     singular: plugindefinition
   scope: Namespaced
   versions:

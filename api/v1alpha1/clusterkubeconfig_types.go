@@ -66,7 +66,7 @@ type ClusterKubeconfigPreferences struct {
 
 //+kubebuilder:object:root=true
 //+kubebuilder:subresource:status
-//+kubebuilder:resource:shortName=cluster-kubeconfig;cluster-kubeconfigs
+//+kubebuilder:resource:shortName=ckc;cluster-kubeconfigs
 
 // ClusterKubeconfig is the Schema for the clusterkubeconfigs API
 // ObjectMeta.OwnerReferences is used to link the ClusterKubeconfig to the Cluster
