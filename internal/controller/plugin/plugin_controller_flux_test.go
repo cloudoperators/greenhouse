@@ -9,13 +9,17 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
+	helmv2 "github.com/fluxcd/helm-controller/api/v2"
+	sourcecontroller "github.com/fluxcd/source-controller/api/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
 
 	greenhouseapis "github.com/cloudoperators/greenhouse/api"
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
+	"github.com/cloudoperators/greenhouse/internal/flux"
 	"github.com/cloudoperators/greenhouse/internal/helm"
 	"github.com/cloudoperators/greenhouse/internal/test"
 )
@@ -47,10 +51,11 @@ var (
 	}
 
 	testPlugin = test.NewPlugin(test.Ctx, "test-flux-plugindefinition", test.TestNamespace,
-		test.WithCluster("test-cluster"),
+		test.WithCluster("test-flux-cluster"),
 		test.WithClusterPluginDefinition("test-flux-plugindefinition"),
 		test.WithReleaseName("release-test-flux"),
 		test.WithReleaseNamespace(test.TestNamespace),
+		test.WithPluginLabel(greenhouseapis.GreenhouseHelmDeliveryToolLabel, greenhouseapis.GreenhouseHelmDeliveryToolFlux),
 		test.WithPluginLabel(greenhouseapis.LabelKeyOwnedBy, testPluginTeam.Name),
 		test.WithPluginOptionValue("flatOption", test.MustReturnJSONFor("flatValue")),
 		test.WithPluginOptionValue("nested.option", test.MustReturnJSONFor("nestedValue")),
@@ -61,9 +66,15 @@ var (
 			},
 		}),
 	)
+
 	testPluginDefinition = test.NewClusterPluginDefinition(
 		test.Ctx,
 		"test-flux-plugindefinition",
+		test.WithHelmChart(&greenhousev1alpha1.HelmChartReference{
+			Name:       "dummy",
+			Repository: "oci://greenhouse/helm-charts",
+			Version:    "1.0.0",
+		}),
 		test.AppendPluginOption(
 			greenhousev1alpha1.PluginOption{
 				Name:    "flatOptionDefault",
@@ -133,5 +144,26 @@ var _ = Describe("Flux Plugin Controller", Ordered, func() {
 
 		By("checking the computed Values")
 		Expect(actual).To(Equal(expectedRaw), "the computed HelmRelease values should match the expected values")
+	})
+
+	It("should create HelmRelease for Plugin", func() {
+		By("ensuring HelmRepository has been created for ClusterPluginDefinition")
+		helmRepository := &sourcecontroller.HelmRepository{}
+		repoName := flux.ChartURLToName(testPluginDefinition.Spec.HelmChart.Repository)
+		repoNamespace := flux.HelmRepositoryDefaultNamespace
+		Eventually(func(g Gomega) {
+			err := test.K8sClient.Get(test.Ctx, types.NamespacedName{Name: repoName, Namespace: repoNamespace}, helmRepository)
+			g.Expect(err).ToNot(HaveOccurred(), "failed to get HelmRepository")
+		}).Should(Succeed())
+
+		By("creating test Plugin")
+		Expect(test.K8sClient.Create(test.Ctx, testPlugin)).To(Succeed(), "failed to create Plugin")
+
+		By("ensuring HelmRelease has been created")
+		Eventually(func(g Gomega) {
+			release := &helmv2.HelmRelease{}
+			err := test.K8sClient.Get(test.Ctx, types.NamespacedName{Name: testPlugin.Name, Namespace: testPlugin.Namespace}, release)
+			g.Expect(err).ToNot(HaveOccurred(), "failed to get HelmRelease")
+		}).Should(Succeed())
 	})
 })
