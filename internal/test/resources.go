@@ -443,6 +443,22 @@ func WithPluginPresetLabel(key, value string) func(*greenhousev1alpha1.PluginPre
 	}
 }
 
+// WithClusterOverrides sets the ClusterOverrides for a Cluster
+func WithClusterOverride(clusterName string, optionValues []greenhousev1alpha1.PluginOptionValue) func(*greenhousev1alpha1.PluginPreset) {
+	return func(pp *greenhousev1alpha1.PluginPreset) {
+		for co := range pp.Spec.ClusterOptionOverrides {
+			if pp.Spec.ClusterOptionOverrides[co].ClusterName == clusterName {
+				pp.Spec.ClusterOptionOverrides[co].Overrides = optionValues
+				return
+			}
+		}
+		pp.Spec.ClusterOptionOverrides = append(pp.Spec.ClusterOptionOverrides, greenhousev1alpha1.ClusterOptionOverride{
+			ClusterName: clusterName,
+			Overrides:   optionValues,
+		})
+	}
+}
+
 // NewPluginPreset returns a greenhousev1alpha1.PluginPreset object. Opts can be used to set the desired state of the PluginPreset.
 func NewPluginPreset(name, namespace string, opts ...func(*greenhousev1alpha1.PluginPreset)) *greenhousev1alpha1.PluginPreset {
 	GinkgoHelper()
