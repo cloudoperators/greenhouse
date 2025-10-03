@@ -2800,6 +2800,18 @@ Kubernetes meta/v1.LabelSelector
 <p>ClusterOptionOverrides define plugin option values to override by the PluginPreset</p>
 </td>
 </tr>
+<tr>
+<td>
+<code>deletionPolicy</code><br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>DeletionPolicy defines how Plugins owned by a PluginPreset are handled on deletion of the PluginPreset.
+Supported values are &ldquo;Delete&rdquo; and &ldquo;Orphan&rdquo;. If not set, defaults to &ldquo;Delete&rdquo;.</p>
+</td>
+</tr>
 </table>
 </td>
 </tr>
@@ -2873,6 +2885,18 @@ Kubernetes meta/v1.LabelSelector
 </td>
 <td>
 <p>ClusterOptionOverrides define plugin option values to override by the PluginPreset</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>deletionPolicy</code><br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>DeletionPolicy defines how Plugins owned by a PluginPreset are handled on deletion of the PluginPreset.
+Supported values are &ldquo;Delete&rdquo; and &ldquo;Orphan&rdquo;. If not set, defaults to &ldquo;Delete&rdquo;.</p>
 </td>
 </tr>
 </tbody>
