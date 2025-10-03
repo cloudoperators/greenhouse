@@ -15,6 +15,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
 	greenhousemetav1alpha1 "github.com/cloudoperators/greenhouse/api/meta/v1alpha1"
+	"github.com/cloudoperators/greenhouse/api/v1alpha1"
+	"github.com/cloudoperators/greenhouse/internal/clientutil"
 )
 
 type ReconcileResult string
@@ -66,6 +68,19 @@ func Reconcile(ctx context.Context, kubeClient client.Client, namespacedName typ
 	if err := kubeClient.Get(ctx, namespacedName, runtimeObject); err != nil {
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
+
+	annotations := runtimeObject.GetAnnotations()
+	if annotations[v1alpha1.GreenhouseOperation] == v1alpha1.GreenhouseOperationReconcile {
+		_, err := clientutil.Patch(ctx, kubeClient, runtimeObject, func() error {
+			delete(annotations, v1alpha1.GreenhouseOperation)
+			runtimeObject.SetAnnotations(annotations)
+			return nil
+		})
+		if err != nil {
+			return ctrl.Result{}, err
+		}
+	}
+
 	// store the original object in the context
 	ctx = createContextFromRuntimeObject(ctx, runtimeObject)
 
