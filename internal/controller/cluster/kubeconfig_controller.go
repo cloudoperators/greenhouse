@@ -100,7 +100,7 @@ func (r *KubeconfigReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 	}
 
 	// get oidc info from organization
-	oidc, err := r.getOIDCInfo(ctx, cluster.Namespace)
+	oidc, err := r.getOIDCInfo(ctx, cluster.Namespace, &cluster)
 	if err != nil {
 		kubeconfig.Status.Conditions.SetConditions(greenhousemetav1alpha1.TrueCondition(v1alpha1.KubeconfigReconcileFailedCondition, "OIDCInfoError", err.Error()))
 		// patch status before returning on error
@@ -225,7 +225,9 @@ type OIDCInfo struct {
 	IssuerURL    string
 }
 
-func (r *KubeconfigReconciler) getOIDCInfo(ctx context.Context, orgName string) (OIDCInfo, error) {
+// getOIDCInfo fetches OIDC configuration, first from the Organization,
+// then overridden by the cluster and organization labels if present
+func (r *KubeconfigReconciler) getOIDCInfo(ctx context.Context, orgName string, cluster *v1alpha1.Cluster) (OIDCInfo, error) {
 	var org v1alpha1.Organization
 	if err := r.Get(ctx, client.ObjectKey{Name: orgName}, &org); err != nil {
 		return OIDCInfo{}, err
@@ -261,6 +263,34 @@ func (r *KubeconfigReconciler) getOIDCInfo(ctx context.Context, orgName string) 
 		ClientSecret: clientSecret,
 		IssuerURL:    org.Spec.Authentication.OIDCConfig.Issuer,
 	}
+
+	// Organization-level overrides via labels on the Organization custom resource
+	// Label keys (as provided): greenhouse.sap/clusterkubeconfig-ovveride-clientid and ...-clientsecret
+	const (
+		lblOverrideClientID     = "greenhouse.sap/clusterkubeconfig-ovveride-clientid"
+		lblOverrideClientSecret = "greenhouse.sap/clusterkubeconfig-ovveride-clientsecret"
+	)
+
+	// Check Organization custom resource labels for overrides
+	if org.Labels != nil {
+		if v, ok := org.Labels[lblOverrideClientID]; ok && v != "" {
+			oidc.ClientID = v
+		}
+		if v, ok := org.Labels[lblOverrideClientSecret]; ok && v != "" {
+			oidc.ClientSecret = v
+		}
+	}
+
+	// Cluster-level overrides via labels on the Cluster
+	if cluster != nil && cluster.Labels != nil {
+		if v, ok := cluster.Labels[lblOverrideClientID]; ok && v != "" {
+			oidc.ClientID = v
+		}
+		if v, ok := cluster.Labels[lblOverrideClientSecret]; ok && v != "" {
+			oidc.ClientSecret = v
+		}
+	}
+
 	return oidc, nil
 }
 
