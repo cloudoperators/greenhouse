@@ -607,8 +607,18 @@ var _ = Describe("PluginPreset Controller Lifecycle", Ordered, func() {
 
 	It("should successfully resolve and set plugin dependencies from PluginPreset to Plugin", func() {
 		By("ensuring a Plugin Preset has been created")
-		pluginPreset := pluginPreset(pluginPresetName+"-wait-for", clusterA, testTeam.Name)
-		pluginPreset.Spec.Plugin.PluginDefinition = pluginDefinitionWithDefaultsName
+		pluginPreset := test.NewPluginPreset(pluginPresetName+"-wait-for", test.TestNamespace,
+			test.WithPluginPresetLabel(greenhouseapis.LabelKeyOwnedBy, testTeam.Name),
+			test.WithPluginPresetPluginSpec(pluginPresetPluginSpec),
+			test.WithPluginPresetClusterSelector(metav1.LabelSelector{
+				MatchLabels: map[string]string{
+					"cluster": clusterA,
+				},
+			}))
+		pluginPreset.Spec.Plugin.PluginDefinitionRef = greenhousev1alpha1.PluginDefinitionReference{
+			Name: pluginDefinitionWithDefaultsName,
+			Kind: greenhousev1alpha1.ClusterPluginDefinitionKind,
+		}
 		pluginPreset.Spec.WaitFor = []greenhousev1alpha1.WaitForItem{
 			{
 				PluginRef: greenhousev1alpha1.PluginRef{PluginPreset: "test-preset-1"},
