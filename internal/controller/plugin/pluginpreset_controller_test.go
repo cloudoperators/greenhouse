@@ -11,6 +11,7 @@ import (
 	"github.com/onsi/gomega/format"
 	corev1 "k8s.io/api/core/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -603,6 +604,71 @@ var _ = Describe("PluginPreset Controller Lifecycle", Ordered, func() {
 		By("removing plugin preset")
 		test.EventuallyDeleted(test.Ctx, test.K8sClient, pluginPreset)
 	})
+
+	It("should orphan Plugins with the delete-policy annotation set on a PluginPreset", func() {
+		By("creating a PluginPreset")
+		testPluginPreset := test.NewPluginPreset(pluginPresetName, test.TestNamespace,
+			test.WithPluginPresetLabel(greenhouseapis.LabelKeyOwnedBy, testTeam.Name),
+			test.WithPluginPresetPluginSpec(pluginPresetPluginSpec),
+			test.WithPluginPresetClusterSelector(metav1.LabelSelector{
+				MatchLabels: map[string]string{
+					"cluster": clusterA,
+				},
+			},
+			),
+			test.WithPluginPresetDeletionPolicy(greenhouseapis.DeletionPolicyOrphan))
+		err := test.K8sClient.Create(test.Ctx, testPluginPreset)
+		Expect(err).ToNot(HaveOccurred(), "failed to create test PluginPreset")
+
+		By("ensuring a Plugin has been created")
+		expPluginName := types.NamespacedName{Name: pluginPresetName + "-" + clusterA, Namespace: test.TestNamespace}
+		expPlugin := &greenhousev1alpha1.Plugin{}
+		Eventually(func() error {
+			return test.K8sClient.Get(test.Ctx, expPluginName, expPlugin)
+		}).Should(Succeed(), "the Plugin should be created")
+
+		Expect(expPlugin.Labels).To(HaveKeyWithValue(greenhouseapis.LabelKeyPluginPreset, pluginPresetName), "the Plugin should be labeled as managed by the PluginPreset")
+
+		By("deleting the PluginPreset")
+		test.EventuallyDeleted(test.Ctx, test.K8sClient, testPluginPreset)
+
+		By("ensuring the Plugin is not deleted")
+		expPluginPresetName := types.NamespacedName{Name: pluginPresetName, Namespace: test.TestNamespace}
+		Eventually(func(g Gomega) {
+			err := test.K8sClient.Get(test.Ctx, expPluginPresetName, testPluginPreset)
+			g.Expect(errors.IsNotFound(err)).To(BeTrue(), "the PluginPreset should be deleted")
+			err = test.K8sClient.Get(test.Ctx, expPluginName, expPlugin)
+			g.Expect(err).ShouldNot(HaveOccurred(), "the Plugin should not be deleted")
+			g.Expect(expPlugin.Labels).To(HaveKey(greenhouseapis.LabelKeyPluginPreset), "the Plugin should still be labeled as managed by the PluginPreset")
+			g.Expect(expPlugin.OwnerReferences).To(BeEmpty(), "the Plugin should not have an OwnerReference to the deleted PluginPreset")
+		}).Should(Succeed(), "the Plugin should not be deleted after the PluginPreset is deleted")
+
+		By("re-creating the preset")
+		testPluginPreset = test.NewPluginPreset(pluginPresetName, test.TestNamespace,
+			test.WithPluginPresetLabel(greenhouseapis.LabelKeyOwnedBy, testTeam.Name),
+			test.WithPluginPresetPluginSpec(pluginPresetPluginSpec),
+			test.WithPluginPresetClusterSelector(metav1.LabelSelector{
+				MatchLabels: map[string]string{
+					"cluster": clusterA,
+				},
+			}))
+		err = test.K8sClient.Create(test.Ctx, testPluginPreset)
+		Expect(err).NotTo(HaveOccurred(), "failed to create PluginPreset")
+
+		By("checking that the existing Plugin is now owned by the re-created PluginPreset")
+		Eventually(func(g Gomega) {
+			err := test.K8sClient.Get(test.Ctx, expPluginPresetName, testPluginPreset)
+			g.Expect(err).ShouldNot(HaveOccurred(), "the PluginPreset should exist")
+			err = test.K8sClient.Get(test.Ctx, expPluginName, expPlugin)
+			g.Expect(err).ShouldNot(HaveOccurred(), "the Plugin should not be deleted")
+			g.Expect(expPlugin.Labels).To(HaveKey(greenhouseapis.LabelKeyPluginPreset), "the Plugin should be labeled as managed by the PluginPreset")
+			g.Expect(expPlugin.OwnerReferences).ToNot(BeEmpty(), "the Plugin should have an OwnerReference again")
+		}).Should(Succeed(), "the Plugin should be owned by the PluginPreset again")
+
+		By("deleting the PluginPreset")
+		test.EventuallyDeleted(test.Ctx, test.K8sClient, testPluginPreset)
+	})
+
 })
 
 var _ = Describe("overridesPluginOptionValues", Ordered, func() {

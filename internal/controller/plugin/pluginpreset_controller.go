@@ -133,28 +133,49 @@ func (r *PluginPresetReconciler) EnsureCreated(ctx context.Context, resource lif
 func (r *PluginPresetReconciler) EnsureDeleted(ctx context.Context, resource lifecycle.RuntimeObject) (ctrl.Result, lifecycle.ReconcileResult, error) {
 	pluginPreset := resource.(*greenhousev1alpha1.PluginPreset) //nolint:errcheck
 
-	// Cleanup the plugins that are managed by this PluginPreset.
 	plugins, err := r.listPlugins(ctx, pluginPreset)
 	if err != nil {
 		return ctrl.Result{}, lifecycle.Failed, err
 	}
-	allErrs := make([]error, 0)
-	for _, plugin := range plugins.Items {
-		if err := r.Delete(ctx, &plugin); err != nil && !apierrors.IsNotFound(err) {
-			allErrs = append(allErrs, err)
+
+	switch pluginPreset.Spec.DeletionPolicy {
+	case greenhouseapis.DeletionPolicyOrphan:
+		// Remove the owner reference from all managed Plugins to orphan them.
+		allErrs := make([]error, 0)
+		for _, plugin := range plugins.Items {
+			if isPluginManagedByPreset(&plugin, pluginPreset.Name) {
+				// Remove the owner reference from the Plugin.
+				_, err := clientutil.Patch(ctx, r.Client, &plugin, func() error {
+					if len(plugin.OwnerReferences) > 0 {
+						return controllerutil.RemoveOwnerReference(pluginPreset, &plugin, r.Scheme())
+					}
+					return nil
+				})
+				if err != nil {
+					allErrs = append(allErrs, err)
+				}
+			}
+		}
+		if len(allErrs) > 0 {
+			return ctrl.Result{}, lifecycle.Failed, fmt.Errorf("failed to orphan plugins for %s/%s: %w", pluginPreset.Namespace, pluginPreset.Name, errors.Join(allErrs...))
+		}
+	default:
+		// Cleanup the plugins that are managed by this PluginPreset.
+		allErrs := make([]error, 0)
+		for _, plugin := range plugins.Items {
+			if err := r.Delete(ctx, &plugin); err != nil && !apierrors.IsNotFound(err) {
+				allErrs = append(allErrs, err)
+			}
+		}
+		// If the deletion of one or more Plugins failed, requeue the deletion.
+		if len(allErrs) > 0 {
+			return ctrl.Result{}, lifecycle.Pending, fmt.Errorf("failed to delete plugins for %s/%s: %w", pluginPreset.Namespace, pluginPreset.Name, errors.Join(allErrs...))
+		}
+		// If there were Plugins left, requeue the deletion
+		if len(plugins.Items) > 0 {
+			return ctrl.Result{}, lifecycle.Pending, nil
 		}
 	}
-
-	// If there are still plugins left, requeue the deletion.
-	if len(allErrs) > 0 {
-		return ctrl.Result{}, lifecycle.Pending, fmt.Errorf("failed to delete plugins for %s/%s: %w", pluginPreset.Namespace, pluginPreset.Name, errors.Join(allErrs...))
-	}
-
-	// Requeue until the Plugins are removed.
-	if len(plugins.Items) > 0 {
-		return ctrl.Result{}, lifecycle.Pending, nil
-	}
-
 	return ctrl.Result{}, lifecycle.Success, nil
 }
 
