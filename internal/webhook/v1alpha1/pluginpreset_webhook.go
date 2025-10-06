@@ -166,8 +166,10 @@ func ValidateUpdatePluginPreset(ctx context.Context, c client.Client, oldObj, cu
 		allWarns = append(allWarns, "PluginPreset should have a support-group Team set as its owner", warn)
 	}
 
-	if err := webhook.ValidateImmutableField(oldPluginPreset.Spec.Plugin.PluginDefinitionRef.Name, pluginPreset.Spec.Plugin.PluginDefinitionRef.Name, field.NewPath("spec", "plugin", "pluginDefinitionRef", "name")); err != nil {
-		allErrs = append(allErrs, err)
+	if oldPluginPreset.Spec.Plugin.PluginDefinitionRef.Name != "" {
+		if err := webhook.ValidateImmutableField(oldPluginPreset.Spec.Plugin.PluginDefinitionRef.Name, pluginPreset.Spec.Plugin.PluginDefinitionRef.Name, field.NewPath("spec", "plugin", "pluginDefinitionRef", "name")); err != nil {
+			allErrs = append(allErrs, err)
+		}
 	}
 
 	if err := webhook.ValidateImmutableField(oldPluginPreset.Spec.Plugin.ClusterName, pluginPreset.Spec.Plugin.ClusterName, field.NewPath("spec", "plugin", "clusterName")); err != nil {

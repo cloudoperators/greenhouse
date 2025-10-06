@@ -6,6 +6,7 @@ package v1alpha1
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"strings"
 
@@ -33,12 +34,12 @@ var pluginsAllowedInCentralCluster = []string{
 	"alerts", "doop", "heureka", "kube-monitoring", "kubeconfig-generator", "perses", "repo-guard", "service-proxy", "teams2slack", "thanos",
 }
 
-// This is the prefix to identify secrets referenced directly from vault/openBao.
 // TODO: Consume this constant from the tool integrating Greenhouse with vault/openBao, once implemented.
 // TODO: Update docs once the complete flow is implemented
 // https://github.com/cloudoperators/greenhouse/issues/1211
+
 const (
-	VaultPrefix string = "vault+kvv2:///"
+	VaultPrefix string = "vault+kvv2:///" // This is the prefix to identify secrets referenced directly from vault/openBao.
 )
 
 // SetupPluginWebhookWithManager configures the webhook for the Plugin custom resource.
@@ -62,11 +63,11 @@ func DefaultPlugin(ctx context.Context, c client.Client, obj runtime.Object) err
 		return nil
 	}
 
+	deprecatedDefName := plugin.Spec.PluginDefinition //nolint:staticcheck
+
 	// Migrate PluginDefinition reference name.
-	//nolint:staticcheck
-	if plugin.Spec.PluginDefinitionRef.Name == "" && plugin.Spec.PluginDefinition != "" {
-		//nolint:staticcheck
-		plugin.Spec.PluginDefinitionRef.Name = plugin.Spec.PluginDefinition
+	if plugin.Spec.PluginDefinitionRef.Name == "" && deprecatedDefName != "" {
+		plugin.Spec.PluginDefinitionRef.Name = deprecatedDefName
 	}
 
 	// Validate before ValidateCreatePlugin is called. Because defaulting PluginOptionValues & ReleaseName requires the PluginDefinition to be set.
@@ -74,29 +75,18 @@ func DefaultPlugin(ctx context.Context, c client.Client, obj runtime.Object) err
 		return field.Required(field.NewPath("spec", "pluginDefinitionRef", "name"), "PluginDefinition name must be set")
 	}
 
-	var pluginDefinitionSpec greenhousev1alpha1.PluginDefinitionSpec
-	switch plugin.Spec.PluginDefinitionRef.Kind {
-	case greenhousev1alpha1.PluginDefinitionKind:
-		pluginDefinition := &greenhousev1alpha1.PluginDefinition{}
-		err := c.Get(ctx, types.NamespacedName{Namespace: plugin.GetNamespace(), Name: plugin.Spec.PluginDefinitionRef.Name}, pluginDefinition)
-		if err != nil {
-			return err // PluginDefinition must exist to default the PluginOptionValues and ReleaseName
+	pluginDefinitionSpec, err := getPluginDefinitionSpec(ctx, c, plugin)
+	if err != nil {
+		if strings.Contains(err.Error(), "unsupported") {
+			return field.Invalid(field.NewPath("spec", "pluginDefinitionRef", "kind"), plugin.Spec.PluginDefinitionRef.Kind, "unsupported PluginDefinition kind")
 		}
-		pluginDefinitionSpec = pluginDefinition.Spec
-	case greenhousev1alpha1.ClusterPluginDefinitionKind:
-		clusterPluginDefinition := &greenhousev1alpha1.ClusterPluginDefinition{}
-		err := c.Get(ctx, types.NamespacedName{Name: plugin.Spec.PluginDefinitionRef.Name}, clusterPluginDefinition)
-		if err != nil {
-			return err // PluginDefinition must exist to default the PluginOptionValues and ReleaseName
-		}
-		pluginDefinitionSpec = clusterPluginDefinition.Spec
-	default:
-		return field.Invalid(field.NewPath("spec", "pluginDefinitionRef", "kind"), plugin.Spec.PluginDefinitionRef.Kind, "unsupported PluginDefinition kind")
+		return err
 	}
 
 	if plugin.Labels == nil {
 		plugin.Labels = make(map[string]string)
 	}
+
 	plugin.Labels[greenhouseapis.LabelKeyCluster] = plugin.Spec.ClusterName
 	// The label is used to help identifying Plugins, e.g. if a PluginDefinition changes.
 	delete(plugin.Labels, greenhouseapis.LabelKeyPlugin)
@@ -128,6 +118,12 @@ func DefaultPlugin(ctx context.Context, c client.Client, obj runtime.Object) err
 	if plugin.Spec.ReleaseNamespace == "" {
 		plugin.Spec.ReleaseNamespace = plugin.GetNamespace()
 	}
+
+	// skip releaseName defaulting for UIApplications
+	if pluginDefinitionSpec.UIApplication != nil && pluginDefinitionSpec.HelmChart == nil {
+		return nil
+	}
+
 	// Default the ReleaseName.
 	if plugin.Spec.ReleaseName == "" {
 		if plugin.Status.HelmReleaseStatus != nil {
@@ -142,7 +138,6 @@ func DefaultPlugin(ctx context.Context, c client.Client, obj runtime.Object) err
 			plugin.Spec.ReleaseName = pluginDefinitionSpec.HelmChart.Name
 		}
 	}
-
 	return nil
 }
 
@@ -178,44 +173,17 @@ func ValidateCreatePlugin(ctx context.Context, c client.Client, obj runtime.Obje
 		return allWarns, apierrors.NewInvalid(plugin.GroupVersionKind().GroupKind(), plugin.Name, allErrs)
 	}
 
-	var pluginDefinitionSpec greenhousev1alpha1.PluginDefinitionSpec
-
-	// ensure (Cluster-)PluginDefinition exists, validate OptionValues and Plugin for Cluster
-	switch plugin.Spec.PluginDefinitionRef.Kind {
-	case greenhousev1alpha1.PluginDefinitionKind:
-		pluginDefinition := &greenhousev1alpha1.PluginDefinition{}
-		err := c.Get(ctx, types.NamespacedName{
-			Namespace: plugin.GetNamespace(),
-			Name:      plugin.Spec.PluginDefinitionRef.Name,
-		}, pluginDefinition)
-		switch {
-		case apierrors.IsNotFound(err):
+	pluginDefinitionSpec, err := getPluginDefinitionSpec(ctx, c, plugin)
+	if err != nil {
+		if apierrors.IsNotFound(err) {
 			return allWarns, field.Invalid(pluginDefinitionRefNamePath, plugin.Spec.PluginDefinitionRef.Name,
 				fmt.Sprintf("PluginDefinition %s does not exist in namespace %s", plugin.Spec.PluginDefinitionRef.Name, plugin.GetNamespace()))
-		case err != nil:
-			return allWarns, field.Invalid(pluginDefinitionRefNamePath, plugin.Spec.PluginDefinitionRef.Name,
-				fmt.Sprintf("PluginDefinition %s could not be retrieved from namespace %s: %s", plugin.Spec.PluginDefinitionRef.Name, plugin.GetNamespace(), err.Error()))
-		default:
-			pluginDefinitionSpec = pluginDefinition.Spec
 		}
-	case greenhousev1alpha1.ClusterPluginDefinitionKind:
-		clusterPluginDefinition := &greenhousev1alpha1.ClusterPluginDefinition{}
-		err := c.Get(ctx, types.NamespacedName{
-			Namespace: "",
-			Name:      plugin.Spec.PluginDefinitionRef.Name,
-		}, clusterPluginDefinition)
-		switch {
-		case apierrors.IsNotFound(err):
-			return allWarns, field.Invalid(pluginDefinitionRefNamePath, plugin.Spec.PluginDefinitionRef.Name,
-				fmt.Sprintf("ClusterPluginDefinition %s does not exist", plugin.Spec.PluginDefinitionRef.Name))
-		case err != nil:
-			return allWarns, field.Invalid(pluginDefinitionRefNamePath, plugin.Spec.PluginDefinitionRef.Name,
-				fmt.Sprintf("ClusterPluginDefinition %s could not be retrieved: %s", plugin.Spec.PluginDefinitionRef.Name, err.Error()))
-		default:
-			pluginDefinitionSpec = clusterPluginDefinition.Spec
+		if strings.Contains(err.Error(), "unsupported") {
+			return allWarns, field.Invalid(field.NewPath("spec", "pluginDefinitionRef", "kind"), plugin.Spec.PluginDefinitionRef.Kind, "unsupported PluginDefinitionKind")
 		}
-	default:
-		return allWarns, field.Invalid(pluginDefinitionRefKindPath, plugin.Spec.PluginDefinitionRef.Kind, "unsupported PluginDefinition kind")
+		return allWarns, field.Invalid(pluginDefinitionRefNamePath, plugin.Spec.PluginDefinitionRef.Name,
+			fmt.Sprintf("PluginDefinition %s could not be retrieved from namespace %s: %s", plugin.Spec.PluginDefinitionRef.Name, plugin.GetNamespace(), err.Error()))
 	}
 
 	// validate OptionValues defined by the Plugin
@@ -249,7 +217,10 @@ func ValidateUpdatePlugin(ctx context.Context, c client.Client, old, obj runtime
 	}
 
 	pluginDefinitionRefNamePath := field.NewPath("spec", "pluginDefinitionRef", "name")
-	allErrs = append(allErrs, validation.ValidateImmutableField(oldPlugin.Spec.PluginDefinitionRef.Name, plugin.Spec.PluginDefinitionRef.Name, pluginDefinitionRefNamePath)...)
+
+	if oldPlugin.Spec.PluginDefinitionRef.Name != "" {
+		allErrs = append(allErrs, validation.ValidateImmutableField(oldPlugin.Spec.PluginDefinitionRef.Name, plugin.Spec.PluginDefinitionRef.Name, pluginDefinitionRefNamePath)...)
+	}
 
 	allErrs = append(allErrs, validation.ValidateImmutableField(oldPlugin.Spec.ClusterName, plugin.Spec.ClusterName,
 		field.NewPath("spec", "clusterName"))...)
@@ -261,7 +232,27 @@ func ValidateUpdatePlugin(ctx context.Context, c client.Client, old, obj runtime
 		allErrs = append(allErrs, field.Invalid(field.NewPath("spec").Child("releaseName"), plugin.Spec.ReleaseName, err.Error()))
 	}
 
-	if oldPlugin.Spec.ReleaseName == "" && plugin.Status.HelmReleaseStatus != nil {
+	// ensure (Cluster-)PluginDefinition exists, validate OptionValues and Plugin for Cluster
+	optionsFieldPath := field.NewPath("spec").Child("optionValues")
+	pluginDefinitionSpec, err := getPluginDefinitionSpec(ctx, c, plugin)
+	if err != nil {
+		if apierrors.IsNotFound(err) {
+			return allWarns, field.Invalid(pluginDefinitionRefNamePath, plugin.Spec.PluginDefinitionRef.Name,
+				fmt.Sprintf("PluginDefinition %s does not exist in namespace %s", plugin.Spec.PluginDefinitionRef.Name, plugin.GetNamespace()))
+		}
+		if strings.Contains(err.Error(), "unsupported") {
+			return allWarns, field.Invalid(field.NewPath("spec", "pluginDefinitionRef", "kind"), plugin.Spec.PluginDefinitionRef.Kind, "unsupported PluginDefinitionKind")
+		}
+		return allWarns, field.Invalid(pluginDefinitionRefNamePath, plugin.Spec.PluginDefinitionRef.Name,
+			fmt.Sprintf("PluginDefinition %s could not be retrieved from namespace %s: %s", plugin.Spec.PluginDefinitionRef.Name, plugin.GetNamespace(), err.Error()))
+	}
+
+	// validate OptionValues defined by the Plugin
+	if errList := validatePluginOptionValues(plugin.Spec.OptionValues, plugin.Spec.PluginDefinitionRef.Name, pluginDefinitionSpec, true, optionsFieldPath); len(errList) > 0 {
+		return allWarns, apierrors.NewInvalid(plugin.GroupVersionKind().GroupKind(), plugin.Name, errList)
+	}
+
+	if oldPlugin.Spec.ReleaseName == "" && plugin.Status.HelmReleaseStatus != nil && pluginDefinitionSpec.UIApplication == nil {
 		if plugin.Name != plugin.Spec.ReleaseName {
 			allErrs = append(allErrs, field.Forbidden(field.NewPath("spec").Child("releaseName"), "ReleaseName for existing Plugin cannot be changed"))
 		}
@@ -269,52 +260,6 @@ func ValidateUpdatePlugin(ctx context.Context, c client.Client, old, obj runtime
 
 	if len(allErrs) > 0 {
 		return allWarns, apierrors.NewInvalid(plugin.GroupVersionKind().GroupKind(), plugin.Name, allErrs)
-	}
-
-	var pluginDefinitionSpec greenhousev1alpha1.PluginDefinitionSpec
-
-	// ensure (Cluster-)PluginDefinition exists, validate OptionValues and Plugin for Cluster
-	optionsFieldPath := field.NewPath("spec").Child("optionValues")
-	switch plugin.Spec.PluginDefinitionRef.Kind {
-	case greenhousev1alpha1.PluginDefinitionKind:
-		pluginDefinition := &greenhousev1alpha1.PluginDefinition{}
-		err := c.Get(ctx, types.NamespacedName{
-			Namespace: plugin.GetNamespace(),
-			Name:      plugin.Spec.PluginDefinitionRef.Name,
-		}, pluginDefinition)
-		switch {
-		case apierrors.IsNotFound(err):
-			return allWarns, field.Invalid(pluginDefinitionRefNamePath, plugin.Spec.PluginDefinitionRef.Name,
-				fmt.Sprintf("PluginDefinition %s does not exist in namespace %s", plugin.Spec.PluginDefinitionRef.Name, plugin.GetNamespace()))
-		case err != nil:
-			return allWarns, field.Invalid(pluginDefinitionRefNamePath, plugin.Spec.PluginDefinitionRef.Name,
-				fmt.Sprintf("PluginDefinition %s could not be retrieved from namespace %s: %s", plugin.Spec.PluginDefinitionRef.Name, plugin.GetNamespace(), err.Error()))
-		default:
-			pluginDefinitionSpec = pluginDefinition.Spec
-		}
-	case greenhousev1alpha1.ClusterPluginDefinitionKind:
-		clusterPluginDefinition := &greenhousev1alpha1.ClusterPluginDefinition{}
-		err := c.Get(ctx, types.NamespacedName{
-			Namespace: "",
-			Name:      plugin.Spec.PluginDefinitionRef.Name,
-		}, clusterPluginDefinition)
-		switch {
-		case apierrors.IsNotFound(err):
-			return allWarns, field.Invalid(pluginDefinitionRefNamePath, plugin.Spec.PluginDefinitionRef.Name,
-				fmt.Sprintf("ClusterPluginDefinition %s does not exist", plugin.Spec.PluginDefinitionRef.Name))
-		case err != nil:
-			return allWarns, field.Invalid(pluginDefinitionRefNamePath, plugin.Spec.PluginDefinitionRef.Name,
-				fmt.Sprintf("ClusterPluginDefinition %s could not be retrieved: %s", plugin.Spec.PluginDefinitionRef.Name, err.Error()))
-		default:
-			pluginDefinitionSpec = clusterPluginDefinition.Spec
-		}
-	default:
-		return allWarns, field.Invalid(field.NewPath("spec", "pluginDefinitionRef", "kind"), plugin.Spec.PluginDefinitionRef.Kind, "unsupported PluginDefinitionKind")
-	}
-
-	// validate OptionValues defined by the Plugin
-	if errList := validatePluginOptionValues(plugin.Spec.OptionValues, plugin.Spec.PluginDefinitionRef.Name, pluginDefinitionSpec, true, optionsFieldPath); len(errList) > 0 {
-		return allWarns, apierrors.NewInvalid(plugin.GroupVersionKind().GroupKind(), plugin.Name, errList)
 	}
 
 	return allWarns, nil
@@ -468,4 +413,26 @@ func hasExactlyOneValueSource(val greenhousev1alpha1.PluginOptionValue) bool {
 		}
 	}
 	return count == 1
+}
+
+func getPluginDefinitionSpec(ctx context.Context, c client.Client, plugin *greenhousev1alpha1.Plugin) (spec greenhousev1alpha1.PluginDefinitionSpec, err error) {
+	switch plugin.Spec.PluginDefinitionRef.Kind {
+	case greenhousev1alpha1.PluginDefinitionKind:
+		pluginDefinition := &greenhousev1alpha1.PluginDefinition{}
+		err = c.Get(ctx, types.NamespacedName{
+			Namespace: plugin.GetNamespace(),
+			Name:      plugin.Spec.PluginDefinitionRef.Name,
+		}, pluginDefinition)
+		spec = pluginDefinition.Spec
+	case greenhousev1alpha1.ClusterPluginDefinitionKind:
+		clusterPluginDefinition := &greenhousev1alpha1.ClusterPluginDefinition{}
+		err = c.Get(ctx, types.NamespacedName{
+			Namespace: "",
+			Name:      plugin.Spec.PluginDefinitionRef.Name,
+		}, clusterPluginDefinition)
+		spec = clusterPluginDefinition.Spec
+	default:
+		err = errors.New("unsupported PluginDefinition kind")
+	}
+	return
 }

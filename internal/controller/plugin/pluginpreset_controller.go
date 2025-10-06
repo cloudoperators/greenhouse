@@ -150,6 +150,11 @@ func (r *PluginPresetReconciler) EnsureDeleted(ctx context.Context, resource lif
 		return ctrl.Result{}, lifecycle.Pending, fmt.Errorf("failed to delete plugins for %s/%s: %w", pluginPreset.Namespace, pluginPreset.Name, errors.Join(allErrs...))
 	}
 
+	// Requeue until the Plugins are removed.
+	if len(plugins.Items) > 0 {
+		return ctrl.Result{}, lifecycle.Pending, nil
+	}
+
 	return ctrl.Result{}, lifecycle.Success, nil
 }
 

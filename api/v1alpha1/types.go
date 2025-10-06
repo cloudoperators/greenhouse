@@ -10,7 +10,8 @@ import (
 // PluginDefinitionReference defines the reference to the PluginDefinition or ClusterPluginDefinition.
 type PluginDefinitionReference struct {
 	// Name of the referenced PluginDefinition or ClusterPluginDefinition resource.
-	Name string `json:"name"`
+	// +Optional
+	Name string `json:"name,omitempty"`
 	// Kind of the referent. Supported values: PluginDefinition, ClusterPluginDefinition.
 	// +kubebuilder:default=PluginDefinition
 	// +kubebuilder:validation:Enum=PluginDefinition;ClusterPluginDefinition
