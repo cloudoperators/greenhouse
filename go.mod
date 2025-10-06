@@ -35,6 +35,7 @@ require (
 	github.com/fluxcd/pkg/apis/meta v1.12.0
 	github.com/fluxcd/source-controller/api v1.6.0
 	github.com/go-jose/go-jose/v4 v4.1.1
+	github.com/google/cel-go v0.26.1
 	github.com/jeremywohl/flatten/v2 v2.0.0-20211013061545-07e4a09fb8e4
 	github.com/oklog/run v1.2.0
 	github.com/onsi/ginkgo/v2 v2.23.4
@@ -55,7 +56,6 @@ require (
 	k8s.io/apimachinery v0.33.4
 	k8s.io/cli-runtime v0.33.3
 	k8s.io/client-go v0.33.3
-	k8s.io/kubectl v0.33.3
 	k8s.io/utils v0.0.0-20250820121507-0af2bda4dd1d
 	sigs.k8s.io/controller-runtime v0.21.0
 	sigs.k8s.io/kind v0.29.0
@@ -63,10 +63,12 @@ require (
 )
 
 require (
+	cel.dev/expr v0.24.0 // indirect
 	cloud.google.com/go/auth v0.16.1 // indirect
 	cloud.google.com/go/auth/oauth2adapt v0.2.8 // indirect
 	dario.cat/mergo v1.0.1 // indirect
 	filippo.io/edwards25519 v1.1.0 // indirect
+	github.com/antlr4-go/antlr/v4 v4.13.0 // indirect
 	github.com/blang/semver/v4 v4.0.0 // indirect
 	github.com/containerd/errdefs v0.3.0 // indirect
 	github.com/containerd/log v0.1.0 // indirect
@@ -89,6 +91,7 @@ require (
 	github.com/santhosh-tekuri/jsonschema/v6 v6.0.2 // indirect
 	github.com/sergi/go-diff v1.3.1 // indirect
 	github.com/sirupsen/logrus v1.9.3 // indirect
+	github.com/stoewer/go-strcase v1.3.0 // indirect
 	github.com/stretchr/objx v0.5.2 // indirect
 	github.com/tidwall/gjson v1.18.0 // indirect
 	github.com/tidwall/match v1.1.1 // indirect
@@ -100,7 +103,9 @@ require (
 	go.uber.org/automaxprocs v1.6.0 // indirect
 	go.yaml.in/yaml/v2 v2.4.2 // indirect
 	go.yaml.in/yaml/v3 v3.0.3 // indirect
+	google.golang.org/genproto/googleapis/api v0.0.0-20250303144028-a0af3efb3deb // indirect
 	gopkg.in/evanphx/json-patch.v4 v4.12.0 // indirect
+	k8s.io/kubectl v0.33.3 // indirect
 	oras.land/oras-go/v2 v2.6.0 // indirect
 	sigs.k8s.io/randfill v1.0.0 // indirect
 )
