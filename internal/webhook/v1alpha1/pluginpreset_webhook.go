@@ -80,10 +80,10 @@ func ValidateCreatePluginPreset(ctx context.Context, c client.Client, o runtime.
 	}
 
 	// Name and PluginPreset are mutually exclusive in PluginRef.
-	for _, item := range pluginPreset.Spec.WaitFor {
-		if item.PluginRef.Name != "" && item.PluginRef.PluginPreset != "" {
+	for _, pluginRef := range pluginPreset.Spec.WaitFor {
+		if pluginRef.Name != "" && pluginRef.PluginPreset != "" {
 			allErrs = append(allErrs, field.Invalid(field.NewPath("spec", "waitFor", "pluginRef", "name"),
-				item.PluginRef.Name, "cannot specify both pluginRef.name and pluginRef.pluginPreset"))
+				pluginRef.Name, "cannot specify both pluginRef.name and pluginRef.pluginPreset"))
 		}
 	}
 
@@ -136,10 +136,10 @@ func ValidateUpdatePluginPreset(ctx context.Context, c client.Client, oldObj, cu
 	}
 
 	// Name and PluginPreset are mutually exclusive in PluginRef.
-	for _, item := range pluginPreset.Spec.WaitFor {
-		if item.PluginRef.Name != "" && item.PluginRef.PluginPreset != "" {
+	for _, pluginRef := range pluginPreset.Spec.WaitFor {
+		if pluginRef.Name != "" && pluginRef.PluginPreset != "" {
 			allErrs = append(allErrs, field.Invalid(field.NewPath("spec", "waitFor", "pluginRef", "name"),
-				item.PluginRef.Name, "cannot specify both pluginRef.name and pluginRef.pluginPreset"))
+				pluginRef.Name, "cannot specify both pluginRef.name and pluginRef.pluginPreset"))
 		}
 	}
 
