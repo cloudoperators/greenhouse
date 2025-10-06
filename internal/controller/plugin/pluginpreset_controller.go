@@ -27,7 +27,6 @@ import (
 	greenhousemetav1alpha1 "github.com/cloudoperators/greenhouse/api/meta/v1alpha1"
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
 	"github.com/cloudoperators/greenhouse/internal/clientutil"
-	"github.com/cloudoperators/greenhouse/internal/common"
 	"github.com/cloudoperators/greenhouse/internal/lifecycle"
 	"github.com/cloudoperators/greenhouse/internal/util"
 )
@@ -162,11 +161,6 @@ func (r *PluginPresetReconciler) EnsureDeleted(ctx context.Context, resource lif
 // reconcilePluginPreset reconciles the PluginPreset by creating or updating the Plugins for the given clusters.
 // It skips reconciliation for Plugins that do not have the labels of the PluginPreset.
 func (r *PluginPresetReconciler) reconcilePluginPreset(ctx context.Context, preset *greenhousev1alpha1.PluginPreset, clusters *greenhousev1alpha1.ClusterList) error {
-	pluginDefinitionSpec, err := common.GetPluginDefinitionSpec(ctx, r.Client, preset.Spec.Plugin.PluginDefinitionRef, preset.GetNamespace())
-	if err != nil {
-		return err
-	}
-
 	var allErrs = make([]error, 0)
 	var skippedPlugins = make([]string, 0)
 	var failedPlugins = make([]string, 0)
@@ -180,7 +174,7 @@ func (r *PluginPresetReconciler) reconcilePluginPreset(ctx context.Context, pres
 			continue
 		case err == nil:
 			// The Plugin exists but does not contain the labels of the PluginPreset. This Plugin is not managed by the PluginPreset and must not be touched.
-			if shouldSkipPlugin(plugin, preset, *pluginDefinitionSpec, cluster.Name) {
+			if !isPluginManagedByPreset(plugin, preset.Name) {
 				skippedPlugins = append(skippedPlugins, plugin.Name)
 				continue
 			}
@@ -295,68 +289,6 @@ func (r *PluginPresetReconciler) reconcilePluginStatuses(
 
 func isPluginManagedByPreset(plugin *greenhousev1alpha1.Plugin, presetName string) bool {
 	return plugin.Labels[greenhouseapis.LabelKeyPluginPreset] == presetName
-}
-
-func shouldSkipPlugin(plugin *greenhousev1alpha1.Plugin, preset *greenhousev1alpha1.PluginPreset, definitionSpec greenhousev1alpha1.PluginDefinitionSpec, clusterName string) bool {
-	if !isPluginManagedByPreset(plugin, preset.Name) {
-		return true
-	}
-
-	// need to reconcile when plugin labels has been changed
-	for _, override := range preset.Spec.ClusterOptionOverrides {
-		if override.ClusterName != clusterName {
-			continue
-		}
-
-		for _, overrideOptionValue := range override.Overrides {
-			if !slices.ContainsFunc(plugin.Spec.OptionValues, func(item greenhousev1alpha1.PluginOptionValue) bool {
-				return equalPluginOptions(overrideOptionValue, item)
-			}) {
-				return false
-			}
-		}
-	}
-
-	// need to reconcile when plugin does not have option which exists in plugin preset
-	for _, presetOptionValue := range preset.Spec.Plugin.OptionValues {
-		if !slices.ContainsFunc(plugin.Spec.OptionValues, func(item greenhousev1alpha1.PluginOptionValue) bool {
-			return equalPluginOptions(presetOptionValue, item)
-		}) {
-			return false
-		}
-	}
-
-	for _, pluginOption := range plugin.Spec.OptionValues {
-		if strings.HasPrefix(pluginOption.Name, "global.greenhouse") {
-			// pluginOption is a global option, nothing to do
-			continue
-		}
-
-		if slices.ContainsFunc(preset.Spec.Plugin.OptionValues, func(item greenhousev1alpha1.PluginOptionValue) bool {
-			return equalPluginOptions(item, pluginOption)
-		}) {
-			// optionValue is set by the PluginPreset, nothing to doen plugin does not have option which exists in plugin p
-			continue
-		}
-		if slices.ContainsFunc(definitionSpec.Options, func(item greenhousev1alpha1.PluginOption) bool {
-			if item.Default == nil {
-				return false
-			}
-			if pluginOption.ValueFrom != nil {
-				// PluginDefinition does not support valueFrom for default values
-				return false
-			}
-			return item.Name == pluginOption.Name && string(item.Default.Raw) == string(pluginOption.Value.Raw)
-		}) {
-			// optionValue is set by the PluginDefinition, nothing to do
-			continue
-		}
-		// the optionValue is not a global option, not set by the PluginPreset and not set by the PluginDefinition
-		// need to reconcile to get the managed Plugin back into the desired state
-		return false
-	}
-	// all options are global options or set by the PluginPreset or the PluginDefinition
-	return true
 }
 
 func overridesPluginOptionValues(plugin *greenhousev1alpha1.Plugin, preset *greenhousev1alpha1.PluginPreset) {
@@ -485,28 +417,6 @@ func listPluginPresetAsReconcileRequests(ctx context.Context, c client.Client, l
 		requests[i] = ctrl.Request{NamespacedName: client.ObjectKeyFromObject(pluginPreset.DeepCopy())}
 	}
 	return requests
-}
-
-// equalPluginOptions compares two PluginOptionValue objects.
-func equalPluginOptions(a, b greenhousev1alpha1.PluginOptionValue) bool {
-	if a.Name != b.Name {
-		return false
-	}
-	valueNil := a.Value == nil && b.Value == nil
-	valueFromNil := a.ValueFrom == nil && b.ValueFrom == nil
-	switch {
-	case valueNil && valueFromNil:
-		return true
-
-	case !valueNil:
-		return a.ValueJSON() == b.ValueJSON()
-
-	case !valueFromNil:
-		return a.ValueFrom.Secret.Name == b.ValueFrom.Secret.Name &&
-			a.ValueFrom.Secret.Key == b.ValueFrom.Secret.Key
-	default:
-		return false
-	}
 }
 
 // getReleaseName determines the release name for a plugin based on its current state and the preset.
