@@ -7,6 +7,17 @@ import (
 	"fmt"
 )
 
+// PluginDefinitionReference defines the reference to the PluginDefinition or ClusterPluginDefinition.
+type PluginDefinitionReference struct {
+	// Name of the referenced PluginDefinition or ClusterPluginDefinition resource.
+	// +Optional
+	Name string `json:"name,omitempty"`
+	// Kind of the referent. Supported values: PluginDefinition, ClusterPluginDefinition.
+	// +kubebuilder:default=PluginDefinition
+	// +kubebuilder:validation:Enum=PluginDefinition;ClusterPluginDefinition
+	Kind string `json:"kind,omitempty"`
+}
+
 // HelmChartReference references a Helm Chart in a chart repository.
 type HelmChartReference struct {
 	// Name of the HelmChart chart.

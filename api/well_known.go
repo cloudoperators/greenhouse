@@ -92,6 +92,14 @@ const (
 	KindClusterPluginDefinitionPlural = "clusterplugindefinitions"
 )
 
+// Deletion Policies
+const (
+	// DeletionPolicyOrphan means owned resources will be orphaned on deletion.
+	DeletionPolicyOrphan = "Orphan"
+	// DeletionPolicyDelete means owned resources will be deleted on deletion.
+	DeletionPolicyDelete = "Delete"
+)
+
 // Team constants
 const (
 	// LabelKeySupportGroup is the key of the label that is used to mark a Team as a support group (greenhouse.sap/support-group:true).

@@ -55,7 +55,7 @@ func PluginControllerNginxByPlugin(ctx context.Context, adminClient, remoteClien
 	By("Creating the plugin")
 	// Creating plugin with release name
 	testPlugin := fixtures.PreparePlugin(nginxPluginOne, env.TestNamespace,
-		test.WithPluginDefinition(testPluginDefinition.Name),
+		test.WithClusterPluginDefinition(testPluginDefinition.Name),
 		test.WithCluster(remoteClusterName),
 		test.WithReleaseNamespace(env.TestNamespace),
 		test.WithPluginOptionValue("replicaCount", &apiextensionsv1.JSON{Raw: []byte("1")}),
@@ -128,7 +128,7 @@ func PluginControllerNginxByPreset(ctx context.Context, adminClient, remoteClien
 	By("Prepare the plugin")
 	// Creating plugin with release name
 	testPlugin := fixtures.PreparePlugin(nginxPluginTwo, env.TestNamespace,
-		test.WithPluginDefinition(testPluginDefinition.Name),
+		test.WithClusterPluginDefinition(testPluginDefinition.Name),
 		test.WithReleaseNamespace(env.TestNamespace),
 		test.WithPluginOptionValue("replicaCount", &apiextensionsv1.JSON{Raw: []byte("1")}),
 		test.WithReleaseName(nginxPluginTwo),

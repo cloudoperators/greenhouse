@@ -11,4 +11,4 @@ spec:
     git:
       url: https://github.com/cloudoperators/greenhouse-extensions
       ref:
-        branch: feat/migrate_to_cluster_def
+        branch: main
