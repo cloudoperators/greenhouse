@@ -14,31 +14,28 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-const (
-	objectPrefix  = "object"
-	objectsPrefix = "objects"
-)
-
-type Evaluator struct {
-	env *cel.Env
-}
-
-func NewEvaluator() (*Evaluator, error) {
-	env, err := cel.NewEnv(
-		cel.Variable(objectPrefix, cel.DynType),
-		cel.Variable(objectsPrefix, cel.ListType(cel.DynType)),
-	)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create CEL environment: %w", err)
+// Evaluate evaluates a CEL expression against a single Kubernetes object.
+// Returns the result of the evaluation.
+func Evaluate(expression string, obj client.Object) (any, error) {
+	if obj == nil {
+		return nil, errors.New("object cannot be nil")
 	}
 
-	return &Evaluator{env: env}, nil
+	if expression == "" {
+		return nil, errors.New("expression cannot be empty")
+	}
+
+	prg, err := compileExpression(expression)
+	if err != nil {
+		return nil, err
+	}
+
+	return evaluateObject(obj, prg)
 }
 
-// Evaluate evaluates a CEL expression against one or more Kubernetes objects.
-// If a single object is provided, it is available as "object" in the expression.
-// If multiple objects are provided, they are available as "objects" in the expression.
-func (e *Evaluator) Evaluate(expression string, objs ...client.Object) (any, error) {
+// EvaluateList evaluates a CEL expression against multiple Kubernetes objects.
+// Returns a slice of results, one for each input object.
+func EvaluateList(expression string, objs []client.Object) ([]any, error) {
 	if len(objs) == 0 {
 		return nil, errors.New("at least one object must be provided")
 	}
@@ -47,24 +44,45 @@ func (e *Evaluator) Evaluate(expression string, objs ...client.Object) (any, err
 		return nil, errors.New("expression cannot be empty")
 	}
 
-	ast, issues := e.env.Compile(expression)
+	prg, err := compileExpression(expression)
+	if err != nil {
+		return nil, err
+	}
+
+	results := make([]any, len(objs))
+	for i, obj := range objs {
+		result, err := evaluateObject(obj, prg)
+		if err != nil {
+			return nil, fmt.Errorf("failed to evaluate object at index %d: %w", i, err)
+		}
+		results[i] = result
+	}
+
+	return results, nil
+}
+
+func compileExpression(expression string) (cel.Program, error) {
+	env, err := cel.NewEnv(
+		cel.Variable("object", cel.DynType),
+	)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create CEL environment: %w", err)
+	}
+
+	ast, issues := env.Compile(expression)
 	if issues != nil && issues.Err() != nil {
 		return nil, fmt.Errorf("failed to compile expression: %w", issues.Err())
 	}
 
-	prg, err := e.env.Program(ast)
+	prg, err := env.Program(ast)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create program: %w", err)
 	}
 
-	if len(objs) == 1 {
-		return e.evaluateSingle(objs[0], prg)
-	}
-
-	return e.evaluateMultiple(objs, prg)
+	return prg, nil
 }
 
-func (e *Evaluator) evaluateSingle(obj client.Object, prg cel.Program) (any, error) {
+func evaluateObject(obj client.Object, prg cel.Program) (any, error) {
 	if obj == nil {
 		return nil, errors.New("object cannot be nil")
 	}
@@ -75,31 +93,7 @@ func (e *Evaluator) evaluateSingle(obj client.Object, prg cel.Program) (any, err
 	}
 
 	out, _, err := prg.Eval(map[string]any{
-		objectPrefix: objMap,
-	})
-	if err != nil {
-		return nil, fmt.Errorf("failed to evaluate expression: %w", err)
-	}
-
-	return convertCELValue(out)
-}
-
-func (e *Evaluator) evaluateMultiple(objs []client.Object, prg cel.Program) (any, error) {
-	objMaps := make([]any, len(objs))
-	for i, obj := range objs {
-		if obj == nil {
-			return nil, errors.New("object cannot be nil")
-		}
-
-		objMap, err := structToMap(obj)
-		if err != nil {
-			return nil, fmt.Errorf("failed to convert object at index %d to map: %w", i, err)
-		}
-		objMaps[i] = objMap
-	}
-
-	out, _, err := prg.Eval(map[string]any{
-		objectsPrefix: objMaps,
+		"object": objMap,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to evaluate expression: %w", err)
