@@ -11,8 +11,12 @@ import (
 	"github.com/google/cel-go/cel"
 	"github.com/google/cel-go/common/types"
 	"github.com/google/cel-go/common/types/ref"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+)
 
-	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
+const (
+	objectPrefix  = "object"
+	objectsPrefix = "objects"
 )
 
 type Evaluator struct {
@@ -21,8 +25,8 @@ type Evaluator struct {
 
 func NewEvaluator() (*Evaluator, error) {
 	env, err := cel.NewEnv(
-		cel.Variable("plugin", cel.DynType),
-		cel.Variable("plugins", cel.ListType(cel.DynType)),
+		cel.Variable(objectPrefix, cel.DynType),
+		cel.Variable(objectsPrefix, cel.ListType(cel.DynType)),
 	)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create CEL environment: %w", err)
@@ -31,12 +35,14 @@ func NewEvaluator() (*Evaluator, error) {
 	return &Evaluator{env: env}, nil
 }
 
-// EvaluatePluginExpression evaluates a CEL expression against a Plugin.
-// The plugin is available as the "plugin" variable in the expression.
-func (e *Evaluator) EvaluatePluginExpression(plugin *greenhousev1alpha1.Plugin, expression string) (any, error) {
-	if plugin == nil {
-		return nil, errors.New("plugin cannot be nil")
+// Evaluate evaluates a CEL expression against one or more Kubernetes objects.
+// If a single object is provided, it is available as "object" in the expression.
+// If multiple objects are provided, they are available as "objects" in the expression.
+func (e *Evaluator) Evaluate(expression string, objs ...client.Object) (any, error) {
+	if len(objs) == 0 {
+		return nil, errors.New("at least one object must be provided")
 	}
+
 	if expression == "" {
 		return nil, errors.New("expression cannot be empty")
 	}
@@ -51,13 +57,25 @@ func (e *Evaluator) EvaluatePluginExpression(plugin *greenhousev1alpha1.Plugin, 
 		return nil, fmt.Errorf("failed to create program: %w", err)
 	}
 
-	pluginMap, err := structToMap(plugin)
+	if len(objs) == 1 {
+		return e.evaluateSingle(objs[0], prg)
+	}
+
+	return e.evaluateMultiple(objs, prg)
+}
+
+func (e *Evaluator) evaluateSingle(obj client.Object, prg cel.Program) (any, error) {
+	if obj == nil {
+		return nil, errors.New("object cannot be nil")
+	}
+
+	objMap, err := structToMap(obj)
 	if err != nil {
-		return nil, fmt.Errorf("failed to convert plugin to map: %w", err)
+		return nil, fmt.Errorf("failed to convert object to map: %w", err)
 	}
 
 	out, _, err := prg.Eval(map[string]any{
-		"plugin": pluginMap,
+		objectPrefix: objMap,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to evaluate expression: %w", err)
@@ -66,37 +84,22 @@ func (e *Evaluator) EvaluatePluginExpression(plugin *greenhousev1alpha1.Plugin, 
 	return convertCELValue(out)
 }
 
-// EvaluatePluginListExpression evaluates a CEL expression against a list of Plugins.
-// The plugins are available as the "plugins" variable in the expression.
-func (e *Evaluator) EvaluatePluginListExpression(plugins []greenhousev1alpha1.Plugin, expression string) (any, error) {
-	if len(plugins) == 0 {
-		return nil, errors.New("plugins list cannot be empty")
-	}
-	if expression == "" {
-		return nil, errors.New("expression cannot be empty")
-	}
-
-	ast, issues := e.env.Compile(expression)
-	if issues != nil && issues.Err() != nil {
-		return nil, fmt.Errorf("failed to compile expression: %w", issues.Err())
-	}
-
-	prg, err := e.env.Program(ast)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create program: %w", err)
-	}
-
-	pluginMaps := make([]any, len(plugins))
-	for i, plugin := range plugins {
-		pluginMap, err := structToMap(&plugin)
-		if err != nil {
-			return nil, fmt.Errorf("failed to convert plugin at index %d to map: %w", i, err)
+func (e *Evaluator) evaluateMultiple(objs []client.Object, prg cel.Program) (any, error) {
+	objMaps := make([]any, len(objs))
+	for i, obj := range objs {
+		if obj == nil {
+			return nil, errors.New("object cannot be nil")
 		}
-		pluginMaps[i] = pluginMap
+
+		objMap, err := structToMap(obj)
+		if err != nil {
+			return nil, fmt.Errorf("failed to convert object at index %d to map: %w", i, err)
+		}
+		objMaps[i] = objMap
 	}
 
 	out, _, err := prg.Eval(map[string]any{
-		"plugins": pluginMaps,
+		objectsPrefix: objMaps,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to evaluate expression: %w", err)
