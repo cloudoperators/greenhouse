@@ -165,7 +165,7 @@ func FluxControllerPodInfoByPlugin(ctx context.Context, adminClient, remoteClien
 	test.EventuallyDeleted(ctx, adminClient, testPluginDefinition)
 }
 
-func FluxControllerPluginDependenciesOnPreset(ctx context.Context, adminClient, remoteClient client.Client, env *shared.TestEnv, remoteClusterName string, teamName string) {
+func FluxControllerPluginDependenciesOnPreset(ctx context.Context, adminClient, remoteClient client.Client, env *shared.TestEnv, remoteClusterName, teamName string) {
 	By("Creating plugin definition")
 	testPluginDefinition := fixtures.PreparePodInfoPluginDefinition(env.TestNamespace, "6.9.0")
 	err := adminClient.Create(ctx, testPluginDefinition)
@@ -307,7 +307,7 @@ func FluxControllerPluginDependenciesOnPreset(ctx context.Context, adminClient, 
 	Eventually(func(g Gomega) {
 		err = adminClient.Get(ctx, types.NamespacedName{Name: standalonePluginPresetPluginName, Namespace: env.TestNamespace}, standaloneHelmRelease)
 		g.Expect(err).NotTo(HaveOccurred())
-		g.Expect(standaloneHelmRelease.Spec.DependsOn).To(HaveLen(0))
+		g.Expect(standaloneHelmRelease.Spec.DependsOn).To(BeEmpty())
 		g.Expect(standaloneHelmRelease.Status.Conditions).To(ContainElement(MatchFields(IgnoreExtras, Fields{
 			"Type":   Equal(helmv2.ReleasedCondition),
 			"Reason": Equal(helmv2.InstallSucceededReason),
