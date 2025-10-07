@@ -357,7 +357,7 @@ func resolvePluginDependencies(dependencies []greenhousev1alpha1.WaitForItem, cl
 
 // convertWaitForToDependsOn converts plugin dependencies into flux HelmRelease dependencies.
 func convertWaitForToDependsOn(dependencies []greenhousev1alpha1.WaitForItem) []fluxmeta.NamespacedObjectReference {
-	out := make([]fluxmeta.NamespacedObjectReference, len(dependencies))
+	out := make([]fluxmeta.NamespacedObjectReference, 0, len(dependencies))
 	for _, item := range dependencies {
 		out = append(out, fluxmeta.NamespacedObjectReference{
 			// The name of the HelmRelease is the same as the name of the Plugin.

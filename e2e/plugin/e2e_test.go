@@ -97,4 +97,8 @@ var _ = Describe("Plugin E2E", Ordered, func() {
 	It("should deploy the plugin with flux", func() {
 		scenarios.FluxControllerPodInfoByPlugin(ctx, adminClient, remoteClient, env, remoteClusterName)
 	})
+
+	It("should deploy plugin with dependency via flux", func() {
+		scenarios.FluxControllerPluginDependenciesOnPreset(ctx, adminClient, remoteClient, env, remoteClusterName, team.Name)
+	})
 })
