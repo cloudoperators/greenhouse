@@ -24,7 +24,7 @@ type ClusterPluginDefinitionStatus struct {
 
 //+kubebuilder:object:root=true
 //+kubebuilder:subresource:status
-//+kubebuilder:resource:scope=Cluster
+//+kubebuilder:resource:scope=Cluster,shortName=cpd
 //+kubebuilder:printcolumn:name="Version",type=string,JSONPath=`.spec.version`
 //+kubebuilder:printcolumn:name="Description",type=string,JSONPath=`.spec.description`
 // +kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp"
