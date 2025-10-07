@@ -33,6 +33,13 @@ type PluginPresetSpec struct {
 	// ClusterOptionOverrides define plugin option values to override by the PluginPreset
 	// +kubebuilder:validation:Optional
 	ClusterOptionOverrides []ClusterOptionOverride `json:"clusterOptionOverrides,omitempty"`
+
+	// DeletionPolicy defines how Plugins owned by a PluginPreset are handled on deletion of the PluginPreset.
+	// Supported values are "Delete" and "Orphan". If not set, defaults to "Delete".
+	// +kubebuilder:validation:Optional
+	// +kubebuilder:default=Delete
+	// +kubebuilder:validation:Enum=Delete;Orphan
+	DeletionPolicy string `json:"deletionPolicy,omitempty"`
 }
 
 // ClusterOptionOverride defines which plugin option should be override in which cluster

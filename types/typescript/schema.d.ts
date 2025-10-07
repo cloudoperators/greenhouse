@@ -717,6 +717,9 @@ export interface components {
                     overrides: {
                         /** @description Name of the values. */
                         name: string;
+                        /** @description Template is a Go string template that will be dynamically resolved for cluster-specific values.
+                         *     Only PluginOptionValues declared as template will be templated by the PluginController for Flux. */
+                        template?: string;
                         /** @description Value is the actual value in plain text. */
                         value?: unknown;
                         /** @description ValueFrom references a potentially confidential value in another source. */
@@ -753,6 +756,13 @@ export interface components {
                         [key: string]: string;
                     };
                 };
+                /**
+                 * @description DeletionPolicy defines how Plugins owned by a PluginPreset are handled on deletion of the PluginPreset.
+                 *     Supported values are "Delete" and "Orphan". If not set, defaults to "Delete".
+                 * @default Delete
+                 * @enum {string}
+                 */
+                deletionPolicy: "Delete" | "Orphan";
                 /** @description PluginSpec is the spec of the plugin to be deployed by the PluginPreset. */
                 plugin: {
                     /** @description ClusterName is the name of the cluster the plugin is deployed to. If not set, the plugin is deployed to the greenhouse cluster. */
@@ -765,6 +775,9 @@ export interface components {
                     optionValues?: {
                         /** @description Name of the values. */
                         name: string;
+                        /** @description Template is a Go string template that will be dynamically resolved for cluster-specific values.
+                         *     Only PluginOptionValues declared as template will be templated by the PluginController for Flux. */
+                        template?: string;
                         /** @description Value is the actual value in plain text. */
                         value?: unknown;
                         /** @description ValueFrom references a potentially confidential value in another source. */
@@ -791,8 +804,6 @@ export interface components {
             };
             /** @description PluginPresetStatus defines the observed state of PluginPreset */
             status?: {
-                /** @description AvailablePlugins is the number of available Plugins managed by the PluginPreset. */
-                availablePlugins?: number;
                 /** @description FailedPlugins is the number of failed Plugins managed by the PluginPreset. */
                 failedPlugins?: number;
                 /** @description PluginStatuses contains statuses of Plugins managed by the PluginPreset. */
@@ -835,6 +846,8 @@ export interface components {
                         type: string;
                     }[];
                 };
+                /** @description TotalPlugins is the number of Plugins in total managed by the PluginPreset. */
+                totalPlugins?: number;
             };
         };
         /**
@@ -882,6 +895,9 @@ export interface components {
                 optionValues?: {
                     /** @description Name of the values. */
                     name: string;
+                    /** @description Template is a Go string template that will be dynamically resolved for cluster-specific values.
+                     *     Only PluginOptionValues declared as template will be templated by the PluginController for Flux. */
+                    template?: string;
                     /** @description Value is the actual value in plain text. */
                     value?: unknown;
                     /** @description ValueFrom references a potentially confidential value in another source. */
@@ -919,11 +935,17 @@ export interface components {
                         namespace: string;
                         /**
                          * Format: int32
-                         * @description Port is the port of the service.
+                         * @description Port is the port of the service. Zero for ingresses where port is not applicable.
                          */
-                        port: number;
+                        port?: number;
                         /** @description Protocol is the protocol of the service. */
                         protocol?: string;
+                        /**
+                         * @description Type is the type of exposed service.
+                         * @default service
+                         * @enum {string}
+                         */
+                        type: "service" | "ingress";
                     };
                 };
                 /** @description HelmChart contains a reference the helm chart used for the deployed pluginDefinition version. */
