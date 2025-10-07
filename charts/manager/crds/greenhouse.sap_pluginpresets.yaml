@@ -14,6 +14,8 @@ spec:
     kind: PluginPreset
     listKind: PluginPresetList
     plural: pluginpresets
+    shortNames:
+    - pp
     singular: pluginpreset
   scope: Namespaced
   versions:
@@ -152,6 +154,15 @@ spec:
                     type: object
                 type: object
                 x-kubernetes-map-type: atomic
+              deletionPolicy:
+                default: Delete
+                description: |-
+                  DeletionPolicy defines how Plugins owned by a PluginPreset are handled on deletion of the PluginPreset.
+                  Supported values are "Delete" and "Orphan". If not set, defaults to "Delete".
+                enum:
+                - Delete
+                - Orphan
+                type: string
               plugin:
                 description: PluginSpec is the spec of the plugin to be deployed by
                   the PluginPreset.

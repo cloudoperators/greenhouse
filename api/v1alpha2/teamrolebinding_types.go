@@ -50,6 +50,7 @@ type PropagationStatus struct {
 
 //+kubebuilder:object:root=true
 //+kubebuilder:subresource:status
+//+kubebuilder:resource:shortName=trb
 //+kubebuilder:storageversion
 //+kubebuilder:printcolumn:name="Team Role",type=string,JSONPath=`.spec.teamRoleRef`
 //+kubebuilder:printcolumn:name="Team",type=string,JSONPath=`.spec.teamRef`
