@@ -7,6 +7,7 @@ import (
 	"context"
 	"encoding/json"
 	"sort"
+	"strings"
 
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -18,11 +19,12 @@ import (
 )
 
 func GetPluginOptionValuesForPlugin(ctx context.Context, c client.Client, plugin *greenhousev1alpha1.Plugin) ([]greenhousev1alpha1.PluginOptionValue, error) {
-	var pluginDefinition = new(greenhousev1alpha1.ClusterPluginDefinition)
-	if err := c.Get(ctx, types.NamespacedName{Namespace: "", Name: plugin.Spec.PluginDefinition}, pluginDefinition); err != nil {
+	pluginDefinitionSpec, err := common.GetPluginDefinitionSpec(ctx, c, plugin.Spec.PluginDefinitionRef, plugin.GetNamespace())
+	if err != nil {
 		return nil, err
 	}
-	values := MergePluginAndPluginOptionValueSlice(pluginDefinition.Spec.Options, plugin.Spec.OptionValues)
+
+	values := MergePluginAndPluginOptionValueSlice(pluginDefinitionSpec.Options, plugin.Spec.OptionValues)
 	// Enrich with default greenhouse values.
 	greenhouseValues, err := GetGreenhouseValues(ctx, c, *plugin)
 	if err != nil {
@@ -107,6 +109,26 @@ func GetGreenhouseValues(ctx context.Context, c client.Client, p greenhousev1alp
 			Value:     &apiextensionsv1.JSON{Raw: clusterNameVal},
 			ValueFrom: nil,
 		})
+
+		// Append cluster metadata labels as global.greenhouse.metadata values.
+		var cluster = new(greenhousev1alpha1.Cluster)
+		if err := c.Get(ctx, types.NamespacedName{Namespace: p.GetNamespace(), Name: p.Spec.ClusterName}, cluster); err == nil {
+			for key, value := range cluster.Labels {
+				// Convert metadata.greenhouse.sap/* to global.greenhouse.metadata.*
+				if metadataKey := extractMetadataKey(key); metadataKey != "" {
+					metadataVal, err := json.Marshal(value)
+					if err != nil {
+						continue
+					}
+
+					greenhouseValues = append(greenhouseValues, greenhousev1alpha1.PluginOptionValue{
+						Name:      "global.greenhouse.metadata." + metadataKey,
+						Value:     &apiextensionsv1.JSON{Raw: metadataVal},
+						ValueFrom: nil,
+					})
+				}
+			}
+		}
 	}
 
 	// append DNSDomain
@@ -154,4 +176,14 @@ func stringSliceToHelmValue(theSlice []string) (*apiextensionsv1.JSON, error) {
 		return nil, err
 	}
 	return &apiextensionsv1.JSON{Raw: raw}, nil
+}
+
+// extractMetadataKey extracts the metadata key from cluster labels with the pattern "metadata.greenhouse.sap/<key>".
+// For example, "metadata.greenhouse.sap/region" becomes "region".
+// Returns empty string if the label doesn't match the metadata pattern.
+func extractMetadataKey(labelKey string) string {
+	if strings.HasPrefix(labelKey, greenhouseapis.LabelKeyMetadataPrefix) {
+		return strings.TrimPrefix(labelKey, greenhouseapis.LabelKeyMetadataPrefix)
+	}
+	return ""
 }

@@ -60,6 +60,9 @@ const (
 
 	// LabelKeyOwnedBy is used to identify the owning support-group team of a resource.
 	LabelKeyOwnedBy = "greenhouse.sap/owned-by"
+
+	// LabelKeyMetadataPrefix is the prefix for cluster metadata labels that are transferred to Plugin template data.
+	LabelKeyMetadataPrefix = "metadata.greenhouse.sap/"
 )
 
 // TeamRole and TeamRoleBinding constants
@@ -87,6 +90,14 @@ const (
 
 	// KindClusterPluginDefinitionPlural is the plural form of ClusterPluginDefinition kind.
 	KindClusterPluginDefinitionPlural = "clusterplugindefinitions"
+)
+
+// Deletion Policies
+const (
+	// DeletionPolicyOrphan means owned resources will be orphaned on deletion.
+	DeletionPolicyOrphan = "Orphan"
+	// DeletionPolicyDelete means owned resources will be deleted on deletion.
+	DeletionPolicyDelete = "Delete"
 )
 
 // Team constants

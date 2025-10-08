@@ -11,6 +11,11 @@ import (
 
 // initially inline PluginDefinitionSpec to avoid duplication of fields
 
+const (
+	// ClusterPluginDefinitionKind is the kind of the ClusterPluginDefinition resource
+	ClusterPluginDefinitionKind = "ClusterPluginDefinition"
+)
+
 // ClusterPluginDefinitionStatus defines the observed state of ClusterPluginDefinition.
 type ClusterPluginDefinitionStatus struct {
 	// StatusConditions contain the different conditions that constitute the status of the Plugin.
@@ -19,7 +24,7 @@ type ClusterPluginDefinitionStatus struct {
 
 //+kubebuilder:object:root=true
 //+kubebuilder:subresource:status
-//+kubebuilder:resource:scope=Cluster
+//+kubebuilder:resource:scope=Cluster,shortName=cpd
 //+kubebuilder:printcolumn:name="Version",type=string,JSONPath=`.spec.version`
 //+kubebuilder:printcolumn:name="Description",type=string,JSONPath=`.spec.description`
 // +kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp"

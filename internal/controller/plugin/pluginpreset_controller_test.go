@@ -11,6 +11,7 @@ import (
 	"github.com/onsi/gomega/format"
 	corev1 "k8s.io/api/core/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -36,8 +37,6 @@ const (
 
 	clusterA = "cluster-a"
 	clusterB = "cluster-b"
-
-	preventDeletionAnnotation = "greenhouse.sap/prevent-deletion"
 )
 
 var (
@@ -62,6 +61,20 @@ var (
 			Required:    true,
 			Type:        greenhousev1alpha1.PluginOptionTypeString,
 		}))
+	pluginPresetPluginSpec = greenhousev1alpha1.PluginSpec{
+		PluginDefinitionRef: greenhousev1alpha1.PluginDefinitionReference{
+			Kind: greenhousev1alpha1.ClusterPluginDefinitionKind,
+			Name: pluginPresetDefinitionName,
+		},
+		ReleaseName:      releaseName,
+		ReleaseNamespace: releaseNamespace,
+		OptionValues: []greenhousev1alpha1.PluginOptionValue{
+			{
+				Name:  "myRequiredOption",
+				Value: test.MustReturnJSONFor("myValue"),
+			},
+		},
+	}
 )
 
 var _ = Describe("PluginPreset Controller Lifecycle", Ordered, func() {
@@ -138,7 +151,15 @@ var _ = Describe("PluginPreset Controller Lifecycle", Ordered, func() {
 
 	It("should reconcile a PluginPreset", func() {
 		By("creating a PluginPreset")
-		testPluginPreset := pluginPreset(pluginPresetName, clusterA, testTeam.Name)
+		testPluginPreset := test.NewPluginPreset(pluginPresetName, test.TestNamespace,
+			test.WithPluginPresetLabel(greenhouseapis.LabelKeyOwnedBy, testTeam.Name),
+			test.WithPluginPresetPluginSpec(pluginPresetPluginSpec),
+			test.WithPluginPresetClusterSelector(metav1.LabelSelector{
+				MatchLabels: map[string]string{
+					"cluster": clusterA,
+				},
+			}))
+
 		err := test.K8sClient.Create(test.Ctx, testPluginPreset)
 		Expect(err).ToNot(HaveOccurred(), "failed to create test PluginPreset")
 
@@ -191,19 +212,24 @@ var _ = Describe("PluginPreset Controller Lifecycle", Ordered, func() {
 		Expect(err).NotTo(HaveOccurred(), "failed to update Plugin")
 
 		By("deleting the PluginPreset")
-		err = test.K8sClient.Get(test.Ctx, types.NamespacedName{Namespace: testPluginPreset.Namespace, Name: testPluginPreset.Name}, testPluginPreset)
-		Expect(err).ShouldNot(HaveOccurred(), "unexpected error getting PluginPreset")
-		testPluginPreset.Annotations = map[string]string{}
-		err = test.K8sClient.Update(test.Ctx, testPluginPreset)
-		Expect(err).ToNot(HaveOccurred())
 		test.EventuallyDeleted(test.Ctx, test.K8sClient, testPluginPreset)
 	})
 
 	It("should reconcile a PluginPreset with plugin definition defaults", func() {
-
 		By("ensuring a Plugin Preset has been created")
-		pluginPreset := pluginPreset(pluginPresetName+"-2", clusterA, testTeam.Name)
-		pluginPreset.Spec.Plugin.PluginDefinition = pluginDefinitionWithDefaultsName
+		pluginPreset := test.NewPluginPreset(pluginPresetName+"-2", test.TestNamespace,
+			test.WithPluginPresetLabel(greenhouseapis.LabelKeyOwnedBy, testTeam.Name),
+			test.WithPluginPresetPluginSpec(pluginPresetPluginSpec),
+			test.WithPluginPresetClusterSelector(metav1.LabelSelector{
+				MatchLabels: map[string]string{
+					"cluster": clusterA,
+				},
+			}))
+
+		pluginPreset.Spec.Plugin.PluginDefinitionRef = greenhousev1alpha1.PluginDefinitionReference{
+			Name: pluginDefinitionWithDefaultsName,
+			Kind: greenhousev1alpha1.ClusterPluginDefinitionKind,
+		}
 		Expect(test.K8sClient.Create(test.Ctx, pluginPreset)).ToNot(HaveOccurred())
 		test.EventuallyCreated(test.Ctx, test.K8sClient, pluginPreset)
 
@@ -222,18 +248,19 @@ var _ = Describe("PluginPreset Controller Lifecycle", Ordered, func() {
 		}))
 
 		By("removing plugin preset")
-		Eventually(func(g Gomega) {
-			err := test.K8sClient.Get(test.Ctx, client.ObjectKeyFromObject(pluginPreset), pluginPreset)
-			g.Expect(err).ShouldNot(HaveOccurred(), "unexpected error getting PluginPreset")
-			pluginPreset.Annotations = map[string]string{}
-			Expect(test.K8sClient.Update(test.Ctx, pluginPreset)).ToNot(HaveOccurred())
-		}).Should(Succeed(), "failed to update PluginPreset")
 		test.EventuallyDeleted(test.Ctx, test.K8sClient, pluginPreset)
 	})
 
 	It("should reconcile a PluginPreset on cluster changes", func() {
 		By("creating a PluginPreset")
-		testPluginPreset := pluginPreset(pluginPresetName, clusterA, testTeam.Name)
+		testPluginPreset := test.NewPluginPreset(pluginPresetName, test.TestNamespace,
+			test.WithPluginPresetLabel(greenhouseapis.LabelKeyOwnedBy, testTeam.Name),
+			test.WithPluginPresetPluginSpec(pluginPresetPluginSpec),
+			test.WithPluginPresetClusterSelector(metav1.LabelSelector{
+				MatchLabels: map[string]string{
+					"cluster": clusterA,
+				},
+			}))
 		err := test.K8sClient.Create(test.Ctx, testPluginPreset)
 		Expect(err).ToNot(HaveOccurred(), "failed to create test PluginPreset")
 
@@ -271,20 +298,20 @@ var _ = Describe("PluginPreset Controller Lifecycle", Ordered, func() {
 		}).Should(Succeed(), "the PluginPreset should have removed the Plugin for the deleted Cluster")
 
 		By("removing the PluginPreset")
-		err = test.K8sClient.Get(test.Ctx, client.ObjectKeyFromObject(testPluginPreset), testPluginPreset)
-		Expect(err).ToNot(HaveOccurred(), "failed to get PluginPreset")
-		// Remove prevent-deletion annotation before deleting PluginPreset.
-		_, err = clientutil.Patch(test.Ctx, test.K8sClient, testPluginPreset, func() error {
-			delete(testPluginPreset.Annotations, preventDeletionAnnotation)
-			return nil
-		})
-		Expect(err).ToNot(HaveOccurred(), "failed to patch PluginPreset")
 		test.EventuallyDeleted(test.Ctx, test.K8sClient, testPluginPreset)
 	})
 
 	It("should delete a Plugin if the cluster no longer matches", func() {
 		By("creating a PluginPreset")
-		testPluginPreset := pluginPreset(pluginPresetName, clusterA, testTeam.Name)
+		testPluginPreset := test.NewPluginPreset(pluginPresetName, test.TestNamespace,
+			test.WithPluginPresetLabel(greenhouseapis.LabelKeyOwnedBy, testTeam.Name),
+			test.WithPluginPresetPluginSpec(pluginPresetPluginSpec),
+			test.WithPluginPresetClusterSelector(metav1.LabelSelector{
+				MatchLabels: map[string]string{
+					"cluster": clusterA,
+				},
+			}))
+
 		err := test.K8sClient.Create(test.Ctx, testPluginPreset)
 		Expect(err).ToNot(HaveOccurred(), "failed to create test PluginPreset")
 
@@ -335,20 +362,20 @@ var _ = Describe("PluginPreset Controller Lifecycle", Ordered, func() {
 		}).Should(Succeed(), "the PluginPreset should have removed the Plugin for the deleted Cluster")
 
 		By("removing the PluginPreset")
-		err = test.K8sClient.Get(test.Ctx, client.ObjectKeyFromObject(testPluginPreset), testPluginPreset)
-		Expect(err).ToNot(HaveOccurred(), "failed to get PluginPreset")
-		// Remove prevent-deletion annotation before deleting PluginPreset.
-		_, err = clientutil.Patch(test.Ctx, test.K8sClient, testPluginPreset, func() error {
-			delete(testPluginPreset.Annotations, preventDeletionAnnotation)
-			return nil
-		})
-		Expect(err).ToNot(HaveOccurred(), "failed to patch PluginPreset")
 		test.EventuallyDeleted(test.Ctx, test.K8sClient, testPluginPreset)
 	})
 
 	It("should set the Status NotReady if ClusterSelector does not match", func() {
 		// Create a PluginPreset with a ClusterSelector that does not match any cluster
-		pluginPreset := pluginPreset("not-ready", "non-existing-cluster", testTeam.Name)
+		pluginPreset := test.NewPluginPreset("not-ready", test.TestNamespace,
+			test.WithPluginPresetLabel(greenhouseapis.LabelKeyOwnedBy, testTeam.Name),
+			test.WithPluginPresetPluginSpec(pluginPresetPluginSpec),
+			test.WithPluginPresetClusterSelector(metav1.LabelSelector{
+				MatchLabels: map[string]string{
+					"cluster": "non-existing-cluster",
+				},
+			}))
+
 		Expect(test.K8sClient.Create(test.Ctx, pluginPreset)).Should(Succeed(), "failed to create test PluginPreset")
 
 		Eventually(func(g Gomega) {
@@ -364,7 +391,14 @@ var _ = Describe("PluginPreset Controller Lifecycle", Ordered, func() {
 
 	It("should reconcile PluginStatuses for PluginPreset", func() {
 		By("creating a PluginPreset")
-		testPluginPreset := pluginPreset(pluginPresetName, clusterA, testTeam.Name)
+		testPluginPreset := test.NewPluginPreset(pluginPresetName, test.TestNamespace,
+			test.WithPluginPresetLabel(greenhouseapis.LabelKeyOwnedBy, testTeam.Name),
+			test.WithPluginPresetPluginSpec(pluginPresetPluginSpec),
+			test.WithPluginPresetClusterSelector(metav1.LabelSelector{
+				MatchLabels: map[string]string{
+					"cluster": clusterA,
+				},
+			}))
 		err := test.K8sClient.Create(test.Ctx, testPluginPreset)
 		Expect(err).ToNot(HaveOccurred(), "failed to create test PluginPreset")
 
@@ -446,14 +480,6 @@ var _ = Describe("PluginPreset Controller Lifecycle", Ordered, func() {
 		}).Should(Succeed())
 
 		By("removing the PluginPreset")
-		err = test.K8sClient.Get(test.Ctx, client.ObjectKeyFromObject(testPluginPreset), testPluginPreset)
-		Expect(err).ToNot(HaveOccurred(), "failed to get PluginPreset")
-		// Remove prevent-deletion annotation before deleting PluginPreset.
-		_, err = clientutil.Patch(test.Ctx, test.K8sClient, testPluginPreset, func() error {
-			delete(testPluginPreset.Annotations, preventDeletionAnnotation)
-			return nil
-		})
-		Expect(err).ToNot(HaveOccurred(), "failed to patch PluginPreset")
 		test.EventuallyDeleted(test.Ctx, test.K8sClient, testPluginPreset)
 	})
 
@@ -473,17 +499,23 @@ var _ = Describe("PluginPreset Controller Lifecycle", Ordered, func() {
 		test.EventuallyCreated(test.Ctx, test.K8sClient, pluginDefinition)
 
 		By("creating a PluginPreset with overrides")
-		pluginPreset := pluginPreset(pluginPresetName+"-override1", clusterA, testTeam.Name)
-		pluginPreset.Spec.Plugin.PluginDefinition = pluginDefinition.Name
-		pluginPreset.Spec.ClusterOptionOverrides = append(pluginPreset.Spec.ClusterOptionOverrides, greenhousev1alpha1.ClusterOptionOverride{
-			ClusterName: clusterA,
-			Overrides: []greenhousev1alpha1.PluginOptionValue{
-				{
-					Name:  "test-required-option-1",
-					Value: test.MustReturnJSONFor(5),
+		pluginPreset := test.NewPluginPreset(pluginPresetName+"-override1", test.TestNamespace,
+			test.WithPluginPresetLabel(greenhouseapis.LabelKeyOwnedBy, testTeam.Name),
+			test.WithPluginPresetPluginSpec(pluginPresetPluginSpec),
+			test.WithPluginPresetClusterSelector(metav1.LabelSelector{
+				MatchLabels: map[string]string{
+					"cluster": clusterA,
 				},
 			},
-		})
+			),
+			test.WithClusterOverride(clusterA, []greenhousev1alpha1.PluginOptionValue{
+				{Name: "test-required-option-1", Value: test.MustReturnJSONFor(5)},
+			}),
+		)
+		pluginPreset.Spec.Plugin.PluginDefinitionRef = greenhousev1alpha1.PluginDefinitionReference{
+			Name: pluginDefinition.Name,
+			Kind: greenhousev1alpha1.ClusterPluginDefinitionKind,
+		}
 		Expect(test.K8sClient.Create(test.Ctx, pluginPreset)).To(Succeed(), "failed to create PluginPreset")
 		test.EventuallyCreated(test.Ctx, test.K8sClient, pluginPreset)
 
@@ -497,20 +529,23 @@ var _ = Describe("PluginPreset Controller Lifecycle", Ordered, func() {
 			"ClusterOptionOverrides should be applied to the Plugin OptionValues")
 
 		By("removing plugin preset")
-		err := test.K8sClient.Get(test.Ctx, client.ObjectKeyFromObject(pluginPreset), pluginPreset)
-		Expect(err).ShouldNot(HaveOccurred(), "unexpected error getting PluginPreset")
-		_, err = clientutil.Patch(test.Ctx, test.K8sClient, pluginPreset, func() error {
-			delete(pluginPreset.Annotations, preventDeletionAnnotation)
-			return nil
-		})
-		Expect(err).ToNot(HaveOccurred(), "failed to remove prevent-deletion annotation from PluginPreset")
 		test.EventuallyDeleted(test.Ctx, test.K8sClient, pluginPreset)
 	})
 
 	It("should save an error when Plugin creation failed due to required options being unset", func() {
 		By("creating a PluginPreset based on PluginDefinition with required option")
-		pluginPreset := pluginPreset(pluginPresetName+"-missing1", clusterA, testTeam.Name)
-		pluginPreset.Spec.Plugin.PluginDefinition = pluginDefinitionWithRequiredOptionName
+		pluginPreset := test.NewPluginPreset(pluginPresetName+"-missing1", test.TestNamespace,
+			test.WithPluginPresetLabel(greenhouseapis.LabelKeyOwnedBy, testTeam.Name),
+			test.WithPluginPresetPluginSpec(pluginPresetPluginSpec),
+			test.WithPluginPresetClusterSelector(metav1.LabelSelector{
+				MatchLabels: map[string]string{
+					"cluster": clusterA,
+				},
+			}))
+		pluginPreset.Spec.Plugin.PluginDefinitionRef = greenhousev1alpha1.PluginDefinitionReference{
+			Name: pluginDefinitionWithRequiredOptionName,
+			Kind: greenhousev1alpha1.ClusterPluginDefinitionKind,
+		}
 		Expect(test.K8sClient.Create(test.Ctx, pluginPreset)).To(Succeed(), "failed to create PluginPreset")
 		test.EventuallyCreated(test.Ctx, test.K8sClient, pluginPreset)
 
@@ -527,20 +562,23 @@ var _ = Describe("PluginPreset Controller Lifecycle", Ordered, func() {
 		}).Should(Succeed(), "Plugin creation error not found in PluginPreset")
 
 		By("removing plugin preset")
-		err := test.K8sClient.Get(test.Ctx, client.ObjectKeyFromObject(pluginPreset), pluginPreset)
-		Expect(err).ShouldNot(HaveOccurred(), "unexpected error getting PluginPreset")
-		_, err = clientutil.Patch(test.Ctx, test.K8sClient, pluginPreset, func() error {
-			delete(pluginPreset.Annotations, preventDeletionAnnotation)
-			return nil
-		})
-		Expect(err).ToNot(HaveOccurred(), "failed to remove prevent-deletion annotation from PluginPreset")
 		test.EventuallyDeleted(test.Ctx, test.K8sClient, pluginPreset)
 	})
 
 	It("should successfully propagate labels from PluginPreset to Plugin", func() {
 		By("ensuring a Plugin Preset has been created")
-		pluginPreset := pluginPreset(pluginPresetName+"-label-propagation", clusterA, testTeam.Name)
-		pluginPreset.Spec.Plugin.PluginDefinition = pluginDefinitionWithDefaultsName
+		pluginPreset := test.NewPluginPreset(pluginPresetName+"-label-propagation", test.TestNamespace,
+			test.WithPluginPresetLabel(greenhouseapis.LabelKeyOwnedBy, testTeam.Name),
+			test.WithPluginPresetPluginSpec(pluginPresetPluginSpec),
+			test.WithPluginPresetClusterSelector(metav1.LabelSelector{
+				MatchLabels: map[string]string{
+					"cluster": clusterA,
+				},
+			}))
+		pluginPreset.Spec.Plugin.PluginDefinitionRef = greenhousev1alpha1.PluginDefinitionReference{
+			Name: pluginDefinitionWithDefaultsName,
+			Kind: greenhousev1alpha1.ClusterPluginDefinitionKind,
+		}
 		pluginPreset.SetAnnotations(map[string]string{
 			lifecycle.PropagateLabelsAnnotation: "support_group, region",
 		})
@@ -564,428 +602,73 @@ var _ = Describe("PluginPreset Controller Lifecycle", Ordered, func() {
 		Expect(expPlugin.Labels).To(HaveKey("region"), "the plugin should have the region propagated label")
 
 		By("removing plugin preset")
-		Eventually(func(g Gomega) {
-			err := test.K8sClient.Get(test.Ctx, client.ObjectKeyFromObject(pluginPreset), pluginPreset)
-			g.Expect(err).ShouldNot(HaveOccurred(), "unexpected error getting PluginPreset")
-			pluginPreset.Annotations = map[string]string{}
-			Expect(test.K8sClient.Update(test.Ctx, pluginPreset)).ToNot(HaveOccurred())
-		}).Should(Succeed(), "failed to update PluginPreset")
-		Expect(test.K8sClient.Delete(test.Ctx, pluginPreset)).ToNot(HaveOccurred())
 		test.EventuallyDeleted(test.Ctx, test.K8sClient, pluginPreset)
 	})
-})
 
-var _ = Describe("Plugin Preset skip changes", Ordered, func() {
-	DescribeTable("",
-		func(testPlugin *greenhousev1alpha1.Plugin, testPresetPlugin *greenhousev1alpha1.PluginPreset, testPluginDefinition *greenhousev1alpha1.ClusterPluginDefinition, clusterName string, expected bool) {
-			Expect(shouldSkipPlugin(testPlugin, testPresetPlugin, testPluginDefinition, clusterName)).To(BeEquivalentTo(expected))
-		},
-		Entry("should skip when plugin preset name in plugin's labels is different then defined name in plugin preset",
-			test.NewPlugin(test.Ctx, "", "",
-				test.WithPresetLabelValue(pluginPresetName+"A"),
+	It("should orphan Plugins with the delete-policy annotation set on a PluginPreset", func() {
+		By("creating a PluginPreset")
+		testPluginPreset := test.NewPluginPreset(pluginPresetName, test.TestNamespace,
+			test.WithPluginPresetLabel(greenhouseapis.LabelKeyOwnedBy, testTeam.Name),
+			test.WithPluginPresetPluginSpec(pluginPresetPluginSpec),
+			test.WithPluginPresetClusterSelector(metav1.LabelSelector{
+				MatchLabels: map[string]string{
+					"cluster": clusterA,
+				},
+			},
 			),
-			&greenhousev1alpha1.PluginPreset{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: pluginPresetName,
+			test.WithPluginPresetDeletionPolicy(greenhouseapis.DeletionPolicyOrphan))
+		err := test.K8sClient.Create(test.Ctx, testPluginPreset)
+		Expect(err).ToNot(HaveOccurred(), "failed to create test PluginPreset")
+
+		By("ensuring a Plugin has been created")
+		expPluginName := types.NamespacedName{Name: pluginPresetName + "-" + clusterA, Namespace: test.TestNamespace}
+		expPlugin := &greenhousev1alpha1.Plugin{}
+		Eventually(func() error {
+			return test.K8sClient.Get(test.Ctx, expPluginName, expPlugin)
+		}).Should(Succeed(), "the Plugin should be created")
+
+		Expect(expPlugin.Labels).To(HaveKeyWithValue(greenhouseapis.LabelKeyPluginPreset, pluginPresetName), "the Plugin should be labeled as managed by the PluginPreset")
+
+		By("deleting the PluginPreset")
+		test.EventuallyDeleted(test.Ctx, test.K8sClient, testPluginPreset)
+
+		By("ensuring the Plugin is not deleted")
+		expPluginPresetName := types.NamespacedName{Name: pluginPresetName, Namespace: test.TestNamespace}
+		Eventually(func(g Gomega) {
+			err := test.K8sClient.Get(test.Ctx, expPluginPresetName, testPluginPreset)
+			g.Expect(errors.IsNotFound(err)).To(BeTrue(), "the PluginPreset should be deleted")
+			err = test.K8sClient.Get(test.Ctx, expPluginName, expPlugin)
+			g.Expect(err).ShouldNot(HaveOccurred(), "the Plugin should not be deleted")
+			g.Expect(expPlugin.Labels).To(HaveKey(greenhouseapis.LabelKeyPluginPreset), "the Plugin should still be labeled as managed by the PluginPreset")
+			g.Expect(expPlugin.OwnerReferences).To(BeEmpty(), "the Plugin should not have an OwnerReference to the deleted PluginPreset")
+		}).Should(Succeed(), "the Plugin should not be deleted after the PluginPreset is deleted")
+
+		By("re-creating the preset")
+		testPluginPreset = test.NewPluginPreset(pluginPresetName, test.TestNamespace,
+			test.WithPluginPresetLabel(greenhouseapis.LabelKeyOwnedBy, testTeam.Name),
+			test.WithPluginPresetPluginSpec(pluginPresetPluginSpec),
+			test.WithPluginPresetClusterSelector(metav1.LabelSelector{
+				MatchLabels: map[string]string{
+					"cluster": clusterA,
 				},
-			},
-			&greenhousev1alpha1.ClusterPluginDefinition{},
-			"",
-			true,
-		),
-		Entry("should not skip when plugin preset contains options which is not present in plugin",
-			test.NewPlugin(test.Ctx, "", "",
-				test.WithPresetLabelValue(pluginPresetName),
-				test.WithPluginDefinition(pluginPresetDefinitionName),
-				test.WithPluginOptionValue("global.greenhouse.test_parameter",
-					test.MustReturnJSONFor(2)),
-			),
-			&greenhousev1alpha1.PluginPreset{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: pluginPresetName,
-				},
-				Spec: greenhousev1alpha1.PluginPresetSpec{
-					Plugin: greenhousev1alpha1.PluginSpec{
-						PluginDefinition: pluginPresetDefinitionName,
-						OptionValues: []greenhousev1alpha1.PluginOptionValue{
-							{
-								Name:  "plugin_preset.test_parameter",
-								Value: test.MustReturnJSONFor(3),
-							},
-						},
-					},
-				},
-			},
-			&greenhousev1alpha1.ClusterPluginDefinition{},
-			"",
-			false,
-		),
-		Entry("should not skip when plugin preset has option with different value",
-			test.NewPlugin(test.Ctx, "", "",
-				test.WithPresetLabelValue(pluginPresetName),
-				test.WithPluginDefinition(pluginPresetDefinitionName),
-				test.WithPluginOptionValue("global.greenhouse.test_parameter",
-					test.MustReturnJSONFor(2)),
-				test.WithPluginOptionValue("plugin_preset.test_parameter",
-					test.MustReturnJSONFor(2)),
-			),
-			&greenhousev1alpha1.PluginPreset{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: pluginPresetName,
-				},
-				Spec: greenhousev1alpha1.PluginPresetSpec{
-					Plugin: greenhousev1alpha1.PluginSpec{
-						PluginDefinition: pluginPresetDefinitionName,
-						OptionValues: []greenhousev1alpha1.PluginOptionValue{
-							{
-								Name:  "plugin_preset.test_parameter",
-								Value: test.MustReturnJSONFor(3),
-							},
-						},
-					},
-				},
-			},
-			&greenhousev1alpha1.ClusterPluginDefinition{},
-			"",
-			false,
-		),
-		Entry("should not skip when one of plugin preset option has more then one value and one of them is different then option in plugin",
-			test.NewPlugin(test.Ctx, "", "",
-				test.WithPresetLabelValue(pluginPresetName),
-				test.WithPluginDefinition(pluginPresetDefinitionName),
-				test.WithPluginOptionValue("global.greenhouse.test_parameter",
-					test.MustReturnJSONFor(2)),
-				test.WithPluginOptionValue("plugin_preset.test_parameter_1",
-					test.MustReturnJSONFor(1)),
-				test.WithPluginOptionValue("plugin_preset.test_parameter_2",
-					test.MustReturnJSONFor(2)),
-				test.WithPluginOptionValue("plugin_preset.test_parameter_4",
-					test.MustReturnJSONFor(3)),
-			),
-			&greenhousev1alpha1.PluginPreset{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: pluginPresetName,
-				},
-				Spec: greenhousev1alpha1.PluginPresetSpec{
-					Plugin: greenhousev1alpha1.PluginSpec{
-						PluginDefinition: pluginPresetDefinitionName,
-						OptionValues: []greenhousev1alpha1.PluginOptionValue{
-							{
-								Name:  "plugin_preset.test_parameter_1",
-								Value: test.MustReturnJSONFor(1),
-							},
-							{
-								Name:  "plugin_preset.test_parameter_2",
-								Value: test.MustReturnJSONFor(2),
-							},
-							{
-								Name:  "plugin_preset.test_parameter_4",
-								Value: test.MustReturnJSONFor(4),
-							},
-						},
-					},
-				},
-			},
-			&greenhousev1alpha1.ClusterPluginDefinition{},
-			"",
-			false,
-		),
-		Entry("should skip when plugin preset has the same values like plugin",
-			test.NewPlugin(test.Ctx, "", "",
-				test.WithPresetLabelValue(pluginPresetName),
-				test.WithPluginDefinition(pluginPresetDefinitionName),
-				test.WithPluginOptionValue("global.greenhouse.test_parameter",
-					test.MustReturnJSONFor(2)),
-				test.WithPluginOptionValue("plugin_preset.test_parameter",
-					test.MustReturnJSONFor(3)),
-			),
-			&greenhousev1alpha1.PluginPreset{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: pluginPresetName,
-				},
-				Spec: greenhousev1alpha1.PluginPresetSpec{
-					Plugin: greenhousev1alpha1.PluginSpec{
-						PluginDefinition: pluginPresetDefinitionName,
-						OptionValues: []greenhousev1alpha1.PluginOptionValue{
-							{
-								Name:  "plugin_preset.test_parameter",
-								Value: test.MustReturnJSONFor(3),
-							},
-						},
-					},
-				},
-			},
-			&greenhousev1alpha1.ClusterPluginDefinition{},
-			"",
-			true,
-		),
-		Entry("should not skip when plugin has custom values",
-			test.NewPlugin(test.Ctx, "", "",
-				test.WithPresetLabelValue(pluginPresetName),
-				test.WithPluginDefinition(pluginPresetDefinitionName),
-				test.WithPluginOptionValue("global.greenhouse.test_parameter",
-					test.MustReturnJSONFor(2)),
-				test.WithPluginOptionValue("plugin_preset.test_parameter",
-					test.MustReturnJSONFor(3)),
-				test.WithPluginOptionValue("custom_parameter",
-					test.MustReturnJSONFor(123)),
-			),
-			&greenhousev1alpha1.PluginPreset{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: pluginPresetName,
-				},
-				Spec: greenhousev1alpha1.PluginPresetSpec{
-					Plugin: greenhousev1alpha1.PluginSpec{
-						PluginDefinition: pluginPresetDefinitionName,
-						OptionValues: []greenhousev1alpha1.PluginOptionValue{
-							{
-								Name:  "plugin_preset.test_parameter",
-								Value: test.MustReturnJSONFor(3),
-							},
-						},
-					},
-				},
-			},
-			&greenhousev1alpha1.ClusterPluginDefinition{},
-			"",
-			false,
-		),
-		Entry("should skip when plugin has default values from plugin definition",
-			test.NewPlugin(test.Ctx, "", "",
-				test.WithPresetLabelValue(pluginPresetName),
-				test.WithPluginDefinition(pluginPresetDefinitionName),
-				test.WithPluginOptionValue("global.greenhouse.test_parameter",
-					test.MustReturnJSONFor(2)),
-				test.WithPluginOptionValue("plugin_definition.test_parameter",
-					test.MustReturnJSONFor(3)),
-			),
-			&greenhousev1alpha1.PluginPreset{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: pluginPresetName,
-				},
-				Spec: greenhousev1alpha1.PluginPresetSpec{
-					Plugin: greenhousev1alpha1.PluginSpec{
-						PluginDefinition: pluginPresetDefinitionName,
-						OptionValues:     []greenhousev1alpha1.PluginOptionValue{},
-					},
-				},
-			},
-			&greenhousev1alpha1.ClusterPluginDefinition{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: pluginPresetDefinitionName,
-				},
-				Spec: greenhousev1alpha1.PluginDefinitionSpec{
-					Options: []greenhousev1alpha1.PluginOption{
-						{
-							Name:    "plugin_definition.test_parameter",
-							Default: test.MustReturnJSONFor(3),
-						},
-					},
-				},
-			},
-			"",
-			true,
-		),
-		Entry("should not skip when plugin has different values then plugin definition",
-			test.NewPlugin(test.Ctx, "", "",
-				test.WithPresetLabelValue(pluginPresetName),
-				test.WithPluginDefinition(pluginPresetDefinitionName),
-				test.WithPluginOptionValue("global.greenhouse.test_parameter",
-					test.MustReturnJSONFor(2)),
-				test.WithPluginOptionValue("plugin_definition.test_parameter",
-					test.MustReturnJSONFor(3)),
-			),
-			&greenhousev1alpha1.PluginPreset{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: pluginPresetName,
-				},
-				Spec: greenhousev1alpha1.PluginPresetSpec{
-					Plugin: greenhousev1alpha1.PluginSpec{
-						PluginDefinition: pluginPresetDefinitionName,
-						OptionValues:     []greenhousev1alpha1.PluginOptionValue{},
-					},
-				},
-			},
-			&greenhousev1alpha1.ClusterPluginDefinition{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: pluginPresetDefinitionName,
-				},
-				Spec: greenhousev1alpha1.PluginDefinitionSpec{
-					Options: []greenhousev1alpha1.PluginOption{
-						{
-							Name:    "plugin_definition.test_parameter",
-							Default: test.MustReturnJSONFor(4),
-						},
-					},
-				},
-			},
-			"",
-			false,
-		), Entry("should not skip when Plugin has different valueFrom then PluginDefinition",
-			test.NewPlugin(test.Ctx, "", "",
-				test.WithPresetLabelValue(pluginPresetName),
-				test.WithPluginDefinition(pluginPresetDefinitionName),
-				test.WithPluginOptionValue("global.greenhouse.test_parameter",
-					test.MustReturnJSONFor(2)),
-				test.WithPluginOptionValueFrom("plugin_definition.test_parameter",
-					&greenhousev1alpha1.ValueFromSource{
-						Secret: &greenhousev1alpha1.SecretKeyReference{
-							Name: "test-secret",
-							Key:  "test-key",
-						},
-					}),
-			),
-			&greenhousev1alpha1.PluginPreset{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: pluginPresetName,
-				},
-				Spec: greenhousev1alpha1.PluginPresetSpec{
-					Plugin: greenhousev1alpha1.PluginSpec{
-						PluginDefinition: pluginPresetDefinitionName,
-						OptionValues:     []greenhousev1alpha1.PluginOptionValue{},
-					},
-				},
-			},
-			&greenhousev1alpha1.ClusterPluginDefinition{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: pluginPresetDefinitionName,
-				},
-				Spec: greenhousev1alpha1.PluginDefinitionSpec{
-					Options: []greenhousev1alpha1.PluginOption{
-						{
-							Name:    "plugin_definition.test_parameter",
-							Default: test.MustReturnJSONFor(4),
-						},
-					},
-				},
-			},
-			"",
-			false,
-		), Entry("should skip when Plugin has same valueFrom as PluginPreset",
-			test.NewPlugin(test.Ctx, "", "",
-				test.WithPresetLabelValue(pluginPresetName),
-				test.WithPluginDefinition(pluginPresetDefinitionName),
-				test.WithPluginOptionValue("global.greenhouse.test_parameter",
-					test.MustReturnJSONFor(2)),
-				test.WithPluginOptionValueFrom("plugin_definition.test_parameter",
-					&greenhousev1alpha1.ValueFromSource{
-						Secret: &greenhousev1alpha1.SecretKeyReference{
-							Name: "test-secret",
-							Key:  "test-key",
-						},
-					}),
-			),
-			&greenhousev1alpha1.PluginPreset{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: pluginPresetName,
-				},
-				Spec: greenhousev1alpha1.PluginPresetSpec{
-					Plugin: greenhousev1alpha1.PluginSpec{
-						PluginDefinition: pluginPresetDefinitionName,
-						OptionValues: []greenhousev1alpha1.PluginOptionValue{
-							{Name: "plugin_definition.test_parameter",
-								ValueFrom: &greenhousev1alpha1.ValueFromSource{
-									Secret: &greenhousev1alpha1.SecretKeyReference{
-										Name: "test-secret",
-										Key:  "test-key",
-									},
-								},
-							},
-						},
-					},
-				},
-			},
-			&greenhousev1alpha1.ClusterPluginDefinition{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: pluginPresetDefinitionName,
-				},
-				Spec: greenhousev1alpha1.PluginDefinitionSpec{
-					Options: []greenhousev1alpha1.PluginOption{
-						{
-							Name:    "plugin_definition.test_parameter",
-							Default: test.MustReturnJSONFor(4),
-						},
-					},
-				},
-			},
-			"",
-			true,
-		), Entry("should not skip when Plugin has different value then plugin override",
-			test.NewPlugin(test.Ctx, "", "",
-				test.WithPresetLabelValue(pluginPresetName),
-				test.WithPluginDefinition(pluginPresetDefinitionName),
-				test.WithPluginOptionValue("global.greenhouse.test_parameter",
-					test.MustReturnJSONFor(2)),
-			),
-			&greenhousev1alpha1.PluginPreset{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: pluginPresetName,
-				},
-				Spec: greenhousev1alpha1.PluginPresetSpec{
-					Plugin: greenhousev1alpha1.PluginSpec{
-						PluginDefinition: pluginPresetDefinitionName,
-						OptionValues: []greenhousev1alpha1.PluginOptionValue{
-							{
-								Name:  "global.greenhouse.test_parameter",
-								Value: test.MustReturnJSONFor(2),
-							},
-						},
-					},
-					ClusterOptionOverrides: []greenhousev1alpha1.ClusterOptionOverride{
-						{
-							ClusterName: clusterA,
-							Overrides: []greenhousev1alpha1.PluginOptionValue{
-								{
-									Name:  "global.greenhouse.test_parameter",
-									Value: test.MustReturnJSONFor(3),
-								},
-							},
-						},
-					},
-				},
-			},
-			&greenhousev1alpha1.ClusterPluginDefinition{},
-			clusterA,
-			false,
-		), Entry("should skip when Plugin has different value then plugin override but cluster name is different",
-			test.NewPlugin(test.Ctx, "", "",
-				test.WithPresetLabelValue(pluginPresetName),
-				test.WithPluginDefinition(pluginPresetDefinitionName),
-				test.WithPluginOptionValue("global.greenhouse.test_parameter",
-					test.MustReturnJSONFor(2)),
-			),
-			&greenhousev1alpha1.PluginPreset{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: pluginPresetName,
-				},
-				Spec: greenhousev1alpha1.PluginPresetSpec{
-					Plugin: greenhousev1alpha1.PluginSpec{
-						PluginDefinition: pluginPresetDefinitionName,
-						OptionValues: []greenhousev1alpha1.PluginOptionValue{
-							{
-								Name:  "global.greenhouse.test_parameter",
-								Value: test.MustReturnJSONFor(2),
-							},
-						},
-					},
-					ClusterOptionOverrides: []greenhousev1alpha1.ClusterOptionOverride{
-						{
-							ClusterName: clusterA,
-							Overrides: []greenhousev1alpha1.PluginOptionValue{
-								{
-									Name:  "global.greenhouse.test_parameter",
-									Value: test.MustReturnJSONFor(3),
-								},
-							},
-						},
-					},
-				},
-			},
-			&greenhousev1alpha1.ClusterPluginDefinition{},
-			clusterB,
-			true,
-		),
-	)
+			}))
+		err = test.K8sClient.Create(test.Ctx, testPluginPreset)
+		Expect(err).NotTo(HaveOccurred(), "failed to create PluginPreset")
+
+		By("checking that the existing Plugin is now owned by the re-created PluginPreset")
+		Eventually(func(g Gomega) {
+			err := test.K8sClient.Get(test.Ctx, expPluginPresetName, testPluginPreset)
+			g.Expect(err).ShouldNot(HaveOccurred(), "the PluginPreset should exist")
+			err = test.K8sClient.Get(test.Ctx, expPluginName, expPlugin)
+			g.Expect(err).ShouldNot(HaveOccurred(), "the Plugin should not be deleted")
+			g.Expect(expPlugin.Labels).To(HaveKey(greenhouseapis.LabelKeyPluginPreset), "the Plugin should be labeled as managed by the PluginPreset")
+			g.Expect(expPlugin.OwnerReferences).ToNot(BeEmpty(), "the Plugin should have an OwnerReference again")
+		}).Should(Succeed(), "the Plugin should be owned by the PluginPreset again")
+
+		By("deleting the PluginPreset")
+		test.EventuallyDeleted(test.Ctx, test.K8sClient, testPluginPreset)
+	})
+
 })
 
 var _ = Describe("overridesPluginOptionValues", Ordered, func() {
@@ -1194,29 +877,4 @@ func cluster(name, supportGroupTeamName string) *greenhousev1alpha1.Cluster {
 			AccessMode: greenhousev1alpha1.ClusterAccessModeDirect,
 		},
 	}
-}
-
-func pluginPreset(name, selectorValue, supportGroupTeamName string) *greenhousev1alpha1.PluginPreset {
-	preset := test.NewPluginPreset(name, test.TestNamespace,
-		test.WithPluginPresetLabel(greenhouseapis.LabelKeyOwnedBy, supportGroupTeamName))
-	preset.Spec = greenhousev1alpha1.PluginPresetSpec{
-		Plugin: greenhousev1alpha1.PluginSpec{
-			PluginDefinition: pluginPresetDefinitionName,
-			ReleaseName:      releaseName,
-			ReleaseNamespace: releaseNamespace,
-			OptionValues: []greenhousev1alpha1.PluginOptionValue{
-				{
-					Name:  "myRequiredOption",
-					Value: test.MustReturnJSONFor("myValue"),
-				},
-			},
-		},
-		ClusterSelector: metav1.LabelSelector{
-			MatchLabels: map[string]string{
-				"cluster": selectorValue,
-			},
-		},
-		ClusterOptionOverrides: []greenhousev1alpha1.ClusterOptionOverride{},
-	}
-	return preset
 }

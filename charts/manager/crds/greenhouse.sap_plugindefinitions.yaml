@@ -14,8 +14,10 @@ spec:
     kind: PluginDefinition
     listKind: PluginDefinitionList
     plural: plugindefinitions
+    shortNames:
+    - pd
     singular: plugindefinition
-  scope: Cluster
+  scope: Namespaced
   versions:
   - additionalPrinterColumns:
     - jsonPath: .spec.version

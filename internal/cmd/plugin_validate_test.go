@@ -42,8 +42,11 @@ var _ = Describe("Validate PluginDefinition against Plugin ", func() {
 		It("should raise an validation error", func() {
 			plugin := &greenhousev1alpha1.Plugin{
 				Spec: greenhousev1alpha1.PluginSpec{
-					PluginDefinition: "testPlugin",
-					OptionValues:     []greenhousev1alpha1.PluginOptionValue{},
+					PluginDefinitionRef: greenhousev1alpha1.PluginDefinitionReference{
+						Name: "testPlugin",
+						Kind: greenhousev1alpha1.ClusterPluginDefinitionKind,
+					},
+					OptionValues: []greenhousev1alpha1.PluginOptionValue{},
 				},
 			}
 			err := validateOptions(pluginDefinition, plugin)
@@ -55,7 +58,10 @@ var _ = Describe("Validate PluginDefinition against Plugin ", func() {
 		It("should not return an error", func() {
 			plugin := &greenhousev1alpha1.Plugin{
 				Spec: greenhousev1alpha1.PluginSpec{
-					PluginDefinition: "testPlugin",
+					PluginDefinitionRef: greenhousev1alpha1.PluginDefinitionReference{
+						Name: "testPlugin",
+						Kind: greenhousev1alpha1.ClusterPluginDefinitionKind,
+					},
 					OptionValues: []greenhousev1alpha1.PluginOptionValue{
 						{
 							Name:  "stringRequired",
@@ -73,7 +79,10 @@ var _ = Describe("Validate PluginDefinition against Plugin ", func() {
 		It("should raise an validation error", func() {
 			plugin := &greenhousev1alpha1.Plugin{
 				Spec: greenhousev1alpha1.PluginSpec{
-					PluginDefinition: "testPlugin",
+					PluginDefinitionRef: greenhousev1alpha1.PluginDefinitionReference{
+						Name: "testPlugin",
+						Kind: greenhousev1alpha1.ClusterPluginDefinitionKind,
+					},
 					OptionValues: []greenhousev1alpha1.PluginOptionValue{
 						{
 							Name:  "stringRequired",
@@ -91,7 +100,10 @@ var _ = Describe("Validate PluginDefinition against Plugin ", func() {
 		It("should raise an validation error if there is no secret reference", func() {
 			plugin := &greenhousev1alpha1.Plugin{
 				Spec: greenhousev1alpha1.PluginSpec{
-					PluginDefinition: "testPlugin",
+					PluginDefinitionRef: greenhousev1alpha1.PluginDefinitionReference{
+						Name: "testPlugin",
+						Kind: greenhousev1alpha1.ClusterPluginDefinitionKind,
+					},
 					OptionValues: []greenhousev1alpha1.PluginOptionValue{
 						{
 							Name:  "secret",
@@ -106,7 +118,10 @@ var _ = Describe("Validate PluginDefinition against Plugin ", func() {
 		It("should reference a secret", func() {
 			plugin := &greenhousev1alpha1.Plugin{
 				Spec: greenhousev1alpha1.PluginSpec{
-					PluginDefinition: "testPlugin",
+					PluginDefinitionRef: greenhousev1alpha1.PluginDefinitionReference{
+						Name: "testPlugin",
+						Kind: greenhousev1alpha1.ClusterPluginDefinitionKind,
+					},
 					OptionValues: []greenhousev1alpha1.PluginOptionValue{
 						{
 							Name: "secret",
