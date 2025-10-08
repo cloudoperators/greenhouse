@@ -309,3 +309,82 @@ func (r *OrganizationReconciler) reconcileCatalogClusterRoleBinding(ctx context.
 
 	return nil
 }
+
+// reconcileCatalogRole creates the Role for Greenhouse organization's PluginDefinitionCatalog operations.
+func (r *OrganizationReconciler) reconcileCatalogRole(ctx context.Context, org *greenhouseapisv1alpha1.Organization, resources []string) error {
+	role := &rbacv1.Role{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      rbac.OrgCatalogRoleName(org.Name),
+			Namespace: org.Name,
+		},
+	}
+
+	result, err := clientutil.CreateOrPatch(ctx, r.Client, role, func() error {
+		role.Rules = rbac.OrgCatalogPolicyRules(resources)
+		return controllerutil.SetOwnerReference(org, role, r.Scheme())
+	})
+	if err != nil {
+		r.recorder.Eventf(org, corev1.EventTypeWarning, "FailedCatalogRole", "Failed to create or update Role %s/%s: %s", role.Namespace, role.Name, err.Error())
+		return err
+	}
+
+	switch result {
+	case clientutil.OperationResultCreated:
+		log.FromContext(ctx).Info("created catalog role", "org", org.Name, "name", role.Name, "namespace", role.Namespace)
+		r.recorder.Eventf(org, corev1.EventTypeNormal, "CreatedCatalogRole", "Created Role %s/%s", role.Namespace, role.Name)
+	case clientutil.OperationResultUpdated:
+		log.FromContext(ctx).Info("updated catalog role", "org", org.Name, "name", role.Name, "namespace", role.Namespace)
+		r.recorder.Eventf(org, corev1.EventTypeNormal, "UpdatedCatalogRole", "Updated Role %s/%s", role.Namespace, role.Name)
+	case clientutil.OperationResultNone:
+		log.FromContext(ctx).Info("no changes made to catalog role", "org", org.Name, "name", role.Name, "namespace", role.Namespace)
+	default:
+		log.FromContext(ctx).Info("unknown operation result for catalog role", "org", org.Name, "name", role.Name, "namespace", role.Namespace, "result", result)
+	}
+
+	return nil
+}
+
+// reconcileCatalogRoleBinding creates the RoleBinding for Greenhouse organization's PluginDefinitionCatalog operations.
+func (r *OrganizationReconciler) reconcileCatalogRoleBinding(ctx context.Context, org *greenhouseapisv1alpha1.Organization) error {
+	roleBinding := &rbacv1.RoleBinding{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      rbac.OrgCatalogRoleName(org.Name),
+			Namespace: org.Name,
+		},
+	}
+
+	result, err := clientutil.CreateOrPatch(ctx, r.Client, roleBinding, func() error {
+		roleBinding.RoleRef = rbacv1.RoleRef{
+			APIGroup: rbacv1.GroupName,
+			Kind:     "Role",
+			Name:     rbac.OrgCatalogRoleName(org.Name),
+		}
+		roleBinding.Subjects = []rbacv1.Subject{
+			{
+				Kind:      rbacv1.ServiceAccountKind,
+				Name:      rbac.OrgCatalogServiceAccountName(org.Name),
+				Namespace: org.Name,
+			},
+		}
+		return controllerutil.SetOwnerReference(org, roleBinding, r.Scheme())
+	})
+	if err != nil {
+		r.recorder.Eventf(org, corev1.EventTypeWarning, "FailedCatalogRoleBinding", "Failed to create or update RoleBinding %s/%s: %s", roleBinding.Namespace, roleBinding.Name, err.Error())
+		return err
+	}
+
+	switch result {
+	case clientutil.OperationResultCreated:
+		log.FromContext(ctx).Info("created catalog roleBinding", "name", roleBinding.Name, "namespace", roleBinding.Namespace)
+		r.recorder.Eventf(org, corev1.EventTypeNormal, "CreatedCatalogRoleBinding", "Created RoleBinding %s/%s", roleBinding.Namespace, roleBinding.Name)
+	case clientutil.OperationResultUpdated:
+		log.FromContext(ctx).Info("updated catalog roleBinding", "name", roleBinding.Name, "namespace", roleBinding.Namespace)
+		r.recorder.Eventf(org, corev1.EventTypeNormal, "UpdatedCatalogRoleBinding", "Updated RoleBinding %s/%s", roleBinding.Namespace, roleBinding.Name)
+	case clientutil.OperationResultNone:
+		log.FromContext(ctx).Info("no changes made to catalog roleBinding", "name", roleBinding.Name, "namespace", roleBinding.Namespace)
+	default:
+		log.FromContext(ctx).Info("unknown operation result for catalog roleBinding", "name", roleBinding.Name, "namespace", roleBinding.Namespace, "result", result)
+	}
+
+	return nil
+}
