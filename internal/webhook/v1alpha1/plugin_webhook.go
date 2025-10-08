@@ -225,15 +225,7 @@ func ValidateUpdatePlugin(ctx context.Context, c client.Client, old, obj runtime
 	allErrs = append(allErrs, validation.ValidateImmutableField(oldPlugin.Spec.ClusterName, plugin.Spec.ClusterName,
 		field.NewPath("spec", "clusterName"))...)
 
-	allErrs = append(allErrs, validation.ValidateImmutableField(oldPlugin.Spec.ReleaseNamespace, plugin.Spec.ReleaseNamespace,
-		field.NewPath("spec", "releaseNamespace"))...)
-
-	if err := validateReleaseName(plugin.Spec.ReleaseName); err != nil {
-		allErrs = append(allErrs, field.Invalid(field.NewPath("spec").Child("releaseName"), plugin.Spec.ReleaseName, err.Error()))
-	}
-
-	// ensure (Cluster-)PluginDefinition exists, validate OptionValues and Plugin for Cluster
-	optionsFieldPath := field.NewPath("spec").Child("optionValues")
+	// ensure (Cluster-)PluginDefinition exists
 	pluginDefinitionSpec, err := getPluginDefinitionSpec(ctx, c, plugin)
 	if err != nil {
 		if apierrors.IsNotFound(err) {
@@ -247,7 +239,18 @@ func ValidateUpdatePlugin(ctx context.Context, c client.Client, old, obj runtime
 			fmt.Sprintf("PluginDefinition %s could not be retrieved from namespace %s: %s", plugin.Spec.PluginDefinitionRef.Name, plugin.GetNamespace(), err.Error()))
 	}
 
+	// skip releaseNamespace immutability check for UI-only Plugins
+	if pluginDefinitionSpec.UIApplication == nil || pluginDefinitionSpec.HelmChart != nil {
+		allErrs = append(allErrs, validation.ValidateImmutableField(oldPlugin.Spec.ReleaseNamespace, plugin.Spec.ReleaseNamespace,
+			field.NewPath("spec", "releaseNamespace"))...)
+	}
+
+	if err := validateReleaseName(plugin.Spec.ReleaseName); err != nil {
+		allErrs = append(allErrs, field.Invalid(field.NewPath("spec").Child("releaseName"), plugin.Spec.ReleaseName, err.Error()))
+	}
+
 	// validate OptionValues defined by the Plugin
+	optionsFieldPath := field.NewPath("spec").Child("optionValues")
 	if errList := validatePluginOptionValues(plugin.Spec.OptionValues, plugin.Spec.PluginDefinitionRef.Name, pluginDefinitionSpec, true, optionsFieldPath); len(errList) > 0 {
 		return allWarns, apierrors.NewInvalid(plugin.GroupVersionKind().GroupKind(), plugin.Name, errList)
 	}
