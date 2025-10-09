@@ -122,5 +122,55 @@ var _ = Describe("KubeConfig controller", func() {
 				Expect(kubeVersion).
 					ToNot(BeNil(), "the kubernetes version should not be nil")
 			})
+
+		It("Should regenerate greenhousekubeconfig when the key is deleted from the secret", func() {
+			By("Creating a secret with a valid kubeconfig for a remote cluster")
+			secret := setup.CreateSecret(test.Ctx, directAccessTestCase+"-recreate",
+				test.WithSecretType(greenhouseapis.SecretTypeKubeConfig),
+				test.WithSecretData(map[string][]byte{greenhouseapis.KubeConfigKey: remoteKubeConfig}),
+				test.WithSecretLabel(greenhouseapis.LabelKeyOwnedBy, team.Name))
+
+			By("Checking the cluster resource with the same name as the secret has been created")
+			Eventually(func() error {
+				return test.K8sClient.Get(test.Ctx, types.NamespacedName{Name: secret.Name, Namespace: setup.Namespace()}, &cluster)
+			}).Should(Succeed(), fmt.Sprintf("eventually the cluster %s should exist", secret.Name))
+
+			By("Waiting for the greenhousekubeconfig key to be created")
+			greenhouseKubeConfigSecret := corev1.Secret{}
+			Eventually(func() bool {
+				err := test.K8sClient.Get(test.Ctx, client.ObjectKey{Name: secret.Name, Namespace: setup.Namespace()}, &greenhouseKubeConfigSecret)
+				if err != nil {
+					return false
+				}
+				return clientutil.IsSecretContainsKey(&greenhouseKubeConfigSecret, greenhouseapis.GreenHouseKubeConfigKey)
+			}).Should(BeTrue(), "eventually the greenhousekubeconfig key should be created")
+
+			By("Deleting the greenhousekubeconfig key from the secret")
+			greenhouseKubeConfigSecret = corev1.Secret{}
+			Expect(test.K8sClient.Get(test.Ctx, client.ObjectKey{Name: secret.Name, Namespace: setup.Namespace()}, &greenhouseKubeConfigSecret)).To(Succeed())
+			delete(greenhouseKubeConfigSecret.Data, greenhouseapis.GreenHouseKubeConfigKey)
+			Expect(test.K8sClient.Update(test.Ctx, &greenhouseKubeConfigSecret)).To(Succeed())
+
+			By("Verifying the greenhousekubeconfig key is missing")
+			greenhouseKubeConfigSecret = corev1.Secret{}
+			Expect(test.K8sClient.Get(test.Ctx, client.ObjectKey{Name: secret.Name, Namespace: setup.Namespace()}, &greenhouseKubeConfigSecret)).To(Succeed())
+			Expect(clientutil.IsSecretContainsKey(&greenhouseKubeConfigSecret, greenhouseapis.GreenHouseKubeConfigKey)).To(BeFalse(), "the greenhousekubeconfig key should be missing")
+
+			By("Waiting for the controller to regenerate the greenhousekubeconfig key")
+			Eventually(func() bool {
+				err := test.K8sClient.Get(test.Ctx, client.ObjectKey{Name: secret.Name, Namespace: setup.Namespace()}, &greenhouseKubeConfigSecret)
+				if err != nil {
+					return false
+				}
+				return clientutil.IsSecretContainsKey(&greenhouseKubeConfigSecret, greenhouseapis.GreenHouseKubeConfigKey)
+			}).Should(BeTrue(), "eventually the greenhousekubeconfig key should be recreated by the controller")
+
+			By("Verifying the regenerated kubeconfig is valid")
+			greenhouseRestClientGetter, err := clientutil.NewRestClientGetterFromSecret(&greenhouseKubeConfigSecret, setup.Namespace(), clientutil.WithPersistentConfig())
+			Expect(err).NotTo(HaveOccurred(), "there should be no error getting the rest client getter from the secret")
+			greenhouseRemoteConfig, err := greenhouseRestClientGetter.ToRESTConfig()
+			Expect(err).NotTo(HaveOccurred(), "there should be no error creating a restConfig from the regenerated kubeConfig")
+			Expect(greenhouseRemoteConfig).ToNot(BeNil(), "the greenhouse restConfig should not be nil")
+		})
 	})
 })
