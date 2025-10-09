@@ -2144,6 +2144,19 @@ If the Plugin was already deployed, the Plugin&rsquo;s name is used as the relea
 If this Plugin is newly created, the releaseName is defaulted to the PluginDefinitions HelmChart name.</p>
 </td>
 </tr>
+<tr>
+<td>
+<code>waitFor</code><br>
+<em>
+<a href="#greenhouse.sap/v1alpha1.WaitForItem">
+[]WaitForItem
+</a>
+</em>
+</td>
+<td>
+<p>WaitFor defines other Plugins to wait for before installing this Plugin.</p>
+</td>
+</tr>
 </table>
 </td>
 </tr>
@@ -2802,6 +2815,19 @@ Kubernetes meta/v1.LabelSelector
 </tr>
 <tr>
 <td>
+<code>waitFor</code><br>
+<em>
+<a href="#greenhouse.sap/v1alpha1.WaitForItem">
+[]WaitForItem
+</a>
+</em>
+</td>
+<td>
+<p>WaitFor defines other Plugins to wait for before creating the Plugin.</p>
+</td>
+</tr>
+<tr>
+<td>
 <code>deletionPolicy</code><br>
 <em>
 string
@@ -2885,6 +2911,19 @@ Kubernetes meta/v1.LabelSelector
 </td>
 <td>
 <p>ClusterOptionOverrides define plugin option values to override by the PluginPreset</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>waitFor</code><br>
+<em>
+<a href="#greenhouse.sap/v1alpha1.WaitForItem">
+[]WaitForItem
+</a>
+</em>
+</td>
+<td>
+<p>WaitFor defines other Plugins to wait for before creating the Plugin.</p>
 </td>
 </tr>
 <tr>
@@ -2977,6 +3016,49 @@ int
 </td>
 <td>
 <p>FailedPlugins is the number of failed Plugins managed by the PluginPreset.</p>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<h3 id="greenhouse.sap/v1alpha1.PluginRef">PluginRef
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#greenhouse.sap/v1alpha1.WaitForItem">WaitForItem</a>)
+</p>
+<p>PluginRef defines a reference to the Plugin, either by its name or the PluginPreset that it&rsquo;s created from.</p>
+<div class="md-typeset__scrollwrap">
+<div class="md-typeset__table">
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>name</code><br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Name of the Plugin.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>pluginPreset</code><br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>PluginPreset is the name of the PluginPreset which creates the Plugin.</p>
 </td>
 </tr>
 </tbody>
@@ -3086,6 +3168,19 @@ string
 <p>ReleaseName is the name of the helm release in the remote cluster to which the backend is deployed.
 If the Plugin was already deployed, the Plugin&rsquo;s name is used as the release name.
 If this Plugin is newly created, the releaseName is defaulted to the PluginDefinitions HelmChart name.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>waitFor</code><br>
+<em>
+<a href="#greenhouse.sap/v1alpha1.WaitForItem">
+[]WaitForItem
+</a>
+</em>
+</td>
+<td>
+<p>WaitFor defines other Plugins to wait for before installing this Plugin.</p>
 </td>
 </tr>
 </tbody>
@@ -4281,6 +4376,41 @@ SecretKeyReference
 </td>
 <td>
 <p>Secret references the secret containing the value.</p>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<h3 id="greenhouse.sap/v1alpha1.WaitForItem">WaitForItem
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#greenhouse.sap/v1alpha1.PluginPresetSpec">PluginPresetSpec</a>, 
+<a href="#greenhouse.sap/v1alpha1.PluginSpec">PluginSpec</a>)
+</p>
+<p>WaitForItem is a wrapper around PluginRef to add context for every WaitFor list item.</p>
+<div class="md-typeset__scrollwrap">
+<div class="md-typeset__table">
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>pluginRef</code><br>
+<em>
+<a href="#greenhouse.sap/v1alpha1.PluginRef">
+PluginRef
+</a>
+</em>
+</td>
+<td>
+<p>PluginRef defines a reference to the Plugin.</p>
 </td>
 </tr>
 </tbody>

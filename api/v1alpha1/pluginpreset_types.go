@@ -34,6 +34,9 @@ type PluginPresetSpec struct {
 	// +kubebuilder:validation:Optional
 	ClusterOptionOverrides []ClusterOptionOverride `json:"clusterOptionOverrides,omitempty"`
 
+	// WaitFor defines other Plugins to wait for before creating the Plugin.
+	WaitFor []WaitForItem `json:"waitFor,omitempty"`
+
 	// DeletionPolicy defines how Plugins owned by a PluginPreset are handled on deletion of the PluginPreset.
 	// Supported values are "Delete" and "Orphan". If not set, defaults to "Delete".
 	// +kubebuilder:validation:Optional

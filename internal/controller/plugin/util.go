@@ -10,6 +10,7 @@ import (
 	"strings"
 	"time"
 
+	fluxmeta "github.com/fluxcd/pkg/apis/meta"
 	"github.com/pkg/errors"
 	appsv1 "k8s.io/api/apps/v1"
 	batchv1 "k8s.io/api/batch/v1"
@@ -337,4 +338,31 @@ func shouldReconcileOrRequeue(ctx context.Context, c client.Client, plugin *gree
 	}
 
 	return nil, nil
+}
+
+// resolvePluginDependencies transforms the WaitFor PluginRefs so that only Plugin names are set in the output.
+func resolvePluginDependencies(dependencies []greenhousev1alpha1.WaitForItem, clusterName string) []greenhousev1alpha1.WaitForItem {
+	out := make([]greenhousev1alpha1.WaitForItem, len(dependencies))
+
+	for i, d := range dependencies {
+		if d.PluginPreset != "" {
+			d.Name = fmt.Sprintf("%s-%s", d.PluginPreset, clusterName)
+			d.PluginPreset = ""
+		}
+		out[i] = d
+	}
+
+	return out
+}
+
+// convertWaitForToDependsOn converts plugin dependencies into flux HelmRelease dependencies.
+func convertWaitForToDependsOn(dependencies []greenhousev1alpha1.WaitForItem) []fluxmeta.NamespacedObjectReference {
+	out := make([]fluxmeta.NamespacedObjectReference, 0, len(dependencies))
+	for _, item := range dependencies {
+		out = append(out, fluxmeta.NamespacedObjectReference{
+			// The name of the HelmRelease is the same as the name of the Plugin.
+			Name: item.Name,
+		})
+	}
+	return out
 }
