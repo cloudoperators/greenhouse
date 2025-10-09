@@ -75,6 +75,10 @@ func DefaultPlugin(ctx context.Context, c client.Client, obj runtime.Object) err
 		return field.Required(field.NewPath("spec", "pluginDefinitionRef", "name"), "PluginDefinition name must be set")
 	}
 
+	if plugin.Spec.PluginDefinitionRef.Kind == "" {
+		plugin.Spec.PluginDefinitionRef.Kind = greenhousev1alpha1.PluginDefinitionKind
+	}
+
 	pluginDefinitionSpec, err := getPluginDefinitionSpec(ctx, c, plugin)
 	if err != nil {
 		if strings.Contains(err.Error(), "unsupported") {
