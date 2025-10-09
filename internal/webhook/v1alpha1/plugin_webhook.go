@@ -114,14 +114,14 @@ func DefaultPlugin(ctx context.Context, c client.Client, obj runtime.Object) err
 	}
 	plugin.Spec.OptionValues = optionValues
 
+	// Skip releaseName and releaseNamespace defaulting for UIApplications.
+	if pluginDefinitionSpec.UIApplication != nil && pluginDefinitionSpec.HelmChart == nil {
+		return nil
+	}
+
 	// Default the ReleaseNamespace to the organization namespace if not set.
 	if plugin.Spec.ReleaseNamespace == "" {
 		plugin.Spec.ReleaseNamespace = plugin.GetNamespace()
-	}
-
-	// skip releaseName defaulting for UIApplications
-	if pluginDefinitionSpec.UIApplication != nil && pluginDefinitionSpec.HelmChart == nil {
-		return nil
 	}
 
 	// Default the ReleaseName.
@@ -239,8 +239,8 @@ func ValidateUpdatePlugin(ctx context.Context, c client.Client, old, obj runtime
 			fmt.Sprintf("PluginDefinition %s could not be retrieved from namespace %s: %s", plugin.Spec.PluginDefinitionRef.Name, plugin.GetNamespace(), err.Error()))
 	}
 
-	// skip releaseNamespace immutability check for UI-only Plugins
-	if pluginDefinitionSpec.UIApplication == nil || pluginDefinitionSpec.HelmChart != nil {
+	// ensure ReleaseNamespace cannot change but only if it was set before
+	if oldPlugin.Spec.ReleaseNamespace != "" {
 		allErrs = append(allErrs, validation.ValidateImmutableField(oldPlugin.Spec.ReleaseNamespace, plugin.Spec.ReleaseNamespace,
 			field.NewPath("spec", "releaseNamespace"))...)
 	}

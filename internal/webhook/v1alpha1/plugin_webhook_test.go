@@ -414,16 +414,16 @@ var _ = Describe("Validate plugin spec fields", Ordered, func() {
 		Expect(err.Error()).To(ContainSubstring(validation.FieldImmutableErrorMsg))
 	})
 
-	It("should accept to update a UI-only plugin when ReleaseNamespace is changed", func() {
+	// Fixes: https://github.com/cloudoperators/greenhouse/issues/1456
+	It("should accept to update a UI-only plugin when without ReleaseNamespace", func() {
 		testPlugin = setup.CreatePlugin(test.Ctx, "test-plugin",
 			test.WithClusterPluginDefinition(testUIAppClusterPluginDefinition.Name),
 			test.WithCluster(testCluster.Name),
-			test.WithReleaseNamespace("test-namespace"),
-			test.WithReleaseName("test-release"),
+			test.WithReleaseNamespace(""),
 			test.WithPluginLabel(greenhouseapis.LabelKeyOwnedBy, team.Name))
-		testPlugin.Spec.ReleaseNamespace = ""
+		testPlugin.Spec.DisplayName = "Test Plugin 1"
 		err := test.K8sClient.Update(test.Ctx, testPlugin)
-		Expect(err).ToNot(HaveOccurred(), "there should be no error changing the UI-only plugin's releaseNamespace")
+		Expect(err).ToNot(HaveOccurred(), "there should be no error updating the UI-only plugin")
 	})
 
 	It("should reject to update a plugin when the pluginDefinition reference name changes", func() {
