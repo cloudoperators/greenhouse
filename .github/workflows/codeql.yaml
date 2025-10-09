@@ -26,7 +26,7 @@ jobs:
       runs-on: "['default']"
       language: "['go']"
       go-check: true
-      go-version: "['1.24']"
+      go-version: "['1.25']"
       node-check: false
       autobuild: false
       build_query: "make build"
