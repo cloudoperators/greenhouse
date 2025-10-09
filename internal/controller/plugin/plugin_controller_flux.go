@@ -121,6 +121,7 @@ func (r *PluginReconciler) EnsureFluxCreated(ctx context.Context, plugin *greenh
 			}).
 			WithValues(values).
 			WithValuesFrom(r.addValueReferences(plugin)).
+			WithStorageNamespace(plugin.Spec.ReleaseNamespace).
 			WithTargetNamespace(plugin.Spec.ReleaseNamespace).Build()
 		if err != nil {
 			log.FromContext(ctx).Error(err, "Failed to create HelmRelease for plugin", "plugin", plugin.Name)
