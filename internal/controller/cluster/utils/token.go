@@ -85,47 +85,60 @@ func (kubeconfig *KubeConfigHelper) RestConfigToAPIConfig(clusterName string) cl
 	return *clientConfig
 }
 
-// GenerateTokenRequest reconciles the service account token for the remote cluster and updates the secret containing the kubeconfig
-func (t *TokenHelper) GenerateTokenRequest(ctx context.Context, restClientGetter *clientutil.RestClientGetter, cluster *greenhousev1alpha1.Cluster) (*authenticationv1.TokenRequest, error) {
-	var jwtPayload []byte
-	var tokenInfo = &claims{}
-	var actualTokenExpiry metav1.Time
-
-	remoteRestConfig, err := restClientGetter.ToRESTConfig()
-	if err != nil {
-		return nil, err
-	}
-	jwt, err := jose.ParseSigned(remoteRestConfig.BearerToken, getAllSignatureAlgorithms())
-	// If parsing the token is not possible we fall back to the old way of checking the token expiration
-	if err != nil {
-		if !cluster.Status.BearerTokenExpirationTimestamp.IsZero() && cluster.Status.BearerTokenExpirationTimestamp.After(time.Now().Add(t.RenewRemoteClusterBearerTokenAfter)) {
-			log.FromContext(ctx).V(5).Info("bearer token is still valid", "cluster", cluster.Name, "expirationTimestamp", cluster.Status.BearerTokenExpirationTimestamp.Time)
-			return nil, nil
-		}
+// GenerateTokenRequest reconciles the service account token for the remote cluster and updates the secret containing the kubeconfig.
+func (t *TokenHelper) GenerateTokenRequest(ctx context.Context, restClientGetter *clientutil.RestClientGetter, cluster *greenhousev1alpha1.Cluster, secret *corev1.Secret) (*authenticationv1.TokenRequest, error) {
+	if !clientutil.IsSecretContainsKey(secret, greenhouseapis.GreenHouseKubeConfigKey) {
+		log.FromContext(ctx).Info("greenhousekubeconfig key missing from secret, regenerating token", "cluster", cluster.Name)
+		return t.createTokenRequest(ctx, cluster)
 	}
 
-	if jwt != nil {
-		jwtPayload = jwt.UnsafePayloadWithoutVerification()
-	}
-	err = json.Unmarshal(jwtPayload, &tokenInfo)
-	// If parsing the token is not possible we fall back to the old way of checking the token expiration
-	if err == nil {
-		actualTokenExpiry = metav1.Unix(tokenInfo.Expiry, 0)
-		if actualTokenExpiry.After(time.Now().Add(t.RenewRemoteClusterBearerTokenAfter)) {
-			log.FromContext(ctx).V(5).Info("bearer token is still valid", "cluster", cluster.Name, "expirationTimestamp", cluster.Status.BearerTokenExpirationTimestamp.Time)
-			return nil, nil
-		}
-	} else if !cluster.Status.BearerTokenExpirationTimestamp.IsZero() && cluster.Status.BearerTokenExpirationTimestamp.After(time.Now().Add(t.RenewRemoteClusterBearerTokenAfter)) {
-		log.FromContext(ctx).V(5).Info("bearer token is still valid", "cluster", cluster.Name, "expirationTimestamp", cluster.Status.BearerTokenExpirationTimestamp.Time)
+	if shouldSkipTokenRenewal(ctx, restClientGetter, cluster, t.RenewRemoteClusterBearerTokenAfter) {
 		return nil, nil
 	}
 
+	return t.createTokenRequest(ctx, cluster)
+}
+
+// shouldSkipTokenRenewal checks if the bearer token is still valid and doesn't need renewal.
+func shouldSkipTokenRenewal(ctx context.Context, restClientGetter *clientutil.RestClientGetter, cluster *greenhousev1alpha1.Cluster, renewAfter time.Duration) bool {
+	remoteRestConfig, err := restClientGetter.ToRESTConfig()
+	if err != nil {
+		return false
+	}
+
+	// Try to parse JWT token to get actual expiry.
+	jwt, err := jose.ParseSigned(remoteRestConfig.BearerToken, getAllSignatureAlgorithms())
+	if err == nil && jwt != nil {
+		jwtPayload := jwt.UnsafePayloadWithoutVerification()
+		var tokenInfo claims
+		if err := json.Unmarshal(jwtPayload, &tokenInfo); err == nil {
+			actualTokenExpiry := metav1.Unix(tokenInfo.Expiry, 0)
+			if actualTokenExpiry.After(time.Now().Add(renewAfter)) {
+				log.FromContext(ctx).V(5).Info("bearer token is still valid", "cluster", cluster.Name, "expirationTimestamp", actualTokenExpiry.Time)
+				return true
+			}
+			return false
+		}
+	}
+
+	// Fallback to checking stored expiration timestamp.
+	if !cluster.Status.BearerTokenExpirationTimestamp.IsZero() && cluster.Status.BearerTokenExpirationTimestamp.After(time.Now().Add(renewAfter)) {
+		log.FromContext(ctx).V(5).Info("bearer token is still valid", "cluster", cluster.Name, "expirationTimestamp", cluster.Status.BearerTokenExpirationTimestamp.Time)
+		return true
+	}
+
+	return false
+}
+
+// createTokenRequest creates a new token request based on the secret type.
+func (t *TokenHelper) createTokenRequest(ctx context.Context, cluster *greenhousev1alpha1.Cluster) (*authenticationv1.TokenRequest, error) {
 	tokenRequest := &authenticationv1.TokenRequest{
 		Spec: authenticationv1.TokenRequestSpec{
 			ExpirationSeconds: ptr.To(int64(t.RemoteClusterBearerTokenValidity / time.Second)),
 		},
 	}
 	// handle token request based on secret type
+	var err error
 	switch t.SecretType {
 	case greenhouseapis.SecretTypeKubeConfig:
 		tokenRequest, err = t.generateKubeConfigToken(ctx, tokenRequest, cluster)
