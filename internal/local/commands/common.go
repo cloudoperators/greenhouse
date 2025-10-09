@@ -19,7 +19,7 @@ import (
 )
 
 const (
-	defaultK8sVersion = "v1.31.0"
+	defaultK8sVersion = "v1.34.0"
 	k8sVersionEnvKey  = "K8S_VERSION"
 )
 

@@ -5,7 +5,7 @@ config:
   - cluster:
       name: greenhouse-admin
       namespace: greenhouse
-      version: v1.31.0
+      version: v1.34.1
       configPath: dev-env/greenhouse-admin-cluster.yaml
       postSetup:
         - command: kubectl config use-context kind-greenhouse-admin | sleep 7

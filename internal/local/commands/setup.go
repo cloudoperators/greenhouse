@@ -125,7 +125,7 @@ func processDevSetup(cmd *cobra.Command, args []string) error {
 	return nil
 }
 
-// setClusterVersion - set the cluster version via K8S_VERSION env var or default to v1.31.0
+// setClusterVersion - set the cluster version via K8S_VERSION env var or default to v1.34.0
 func (c *clusterConfig) setClusterVersion() {
 	if strings.TrimSpace(c.Cluster.Version) == "" {
 		k8sVersion, ok := os.LookupEnv(k8sVersionEnvKey)
