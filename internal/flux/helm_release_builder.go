@@ -33,6 +33,7 @@ type HelmReleaseBuilder interface {
 	WithUninstall(uninstall *helmv2.Uninstall) *helmReleaseBuilder
 	WithDependsOn(dependencies []fluxmeta.NamespacedObjectReference) *helmReleaseBuilder
 	WithKubeConfig(kc fluxmeta.SecretKeyReference) *helmReleaseBuilder
+	WithPostRenderers(postRenderers []helmv2.PostRenderer) *helmReleaseBuilder
 	Build() (helmv2.HelmReleaseSpec, error)
 }
 
@@ -224,6 +225,15 @@ func (b *helmReleaseBuilder) WithKubeConfig(kc fluxmeta.SecretKeyReference) *hel
 	b.spec.KubeConfig = &fluxmeta.KubeConfigReference{
 		SecretRef: kc,
 	}
+	return b
+}
+
+// WithPostRenderers sets the post renderers for the Helm release.
+func (b *helmReleaseBuilder) WithPostRenderers(postRenderers []helmv2.PostRenderer) *helmReleaseBuilder {
+	if len(postRenderers) == 0 {
+		return b
+	}
+	b.spec.PostRenderers = postRenderers
 	return b
 }
 
