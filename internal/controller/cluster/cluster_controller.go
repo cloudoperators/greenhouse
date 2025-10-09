@@ -110,7 +110,7 @@ func (r *RemoteClusterReconciler) EnsureCreated(ctx context.Context, resource li
 	// check token validity and renew if needed
 	// for OIDC kubeconfig this needs to be done first before any other operations for OIDC clusters
 	if clusterSecret.Type == greenhouseapis.SecretTypeOIDCConfig {
-		if err := r.reconcileServiceAccountToken(ctx, restClientGetter, remoteClient, cluster, clusterSecret.Type); err != nil {
+		if err := r.reconcileServiceAccountToken(ctx, restClientGetter, remoteClient, cluster, clusterSecret); err != nil {
 			return ctrl.Result{}, lifecycle.Failed, err
 		}
 	}
@@ -139,7 +139,7 @@ func (r *RemoteClusterReconciler) EnsureCreated(ctx context.Context, resource li
 	}
 	// reconcile the service account token in the remote cluster
 	// for OIDC this will early exit as it is already done above
-	if err := r.reconcileServiceAccountToken(ctx, restClientGetter, remoteClient, cluster, clusterSecret.Type); err != nil {
+	if err := r.reconcileServiceAccountToken(ctx, restClientGetter, remoteClient, cluster, clusterSecret); err != nil {
 		return ctrl.Result{}, lifecycle.Failed, err
 	}
 	return ctrl.Result{RequeueAfter: utils.DefaultRequeueInterval}, lifecycle.Success, nil
@@ -231,7 +231,7 @@ func (r *RemoteClusterReconciler) reconcileServiceAccountToken(
 	restClientGetter *clientutil.RestClientGetter,
 	remoteClient client.Client,
 	cluster *greenhousev1alpha1.Cluster,
-	secretType corev1.SecretType,
+	clusterSecret *corev1.Secret,
 ) error {
 
 	cluster.SetDefaultTokenValidityIfNeeded()
@@ -240,9 +240,9 @@ func (r *RemoteClusterReconciler) reconcileServiceAccountToken(
 		RemoteClusterClient:                remoteClient,
 		RemoteClusterBearerTokenValidity:   time.Duration(cluster.Spec.KubeConfig.MaxTokenValidity) * time.Hour,
 		RenewRemoteClusterBearerTokenAfter: r.RenewRemoteClusterBearerTokenAfter,
-		SecretType:                         secretType,
+		SecretType:                         clusterSecret.Type,
 	}
-	tokenRequest, err := t.GenerateTokenRequest(ctx, restClientGetter, cluster)
+	tokenRequest, err := t.GenerateTokenRequest(ctx, restClientGetter, cluster, clusterSecret)
 	if err != nil {
 		log.FromContext(ctx).Error(err, "failed to generate token", "cluster", cluster.Name)
 		return err
@@ -267,7 +267,7 @@ func (r *RemoteClusterReconciler) reconcileServiceAccountToken(
 		return err
 	}
 	result, err := clientutil.CreateOrPatch(ctx, t.InClusterClient, kubeConfigSecret, func() error {
-		if secretType == greenhouseapis.SecretTypeOIDCConfig {
+		if clusterSecret.Type == greenhouseapis.SecretTypeOIDCConfig {
 			kubeConfigSecret.Annotations[greenhouseapis.SecretOIDCConfigGeneratedOnAnnotation] = metav1.Now().Format(time.DateTime)
 		}
 		kubeConfigSecret.Data[greenhouseapis.GreenHouseKubeConfigKey] = generatedKubeConfig
