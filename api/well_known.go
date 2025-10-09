@@ -90,6 +90,8 @@ const (
 
 	// KindClusterPluginDefinitionPlural is the plural form of ClusterPluginDefinition kind.
 	KindClusterPluginDefinitionPlural = "clusterplugindefinitions"
+	// KindPluginDefinitionPlural is the plural form of PluginDefinition kind.
+	KindPluginDefinitionPlural = "plugindefinitions"
 )
 
 // Deletion Policies
