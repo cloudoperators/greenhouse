@@ -228,7 +228,6 @@ spec:
                     description: PluginDefinitionRef is the reference to the (Cluster-)PluginDefinition.
                     properties:
                       kind:
-                        default: PluginDefinition
                         description: 'Kind of the referent. Supported values: PluginDefinition,
                           ClusterPluginDefinition.'
                         enum:

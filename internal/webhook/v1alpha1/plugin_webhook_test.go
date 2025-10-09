@@ -204,12 +204,13 @@ var _ = Describe("Validate plugin spec fields", Ordered, func() {
 	var (
 		setup *test.TestSetup
 
-		team                        *greenhousev1alpha1.Team
-		testCluster                 *greenhousev1alpha1.Cluster
-		testPlugin                  *greenhousev1alpha1.Plugin
-		testClusterPluginDefinition *greenhousev1alpha1.ClusterPluginDefinition
-		testCentralPluginDefinition *greenhousev1alpha1.ClusterPluginDefinition
-		testPluginDefinition        *greenhousev1alpha1.PluginDefinition
+		team                             *greenhousev1alpha1.Team
+		testCluster                      *greenhousev1alpha1.Cluster
+		testPlugin                       *greenhousev1alpha1.Plugin
+		testClusterPluginDefinition      *greenhousev1alpha1.ClusterPluginDefinition
+		testCentralPluginDefinition      *greenhousev1alpha1.ClusterPluginDefinition
+		testUIAppClusterPluginDefinition *greenhousev1alpha1.ClusterPluginDefinition
+		testPluginDefinition             *greenhousev1alpha1.PluginDefinition
 	)
 
 	BeforeAll(func() {
@@ -218,6 +219,14 @@ var _ = Describe("Validate plugin spec fields", Ordered, func() {
 		testCluster = setup.CreateCluster(test.Ctx, "test-cluster", test.WithClusterLabel(greenhouseapis.LabelKeyOwnedBy, team.Name))
 		testClusterPluginDefinition = setup.CreateClusterPluginDefinition(test.Ctx, "test-plugindefinition")
 		testCentralPluginDefinition = setup.CreateClusterPluginDefinition(test.Ctx, "central-plugin")
+		testUIAppClusterPluginDefinition = setup.CreateClusterPluginDefinition(test.Ctx, "uiapp-plugindefinition",
+			test.WithVersion("1.0.0"),
+			test.WithoutHelmChart(),
+			test.WithUIApplication(&greenhousev1alpha1.UIApplicationReference{
+				Name:    "test-ui-app",
+				Version: "0.0.1",
+			}),
+		)
 		testPluginDefinition = setup.CreatePluginDefinition(test.Ctx, "pd-namespaced")
 		pluginsAllowedInCentralCluster = append(pluginsAllowedInCentralCluster, testCentralPluginDefinition.Name)
 	})
@@ -231,6 +240,7 @@ var _ = Describe("Validate plugin spec fields", Ordered, func() {
 		test.EventuallyDeleted(test.Ctx, test.K8sClient, team)
 		test.EventuallyDeleted(test.Ctx, test.K8sClient, testClusterPluginDefinition)
 		test.EventuallyDeleted(test.Ctx, test.K8sClient, testCentralPluginDefinition)
+		test.EventuallyDeleted(test.Ctx, test.K8sClient, testUIAppClusterPluginDefinition)
 		test.EventuallyDeleted(test.Ctx, test.K8sClient, testPluginDefinition)
 	})
 
@@ -402,6 +412,18 @@ var _ = Describe("Validate plugin spec fields", Ordered, func() {
 		err := test.K8sClient.Update(test.Ctx, testPlugin)
 		Expect(err).To(HaveOccurred(), "there should be an error changing the plugin's releaseNamespace")
 		Expect(err.Error()).To(ContainSubstring(validation.FieldImmutableErrorMsg))
+	})
+
+	// Fixes: https://github.com/cloudoperators/greenhouse/issues/1456
+	It("should accept to update a UI-only plugin when without ReleaseNamespace", func() {
+		testPlugin = setup.CreatePlugin(test.Ctx, "test-plugin",
+			test.WithClusterPluginDefinition(testUIAppClusterPluginDefinition.Name),
+			test.WithCluster(testCluster.Name),
+			test.WithReleaseNamespace(""),
+			test.WithPluginLabel(greenhouseapis.LabelKeyOwnedBy, team.Name))
+		testPlugin.Spec.DisplayName = "Test Plugin 1"
+		err := test.K8sClient.Update(test.Ctx, testPlugin)
+		Expect(err).ToNot(HaveOccurred(), "there should be no error updating the UI-only plugin")
 	})
 
 	It("should reject to update a plugin when the pluginDefinition reference name changes", func() {
