@@ -139,7 +139,13 @@ func (r *PluginReconciler) setConditions() lifecycle.Conditioner {
 			return
 		}
 
-		readyCondition := computeReadyCondition(plugin.Status.StatusConditions)
+		var readyCondition greenhousemetav1alpha1.Condition
+		// redirect plugins that are managed by Flux
+		if plugin.GetLabels() != nil && plugin.GetLabels()[greenhouseapis.GreenhouseHelmDeliveryToolLabel] == greenhouseapis.GreenhouseHelmDeliveryToolFlux {
+			readyCondition = r.computeReadyConditionFlux(ctx, plugin)
+		} else {
+			readyCondition = computeReadyCondition(plugin.Status.StatusConditions)
+		}
 		UpdatePluginReadyMetric(plugin, readyCondition.Status == metav1.ConditionTrue)
 
 		ownerLabelCondition := util.ComputeOwnerLabelCondition(ctx, r.Client, plugin)
@@ -183,15 +189,15 @@ func (r *PluginReconciler) EnsureCreated(ctx context.Context, resource lifecycle
 	plugin := resource.(*greenhousev1alpha1.Plugin) //nolint:errcheck
 	InitPluginStatus(plugin)
 
+	// redirect plugins that are managed by Flux
+	if plugin.GetLabels() != nil && plugin.GetLabels()[greenhouseapis.GreenhouseHelmDeliveryToolLabel] == greenhouseapis.GreenhouseHelmDeliveryToolFlux {
+		return r.EnsureFluxCreated(ctx, plugin)
+	}
+
 	restClientGetter, err := initClientGetter(ctx, r.Client, r.kubeClientOpts, *plugin)
 	if err != nil {
 		util.UpdatePluginReconcileTotalMetric(plugin, util.MetricResultError, util.MetricReasonClusterAccessFailed)
 		return ctrl.Result{}, lifecycle.Failed, fmt.Errorf("cannot access cluster: %s", err.Error())
-	}
-
-	// redirect plugins that are managed by Flux
-	if plugin.GetLabels() != nil && plugin.GetLabels()[greenhouseapis.GreenhouseHelmDeliveryToolLabel] == greenhouseapis.GreenhouseHelmDeliveryToolFlux {
-		return r.EnsureFluxCreated(ctx, restClientGetter, plugin)
 	}
 
 	// Check if we should continue with reconciliation or requeue if cluster is scheduled for deletion

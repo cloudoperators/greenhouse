@@ -49,7 +49,7 @@ func (r *PluginReconciler) EnsureFluxDeleted(ctx context.Context, plugin *greenh
 	return ctrl.Result{}, lifecycle.Success, nil
 }
 
-func (r *PluginReconciler) EnsureFluxCreated(ctx context.Context, restClientGetter genericclioptions.RESTClientGetter, plugin *greenhousev1alpha1.Plugin) (ctrl.Result, lifecycle.ReconcileResult, error) {
+func (r *PluginReconciler) EnsureFluxCreated(ctx context.Context, plugin *greenhousev1alpha1.Plugin) (ctrl.Result, lifecycle.ReconcileResult, error) {
 	pluginDefinitionSpec, err := common.GetPluginDefinitionSpec(ctx, r.Client, plugin.Spec.PluginDefinitionRef, plugin.GetNamespace())
 	if err != nil {
 		plugin.SetCondition(greenhousemetav1alpha1.TrueCondition(
@@ -81,8 +81,6 @@ func (r *PluginReconciler) EnsureFluxCreated(ctx context.Context, restClientGett
 		log.FromContext(ctx).Error(err, "failed to ensure HelmRelease for Plugin", "name", plugin.Name, "namespace", plugin.Namespace)
 		return ctrl.Result{}, lifecycle.Failed, err
 	}
-
-	r.reconcilePluginStatus(ctx, restClientGetter, plugin, *pluginDefinitionSpec, &plugin.Status)
 
 	return ctrl.Result{}, lifecycle.Success, nil
 }
@@ -175,6 +173,34 @@ func (r *PluginReconciler) ensureHelmRelease(
 	}
 
 	return nil
+}
+
+func (r *PluginReconciler) computeReadyConditionFlux(ctx context.Context, plugin *greenhousev1alpha1.Plugin) greenhousemetav1alpha1.Condition {
+	readyCondition := *plugin.Status.StatusConditions.GetConditionByType(greenhousemetav1alpha1.ReadyCondition)
+
+	restClientGetter, err := initClientGetter(ctx, r.Client, r.kubeClientOpts, *plugin)
+	if err != nil {
+		util.UpdatePluginReconcileTotalMetric(plugin, util.MetricResultError, util.MetricReasonClusterAccessFailed)
+		readyCondition.Status = metav1.ConditionFalse
+		readyCondition.Message = "cluster access not ready"
+		return readyCondition
+	}
+
+	pluginDefinitionSpec, err := common.GetPluginDefinitionSpec(ctx, r.Client, plugin.Spec.PluginDefinitionRef, plugin.GetNamespace())
+	if err != nil {
+		plugin.SetCondition(greenhousemetav1alpha1.TrueCondition(
+			greenhousev1alpha1.HelmReconcileFailedCondition, greenhousev1alpha1.PluginDefinitionNotFoundReason, err.Error()))
+		util.UpdatePluginReconcileTotalMetric(plugin, util.MetricResultError, util.MetricReasonPluginDefinitionNotFound)
+		readyCondition.Status = metav1.ConditionFalse
+		readyCondition.Message = "Helm reconcile failed"
+		return readyCondition
+	}
+
+	r.reconcilePluginStatus(ctx, restClientGetter, plugin, *pluginDefinitionSpec, &plugin.Status)
+
+	readyCondition.Status = metav1.ConditionTrue
+	readyCondition.Message = "ready"
+	return readyCondition
 }
 
 func (r *PluginReconciler) reconcilePluginStatus(ctx context.Context,
