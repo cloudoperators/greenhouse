@@ -38,7 +38,7 @@ const (
 )
 
 func (r *PluginReconciler) EnsureFluxDeleted(ctx context.Context, plugin *greenhousev1alpha1.Plugin) (ctrl.Result, lifecycle.ReconcileResult, error) {
-	if err := r.Delete(ctx, &helmv2.HelmRelease{ObjectMeta: metav1.ObjectMeta{Name: plugin.Name, Namespace: plugin.Namespace}}); err != nil {
+	if err := r.Delete(ctx, &helmv2.HelmRelease{ObjectMeta: metav1.ObjectMeta{Name: plugin.Name, Namespace: plugin.Namespace}}); client.IgnoreNotFound(err) != nil {
 		c := greenhousemetav1alpha1.TrueCondition(greenhousev1alpha1.HelmReconcileFailedCondition, greenhousev1alpha1.HelmUninstallFailedReason, err.Error())
 		plugin.SetCondition(c)
 		util.UpdatePluginReconcileTotalMetric(plugin, util.MetricResultError, util.MetricReasonClusterAccessFailed)
@@ -141,6 +141,7 @@ func (r *PluginReconciler) ensureHelmRelease(
 			}).
 			WithValues(values).
 			WithValuesFrom(r.addValueReferences(plugin)).
+			WithStorageNamespace(plugin.Spec.ReleaseNamespace).
 			WithTargetNamespace(plugin.Spec.ReleaseNamespace).Build()
 		if err != nil {
 			return fmt.Errorf("failed to create HelmRelease for plugin %s: %w", plugin.Name, err)

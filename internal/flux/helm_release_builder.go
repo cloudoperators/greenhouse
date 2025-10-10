@@ -119,6 +119,15 @@ func (b *helmReleaseBuilder) WithReleaseName(name string) *helmReleaseBuilder {
 	return b
 }
 
+// WithStorageNamespace sets the target namespace for the Helm release.
+func (b *helmReleaseBuilder) WithStorageNamespace(namespace string) *helmReleaseBuilder {
+	if namespace == "" {
+		return b
+	}
+	b.spec.StorageNamespace = namespace
+	return b
+}
+
 // WithTargetNamespace sets the target namespace for the Helm release.
 func (b *helmReleaseBuilder) WithTargetNamespace(namespace string) *helmReleaseBuilder {
 	if namespace == "" {
