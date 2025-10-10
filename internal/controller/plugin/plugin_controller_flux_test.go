@@ -12,12 +12,14 @@ import (
 	helmv2 "github.com/fluxcd/helm-controller/api/v2"
 	sourcecontroller "github.com/fluxcd/source-controller/api/v1"
 	corev1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
 
 	greenhouseapis "github.com/cloudoperators/greenhouse/api"
+	greenhousemetav1alpha1 "github.com/cloudoperators/greenhouse/api/meta/v1alpha1"
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
 	"github.com/cloudoperators/greenhouse/internal/flux"
 	"github.com/cloudoperators/greenhouse/internal/helm"
@@ -89,12 +91,32 @@ var (
 			},
 		),
 	)
+
+	uiPluginDefinition = test.NewClusterPluginDefinition(
+		test.Ctx, "test-flux-ui-plugindefinition",
+		test.WithVersion("1.0.0"),
+		test.WithoutHelmChart(),
+		test.WithUIApplication(&greenhousev1alpha1.UIApplicationReference{
+			Name:    "test-ui-app",
+			Version: "0.0.1",
+		}),
+	)
+
+	uiPlugin = test.NewPlugin(test.Ctx, "test-flux-ui-plugin", test.TestNamespace,
+		test.WithClusterPluginDefinition(uiPluginDefinition.Name),
+		test.WithReleaseName("release-test-flux"),
+		test.WithPluginLabel(greenhouseapis.GreenhouseHelmDeliveryToolLabel, greenhouseapis.GreenhouseHelmDeliveryToolFlux),
+		test.WithPluginLabel(greenhouseapis.LabelKeyOwnedBy, testPluginTeam.Name),
+	)
 )
 
 var _ = Describe("Flux Plugin Controller", Ordered, func() {
 	BeforeAll(func() {
 		err := test.K8sClient.Create(test.Ctx, testPluginDefinition)
 		Expect(err).ToNot(HaveOccurred(), "there should be no error creating the pluginDefinition")
+
+		err = test.K8sClient.Create(test.Ctx, uiPluginDefinition)
+		Expect(err).ToNot(HaveOccurred(), "there should be no error creating the UI pluginDefinition")
 
 		By("bootstrapping remote cluster")
 		_, remoteK8sClient, remoteEnvTest, remoteKubeConfig = test.StartControlPlane("6885", false, false)
@@ -164,6 +186,42 @@ var _ = Describe("Flux Plugin Controller", Ordered, func() {
 			release := &helmv2.HelmRelease{}
 			err := test.K8sClient.Get(test.Ctx, types.NamespacedName{Name: testPlugin.Name, Namespace: testPlugin.Namespace}, release)
 			g.Expect(err).ToNot(HaveOccurred(), "failed to get HelmRelease")
+		}).Should(Succeed())
+
+		By("ensuring the Plugin Status is updated")
+		Eventually(func(g Gomega) {
+			err := test.K8sClient.Get(test.Ctx, client.ObjectKeyFromObject(testPlugin), testPlugin)
+			g.Expect(err).ToNot(HaveOccurred())
+
+			clusterAccessReadyCondition := testPlugin.Status.GetConditionByType(greenhousev1alpha1.ClusterAccessReadyCondition)
+			g.Expect(clusterAccessReadyCondition).ToNot(BeNil())
+			g.Expect(clusterAccessReadyCondition.Status).To(Equal(metav1.ConditionTrue), "ClusterAccessReady condition should be true")
+
+			readyCondition := testPlugin.Status.GetConditionByType(greenhousemetav1alpha1.ReadyCondition)
+			g.Expect(readyCondition).ToNot(BeNil())
+			g.Expect(readyCondition.IsTrue()).To(BeTrue())
+		}).Should(Succeed())
+	})
+
+	It("should reconcile a UI-only Plugin", func() {
+		By("creating UI-only Plugin")
+		Expect(test.K8sClient.Create(test.Ctx, uiPlugin)).To(Succeed(), "failed to create UI-only Plugin")
+
+		Eventually(func(g Gomega) {
+			err := test.K8sClient.Get(test.Ctx, client.ObjectKeyFromObject(uiPlugin), uiPlugin)
+			g.Expect(err).ToNot(HaveOccurred())
+			readyCondition := uiPlugin.Status.GetConditionByType(greenhousemetav1alpha1.ReadyCondition)
+			g.Expect(readyCondition).ToNot(BeNil())
+			g.Expect(readyCondition.IsTrue()).To(BeTrue())
+			g.Expect(uiPlugin.Status.UIApplication).To(Equal(uiPluginDefinition.Spec.UIApplication))
+		}).Should(Succeed())
+
+		By("ensuring HelmRelease has not been created")
+		Eventually(func(g Gomega) {
+			release := &helmv2.HelmRelease{}
+			err := test.K8sClient.Get(test.Ctx, types.NamespacedName{Name: uiPlugin.Name, Namespace: uiPlugin.Namespace}, release)
+			g.Expect(err).To(HaveOccurred(), "there should be an error getting the HelmRelease")
+			g.Expect(apierrors.IsNotFound(err)).To(BeTrue())
 		}).Should(Succeed())
 	})
 })

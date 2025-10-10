@@ -177,7 +177,7 @@ func (r *PluginReconciler) ensureHelmRelease(
 }
 
 func (r *PluginReconciler) computeReadyConditionFlux(ctx context.Context, plugin *greenhousev1alpha1.Plugin) greenhousemetav1alpha1.Condition {
-	readyCondition := *plugin.Status.StatusConditions.GetConditionByType(greenhousemetav1alpha1.ReadyCondition)
+	readyCondition := *plugin.Status.GetConditionByType(greenhousemetav1alpha1.ReadyCondition)
 
 	restClientGetter, err := initClientGetter(ctx, r.Client, r.kubeClientOpts, *plugin)
 	if err != nil {
@@ -199,6 +199,13 @@ func (r *PluginReconciler) computeReadyConditionFlux(ctx context.Context, plugin
 
 	r.reconcilePluginStatus(ctx, restClientGetter, plugin, *pluginDefinitionSpec, &plugin.Status)
 
+	// If the Helm reconcile failed, the Plugin is not up to date / ready
+	if plugin.Status.GetConditionByType(greenhousev1alpha1.HelmReconcileFailedCondition).IsTrue() {
+		readyCondition.Status = metav1.ConditionFalse
+		readyCondition.Message = "Helm reconcile failed"
+		return readyCondition
+	}
+	// In other cases, the Plugin is ready
 	readyCondition.Status = metav1.ConditionTrue
 	readyCondition.Message = "ready"
 	return readyCondition

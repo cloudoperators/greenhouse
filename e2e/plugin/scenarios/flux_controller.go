@@ -153,6 +153,9 @@ func FluxControllerPodInfoByPlugin(ctx context.Context, adminClient, remoteClien
 		g.Expect(statusUpToDate.Status).To(Equal(metav1.ConditionTrue), "Plugin statusUpToDate condition must be true")
 
 		g.Expect(plugin.Status.ExposedServices).To(BeEmpty(), "exposed services in plugin status should be empty")
+		g.Expect(plugin.Status.UIApplication).To(BeNil(), "UIApplication in plugin status should be nil")
+		g.Expect(plugin.Status.HelmReleaseStatus.Status).To(Equal("deployed"), "HelmReleaseStatus in plugin status should be set to deployed")
+		g.Expect(plugin.Status.HelmChart).To(Equal(testPluginDefinition.Spec.HelmChart), "HelmChart in plugin status should be set correctly")
 	}).Should(Succeed())
 
 	By("Upgrading the plugin definition")
@@ -194,4 +197,124 @@ func FluxControllerPodInfoByPlugin(ctx context.Context, adminClient, remoteClien
 	}).Should(Succeed(), "the flux HelmRelease should eventually be deleted")
 	By("Deleting the plugin definition")
 	test.EventuallyDeleted(ctx, adminClient, testPluginDefinition)
+}
+
+func FluxControllerUIOnlyPlugin(ctx context.Context, adminClient, remoteClient client.Client, env *shared.TestEnv, remoteClusterName string) {
+	By("Creating plugin definition")
+	testPluginDefinition := fixtures.PrepareUIPluginDefinition(env.TestNamespace)
+	err := adminClient.Create(ctx, testPluginDefinition)
+	Expect(client.IgnoreAlreadyExists(err)).ToNot(HaveOccurred())
+
+	DeferCleanup(func() {
+		By("Deleting the plugin definition")
+		test.EventuallyDeleted(ctx, adminClient, testPluginDefinition)
+	})
+
+	By("Checking the test plugin definition is ready")
+	Eventually(func(g Gomega) {
+		err = adminClient.Get(ctx, client.ObjectKeyFromObject(testPluginDefinition), testPluginDefinition)
+		g.Expect(err).NotTo(HaveOccurred())
+		g.Expect(testPluginDefinition.Status.Conditions).To(ContainElement(MatchFields(IgnoreExtras, Fields{
+			"Type":   Equal(greenhousemetav1alpha1.ReadyCondition),
+			"Status": Equal(metav1.ConditionTrue),
+		})))
+	}).Should(Succeed())
+
+	By("Prepare the plugin spec for PluginPreset")
+	testPlugin := fixtures.PreparePlugin("test-ui-only-plugin", env.TestNamespace,
+		test.WithClusterPluginDefinition(testPluginDefinition.Name),
+		test.WithReleaseName("test-ui-only-plugin"),
+		test.WithPluginOptionValue("replicaCount", &apiextensionsv1.JSON{Raw: []byte("1")}))
+
+	By("Add labels to remote cluster")
+	remoteCluster := &greenhousev1alpha1.Cluster{}
+	err = adminClient.Get(ctx, client.ObjectKey{Name: remoteClusterName, Namespace: env.TestNamespace}, remoteCluster)
+	Expect(err).ToNot(HaveOccurred())
+	remoteCluster.Labels = map[string]string{
+		"app": "test-cluster",
+	}
+	err = adminClient.Update(ctx, remoteCluster)
+	Expect(err).ToNot(HaveOccurred())
+
+	By("Creating the plugin preset")
+	testPluginPreset := &greenhousev1alpha1.PluginPreset{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "test-ui-only-plugin-preset",
+			Namespace: env.TestNamespace,
+			Labels: map[string]string{
+				greenhouseapis.GreenhouseHelmDeliveryToolLabel: greenhouseapis.GreenhouseHelmDeliveryToolFlux,
+			},
+			Annotations: map[string]string{
+				lifecycle.PropagateLabelsAnnotation: greenhouseapis.GreenhouseHelmDeliveryToolLabel,
+			},
+		},
+		Spec: greenhousev1alpha1.PluginPresetSpec{
+			Plugin: testPlugin.Spec,
+			ClusterSelector: metav1.LabelSelector{
+				MatchLabels: map[string]string{
+					"app": "test-cluster",
+				},
+			},
+		},
+	}
+	err = adminClient.Create(ctx, testPluginPreset)
+	Expect(client.IgnoreAlreadyExists(err)).ToNot(HaveOccurred())
+
+	DeferCleanup(func() {
+		By("Deleting the plugin preset")
+		test.EventuallyDeleted(ctx, adminClient, testPluginPreset)
+	})
+
+	plugin := &greenhousev1alpha1.Plugin{}
+	By("Checking the plugin is created")
+	Eventually(func(g Gomega) {
+		pluginList := &greenhousev1alpha1.PluginList{}
+		err = adminClient.List(ctx, pluginList, client.MatchingLabels{greenhouseapis.GreenhouseHelmDeliveryToolLabel: greenhouseapis.GreenhouseHelmDeliveryToolFlux})
+		g.Expect(err).NotTo(HaveOccurred())
+		g.Expect(pluginList.Items).To(HaveLen(1))
+		plugin = &pluginList.Items[0]
+	}).Should(Succeed())
+
+	By("Checking the HelmRelease is not created")
+	Eventually(func(g Gomega) {
+		helmReleaseList := &helmv2.HelmReleaseList{}
+		err = adminClient.List(ctx, helmReleaseList, client.InNamespace(env.TestNamespace))
+		g.Expect(err).ToNot(HaveOccurred())
+		g.Expect(helmReleaseList.Items).To(BeEmpty())
+	}).Should(Succeed())
+
+	By("ensuring Plugin status has been updated")
+	Eventually(func(g Gomega) {
+		err := adminClient.Get(ctx, client.ObjectKeyFromObject(plugin), plugin)
+		g.Expect(err).ToNot(HaveOccurred(), "failed to get the Plugin")
+
+		clusterAccess := plugin.Status.StatusConditions.GetConditionByType(greenhousev1alpha1.ClusterAccessReadyCondition)
+		g.Expect(clusterAccess).ToNot(BeNil(), "Plugin clusterAccess condition must be set")
+		g.Expect(clusterAccess.Status).To(Equal(metav1.ConditionTrue), "Plugin clusterAccess condition must be true")
+
+		reconcileFailed := plugin.Status.StatusConditions.GetConditionByType(greenhousev1alpha1.HelmReconcileFailedCondition)
+		g.Expect(reconcileFailed).ToNot(BeNil(), "Plugin reconcileFailed condition must be set")
+		g.Expect(reconcileFailed.Status).To(Equal(metav1.ConditionFalse), "Plugin reconcileFailed condition must be false")
+
+		ready := plugin.Status.StatusConditions.GetConditionByType(greenhousemetav1alpha1.ReadyCondition)
+		g.Expect(ready).ToNot(BeNil(), "Plugin Ready condition must be set")
+		g.Expect(ready.Status).To(Equal(metav1.ConditionTrue), "Plugin Ready condition must be true")
+
+		statusUpToDate := plugin.Status.StatusConditions.GetConditionByType(greenhousev1alpha1.StatusUpToDateCondition)
+		g.Expect(statusUpToDate).ToNot(BeNil(), "Plugin StatusUpToDate condition must be set")
+		g.Expect(statusUpToDate.Status).To(Equal(metav1.ConditionFalse), "Plugin statusUpToDate condition must be false")
+
+		g.Expect(plugin.Status.ExposedServices).To(BeEmpty(), "exposed services in plugin status should be empty")
+		g.Expect(plugin.Status.UIApplication).To(Equal(testPluginDefinition.Spec.UIApplication), "UIApplication in plugin status should be set correctly")
+		g.Expect(plugin.Status.HelmReleaseStatus.Status).To(Equal("unknown"), "HelmReleaseStatus in plugin status should be unknown")
+		g.Expect(plugin.Status.HelmChart).To(BeNil(), "HelmChart in plugin status should be nil")
+	}).Should(Succeed())
+
+	By("Verifying there is no HelmRelease")
+	Eventually(func(g Gomega) {
+		helmReleaseList := &helmv2.HelmReleaseList{}
+		err = adminClient.List(ctx, helmReleaseList, client.InNamespace(env.TestNamespace))
+		g.Expect(err).ToNot(HaveOccurred())
+		g.Expect(helmReleaseList.Items).To(BeEmpty())
+	}).Should(Succeed())
 }
