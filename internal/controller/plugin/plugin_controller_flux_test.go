@@ -196,10 +196,14 @@ var _ = Describe("Flux Plugin Controller", Ordered, func() {
 			clusterAccessReadyCondition := testPlugin.Status.GetConditionByType(greenhousev1alpha1.ClusterAccessReadyCondition)
 			g.Expect(clusterAccessReadyCondition).ToNot(BeNil())
 			g.Expect(clusterAccessReadyCondition.Status).To(Equal(metav1.ConditionTrue), "ClusterAccessReady condition should be true")
-
+			helmReconcileFailedCondition := testPlugin.Status.GetConditionByType(greenhousev1alpha1.HelmReconcileFailedCondition)
+			g.Expect(helmReconcileFailedCondition).ToNot(BeNil())
+			g.Expect(helmReconcileFailedCondition.Status).To(Equal(metav1.ConditionUnknown), "HelmReconcileFailed condition should be unknown")
 			readyCondition := testPlugin.Status.GetConditionByType(greenhousemetav1alpha1.ReadyCondition)
 			g.Expect(readyCondition).ToNot(BeNil())
-			g.Expect(readyCondition.IsTrue()).To(BeTrue())
+			g.Expect(readyCondition.IsFalse()).To(BeTrue(), "Ready condition should be set to false")
+			g.Expect(readyCondition.Message).To(ContainSubstring("Reconciling"))
+			// The status won't change further, because Flux HelmController can't be registered here. See E2E tests.
 		}).Should(Succeed())
 	})
 

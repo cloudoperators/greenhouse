@@ -200,9 +200,15 @@ func (r *PluginReconciler) computeReadyConditionFlux(ctx context.Context, plugin
 	r.reconcilePluginStatus(ctx, restClientGetter, plugin, *pluginDefinitionSpec, &plugin.Status)
 
 	// If the Helm reconcile failed, the Plugin is not up to date / ready
-	if plugin.Status.GetConditionByType(greenhousev1alpha1.HelmReconcileFailedCondition).IsTrue() {
+	helmReconcileFailedCondition := plugin.Status.GetConditionByType(greenhousev1alpha1.HelmReconcileFailedCondition)
+	if helmReconcileFailedCondition.IsTrue() {
 		readyCondition.Status = metav1.ConditionFalse
 		readyCondition.Message = "Helm reconcile failed"
+		return readyCondition
+	}
+	if helmReconcileFailedCondition.IsUnknown() {
+		readyCondition.Status = metav1.ConditionFalse
+		readyCondition.Message = "Reconciling"
 		return readyCondition
 	}
 	// In other cases, the Plugin is ready
