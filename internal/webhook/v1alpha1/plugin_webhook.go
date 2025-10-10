@@ -322,7 +322,7 @@ func validatePluginOptionValues(
 					if err := json.Unmarshal(val.Value.Raw, &valStr); err != nil {
 						allErrs = append(allErrs, field.TypeInvalid(fieldPathWithIndex.Child("value"), "*****", err.Error()))
 					}
-					if !strings.HasPrefix(valStr, VaultPrefix) {
+					if !strings.Contains(valStr, VaultPrefix) {
 						allErrs = append(allErrs, field.TypeInvalid(fieldPathWithIndex.Child("value"), "*****",
 							fmt.Sprintf("optionValue %s of type secret without secret reference must use value with vault reference prefixed by schema %q", val.Name, VaultPrefix)))
 					}

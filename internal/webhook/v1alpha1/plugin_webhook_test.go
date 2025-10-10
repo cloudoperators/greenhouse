@@ -121,6 +121,7 @@ var _ = Describe("Validate Plugin OptionValues", func() {
 		Entry("PluginOption Value Inconsistent With PluginOption Type Map", map[string]any{"key": "value"}, greenhousev1alpha1.PluginOptionTypeMap, "one", true),
 		Entry("PluginOption Value Consistent With PluginOption Type Map Nested Map", map[string]any{"key": map[string]any{"nestedKey": "value"}}, greenhousev1alpha1.PluginOptionTypeMap, map[string]any{"key": map[string]any{"nestedKey": "custom"}}, false),
 		Entry("PluginOption Value Consistent With PluginOption Type Secret", "", greenhousev1alpha1.PluginOptionTypeSecret, "vault+kvv2:///some-path/to/secret", false),
+		Entry("PluginOption Value Consistent With PluginOption Type Secret", "", greenhousev1alpha1.PluginOptionTypeSecret, "{{vault+kvv2:///some-path/to/secret}}", false),
 		Entry("PluginOption Value Inconsistent With PluginOption Type Secret", "", greenhousev1alpha1.PluginOptionTypeSecret, "some-string", true),
 	)
 
