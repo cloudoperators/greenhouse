@@ -1,16 +1,22 @@
-# .mockery.yaml
-with-expecter: false
-filename: "mock_{{.InterfaceName}}.go"
-outpkg: mocks
 dir: internal/mocks
+pkgname: mocks
+template: testify
+template-data:
+  unroll-variadic: true
 packages:
   github.com/cloudoperators/greenhouse/internal/lifecycle:
+    config:
+      filename: "mock_{{.InterfaceName}}.go"
     interfaces:
-      Reconciler:
-  sigs.k8s.io/controller-runtime/pkg/client:
-    interfaces:
-      Client:
-      SubResourceWriter:
+      Reconciler: {}
   github.com/dexidp/dex/storage:
+    config:
+      filename: "mock_{{.InterfaceName}}.go"
     interfaces:
-      Storage:
+      Storage: {}
+  sigs.k8s.io/controller-runtime/pkg/client:
+    config:
+      filename: "mock_{{.InterfaceName}}.go"
+    interfaces:
+      Client: {}
+      SubResourceWriter: {}
