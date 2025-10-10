@@ -10,7 +10,6 @@ import (
 	kustomizev1 "github.com/fluxcd/kustomize-controller/api/v1"
 	sourcev1 "github.com/fluxcd/source-controller/api/v1"
 
-	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	cl "sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -79,7 +78,7 @@ var _ = Describe("Catalog controller", Ordered, func() {
 	})
 	Context("When creating or updating a Plugin Definition Catalog", Ordered, func() {
 
-		It("should successfully create a flux git repository from plugin definition catalog", func() {
+		It("should successfully create a flux git repository and kustomization from plugin definition catalog", func() {
 			By("checking if the catalog repository is created")
 			gitRepository := &sourcev1.GitRepository{}
 			gitRepository.SetName(catalog.Name)
@@ -93,25 +92,11 @@ var _ = Describe("Catalog controller", Ordered, func() {
 				g.Expect(gitRepository.Spec.Interval).To(Equal(defaultInterval), "Flux git repository interval should match the catalog interval")
 			}).Should(Succeed(), "Flux GitRepository should be created for the Catalog")
 
-			By("checking if the catalog kustomization is not created yet")
+			By("checking if the catalog kustomization is created")
 			kustomization := &kustomizev1.Kustomization{}
 			kustomization.SetName(catalog.Name)
 			kustomization.SetNamespace(catalog.Namespace)
-			err := test.K8sClient.Get(test.Ctx, cl.ObjectKeyFromObject(kustomization), kustomization)
-			Expect(err).To(HaveOccurred(), "there should be an error getting the Kustomization")
-			Expect(errors.IsNotFound(err)).To(BeTrue(), "there should be a not found error when getting the Flux Kustomization resource")
-		})
-
-		It("should successfully create a flux kustomization from plugin definition catalog", func() {
-			By("mocking a flux git repository ready condition")
-			gitRepository := &sourcev1.GitRepository{}
-			gitRepository.SetName(catalog.Name)
-			gitRepository.SetNamespace(catalog.Namespace)
-			Expect(mockGitRepositoryReady(gitRepository)).To(Succeed(), "there should be no error mocking the GitRepository ready condition")
-
-			kustomization := &kustomizev1.Kustomization{}
-			kustomization.SetName(catalog.Name)
-			kustomization.SetNamespace(catalog.Namespace)
+			expectedServiceAccountName := rbac.OrgCatalogServiceAccountName(catalog.Namespace)
 			Eventually(func(g Gomega) {
 				g.Expect(test.K8sClient.Get(test.Ctx, cl.ObjectKeyFromObject(kustomization), kustomization)).To(Succeed(), "there should be no error getting the Kustomization")
 				sourceRef := kustomization.Spec.SourceRef
@@ -119,33 +104,24 @@ var _ = Describe("Catalog controller", Ordered, func() {
 				g.Expect(sourceRef.Name).To(Equal(catalog.Name), "Flux Kustomization SourceRef name should be the flux git repository name")
 				g.Expect(kustomization.Spec.Interval).To(Equal(defaultInterval), "Flux Kustomization interval should match the catalog interval")
 				g.Expect(kustomization.Spec.Path).To(Equal(catalog.ResourcePath()), "Flux Kustomization path should match the catalog source path")
+				g.Expect(kustomization.Spec.ServiceAccountName).To(Equal(expectedServiceAccountName), "Flux Kustomization should reference the organization's ServiceAccount")
 			}).Should(Succeed(), "Flux Kustomization should be created for the Catalog")
 		})
 
-		It("should reference the organization's ServiceAccount in the flux kustomization", func() {
-			By("mocking a flux git repository ready condition")
+		It("should reach Ready=True for catalog status when flux git repository and kustomization is ready", func() {
+			By("mocking flux git repository Ready=True condition")
 			gitRepository := &sourcev1.GitRepository{}
 			gitRepository.SetName(catalog.Name)
 			gitRepository.SetNamespace(catalog.Namespace)
 			Expect(mockGitRepositoryReady(gitRepository)).To(Succeed(), "there should be no error mocking the GitRepository ready condition")
 
-			expectedServiceAccountName := rbac.OrgCatalogServiceAccountName(catalog.Namespace)
-
-			kustomization := &kustomizev1.Kustomization{}
-			kustomization.SetName(catalog.Name)
-			kustomization.SetNamespace(catalog.Namespace)
-			Eventually(func(g Gomega) {
-				g.Expect(test.K8sClient.Get(test.Ctx, cl.ObjectKeyFromObject(kustomization), kustomization)).To(Succeed(), "there should be no error getting the Kustomization")
-				g.Expect(kustomization.Spec.ServiceAccountName).To(Equal(expectedServiceAccountName), "Flux Kustomization should reference the organization's ServiceAccount")
-			}).Should(Succeed(), "Flux Kustomization should have the correct ServiceAccount reference")
-		})
-
-		It("should reach Ready=True for catalog status when flux kustomization is ready", func() {
-			By("mocking a flux kustomization ready condition")
+			By("mocking flux kustomization Ready=True condition")
 			kustomization := &kustomizev1.Kustomization{}
 			kustomization.SetName(catalog.Name)
 			kustomization.SetNamespace(catalog.Namespace)
 			Expect(mockKustomizationReady(kustomization)).To(Succeed(), "there should be no error mocking the Kustomization ready condition")
+
+			By("verifying catalog status has Ready=True condition")
 			Eventually(func(g Gomega) {
 				g.Expect(test.K8sClient.Get(test.Ctx, cl.ObjectKeyFromObject(catalog), catalog)).To(Succeed(), "there should be no error getting the Catalog")
 				catalogReady := catalog.Status.GetConditionByType(greenhousemetav1alpha1.ReadyCondition)
@@ -175,6 +151,5 @@ var _ = Describe("Catalog controller", Ordered, func() {
 				g.Expect(kustomization.Spec.Patches[0].Patch).To(Equal(patches[0].Patch), "Flux Kustomization patch in spec should match the catalog generated patches")
 			}).Should(Succeed(), "Flux Kustomization .spec.patches should be updated with the catalog overrides")
 		})
-
 	})
 })

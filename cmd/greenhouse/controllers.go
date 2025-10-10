@@ -38,7 +38,9 @@ var knownControllers = map[string]func(controllerName string, mgr ctrl.Manager) 
 	}).SetupWithManager,
 	"pluginPreset": (&plugincontrollers.PluginPresetReconciler{}).SetupWithManager,
 
-	"catalog":                 (&catalog.CatalogReconciler{}).SetupWithManager,
+	"catalog": (&catalog.CatalogReconciler{
+		Log: ctrl.Log.WithName("controllers").WithName("catalogs"),
+	}).SetupWithManager,
 	"pluginDefinition":        (&plugindefinitioncontroller.PluginDefinitionReconciler{}).SetupWithManager,
 	"clusterPluginDefinition": (&plugindefinitioncontroller.ClusterPluginDefinitionReconciler{}).SetupWithManager,
 

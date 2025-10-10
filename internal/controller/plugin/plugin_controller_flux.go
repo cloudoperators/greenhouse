@@ -115,7 +115,7 @@ func (r *PluginReconciler) EnsureFluxCreated(ctx context.Context, plugin *greenh
 				Mode: helmv2.DriftDetectionEnabled,
 			}).
 			WithSuspend(release.Spec.Suspend).
-			WithKubeConfig(fluxmeta.SecretKeyReference{
+			WithKubeConfig(&fluxmeta.SecretKeyReference{
 				Name: plugin.Spec.ClusterName,
 				Key:  greenhouseapis.GreenHouseKubeConfigKey,
 			}).

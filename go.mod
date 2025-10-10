@@ -1,6 +1,6 @@
 module github.com/cloudoperators/greenhouse
 
-go 1.24.0
+go 1.25.1
 
 replace (
 	// DEX import matches version v2.43.1.
@@ -8,11 +8,11 @@ replace (
 	github.com/dexidp/dex/api/v2 => github.com/dexidp/dex/api/v2 v2.3.0
 
 	// Keep Flux dependencies in sync with v2.6.1.
-	github.com/fluxcd/helm-controller/api => github.com/fluxcd/helm-controller/api v1.3.0
-	github.com/fluxcd/kustomize-controller/api => github.com/fluxcd/kustomize-controller/api v1.6.0
-	github.com/fluxcd/pkg/apis/kustomize => github.com/fluxcd/pkg/apis/kustomize v1.10.0
-	github.com/fluxcd/pkg/apis/meta => github.com/fluxcd/pkg/apis/meta v1.12.0
-	github.com/fluxcd/source-controller/api => github.com/fluxcd/source-controller/api v1.6.0
+	github.com/fluxcd/helm-controller/api => github.com/fluxcd/helm-controller/api v1.4.0
+	github.com/fluxcd/kustomize-controller/api => github.com/fluxcd/kustomize-controller/api v1.7.0
+	github.com/fluxcd/pkg/apis/kustomize => github.com/fluxcd/pkg/apis/kustomize v1.12.0
+	github.com/fluxcd/pkg/apis/meta => github.com/fluxcd/pkg/apis/meta v1.21.0
+	github.com/fluxcd/source-controller/api => github.com/fluxcd/source-controller/api v1.7.0
 
 	// Keep k8s dependencies in sync.
 	k8s.io/api => k8s.io/api v0.33.3
@@ -29,11 +29,11 @@ require (
 	github.com/Masterminds/sprig/v3 v3.3.0
 	github.com/cenkalti/backoff/v5 v5.0.3
 	github.com/dexidp/dex v0.0.0-20250522090151-6e602d3315ea
-	github.com/fluxcd/helm-controller/api v1.3.0
-	github.com/fluxcd/kustomize-controller/api v1.6.0
-	github.com/fluxcd/pkg/apis/kustomize v1.10.0
-	github.com/fluxcd/pkg/apis/meta v1.12.0
-	github.com/fluxcd/source-controller/api v1.6.0
+	github.com/fluxcd/helm-controller/api v1.4.0
+	github.com/fluxcd/kustomize-controller/api v1.7.0
+	github.com/fluxcd/pkg/apis/kustomize v1.21.0
+	github.com/fluxcd/pkg/apis/meta v1.21.0
+	github.com/fluxcd/source-controller/api v1.7.0
 	github.com/go-jose/go-jose/v4 v4.1.1
 	github.com/jeremywohl/flatten/v2 v2.0.0-20211013061545-07e4a09fb8e4
 	github.com/oklog/run v1.2.0
@@ -43,23 +43,22 @@ require (
 	github.com/prometheus/client_golang v1.22.0
 	github.com/spf13/cobra v1.9.1
 	github.com/spf13/pflag v1.0.7
-	github.com/stretchr/testify v1.10.0
+	github.com/stretchr/testify v1.11.1
 	github.com/vladimirvivien/gexe v0.5.0
 	github.com/wI2L/jsondiff v0.7.0
 	go.uber.org/zap v1.27.0
-	golang.org/x/text v0.28.0
+	golang.org/x/text v0.29.0
 	gopkg.in/yaml.v3 v3.0.1
 	helm.sh/helm/v3 v3.18.5
 	k8s.io/api v0.33.3
-	k8s.io/apiextensions-apiserver v0.33.3
-	k8s.io/apimachinery v0.33.4
+	k8s.io/apiextensions-apiserver v0.34.0
+	k8s.io/apimachinery v0.34.0
 	k8s.io/cli-runtime v0.33.3
 	k8s.io/client-go v0.33.3
-	k8s.io/kubectl v0.33.3
 	k8s.io/utils v0.0.0-20250820121507-0af2bda4dd1d
-	sigs.k8s.io/controller-runtime v0.21.0
+	sigs.k8s.io/controller-runtime v0.22.1
 	sigs.k8s.io/kind v0.29.0
-	sigs.k8s.io/yaml v1.5.0
+	sigs.k8s.io/yaml v1.6.0
 )
 
 require (
@@ -73,9 +72,9 @@ require (
 	github.com/containerd/platforms v0.2.1 // indirect
 	github.com/cpuguy83/go-md2man/v2 v2.0.6 // indirect
 	github.com/creack/pty v1.1.23 // indirect
-	github.com/fluxcd/pkg/apis/acl v0.7.0 // indirect
+	github.com/fluxcd/pkg/apis/acl v0.9.0 // indirect
 	github.com/fsnotify/fsnotify v1.9.0 // indirect
-	github.com/fxamacker/cbor/v2 v2.8.0 // indirect
+	github.com/fxamacker/cbor/v2 v2.9.0 // indirect
 	github.com/ghodss/yaml v1.0.0 // indirect
 	github.com/go-sql-driver/mysql v1.9.2 // indirect
 	github.com/go-task/slim-sprig/v3 v3.0.0 // indirect
@@ -101,6 +100,7 @@ require (
 	go.yaml.in/yaml/v2 v2.4.2 // indirect
 	go.yaml.in/yaml/v3 v3.0.3 // indirect
 	gopkg.in/evanphx/json-patch.v4 v4.12.0 // indirect
+	k8s.io/kubectl v0.33.3 // indirect
 	oras.land/oras-go/v2 v2.6.0 // indirect
 	sigs.k8s.io/randfill v1.0.0 // indirect
 )
@@ -181,7 +181,7 @@ require (
 	github.com/moby/spdystream v0.5.0 // indirect
 	github.com/moby/term v0.5.2 // indirect
 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
-	github.com/modern-go/reflect2 v1.0.2 // indirect
+	github.com/modern-go/reflect2 v1.0.3-0.20250322232337-35a7c28c31ee // indirect
 	github.com/monochromegane/go-gitignore v0.0.0-20200626010858-205db1a8cc00 // indirect
 	github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 // indirect
 	github.com/opencontainers/go-digest v1.0.0 // indirect
@@ -201,15 +201,15 @@ require (
 	go.opentelemetry.io/otel/metric v1.35.0 // indirect
 	go.opentelemetry.io/otel/trace v1.35.0 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
-	golang.org/x/crypto v0.41.0 // indirect
+	golang.org/x/crypto v0.42.0 // indirect
 	golang.org/x/exp v0.0.0-20250819193227-8b4c13bb791b
-	golang.org/x/net v0.43.0 // indirect
+	golang.org/x/net v0.44.0 // indirect
 	golang.org/x/oauth2 v0.30.0 // indirect
-	golang.org/x/sync v0.16.0 // indirect
-	golang.org/x/sys v0.35.0 // indirect
-	golang.org/x/term v0.34.0 // indirect
+	golang.org/x/sync v0.17.0 // indirect
+	golang.org/x/sys v0.36.0 // indirect
+	golang.org/x/term v0.35.0 // indirect
 	golang.org/x/time v0.12.0
-	golang.org/x/tools v0.36.0 // indirect
+	golang.org/x/tools v0.37.0 // indirect
 	gomodules.xyz/jsonpatch/v2 v2.4.0 // indirect
 	google.golang.org/api v0.233.0 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20250505200425-f936aa4a68b2 // indirect
@@ -221,7 +221,7 @@ require (
 	k8s.io/component-base v0.33.3 // indirect
 	k8s.io/klog/v2 v2.130.1
 	k8s.io/kube-openapi v0.0.0-20250318190949-c8a335a9a2ff // indirect
-	sigs.k8s.io/json v0.0.0-20241014173422-cfa47c3a1cc8 // indirect
+	sigs.k8s.io/json v0.0.0-20250730193827-2d320260d730 // indirect
 	sigs.k8s.io/kustomize/api v0.19.0 // indirect
 	sigs.k8s.io/kustomize/kyaml v0.19.0 // indirect
 	sigs.k8s.io/structured-merge-diff/v4 v4.7.0 // indirect
