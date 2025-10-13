@@ -28,6 +28,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
+	helmv2 "github.com/fluxcd/helm-controller/api/v2"
+
 	greenhouseapis "github.com/cloudoperators/greenhouse/api"
 	greenhousemetav1alpha1 "github.com/cloudoperators/greenhouse/api/meta/v1alpha1"
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
@@ -94,6 +96,8 @@ func (r *PluginReconciler) SetupWithManager(name string, mgr ctrl.Manager) error
 			MaxConcurrentReconciles: 10,
 		}).
 		For(&greenhousev1alpha1.Plugin{}).
+		// Reconcile on owned flux HelmRelease changes.
+		Owns(&helmv2.HelmRelease{}).
 		// If the release was (manually) modified the secret would have been modified. Reconcile it.
 		Watches(&corev1.Secret{},
 			handler.EnqueueRequestsFromMapFunc(enqueuePluginForReleaseSecret),
@@ -135,7 +139,13 @@ func (r *PluginReconciler) setConditions() lifecycle.Conditioner {
 			return
 		}
 
-		readyCondition := ComputeReadyCondition(plugin.Status.StatusConditions)
+		var readyCondition greenhousemetav1alpha1.Condition
+		// redirect plugins that are managed by Flux
+		if plugin.GetLabels() != nil && plugin.GetLabels()[greenhouseapis.GreenhouseHelmDeliveryToolLabel] == greenhouseapis.GreenhouseHelmDeliveryToolFlux {
+			readyCondition = r.computeReadyConditionFlux(ctx, plugin)
+		} else {
+			readyCondition = computeReadyCondition(plugin.Status.StatusConditions)
+		}
 		UpdatePluginReadyMetric(plugin, readyCondition.Status == metav1.ConditionTrue)
 
 		ownerLabelCondition := util.ComputeOwnerLabelCondition(ctx, r.Client, plugin)
