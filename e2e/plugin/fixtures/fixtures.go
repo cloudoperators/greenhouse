@@ -106,6 +106,17 @@ func PreparePodInfoPluginDefinition(namespace, version string) *greenhousev1alph
 	)
 }
 
+func PrepareUIPluginDefinition(namespace string) *greenhousev1alpha1.ClusterPluginDefinition {
+	return PreparePluginDefinition("ui-only", namespace,
+		test.WithVersion("1.0.0"),
+		test.WithoutHelmChart(),
+		test.WithUIApplication(&greenhousev1alpha1.UIApplicationReference{
+			Name:    "test-ui-app",
+			Version: "0.0.1",
+		}),
+	)
+}
+
 func PreparePlugin(name, namespace string, opts ...func(*greenhousev1alpha1.Plugin)) *greenhousev1alpha1.Plugin {
 	plugin := &greenhousev1alpha1.Plugin{
 		TypeMeta: metav1.TypeMeta{
