@@ -1,15 +1,8 @@
 name: E2E Workflow
 on:
   workflow_dispatch:
-  pull_request:
-    paths:
-      - 'internal/**'
-      - 'e2e/**'
-      - 'cmd/**'
-      - 'Dockerfile*'
-      - 'go.mod'
-      - 'go.sum'
-
+  schedule:
+    - cron: "0 1-6 * * *" # run hourly from 1am to 6am
 jobs:
 
   init:
@@ -19,7 +12,7 @@ jobs:
     name: "Prepare E2E Scenarios"
     steps:
       - name: "Checkout"
-        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5
+        uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955 # v4
 
       # find all e2e scenarios in the e2e directory and generate an array of scenario names
       - name: "E2E Detection"
@@ -39,7 +32,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        k8s-version: [ "v1.32.8" ]
+        k8s-version: [ "v1.31.12", "v1.32.8", "v1.33.4", "v1.34.0" ]
         e2es: ${{fromJson(needs.init.outputs.tests)}}
     steps:
       # run the e2e tests using composite common/workflows/e2e action
@@ -62,7 +55,7 @@ jobs:
           echo "Displaying flux logs for failed scenario: ${{ matrix.e2es }}"
           cat ${{ github.workspace }}/bin/flux-${{ matrix.e2es }}-${{ matrix.k8s-version }}.txt
           exit 1
-        
+  
 
   # check if the e2e tests passed for all scenarios
   checksOK:
