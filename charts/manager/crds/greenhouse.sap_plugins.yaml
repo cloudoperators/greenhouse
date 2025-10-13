@@ -6,7 +6,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.18.0
+    controller-gen.kubebuilder.io/version: v0.19.0
   name: plugins.greenhouse.sap
 spec:
   group: greenhouse.sap
@@ -127,7 +127,6 @@ spec:
                 description: PluginDefinitionRef is the reference to the (Cluster-)PluginDefinition.
                 properties:
                   kind:
-                    default: PluginDefinition
                     description: 'Kind of the referent. Supported values: PluginDefinition,
                       ClusterPluginDefinition.'
                     enum:

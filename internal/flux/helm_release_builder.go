@@ -31,8 +31,8 @@ type HelmReleaseBuilder interface {
 	WithSuspend(suspend bool) *helmReleaseBuilder
 	WithTest(test *helmv2.Test) *helmReleaseBuilder
 	WithUninstall(uninstall *helmv2.Uninstall) *helmReleaseBuilder
-	WithDependsOn(dependencies []fluxmeta.NamespacedObjectReference) *helmReleaseBuilder
-	WithKubeConfig(kc fluxmeta.SecretKeyReference) *helmReleaseBuilder
+	WithDependsOn(dependencies []helmv2.DependencyReference) *helmReleaseBuilder
+	WithKubeConfig(kc *fluxmeta.SecretKeyReference) *helmReleaseBuilder
 	Build() (helmv2.HelmReleaseSpec, error)
 }
 
@@ -116,6 +116,15 @@ func (b *helmReleaseBuilder) WithReleaseName(name string) *helmReleaseBuilder {
 		return b
 	}
 	b.spec.ReleaseName = name
+	return b
+}
+
+// WithStorageNamespace sets the target namespace for the Helm release.
+func (b *helmReleaseBuilder) WithStorageNamespace(namespace string) *helmReleaseBuilder {
+	if namespace == "" {
+		return b
+	}
+	b.spec.StorageNamespace = namespace
 	return b
 }
 
@@ -208,7 +217,7 @@ func (b *helmReleaseBuilder) WithUninstall(uninstall *helmv2.Uninstall) *helmRel
 }
 
 // WithDependsOn sets the dependencies for the Helm release.
-func (b *helmReleaseBuilder) WithDependsOn(dependencies []fluxmeta.NamespacedObjectReference) *helmReleaseBuilder {
+func (b *helmReleaseBuilder) WithDependsOn(dependencies []helmv2.DependencyReference) *helmReleaseBuilder {
 	if len(dependencies) == 0 {
 		return b
 	}
@@ -217,7 +226,7 @@ func (b *helmReleaseBuilder) WithDependsOn(dependencies []fluxmeta.NamespacedObj
 }
 
 // WithKubeConfig sets the kubeconfig reference for the Helm release. If the fluxmeta.SecretKeyReference does not contain a name, the Plugin targets the central cluster and no specific kubeconfig is needed.
-func (b *helmReleaseBuilder) WithKubeConfig(kc fluxmeta.SecretKeyReference) *helmReleaseBuilder {
+func (b *helmReleaseBuilder) WithKubeConfig(kc *fluxmeta.SecretKeyReference) *helmReleaseBuilder {
 	if kc.Name == "" { // Name is empty if Plugin is deployed in central cluster
 		return b
 	}

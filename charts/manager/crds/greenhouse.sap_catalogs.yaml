@@ -6,7 +6,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.18.0
+    controller-gen.kubebuilder.io/version: v0.19.0
   name: catalogs.greenhouse.sap
 spec:
   group: greenhouse.sap
@@ -61,6 +61,10 @@ spec:
                       description: Name is the name of the PluginDefinition to patch
                         with an alias
                       type: string
+                    repository:
+                      description: Repository is the repository to override in the
+                        PluginDefinition .spec.helmChart.repository
+                      type: string
                   required:
                   - alias
                   - name
@@ -86,6 +90,13 @@ spec:
                           tag:
                             type: string
                         type: object
+                      secretName:
+                        description: |-
+                          SecretName is the name of v1.Secret containing credentials to access the Git repository
+                          the secret must be in the same namespace as the Catalog resource
+
+                          GitHub App Example:
+                        type: string
                       url:
                         description: Repository is the URL of the GitHub repository
                           containing the ClusterPluginDefinition / PluginDefinition

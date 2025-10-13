@@ -45,6 +45,9 @@ components:
                   name:
                     description: Name is the name of the PluginDefinition to patch with an alias
                     type: string
+                  repository:
+                    description: Repository is the repository to override in the PluginDefinition .spec.helmChart.repository
+                    type: string
                 required:
                   - alias
                   - name
@@ -66,6 +69,13 @@ components:
                         tag:
                           type: string
                       type: object
+                    secretName:
+                      description: |-
+                        SecretName is the name of v1.Secret containing credentials to access the Git repository
+                        the secret must be in the same namespace as the Catalog resource
+      
+                        GitHub App Example:
+                      type: string
                     url:
                       description: Repository is the URL of the GitHub repository containing the ClusterPluginDefinition / PluginDefinition Catalog
                       type: string
@@ -1132,7 +1142,6 @@ components:
                   description: PluginDefinitionRef is the reference to the (Cluster-)PluginDefinition.
                   properties:
                     kind:
-                      default: PluginDefinition
                       description: 'Kind of the referent. Supported values: PluginDefinition, ClusterPluginDefinition.'
                       enum:
                         - PluginDefinition
@@ -1366,7 +1375,6 @@ components:
               description: PluginDefinitionRef is the reference to the (Cluster-)PluginDefinition.
               properties:
                 kind:
-                  default: PluginDefinition
                   description: 'Kind of the referent. Supported values: PluginDefinition, ClusterPluginDefinition.'
                   enum:
                     - PluginDefinition

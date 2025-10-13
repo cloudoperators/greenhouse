@@ -75,6 +75,10 @@ func DefaultPlugin(ctx context.Context, c client.Client, obj runtime.Object) err
 		return field.Required(field.NewPath("spec", "pluginDefinitionRef", "name"), "PluginDefinition name must be set")
 	}
 
+	if plugin.Spec.PluginDefinitionRef.Kind == "" {
+		plugin.Spec.PluginDefinitionRef.Kind = greenhousev1alpha1.PluginDefinitionKind
+	}
+
 	pluginDefinitionSpec, err := getPluginDefinitionSpec(ctx, c, plugin)
 	if err != nil {
 		if strings.Contains(err.Error(), "unsupported") {
@@ -114,14 +118,14 @@ func DefaultPlugin(ctx context.Context, c client.Client, obj runtime.Object) err
 	}
 	plugin.Spec.OptionValues = optionValues
 
+	// Skip releaseName and releaseNamespace defaulting for UIApplications.
+	if pluginDefinitionSpec.UIApplication != nil && pluginDefinitionSpec.HelmChart == nil {
+		return nil
+	}
+
 	// Default the ReleaseNamespace to the organization namespace if not set.
 	if plugin.Spec.ReleaseNamespace == "" {
 		plugin.Spec.ReleaseNamespace = plugin.GetNamespace()
-	}
-
-	// skip releaseName defaulting for UIApplications
-	if pluginDefinitionSpec.UIApplication != nil && pluginDefinitionSpec.HelmChart == nil {
-		return nil
 	}
 
 	// Default the ReleaseName.
@@ -233,13 +237,6 @@ func ValidateUpdatePlugin(ctx context.Context, c client.Client, old, obj runtime
 	allErrs = append(allErrs, validation.ValidateImmutableField(oldPlugin.Spec.ClusterName, plugin.Spec.ClusterName,
 		field.NewPath("spec", "clusterName"))...)
 
-	allErrs = append(allErrs, validation.ValidateImmutableField(oldPlugin.Spec.ReleaseNamespace, plugin.Spec.ReleaseNamespace,
-		field.NewPath("spec", "releaseNamespace"))...)
-
-	if err := validateReleaseName(plugin.Spec.ReleaseName); err != nil {
-		allErrs = append(allErrs, field.Invalid(field.NewPath("spec").Child("releaseName"), plugin.Spec.ReleaseName, err.Error()))
-	}
-
 	// Name and PluginPreset are mutually exclusive in PluginRef.
 	for _, pluginRef := range plugin.Spec.WaitFor {
 		if pluginRef.Name != "" && pluginRef.PluginPreset != "" {
@@ -248,8 +245,7 @@ func ValidateUpdatePlugin(ctx context.Context, c client.Client, old, obj runtime
 		}
 	}
 
-	// ensure (Cluster-)PluginDefinition exists, validate OptionValues and Plugin for Cluster
-	optionsFieldPath := field.NewPath("spec").Child("optionValues")
+	// ensure (Cluster-)PluginDefinition exists
 	pluginDefinitionSpec, err := getPluginDefinitionSpec(ctx, c, plugin)
 	if err != nil {
 		if apierrors.IsNotFound(err) {
@@ -263,7 +259,18 @@ func ValidateUpdatePlugin(ctx context.Context, c client.Client, old, obj runtime
 			fmt.Sprintf("PluginDefinition %s could not be retrieved from namespace %s: %s", plugin.Spec.PluginDefinitionRef.Name, plugin.GetNamespace(), err.Error()))
 	}
 
+	// ensure ReleaseNamespace cannot change but only if it was set before
+	if oldPlugin.Spec.ReleaseNamespace != "" {
+		allErrs = append(allErrs, validation.ValidateImmutableField(oldPlugin.Spec.ReleaseNamespace, plugin.Spec.ReleaseNamespace,
+			field.NewPath("spec", "releaseNamespace"))...)
+	}
+
+	if err := validateReleaseName(plugin.Spec.ReleaseName); err != nil {
+		allErrs = append(allErrs, field.Invalid(field.NewPath("spec").Child("releaseName"), plugin.Spec.ReleaseName, err.Error()))
+	}
+
 	// validate OptionValues defined by the Plugin
+	optionsFieldPath := field.NewPath("spec").Child("optionValues")
 	if errList := validatePluginOptionValues(plugin.Spec.OptionValues, plugin.Spec.PluginDefinitionRef.Name, pluginDefinitionSpec, true, optionsFieldPath); len(errList) > 0 {
 		return allWarns, apierrors.NewInvalid(plugin.GroupVersionKind().GroupKind(), plugin.Name, errList)
 	}
@@ -331,7 +338,7 @@ func validatePluginOptionValues(
 					if err := json.Unmarshal(val.Value.Raw, &valStr); err != nil {
 						allErrs = append(allErrs, field.TypeInvalid(fieldPathWithIndex.Child("value"), "*****", err.Error()))
 					}
-					if !strings.HasPrefix(valStr, VaultPrefix) {
+					if !strings.Contains(valStr, VaultPrefix) {
 						allErrs = append(allErrs, field.TypeInvalid(fieldPathWithIndex.Child("value"), "*****",
 							fmt.Sprintf("optionValue %s of type secret without secret reference must use value with vault reference prefixed by schema %q", val.Name, VaultPrefix)))
 					}

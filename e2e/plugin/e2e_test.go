@@ -98,6 +98,10 @@ var _ = Describe("Plugin E2E", Ordered, func() {
 		scenarios.FluxControllerPodInfoByPlugin(ctx, adminClient, remoteClient, env, remoteClusterName)
 	})
 
+	It("should reconcile the UI-only plugin with flux", func() {
+		scenarios.FluxControllerUIOnlyPlugin(ctx, adminClient, remoteClient, env, remoteClusterName)
+	})
+
 	It("should deploy plugin with dependency via flux", func() {
 		scenarios.FluxControllerPluginDependenciesOnPreset(ctx, adminClient, remoteClient, env, remoteClusterName, team.Name)
 	})

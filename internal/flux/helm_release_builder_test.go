@@ -23,6 +23,7 @@ func TestHelmReleaseBuilder_CreatesValidHelmRelease(t *testing.T) {
 		WithInterval(10 * time.Minute).
 		WithTimeout(2 * time.Minute).
 		WithReleaseName("custom-release").
+		WithStorageNamespace("target-ns").
 		WithTargetNamespace("target-ns")
 
 	spec, err := builder.Build()
@@ -31,6 +32,7 @@ func TestHelmReleaseBuilder_CreatesValidHelmRelease(t *testing.T) {
 	assert.Equal(t, "1.2.3", spec.Chart.Spec.Version)
 	assert.Equal(t, 5, *spec.MaxHistory)
 	assert.Equal(t, "custom-release", spec.ReleaseName)
+	assert.Equal(t, "target-ns", spec.StorageNamespace)
 	assert.Equal(t, "target-ns", spec.TargetNamespace)
 }
 
@@ -155,7 +157,7 @@ func TestHelmReleaseBuilder_WithDependsOnEmptyIgnored(t *testing.T) {
 			Chart:   "nginx",
 			Version: "1.0.0",
 		}).
-		WithDependsOn([]meta.NamespacedObjectReference{})
+		WithDependsOn([]helmv2.DependencyReference{})
 
 	spec, err := builder.Build()
 	assert.NoError(t, err)
@@ -168,7 +170,7 @@ func TestHelmReleaseBuilder_WithKubeConfigEmptyIgnored(t *testing.T) {
 			Chart:   "nginx",
 			Version: "1.0.0",
 		}).
-		WithKubeConfig(meta.SecretKeyReference{})
+		WithKubeConfig(&meta.SecretKeyReference{})
 
 	spec, err := builder.Build()
 	assert.NoError(t, err)
@@ -181,7 +183,7 @@ func TestHelmReleaseBuilder_WithKubeConfigFromSecret(t *testing.T) {
 			Chart:   "nginx",
 			Version: "1.0.0",
 		}).
-		WithKubeConfig(meta.SecretKeyReference{
+		WithKubeConfig(&meta.SecretKeyReference{
 			Name: "kubeconfig-secret",
 			Key:  "kubeconfig",
 		})

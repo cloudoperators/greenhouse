@@ -90,6 +90,8 @@ const (
 
 	// KindClusterPluginDefinitionPlural is the plural form of ClusterPluginDefinition kind.
 	KindClusterPluginDefinitionPlural = "clusterplugindefinitions"
+	// KindPluginDefinitionPlural is the plural form of PluginDefinition kind.
+	KindPluginDefinitionPlural = "plugindefinitions"
 )
 
 // Deletion Policies
@@ -119,6 +121,10 @@ const (
 	GreenhouseHelmDeliveryToolLabel   = "greenhouse.sap/deployment-tool"
 	GreenhouseHelmDeliveryToolFlux    = "flux"
 	FluxReconcileRequestAnnotation    = "reconcile.fluxcd.io/requestedAt"
+)
+
+const (
+	SecretManagedByCatalogLabel = "source.greenhouse.sap/managed-by"
 )
 
 const (
