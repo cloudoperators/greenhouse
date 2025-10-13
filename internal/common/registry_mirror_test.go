@@ -1,11 +1,10 @@
 // SPDX-FileCopyrightText: 2024 SAP SE or an SAP affiliate company and Greenhouse contributors
 // SPDX-License-Identifier: Apache-2.0
 
-package flux
+package common
 
 import (
 	"context"
-	"fmt"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -23,6 +22,7 @@ var _ = Describe("Registry Mirror Configuration", func() {
 		ctx        context.Context
 		fakeClient client.Client
 		scheme     *runtime.Scheme
+		orgName    string
 	)
 
 	BeforeEach(func() {
@@ -30,27 +30,16 @@ var _ = Describe("Registry Mirror Configuration", func() {
 		scheme = runtime.NewScheme()
 		Expect(greenhousev1alpha1.AddToScheme(scheme)).To(Succeed())
 		Expect(corev1.AddToScheme(scheme)).To(Succeed())
+
+		orgName = "test-org"
 	})
 
 	Describe("GetRegistryMirrorConfig", func() {
-		var (
-			plugin *greenhousev1alpha1.Plugin
-		)
-
-		BeforeEach(func() {
-			plugin = &greenhousev1alpha1.Plugin{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "test-plugin",
-					Namespace: "test-org",
-				},
-			}
-		})
-
 		Context("when organization and configmap exist with valid registry mirror config", func() {
 			BeforeEach(func() {
 				org := &greenhousev1alpha1.Organization{
 					ObjectMeta: metav1.ObjectMeta{
-						Name: "test-org",
+						Name: orgName,
 					},
 					Spec: greenhousev1alpha1.OrganizationSpec{
 						ConfigMapRef: "test-configmap",
@@ -60,7 +49,7 @@ var _ = Describe("Registry Mirror Configuration", func() {
 				configMap := &corev1.ConfigMap{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      "test-configmap",
-						Namespace: "test-org",
+						Namespace: orgName,
 					},
 					Data: map[string]string{
 						registryMirrorConfigKey: `primaryMirror: "primary.registry.com"
@@ -81,7 +70,7 @@ registryMirrors:
 			})
 
 			It("should successfully parse registry mirror configuration", func() {
-				config, err := GetRegistryMirrorConfig(ctx, fakeClient, plugin)
+				config, err := GetRegistryMirrorConfig(ctx, fakeClient, orgName)
 
 				Expect(err).NotTo(HaveOccurred())
 				Expect(config).NotTo(BeNil())
@@ -106,7 +95,7 @@ registryMirrors:
 			})
 
 			It("should return an error", func() {
-				config, err := GetRegistryMirrorConfig(ctx, fakeClient, plugin)
+				config, err := GetRegistryMirrorConfig(ctx, fakeClient, orgName)
 
 				Expect(err).To(HaveOccurred())
 				Expect(err.Error()).To(ContainSubstring("organization test-org not found"))
@@ -118,7 +107,7 @@ registryMirrors:
 			BeforeEach(func() {
 				org := &greenhousev1alpha1.Organization{
 					ObjectMeta: metav1.ObjectMeta{
-						Name: "test-org",
+						Name: orgName,
 					},
 					Spec: greenhousev1alpha1.OrganizationSpec{
 						ConfigMapRef: "",
@@ -132,7 +121,7 @@ registryMirrors:
 			})
 
 			It("should return nil config without error", func() {
-				config, err := GetRegistryMirrorConfig(ctx, fakeClient, plugin)
+				config, err := GetRegistryMirrorConfig(ctx, fakeClient, orgName)
 
 				Expect(err).NotTo(HaveOccurred())
 				Expect(config).To(BeNil())
@@ -143,7 +132,7 @@ registryMirrors:
 			BeforeEach(func() {
 				org := &greenhousev1alpha1.Organization{
 					ObjectMeta: metav1.ObjectMeta{
-						Name: "test-org",
+						Name: orgName,
 					},
 					Spec: greenhousev1alpha1.OrganizationSpec{
 						ConfigMapRef: "nonexistent-configmap",
@@ -157,7 +146,7 @@ registryMirrors:
 			})
 
 			It("should return an error", func() {
-				config, err := GetRegistryMirrorConfig(ctx, fakeClient, plugin)
+				config, err := GetRegistryMirrorConfig(ctx, fakeClient, orgName)
 
 				Expect(err).To(HaveOccurred())
 				Expect(err.Error()).To(ContainSubstring("organization ConfigMap nonexistent-configmap not found in namespace test-org"))
@@ -169,7 +158,7 @@ registryMirrors:
 			BeforeEach(func() {
 				org := &greenhousev1alpha1.Organization{
 					ObjectMeta: metav1.ObjectMeta{
-						Name: "test-org",
+						Name: orgName,
 					},
 					Spec: greenhousev1alpha1.OrganizationSpec{
 						ConfigMapRef: "test-configmap",
@@ -179,7 +168,7 @@ registryMirrors:
 				configMap := &corev1.ConfigMap{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      "test-configmap",
-						Namespace: "test-org",
+						Namespace: orgName,
 					},
 					Data: map[string]string{
 						"other-config": "some-value",
@@ -193,7 +182,7 @@ registryMirrors:
 			})
 
 			It("should return nil config without error", func() {
-				config, err := GetRegistryMirrorConfig(ctx, fakeClient, plugin)
+				config, err := GetRegistryMirrorConfig(ctx, fakeClient, orgName)
 
 				Expect(err).NotTo(HaveOccurred())
 				Expect(config).To(BeNil())
@@ -204,7 +193,7 @@ registryMirrors:
 			BeforeEach(func() {
 				org := &greenhousev1alpha1.Organization{
 					ObjectMeta: metav1.ObjectMeta{
-						Name: "test-org",
+						Name: orgName,
 					},
 					Spec: greenhousev1alpha1.OrganizationSpec{
 						ConfigMapRef: "test-configmap",
@@ -214,7 +203,7 @@ registryMirrors:
 				configMap := &corev1.ConfigMap{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      "test-configmap",
-						Namespace: "test-org",
+						Namespace: orgName,
 					},
 					Data: map[string]string{
 						registryMirrorConfigKey: `invalid: yaml: content: [`,
@@ -228,7 +217,7 @@ registryMirrors:
 			})
 
 			It("should return a parsing error", func() {
-				config, err := GetRegistryMirrorConfig(ctx, fakeClient, plugin)
+				config, err := GetRegistryMirrorConfig(ctx, fakeClient, orgName)
 
 				Expect(err).To(HaveOccurred())
 				Expect(err.Error()).To(ContainSubstring("failed to parse registry mirror configuration"))
@@ -299,69 +288,6 @@ registryMirrors:
 						},
 					},
 				}, false, "basedomain cannot be empty for registry ghcr.io"),
-		)
-	})
-
-	Describe("CreateRegistryMirrorPostRenderer", func() {
-		DescribeTable("PostRenderer creation scenarios",
-			func(config *RegistryMirrorConfig, expectPostRenderer bool, expectedImageCount int) {
-				postRenderer := CreateRegistryMirrorPostRenderer(config)
-
-				if expectPostRenderer {
-					Expect(postRenderer).NotTo(BeNil())
-					Expect(postRenderer.Kustomize).NotTo(BeNil())
-					Expect(postRenderer.Kustomize.Images).To(HaveLen(expectedImageCount))
-
-					// Verify image transformations
-					if config != nil {
-						for originalRegistry, mirror := range config.RegistryMirrors {
-							expectedNewName := fmt.Sprintf("%s/%s", mirror.BaseDomain, mirror.SubPath)
-
-							var found bool
-							for _, img := range postRenderer.Kustomize.Images {
-								if img.Name == originalRegistry && img.NewName == expectedNewName {
-									found = true
-									break
-								}
-							}
-							Expect(found).To(BeTrue(), fmt.Sprintf("Expected transformation %s -> %s not found", originalRegistry, expectedNewName))
-						}
-					}
-				} else {
-					Expect(postRenderer).To(BeNil())
-				}
-			},
-			Entry("nil config returns nil",
-				nil, false, 0),
-			Entry("empty registry mirrors returns nil",
-				&RegistryMirrorConfig{
-					PrimaryMirror:   "primary.registry.com",
-					RegistryMirrors: map[string]RegistryMirror{},
-				}, false, 0),
-			Entry("single registry mirror",
-				&RegistryMirrorConfig{
-					PrimaryMirror: "primary.registry.com",
-					RegistryMirrors: map[string]RegistryMirror{
-						"ghcr.io": {
-							BaseDomain: "keppel.eu-de-1.cloud.sap",
-							SubPath:    "ccloud-ghcr-io-mirror",
-						},
-					},
-				}, true, 1),
-			Entry("multiple registry mirrors",
-				&RegistryMirrorConfig{
-					PrimaryMirror: "primary.registry.com",
-					RegistryMirrors: map[string]RegistryMirror{
-						"ghcr.io": {
-							BaseDomain: "keppel.eu-de-1.cloud.sap",
-							SubPath:    "ccloud-ghcr-io-mirror",
-						},
-						"docker.io": {
-							BaseDomain: "keppel.eu-de-1.cloud.sap",
-							SubPath:    "ccloud-dockerhub-mirror",
-						},
-					},
-				}, true, 2),
 		)
 	})
 })

@@ -101,22 +101,13 @@ func (r *PluginReconciler) ensureHelmRelease(
 		if err != nil {
 			return fmt.Errorf("failed to compute HelmRelease values for Plugin %s: %w", plugin.Name, err)
 		}
-
-		// Get registry mirror configuration and create PostRenderer.
-		registryMirrorConfig, err := flux.GetRegistryMirrorConfig(ctx, r.Client, plugin)
+		mirrorConfig, err := common.GetRegistryMirrorConfig(ctx, r.Client, plugin.GetNamespace())
 		if err != nil {
-			log.FromContext(ctx).Error(err, "Failed to read registry mirror configuration", "plugin", plugin.Name)
-			plugin.SetCondition(greenhousemetav1alpha1.TrueCondition(
-				greenhousev1alpha1.HelmReconcileFailedCondition, "", "Failed to read registry mirror configuration"))
-			return fmt.Errorf("failed to read registry mirror configuration: %w", err)
+			plugin.SetCondition(greenhousemetav1alpha1.TrueCondition(greenhousev1alpha1.HelmReconcileFailedCondition, "", "Failed to read registry mirror configuration"))
+			return fmt.Errorf("failed to read registry mirror configuration for Plugin %s: %w", plugin.Name, err)
 		}
 
-		var postRenderers []helmv2.PostRenderer
-		if postRenderer := flux.CreateRegistryMirrorPostRenderer(registryMirrorConfig); postRenderer != nil {
-			postRenderers = append(postRenderers, *postRenderer)
-		}
-
-		spec, err := flux.NewHelmReleaseSpecBuilder().
+		builder := flux.NewHelmReleaseSpecBuilder().
 			WithChart(helmv2.HelmChartTemplateSpec{
 				Chart:    pluginDefinitionSpec.HelmChart.Name,
 				Interval: &metav1.Duration{Duration: flux.DefaultInterval},
@@ -156,7 +147,26 @@ func (r *PluginReconciler) ensureHelmRelease(
 			WithValues(values).
 			WithValuesFrom(r.addValueReferences(plugin)).
 			WithStorageNamespace(plugin.Spec.ReleaseNamespace).
-			WithTargetNamespace(plugin.Spec.ReleaseNamespace).Build()
+			WithTargetNamespace(plugin.Spec.ReleaseNamespace)
+
+		if mirrorConfig != nil && len(mirrorConfig.RegistryMirrors) > 0 {
+			restClientGetter, err := initClientGetter(ctx, r.Client, r.kubeClientOpts, *plugin)
+			if err != nil {
+				return fmt.Errorf("failed to init client getter for Plugin %s: %w", plugin.Name, err)
+			}
+
+			renderedManifests, err := helm.RenderChartManifests(ctx, r.Client, restClientGetter, pluginDefinitionSpec, plugin)
+			if err != nil {
+				return fmt.Errorf("failed to render chart manifest for Plugin %s: %w", plugin.Name, err)
+			}
+
+			postRenderer := createRegistryMirrorPostRenderer(mirrorConfig, renderedManifests)
+			if postRenderer != nil {
+				builder = builder.WithPostRenderers([]helmv2.PostRenderer{*postRenderer})
+			}
+		}
+
+		spec, err := builder.Build()
 		if err != nil {
 			return fmt.Errorf("failed to create HelmRelease for plugin %s: %w", plugin.Name, err)
 		}

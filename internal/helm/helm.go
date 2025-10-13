@@ -412,6 +412,16 @@ func upgradeRelease(ctx context.Context, local client.Client, restClientGetter g
 	return err
 }
 
+// RenderChartManifests renders a Helm chart with the given values and returns the rendered Kubernetes manifests.
+// This performs a dry-run installation to get the manifests without actually deploying anything.
+func RenderChartManifests(ctx context.Context, local client.Client, restClientGetter genericclioptions.RESTClientGetter, pluginDefinitionSpec greenhousev1alpha1.PluginDefinitionSpec, plugin *greenhousev1alpha1.Plugin) (string, error) {
+	helmRelease, err := installRelease(ctx, local, restClientGetter, pluginDefinitionSpec, plugin, true)
+	if err != nil {
+		return "", err
+	}
+	return helmRelease.Manifest, nil
+}
+
 func installRelease(ctx context.Context, local client.Client, restClientGetter genericclioptions.RESTClientGetter, pluginDefinitionSpec greenhousev1alpha1.PluginDefinitionSpec, plugin *greenhousev1alpha1.Plugin, isDryRun bool) (*release.Release, error) {
 	cfg, err := newHelmAction(restClientGetter, plugin.Spec.ReleaseNamespace)
 	if err != nil {
