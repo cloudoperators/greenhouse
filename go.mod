@@ -12,7 +12,7 @@ replace (
 	github.com/fluxcd/kustomize-controller/api => github.com/fluxcd/kustomize-controller/api v1.6.0
 	github.com/fluxcd/pkg/apis/kustomize => github.com/fluxcd/pkg/apis/kustomize v1.10.0
 	github.com/fluxcd/pkg/apis/meta => github.com/fluxcd/pkg/apis/meta v1.12.0
-	github.com/fluxcd/source-controller/api => github.com/fluxcd/source-controller/api v1.6.0
+	github.com/fluxcd/source-controller/api => github.com/fluxcd/source-controller/api v1.6.2
 
 	// Keep k8s dependencies in sync.
 	k8s.io/api => k8s.io/api v0.34.1
@@ -33,7 +33,7 @@ require (
 	github.com/fluxcd/kustomize-controller/api v1.6.0
 	github.com/fluxcd/pkg/apis/kustomize v1.10.0
 	github.com/fluxcd/pkg/apis/meta v1.12.0
-	github.com/fluxcd/source-controller/api v1.6.0
+	github.com/fluxcd/source-controller/api v1.6.2
 	github.com/go-jose/go-jose/v4 v4.1.3
 	github.com/jeremywohl/flatten/v2 v2.0.0-20211013061545-07e4a09fb8e4
 	github.com/oklog/run v1.2.0
