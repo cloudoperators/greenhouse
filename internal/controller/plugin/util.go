@@ -10,7 +10,7 @@ import (
 	"strings"
 	"time"
 
-	fluxmeta "github.com/fluxcd/pkg/apis/meta"
+	helmv2 "github.com/fluxcd/helm-controller/api/v2"
 	"github.com/pkg/errors"
 	appsv1 "k8s.io/api/apps/v1"
 	batchv1 "k8s.io/api/batch/v1"
@@ -356,10 +356,10 @@ func resolvePluginDependencies(dependencies []greenhousev1alpha1.WaitForItem, cl
 }
 
 // convertWaitForToDependsOn converts plugin dependencies into flux HelmRelease dependencies.
-func convertWaitForToDependsOn(dependencies []greenhousev1alpha1.WaitForItem) []fluxmeta.NamespacedObjectReference {
-	out := make([]fluxmeta.NamespacedObjectReference, 0, len(dependencies))
+func convertWaitForToDependsOn(dependencies []greenhousev1alpha1.WaitForItem) []helmv2.DependencyReference {
+	out := make([]helmv2.DependencyReference, 0, len(dependencies))
 	for _, item := range dependencies {
-		out = append(out, fluxmeta.NamespacedObjectReference{
+		out = append(out, helmv2.DependencyReference{
 			// The name of the HelmRelease is the same as the name of the Plugin.
 			Name: item.Name,
 		})
