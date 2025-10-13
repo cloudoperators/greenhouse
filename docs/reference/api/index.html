@@ -1423,6 +1423,37 @@ GitRef
 <p>Ref is the Git reference (branch, tag, or SHA) to resolve the ClusterPluginDefinition / PluginDefinition Catalog</p>
 </td>
 </tr>
+<tr>
+<td>
+<code>secretName</code><br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>SecretName is the name of v1.Secret containing credentials to access the Git repository
+the secret must be in the same namespace as the Catalog resource</p>
+<pre><code>  GitHub App Example:
+-------------------
+githubAppID: &quot;&lt;app-id&gt;&quot;
+githubAppInstallationID: &quot;&lt;app-installation-id&gt;&quot;
+githubAppPrivateKey: |
+-----BEGIN RSA PRIVATE KEY-----
+...
+-----END RSA PRIVATE KEY-----
+githubAppBaseURL: &quot;&lt;github-enterprise-api-url&gt;&quot; #optional, required only for GitHub Enterprise Server users
+ca.crt: | #optional, for GitHub Enterprise Server users
+-----BEGIN CERTIFICATE-----
+...
+-----END CERTIFICATE-----
+GitHub Token Example:
+-------------------
+username: &lt;BASE64&gt;
+password: &lt;BASE64&gt;
+ca.crt: &lt;BASE64&gt; #optional, for GitHub Enterprise Server users
+</code></pre>
+</td>
+</tr>
 </tbody>
 </table>
 </div>

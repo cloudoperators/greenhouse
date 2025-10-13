@@ -157,7 +157,7 @@ func TestHelmReleaseBuilder_WithDependsOnEmptyIgnored(t *testing.T) {
 			Chart:   "nginx",
 			Version: "1.0.0",
 		}).
-		WithDependsOn([]meta.NamespacedObjectReference{})
+		WithDependsOn([]helmv2.DependencyReference{})
 
 	spec, err := builder.Build()
 	assert.NoError(t, err)
@@ -170,7 +170,7 @@ func TestHelmReleaseBuilder_WithKubeConfigEmptyIgnored(t *testing.T) {
 			Chart:   "nginx",
 			Version: "1.0.0",
 		}).
-		WithKubeConfig(meta.SecretKeyReference{})
+		WithKubeConfig(&meta.SecretKeyReference{})
 
 	spec, err := builder.Build()
 	assert.NoError(t, err)
@@ -183,7 +183,7 @@ func TestHelmReleaseBuilder_WithKubeConfigFromSecret(t *testing.T) {
 			Chart:   "nginx",
 			Version: "1.0.0",
 		}).
-		WithKubeConfig(meta.SecretKeyReference{
+		WithKubeConfig(&meta.SecretKeyReference{
 			Name: "kubeconfig-secret",
 			Key:  "kubeconfig",
 		})

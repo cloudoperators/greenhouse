@@ -124,6 +124,10 @@ const (
 )
 
 const (
+	SecretManagedByCatalogLabel = "source.greenhouse.sap/managed-by"
+)
+
+const (
 	SecretAPIServerURLAnnotation          = "oidc.greenhouse.sap/api-server-url"
 	SecretAPIServerCAKey                  = "ca.crt"
 	OIDCAudience                          = "greenhouse"

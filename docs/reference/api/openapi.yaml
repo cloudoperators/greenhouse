@@ -69,6 +69,13 @@ components:
                         tag:
                           type: string
                       type: object
+                    secretName:
+                      description: |-
+                        SecretName is the name of v1.Secret containing credentials to access the Git repository
+                        the secret must be in the same namespace as the Catalog resource
+      
+                        GitHub App Example:
+                      type: string
                     url:
                       description: Repository is the URL of the GitHub repository containing the ClusterPluginDefinition / PluginDefinition Catalog
                       type: string
