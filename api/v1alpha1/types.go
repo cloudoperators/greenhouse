@@ -13,7 +13,6 @@ type PluginDefinitionReference struct {
 	// +Optional
 	Name string `json:"name,omitempty"`
 	// Kind of the referent. Supported values: PluginDefinition, ClusterPluginDefinition.
-	// +kubebuilder:default=PluginDefinition
 	// +kubebuilder:validation:Enum=PluginDefinition;ClusterPluginDefinition
 	Kind string `json:"kind,omitempty"`
 }

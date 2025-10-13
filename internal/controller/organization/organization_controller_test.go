@@ -4,10 +4,13 @@
 package organization_test
 
 import (
+	"fmt"
+
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/gstruct"
 	"golang.org/x/exp/slices"
+	authorizationv1 "k8s.io/api/authorization/v1"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -382,11 +385,132 @@ var _ = Describe("Test Organization reconciliation", Ordered, func() {
 		})
 	})
 
-	When("reconciling PluginDefinitionCatalog ServiceAccount", Ordered, func() {
-		It("should create additional ClusterRole and ClusterRoleBinding for greenhouse organization", func() {
-			testOrgName := "greenhouse"
+	When("reconciling PluginDefinitionCatalog ServiceAccount for regular organization", Ordered, func() {
+		var testOrgName, serviceAccountName, roleName string
 
-			// Check if greenhouse organization already exists, create if not
+		BeforeAll(func() {
+			testOrgName = "test-catalog-org"
+			serviceAccountName = rbac.OrgCatalogServiceAccountName(testOrgName)
+			roleName = rbac.OrgCatalogRoleName(testOrgName)
+
+			setup.CreateOrganization(test.Ctx, testOrgName)
+		})
+
+		It("should create Role and RoleBinding", func() {
+			serviceAccount := &corev1.ServiceAccount{}
+			Eventually(func() error {
+				return setup.Get(test.Ctx, types.NamespacedName{Name: serviceAccountName, Namespace: testOrgName}, serviceAccount)
+			}).ShouldNot(HaveOccurred(), "ServiceAccount should be created")
+
+			Expect(serviceAccount.Name).To(Equal(serviceAccountName))
+			Expect(serviceAccount.Namespace).To(Equal(testOrgName))
+
+			role := &rbacv1.Role{}
+			Eventually(func() error {
+				return setup.Get(test.Ctx, types.NamespacedName{Name: roleName, Namespace: testOrgName}, role)
+			}).ShouldNot(HaveOccurred(), "Role should be created for regular organization")
+
+			Expect(role.Name).To(Equal(roleName))
+			Expect(role.Namespace).To(Equal(testOrgName))
+			Expect(role.Rules).To(HaveLen(1))
+			Expect(role.Rules[0].APIGroups).To(ContainElement("greenhouse.sap"))
+			Expect(role.Rules[0].Resources).To(ContainElement("plugindefinitions"))
+			Expect(role.Rules[0].Verbs).To(ContainElement("*"))
+			Expect(role.OwnerReferences).To(HaveLen(1))
+			Expect(role.OwnerReferences[0].Kind).To(Equal("Organization"))
+			Expect(role.OwnerReferences[0].Name).To(Equal(testOrgName))
+
+			roleBinding := &rbacv1.RoleBinding{}
+			Eventually(func() error {
+				return setup.Get(test.Ctx, types.NamespacedName{Name: roleName, Namespace: testOrgName}, roleBinding)
+			}).ShouldNot(HaveOccurred(), "RoleBinding should be created for regular organization")
+
+			Expect(roleBinding.Name).To(Equal(roleName))
+			Expect(roleBinding.Namespace).To(Equal(testOrgName))
+			Expect(roleBinding.RoleRef.Kind).To(Equal("Role"))
+			Expect(roleBinding.RoleRef.Name).To(Equal(roleName))
+			Expect(roleBinding.Subjects).To(HaveLen(1))
+			Expect(roleBinding.Subjects[0].Kind).To(Equal("ServiceAccount"))
+			Expect(roleBinding.Subjects[0].Name).To(Equal(serviceAccountName))
+			Expect(roleBinding.Subjects[0].Namespace).To(Equal(testOrgName))
+			Expect(roleBinding.OwnerReferences).To(HaveLen(1))
+			Expect(roleBinding.OwnerReferences[0].Kind).To(Equal("Organization"))
+
+			clusterRole := &rbacv1.ClusterRole{}
+			err := setup.Get(test.Ctx, types.NamespacedName{Name: roleName}, clusterRole)
+			Expect(err).To(HaveOccurred(), "ClusterRole should NOT be created for regular organization")
+			Expect(apierrors.IsNotFound(err)).To(BeTrue(), "ClusterRole should not exist")
+
+			clusterRoleBinding := &rbacv1.ClusterRoleBinding{}
+			err = setup.Get(test.Ctx, types.NamespacedName{Name: roleName}, clusterRoleBinding)
+			Expect(err).To(HaveOccurred(), "ClusterRoleBinding should NOT be created for regular organization")
+			Expect(apierrors.IsNotFound(err)).To(BeTrue(), "ClusterRoleBinding should not exist")
+		})
+
+		It("should allow catalog SA to create PluginDefinitions in their namespace", func() {
+			sar := &authorizationv1.SubjectAccessReview{
+				Spec: authorizationv1.SubjectAccessReviewSpec{
+					ResourceAttributes: &authorizationv1.ResourceAttributes{
+						Namespace: testOrgName,
+						Verb:      "create",
+						Group:     "greenhouse.sap",
+						Resource:  "plugindefinitions",
+					},
+					User: fmt.Sprintf("system:serviceaccount:%s:%s", testOrgName, serviceAccountName),
+				},
+			}
+
+			err := test.K8sClient.Create(test.Ctx, sar)
+			Expect(err).ToNot(HaveOccurred(), "SubjectAccessReview should be created")
+			Expect(sar.Status.Allowed).To(BeTrue(), "Catalog SA should be allowed to create PluginDefinitions in org namespace")
+		})
+
+		It("should not allow catalog SA to create ClusterPluginDefinitions", func() {
+			sar := &authorizationv1.SubjectAccessReview{
+				Spec: authorizationv1.SubjectAccessReviewSpec{
+					ResourceAttributes: &authorizationv1.ResourceAttributes{
+						Verb:     "create",
+						Group:    "greenhouse.sap",
+						Resource: "clusterplugindefinitions",
+					},
+					User: fmt.Sprintf("system:serviceaccount:%s:%s", testOrgName, serviceAccountName),
+				},
+			}
+
+			err := test.K8sClient.Create(test.Ctx, sar)
+			Expect(err).ToNot(HaveOccurred(), "SubjectAccessReview should be created")
+			Expect(sar.Status.Allowed).To(BeFalse(), "Catalog SA should not be allowed to create ClusterPluginDefinition")
+		})
+
+		It("should not allow catalog SA to create PluginDefinitions in other namespaces", func() {
+			otherNamespace := "other-namespace"
+			sar := &authorizationv1.SubjectAccessReview{
+				Spec: authorizationv1.SubjectAccessReviewSpec{
+					ResourceAttributes: &authorizationv1.ResourceAttributes{
+						Namespace: otherNamespace,
+						Verb:      "create",
+						Group:     "greenhouse.sap",
+						Resource:  "plugindefinitions",
+					},
+					User: fmt.Sprintf("system:serviceaccount:%s:%s", testOrgName, serviceAccountName),
+				},
+			}
+
+			err := test.K8sClient.Create(test.Ctx, sar)
+			Expect(err).ToNot(HaveOccurred(), "SubjectAccessReview should be created")
+			Expect(sar.Status.Allowed).To(BeFalse(), "Catalog SA should not be allowed to create PluginDefinitions in other namespaces")
+		})
+	})
+
+	When("reconciling PluginDefinitionCatalog ServiceAccount for greenhouse organization", Ordered, func() {
+		var testOrgName, serviceAccountName, roleName string
+
+		BeforeAll(func() {
+			testOrgName = "greenhouse"
+			serviceAccountName = rbac.OrgCatalogServiceAccountName(testOrgName)
+			roleName = rbac.OrgCatalogRoleName(testOrgName)
+
+			// Check if greenhouse organization already exists, create if not.
 			org := &greenhousev1alpha1.Organization{}
 			err := setup.Get(test.Ctx, types.NamespacedName{Name: testOrgName}, org)
 			if err != nil {
@@ -396,45 +520,94 @@ var _ = Describe("Test Organization reconciliation", Ordered, func() {
 					Fail("unexpected error checking greenhouse organization: " + err.Error())
 				}
 			}
+		})
 
-			// Wait for regular RBAC to be created first
-			serviceAccountName := rbac.OrgCatalogServiceAccountName(testOrgName)
+		It("should create Role, RoleBinding, ClusterRole and ClusterRoleBinding for greenhouse organization", func() {
 			serviceAccount := &corev1.ServiceAccount{}
 			Eventually(func() error {
 				return setup.Get(test.Ctx, types.NamespacedName{Name: serviceAccountName, Namespace: testOrgName}, serviceAccount)
 			}).ShouldNot(HaveOccurred(), "ServiceAccount should be created")
 
-			// Check ClusterRole creation
-			clusterRoleName := rbac.OrgCatalogRoleName(testOrgName)
 			clusterRole := &rbacv1.ClusterRole{}
 			Eventually(func() error {
-				return setup.Get(test.Ctx, types.NamespacedName{Name: clusterRoleName}, clusterRole)
+				return setup.Get(test.Ctx, types.NamespacedName{Name: roleName}, clusterRole)
 			}).ShouldNot(HaveOccurred(), "ClusterRole should be created for greenhouse organization")
 
-			Expect(clusterRole.Name).To(Equal(clusterRoleName))
+			Expect(clusterRole.Name).To(Equal(roleName))
 			Expect(clusterRole.Rules).To(HaveLen(1))
 			Expect(clusterRole.Rules[0].APIGroups).To(ContainElement("greenhouse.sap"))
-			Expect(clusterRole.Rules[0].Resources).To(ContainElements("clusterplugindefinitions"))
-			Expect(clusterRole.Rules[0].Verbs).To(ContainElements("*"))
+			Expect(clusterRole.Rules[0].Resources).To(ContainElements("clusterplugindefinitions", "plugindefinitions"))
+			Expect(clusterRole.Rules[0].Verbs).To(ContainElement("*"))
 			Expect(clusterRole.OwnerReferences).To(HaveLen(1))
 			Expect(clusterRole.OwnerReferences[0].Kind).To(Equal("Organization"))
 			Expect(clusterRole.OwnerReferences[0].Name).To(Equal(testOrgName))
 
-			// Check ClusterRoleBinding creation
 			clusterRoleBinding := &rbacv1.ClusterRoleBinding{}
 			Eventually(func() error {
-				return setup.Get(test.Ctx, types.NamespacedName{Name: clusterRoleName}, clusterRoleBinding)
+				return setup.Get(test.Ctx, types.NamespacedName{Name: roleName}, clusterRoleBinding)
 			}).ShouldNot(HaveOccurred(), "ClusterRoleBinding should be created for greenhouse organization")
 
-			Expect(clusterRoleBinding.Name).To(Equal(clusterRoleName))
+			Expect(clusterRoleBinding.Name).To(Equal(roleName))
 			Expect(clusterRoleBinding.RoleRef.Kind).To(Equal("ClusterRole"))
-			Expect(clusterRoleBinding.RoleRef.Name).To(Equal(clusterRoleName))
+			Expect(clusterRoleBinding.RoleRef.Name).To(Equal(roleName))
 			Expect(clusterRoleBinding.Subjects).To(HaveLen(1))
 			Expect(clusterRoleBinding.Subjects[0].Kind).To(Equal("ServiceAccount"))
 			Expect(clusterRoleBinding.Subjects[0].Name).To(Equal(serviceAccountName))
 			Expect(clusterRoleBinding.Subjects[0].Namespace).To(Equal(testOrgName))
 			Expect(clusterRoleBinding.OwnerReferences).To(HaveLen(1))
 			Expect(clusterRoleBinding.OwnerReferences[0].Kind).To(Equal("Organization"))
+		})
+
+		It("should allow greenhouse org catalog SA to create both PluginDefinitions and ClusterPluginDefinitions", func() {
+			sarPluginDef := &authorizationv1.SubjectAccessReview{
+				Spec: authorizationv1.SubjectAccessReviewSpec{
+					ResourceAttributes: &authorizationv1.ResourceAttributes{
+						Namespace: testOrgName,
+						Verb:      "create",
+						Group:     "greenhouse.sap",
+						Resource:  "plugindefinitions",
+					},
+					User: fmt.Sprintf("system:serviceaccount:%s:%s", testOrgName, rbac.OrgCatalogServiceAccountName(testOrgName)),
+				},
+			}
+
+			err := test.K8sClient.Create(test.Ctx, sarPluginDef)
+			Expect(err).ToNot(HaveOccurred(), "SubjectAccessReview for PluginDefinitions should be created")
+			Expect(sarPluginDef.Status.Allowed).To(BeTrue(), "Greenhouse catalog SA should be allowed to create PluginDefinitions")
+
+			sarClusterPluginDef := &authorizationv1.SubjectAccessReview{
+				Spec: authorizationv1.SubjectAccessReviewSpec{
+					ResourceAttributes: &authorizationv1.ResourceAttributes{
+						Verb:     "create",
+						Group:    "greenhouse.sap",
+						Resource: "clusterplugindefinitions",
+					},
+					User: fmt.Sprintf("system:serviceaccount:%s:%s", testOrgName, rbac.OrgCatalogServiceAccountName(testOrgName)),
+				},
+			}
+
+			err = test.K8sClient.Create(test.Ctx, sarClusterPluginDef)
+			Expect(err).ToNot(HaveOccurred(), "SubjectAccessReview for ClusterPluginDefinitions should be created")
+			Expect(sarClusterPluginDef.Status.Allowed).To(BeTrue(), "Greenhouse catalog SA should be allowed to create ClusterPluginDefinitions")
+		})
+
+		It("should allow greenhouse org catalog SA to create PluginDefinitions in any namespace", func() {
+			otherNamespace := "other-namespace"
+			sar := &authorizationv1.SubjectAccessReview{
+				Spec: authorizationv1.SubjectAccessReviewSpec{
+					ResourceAttributes: &authorizationv1.ResourceAttributes{
+						Namespace: otherNamespace,
+						Verb:      "create",
+						Group:     "greenhouse.sap",
+						Resource:  "plugindefinitions",
+					},
+					User: fmt.Sprintf("system:serviceaccount:%s:%s", testOrgName, rbac.OrgCatalogServiceAccountName(testOrgName)),
+				},
+			}
+
+			err := test.K8sClient.Create(test.Ctx, sar)
+			Expect(err).ToNot(HaveOccurred(), "SubjectAccessReview should be created")
+			Expect(sar.Status.Allowed).To(BeTrue(), "Greenhouse catalog SA should be allowed to create PluginDefinitions in any namespace")
 		})
 	})
 })

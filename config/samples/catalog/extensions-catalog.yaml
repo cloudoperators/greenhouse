@@ -12,3 +12,7 @@ spec:
       url: https://github.com/cloudoperators/greenhouse-extensions
       ref:
         branch: main
+  overrides:
+    - name: perses
+      alias: perses-keppel-chart
+#     repository: oci://some-registry.io/some-repo/some-chart
