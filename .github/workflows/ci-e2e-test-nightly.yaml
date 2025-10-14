@@ -1,4 +1,4 @@
-name: E2E Workflow
+name: Nightly E2E Workflow
 on:
   workflow_dispatch:
   schedule:

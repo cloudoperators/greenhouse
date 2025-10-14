@@ -8,7 +8,7 @@ replace (
 	github.com/dexidp/dex/api/v2 => github.com/dexidp/dex/api/v2 v2.4.0
 
 	// Keep Flux dependencies in sync with v2.6.1.
-	github.com/fluxcd/helm-controller/api => github.com/fluxcd/helm-controller/api v1.4.0
+	github.com/fluxcd/helm-controller/api => github.com/fluxcd/helm-controller/api v1.4.2
 	github.com/fluxcd/kustomize-controller/api => github.com/fluxcd/kustomize-controller/api v1.7.0
 	github.com/fluxcd/pkg/apis/kustomize => github.com/fluxcd/pkg/apis/kustomize v1.12.0
 	github.com/fluxcd/pkg/apis/meta => github.com/fluxcd/pkg/apis/meta v1.21.0
@@ -29,10 +29,10 @@ require (
 	github.com/Masterminds/sprig/v3 v3.3.0
 	github.com/cenkalti/backoff/v5 v5.0.3
 	github.com/dexidp/dex v0.0.0-20250829100637-2dce75009acf
-	github.com/fluxcd/helm-controller/api v1.4.0
+	github.com/fluxcd/helm-controller/api v1.4.2
 	github.com/fluxcd/kustomize-controller/api v1.7.0
 	github.com/fluxcd/pkg/apis/kustomize v1.21.0
-	github.com/fluxcd/pkg/apis/meta v1.21.0
+	github.com/fluxcd/pkg/apis/meta v1.22.0
 	github.com/fluxcd/source-controller/api v1.7.0
 	github.com/go-jose/go-jose/v4 v4.1.3
 	github.com/jeremywohl/flatten/v2 v2.0.0-20211013061545-07e4a09fb8e4
@@ -54,7 +54,7 @@ require (
 	k8s.io/apiextensions-apiserver v0.34.1
 	k8s.io/apimachinery v0.34.1
 	k8s.io/cli-runtime v0.34.1
-	k8s.io/client-go v1.5.2
+	k8s.io/client-go v0.34.1
 	k8s.io/utils v0.0.0-20251002143259-bc988d571ff4
 	sigs.k8s.io/controller-runtime v0.22.2
 	sigs.k8s.io/kind v0.30.0
@@ -204,12 +204,12 @@ require (
 	go.uber.org/multierr v1.11.0 // indirect
 	golang.org/x/crypto v0.42.0 // indirect
 	golang.org/x/exp v0.0.0-20250819193227-8b4c13bb791b
-	golang.org/x/net v0.44.0 // indirect
+	golang.org/x/net v0.45.0 // indirect
 	golang.org/x/oauth2 v0.30.0 // indirect
 	golang.org/x/sync v0.17.0 // indirect
 	golang.org/x/sys v0.36.0 // indirect
 	golang.org/x/term v0.35.0 // indirect
-	golang.org/x/time v0.12.0
+	golang.org/x/time v0.14.0
 	golang.org/x/tools v0.37.0 // indirect
 	gomodules.xyz/jsonpatch/v2 v2.4.0 // indirect
 	google.golang.org/api v0.248.0 // indirect
