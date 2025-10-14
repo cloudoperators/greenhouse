@@ -11,7 +11,7 @@ replace (
 	github.com/fluxcd/helm-controller/api => github.com/fluxcd/helm-controller/api v1.4.2
 	github.com/fluxcd/kustomize-controller/api => github.com/fluxcd/kustomize-controller/api v1.7.0
 	github.com/fluxcd/pkg/apis/kustomize => github.com/fluxcd/pkg/apis/kustomize v1.12.0
-	github.com/fluxcd/pkg/apis/meta => github.com/fluxcd/pkg/apis/meta v1.21.0
+	github.com/fluxcd/pkg/apis/meta => github.com/fluxcd/pkg/apis/meta v1.22.0
 	github.com/fluxcd/source-controller/api => github.com/fluxcd/source-controller/api v1.7.0
 
 	// Keep k8s dependencies in sync.
