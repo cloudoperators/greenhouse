@@ -155,12 +155,12 @@ func (r *PluginReconciler) ensureHelmRelease(
 				return fmt.Errorf("failed to init client getter for Plugin %s: %w", plugin.Name, err)
 			}
 
-			renderedManifests, err := helm.RenderChartManifests(ctx, r.Client, restClientGetter, pluginDefinitionSpec, plugin)
+			helmRelease, err := helm.TemplateHelmChartFromPlugin(ctx, r.Client, restClientGetter, pluginDefinitionSpec, plugin)
 			if err != nil {
-				return fmt.Errorf("failed to render chart manifest for Plugin %s: %w", plugin.Name, err)
+				return fmt.Errorf("failed to template helm chart for Plugin %s: %w", plugin.Name, err)
 			}
 
-			postRenderer := createRegistryMirrorPostRenderer(mirrorConfig, renderedManifests)
+			postRenderer := createRegistryMirrorPostRenderer(mirrorConfig, helmRelease.Manifest)
 			if postRenderer != nil {
 				builder = builder.WithPostRenderers([]helmv2.PostRenderer{*postRenderer})
 			}

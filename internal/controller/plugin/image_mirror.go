@@ -6,11 +6,19 @@ package plugin
 import (
 	"fmt"
 	"regexp"
+	"strings"
 
 	helmv2 "github.com/fluxcd/helm-controller/api/v2"
 	"github.com/fluxcd/pkg/apis/kustomize"
 
 	"github.com/cloudoperators/greenhouse/internal/common"
+)
+
+const (
+	// dockerHubRegistry is the default registry for container images.
+	dockerHubRegistry = "docker.io"
+	// dockerHubLibraryNamespace is the namespace for official Docker Hub images.
+	dockerHubLibraryNamespace = "library"
 )
 
 var (
@@ -54,8 +62,8 @@ func buildImageTransformations(manifests string, config *common.RegistryMirrorCo
 			continue
 		}
 
-		// Build base image names without tag/digest
-		// Kustomize will automatically preserve the tag/digest from the manifest
+		// Build base image names without tag/digest.
+		// Kustomize will automatically preserve the tag/digest from the manifest.
 		baseName := fmt.Sprintf("%s/%s", registry, repo)
 		newName := fmt.Sprintf("%s/%s/%s", mirror.BaseDomain, mirror.SubPath, repo)
 
@@ -85,13 +93,40 @@ func extractUniqueImages(manifests string) []string {
 	return images
 }
 
-// splitImageRef splits an image reference into registry and repository (without tag/digest).
-// If no registry is specified, returns empty string for registry.
+// splitImageRef returns (registry, repository) with tag/digest stripped.
+// If registry isn't specified, docker.io is assumed.
+// Spec for reference: https://kubernetes.io/docs/concepts/containers/images/
 func splitImageRef(imageRef string) (registry, repository string) {
-	matches := imageRefPattern.FindStringSubmatch(imageRef)
-	if len(matches) < 3 {
-		return "", imageRef
+	m := imageRefPattern.FindStringSubmatch(imageRef)
+	if len(m) < 3 {
+		// Couldn't parse. Fall back to docker.io + "library".
+		return dockerHubRegistry, dockerHubLibraryOrRepo(imageRef)
 	}
 
-	return matches[1], matches[2]
+	registry = m[1]
+	repository = m[2]
+
+	// If the first segment isn't a domain or host:port, it's a namespace, not a registry.
+	// e.g. "myorg/nginx" -> registry="", repository="myorg/nginx"
+	if registry != "" && !strings.ContainsAny(registry, ".:") {
+		repository = registry + "/" + repository
+		registry = ""
+	}
+
+	// Still no registry. Use docker.io and add "library/" for single-segment names.
+	if registry == "" {
+		registry = dockerHubRegistry
+		repository = dockerHubLibraryOrRepo(repository)
+	}
+
+	return registry, repository
+}
+
+// dockerHubLibraryOrRepo normalizes Docker Hub names.
+// "nginx" -> "library/nginx"; "user/image" stays as is.
+func dockerHubLibraryOrRepo(repo string) string {
+	if strings.Contains(repo, "/") {
+		return repo
+	}
+	return dockerHubLibraryNamespace + "/" + repo
 }

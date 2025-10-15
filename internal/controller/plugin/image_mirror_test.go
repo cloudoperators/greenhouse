@@ -140,9 +140,26 @@ var _ = Describe("createRegistryMirrorPostRenderer", func() {
 		))
 	})
 
-	It("should skip images without registry prefix", func() {
-		manifest := `image: nginx:latest`
+	It("should handle Docker Hub default registry for images without registry prefix", func() {
+		manifest := `
+		containers:
+		- image: nginx:latest
+		- image: myorg/myapp:v1.0
+		`
 		postRenderer := createRegistryMirrorPostRenderer(mirrorConfig, manifest)
-		Expect(postRenderer).To(BeNil())
+		Expect(postRenderer).NotTo(BeNil())
+		Expect(postRenderer.Kustomize.Images).To(HaveLen(2))
+
+		names := []string{postRenderer.Kustomize.Images[0].Name, postRenderer.Kustomize.Images[1].Name}
+		Expect(names).To(ConsistOf(
+			"docker.io/library/nginx",
+			"docker.io/myorg/myapp",
+		))
+
+		newNames := []string{postRenderer.Kustomize.Images[0].NewName, postRenderer.Kustomize.Images[1].NewName}
+		Expect(newNames).To(ConsistOf(
+			"mirror.example.com/dockerhub-mirror/library/nginx",
+			"mirror.example.com/dockerhub-mirror/myorg/myapp",
+		))
 	})
 })
