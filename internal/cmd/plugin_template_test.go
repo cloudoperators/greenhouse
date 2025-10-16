@@ -25,7 +25,7 @@ var _ = Describe("validateCompatibility", func() {
 				pluginPreset: &greenhousev1alpha1.PluginPreset{
 					TypeMeta: metav1.TypeMeta{Kind: PluginPresetKind},
 					Spec: greenhousev1alpha1.PluginPresetSpec{
-						Plugin: greenhousev1alpha1.PluginSpec{
+						Plugin: greenhousev1alpha1.PluginPresetPluginSpec{
 							PluginDefinitionRef: greenhousev1alpha1.PluginDefinitionReference{
 								Name: "apache",
 								Kind: greenhousev1alpha1.ClusterPluginDefinitionKind,
@@ -56,7 +56,7 @@ var _ = Describe("validateCompatibility", func() {
 				pluginPreset: &greenhousev1alpha1.PluginPreset{
 					TypeMeta: metav1.TypeMeta{Kind: PluginPresetKind},
 					Spec: greenhousev1alpha1.PluginPresetSpec{
-						Plugin: greenhousev1alpha1.PluginSpec{
+						Plugin: greenhousev1alpha1.PluginPresetPluginSpec{
 							PluginDefinitionRef: greenhousev1alpha1.PluginDefinitionReference{
 								Name: "nginx",
 								Kind: greenhousev1alpha1.ClusterPluginDefinitionKind,
@@ -92,7 +92,7 @@ var _ = Describe("validateCompatibility", func() {
 				pluginPreset: &greenhousev1alpha1.PluginPreset{
 					TypeMeta: metav1.TypeMeta{Kind: PluginPresetKind},
 					Spec: greenhousev1alpha1.PluginPresetSpec{
-						Plugin: greenhousev1alpha1.PluginSpec{
+						Plugin: greenhousev1alpha1.PluginPresetPluginSpec{
 							PluginDefinitionRef: greenhousev1alpha1.PluginDefinitionReference{
 								Name: "nginx",
 								Kind: greenhousev1alpha1.ClusterPluginDefinitionKind,
@@ -142,7 +142,7 @@ var _ = Describe("prepareValues", func() {
 				Namespace: "test-org",
 			},
 			Spec: greenhousev1alpha1.PluginPresetSpec{
-				Plugin: greenhousev1alpha1.PluginSpec{
+				Plugin: greenhousev1alpha1.PluginPresetPluginSpec{
 					PluginDefinitionRef: greenhousev1alpha1.PluginDefinitionReference{
 						Name: "nginx",
 						Kind: greenhousev1alpha1.ClusterPluginDefinitionKind,

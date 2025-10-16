@@ -25,7 +25,7 @@ const (
 type PluginPresetSpec struct {
 
 	// PluginSpec is the spec of the plugin to be deployed by the PluginPreset.
-	Plugin PluginSpec `json:"plugin"`
+	Plugin PluginPresetPluginSpec `json:"plugin"`
 
 	// ClusterSelector is a label selector to select the clusters the plugin bundle should be deployed to.
 	ClusterSelector metav1.LabelSelector `json:"clusterSelector"`
@@ -50,6 +50,37 @@ type PluginPresetSpec struct {
 type ClusterOptionOverride struct {
 	ClusterName string              `json:"clusterName"`
 	Overrides   []PluginOptionValue `json:"overrides"`
+}
+
+// PluginPresetPluginSpec defines the desired state of PluginPreset's PluginSpec
+type PluginPresetPluginSpec struct {
+	// PluginDefinition is the name of the PluginDefinition this instance is for.
+	//
+	// Deprecated: Use PluginDefinitionRef instead. Future releases of greenhouse will remove this field.
+	PluginDefinition string `json:"pluginDefinition"`
+
+	// PluginDefinitionRef is the reference to the (Cluster-)PluginDefinition.
+	PluginDefinitionRef PluginDefinitionReference `json:"pluginDefinitionRef"`
+
+	// DisplayName is an optional name for the Plugin to be displayed in the Greenhouse UI.
+	// This is especially helpful to distinguish multiple instances of a PluginDefinition in the same context.
+	// Defaults to a normalized version of metadata.name.
+	DisplayName string `json:"displayName,omitempty"`
+
+	// Values are the values for a PluginDefinition instance.
+	OptionValues []PluginOptionValue `json:"optionValues,omitempty"`
+
+	// ReleaseNamespace is the namespace in the remote cluster to which the backend is deployed.
+	// Defaults to the Greenhouse managed namespace if not set.
+	ReleaseNamespace string `json:"releaseNamespace,omitempty"`
+
+	// ReleaseName is the name of the helm release in the remote cluster to which the backend is deployed.
+	// If the Plugin was already deployed, the Plugin's name is used as the release name.
+	// If this Plugin is newly created, the releaseName is defaulted to the PluginDefinitions HelmChart name.
+	// +kubebuilder:validation:Optional
+	// +kubebuilder:validation:XValidation:rule="self == oldSelf",message="ReleaseName is immutable"
+	// +kubebuilder:validation:MaxLength=53
+	ReleaseName string `json:"releaseName,omitempty"`
 }
 
 const (
