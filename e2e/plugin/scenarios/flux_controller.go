@@ -69,26 +69,18 @@ func FluxControllerPodInfoByPlugin(ctx context.Context, adminClient, remoteClien
 	Expect(err).ToNot(HaveOccurred())
 
 	By("Creating the plugin preset")
-	testPluginPreset := &greenhousev1alpha1.PluginPreset{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "test-podinfo-plugin-preset",
-			Namespace: env.TestNamespace,
-			Labels: map[string]string{
-				greenhouseapis.GreenhouseHelmDeliveryToolLabel: greenhouseapis.GreenhouseHelmDeliveryToolFlux,
-			},
-			Annotations: map[string]string{
-				lifecycle.PropagateLabelsAnnotation: greenhouseapis.GreenhouseHelmDeliveryToolLabel,
+
+	testPluginPreset := test.NewPluginPreset("test-podinfo-plugin-preset", env.TestNamespace,
+		test.WithPluginSpec(testPlugin.Spec),
+		test.WithPluginPresetClusterSelector(metav1.LabelSelector{
+			MatchLabels: map[string]string{
+				"app": "test-cluster",
 			},
 		},
-		Spec: greenhousev1alpha1.PluginPresetSpec{
-			Plugin: testPlugin.Spec,
-			ClusterSelector: metav1.LabelSelector{
-				MatchLabels: map[string]string{
-					"app": "test-cluster",
-				},
-			},
-		},
-	}
+		),
+		test.WithPluginPresetLabel(greenhouseapis.GreenhouseHelmDeliveryToolLabel, greenhouseapis.GreenhouseHelmDeliveryToolFlux),
+		test.WithPluginPresetAnnotation(lifecycle.PropagateLabelsAnnotation, greenhouseapis.GreenhouseHelmDeliveryToolLabel),
+	)
 	err = adminClient.Create(ctx, testPluginPreset)
 	Expect(client.IgnoreAlreadyExists(err)).ToNot(HaveOccurred())
 
@@ -237,26 +229,18 @@ func FluxControllerUIOnlyPlugin(ctx context.Context, adminClient, remoteClient c
 	Expect(err).ToNot(HaveOccurred())
 
 	By("Creating the plugin preset")
-	testPluginPreset := &greenhousev1alpha1.PluginPreset{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "test-ui-only-plugin-preset",
-			Namespace: env.TestNamespace,
-			Labels: map[string]string{
-				greenhouseapis.GreenhouseHelmDeliveryToolLabel: greenhouseapis.GreenhouseHelmDeliveryToolFlux,
-			},
-			Annotations: map[string]string{
-				lifecycle.PropagateLabelsAnnotation: greenhouseapis.GreenhouseHelmDeliveryToolLabel,
+	testPluginPreset := test.NewPluginPreset("test-ui-only-plugin-preset", env.TestNamespace,
+		test.WithPluginSpec(testPlugin.Spec),
+		test.WithPluginPresetClusterSelector(metav1.LabelSelector{
+			MatchLabels: map[string]string{
+				"app": "test-cluster",
 			},
 		},
-		Spec: greenhousev1alpha1.PluginPresetSpec{
-			Plugin: testPlugin.Spec,
-			ClusterSelector: metav1.LabelSelector{
-				MatchLabels: map[string]string{
-					"app": "test-cluster",
-				},
-			},
-		},
-	}
+		),
+		test.WithPluginPresetLabel(greenhouseapis.GreenhouseHelmDeliveryToolLabel, greenhouseapis.GreenhouseHelmDeliveryToolFlux),
+		test.WithPluginPresetAnnotation(lifecycle.PropagateLabelsAnnotation, greenhouseapis.GreenhouseHelmDeliveryToolLabel),
+	)
+
 	err = adminClient.Create(ctx, testPluginPreset)
 	Expect(client.IgnoreAlreadyExists(err)).ToNot(HaveOccurred())
 

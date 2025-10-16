@@ -61,7 +61,7 @@ var (
 			Required:    true,
 			Type:        greenhousev1alpha1.PluginOptionTypeString,
 		}))
-	pluginPresetPluginSpec = greenhousev1alpha1.PluginSpec{
+	pluginPresetPluginSpec = greenhousev1alpha1.PluginPresetPluginSpec{
 		PluginDefinitionRef: greenhousev1alpha1.PluginDefinitionReference{
 			Kind: greenhousev1alpha1.ClusterPluginDefinitionKind,
 			Name: pluginPresetDefinitionName,
@@ -820,7 +820,7 @@ var _ = Describe("overridesPluginOptionValues", Ordered, func() {
 var _ = Describe("getReleaseName", func() {
 	It("returns plugin.Spec.ReleaseName if set", func() {
 		plugin := &greenhousev1alpha1.Plugin{Spec: greenhousev1alpha1.PluginSpec{ReleaseName: "explicit-release"}}
-		preset := &greenhousev1alpha1.PluginPreset{Spec: greenhousev1alpha1.PluginPresetSpec{Plugin: greenhousev1alpha1.PluginSpec{ReleaseName: "preset-release"}}}
+		preset := &greenhousev1alpha1.PluginPreset{Spec: greenhousev1alpha1.PluginPresetSpec{Plugin: greenhousev1alpha1.PluginPresetPluginSpec{ReleaseName: "preset-release"}}}
 		Expect(getReleaseName(plugin, preset)).To(Equal("explicit-release"))
 	})
 
@@ -830,13 +830,13 @@ var _ = Describe("getReleaseName", func() {
 			Spec:       greenhousev1alpha1.PluginSpec{ReleaseName: ""},
 			Status:     greenhousev1alpha1.PluginStatus{HelmReleaseStatus: &greenhousev1alpha1.HelmReleaseStatus{}},
 		}
-		preset := &greenhousev1alpha1.PluginPreset{Spec: greenhousev1alpha1.PluginPresetSpec{Plugin: greenhousev1alpha1.PluginSpec{ReleaseName: "preset-release"}}}
+		preset := &greenhousev1alpha1.PluginPreset{Spec: greenhousev1alpha1.PluginPresetSpec{Plugin: greenhousev1alpha1.PluginPresetPluginSpec{ReleaseName: "preset-release"}}}
 		Expect(getReleaseName(plugin, preset)).To(Equal("plugin-name"))
 	})
 
 	It("returns preset.Spec.Plugin.ReleaseName if plugin.Spec.ReleaseName is empty and no HelmReleaseStatus", func() {
 		plugin := &greenhousev1alpha1.Plugin{Spec: greenhousev1alpha1.PluginSpec{ReleaseName: ""}}
-		preset := &greenhousev1alpha1.PluginPreset{Spec: greenhousev1alpha1.PluginPresetSpec{Plugin: greenhousev1alpha1.PluginSpec{ReleaseName: "preset-release"}}}
+		preset := &greenhousev1alpha1.PluginPreset{Spec: greenhousev1alpha1.PluginPresetSpec{Plugin: greenhousev1alpha1.PluginPresetPluginSpec{ReleaseName: "preset-release"}}}
 		Expect(getReleaseName(plugin, preset)).To(Equal("preset-release"))
 	})
 })
