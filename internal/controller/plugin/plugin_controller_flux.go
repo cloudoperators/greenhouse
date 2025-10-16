@@ -139,7 +139,7 @@ func (r *PluginReconciler) ensureHelmRelease(
 			WithDriftDetection(&helmv2.DriftDetection{
 				Mode: helmv2.DriftDetectionEnabled,
 			}).
-			WithSuspend(release.Spec.Suspend).
+			WithSuspend(plugin.Spec.Suspend).
 			WithKubeConfig(&fluxmeta.SecretKeyReference{
 				Name: plugin.Spec.ClusterName,
 				Key:  greenhouseapis.GreenHouseKubeConfigKey,
