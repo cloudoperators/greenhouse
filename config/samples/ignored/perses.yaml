@@ -1,0 +1,40 @@
+# SPDX-FileCopyrightText: 2025 SAP SE or an SAP affiliate company and Greenhouse contributors
+# SPDX-License-Identifier: Apache-2.0
+
+apiVersion: greenhouse.sap/v1alpha1
+kind: PluginPreset
+metadata:
+  name: perses
+  namespace: demo
+  labels:
+    greenhouse.sap/deployment-tool: "flux"
+  annotations:
+    "greenhouse.sap/propagate-labels": "greenhouse.sap/deployment-tool"
+spec:
+  clusterSelector:
+    matchLabels:
+      "foo": "bar"
+  plugin:
+    optionValues:
+    - name: my.template
+      template: |
+        {{ .global.greenhouse.metadata.region }}: "{{ .global.greenhouse.metadata.banana }}"
+    - name: greenhouse.defaultDashboards.enabled
+      value: true
+    - name: perses.config.provisioning.interval
+      value: 20s
+    - name: perses.sidecar.enabled
+      value: true
+    - name: perses.testFramework.enabled
+      value: false
+    - name: perses.image.name
+      value: keppel.global.cloud.sap/ccloud-dockerhub-mirror/persesdev/perses
+    - name: perses.sidecar.image.repository
+      value: keppel.global.cloud.sap/ccloud-quay-mirror/kiwigrid/k8s-sidecar
+    - name: perses.testFramework.image.registry
+      value: keppel.global.cloud.sap/ccloud-ghcr-io-mirror
+    pluginDefinition: perses
+    pluginDefinitionRef:
+      kind: ClusterPluginDefinition
+      name: perses
+    releaseNamespace: kube-monitoring
