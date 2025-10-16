@@ -92,11 +92,6 @@ func ValidateCreatePluginPreset(ctx context.Context, c client.Client, o runtime.
 		allErrs = append(allErrs, field.Invalid(field.NewPath("spec").Child("clusterSelector"), pluginPreset.Spec.ClusterSelector, "ClusterSelector must be set"))
 	}
 
-	// ensure ClusterName is not set
-	if pluginPreset.Spec.Plugin.ClusterName != "" {
-		allErrs = append(allErrs, field.Invalid(field.NewPath("spec").Child("plugin").Child("clusterName"), pluginPreset.Spec.Plugin.ClusterName, "ClusterName must not be set"))
-	}
-
 	if err := validateReleaseName(pluginPreset.Spec.Plugin.ReleaseName); err != nil {
 		allErrs = append(allErrs, field.Invalid(field.NewPath("spec").Child("plugin").Child("releaseName"), pluginPreset.Spec.Plugin.ReleaseName, err.Error()))
 	}
@@ -179,10 +174,6 @@ func ValidateUpdatePluginPreset(ctx context.Context, c client.Client, oldObj, cu
 		if err := webhook.ValidateImmutableField(oldPluginPreset.Spec.Plugin.PluginDefinitionRef.Name, pluginPreset.Spec.Plugin.PluginDefinitionRef.Name, field.NewPath("spec", "plugin", "pluginDefinitionRef", "name")); err != nil {
 			allErrs = append(allErrs, err)
 		}
-	}
-
-	if err := webhook.ValidateImmutableField(oldPluginPreset.Spec.Plugin.ClusterName, pluginPreset.Spec.Plugin.ClusterName, field.NewPath("spec", "plugin", "clusterName")); err != nil {
-		allErrs = append(allErrs, err)
 	}
 
 	// validate WaitFor items are unique and that PluginRef's fields are mutually exclusive

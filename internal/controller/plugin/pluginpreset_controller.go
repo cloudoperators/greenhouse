@@ -226,10 +226,22 @@ func (r *PluginPresetReconciler) reconcilePluginPreset(ctx context.Context, pres
 				return err
 			}
 
-			releaseName := getReleaseName(plugin, preset)
+			// copy from preset to plugin spec
+			if preset.Spec.Plugin.PluginDefinitionRef == (greenhousev1alpha1.PluginDefinitionReference{}) {
+				plugin.Spec.PluginDefinitionRef = greenhousev1alpha1.PluginDefinitionReference{
+					Name: preset.Spec.Plugin.PluginDefinition, //nolint:staticcheck
+					Kind: greenhousev1alpha1.PluginDefinitionKind,
+				}
+			} else {
+				plugin.Spec.PluginDefinitionRef = preset.Spec.Plugin.PluginDefinitionRef
+			}
+			plugin.Spec.PluginDefinitionRef = preset.Spec.Plugin.PluginDefinitionRef
+			plugin.Spec.DisplayName = preset.Spec.Plugin.DisplayName
+			plugin.Spec.ReleaseNamespace = preset.Spec.Plugin.ReleaseNamespace
+			plugin.Spec.OptionValues = preset.Spec.Plugin.OptionValues
 
-			plugin.Spec = preset.Spec.Plugin
-			plugin.Spec.ReleaseName = releaseName
+			// set back existing/computed values
+			plugin.Spec.ReleaseName = getReleaseName(plugin, preset)
 			// Set the cluster name to the name of the cluster. The PluginSpec contained in the PluginPreset does not have a cluster name.
 			plugin.Spec.ClusterName = cluster.GetName()
 			// Copy over the plugin dependencies

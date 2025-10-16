@@ -432,8 +432,20 @@ func WithPluginPresetClusterSelector(clusterSelector metav1.LabelSelector) func(
 	}
 }
 
+// WithPluginPresetPluginSpec sets the applicable fields from a PluginSpec on the PluginPreset.
+func WithPluginSpec(pluginSpec greenhousev1alpha1.PluginSpec) func(*greenhousev1alpha1.PluginPreset) {
+	return func(pp *greenhousev1alpha1.PluginPreset) {
+		pp.Spec.Plugin.PluginDefinition = pluginSpec.PluginDefinition //nolint:staticcheck
+		pp.Spec.Plugin.PluginDefinitionRef = pluginSpec.PluginDefinitionRef
+		pp.Spec.Plugin.DisplayName = pluginSpec.DisplayName
+		pp.Spec.Plugin.OptionValues = pluginSpec.OptionValues
+		pp.Spec.Plugin.ReleaseNamespace = pluginSpec.ReleaseNamespace
+		pp.Spec.Plugin.ReleaseName = pluginSpec.ReleaseName
+	}
+}
+
 // WithPluginPresetPluginSpec sets the PluginSpec on a PluginPreset.
-func WithPluginPresetPluginSpec(pluginSpec greenhousev1alpha1.PluginSpec) func(*greenhousev1alpha1.PluginPreset) {
+func WithPluginPresetPluginSpec(pluginSpec greenhousev1alpha1.PluginPresetPluginSpec) func(*greenhousev1alpha1.PluginPreset) {
 	return func(pp *greenhousev1alpha1.PluginPreset) {
 		pp.Spec.Plugin = pluginSpec
 	}
@@ -446,6 +458,16 @@ func WithPluginPresetLabel(key, value string) func(*greenhousev1alpha1.PluginPre
 			pp.Labels = make(map[string]string, 1)
 		}
 		pp.Labels[key] = value
+	}
+}
+
+// WithPluginPresetAnnotation sets the annotation on a PluginPreset
+func WithPluginPresetAnnotation(key, value string) func(*greenhousev1alpha1.PluginPreset) {
+	return func(pp *greenhousev1alpha1.PluginPreset) {
+		if pp.Annotations == nil {
+			pp.Annotations = make(map[string]string, 1)
+		}
+		pp.Annotations[key] = value
 	}
 }
 
@@ -469,6 +491,13 @@ func WithClusterOverride(clusterName string, optionValues []greenhousev1alpha1.P
 func WithPluginPresetDeletionPolicy(deletionPolicy string) func(*greenhousev1alpha1.PluginPreset) {
 	return func(pp *greenhousev1alpha1.PluginPreset) {
 		pp.Spec.DeletionPolicy = deletionPolicy
+	}
+}
+
+// WithPluginPresetWaitFor sets the WaitFor on a PluginPreset.
+func WithPluginPresetWaitFor(waitFor ...greenhousev1alpha1.WaitForItem) func(*greenhousev1alpha1.PluginPreset) {
+	return func(pp *greenhousev1alpha1.PluginPreset) {
+		pp.Spec.WaitFor = waitFor
 	}
 }
 
