@@ -29,20 +29,6 @@ func CatalogReady(ctx context.Context, c client.Client, namespace, name string) 
 	}).Should(Succeed(), "the Catalog resource should eventually be ready")
 }
 
-func CatalogOverride(ctx context.Context, c client.Client, override greenhousev1alpha1.CatalogOverrides, namespace, name string) {
-	Eventually(func(g Gomega) {
-		catalog := &greenhousev1alpha1.Catalog{}
-		err := c.Get(ctx, types.NamespacedName{Name: name, Namespace: namespace}, catalog)
-		g.Expect(err).NotTo(HaveOccurred(), "there should be no error fetching the Catalog resource")
-		if len(catalog.Spec.Overrides) == 0 {
-			catalog.Spec.Overrides = make([]greenhousev1alpha1.CatalogOverrides, 0)
-		}
-		catalog.Spec.Overrides = append(catalog.Spec.Overrides, override)
-		err = c.Update(ctx, catalog)
-		g.Expect(err).NotTo(HaveOccurred(), "there should be no error updating the Catalog resource")
-	}).Should(Succeed(), "the Catalog resource should be successfully updated")
-}
-
 func CatalogDeleted(ctx context.Context, c client.Client, namespace, name string) {
 	catalog := &greenhousev1alpha1.Catalog{}
 	err := c.Get(ctx, types.NamespacedName{Name: name, Namespace: namespace}, catalog)
