@@ -461,7 +461,7 @@ func WithPluginPresetAnnotation(key, value string) func(*greenhousev1alpha1.Plug
 		if pp.Annotations == nil {
 			pp.Annotations = make(map[string]string, 1)
 		}
-		pp.Labels[key] = value
+		pp.Annotations[key] = value
 	}
 }
 
