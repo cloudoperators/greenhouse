@@ -202,6 +202,18 @@ rules:
   - update
   - watch
 - apiGroups:
+  - source.extensions.fluxcd.io
+  resources:
+  - artifactgenerators
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
   - source.toolkit.fluxcd.io
   resources:
   - gitrepositories

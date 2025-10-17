@@ -15,6 +15,7 @@ import (
 	helmv2 "github.com/fluxcd/helm-controller/api/v2"
 	kustomizev1 "github.com/fluxcd/kustomize-controller/api/v1"
 	sourcev1 "github.com/fluxcd/source-controller/api/v1"
+	sourcev2 "github.com/fluxcd/source-watcher/api/v2/v1beta1"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
@@ -267,6 +268,7 @@ func StartControlPlane(port string, installCRDs, installWebhooks bool) (*rest.Co
 	Expect(sourcev1.AddToScheme(testEnvScheme)).To(Succeed(), "there must be no error adding the flux source api to the scheme")
 	Expect(helmv2.AddToScheme(testEnvScheme)).To(Succeed(), "there must be no error adding the flux helm api to the scheme")
 	Expect(kustomizev1.AddToScheme(testEnvScheme)).To(Succeed(), "there must be no error adding the flux kustomize api to the scheme")
+	Expect(sourcev2.AddToScheme(testEnvScheme)).To(Succeed(), "there must be no error adding the flux source watcher api to the scheme")
 
 	// Make sure all schemes are added before starting the envtest. This will enable conversion webhooks.
 	testEnv.CRDInstallOptions = envtest.CRDInstallOptions{

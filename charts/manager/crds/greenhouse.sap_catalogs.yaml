@@ -48,70 +48,63 @@ spec:
           spec:
             description: CatalogSpec defines the desired state of Catalog.
             properties:
-              overrides:
-                description: Overrides are the PluginDefinition overrides to be applied
-                items:
-                  properties:
-                    alias:
-                      description: |-
-                        Alias is the alias to apply to the PluginDefinition Name via Kustomize patches
-                        For SourceType Helm, this field is passed to postRender Kustomize patch
-                      type: string
-                    name:
-                      description: Name is the name of the PluginDefinition to patch
-                        with an alias
-                      type: string
-                    repository:
-                      description: Repository is the repository to override in the
-                        PluginDefinition .spec.helmChart.repository
-                      type: string
-                  required:
-                  - alias
-                  - name
-                  type: object
-                type: array
               source:
                 description: Source is the medium from which the PluginDefinition
                   needs to be fetched
                 properties:
-                  git:
-                    description: Git is the Git repository source for the PluginDefinition
-                      Catalog
-                    properties:
-                      ref:
-                        description: Ref is the Git reference (branch, tag, or SHA)
-                          to resolve the ClusterPluginDefinition / PluginDefinition
-                          Catalog
-                        properties:
-                          branch:
-                            type: string
-                          sha:
-                            type: string
-                          tag:
-                            type: string
-                        type: object
-                      secretName:
-                        description: |-
-                          SecretName is the name of v1.Secret containing credentials to access the Git repository
-                          the secret must be in the same namespace as the Catalog resource
-
-                          GitHub App Example:
-                        type: string
-                      url:
-                        description: Repository is the URL of the GitHub repository
-                          containing the ClusterPluginDefinition / PluginDefinition
-                          Catalog
-                        type: string
-                    required:
-                    - url
-                    type: object
-                  path:
+                  overrides:
+                    description: Overrides are the PluginDefinition overrides to be
+                      applied
+                    items:
+                      properties:
+                        alias:
+                          description: |-
+                            Alias is the alias to apply to the PluginDefinition Name via Kustomize patches
+                            For SourceType Helm, this field is passed to postRender Kustomize patch
+                          type: string
+                        name:
+                          description: Name is the name of the PluginDefinition to
+                            patch with an alias
+                          type: string
+                        repository:
+                          description: Repository is the repository to override in
+                            the PluginDefinition .spec.helmChart.repository
+                          type: string
+                      required:
+                      - alias
+                      - name
+                      type: object
+                    type: array
+                  ref:
                     description: |-
-                      Path is the path within the repository where the ClusterPluginDefinition / PluginDefinition Catalog is located
-                      an empty path indicates the root of the repository
+                      Ref - the git reference (branch, tag, or SHA) to resolve PluginDefinitions
+                      if not specified, defaults to main branch
+                    properties:
+                      branch:
+                        type: string
+                      sha:
+                        type: string
+                      tag:
+                        type: string
+                    type: object
+                  repository:
+                    description: Repository - the Git repository URL
+                    type: string
+                  resources:
+                    description: Resources - list of path to PluginDefinition file
+                    items:
+                      type: string
+                    type: array
+                  secretName:
+                    description: |-
+                      SecretName is the name of v1.Secret containing credentials to access the Git repository
+                      the secret must be in the same namespace as the Catalog resource
+
+                      GitHub App Example:
                     type: string
                 required:
-                - git
+                - repository
+                - resources
                 type: object
             required:
             - source
