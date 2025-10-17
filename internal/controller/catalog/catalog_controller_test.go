@@ -4,6 +4,8 @@
 package catalog
 
 import (
+	fluxmeta "github.com/fluxcd/pkg/apis/meta"
+	sourcev2 "github.com/fluxcd/source-watcher/api/v2/v1beta1"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
@@ -34,6 +36,38 @@ func mockKustomizationReady(kustomization *kustomizev1.Kustomization) error {
 	}
 	newKustomization.Status.Conditions = []metav1.Condition{kustomizationReadyCondition}
 	return patchStatus(kustomization, newKustomization)
+}
+
+func mockArtifactGeneratorReady(artifact *sourcev2.ArtifactGenerator) error {
+	GinkgoHelper()
+	newArtifact := &sourcev2.ArtifactGenerator{}
+	Expect(test.K8sClient.Get(test.Ctx, cl.ObjectKeyFromObject(artifact), artifact)).To(Succeed(), "there should be no error getting the ArtifactGenerator")
+	*newArtifact = *artifact
+	artifactReadyCondition := metav1.Condition{
+		Type:               string(greenhousemetav1alpha1.ReadyCondition),
+		Status:             metav1.ConditionTrue,
+		LastTransitionTime: metav1.Now(),
+		Reason:             "Succeeded",
+		Message:            "",
+	}
+	newArtifact.Status.Conditions = []metav1.Condition{artifactReadyCondition}
+	return patchStatus(artifact, newArtifact)
+}
+
+func mockExternalArtifactReady(artifact *sourcev1.ExternalArtifact) error {
+	GinkgoHelper()
+	newArtifact := &sourcev1.ExternalArtifact{}
+	Expect(test.K8sClient.Get(test.Ctx, cl.ObjectKeyFromObject(artifact), artifact)).To(Succeed(), "there should be no error getting the ArtifactGenerator")
+	*newArtifact = *artifact
+	artifactReadyCondition := metav1.Condition{
+		Type:               string(greenhousemetav1alpha1.ReadyCondition),
+		Status:             metav1.ConditionTrue,
+		LastTransitionTime: metav1.Now(),
+		Reason:             "Succeeded",
+		Message:            "",
+	}
+	newArtifact.Status.Conditions = []metav1.Condition{artifactReadyCondition}
+	return patchStatus(artifact, newArtifact)
 }
 
 func mockGitRepositoryReady(gitRepository *sourcev1.GitRepository) error {
@@ -72,8 +106,11 @@ var _ = Describe("Catalog controller", Ordered, func() {
 		catalog = setup.CreateCatalog(
 			test.Ctx,
 			catalogName,
-			test.WithRepositoryURL("https://github.com/cloudoperators/greenhouse-extensions"),
+			test.WithRepository("https://github.com/cloudoperators/greenhouse-extensions"),
 			test.WithRepositoryBranch("main"),
+			test.WithCatalogResources([]string{
+				"perses/plugindefinition.yaml",
+			}),
 		)
 	})
 	Context("When creating or updating a Plugin Definition Catalog", Ordered, func() {
@@ -85,12 +122,41 @@ var _ = Describe("Catalog controller", Ordered, func() {
 			gitRepository.SetNamespace(catalog.Namespace)
 			Eventually(func(g Gomega) {
 				g.Expect(test.K8sClient.Get(test.Ctx, cl.ObjectKeyFromObject(catalog), catalog)).To(Succeed(), "there should be no error getting the Catalog")
-				gitSource := catalog.GetCatalogSource()
+				gitRef := catalog.Spec.Source.Ref
 				g.Expect(test.K8sClient.Get(test.Ctx, cl.ObjectKeyFromObject(gitRepository), gitRepository)).To(Succeed(), "there should be no error getting the GitRepository")
-				g.Expect(gitRepository.Spec.URL).To(Equal(gitSource.URL), "Flux git repository URL should match the catalog source URL")
-				g.Expect(gitRepository.Spec.Reference.Branch).To(Equal(*gitSource.Ref.Branch), "Flux git repository branch should match the catalog source branch")
+				g.Expect(gitRepository.Spec.URL).To(Equal(catalog.Spec.Source.Repository), "Flux git repository URL should match the catalog source URL")
+				g.Expect(gitRepository.Spec.Reference.Branch).To(Equal(*gitRef.Branch), "Flux git repository branch should match the catalog source branch")
 				g.Expect(gitRepository.Spec.Interval).To(Equal(defaultInterval), "Flux git repository interval should match the catalog interval")
 			}).Should(Succeed(), "Flux GitRepository should be created for the Catalog")
+
+			By("mocking flux external artifact Ready=True condition")
+			externalArtifact := &sourcev1.ExternalArtifact{}
+			externalArtifact.SetName(catalog.Name)
+			externalArtifact.SetNamespace(catalog.Namespace)
+			externalArtifact.Spec = sourcev1.ExternalArtifactSpec{
+				SourceRef: &fluxmeta.NamespacedObjectKindReference{
+					APIVersion: sourcev2.GroupVersion.String(),
+					Kind:       sourcev2.ArtifactGeneratorKind,
+					Name:       catalog.Name,
+					Namespace:  catalog.Namespace,
+				},
+			}
+			Expect(test.K8sClient.Create(test.Ctx, externalArtifact)).To(Succeed(), "there should be no error mocking ExternalArtifact creation")
+			Expect(mockExternalArtifactReady(externalArtifact)).To(Succeed(), "there should be no error mocking the ExternalArtifact ready condition")
+
+			By("checking if the catalog artifact generator is created")
+			artifact := &sourcev2.ArtifactGenerator{}
+			artifact.SetName(catalog.Name)
+			artifact.SetNamespace(catalog.Namespace)
+			Eventually(func(g Gomega) {
+				g.Expect(test.K8sClient.Get(test.Ctx, cl.ObjectKeyFromObject(artifact), artifact)).To(Succeed(), "there should be no error getting the ArtifactGenerator")
+				g.Expect(artifact.Spec.Sources).To(HaveLen(1), "Flux ArtifactGenerator should have one source")
+				g.Expect(artifact.Spec.Sources[0].Kind).To(Equal(sourcev1.GitRepositoryKind), "Flux ArtifactGenerator source kind should be git repository")
+				g.Expect(artifact.Spec.Sources[0].Name).To(Equal(catalog.Name), "Flux ArtifactGenerator source name should be the git repository name")
+				g.Expect(artifact.Spec.OutputArtifacts).To(HaveLen(1), "Flux ArtifactGenerator should have one output artifact")
+				g.Expect(artifact.Spec.OutputArtifacts[0].Name).To(Equal(catalog.Name), "Flux ArtifactGenerator output artifact name should be the catalog name")
+				g.Expect(artifact.Spec.OutputArtifacts[0].Copy).To(HaveLen(len(catalog.Spec.Source.Resources)), "Flux ArtifactGenerator output artifact should have copy operations matching the catalog resources")
+			}).Should(Succeed(), "Flux ArtifactGenerator should be created for the Catalog")
 
 			By("checking if the catalog kustomization is created")
 			kustomization := &kustomizev1.Kustomization{}
@@ -100,10 +166,9 @@ var _ = Describe("Catalog controller", Ordered, func() {
 			Eventually(func(g Gomega) {
 				g.Expect(test.K8sClient.Get(test.Ctx, cl.ObjectKeyFromObject(kustomization), kustomization)).To(Succeed(), "there should be no error getting the Kustomization")
 				sourceRef := kustomization.Spec.SourceRef
-				g.Expect(sourceRef.Kind).To(Equal(sourcev1.GitRepositoryKind), "Flux Kustomization SourceRef kind should be flux git repository kind")
+				g.Expect(sourceRef.Kind).To(Equal(sourcev1.ExternalArtifactKind), "Flux Kustomization SourceRef kind should be flux git repository kind")
 				g.Expect(sourceRef.Name).To(Equal(catalog.Name), "Flux Kustomization SourceRef name should be the flux git repository name")
 				g.Expect(kustomization.Spec.Interval).To(Equal(defaultInterval), "Flux Kustomization interval should match the catalog interval")
-				g.Expect(kustomization.Spec.Path).To(Equal(catalog.ResourcePath()), "Flux Kustomization path should match the catalog source path")
 				g.Expect(kustomization.Spec.ServiceAccountName).To(Equal(expectedServiceAccountName), "Flux Kustomization should reference the organization's ServiceAccount")
 			}).Should(Succeed(), "Flux Kustomization should be created for the Catalog")
 		})
@@ -114,6 +179,12 @@ var _ = Describe("Catalog controller", Ordered, func() {
 			gitRepository.SetName(catalog.Name)
 			gitRepository.SetNamespace(catalog.Namespace)
 			Expect(mockGitRepositoryReady(gitRepository)).To(Succeed(), "there should be no error mocking the GitRepository ready condition")
+
+			By("mocking flux artifact Ready=True condition")
+			artifact := &sourcev2.ArtifactGenerator{}
+			artifact.SetName(catalog.Name)
+			artifact.SetNamespace(catalog.Namespace)
+			Expect(mockArtifactGeneratorReady(artifact)).To(Succeed(), "there should be no error mocking the artifact ready condition")
 
 			By("mocking flux kustomization Ready=True condition")
 			kustomization := &kustomizev1.Kustomization{}
@@ -137,7 +208,7 @@ var _ = Describe("Catalog controller", Ordered, func() {
 					Name:  "name",
 				},
 			}))
-			patches, err := flux.PrepareKustomizePatches(catalog.Spec.Overrides, greenhousev1alpha1.GroupVersion.Group)
+			patches, err := flux.PrepareKustomizePatches(catalog.Spec.Source.Overrides, greenhousev1alpha1.GroupVersion.Group)
 			Expect(err).NotTo(HaveOccurred(), "there should be no error preparing kustomize patches for the catalog overrides")
 			Expect(patches).To(HaveLen(1), "there should be one kustomize patch for the catalog overrides")
 

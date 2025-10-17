@@ -67,7 +67,11 @@ var _ = Describe("Catalog E2E", Ordered, func() {
 			e2eCatalogName,
 			env.TestNamespace,
 			test.WithRepositoryBranch("main"),
-			test.WithRepositoryURL("https://github.com/cloudoperators/greenhouse-extensions"),
+			test.WithRepository("https://github.com/cloudoperators/greenhouse-extensions"),
+			test.WithCatalogResources([]string{
+				"perses/plugindefinition.yaml",
+				"kube-monitoring/plugindefinition.yaml",
+			}),
 		)
 		Expect(adminClient.Create(ctx, catalog)).To(Succeed(), "there should be no error creating the Catalog resource")
 		expect.CatalogReady(ctx, adminClient, env.TestNamespace, catalog.Name)

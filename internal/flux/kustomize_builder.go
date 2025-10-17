@@ -120,13 +120,6 @@ func NewKustomizationSpecBuilder(logger logr.Logger) *KustomizeBuilder {
 	}
 }
 
-func (k *KustomizeBuilder) WithPath(path string) *KustomizeBuilder {
-	if path != "" {
-		k.spec.Path = path
-	}
-	return k
-}
-
 func (k *KustomizeBuilder) WithSourceRef(apiVersion, kind, name, namespace string) *KustomizeBuilder {
 	ref := kustomizev1.CrossNamespaceSourceReference{
 		APIVersion: apiVersion,

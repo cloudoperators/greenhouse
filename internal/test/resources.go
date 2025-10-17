@@ -723,39 +723,39 @@ func NewConfigMap(name, namespace string, opts ...func(*corev1.ConfigMap)) *core
 	return cm
 }
 
-func WithRepositoryURL(url string) func(*greenhousev1alpha1.Catalog) {
+func WithRepository(url string) func(*greenhousev1alpha1.Catalog) {
 	return func(catalog *greenhousev1alpha1.Catalog) {
-		catalog.Spec.Source.Git.URL = url
+		catalog.Spec.Source.Repository = url
 	}
 }
 
 func WithRepositoryBranch(branch string) func(*greenhousev1alpha1.Catalog) {
 	return func(catalog *greenhousev1alpha1.Catalog) {
-		catalog.Spec.Source.Git.Ref.Branch = ptr.To(branch)
+		catalog.Spec.Source.Ref.Branch = ptr.To(branch)
 	}
 }
 
 func WithRepositoryTag(tag string) func(*greenhousev1alpha1.Catalog) {
 	return func(catalog *greenhousev1alpha1.Catalog) {
-		catalog.Spec.Source.Git.Ref.Tag = ptr.To(tag)
+		catalog.Spec.Source.Ref.Tag = ptr.To(tag)
 	}
 }
 
 func WithRepositorySHA(sha string) func(*greenhousev1alpha1.Catalog) {
 	return func(catalog *greenhousev1alpha1.Catalog) {
-		catalog.Spec.Source.Git.Ref.SHA = ptr.To(sha)
-	}
-}
-
-func WithSourcePath(path string) func(*greenhousev1alpha1.Catalog) {
-	return func(catalog *greenhousev1alpha1.Catalog) {
-		catalog.Spec.Source.Path = path
+		catalog.Spec.Source.Ref.SHA = ptr.To(sha)
 	}
 }
 
 func WithOverrides(overrides []greenhousev1alpha1.CatalogOverrides) func(*greenhousev1alpha1.Catalog) {
 	return func(catalog *greenhousev1alpha1.Catalog) {
-		catalog.Spec.Overrides = overrides
+		catalog.Spec.Source.Overrides = overrides
+	}
+}
+
+func WithCatalogResources(resources []string) func(*greenhousev1alpha1.Catalog) {
+	return func(catalog *greenhousev1alpha1.Catalog) {
+		catalog.Spec.Source.Resources = resources
 	}
 }
 
@@ -767,12 +767,10 @@ func NewCatalog(name, namespace string, opts ...func(*greenhousev1alpha1.Catalog
 		},
 		Spec: greenhousev1alpha1.CatalogSpec{
 			Source: greenhousev1alpha1.CatalogSource{
-				Git: greenhousev1alpha1.GitSource{
-					Ref: &greenhousev1alpha1.GitRef{
-						Branch: nil,
-						Tag:    nil,
-						SHA:    nil,
-					},
+				Ref: &greenhousev1alpha1.GitRef{
+					Branch: nil,
+					Tag:    nil,
+					SHA:    nil,
 				},
 			},
 		},

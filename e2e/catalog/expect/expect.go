@@ -34,10 +34,10 @@ func CatalogOverride(ctx context.Context, c client.Client, override greenhousev1
 		catalog := &greenhousev1alpha1.Catalog{}
 		err := c.Get(ctx, types.NamespacedName{Name: name, Namespace: namespace}, catalog)
 		g.Expect(err).NotTo(HaveOccurred(), "there should be no error fetching the Catalog resource")
-		if len(catalog.Spec.Overrides) == 0 {
-			catalog.Spec.Overrides = make([]greenhousev1alpha1.CatalogOverrides, 0)
+		if len(catalog.Spec.Source.Overrides) == 0 {
+			catalog.Spec.Source.Overrides = make([]greenhousev1alpha1.CatalogOverrides, 0)
 		}
-		catalog.Spec.Overrides = append(catalog.Spec.Overrides, override)
+		catalog.Spec.Source.Overrides = append(catalog.Spec.Source.Overrides, override)
 		err = c.Update(ctx, catalog)
 		g.Expect(err).NotTo(HaveOccurred(), "there should be no error updating the Catalog resource")
 	}).Should(Succeed(), "the Catalog resource should be successfully updated")
