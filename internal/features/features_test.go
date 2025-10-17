@@ -10,7 +10,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	corev1 "k8s.io/api/core/v1"
-	kerrors "k8s.io/apimachinery/pkg/api/errors"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -52,7 +52,7 @@ func Test_DexFeatures(t *testing.T) {
 		},
 		{
 			name:          "it should return a nil instance of features when feature-flags cm is not found",
-			getError:      kerrors.NewNotFound(schema.GroupResource{}, "configmap not found"),
+			getError:      apierrors.NewNotFound(schema.GroupResource{}, "configmap not found"),
 			expectedValue: nil, // should return nil since ConfigMap is not found
 		},
 		{
