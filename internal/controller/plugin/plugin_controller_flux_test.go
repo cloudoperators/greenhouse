@@ -5,6 +5,7 @@ package plugin
 
 import (
 	"encoding/json"
+	"maps"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -23,6 +24,7 @@ import (
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
 	"github.com/cloudoperators/greenhouse/internal/flux"
 	"github.com/cloudoperators/greenhouse/internal/helm"
+	"github.com/cloudoperators/greenhouse/internal/lifecycle"
 	"github.com/cloudoperators/greenhouse/internal/test"
 )
 
@@ -187,9 +189,10 @@ var _ = Describe("Flux Plugin Controller", Ordered, func() {
 		Expect(test.K8sClient.Create(test.Ctx, testPlugin)).To(Succeed(), "failed to create Plugin")
 
 		By("ensuring HelmRelease has been created")
+		release := &helmv2.HelmRelease{}
+		releaseKey := types.NamespacedName{Name: testPlugin.Name, Namespace: testPlugin.Namespace}
 		Eventually(func(g Gomega) {
-			release := &helmv2.HelmRelease{}
-			err := test.K8sClient.Get(test.Ctx, types.NamespacedName{Name: testPlugin.Name, Namespace: testPlugin.Namespace}, release)
+			err := test.K8sClient.Get(test.Ctx, releaseKey, release)
 			g.Expect(err).ToNot(HaveOccurred(), "failed to get HelmRelease")
 		}).Should(Succeed())
 
@@ -210,6 +213,34 @@ var _ = Describe("Flux Plugin Controller", Ordered, func() {
 			g.Expect(readyCondition.Message).To(ContainSubstring("Reconciling"))
 			// The status won't change further, because Flux HelmController can't be registered here. See E2E tests.
 		}).Should(Succeed())
+
+		By("ensuring the Flux HelmRelease is suspended")
+		a := testPlugin.Annotations
+		if a == nil {
+			a = make(map[string]string)
+		}
+		a[lifecycle.SuspendAnnotation] = "true"
+		testPlugin.SetAnnotations(a)
+		Expect(test.K8sClient.Update(test.Ctx, testPlugin)).To(Succeed(), "failed to update Plugin with suspend annotation")
+
+		Eventually(func(g Gomega) {
+			err := test.K8sClient.Get(test.Ctx, releaseKey, release)
+			g.Expect(err).ToNot(HaveOccurred(), "failed to get HelmRelease")
+			g.Expect(release.Spec.Suspend).To(BeTrue(), "HelmRelease should be suspended")
+		}).Should(Succeed())
+
+		By("ensuring the Flux HelmRelease is resumed")
+		maps.DeleteFunc(testPlugin.Annotations, func(key, value string) bool {
+			return key == lifecycle.SuspendAnnotation
+		})
+		Expect(test.K8sClient.Update(test.Ctx, testPlugin)).To(Succeed(), "failed to remove suspend annoation from Plugin")
+
+		Eventually(func(g Gomega) {
+			err := test.K8sClient.Get(test.Ctx, releaseKey, release)
+			g.Expect(err).ToNot(HaveOccurred(), "failed to get HelmRelease")
+			g.Expect(release.Spec.Suspend).To(BeFalse(), "HelmRelease should not be suspended")
+		}).Should(Succeed())
+
 	})
 
 	It("should reconcile a UI-only Plugin", func() {
