@@ -153,6 +153,13 @@ spec:
                   ReleaseNamespace is the namespace in the remote cluster to which the backend is deployed.
                   Defaults to the Greenhouse managed namespace if not set.
                 type: string
+              suspend:
+                default: false
+                description: |-
+                  Suspend indicates whether the deployment of the plugin should be suspended.
+                  When set to true, the Plugin's Helm release will not be touched.
+                  Defaults to false.
+                type: boolean
             required:
             - pluginDefinition
             - pluginDefinitionRef

@@ -2186,6 +2186,19 @@ If the Plugin was already deployed, the Plugin&rsquo;s name is used as the relea
 If this Plugin is newly created, the releaseName is defaulted to the PluginDefinitions HelmChart name.</p>
 </td>
 </tr>
+<tr>
+<td>
+<code>suspend</code><br>
+<em>
+bool
+</em>
+</td>
+<td>
+<p>Suspend indicates whether the deployment of the plugin should be suspended.
+When set to true, the Plugin&rsquo;s Helm release will not be touched.
+Defaults to false.</p>
+</td>
+</tr>
 </table>
 </td>
 </tr>
@@ -3226,6 +3239,19 @@ string
 <p>ReleaseName is the name of the helm release in the remote cluster to which the backend is deployed.
 If the Plugin was already deployed, the Plugin&rsquo;s name is used as the release name.
 If this Plugin is newly created, the releaseName is defaulted to the PluginDefinitions HelmChart name.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>suspend</code><br>
+<em>
+bool
+</em>
+</td>
+<td>
+<p>Suspend indicates whether the deployment of the plugin should be suspended.
+When set to true, the Plugin&rsquo;s Helm release will not be touched.
+Defaults to false.</p>
 </td>
 </tr>
 </tbody>

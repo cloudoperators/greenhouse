@@ -42,6 +42,12 @@ type PluginSpec struct {
 	// +kubebuilder:validation:XValidation:rule="self == oldSelf",message="ReleaseName is immutable"
 	// +kubebuilder:validation:MaxLength=53
 	ReleaseName string `json:"releaseName,omitempty"`
+
+	// Suspend indicates whether the deployment of the plugin should be suspended.
+	// When set to true, the Plugin's Helm release will not be touched.
+	// Defaults to false.
+	// +kubebuilder:default=false
+	Suspend bool `json:"suspend,omitempty"`
 }
 
 // PluginOptionValue is the value for a PluginOption.

@@ -259,6 +259,13 @@ func (r *PluginReconciler) reconcileHelmRelease(
 		return nil
 	}
 
+	// Plugin is suspended. Do not reconcile the Helm release.
+	if plugin.Spec.Suspend {
+		plugin.SetCondition(greenhousemetav1alpha1.FalseCondition(
+			greenhousev1alpha1.HelmReconcileFailedCondition, "", "Plugin reconciliation is suspended"))
+		return nil
+	}
+
 	// Validate before attempting the installation/upgrade.
 	// Any error is reflected in the status of the Plugin.
 	if _, err := helm.TemplateHelmChartFromPlugin(ctx, r.Client, restClientGetter, pluginDefinitionSpec, plugin); err != nil {
