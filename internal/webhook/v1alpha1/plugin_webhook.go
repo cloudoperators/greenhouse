@@ -173,12 +173,9 @@ func ValidateCreatePlugin(ctx context.Context, c client.Client, obj runtime.Obje
 		allErrs = append(allErrs, field.Invalid(field.NewPath("spec").Child("releaseName"), plugin.Spec.ReleaseName, err.Error()))
 	}
 
-	// Name and PluginPreset are mutually exclusive in PluginRef.
-	for _, pluginRef := range plugin.Spec.WaitFor {
-		if pluginRef.Name != "" && pluginRef.PluginPreset != "" {
-			allErrs = append(allErrs, field.Invalid(field.NewPath("spec", "waitFor", "pluginRef", "name"),
-				pluginRef.Name, "cannot specify both pluginRef.name and pluginRef.pluginPreset"))
-		}
+	// validate WaitFor items are unique and that PluginRef's fields are mutually exclusive
+	if errList := validateWaitForPluginRefs(plugin.Spec.WaitFor); len(errList) > 0 {
+		allErrs = append(allErrs, errList...)
 	}
 
 	if len(allErrs) > 0 {
@@ -237,12 +234,9 @@ func ValidateUpdatePlugin(ctx context.Context, c client.Client, old, obj runtime
 	allErrs = append(allErrs, validation.ValidateImmutableField(oldPlugin.Spec.ClusterName, plugin.Spec.ClusterName,
 		field.NewPath("spec", "clusterName"))...)
 
-	// Name and PluginPreset are mutually exclusive in PluginRef.
-	for _, pluginRef := range plugin.Spec.WaitFor {
-		if pluginRef.Name != "" && pluginRef.PluginPreset != "" {
-			allErrs = append(allErrs, field.Invalid(field.NewPath("spec", "waitFor", "pluginRef", "name"),
-				pluginRef.Name, "cannot specify both pluginRef.name and pluginRef.pluginPreset"))
-		}
+	// validate WaitFor items are unique and that PluginRef's fields are mutually exclusive
+	if errList := validateWaitForPluginRefs(plugin.Spec.WaitFor); len(errList) > 0 {
+		allErrs = append(allErrs, errList...)
 	}
 
 	// ensure (Cluster-)PluginDefinition exists
