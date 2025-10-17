@@ -9,13 +9,30 @@ metadata:
 
 apiVersion: v1
 kind: Secret
-metadata: 
+metadata:
   name: demo-oidc
   namespace: demo
 type: greenhouse.sap/orgsecret
 data:
   clientID: Zm9vYmFy
   clientSecret: VG9wU2VjcmV0ISEh
+---
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: demo-config
+  namespace: demo
+data:
+  containerRegistryConfig: |
+    primaryMirror: "mirror.registry.example.com"
+    registryMirrors:
+      ghcr.io:
+        baseDomain: "mirror.registry.example.com"
+        subPath: "ghcr-mirror"
+      docker.io:
+        baseDomain: "mirror.registry.example.com"
+        subPath: "dockerhub-mirror"
 ---
 
 apiVersion: greenhouse.sap/v1alpha1
@@ -25,6 +42,7 @@ metadata:
 spec:
   description: Greenhouse Demo Organization
   mappedOrgAdminIdPGroup: DEMO_ORG_ADMIN
+  configMapRef: demo-config
   authentication:
     oidc:
       clientIDReference:
