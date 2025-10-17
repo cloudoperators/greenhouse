@@ -146,7 +146,7 @@ func PluginControllerNginxByPreset(ctx context.Context, adminClient, remoteClien
 	By("Creating the plugin preset")
 	testPluginPreset := test.NewPluginPreset(nginxPluginPreset, env.TestNamespace,
 		test.WithPluginPresetLabel(greenhouseapis.LabelKeyOwnedBy, teamName),
-		test.WithPluginPresetPluginSpec(testPlugin.Spec),
+		test.WithPluginSpec(testPlugin.Spec),
 		test.WithPluginPresetClusterSelector(metav1.LabelSelector{
 			MatchLabels: map[string]string{
 				"app": "test-cluster",
