@@ -55,10 +55,10 @@ var _ = Describe("Registry Mirror Configuration", func() {
 						registryMirrorConfigKey: `primaryMirror: "primary.registry.com"
 registryMirrors:
   ghcr.io:
-    basedomain: "europe.registry.com"
+    baseDomain: "europe.registry.com"
     subPath: "ghcr-mirror"
   docker.io:
-    basedomain: "mirror.registry.com"
+    baseDomain: "mirror.registry.com"
     subPath: "dockerhub-mirror"`,
 					},
 				}
@@ -278,7 +278,7 @@ registryMirrors:
 					PrimaryMirror:   "primary.registry.com",
 					RegistryMirrors: nil,
 				}, false, "registryMirrors cannot be empty"),
-			Entry("empty basedomain",
+			Entry("empty baseDomain",
 				&RegistryMirrorConfig{
 					PrimaryMirror: "primary.registry.com",
 					RegistryMirrors: map[string]RegistryMirror{
@@ -287,7 +287,7 @@ registryMirrors:
 							SubPath:    "ghcr-mirror",
 						},
 					},
-				}, false, "basedomain cannot be empty for registry ghcr.io"),
+				}, false, "baseDomain cannot be empty for registry ghcr.io"),
 		)
 	})
 })
