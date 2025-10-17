@@ -29,7 +29,7 @@ type RegistryMirrorConfig struct {
 
 // RegistryMirror represents a single registry mirror configuration.
 type RegistryMirror struct {
-	BaseDomain string `yaml:"basedomain"`
+	BaseDomain string `yaml:"baseDomain"`
 	SubPath    string `yaml:"subPath"`
 }
 
@@ -84,7 +84,7 @@ func validateRegistryMirrorConfig(config *RegistryMirrorConfig) error {
 			return errors.New("registry name cannot be empty")
 		}
 		if mirror.BaseDomain == "" {
-			return fmt.Errorf("basedomain cannot be empty for registry %s", registry)
+			return fmt.Errorf("baseDomain cannot be empty for registry %s", registry)
 		}
 		if mirror.SubPath == "" {
 			return fmt.Errorf("subPath cannot be empty for registry %s", registry)
