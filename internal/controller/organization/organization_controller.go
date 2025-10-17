@@ -208,6 +208,10 @@ func (r *OrganizationReconciler) EnsureCreated(ctx context.Context, object lifec
 	return ctrl.Result{}, lifecycle.Success, nil
 }
 
+func (r *OrganizationReconciler) EnsureSuspended(_ context.Context, _ lifecycle.RuntimeObject) (ctrl.Result, error) {
+	return ctrl.Result{}, nil
+}
+
 func (r *OrganizationReconciler) reconcileNamespace(ctx context.Context, org *greenhousev1alpha1.Organization) error {
 	var namespace = new(corev1.Namespace)
 	namespace.Name = org.Name
