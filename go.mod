@@ -9,10 +9,10 @@ replace (
 
 	// Keep Flux dependencies in sync with v2.6.1.
 	github.com/fluxcd/helm-controller/api => github.com/fluxcd/helm-controller/api v1.4.2
-	github.com/fluxcd/kustomize-controller/api => github.com/fluxcd/kustomize-controller/api v1.7.0
+	github.com/fluxcd/kustomize-controller/api => github.com/fluxcd/kustomize-controller/api v1.7.1
 	github.com/fluxcd/pkg/apis/kustomize => github.com/fluxcd/pkg/apis/kustomize v1.12.0
 	github.com/fluxcd/pkg/apis/meta => github.com/fluxcd/pkg/apis/meta v1.21.0
-	github.com/fluxcd/source-controller/api => github.com/fluxcd/source-controller/api v1.7.0
+	github.com/fluxcd/source-controller/api => github.com/fluxcd/source-controller/api v1.7.2
 
 	// Keep k8s dependencies in sync.
 	k8s.io/api => k8s.io/api v0.34.1
@@ -22,7 +22,7 @@ replace (
 	k8s.io/client-go => k8s.io/client-go v0.34.1
 	k8s.io/component-base => k8s.io/component-base v0.34.1
 	k8s.io/kubectl => k8s.io/kubectl v0.34.1
-	sigs.k8s.io/controller-runtime => sigs.k8s.io/controller-runtime v0.22.2
+	sigs.k8s.io/controller-runtime => sigs.k8s.io/controller-runtime v0.22.3
 )
 
 require (
@@ -30,10 +30,10 @@ require (
 	github.com/cenkalti/backoff/v5 v5.0.3
 	github.com/dexidp/dex v0.0.0-20250829100637-2dce75009acf
 	github.com/fluxcd/helm-controller/api v1.4.2
-	github.com/fluxcd/kustomize-controller/api v1.7.0
+	github.com/fluxcd/kustomize-controller/api v1.7.1
 	github.com/fluxcd/pkg/apis/kustomize v1.21.0
 	github.com/fluxcd/pkg/apis/meta v1.22.0
-	github.com/fluxcd/source-controller/api v1.7.0
+	github.com/fluxcd/source-controller/api v1.7.2
 	github.com/go-jose/go-jose/v4 v4.1.3
 	github.com/jeremywohl/flatten/v2 v2.0.0-20211013061545-07e4a09fb8e4
 	github.com/oklog/run v1.2.0
@@ -56,7 +56,7 @@ require (
 	k8s.io/cli-runtime v0.34.1
 	k8s.io/client-go v0.34.1
 	k8s.io/utils v0.0.0-20251002143259-bc988d571ff4
-	sigs.k8s.io/controller-runtime v0.22.2
+	sigs.k8s.io/controller-runtime v0.22.3
 	sigs.k8s.io/kind v0.30.0
 	sigs.k8s.io/yaml v1.6.0
 )
