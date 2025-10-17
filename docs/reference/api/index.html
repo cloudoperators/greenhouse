@@ -2186,6 +2186,19 @@ If the Plugin was already deployed, the Plugin&rsquo;s name is used as the relea
 If this Plugin is newly created, the releaseName is defaulted to the PluginDefinitions HelmChart name.</p>
 </td>
 </tr>
+<tr>
+<td>
+<code>suspend</code><br>
+<em>
+bool
+</em>
+</td>
+<td>
+<p>Suspend indicates whether the deployment of the plugin should be suspended.
+When set to true, the Plugin&rsquo;s Helm release will not be touched.
+Defaults to false.</p>
+</td>
+</tr>
 </table>
 </td>
 </tr>
@@ -2378,6 +2391,7 @@ PluginDefinitionStatus
 </h3>
 <p>
 (<em>Appears on:</em>
+<a href="#greenhouse.sap/v1alpha1.PluginPresetPluginSpec">PluginPresetPluginSpec</a>, 
 <a href="#greenhouse.sap/v1alpha1.PluginSpec">PluginSpec</a>)
 </p>
 <p>PluginDefinitionReference defines the reference to the PluginDefinition or ClusterPluginDefinition.</p>
@@ -2697,6 +2711,7 @@ string
 <p>
 (<em>Appears on:</em>
 <a href="#greenhouse.sap/v1alpha1.ClusterOptionOverride">ClusterOptionOverride</a>, 
+<a href="#greenhouse.sap/v1alpha1.PluginPresetPluginSpec">PluginPresetPluginSpec</a>, 
 <a href="#greenhouse.sap/v1alpha1.PluginSpec">PluginSpec</a>)
 </p>
 <p>PluginOptionValue is the value for a PluginOption.</p>
@@ -2807,8 +2822,8 @@ PluginPresetSpec
 <td>
 <code>plugin</code><br>
 <em>
-<a href="#greenhouse.sap/v1alpha1.PluginSpec">
-PluginSpec
+<a href="#greenhouse.sap/v1alpha1.PluginPresetPluginSpec">
+PluginPresetPluginSpec
 </a>
 </em>
 </td>
@@ -2873,6 +2888,103 @@ PluginPresetStatus
 </table>
 </div>
 </div>
+<h3 id="greenhouse.sap/v1alpha1.PluginPresetPluginSpec">PluginPresetPluginSpec
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#greenhouse.sap/v1alpha1.PluginPresetSpec">PluginPresetSpec</a>)
+</p>
+<p>PluginPresetPluginSpec defines the desired state of PluginPreset&rsquo;s PluginSpec</p>
+<div class="md-typeset__scrollwrap">
+<div class="md-typeset__table">
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>pluginDefinition</code><br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>PluginDefinition is the name of the PluginDefinition this instance is for.</p>
+<p>Deprecated: Use PluginDefinitionRef instead. Future releases of greenhouse will remove this field.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>pluginDefinitionRef</code><br>
+<em>
+<a href="#greenhouse.sap/v1alpha1.PluginDefinitionReference">
+PluginDefinitionReference
+</a>
+</em>
+</td>
+<td>
+<p>PluginDefinitionRef is the reference to the (Cluster-)PluginDefinition.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>displayName</code><br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>DisplayName is an optional name for the Plugin to be displayed in the Greenhouse UI.
+This is especially helpful to distinguish multiple instances of a PluginDefinition in the same context.
+Defaults to a normalized version of metadata.name.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>optionValues</code><br>
+<em>
+<a href="#greenhouse.sap/v1alpha1.PluginOptionValue">
+[]PluginOptionValue
+</a>
+</em>
+</td>
+<td>
+<p>Values are the values for a PluginDefinition instance.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>releaseNamespace</code><br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>ReleaseNamespace is the namespace in the remote cluster to which the backend is deployed.
+Defaults to the Greenhouse managed namespace if not set.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>releaseName</code><br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>ReleaseName is the name of the helm release in the remote cluster to which the backend is deployed.
+If the Plugin was already deployed, the Plugin&rsquo;s name is used as the release name.
+If this Plugin is newly created, the releaseName is defaulted to the PluginDefinitions HelmChart name.</p>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
 <h3 id="greenhouse.sap/v1alpha1.PluginPresetSpec">PluginPresetSpec
 </h3>
 <p>
@@ -2894,8 +3006,8 @@ PluginPresetStatus
 <td>
 <code>plugin</code><br>
 <em>
-<a href="#greenhouse.sap/v1alpha1.PluginSpec">
-PluginSpec
+<a href="#greenhouse.sap/v1alpha1.PluginPresetPluginSpec">
+PluginPresetPluginSpec
 </a>
 </em>
 </td>
@@ -3029,8 +3141,7 @@ int
 </h3>
 <p>
 (<em>Appears on:</em>
-<a href="#greenhouse.sap/v1alpha1.Plugin">Plugin</a>, 
-<a href="#greenhouse.sap/v1alpha1.PluginPresetSpec">PluginPresetSpec</a>)
+<a href="#greenhouse.sap/v1alpha1.Plugin">Plugin</a>)
 </p>
 <p>PluginSpec defines the desired state of Plugin</p>
 <div class="md-typeset__scrollwrap">
@@ -3128,6 +3239,19 @@ string
 <p>ReleaseName is the name of the helm release in the remote cluster to which the backend is deployed.
 If the Plugin was already deployed, the Plugin&rsquo;s name is used as the release name.
 If this Plugin is newly created, the releaseName is defaulted to the PluginDefinitions HelmChart name.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>suspend</code><br>
+<em>
+bool
+</em>
+</td>
+<td>
+<p>Suspend indicates whether the deployment of the plugin should be suspended.
+When set to true, the Plugin&rsquo;s Helm release will not be touched.
+Defaults to false.</p>
 </td>
 </tr>
 </tbody>
