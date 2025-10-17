@@ -52,6 +52,12 @@ type RuntimeObject interface {
 	SetCondition(greenhousemetav1alpha1.Condition)
 }
 
+type CatalogObject interface {
+	runtime.Object
+	v1.Object
+	GetConditions() []v1.Condition
+}
+
 // Reconciler is the interface that wraps the basic EnsureCreated and EnsureDeleted methods that a controller should implement
 type Reconciler interface {
 	EnsureCreated(context.Context, RuntimeObject) (ctrl.Result, ReconcileResult, error)
