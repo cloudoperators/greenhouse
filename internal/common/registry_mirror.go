@@ -10,7 +10,7 @@ import (
 
 	"gopkg.in/yaml.v3"
 	corev1 "k8s.io/api/core/v1"
-	kerrors "k8s.io/apimachinery/pkg/api/errors"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -38,7 +38,7 @@ type RegistryMirror struct {
 func GetRegistryMirrorConfig(ctx context.Context, k8sClient client.Reader, orgName string) (*RegistryMirrorConfig, error) {
 	org := &greenhousev1alpha1.Organization{}
 	if err := k8sClient.Get(ctx, types.NamespacedName{Name: orgName}, org); err != nil {
-		if kerrors.IsNotFound(err) {
+		if apierrors.IsNotFound(err) {
 			return nil, fmt.Errorf("organization %s not found", orgName)
 		}
 		return nil, fmt.Errorf("failed to get organization %s: %w", orgName, err)
@@ -50,7 +50,7 @@ func GetRegistryMirrorConfig(ctx context.Context, k8sClient client.Reader, orgNa
 
 	configMap := &corev1.ConfigMap{}
 	if err := k8sClient.Get(ctx, types.NamespacedName{Name: org.Spec.ConfigMapRef, Namespace: orgName}, configMap); err != nil {
-		if kerrors.IsNotFound(err) {
+		if apierrors.IsNotFound(err) {
 			return nil, fmt.Errorf("organization ConfigMap %s not found in namespace %s", org.Spec.ConfigMapRef, orgName)
 		}
 		return nil, fmt.Errorf("failed to get organization ConfigMap %s: %w", org.Spec.ConfigMapRef, err)

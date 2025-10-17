@@ -13,7 +13,7 @@ import (
 	sourcev1 "github.com/fluxcd/source-controller/api/v1"
 	"github.com/go-logr/logr"
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/errors"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -111,7 +111,7 @@ func (r *CatalogReconciler) EnsureDeleted(ctx context.Context, obj lifecycle.Run
 func (r *CatalogReconciler) ensureResourceIsDeleted(ctx context.Context, catalog, obj client.Object) (requeue bool, err error) {
 	kind := obj.GetObjectKind().GroupVersionKind().Kind
 	if err = r.Get(ctx, client.ObjectKeyFromObject(obj), obj); err != nil {
-		if errors.IsNotFound(err) {
+		if apierrors.IsNotFound(err) {
 			err = nil
 			return
 		}
@@ -130,7 +130,7 @@ func (r *CatalogReconciler) ensureResourceIsDeleted(ctx context.Context, catalog
 			greenhouseapis.FluxReconcileRequestAnnotation: time.Now().Format(time.DateTime),
 		})
 		if err = r.Update(ctx, obj); err != nil {
-			if errors.IsConflict(err) {
+			if apierrors.IsConflict(err) {
 				err = nil
 				requeue = true
 				return

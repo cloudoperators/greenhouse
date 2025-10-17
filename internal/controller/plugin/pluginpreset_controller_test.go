@@ -11,7 +11,7 @@ import (
 	"github.com/onsi/gomega/format"
 	corev1 "k8s.io/api/core/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
-	"k8s.io/apimachinery/pkg/api/errors"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -636,7 +636,7 @@ var _ = Describe("PluginPreset Controller Lifecycle", Ordered, func() {
 		expPluginPresetName := types.NamespacedName{Name: pluginPresetName, Namespace: test.TestNamespace}
 		Eventually(func(g Gomega) {
 			err := test.K8sClient.Get(test.Ctx, expPluginPresetName, testPluginPreset)
-			g.Expect(errors.IsNotFound(err)).To(BeTrue(), "the PluginPreset should be deleted")
+			g.Expect(apierrors.IsNotFound(err)).To(BeTrue(), "the PluginPreset should be deleted")
 			err = test.K8sClient.Get(test.Ctx, expPluginName, expPlugin)
 			g.Expect(err).ShouldNot(HaveOccurred(), "the Plugin should not be deleted")
 			g.Expect(expPlugin.Labels).To(HaveKey(greenhouseapis.LabelKeyPluginPreset), "the Plugin should still be labeled as managed by the PluginPreset")
