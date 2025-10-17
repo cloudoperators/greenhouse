@@ -23,6 +23,7 @@ import (
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
 	"github.com/cloudoperators/greenhouse/internal/flux"
 	"github.com/cloudoperators/greenhouse/internal/helm"
+	"github.com/cloudoperators/greenhouse/internal/lifecycle"
 	"github.com/cloudoperators/greenhouse/internal/test"
 )
 
@@ -200,8 +201,9 @@ var _ = Describe("Flux Plugin Controller", Ordered, func() {
 
 		By("ensuring HelmRelease has been created")
 		release := &helmv2.HelmRelease{}
+		releaseKey := types.NamespacedName{Name: testPlugin.Name, Namespace: testPlugin.Namespace}
 		Eventually(func(g Gomega) {
-			err := test.K8sClient.Get(test.Ctx, types.NamespacedName{Name: testPlugin.Name, Namespace: testPlugin.Namespace}, release)
+			err := test.K8sClient.Get(test.Ctx, releaseKey, release)
 			g.Expect(err).ToNot(HaveOccurred(), "failed to get HelmRelease")
 		}).Should(Succeed())
 
@@ -228,6 +230,25 @@ var _ = Describe("Flux Plugin Controller", Ordered, func() {
 			g.Expect(readyCondition.Message).To(ContainSubstring("Reconciling"))
 			// The status won't change further, because Flux HelmController can't be registered here. See E2E tests.
 		}).Should(Succeed())
+
+		By("ensuring the Flux HelmRelease is suspended")
+		test.MustSetAnnotations(test.Ctx, test.K8sClient, testPlugin, lifecycle.SuspendAnnotation, "true")
+
+		Eventually(func(g Gomega) {
+			err := test.K8sClient.Get(test.Ctx, releaseKey, release)
+			g.Expect(err).ToNot(HaveOccurred(), "failed to get HelmRelease")
+			g.Expect(release.Spec.Suspend).To(BeTrue(), "HelmRelease should be suspended")
+		}).Should(Succeed())
+
+		By("ensuring the Flux HelmRelease is resumed")
+		test.MustRemoveAnnotation(test.Ctx, test.K8sClient, testPlugin, lifecycle.SuspendAnnotation)
+
+		Eventually(func(g Gomega) {
+			err := test.K8sClient.Get(test.Ctx, releaseKey, release)
+			g.Expect(err).ToNot(HaveOccurred(), "failed to get HelmRelease")
+			g.Expect(release.Spec.Suspend).To(BeFalse(), "HelmRelease should not be suspended")
+		}).Should(Succeed())
+
 	})
 
 	It("should reconcile a UI-only Plugin", func() {
