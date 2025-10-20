@@ -187,6 +187,22 @@
       ]
     },
     {
+      "groupName": "flux packages",
+      "groupSlug": "kubernetes-go",
+      "matchDatasources": [
+        "go"
+      ],
+      "matchUpdateTypes": [
+        "major",
+        "minor",
+        "patch"
+      ],
+      "minimumReleaseAge": "14 days",
+      "matchPackageNames": [
+        "github.com/fluxcd{/,}**"
+      ]
+    },
+    {
       "description": "Update flux installation when a new release is available",
       "groupName": "flux-installation",
       "matchPackageNames": [
