@@ -395,19 +395,19 @@ func FluxControllerPluginDependenciesOnPreset(ctx context.Context, adminClient, 
 	err = adminClient.Create(ctx, dependentPluginPreset)
 	Expect(client.IgnoreAlreadyExists(err)).ToNot(HaveOccurred())
 
-	By("Checking the dependent plugin is created with correctly resolved dependency")
+	By("Checking the dependent plugin is created with correctly copied dependency")
 	Eventually(func(g Gomega) {
 		plugin := &greenhousev1alpha1.Plugin{}
 		err = adminClient.Get(ctx, types.NamespacedName{Name: dependentPluginPreset.Name + "-" + remoteClusterName, Namespace: env.TestNamespace}, plugin)
 		g.Expect(err).NotTo(HaveOccurred())
 		g.Expect(plugin.Spec.WaitFor).To(HaveLen(1))
 		pluginRef := plugin.Spec.WaitFor[0]
-		g.Expect(pluginRef.Name).To(Equal(standalonePluginPresetPluginName), "PluginRef on Plugin should be set to the name of the Plugin it depends on")
-		g.Expect(pluginRef.PluginPreset).To(BeEmpty(), "PluginRef should have the PluginPreset name cleared after resolving")
+		g.Expect(pluginRef.PluginPreset).To(Equal(standalonePluginPresetName), "PluginRef on Plugin should be copied over from PluginPreset")
+		g.Expect(pluginRef.Name).To(BeEmpty(), "PluginRef on Plugin should be copied over from PluginPreset")
 	}).Should(Succeed())
 
 	dependentHelmRelease := &helmv2.HelmRelease{}
-	By("Checking the HelmRelease is created but Flux waits with installation")
+	By("Checking the HelmRelease is created with resolved dependency and Flux waits with installation")
 	Eventually(func(g Gomega) {
 		helmReleaseList := &helmv2.HelmReleaseList{}
 		err = adminClient.List(ctx, helmReleaseList, client.InNamespace(env.TestNamespace))
@@ -417,7 +417,7 @@ func FluxControllerPluginDependenciesOnPreset(ctx context.Context, adminClient, 
 		g.Expect(dependentHelmRelease.Spec.DependsOn).To(HaveLen(1), "there should be only one dependency in HelmRelease")
 		helmReleaseDependency := dependentHelmRelease.Spec.DependsOn[0]
 		g.Expect(helmReleaseDependency.Name).To(Equal(standalonePluginPresetPluginName),
-			"HelmRelease dependency should be set to a HelmRelease with the same name as the Plugin it depends on")
+			"HelmRelease dependency should be set to a HelmRelease with the same name as the resolved Plugin it depends on")
 		g.Expect(dependentHelmRelease.Status.Conditions).To(ContainElement(MatchFields(IgnoreExtras, Fields{
 			"Type":   Equal(fluxmeta.ReadyCondition),
 			"Reason": Equal(helmv2.DependencyNotReadyReason),
