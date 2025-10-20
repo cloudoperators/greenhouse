@@ -188,7 +188,7 @@
     },
     {
       "groupName": "flux packages",
-      "groupSlug": "kubernetes-go",
+      "groupSlug": "flux-go",
       "matchDatasources": [
         "go"
       ],
