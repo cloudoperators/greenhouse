@@ -293,7 +293,7 @@ users:
 	It("should override OIDC client ID and secret via cluster annotation using secrets", func() {
 		const (
 			overrideClientID     = "org-override-client-id"
-			overrideClientSecret = "org-override-client-secret"
+			overrideClientSecret = "org-override-client-secret" //nolint:gosec // not a real credential
 		)
 
 		// Create an override secret in the organization namespace
@@ -339,7 +339,7 @@ users:
 	It("should override OIDC client ID and secret via another cluster annotation", func() {
 		const (
 			clusterOverrideClientID     = "cluster-override-client-id"
-			clusterOverrideClientSecret = "cluster-override-client-secret"
+			clusterOverrideClientSecret = "cluster-override-client-secret" //nolint:gosec // not a real credential
 		)
 
 		// Create another override secret and update annotation
