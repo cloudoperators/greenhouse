@@ -139,7 +139,7 @@ func (r *PluginReconciler) ensureHelmRelease(
 				Name: plugin.Spec.ClusterName,
 				Key:  greenhouseapis.GreenHouseKubeConfigKey,
 			}).
-			WithDependsOn(convertWaitForToDependsOn(plugin.Spec.WaitFor)).
+			WithDependsOn(resolvePluginDependencies(plugin.Spec.WaitFor, plugin.Spec.ClusterName)).
 			WithValues(values).
 			WithValuesFrom(r.addValueReferences(plugin)).
 			WithStorageNamespace(plugin.Spec.ReleaseNamespace).

@@ -340,29 +340,20 @@ func shouldReconcileOrRequeue(ctx context.Context, c client.Client, plugin *gree
 	return nil, nil
 }
 
-// resolvePluginDependencies transforms the WaitFor PluginRefs so that only Plugin names are set in the output.
-func resolvePluginDependencies(dependencies []greenhousev1alpha1.WaitForItem, clusterName string) []greenhousev1alpha1.WaitForItem {
-	out := make([]greenhousev1alpha1.WaitForItem, len(dependencies))
+// resolvePluginDependencies transforms the WaitFor PluginRefs so that only Plugin names are set in the output and returns flux HelmRelease dependencies.
+func resolvePluginDependencies(dependencies []greenhousev1alpha1.WaitForItem, clusterName string) []helmv2.DependencyReference {
+	out := make([]helmv2.DependencyReference, len(dependencies))
 
-	for i, d := range dependencies {
-		if d.PluginPreset != "" {
-			d.Name = fmt.Sprintf("%s-%s", d.PluginPreset, clusterName)
-			d.PluginPreset = ""
+	for i, pluginRef := range dependencies {
+		// The name of the HelmRelease is the same as the name of the Plugin.
+		dependencyName := pluginRef.Name
+		if pluginRef.PluginPreset != "" {
+			dependencyName = fmt.Sprintf("%s-%s", pluginRef.PluginPreset, clusterName)
 		}
-		out[i] = d
+		out[i] = helmv2.DependencyReference{
+			Name: dependencyName,
+		}
 	}
 
-	return out
-}
-
-// convertWaitForToDependsOn converts plugin dependencies into flux HelmRelease dependencies.
-func convertWaitForToDependsOn(dependencies []greenhousev1alpha1.WaitForItem) []helmv2.DependencyReference {
-	out := make([]helmv2.DependencyReference, 0, len(dependencies))
-	for _, item := range dependencies {
-		out = append(out, helmv2.DependencyReference{
-			// The name of the HelmRelease is the same as the name of the Plugin.
-			Name: item.Name,
-		})
-	}
 	return out
 }

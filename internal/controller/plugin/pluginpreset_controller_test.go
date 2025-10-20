@@ -637,17 +637,8 @@ var _ = Describe("PluginPreset Controller Lifecycle", Ordered, func() {
 			return test.K8sClient.Get(test.Ctx, expPluginName, expPlugin)
 		}).Should(Succeed(), "the Plugin should be created")
 
-		By("checking Plugin has resolved WaitFor dependencies set from PluginPreset")
-		Expect(expPlugin.Spec.WaitFor).To(ContainElement(
-			greenhousev1alpha1.WaitForItem{
-				PluginRef: greenhousev1alpha1.PluginRef{Name: "test-preset-1-cluster-a", PluginPreset: ""},
-			},
-		), "the plugin should have the resolved plugin reference set")
-		Expect(expPlugin.Spec.WaitFor).To(ContainElement(
-			greenhousev1alpha1.WaitForItem{
-				PluginRef: greenhousev1alpha1.PluginRef{Name: "dependent-plugin-1", PluginPreset: ""},
-			},
-		), "the plugin should have the direct plugin reference set")
+		By("ensuring Plugin has WaitFor dependencies copied from PluginPreset")
+		Expect(expPlugin.Spec.WaitFor).To(Equal(pluginPreset.Spec.WaitFor), "the plugin should have the same plugin references as preset")
 
 		By("removing plugin preset")
 		Eventually(func(g Gomega) {

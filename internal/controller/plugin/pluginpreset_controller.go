@@ -228,7 +228,8 @@ func (r *PluginPresetReconciler) reconcilePluginPreset(ctx context.Context, pres
 			plugin.Spec.ReleaseName = releaseName
 			// Set the cluster name to the name of the cluster. The PluginSpec contained in the PluginPreset does not have a cluster name.
 			plugin.Spec.ClusterName = cluster.GetName()
-			plugin.Spec.WaitFor = resolvePluginDependencies(preset.Spec.WaitFor, cluster.GetName())
+			// Copy over the plugin dependencies
+			plugin.Spec.WaitFor = preset.Spec.WaitFor
 			// transport plugin preset labels to plugin
 			plugin = (lifecycle.NewPropagator(preset, plugin).ApplyLabels()).(*greenhousev1alpha1.Plugin) //nolint:errcheck
 			// overrides options based on preset definition

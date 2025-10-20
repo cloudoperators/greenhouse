@@ -4,6 +4,7 @@
 package plugin
 
 import (
+	helmv2 "github.com/fluxcd/helm-controller/api/v2"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
@@ -250,8 +251,13 @@ var _ = Describe("validate utility functions", Ordered, func() {
 						PluginRef: greenhousev1alpha1.PluginRef{Name: "test-plugin-3"},
 					},
 				}
+				expectedOutput := []helmv2.DependencyReference{
+					{Name: "test-plugin-1"},
+					{Name: "test-plugin-2"},
+					{Name: "test-plugin-3"},
+				}
 				output := resolvePluginDependencies(input, "cluster-a")
-				Expect(output).To(BeComparableTo(input), "the output should not change in regards to input")
+				Expect(output).To(BeComparableTo(expectedOutput), "the output should have the same values set as dependent helm releases")
 			})
 		})
 		When("input is mixed", func() {
@@ -270,14 +276,14 @@ var _ = Describe("validate utility functions", Ordered, func() {
 				output := resolvePluginDependencies(input, "cluster-a")
 				Expect(output).To(
 					ContainElements(
-						greenhousev1alpha1.WaitForItem{
-							PluginRef: greenhousev1alpha1.PluginRef{Name: "test-plugin-1", PluginPreset: ""},
+						helmv2.DependencyReference{
+							Name: "test-plugin-1",
 						},
-						greenhousev1alpha1.WaitForItem{
-							PluginRef: greenhousev1alpha1.PluginRef{Name: "test-preset-1-cluster-a", PluginPreset: ""},
+						helmv2.DependencyReference{
+							Name: "test-preset-1-cluster-a",
 						},
-						greenhousev1alpha1.WaitForItem{
-							PluginRef: greenhousev1alpha1.PluginRef{Name: "test-preset-2-cluster-a", PluginPreset: ""},
+						helmv2.DependencyReference{
+							Name: "test-preset-2-cluster-a",
 						},
 					), "the dependencies should be transformed to plugin names")
 			})
