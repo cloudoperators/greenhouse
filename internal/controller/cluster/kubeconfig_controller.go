@@ -5,6 +5,7 @@ package cluster
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 
 	corev1 "k8s.io/api/core/v1"
@@ -12,7 +13,6 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/clientcmd"
 	ctrl "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/log"
@@ -40,8 +40,7 @@ func (r *KubeconfigReconciler) SetupWithManager(name string, mgr ctrl.Manager) e
 
 	return ctrl.NewControllerManagedBy(mgr).
 		Named(name).
-		Watches(&v1alpha1.Cluster{}, handler.EnqueueRequestsFromMapFunc(sameNameResource),
-			builder.WithPredicates(clientutil.PredicateClusterIsReady())).
+		Watches(&v1alpha1.Cluster{}, handler.EnqueueRequestsFromMapFunc(sameNameResource)).
 		Watches(&corev1.Secret{}, handler.EnqueueRequestsFromMapFunc(clusterSecretToCluster)).
 		Watches(&v1alpha1.Organization{}, handler.EnqueueRequestsFromMapFunc(r.organizationToClusters)).
 		Watches(&corev1.Secret{}, handler.EnqueueRequestsFromMapFunc(r.organizationSecretToClusters)).
@@ -225,8 +224,13 @@ type OIDCInfo struct {
 	IssuerURL    string
 }
 
-// getOIDCInfo fetches OIDC configuration, first from the Organization,
-// then overridden by the cluster and organization labels if present
+// getOIDCInfo fetches OIDC configuration from the Organization and allows Cluster-level overrides via annotation-based secret references.
+// Clusters can set annotation greenhouse.sap/oidc-override with JSON:
+//
+//	{
+//	  "clientIDReference": {"name": "<secret-name>", "key": "<secret-key>"},
+//	  "clientSecretReference": {"name": "<secret-name>", "key": "<secret-key>"}
+//	}
 func (r *KubeconfigReconciler) getOIDCInfo(ctx context.Context, orgName string, cluster *v1alpha1.Cluster) (OIDCInfo, error) {
 	var org v1alpha1.Organization
 	if err := r.Get(ctx, client.ObjectKey{Name: orgName}, &org); err != nil {
@@ -264,30 +268,34 @@ func (r *KubeconfigReconciler) getOIDCInfo(ctx context.Context, orgName string, 
 		IssuerURL:    org.Spec.Authentication.OIDCConfig.Issuer,
 	}
 
-	// Organization-level overrides via labels on the Organization custom resource
-	// Label keys (as provided): greenhouse.sap/clusterkubeconfig-ovveride-clientid and ...-clientsecret
-	const (
-		lblOverrideClientID     = "greenhouse.sap/clusterkubeconfig-ovveride-clientid"
-		lblOverrideClientSecret = "greenhouse.sap/clusterkubeconfig-ovveride-clientsecret"
-	)
-
-	// Check Organization custom resource labels for overrides
-	if org.Labels != nil {
-		if v, ok := org.Labels[lblOverrideClientID]; ok && v != "" {
-			oidc.ClientID = v
-		}
-		if v, ok := org.Labels[lblOverrideClientSecret]; ok && v != "" {
-			oidc.ClientSecret = v
-		}
-	}
-
-	// Cluster-level overrides via labels on the Cluster
-	if cluster != nil && cluster.Labels != nil {
-		if v, ok := cluster.Labels[lblOverrideClientID]; ok && v != "" {
-			oidc.ClientID = v
-		}
-		if v, ok := cluster.Labels[lblOverrideClientSecret]; ok && v != "" {
-			oidc.ClientSecret = v
+	// Cluster-level overrides via annotation greenhouse.sap/oidc-override
+	if cluster != nil && cluster.Annotations != nil {
+		const annKey = "greenhouse.sap/oidc-override"
+		if raw, ok := cluster.Annotations[annKey]; ok && raw != "" {
+			// Define struct to deserialize annotation
+			type overrideSpec struct {
+				ClientIDReference     *v1alpha1.SecretKeyReference `json:"clientIDReference"`
+				ClientSecretReference *v1alpha1.SecretKeyReference `json:"clientSecretReference"`
+			}
+			var spec overrideSpec
+			if err := json.Unmarshal([]byte(raw), &spec); err != nil {
+				return OIDCInfo{}, err
+			}
+			// Apply overrides from referenced secrets if provided
+			if spec.ClientIDReference != nil && spec.ClientIDReference.Name != "" && spec.ClientIDReference.Key != "" {
+				val, err := clientutil.GetSecretKeyFromSecretKeyReference(ctx, r.Client, orgName, *spec.ClientIDReference)
+				if err != nil {
+					return OIDCInfo{}, err
+				}
+				oidc.ClientID = val
+			}
+			if spec.ClientSecretReference != nil && spec.ClientSecretReference.Name != "" && spec.ClientSecretReference.Key != "" {
+				val, err := clientutil.GetSecretKeyFromSecretKeyReference(ctx, r.Client, orgName, *spec.ClientSecretReference)
+				if err != nil {
+					return OIDCInfo{}, err
+				}
+				oidc.ClientSecret = val
+			}
 		}
 	}
 
