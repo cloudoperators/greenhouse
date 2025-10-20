@@ -35,6 +35,8 @@ var (
 var (
 	testPluginTeam = test.NewTeam(test.Ctx, "test-remote-cluster-team", test.TestNamespace, test.WithTeamLabel(greenhouseapis.LabelKeySupportGroup, "true"))
 
+	testOrganization = test.NewOrganization(test.Ctx, test.TestNamespace)
+
 	testCluster = test.NewCluster(test.Ctx, "test-flux-cluster", test.TestNamespace,
 		test.WithAccessMode(greenhousev1alpha1.ClusterAccessModeDirect),
 		test.WithClusterLabel(greenhouseapis.LabelKeyOwnedBy, testPluginTeam.Name))
@@ -120,6 +122,9 @@ var _ = Describe("Flux Plugin Controller", Ordered, func() {
 
 		By("bootstrapping remote cluster")
 		_, remoteK8sClient, remoteEnvTest, remoteKubeConfig = test.StartControlPlane("6885", false, false)
+
+		By("creating an Organization")
+		Expect(test.K8sClient.Create(test.Ctx, testOrganization)).Should(Succeed(), "there should be no error creating the Organization")
 
 		By("creating a Team")
 		Expect(test.K8sClient.Create(test.Ctx, testPluginTeam)).Should(Succeed(), "there should be no error creating the Team")
