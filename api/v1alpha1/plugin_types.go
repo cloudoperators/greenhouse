@@ -88,6 +88,9 @@ const (
 	// HelmChartTestSucceededCondition reflects the status of the HelmChart tests.
 	HelmChartTestSucceededCondition greenhousemetav1alpha1.ConditionType = "HelmChartTestSucceeded"
 
+	// WaitingForDependenciesCondition reflects if HelmRelease is waiting for other releases to be ready.
+	WaitingForDependenciesCondition greenhousemetav1alpha1.ConditionType = "WaitingForDependencies"
+
 	// PluginDefinitionNotFoundReason is set when the pluginDefinition is not found.
 	PluginDefinitionNotFoundReason greenhousemetav1alpha1.ConditionReason = "PluginDefinitionNotFound"
 

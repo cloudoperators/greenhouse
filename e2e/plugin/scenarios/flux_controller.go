@@ -320,7 +320,8 @@ func FluxControllerUIOnlyPlugin(ctx context.Context, adminClient, remoteClient c
 	}).Should(Succeed())
 }
 
-func FluxControllerPluginDependenciesOnPreset(ctx context.Context, adminClient, remoteClient client.Client, env *shared.TestEnv, remoteClusterName, teamName string) {
+// FluxControllerPluginDependencies is a scenario in which leafPreset depends on both midPreset and globalPlugin, and midPreset depends on globalPlugin.
+func FluxControllerPluginDependencies(ctx context.Context, adminClient, remoteClient client.Client, env *shared.TestEnv, remoteClusterName, teamName string) {
 	By("Creating plugin definition")
 	testPluginDefinition := fixtures.PreparePodInfoPluginDefinition(env.TestNamespace, "6.9.0")
 	err := adminClient.Create(ctx, testPluginDefinition)
@@ -343,12 +344,13 @@ func FluxControllerPluginDependenciesOnPreset(ctx context.Context, adminClient, 
 		g.Expect(helmRepository.Spec.URL).To(Equal("oci://ghcr.io/stefanprodan/charts"), "the helm repository URL should match the expected value")
 	}).Should(Succeed(), "the helm repository should eventually be created and ready")
 
-	By("Prepare the plugin spec for preset")
-	testPlugin := fixtures.PreparePlugin("test-podinfo-plugin", env.TestNamespace,
+	By("Prepare the plugin spec for presets")
+	testPluginSpec := fixtures.PreparePlugin("test-podinfo-plugin", env.TestNamespace,
 		test.WithClusterPluginDefinition(testPluginDefinition.Name),
 		test.WithReleaseName("test-podinfo-plugin"),
 		test.WithReleaseNamespace(env.TestNamespace),
-		test.WithPluginOptionValue("replicaCount", &apiextensionsv1.JSON{Raw: []byte("1")}))
+		test.WithPluginOptionValue("replicaCount", &apiextensionsv1.JSON{Raw: []byte("1")}),
+	).Spec
 
 	By("Add labels to remote cluster")
 	remoteCluster := &greenhousev1alpha1.Cluster{}
@@ -360,13 +362,14 @@ func FluxControllerPluginDependenciesOnPreset(ctx context.Context, adminClient, 
 	err = adminClient.Update(ctx, remoteCluster)
 	Expect(err).ToNot(HaveOccurred())
 
-	standalonePluginPresetName := "test-standalone-plugin-preset"
-	standalonePluginPresetPluginName := standalonePluginPresetName + "-" + remoteClusterName
+	midPluginPresetName := "test-mid-plugin-preset"
+	midPluginPresetResolvedPluginName := midPluginPresetName + "-" + remoteClusterName
+	globalPluginName := "test-global-plugin"
 
-	By("Creating plugin preset dependent on Plugin from standalone preset")
-	dependentPluginPreset := &greenhousev1alpha1.PluginPreset{
+	By("Creating leaf PluginPreset dependent on Plugin from mid PluginPreset and on global Plugin")
+	leafPluginPreset := &greenhousev1alpha1.PluginPreset{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      "test-dependent-plugin-preset",
+			Name:      "test-leaf-plugin-preset",
 			Namespace: env.TestNamespace,
 			Labels: map[string]string{
 				greenhouseapis.GreenhouseHelmDeliveryToolLabel: greenhouseapis.GreenhouseHelmDeliveryToolFlux,
@@ -377,7 +380,7 @@ func FluxControllerPluginDependenciesOnPreset(ctx context.Context, adminClient, 
 			},
 		},
 		Spec: greenhousev1alpha1.PluginPresetSpec{
-			Plugin: testPlugin.Spec,
+			Plugin: testPluginSpec,
 			ClusterSelector: metav1.LabelSelector{
 				MatchLabels: map[string]string{
 					"app": "test-cluster",
@@ -386,49 +389,63 @@ func FluxControllerPluginDependenciesOnPreset(ctx context.Context, adminClient, 
 			WaitFor: []greenhousev1alpha1.WaitForItem{
 				{
 					PluginRef: greenhousev1alpha1.PluginRef{
-						PluginPreset: standalonePluginPresetName,
+						PluginPreset: midPluginPresetName,
+					},
+				},
+				{
+					PluginRef: greenhousev1alpha1.PluginRef{
+						Name: globalPluginName,
 					},
 				},
 			},
 		},
 	}
-	err = adminClient.Create(ctx, dependentPluginPreset)
+	err = adminClient.Create(ctx, leafPluginPreset)
 	Expect(client.IgnoreAlreadyExists(err)).ToNot(HaveOccurred())
 
-	By("Checking the dependent plugin is created with correctly copied dependency")
+	By("Checking the leaf plugin is created with correctly copied dependency")
 	Eventually(func(g Gomega) {
 		plugin := &greenhousev1alpha1.Plugin{}
-		err = adminClient.Get(ctx, types.NamespacedName{Name: dependentPluginPreset.Name + "-" + remoteClusterName, Namespace: env.TestNamespace}, plugin)
+		err = adminClient.Get(ctx, types.NamespacedName{Name: leafPluginPreset.Name + "-" + remoteClusterName, Namespace: env.TestNamespace}, plugin)
 		g.Expect(err).NotTo(HaveOccurred())
-		g.Expect(plugin.Spec.WaitFor).To(HaveLen(1))
-		pluginRef := plugin.Spec.WaitFor[0]
-		g.Expect(pluginRef.PluginPreset).To(Equal(standalonePluginPresetName), "PluginRef on Plugin should be copied over from PluginPreset")
-		g.Expect(pluginRef.Name).To(BeEmpty(), "PluginRef on Plugin should be copied over from PluginPreset")
+		g.Expect(plugin.Spec.WaitFor).To(HaveLen(2))
+		g.Expect(plugin.Spec.WaitFor).To(ContainElements(
+			greenhousev1alpha1.WaitForItem{PluginRef: greenhousev1alpha1.PluginRef{
+				Name:         globalPluginName,
+				PluginPreset: "",
+			}},
+			greenhousev1alpha1.WaitForItem{PluginRef: greenhousev1alpha1.PluginRef{
+				Name:         "",
+				PluginPreset: midPluginPresetName,
+			}},
+		), "PluginRef should be copied over from PluginPreset")
 	}).Should(Succeed())
 
-	dependentHelmRelease := &helmv2.HelmRelease{}
-	By("Checking the HelmRelease is created with resolved dependency and Flux waits with installation")
+	By("Checking the leaf HelmRelease is created with resolved dependencies and Flux waits with installation")
+	leafHelmRelease := &helmv2.HelmRelease{}
 	Eventually(func(g Gomega) {
 		helmReleaseList := &helmv2.HelmReleaseList{}
 		err = adminClient.List(ctx, helmReleaseList, client.InNamespace(env.TestNamespace))
 		g.Expect(err).NotTo(HaveOccurred())
 		g.Expect(helmReleaseList.Items).To(HaveLen(1))
-		dependentHelmRelease = &helmReleaseList.Items[0]
-		g.Expect(dependentHelmRelease.Spec.DependsOn).To(HaveLen(1), "there should be only one dependency in HelmRelease")
-		helmReleaseDependency := dependentHelmRelease.Spec.DependsOn[0]
-		g.Expect(helmReleaseDependency.Name).To(Equal(standalonePluginPresetPluginName),
-			"HelmRelease dependency should be set to a HelmRelease with the same name as the resolved Plugin it depends on")
-		g.Expect(dependentHelmRelease.Status.Conditions).To(ContainElement(MatchFields(IgnoreExtras, Fields{
-			"Type":   Equal(fluxmeta.ReadyCondition),
-			"Reason": Equal(helmv2.DependencyNotReadyReason),
-			"Status": Equal(metav1.ConditionFalse),
+		leafHelmRelease = &helmReleaseList.Items[0]
+		g.Expect(leafHelmRelease.Spec.DependsOn).To(HaveLen(2), "there should be exactly two dependencies in leaf HelmRelease")
+		g.Expect(leafHelmRelease.Spec.DependsOn).To(ContainElements(
+			helmv2.DependencyReference{Name: globalPluginName},
+			helmv2.DependencyReference{Name: midPluginPresetResolvedPluginName},
+		), "HelmRelease dependencies should be set to resolved Plugin names it depends on")
+		g.Expect(leafHelmRelease.Status.Conditions).To(ContainElement(MatchFields(IgnoreExtras, Fields{
+			"Type":    Equal(fluxmeta.ReadyCondition),
+			"Reason":  Equal(helmv2.DependencyNotReadyReason),
+			"Status":  Equal(metav1.ConditionFalse),
+			"Message": ContainSubstring("unable to get '" + env.TestNamespace + "/" + midPluginPresetResolvedPluginName + "' dependency"),
 		})))
 	}).Should(Succeed())
 
-	By("Creating standalone plugin preset")
-	standalonePluginPreset := &greenhousev1alpha1.PluginPreset{
+	By("Creating mid PluginPreset")
+	midPluginPreset := &greenhousev1alpha1.PluginPreset{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      standalonePluginPresetName,
+			Name:      midPluginPresetName,
 			Namespace: env.TestNamespace,
 			Labels: map[string]string{
 				greenhouseapis.GreenhouseHelmDeliveryToolLabel: greenhouseapis.GreenhouseHelmDeliveryToolFlux,
@@ -439,42 +456,91 @@ func FluxControllerPluginDependenciesOnPreset(ctx context.Context, adminClient, 
 			},
 		},
 		Spec: greenhousev1alpha1.PluginPresetSpec{
-			Plugin: testPlugin.Spec,
+			Plugin: testPluginSpec,
 			ClusterSelector: metav1.LabelSelector{
 				MatchLabels: map[string]string{
 					"app": "test-cluster",
 				},
 			},
+			WaitFor: []greenhousev1alpha1.WaitForItem{
+				{
+					PluginRef: greenhousev1alpha1.PluginRef{
+						Name: globalPluginName,
+					},
+				},
+			},
 		},
 	}
-	err = adminClient.Create(ctx, standalonePluginPreset)
+	err = adminClient.Create(ctx, midPluginPreset)
 	Expect(client.IgnoreAlreadyExists(err)).ToNot(HaveOccurred())
 
-	By("Checking the standalone plugin is created")
+	By("Checking the mid plugin is created")
 	Eventually(func(g Gomega) {
 		plugin := &greenhousev1alpha1.Plugin{}
-		err = adminClient.Get(ctx, types.NamespacedName{Name: standalonePluginPresetPluginName, Namespace: env.TestNamespace}, plugin)
+		err = adminClient.Get(ctx, types.NamespacedName{Name: midPluginPresetResolvedPluginName, Namespace: env.TestNamespace}, plugin)
 		g.Expect(err).NotTo(HaveOccurred())
 	}).Should(Succeed())
 
-	standaloneHelmRelease := &helmv2.HelmRelease{}
-	By("Checking the standalone HelmRelease is installed")
+	By("Checking the mid HelmRelease is created with resolved dependency and Flux waits with installation")
+	midHelmRelease := &helmv2.HelmRelease{}
 	Eventually(func(g Gomega) {
-		err = adminClient.Get(ctx, types.NamespacedName{Name: standalonePluginPresetPluginName, Namespace: env.TestNamespace}, standaloneHelmRelease)
+		err = adminClient.Get(ctx, types.NamespacedName{
+			Namespace: env.TestNamespace, Name: midPluginPresetResolvedPluginName,
+		}, midHelmRelease)
 		g.Expect(err).NotTo(HaveOccurred())
-		g.Expect(standaloneHelmRelease.Spec.DependsOn).To(BeEmpty())
-		g.Expect(standaloneHelmRelease.Status.Conditions).To(ContainElement(MatchFields(IgnoreExtras, Fields{
+		g.Expect(midHelmRelease.Spec.DependsOn).To(HaveLen(1), "there should be exactly one dependency in mid HelmRelease")
+		g.Expect(midHelmRelease.Spec.DependsOn).To(ContainElement(
+			helmv2.DependencyReference{Name: globalPluginName},
+		), "HelmRelease dependency should be set to the globalPlugin name it depends on")
+		g.Expect(midHelmRelease.Status.Conditions).To(ContainElement(MatchFields(IgnoreExtras, Fields{
+			"Type":    Equal(fluxmeta.ReadyCondition),
+			"Reason":  Equal(helmv2.DependencyNotReadyReason),
+			"Status":  Equal(metav1.ConditionFalse),
+			"Message": ContainSubstring("unable to get '" + env.TestNamespace + "/" + globalPluginName + "' dependency"),
+		})))
+	}).Should(Succeed())
+
+	By("Creating the globalPlugin")
+	globalPlugin := test.NewPlugin(ctx, globalPluginName, env.TestNamespace,
+		test.WithClusterPluginDefinition(testPluginDefinition.Name),
+		test.WithReleaseName("test-global-podinfo-plugin"),
+		test.WithReleaseNamespace(env.TestNamespace),
+		test.WithCluster(remoteClusterName),
+		test.WithPluginLabel(greenhouseapis.GreenhouseHelmDeliveryToolLabel, greenhouseapis.GreenhouseHelmDeliveryToolFlux),
+		test.WithPluginLabel(greenhouseapis.LabelKeyOwnedBy, teamName),
+	)
+	err = adminClient.Create(ctx, globalPlugin)
+	Expect(client.IgnoreAlreadyExists(err)).ToNot(HaveOccurred())
+
+	By("Checking the globalPlugin HelmRelease is installed")
+	globalPluginHelmRelease := &helmv2.HelmRelease{}
+	Eventually(func(g Gomega) {
+		err = adminClient.Get(ctx, types.NamespacedName{Name: globalPluginName, Namespace: env.TestNamespace}, globalPluginHelmRelease)
+		g.Expect(err).NotTo(HaveOccurred())
+		g.Expect(globalPluginHelmRelease.Spec.DependsOn).To(BeEmpty())
+		g.Expect(globalPluginHelmRelease.Status.Conditions).To(ContainElement(MatchFields(IgnoreExtras, Fields{
 			"Type":   Equal(helmv2.ReleasedCondition),
 			"Reason": Equal(helmv2.InstallSucceededReason),
 			"Status": Equal(metav1.ConditionTrue),
 		})))
 	}).Should(Succeed())
 
-	By("Checking the dependent HelmRelease is upgraded")
+	By("Checking the mid HelmRelease is installed")
 	Eventually(func(g Gomega) {
-		err = adminClient.Get(ctx, client.ObjectKeyFromObject(dependentHelmRelease), dependentHelmRelease)
+		err = adminClient.Get(ctx, types.NamespacedName{Name: midPluginPresetResolvedPluginName, Namespace: env.TestNamespace}, midHelmRelease)
 		g.Expect(err).NotTo(HaveOccurred())
-		g.Expect(dependentHelmRelease.Status.Conditions).To(ContainElement(MatchFields(IgnoreExtras, Fields{
+		g.Expect(midHelmRelease.Status.Conditions).To(ContainElement(MatchFields(IgnoreExtras, Fields{
+			"Type":   Equal(helmv2.ReleasedCondition),
+			"Reason": Equal(helmv2.InstallSucceededReason),
+			"Status": Equal(metav1.ConditionTrue),
+		})))
+	}).Should(Succeed())
+
+	By("Checking the leaf HelmRelease is upgraded")
+	Eventually(func(g Gomega) {
+		err = adminClient.Get(ctx, client.ObjectKeyFromObject(leafHelmRelease), leafHelmRelease)
+		g.Expect(err).NotTo(HaveOccurred())
+		g.Expect(leafHelmRelease.Status.Conditions).To(ContainElement(MatchFields(IgnoreExtras, Fields{
 			"Type":   Equal(helmv2.ReleasedCondition),
 			"Reason": Equal(helmv2.UpgradeSucceededReason),
 			"Status": Equal(metav1.ConditionTrue),
@@ -482,14 +548,18 @@ func FluxControllerPluginDependenciesOnPreset(ctx context.Context, adminClient, 
 	}).Should(Succeed())
 
 	By("Deleting both plugin presets")
-	test.EventuallyDeleted(ctx, adminClient, standalonePluginPreset)
-	test.EventuallyDeleted(ctx, adminClient, dependentPluginPreset)
-	By("Verifying both HelmReleases are deleted")
+	test.EventuallyDeleted(ctx, adminClient, midPluginPreset)
+	test.EventuallyDeleted(ctx, adminClient, leafPluginPreset)
+	By("deleting global plugin")
+	test.EventuallyDeleted(ctx, adminClient, globalPlugin)
+	By("Verifying all HelmReleases are deleted")
 	Eventually(func(g Gomega) {
-		err = adminClient.Get(ctx, client.ObjectKeyFromObject(standaloneHelmRelease), standaloneHelmRelease)
-		g.Expect(apierrors.IsNotFound(err)).To(BeTrue(), "there should be a not found error getting the standalone flux HelmRelease")
-		err = adminClient.Get(ctx, client.ObjectKeyFromObject(dependentHelmRelease), dependentHelmRelease)
-		g.Expect(apierrors.IsNotFound(err)).To(BeTrue(), "there should be a not found error getting the dependent flux HelmRelease")
+		err = adminClient.Get(ctx, client.ObjectKeyFromObject(midHelmRelease), midHelmRelease)
+		g.Expect(apierrors.IsNotFound(err)).To(BeTrue(), "there should be a not found error getting the mid flux HelmRelease")
+		err = adminClient.Get(ctx, client.ObjectKeyFromObject(leafHelmRelease), leafHelmRelease)
+		g.Expect(apierrors.IsNotFound(err)).To(BeTrue(), "there should be a not found error getting the leaf flux HelmRelease")
+		err = adminClient.Get(ctx, client.ObjectKeyFromObject(globalPluginHelmRelease), globalPluginHelmRelease)
+		g.Expect(apierrors.IsNotFound(err)).To(BeTrue(), "there should be a not found error getting the globalPlugin flux HelmRelease")
 	}).Should(Succeed(), "the flux HelmReleases should eventually be deleted")
 	By("Deleting the plugin definition")
 	test.EventuallyDeleted(ctx, adminClient, testPluginDefinition)

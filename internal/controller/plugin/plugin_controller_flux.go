@@ -317,6 +317,16 @@ func (r *PluginReconciler) reconcilePluginStatus(ctx context.Context,
 			releaseStatus.Status = "progressing"
 		}
 
+		switch {
+		case len(plugin.Spec.WaitFor) == 0:
+			plugin.SetCondition(greenhousemetav1alpha1.FalseCondition(greenhousev1alpha1.WaitingForDependenciesCondition, "", ""))
+		case isReadyCurrent && ready.Status == metav1.ConditionTrue:
+			plugin.SetCondition(greenhousemetav1alpha1.FalseCondition(greenhousev1alpha1.WaitingForDependenciesCondition, "", ""))
+		case isReadyCurrent && ready.Status == metav1.ConditionFalse && ready.Reason == helmv2.DependencyNotReadyReason:
+			plugin.SetCondition(greenhousemetav1alpha1.TrueCondition(greenhousev1alpha1.WaitingForDependenciesCondition,
+				greenhousemetav1alpha1.ConditionReason(ready.Reason), ready.Message))
+		}
+
 		if plugin.Spec.OptionValues != nil {
 			checksum, err := helm.CalculatePluginOptionChecksum(ctx, r.Client, plugin)
 			if err != nil {
