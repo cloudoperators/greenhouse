@@ -6,7 +6,7 @@ on:
 jobs:
   generate-token:
     name: Generate GitHub App Token
-    runs-on: default
+    runs-on: [ ubuntu-latest ]
     outputs:
       token: ${{ steps.github-app-token.outputs.token }}
     steps:
