@@ -331,6 +331,10 @@ func (r *RemoteClusterReconciler) EnsureDeleted(ctx context.Context, resource li
 	return ctrl.Result{}, lifecycle.Success, nil
 }
 
+func (r *RemoteClusterReconciler) EnsureSuspended(_ context.Context, _ lifecycle.RuntimeObject) (ctrl.Result, error) {
+	return ctrl.Result{}, nil
+}
+
 // deleteClusterRoleBindingInRemoteCluster - deletes the cluster role binding in the remote cluster
 func (r *RemoteClusterReconciler) deleteClusterRoleBindingInRemoteCluster(ctx context.Context, k8sClient client.Client) error {
 	crb := &rbacv1.ClusterRoleBinding{}

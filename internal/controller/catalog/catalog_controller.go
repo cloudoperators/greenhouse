@@ -24,6 +24,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
+	"sigs.k8s.io/controller-runtime/pkg/log"
 
 	greenhouseapis "github.com/cloudoperators/greenhouse/api"
 	greenhousemetav1alpha1 "github.com/cloudoperators/greenhouse/api/meta/v1alpha1"
@@ -167,6 +168,20 @@ func (r *CatalogReconciler) EnsureCreated(ctx context.Context, obj lifecycle.Run
 	return ctrl.Result{}, lifecycle.Success, nil
 }
 
+func (r *CatalogReconciler) EnsureSuspended(ctx context.Context, obj lifecycle.RuntimeObject) (ctrl.Result, error) {
+	catalog := obj.(*greenhousev1alpha1.Catalog) //nolint:errcheck
+
+	if err := r.suspendKustomization(ctx, catalog); err != nil {
+		return ctrl.Result{}, err
+	}
+
+	if err := r.suspendGitRepository(ctx, catalog); err != nil {
+		return ctrl.Result{}, err
+	}
+
+	return ctrl.Result{}, nil
+}
+
 func (r *CatalogReconciler) getSourceSecret(ctx context.Context, catalog *greenhousev1alpha1.Catalog) (*corev1.Secret, error) {
 	gitSource := catalog.GetCatalogSource()
 	if gitSource.SecretName == nil {
@@ -218,6 +233,7 @@ func (r *CatalogReconciler) ensureGitRepository(ctx context.Context, catalog *gr
 			Interval:  metav1.Duration{Duration: flux.DefaultInterval},
 			Reference: gitReference,
 			Provider:  authProvider,
+			Suspend:   false,
 		}
 		if secret != nil {
 			gitRepository.Spec.SecretRef = &fluxmeta.LocalObjectReference{Name: *gitSource.SecretName}
@@ -254,7 +270,7 @@ func (r *CatalogReconciler) ensureKustomization(ctx context.Context, catalog *gr
 	}
 	ggvk := gitRepository.GroupVersionKind()
 	kuz := flux.NewKustomizationSpecBuilder(r.Log)
-	kuz = kuz.WithSourceRef(ggvk.String(), ggvk.Kind, gitRepository.Name, gitRepository.Namespace)
+	kuz = kuz.WithSourceRef(ggvk.String(), ggvk.Kind, gitRepository.Name, gitRepository.Namespace).WithSuspend(false)
 	if catalog.ResourcePath() != "" {
 		kuz = kuz.WithPath(catalog.ResourcePath())
 	}
@@ -290,6 +306,64 @@ func (r *CatalogReconciler) ensureKustomization(ctx context.Context, catalog *gr
 		r.Log.Info("No changes to catalog kustomization", "name", kustomization.Name, "namespace", kustomization.Namespace)
 	default:
 		r.Log.Info("result is unknown for catalog kustomization", "name", catalog.Name, "namespace", catalog.Namespace, "result", result)
+	}
+	return nil
+}
+
+func (r *CatalogReconciler) suspendGitRepository(ctx context.Context, catalog *greenhousev1alpha1.Catalog) error {
+	gitRepository := &sourcev1.GitRepository{}
+	gitRepository.SetName(catalog.Name)
+	gitRepository.SetNamespace(catalog.Namespace)
+	err := r.Get(ctx, client.ObjectKeyFromObject(gitRepository), gitRepository)
+
+	if apierrors.IsNotFound(err) {
+		return nil
+	}
+	if err != nil {
+		return err
+	}
+
+	result, err := ctrl.CreateOrUpdate(ctx, r.Client, gitRepository, func() error {
+		gitRepository.Spec.Suspend = true
+		return nil
+	})
+	if err != nil {
+		return err
+	}
+	switch result {
+	case controllerutil.OperationResultNone:
+		log.FromContext(ctx).Info("No changes, Catalog's GitRepository already suspended", "name", gitRepository.Name)
+	default:
+		log.FromContext(ctx).Info("Suspend applied to Catalog's GitRepository", "name", gitRepository.Name)
+	}
+	return nil
+}
+
+func (r *CatalogReconciler) suspendKustomization(ctx context.Context, catalog *greenhousev1alpha1.Catalog) error {
+	kustomization := &kustomizev1.Kustomization{}
+	kustomization.SetName(catalog.Name)
+	kustomization.SetNamespace(catalog.Namespace)
+	err := r.Get(ctx, client.ObjectKeyFromObject(kustomization), kustomization)
+
+	if apierrors.IsNotFound(err) {
+		return nil
+	}
+	if err != nil {
+		return err
+	}
+
+	result, err := ctrl.CreateOrUpdate(ctx, r.Client, kustomization, func() error {
+		kustomization.Spec.Suspend = true
+		return nil
+	})
+	if err != nil {
+		return err
+	}
+	switch result {
+	case controllerutil.OperationResultNone:
+		log.FromContext(ctx).Info("No changes, Catalog's GitRepository already suspended", "name", kustomization.Name)
+	default:
+		log.FromContext(ctx).Info("Suspend applied to Catalog's GitRepository", "name", kustomization.Name)
 	}
 	return nil
 }

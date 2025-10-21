@@ -188,6 +188,10 @@ func (r *TeamRoleBindingReconciler) EnsureDeleted(ctx context.Context, resource 
 	return ctrl.Result{}, lifecycle.Pending, nil
 }
 
+func (r *TeamRoleBindingReconciler) EnsureSuspended(_ context.Context, _ lifecycle.RuntimeObject) (ctrl.Result, error) {
+	return ctrl.Result{}, nil
+}
+
 // doReconcile reconciles the TeamRoleBinding's rbacv1 resources on all relevant clusters
 func (r *TeamRoleBindingReconciler) doReconcile(ctx context.Context, teamRole *greenhousev1alpha1.TeamRole, clusters *greenhousev1alpha1.ClusterList, trb *greenhousev1alpha2.TeamRoleBinding, team *greenhousev1alpha1.Team) error {
 	failedClusters := []string{}
