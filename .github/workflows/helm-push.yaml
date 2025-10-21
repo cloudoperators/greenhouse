@@ -16,7 +16,7 @@ env:
 
 jobs:
   helm-release:
-    runs-on: [ default ]
+    runs-on: [ ubuntu-latest ]
     strategy:
       fail-fast: false
       matrix:
