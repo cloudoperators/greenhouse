@@ -20,7 +20,7 @@ on:
       - "api/v1alpha2/**"
 jobs:
   generate-docs-types-specs:
-    runs-on: [default]
+    runs-on: [ ubuntu-latest ]
     steps:
       - name: Generate GitHub App Token
         id: github-app-token

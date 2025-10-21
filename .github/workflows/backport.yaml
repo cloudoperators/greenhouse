@@ -6,7 +6,7 @@ on:
 jobs:
   backport:
     if: github.event.pull_request.state == 'closed' && github.event.pull_request.merged && (github.event_name != 'labeled' || startsWith('backport:', github.event.label.name))
-    runs-on: [default]
+    runs-on: [ ubuntu-latest ]
     steps:
       - name: Generate GitHub App Token
         id: github-app-token
