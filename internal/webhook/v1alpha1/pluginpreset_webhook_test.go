@@ -713,7 +713,7 @@ var _ = Describe("Validate Plugin OptionValues for PluginPreset", func() {
 	})
 
 	DescribeTable("Validate WaitFor PluginRefs", func(waitForItems []greenhousev1alpha1.WaitForItem, expErr bool) {
-		errList := validateWaitForPluginRefs(waitForItems)
+		errList := validateWaitForPluginRefs(waitForItems, false)
 		switch expErr {
 		case true:
 			Expect(errList).ToNot(BeEmpty(), "expected an error, got nil")

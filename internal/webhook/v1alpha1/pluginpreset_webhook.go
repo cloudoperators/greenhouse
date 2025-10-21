@@ -102,7 +102,7 @@ func ValidateCreatePluginPreset(ctx context.Context, c client.Client, o runtime.
 	}
 
 	// validate WaitFor items are unique and that PluginRef's fields are mutually exclusive
-	if errList := validateWaitForPluginRefs(pluginPreset.Spec.WaitFor); len(errList) > 0 {
+	if errList := validateWaitForPluginRefs(pluginPreset.Spec.WaitFor, false); len(errList) > 0 {
 		allErrs = append(allErrs, errList...)
 	}
 
@@ -186,7 +186,7 @@ func ValidateUpdatePluginPreset(ctx context.Context, c client.Client, oldObj, cu
 	}
 
 	// validate WaitFor items are unique and that PluginRef's fields are mutually exclusive
-	if errList := validateWaitForPluginRefs(pluginPreset.Spec.WaitFor); len(errList) > 0 {
+	if errList := validateWaitForPluginRefs(pluginPreset.Spec.WaitFor, false); len(errList) > 0 {
 		allErrs = append(allErrs, errList...)
 	}
 
@@ -232,7 +232,7 @@ func validatePluginOptionValuesForPreset(pluginPreset *greenhousev1alpha1.Plugin
 }
 
 // validateWaitForPluginRefs validates that the WaitFor list is unique and that each PluginRef has exactly one field set.
-func validateWaitForPluginRefs(items []greenhousev1alpha1.WaitForItem) field.ErrorList {
+func validateWaitForPluginRefs(items []greenhousev1alpha1.WaitForItem, isPluginInCentralCluster bool) field.ErrorList {
 	itemsPath := field.NewPath("spec", "waitFor")
 
 	seenPluginNames := make(map[string]int, 0)
@@ -253,6 +253,11 @@ func validateWaitForPluginRefs(items []greenhousev1alpha1.WaitForItem) field.Err
 				seenPluginNames[item.Name] = i
 			}
 		case item.PluginPreset != "":
+			if isPluginInCentralCluster {
+				errList = append(errList, field.Invalid(itemsPath.Index(i).Child("pluginRef", "pluginPreset"),
+					item.PluginPreset, "plugins running in the central cluster cannot have PluginPreset dependencies"))
+				continue
+			}
 			if first, dup := seenPluginPresets[item.PluginPreset]; dup {
 				errList = append(errList, field.Duplicate(itemsPath.Index(first).Child("pluginRef", "pluginPreset"), item.PluginPreset))
 				errList = append(errList, field.Duplicate(itemsPath.Index(i).Child("pluginRef", "pluginPreset"), item.PluginPreset))

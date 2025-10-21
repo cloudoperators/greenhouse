@@ -174,7 +174,7 @@ func ValidateCreatePlugin(ctx context.Context, c client.Client, obj runtime.Obje
 	}
 
 	// validate WaitFor items are unique and that PluginRef's fields are mutually exclusive
-	if errList := validateWaitForPluginRefs(plugin.Spec.WaitFor); len(errList) > 0 {
+	if errList := validateWaitForPluginRefs(plugin.Spec.WaitFor, plugin.Spec.ClusterName == ""); len(errList) > 0 {
 		allErrs = append(allErrs, errList...)
 	}
 
@@ -235,7 +235,7 @@ func ValidateUpdatePlugin(ctx context.Context, c client.Client, old, obj runtime
 		field.NewPath("spec", "clusterName"))...)
 
 	// validate WaitFor items are unique and that PluginRef's fields are mutually exclusive
-	if errList := validateWaitForPluginRefs(plugin.Spec.WaitFor); len(errList) > 0 {
+	if errList := validateWaitForPluginRefs(plugin.Spec.WaitFor, plugin.Spec.ClusterName == ""); len(errList) > 0 {
 		allErrs = append(allErrs, errList...)
 	}
 
