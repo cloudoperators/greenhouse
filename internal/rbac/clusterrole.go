@@ -38,7 +38,7 @@ func OrganizationMemberClusterRolePolicyRules(organizationName string) []rbacv1.
 		{
 			Verbs:     []string{"get", "list", "watch"},
 			APIGroups: []string{greenhouseapisv1alpha1.GroupVersion.Group},
-			Resources: []string{"plugindefinitions"},
+			Resources: []string{"clusterplugindefinitions"},
 		},
 	}
 }
