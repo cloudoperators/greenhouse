@@ -18,7 +18,7 @@ permissions:
 jobs:
   build:
     name: Build
-    runs-on: [ default ]
+    runs-on: [ ubuntu-latest ]
     permissions:
       contents: read
       packages: write

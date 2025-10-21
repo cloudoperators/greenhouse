@@ -29,10 +29,10 @@ The following roles are seeded for each Organization:
 |                                 |                                                            | `monitoring.coreos.com`   | `alertmanagers`, `alertmanagerconfigs`                                                               | `get`, `list`, `watch`      | - |
 | `role:<org-name>:cluster-admin` | An admin of Greenhouse `Clusters` within an `Organization` | `greenhouse.sap/v1alpha1` | `clusters`, `teamrolebindings`                                                                       | \*                          | - |
 |                                 |                                                            | `v1`                      | `secrets`                                                                                            | `create`, `update`, `patch` | - |
-| `role:<org-name>:plugin-admin`  | An admin of Greenhouse `Plugins` within an `Organization`  | `greenhouse.sap/v1alpha1` | `plugins`, `pluginpresets`                                                                           | \*                          | - |
+| `role:<org-name>:plugin-admin`  | An admin of Greenhouse `Plugins` within an `Organization`  | `greenhouse.sap/v1alpha1` | `plugins`, `pluginpresets`, `catalogs`, `plugindefinitions`                                                                           | \*                          | - |
 |                                 |                                                            | `v1`                      | `secrets`                                                                                            | `create`, `update`, `patch` | - |
 | `organization:<org-name>`        | A member of a Greenhouse `Organization`                    | `greenhouse.sap/v1alpha1` | \*                                                                                                   | `get`, `list`, `watch`      | - |
-| `organization:<org-name>`       | A member of a Greenhouse `Organization`                    | `greenhouse.sap/v1alpha1` | `organizations`, `plugindefinitions`                                                                 | `get`, `list`, `watch`      | x |
+| `organization:<org-name>`       | A member of a Greenhouse `Organization`                    | `greenhouse.sap/v1alpha1` | `organizations`, `clusterplugindefinitions`                                                                 | `get`, `list`, `watch`      | x |
 
 ## OIDC
 

@@ -8,7 +8,7 @@ jobs:
   init:
     outputs:
       tests: ${{ steps.e2es.outputs.result }}
-    runs-on: [ default ]
+    runs-on: [ ubuntu-latest ]
     name: "Prepare E2E Scenarios"
     steps:
       - name: "Checkout"
@@ -26,7 +26,7 @@ jobs:
     name: "Run ${{ matrix.e2es }}(${{ matrix.k8s-version}}) E2E"
     if: needs.init.outputs.tests != '[]'
     needs: [ init ]
-    runs-on: [ default ]
+    runs-on: [ ubuntu-latest ]
     env:
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     strategy:
@@ -61,7 +61,7 @@ jobs:
   checksOK:
     name: "E2E Check"
     needs: [ e2e ]
-    runs-on: [ default ]
+    runs-on: [ ubuntu-latest ]
     if: always()
     steps:
       - name: "Check if e2e passed"

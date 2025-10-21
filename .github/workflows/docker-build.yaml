@@ -21,7 +21,7 @@ env:
 jobs:
   build:
     name: Build
-    runs-on: [ default ]
+    runs-on: [ ubuntu-latest ]
     permissions:
       contents: read
       packages: write
@@ -120,7 +120,7 @@ jobs:
       security-events: write
     name: Vulnerability Scan
     needs: build
-    runs-on: [ default ]
+    runs-on: [ ubuntu-latest ]
     steps:
       - name: Run Trivy vulnerability scanner
         uses: aquasecurity/trivy-action@b6643a29fecd7f34b3597bc6acb0a98b03d33ff8 # 0.33.1
