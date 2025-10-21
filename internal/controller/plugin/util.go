@@ -349,7 +349,7 @@ func resolvePluginDependencies(dependencies []greenhousev1alpha1.WaitForItem, cl
 		// The name of the HelmRelease is the same as the name of the Plugin.
 		dependencyName := pluginRef.Name
 		if pluginRef.PluginPreset != "" {
-			dependencyName = fmt.Sprintf("%s-%s", pluginRef.PluginPreset, clusterName)
+			dependencyName = buildPluginName(pluginRef.PluginPreset, clusterName)
 		}
 		out[i] = helmv2.DependencyReference{
 			Name: dependencyName,

@@ -340,7 +340,12 @@ func overridesPluginOptionValues(plugin *greenhousev1alpha1.Plugin, preset *gree
 
 // generatePluginName generates a name for a plugin based on the used PluginPreset's name and the Cluster.
 func generatePluginName(p *greenhousev1alpha1.PluginPreset, cluster *greenhousev1alpha1.Cluster) string {
-	return fmt.Sprintf("%s-%s", p.Name, cluster.GetName())
+	return buildPluginName(p.Name, cluster.GetName())
+}
+
+// buildPluginName takes PluginPreset name and Cluster name to create a name for the Plugin.
+func buildPluginName(pluginPresetName, clusterName string) string {
+	return fmt.Sprintf("%s-%s", pluginPresetName, clusterName)
 }
 
 func initPluginPresetStatus(p *greenhousev1alpha1.PluginPreset) {
