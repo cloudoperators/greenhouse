@@ -39,7 +39,7 @@ jobs:
       - name: Install Hugo CLI
         uses: peaceiris/actions-hugo@75d2e84710de30f6ff7268e08f310b60ef14033f #v3.0.0
         with:
-          hugo-version: $HUGO_VERSION
+          hugo-version: "0.128.0"
           extended: true
 
       - name: Checkout greenhouse repository
