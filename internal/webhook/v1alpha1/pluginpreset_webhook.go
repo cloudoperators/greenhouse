@@ -101,6 +101,11 @@ func ValidateCreatePluginPreset(ctx context.Context, c client.Client, o runtime.
 		allErrs = append(allErrs, field.Invalid(field.NewPath("spec").Child("plugin").Child("releaseName"), pluginPreset.Spec.Plugin.ReleaseName, err.Error()))
 	}
 
+	// validate WaitFor items are unique and that PluginRef's fields are mutually exclusive
+	if errList := validateWaitForPluginRefs(pluginPreset.Spec.WaitFor, false); len(errList) > 0 {
+		allErrs = append(allErrs, errList...)
+	}
+
 	if len(allErrs) > 0 {
 		return allWarns, apierrors.NewInvalid(pluginPreset.GroupVersionKind().GroupKind(), pluginPreset.Name, allErrs)
 	}
@@ -180,6 +185,11 @@ func ValidateUpdatePluginPreset(ctx context.Context, c client.Client, oldObj, cu
 		allErrs = append(allErrs, err)
 	}
 
+	// validate WaitFor items are unique and that PluginRef's fields are mutually exclusive
+	if errList := validateWaitForPluginRefs(pluginPreset.Spec.WaitFor, false); len(errList) > 0 {
+		allErrs = append(allErrs, errList...)
+	}
+
 	if len(allErrs) > 0 {
 		return allWarns, apierrors.NewInvalid(pluginPreset.GroupVersionKind().GroupKind(), pluginPreset.Name, allErrs)
 	}
@@ -219,4 +229,45 @@ func validatePluginOptionValuesForPreset(pluginPreset *greenhousev1alpha1.Plugin
 		allErrs = append(allErrs, errors...)
 	}
 	return allErrs
+}
+
+// validateWaitForPluginRefs validates that the WaitFor list is unique and that each PluginRef has exactly one field set.
+func validateWaitForPluginRefs(items []greenhousev1alpha1.WaitForItem, isPluginInCentralCluster bool) field.ErrorList {
+	itemsPath := field.NewPath("spec", "waitFor")
+
+	seenPluginNames := make(map[string]int, 0)
+	seenPluginPresets := make(map[string]int, 0)
+
+	var errList field.ErrorList
+
+	for i, item := range items {
+		switch {
+		case item.Name != "" && item.PluginPreset != "":
+			errList = append(errList, field.Invalid(itemsPath.Index(i).Child("pluginRef", "name"), item.Name,
+				"pluginRef.name and pluginRef.pluginPreset are mutually exclusive"))
+		case item.Name != "":
+			if first, dup := seenPluginNames[item.Name]; dup {
+				errList = append(errList, field.Duplicate(itemsPath.Index(first).Child("pluginRef", "name"), item.Name))
+				errList = append(errList, field.Duplicate(itemsPath.Index(i).Child("pluginRef", "name"), item.Name))
+			} else {
+				seenPluginNames[item.Name] = i
+			}
+		case item.PluginPreset != "":
+			if isPluginInCentralCluster {
+				errList = append(errList, field.Invalid(itemsPath.Index(i).Child("pluginRef", "pluginPreset"),
+					item.PluginPreset, "plugins running in the central cluster cannot have PluginPreset dependencies"))
+				continue
+			}
+			if first, dup := seenPluginPresets[item.PluginPreset]; dup {
+				errList = append(errList, field.Duplicate(itemsPath.Index(first).Child("pluginRef", "pluginPreset"), item.PluginPreset))
+				errList = append(errList, field.Duplicate(itemsPath.Index(i).Child("pluginRef", "pluginPreset"), item.PluginPreset))
+			} else {
+				seenPluginPresets[item.PluginPreset] = i
+			}
+		default:
+			errList = append(errList, field.Required(itemsPath.Index(i).Child("pluginRef"),
+				"either pluginRef.name or pluginRef.pluginPreset must be set"))
+		}
+	}
+	return errList
 }

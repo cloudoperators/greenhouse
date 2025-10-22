@@ -10,6 +10,7 @@ import (
 	"strings"
 	"time"
 
+	helmv2 "github.com/fluxcd/helm-controller/api/v2"
 	"github.com/pkg/errors"
 	appsv1 "k8s.io/api/apps/v1"
 	batchv1 "k8s.io/api/batch/v1"
@@ -40,6 +41,7 @@ var exposedConditions = []greenhousemetav1alpha1.ConditionType{
 	greenhousev1alpha1.HelmChartTestSucceededCondition,
 	greenhousev1alpha1.WorkloadReadyCondition,
 	greenhousemetav1alpha1.OwnerLabelSetCondition,
+	greenhousev1alpha1.WaitingForDependenciesCondition,
 }
 
 type reconcileResult struct {
@@ -337,4 +339,22 @@ func shouldReconcileOrRequeue(ctx context.Context, c client.Client, plugin *gree
 	}
 
 	return nil, nil
+}
+
+// resolvePluginDependencies transforms the WaitFor PluginRefs so that only Plugin names are set in the output and returns flux HelmRelease dependencies.
+func resolvePluginDependencies(dependencies []greenhousev1alpha1.WaitForItem, clusterName string) []helmv2.DependencyReference {
+	out := make([]helmv2.DependencyReference, len(dependencies))
+
+	for i, pluginRef := range dependencies {
+		// The name of the HelmRelease is the same as the name of the Plugin.
+		dependencyName := pluginRef.Name
+		if pluginRef.PluginPreset != "" {
+			dependencyName = buildPluginName(pluginRef.PluginPreset, clusterName)
+		}
+		out[i] = helmv2.DependencyReference{
+			Name: dependencyName,
+		}
+	}
+
+	return out
 }

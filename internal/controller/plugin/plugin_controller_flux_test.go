@@ -69,6 +69,18 @@ var (
 				Key:  greenhouseapis.GreenHouseKubeConfigKey,
 			},
 		}),
+		test.WithPluginWaitFor([]greenhousev1alpha1.WaitForItem{
+			{
+				PluginRef: greenhousev1alpha1.PluginRef{
+					Name: "", PluginPreset: "dependent-preset-1",
+				},
+			},
+			{
+				PluginRef: greenhousev1alpha1.PluginRef{
+					Name: "dependent-plugin-1", PluginPreset: "",
+				},
+			},
+		}),
 	)
 
 	testPluginDefinition = test.NewClusterPluginDefinition(
@@ -187,11 +199,17 @@ var _ = Describe("Flux Plugin Controller", Ordered, func() {
 		Expect(test.K8sClient.Create(test.Ctx, testPlugin)).To(Succeed(), "failed to create Plugin")
 
 		By("ensuring HelmRelease has been created")
+		release := &helmv2.HelmRelease{}
 		Eventually(func(g Gomega) {
-			release := &helmv2.HelmRelease{}
 			err := test.K8sClient.Get(test.Ctx, types.NamespacedName{Name: testPlugin.Name, Namespace: testPlugin.Namespace}, release)
 			g.Expect(err).ToNot(HaveOccurred(), "failed to get HelmRelease")
 		}).Should(Succeed())
+
+		By("ensuring Plugin dependencies has been resolved and set on the HelmRelease")
+		Expect(release.Spec.DependsOn).To(ContainElement(helmv2.DependencyReference{Name: "dependent-plugin-1"}),
+			"Flux HelmRelease should have the dependency for global plugin's release set")
+		Expect(release.Spec.DependsOn).To(ContainElement(helmv2.DependencyReference{Name: "dependent-preset-1-" + testPlugin.Spec.ClusterName}),
+			"Flux HelmRelease should have the dependency for resolved plugin's release set")
 
 		By("ensuring the Plugin Status is updated")
 		Eventually(func(g Gomega) {

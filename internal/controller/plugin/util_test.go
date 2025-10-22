@@ -4,6 +4,7 @@
 package plugin
 
 import (
+	helmv2 "github.com/fluxcd/helm-controller/api/v2"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
@@ -12,6 +13,7 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 
 	greenhouseapis "github.com/cloudoperators/greenhouse/api"
+	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
 )
 
 var _ = Describe("validate utility functions", Ordered, func() {
@@ -233,5 +235,58 @@ var _ = Describe("validate utility functions", Ordered, func() {
 				true,
 			),
 		)
+	})
+
+	Describe("resolvePluginDependencies", func() {
+		When("input is references only to plugin names", func() {
+			It("should leave dependencies as they are", func() {
+				input := []greenhousev1alpha1.WaitForItem{
+					{
+						PluginRef: greenhousev1alpha1.PluginRef{Name: "test-plugin-1"},
+					},
+					{
+						PluginRef: greenhousev1alpha1.PluginRef{Name: "test-plugin-2"},
+					},
+					{
+						PluginRef: greenhousev1alpha1.PluginRef{Name: "test-plugin-3"},
+					},
+				}
+				expectedOutput := []helmv2.DependencyReference{
+					{Name: "test-plugin-1"},
+					{Name: "test-plugin-2"},
+					{Name: "test-plugin-3"},
+				}
+				output := resolvePluginDependencies(input, "cluster-a")
+				Expect(output).To(BeComparableTo(expectedOutput), "the output should have the same values set as dependent helm releases")
+			})
+		})
+		When("input is mixed", func() {
+			It("should transform dependencies to contain only plugin names", func() {
+				input := []greenhousev1alpha1.WaitForItem{
+					{
+						PluginRef: greenhousev1alpha1.PluginRef{Name: "test-plugin-1"},
+					},
+					{
+						PluginRef: greenhousev1alpha1.PluginRef{PluginPreset: "test-preset-1"},
+					},
+					{
+						PluginRef: greenhousev1alpha1.PluginRef{PluginPreset: "test-preset-2"},
+					},
+				}
+				output := resolvePluginDependencies(input, "cluster-a")
+				Expect(output).To(
+					ContainElements(
+						helmv2.DependencyReference{
+							Name: "test-plugin-1",
+						},
+						helmv2.DependencyReference{
+							Name: "test-preset-1-cluster-a",
+						},
+						helmv2.DependencyReference{
+							Name: "test-preset-2-cluster-a",
+						},
+					), "the dependencies should be transformed to plugin names")
+			})
+		})
 	})
 })
