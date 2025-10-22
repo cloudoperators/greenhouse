@@ -201,6 +201,15 @@ func (r *PluginReconciler) ensureHelmRelease(
 		}
 		release.Spec = spec
 
+		if val, ok := lifecycle.ReconcileAnnotationValue(plugin); ok {
+			if release.Annotations == nil {
+				release.Annotations = make(map[string]string, 1)
+			}
+			release.Annotations[fluxmeta.ReconcileRequestAnnotation] = val
+		} else {
+			delete(release.Annotations, fluxmeta.ReconcileRequestAnnotation)
+		}
+
 		return controllerutil.SetControllerReference(plugin, release, r.Scheme())
 	})
 	if err != nil {
