@@ -103,6 +103,8 @@ export interface components {
                         ready?: string;
                     }[];
                 };
+                /** @description LastReconciledAt contains the value when the reconcile was last triggered via annotation. */
+                lastReconciledAt?: string;
                 /** @description StatusConditions contain the different conditions that constitute the status of the Catalog */
                 statusConditions?: {
                     conditions?: {
@@ -1143,6 +1145,8 @@ export interface components {
                     /** @description Status is the status of a HelmChart release. */
                     status: string;
                 };
+                /** @description LastReconciledAt contains the value when the reconcile was last triggered via annotation. */
+                lastReconciledAt?: string;
                 /** @description StatusConditions contain the different conditions that constitute the status of the Plugin. */
                 statusConditions?: {
                     conditions?: {

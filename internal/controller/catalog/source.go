@@ -24,6 +24,7 @@ import (
 
 	greenhouseapis "github.com/cloudoperators/greenhouse/api"
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
+	"github.com/cloudoperators/greenhouse/internal/common"
 	"github.com/cloudoperators/greenhouse/internal/flux"
 	"github.com/cloudoperators/greenhouse/internal/lifecycle"
 	"github.com/cloudoperators/greenhouse/internal/rbac"
@@ -73,6 +74,7 @@ type source struct {
 	generator        greenhousev1alpha1.SourceStatus
 	externalArtifact greenhousev1alpha1.SourceStatus
 	kustomize        greenhousev1alpha1.SourceStatus
+	lastReconciledAt string
 }
 
 // validateSources - ensures there are no duplicate sources in the catalog spec
@@ -108,7 +110,7 @@ func (r *CatalogReconciler) newCatalogSource(catalogSource greenhousev1alpha1.Ca
 	if err != nil {
 		return nil, err
 	}
-	return &source{
+	s := &source{
 		Client:   r.Client,
 		scheme:   r.Scheme,
 		log:      r.Log,
@@ -125,7 +127,12 @@ func (r *CatalogReconciler) newCatalogSource(catalogSource greenhousev1alpha1.Ca
 		generator:        greenhousev1alpha1.SourceStatus{Kind: sourcev2.ArtifactGeneratorKind, Name: generatorArtifactPrefix + "-" + hash},
 		externalArtifact: greenhousev1alpha1.SourceStatus{Kind: sourcev1.ExternalArtifactKind, Name: externalArtifactPrefix + "-" + hash},
 		kustomize:        greenhousev1alpha1.SourceStatus{Kind: kustomizev1.KustomizationKind, Name: kustomizeArtifactPrefix + "-" + hash},
-	}, nil
+	}
+
+	if lastReconciledAt, ok := lifecycle.ReconcileAnnotationValue(catalog); ok {
+		s.lastReconciledAt = lastReconciledAt
+	}
+	return s, nil
 }
 
 func (s *source) getSourceGroupHash() string {
@@ -202,6 +209,7 @@ func (s *source) reconcileGitRepository(ctx context.Context) error {
 
 	result, err := controllerutil.CreateOrPatch(ctx, s.Client, gitRepo, func() error {
 		gitRepo.Spec = spec
+		common.EnsureAnnotation(gitRepo, fluxmeta.ReconcileRequestAnnotation, s.lastReconciledAt)
 		return controllerutil.SetControllerReference(s.catalog, gitRepo, s.scheme)
 	})
 	if err != nil {
@@ -280,6 +288,7 @@ func (s *source) reconcileArtifactGeneration(ctx context.Context) (*sourcev1.Ext
 		delete(generator.Annotations, sourcev2.ReconcileAnnotation)
 		generator.Spec.Sources = artifactSources
 		generator.Spec.OutputArtifacts = artifacts
+		common.EnsureAnnotation(generator, sourcev2.ReconcileAnnotation, s.lastReconciledAt)
 		return controllerutil.SetControllerReference(s.catalog, generator, s.scheme)
 	})
 	if err != nil {
@@ -360,6 +369,7 @@ func (s *source) reconcileKustomization(ctx context.Context, extArtifact *source
 	// when flux resources is being updated by greenhouse controller and in parallel by flux controller, we need to retryOnConflict
 	result, err := controllerutil.CreateOrPatch(ctx, s.Client, kustomization, func() error {
 		kustomization.Spec = spec
+		common.EnsureAnnotation(kustomization, fluxmeta.ReconcileRequestAnnotation, s.lastReconciledAt)
 		return controllerutil.SetControllerReference(s.catalog, kustomization, s.scheme)
 	})
 	if err != nil {

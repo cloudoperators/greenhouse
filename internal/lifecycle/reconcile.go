@@ -39,6 +39,10 @@ const (
 
 	// SuspendAnnotation is the annotation used to suspend reconciliation of a resource
 	SuspendAnnotation = "greenhouse.sap/suspend"
+
+	// ReconcileAnnotation is the annotation used to trigger reconciliation of a resource
+	// Any change to the value of this annotation should trigger a reconciliation.
+	ReconcileAnnotation = "greenhouse.sap/reconcile"
 )
 
 // Conditioner is a function that can be used to set the status conditions of the object at a later point in the reconciliation process
@@ -59,6 +63,12 @@ type CatalogObject interface {
 	runtime.Object
 	v1.Object
 	GetConditions() []v1.Condition
+}
+
+// LastReconciledAtSetter is an interface for runtime objects that support setting the lastReconciledAt status
+type LastReconciledAtSetter interface {
+	// SetLastReconciledAtStatus sets the status field for last reconcile annotation
+	UpdateLastReconciledAtStatus(string)
 }
 
 // Reconciler is the interface that wraps the basic EnsureCreated and EnsureDeleted methods that a controller should implement
@@ -116,6 +126,13 @@ func Reconcile(ctx context.Context, kubeClient client.Client, namespacedName typ
 		result, err = ensureCreated(ctx, logger, reconciler, runtimeObject, statusFunc)
 	}
 
+	// update the last reconcile annotation status if the runtimeObject supports it
+	// status will be cleared once the reconcile annotation is removed
+	if l, ok := runtimeObject.(LastReconciledAtSetter); ok {
+		val, _ := ReconcileAnnotationValue(runtimeObject)
+		l.UpdateLastReconciledAtStatus(val)
+	}
+
 	// patch the final status of the resource to end the reconciliation loop
 	return result, patchStatus(ctx, kubeClient, runtimeObject, err)
 }
@@ -140,6 +157,12 @@ func isResourceSuspended(runtimeObject RuntimeObject) bool {
 	}
 	_, ok := a[SuspendAnnotation]
 	return ok
+}
+
+// reconcileAnnotationValue returns the value of the reconcile annotation and a boolean indicating whether the annotation is present
+func ReconcileAnnotationValue(object v1.Object) (string, bool) {
+	val, ok := object.GetAnnotations()[ReconcileAnnotation]
+	return val, ok
 }
 
 // ensureCreated - invokes the controller's EnsureCreated method and invokes the statusFunc to update the status of the resource
