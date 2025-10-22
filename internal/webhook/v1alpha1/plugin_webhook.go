@@ -173,6 +173,11 @@ func ValidateCreatePlugin(ctx context.Context, c client.Client, obj runtime.Obje
 		allErrs = append(allErrs, field.Invalid(field.NewPath("spec").Child("releaseName"), plugin.Spec.ReleaseName, err.Error()))
 	}
 
+	// validate WaitFor items are unique and that PluginRef's fields are mutually exclusive
+	if errList := validateWaitForPluginRefs(plugin.Spec.WaitFor, plugin.Spec.ClusterName == ""); len(errList) > 0 {
+		allErrs = append(allErrs, errList...)
+	}
+
 	if len(allErrs) > 0 {
 		return allWarns, apierrors.NewInvalid(plugin.GroupVersionKind().GroupKind(), plugin.Name, allErrs)
 	}
@@ -228,6 +233,11 @@ func ValidateUpdatePlugin(ctx context.Context, c client.Client, old, obj runtime
 
 	allErrs = append(allErrs, validation.ValidateImmutableField(oldPlugin.Spec.ClusterName, plugin.Spec.ClusterName,
 		field.NewPath("spec", "clusterName"))...)
+
+	// validate WaitFor items are unique and that PluginRef's fields are mutually exclusive
+	if errList := validateWaitForPluginRefs(plugin.Spec.WaitFor, plugin.Spec.ClusterName == ""); len(errList) > 0 {
+		allErrs = append(allErrs, errList...)
+	}
 
 	// ensure (Cluster-)PluginDefinition exists
 	pluginDefinitionSpec, err := getPluginDefinitionSpec(ctx, c, plugin)

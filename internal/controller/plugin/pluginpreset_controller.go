@@ -228,6 +228,8 @@ func (r *PluginPresetReconciler) reconcilePluginPreset(ctx context.Context, pres
 			plugin.Spec.ReleaseName = releaseName
 			// Set the cluster name to the name of the cluster. The PluginSpec contained in the PluginPreset does not have a cluster name.
 			plugin.Spec.ClusterName = cluster.GetName()
+			// Copy over the plugin dependencies
+			plugin.Spec.WaitFor = preset.Spec.WaitFor
 			// transport plugin preset labels to plugin
 			plugin = (lifecycle.NewPropagator(preset, plugin).ApplyLabels()).(*greenhousev1alpha1.Plugin) //nolint:errcheck
 			// overrides options based on preset definition
@@ -338,7 +340,12 @@ func overridesPluginOptionValues(plugin *greenhousev1alpha1.Plugin, preset *gree
 
 // generatePluginName generates a name for a plugin based on the used PluginPreset's name and the Cluster.
 func generatePluginName(p *greenhousev1alpha1.PluginPreset, cluster *greenhousev1alpha1.Cluster) string {
-	return fmt.Sprintf("%s-%s", p.Name, cluster.GetName())
+	return buildPluginName(p.Name, cluster.GetName())
+}
+
+// buildPluginName takes PluginPreset name and Cluster name to create a name for the Plugin.
+func buildPluginName(pluginPresetName, clusterName string) string {
+	return fmt.Sprintf("%s-%s", pluginPresetName, clusterName)
 }
 
 func initPluginPresetStatus(p *greenhousev1alpha1.PluginPreset) {

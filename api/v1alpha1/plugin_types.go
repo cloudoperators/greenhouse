@@ -42,6 +42,9 @@ type PluginSpec struct {
 	// +kubebuilder:validation:XValidation:rule="self == oldSelf",message="ReleaseName is immutable"
 	// +kubebuilder:validation:MaxLength=53
 	ReleaseName string `json:"releaseName,omitempty"`
+
+	// WaitFor defines other Plugins to wait for before installing this Plugin.
+	WaitFor []WaitForItem `json:"waitFor,omitempty"`
 }
 
 // PluginOptionValue is the value for a PluginOption.
@@ -84,6 +87,9 @@ const (
 
 	// HelmChartTestSucceededCondition reflects the status of the HelmChart tests.
 	HelmChartTestSucceededCondition greenhousemetav1alpha1.ConditionType = "HelmChartTestSucceeded"
+
+	// WaitingForDependenciesCondition reflects if HelmRelease is waiting for other releases to be ready.
+	WaitingForDependenciesCondition greenhousemetav1alpha1.ConditionType = "WaitingForDependencies"
 
 	// PluginDefinitionNotFoundReason is set when the pluginDefinition is not found.
 	PluginDefinitionNotFoundReason greenhousemetav1alpha1.ConditionReason = "PluginDefinitionNotFound"

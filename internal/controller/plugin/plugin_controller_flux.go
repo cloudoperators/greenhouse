@@ -144,6 +144,7 @@ func (r *PluginReconciler) ensureHelmRelease(
 				Name: plugin.Spec.ClusterName,
 				Key:  greenhouseapis.GreenHouseKubeConfigKey,
 			}).
+			WithDependsOn(resolvePluginDependencies(plugin.Spec.WaitFor, plugin.Spec.ClusterName)).
 			WithValues(values).
 			WithValuesFrom(r.addValueReferences(plugin)).
 			WithStorageNamespace(plugin.Spec.ReleaseNamespace).
@@ -314,6 +315,16 @@ func (r *PluginReconciler) reconcilePluginStatus(ctx context.Context,
 			releaseStatus.Status = "failed"
 		default:
 			releaseStatus.Status = "progressing"
+		}
+
+		switch {
+		case len(plugin.Spec.WaitFor) == 0:
+			plugin.SetCondition(greenhousemetav1alpha1.FalseCondition(greenhousev1alpha1.WaitingForDependenciesCondition, "", ""))
+		case isReadyCurrent && ready.Status == metav1.ConditionTrue:
+			plugin.SetCondition(greenhousemetav1alpha1.FalseCondition(greenhousev1alpha1.WaitingForDependenciesCondition, "", ""))
+		case isReadyCurrent && ready.Status == metav1.ConditionFalse && ready.Reason == helmv2.DependencyNotReadyReason:
+			plugin.SetCondition(greenhousemetav1alpha1.TrueCondition(greenhousev1alpha1.WaitingForDependenciesCondition,
+				greenhousemetav1alpha1.ConditionReason(ready.Reason), ready.Message))
 		}
 
 		if plugin.Spec.OptionValues != nil {

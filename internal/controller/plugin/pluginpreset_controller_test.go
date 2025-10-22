@@ -605,6 +605,52 @@ var _ = Describe("PluginPreset Controller Lifecycle", Ordered, func() {
 		test.EventuallyDeleted(test.Ctx, test.K8sClient, pluginPreset)
 	})
 
+	It("should successfully resolve and set plugin dependencies from PluginPreset to Plugin", func() {
+		By("ensuring a Plugin Preset has been created")
+		pluginPreset := test.NewPluginPreset(pluginPresetName+"-wait-for", test.TestNamespace,
+			test.WithPluginPresetLabel(greenhouseapis.LabelKeyOwnedBy, testTeam.Name),
+			test.WithPluginPresetPluginSpec(pluginPresetPluginSpec),
+			test.WithPluginPresetClusterSelector(metav1.LabelSelector{
+				MatchLabels: map[string]string{
+					"cluster": clusterA,
+				},
+			}))
+		pluginPreset.Spec.Plugin.PluginDefinitionRef = greenhousev1alpha1.PluginDefinitionReference{
+			Name: pluginDefinitionWithDefaultsName,
+			Kind: greenhousev1alpha1.ClusterPluginDefinitionKind,
+		}
+		pluginPreset.Spec.WaitFor = []greenhousev1alpha1.WaitForItem{
+			{
+				PluginRef: greenhousev1alpha1.PluginRef{PluginPreset: "test-preset-1"},
+			},
+			{
+				PluginRef: greenhousev1alpha1.PluginRef{Name: "dependent-plugin-1"},
+			},
+		}
+		Expect(test.K8sClient.Create(test.Ctx, pluginPreset)).ToNot(HaveOccurred())
+		test.EventuallyCreated(test.Ctx, test.K8sClient, pluginPreset)
+
+		By("ensuring a Plugin has been created")
+		expPluginName := types.NamespacedName{Name: pluginPresetName + "-wait-for-" + clusterA, Namespace: test.TestNamespace}
+		expPlugin := &greenhousev1alpha1.Plugin{}
+		Eventually(func() error {
+			return test.K8sClient.Get(test.Ctx, expPluginName, expPlugin)
+		}).Should(Succeed(), "the Plugin should be created")
+
+		By("ensuring Plugin has WaitFor dependencies copied from PluginPreset")
+		Expect(expPlugin.Spec.WaitFor).To(Equal(pluginPreset.Spec.WaitFor), "the plugin should have the same plugin references as preset")
+
+		By("removing plugin preset")
+		Eventually(func(g Gomega) {
+			err := test.K8sClient.Get(test.Ctx, client.ObjectKeyFromObject(pluginPreset), pluginPreset)
+			g.Expect(err).ShouldNot(HaveOccurred(), "unexpected error getting PluginPreset")
+			pluginPreset.Annotations = map[string]string{}
+			Expect(test.K8sClient.Update(test.Ctx, pluginPreset)).ToNot(HaveOccurred())
+		}).Should(Succeed(), "failed to update PluginPreset")
+		Expect(test.K8sClient.Delete(test.Ctx, pluginPreset)).ToNot(HaveOccurred())
+		test.EventuallyDeleted(test.Ctx, test.K8sClient, pluginPreset)
+	})
+
 	It("should orphan Plugins with the delete-policy annotation set on a PluginPreset", func() {
 		By("creating a PluginPreset")
 		testPluginPreset := test.NewPluginPreset(pluginPresetName, test.TestNamespace,

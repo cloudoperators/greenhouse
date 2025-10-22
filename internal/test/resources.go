@@ -385,6 +385,12 @@ func WithPluginOptionValueTemplate(name string, template *string) func(*greenhou
 	}
 }
 
+func WithPluginWaitFor(waitFor []greenhousev1alpha1.WaitForItem) func(*greenhousev1alpha1.Plugin) {
+	return func(p *greenhousev1alpha1.Plugin) {
+		p.Spec.WaitFor = waitFor
+	}
+}
+
 // SetOptionValueForPlugin sets the value of a PluginOptionValue in plugin
 func SetOptionValueForPlugin(plugin *greenhousev1alpha1.Plugin, key, value string) {
 	for i, keyValue := range plugin.Spec.OptionValues {

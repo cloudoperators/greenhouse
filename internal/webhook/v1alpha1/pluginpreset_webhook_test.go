@@ -711,4 +711,39 @@ var _ = Describe("Validate Plugin OptionValues for PluginPreset", func() {
 			Expect(errList).To(BeEmpty(), "unexpected error")
 		})
 	})
+
+	DescribeTable("Validate WaitFor PluginRefs", func(waitForItems []greenhousev1alpha1.WaitForItem, expErr bool) {
+		errList := validateWaitForPluginRefs(waitForItems, false)
+		switch expErr {
+		case true:
+			Expect(errList).ToNot(BeEmpty(), "expected an error, got nil")
+		default:
+			Expect(errList).To(BeEmpty(), "expected no error, got %v", errList)
+		}
+	},
+		Entry("WaitFor has unique items", []greenhousev1alpha1.WaitForItem{
+			{PluginRef: greenhousev1alpha1.PluginRef{Name: "global-plugin-1", PluginPreset: ""}},
+			{PluginRef: greenhousev1alpha1.PluginRef{Name: "global-plugin-2", PluginPreset: ""}},
+			{PluginRef: greenhousev1alpha1.PluginRef{Name: "", PluginPreset: "plugin-a"}},
+			{PluginRef: greenhousev1alpha1.PluginRef{Name: "", PluginPreset: "plugin-b"}},
+		}, false),
+		Entry("WaitFor has PluginRef with both fields set", []greenhousev1alpha1.WaitForItem{
+			{PluginRef: greenhousev1alpha1.PluginRef{Name: "global-plugin-1", PluginPreset: "plugin-a"}},
+		}, true),
+		Entry("WaitFor has PluginRef without any field set", []greenhousev1alpha1.WaitForItem{
+			{PluginRef: greenhousev1alpha1.PluginRef{Name: "", PluginPreset: ""}},
+		}, true),
+		Entry("WaitFor has duplicate items on Name field", []greenhousev1alpha1.WaitForItem{
+			{PluginRef: greenhousev1alpha1.PluginRef{Name: "global-plugin-1", PluginPreset: ""}},
+			{PluginRef: greenhousev1alpha1.PluginRef{Name: "", PluginPreset: "plugin-b"}},
+			{PluginRef: greenhousev1alpha1.PluginRef{Name: "global-plugin-1", PluginPreset: ""}},
+			{PluginRef: greenhousev1alpha1.PluginRef{Name: "", PluginPreset: "plugin-a"}},
+		}, true),
+		Entry("WaitFor has duplicate items on PluginPreset field", []greenhousev1alpha1.WaitForItem{
+			{PluginRef: greenhousev1alpha1.PluginRef{Name: "global-plugin-1", PluginPreset: ""}},
+			{PluginRef: greenhousev1alpha1.PluginRef{Name: "", PluginPreset: "plugin-a"}},
+			{PluginRef: greenhousev1alpha1.PluginRef{Name: "global-plugin-2", PluginPreset: ""}},
+			{PluginRef: greenhousev1alpha1.PluginRef{Name: "", PluginPreset: "plugin-a"}},
+		}, true),
+	)
 })
