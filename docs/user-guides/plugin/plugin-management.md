@@ -22,6 +22,7 @@ Changes that are done directly on a _Plugin_ which was created from a _PluginPre
 If a _Plugin_ already existed with the same name as the _PluginPreset_ would create, this _Plugin_ will be ignored in following reconciliations.
 
 A __PluginPreset__ with the annotation `greenhouse.sap/prevent-deletion` may not be deleted. This is to prevent the accidental deletion of a __PluginPreset__ including the managed __Plugins__ and their deployed Helm releases. Only after removing the annotation it is possible to delete a __PluginPreset__.
+
 ## Example _PluginPreset_
 
 ```yaml
@@ -50,3 +51,11 @@ spec:
         - ..
     - ..
 ```
+
+More information on how to configure a PluginPreset can be found [here](./../../reference/components/pluginpreset#writing-a-pluginpreset-spec).
+
+## Next Steps
+
+- [Plugin reference](./../../reference/components/plugin)
+- [PluginPreset reference](./../../reference/components/pluginpreset)
+- [PluginDefinition reference](./../../reference/components/plugindefinition)

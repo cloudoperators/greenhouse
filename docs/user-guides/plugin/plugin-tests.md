@@ -225,3 +225,9 @@ Before submitting a Pull Request:
 **Important Notes**
 
 - **Test Coverage:** Aim for comprehensive test coverage to ensure your Plugin's reliability.
+
+## Next Steps
+
+- [Plugin reference](./../../reference/components/plugin)
+- [PluginPreset reference](./../../reference/components/pluginpreset)
+- [PluginDefinition reference](./../../reference/components/plugindefinition)
