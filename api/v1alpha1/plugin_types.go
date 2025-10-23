@@ -121,7 +121,7 @@ type PluginStatus struct {
 	greenhousemetav1alpha1.StatusConditions `json:"statusConditions,omitempty"`
 
 	// LastReconcile contains the value when the reconcile was last triggered via annotation.
-	// +kubebuilder:validation:Optional
+	// +Optional
 	LastReconcile string `json:"lastReconcile,omitempty"`
 }
 
