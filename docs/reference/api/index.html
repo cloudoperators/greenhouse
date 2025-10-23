@@ -112,6 +112,7 @@ CatalogSpec
 </em>
 </td>
 <td>
+<p>Sources contains the list of Git Repository source to resolve PluginDefinitions / ClusterPluginDefinitions from</p>
 </td>
 </tr>
 </table>
@@ -222,7 +223,7 @@ string
 </em>
 </td>
 <td>
-<p>Resources - list of path to PluginDefinition file
+<p>Resources contains the list of path to PluginDefinition files
 e.g. [&ldquo;plugins/plugin-a.yaml&rdquo;, &ldquo;plugins/plugin-b.yaml&rdquo;]
 glob patterns are supported, e.g. [&ldquo;plugins/*.yaml&rdquo;, &ldquo;more-plugins/**/plugindefinition.yaml&rdquo;]</p>
 </td>
@@ -235,7 +236,7 @@ glob patterns are supported, e.g. [&ldquo;plugins/*.yaml&rdquo;, &ldquo;more-plu
 </em>
 </td>
 <td>
-<p>Excludes - list of path patterns to exclude from the Catalog
+<p>Excludes contains a list of path patterns to exclude from the Catalog
 e.g. [&rdquo;<strong>/test/</strong>&rdquo;, &ldquo;<strong>/example*/</strong>&rdquo;]</p>
 </td>
 </tr>
@@ -249,8 +250,9 @@ GitRef
 </em>
 </td>
 <td>
-<p>Ref - the git reference (branch, tag, or SHA) to resolve PluginDefinitions
-if not specified, defaults to main branch</p>
+<p>Ref is the git reference (branch, tag, or SHA) to resolve PluginDefinitions from
+precedence: SHA &gt; Tag &gt; Branch
+if not specified, defaults to the branch &ldquo;main&rdquo;</p>
 </td>
 </tr>
 <tr>
@@ -328,6 +330,7 @@ ca.crt: &lt;BASE64&gt; #optional, for GitHub Enterprise Server users
 </em>
 </td>
 <td>
+<p>Sources contains the list of Git Repository source to resolve PluginDefinitions / ClusterPluginDefinitions from</p>
 </td>
 </tr>
 </tbody>
@@ -1391,8 +1394,7 @@ Nodes
 </h3>
 <p>
 (<em>Appears on:</em>
-<a href="#greenhouse.sap/v1alpha1.CatalogSource">CatalogSource</a>, 
-<a href="#greenhouse.sap/v1alpha1.GitSource">GitSource</a>)
+<a href="#greenhouse.sap/v1alpha1.CatalogSource">CatalogSource</a>)
 </p>
 <div class="md-typeset__scrollwrap">
 <div class="md-typeset__table">
@@ -1432,46 +1434,6 @@ string
 </em>
 </td>
 <td>
-</td>
-</tr>
-</tbody>
-</table>
-</div>
-</div>
-<h3 id="greenhouse.sap/v1alpha1.GitSource">GitSource
-</h3>
-<div class="md-typeset__scrollwrap">
-<div class="md-typeset__table">
-<table>
-<thead>
-<tr>
-<th>Field</th>
-<th>Description</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>
-<code>url</code><br>
-<em>
-string
-</em>
-</td>
-<td>
-<p>Repository is the URL of the GitHub repository containing the ClusterPluginDefinition / PluginDefinition Catalog</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>ref</code><br>
-<em>
-<a href="#greenhouse.sap/v1alpha1.GitRef">
-GitRef
-</a>
-</em>
-</td>
-<td>
-<p>Ref is the Git reference (branch, tag, or SHA) to resolve the ClusterPluginDefinition / PluginDefinition Catalog</p>
 </td>
 </tr>
 </tbody>

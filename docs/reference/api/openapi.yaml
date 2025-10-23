@@ -34,11 +34,12 @@ components:
           description: CatalogSpec defines the desired state of Catalog.
           properties:
             sources:
+              description: Sources contains the list of Git Repository source to resolve PluginDefinitions / ClusterPluginDefinitions from
               items:
                 properties:
                   excludes:
                     description: |-
-                      Excludes - list of path patterns to exclude from the Catalog
+                      Excludes contains a list of path patterns to exclude from the Catalog
                       e.g. ["**/test/**", "**/example*/**"]
                     items:
                       type: string
@@ -65,8 +66,9 @@ components:
                     type: array
                   ref:
                     description: |-
-                      Ref - the git reference (branch, tag, or SHA) to resolve PluginDefinitions
-                      if not specified, defaults to main branch
+                      Ref is the git reference (branch, tag, or SHA) to resolve PluginDefinitions from
+                      precedence: SHA > Tag > Branch
+                      if not specified, defaults to the branch "main"
                     properties:
                       branch:
                         type: string
@@ -80,7 +82,7 @@ components:
                     type: string
                   resources:
                     description: |-
-                      Resources - list of path to PluginDefinition file
+                      Resources contains the list of path to PluginDefinition files
                       e.g. ["plugins/plugin-a.yaml", "plugins/plugin-b.yaml"]
                       glob patterns are supported, e.g. ["plugins/*.yaml", "more-plugins/**/plugindefinition.yaml"]
                     items:
