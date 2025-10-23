@@ -59,10 +59,10 @@ type RuntimeObject interface {
 	SetCondition(greenhousemetav1alpha1.Condition)
 }
 
-// LastReconcileSetter is an interface for runtime objects that support setting the last reconcile annotation status
-type LastReconcileSetter interface {
-	// SetLastReconcile sets the status field for last reconcile annotation
-	UpdateLastReconcileStatus(string)
+// LastReconciledAtSetter is an interface for runtime objects that support setting the lastReconciledAt status
+type LastReconciledAtSetter interface {
+	// SetLastReconciledAtStatus sets the status field for last reconcile annotation
+	UpdateLastReconciledAtStatus(string)
 }
 
 // Reconciler is the interface that wraps the basic EnsureCreated and EnsureDeleted methods that a controller should implement
@@ -122,7 +122,7 @@ func Reconcile(ctx context.Context, kubeClient client.Client, namespacedName typ
 
 	// update the last reconcile annotation status if the runtimeObject supports it
 	// status will be cleared once the reconcile annotation is removed
-	if l, ok := runtimeObject.(LastReconcileSetter); ok {
+	if l, ok := runtimeObject.(LastReconciledAtSetter); ok {
 		val, _ := ReconcileAnnotationValue(runtimeObject)
 		l.UpdateLastReconcileStatus(val)
 	}

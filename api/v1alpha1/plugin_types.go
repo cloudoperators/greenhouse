@@ -120,9 +120,9 @@ type PluginStatus struct {
 	// StatusConditions contain the different conditions that constitute the status of the Plugin.
 	greenhousemetav1alpha1.StatusConditions `json:"statusConditions,omitempty"`
 
-	// LastReconcile contains the value when the reconcile was last triggered via annotation.
+	// LastReconciledAt contains the value when the reconcile was last triggered via annotation.
 	// +Optional
-	LastReconcile string `json:"lastReconcile,omitempty"`
+	LastReconciledAt string `json:"lastReconciledAt,omitempty"`
 }
 
 // ServiceType defines the type of exposed service.
@@ -207,8 +207,8 @@ func (o *Plugin) SetCondition(condition greenhousemetav1alpha1.Condition) {
 	o.Status.SetConditions(condition)
 }
 
-func (o *Plugin) UpdateLastReconcileStatus(value string) {
-	o.Status.LastReconcile = value
+func (o *Plugin) SetLastReconciledAtStatus(value string) {
+	o.Status.LastReconciledAt = value
 }
 
 func (o *Plugin) GetReleaseName() string {
