@@ -245,6 +245,10 @@ spec:
                 required:
                 - status
                 type: object
+              lastReconcile:
+                description: LastReconcile contains the value when the reconcile was
+                  last triggered via annotation.
+                type: string
               statusConditions:
                 description: StatusConditions contain the different conditions that
                   constitute the status of the Plugin.
