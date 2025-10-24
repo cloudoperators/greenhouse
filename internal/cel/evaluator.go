@@ -98,6 +98,12 @@ func compileExpression(expression string) (cel.Program, error) {
 		return nil, fmt.Errorf("failed to create CEL environment: %w", err)
 	}
 
+	return CompileExpressionWithEnv(expression, env)
+}
+
+// CompileExpressionWithEnv compiles a CEL expression using the provided environment.
+// This is a shared helper that can be reused across different CEL evaluation contexts.
+func CompileExpressionWithEnv(expression string, env *cel.Env) (cel.Program, error) {
 	ast, issues := env.Compile(expression)
 	if issues != nil && issues.Err() != nil {
 		return nil, fmt.Errorf("failed to compile expression: %w", issues.Err())
