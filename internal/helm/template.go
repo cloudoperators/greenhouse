@@ -15,11 +15,19 @@ import (
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
+	"github.com/cloudoperators/greenhouse/internal/features"
 )
 
 // ResolveTemplatedValues processes PluginOptionValues with templates and resolves them to concrete values.
-func ResolveTemplatedValues(ctx context.Context, optionValues []greenhousev1alpha1.PluginOptionValue) ([]greenhousev1alpha1.PluginOptionValue, error) {
+// If template rendering is disabled via feature flag, the template string itself is used as the value.
+func ResolveTemplatedValues(ctx context.Context, optionValues []greenhousev1alpha1.PluginOptionValue, featureFlags features.Getter) ([]greenhousev1alpha1.PluginOptionValue, error) {
 	resolvedValues := make([]greenhousev1alpha1.PluginOptionValue, 0, len(optionValues))
+
+	var renderingEnabled bool
+	if featureFlags != nil && featureFlags.IsTemplateRenderingEnabled(ctx) {
+		renderingEnabled = true
+	}
+
 	templateData, err := buildTemplateData(optionValues)
 	if err != nil {
 		return nil, fmt.Errorf("failed to build template data: %w", err)
@@ -27,9 +35,15 @@ func ResolveTemplatedValues(ctx context.Context, optionValues []greenhousev1alph
 
 	for _, optionValue := range optionValues {
 		if optionValue.Template != nil {
-			resolvedValue, err := resolveTemplate(*optionValue.Template, templateData)
-			if err != nil {
-				return nil, fmt.Errorf("failed to resolve template for option %s: %w", optionValue.Name, err)
+			var resolvedValue string
+
+			if renderingEnabled {
+				resolvedValue, err = resolveTemplate(*optionValue.Template, templateData)
+				if err != nil {
+					return nil, fmt.Errorf("failed to resolve template for option %s: %w", optionValue.Name, err)
+				}
+			} else {
+				resolvedValue = *optionValue.Template
 			}
 
 			jsonValue, err := json.Marshal(resolvedValue)

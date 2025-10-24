@@ -7,12 +7,20 @@ data:
     ################################
     #                              #
     #    EXAMPLE CONFIGURATION     #
-    #                              # 
-    ################################ 
-    # enable dex features 
-    # storage allows you to choose what kind of dex storage backend you would like to choose 
+    #                              #
+    ################################
+    # enable dex features
+    # storage allows you to choose what kind of dex storage backend you would like to choose
     # Greenhouse gives the choice of using kubernetes as the storage backend or to use postgresSQL as the backend
     dex: |
       storage: kubernetes / postgres
+    # enable template features
+    # rendering allows you to enable or disable template rendering for plugin option values
+    # set to false to disable template rendering (templates will be used as literal values)
+    # set to true to enable template rendering (templates will be evaluated)
+    template: |
+      rendering: false / true
   dex: |
     storage: {{ include "dex.backend" $ }}
+  template: |
+    rendering: {{ include "template.rendering" $ }}

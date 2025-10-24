@@ -94,7 +94,96 @@ func Test_DexFeatures(t *testing.T) {
 			assert.NoError(t, err)
 
 			// Get Dex storage type
-			value := featuresInstance.GetDexStorageType(ctx)
+			var value *string
+			if featuresInstance != nil {
+				value = featuresInstance.GetDexStorageType(ctx)
+			}
+
+			// Assert expected value
+			assert.Equal(t, tc.expectedValue, value)
+			mockK8sClient.AssertExpectations(t)
+		})
+	}
+}
+
+// Test_TemplateFeatures - test template rendering feature gate
+func Test_TemplateFeatures(t *testing.T) {
+	type testCase struct {
+		name          string
+		configMapData map[string]string
+		getError      error
+		expectedValue bool
+	}
+
+	testCases := []testCase{
+		{
+			name:          "it should return true when template rendering is enabled",
+			configMapData: map[string]string{TemplateFeatureKey: "rendering: true\n"},
+			expectedValue: true,
+		},
+		{
+			name:          "it should return false when template rendering is disabled",
+			configMapData: map[string]string{TemplateFeatureKey: "rendering: false\n"},
+			expectedValue: false,
+		},
+		{
+			name:          "it should return false when template key is not found in feature-flags cm",
+			configMapData: map[string]string{"someOtherKey": "value\n"},
+			expectedValue: false,
+		},
+		{
+			name:          "it should return false when feature-flags cm is not found",
+			getError:      apierrors.NewNotFound(schema.GroupResource{}, "configmap not found"),
+			expectedValue: false,
+		},
+		{
+			name:          "it should return false when flag is malformed in feature-flags cm",
+			configMapData: map[string]string{TemplateFeatureKey: "rendering:: invalid_yaml"},
+			expectedValue: false,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			ctx := context.Background()
+			ctx = log.IntoContext(ctx, log.Log)
+
+			mockK8sClient := &mocks.MockClient{}
+			configMap := &corev1.ConfigMap{}
+
+			if tc.getError != nil {
+				mockK8sClient.On("Get", ctx, types.NamespacedName{
+					Name: clientutil.GetEnvOrDefault("FEATURE_FLAGS", "greenhouse-feature-flags"), Namespace: clientutil.GetEnvOrDefault("POD_NAMESPACE", "greenhouse"),
+				}, mock.Anything).Return(tc.getError)
+			} else {
+				configMap.Data = tc.configMapData
+				mockK8sClient.On("Get", ctx, types.NamespacedName{
+					Name: clientutil.GetEnvOrDefault("FEATURE_FLAGS", "greenhouse-feature-flags"), Namespace: clientutil.GetEnvOrDefault("POD_NAMESPACE", "greenhouse"),
+				}, mock.Anything).Run(func(args mock.Arguments) {
+					arg := args.Get(2).(*corev1.ConfigMap) //nolint:errcheck
+					*arg = *configMap
+				}).Return(nil)
+			}
+
+			// Create Features instance
+			featuresInstance, err := NewFeatures(ctx, mockK8sClient, clientutil.GetEnvOrDefault("FEATURE_FLAGS", "greenhouse-feature-flags"), clientutil.GetEnvOrDefault("POD_NAMESPACE", "greenhouse"))
+			if tc.getError != nil && client.IgnoreNotFound(tc.getError) == nil {
+				assert.NoError(t, client.IgnoreNotFound(err))
+				assert.Nil(t, featuresInstance, "Expected nil when ConfigMap is missing")
+				var value bool
+				if featuresInstance != nil {
+					value = featuresInstance.IsTemplateRenderingEnabled(ctx)
+				}
+				assert.Equal(t, tc.expectedValue, value)
+				mockK8sClient.AssertExpectations(t)
+				return
+			}
+			assert.NoError(t, err)
+
+			var value bool
+			if featuresInstance != nil {
+				value = featuresInstance.IsTemplateRenderingEnabled(ctx)
+			}
 
 			// Assert expected value
 			assert.Equal(t, tc.expectedValue, value)
