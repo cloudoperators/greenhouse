@@ -15,23 +15,6 @@ import (
 	"github.com/cloudoperators/greenhouse/internal/test"
 )
 
-type testFeatureFlags struct {
-	templateRenderingEnabled bool
-}
-
-func (t *testFeatureFlags) IsTemplateRenderingEnabled(ctx context.Context) bool {
-	return t.templateRenderingEnabled
-}
-
-func (t *testFeatureFlags) GetDexStorageType(ctx context.Context) *string {
-	return nil
-}
-
-var (
-	renderingEnabled  = &testFeatureFlags{templateRenderingEnabled: true}
-	renderingDisabled = &testFeatureFlags{templateRenderingEnabled: false}
-)
-
 var _ = Describe("Template Processing", func() {
 	var (
 		ctx context.Context
@@ -50,7 +33,7 @@ var _ = Describe("Template Processing", func() {
 					Template: &template,
 				})
 
-				resolvedValues, err := ResolveTemplatedValues(ctx, optionValues, renderingEnabled)
+				resolvedValues, err := ResolveTemplatedValues(ctx, optionValues, true)
 
 				if expectError {
 					Expect(err).To(HaveOccurred())
@@ -229,7 +212,7 @@ var _ = Describe("Template Processing", func() {
 	Describe("Edge Cases", func() {
 		It("should handle empty template list", func() {
 			optionValues := []greenhousev1alpha1.PluginOptionValue{}
-			resolvedValues, err := ResolveTemplatedValues(ctx, optionValues, renderingEnabled)
+			resolvedValues, err := ResolveTemplatedValues(ctx, optionValues, true)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(resolvedValues).To(BeEmpty())
 		})
@@ -242,7 +225,7 @@ var _ = Describe("Template Processing", func() {
 					Value:    &apiextensionsv1.JSON{Raw: []byte(`"fallback"`)},
 				},
 			}
-			resolvedValues, err := ResolveTemplatedValues(ctx, optionValues, renderingEnabled)
+			resolvedValues, err := ResolveTemplatedValues(ctx, optionValues, true)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(resolvedValues).To(HaveLen(1))
 			Expect(resolvedValues[0].Template).To(BeNil())
@@ -264,7 +247,7 @@ var _ = Describe("Template Processing", func() {
 				},
 			}
 
-			resolvedValues, err := ResolveTemplatedValues(ctx, optionValues, renderingDisabled)
+			resolvedValues, err := ResolveTemplatedValues(ctx, optionValues, false)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(resolvedValues).To(HaveLen(2))
 

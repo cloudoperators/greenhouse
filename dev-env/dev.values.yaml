@@ -5,8 +5,8 @@ global:
   dnsDomain: green.house
   dex:
     backend: kubernetes
-  template:
-    rendering: false
+  plugin:
+    optionValueTemplating: false
 alerts:
   enabled: false
 certManager:
