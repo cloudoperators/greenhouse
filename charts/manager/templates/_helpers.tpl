@@ -107,3 +107,7 @@ Define postgresql helpers
 {{- define "dex.backend" -}}
   {{- printf "%s" (required "global.dex.backend missing" .Values.global.dex.backend) }}
 {{- end }}
+{{/* Render the plugin option value templating flag */}}
+{{- define "plugin.optionValueTemplating" -}}
+  {{- printf "%t" (required "global.plugin.optionValueTemplating missing" .Values.global.plugin.optionValueTemplating) }}
+{{- end }}

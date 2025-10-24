@@ -18,6 +18,9 @@ global:
       postgresqlDatabase:
       postgresqlPort:
       postgresqlUsername:
+  # Plugin configuration for Greenhouse.
+  plugin:
+    optionValueTemplating: false
 
 postgresqlng:
   enabled: true

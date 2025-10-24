@@ -17,16 +17,22 @@ import (
 )
 
 const (
-	DexFeatureKey = "dex"
+	DexFeatureKey    = "dex"
+	PluginFeatureKey = "plugin"
 )
 
 type Features struct {
-	raw map[string]string
-	dex *dexFeatures `yaml:"dex"`
+	raw    map[string]string
+	dex    *dexFeatures    `yaml:"dex"`
+	plugin *pluginFeatures `yaml:"plugin"`
 }
 
 type dexFeatures struct {
 	Storage string `yaml:"storage"`
+}
+
+type pluginFeatures struct {
+	OptionValueTemplating bool `yaml:"optionValueTemplating"`
 }
 
 func NewFeatures(ctx context.Context, k8sClient client.Reader, configMapName, namespace string) (*Features, error) {
@@ -72,4 +78,34 @@ func (f *Features) GetDexStorageType(ctx context.Context) *string {
 		return nil
 	}
 	return ptr.To(f.dex.Storage)
+}
+
+func (f *Features) resolvePluginFeatures() error {
+	// Extract the `plugin` key from the ConfigMap
+	pluginRaw, exists := f.raw[PluginFeatureKey]
+	if !exists {
+		return errors.New("plugin feature not found in ConfigMap")
+	}
+
+	// Unmarshal the `plugin` YAML string into the struct
+	plugin := &pluginFeatures{}
+	err := yaml.Unmarshal([]byte(pluginRaw), plugin)
+	if err != nil {
+		return err
+	}
+
+	f.plugin = plugin
+	return nil
+}
+
+func (f *Features) IsTemplateRenderingEnabled(ctx context.Context) bool {
+	if f.plugin != nil {
+		return f.plugin.OptionValueTemplating
+	}
+	if err := f.resolvePluginFeatures(); err != nil {
+		ctrl.LoggerFrom(ctx).Error(err, "failed to resolve plugin features")
+		// Default to disabled if feature flag is not configured
+		return false
+	}
+	return f.plugin.OptionValueTemplating
 }

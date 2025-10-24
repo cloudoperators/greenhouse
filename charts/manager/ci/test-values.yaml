@@ -9,6 +9,8 @@ global:
       postgresqlDatabase: dex
       postgresqlPort: 5432
       postgresqlUsername: dex
+  plugin:
+    optionValueTemplating: false
 
 controllerManager:
   args:
