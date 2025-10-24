@@ -107,3 +107,7 @@ Define postgresql helpers
 {{- define "dex.backend" -}}
   {{- printf "%s" (required "global.dex.backend missing" .Values.global.dex.backend) }}
 {{- end }}
+{{/* Render the template rendering flag */}}
+{{- define "template.rendering" -}}
+  {{- printf "%t" (required "global.template.rendering missing" .Values.global.template.rendering) }}
+{{- end }}

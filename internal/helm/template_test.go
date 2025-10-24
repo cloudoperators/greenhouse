@@ -15,6 +15,23 @@ import (
 	"github.com/cloudoperators/greenhouse/internal/test"
 )
 
+type testFeatureFlags struct {
+	templateRenderingEnabled bool
+}
+
+func (t *testFeatureFlags) IsTemplateRenderingEnabled(ctx context.Context) bool {
+	return t.templateRenderingEnabled
+}
+
+func (t *testFeatureFlags) GetDexStorageType(ctx context.Context) *string {
+	return nil
+}
+
+var (
+	renderingEnabled  = &testFeatureFlags{templateRenderingEnabled: true}
+	renderingDisabled = &testFeatureFlags{templateRenderingEnabled: false}
+)
+
 var _ = Describe("Template Processing", func() {
 	var (
 		ctx context.Context
@@ -33,7 +50,7 @@ var _ = Describe("Template Processing", func() {
 					Template: &template,
 				})
 
-				resolvedValues, err := ResolveTemplatedValues(ctx, optionValues)
+				resolvedValues, err := ResolveTemplatedValues(ctx, optionValues, renderingEnabled)
 
 				if expectError {
 					Expect(err).To(HaveOccurred())
@@ -212,7 +229,7 @@ var _ = Describe("Template Processing", func() {
 	Describe("Edge Cases", func() {
 		It("should handle empty template list", func() {
 			optionValues := []greenhousev1alpha1.PluginOptionValue{}
-			resolvedValues, err := ResolveTemplatedValues(ctx, optionValues)
+			resolvedValues, err := ResolveTemplatedValues(ctx, optionValues, renderingEnabled)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(resolvedValues).To(BeEmpty())
 		})
@@ -225,11 +242,48 @@ var _ = Describe("Template Processing", func() {
 					Value:    &apiextensionsv1.JSON{Raw: []byte(`"fallback"`)},
 				},
 			}
-			resolvedValues, err := ResolveTemplatedValues(ctx, optionValues)
+			resolvedValues, err := ResolveTemplatedValues(ctx, optionValues, renderingEnabled)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(resolvedValues).To(HaveLen(1))
 			Expect(resolvedValues[0].Template).To(BeNil())
 			Expect(resolvedValues[0].Value).ToNot(BeNil())
+		})
+	})
+
+	Describe("Template Resolution disabled", func() {
+		It("should use template string as value when rendering is disabled", func() {
+			templateStr := "{{ .global.greenhouse.clusterName }}"
+			optionValues := []greenhousev1alpha1.PluginOptionValue{
+				{
+					Name:     "testOption",
+					Template: &templateStr,
+				},
+				{
+					Name:  "global.greenhouse.clusterName",
+					Value: test.MustReturnJSONFor("obs-eu-de-1"),
+				},
+			}
+
+			resolvedValues, err := ResolveTemplatedValues(ctx, optionValues, renderingDisabled)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(resolvedValues).To(HaveLen(2))
+
+			var testOptionValue *greenhousev1alpha1.PluginOptionValue
+			for i := range resolvedValues {
+				if resolvedValues[i].Name == "testOption" {
+					testOptionValue = &resolvedValues[i]
+					break
+				}
+			}
+
+			Expect(testOptionValue).ToNot(BeNil())
+			Expect(testOptionValue.Template).To(BeNil())
+			Expect(testOptionValue.Value).ToNot(BeNil())
+
+			var resolvedValue string
+			err = json.Unmarshal(testOptionValue.Value.Raw, &resolvedValue)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(resolvedValue).To(Equal("{{ .global.greenhouse.clusterName }}"))
 		})
 	})
 

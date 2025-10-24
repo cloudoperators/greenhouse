@@ -10,6 +10,9 @@ global:
       postgresqlDatabase: dex
       postgresqlPort: 5432
       postgresqlUsername: dex
+  # Template configuration for Greenhouse.
+  template:
+    rendering: false
   linkerd_enabled: false
   region: greenhouse
   registry: ghcr.io/cloudoperators/greenhouse
