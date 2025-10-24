@@ -168,7 +168,7 @@ spec:
 
 #### Staged rollouts
 
-Until Greenhouse has an inhouse solution for staging rollouts, we suggest you use [renovate](https://github.com/renovatebot/renovate) configuration in combination to `git tags` to stage rollouts of PluginDefinition versions.
+Until Greenhouse has an inhouse solution for staging rollouts, we suggest you to use [renovate](https://github.com/renovatebot/renovate) configuration in combination to `git tags` to stage rollouts of PluginDefinition versions.
 
 The following steps are needed:
 
