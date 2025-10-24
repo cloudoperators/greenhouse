@@ -18,9 +18,9 @@ global:
       postgresqlDatabase:
       postgresqlPort:
       postgresqlUsername:
-  # Template configuration for Greenhouse.
-  template:
-    rendering: false
+  # Plugin configuration for Greenhouse.
+  plugin:
+    optionValueTemplating: false
 
 postgresqlng:
   enabled: true

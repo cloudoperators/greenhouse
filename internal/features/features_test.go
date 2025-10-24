@@ -106,8 +106,8 @@ func Test_DexFeatures(t *testing.T) {
 	}
 }
 
-// Test_TemplateFeatures - test template rendering feature gate
-func Test_TemplateFeatures(t *testing.T) {
+// Test_PluginFeatures - test plugin option value templating feature gate
+func Test_PluginFeatures(t *testing.T) {
 	type testCase struct {
 		name          string
 		configMapData map[string]string
@@ -117,17 +117,17 @@ func Test_TemplateFeatures(t *testing.T) {
 
 	testCases := []testCase{
 		{
-			name:          "it should return true when template rendering is enabled",
-			configMapData: map[string]string{TemplateFeatureKey: "rendering: true\n"},
+			name:          "it should return true when plugin option value templating is enabled",
+			configMapData: map[string]string{PluginFeatureKey: "optionValueTemplating: true\n"},
 			expectedValue: true,
 		},
 		{
-			name:          "it should return false when template rendering is disabled",
-			configMapData: map[string]string{TemplateFeatureKey: "rendering: false\n"},
+			name:          "it should return false when plugin option value templating is disabled",
+			configMapData: map[string]string{PluginFeatureKey: "optionValueTemplating: false\n"},
 			expectedValue: false,
 		},
 		{
-			name:          "it should return false when template key is not found in feature-flags cm",
+			name:          "it should return false when plugin key is not found in feature-flags cm",
 			configMapData: map[string]string{"someOtherKey": "value\n"},
 			expectedValue: false,
 		},
@@ -138,7 +138,7 @@ func Test_TemplateFeatures(t *testing.T) {
 		},
 		{
 			name:          "it should return false when flag is malformed in feature-flags cm",
-			configMapData: map[string]string{TemplateFeatureKey: "rendering:: invalid_yaml"},
+			configMapData: map[string]string{PluginFeatureKey: "optionValueTemplating:: invalid_yaml"},
 			expectedValue: false,
 		},
 	}

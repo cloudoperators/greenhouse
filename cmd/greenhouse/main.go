@@ -83,7 +83,7 @@ var (
 	remoteClusterBearerTokenValidity,
 	renewRemoteClusterBearerTokenAfter time.Duration
 	kubeClientOpts clientutil.RuntimeOptions
-	featureFlags   features.Getter
+	featureFlags   *features.Features
 )
 
 func init() {
