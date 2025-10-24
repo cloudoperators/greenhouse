@@ -49,7 +49,7 @@ They control the actual resources deployed to their Greenhouse Organization:
 - PluginDefinitions
 - PluginPresets (& Plugins)
 
-### Ivolved Resources
+### Involved Resources
 
 #### [Catalogs](./../../reference/api/index.html#greenhouse.sap/v1alpha1.Catalog)
 
