@@ -8,7 +8,7 @@ description: >
 
 ## What is Plugin Lifecycle Management (LCM)?
 
-When we are talking about Plugin LCM we refer to the active maintenance phase of software provided as Greenhouse Plugins. This includes tasks as:
+When we are talking about Plugin LCM we refer to the active maintenance phase of software provided as Greenhouse Plugins. This includes tasks such as:
 
 - Bug fixing
 - Feature shipping
