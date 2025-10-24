@@ -37,7 +37,7 @@ They control
 - The code of the Plugin including the Helm chart and possible frontend code.
 - Default PluginDefinition
 - Default Catalog(s)
-- The repository the PluginDefinitions and Catalogs live in
+- The repository where the PluginDefinitions and Catalogs live in
 
 ### Plugin Consumers
 
