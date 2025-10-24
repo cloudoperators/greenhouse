@@ -411,6 +411,11 @@ func addValuesToHelmRelease(ctx context.Context, c client.Client, plugin *greenh
 		return nil, fmt.Errorf("failed to resolve templated values: %w", err)
 	}
 
+	// optionValues, err = helm.ResolveCelExpressions(ctx, optionValues)
+	// if err != nil {
+	// 	return nil, fmt.Errorf("failed to resolve CEL expressions: %w", err)
+	// }
+
 	// remove all option values that are set from a secret, as these have a nil value
 	optionValues = slices.DeleteFunc(optionValues, func(v greenhousev1alpha1.PluginOptionValue) bool {
 		return v.ValueFrom != nil && v.ValueFrom.Secret != nil

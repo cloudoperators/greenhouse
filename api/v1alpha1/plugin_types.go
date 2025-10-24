@@ -69,6 +69,9 @@ type PluginOptionValue struct {
 	// Template is a Go string template that will be dynamically resolved for cluster-specific values.
 	// Only PluginOptionValues declared as template will be templated by the PluginController for Flux.
 	Template *string `json:"template,omitempty"`
+	// CelExpression is a CEL expression that will be evaluated to resolve the value.
+	// CEL expressions have access to global.greenhouse values for dynamic configuration.
+	CelExpression *string `json:"celExpression,omitempty"`
 }
 
 // IgnoreDifference defines a set of paths to ignore for matching resources.
