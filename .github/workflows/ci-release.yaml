@@ -7,7 +7,7 @@ on:
 
 jobs:
   release:
-    runs-on: default
+    runs-on: ubuntu-latest
     permissions:
         contents: write
         discussions: write
