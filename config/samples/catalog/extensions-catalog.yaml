@@ -7,12 +7,40 @@ metadata:
   name: greenhouse-extensions
   namespace: greenhouse
 spec:
-  source:
-    git:
-      url: https://github.com/cloudoperators/greenhouse-extensions
+  sources:
+    - repository: https://github.com/cloudoperators/greenhouse-extensions
+      resources:
+        - alerts/plugindefinition.yaml
+        - audit-logs/plugindefinition.yaml
+        - cert-manager/plugindefinition.yaml
+        - exposed-services/plugindefinition.yaml
+        - external-dns/plugindefinition.yaml
+        - repo-guard/plugindefinition.yaml
+        - ingress-nginx/plugindefinition.yaml
+        - kube-monitoring/plugindefinition.yaml
+        - openbao/plugindefinition.yaml
+        - logs/plugindefinition.yaml
+        - perses/plugindefinition.yaml
+        - plutono/plugindefinition.yaml
+        - service-proxy/plugindefinition.yaml
+        - teams2slack/plugindefinition.yaml
+        - thanos/plugindefinition.yaml
       ref:
         branch: main
-  overrides:
-    - name: perses
-      alias: perses-keppel-chart
-#     repository: oci://some-registry.io/some-repo/some-chart
+      secretName: github-com-token
+      overrides:
+        - name: perses
+          alias: perses-some-registry-chart
+          repository: oci://some-registry.io/some-repo/perses-chart
+        - name: kube-monitoring
+          alias: kube-monitoring-some-registry-chart
+          repository: oci://some-registry.io/some-repo/kube-monitoring-chart
+    - repository: https://github.com/cloudoperators/greenhouse-extensions
+      resources:
+        - disco/plugindefinition.yaml
+      ref:
+        sha: eafaee1d74774f74e20101307d25b29a3eb26102
+      overrides:
+        - name: disco
+          alias: disco-some-registry-chart
+          repository: oci://some-registry.io/some-repo/perses-chart

@@ -5,38 +5,28 @@ package catalog
 
 import (
 	"context"
+	"errors"
 	"fmt"
-	"time"
+	"slices"
+	"strings"
 
 	kustomizev1 "github.com/fluxcd/kustomize-controller/api/v1"
-	fluxmeta "github.com/fluxcd/pkg/apis/meta"
 	sourcev1 "github.com/fluxcd/source-controller/api/v1"
+	sourcev2 "github.com/fluxcd/source-watcher/api/v2/v1beta1"
 	"github.com/go-logr/logr"
-	corev1 "k8s.io/api/core/v1"
+	"github.com/google/go-cmp/cmp"
+	"github.com/google/go-cmp/cmp/cmpopts"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/record"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
-	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
-	"sigs.k8s.io/controller-runtime/pkg/handler"
 
-	greenhouseapis "github.com/cloudoperators/greenhouse/api"
 	greenhousemetav1alpha1 "github.com/cloudoperators/greenhouse/api/meta/v1alpha1"
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
-	"github.com/cloudoperators/greenhouse/internal/flux"
 	"github.com/cloudoperators/greenhouse/internal/lifecycle"
-	"github.com/cloudoperators/greenhouse/internal/rbac"
-)
-
-const (
-	genericAuthProvider   = "generic"
-	githubAppAuthProvider = "github"
-	githubAppIDKey        = "githubAppID"
 )
 
 type CatalogReconciler struct {
@@ -55,312 +45,249 @@ func (r *CatalogReconciler) SetupWithManager(name string, mgr ctrl.Manager) erro
 		Named(name).
 		For(&greenhousev1alpha1.Catalog{}).
 		Owns(&sourcev1.GitRepository{}).
+		Owns(&sourcev2.ArtifactGenerator{}).
 		Owns(&kustomizev1.Kustomization{}).
-		Watches(&corev1.Secret{}, handler.EnqueueRequestsFromMapFunc(r.reconcileCatalogOnSourceSecretChanges)).
 		WithOptions(controller.Options{
 			MaxConcurrentReconciles: 5,
 		}).
 		Complete(r)
 }
 
+var noOp = func(_ context.Context, _ lifecycle.RuntimeObject) {}
+
 //+kubebuilder:rbac:groups=greenhouse.sap,resources=catalogs,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=greenhouse.sap,resources=catalogs/status,verbs=get;update;patch
 // +kubebuilder:rbac:groups=greenhouse.sap,resources=catalogs/finalizers,verbs=get;create;update;patch;delete
 // +kubebuilder:rbac:groups=source.toolkit.fluxcd.io,resources=gitrepositories, verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=source.toolkit.fluxcd.io,resources=externalartifacts, verbs=get;list;watch
 // +kubebuilder:rbac:groups=kustomize.toolkit.fluxcd.io,resources=kustomizations,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=source.extensions.fluxcd.io,resources=artifactgenerators,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups="",resources=secrets,verbs=get;list;watch
 // +kubebuilder:rbac:groups="",resources=events,verbs=create;patch
 
 func (r *CatalogReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	return lifecycle.Reconcile(ctx, r.Client, req.NamespacedName, &greenhousev1alpha1.Catalog{}, r, r.updateStatus())
-}
-
-func (r *CatalogReconciler) EnsureDeleted(ctx context.Context, obj lifecycle.RuntimeObject) (ctrl.Result, lifecycle.ReconcileResult, error) {
-	catalog := obj.(*greenhousev1alpha1.Catalog) //nolint:errcheck
-	r.Log.Info("attempting to delete catalog", "name", catalog.Name, "namespace", catalog.Namespace)
-
-	kustomization := &kustomizev1.Kustomization{}
-	kustomization.SetName(catalog.Name)
-	kustomization.SetNamespace(catalog.Namespace)
-	shouldRequeue, err := r.ensureResourceIsDeleted(ctx, catalog, kustomization)
-	if err != nil {
-		return ctrl.Result{}, lifecycle.Failed, err
-	}
-	if shouldRequeue {
-		r.Log.Info("waiting for kustomization to be deleted", "name", catalog.Name, "namespace", catalog.Namespace)
-		return ctrl.Result{RequeueAfter: 5 * time.Second}, lifecycle.Pending, nil
-	}
-
-	gitRepository := &sourcev1.GitRepository{}
-	gitRepository.SetName(catalog.Name)
-	gitRepository.SetNamespace(catalog.Namespace)
-	shouldRequeue, err = r.ensureResourceIsDeleted(ctx, catalog, gitRepository)
-	if err != nil {
-		return ctrl.Result{}, lifecycle.Failed, err
-	}
-	if shouldRequeue {
-		r.Log.Info("waiting for git repository to be deleted", "name", catalog.Name, "namespace", catalog.Namespace)
-		return ctrl.Result{RequeueAfter: 5 * time.Second}, lifecycle.Pending, nil
-	}
-
-	r.recorder.Eventf(catalog, corev1.EventTypeNormal, "Deleted", "Deleted Kustomization for catalog: %s/%s", catalog.Namespace, catalog.Name)
-	r.recorder.Eventf(catalog, corev1.EventTypeNormal, "Deleted", "Deleted GitRepository for catalog: %s/%s", catalog.Namespace, catalog.Name)
-	r.Log.Info("catalog deleted", "name", catalog.Name, "namespace", catalog.Namespace)
-	return ctrl.Result{}, lifecycle.Success, nil
-}
-
-func (r *CatalogReconciler) ensureResourceIsDeleted(ctx context.Context, catalog, obj client.Object) (requeue bool, err error) {
-	kind := obj.GetObjectKind().GroupVersionKind().Kind
-	if err = r.Get(ctx, client.ObjectKeyFromObject(obj), obj); err != nil {
-		if apierrors.IsNotFound(err) {
-			err = nil
-			return
-		}
-		r.recorder.Eventf(catalog, corev1.EventTypeWarning, "Error", "Error: fetching %s for catalog: %s/%s - %s", kind, catalog.GetNamespace(), catalog.GetName(), err.Error())
-		r.Log.Error(err, "failed to get object", "name", obj.GetName(), "namespace", obj.GetNamespace())
-		return
-	}
-	if obj.GetDeletionTimestamp().IsZero() {
-		if err = r.Delete(ctx, obj); err != nil {
-			r.recorder.Eventf(catalog, corev1.EventTypeWarning, "Error", "Error: deleting %s for catalog: %s/%s - %s", kind, catalog.GetNamespace(), catalog.GetName(), err.Error())
-			r.Log.Error(err, "failed to delete object", "name", obj.GetName(), "namespace", obj.GetNamespace())
-			return
-		}
-	} else {
-		obj.SetAnnotations(map[string]string{
-			greenhouseapis.FluxReconcileRequestAnnotation: time.Now().Format(time.DateTime),
-		})
-		if err = r.Update(ctx, obj); err != nil {
-			if apierrors.IsConflict(err) {
-				err = nil
-				requeue = true
-				return
-			}
-			return
-		}
-	}
-	requeue = true
-	return
+	return lifecycle.Reconcile(ctx, r.Client, req.NamespacedName, &greenhousev1alpha1.Catalog{}, r, noOp)
 }
 
 func (r *CatalogReconciler) EnsureCreated(ctx context.Context, obj lifecycle.RuntimeObject) (ctrl.Result, lifecycle.ReconcileResult, error) {
 	catalog := obj.(*greenhousev1alpha1.Catalog) //nolint:errcheck
-
-	sourceSecret, err := r.getSourceSecret(ctx, catalog)
-	if err != nil {
+	catalog.SetUnknownCondition()
+	if err := r.checkAndCleanInventory(ctx, catalog); err != nil {
+		r.Log.Error(err, "failed to clean inventory for catalog", "name", catalog.Name, "namespace", catalog.Namespace)
+		catalog.SetFalseCondition(greenhousemetav1alpha1.ReadyCondition, greenhousev1alpha1.CatalogNotReadyReason, err.Error())
 		return ctrl.Result{}, lifecycle.Failed, err
 	}
 
-	err = r.ensureGitRepository(ctx, catalog, sourceSecret)
-	if err != nil {
-		r.Log.Error(err, "failed to ensure git repository for catalog", "name", catalog, "namespace", catalog.Namespace)
-		r.recorder.Eventf(catalog, corev1.EventTypeWarning, "Error", "Error: ensuring GitRepository for catalog: %s/%s - %s", catalog.GetNamespace(), catalog.GetName(), err.Error())
+	if len(catalog.Spec.Sources) == 0 {
+		msg := "no sources specified for catalog, skipping reconciliation"
+		r.Log.Info(msg, "name", catalog.Name, "namespace", catalog.Namespace)
+		catalog.SetFalseCondition(greenhousemetav1alpha1.ReadyCondition, greenhousev1alpha1.CatalogNotReadyReason, msg)
+		return ctrl.Result{}, lifecycle.Pending, nil
+	}
+
+	if err := r.validateSources(catalog); err != nil {
+		r.Log.Error(err, "failed to validate sources for catalog", "name", catalog.Name, "namespace", catalog.Namespace)
+		catalog.SetFalseCondition(greenhousemetav1alpha1.ReadyCondition, greenhousev1alpha1.CatalogNotReadyReason, err.Error())
 		return ctrl.Result{}, lifecycle.Failed, err
 	}
 
-	err = r.ensureKustomization(ctx, catalog)
-	if err != nil {
-		r.Log.Error(err, "failed to ensure kustomization for catalog", "name", catalog.Name, "namespace", catalog.Namespace)
-		r.recorder.Eventf(catalog, corev1.EventTypeWarning, "Error", "Error: ensuring Kustomization for catalog: %s/%s - %s", catalog.GetNamespace(), catalog.GetName(), err.Error())
-		return ctrl.Result{}, lifecycle.Failed, err
-	}
+	var allErrors []error
+	for _, s := range catalog.Spec.Sources {
+		sourcer, err := r.newCatalogSource(s, catalog)
+		if err != nil {
+			r.Log.Error(err, "failed to create source reconciler for catalog", "namespace", catalog.Namespace, "name", catalog.Name)
+			allErrors = append(allErrors, err)
+			continue
+		}
 
-	return ctrl.Result{}, lifecycle.Success, nil
+		if err = sourcer.reconcileGitRepository(ctx); err != nil {
+			r.Log.Error(err, "failed to reconcile git repository for catalog source", "namespace", catalog.Namespace, "name", sourcer.getGitRepoName())
+			allErrors = append(allErrors, err)
+			continue
+		}
+
+		var externalArtifact *sourcev1.ExternalArtifact
+		if externalArtifact, err = sourcer.reconcileArtifactGeneration(ctx); err != nil {
+			r.Log.Error(err, "failed to reconcile artifact generation for catalog source", "namespace", catalog.Namespace, "name", sourcer.getArtifactName())
+			allErrors = append(allErrors, err)
+			continue
+		}
+
+		if err = sourcer.reconcileKustomization(ctx, externalArtifact); err != nil {
+			r.Log.Error(err, "failed to reconcile kustomization for catalog source", "namespace", catalog.Namespace, "name", sourcer.getKustomizationName())
+			allErrors = append(allErrors, err)
+			continue
+		}
+	}
+	return r.setStatus(ctx, catalog, allErrors)
 }
 
-func (r *CatalogReconciler) getSourceSecret(ctx context.Context, catalog *greenhousev1alpha1.Catalog) (*corev1.Secret, error) {
-	gitSource := catalog.GetCatalogSource()
-	if gitSource.SecretName == nil {
-		return nil, nil
+// checkAndCleanInventory compares the current inventory in status with the desired inventory based on spec sources
+// if there is a diff in status vs desired inventory, it deletes the orphaned resources
+func (r *CatalogReconciler) checkAndCleanInventory(ctx context.Context, catalog *greenhousev1alpha1.Catalog) error {
+	if len(catalog.Status.Inventory) == 0 {
+		return nil
 	}
-	secret := &corev1.Secret{}
-	secret.SetName(*gitSource.SecretName)
-	secret.SetNamespace(catalog.Namespace)
-	err := r.Get(ctx, client.ObjectKeyFromObject(secret), secret)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get secret %s for catalog %s/%s: %w", *gitSource.SecretName, catalog.Namespace, catalog.Name, err)
-	}
-	return secret, nil
-}
+	statusInventory := catalog.Status.Inventory
+	desiredInventory := make(map[string][]greenhousev1alpha1.SourceStatus)
 
-func (r *CatalogReconciler) ensureGitRepository(ctx context.Context, catalog *greenhousev1alpha1.Catalog, secret *corev1.Secret) error {
-	var err error
-	gitSource := catalog.GetCatalogSource()
-	gitReference := &sourcev1.GitRepositoryRef{}
-	if gitSource.Ref != nil {
-		// flux precedence 1
-		if gitSource.Ref.SHA != nil {
-			gitReference.Commit = *gitSource.Ref.SHA
-		}
-		// flux precedence 2
-		if gitSource.Ref.Tag != nil {
-			gitReference.Tag = *gitSource.Ref.Tag
-		}
-		// flux precedence 3
-		if gitSource.Ref.Branch != nil {
-			gitReference.Branch = *gitSource.Ref.Branch
-		}
-	}
-	authProvider := genericAuthProvider
-
-	if secret != nil {
-		if _, ok := secret.Data[githubAppIDKey]; ok {
-			authProvider = githubAppAuthProvider
-		}
-	}
-
-	gitRepository := &sourcev1.GitRepository{}
-	gitRepository.SetName(catalog.Name)
-	gitRepository.SetNamespace(catalog.Namespace)
-
-	result, err := controllerutil.CreateOrPatch(ctx, r.Client, gitRepository, func() error {
-		gitRepository.Spec = sourcev1.GitRepositorySpec{
-			URL:       gitSource.URL,
-			Interval:  metav1.Duration{Duration: flux.DefaultInterval},
-			Reference: gitReference,
-			Provider:  authProvider,
-		}
-		if secret != nil {
-			gitRepository.Spec.SecretRef = &fluxmeta.LocalObjectReference{Name: *gitSource.SecretName}
-		}
-		return controllerutil.SetControllerReference(catalog, gitRepository, r.Scheme)
-	})
-	if err != nil {
-		r.recorder.Eventf(catalog, corev1.EventTypeWarning, "Error", "Error: GitRepository %s - %s", gitRepository.Name, err.Error())
-		return err
-	}
-	switch result {
-	case controllerutil.OperationResultCreated:
-		r.Log.Info("created git repository for catalog", "name", catalog.Name, "namespace", catalog.Namespace)
-	case controllerutil.OperationResultUpdated:
-		r.Log.Info("updated git repository for catalog", "name", catalog.Name, "namespace", catalog.Namespace)
-	case controllerutil.OperationResultNone:
-		r.Log.Info("No changes to catalog git repository", "name", gitRepository.Name, "namespace", gitRepository.Namespace)
-	default:
-		r.Log.Info("result is unknown for catalog git repository", "name", catalog.Name, "namespace", catalog.Namespace, "result", result)
-	}
-	return nil
-}
-
-func (r *CatalogReconciler) ensureKustomization(ctx context.Context, catalog *greenhousev1alpha1.Catalog) error {
-	kustomization := &kustomizev1.Kustomization{}
-	kustomization.SetName(catalog.Name)
-	kustomization.SetNamespace(catalog.Namespace)
-	gitRepository := &sourcev1.GitRepository{}
-	gitRepository.SetName(catalog.Name)
-	gitRepository.SetNamespace(catalog.Namespace)
-	err := r.Get(ctx, client.ObjectKeyFromObject(gitRepository), gitRepository)
-	if err != nil {
-		return err
-	}
-	ggvk := gitRepository.GroupVersionKind()
-	kuz := flux.NewKustomizationSpecBuilder(r.Log)
-	kuz = kuz.WithSourceRef(ggvk.String(), ggvk.Kind, gitRepository.Name, gitRepository.Namespace)
-	if catalog.ResourcePath() != "" {
-		kuz = kuz.WithPath(catalog.ResourcePath())
-	}
-	if len(catalog.Spec.Overrides) > 0 {
-		patches, err := flux.PrepareKustomizePatches(catalog.Spec.Overrides, greenhousev1alpha1.GroupVersion.Group)
+	for _, s := range catalog.Spec.Sources {
+		sourcer, err := r.newCatalogSource(s, catalog)
 		if err != nil {
 			return err
 		}
-		kuz = kuz.WithPatches(patches)
+		hash := sourcer.getSourceGroupHash()
+		desiredInventory[hash] = sourcer.getInventory()
 	}
-	// Set the ServiceAccount for the organization's PluginDefinitionCatalog operations
-	serviceAccountName := rbac.OrgCatalogServiceAccountName(catalog.Namespace)
-	kuz = kuz.WithServiceAccountName(serviceAccountName)
-	kustomizationSpec, err := kuz.Build()
-	if err != nil {
-		return err
+
+	opts := []cmp.Option{
+		cmpopts.SortSlices(func(a, b greenhousev1alpha1.SourceStatus) bool {
+			return a.Name < b.Name
+		}),
 	}
-	// when flux resources is being updated by greenhouse controller and in parallel by flux controller, we need to retryOnConflict
-	result, err := controllerutil.CreateOrPatch(ctx, r.Client, kustomization, func() error {
-		kustomization.Spec = kustomizationSpec
-		return controllerutil.SetControllerReference(catalog, kustomization, r.Scheme)
-	})
-	if err != nil {
-		r.recorder.Eventf(catalog, corev1.EventTypeWarning, "Error", "Error: Kustomization %s - %s", kustomization.Name, err.Error())
-		return err
-	}
-	switch result {
-	case controllerutil.OperationResultCreated:
-		r.Log.Info("created kustomization for catalog", "name", catalog.Name, "namespace", catalog.Namespace)
-	case controllerutil.OperationResultUpdated:
-		r.Log.Info("updated kustomization for catalog", "name", catalog.Name, "namespace", catalog.Namespace)
-	case controllerutil.OperationResultNone:
-		r.Log.Info("No changes to catalog kustomization", "name", kustomization.Name, "namespace", kustomization.Namespace)
-	default:
-		r.Log.Info("result is unknown for catalog kustomization", "name", catalog.Name, "namespace", catalog.Namespace, "result", result)
-	}
-	return nil
-}
 
-func (r *CatalogReconciler) updateStatus() lifecycle.Conditioner {
-	return func(ctx context.Context, object lifecycle.RuntimeObject) {
-		catalog := object.(*greenhousev1alpha1.Catalog) //nolint:errcheck
-		catalogReady := greenhousemetav1alpha1.UnknownCondition(greenhousemetav1alpha1.ReadyCondition, greenhousev1alpha1.CatalogNotReadyReason, "Catalog reconciliation in progress")
-		key := types.NamespacedName{
-			Name:      catalog.Name,
-			Namespace: catalog.Namespace,
-		}
-		gitRepository := &sourcev1.GitRepository{}
-
-		err := r.Get(ctx, key, gitRepository)
-		if err != nil {
-			if client.IgnoreNotFound(err) == nil {
-				catalog.SetCondition(catalogReady)
-				return
-			}
-			r.Log.Error(err, "catalog status update failed to get git repository for catalog", "name", catalog.Name, "namespace", catalog.Namespace)
-			return
-		}
-		kustomization := &kustomizev1.Kustomization{}
-		err = r.Get(ctx, key, kustomization)
-		if err != nil {
-			if client.IgnoreNotFound(err) == nil {
-				catalog.SetCondition(catalogReady)
-				return
-			}
-			r.Log.Error(err, "catalog status update failed to get kustomization for catalog", "name", catalog.Name, "namespace", catalog.Namespace)
-			return
-		}
-
-		gitReady := meta.FindStatusCondition(gitRepository.Status.Conditions, string(greenhousemetav1alpha1.ReadyCondition))
-		kuzReady := meta.FindStatusCondition(kustomization.Status.Conditions, string(greenhousemetav1alpha1.ReadyCondition))
-
-		if gitReady != nil && kuzReady != nil {
-			overallReady := gitReady.Status == metav1.ConditionTrue && kuzReady.Status == metav1.ConditionTrue
-			readyMsg := fmt.Sprintf("GitRepository Ready: %s, Kustomization Ready: %s", gitReady.Message, kuzReady.Message)
-			if overallReady {
-				catalogReady = greenhousemetav1alpha1.TrueCondition(greenhousemetav1alpha1.ReadyCondition, greenhousev1alpha1.CatalogReadyReason, readyMsg)
-				r.recorder.Eventf(catalog, corev1.EventTypeNormal, string(greenhousev1alpha1.CatalogReadyReason), "Catalog Ready - %s", readyMsg)
-			} else {
-				catalogReady = greenhousemetav1alpha1.FalseCondition(greenhousemetav1alpha1.ReadyCondition, greenhousev1alpha1.CatalogNotReadyReason, readyMsg)
-				if gitReady.Reason != fluxmeta.ProgressingReason || kuzReady.Reason != fluxmeta.ProgressingReason {
-					r.recorder.Eventf(catalog, corev1.EventTypeWarning, string(greenhousev1alpha1.CatalogNotReadyReason), "Catalog Not Ready - %s", readyMsg)
+	for hash, invList := range statusInventory {
+		desiredList := desiredInventory[hash]
+		if diff := cmp.Diff(invList, desiredList, opts...); diff != "" {
+			// Find orphaned resources in invList not present in desiredList
+			for _, inv := range invList {
+				found := false
+				for _, desInv := range desiredList {
+					if inv.Kind == desInv.Kind && inv.Name == desInv.Name {
+						found = true
+						break
+					}
+				}
+				if !found {
+					switch inv.Kind {
+					case sourcev1.GitRepositoryKind:
+						err := r.deleteOrphanedResource(ctx, &sourcev1.GitRepository{}, inv.Kind, catalog.Namespace, inv.Name)
+						if err != nil {
+							return fmt.Errorf("failed to delete %s - %s/%s: %w", inv.Kind, catalog.Namespace, inv.Name, err)
+						}
+					case sourcev2.ArtifactGeneratorKind:
+						err := r.deleteOrphanedResource(ctx, &sourcev2.ArtifactGenerator{}, inv.Kind, catalog.Namespace, inv.Name)
+						if err != nil {
+							return fmt.Errorf("failed to delete %s - %s/%s: %w", inv.Kind, catalog.Namespace, inv.Name, err)
+						}
+					case sourcev1.ExternalArtifactKind:
+						// ignore as it is managed by ArtifactGenerator
+						break
+					case kustomizev1.KustomizationKind:
+						err := r.deleteOrphanedResource(ctx, &kustomizev1.Kustomization{}, inv.Kind, catalog.Namespace, inv.Name)
+						if err != nil {
+							return fmt.Errorf("failed to delete %s - %s/%s: %w", inv.Kind, catalog.Namespace, inv.Name, err)
+						}
+					default:
+						r.Log.Info("unknown source kind in inventory, skipping deletion", "kind", inv.Kind, "name", inv.Name)
+						continue
+					}
+					// Remove from inventory after successful deletion (except for ignored kinds)
+					statusInventory[hash] = slices.DeleteFunc(statusInventory[hash], func(s greenhousev1alpha1.SourceStatus) bool {
+						return s.Kind == inv.Kind && s.Name == inv.Name
+					})
 				}
 			}
 		}
-		catalog.SetCondition(catalogReady)
+		if len(statusInventory[hash]) == 0 {
+			delete(statusInventory, hash)
+		}
 	}
+	catalog.Status.Inventory = statusInventory
+	return nil
 }
 
-func (r *CatalogReconciler) reconcileCatalogOnSourceSecretChanges(ctx context.Context, obj client.Object) []ctrl.Request {
-	labels := obj.GetLabels()
-	if labels == nil {
-		return nil
+func (r *CatalogReconciler) deleteOrphanedResource(ctx context.Context, obj client.Object, kind, namespace, name string) error {
+	obj.SetNamespace(namespace)
+	obj.SetName(name)
+	err := r.Get(ctx, client.ObjectKey{Namespace: namespace, Name: name}, obj)
+	if err != nil {
+		if apierrors.IsNotFound(err) {
+			return nil
+		}
+		return fmt.Errorf("failed to get orphaned resource %s - %s/%s: %w", kind, namespace, name, err)
 	}
-	catalogName, ok := labels[greenhouseapis.SecretManagedByCatalogLabel]
-	if !ok {
-		return nil
+	err = r.Delete(ctx, obj)
+	if err != nil {
+		return fmt.Errorf("failed to delete orphaned resource %s - %s/%s: %w", kind, namespace, name, err)
 	}
-	// find the catalog in the same namespace as the secret
-	catalog := &greenhousev1alpha1.Catalog{}
-	err := r.Get(ctx, types.NamespacedName{Name: catalogName, Namespace: obj.GetNamespace()}, catalog)
-	if client.IgnoreNotFound(err) != nil {
-		r.Log.Error(err, "failed to get catalog for secret", "namespace", obj.GetNamespace(), "catalog", catalogName)
-		return nil
+	r.Log.Info("deleted orphaned resource", "kind", kind, "namespace", namespace, "name", name)
+	return nil
+}
+
+func (r *CatalogReconciler) setStatus(ctx context.Context, catalog *greenhousev1alpha1.Catalog, allErrors []error) (ctrl.Result, lifecycle.ReconcileResult, error) {
+	var err error
+	if len(allErrors) > 0 {
+		var errMessages []string
+		for _, oErr := range allErrors {
+			var srcErr *sourceError
+			if errors.As(oErr, &srcErr) {
+				catalog.SetInventory(srcErr.groupKey, srcErr.kind, srcErr.name, srcErr.Error(), metav1.ConditionFalse)
+			}
+			errMessages = append(errMessages, oErr.Error())
+		}
+		err = errors.New(strings.Join(errMessages, "; "))
+		r.Log.Error(err, "failed to reconcile some catalog sources", "name", catalog.Name, "namespace", catalog.Namespace)
+		catalog.SetFalseCondition(greenhousemetav1alpha1.ReadyCondition, greenhousev1alpha1.CatalogNotReadyReason, err.Error())
+		return ctrl.Result{}, lifecycle.Failed, err
 	}
-	return []ctrl.Request{
-		{NamespacedName: types.NamespacedName{Name: catalog.Name, Namespace: catalog.Namespace}},
+	for _, source := range catalog.Spec.Sources {
+		sourcer, err := r.newCatalogSource(source, catalog)
+		if err != nil {
+			continue
+		}
+		gitRepo := &sourcev1.GitRepository{}
+		gitRepo.SetName(sourcer.getGitRepoName())
+		gitRepo.SetNamespace(catalog.Namespace)
+		ready, msg := sourcer.objectReadiness(ctx, gitRepo)
+		sourcer.setInventory(sourcev1.GitRepositoryKind, gitRepo.Name, msg, ready)
+
+		artifactGen := &sourcev2.ArtifactGenerator{}
+		artifactGen.SetName(sourcer.getGeneratorName())
+		artifactGen.SetNamespace(catalog.Namespace)
+		ready, msg = sourcer.objectReadiness(ctx, artifactGen)
+		sourcer.setInventory(sourcev2.ArtifactGeneratorKind, artifactGen.Name, msg, ready)
+
+		extArtifact := &sourcev1.ExternalArtifact{}
+		extArtifact.SetName(sourcer.getArtifactName())
+		extArtifact.SetNamespace(catalog.Namespace)
+		ready, msg = sourcer.objectReadiness(ctx, extArtifact)
+		sourcer.setInventory(sourcev1.ExternalArtifactKind, extArtifact.Name, msg, ready)
+
+		kustomization := &kustomizev1.Kustomization{}
+		kustomization.SetName(sourcer.getKustomizationName())
+		kustomization.SetNamespace(catalog.Namespace)
+		ready, msg = sourcer.objectReadiness(ctx, kustomization)
+		sourcer.setInventory(kustomizev1.KustomizationKind, kustomization.Name, msg, ready)
 	}
+
+	var allInventoryReady []bool
+	for _, invList := range catalog.Status.Inventory {
+		ready := checkInventoryReadiness(invList)
+		allInventoryReady = append(allInventoryReady, ready)
+	}
+	if slices.Contains(allInventoryReady, false) {
+		r.Log.Info("not all catalog objects are ready", "name", catalog.Name, "namespace", catalog.Namespace)
+		catalog.SetFalseCondition(greenhousemetav1alpha1.ReadyCondition, greenhousev1alpha1.CatalogNotReadyReason, "not all objects are ready")
+		return ctrl.Result{}, lifecycle.Pending, nil
+	}
+	r.Log.Info("all catalog objects are ready", "name", catalog.Name, "namespace", catalog.Namespace)
+	catalog.SetTrueCondition(greenhousemetav1alpha1.ReadyCondition, greenhousev1alpha1.CatalogReadyReason, "all objects are ready")
+	return ctrl.Result{}, lifecycle.Success, nil
+}
+
+func checkInventoryReadiness(invList []greenhousev1alpha1.SourceStatus) (allReady bool) {
+	allReady = true
+	for _, inv := range invList {
+		if inv.Ready != metav1.ConditionTrue {
+			allReady = false
+			break
+		}
+	}
+	return
+}
+
+func (r *CatalogReconciler) EnsureDeleted(_ context.Context, _ lifecycle.RuntimeObject) (ctrl.Result, lifecycle.ReconcileResult, error) {
+	// owner references on child resources will handle deletion
+	return ctrl.Result{}, lifecycle.Success, nil
 }

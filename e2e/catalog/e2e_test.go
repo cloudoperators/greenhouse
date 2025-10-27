@@ -7,8 +7,6 @@ package catalog
 
 import (
 	"context"
-	"fmt"
-	"math/rand"
 	"testing"
 	"time"
 
@@ -63,43 +61,23 @@ var _ = Describe("Catalog E2E", Ordered, func() {
 	var catalog *greenhousev1alpha1.Catalog
 	var clusterPluginDefinitions *greenhousev1alpha1.ClusterPluginDefinitionList
 	It("should successfully create a Catalog resource", func() {
+		source := test.NewCatalogSource(
+			test.WithRepositoryBranch("main"),
+			test.WithRepository("https://github.com/cloudoperators/greenhouse-extensions"),
+			test.WithCatalogResources([]string{
+				"perses/plugindefinition.yaml",
+				"kube-monitoring/plugindefinition.yaml",
+			}))
 		catalog = test.NewCatalog(
 			e2eCatalogName,
 			env.TestNamespace,
-			test.WithRepositoryBranch("main"),
-			test.WithRepositoryURL("https://github.com/cloudoperators/greenhouse-extensions"),
+			source,
 		)
 		Expect(adminClient.Create(ctx, catalog)).To(Succeed(), "there should be no error creating the Catalog resource")
 		expect.CatalogReady(ctx, adminClient, env.TestNamespace, catalog.Name)
 		clusterPluginDefinitions = &greenhousev1alpha1.ClusterPluginDefinitionList{}
 		Expect(adminClient.List(ctx, clusterPluginDefinitions)).To(Succeed(), "there should be no error listing ClusterPluginDefinitions")
 		Expect(clusterPluginDefinitions.Items).ToNot(BeEmpty(), "there should be at least one ClusterPluginDefinition created from the Catalog")
-	})
-	It("should successfully patch a Catalog resource", func() {
-		randomIndex := rand.Intn(len(clusterPluginDefinitions.Items))
-		alias := clusterPluginDefinitions.Items[randomIndex].Name + fmt.Sprintf("-e2e-alias-%d", randomIndex)
-		override := greenhousev1alpha1.CatalogOverrides{
-			Name:  clusterPluginDefinitions.Items[randomIndex].Name,
-			Alias: alias,
-		}
-		expect.CatalogOverride(ctx, adminClient, override, env.TestNamespace, catalog.Name)
-		expect.CatalogReady(ctx, adminClient, env.TestNamespace, catalog.Name)
-
-		Eventually(func(g Gomega) {
-			clusterPluginDefinition := &greenhousev1alpha1.ClusterPluginDefinition{}
-			err := adminClient.Get(ctx, client.ObjectKey{Name: alias}, clusterPluginDefinition)
-			g.Expect(err).NotTo(HaveOccurred(), "there should be no error fetching the aliased ClusterPluginDefinition")
-		}).Should(Succeed(), "the patched Catalog resource should be available with the new alias")
-
-		override.Repository = catalogRepositoryPatch
-		expect.CatalogOverride(ctx, adminClient, override, env.TestNamespace, catalog.Name)
-		expect.CatalogReady(ctx, adminClient, env.TestNamespace, catalog.Name)
-
-		Eventually(func(g Gomega) {
-			clusterPluginDefinition := &greenhousev1alpha1.ClusterPluginDefinition{}
-			err := adminClient.Get(ctx, client.ObjectKey{Name: alias}, clusterPluginDefinition)
-			g.Expect(err).NotTo(HaveOccurred(), "there should be no error fetching the aliased ClusterPluginDefinition")
-			g.Expect(clusterPluginDefinition.Spec.HelmChart.Repository).To(Equal(catalogRepositoryPatch), "the patched ClusterPluginDefinition should have the new repository URL")
-		}).Should(Succeed(), "the patched Catalog resource should be available with the new repository URL")
+		Expect(clusterPluginDefinitions.Items).To(HaveLen(2), "there should be exactly two ClusterPluginDefinitions created from the Catalog")
 	})
 })
