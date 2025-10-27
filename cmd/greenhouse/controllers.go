@@ -58,14 +58,22 @@ func knownControllersNames() []string {
 	return controllerStringSlice
 }
 
-// isControllerEnabled checks whether the given controller or regex is enabled
-func isControllerEnabled(controllerName string) bool {
-	for _, c := range enabledControllers {
-		if controllerName == "*" || controllerName == c {
+// contains checks if a string exists in a slice of strings
+func contains(slice []string, str string) bool {
+	for _, s := range slice {
+		if s == str {
 			return true
 		}
 	}
 	return false
+}
+
+// isControllerEnabled checks whether the given controller or regex is enabled
+func isControllerEnabled(controllerName string) bool {
+	if contains(disabledControllers, controllerName) {
+		return false
+	}
+	return controllerName == "*" || contains(enabledControllers, controllerName)
 }
 
 // startOrganizationReconciler - initializes the organization reconciler

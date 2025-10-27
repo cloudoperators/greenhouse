@@ -66,6 +66,7 @@ const (
 const (
 	flagHelmDebug                          = "helm-debug"
 	flagControllers                        = "controllers"
+	flagDisabledControllers                = "disabled-controllers"
 	flagMetricsBindAddress                 = "metrics-bind-address"
 	flagHealthProbeBindAddress             = "health-probe-bind-address"
 	flagRemoteClusterBearerTokenValidity   = "remote-cluster-bearer-token-validity"
@@ -80,7 +81,8 @@ var (
 	scheme   = runtime.NewScheme()
 	setupLog = ctrl.Log.WithName("setup")
 
-	enabledControllers []string
+	enabledControllers  []string
+	disabledControllers []string
 	remoteClusterBearerTokenValidity,
 	renewRemoteClusterBearerTokenAfter time.Duration
 	kubeClientOpts clientutil.RuntimeOptions
@@ -108,6 +110,8 @@ func main() {
 		"Enable debug logging for underlying Helm client.")
 	flag.StringSliceVar(&enabledControllers, flagControllers, knownControllersNames(),
 		"A list of controllers to enable.")
+	flag.StringSliceVar(&disabledControllers, flagDisabledControllers, []string{},
+		"A list of controllers to disable.")
 	flag.StringVar(&metricsAddr, flagMetricsBindAddress, ":8080",
 		"The address the metric endpoint binds to.")
 	flag.StringVar(&probeAddr, flagHealthProbeBindAddress, ":8081",
