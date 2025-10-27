@@ -33,9 +33,7 @@ var knownControllers = map[string]func(controllerName string, mgr ctrl.Manager) 
 	"teamRoleBindingController": (&teamrbaccontrollers.TeamRoleBindingReconciler{}).SetupWithManager,
 
 	// Plugin controllers.
-	"plugin": (&plugincontrollers.PluginReconciler{
-		KubeRuntimeOpts: kubeClientOpts,
-	}).SetupWithManager,
+	"plugin":       startPluginReconciler,
 	"pluginPreset": (&plugincontrollers.PluginPresetReconciler{}).SetupWithManager,
 
 	"catalog": (&catalog.CatalogReconciler{
@@ -82,6 +80,19 @@ func startOrganizationReconciler(name string, mgr ctrl.Manager) error {
 	return (&organizationcontrollers.OrganizationReconciler{
 		Namespace:      namespace,
 		DexStorageType: *backend,
+	}).SetupWithManager(name, mgr)
+}
+
+// startPluginReconciler initializes the plugin reconciler.
+// Resolves template rendering feature flag from greenhouse-feature-flags.
+func startPluginReconciler(name string, mgr ctrl.Manager) error {
+	optionValueTemplatingEnabled := false
+	if featureFlags != nil {
+		optionValueTemplatingEnabled = featureFlags.IsTemplateRenderingEnabled(context.Background())
+	}
+	return (&plugincontrollers.PluginReconciler{
+		KubeRuntimeOpts:              kubeClientOpts,
+		OptionValueTemplatingEnabled: optionValueTemplatingEnabled,
 	}).SetupWithManager(name, mgr)
 }
 
