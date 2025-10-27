@@ -14,13 +14,13 @@ data:
     # Greenhouse gives the choice of using kubernetes as the storage backend or to use postgresSQL as the backend
     dex: |
       storage: kubernetes / postgres
+  dex: |
+   storage: {{ include "dex.backend" $ }}
     # enable plugin features
     # optionValueTemplating allows you to enable or disable template rendering for plugin option values
     # set to false to disable template rendering (templates will be used as literal values)
     # set to true to enable template rendering (templates will be evaluated)
     plugin: |
       optionValueTemplating: false / true
-  dex: |
-    storage: {{ include "dex.backend" $ }}
   plugin: |
     optionValueTemplating: {{ include "plugin.optionValueTemplating" $ }}
