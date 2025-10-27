@@ -11,7 +11,7 @@ on:
 
 jobs:
   lint:
-    runs-on: [ default ]
+    runs-on: [ ubuntu-latest ]
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
         with:
@@ -26,7 +26,7 @@ jobs:
         run: make lint
 
   test:
-    runs-on: [ default ]
+    runs-on: [ ubuntu-latest ]
     env:
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     steps:
@@ -43,7 +43,7 @@ jobs:
         run: make test
 
   build:
-    runs-on: [ default ]
+    runs-on: [ ubuntu-latest ]
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
         with:

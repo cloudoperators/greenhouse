@@ -6,7 +6,7 @@ on:
 jobs:
   generate-token:
     name: Generate GitHub App Token
-    runs-on: default
+    runs-on: ubuntu-latest
     outputs:
       token: ${{ steps.github-app-token.outputs.token }}
     steps:
@@ -21,7 +21,7 @@ jobs:
   build-license-eye:
     name: Check & Fix License Headers
     needs: generate-token
-    runs-on: default
+    runs-on: ubuntu-latest
     steps:
       - uses: cloudoperators/common/.github/workflows/shared-license.yaml@main
         with:
