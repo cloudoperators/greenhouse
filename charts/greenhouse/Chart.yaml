@@ -5,7 +5,7 @@ apiVersion: v2
 name: greenhouse
 description: A Helm chart for deploying greenhouse
 type: application
-version: 0.12.4
+version: 0.12.5
 appVersion: "0.6.0"
 
 dependencies:
@@ -18,7 +18,7 @@ dependencies:
     repository: "file://../cors-proxy"
     version: 0.3.0
   - name: manager
-    version: 0.6.1
+    version: 0.6.2
     repository: "file://../manager"
   - condition: dashboard.enabled
     name: dashboard
