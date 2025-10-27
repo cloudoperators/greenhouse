@@ -21,6 +21,7 @@ global:
   # Plugin configuration for Greenhouse.
   plugin:
     optionValueTemplating: false
+    defaultDeploymentTool: helm
 
 postgresqlng:
   enabled: true
