@@ -84,11 +84,11 @@ type OIDCConfig struct {
 	// the client application, the URI requested to redirect to must be contained in this list.
 	OAuth2ClientRedirectURIs []string `json:"oauth2ClientRedirectURIs,omitempty"`
 	// InsecureSkipEmailVerified allows to skip the verification of the "email_verified" claim in ID tokens.
-	// +kubebuilder:validation:default:=false
+	// +kubebuilder:default:=false
 	// +kubebuilder:validation:Enum:=true;false
 	InsecureSkipEmailVerified bool `json:"insecureSkipEmailVerified,omitempty"`
 	// UserIDClaim is the claim to be used as user ID.
-	// +kubebuilder:validation:default:="login_name"
+	// +kubebuilder:default:="login_name"
 	UserIDClaim string `json:"userIDClaim,omitempty"`
 }
 

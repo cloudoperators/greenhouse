@@ -93,6 +93,7 @@ spec:
                         - name
                         type: object
                       insecureSkipEmailVerified:
+                        default: false
                         description: InsecureSkipEmailVerified allows to skip the
                           verification of the "email_verified" claim in ID tokens.
                         enum:
@@ -115,6 +116,7 @@ spec:
                           If none is specified, the Greenhouse ID proxy will be used.
                         type: string
                       userIDClaim:
+                        default: login_name
                         description: UserIDClaim is the claim to be used as user ID.
                         type: string
                     required:
