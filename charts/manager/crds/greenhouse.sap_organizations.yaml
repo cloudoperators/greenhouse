@@ -92,6 +92,13 @@ spec:
                         - key
                         - name
                         type: object
+                      insecureSkipEmailVerified:
+                        description: InsecureSkipEmailVerified allows to skip the
+                          verification of the "email_verified" claim in ID tokens.
+                        enum:
+                        - true
+                        - false
+                        type: boolean
                       issuer:
                         description: Issuer is the URL of the identity service.
                         type: string
@@ -106,6 +113,9 @@ spec:
                         description: |-
                           RedirectURI is the redirect URI to be used for the OIDC flow against the upstream IdP.
                           If none is specified, the Greenhouse ID proxy will be used.
+                        type: string
+                      userIDClaim:
+                        description: UserIDClaim is the claim to be used as user ID.
                         type: string
                     required:
                     - clientIDReference
