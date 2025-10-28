@@ -183,3 +183,69 @@ func (_c *MockReconciler_EnsureDeleted_Call) RunAndReturn(run func(context1 cont
 	_c.Call.Return(run)
 	return _c
 }
+
+// EnsureSuspended provides a mock function for the type MockReconciler
+func (_mock *MockReconciler) EnsureSuspended(context1 context.Context, runtimeObject lifecycle.RuntimeObject) (controllerruntime.Result, error) {
+	ret := _mock.Called(context1, runtimeObject)
+
+	if len(ret) == 0 {
+		panic("no return value specified for EnsureSuspended")
+	}
+
+	var r0 controllerruntime.Result
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, lifecycle.RuntimeObject) (controllerruntime.Result, error)); ok {
+		return returnFunc(context1, runtimeObject)
+	}
+	if returnFunc, ok := ret.Get(0).(func(context.Context, lifecycle.RuntimeObject) controllerruntime.Result); ok {
+		r0 = returnFunc(context1, runtimeObject)
+	} else {
+		r0 = ret.Get(0).(controllerruntime.Result)
+	}
+	if returnFunc, ok := ret.Get(1).(func(context.Context, lifecycle.RuntimeObject) error); ok {
+		r1 = returnFunc(context1, runtimeObject)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// MockReconciler_EnsureSuspended_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'EnsureSuspended'
+type MockReconciler_EnsureSuspended_Call struct {
+	*mock.Call
+}
+
+// EnsureSuspended is a helper method to define mock.On call
+//   - context1 context.Context
+//   - runtimeObject lifecycle.RuntimeObject
+func (_e *MockReconciler_Expecter) EnsureSuspended(context1 interface{}, runtimeObject interface{}) *MockReconciler_EnsureSuspended_Call {
+	return &MockReconciler_EnsureSuspended_Call{Call: _e.mock.On("EnsureSuspended", context1, runtimeObject)}
+}
+
+func (_c *MockReconciler_EnsureSuspended_Call) Run(run func(context1 context.Context, runtimeObject lifecycle.RuntimeObject)) *MockReconciler_EnsureSuspended_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 lifecycle.RuntimeObject
+		if args[1] != nil {
+			arg1 = args[1].(lifecycle.RuntimeObject)
+		}
+		run(
+			arg0,
+			arg1,
+		)
+	})
+	return _c
+}
+
+func (_c *MockReconciler_EnsureSuspended_Call) Return(v controllerruntime.Result, err error) *MockReconciler_EnsureSuspended_Call {
+	_c.Call.Return(v, err)
+	return _c
+}
+
+func (_c *MockReconciler_EnsureSuspended_Call) RunAndReturn(run func(context1 context.Context, runtimeObject lifecycle.RuntimeObject) (controllerruntime.Result, error)) *MockReconciler_EnsureSuspended_Call {
+	_c.Call.Return(run)
+	return _c
+}

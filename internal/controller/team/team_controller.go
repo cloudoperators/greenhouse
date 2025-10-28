@@ -163,6 +163,10 @@ func (r *TeamController) EnsureCreated(ctx context.Context, object lifecycle.Run
 		lifecycle.Success, nil
 }
 
+func (r *TeamController) EnsureSuspended(_ context.Context, _ lifecycle.RuntimeObject) (ctrl.Result, error) {
+	return ctrl.Result{}, nil
+}
+
 func (r *TeamController) createSCIMClient(
 	ctx context.Context,
 	namespace string,

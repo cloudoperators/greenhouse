@@ -44,6 +44,35 @@ func UpdateClusterWithDeletionAnnotation(ctx context.Context, c client.Client, i
 	return cluster
 }
 
+func MustSetAnnotations(ctx context.Context, c client.Client, o client.Object, key, value string) {
+	GinkgoHelper()
+	Eventually(func(g Gomega) {
+		base := o.DeepCopyObject().(client.Object) //nolint:errcheck
+		g.Expect(c.Get(ctx, client.ObjectKeyFromObject(o), o)).To(Succeed(), "there must be no error getting the object")
+		annotations := o.GetAnnotations()
+		if annotations == nil {
+			annotations = make(map[string]string)
+		}
+		annotations[key] = value
+		o.SetAnnotations(annotations)
+		g.Expect(c.Patch(ctx, o, client.MergeFrom(base))).To(Succeed(), "there must be no error updating the object")
+	}).Should(Succeed(), "there should be no error setting the annotation")
+}
+
+func MustRemoveAnnotation(ctx context.Context, c client.Client, o client.Object, key string) {
+	GinkgoHelper()
+	Eventually(func(g Gomega) {
+		base := o.DeepCopyObject().(client.Object) //nolint:errcheck
+		g.Expect(c.Get(ctx, client.ObjectKeyFromObject(o), o)).To(Succeed(), "there must be no error getting the object")
+		annotations := o.GetAnnotations()
+		delete(annotations, key)
+		o.SetAnnotations(annotations)
+		g.Expect(c.Patch(ctx, o, client.MergeFrom(base))).To(Succeed(), "there must be no error updating the object")
+	}).Should(Succeed(), "there should be no error removing the annotation")
+}
+
+// RemoveDeletionProtection removes the deletion protection annotation from the given PluginPreset.
+
 func RemoveDeletionProtection(ctx context.Context, c client.Client, id client.ObjectKey) *greenhousev1alpha1.PluginPreset {
 	GinkgoHelper()
 	pluginPreset := &greenhousev1alpha1.PluginPreset{}

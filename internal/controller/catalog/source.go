@@ -184,6 +184,7 @@ func (s *source) reconcileGitRepository(ctx context.Context) error {
 		Interval:  metav1.Duration{Duration: flux.DefaultInterval},
 		Reference: s.source.GetGitRepositoryReference(),
 		Provider:  genericAuthProvider,
+		Suspend:   false,
 	}
 	spec.Provider = genericAuthProvider
 	if secretRef != nil {
@@ -270,6 +271,7 @@ func (s *source) reconcileArtifactGeneration(ctx context.Context) (*sourcev1.Ext
 		}
 	}
 	result, err := controllerutil.CreateOrPatch(ctx, s.Client, generator, func() error {
+		delete(generator.Annotations, sourcev2.ReconcileAnnotation)
 		generator.Spec.Sources = artifactSources
 		generator.Spec.OutputArtifacts = artifacts
 		return controllerutil.SetControllerReference(s.catalog, generator, s.scheme)
@@ -338,7 +340,8 @@ func (s *source) reconcileKustomization(ctx context.Context, extArtifact *source
 		// plugindefinitions applied can also have catalog source labels set on them
 		// but on kustomize deletion the label stays behind since prune policy is to Retain.
 		// WithCommonLabels(s.commonArtifactLabels).
-		WithPath(artifactToDir).Build()
+		WithPath(artifactToDir).
+		WithSuspend(false).Build()
 	if err != nil {
 		return &sourceError{
 			errorTxt: err,
