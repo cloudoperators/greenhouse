@@ -22,6 +22,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
+	greenhouseapis "github.com/cloudoperators/greenhouse/api"
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
 	"github.com/cloudoperators/greenhouse/internal/flux"
 	"github.com/cloudoperators/greenhouse/internal/lifecycle"
@@ -63,6 +64,7 @@ type source struct {
 	scheme           *runtime.Scheme
 	log              logr.Logger
 	recorder         record.EventRecorder
+	commonLabels     map[string]string
 	catalog          *greenhousev1alpha1.Catalog
 	source           greenhousev1alpha1.CatalogSource
 	sourceHash       string
@@ -107,10 +109,14 @@ func (r *CatalogReconciler) newCatalogSource(catalogSource greenhousev1alpha1.Ca
 		return nil, err
 	}
 	return &source{
-		Client:           r.Client,
-		scheme:           r.Scheme,
-		log:              r.Log,
-		recorder:         r.recorder,
+		Client:   r.Client,
+		scheme:   r.Scheme,
+		log:      r.Log,
+		recorder: r.recorder,
+		commonLabels: map[string]string{
+			greenhouseapis.LabelKeyCatalog:       catalog.Name,
+			greenhouseapis.LabelKeyCatalogSource: gitRepoArtifactPrefix + "-" + hash,
+		},
 		catalog:          catalog,
 		source:           catalogSource,
 		sourceHash:       hash,
@@ -331,6 +337,7 @@ func (s *source) reconcileKustomization(ctx context.Context, extArtifact *source
 	serviceAccountName := rbac.OrgCatalogServiceAccountName(s.catalog.Namespace)
 	spec, err := flux.NewKustomizationSpecBuilder(s.log).
 		WithSourceRef(ggvk.String(), ggvk.Kind, extArtifact.Name, extArtifact.Namespace).
+		WithCommonLabels(s.commonLabels). // TODO: Verify labels are propagated in E2E
 		WithServiceAccountName(serviceAccountName).
 		WithPatches(patches).
 		// this is necessary for kustomize to apply namespaced resources without errors,
