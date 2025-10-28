@@ -233,7 +233,7 @@ var _ = Describe("Flux Plugin Controller", Ordered, func() {
 		}).Should(Succeed())
 
 		By("ensuring the Flux HelmRelease is suspended")
-		test.MustSetAnnotations(test.Ctx, test.K8sClient, testPlugin, lifecycle.SuspendAnnotation, "true")
+		test.MustSetAnnotation(test.Ctx, test.K8sClient, testPlugin, lifecycle.SuspendAnnotation, "true")
 
 		Eventually(func(g Gomega) {
 			err := test.K8sClient.Get(test.Ctx, releaseKey, release)
@@ -251,7 +251,7 @@ var _ = Describe("Flux Plugin Controller", Ordered, func() {
 		}).Should(Succeed())
 
 		By("ensuring the HelmRelease has the last reconcile annotation updated")
-		test.MustSetAnnotations(test.Ctx, test.K8sClient, testPlugin, lifecycle.ReconcileAnnotation, "foobar")
+		test.MustSetAnnotation(test.Ctx, test.K8sClient, testPlugin, lifecycle.ReconcileAnnotation, "foobar")
 
 		Eventually(func(g Gomega) {
 			err := test.K8sClient.Get(test.Ctx, releaseKey, release)
