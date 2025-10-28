@@ -32,11 +32,6 @@ type CatalogSource struct {
 	// glob patterns are supported, e.g. ["plugins/*.yaml", "more-plugins/**/plugindefinition.yaml"]
 	Resources []string `json:"resources"`
 
-	// Excludes contains a list of path patterns to exclude from the Catalog
-	// e.g. ["**/test/**", "**/example*/**"]
-	// +Optional
-	Excludes []string `json:"excludes,omitempty"`
-
 	// Ref is the git reference (branch, tag, or SHA) to resolve PluginDefinitions from
 	// precedence: SHA > Tag > Branch
 	// if not specified, defaults to the branch "main"
