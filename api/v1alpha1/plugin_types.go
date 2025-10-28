@@ -213,7 +213,7 @@ func (o *Plugin) SetCondition(condition greenhousemetav1alpha1.Condition) {
 	o.Status.SetConditions(condition)
 }
 
-func (o *Plugin) SetLastReconciledAtStatus(value string) {
+func (o *Plugin) UpdateLastReconciledAtStatus(value string) {
 	o.Status.LastReconciledAt = value
 }
 
