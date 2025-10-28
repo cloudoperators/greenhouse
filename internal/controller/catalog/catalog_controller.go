@@ -23,6 +23,8 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
+	"sigs.k8s.io/controller-runtime/pkg/log"
 
 	greenhousemetav1alpha1 "github.com/cloudoperators/greenhouse/api/meta/v1alpha1"
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
@@ -290,4 +292,135 @@ func checkInventoryReadiness(invList []greenhousev1alpha1.SourceStatus) (allRead
 func (r *CatalogReconciler) EnsureDeleted(_ context.Context, _ lifecycle.RuntimeObject) (ctrl.Result, lifecycle.ReconcileResult, error) {
 	// owner references on child resources will handle deletion
 	return ctrl.Result{}, lifecycle.Success, nil
+}
+
+func (r *CatalogReconciler) EnsureSuspended(ctx context.Context, obj lifecycle.RuntimeObject) (ctrl.Result, error) {
+	catalog := obj.(*greenhousev1alpha1.Catalog) //nolint:errcheck
+	allErrors := make([]error, 0)
+	for _, s := range catalog.Status.Inventory {
+		for _, inv := range s {
+			switch inv.Kind {
+			case sourcev1.GitRepositoryKind:
+				if err := r.suspendGitRepository(ctx, inv.Name, catalog.Namespace); err != nil {
+					allErrors = append(allErrors, err)
+				}
+			case kustomizev1.KustomizationKind:
+				if err := r.suspendKustomization(ctx, inv.Name, catalog.Namespace); err != nil {
+					allErrors = append(allErrors, err)
+				}
+			case sourcev2.ArtifactGeneratorKind:
+				if err := r.suspendArtifactGenerator(ctx, inv.Name, catalog.Namespace); err != nil {
+					allErrors = append(allErrors, err)
+				}
+			case sourcev1.ExternalArtifactKind:
+				// ignore as it is managed by ArtifactGenerator
+				continue
+			default:
+				// ignore other kinds
+				allErrors = append(allErrors, errors.New("unsupported kind for suspension: "+inv.Kind))
+			}
+		}
+	}
+	if len(allErrors) > 0 {
+		var errMessages []string
+		for _, oErr := range allErrors {
+			errMessages = append(errMessages, oErr.Error())
+		}
+		err := errors.New(strings.Join(errMessages, "; "))
+		r.Log.Error(err, "failed to suspend some catalog resources", "name", catalog.Name, "namespace", catalog.Namespace)
+		return ctrl.Result{}, err
+	}
+
+	return ctrl.Result{}, nil
+}
+
+func (r *CatalogReconciler) suspendGitRepository(ctx context.Context, name, namespace string) error {
+	gitRepository := &sourcev1.GitRepository{}
+	gitRepository.SetName(name)
+	gitRepository.SetNamespace(namespace)
+	err := r.Get(ctx, client.ObjectKeyFromObject(gitRepository), gitRepository)
+
+	if apierrors.IsNotFound(err) {
+		return nil
+	}
+	if err != nil {
+		return err
+	}
+
+	result, err := ctrl.CreateOrUpdate(ctx, r.Client, gitRepository, func() error {
+		gitRepository.Spec.Suspend = true
+		return nil
+	})
+	if err != nil {
+		return err
+	}
+	switch result {
+	case controllerutil.OperationResultNone:
+		log.FromContext(ctx).Info("No changes, Catalog's GitRepository already suspended", "name", gitRepository.Name)
+	default:
+		log.FromContext(ctx).Info("Suspend applied to Catalog's GitRepository", "name", gitRepository.Name)
+	}
+	return nil
+}
+
+func (r *CatalogReconciler) suspendKustomization(ctx context.Context, name, namespace string) error {
+	kustomization := &kustomizev1.Kustomization{}
+	kustomization.SetName(name)
+	kustomization.SetNamespace(namespace)
+	err := r.Get(ctx, client.ObjectKeyFromObject(kustomization), kustomization)
+
+	if apierrors.IsNotFound(err) {
+		return nil
+	}
+	if err != nil {
+		return err
+	}
+
+	result, err := ctrl.CreateOrUpdate(ctx, r.Client, kustomization, func() error {
+		kustomization.Spec.Suspend = true
+		return nil
+	})
+	if err != nil {
+		return err
+	}
+	switch result {
+	case controllerutil.OperationResultNone:
+		log.FromContext(ctx).Info("No changes, Catalog's GitRepository already suspended", "name", kustomization.Name)
+	default:
+		log.FromContext(ctx).Info("Suspend applied to Catalog's GitRepository", "name", kustomization.Name)
+	}
+	return nil
+}
+
+func (r *CatalogReconciler) suspendArtifactGenerator(ctx context.Context, name, namespace string) error {
+	artifactGenerator := &sourcev2.ArtifactGenerator{}
+	artifactGenerator.SetName(name)
+	artifactGenerator.SetNamespace(namespace)
+	err := r.Get(ctx, client.ObjectKeyFromObject(artifactGenerator), artifactGenerator)
+	if apierrors.IsNotFound(err) {
+		return nil
+	}
+	if err != nil {
+		return err
+	}
+
+	result, err := ctrl.CreateOrUpdate(ctx, r.Client, artifactGenerator, func() error {
+		a := artifactGenerator.Annotations
+		if a == nil {
+			a = make(map[string]string)
+		}
+		a[sourcev2.ReconcileAnnotation] = sourcev2.DisabledValue
+		artifactGenerator.Annotations = a
+		return nil
+	})
+	if err != nil {
+		return err
+	}
+	switch result {
+	case controllerutil.OperationResultNone:
+		log.FromContext(ctx).Info("No changes, Catalog's ArtifactGenerator already suspended", "name", artifactGenerator.Name)
+	default:
+		log.FromContext(ctx).Info("Suspend applied to Catalog's ArtifactGenerator", "name", artifactGenerator.Name)
+	}
+	return nil
 }
