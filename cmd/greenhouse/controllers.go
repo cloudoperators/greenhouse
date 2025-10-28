@@ -5,6 +5,7 @@ package main
 
 import (
 	"context"
+	"slices"
 	"sort"
 
 	"k8s.io/utils/ptr"
@@ -58,22 +59,12 @@ func knownControllersNames() []string {
 	return controllerStringSlice
 }
 
-// contains checks if a string exists in a slice of strings
-func contains(slice []string, str string) bool {
-	for _, s := range slice {
-		if s == str {
-			return true
-		}
-	}
-	return false
-}
-
 // isControllerEnabled checks whether the given controller or regex is enabled
 func isControllerEnabled(controllerName string) bool {
-	if contains(disabledControllers, controllerName) {
+	if slices.Contains(disabledControllers, controllerName) {
 		return false
 	}
-	return controllerName == "*" || contains(enabledControllers, controllerName)
+	return controllerName == "*" || slices.Contains(enabledControllers, controllerName)
 }
 
 // startOrganizationReconciler - initializes the organization reconciler
