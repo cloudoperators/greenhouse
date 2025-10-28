@@ -13,6 +13,7 @@ import (
 	helmv2 "github.com/fluxcd/helm-controller/api/v2"
 	fluxmeta "github.com/fluxcd/pkg/apis/meta"
 	sourcecontroller "github.com/fluxcd/source-controller/api/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -85,6 +86,34 @@ func (r *PluginReconciler) EnsureFluxCreated(ctx context.Context, plugin *greenh
 	return ctrl.Result{}, lifecycle.Success, nil
 }
 
+func (r *PluginReconciler) EnsureFluxSuspended(ctx context.Context, plugin *greenhousev1alpha1.Plugin) (ctrl.Result, error) {
+	release := &helmv2.HelmRelease{}
+	release.SetName(plugin.Name)
+	release.SetNamespace(plugin.Namespace)
+
+	err := r.Get(ctx, client.ObjectKeyFromObject(release), release)
+	if apierrors.IsNotFound(err) {
+		return ctrl.Result{}, nil
+	}
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+	result, err := ctrl.CreateOrUpdate(ctx, r.Client, release, func() error {
+		release.Spec.Suspend = true
+		return nil
+	})
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+	switch result {
+	case controllerutil.OperationResultNone:
+		log.FromContext(ctx).Info("No changes, Plugin's HelmRelease already suspended", "name", release.Name)
+	default:
+		log.FromContext(ctx).Info("Suspend applied to Plugin's HelmRelease", "name", release.Name)
+	}
+	return ctrl.Result{}, nil
+}
+
 func (r *PluginReconciler) ensureHelmRelease(
 	ctx context.Context,
 	plugin *greenhousev1alpha1.Plugin,
@@ -139,7 +168,7 @@ func (r *PluginReconciler) ensureHelmRelease(
 			WithDriftDetection(&helmv2.DriftDetection{
 				Mode: helmv2.DriftDetectionEnabled,
 			}).
-			WithSuspend(release.Spec.Suspend).
+			WithSuspend(false).
 			WithKubeConfig(&fluxmeta.SecretKeyReference{
 				Name: plugin.Spec.ClusterName,
 				Key:  greenhouseapis.GreenHouseKubeConfigKey,

@@ -110,3 +110,7 @@ func (r *ClusterPluginDefinitionReconciler) reconcileHelmRepository(ctx context.
 func (r *ClusterPluginDefinitionReconciler) EnsureDeleted(_ context.Context, _ lifecycle.RuntimeObject) (ctrl.Result, lifecycle.ReconcileResult, error) {
 	return ctrl.Result{}, lifecycle.Success, nil
 }
+
+func (r *ClusterPluginDefinitionReconciler) EnsureSuspended(_ context.Context, _ lifecycle.RuntimeObject) (ctrl.Result, error) {
+	return ctrl.Result{}, nil
+}

@@ -142,7 +142,7 @@ func (r *PluginReconciler) setConditions() lifecycle.Conditioner {
 
 		var readyCondition greenhousemetav1alpha1.Condition
 		// redirect plugins that are managed by Flux
-		if plugin.GetLabels() != nil && plugin.GetLabels()[greenhouseapis.GreenhouseHelmDeliveryToolLabel] == greenhouseapis.GreenhouseHelmDeliveryToolFlux {
+		if isManagedByFlux(plugin) {
 			readyCondition = r.computeReadyConditionFlux(ctx, plugin)
 		} else {
 			readyCondition = computeReadyCondition(plugin.Status.StatusConditions)
@@ -160,7 +160,7 @@ func (r *PluginReconciler) EnsureDeleted(ctx context.Context, resource lifecycle
 	plugin := resource.(*greenhousev1alpha1.Plugin) //nolint:errcheck
 
 	// redirect plugins that are managed by Flux
-	if plugin.GetLabels() != nil && plugin.GetLabels()[greenhouseapis.GreenhouseHelmDeliveryToolLabel] == greenhouseapis.GreenhouseHelmDeliveryToolFlux {
+	if isManagedByFlux(plugin) {
 		return r.EnsureFluxDeleted(ctx, plugin)
 	}
 
@@ -191,7 +191,7 @@ func (r *PluginReconciler) EnsureCreated(ctx context.Context, resource lifecycle
 	InitPluginStatus(plugin)
 
 	// redirect plugins that are managed by Flux
-	if plugin.GetLabels() != nil && plugin.GetLabels()[greenhouseapis.GreenhouseHelmDeliveryToolLabel] == greenhouseapis.GreenhouseHelmDeliveryToolFlux {
+	if isManagedByFlux(plugin) {
 		return r.EnsureFluxCreated(ctx, plugin)
 	}
 
@@ -244,6 +244,16 @@ func (r *PluginReconciler) EnsureCreated(ctx context.Context, resource lifecycle
 	}
 
 	return ctrl.Result{}, lifecycle.Success, nil
+}
+
+func (r *PluginReconciler) EnsureSuspended(ctx context.Context, resource lifecycle.RuntimeObject) (ctrl.Result, error) {
+	plugin := resource.(*greenhousev1alpha1.Plugin) //nolint:errcheck
+	switch isManagedByFlux(plugin) {
+	case true:
+		return r.EnsureFluxSuspended(ctx, plugin)
+	default:
+		return ctrl.Result{}, nil
+	}
 }
 
 func (r *PluginReconciler) reconcileHelmRelease(
@@ -561,4 +571,14 @@ func getAllExposedServicesForPlugin(restClientGetter genericclioptions.RESTClien
 	}
 
 	return exposedServices, nil
+}
+
+// isManagedByFlux checks if the given plugin is managed by Flux based on the presence of the delivery tool label.
+func isManagedByFlux(plugin *greenhousev1alpha1.Plugin) bool {
+	labels := plugin.GetLabels()
+	if labels == nil {
+		return false
+	}
+	v := labels[greenhouseapis.GreenhouseHelmDeliveryToolLabel]
+	return v == greenhouseapis.GreenhouseHelmDeliveryToolFlux
 }
