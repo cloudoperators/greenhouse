@@ -5,10 +5,12 @@ package catalog
 
 import (
 	"fmt"
+	"maps"
 	"slices"
 
 	fluxmeta "github.com/fluxcd/pkg/apis/meta"
 	sourcev2 "github.com/fluxcd/source-watcher/api/v2/v1beta1"
+
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"k8s.io/utils/ptr"
@@ -206,6 +208,93 @@ var _ = Describe("Catalog controller", Ordered, func() {
 				g.Expect(inventory).ToNot(HaveKey(newBranchSourceGroupKey), "the Catalog status inventory should not have the new branch source key")
 				g.Expect(inventory).To(HaveLen(1), "the Catalog status inventory should contain one item")
 			}).Should(Succeed(), "catalog status should have only the first source in inventory")
+		})
+
+		It("should suspend/resume flux resources when catalog is suspended/resumed", func() {
+			By("suspending the catalog")
+			a := catalog.Annotations
+			if a == nil {
+				a = make(map[string]string)
+			}
+			a[lifecycle.SuspendAnnotation] = "true"
+			catalog.SetAnnotations(a)
+			Expect(test.K8sClient.Update(test.Ctx, catalog)).To(Succeed(), "failed to update Catalog with suspend annotation")
+
+			By("checking if the catalog git repository, kustomization & artifact generator are suspended")
+			actSourceStatus := []greenhousev1alpha1.SourceStatus{}
+			Eventually(func(g Gomega) {
+				g.Expect(test.K8sClient.Get(test.Ctx, cl.ObjectKeyFromObject(catalog), catalog)).To(Succeed(), "there should be no error getting the Catalog")
+				g.Expect(catalog.Spec.Sources).To(HaveLen(1), "there should be one source in the catalog")
+				sourceGroupKey, _, err := getSourceGroupHash(catalog.Spec.Sources[0])
+				g.Expect(err).NotTo(HaveOccurred(), "there should be no error getting source group hash for the source")
+				inventory := catalog.Status.Inventory
+				g.Expect(inventory).To(HaveKey(sourceGroupKey), "the Catalog status inventory should have the groupKey for source")
+				actSourceStatus = inventory[sourceGroupKey]
+			}).Should(Succeed(), "there should be no error getting the Catalog after adding suspend annotation")
+
+			var gitRepoName, kustomizationName, artifactGeneratorName string
+			for _, sourceStatus := range actSourceStatus {
+				switch sourceStatus.Kind {
+				case sourcev1.GitRepositoryKind:
+					gitRepoName = sourceStatus.Name
+				case kustomizev1.KustomizationKind:
+					kustomizationName = sourceStatus.Name
+				case sourcev2.ArtifactGeneratorKind:
+					artifactGeneratorName = sourceStatus.Name
+				}
+			}
+
+			gitRepository := &sourcev1.GitRepository{}
+			gitRepository.SetName(gitRepoName)
+			gitRepository.SetNamespace(catalog.Namespace)
+			Eventually(func(g Gomega) {
+				err := test.K8sClient.Get(test.Ctx, cl.ObjectKeyFromObject(gitRepository), gitRepository)
+				g.Expect(err).ToNot(HaveOccurred(), "failed to get GitRepository")
+				g.Expect(gitRepository.Spec.Suspend).To(BeTrue(), "GitRepository should be suspended")
+			}).Should(Succeed(), "GitRepository should be suspended after catalog is suspended")
+
+			kustomization := &kustomizev1.Kustomization{}
+			kustomization.SetName(kustomizationName)
+			kustomization.SetNamespace(catalog.Namespace)
+			Eventually(func(g Gomega) {
+				err := test.K8sClient.Get(test.Ctx, cl.ObjectKeyFromObject(kustomization), kustomization)
+				g.Expect(err).ToNot(HaveOccurred(), "failed to get Kustomization")
+				g.Expect(kustomization.Spec.Suspend).To(BeTrue(), "Kustomization should be suspended")
+			}).Should(Succeed(), "Kustomization should be suspended after catalog is suspended")
+
+			artifactGenerator := &sourcev2.ArtifactGenerator{}
+			artifactGenerator.SetName(artifactGeneratorName)
+			artifactGenerator.SetNamespace(catalog.Namespace)
+			Eventually(func(g Gomega) {
+				err := test.K8sClient.Get(test.Ctx, cl.ObjectKeyFromObject(artifactGenerator), artifactGenerator)
+				g.Expect(err).ToNot(HaveOccurred(), "failed to get ArtifactGenerator")
+				g.Expect(artifactGenerator.Annotations).To(HaveKeyWithValue(sourcev2.ReconcileAnnotation, sourcev2.DisabledValue), "ArtifactGenerator should be suspended")
+			}).Should(Succeed(), "ArtifactGenerator should be suspended after catalog is suspended")
+
+			By("resuming the catalog")
+			maps.DeleteFunc(catalog.Annotations, func(key, value string) bool {
+				return key == lifecycle.SuspendAnnotation
+			})
+			Expect(test.K8sClient.Update(test.Ctx, catalog)).To(Succeed(), "failed to remove suspend annotation from Catalog")
+
+			By("checking if the catalog git repository and kustomization are resumed")
+			Eventually(func(g Gomega) {
+				err := test.K8sClient.Get(test.Ctx, cl.ObjectKeyFromObject(gitRepository), gitRepository)
+				g.Expect(err).ToNot(HaveOccurred(), "failed to get GitRepository")
+				g.Expect(gitRepository.Spec.Suspend).To(BeFalse(), "GitRepository should not be suspended")
+			}).Should(Succeed(), "GitRepository should be resumed after catalog is resumed")
+
+			Eventually(func(g Gomega) {
+				err := test.K8sClient.Get(test.Ctx, cl.ObjectKeyFromObject(kustomization), kustomization)
+				g.Expect(err).ToNot(HaveOccurred(), "failed to get Kustomization")
+				g.Expect(kustomization.Spec.Suspend).To(BeFalse(), "Kustomization should not be suspended")
+			}).Should(Succeed(), "Kustomization should be resumed after catalog is resumed")
+
+			Eventually(func(g Gomega) {
+				err := test.K8sClient.Get(test.Ctx, cl.ObjectKeyFromObject(artifactGenerator), artifactGenerator)
+				g.Expect(err).ToNot(HaveOccurred(), "failed to get ArtifactGenerator")
+				g.Expect(artifactGenerator.Annotations).ToNot(HaveKey(sourcev2.ReconcileAnnotation), "ArtifactGenerator should be resumed")
+			}).Should(Succeed(), "ArtifactGenerator should be resumed after catalog is resumed")
 		})
 	})
 })
