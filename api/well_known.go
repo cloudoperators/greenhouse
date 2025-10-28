@@ -63,6 +63,12 @@ const (
 
 	// LabelKeyMetadataPrefix is the prefix for cluster metadata labels that are transferred to Plugin template data.
 	LabelKeyMetadataPrefix = "metadata.greenhouse.sap/"
+
+	// LabelKeyCatalog is used to identify the owning catalog resource of (Cluster)PluginDefinitions.
+	LabelKeyCatalog = "greenhouse.sap/catalog"
+
+	// LabelKeyCatalogSource is used to identify the source of the owning catalog resource of (Cluster)PluginDefinitions.
+	LabelKeyCatalogSource = "greenhouse.sap/catalog-source"
 )
 
 // TeamRole and TeamRoleBinding constants
