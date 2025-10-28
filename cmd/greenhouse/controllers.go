@@ -83,15 +83,15 @@ func startOrganizationReconciler(name string, mgr ctrl.Manager) error {
 }
 
 // startPluginReconciler initializes the plugin reconciler.
-// Resolves template rendering feature flag from greenhouse-feature-flags.
+// Resolves template rendering and default deployment tool feature flags from greenhouse-feature-flags.
 func startPluginReconciler(name string, mgr ctrl.Manager) error {
-	optionValueTemplatingEnabled := false
-	if featureFlags != nil {
-		optionValueTemplatingEnabled = featureFlags.IsTemplateRenderingEnabled(context.Background())
-	}
+	optionValueTemplatingEnabled := featureFlags.IsTemplateRenderingEnabled()
+	defaultDeploymentTool := featureFlags.GetDefaultDeploymentTool()
+
 	return (&plugincontrollers.PluginReconciler{
 		KubeRuntimeOpts:              kubeClientOpts,
 		OptionValueTemplatingEnabled: optionValueTemplatingEnabled,
+		DefaultDeploymentTool:        defaultDeploymentTool,
 	}).SetupWithManager(name, mgr)
 }
 

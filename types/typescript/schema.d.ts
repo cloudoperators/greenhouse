@@ -53,11 +53,6 @@ export interface components {
             spec?: {
                 /** @description Sources contains the list of Git Repository source to resolve PluginDefinitions / ClusterPluginDefinitions from */
                 sources: {
-                    /**
-                     * @description Excludes contains a list of path patterns to exclude from the Catalog
-                     *     e.g. ["**\/test/**", "**\/example*\/**"]
-                     */
-                    excludes?: string[];
                     /** @description Overrides are the PluginDefinition overrides to be applied */
                     overrides?: {
                         /**
