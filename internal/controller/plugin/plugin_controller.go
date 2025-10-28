@@ -35,6 +35,7 @@ import (
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
 	"github.com/cloudoperators/greenhouse/internal/clientutil"
 	"github.com/cloudoperators/greenhouse/internal/common"
+	"github.com/cloudoperators/greenhouse/internal/features"
 	"github.com/cloudoperators/greenhouse/internal/helm"
 	"github.com/cloudoperators/greenhouse/internal/lifecycle"
 	"github.com/cloudoperators/greenhouse/internal/util"
@@ -48,6 +49,7 @@ type PluginReconciler struct {
 	KubeRuntimeOpts              clientutil.RuntimeOptions
 	kubeClientOpts               []clientutil.KubeClientOption
 	OptionValueTemplatingEnabled bool
+	DefaultDeploymentTool        *string
 }
 
 //+kubebuilder:rbac:groups=greenhouse.sap,resources=plugindefinitions,verbs=get;list;watch;create;update;patch;delete
@@ -131,6 +133,45 @@ func (r *PluginReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 	return lifecycle.Reconcile(ctx, r.Client, req.NamespacedName, &greenhousev1alpha1.Plugin{}, r, r.setConditions())
 }
 
+// getDeploymentTool determines the deployment tool to use for a plugin.
+// It applies the precedence: label override > feature flag default > "helm" fallback.
+func (r *PluginReconciler) getDeploymentTool(plugin *greenhousev1alpha1.Plugin) string {
+	// Check if explicitly set via label
+	if label, exists := plugin.GetLabels()[greenhouseapis.GreenhouseHelmDeliveryToolLabel]; exists {
+		return label
+	}
+
+	// Use feature flag default if configured
+	if r.DefaultDeploymentTool != nil {
+		return *r.DefaultDeploymentTool
+	}
+
+	// Final fallback
+	return features.DefaultDeploymentToolValue
+}
+
+// suspendFluxResourcesIfNeeded suspends any existing Flux HelmRelease resources for a plugin
+// when switching from Flux to Helm deployment.
+func (r *PluginReconciler) suspendFluxResourcesIfNeeded(ctx context.Context, plugin *greenhousev1alpha1.Plugin) error {
+	helmRelease := &helmv2.HelmRelease{}
+	err := r.Get(ctx, types.NamespacedName{Name: plugin.Name, Namespace: plugin.Namespace}, helmRelease)
+	if err != nil {
+		return client.IgnoreNotFound(err)
+	}
+
+	if helmRelease.Spec.Suspend {
+		return nil
+	}
+
+	log.FromContext(ctx).Info("suspending Flux HelmRelease as deployment tool switched to helm")
+	helmRelease.Spec.Suspend = true
+	if err := r.Update(ctx, helmRelease); err != nil {
+		return fmt.Errorf("failed to suspend HelmRelease: %w", err)
+	}
+
+	return nil
+}
+
 func (r *PluginReconciler) setConditions() lifecycle.Conditioner {
 	return func(ctx context.Context, resource lifecycle.RuntimeObject) {
 		logger := ctrl.LoggerFrom(ctx)
@@ -141,8 +182,8 @@ func (r *PluginReconciler) setConditions() lifecycle.Conditioner {
 		}
 
 		var readyCondition greenhousemetav1alpha1.Condition
-		// redirect plugins that are managed by Flux
-		if isManagedByFlux(plugin) {
+		deploymentTool := r.getDeploymentTool(plugin)
+		if deploymentTool == greenhouseapis.GreenhouseHelmDeliveryToolFlux {
 			readyCondition = r.computeReadyConditionFlux(ctx, plugin)
 		} else {
 			readyCondition = computeReadyCondition(plugin.Status.StatusConditions)
@@ -159,8 +200,8 @@ func (r *PluginReconciler) setConditions() lifecycle.Conditioner {
 func (r *PluginReconciler) EnsureDeleted(ctx context.Context, resource lifecycle.RuntimeObject) (ctrl.Result, lifecycle.ReconcileResult, error) {
 	plugin := resource.(*greenhousev1alpha1.Plugin) //nolint:errcheck
 
-	// redirect plugins that are managed by Flux
-	if isManagedByFlux(plugin) {
+	deploymentTool := r.getDeploymentTool(plugin)
+	if deploymentTool == greenhouseapis.GreenhouseHelmDeliveryToolFlux {
 		return r.EnsureFluxDeleted(ctx, plugin)
 	}
 
@@ -190,9 +231,13 @@ func (r *PluginReconciler) EnsureCreated(ctx context.Context, resource lifecycle
 	plugin := resource.(*greenhousev1alpha1.Plugin) //nolint:errcheck
 	InitPluginStatus(plugin)
 
-	// redirect plugins that are managed by Flux
-	if isManagedByFlux(plugin) {
+	deploymentTool := r.getDeploymentTool(plugin)
+	if deploymentTool == greenhouseapis.GreenhouseHelmDeliveryToolFlux {
 		return r.EnsureFluxCreated(ctx, plugin)
+	}
+
+	if err := r.suspendFluxResourcesIfNeeded(ctx, plugin); err != nil {
+		return ctrl.Result{}, lifecycle.Failed, fmt.Errorf("failed to suspend flux resources: %w", err)
 	}
 
 	restClientGetter, err := initClientGetter(ctx, r.Client, r.kubeClientOpts, *plugin)
@@ -248,12 +293,11 @@ func (r *PluginReconciler) EnsureCreated(ctx context.Context, resource lifecycle
 
 func (r *PluginReconciler) EnsureSuspended(ctx context.Context, resource lifecycle.RuntimeObject) (ctrl.Result, error) {
 	plugin := resource.(*greenhousev1alpha1.Plugin) //nolint:errcheck
-	switch isManagedByFlux(plugin) {
-	case true:
+	deploymentTool := r.getDeploymentTool(plugin)
+	if deploymentTool == greenhouseapis.GreenhouseHelmDeliveryToolFlux {
 		return r.EnsureFluxSuspended(ctx, plugin)
-	default:
-		return ctrl.Result{}, nil
 	}
+	return ctrl.Result{}, nil
 }
 
 func (r *PluginReconciler) reconcileHelmRelease(
@@ -571,14 +615,4 @@ func getAllExposedServicesForPlugin(restClientGetter genericclioptions.RESTClien
 	}
 
 	return exposedServices, nil
-}
-
-// isManagedByFlux checks if the given plugin is managed by Flux based on the presence of the delivery tool label.
-func isManagedByFlux(plugin *greenhousev1alpha1.Plugin) bool {
-	labels := plugin.GetLabels()
-	if labels == nil {
-		return false
-	}
-	v := labels[greenhouseapis.GreenhouseHelmDeliveryToolLabel]
-	return v == greenhouseapis.GreenhouseHelmDeliveryToolFlux
 }
