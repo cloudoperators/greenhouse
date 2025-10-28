@@ -137,10 +137,8 @@ func (r *PluginReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 // It applies the precedence: label override > feature flag default > "helm" fallback.
 func (r *PluginReconciler) getDeploymentTool(plugin *greenhousev1alpha1.Plugin) string {
 	// Check if explicitly set via label
-	if labels := plugin.GetLabels(); labels != nil {
-		if label, exists := labels[greenhouseapis.GreenhouseHelmDeliveryToolLabel]; exists {
-			return label
-		}
+	if label, exists := plugin.GetLabels()[greenhouseapis.GreenhouseHelmDeliveryToolLabel]; exists {
+		return label
 	}
 
 	// Use feature flag default if configured
