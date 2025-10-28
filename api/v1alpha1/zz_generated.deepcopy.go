@@ -120,11 +120,6 @@ func (in *CatalogSource) DeepCopyInto(out *CatalogSource) {
 		*out = make([]string, len(*in))
 		copy(*out, *in)
 	}
-	if in.Excludes != nil {
-		in, out := &in.Excludes, &out.Excludes
-		*out = make([]string, len(*in))
-		copy(*out, *in)
-	}
 	if in.Ref != nil {
 		in, out := &in.Ref, &out.Ref
 		*out = new(GitRef)

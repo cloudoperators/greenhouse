@@ -36,6 +36,9 @@ const (
 	Failed ReconcileResult = "Failed"
 	// Pending should be returned in case the operator is still trying to reach the target state (Requeue, waiting for remote resource to be cleaned up, etc.)
 	Pending ReconcileResult = "Pending"
+
+	// SuspendAnnotation is the annotation used to suspend reconciliation of a resource
+	SuspendAnnotation = "greenhouse.sap/suspend"
 )
 
 // Conditioner is a function that can be used to set the status conditions of the object at a later point in the reconciliation process
@@ -62,6 +65,7 @@ type CatalogObject interface {
 type Reconciler interface {
 	EnsureCreated(context.Context, RuntimeObject) (ctrl.Result, ReconcileResult, error)
 	EnsureDeleted(context.Context, RuntimeObject) (ctrl.Result, ReconcileResult, error)
+	EnsureSuspended(context.Context, RuntimeObject) (ctrl.Result, error)
 }
 
 // Reconcile - is a generic function that is used to reconcile the state of a resource
@@ -87,6 +91,13 @@ func Reconcile(ctx context.Context, kubeClient client.Client, namespacedName typ
 		result ctrl.Result
 		err    error
 	)
+
+	if isResourceSuspended(runtimeObject) {
+		result, err = reconciler.EnsureSuspended(ctx, runtimeObject)
+		// patch the final status of the resource to end the reconciliation loop
+		return result, patchStatus(ctx, kubeClient, runtimeObject, err)
+	}
+
 	if shouldBeDeleted {
 		// in case of unknown finalizer, we need to ensure that the reconcile does not enter into ensureCreated phase
 		if !hasFinalizer {
@@ -118,6 +129,17 @@ func isResourceDeleted(runtimeObject RuntimeObject) bool {
 		return false
 	}
 	return deleteCondition.IsTrue() && deleteCondition.Reason == DeletedReason
+}
+
+// isResourceSuspended returns true if the resource has a suspend annotation set to true
+// This is used to suspend the reconciliation of the resource and all resource it manages
+func isResourceSuspended(runtimeObject RuntimeObject) bool {
+	a := runtimeObject.GetAnnotations()
+	if a == nil {
+		return false
+	}
+	_, ok := a[SuspendAnnotation]
+	return ok
 }
 
 // ensureCreated - invokes the controller's EnsureCreated method and invokes the statusFunc to update the status of the resource

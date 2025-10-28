@@ -164,6 +164,11 @@ func (k *KustomizeBuilder) WithCommonLabels(labels map[string]string) *Kustomize
 	return k
 }
 
+func (k *KustomizeBuilder) WithSuspend(suspend bool) *KustomizeBuilder {
+	k.spec.Suspend = suspend
+	return k
+}
+
 func (k *KustomizeBuilder) Build() (kustomizev1.KustomizationSpec, error) {
 	if k.spec.SourceRef.Kind == "" {
 		return kustomizev1.KustomizationSpec{}, errors.New("source reference kind is required")

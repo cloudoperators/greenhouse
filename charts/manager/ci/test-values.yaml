@@ -11,6 +11,7 @@ global:
       postgresqlUsername: dex
   plugin:
     optionValueTemplating: false
+    defaultDeploymentTool: helm
 
 controllerManager:
   args:
