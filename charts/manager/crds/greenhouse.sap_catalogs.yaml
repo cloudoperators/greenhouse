@@ -53,13 +53,6 @@ spec:
                   resolve PluginDefinitions / ClusterPluginDefinitions from
                 items:
                   properties:
-                    excludes:
-                      description: |-
-                        Excludes contains a list of path patterns to exclude from the Catalog
-                        e.g. ["**/test/**", "**/example*/**"]
-                      items:
-                        type: string
-                      type: array
                     overrides:
                       description: Overrides are the PluginDefinition overrides to
                         be applied
