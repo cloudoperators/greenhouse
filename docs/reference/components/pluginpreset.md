@@ -3,12 +3,12 @@ title: "PluginPresets"
 weight: 3
 ---
 
-A PluginPreset is used to configure Plugins for a set of Clusters. This allows administrators to define standard configurations for Clusters in the same environment or with similiar requirements. Greenhouse will create Plugins based on the PluginPreset for each Cluster that matches the specified selector.
+A PluginPreset is used to configure Plugins for a set of Clusters. This allows administrators to define standard configurations for Clusters in the same environment or with similar requirements. Greenhouse will create Plugins based on the PluginPreset for each Cluster that matches the specified selector.
 
-## Example PluginPreset Spec 
+## Example PluginPreset Spec
 
 ```yaml
-apiVersion: greenhouse.io/v1alpha1
+apiVersion: greenhouse.sap/v1alpha1
 kind: PluginPreset
 metadata:
   name: perses-preset
@@ -86,6 +86,6 @@ spec:
 
 ## Next Steps
 
-- [Managing Plugins for multiple clusters](./../../user-guides/plugin/plugin-management)
-- [Plugin reference](./plugin)
-- [PluginDefinition reference](./plugindefinition)
+- [Managing Plugins for multiple clusters](./../../../user-guides/plugin/plugin-management)
+- [Plugin reference](./../plugin)
+- [PluginDefinition reference](./../plugindefinition)

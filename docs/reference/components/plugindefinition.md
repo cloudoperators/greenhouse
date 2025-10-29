@@ -8,7 +8,7 @@ A PluginDefinition brings either a UI application, a Helm chart deployment, or b
 ## Example PluginDefinition Spec
 
 ```yaml
-apiVersion: greenhouse.io/v1alpha1
+apiVersion: greenhouse.sap/v1alpha1
 kind: PluginDefinition
 metadata:
   name: alerts
@@ -32,7 +32,7 @@ spec:
 
 ## Writing a PluginDefinition Spec
 
-`.spec.displayName` is a human-readable name for the PluginDefinition. This field is optional; if not provided, it defaults to the value of `metadata.name`. This name is used in the Greenhouse UI to display the PluginDefinition in the catalog of available PluginDefinitions.
+`.spec.displayName` is a human-readable name for the PluginDefinition. This field is optional; if not provided, it defaults to the value of `metadata.name`. This name is used in the Greenhouse UI to display the PluginDefinition in the Catalog of available PluginDefinitions.
 
 `.spec.version` specifies the semantic version of the PluginDefinition. This versions the combination of Helm chart, UI application and any options provided in the PluginDefinition. The version should be incremented whenever any of these fields are updated.
 
@@ -89,6 +89,5 @@ spec:
 ## Next Steps
 
 - [Creating a PluginDefinition](./../../../contribute/plugins)
-- [PluginPreset reference](./pluginpreset)
-- [Plugin reference](./plugin)
-- [Cluster reference](./cluster)
+- [PluginPreset reference](./../pluginpreset)
+- [Plugin reference](./../plugin)

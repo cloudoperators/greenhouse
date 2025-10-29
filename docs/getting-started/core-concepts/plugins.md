@@ -68,6 +68,6 @@ flowchart TB
 ## Next Steps
 
 - [Creating an Organization](./../../../user-guides/organization/creation)
-- [Plugin reference](./../../reference/components/plugin)
-- [PluginPreset reference](./../../reference/components/pluginpreset)
-- [PluginDefinition reference](./../../reference/components/plugindefinition)
+- [Plugin reference](./../../../reference/components/plugin)
+- [PluginPreset reference](./../../../reference/components/pluginpreset)
+- [PluginDefinition reference](./../../../reference/components/plugindefinition)

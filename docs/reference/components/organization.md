@@ -8,15 +8,14 @@ An Organization is the top-level entity within Greenhouse. Each Organization rep
 ## Example Organization Spec
 
 ```yaml
-apiVersion: greenhouse.io/v1alpha1
+apiVersion: greenhouse.sap/v1alpha1
 kind: Organization
 metadata:
   name: example-organization
 spec:
   authentication:
-    type: oidc
     oidc:
-      issuerUrl: https://accounts.example.com
+      issuer: https://accounts.example.com
       clientId: example-client-id
 ```
 
@@ -38,7 +37,7 @@ The config requires `issuer`, the URL of the identity provider, and `clientIDRef
 spec:
   authentication:
     oidc:
-      issuerUrl: https://accounts.example.com
+      issuer: https://accounts.example.com
       clientIdReference:
         name: oidc-client-id-secret
         key: client-id
@@ -54,6 +53,7 @@ spec:
 #### SCIM
 
 `.spec.authentication.scim` is used by Greenhouse to retrieve the members of a Team from the Organization's identity provider. This field is optional; if not provided, Greenhouse will not attempt to sync users via SCIM.
+
 The configuration requires `baseURL`, the URL of the SCIM endpoint, and `authType`, which specifies the authentication method to use when connecting to the SCIM endpoint. Supported methods are `basic` and `token`.
 
 ```yaml
@@ -63,10 +63,9 @@ spec:
       baseURL: https://scim.example.com
       authType: token
       bearerToken:
-        valueFrom:
-          secretKeyRef:
-            name: scim-bearer-token-secret
-            key: bearer-token
+        secret:
+          name: scim-bearer-token-secret
+          key: bearer-token
       bearerPrefix: Bearer
       bearerHeader: Authorization
 ```

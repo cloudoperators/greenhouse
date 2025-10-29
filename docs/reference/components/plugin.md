@@ -8,14 +8,14 @@ A Plugin is an instance of a PluginDefinition and is used to deploy infrastructu
 ## Example Plugin Spec
 
 ```yaml
-apiVersion: greenhouse.io/v1alpha1
+apiVersion: greenhouse.sap/v1alpha1
 kind: Plugin
 metadata:
   name: alerts-plugin
   namespace: example-organization
 spec:
- cluster: example-cluster
- displayName: Example Alerts Plugin
+  clusterName: example-cluster
+  displayName: Example Alerts Plugin
   optionValues:
   - name: image.tag
     value: foobar
@@ -66,13 +66,13 @@ spec:
 ```yaml
 spec:
   waitFor:
-  - kind: PluginPreset
-    name: ingress-nginx
-  - kind: Plugin
-    name: cert-manager-example-cluster
+  - pluginRef:
+      pluginPreset: ingress-nginx
+  - pluginRef:
+      name: cert-manager-example-cluster
 ```
 
-| :information_source: The dependencies on a PluginPresets ensures that a Plugin created by this PluginPreset has been deployed to the same Cluster. The dependency on a Plugin is fullfilled if the referenced Plugin is deployed to the same cluster. |
+| :information_source: The dependency on a PluginPreset ensures that a Plugin created by this PluginPreset has been deployed to the same cluster. The dependency on a Plugin is fulfilled if the referenced Plugin is deployed to the same cluster. |
 
 ## Working with Plugins
 
@@ -86,9 +86,9 @@ The annotation `greenhouse.sap/suspend` can be added to a Plugin resource to tem
 
 ### Triggering reconciliation of the Plugin's managed resources
 
-When the Plugin is deployed using FluxCD this annotation triggers a reconciliation of the Flux resources that manage the Helm release on the target cluster. This can be useful to trigger a reconciliation even if no changes were made to the Plugin resource.
+The annotation `greenhouse.sap/reconcile` can be added to a Plugin resource to trigger a reconciliation of the Plugin and its managed resources. When the Plugin is deployed using FluxCD this annotation is propagated to the Flux HelmRelease resource and triggers a reconciliation of the Helm release on the target cluster. This can be useful to trigger a reconciliation even if no changes were made to the Plugin resource.
 
 ## Next Steps
 
-- [PluginPreset reference](./pluginpreset)
-- [PluginDefinition reference](./plugindefinition)
+- [PluginPreset reference](./../pluginpreset)
+- [PluginDefinition reference](./../plugindefinition)

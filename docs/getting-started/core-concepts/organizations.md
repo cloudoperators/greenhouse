@@ -32,4 +32,4 @@ Each Organization can specify SCIM credentials which are used to syncronize user
 ## Next Steps
 
 - [Creating an Organization](./../../../user-guides/organization/creation)
-- [Organization reference](./../../reference/components/organization)
+- [Organization reference](./../../../reference/components/organization)
