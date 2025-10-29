@@ -4,16 +4,9 @@
 package cel
 
 import (
-	"testing"
-
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 )
-
-func TestPluginEvaluator(t *testing.T) {
-	RegisterFailHandler(Fail)
-	RunSpecs(t, "Plugin CEL Evaluator Suite")
-}
 
 var _ = Describe("Plugin CEL Expression Evaluation", func() {
 	Describe("CEL Expression Resolution", func() {
