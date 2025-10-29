@@ -39,3 +39,7 @@ NOTE: The UI also provides a preliminary catalog of Plugins under Organization> 
    supernova                 1.0.0     Supernova, the holistic alert management UI                                                                  187d
    teams2slack               1.1.0     Manage Slack handles and channels based on Greenhouse teams and their members                                115d
    ```
+
+## Next Steps
+
+- [PluginDefinition reference](./../../../reference/components/plugindefinition)

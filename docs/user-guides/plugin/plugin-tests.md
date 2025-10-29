@@ -218,10 +218,16 @@ Before submitting a Pull Request:
 - Verify the presence of `test-<plugin-name>.yaml`, `test-<plugin-name>-config.yaml`, and `test-permissions.yaml` files.
 - Test your Plugin thoroughly using `helm test <release-name>` and confirm that all tests pass against a test Kubernetes Cluster.
 - Include a brief description of the tests in your Pull Request.
-- Make sure that your Plugin's Chart Directory and the Plugin's Upstream Chart Repository are added to this [Greenhouse-Extensions Helm Test Config File](https://github.com/cloudoperators/greenhouse-extensions/blob/main/.github/configs/helm-test.yaml). This will ensure that your Plugin's tests are automatically run in the GitHub Actions workflow when you submit a Pull Request for this Plugin.
+- Make sure that your Plugin's Chart Directory and the Plugin's Upstream Chart Repository are added to this [Greenhouse-Extensions Helm Test Config File](https://github.com/cloudoperators/greenhouse-extensions/blob/main/.github/configs/helm-chart-testing.yaml). This will ensure that your Plugin's tests are automatically run in the GitHub Actions workflow when you submit a Pull Request for this Plugin.
 - Note that the [dependencies](https://helm.sh/docs/helm/helm_dependency/) of your Plugin's Helm Chart might also have their own tests. If so, ensure that the tests of the dependencies are also passing.
-- If your Plugin relies on other Plugins for testing, please follow the [Plugin Testing with Dependencies](#plugin-testing-with-dependencies) section for declaring those dependencies.
+- If your Plugin relies on other Plugins for testing, please follow the [Plugin Testing with Dependencies](#plugin-testing-with-dependencies-during-pull-requests) section for declaring those dependencies.
 
 **Important Notes**
 
 - **Test Coverage:** Aim for comprehensive test coverage to ensure your Plugin's reliability.
+
+## Next Steps
+
+- [Plugin reference](./../../../reference/components/plugin)
+- [PluginPreset reference](./../../../reference/components/pluginpreset)
+- [PluginDefinition reference](./../../../reference/components/plugindefinition)
