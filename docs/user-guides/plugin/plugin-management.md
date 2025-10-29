@@ -52,10 +52,10 @@ spec:
     - ..
 ```
 
-More information on how to configure a PluginPreset can be found [here](./../../reference/components/pluginpreset#writing-a-pluginpreset-spec).
+See [Writing a PluginPreset Spec](./../../../reference/components/pluginpreset#writing-a-pluginpreset-spec) for more details on how to configure a PluginPreset.
 
 ## Next Steps
 
-- [Plugin reference](./../../reference/components/plugin)
-- [PluginPreset reference](./../../reference/components/pluginpreset)
-- [PluginDefinition reference](./../../reference/components/plugindefinition)
+- [Plugin reference](./../../../reference/components/plugin)
+- [PluginPreset reference](./../../../reference/components/pluginpreset)
+- [PluginDefinition reference](./../../../reference/components/plugindefinition)

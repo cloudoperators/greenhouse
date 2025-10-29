@@ -95,6 +95,6 @@ Both types are listed together in `status.exposedServices` with their respective
 
 ## Next Steps
 
-- [Plugin reference](./../../reference/components/plugin)
-- [PluginPreset reference](./../../reference/components/pluginpreset)
-- [PluginDefinition reference](./../../reference/components/plugindefinition)
+- [Plugin reference](./../../../reference/components/plugin)
+- [PluginPreset reference](./../../../reference/components/pluginpreset)
+- [PluginDefinition reference](./../../../reference/components/plugindefinition)

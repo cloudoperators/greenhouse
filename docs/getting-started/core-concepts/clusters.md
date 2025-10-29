@@ -10,10 +10,10 @@ The Greenhouse dashboard provides an overview of all onboarded clusters. Through
 
 ## Cluster access
 
-During the [initial onboarding](../../user-guides/cluster/onboarding) of a cluster, Greenhouse will create a dedicated [ServiceAccount](https://kubernetes.io/docs/concepts/security/service-accounts/) inside the onboarded cluster. This ServiceAccount's token is rotated automatically by Greenhouse.
+During the [initial onboarding](./../../../user-guides/cluster/onboarding) of a cluster, Greenhouse will create a dedicated [ServiceAccount](https://kubernetes.io/docs/concepts/security/service-accounts/) inside the onboarded cluster. This ServiceAccount's token is rotated automatically by Greenhouse.
 
 ## Cluster registry (coming soon)
 
-Once a Cluster is onboarded to Greenhouse a ClusterKubeConfig is generated for the Cluster based on the OIDC configuration of the Organization. This enables members of an Organization to access the fleet of onboarded Clusters via the common Identity Provider. on the respective Clusters can be managed via [Greenhouse Team RBAC](./../../user-guides/team/rbac).
+Once a Cluster is onboarded to Greenhouse a ClusterKubeConfig is generated for the Cluster based on the OIDC configuration of the Organization. This enables members of an Organization to access the fleet of onboarded Clusters via the common Identity Provider. on the respective Clusters can be managed via [Greenhouse Team RBAC](./../../../user-guides/team/rbac).
 
 In order to make it convenient to use these ClusterKubeConfigs and to easily switch between multiple context locally there will be a CLI provided by Greenhouse.

@@ -12,14 +12,15 @@ description: >
 - [Schedule Deletion](#schedule-deletion)
 - [Impact](#impact)
 - [Immediate Deletion](#immediate-deletion)
-- [Troubleshooting](#trouble-shooting)
+- [Troubleshooting](#troubleshooting)
 
 This guides describes how to off-board an existing Kubernetes cluster in your Greenhouse organization.  
 
-While all members of an organization can see existing clusters, their management requires [`org-admin` or `cluster-admin` privileges](./../../getting-started/core-concepts/organizations).
+While all members of an organization can see existing clusters, their management requires `org-admin` or
+`cluster-admin` privileges. See [RBAC with the Organization namespace](./../../../reference/components/organization/#role-based-access-control-within-the-organization-namespace) for details.
 
 ```
-NOTE: The UI is currently in development. For now this guide describes the onboarding workflow via command line.
+:information_source: The UI is currently in development. For now this guide describes the onboarding workflow via command line.
 ```
 
 ### Pre-requisites
@@ -109,7 +110,6 @@ When a `Cluster` resource is scheduled for deletion, all `Plugin` resources asso
 
 When the deletion schedule is reached, the `Cluster` resource will be deleted and all associated resources `Plugin` resources will be deleted as well.
 
-
 ### Immediate Deletion
 
 In order to delete a `Cluster` resource immediately - 
@@ -121,7 +121,6 @@ You can also annotate the `Cluster` resource with `greenhouse.sap/delete-cluster
 
 > The time and date should be in `YYYY-MM-DD HH:MM:SS` format or golang's `time.DateTime` format.
 > The time should be in UTC timezone.
-
 
 ## Troubleshooting
 

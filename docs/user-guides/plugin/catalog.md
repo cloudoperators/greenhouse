@@ -42,4 +42,4 @@ NOTE: The UI also provides a preliminary catalog of Plugins under Organization> 
 
 ## Next Steps
 
-- [PluginDefinition reference](./../../reference/components/plugindefinition)
+- [PluginDefinition reference](./../../../reference/components/plugindefinition)

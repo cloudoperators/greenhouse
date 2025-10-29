@@ -228,6 +228,6 @@ Before submitting a Pull Request:
 
 ## Next Steps
 
-- [Plugin reference](./../../reference/components/plugin)
-- [PluginPreset reference](./../../reference/components/pluginpreset)
-- [PluginDefinition reference](./../../reference/components/plugindefinition)
+- [Plugin reference](./../../../reference/components/plugin)
+- [PluginPreset reference](./../../../reference/components/pluginpreset)
+- [PluginDefinition reference](./../../../reference/components/plugindefinition)
