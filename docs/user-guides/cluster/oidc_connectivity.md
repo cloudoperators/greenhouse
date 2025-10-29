@@ -17,11 +17,11 @@ This guide describes how to onboard an existing Kubernetes cluster to your Green
 configuration.
 If you don't have a [Greenhouse Organization](https://cloudoperators.github.io/greenhouse/docs/user-guides/organization/creation/) yet, please reach out to the Greenhouse administrators.
 
-While all members of an Organization can see existing Clusters, their management requires [`org-admin` or
-`cluster-admin` privileges](./../../getting-started/core-concepts/organizations.md).
+While all members of an Organization can see existing Clusters, their management requires `org-admin` or
+`cluster-admin` privileges. See [RBAC with the Organization namespace](./../../../reference/components/organization/#role-based-access-control-within-the-organization-namespace) for details.
 
-```
-NOTE: The UI is currently in development. For now this guide describes the onboarding workflow via command line.
+```md
+:information_source: The UI is currently in development. For now this guide describes the onboarding workflow via command line.
 ```
 
 ### OIDC Overview

@@ -133,7 +133,7 @@ var _ = Describe("Catalog controller", Ordered, func() {
 				catalogReady := catalog.Status.GetConditionByType(greenhousemetav1alpha1.ReadyCondition)
 				g.Expect(catalogReady).ToNot(BeNil(), "the Catalog should have a Ready condition")
 				g.Expect(catalogReady.Status).To(Equal(metav1.ConditionFalse), "the Ready condition status should be False")
-				g.Expect(catalogReady.Reason).To(Equal(greenhousev1alpha1.CatalogNotReadyReason), "the Ready condition reason should be CatalogNotReady")
+				g.Expect(catalogReady.Reason).To(Equal(greenhousev1alpha1.CatalogEmptySources), "the Ready condition reason should be CatalogNotReady")
 			}).Should(Succeed(), "catalog status should be not ready when no sources are defined")
 		})
 
