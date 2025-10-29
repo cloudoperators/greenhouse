@@ -70,7 +70,7 @@ spec:
 
 ## Seeded default TeamRoles
 
-Greenhouse provides a set of [default TeamRoles](./../../../pkg/controllers/organization/teamrole_seeder_controller.go) that are seeded to all clusters:
+Greenhouse provides a set of [default TeamRoles](https://github.com/cloudoperators/greenhouse/blob/main/internal/controller/organization/teamrole_seeder.go) that are seeded to all clusters:
 
 | TeamRole                | Description                                                                                                                         | APIGroups | Resources                                                                             | Verbs                                                         |
 | ----------------------- | ----------------------------------------------------------------------------------------------------------------------------------- | --------- | ------------------------------------------------------------------------------------- | ------------------------------------------------------------- |
