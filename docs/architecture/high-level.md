@@ -99,8 +99,9 @@ When talking about clusters in the context of Greenhouse, we are referring to tw
 ## Organizations & Authentication
 
 The Greenhouse platform is designed to support multiple organizations, each with its own set of users and permissions. Each organization can have multiple teams, and each team can have its own set of roles and permissions. The Greenhouse API provides a way to manage these organizations, teams, and roles.
-The Organization is a cluster-scoped resource for which a namespace with the same name will be created. When creating an Organization an identity provider (IdP) needs to be specified. All users in this IdP have read access to the resources in the Organization's namespace. Greenhouse will automatically provision a set of RBAC roles, more information can be found [here](./../../getting-started/core-concepts/organizations).
-In order to make the Kubernetes API available for multiple organizations, Greenhouse provides an idproxy build on-top of [dex](https://dexidp.io/), which allows to handle different identity providers (IdP) when authenticating users against the Kubernetes API.
+The Organization is a cluster-scoped resource for which a namespace with the same name will be created. When creating an Organization an identity provider (IdP) needs to be specified. All users in this IdP have read access to the resources in the Organization's namespace. Greenhouse will automatically provision a set of RBAC roles, view [RBAC within the Organization namespace](./../../../reference/components/organization/#role-based-access-control-within-the-organization-namespace) for details.
+
+In order to make the Kubernetes API available for multiple organizations, Greenhouse provides an idproxy build on-top of [Dex](https://dexidp.io/), which allows to handle different identity providers (IdP) when authenticating users against the Kubernetes API.
 
 ```mermaid
 ---

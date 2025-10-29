@@ -17,7 +17,7 @@ This guides describes how to onboard an existing Kubernetes cluster to your Gree
 If you don't have an organization yet please reach out to the Greenhouse administrators.
 
 While all members of an organization can see existing clusters, their management requires `org-admin` or
-`cluster-admin` privileges. See [RBAC with the Organization namespace](./../../../reference/components/organization/#role-based-access-control-within-the-organization-namespace) for details.
+`cluster-admin` privileges. See [RBAC within the Organization namespace](./../../../reference/components/organization/#role-based-access-control-within-the-organization-namespace) for details.
 
 ```
 :information_source: The UI is currently in development. For now this guide describes the onboarding workflow via command line.
