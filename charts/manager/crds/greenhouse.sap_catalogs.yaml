@@ -138,6 +138,10 @@ spec:
                 description: Inventory contains list of internal artifacts generated
                   by Catalog
                 type: object
+              lastReconciledAt:
+                description: LastReconciledAt contains the value when the reconcile
+                  was last triggered via annotation.
+                type: string
               statusConditions:
                 description: StatusConditions contain the different conditions that
                   constitute the status of the Catalog
