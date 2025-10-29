@@ -84,7 +84,7 @@ spec:
 
 `.required` indicates whether the option is mandatory when creating a Plugin from this PluginDefinition. `.default` contains the default value for the option if the Plugin does not provide a value for it. `.type` is used to enforce validation of the value. The following types are supported: `string`, `bool`, `int`, `list`, `map` and `secret`.
 
-| :information_source: The type secret requires a secret reference, disallowing clear-text credentials. Vault/OpenBao references will be allowed with [1211](https://github.com/cloudoperators/greenhouse/issues/1211)||
+| :information_source: The type secret requires a secret reference, disallowing clear-text credentials. Vault/OpenBao references will be allowed with [1211](https://github.com/cloudoperators/greenhouse/issues/1211)|
 
 ## Next Steps
 
