@@ -7,8 +7,8 @@ weight: 3
 
 `Ownership` in Greenhouse is the combination of two of the core features:
 
-- User and Organization management via [Teams](./../core-concepts/teams.md)
-- Deployment of resources ([Plugins](./../core-concepts/plugins.md), [TeamRoleBindings](./../core-concepts/teams/#team-rbac)) to remote [Clusters](./../core-concepts/clusters.md)
+- User and Organization management via [Teams](./../core-concepts/teams)
+- Deployment of resources ([Plugins](./../core-concepts/plugins), [TeamRoleBindings](./../core-concepts/teams/#team-rbac)) to remote [Clusters](./../core-concepts/clusters)
 
 Greenhouse provides a `1:1` relationship between a Team and
 
@@ -22,7 +22,7 @@ Within the context of Greenhouse this relationship is called `Ownership`.
 
 ## Why Ownership of Resources
 
-[Operational processes](processes.md) facilitated via Greenhouse rely on `Ownership`:
+[Operational processes](./processes) facilitated via Greenhouse rely on `Ownership`:
 
 By identifying the owner of a resource it is possible to route operational tasks on the resource to the owner.
 
@@ -83,4 +83,4 @@ metadata:
 Greenhouse will provide the automation to label all resources created by a Plugin on the remote Cluster in the future:
 <https://github.com/cloudoperators/greenhouse-extensions/issues/704>
 
-Currently Greenhouse provides the `owned-by` label as a `OptionValue` [to be consumed by the underlying helm chart of the Plugin](./../../contribute/plugins.md#development).
+Currently Greenhouse provides the `owned-by` label as a `OptionValue` [to be consumed by the underlying helm chart of the Plugin](./../../contribute/plugins#development).

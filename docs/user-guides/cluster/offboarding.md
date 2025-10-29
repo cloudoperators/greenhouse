@@ -16,7 +16,7 @@ description: >
 
 This guides describes how to off-board an existing Kubernetes cluster in your Greenhouse organization.  
 
-While all members of an organization can see existing clusters, their management requires [`org-admin` or `cluster-admin` privileges](./../../getting-started/core-concepts/organizations.md).
+While all members of an organization can see existing clusters, their management requires [`org-admin` or `cluster-admin` privileges](./../../getting-started/core-concepts/organizations).
 
 ```
 NOTE: The UI is currently in development. For now this guide describes the onboarding workflow via command line.

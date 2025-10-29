@@ -16,7 +16,7 @@ description: >
 This guides describes how to onboard an existing Kubernetes cluster to your Greenhouse organization.  
 If you don't have an organization yet please reach out to the Greenhouse administrators.
 
-While all members of an organization can see existing clusters, their management requires [`org-admin` or `cluster-admin` privileges](./../../getting-started/core-concepts/organizations.md).
+While all members of an organization can see existing clusters, their management requires [`org-admin` or `cluster-admin` privileges](./../../getting-started/core-concepts/organizations).
 
 ```
 NOTE: The UI is currently in development. For now this guide describes the onboarding workflow via command line.

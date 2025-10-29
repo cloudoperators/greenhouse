@@ -7,7 +7,7 @@ weight: 3
 
 Greenhouse provides a couple of predefined operational processes.
 
-Operational processes facilitated via Greenhouse heavily rely on the `Ownership` principle. It is used to route operational tasks to [Support Groups](./../core-concepts/teams.md#support-groups).
+Operational processes facilitated via Greenhouse heavily rely on the `Ownership` principle. It is used to route operational tasks to [Support Groups](./../core-concepts/teams#support-groups).
 
 Examples for these operational tasks are:
 

@@ -18,7 +18,7 @@ configuration.
 If you don't have a [Greenhouse Organization](https://cloudoperators.github.io/greenhouse/docs/user-guides/organization/creation/) yet, please reach out to the Greenhouse administrators.
 
 While all members of an Organization can see existing Clusters, their management requires [`org-admin` or
-`cluster-admin` privileges](./../../getting-started/core-concepts/organizations.md).
+`cluster-admin` privileges](./../../getting-started/core-concepts/organizations).
 
 ```
 NOTE: The UI is currently in development. For now this guide describes the onboarding workflow via command line.
