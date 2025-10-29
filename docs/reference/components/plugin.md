@@ -53,8 +53,7 @@ spec:
     value: foobar
   - name: secret
     valueFrom:
-      type: secret
-      secretRef:
+      secret:
         name: alerts-secret
         key: secret-key
 ```
