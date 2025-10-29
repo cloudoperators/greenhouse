@@ -13,7 +13,7 @@ See [Creating an Organization](./../../../user-guides/organization/creation) for
 ## Organization Namespace and Permissions
 
 The Organization's Namespace in the Greenhouse cluster contains all resources bound to the Organization. This Namespace is automatically provisioned when a new Organization is created and shares the Organization's name.
-Once the Namespace is created, Greenhouse will automatically seed RBAC [Roles](./../../../pkg/rbac/role.go) and [ClusterRoles](./../../../pkg/rbac/clusterrole.go) for the Organization. These are used to grant permissions for the Organization's resources to Teams.
+Once the Namespace is created, Greenhouse will automatically seed RBAC [Roles](https://github.com/cloudoperators/greenhouse/blob/main/internal/rbac/role.go) and [ClusterRoles](https://github.com/cloudoperators/greenhouse/blob/main/internal/rbac/clusterrole.go) for the Organization. These are used to grant permissions for the Organization's resources to Teams.
 
 - The Administrators of an Organization are specified via a identity provider (IDP) group during the creation of the Organization. Greenhouse automatically creates a Team called `<org-name>-admin`. This Team is also a [support group](teams#support-groups) and all alerts created by the Greenhouse controller are routed to this admin Team, if no other ownership is provided. See [operational processes](./../operations/processes) and [ownership](./../operations/ownership) for details.
 - The Administrators for Plugins and Clusters need to be defined by the Organization Admins via `RoleBindings` for the seeded Roles `role:<org-name>:cluster-admin` and `role:<org-name>:plugin-admin`.

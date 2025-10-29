@@ -3,7 +3,7 @@ title: "PluginDefinitions"
 weight: 2
 ---
 
-A PluginDefinition brings either a UI application, a Helm chart deployment, or both, to the Greenhouse platform. The Helm chart for a PluginDefinition can be used to deploy infrastructure components to a Kubernetes cluster managed with Greenhouse. The PluginDefinition provides an opinionated way to configure, integrated and deploy these components with Greenhouse.
+A PluginDefinition brings either a UI application, a Helm chart deployment, or both, to the Greenhouse platform. The Helm chart for a PluginDefinition can be used to deploy infrastructure components to a Kubernetes cluster managed with Greenhouse. The PluginDefinition provides an opinionated way to configure, integrate and deploy these components with Greenhouse.
 
 ## Example PluginDefinition Spec
 
@@ -48,13 +48,13 @@ spec:
   docMarkDownUrl: https://raw.githubusercontent.com/cloudoperators/greenhouse-extensions/main/alerts/README.md
 ```
 
-The fields `weight` and `icon` are optional and are used to customize the appearance of the Plugin in the Greenhouse UI sidebar. The optional field `docMarkDownUrl` can be used to provide a link to documentation for the PluginDefinition, which will be displayed in entry of available PluginDefinitions in the Greenhouse UI.
+The fields `weight` and `icon` are optional and are used to customize the appearance of the Plugin in the Greenhouse UI sidebar. The optional field `docMarkDownUrl` can be used to provide a link to documentation for the PluginDefinition, which will be displayed in the entry of available PluginDefinitions in the Greenhouse UI.
 
 `.spec.helmChart` is an optional field that specifies the Helm chart that is deployed when creating a Plugin from this PluginDefinition.
 
 ```yaml
 spec:
- helmChart:
+  helmChart:
     name: alerts
     repository: oci://ghcr.io/cloudoperators/greenhouse-extensions/charts
     version: 4.0.3
@@ -84,7 +84,7 @@ spec:
 
 `.required` indicates whether the option is mandatory when creating a Plugin from this PluginDefinition. `.default` contains the default value for the option if the Plugin does not provide a value for it. `.type` is used to enforce validation of the value. The following types are supported: `string`, `bool`, `int`, `list`, `map` and `secret`.
 
-| :information_source: The type secret requires a secret reference. Disallowing clear-text credentials. |
+| :information_source: The type secret requires a secret reference, disallowing clear-text credentials. |
 
 ## Next Steps
 
