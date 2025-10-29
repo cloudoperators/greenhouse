@@ -13,8 +13,12 @@ import (
 )
 
 const (
-	CatalogReadyReason    greenhousemetav1alpha1.ConditionReason = "CatalogReady"
-	CatalogNotReadyReason greenhousemetav1alpha1.ConditionReason = "CatalogNotReady"
+	CatalogReadyReason          greenhousemetav1alpha1.ConditionReason = "CatalogReady"
+	CatalogEmptySources         greenhousemetav1alpha1.ConditionReason = "CatalogEmptySources"
+	OrphanedObjectCleanUpFail   greenhousemetav1alpha1.ConditionReason = "OrphanedObjectCleanUpFail"
+	CatalogSourceValidationFail greenhousemetav1alpha1.ConditionReason = "CatalogSourceValidationFail"
+	CatalogNotReadyReason       greenhousemetav1alpha1.ConditionReason = "CatalogNotReady"
+	CatalogProgressingReason    greenhousemetav1alpha1.ConditionReason = "ReconcileProgressing"
 )
 
 // CatalogSpec defines the desired state of Catalog.
@@ -129,24 +133,6 @@ type CatalogList struct {
 	Items           []Catalog `json:"items"`
 }
 
-func (c *Catalog) SetInventory(hash, kind, name, msg string, ready metav1.ConditionStatus) {
-	if c.Status.Inventory == nil {
-		c.Status.Inventory = make(map[string][]SourceStatus)
-	}
-	if _, ok := c.Status.Inventory[hash]; !ok {
-		c.Status.Inventory[hash] = make([]SourceStatus, 0, 4)
-	}
-	idx := slices.IndexFunc(c.Status.Inventory[hash], func(in SourceStatus) bool {
-		return in.Kind == kind && in.Name == name
-	})
-	if idx == -1 {
-		c.Status.Inventory[hash] = append(c.Status.Inventory[hash], SourceStatus{Kind: kind, Name: name, Message: msg, Ready: ready})
-		return
-	}
-	c.Status.Inventory[hash][idx].Message = msg
-	c.Status.Inventory[hash][idx].Ready = ready
-}
-
 func (s *CatalogSource) GetRefValue() (gitRef string) {
 	if s.Ref == nil {
 		gitRef = "main"
@@ -184,6 +170,24 @@ func (s *CatalogSource) GetGitRepositoryReference() *sourcev1.GitRepositoryRef {
 	return gitReference
 }
 
+func (c *Catalog) SetInventory(hash, kind, name, msg string, ready metav1.ConditionStatus) {
+	if c.Status.Inventory == nil {
+		c.Status.Inventory = make(map[string][]SourceStatus)
+	}
+	if _, ok := c.Status.Inventory[hash]; !ok {
+		c.Status.Inventory[hash] = make([]SourceStatus, 0, 4)
+	}
+	idx := slices.IndexFunc(c.Status.Inventory[hash], func(in SourceStatus) bool {
+		return in.Kind == kind && in.Name == name
+	})
+	if idx == -1 {
+		c.Status.Inventory[hash] = append(c.Status.Inventory[hash], SourceStatus{Kind: kind, Name: name, Message: msg, Ready: ready})
+		return
+	}
+	c.Status.Inventory[hash][idx].Message = msg
+	c.Status.Inventory[hash][idx].Ready = ready
+}
+
 func (c *Catalog) GetConditions() greenhousemetav1alpha1.StatusConditions {
 	return c.Status.StatusConditions
 }
@@ -192,17 +196,27 @@ func (c *Catalog) SetCondition(condition greenhousemetav1alpha1.Condition) {
 	c.Status.SetConditions(condition)
 }
 
-func (o *Catalog) UpdateLastReconciledAtStatus(value string) {
-	o.Status.LastReconciledAt = value
+func (c *Catalog) UpdateLastReconciledAtStatus(value string) {
+	c.Status.LastReconciledAt = value
 }
 
 // SetUnknownCondition - sets ready conditions to Unknown if not already set.
 func (c *Catalog) SetUnknownCondition() {
 	if cond := c.Status.GetConditionByType(greenhousemetav1alpha1.ReadyCondition); cond == nil {
 		c.SetCondition(
-			greenhousemetav1alpha1.UnknownCondition(greenhousemetav1alpha1.ReadyCondition, CatalogNotReadyReason, "Catalog reconciliation in progress"),
+			greenhousemetav1alpha1.UnknownCondition(greenhousemetav1alpha1.ReadyCondition, CatalogProgressingReason, "Catalog reconciliation in progress"),
 		)
 	}
+}
+
+func (c *Catalog) SetProgressingReason() {
+	cond := c.Status.GetConditionByType(greenhousemetav1alpha1.ReadyCondition)
+	if cond != nil {
+		cond.Reason = CatalogProgressingReason
+		c.SetCondition(*cond)
+		return
+	}
+	c.SetCondition(greenhousemetav1alpha1.UnknownCondition(greenhousemetav1alpha1.ReadyCondition, CatalogProgressingReason, "Catalog reconciliation in progress"))
 }
 
 func (c *Catalog) SetFalseCondition(conditionType greenhousemetav1alpha1.ConditionType, reason greenhousemetav1alpha1.ConditionReason, message string) {
