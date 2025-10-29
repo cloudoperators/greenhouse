@@ -17,7 +17,7 @@ import (
 
 func TestCEL(t *testing.T) {
 	RegisterFailHandler(Fail)
-	RunSpecs(t, "CEL Evaluator Suite")
+	RunSpecs(t, "CEL Suite")
 }
 
 var _ = Describe("CEL Evaluator", func() {

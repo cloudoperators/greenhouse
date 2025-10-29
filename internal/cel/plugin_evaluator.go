@@ -14,16 +14,16 @@ import (
 
 var (
 	pluginCELEnv        *cel.Env
-	errpluginCELEnvInit error
+	errPluginCELEnvInit error
 	pluginCELEnvOnce    sync.Once
 )
 
 // getPluginCELEnv returns a cached CEL environment for plugin expressions.
 func getPluginCELEnv() (*cel.Env, error) {
 	pluginCELEnvOnce.Do(func() {
-		pluginCELEnv, errpluginCELEnvInit = createPluginCELEnv()
+		pluginCELEnv, errPluginCELEnvInit = createPluginCELEnv()
 	})
-	return pluginCELEnv, errpluginCELEnvInit
+	return pluginCELEnv, errPluginCELEnvInit
 }
 
 // EvaluatePluginExpression evaluates a CEL expression with access to global Greenhouse values.

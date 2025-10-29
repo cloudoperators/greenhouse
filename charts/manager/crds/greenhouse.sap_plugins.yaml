@@ -123,6 +123,11 @@ spec:
                 items:
                   description: PluginOptionValue is the value for a PluginOption.
                   properties:
+                    celExpression:
+                      description: |-
+                        CelExpression is a CEL expression that will be evaluated to resolve the value.
+                        CEL expressions have access to global.greenhouse values for dynamic configuration.
+                      type: string
                     name:
                       description: Name of the values.
                       type: string
