@@ -49,17 +49,6 @@ const (
 	kustomizeArtifactPrefix = "kustomize"
 )
 
-type sourceError struct {
-	errorTxt error
-	kind     string
-	name     string
-	groupKey string
-}
-
-func (o *sourceError) Error() string {
-	return o.errorTxt.Error()
-}
-
 type source struct {
 	client.Client
 	scheme           *runtime.Scheme
@@ -185,12 +174,7 @@ func (s *source) reconcileGitRepository(ctx context.Context) error {
 	gitRepo.SetNamespace(s.catalog.Namespace)
 	secretRef, err := s.getSourceSecret(ctx)
 	if err != nil {
-		return &sourceError{
-			errorTxt: err,
-			kind:     sourcev1.GitRepositoryKind,
-			name:     gitRepo.Name,
-			groupKey: s.getSourceGroupHash(),
-		}
+		return err
 	}
 	spec := sourcev1.GitRepositorySpec{
 		URL:       s.source.Repository,
@@ -213,12 +197,7 @@ func (s *source) reconcileGitRepository(ctx context.Context) error {
 		return controllerutil.SetControllerReference(s.catalog, gitRepo, s.scheme)
 	})
 	if err != nil {
-		return &sourceError{
-			errorTxt: err,
-			kind:     sourcev1.GitRepositoryKind,
-			name:     gitRepo.Name,
-			groupKey: s.getSourceGroupHash(),
-		}
+		return err
 	}
 	switch result {
 	case controllerutil.OperationResultCreated:
@@ -277,12 +256,7 @@ func (s *source) reconcileArtifactGeneration(ctx context.Context) (*sourcev1.Ext
 	artifactSources := s.getArtifactSource()
 	artifacts := s.getArtifacts()
 	if len(artifacts) == 0 {
-		return nil, &sourceError{
-			errorTxt: fmt.Errorf("no resources defined in source %s/%s to generate artifact", generator.Namespace, s.getGitRepoName()),
-			kind:     sourcev2.ArtifactGeneratorKind,
-			name:     generator.Name,
-			groupKey: s.getSourceGroupHash(),
-		}
+		return nil, fmt.Errorf("no resources defined in source %s/%s to generate artifact", generator.Namespace, s.getGitRepoName())
 	}
 	result, err := controllerutil.CreateOrPatch(ctx, s.Client, generator, func() error {
 		delete(generator.Annotations, sourcev2.ReconcileAnnotation)
@@ -292,12 +266,7 @@ func (s *source) reconcileArtifactGeneration(ctx context.Context) (*sourcev1.Ext
 		return controllerutil.SetControllerReference(s.catalog, generator, s.scheme)
 	})
 	if err != nil {
-		return nil, &sourceError{
-			errorTxt: err,
-			kind:     sourcev2.ArtifactGeneratorKind,
-			name:     generator.Name,
-			groupKey: s.getSourceGroupHash(),
-		}
+		return nil, err
 	}
 	switch result {
 	case controllerutil.OperationResultCreated:
@@ -314,12 +283,7 @@ func (s *source) reconcileArtifactGeneration(ctx context.Context) (*sourcev1.Ext
 	extArtifact.SetNamespace(s.catalog.Namespace)
 	err = s.Get(ctx, client.ObjectKeyFromObject(extArtifact), extArtifact)
 	if err != nil {
-		return nil, &sourceError{
-			errorTxt: err,
-			kind:     sourcev1.ExternalArtifactKind,
-			name:     extArtifact.Name,
-			groupKey: s.getSourceGroupHash(),
-		}
+		return nil, err
 	}
 	return extArtifact, nil
 }
@@ -333,12 +297,7 @@ func (s *source) reconcileKustomization(ctx context.Context, extArtifact *source
 	var patches []kustomize.Patch
 	if len(s.source.Overrides) > 0 {
 		if patches, err = flux.PrepareKustomizePatches(s.source.Overrides, greenhousev1alpha1.GroupVersion.Group); err != nil {
-			return &sourceError{
-				errorTxt: err,
-				kind:     kustomizev1.KustomizationKind,
-				name:     kustomization.Name,
-				groupKey: s.getSourceGroupHash(),
-			}
+			return err
 		}
 	}
 	ggvk := extArtifact.GroupVersionKind()
@@ -359,12 +318,7 @@ func (s *source) reconcileKustomization(ctx context.Context, extArtifact *source
 		WithPath(artifactToDir).
 		WithSuspend(false).Build()
 	if err != nil {
-		return &sourceError{
-			errorTxt: err,
-			kind:     kustomizev1.KustomizationKind,
-			name:     kustomization.Name,
-			groupKey: s.getSourceGroupHash(),
-		}
+		return err
 	}
 	// when flux resources is being updated by greenhouse controller and in parallel by flux controller, we need to retryOnConflict
 	result, err := controllerutil.CreateOrPatch(ctx, s.Client, kustomization, func() error {
@@ -373,12 +327,7 @@ func (s *source) reconcileKustomization(ctx context.Context, extArtifact *source
 		return controllerutil.SetControllerReference(s.catalog, kustomization, s.scheme)
 	})
 	if err != nil {
-		return &sourceError{
-			errorTxt: err,
-			kind:     kustomizev1.KustomizationKind,
-			name:     kustomization.Name,
-			groupKey: s.getSourceGroupHash(),
-		}
+		return err
 	}
 	switch result {
 	case controllerutil.OperationResultCreated:
