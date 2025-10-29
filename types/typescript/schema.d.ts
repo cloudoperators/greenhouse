@@ -844,11 +844,11 @@ export interface components {
                 };
                 /**
                  * @description DeletionPolicy defines how Plugins owned by a PluginPreset are handled on deletion of the PluginPreset.
-                 *     Supported values are "Delete" and "Orphan". If not set, defaults to "Delete".
+                 *     Supported values are "Delete" and "Retain". If not set, defaults to "Delete".
                  * @default Delete
                  * @enum {string}
                  */
-                deletionPolicy: "Delete" | "Orphan";
+                deletionPolicy: "Delete" | "Retain";
                 /** @description PluginSpec is the spec of the plugin to be deployed by the PluginPreset. */
                 plugin: {
                     /** @description ClusterName is the name of the cluster the plugin is deployed to. If not set, the plugin is deployed to the greenhouse cluster. */

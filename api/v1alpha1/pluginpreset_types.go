@@ -38,10 +38,10 @@ type PluginPresetSpec struct {
 	WaitFor []WaitForItem `json:"waitFor,omitempty"`
 
 	// DeletionPolicy defines how Plugins owned by a PluginPreset are handled on deletion of the PluginPreset.
-	// Supported values are "Delete" and "Orphan". If not set, defaults to "Delete".
+	// Supported values are "Delete" and "Retain". If not set, defaults to "Delete".
 	// +Optional
 	// +kubebuilder:default=Delete
-	// +kubebuilder:validation:Enum=Delete;Orphan
+	// +kubebuilder:validation:Enum=Delete;Retain
 	DeletionPolicy string `json:"deletionPolicy,omitempty"`
 }
 

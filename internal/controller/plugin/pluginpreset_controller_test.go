@@ -662,7 +662,7 @@ var _ = Describe("PluginPreset Controller Lifecycle", Ordered, func() {
 				},
 			},
 			),
-			test.WithPluginPresetDeletionPolicy(greenhouseapis.DeletionPolicyOrphan))
+			test.WithPluginPresetDeletionPolicy(greenhouseapis.DeletionPolicyRetain))
 		err := test.K8sClient.Create(test.Ctx, testPluginPreset)
 		Expect(err).ToNot(HaveOccurred(), "failed to create test PluginPreset")
 
