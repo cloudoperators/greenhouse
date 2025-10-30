@@ -139,8 +139,8 @@ func (r *PluginPresetReconciler) EnsureDeleted(ctx context.Context, resource lif
 	}
 
 	switch pluginPreset.Spec.DeletionPolicy {
-	case greenhouseapis.DeletionPolicyOrphan:
-		// Remove the owner reference from all managed Plugins to orphan them.
+	case greenhouseapis.DeletionPolicyRetain:
+		// Remove the owner reference from all managed Plugins to retain them when deleting the Preset.
 		allErrs := make([]error, 0)
 		for _, plugin := range plugins.Items {
 			if isPluginManagedByPreset(&plugin, pluginPreset.Name) {
@@ -157,7 +157,7 @@ func (r *PluginPresetReconciler) EnsureDeleted(ctx context.Context, resource lif
 			}
 		}
 		if len(allErrs) > 0 {
-			return ctrl.Result{}, lifecycle.Failed, fmt.Errorf("failed to orphan plugins for %s/%s: %w", pluginPreset.Namespace, pluginPreset.Name, errors.Join(allErrs...))
+			return ctrl.Result{}, lifecycle.Failed, fmt.Errorf("failed to process retained plugins for %s/%s: %w", pluginPreset.Namespace, pluginPreset.Name, errors.Join(allErrs...))
 		}
 	default:
 		// Cleanup the plugins that are managed by this PluginPreset.

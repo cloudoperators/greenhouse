@@ -102,8 +102,8 @@ const (
 
 // Deletion Policies
 const (
-	// DeletionPolicyOrphan means owned resources will be orphaned on deletion.
-	DeletionPolicyOrphan = "Orphan"
+	// DeletionPolicyRetain means owned resources will be retained on deletion.
+	DeletionPolicyRetain = "Retain"
 	// DeletionPolicyDelete means owned resources will be deleted on deletion.
 	DeletionPolicyDelete = "Delete"
 )
