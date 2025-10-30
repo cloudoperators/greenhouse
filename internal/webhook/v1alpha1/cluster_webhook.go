@@ -49,6 +49,14 @@ func DefaultCluster(ctx context.Context, _ client.Client, obj runtime.Object) er
 		return nil
 	}
 
+	// default the "greenhouse.sap/cluster" label to be able to select the cluster by label
+	labels := cluster.GetLabels()
+	if labels == nil {
+		labels = make(map[string]string, 1)
+		cluster.SetLabels(labels)
+	}
+	labels[apis.LabelKeyCluster] = cluster.GetName()
+
 	annotations := cluster.GetAnnotations()
 	deletionVal, deletionMarked := annotations[apis.MarkClusterDeletionAnnotation]
 	_, scheduleExists := annotations[apis.ScheduleClusterDeletionAnnotation]

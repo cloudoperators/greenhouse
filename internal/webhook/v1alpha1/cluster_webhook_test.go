@@ -66,6 +66,7 @@ var _ = Describe("Cluster Webhook", Ordered, func() {
 			} else {
 				Expect(err).NotTo(HaveOccurred())
 			}
+			Expect(cluster.Labels).To(HaveKeyWithValue(greenhouseapis.LabelKeyCluster, cluster.GetName()), "cluster should have the correct cluster label set")
 
 			if deletionScheduleExists {
 				Expect(cluster.Annotations).To(HaveKey(greenhouseapis.MarkClusterDeletionAnnotation))

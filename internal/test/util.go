@@ -7,6 +7,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"maps"
 	"os"
 	"time"
 
@@ -26,35 +27,31 @@ import (
 	"github.com/cloudoperators/greenhouse/internal/clientutil"
 )
 
-func UpdateClusterWithDeletionAnnotation(ctx context.Context, c client.Client, id client.ObjectKey) *greenhousev1alpha1.Cluster {
+func UpdateClusterWithDeletionAnnotation(ctx context.Context, c client.Client, cluster *greenhousev1alpha1.Cluster) *greenhousev1alpha1.Cluster {
 	GinkgoHelper()
 	schedule, err := clientutil.ParseDateTime(time.Now().Add(-1 * time.Minute))
 	Expect(err).ToNot(HaveOccurred(), "there should be no error parsing the time")
-	cluster := &greenhousev1alpha1.Cluster{}
-	Eventually(func(g Gomega) {
-		g.Expect(c.Get(ctx, id, cluster)).
-			To(Succeed(), "there must be no error getting the cluster")
-		baseCluster := cluster.DeepCopy()
-		cluster.SetAnnotations(map[string]string{
-			greenhouseapis.MarkClusterDeletionAnnotation:     "true",
-			greenhouseapis.ScheduleClusterDeletionAnnotation: schedule.Format(time.DateTime),
-		})
-		g.Expect(c.Patch(ctx, cluster, client.MergeFrom(baseCluster))).To(Succeed(), "there must be no error updating the cluster")
-	}).Should(Succeed(), "there should be no error setting the cluster deletion annotation")
+	MustSetAnnotations(ctx, c, cluster, map[string]string{
+		greenhouseapis.MarkClusterDeletionAnnotation:     "true",
+		greenhouseapis.ScheduleClusterDeletionAnnotation: schedule.Format(time.DateTime)})
 	return cluster
 }
 
-func MustSetAnnotations(ctx context.Context, c client.Client, o client.Object, key, value string) {
+func MustSetAnnotation(ctx context.Context, c client.Client, o client.Object, key, value string) {
+	GinkgoHelper()
+	MustSetAnnotations(ctx, c, o, map[string]string{key: value})
+}
+
+func MustSetAnnotations(ctx context.Context, c client.Client, o client.Object, annotations map[string]string) {
 	GinkgoHelper()
 	Eventually(func(g Gomega) {
 		base := o.DeepCopyObject().(client.Object) //nolint:errcheck
 		g.Expect(c.Get(ctx, client.ObjectKeyFromObject(o), o)).To(Succeed(), "there must be no error getting the object")
-		annotations := o.GetAnnotations()
-		if annotations == nil {
-			annotations = make(map[string]string)
+		if o.GetAnnotations() == nil {
+			o.SetAnnotations(annotations)
+		} else {
+			maps.Copy(o.GetAnnotations(), annotations)
 		}
-		annotations[key] = value
-		o.SetAnnotations(annotations)
 		g.Expect(c.Patch(ctx, o, client.MergeFrom(base))).To(Succeed(), "there must be no error updating the object")
 	}).Should(Succeed(), "there should be no error setting the annotation")
 }
@@ -64,35 +61,15 @@ func MustRemoveAnnotation(ctx context.Context, c client.Client, o client.Object,
 	Eventually(func(g Gomega) {
 		base := o.DeepCopyObject().(client.Object) //nolint:errcheck
 		g.Expect(c.Get(ctx, client.ObjectKeyFromObject(o), o)).To(Succeed(), "there must be no error getting the object")
-		annotations := o.GetAnnotations()
-		delete(annotations, key)
-		o.SetAnnotations(annotations)
+		delete(o.GetAnnotations(), key)
 		g.Expect(c.Patch(ctx, o, client.MergeFrom(base))).To(Succeed(), "there must be no error updating the object")
 	}).Should(Succeed(), "there should be no error removing the annotation")
 }
 
-// RemoveDeletionProtection removes the deletion protection annotation from the given PluginPreset.
-
-func RemoveDeletionProtection(ctx context.Context, c client.Client, id client.ObjectKey) *greenhousev1alpha1.PluginPreset {
-	GinkgoHelper()
-	pluginPreset := &greenhousev1alpha1.PluginPreset{}
-	Eventually(func(g Gomega) {
-		g.Expect(c.Get(ctx, id, pluginPreset)).
-			To(Succeed(), "there must be no error getting the plugin preset")
-		base := pluginPreset.DeepCopy()
-		annotations := pluginPreset.GetAnnotations()
-		delete(annotations, greenhousev1alpha1.PreventDeletionAnnotation)
-		pluginPreset.SetAnnotations(annotations)
-		g.Expect(c.Patch(ctx, pluginPreset, client.MergeFrom(base))).To(Succeed(), "there must be no error updating the pluginpreset")
-	}).Should(Succeed(), "there should be no error removing the deletion projection")
-	return pluginPreset
-}
-
 // MustDeleteCluster is used in the test context only and removes a cluster by namespaced name.
-func MustDeleteCluster(ctx context.Context, c client.Client, id client.ObjectKey) {
+func MustDeleteCluster(ctx context.Context, c client.Client, cluster *greenhousev1alpha1.Cluster) {
 	GinkgoHelper()
-
-	cluster := UpdateClusterWithDeletionAnnotation(ctx, c, id)
+	UpdateClusterWithDeletionAnnotation(ctx, c, cluster)
 	Expect(c.Delete(ctx, cluster)).
 		To(Succeed(), "there must be no error deleting object", "key", client.ObjectKeyFromObject(cluster))
 
