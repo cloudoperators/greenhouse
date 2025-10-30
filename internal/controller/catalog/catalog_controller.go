@@ -209,21 +209,32 @@ func (r *CatalogReconciler) suspendArtifactGenerator(ctx context.Context, name, 
 func (r *CatalogReconciler) EnsureCreated(ctx context.Context, obj lifecycle.RuntimeObject) (ctrl.Result, lifecycle.ReconcileResult, error) {
 	catalog := obj.(*greenhousev1alpha1.Catalog) //nolint:errcheck
 	catalog.SetUnknownCondition()
-	if err := r.checkAndCleanInventory(ctx, catalog); err != nil {
-		r.Log.Error(err, "failed to clean inventory for catalog", "namespace", catalog.Namespace, "name", catalog.Name)
-		catalog.SetFalseCondition(greenhousemetav1alpha1.ReadyCondition, greenhousev1alpha1.CatalogNotReadyReason, err.Error())
-		return ctrl.Result{}, lifecycle.Failed, err
-	}
 
 	if len(catalog.Spec.Sources) == 0 {
+		msg := "no sources specified for catalog, skipping reconciliation"
+		// in case of empty sources, check and clean inventory if existing to reflect the empty state
+		err := r.checkAndCleanInventory(ctx, catalog)
+		if err != nil {
+			msg = msg + ": " + err.Error()
+		}
+		catalog.SetFalseCondition(greenhousemetav1alpha1.ReadyCondition, greenhousev1alpha1.CatalogEmptySources, msg)
+		r.Log.Info(msg, "namespace", catalog.Namespace, "name", catalog.Name)
 		return ctrl.Result{}, lifecycle.Pending, nil
 	}
 
 	if err := r.validateSources(catalog); err != nil {
 		r.Log.Error(err, "failed to validate sources for catalog", "namespace", catalog.Namespace, "name", catalog.Name)
-		catalog.SetFalseCondition(greenhousemetav1alpha1.ReadyCondition, greenhousev1alpha1.CatalogNotReadyReason, err.Error())
+		catalog.SetFalseCondition(greenhousemetav1alpha1.ReadyCondition, greenhousev1alpha1.CatalogSourceValidationFail, err.Error())
 		return ctrl.Result{}, lifecycle.Failed, err
 	}
+
+	if err := r.checkAndCleanInventory(ctx, catalog); err != nil {
+		r.Log.Error(err, "failed to clean inventory for catalog", "namespace", catalog.Namespace, "name", catalog.Name)
+		catalog.SetFalseCondition(greenhousemetav1alpha1.ReadyCondition, greenhousev1alpha1.OrphanedObjectCleanUpFail, err.Error())
+		return ctrl.Result{}, lifecycle.Failed, err
+	}
+
+	catalog.SetProgressingReason()
 
 	var allErrors []error
 	for _, s := range catalog.Spec.Sources {
@@ -355,13 +366,14 @@ func (r *CatalogReconciler) deleteOrphanedResource(ctx context.Context, obj clie
 func (r *CatalogReconciler) setStatus() lifecycle.Conditioner {
 	return func(ctx context.Context, object lifecycle.RuntimeObject) {
 		catalog := object.(*greenhousev1alpha1.Catalog) //nolint:errcheck
-		if len(catalog.Spec.Sources) == 0 {
-			msg := "no sources specified for catalog, skipping reconciliation"
-			r.Log.Info(msg, "namespace", catalog.Namespace, "name", catalog.Name)
-			catalog.SetFalseCondition(greenhousemetav1alpha1.ReadyCondition, greenhousev1alpha1.CatalogNotReadyReason, msg)
-			return
+		existingNotReady := catalog.Status.GetConditionByType(greenhousemetav1alpha1.ReadyCondition)
+		if existingNotReady != nil && existingNotReady.Status == metav1.ConditionFalse {
+			if existingNotReady.Reason == greenhousev1alpha1.CatalogSourceValidationFail ||
+				existingNotReady.Reason == greenhousev1alpha1.OrphanedObjectCleanUpFail ||
+				existingNotReady.Reason == greenhousev1alpha1.CatalogEmptySources {
+				return
+			}
 		}
-
 		var allInventoryReady []metav1.ConditionStatus
 		var srcErrs []error
 		for _, source := range catalog.Spec.Sources {
