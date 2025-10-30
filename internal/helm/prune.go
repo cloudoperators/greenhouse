@@ -30,11 +30,8 @@ var (
 			// The object might not declare the required metadata in which case the original object is returned.
 			return o
 		}
-		annotations := metaObject.GetAnnotations()
-		if annotations != nil {
-			delete(annotations, corev1.LastAppliedConfigAnnotation)
-		}
-		metaObject.SetAnnotations(annotations)
+		delete(metaObject.GetAnnotations(), corev1.LastAppliedConfigAnnotation)
+
 		return o
 	}
 )

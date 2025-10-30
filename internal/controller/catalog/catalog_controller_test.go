@@ -211,7 +211,7 @@ var _ = Describe("Catalog controller", Ordered, func() {
 
 		It("should suspend/resume flux resources when catalog is suspended/resumed", func() {
 			By("suspending the catalog")
-			test.MustSetAnnotations(test.Ctx, test.K8sClient, catalog, lifecycle.SuspendAnnotation, "true")
+			test.MustSetAnnotation(test.Ctx, test.K8sClient, catalog, lifecycle.SuspendAnnotation, "true")
 
 			By("checking if the catalog git repository, kustomization & artifact generator are suspended")
 			actSourceStatus := []greenhousev1alpha1.SourceStatus{}
@@ -289,7 +289,7 @@ var _ = Describe("Catalog controller", Ordered, func() {
 
 		It("should trigger flux resource reconciliation when reconcile annotation is set on catalog", func() {
 			By("triggering reconciliation of the catalog via annotation")
-			test.MustSetAnnotations(test.Ctx, test.K8sClient, catalog, lifecycle.ReconcileAnnotation, "now")
+			test.MustSetAnnotation(test.Ctx, test.K8sClient, catalog, lifecycle.ReconcileAnnotation, "now")
 
 			By("checking if the catalog git repository, kustomization & artifact generator are annotated for reconciliation")
 			actSourceStatus := []greenhousev1alpha1.SourceStatus{}
