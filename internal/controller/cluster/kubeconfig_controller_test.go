@@ -11,7 +11,6 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/clientcmd"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	greenhouseapis "github.com/cloudoperators/greenhouse/api"
 	"github.com/cloudoperators/greenhouse/api/v1alpha1"
@@ -84,7 +83,7 @@ var _ = Describe("ClusterKubeconfig controller", Ordered, func() {
 	})
 
 	AfterAll(func() {
-		test.MustDeleteCluster(test.Ctx, test.K8sClient, client.ObjectKeyFromObject(&cluster))
+		test.MustDeleteCluster(test.Ctx, test.K8sClient, &cluster)
 		Expect(test.K8sClient.Delete(test.Ctx, oidcSecret)).To(Succeed())
 		test.EventuallyDeleted(test.Ctx, test.K8sClient, team)
 	})
