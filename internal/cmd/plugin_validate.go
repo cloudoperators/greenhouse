@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"path/filepath"
+	"strings"
 
 	"github.com/spf13/cobra"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -108,11 +109,13 @@ func validateOptions(pluginDefinition *greenhousev1alpha1.ClusterPluginDefinitio
 	case len(errList) == 0:
 		return nil
 	default:
-		errString := ""
+		b := strings.Builder{}
 		for _, err := range errList {
-			errString += err.Error() + "\n"
+			if _, err := b.WriteString(err.Error() + "\n"); err != nil {
+				return fmt.Errorf("failed to concatenate error message for %v: %w", plugin.GetName(), err)
+			}
 		}
-		return fmt.Errorf("pluginDefinition %v and plugin %v are not compatible: %v", pluginDefinition.GetName(), plugin.GetName(), errString)
+		return fmt.Errorf("pluginDefinition %v and plugin %v are not compatible: %v", pluginDefinition.GetName(), plugin.GetName(), b.String())
 	}
 }
 
