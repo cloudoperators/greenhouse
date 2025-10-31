@@ -53,7 +53,6 @@ components:
                           description: Repository is the repository to override in the PluginDefinition .spec.helmChart.repository
                           type: string
                       required:
-                        - alias
                         - name
                       type: object
                     type: array
