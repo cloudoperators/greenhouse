@@ -73,6 +73,20 @@ spec:
 
 | :information_source: The dependency on a PluginPreset ensures that a Plugin created by this PluginPreset has been deployed to the same cluster. The dependency on a Plugin is fulfilled if the referenced Plugin is deployed to the same cluster. |
 
+`.spec.ignoreDifferences` is an optional field that is used to suppress specific differences detected by the drift detection of the deployment tool. This can be useful to ignore differences in fields that are managed by other controllers or tools. [Example configuration](https://fluxcd.io/flux/components/helm/helmreleases/#ignore-rules) when using Flux as the deployment tool.
+
+```yaml
+spec:
+  ignoreDifferences:
+  - group: apps
+    version: v1
+    kind: Deployment
+    paths:
+    - /spec/replicas
+```
+
+| :warning: The `ignoreDifferences` field is only supported when using Flux as the deployment tool. It is ignored when using the legacy Helm controller. |
+
 ## Working with Plugins
 
 ### Choosing the deployment tool
