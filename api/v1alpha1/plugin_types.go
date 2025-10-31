@@ -38,7 +38,7 @@ type PluginSpec struct {
 	// ReleaseName is the name of the helm release in the remote cluster to which the backend is deployed.
 	// If the Plugin was already deployed, the Plugin's name is used as the release name.
 	// If this Plugin is newly created, the releaseName is defaulted to the PluginDefinitions HelmChart name.
-	// +kubebuilder:validation:Optional
+	// +Optional
 	// +kubebuilder:validation:XValidation:rule="self == oldSelf",message="ReleaseName is immutable"
 	// +kubebuilder:validation:MaxLength=53
 	ReleaseName string `json:"releaseName,omitempty"`
@@ -125,6 +125,10 @@ type PluginStatus struct {
 
 	// StatusConditions contain the different conditions that constitute the status of the Plugin.
 	greenhousemetav1alpha1.StatusConditions `json:"statusConditions,omitempty"`
+
+	// LastReconciledAt contains the value when the reconcile was last triggered via annotation.
+	// +Optional
+	LastReconciledAt string `json:"lastReconciledAt,omitempty"`
 }
 
 // ServiceType defines the type of exposed service.
@@ -207,6 +211,10 @@ func (o *Plugin) GetConditions() greenhousemetav1alpha1.StatusConditions {
 
 func (o *Plugin) SetCondition(condition greenhousemetav1alpha1.Condition) {
 	o.Status.SetConditions(condition)
+}
+
+func (o *Plugin) UpdateLastReconciledAtStatus(value string) {
+	o.Status.LastReconciledAt = value
 }
 
 func (o *Plugin) GetReleaseName() string {

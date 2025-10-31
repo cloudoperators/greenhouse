@@ -9,10 +9,11 @@ replace (
 
 	// Keep Flux dependencies in sync with v2.6.1.
 	github.com/fluxcd/helm-controller/api => github.com/fluxcd/helm-controller/api v1.4.2
-	github.com/fluxcd/kustomize-controller/api => github.com/fluxcd/kustomize-controller/api v1.7.0
+	github.com/fluxcd/kustomize-controller/api => github.com/fluxcd/kustomize-controller/api v1.7.1
 	github.com/fluxcd/pkg/apis/kustomize => github.com/fluxcd/pkg/apis/kustomize v1.12.0
 	github.com/fluxcd/pkg/apis/meta => github.com/fluxcd/pkg/apis/meta v1.21.0
-	github.com/fluxcd/source-controller/api => github.com/fluxcd/source-controller/api v1.7.0
+	github.com/fluxcd/source-controller/api => github.com/fluxcd/source-controller/api v1.7.2
+	github.com/fluxcd/source-watcher/api/v2 => github.com/fluxcd/source-watcher/api/v2 v2.0.2
 
 	// Keep k8s dependencies in sync.
 	k8s.io/api => k8s.io/api v0.34.1
@@ -30,12 +31,14 @@ require (
 	github.com/cenkalti/backoff/v5 v5.0.3
 	github.com/dexidp/dex v0.0.0-20250829100637-2dce75009acf
 	github.com/fluxcd/helm-controller/api v1.4.2
-	github.com/fluxcd/kustomize-controller/api v1.7.0
+	github.com/fluxcd/kustomize-controller/api v1.7.1
 	github.com/fluxcd/pkg/apis/kustomize v1.21.0
 	github.com/fluxcd/pkg/apis/meta v1.22.0
-	github.com/fluxcd/source-controller/api v1.7.0
+	github.com/fluxcd/source-controller/api v1.7.2
+	github.com/fluxcd/source-watcher/api/v2 v2.0.2
 	github.com/go-jose/go-jose/v4 v4.1.3
 	github.com/google/cel-go v0.26.1
+	github.com/google/go-cmp v0.7.0
 	github.com/jeremywohl/flatten/v2 v2.0.0-20211013061545-07e4a09fb8e4
 	github.com/oklog/run v1.2.0
 	github.com/onsi/ginkgo/v2 v2.26.0
@@ -154,7 +157,6 @@ require (
 	github.com/gobwas/glob v0.2.3 // indirect
 	github.com/gogo/protobuf v1.3.2 // indirect
 	github.com/google/btree v1.1.3 // indirect
-	github.com/google/go-cmp v0.7.0 // indirect
 	github.com/google/pprof v0.0.0-20250403155104-27863c87afa6 // indirect
 	github.com/google/s2a-go v0.1.9 // indirect
 	github.com/google/uuid v1.6.0 // indirect

@@ -290,7 +290,7 @@ var _ = Describe("PluginPreset Controller Lifecycle", Ordered, func() {
 		}).Should(Succeed(), "the PluginPreset should have noticed the ClusterLabel change")
 
 		By("deleting clusterB to ensure the Plugin is deleted")
-		test.MustDeleteCluster(test.Ctx, test.K8sClient, client.ObjectKeyFromObject(&cluster))
+		test.MustDeleteCluster(test.Ctx, test.K8sClient, &cluster)
 		Eventually(func(g Gomega) {
 			err = test.K8sClient.List(test.Ctx, pluginList, client.InNamespace(cluster.GetNamespace()), client.MatchingLabels{greenhouseapis.LabelKeyPluginPreset: pluginPresetName})
 			g.Expect(err).NotTo(HaveOccurred(), "failed to list Plugins")
@@ -457,7 +457,7 @@ var _ = Describe("PluginPreset Controller Lifecycle", Ordered, func() {
 		}).Should(Succeed())
 
 		By("deleting otherTestCluster to ensure the Plugin is deleted")
-		test.MustDeleteCluster(test.Ctx, test.K8sClient, client.ObjectKeyFromObject(&cluster))
+		test.MustDeleteCluster(test.Ctx, test.K8sClient, &cluster)
 		Eventually(func(g Gomega) {
 			err = test.K8sClient.List(test.Ctx, pluginList, client.InNamespace(cluster.GetNamespace()), client.MatchingLabels{greenhouseapis.LabelKeyPluginPreset: pluginPresetName})
 			g.Expect(err).NotTo(HaveOccurred(), "failed to list Plugins")
@@ -662,7 +662,7 @@ var _ = Describe("PluginPreset Controller Lifecycle", Ordered, func() {
 				},
 			},
 			),
-			test.WithPluginPresetDeletionPolicy(greenhouseapis.DeletionPolicyOrphan))
+			test.WithPluginPresetDeletionPolicy(greenhouseapis.DeletionPolicyRetain))
 		err := test.K8sClient.Create(test.Ctx, testPluginPreset)
 		Expect(err).ToNot(HaveOccurred(), "failed to create test PluginPreset")
 

@@ -120,13 +120,6 @@ func NewKustomizationSpecBuilder(logger logr.Logger) *KustomizeBuilder {
 	}
 }
 
-func (k *KustomizeBuilder) WithPath(path string) *KustomizeBuilder {
-	if path != "" {
-		k.spec.Path = path
-	}
-	return k
-}
-
 func (k *KustomizeBuilder) WithSourceRef(apiVersion, kind, name, namespace string) *KustomizeBuilder {
 	ref := kustomizev1.CrossNamespaceSourceReference{
 		APIVersion: apiVersion,
@@ -139,12 +132,40 @@ func (k *KustomizeBuilder) WithSourceRef(apiVersion, kind, name, namespace strin
 }
 
 func (k *KustomizeBuilder) WithPatches(patches []fluxkust.Patch) *KustomizeBuilder {
-	k.spec.Patches = patches
+	if len(patches) > 0 {
+		k.spec.Patches = patches
+	}
 	return k
 }
 
 func (k *KustomizeBuilder) WithServiceAccountName(name string) *KustomizeBuilder {
 	k.spec.ServiceAccountName = name
+	return k
+}
+
+func (k *KustomizeBuilder) WithPath(path string) *KustomizeBuilder {
+	if path != "" {
+		k.spec.Path = path
+	}
+	return k
+}
+
+func (k *KustomizeBuilder) WithTargetNamespace(namespace string) *KustomizeBuilder {
+	k.spec.TargetNamespace = namespace
+	return k
+}
+
+func (k *KustomizeBuilder) WithCommonLabels(labels map[string]string) *KustomizeBuilder {
+	if labels != nil {
+		k.spec.CommonMetadata = &kustomizev1.CommonMetadata{
+			Labels: labels,
+		}
+	}
+	return k
+}
+
+func (k *KustomizeBuilder) WithSuspend(suspend bool) *KustomizeBuilder {
+	k.spec.Suspend = suspend
 	return k
 }
 

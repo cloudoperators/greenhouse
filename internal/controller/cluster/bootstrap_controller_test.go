@@ -10,7 +10,6 @@ import (
 	. "github.com/onsi/gomega"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
 
 	greenhouseapis "github.com/cloudoperators/greenhouse/api"
@@ -67,7 +66,7 @@ var _ = Describe("Bootstrap controller", Ordered, func() {
 				}).Should(BeTrue(), "getting the cluster should succeed eventually and the cluster accessmode and status should be set correctly")
 
 				By("Deleting the valid cluster")
-				test.MustDeleteCluster(test.Ctx, test.K8sClient, client.ObjectKeyFromObject(cluster))
+				test.MustDeleteCluster(test.Ctx, test.K8sClient, cluster)
 			})
 
 		It("Should correctly set cluster.Spec.AccessMode and cluster.Status with invalid remote kubeconfig",
@@ -98,7 +97,7 @@ var _ = Describe("Bootstrap controller", Ordered, func() {
 				}).Should(BeTrue(), "getting the cluster should succeed eventually and the cluster accessmode and status should be set correctly")
 
 				By("Deleting the invalid cluster")
-				test.MustDeleteCluster(test.Ctx, test.K8sClient, client.ObjectKeyFromObject(cluster))
+				test.MustDeleteCluster(test.Ctx, test.K8sClient, cluster)
 			})
 		It("Should successfully propagate labels from the kubeconfig secret to the cluster resource", func() {
 			By("Creating a kubeconfig secret with labels")
@@ -138,7 +137,7 @@ var _ = Describe("Bootstrap controller", Ordered, func() {
 			}).Should(BeTrue(), "cluster should have labels propagated")
 
 			By("Deleting the kubeconfig secret and checking the cluster is deleted")
-			test.MustDeleteCluster(test.Ctx, test.K8sClient, client.ObjectKeyFromObject(cluster))
+			test.MustDeleteCluster(test.Ctx, test.K8sClient, cluster)
 		})
 	})
 })

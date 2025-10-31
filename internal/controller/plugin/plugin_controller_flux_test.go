@@ -10,6 +10,7 @@ import (
 	. "github.com/onsi/gomega"
 
 	helmv2 "github.com/fluxcd/helm-controller/api/v2"
+	fluxmeta "github.com/fluxcd/pkg/apis/meta"
 	sourcecontroller "github.com/fluxcd/source-controller/api/v1"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -23,6 +24,7 @@ import (
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
 	"github.com/cloudoperators/greenhouse/internal/flux"
 	"github.com/cloudoperators/greenhouse/internal/helm"
+	"github.com/cloudoperators/greenhouse/internal/lifecycle"
 	"github.com/cloudoperators/greenhouse/internal/test"
 )
 
@@ -178,7 +180,7 @@ var _ = Describe("Flux Plugin Controller", Ordered, func() {
 		Expect(err).ToNot(HaveOccurred(), "the expected HelmRelease values should be valid JSON")
 
 		By("computing the Values for a Plugin")
-		actual, err := addValuesToHelmRelease(test.Ctx, test.K8sClient, testPlugin)
+		actual, err := addValuesToHelmRelease(test.Ctx, test.K8sClient, testPlugin, false)
 		Expect(err).ToNot(HaveOccurred(), "there should be no error computing the HelmRelease values for the Plugin")
 
 		By("checking the computed Values")
@@ -200,8 +202,9 @@ var _ = Describe("Flux Plugin Controller", Ordered, func() {
 
 		By("ensuring HelmRelease has been created")
 		release := &helmv2.HelmRelease{}
+		releaseKey := types.NamespacedName{Name: testPlugin.Name, Namespace: testPlugin.Namespace}
 		Eventually(func(g Gomega) {
-			err := test.K8sClient.Get(test.Ctx, types.NamespacedName{Name: testPlugin.Name, Namespace: testPlugin.Namespace}, release)
+			err := test.K8sClient.Get(test.Ctx, releaseKey, release)
 			g.Expect(err).ToNot(HaveOccurred(), "failed to get HelmRelease")
 		}).Should(Succeed())
 
@@ -227,6 +230,49 @@ var _ = Describe("Flux Plugin Controller", Ordered, func() {
 			g.Expect(readyCondition.IsFalse()).To(BeTrue(), "Ready condition should be set to false")
 			g.Expect(readyCondition.Message).To(ContainSubstring("Reconciling"))
 			// The status won't change further, because Flux HelmController can't be registered here. See E2E tests.
+		}).Should(Succeed())
+
+		By("ensuring the Flux HelmRelease is suspended")
+		test.MustSetAnnotation(test.Ctx, test.K8sClient, testPlugin, lifecycle.SuspendAnnotation, "true")
+
+		Eventually(func(g Gomega) {
+			err := test.K8sClient.Get(test.Ctx, releaseKey, release)
+			g.Expect(err).ToNot(HaveOccurred(), "failed to get HelmRelease")
+			g.Expect(release.Spec.Suspend).To(BeTrue(), "HelmRelease should be suspended")
+		}).Should(Succeed())
+
+		By("ensuring the Flux HelmRelease is resumed")
+		test.MustRemoveAnnotation(test.Ctx, test.K8sClient, testPlugin, lifecycle.SuspendAnnotation)
+
+		Eventually(func(g Gomega) {
+			err := test.K8sClient.Get(test.Ctx, releaseKey, release)
+			g.Expect(err).ToNot(HaveOccurred(), "failed to get HelmRelease")
+			g.Expect(release.Spec.Suspend).To(BeFalse(), "HelmRelease should not be suspended")
+		}).Should(Succeed())
+
+		By("ensuring the HelmRelease has the last reconcile annotation updated")
+		test.MustSetAnnotation(test.Ctx, test.K8sClient, testPlugin, lifecycle.ReconcileAnnotation, "foobar")
+
+		Eventually(func(g Gomega) {
+			err := test.K8sClient.Get(test.Ctx, releaseKey, release)
+			g.Expect(err).ToNot(HaveOccurred(), "failed to get HelmRelease")
+			g.Expect(release.GetAnnotations()).Should(HaveKeyWithValue(fluxmeta.ReconcileRequestAnnotation, "foobar"), "HelmRelease should have the reconcile annotation updated")
+
+			err = test.K8sClient.Get(test.Ctx, client.ObjectKeyFromObject(testPlugin), testPlugin)
+			g.Expect(err).ToNot(HaveOccurred(), "failed to get Plugin")
+			g.Expect(testPlugin.Status.LastReconciledAt).To(Equal("foobar"), "Plugin status LastReconcile should be updated")
+		}).Should(Succeed())
+
+		test.MustRemoveAnnotation(test.Ctx, test.K8sClient, testPlugin, lifecycle.ReconcileAnnotation)
+
+		Eventually(func(g Gomega) {
+			err := test.K8sClient.Get(test.Ctx, releaseKey, release)
+			g.Expect(err).ToNot(HaveOccurred(), "failed to get HelmRelease")
+			g.Expect(release.GetAnnotations()).ShouldNot(HaveKey(fluxmeta.ReconcileRequestAnnotation), "HelmRelease should have the reconcile annotation removed")
+
+			err = test.K8sClient.Get(test.Ctx, client.ObjectKeyFromObject(testPlugin), testPlugin)
+			g.Expect(err).ToNot(HaveOccurred(), "failed to get Plugin")
+			g.Expect(testPlugin.Status.LastReconciledAt).To(BeEmpty(), "Plugin status LastReconcile should be empty")
 		}).Should(Succeed())
 	})
 

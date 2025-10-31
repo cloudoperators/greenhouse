@@ -16,22 +16,23 @@ description: >
 This guides describes how to onboard an existing Kubernetes cluster to your Greenhouse organization.  
 If you don't have an organization yet please reach out to the Greenhouse administrators.
 
-While all members of an organization can see existing clusters, their management requires [`org-admin` or `cluster-admin` privileges](./../../getting-started/core-concepts/organizations.md).
+While all members of an organization can see existing clusters, their management requires `org-admin` or
+`cluster-admin` privileges. See [RBAC within the Organization namespace](./../../../reference/components/organization/#role-based-access-control-within-the-organization-namespace) for details.
 
 ```
-NOTE: The UI is currently in development. For now this guide describes the onboarding workflow via command line.
+:information_source: The UI is currently in development. For now this guide describes the onboarding workflow via command line.
 ```
 
 ### Preparation
 
-Download the latest `greenhousectl` binary from [here](https://github.com/cloudoperators/greenhouse/releases).
+Download the latest `greenhousectl` binary from the Greenhouse [releases](https://github.com/cloudoperators/greenhouse/releases).
 
 Onboarding a `Cluster` to Greenhouse will require you to authenticate to two different Kubernetes clusters via respective `kubeconfig` files:
 
 - `greenhouse`: The cluster your Greenhouse installation is running on. You need `organization-admin` or `cluster-admin` privileges.
 - `bootstrap`: The cluster you want to onboard. You need `system:masters` privileges.
 
-For consistency we will refer to those two clusters by their names from now on.
+For consistency, we will refer to those two clusters by their names from now on.
 
 You need to have the `kubeconfig` files for both the `greenhouse` and the `bootstrap` cluster at hand. The `kubeconfig` file for the `greenhouse` cluster can be downloaded via the Greenhouse dashboard:
 

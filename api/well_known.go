@@ -63,6 +63,12 @@ const (
 
 	// LabelKeyMetadataPrefix is the prefix for cluster metadata labels that are transferred to Plugin template data.
 	LabelKeyMetadataPrefix = "metadata.greenhouse.sap/"
+
+	// LabelKeyCatalog is used to identify the owning catalog resource of (Cluster)PluginDefinitions.
+	LabelKeyCatalog = "greenhouse.sap/catalog"
+
+	// LabelKeyCatalogSource is used to identify the source of the owning catalog resource of (Cluster)PluginDefinitions.
+	LabelKeyCatalogSource = "greenhouse.sap/catalog-source"
 )
 
 // TeamRole and TeamRoleBinding constants
@@ -96,8 +102,8 @@ const (
 
 // Deletion Policies
 const (
-	// DeletionPolicyOrphan means owned resources will be orphaned on deletion.
-	DeletionPolicyOrphan = "Orphan"
+	// DeletionPolicyRetain means owned resources will be retained on deletion.
+	DeletionPolicyRetain = "Retain"
 	// DeletionPolicyDelete means owned resources will be deleted on deletion.
 	DeletionPolicyDelete = "Delete"
 )
@@ -121,10 +127,6 @@ const (
 	GreenhouseHelmDeliveryToolLabel   = "greenhouse.sap/deployment-tool"
 	GreenhouseHelmDeliveryToolFlux    = "flux"
 	FluxReconcileRequestAnnotation    = "reconcile.fluxcd.io/requestedAt"
-)
-
-const (
-	SecretManagedByCatalogLabel = "source.greenhouse.sap/managed-by"
 )
 
 const (
