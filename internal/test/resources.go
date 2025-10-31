@@ -190,9 +190,8 @@ func NewClusterPluginDefinition(ctx context.Context, name string, opts ...func(d
 			Description: "TestPluginDefinition",
 			Version:     "1.0.0",
 			HelmChart: &greenhousev1alpha1.HelmChartReference{
-				Name:       "./../../test/fixtures/myChart",
-				Repository: "dummy",
-				Version:    "1.0.0",
+				Name:    "./../../test/fixtures/myChart",
+				Version: "1.0.0",
 			},
 		},
 	}
@@ -248,9 +247,8 @@ func NewPluginDefinition(ctx context.Context, name, namespace string, opts ...fu
 			Description: "TestPluginDefinition",
 			Version:     "1.0.0",
 			HelmChart: &greenhousev1alpha1.HelmChartReference{
-				Name:       "./../../test/fixtures/myChart",
-				Repository: "dummy",
-				Version:    "1.0.0",
+				Name:    "./../../test/fixtures/myChart",
+				Version: "1.0.0",
 			},
 		},
 	}
