@@ -111,14 +111,15 @@ func (r *OrganizationReconciler) reconcileDexConnector(ctx context.Context, org 
 		return err
 	}
 	oidcConfig := &oidc.Config{
-		Issuer:               org.Spec.Authentication.OIDCConfig.Issuer,
-		ClientID:             clientID,
-		ClientSecret:         clientSecret,
-		RedirectURI:          redirectURL,
-		UserNameKey:          "login_name",
-		UserIDKey:            "login_name",
-		InsecureSkipVerify:   true,
-		InsecureEnableGroups: true,
+		Issuer:                    org.Spec.Authentication.OIDCConfig.Issuer,
+		ClientID:                  clientID,
+		ClientSecret:              clientSecret,
+		RedirectURI:               redirectURL,
+		UserNameKey:               org.Spec.Authentication.OIDCConfig.UserIDClaim,
+		UserIDKey:                 org.Spec.Authentication.OIDCConfig.UserIDClaim,
+		InsecureSkipEmailVerified: org.Spec.Authentication.OIDCConfig.InsecureSkipEmailVerified,
+		InsecureSkipVerify:        true,
+		InsecureEnableGroups:      true,
 	}
 	configByte, err := json.Marshal(oidcConfig)
 	if err != nil {
