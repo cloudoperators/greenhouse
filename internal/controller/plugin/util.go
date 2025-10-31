@@ -258,23 +258,28 @@ func allResourceReady(payloadStatus []PayloadStatus) bool {
 }
 
 // computeWorkloadCondition computes the ReadyCondition for the Plugin and sets the workload metrics and condition message.
-func computeWorkloadCondition(plugin *greenhousev1alpha1.Plugin, release *ReleaseStatus) {
+func computeWorkloadCondition(plugin *greenhousev1alpha1.Plugin, release *ReleaseStatus) error {
 	if !allResourceReady(release.PayloadStatus) {
 		UpdatePluginWorkloadMetrics(plugin, 0)
 		errorMessage := "Following workload resources are not ready: [ "
+		b := strings.Builder{}
 		for _, status := range release.PayloadStatus {
 			if !status.Ready {
-				errorMessage += ", " + status.Message
+				if _, err := b.WriteString(", " + status.Message); err != nil {
+					return err
+				}
 			}
 		}
+		errorMessage += b.String()
 		errorMessage = strings.TrimPrefix(errorMessage, ", ")
 		errorMessage += " ]"
 		plugin.SetCondition(greenhousemetav1alpha1.FalseCondition(greenhousev1alpha1.WorkloadReadyCondition, "", errorMessage))
-		return
+		return nil
 	}
 
 	UpdatePluginWorkloadMetrics(plugin, 1)
 	plugin.SetCondition(greenhousemetav1alpha1.TrueCondition(greenhousev1alpha1.WorkloadReadyCondition, "", "Workload is running"))
+	return nil
 }
 
 // computeReadyCondition computes the ReadyCondition for the Plugin based on various status conditions
