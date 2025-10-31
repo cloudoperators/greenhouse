@@ -72,7 +72,6 @@ spec:
                               in the PluginDefinition .spec.helmChart.repository
                             type: string
                         required:
-                        - alias
                         - name
                         type: object
                       type: array

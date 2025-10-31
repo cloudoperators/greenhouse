@@ -7,6 +7,7 @@ import (
 	"context"
 	"fmt"
 	"strings"
+	"time"
 
 	kustomizev1 "github.com/fluxcd/kustomize-controller/api/v1"
 	"github.com/fluxcd/pkg/apis/kustomize"
@@ -178,7 +179,7 @@ func (s *source) reconcileGitRepository(ctx context.Context) error {
 	}
 	spec := sourcev1.GitRepositorySpec{
 		URL:       s.source.Repository,
-		Interval:  metav1.Duration{Duration: flux.DefaultInterval},
+		Interval:  metav1.Duration{Duration: 60 * time.Minute}, // TODO: make this configurable if a secret is provided
 		Reference: s.source.GetGitRepositoryReference(),
 		Provider:  genericAuthProvider,
 		Suspend:   false,

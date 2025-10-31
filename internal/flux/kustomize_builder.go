@@ -85,17 +85,22 @@ func patchTemplate(ops []Operation) (string, error) {
 func PrepareKustomizePatches(overrides []greenhouseapisv1alpha1.CatalogOverrides, group string) ([]fluxkust.Patch, error) {
 	patches := make([]fluxkust.Patch, 0)
 	for _, override := range overrides {
+		if override.Alias == "" && override.Repository == "" {
+			continue
+		}
 		operations := make([]Operation, 0, len(overrides))
-		operations = append(operations, constructPatchOperations(kustomizeOperationReplace, kustomizeMetadataNamePath, override.Alias))
+		if override.Alias != "" {
+			operations = append(operations, constructPatchOperations(kustomizeOperationReplace, kustomizeMetadataNamePath, override.Alias))
+		}
 		if override.Repository != "" {
 			operations = append(operations, constructPatchOperations(kustomizeOperationReplace, kustomizeHelmRepoPatch, override.Repository))
 		}
-		metadataPatch, err := patchTemplate(operations)
+		patched, err := patchTemplate(operations)
 		if err != nil {
 			return nil, err
 		}
 		patch := fluxkust.Patch{
-			Patch: metadataPatch,
+			Patch: patched,
 			Target: &fluxkust.Selector{
 				Group: group,
 				Name:  override.Name,
