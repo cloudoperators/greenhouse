@@ -77,7 +77,8 @@ type CatalogOverrides struct {
 	Name string `json:"name"`
 	// Alias is the alias to apply to the PluginDefinition Name via Kustomize patches
 	// For SourceType Helm, this field is passed to postRender Kustomize patch
-	Alias string `json:"alias"`
+	// +Optional
+	Alias string `json:"alias,omitempty"`
 	// Repository is the repository to override in the PluginDefinition .spec.helmChart.repository
 	// +Optional
 	Repository string `json:"repository,omitempty"`
