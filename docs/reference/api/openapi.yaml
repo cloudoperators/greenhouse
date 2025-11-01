@@ -1111,9 +1111,6 @@ components:
             plugin:
               description: PluginSpec is the spec of the plugin to be deployed by the PluginPreset.
               properties:
-                clusterName:
-                  description: ClusterName is the name of the cluster the plugin is deployed to. If not set, the plugin is deployed to the greenhouse cluster.
-                  type: string
                 displayName:
                   description: |-
                     DisplayName is an optional name for the Plugin to be displayed in the Greenhouse UI.
@@ -1191,25 +1188,6 @@ components:
                     ReleaseNamespace is the namespace in the remote cluster to which the backend is deployed.
                     Defaults to the Greenhouse managed namespace if not set.
                   type: string
-                waitFor:
-                  description: WaitFor defines other Plugins to wait for before installing this Plugin.
-                  items:
-                    description: WaitForItem is a wrapper around PluginRef to add context for every WaitFor list item.
-                    properties:
-                      pluginRef:
-                        description: PluginRef defines a reference to the Plugin.
-                        properties:
-                          name:
-                            description: Name of the Plugin.
-                            type: string
-                          pluginPreset:
-                            description: PluginPreset is the name of the PluginPreset which creates the Plugin.
-                            type: string
-                        type: object
-                    required:
-                      - pluginRef
-                    type: object
-                  type: array
               required:
                 - pluginDefinition
                 - pluginDefinitionRef
