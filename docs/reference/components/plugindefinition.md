@@ -91,3 +91,4 @@ spec:
 - [Creating a PluginDefinition](./../../../contribute/plugins)
 - [PluginPreset reference](./../pluginpreset)
 - [Plugin reference](./../plugin)
+- [Managing PluginDefinitions via Catalog](./../catalog)
