@@ -37,6 +37,10 @@ components:
               description: Sources contains the list of Git Repository source to resolve PluginDefinitions / ClusterPluginDefinitions from
               items:
                 properties:
+                  interval:
+                    description: Interval defines how often to reconcile the Git repository source
+                    pattern: ^([0-9]+(\.[0-9]+)?(ms|s|m|h))+$
+                    type: string
                   overrides:
                     description: Overrides are the PluginDefinition overrides to be applied
                     items:
