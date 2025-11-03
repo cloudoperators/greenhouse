@@ -178,7 +178,7 @@ func (s *source) reconcileGitRepository(ctx context.Context) error {
 	}
 	spec := sourcev1.GitRepositorySpec{
 		URL:       s.source.Repository,
-		Interval:  metav1.Duration{Duration: flux.DefaultInterval},
+		Interval:  s.source.GetInterval(),
 		Reference: s.source.GetGitRepositoryReference(),
 		Provider:  genericAuthProvider,
 		Suspend:   false,

@@ -9,7 +9,8 @@ package v1alpha1
 
 import (
 	rbacv1 "k8s.io/api/rbac/v1"
-	"k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
+	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 )
 
@@ -134,6 +135,11 @@ func (in *CatalogSource) DeepCopyInto(out *CatalogSource) {
 		in, out := &in.Overrides, &out.Overrides
 		*out = make([]CatalogOverrides, len(*in))
 		copy(*out, *in)
+	}
+	if in.Interval != nil {
+		in, out := &in.Interval, &out.Interval
+		*out = new(v1.Duration)
+		**out = **in
 	}
 }
 
@@ -1084,7 +1090,7 @@ func (in *PluginOption) DeepCopyInto(out *PluginOption) {
 	*out = *in
 	if in.Default != nil {
 		in, out := &in.Default, &out.Default
-		*out = new(v1.JSON)
+		*out = new(apiextensionsv1.JSON)
 		(*in).DeepCopyInto(*out)
 	}
 }
@@ -1104,7 +1110,7 @@ func (in *PluginOptionValue) DeepCopyInto(out *PluginOptionValue) {
 	*out = *in
 	if in.Value != nil {
 		in, out := &in.Value, &out.Value
-		*out = new(v1.JSON)
+		*out = new(apiextensionsv1.JSON)
 		(*in).DeepCopyInto(*out)
 	}
 	if in.ValueFrom != nil {

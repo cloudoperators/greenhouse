@@ -5,6 +5,7 @@ package v1alpha1
 
 import (
 	"slices"
+	"time"
 
 	sourcev1 "github.com/fluxcd/source-controller/api/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -70,6 +71,12 @@ type CatalogSource struct {
 	// Overrides are the PluginDefinition overrides to be applied
 	// +Optional
 	Overrides []CatalogOverrides `json:"overrides,omitempty"`
+
+	// Interval defines how often to reconcile the Git repository source
+	// +kubebuilder:validation:Type=string
+	// +kubebuilder:validation:Pattern="^([0-9]+(\\.[0-9]+)?(ms|s|m|h))+$"
+	// +Optional
+	Interval *metav1.Duration `json:"interval,omitempty"`
 }
 
 type CatalogOverrides struct {
@@ -77,7 +84,8 @@ type CatalogOverrides struct {
 	Name string `json:"name"`
 	// Alias is the alias to apply to the PluginDefinition Name via Kustomize patches
 	// For SourceType Helm, this field is passed to postRender Kustomize patch
-	Alias string `json:"alias"`
+	// +Optional
+	Alias string `json:"alias,omitempty"`
 	// Repository is the repository to override in the PluginDefinition .spec.helmChart.repository
 	// +Optional
 	Repository string `json:"repository,omitempty"`
@@ -131,6 +139,13 @@ type CatalogList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
 	Items           []Catalog `json:"items"`
+}
+
+func (s *CatalogSource) GetInterval() metav1.Duration {
+	if s.Interval != nil {
+		return *s.Interval
+	}
+	return metav1.Duration{Duration: 60 * time.Minute}
 }
 
 func (s *CatalogSource) GetRefValue() (gitRef string) {
