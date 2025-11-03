@@ -4,7 +4,7 @@ dependencies:
   version: 0.5.0
 - name: cors-proxy
   repository: file://../cors-proxy
-  version: 0.4.0
+  version: 0.4.1
 - name: manager
   repository: file://../manager
   version: 0.7.0
@@ -17,5 +17,5 @@ dependencies:
 - name: postgresql-ng
   repository: oci://ghcr.io/sapcc/helm-charts
   version: 1.3.0
-digest: sha256:94bc24e3ef11324038d4acbe78b151f689d9f3ac9d6784c697d205d0802e64b5
-generated: "2025-10-30T10:56:00.904798+01:00"
+digest: sha256:fd0b11bdc51e6887a88c2242b25501b3e468cff3535b22c3e13f08b519ab9757
+generated: "2025-11-03T17:16:33.366534+01:00"
