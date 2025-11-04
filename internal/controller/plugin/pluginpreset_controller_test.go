@@ -51,9 +51,8 @@ var (
 	testTeam               = test.NewTeam(test.Ctx, "test-pluginpreset-team", test.TestNamespace, test.WithTeamLabel(greenhouseapis.LabelKeySupportGroup, "true"))
 	pluginPresetDefinition = test.NewClusterPluginDefinition(test.Ctx, pluginPresetDefinitionName, test.WithHelmChart(
 		&greenhousev1alpha1.HelmChartReference{
-			Name:       "./../../test/fixtures/chartWithConfigMap",
-			Repository: "dummy",
-			Version:    "1.0.0",
+			Name:    "./../../test/fixtures/chartWithConfigMap",
+			Version: "1.0.0",
 		}),
 		test.AppendPluginOption(greenhousev1alpha1.PluginOption{
 			Name:        "myRequiredOption",

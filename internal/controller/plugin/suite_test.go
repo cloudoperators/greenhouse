@@ -100,7 +100,6 @@ var _ = Describe("HelmControllerTest", Serial, func() {
 
 		Namespace               = "greenhouse"
 		ReleaseName             = "myplugin-release"
-		HelmRepo                = "dummy"
 		HelmChart               = "./../../test/fixtures/myChart"
 		HelmChartUpdated        = "./../../test/fixtures/myChartV2"
 		HelmChartWithAllOptions = "./../../test/fixtures/chartWithEveryOption"
@@ -137,9 +136,8 @@ var _ = Describe("HelmControllerTest", Serial, func() {
 		testPluginDefinition = test.NewClusterPluginDefinition(test.Ctx, PluginDefinitionName,
 			test.WithVersion(PluginDefinitionVersion),
 			test.WithHelmChart(&greenhousev1alpha1.HelmChartReference{
-				Name:       HelmChart,
-				Repository: HelmRepo,
-				Version:    PluginDefinitionChartVersion,
+				Name:    HelmChart,
+				Version: PluginDefinitionChartVersion,
 			}),
 			test.AppendPluginOption(greenhousev1alpha1.PluginOption{
 				Name:        PluginOptionRequired,
@@ -446,9 +444,8 @@ var _ = Describe("HelmControllerTest", Serial, func() {
 			complexPluginDefinition = test.NewClusterPluginDefinition(test.Ctx, pluginWithEveryOption,
 				test.WithVersion(PluginDefinitionVersion),
 				test.WithHelmChart(&greenhousev1alpha1.HelmChartReference{
-					Name:       HelmChartWithAllOptions,
-					Repository: HelmRepo,
-					Version:    PluginDefinitionChartVersion,
+					Name:    HelmChartWithAllOptions,
+					Version: PluginDefinitionChartVersion,
 				}),
 				test.AppendPluginOption(greenhousev1alpha1.PluginOption{
 					Name:        PluginOptionDefault,
