@@ -3,7 +3,7 @@ name: Package Helm Chart and publish to GitHub Packages
 on:
   push:
     tags:
-      - "v*.*.*"
+      - "helm-chart-*.*.*"
     paths:
         - 'charts/**'
 
