@@ -3,4 +3,4 @@
 
 global:
   dnsDomain: example.com
-apiServerFQDN: "kubernetes.default.svc"
+# apiServerFQDN: "kubernetes.default.svc"
