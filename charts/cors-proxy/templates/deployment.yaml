@@ -50,7 +50,7 @@ spec:
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           command:
             - /cors-proxy
-            - --target-url={{ default "https://$(KUBERNETES_SERVICE_HOST):$(KUBERNETES_SERVICE_PORT)" .Values.apiServerFQDN | quote }}
+            - --target-url={{ default "https://$(KUBERNETES_SERVICE_HOST):$(KUBERNETES_SERVICE_PORT)" .Values.apiServerFQDN }}
             - --target-ca=/var/run/secrets/kubernetes.io/serviceaccount/ca.crt
           ports:
             - name: http
