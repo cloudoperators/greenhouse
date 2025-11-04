@@ -4,27 +4,31 @@
 package shared
 
 import (
-	"bytes"
 	"context"
 	"errors"
 	"fmt"
 	"io"
+	"log"
 	"os"
 	"path/filepath"
 	"strings"
 	"time"
 
+	"golang.org/x/oauth2"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/client-go/tools/clientcmd"
 
 	"github.com/cenkalti/backoff/v5"
 	"k8s.io/apimachinery/pkg/types"
 
+	"github.com/google/go-github/v77/github"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
-	"k8s.io/apimachinery/pkg/runtime"
+	kruntime "k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/kubernetes/scheme"
@@ -43,13 +47,30 @@ const (
 	ControllerLogsPathEnv      = "CONTROLLER_LOGS_PATH"
 	managerDeploymentName      = "greenhouse-controller-manager"
 	managerDeploymentNamespace = "greenhouse"
+	managerContainer           = "manager"
 	fluxDeploymentNamespace    = "flux-system"
-	fluxDeploymentName         = "helm-controller"
 	remoteExecutionEnv         = "EXECUTION_ENV"
+	executionRuntimeEnv        = "RUNTIME_ENV"
+	runtimeCI                  = "CI"
 	realCluster                = "GARDENER"
 
 	// Define retry timeout for when backoff should stop
 	maxRetries = 10
+)
+
+const (
+	envGitHubToken          = "GH_TOKEN"
+	envGitHubAppID          = "GH_APP_ID"
+	envGitHubInstallationID = "GH_APP_INSTALLATION_ID"
+	envGitHubAppPrivateKey  = "GH_APP_PRIVATE_KEY"
+)
+
+type SecretType int
+
+const (
+	GitHubSecretTypePAT SecretType = iota
+	GitHubSecretTypeAPP
+	GitHubSecretTypeFake
 )
 
 type WaitApplyFunc func(resource lifecycle.RuntimeObject) error
@@ -74,13 +95,13 @@ func NewExecutionEnv() *TestEnv {
 		Log("Running on real cluster\n")
 		remoteKubeCfgPath, err = fromEnv(RemoteKubeConfigPathEnv)
 		Expect(err).NotTo(HaveOccurred(), "error getting remote kubeconfig path")
-		remoteKubeCfgBytes, err = readFileContent(remoteKubeCfgPath)
+		remoteKubeCfgBytes, err = ReadFileContent(remoteKubeCfgPath)
 		Expect(err).NotTo(HaveOccurred(), "error reading remote kubeconfig file")
 	} else {
 		Log("Running on local cluster\n")
 		remoteIntKubeCfgPath, err := fromEnv(remoteIntKubeConfigPathEnv)
 		Expect(err).NotTo(HaveOccurred(), "error getting remote internal kubeconfig path")
-		remoteKubeCfgBytes, err = readFileContent(remoteIntKubeCfgPath)
+		remoteKubeCfgBytes, err = ReadFileContent(remoteIntKubeCfgPath)
 		Expect(err).NotTo(HaveOccurred(), "error reading remote internal kubeconfig file")
 	}
 	return &TestEnv{
@@ -101,7 +122,7 @@ func isRealCluster() bool {
 
 func (env *TestEnv) WithOrganization(ctx context.Context, k8sClient client.Client, samplePath string) *TestEnv {
 	org := &greenhousev1alpha1.Organization{}
-	orgBytes, err := readFileContent(samplePath)
+	orgBytes, err := ReadFileContent(samplePath)
 	Expect(err).NotTo(HaveOccurred(), "error reading organization sample data")
 	err = FromYamlToK8sObject(string(orgBytes), org)
 	Expect(err).NotTo(HaveOccurred(), "error converting organization yaml to k8s object")
@@ -119,23 +140,11 @@ func (env *TestEnv) WithOrganization(ctx context.Context, k8sClient client.Clien
 func clientGetter(kubeconfigEnv string) *clientutil.RestClientGetter {
 	kubeconfigPath, err := fromEnv(kubeconfigEnv)
 	Expect(err).NotTo(HaveOccurred(), "error getting kubeconfig path from env")
-	kubeconfigBytes, err := readFileContent(kubeconfigPath)
+	kubeconfigBytes, err := ReadFileContent(kubeconfigPath)
 	Expect(err).NotTo(HaveOccurred(), "error reading kubeconfig file")
 	config, err := clientcmd.RESTConfigFromKubeConfig(kubeconfigBytes)
 	Expect(err).NotTo(HaveOccurred(), "error getting rest config from kubeconfig")
 	return clientutil.NewRestClientGetterFromRestConfig(config, "")
-}
-
-func readFileContent(path string) ([]byte, error) {
-	_, err := os.Stat(path)
-	if err != nil {
-		return nil, err
-	}
-	content, err := os.ReadFile(path)
-	if err != nil {
-		return nil, err
-	}
-	return content, nil
 }
 
 func fromEnv(key string) (string, error) {
@@ -147,7 +156,7 @@ func fromEnv(key string) (string, error) {
 }
 
 func IsResourceOwnedByOwner(owner, owned metav1.Object) bool {
-	runtimeObj, ok := (owner).(runtime.Object)
+	runtimeObj, ok := (owner).(kruntime.Object)
 	if !ok {
 		return false
 	}
@@ -166,14 +175,14 @@ func IsResourceOwnedByOwner(owner, owned metav1.Object) bool {
 	return false
 }
 
-func addTypeInformationToObject(obj runtime.Object) error {
+func addTypeInformationToObject(obj kruntime.Object) error {
 	gvks, _, err := scheme.Scheme.ObjectKinds(obj)
 	if err != nil {
 		return fmt.Errorf("missing apiVersion or kind and cannot assign it; %w", err)
 	}
 
 	for _, gvk := range gvks {
-		if gvk.Kind == "" || gvk.Version == "" || gvk.Version == runtime.APIVersionInternal {
+		if gvk.Kind == "" || gvk.Version == "" || gvk.Version == kruntime.APIVersionInternal {
 			continue
 		}
 		obj.GetObjectKind().SetGroupVersionKind(gvk)
@@ -279,111 +288,65 @@ func WaitUntilNamespaceCreated(ctx context.Context, k8sClient client.Client, nam
 	return err
 }
 
-func (env *TestEnv) GenerateControllerLogs(ctx context.Context, startTime time.Time) {
-	podLogsPath, err := fromEnv(ControllerLogsPathEnv)
-	if err != nil {
-		Logf("%s", err.Error())
-		return
-	}
-
-	config, err := env.AdminRestClientGetter.ToRESTConfig()
-	if err != nil {
-		Logf("error getting admin rest config: %s", err.Error())
-		return
-	}
-	k8sClient, err := clientutil.NewK8sClientFromRestClientGetter(env.AdminRestClientGetter)
-	if err != nil {
-		Logf("error creating k8s client: %s", err.Error())
-		return
-	}
-	clientSet, err := kubernetes.NewForConfig(config)
-	if err != nil {
-		Logf("error creating k8s clientset: %s", err.Error())
-		return
-	}
-	deployment := &appsv1.Deployment{}
-
-	err = k8sClient.Get(ctx, client.ObjectKey{Name: managerDeploymentName, Namespace: managerDeploymentNamespace}, deployment)
-	if err != nil {
-		Logf("error getting deployment: %s", err.Error())
-		return
-	}
-
-	pods := &corev1.PodList{}
-	err = k8sClient.List(ctx, pods, &client.ListOptions{
-		LabelSelector: labels.SelectorFromSet(deployment.Spec.Selector.MatchLabels),
-		Namespace:     deployment.Namespace,
-	})
-	if err != nil {
-		Logf("error listing pods: %s", err.Error())
-		return
-	}
-	if len(pods.Items) == 0 {
-		Logf("no pods found for deployment %s", managerDeploymentName)
-		return
-	}
-
-	podName := pods.Items[0].Name
-	podLogOpts := corev1.PodLogOptions{
-		Container: "manager",
-		SinceTime: &metav1.Time{Time: startTime},
-	}
-	req := clientSet.CoreV1().Pods(managerDeploymentNamespace).GetLogs(podName, &podLogOpts)
-	logStream, err := req.Stream(ctx)
-	if err != nil {
-		Logf("error getting pod logs stream %s", err.Error())
-		return
-	}
-	defer func(logStream io.ReadCloser) {
-		err := logStream.Close()
-		if err != nil {
-			Logf("error closing pod logs stream in defer %s", err.Error())
-		}
-	}(logStream)
-
-	// Create or open the log file
-	file, err := os.Create(podLogsPath)
-	if err != nil {
-		Logf("error creating log file %s: %s", podLogsPath, err.Error())
-		return
-	}
-	defer func(file *os.File) {
-		err := file.Close()
-		if err != nil {
-			Logf("error closing log file in defer %s", err.Error())
-		}
-	}(file)
-
-	buf := new(bytes.Buffer)
-	_, err = io.Copy(buf, logStream)
-	if err != nil {
-		Logf("error copying pod logs %s", err.Error())
-		return
-	}
-	// Write the logs to the file
-	_, err = file.WriteString(buf.String())
-	if err != nil {
-		Logf("error writing pod logs to file %s: %s", podLogsPath, err.Error())
-		return
-	}
-	Logf("pod %s logs written to file: %s", podName, podLogsPath)
-}
-
-func (env *TestEnv) GenerateFluxHelmControllerLogs(ctx context.Context, startTime time.Time) {
+func (env *TestEnv) GenerateGreenhouseControllerLogs(ctx context.Context, startTime time.Time) {
 	path, err := fromEnv(ControllerLogsPathEnv)
 	if err != nil {
 		Logf("%s", err.Error())
 		return
 	}
-
-	podLogsPath := filepath.Join(filepath.Dir(path), "flux-"+filepath.Base(path))
-
-	config, err := env.AdminRestClientGetter.ToRESTConfig()
+	scenario, err := fromEnv("SCENARIO")
 	if err != nil {
-		Logf("error getting admin rest config: %s", err.Error())
+		Logf("%s", err.Error())
 		return
 	}
-	k8sClient, err := clientutil.NewK8sClientFromRestClientGetter(env.AdminRestClientGetter)
+	baseDir := filepath.Dir(path)
+	podLogsPath := filepath.Join(baseDir, "greenhouse-"+scenario+"-e2e-pod-logs.txt")
+	writeDeploymentLogs(ctx, env.AdminRestClientGetter,
+		managerDeploymentNamespace, managerDeploymentName,
+		managerContainer, podLogsPath, startTime)
+}
+
+func (env *TestEnv) GenerateFluxControllerLogs(ctx context.Context, controllerName string, startTime time.Time) {
+	path, err := fromEnv(ControllerLogsPathEnv)
+	if err != nil {
+		Logf("error reading %s: %s", ControllerLogsPathEnv, err.Error())
+		return
+	}
+
+	// Extract scenario from env if available
+	scenario, err := fromEnv("SCENARIO")
+	if err != nil {
+		Logf("error reading SCENARIO env: %s", err.Error())
+		return
+	}
+
+	// Use the directory of CONTROLLER_LOGS_PATH to build our Flux log filename
+	baseDir := filepath.Dir(path)
+	podLogsPath := filepath.Join(baseDir, fmt.Sprintf("flux-%s-e2e-%s.txt", scenario, controllerName))
+
+	writeDeploymentLogs(ctx, env.AdminRestClientGetter,
+		fluxDeploymentNamespace, controllerName,
+		managerContainer, podLogsPath, startTime)
+}
+
+func writeDeploymentLogs(
+	ctx context.Context,
+	getter *clientutil.RestClientGetter,
+	deployNS, deployName, container, outPath string,
+	start time.Time,
+) {
+
+	if outPath == "" {
+		Logf("no output path provided, skipping logs for %s/%s", deployNS, deployName)
+		return
+	}
+
+	config, err := getter.ToRESTConfig()
+	if err != nil {
+		Logf("error getting rest config: %s", err.Error())
+		return
+	}
+	k8sClient, err := clientutil.NewK8sClientFromRestClientGetter(getter)
 	if err != nil {
 		Logf("error creating k8s client: %s", err.Error())
 		return
@@ -393,70 +356,178 @@ func (env *TestEnv) GenerateFluxHelmControllerLogs(ctx context.Context, startTim
 		Logf("error creating k8s clientset: %s", err.Error())
 		return
 	}
-	deployment := &appsv1.Deployment{}
 
-	err = k8sClient.Get(ctx, client.ObjectKey{Name: fluxDeploymentName, Namespace: fluxDeploymentNamespace}, deployment)
-	if err != nil {
-		Logf("error getting deployment: %s", err.Error())
+	deploy := &appsv1.Deployment{}
+	if err := k8sClient.Get(ctx, client.ObjectKey{Name: deployName, Namespace: deployNS}, deploy); err != nil {
+		Logf("error getting deployment %s/%s: %s", deployNS, deployName, err.Error())
 		return
 	}
 
 	pods := &corev1.PodList{}
-	err = k8sClient.List(ctx, pods, &client.ListOptions{
-		LabelSelector: labels.SelectorFromSet(deployment.Spec.Selector.MatchLabels),
-		Namespace:     deployment.Namespace,
-	})
-	if err != nil {
-		Logf("error listing pods: %s", err.Error())
+	if err := k8sClient.List(ctx, pods, &client.ListOptions{
+		LabelSelector: labels.SelectorFromSet(deploy.Spec.Selector.MatchLabels),
+		Namespace:     deployNS,
+	}); err != nil {
+		Logf("error listing pods for %s/%s: %s", deployNS, deployName, err.Error())
 		return
 	}
 	if len(pods.Items) == 0 {
-		Logf("no pods found for deployment %s", fluxDeploymentName)
+		Logf("no pods found for deployment %s/%s", deployNS, deployName)
 		return
 	}
 
 	podName := pods.Items[0].Name
-	podLogOpts := corev1.PodLogOptions{
-		Container: "manager",
-		SinceTime: &metav1.Time{Time: startTime},
+	opts := &corev1.PodLogOptions{
+		Container: container,
+		SinceTime: &metav1.Time{Time: start},
 	}
-	req := clientSet.CoreV1().Pods(fluxDeploymentNamespace).GetLogs(podName, &podLogOpts)
-	logStream, err := req.Stream(ctx)
-	if err != nil {
-		Logf("error getting pod logs stream %s", err.Error())
-		return
-	}
-	defer func(logStream io.ReadCloser) {
-		err := logStream.Close()
-		if err != nil {
-			Logf("error closing pod logs stream in defer %s", err.Error())
-		}
-	}(logStream)
+	req := clientSet.CoreV1().Pods(deployNS).GetLogs(podName, opts)
 
-	// Create or open the log file
-	file, err := os.Create(podLogsPath)
+	stream, err := req.Stream(ctx)
 	if err != nil {
-		Logf("error creating log file %s: %s", podLogsPath, err.Error())
+		Logf("error opening log stream for pod %s/%s (container=%s): %s", deployNS, podName, container, err.Error())
 		return
 	}
-	defer func(file *os.File) {
-		err := file.Close()
-		if err != nil {
-			Logf("error closing log file in defer %s", err.Error())
+	defer func() {
+		if e := stream.Close(); e != nil {
+			Logf("error closing log stream: %s", e.Error())
 		}
-	}(file)
+	}()
 
-	buf := new(bytes.Buffer)
-	_, err = io.Copy(buf, logStream)
+	// Create (truncate) file and write all logs
+	file, err := os.Create(outPath)
 	if err != nil {
-		Logf("error copying pod logs %s", err.Error())
+		Logf("error creating log file %s: %s", outPath, err.Error())
 		return
 	}
-	// Write the logs to the file
-	_, err = file.WriteString(buf.String())
-	if err != nil {
-		Logf("error writing pod logs to file %s: %s", podLogsPath, err.Error())
+	defer func() {
+		if e := file.Close(); e != nil {
+			Logf("error closing log file: %s", e.Error())
+		}
+	}()
+
+	if _, err := io.Copy(file, stream); err != nil {
+		Logf("error copying logs to file %s: %s", outPath, err.Error())
 		return
 	}
-	Logf("pod %s logs written to file: %s", podName, podLogsPath)
+	Logf("pod %s logs written to file: %s", podName, outPath)
+}
+
+func (env *TestEnv) WithGitHubSecret(ctx context.Context, k8sClient client.Client, name string, secretType SecretType) *TestEnv {
+	switch secretType {
+	case GitHubSecretTypeFake:
+		secret := &corev1.Secret{}
+		secret.SetName(name)
+		secret.SetNamespace(env.TestNamespace)
+		secret.Data = map[string][]byte{
+			"username": []byte("fake-user"),
+			"password": []byte("fake-token"),
+		}
+		err := k8sClient.Create(ctx, secret)
+		if err != nil {
+			if apierrors.IsAlreadyExists(err) {
+				err = k8sClient.Get(ctx, client.ObjectKeyFromObject(secret), secret)
+				Expect(err).NotTo(HaveOccurred(), "error getting existing fake github secret - "+name)
+				secret.Data = map[string][]byte{
+					"username": []byte("fake-user"),
+					"password": []byte("fake-token"),
+				}
+				err = k8sClient.Update(ctx, secret)
+				Expect(err).NotTo(HaveOccurred(), "error updating existing fake github secret - "+name)
+				return env
+			}
+		}
+		Expect(err).NotTo(HaveOccurred(), "error creating fake github secret - "+name)
+		return env
+	case GitHubSecretTypePAT:
+		return env.withGithubTokenSecret(ctx, k8sClient, name)
+	case GitHubSecretTypeAPP:
+		ci, ok := os.LookupEnv(executionRuntimeEnv)
+		if ok && strings.TrimSpace(ci) == runtimeCI {
+			return env.withGitHubAppSecret(ctx, k8sClient, name)
+		}
+		GinkgoWriter.Printf("GitHub App secrets are only set in CI environment, falling back to PAT secret")
+		return env.withGithubTokenSecret(ctx, k8sClient, name)
+	default:
+		log.Fatalf("unsupported secret type: %v", secretType)
+	}
+	return nil
+}
+
+func (env *TestEnv) withGitHubAppSecret(ctx context.Context, k8sClient client.Client, name string) *TestEnv {
+	appID, appOk := os.LookupEnv(envGitHubAppID)
+	installationID, inOk := os.LookupEnv(envGitHubInstallationID)
+	privateKey, keyOk := os.LookupEnv(envGitHubAppPrivateKey)
+	if !appOk || !inOk || !keyOk {
+		log.Fatalf("one of env %s, %s or %s is not found. Set them and re-run test", envGitHubAppID, envGitHubInstallationID, envGitHubAppPrivateKey)
+	}
+	if strings.TrimSpace(appID) == "" || strings.TrimSpace(installationID) == "" || strings.TrimSpace(privateKey) == "" {
+		log.Fatalf("one of env %s, %s or %s is empty. Set them and re-run test", envGitHubAppID, envGitHubInstallationID, envGitHubAppPrivateKey)
+	}
+	secret := &corev1.Secret{}
+	secret.SetName(name)
+	secret.SetNamespace(env.TestNamespace)
+	secret.Data = map[string][]byte{
+		"githubAppID":             []byte(appID),
+		"githubAppInstallationID": []byte(installationID),
+		"githubAppPrivateKey":     []byte(privateKey),
+	}
+	err := k8sClient.Create(ctx, secret)
+	if err != nil {
+		if apierrors.IsAlreadyExists(err) {
+			err = k8sClient.Get(ctx, client.ObjectKeyFromObject(secret), secret)
+			Expect(err).NotTo(HaveOccurred(), "error getting existing github secret - "+name)
+			secret.Data = map[string][]byte{
+				"githubAppID":             []byte(appID),
+				"githubAppInstallationID": []byte(installationID),
+				"githubAppPrivateKey":     []byte(privateKey),
+			}
+			err = k8sClient.Update(ctx, secret)
+			Expect(err).NotTo(HaveOccurred(), "error updating existing github secret - "+name)
+			return env
+		}
+	}
+	Expect(err).NotTo(HaveOccurred(), "error creating github secret - "+name)
+	return env
+}
+
+func (env *TestEnv) withGithubTokenSecret(ctx context.Context, k8sClient client.Client, name string) *TestEnv {
+	var err error
+	token := os.Getenv(envGitHubToken)
+	if token == "" {
+		log.Fatal("env GH_TOKEN not found. 'export GH_TOKEN=<your-github-token>' and re-run test")
+	}
+	username := getGitHubTokenUserName(ctx, token)
+	secret := &corev1.Secret{}
+	secret.SetName(name)
+	secret.SetNamespace(env.TestNamespace)
+	secret.Data = map[string][]byte{
+		"username": []byte(username),
+		"password": []byte(token),
+	}
+	err = k8sClient.Create(ctx, secret)
+	if err != nil {
+		if apierrors.IsAlreadyExists(err) {
+			err = k8sClient.Get(ctx, client.ObjectKeyFromObject(secret), secret)
+			Expect(err).NotTo(HaveOccurred(), "error getting existing github secret - "+name)
+			secret.Data = map[string][]byte{
+				"username": []byte(username),
+				"password": []byte(token),
+			}
+			err = k8sClient.Update(ctx, secret)
+			Expect(err).NotTo(HaveOccurred(), "error updating existing github secret - "+name)
+			return env
+		}
+	}
+	Expect(err).NotTo(HaveOccurred(), "error creating github secret - "+name)
+	return env
+}
+
+func getGitHubTokenUserName(ctx context.Context, token string) string {
+	ts := oauth2.StaticTokenSource(&oauth2.Token{AccessToken: token})
+	tc := oauth2.NewClient(ctx, ts)
+	ghClient := github.NewClient(tc)
+	user, _, err := ghClient.Users.Get(ctx, "")
+	Expect(err).NotTo(HaveOccurred(), "error getting github token user")
+	return user.GetLogin()
 }

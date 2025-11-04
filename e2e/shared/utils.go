@@ -6,6 +6,7 @@ package shared
 import (
 	"bytes"
 	"io"
+	"os"
 
 	kyaml "k8s.io/apimachinery/pkg/util/yaml"
 	"k8s.io/klog/v2"
@@ -22,6 +23,10 @@ func Logf(format string, args ...any) {
 
 func LogErr(format string, args ...any) {
 	klog.InfofDepth(1, "===== 😵 "+format, args...)
+}
+
+func ReadFileContent(path string) ([]byte, error) {
+	return os.ReadFile(path)
 }
 
 // FromYamlToK8sObject - Converts a YAML document to a Kubernetes object

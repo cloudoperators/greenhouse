@@ -256,6 +256,7 @@ DEMO_ORG ?= demo
 DEV_MODE ?= false
 INTERNAL ?= -int
 WITH_CONTROLLER ?= true
+E2E_RESULT_DIR ?= $(shell pwd)/bin
 
 .PHONY: setup
 setup: setup-manager setup-dashboard setup-demo
@@ -319,10 +320,10 @@ e2e:
 
 .PHONY: e2e-local
 e2e-local: prepare-e2e
-	GREENHOUSE_ADMIN_KUBECONFIG="$(shell pwd)/bin/$(ADMIN_CLUSTER).kubeconfig" \
-    	GREENHOUSE_REMOTE_KUBECONFIG="$(shell pwd)/bin/$(REMOTE_CLUSTER).kubeconfig" \
-    	GREENHOUSE_REMOTE_INT_KUBECONFIG="$(shell pwd)/bin/$(REMOTE_CLUSTER)-int.kubeconfig" \
-    	CONTROLLER_LOGS_PATH="$(shell pwd)/bin/$(SCENARIO)-e2e-pod-logs.txt" \
+	GREENHOUSE_ADMIN_KUBECONFIG="$(E2E_RESULT_DIR)/$(ADMIN_CLUSTER).kubeconfig" \
+    	GREENHOUSE_REMOTE_KUBECONFIG="$(E2E_RESULT_DIR)/$(REMOTE_CLUSTER).kubeconfig" \
+    	GREENHOUSE_REMOTE_INT_KUBECONFIG="$(E2E_RESULT_DIR)/$(REMOTE_CLUSTER)-int.kubeconfig" \
+    	CONTROLLER_LOGS_PATH="$(E2E_RESULT_DIR)/$(SCENARIO)-e2e-pod-logs.txt" \
     	EXECUTION_ENV=$(EXECUTION_ENV) \
 		GOMEGA_DEFAULT_EVENTUALLY_TIMEOUT="2m" \
 		go test -tags="$(SCENARIO)E2E" $(shell pwd)/e2e/$(SCENARIO) -test.v -ginkgo.v --ginkgo.json-report=$(E2E_REPORT_PATH)
@@ -360,3 +361,18 @@ flux: kustomize
 .PHONY: license
 license:
 	docker run --rm -v $(shell pwd):/github/workspace $(IMG_LICENSE_EYE) -c .github/licenserc.yaml header fix
+
+.PHONY: show-e2e-logs
+show-e2e-logs:
+	@for f in $(E2E_RESULT_DIR)/greenhouse-$(SCENARIO)-*.txt; do \
+  		if [ -e "$$f" ]; then \
+			echo echo -e "\n\n\n--------------------------- Greenhouse Controller Logs ---------------------------\n\n\n"; \
+			cat "$$f"; \
+		fi; \
+	done
+	@for f in $(E2E_RESULT_DIR)/flux-$(SCENARIO)-*.txt; do \
+  		if [ -e "$$f" ]; then \
+			echo -e "\n\n\n--------------------------- Flux $$f ---------------------------\n\n\n"; \
+			cat "$$f"; \
+		fi; \
+	done
