@@ -344,10 +344,10 @@ func (s *source) reconcileKustomization(ctx context.Context, extArtifact *source
 
 // objectReadiness - checks the Ready condition of a catalog object (GitRepository, ArtifactGenerator, ExternalArtifact, Kustomization)
 // if not Ready, then the controller adds the Catalog object to requeue
-func (s *source) objectReadiness(ctx context.Context, obj client.Object) (ready metav1.ConditionStatus, msg string) {
+func (s *source) objectReadiness(ctx context.Context, obj client.Object) (ready metav1.ConditionStatus, msg string, err error) {
 	ready = metav1.ConditionFalse
 	key := client.ObjectKeyFromObject(obj)
-	if err := s.Get(ctx, key, obj); err != nil {
+	if err = s.Get(ctx, key, obj); err != nil {
 		s.log.Error(err, "failed to get object", "key", key)
 		msg = err.Error()
 		return
@@ -356,7 +356,7 @@ func (s *source) objectReadiness(ctx context.Context, obj client.Object) (ready 
 	kind := obj.GetObjectKind().GroupVersionKind().Kind
 	cObj, ok := obj.(lifecycle.CatalogObject)
 	if !ok {
-		err := fmt.Errorf("failed to assert catalog object kind %s - %s/%s", kind, key.Namespace, key.Name)
+		err = fmt.Errorf("failed to assert catalog object kind %s - %s/%s", kind, key.Namespace, key.Name)
 		s.log.Error(err, "failed to assert catalog object", "key", key)
 		msg = err.Error()
 		return
