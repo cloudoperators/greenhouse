@@ -18,6 +18,6 @@ data:
       "authClientId": {{ default .Values.global.oidc.dashboardClientID "greenhouse" | quote }},
       "currentHost": {{ required ".Values.dashboard.assetServerURL missing" .Values.dashboard.assetServerURL | quote }},
       "apiEndpoint": {{ include "dashboard.api.hostname" $  | quote }},
-      "demoUserToken": {{ get $secretData "token" | quote }}
+      "demoUserToken": {{ get $secretData "token" | b64dec | quote }}
     }
 
