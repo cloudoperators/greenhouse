@@ -40,6 +40,16 @@ const (
 )
 
 func (r *PluginReconciler) EnsureFluxDeleted(ctx context.Context, plugin *greenhousev1alpha1.Plugin) (ctrl.Result, lifecycle.ReconcileResult, error) {
+	// suspend the HelmRelease first to delete the Flux HelmRelease without removing the Helm release from the target cluster
+	if plugin.Spec.DeletionPolicy == greenhouseapis.DeletionPolicyRetain {
+		if _, err := r.EnsureFluxSuspended(ctx, plugin); err != nil {
+			c := greenhousemetav1alpha1.TrueCondition(greenhousev1alpha1.HelmReconcileFailedCondition, greenhousev1alpha1.HelmUninstallFailedReason, err.Error())
+			plugin.SetCondition(c)
+			util.UpdatePluginReconcileTotalMetric(plugin, util.MetricResultError, util.MetricReasonSuspendFailed)
+			return ctrl.Result{}, lifecycle.Failed, err
+		}
+	}
+
 	if err := r.Delete(ctx, &helmv2.HelmRelease{ObjectMeta: metav1.ObjectMeta{Name: plugin.Name, Namespace: plugin.Namespace}}); client.IgnoreNotFound(err) != nil {
 		c := greenhousemetav1alpha1.TrueCondition(greenhousev1alpha1.HelmReconcileFailedCondition, greenhousev1alpha1.HelmUninstallFailedReason, err.Error())
 		plugin.SetCondition(c)

@@ -43,6 +43,13 @@ type PluginSpec struct {
 	// +kubebuilder:validation:MaxLength=53
 	ReleaseName string `json:"releaseName,omitempty"`
 
+	// DeletionPolicy defines how Helm Releases created by a Plugin are handle upon deletion of the Plugin.
+	// Supported values are "Delete" and "Retain". If not set, defaults to "Delete".
+	// +Optional
+	// +kubebuilder:default=Delete
+	// +kubebuilder:validation:Enum=Delete;Retain
+	DeletionPolicy string `json:"deletionPolicy,omitempty"`
+
 	// WaitFor defines other Plugins to wait for before installing this Plugin.
 	WaitFor []WaitForItem `json:"waitFor,omitempty"`
 
