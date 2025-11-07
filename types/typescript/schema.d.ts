@@ -856,7 +856,7 @@ export interface components {
                     /** @description ClusterName is the name of the cluster the plugin is deployed to. If not set, the plugin is deployed to the greenhouse cluster. */
                     clusterName?: string;
                     /**
-                     * @description DeletionPolicy defines how Helm Releases created by a Plugin are handle upon deletion of the Plugin.
+                     * @description DeletionPolicy defines how Helm Releases created by a Plugin are handled upon deletion of the Plugin.
                      *     Supported values are "Delete" and "Retain". If not set, defaults to "Delete".
                      * @default Delete
                      * @enum {string}
@@ -1042,7 +1042,7 @@ export interface components {
                 /** @description ClusterName is the name of the cluster the plugin is deployed to. If not set, the plugin is deployed to the greenhouse cluster. */
                 clusterName?: string;
                 /**
-                 * @description DeletionPolicy defines how Helm Releases created by a Plugin are handle upon deletion of the Plugin.
+                 * @description DeletionPolicy defines how Helm Releases created by a Plugin are handled upon deletion of the Plugin.
                  *     Supported values are "Delete" and "Retain". If not set, defaults to "Delete".
                  * @default Delete
                  * @enum {string}

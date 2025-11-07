@@ -175,7 +175,7 @@ spec:
                   deletionPolicy:
                     default: Delete
                     description: |-
-                      DeletionPolicy defines how Helm Releases created by a Plugin are handle upon deletion of the Plugin.
+                      DeletionPolicy defines how Helm Releases created by a Plugin are handled upon deletion of the Plugin.
                       Supported values are "Delete" and "Retain". If not set, defaults to "Delete".
                     enum:
                     - Delete
