@@ -11,6 +11,7 @@ import (
 	"slices"
 
 	helmv2 "github.com/fluxcd/helm-controller/api/v2"
+	"github.com/fluxcd/pkg/apis/kustomize"
 	fluxmeta "github.com/fluxcd/pkg/apis/meta"
 	sourcecontroller "github.com/fluxcd/source-controller/api/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -165,9 +166,7 @@ func (r *PluginReconciler) ensureHelmRelease(
 			WithTest(&helmv2.Test{
 				Enable: false,
 			}).
-			WithDriftDetection(&helmv2.DriftDetection{
-				Mode: helmv2.DriftDetectionEnabled,
-			}).
+			WithDriftDetection(configureDriftDetection(plugin.Spec.IgnoreDifferences)).
 			WithSuspend(false).
 			WithKubeConfig(&fluxmeta.SecretKeyReference{
 				Name: plugin.Spec.ClusterName,
@@ -418,6 +417,26 @@ func addValuesToHelmRelease(ctx context.Context, c client.Client, plugin *greenh
 		return nil, err
 	}
 	return byteValue, nil
+}
+
+// configureDriftDetection configures drift detection for the HelmRelease based on the provided ignore differences.
+// The mode is set to enable, and ignore rules are added for each specified ignore difference.
+func configureDriftDetection(ignoreDifferences []greenhousev1alpha1.IgnoreDifference) *helmv2.DriftDetection {
+	driftDetection := &helmv2.DriftDetection{
+		Mode: helmv2.DriftDetectionEnabled,
+	}
+	for _, ignore := range ignoreDifferences {
+		driftDetection.Ignore = append(driftDetection.Ignore, helmv2.IgnoreRule{
+			Target: &kustomize.Selector{
+				Group:   ignore.Group,
+				Version: ignore.Version,
+				Kind:    ignore.Kind,
+				Name:    ignore.Name,
+			},
+			Paths: ignore.Paths,
+		})
+	}
+	return driftDetection
 }
 
 func (r *PluginReconciler) addValueReferences(plugin *greenhousev1alpha1.Plugin) []helmv2.ValuesReference {

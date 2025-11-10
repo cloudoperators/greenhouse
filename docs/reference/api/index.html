@@ -1587,6 +1587,82 @@ string
 </table>
 </div>
 </div>
+<h3 id="greenhouse.sap/v1alpha1.IgnoreDifference">IgnoreDifference
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#greenhouse.sap/v1alpha1.PluginSpec">PluginSpec</a>)
+</p>
+<p>IgnoreDifference defines a set of paths to ignore for matching resources.</p>
+<div class="md-typeset__scrollwrap">
+<div class="md-typeset__table">
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>group</code><br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Group matches the APIVersion group of the resources to ignore.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>version</code><br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Version matches the APIVersion version of the resources to ignore.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>kind</code><br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Kind matches the Kind of the resources to ignore.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>name</code><br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Name matches the name of the resources to ignore.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>paths</code><br>
+<em>
+[]string
+</em>
+</td>
+<td>
+<p>Paths is a list of JSON paths to ignore when detecting drifts.</p>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
 <h3 id="greenhouse.sap/v1alpha1.ManagedPluginStatus">ManagedPluginStatus
 </h3>
 <p>
@@ -2191,6 +2267,19 @@ If this Plugin is newly created, the releaseName is defaulted to the PluginDefin
 </td>
 <td>
 <p>WaitFor defines other Plugins to wait for before installing this Plugin.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>ignoreDifferences</code><br>
+<em>
+<a href="#greenhouse.sap/v1alpha1.IgnoreDifference">
+[]IgnoreDifference
+</a>
+</em>
+</td>
+<td>
+<p>IgnoreDifferences defines paths to ignore when detecting drift between desired and actual state.</p>
 </td>
 </tr>
 </table>
@@ -3217,6 +3306,19 @@ If this Plugin is newly created, the releaseName is defaulted to the PluginDefin
 </td>
 <td>
 <p>WaitFor defines other Plugins to wait for before installing this Plugin.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>ignoreDifferences</code><br>
+<em>
+<a href="#greenhouse.sap/v1alpha1.IgnoreDifference">
+[]IgnoreDifference
+</a>
+</em>
+</td>
+<td>
+<p>IgnoreDifferences defines paths to ignore when detecting drift between desired and actual state.</p>
 </td>
 </tr>
 </tbody>

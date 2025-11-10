@@ -859,6 +859,19 @@ export interface components {
                      *     Defaults to a normalized version of metadata.name.
                      */
                     displayName?: string;
+                    /** @description IgnoreDifferences defines paths to ignore when detecting drift between desired and actual state. */
+                    ignoreDifferences?: {
+                        /** @description Group matches the APIVersion group of the resources to ignore. */
+                        group?: string;
+                        /** @description Kind matches the Kind of the resources to ignore. */
+                        kind?: string;
+                        /** @description Name matches the name of the resources to ignore. */
+                        name?: string;
+                        /** @description Paths is a list of JSON paths to ignore when detecting drifts. */
+                        paths: string[];
+                        /** @description Version matches the APIVersion version of the resources to ignore. */
+                        version?: string;
+                    }[];
                     /** @description Values are the values for a PluginDefinition instance. */
                     optionValues?: {
                         /** @description Name of the values. */
@@ -1025,6 +1038,19 @@ export interface components {
                  *     Defaults to a normalized version of metadata.name.
                  */
                 displayName?: string;
+                /** @description IgnoreDifferences defines paths to ignore when detecting drift between desired and actual state. */
+                ignoreDifferences?: {
+                    /** @description Group matches the APIVersion group of the resources to ignore. */
+                    group?: string;
+                    /** @description Kind matches the Kind of the resources to ignore. */
+                    kind?: string;
+                    /** @description Name matches the name of the resources to ignore. */
+                    name?: string;
+                    /** @description Paths is a list of JSON paths to ignore when detecting drifts. */
+                    paths: string[];
+                    /** @description Version matches the APIVersion version of the resources to ignore. */
+                    version?: string;
+                }[];
                 /** @description Values are the values for a PluginDefinition instance. */
                 optionValues?: {
                     /** @description Name of the values. */

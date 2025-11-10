@@ -45,6 +45,10 @@ type PluginSpec struct {
 
 	// WaitFor defines other Plugins to wait for before installing this Plugin.
 	WaitFor []WaitForItem `json:"waitFor,omitempty"`
+
+	// IgnoreDifferences defines paths to ignore when detecting drift between desired and actual state.
+	// +Optional
+	IgnoreDifferences []IgnoreDifference `json:"ignoreDifferences,omitempty"`
 }
 
 // PluginOptionValue is the value for a PluginOption.
@@ -58,6 +62,25 @@ type PluginOptionValue struct {
 	// Template is a Go string template that will be dynamically resolved for cluster-specific values.
 	// Only PluginOptionValues declared as template will be templated by the PluginController for Flux.
 	Template *string `json:"template,omitempty"`
+}
+
+// IgnoreDifference defines a set of paths to ignore for matching resources.
+type IgnoreDifference struct {
+	// Group matches the APIVersion group of the resources to ignore.
+	// +Optional
+	Group string `json:"group,omitempty"`
+	// Version matches the APIVersion version of the resources to ignore.
+	// +Optional
+	Version string `json:"version,omitempty"`
+	// Kind matches the Kind of the resources to ignore.
+	// +Optional
+	Kind string `json:"kind,omitempty"`
+	// Name matches the name of the resources to ignore.
+	// +Optional
+	Name string `json:"name,omitempty"`
+	// Paths is a list of JSON paths to ignore when detecting drifts.
+	// +kubebuilder:validation:Required
+	Paths []string `json:"paths,omitempty"`
 }
 
 // ValueJSON returns the value as JSON.
