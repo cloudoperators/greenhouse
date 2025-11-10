@@ -59,7 +59,7 @@ var _ = AfterSuite(func() {
 
 var _ = Describe("Catalog E2E", Ordered, func() {
 	var catalog *greenhousev1alpha1.Catalog
-	var clusterPluginDefinitions *greenhousev1alpha1.ClusterPluginDefinitionList
+	var pluginDefinitions *greenhousev1alpha1.PluginDefinitionList
 	It("should successfully create a Catalog resource", func() {
 		source := test.NewCatalogSource(
 			test.WithRepositoryBranch("main"),
@@ -75,9 +75,9 @@ var _ = Describe("Catalog E2E", Ordered, func() {
 		)
 		Expect(adminClient.Create(ctx, catalog)).To(Succeed(), "there should be no error creating the Catalog resource")
 		expect.CatalogReady(ctx, adminClient, env.TestNamespace, catalog.Name)
-		clusterPluginDefinitions = &greenhousev1alpha1.ClusterPluginDefinitionList{}
-		Expect(adminClient.List(ctx, clusterPluginDefinitions)).To(Succeed(), "there should be no error listing ClusterPluginDefinitions")
-		Expect(clusterPluginDefinitions.Items).ToNot(BeEmpty(), "there should be at least one ClusterPluginDefinition created from the Catalog")
-		Expect(clusterPluginDefinitions.Items).To(HaveLen(2), "there should be exactly two ClusterPluginDefinitions created from the Catalog")
+		pluginDefinitions = &greenhousev1alpha1.PluginDefinitionList{}
+		Expect(adminClient.List(ctx, pluginDefinitions)).To(Succeed(), "there should be no error listing pluginDefinitions")
+		Expect(pluginDefinitions.Items).ToNot(BeEmpty(), "there should be at least one pluginDefinition created from the Catalog")
+		Expect(pluginDefinitions.Items).To(HaveLen(2), "there should be exactly two pluginDefinitions created from the Catalog")
 	})
 })
