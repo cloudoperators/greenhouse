@@ -53,13 +53,15 @@ export interface components {
             spec?: {
                 /** @description Sources contains the list of Git Repository source to resolve PluginDefinitions / ClusterPluginDefinitions from */
                 sources: {
+                    /** @description Interval defines how often to reconcile the Git repository source */
+                    interval?: string;
                     /** @description Overrides are the PluginDefinition overrides to be applied */
                     overrides?: {
                         /**
                          * @description Alias is the alias to apply to the PluginDefinition Name via Kustomize patches
                          *     For SourceType Helm, this field is passed to postRender Kustomize patch
                          */
-                        alias: string;
+                        alias?: string;
                         /** @description Name is the name of the PluginDefinition to patch with an alias */
                         name: string;
                         /** @description Repository is the repository to override in the PluginDefinition .spec.helmChart.repository */
@@ -854,6 +856,13 @@ export interface components {
                     /** @description ClusterName is the name of the cluster the plugin is deployed to. If not set, the plugin is deployed to the greenhouse cluster. */
                     clusterName?: string;
                     /**
+                     * @description DeletionPolicy defines how Helm Releases created by a Plugin are handled upon deletion of the Plugin.
+                     *     Supported values are "Delete" and "Retain". If not set, defaults to "Delete".
+                     * @default Delete
+                     * @enum {string}
+                     */
+                    deletionPolicy: "Delete" | "Retain";
+                    /**
                      * @description DisplayName is an optional name for the Plugin to be displayed in the Greenhouse UI.
                      *     This is especially helpful to distinguish multiple instances of a PluginDefinition in the same context.
                      *     Defaults to a normalized version of metadata.name.
@@ -1032,6 +1041,13 @@ export interface components {
             spec?: {
                 /** @description ClusterName is the name of the cluster the plugin is deployed to. If not set, the plugin is deployed to the greenhouse cluster. */
                 clusterName?: string;
+                /**
+                 * @description DeletionPolicy defines how Helm Releases created by a Plugin are handled upon deletion of the Plugin.
+                 *     Supported values are "Delete" and "Retain". If not set, defaults to "Delete".
+                 * @default Delete
+                 * @enum {string}
+                 */
+                deletionPolicy: "Delete" | "Retain";
                 /**
                  * @description DisplayName is an optional name for the Plugin to be displayed in the Greenhouse UI.
                  *     This is especially helpful to distinguish multiple instances of a PluginDefinition in the same context.

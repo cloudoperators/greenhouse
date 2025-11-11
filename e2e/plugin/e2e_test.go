@@ -105,4 +105,8 @@ var _ = Describe("Plugin E2E", Ordered, func() {
 	It("should deploy plugin with dependency via flux", func() {
 		scenarios.FluxControllerPluginDependencies(ctx, adminClient, remoteClient, env, remoteClusterName, team.Name)
 	})
+
+	It("should retain the helm release when Plugin `.spec.deletePolicy` is set to `Retain`", func() {
+		scenarios.FluxControllerPluginDeletePolicyRetain(ctx, adminClient, remoteClient, env, remoteClusterName, team.Name)
+	})
 })

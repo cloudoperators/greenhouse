@@ -2258,6 +2258,18 @@ If this Plugin is newly created, the releaseName is defaulted to the PluginDefin
 </tr>
 <tr>
 <td>
+<code>deletionPolicy</code><br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>DeletionPolicy defines how Helm Releases created by a Plugin are handled upon deletion of the Plugin.
+Supported values are &ldquo;Delete&rdquo; and &ldquo;Retain&rdquo;. If not set, defaults to &ldquo;Delete&rdquo;.</p>
+</td>
+</tr>
+<tr>
+<td>
 <code>waitFor</code><br>
 <em>
 <a href="#greenhouse.sap/v1alpha1.WaitForItem">
@@ -3293,6 +3305,18 @@ string
 <p>ReleaseName is the name of the helm release in the remote cluster to which the backend is deployed.
 If the Plugin was already deployed, the Plugin&rsquo;s name is used as the release name.
 If this Plugin is newly created, the releaseName is defaulted to the PluginDefinitions HelmChart name.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>deletionPolicy</code><br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>DeletionPolicy defines how Helm Releases created by a Plugin are handled upon deletion of the Plugin.
+Supported values are &ldquo;Delete&rdquo; and &ldquo;Retain&rdquo;. If not set, defaults to &ldquo;Delete&rdquo;.</p>
 </td>
 </tr>
 <tr>
