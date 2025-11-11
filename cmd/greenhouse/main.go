@@ -74,15 +74,12 @@ const (
 	flagLeaseDuration                      = "leader-election-lease-duration"
 	flagRenewDeadline                      = "leader-election-renew-deadline"
 	flagRetryPeriod                        = "leader-election-retry-period"
+	flagArtifactStoragePath                = "artifact-storage-path"
 )
 
 var (
-	scheme   = runtime.NewScheme()
-	setupLog = ctrl.Log.WithName("setup")
-
-	enabledControllers []string
-	remoteClusterBearerTokenValidity,
-	renewRemoteClusterBearerTokenAfter time.Duration
+	scheme         = runtime.NewScheme()
+	setupLog       = ctrl.Log.WithName("setup")
 	kubeClientOpts clientutil.RuntimeOptions
 	featureFlags   *features.Features
 )
@@ -100,8 +97,13 @@ func init() {
 	//+kubebuilder:scaffold:scheme
 }
 
-var metricsAddr, probeAddr string
-var leaseDuration, renewDeadline, retryPeriod time.Duration
+var (
+	metricsAddr, probeAddr, artifactStoragePath string
+	leaseDuration, renewDeadline, retryPeriod,
+	remoteClusterBearerTokenValidity,
+	renewRemoteClusterBearerTokenAfter time.Duration
+	enabledControllers []string
+)
 
 func main() {
 	flag.BoolVar(&helm.IsHelmDebug, flagHelmDebug, false,
@@ -121,6 +123,7 @@ func main() {
 	flag.DurationVar(&leaseDuration, flagLeaseDuration, 60*time.Second, "Leader election lease duration")
 	flag.DurationVar(&renewDeadline, flagRenewDeadline, 30*time.Second, "Leader election renew deadline")
 	flag.DurationVar(&retryPeriod, flagRetryPeriod, 5*time.Second, "Leader election retry period")
+	flag.StringVar(&artifactStoragePath, flagArtifactStoragePath, "bin/data", "The path to store catalog artifacts")
 
 	opts := zap.Options{
 		Development: true,
@@ -138,6 +141,8 @@ func main() {
 	ctrl.SetLogger(zap.New(
 		zap.UseFlagOptions(&opts)),
 	)
+
+	ctrl.Log.Info("path", "storage", artifactStoragePath)
 
 	if common.DNSDomain == "" {
 		handleError(errors.New("--dns-domain must not be empty"), "unable to start controller")

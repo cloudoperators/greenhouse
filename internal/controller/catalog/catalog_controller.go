@@ -25,8 +25,10 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
+	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
+	greenhouseapis "github.com/cloudoperators/greenhouse/api"
 	greenhousemetav1alpha1 "github.com/cloudoperators/greenhouse/api/meta/v1alpha1"
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
 	"github.com/cloudoperators/greenhouse/internal/lifecycle"
@@ -34,9 +36,10 @@ import (
 
 type CatalogReconciler struct {
 	client.Client
-	Scheme   *runtime.Scheme
-	Log      logr.Logger
-	recorder record.EventRecorder
+	Scheme      *runtime.Scheme
+	Log         logr.Logger
+	recorder    record.EventRecorder
+	StoragePath string
 }
 
 func (r *CatalogReconciler) SetupWithManager(name string, mgr ctrl.Manager) error {
@@ -50,6 +53,7 @@ func (r *CatalogReconciler) SetupWithManager(name string, mgr ctrl.Manager) erro
 		Owns(&sourcev1.GitRepository{}).
 		Owns(&sourcev2.ArtifactGenerator{}).
 		Owns(&kustomizev1.Kustomization{}).
+		Watches(&sourcev1.ExternalArtifact{}, handler.EnqueueRequestsFromMapFunc(r.reconcileCatalogOnExternalArtifactChange)).
 		WithOptions(controller.Options{
 			MaxConcurrentReconciles: 5,
 		}).
@@ -258,6 +262,12 @@ func (r *CatalogReconciler) EnsureCreated(ctx context.Context, obj lifecycle.Run
 			continue
 		}
 
+		ready, _ := sourcer.objectReadiness(ctx, externalArtifact)
+		if ready != metav1.ConditionTrue {
+			r.Log.Info("external artifact not ready yet, retry in next reconciliation loop", "namespace", catalog.Namespace, "name", sourcer.getArtifactName())
+			continue
+		}
+
 		if err = sourcer.reconcileKustomization(ctx, externalArtifact); err != nil {
 			r.Log.Error(err, "failed to reconcile kustomization for catalog source", "namespace", catalog.Namespace, "name", sourcer.getKustomizationName())
 			allErrors = append(allErrors, err)
@@ -429,5 +439,25 @@ func (r *CatalogReconciler) setStatus() lifecycle.Conditioner {
 		}
 		r.Log.Info("all catalog objects are ready", "namespace", catalog.Namespace, "name", catalog.Name)
 		catalog.SetTrueCondition(greenhousemetav1alpha1.ReadyCondition, greenhousev1alpha1.CatalogReadyReason, "all catalog objects are ready")
+	}
+}
+
+func (r *CatalogReconciler) reconcileCatalogOnExternalArtifactChange(_ context.Context, obj client.Object) []ctrl.Request {
+	labels := obj.GetLabels()
+	if labels == nil {
+		return nil
+	}
+	catalogName, ok := labels[greenhouseapis.LabelKeyCatalog]
+	if !ok {
+		return nil
+	}
+	catalogNamespace := obj.GetNamespace()
+	return []ctrl.Request{
+		{
+			NamespacedName: client.ObjectKey{
+				Name:      catalogName,
+				Namespace: catalogNamespace,
+			},
+		},
 	}
 }

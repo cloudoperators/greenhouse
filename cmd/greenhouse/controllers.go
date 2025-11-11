@@ -36,9 +36,7 @@ var knownControllers = map[string]func(controllerName string, mgr ctrl.Manager) 
 	"plugin":       startPluginReconciler,
 	"pluginPreset": (&plugincontrollers.PluginPresetReconciler{}).SetupWithManager,
 
-	"catalog": (&catalog.CatalogReconciler{
-		Log: ctrl.Log.WithName("controllers").WithName("catalogs"),
-	}).SetupWithManager,
+	"catalog":                 startCatalogReconciler,
 	"pluginDefinition":        (&plugindefinitioncontroller.PluginDefinitionReconciler{}).SetupWithManager,
 	"clusterPluginDefinition": (&plugindefinitioncontroller.ClusterPluginDefinitionReconciler{}).SetupWithManager,
 
@@ -93,6 +91,13 @@ func startPluginReconciler(name string, mgr ctrl.Manager) error {
 		KubeRuntimeOpts:              kubeClientOpts,
 		OptionValueTemplatingEnabled: optionValueTemplatingEnabled,
 		DefaultDeploymentTool:        defaultDeploymentTool,
+	}).SetupWithManager(name, mgr)
+}
+
+func startCatalogReconciler(name string, mgr ctrl.Manager) error {
+	return (&catalog.CatalogReconciler{
+		Log:         ctrl.Log.WithName("controllers").WithName("catalogs"),
+		StoragePath: artifactStoragePath,
 	}).SetupWithManager(name, mgr)
 }
 
