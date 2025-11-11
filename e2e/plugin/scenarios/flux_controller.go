@@ -41,10 +41,7 @@ func FluxControllerPodInfoByPlugin(ctx context.Context, adminClient, remoteClien
 	Eventually(func(g Gomega) {
 		err = adminClient.Get(ctx, client.ObjectKeyFromObject(testPluginDefinition), testPluginDefinition)
 		g.Expect(err).NotTo(HaveOccurred())
-		g.Expect(testPluginDefinition.Status.Conditions).To(ContainElement(MatchFields(IgnoreExtras, Fields{
-			"Type":   Equal(greenhousemetav1alpha1.ReadyCondition),
-			"Status": Equal(metav1.ConditionTrue),
-		})))
+		g.Expect(testPluginDefinition.Status.IsReadyTrue()).To(BeTrue(), "the plugin definition should be ready")
 	}).Should(Succeed())
 
 	By("Checking the helm repository is ready")
@@ -203,10 +200,7 @@ func FluxControllerUIOnlyPlugin(ctx context.Context, adminClient, remoteClient c
 	Eventually(func(g Gomega) {
 		err = adminClient.Get(ctx, client.ObjectKeyFromObject(testPluginDefinition), testPluginDefinition)
 		g.Expect(err).NotTo(HaveOccurred())
-		g.Expect(testPluginDefinition.Status.Conditions).To(ContainElement(MatchFields(IgnoreExtras, Fields{
-			"Type":   Equal(greenhousemetav1alpha1.ReadyCondition),
-			"Status": Equal(metav1.ConditionTrue),
-		})))
+		g.Expect(testPluginDefinition.Status.IsReadyTrue()).To(BeTrue(), "the plugin definition should be ready")
 	}).Should(Succeed())
 
 	By("Prepare the plugin spec for PluginPreset")
@@ -305,10 +299,7 @@ func FluxControllerPluginDependencies(ctx context.Context, adminClient, remoteCl
 	Eventually(func(g Gomega) {
 		err = adminClient.Get(ctx, client.ObjectKeyFromObject(testPluginDefinition), testPluginDefinition)
 		g.Expect(err).NotTo(HaveOccurred())
-		g.Expect(testPluginDefinition.Status.Conditions).To(ContainElement(MatchFields(IgnoreExtras, Fields{
-			"Type":   Equal(greenhousemetav1alpha1.ReadyCondition),
-			"Status": Equal(metav1.ConditionTrue),
-		})))
+		g.Expect(testPluginDefinition.Status.IsReadyTrue()).To(BeTrue(), "the plugin definition should be ready")
 	}).Should(Succeed())
 
 	By("Checking the helm repository is ready")
@@ -519,10 +510,7 @@ func FluxControllerPluginDeletePolicyRetain(ctx context.Context, adminClient, re
 	Eventually(func(g Gomega) {
 		err = adminClient.Get(ctx, client.ObjectKeyFromObject(testPluginDefinition), testPluginDefinition)
 		g.Expect(err).NotTo(HaveOccurred())
-		g.Expect(testPluginDefinition.Status.Conditions).To(ContainElement(MatchFields(IgnoreExtras, Fields{
-			"Type":   Equal(greenhousemetav1alpha1.ReadyCondition),
-			"Status": Equal(metav1.ConditionTrue),
-		})))
+		g.Expect(testPluginDefinition.Status.IsReadyTrue()).To(BeTrue(), "the plugin definition should be ready")
 	}).Should(Succeed())
 
 	By("Prepare the plugin spec for presets")
@@ -563,10 +551,7 @@ func FluxControllerPluginDeletePolicyRetain(ctx context.Context, adminClient, re
 		plugin := &greenhousev1alpha1.Plugin{}
 		err = adminClient.Get(ctx, types.NamespacedName{Name: pluginPreset.Name + "-" + remoteClusterName, Namespace: env.TestNamespace}, plugin)
 		g.Expect(err).NotTo(HaveOccurred())
-		g.Expect(plugin.Status.Conditions).To(ContainElement(MatchFields(IgnoreExtras, Fields{
-			"Type":   Equal(greenhousemetav1alpha1.ReadyCondition),
-			"Status": Equal(metav1.ConditionTrue),
-		})))
+		g.Expect(plugin.Status.IsReadyTrue()).To(BeTrue(), "the plugin should be ready")
 	}).Should(Succeed(), "the plugin should eventually be created and ready")
 
 	By("Deleting the plugin presets")
