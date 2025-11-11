@@ -30,6 +30,7 @@ type CatalogSpec struct {
 
 type CatalogSource struct {
 	// Repository - the Git repository URL
+	// +kubebuilder:validation:Pattern="^https://.*$"
 	Repository string `json:"repository"`
 
 	// Resources contains the list of path to PluginDefinition files
@@ -81,6 +82,7 @@ type CatalogSource struct {
 
 type CatalogOverrides struct {
 	// Name is the name of the PluginDefinition to patch with an alias
+	// +kubebuilder:validation:MinLength=1
 	Name string `json:"name"`
 	// Alias is the alias to apply to the PluginDefinition Name via Kustomize patches
 	// For SourceType Helm, this field is passed to postRender Kustomize patch
