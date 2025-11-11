@@ -71,6 +71,7 @@ spec:
                           name:
                             description: Name is the name of the PluginDefinition
                               to patch with an alias
+                            minLength: 1
                             type: string
                           repository:
                             description: Repository is the repository to override
@@ -95,6 +96,7 @@ spec:
                       type: object
                     repository:
                       description: Repository - the Git repository URL
+                      pattern: ^https://.*$
                       type: string
                     resources:
                       description: |-
