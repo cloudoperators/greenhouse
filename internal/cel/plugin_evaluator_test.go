@@ -241,12 +241,156 @@ var _ = Describe("Plugin CEL Expression Evaluation", func() {
 						},
 					},
 				}),
+			Entry("region-based domain - perses subdomain",
+				"'perses.' + global.greenhouse.metadata.region + '.greenhouse.dev'",
+				"perses.qa-de-1.greenhouse.dev", false,
+				map[string]any{
+					"global": map[string]any{
+						"greenhouse": map[string]any{
+							"metadata": map[string]any{
+								"region": "qa-de-1",
+							},
+						},
+					},
+				}),
+			Entry("vault secret path with region",
+				"'vault+kvv2:///secrets/' + global.greenhouse.metadata.region + '/greenhouse-' + global.greenhouse.metadata.region + '/clientID'",
+				"vault+kvv2:///secrets/qa-de-1/greenhouse-qa-de-1/clientID", false,
+				map[string]any{
+					"global": map[string]any{
+						"greenhouse": map[string]any{
+							"metadata": map[string]any{
+								"region": "qa-de-1",
+							},
+						},
+					},
+				}),
+			Entry("thanos query store URL with region",
+				"'thanos-grpc.obs.' + global.greenhouse.metadata.region + '.cloud.sap:443'",
+				"thanos-grpc.obs.qa-de-1.cloud.sap:443", false,
+				map[string]any{
+					"global": map[string]any{
+						"greenhouse": map[string]any{
+							"metadata": map[string]any{
+								"region": "qa-de-1",
+							},
+						},
+					},
+				}),
+			Entry("keystone password vault path with region",
+				"'vault+kvv2:///secrets/' + global.greenhouse.metadata.region + '/thanos-greenhouse/keystone-user/thanos-greenhouse/password'",
+				"vault+kvv2:///secrets/qa-de-1/thanos-greenhouse/keystone-user/thanos-greenhouse/password", false,
+				map[string]any{
+					"global": map[string]any{
+						"greenhouse": map[string]any{
+							"metadata": map[string]any{
+								"region": "qa-de-1",
+							},
+						},
+					},
+				}),
+			Entry("prometheus username with region",
+				"'prometheus-' + global.greenhouse.metadata.region + '-thanos'",
+				"prometheus-qa-de-1-thanos", false,
+				map[string]any{
+					"global": map[string]any{
+						"greenhouse": map[string]any{
+							"metadata": map[string]any{
+								"region": "qa-de-1",
+							},
+						},
+					},
+				}),
 
 			Entry("empty expression",
 				"",
 				nil, true,
 				map[string]any{}),
 		)
+	})
+
+	Describe("Complex Structures - Lists and Maps", func() {
+		It("should render list with dynamic region values", func() {
+			result, err := EvaluatePluginExpression(
+				"['thanos-grpc.obs.' + global.greenhouse.metadata.region + '.cloud.sap:443']",
+				map[string]any{
+					"global": map[string]any{
+						"greenhouse": map[string]any{
+							"metadata": map[string]any{
+								"region": "eu-de-1",
+							},
+						},
+					},
+				},
+			)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(result).To(Equal([]any{"thanos-grpc.obs.eu-de-1.cloud.sap:443"}))
+		})
+		It("should render map with dynamic region in nested values", func() {
+			result, err := EvaluatePluginExpression(
+				`{
+					'auth_url': 'https://identity-3.greenhouse.dev/v3',
+					'container_name': 'prometheus-greenhouse-dev-thanos',
+					'domain_name': 'Default',
+					'project_domain_name': 'ccadmin',
+					'project_name': 'master',
+					'region_name': global.greenhouse.metadata.region,
+					'username': 'prometheus-' + global.greenhouse.metadata.region + '-thanos'
+				}`,
+				map[string]any{
+					"global": map[string]any{
+						"greenhouse": map[string]any{
+							"metadata": map[string]any{
+								"region": "qa-de-1",
+							},
+						},
+					},
+				},
+			)
+			Expect(err).ToNot(HaveOccurred())
+			resultMap := result.(map[string]any)
+			Expect(resultMap["auth_url"]).To(Equal("https://identity-3.greenhouse.dev/v3"))
+			Expect(resultMap["region_name"]).To(Equal("qa-de-1"))
+			Expect(resultMap["username"]).To(Equal("prometheus-qa-de-1-thanos"))
+		})
+		It("should render list of multiple URLs with region", func() {
+			result, err := EvaluatePluginExpression(
+				`[
+					'thanos-grpc.obs.' + global.greenhouse.metadata.region + '.cloud.sap:443',
+					'thanos-grpc.mon.' + global.greenhouse.metadata.region + '.cloud.sap:443'
+				]`,
+				map[string]any{
+					"global": map[string]any{
+						"greenhouse": map[string]any{
+							"metadata": map[string]any{
+								"region": "eu-de-1",
+							},
+						},
+					},
+				},
+			)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(result).To(Equal([]any{
+				"thanos-grpc.obs.eu-de-1.cloud.sap:443",
+				"thanos-grpc.mon.eu-de-1.cloud.sap:443",
+			}))
+		})
+		It("should construct list from template with filter", func() {
+			result, err := EvaluatePluginExpression(
+				"global.greenhouse.metadata.region.startsWith('eu') ? ['eu-endpoint-1', 'eu-endpoint-2'] : ['us-endpoint-1', 'us-endpoint-2']",
+				map[string]any{
+					"global": map[string]any{
+						"greenhouse": map[string]any{
+							"metadata": map[string]any{
+								"region": "eu-de-1",
+							},
+						},
+					},
+				},
+			)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(result).To(Equal([]any{"eu-endpoint-1", "eu-endpoint-2"}))
+		})
 	})
 
 	Describe("Edge Cases", func() {
