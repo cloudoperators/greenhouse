@@ -142,10 +142,36 @@ func convertCELValue(val ref.Val) (any, error) {
 		return nil, fmt.Errorf("CEL evaluation error: %v", val)
 	}
 
+	// Handle lists.
 	if listVal, ok := val.Value().([]ref.Val); ok {
 		result := make([]any, len(listVal))
 		for i, item := range listVal {
-			result[i] = item.Value()
+			converted, err := convertCELValue(item)
+			if err != nil {
+				return nil, err
+			}
+			result[i] = converted
+		}
+		return result, nil
+	}
+
+	// Handle maps.
+	if mapVal, ok := val.Value().(map[ref.Val]ref.Val); ok {
+		result := make(map[string]any, len(mapVal))
+		for k, v := range mapVal {
+			keyConverted, err := convertCELValue(k)
+			if err != nil {
+				return nil, err
+			}
+			valueConverted, err := convertCELValue(v)
+			if err != nil {
+				return nil, err
+			}
+			keyStr, ok := keyConverted.(string)
+			if !ok {
+				return nil, fmt.Errorf("map key must be a string, got %T", keyConverted)
+			}
+			result[keyStr] = valueConverted
 		}
 		return result, nil
 	}
