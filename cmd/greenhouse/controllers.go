@@ -36,9 +36,7 @@ var knownControllers = map[string]func(controllerName string, mgr ctrl.Manager) 
 	"plugin":       startPluginReconciler,
 	"pluginPreset": (&plugincontrollers.PluginPresetReconciler{}).SetupWithManager,
 
-	"catalog": (&catalog.CatalogReconciler{
-		Log: ctrl.Log.WithName("controllers").WithName("catalogs"),
-	}).SetupWithManager,
+	"catalog":                 startCatalogReconciler,
 	"pluginDefinition":        (&plugindefinitioncontroller.PluginDefinitionReconciler{}).SetupWithManager,
 	"clusterPluginDefinition": (&plugindefinitioncontroller.ClusterPluginDefinitionReconciler{}).SetupWithManager,
 
@@ -105,5 +103,13 @@ func startClusterReconciler(name string, mgr ctrl.Manager) error {
 	return (&clustercontrollers.RemoteClusterReconciler{
 		RemoteClusterBearerTokenValidity:   remoteClusterBearerTokenValidity,
 		RenewRemoteClusterBearerTokenAfter: renewRemoteClusterBearerTokenAfter,
+	}).SetupWithManager(name, mgr)
+}
+
+func startCatalogReconciler(name string, mgr ctrl.Manager) error {
+	return (&catalog.CatalogReconciler{
+		Log:         ctrl.Log.WithName("controllers").WithName("catalogs"),
+		StoragePath: artifactStoragePath,
+		HttpRetry:   artifactRetries,
 	}).SetupWithManager(name, mgr)
 }

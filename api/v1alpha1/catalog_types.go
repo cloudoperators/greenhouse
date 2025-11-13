@@ -8,6 +8,7 @@ import (
 	"time"
 
 	sourcev1 "github.com/fluxcd/source-controller/api/v1"
+	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	greenhousemetav1alpha1 "github.com/cloudoperators/greenhouse/api/meta/v1alpha1"
@@ -91,6 +92,19 @@ type CatalogOverrides struct {
 	// Repository is the repository to override in the PluginDefinition .spec.helmChart.repository
 	// +Optional
 	Repository string `json:"repository,omitempty"`
+	// OptionsOverride are the option values to override in the PluginDefinition .spec.options[]
+	// +Optional
+	OptionsOverride []OptionsOverride `json:"optionsOverride,omitempty"`
+}
+
+type OptionsOverride struct {
+	// Name is the name of the option value to override in the PluginDefinition
+	// +kubebuilder:validation:MinLength=1
+	// +Required
+	Name string `json:"name"`
+	// Value is the value to set as Default in the PluginDefinition option
+	// +Required
+	Value *apiextensionsv1.JSON `json:"value"`
 }
 
 type GitRef struct {
