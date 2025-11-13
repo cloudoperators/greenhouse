@@ -184,6 +184,19 @@ string
 <p>Repository is the repository to override in the PluginDefinition .spec.helmChart.repository</p>
 </td>
 </tr>
+<tr>
+<td>
+<code>optionsOverride</code><br>
+<em>
+<a href="#greenhouse.sap/v1alpha1.OptionsOverride">
+[]OptionsOverride
+</a>
+</em>
+</td>
+<td>
+<p>OptionsOverride are the option values to override in the PluginDefinition .spec.options[]</p>
+</td>
+</tr>
 </tbody>
 </table>
 </div>
@@ -1893,6 +1906,50 @@ SecretKeyReference
 <td>
 <p>OAuth2ClientRedirectURIs are a registered set of redirect URIs. When redirecting from the idproxy to
 the client application, the URI requested to redirect to must be contained in this list.</p>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<h3 id="greenhouse.sap/v1alpha1.OptionsOverride">OptionsOverride
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#greenhouse.sap/v1alpha1.CatalogOverrides">CatalogOverrides</a>)
+</p>
+<div class="md-typeset__scrollwrap">
+<div class="md-typeset__table">
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>name</code><br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Name is the name of the option value to override in the PluginDefinition</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>value</code><br>
+<em>
+<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#json-v1-apiextensions-k8s-io">
+Kubernetes apiextensions/v1.JSON
+</a>
+</em>
+</td>
+<td>
+<p>Value is the value to set as Default in the PluginDefinition option</p>
 </td>
 </tr>
 </tbody>
