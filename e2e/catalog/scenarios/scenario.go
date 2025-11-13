@@ -5,6 +5,7 @@ package scenarios
 
 import (
 	"context"
+	"os"
 	"slices"
 	"strings"
 
@@ -31,23 +32,28 @@ type IScenario interface {
 	ExecuteCPDFailScenario(ctx context.Context, namespace string)
 	ExecuteArtifactFailScenario(ctx context.Context, namespace string)
 	ExecuteGitAuthFailScenario(ctx context.Context, namespace string)
+	ExecuteOptionsOverrideScenario(ctx context.Context, namespace string)
 }
 
 type scenario struct {
-	k8sClient client.Client
-	catalog   *greenhousev1alpha1.Catalog
+	k8sClient  client.Client
+	catalog    *greenhousev1alpha1.Catalog
+	secretName string
 }
 
-func NewScenario(adminClient client.Client, catalogYamlPath string) IScenario {
+func NewScenario(adminClient client.Client, catalogYamlPath, secretName string, skipTestData bool) IScenario {
 	GinkgoHelper()
 	catalog := &greenhousev1alpha1.Catalog{}
-	catalogBytes, err := shared.ReadFileContent(catalogYamlPath)
-	Expect(err).ToNot(HaveOccurred(), "there should be no error reading the catalog yaml file for branch scenario")
-	err = shared.FromYamlToK8sObject(string(catalogBytes), catalog)
-	Expect(err).ToNot(HaveOccurred(), "there should be no error converting catalog yaml to k8s object for branch scenario")
+	if !skipTestData {
+		catalogBytes, err := os.ReadFile(catalogYamlPath)
+		Expect(err).ToNot(HaveOccurred(), "there should be no error reading the catalog yaml file for branch scenario")
+		err = shared.FromYamlToK8sObject(string(catalogBytes), catalog)
+		Expect(err).ToNot(HaveOccurred(), "there should be no error converting catalog yaml to k8s object for branch scenario")
+	}
 	return &scenario{
-		k8sClient: adminClient,
-		catalog:   catalog,
+		k8sClient:  adminClient,
+		catalog:    catalog,
+		secretName: secretName,
 	}
 }
 
