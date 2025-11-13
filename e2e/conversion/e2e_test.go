@@ -84,7 +84,7 @@ var _ = AfterSuite(func() {
 	shared.OffBoardRemoteCluster(ctx, adminClient, remoteClient, testStartTime, remoteClusterName, env.TestNamespace)
 	By("cleaning the Team")
 	test.EventuallyDeleted(ctx, adminClient, teamUT)
-	env.GenerateControllerLogs(ctx, testStartTime)
+	env.GenerateGreenhouseControllerLogs(ctx, testStartTime)
 })
 
 var _ = Describe("Conversion E2E", Ordered, func() {

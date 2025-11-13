@@ -16,16 +16,20 @@ import (
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
-	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
 	"github.com/cloudoperators/greenhouse/e2e/catalog/expect"
+	"github.com/cloudoperators/greenhouse/e2e/catalog/scenarios"
 	"github.com/cloudoperators/greenhouse/e2e/shared"
 	"github.com/cloudoperators/greenhouse/internal/clientutil"
-	"github.com/cloudoperators/greenhouse/internal/test"
 )
 
 const (
-	catalogRepositoryPatch = "oci://docker.io/greenhouse-extensions/charts"
-	e2eCatalogName         = "greenhouse-catalog-e2e"
+	greenhouseOrgYaml       = "./testdata/greenhouse_organization.yaml"
+	e2eOrgYaml              = "./testdata/catalog_e2e_organization.yaml"
+	catalogBranchYaml       = "./testdata/catalog_scenario_branch.yaml"
+	catalogCommitYaml       = "./testdata/catalog_scenario_commit.yaml"
+	catalogCPDYaml          = "./testdata/catalog_scenario_cpd.yaml"
+	catalogMultiYaml        = "./testdata/catalog_scenario_multi_source.yaml"
+	catalogArtifactFailYaml = "./testdata/catalog_scenario_artifact_fail.yaml"
 )
 
 var (
@@ -47,37 +51,77 @@ var _ = BeforeSuite(func() {
 	env = shared.NewExecutionEnv()
 	adminClient, err = clientutil.NewK8sClientFromRestClientGetter(env.AdminRestClientGetter)
 	Expect(err).ToNot(HaveOccurred(), "there should be no error creating the admin client")
-	env = env.WithOrganization(ctx, adminClient, "./testdata/organization.yaml")
 	Expect(err).ToNot(HaveOccurred(), "there should be no error creating a Team")
 	testStartTime = time.Now().UTC()
 })
 
 var _ = AfterSuite(func() {
-	expect.CatalogDeleted(ctx, adminClient, env.TestNamespace, e2eCatalogName)
-	env.GenerateControllerLogs(ctx, testStartTime)
+	expect.AllCatalogDeleted(ctx, adminClient)
+	env.GenerateGreenhouseControllerLogs(ctx, testStartTime)
+	env.GenerateFluxControllerLogs(ctx, "source-controller", testStartTime)
+	env.GenerateFluxControllerLogs(ctx, "source-watcher", testStartTime)
+	env.GenerateFluxControllerLogs(ctx, "kustomize-controller", testStartTime)
 })
 
 var _ = Describe("Catalog E2E", Ordered, func() {
-	var catalog *greenhousev1alpha1.Catalog
-	var pluginDefinitions *greenhousev1alpha1.PluginDefinitionList
-	It("should successfully create a Catalog resource", func() {
-		source := test.NewCatalogSource(
-			test.WithRepositoryBranch("main"),
-			test.WithRepository("https://github.com/cloudoperators/greenhouse-extensions"),
-			test.WithCatalogResources([]string{
-				"perses/plugindefinition.yaml",
-				"kube-monitoring/plugindefinition.yaml",
-			}))
-		catalog = test.NewCatalog(
-			e2eCatalogName,
-			env.TestNamespace,
-			source,
-		)
-		Expect(adminClient.Create(ctx, catalog)).To(Succeed(), "there should be no error creating the Catalog resource")
-		expect.CatalogReady(ctx, adminClient, env.TestNamespace, catalog.Name)
-		pluginDefinitions = &greenhousev1alpha1.PluginDefinitionList{}
-		Expect(adminClient.List(ctx, pluginDefinitions)).To(Succeed(), "there should be no error listing pluginDefinitions")
-		Expect(pluginDefinitions.Items).ToNot(BeEmpty(), "there should be at least one pluginDefinition created from the Catalog")
-		Expect(pluginDefinitions.Items).To(HaveLen(2), "there should be exactly two pluginDefinitions created from the Catalog")
-	})
+	DescribeTable("Catalog scenarios",
+		func(orgYamlPath, catalogYamlPath, secretName string, secretType shared.SecretType, execute func(scenarios.IScenario, string)) {
+			env := env.WithOrganization(ctx, adminClient, orgYamlPath)
+			if !env.IsRealCluster {
+				env = env.WithGitHubSecret(ctx, adminClient, secretName, secretType)
+			}
+			testNamespace := env.TestNamespace
+			scenario := scenarios.NewScenario(adminClient, catalogYamlPath)
+			execute(scenario, testNamespace)
+		},
+		Entry("Catalog Branch scenario",
+			e2eOrgYaml,
+			catalogBranchYaml,
+			"github-com-token",
+			shared.GitHubSecretTypeAPP,
+			func(s scenarios.IScenario, ns string) { s.ExecuteSuccessScenario(ctx, ns) },
+		),
+		Entry("Catalog Commit scenario",
+			e2eOrgYaml,
+			catalogCommitYaml,
+			"github-com-token",
+			shared.GitHubSecretTypeAPP,
+			func(s scenarios.IScenario, ns string) { s.ExecuteSuccessScenario(ctx, ns) },
+		),
+		Entry("Catalog CPD scenario",
+			greenhouseOrgYaml,
+			catalogCPDYaml,
+			"github-com-app",
+			shared.GitHubSecretTypeAPP,
+			func(s scenarios.IScenario, ns string) { s.ExecuteSuccessScenario(ctx, ns) },
+		),
+		Entry("Catalog Multi Source scenario",
+			e2eOrgYaml,
+			catalogMultiYaml,
+			"github-com-app",
+			shared.GitHubSecretTypeAPP,
+			func(s scenarios.IScenario, ns string) { s.ExecuteSuccessScenario(ctx, ns) },
+		),
+		Entry("Catalog CPD Fail scenario",
+			e2eOrgYaml,
+			catalogCPDYaml,
+			"github-com-app",
+			shared.GitHubSecretTypeAPP,
+			func(s scenarios.IScenario, ns string) { s.ExecuteCPDFailScenario(ctx, ns) },
+		),
+		Entry("Catalog Artifact Fail scenario",
+			e2eOrgYaml,
+			catalogArtifactFailYaml,
+			"github-com-app",
+			shared.GitHubSecretTypeAPP,
+			func(s scenarios.IScenario, ns string) { s.ExecuteArtifactFailScenario(ctx, ns) },
+		),
+		Entry("Catalog Git Auth Fail scenario",
+			e2eOrgYaml,
+			catalogBranchYaml,
+			"github-com-token",
+			shared.GitHubSecretTypeFake,
+			func(s scenarios.IScenario, ns string) { s.ExecuteGitAuthFailScenario(ctx, ns) },
+		),
+	)
 })

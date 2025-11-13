@@ -47,6 +47,11 @@ jobs:
         id: e2e
         continue-on-error: true
         uses: cloudoperators/common/workflows/e2e@main
+        env:
+          RUNTIME_ENV: "CI"
+          GH_APP_ID: ${{ secrets.CLOUDOPERATOR_APP_ID }}
+          GH_APP_PRIVATE_KEY: ${{ secrets.CLOUDOPERATOR_APP_PRIVATE_KEY }}
+          GH_APP_INSTALLATION_ID: ${{ secrets.CLOUDOPERATOR_APP_INSTALLATION_ID }}
         with:
           k8s-version: ${{ matrix.k8s-version }}
           scenario: ${{ matrix.e2es }}
@@ -54,15 +59,18 @@ jobs:
           remote-config: ${{ github.workspace }}/dev-env/greenhouse-remote-cluster.yaml
 
       - name: "Display Logs"
+        continue-on-error: true
+        env:
+          SCENARIO: ${{ matrix.e2es }}
+          E2E_RESULT_DIR: ${{github.workspace}}/bin
+        run: |
+          make show-e2e-logs
+
+      - name: "E2E Failure?"
         if: ${{ steps.e2e.outcome == 'failure' }}
         run: |
-          echo "Displaying greenhouse controller logs for failed scenario: ${{ matrix.e2es }}"
-          cat ${{ github.workspace }}/bin/${{ matrix.e2es }}-${{ matrix.k8s-version }}.txt
-          echo "----------------------------------------"
-          echo "Displaying flux logs for failed scenario: ${{ matrix.e2es }}"
-          cat ${{ github.workspace }}/bin/flux-${{ matrix.e2es }}-${{ matrix.k8s-version }}.txt
           exit 1
-        
+  
 
   # check if the e2e tests passed for all scenarios
   checksOK:
