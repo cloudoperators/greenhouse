@@ -194,10 +194,10 @@ func (a *artifactory) fetchFromFileSystem(digest string) ([]byte, error) {
 	return data, nil
 }
 
-func (a *artifactory) fetchFromSource(ctx context.Context, url string) (map[string][]byte, error) {
-	url = replaceArtifactDomain(url)
-	a.log.V(1).Info("fetching artifact", "url", url)
-	req, err := retry.NewRequestWithContext(ctx, http.MethodGet, url, http.NoBody)
+func (a *artifactory) fetchFromSource(ctx context.Context, srcUrl string) (map[string][]byte, error) {
+	srcUrl = replaceArtifactDomain(srcUrl)
+	a.log.V(1).Info("fetching artifact", "srcUrl", srcUrl)
+	req, err := retry.NewRequestWithContext(ctx, http.MethodGet, srcUrl, http.NoBody)
 	if err != nil {
 		return nil, err
 	}
