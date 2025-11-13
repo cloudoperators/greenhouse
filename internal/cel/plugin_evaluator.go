@@ -52,7 +52,7 @@ func EvaluatePluginExpression(expression string, templateData map[string]any) (a
 // createPluginCELEnv creates a CEL environment for plugin expressions.
 func createPluginCELEnv() (*cel.Env, error) {
 	return cel.NewEnv(
-		cel.Variable("global", cel.DynType),
+		cel.Variable("self", cel.DynType),
 
 		// See: https://github.com/google/cel-go/tree/master/ext#strings
 		ext.Strings(),

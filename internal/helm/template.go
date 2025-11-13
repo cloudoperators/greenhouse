@@ -67,6 +67,8 @@ func buildTemplateData(optionValues []greenhousev1alpha1.PluginOptionValue) (map
 	for _, optionValue := range optionValues {
 		// Include global.greenhouse.* values for templating.
 		if strings.HasPrefix(optionValue.Name, "global.greenhouse") {
+			// Convert global.greenhouse.* to self.global.greenhouse.*
+			optionValue.Name = "self." + optionValue.Name
 			greenhouseValues = append(greenhouseValues, optionValue)
 		}
 	}
