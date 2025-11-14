@@ -6,7 +6,7 @@ apiVersion: kind.x-k8s.io/v1alpha4
 nodes:
   - role: control-plane
     extraMounts:
-      - hostPath: ./dev-env/structured-auth.yaml
+      - hostPath: ./bin/structured-auth.yaml
         containerPath: /etc/kubernetes/structured-auth.yaml
     kubeadmConfigPatches:
       - |

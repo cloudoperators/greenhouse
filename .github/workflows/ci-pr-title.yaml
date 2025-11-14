@@ -65,6 +65,7 @@ jobs:
             e2e
             greenhouse
             greenhousectl
+            dev-env
             actions
             template
             tests
