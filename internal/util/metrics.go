@@ -30,6 +30,7 @@ const (
 	MetricReasonTemplateFailed           MetricReason = "template_failed"
 	MetricReasonDiffFailed               MetricReason = "diff_failed"
 	MetricReasonHelmChartIsNotDefined    MetricReason = "helm_chart_is_not_defined"
+	MetricReasonSuspendFailed            MetricReason = "suspend_failed"
 )
 
 var (

@@ -190,9 +190,8 @@ func NewClusterPluginDefinition(ctx context.Context, name string, opts ...func(d
 			Description: "TestPluginDefinition",
 			Version:     "1.0.0",
 			HelmChart: &greenhousev1alpha1.HelmChartReference{
-				Name:       "./../../test/fixtures/myChart",
-				Repository: "dummy",
-				Version:    "1.0.0",
+				Name:    "./../../test/fixtures/myChart",
+				Version: "1.0.0",
 			},
 		},
 	}
@@ -248,9 +247,8 @@ func NewPluginDefinition(ctx context.Context, name, namespace string, opts ...fu
 			Description: "TestPluginDefinition",
 			Version:     "1.0.0",
 			HelmChart: &greenhousev1alpha1.HelmChartReference{
-				Name:       "./../../test/fixtures/myChart",
-				Repository: "dummy",
-				Version:    "1.0.0",
+				Name:    "./../../test/fixtures/myChart",
+				Version: "1.0.0",
 			},
 		},
 	}
@@ -391,6 +389,13 @@ func WithPluginWaitFor(waitFor []greenhousev1alpha1.WaitForItem) func(*greenhous
 	}
 }
 
+// WithPluginDeletionPolicy sets the DeletionPolicy of a Plugin
+func WithPluginDeletionPolicy(deletionPolicy string) func(*greenhousev1alpha1.Plugin) {
+	return func(p *greenhousev1alpha1.Plugin) {
+		p.Spec.DeletionPolicy = deletionPolicy
+	}
+}
+
 // SetOptionValueForPlugin sets the value of a PluginOptionValue in plugin
 func SetOptionValueForPlugin(plugin *greenhousev1alpha1.Plugin, key, value string) {
 	for i, keyValue := range plugin.Spec.OptionValues {
@@ -449,6 +454,16 @@ func WithPluginPresetLabel(key, value string) func(*greenhousev1alpha1.PluginPre
 	}
 }
 
+// WithPluginPresetAnnotation sets the annotation on a PluginPreset
+func WithPluginPresetAnnotation(key, value string) func(*greenhousev1alpha1.PluginPreset) {
+	return func(pp *greenhousev1alpha1.PluginPreset) {
+		if pp.Annotations == nil {
+			pp.Annotations = make(map[string]string, 1)
+		}
+		pp.Annotations[key] = value
+	}
+}
+
 // WithClusterOverrides sets the ClusterOverrides for a Cluster
 func WithClusterOverride(clusterName string, optionValues []greenhousev1alpha1.PluginOptionValue) func(*greenhousev1alpha1.PluginPreset) {
 	return func(pp *greenhousev1alpha1.PluginPreset) {
@@ -469,6 +484,16 @@ func WithClusterOverride(clusterName string, optionValues []greenhousev1alpha1.P
 func WithPluginPresetDeletionPolicy(deletionPolicy string) func(*greenhousev1alpha1.PluginPreset) {
 	return func(pp *greenhousev1alpha1.PluginPreset) {
 		pp.Spec.DeletionPolicy = deletionPolicy
+	}
+}
+
+// WithPluginPresetWaitFor adds the WaitForItem to a PluginPreset's WaitFor.
+func WithPluginPresetWaitFor(waitFor greenhousev1alpha1.WaitForItem) func(*greenhousev1alpha1.PluginPreset) {
+	return func(pp *greenhousev1alpha1.PluginPreset) {
+		if pp.Spec.WaitFor == nil {
+			pp.Spec.WaitFor = []greenhousev1alpha1.WaitForItem{}
+		}
+		pp.Spec.WaitFor = append(pp.Spec.WaitFor, waitFor)
 	}
 }
 

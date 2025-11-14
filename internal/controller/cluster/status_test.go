@@ -130,8 +130,8 @@ var _ = Describe("Cluster status", Ordered, func() {
 	})
 
 	AfterAll(func() {
-		test.MustDeleteCluster(test.Ctx, test.K8sClient, client.ObjectKeyFromObject(&validCluster))
-		test.MustDeleteCluster(test.Ctx, test.K8sClient, client.ObjectKeyFromObject(invalidCluster))
+		test.MustDeleteCluster(test.Ctx, test.K8sClient, &validCluster)
+		test.MustDeleteCluster(test.Ctx, test.K8sClient, invalidCluster)
 		test.EventuallyDeleted(test.Ctx, test.K8sClient, team)
 		Expect(remoteEnv.Stop()).Should(Succeed(), "there should be no error stopping the remote environment")
 	})

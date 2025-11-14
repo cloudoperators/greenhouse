@@ -5,7 +5,6 @@ package catalog
 
 import (
 	"fmt"
-	"maps"
 	"slices"
 
 	fluxmeta "github.com/fluxcd/pkg/apis/meta"
@@ -134,7 +133,7 @@ var _ = Describe("Catalog controller", Ordered, func() {
 				catalogReady := catalog.Status.GetConditionByType(greenhousemetav1alpha1.ReadyCondition)
 				g.Expect(catalogReady).ToNot(BeNil(), "the Catalog should have a Ready condition")
 				g.Expect(catalogReady.Status).To(Equal(metav1.ConditionFalse), "the Ready condition status should be False")
-				g.Expect(catalogReady.Reason).To(Equal(greenhousev1alpha1.CatalogNotReadyReason), "the Ready condition reason should be CatalogNotReady")
+				g.Expect(catalogReady.Reason).To(Equal(greenhousev1alpha1.CatalogEmptySources), "the Ready condition reason should be CatalogNotReady")
 			}).Should(Succeed(), "catalog status should be not ready when no sources are defined")
 		})
 
@@ -212,13 +211,7 @@ var _ = Describe("Catalog controller", Ordered, func() {
 
 		It("should suspend/resume flux resources when catalog is suspended/resumed", func() {
 			By("suspending the catalog")
-			a := catalog.Annotations
-			if a == nil {
-				a = make(map[string]string)
-			}
-			a[lifecycle.SuspendAnnotation] = "true"
-			catalog.SetAnnotations(a)
-			Expect(test.K8sClient.Update(test.Ctx, catalog)).To(Succeed(), "failed to update Catalog with suspend annotation")
+			test.MustSetAnnotation(test.Ctx, test.K8sClient, catalog, lifecycle.SuspendAnnotation, "true")
 
 			By("checking if the catalog git repository, kustomization & artifact generator are suspended")
 			actSourceStatus := []greenhousev1alpha1.SourceStatus{}
@@ -272,10 +265,7 @@ var _ = Describe("Catalog controller", Ordered, func() {
 			}).Should(Succeed(), "ArtifactGenerator should be suspended after catalog is suspended")
 
 			By("resuming the catalog")
-			maps.DeleteFunc(catalog.Annotations, func(key, value string) bool {
-				return key == lifecycle.SuspendAnnotation
-			})
-			Expect(test.K8sClient.Update(test.Ctx, catalog)).To(Succeed(), "failed to remove suspend annotation from Catalog")
+			test.MustRemoveAnnotation(test.Ctx, test.K8sClient, catalog, lifecycle.SuspendAnnotation)
 
 			By("checking if the catalog git repository and kustomization are resumed")
 			Eventually(func(g Gomega) {
@@ -295,6 +285,85 @@ var _ = Describe("Catalog controller", Ordered, func() {
 				g.Expect(err).ToNot(HaveOccurred(), "failed to get ArtifactGenerator")
 				g.Expect(artifactGenerator.Annotations).ToNot(HaveKey(sourcev2.ReconcileAnnotation), "ArtifactGenerator should be resumed")
 			}).Should(Succeed(), "ArtifactGenerator should be resumed after catalog is resumed")
+		})
+
+		It("should trigger flux resource reconciliation when reconcile annotation is set on catalog", func() {
+			By("triggering reconciliation of the catalog via annotation")
+			test.MustSetAnnotation(test.Ctx, test.K8sClient, catalog, lifecycle.ReconcileAnnotation, "now")
+
+			By("checking if the catalog git repository, kustomization & artifact generator are annotated for reconciliation")
+			actSourceStatus := []greenhousev1alpha1.SourceStatus{}
+			Eventually(func(g Gomega) {
+				g.Expect(test.K8sClient.Get(test.Ctx, cl.ObjectKeyFromObject(catalog), catalog)).To(Succeed(), "there should be no error getting the Catalog")
+				g.Expect(catalog.Status.LastReconciledAt).To(Equal("now"), "the Catalog status LastReconciledAt should be updated")
+				g.Expect(catalog.Spec.Sources).To(HaveLen(1), "there should be one source in the catalog")
+				sourceGroupKey, _, err := getSourceGroupHash(catalog.Spec.Sources[0])
+				g.Expect(err).NotTo(HaveOccurred(), "there should be no error getting source group hash for the source")
+				inventory := catalog.Status.Inventory
+				g.Expect(inventory).To(HaveKey(sourceGroupKey), "the Catalog status inventory should have the groupKey for source")
+				actSourceStatus = inventory[sourceGroupKey]
+			}).Should(Succeed(), "there should be no error getting the Catalog after adding suspend annotation")
+
+			var gitRepoName, kustomizationName, artifactGeneratorName string
+			for _, sourceStatus := range actSourceStatus {
+				switch sourceStatus.Kind {
+				case sourcev1.GitRepositoryKind:
+					gitRepoName = sourceStatus.Name
+				case kustomizev1.KustomizationKind:
+					kustomizationName = sourceStatus.Name
+				case sourcev2.ArtifactGeneratorKind:
+					artifactGeneratorName = sourceStatus.Name
+				}
+			}
+
+			gitRepository := &sourcev1.GitRepository{}
+			gitRepository.SetName(gitRepoName)
+			gitRepository.SetNamespace(catalog.Namespace)
+			Eventually(func(g Gomega) {
+				err := test.K8sClient.Get(test.Ctx, cl.ObjectKeyFromObject(gitRepository), gitRepository)
+				g.Expect(err).ToNot(HaveOccurred(), "failed to get GitRepository")
+				g.Expect(gitRepository.Annotations).To(HaveKeyWithValue(fluxmeta.ReconcileRequestAnnotation, "now"), "GitRepository should be annotated for reconciliation")
+			}).Should(Succeed(), "GitRepository should be triggered to be reconciled when the catalog is annotated for reconciliation")
+
+			kustomization := &kustomizev1.Kustomization{}
+			kustomization.SetName(kustomizationName)
+			kustomization.SetNamespace(catalog.Namespace)
+			Eventually(func(g Gomega) {
+				err := test.K8sClient.Get(test.Ctx, cl.ObjectKeyFromObject(kustomization), kustomization)
+				g.Expect(err).ToNot(HaveOccurred(), "failed to get Kustomization")
+				g.Expect(kustomization.Annotations).To(HaveKeyWithValue(fluxmeta.ReconcileRequestAnnotation, "now"), "Kustomization should be annotated for reconciliation")
+			}).Should(Succeed(), "Kustomization should be triggered to be reconciled when the catalog is annotated for reconciliation")
+
+			artifactGenerator := &sourcev2.ArtifactGenerator{}
+			artifactGenerator.SetName(artifactGeneratorName)
+			artifactGenerator.SetNamespace(catalog.Namespace)
+			Eventually(func(g Gomega) {
+				err := test.K8sClient.Get(test.Ctx, cl.ObjectKeyFromObject(artifactGenerator), artifactGenerator)
+				g.Expect(err).ToNot(HaveOccurred(), "failed to get ArtifactGenerator")
+				g.Expect(artifactGenerator.Annotations).To(HaveKeyWithValue(sourcev2.ReconcileAnnotation, "now"), "ArtifactGenerator should be annotated for reconciliation")
+			}).Should(Succeed(), "ArtifactGenerator should be triggered to be reconciled when the catalog is annotated for reconciliation")
+
+			By("removing the catalog reconcile annotation")
+			test.MustRemoveAnnotation(test.Ctx, test.K8sClient, catalog, lifecycle.ReconcileAnnotation)
+
+			By("checking that the catalog git repository and kustomization have the reconcile annotation removed")
+			Eventually(func(g Gomega) {
+				err := test.K8sClient.Get(test.Ctx, cl.ObjectKeyFromObject(gitRepository), gitRepository)
+				g.Expect(err).ToNot(HaveOccurred(), "failed to get GitRepository")
+				g.Expect(gitRepository.Annotations).ToNot(HaveKey(fluxmeta.ReconcileRequestAnnotation), "GitRepository not have the reconcile annotation")
+			}).Should(Succeed(), "GitRepository should not have a reconcile annotation")
+
+			Eventually(func(g Gomega) {
+				err := test.K8sClient.Get(test.Ctx, cl.ObjectKeyFromObject(kustomization), kustomization)
+				g.Expect(err).ToNot(HaveOccurred(), "failed to get Kustomization")
+				g.Expect(kustomization.Spec.Suspend).To(BeFalse(), "Kustomization should not have a reconcile annotation")
+			}).Should(Succeed(), "Kustomization should no longer have the reconcile annotation")
+
+			Eventually(func(g Gomega) {
+				err := test.K8sClient.Get(test.Ctx, cl.ObjectKeyFromObject(artifactGenerator), artifactGenerator)
+				g.Expect(err).ToNot(HaveOccurred(), "failed to get ArtifactGenerator")
+				g.Expect(artifactGenerator.Annotations).ToNot(HaveKey(sourcev2.ReconcileAnnotation), "ArtifactGenerator should not have the reconcile annotation")
+			}).Should(Succeed(), "ArtifactGenerator no longer have the reconcile annotation")
 		})
 	})
 })

@@ -96,9 +96,8 @@ var (
 		test.Ctx,
 		"test-plugindefinition-crd",
 		test.WithHelmChart(&greenhousev1alpha1.HelmChartReference{
-			Name:       "./../../test/fixtures/myChartWithCRDs",
-			Repository: "dummy",
-			Version:    "1.0.0",
+			Name:    "./../../test/fixtures/myChartWithCRDs",
+			Version: "1.0.0",
 		}),
 	)
 
@@ -106,9 +105,8 @@ var (
 		test.Ctx,
 		"test-plugindefinition-exposed",
 		test.WithHelmChart(&greenhousev1alpha1.HelmChartReference{
-			Name:       "./../../test/fixtures/chartWithExposedService",
-			Repository: "dummy",
-			Version:    "1.3.0",
+			Name:    "./../../test/fixtures/chartWithExposedService",
+			Version: "1.3.0",
 		}))
 
 	testCluster = test.NewCluster(test.Ctx, "test-cluster", test.TestNamespace,

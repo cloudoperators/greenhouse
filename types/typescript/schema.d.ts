@@ -53,13 +53,15 @@ export interface components {
             spec?: {
                 /** @description Sources contains the list of Git Repository source to resolve PluginDefinitions / ClusterPluginDefinitions from */
                 sources: {
+                    /** @description Interval defines how often to reconcile the Git repository source */
+                    interval?: string;
                     /** @description Overrides are the PluginDefinition overrides to be applied */
                     overrides?: {
                         /**
                          * @description Alias is the alias to apply to the PluginDefinition Name via Kustomize patches
                          *     For SourceType Helm, this field is passed to postRender Kustomize patch
                          */
-                        alias: string;
+                        alias?: string;
                         /** @description Name is the name of the PluginDefinition to patch with an alias */
                         name: string;
                         /** @description Repository is the repository to override in the PluginDefinition .spec.helmChart.repository */
@@ -103,6 +105,8 @@ export interface components {
                         ready?: string;
                     }[];
                 };
+                /** @description LastReconciledAt contains the value when the reconcile was last triggered via annotation. */
+                lastReconciledAt?: string;
                 /** @description StatusConditions contain the different conditions that constitute the status of the Catalog */
                 statusConditions?: {
                     conditions?: {
@@ -842,21 +846,41 @@ export interface components {
                 };
                 /**
                  * @description DeletionPolicy defines how Plugins owned by a PluginPreset are handled on deletion of the PluginPreset.
-                 *     Supported values are "Delete" and "Orphan". If not set, defaults to "Delete".
+                 *     Supported values are "Delete" and "Retain". If not set, defaults to "Delete".
                  * @default Delete
                  * @enum {string}
                  */
-                deletionPolicy: "Delete" | "Orphan";
+                deletionPolicy: "Delete" | "Retain";
                 /** @description PluginSpec is the spec of the plugin to be deployed by the PluginPreset. */
                 plugin: {
                     /** @description ClusterName is the name of the cluster the plugin is deployed to. If not set, the plugin is deployed to the greenhouse cluster. */
                     clusterName?: string;
+                    /**
+                     * @description DeletionPolicy defines how Helm Releases created by a Plugin are handled upon deletion of the Plugin.
+                     *     Supported values are "Delete" and "Retain". If not set, defaults to "Delete".
+                     * @default Delete
+                     * @enum {string}
+                     */
+                    deletionPolicy: "Delete" | "Retain";
                     /**
                      * @description DisplayName is an optional name for the Plugin to be displayed in the Greenhouse UI.
                      *     This is especially helpful to distinguish multiple instances of a PluginDefinition in the same context.
                      *     Defaults to a normalized version of metadata.name.
                      */
                     displayName?: string;
+                    /** @description IgnoreDifferences defines paths to ignore when detecting drift between desired and actual state. */
+                    ignoreDifferences?: {
+                        /** @description Group matches the APIVersion group of the resources to ignore. */
+                        group?: string;
+                        /** @description Kind matches the Kind of the resources to ignore. */
+                        kind?: string;
+                        /** @description Name matches the name of the resources to ignore. */
+                        name?: string;
+                        /** @description Paths is a list of JSON paths to ignore when detecting drifts. */
+                        paths: string[];
+                        /** @description Version matches the APIVersion version of the resources to ignore. */
+                        version?: string;
+                    }[];
                     /** @description Values are the values for a PluginDefinition instance. */
                     optionValues?: {
                         /** @description Name of the values. */
@@ -1018,11 +1042,31 @@ export interface components {
                 /** @description ClusterName is the name of the cluster the plugin is deployed to. If not set, the plugin is deployed to the greenhouse cluster. */
                 clusterName?: string;
                 /**
+                 * @description DeletionPolicy defines how Helm Releases created by a Plugin are handled upon deletion of the Plugin.
+                 *     Supported values are "Delete" and "Retain". If not set, defaults to "Delete".
+                 * @default Delete
+                 * @enum {string}
+                 */
+                deletionPolicy: "Delete" | "Retain";
+                /**
                  * @description DisplayName is an optional name for the Plugin to be displayed in the Greenhouse UI.
                  *     This is especially helpful to distinguish multiple instances of a PluginDefinition in the same context.
                  *     Defaults to a normalized version of metadata.name.
                  */
                 displayName?: string;
+                /** @description IgnoreDifferences defines paths to ignore when detecting drift between desired and actual state. */
+                ignoreDifferences?: {
+                    /** @description Group matches the APIVersion group of the resources to ignore. */
+                    group?: string;
+                    /** @description Kind matches the Kind of the resources to ignore. */
+                    kind?: string;
+                    /** @description Name matches the name of the resources to ignore. */
+                    name?: string;
+                    /** @description Paths is a list of JSON paths to ignore when detecting drifts. */
+                    paths: string[];
+                    /** @description Version matches the APIVersion version of the resources to ignore. */
+                    version?: string;
+                }[];
                 /** @description Values are the values for a PluginDefinition instance. */
                 optionValues?: {
                     /** @description Name of the values. */
@@ -1143,6 +1187,8 @@ export interface components {
                     /** @description Status is the status of a HelmChart release. */
                     status: string;
                 };
+                /** @description LastReconciledAt contains the value when the reconcile was last triggered via annotation. */
+                lastReconciledAt?: string;
                 /** @description StatusConditions contain the different conditions that constitute the status of the Plugin. */
                 statusConditions?: {
                     conditions?: {

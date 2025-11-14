@@ -205,6 +205,13 @@ func (r *PluginReconciler) EnsureDeleted(ctx context.Context, resource lifecycle
 		return r.EnsureFluxDeleted(ctx, plugin)
 	}
 
+	// if DeletionPolicy is Retain, skip Helm release deletion
+	if plugin.Spec.DeletionPolicy == greenhouseapis.DeletionPolicyRetain {
+		log.FromContext(ctx).Info("skipping Helm release deletion due to DeletionPolicy=Retain")
+		plugin.SetCondition(greenhousemetav1alpha1.FalseCondition(greenhousev1alpha1.HelmReconcileFailedCondition, "", ""))
+		return ctrl.Result{}, lifecycle.Success, nil
+	}
+
 	restClientGetter, err := initClientGetter(ctx, r.Client, r.kubeClientOpts, *plugin)
 	if err != nil {
 		util.UpdatePluginReconcileTotalMetric(plugin, util.MetricResultError, util.MetricReasonClusterAccessFailed)

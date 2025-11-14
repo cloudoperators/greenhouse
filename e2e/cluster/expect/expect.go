@@ -19,13 +19,13 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/client-go/util/retry"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	greenhouseapis "github.com/cloudoperators/greenhouse/api"
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
 	"github.com/cloudoperators/greenhouse/internal/clientutil"
 	"github.com/cloudoperators/greenhouse/internal/lifecycle"
+	"github.com/cloudoperators/greenhouse/internal/test"
 )
 
 func SetupOIDCClusterRoleBinding(ctx context.Context, remoteClient client.Client, clusterRoleBindingName, clusterName, namespace string) {
@@ -68,17 +68,12 @@ func VerifyClusterVersion(ctx context.Context, adminClient client.Client, remote
 func ClusterDeletionIsScheduled(ctx context.Context, adminClient client.Client, name, namespace string) {
 	now := time.Now().UTC()
 	cluster := &greenhousev1alpha1.Cluster{}
-	objKey := client.ObjectKey{Name: name, Namespace: namespace}
+	cluster.Name = name
+	cluster.Namespace = namespace
+	objKey := client.ObjectKeyFromObject(cluster)
 
 	By("marking the cluster for deletion")
-	err := retry.RetryOnConflict(retry.DefaultBackoff, func() error {
-		err := adminClient.Get(ctx, objKey, cluster)
-		if err != nil {
-			return err
-		}
-		return markClusterToBeDeleted(ctx, adminClient, cluster)
-	})
-	Expect(err).NotTo(HaveOccurred(), "there should be no error marking the cluster for deletion")
+	test.MustSetAnnotation(ctx, adminClient, cluster, greenhouseapis.MarkClusterDeletionAnnotation, "true")
 
 	Eventually(func(g Gomega) bool {
 		cluster := &greenhousev1alpha1.Cluster{}
@@ -137,13 +132,6 @@ func ReconcileReadyNotReady(ctx context.Context, adminClient client.Client, clus
 		return adminClient.Update(ctx, resource)
 	}, readyStatus)
 	Expect(err).NotTo(HaveOccurred(), "cluster should be in desired status")
-}
-
-func markClusterToBeDeleted(ctx context.Context, k8sClient client.Client, cluster *greenhousev1alpha1.Cluster) error {
-	cluster.SetAnnotations(map[string]string{
-		greenhouseapis.MarkClusterDeletionAnnotation: "true",
-	})
-	return k8sClient.Update(ctx, cluster)
 }
 
 func GetRestConfig(restClientGetter *clientutil.RestClientGetter) *rest.Config {
