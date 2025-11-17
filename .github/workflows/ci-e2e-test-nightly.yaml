@@ -40,6 +40,11 @@ jobs:
         id: e2e
         continue-on-error: true
         uses: cloudoperators/common/workflows/e2e@main
+        env:
+          RUNTIME_ENV: "CI"
+          GH_APP_ID: ${{ secrets.CLOUDOPERATOR_APP_ID }}
+          GH_APP_PRIVATE_KEY: ${{ secrets.CLOUDOPERATOR_APP_PRIVATE_KEY }}
+          GH_APP_INSTALLATION_ID: ${{ secrets.CLOUDOPERATOR_APP_INSTALLATION_ID }}
         with:
           k8s-version: ${{ matrix.k8s-version }}
           scenario: ${{ matrix.e2es }}
