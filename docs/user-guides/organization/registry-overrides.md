@@ -17,7 +17,7 @@ Registry overrides operate at two levels:
 
 ## Helm Chart Registry Overrides
 
-Helm chart repositories can be overridden by configuring the `overrides` field in a Catalog resource.
+Helm chart repositories can be overridden by configuring the `repository` field in the `overrides` array of a Catalog resource.
 
 ### Configuration
 
@@ -44,13 +44,11 @@ spec:
 ```
 
 Fields:
-- `name`: The PluginDefinition name to override (required)
-- `repository`: The alternative Helm chart repository URL (required)
-- `alias`: Optional name to assign to the PluginDefinition
+- `name`: Name of the PluginDefinition to override (required)
+- `repository`: The alternative Helm chart repository URL (optional)
+- `alias`: The alternative name of the PluginDefinition (optional)
 
-### Examples
-
-**Mirroring multiple charts to an internal registry:**
+### Example
 
 ```yaml
 apiVersion: greenhouse.sap/v1alpha1
@@ -72,30 +70,6 @@ spec:
           repository: oci://internal-registry.company.com/greenhouse/alerts
         - name: dashboards
           repository: oci://internal-registry.company.com/greenhouse/dashboards
-```
-
-**Creating multiple versions using aliases:**
-
-```yaml
-apiVersion: greenhouse.sap/v1alpha1
-kind: Catalog
-metadata:
-  name: multi-env-catalog
-  namespace: my-org
-spec:
-  sources:
-    - repository: https://github.com/cloudoperators/greenhouse-extensions
-      resources:
-        - kube-monitoring/plugindefinition.yaml
-      ref:
-        branch: main
-      overrides:
-        - name: kube-monitoring
-          alias: kube-monitoring-prod
-          repository: oci://prod-registry.example.com/charts/kube-monitoring
-        - name: kube-monitoring
-          alias: kube-monitoring-staging
-          repository: oci://staging-registry.example.com/charts/kube-monitoring
 ```
 
 ## Container Image Registry Overrides
@@ -218,8 +192,8 @@ mirror.company.com/dockerhub-mirror/bitnami/postgresql:15
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: prod-registry-config
-  namespace: production
+  name: my-organization-config
+  namespace: my-org
 data:
   containerRegistryConfig: |
     registryMirrors:
@@ -243,8 +217,8 @@ data:
 apiVersion: greenhouse.sap/v1alpha1
 kind: Organization
 metadata:
-  name: production
+  name: my-org
 spec:
-  description: Production Organization with Internal Registry Mirrors
-  configMapRef: prod-registry-config
+  description: My Organization with Internal Registry Mirrors
+  configMapRef: my-organization-config
 ```
