@@ -14,6 +14,35 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
+// EvaluateTyped evaluates a CEL expression against a single Kubernetes object.
+// The result is unmarshalled into the specified generic type T.
+// Returns the result of the evaluation or an error.
+func EvaluateTyped[T any](expression string, obj client.Object) (T, error) {
+	var zero T
+
+	val, err := Evaluate(expression, obj)
+	if err != nil {
+		return zero, err
+	}
+
+	// Fast-path for direct type match (primitive types)
+	if cast, ok := val.(T); ok {
+		return cast, nil
+	}
+
+	// Fallback: normalize through JSON once for structured types
+	data, err := json.Marshal(val)
+	if err != nil {
+		return zero, fmt.Errorf("marshal CEL result: %w", err)
+	}
+
+	var out T
+	if err := json.Unmarshal(data, &out); err != nil {
+		return zero, fmt.Errorf("unmarshal CEL result: %w", err)
+	}
+	return out, nil
+}
+
 // Evaluate evaluates a CEL expression against a single Kubernetes object.
 // Returns the result of the evaluation.
 func Evaluate(expression string, obj client.Object) (any, error) {
