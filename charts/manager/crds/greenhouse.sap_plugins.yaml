@@ -158,6 +158,10 @@ spec:
                           - name
                           type: object
                       type: object
+                    yamlExpression:
+                      description: YamlExpression is a YAML string with ${...} placeholders
+                        that will be evaluated as CEL expressions.
+                      type: string
                   required:
                   - name
                   type: object

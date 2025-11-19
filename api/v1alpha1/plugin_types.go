@@ -72,6 +72,8 @@ type PluginOptionValue struct {
 	// CelExpression is a CEL expression that will be evaluated to resolve the value.
 	// CEL expressions have access to global.greenhouse values for dynamic configuration.
 	CelExpression *string `json:"celExpression,omitempty"`
+	// YamlExpression is a YAML string with ${...} placeholders that will be evaluated as CEL expressions.
+	YamlExpression *string `json:"yamlExpression,omitempty"`
 }
 
 // IgnoreDifference defines a set of paths to ignore for matching resources.
