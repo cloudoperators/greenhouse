@@ -65,10 +65,9 @@ func ResolveTemplatedValues(ctx context.Context, optionValues []greenhousev1alph
 func buildTemplateData(optionValues []greenhousev1alpha1.PluginOptionValue) (map[string]any, error) {
 	greenhouseValues := make([]greenhousev1alpha1.PluginOptionValue, 0)
 	for _, optionValue := range optionValues {
-		// Include global.greenhouse.* values for templating.
+		// Include global.greenhouse.* values for templating and CEL evaluation.
 		if strings.HasPrefix(optionValue.Name, "global.greenhouse") {
-			// Convert global.greenhouse.* to self.global.greenhouse.*
-			optionValue.Name = "self." + optionValue.Name
+			// optionValue.Name = "self." + optionValue.Name
 			greenhouseValues = append(greenhouseValues, optionValue)
 		}
 	}

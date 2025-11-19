@@ -14,8 +14,7 @@ import (
 	"github.com/cloudoperators/greenhouse/internal/cel"
 )
 
-// ResolveCelExpressions processes PluginOptionValues with CEL expressions and resolves them to concrete values.
-// For performance, it caches compiled CEL programs when the same expression is used multiple times.
+// ResolveCelExpressions processes PluginOptionValues with CEL or YAML expressions and resolves them to concrete values.
 func ResolveCelExpressions(ctx context.Context, optionValues []greenhousev1alpha1.PluginOptionValue) ([]greenhousev1alpha1.PluginOptionValue, error) {
 	resolvedValues := make([]greenhousev1alpha1.PluginOptionValue, 0, len(optionValues))
 
@@ -24,37 +23,40 @@ func ResolveCelExpressions(ctx context.Context, optionValues []greenhousev1alpha
 		return nil, fmt.Errorf("failed to build template data: %w", err)
 	}
 
-	programCache := make(map[string]any)
 	for _, optionValue := range optionValues {
 		if optionValue.CelExpression != nil {
-			expression := *optionValue.CelExpression
-			if _, exists := programCache[expression]; !exists {
-				resolvedValue, err := cel.EvaluatePluginExpression(expression, templateData)
-				if err != nil {
-					return nil, fmt.Errorf("failed to evaluate CEL expression for option %s: %w", optionValue.Name, err)
-				}
-				programCache[expression] = resolvedValue
+			resolvedValue, err := cel.EvaluatePluginExpression(*optionValue.CelExpression, templateData)
+			if err != nil {
+				return nil, fmt.Errorf("failed to evaluate CEL expression for option %s: %w", optionValue.Name, err)
 			}
-		}
-	}
-
-	for _, optionValue := range optionValues {
-		if optionValue.CelExpression != nil {
-			resolvedValue := programCache[*optionValue.CelExpression]
 
 			jsonValue, err := json.Marshal(resolvedValue)
 			if err != nil {
 				return nil, fmt.Errorf("failed to marshal resolved CEL value for option %s: %w", optionValue.Name, err)
 			}
 
-			resolvedOptionValue := greenhousev1alpha1.PluginOptionValue{
-				Name:          optionValue.Name,
-				Value:         &apiextensionsv1.JSON{Raw: jsonValue},
-				ValueFrom:     nil,
-				Template:      nil,
-				CelExpression: nil,
+			resolvedValues = append(resolvedValues, greenhousev1alpha1.PluginOptionValue{
+				Name:           optionValue.Name,
+				Value:          &apiextensionsv1.JSON{Raw: jsonValue},
+				ValueFrom:      nil,
+				Template:       nil,
+				CelExpression:  nil,
+				YamlExpression: nil,
+			})
+		} else if optionValue.YamlExpression != nil {
+			jsonValue, err := cel.EvaluateYamlExpression(*optionValue.YamlExpression, templateData)
+			if err != nil {
+				return nil, fmt.Errorf("failed to evaluate YAML expression for option %s: %w", optionValue.Name, err)
 			}
-			resolvedValues = append(resolvedValues, resolvedOptionValue)
+
+			resolvedValues = append(resolvedValues, greenhousev1alpha1.PluginOptionValue{
+				Name:           optionValue.Name,
+				Value:          &apiextensionsv1.JSON{Raw: jsonValue},
+				ValueFrom:      nil,
+				Template:       nil,
+				CelExpression:  nil,
+				YamlExpression: nil,
+			})
 		} else {
 			resolvedValues = append(resolvedValues, optionValue)
 		}
