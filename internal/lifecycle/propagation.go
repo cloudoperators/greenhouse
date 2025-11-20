@@ -51,10 +51,8 @@ func NewPropagator(src, dst client.Object) *Propagator {
 func (p *Propagator) Apply() client.Object {
 	labelKeys := p.labelKeysToPropagate()
 	annotationKeys := p.annotationKeysToPropagate()
-	if len(labelKeys) == 0 && len(annotationKeys) == 0 {
-		return p.cleanupTarget()
-	}
 
+	// Prepare src/dst maps
 	srcLabels := p.src.GetLabels()
 	if srcLabels == nil {
 		srcLabels = map[string]string{}
@@ -72,16 +70,15 @@ func (p *Propagator) Apply() client.Object {
 		dstAnnotations = map[string]string{}
 	}
 
-	hasAny := (len(labelKeys) > 0 && p.containsLabelToPropagate(labelKeys, srcLabels)) ||
-		(len(annotationKeys) > 0 && p.containsAnnotationToPropagate(annotationKeys, srcAnnotations))
-	if !hasAny {
-		return p.cleanupTarget()
-	}
+	// Apply per category (labels, annotations) independently
+	appliedLabelKeys := p.applyLabels(labelKeys, srcLabels, dstLabels)
+	appliedAnnotationKeys := p.applyAnnotations(annotationKeys, srcAnnotations, dstAnnotations)
 
-	appliedLabelKeys := p.syncTargetLabels(labelKeys, srcLabels, dstLabels)
-	appliedAnnotationKeys := p.syncTargetAnnotations(annotationKeys, srcAnnotations, dstAnnotations)
+	// Persist the mutated maps
 	p.dst.SetLabels(dstLabels)
 	p.dst.SetAnnotations(dstAnnotations)
+
+	// Track applied state per category; remove state if nothing applied
 	if len(appliedLabelKeys) > 0 || len(appliedAnnotationKeys) > 0 {
 		p.storeAppliedState(appliedPropagatorState{LabelKeys: appliedLabelKeys, AnnotationKeys: appliedAnnotationKeys})
 	} else {
@@ -89,6 +86,28 @@ func (p *Propagator) Apply() client.Object {
 	}
 
 	return p.dst
+}
+
+// applyLabels applies label propagation independently and performs label-only cleanup if needed.
+// Returns the list of label keys applied during this run.
+func (p *Propagator) applyLabels(labelKeys []string, srcLabels, dstLabels map[string]string) []string {
+	if len(labelKeys) == 0 || !p.containsLabelToPropagate(labelKeys, srcLabels) {
+		// No declaration or none present in source -> cleanup only previously propagated labels
+		p.cleanupTargetLabels(dstLabels)
+		return nil
+	}
+	return p.syncTargetLabels(labelKeys, srcLabels, dstLabels)
+}
+
+// applyAnnotations applies annotation propagation independently and performs annotation-only cleanup if needed.
+// Returns the list of annotation keys applied during this run.
+func (p *Propagator) applyAnnotations(annotationKeys []string, srcAnn, dstAnn map[string]string) []string {
+	if len(annotationKeys) == 0 || !p.containsAnnotationToPropagate(annotationKeys, srcAnn) {
+		// No declaration or none present in source -> cleanup only previously propagated annotations
+		p.cleanupTargetAnnotations(dstAnn)
+		return nil
+	}
+	return p.syncTargetAnnotations(annotationKeys, srcAnn, dstAnn)
 }
 
 // labelKeysToPropagate - retrieves the list of label keys from the propagate-labels annotation
@@ -226,26 +245,20 @@ func (p *Propagator) removeAppliedState() {
 	p.dst.SetAnnotations(ann)
 }
 
-// cleanupTarget - removes any previously applied propagated labels from the destination object
-// and deletes the tracking annotation. It is called when no label propagation should occur.
-func (p *Propagator) cleanupTarget() client.Object {
-	labels := p.dst.GetLabels()
-	if labels == nil {
-		labels = map[string]string{}
-	}
-	ann := p.dst.GetAnnotations()
-	if ann == nil {
-		ann = map[string]string{}
-	}
+// cleanupTargetLabels removes only previously propagated label keys from the provided dstLabels map.
+// It does not modify annotations or the tracking annotation directly.
+func (p *Propagator) cleanupTargetLabels(dstLabels map[string]string) {
 	state := p.getAppliedState()
 	for _, k := range state.LabelKeys {
-		delete(labels, k)
+		delete(dstLabels, k)
 	}
+}
+
+// cleanupTargetAnnotations removes only previously propagated annotation keys from the provided dstAnn map.
+// It does not modify labels or the tracking annotation directly.
+func (p *Propagator) cleanupTargetAnnotations(dstAnn map[string]string) {
+	state := p.getAppliedState()
 	for _, k := range state.AnnotationKeys {
-		delete(ann, k)
+		delete(dstAnn, k)
 	}
-	p.dst.SetLabels(labels)
-	p.dst.SetAnnotations(ann)
-	p.removeAppliedState()
-	return p.dst
 }
