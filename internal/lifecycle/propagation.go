@@ -17,12 +17,15 @@ const (
 
 	// PropagateLabelsAnnotation defines which label keys should be propagated from source to destination
 	PropagateLabelsAnnotation = "greenhouse.sap/propagate-labels"
+	// PropagateAnnotationsAnnotation defines which annotation keys should be propagated from source to destination
+	PropagateAnnotationsAnnotation = "greenhouse.sap/propagate-annotations"
 )
 
 // appliedPropagatorState holds the state of previously applied label keys for cleanup purposes
 // and is stored as JSON in the destination object's annotations.
 type appliedPropagatorState struct {
-	LabelKeys []string `json:"labelKeys,omitempty"`
+	LabelKeys      []string `json:"labelKeys,omitempty"`
+	AnnotationKeys []string `json:"annotationKeys,omitempty"`
 }
 
 // Propagator encapsulates a source and destination object between which
@@ -41,12 +44,14 @@ func NewPropagator(src, dst client.Object) *Propagator {
 	}
 }
 
-// ApplyLabels - performs idempotent label propagation based on the propagate-labels annotation.
-// It adds or updates only the specified label keys from src to dst, and removes any previously
-// propagated labels that were removed in src or are no longer declared.
-func (p *Propagator) ApplyLabels() client.Object {
-	keys := p.labelKeysToPropagate()
-	if len(keys) == 0 {
+// Apply - performs idempotent propagation of declared label and annotation keys based on
+// the propagate-labels and propagate-annotations annotations on the source object. It adds or
+// updates only the specified keys from src to dst, and removes any previously propagated keys
+// that were removed in src or are no longer declared.
+func (p *Propagator) Apply() client.Object {
+	labelKeys := p.labelKeysToPropagate()
+	annotationKeys := p.annotationKeysToPropagate()
+	if len(labelKeys) == 0 && len(annotationKeys) == 0 {
 		return p.cleanupTarget()
 	}
 
@@ -54,19 +59,36 @@ func (p *Propagator) ApplyLabels() client.Object {
 	if srcLabels == nil {
 		srcLabels = map[string]string{}
 	}
+	srcAnnotations := p.src.GetAnnotations()
+	if srcAnnotations == nil {
+		srcAnnotations = map[string]string{}
+	}
 	dstLabels := p.dst.GetLabels()
 	if dstLabels == nil {
 		dstLabels = map[string]string{}
 	}
+	dstAnnotations := p.dst.GetAnnotations()
+	if dstAnnotations == nil {
+		dstAnnotations = map[string]string{}
+	}
 
-	if !p.containsLabelToPropagate(keys, srcLabels) {
+	hasAny := false
+	if len(labelKeys) > 0 && p.containsLabelToPropagate(labelKeys, srcLabels) {
+		hasAny = true
+	}
+	if !hasAny && len(annotationKeys) > 0 && p.containsAnnotationToPropagate(annotationKeys, srcAnnotations) {
+		hasAny = true
+	}
+	if !hasAny {
 		return p.cleanupTarget()
 	}
 
-	appliedNow := p.syncTargetLabels(keys, srcLabels, dstLabels)
+	appliedLabelKeys := p.syncTargetLabels(labelKeys, srcLabels, dstLabels)
+	appliedAnnotationKeys := p.syncTargetAnnotations(annotationKeys, srcAnnotations, dstAnnotations)
 	p.dst.SetLabels(dstLabels)
-	if len(appliedNow) > 0 {
-		p.storeAppliedState(appliedPropagatorState{LabelKeys: appliedNow})
+	p.dst.SetAnnotations(dstAnnotations)
+	if len(appliedLabelKeys) > 0 || len(appliedAnnotationKeys) > 0 {
+		p.storeAppliedState(appliedPropagatorState{LabelKeys: appliedLabelKeys, AnnotationKeys: appliedAnnotationKeys})
 	} else {
 		p.removeAppliedState()
 	}
@@ -92,11 +114,40 @@ func (p *Propagator) labelKeysToPropagate() []string {
 	return keys
 }
 
+// annotationKeysToPropagate - retrieves the list of annotation keys from the propagate-annotations annotation
+// in the source object. Returns nil if missing, invalid, or empty.
+func (p *Propagator) annotationKeysToPropagate() []string {
+	var keys []string
+	annotation := strings.TrimSpace(p.src.GetAnnotations()[PropagateAnnotationsAnnotation])
+	if annotation == "" {
+		return nil
+	}
+	rawKeys := strings.Split(annotation, ",")
+	for _, k := range rawKeys {
+		k = strings.TrimSpace(k)
+		if k != "" {
+			keys = append(keys, k)
+		}
+	}
+	return keys
+}
+
 // containsLabelToPropagate - returns true if the source object contains
 // at least one of the label keys declared for propagation.
 func (p *Propagator) containsLabelToPropagate(keys []string, srcLabels map[string]string) bool {
 	for _, k := range keys {
 		if _, ok := srcLabels[k]; ok {
+			return true
+		}
+	}
+	return false
+}
+
+// containsAnnotationToPropagate - returns true if the source object contains
+// at least one of the annotation keys declared for propagation.
+func (p *Propagator) containsAnnotationToPropagate(keys []string, srcAnnotations map[string]string) bool {
+	for _, k := range keys {
+		if _, ok := srcAnnotations[k]; ok {
 			return true
 		}
 	}
@@ -117,6 +168,25 @@ func (p *Propagator) syncTargetLabels(keys []string, srcLabels, dstLabels map[st
 	for _, k := range state.LabelKeys {
 		if !slices.Contains(keys, k) || srcLabels[k] == "" {
 			delete(dstLabels, k)
+		}
+	}
+	return appliedNow
+}
+
+// syncTargetAnnotations - synchronizes annotation keys from src to dst and removes any previously applied keys
+// that are no longer present. Returns the current list of successfully propagated annotation keys.
+func (p *Propagator) syncTargetAnnotations(keys []string, srcAnn, dstAnn map[string]string) []string {
+	var appliedNow []string
+	state := p.getAppliedState()
+	for _, k := range keys {
+		if v, ok := srcAnn[k]; ok {
+			dstAnn[k] = v
+			appliedNow = append(appliedNow, k)
+		}
+	}
+	for _, k := range state.AnnotationKeys {
+		if !slices.Contains(keys, k) || srcAnn[k] == "" {
+			delete(dstAnn, k)
 		}
 	}
 	return appliedNow
@@ -168,11 +238,19 @@ func (p *Propagator) cleanupTarget() client.Object {
 	if labels == nil {
 		labels = map[string]string{}
 	}
+	ann := p.dst.GetAnnotations()
+	if ann == nil {
+		ann = map[string]string{}
+	}
 	state := p.getAppliedState()
 	for _, k := range state.LabelKeys {
 		delete(labels, k)
 	}
+	for _, k := range state.AnnotationKeys {
+		delete(ann, k)
+	}
 	p.dst.SetLabels(labels)
+	p.dst.SetAnnotations(ann)
 	p.removeAppliedState()
 	return p.dst
 }
