@@ -72,13 +72,8 @@ func (p *Propagator) Apply() client.Object {
 		dstAnnotations = map[string]string{}
 	}
 
-	hasAny := false
-	if len(labelKeys) > 0 && p.containsLabelToPropagate(labelKeys, srcLabels) {
-		hasAny = true
-	}
-	if !hasAny && len(annotationKeys) > 0 && p.containsAnnotationToPropagate(annotationKeys, srcAnnotations) {
-		hasAny = true
-	}
+	hasAny := (len(labelKeys) > 0 && p.containsLabelToPropagate(labelKeys, srcLabels)) ||
+		(len(annotationKeys) > 0 && p.containsAnnotationToPropagate(annotationKeys, srcAnnotations))
 	if !hasAny {
 		return p.cleanupTarget()
 	}
