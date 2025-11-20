@@ -41,7 +41,7 @@ var _ = DescribeTable("Label propagation scenarios",
 			})
 		}
 
-		updated := lifecycle.NewPropagator(src, dst).ApplyLabels()
+		updated := lifecycle.NewPropagator(src, dst).Apply()
 
 		Expect(updated.GetLabels()).To(Equal(expected))
 		if expectedAnnotation {
@@ -100,4 +100,115 @@ var _ = DescribeTable("Label propagation scenarios",
 		map[string]string{"region": "bar", "support_group": "x"},
 		true,
 		[]string{"region", "support_group"}),
+)
+
+var _ = DescribeTable("Annotation propagation scenarios",
+	func(srcAnno map[string]string, srcDecl map[string]string, dstAnno map[string]string, prevStateAnno []string, expected map[string]string, expectedAnnotation bool, expectedKeys []string) {
+		// Build source object with both annotations and labels (labels irrelevant here)
+		src := &corev1.ConfigMap{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:        "src",
+				Namespace:   "default",
+				Annotations: srcAnno,
+			},
+		}
+
+		dst := &corev1.Secret{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:        "dst",
+				Namespace:   "default",
+				Annotations: dstAnno,
+			},
+		}
+
+		// Previous state may have annotationKeys tracked
+		if len(prevStateAnno) > 0 {
+			// marshal state with annotationKeys
+			var s struct {
+				AnnotationKeys []string `json:"annotationKeys"`
+			}
+			s.AnnotationKeys = prevStateAnno
+			data, _ := json.Marshal(s)
+			if dst.GetAnnotations() == nil {
+				dst.SetAnnotations(map[string]string{})
+			}
+			dst.GetAnnotations()[lifecycle.AppliedPropagatorAnnotation] = string(data)
+		}
+
+		// Merge the declaration of which annotations to propagate into src annotations
+		if src.GetAnnotations() == nil {
+			src.SetAnnotations(map[string]string{})
+		}
+		for k, v := range srcDecl {
+			src.GetAnnotations()[k] = v
+		}
+
+		updated := lifecycle.NewPropagator(src, dst).Apply()
+		// Build expected annotations map including propagated keys but excluding tracking annotation
+		// Start with the resulting annotations and remove the tracking annotation to compare
+		got := map[string]string{}
+		for k, v := range updated.GetAnnotations() {
+			if k == lifecycle.AppliedPropagatorAnnotation {
+				continue
+			}
+			got[k] = v
+		}
+		Expect(got).To(Equal(expected))
+		if expectedAnnotation {
+			annotation := updated.GetAnnotations()[lifecycle.AppliedPropagatorAnnotation]
+			var actual struct {
+				AnnotationKeys []string `json:"annotationKeys"`
+			}
+			_ = json.Unmarshal([]byte(annotation), &actual) //nolint:errcheck
+			Expect(actual.AnnotationKeys).To(ConsistOf(expectedKeys))
+		} else {
+			// state annotation should not exist if nothing propagated
+			Expect(updated.GetAnnotations()).ToNot(HaveKey(lifecycle.AppliedPropagatorAnnotation))
+		}
+	},
+
+	Entry("It should not propagate any annotations as there is no propagation declaration",
+		map[string]string{"team": "a"},
+		nil,
+		map[string]string{},
+		nil,
+		map[string]string{},
+		false,
+		[]string{}),
+
+	Entry("It should propagate declared annotation key",
+		map[string]string{"team": "a"},
+		map[string]string{"greenhouse.sap/propagate-annotations": "team"},
+		map[string]string{},
+		nil,
+		map[string]string{"team": "a"},
+		true,
+		[]string{"team"}),
+
+	Entry("It should not propagate any annotations as declared annotation key is missing",
+		map[string]string{},
+		map[string]string{"greenhouse.sap/propagate-annotations": "team"},
+		map[string]string{},
+		[]string{"team"},
+		map[string]string{},
+		false,
+		[]string{}),
+
+	Entry("It should remove the previous declared annotation key due to state change",
+		map[string]string{"team": "a"},
+		map[string]string{"greenhouse.sap/propagate-annotations": "department"},
+		map[string]string{},
+		[]string{"team", "department"},
+		map[string]string{},
+		false,
+		[]string{}),
+
+	Entry("It should propagate all declared annotation keys",
+		map[string]string{"team": "a", "owner": "x"},
+		map[string]string{"greenhouse.sap/propagate-annotations": "owner,team"},
+		map[string]string{},
+		[]string{"team"},
+		map[string]string{"team": "a", "owner": "x"},
+		true,
+		[]string{"team", "owner"}),
 )
