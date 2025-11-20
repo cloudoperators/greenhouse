@@ -9,6 +9,7 @@ import (
 	"errors"
 
 	corev1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/clientcmd"
@@ -96,6 +97,16 @@ func (r *KubeconfigReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 				},
 			}}
 		kubeconfig.Spec.Kubeconfig.CurrentContext = cluster.Name
+
+		// ensure the ClusterKubeconfig resource exists before any status patches happen later
+		if err := r.Create(ctx, &kubeconfig); err != nil {
+			if !apierrors.IsAlreadyExists(err) {
+				l.Error(err, "failed to create initial ClusterKubeconfig resource")
+				return ctrl.Result{}, err
+			}
+		} else {
+			l.Info("created initial ClusterKubeconfig resource")
+		}
 	}
 
 	// get oidc info from organization
@@ -132,7 +143,27 @@ func (r *KubeconfigReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 	}
 
 	// collect cluster connection data and update kubeconfig
-	rootKubeCfg := secret.Data[greenhouseapis.GreenHouseKubeConfigKey]
+	rootKubeCfg, hasKey := secret.Data[greenhouseapis.GreenHouseKubeConfigKey]
+	if !hasKey || len(rootKubeCfg) == 0 {
+		kubeconfig.Status.Conditions.SetConditions(
+			greenhousemetav1alpha1.TrueCondition(
+				v1alpha1.KubeconfigReconcileFailedCondition,
+				"KubeconfigMissing",
+				"secret data key greenhousekubeconfig missing or empty",
+			),
+		)
+		// patch status before returning on error
+		result, perr := clientutil.PatchStatus(ctx, r.Client, &kubeconfig, func() error {
+			kubeconfig.Status = calculateKubeconfigStatus(&kubeconfig)
+			return nil
+		})
+		if perr != nil {
+			log.FromContext(ctx).Error(perr, "error setting status")
+		}
+		l.Info("status updated", "result", result)
+		return ctrl.Result{}, nil
+	}
+
 	kubeCfg, err := clientcmd.Load(rootKubeCfg)
 	if err != nil {
 		kubeconfig.Status.Conditions.SetConditions(greenhousemetav1alpha1.TrueCondition(v1alpha1.KubeconfigReconcileFailedCondition, "KubeconfigLoadError", err.Error()))
@@ -152,6 +183,25 @@ func (r *KubeconfigReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 	for _, v := range kubeCfg.Clusters {
 		clusterCfg = v
 		break
+	}
+	if clusterCfg == nil {
+		kubeconfig.Status.Conditions.SetConditions(
+			greenhousemetav1alpha1.TrueCondition(
+				v1alpha1.KubeconfigReconcileFailedCondition,
+				"KubeconfigInvalid",
+				"no clusters found in kubeconfig",
+			),
+		)
+		// patch status before returning on error
+		result, perr := clientutil.PatchStatus(ctx, r.Client, &kubeconfig, func() error {
+			kubeconfig.Status = calculateKubeconfigStatus(&kubeconfig)
+			return nil
+		})
+		if perr != nil {
+			log.FromContext(ctx).Error(perr, "error setting status")
+		}
+		l.Info("status updated", "result", result)
+		return ctrl.Result{}, nil
 	}
 
 	// collect oidc data and update kubeconfig
