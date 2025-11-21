@@ -24,6 +24,7 @@ import (
 	"net/http"
 	"net/http/httputil"
 	"net/url"
+	"os"
 	"regexp"
 	"strings"
 	"sync"
@@ -46,7 +47,9 @@ import (
 
 func NewProxyManager() *ProxyManager {
 	return &ProxyManager{
-		clusters: make(map[string]clusterRoutes),
+		dnsDomain: os.Getenv("GREENHOUSE_DNS_DOMAIN"),
+		debugHost: os.Getenv("DEBUG_DOMAIN"),
+		clusters:  make(map[string]clusterRoutes),
 	}
 }
 
@@ -55,6 +58,10 @@ type ProxyManager struct {
 	logger   logr.Logger
 	clusters map[string]clusterRoutes
 	mu       sync.RWMutex
+	// dnsDomain used to construct exposed service URLs on the target greenhouse cluster
+	dnsDomain string
+	// debugshost used to override the domain for debugging exposed service URLs locally
+	debugHost string
 }
 
 type clusterRoutes struct {
@@ -132,6 +139,10 @@ func (pm *ProxyManager) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.R
 	}
 	for _, plugin := range plugins {
 		for url, svc := range plugin.Status.ExposedServices {
+			// If debugHost is set, replace the host on routes for local debugging
+			if pm.debugHost != "" && pm.dnsDomain != "" {
+				url = strings.ReplaceAll(url, pm.dnsDomain, pm.debugHost)
+			}
 			if svc.Type != greenhousev1alpha1.ServiceTypeService {
 				continue
 			}
