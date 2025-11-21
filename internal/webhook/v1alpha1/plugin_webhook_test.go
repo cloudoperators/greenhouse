@@ -315,7 +315,7 @@ var _ = Describe("Validate plugin spec fields", Ordered, func() {
 		expectClusterNotFoundError(test.K8sClient.Create(test.Ctx, testPlugin))
 	})
 
-	It("should keep the template field when merging option values", func() {
+	It("should keep the expression field when merging option values", func() {
 		By("creating the plugin")
 		testPlugin = setup.CreatePlugin(test.Ctx, "test-plugin",
 			test.WithPluginDefinition(testPluginDefinition.Name),
@@ -323,7 +323,7 @@ var _ = Describe("Validate plugin spec fields", Ordered, func() {
 			test.WithReleaseNamespace("test-namespace"),
 			test.WithReleaseName("test-release"),
 			test.WithPluginLabel(greenhouseapis.LabelKeyOwnedBy, team.Name),
-			test.WithPluginOptionValueTemplate("templateOption", ptr.To("{{ .global.greenhouse.clusterName }}")))
+			test.WithPluginOptionValueExpression("expressionOption", ptr.To("${global.greenhouse.clusterName}")))
 
 		By("checking that the label is kept after merging options and optionvalues")
 		actPlugin := &greenhousev1alpha1.Plugin{}
@@ -331,12 +331,12 @@ var _ = Describe("Validate plugin spec fields", Ordered, func() {
 		Expect(err).ToNot(HaveOccurred(), "there should be no error getting the plugin")
 		Eventually(func() bool {
 			for _, actOption := range actPlugin.Spec.OptionValues {
-				if actOption.Name == "templateOption" {
-					return actOption.Template != nil
+				if actOption.Name == "expressionOption" {
+					return actOption.Expression != nil
 				}
 			}
 			return false
-		}).Should(BeTrue(), "the plugin should have the template field set on the optionValue")
+		}).Should(BeTrue(), "the plugin should have the expression field set on the optionValue")
 	})
 
 	It("should accept the plugin with reference to ClusterPluginDefinition", func() {

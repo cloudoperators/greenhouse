@@ -36,8 +36,8 @@ type dexFeatures struct {
 }
 
 type pluginFeatures struct {
-	OptionValueTemplating bool   `yaml:"optionValueTemplating"`
-	DefaultDeploymentTool string `yaml:"defaultDeploymentTool"`
+	ExpressionEvaluationEnabled bool   `yaml:"expressionEvaluationEnabled"`
+	DefaultDeploymentTool       string `yaml:"defaultDeploymentTool"`
 }
 
 func NewFeatures(ctx context.Context, k8sClient client.Reader, configMapName, namespace string) (*Features, error) {
@@ -99,21 +99,21 @@ func (f *Features) resolvePluginFeatures() error {
 	return nil
 }
 
-// IsTemplateRenderingEnabled returns whether plugin option value templating is enabled.
+// IsExpressionEvaluationEnabled returns whether plugin option expression evaluation is enabled.
 // Returns false as default.
-func (f *Features) IsTemplateRenderingEnabled() bool {
+func (f *Features) IsExpressionEvaluationEnabled() bool {
 	if f == nil {
 		return false
 	}
 
 	if f.plugin != nil {
-		return f.plugin.OptionValueTemplating
+		return f.plugin.ExpressionEvaluationEnabled
 	}
 	if err := f.resolvePluginFeatures(); err != nil {
 		ctrl.LoggerFrom(context.Background()).Error(err, "failed to resolve plugin features")
 		return false
 	}
-	return f.plugin.OptionValueTemplating
+	return f.plugin.ExpressionEvaluationEnabled
 }
 
 // GetDefaultDeploymentTool returns the default deployment tool for plugins.

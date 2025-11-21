@@ -137,7 +137,7 @@ func (r *PluginReconciler) ensureHelmRelease(
 	release.SetNamespace(plugin.Namespace)
 
 	result, err := ctrl.CreateOrUpdate(ctx, r.Client, release, func() error {
-		values, err := addValuesToHelmRelease(ctx, r.Client, plugin, r.OptionValueTemplatingEnabled)
+		values, err := addValuesToHelmRelease(ctx, r.Client, plugin, r.ExpressionEvaluationEnabled)
 		if err != nil {
 			return fmt.Errorf("failed to compute HelmRelease values for Plugin %s: %w", plugin.Name, err)
 		}
@@ -400,21 +400,16 @@ func (r *PluginReconciler) reconcilePluginStatus(ctx context.Context,
 	pluginStatus.ExposedServices = exposedServices
 }
 
-func addValuesToHelmRelease(ctx context.Context, c client.Client, plugin *greenhousev1alpha1.Plugin, optionValueTemplatingEnabled bool) ([]byte, error) {
+func addValuesToHelmRelease(ctx context.Context, c client.Client, plugin *greenhousev1alpha1.Plugin, expressionEvaluationEnabled bool) ([]byte, error) {
 	optionValues, err := helm.GetPluginOptionValuesForPlugin(ctx, c, plugin)
 	if err != nil {
 		return nil, err
 	}
 
-	optionValues, err = helm.ResolveTemplatedValues(ctx, optionValues, optionValueTemplatingEnabled)
+	optionValues, err = helm.ResolveExpressions(ctx, optionValues, expressionEvaluationEnabled)
 	if err != nil {
-		return nil, fmt.Errorf("failed to resolve templated values: %w", err)
+		return nil, fmt.Errorf("failed to resolve expressions: %w", err)
 	}
-
-	// optionValues, err = helm.ResolveCelExpressions(ctx, optionValues)
-	// if err != nil {
-	// 	return nil, fmt.Errorf("failed to resolve CEL expressions: %w", err)
-	// }
 
 	// remove all option values that are set from a secret, as these have a nil value
 	optionValues = slices.DeleteFunc(optionValues, func(v greenhousev1alpha1.PluginOptionValue) bool {

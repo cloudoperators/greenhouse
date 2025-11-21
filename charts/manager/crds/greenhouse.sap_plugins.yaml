@@ -123,18 +123,12 @@ spec:
                 items:
                   description: PluginOptionValue is the value for a PluginOption.
                   properties:
-                    celExpression:
-                      description: |-
-                        CelExpression is a CEL expression that will be evaluated to resolve the value.
-                        CEL expressions have access to global.greenhouse values for dynamic configuration.
+                    expression:
+                      description: Expression is a YAML string with ${...} placeholders
+                        that will be evaluated as CEL expressions.
                       type: string
                     name:
                       description: Name of the values.
-                      type: string
-                    template:
-                      description: |-
-                        Template is a Go string template that will be dynamically resolved for cluster-specific values.
-                        Only PluginOptionValues declared as template will be templated by the PluginController for Flux.
                       type: string
                     value:
                       description: Value is the actual value in plain text.
@@ -158,10 +152,6 @@ spec:
                           - name
                           type: object
                       type: object
-                    yamlExpression:
-                      description: YamlExpression is a YAML string with ${...} placeholders
-                        that will be evaluated as CEL expressions.
-                      type: string
                   required:
                   - name
                   type: object

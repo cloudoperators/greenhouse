@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2024 SAP SE or an SAP affiliate company and Greenhouse contributors
+// SPDX-FileCopyrightText: 2025 SAP SE or an SAP affiliate company and Greenhouse contributors
 // SPDX-License-Identifier: Apache-2.0
 
 package helm
@@ -7,6 +7,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"strings"
 
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 
@@ -14,8 +15,8 @@ import (
 	"github.com/cloudoperators/greenhouse/internal/cel"
 )
 
-// ResolveCelExpressions processes PluginOptionValues with CEL or YAML expressions and resolves them to concrete values.
-func ResolveCelExpressions(ctx context.Context, optionValues []greenhousev1alpha1.PluginOptionValue) ([]greenhousev1alpha1.PluginOptionValue, error) {
+// ResolveExpressions processes PluginOptionValues with expressions and resolves them to concrete values.
+func ResolveExpressions(ctx context.Context, optionValues []greenhousev1alpha1.PluginOptionValue, expressionEvaluationEnabled bool) ([]greenhousev1alpha1.PluginOptionValue, error) {
 	resolvedValues := make([]greenhousev1alpha1.PluginOptionValue, 0, len(optionValues))
 
 	templateData, err := buildTemplateData(optionValues)
@@ -24,38 +25,26 @@ func ResolveCelExpressions(ctx context.Context, optionValues []greenhousev1alpha
 	}
 
 	for _, optionValue := range optionValues {
-		if optionValue.CelExpression != nil {
-			resolvedValue, err := cel.EvaluatePluginExpression(*optionValue.CelExpression, templateData)
-			if err != nil {
-				return nil, fmt.Errorf("failed to evaluate CEL expression for option %s: %w", optionValue.Name, err)
-			}
+		if optionValue.Expression != nil {
+			var jsonValue []byte
 
-			jsonValue, err := json.Marshal(resolvedValue)
-			if err != nil {
-				return nil, fmt.Errorf("failed to marshal resolved CEL value for option %s: %w", optionValue.Name, err)
-			}
-
-			resolvedValues = append(resolvedValues, greenhousev1alpha1.PluginOptionValue{
-				Name:           optionValue.Name,
-				Value:          &apiextensionsv1.JSON{Raw: jsonValue},
-				ValueFrom:      nil,
-				Template:       nil,
-				CelExpression:  nil,
-				YamlExpression: nil,
-			})
-		} else if optionValue.YamlExpression != nil {
-			jsonValue, err := cel.EvaluateYamlExpression(*optionValue.YamlExpression, templateData)
-			if err != nil {
-				return nil, fmt.Errorf("failed to evaluate YAML expression for option %s: %w", optionValue.Name, err)
+			if expressionEvaluationEnabled {
+				jsonValue, err = cel.EvaluateExpression(*optionValue.Expression, templateData)
+				if err != nil {
+					return nil, fmt.Errorf("failed to evaluate expression for option %s: %w", optionValue.Name, err)
+				}
+			} else {
+				jsonValue, err = json.Marshal(*optionValue.Expression)
+				if err != nil {
+					return nil, fmt.Errorf("failed to marshal literal expression for option %s: %w", optionValue.Name, err)
+				}
 			}
 
 			resolvedValues = append(resolvedValues, greenhousev1alpha1.PluginOptionValue{
-				Name:           optionValue.Name,
-				Value:          &apiextensionsv1.JSON{Raw: jsonValue},
-				ValueFrom:      nil,
-				Template:       nil,
-				CelExpression:  nil,
-				YamlExpression: nil,
+				Name:       optionValue.Name,
+				Value:      &apiextensionsv1.JSON{Raw: jsonValue},
+				ValueFrom:  nil,
+				Expression: nil,
 			})
 		} else {
 			resolvedValues = append(resolvedValues, optionValue)
@@ -63,4 +52,22 @@ func ResolveCelExpressions(ctx context.Context, optionValues []greenhousev1alpha
 	}
 
 	return resolvedValues, nil
+}
+
+// buildTemplateData extracts global.greenhouse.* values to build template data for CEL evaluation.
+func buildTemplateData(optionValues []greenhousev1alpha1.PluginOptionValue) (map[string]any, error) {
+	greenhouseValues := make([]greenhousev1alpha1.PluginOptionValue, 0)
+	for _, optionValue := range optionValues {
+		// Include global.greenhouse.* values for CEL evaluation.
+		if strings.HasPrefix(optionValue.Name, "global.greenhouse") {
+			greenhouseValues = append(greenhouseValues, optionValue)
+		}
+	}
+
+	templateData, err := ConvertFlatValuesToHelmValues(greenhouseValues)
+	if err != nil {
+		return nil, fmt.Errorf("failed to convert values to helm structure: %w", err)
+	}
+
+	return templateData, nil
 }

@@ -90,6 +90,24 @@ func EvaluateList(expression string, objs []client.Object) ([]any, error) {
 	return results, nil
 }
 
+// EvaluateWithData evaluates a CEL expression against arbitrary data using a custom CEL environment.
+func EvaluateWithData(expression string, env *cel.Env, data map[string]any) (any, error) {
+	if expression == "" {
+		return nil, errors.New("expression cannot be empty")
+	}
+
+	prg, err := CompileExpressionWithEnv(expression, env)
+	if err != nil {
+		return nil, err
+	}
+
+	out, _, err := prg.Eval(data)
+	if err != nil {
+		return nil, fmt.Errorf("failed to evaluate expression: %w", err)
+	}
+	return convertCELValue(out)
+}
+
 func compileExpression(expression string) (cel.Program, error) {
 	env, err := cel.NewEnv(
 		cel.Variable("object", cel.DynType),

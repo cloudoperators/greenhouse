@@ -29,7 +29,7 @@ var _ = Describe("YAML Expression Evaluation", func() {
 
 	It("should resolve basic string interpolation", func() {
 		yamlStr := "username: prometheus-${global.greenhouse.metadata.region}-thanos"
-		jsonBytes, err := EvaluateYamlExpression(yamlStr, templateData)
+		jsonBytes, err := EvaluateExpression(yamlStr, templateData)
 
 		Expect(err).ToNot(HaveOccurred())
 		var resultMap map[string]any
@@ -44,7 +44,7 @@ name: static-value
 port: 8080
 enabled: true
 `
-		jsonBytes, err := EvaluateYamlExpression(yamlStr, templateData)
+		jsonBytes, err := EvaluateExpression(yamlStr, templateData)
 
 		Expect(err).ToNot(HaveOccurred())
 		var resultMap map[string]any
@@ -52,7 +52,7 @@ enabled: true
 		Expect(err).ToNot(HaveOccurred())
 		Expect(resultMap["name"]).To(Equal("static-value"))
 		Expect(resultMap["port"]).To(BeNumerically("==", 8080))
-		Expect(resultMap["enabled"]).To(Equal(true))
+		Expect(resultMap["enabled"]).To(BeTrue())
 	})
 
 	It("should resolve direct arrays with expressions", func() {
@@ -60,7 +60,7 @@ enabled: true
 - thanos-grpc.obs.${global.greenhouse.metadata.region}.cloud.sap:443
 - thanos-grpc.mon.${global.greenhouse.metadata.region}.cloud.sap:443
 `
-		jsonBytes, err := EvaluateYamlExpression(yamlStr, templateData)
+		jsonBytes, err := EvaluateExpression(yamlStr, templateData)
 
 		Expect(err).ToNot(HaveOccurred())
 		var resultArray []any
@@ -81,7 +81,7 @@ database:
   host: db-${global.greenhouse.metadata.region}.cloud.sap
   port: 5432
 `
-		jsonBytes, err := EvaluateYamlExpression(yamlStr, templateData)
+		jsonBytes, err := EvaluateExpression(yamlStr, templateData)
 
 		Expect(err).ToNot(HaveOccurred())
 		var resultMap map[string]any
@@ -105,7 +105,7 @@ database:
 uppercase: ${global.greenhouse.clusterName.upperAscii()}
 transformed: ${global.greenhouse.clusterName.split('-').join('_')}
 `
-		jsonBytes, err := EvaluateYamlExpression(yamlStr, templateData)
+		jsonBytes, err := EvaluateExpression(yamlStr, templateData)
 
 		Expect(err).ToNot(HaveOccurred())
 		var resultMap map[string]any
@@ -116,7 +116,7 @@ transformed: ${global.greenhouse.clusterName.split('-').join('_')}
 	})
 
 	It("should return error for empty expression", func() {
-		jsonBytes, err := EvaluateYamlExpression("", templateData)
+		jsonBytes, err := EvaluateExpression("", templateData)
 
 		Expect(err).To(HaveOccurred())
 		Expect(err.Error()).To(ContainSubstring("cannot be empty"))
@@ -125,7 +125,7 @@ transformed: ${global.greenhouse.clusterName.split('-').join('_')}
 
 	It("should return error for invalid CEL expression", func() {
 		yamlStr := "value: ${global.nonexistent.field}"
-		jsonBytes, err := EvaluateYamlExpression(yamlStr, templateData)
+		jsonBytes, err := EvaluateExpression(yamlStr, templateData)
 
 		Expect(err).To(HaveOccurred())
 		Expect(err.Error()).To(ContainSubstring("failed to evaluate CEL expression"))
@@ -134,7 +134,7 @@ transformed: ${global.greenhouse.clusterName.split('-').join('_')}
 
 	It("should return error for invalid YAML syntax", func() {
 		yamlStr := `{name: value, list: [item1, item2`
-		jsonBytes, err := EvaluateYamlExpression(yamlStr, templateData)
+		jsonBytes, err := EvaluateExpression(yamlStr, templateData)
 
 		Expect(err).To(HaveOccurred())
 		Expect(jsonBytes).To(BeNil())

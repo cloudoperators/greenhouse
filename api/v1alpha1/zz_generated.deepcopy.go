@@ -1167,18 +1167,8 @@ func (in *PluginOptionValue) DeepCopyInto(out *PluginOptionValue) {
 		*out = new(ValueFromSource)
 		(*in).DeepCopyInto(*out)
 	}
-	if in.Template != nil {
-		in, out := &in.Template, &out.Template
-		*out = new(string)
-		**out = **in
-	}
-	if in.CelExpression != nil {
-		in, out := &in.CelExpression, &out.CelExpression
-		*out = new(string)
-		**out = **in
-	}
-	if in.YamlExpression != nil {
-		in, out := &in.YamlExpression, &out.YamlExpression
+	if in.Expression != nil {
+		in, out := &in.Expression, &out.Expression
 		*out = new(string)
 		**out = **in
 	}

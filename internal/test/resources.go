@@ -320,65 +320,65 @@ func WithPluginLabel(key, value string) func(*greenhousev1alpha1.Plugin) {
 	}
 }
 
-// WithPluginOptionValue sets the value of a PluginOptionValue, clears ValueFrom and Template
+// WithPluginOptionValue sets the value of a PluginOptionValue, clears ValueFrom and Expression
 func WithPluginOptionValue(name string, value *apiextensionsv1.JSON) func(*greenhousev1alpha1.Plugin) {
 	return func(p *greenhousev1alpha1.Plugin) {
 		for i, v := range p.Spec.OptionValues {
 			if v.Name == name {
 				v.Value = value
 				v.ValueFrom = nil
-				v.Template = nil
+				v.Expression = nil
 				p.Spec.OptionValues[i] = v
 				return
 			}
 		}
 		p.Spec.OptionValues = append(p.Spec.OptionValues, greenhousev1alpha1.PluginOptionValue{
-			Name:      name,
-			Value:     value,
-			ValueFrom: nil,
-			Template:  nil,
+			Name:       name,
+			Value:      value,
+			ValueFrom:  nil,
+			Expression: nil,
 		})
 	}
 }
 
-// WithPluginOptionValue sets the value of a PluginOptionValue, clears Value and Template
+// WithPluginOptionValue sets the value of a PluginOptionValue, clears Value and Expression
 func WithPluginOptionValueFrom(name string, valueFrom *greenhousev1alpha1.ValueFromSource) func(*greenhousev1alpha1.Plugin) {
 	return func(p *greenhousev1alpha1.Plugin) {
 		for i, v := range p.Spec.OptionValues {
 			if v.Name == name {
 				v.Value = nil
 				v.ValueFrom = valueFrom
-				v.Template = nil
+				v.Expression = nil
 				p.Spec.OptionValues[i] = v
 				return
 			}
 		}
 		p.Spec.OptionValues = append(p.Spec.OptionValues, greenhousev1alpha1.PluginOptionValue{
-			Name:      name,
-			Value:     nil,
-			ValueFrom: valueFrom,
-			Template:  nil,
+			Name:       name,
+			Value:      nil,
+			ValueFrom:  valueFrom,
+			Expression: nil,
 		})
 	}
 }
 
-// WithPluginOptionValue sets the template of a PluginOptionValue,
-func WithPluginOptionValueTemplate(name string, template *string) func(*greenhousev1alpha1.Plugin) {
+// WithPluginOptionValueExpression sets the expression of a PluginOptionValue,
+func WithPluginOptionValueExpression(name string, expression *string) func(*greenhousev1alpha1.Plugin) {
 	return func(p *greenhousev1alpha1.Plugin) {
 		for i, v := range p.Spec.OptionValues {
 			if v.Name == name {
 				v.Value = nil
-				v.Template = template
+				v.Expression = expression
 				v.ValueFrom = nil
 				p.Spec.OptionValues[i] = v
 				return
 			}
 		}
 		p.Spec.OptionValues = append(p.Spec.OptionValues, greenhousev1alpha1.PluginOptionValue{
-			Name:      name,
-			Value:     nil,
-			Template:  template,
-			ValueFrom: nil,
+			Name:       name,
+			Value:      nil,
+			Expression: expression,
+			ValueFrom:  nil,
 		})
 	}
 }
