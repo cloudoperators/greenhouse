@@ -239,6 +239,7 @@ func (pm *ProxyManager) rewrite(req *httputil.ProxyRequest) {
 	// Set the correct upstream service route URL details
 	req.Out.URL.Scheme = upstreamServiceRouteURL.Scheme
 	req.Out.URL.Host = upstreamServiceRouteURL.Host
+	req.Out.Host = upstreamServiceRouteURL.Host
 
 	// Inject the cluster into the outgoing request context
 	ctx := context.WithValue(req.Out.Context(), contextClusterKey{}, cluster)
