@@ -7,6 +7,7 @@ package catalog
 
 import (
 	"context"
+	"strings"
 	"testing"
 	"time"
 
@@ -71,7 +72,7 @@ var _ = Describe("Catalog E2E", Ordered, func() {
 				env = env.WithGitHubSecret(ctx, adminClient, secretName, secretType)
 			}
 			testNamespace := env.TestNamespace
-			scenario := scenarios.NewScenario(adminClient, catalogYamlPath)
+			scenario := scenarios.NewScenario(adminClient, catalogYamlPath, secretName, strings.TrimSpace(catalogYamlPath) == "")
 			execute(scenario, testNamespace)
 		},
 		Entry("Catalog Branch scenario",
@@ -122,6 +123,13 @@ var _ = Describe("Catalog E2E", Ordered, func() {
 			"github-com-token",
 			shared.GitHubSecretTypeFake,
 			func(s scenarios.IScenario, ns string) { s.ExecuteGitAuthFailScenario(ctx, ns) },
+		),
+		Entry("Catalog Options Override scenario",
+			e2eOrgYaml,
+			"",
+			"github-com-app",
+			shared.GitHubSecretTypeAPP,
+			func(s scenarios.IScenario, ns string) { s.ExecuteOptionsOverrideScenario(ctx, ns) },
 		),
 	)
 })

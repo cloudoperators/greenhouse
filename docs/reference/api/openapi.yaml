@@ -54,6 +54,22 @@ components:
                           description: Name is the name of the PluginDefinition to patch with an alias
                           minLength: 1
                           type: string
+                        optionsOverride:
+                          description: OptionsOverride are the option values to override in the PluginDefinition .spec.options[]
+                          items:
+                            properties:
+                              name:
+                                description: Name is the name of the option value to override in the PluginDefinition
+                                minLength: 1
+                                type: string
+                              value:
+                                description: Value is the value to set as Default in the PluginDefinition option
+                                x-kubernetes-preserve-unknown-fields: true
+                            required:
+                              - name
+                              - value
+                            type: object
+                          type: array
                         repository:
                           description: Repository is the repository to override in the PluginDefinition .spec.helmChart.repository
                           type: string

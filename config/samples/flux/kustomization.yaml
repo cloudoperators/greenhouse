@@ -15,6 +15,22 @@ images:
     newName: ghcr.io/fluxcd/source-watcher
 
 patches:
+  # allow greenhouse namespace to access flux artifacts
+  - target:
+      kind: NetworkPolicy
+      name: allow-egress
+      namespace: flux-system
+    patch: |
+      - op: add
+        path: /spec/ingress/0/from/-
+        value:
+          namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: greenhouse
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/name: greenhouse
+
   # do not apply image-reflector-controller and image-automation-controller
   - target:
       kind: Deployment
