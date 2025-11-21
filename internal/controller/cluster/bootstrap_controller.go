@@ -183,7 +183,7 @@ func (r *BootstrapReconciler) createOrUpdateCluster(
 		cluster.SetAnnotations(annotations)
 		cluster.Spec.AccessMode = accessMode
 		// Transport KubeConfigSecret labels to Cluster
-		cluster = (lifecycle.NewPropagator(kubeConfigSecret, cluster).ApplyLabels()).(*greenhousev1alpha1.Cluster) //nolint:errcheck
+		cluster = (lifecycle.NewPropagator(kubeConfigSecret, cluster).Apply()).(*greenhousev1alpha1.Cluster) //nolint:errcheck
 		return nil
 	})
 	if err != nil {
