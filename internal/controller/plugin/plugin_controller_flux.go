@@ -406,9 +406,9 @@ func addValuesToHelmRelease(ctx context.Context, c client.Client, plugin *greenh
 		return nil, err
 	}
 
-	optionValues, err = helm.ResolveTemplatedValues(ctx, optionValues, optionValueTemplatingEnabled)
+	optionValues, err = helm.ResolveExpressions(ctx, optionValues)
 	if err != nil {
-		return nil, fmt.Errorf("failed to resolve templated values: %w", err)
+		return nil, fmt.Errorf("failed to resolve expressions: %w", err)
 	}
 
 	// remove all option values that are set from a secret, as these have a nil value

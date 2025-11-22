@@ -123,13 +123,12 @@ spec:
                 items:
                   description: PluginOptionValue is the value for a PluginOption.
                   properties:
+                    expression:
+                      description: Expression is a YAML string with ${...} placeholders
+                        that will be evaluated as CEL expressions.
+                      type: string
                     name:
                       description: Name of the values.
-                      type: string
-                    template:
-                      description: |-
-                        Template is a Go string template that will be dynamically resolved for cluster-specific values.
-                        Only PluginOptionValues declared as template will be templated by the PluginController for Flux.
                       type: string
                     value:
                       description: Value is the actual value in plain text.
