@@ -2914,26 +2914,13 @@ ValueFromSource
 </tr>
 <tr>
 <td>
-<code>template</code><br>
+<code>expression</code><br>
 <em>
 string
 </em>
 </td>
 <td>
-<p>Template is a Go string template that will be dynamically resolved for cluster-specific values.
-Only PluginOptionValues declared as template will be templated by the PluginController for Flux.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>celExpression</code><br>
-<em>
-string
-</em>
-</td>
-<td>
-<p>CelExpression is a CEL expression that will be evaluated to resolve the value.
-CEL expressions have access to global.greenhouse values for dynamic configuration.</p>
+<p>Expression is a YAML string with ${&hellip;} placeholders that will be evaluated as CEL expressions.</p>
 </td>
 </tr>
 </tbody>
