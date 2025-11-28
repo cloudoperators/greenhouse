@@ -96,7 +96,7 @@ env: ${global.greenhouse.metadata.environment}`
 			}
 		}
 
-		Expect(config).To(Equal(`endpoint: thanos-grpc.obs.${global.greenhouse.metadata.region}.ccloudoperators.dev:443
+		Expect(config).To(Equal(`endpoint: thanos-grpc.obs.${global.greenhouse.metadata.region}.cloudoperators.dev:443
 cluster: ${global.greenhouse.clusterName}
 env: ${global.greenhouse.metadata.environment}`))
 	})
