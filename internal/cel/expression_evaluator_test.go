@@ -57,8 +57,8 @@ enabled: true
 
 	It("should resolve direct arrays with expressions", func() {
 		yamlStr := `
-- thanos-grpc.obs.${global.greenhouse.metadata.region}.cloud.sap:443
-- thanos-grpc.mon.${global.greenhouse.metadata.region}.cloud.sap:443
+- thanos-grpc.obs.${global.greenhouse.metadata.region}.cloudoperators.dev:443
+- thanos-grpc.mon.${global.greenhouse.metadata.region}.cloudoperators.dev:443
 `
 		jsonBytes, err := EvaluateExpression(yamlStr, templateData)
 
@@ -67,8 +67,8 @@ enabled: true
 		err = json.Unmarshal(jsonBytes, &resultArray)
 		Expect(err).ToNot(HaveOccurred())
 		Expect(resultArray).To(HaveLen(2))
-		Expect(resultArray[0]).To(Equal("thanos-grpc.obs.eu-de-1.cloud.sap:443"))
-		Expect(resultArray[1]).To(Equal("thanos-grpc.mon.eu-de-1.cloud.sap:443"))
+		Expect(resultArray[0]).To(Equal("thanos-grpc.obs.eu-de-1.cloudoperators.dev:443"))
+		Expect(resultArray[1]).To(Equal("thanos-grpc.mon.eu-de-1.cloudoperators.dev:443"))
 	})
 
 	It("should resolve nested maps with mixed static and dynamic values", func() {
@@ -78,7 +78,7 @@ swift:
   region_name: ${global.greenhouse.metadata.region}
   username: prometheus-${global.greenhouse.metadata.region}-thanos
 database:
-  host: db-${global.greenhouse.metadata.region}.cloud.sap
+  host: db-${global.greenhouse.metadata.region}.cloudoperators.dev
   port: 5432
 `
 		jsonBytes, err := EvaluateExpression(yamlStr, templateData)
@@ -96,7 +96,7 @@ database:
 
 		database, ok := resultMap["database"].(map[string]any)
 		Expect(ok).To(BeTrue())
-		Expect(database["host"]).To(Equal("db-eu-de-1.cloud.sap"))
+		Expect(database["host"]).To(Equal("db-eu-de-1.cloudoperators.dev"))
 		Expect(database["port"]).To(BeNumerically("==", 5432))
 	})
 

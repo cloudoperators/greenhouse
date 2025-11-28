@@ -74,7 +74,7 @@ var _ = Describe("ResolveExpressions with feature flag disabled", func() {
 	})
 
 	It("should treat multi-line expression as literal string when disabled", func() {
-		expression := `endpoint: thanos-grpc.obs.${global.greenhouse.metadata.region}.cloud.sap:443
+		expression := `endpoint: thanos-grpc.obs.${global.greenhouse.metadata.region}.cloudoperators.dev:443
 cluster: ${global.greenhouse.clusterName}
 env: ${global.greenhouse.metadata.environment}`
 
@@ -96,7 +96,7 @@ env: ${global.greenhouse.metadata.environment}`
 			}
 		}
 
-		Expect(config).To(Equal(`endpoint: thanos-grpc.obs.${global.greenhouse.metadata.region}.cloud.sap:443
+		Expect(config).To(Equal(`endpoint: thanos-grpc.obs.${global.greenhouse.metadata.region}.ccloudoperators.dev:443
 cluster: ${global.greenhouse.clusterName}
 env: ${global.greenhouse.metadata.environment}`))
 	})
