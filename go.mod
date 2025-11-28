@@ -27,7 +27,6 @@ replace (
 )
 
 require (
-	github.com/Masterminds/sprig/v3 v3.3.0
 	github.com/cenkalti/backoff/v5 v5.0.3
 	github.com/dexidp/dex v0.0.0-20250829100637-2dce75009acf
 	github.com/fluxcd/helm-controller/api v1.4.2
@@ -74,6 +73,7 @@ require (
 	cloud.google.com/go/auth/oauth2adapt v0.2.8 // indirect
 	dario.cat/mergo v1.0.1 // indirect
 	filippo.io/edwards25519 v1.1.0 // indirect
+	github.com/Masterminds/sprig/v3 v3.3.0 // indirect
 	github.com/antlr4-go/antlr/v4 v4.13.0 // indirect
 	github.com/blang/semver/v4 v4.0.0 // indirect
 	github.com/containerd/errdefs v0.3.0 // indirect

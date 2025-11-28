@@ -671,7 +671,11 @@ func CalculatePluginOptionChecksum(ctx context.Context, c client.Client, plugin 
 	buf := make([]byte, 0)
 	for _, v := range values {
 		buf = append(buf, []byte(v.Name)...)
-		buf = append(buf, v.Value.Raw...)
+		if v.Value != nil {
+			buf = append(buf, v.Value.Raw...)
+		} else if v.Expression != nil {
+			buf = append(buf, []byte(*v.Expression)...)
+		}
 	}
 
 	checksum := sha256.Sum256(buf)
