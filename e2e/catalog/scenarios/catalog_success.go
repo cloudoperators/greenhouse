@@ -24,6 +24,17 @@ func (s *scenario) ExecuteSuccessScenario(ctx context.Context, namespace string)
 	s.catalog.SetNamespace(namespace)
 	err := s.createCatalogIfNotExists(ctx)
 	Expect(err).ToNot(HaveOccurred(), "there should be no error creating the Catalog for multi-source scenario")
+	s.verifySuccess(ctx)
+	By("cleaning up Catalog")
+	for _, source := range s.catalog.Spec.Sources {
+		groupKey, err := getSourceGroupHash(source, s.catalog.Name)
+		Expect(err).ToNot(HaveOccurred(), "there should be no error getting the source group hash")
+		s.deletePluginDefinitions(ctx, groupKey)
+	}
+	s.deleteCatalog(ctx)
+}
+
+func (s *scenario) verifySuccess(ctx context.Context) {
 	for _, source := range s.catalog.Spec.Sources {
 		groupKey, err := getSourceGroupHash(source, s.catalog.Name)
 		Expect(err).ToNot(HaveOccurred(), "there should be no error getting the source group hash")
@@ -55,14 +66,6 @@ func (s *scenario) ExecuteSuccessScenario(ctx context.Context, namespace string)
 		g.Expect(catalogReady.Status).To(Equal(metav1.ConditionTrue), "the Ready condition status should be True")
 		g.Expect(catalogReady.Reason).To(Equal(greenhousev1alpha1.CatalogReadyReason), "the Ready condition reason should be CatalogReady")
 	}).Should(Succeed(), "the Catalog should have a Ready=True condition")
-
-	By("cleaning up Catalog")
-	for _, source := range s.catalog.Spec.Sources {
-		groupKey, err := getSourceGroupHash(source, s.catalog.Name)
-		Expect(err).ToNot(HaveOccurred(), "there should be no error getting the source group hash")
-		s.deletePluginDefinitions(ctx, groupKey)
-	}
-	s.deleteCatalog(ctx)
 }
 
 func getSourceGroupHash(source greenhousev1alpha1.CatalogSource, catalogName string) (groupKey string, err error) {

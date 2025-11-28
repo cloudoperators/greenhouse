@@ -64,6 +64,13 @@ export interface components {
                         alias?: string;
                         /** @description Name is the name of the PluginDefinition to patch with an alias */
                         name: string;
+                        /** @description OptionsOverride are the option values to override in the PluginDefinition .spec.options[] */
+                        optionsOverride?: {
+                            /** @description Name is the name of the option value to override in the PluginDefinition */
+                            name: string;
+                            /** @description Value is the value to set as Default in the PluginDefinition option */
+                            value: unknown;
+                        }[];
                         /** @description Repository is the repository to override in the PluginDefinition .spec.helmChart.repository */
                         repository?: string;
                     }[];
