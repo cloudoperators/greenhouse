@@ -5,6 +5,7 @@ package main
 
 import (
 	"context"
+	"slices"
 	"sort"
 
 	"k8s.io/utils/ptr"
@@ -58,12 +59,10 @@ func knownControllersNames() []string {
 
 // isControllerEnabled checks whether the given controller or regex is enabled
 func isControllerEnabled(controllerName string) bool {
-	for _, c := range enabledControllers {
-		if controllerName == "*" || controllerName == c {
-			return true
-		}
+	if slices.Contains(disabledControllers, controllerName) {
+		return false
 	}
-	return false
+	return controllerName == "*" || slices.Contains(enabledControllers, controllerName)
 }
 
 // startOrganizationReconciler - initializes the organization reconciler
