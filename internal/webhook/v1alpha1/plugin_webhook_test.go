@@ -24,7 +24,7 @@ import (
 )
 
 var _ = Describe("Validate Plugin OptionValues", func() {
-	DescribeTable("Validate PluginType contains either Value, ValueFrom, or Expression", func(value *apiextensionsv1.JSON, valueFrom *greenhousev1alpha1.ValueFromSource, expression *string, expErr bool) {
+	DescribeTable("Validate PluginType contains either Value, ValueFrom, or Expression", func(value *apiextensionsv1.JSON, valueFrom *greenhousev1alpha1.PluginValueFromSource, expression *string, expErr bool) {
 		optionValues := []greenhousev1alpha1.PluginOptionValue{
 			{
 				Name:       "test",
@@ -71,13 +71,13 @@ var _ = Describe("Validate Plugin OptionValues", func() {
 		}
 	},
 		Entry("Value and ValueFrom and Expression nil", nil, nil, nil, true),
-		Entry("Value and ValueFrom not nil, Expression is nil", test.MustReturnJSONFor("test"), &greenhousev1alpha1.ValueFromSource{Secret: &greenhousev1alpha1.SecretKeyReference{Name: "my-secret"}}, nil, true),
+		Entry("Value and ValueFrom not nil, Expression is nil", test.MustReturnJSONFor("test"), &greenhousev1alpha1.PluginValueFromSource{Secret: &greenhousev1alpha1.SecretKeyReference{Name: "my-secret"}}, nil, true),
 		Entry("Value not nil", test.MustReturnJSONFor("test"), nil, nil, false),
-		Entry("ValueFrom not nil", nil, &greenhousev1alpha1.ValueFromSource{Secret: &greenhousev1alpha1.SecretKeyReference{Name: "my-secret", Key: "secret-key"}}, nil, false),
+		Entry("ValueFrom not nil", nil, &greenhousev1alpha1.PluginValueFromSource{Secret: &greenhousev1alpha1.SecretKeyReference{Name: "my-secret", Key: "secret-key"}}, nil, false),
 		Entry("Expression not nil", nil, nil, ptr.To("${global.greenhouse.clusterName}"), false),
 		Entry("Value and Expression not nil, ValueFrom nil", test.MustReturnJSONFor("test"), nil, ptr.To("${global.greenhouse.clusterName}"), true),
-		Entry("ValueFrom and Expression not nil, Value nil", nil, &greenhousev1alpha1.ValueFromSource{Secret: &greenhousev1alpha1.SecretKeyReference{Name: "my-secret", Key: "secret-key"}}, ptr.To("${global.greenhouse.clusterName}"), true),
-		Entry("Value, ValueFrom, and Expression all not nil", test.MustReturnJSONFor("test"), &greenhousev1alpha1.ValueFromSource{Secret: &greenhousev1alpha1.SecretKeyReference{Name: "my-secret", Key: "secret-key"}}, ptr.To("${global.greenhouse.clusterName}"), true),
+		Entry("ValueFrom and Expression not nil, Value nil", nil, &greenhousev1alpha1.PluginValueFromSource{Secret: &greenhousev1alpha1.SecretKeyReference{Name: "my-secret", Key: "secret-key"}}, ptr.To("${global.greenhouse.clusterName}"), true),
+		Entry("Value, ValueFrom, and Expression all not nil", test.MustReturnJSONFor("test"), &greenhousev1alpha1.PluginValueFromSource{Secret: &greenhousev1alpha1.SecretKeyReference{Name: "my-secret", Key: "secret-key"}}, ptr.To("${global.greenhouse.clusterName}"), true),
 	)
 
 	DescribeTable("Validate PluginOptionValue is consistent with PluginOption Type", func(defaultValue any, defaultType greenhousev1alpha1.PluginOptionType, actValue any, expErr bool) {
@@ -159,11 +159,11 @@ var _ = Describe("Validate Plugin OptionValues", func() {
 			Expect(errList).To(BeEmpty(), "expected no error, got %v", errList)
 		}
 	},
-		Entry("PluginOption ValueFrom has a valid SecretReference", &greenhousev1alpha1.PluginOptionValue{Name: "test", ValueFrom: &greenhousev1alpha1.ValueFromSource{Secret: &greenhousev1alpha1.SecretKeyReference{Name: "secret", Key: "key"}}}, false),
+		Entry("PluginOption ValueFrom has a valid SecretReference", &greenhousev1alpha1.PluginOptionValue{Name: "test", ValueFrom: &greenhousev1alpha1.PluginValueFromSource{Secret: &greenhousev1alpha1.SecretKeyReference{Name: "secret", Key: "key"}}}, false),
 		Entry("PluginOption Value has a valid string with vault schema prefix", &greenhousev1alpha1.PluginOptionValue{Name: "test", Value: test.MustReturnJSONFor("vault+kvv2:///some-path/to/secret")}, false),
 		Entry("PluginOption Value has a invalid string", &greenhousev1alpha1.PluginOptionValue{Name: "test", Value: test.MustReturnJSONFor("some-string")}, true),
-		Entry("PluginOption ValueFrom is missing SecretReference Name", &greenhousev1alpha1.PluginOptionValue{Name: "test", ValueFrom: &greenhousev1alpha1.ValueFromSource{Secret: &greenhousev1alpha1.SecretKeyReference{Key: "key"}}}, true),
-		Entry("PluginOption ValueFrom is missing SecretReference Key", &greenhousev1alpha1.PluginOptionValue{Name: "test", ValueFrom: &greenhousev1alpha1.ValueFromSource{Secret: &greenhousev1alpha1.SecretKeyReference{Name: "secret"}}}, true),
+		Entry("PluginOption ValueFrom is missing SecretReference Name", &greenhousev1alpha1.PluginOptionValue{Name: "test", ValueFrom: &greenhousev1alpha1.PluginValueFromSource{Secret: &greenhousev1alpha1.SecretKeyReference{Key: "key"}}}, true),
+		Entry("PluginOption ValueFrom is missing SecretReference Key", &greenhousev1alpha1.PluginOptionValue{Name: "test", ValueFrom: &greenhousev1alpha1.PluginValueFromSource{Secret: &greenhousev1alpha1.SecretKeyReference{Name: "secret"}}}, true),
 		Entry("PluginOption ValueFrom does not contain a SecretReference", &greenhousev1alpha1.PluginOptionValue{Name: "test"}, true),
 	)
 
@@ -203,7 +203,7 @@ var _ = Describe("Validate Plugin OptionValues", func() {
 		Entry("required option provided with ValueFrom", []greenhousev1alpha1.PluginOptionValue{
 			{
 				Name: "test",
-				ValueFrom: &greenhousev1alpha1.ValueFromSource{
+				ValueFrom: &greenhousev1alpha1.PluginValueFromSource{
 					Secret: &greenhousev1alpha1.SecretKeyReference{Name: "secret", Key: "key"},
 				},
 			},
