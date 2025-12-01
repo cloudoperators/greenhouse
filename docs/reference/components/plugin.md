@@ -60,6 +60,16 @@ spec:
 
 | :information_source: A defaulting webhook automatically merges the OptionValues with the defaults set in the PluginDefinition. The defaulting does not update OptionValues when the defaults change and does not remove values when they are removed from the PluginDefinition. |
 
+`.spec.optionValues[].expression` is an optional field that allows you to define dynamic values using [CEL (Common Expression Language)](https://github.com/google/cel-spec) expressions. Expressions use `${...}` placeholders that reference `global.greenhouse.*` variables such as `global.greenhouse.clusterName` or [Cluster Metadata](./../cluster#setting-metadata-labels) via `global.greenhouse.metadata.*`. For available CEL string functions, see the [CEL string extension documentation](https://github.com/google/cel-go/tree/master/ext#strings). See [Using Metadata Labels and Expressions](./../../user-guides/plugin/metadata-expressions) for detailed examples.
+
+```yaml
+  optionValues:
+  - name: endpoint
+    expression: "https://api.${global.greenhouse.metadata.region}.example.com"
+```
+
+| :warning: CEL expression evaluation requires the `expressionEvaluationEnabled` feature flag to be enabled. When disabled, expressions are treated as literal strings. |
+
 `.spec.waitFor` is an optional field that specifies PluginPresets or Plugins which have to be successfully deployed before this Plugin can be deployed. This can be used to express dependencies between Plugins. This can be useful if one Plugin depends on Custom Resource Definitions or other resources created by another Plugin.
 
 ```yaml
@@ -103,5 +113,7 @@ The annotation `greenhouse.sap/reconcile` can be added to a Plugin resource to t
 
 ## Next Steps
 
+- [Cluster reference](./../cluster)
 - [PluginPreset reference](./../pluginpreset)
 - [PluginDefinition reference](./../plugindefinition)
+- [Using Metadata Labels and Expressions](./../../user-guides/plugin/metadata-expressions)
