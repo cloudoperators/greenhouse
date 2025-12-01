@@ -41,7 +41,7 @@ var (
 	}
 	secretOptionValue = &greenhousev1alpha1.PluginOptionValue{
 		Name: "secretValue",
-		ValueFrom: &greenhousev1alpha1.ValueFromSource{
+		ValueFrom: &greenhousev1alpha1.PluginValueFromSource{
 			Secret: &greenhousev1alpha1.SecretKeyReference{
 				Name: "plugindefinition-secret",
 				Key:  "secretKey",

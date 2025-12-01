@@ -47,7 +47,7 @@ var (
 		test.WithCluster("test-cluster"),
 		test.WithClusterPluginDefinition("test-plugindefinition"),
 		test.WithReleaseName("release-with-secretref"),
-		test.WithPluginOptionValueFrom("secretValue", &greenhousev1alpha1.ValueFromSource{
+		test.WithPluginOptionValueFrom("secretValue", &greenhousev1alpha1.PluginValueFromSource{
 			Secret: &greenhousev1alpha1.SecretKeyReference{
 				Name: "test-secret",
 				Key:  "test-key",
