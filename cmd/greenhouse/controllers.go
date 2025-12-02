@@ -5,6 +5,7 @@ package main
 
 import (
 	"context"
+	"slices"
 	"sort"
 
 	"k8s.io/utils/ptr"
@@ -36,9 +37,7 @@ var knownControllers = map[string]func(controllerName string, mgr ctrl.Manager) 
 	"plugin":       startPluginReconciler,
 	"pluginPreset": (&plugincontrollers.PluginPresetReconciler{}).SetupWithManager,
 
-	"catalog": (&catalog.CatalogReconciler{
-		Log: ctrl.Log.WithName("controllers").WithName("catalogs"),
-	}).SetupWithManager,
+	"catalog":                 startCatalogReconciler,
 	"pluginDefinition":        (&plugindefinitioncontroller.PluginDefinitionReconciler{}).SetupWithManager,
 	"clusterPluginDefinition": (&plugindefinitioncontroller.ClusterPluginDefinitionReconciler{}).SetupWithManager,
 
@@ -60,12 +59,10 @@ func knownControllersNames() []string {
 
 // isControllerEnabled checks whether the given controller or regex is enabled
 func isControllerEnabled(controllerName string) bool {
-	for _, c := range enabledControllers {
-		if controllerName == "*" || controllerName == c {
-			return true
-		}
+	if slices.Contains(disabledControllers, controllerName) {
+		return false
 	}
-	return false
+	return controllerName == "*" || slices.Contains(enabledControllers, controllerName)
 }
 
 // startOrganizationReconciler - initializes the organization reconciler
@@ -84,15 +81,15 @@ func startOrganizationReconciler(name string, mgr ctrl.Manager) error {
 }
 
 // startPluginReconciler initializes the plugin reconciler.
-// Resolves template rendering and default deployment tool feature flags from greenhouse-feature-flags.
+// Resolves expression evaluation and default deployment tool feature flags from greenhouse-feature-flags.
 func startPluginReconciler(name string, mgr ctrl.Manager) error {
-	optionValueTemplatingEnabled := featureFlags.IsTemplateRenderingEnabled()
+	expressionEvaluationEnabled := featureFlags.IsExpressionEvaluationEnabled()
 	defaultDeploymentTool := featureFlags.GetDefaultDeploymentTool()
 
 	return (&plugincontrollers.PluginReconciler{
-		KubeRuntimeOpts:              kubeClientOpts,
-		OptionValueTemplatingEnabled: optionValueTemplatingEnabled,
-		DefaultDeploymentTool:        defaultDeploymentTool,
+		KubeRuntimeOpts:             kubeClientOpts,
+		ExpressionEvaluationEnabled: expressionEvaluationEnabled,
+		DefaultDeploymentTool:       defaultDeploymentTool,
 	}).SetupWithManager(name, mgr)
 }
 
@@ -105,5 +102,13 @@ func startClusterReconciler(name string, mgr ctrl.Manager) error {
 	return (&clustercontrollers.RemoteClusterReconciler{
 		RemoteClusterBearerTokenValidity:   remoteClusterBearerTokenValidity,
 		RenewRemoteClusterBearerTokenAfter: renewRemoteClusterBearerTokenAfter,
+	}).SetupWithManager(name, mgr)
+}
+
+func startCatalogReconciler(name string, mgr ctrl.Manager) error {
+	return (&catalog.CatalogReconciler{
+		Log:         ctrl.Log.WithName("controllers").WithName("catalogs"),
+		StoragePath: artifactStoragePath,
+		HttpRetry:   artifactRetries,
 	}).SetupWithManager(name, mgr)
 }

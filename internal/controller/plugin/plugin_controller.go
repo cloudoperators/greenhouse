@@ -46,10 +46,10 @@ const helmReleaseSecretType = "helm.sh/release.v1" //nolint:gosec
 // PluginReconciler reconciles a Plugin object.
 type PluginReconciler struct {
 	client.Client
-	KubeRuntimeOpts              clientutil.RuntimeOptions
-	kubeClientOpts               []clientutil.KubeClientOption
-	OptionValueTemplatingEnabled bool
-	DefaultDeploymentTool        *string
+	KubeRuntimeOpts             clientutil.RuntimeOptions
+	kubeClientOpts              []clientutil.KubeClientOption
+	ExpressionEvaluationEnabled bool
+	DefaultDeploymentTool       *string
 }
 
 //+kubebuilder:rbac:groups=greenhouse.sap,resources=plugindefinitions,verbs=get;list;watch;create;update;patch;delete

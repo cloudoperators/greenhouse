@@ -34,9 +34,11 @@ import (
 
 type CatalogReconciler struct {
 	client.Client
-	Scheme   *runtime.Scheme
-	Log      logr.Logger
-	recorder record.EventRecorder
+	Scheme      *runtime.Scheme
+	Log         logr.Logger
+	recorder    record.EventRecorder
+	StoragePath string
+	HttpRetry   int
 }
 
 func (r *CatalogReconciler) SetupWithManager(name string, mgr ctrl.Manager) error {
@@ -255,6 +257,12 @@ func (r *CatalogReconciler) EnsureCreated(ctx context.Context, obj lifecycle.Run
 		if externalArtifact, err = sourcer.reconcileArtifactGeneration(ctx); err != nil {
 			r.Log.Error(err, "failed to reconcile artifact generation for catalog source", "namespace", catalog.Namespace, "name", sourcer.getArtifactName())
 			allErrors = append(allErrors, err)
+			continue
+		}
+
+		ready, _ := sourcer.objectReadiness(ctx, externalArtifact)
+		if ready != metav1.ConditionTrue {
+			r.Log.Info("external artifact not ready yet, retry in next reconciliation loop", "namespace", catalog.Namespace, "name", sourcer.getArtifactName())
 			continue
 		}
 

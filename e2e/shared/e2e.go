@@ -95,13 +95,13 @@ func NewExecutionEnv() *TestEnv {
 		Log("Running on real cluster\n")
 		remoteKubeCfgPath, err = fromEnv(RemoteKubeConfigPathEnv)
 		Expect(err).NotTo(HaveOccurred(), "error getting remote kubeconfig path")
-		remoteKubeCfgBytes, err = ReadFileContent(remoteKubeCfgPath)
+		remoteKubeCfgBytes, err = os.ReadFile(remoteKubeCfgPath)
 		Expect(err).NotTo(HaveOccurred(), "error reading remote kubeconfig file")
 	} else {
 		Log("Running on local cluster\n")
 		remoteIntKubeCfgPath, err := fromEnv(remoteIntKubeConfigPathEnv)
 		Expect(err).NotTo(HaveOccurred(), "error getting remote internal kubeconfig path")
-		remoteKubeCfgBytes, err = ReadFileContent(remoteIntKubeCfgPath)
+		remoteKubeCfgBytes, err = os.ReadFile(remoteIntKubeCfgPath)
 		Expect(err).NotTo(HaveOccurred(), "error reading remote internal kubeconfig file")
 	}
 	return &TestEnv{
@@ -122,7 +122,7 @@ func isRealCluster() bool {
 
 func (env *TestEnv) WithOrganization(ctx context.Context, k8sClient client.Client, samplePath string) *TestEnv {
 	org := &greenhousev1alpha1.Organization{}
-	orgBytes, err := ReadFileContent(samplePath)
+	orgBytes, err := os.ReadFile(samplePath)
 	Expect(err).NotTo(HaveOccurred(), "error reading organization sample data")
 	err = FromYamlToK8sObject(string(orgBytes), org)
 	Expect(err).NotTo(HaveOccurred(), "error converting organization yaml to k8s object")
@@ -140,7 +140,7 @@ func (env *TestEnv) WithOrganization(ctx context.Context, k8sClient client.Clien
 func clientGetter(kubeconfigEnv string) *clientutil.RestClientGetter {
 	kubeconfigPath, err := fromEnv(kubeconfigEnv)
 	Expect(err).NotTo(HaveOccurred(), "error getting kubeconfig path from env")
-	kubeconfigBytes, err := ReadFileContent(kubeconfigPath)
+	kubeconfigBytes, err := os.ReadFile(kubeconfigPath)
 	Expect(err).NotTo(HaveOccurred(), "error reading kubeconfig file")
 	config, err := clientcmd.RESTConfigFromKubeConfig(kubeconfigBytes)
 	Expect(err).NotTo(HaveOccurred(), "error getting rest config from kubeconfig")

@@ -5,8 +5,10 @@ package scenarios
 
 import (
 	"context"
+	"os"
 	"slices"
 	"strings"
+	"time"
 
 	kustomizev1 "github.com/fluxcd/kustomize-controller/api/v1"
 	fluxmeta "github.com/fluxcd/pkg/apis/meta"
@@ -21,6 +23,7 @@ import (
 
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
+	greenhouseapis "github.com/cloudoperators/greenhouse/api"
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
 	"github.com/cloudoperators/greenhouse/e2e/shared"
 	"github.com/cloudoperators/greenhouse/internal/lifecycle"
@@ -31,23 +34,28 @@ type IScenario interface {
 	ExecuteCPDFailScenario(ctx context.Context, namespace string)
 	ExecuteArtifactFailScenario(ctx context.Context, namespace string)
 	ExecuteGitAuthFailScenario(ctx context.Context, namespace string)
+	ExecuteOptionsOverrideScenario(ctx context.Context, namespace string)
 }
 
 type scenario struct {
-	k8sClient client.Client
-	catalog   *greenhousev1alpha1.Catalog
+	k8sClient  client.Client
+	catalog    *greenhousev1alpha1.Catalog
+	secretName string
 }
 
-func NewScenario(adminClient client.Client, catalogYamlPath string) IScenario {
+func NewScenario(adminClient client.Client, catalogYamlPath, secretName string, skipTestData bool) IScenario {
 	GinkgoHelper()
 	catalog := &greenhousev1alpha1.Catalog{}
-	catalogBytes, err := shared.ReadFileContent(catalogYamlPath)
-	Expect(err).ToNot(HaveOccurred(), "there should be no error reading the catalog yaml file for branch scenario")
-	err = shared.FromYamlToK8sObject(string(catalogBytes), catalog)
-	Expect(err).ToNot(HaveOccurred(), "there should be no error converting catalog yaml to k8s object for branch scenario")
+	if !skipTestData {
+		catalogBytes, err := os.ReadFile(catalogYamlPath)
+		Expect(err).ToNot(HaveOccurred(), "there should be no error reading the catalog yaml file for branch scenario")
+		err = shared.FromYamlToK8sObject(string(catalogBytes), catalog)
+		Expect(err).ToNot(HaveOccurred(), "there should be no error converting catalog yaml to k8s object for branch scenario")
+	}
 	return &scenario{
-		k8sClient: adminClient,
-		catalog:   catalog,
+		k8sClient:  adminClient,
+		catalog:    catalog,
+		secretName: secretName,
 	}
 }
 
@@ -359,14 +367,22 @@ func (s *scenario) expectStatusPropagationInCatalogInventory(ctx context.Context
 		default:
 			Fail("unsupported kind for propagation check: " + resource.Kind)
 		}
-		err := s.k8sClient.Get(ctx, client.ObjectKeyFromObject(fluxObj), fluxObj)
-		if apierrors.IsNotFound(err) && ignoreNotFound {
-			// ignore not found errors
-			continue
-		}
-		Expect(err).ToNot(HaveOccurred(), "there should be no error getting the catalog flux resource: "+fluxObj.GetName())
 		By("checking if Catalog inventory contains the flux resource status for " + resource.Kind + "/" + resource.Name)
 		Eventually(func(g Gomega) {
+			err := s.k8sClient.Get(ctx, client.ObjectKeyFromObject(fluxObj), fluxObj)
+			if apierrors.IsNotFound(err) && ignoreNotFound {
+				// ignore not found errors
+				return
+			}
+			g.Expect(err).ToNot(HaveOccurred(), "there should be no error getting the catalog flux resource: "+fluxObj.GetName())
+			annotations := fluxObj.GetAnnotations()
+			if annotations == nil {
+				annotations = make(map[string]string)
+			}
+			annotations[greenhouseapis.FluxReconcileRequestAnnotation] = time.Now().String()
+			fluxObj.SetAnnotations(annotations)
+			err = s.k8sClient.Update(ctx, fluxObj)
+			g.Expect(err).ToNot(HaveOccurred(), "there should be no error triggering reconcile: "+fluxObj.GetName())
 			fluxCondition := meta.FindStatusCondition(fluxObj.GetConditions(), fluxmeta.ReadyCondition)
 			g.Expect(fluxCondition).ToNot(BeNil(), "the underlying resource should have a Ready condition: "+fluxObj.GetName())
 			fluxConditionMsg := fluxCondition.Message
