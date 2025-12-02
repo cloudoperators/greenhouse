@@ -23,13 +23,13 @@ var (
 			Name: "greenhouse_plugin_chart_test_runs_total",
 			Help: "Total number of Helm Chart test runs with their results",
 		},
-		[]string{"cluster", "plugin", "namespace", "result", "owned_by"})
+		[]string{"clusterName", "plugin", "namespace", "result", "owned_by"})
 	workloadStatusGauge = prometheus.NewGaugeVec(
 		prometheus.GaugeOpts{
 			Name: "greenhouse_plugin_workload_status_up",
 			Help: "The workload status of the plugin",
 		},
-		[]string{"namespace", "plugin", "pluginDefinition", "cluster", "owned_by"},
+		[]string{"namespace", "plugin", "pluginDefinition", "clusterName", "owned_by"},
 	)
 )
 
@@ -56,11 +56,11 @@ func UpdatePluginReadyMetric(plugin *greenhousev1alpha1.Plugin, ready bool) {
 
 func IncrementHelmChartTestRunsTotal(plugin *greenhousev1alpha1.Plugin, testRunResult string) {
 	prometheusLabels := prometheus.Labels{
-		"cluster":   plugin.Spec.ClusterName,
-		"plugin":    plugin.Name,
-		"namespace": plugin.Namespace,
-		"owned_by":  plugin.GetLabels()[greenhouseapis.LabelKeyOwnedBy],
-		"result":    testRunResult,
+		"clusterName": plugin.Spec.ClusterName,
+		"plugin":      plugin.Name,
+		"namespace":   plugin.Namespace,
+		"owned_by":    plugin.GetLabels()[greenhouseapis.LabelKeyOwnedBy],
+		"result":      testRunResult,
 	}
 	chartTestRunsTotal.With(prometheusLabels).Inc()
 }
