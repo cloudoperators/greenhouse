@@ -42,25 +42,25 @@ func init() {
 
 func UpdateClusterMetrics(cluster *greenhousev1alpha1.Cluster) {
 	kubernetesVersionLabels := prometheus.Labels{
-		"clusterName":   cluster.Name,
-		"namespace": cluster.Namespace,
-		"version":   cluster.Status.KubernetesVersion,
-		"owned_by":  cluster.Labels[greenhouseapis.LabelKeyOwnedBy],
+		"clusterName": cluster.Name,
+		"namespace":   cluster.Namespace,
+		"version":     cluster.Status.KubernetesVersion,
+		"owned_by":    cluster.Labels[greenhouseapis.LabelKeyOwnedBy],
 	}
 	KubernetesVersionsGauge.With(kubernetesVersionLabels).Set(float64(1))
 
 	secondsToExpiry := cluster.Status.BearerTokenExpirationTimestamp.Unix() - time.Now().Unix()
 	secondsToExpiryLabels := prometheus.Labels{
-		"clusterName":   cluster.Name,
-		"namespace": cluster.Namespace,
-		"owned_by":  cluster.Labels[greenhouseapis.LabelKeyOwnedBy],
+		"clusterName": cluster.Name,
+		"namespace":   cluster.Namespace,
+		"owned_by":    cluster.Labels[greenhouseapis.LabelKeyOwnedBy],
 	}
 	SecondsToTokenExpiryGauge.With(secondsToExpiryLabels).Set(float64(secondsToExpiry))
 
 	clusterReadyLabels := prometheus.Labels{
-		"clusterName":   cluster.Name,
-		"namespace": cluster.Namespace,
-		"owned_by":  cluster.Labels[greenhouseapis.LabelKeyOwnedBy],
+		"clusterName": cluster.Name,
+		"namespace":   cluster.Namespace,
+		"owned_by":    cluster.Labels[greenhouseapis.LabelKeyOwnedBy],
 	}
 	if cluster.Status.IsReadyTrue() {
 		ClusterReadyGauge.With(clusterReadyLabels).Set(float64(1))
