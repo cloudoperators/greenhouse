@@ -46,10 +46,10 @@ const helmReleaseSecretType = "helm.sh/release.v1" //nolint:gosec
 // PluginReconciler reconciles a Plugin object.
 type PluginReconciler struct {
 	client.Client
-	KubeRuntimeOpts              clientutil.RuntimeOptions
-	kubeClientOpts               []clientutil.KubeClientOption
-	OptionValueTemplatingEnabled bool
-	DefaultDeploymentTool        *string
+	KubeRuntimeOpts             clientutil.RuntimeOptions
+	kubeClientOpts              []clientutil.KubeClientOption
+	ExpressionEvaluationEnabled bool
+	DefaultDeploymentTool       *string
 }
 
 //+kubebuilder:rbac:groups=greenhouse.sap,resources=plugindefinitions,verbs=get;list;watch;create;update;patch;delete
@@ -203,6 +203,13 @@ func (r *PluginReconciler) EnsureDeleted(ctx context.Context, resource lifecycle
 	deploymentTool := r.getDeploymentTool(plugin)
 	if deploymentTool == greenhouseapis.GreenhouseHelmDeliveryToolFlux {
 		return r.EnsureFluxDeleted(ctx, plugin)
+	}
+
+	// if DeletionPolicy is Retain, skip Helm release deletion
+	if plugin.Spec.DeletionPolicy == greenhouseapis.DeletionPolicyRetain {
+		log.FromContext(ctx).Info("skipping Helm release deletion due to DeletionPolicy=Retain")
+		plugin.SetCondition(greenhousemetav1alpha1.FalseCondition(greenhousev1alpha1.HelmReconcileFailedCondition, "", ""))
+		return ctrl.Result{}, lifecycle.Success, nil
 	}
 
 	restClientGetter, err := initClientGetter(ctx, r.Client, r.kubeClientOpts, *plugin)

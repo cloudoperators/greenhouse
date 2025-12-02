@@ -16,18 +16,17 @@ replace (
 	github.com/fluxcd/source-watcher/api/v2 => github.com/fluxcd/source-watcher/api/v2 v2.0.2
 
 	// Keep k8s dependencies in sync.
-	k8s.io/api => k8s.io/api v0.34.1
-	k8s.io/apiextensions-apiserver => k8s.io/apiextensions-apiserver v0.34.1
-	k8s.io/apimachinery => k8s.io/apimachinery v0.34.1
-	k8s.io/cli-runtime => k8s.io/cli-runtime v0.34.1
-	k8s.io/client-go => k8s.io/client-go v0.34.1
-	k8s.io/component-base => k8s.io/component-base v0.34.1
-	k8s.io/kubectl => k8s.io/kubectl v0.34.1
-	sigs.k8s.io/controller-runtime => sigs.k8s.io/controller-runtime v0.22.2
+	k8s.io/api => k8s.io/api v0.34.2
+	k8s.io/apiextensions-apiserver => k8s.io/apiextensions-apiserver v0.34.2
+	k8s.io/apimachinery => k8s.io/apimachinery v0.34.2
+	k8s.io/cli-runtime => k8s.io/cli-runtime v0.34.2
+	k8s.io/client-go => k8s.io/client-go v0.34.2
+	k8s.io/component-base => k8s.io/component-base v0.34.2
+	k8s.io/kubectl => k8s.io/kubectl v0.34.2
+	sigs.k8s.io/controller-runtime => sigs.k8s.io/controller-runtime v0.22.4
 )
 
 require (
-	github.com/Masterminds/sprig/v3 v3.3.0
 	github.com/cenkalti/backoff/v5 v5.0.3
 	github.com/dexidp/dex v0.0.0-20250829100637-2dce75009acf
 	github.com/fluxcd/helm-controller/api v1.4.2
@@ -39,6 +38,8 @@ require (
 	github.com/go-jose/go-jose/v4 v4.1.3
 	github.com/google/cel-go v0.26.1
 	github.com/google/go-cmp v0.7.0
+	github.com/google/go-github/v77 v77.0.0
+	github.com/hashicorp/go-retryablehttp v0.7.8
 	github.com/jeremywohl/flatten/v2 v2.0.0-20211013061545-07e4a09fb8e4
 	github.com/oklog/run v1.2.0
 	github.com/onsi/ginkgo/v2 v2.26.0
@@ -54,13 +55,13 @@ require (
 	golang.org/x/text v0.30.0
 	gopkg.in/yaml.v3 v3.0.1
 	helm.sh/helm/v3 v3.19.0
-	k8s.io/api v0.34.1
-	k8s.io/apiextensions-apiserver v0.34.1
-	k8s.io/apimachinery v0.34.1
-	k8s.io/cli-runtime v0.34.1
-	k8s.io/client-go v0.34.1
+	k8s.io/api v0.34.2
+	k8s.io/apiextensions-apiserver v0.34.2
+	k8s.io/apimachinery v0.34.2
+	k8s.io/cli-runtime v0.34.2
+	k8s.io/client-go v0.34.2
 	k8s.io/utils v0.0.0-20251002143259-bc988d571ff4
-	sigs.k8s.io/controller-runtime v0.22.2
+	sigs.k8s.io/controller-runtime v0.22.4
 	sigs.k8s.io/kind v0.30.0
 	sigs.k8s.io/yaml v1.6.0
 )
@@ -72,6 +73,7 @@ require (
 	cloud.google.com/go/auth/oauth2adapt v0.2.8 // indirect
 	dario.cat/mergo v1.0.1 // indirect
 	filippo.io/edwards25519 v1.1.0 // indirect
+	github.com/Masterminds/sprig/v3 v3.3.0 // indirect
 	github.com/antlr4-go/antlr/v4 v4.13.0 // indirect
 	github.com/blang/semver/v4 v4.0.0 // indirect
 	github.com/containerd/errdefs v0.3.0 // indirect
@@ -86,7 +88,9 @@ require (
 	github.com/go-sql-driver/mysql v1.9.3 // indirect
 	github.com/go-task/slim-sprig/v3 v3.0.0 // indirect
 	github.com/google/gnostic-models v0.7.0 // indirect
+	github.com/google/go-querystring v1.1.0 // indirect
 	github.com/gorilla/websocket v1.5.4-0.20250319132907-e064f32e3674 // indirect
+	github.com/hashicorp/go-cleanhttp v0.5.2 // indirect
 	github.com/kylelemons/godebug v1.1.0 // indirect
 	github.com/mattn/go-sqlite3 v1.14.32 // indirect
 	github.com/miekg/dns v1.1.58 // indirect
@@ -213,7 +217,7 @@ require (
 	golang.org/x/crypto v0.43.0 // indirect
 	golang.org/x/exp v0.0.0-20251017212417-90e834f514db
 	golang.org/x/net v0.46.0 // indirect
-	golang.org/x/oauth2 v0.30.0 // indirect
+	golang.org/x/oauth2 v0.30.0
 	golang.org/x/sync v0.17.0 // indirect
 	golang.org/x/sys v0.37.0 // indirect
 	golang.org/x/term v0.36.0 // indirect
@@ -226,8 +230,8 @@ require (
 	google.golang.org/protobuf v1.36.8 // indirect
 	gopkg.in/inf.v0 v0.9.1 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
-	k8s.io/apiserver v0.34.1 // indirect
-	k8s.io/component-base v0.34.1 // indirect
+	k8s.io/apiserver v0.34.2 // indirect
+	k8s.io/component-base v0.34.2 // indirect
 	k8s.io/klog/v2 v2.130.1
 	k8s.io/kube-openapi v0.0.0-20250710124328-f3f2b991d03b // indirect
 	sigs.k8s.io/json v0.0.0-20250730193827-2d320260d730 // indirect

@@ -75,6 +75,8 @@ const (
 	flagLeaseDuration                      = "leader-election-lease-duration"
 	flagRenewDeadline                      = "leader-election-renew-deadline"
 	flagRetryPeriod                        = "leader-election-retry-period"
+	flagArtifactStoragePath                = "catalog-artifact-storage-path"
+	flagArtifactRetries                    = "catalog-http-retry"
 )
 
 var (
@@ -85,8 +87,10 @@ var (
 	disabledControllers []string
 	remoteClusterBearerTokenValidity,
 	renewRemoteClusterBearerTokenAfter time.Duration
-	kubeClientOpts clientutil.RuntimeOptions
-	featureFlags   *features.Features
+	kubeClientOpts      clientutil.RuntimeOptions
+	featureFlags        *features.Features
+	artifactStoragePath string
+	artifactRetries     int
 )
 
 func init() {
@@ -125,6 +129,8 @@ func main() {
 	flag.DurationVar(&leaseDuration, flagLeaseDuration, 60*time.Second, "Leader election lease duration")
 	flag.DurationVar(&renewDeadline, flagRenewDeadline, 30*time.Second, "Leader election renew deadline")
 	flag.DurationVar(&retryPeriod, flagRetryPeriod, 5*time.Second, "Leader election retry period")
+	flag.StringVar(&artifactStoragePath, flagArtifactStoragePath, "/tmp/data", "The path to store catalog artifacts")
+	flag.IntVar(&artifactRetries, flagArtifactRetries, 5, "Max number of retries to acquire artifact, default: 5 attempts")
 
 	opts := zap.Options{
 		Development: true,

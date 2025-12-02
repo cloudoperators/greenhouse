@@ -94,13 +94,14 @@ When talking about clusters in the context of Greenhouse, we are referring to tw
     By onboarding their Kubernetes clusters into Greenhouse, users can centralize cluster management, streamlining tasks like resource monitoring and access control.
     This integration enhances visibility, simplifies operational tasks, and ensures better compliance, enabling users to efficiently manage and optimize their Kubernetes infrastructure.
     While the central cluster contains the user configuration and metadata, all workloads of user-selected Plugins are run in the remote cluster and managed by Greenhouse.
-    More information about the Cluster resources can be found [here](../getting-started/core-concepts/clusters.md).
+    More information about the Cluster resources can be found [here](./../../getting-started/core-concepts/clusters).
 
 ## Organizations & Authentication
 
 The Greenhouse platform is designed to support multiple organizations, each with its own set of users and permissions. Each organization can have multiple teams, and each team can have its own set of roles and permissions. The Greenhouse API provides a way to manage these organizations, teams, and roles.
-The Organization is a cluster-scoped resource for which a namespace with the same name will be created. When creating an Organization an identity provider (IdP) needs to be specified. All users in this IdP have read access to the resources in the Organization's namespace. Greenhouse will automatically provision a set of RBAC roles, more information can be found [here](../getting-started/core-concepts/organizations.md).
-In order to make the Kubernetes API available for multiple organizations, Greenhouse provides an idproxy build on-top of [dex](https://dexidp.io/), which allows to handle different identity providers (IdP) when authenticating users against the Kubernetes API.
+The Organization is a cluster-scoped resource for which a namespace with the same name will be created. When creating an Organization an identity provider (IdP) needs to be specified. All users in this IdP have read access to the resources in the Organization's namespace. Greenhouse will automatically provision a set of RBAC roles, view [RBAC within the Organization namespace](./../../../reference/components/organization/#role-based-access-control-within-the-organization-namespace) for details.
+
+In order to make the Kubernetes API available for multiple organizations, Greenhouse provides an idproxy build on-top of [Dex](https://dexidp.io/), which allows to handle different identity providers (IdP) when authenticating users against the Kubernetes API.
 
 ```mermaid
 ---
@@ -143,9 +144,9 @@ flowchart TB
 
 ## Remote Cluster management with Plugins & Team RBAC
 
-Greenhouse provides a way to manage access and tooling (e.g. monitoring, security, compliance, etc.) on a Kubernetes cluster through the use of Plugins and TeameRoleBindings. Plugins are used to deploy and manage workloads (e.g. Prometheus, Open Telemetry, Cert-Manager, etc.) in the remote clusters, while TeamRoleBindings are used to manage access to the remote clusters through Kubernetes RBAC. Details about Team RBAC can be found [here](../getting-started/core-concepts/teams.md).
+Greenhouse provides a way to manage access and tooling (e.g. monitoring, security, compliance, etc.) on a Kubernetes cluster through the use of Plugins and TeameRoleBindings. Plugins are used to deploy and manage workloads (e.g. Prometheus, Open Telemetry, Cert-Manager, etc.) in the remote clusters, while TeamRoleBindings are used to manage access to the remote clusters through Kubernetes RBAC. Details about Team RBAC can be found [here](./../../getting-started/core-concepts/teams).
 
-The Plugin API is a key feature of Greenhouse, allowing domain experts to extend the core platform with custom functionality. Greenhouse provides rollout and lifecyle management of Plugins to onboarded Kubernetes Clusters. PluginDefinitions define a Helm chart and/or UI (to be displayed on the Greenhouse dashboard) with pre-configured default values. A PluginPreset can be used to create and configure Plugins for a set of Clusters. [Here](../getting-started/core-concepts/plugins.md) you can find more information about the Plugin API.
+The Plugin API is a key feature of Greenhouse, allowing domain experts to extend the core platform with custom functionality. Greenhouse provides rollout and lifecyle management of Plugins to onboarded Kubernetes Clusters. PluginDefinitions define a Helm chart and/or UI (to be displayed on the Greenhouse dashboard) with pre-configured default values. A PluginPreset can be used to create and configure Plugins for a set of Clusters. [Here](./../../getting-started/core-concepts/plugins) you can find more information about the Plugin API.
 
 Access in the remote clusters is managed via TeamRole and TeamRoleBinding resources. TeamRoles define the permissions, similar to RBAC Roles & ClusterRoles. The Greenhouse operator will create the necessary Kubernetes RBAC resources in the remote clusters based on the TeamRoleBinding. The TeamRoleBinding combines the TeamRole with a Team and defines the target Clusters and Namespaces.
 

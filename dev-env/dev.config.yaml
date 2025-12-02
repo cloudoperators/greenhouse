@@ -12,7 +12,8 @@ config:
         - command: kubectl --kubeconfig "${kubeconfig}" get cm kube-root-ca.crt -n default -o json | jq -r '.data."ca.crt"' | tee bin/greenhouse-admin-ca.crt
           vars:
             kubeconfig: kubeconfig
-        - command: yq eval --inplace '.jwt[0].issuer.certificateAuthority = load_str("./bin/greenhouse-admin-ca.crt")' ./dev-env/structured-auth.yaml
+        - command: cp ./dev-env/structured-auth.yaml ./bin/structured-auth.yaml
+        - command: yq eval --inplace '.jwt[0].issuer.certificateAuthority = load_str("./bin/greenhouse-admin-ca.crt")' ./bin/structured-auth.yaml
         - command: kubectl create clusterrolebinding ${clusterRoleBinding} --clusterrole=${clusterRole} --group=${group} --dry-run=client -o yaml | kubectl apply --kubeconfig "${kubeconfig}" -f -
           vars:
             kubeconfig: kubeconfig
@@ -34,5 +35,3 @@ config:
   - cluster:
       name: greenhouse-remote
       configPath: dev-env/greenhouse-remote-cluster.yaml
-      postSetup:
-        - command: yq eval --inplace '.jwt[0].issuer.certificateAuthority = "<placeholder>"' ./dev-env/structured-auth.yaml

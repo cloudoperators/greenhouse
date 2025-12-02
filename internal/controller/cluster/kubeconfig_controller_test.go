@@ -11,7 +11,6 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/clientcmd"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	greenhouseapis "github.com/cloudoperators/greenhouse/api"
 	"github.com/cloudoperators/greenhouse/api/v1alpha1"
@@ -84,7 +83,7 @@ var _ = Describe("ClusterKubeconfig controller", Ordered, func() {
 	})
 
 	AfterAll(func() {
-		test.MustDeleteCluster(test.Ctx, test.K8sClient, client.ObjectKeyFromObject(&cluster))
+		test.MustDeleteCluster(test.Ctx, test.K8sClient, &cluster)
 		Expect(test.K8sClient.Delete(test.Ctx, oidcSecret)).To(Succeed())
 		test.EventuallyDeleted(test.Ctx, test.K8sClient, team)
 	})
@@ -290,4 +289,166 @@ users:
 		}).Should(Equal(metav1.ConditionFalse))
 	})
 
+	It("should override OIDC client ID and secret via cluster annotation using secrets", func() {
+		const (
+			overrideClientID     = "org-override-client-id"
+			overrideClientSecret = "org-override-client-secret" // #nosec G101 // not a real credential
+		)
+
+		// Create an override secret in the organization namespace
+		overrideSecret := setup.CreateSecret(test.Ctx, "override-secret-1",
+			test.WithSecretNamespace(setup.Namespace()),
+			test.WithSecretData(map[string][]byte{
+				oidcClientIDKey:     []byte(overrideClientID),
+				oidcClientSecretKey: []byte(overrideClientSecret),
+			}),
+		)
+
+		// Patch cluster with annotation referencing the secret keys
+		clusterToBeUpdated := v1alpha1.Cluster{}
+		Expect(test.K8sClient.Get(test.Ctx, types.NamespacedName{Name: cluster.Name, Namespace: setup.Namespace()}, &clusterToBeUpdated)).To(Succeed())
+		if clusterToBeUpdated.Annotations == nil {
+			clusterToBeUpdated.Annotations = make(map[string]string)
+		}
+		clusterToBeUpdated.Annotations["greenhouse.sap/oidc-override"] = fmt.Sprintf(`{
+			"clientIDReference": {"name": "%s", "key": "%s"},
+			"clientSecretReference": {"name": "%s", "key": "%s"}
+		}`, overrideSecret.Name, oidcClientIDKey, overrideSecret.Name, oidcClientSecretKey)
+		Expect(test.K8sClient.Update(test.Ctx, &clusterToBeUpdated)).To(Succeed())
+
+		clusterKubeconfig := v1alpha1.ClusterKubeconfig{}
+		Eventually(func(g Gomega) string {
+			g.Expect(test.K8sClient.Get(test.Ctx, types.NamespacedName{Name: cluster.Name, Namespace: setup.Namespace()}, &clusterKubeconfig)).ShouldNot(HaveOccurred())
+			return clusterKubeconfig.Spec.Kubeconfig.AuthInfo[0].AuthInfo.AuthProvider.Config["client-id"]
+		}).Should(Equal(overrideClientID))
+
+		Eventually(func(g Gomega) string {
+			g.Expect(test.K8sClient.Get(test.Ctx, types.NamespacedName{Name: cluster.Name, Namespace: setup.Namespace()}, &clusterKubeconfig)).ShouldNot(HaveOccurred())
+			return clusterKubeconfig.Spec.Kubeconfig.AuthInfo[0].AuthInfo.AuthProvider.Config["client-secret"]
+		}).Should(Equal(overrideClientSecret))
+
+		// Verify other fields remain unchanged - issuer should be whatever was set in the previous test
+		Expect(clusterKubeconfig.Status.Conditions.IsReadyTrue()).To(BeTrue())
+		// Get the current organization to check what the issuer should be
+		currentOrg := &v1alpha1.Organization{}
+		Expect(test.K8sClient.Get(test.Ctx, types.NamespacedName{Name: setup.Namespace()}, currentOrg)).To(Succeed())
+		Expect(clusterKubeconfig.Spec.Kubeconfig.AuthInfo[0].AuthInfo.AuthProvider.Config["idp-issuer-url"]).Should(Equal(currentOrg.Spec.Authentication.OIDCConfig.Issuer))
+	})
+
+	It("should override OIDC client ID and secret via another cluster annotation", func() {
+		const (
+			clusterOverrideClientID     = "cluster-override-client-id"
+			clusterOverrideClientSecret = "cluster-override-client-secret" // #nosec G101 // not a real credential
+		)
+
+		// Create another override secret and update annotation
+		overrideSecret2 := setup.CreateSecret(test.Ctx, "override-secret-2",
+			test.WithSecretNamespace(setup.Namespace()),
+			test.WithSecretData(map[string][]byte{
+				oidcClientIDKey:     []byte(clusterOverrideClientID),
+				oidcClientSecretKey: []byte(clusterOverrideClientSecret),
+			}),
+		)
+
+		clusterToBeUpdated := v1alpha1.Cluster{}
+		Expect(test.K8sClient.Get(test.Ctx, types.NamespacedName{Name: cluster.Name, Namespace: setup.Namespace()}, &clusterToBeUpdated)).To(Succeed())
+		if clusterToBeUpdated.Annotations == nil {
+			clusterToBeUpdated.Annotations = make(map[string]string)
+		}
+		clusterToBeUpdated.Annotations["greenhouse.sap/oidc-override"] = fmt.Sprintf(`{
+			"clientIDReference": {"name": "%s", "key": "%s"},
+			"clientSecretReference": {"name": "%s", "key": "%s"}
+		}`, overrideSecret2.Name, oidcClientIDKey, overrideSecret2.Name, oidcClientSecretKey)
+		Expect(test.K8sClient.Update(test.Ctx, &clusterToBeUpdated)).To(Succeed())
+
+		Eventually(func(g Gomega) string {
+			fresh := v1alpha1.ClusterKubeconfig{}
+			g.Expect(test.K8sClient.Get(test.Ctx, types.NamespacedName{Name: cluster.Name, Namespace: setup.Namespace()}, &fresh)).ShouldNot(HaveOccurred())
+			return fresh.Spec.Kubeconfig.AuthInfo[0].AuthInfo.AuthProvider.Config["client-id"]
+		}).Should(Equal(clusterOverrideClientID))
+
+		Eventually(func(g Gomega) string {
+			fresh := v1alpha1.ClusterKubeconfig{}
+			g.Expect(test.K8sClient.Get(test.Ctx, types.NamespacedName{Name: cluster.Name, Namespace: setup.Namespace()}, &fresh)).ShouldNot(HaveOccurred())
+			return fresh.Spec.Kubeconfig.AuthInfo[0].AuthInfo.AuthProvider.Config["client-secret"]
+		}).Should(Equal(clusterOverrideClientSecret))
+	})
+
+	It("should handle partial overrides - only client ID via cluster annotation", func() {
+		const (
+			clusterOverrideClientID = "cluster-override-id"
+		)
+
+		// Create a secret with only client ID key
+		overrideSecret3 := setup.CreateSecret(test.Ctx, "override-secret-3",
+			test.WithSecretNamespace(setup.Namespace()),
+			test.WithSecretData(map[string][]byte{
+				oidcClientIDKey: []byte(clusterOverrideClientID),
+			}),
+		)
+
+		clusterToBeUpdated := v1alpha1.Cluster{}
+		Expect(test.K8sClient.Get(test.Ctx, types.NamespacedName{Name: cluster.Name, Namespace: setup.Namespace()}, &clusterToBeUpdated)).To(Succeed())
+		if clusterToBeUpdated.Annotations == nil {
+			clusterToBeUpdated.Annotations = make(map[string]string)
+		}
+		clusterToBeUpdated.Annotations["greenhouse.sap/oidc-override"] = fmt.Sprintf(`{
+			"clientIDReference": {"name": "%s", "key": "%s"}
+		}`, overrideSecret3.Name, oidcClientIDKey)
+		Expect(test.K8sClient.Update(test.Ctx, &clusterToBeUpdated)).To(Succeed())
+
+		Eventually(func(g Gomega) string {
+			fresh := v1alpha1.ClusterKubeconfig{}
+			g.Expect(test.K8sClient.Get(test.Ctx, types.NamespacedName{Name: cluster.Name, Namespace: setup.Namespace()}, &fresh)).ShouldNot(HaveOccurred())
+			return fresh.Spec.Kubeconfig.AuthInfo[0].AuthInfo.AuthProvider.Config["client-id"]
+		}).Should(Equal(clusterOverrideClientID))
+
+		// Client secret should remain from organization secret
+		Eventually(func(g Gomega) string {
+			fresh := v1alpha1.ClusterKubeconfig{}
+			g.Expect(test.K8sClient.Get(test.Ctx, types.NamespacedName{Name: cluster.Name, Namespace: setup.Namespace()}, &fresh)).ShouldNot(HaveOccurred())
+			return fresh.Spec.Kubeconfig.AuthInfo[0].AuthInfo.AuthProvider.Config["client-secret"]
+		}).Should(Equal(oidcClientSecret))
+	})
+
+	It("should handle partial overrides - only client ID via cluster annotation (second case)", func() {
+		const overrideID = "org-partial-override-client-id"
+
+		// Create another secret with only client ID
+		overrideSecret4 := setup.CreateSecret(test.Ctx, "override-secret-4",
+			test.WithSecretNamespace(setup.Namespace()),
+			test.WithSecretData(map[string][]byte{
+				oidcClientIDKey: []byte(overrideID),
+			}),
+		)
+
+		clusterToBeUpdated := v1alpha1.Cluster{}
+		Expect(test.K8sClient.Get(test.Ctx, types.NamespacedName{Name: cluster.Name, Namespace: setup.Namespace()}, &clusterToBeUpdated)).To(Succeed())
+		if clusterToBeUpdated.Annotations == nil {
+			clusterToBeUpdated.Annotations = make(map[string]string)
+		}
+		clusterToBeUpdated.Annotations["greenhouse.sap/oidc-override"] = fmt.Sprintf(`{
+			"clientIDReference": {"name": "%s", "key": "%s"}
+		}`, overrideSecret4.Name, oidcClientIDKey)
+		Expect(test.K8sClient.Update(test.Ctx, &clusterToBeUpdated)).To(Succeed())
+
+		clusterKubeconfig := v1alpha1.ClusterKubeconfig{}
+		Eventually(func(g Gomega) string {
+			g.Expect(test.K8sClient.Get(test.Ctx, types.NamespacedName{Name: cluster.Name, Namespace: setup.Namespace()}, &clusterKubeconfig)).ShouldNot(HaveOccurred())
+			return clusterKubeconfig.Spec.Kubeconfig.AuthInfo[0].AuthInfo.AuthProvider.Config["client-id"]
+		}).Should(Equal(overrideID))
+
+		// Client secret should fall back to the secret value (from earlier in the test suite)
+		Eventually(func(g Gomega) string {
+			g.Expect(test.K8sClient.Get(test.Ctx, types.NamespacedName{Name: cluster.Name, Namespace: setup.Namespace()}, &clusterKubeconfig)).ShouldNot(HaveOccurred())
+			return clusterKubeconfig.Spec.Kubeconfig.AuthInfo[0].AuthInfo.AuthProvider.Config["client-secret"]
+		}).Should(Equal(oidcClientSecret))
+
+		// Verify other fields remain unchanged
+		Expect(clusterKubeconfig.Status.Conditions.IsReadyTrue()).To(BeTrue())
+		// Get the current organization to check what the issuer should be
+		currentOrg := &v1alpha1.Organization{}
+		Expect(test.K8sClient.Get(test.Ctx, types.NamespacedName{Name: setup.Namespace()}, currentOrg)).To(Succeed())
+		Expect(clusterKubeconfig.Spec.Kubeconfig.AuthInfo[0].AuthInfo.AuthProvider.Config["idp-issuer-url"]).Should(Equal(currentOrg.Spec.Authentication.OIDCConfig.Issuer))
+	})
 })

@@ -3,6 +3,9 @@ SPDX-FileCopyrightText: 2024 SAP SE or an SAP affiliate company and Greenhouse c
 SPDX-License-Identifier: Apache-2.0
 */}}
 
+{{- $secret := (lookup "v1" "Secret" "demo" "demo-token" ) | default dict -}}
+{{- $secretData := (get $secret "data") | default dict }}
+
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -15,6 +18,6 @@ data:
       "authClientId": {{ default .Values.global.oidc.dashboardClientID "greenhouse" | quote }},
       "currentHost": {{ required ".Values.dashboard.assetServerURL missing" .Values.dashboard.assetServerURL | quote }},
       "apiEndpoint": {{ include "dashboard.api.hostname" $  | quote }},
-      "demoUserToken": {{ required ".Values.dashboard.demoUser.token" .Values.dashboard.demoUser.token | quote }}
+      "demoUserToken": {{ get $secretData "token" | b64dec | quote }}
     }
 

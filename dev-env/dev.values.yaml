@@ -6,7 +6,7 @@ global:
   dex:
     backend: kubernetes
   plugin:
-    optionValueTemplating: false
+    expressionEvaluationEnabled: false
 alerts:
   enabled: false
 certManager:

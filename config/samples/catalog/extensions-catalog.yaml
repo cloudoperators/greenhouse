@@ -1,6 +1,5 @@
 # SPDX-FileCopyrightText: 2025 SAP SE or an SAP affiliate company and Greenhouse contributors
 # SPDX-License-Identifier: Apache-2.0
-
 apiVersion: greenhouse.sap/v1alpha1
 kind: Catalog
 metadata:
@@ -8,39 +7,31 @@ metadata:
   namespace: greenhouse
 spec:
   sources:
-    - repository: https://github.com/cloudoperators/greenhouse-extensions
+    - ref:
+        branch: main
+      repository: https://github.com/cloudoperators/greenhouse-extensions
       resources:
-        - alerts/plugindefinition.yaml
-        - audit-logs/plugindefinition.yaml
         - cert-manager/plugindefinition.yaml
-        - exposed-services/plugindefinition.yaml
-        - external-dns/plugindefinition.yaml
-        - repo-guard/plugindefinition.yaml
         - ingress-nginx/plugindefinition.yaml
         - kube-monitoring/plugindefinition.yaml
-        - openbao/plugindefinition.yaml
-        - logs/plugindefinition.yaml
+      overrides:
+        - name: cert-manager
+          alias: cert-manager-overridden
+          optionsOverride:
+            - name: "cert-manager.installCRDs"
+              value: true
+            - name: cert-manager.webhook.timeoutSeconds
+              value: 15
+    - ref:
+        sha: ed3ff23bca21eef6cffc0956df338d8185340fc5
+      repository: https://github.com/cloudoperators/greenhouse-extensions
+      resources:
         - perses/plugindefinition.yaml
-        - plutono/plugindefinition.yaml
-        - service-proxy/plugindefinition.yaml
-        - teams2slack/plugindefinition.yaml
-        - thanos/plugindefinition.yaml
-      ref:
-        branch: main
-      secretName: github-com-token
       overrides:
         - name: perses
-          alias: perses-some-registry-chart
-          repository: oci://some-registry.io/some-repo/perses-chart
-        - name: kube-monitoring
-          alias: kube-monitoring-some-registry-chart
-          repository: oci://some-registry.io/some-repo/kube-monitoring-chart
-    - repository: https://github.com/cloudoperators/greenhouse-extensions
-      resources:
-        - disco/plugindefinition.yaml
-      ref:
-        sha: eafaee1d74774f74e20101307d25b29a3eb26102
-      overrides:
-        - name: disco
-          alias: disco-some-registry-chart
-          repository: oci://some-registry.io/some-repo/perses-chart
+          alias: perses-overridden
+          optionsOverride:
+            - name: "perses.serviceMonitor.selector.matchLabels"
+              value:
+                foo: bar
+                baz: qux

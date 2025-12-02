@@ -4,58 +4,35 @@
 package flux
 
 import (
-	"bytes"
+	"encoding/json"
 	"errors"
-	"strings"
-	"text/template"
+	"fmt"
 
 	kustomizev1 "github.com/fluxcd/kustomize-controller/api/v1"
 	fluxkust "github.com/fluxcd/pkg/apis/kustomize"
 	"github.com/go-logr/logr"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	greenhouseapisv1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
+	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
 )
 
 const (
-	kustomizeOperationReplace = "replace"
-	kustomizeMetadataNamePath = "/metadata/name"
-	kustomizeHelmRepoPatch    = "/spec/helmChart/repository"
+	kustomizeOperationTest       = "test"
+	kustomizeReplacePluginOption = "/spec/options/%d"
+	kustomizeTestPluginOption    = "/spec/options/%d/name"
+	kustomizeOperationReplace    = "replace"
+	kustomizeMetadataNamePath    = "/metadata/name"
+	kustomizeHelmRepoPatch       = "/spec/helmChart/repository"
 )
 
 // Operation model for patch operations
 type Operation struct {
-	Op    string
-	Path  string
-	Value string
+	Op    string `json:"op"`
+	Path  string `json:"path"`
+	Value any    `json:"value,omitempty"`
 }
 
-// Data holds all the patch ops
-type Data struct {
-	Operations []Operation
-}
-
-const opsTmpl = `{{- range .Operations}}
-- op: {{ .Op }}
-  path: {{ .Path }}
-  value: {{ .Value }}
-{{- end}}`
-
-// indent is a small helper to indent a multi-line string
-func indent(spaces int, s string) string {
-	prefix := bytes.Repeat([]byte(" "), spaces)
-	out := &bytes.Buffer{}
-	for i, line := range bytes.Split([]byte(s), []byte("\n")) {
-		if i > 0 {
-			out.WriteByte('\n')
-		}
-		out.Write(prefix)
-		out.Write(line)
-	}
-	return out.String()
-}
-
-func constructPatchOperations(op, path, value string) Operation {
+func constructPatchOperations(op, path string, value any) Operation {
 	return Operation{
 		Op:    op,
 		Path:  path,
@@ -63,39 +40,43 @@ func constructPatchOperations(op, path, value string) Operation {
 	}
 }
 
-func patchTemplate(ops []Operation) (string, error) {
-	tmpl, err := template.New("patchOps").Funcs(template.FuncMap{
-		"indent": indent,
-	}).Parse(opsTmpl)
+func BuildJSONPatchReplace(opt greenhousev1alpha1.PluginOption, index int, group, name string) (fluxkust.Patch, error) {
+	ops := []Operation{
+		constructPatchOperations(kustomizeOperationTest, fmt.Sprintf(kustomizeTestPluginOption, index), opt.Name),
+		constructPatchOperations(kustomizeOperationReplace, fmt.Sprintf(kustomizeReplacePluginOption, index), opt),
+	}
+	raw, err := json.Marshal(ops)
 	if err != nil {
-		return "", err
+		return fluxkust.Patch{}, err
 	}
-	d := Data{
-		Operations: ops,
-	}
-	var buf bytes.Buffer
-	if err := tmpl.Execute(&buf, d); err != nil {
-		return "", err
-	}
-
-	// Remove leading newline characters from the output
-	return strings.TrimLeft(buf.String(), "\n"), nil
+	return fluxkust.Patch{
+		Patch: string(raw),
+		Target: &fluxkust.Selector{
+			Group: group,
+			Name:  name,
+		},
+	}, nil
 }
 
-func PrepareKustomizePatches(overrides []greenhouseapisv1alpha1.CatalogOverrides, group string) ([]fluxkust.Patch, error) {
+func PrepareKustomizePatches(overrides []greenhousev1alpha1.CatalogOverrides, group string) ([]fluxkust.Patch, error) {
 	patches := make([]fluxkust.Patch, 0)
 	for _, override := range overrides {
+		if override.Alias == "" && override.Repository == "" {
+			continue
+		}
 		operations := make([]Operation, 0, len(overrides))
-		operations = append(operations, constructPatchOperations(kustomizeOperationReplace, kustomizeMetadataNamePath, override.Alias))
+		if override.Alias != "" {
+			operations = append(operations, constructPatchOperations(kustomizeOperationReplace, kustomizeMetadataNamePath, override.Alias))
+		}
 		if override.Repository != "" {
 			operations = append(operations, constructPatchOperations(kustomizeOperationReplace, kustomizeHelmRepoPatch, override.Repository))
 		}
-		metadataPatch, err := patchTemplate(operations)
+		patched, err := json.Marshal(operations)
 		if err != nil {
 			return nil, err
 		}
 		patch := fluxkust.Patch{
-			Patch: metadataPatch,
+			Patch: string(patched),
 			Target: &fluxkust.Selector{
 				Group: group,
 				Name:  override.Name,

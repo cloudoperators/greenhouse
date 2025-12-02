@@ -17,7 +17,7 @@ import (
 
 func TestCEL(t *testing.T) {
 	RegisterFailHandler(Fail)
-	RunSpecs(t, "CEL Evaluator Suite")
+	RunSpecs(t, "CEL Suite")
 }
 
 var _ = Describe("CEL Evaluator", func() {
@@ -125,6 +125,25 @@ var _ = Describe("CEL Evaluator", func() {
 			Expect(err).To(HaveOccurred())
 			Expect(err.Error()).To(ContainSubstring("no such key"))
 			Expect(result).To(BeNil())
+		})
+
+		It("should evaluate into typed fields", func() {
+			result, err := cel.EvaluateTyped[*fixtures.DummySpec]("object.spec", dummy)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(result).ToNot(BeNil())
+			Expect(result).To(BeAssignableToTypeOf(&fixtures.DummySpec{}))
+
+			ptrStr, err := cel.EvaluateTyped[*string]("object.metadata.name", dummy)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(ptrStr).ToNot(BeNil())
+			Expect(ptrStr).To(BeAssignableToTypeOf(new(string)))
+			Expect(*ptrStr).To(Equal("test-dummy"))
+
+			labels, err := cel.EvaluateTyped[map[string]string]("object.metadata.labels", dummy)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(labels).ToNot(BeNil())
+			Expect(labels).To(BeAssignableToTypeOf(map[string]string{}))
+			Expect(labels["app"]).To(Equal("test-app"))
 		})
 	})
 

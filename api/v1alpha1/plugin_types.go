@@ -43,8 +43,19 @@ type PluginSpec struct {
 	// +kubebuilder:validation:MaxLength=53
 	ReleaseName string `json:"releaseName,omitempty"`
 
+	// DeletionPolicy defines how Helm Releases created by a Plugin are handled upon deletion of the Plugin.
+	// Supported values are "Delete" and "Retain". If not set, defaults to "Delete".
+	// +Optional
+	// +kubebuilder:default=Delete
+	// +kubebuilder:validation:Enum=Delete;Retain
+	DeletionPolicy string `json:"deletionPolicy,omitempty"`
+
 	// WaitFor defines other Plugins to wait for before installing this Plugin.
 	WaitFor []WaitForItem `json:"waitFor,omitempty"`
+
+	// IgnoreDifferences defines paths to ignore when detecting drift between desired and actual state.
+	// +Optional
+	IgnoreDifferences []IgnoreDifference `json:"ignoreDifferences,omitempty"`
 }
 
 // PluginOptionValue is the value for a PluginOption.
@@ -55,9 +66,27 @@ type PluginOptionValue struct {
 	Value *apiextensionsv1.JSON `json:"value,omitempty"`
 	// ValueFrom references a potentially confidential value in another source.
 	ValueFrom *ValueFromSource `json:"valueFrom,omitempty"`
-	// Template is a Go string template that will be dynamically resolved for cluster-specific values.
-	// Only PluginOptionValues declared as template will be templated by the PluginController for Flux.
-	Template *string `json:"template,omitempty"`
+	// Expression is a YAML string with ${...} placeholders that will be evaluated as CEL expressions.
+	Expression *string `json:"expression,omitempty"`
+}
+
+// IgnoreDifference defines a set of paths to ignore for matching resources.
+type IgnoreDifference struct {
+	// Group matches the APIVersion group of the resources to ignore.
+	// +Optional
+	Group string `json:"group,omitempty"`
+	// Version matches the APIVersion version of the resources to ignore.
+	// +Optional
+	Version string `json:"version,omitempty"`
+	// Kind matches the Kind of the resources to ignore.
+	// +Optional
+	Kind string `json:"kind,omitempty"`
+	// Name matches the name of the resources to ignore.
+	// +Optional
+	Name string `json:"name,omitempty"`
+	// Paths is a list of JSON paths to ignore when detecting drifts.
+	// +kubebuilder:validation:Required
+	Paths []string `json:"paths,omitempty"`
 }
 
 // ValueJSON returns the value as JSON.
@@ -125,6 +154,10 @@ type PluginStatus struct {
 
 	// StatusConditions contain the different conditions that constitute the status of the Plugin.
 	greenhousemetav1alpha1.StatusConditions `json:"statusConditions,omitempty"`
+
+	// LastReconciledAt contains the value when the reconcile was last triggered via annotation.
+	// +Optional
+	LastReconciledAt string `json:"lastReconciledAt,omitempty"`
 }
 
 // ServiceType defines the type of exposed service.
@@ -207,6 +240,10 @@ func (o *Plugin) GetConditions() greenhousemetav1alpha1.StatusConditions {
 
 func (o *Plugin) SetCondition(condition greenhousemetav1alpha1.Condition) {
 	o.Status.SetConditions(condition)
+}
+
+func (o *Plugin) UpdateLastReconciledAtStatus(value string) {
+	o.Status.LastReconciledAt = value
 }
 
 func (o *Plugin) GetReleaseName() string {

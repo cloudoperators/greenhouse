@@ -14,6 +14,35 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
+// EvaluateTyped evaluates a CEL expression against a single Kubernetes object.
+// The result is unmarshalled into the specified generic type T.
+// Returns the result of the evaluation or an error.
+func EvaluateTyped[T any](expression string, obj client.Object) (T, error) {
+	var zero T
+
+	val, err := Evaluate(expression, obj)
+	if err != nil {
+		return zero, err
+	}
+
+	// Fast-path for direct type match (primitive types)
+	if cast, ok := val.(T); ok {
+		return cast, nil
+	}
+
+	// Fallback: normalize through JSON once for structured types
+	data, err := json.Marshal(val)
+	if err != nil {
+		return zero, fmt.Errorf("marshal CEL result: %w", err)
+	}
+
+	var out T
+	if err := json.Unmarshal(data, &out); err != nil {
+		return zero, fmt.Errorf("unmarshal CEL result: %w", err)
+	}
+	return out, nil
+}
+
 // Evaluate evaluates a CEL expression against a single Kubernetes object.
 // Returns the result of the evaluation.
 func Evaluate(expression string, obj client.Object) (any, error) {
@@ -61,6 +90,24 @@ func EvaluateList(expression string, objs []client.Object) ([]any, error) {
 	return results, nil
 }
 
+// EvaluateWithData evaluates a CEL expression against arbitrary data using a custom CEL environment.
+func EvaluateWithData(expression string, env *cel.Env, data map[string]any) (any, error) {
+	if expression == "" {
+		return nil, errors.New("expression cannot be empty")
+	}
+
+	prg, err := CompileExpressionWithEnv(expression, env)
+	if err != nil {
+		return nil, err
+	}
+
+	out, _, err := prg.Eval(data)
+	if err != nil {
+		return nil, fmt.Errorf("failed to evaluate expression: %w", err)
+	}
+	return convertCELValue(out)
+}
+
 func compileExpression(expression string) (cel.Program, error) {
 	env, err := cel.NewEnv(
 		cel.Variable("object", cel.DynType),
@@ -69,6 +116,12 @@ func compileExpression(expression string) (cel.Program, error) {
 		return nil, fmt.Errorf("failed to create CEL environment: %w", err)
 	}
 
+	return CompileExpressionWithEnv(expression, env)
+}
+
+// CompileExpressionWithEnv compiles a CEL expression using the provided environment.
+// This is a shared helper that can be reused across different CEL evaluation contexts.
+func CompileExpressionWithEnv(expression string, env *cel.Env) (cel.Program, error) {
 	ast, issues := env.Compile(expression)
 	if issues != nil && issues.Err() != nil {
 		return nil, fmt.Errorf("failed to compile expression: %w", issues.Err())
@@ -107,10 +160,36 @@ func convertCELValue(val ref.Val) (any, error) {
 		return nil, fmt.Errorf("CEL evaluation error: %v", val)
 	}
 
+	// Handle lists.
 	if listVal, ok := val.Value().([]ref.Val); ok {
 		result := make([]any, len(listVal))
 		for i, item := range listVal {
-			result[i] = item.Value()
+			converted, err := convertCELValue(item)
+			if err != nil {
+				return nil, err
+			}
+			result[i] = converted
+		}
+		return result, nil
+	}
+
+	// Handle maps.
+	if mapVal, ok := val.Value().(map[ref.Val]ref.Val); ok {
+		result := make(map[string]any, len(mapVal))
+		for k, v := range mapVal {
+			keyConverted, err := convertCELValue(k)
+			if err != nil {
+				return nil, err
+			}
+			valueConverted, err := convertCELValue(v)
+			if err != nil {
+				return nil, err
+			}
+			keyStr, ok := keyConverted.(string)
+			if !ok {
+				return nil, fmt.Errorf("map key must be a string, got %T", keyConverted)
+			}
+			result[keyStr] = valueConverted
 		}
 		return result, nil
 	}

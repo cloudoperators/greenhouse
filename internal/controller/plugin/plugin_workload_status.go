@@ -93,17 +93,19 @@ func (r *PluginReconciler) reconcilePluginWorkloadStatus(
 		releaseStatus.ReleaseNamespace = helmRelease.Namespace
 		releaseStatus.ClusterName = plugin.Spec.ClusterName
 		releaseStatus.HelmStatus = helmRelease.Info.Status.String()
-		fileteredObjectMap, err := helm.ObjectMapFromManifest(restClientGetter, plugin.Namespace, helmRelease.Manifest, &helm.ManifestMultipleObjectFilter{
+		filteredObjectMap, err := helm.ObjectMapFromManifest(restClientGetter, plugin.Namespace, helmRelease.Manifest, &helm.ManifestMultipleObjectFilter{
 			Filters: objectFilter,
 		})
 		if err != nil {
 			log.FromContext(ctx).Error(err, "failed to get object map from manifest")
 		}
-		for key := range fileteredObjectMap {
+		for key := range filteredObjectMap {
 			getPayloadStatus(ctx, releaseStatus, objClient, key.Name, releaseStatus.ReleaseNamespace, key.GVK)
 		}
 
-		computeWorkloadCondition(plugin, releaseStatus)
+		if err := computeWorkloadCondition(plugin, releaseStatus); err != nil {
+			return nil, err
+		}
 	}
 	return &reconcileResult{requeueAfter: StatusRequeueInterval}, nil
 }

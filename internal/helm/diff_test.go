@@ -37,9 +37,8 @@ var _ = Describe("ensure helm diff against the release manifest works as expecte
 	BeforeEach(func() {
 		pluginDefinitionUT = test.NewClusterPluginDefinition(test.Ctx, "test-plugindefinition",
 			test.WithHelmChart(&greenhousev1alpha1.HelmChartReference{
-				Name:       "./../test/fixtures/myChart",
-				Repository: "dummy",
-				Version:    "1.0.0",
+				Name:    "./../test/fixtures/myChart",
+				Version: "1.0.0",
 			}),
 		)
 
@@ -171,9 +170,8 @@ var _ = Describe("ensure helm with hooks diff against the release manifest works
 	BeforeEach(func() {
 		pluginDefinitionUT = test.NewClusterPluginDefinition(test.Ctx, "test-plugindefinition",
 			test.WithHelmChart(&greenhousev1alpha1.HelmChartReference{
-				Name:       "./../test/fixtures/testHook",
-				Repository: "dummy",
-				Version:    "1.0.0",
+				Name:    "./../test/fixtures/testHook",
+				Version: "1.0.0",
 			}))
 		pluginUT = test.NewPlugin(test.Ctx, "test-plugin", namespace,
 			test.WithPluginLabel(greenhouseapis.LabelKeyOwnedBy, "test-team-1"),

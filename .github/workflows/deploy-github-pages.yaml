@@ -73,7 +73,7 @@ jobs:
           mkdir -p ${DESTINATION_DIR}
 
           echo "collecting PluginDefinition descriptions from ${GREENHOUSE_EXTENSIONS_GIT_DIR}"
-          all_files=$(git -C $GREENHOUSE_EXTENSIONS_GIT_DIR grep --recursive --files-with-matches -e "kind: ClusterPluginDefinition" -- '*plugindefinition.yaml')
+          all_files=$(git -C "$GREENHOUSE_EXTENSIONS_GIT_DIR" grep -E --recursive --files-with-matches -e "kind: (Cluster)?PluginDefinition" -- '*plugindefinition.yaml')
 
           for f in $all_files; do
             d=$(dirname $f)

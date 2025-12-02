@@ -62,8 +62,8 @@ var _ = BeforeSuite(func() {
 var _ = AfterSuite(func() {
 	shared.OffBoardRemoteCluster(ctx, adminClient, remoteClient, testStartTime, remoteClusterName, env.TestNamespace)
 	test.EventuallyDeleted(ctx, adminClient, team)
-	env.GenerateControllerLogs(ctx, testStartTime)
-	env.GenerateFluxHelmControllerLogs(ctx, testStartTime)
+	env.GenerateGreenhouseControllerLogs(ctx, testStartTime)
+	env.GenerateFluxControllerLogs(ctx, "helm-controller", testStartTime)
 })
 
 var _ = Describe("Plugin E2E", Ordered, func() {
@@ -104,5 +104,9 @@ var _ = Describe("Plugin E2E", Ordered, func() {
 
 	It("should deploy plugin with dependency via flux", func() {
 		scenarios.FluxControllerPluginDependencies(ctx, adminClient, remoteClient, env, remoteClusterName, team.Name)
+	})
+
+	It("should retain the helm release when Plugin `.spec.deletePolicy` is set to `Retain`", func() {
+		scenarios.FluxControllerPluginDeletePolicyRetain(ctx, adminClient, remoteClient, env, remoteClusterName, team.Name)
 	})
 })

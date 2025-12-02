@@ -55,7 +55,7 @@ var _ = BeforeSuite(func() {
 })
 
 var _ = AfterSuite(func() {
-	env.GenerateControllerLogs(ctx, testStartTime)
+	env.GenerateGreenhouseControllerLogs(ctx, testStartTime)
 })
 
 var _ = Describe("Organization E2E", Ordered, func() {

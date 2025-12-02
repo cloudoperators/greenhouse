@@ -20,7 +20,7 @@ global:
       postgresqlUsername:
   # Plugin configuration for Greenhouse.
   plugin:
-    optionValueTemplating: false
+    expressionEvaluationEnabled: false
     defaultDeploymentTool: helm
 
 postgresqlng:

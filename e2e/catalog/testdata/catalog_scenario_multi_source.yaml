@@ -1,0 +1,68 @@
+# SPDX-FileCopyrightText: 2025 SAP SE or an SAP affiliate company and Greenhouse contributors
+# SPDX-License-Identifier: Apache-2.0
+
+apiVersion: greenhouse.sap/v1alpha1
+kind: Catalog
+metadata:
+  labels:
+    greenhouse.sap/managed-by: e2e
+  name: extensions-e2e-multi-source
+spec:
+  sources:
+    - repository: https://github.com/cloudoperators/extensions-e2e
+      resources:
+        - plugindefinitions/pd-cert-manager.yaml
+        - plugindefinitions/pd-digicert-issuer.yaml
+        - plugindefinitions/pd-disco.yaml
+        - plugindefinitions/pd-ingress-nginx.yaml
+      ref:
+        branch: dev
+      secretName: github-com-app
+      overrides:
+        - name: cert-manager
+          alias: cert-manager-branch
+          repository: "oci://some-registry.io/some-repo/cert-manager"
+        - name: digicert-issuer
+          alias: digicert-issuer-branch
+        - name: disco
+          alias: disco-branch
+        - name: ingress-nginx
+          alias: ingress-nginx-branch
+    - repository: https://github.com/cloudoperators/extensions-e2e
+      resources:
+        - plugindefinitions/pd-cert-manager.yaml
+        - plugindefinitions/pd-digicert-issuer.yaml
+        - plugindefinitions/pd-disco.yaml
+        - plugindefinitions/pd-ingress-nginx.yaml
+      ref:
+        sha: ba6a0445d4dd6a1b435ee6925853155f3ba214bf
+      secretName: github-com-app
+      overrides:
+        - name: cert-manager
+          alias: cert-manager-commit
+        - name: digicert-issuer
+          alias: digicert-issuer-commit
+        - name: disco
+          alias: disco-commit
+          repository: "oci://some-registry.io/some-repo/disco"
+        - name: ingress-nginx
+          alias: ingress-nginx-commit
+    - repository: https://github.com/cloudoperators/extensions-e2e
+      resources:
+        - plugindefinitions/pd-cert-manager.yaml
+        - plugindefinitions/pd-digicert-issuer.yaml
+        - plugindefinitions/pd-disco.yaml
+        - plugindefinitions/pd-ingress-nginx.yaml
+      ref:
+        branch: main
+      secretName: github-com-app
+      overrides:
+        - name: cert-manager
+          alias: cert-manager-latest
+        - name: digicert-issuer
+          alias: digicert-issuer-latest
+        - name: disco
+          alias: disco-multi-latest
+        - name: ingress-nginx
+          alias: ingress-nginx-latest
+          repository: "oci://some-registry.io/some-repo/ingress-nginx"

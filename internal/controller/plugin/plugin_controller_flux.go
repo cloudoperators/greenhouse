@@ -11,6 +11,7 @@ import (
 	"slices"
 
 	helmv2 "github.com/fluxcd/helm-controller/api/v2"
+	"github.com/fluxcd/pkg/apis/kustomize"
 	fluxmeta "github.com/fluxcd/pkg/apis/meta"
 	sourcecontroller "github.com/fluxcd/source-controller/api/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -39,6 +40,16 @@ const (
 )
 
 func (r *PluginReconciler) EnsureFluxDeleted(ctx context.Context, plugin *greenhousev1alpha1.Plugin) (ctrl.Result, lifecycle.ReconcileResult, error) {
+	// suspend the HelmRelease first to delete the Flux HelmRelease without removing the Helm release from the target cluster
+	if plugin.Spec.DeletionPolicy == greenhouseapis.DeletionPolicyRetain {
+		if _, err := r.EnsureFluxSuspended(ctx, plugin); err != nil {
+			c := greenhousemetav1alpha1.TrueCondition(greenhousev1alpha1.HelmReconcileFailedCondition, greenhousev1alpha1.HelmUninstallFailedReason, err.Error())
+			plugin.SetCondition(c)
+			util.UpdatePluginReconcileTotalMetric(plugin, util.MetricResultError, util.MetricReasonSuspendFailed)
+			return ctrl.Result{}, lifecycle.Failed, err
+		}
+	}
+
 	if err := r.Delete(ctx, &helmv2.HelmRelease{ObjectMeta: metav1.ObjectMeta{Name: plugin.Name, Namespace: plugin.Namespace}}); client.IgnoreNotFound(err) != nil {
 		c := greenhousemetav1alpha1.TrueCondition(greenhousev1alpha1.HelmReconcileFailedCondition, greenhousev1alpha1.HelmUninstallFailedReason, err.Error())
 		plugin.SetCondition(c)
@@ -126,7 +137,7 @@ func (r *PluginReconciler) ensureHelmRelease(
 	release.SetNamespace(plugin.Namespace)
 
 	result, err := ctrl.CreateOrUpdate(ctx, r.Client, release, func() error {
-		values, err := addValuesToHelmRelease(ctx, r.Client, plugin, r.OptionValueTemplatingEnabled)
+		values, err := addValuesToHelmRelease(ctx, r.Client, plugin, r.ExpressionEvaluationEnabled)
 		if err != nil {
 			return fmt.Errorf("failed to compute HelmRelease values for Plugin %s: %w", plugin.Name, err)
 		}
@@ -165,9 +176,7 @@ func (r *PluginReconciler) ensureHelmRelease(
 			WithTest(&helmv2.Test{
 				Enable: false,
 			}).
-			WithDriftDetection(&helmv2.DriftDetection{
-				Mode: helmv2.DriftDetectionEnabled,
-			}).
+			WithDriftDetection(configureDriftDetection(plugin.Spec.IgnoreDifferences)).
 			WithSuspend(false).
 			WithKubeConfig(&fluxmeta.SecretKeyReference{
 				Name: plugin.Spec.ClusterName,
@@ -201,6 +210,9 @@ func (r *PluginReconciler) ensureHelmRelease(
 			return fmt.Errorf("failed to create HelmRelease for plugin %s: %w", plugin.Name, err)
 		}
 		release.Spec = spec
+
+		val, _ := lifecycle.ReconcileAnnotationValue(plugin)
+		common.EnsureAnnotation(release, fluxmeta.ReconcileRequestAnnotation, val)
 
 		return controllerutil.SetControllerReference(plugin, release, r.Scheme())
 	})
@@ -388,15 +400,15 @@ func (r *PluginReconciler) reconcilePluginStatus(ctx context.Context,
 	pluginStatus.ExposedServices = exposedServices
 }
 
-func addValuesToHelmRelease(ctx context.Context, c client.Client, plugin *greenhousev1alpha1.Plugin, optionValueTemplatingEnabled bool) ([]byte, error) {
+func addValuesToHelmRelease(ctx context.Context, c client.Client, plugin *greenhousev1alpha1.Plugin, expressionEvaluationEnabled bool) ([]byte, error) {
 	optionValues, err := helm.GetPluginOptionValuesForPlugin(ctx, c, plugin)
 	if err != nil {
 		return nil, err
 	}
 
-	optionValues, err = helm.ResolveTemplatedValues(ctx, optionValues, optionValueTemplatingEnabled)
+	optionValues, err = helm.ResolveExpressions(ctx, optionValues, expressionEvaluationEnabled)
 	if err != nil {
-		return nil, fmt.Errorf("failed to resolve templated values: %w", err)
+		return nil, fmt.Errorf("failed to resolve expressions: %w", err)
 	}
 
 	// remove all option values that are set from a secret, as these have a nil value
@@ -415,6 +427,26 @@ func addValuesToHelmRelease(ctx context.Context, c client.Client, plugin *greenh
 		return nil, err
 	}
 	return byteValue, nil
+}
+
+// configureDriftDetection configures drift detection for the HelmRelease based on the provided ignore differences.
+// The mode is set to enable, and ignore rules are added for each specified ignore difference.
+func configureDriftDetection(ignoreDifferences []greenhousev1alpha1.IgnoreDifference) *helmv2.DriftDetection {
+	driftDetection := &helmv2.DriftDetection{
+		Mode: helmv2.DriftDetectionEnabled,
+	}
+	for _, ignore := range ignoreDifferences {
+		driftDetection.Ignore = append(driftDetection.Ignore, helmv2.IgnoreRule{
+			Target: &kustomize.Selector{
+				Group:   ignore.Group,
+				Version: ignore.Version,
+				Kind:    ignore.Kind,
+				Name:    ignore.Name,
+			},
+			Paths: ignore.Paths,
+		})
+	}
+	return driftDetection
 }
 
 func (r *PluginReconciler) addValueReferences(plugin *greenhousev1alpha1.Plugin) []helmv2.ValuesReference {

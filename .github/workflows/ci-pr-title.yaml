@@ -35,6 +35,7 @@ jobs:
             style
             test
             docs
+            e2e
           # Configure which scopes are allowed (newline-delimited).
           # These are regex patterns auto-wrapped in `^ $`.
           scopes: |
@@ -64,6 +65,7 @@ jobs:
             e2e
             greenhouse
             greenhousectl
+            dev-env
             actions
             template
             tests
