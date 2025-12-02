@@ -173,11 +173,11 @@ kustomize-build-crds: manifests kustomize
 ## Tool Binaries
 KUSTOMIZE ?= $(LOCALBIN)/kustomize
 CONTROLLER_GEN ?= $(LOCALBIN)/controller-gen
-CONTROLLER_GEN_ACTION ?= $(LOCALBIN)/controller-gen
+CONTROLLER_GEN_ACTION ?= $(LOCALBIN)/action-controller-gen
 GOIMPORTS ?= $(LOCALBIN)/goimports
 GOLINT ?= $(LOCALBIN)/golangci-lint
 ENVTEST ?= $(LOCALBIN)/setup-envtest
-ENVTEST_ACTION ?= $(LOCALBIN)/setup-envtest
+ENVTEST_ACTION ?= $(LOCALBIN)/action-setup-envtest
 HELMIFY ?= $(LOCALBIN)/helmify
 
 ## Tool Versions
