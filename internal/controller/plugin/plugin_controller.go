@@ -194,7 +194,39 @@ func (r *PluginReconciler) setConditions() lifecycle.Conditioner {
 		util.UpdateOwnedByLabelMissingMetric(plugin, ownerLabelCondition.IsFalse())
 
 		plugin.Status.SetConditions(readyCondition, ownerLabelCondition)
+
+		if err := r.reconcileTechnicalLabels(ctx, plugin); err != nil {
+			logger.Error(err, "failed to reconcile technical labels")
+		}
 	}
+}
+
+// reconcileTechnicalLabels ensures the plugin has the correct technical labels based on its status.
+func (r *PluginReconciler) reconcileTechnicalLabels(ctx context.Context, plugin *greenhousev1alpha1.Plugin) error {
+	_, err := clientutil.Patch(ctx, r.Client, plugin, func() error {
+		labels := plugin.GetLabels()
+		if labels == nil {
+			labels = make(map[string]string)
+		}
+
+		if plugin.Status.UIApplication != nil {
+			labels[greenhouseapis.LabelKeyUIPlugin] = "true"
+		} else {
+			delete(labels, greenhouseapis.LabelKeyUIPlugin)
+		}
+
+		if len(plugin.Status.ExposedServices) > 0 {
+			labels[greenhouseapis.LabelKeyPluginExposesService] = "true"
+		} else {
+			delete(labels, greenhouseapis.LabelKeyPluginExposesService)
+		}
+
+		plugin.SetLabels(labels)
+
+		return nil
+	})
+
+	return err
 }
 
 func (r *PluginReconciler) EnsureDeleted(ctx context.Context, resource lifecycle.RuntimeObject) (ctrl.Result, lifecycle.ReconcileResult, error) {

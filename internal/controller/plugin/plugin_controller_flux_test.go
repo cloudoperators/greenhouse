@@ -296,5 +296,21 @@ var _ = Describe("Flux Plugin Controller", Ordered, func() {
 			g.Expect(err).To(HaveOccurred(), "there should be an error getting the HelmRelease")
 			g.Expect(apierrors.IsNotFound(err)).To(BeTrue())
 		}).Should(Succeed())
+
+		By("checking that the UI plugin has the ui-plugin label")
+		Eventually(func(g Gomega) {
+			err := test.K8sClient.Get(test.Ctx, client.ObjectKeyFromObject(uiPlugin), uiPlugin)
+			g.Expect(err).ToNot(HaveOccurred())
+			g.Expect(uiPlugin.GetLabels()).To(HaveKeyWithValue(greenhouseapis.LabelKeyUIPlugin, "true"),
+				"Plugin with UIApplication should have ui-plugin label")
+		}).Should(Succeed())
+
+		By("checking that the non-UI plugin does not have the ui-plugin label")
+		Eventually(func(g Gomega) {
+			err := test.K8sClient.Get(test.Ctx, client.ObjectKeyFromObject(testPlugin), testPlugin)
+			g.Expect(err).ToNot(HaveOccurred())
+			g.Expect(testPlugin.GetLabels()).ToNot(HaveKey(greenhouseapis.LabelKeyUIPlugin),
+				"Plugin without UIApplication should not have ui-plugin label")
+		}).Should(Succeed())
 	})
 })
