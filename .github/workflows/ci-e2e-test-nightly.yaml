@@ -32,7 +32,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        k8s-version: [ "v1.31.12", "v1.32.8", "v1.33.4", "v1.34.0" ]
+        k8s-version: [ "v1.32.8", "v1.33.4", "v1.34.0" ]
         e2es: ${{fromJson(needs.init.outputs.tests)}}
     steps:
       # run the e2e tests using composite common/workflows/e2e action
@@ -53,13 +53,10 @@ jobs:
 
       - name: "Display Logs"
         if: ${{ steps.e2e.outcome == 'failure' }}
+        env:
+          SCENARIO: ${{ matrix.e2es }}
         run: |
-          echo "Displaying greenhouse controller logs for failed scenario: ${{ matrix.e2es }}"
-          cat ${{ github.workspace }}/bin/${{ matrix.e2es }}-${{ matrix.k8s-version }}.txt
-          echo "----------------------------------------"
-          echo "Displaying flux logs for failed scenario: ${{ matrix.e2es }}"
-          cat ${{ github.workspace }}/bin/flux-${{ matrix.e2es }}-${{ matrix.k8s-version }}.txt
-          exit 1
+          make show-e2e-logs
   
 
   # check if the e2e tests passed for all scenarios

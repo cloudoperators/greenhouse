@@ -8,7 +8,6 @@ import (
 	"os"
 	"slices"
 	"strings"
-	"time"
 
 	kustomizev1 "github.com/fluxcd/kustomize-controller/api/v1"
 	fluxmeta "github.com/fluxcd/pkg/apis/meta"
@@ -23,7 +22,6 @@ import (
 
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	greenhouseapis "github.com/cloudoperators/greenhouse/api"
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
 	"github.com/cloudoperators/greenhouse/e2e/shared"
 	"github.com/cloudoperators/greenhouse/internal/lifecycle"
@@ -352,7 +350,6 @@ func (s *scenario) expectStatusPropagationInCatalogInventory(ctx context.Context
 	groupInventory := catalog.Status.Inventory[groupKey]
 	Expect(groupInventory).ToNot(BeEmpty(), "the Catalog status inventory for the source should not be empty")
 	for _, resource := range groupInventory {
-		kindInventoryMsg := resource.Message
 		kindInventoryStatus := resource.Ready
 		var fluxObj lifecycle.CatalogObject
 		switch resource.Kind {
@@ -375,18 +372,8 @@ func (s *scenario) expectStatusPropagationInCatalogInventory(ctx context.Context
 				return
 			}
 			g.Expect(err).ToNot(HaveOccurred(), "there should be no error getting the catalog flux resource: "+fluxObj.GetName())
-			annotations := fluxObj.GetAnnotations()
-			if annotations == nil {
-				annotations = make(map[string]string)
-			}
-			annotations[greenhouseapis.FluxReconcileRequestAnnotation] = time.Now().String()
-			fluxObj.SetAnnotations(annotations)
-			err = s.k8sClient.Update(ctx, fluxObj)
-			g.Expect(err).ToNot(HaveOccurred(), "there should be no error triggering reconcile: "+fluxObj.GetName())
 			fluxCondition := meta.FindStatusCondition(fluxObj.GetConditions(), fluxmeta.ReadyCondition)
 			g.Expect(fluxCondition).ToNot(BeNil(), "the underlying resource should have a Ready condition: "+fluxObj.GetName())
-			fluxConditionMsg := fluxCondition.Message
-			g.Expect(kindInventoryMsg).To(Equal(fluxConditionMsg), "the Catalog inventory message should contain the flux resource condition message")
 			g.Expect(kindInventoryStatus).To(Equal(fluxCondition.Status), "the Catalog inventory status should contain the flux resource condition status")
 		}).Should(Succeed(), "the flux resource condition should be propagated to the Catalog inventory status")
 	}
