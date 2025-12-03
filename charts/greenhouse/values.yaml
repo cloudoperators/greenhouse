@@ -50,3 +50,7 @@ plutono:
   enabled: true
 perses:
   enabled: true
+
+# authorization webhook
+authz:
+  enabled: true

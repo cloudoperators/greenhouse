@@ -33,3 +33,8 @@ dependencies:
     version: 1.3.0
     repository: "oci://ghcr.io/sapcc/helm-charts"
     condition: postgresqlng.enabled
+  - name: authz
+    version: 0.1.0
+    repository: "file://../authz"
+    condition: authz.enabled
+    

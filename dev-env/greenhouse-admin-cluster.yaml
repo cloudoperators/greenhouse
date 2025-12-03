@@ -5,6 +5,9 @@ kind: Cluster
 apiVersion: kind.x-k8s.io/v1alpha4
 nodes:
   - role: control-plane
+    extraMounts:
+    - hostPath: ./dev-env/webhook
+      containerPath: /etc/kubernetes/webhook
     kubeadmConfigPatches:
       - |
         kind: ClusterConfiguration
@@ -13,3 +16,9 @@ nodes:
             "anonymous-auth": "true"
             "service-account-issuer": "https://greenhouse-admin-control-plane:6443"
             "service-account-jwks-uri": "https://greenhouse-admin-control-plane:6443/openid/v1/jwks"
+            "authorization-config": "/etc/kubernetes/webhook/structured-authz.yaml"
+          extraVolumes:
+          - name: authz-webhook
+            hostPath: /etc/kubernetes/webhook
+            mountPath: /etc/kubernetes/webhook
+            readOnly: true
