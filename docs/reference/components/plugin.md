@@ -91,15 +91,15 @@ spec:
 
 ### Choosing the deployment tool
 
-The annotation `greenhouse.sap/deployment-tool` can be added to a Plugin resource to choose the deployment tool used to deploy the Helm release. Supported values are `flux` and `legacy`.
+The annotation `greenhouse.sap/deployment-tool: <some-string>` can be added to a Plugin resource to choose the deployment tool used to deploy the Helm release. Supported values are `flux` and `legacy`.
 
 ### Suspending the Plugin's reconciliation
 
-The annotation `greenhouse.sap/suspend` can be added to a Plugin resource to temporarily suspend the reconciliation of the Plugin. This results in no changes on the Plugin or referenced resources being applied until the annotation is removed. This also includes upgrades of the Helm release on the target cluster. This also blocks the deletion of the Plugin resource until the annotation is removed.
+The annotation `greenhouse.sap/suspend: <some-string>` can be added to a Plugin resource to temporarily suspend the reconciliation of the Plugin. This results in no changes on the Plugin or referenced resources being applied until the annotation is removed. This also includes upgrades of the Helm release on the target cluster. This also blocks the deletion of the Plugin resource until the annotation is removed.
 
 ### Triggering reconciliation of the Plugin's managed resources
 
-The annotation `greenhouse.sap/reconcile` can be added to a Plugin resource to trigger a reconciliation of the Plugin and its managed resources. When the Plugin is deployed using FluxCD this annotation is propagated to the Flux HelmRelease resource and triggers a reconciliation of the Helm release on the target cluster. This can be useful to trigger a reconciliation even if no changes were made to the Plugin resource.
+The annotation `greenhouse.sap/reconcile: <some-string>` can be added to a Plugin resource to trigger a reconciliation of the Plugin and its managed resources. When the Plugin is deployed using FluxCD this annotation is propagated to the Flux HelmRelease resource and triggers a reconciliation of the Helm release on the target cluster. This can be useful to trigger a reconciliation even if no changes were made to the Plugin resource.
 
 ## Next Steps
 
