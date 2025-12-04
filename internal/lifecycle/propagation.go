@@ -255,7 +255,7 @@ func (p *Propagator) cleanupTargetLabels(dstLabels map[string]string) {
 }
 
 // cleanupTargetAnnotations removes only previously propagated annotation keys from the provided dstAnn map.
-// It does not modify labels or the tracking annotation directly.
+// It does not modify annotations or the tracking annotation directly.
 func (p *Propagator) cleanupTargetAnnotations(dstAnn map[string]string) {
 	state := p.getAppliedState()
 	for _, k := range state.AnnotationKeys {
