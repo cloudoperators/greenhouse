@@ -246,7 +246,7 @@ func (p *Propagator) removeAppliedState() {
 }
 
 // cleanupTargetLabels removes only previously propagated label keys from the provided dstLabels map.
-// It does not modify annotations or the tracking annotation directly.
+// It does not modify labels or the tracking annotation directly.
 func (p *Propagator) cleanupTargetLabels(dstLabels map[string]string) {
 	state := p.getAppliedState()
 	for _, k := range state.LabelKeys {
