@@ -17,12 +17,15 @@ const (
 
 	// PropagateLabelsAnnotation defines which label keys should be propagated from source to destination
 	PropagateLabelsAnnotation = "greenhouse.sap/propagate-labels"
+	// PropagateAnnotationsAnnotation defines which annotation keys should be propagated from source to destination
+	PropagateAnnotationsAnnotation = "greenhouse.sap/propagate-annotations"
 )
 
 // appliedPropagatorState holds the state of previously applied label keys for cleanup purposes
 // and is stored as JSON in the destination object's annotations.
 type appliedPropagatorState struct {
-	LabelKeys []string `json:"labelKeys,omitempty"`
+	LabelKeys      []string `json:"labelKeys,omitempty"`
+	AnnotationKeys []string `json:"annotationKeys,omitempty"`
 }
 
 // Propagator encapsulates a source and destination object between which
@@ -41,32 +44,43 @@ func NewPropagator(src, dst client.Object) *Propagator {
 	}
 }
 
-// ApplyLabels - performs idempotent label propagation based on the propagate-labels annotation.
-// It adds or updates only the specified label keys from src to dst, and removes any previously
-// propagated labels that were removed in src or are no longer declared.
-func (p *Propagator) ApplyLabels() client.Object {
-	keys := p.labelKeysToPropagate()
-	if len(keys) == 0 {
-		return p.cleanupTarget()
-	}
+// Apply - performs idempotent propagation of declared label and annotation keys based on
+// the propagate-labels and propagate-annotations annotations on the source object. It adds or
+// updates only the specified keys from src to dst, and removes any previously propagated keys
+// that were removed in src or are no longer declared.
+func (p *Propagator) Apply() client.Object {
+	labelKeys := p.labelKeysToPropagate()
+	annotationKeys := p.annotationKeysToPropagate()
 
+	// Prepare src/dst maps
 	srcLabels := p.src.GetLabels()
 	if srcLabels == nil {
 		srcLabels = map[string]string{}
+	}
+	srcAnnotations := p.src.GetAnnotations()
+	if srcAnnotations == nil {
+		srcAnnotations = map[string]string{}
 	}
 	dstLabels := p.dst.GetLabels()
 	if dstLabels == nil {
 		dstLabels = map[string]string{}
 	}
-
-	if !p.containsLabelToPropagate(keys, srcLabels) {
-		return p.cleanupTarget()
+	dstAnnotations := p.dst.GetAnnotations()
+	if dstAnnotations == nil {
+		dstAnnotations = map[string]string{}
 	}
 
-	appliedNow := p.syncTargetLabels(keys, srcLabels, dstLabels)
+	// Apply per category (labels, annotations) independently
+	appliedLabelKeys := p.applyLabels(labelKeys, srcLabels, dstLabels)
+	appliedAnnotationKeys := p.applyAnnotations(annotationKeys, srcAnnotations, dstAnnotations)
+
+	// Persist the mutated maps
 	p.dst.SetLabels(dstLabels)
-	if len(appliedNow) > 0 {
-		p.storeAppliedState(appliedPropagatorState{LabelKeys: appliedNow})
+	p.dst.SetAnnotations(dstAnnotations)
+
+	// Track applied state per category; remove state if nothing applied
+	if len(appliedLabelKeys) > 0 || len(appliedAnnotationKeys) > 0 {
+		p.storeAppliedState(appliedPropagatorState{LabelKeys: appliedLabelKeys, AnnotationKeys: appliedAnnotationKeys})
 	} else {
 		p.removeAppliedState()
 	}
@@ -74,11 +88,51 @@ func (p *Propagator) ApplyLabels() client.Object {
 	return p.dst
 }
 
+// applyLabels applies label propagation independently and performs label-only cleanup if needed.
+// Returns the list of label keys applied during this run.
+func (p *Propagator) applyLabels(labelKeys []string, srcLabels, dstLabels map[string]string) []string {
+	if len(labelKeys) == 0 || !p.containsLabelToPropagate(labelKeys, srcLabels) {
+		// No declaration or none present in source -> cleanup only previously propagated labels
+		p.cleanupTargetLabels(dstLabels)
+		return nil
+	}
+	return p.syncTargetLabels(labelKeys, srcLabels, dstLabels)
+}
+
+// applyAnnotations applies annotation propagation independently and performs annotation-only cleanup if needed.
+// Returns the list of annotation keys applied during this run.
+func (p *Propagator) applyAnnotations(annotationKeys []string, srcAnn, dstAnn map[string]string) []string {
+	if len(annotationKeys) == 0 || !p.containsAnnotationToPropagate(annotationKeys, srcAnn) {
+		// No declaration or none present in source -> cleanup only previously propagated annotations
+		p.cleanupTargetAnnotations(dstAnn)
+		return nil
+	}
+	return p.syncTargetAnnotations(annotationKeys, srcAnn, dstAnn)
+}
+
 // labelKeysToPropagate - retrieves the list of label keys from the propagate-labels annotation
 // in the source object. Returns nil if missing, invalid, or empty.
 func (p *Propagator) labelKeysToPropagate() []string {
 	var keys []string
 	annotation := strings.TrimSpace(p.src.GetAnnotations()[PropagateLabelsAnnotation])
+	if annotation == "" {
+		return nil
+	}
+	rawKeys := strings.Split(annotation, ",")
+	for _, k := range rawKeys {
+		k = strings.TrimSpace(k)
+		if k != "" {
+			keys = append(keys, k)
+		}
+	}
+	return keys
+}
+
+// annotationKeysToPropagate - retrieves the list of annotation keys from the propagate-annotations annotation
+// in the source object. Returns nil if missing, invalid, or empty.
+func (p *Propagator) annotationKeysToPropagate() []string {
+	var keys []string
+	annotation := strings.TrimSpace(p.src.GetAnnotations()[PropagateAnnotationsAnnotation])
 	if annotation == "" {
 		return nil
 	}
@@ -103,6 +157,17 @@ func (p *Propagator) containsLabelToPropagate(keys []string, srcLabels map[strin
 	return false
 }
 
+// containsAnnotationToPropagate - returns true if the source object contains
+// at least one of the annotation keys declared for propagation.
+func (p *Propagator) containsAnnotationToPropagate(keys []string, srcAnnotations map[string]string) bool {
+	for _, k := range keys {
+		if _, ok := srcAnnotations[k]; ok {
+			return true
+		}
+	}
+	return false
+}
+
 // syncTargetLabels - synchronizes label keys from src to dst and removes any previously applied keys
 // that are no longer present. Returns the current list of successfully propagated keys.
 func (p *Propagator) syncTargetLabels(keys []string, srcLabels, dstLabels map[string]string) []string {
@@ -117,6 +182,25 @@ func (p *Propagator) syncTargetLabels(keys []string, srcLabels, dstLabels map[st
 	for _, k := range state.LabelKeys {
 		if !slices.Contains(keys, k) || srcLabels[k] == "" {
 			delete(dstLabels, k)
+		}
+	}
+	return appliedNow
+}
+
+// syncTargetAnnotations - synchronizes annotation keys from src to dst and removes any previously applied keys
+// that are no longer present. Returns the current list of successfully propagated annotation keys.
+func (p *Propagator) syncTargetAnnotations(keys []string, srcAnn, dstAnn map[string]string) []string {
+	var appliedNow []string
+	state := p.getAppliedState()
+	for _, k := range keys {
+		if v, ok := srcAnn[k]; ok {
+			dstAnn[k] = v
+			appliedNow = append(appliedNow, k)
+		}
+	}
+	for _, k := range state.AnnotationKeys {
+		if !slices.Contains(keys, k) || srcAnn[k] == "" {
+			delete(dstAnn, k)
 		}
 	}
 	return appliedNow
@@ -161,18 +245,20 @@ func (p *Propagator) removeAppliedState() {
 	p.dst.SetAnnotations(ann)
 }
 
-// cleanupTarget - removes any previously applied propagated labels from the destination object
-// and deletes the tracking annotation. It is called when no label propagation should occur.
-func (p *Propagator) cleanupTarget() client.Object {
-	labels := p.dst.GetLabels()
-	if labels == nil {
-		labels = map[string]string{}
-	}
+// cleanupTargetLabels removes only previously propagated label keys from the provided dstLabels map.
+// It does not modify labels or the tracking annotation directly.
+func (p *Propagator) cleanupTargetLabels(dstLabels map[string]string) {
 	state := p.getAppliedState()
 	for _, k := range state.LabelKeys {
-		delete(labels, k)
+		delete(dstLabels, k)
 	}
-	p.dst.SetLabels(labels)
-	p.removeAppliedState()
-	return p.dst
+}
+
+// cleanupTargetAnnotations removes only previously propagated annotation keys from the provided dstAnn map.
+// It does not modify annotations or the tracking annotation directly.
+func (p *Propagator) cleanupTargetAnnotations(dstAnn map[string]string) {
+	state := p.getAppliedState()
+	for _, k := range state.AnnotationKeys {
+		delete(dstAnn, k)
+	}
 }
