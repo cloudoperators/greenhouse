@@ -303,6 +303,8 @@ var _ = Describe("Flux Plugin Controller", Ordered, func() {
 			g.Expect(err).ToNot(HaveOccurred())
 			g.Expect(uiPlugin.GetLabels()).To(HaveKeyWithValue(greenhouseapis.LabelKeyUIPlugin, "true"),
 				"Plugin with UIApplication should have ui-plugin label")
+			g.Expect(uiPlugin.GetLabels()).ToNot(HaveKey(greenhouseapis.LabelKeyPluginExposedServices),
+				"Plugin without ExposedServices should not have plugin-exposed-services label")
 		}).Should(Succeed())
 
 		By("checking that the non-UI plugin does not have the ui-plugin label")
@@ -311,6 +313,8 @@ var _ = Describe("Flux Plugin Controller", Ordered, func() {
 			g.Expect(err).ToNot(HaveOccurred())
 			g.Expect(testPlugin.GetLabels()).ToNot(HaveKey(greenhouseapis.LabelKeyUIPlugin),
 				"Plugin without UIApplication should not have ui-plugin label")
+			g.Expect(uiPlugin.GetLabels()).ToNot(HaveKey(greenhouseapis.LabelKeyPluginExposedServices),
+				"Plugin without ExposedServices should not have plugin-exposed-services label")
 		}).Should(Succeed())
 	})
 })
