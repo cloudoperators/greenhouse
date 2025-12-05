@@ -49,6 +49,7 @@ type PluginReconciler struct {
 	KubeRuntimeOpts             clientutil.RuntimeOptions
 	kubeClientOpts              []clientutil.KubeClientOption
 	ExpressionEvaluationEnabled bool
+	IntegrationEnabled          bool
 	DefaultDeploymentTool       *string
 }
 
@@ -101,6 +102,7 @@ func (r *PluginReconciler) SetupWithManager(name string, mgr ctrl.Manager) error
 		For(&greenhousev1alpha1.Plugin{}).
 		// Reconcile on owned flux HelmRelease changes.
 		Owns(&helmv2.HelmRelease{}).
+		Owns(&corev1.ConfigMap{}).
 		// If the release was (manually) modified the secret would have been modified. Reconcile it.
 		Watches(&corev1.Secret{},
 			handler.EnqueueRequestsFromMapFunc(enqueuePluginForReleaseSecret),

@@ -6,12 +6,11 @@ package plugin
 import (
 	"encoding/json"
 
-	. "github.com/onsi/ginkgo/v2"
-	. "github.com/onsi/gomega"
-
 	helmv2 "github.com/fluxcd/helm-controller/api/v2"
 	fluxmeta "github.com/fluxcd/pkg/apis/meta"
 	sourcecontroller "github.com/fluxcd/source-controller/api/v1"
+	. "github.com/onsi/ginkgo/v2"
+	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -180,9 +179,12 @@ var _ = Describe("Flux Plugin Controller", Ordered, func() {
 		Expect(err).ToNot(HaveOccurred(), "the expected HelmRelease values should be valid JSON")
 
 		By("computing the Values for a Plugin")
-		actual, err := addValuesToHelmRelease(test.Ctx, test.K8sClient, testPlugin, false)
+		optionValues, err := resolvePlainOptionValues(test.Ctx, test.K8sClient, testPlugin, false)
+		Expect(err).ToNot(HaveOccurred(), "there should be no error resolving the plain option values for the Plugin")
+		jsonValue, err := helm.ConvertFlatValuesToHelmValues(optionValues)
+		Expect(err).ToNot(HaveOccurred(), "there should be no error converting the option values to Helm values")
+		actual, err := json.Marshal(jsonValue)
 		Expect(err).ToNot(HaveOccurred(), "there should be no error computing the HelmRelease values for the Plugin")
-
 		By("checking the computed Values")
 		Expect(actual).To(Equal(expectedRaw), "the computed HelmRelease values should match the expected values")
 	})
