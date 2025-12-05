@@ -21,18 +21,18 @@ spec:
     - jsonPath: .spec.displayName
       name: Display name
       type: string
-    - jsonPath: .spec.pluginDefinition
+    - jsonPath: .spec.pluginDefinitionRef.name
       name: Plugin Definition
       type: string
     - jsonPath: .spec.clusterName
       name: Cluster
       type: string
+    - jsonPath: .spec.releaseName
+      name: Release Name
+      type: string
     - jsonPath: .spec.releaseNamespace
       name: Release Namespace
       type: string
-    - jsonPath: .spec.disabled
-      name: Disabled
-      type: boolean
     - jsonPath: .status.statusConditions.conditions[?(@.type == "Ready")].status
       name: Ready
       type: string
