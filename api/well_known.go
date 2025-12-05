@@ -73,8 +73,8 @@ const (
 	// LabelKeyUIPlugin is used to identify Plugins that have a UI component.
 	LabelKeyUIPlugin = "greenhouse.sap/ui-plugin"
 
-	// LabelKeyPluginExposesService is used to identify Plugins that expose services.
-	LabelKeyPluginExposesService = "greenhouse.sap/plugin-exposes-service"
+	// LabelKeyPluginExposedServices is used to identify Plugins that expose services.
+	LabelKeyPluginExposedServices = "greenhouse.sap/plugin-exposed-services"
 )
 
 // TeamRole and TeamRoleBinding constants

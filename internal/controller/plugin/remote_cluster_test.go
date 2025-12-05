@@ -475,6 +475,14 @@ var _ = Describe("HelmController reconciliation", Ordered, func() {
 				g.Expect(ingressURL).To(Equal("https://api.test.example.com"), "ingress URL should match the specified host with HTTPS")
 			}).Should(Succeed(), "plugin should have correct status")
 
+			By("checking that the plugin has the exposed-services label")
+			Eventually(func(g Gomega) {
+				err = test.K8sClient.Get(test.Ctx, types.NamespacedName{Name: testPluginWithExposedService1.Name, Namespace: testPluginWithExposedService1.Namespace}, testPluginWithExposedService1)
+				g.Expect(err).ToNot(HaveOccurred(), "there should be no error getting plugin")
+				g.Expect(testPluginWithExposedService1.GetLabels()).To(HaveKeyWithValue(greenhouseapis.LabelKeyPluginExposedServices, "true"),
+					"Plugin with ExposedServices should have plugin-exposed-services label")
+			}).Should(Succeed(), "plugin should have correct exposed services label")
+
 			By("deleting the plugin")
 			test.EventuallyDeleted(test.Ctx, test.K8sClient, testPluginWithExposedService1)
 
