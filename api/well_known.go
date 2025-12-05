@@ -69,6 +69,12 @@ const (
 
 	// LabelKeyCatalogSource is used to identify the source of the owning catalog resource of (Cluster)PluginDefinitions.
 	LabelKeyCatalogSource = "greenhouse.sap/catalog-source"
+
+	// LabelKeyUIPlugin is used to identify Plugins that have a UI component.
+	LabelKeyUIPlugin = "greenhouse.sap/ui-plugin"
+
+	// LabelKeyPluginExposedServices is used to identify Plugins that expose services.
+	LabelKeyPluginExposedServices = "greenhouse.sap/plugin-exposed-services"
 )
 
 // TeamRole and TeamRoleBinding constants
