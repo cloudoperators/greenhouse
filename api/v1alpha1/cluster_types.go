@@ -96,6 +96,7 @@ type NodeStatus struct {
 //+kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp"
 //+kubebuilder:printcolumn:name="AccessMode",type="string",JSONPath=".spec.accessMode"
 //+kubebuilder:printcolumn:name="Ready",type="string",JSONPath=`.status.statusConditions.conditions[?(@.type == "Ready")].status`
+//+kubebuilder:printcolumn:name="Version",type="string",JSONPath=`.status.kubernetesVersion`
 
 // Cluster is the Schema for the clusters API
 type Cluster struct {
