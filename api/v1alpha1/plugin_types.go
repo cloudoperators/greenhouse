@@ -203,7 +203,7 @@ type HelmReleaseStatus struct {
 //+kubebuilder:object:root=true
 //+kubebuilder:subresource:status
 //+kubebuilder:printcolumn:name="Display name",type=string,JSONPath=`.spec.displayName`
-//+kubebuilder:printcolumn:name="Plugin Definition",type=string,JSONPath=`.spec.pluginDefinition`
+//+kubebuilder:printcolumn:name="Plugin Definition",type=string,JSONPath=`.spec.pluginDefinitionRef.name`
 //+kubebuilder:printcolumn:name="Cluster",type=string,JSONPath=`.spec.clusterName`
 //+kubebuilder:printcolumn:name="Release Namespace",type=string,JSONPath=`.spec.releaseNamespace`
 //+kubebuilder:printcolumn:name="Disabled",type=boolean,JSONPath=`.spec.disabled`
