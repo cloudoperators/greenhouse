@@ -265,6 +265,10 @@ func (r *PluginReconciler) computeReadyConditionFlux(ctx context.Context, plugin
 
 	r.reconcilePluginStatus(ctx, restClientGetter, plugin, *pluginDefinitionSpec, &plugin.Status)
 
+	if err := r.reconcileTechnicalLabels(ctx, plugin); err != nil {
+		log.FromContext(ctx).Error(err, "failed to reconcile technical labels")
+	}
+
 	// If the Helm reconcile failed, the Plugin is not up to date / ready
 	helmReconcileFailedCondition := plugin.Status.GetConditionByType(greenhousev1alpha1.HelmReconcileFailedCondition)
 	if helmReconcileFailedCondition.IsTrue() {
