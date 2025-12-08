@@ -136,17 +136,22 @@ func (r *PluginReconciler) ensureHelmRelease(
 	release.SetName(plugin.Name)
 	release.SetNamespace(plugin.Namespace)
 
-	result, err := ctrl.CreateOrUpdate(ctx, r.Client, release, func() error {
-		values, err := addValuesToHelmRelease(ctx, r.Client, plugin, r.ExpressionEvaluationEnabled)
-		if err != nil {
-			return fmt.Errorf("failed to compute HelmRelease values for Plugin %s: %w", plugin.Name, err)
-		}
-		mirrorConfig, err := common.GetRegistryMirrorConfig(ctx, r.Client, plugin.GetNamespace())
-		if err != nil {
-			plugin.SetCondition(greenhousemetav1alpha1.TrueCondition(greenhousev1alpha1.HelmReconcileFailedCondition, "", "Failed to read registry mirror configuration"))
-			return fmt.Errorf("failed to read registry mirror configuration for Plugin %s: %w", plugin.Name, err)
-		}
+	mirrorConfig, err := common.GetRegistryMirrorConfig(ctx, r.Client, plugin.GetNamespace())
+	if err != nil {
+		plugin.SetCondition(greenhousemetav1alpha1.TrueCondition(greenhousev1alpha1.HelmReconcileFailedCondition, "", "Failed to read registry mirror configuration"))
+		return fmt.Errorf("failed to read registry mirror configuration for Plugin %s: %w", plugin.Name, err)
+	}
 
+	optionValues, err := computeReleaseValues(ctx, r.Client, plugin, r.ExpressionEvaluationEnabled)
+	if err != nil {
+		return fmt.Errorf("failed to compute HelmRelease values for Plugin %s: %w", plugin.Name, err)
+	}
+	values, err := generateHelmValues(ctx, optionValues)
+	if err != nil {
+		return fmt.Errorf("failed to generate HelmRelease values for Plugin %s: %w", plugin.Name, err)
+	}
+
+	result, err := ctrl.CreateOrUpdate(ctx, r.Client, release, func() error {
 		builder := flux.NewHelmReleaseSpecBuilder().
 			WithChart(helmv2.HelmChartTemplateSpec{
 				Chart:    pluginDefinitionSpec.HelmChart.Name,
@@ -194,7 +199,7 @@ func (r *PluginReconciler) ensureHelmRelease(
 				return fmt.Errorf("failed to init client getter for Plugin %s: %w", plugin.Name, err)
 			}
 
-			helmRelease, err := helm.TemplateHelmChartFromPlugin(ctx, r.Client, restClientGetter, pluginDefinitionSpec, plugin)
+			helmRelease, err := helm.TemplateHelmChartFromPluginOptionValues(ctx, r.Client, restClientGetter, &pluginDefinitionSpec, plugin, optionValues)
 			if err != nil {
 				return fmt.Errorf("failed to template helm chart for Plugin %s: %w", plugin.Name, err)
 			}
@@ -404,7 +409,9 @@ func (r *PluginReconciler) reconcilePluginStatus(ctx context.Context,
 	pluginStatus.ExposedServices = exposedServices
 }
 
-func addValuesToHelmRelease(ctx context.Context, c client.Client, plugin *greenhousev1alpha1.Plugin, expressionEvaluationEnabled bool) ([]byte, error) {
+// computeReleaseValues combines the Plugin's PluginOptionValues with the PluginDefinition's PluginOptions
+// Optionally resolves any expressions in the PluginOptionValues.
+func computeReleaseValues(ctx context.Context, c client.Client, plugin *greenhousev1alpha1.Plugin, expressionEvaluationEnabled bool) ([]greenhousev1alpha1.PluginOptionValue, error) {
 	optionValues, err := helm.GetPluginOptionValuesForPlugin(ctx, c, plugin)
 	if err != nil {
 		return nil, err
@@ -415,6 +422,11 @@ func addValuesToHelmRelease(ctx context.Context, c client.Client, plugin *greenh
 		return nil, fmt.Errorf("failed to resolve expressions: %w", err)
 	}
 
+	return optionValues, nil
+}
+
+// generateHelmValues generates the Helm values in JSON format to be used with a Flux HelmRelease.
+func generateHelmValues(ctx context.Context, optionValues []greenhousev1alpha1.PluginOptionValue) ([]byte, error) {
 	// remove all option values that are set from a secret, as these have a nil value
 	optionValues = slices.DeleteFunc(optionValues, func(v greenhousev1alpha1.PluginOptionValue) bool {
 		return v.ValueFrom != nil && v.ValueFrom.Secret != nil
@@ -427,7 +439,7 @@ func addValuesToHelmRelease(ctx context.Context, c client.Client, plugin *greenh
 
 	byteValue, err := json.Marshal(jsonValue)
 	if err != nil {
-		log.FromContext(context.Background()).Error(err, "Unable to marshal values for plugin", "plugin", plugin.Name)
+		log.FromContext(ctx).Error(err, "Unable to marshal values for plugin")
 		return nil, err
 	}
 	return byteValue, nil
