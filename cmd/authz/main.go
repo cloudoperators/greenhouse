@@ -42,7 +42,7 @@ func main() {
 
 	setupLog.Info("Authorization Webhook", "version", version.GitCommit, "build_date", version.BuildDate, "go", version.GoVersion)
 
-	flag.StringVar(&webhookCertPath, "webhook-cert-path", "ssl", "path to the webhook certificate")
+	flag.StringVar(&webhookCertPath, "webhook-cert-path", "", "path to the webhook certificate")
 	flag.StringVar(&webhookCertName, "webhook-cert-name", "tls.crt", "name of the webhook certificate")
 	flag.StringVar(&webhookCertKey, "webhook-cert-key", "tls.key", "key of the webhook certificate")
 
@@ -57,6 +57,18 @@ func main() {
 
 	metricsServerOptions := metricsserver.Options{
 		BindAddress: metricsAddr,
+	}
+
+	if webhookCertPath == "" {
+		setupLog.Info("Setting up Authorization Webhook HTTP server")
+
+		http.HandleFunc("/authorize", handleAuthorizeDummy)
+
+		address := ":9443"
+		setupLog.Info("Listening on " + address)
+
+		handleError(http.ListenAndServe(address, nil), "server msg")
+		return
 	}
 
 	// Initial webhook TLS options
