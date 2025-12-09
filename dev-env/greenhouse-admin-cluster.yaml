@@ -8,6 +8,8 @@ nodes:
     extraMounts:
       - hostPath: ./dev-env/webhook
         containerPath: /etc/kubernetes/webhook
+      - hostPath: ./dev-env/apiserver-resolv.conf
+        containerPath: /etc/kubernetes/custom-dns
     kubeadmConfigPatches:
       - |
         kind: ClusterConfiguration
@@ -18,7 +20,11 @@ nodes:
             "service-account-jwks-uri": "https://greenhouse-admin-control-plane:6443/openid/v1/jwks"
             "authorization-config": "/etc/kubernetes/webhook/structured-authz.yaml"
           extraVolumes:
-          - name: authz-webhook
-            hostPath: /etc/kubernetes/webhook
-            mountPath: /etc/kubernetes/webhook
-            readOnly: true
+            - name: authz-webhook
+              hostPath: /etc/kubernetes/webhook
+              mountPath: /etc/kubernetes/webhook
+              readOnly: true
+            - name: custom-resolv
+              hostPath: /etc/kubernetes/custom-dns
+              mountPath: /etc/resolv.conf
+              readOnly: true

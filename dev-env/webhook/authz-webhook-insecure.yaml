@@ -8,8 +8,7 @@ clusters:
 - name: authorizer-service
   cluster:
     # URL of remote service to query.
-    server: http://127.0.0.1:32443/authorize
-    # server: http://authz.greenhouse.svc.cluster.local:9444/authorize
+    server: http://authz.greenhouse.svc.cluster.local:9444/authorize
     insecure-skip-tls-verify: true
 # users refers to the API Server's webhook configuration.
 users:
