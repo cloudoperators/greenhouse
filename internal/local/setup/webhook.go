@@ -31,6 +31,7 @@ type Webhook struct {
 const (
 	LocalDevIMG                        = "greenhouse/manager:local"
 	WebhookContainer                   = "webhook"
+	AuthzContainer                     = "authz"
 	DeploymentKind                     = "Deployment"
 	WebhookDeploymentNameSuffix        = "-webhook"
 	MutatingWebhookConfigurationKind   = "MutatingWebhookConfiguration"
@@ -90,6 +91,45 @@ func (m *Manifest) modifyWebhookDeployment(deploymentResource map[string]any) (m
 	index := getContainerIndex(deployment, WebhookContainer)
 	if index == -1 {
 		return nil, errors.New("manager container not found in deployment")
+	}
+	deployment.Spec.Template.Spec.Containers[index].Image = LocalDevIMG
+	deployment.Spec.Replicas = utils.Int32P(1)
+	depBytes, err := utils.FromK8sObjectToYaml(deployment, appsv1.SchemeGroupVersion)
+	if err != nil {
+		return nil, err
+	}
+	return utils.RawK8sInterface(depBytes)
+}
+
+func (m *Manifest) setupAuthzManifest(resources []map[string]any) ([]map[string]any, error) {
+	webhookManifests := make([]map[string]any, 0)
+	authzDeployment, err := extractResourceByNameKind(resources, m.ReleaseName, DeploymentKind)
+	if err != nil {
+		return nil, err
+	}
+
+	utils.Log("modifying authorization webhook deployment...")
+	authzDeployment, err = m.modifyAuthzDeployment(authzDeployment)
+	if err != nil {
+		return nil, err
+	}
+	webhookManifests = append(webhookManifests, authzDeployment)
+	return webhookManifests, nil
+}
+
+func (m *Manifest) modifyAuthzDeployment(deploymentResource map[string]any) (map[string]any, error) {
+	deployment := &appsv1.Deployment{}
+	deploymentStr, err := utils.Stringy(deploymentResource)
+	if err != nil {
+		return nil, err
+	}
+	err = utils.FromYamlToK8sObject(deploymentStr, deployment)
+	if err != nil {
+		return nil, err
+	}
+	index := getContainerIndex(deployment, AuthzContainer)
+	if index == -1 {
+		return nil, errors.New("authz container not found in deployment")
 	}
 	deployment.Spec.Template.Spec.Containers[index].Image = LocalDevIMG
 	deployment.Spec.Replicas = utils.Int32P(1)

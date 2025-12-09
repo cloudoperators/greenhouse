@@ -36,6 +36,7 @@ config:
           release: authz
           chartPath: charts/authz
           crdOnly: false
+          authz: true
   - cluster:
       name: greenhouse-remote
       configPath: dev-env/greenhouse-remote-cluster.yaml
