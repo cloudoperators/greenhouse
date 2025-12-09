@@ -173,18 +173,18 @@ kustomize-build-crds: manifests kustomize
 ## Tool Binaries
 KUSTOMIZE ?= $(LOCALBIN)/kustomize
 CONTROLLER_GEN ?= $(LOCALBIN)/controller-gen
-CONTROLLER_GEN_ACTION ?= $(LOCALBIN)/controller-gen
+CONTROLLER_GEN_ACTION ?= $(LOCALBIN)/action-controller-gen
 GOIMPORTS ?= $(LOCALBIN)/goimports
 GOLINT ?= $(LOCALBIN)/golangci-lint
 ENVTEST ?= $(LOCALBIN)/setup-envtest
-ENVTEST_ACTION ?= $(LOCALBIN)/setup-envtest
+ENVTEST_ACTION ?= $(LOCALBIN)/action-setup-envtest
 HELMIFY ?= $(LOCALBIN)/helmify
 
 ## Tool Versions
 KUSTOMIZE_VERSION ?= 5.7.1
 CERT_MANAGER_VERSION ?= v1.17.1
 CONTROLLER_TOOLS_VERSION ?= 0.19.0
-GOLINT_VERSION ?= 2.6.0
+GOLINT_VERSION ?= 2.6.2
 GINKGOLINTER_VERSION ?= 0.21.2
 # ENVTEST_K8S_VERSION refers to the version of kubebuilder assets to be downloaded by envtest binary.
 ENVTEST_K8S_VERSION ?= 1.34.1

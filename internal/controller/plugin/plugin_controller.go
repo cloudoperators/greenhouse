@@ -197,6 +197,34 @@ func (r *PluginReconciler) setConditions() lifecycle.Conditioner {
 	}
 }
 
+// reconcileTechnicalLabels ensures the plugin has the correct technical labels based on its status.
+func (r *PluginReconciler) reconcileTechnicalLabels(ctx context.Context, plugin *greenhousev1alpha1.Plugin) error {
+	_, err := clientutil.Patch(ctx, r.Client, plugin, func() error {
+		labels := plugin.GetLabels()
+		if labels == nil {
+			labels = make(map[string]string)
+		}
+
+		if plugin.Status.UIApplication != nil {
+			labels[greenhouseapis.LabelKeyUIPlugin] = "true"
+		} else {
+			delete(labels, greenhouseapis.LabelKeyUIPlugin)
+		}
+
+		if len(plugin.Status.ExposedServices) > 0 {
+			labels[greenhouseapis.LabelKeyPluginExposedServices] = "true"
+		} else {
+			delete(labels, greenhouseapis.LabelKeyPluginExposedServices)
+		}
+
+		plugin.SetLabels(labels)
+
+		return nil
+	})
+
+	return err
+}
+
 func (r *PluginReconciler) EnsureDeleted(ctx context.Context, resource lifecycle.RuntimeObject) (ctrl.Result, lifecycle.ReconcileResult, error) {
 	plugin := resource.(*greenhousev1alpha1.Plugin) //nolint:errcheck
 
@@ -274,6 +302,10 @@ func (r *PluginReconciler) EnsureCreated(ctx context.Context, resource lifecycle
 
 	// PluginStatus, WorkloadStatus and ChartTest should be reconciled regardless of Helm reconciliation result.
 	r.reconcileStatus(ctx, restClientGetter, plugin, *pluginDefinitionSpec, &plugin.Status)
+
+	if err := r.reconcileTechnicalLabels(ctx, plugin); err != nil {
+		return ctrl.Result{}, lifecycle.Failed, fmt.Errorf("failed to reconcile technical labels: %w", err)
+	}
 
 	workloadStatusResult, workloadStatusErr := r.reconcilePluginWorkloadStatus(ctx, restClientGetter, plugin, *pluginDefinitionSpec)
 

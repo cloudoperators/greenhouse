@@ -32,13 +32,13 @@ func PreparePluginDefinition(name, namespace string, opts ...func(definition *gr
 }
 
 func PrepareNginxPluginDefinition(namespace string) *greenhousev1alpha1.ClusterPluginDefinition {
-	return PreparePluginDefinition("nginx-18.1.7", namespace,
-		test.WithVersion("18.1.7"),
+	return PreparePluginDefinition("nginx-22.3.3", namespace,
+		test.WithVersion("22.3.3"),
 		test.WithHelmChart(
 			&greenhousev1alpha1.HelmChartReference{
 				Name:       "bitnamicharts/nginx",
 				Repository: "oci://registry-1.docker.io",
-				Version:    "18.1.7",
+				Version:    "22.3.3",
 			},
 		),
 		test.AppendPluginOption(greenhousev1alpha1.PluginOption{
