@@ -102,7 +102,7 @@ func (m *Manifest) modifyWebhookDeployment(deploymentResource map[string]any) (m
 }
 
 func (m *Manifest) setupAuthzManifest(resources []map[string]any) ([]map[string]any, error) {
-	webhookManifests := make([]map[string]any, 0)
+	manifests := make([]map[string]any, 0)
 	authzDeployment, err := extractResourceByNameKind(resources, m.ReleaseName, DeploymentKind)
 	if err != nil {
 		return nil, err
@@ -113,8 +113,13 @@ func (m *Manifest) setupAuthzManifest(resources []map[string]any) ([]map[string]
 	if err != nil {
 		return nil, err
 	}
-	webhookManifests = append(webhookManifests, authzDeployment)
-	return webhookManifests, nil
+	manifests = append(manifests, authzDeployment)
+	authzService, err := extractResourceByNameKind(resources, m.ReleaseName, ServiceKind)
+	if err != nil {
+		return nil, err
+	}
+	manifests = append(manifests, authzService)
+	return manifests, nil
 }
 
 func (m *Manifest) modifyAuthzDeployment(deploymentResource map[string]any) (map[string]any, error) {

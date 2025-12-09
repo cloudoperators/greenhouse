@@ -64,7 +64,7 @@ func main() {
 
 		http.HandleFunc("/authorize", handleAuthorizeDummy)
 
-		address := ":9443"
+		address := ":9444"
 		setupLog.Info("Listening on " + address)
 
 		handleError(http.ListenAndServe(address, nil), "server msg")

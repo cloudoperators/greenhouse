@@ -6,8 +6,8 @@ apiVersion: kind.x-k8s.io/v1alpha4
 nodes:
   - role: control-plane
     extraMounts:
-    - hostPath: ./dev-env/webhook
-      containerPath: /etc/kubernetes/webhook
+      - hostPath: ./dev-env/webhook
+        containerPath: /etc/kubernetes/webhook
     kubeadmConfigPatches:
       - |
         kind: ClusterConfiguration
