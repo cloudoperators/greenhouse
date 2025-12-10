@@ -393,28 +393,38 @@ func (r *CatalogReconciler) setStatus() lifecycle.Conditioner {
 			gitRepo := &sourcev1.GitRepository{}
 			gitRepo.SetName(sourcer.getGitRepoName())
 			gitRepo.SetNamespace(catalog.Namespace)
-			ready, msg := sourcer.objectReadiness(ctx, gitRepo)
+			ready, msg, err := sourcer.objectReadiness(ctx, gitRepo)
+			if err != nil {
+				// check if there was a not found error in getting GitRepository
+				if apierrors.IsNotFound(err) && source.SecretName != nil {
+					// if not found, then check if it is related to secret error
+					_, secretErr := sourcer.getSourceSecret(ctx)
+					if secretErr != nil {
+						msg = msg + "; " + secretErr.Error()
+					}
+				}
+			}
 			allInventoryReady = append(allInventoryReady, ready)
 			sourcer.setInventory(sourcev1.GitRepositoryKind, gitRepo.Name, msg, ready)
 
 			artifactGen := &sourcev2.ArtifactGenerator{}
 			artifactGen.SetName(sourcer.getGeneratorName())
 			artifactGen.SetNamespace(catalog.Namespace)
-			ready, msg = sourcer.objectReadiness(ctx, artifactGen)
+			ready, msg, _ = sourcer.objectReadiness(ctx, artifactGen)
 			allInventoryReady = append(allInventoryReady, ready)
 			sourcer.setInventory(sourcev2.ArtifactGeneratorKind, artifactGen.Name, msg, ready)
 
 			extArtifact := &sourcev1.ExternalArtifact{}
 			extArtifact.SetName(sourcer.getArtifactName())
 			extArtifact.SetNamespace(catalog.Namespace)
-			ready, msg = sourcer.objectReadiness(ctx, extArtifact)
+			ready, msg, _ = sourcer.objectReadiness(ctx, extArtifact)
 			allInventoryReady = append(allInventoryReady, ready)
 			sourcer.setInventory(sourcev1.ExternalArtifactKind, extArtifact.Name, msg, ready)
 
 			kustomization := &kustomizev1.Kustomization{}
 			kustomization.SetName(sourcer.getKustomizationName())
 			kustomization.SetNamespace(catalog.Namespace)
-			ready, msg = sourcer.objectReadiness(ctx, kustomization)
+			ready, msg, _ = sourcer.objectReadiness(ctx, kustomization)
 			allInventoryReady = append(allInventoryReady, ready)
 			sourcer.setInventory(kustomizev1.KustomizationKind, kustomization.Name, msg, ready)
 		}
