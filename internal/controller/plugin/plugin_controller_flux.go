@@ -218,6 +218,7 @@ func (r *PluginReconciler) ensureHelmRelease(
 
 		val, _ := lifecycle.ReconcileAnnotationValue(plugin)
 		common.EnsureAnnotation(release, fluxmeta.ReconcileRequestAnnotation, val)
+		common.EnsureAnnotation(release, greenhouseapis.FluxResetRequestAnnotation, val)
 
 		return controllerutil.SetControllerReference(plugin, release, r.Scheme())
 	})
@@ -375,6 +376,20 @@ func (r *PluginReconciler) reconcilePluginStatus(ctx context.Context,
 		case isReadyCurrent && ready.Status == metav1.ConditionFalse && ready.Reason == helmv2.DependencyNotReadyReason:
 			plugin.SetCondition(greenhousemetav1alpha1.TrueCondition(greenhousev1alpha1.WaitingForDependenciesCondition,
 				greenhousemetav1alpha1.ConditionReason(ready.Reason), ready.Message))
+		}
+
+		// Check if retries are exhausted for install or upgrade operations.
+		installExhausted := helmRelease.Spec.Install.GetRemediation().RetriesExhausted(helmRelease)
+		upgradeExhausted := helmRelease.Spec.Upgrade.GetRemediation().RetriesExhausted(helmRelease)
+		if installExhausted || upgradeExhausted {
+			msg := fmt.Sprintf("install failures: %d, upgrade failures: %d (max retries: %d)",
+				helmRelease.Status.InstallFailures, helmRelease.Status.UpgradeFailures,
+				helmRelease.Spec.Install.GetRemediation().GetRetries())
+			plugin.SetCondition(greenhousemetav1alpha1.TrueCondition(
+				greenhousev1alpha1.RetriesExhaustedCondition, "RetriesExhausted", msg))
+		} else {
+			plugin.SetCondition(greenhousemetav1alpha1.FalseCondition(
+				greenhousev1alpha1.RetriesExhaustedCondition, "", ""))
 		}
 
 		if plugin.Spec.OptionValues != nil {
