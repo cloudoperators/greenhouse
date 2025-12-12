@@ -133,6 +133,7 @@ const (
 	GreenhouseHelmDeliveryToolLabel   = "greenhouse.sap/deployment-tool"
 	GreenhouseHelmDeliveryToolFlux    = "flux"
 	FluxReconcileRequestAnnotation    = "reconcile.fluxcd.io/requestedAt"
+	FluxResetRequestAnnotation        = "reconcile.fluxcd.io/resetAt"
 )
 
 const (
