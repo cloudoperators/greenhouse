@@ -27,7 +27,7 @@ authorizers:
         # Controls how the webhook should communicate with the server.
         type: KubeConfigFile
         # Path to KubeConfigFile for connection info.
-        kubeConfigFile: /etc/kubernetes/webhook/authz-webhook-insecure.yaml
+        kubeConfigFile: /etc/kubernetes/webhook/authz-webhook-secure.yaml
       # matchConditions is a list of conditions that must be met for a request to be sent to this webhook.
       matchConditions:
         # only send resource requests to the webhook

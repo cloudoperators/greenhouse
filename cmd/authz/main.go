@@ -4,11 +4,9 @@
 package main
 
 import (
-	"crypto/tls"
 	"flag"
 	"net/http"
 	"os"
-	"path/filepath"
 
 	"github.com/go-logr/logr"
 	"go.uber.org/zap/zapcore"
@@ -17,7 +15,6 @@ import (
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
 	ctrl "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/certwatcher"
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 	metricsserver "sigs.k8s.io/controller-runtime/pkg/metrics/server"
@@ -31,7 +28,7 @@ import (
 var setupLog logr.Logger
 
 func main() {
-	var webhookCertPath, webhookCertName, webhookCertKey string
+	// var webhookCertPath, webhookCertName, webhookCertKey string
 	var metricsAddr, healthzAddr string
 
 	opts := zap.Options{
@@ -39,12 +36,13 @@ func main() {
 		TimeEncoder: zapcore.RFC3339TimeEncoder,
 	}
 	setupLog = zap.New(zap.UseFlagOptions(&opts))
+	ctrl.SetLogger(setupLog)
 
 	setupLog.Info("Authorization Webhook", "version", version.GitCommit, "build_date", version.BuildDate, "go", version.GoVersion)
 
-	flag.StringVar(&webhookCertPath, "webhook-cert-path", "", "path to the webhook certificate")
-	flag.StringVar(&webhookCertName, "webhook-cert-name", "tls.crt", "name of the webhook certificate")
-	flag.StringVar(&webhookCertKey, "webhook-cert-key", "tls.key", "key of the webhook certificate")
+	// flag.StringVar(&webhookCertPath, "webhook-cert-path", "", "path to the webhook certificate")
+	// flag.StringVar(&webhookCertName, "webhook-cert-name", "tls.crt", "name of the webhook certificate")
+	// flag.StringVar(&webhookCertKey, "webhook-cert-key", "tls.key", "key of the webhook certificate")
 
 	flag.StringVar(&metricsAddr, "metrics-addr", ":6543", "bind address for metrics")
 	flag.StringVar(&healthzAddr, "healthz-addr", ":8081", "bind address for health checks")
@@ -59,45 +57,11 @@ func main() {
 		BindAddress: metricsAddr,
 	}
 
-	if webhookCertPath == "" {
-		setupLog.Info("Setting up Authorization Webhook HTTP server")
-
-		http.HandleFunc("/authorize", handleAuthorizeDummy)
-
-		address := ":9444"
-		setupLog.Info("Listening on " + address)
-
-		handleError(http.ListenAndServe(address, nil), "server msg")
-		return
-	}
-
-	// Initial webhook TLS options
-	webhookTLSOpts := []func(*tls.Config){}
-	var webhookCertWatcher *certwatcher.CertWatcher
-	// TODO: env var to turn off the TLS
-
-	if webhookCertPath != "" {
-		setupLog.Info("Initializing webhook certificate watcher using provided certificates",
-			"webhook-cert-path", webhookCertPath, "webhook-cert-name", webhookCertName, "webhook-cert-key", webhookCertKey)
-
-		var err error
-		// certwatcher is a helper for reloading Certificates from disk to be used with tls servers.
-		webhookCertWatcher, err = certwatcher.New(
-			filepath.Join(webhookCertPath, webhookCertName),
-			filepath.Join(webhookCertPath, webhookCertKey),
-		)
-		if err != nil {
-			setupLog.Error(err, "Failed to initialize webhook certificate watcher")
-			os.Exit(1)
-		}
-
-		webhookTLSOpts = []func(*tls.Config){func(config *tls.Config) {
-			config.GetCertificate = webhookCertWatcher.GetCertificate
-		}}
-	}
-
+	// By default it takes tls.crt and tls.key from CertDir.
 	webhookServer := webhook.NewServer(webhook.Options{
-		TLSOpts: webhookTLSOpts,
+		Port:         9443,
+		CertDir:      "/tmp/k8s-webhook-server/serving-certs",
+		ClientCAName: "ca.crt",
 	})
 
 	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{

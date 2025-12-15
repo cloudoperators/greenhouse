@@ -1,0 +1,27 @@
+# SPDX-FileCopyrightText: 2025 SAP SE or an SAP affiliate company and Greenhouse contributors
+# SPDX-License-Identifier: Apache-2.0
+
+apiVersion: v1
+kind: Config
+# clusters refers to the remote service.
+clusters:
+- name: authz-webhook
+  cluster:
+    # URL of remote service to query.
+    server: https://authz.greenhouse.svc.cluster.local:9443/authorize
+    # CA for verifying the remote service.
+    certificate-authority: /etc/kubernetes/webhook/certs/ca.crt
+# users refers to the API Server's webhook configuration.
+users:
+- name: apiserver
+  user:
+    client-certificate: /etc/kubernetes/webhook/certs/apiserver.crt
+    client-key: /etc/kubernetes/webhook/certs/apiserver.key
+# kubeconfig files require a context. Provide one for the API Server.
+current-context: webhook-context
+contexts:
+- name: webhook-context
+  context:
+    cluster: authz-webhook
+    user: apiserver
+  

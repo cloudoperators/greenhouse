@@ -114,11 +114,9 @@ func (m *Manifest) setupAuthzManifest(resources []map[string]any) ([]map[string]
 		return nil, err
 	}
 	manifests = append(manifests, authzDeployment)
-	authzService, err := extractResourceByNameKind(resources, m.ReleaseName, ServiceKind)
-	if err != nil {
-		return nil, err
-	}
-	manifests = append(manifests, authzService)
+
+	remainingResources := extractResourcesByKinds(resources, ServiceKind)
+	manifests = append(manifests, remainingResources...)
 	return manifests, nil
 }
 

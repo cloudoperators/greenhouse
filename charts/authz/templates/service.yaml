@@ -8,8 +8,8 @@ spec:
   type: {{ .Values.service.type }}
   ports:
     - port: {{ .Values.service.port }}
-      targetPort: http
+      targetPort: authz-server
       protocol: TCP
-      name: http
+      name: webhook
   selector:
     {{- include "authz.selectorLabels" . | nindent 4 }}
