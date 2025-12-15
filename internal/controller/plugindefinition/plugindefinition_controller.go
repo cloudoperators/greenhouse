@@ -7,6 +7,7 @@ import (
 	"context"
 	"time"
 
+	sourcecontroller "github.com/fluxcd/source-controller/api/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -15,8 +16,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/log"
-
-	sourcecontroller "github.com/fluxcd/source-controller/api/v1"
 
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
 	"github.com/cloudoperators/greenhouse/internal/flux"
@@ -43,6 +42,7 @@ func (r *PluginDefinitionReconciler) SetupWithManager(name string, mgr ctrl.Mana
 	return ctrl.NewControllerManagedBy(mgr).
 		Named(name).
 		For(&greenhousev1alpha1.PluginDefinition{}).
+		Owns(&sourcecontroller.HelmRepository{}).
 		Complete(r)
 }
 
@@ -67,14 +67,18 @@ func (r *PluginDefinitionReconciler) EnsureCreated(ctx context.Context, obj life
 		r.recorder.Event(pluginDef, corev1.EventTypeNormal, "Skipped", "Skipped HelmRepository creation")
 		return ctrl.Result{}, lifecycle.Success, nil
 	}
-	err := r.reconcileHelmRepository(ctx, pluginDef)
+
+	helmRepo, err := r.reconcileHelmRepository(ctx, pluginDef)
 	if err != nil {
 		return ctrl.Result{}, lifecycle.Failed, err
 	}
+
+	setHelmRepositoryReadyCondition(ctx, r.Client, pluginDef, helmRepo)
+
 	return ctrl.Result{}, lifecycle.Success, nil
 }
 
-func (r *PluginDefinitionReconciler) reconcileHelmRepository(ctx context.Context, pluginDef *greenhousev1alpha1.PluginDefinition) error {
+func (r *PluginDefinitionReconciler) reconcileHelmRepository(ctx context.Context, pluginDef *greenhousev1alpha1.PluginDefinition) (*sourcecontroller.HelmRepository, error) {
 	repositoryURL := pluginDef.Spec.HelmChart.Repository
 	helmRepository := &sourcecontroller.HelmRepository{}
 	helmRepository.SetName(flux.ChartURLToName(repositoryURL))
@@ -89,7 +93,7 @@ func (r *PluginDefinitionReconciler) reconcileHelmRepository(ctx context.Context
 	if err != nil {
 		log.FromContext(ctx).Error(err, "Failed to create or update HelmRepository", "name", helmRepository.Name)
 		r.recorder.Eventf(pluginDef, corev1.EventTypeWarning, "Failed", "Failed to create or update HelmRepository %s: %s", helmRepository.Name, err.Error())
-		return err
+		return nil, err
 	}
 	switch result {
 	case controllerutil.OperationResultCreated:
@@ -101,7 +105,7 @@ func (r *PluginDefinitionReconciler) reconcileHelmRepository(ctx context.Context
 	case controllerutil.OperationResultNone:
 		log.FromContext(ctx).Info("No changes to helmRepository", "name", helmRepository.Name)
 	}
-	return nil
+	return helmRepository, nil
 }
 
 func (r *PluginDefinitionReconciler) EnsureDeleted(_ context.Context, _ lifecycle.RuntimeObject) (ctrl.Result, lifecycle.ReconcileResult, error) {
