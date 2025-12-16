@@ -21,6 +21,7 @@ global:
   # Plugin configuration for Greenhouse.
   plugin:
     expressionEvaluationEnabled: false
+    integrationEnabled: false
     defaultDeploymentTool: helm
 
 postgresqlng:
