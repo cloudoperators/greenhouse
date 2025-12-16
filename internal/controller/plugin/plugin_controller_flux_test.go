@@ -6,12 +6,11 @@ package plugin
 import (
 	"encoding/json"
 
-	. "github.com/onsi/ginkgo/v2"
-	. "github.com/onsi/gomega"
-
 	helmv2 "github.com/fluxcd/helm-controller/api/v2"
 	fluxmeta "github.com/fluxcd/pkg/apis/meta"
 	sourcecontroller "github.com/fluxcd/source-controller/api/v1"
+	. "github.com/onsi/ginkgo/v2"
+	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -65,7 +64,7 @@ var (
 		test.WithPluginLabel(greenhouseapis.LabelKeyOwnedBy, testPluginTeam.Name),
 		test.WithPluginOptionValue("flatOption", test.MustReturnJSONFor("flatValue")),
 		test.WithPluginOptionValue("nested.option", test.MustReturnJSONFor("nestedValue")),
-		test.WithPluginOptionValueFrom("nested.secretOption", &greenhousev1alpha1.ValueFromSource{
+		test.WithPluginOptionValueFrom("nested.secretOption", &greenhousev1alpha1.PluginValueFromSource{
 			Secret: &greenhousev1alpha1.SecretKeyReference{
 				Name: "test-cluster",
 				Key:  greenhouseapis.GreenHouseKubeConfigKey,
@@ -180,7 +179,7 @@ var _ = Describe("Flux Plugin Controller", Ordered, func() {
 		Expect(err).ToNot(HaveOccurred(), "the expected HelmRelease values should be valid JSON")
 
 		By("computing the Values for a Plugin")
-		actualOptionValues, err := computeReleaseValues(test.Ctx, test.K8sClient, testPlugin, false)
+		actualOptionValues, err := computeReleaseValues(test.Ctx, test.K8sClient, testPlugin, false, false)
 		Expect(err).ToNot(HaveOccurred(), "there should be no error computing the HelmRelease values for the Plugin")
 
 		actualRaw, err := generateHelmValues(test.Ctx, actualOptionValues)

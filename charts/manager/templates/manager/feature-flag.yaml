@@ -18,16 +18,20 @@ data:
     # expressionEvaluationEnabled allows you to enable or disable expression evaluation for plugin option values
     # set to false to disable expression evaluation (expressions will be used as literal values)
     # set to true to enable expression evaluation (expressions will be evaluated using CEL)
+    # integrationEnabled allows you to enable or disable plugin to plugin integration features
+    # set true to enable value references from another plugin via CEL expressions
     # defaultDeploymentTool specifies the default deployment tool used for plugin deployments
     # set to "helm" for native Helm deployment (default)
     # set to "flux" for Flux-based deployment
     plugin: |
       expressionEvaluationEnabled: false / true
+      integrationEnabled: false / true
       defaultDeploymentTool: helm / flux
   dex: |
     storage: {{ include "dex.backend" $ }}
   plugin: |
     expressionEvaluationEnabled: {{ include "plugin.expressionEvaluationEnabled" $ }}
+    integrationEnabled: {{ include "plugin.integrationEnabled" $ }}
     {{- if .Values.global.plugin.defaultDeploymentTool }}
     defaultDeploymentTool: {{ .Values.global.plugin.defaultDeploymentTool }}
     {{- end }}

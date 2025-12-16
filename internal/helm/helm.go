@@ -712,10 +712,21 @@ func CalculatePluginOptionChecksum(ctx context.Context, c client.Client, plugin 
 	buf := make([]byte, 0)
 	for _, v := range values {
 		buf = append(buf, []byte(v.Name)...)
-		if v.Value != nil {
+
+		switch {
+		case v.Value != nil:
 			buf = append(buf, v.Value.Raw...)
-		} else if v.Expression != nil {
+
+		case v.Expression != nil:
 			buf = append(buf, []byte(*v.Expression)...)
+
+		case v.ValueFrom != nil && v.ValueFrom.Ref != nil:
+			buf = append(buf, []byte(v.ValueFrom.Ref.Name)...)
+			buf = append(buf, []byte(v.ValueFrom.Ref.Kind)...)
+			buf = append(buf, []byte(v.ValueFrom.Ref.Expression)...)
+
+		default:
+			continue
 		}
 	}
 

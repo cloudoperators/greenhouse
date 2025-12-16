@@ -49,6 +49,7 @@ type PluginReconciler struct {
 	KubeRuntimeOpts             clientutil.RuntimeOptions
 	kubeClientOpts              []clientutil.KubeClientOption
 	ExpressionEvaluationEnabled bool
+	IntegrationEnabled          bool
 	DefaultDeploymentTool       *string
 }
 

@@ -111,3 +111,6 @@ Define postgresql helpers
 {{- define "plugin.expressionEvaluationEnabled" -}}
   {{- printf "%t" (required "global.plugin.expressionEvaluationEnabled missing" .Values.global.plugin.expressionEvaluationEnabled) }}
 {{- end }}
+{{- define "plugin.integrationEnabled" -}}
+  {{- printf "%t" (required "global.plugin.integrationEnabled missing" .Values.global.plugin.integrationEnabled) }}
+{{- end }}

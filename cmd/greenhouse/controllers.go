@@ -83,13 +83,11 @@ func startOrganizationReconciler(name string, mgr ctrl.Manager) error {
 // startPluginReconciler initializes the plugin reconciler.
 // Resolves expression evaluation and default deployment tool feature flags from greenhouse-feature-flags.
 func startPluginReconciler(name string, mgr ctrl.Manager) error {
-	expressionEvaluationEnabled := featureFlags.IsExpressionEvaluationEnabled()
-	defaultDeploymentTool := featureFlags.GetDefaultDeploymentTool()
-
 	return (&plugincontrollers.PluginReconciler{
 		KubeRuntimeOpts:             kubeClientOpts,
-		ExpressionEvaluationEnabled: expressionEvaluationEnabled,
-		DefaultDeploymentTool:       defaultDeploymentTool,
+		ExpressionEvaluationEnabled: featureFlags.IsExpressionEvaluationEnabled(),
+		IntegrationEnabled:          featureFlags.IsIntegrationEnabled(),
+		DefaultDeploymentTool:       featureFlags.GetDefaultDeploymentTool(),
 	}).SetupWithManager(name, mgr)
 }
 

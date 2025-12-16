@@ -10,6 +10,8 @@ import (
 	greenhousemetav1alpha1 "github.com/cloudoperators/greenhouse/api/meta/v1alpha1"
 )
 
+const PluginKind = "Plugin"
+
 // PluginSpec defines the desired state of Plugin
 type PluginSpec struct {
 	// PluginDefinition is the name of the PluginDefinition this instance is for.
@@ -64,10 +66,46 @@ type PluginOptionValue struct {
 	Name string `json:"name"`
 	// Value is the actual value in plain text.
 	Value *apiextensionsv1.JSON `json:"value,omitempty"`
-	// ValueFrom references a potentially confidential value in another source.
-	ValueFrom *ValueFromSource `json:"valueFrom,omitempty"`
+	// ValueFrom references value in another source.
+	ValueFrom *PluginValueFromSource `json:"valueFrom,omitempty"`
 	// Expression is a YAML string with ${...} placeholders that will be evaluated as CEL expressions.
 	Expression *string `json:"expression,omitempty"`
+}
+
+// PluginValueFromSource defines how to extract dynamic values
+// only one of secret or ref can be set
+// +kubebuilder:validation:XValidation:rule="!(has(self.secret) && has(self.ref))",message="both secret and ref cannot be set"
+// +kubebuilder:validation:XValidation:rule="has(self.secret) || has(self.ref)",message="one of secret or ref must be set"
+type PluginValueFromSource struct {
+	// Secret references the v1.Secret containing the value that needs to be extracted
+	Secret *SecretKeyReference `json:"secret,omitempty"`
+	// Ref references values defined in another resource (Plugin, PluginPreset)
+	Ref *ExternalValueSource `json:"ref,omitempty"`
+}
+
+// ExternalValueSource defines how to extract values from external resources
+// +kubebuilder:validation:ExactlyOneOf=name;selector
+type ExternalValueSource struct {
+	// Kind is the resource kind to target
+	// if not set, defaults to the same kind as the referencing resource (Plugin or PluginPreset)
+	// +Optional
+	// +kubebuilder:validation:Enum=Plugin;PluginPreset
+	Kind string `json:"kind,omitempty"`
+
+	// Name is the name of the resource to target
+	// this field is mutually exclusive with LabelSelector
+	// +Optional
+	// +kubebuilder:validation:MinLength=1
+	Name string `json:"name,omitempty"`
+
+	// Selector selects the resources to target based on labels
+	// this field is mutually exclusive with Name
+	// +Optional
+	Selector *metav1.LabelSelector `json:"selector,omitempty"`
+
+	// Expression is a CEL expression to extract the value from the referenced resource
+	// +kubebuilder:validation:Required
+	Expression string `json:"expression"`
 }
 
 // IgnoreDifference defines a set of paths to ignore for matching resources.
@@ -125,6 +163,9 @@ const (
 
 	// HelmUninstallFailedReason is set when the helm release could not be uninstalled.
 	HelmUninstallFailedReason greenhousemetav1alpha1.ConditionReason = "HelmUninstallFailed"
+
+	// OptionValueResolutionFailedReason is set when option values could not be resolved
+	OptionValueResolutionFailedReason greenhousemetav1alpha1.ConditionReason = "OptionValueResolutionFailed"
 )
 
 // PluginStatus defines the observed state of Plugin
@@ -158,6 +199,11 @@ type PluginStatus struct {
 	// LastReconciledAt contains the value when the reconcile was last triggered via annotation.
 	// +Optional
 	LastReconciledAt string `json:"lastReconciledAt,omitempty"`
+
+	// TrackedObjects contains a list of objects being tracked via the greenhouse.sap/tracking-id annotation.
+	// Each entry is in the format "kind/name" (e.g., "Plugin/my-plugin").
+	// +Optional
+	TrackedObjects []string `json:"trackedObjects,omitempty"`
 }
 
 // ServiceType defines the type of exposed service.

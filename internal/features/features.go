@@ -37,6 +37,7 @@ type dexFeatures struct {
 
 type pluginFeatures struct {
 	ExpressionEvaluationEnabled bool   `yaml:"expressionEvaluationEnabled"`
+	IntegrationEnabled          bool   `yaml:"integrationEnabled"`
 	DefaultDeploymentTool       string `yaml:"defaultDeploymentTool"`
 }
 
@@ -114,6 +115,23 @@ func (f *Features) IsExpressionEvaluationEnabled() bool {
 		return false
 	}
 	return f.plugin.ExpressionEvaluationEnabled
+}
+
+// IsIntegrationEnabled returns whether plugin integration is enabled.
+// Returns false as default.
+func (f *Features) IsIntegrationEnabled() bool {
+	if f == nil {
+		return false
+	}
+
+	if f.plugin != nil {
+		return f.plugin.IntegrationEnabled
+	}
+	if err := f.resolvePluginFeatures(); err != nil {
+		ctrl.LoggerFrom(context.Background()).Error(err, "failed to resolve plugin features")
+		return false
+	}
+	return f.plugin.IntegrationEnabled
 }
 
 // GetDefaultDeploymentTool returns the default deployment tool for plugins.
