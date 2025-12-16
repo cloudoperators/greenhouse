@@ -26,16 +26,14 @@ func setHelmRepositoryReadyCondition(ctx context.Context, k8sClient client.Clien
 	}
 
 	readyCondition := meta.FindStatusCondition(helmRepo.Status.Conditions, fluxmeta.ReadyCondition)
-	if readyCondition == nil {
+	switch {
+	case readyCondition == nil:
 		obj.SetCondition(greenhousemetav1alpha1.UnknownCondition(
 			greenhousev1alpha1.HelmRepositoryReadyCondition, "", "HelmRepository status pending"))
-		return
-	}
-
-	if readyCondition.Status == metav1.ConditionTrue {
+	case readyCondition.Status == metav1.ConditionTrue:
 		obj.SetCondition(greenhousemetav1alpha1.TrueCondition(
 			greenhousev1alpha1.HelmRepositoryReadyCondition, "", "HelmRepository is ready"))
-	} else {
+	default:
 		obj.SetCondition(greenhousemetav1alpha1.FalseCondition(
 			greenhousev1alpha1.HelmRepositoryReadyCondition,
 			greenhousemetav1alpha1.ConditionReason(readyCondition.Reason),

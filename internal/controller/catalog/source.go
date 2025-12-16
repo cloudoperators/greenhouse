@@ -349,10 +349,7 @@ func (s *source) reconcileKustomization(ctx context.Context, extArtifact *source
 		// but on kustomize deletion the label stays behind since prune policy is to Retain.
 		// WithCommonLabels(s.commonArtifactLabels).
 		WithPath(artifactToDir).
-		WithSuspend(false).
-		// Wait enables health checking of applied resources (e.g., PluginDefinitions)
-		// so the Kustomization status reflects if PluginDefinitions are ready.
-		WithWait(true)
+		WithSuspend(false)
 
 	for _, override := range s.source.Overrides {
 		if len(override.OptionsOverride) > 0 {

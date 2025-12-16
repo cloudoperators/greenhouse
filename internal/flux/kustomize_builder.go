@@ -150,11 +150,6 @@ func (k *KustomizeBuilder) WithSuspend(suspend bool) *KustomizeBuilder {
 	return k
 }
 
-func (k *KustomizeBuilder) WithWait(wait bool) *KustomizeBuilder {
-	k.spec.Wait = wait
-	return k
-}
-
 func (k *KustomizeBuilder) Build() (kustomizev1.KustomizationSpec, error) {
 	if k.spec.SourceRef.Kind == "" {
 		return kustomizev1.KustomizationSpec{}, errors.New("source reference kind is required")
