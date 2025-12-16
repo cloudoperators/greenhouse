@@ -212,6 +212,40 @@ spec:
           repository: oci://your-registry.io/some-repo/perses-chart
 ```
 
+PluginDefinitions can define configuration options with default values in their `.spec.options[]` array. You can override these default values using the `optionsOverride` field in the Catalog overrides.
+
+This is useful when you want to:
+- Provide different default values for different environments (dev, staging, production)
+- Customize plugin behavior without modifying the original PluginDefinition
+- Set organization-specific defaults for plugins
+
+Example using the Perses PluginDefinition:
+
+```yaml
+spec:
+  sources:
+    - repository: https://github.com/cloudoperators/greenhouse-extensions
+      resources:
+        - perses/plugindefinition.yaml
+      ref:
+        branch: main
+      overrides:
+        - name: perses
+          optionsOverride:
+            - name: perses.image.version
+              value: "0.47.0"
+            - name: perses.serviceMonitor.selector.matchLabels
+              value:
+                app.kubernetes.io/name: perses
+```
+
+**NOTE:**
+
+- The `optionsOverride[].name` must match an existing option name in the PluginDefinition's `.spec.options[]`
+- The `value` type must match the option's type (string, bool, int, list, map)
+- This only overrides the **default value** of the option, not its required/optional status
+- If the option doesn't exist in the PluginDefinition, the override will be ignored
+
 ### Suspending the Catalog's reconciliation
 
 The annotation `greenhouse.sap/suspend` can be added to a Catalog resource to temporarily suspend reconciliation.
