@@ -242,8 +242,8 @@ spec:
 **NOTE:**
 
 - The `optionsOverride[].name` must match an existing option name in the PluginDefinition's `.spec.options[]`
-- The `value` type must match the option's type (string, bool, int, list, map)
-- This only overrides the **default value** of the option, not its required/optional status
+- The `value` type must match the option's type.
+- This only overrides the **default value** of the option.
 - If the option doesn't exist in the PluginDefinition, the override will be ignored
 
 ### Suspending the Catalog's reconciliation
