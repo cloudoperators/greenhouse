@@ -137,6 +137,7 @@ type CatalogStatus struct {
 // +kubebuilder:object:root=true
 // +kubebuilder:subresource:status
 //+kubebuilder:printcolumn:name="Ready",type="string",JSONPath=`.status.statusConditions.conditions[?(@.type == "Ready")].status`
+// +kubebuilder:printcolumn:name="Status",type="string",JSONPath=`.status.statusConditions.conditions[?(@.type=="Ready")].message`
 // +kubebuilder:resource:shortName=cat
 
 // Catalog is the Schema for the catalogs API.

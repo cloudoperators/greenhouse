@@ -88,6 +88,7 @@ type ManagedPluginStatus struct {
 //+kubebuilder:printcolumn:name="Plugin Definition",type=string,JSONPath=`.spec.plugin.pluginDefinition`
 //+kubebuilder:printcolumn:name="Release Namespace",type=string,JSONPath=`.spec.plugin.releaseNamespace`
 //+kubebuilder:printcolumn:name="Ready",type="string",JSONPath=`.status.statusConditions.conditions[?(@.type == "Ready")].status`
+// +kubebuilder:printcolumn:name="Status",type="string",JSONPath=`.status.statusConditions.conditions[?(@.type=="Ready")].message`
 
 // PluginPreset is the Schema for the PluginPresets API
 type PluginPreset struct {

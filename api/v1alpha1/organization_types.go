@@ -117,6 +117,7 @@ type OrganizationStatus struct {
 //+kubebuilder:printcolumn:name="IdP admin group",type="string",JSONPath=".spec.mappedOrgAdminIdPGroup"
 //+kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp"
 //+kubebuilder:printcolumn:name="Ready",type="string",JSONPath=`.status.statusConditions.conditions[?(@.type == "Ready")].status`
+// +kubebuilder:printcolumn:name="Status",type="string",JSONPath=`.status.statusConditions.conditions[?(@.type=="Ready")].message`
 
 // Organization is the Schema for the organizations API
 type Organization struct {
