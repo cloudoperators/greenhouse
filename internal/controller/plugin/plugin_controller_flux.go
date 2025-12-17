@@ -8,7 +8,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"slices"
 
 	helmv2 "github.com/fluxcd/helm-controller/api/v2"
 	"github.com/fluxcd/pkg/apis/kustomize"
@@ -469,12 +468,16 @@ func computeReleaseValues(ctx context.Context, c client.Client, plugin *greenhou
 
 // generateHelmValues generates the Helm values in JSON format to be used with a Flux HelmRelease.
 func generateHelmValues(ctx context.Context, optionValues []greenhousev1alpha1.PluginOptionValue) ([]byte, error) {
-	// remove all option values that are set from a secret, as these have a nil value
-	optionValues = slices.DeleteFunc(optionValues, func(v greenhousev1alpha1.PluginOptionValue) bool {
-		return v.ValueFrom != nil && v.ValueFrom.Secret != nil
-	})
+	o := make([]greenhousev1alpha1.PluginOptionValue, len(optionValues))
+	for _, v := range optionValues {
+		if v.ValueFrom != nil && v.ValueFrom.Secret != nil {
+			// remove all option values that are set from a secret, as these have a nil value
+			continue
+		}
+		o = append(o, v)
+	}
 
-	jsonValue, err := helm.ConvertFlatValuesToHelmValues(optionValues)
+	jsonValue, err := helm.ConvertFlatValuesToHelmValues(o)
 	if err != nil {
 		return nil, fmt.Errorf("failed to convert plugin option values to JSON: %w", err)
 	}

@@ -6,11 +6,13 @@ package plugin
 import (
 	"encoding/json"
 
+	. "github.com/onsi/ginkgo/v2"
+	. "github.com/onsi/gomega"
+	. "github.com/onsi/gomega/gstruct"
+
 	helmv2 "github.com/fluxcd/helm-controller/api/v2"
 	fluxmeta "github.com/fluxcd/pkg/apis/meta"
 	sourcecontroller "github.com/fluxcd/source-controller/api/v1"
-	. "github.com/onsi/ginkgo/v2"
-	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -184,6 +186,11 @@ var _ = Describe("Flux Plugin Controller", Ordered, func() {
 
 		actualRaw, err := generateHelmValues(test.Ctx, actualOptionValues)
 		Expect(err).ToNot(HaveOccurred(), "there should be no error generating the Helm values JSON")
+		Expect(actualOptionValues).Should(ContainElement(
+			MatchFields(IgnoreExtras, Fields{
+				"Name": Equal("nested.secretOption"),
+			}),
+		))
 
 		By("checking the computed Values")
 		Expect(actualRaw).To(Equal(expectedRaw), "the computed HelmRelease values should match the expected values")

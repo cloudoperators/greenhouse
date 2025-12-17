@@ -39,7 +39,7 @@ const (
 // filterExternalOptionValues removes option values that are sourced from secrets or external references.
 func filterExternalOptionValues(optionValues []greenhousev1alpha1.PluginOptionValue) []greenhousev1alpha1.PluginOptionValue {
 	return slices.DeleteFunc(optionValues, func(v greenhousev1alpha1.PluginOptionValue) bool {
-		return v.ValueFrom != nil && (v.ValueFrom.Secret != nil || v.ValueFrom.Ref != nil)
+		return v.ValueFrom != nil && v.ValueFrom.Ref != nil
 	})
 }
 
@@ -49,7 +49,7 @@ func resolvePlainOptionValues(ctx context.Context, c client.Client, plugin *gree
 	if err != nil {
 		return nil, err
 	}
-	// filter out option values that come from secrets or external references
+	// filter out option values that come from external references
 	// These values have a nil direct value and are resolved separately
 	optionValues = filterExternalOptionValues(optionValues)
 	// Resolve any CEL expressions in the option values (option value templating)
