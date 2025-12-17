@@ -169,6 +169,9 @@ const (
 
 	// OptionValueResolutionFailedReason is set when option values could not be resolved
 	OptionValueResolutionFailedReason greenhousemetav1alpha1.ConditionReason = "OptionValueResolutionFailed"
+
+	// ValueConversionFailedReason is set when option values could not be converted to Helm values
+	ValueConversionFailedReason greenhousemetav1alpha1.ConditionReason = "ValueConversionFailed"
 )
 
 // PluginStatus defines the observed state of Plugin
