@@ -158,6 +158,9 @@ const (
 	// WaitingForDependenciesCondition reflects if HelmRelease is waiting for other releases to be ready.
 	WaitingForDependenciesCondition greenhousemetav1alpha1.ConditionType = "WaitingForDependencies"
 
+	// RetriesExhaustedCondition reflects if the HelmRelease has exhausted all retries.
+	RetriesExhaustedCondition greenhousemetav1alpha1.ConditionType = "RetriesExhausted"
+
 	// PluginDefinitionNotFoundReason is set when the pluginDefinition is not found.
 	PluginDefinitionNotFoundReason greenhousemetav1alpha1.ConditionReason = "PluginDefinitionNotFound"
 

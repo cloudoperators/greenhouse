@@ -259,6 +259,7 @@ var _ = Describe("Flux Plugin Controller", Ordered, func() {
 			err := test.K8sClient.Get(test.Ctx, releaseKey, release)
 			g.Expect(err).ToNot(HaveOccurred(), "failed to get HelmRelease")
 			g.Expect(release.GetAnnotations()).Should(HaveKeyWithValue(fluxmeta.ReconcileRequestAnnotation, "foobar"), "HelmRelease should have the reconcile annotation updated")
+			g.Expect(release.GetAnnotations()).Should(HaveKeyWithValue(helmv2.ResetRequestAnnotation, "foobar"), "HelmRelease should have the reset annotation updated to allow retry reset")
 
 			err = test.K8sClient.Get(test.Ctx, client.ObjectKeyFromObject(testPlugin), testPlugin)
 			g.Expect(err).ToNot(HaveOccurred(), "failed to get Plugin")
@@ -271,10 +272,20 @@ var _ = Describe("Flux Plugin Controller", Ordered, func() {
 			err := test.K8sClient.Get(test.Ctx, releaseKey, release)
 			g.Expect(err).ToNot(HaveOccurred(), "failed to get HelmRelease")
 			g.Expect(release.GetAnnotations()).ShouldNot(HaveKey(fluxmeta.ReconcileRequestAnnotation), "HelmRelease should have the reconcile annotation removed")
+			g.Expect(release.GetAnnotations()).ShouldNot(HaveKey(helmv2.ResetRequestAnnotation), "HelmRelease should have the reset annotation removed")
 
 			err = test.K8sClient.Get(test.Ctx, client.ObjectKeyFromObject(testPlugin), testPlugin)
 			g.Expect(err).ToNot(HaveOccurred(), "failed to get Plugin")
 			g.Expect(testPlugin.Status.LastReconciledAt).To(BeEmpty(), "Plugin status LastReconcile should be empty")
+		}).Should(Succeed())
+
+		By("ensuring RetriesExhaustedCondition is initialized")
+		Eventually(func(g Gomega) {
+			err := test.K8sClient.Get(test.Ctx, client.ObjectKeyFromObject(testPlugin), testPlugin)
+			g.Expect(err).ToNot(HaveOccurred())
+
+			retriesExhaustedCondition := testPlugin.Status.GetConditionByType(greenhousev1alpha1.RetriesExhaustedCondition)
+			g.Expect(retriesExhaustedCondition).ToNot(BeNil(), "RetriesExhaustedCondition should be present in Plugin status")
 		}).Should(Succeed())
 	})
 
