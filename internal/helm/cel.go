@@ -4,7 +4,6 @@
 package helm
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
 	"strings"
@@ -15,43 +14,49 @@ import (
 	"github.com/cloudoperators/greenhouse/internal/cel"
 )
 
-// ResolveExpressions processes PluginOptionValues with expressions and resolves them to concrete values.
-func ResolveExpressions(ctx context.Context, optionValues []greenhousev1alpha1.PluginOptionValue, expressionEvaluationEnabled bool) ([]greenhousev1alpha1.PluginOptionValue, error) {
-	resolvedValues := make([]greenhousev1alpha1.PluginOptionValue, 0, len(optionValues))
+type CELResolver struct {
+	templateData map[string]any
+}
 
+// NewCELResolver creates a new CELResolver for a given Plugin.
+func NewCELResolver(optionValues []greenhousev1alpha1.PluginOptionValue) (*CELResolver, error) {
 	templateData, err := buildTemplateData(optionValues)
 	if err != nil {
 		return nil, fmt.Errorf("failed to build template data: %w", err)
 	}
+	return &CELResolver{templateData: templateData}, nil
+}
 
-	for _, optionValue := range optionValues {
-		if optionValue.Expression != nil {
-			var jsonValue []byte
-
-			if expressionEvaluationEnabled {
-				jsonValue, err = cel.EvaluateExpression(*optionValue.Expression, templateData)
-				if err != nil {
-					return nil, fmt.Errorf("failed to evaluate expression for option %s: %w", optionValue.Name, err)
-				}
-			} else {
-				jsonValue, err = json.Marshal(*optionValue.Expression)
-				if err != nil {
-					return nil, fmt.Errorf("failed to marshal literal expression for option %s: %w", optionValue.Name, err)
-				}
-			}
-
-			resolvedValues = append(resolvedValues, greenhousev1alpha1.PluginOptionValue{
-				Name:       optionValue.Name,
-				Value:      &apiextensionsv1.JSON{Raw: jsonValue},
-				ValueFrom:  nil,
-				Expression: nil,
-			})
-		} else {
-			resolvedValues = append(resolvedValues, optionValue)
+func (c *CELResolver) ResolveExpression(optionValue greenhousev1alpha1.PluginOptionValue, expressionEvaluationEnabled bool) (*greenhousev1alpha1.PluginOptionValue, error) {
+	// early return if there is no expression to resolve
+	if optionValue.Expression == nil {
+		return &optionValue, nil
+	}
+	// copy the expression into the value field if expression evaluation is disabled
+	if !expressionEvaluationEnabled {
+		jsonValue, err := json.Marshal(*optionValue.Expression)
+		if err != nil {
+			return nil, fmt.Errorf("failed to marshal literal expression for option %s: %w", optionValue.Name, err)
 		}
+		return &greenhousev1alpha1.PluginOptionValue{
+			Name:       optionValue.Name,
+			Value:      &apiextensionsv1.JSON{Raw: jsonValue},
+			ValueFrom:  nil,
+			Expression: nil,
+		}, nil
+	}
+	// evaluate the expression using CEL
+	jsonValue, err := cel.EvaluateExpression(*optionValue.Expression, c.templateData)
+	if err != nil {
+		return nil, fmt.Errorf("failed to evaluate expression for option %s: %w", optionValue.Name, err)
 	}
 
-	return resolvedValues, nil
+	return &greenhousev1alpha1.PluginOptionValue{
+		Name:       optionValue.Name,
+		Value:      &apiextensionsv1.JSON{Raw: jsonValue},
+		ValueFrom:  nil,
+		Expression: nil,
+	}, nil
 }
 
 // buildTemplateData extracts global.greenhouse.* values to build template data for CEL evaluation.

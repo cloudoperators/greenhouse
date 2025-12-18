@@ -27,7 +27,6 @@ import (
 	greenhouseapis "github.com/cloudoperators/greenhouse/api"
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
 	"github.com/cloudoperators/greenhouse/internal/cel"
-	"github.com/cloudoperators/greenhouse/internal/helm"
 	"github.com/cloudoperators/greenhouse/internal/lifecycle"
 )
 
@@ -36,30 +35,6 @@ const (
 	trackingSeparator = ";"
 )
 
-// filterExternalOptionValues removes option values that are sourced from secrets or external references.
-func filterExternalOptionValues(optionValues []greenhousev1alpha1.PluginOptionValue) []greenhousev1alpha1.PluginOptionValue {
-	return slices.DeleteFunc(optionValues, func(v greenhousev1alpha1.PluginOptionValue) bool {
-		return v.ValueFrom != nil && v.ValueFrom.Ref != nil
-	})
-}
-
-// resolvePlainOptionValues retrieves and resolves plugin option values that are directly specified
-func resolvePlainOptionValues(ctx context.Context, c client.Client, plugin *greenhousev1alpha1.Plugin, expressionEvaluationEnabled bool) ([]greenhousev1alpha1.PluginOptionValue, error) {
-	optionValues, err := helm.GetPluginOptionValuesForPlugin(ctx, c, plugin)
-	if err != nil {
-		return nil, err
-	}
-	// filter out option values that come from external references
-	// These values have a nil direct value and are resolved separately
-	optionValues = filterExternalOptionValues(optionValues)
-	// Resolve any CEL expressions in the option values (option value templating)
-	optionValues, err = helm.ResolveExpressions(ctx, optionValues, expressionEvaluationEnabled)
-	if err != nil {
-		return nil, fmt.Errorf("failed to resolve templated values: %w", err)
-	}
-	return optionValues, nil
-}
-
 // filterValueRefOptions filters option values to only include those with external references (ValueFrom.Ref).
 func filterValueRefOptions(optionValues []greenhousev1alpha1.PluginOptionValue) []greenhousev1alpha1.PluginOptionValue {
 	return slices.DeleteFunc(optionValues, func(o greenhousev1alpha1.PluginOptionValue) bool {
@@ -67,32 +42,21 @@ func filterValueRefOptions(optionValues []greenhousev1alpha1.PluginOptionValue) 
 	})
 }
 
-// resolveOptionValuesFromValueRefs resolves plugin option values that reference other Greenhouse resources
-// currently only (Plugin | PluginPreset) is supported. The validation is done at crd level.
-func resolveOptionValuesFromValueRefs(ctx context.Context, c client.Client, plugin *greenhousev1alpha1.Plugin) ([]greenhousev1alpha1.PluginOptionValue, []string, error) {
-	optionValues := make([]greenhousev1alpha1.PluginOptionValue, 0)
-	trackedObjects := make([]string, 0)
-	// filter to only process option values that have external references
-	optionValuesToBeResolved := filterValueRefOptions(plugin.Spec.OptionValues)
+// ResolveValueFromRef resolves a PluginOptionValue which references other Greenhouse resources
+// currently references to Plugin, PluginPreset are supported. The validation is done at CRD level.
+func ResolveValueFromRef(ctx context.Context, c client.Client, plugin *greenhousev1alpha1.Plugin, option greenhousev1alpha1.PluginOptionValue) (*greenhousev1alpha1.PluginOptionValue, []string, error) {
 	resolveKind := plugin.GroupVersionKind().Kind
 	// current reconciling plugin as trackerID
 	tracker := trackingID(resolveKind, plugin.GetName())
-	for _, option := range optionValuesToBeResolved {
-		resolvedValue, objectTrackers, err := resolveOptionValue(ctx, c, plugin, option, resolveKind, tracker)
-		if err != nil {
-			return nil, nil, err
-		}
-		if resolvedValue != nil {
-			optionValues = append(optionValues, *resolvedValue)
-		}
-		// track all referenced objects
-		trackedObjects = append(trackedObjects, objectTrackers...)
+	resolvedValue, objectTrackers, err := resolveValueFromRef(ctx, c, plugin, option, resolveKind, tracker)
+	if err != nil {
+		return nil, nil, err
 	}
-	return optionValues, trackedObjects, nil
+	return resolvedValue, objectTrackers, nil
 }
 
-// resolveOptionValue resolves option value from an external reference.
-func resolveOptionValue(ctx context.Context, c client.Client, plugin *greenhousev1alpha1.Plugin, option greenhousev1alpha1.PluginOptionValue, defaultKind, tracker string) (*greenhousev1alpha1.PluginOptionValue, []string, error) {
+// resolveValueFromRef resolves option value from an external reference.
+func resolveValueFromRef(ctx context.Context, c client.Client, plugin *greenhousev1alpha1.Plugin, option greenhousev1alpha1.PluginOptionValue, defaultKind, tracker string) (*greenhousev1alpha1.PluginOptionValue, []string, error) {
 	var value any
 	var trackedObjects []string
 	var err error
