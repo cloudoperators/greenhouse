@@ -39,7 +39,7 @@ func handleAuthorize(w http.ResponseWriter, r *http.Request, dyn dynamic.Interfa
 		return
 	}
 
-	log.Printf("AuthZ request for user=%s, verb=%s, resource=%s, ns=%s",
+	log.Printf("[AuthZ] Request for user=%s, verb=%s, resource=%s, ns=%s",
 		review.Spec.User, attrs.Verb, attrs.Resource, attrs.Namespace)
 
 	var userSupportGroups []string
@@ -49,8 +49,6 @@ func handleAuthorize(w http.ResponseWriter, r *http.Request, dyn dynamic.Interfa
 		if !found {
 			continue
 		}
-
-		log.Printf("AuthZ found support-group claim: %s", supportGroupName)
 		userSupportGroups = append(userSupportGroups, supportGroupName)
 	}
 
@@ -58,6 +56,7 @@ func handleAuthorize(w http.ResponseWriter, r *http.Request, dyn dynamic.Interfa
 		respond(w, review, false, "user has no support-group claims")
 		return
 	}
+	log.Printf("[AuthZ] User has the following support-group claims: %s", strings.Join(userSupportGroups, ", "))
 
 	gvr := schema.GroupVersionResource{
 		Group:    attrs.Group,
@@ -87,6 +86,7 @@ func handleAuthorize(w http.ResponseWriter, r *http.Request, dyn dynamic.Interfa
 		respond(w, review, false, "requested resource has no owned-by label set")
 		return
 	}
+	log.Printf("[AuthZ] Requested resource is owned by: %s", ownedByValue)
 
 	// If the support-group matches the greenhouse.sap/owned-by label on the resources the user should get full permissions on the resource.
 	if slices.Contains(userSupportGroups, ownedByValue) {
@@ -98,6 +98,11 @@ func handleAuthorize(w http.ResponseWriter, r *http.Request, dyn dynamic.Interfa
 }
 
 func respond(w http.ResponseWriter, review authv1.SubjectAccessReview, allowed bool, msg string) {
+	if allowed {
+		log.Printf("[AuthZ ALLOWED] %s", msg)
+	} else {
+		log.Printf("[AuthZ DENIED] %s", msg)
+	}
 	review.Status = authv1.SubjectAccessReviewStatus{
 		Allowed: allowed,
 		Reason:  msg,

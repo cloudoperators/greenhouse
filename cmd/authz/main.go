@@ -76,8 +76,6 @@ func main() {
 	handleError(err, "Failed to create manager")
 
 	// Register the authorizer webhook.
-	setupLog.Info("Registering authorization webhook", "path", "/authorize")
-
 	dynClient, err := dynamic.NewForConfig(mgr.GetConfig())
 	if err != nil {
 		handleError(err, "unable to create dynamic client")
@@ -85,12 +83,10 @@ func main() {
 	mgr.GetWebhookServer().Register("/authorize", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		handleAuthorize(w, r, dynClient)
 	}))
-	setupLog.Info("Health probe addr", "addr", healthzAddr)
 
 	handleError(mgr.AddHealthzCheck("healthz", healthz.Ping), "Failed to set up health check")
 	handleError(mgr.AddReadyzCheck("readyz", healthz.Ping), "Failed to set up ready check")
 
-	setupLog.Info("starting manager")
 	handleError(mgr.Start(ctrl.SetupSignalHandler()), "Failed to start manager")
 }
 

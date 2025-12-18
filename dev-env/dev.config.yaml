@@ -33,7 +33,7 @@ config:
           webhook:
             dockerFile: "./"
       - manifest:
-          release: authz
+          release: greenhouse-authz
           chartPath: charts/authz
           crdOnly: false
           authz: true

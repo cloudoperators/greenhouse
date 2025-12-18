@@ -8,7 +8,7 @@ clusters:
 - name: authz-webhook
   cluster:
     # URL of remote service to query.
-    server: https://authz.greenhouse.svc.cluster.local:9443/authorize
+    server: https://greenhouse-authz.greenhouse.svc.cluster.local:9443/authorize
     # CA for verifying the remote service.
     certificate-authority: /etc/kubernetes/webhook/certs/ca.crt
 # users refers to the API Server's webhook configuration.

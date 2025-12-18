@@ -388,7 +388,7 @@ AUTHZ_CLIENT_KEY := $(AUTHZ_CERTS_DIR)/apiserver.key
 AUTHZ_CLIENT_CSR := $(AUTHZ_CERTS_DIR)/apiserver.csr
 AUTHZ_CLIENT_CRT := $(AUTHZ_CERTS_DIR)/apiserver.crt
 
-AUTHZ_SAN_DNS := DNS:authz,DNS:authz.greenhouse.svc,DNS:authz.greenhouse.svc.cluster.local
+AUTHZ_SAN_DNS := DNS:greenhouse-authz,DNS:greenhouse-authz.greenhouse.svc,DNS:greenhouse-authz.greenhouse.svc.cluster.local
 
 authz-certs: clean-authz-certs authz-ca authz-server authz-client
 
