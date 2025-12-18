@@ -115,7 +115,7 @@ func (m *Manifest) setupAuthzManifest(resources []map[string]any) ([]map[string]
 	}
 	manifests = append(manifests, authzDeployment)
 
-	remainingResources := extractResourcesByKinds(resources, ServiceKind)
+	remainingResources := extractResourcesByKinds(resources, ServiceKind, "ServiceAccount", "ClusterRole", "ClusterRoleBinding")
 	manifests = append(manifests, remainingResources...)
 	return manifests, nil
 }

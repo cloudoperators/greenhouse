@@ -30,7 +30,7 @@ authorizers:
         kubeConfigFile: /etc/kubernetes/webhook/authz-webhook-secure.yaml
       # matchConditions is a list of conditions that must be met for a request to be sent to this webhook.
       matchConditions:
-        # only send resource requests to the webhook
-        - expression: has(request.resourceAttributes)
-        # only intercept requests to greenhouse namespace
-        - expression: request.resourceAttributes.namespace == 'greenhouse' # only intercept requests to greenhouse namespace
+        - expression: has(request.resourceAttributes) # only resource requests
+        - expression: request.resourceAttributes.namespace != ""
+        - expression: request.resourceAttributes.group == "greenhouse.sap"
+        - expression: request.user != "system:serviceaccount:greenhouse:authz-webhook-sa" # prevent authz requests recursion

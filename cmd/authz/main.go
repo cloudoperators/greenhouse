@@ -12,6 +12,7 @@ import (
 	"go.uber.org/zap/zapcore"
 	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
+	"k8s.io/client-go/dynamic"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -76,15 +77,14 @@ func main() {
 
 	// Register the authorizer webhook.
 	setupLog.Info("Registering authorization webhook", "path", "/authorize")
-	mgr.GetWebhookServer().Register("/authorize", http.HandlerFunc(handleAuthorizeDummy))
 
-	// dynClient, err := dynamic.NewForConfig(mgr.GetConfig())
-	// if err != nil {
-	// 	handleError(err, "unable to create dynamic client")
-	// }
-	// mgr.GetWebhookServer().Register("/authorize", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-	// 	handleAuthorize(w, r, dynClient)
-	// }))
+	dynClient, err := dynamic.NewForConfig(mgr.GetConfig())
+	if err != nil {
+		handleError(err, "unable to create dynamic client")
+	}
+	mgr.GetWebhookServer().Register("/authorize", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		handleAuthorize(w, r, dynClient)
+	}))
 	setupLog.Info("Health probe addr", "addr", healthzAddr)
 
 	handleError(mgr.AddHealthzCheck("healthz", healthz.Ping), "Failed to set up health check")

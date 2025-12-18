@@ -443,4 +443,4 @@ clean-authz-certs:
 .PHONY: authz-certs clean-authz-certs authz-ca authz-server authz-client
 
 .PHONY: setup-authz-dev
-setup-authz-dev: authz-certs setup-webhook-dev
+setup-authz-dev: authz-certs setup-manager

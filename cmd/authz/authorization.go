@@ -56,6 +56,7 @@ func handleAuthorize(w http.ResponseWriter, r *http.Request, dyn dynamic.Interfa
 
 	if len(userSupportGroups) == 0 {
 		respond(w, review, false, "user has no support-group claims")
+		return
 	}
 
 	gvr := schema.GroupVersionResource{
@@ -90,6 +91,7 @@ func handleAuthorize(w http.ResponseWriter, r *http.Request, dyn dynamic.Interfa
 	// If the support-group matches the greenhouse.sap/owned-by label on the resources the user should get full permissions on the resource.
 	if slices.Contains(userSupportGroups, ownedByValue) {
 		respond(w, review, true, fmt.Sprintf("user has a support-group claim for the requested resource: %s", ownedByValue))
+		return
 	}
 
 	respond(w, review, false, "")
@@ -101,39 +103,7 @@ func respond(w http.ResponseWriter, review authv1.SubjectAccessReview, allowed b
 		Reason:  msg,
 	}
 	w.Header().Set("Content-Type", "application/json")
-	err := json.NewEncoder(w).Encode(review)
-	http.Error(w, fmt.Sprintf("encode: %v", err), http.StatusInternalServerError)
-}
-
-func handleAuthorizeDummy(w http.ResponseWriter, r *http.Request) {
-	log.Println("[DUMMY] Authz webhook allowing all requests")
-
-	if r.TLS == nil {
-		fmt.Println("TLS: no (unexpected for https)")
-		w.WriteHeader(http.StatusInternalServerError)
-		return
+	if err := json.NewEncoder(w).Encode(review); err != nil {
+		log.Printf("encode SubjectAccessReview failed: %v", err)
 	}
-
-	log.Printf("TLS: peer certs=%d, verifiedChains=%d\n",
-		len(r.TLS.PeerCertificates), len(r.TLS.VerifiedChains))
-
-	if len(r.TLS.PeerCertificates) > 0 {
-		c := r.TLS.PeerCertificates[0]
-		log.Printf("Client cert subject: %s\n", c.Subject.String())
-		log.Printf("Client cert issuer:  %s\n", c.Issuer.String())
-	}
-
-	if len(r.TLS.VerifiedChains) == 0 {
-		log.Println("Client cert NOT verified (or not required)")
-	} else {
-		log.Println("Client cert VERIFIED")
-	}
-
-	review := authv1.SubjectAccessReview{
-		Status: authv1.SubjectAccessReviewStatus{
-			Allowed: true,
-		},
-	}
-	w.Header().Set("Content-Type", "application/json")
-	_ = json.NewEncoder(w).Encode(review)
 }
