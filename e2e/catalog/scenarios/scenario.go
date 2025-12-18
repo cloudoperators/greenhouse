@@ -350,7 +350,6 @@ func (s *scenario) expectStatusPropagationInCatalogInventory(ctx context.Context
 	groupInventory := catalog.Status.Inventory[groupKey]
 	Expect(groupInventory).ToNot(BeEmpty(), "the Catalog status inventory for the source should not be empty")
 	for _, resource := range groupInventory {
-		kindInventoryStatus := resource.Ready
 		var fluxObj lifecycle.CatalogObject
 		switch resource.Kind {
 		case sourcev1.GitRepositoryKind:
@@ -374,6 +373,14 @@ func (s *scenario) expectStatusPropagationInCatalogInventory(ctx context.Context
 			g.Expect(err).ToNot(HaveOccurred(), "there should be no error getting the catalog flux resource: "+fluxObj.GetName())
 			fluxCondition := meta.FindStatusCondition(fluxObj.GetConditions(), fluxmeta.ReadyCondition)
 			g.Expect(fluxCondition).ToNot(BeNil(), "the underlying resource should have a Ready condition: "+fluxObj.GetName())
+
+			freshCatalog := &greenhousev1alpha1.Catalog{}
+			g.Expect(s.k8sClient.Get(ctx, client.ObjectKeyFromObject(s.catalog), freshCatalog)).ToNot(HaveOccurred(), "there should be no error getting the Catalog")
+			freshGroupInventory := freshCatalog.Status.Inventory[groupKey]
+			idx := getKindIndexFromInventory(freshGroupInventory, resource.Kind)
+			g.Expect(idx).ToNot(Equal(-1), "the Catalog inventory should contain the resource kind: "+resource.Kind)
+			kindInventoryStatus := freshGroupInventory[idx].Ready
+
 			g.Expect(kindInventoryStatus).To(Equal(fluxCondition.Status), "the Catalog inventory status should contain the flux resource condition status")
 		}).Should(Succeed(), "the flux resource condition should be propagated to the Catalog inventory status")
 	}
