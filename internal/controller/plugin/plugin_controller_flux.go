@@ -151,6 +151,8 @@ func (r *PluginReconciler) ensureHelmRelease(
 
 	values, err := generateHelmValues(ctx, optionValues)
 	if err != nil {
+		plugin.SetCondition(greenhousemetav1alpha1.TrueCondition(
+			greenhousev1alpha1.HelmReconcileFailedCondition, greenhousev1alpha1.PluginOptionValueInvalidReason, err.Error()))
 		return fmt.Errorf("failed to generate HelmRelease values for Plugin %s: %w", plugin.Name, err)
 	}
 

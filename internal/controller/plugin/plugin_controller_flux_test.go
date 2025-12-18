@@ -196,6 +196,22 @@ var _ = Describe("Flux Plugin Controller", Ordered, func() {
 		Expect(actualRaw).To(Equal(expectedRaw), "the computed HelmRelease values should match the expected values")
 	})
 
+	It("should return error when generating Helm values with conflicting option paths", func() {
+		By("creating conflicting option values where a key is both a string and a parent path")
+		conflictingOptionValues := []greenhousev1alpha1.PluginOptionValue{
+			{Name: "credentials.type", Value: test.MustReturnJSONFor("S3")},
+			{Name: "credentials.type.config", Value: test.MustReturnJSONFor("bucket-name")},
+		}
+
+		By("attempting to generate Helm values")
+		_, err := generateHelmValues(test.Ctx, conflictingOptionValues)
+
+		By("verifying error is returned")
+		Expect(err).To(HaveOccurred(), "generateHelmValues should fail with conflicting option value paths")
+		Expect(err.Error()).To(ContainSubstring("unable to parse key"),
+			"error message should indicate the parsing failure")
+	})
+
 	It("should create HelmRelease for Plugin", func() {
 		By("ensuring HelmRepository has been created for ClusterPluginDefinition")
 		helmRepository := &sourcecontroller.HelmRepository{}
