@@ -56,6 +56,9 @@ const (
 	// PluginDefinitionKind is the kind of the PluginDefinition resource
 	PluginDefinitionKind = "PluginDefinition"
 
+	// HelmRepositoryReadyCondition reflects if the associated HelmRepository is ready.
+	HelmRepositoryReadyCondition greenhousemetav1alpha1.ConditionType = "HelmRepositoryReady"
+
 	// PluginOptionTypeString is a valid value for PluginOptionType.
 	PluginOptionTypeString PluginOptionType = "string"
 	// PluginOptionTypeSecret is a valid value for PluginOptionType.

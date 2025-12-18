@@ -47,6 +47,7 @@ func (r *ClusterPluginDefinitionReconciler) SetupWithManager(name string, mgr ct
 	return ctrl.NewControllerManagedBy(mgr).
 		Named(name).
 		For(&greenhousev1alpha1.ClusterPluginDefinition{}).
+		Owns(&sourcecontroller.HelmRepository{}).
 		Complete(r)
 }
 
@@ -70,14 +71,18 @@ func (r *ClusterPluginDefinitionReconciler) EnsureCreated(ctx context.Context, o
 		r.recorder.Event(clusterDef, corev1.EventTypeNormal, "Skipped", "Skipped HelmRepository creation")
 		return ctrl.Result{}, lifecycle.Success, nil
 	}
-	err := r.reconcileHelmRepository(ctx, clusterDef)
+
+	helmRepo, err := r.reconcileHelmRepository(ctx, clusterDef)
 	if err != nil {
 		return ctrl.Result{}, lifecycle.Failed, err
 	}
+
+	setHelmRepositoryReadyCondition(ctx, r.Client, clusterDef, helmRepo)
+
 	return ctrl.Result{}, lifecycle.Success, nil
 }
 
-func (r *ClusterPluginDefinitionReconciler) reconcileHelmRepository(ctx context.Context, clusterDef *greenhousev1alpha1.ClusterPluginDefinition) error {
+func (r *ClusterPluginDefinitionReconciler) reconcileHelmRepository(ctx context.Context, clusterDef *greenhousev1alpha1.ClusterPluginDefinition) (*sourcecontroller.HelmRepository, error) {
 	repositoryURL := clusterDef.Spec.HelmChart.Repository
 	helmRepository := &sourcecontroller.HelmRepository{}
 	helmRepository.SetName(flux.ChartURLToName(repositoryURL))
@@ -92,7 +97,7 @@ func (r *ClusterPluginDefinitionReconciler) reconcileHelmRepository(ctx context.
 	if err != nil {
 		log.FromContext(ctx).Error(err, "Failed to create or update HelmRepository", "name", helmRepository.Name)
 		r.recorder.Eventf(clusterDef, corev1.EventTypeWarning, "Failed", "Failed to create or update HelmRepository %s: %s", helmRepository.Name, err.Error())
-		return err
+		return nil, err
 	}
 	switch result {
 	case controllerutil.OperationResultCreated:
@@ -104,7 +109,7 @@ func (r *ClusterPluginDefinitionReconciler) reconcileHelmRepository(ctx context.
 	case controllerutil.OperationResultNone:
 		log.FromContext(ctx).Info("No changes to helmRepository", "name", helmRepository.Name)
 	}
-	return nil
+	return helmRepository, nil
 }
 
 func (r *ClusterPluginDefinitionReconciler) EnsureDeleted(_ context.Context, _ lifecycle.RuntimeObject) (ctrl.Result, lifecycle.ReconcileResult, error) {
