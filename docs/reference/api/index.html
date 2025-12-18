@@ -1415,6 +1415,76 @@ Nodes
 </table>
 </div>
 </div>
+<h3 id="greenhouse.sap/v1alpha1.ExternalValueSource">ExternalValueSource
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#greenhouse.sap/v1alpha1.PluginValueFromSource">PluginValueFromSource</a>)
+</p>
+<p>ExternalValueSource defines how to extract values from external resources</p>
+<div class="md-typeset__scrollwrap">
+<div class="md-typeset__table">
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>kind</code><br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Kind is the resource kind to target
+if not set, defaults to the same kind as the referencing resource (Plugin or PluginPreset)</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>name</code><br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Name is the name of the resource to target
+this field is mutually exclusive with LabelSelector</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>selector</code><br>
+<em>
+<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#labelselector-v1-meta">
+Kubernetes meta/v1.LabelSelector
+</a>
+</em>
+</td>
+<td>
+<p>Selector selects the resources to target based on labels
+this field is mutually exclusive with Name</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>expression</code><br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Expression is a CEL expression to extract the value from the referenced resource</p>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
 <h3 id="greenhouse.sap/v1alpha1.GitRef">GitRef
 </h3>
 <p>
@@ -2903,13 +2973,13 @@ Kubernetes apiextensions/v1.JSON
 <td>
 <code>valueFrom</code><br>
 <em>
-<a href="#greenhouse.sap/v1alpha1.ValueFromSource">
-ValueFromSource
+<a href="#greenhouse.sap/v1alpha1.PluginValueFromSource">
+PluginValueFromSource
 </a>
 </em>
 </td>
 <td>
-<p>ValueFrom references a potentially confidential value in another source.</p>
+<p>ValueFrom references value in another source.</p>
 </td>
 </tr>
 <tr>
@@ -3533,6 +3603,66 @@ string
 <p>LastReconciledAt contains the value when the reconcile was last triggered via annotation.</p>
 </td>
 </tr>
+<tr>
+<td>
+<code>trackedObjects</code><br>
+<em>
+[]string
+</em>
+</td>
+<td>
+<p>TrackedObjects contains a list of objects being tracked via the greenhouse.sap/tracking-id annotation.
+Each entry is in the format &ldquo;kind/name&rdquo; (e.g., &ldquo;Plugin/my-plugin&rdquo;).</p>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<h3 id="greenhouse.sap/v1alpha1.PluginValueFromSource">PluginValueFromSource
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#greenhouse.sap/v1alpha1.PluginOptionValue">PluginOptionValue</a>)
+</p>
+<p>PluginValueFromSource defines how to extract dynamic values
+only one of secret or ref can be set</p>
+<div class="md-typeset__scrollwrap">
+<div class="md-typeset__table">
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>secret</code><br>
+<em>
+<a href="#greenhouse.sap/v1alpha1.SecretKeyReference">
+SecretKeyReference
+</a>
+</em>
+</td>
+<td>
+<p>Secret references the v1.Secret containing the value that needs to be extracted</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>ref</code><br>
+<em>
+<a href="#greenhouse.sap/v1alpha1.ExternalValueSource">
+ExternalValueSource
+</a>
+</em>
+</td>
+<td>
+<p>Ref references values defined in another resource (Plugin, PluginPreset)</p>
+</td>
+</tr>
 </tbody>
 </table>
 </div>
@@ -3690,6 +3820,7 @@ string
 <p>
 (<em>Appears on:</em>
 <a href="#greenhouse.sap/v1alpha1.OIDCConfig">OIDCConfig</a>, 
+<a href="#greenhouse.sap/v1alpha1.PluginValueFromSource">PluginValueFromSource</a>, 
 <a href="#greenhouse.sap/v1alpha1.ValueFromSource">ValueFromSource</a>)
 </p>
 <p>SecretKeyReference specifies the secret and key containing the value.</p>
@@ -4638,7 +4769,6 @@ string
 </h3>
 <p>
 (<em>Appears on:</em>
-<a href="#greenhouse.sap/v1alpha1.PluginOptionValue">PluginOptionValue</a>, 
 <a href="#greenhouse.sap/v1alpha1.SCIMConfig">SCIMConfig</a>)
 </p>
 <p>ValueFromSource is a valid source for a value.</p>

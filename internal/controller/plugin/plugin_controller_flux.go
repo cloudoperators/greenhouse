@@ -89,7 +89,14 @@ func (r *PluginReconciler) EnsureFluxCreated(ctx context.Context, plugin *greenh
 		return ctrl.Result{}, lifecycle.Failed, errors.New("helm repository not found")
 	}
 
-	if err := r.ensureHelmRelease(ctx, plugin, *pluginDefinitionSpec, helmRepository); err != nil {
+	optionValues, err := computeReleaseValues(ctx, r.Client, plugin, r.ExpressionEvaluationEnabled, r.IntegrationEnabled)
+	if err != nil {
+		plugin.SetCondition(greenhousemetav1alpha1.TrueCondition(
+			greenhousev1alpha1.HelmReconcileFailedCondition, greenhousev1alpha1.OptionValueResolutionFailedReason, err.Error()))
+		return ctrl.Result{}, lifecycle.Failed, err
+	}
+
+	if err := r.ensureHelmRelease(ctx, plugin, *pluginDefinitionSpec, helmRepository, optionValues); err != nil {
 		log.FromContext(ctx).Error(err, "failed to ensure HelmRelease for Plugin", "name", plugin.Name, "namespace", plugin.Namespace)
 		return ctrl.Result{}, lifecycle.Failed, err
 	}
@@ -130,6 +137,7 @@ func (r *PluginReconciler) ensureHelmRelease(
 	plugin *greenhousev1alpha1.Plugin,
 	pluginDefinitionSpec greenhousev1alpha1.PluginDefinitionSpec,
 	helmRepository *sourcecontroller.HelmRepository,
+	optionValues []greenhousev1alpha1.PluginOptionValue,
 ) error {
 
 	release := &helmv2.HelmRelease{}
@@ -142,10 +150,6 @@ func (r *PluginReconciler) ensureHelmRelease(
 		return fmt.Errorf("failed to read registry mirror configuration for Plugin %s: %w", plugin.Name, err)
 	}
 
-	optionValues, err := computeReleaseValues(ctx, r.Client, plugin, r.ExpressionEvaluationEnabled)
-	if err != nil {
-		return fmt.Errorf("failed to compute HelmRelease values for Plugin %s: %w", plugin.Name, err)
-	}
 	values, err := generateHelmValues(ctx, optionValues)
 	if err != nil {
 		return fmt.Errorf("failed to generate HelmRelease values for Plugin %s: %w", plugin.Name, err)
@@ -189,7 +193,7 @@ func (r *PluginReconciler) ensureHelmRelease(
 			}).
 			WithDependsOn(resolvePluginDependencies(plugin.Spec.WaitFor, plugin.Spec.ClusterName)).
 			WithValues(values).
-			WithValuesFrom(r.addValueReferences(plugin)).
+			WithValuesFrom(addValueReferences(plugin)).
 			WithStorageNamespace(plugin.Spec.ReleaseNamespace).
 			WithTargetNamespace(plugin.Spec.ReleaseNamespace)
 
@@ -218,6 +222,7 @@ func (r *PluginReconciler) ensureHelmRelease(
 
 		val, _ := lifecycle.ReconcileAnnotationValue(plugin)
 		common.EnsureAnnotation(release, fluxmeta.ReconcileRequestAnnotation, val)
+		common.EnsureAnnotation(release, helmv2.ResetRequestAnnotation, val)
 
 		return controllerutil.SetControllerReference(plugin, release, r.Scheme())
 	})
@@ -301,7 +306,7 @@ func (r *PluginReconciler) reconcilePluginStatus(ctx context.Context,
 
 	var (
 		pluginVersion   string
-		exposedServices = make(map[string]greenhousev1alpha1.Service, 0)
+		exposedServices = make(map[string]greenhousev1alpha1.Service)
 		releaseStatus   = &greenhousev1alpha1.HelmReleaseStatus{
 			Status:        "unknown",
 			FirstDeployed: metav1.Time{},
@@ -377,13 +382,35 @@ func (r *PluginReconciler) reconcilePluginStatus(ctx context.Context,
 				greenhousemetav1alpha1.ConditionReason(ready.Reason), ready.Message))
 		}
 
+		// Check if retries are exhausted for install or upgrade operations.
+		installExhausted := helmRelease.Spec.Install.GetRemediation().RetriesExhausted(helmRelease)
+		upgradeExhausted := helmRelease.Spec.Upgrade.GetRemediation().RetriesExhausted(helmRelease)
+		if installExhausted || upgradeExhausted {
+			msg := fmt.Sprintf("install failures: %d, upgrade failures: %d (max retries: %d)",
+				helmRelease.Status.InstallFailures, helmRelease.Status.UpgradeFailures,
+				helmRelease.Spec.Install.GetRemediation().GetRetries())
+			plugin.SetCondition(greenhousemetav1alpha1.TrueCondition(
+				greenhousev1alpha1.RetriesExhaustedCondition, "RetriesExhausted", msg))
+		} else {
+			plugin.SetCondition(greenhousemetav1alpha1.FalseCondition(
+				greenhousev1alpha1.RetriesExhaustedCondition, "", ""))
+		}
+
+		oldChecksum := ""
+		newChecksum := ""
+		if plugin.Status.HelmReleaseStatus != nil && plugin.Status.HelmReleaseStatus.PluginOptionChecksum != "" {
+			oldChecksum = plugin.Status.HelmReleaseStatus.PluginOptionChecksum
+		}
 		if plugin.Spec.OptionValues != nil {
-			checksum, err := helm.CalculatePluginOptionChecksum(ctx, r.Client, plugin)
+			newChecksum, err = helm.CalculatePluginOptionChecksum(ctx, r.Client, plugin)
 			if err != nil {
 				releaseStatus.PluginOptionChecksum = ""
 			} else {
-				releaseStatus.PluginOptionChecksum = checksum
+				releaseStatus.PluginOptionChecksum = newChecksum
 			}
+		}
+		if oldChecksum != "" {
+			r.reconcileTrackingResources(ctx, plugin, oldChecksum, newChecksum)
 		}
 	}
 
@@ -409,19 +436,34 @@ func (r *PluginReconciler) reconcilePluginStatus(ctx context.Context,
 	pluginStatus.ExposedServices = exposedServices
 }
 
-// computeReleaseValues combines the Plugin's PluginOptionValues with the PluginDefinition's PluginOptions
-// Optionally resolves any expressions in the PluginOptionValues.
-func computeReleaseValues(ctx context.Context, c client.Client, plugin *greenhousev1alpha1.Plugin, expressionEvaluationEnabled bool) ([]greenhousev1alpha1.PluginOptionValue, error) {
-	optionValues, err := helm.GetPluginOptionValuesForPlugin(ctx, c, plugin)
+func computeReleaseValues(ctx context.Context, c client.Client, plugin *greenhousev1alpha1.Plugin, expressionEvaluation, integrationEnabled bool) ([]greenhousev1alpha1.PluginOptionValue, error) {
+	optionValues, err := resolvePlainOptionValues(ctx, c, plugin.DeepCopy(), expressionEvaluation)
 	if err != nil {
 		return nil, err
 	}
-
-	optionValues, err = helm.ResolveExpressions(ctx, optionValues, expressionEvaluationEnabled)
-	if err != nil {
-		return nil, fmt.Errorf("failed to resolve expressions: %w", err)
+	if integrationEnabled {
+		var optionValuesFromValueRefs []greenhousev1alpha1.PluginOptionValue
+		var trackedObjects []string
+		optionValuesFromValueRefs, trackedObjects, err = resolveOptionValuesFromValueRefs(ctx, c, plugin.DeepCopy())
+		if err != nil {
+			log.FromContext(ctx).Error(err, "failed to resolve option values from value refs", "namespace", plugin.Namespace, "plugin", plugin.Name)
+			return nil, err
+		}
+		if len(optionValuesFromValueRefs) > 0 {
+			optionValues = append(optionValues, optionValuesFromValueRefs...)
+		}
+		// remove tracking annotations from resources that are no longer being tracked
+		if err := removeUntrackedObjectAnnotations(ctx, c, plugin, trackedObjects); err != nil {
+			log.FromContext(ctx).Error(err, "failed to remove untracked object annotations", "namespace", plugin.Namespace, "plugin", plugin.Name)
+			// log err, will retry on next reconciliation
+		}
+		if len(trackedObjects) > 0 {
+			plugin.Status.TrackedObjects = trackedObjects
+		} else {
+			// clear tracked objects if there are none
+			plugin.Status.TrackedObjects = nil
+		}
 	}
-
 	return optionValues, nil
 }
 
@@ -465,10 +507,10 @@ func configureDriftDetection(ignoreDifferences []greenhousev1alpha1.IgnoreDiffer
 	return driftDetection
 }
 
-func (r *PluginReconciler) addValueReferences(plugin *greenhousev1alpha1.Plugin) []helmv2.ValuesReference {
+func addValueReferences(plugin *greenhousev1alpha1.Plugin) []helmv2.ValuesReference {
 	var valuesFrom []helmv2.ValuesReference
 	for _, value := range plugin.Spec.OptionValues {
-		if value.ValueFrom != nil {
+		if value.ValueFrom != nil && value.ValueFrom.Secret != nil {
 			valuesFrom = append(valuesFrom, helmv2.ValuesReference{
 				Kind:       secretKind,
 				Name:       value.ValueFrom.Secret.Name,
@@ -478,4 +520,62 @@ func (r *PluginReconciler) addValueReferences(plugin *greenhousev1alpha1.Plugin)
 		}
 	}
 	return valuesFrom
+}
+
+// reconcileTrackingResources triggers reconciliation on resources that are tracking this plugin.
+// When a plugin's option values change (detected by checksum change), this function annotates
+// all resources that reference this plugin to trigger their reconciliation.
+func (r *PluginReconciler) reconcileTrackingResources(ctx context.Context, plugin *greenhousev1alpha1.Plugin, oldChecksum, newChecksum string) {
+	if oldChecksum == newChecksum {
+		// No changes, skip reconciliation
+		return
+	}
+
+	// Get the list of trackers from plugin annotations
+	trackerIDs := getTrackerIDsFromAnnotations(plugin)
+	if len(trackerIDs) == 0 {
+		return
+	}
+
+	// Trigger reconciliation for each tracking resource
+	for _, trackerID := range trackerIDs {
+		if err := r.triggerReconcileForTracker(ctx, plugin, trackerID); err != nil {
+			log.FromContext(ctx).Error(err, "failed to trigger reconciliation for tracking resource", "trackerID", trackerID)
+		}
+	}
+}
+
+// triggerReconcileForTracker triggers reconciliation for a single tracking resource.
+func (r *PluginReconciler) triggerReconcileForTracker(ctx context.Context, plugin *greenhousev1alpha1.Plugin, trackerID string) error {
+	// Parse the tracker ID
+	kind, name, err := parseTrackingID(trackerID)
+	if err != nil {
+		log.FromContext(ctx).Error(err, "invalid tracker ID format", "trackerID", trackerID)
+		return err
+	}
+
+	// Skip self-references
+	if name == plugin.GetName() {
+		return nil
+	}
+
+	// Build GVK and key for the tracking resource
+	gvk := buildGVK(kind)
+	key := types.NamespacedName{
+		Name:      name,
+		Namespace: plugin.GetNamespace(),
+	}
+
+	// Update the resource with reconcile annotation
+	err = updateResourceWithAnnotation(ctx, r.Client, gvk, key)
+
+	if err != nil {
+		log.FromContext(ctx).Error(err, "failed to annotate tracking object with reconcile request",
+			"kind", kind,
+			"namespace", plugin.GetNamespace(),
+			"name", name)
+		return err
+	}
+
+	return nil
 }
