@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"slices"
 	"strings"
+	"time"
 
 	kustomizev1 "github.com/fluxcd/kustomize-controller/api/v1"
 	sourcev1 "github.com/fluxcd/source-controller/api/v1"
@@ -239,6 +240,7 @@ func (r *CatalogReconciler) EnsureCreated(ctx context.Context, obj lifecycle.Run
 	catalog.SetProgressingReason()
 
 	var allErrors []error
+	var needsRequeue bool
 	for _, s := range catalog.Spec.Sources {
 		sourcer, err := r.newCatalogSource(s, catalog)
 		if err != nil {
@@ -263,6 +265,7 @@ func (r *CatalogReconciler) EnsureCreated(ctx context.Context, obj lifecycle.Run
 		ready, _ := sourcer.objectReadiness(ctx, externalArtifact)
 		if ready != metav1.ConditionTrue {
 			r.Log.Info("external artifact not ready yet, retry in next reconciliation loop", "namespace", catalog.Namespace, "name", sourcer.getArtifactName())
+			needsRequeue = true
 			continue
 		}
 
@@ -275,6 +278,13 @@ func (r *CatalogReconciler) EnsureCreated(ctx context.Context, obj lifecycle.Run
 	if len(allErrors) > 0 {
 		return ctrl.Result{}, lifecycle.Failed, utilerrors.NewAggregate(allErrors)
 	}
+
+	// Requeue if flux resources are not ready yet.
+	if needsRequeue {
+		r.Log.Info("catalog not ready, requeuing", "namespace", catalog.Namespace, "name", catalog.Name)
+		return ctrl.Result{RequeueAfter: 10 * time.Second}, lifecycle.Pending, nil
+	}
+
 	return ctrl.Result{}, lifecycle.Success, nil
 }
 
@@ -431,8 +441,11 @@ func (r *CatalogReconciler) setStatus() lifecycle.Conditioner {
 			return status != metav1.ConditionTrue // the status can contain Unknown as well
 		})
 		if notReady {
-			r.Log.Info("not all catalog objects are ready", "namespace", catalog.Namespace, "name", catalog.Name)
-			catalog.SetFalseCondition(greenhousemetav1alpha1.ReadyCondition, greenhousev1alpha1.CatalogNotReadyReason, "not all catalog objects are ready")
+			// Only update if condition is not already set to CatalogNotReadyReason (avoid triggering watch)
+			if existingNotReady == nil || existingNotReady.Status != metav1.ConditionFalse || existingNotReady.Reason != greenhousev1alpha1.CatalogNotReadyReason {
+				r.Log.Info("not all catalog objects are ready", "namespace", catalog.Namespace, "name", catalog.Name)
+				catalog.SetFalseCondition(greenhousemetav1alpha1.ReadyCondition, greenhousev1alpha1.CatalogNotReadyReason, "not all catalog objects are ready")
+			}
 			return
 		}
 		r.Log.Info("all catalog objects are ready", "namespace", catalog.Namespace, "name", catalog.Name)

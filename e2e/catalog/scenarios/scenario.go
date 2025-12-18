@@ -208,7 +208,7 @@ func (s *scenario) expectKustomizationReady(ctx context.Context, groupKey string
 		g.Expect(readyCond).ToNot(BeNil(), "the Kustomization should have a Ready condition")
 		g.Expect(readyCond.Status).To(Equal(metav1.ConditionTrue), "the Kustomization Ready condition status should be True - "+kustomization.Name)
 		inventory = kustomization.Status.Inventory
-		Expect(inventory).ToNot(BeNil(), "the Kustomization status inventory should not be nil")
+		g.Expect(inventory).ToNot(BeNil(), "the Kustomization status inventory should not be nil")
 	}).Should(Succeed(), "flux Kustomization should be created for the Catalog source")
 	s.verifyPluginDefinitions(ctx, inventory, overrides)
 }
@@ -350,7 +350,7 @@ func (s *scenario) expectStatusPropagationInCatalogInventory(ctx context.Context
 	groupInventory := catalog.Status.Inventory[groupKey]
 	Expect(groupInventory).ToNot(BeEmpty(), "the Catalog status inventory for the source should not be empty")
 	for _, resource := range groupInventory {
-		kindInventoryStatus := resource.Ready
+		resourceKind := resource.Kind // Capture kind for use in Eventually
 		var fluxObj lifecycle.CatalogObject
 		switch resource.Kind {
 		case sourcev1.GitRepositoryKind:
@@ -374,6 +374,15 @@ func (s *scenario) expectStatusPropagationInCatalogInventory(ctx context.Context
 			g.Expect(err).ToNot(HaveOccurred(), "there should be no error getting the catalog flux resource: "+fluxObj.GetName())
 			fluxCondition := meta.FindStatusCondition(fluxObj.GetConditions(), fluxmeta.ReadyCondition)
 			g.Expect(fluxCondition).ToNot(BeNil(), "the underlying resource should have a Ready condition: "+fluxObj.GetName())
+
+			// Re-fetch catalog to get fresh inventory status (avoids stale comparison)
+			freshCatalog := &greenhousev1alpha1.Catalog{}
+			g.Expect(s.k8sClient.Get(ctx, client.ObjectKeyFromObject(s.catalog), freshCatalog)).ToNot(HaveOccurred(), "there should be no error getting the Catalog")
+			freshGroupInventory := freshCatalog.Status.Inventory[groupKey]
+			idx := getKindIndexFromInventory(freshGroupInventory, resourceKind)
+			g.Expect(idx).ToNot(Equal(-1), "the Catalog inventory should contain the resource kind: "+resourceKind)
+			kindInventoryStatus := freshGroupInventory[idx].Ready
+
 			g.Expect(kindInventoryStatus).To(Equal(fluxCondition.Status), "the Catalog inventory status should contain the flux resource condition status")
 		}).Should(Succeed(), "the flux resource condition should be propagated to the Catalog inventory status")
 	}
