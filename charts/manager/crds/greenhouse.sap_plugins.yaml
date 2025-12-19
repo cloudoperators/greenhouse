@@ -18,20 +18,11 @@ spec:
   scope: Namespaced
   versions:
   - additionalPrinterColumns:
-    - jsonPath: .spec.displayName
-      name: Display name
-      type: string
     - jsonPath: .spec.pluginDefinitionRef.name
       name: Plugin Definition
       type: string
     - jsonPath: .spec.clusterName
       name: Cluster
-      type: string
-    - jsonPath: .spec.releaseName
-      name: Release Name
-      type: string
-    - jsonPath: .spec.releaseNamespace
-      name: Release Namespace
       type: string
     - jsonPath: .status.statusConditions.conditions[?(@.type == "Ready")].status
       name: Ready
@@ -42,6 +33,9 @@ spec:
     - jsonPath: .metadata.creationTimestamp
       name: Age
       type: date
+    - jsonPath: .status.statusConditions.conditions[?(@.type=="Ready")].message
+      name: Status
+      type: string
     name: v1alpha1
     schema:
       openAPIV3Schema:
