@@ -29,7 +29,6 @@ import (
 var setupLog logr.Logger
 
 func main() {
-	// var webhookCertPath, webhookCertName, webhookCertKey string
 	var metricsAddr, healthzAddr string
 
 	opts := zap.Options{
@@ -40,10 +39,6 @@ func main() {
 	ctrl.SetLogger(setupLog)
 
 	setupLog.Info("Authorization Webhook", "version", version.GitCommit, "build_date", version.BuildDate, "go", version.GoVersion)
-
-	// flag.StringVar(&webhookCertPath, "webhook-cert-path", "", "path to the webhook certificate")
-	// flag.StringVar(&webhookCertName, "webhook-cert-name", "tls.crt", "name of the webhook certificate")
-	// flag.StringVar(&webhookCertKey, "webhook-cert-key", "tls.key", "key of the webhook certificate")
 
 	flag.StringVar(&metricsAddr, "metrics-addr", ":6543", "bind address for metrics")
 	flag.StringVar(&healthzAddr, "healthz-addr", ":8081", "bind address for health checks")

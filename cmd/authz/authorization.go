@@ -46,10 +46,9 @@ func handleAuthorize(w http.ResponseWriter, r *http.Request, dyn dynamic.Interfa
 	supportGroupClaimPrefix := "support-group:"
 	for _, group := range review.Spec.Groups {
 		supportGroupName, found := strings.CutPrefix(group, supportGroupClaimPrefix)
-		if !found {
-			continue
+		if found {
+			userSupportGroups = append(userSupportGroups, supportGroupName)
 		}
-		userSupportGroups = append(userSupportGroups, supportGroupName)
 	}
 
 	if len(userSupportGroups) == 0 {

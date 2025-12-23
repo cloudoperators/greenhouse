@@ -33,4 +33,6 @@ authorizers:
         - expression: has(request.resourceAttributes) # only resource requests
         - expression: request.resourceAttributes.namespace != ""
         - expression: request.resourceAttributes.group == "greenhouse.sap"
+        - expression: request.resourceAttributes.verb in ["get","update","patch","delete"]
         - expression: request.user != "system:serviceaccount:greenhouse:authz-webhook-sa" # prevent authz requests recursion
+        
