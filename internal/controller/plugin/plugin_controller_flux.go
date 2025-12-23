@@ -8,7 +8,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"slices"
 
 	helmv2 "github.com/fluxcd/helm-controller/api/v2"
 	"github.com/fluxcd/pkg/apis/kustomize"
@@ -152,6 +151,8 @@ func (r *PluginReconciler) ensureHelmRelease(
 
 	values, err := generateHelmValues(ctx, optionValues)
 	if err != nil {
+		plugin.SetCondition(greenhousemetav1alpha1.TrueCondition(
+			greenhousev1alpha1.HelmReconcileFailedCondition, greenhousev1alpha1.PluginOptionValueInvalidReason, err.Error()))
 		return fmt.Errorf("failed to generate HelmRelease values for Plugin %s: %w", plugin.Name, err)
 	}
 
@@ -436,26 +437,66 @@ func (r *PluginReconciler) reconcilePluginStatus(ctx context.Context,
 	pluginStatus.ExposedServices = exposedServices
 }
 
+// computeReleaseValues resolves Expressions and ValueFromRefs in the Plugin's option values
+// and inserts the Greenhouse values
 func computeReleaseValues(ctx context.Context, c client.Client, plugin *greenhousev1alpha1.Plugin, expressionEvaluation, integrationEnabled bool) ([]greenhousev1alpha1.PluginOptionValue, error) {
-	optionValues, err := resolvePlainOptionValues(ctx, c, plugin.DeepCopy(), expressionEvaluation)
+	optionValues, err := helm.GetPluginOptionValuesForPlugin(ctx, c, plugin)
 	if err != nil {
 		return nil, err
 	}
-	if integrationEnabled {
-		var optionValuesFromValueRefs []greenhousev1alpha1.PluginOptionValue
-		var trackedObjects []string
-		optionValuesFromValueRefs, trackedObjects, err = resolveOptionValuesFromValueRefs(ctx, c, plugin.DeepCopy())
+	trackedObjects := make([]string, 0)
+	// initialize CEL resolver
+	var celResolver *helm.CELResolver
+	if expressionEvaluation {
+		celResolver, err = helm.NewCELResolver(optionValues)
 		if err != nil {
-			log.FromContext(ctx).Error(err, "failed to resolve option values from value refs", "namespace", plugin.Namespace, "plugin", plugin.Name)
-			return nil, err
+			return nil, fmt.Errorf("failed to initialize CEL resolver: %w", err)
 		}
-		if len(optionValuesFromValueRefs) > 0 {
-			optionValues = append(optionValues, optionValuesFromValueRefs...)
+	}
+	for i, v := range optionValues {
+		switch {
+		case v.Value != nil:
+			// noop, direct values are already set
+			continue
+
+		case v.Expression != nil:
+			if !expressionEvaluation {
+				// skip expression evaluation if not enabled
+				continue
+			}
+			resolvedOptionValue, err := celResolver.ResolveExpression(v, expressionEvaluation)
+			if err != nil {
+				return nil, err
+			}
+			optionValues[i] = *resolvedOptionValue
+
+		case v.ValueFrom != nil && v.ValueFrom.Ref != nil:
+			// skip if integration flag is not enabled
+			if !integrationEnabled {
+				continue
+			}
+			//TODO: handle external references
+			resolvedOptionValue, objectTrackers, err := ResolveValueFromRef(ctx, c, plugin, v)
+			if err != nil {
+				return nil, err
+			}
+			trackedObjects = append(trackedObjects, objectTrackers...)
+			optionValues[i] = *resolvedOptionValue
+
+		case v.ValueFrom != nil && v.ValueFrom.Secret != nil:
+			// noop, secret refs are not resolved here
+			continue
+		default:
+			return nil, fmt.Errorf("option value %s has no value or valueFrom set", v.Name)
 		}
+	}
+
+	// update tracking information for plugin integrations
+	if integrationEnabled {
 		// remove tracking annotations from resources that are no longer being tracked
 		if err := removeUntrackedObjectAnnotations(ctx, c, plugin, trackedObjects); err != nil {
-			log.FromContext(ctx).Error(err, "failed to remove untracked object annotations", "namespace", plugin.Namespace, "plugin", plugin.Name)
 			// log err, will retry on next reconciliation
+			log.FromContext(ctx).Error(err, "failed to remove untracked object annotations", "namespace", plugin.Namespace, "plugin", plugin.Name)
 		}
 		if len(trackedObjects) > 0 {
 			plugin.Status.TrackedObjects = trackedObjects
@@ -464,17 +505,22 @@ func computeReleaseValues(ctx context.Context, c client.Client, plugin *greenhou
 			plugin.Status.TrackedObjects = nil
 		}
 	}
+
 	return optionValues, nil
 }
 
 // generateHelmValues generates the Helm values in JSON format to be used with a Flux HelmRelease.
 func generateHelmValues(ctx context.Context, optionValues []greenhousev1alpha1.PluginOptionValue) ([]byte, error) {
-	// remove all option values that are set from a secret, as these have a nil value
-	optionValues = slices.DeleteFunc(optionValues, func(v greenhousev1alpha1.PluginOptionValue) bool {
-		return v.ValueFrom != nil && v.ValueFrom.Secret != nil
-	})
+	o := make([]greenhousev1alpha1.PluginOptionValue, len(optionValues))
+	for _, v := range optionValues {
+		if v.ValueFrom != nil && v.ValueFrom.Secret != nil {
+			// remove all option values that are set from a secret, as these have a nil value
+			continue
+		}
+		o = append(o, v)
+	}
 
-	jsonValue, err := helm.ConvertFlatValuesToHelmValues(optionValues)
+	jsonValue, err := helm.ConvertFlatValuesToHelmValues(o)
 	if err != nil {
 		return nil, fmt.Errorf("failed to convert plugin option values to JSON: %w", err)
 	}
