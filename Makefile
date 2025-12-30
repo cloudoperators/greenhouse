@@ -271,6 +271,7 @@ setup-controller-dev:
 
 .PHONY: setup-manager
 setup-manager: cli
+	make authz-certs
 	CONTROLLER_ENABLED=$(WITH_CONTROLLER) PLUGIN_PATH=$(PLUGIN_DIR) $(CLI) dev setup -f dev-env/dev.config.yaml d=$(DEV_MODE)
 
 .PHONY: setup-dashboard
@@ -388,7 +389,7 @@ AUTHZ_CLIENT_KEY := $(AUTHZ_CERTS_DIR)/apiserver.key
 AUTHZ_CLIENT_CSR := $(AUTHZ_CERTS_DIR)/apiserver.csr
 AUTHZ_CLIENT_CRT := $(AUTHZ_CERTS_DIR)/apiserver.crt
 
-AUTHZ_SAN_DNS := DNS:greenhouse-authz,DNS:greenhouse-authz.greenhouse.svc,DNS:greenhouse-authz.greenhouse.svc.cluster.local
+AUTHZ_SAN_DNS := DNS:greenhouse-authz,DNS:greenhouse-authz.greenhouse.svc,DNS:greenhouse-authz.greenhouse.svc.cluster.local,IP:127.0.0.1
 
 authz-certs: clean-authz-certs authz-ca authz-server authz-client
 
@@ -441,6 +442,3 @@ clean-authz-certs:
 	rm -rf $(AUTHZ_CERTS_DIR)
 
 .PHONY: authz-certs clean-authz-certs authz-ca authz-server authz-client
-
-.PHONY: setup-authz-dev
-setup-authz-dev: authz-certs setup-manager

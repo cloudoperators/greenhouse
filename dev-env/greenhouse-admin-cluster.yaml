@@ -10,8 +10,6 @@ nodes:
         containerPath: /etc/kubernetes/webhook/certs
       - hostPath: ./dev-env/webhook
         containerPath: /etc/kubernetes/webhook
-      - hostPath: ./dev-env/apiserver-resolv.conf
-        containerPath: /etc/kubernetes/custom-dns
     kubeadmConfigPatches:
       - |
         kind: ClusterConfiguration
@@ -25,8 +23,4 @@ nodes:
             - name: authz-webhook
               hostPath: /etc/kubernetes/webhook
               mountPath: /etc/kubernetes/webhook
-              readOnly: true
-            - name: custom-resolv
-              hostPath: /etc/kubernetes/custom-dns
-              mountPath: /etc/resolv.conf
               readOnly: true
