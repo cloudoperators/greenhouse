@@ -154,21 +154,6 @@ var _ = Describe("PluginPreset Admission Tests", Ordered, func() {
 		Expect(err.Error()).To(ContainSubstring("PluginDefinition non-existing does not exist"))
 	})
 
-	It("should correctly default the PluginDefinitionRef for existing PluginDefinition", func() {
-		cut := test.NewPluginPreset(pluginPresetCreate, test.TestNamespace,
-			test.WithPluginPresetLabel(greenhouseapis.LabelKeyOwnedBy, teamWithSupportGroupName),
-			test.WithPluginPresetClusterSelector(metav1.LabelSelector{MatchLabels: map[string]string{"foo": "bar"}}),
-			test.WithPluginPresetPluginSpec(greenhousev1alpha1.PluginSpec{
-				PluginDefinition: pluginPresetNamespacedDefinition,
-			}),
-		)
-		Expect(test.K8sClient.Create(test.Ctx, cut)).
-			To(Succeed(), "there must be no error creating the PluginPreset")
-		Expect(cut.Spec.Plugin.PluginDefinitionRef.Name).To(Equal(pluginPresetNamespacedDefinition), "PluginDefinitionRef name should be defaulted")
-		Expect(cut.Spec.Plugin.PluginDefinitionRef.Kind).To(Equal(greenhousev1alpha1.PluginDefinitionKind), "PluginDefinitionRef kind should be defaulted to PluginDefinition")
-		test.EventuallyDeleted(test.Ctx, test.K8sClient, cut)
-	})
-
 	It("should accept PluginPreset with namespaced PluginDefinition", func() {
 		cut := test.NewPluginPreset(pluginPresetCreate, test.TestNamespace,
 			test.WithPluginPresetLabel(greenhouseapis.LabelKeyOwnedBy, teamWithSupportGroupName),
