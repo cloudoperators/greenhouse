@@ -109,6 +109,14 @@ func doRun(targetURL string) error {
 	}
 
 	reverseProxy := httputil.NewSingleHostReverseProxy(target)
+
+	// Store the default director and wrap it to rewrite the Host header.
+	defaultDirector := reverseProxy.Director
+	reverseProxy.Director = func(req *http.Request) {
+		defaultDirector(req)
+		req.Host = target.Host
+	}
+
 	tlsConfig := &tls.Config{MinVersion: tls.VersionTLS12}
 	if targetCAFile != "" {
 		cas, err := os.ReadFile(targetCAFile)
