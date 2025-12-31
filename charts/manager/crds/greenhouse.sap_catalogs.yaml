@@ -23,6 +23,9 @@ spec:
     - jsonPath: .status.statusConditions.conditions[?(@.type == "Ready")].status
       name: Ready
       type: string
+    - jsonPath: .status.statusConditions.conditions[?(@.type=="Ready")].message
+      name: Status
+      type: string
     name: v1alpha1
     schema:
       openAPIV3Schema:

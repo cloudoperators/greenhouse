@@ -28,6 +28,7 @@ type ClusterPluginDefinitionStatus struct {
 //+kubebuilder:printcolumn:name="Version",type=string,JSONPath=`.spec.version`
 //+kubebuilder:printcolumn:name="Description",type=string,JSONPath=`.spec.description`
 // +kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp"
+// +kubebuilder:printcolumn:name="Status",type="string",JSONPath=`.status.statusConditions.conditions[?(@.type=="Ready")].message`
 
 // ClusterPluginDefinition is the Schema for the clusterplugindefinitions API.
 type ClusterPluginDefinition struct {
