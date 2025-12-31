@@ -63,13 +63,6 @@ func DefaultPlugin(ctx context.Context, c client.Client, obj runtime.Object) err
 		return nil
 	}
 
-	deprecatedDefName := plugin.Spec.PluginDefinition //nolint:staticcheck
-
-	// Migrate PluginDefinition reference name.
-	if plugin.Spec.PluginDefinitionRef.Name == "" && deprecatedDefName != "" {
-		plugin.Spec.PluginDefinitionRef.Name = deprecatedDefName
-	}
-
 	// Validate before ValidateCreatePlugin is called. Because defaulting PluginOptionValues & ReleaseName requires the PluginDefinition to be set.
 	if plugin.Spec.PluginDefinitionRef.Name == "" {
 		return field.Required(field.NewPath("spec", "pluginDefinitionRef", "name"), "PluginDefinition name must be set")
