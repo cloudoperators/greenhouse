@@ -147,11 +147,32 @@ func (p *Propagator) annotationKeysToPropagate() []string {
 }
 
 // containsLabelToPropagate - returns true if the source object contains
-// at least one of the label keys declared for propagation.
+// at least one of the label keys declared for propagation, including those matching wildcards.
 func (p *Propagator) containsLabelToPropagate(keys []string, srcLabels map[string]string) bool {
+	if len(keys) == 0 || len(srcLabels) == 0 {
+		return false
+	}
+
+	wildPrefixes := make([]string, 0, len(keys))
 	for _, k := range keys {
+		if before, ok := strings.CutSuffix(k, "/*"); ok {
+			wildPrefixes = append(wildPrefixes, before+"/")
+			continue
+		}
 		if _, ok := srcLabels[k]; ok {
 			return true
+		}
+	}
+
+	if len(wildPrefixes) == 0 {
+		return false
+	}
+
+	for labelKey := range srcLabels {
+		for _, p := range wildPrefixes {
+			if strings.HasPrefix(labelKey, p) {
+				return true
+			}
 		}
 	}
 	return false
@@ -169,21 +190,63 @@ func (p *Propagator) containsAnnotationToPropagate(keys []string, srcAnnotations
 }
 
 // syncTargetLabels - synchronizes label keys from src to dst and removes any previously applied keys
-// that are no longer present. Returns the current list of successfully propagated keys.
-func (p *Propagator) syncTargetLabels(keys []string, srcLabels, dstLabels map[string]string) []string {
+// that are no longer present. Supports wildcards. Returns the current list of successfully propagated keys.
+func (p *Propagator) syncTargetLabels(keysToPropagate []string, srcLabels, dstLabels map[string]string) []string {
 	var appliedNow []string
 	state := p.getAppliedState()
-	for _, k := range keys {
+
+	// Precompute exact keys and wildcard prefixes to propagate.
+	exact := make([]string, 0, len(keysToPropagate))
+	wildPrefixes := make([]string, 0, len(keysToPropagate))
+	for _, k := range keysToPropagate {
+		if before, ok := strings.CutSuffix(k, "/*"); ok {
+			wildPrefixes = append(wildPrefixes, before+"/")
+		} else {
+			exact = append(exact, k)
+		}
+	}
+
+	// Apply labels matching exactly.
+	for _, k := range exact {
 		if v, ok := srcLabels[k]; ok {
 			dstLabels[k] = v
 			appliedNow = append(appliedNow, k)
 		}
 	}
-	for _, k := range state.LabelKeys {
-		if !slices.Contains(keys, k) || srcLabels[k] == "" {
-			delete(dstLabels, k)
+	// Apply labels matching the wildcards.
+	for k, v := range srcLabels {
+		for _, prefix := range wildPrefixes {
+			if strings.HasPrefix(k, prefix) {
+				dstLabels[k] = v
+				if !slices.Contains(exact, k) {
+					appliedNow = append(appliedNow, k)
+				}
+				break
+			}
 		}
 	}
+
+	// Clean previously applied labels that are no longer present.
+	for _, prev := range state.LabelKeys {
+		if _, ok := srcLabels[prev]; !ok {
+			delete(dstLabels, prev)
+			continue
+		}
+		if slices.Contains(exact, prev) {
+			continue
+		}
+		keep := false
+		for _, p := range wildPrefixes {
+			if strings.HasPrefix(prev, p) {
+				keep = true
+				break
+			}
+		}
+		if !keep {
+			delete(dstLabels, prev)
+		}
+	}
+
 	return appliedNow
 }
 
