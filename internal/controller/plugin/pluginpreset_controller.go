@@ -29,6 +29,7 @@ import (
 	"github.com/cloudoperators/greenhouse/internal/clientutil"
 	"github.com/cloudoperators/greenhouse/internal/lifecycle"
 	"github.com/cloudoperators/greenhouse/internal/util"
+	lifecyclepkg "github.com/cloudoperators/greenhouse/pkg/lifecycle"
 )
 
 // presetExposedConditions contains the conditions that are exposed in the PluginPreset's StatusConditions.
@@ -235,7 +236,7 @@ func (r *PluginPresetReconciler) reconcilePluginPreset(ctx context.Context, pres
 			// Copy over the plugin dependencies
 			plugin.Spec.WaitFor = preset.Spec.WaitFor
 			// transport plugin preset labels to plugin
-			plugin = (lifecycle.NewPropagator(preset, plugin).Apply()).(*greenhousev1alpha1.Plugin) //nolint:errcheck
+			plugin = (lifecyclepkg.NewPropagator(preset, plugin).Apply()).(*greenhousev1alpha1.Plugin) //nolint:errcheck
 			// overrides options based on preset definition
 			overridesPluginOptionValues(plugin, preset)
 			return nil

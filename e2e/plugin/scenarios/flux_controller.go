@@ -27,8 +27,8 @@ import (
 	"github.com/cloudoperators/greenhouse/e2e/shared"
 	"github.com/cloudoperators/greenhouse/internal/flux"
 	"github.com/cloudoperators/greenhouse/internal/helm"
-	"github.com/cloudoperators/greenhouse/internal/lifecycle"
 	"github.com/cloudoperators/greenhouse/internal/test"
+	lifecyclepkg "github.com/cloudoperators/greenhouse/pkg/lifecycle"
 )
 
 func FluxControllerPodInfoByPlugin(ctx context.Context, adminClient, remoteClient client.Client, env *shared.TestEnv, remoteClusterName string) {
@@ -71,7 +71,7 @@ func FluxControllerPodInfoByPlugin(ctx context.Context, adminClient, remoteClien
 	By("Creating the plugin preset")
 	testPluginPreset := test.NewPluginPreset("test-podinfo-plugin-preset", env.TestNamespace,
 		test.WithPluginPresetLabel(greenhouseapis.GreenhouseHelmDeliveryToolLabel, greenhouseapis.GreenhouseHelmDeliveryToolFlux),
-		test.WithPluginPresetAnnotation(lifecycle.PropagateLabelsAnnotation, greenhouseapis.GreenhouseHelmDeliveryToolLabel),
+		test.WithPluginPresetAnnotation(lifecyclepkg.PropagateLabelsAnnotation, greenhouseapis.GreenhouseHelmDeliveryToolLabel),
 		test.WithPluginPresetPluginSpec(testPlugin.Spec),
 		test.WithPluginPresetClusterSelector(metav1.LabelSelector{MatchLabels: map[string]string{"app": "test-cluster"}}),
 	)
@@ -222,7 +222,7 @@ func FluxControllerUIOnlyPlugin(ctx context.Context, adminClient, remoteClient c
 	By("Creating the plugin preset")
 	testPluginPreset := test.NewPluginPreset("test-ui-only-plugin-preset", env.TestNamespace,
 		test.WithPluginPresetLabel(greenhouseapis.GreenhouseHelmDeliveryToolLabel, greenhouseapis.GreenhouseHelmDeliveryToolFlux),
-		test.WithPluginPresetAnnotation(lifecycle.PropagateLabelsAnnotation, greenhouseapis.GreenhouseHelmDeliveryToolLabel),
+		test.WithPluginPresetAnnotation(lifecyclepkg.PropagateLabelsAnnotation, greenhouseapis.GreenhouseHelmDeliveryToolLabel),
 		test.WithPluginPresetPluginSpec(testPlugin.Spec),
 		test.WithPluginPresetClusterSelector(metav1.LabelSelector{MatchLabels: map[string]string{"app": "test-cluster"}}),
 	)
@@ -335,7 +335,7 @@ func FluxControllerPluginDependencies(ctx context.Context, adminClient, remoteCl
 	leafPluginPreset := test.NewPluginPreset("test-leaf-plugin-preset", env.TestNamespace,
 		test.WithPluginPresetLabel(greenhouseapis.GreenhouseHelmDeliveryToolLabel, greenhouseapis.GreenhouseHelmDeliveryToolFlux),
 		test.WithPluginPresetLabel(greenhouseapis.LabelKeyOwnedBy, teamName),
-		test.WithPluginPresetAnnotation(lifecycle.PropagateLabelsAnnotation, greenhouseapis.GreenhouseHelmDeliveryToolLabel),
+		test.WithPluginPresetAnnotation(lifecyclepkg.PropagateLabelsAnnotation, greenhouseapis.GreenhouseHelmDeliveryToolLabel),
 		test.WithPluginPresetPluginSpec(testPluginSpec),
 		test.WithPluginPresetClusterSelector(metav1.LabelSelector{MatchLabels: map[string]string{"app": "test-cluster"}}),
 		test.WithPluginPresetWaitFor(
@@ -396,7 +396,7 @@ func FluxControllerPluginDependencies(ctx context.Context, adminClient, remoteCl
 	midPluginPreset := test.NewPluginPreset(midPluginPresetName, env.TestNamespace,
 		test.WithPluginPresetLabel(greenhouseapis.GreenhouseHelmDeliveryToolLabel, greenhouseapis.GreenhouseHelmDeliveryToolFlux),
 		test.WithPluginPresetLabel(greenhouseapis.LabelKeyOwnedBy, teamName),
-		test.WithPluginPresetAnnotation(lifecycle.PropagateLabelsAnnotation, greenhouseapis.GreenhouseHelmDeliveryToolLabel),
+		test.WithPluginPresetAnnotation(lifecyclepkg.PropagateLabelsAnnotation, greenhouseapis.GreenhouseHelmDeliveryToolLabel),
 		test.WithPluginPresetPluginSpec(testPluginSpec),
 		test.WithPluginPresetClusterSelector(metav1.LabelSelector{MatchLabels: map[string]string{"app": "test-cluster"}}),
 		test.WithPluginPresetWaitFor(greenhousev1alpha1.WaitForItem{
@@ -538,7 +538,7 @@ func FluxControllerPluginDeletePolicyRetain(ctx context.Context, adminClient, re
 	pluginPreset := test.NewPluginPreset(pluginPresetName, env.TestNamespace,
 		test.WithPluginPresetLabel(greenhouseapis.GreenhouseHelmDeliveryToolLabel, greenhouseapis.GreenhouseHelmDeliveryToolFlux),
 		test.WithPluginPresetLabel(greenhouseapis.LabelKeyOwnedBy, teamName),
-		test.WithPluginPresetAnnotation(lifecycle.PropagateLabelsAnnotation, greenhouseapis.GreenhouseHelmDeliveryToolLabel),
+		test.WithPluginPresetAnnotation(lifecyclepkg.PropagateLabelsAnnotation, greenhouseapis.GreenhouseHelmDeliveryToolLabel),
 		test.WithPluginPresetPluginSpec(testPluginSpec),
 		test.WithPluginPresetClusterSelector(metav1.LabelSelector{MatchLabels: map[string]string{"app": "test-cluster"}}),
 		test.WithPluginPresetDeletionPolicy(greenhouseapis.DeletionPolicyRetain),
