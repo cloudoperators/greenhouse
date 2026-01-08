@@ -12,15 +12,16 @@ import (
 	"strings"
 
 	authv1 "k8s.io/api/authorization/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
-	"k8s.io/client-go/dynamic"
+	"k8s.io/apimachinery/pkg/types"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	greenhouseapis "github.com/cloudoperators/greenhouse/api"
 )
 
-func handleAuthorize(w http.ResponseWriter, r *http.Request, dyn dynamic.Interface) {
+func handleAuthorize(w http.ResponseWriter, r *http.Request, c client.Client, mapper meta.RESTMapper) {
 	ctx := r.Context()
 
 	if r.Method != http.MethodPost {
@@ -63,19 +64,16 @@ func handleAuthorize(w http.ResponseWriter, r *http.Request, dyn dynamic.Interfa
 		Version:  attrs.Version,
 		Resource: attrs.Resource,
 	}
-
-	// Try to fetch the resource
-	var obj *unstructured.Unstructured
-	var err error
-	if attrs.Namespace != "" {
-		obj, err = dyn.Resource(gvr).Namespace(attrs.Namespace).
-			Get(ctx, attrs.Name, metav1.GetOptions{})
-	} else {
-		obj, err = dyn.Resource(gvr).
-			Get(ctx, attrs.Name, metav1.GetOptions{})
+	gvk, err := mapper.KindFor(gvr)
+	if err != nil {
+		respond(w, review, false, "failed to get Kind for the requested resource")
 	}
 
-	if err != nil {
+	// Try to fetch the resource
+	obj := &unstructured.Unstructured{}
+	obj.SetGroupVersionKind(gvk)
+	key := types.NamespacedName{Namespace: attrs.Namespace, Name: attrs.Name}
+	if err := c.Get(ctx, key, obj); err != nil {
 		respond(w, review, false, fmt.Sprintf("failed to fetch object: %v", err))
 		return
 	}

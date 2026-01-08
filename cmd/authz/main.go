@@ -11,7 +11,6 @@ import (
 	"go.uber.org/zap/zapcore"
 	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
-	"k8s.io/client-go/dynamic"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -75,12 +74,10 @@ func main() {
 	handleError(err, "Failed to create manager")
 
 	// Register the authorizer webhook.
-	dynClient, err := dynamic.NewForConfig(mgr.GetConfig())
-	if err != nil {
-		handleError(err, "unable to create dynamic client")
-	}
+	client := mgr.GetClient()
+	mapper := mgr.GetRESTMapper()
 	mgr.GetWebhookServer().Register("/authorize", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		handleAuthorize(w, r, dynClient)
+		handleAuthorize(w, r, client, mapper)
 	}))
 
 	handleError(mgr.AddHealthzCheck("healthz", healthz.Ping), "Failed to set up health check")
