@@ -8,7 +8,6 @@ import (
 	"net/http"
 	"os"
 
-	"github.com/go-logr/logr"
 	"go.uber.org/zap/zapcore"
 	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
@@ -26,11 +25,14 @@ import (
 	"github.com/cloudoperators/greenhouse/internal/version"
 )
 
-var setupLog logr.Logger
+var (
+	scheme      = runtime.NewScheme()
+	setupLog    = ctrl.Log.WithName("setup")
+	metricsAddr string
+	healthzAddr string
+)
 
-func main() {
-	var metricsAddr, healthzAddr string
-
+func init() {
 	opts := zap.Options{
 		Development: true,
 		TimeEncoder: zapcore.RFC3339TimeEncoder,
@@ -38,16 +40,18 @@ func main() {
 	setupLog = zap.New(zap.UseFlagOptions(&opts))
 	ctrl.SetLogger(setupLog)
 
-	setupLog.Info("Authorization Webhook", "version", version.GitCommit, "build_date", version.BuildDate, "go", version.GoVersion)
-
-	flag.StringVar(&metricsAddr, "metrics-addr", ":6543", "bind address for metrics")
-	flag.StringVar(&healthzAddr, "healthz-addr", ":8081", "bind address for health checks")
-	flag.Parse()
-
-	scheme := runtime.NewScheme()
 	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
 	utilruntime.Must(greenhousev1alpha1.AddToScheme(scheme))
 	utilruntime.Must(greenhousev1alpha2.AddToScheme(scheme))
+
+	flag.StringVar(&metricsAddr, "metrics-addr", ":6543", "bind address for metrics")
+	flag.StringVar(&healthzAddr, "healthz-addr", ":8081", "bind address for health checks")
+}
+
+func main() {
+	setupLog.Info("Authorization Webhook", "version", version.GitCommit, "build_date", version.BuildDate, "go", version.GoVersion)
+
+	flag.Parse()
 
 	metricsServerOptions := metricsserver.Options{
 		BindAddress: metricsAddr,
