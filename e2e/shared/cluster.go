@@ -11,8 +11,8 @@ import (
 
 	greenhouseapis "github.com/cloudoperators/greenhouse/api"
 	"github.com/cloudoperators/greenhouse/internal/clientutil"
-	"github.com/cloudoperators/greenhouse/internal/lifecycle"
 	"github.com/cloudoperators/greenhouse/internal/test"
+	lifecyclepkg "github.com/cloudoperators/greenhouse/pkg/lifecycle"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -31,7 +31,7 @@ func OnboardRemoteCluster(ctx context.Context, k8sClient client.Client, kubeConf
 	secret := test.NewSecret(name, namespace, test.WithSecretType(greenhouseapis.SecretTypeKubeConfig),
 		test.WithSecretData(map[string][]byte{greenhouseapis.KubeConfigKey: kubeConfigBytes}),
 		test.WithSecretLabel(greenhouseapis.LabelKeyOwnedBy, supportGroupTeamName),
-		test.WithSecretAnnotations(map[string]string{lifecycle.PropagateLabelsAnnotation: greenhouseapis.LabelKeyOwnedBy}),
+		test.WithSecretAnnotations(map[string]string{lifecyclepkg.PropagateLabelsAnnotation: greenhouseapis.LabelKeyOwnedBy}),
 	)
 	err := k8sClient.Create(ctx, secret)
 	if apierrors.IsAlreadyExists(err) {
@@ -47,7 +47,7 @@ func OnboardRemoteOIDCCluster(ctx context.Context, k8sClient client.Client, caCe
 		test.WithSecretLabel(greenhouseapis.LabelKeyOwnedBy, supportGroupTeamName),
 		test.WithSecretAnnotations(map[string]string{
 			greenhouseapis.SecretAPIServerURLAnnotation: apiServerURL,
-			lifecycle.PropagateLabelsAnnotation:         greenhouseapis.LabelKeyOwnedBy,
+			lifecyclepkg.PropagateLabelsAnnotation:      greenhouseapis.LabelKeyOwnedBy,
 		}),
 	)
 	err := k8sClient.Create(ctx, secret)
