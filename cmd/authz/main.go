@@ -85,9 +85,9 @@ func main() {
 	handleError(mgr.Start(ctrl.SetupSignalHandler()), "Failed to start manager")
 }
 
-func handleError(err error, msg string, keysAndValues ...any) {
+func handleError(err error, msg string) {
 	if err != nil {
-		setupLog.Error(err, msg, keysAndValues...)
+		setupLog.Error(err, msg)
 		os.Exit(1)
 	}
 }

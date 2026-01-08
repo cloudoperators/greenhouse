@@ -54,4 +54,4 @@ perses:
 
 # authorization webhook
 authz:
-  enabled: true
+  enabled: false

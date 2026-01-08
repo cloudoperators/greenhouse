@@ -11,12 +11,13 @@ import (
 	"slices"
 	"strings"
 
-	greenhouseapis "github.com/cloudoperators/greenhouse/api"
 	authv1 "k8s.io/api/authorization/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/dynamic"
+
+	greenhouseapis "github.com/cloudoperators/greenhouse/api"
 )
 
 func handleAuthorize(w http.ResponseWriter, r *http.Request, dyn dynamic.Interface) {
@@ -89,7 +90,7 @@ func handleAuthorize(w http.ResponseWriter, r *http.Request, dyn dynamic.Interfa
 
 	// If the support-group matches the greenhouse.sap/owned-by label on the resources the user should get full permissions on the resource.
 	if slices.Contains(userSupportGroups, ownedByValue) {
-		respond(w, review, true, fmt.Sprintf("user has a support-group claim for the requested resource: %s", ownedByValue))
+		respond(w, review, true, "user has a support-group claim for the requested resource: "+ownedByValue)
 		return
 	}
 
