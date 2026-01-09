@@ -1,0 +1,94 @@
+// SPDX-FileCopyrightText: 2025 SAP SE or an SAP affiliate company and Greenhouse contributors
+// SPDX-License-Identifier: Apache-2.0
+
+package main
+
+import (
+	"flag"
+	"net/http"
+	"os"
+
+	"go.uber.org/zap/zapcore"
+	"k8s.io/apimachinery/pkg/runtime"
+	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
+	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
+	_ "k8s.io/client-go/plugin/pkg/client/auth"
+	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/healthz"
+	"sigs.k8s.io/controller-runtime/pkg/log/zap"
+	metricsserver "sigs.k8s.io/controller-runtime/pkg/metrics/server"
+	"sigs.k8s.io/controller-runtime/pkg/webhook"
+
+	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
+	greenhousev1alpha2 "github.com/cloudoperators/greenhouse/api/v1alpha2"
+	"github.com/cloudoperators/greenhouse/internal/version"
+)
+
+var (
+	scheme      = runtime.NewScheme()
+	setupLog    = ctrl.Log.WithName("setup")
+	metricsAddr string
+	healthzAddr string
+)
+
+func init() {
+	opts := zap.Options{
+		Development: true,
+		TimeEncoder: zapcore.RFC3339TimeEncoder,
+	}
+	setupLog = zap.New(zap.UseFlagOptions(&opts))
+	ctrl.SetLogger(setupLog)
+
+	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
+	utilruntime.Must(greenhousev1alpha1.AddToScheme(scheme))
+	utilruntime.Must(greenhousev1alpha2.AddToScheme(scheme))
+
+	flag.StringVar(&metricsAddr, "metrics-addr", ":6543", "bind address for metrics")
+	flag.StringVar(&healthzAddr, "healthz-addr", ":8081", "bind address for health checks")
+}
+
+func main() {
+	setupLog.Info("Authorization Webhook", "version", version.GitCommit, "build_date", version.BuildDate, "go", version.GoVersion)
+
+	flag.Parse()
+
+	metricsServerOptions := metricsserver.Options{
+		BindAddress: metricsAddr,
+	}
+
+	// By default it takes tls.crt and tls.key from CertDir.
+	webhookServer := webhook.NewServer(webhook.Options{
+		Port:         9443,
+		CertDir:      "/tmp/k8s-webhook-server/serving-certs",
+		ClientCAName: "ca.crt",
+	})
+
+	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
+		Logger:                 setupLog,
+		Scheme:                 scheme,
+		Metrics:                metricsServerOptions,
+		WebhookServer:          webhookServer,
+		HealthProbeBindAddress: healthzAddr,
+		LeaderElection:         false,
+	})
+	handleError(err, "Failed to create manager")
+
+	// Register the authorizer webhook.
+	client := mgr.GetClient()
+	mapper := mgr.GetRESTMapper()
+	mgr.GetWebhookServer().Register("/authorize", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		handleAuthorize(w, r, client, mapper)
+	}))
+
+	handleError(mgr.AddHealthzCheck("healthz", healthz.Ping), "Failed to set up health check")
+	handleError(mgr.AddReadyzCheck("readyz", healthz.Ping), "Failed to set up ready check")
+
+	handleError(mgr.Start(ctrl.SetupSignalHandler()), "Failed to start manager")
+}
+
+func handleError(err error, msg string) {
+	if err != nil {
+		setupLog.Error(err, msg)
+		os.Exit(1)
+	}
+}

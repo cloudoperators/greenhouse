@@ -1,0 +1,18 @@
+# SPDX-FileCopyrightText: 2025 SAP SE or an SAP affiliate company and Greenhouse contributors
+# SPDX-License-Identifier: Apache-2.0
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "authz.fullname" . }}
+  labels:
+    {{- include "authz.labels" . | nindent 4 }}
+spec:
+  type: {{ .Values.service.type }}
+  ports:
+    - port: {{ .Values.service.port }}
+      targetPort: authz-server
+      protocol: TCP
+      name: webhook
+  selector:
+    {{- include "authz.selectorLabels" . | nindent 4 }}
