@@ -12,6 +12,7 @@ groups:
         severity: warning
         service: greenhouse
         organization: '{{ $labels.namespace }}'
+        controller: '{{ $labels.controller }}'
         support_group: '{{ $labels.namespace }}-admin'  # routed to the org-admin team
     - alert: GreenhouseOperatorReconcileDurationHigher10Min
       annotations:
@@ -24,6 +25,7 @@ groups:
         severity: warning
         service: greenhouse
         organization: '{{ $labels.namespace }}'
+        controller: '{{ $labels.controller }}'
         support_group: '{{ $labels.namespace }}-admin'  # routed to the org-admin team
     - alert: GreenhouseOperatorWorkqueueNotDrained
       annotations:
@@ -36,6 +38,7 @@ groups:
         severity: warning
         service: greenhouse
         organization: '{{ $labels.namespace }}'
+        name: '{{ $labels.name }}'
         support_group: '{{ $labels.namespace }}-admin'  # routed to the org-admin team
   - name: greenhouse-webhooks.rules
     rules:
@@ -50,6 +53,7 @@ groups:
         severity: warning
         service: greenhouse
         organization: '{{ $labels.namespace }}'
+        webhook: '{{ $labels.webhook}}'
         support_group: '{{ $labels.namespace }}-admin'  # routed to the org-admin team
     - alert: GreenhouseWebhookErrorsHigh
       annotations:
@@ -62,4 +66,5 @@ groups:
         severity: warning
         service: greenhouse
         organization: '{{ $labels.namespace }}'
+        webhook: '{{ $labels.webhook}}'
         support_group: '{{ $labels.namespace }}-admin'  # routed to the org-admin team
