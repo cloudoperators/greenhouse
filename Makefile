@@ -270,8 +270,7 @@ setup-controller-dev:
 	WITH_CONTROLLER=false make setup-manager
 
 .PHONY: setup-manager
-setup-manager: cli
-	make authz-certs
+setup-manager: cli authz-certs
 	CONTROLLER_ENABLED=$(WITH_CONTROLLER) PLUGIN_PATH=$(PLUGIN_DIR) $(CLI) dev setup -f dev-env/dev.config.yaml d=$(DEV_MODE)
 
 .PHONY: setup-dashboard
