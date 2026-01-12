@@ -19,8 +19,8 @@ import (
 
 	greenhousemetav1alpha1 "github.com/cloudoperators/greenhouse/api/meta/v1alpha1"
 	"github.com/cloudoperators/greenhouse/internal/controller/fixtures"
-	"github.com/cloudoperators/greenhouse/pkg/mocks"
 	"github.com/cloudoperators/greenhouse/pkg/lifecycle"
+	"github.com/cloudoperators/greenhouse/pkg/mocks"
 )
 
 func TestReconcile(t *testing.T) {
