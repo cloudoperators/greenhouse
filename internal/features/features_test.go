@@ -17,7 +17,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
 	"github.com/cloudoperators/greenhouse/internal/clientutil"
-	"github.com/cloudoperators/greenhouse/internal/mocks"
+	"github.com/cloudoperators/greenhouse/pkg/mocks"
 )
 
 // Test_DexFeatures -  test dex storage type feature gate
