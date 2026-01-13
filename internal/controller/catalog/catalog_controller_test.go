@@ -370,12 +370,12 @@ var _ = Describe("Catalog controller", Ordered, func() {
 
 func getSourceGroupHash(source greenhousev1alpha1.CatalogSource) (groupKey, hash string, err error) {
 	var host, owner, repo string
-	host, owner, repo, err = lifecycle.GetOwnerRepoInfo(source.Repository)
+	host, owner, repo, err = GetOwnerRepoInfo(source.Repository)
 	if err != nil {
 		return
 	}
 	ref := source.GetRefValue()
-	hash, err = lifecycle.HashValue(fmt.Sprintf("%s-%s-%s-%s-%s", catalogName, host, owner, repo, ref))
+	hash, err = HashValue(fmt.Sprintf("%s-%s-%s-%s-%s", catalogName, host, owner, repo, ref))
 	if err != nil {
 		return
 	}
