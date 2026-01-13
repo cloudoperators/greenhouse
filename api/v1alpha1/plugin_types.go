@@ -254,14 +254,12 @@ type HelmReleaseStatus struct {
 
 //+kubebuilder:object:root=true
 //+kubebuilder:subresource:status
-//+kubebuilder:printcolumn:name="Display name",type=string,JSONPath=`.spec.displayName`
 //+kubebuilder:printcolumn:name="Plugin Definition",type=string,JSONPath=`.spec.pluginDefinitionRef.name`
 //+kubebuilder:printcolumn:name="Cluster",type=string,JSONPath=`.spec.clusterName`
-//+kubebuilder:printcolumn:name="Release Name",type=string,JSONPath=`.spec.releaseName`
-//+kubebuilder:printcolumn:name="Release Namespace",type=string,JSONPath=`.spec.releaseNamespace`
 //+kubebuilder:printcolumn:name="Ready",type="string",JSONPath=`.status.statusConditions.conditions[?(@.type == "Ready")].status`
 //+kubebuilder:printcolumn:name="Version",type=string,JSONPath=`.status.version`
 //+kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp"
+// +kubebuilder:printcolumn:name="Status",type="string",JSONPath=`.status.statusConditions.conditions[?(@.type=="Ready")].message`
 
 // Plugin is the Schema for the plugins API
 // +kubebuilder:validation:XValidation:rule="!has(oldSelf.spec.releaseName) || has(self.spec.releaseName)", message="ReleaseName is required once set"
