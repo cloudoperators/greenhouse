@@ -28,9 +28,9 @@ import (
 	"github.com/cloudoperators/greenhouse/internal/clientutil"
 	dexstore "github.com/cloudoperators/greenhouse/internal/dex"
 	dexapi "github.com/cloudoperators/greenhouse/internal/dex/api"
-	"github.com/cloudoperators/greenhouse/internal/lifecycle"
 	"github.com/cloudoperators/greenhouse/internal/scim"
 	"github.com/cloudoperators/greenhouse/internal/util"
+	"github.com/cloudoperators/greenhouse/pkg/lifecycle"
 )
 
 var (
