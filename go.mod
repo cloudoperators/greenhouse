@@ -52,7 +52,7 @@ require (
 	github.com/vladimirvivien/gexe v0.5.0
 	github.com/wI2L/jsondiff v0.7.0
 	go.uber.org/zap v1.27.1
-	golang.org/x/text v0.32.0
+	golang.org/x/text v0.33.0
 	gopkg.in/yaml.v3 v3.0.1
 	helm.sh/helm/v3 v3.19.4
 	k8s.io/api v0.34.3
