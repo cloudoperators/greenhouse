@@ -49,13 +49,6 @@ func DefaultPluginPreset(ctx context.Context, c client.Client, o runtime.Object)
 		pluginPreset.Annotations[greenhousev1alpha1.PreventDeletionAnnotation] = "true"
 	}
 
-	deprecatedDefName := pluginPreset.Spec.Plugin.PluginDefinition //nolint:staticcheck
-
-	// Migrate PluginDefinition reference name.
-	if pluginPreset.Spec.Plugin.PluginDefinitionRef.Name == "" && deprecatedDefName != "" {
-		pluginPreset.Spec.Plugin.PluginDefinitionRef.Name = deprecatedDefName
-	}
-
 	if pluginPreset.Spec.Plugin.PluginDefinitionRef.Kind == "" {
 		pluginPreset.Spec.Plugin.PluginDefinitionRef.Kind = greenhousev1alpha1.PluginDefinitionKind
 	}
