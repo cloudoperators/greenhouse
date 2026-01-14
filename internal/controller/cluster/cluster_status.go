@@ -26,8 +26,8 @@ import (
 	"github.com/cloudoperators/greenhouse/internal/clientutil"
 	"github.com/cloudoperators/greenhouse/internal/common"
 	"github.com/cloudoperators/greenhouse/internal/controller/cluster/utils"
-	"github.com/cloudoperators/greenhouse/internal/lifecycle"
 	"github.com/cloudoperators/greenhouse/internal/util"
+	"github.com/cloudoperators/greenhouse/pkg/lifecycle"
 )
 
 const clusterK8sVersionUnknown = "unknown"
