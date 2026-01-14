@@ -23,6 +23,9 @@ spec:
     - jsonPath: .spec.version
       name: Version
       type: string
+    - jsonPath: .metadata.labels.greenhouse\.sap/catalog
+      name: Catalog
+      type: string
     - jsonPath: .spec.description
       name: Description
       type: string
