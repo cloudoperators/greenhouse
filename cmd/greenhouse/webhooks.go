@@ -18,7 +18,6 @@ var knownWebhooks = map[string]func(mgr ctrl.Manager) error{
 	"plugin":                   webhookv1alpha1.SetupPluginWebhookWithManager,
 	"pluginPreset":             webhookv1alpha1.SetupPluginPresetWebhookWithManager,
 	"teamrole":                 webhookv1alpha1.SetupTeamRoleWebhookWithManager,
-	"teamrolebinding_v1alpha1": webhookv1alpha1.SetupTeamRoleBindingWebhookWithManager,
 	"teamrolebinding_v1alpha2": webhookv1alpha2.SetupTeamRoleBindingWebhookWithManager,
 	"team":                     webhookv1alpha1.SetupTeamWebhookWithManager,
 	"clusterPluginDefinition":  webhookv1alpha1.SetupClusterPluginDefinitionWebhookWithManager,

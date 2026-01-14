@@ -69,6 +69,20 @@ const (
 
 	// LabelKeyCatalogSource is used to identify the source of the owning catalog resource of (Cluster)PluginDefinitions.
 	LabelKeyCatalogSource = "greenhouse.sap/catalog-source"
+
+	// LabelKeyUIPlugin is used to identify Plugins that have a UI component.
+	LabelKeyUIPlugin = "greenhouse.sap/ui-plugin"
+
+	// LabelKeyPluginExposedServices is used to identify Plugins that expose services.
+	LabelKeyPluginExposedServices = "greenhouse.sap/plugin-exposed-services"
+	// LabelKeyPluginIntegration is used to identify resources that are part of plugin-plugin integration scenarios.
+	LabelKeyPluginIntegration = "greenhouse.sap/integration"
+	// LabelValuePluginIntegration will be used as list selector value to identify resources that are part of plugin-plugin integration scenarios.
+	LabelValuePluginIntegration = "true"
+	// AnnotationKeyPluginTackingID is used to identify the resources that are resolving values from the tracked plugin.
+	AnnotationKeyPluginTackingID = "greenhouse.sap/tracking-id"
+
+	FluxReconcileRequestAnnotation = "reconcile.fluxcd.io/requestedAt"
 )
 
 // TeamRole and TeamRoleBinding constants
@@ -126,7 +140,6 @@ const (
 	ClusterConnectivityOIDC           = "oidc"
 	GreenhouseHelmDeliveryToolLabel   = "greenhouse.sap/deployment-tool"
 	GreenhouseHelmDeliveryToolFlux    = "flux"
-	FluxReconcileRequestAnnotation    = "reconcile.fluxcd.io/requestedAt"
 )
 
 const (

@@ -91,8 +91,8 @@ resources:
   domain: sap
   group: greenhouse
   kind: TeamRoleBinding
-  path: github.com/cloudoperators/greenhouse/api/v1alpha1
-  version: v1alpha1
+  path: github.com/cloudoperators/greenhouse/api/v1alpha2
+  version: v1alpha2
   webhooks:
     defaulting: true
     validation: true

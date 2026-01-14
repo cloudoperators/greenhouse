@@ -47,7 +47,6 @@ var _ = BeforeSuite(func() {
 	test.RegisterController("roleBindingController", (&teamrbacpkg.TeamRoleBindingReconciler{}).SetupWithManager)
 	test.RegisterWebhook("clusterWebhook", webhookv1alpha1.SetupClusterWebhookWithManager)
 	test.RegisterWebhook("teamsWebhook", webhookv1alpha1.SetupTeamWebhookWithManager)
-	test.RegisterWebhook("teamRoleBindingWebhookV1alpha1", webhookv1alpha1.SetupTeamRoleBindingWebhookWithManager)
 	test.RegisterWebhook("teamRoleBindingWebhookV1alpha2", webhookv1alpha2.SetupTeamRoleBindingWebhookWithManager)
 	test.RegisterWebhook("teamRoleWebhook", webhookv1alpha1.SetupTeamRoleWebhookWithManager)
 	test.TestBeforeSuite()

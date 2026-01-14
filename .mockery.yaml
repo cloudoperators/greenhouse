@@ -1,22 +1,24 @@
-dir: internal/mocks
+dir: pkg/mocks
 pkgname: mocks
 template: testify
 template-data:
   unroll-variadic: true
 packages:
-  github.com/cloudoperators/greenhouse/internal/lifecycle:
-    config:
-      filename: "mock_{{.InterfaceName}}.go"
+  github.com/cloudoperators/greenhouse/pkg/lifecycle:
     interfaces:
-      Reconciler: {}
+      Reconciler:
+        config:
+          filename: "mock_{{.InterfaceName}}.go"
   github.com/dexidp/dex/storage:
-    config:
-      filename: "mock_{{.InterfaceName}}.go"
     interfaces:
-      Storage: {}
+      Storage:
+        config:
+          filename: "mock_{{.InterfaceName}}.go"
   sigs.k8s.io/controller-runtime/pkg/client:
-    config:
-      filename: "mock_{{.InterfaceName}}.go"
     interfaces:
-      Client: {}
-      SubResourceWriter: {}
+      Client:
+        config:
+          filename: "mock_{{.InterfaceName}}.go"
+      SubResourceWriter:
+        config:
+          filename: "mock_{{.InterfaceName}}.go"

@@ -30,8 +30,8 @@ import (
 	"github.com/cloudoperators/greenhouse/internal/common"
 	"github.com/cloudoperators/greenhouse/internal/flux"
 	"github.com/cloudoperators/greenhouse/internal/helm"
-	"github.com/cloudoperators/greenhouse/internal/lifecycle"
 	"github.com/cloudoperators/greenhouse/internal/rbac"
+	"github.com/cloudoperators/greenhouse/pkg/lifecycle"
 )
 
 const (
@@ -77,12 +77,12 @@ type source struct {
 func (r *CatalogReconciler) validateSources(catalog *greenhousev1alpha1.Catalog) error {
 	sourceHashes := make(map[string]bool)
 	for _, source := range catalog.Spec.Sources {
-		host, owner, repo, err := lifecycle.GetOwnerRepoInfo(source.Repository)
+		host, owner, repo, err := GetOwnerRepoInfo(source.Repository)
 		if err != nil {
 			return err
 		}
 		ref := source.GetRefValue()
-		hash, err := lifecycle.HashValue(fmt.Sprintf("%s-%s-%s-%s-%s", catalog.Name, host, owner, repo, ref))
+		hash, err := HashValue(fmt.Sprintf("%s-%s-%s-%s-%s", catalog.Name, host, owner, repo, ref))
 		if err != nil {
 			return err
 		}
@@ -96,12 +96,12 @@ func (r *CatalogReconciler) validateSources(catalog *greenhousev1alpha1.Catalog)
 
 // newCatalogSource - prepares a source struct for Catalog.Spec.Sources entry with necessary metadata
 func (r *CatalogReconciler) newCatalogSource(catalogSource greenhousev1alpha1.CatalogSource, catalog *greenhousev1alpha1.Catalog) (*source, error) {
-	host, owner, repo, err := lifecycle.GetOwnerRepoInfo(catalogSource.Repository)
+	host, owner, repo, err := GetOwnerRepoInfo(catalogSource.Repository)
 	if err != nil {
 		return nil, err
 	}
 	ref := catalogSource.GetRefValue()
-	hash, err := lifecycle.HashValue(fmt.Sprintf("%s-%s-%s-%s-%s", catalog.Name, host, owner, repo, ref))
+	hash, err := HashValue(fmt.Sprintf("%s-%s-%s-%s-%s", catalog.Name, host, owner, repo, ref))
 	if err != nil {
 		return nil, err
 	}

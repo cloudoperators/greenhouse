@@ -56,6 +56,9 @@ const (
 	// PluginDefinitionKind is the kind of the PluginDefinition resource
 	PluginDefinitionKind = "PluginDefinition"
 
+	// HelmRepositoryReadyCondition reflects if the associated HelmRepository is ready.
+	HelmRepositoryReadyCondition greenhousemetav1alpha1.ConditionType = "HelmRepositoryReady"
+
 	// PluginOptionTypeString is a valid value for PluginOptionType.
 	PluginOptionTypeString PluginOptionType = "string"
 	// PluginOptionTypeSecret is a valid value for PluginOptionType.
@@ -216,6 +219,7 @@ type PluginDefinitionStatus struct {
 //+kubebuilder:subresource:status
 //+kubebuilder:resource:scope=Namespaced,shortName=pd
 //+kubebuilder:printcolumn:name="Version",type=string,JSONPath=`.spec.version`
+//+kubebuilder:printcolumn:name="Catalog",type=string,JSONPath=`.metadata.labels.greenhouse\.sap/catalog`
 //+kubebuilder:printcolumn:name="Description",type=string,JSONPath=`.spec.description`
 // +kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp"
 

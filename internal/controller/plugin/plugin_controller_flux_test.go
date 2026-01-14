@@ -8,6 +8,7 @@ import (
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	. "github.com/onsi/gomega/gstruct"
 
 	helmv2 "github.com/fluxcd/helm-controller/api/v2"
 	fluxmeta "github.com/fluxcd/pkg/apis/meta"
@@ -24,8 +25,8 @@ import (
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
 	"github.com/cloudoperators/greenhouse/internal/flux"
 	"github.com/cloudoperators/greenhouse/internal/helm"
-	"github.com/cloudoperators/greenhouse/internal/lifecycle"
 	"github.com/cloudoperators/greenhouse/internal/test"
+	"github.com/cloudoperators/greenhouse/pkg/lifecycle"
 )
 
 var (
@@ -65,7 +66,7 @@ var (
 		test.WithPluginLabel(greenhouseapis.LabelKeyOwnedBy, testPluginTeam.Name),
 		test.WithPluginOptionValue("flatOption", test.MustReturnJSONFor("flatValue")),
 		test.WithPluginOptionValue("nested.option", test.MustReturnJSONFor("nestedValue")),
-		test.WithPluginOptionValueFrom("nested.secretOption", &greenhousev1alpha1.ValueFromSource{
+		test.WithPluginOptionValueFrom("nested.secretOption", &greenhousev1alpha1.PluginValueFromSource{
 			Secret: &greenhousev1alpha1.SecretKeyReference{
 				Name: "test-cluster",
 				Key:  greenhouseapis.GreenHouseKubeConfigKey,
@@ -180,11 +181,35 @@ var _ = Describe("Flux Plugin Controller", Ordered, func() {
 		Expect(err).ToNot(HaveOccurred(), "the expected HelmRelease values should be valid JSON")
 
 		By("computing the Values for a Plugin")
-		actual, err := addValuesToHelmRelease(test.Ctx, test.K8sClient, testPlugin, false)
+		actualOptionValues, err := computeReleaseValues(test.Ctx, test.K8sClient, testPlugin, false, false)
 		Expect(err).ToNot(HaveOccurred(), "there should be no error computing the HelmRelease values for the Plugin")
 
+		actualRaw, err := generateHelmValues(test.Ctx, actualOptionValues)
+		Expect(err).ToNot(HaveOccurred(), "there should be no error generating the Helm values JSON")
+		Expect(actualOptionValues).Should(ContainElement(
+			MatchFields(IgnoreExtras, Fields{
+				"Name": Equal("nested.secretOption"),
+			}),
+		))
+
 		By("checking the computed Values")
-		Expect(actual).To(Equal(expectedRaw), "the computed HelmRelease values should match the expected values")
+		Expect(actualRaw).To(Equal(expectedRaw), "the computed HelmRelease values should match the expected values")
+	})
+
+	It("should return error when generating Helm values with conflicting option paths", func() {
+		By("creating conflicting option values where a key is both a string and a parent path")
+		conflictingOptionValues := []greenhousev1alpha1.PluginOptionValue{
+			{Name: "credentials.type", Value: test.MustReturnJSONFor("S3")},
+			{Name: "credentials.type.config", Value: test.MustReturnJSONFor("bucket-name")},
+		}
+
+		By("attempting to generate Helm values")
+		_, err := generateHelmValues(test.Ctx, conflictingOptionValues)
+
+		By("verifying error is returned")
+		Expect(err).To(HaveOccurred(), "generateHelmValues should fail with conflicting option value paths")
+		Expect(err.Error()).To(ContainSubstring("unable to parse key"),
+			"error message should indicate the parsing failure")
 	})
 
 	It("should create HelmRelease for Plugin", func() {
@@ -257,6 +282,7 @@ var _ = Describe("Flux Plugin Controller", Ordered, func() {
 			err := test.K8sClient.Get(test.Ctx, releaseKey, release)
 			g.Expect(err).ToNot(HaveOccurred(), "failed to get HelmRelease")
 			g.Expect(release.GetAnnotations()).Should(HaveKeyWithValue(fluxmeta.ReconcileRequestAnnotation, "foobar"), "HelmRelease should have the reconcile annotation updated")
+			g.Expect(release.GetAnnotations()).Should(HaveKeyWithValue(helmv2.ResetRequestAnnotation, "foobar"), "HelmRelease should have the reset annotation updated to allow retry reset")
 
 			err = test.K8sClient.Get(test.Ctx, client.ObjectKeyFromObject(testPlugin), testPlugin)
 			g.Expect(err).ToNot(HaveOccurred(), "failed to get Plugin")
@@ -269,10 +295,20 @@ var _ = Describe("Flux Plugin Controller", Ordered, func() {
 			err := test.K8sClient.Get(test.Ctx, releaseKey, release)
 			g.Expect(err).ToNot(HaveOccurred(), "failed to get HelmRelease")
 			g.Expect(release.GetAnnotations()).ShouldNot(HaveKey(fluxmeta.ReconcileRequestAnnotation), "HelmRelease should have the reconcile annotation removed")
+			g.Expect(release.GetAnnotations()).ShouldNot(HaveKey(helmv2.ResetRequestAnnotation), "HelmRelease should have the reset annotation removed")
 
 			err = test.K8sClient.Get(test.Ctx, client.ObjectKeyFromObject(testPlugin), testPlugin)
 			g.Expect(err).ToNot(HaveOccurred(), "failed to get Plugin")
 			g.Expect(testPlugin.Status.LastReconciledAt).To(BeEmpty(), "Plugin status LastReconcile should be empty")
+		}).Should(Succeed())
+
+		By("ensuring RetriesExhaustedCondition is initialized")
+		Eventually(func(g Gomega) {
+			err := test.K8sClient.Get(test.Ctx, client.ObjectKeyFromObject(testPlugin), testPlugin)
+			g.Expect(err).ToNot(HaveOccurred())
+
+			retriesExhaustedCondition := testPlugin.Status.GetConditionByType(greenhousev1alpha1.RetriesExhaustedCondition)
+			g.Expect(retriesExhaustedCondition).ToNot(BeNil(), "RetriesExhaustedCondition should be present in Plugin status")
 		}).Should(Succeed())
 	})
 
@@ -295,6 +331,26 @@ var _ = Describe("Flux Plugin Controller", Ordered, func() {
 			err := test.K8sClient.Get(test.Ctx, types.NamespacedName{Name: uiPlugin.Name, Namespace: uiPlugin.Namespace}, release)
 			g.Expect(err).To(HaveOccurred(), "there should be an error getting the HelmRelease")
 			g.Expect(apierrors.IsNotFound(err)).To(BeTrue())
+		}).Should(Succeed())
+
+		By("checking that the UI plugin has the ui-plugin label")
+		Eventually(func(g Gomega) {
+			err := test.K8sClient.Get(test.Ctx, client.ObjectKeyFromObject(uiPlugin), uiPlugin)
+			g.Expect(err).ToNot(HaveOccurred())
+			g.Expect(uiPlugin.GetLabels()).To(HaveKeyWithValue(greenhouseapis.LabelKeyUIPlugin, "true"),
+				"Plugin with UIApplication should have ui-plugin label")
+			g.Expect(uiPlugin.GetLabels()).ToNot(HaveKey(greenhouseapis.LabelKeyPluginExposedServices),
+				"Plugin without ExposedServices should not have plugin-exposed-services label")
+		}).Should(Succeed())
+
+		By("checking that the non-UI plugin does not have the ui-plugin label")
+		Eventually(func(g Gomega) {
+			err := test.K8sClient.Get(test.Ctx, client.ObjectKeyFromObject(testPlugin), testPlugin)
+			g.Expect(err).ToNot(HaveOccurred())
+			g.Expect(testPlugin.GetLabels()).ToNot(HaveKey(greenhouseapis.LabelKeyUIPlugin),
+				"Plugin without UIApplication should not have ui-plugin label")
+			g.Expect(uiPlugin.GetLabels()).ToNot(HaveKey(greenhouseapis.LabelKeyPluginExposedServices),
+				"Plugin without ExposedServices should not have plugin-exposed-services label")
 		}).Should(Succeed())
 	})
 })

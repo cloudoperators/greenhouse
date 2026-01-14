@@ -38,16 +38,6 @@ func SetupTeamRoleWebhookWithManager(mgr ctrl.Manager) error {
 	}); clientutil.IgnoreIndexerConflict(err) != nil {
 		return err
 	}
-	if err := mgr.GetFieldIndexer().IndexField(context.Background(), &greenhousev1alpha1.TeamRoleBinding{}, greenhouseapis.RolebindingTeamRoleRefField, func(rawObj client.Object) []string {
-		// Extract the TeamRole name from the TeamRoleBinding Spec, if one is provided
-		teamRoleBinding, ok := rawObj.(*greenhousev1alpha1.TeamRoleBinding)
-		if teamRoleBinding.Spec.TeamRoleRef == "" || !ok {
-			return nil
-		}
-		return []string{teamRoleBinding.Spec.TeamRoleRef}
-	}); clientutil.IgnoreIndexerConflict(err) != nil {
-		return err
-	}
 
 	return webhook.SetupWebhook(mgr,
 		&greenhousev1alpha1.TeamRole{},

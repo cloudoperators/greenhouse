@@ -49,6 +49,7 @@ func ChartURLToName(repositoryURL string) (repositoryName string) {
 		return localHelmRepositoryName
 	}
 
+	repositoryName = strings.TrimSuffix(repositoryName, "/")
 	repositoryName = strings.ReplaceAll(repositoryName, ".", "-")
 	repositoryName = strings.ReplaceAll(repositoryName, "/", "-")
 	return

@@ -1,5 +1,5 @@
 /*
- * SPDX-FileCopyrightText: 2025 SAP SE or an SAP affiliate company and Greenhouse contributors
+ * SPDX-FileCopyrightText: 2026 SAP SE or an SAP affiliate company and Greenhouse contributors
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -802,18 +802,62 @@ export interface components {
                 clusterOptionOverrides?: {
                     clusterName: string;
                     overrides: {
+                        /** @description Expression is a YAML string with ${...} placeholders that will be evaluated as CEL expressions. */
+                        expression?: string;
                         /** @description Name of the values. */
                         name: string;
-                        /**
-                         * @description Template is a Go string template that will be dynamically resolved for cluster-specific values.
-                         *     Only PluginOptionValues declared as template will be templated by the PluginController for Flux.
-                         */
-                        template?: string;
                         /** @description Value is the actual value in plain text. */
                         value?: unknown;
-                        /** @description ValueFrom references a potentially confidential value in another source. */
+                        /** @description ValueFrom references value in another source. */
                         valueFrom?: {
-                            /** @description Secret references the secret containing the value. */
+                            /** @description Ref references values defined in another resource (Plugin, PluginPreset) */
+                            ref?: {
+                                /** @description Expression is a CEL expression to extract the value from the referenced resource */
+                                expression: string;
+                                /**
+                                 * @description Kind is the resource kind to target
+                                 *     if not set, defaults to the same kind as the referencing resource (Plugin or PluginPreset)
+                                 * @enum {string}
+                                 */
+                                kind?: "Plugin" | "PluginPreset";
+                                /**
+                                 * @description Name is the name of the resource to target
+                                 *     this field is mutually exclusive with LabelSelector
+                                 */
+                                name?: string;
+                                /**
+                                 * @description Selector selects the resources to target based on labels
+                                 *     this field is mutually exclusive with Name
+                                 */
+                                selector?: {
+                                    /** @description matchExpressions is a list of label selector requirements. The requirements are ANDed. */
+                                    matchExpressions?: {
+                                        /** @description key is the label key that the selector applies to. */
+                                        key: string;
+                                        /**
+                                         * @description operator represents a key's relationship to a set of values.
+                                         *     Valid operators are In, NotIn, Exists and DoesNotExist.
+                                         */
+                                        operator: string;
+                                        /**
+                                         * @description values is an array of string values. If the operator is In or NotIn,
+                                         *     the values array must be non-empty. If the operator is Exists or DoesNotExist,
+                                         *     the values array must be empty. This array is replaced during a strategic
+                                         *     merge patch.
+                                         */
+                                        values?: string[];
+                                    }[];
+                                    /**
+                                     * @description matchLabels is a map of {key,value} pairs. A single {key,value} in the matchLabels
+                                     *     map is equivalent to an element of matchExpressions, whose key field is "key", the
+                                     *     operator is "In", and the values array contains only "value". The requirements are ANDed.
+                                     */
+                                    matchLabels?: {
+                                        [key: string]: string;
+                                    };
+                                };
+                            };
+                            /** @description Secret references the v1.Secret containing the value that needs to be extracted */
                             secret?: {
                                 /** @description Key in the secret to select the value from. */
                                 key: string;
@@ -890,18 +934,62 @@ export interface components {
                     }[];
                     /** @description Values are the values for a PluginDefinition instance. */
                     optionValues?: {
+                        /** @description Expression is a YAML string with ${...} placeholders that will be evaluated as CEL expressions. */
+                        expression?: string;
                         /** @description Name of the values. */
                         name: string;
-                        /**
-                         * @description Template is a Go string template that will be dynamically resolved for cluster-specific values.
-                         *     Only PluginOptionValues declared as template will be templated by the PluginController for Flux.
-                         */
-                        template?: string;
                         /** @description Value is the actual value in plain text. */
                         value?: unknown;
-                        /** @description ValueFrom references a potentially confidential value in another source. */
+                        /** @description ValueFrom references value in another source. */
                         valueFrom?: {
-                            /** @description Secret references the secret containing the value. */
+                            /** @description Ref references values defined in another resource (Plugin, PluginPreset) */
+                            ref?: {
+                                /** @description Expression is a CEL expression to extract the value from the referenced resource */
+                                expression: string;
+                                /**
+                                 * @description Kind is the resource kind to target
+                                 *     if not set, defaults to the same kind as the referencing resource (Plugin or PluginPreset)
+                                 * @enum {string}
+                                 */
+                                kind?: "Plugin" | "PluginPreset";
+                                /**
+                                 * @description Name is the name of the resource to target
+                                 *     this field is mutually exclusive with LabelSelector
+                                 */
+                                name?: string;
+                                /**
+                                 * @description Selector selects the resources to target based on labels
+                                 *     this field is mutually exclusive with Name
+                                 */
+                                selector?: {
+                                    /** @description matchExpressions is a list of label selector requirements. The requirements are ANDed. */
+                                    matchExpressions?: {
+                                        /** @description key is the label key that the selector applies to. */
+                                        key: string;
+                                        /**
+                                         * @description operator represents a key's relationship to a set of values.
+                                         *     Valid operators are In, NotIn, Exists and DoesNotExist.
+                                         */
+                                        operator: string;
+                                        /**
+                                         * @description values is an array of string values. If the operator is In or NotIn,
+                                         *     the values array must be non-empty. If the operator is Exists or DoesNotExist,
+                                         *     the values array must be empty. This array is replaced during a strategic
+                                         *     merge patch.
+                                         */
+                                        values?: string[];
+                                    }[];
+                                    /**
+                                     * @description matchLabels is a map of {key,value} pairs. A single {key,value} in the matchLabels
+                                     *     map is equivalent to an element of matchExpressions, whose key field is "key", the
+                                     *     operator is "In", and the values array contains only "value". The requirements are ANDed.
+                                     */
+                                    matchLabels?: {
+                                        [key: string]: string;
+                                    };
+                                };
+                            };
+                            /** @description Secret references the v1.Secret containing the value that needs to be extracted */
                             secret?: {
                                 /** @description Key in the secret to select the value from. */
                                 key: string;
@@ -910,12 +998,6 @@ export interface components {
                             };
                         };
                     }[];
-                    /**
-                     * @description PluginDefinition is the name of the PluginDefinition this instance is for.
-                     *
-                     *     Deprecated: Use PluginDefinitionRef instead. Future releases of greenhouse will remove this field.
-                     */
-                    pluginDefinition: string;
                     /** @description PluginDefinitionRef is the reference to the (Cluster-)PluginDefinition. */
                     pluginDefinitionRef: {
                         /**
@@ -1076,18 +1158,62 @@ export interface components {
                 }[];
                 /** @description Values are the values for a PluginDefinition instance. */
                 optionValues?: {
+                    /** @description Expression is a YAML string with ${...} placeholders that will be evaluated as CEL expressions. */
+                    expression?: string;
                     /** @description Name of the values. */
                     name: string;
-                    /**
-                     * @description Template is a Go string template that will be dynamically resolved for cluster-specific values.
-                     *     Only PluginOptionValues declared as template will be templated by the PluginController for Flux.
-                     */
-                    template?: string;
                     /** @description Value is the actual value in plain text. */
                     value?: unknown;
-                    /** @description ValueFrom references a potentially confidential value in another source. */
+                    /** @description ValueFrom references value in another source. */
                     valueFrom?: {
-                        /** @description Secret references the secret containing the value. */
+                        /** @description Ref references values defined in another resource (Plugin, PluginPreset) */
+                        ref?: {
+                            /** @description Expression is a CEL expression to extract the value from the referenced resource */
+                            expression: string;
+                            /**
+                             * @description Kind is the resource kind to target
+                             *     if not set, defaults to the same kind as the referencing resource (Plugin or PluginPreset)
+                             * @enum {string}
+                             */
+                            kind?: "Plugin" | "PluginPreset";
+                            /**
+                             * @description Name is the name of the resource to target
+                             *     this field is mutually exclusive with LabelSelector
+                             */
+                            name?: string;
+                            /**
+                             * @description Selector selects the resources to target based on labels
+                             *     this field is mutually exclusive with Name
+                             */
+                            selector?: {
+                                /** @description matchExpressions is a list of label selector requirements. The requirements are ANDed. */
+                                matchExpressions?: {
+                                    /** @description key is the label key that the selector applies to. */
+                                    key: string;
+                                    /**
+                                     * @description operator represents a key's relationship to a set of values.
+                                     *     Valid operators are In, NotIn, Exists and DoesNotExist.
+                                     */
+                                    operator: string;
+                                    /**
+                                     * @description values is an array of string values. If the operator is In or NotIn,
+                                     *     the values array must be non-empty. If the operator is Exists or DoesNotExist,
+                                     *     the values array must be empty. This array is replaced during a strategic
+                                     *     merge patch.
+                                     */
+                                    values?: string[];
+                                }[];
+                                /**
+                                 * @description matchLabels is a map of {key,value} pairs. A single {key,value} in the matchLabels
+                                 *     map is equivalent to an element of matchExpressions, whose key field is "key", the
+                                 *     operator is "In", and the values array contains only "value". The requirements are ANDed.
+                                 */
+                                matchLabels?: {
+                                    [key: string]: string;
+                                };
+                            };
+                        };
+                        /** @description Secret references the v1.Secret containing the value that needs to be extracted */
                         secret?: {
                             /** @description Key in the secret to select the value from. */
                             key: string;
@@ -1096,12 +1222,6 @@ export interface components {
                         };
                     };
                 }[];
-                /**
-                 * @description PluginDefinition is the name of the PluginDefinition this instance is for.
-                 *
-                 *     Deprecated: Use PluginDefinitionRef instead. Future releases of greenhouse will remove this field.
-                 */
-                pluginDefinition: string;
                 /** @description PluginDefinitionRef is the reference to the (Cluster-)PluginDefinition. */
                 pluginDefinitionRef: {
                     /**
@@ -1214,6 +1334,11 @@ export interface components {
                         type: string;
                     }[];
                 };
+                /**
+                 * @description TrackedObjects contains a list of objects being tracked via the greenhouse.sap/tracking-id annotation.
+                 *     Each entry is in the format "kind/name" (e.g., "Plugin/my-plugin").
+                 */
+                trackedObjects?: string[];
                 /** @description UIApplication contains a reference to the frontend that is used for the deployed pluginDefinition version. */
                 uiApplication?: {
                     /** @description Name of the UI application. */

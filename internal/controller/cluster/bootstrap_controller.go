@@ -29,7 +29,7 @@ import (
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
 	"github.com/cloudoperators/greenhouse/internal/clientutil"
 	"github.com/cloudoperators/greenhouse/internal/controller/cluster/utils"
-	"github.com/cloudoperators/greenhouse/internal/lifecycle"
+	"github.com/cloudoperators/greenhouse/pkg/lifecycle"
 )
 
 type BootstrapReconciler struct {
@@ -183,7 +183,7 @@ func (r *BootstrapReconciler) createOrUpdateCluster(
 		cluster.SetAnnotations(annotations)
 		cluster.Spec.AccessMode = accessMode
 		// Transport KubeConfigSecret labels to Cluster
-		cluster = (lifecycle.NewPropagator(kubeConfigSecret, cluster).ApplyLabels()).(*greenhousev1alpha1.Cluster) //nolint:errcheck
+		cluster = (lifecycle.NewPropagator(kubeConfigSecret, cluster).Apply()).(*greenhousev1alpha1.Cluster) //nolint:errcheck
 		return nil
 	})
 	if err != nil {

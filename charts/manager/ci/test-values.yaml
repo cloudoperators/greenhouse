@@ -11,6 +11,7 @@ global:
       postgresqlUsername: dex
   plugin:
     expressionEvaluationEnabled: false
+    integrationEnabled: false
     defaultDeploymentTool: helm
 
 controllerManager:

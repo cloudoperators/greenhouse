@@ -8,6 +8,7 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	cl "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
 
@@ -152,6 +153,16 @@ var _ = Describe("PluginDefinition controller", func() {
 				g.Expect(repository.Spec.URL).To(Equal(HelmRepo), "the HelmRepository URL should match the PluginDefinition repository URL")
 				return nil
 			}).Should(Succeed(), "the HelmRepository should be created successfully")
+
+			By("checking if HelmRepositoryReadyCondition is set on PluginDefinition")
+			Eventually(func(g Gomega) {
+				err := test.K8sClient.Get(test.Ctx, cl.ObjectKeyFromObject(pluginDef), pluginDef)
+				g.Expect(err).ToNot(HaveOccurred())
+				helmRepoCondition := pluginDef.Status.GetConditionByType(greenhousev1alpha1.HelmRepositoryReadyCondition)
+				g.Expect(helmRepoCondition).ToNot(BeNil(), "the PluginDefinition should have a HelmRepositoryReady condition")
+				// Without Flux source-controller, HelmRepository has no Ready condition yet.
+				g.Expect(string(helmRepoCondition.Status)).To(Equal(string(metav1.ConditionUnknown)))
+			}).Should(Succeed())
 		})
 		It("should successfully create a HelmRepository for a UI PluginDefinition", func() {
 			By("creating a PluginDefinition")
@@ -207,6 +218,16 @@ var _ = Describe("PluginDefinition controller", func() {
 				g.Expect(repository.Spec.URL).To(Equal(HelmRepo), "the HelmRepository URL should match the ClusterPluginDefinition repository URL")
 				return nil
 			}).Should(Succeed(), "the HelmRepository should be created successfully")
+
+			By("checking if HelmRepositoryReadyCondition is set on ClusterPluginDefinition")
+			Eventually(func(g Gomega) {
+				err := test.K8sClient.Get(test.Ctx, cl.ObjectKeyFromObject(clusterDef), clusterDef)
+				g.Expect(err).ToNot(HaveOccurred())
+				helmRepoCondition := clusterDef.Status.GetConditionByType(greenhousev1alpha1.HelmRepositoryReadyCondition)
+				g.Expect(helmRepoCondition).ToNot(BeNil(), "the ClusterPluginDefinition should have a HelmRepositoryReady condition")
+				// Without Flux source-controller, HelmRepository has no Ready condition yet.
+				g.Expect(string(helmRepoCondition.Status)).To(Equal(string(metav1.ConditionUnknown)))
+			}).Should(Succeed())
 		})
 	})
 })

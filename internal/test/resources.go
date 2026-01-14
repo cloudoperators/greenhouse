@@ -341,22 +341,51 @@ func WithPluginOptionValue(name string, value *apiextensionsv1.JSON) func(*green
 	}
 }
 
-// WithPluginOptionValue sets the value of a PluginOptionValue, clears Value and Expression
-func WithPluginOptionValueFrom(name string, valueFrom *greenhousev1alpha1.ValueFromSource) func(*greenhousev1alpha1.Plugin) {
+// WithPluginOptionValueFrom sets the value of a PluginOptionValue from a secret, clears Value and Expression
+func WithPluginOptionValueFrom(name string, valueFrom *greenhousev1alpha1.PluginValueFromSource) func(*greenhousev1alpha1.Plugin) {
 	return func(p *greenhousev1alpha1.Plugin) {
 		for i, v := range p.Spec.OptionValues {
 			if v.Name == name {
 				v.Value = nil
-				v.ValueFrom = valueFrom
+				v.ValueFrom = &greenhousev1alpha1.PluginValueFromSource{
+					Secret: valueFrom.Secret,
+				}
 				v.Expression = nil
 				p.Spec.OptionValues[i] = v
 				return
 			}
 		}
 		p.Spec.OptionValues = append(p.Spec.OptionValues, greenhousev1alpha1.PluginOptionValue{
-			Name:       name,
-			Value:      nil,
-			ValueFrom:  valueFrom,
+			Name:  name,
+			Value: nil,
+			ValueFrom: &greenhousev1alpha1.PluginValueFromSource{
+				Secret: valueFrom.Secret,
+			},
+			Expression: nil,
+		})
+	}
+}
+
+// WithPluginOptionValueFromRef sets the value of a PluginOptionValue from an external reference, clears Value and Expression
+func WithPluginOptionValueFromRef(name string, ref *greenhousev1alpha1.ExternalValueSource) func(*greenhousev1alpha1.Plugin) {
+	return func(p *greenhousev1alpha1.Plugin) {
+		for i, v := range p.Spec.OptionValues {
+			if v.Name == name {
+				v.Value = nil
+				v.ValueFrom = &greenhousev1alpha1.PluginValueFromSource{
+					Ref: ref,
+				}
+				v.Expression = nil
+				p.Spec.OptionValues[i] = v
+				return
+			}
+		}
+		p.Spec.OptionValues = append(p.Spec.OptionValues, greenhousev1alpha1.PluginOptionValue{
+			Name:  name,
+			Value: nil,
+			ValueFrom: &greenhousev1alpha1.PluginValueFromSource{
+				Ref: ref,
+			},
 			Expression: nil,
 		})
 	}

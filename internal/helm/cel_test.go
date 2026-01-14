@@ -4,7 +4,6 @@
 package helm
 
 import (
-	"context"
 	"encoding/json"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -16,7 +15,6 @@ import (
 
 var _ = Describe("ResolveExpressions with feature flag disabled", func() {
 	var (
-		ctx               context.Context
 		baseOptionValues  []greenhousev1alpha1.PluginOptionValue
 		globalClusterName string
 		globalRegion      string
@@ -24,8 +22,6 @@ var _ = Describe("ResolveExpressions with feature flag disabled", func() {
 	)
 
 	BeforeEach(func() {
-		ctx = context.Background()
-
 		globalClusterName = "test-cluster"
 		globalRegion = "eu-de-1"
 		globalEnvironment = "production"
@@ -52,23 +48,21 @@ var _ = Describe("ResolveExpressions with feature flag disabled", func() {
 
 	It("should treat expression as literal string when disabled", func() {
 		expression := "prometheus-${global.greenhouse.metadata.region}-user"
-		optionValues := append(baseOptionValues, greenhousev1alpha1.PluginOptionValue{
+		optionValueUT := greenhousev1alpha1.PluginOptionValue{
 			Name:       "username",
 			Expression: &expression,
-		})
+		}
+		optionValues := append(baseOptionValues, optionValueUT)
+		resolver, err := NewCELResolver(optionValues)
+		Expect(err).ToNot(HaveOccurred())
 
-		result, err := ResolveExpressions(ctx, optionValues, false)
+		actual, err := resolver.ResolveExpression(optionValueUT, false)
 		Expect(err).ToNot(HaveOccurred())
 
 		var username string
-		for _, opt := range result {
-			if opt.Name == "username" {
-				Expect(opt.Value).ToNot(BeNil())
-				err := json.Unmarshal(opt.Value.Raw, &username)
-				Expect(err).ToNot(HaveOccurred())
-				break
-			}
-		}
+		Expect(actual.Value).ToNot(BeNil())
+		err = json.Unmarshal(actual.Value.Raw, &username)
+		Expect(err).ToNot(HaveOccurred())
 
 		Expect(username).To(Equal("prometheus-${global.greenhouse.metadata.region}-user"))
 	})
@@ -78,23 +72,22 @@ var _ = Describe("ResolveExpressions with feature flag disabled", func() {
 cluster: ${global.greenhouse.clusterName}
 env: ${global.greenhouse.metadata.environment}`
 
-		optionValues := append(baseOptionValues, greenhousev1alpha1.PluginOptionValue{
+		optionValueUT := greenhousev1alpha1.PluginOptionValue{
 			Name:       "config",
 			Expression: &expression,
-		})
+		}
+		optionValues := append(baseOptionValues, optionValueUT)
 
-		result, err := ResolveExpressions(ctx, optionValues, false)
+		resolver, err := NewCELResolver(optionValues)
+		Expect(err).ToNot(HaveOccurred())
+
+		actual, err := resolver.ResolveExpression(optionValueUT, false)
 		Expect(err).ToNot(HaveOccurred())
 
 		var config string
-		for _, opt := range result {
-			if opt.Name == "config" {
-				Expect(opt.Value).ToNot(BeNil())
-				err := json.Unmarshal(opt.Value.Raw, &config)
-				Expect(err).ToNot(HaveOccurred())
-				break
-			}
-		}
+		Expect(actual.Value).ToNot(BeNil())
+		err = json.Unmarshal(actual.Value.Raw, &config)
+		Expect(err).ToNot(HaveOccurred())
 
 		Expect(config).To(Equal(`endpoint: thanos-grpc.obs.${global.greenhouse.metadata.region}.cloudoperators.dev:443
 cluster: ${global.greenhouse.clusterName}
@@ -103,23 +96,23 @@ env: ${global.greenhouse.metadata.environment}`))
 
 	It("should treat CEL expression as literal string when disabled", func() {
 		expression := "${global.greenhouse.clusterName.upperAscii()}"
-		optionValues := append(baseOptionValues, greenhousev1alpha1.PluginOptionValue{
+
+		optionValueUT := greenhousev1alpha1.PluginOptionValue{
 			Name:       "clusterLabel",
 			Expression: &expression,
-		})
+		}
+		optionValues := append(baseOptionValues, optionValueUT)
 
-		result, err := ResolveExpressions(ctx, optionValues, false)
+		resolver, err := NewCELResolver(optionValues)
+		Expect(err).ToNot(HaveOccurred())
+
+		actual, err := resolver.ResolveExpression(optionValueUT, false)
 		Expect(err).ToNot(HaveOccurred())
 
 		var clusterLabel string
-		for _, opt := range result {
-			if opt.Name == "clusterLabel" {
-				Expect(opt.Value).ToNot(BeNil())
-				err := json.Unmarshal(opt.Value.Raw, &clusterLabel)
-				Expect(err).ToNot(HaveOccurred())
-				break
-			}
-		}
+		Expect(actual.Value).ToNot(BeNil())
+		err = json.Unmarshal(actual.Value.Raw, &clusterLabel)
+		Expect(err).ToNot(HaveOccurred())
 
 		Expect(clusterLabel).To(Equal("${global.greenhouse.clusterName.upperAscii()}"))
 	})

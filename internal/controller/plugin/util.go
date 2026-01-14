@@ -28,7 +28,7 @@ import (
 	greenhousemetav1alpha1 "github.com/cloudoperators/greenhouse/api/meta/v1alpha1"
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
 	"github.com/cloudoperators/greenhouse/internal/clientutil"
-	"github.com/cloudoperators/greenhouse/internal/lifecycle"
+	"github.com/cloudoperators/greenhouse/pkg/lifecycle"
 )
 
 // exposedConditions are the conditions that are exposed in the StatusConditions of the Plugin.
@@ -42,6 +42,7 @@ var exposedConditions = []greenhousemetav1alpha1.ConditionType{
 	greenhousev1alpha1.WorkloadReadyCondition,
 	greenhousemetav1alpha1.OwnerLabelSetCondition,
 	greenhousev1alpha1.WaitingForDependenciesCondition,
+	greenhousev1alpha1.RetriesExhaustedCondition,
 }
 
 type reconcileResult struct {

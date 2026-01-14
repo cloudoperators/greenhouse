@@ -125,7 +125,7 @@ var _ = Describe("Validate PluginDefinition against Plugin ", func() {
 					OptionValues: []greenhousev1alpha1.PluginOptionValue{
 						{
 							Name: "secret",
-							ValueFrom: &greenhousev1alpha1.ValueFromSource{
+							ValueFrom: &greenhousev1alpha1.PluginValueFromSource{
 								Secret: &greenhousev1alpha1.SecretKeyReference{
 									Name: "secret",
 									Key:  "key",

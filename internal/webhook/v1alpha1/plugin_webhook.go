@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"slices"
 	"strings"
 
 	"helm.sh/helm/v3/pkg/chartutil"
@@ -16,7 +17,6 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/validation/field"
-	"k8s.io/utils/strings/slices"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
@@ -61,13 +61,6 @@ func DefaultPlugin(ctx context.Context, c client.Client, obj runtime.Object) err
 	plugin, ok := obj.(*greenhousev1alpha1.Plugin)
 	if !ok {
 		return nil
-	}
-
-	deprecatedDefName := plugin.Spec.PluginDefinition //nolint:staticcheck
-
-	// Migrate PluginDefinition reference name.
-	if plugin.Spec.PluginDefinitionRef.Name == "" && deprecatedDefName != "" {
-		plugin.Spec.PluginDefinitionRef.Name = deprecatedDefName
 	}
 
 	// Validate before ValidateCreatePlugin is called. Because defaulting PluginOptionValues & ReleaseName requires the PluginDefinition to be set.
