@@ -219,7 +219,7 @@ type PluginDefinitionStatus struct {
 //+kubebuilder:subresource:status
 //+kubebuilder:resource:scope=Namespaced,shortName=pd
 //+kubebuilder:printcolumn:name="Version",type=string,JSONPath=`.spec.version`
-//+kubebuilder:printcolumn:name="Catalog",type=string,JSONPath=`.metadata.labels.greenhouse\\.sap/catalog`
+//+kubebuilder:printcolumn:name="Catalog",type=string,JSONPath=`.metadata.labels.greenhouse\.sap/catalog`
 //+kubebuilder:printcolumn:name="Description",type=string,JSONPath=`.spec.description`
 // +kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp"
 
