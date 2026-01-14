@@ -228,21 +228,7 @@ func (p *Propagator) syncTargetLabels(keysToPropagate []string, srcLabels, dstLa
 
 	// Clean previously applied labels that are no longer present.
 	for _, prev := range state.LabelKeys {
-		if _, ok := srcLabels[prev]; !ok {
-			delete(dstLabels, prev)
-			continue
-		}
-		if slices.Contains(exact, prev) {
-			continue
-		}
-		keep := false
-		for _, p := range wildPrefixes {
-			if strings.HasPrefix(prev, p) {
-				keep = true
-				break
-			}
-		}
-		if !keep {
+		if !slices.Contains(appliedNow, prev) {
 			delete(dstLabels, prev)
 		}
 	}
