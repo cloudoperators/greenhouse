@@ -9,7 +9,6 @@ import (
 
 	"context"
 	"errors"
-	"testing"
 	"time"
 
 	"github.com/stretchr/testify/mock"
@@ -22,11 +21,6 @@ import (
 	"github.com/cloudoperators/greenhouse/pkg/lifecycle"
 	"github.com/cloudoperators/greenhouse/pkg/mocks"
 )
-
-func TestReconcile(t *testing.T) {
-	RegisterFailHandler(Fail)
-	RunSpecs(t, "Reconcile Suite")
-}
 
 var _ = Describe("Reconcile", func() {
 	var (

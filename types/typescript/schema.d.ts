@@ -998,12 +998,6 @@ export interface components {
                             };
                         };
                     }[];
-                    /**
-                     * @description PluginDefinition is the name of the PluginDefinition this instance is for.
-                     *
-                     *     Deprecated: Use PluginDefinitionRef instead. Future releases of greenhouse will remove this field.
-                     */
-                    pluginDefinition: string;
                     /** @description PluginDefinitionRef is the reference to the (Cluster-)PluginDefinition. */
                     pluginDefinitionRef: {
                         /**
@@ -1228,12 +1222,6 @@ export interface components {
                         };
                     };
                 }[];
-                /**
-                 * @description PluginDefinition is the name of the PluginDefinition this instance is for.
-                 *
-                 *     Deprecated: Use PluginDefinitionRef instead. Future releases of greenhouse will remove this field.
-                 */
-                pluginDefinition: string;
                 /** @description PluginDefinitionRef is the reference to the (Cluster-)PluginDefinition. */
                 pluginDefinitionRef: {
                     /**
