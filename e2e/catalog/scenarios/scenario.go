@@ -208,7 +208,7 @@ func (s *scenario) expectKustomizationReady(ctx context.Context, groupKey string
 		g.Expect(readyCond).ToNot(BeNil(), "the Kustomization should have a Ready condition")
 		g.Expect(readyCond.Status).To(Equal(metav1.ConditionTrue), "the Kustomization Ready condition status should be True - "+kustomization.Name)
 		inventory = kustomization.Status.Inventory
-		Expect(inventory).ToNot(BeNil(), "the Kustomization status inventory should not be nil")
+		g.Expect(inventory).ToNot(BeNil(), "the Kustomization status inventory should not be nil")
 	}).Should(Succeed(), "flux Kustomization should be created for the Catalog source")
 	s.verifyPluginDefinitions(ctx, inventory, overrides)
 }
