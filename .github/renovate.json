@@ -215,7 +215,7 @@
       "groupName": "controller-tools (Makefile)",
       "groupSlug": "controller-tools-regex",
       "matchManagers": [
-        "regex"
+        "custom.regex"
       ],
       "matchDatasources": [
         "github-tags"
@@ -229,7 +229,7 @@
       "groupName": "golangci-lint (Makefile)",
       "groupSlug": "golangci-lint",
       "matchManagers": [
-        "regex"
+        "custom.regex"
       ],
       "matchDatasources": [
         "github-tags"
