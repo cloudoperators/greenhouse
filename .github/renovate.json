@@ -183,6 +183,7 @@
         "k8s.io/sample-apiserver{/,}**",
         "k8s.io/sample-cli-plugin{/,}**",
         "k8s.io/sample-controller{/,}**",
+        "k8s.io/utils{/,}**",
         "sigs.k8s.io/controller-runtime{/,}**"
       ]
     },
@@ -209,6 +210,67 @@
         "cloudoperators/greenhouse"
       ],
       "ignoreUnstable": false
+    },
+    {
+      "groupName": "controller-tools (Makefile)",
+      "groupSlug": "controller-tools-regex",
+      "matchManagers": [
+        "regex"
+      ],
+      "matchDatasources": [
+        "github-tags"
+      ],
+      "matchDepNames": [
+        "kubernetes-sigs/controller-tools"
+      ],
+      "minimumReleaseAge": "14 days"
+    },
+    {
+      "groupName": "golangci-lint (Makefile)",
+      "groupSlug": "golangci-lint",
+      "matchManagers": [
+        "regex"
+      ],
+      "matchDatasources": [
+        "github-tags"
+      ],
+      "matchDepNames": [
+        "golangci/golangci-lint",
+        "nunnatsa/ginkgolinter"
+      ],
+      "minimumReleaseAge": "14 days"
+    },
+    {
+      "groupName": "ginkgo & gomega updates",
+      "groupSlug": "ginkgo-gomega",
+      "matchDatasources": [
+        "go"
+      ],
+      "matchUpdateTypes": [
+        "major",
+        "minor",
+        "patch"
+      ],
+      "minimumReleaseAge": "14 days",
+      "matchPackageNames": [
+        "github.com/onsi{/,}**"
+      ]
+    },
+    {
+      "groupName": "golang.org/x packages",
+      "groupSlug": "golang-x-go",
+      "matchDatasources": [
+        "go"
+      ],
+      "matchUpdateTypes": [
+        "major",
+        "minor",
+        "patch"
+      ],
+      "minimumReleaseAge": "14 days",
+      "matchPackageNames": [
+        "golang.org/x{/,}**"
+      ]
     }
   ],
   "postUpdateOptions": [
