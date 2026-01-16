@@ -22,4 +22,11 @@ const (
 	OwnerLabelSetToNotExistingTeamReason ConditionReason = "OwnerLabelNotExistingTeam"
 	// OwnerLabelSetToNonSupportGroupTeamReason is set when the resource has the owned-by label set to a non-support-group Team.
 	OwnerLabelSetToNonSupportGroupTeamReason ConditionReason = "OwnerLabelSetToNonSupportGroupTeam"
+
+	// SuspendedCondition reflects that the resource is suspended.
+	SuspendedCondition ConditionType = "Suspended"
+	// ResourceSuspendedReason is set when the resource is successfully suspended.
+	ResourceSuspendedReason ConditionReason = "ResourceSuspended"
+	// ResourceSuspensionFailedReason is set when the resource suspension failed.
+	ResourceSuspensionFailedReason ConditionReason = "ResourceSuspensionFailed"
 )

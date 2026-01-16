@@ -87,6 +87,16 @@ func (trb *TeamRoleBinding) SetCondition(condition greenhousemetav1alpha1.Condit
 	trb.Status.SetConditions(condition)
 }
 
+func (trb *TeamRoleBinding) RemoveCondition(conditionType greenhousemetav1alpha1.ConditionType) {
+	trb.Status.Conditions = slices.DeleteFunc(trb.Status.Conditions, func(cond greenhousemetav1alpha1.Condition) bool {
+		return cond.Type == conditionType
+	})
+}
+
+func (trb *TeamRoleBinding) CanBeSuspended() bool {
+	return false
+}
+
 // SetPropagationStatus updates the TeamRoleBinding's PropagationStatus for the Cluster
 func (trb *TeamRoleBinding) SetPropagationStatus(cluster string, rbacReady metav1.ConditionStatus, reason greenhousemetav1alpha1.ConditionReason, message string) {
 	condition := greenhousemetav1alpha1.NewCondition(RBACReady, rbacReady, reason, message)
