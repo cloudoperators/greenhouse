@@ -11,8 +11,8 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	"github.com/cloudoperators/greenhouse/internal/cel"
 	"github.com/cloudoperators/greenhouse/internal/controller/fixtures"
+	"github.com/cloudoperators/greenhouse/pkg/cel"
 )
 
 func TestCEL(t *testing.T) {

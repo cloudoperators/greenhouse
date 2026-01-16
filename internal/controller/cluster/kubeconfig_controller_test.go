@@ -174,11 +174,13 @@ users:
 		cfg, err := clientcmd.Load(nextKubeconfig)
 		Expect(err).NotTo(HaveOccurred())
 
-		secret := corev1.Secret{}
-		Expect(test.K8sClient.Get(test.Ctx, types.NamespacedName{Name: cluster.Name, Namespace: setup.Namespace()}, &secret)).To(Succeed())
+		Eventually(func(g Gomega) {
+			secret := corev1.Secret{}
+			g.Expect(test.K8sClient.Get(test.Ctx, types.NamespacedName{Name: cluster.Name, Namespace: setup.Namespace()}, &secret)).To(Succeed())
 
-		secret.Data[greenhouseapis.GreenHouseKubeConfigKey] = nextKubeconfig
-		Expect(test.K8sClient.Update(test.Ctx, &secret)).To(Succeed())
+			secret.Data[greenhouseapis.GreenHouseKubeConfigKey] = nextKubeconfig
+			g.Expect(test.K8sClient.Update(test.Ctx, &secret)).To(Succeed())
+		}).Should(Succeed(), "there should be no error updating the cluster secret")
 
 		clusterKubeconfig := v1alpha1.ClusterKubeconfig{}
 		Eventually(func(g Gomega) string {

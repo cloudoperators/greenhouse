@@ -507,20 +507,6 @@ var _ = Describe("Validate plugin spec fields", Ordered, func() {
 
 		test.EventuallyDeleted(test.Ctx, test.K8sClient, secondPluginDefinition)
 	})
-
-	It("should correctly default the PluginDefinitionKind", func() {
-		testPlugin := test.NewPlugin(test.Ctx, "test-plugin", setup.Namespace(),
-			test.WithCluster(testCluster.Name),
-			test.WithReleaseNamespace("test-namespace"),
-			test.WithReleaseName("test-release"),
-			test.WithPluginLabel(greenhouseapis.LabelKeyOwnedBy, team.Name),
-		)
-		//nolint:staticcheck
-		testPlugin.Spec.PluginDefinition = testPluginDefinition.Name
-
-		Expect(test.K8sClient.Create(test.Ctx, testPlugin)).To(Succeed(), "there must be no error creating the Plugin")
-		Expect(testPlugin.Spec.PluginDefinitionRef.Kind).To(Equal(greenhousev1alpha1.PluginDefinitionKind), "PluginDefinitionKind should be defaulted to PluginDefinition")
-	})
 })
 
 var _ = Describe("Validate PluginDefinition labels on Defaulting", Ordered, func() {

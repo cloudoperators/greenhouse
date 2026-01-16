@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2024 SAP SE or an SAP affiliate company and Greenhouse contributors
+// SPDX-FileCopyrightText: 2026 SAP SE or an SAP affiliate company and Greenhouse contributors
 // SPDX-License-Identifier: Apache-2.0
 
 package lifecycle_test
@@ -12,7 +12,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	"github.com/cloudoperators/greenhouse/internal/lifecycle"
+	"github.com/cloudoperators/greenhouse/pkg/lifecycle"
 )
 
 var _ = DescribeTable("Label propagation scenarios",
@@ -100,6 +100,33 @@ var _ = DescribeTable("Label propagation scenarios",
 		map[string]string{"region": "bar", "support_group": "x"},
 		true,
 		[]string{"region", "support_group"}),
+
+	Entry("It should propagate all labels matching the wildcard",
+		map[string]string{"metadata.greenhouse.sap/test1": "value1", "metadata.greenhouse.sap/test2": "value2", "support_group": "x"},
+		map[string]string{"greenhouse.sap/propagate-labels": "metadata.greenhouse.sap/*"},
+		map[string]string{},
+		nil,
+		map[string]string{"metadata.greenhouse.sap/test1": "value1", "metadata.greenhouse.sap/test2": "value2"},
+		true,
+		[]string{"metadata.greenhouse.sap/test1", "metadata.greenhouse.sap/test2"}),
+
+	Entry("It should not remove labels matching the wildcard after the state change",
+		map[string]string{"metadata.greenhouse.sap/test1": "value1", "metadata.greenhouse.sap/test2": "value2", "support_group": "x"},
+		map[string]string{"greenhouse.sap/propagate-labels": "metadata.greenhouse.sap/*"},
+		map[string]string{"metadata.greenhouse.sap/test1": "value1"},
+		[]string{"metadata.greenhouse.sap/test1"},
+		map[string]string{"metadata.greenhouse.sap/test1": "value1", "metadata.greenhouse.sap/test2": "value2"},
+		true,
+		[]string{"metadata.greenhouse.sap/test1", "metadata.greenhouse.sap/test2"}),
+
+	Entry("It should remove previous labels after wildcard removal in the state change",
+		map[string]string{"metadata.greenhouse.sap/test1": "value1", "metadata.greenhouse.sap/test2": "value2", "support_group": "x"},
+		map[string]string{"greenhouse.sap/propagate-labels": "metadata.greenhouse.sap/test2"},
+		map[string]string{"metadata.greenhouse.sap/test1": "value1", "metadata.greenhouse.sap/test2": "value2"},
+		[]string{"metadata.greenhouse.sap/test1", "metadata.greenhouse.sap/test2"},
+		map[string]string{"metadata.greenhouse.sap/test2": "value2"},
+		true,
+		[]string{"metadata.greenhouse.sap/test2"}),
 )
 
 var _ = DescribeTable("Annotation propagation scenarios",
