@@ -9,7 +9,7 @@ replicaCount: 1
 image:
   repository: ghcr.io/cloudoperators/greenhouse
   pullPolicy: IfNotPresent
-  tag: v0.8.0
+  tag: v0.9.0
 
 # This is for the secrets for pulling an image from a private repository more information can be found here: https://kubernetes.io/docs/tasks/configure-pod-container/pull-image-private-registry/
 imagePullSecrets: []
@@ -72,3 +72,6 @@ authzDeployment:
     - name: authz-server
       containerPort: 9443
       protocol: TCP
+  containerEnv:
+    - name: AUTHZ_TLS
+      value: "true"

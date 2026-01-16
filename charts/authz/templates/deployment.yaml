@@ -45,11 +45,15 @@ spec:
           {{- end }}
           image: {{ include "authz.image" . }}
           imagePullPolicy: {{ .Values.image.pullPolicy }}
-          {{- with .Values.authzDeployment.volumeMounts}}
+          {{- with .Values.authzDeployment.volumeMounts }}
           volumeMounts:
             {{- toYaml . | nindent 12 }}
-          {{- end}}
+          {{- end }}
           command:
             - /authz
           ports:
             {{- toYaml .Values.authzDeployment.containerPorts | nindent 12 }}
+          {{- with .Values.authzDeployment.containerEnv}}
+          env:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
