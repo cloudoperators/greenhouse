@@ -5,6 +5,7 @@ config:
   - cluster:
       name: greenhouse-admin
       namespace: greenhouse
+      version: v1.33.4
       postSetup:
         - command: kubectl config use-context kind-greenhouse-admin
         - command: make cert-manager

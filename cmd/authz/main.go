@@ -153,7 +153,9 @@ func addInsecureWebhookServer(mgr manager.Manager, port int, path string, handle
 			// stop with manager
 			shutdownCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 			defer cancel()
-			_ = srv.Shutdown(shutdownCtx)
+			if err := srv.Shutdown(shutdownCtx); err != nil && !errors.Is(err, http.ErrServerClosed) {
+				mgr.GetLogger().Error(err, "failed to shutdown insecure webhook server", "addr", addr)
+			}
 			return nil
 		case err := <-errCh:
 			if errors.Is(err, http.ErrServerClosed) {
