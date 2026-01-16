@@ -19,7 +19,6 @@ type Manifest struct {
 	CRDOnly              bool     `yaml:"crdOnly" json:"crdOnly"`
 	ExcludeKinds         []string `yaml:"excludeKinds" json:"excludeKinds"`
 	Webhook              *Webhook `yaml:"webhook" json:"webhook"`
-	Authz                bool     `yaml:"authz" json:"authz"`
 	hc                   helm.IHelm
 	enableLocalPluginDev bool
 }
@@ -40,12 +39,6 @@ func limitedManifestSetup(ctx context.Context, m *Manifest) Step {
 		resources, err := m.generateManifests(ctx)
 		if err != nil {
 			return err
-		}
-		if m.Authz {
-			resources, err = m.setupAuthzManifest(resources)
-			if err != nil {
-				return err
-			}
 		}
 		return m.applyManifests(resources, namespace, env.cluster.kubeConfigPath)
 	}

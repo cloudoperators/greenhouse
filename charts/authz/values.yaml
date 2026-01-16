@@ -41,12 +41,6 @@ securityContext: {}
   # runAsNonRoot: true
   # runAsUser: 1000
 
-# This is for setting up a service more information can be found here: https://kubernetes.io/docs/concepts/services-networking/service/
-service:
-  type: ClusterIP
-  port: 9443
-
-# This is to setup the liveness and readiness probes more information can be found here: https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-startup-probes/
 livenessProbe:
   httpGet:
     path: /healthz
@@ -55,3 +49,26 @@ readinessProbe:
   httpGet:
     path: /readyz
     port: 8081
+
+authzService:
+  type: ClusterIP
+  ports:
+    - name: webhook
+      port: 9443
+      targetPort: authz-server
+      protocol: TCP
+
+authzDeployment:
+  volumes:
+    - name: serving-certs
+      hostPath:
+        path: /etc/kubernetes/webhook/certs
+        type: Directory
+  volumeMounts:
+    - name: serving-certs
+      mountPath: /tmp/k8s-webhook-server/serving-certs
+      readOnly: true
+  containerPorts:
+    - name: authz-server
+      containerPort: 9443
+      protocol: TCP

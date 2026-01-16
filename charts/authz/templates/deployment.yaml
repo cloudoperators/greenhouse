@@ -33,11 +33,10 @@ spec:
       securityContext:
         {{- toYaml . | nindent 8 }}
       {{- end }}
+      {{- with .Values.authzDeployment.volumes }}
       volumes:
-      - name: serving-certs
-        hostPath:
-          path: /etc/kubernetes/webhook/certs
-          type: Directory
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
       containers:
         - name: {{ .Chart.Name }}
           {{- with .Values.securityContext }}
@@ -46,13 +45,11 @@ spec:
           {{- end }}
           image: {{ include "authz.image" . }}
           imagePullPolicy: {{ .Values.image.pullPolicy }}
+          {{- with .Values.authzDeployment.volumeMounts}}
           volumeMounts:
-            - name: serving-certs
-              mountPath: /tmp/k8s-webhook-server/serving-certs
-              readOnly: true
+            {{- toYaml . | nindent 12 }}
+          {{- end}}
           command:
             - /authz
           ports:
-            - name: authz-server
-              containerPort: {{ .Values.service.port }}
-              protocol: TCP
+            {{- toYaml .Values.authzDeployment.containerPorts | nindent 12 }}

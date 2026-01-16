@@ -8,11 +8,10 @@ metadata:
   labels:
     {{- include "authz.labels" . | nindent 4 }}
 spec:
-  type: {{ .Values.service.type }}
+  type: {{ .Values.authzService.type }}
+  {{- with .Values.authzService.ports }}
   ports:
-    - port: {{ .Values.service.port }}
-      targetPort: authz-server
-      protocol: TCP
-      name: webhook
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
   selector:
     {{- include "authz.selectorLabels" . | nindent 4 }}

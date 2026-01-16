@@ -31,7 +31,6 @@ type Webhook struct {
 const (
 	LocalDevIMG                        = "greenhouse/manager:local"
 	WebhookContainer                   = "webhook"
-	AuthzContainer                     = "authz"
 	DeploymentKind                     = "Deployment"
 	WebhookDeploymentNameSuffix        = "-webhook"
 	MutatingWebhookConfigurationKind   = "MutatingWebhookConfiguration"
@@ -95,83 +94,6 @@ func (m *Manifest) modifyWebhookDeployment(deploymentResource map[string]any) (m
 	deployment.Spec.Template.Spec.Containers[index].Image = LocalDevIMG
 	deployment.Spec.Replicas = utils.Int32P(1)
 	depBytes, err := utils.FromK8sObjectToYaml(deployment, appsv1.SchemeGroupVersion)
-	if err != nil {
-		return nil, err
-	}
-	return utils.RawK8sInterface(depBytes)
-}
-
-func (m *Manifest) setupAuthzManifest(resources []map[string]any) ([]map[string]any, error) {
-	manifests := make([]map[string]any, 0)
-
-	authzDeployment, err := extractResourceByNameKind(resources, m.ReleaseName, DeploymentKind)
-	if err != nil {
-		return nil, err
-	}
-	utils.Log("modifying authorization webhook deployment...")
-	authzDeployment, err = m.modifyAuthzDeployment(authzDeployment)
-	if err != nil {
-		return nil, err
-	}
-	manifests = append(manifests, authzDeployment)
-
-	authzService, err := extractResourceByNameKind(resources, m.ReleaseName, ServiceKind)
-	if err != nil {
-		return nil, err
-	}
-	utils.Log("modifying authorization webhook service...")
-	authzService, err = m.modifyAuthzService(authzService)
-	if err != nil {
-		return nil, err
-	}
-	manifests = append(manifests, authzService)
-
-	remainingResources := extractResourcesByKinds(resources, "ServiceAccount", "ClusterRole", "ClusterRoleBinding")
-	manifests = append(manifests, remainingResources...)
-	return manifests, nil
-}
-
-// modifyAuthzDeployment sets the local, up-to-date with code, manager image for authz container in the deployment.
-func (m *Manifest) modifyAuthzDeployment(deploymentResource map[string]any) (map[string]any, error) {
-	deployment := &appsv1.Deployment{}
-	deploymentStr, err := utils.Stringy(deploymentResource)
-	if err != nil {
-		return nil, err
-	}
-	err = utils.FromYamlToK8sObject(deploymentStr, deployment)
-	if err != nil {
-		return nil, err
-	}
-	index := getContainerIndex(deployment, AuthzContainer)
-	if index == -1 {
-		return nil, errors.New("authz container not found in deployment")
-	}
-	deployment.Spec.Template.Spec.Containers[index].Image = LocalDevIMG
-	deployment.Spec.Replicas = utils.Int32P(1)
-	depBytes, err := utils.FromK8sObjectToYaml(deployment, appsv1.SchemeGroupVersion)
-	if err != nil {
-		return nil, err
-	}
-	return utils.RawK8sInterface(depBytes)
-}
-
-// modifyAuthzService sets the NodePort for the authz service.
-func (m *Manifest) modifyAuthzService(serviceResource map[string]any) (map[string]any, error) {
-	service := &v1.Service{}
-	serviceStr, err := utils.Stringy(serviceResource)
-	if err != nil {
-		return nil, err
-	}
-	err = utils.FromYamlToK8sObject(serviceStr, service)
-	if err != nil {
-		return nil, err
-	}
-	service.Spec.Type = v1.ServiceTypeNodePort
-	if len(service.Spec.Ports) < 1 {
-		return nil, errors.New("port not found in the authz service")
-	}
-	service.Spec.Ports[0].NodePort = 32443
-	depBytes, err := utils.FromK8sObjectToYaml(service, v1.SchemeGroupVersion)
 	if err != nil {
 		return nil, err
 	}

@@ -35,5 +35,4 @@ authorizers:
         - expression: request.resourceAttributes.group == "greenhouse.sap"
         # Note on verbs: get is needed for kubectl edit, list and watch is needed for kubectl wait triggered after kubectl delete.
         - expression: request.resourceAttributes.verb in ["get","list","watch","update","patch","delete"]
-        - expression: request.user != "system:serviceaccount:greenhouse:authz-webhook-sa" # prevent authz requests recursion
         
