@@ -53,6 +53,12 @@ const (
 	kustomizeArtifactPrefix = "kustomize"
 )
 
+type catalogError struct {
+	InventoryType string
+	Name          string
+	Error         error
+}
+
 type source struct {
 	client.Client
 	scheme                   *runtime.Scheme

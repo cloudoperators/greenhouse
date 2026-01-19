@@ -367,7 +367,6 @@ func (s *scenario) expectStatusPropagationInCatalogInventory(ctx context.Context
 		Eventually(func(g Gomega) {
 			err := s.k8sClient.Get(ctx, client.ObjectKeyFromObject(fluxObj), fluxObj)
 			if apierrors.IsNotFound(err) && ignoreNotFound {
-				// ignore not found errors
 				return
 			}
 			g.Expect(err).ToNot(HaveOccurred(), "there should be no error getting the catalog flux resource: "+fluxObj.GetName())
