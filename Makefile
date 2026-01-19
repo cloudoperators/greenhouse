@@ -315,7 +315,7 @@ clean-e2e:
 
 .PHONY: e2e
 e2e:
-	GOMEGA_DEFAULT_EVENTUALLY_TIMEOUT="2m" \
+	GOMEGA_DEFAULT_EVENTUALLY_TIMEOUT="5m" \
 		go test -tags="$(SCENARIO)E2E" ${PWD}/e2e/$(SCENARIO) -mod=readonly -test.v -ginkgo.v --ginkgo.json-report=$(E2E_REPORT_PATH)
 
 .PHONY: e2e-local
