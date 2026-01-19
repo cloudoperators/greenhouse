@@ -12,3 +12,29 @@ alerts:
   enabled: false
 certManager:
   enabled: false
+authzService:
+  type: NodePort
+  ports:
+    - name: webhook
+      port: 9443
+      targetPort: authz-server
+      protocol: TCP
+      nodePort: 32443
+authzDeployment:
+  volumes:
+    - name: serving-certs
+      hostPath:
+        path: /etc/kubernetes/webhook/certs
+        type: Directory
+  volumeMounts:
+    - name: serving-certs
+      mountPath: /tmp/k8s-webhook-server/serving-certs
+      readOnly: true
+  containerPorts:
+    - name: authz-server
+      containerPort: 9443
+      protocol: TCP
+image:
+  repository: greenhouse/manager
+  tag: local
+  pullPolicy: IfNotPresent

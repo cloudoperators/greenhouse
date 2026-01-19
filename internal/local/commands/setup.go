@@ -99,11 +99,15 @@ func processDevSetup(cmd *cobra.Command, args []string) error {
 			if crdOnly {
 				dep.Manifest.CRDOnly = crdOnly
 			}
-			if dep.Manifest != nil && (dep.Manifest.CRDOnly || dep.Manifest.Webhook == nil) {
+			if dep.Manifest == nil {
+				continue
+			}
+
+			if dep.Manifest.CRDOnly || dep.Manifest.Webhook == nil {
 				env = env.WithLimitedManifests(ctx, dep.Manifest)
 				continue
 			}
-			if dep.Manifest != nil && dep.Manifest.Webhook != nil {
+			if dep.Manifest.Webhook != nil {
 				if hostPathConfig != "" {
 					env = env.WithLocalPluginDev(dep.Manifest)
 				}
