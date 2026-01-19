@@ -39,7 +39,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        k8s-version: [ "v1.32.8" ]
+        k8s-version: [ "v1.32.11" ]
         e2es: ${{fromJson(needs.init.outputs.tests)}}
     steps:
       # run the e2e tests using composite common/workflows/e2e action
@@ -53,7 +53,8 @@ jobs:
           GH_APP_PRIVATE_KEY: ${{ secrets.CLOUDOPERATOR_APP_PRIVATE_KEY }}
           GH_APP_INSTALLATION_ID: ${{ secrets.CLOUDOPERATOR_APP_INSTALLATION_ID }}
         with:
-          k8s-version: ${{ matrix.k8s-version }}
+          admin-k8s-version: "v1.33.7"
+          remote-k8s-version: ${{ matrix.k8s-version }}
           scenario: ${{ matrix.e2es }}
           admin-config: ${{ github.workspace }}/dev-env/greenhouse-admin-cluster.yaml
           remote-config: ${{ github.workspace }}/dev-env/greenhouse-remote-cluster.yaml
