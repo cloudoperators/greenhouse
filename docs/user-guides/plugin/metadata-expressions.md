@@ -10,7 +10,7 @@ description: >
 
 Greenhouse allows you to define metadata labels on Clusters and use them in Plugin configurations through CEL (Common Expression Language) expressions. This enables dynamic configuration of Plugins based on cluster-specific attributes like region, environment, or any custom metadata.
 
-For information on setting metadata labels on Clusters, see [Setting Metadata Labels](./../../reference/components/cluster#setting-metadata-labels).
+For information on setting metadata labels on Clusters, see [Setting Metadata Labels](./../../../reference/components/cluster#setting-metadata-labels).
 
 ## Using CEL Expressions in Plugins
 
@@ -128,7 +128,7 @@ The following `global.greenhouse.*` variables are available in expressions:
 
 ## Next Steps
 
-- [Setting Metadata Labels](./../../reference/components/cluster#setting-metadata-labels)
-- [Plugin reference](./../../reference/components/plugin)
-- [PluginPreset reference](./../../reference/components/pluginpreset)
-- [Managing Plugins for multiple clusters](./plugin-management)
+- [Setting Metadata Labels](./../../../reference/components/cluster#setting-metadata-labels)
+- [Plugin reference](./../../../reference/components/plugin)
+- [PluginPreset reference](./../../../reference/components/pluginpreset)
+- [Managing Plugins for multiple clusters](./../plugin-management)
