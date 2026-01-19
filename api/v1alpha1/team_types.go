@@ -4,6 +4,8 @@
 package v1alpha1
 
 import (
+	"slices"
+
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	greenhousemetav1alpha1 "github.com/cloudoperators/greenhouse/api/meta/v1alpha1"
@@ -81,4 +83,14 @@ func (o *Team) GetConditions() greenhousemetav1alpha1.StatusConditions {
 
 func (o *Team) SetCondition(condition greenhousemetav1alpha1.Condition) {
 	o.Status.StatusConditions.SetConditions(condition)
+}
+
+func (o *Team) RemoveCondition(conditionType greenhousemetav1alpha1.ConditionType) {
+	o.Status.StatusConditions.Conditions = slices.DeleteFunc(o.Status.StatusConditions.Conditions, func(cond greenhousemetav1alpha1.Condition) bool {
+		return cond.Type == conditionType
+	})
+}
+
+func (o *Team) CanBeSuspended() bool {
+	return false
 }
