@@ -57,6 +57,10 @@ type RuntimeObject interface {
 	GetConditions() greenhousemetav1alpha1.StatusConditions
 	// SetCondition sets the status conditions of the object (must be implemented in respective types)
 	SetCondition(greenhousemetav1alpha1.Condition)
+	// RemoveCondition removes a condition from the object (must be implemented in respective types)
+	RemoveCondition(greenhousemetav1alpha1.ConditionType)
+	// CanBeSuspended returns whether the resource type supports suspension
+	CanBeSuspended() bool
 }
 
 type CatalogObject interface {
@@ -102,8 +106,20 @@ func Reconcile(ctx context.Context, kubeClient client.Client, namespacedName typ
 		err    error
 	)
 
-	if isResourceSuspended(runtimeObject) {
+	if isResourceSuspended(runtimeObject) && runtimeObject.CanBeSuspended() {
 		result, err = reconciler.EnsureSuspended(ctx, runtimeObject)
+		// Set or update the Suspended condition based on the result
+		if err != nil {
+			runtimeObject.SetCondition(greenhousemetav1alpha1.FalseCondition(
+				greenhousemetav1alpha1.SuspendedCondition,
+				greenhousemetav1alpha1.ResourceSuspensionFailedReason,
+				"failed to suspend resource: "+err.Error()))
+		} else {
+			runtimeObject.SetCondition(greenhousemetav1alpha1.TrueCondition(
+				greenhousemetav1alpha1.SuspendedCondition,
+				greenhousemetav1alpha1.ResourceSuspendedReason,
+				"resource is suspended"))
+		}
 		// patch the final status of the resource to end the reconciliation loop
 		return result, patchStatus(ctx, kubeClient, runtimeObject, err)
 	}
@@ -168,6 +184,11 @@ func ReconcileAnnotationValue(object v1.Object) (string, bool) {
 // ensureCreated - invokes the controller's EnsureCreated method and invokes the statusFunc to update the status of the resource
 func ensureCreated(ctx context.Context, logger logr.Logger, reconciler Reconciler, runtimeObject RuntimeObject, statusFunc Conditioner) (ctrl.Result, error) {
 	logger.Info("ensure created")
+	// Remove Suspended condition if it exists when resuming from suspension
+	conditions := runtimeObject.GetConditions()
+	if suspendedCond := conditions.GetConditionByType(greenhousemetav1alpha1.SuspendedCondition); suspendedCond != nil {
+		runtimeObject.RemoveCondition(greenhousemetav1alpha1.SuspendedCondition)
+	}
 	result, reconcileResult, err := reconciler.EnsureCreated(ctx, runtimeObject)
 	if statusFunc != nil {
 		statusFunc(ctx, runtimeObject)
