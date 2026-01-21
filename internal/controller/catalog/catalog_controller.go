@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"slices"
 	"strings"
+	"time"
 
 	kustomizev1 "github.com/fluxcd/kustomize-controller/api/v1"
 	sourcev1 "github.com/fluxcd/source-controller/api/v1"
@@ -243,6 +244,7 @@ func (r *CatalogReconciler) EnsureCreated(ctx context.Context, obj lifecycle.Run
 	catalog.SetProgressingReason()
 
 	var allErrors []catalogError
+	var needsRequeue bool
 	for _, s := range catalog.Spec.Sources {
 		sourcer, err := r.newCatalogSource(s, catalog)
 		if err != nil {
@@ -265,10 +267,10 @@ func (r *CatalogReconciler) EnsureCreated(ctx context.Context, obj lifecycle.Run
 			continue
 		}
 
-		ready, msg := sourcer.objectReadiness(ctx, externalArtifact)
+		ready, _ := sourcer.objectReadiness(ctx, externalArtifact)
 		if ready != metav1.ConditionTrue {
 			r.Log.Info("external artifact not ready yet, retry in next reconciliation loop", "namespace", catalog.Namespace, "name", sourcer.getArtifactName())
-			allErrors = append(allErrors, catalogError{InventoryType: sourcev1.ExternalArtifactKind, Name: sourcer.getArtifactName(), Error: errors.New(msg)})
+			needsRequeue = true
 			continue
 		}
 
@@ -277,6 +279,12 @@ func (r *CatalogReconciler) EnsureCreated(ctx context.Context, obj lifecycle.Run
 			allErrors = append(allErrors, catalogError{InventoryType: kustomizev1.KustomizationKind, Name: sourcer.getKustomizationName(), Error: err})
 			continue
 		}
+	}
+
+	// Requeue if flux resources are not ready yet.
+	if needsRequeue && len(allErrors) == 0 {
+		r.Log.Info("catalog not ready, requeuing", "namespace", catalog.Namespace, "name", catalog.Name)
+		return ctrl.Result{RequeueAfter: 10 * time.Second}, lifecycle.Pending, nil
 	}
 
 	return r.verifyStatus(ctx, catalog, allErrors)
@@ -438,8 +446,11 @@ func (r *CatalogReconciler) verifyStatus(ctx context.Context, catalog *greenhous
 		if aggErr != nil {
 			errMsg = errMsg + ": " + aggErr.Error()
 		}
-		r.Log.Info(errMsg, "namespace", catalog.Namespace, "name", catalog.Name)
-		catalog.SetFalseCondition(greenhousemetav1alpha1.ReadyCondition, greenhousev1alpha1.CatalogNotReadyReason, errMsg)
+		// Only update if condition is not already set to CatalogNotReadyReason (avoid triggering watch)
+		if existingNotReady == nil || existingNotReady.Status != metav1.ConditionFalse || existingNotReady.Reason != greenhousev1alpha1.CatalogNotReadyReason {
+			r.Log.Info(errMsg, "namespace", catalog.Namespace, "name", catalog.Name)
+			catalog.SetFalseCondition(greenhousemetav1alpha1.ReadyCondition, greenhousev1alpha1.CatalogNotReadyReason, errMsg)
+		}
 		return ctrl.Result{}, lifecycle.Failed, errors.New(errMsg)
 	}
 
