@@ -1,132 +1,71 @@
 {
   "kind": "Dashboard",
   "metadata": {
-    "name": "alerts",
-    "createdAt": "2026-01-16T16:01:14.058060262Z",
-    "updatedAt": "2026-01-21T11:24:04.478064871Z",
-    "version": 1,
+    "name": "organization",
+    "createdAt": "2026-01-21T11:27:00.783732473Z",
+    "updatedAt": "2026-01-21T11:27:00.783732473Z",
+    "version": 0,
     "project": "greenhouse"
   },
   "spec": {
     "display": {
-      "name": "Alerts"
+      "name": "Organization"
     },
     "panels": {
-      "5f2c2d5257e14effb0fececb55abb10e": {
+      "46b62abb58da4f86a0b6467b3fd07e43": {
         "kind": "Panel",
         "spec": {
           "display": {
-            "name": "Kubernetes Update Required For Greenhouse Cluster",
-            "description": "GreenhouseClusterKubernetesVersionOutOfMaintenance: Cluster in namespace is running Kubernetes version which is out of maintenance."
+            "name": "Ready Status of TeamRoleBinding by Organization/Team",
+            "description": "GreenhouseTeamRoleBindingNotReady: The TeamRoleBinding in organization for team has not been ready for more than 15 minutes"
           },
           "plugin": {
             "kind": "Table",
             "spec": {
               "cellSettings": [
-                {
-                  "backgroundColor": "#EA4747",
-                  "condition": {
-                    "kind": "Regex",
-                    "spec": {
-                      "expr": "v1\\.((1|2)[0-9])+\\..*"
-                    }
-                  },
-                  "textColor": "#ffffff"
-                },
                 {
                   "backgroundColor": "#2FBF71",
-                  "condition": {
-                    "kind": "Regex",
-                    "spec": {
-                      "expr": "v1\\.([3-9][0-9])+\\..*"
-                    }
-                  },
-                  "textColor": "#ffffff"
-                }
-              ],
-              "columnSettings": [
-                {
-                  "name": "clusterName"
-                },
-                {
-                  "name": "namespace"
-                },
-                {
-                  "hide": true,
-                  "name": "timestamp"
-                },
-                {
-                  "hide": true,
-                  "name": "value"
-                },
-                {
-                  "enableSorting": true,
-                  "name": "version",
-                  "sort": "asc"
-                }
-              ],
-              "density": "standard"
-            }
-          },
-          "queries": [
-            {
-              "kind": "TimeSeriesQuery",
-              "spec": {
-                "plugin": {
-                  "kind": "PrometheusTimeSeriesQuery",
-                  "spec": {
-                    "minStep": "",
-                    "query": "count by (clusterName, namespace, version) (greenhouse_cluster_k8s_versions_total)",
-                    "seriesNameFormat": "{{clusterName}}/{{namespace}}/{{version}}"
-                  }
-                }
-              }
-            }
-          ]
-        }
-      },
-      "ab1303e3f8a24cb3a41106b6a32a86f9": {
-        "kind": "Panel",
-        "spec": {
-          "display": {
-            "name": "Existence of 'owned-by' Label by Resource",
-            "description": "GreenhouseResourceOwnedByLabelMissing: The greenhouse.sap/owned-by label is missing on a resource"
-          },
-          "plugin": {
-            "kind": "Table",
-            "spec": {
-              "cellSettings": [
-                {
-                  "backgroundColor": "#EA4747",
                   "condition": {
                     "kind": "Value",
                     "spec": {
                       "value": "1"
                     }
                   },
-                  "text": "Missing 'owned_by' label.",
+                  "text": "Ready",
+                  "textColor": "#ffffff"
+                },
+                {
+                  "backgroundColor": "#EA4747",
+                  "condition": {
+                    "kind": "Value",
+                    "spec": {
+                      "value": "0"
+                    }
+                  },
+                  "text": "Not Ready",
                   "textColor": "#ffffff"
                 }
               ],
               "columnSettings": [
                 {
+                  "name": "organization",
+                  "width": "auto"
+                },
+                {
+                  "name": "team",
+                  "width": 250
+                },
+                {
+                  "name": "team_role_binding",
+                  "width": 400
+                },
+                {
                   "enableSorting": true,
+                  "header": "status",
                   "hide": false,
-                  "name": "organization"
-                },
-                {
-                  "enableSorting": true,
-                  "name": "resource_kind"
-                },
-                {
-                  "enableSorting": true,
-                  "hide": false,
-                  "name": "resource_name"
-                },
-                {
-                  "header": "existence",
-                  "headerDescription": "Is this resource missing 'owned_by' a label?",
-                  "name": "value"
+                  "name": "value",
+                  "sort": "desc",
+                  "width": 80
                 },
                 {
                   "hide": true,
@@ -158,7 +97,7 @@
                 },
                 {
                   "hide": true,
-                  "name": "region"
+                  "name": "owned_by"
                 },
                 {
                   "hide": true,
@@ -170,137 +109,15 @@
                 },
                 {
                   "hide": true,
+                  "name": "region"
+                },
+                {
+                  "hide": true,
                   "name": "service"
                 },
                 {
                   "hide": true,
                   "name": "timestamp"
-                }
-              ],
-              "defaultColumnHeight": "auto",
-              "defaultColumnWidth": "auto",
-              "density": "compact",
-              "pagination": false,
-              "transforms": []
-            }
-          },
-          "queries": [
-            {
-              "kind": "TimeSeriesQuery",
-              "spec": {
-                "plugin": {
-                  "kind": "PrometheusTimeSeriesQuery",
-                  "spec": {
-                    "query": "greenhouse_owned_by_label_missing == 1",
-                    "seriesNameFormat": "{{organization}} | {{resource_kind}} | {{resource_name}}"
-                  }
-                }
-              }
-            }
-          ]
-        }
-      },
-      "b46f3a9fa7c54101894557ef319da152": {
-        "kind": "Panel",
-        "spec": {
-          "display": {
-            "name": "KubeConfig Token Lifetime by Cluster/Namespace",
-            "description": "GreenhouseClusterTokenExpiry: The kubeconfig token for cluster in namespace will expire less than 20 hours."
-          },
-          "plugin": {
-            "kind": "TimeSeriesChart",
-            "spec": {
-              "legend": {
-                "position": "bottom"
-              },
-              "thresholds": {
-                "steps": [
-                  {
-                    "color": "#EA4747",
-                    "value": 72000
-                  }
-                ]
-              },
-              "yAxis": {
-                "format": {
-                  "unit": "seconds"
-                },
-                "label": "",
-                "show": true
-              }
-            }
-          },
-          "queries": [
-            {
-              "kind": "TimeSeriesQuery",
-              "spec": {
-                "plugin": {
-                  "kind": "PrometheusTimeSeriesQuery",
-                  "spec": {
-                    "minStep": "15m",
-                    "query": "greenhouse_cluster_kubeconfig_validity_seconds",
-                    "seriesNameFormat": "{{clusterName}}/{{namespace}}"
-                  }
-                }
-              }
-            }
-          ]
-        }
-      },
-      "ed9c3ec270b24c8196484eeec4e653a3": {
-        "kind": "Panel",
-        "spec": {
-          "display": {
-            "name": "Greenhouse Ready Status",
-            "description": " GreenhouseClusterNotReady: Cluster in namespace has not been ready for more than 15 minutes."
-          },
-          "plugin": {
-            "kind": "Table",
-            "spec": {
-              "cellSettings": [
-                {
-                  "backgroundColor": "#2FBF71",
-                  "condition": {
-                    "kind": "Value",
-                    "spec": {
-                      "value": "1"
-                    }
-                  },
-                  "text": "Ready",
-                  "textColor": "#ffffff"
-                },
-                {
-                  "backgroundColor": "#EA4747",
-                  "condition": {
-                    "kind": "Value",
-                    "spec": {
-                      "value": "0"
-                    }
-                  },
-                  "text": "Not Ready",
-                  "textColor": "#ffffff"
-                }
-              ],
-              "columnSettings": [
-                {
-                  "enableSorting": true,
-                  "name": "clusterName",
-                  "sort": "asc"
-                },
-                {
-                  "enableSorting": true,
-                  "name": "namespace",
-                  "sort": "asc"
-                },
-                {
-                  "hide": true,
-                  "name": "timestamp"
-                },
-                {
-                  "enableSorting": true,
-                  "header": "status",
-                  "name": "value",
-                  "sort": "asc"
                 }
               ],
               "density": "standard"
@@ -313,9 +130,208 @@
                 "plugin": {
                   "kind": "PrometheusTimeSeriesQuery",
                   "spec": {
-                    "minStep": "",
-                    "query": "sum by (clusterName, namespace) (greenhouse_cluster_ready)",
-                    "seriesNameFormat": "{{clusterName}} | {{namespace}}"
+                    "query": "greenhouse_team_rbac_ready{cluster=~\"$cluster\", team=~\"$team\", organization=~\"$organization\"}",
+                    "seriesNameFormat": "{{organization}} | {{team}} | {{ team_role_binding }}"
+                  }
+                }
+              }
+            }
+          ]
+        }
+      },
+      "64d2eafe7efd42b5982e2bbd8f7a51cc": {
+        "kind": "Panel",
+        "spec": {
+          "display": {
+            "name": "Organization Status",
+            "description": "GreenhouseOrganizationNotReady : Greenhouse Organization has not been ready for more than 15 minutes."
+          },
+          "plugin": {
+            "kind": "StatChart",
+            "spec": {
+              "calculation": "last-number",
+              "format": {
+                "unit": "decimal"
+              },
+              "sparkline": {},
+              "mappings": [
+                {
+                  "kind": "Value",
+                  "spec": {
+                    "result": {
+                      "value": "Ready",
+                      "color": "#2FBF71"
+                    },
+                    "value": "1"
+                  }
+                },
+                {
+                  "kind": "Value",
+                  "spec": {
+                    "result": {
+                      "value": "Not Ready",
+                      "color": "#EA4747"
+                    },
+                    "value": "0"
+                  }
+                }
+              ]
+            }
+          },
+          "queries": [
+            {
+              "kind": "TimeSeriesQuery",
+              "spec": {
+                "plugin": {
+                  "kind": "PrometheusTimeSeriesQuery",
+                  "spec": {
+                    "query": "greenhouse_organization_ready{organization=~\"$organization\"}",
+                    "seriesNameFormat": ""
+                  }
+                }
+              }
+            }
+          ]
+        }
+      },
+      "b0b67eb6babf48949c74a1e7d35e0e86": {
+        "kind": "Panel",
+        "spec": {
+          "display": {
+            "name": "Change in Number of Team Members by Organization/Team",
+            "description": "GreenhouseTeamMembershipCountDrop: The number of members for team {{ $labels.teams }} in organization {{ $labels.namespace }} has dropped by more than 5 in the last 5 minutes."
+          },
+          "plugin": {
+            "kind": "Table",
+            "spec": {
+              "density": "standard",
+              "columnSettings": [
+                {
+                  "name": "organization"
+                },
+                {
+                  "name": "cluster"
+                },
+                {
+                  "name": "team"
+                },
+                {
+                  "name": "value",
+                  "header": "number of members"
+                },
+                {
+                  "name": "container",
+                  "hide": true
+                },
+                {
+                  "name": "job",
+                  "enableSorting": false,
+                  "hide": true
+                },
+                {
+                  "name": "prometheus",
+                  "hide": true
+                },
+                {
+                  "name": "endpoint",
+                  "hide": true
+                },
+                {
+                  "name": "instance",
+                  "hide": true
+                },
+                {
+                  "name": "__name__",
+                  "hide": true
+                },
+                {
+                  "name": "timestamp",
+                  "hide": true
+                },
+                {
+                  "name": "pod",
+                  "hide": true
+                },
+                {
+                  "name": "service",
+                  "hide": true
+                },
+                {
+                  "name": "region",
+                  "hide": true
+                },
+                {
+                  "name": "namespace",
+                  "hide": true
+                }
+              ]
+            }
+          },
+          "queries": [
+            {
+              "kind": "TimeSeriesQuery",
+              "spec": {
+                "plugin": {
+                  "kind": "PrometheusTimeSeriesQuery",
+                  "spec": {
+                    "query": "greenhouse_team_members_count{cluster=~\"$cluster\", team=~\"$team\", organization=~\"$organization\"}",
+                    "seriesNameFormat": ""
+                  }
+                }
+              }
+            }
+          ],
+          "links": []
+        }
+      },
+      "d3f5fea6b42c4e438ccb6b2f3fa4772e": {
+        "kind": "Panel",
+        "spec": {
+          "display": {
+            "name": "Organization 'SCIM Access' Status",
+            "description": "GreenhouseOrganizationNotReady : The SCIM access for organization is not ready for more than 15 minutes. Team member sync may not be operational."
+          },
+          "plugin": {
+            "kind": "StatChart",
+            "spec": {
+              "calculation": "last-number",
+              "format": {
+                "unit": "decimal"
+              },
+              "sparkline": {},
+              "mappings": [
+                {
+                  "kind": "Value",
+                  "spec": {
+                    "result": {
+                      "value": "Ready",
+                      "color": "#2FBF71"
+                    },
+                    "value": "1"
+                  }
+                },
+                {
+                  "kind": "Value",
+                  "spec": {
+                    "result": {
+                      "value": "Not Ready",
+                      "color": "#EA4747"
+                    },
+                    "value": "0"
+                  }
+                }
+              ]
+            }
+          },
+          "queries": [
+            {
+              "kind": "TimeSeriesQuery",
+              "spec": {
+                "plugin": {
+                  "kind": "PrometheusTimeSeriesQuery",
+                  "spec": {
+                    "query": "greenhouse_scim_access_ready{organization=~\"$organization\"}",
+                    "seriesNameFormat": "{{organization}}"
                   }
                 }
               }
@@ -329,47 +345,7 @@
         "kind": "Grid",
         "spec": {
           "display": {
-            "title": "Cluster Alerts",
-            "collapse": {
-              "open": true
-            }
-          },
-          "items": [
-            {
-              "x": 0,
-              "y": 0,
-              "width": 10,
-              "height": 10,
-              "content": {
-                "$ref": "#/spec/panels/ed9c3ec270b24c8196484eeec4e653a3"
-              }
-            },
-            {
-              "x": 10,
-              "y": 0,
-              "width": 7,
-              "height": 10,
-              "content": {
-                "$ref": "#/spec/panels/b46f3a9fa7c54101894557ef319da152"
-              }
-            },
-            {
-              "x": 17,
-              "y": 0,
-              "width": 7,
-              "height": 10,
-              "content": {
-                "$ref": "#/spec/panels/5f2c2d5257e14effb0fececb55abb10e"
-              }
-            }
-          ]
-        }
-      },
-      {
-        "kind": "Grid",
-        "spec": {
-          "display": {
-            "title": "Resource Alerts",
+            "title": "Overview: '$organization'",
             "collapse": {
               "open": true
             }
@@ -379,9 +355,50 @@
               "x": 0,
               "y": 0,
               "width": 12,
-              "height": 7,
+              "height": 8,
               "content": {
-                "$ref": "#/spec/panels/ab1303e3f8a24cb3a41106b6a32a86f9"
+                "$ref": "#/spec/panels/64d2eafe7efd42b5982e2bbd8f7a51cc"
+              }
+            },
+            {
+              "x": 12,
+              "y": 0,
+              "width": 12,
+              "height": 8,
+              "content": {
+                "$ref": "#/spec/panels/d3f5fea6b42c4e438ccb6b2f3fa4772e"
+              }
+            }
+          ],
+          "repeatVariable": ""
+        }
+      },
+      {
+        "kind": "Grid",
+        "spec": {
+          "display": {
+            "title": "Team Alerts",
+            "collapse": {
+              "open": true
+            }
+          },
+          "items": [
+            {
+              "x": 0,
+              "y": 0,
+              "width": 12,
+              "height": 12,
+              "content": {
+                "$ref": "#/spec/panels/b0b67eb6babf48949c74a1e7d35e0e86"
+              }
+            },
+            {
+              "x": 12,
+              "y": 0,
+              "width": 12,
+              "height": 12,
+              "content": {
+                "$ref": "#/spec/panels/46b62abb58da4f86a0b6467b3fd07e43"
               }
             }
           ]
@@ -635,7 +652,7 @@
         "spec": {
           "display": {
             "name": "Owner",
-            "hidden": false
+            "hidden": true
           },
           "defaultValue": "$__all",
           "allowAllValue": true,
@@ -658,7 +675,7 @@
         "spec": {
           "display": {
             "name": "PluginDefinition",
-            "hidden": false
+            "hidden": true
           },
           "defaultValue": "alerts",
           "allowAllValue": false,
@@ -681,7 +698,7 @@
         "spec": {
           "display": {
             "name": "Cluster name",
-            "hidden": false
+            "hidden": true
           },
           "defaultValue": "$__all",
           "allowAllValue": true,
@@ -701,7 +718,7 @@
         "spec": {
           "display": {
             "name": "Step size",
-            "hidden": false
+            "hidden": true
           },
           "defaultValue": "1m",
           "allowAllValue": false,
@@ -755,9 +772,74 @@
           },
           "name": "step"
         }
+      },
+      {
+        "kind": "ListVariable",
+        "spec": {
+          "name": "organization",
+          "display": {
+            "name": "Organization",
+            "description": "Organization"
+          },
+          "defaultValue": "greenhouse",
+          "allowAllValue": false,
+          "allowMultiple": false,
+          "sort": "alphabetical-asc",
+          "plugin": {
+            "kind": "PrometheusLabelValuesVariable",
+            "spec": {
+              "labelName": "organization"
+            }
+          }
+        }
+      },
+      {
+        "kind": "ListVariable",
+        "spec": {
+          "name": "team",
+          "display": {
+            "name": "Team",
+            "description": "Team"
+          },
+          "defaultValue": "$__all",
+          "allowAllValue": true,
+          "allowMultiple": true,
+          "sort": "alphabetical-asc",
+          "plugin": {
+            "kind": "PrometheusLabelValuesVariable",
+            "spec": {
+              "labelName": "team",
+              "matchers": [
+                "greenhouse_team_members_count",
+                "greenhouse_team_rbac_ready"
+              ]
+            }
+          }
+        }
+      },
+      {
+        "kind": "ListVariable",
+        "spec": {
+          "name": "cluster",
+          "display": {
+            "name": "Greenhouse Control Plane Cluster",
+            "description": "Cluster"
+          },
+          "allowAllValue": false,
+          "allowMultiple": false,
+          "plugin": {
+            "kind": "PrometheusLabelValuesVariable",
+            "spec": {
+              "labelName": "cluster",
+              "matchers": []
+            }
+          },
+          "defaultValue": "greenhouse-playground"
+        }
       }
     ],
     "duration": "1h",
-    "refreshInterval": "0s"
+    "refreshInterval": "0s",
+    "datasources": {}
   }
 }
