@@ -5,7 +5,7 @@ config:
   - cluster:
       name: greenhouse-admin
       namespace: greenhouse
-      version: v1.31.0
+      version: v1.33.4
       configPath: dev-env/greenhouse-admin-cluster.yaml
       postSetup:
         - command: kubectl config use-context kind-greenhouse-admin | sleep 7
@@ -32,6 +32,11 @@ config:
           crdOnly: false
           webhook:
             dockerFile: "./"
+      - manifest:
+          release: greenhouse-authz
+          chartPath: charts/authz
+          crdOnly: false
+          valuesPath: dev-env/dev.values.yaml
   - cluster:
       name: greenhouse-remote
       configPath: dev-env/greenhouse-remote-cluster.yaml
