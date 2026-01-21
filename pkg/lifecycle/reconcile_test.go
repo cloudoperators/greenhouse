@@ -24,12 +24,14 @@ import (
 
 var _ = Describe("Reconcile", func() {
 	var (
-		createdCondition         = greenhousemetav1alpha1.TrueCondition(greenhousemetav1alpha1.ReadyCondition, lifecycle.CreatedReason, "resource is successfully created")
-		pendingCreationCondition = greenhousemetav1alpha1.UnknownCondition(greenhousemetav1alpha1.ReadyCondition, lifecycle.PendingCreationReason, "resource creation is pending")
-		failingCreationCondition = greenhousemetav1alpha1.FalseCondition(greenhousemetav1alpha1.ReadyCondition, lifecycle.FailingCreationReason, "resource creation failed")
-		deletedCondition         = greenhousemetav1alpha1.TrueCondition(greenhousemetav1alpha1.DeleteCondition, lifecycle.DeletedReason, "resource is successfully deleted")
-		pendingDeletionCondition = greenhousemetav1alpha1.FalseCondition(greenhousemetav1alpha1.DeleteCondition, lifecycle.PendingDeletionReason, "resource deletion is pending")
-		failingDeletionCondition = greenhousemetav1alpha1.FalseCondition(greenhousemetav1alpha1.DeleteCondition, lifecycle.FailingDeletionReason, "resource deletion failed: ")
+		createdCondition          = greenhousemetav1alpha1.TrueCondition(greenhousemetav1alpha1.ReadyCondition, lifecycle.CreatedReason, "resource is successfully created")
+		pendingCreationCondition  = greenhousemetav1alpha1.UnknownCondition(greenhousemetav1alpha1.ReadyCondition, lifecycle.PendingCreationReason, "resource creation is pending")
+		failingCreationCondition  = greenhousemetav1alpha1.FalseCondition(greenhousemetav1alpha1.ReadyCondition, lifecycle.FailingCreationReason, "resource creation failed")
+		deletedCondition          = greenhousemetav1alpha1.TrueCondition(greenhousemetav1alpha1.DeleteCondition, lifecycle.DeletedReason, "resource is successfully deleted")
+		pendingDeletionCondition  = greenhousemetav1alpha1.FalseCondition(greenhousemetav1alpha1.DeleteCondition, lifecycle.PendingDeletionReason, "resource deletion is pending")
+		failingDeletionCondition  = greenhousemetav1alpha1.FalseCondition(greenhousemetav1alpha1.DeleteCondition, lifecycle.FailingDeletionReason, "resource deletion failed: ")
+		suspendedCondition        = greenhousemetav1alpha1.TrueCondition(greenhousemetav1alpha1.SuspendedCondition, greenhousemetav1alpha1.ResourceSuspendedReason, "resource is suspended")
+		suspensionFailedCondition = greenhousemetav1alpha1.FalseCondition(greenhousemetav1alpha1.SuspendedCondition, greenhousemetav1alpha1.ResourceSuspensionFailedReason, "failed to suspend resource: suspension error")
 	)
 	var (
 		mockClient      *mocks.MockClient
@@ -262,4 +264,96 @@ var _ = Describe("Reconcile", func() {
 			},
 		}),
 	)
+
+	Context("Ensure Suspension", func() {
+		var ensureSuspended = "EnsureSuspended"
+
+		BeforeEach(func() {
+			mockReconciler.On(ensureSuspended, mock.Anything, mock.Anything).Return(ctrl.Result{}, nil)
+		})
+
+		It("should set Suspended condition when resource is suspended successfully", func() {
+			resourceForTest = &fixtures.Dummy{
+				Spec:   fixtures.DummySpec{},
+				Status: fixtures.DummyStatus{StatusConditions: greenhousemetav1alpha1.StatusConditions{Conditions: []greenhousemetav1alpha1.Condition{}}},
+				ObjectMeta: metav1.ObjectMeta{
+					Name:              "DummyResource",
+					Namespace:         "default",
+					CreationTimestamp: metav1.NewTime(time.Now()),
+					Finalizers:        []string{lifecycle.CommonCleanupFinalizer},
+					Annotations: map[string]string{
+						lifecycle.SuspendAnnotation: "true",
+					},
+				},
+			}
+
+			_, err := lifecycle.Reconcile(ctx, mockClient, namespacedName, resourceForTest, mockReconciler, nil)
+
+			Expect(err).ToNot(HaveOccurred())
+			mockReconciler.AssertCalled(GinkgoT(), ensureSuspended, mock.Anything, mock.Anything)
+
+			suspendedCond := resourceForTest.Status.GetConditionByType(greenhousemetav1alpha1.SuspendedCondition)
+			Expect(suspendedCond).ToNot(BeNil())
+			Expect(suspendedCond.Status).To(Equal(suspendedCondition.Status))
+			Expect(suspendedCond.Reason).To(Equal(suspendedCondition.Reason))
+			Expect(suspendedCond.Message).To(Equal(suspendedCondition.Message))
+		})
+
+		It("should set Suspended condition to false when suspension fails", func() {
+			// Create a new mock reconciler for this test to override the BeforeEach setup
+			failingReconciler := &mocks.MockReconciler{}
+			failingReconciler.On(ensureSuspended, mock.Anything, mock.Anything).Return(ctrl.Result{}, errors.New("suspension error"))
+
+			resourceForTest = &fixtures.Dummy{
+				Spec:   fixtures.DummySpec{},
+				Status: fixtures.DummyStatus{StatusConditions: greenhousemetav1alpha1.StatusConditions{Conditions: []greenhousemetav1alpha1.Condition{}}},
+				ObjectMeta: metav1.ObjectMeta{
+					Name:              "DummyResource",
+					Namespace:         "default",
+					CreationTimestamp: metav1.NewTime(time.Now()),
+					Finalizers:        []string{lifecycle.CommonCleanupFinalizer},
+					Annotations: map[string]string{
+						lifecycle.SuspendAnnotation: "true",
+					},
+				},
+			}
+
+			_, err := lifecycle.Reconcile(ctx, mockClient, namespacedName, resourceForTest, failingReconciler, nil)
+
+			Expect(err).To(HaveOccurred())
+			failingReconciler.AssertCalled(GinkgoT(), ensureSuspended, mock.Anything, mock.Anything)
+
+			suspendedCond := resourceForTest.Status.GetConditionByType(greenhousemetav1alpha1.SuspendedCondition)
+			Expect(suspendedCond).ToNot(BeNil())
+			Expect(suspendedCond.Status).To(Equal(suspensionFailedCondition.Status))
+			Expect(suspendedCond.Reason).To(Equal(suspensionFailedCondition.Reason))
+		})
+
+		It("should remove Suspended condition when resource is resumed", func() {
+			resourceForTest = &fixtures.Dummy{
+				Spec: fixtures.DummySpec{},
+				Status: fixtures.DummyStatus{StatusConditions: greenhousemetav1alpha1.StatusConditions{Conditions: []greenhousemetav1alpha1.Condition{
+					suspendedCondition,
+				}}},
+				ObjectMeta: metav1.ObjectMeta{
+					Name:              "DummyResource",
+					Namespace:         "default",
+					CreationTimestamp: metav1.NewTime(time.Now()),
+					Finalizers:        []string{lifecycle.CommonCleanupFinalizer},
+					// No suspend annotation - resource is being resumed
+				},
+			}
+
+			mockReconciler.On("EnsureCreated", mock.Anything, mock.Anything).Return(ctrl.Result{}, lifecycle.Success, nil)
+
+			_, err := lifecycle.Reconcile(ctx, mockClient, namespacedName, resourceForTest, mockReconciler, nil)
+
+			Expect(err).ToNot(HaveOccurred())
+			mockReconciler.AssertCalled(GinkgoT(), "EnsureCreated", mock.Anything, mock.Anything)
+
+			// Suspended condition should be removed
+			suspendedCond := resourceForTest.Status.GetConditionByType(greenhousemetav1alpha1.SuspendedCondition)
+			Expect(suspendedCond).To(BeNil())
+		})
+	})
 })
