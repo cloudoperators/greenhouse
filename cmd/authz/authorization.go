@@ -6,7 +6,6 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"log"
 	"net/http"
 	"slices"
 	"strings"
@@ -20,6 +19,8 @@ import (
 
 	greenhouseapis "github.com/cloudoperators/greenhouse/api"
 )
+
+const supportGroupClaimPrefix = "support-group:"
 
 func handleAuthorize(w http.ResponseWriter, r *http.Request, c client.Client, mapper meta.RESTMapper) {
 	ctx := r.Context()
@@ -41,11 +42,9 @@ func handleAuthorize(w http.ResponseWriter, r *http.Request, c client.Client, ma
 		return
 	}
 
-	log.Printf("[AuthZ] Request for user=%s, verb=%s, resource=%s, ns=%s",
-		review.Spec.User, attrs.Verb, attrs.Resource, attrs.Namespace)
+	logAuthz.Info("Received request", "user", review.Spec.User, "verb", attrs.Verb, "resource", attrs.Resource, "ns", attrs.Namespace)
 
 	var userSupportGroups []string
-	supportGroupClaimPrefix := "support-group:"
 	for _, group := range review.Spec.Groups {
 		supportGroupName, found := strings.CutPrefix(group, supportGroupClaimPrefix)
 		if found {
@@ -57,7 +56,7 @@ func handleAuthorize(w http.ResponseWriter, r *http.Request, c client.Client, ma
 		respond(w, review, false, "user has no support-group claims")
 		return
 	}
-	log.Printf("[AuthZ] User has the following support-group claims: %s", strings.Join(userSupportGroups, ", "))
+	logAuthz.Info("User has the following support-group claims: " + strings.Join(userSupportGroups, ", "))
 
 	gvr := schema.GroupVersionResource{
 		Group:    attrs.Group,
@@ -84,7 +83,7 @@ func handleAuthorize(w http.ResponseWriter, r *http.Request, c client.Client, ma
 		respond(w, review, false, "requested resource has no owned-by label set")
 		return
 	}
-	log.Printf("[AuthZ] Requested resource is owned by: %s", ownedByValue)
+	logAuthz.Info("Requested resource is owned by: " + ownedByValue)
 
 	// If the support-group matches the greenhouse.sap/owned-by label on the resources the user should get full permissions on the resource.
 	if slices.Contains(userSupportGroups, ownedByValue) {
@@ -97,9 +96,9 @@ func handleAuthorize(w http.ResponseWriter, r *http.Request, c client.Client, ma
 
 func respond(w http.ResponseWriter, review authv1.SubjectAccessReview, allowed bool, msg string) {
 	if allowed {
-		log.Printf("[AuthZ ALLOWED] %s", msg)
+		logAuthz.Info("[ALLOWED] " + msg)
 	} else {
-		log.Printf("[AuthZ DENIED] %s", msg)
+		logAuthz.Info("[DENIED] " + msg)
 	}
 	review.Status = authv1.SubjectAccessReviewStatus{
 		Allowed: allowed,
@@ -107,6 +106,6 @@ func respond(w http.ResponseWriter, review authv1.SubjectAccessReview, allowed b
 	}
 	w.Header().Set("Content-Type", "application/json")
 	if err := json.NewEncoder(w).Encode(review); err != nil {
-		log.Printf("encode SubjectAccessReview failed: %v", err)
+		logAuthz.Error(err, "encode SubjectAccessReview failed")
 	}
 }

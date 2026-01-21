@@ -18,7 +18,7 @@ nodes:
             "anonymous-auth": "true"
             "service-account-issuer": "https://greenhouse-admin-control-plane:6443"
             "service-account-jwks-uri": "https://greenhouse-admin-control-plane:6443/openid/v1/jwks"
-            "authorization-config": "/etc/kubernetes/webhook/structured-authz.yaml"
+            "authorization-config": "/etc/kubernetes/webhook/structured-authz-insecure.yaml"
           extraVolumes:
             - name: authz-webhook
               hostPath: /etc/kubernetes/webhook

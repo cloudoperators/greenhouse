@@ -73,5 +73,5 @@ authzDeployment:
       containerPort: 9443
       protocol: TCP
   containerEnv:
-    - name: AUTHZ_TLS
-      value: "true"
+    - name: AUTHZ_TLS_DISABLED
+      value: "false"

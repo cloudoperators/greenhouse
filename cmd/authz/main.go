@@ -30,13 +30,11 @@ import (
 	"github.com/cloudoperators/greenhouse/internal/version"
 )
 
-const (
-	authzTLS = "AUTHZ_TLS"
-)
+const authzTLSDisabledEnv = "AUTHZ_TLS_DISABLED"
 
 var (
 	scheme          = runtime.NewScheme()
-	setupLog        = ctrl.Log.WithName("setup")
+	logAuthz        = ctrl.Log.WithName("webhooks").WithName("authz")
 	metricsAddr     string
 	healthzAddr     string
 	webhookPort     int
@@ -49,8 +47,8 @@ func init() {
 		Development: true,
 		TimeEncoder: zapcore.RFC3339TimeEncoder,
 	}
-	setupLog = zap.New(zap.UseFlagOptions(&opts))
-	ctrl.SetLogger(setupLog)
+	logAuthz = zap.New(zap.UseFlagOptions(&opts))
+	ctrl.SetLogger(logAuthz)
 
 	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
 	utilruntime.Must(greenhousev1alpha1.AddToScheme(scheme))
@@ -67,16 +65,17 @@ func init() {
 }
 
 func main() {
-	setupLog.Info("Authorization Webhook", "version", version.GitCommit, "build_date", version.BuildDate, "go", version.GoVersion)
+	logAuthz.Info("Authorization Webhook", "version", version.GitCommit, "build_date", version.BuildDate, "go", version.GoVersion)
 
 	flag.Parse()
 
-	authzTLSValue := os.Getenv(authzTLS)
 	secure := true
-	var err error
-	if strings.TrimSpace(authzTLSValue) != "" {
-		secure, err = strconv.ParseBool(authzTLSValue)
-		handleError(err, "unable to parse "+authzTLS)
+
+	envVal, found := os.LookupEnv(authzTLSDisabledEnv)
+	if found && strings.TrimSpace(envVal) != "" {
+		disabled, err := strconv.ParseBool(envVal)
+		handleError(err, "unable to parse "+authzTLSDisabledEnv)
+		secure = !disabled
 	}
 
 	var webhookServer webhook.Server
@@ -95,7 +94,7 @@ func main() {
 	}
 
 	mgrOptions := ctrl.Options{
-		Logger:                 setupLog,
+		Logger:                 logAuthz,
 		Scheme:                 scheme,
 		Metrics:                metricsServerOptions,
 		HealthProbeBindAddress: healthzAddr,
@@ -120,7 +119,7 @@ func main() {
 	if secure {
 		mgr.GetWebhookServer().Register("/authorize", handler)
 	} else {
-		setupLog.Info("Setting up insecure HTTP server")
+		logAuthz.Info("Setting up insecure HTTP server")
 		handleError(addInsecureWebhookServer(mgr, webhookPort, "/authorize", handler), "Failed to add insecure webhook server")
 	}
 
@@ -132,7 +131,7 @@ func main() {
 
 func handleError(err error, msg string) {
 	if err != nil {
-		setupLog.Error(err, msg)
+		logAuthz.Error(err, msg)
 		os.Exit(1)
 	}
 }
