@@ -357,7 +357,7 @@ func checkIfRepositoryIsOverridden(spec greenhousev1alpha1.PluginDefinitionSpec,
 	}
 }
 
-func (s *scenario) expectStatusPropagationInCatalogInventory(g Gomega, ctx context.Context, groupKey string, ignoreNotFound bool) {
+func (s *scenario) expectStatusPropagationInCatalogInventory(ctx context.Context, g Gomega, groupKey string, ignoreNotFound bool) {
 	GinkgoHelper()
 	catalog := &greenhousev1alpha1.Catalog{}
 	g.Expect(s.k8sClient.Get(ctx, client.ObjectKeyFromObject(s.catalog), catalog)).ToNot(HaveOccurred(), "there should be no error getting the Catalog")
@@ -387,6 +387,6 @@ func (s *scenario) expectStatusPropagationInCatalogInventory(g Gomega, ctx conte
 		g.Expect(err).ToNot(HaveOccurred(), "there should be no error getting the catalog flux resource: "+fluxObj.GetName())
 		fluxCondition := meta.FindStatusCondition(fluxObj.GetConditions(), fluxmeta.ReadyCondition)
 		g.Expect(fluxCondition).ToNot(BeNil(), "the underlying resource should have a Ready condition: "+fluxObj.GetName())
-		g.Expect(kindInventoryStatus).To(Equal(fluxCondition.Status), "the Catalog inventory status should contain the flux resource condition status")
+		g.Expect(kindInventoryStatus).To(Equal(fluxCondition.Status), "the Catalog inventory status should contain the flux resource condition status - "+fluxObj.GetName())
 	}
 }

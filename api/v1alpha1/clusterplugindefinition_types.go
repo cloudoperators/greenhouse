@@ -28,7 +28,8 @@ type ClusterPluginDefinitionStatus struct {
 //+kubebuilder:subresource:status
 //+kubebuilder:resource:scope=Cluster,shortName=cpd
 //+kubebuilder:printcolumn:name="Version",type=string,JSONPath=`.spec.version`
-//+kubebuilder:printcolumn:name="Description",type=string,JSONPath=`.spec.description`
+//+kubebuilder:printcolumn:name="Catalog",type=string,JSONPath=`.metadata.labels.greenhouse\.sap/catalog`
+//+kubebuilder:printcolumn:name="Ready",type="string",JSONPath=`.status.statusConditions.conditions[?(@.type == "Ready")].status`
 // +kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp"
 
 // ClusterPluginDefinition is the Schema for the clusterplugindefinitions API.
@@ -47,6 +48,17 @@ type ClusterPluginDefinitionList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
 	Items           []ClusterPluginDefinition `json:"items"`
+}
+
+func (c *ClusterPluginDefinition) GetPluginDefinitionSpec() *PluginDefinitionSpec {
+	return &c.Spec
+}
+
+func (c *ClusterPluginDefinition) FluxHelmChartResourceName() string {
+	if c.Spec.HelmChart == nil {
+		return ""
+	}
+	return c.Name + "-" + c.Spec.HelmChart.Version
 }
 
 func (c *ClusterPluginDefinition) GetConditions() greenhousemetav1alpha1.StatusConditions {
