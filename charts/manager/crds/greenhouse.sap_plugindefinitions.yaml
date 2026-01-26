@@ -26,8 +26,8 @@ spec:
     - jsonPath: .metadata.labels.greenhouse\.sap/catalog
       name: Catalog
       type: string
-    - jsonPath: .spec.description
-      name: Description
+    - jsonPath: .status.statusConditions.conditions[?(@.type == "Ready")].status
+      name: Ready
       type: string
     - jsonPath: .metadata.creationTimestamp
       name: Age
