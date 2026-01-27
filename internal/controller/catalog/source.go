@@ -136,6 +136,12 @@ func (r *CatalogReconciler) newCatalogSource(catalogSource greenhousev1alpha1.Ca
 	if lastReconciledAt, ok := lifecycle.ReconcileAnnotationValue(catalog); ok {
 		s.lastReconciledAt = lastReconciledAt
 	}
+
+	// Add owned-by label from Catalog to commonLabels
+	if ownedBy, exists := catalog.Labels[greenhouseapis.LabelKeyOwnedBy]; exists {
+		s.commonLabels[greenhouseapis.LabelKeyOwnedBy] = ownedBy
+	}
+
 	return s, nil
 }
 

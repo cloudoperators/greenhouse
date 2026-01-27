@@ -14,6 +14,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
+	greenhouseapis "github.com/cloudoperators/greenhouse/api"
 	greenhousemetav1alpha1 "github.com/cloudoperators/greenhouse/api/meta/v1alpha1"
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
 	catalogcontroller "github.com/cloudoperators/greenhouse/internal/controller/catalog"
@@ -21,10 +22,21 @@ import (
 
 func (s *scenario) ExecuteSuccessScenario(ctx context.Context, namespace string) {
 	GinkgoHelper()
+	const ownedBy = "e2e-test"
+
+	// Add labels and propagation annotation to the catalog
+	labels := s.catalog.GetLabels()
+	if labels == nil {
+		labels = make(map[string]string)
+	}
+	labels[greenhouseapis.LabelKeyOwnedBy] = ownedBy
+	s.catalog.SetLabels(labels)
 	s.catalog.SetNamespace(namespace)
 	err := s.createCatalogIfNotExists(ctx)
 	Expect(err).ToNot(HaveOccurred(), "there should be no error creating the Catalog for multi-source scenario")
-	s.verifySuccess(ctx)
+	s.verifySuccess(ctx, map[string]string{
+		greenhouseapis.LabelKeyOwnedBy: ownedBy,
+	})
 	By("cleaning up Catalog")
 	for _, source := range s.catalog.Spec.Sources {
 		groupKey, err := getSourceGroupHash(source, s.catalog.Name)
@@ -34,7 +46,7 @@ func (s *scenario) ExecuteSuccessScenario(ctx context.Context, namespace string)
 	s.deleteCatalog(ctx)
 }
 
-func (s *scenario) verifySuccess(ctx context.Context) {
+func (s *scenario) verifySuccess(ctx context.Context, expectedLabels map[string]string) {
 	for _, source := range s.catalog.Spec.Sources {
 		groupKey, err := getSourceGroupHash(source, s.catalog.Name)
 		Expect(err).ToNot(HaveOccurred(), "there should be no error getting the source group hash")
@@ -47,7 +59,7 @@ func (s *scenario) verifySuccess(ctx context.Context) {
 		s.expectGitRepositoryReady(ctx, groupKey)
 		s.expectGeneratorReady(ctx, groupKey)
 		s.expectExternalArtifactReady(ctx, groupKey)
-		s.expectKustomizationReady(ctx, groupKey, source.Overrides)
+		s.expectKustomizationReady(ctx, groupKey, source.Overrides, expectedLabels)
 	}
 
 	By("checking if Catalog has Ready=True condition")
