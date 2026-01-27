@@ -357,12 +357,12 @@ func checkIfRepositoryIsOverridden(spec greenhousev1alpha1.PluginDefinitionSpec,
 	}
 }
 
-func (s *scenario) expectStatusPropagationInCatalogInventory(ctx context.Context, groupKey string, ignoreNotFound bool) {
+func (s *scenario) expectStatusPropagationInCatalogInventory(ctx context.Context, g Gomega, groupKey string, ignoreNotFound bool) {
 	GinkgoHelper()
 	catalog := &greenhousev1alpha1.Catalog{}
-	Expect(s.k8sClient.Get(ctx, client.ObjectKeyFromObject(s.catalog), catalog)).ToNot(HaveOccurred(), "there should be no error getting the Catalog")
+	g.Expect(s.k8sClient.Get(ctx, client.ObjectKeyFromObject(s.catalog), catalog)).ToNot(HaveOccurred(), "there should be no error getting the Catalog")
 	groupInventory := catalog.Status.Inventory[groupKey]
-	Expect(groupInventory).ToNot(BeEmpty(), "the Catalog status inventory for the source should not be empty")
+	g.Expect(groupInventory).ToNot(BeEmpty(), "the Catalog status inventory for the source should not be empty")
 	for _, resource := range groupInventory {
 		kindInventoryStatus := resource.Ready
 		var fluxObj lifecycle.CatalogObject
@@ -384,9 +384,9 @@ func (s *scenario) expectStatusPropagationInCatalogInventory(ctx context.Context
 			// ignore not found errors
 			return
 		}
-		Expect(err).ToNot(HaveOccurred(), "there should be no error getting the catalog flux resource: "+fluxObj.GetName())
+		g.Expect(err).ToNot(HaveOccurred(), "there should be no error getting the catalog flux resource: "+fluxObj.GetName())
 		fluxCondition := meta.FindStatusCondition(fluxObj.GetConditions(), fluxmeta.ReadyCondition)
-		Expect(fluxCondition).ToNot(BeNil(), "the underlying resource should have a Ready condition: "+fluxObj.GetName())
-		Expect(kindInventoryStatus).To(Equal(fluxCondition.Status), "the Catalog inventory status should contain the flux resource condition status")
+		g.Expect(fluxCondition).ToNot(BeNil(), "the underlying resource should have a Ready condition: "+fluxObj.GetName())
+		g.Expect(kindInventoryStatus).To(Equal(fluxCondition.Status), "the Catalog inventory status should contain the flux resource condition status - "+fluxObj.GetName())
 	}
 }
