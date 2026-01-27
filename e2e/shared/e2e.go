@@ -21,7 +21,7 @@ import (
 	"github.com/cenkalti/backoff/v5"
 	"k8s.io/apimachinery/pkg/types"
 
-	"github.com/google/go-github/v80/github"
+	"github.com/google/go-github/v81/github"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	appsv1 "k8s.io/api/apps/v1"
