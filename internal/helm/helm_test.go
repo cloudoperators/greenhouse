@@ -316,7 +316,7 @@ var _ = Describe("Plugin option checksum", Ordered, func() {
 		optionValuesOneSecret = []greenhousev1alpha1.PluginOptionValue{
 			{
 				Name: "secret",
-				ValueFrom: &greenhousev1alpha1.ValueFromSource{
+				ValueFrom: &greenhousev1alpha1.PluginValueFromSource{
 					Secret: &greenhousev1alpha1.SecretKeyReference{
 						Name: "plugin-secret",
 						Key:  "secretKey",
@@ -331,7 +331,7 @@ var _ = Describe("Plugin option checksum", Ordered, func() {
 			},
 			{
 				Name: "secret",
-				ValueFrom: &greenhousev1alpha1.ValueFromSource{
+				ValueFrom: &greenhousev1alpha1.PluginValueFromSource{
 					Secret: &greenhousev1alpha1.SecretKeyReference{
 						Name: "plugin-secret",
 						Key:  "secretKey",
@@ -342,7 +342,7 @@ var _ = Describe("Plugin option checksum", Ordered, func() {
 		optionValuesSecretAndRequired = []greenhousev1alpha1.PluginOptionValue{
 			{
 				Name: "secret",
-				ValueFrom: &greenhousev1alpha1.ValueFromSource{
+				ValueFrom: &greenhousev1alpha1.PluginValueFromSource{
 					Secret: &greenhousev1alpha1.SecretKeyReference{
 						Name: "plugin-secret",
 						Key:  "secretKey",

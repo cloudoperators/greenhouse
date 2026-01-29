@@ -5,8 +5,11 @@ package catalog
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
+	"slices"
 	"strings"
+	"time"
 
 	kustomizev1 "github.com/fluxcd/kustomize-controller/api/v1"
 	"github.com/fluxcd/pkg/apis/kustomize"
@@ -22,10 +25,13 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
+	greenhouseapis "github.com/cloudoperators/greenhouse/api"
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
+	"github.com/cloudoperators/greenhouse/internal/common"
 	"github.com/cloudoperators/greenhouse/internal/flux"
-	"github.com/cloudoperators/greenhouse/internal/lifecycle"
+	"github.com/cloudoperators/greenhouse/internal/helm"
 	"github.com/cloudoperators/greenhouse/internal/rbac"
+	"github.com/cloudoperators/greenhouse/pkg/lifecycle"
 )
 
 const (
@@ -47,30 +53,29 @@ const (
 	kustomizeArtifactPrefix = "kustomize"
 )
 
-type sourceError struct {
-	errorTxt error
-	kind     string
-	name     string
-	groupKey string
-}
-
-func (o *sourceError) Error() string {
-	return o.errorTxt.Error()
+type catalogError struct {
+	InventoryType string
+	Name          string
+	Error         error
 }
 
 type source struct {
 	client.Client
-	scheme           *runtime.Scheme
-	log              logr.Logger
-	recorder         record.EventRecorder
-	catalog          *greenhousev1alpha1.Catalog
-	source           greenhousev1alpha1.CatalogSource
-	sourceHash       string
-	sourceGroup      string
-	gitRepo          greenhousev1alpha1.SourceStatus
-	generator        greenhousev1alpha1.SourceStatus
-	externalArtifact greenhousev1alpha1.SourceStatus
-	kustomize        greenhousev1alpha1.SourceStatus
+	scheme                   *runtime.Scheme
+	log                      logr.Logger
+	recorder                 record.EventRecorder
+	commonLabels             map[string]string
+	catalog                  *greenhousev1alpha1.Catalog
+	source                   greenhousev1alpha1.CatalogSource
+	sourceHash               string
+	sourceGroup              string
+	gitRepo                  greenhousev1alpha1.SourceStatus
+	generator                greenhousev1alpha1.SourceStatus
+	externalArtifact         greenhousev1alpha1.SourceStatus
+	kustomize                greenhousev1alpha1.SourceStatus
+	lastReconciledAt         string
+	artifactory              IArtifactory
+	externalArtifactManifest []byte
 }
 
 // validateSources - ensures there are no duplicate sources in the catalog spec
@@ -78,12 +83,12 @@ type source struct {
 func (r *CatalogReconciler) validateSources(catalog *greenhousev1alpha1.Catalog) error {
 	sourceHashes := make(map[string]bool)
 	for _, source := range catalog.Spec.Sources {
-		host, owner, repo, err := lifecycle.GetOwnerRepoInfo(source.Repository)
+		host, owner, repo, err := GetOwnerRepoInfo(source.Repository)
 		if err != nil {
 			return err
 		}
 		ref := source.GetRefValue()
-		hash, err := lifecycle.HashValue(fmt.Sprintf("%s-%s-%s-%s-%s", catalog.Name, host, owner, repo, ref))
+		hash, err := HashValue(fmt.Sprintf("%s-%s-%s-%s-%s", catalog.Name, host, owner, repo, ref))
 		if err != nil {
 			return err
 		}
@@ -97,29 +102,47 @@ func (r *CatalogReconciler) validateSources(catalog *greenhousev1alpha1.Catalog)
 
 // newCatalogSource - prepares a source struct for Catalog.Spec.Sources entry with necessary metadata
 func (r *CatalogReconciler) newCatalogSource(catalogSource greenhousev1alpha1.CatalogSource, catalog *greenhousev1alpha1.Catalog) (*source, error) {
-	host, owner, repo, err := lifecycle.GetOwnerRepoInfo(catalogSource.Repository)
+	host, owner, repo, err := GetOwnerRepoInfo(catalogSource.Repository)
 	if err != nil {
 		return nil, err
 	}
 	ref := catalogSource.GetRefValue()
-	hash, err := lifecycle.HashValue(fmt.Sprintf("%s-%s-%s-%s-%s", catalog.Name, host, owner, repo, ref))
+	hash, err := HashValue(fmt.Sprintf("%s-%s-%s-%s-%s", catalog.Name, host, owner, repo, ref))
 	if err != nil {
 		return nil, err
 	}
-	return &source{
-		Client:           r.Client,
-		scheme:           r.Scheme,
-		log:              r.Log,
-		recorder:         r.recorder,
-		catalog:          catalog,
-		source:           catalogSource,
-		sourceHash:       hash,
-		sourceGroup:      fmt.Sprintf("%s-%s-%s-%s", host, owner, repo, ref),
-		gitRepo:          greenhousev1alpha1.SourceStatus{Kind: sourcev1.GitRepositoryKind, Name: gitRepoArtifactPrefix + "-" + hash},
-		generator:        greenhousev1alpha1.SourceStatus{Kind: sourcev2.ArtifactGeneratorKind, Name: generatorArtifactPrefix + "-" + hash},
-		externalArtifact: greenhousev1alpha1.SourceStatus{Kind: sourcev1.ExternalArtifactKind, Name: externalArtifactPrefix + "-" + hash},
-		kustomize:        greenhousev1alpha1.SourceStatus{Kind: kustomizev1.KustomizationKind, Name: kustomizeArtifactPrefix + "-" + hash},
-	}, nil
+	hashGroup := fmt.Sprintf("%s-%s-%s-%s", host, owner, repo, ref)
+	s := &source{
+		Client:   r.Client,
+		scheme:   r.Scheme,
+		log:      r.Log,
+		recorder: r.recorder,
+		commonLabels: map[string]string{
+			greenhouseapis.LabelKeyCatalog:       catalog.Name,
+			greenhouseapis.LabelKeyCatalogSource: gitRepoArtifactPrefix + "-" + hash,
+		},
+		catalog:                  catalog,
+		source:                   catalogSource,
+		sourceHash:               hash,
+		sourceGroup:              hashGroup,
+		gitRepo:                  greenhousev1alpha1.SourceStatus{Kind: sourcev1.GitRepositoryKind, Name: gitRepoArtifactPrefix + "-" + hash},
+		generator:                greenhousev1alpha1.SourceStatus{Kind: sourcev2.ArtifactGeneratorKind, Name: generatorArtifactPrefix + "-" + hash},
+		externalArtifact:         greenhousev1alpha1.SourceStatus{Kind: sourcev1.ExternalArtifactKind, Name: externalArtifactPrefix + "-" + hash},
+		externalArtifactManifest: nil,
+		kustomize:                greenhousev1alpha1.SourceStatus{Kind: kustomizev1.KustomizationKind, Name: kustomizeArtifactPrefix + "-" + hash},
+		artifactory:              newArtifactory(r.Log.WithName("artifactory"), catalog.Namespace+"/"+hashGroup+"-"+hash, r.StoragePath, r.HttpRetry),
+	}
+
+	if lastReconciledAt, ok := lifecycle.ReconcileAnnotationValue(catalog); ok {
+		s.lastReconciledAt = lastReconciledAt
+	}
+
+	// Add owned-by label from Catalog to commonLabels
+	if ownedBy, exists := catalog.Labels[greenhouseapis.LabelKeyOwnedBy]; exists {
+		s.commonLabels[greenhouseapis.LabelKeyOwnedBy] = ownedBy
+	}
+
+	return s, nil
 }
 
 func (s *source) getSourceGroupHash() string {
@@ -150,6 +173,14 @@ func (s *source) setInventory(kind, name, msg string, ready metav1.ConditionStat
 	s.catalog.SetInventory(s.getSourceGroupHash(), kind, name, msg, ready)
 }
 
+// hasOptionOverrides checks if the source has at least one option override
+// ext artifact archive is only fetched when there exists at least one option override
+func (s *source) hasOptionOverrides() (exists bool) {
+	return slices.ContainsFunc(s.source.Overrides, func(override greenhousev1alpha1.CatalogOverrides) bool {
+		return len(override.OptionsOverride) > 0
+	})
+}
+
 // getSourceSecret - retrieves the Secret resource referenced in the Catalog.Spec.Sources[].SecretName if it exists
 func (s *source) getSourceSecret(ctx context.Context) (*corev1.Secret, error) {
 	if s.source.SecretName == nil {
@@ -172,16 +203,11 @@ func (s *source) reconcileGitRepository(ctx context.Context) error {
 	gitRepo.SetNamespace(s.catalog.Namespace)
 	secretRef, err := s.getSourceSecret(ctx)
 	if err != nil {
-		return &sourceError{
-			errorTxt: err,
-			kind:     sourcev1.GitRepositoryKind,
-			name:     gitRepo.Name,
-			groupKey: s.getSourceGroupHash(),
-		}
+		return err
 	}
 	spec := sourcev1.GitRepositorySpec{
 		URL:       s.source.Repository,
-		Interval:  metav1.Duration{Duration: flux.DefaultInterval},
+		Interval:  s.source.GetInterval(),
 		Reference: s.source.GetGitRepositoryReference(),
 		Provider:  genericAuthProvider,
 		Suspend:   false,
@@ -196,15 +222,11 @@ func (s *source) reconcileGitRepository(ctx context.Context) error {
 
 	result, err := controllerutil.CreateOrPatch(ctx, s.Client, gitRepo, func() error {
 		gitRepo.Spec = spec
+		common.EnsureAnnotation(gitRepo, fluxmeta.ReconcileRequestAnnotation, s.lastReconciledAt)
 		return controllerutil.SetControllerReference(s.catalog, gitRepo, s.scheme)
 	})
 	if err != nil {
-		return &sourceError{
-			errorTxt: err,
-			kind:     sourcev1.GitRepositoryKind,
-			name:     gitRepo.Name,
-			groupKey: s.getSourceGroupHash(),
-		}
+		return err
 	}
 	switch result {
 	case controllerutil.OperationResultCreated:
@@ -263,26 +285,17 @@ func (s *source) reconcileArtifactGeneration(ctx context.Context) (*sourcev1.Ext
 	artifactSources := s.getArtifactSource()
 	artifacts := s.getArtifacts()
 	if len(artifacts) == 0 {
-		return nil, &sourceError{
-			errorTxt: fmt.Errorf("no resources defined in source %s/%s to generate artifact", generator.Namespace, s.getGitRepoName()),
-			kind:     sourcev2.ArtifactGeneratorKind,
-			name:     generator.Name,
-			groupKey: s.getSourceGroupHash(),
-		}
+		return nil, fmt.Errorf("no resources defined in source %s/%s to generate artifact", generator.Namespace, s.getGitRepoName())
 	}
 	result, err := controllerutil.CreateOrPatch(ctx, s.Client, generator, func() error {
 		delete(generator.Annotations, sourcev2.ReconcileAnnotation)
 		generator.Spec.Sources = artifactSources
 		generator.Spec.OutputArtifacts = artifacts
+		common.EnsureAnnotation(generator, sourcev2.ReconcileAnnotation, s.lastReconciledAt)
 		return controllerutil.SetControllerReference(s.catalog, generator, s.scheme)
 	})
 	if err != nil {
-		return nil, &sourceError{
-			errorTxt: err,
-			kind:     sourcev2.ArtifactGeneratorKind,
-			name:     generator.Name,
-			groupKey: s.getSourceGroupHash(),
-		}
+		return nil, err
 	}
 	switch result {
 	case controllerutil.OperationResultCreated:
@@ -299,12 +312,17 @@ func (s *source) reconcileArtifactGeneration(ctx context.Context) (*sourcev1.Ext
 	extArtifact.SetNamespace(s.catalog.Namespace)
 	err = s.Get(ctx, client.ObjectKeyFromObject(extArtifact), extArtifact)
 	if err != nil {
-		return nil, &sourceError{
-			errorTxt: err,
-			kind:     sourcev1.ExternalArtifactKind,
-			name:     extArtifact.Name,
-			groupKey: s.getSourceGroupHash(),
-		}
+		return nil, err
+	}
+	labels := extArtifact.GetLabels()
+	if labels == nil {
+		labels = make(map[string]string)
+	}
+	labels[greenhouseapis.LabelKeyCatalog] = s.commonLabels[greenhouseapis.LabelKeyCatalog]
+	extArtifact.SetLabels(labels)
+	err = s.Update(ctx, extArtifact)
+	if err != nil {
+		return nil, err
 	}
 	return extArtifact, nil
 }
@@ -315,22 +333,24 @@ func (s *source) reconcileKustomization(ctx context.Context, extArtifact *source
 	kustomization.SetName(s.kustomize.Name)
 	kustomization.SetNamespace(s.catalog.Namespace)
 	var err error
+	if s.hasOptionOverrides() {
+		err = s.fetchArtifact(extArtifact)
+		if err != nil {
+			return err
+		}
+	}
 	var patches []kustomize.Patch
 	if len(s.source.Overrides) > 0 {
 		if patches, err = flux.PrepareKustomizePatches(s.source.Overrides, greenhousev1alpha1.GroupVersion.Group); err != nil {
-			return &sourceError{
-				errorTxt: err,
-				kind:     kustomizev1.KustomizationKind,
-				name:     kustomization.Name,
-				groupKey: s.getSourceGroupHash(),
-			}
+			return err
 		}
 	}
 	ggvk := extArtifact.GroupVersionKind()
 	// ServiceAccount for the organization's PluginDefinitionCatalog operations
 	serviceAccountName := rbac.OrgCatalogServiceAccountName(s.catalog.Namespace)
-	spec, err := flux.NewKustomizationSpecBuilder(s.log).
+	builder := flux.NewKustomizationSpecBuilder(s.log).
 		WithSourceRef(ggvk.String(), ggvk.Kind, extArtifact.Name, extArtifact.Namespace).
+		WithCommonLabels(s.commonLabels).
 		WithServiceAccountName(serviceAccountName).
 		WithPatches(patches).
 		// this is necessary for kustomize to apply namespaced resources without errors,
@@ -341,27 +361,34 @@ func (s *source) reconcileKustomization(ctx context.Context, extArtifact *source
 		// but on kustomize deletion the label stays behind since prune policy is to Retain.
 		// WithCommonLabels(s.commonArtifactLabels).
 		WithPath(artifactToDir).
-		WithSuspend(false).Build()
-	if err != nil {
-		return &sourceError{
-			errorTxt: err,
-			kind:     kustomizev1.KustomizationKind,
-			name:     kustomization.Name,
-			groupKey: s.getSourceGroupHash(),
+		WithSuspend(false)
+
+	for _, override := range s.source.Overrides {
+		if len(override.OptionsOverride) > 0 {
+			optionPatches, err := s.getOptionOverridePatches(override.OptionsOverride, override.Name)
+			if err != nil {
+				return err
+			}
+			if len(optionPatches) > 0 {
+				patches = append(patches, optionPatches...)
+			}
 		}
 	}
+
+	builder = builder.WithPatches(patches)
+
 	// when flux resources is being updated by greenhouse controller and in parallel by flux controller, we need to retryOnConflict
 	result, err := controllerutil.CreateOrPatch(ctx, s.Client, kustomization, func() error {
+		spec, err := builder.Build()
+		if err != nil {
+			return err
+		}
 		kustomization.Spec = spec
+		common.EnsureAnnotation(kustomization, fluxmeta.ReconcileRequestAnnotation, s.lastReconciledAt)
 		return controllerutil.SetControllerReference(s.catalog, kustomization, s.scheme)
 	})
 	if err != nil {
-		return &sourceError{
-			errorTxt: err,
-			kind:     kustomizev1.KustomizationKind,
-			name:     kustomization.Name,
-			groupKey: s.getSourceGroupHash(),
-		}
+		return err
 	}
 	switch result {
 	case controllerutil.OperationResultCreated:
@@ -374,6 +401,128 @@ func (s *source) reconcileKustomization(ctx context.Context, extArtifact *source
 		s.log.Info("result is unknown for catalog kustomization", "name", kustomization.Name, "namespace", kustomization.Namespace, "result", result)
 	}
 	return nil
+}
+
+func (s *source) fetchArtifact(extArtifact *sourcev1.ExternalArtifact) error {
+	digest := extArtifact.GetArtifact().Digest
+
+	ctx, cancel := context.WithDeadline(context.Background(), time.Now().Add(15*time.Second))
+	defer cancel()
+
+	// Fetch manifest from artifactory
+	manifestBytes, err := s.artifactory.Get(ctx, extArtifact.GetArtifact().URL, digest)
+	if err != nil {
+		return err
+	}
+
+	// Save manifest in artifactory
+	err = s.artifactory.Save(manifestBytes, digest)
+	if err != nil {
+		return err
+	}
+
+	// delete all artifact from artifactory except the new digest
+	err = s.artifactory.DeleteAllExcept(digest)
+	if err != nil {
+		return err
+	}
+	s.externalArtifactManifest = manifestBytes
+	return nil
+}
+
+func (s *source) getOptionOverridePatches(optionOverrides []greenhousev1alpha1.OptionsOverride, pluginDefinitionName string) ([]kustomize.Patch, error) {
+	spec, err := s.findPluginDefinition(s.externalArtifactManifest, pluginDefinitionName)
+	if err != nil {
+		s.log.Error(err, "failed to find plugin definition in store", "name", pluginDefinitionName)
+		return nil, err
+	}
+	if spec == nil {
+		s.log.Info("plugin definition not found in artifact for option overrides", "name", pluginDefinitionName)
+		return nil, nil
+	}
+	patches := make([]kustomize.Patch, 0, len(optionOverrides))
+
+	for _, ov := range optionOverrides {
+		idx := slices.IndexFunc(spec.Options, func(option greenhousev1alpha1.PluginOption) bool {
+			return option.Name == ov.Name
+		})
+		if idx == -1 {
+			err = fmt.Errorf("failed to find plugin option override %s in plugin definition %s/%s", ov.Name, s.catalog.Namespace, pluginDefinitionName)
+			s.log.Info("option not found in plugin definition for override", "pluginDefinition", pluginDefinitionName, "option", ov.Name)
+			return nil, err
+		}
+		spec.Options[idx].Default = ov.Value
+		spec.Options[idx].Description += " (overridden by Catalog)"
+		p, err := flux.BuildJSONPatchReplace(
+			spec.Options[idx],
+			idx,
+			greenhousev1alpha1.GroupVersion.Group,
+			pluginDefinitionName,
+		)
+		if err != nil {
+			return nil, err
+		}
+		patches = append(patches, kustomize.Patch{
+			Patch:  p.Patch,
+			Target: p.Target,
+		})
+	}
+	return patches, nil
+}
+
+func (s *source) findPluginDefinition(manifestBytes []byte, name string) (spec *greenhousev1alpha1.PluginDefinitionSpec, err error) {
+	var manifestMap map[string][]byte
+	if err = json.Unmarshal(manifestBytes, &manifestMap); err != nil {
+		s.log.Error(err, "failed to unmarshal manifest bytes", "name", name)
+		return
+	}
+	var combinedManifests strings.Builder
+	for _, manifest := range manifestMap {
+		combinedManifests.Write(manifest)
+		combinedManifests.WriteString("\n---\n")
+	}
+	filters := &helm.ManifestMultipleObjectFilter{
+		Filters: []helm.ManifestObjectFilter{
+			{
+				APIVersion: greenhousev1alpha1.GroupVersion.Version,
+				Kind:       greenhousev1alpha1.PluginDefinitionKind,
+				Name:       name,
+			},
+			{
+				APIVersion: greenhousev1alpha1.GroupVersion.Version,
+				Kind:       greenhousev1alpha1.ClusterPluginDefinitionKind,
+				Name:       name,
+			},
+		},
+	}
+	objectMaps, err := helm.ObjectMapFromLocalManifest(filters, combinedManifests.String())
+	if err != nil {
+		s.log.Error(err, "failed to get object map from manifest", "name", name)
+		return
+	}
+	for _, helmObj := range objectMaps {
+		obj := helmObj.Object
+		gvk := obj.GetObjectKind().GroupVersionKind()
+
+		// Try PluginDefinition
+		if gvk.Kind == greenhousev1alpha1.PluginDefinitionKind {
+			pd := &greenhousev1alpha1.PluginDefinition{}
+			if err := s.scheme.Convert(obj, pd, nil); err == nil {
+				spec = &pd.Spec
+				break
+			}
+		}
+
+		// Try ClusterPluginDefinition
+		if gvk.Kind == greenhousev1alpha1.ClusterPluginDefinitionKind {
+			cpd := &greenhousev1alpha1.ClusterPluginDefinition{}
+			if err := s.scheme.Convert(obj, cpd, nil); err == nil {
+				spec = &cpd.Spec
+				break
+			}
+		}
+	}
+	return
 }
 
 // objectReadiness - checks the Ready condition of a catalog object (GitRepository, ArtifactGenerator, ExternalArtifact, Kustomization)

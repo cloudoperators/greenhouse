@@ -4,6 +4,8 @@
 package v1alpha1
 
 import (
+	"slices"
+
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	greenhousemetav1alpha1 "github.com/cloudoperators/greenhouse/api/meta/v1alpha1"
@@ -96,6 +98,7 @@ type NodeStatus struct {
 //+kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp"
 //+kubebuilder:printcolumn:name="AccessMode",type="string",JSONPath=".spec.accessMode"
 //+kubebuilder:printcolumn:name="Ready",type="string",JSONPath=`.status.statusConditions.conditions[?(@.type == "Ready")].status`
+//+kubebuilder:printcolumn:name="Version",type="string",JSONPath=`.status.kubernetesVersion`
 
 // Cluster is the Schema for the clusters API
 type Cluster struct {
@@ -112,6 +115,16 @@ func (c *Cluster) GetConditions() greenhousemetav1alpha1.StatusConditions {
 
 func (c *Cluster) SetCondition(condition greenhousemetav1alpha1.Condition) {
 	c.Status.SetConditions(condition)
+}
+
+func (c *Cluster) RemoveCondition(conditionType greenhousemetav1alpha1.ConditionType) {
+	c.Status.Conditions = slices.DeleteFunc(c.Status.Conditions, func(cond greenhousemetav1alpha1.Condition) bool {
+		return cond.Type == conditionType
+	})
+}
+
+func (c *Cluster) CanBeSuspended() bool {
+	return false
 }
 
 // GetSecretName returns the Kubernetes secret containing sensitive data for this cluster.

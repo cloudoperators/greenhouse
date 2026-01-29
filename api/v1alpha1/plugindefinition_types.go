@@ -6,6 +6,7 @@ package v1alpha1
 import (
 	"encoding/json"
 	"fmt"
+	"slices"
 
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -55,6 +56,9 @@ type PluginOptionType string
 const (
 	// PluginDefinitionKind is the kind of the PluginDefinition resource
 	PluginDefinitionKind = "PluginDefinition"
+
+	// HelmRepositoryReadyCondition reflects if the associated HelmRepository is ready.
+	HelmRepositoryReadyCondition greenhousemetav1alpha1.ConditionType = "HelmRepositoryReady"
 
 	// PluginOptionTypeString is a valid value for PluginOptionType.
 	PluginOptionTypeString PluginOptionType = "string"
@@ -216,6 +220,7 @@ type PluginDefinitionStatus struct {
 //+kubebuilder:subresource:status
 //+kubebuilder:resource:scope=Namespaced,shortName=pd
 //+kubebuilder:printcolumn:name="Version",type=string,JSONPath=`.spec.version`
+//+kubebuilder:printcolumn:name="Catalog",type=string,JSONPath=`.metadata.labels.greenhouse\.sap/catalog`
 //+kubebuilder:printcolumn:name="Description",type=string,JSONPath=`.spec.description`
 // +kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp"
 
@@ -243,6 +248,16 @@ func (p *PluginDefinition) GetConditions() greenhousemetav1alpha1.StatusConditio
 
 func (p *PluginDefinition) SetCondition(condition greenhousemetav1alpha1.Condition) {
 	p.Status.SetConditions(condition)
+}
+
+func (p *PluginDefinition) RemoveCondition(conditionType greenhousemetav1alpha1.ConditionType) {
+	p.Status.Conditions = slices.DeleteFunc(p.Status.Conditions, func(cond greenhousemetav1alpha1.Condition) bool {
+		return cond.Type == conditionType
+	})
+}
+
+func (p *PluginDefinition) CanBeSuspended() bool {
+	return false
 }
 
 func init() {

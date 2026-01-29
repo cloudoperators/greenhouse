@@ -27,8 +27,8 @@ import (
 	greenhousemetav1alpha1 "github.com/cloudoperators/greenhouse/api/meta/v1alpha1"
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
 	"github.com/cloudoperators/greenhouse/internal/clientutil"
-	"github.com/cloudoperators/greenhouse/internal/lifecycle"
 	"github.com/cloudoperators/greenhouse/internal/util"
+	"github.com/cloudoperators/greenhouse/pkg/lifecycle"
 )
 
 // presetExposedConditions contains the conditions that are exposed in the PluginPreset's StatusConditions.
@@ -139,8 +139,8 @@ func (r *PluginPresetReconciler) EnsureDeleted(ctx context.Context, resource lif
 	}
 
 	switch pluginPreset.Spec.DeletionPolicy {
-	case greenhouseapis.DeletionPolicyOrphan:
-		// Remove the owner reference from all managed Plugins to orphan them.
+	case greenhouseapis.DeletionPolicyRetain:
+		// Remove the owner reference from all managed Plugins to retain them when deleting the Preset.
 		allErrs := make([]error, 0)
 		for _, plugin := range plugins.Items {
 			if isPluginManagedByPreset(&plugin, pluginPreset.Name) {
@@ -157,7 +157,7 @@ func (r *PluginPresetReconciler) EnsureDeleted(ctx context.Context, resource lif
 			}
 		}
 		if len(allErrs) > 0 {
-			return ctrl.Result{}, lifecycle.Failed, fmt.Errorf("failed to orphan plugins for %s/%s: %w", pluginPreset.Namespace, pluginPreset.Name, errors.Join(allErrs...))
+			return ctrl.Result{}, lifecycle.Failed, fmt.Errorf("failed to process retained plugins for %s/%s: %w", pluginPreset.Namespace, pluginPreset.Name, errors.Join(allErrs...))
 		}
 	default:
 		// Cleanup the plugins that are managed by this PluginPreset.
@@ -235,7 +235,7 @@ func (r *PluginPresetReconciler) reconcilePluginPreset(ctx context.Context, pres
 			// Copy over the plugin dependencies
 			plugin.Spec.WaitFor = preset.Spec.WaitFor
 			// transport plugin preset labels to plugin
-			plugin = (lifecycle.NewPropagator(preset, plugin).ApplyLabels()).(*greenhousev1alpha1.Plugin) //nolint:errcheck
+			plugin = (lifecycle.NewPropagator(preset, plugin).Apply()).(*greenhousev1alpha1.Plugin) //nolint:errcheck
 			// overrides options based on preset definition
 			overridesPluginOptionValues(plugin, preset)
 			return nil

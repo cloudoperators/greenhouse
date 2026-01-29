@@ -7,8 +7,8 @@ weight: 3
 
 `Ownership` in Greenhouse is the combination of two of the core features:
 
-- User and Organization management via [Teams](./../core-concepts/teams.md)
-- Deployment of resources ([Plugins](./../core-concepts/plugins.md), [TeamRoleBindings](./../core-concepts/teams/#team-rbac)) to remote [Clusters](./../core-concepts/clusters.md)
+- User and Organization management via [Teams](./../../core-concepts/teams)
+- Deployment of resources ([Plugins](./../../core-concepts/plugins), [TeamRoleBindings](./../../core-concepts/teams/#team-rbac)) to remote [Clusters](./../../core-concepts/clusters)
 
 Greenhouse provides a `1:1` relationship between a Team and
 
@@ -22,7 +22,7 @@ Within the context of Greenhouse this relationship is called `Ownership`.
 
 ## Why Ownership of Resources
 
-[Operational processes](processes.md) facilitated via Greenhouse rely on `Ownership`:
+[Operational processes](./../processes) facilitated via Greenhouse rely on `Ownership`:
 
 By identifying the owner of a resource it is possible to route operational tasks on the resource to the owner.
 
@@ -44,13 +44,13 @@ The owner label is also expected on k8s resources (e.g. Deployments, Pods, ...) 
 
 #### On Greenhouse central cluster
 
-The Greenhouse controller [transports labels from a source resource to a target resource](https://github.com/cloudoperators/greenhouse/blob/main/internal/lifecycle/propagation.go) on the Greenhouse cluster.
+The Greenhouse controller [transports labels from a source resource to a target resource](https://github.com/cloudoperators/greenhouse/blob/main/pkg/lifecycle/propagation.go) on the Greenhouse cluster.
 This is currently active for:
 
 - Secrets that are used to bootstrap a Cluster
 - PluginPresets creating Plugins
 
-The transport works via an `metadata.annotation` on the source:
+The transport works via `metadata.annotation` on the source:
 
 ```yaml
 metadata:
@@ -78,9 +78,11 @@ metadata:
    ...
 ```
 
+It also supports wildcards to propagate multiple labels that share a common prefix, e.g. `greenhouse.sap/propagate-labels: "metadata.greenhouse.sap/*"`.
+
 #### On Resources on Remote Clusters
 
 Greenhouse will provide the automation to label all resources created by a Plugin on the remote Cluster in the future:
 <https://github.com/cloudoperators/greenhouse-extensions/issues/704>
 
-Currently Greenhouse provides the `owned-by` label as a `OptionValue` [to be consumed by the underlying helm chart of the Plugin](./../../contribute/plugins.md#development).
+Currently Greenhouse provides the `owned-by` label as a `OptionValue` [to be consumed by the underlying helm chart of the Plugin](./../../../contribute/plugins#development).

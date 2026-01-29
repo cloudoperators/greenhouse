@@ -21,6 +21,7 @@ import (
 	"helm.sh/helm/v3/pkg/action"
 	"helm.sh/helm/v3/pkg/chart"
 	"helm.sh/helm/v3/pkg/chart/loader"
+	"helm.sh/helm/v3/pkg/chartutil"
 	"helm.sh/helm/v3/pkg/cli"
 	"helm.sh/helm/v3/pkg/kube"
 	"helm.sh/helm/v3/pkg/registry"
@@ -339,6 +340,32 @@ func TemplateHelmChartFromPlugin(ctx context.Context, local client.Client, restC
 	return helmRelease, nil
 }
 
+// TemplateHelmChartFromPluginOptionValues returns the rendered manifest or an error.
+// This function
+func TemplateHelmChartFromPluginOptionValues(ctx context.Context, local client.Client, restClientGetter genericclioptions.RESTClientGetter, pluginDefinitionSpec *greenhousev1alpha1.PluginDefinitionSpec, plugin *greenhousev1alpha1.Plugin, optionValues []greenhousev1alpha1.PluginOptionValue) (*release.Release, error) {
+	installAction, _, err := newHelmInstallAction(restClientGetter, plugin.Spec.ReleaseName, plugin.Spec.ReleaseNamespace, pluginDefinitionSpec.Version, true)
+	if err != nil {
+		return nil, err
+	}
+
+	helmChart, err := loadHelmChart(&installAction.ChartPathOptions, pluginDefinitionSpec.HelmChart, settings)
+	if err != nil {
+		return nil, err
+	}
+
+	resolvedValues, err := resolvePluginOptionValueFrom(ctx, local, plugin.Namespace, optionValues)
+	if err != nil {
+		return nil, err
+	}
+
+	helmValues, err := mergeChartAndPluginOptionValues(helmChart.Values, resolvedValues)
+	if err != nil {
+		return nil, err
+	}
+
+	return installAction.RunWithContext(ctx, helmChart, helmValues)
+}
+
 type ChartLoaderFunc func(name string) (*chart.Chart, error)
 
 var ChartLoader ChartLoaderFunc = loader.Load
@@ -413,19 +440,10 @@ func upgradeRelease(ctx context.Context, local client.Client, restClientGetter g
 }
 
 func installRelease(ctx context.Context, local client.Client, restClientGetter genericclioptions.RESTClientGetter, pluginDefinitionSpec greenhousev1alpha1.PluginDefinitionSpec, plugin *greenhousev1alpha1.Plugin, isDryRun bool) (*release.Release, error) {
-	cfg, err := newHelmAction(restClientGetter, plugin.Spec.ReleaseNamespace)
+	installAction, capabilities, err := newHelmInstallAction(restClientGetter, plugin.GetReleaseName(), plugin.Spec.ReleaseNamespace, pluginDefinitionSpec.Version, isDryRun)
 	if err != nil {
 		return nil, err
 	}
-	installAction := action.NewInstall(cfg)
-	installAction.ReleaseName = plugin.GetReleaseName()
-	installAction.Namespace = plugin.Spec.ReleaseNamespace
-	installAction.Timeout = GetHelmTimeout() // set a timeout for the installation to not be stuck in pending state
-	installAction.CreateNamespace = true
-	installAction.DependencyUpdate = true
-	installAction.DryRun = isDryRun
-	installAction.ClientOnly = isDryRun
-	installAction.Description = pluginDefinitionSpec.Version
 
 	helmChart, err := loadHelmChart(&installAction.ChartPathOptions, pluginDefinitionSpec.HelmChart, settings)
 	if err != nil {
@@ -446,7 +464,7 @@ func installRelease(ctx context.Context, local client.Client, restClientGetter g
 	}
 
 	// Do the Kubernetes version check beforehand to reflect incompatibilities in the Plugin status before attempting an installation or upgrade.
-	if err := verifyKubeVersionIsCompatible(helmChart, cfg.Capabilities); err != nil {
+	if err := verifyKubeVersionIsCompatible(helmChart, capabilities); err != nil {
 		return nil, err
 	}
 	helmChart.Metadata.KubeVersion = ""
@@ -491,6 +509,24 @@ func newHelmAction(restClientGetter genericclioptions.RESTClientGetter, namespac
 	}
 	cfg.Capabilities = caps
 	return cfg, nil
+}
+
+func newHelmInstallAction(restClientGetter genericclioptions.RESTClientGetter, releaseName, releaseNamespace, pluginDefinitionVersion string, isDryRun bool) (*action.Install, *chartutil.Capabilities, error) {
+	cfg, err := newHelmAction(restClientGetter, releaseNamespace)
+	if err != nil {
+		return nil, nil, err
+	}
+	installAction := action.NewInstall(cfg)
+	installAction.ReleaseName = releaseName
+	installAction.Namespace = releaseNamespace
+	installAction.Timeout = GetHelmTimeout() // set a timeout for the installation to not be stuck in pending state
+	installAction.CreateNamespace = true
+	installAction.DependencyUpdate = true
+	installAction.DryRun = isDryRun
+	installAction.ClientOnly = isDryRun
+	installAction.Description = pluginDefinitionVersion
+
+	return installAction, cfg.Capabilities, nil
 }
 
 func debug(format string, v ...any) {
@@ -550,11 +586,16 @@ func getValuesForHelmChart(ctx context.Context, c client.Client, helmChart *char
 	// Copy the values from the Helm chart ensuring a non-nil map.
 	helmValues := MergeMaps(make(map[string]any), helmChart.Values)
 	// Get values defined in plugin.
-	pluginValues, err := getValuesFromPlugin(ctx, c, plugin)
+	optionValues, err := resolvePluginOptionValueFrom(ctx, c, plugin.Namespace, plugin.Spec.OptionValues)
 	if err != nil {
 		return nil, err
 	}
-	helmPluginValues, err := ConvertFlatValuesToHelmValues(pluginValues)
+	return mergeChartAndPluginOptionValues(helmValues, optionValues)
+}
+
+// mergeChartAndPluginOptionValues merges the values defined in the Helm chart with the values defined in the PluginOptionValues
+func mergeChartAndPluginOptionValues(helmValues map[string]any, optionValues []greenhousev1alpha1.PluginOptionValue) (map[string]any, error) {
+	helmPluginValues, err := ConvertFlatValuesToHelmValues(optionValues)
 	if err != nil {
 		return nil, err
 	}
@@ -562,9 +603,9 @@ func getValuesForHelmChart(ctx context.Context, c client.Client, helmChart *char
 	return helmValues, nil
 }
 
-func getValuesFromPlugin(ctx context.Context, c client.Client, plugin *greenhousev1alpha1.Plugin) ([]greenhousev1alpha1.PluginOptionValue, error) {
-	namedValues := make([]greenhousev1alpha1.PluginOptionValue, len(plugin.Spec.OptionValues))
-	copy(namedValues, plugin.Spec.OptionValues)
+func resolvePluginOptionValueFrom(ctx context.Context, c client.Client, namespace string, optionValues []greenhousev1alpha1.PluginOptionValue) ([]greenhousev1alpha1.PluginOptionValue, error) {
+	namedValues := make([]greenhousev1alpha1.PluginOptionValue, len(optionValues))
+	copy(namedValues, optionValues)
 	for idx, val := range namedValues {
 		// Values already provided on plain text don't need to be extracted.
 		if val.ValueFrom == nil {
@@ -572,7 +613,7 @@ func getValuesFromPlugin(ctx context.Context, c client.Client, plugin *greenhous
 		}
 		// Retrieve value from secret.
 		if val.ValueFrom.Secret != nil {
-			valFromSecret, err := getValueFromSecret(ctx, c, plugin.GetNamespace(), val.ValueFrom.Secret.Name, val.ValueFrom.Secret.Key)
+			valFromSecret, err := getValueFromSecret(ctx, c, namespace, val.ValueFrom.Secret.Name, val.ValueFrom.Secret.Key)
 			if err != nil {
 				return nil, err
 			}
@@ -659,7 +700,7 @@ func replaceCustomResourceDefinitions(ctx context.Context, c client.Client, crdL
 // CalculatePluginOptionChecksum calculates a hash of plugin option values.
 // Secret-type option values are extracted first and all values are sorted to ensure that order is not important when comparing checksums.
 func CalculatePluginOptionChecksum(ctx context.Context, c client.Client, plugin *greenhousev1alpha1.Plugin) (string, error) {
-	values, err := getValuesFromPlugin(ctx, c, plugin)
+	values, err := resolvePluginOptionValueFrom(ctx, c, plugin.Namespace, plugin.Spec.OptionValues)
 	if err != nil {
 		return "", err
 	}
@@ -671,7 +712,22 @@ func CalculatePluginOptionChecksum(ctx context.Context, c client.Client, plugin 
 	buf := make([]byte, 0)
 	for _, v := range values {
 		buf = append(buf, []byte(v.Name)...)
-		buf = append(buf, v.Value.Raw...)
+
+		switch {
+		case v.Value != nil:
+			buf = append(buf, v.Value.Raw...)
+
+		case v.Expression != nil:
+			buf = append(buf, []byte(*v.Expression)...)
+
+		case v.ValueFrom != nil && v.ValueFrom.Ref != nil:
+			buf = append(buf, []byte(v.ValueFrom.Ref.Name)...)
+			buf = append(buf, []byte(v.ValueFrom.Ref.Kind)...)
+			buf = append(buf, []byte(v.ValueFrom.Ref.Expression)...)
+
+		default:
+			continue
+		}
 	}
 
 	checksum := sha256.Sum256(buf)

@@ -118,7 +118,6 @@ var (
 	TestBeforeSuite = func() {
 		logf.SetLogger(zap.New(zap.WriteTo(GinkgoWriter), zap.UseDevMode(true)))
 
-		SetDefaultEventuallyPollingInterval(1 * time.Second)
 		SetDefaultEventuallyTimeout(1 * time.Minute)
 
 		installCRDs := clientutil.GetEnvOrDefault("TEST_INSTALL_CRDS", "true") == "true"

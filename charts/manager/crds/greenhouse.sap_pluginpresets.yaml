@@ -1,4 +1,4 @@
-# SPDX-FileCopyrightText: 2025 SAP SE or an SAP affiliate company and Greenhouse contributors
+# SPDX-FileCopyrightText: 2026 SAP SE or an SAP affiliate company and Greenhouse contributors
 # SPDX-License-Identifier: Apache-2.0
 
 ---
@@ -20,7 +20,7 @@ spec:
   scope: Namespaced
   versions:
   - additionalPrinterColumns:
-    - jsonPath: .spec.plugin.pluginDefinition
+    - jsonPath: .spec.plugin.pluginDefinitionRef.name
       name: Plugin Definition
       type: string
     - jsonPath: .spec.plugin.releaseNamespace
@@ -67,24 +67,101 @@ spec:
                       items:
                         description: PluginOptionValue is the value for a PluginOption.
                         properties:
+                          expression:
+                            description: Expression is a YAML string with ${...} placeholders
+                              that will be evaluated as CEL expressions.
+                            type: string
                           name:
                             description: Name of the values.
-                            type: string
-                          template:
-                            description: |-
-                              Template is a Go string template that will be dynamically resolved for cluster-specific values.
-                              Only PluginOptionValues declared as template will be templated by the PluginController for Flux.
                             type: string
                           value:
                             description: Value is the actual value in plain text.
                             x-kubernetes-preserve-unknown-fields: true
                           valueFrom:
-                            description: ValueFrom references a potentially confidential
-                              value in another source.
+                            description: ValueFrom references value in another source.
                             properties:
+                              ref:
+                                description: Ref references values defined in another
+                                  resource (Plugin, PluginPreset)
+                                properties:
+                                  expression:
+                                    description: Expression is a CEL expression to
+                                      extract the value from the referenced resource
+                                    type: string
+                                  kind:
+                                    description: |-
+                                      Kind is the resource kind to target
+                                      if not set, defaults to the same kind as the referencing resource (Plugin or PluginPreset)
+                                    enum:
+                                    - Plugin
+                                    - PluginPreset
+                                    type: string
+                                  name:
+                                    description: |-
+                                      Name is the name of the resource to target
+                                      this field is mutually exclusive with LabelSelector
+                                    minLength: 1
+                                    type: string
+                                  selector:
+                                    description: |-
+                                      Selector selects the resources to target based on labels
+                                      this field is mutually exclusive with Name
+                                    properties:
+                                      matchExpressions:
+                                        description: matchExpressions is a list of
+                                          label selector requirements. The requirements
+                                          are ANDed.
+                                        items:
+                                          description: |-
+                                            A label selector requirement is a selector that contains values, a key, and an operator that
+                                            relates the key and values.
+                                          properties:
+                                            key:
+                                              description: key is the label key that
+                                                the selector applies to.
+                                              type: string
+                                            operator:
+                                              description: |-
+                                                operator represents a key's relationship to a set of values.
+                                                Valid operators are In, NotIn, Exists and DoesNotExist.
+                                              type: string
+                                            values:
+                                              description: |-
+                                                values is an array of string values. If the operator is In or NotIn,
+                                                the values array must be non-empty. If the operator is Exists or DoesNotExist,
+                                                the values array must be empty. This array is replaced during a strategic
+                                                merge patch.
+                                              items:
+                                                type: string
+                                              type: array
+                                              x-kubernetes-list-type: atomic
+                                          required:
+                                          - key
+                                          - operator
+                                          type: object
+                                        type: array
+                                        x-kubernetes-list-type: atomic
+                                      matchLabels:
+                                        additionalProperties:
+                                          type: string
+                                        description: |-
+                                          matchLabels is a map of {key,value} pairs. A single {key,value} in the matchLabels
+                                          map is equivalent to an element of matchExpressions, whose key field is "key", the
+                                          operator is "In", and the values array contains only "value". The requirements are ANDed.
+                                        type: object
+                                    type: object
+                                    x-kubernetes-map-type: atomic
+                                required:
+                                - expression
+                                type: object
+                                x-kubernetes-validations:
+                                - message: exactly one of the fields in [name selector]
+                                    must be set
+                                  rule: '[has(self.name),has(self.selector)].filter(x,x==true).size()
+                                    == 1'
                               secret:
-                                description: Secret references the secret containing
-                                  the value.
+                                description: Secret references the v1.Secret containing
+                                  the value that needs to be extracted
                                 properties:
                                   key:
                                     description: Key in the secret to select the value
@@ -98,6 +175,11 @@ spec:
                                 - name
                                 type: object
                             type: object
+                            x-kubernetes-validations:
+                            - message: both secret and ref cannot be set
+                              rule: '!(has(self.secret) && has(self.ref))'
+                            - message: one of secret or ref must be set
+                              rule: has(self.secret) || has(self.ref)
                         required:
                         - name
                         type: object
@@ -158,10 +240,10 @@ spec:
                 default: Delete
                 description: |-
                   DeletionPolicy defines how Plugins owned by a PluginPreset are handled on deletion of the PluginPreset.
-                  Supported values are "Delete" and "Orphan". If not set, defaults to "Delete".
+                  Supported values are "Delete" and "Retain". If not set, defaults to "Delete".
                 enum:
                 - Delete
-                - Orphan
+                - Retain
                 type: string
               plugin:
                 description: PluginSpec is the spec of the plugin to be deployed by
@@ -172,35 +254,152 @@ spec:
                       is deployed to. If not set, the plugin is deployed to the greenhouse
                       cluster.
                     type: string
+                  deletionPolicy:
+                    default: Delete
+                    description: |-
+                      DeletionPolicy defines how Helm Releases created by a Plugin are handled upon deletion of the Plugin.
+                      Supported values are "Delete" and "Retain". If not set, defaults to "Delete".
+                    enum:
+                    - Delete
+                    - Retain
+                    type: string
                   displayName:
                     description: |-
                       DisplayName is an optional name for the Plugin to be displayed in the Greenhouse UI.
                       This is especially helpful to distinguish multiple instances of a PluginDefinition in the same context.
                       Defaults to a normalized version of metadata.name.
                     type: string
+                  ignoreDifferences:
+                    description: IgnoreDifferences defines paths to ignore when detecting
+                      drift between desired and actual state.
+                    items:
+                      description: IgnoreDifference defines a set of paths to ignore
+                        for matching resources.
+                      properties:
+                        group:
+                          description: Group matches the APIVersion group of the resources
+                            to ignore.
+                          type: string
+                        kind:
+                          description: Kind matches the Kind of the resources to ignore.
+                          type: string
+                        name:
+                          description: Name matches the name of the resources to ignore.
+                          type: string
+                        paths:
+                          description: Paths is a list of JSON paths to ignore when
+                            detecting drifts.
+                          items:
+                            type: string
+                          type: array
+                        version:
+                          description: Version matches the APIVersion version of the
+                            resources to ignore.
+                          type: string
+                      required:
+                      - paths
+                      type: object
+                    type: array
                   optionValues:
                     description: Values are the values for a PluginDefinition instance.
                     items:
                       description: PluginOptionValue is the value for a PluginOption.
                       properties:
+                        expression:
+                          description: Expression is a YAML string with ${...} placeholders
+                            that will be evaluated as CEL expressions.
+                          type: string
                         name:
                           description: Name of the values.
-                          type: string
-                        template:
-                          description: |-
-                            Template is a Go string template that will be dynamically resolved for cluster-specific values.
-                            Only PluginOptionValues declared as template will be templated by the PluginController for Flux.
                           type: string
                         value:
                           description: Value is the actual value in plain text.
                           x-kubernetes-preserve-unknown-fields: true
                         valueFrom:
-                          description: ValueFrom references a potentially confidential
-                            value in another source.
+                          description: ValueFrom references value in another source.
                           properties:
+                            ref:
+                              description: Ref references values defined in another
+                                resource (Plugin, PluginPreset)
+                              properties:
+                                expression:
+                                  description: Expression is a CEL expression to extract
+                                    the value from the referenced resource
+                                  type: string
+                                kind:
+                                  description: |-
+                                    Kind is the resource kind to target
+                                    if not set, defaults to the same kind as the referencing resource (Plugin or PluginPreset)
+                                  enum:
+                                  - Plugin
+                                  - PluginPreset
+                                  type: string
+                                name:
+                                  description: |-
+                                    Name is the name of the resource to target
+                                    this field is mutually exclusive with LabelSelector
+                                  minLength: 1
+                                  type: string
+                                selector:
+                                  description: |-
+                                    Selector selects the resources to target based on labels
+                                    this field is mutually exclusive with Name
+                                  properties:
+                                    matchExpressions:
+                                      description: matchExpressions is a list of label
+                                        selector requirements. The requirements are
+                                        ANDed.
+                                      items:
+                                        description: |-
+                                          A label selector requirement is a selector that contains values, a key, and an operator that
+                                          relates the key and values.
+                                        properties:
+                                          key:
+                                            description: key is the label key that
+                                              the selector applies to.
+                                            type: string
+                                          operator:
+                                            description: |-
+                                              operator represents a key's relationship to a set of values.
+                                              Valid operators are In, NotIn, Exists and DoesNotExist.
+                                            type: string
+                                          values:
+                                            description: |-
+                                              values is an array of string values. If the operator is In or NotIn,
+                                              the values array must be non-empty. If the operator is Exists or DoesNotExist,
+                                              the values array must be empty. This array is replaced during a strategic
+                                              merge patch.
+                                            items:
+                                              type: string
+                                            type: array
+                                            x-kubernetes-list-type: atomic
+                                        required:
+                                        - key
+                                        - operator
+                                        type: object
+                                      type: array
+                                      x-kubernetes-list-type: atomic
+                                    matchLabels:
+                                      additionalProperties:
+                                        type: string
+                                      description: |-
+                                        matchLabels is a map of {key,value} pairs. A single {key,value} in the matchLabels
+                                        map is equivalent to an element of matchExpressions, whose key field is "key", the
+                                        operator is "In", and the values array contains only "value". The requirements are ANDed.
+                                      type: object
+                                  type: object
+                                  x-kubernetes-map-type: atomic
+                              required:
+                              - expression
+                              type: object
+                              x-kubernetes-validations:
+                              - message: exactly one of the fields in [name selector]
+                                  must be set
+                                rule: '[has(self.name),has(self.selector)].filter(x,x==true).size()
+                                  == 1'
                             secret:
-                              description: Secret references the secret containing
-                                the value.
+                              description: Secret references the v1.Secret containing
+                                the value that needs to be extracted
                               properties:
                                 key:
                                   description: Key in the secret to select the value
@@ -214,16 +413,15 @@ spec:
                               - name
                               type: object
                           type: object
+                          x-kubernetes-validations:
+                          - message: both secret and ref cannot be set
+                            rule: '!(has(self.secret) && has(self.ref))'
+                          - message: one of secret or ref must be set
+                            rule: has(self.secret) || has(self.ref)
                       required:
                       - name
                       type: object
                     type: array
-                  pluginDefinition:
-                    description: |-
-                      PluginDefinition is the name of the PluginDefinition this instance is for.
-
-                      Deprecated: Use PluginDefinitionRef instead. Future releases of greenhouse will remove this field.
-                    type: string
                   pluginDefinitionRef:
                     description: PluginDefinitionRef is the reference to the (Cluster-)PluginDefinition.
                     properties:
@@ -277,7 +475,6 @@ spec:
                       type: object
                     type: array
                 required:
-                - pluginDefinition
                 - pluginDefinitionRef
                 type: object
               waitFor:

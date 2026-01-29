@@ -63,6 +63,26 @@ const (
 
 	// LabelKeyMetadataPrefix is the prefix for cluster metadata labels that are transferred to Plugin template data.
 	LabelKeyMetadataPrefix = "metadata.greenhouse.sap/"
+
+	// LabelKeyCatalog is used to identify the owning catalog resource of (Cluster)PluginDefinitions.
+	LabelKeyCatalog = "greenhouse.sap/catalog"
+
+	// LabelKeyCatalogSource is used to identify the source of the owning catalog resource of (Cluster)PluginDefinitions.
+	LabelKeyCatalogSource = "greenhouse.sap/catalog-source"
+
+	// LabelKeyUIPlugin is used to identify Plugins that have a UI component.
+	LabelKeyUIPlugin = "greenhouse.sap/ui-plugin"
+
+	// LabelKeyPluginExposedServices is used to identify Plugins that expose services.
+	LabelKeyPluginExposedServices = "greenhouse.sap/plugin-exposed-services"
+	// LabelKeyPluginIntegration is used to identify resources that are part of plugin-plugin integration scenarios.
+	LabelKeyPluginIntegration = "greenhouse.sap/integration"
+	// LabelValuePluginIntegration will be used as list selector value to identify resources that are part of plugin-plugin integration scenarios.
+	LabelValuePluginIntegration = "true"
+	// AnnotationKeyPluginTackingID is used to identify the resources that are resolving values from the tracked plugin.
+	AnnotationKeyPluginTackingID = "greenhouse.sap/tracking-id"
+
+	FluxReconcileRequestAnnotation = "reconcile.fluxcd.io/requestedAt"
 )
 
 // TeamRole and TeamRoleBinding constants
@@ -96,8 +116,8 @@ const (
 
 // Deletion Policies
 const (
-	// DeletionPolicyOrphan means owned resources will be orphaned on deletion.
-	DeletionPolicyOrphan = "Orphan"
+	// DeletionPolicyRetain means owned resources will be retained on deletion.
+	DeletionPolicyRetain = "Retain"
 	// DeletionPolicyDelete means owned resources will be deleted on deletion.
 	DeletionPolicyDelete = "Delete"
 )
@@ -120,7 +140,6 @@ const (
 	ClusterConnectivityOIDC           = "oidc"
 	GreenhouseHelmDeliveryToolLabel   = "greenhouse.sap/deployment-tool"
 	GreenhouseHelmDeliveryToolFlux    = "flux"
-	FluxReconcileRequestAnnotation    = "reconcile.fluxcd.io/requestedAt"
 )
 
 const (

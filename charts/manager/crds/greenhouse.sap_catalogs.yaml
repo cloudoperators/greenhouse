@@ -1,4 +1,4 @@
-# SPDX-FileCopyrightText: 2025 SAP SE or an SAP affiliate company and Greenhouse contributors
+# SPDX-FileCopyrightText: 2026 SAP SE or an SAP affiliate company and Greenhouse contributors
 # SPDX-License-Identifier: Apache-2.0
 
 ---
@@ -53,13 +53,11 @@ spec:
                   resolve PluginDefinitions / ClusterPluginDefinitions from
                 items:
                   properties:
-                    excludes:
-                      description: |-
-                        Excludes contains a list of path patterns to exclude from the Catalog
-                        e.g. ["**/test/**", "**/example*/**"]
-                      items:
-                        type: string
-                      type: array
+                    interval:
+                      description: Interval defines how often to reconcile the Git
+                        repository source
+                      pattern: ^([0-9]+(\.[0-9]+)?(ms|s|m|h))+$
+                      type: string
                     overrides:
                       description: Overrides are the PluginDefinition overrides to
                         be applied
@@ -73,13 +71,32 @@ spec:
                           name:
                             description: Name is the name of the PluginDefinition
                               to patch with an alias
+                            minLength: 1
                             type: string
+                          optionsOverride:
+                            description: OptionsOverride are the option values to
+                              override in the PluginDefinition .spec.options[]
+                            items:
+                              properties:
+                                name:
+                                  description: Name is the name of the option value
+                                    to override in the PluginDefinition
+                                  minLength: 1
+                                  type: string
+                                value:
+                                  description: Value is the value to set as Default
+                                    in the PluginDefinition option
+                                  x-kubernetes-preserve-unknown-fields: true
+                              required:
+                              - name
+                              - value
+                              type: object
+                            type: array
                           repository:
                             description: Repository is the repository to override
                               in the PluginDefinition .spec.helmChart.repository
                             type: string
                         required:
-                        - alias
                         - name
                         type: object
                       type: array
@@ -98,6 +115,7 @@ spec:
                       type: object
                     repository:
                       description: Repository - the Git repository URL
+                      pattern: ^https://.*$
                       type: string
                     resources:
                       description: |-
@@ -145,6 +163,10 @@ spec:
                 description: Inventory contains list of internal artifacts generated
                   by Catalog
                 type: object
+              lastReconciledAt:
+                description: LastReconciledAt contains the value when the reconcile
+                  was last triggered via annotation.
+                type: string
               statusConditions:
                 description: StatusConditions contain the different conditions that
                   constitute the status of the Catalog

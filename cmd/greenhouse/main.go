@@ -66,6 +66,7 @@ const (
 const (
 	flagHelmDebug                          = "helm-debug"
 	flagControllers                        = "controllers"
+	flagDisabledControllers                = "disabled-controllers"
 	flagMetricsBindAddress                 = "metrics-bind-address"
 	flagHealthProbeBindAddress             = "health-probe-bind-address"
 	flagRemoteClusterBearerTokenValidity   = "remote-cluster-bearer-token-validity"
@@ -74,17 +75,22 @@ const (
 	flagLeaseDuration                      = "leader-election-lease-duration"
 	flagRenewDeadline                      = "leader-election-renew-deadline"
 	flagRetryPeriod                        = "leader-election-retry-period"
+	flagArtifactStoragePath                = "catalog-artifact-storage-path"
+	flagArtifactRetries                    = "catalog-http-retry"
 )
 
 var (
 	scheme   = runtime.NewScheme()
 	setupLog = ctrl.Log.WithName("setup")
 
-	enabledControllers []string
+	enabledControllers  []string
+	disabledControllers []string
 	remoteClusterBearerTokenValidity,
 	renewRemoteClusterBearerTokenAfter time.Duration
-	kubeClientOpts clientutil.RuntimeOptions
-	featureFlags   *features.Features
+	kubeClientOpts      clientutil.RuntimeOptions
+	featureFlags        *features.Features
+	artifactStoragePath string
+	artifactRetries     int
 )
 
 func init() {
@@ -108,6 +114,8 @@ func main() {
 		"Enable debug logging for underlying Helm client.")
 	flag.StringSliceVar(&enabledControllers, flagControllers, knownControllersNames(),
 		"A list of controllers to enable.")
+	flag.StringSliceVar(&disabledControllers, flagDisabledControllers, []string{},
+		"A list of controllers to disable.")
 	flag.StringVar(&metricsAddr, flagMetricsBindAddress, ":8080",
 		"The address the metric endpoint binds to.")
 	flag.StringVar(&probeAddr, flagHealthProbeBindAddress, ":8081",
@@ -121,6 +129,8 @@ func main() {
 	flag.DurationVar(&leaseDuration, flagLeaseDuration, 60*time.Second, "Leader election lease duration")
 	flag.DurationVar(&renewDeadline, flagRenewDeadline, 30*time.Second, "Leader election renew deadline")
 	flag.DurationVar(&retryPeriod, flagRetryPeriod, 5*time.Second, "Leader election retry period")
+	flag.StringVar(&artifactStoragePath, flagArtifactStoragePath, "/tmp/data", "The path to store catalog artifacts")
+	flag.IntVar(&artifactRetries, flagArtifactRetries, 5, "Max number of retries to acquire artifact, default: 5 attempts")
 
 	opts := zap.Options{
 		Development: true,

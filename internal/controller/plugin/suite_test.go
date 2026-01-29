@@ -10,6 +10,7 @@ import (
 	greenhouseapis "github.com/cloudoperators/greenhouse/api"
 	greenhousecluster "github.com/cloudoperators/greenhouse/internal/controller/cluster"
 	greenhouseDef "github.com/cloudoperators/greenhouse/internal/controller/plugindefinition"
+	"github.com/cloudoperators/greenhouse/internal/features"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -38,7 +39,10 @@ func TestHelmController(t *testing.T) {
 }
 
 var _ = BeforeSuite(func() {
-	test.RegisterController("plugin", (&PluginReconciler{KubeRuntimeOpts: clientutil.RuntimeOptions{QPS: 5, Burst: 10}}).SetupWithManager)
+	test.RegisterController("plugin", (&PluginReconciler{
+		KubeRuntimeOpts:       clientutil.RuntimeOptions{QPS: 5, Burst: 10},
+		DefaultDeploymentTool: &features.DefaultDeploymentToolValue,
+	}).SetupWithManager)
 	test.RegisterController("pluginPreset", (&PluginPresetReconciler{}).SetupWithManager)
 	test.RegisterController("pluginDefinition", (&greenhouseDef.PluginDefinitionReconciler{}).SetupWithManager)
 	test.RegisterController("clusterPluginDefinition", (&greenhouseDef.ClusterPluginDefinitionReconciler{}).SetupWithManager)
@@ -96,7 +100,6 @@ var _ = Describe("HelmControllerTest", Serial, func() {
 
 		Namespace               = "greenhouse"
 		ReleaseName             = "myplugin-release"
-		HelmRepo                = "dummy"
 		HelmChart               = "./../../test/fixtures/myChart"
 		HelmChartUpdated        = "./../../test/fixtures/myChartV2"
 		HelmChartWithAllOptions = "./../../test/fixtures/chartWithEveryOption"
@@ -133,9 +136,8 @@ var _ = Describe("HelmControllerTest", Serial, func() {
 		testPluginDefinition = test.NewClusterPluginDefinition(test.Ctx, PluginDefinitionName,
 			test.WithVersion(PluginDefinitionVersion),
 			test.WithHelmChart(&greenhousev1alpha1.HelmChartReference{
-				Name:       HelmChart,
-				Repository: HelmRepo,
-				Version:    PluginDefinitionChartVersion,
+				Name:    HelmChart,
+				Version: PluginDefinitionChartVersion,
 			}),
 			test.AppendPluginOption(greenhousev1alpha1.PluginOption{
 				Name:        PluginOptionRequired,
@@ -442,9 +444,8 @@ var _ = Describe("HelmControllerTest", Serial, func() {
 			complexPluginDefinition = test.NewClusterPluginDefinition(test.Ctx, pluginWithEveryOption,
 				test.WithVersion(PluginDefinitionVersion),
 				test.WithHelmChart(&greenhousev1alpha1.HelmChartReference{
-					Name:       HelmChartWithAllOptions,
-					Repository: HelmRepo,
-					Version:    PluginDefinitionChartVersion,
+					Name:    HelmChartWithAllOptions,
+					Version: PluginDefinitionChartVersion,
 				}),
 				test.AppendPluginOption(greenhousev1alpha1.PluginOption{
 					Name:        PluginOptionDefault,

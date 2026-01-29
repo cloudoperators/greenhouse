@@ -24,12 +24,13 @@ import (
 )
 
 var _ = Describe("Validate Plugin OptionValues", func() {
-	DescribeTable("Validate PluginType contains either Value or ValueFrom", func(value *apiextensionsv1.JSON, valueFrom *greenhousev1alpha1.ValueFromSource, expErr bool) {
+	DescribeTable("Validate PluginType contains either Value, ValueFrom, or Expression", func(value *apiextensionsv1.JSON, valueFrom *greenhousev1alpha1.PluginValueFromSource, expression *string, expErr bool) {
 		optionValues := []greenhousev1alpha1.PluginOptionValue{
 			{
-				Name:      "test",
-				Value:     value,
-				ValueFrom: valueFrom,
+				Name:       "test",
+				Value:      value,
+				ValueFrom:  valueFrom,
+				Expression: expression,
 			},
 		}
 
@@ -69,10 +70,14 @@ var _ = Describe("Validate Plugin OptionValues", func() {
 			Expect(errList).To(BeEmpty(), "expected no error, got %v", errList)
 		}
 	},
-		Entry("Value and ValueFrom nil", nil, nil, true),
-		Entry("Value and ValueFrom not nil", test.MustReturnJSONFor("test"), &greenhousev1alpha1.ValueFromSource{Secret: &greenhousev1alpha1.SecretKeyReference{Name: "my-secret"}}, true),
-		Entry("Value not nil", test.MustReturnJSONFor("test"), nil, false),
-		Entry("ValueFrom not nil", nil, &greenhousev1alpha1.ValueFromSource{Secret: &greenhousev1alpha1.SecretKeyReference{Name: "my-secret", Key: "secret-key"}}, false),
+		Entry("Value and ValueFrom and Expression nil", nil, nil, nil, true),
+		Entry("Value and ValueFrom not nil, Expression is nil", test.MustReturnJSONFor("test"), &greenhousev1alpha1.PluginValueFromSource{Secret: &greenhousev1alpha1.SecretKeyReference{Name: "my-secret"}}, nil, true),
+		Entry("Value not nil", test.MustReturnJSONFor("test"), nil, nil, false),
+		Entry("ValueFrom not nil", nil, &greenhousev1alpha1.PluginValueFromSource{Secret: &greenhousev1alpha1.SecretKeyReference{Name: "my-secret", Key: "secret-key"}}, nil, false),
+		Entry("Expression not nil", nil, nil, ptr.To("${global.greenhouse.clusterName}"), false),
+		Entry("Value and Expression not nil, ValueFrom nil", test.MustReturnJSONFor("test"), nil, ptr.To("${global.greenhouse.clusterName}"), true),
+		Entry("ValueFrom and Expression not nil, Value nil", nil, &greenhousev1alpha1.PluginValueFromSource{Secret: &greenhousev1alpha1.SecretKeyReference{Name: "my-secret", Key: "secret-key"}}, ptr.To("${global.greenhouse.clusterName}"), true),
+		Entry("Value, ValueFrom, and Expression all not nil", test.MustReturnJSONFor("test"), &greenhousev1alpha1.PluginValueFromSource{Secret: &greenhousev1alpha1.SecretKeyReference{Name: "my-secret", Key: "secret-key"}}, ptr.To("${global.greenhouse.clusterName}"), true),
 	)
 
 	DescribeTable("Validate PluginOptionValue is consistent with PluginOption Type", func(defaultValue any, defaultType greenhousev1alpha1.PluginOptionType, actValue any, expErr bool) {
@@ -154,15 +159,15 @@ var _ = Describe("Validate Plugin OptionValues", func() {
 			Expect(errList).To(BeEmpty(), "expected no error, got %v", errList)
 		}
 	},
-		Entry("PluginOption ValueFrom has a valid SecretReference", &greenhousev1alpha1.PluginOptionValue{Name: "test", ValueFrom: &greenhousev1alpha1.ValueFromSource{Secret: &greenhousev1alpha1.SecretKeyReference{Name: "secret", Key: "key"}}}, false),
+		Entry("PluginOption ValueFrom has a valid SecretReference", &greenhousev1alpha1.PluginOptionValue{Name: "test", ValueFrom: &greenhousev1alpha1.PluginValueFromSource{Secret: &greenhousev1alpha1.SecretKeyReference{Name: "secret", Key: "key"}}}, false),
 		Entry("PluginOption Value has a valid string with vault schema prefix", &greenhousev1alpha1.PluginOptionValue{Name: "test", Value: test.MustReturnJSONFor("vault+kvv2:///some-path/to/secret")}, false),
 		Entry("PluginOption Value has a invalid string", &greenhousev1alpha1.PluginOptionValue{Name: "test", Value: test.MustReturnJSONFor("some-string")}, true),
-		Entry("PluginOption ValueFrom is missing SecretReference Name", &greenhousev1alpha1.PluginOptionValue{Name: "test", ValueFrom: &greenhousev1alpha1.ValueFromSource{Secret: &greenhousev1alpha1.SecretKeyReference{Key: "key"}}}, true),
-		Entry("PluginOption ValueFrom is missing SecretReference Key", &greenhousev1alpha1.PluginOptionValue{Name: "test", ValueFrom: &greenhousev1alpha1.ValueFromSource{Secret: &greenhousev1alpha1.SecretKeyReference{Name: "secret"}}}, true),
+		Entry("PluginOption ValueFrom is missing SecretReference Name", &greenhousev1alpha1.PluginOptionValue{Name: "test", ValueFrom: &greenhousev1alpha1.PluginValueFromSource{Secret: &greenhousev1alpha1.SecretKeyReference{Key: "key"}}}, true),
+		Entry("PluginOption ValueFrom is missing SecretReference Key", &greenhousev1alpha1.PluginOptionValue{Name: "test", ValueFrom: &greenhousev1alpha1.PluginValueFromSource{Secret: &greenhousev1alpha1.SecretKeyReference{Name: "secret"}}}, true),
 		Entry("PluginOption ValueFrom does not contain a SecretReference", &greenhousev1alpha1.PluginOptionValue{Name: "test"}, true),
 	)
 
-	Describe("Validate Plugin specifies all required options", func() {
+	DescribeTable("Validate Plugin specifies all required options", func(optionValues []greenhousev1alpha1.PluginOptionValue, expErr bool) {
 		pluginDefinition := &greenhousev1alpha1.ClusterPluginDefinition{
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: "greenhouse",
@@ -178,27 +183,38 @@ var _ = Describe("Validate Plugin OptionValues", func() {
 				},
 			},
 		}
-		It("should reject a Plugin with missing required options", func() {
-			plugin := test.NewPlugin(test.Ctx, "test-plugin", test.TestNamespace,
-				test.WithClusterPluginDefinition("test"),
-				test.WithCluster("test-cluster"),
-			)
-			optionsFieldPath := field.NewPath("spec").Child("optionValues")
-			errList := validatePluginOptionValues(plugin.Spec.OptionValues, pluginDefinition.Name, pluginDefinition.Spec, true, optionsFieldPath)
+
+		optionsFieldPath := field.NewPath("spec").Child("optionValues")
+		errList := validatePluginOptionValues(optionValues, pluginDefinition.Name, pluginDefinition.Spec, true, optionsFieldPath)
+		switch expErr {
+		case true:
 			Expect(errList).NotTo(BeEmpty(), "expected an error, got nil")
-		})
-		It("should accept a Plugin with supplied required options", func() {
-			optionValues := []greenhousev1alpha1.PluginOptionValue{
-				{
-					Name:  "test",
-					Value: test.MustReturnJSONFor("test"),
+		default:
+			Expect(errList).To(BeEmpty(), "expected no error, got %v", errList)
+		}
+	},
+		Entry("missing required option", []greenhousev1alpha1.PluginOptionValue{}, true),
+		Entry("required option provided with Value", []greenhousev1alpha1.PluginOptionValue{
+			{
+				Name:  "test",
+				Value: test.MustReturnJSONFor("test"),
+			},
+		}, false),
+		Entry("required option provided with ValueFrom", []greenhousev1alpha1.PluginOptionValue{
+			{
+				Name: "test",
+				ValueFrom: &greenhousev1alpha1.PluginValueFromSource{
+					Secret: &greenhousev1alpha1.SecretKeyReference{Name: "secret", Key: "key"},
 				},
-			}
-			optionsFieldPath := field.NewPath("spec").Child("optionValues")
-			errList := validatePluginOptionValues(optionValues, pluginDefinition.Name, pluginDefinition.Spec, true, optionsFieldPath)
-			Expect(errList).To(BeEmpty(), "unexpected error")
-		})
-	})
+			},
+		}, false),
+		Entry("required option provided with Expression", []greenhousev1alpha1.PluginOptionValue{
+			{
+				Name:       "test",
+				Expression: ptr.To("${global.greenhouse.clusterName}"),
+			},
+		}, false),
+	)
 })
 
 var _ = Describe("Validate plugin spec fields", Ordered, func() {
@@ -315,7 +331,7 @@ var _ = Describe("Validate plugin spec fields", Ordered, func() {
 		expectClusterNotFoundError(test.K8sClient.Create(test.Ctx, testPlugin))
 	})
 
-	It("should keep the template field when merging option values", func() {
+	It("should keep the expression field when merging option values", func() {
 		By("creating the plugin")
 		testPlugin = setup.CreatePlugin(test.Ctx, "test-plugin",
 			test.WithPluginDefinition(testPluginDefinition.Name),
@@ -323,7 +339,7 @@ var _ = Describe("Validate plugin spec fields", Ordered, func() {
 			test.WithReleaseNamespace("test-namespace"),
 			test.WithReleaseName("test-release"),
 			test.WithPluginLabel(greenhouseapis.LabelKeyOwnedBy, team.Name),
-			test.WithPluginOptionValueTemplate("templateOption", ptr.To("{{ .global.greenhouse.clusterName }}")))
+			test.WithPluginOptionValueExpression("expressionOption", ptr.To("${global.greenhouse.clusterName}")))
 
 		By("checking that the label is kept after merging options and optionvalues")
 		actPlugin := &greenhousev1alpha1.Plugin{}
@@ -331,12 +347,12 @@ var _ = Describe("Validate plugin spec fields", Ordered, func() {
 		Expect(err).ToNot(HaveOccurred(), "there should be no error getting the plugin")
 		Eventually(func() bool {
 			for _, actOption := range actPlugin.Spec.OptionValues {
-				if actOption.Name == "templateOption" {
-					return actOption.Template != nil
+				if actOption.Name == "expressionOption" {
+					return actOption.Expression != nil
 				}
 			}
 			return false
-		}).Should(BeTrue(), "the plugin should have the template field set on the optionValue")
+		}).Should(BeTrue(), "the plugin should have the expression field set on the optionValue")
 	})
 
 	It("should accept the plugin with reference to ClusterPluginDefinition", func() {
@@ -490,20 +506,6 @@ var _ = Describe("Validate plugin spec fields", Ordered, func() {
 			"the plugin should not have the clusterplugindefinition label set")
 
 		test.EventuallyDeleted(test.Ctx, test.K8sClient, secondPluginDefinition)
-	})
-
-	It("should correctly default the PluginDefinitionKind", func() {
-		testPlugin := test.NewPlugin(test.Ctx, "test-plugin", setup.Namespace(),
-			test.WithCluster(testCluster.Name),
-			test.WithReleaseNamespace("test-namespace"),
-			test.WithReleaseName("test-release"),
-			test.WithPluginLabel(greenhouseapis.LabelKeyOwnedBy, team.Name),
-		)
-		//nolint:staticcheck
-		testPlugin.Spec.PluginDefinition = testPluginDefinition.Name
-
-		Expect(test.K8sClient.Create(test.Ctx, testPlugin)).To(Succeed(), "there must be no error creating the Plugin")
-		Expect(testPlugin.Spec.PluginDefinitionRef.Kind).To(Equal(greenhousev1alpha1.PluginDefinitionKind), "PluginDefinitionKind should be defaulted to PluginDefinition")
 	})
 })
 

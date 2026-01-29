@@ -1,4 +1,4 @@
-# SPDX-FileCopyrightText: 2025 SAP SE or an SAP affiliate company and Greenhouse contributors
+# SPDX-FileCopyrightText: 2026 SAP SE or an SAP affiliate company and Greenhouse contributors
 # SPDX-License-Identifier: Apache-2.0
 
 ---
@@ -26,6 +26,9 @@ spec:
       type: string
     - jsonPath: .status.statusConditions.conditions[?(@.type == "Ready")].status
       name: Ready
+      type: string
+    - jsonPath: .status.kubernetesVersion
+      name: Version
       type: string
     name: v1alpha1
     schema:

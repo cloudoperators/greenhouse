@@ -261,7 +261,7 @@ var _ = Describe("processSecretsToLiterals", func() {
 			input := []greenhousev1alpha1.PluginOptionValue{
 				{
 					Name: "password",
-					ValueFrom: &greenhousev1alpha1.ValueFromSource{
+					ValueFrom: &greenhousev1alpha1.PluginValueFromSource{
 						Secret: &greenhousev1alpha1.SecretKeyReference{
 							Name: "my-secret",
 							Key:  "password",

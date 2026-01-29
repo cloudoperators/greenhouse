@@ -21,6 +21,10 @@ const (
 	PluginFeatureKey = "plugin"
 )
 
+var (
+	DefaultDeploymentToolValue = "helm"
+)
+
 type Features struct {
 	raw    map[string]string
 	dex    *dexFeatures    `yaml:"dex"`
@@ -32,7 +36,9 @@ type dexFeatures struct {
 }
 
 type pluginFeatures struct {
-	OptionValueTemplating bool `yaml:"optionValueTemplating"`
+	ExpressionEvaluationEnabled bool   `yaml:"expressionEvaluationEnabled"`
+	IntegrationEnabled          bool   `yaml:"integrationEnabled"`
+	DefaultDeploymentTool       string `yaml:"defaultDeploymentTool"`
 }
 
 func NewFeatures(ctx context.Context, k8sClient client.Reader, configMapName, namespace string) (*Features, error) {
@@ -48,20 +54,25 @@ func NewFeatures(ctx context.Context, k8sClient client.Reader, configMapName, na
 	}, nil
 }
 
-func (f *Features) resolveDexFeatures() error {
-	// Extract the `dex` key from the ConfigMap
-	dexRaw, exists := f.raw[DexFeatureKey]
+func resolve[T any](f *Features, key string) (*T, error) {
+	raw, exists := f.raw[key]
 	if !exists {
-		return errors.New("dex feature not found in ConfigMap")
+		return nil, errors.New(key + " feature not found in ConfigMap")
 	}
 
-	// Unmarshal the `dex` YAML string into the struct
-	dex := &dexFeatures{}
-	err := yaml.Unmarshal([]byte(dexRaw), dex)
+	result := new(T)
+	if err := yaml.Unmarshal([]byte(raw), result); err != nil {
+		return nil, err
+	}
+
+	return result, nil
+}
+
+func (f *Features) resolveDexFeatures() error {
+	dex, err := resolve[dexFeatures](f, DexFeatureKey)
 	if err != nil {
 		return err
 	}
-
 	f.dex = dex
 	return nil
 }
@@ -81,31 +92,68 @@ func (f *Features) GetDexStorageType(ctx context.Context) *string {
 }
 
 func (f *Features) resolvePluginFeatures() error {
-	// Extract the `plugin` key from the ConfigMap
-	pluginRaw, exists := f.raw[PluginFeatureKey]
-	if !exists {
-		return errors.New("plugin feature not found in ConfigMap")
-	}
-
-	// Unmarshal the `plugin` YAML string into the struct
-	plugin := &pluginFeatures{}
-	err := yaml.Unmarshal([]byte(pluginRaw), plugin)
+	plugin, err := resolve[pluginFeatures](f, PluginFeatureKey)
 	if err != nil {
 		return err
 	}
-
 	f.plugin = plugin
 	return nil
 }
 
-func (f *Features) IsTemplateRenderingEnabled(ctx context.Context) bool {
-	if f.plugin != nil {
-		return f.plugin.OptionValueTemplating
-	}
-	if err := f.resolvePluginFeatures(); err != nil {
-		ctrl.LoggerFrom(ctx).Error(err, "failed to resolve plugin features")
-		// Default to disabled if feature flag is not configured
+// IsExpressionEvaluationEnabled returns whether plugin option expression evaluation is enabled.
+// Returns false as default.
+func (f *Features) IsExpressionEvaluationEnabled() bool {
+	if f == nil {
 		return false
 	}
-	return f.plugin.OptionValueTemplating
+
+	if f.plugin != nil {
+		return f.plugin.ExpressionEvaluationEnabled
+	}
+	if err := f.resolvePluginFeatures(); err != nil {
+		ctrl.LoggerFrom(context.Background()).Error(err, "failed to resolve plugin features")
+		return false
+	}
+	return f.plugin.ExpressionEvaluationEnabled
+}
+
+// IsIntegrationEnabled returns whether plugin integration is enabled.
+// Returns false as default.
+func (f *Features) IsIntegrationEnabled() bool {
+	if f == nil {
+		return false
+	}
+
+	if f.plugin != nil {
+		return f.plugin.IntegrationEnabled
+	}
+	if err := f.resolvePluginFeatures(); err != nil {
+		ctrl.LoggerFrom(context.Background()).Error(err, "failed to resolve plugin features")
+		return false
+	}
+	return f.plugin.IntegrationEnabled
+}
+
+// GetDefaultDeploymentTool returns the default deployment tool for plugins.
+// Returns nil if the value cannot be resolved.
+func (f *Features) GetDefaultDeploymentTool() *string {
+	if f == nil {
+		return nil
+	}
+
+	if f.plugin != nil {
+		if f.plugin.DefaultDeploymentTool == "" {
+			return nil
+		}
+		return ptr.To(f.plugin.DefaultDeploymentTool)
+	}
+
+	if err := f.resolvePluginFeatures(); err != nil {
+		ctrl.LoggerFrom(context.Background()).Error(err, "failed to resolve plugin features")
+		return nil
+	}
+	if f.plugin.DefaultDeploymentTool == "" {
+		return nil
+	}
+	return ptr.To(f.plugin.DefaultDeploymentTool)
 }

@@ -17,7 +17,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
 	"github.com/cloudoperators/greenhouse/internal/clientutil"
-	"github.com/cloudoperators/greenhouse/internal/mocks"
+	"github.com/cloudoperators/greenhouse/pkg/mocks"
 )
 
 // Test_DexFeatures -  test dex storage type feature gate
@@ -106,40 +106,64 @@ func Test_DexFeatures(t *testing.T) {
 	}
 }
 
-// Test_PluginFeatures - test plugin option value templating feature gate
+// Test_PluginFeatures - test plugin expression evaluation and default deployment tool feature gates
 func Test_PluginFeatures(t *testing.T) {
 	type testCase struct {
-		name          string
-		configMapData map[string]string
-		getError      error
-		expectedValue bool
+		name                         string
+		configMapData                map[string]string
+		getError                     error
+		expectedExpressionEvaluation bool
+		expectedDeploymentToolValue  *string
 	}
 
 	testCases := []testCase{
 		{
-			name:          "it should return true when plugin option value templating is enabled",
-			configMapData: map[string]string{PluginFeatureKey: "optionValueTemplating: true\n"},
-			expectedValue: true,
+			name:                         "it should return true when plugin expression evaluation is enabled",
+			configMapData:                map[string]string{PluginFeatureKey: "expressionEvaluationEnabled: true\n"},
+			expectedExpressionEvaluation: true,
+			expectedDeploymentToolValue:  nil,
 		},
 		{
-			name:          "it should return false when plugin option value templating is disabled",
-			configMapData: map[string]string{PluginFeatureKey: "optionValueTemplating: false\n"},
-			expectedValue: false,
+			name:                         "it should return false when plugin expression evaluation is disabled",
+			configMapData:                map[string]string{PluginFeatureKey: "expressionEvaluationEnabled: false\n"},
+			expectedExpressionEvaluation: false,
+			expectedDeploymentToolValue:  nil,
 		},
 		{
-			name:          "it should return false when plugin key is not found in feature-flags cm",
-			configMapData: map[string]string{"someOtherKey": "value\n"},
-			expectedValue: false,
+			name:                         "it should return flux when default deployment tool is set to flux",
+			configMapData:                map[string]string{PluginFeatureKey: "defaultDeploymentTool: flux\n"},
+			expectedExpressionEvaluation: false,
+			expectedDeploymentToolValue:  clientutil.Ptr("flux"),
 		},
 		{
-			name:          "it should return false when feature-flags cm is not found",
-			getError:      apierrors.NewNotFound(schema.GroupResource{}, "configmap not found"),
-			expectedValue: false,
+			name:                         "it should return helm when default deployment tool is set to helm",
+			configMapData:                map[string]string{PluginFeatureKey: "defaultDeploymentTool: helm\n"},
+			expectedExpressionEvaluation: false,
+			expectedDeploymentToolValue:  clientutil.Ptr("helm"),
 		},
 		{
-			name:          "it should return false when flag is malformed in feature-flags cm",
-			configMapData: map[string]string{PluginFeatureKey: "optionValueTemplating:: invalid_yaml"},
-			expectedValue: false,
+			name:                         "it should return both values when both are set",
+			configMapData:                map[string]string{PluginFeatureKey: "expressionEvaluationEnabled: true\ndefaultDeploymentTool: flux\n"},
+			expectedExpressionEvaluation: true,
+			expectedDeploymentToolValue:  clientutil.Ptr("flux"),
+		},
+		{
+			name:                         "it should return false and nil when plugin key is not found in feature-flags cm",
+			configMapData:                map[string]string{"someOtherKey": "value\n"},
+			expectedExpressionEvaluation: false,
+			expectedDeploymentToolValue:  nil,
+		},
+		{
+			name:                         "it should return false and nil when feature-flags cm is not found",
+			getError:                     apierrors.NewNotFound(schema.GroupResource{}, "configmap not found"),
+			expectedExpressionEvaluation: false,
+			expectedDeploymentToolValue:  nil,
+		},
+		{
+			name:                         "it should return false and nil when flag is malformed in feature-flags cm",
+			configMapData:                map[string]string{PluginFeatureKey: "expressionEvaluationEnabled:: invalid_yaml"},
+			expectedExpressionEvaluation: false,
+			expectedDeploymentToolValue:  nil,
 		},
 	}
 
@@ -170,23 +194,23 @@ func Test_PluginFeatures(t *testing.T) {
 			if tc.getError != nil && client.IgnoreNotFound(tc.getError) == nil {
 				assert.NoError(t, client.IgnoreNotFound(err))
 				assert.Nil(t, featuresInstance, "Expected nil when ConfigMap is missing")
-				var value bool
-				if featuresInstance != nil {
-					value = featuresInstance.IsTemplateRenderingEnabled(ctx)
-				}
-				assert.Equal(t, tc.expectedValue, value)
+
+				expressionEvaluationValue := featuresInstance.IsExpressionEvaluationEnabled()
+				deploymentToolValue := featuresInstance.GetDefaultDeploymentTool()
+
+				assert.Equal(t, tc.expectedExpressionEvaluation, expressionEvaluationValue)
+				assert.Equal(t, tc.expectedDeploymentToolValue, deploymentToolValue)
 				mockK8sClient.AssertExpectations(t)
 				return
 			}
 			assert.NoError(t, err)
 
-			var value bool
-			if featuresInstance != nil {
-				value = featuresInstance.IsTemplateRenderingEnabled(ctx)
-			}
+			expressionEvaluationValue := featuresInstance.IsExpressionEvaluationEnabled()
+			deploymentToolValue := featuresInstance.GetDefaultDeploymentTool()
 
-			// Assert expected value
-			assert.Equal(t, tc.expectedValue, value)
+			// Assert expected values
+			assert.Equal(t, tc.expectedExpressionEvaluation, expressionEvaluationValue)
+			assert.Equal(t, tc.expectedDeploymentToolValue, deploymentToolValue)
 			mockK8sClient.AssertExpectations(t)
 		})
 	}

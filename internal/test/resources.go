@@ -190,9 +190,8 @@ func NewClusterPluginDefinition(ctx context.Context, name string, opts ...func(d
 			Description: "TestPluginDefinition",
 			Version:     "1.0.0",
 			HelmChart: &greenhousev1alpha1.HelmChartReference{
-				Name:       "./../../test/fixtures/myChart",
-				Repository: "dummy",
-				Version:    "1.0.0",
+				Name:    "./../../test/fixtures/myChart",
+				Version: "1.0.0",
 			},
 		},
 	}
@@ -248,9 +247,8 @@ func NewPluginDefinition(ctx context.Context, name, namespace string, opts ...fu
 			Description: "TestPluginDefinition",
 			Version:     "1.0.0",
 			HelmChart: &greenhousev1alpha1.HelmChartReference{
-				Name:       "./../../test/fixtures/myChart",
-				Repository: "dummy",
-				Version:    "1.0.0",
+				Name:    "./../../test/fixtures/myChart",
+				Version: "1.0.0",
 			},
 		},
 	}
@@ -322,65 +320,94 @@ func WithPluginLabel(key, value string) func(*greenhousev1alpha1.Plugin) {
 	}
 }
 
-// WithPluginOptionValue sets the value of a PluginOptionValue, clears ValueFrom and Template
+// WithPluginOptionValue sets the value of a PluginOptionValue, clears ValueFrom and Expression
 func WithPluginOptionValue(name string, value *apiextensionsv1.JSON) func(*greenhousev1alpha1.Plugin) {
 	return func(p *greenhousev1alpha1.Plugin) {
 		for i, v := range p.Spec.OptionValues {
 			if v.Name == name {
 				v.Value = value
 				v.ValueFrom = nil
-				v.Template = nil
+				v.Expression = nil
 				p.Spec.OptionValues[i] = v
 				return
 			}
 		}
 		p.Spec.OptionValues = append(p.Spec.OptionValues, greenhousev1alpha1.PluginOptionValue{
-			Name:      name,
-			Value:     value,
-			ValueFrom: nil,
-			Template:  nil,
+			Name:       name,
+			Value:      value,
+			ValueFrom:  nil,
+			Expression: nil,
 		})
 	}
 }
 
-// WithPluginOptionValue sets the value of a PluginOptionValue, clears Value and Template
-func WithPluginOptionValueFrom(name string, valueFrom *greenhousev1alpha1.ValueFromSource) func(*greenhousev1alpha1.Plugin) {
+// WithPluginOptionValueFrom sets the value of a PluginOptionValue from a secret, clears Value and Expression
+func WithPluginOptionValueFrom(name string, valueFrom *greenhousev1alpha1.PluginValueFromSource) func(*greenhousev1alpha1.Plugin) {
 	return func(p *greenhousev1alpha1.Plugin) {
 		for i, v := range p.Spec.OptionValues {
 			if v.Name == name {
 				v.Value = nil
-				v.ValueFrom = valueFrom
-				v.Template = nil
+				v.ValueFrom = &greenhousev1alpha1.PluginValueFromSource{
+					Secret: valueFrom.Secret,
+				}
+				v.Expression = nil
 				p.Spec.OptionValues[i] = v
 				return
 			}
 		}
 		p.Spec.OptionValues = append(p.Spec.OptionValues, greenhousev1alpha1.PluginOptionValue{
-			Name:      name,
-			Value:     nil,
-			ValueFrom: valueFrom,
-			Template:  nil,
+			Name:  name,
+			Value: nil,
+			ValueFrom: &greenhousev1alpha1.PluginValueFromSource{
+				Secret: valueFrom.Secret,
+			},
+			Expression: nil,
 		})
 	}
 }
 
-// WithPluginOptionValue sets the template of a PluginOptionValue,
-func WithPluginOptionValueTemplate(name string, template *string) func(*greenhousev1alpha1.Plugin) {
+// WithPluginOptionValueFromRef sets the value of a PluginOptionValue from an external reference, clears Value and Expression
+func WithPluginOptionValueFromRef(name string, ref *greenhousev1alpha1.ExternalValueSource) func(*greenhousev1alpha1.Plugin) {
 	return func(p *greenhousev1alpha1.Plugin) {
 		for i, v := range p.Spec.OptionValues {
 			if v.Name == name {
 				v.Value = nil
-				v.Template = template
+				v.ValueFrom = &greenhousev1alpha1.PluginValueFromSource{
+					Ref: ref,
+				}
+				v.Expression = nil
+				p.Spec.OptionValues[i] = v
+				return
+			}
+		}
+		p.Spec.OptionValues = append(p.Spec.OptionValues, greenhousev1alpha1.PluginOptionValue{
+			Name:  name,
+			Value: nil,
+			ValueFrom: &greenhousev1alpha1.PluginValueFromSource{
+				Ref: ref,
+			},
+			Expression: nil,
+		})
+	}
+}
+
+// WithPluginOptionValueExpression sets the expression of a PluginOptionValue,
+func WithPluginOptionValueExpression(name string, expression *string) func(*greenhousev1alpha1.Plugin) {
+	return func(p *greenhousev1alpha1.Plugin) {
+		for i, v := range p.Spec.OptionValues {
+			if v.Name == name {
+				v.Value = nil
+				v.Expression = expression
 				v.ValueFrom = nil
 				p.Spec.OptionValues[i] = v
 				return
 			}
 		}
 		p.Spec.OptionValues = append(p.Spec.OptionValues, greenhousev1alpha1.PluginOptionValue{
-			Name:      name,
-			Value:     nil,
-			Template:  template,
-			ValueFrom: nil,
+			Name:       name,
+			Value:      nil,
+			Expression: expression,
+			ValueFrom:  nil,
 		})
 	}
 }
@@ -388,6 +415,13 @@ func WithPluginOptionValueTemplate(name string, template *string) func(*greenhou
 func WithPluginWaitFor(waitFor []greenhousev1alpha1.WaitForItem) func(*greenhousev1alpha1.Plugin) {
 	return func(p *greenhousev1alpha1.Plugin) {
 		p.Spec.WaitFor = waitFor
+	}
+}
+
+// WithPluginDeletionPolicy sets the DeletionPolicy of a Plugin
+func WithPluginDeletionPolicy(deletionPolicy string) func(*greenhousev1alpha1.Plugin) {
+	return func(p *greenhousev1alpha1.Plugin) {
+		p.Spec.DeletionPolicy = deletionPolicy
 	}
 }
 
@@ -449,6 +483,16 @@ func WithPluginPresetLabel(key, value string) func(*greenhousev1alpha1.PluginPre
 	}
 }
 
+// WithPluginPresetAnnotation sets the annotation on a PluginPreset
+func WithPluginPresetAnnotation(key, value string) func(*greenhousev1alpha1.PluginPreset) {
+	return func(pp *greenhousev1alpha1.PluginPreset) {
+		if pp.Annotations == nil {
+			pp.Annotations = make(map[string]string, 1)
+		}
+		pp.Annotations[key] = value
+	}
+}
+
 // WithClusterOverrides sets the ClusterOverrides for a Cluster
 func WithClusterOverride(clusterName string, optionValues []greenhousev1alpha1.PluginOptionValue) func(*greenhousev1alpha1.PluginPreset) {
 	return func(pp *greenhousev1alpha1.PluginPreset) {
@@ -469,6 +513,16 @@ func WithClusterOverride(clusterName string, optionValues []greenhousev1alpha1.P
 func WithPluginPresetDeletionPolicy(deletionPolicy string) func(*greenhousev1alpha1.PluginPreset) {
 	return func(pp *greenhousev1alpha1.PluginPreset) {
 		pp.Spec.DeletionPolicy = deletionPolicy
+	}
+}
+
+// WithPluginPresetWaitFor adds the WaitForItem to a PluginPreset's WaitFor.
+func WithPluginPresetWaitFor(waitFor greenhousev1alpha1.WaitForItem) func(*greenhousev1alpha1.PluginPreset) {
+	return func(pp *greenhousev1alpha1.PluginPreset) {
+		if pp.Spec.WaitFor == nil {
+			pp.Spec.WaitFor = []greenhousev1alpha1.WaitForItem{}
+		}
+		pp.Spec.WaitFor = append(pp.Spec.WaitFor, waitFor)
 	}
 }
 

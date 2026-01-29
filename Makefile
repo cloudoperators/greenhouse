@@ -134,10 +134,10 @@ $(CLI): $(LOCALBIN)
 
 ##@ Build
 .PHONY: action-build
-action-build: build-greenhouse build-idproxy build-cors-proxy build-greenhousectl build-service-proxy
+action-build: build-greenhouse build-idproxy build-cors-proxy build-greenhousectl build-service-proxy build-authz
 
 .PHONY: build
-build: generate build-greenhouse build-idproxy build-cors-proxy build-greenhousectl build-service-proxy
+build: generate build-greenhouse build-idproxy build-cors-proxy build-greenhousectl build-service-proxy build-authz
 
 build-%: GIT_BRANCH  = $(shell git rev-parse --abbrev-ref HEAD)
 build-%: GIT_COMMIT  = $(shell git rev-parse --short HEAD)
@@ -173,19 +173,19 @@ kustomize-build-crds: manifests kustomize
 ## Tool Binaries
 KUSTOMIZE ?= $(LOCALBIN)/kustomize
 CONTROLLER_GEN ?= $(LOCALBIN)/controller-gen
-CONTROLLER_GEN_ACTION ?= $(LOCALBIN)/controller-gen
+CONTROLLER_GEN_ACTION ?= $(LOCALBIN)/action-controller-gen
 GOIMPORTS ?= $(LOCALBIN)/goimports
 GOLINT ?= $(LOCALBIN)/golangci-lint
 ENVTEST ?= $(LOCALBIN)/setup-envtest
-ENVTEST_ACTION ?= $(LOCALBIN)/setup-envtest
+ENVTEST_ACTION ?= $(LOCALBIN)/action-setup-envtest
 HELMIFY ?= $(LOCALBIN)/helmify
 
 ## Tool Versions
-KUSTOMIZE_VERSION ?= 5.7.1
+KUSTOMIZE_VERSION ?= 5.8.0
 CERT_MANAGER_VERSION ?= v1.17.1
 CONTROLLER_TOOLS_VERSION ?= 0.19.0
-GOLINT_VERSION ?= 2.5.0
-GINKGOLINTER_VERSION ?= 0.21.2
+GOLINT_VERSION ?= 2.8.0
+GINKGOLINTER_VERSION ?= 0.22.0
 # ENVTEST_K8S_VERSION refers to the version of kubebuilder assets to be downloaded by envtest binary.
 ENVTEST_K8S_VERSION ?= 1.34.1
 
@@ -256,6 +256,7 @@ DEMO_ORG ?= demo
 DEV_MODE ?= false
 INTERNAL ?= -int
 WITH_CONTROLLER ?= true
+E2E_RESULT_DIR ?= $(shell pwd)/bin
 
 .PHONY: setup
 setup: setup-manager setup-dashboard setup-demo
@@ -269,7 +270,7 @@ setup-controller-dev:
 	WITH_CONTROLLER=false make setup-manager
 
 .PHONY: setup-manager
-setup-manager: cli
+setup-manager: cli authz-certs
 	CONTROLLER_ENABLED=$(WITH_CONTROLLER) PLUGIN_PATH=$(PLUGIN_DIR) $(CLI) dev setup -f dev-env/dev.config.yaml d=$(DEV_MODE)
 
 .PHONY: setup-dashboard
@@ -314,15 +315,15 @@ clean-e2e:
 
 .PHONY: e2e
 e2e:
-	GOMEGA_DEFAULT_EVENTUALLY_TIMEOUT="2m" \
+	GOMEGA_DEFAULT_EVENTUALLY_TIMEOUT="5m" \
 		go test -tags="$(SCENARIO)E2E" ${PWD}/e2e/$(SCENARIO) -mod=readonly -test.v -ginkgo.v --ginkgo.json-report=$(E2E_REPORT_PATH)
 
 .PHONY: e2e-local
 e2e-local: prepare-e2e
-	GREENHOUSE_ADMIN_KUBECONFIG="$(shell pwd)/bin/$(ADMIN_CLUSTER).kubeconfig" \
-    	GREENHOUSE_REMOTE_KUBECONFIG="$(shell pwd)/bin/$(REMOTE_CLUSTER).kubeconfig" \
-    	GREENHOUSE_REMOTE_INT_KUBECONFIG="$(shell pwd)/bin/$(REMOTE_CLUSTER)-int.kubeconfig" \
-    	CONTROLLER_LOGS_PATH="$(shell pwd)/bin/$(SCENARIO)-e2e-pod-logs.txt" \
+	GREENHOUSE_ADMIN_KUBECONFIG="$(E2E_RESULT_DIR)/$(ADMIN_CLUSTER).kubeconfig" \
+    	GREENHOUSE_REMOTE_KUBECONFIG="$(E2E_RESULT_DIR)/$(REMOTE_CLUSTER).kubeconfig" \
+    	GREENHOUSE_REMOTE_INT_KUBECONFIG="$(E2E_RESULT_DIR)/$(REMOTE_CLUSTER)-int.kubeconfig" \
+    	CONTROLLER_LOGS_PATH="$(E2E_RESULT_DIR)/$(SCENARIO)-e2e-pod-logs.txt" \
     	EXECUTION_ENV=$(EXECUTION_ENV) \
 		GOMEGA_DEFAULT_EVENTUALLY_TIMEOUT="2m" \
 		go test -tags="$(SCENARIO)E2E" $(shell pwd)/e2e/$(SCENARIO) -test.v -ginkgo.v --ginkgo.json-report=$(E2E_REPORT_PATH)
@@ -360,3 +361,83 @@ flux: kustomize
 .PHONY: license
 license:
 	docker run --rm -v $(shell pwd):/github/workspace $(IMG_LICENSE_EYE) -c .github/licenserc.yaml header fix
+
+.PHONY: show-e2e-logs
+show-e2e-logs:
+	@for f in $(E2E_RESULT_DIR)/greenhouse-$(SCENARIO)-*.txt; do \
+  		if [ -e "$$f" ]; then \
+			echo echo -e "\n\n\n--------------------------- Greenhouse Controller Logs ---------------------------\n\n\n"; \
+			cat "$$f"; \
+		fi; \
+	done
+	@for f in $(E2E_RESULT_DIR)/flux-$(SCENARIO)-*.txt; do \
+  		if [ -e "$$f" ]; then \
+			echo -e "\n\n\n--------------------------- Flux $$f ---------------------------\n\n\n"; \
+			cat "$$f"; \
+		fi; \
+	done
+
+# Certs for Authorization Webhook
+AUTHZ_CERTS_DIR := bin/authz-certs
+AUTHZ_CA_KEY := $(AUTHZ_CERTS_DIR)/ca.key
+AUTHZ_CA_CRT := $(AUTHZ_CERTS_DIR)/ca.crt
+AUTHZ_SERVER_KEY := $(AUTHZ_CERTS_DIR)/tls.key
+AUTHZ_SERVER_CSR := $(AUTHZ_CERTS_DIR)/tls.csr
+AUTHZ_SERVER_CRT := $(AUTHZ_CERTS_DIR)/tls.crt
+AUTHZ_CLIENT_KEY := $(AUTHZ_CERTS_DIR)/apiserver.key
+AUTHZ_CLIENT_CSR := $(AUTHZ_CERTS_DIR)/apiserver.csr
+AUTHZ_CLIENT_CRT := $(AUTHZ_CERTS_DIR)/apiserver.crt
+
+AUTHZ_SAN_DNS := DNS:greenhouse-authz,DNS:greenhouse-authz.greenhouse.svc,DNS:greenhouse-authz.greenhouse.svc.cluster.local,IP:127.0.0.1
+
+authz-certs: clean-authz-certs authz-ca authz-server authz-client
+
+$(AUTHZ_CERTS_DIR):
+	mkdir -p $(AUTHZ_CERTS_DIR)
+
+authz-ca: $(AUTHZ_CA_CRT)
+$(AUTHZ_CA_CRT): | $(AUTHZ_CERTS_DIR)
+	openssl genrsa -out $(AUTHZ_CA_KEY) 4096
+	openssl req -x509 -new -nodes -key $(AUTHZ_CA_KEY) -sha256 -days 1095 \
+		-subj "/CN=greenhouse-authz-ca" \
+		-out $(AUTHZ_CA_CRT)
+
+authz-server: $(AUTHZ_SERVER_CRT)
+
+$(AUTHZ_SERVER_CRT): $(AUTHZ_SERVER_CSR) $(AUTHZ_CA_CRT)
+	openssl x509 -req -in $(AUTHZ_SERVER_CSR) -CA $(AUTHZ_CA_CRT) -CAkey $(AUTHZ_CA_KEY) -CAcreateserial \
+		-out $(AUTHZ_SERVER_CRT) -days 365 -sha256 \
+		-extfile <(printf "subjectAltName=$(AUTHZ_SAN_DNS)\nextendedKeyUsage=serverAuth\nkeyUsage=digitalSignature,keyEncipherment\nbasicConstraints=CA:FALSE")
+
+$(AUTHZ_SERVER_CSR): $(AUTHZ_SERVER_KEY)
+	openssl req -new -key $(AUTHZ_SERVER_KEY) \
+		-subj "/CN=greenhouse-authz.greenhouse.svc" \
+		-addext "subjectAltName=$(AUTHZ_SAN_DNS)" \
+		-addext "extendedKeyUsage=serverAuth" \
+		-addext "keyUsage=digitalSignature,keyEncipherment" \
+		-out $(AUTHZ_SERVER_CSR)
+
+$(AUTHZ_SERVER_KEY): | $(AUTHZ_CERTS_DIR)
+	openssl genrsa -out $(AUTHZ_SERVER_KEY) 2048
+
+authz-client: $(AUTHZ_CLIENT_CRT)
+
+$(AUTHZ_CLIENT_CRT): $(AUTHZ_CLIENT_CSR) $(AUTHZ_CA_CRT)
+	openssl x509 -req -in $(AUTHZ_CLIENT_CSR) -CA $(AUTHZ_CA_CRT) -CAkey $(AUTHZ_CA_KEY) -CAcreateserial \
+		-out $(AUTHZ_CLIENT_CRT) -days 365 -sha256 \
+		-extfile <(printf "extendedKeyUsage=clientAuth\nkeyUsage=digitalSignature,keyEncipherment\nbasicConstraints=CA:FALSE")
+
+$(AUTHZ_CLIENT_CSR): $(AUTHZ_CLIENT_KEY)
+	openssl req -new -key $(AUTHZ_CLIENT_KEY) \
+		-subj "/CN=kube-apiserver-authz-client" \
+		-addext "extendedKeyUsage=clientAuth" \
+		-addext "keyUsage=digitalSignature,keyEncipherment" \
+		-out $(AUTHZ_CLIENT_CSR)
+
+$(AUTHZ_CLIENT_KEY): | $(AUTHZ_CERTS_DIR)
+	openssl genrsa -out $(AUTHZ_CLIENT_KEY) 2048
+
+clean-authz-certs:
+	rm -rf $(AUTHZ_CERTS_DIR)
+
+.PHONY: authz-certs clean-authz-certs authz-ca authz-server authz-client

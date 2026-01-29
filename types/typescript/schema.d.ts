@@ -1,5 +1,5 @@
 /*
- * SPDX-FileCopyrightText: 2025 SAP SE or an SAP affiliate company and Greenhouse contributors
+ * SPDX-FileCopyrightText: 2026 SAP SE or an SAP affiliate company and Greenhouse contributors
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -53,20 +53,24 @@ export interface components {
             spec?: {
                 /** @description Sources contains the list of Git Repository source to resolve PluginDefinitions / ClusterPluginDefinitions from */
                 sources: {
-                    /**
-                     * @description Excludes contains a list of path patterns to exclude from the Catalog
-                     *     e.g. ["**\/test/**", "**\/example*\/**"]
-                     */
-                    excludes?: string[];
+                    /** @description Interval defines how often to reconcile the Git repository source */
+                    interval?: string;
                     /** @description Overrides are the PluginDefinition overrides to be applied */
                     overrides?: {
                         /**
                          * @description Alias is the alias to apply to the PluginDefinition Name via Kustomize patches
                          *     For SourceType Helm, this field is passed to postRender Kustomize patch
                          */
-                        alias: string;
+                        alias?: string;
                         /** @description Name is the name of the PluginDefinition to patch with an alias */
                         name: string;
+                        /** @description OptionsOverride are the option values to override in the PluginDefinition .spec.options[] */
+                        optionsOverride?: {
+                            /** @description Name is the name of the option value to override in the PluginDefinition */
+                            name: string;
+                            /** @description Value is the value to set as Default in the PluginDefinition option */
+                            value: unknown;
+                        }[];
                         /** @description Repository is the repository to override in the PluginDefinition .spec.helmChart.repository */
                         repository?: string;
                     }[];
@@ -108,6 +112,8 @@ export interface components {
                         ready?: string;
                     }[];
                 };
+                /** @description LastReconciledAt contains the value when the reconcile was last triggered via annotation. */
+                lastReconciledAt?: string;
                 /** @description StatusConditions contain the different conditions that constitute the status of the Catalog */
                 statusConditions?: {
                     conditions?: {
@@ -807,18 +813,62 @@ export interface components {
                 clusterOptionOverrides?: {
                     clusterName: string;
                     overrides: {
+                        /** @description Expression is a YAML string with ${...} placeholders that will be evaluated as CEL expressions. */
+                        expression?: string;
                         /** @description Name of the values. */
                         name: string;
-                        /**
-                         * @description Template is a Go string template that will be dynamically resolved for cluster-specific values.
-                         *     Only PluginOptionValues declared as template will be templated by the PluginController for Flux.
-                         */
-                        template?: string;
                         /** @description Value is the actual value in plain text. */
                         value?: unknown;
-                        /** @description ValueFrom references a potentially confidential value in another source. */
+                        /** @description ValueFrom references value in another source. */
                         valueFrom?: {
-                            /** @description Secret references the secret containing the value. */
+                            /** @description Ref references values defined in another resource (Plugin, PluginPreset) */
+                            ref?: {
+                                /** @description Expression is a CEL expression to extract the value from the referenced resource */
+                                expression: string;
+                                /**
+                                 * @description Kind is the resource kind to target
+                                 *     if not set, defaults to the same kind as the referencing resource (Plugin or PluginPreset)
+                                 * @enum {string}
+                                 */
+                                kind?: "Plugin" | "PluginPreset";
+                                /**
+                                 * @description Name is the name of the resource to target
+                                 *     this field is mutually exclusive with LabelSelector
+                                 */
+                                name?: string;
+                                /**
+                                 * @description Selector selects the resources to target based on labels
+                                 *     this field is mutually exclusive with Name
+                                 */
+                                selector?: {
+                                    /** @description matchExpressions is a list of label selector requirements. The requirements are ANDed. */
+                                    matchExpressions?: {
+                                        /** @description key is the label key that the selector applies to. */
+                                        key: string;
+                                        /**
+                                         * @description operator represents a key's relationship to a set of values.
+                                         *     Valid operators are In, NotIn, Exists and DoesNotExist.
+                                         */
+                                        operator: string;
+                                        /**
+                                         * @description values is an array of string values. If the operator is In or NotIn,
+                                         *     the values array must be non-empty. If the operator is Exists or DoesNotExist,
+                                         *     the values array must be empty. This array is replaced during a strategic
+                                         *     merge patch.
+                                         */
+                                        values?: string[];
+                                    }[];
+                                    /**
+                                     * @description matchLabels is a map of {key,value} pairs. A single {key,value} in the matchLabels
+                                     *     map is equivalent to an element of matchExpressions, whose key field is "key", the
+                                     *     operator is "In", and the values array contains only "value". The requirements are ANDed.
+                                     */
+                                    matchLabels?: {
+                                        [key: string]: string;
+                                    };
+                                };
+                            };
+                            /** @description Secret references the v1.Secret containing the value that needs to be extracted */
                             secret?: {
                                 /** @description Key in the secret to select the value from. */
                                 key: string;
@@ -858,35 +908,99 @@ export interface components {
                 };
                 /**
                  * @description DeletionPolicy defines how Plugins owned by a PluginPreset are handled on deletion of the PluginPreset.
-                 *     Supported values are "Delete" and "Orphan". If not set, defaults to "Delete".
+                 *     Supported values are "Delete" and "Retain". If not set, defaults to "Delete".
                  * @default Delete
                  * @enum {string}
                  */
-                deletionPolicy: "Delete" | "Orphan";
+                deletionPolicy: "Delete" | "Retain";
                 /** @description PluginSpec is the spec of the plugin to be deployed by the PluginPreset. */
                 plugin: {
                     /** @description ClusterName is the name of the cluster the plugin is deployed to. If not set, the plugin is deployed to the greenhouse cluster. */
                     clusterName?: string;
+                    /**
+                     * @description DeletionPolicy defines how Helm Releases created by a Plugin are handled upon deletion of the Plugin.
+                     *     Supported values are "Delete" and "Retain". If not set, defaults to "Delete".
+                     * @default Delete
+                     * @enum {string}
+                     */
+                    deletionPolicy: "Delete" | "Retain";
                     /**
                      * @description DisplayName is an optional name for the Plugin to be displayed in the Greenhouse UI.
                      *     This is especially helpful to distinguish multiple instances of a PluginDefinition in the same context.
                      *     Defaults to a normalized version of metadata.name.
                      */
                     displayName?: string;
+                    /** @description IgnoreDifferences defines paths to ignore when detecting drift between desired and actual state. */
+                    ignoreDifferences?: {
+                        /** @description Group matches the APIVersion group of the resources to ignore. */
+                        group?: string;
+                        /** @description Kind matches the Kind of the resources to ignore. */
+                        kind?: string;
+                        /** @description Name matches the name of the resources to ignore. */
+                        name?: string;
+                        /** @description Paths is a list of JSON paths to ignore when detecting drifts. */
+                        paths: string[];
+                        /** @description Version matches the APIVersion version of the resources to ignore. */
+                        version?: string;
+                    }[];
                     /** @description Values are the values for a PluginDefinition instance. */
                     optionValues?: {
+                        /** @description Expression is a YAML string with ${...} placeholders that will be evaluated as CEL expressions. */
+                        expression?: string;
                         /** @description Name of the values. */
                         name: string;
-                        /**
-                         * @description Template is a Go string template that will be dynamically resolved for cluster-specific values.
-                         *     Only PluginOptionValues declared as template will be templated by the PluginController for Flux.
-                         */
-                        template?: string;
                         /** @description Value is the actual value in plain text. */
                         value?: unknown;
-                        /** @description ValueFrom references a potentially confidential value in another source. */
+                        /** @description ValueFrom references value in another source. */
                         valueFrom?: {
-                            /** @description Secret references the secret containing the value. */
+                            /** @description Ref references values defined in another resource (Plugin, PluginPreset) */
+                            ref?: {
+                                /** @description Expression is a CEL expression to extract the value from the referenced resource */
+                                expression: string;
+                                /**
+                                 * @description Kind is the resource kind to target
+                                 *     if not set, defaults to the same kind as the referencing resource (Plugin or PluginPreset)
+                                 * @enum {string}
+                                 */
+                                kind?: "Plugin" | "PluginPreset";
+                                /**
+                                 * @description Name is the name of the resource to target
+                                 *     this field is mutually exclusive with LabelSelector
+                                 */
+                                name?: string;
+                                /**
+                                 * @description Selector selects the resources to target based on labels
+                                 *     this field is mutually exclusive with Name
+                                 */
+                                selector?: {
+                                    /** @description matchExpressions is a list of label selector requirements. The requirements are ANDed. */
+                                    matchExpressions?: {
+                                        /** @description key is the label key that the selector applies to. */
+                                        key: string;
+                                        /**
+                                         * @description operator represents a key's relationship to a set of values.
+                                         *     Valid operators are In, NotIn, Exists and DoesNotExist.
+                                         */
+                                        operator: string;
+                                        /**
+                                         * @description values is an array of string values. If the operator is In or NotIn,
+                                         *     the values array must be non-empty. If the operator is Exists or DoesNotExist,
+                                         *     the values array must be empty. This array is replaced during a strategic
+                                         *     merge patch.
+                                         */
+                                        values?: string[];
+                                    }[];
+                                    /**
+                                     * @description matchLabels is a map of {key,value} pairs. A single {key,value} in the matchLabels
+                                     *     map is equivalent to an element of matchExpressions, whose key field is "key", the
+                                     *     operator is "In", and the values array contains only "value". The requirements are ANDed.
+                                     */
+                                    matchLabels?: {
+                                        [key: string]: string;
+                                    };
+                                };
+                            };
+                            /** @description Secret references the v1.Secret containing the value that needs to be extracted */
                             secret?: {
                                 /** @description Key in the secret to select the value from. */
                                 key: string;
@@ -895,12 +1009,6 @@ export interface components {
                             };
                         };
                     }[];
-                    /**
-                     * @description PluginDefinition is the name of the PluginDefinition this instance is for.
-                     *
-                     *     Deprecated: Use PluginDefinitionRef instead. Future releases of greenhouse will remove this field.
-                     */
-                    pluginDefinition: string;
                     /** @description PluginDefinitionRef is the reference to the (Cluster-)PluginDefinition. */
                     pluginDefinitionRef: {
                         /**
@@ -1034,25 +1142,89 @@ export interface components {
                 /** @description ClusterName is the name of the cluster the plugin is deployed to. If not set, the plugin is deployed to the greenhouse cluster. */
                 clusterName?: string;
                 /**
+                 * @description DeletionPolicy defines how Helm Releases created by a Plugin are handled upon deletion of the Plugin.
+                 *     Supported values are "Delete" and "Retain". If not set, defaults to "Delete".
+                 * @default Delete
+                 * @enum {string}
+                 */
+                deletionPolicy: "Delete" | "Retain";
+                /**
                  * @description DisplayName is an optional name for the Plugin to be displayed in the Greenhouse UI.
                  *     This is especially helpful to distinguish multiple instances of a PluginDefinition in the same context.
                  *     Defaults to a normalized version of metadata.name.
                  */
                 displayName?: string;
+                /** @description IgnoreDifferences defines paths to ignore when detecting drift between desired and actual state. */
+                ignoreDifferences?: {
+                    /** @description Group matches the APIVersion group of the resources to ignore. */
+                    group?: string;
+                    /** @description Kind matches the Kind of the resources to ignore. */
+                    kind?: string;
+                    /** @description Name matches the name of the resources to ignore. */
+                    name?: string;
+                    /** @description Paths is a list of JSON paths to ignore when detecting drifts. */
+                    paths: string[];
+                    /** @description Version matches the APIVersion version of the resources to ignore. */
+                    version?: string;
+                }[];
                 /** @description Values are the values for a PluginDefinition instance. */
                 optionValues?: {
+                    /** @description Expression is a YAML string with ${...} placeholders that will be evaluated as CEL expressions. */
+                    expression?: string;
                     /** @description Name of the values. */
                     name: string;
-                    /**
-                     * @description Template is a Go string template that will be dynamically resolved for cluster-specific values.
-                     *     Only PluginOptionValues declared as template will be templated by the PluginController for Flux.
-                     */
-                    template?: string;
                     /** @description Value is the actual value in plain text. */
                     value?: unknown;
-                    /** @description ValueFrom references a potentially confidential value in another source. */
+                    /** @description ValueFrom references value in another source. */
                     valueFrom?: {
-                        /** @description Secret references the secret containing the value. */
+                        /** @description Ref references values defined in another resource (Plugin, PluginPreset) */
+                        ref?: {
+                            /** @description Expression is a CEL expression to extract the value from the referenced resource */
+                            expression: string;
+                            /**
+                             * @description Kind is the resource kind to target
+                             *     if not set, defaults to the same kind as the referencing resource (Plugin or PluginPreset)
+                             * @enum {string}
+                             */
+                            kind?: "Plugin" | "PluginPreset";
+                            /**
+                             * @description Name is the name of the resource to target
+                             *     this field is mutually exclusive with LabelSelector
+                             */
+                            name?: string;
+                            /**
+                             * @description Selector selects the resources to target based on labels
+                             *     this field is mutually exclusive with Name
+                             */
+                            selector?: {
+                                /** @description matchExpressions is a list of label selector requirements. The requirements are ANDed. */
+                                matchExpressions?: {
+                                    /** @description key is the label key that the selector applies to. */
+                                    key: string;
+                                    /**
+                                     * @description operator represents a key's relationship to a set of values.
+                                     *     Valid operators are In, NotIn, Exists and DoesNotExist.
+                                     */
+                                    operator: string;
+                                    /**
+                                     * @description values is an array of string values. If the operator is In or NotIn,
+                                     *     the values array must be non-empty. If the operator is Exists or DoesNotExist,
+                                     *     the values array must be empty. This array is replaced during a strategic
+                                     *     merge patch.
+                                     */
+                                    values?: string[];
+                                }[];
+                                /**
+                                 * @description matchLabels is a map of {key,value} pairs. A single {key,value} in the matchLabels
+                                 *     map is equivalent to an element of matchExpressions, whose key field is "key", the
+                                 *     operator is "In", and the values array contains only "value". The requirements are ANDed.
+                                 */
+                                matchLabels?: {
+                                    [key: string]: string;
+                                };
+                            };
+                        };
+                        /** @description Secret references the v1.Secret containing the value that needs to be extracted */
                         secret?: {
                             /** @description Key in the secret to select the value from. */
                             key: string;
@@ -1061,12 +1233,6 @@ export interface components {
                         };
                     };
                 }[];
-                /**
-                 * @description PluginDefinition is the name of the PluginDefinition this instance is for.
-                 *
-                 *     Deprecated: Use PluginDefinitionRef instead. Future releases of greenhouse will remove this field.
-                 */
-                pluginDefinition: string;
                 /** @description PluginDefinitionRef is the reference to the (Cluster-)PluginDefinition. */
                 pluginDefinitionRef: {
                     /**
@@ -1159,6 +1325,8 @@ export interface components {
                     /** @description Status is the status of a HelmChart release. */
                     status: string;
                 };
+                /** @description LastReconciledAt contains the value when the reconcile was last triggered via annotation. */
+                lastReconciledAt?: string;
                 /** @description StatusConditions contain the different conditions that constitute the status of the Plugin. */
                 statusConditions?: {
                     conditions?: {
@@ -1177,6 +1345,11 @@ export interface components {
                         type: string;
                     }[];
                 };
+                /**
+                 * @description TrackedObjects contains a list of objects being tracked via the greenhouse.sap/tracking-id annotation.
+                 *     Each entry is in the format "kind/name" (e.g., "Plugin/my-plugin").
+                 */
+                trackedObjects?: string[];
                 /** @description UIApplication contains a reference to the frontend that is used for the deployed pluginDefinition version. */
                 uiApplication?: {
                     /** @description Name of the UI application. */

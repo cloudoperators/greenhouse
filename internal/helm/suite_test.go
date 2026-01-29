@@ -41,7 +41,7 @@ var (
 	}
 	secretOptionValue = &greenhousev1alpha1.PluginOptionValue{
 		Name: "secretValue",
-		ValueFrom: &greenhousev1alpha1.ValueFromSource{
+		ValueFrom: &greenhousev1alpha1.PluginValueFromSource{
 			Secret: &greenhousev1alpha1.SecretKeyReference{
 				Name: "plugindefinition-secret",
 				Key:  "secretKey",
@@ -75,9 +75,8 @@ var (
 		Spec: greenhousev1alpha1.PluginDefinitionSpec{
 			Version: "1.0.0",
 			HelmChart: &greenhousev1alpha1.HelmChartReference{
-				Name:       "./../test/fixtures/myChart",
-				Repository: "dummy",
-				Version:    "1.0.0",
+				Name:    "./../test/fixtures/myChart",
+				Version: "1.0.0",
 			},
 			Options: []greenhousev1alpha1.PluginOption{
 				{
@@ -122,9 +121,8 @@ var (
 		Spec: greenhousev1alpha1.PluginDefinitionSpec{
 			Version: "1.0.0",
 			HelmChart: &greenhousev1alpha1.HelmChartReference{
-				Name:       "./../test/fixtures/myChartWithCRDs",
-				Repository: "dummy",
-				Version:    "1.0.0",
+				Name:    "./../test/fixtures/myChartWithCRDs",
+				Version: "1.0.0",
 			},
 			Options: []greenhousev1alpha1.PluginOption{
 				{

@@ -10,7 +10,9 @@ global:
       postgresqlPort: 5432
       postgresqlUsername: dex
   plugin:
-    optionValueTemplating: false
+    expressionEvaluationEnabled: false
+    integrationEnabled: false
+    defaultDeploymentTool: helm
 
 controllerManager:
   args:

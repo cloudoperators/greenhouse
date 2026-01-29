@@ -12,7 +12,9 @@ global:
       postgresqlUsername: dex
   # Plugin configuration for Greenhouse.
   plugin:
-    optionValueTemplating: false
+    expressionEvaluationEnabled: false
+    integrationEnabled: false
+    defaultDeploymentTool: helm
   linkerd_enabled: false
   region: greenhouse
   registry: ghcr.io/cloudoperators/greenhouse

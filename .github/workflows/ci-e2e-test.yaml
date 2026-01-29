@@ -19,7 +19,7 @@ jobs:
     name: "Prepare E2E Scenarios"
     steps:
       - name: "Checkout"
-        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5
+        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6
 
       # find all e2e scenarios in the e2e directory and generate an array of scenario names
       - name: "E2E Detection"
@@ -39,7 +39,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        k8s-version: [ "v1.32.8" ]
+        k8s-version: [ "v1.32.11" ]
         e2es: ${{fromJson(needs.init.outputs.tests)}}
     steps:
       # run the e2e tests using composite common/workflows/e2e action
@@ -47,22 +47,31 @@ jobs:
         id: e2e
         continue-on-error: true
         uses: cloudoperators/common/workflows/e2e@main
+        env:
+          RUNTIME_ENV: "CI"
+          GH_APP_ID: ${{ secrets.CLOUDOPERATOR_APP_ID }}
+          GH_APP_PRIVATE_KEY: ${{ secrets.CLOUDOPERATOR_APP_PRIVATE_KEY }}
+          GH_APP_INSTALLATION_ID: ${{ secrets.CLOUDOPERATOR_APP_INSTALLATION_ID }}
         with:
-          k8s-version: ${{ matrix.k8s-version }}
+          admin-k8s-version: "v1.33.7"
+          remote-k8s-version: ${{ matrix.k8s-version }}
           scenario: ${{ matrix.e2es }}
-          admin-config: ${{ github.workspace }}/dev-env/greenhouse-admin-cluster.yaml
+          admin-config: ${{ github.workspace }}/e2e/greenhouse-admin-cluster.yaml
           remote-config: ${{ github.workspace }}/dev-env/greenhouse-remote-cluster.yaml
 
       - name: "Display Logs"
+        continue-on-error: true
+        env:
+          SCENARIO: ${{ matrix.e2es }}
+          E2E_RESULT_DIR: ${{github.workspace}}/bin
+        run: |
+          make show-e2e-logs
+
+      - name: "E2E Failure?"
         if: ${{ steps.e2e.outcome == 'failure' }}
         run: |
-          echo "Displaying greenhouse controller logs for failed scenario: ${{ matrix.e2es }}"
-          cat ${{ github.workspace }}/bin/${{ matrix.e2es }}-${{ matrix.k8s-version }}.txt
-          echo "----------------------------------------"
-          echo "Displaying flux logs for failed scenario: ${{ matrix.e2es }}"
-          cat ${{ github.workspace }}/bin/flux-${{ matrix.e2es }}-${{ matrix.k8s-version }}.txt
           exit 1
-        
+  
 
   # check if the e2e tests passed for all scenarios
   checksOK:

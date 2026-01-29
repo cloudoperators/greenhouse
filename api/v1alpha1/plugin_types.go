@@ -4,19 +4,18 @@
 package v1alpha1
 
 import (
+	"slices"
+
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	greenhousemetav1alpha1 "github.com/cloudoperators/greenhouse/api/meta/v1alpha1"
 )
 
+const PluginKind = "Plugin"
+
 // PluginSpec defines the desired state of Plugin
 type PluginSpec struct {
-	// PluginDefinition is the name of the PluginDefinition this instance is for.
-	//
-	// Deprecated: Use PluginDefinitionRef instead. Future releases of greenhouse will remove this field.
-	PluginDefinition string `json:"pluginDefinition"`
-
 	// PluginDefinitionRef is the reference to the (Cluster-)PluginDefinition.
 	PluginDefinitionRef PluginDefinitionReference `json:"pluginDefinitionRef"`
 
@@ -43,8 +42,19 @@ type PluginSpec struct {
 	// +kubebuilder:validation:MaxLength=53
 	ReleaseName string `json:"releaseName,omitempty"`
 
+	// DeletionPolicy defines how Helm Releases created by a Plugin are handled upon deletion of the Plugin.
+	// Supported values are "Delete" and "Retain". If not set, defaults to "Delete".
+	// +Optional
+	// +kubebuilder:default=Delete
+	// +kubebuilder:validation:Enum=Delete;Retain
+	DeletionPolicy string `json:"deletionPolicy,omitempty"`
+
 	// WaitFor defines other Plugins to wait for before installing this Plugin.
 	WaitFor []WaitForItem `json:"waitFor,omitempty"`
+
+	// IgnoreDifferences defines paths to ignore when detecting drift between desired and actual state.
+	// +Optional
+	IgnoreDifferences []IgnoreDifference `json:"ignoreDifferences,omitempty"`
 }
 
 // PluginOptionValue is the value for a PluginOption.
@@ -53,11 +63,65 @@ type PluginOptionValue struct {
 	Name string `json:"name"`
 	// Value is the actual value in plain text.
 	Value *apiextensionsv1.JSON `json:"value,omitempty"`
-	// ValueFrom references a potentially confidential value in another source.
-	ValueFrom *ValueFromSource `json:"valueFrom,omitempty"`
-	// Template is a Go string template that will be dynamically resolved for cluster-specific values.
-	// Only PluginOptionValues declared as template will be templated by the PluginController for Flux.
-	Template *string `json:"template,omitempty"`
+	// ValueFrom references value in another source.
+	ValueFrom *PluginValueFromSource `json:"valueFrom,omitempty"`
+	// Expression is a YAML string with ${...} placeholders that will be evaluated as CEL expressions.
+	Expression *string `json:"expression,omitempty"`
+}
+
+// PluginValueFromSource defines how to extract dynamic values
+// only one of secret or ref can be set
+// +kubebuilder:validation:XValidation:rule="!(has(self.secret) && has(self.ref))",message="both secret and ref cannot be set"
+// +kubebuilder:validation:XValidation:rule="has(self.secret) || has(self.ref)",message="one of secret or ref must be set"
+type PluginValueFromSource struct {
+	// Secret references the v1.Secret containing the value that needs to be extracted
+	Secret *SecretKeyReference `json:"secret,omitempty"`
+	// Ref references values defined in another resource (Plugin, PluginPreset)
+	Ref *ExternalValueSource `json:"ref,omitempty"`
+}
+
+// ExternalValueSource defines how to extract values from external resources
+// +kubebuilder:validation:ExactlyOneOf=name;selector
+type ExternalValueSource struct {
+	// Kind is the resource kind to target
+	// if not set, defaults to the same kind as the referencing resource (Plugin or PluginPreset)
+	// +Optional
+	// +kubebuilder:validation:Enum=Plugin;PluginPreset
+	Kind string `json:"kind,omitempty"`
+
+	// Name is the name of the resource to target
+	// this field is mutually exclusive with LabelSelector
+	// +Optional
+	// +kubebuilder:validation:MinLength=1
+	Name string `json:"name,omitempty"`
+
+	// Selector selects the resources to target based on labels
+	// this field is mutually exclusive with Name
+	// +Optional
+	Selector *metav1.LabelSelector `json:"selector,omitempty"`
+
+	// Expression is a CEL expression to extract the value from the referenced resource
+	// +kubebuilder:validation:Required
+	Expression string `json:"expression"`
+}
+
+// IgnoreDifference defines a set of paths to ignore for matching resources.
+type IgnoreDifference struct {
+	// Group matches the APIVersion group of the resources to ignore.
+	// +Optional
+	Group string `json:"group,omitempty"`
+	// Version matches the APIVersion version of the resources to ignore.
+	// +Optional
+	Version string `json:"version,omitempty"`
+	// Kind matches the Kind of the resources to ignore.
+	// +Optional
+	Kind string `json:"kind,omitempty"`
+	// Name matches the name of the resources to ignore.
+	// +Optional
+	Name string `json:"name,omitempty"`
+	// Paths is a list of JSON paths to ignore when detecting drifts.
+	// +kubebuilder:validation:Required
+	Paths []string `json:"paths,omitempty"`
 }
 
 // ValueJSON returns the value as JSON.
@@ -91,11 +155,20 @@ const (
 	// WaitingForDependenciesCondition reflects if HelmRelease is waiting for other releases to be ready.
 	WaitingForDependenciesCondition greenhousemetav1alpha1.ConditionType = "WaitingForDependencies"
 
+	// RetriesExhaustedCondition reflects if the HelmRelease has exhausted all retries.
+	RetriesExhaustedCondition greenhousemetav1alpha1.ConditionType = "RetriesExhausted"
+
 	// PluginDefinitionNotFoundReason is set when the pluginDefinition is not found.
 	PluginDefinitionNotFoundReason greenhousemetav1alpha1.ConditionReason = "PluginDefinitionNotFound"
 
 	// HelmUninstallFailedReason is set when the helm release could not be uninstalled.
 	HelmUninstallFailedReason greenhousemetav1alpha1.ConditionReason = "HelmUninstallFailed"
+
+	// OptionValueResolutionFailedReason is set when option values could not be resolved
+	OptionValueResolutionFailedReason greenhousemetav1alpha1.ConditionReason = "OptionValueResolutionFailed"
+
+	// PluginOptionValueInvalidReason is set when option values could not be converted to Helm values
+	PluginOptionValueInvalidReason greenhousemetav1alpha1.ConditionReason = "PluginOptionValueInvalid"
 )
 
 // PluginStatus defines the observed state of Plugin
@@ -125,6 +198,15 @@ type PluginStatus struct {
 
 	// StatusConditions contain the different conditions that constitute the status of the Plugin.
 	greenhousemetav1alpha1.StatusConditions `json:"statusConditions,omitempty"`
+
+	// LastReconciledAt contains the value when the reconcile was last triggered via annotation.
+	// +Optional
+	LastReconciledAt string `json:"lastReconciledAt,omitempty"`
+
+	// TrackedObjects contains a list of objects being tracked via the greenhouse.sap/tracking-id annotation.
+	// Each entry is in the format "kind/name" (e.g., "Plugin/my-plugin").
+	// +Optional
+	TrackedObjects []string `json:"trackedObjects,omitempty"`
 }
 
 // ServiceType defines the type of exposed service.
@@ -170,10 +252,10 @@ type HelmReleaseStatus struct {
 //+kubebuilder:object:root=true
 //+kubebuilder:subresource:status
 //+kubebuilder:printcolumn:name="Display name",type=string,JSONPath=`.spec.displayName`
-//+kubebuilder:printcolumn:name="Plugin Definition",type=string,JSONPath=`.spec.pluginDefinition`
+//+kubebuilder:printcolumn:name="Plugin Definition",type=string,JSONPath=`.spec.pluginDefinitionRef.name`
 //+kubebuilder:printcolumn:name="Cluster",type=string,JSONPath=`.spec.clusterName`
+//+kubebuilder:printcolumn:name="Release Name",type=string,JSONPath=`.spec.releaseName`
 //+kubebuilder:printcolumn:name="Release Namespace",type=string,JSONPath=`.spec.releaseNamespace`
-//+kubebuilder:printcolumn:name="Disabled",type=boolean,JSONPath=`.spec.disabled`
 //+kubebuilder:printcolumn:name="Ready",type="string",JSONPath=`.status.statusConditions.conditions[?(@.type == "Ready")].status`
 //+kubebuilder:printcolumn:name="Version",type=string,JSONPath=`.status.version`
 //+kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp"
@@ -209,9 +291,23 @@ func (o *Plugin) SetCondition(condition greenhousemetav1alpha1.Condition) {
 	o.Status.SetConditions(condition)
 }
 
+func (o *Plugin) UpdateLastReconciledAtStatus(value string) {
+	o.Status.LastReconciledAt = value
+}
+
 func (o *Plugin) GetReleaseName() string {
 	if o.Spec.ReleaseName != "" {
 		return o.Spec.ReleaseName
 	}
 	return o.Name
+}
+
+func (o *Plugin) RemoveCondition(conditionType greenhousemetav1alpha1.ConditionType) {
+	o.Status.Conditions = slices.DeleteFunc(o.Status.Conditions, func(cond greenhousemetav1alpha1.Condition) bool {
+		return cond.Type == conditionType
+	})
+}
+
+func (o *Plugin) CanBeSuspended() bool {
+	return true
 }
