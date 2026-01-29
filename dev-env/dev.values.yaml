@@ -6,8 +6,9 @@ global:
   dex:
     backend: kubernetes
   plugin:
-    expressionEvaluationEnabled: false
+    expressionEvaluationEnabled: true
     integrationEnabled: false
+    defaultDeploymentTool: flux
 alerts:
   enabled: false
 certManager:
