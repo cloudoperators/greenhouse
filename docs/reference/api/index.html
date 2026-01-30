@@ -1978,6 +1978,61 @@ SecretKeyReference
 the client application, the URI requested to redirect to must be contained in this list.</p>
 </td>
 </tr>
+<tr>
+<td>
+<code>extraConfig</code><br>
+<em>
+<a href="#greenhouse.sap/v1alpha1.OIDCExtraConfig">
+OIDCExtraConfig
+</a>
+</em>
+</td>
+<td>
+<p>ExtraClaims contains additional configuration for extra claims.</p>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<h3 id="greenhouse.sap/v1alpha1.OIDCExtraConfig">OIDCExtraConfig
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#greenhouse.sap/v1alpha1.OIDCConfig">OIDCConfig</a>)
+</p>
+<div class="md-typeset__scrollwrap">
+<div class="md-typeset__table">
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>insecureSkipEmailVerified</code><br>
+<em>
+bool
+</em>
+</td>
+<td>
+<p>InsecureSkipEmailVerified allows to skip the verification of the &ldquo;email_verified&rdquo; claim in ID tokens.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>userIDClaim</code><br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>UserIDClaim is the claim to be used as user ID.</p>
+</td>
+</tr>
 </tbody>
 </table>
 </div>

@@ -686,6 +686,21 @@ components:
                         - key
                         - name
                       type: object
+                    extraConfig:
+                      description: ExtraClaims contains additional configuration for extra claims.
+                      properties:
+                        insecureSkipEmailVerified:
+                          default: false
+                          description: InsecureSkipEmailVerified allows to skip the verification of the "email_verified" claim in ID tokens.
+                          enum:
+                            - true
+                            - false
+                          type: boolean
+                        userIDClaim:
+                          default: login_name
+                          description: UserIDClaim is the claim to be used as user ID.
+                          type: string
+                      type: object
                     issuer:
                       description: Issuer is the URL of the identity service.
                       type: string
