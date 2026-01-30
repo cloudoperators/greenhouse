@@ -30,7 +30,10 @@ import (
 	"github.com/cloudoperators/greenhouse/pkg/lifecycle"
 )
 
-const clusterK8sVersionUnknown = "unknown"
+const (
+	clusterK8sVersionUnknown = "unknown"
+	controlPlaneNodeLabel    = "node-role.kubernetes.io/control-plane"
+)
 
 func (r *RemoteClusterReconciler) setConditions() lifecycle.Conditioner {
 	return func(ctx context.Context, resource lifecycle.RuntimeObject) {
@@ -51,10 +54,12 @@ func (r *RemoteClusterReconciler) setConditions() lifecycle.Conditioner {
 			kubeConfigValidCondition, k8sVersion = r.reconcileKubeConfigValid(restClientGetter)
 		}
 
-		var allNodesReadyCondition, clusterAccessibleCondition, resourcesDeployedCondition greenhousemetav1alpha1.Condition
+		var allNodesReadyCondition, clusterAccessibleCondition, resourcesDeployedCondition, payloadSchedulable greenhousemetav1alpha1.Condition
+		payloadSchedulable = greenhousemetav1alpha1.TrueCondition(greenhousev1alpha1.PayloadSchedulable, "", "")
 		var nodes *greenhousev1alpha1.Nodes
 		// Can only reconcile detailed status if kubeconfig is valid.
 		if kubeConfigValidCondition.IsFalse() {
+			payloadSchedulable = greenhousemetav1alpha1.FalseCondition(greenhousev1alpha1.PayloadSchedulable, "", "kubeconfig not valid - payloads cannot be scheduled")
 			allNodesReadyCondition = greenhousemetav1alpha1.UnknownCondition(greenhousev1alpha1.AllNodesReady, "", "kubeconfig not valid - cannot know node status")
 			clusterAccessibleCondition = greenhousemetav1alpha1.UnknownCondition(greenhousev1alpha1.PermissionsVerified, "", "kubeconfig not valid - cannot validate cluster access")
 			resourcesDeployedCondition = greenhousemetav1alpha1.UnknownCondition(greenhousev1alpha1.ManagedResourcesDeployed, "", "kubeconfig not valid - cannot validate managed resources")
@@ -62,6 +67,9 @@ func (r *RemoteClusterReconciler) setConditions() lifecycle.Conditioner {
 			allNodesReadyCondition, nodes = r.reconcileNodeStatus(ctx, restClientGetter)
 			clusterAccessibleCondition = r.reconcilePermissions(ctx, restClientGetter)
 			resourcesDeployedCondition = r.reconcileBootstrapResources(ctx, restClientGetter, clusterSecret)
+			if nodes != nil && len(nodes.NotReady) == nodes.Total {
+				payloadSchedulable = greenhousemetav1alpha1.FalseCondition(greenhousev1alpha1.PayloadSchedulable, "", "all nodes are not ready")
+			}
 		}
 
 		readyCondition := r.reconcileReadyStatus(kubeConfigValidCondition, resourcesDeployedCondition)
@@ -76,6 +84,7 @@ func (r *RemoteClusterReconciler) setConditions() lifecycle.Conditioner {
 			ownerLabelCondition,
 			clusterAccessibleCondition,
 			resourcesDeployedCondition,
+			payloadSchedulable,
 		}
 		deletionCondition := r.checkDeletionSchedule(logger, cluster)
 		if !deletionCondition.IsUnknown() {
@@ -223,11 +232,14 @@ func (r *RemoteClusterReconciler) reconcileNodeStatus(
 		return greenhousemetav1alpha1.FalseCondition(greenhousev1alpha1.AllNodesReady, "", err.Error()), nil
 	}
 
-	notReadyNodes := []greenhousev1alpha1.NodeStatus{}
-	var totalNodes, readyNodes int32
+	var notReadyNodes []greenhousev1alpha1.NodeStatus
+	var totalNodes, readyNodes int
 	allNodesReadyCondition = greenhousemetav1alpha1.TrueCondition(greenhousev1alpha1.AllNodesReady, "", "")
 
 	for _, node := range nodeList.Items {
+		if checkIfControlPlaneNode(node.Labels) {
+			continue
+		}
 		totalNodes++
 
 		nodeStatus := getNodeStatusIfNodeNotReady(node)
@@ -251,6 +263,9 @@ func (r *RemoteClusterReconciler) reconcileNodeStatus(
 
 // getNodeStatusIfNodeNotReady returns a NodeStatus when the NodeReady condition is explicitly False; otherwise nil.
 func getNodeStatusIfNodeNotReady(node corev1.Node) *greenhousev1alpha1.NodeStatus {
+	if node.Spec.Unschedulable {
+		return &greenhousev1alpha1.NodeStatus{Name: node.Name, Message: "Node is unschedulable", LastTransitionTime: metav1.Now()}
+	}
 	var readyCondition *corev1.NodeCondition
 	for i := range node.Status.Conditions {
 		if node.Status.Conditions[i].Type == corev1.NodeReady {
@@ -264,4 +279,15 @@ func getNodeStatusIfNodeNotReady(node corev1.Node) *greenhousev1alpha1.NodeStatu
 	}
 
 	return &greenhousev1alpha1.NodeStatus{Name: node.Name, Message: readyCondition.Message, LastTransitionTime: readyCondition.LastTransitionTime}
+}
+
+func checkIfControlPlaneNode(labels map[string]string) (control bool) {
+	control = false
+	for key := range labels {
+		if key == controlPlaneNodeLabel {
+			control = true
+			break
+		}
+	}
+	return
 }
