@@ -33,6 +33,7 @@ import (
 const (
 	remoteClusterHName               = "remote-int-h-cluster"
 	remoteClusterFName               = "remote-int-f-cluster"
+	remoteClusterNodeName            = "remote-int-n-cluster"
 	remoteOIDCClusterHName           = "remote-int-oidc-h-cluster"
 	remoteOIDCClusterCName           = "remote-int-oidc-c-cluster"
 	remoteOIDCClusterFName           = "remote-int-oidc-f-cluster"
@@ -69,13 +70,14 @@ var _ = BeforeSuite(func() {
 	env = env.WithOrganization(ctx, adminClient, "./testdata/organization.yaml")
 	team = test.NewTeam(ctx, "test-cluster-e2e-team", env.TestNamespace, test.WithTeamLabel(greenhouseapis.LabelKeySupportGroup, "true"), test.WithMappedIDPGroup("SOME_IDP_GROUP_NAME"))
 	err = adminClient.Create(ctx, team)
-	Expect(err).ToNot(HaveOccurred(), "there should be no error creating a Team")
+	Expect(client.IgnoreAlreadyExists(err)).ToNot(HaveOccurred(), "there should be no error creating a Team")
 	testStartTime = time.Now().UTC()
 })
 
 var _ = AfterSuite(func() {
 	shared.OffBoardRemoteCluster(ctx, adminClient, remoteClient, testStartTime, remoteClusterHName, env.TestNamespace)
 	shared.OffBoardRemoteCluster(ctx, adminClient, remoteClient, testStartTime, remoteClusterFName, env.TestNamespace)
+	shared.OffBoardRemoteCluster(ctx, adminClient, remoteClient, testStartTime, remoteClusterNodeName, env.TestNamespace)
 	shared.OffBoardRemoteCluster(ctx, adminClient, remoteClient, testStartTime, remoteOIDCClusterHName, env.TestNamespace)
 	shared.OffBoardRemoteCluster(ctx, adminClient, remoteClient, testStartTime, remoteOIDCClusterFName, env.TestNamespace)
 	shared.OffBoardRemoteCluster(ctx, adminClient, remoteClient, testStartTime, remoteOIDCClusterCName, env.TestNamespace)
@@ -249,6 +251,54 @@ var _ = Describe("Cluster E2E", Ordered, func() {
 
 			By("verifying the cluster status is ready")
 			shared.ClusterIsReady(ctx, adminClient, remoteOIDCClusterCName, env.TestNamespace)
+		})
+	})
+
+	Context("Cluster Node Not Ready / Ready 😵 🤖", Ordered, func() {
+		It("should onboard remote cluster", func() {
+			By("onboarding remote cluster")
+			shared.OnboardRemoteCluster(ctx, adminClient, env.RemoteKubeConfigBytes, remoteClusterNodeName, env.TestNamespace, team.Name)
+		})
+		It("should have a cluster resource created", func() {
+			By("verifying if the cluster resource is created")
+			Eventually(func(g Gomega) bool {
+				err := adminClient.Get(ctx, client.ObjectKey{Name: remoteClusterNodeName, Namespace: env.TestNamespace}, &greenhousev1alpha1.Cluster{})
+				g.Expect(err).ToNot(HaveOccurred())
+				return true
+			}).Should(BeTrue(), "cluster resource should be created")
+
+			By("verifying the cluster status is ready")
+			shared.ClusterIsReady(ctx, adminClient, remoteClusterNodeName, env.TestNamespace)
+		})
+		It("should reach not ready state when all nodes are not ready", func() {
+			By("cordoning all nodes in the remote cluster")
+			expect.CordonRemoteNodes(ctx, remoteClient)
+
+			By("verifying the cluster payload is not schedulable")
+			Eventually(func(g Gomega) {
+				cluster := &greenhousev1alpha1.Cluster{}
+				err := adminClient.Get(ctx, client.ObjectKey{Name: remoteClusterNodeName, Namespace: env.TestNamespace}, cluster)
+				g.Expect(err).ToNot(HaveOccurred(), "there should be no error getting the cluster resource")
+				conditions := cluster.GetConditions()
+				payloadCondition := conditions.GetConditionByType(greenhousev1alpha1.PayloadSchedulable)
+				g.Expect(payloadCondition).ToNot(BeNil(), "cluster should have PayloadSchedulable condition")
+				g.Expect(payloadCondition.IsTrue()).To(BeFalse(), "cluster should not be able to schedule payloads")
+			})
+		})
+		It("should reach ready state when nodes are ready again", func() {
+			By("un-cordoning all nodes in the remote cluster")
+			expect.UnCordonRemoteNodes(ctx, remoteClient)
+
+			By("verifying the cluster status is ready again")
+			Eventually(func(g Gomega) {
+				cluster := &greenhousev1alpha1.Cluster{}
+				err := adminClient.Get(ctx, client.ObjectKey{Name: remoteClusterNodeName, Namespace: env.TestNamespace}, cluster)
+				g.Expect(err).ToNot(HaveOccurred(), "there should be no error getting the cluster resource")
+				conditions := cluster.GetConditions()
+				payloadCondition := conditions.GetConditionByType(greenhousev1alpha1.PayloadSchedulable)
+				g.Expect(payloadCondition).ToNot(BeNil(), "cluster should have PayloadSchedulable condition")
+				g.Expect(payloadCondition.IsTrue()).To(BeTrue(), "cluster be able to schedule payloads")
+			})
 		})
 	})
 })

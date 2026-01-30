@@ -585,11 +585,9 @@ components:
                   x-kubernetes-list-type: map
                 ready:
                   description: ReadyNodes represent the number of ready nodes in the cluster.
-                  format: int32
                   type: integer
                 total:
                   description: Total represent the number of all the nodes in the cluster.
-                  format: int32
                   type: integer
               type: object
             statusConditions:
