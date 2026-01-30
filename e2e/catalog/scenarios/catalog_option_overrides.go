@@ -88,7 +88,7 @@ func (s *scenario) createCatalogAndVerifySuccess(ctx context.Context, catalog *g
 	s.catalog = catalog
 	s.catalog.Spec.Sources = append(s.catalog.Spec.Sources, source)
 	Expect(s.createCatalogIfNotExists(ctx)).ToNot(HaveOccurred(), "there should be no error creating the initial Catalog")
-	s.verifySuccess(ctx)
+	s.verifySuccess(ctx, nil)
 	groupKey, err := getSourceGroupHash(source, catalog.Name)
 	Expect(err).ToNot(HaveOccurred(), "there should be no error getting the source group hash for initial catalog")
 	kustomization := s.getKustomizationObject(groupKey)

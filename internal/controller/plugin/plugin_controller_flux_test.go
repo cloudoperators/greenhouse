@@ -260,6 +260,17 @@ var _ = Describe("Flux Plugin Controller", Ordered, func() {
 		By("ensuring the Flux HelmRelease is suspended")
 		test.MustSetAnnotation(test.Ctx, test.K8sClient, testPlugin, lifecycle.SuspendAnnotation, "true")
 
+		By("checking if Plugin has Suspended condition set")
+		Eventually(func(g Gomega) {
+			err := test.K8sClient.Get(test.Ctx, client.ObjectKeyFromObject(testPlugin), testPlugin)
+			g.Expect(err).ToNot(HaveOccurred(), "failed to get Plugin")
+			// Check that Suspended condition is set
+			suspendedCond := testPlugin.Status.GetConditionByType(greenhousemetav1alpha1.SuspendedCondition)
+			g.Expect(suspendedCond).ToNot(BeNil(), "Suspended condition should be present")
+			g.Expect(suspendedCond.IsTrue()).To(BeTrue(), "Suspended condition should be true")
+		}).Should(Succeed())
+
+		By("verifying HelmRelease is suspended")
 		Eventually(func(g Gomega) {
 			err := test.K8sClient.Get(test.Ctx, releaseKey, release)
 			g.Expect(err).ToNot(HaveOccurred(), "failed to get HelmRelease")
@@ -269,6 +280,16 @@ var _ = Describe("Flux Plugin Controller", Ordered, func() {
 		By("ensuring the Flux HelmRelease is resumed")
 		test.MustRemoveAnnotation(test.Ctx, test.K8sClient, testPlugin, lifecycle.SuspendAnnotation)
 
+		By("checking if Plugin Suspended condition is removed")
+		Eventually(func(g Gomega) {
+			err := test.K8sClient.Get(test.Ctx, client.ObjectKeyFromObject(testPlugin), testPlugin)
+			g.Expect(err).ToNot(HaveOccurred(), "failed to get Plugin")
+			// Check that Suspended condition is removed
+			suspendedCond := testPlugin.Status.GetConditionByType(greenhousemetav1alpha1.SuspendedCondition)
+			g.Expect(suspendedCond).To(BeNil(), "Suspended condition should be removed after resume")
+		}).Should(Succeed())
+
+		By("verifying HelmRelease is no longer suspended")
 		Eventually(func(g Gomega) {
 			err := test.K8sClient.Get(test.Ctx, releaseKey, release)
 			g.Expect(err).ToNot(HaveOccurred(), "failed to get HelmRelease")

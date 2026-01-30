@@ -6,6 +6,7 @@ package v1alpha1
 import (
 	"encoding/json"
 	"fmt"
+	"slices"
 
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -247,6 +248,16 @@ func (p *PluginDefinition) GetConditions() greenhousemetav1alpha1.StatusConditio
 
 func (p *PluginDefinition) SetCondition(condition greenhousemetav1alpha1.Condition) {
 	p.Status.SetConditions(condition)
+}
+
+func (p *PluginDefinition) RemoveCondition(conditionType greenhousemetav1alpha1.ConditionType) {
+	p.Status.Conditions = slices.DeleteFunc(p.Status.Conditions, func(cond greenhousemetav1alpha1.Condition) bool {
+		return cond.Type == conditionType
+	})
+}
+
+func (p *PluginDefinition) CanBeSuspended() bool {
+	return false
 }
 
 func init() {

@@ -258,6 +258,16 @@ func (c *Catalog) SetTrueCondition(conditionType greenhousemetav1alpha1.Conditio
 	c.SetCondition(greenhousemetav1alpha1.TrueCondition(conditionType, reason, message))
 }
 
+func (c *Catalog) RemoveCondition(conditionType greenhousemetav1alpha1.ConditionType) {
+	c.Status.Conditions = slices.DeleteFunc(c.Status.Conditions, func(cond greenhousemetav1alpha1.Condition) bool {
+		return cond.Type == conditionType
+	})
+}
+
+func (c *Catalog) CanBeSuspended() bool {
+	return true
+}
+
 func init() {
 	SchemeBuilder.Register(&Catalog{}, &CatalogList{})
 }

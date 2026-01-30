@@ -53,6 +53,12 @@ const (
 	kustomizeArtifactPrefix = "kustomize"
 )
 
+type catalogError struct {
+	InventoryType string
+	Name          string
+	Error         error
+}
+
 type source struct {
 	client.Client
 	scheme                   *runtime.Scheme
@@ -130,6 +136,12 @@ func (r *CatalogReconciler) newCatalogSource(catalogSource greenhousev1alpha1.Ca
 	if lastReconciledAt, ok := lifecycle.ReconcileAnnotationValue(catalog); ok {
 		s.lastReconciledAt = lastReconciledAt
 	}
+
+	// Add owned-by label from Catalog to commonLabels
+	if ownedBy, exists := catalog.Labels[greenhouseapis.LabelKeyOwnedBy]; exists {
+		s.commonLabels[greenhouseapis.LabelKeyOwnedBy] = ownedBy
+	}
+
 	return s, nil
 }
 
