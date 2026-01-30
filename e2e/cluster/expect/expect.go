@@ -6,7 +6,6 @@ package expect
 import (
 	"context"
 	"fmt"
-	"strconv"
 	"time"
 
 	rbacv1 "k8s.io/api/rbac/v1"
@@ -123,12 +122,12 @@ func RevokingRemoteClusterAccess(ctx context.Context, adminClient, remoteClient 
 func ReconcileReadyNotReady(ctx context.Context, adminClient client.Client, clusterName, namespace string, readyStatus bool) {
 	err := shared.WaitUntilResourceReadyOrNotReady(ctx, adminClient, &greenhousev1alpha1.Cluster{}, clusterName, namespace, func(resource lifecycle.RuntimeObject) error {
 		By("triggering a reconcile of the cluster resource")
-		resourceLabels := resource.GetLabels()
+		resourceLabels := resource.GetAnnotations()
 		if resourceLabels == nil {
 			resourceLabels = make(map[string]string)
 		}
-		resourceLabels["greenhouse.sap/last-apply"] = strconv.FormatInt(time.Now().Unix(), 10)
-		resource.SetLabels(resourceLabels)
+		resourceLabels[lifecycle.ReconcileAnnotation] = metav1.Now().Format(time.DateTime)
+		resource.SetAnnotations(resourceLabels)
 		return adminClient.Update(ctx, resource)
 	}, readyStatus)
 	Expect(err).NotTo(HaveOccurred(), "cluster should be in desired status")
@@ -138,4 +137,40 @@ func GetRestConfig(restClientGetter *clientutil.RestClientGetter) *rest.Config {
 	restConfig, err := restClientGetter.ToRESTConfig()
 	Expect(err).NotTo(HaveOccurred(), "there should be no error creating the remote REST config")
 	return restConfig
+}
+
+func CordonRemoteNodes(ctx context.Context, remoteClient client.Client) {
+	nodes := &corev1.NodeList{}
+	err := remoteClient.List(ctx, nodes)
+	Expect(err).NotTo(HaveOccurred(), "there should be no error while listing nodes")
+	for _, node := range nodes.Items {
+		labels := node.GetLabels()
+		_, ok := labels["node-role.kubernetes.io/control-plane"]
+		if ok {
+			By("skipping cordoning control plane node: " + node.Name)
+			continue
+		}
+		if node.Spec.Unschedulable {
+			continue
+		}
+		base := node.DeepCopy()
+		node.Spec.Unschedulable = true
+		err = remoteClient.Patch(ctx, &node, client.MergeFrom(base))
+		Expect(err).NotTo(HaveOccurred(), "there should be no error while patching node")
+	}
+}
+
+func UnCordonRemoteNodes(ctx context.Context, remoteClient client.Client) {
+	nodes := &corev1.NodeList{}
+	err := remoteClient.List(ctx, nodes)
+	Expect(err).NotTo(HaveOccurred(), "there should be no error while listing nodes")
+	for _, node := range nodes.Items {
+		if !node.Spec.Unschedulable {
+			continue
+		}
+		base := node.DeepCopy()
+		node.Spec.Unschedulable = false
+		err = remoteClient.Patch(ctx, &node, client.MergeFrom(base))
+		Expect(err).NotTo(HaveOccurred(), "there should be no error while patching node")
+	}
 }
