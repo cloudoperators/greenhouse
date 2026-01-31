@@ -63,6 +63,8 @@ type RuntimeObject interface {
 	CanBeSuspended() bool
 }
 
+// CatalogObject is an interface that generalizes the CR object that represents a Flux resource
+// TODO: Rename to GenericFluxObject (This is used now in other controllers and CatalogObject is not appropriate)
 type CatalogObject interface {
 	runtime.Object
 	v1.Object
@@ -71,7 +73,7 @@ type CatalogObject interface {
 
 // LastReconciledAtSetter is an interface for runtime objects that support setting the lastReconciledAt status
 type LastReconciledAtSetter interface {
-	// SetLastReconciledAtStatus sets the status field for last reconcile annotation
+	// UpdateLastReconciledAtStatus updates the status field for last reconcile annotation
 	UpdateLastReconciledAtStatus(string)
 }
 
@@ -175,7 +177,7 @@ func isResourceSuspended(runtimeObject RuntimeObject) bool {
 	return ok
 }
 
-// reconcileAnnotationValue returns the value of the reconcile annotation and a boolean indicating whether the annotation is present
+// ReconcileAnnotationValue returns the value of the reconcile annotation and a boolean indicating whether the annotation is present
 func ReconcileAnnotationValue(object v1.Object) (string, bool) {
 	val, ok := object.GetAnnotations()[ReconcileAnnotation]
 	return val, ok

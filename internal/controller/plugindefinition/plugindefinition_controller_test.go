@@ -154,14 +154,26 @@ var _ = Describe("PluginDefinition controller", func() {
 				return nil
 			}).Should(Succeed(), "the HelmRepository should be created successfully")
 
-			By("checking if HelmRepositoryReadyCondition is set on PluginDefinition")
+			By("checking if flux HelmChart is created")
+			helmChart := &sourcev1.HelmChart{}
+			helmChart.SetName(pluginDef.FluxHelmChartResourceName())
+			helmChart.SetNamespace(pluginDef.GetNamespace())
+			Eventually(func(g Gomega) error {
+				err := test.K8sClient.Get(test.Ctx, cl.ObjectKeyFromObject(helmChart), helmChart)
+				g.Expect(err).ToNot(HaveOccurred(), "there should be no error getting the HelmChart")
+				g.Expect(helmChart.Spec.Chart).To(Equal(HelmChart), "the HelmChart chart should match")
+				g.Expect(helmChart.Spec.Version).To(Equal(PluginDefinitionChartVersion), "the HelmChart version should match")
+				return nil
+			}).Should(Succeed(), "the HelmChart should be created successfully")
+
+			By("checking if HelmChartReadyCondition is set on PluginDefinition")
 			Eventually(func(g Gomega) {
 				err := test.K8sClient.Get(test.Ctx, cl.ObjectKeyFromObject(pluginDef), pluginDef)
 				g.Expect(err).ToNot(HaveOccurred())
-				helmRepoCondition := pluginDef.Status.GetConditionByType(greenhousev1alpha1.HelmRepositoryReadyCondition)
-				g.Expect(helmRepoCondition).ToNot(BeNil(), "the PluginDefinition should have a HelmRepositoryReady condition")
-				// Without Flux source-controller, HelmRepository has no Ready condition yet.
-				g.Expect(string(helmRepoCondition.Status)).To(Equal(string(metav1.ConditionUnknown)))
+				helmChartCondition := pluginDef.Status.GetConditionByType(greenhousev1alpha1.HelmChartReadyCondition)
+				g.Expect(helmChartCondition).ToNot(BeNil(), "the PluginDefinition should have a HelmChartReady condition")
+				// Without Flux source-controller, HelmChart has no Ready condition yet.
+				g.Expect(string(helmChartCondition.Status)).To(Equal(string(metav1.ConditionUnknown)))
 			}).Should(Succeed())
 		})
 		It("should successfully create a HelmRepository for a UI PluginDefinition", func() {
@@ -219,14 +231,26 @@ var _ = Describe("PluginDefinition controller", func() {
 				return nil
 			}).Should(Succeed(), "the HelmRepository should be created successfully")
 
-			By("checking if HelmRepositoryReadyCondition is set on ClusterPluginDefinition")
+			By("checking if flux HelmChart is created")
+			helmChart := &sourcev1.HelmChart{}
+			helmChart.SetName(clusterDef.FluxHelmChartResourceName())
+			helmChart.SetNamespace(flux.HelmRepositoryDefaultNamespace)
+			Eventually(func(g Gomega) error {
+				err := test.K8sClient.Get(test.Ctx, cl.ObjectKeyFromObject(helmChart), helmChart)
+				g.Expect(err).ToNot(HaveOccurred(), "there should be no error getting the HelmChart")
+				g.Expect(helmChart.Spec.Chart).To(Equal(HelmChart), "the HelmChart chart should match")
+				g.Expect(helmChart.Spec.Version).To(Equal(PluginDefinitionChartVersion), "the HelmChart version should match")
+				return nil
+			}).Should(Succeed(), "the HelmChart should be created successfully")
+
+			By("checking if HelmChartReadyCondition is set on ClusterPluginDefinition")
 			Eventually(func(g Gomega) {
 				err := test.K8sClient.Get(test.Ctx, cl.ObjectKeyFromObject(clusterDef), clusterDef)
 				g.Expect(err).ToNot(HaveOccurred())
-				helmRepoCondition := clusterDef.Status.GetConditionByType(greenhousev1alpha1.HelmRepositoryReadyCondition)
-				g.Expect(helmRepoCondition).ToNot(BeNil(), "the ClusterPluginDefinition should have a HelmRepositoryReady condition")
-				// Without Flux source-controller, HelmRepository has no Ready condition yet.
-				g.Expect(string(helmRepoCondition.Status)).To(Equal(string(metav1.ConditionUnknown)))
+				helmChartCondition := clusterDef.Status.GetConditionByType(greenhousev1alpha1.HelmChartReadyCondition)
+				g.Expect(helmChartCondition).ToNot(BeNil(), "the ClusterPluginDefinition should have a HelmChartReady condition")
+				// Without Flux source-controller, HelmChart has no Ready condition yet.
+				g.Expect(string(helmChartCondition.Status)).To(Equal(string(metav1.ConditionUnknown)))
 			}).Should(Succeed())
 		})
 	})

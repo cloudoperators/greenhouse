@@ -12,6 +12,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	greenhouseapis "github.com/cloudoperators/greenhouse/api"
+	greenhousemetav1alpha1 "github.com/cloudoperators/greenhouse/api/meta/v1alpha1"
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
 	"github.com/cloudoperators/greenhouse/internal/test"
 )
@@ -45,6 +46,14 @@ var _ = Describe("Plugin Integration", Ordered, func() {
 			}),
 		)
 		Expect(test.K8sClient.Create(test.Ctx, testPluginDefinition)).Should(Succeed(), "there should be no error creating the pluginDefinition")
+
+		By("waiting for ClusterPluginDefinition to have a Ready condition")
+		Eventually(func(g Gomega) {
+			err := test.K8sClient.Get(test.Ctx, client.ObjectKeyFromObject(testPluginDefinition), testPluginDefinition)
+			g.Expect(err).ToNot(HaveOccurred(), "there should be no error getting the ClusterPluginDefinition")
+			readyCondition := testPluginDefinition.Status.GetConditionByType(greenhousemetav1alpha1.ReadyCondition)
+			g.Expect(readyCondition).ToNot(BeNil(), "the ClusterPluginDefinition should have a Ready condition")
+		}).Should(Succeed(), "the ClusterPluginDefinition should have a Ready condition set")
 	})
 
 	AfterAll(func() {
