@@ -96,14 +96,10 @@
   ],
   "packageRules": [
     {
-      "groupName": "github actions",
+      "groupName": "Github Actions updates",
+      "groupSlug": "github-actions",
       "matchManagers": [
         "github-actions"
-      ],
-      "matchUpdateTypes": [
-        "major",
-        "minor",
-        "patch"
       ],
       "extends": [
         "helpers:pinGitHubActionDigests"
@@ -246,11 +242,6 @@
       "matchDatasources": [
         "go"
       ],
-      "matchUpdateTypes": [
-        "major",
-        "minor",
-        "patch"
-      ],
       "minimumReleaseAge": "14 days",
       "matchPackageNames": [
         "github.com/onsi{/,}**"
@@ -261,11 +252,6 @@
       "groupSlug": "golang-x-go",
       "matchDatasources": [
         "go"
-      ],
-      "matchUpdateTypes": [
-        "major",
-        "minor",
-        "patch"
       ],
       "minimumReleaseAge": "14 days",
       "matchPackageNames": [
