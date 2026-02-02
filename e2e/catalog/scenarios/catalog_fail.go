@@ -44,7 +44,7 @@ func (s *scenario) ExecuteCPDFailScenario(ctx context.Context, namespace string)
 		g.Expect(inventory).To(HaveLen(len(catalog.Spec.Sources)), "number of Catalog status inventory map should be equal to catalog sources length")
 		for groupKey, items := range inventory {
 			g.Expect(items).To(HaveLen(4), "each Catalog status inventory entry should have 4 items")
-			s.expectStatusPropagationInCatalogInventory(ctx, groupKey, false)
+			s.expectStatusPropagationInCatalogInventory(g, ctx, groupKey, false)
 		}
 		catalogReady := catalog.Status.GetConditionByType(greenhousemetav1alpha1.ReadyCondition)
 		g.Expect(catalogReady).ToNot(BeNil(), "the Catalog should have a Ready condition")
@@ -81,7 +81,7 @@ func (s *scenario) ExecuteArtifactFailScenario(ctx context.Context, namespace st
 		g.Expect(inventory).To(HaveLen(len(catalog.Spec.Sources)), "number of Catalog status inventory map should be equal to catalog sources length")
 		for groupKey, items := range inventory {
 			g.Expect(items).To(HaveLen(4), "each Catalog status inventory entry should have 4 items")
-			s.expectStatusPropagationInCatalogInventory(ctx, groupKey, true)
+			s.expectStatusPropagationInCatalogInventory(g, ctx, groupKey, true)
 		}
 		catalogReady := catalog.Status.GetConditionByType(greenhousemetav1alpha1.ReadyCondition)
 		g.Expect(catalogReady).ToNot(BeNil(), "the Catalog should have a Ready condition")
@@ -119,7 +119,7 @@ func (s *scenario) ExecuteGitAuthFailScenario(ctx context.Context, namespace str
 		g.Expect(inventory).To(HaveLen(len(catalog.Spec.Sources)), "number of Catalog status inventory map should be equal to catalog sources length")
 		for groupKey, items := range inventory {
 			g.Expect(items).To(HaveLen(4), "each Catalog status inventory entry should have 4 items")
-			s.expectStatusPropagationInCatalogInventory(ctx, groupKey, true)
+			s.expectStatusPropagationInCatalogInventory(g, ctx, groupKey, true)
 		}
 		catalogReady := catalog.Status.GetConditionByType(greenhousemetav1alpha1.ReadyCondition)
 		g.Expect(catalogReady).ToNot(BeNil(), "the Catalog should have a Ready condition")
