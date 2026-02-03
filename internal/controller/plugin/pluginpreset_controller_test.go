@@ -738,7 +738,8 @@ var _ = Describe("PluginPreset Controller Lifecycle", Ordered, func() {
 		Expect(expPlugin.Labels).To(HaveKeyWithValue(greenhouseapis.LabelKeyPluginPreset, pluginPresetName), "the Plugin should be labeled as managed by the PluginPreset")
 
 		By("deleting the Plugin and ensuring it is reconciled")
-		result, _ := clientutil.Delete(test.Ctx, test.K8sClient, expPlugin)
+		result, err := clientutil.Delete(test.Ctx, test.K8sClient, expPlugin)
+		Expect(err).ToNot(HaveOccurred(), "there should be no error deleting the Plugin")
 		Expect(result).To(Equal(clientutil.DeletionResultDeleted), "the Plugin should be deleted")
 
 		By("ensuring the Plugin is recreated")
