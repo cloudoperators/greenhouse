@@ -68,6 +68,10 @@ func PredicatePluginWithStatusReadyChange() predicate.Predicate {
 			if !okOld || !okNew {
 				return false
 			}
+			// Ignore if deletion is in progress.
+			if !newPlugin.GetDeletionTimestamp().IsZero() {
+				return false
+			}
 			oldReadyCondition := oldPlugin.Status.GetConditionByType(greenhousemetav1alpha1.ReadyCondition)
 			newReadyCondition := newPlugin.Status.GetConditionByType(greenhousemetav1alpha1.ReadyCondition)
 			if oldReadyCondition == nil && newReadyCondition == nil {
@@ -78,7 +82,7 @@ func PredicatePluginWithStatusReadyChange() predicate.Predicate {
 			}
 			return oldReadyCondition.Status != newReadyCondition.Status
 		},
-		DeleteFunc:  func(_ event.DeleteEvent) bool { return false },
+		DeleteFunc:  func(_ event.DeleteEvent) bool { return true },
 		GenericFunc: func(_ event.GenericEvent) bool { return false },
 	}
 }
