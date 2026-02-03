@@ -3,7 +3,7 @@
   "assigneesFromCodeOwners": true,
   "extends": [
     "config:recommended",
-    "helpers:pinGitHubActionDigests"
+    "helpers:pinGitHubActionDigestsToSemver"
   ],
   "constraints": {
     "go": "1.25"
