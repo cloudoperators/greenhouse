@@ -6,8 +6,6 @@ package fixtures
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
-
 	greenhousev1alpha1 "github.com/cloudoperators/greenhouse/api/v1alpha1"
 	"github.com/cloudoperators/greenhouse/internal/test"
 )
@@ -29,55 +27,6 @@ func PreparePluginDefinition(name, namespace string, opts ...func(definition *gr
 	}
 
 	return pd
-}
-
-func PrepareNginxPluginDefinition(namespace string) *greenhousev1alpha1.ClusterPluginDefinition {
-	return PreparePluginDefinition("nginx-22.3.3", namespace,
-		test.WithVersion("22.3.3"),
-		test.WithHelmChart(
-			&greenhousev1alpha1.HelmChartReference{
-				Name:       "bitnamicharts/nginx",
-				Repository: "oci://registry-1.docker.io",
-				Version:    "22.3.3",
-			},
-		),
-		test.AppendPluginOption(greenhousev1alpha1.PluginOption{
-			Default:     &apiextensionsv1.JSON{Raw: []byte("false")},
-			Description: "autoscaling.enabled",
-			Name:        "autoscaling.enabled",
-			Type:        "bool",
-		}),
-		test.AppendPluginOption(greenhousev1alpha1.PluginOption{
-			Default:     &apiextensionsv1.JSON{Raw: []byte("\"\"")},
-			Description: "autoscaling.maxReplicas",
-			Name:        "autoscaling.maxReplicas",
-			Type:        "string",
-		}),
-		test.AppendPluginOption(greenhousev1alpha1.PluginOption{
-			Default:     &apiextensionsv1.JSON{Raw: []byte("\"\"")},
-			Description: "autoscaling.minReplicas",
-			Name:        "autoscaling.minReplicas",
-			Type:        "string",
-		}),
-		test.AppendPluginOption(greenhousev1alpha1.PluginOption{
-			Default:     &apiextensionsv1.JSON{Raw: []byte("true")},
-			Description: "containerSecurityContext.enabled",
-			Name:        "containerSecurityContext.enabled",
-			Type:        "bool",
-		}),
-		test.AppendPluginOption(greenhousev1alpha1.PluginOption{
-			Default:     &apiextensionsv1.JSON{Raw: []byte("1")},
-			Description: "replicaCount",
-			Name:        "replicaCount",
-			Type:        "int",
-		}),
-		test.AppendPluginOption(greenhousev1alpha1.PluginOption{
-			Default:     &apiextensionsv1.JSON{Raw: []byte("true")},
-			Description: "podSecurityContext.enabled",
-			Name:        "podSecurityContext.enabled",
-			Type:        "bool",
-		}),
-	)
 }
 
 func PrepareCertManagerPluginDefinition(namespace string) *greenhousev1alpha1.ClusterPluginDefinition {

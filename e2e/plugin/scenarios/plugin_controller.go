@@ -27,14 +27,14 @@ import (
 
 const (
 	preventDeletionAnnotation = "greenhouse.sap/prevent-deletion"
-	nginxPluginOne            = "test-nginx-plugin-1"
-	nginxPluginTwo            = "test-nginx-plugin-2"
-	nginxPluginPreset         = "test-nginx-plugin-preset"
+	podInfoPluginOne          = "test-podinfo-plugin-1"
+	podInfoPluginTwo          = "test-podinfo-plugin-2"
+	podInfoPluginPreset       = "test-podinfo-plugin-preset"
 )
 
-func createNginxPluginDefinition(ctx context.Context, adminClient client.Client, namespace string) *greenhousev1alpha1.ClusterPluginDefinition {
-	By("Creating nginx plugin definition")
-	testPluginDefinition := fixtures.PrepareNginxPluginDefinition(namespace)
+func createPodInfoPluginDefinition(ctx context.Context, adminClient client.Client, namespace string) *greenhousev1alpha1.ClusterPluginDefinition {
+	By("Creating PodInfo plugin definition")
+	testPluginDefinition := fixtures.PreparePodInfoPluginDefinition(namespace, "6.9.0")
 	err := adminClient.Create(ctx, testPluginDefinition)
 	Expect(client.IgnoreAlreadyExists(err)).ToNot(HaveOccurred())
 
@@ -50,17 +50,17 @@ func createNginxPluginDefinition(ctx context.Context, adminClient client.Client,
 	return testPluginDefinition
 }
 
-func PluginControllerNginxByPlugin(ctx context.Context, adminClient, remoteClient client.Client, env *shared.TestEnv, remoteClusterName, teamName string) {
-	testPluginDefinition := createNginxPluginDefinition(ctx, adminClient, env.TestNamespace)
-	By("Creating the plugin")
-	// Creating plugin with release name
-	testPlugin := fixtures.PreparePlugin(nginxPluginOne, env.TestNamespace,
+func PluginControllerPodInfoByPlugin(ctx context.Context, adminClient, remoteClient client.Client, env *shared.TestEnv, remoteClusterName, teamName string) {
+	testPluginDefinition := createPodInfoPluginDefinition(ctx, adminClient, env.TestNamespace)
+	By("Creating the plugin with release name")
+	testPlugin := fixtures.PreparePlugin(podInfoPluginOne, env.TestNamespace,
 		test.WithClusterPluginDefinition(testPluginDefinition.Name),
 		test.WithCluster(remoteClusterName),
 		test.WithReleaseNamespace(env.TestNamespace),
 		test.WithPluginOptionValue("replicaCount", &apiextensionsv1.JSON{Raw: []byte("1")}),
-		test.WithReleaseName(nginxPluginOne),
+		test.WithReleaseName(podInfoPluginOne),
 		test.WithPluginLabel(greenhouseapis.LabelKeyOwnedBy, teamName),
+		test.WithPluginLabel(greenhouseapis.GreenhouseHelmDeliveryToolLabel, "helm"),
 	)
 	err := adminClient.Create(ctx, testPlugin)
 	Expect(err).ToNot(HaveOccurred())
@@ -75,13 +75,13 @@ func PluginControllerNginxByPlugin(ctx context.Context, adminClient, remoteClien
 	}).Should(Succeed())
 
 	By("Checking deployment")
-	ngInxDeployment := &appsv1.Deployment{}
-	ngInxDeployment.SetName(nginxPluginOne)
-	ngInxDeployment.SetNamespace(env.TestNamespace)
+	podInfoDeployment := &appsv1.Deployment{}
+	podInfoDeployment.SetName(podInfoPluginOne)
+	podInfoDeployment.SetNamespace(env.TestNamespace)
 	Eventually(func(g Gomega) {
-		err = remoteClient.Get(ctx, client.ObjectKeyFromObject(ngInxDeployment), ngInxDeployment)
+		err = remoteClient.Get(ctx, client.ObjectKeyFromObject(podInfoDeployment), podInfoDeployment)
 		g.Expect(err).NotTo(HaveOccurred())
-		g.Expect(ngInxDeployment.Spec.Replicas).To(PointTo(Equal(int32(1))))
+		g.Expect(podInfoDeployment.Spec.Replicas).To(PointTo(Equal(int32(1))))
 	}).Should(Succeed())
 
 	By("Updating replicas")
@@ -104,9 +104,9 @@ func PluginControllerNginxByPlugin(ctx context.Context, adminClient, remoteClien
 
 	By("Check replicas in deployment")
 	Eventually(func(g Gomega) {
-		err = remoteClient.Get(ctx, client.ObjectKeyFromObject(ngInxDeployment), ngInxDeployment)
+		err = remoteClient.Get(ctx, client.ObjectKeyFromObject(podInfoDeployment), podInfoDeployment)
 		g.Expect(err).NotTo(HaveOccurred())
-		g.Expect(ngInxDeployment.Spec.Replicas).To(PointTo(Equal(int32(2))))
+		g.Expect(podInfoDeployment.Spec.Replicas).To(PointTo(Equal(int32(2))))
 	}).Should(Succeed())
 
 	By("Deleting plugin")
@@ -114,7 +114,7 @@ func PluginControllerNginxByPlugin(ctx context.Context, adminClient, remoteClien
 
 	By("Check, is deployment deleted")
 	Eventually(func(g Gomega) {
-		err = remoteClient.Get(ctx, client.ObjectKeyFromObject(ngInxDeployment), ngInxDeployment)
+		err = remoteClient.Get(ctx, client.ObjectKeyFromObject(podInfoDeployment), podInfoDeployment)
 		g.Expect(apierrors.IsNotFound(err)).To(BeTrue(), "the error should be NotFound")
 	}).Should(Succeed(), "the deployment should be deleted")
 
@@ -122,16 +122,15 @@ func PluginControllerNginxByPlugin(ctx context.Context, adminClient, remoteClien
 	test.EventuallyDeleted(ctx, adminClient, testPluginDefinition)
 }
 
-func PluginControllerNginxByPreset(ctx context.Context, adminClient, remoteClient client.Client, env *shared.TestEnv, remoteClusterName, teamName string) {
-	testPluginDefinition := createNginxPluginDefinition(ctx, adminClient, env.TestNamespace)
+func PluginControllerPodInfoByPreset(ctx context.Context, adminClient, remoteClient client.Client, env *shared.TestEnv, remoteClusterName, teamName string) {
+	testPluginDefinition := createPodInfoPluginDefinition(ctx, adminClient, env.TestNamespace)
 
-	By("Prepare the plugin")
-	// Creating plugin with release name
-	testPlugin := fixtures.PreparePlugin(nginxPluginTwo, env.TestNamespace,
+	By("Prepare the plugin with release name")
+	testPlugin := fixtures.PreparePlugin(podInfoPluginTwo, env.TestNamespace,
 		test.WithClusterPluginDefinition(testPluginDefinition.Name),
 		test.WithReleaseNamespace(env.TestNamespace),
 		test.WithPluginOptionValue("replicaCount", &apiextensionsv1.JSON{Raw: []byte("1")}),
-		test.WithReleaseName(nginxPluginTwo),
+		test.WithReleaseName(podInfoPluginTwo),
 		test.WithPluginLabel(greenhouseapis.LabelKeyOwnedBy, teamName),
 	)
 
@@ -144,8 +143,9 @@ func PluginControllerNginxByPreset(ctx context.Context, adminClient, remoteClien
 	Expect(err).ToNot(HaveOccurred())
 
 	By("Creating the plugin preset")
-	testPluginPreset := test.NewPluginPreset(nginxPluginPreset, env.TestNamespace,
+	testPluginPreset := test.NewPluginPreset(podInfoPluginPreset, env.TestNamespace,
 		test.WithPluginPresetLabel(greenhouseapis.LabelKeyOwnedBy, teamName),
+		test.WithPluginPresetLabel(greenhouseapis.GreenhouseHelmDeliveryToolLabel, "helm"),
 		test.WithPluginPresetPluginSpec(testPlugin.Spec),
 		test.WithPluginPresetClusterSelector(metav1.LabelSelector{
 			MatchLabels: map[string]string{
@@ -172,13 +172,13 @@ func PluginControllerNginxByPreset(ctx context.Context, adminClient, remoteClien
 	}).Should(Succeed())
 
 	By("Check the replicas in deployment")
-	ngInxDeployment := &appsv1.Deployment{}
-	ngInxDeployment.SetName(nginxPluginTwo)
-	ngInxDeployment.SetNamespace(env.TestNamespace)
+	podInfoDeployment := &appsv1.Deployment{}
+	podInfoDeployment.SetName(podInfoPluginTwo)
+	podInfoDeployment.SetNamespace(env.TestNamespace)
 	Eventually(func(g Gomega) {
-		err = remoteClient.Get(ctx, client.ObjectKeyFromObject(ngInxDeployment), ngInxDeployment)
+		err = remoteClient.Get(ctx, client.ObjectKeyFromObject(podInfoDeployment), podInfoDeployment)
 		g.Expect(err).NotTo(HaveOccurred())
-		g.Expect(ngInxDeployment.Spec.Replicas).To(PointTo(Equal(int32(1))))
+		g.Expect(podInfoDeployment.Spec.Replicas).To(PointTo(Equal(int32(1))))
 	}).Should(Succeed())
 
 	By("Updating plugin preset with cluster overview")
@@ -202,9 +202,9 @@ func PluginControllerNginxByPreset(ctx context.Context, adminClient, remoteClien
 
 	By("Check replicas in deployment")
 	Eventually(func(g Gomega) {
-		err = remoteClient.Get(ctx, client.ObjectKeyFromObject(ngInxDeployment), ngInxDeployment)
+		err = remoteClient.Get(ctx, client.ObjectKeyFromObject(podInfoDeployment), podInfoDeployment)
 		g.Expect(err).NotTo(HaveOccurred())
-		g.Expect(ngInxDeployment.Spec.Replicas).To(PointTo(Equal(int32(2))))
+		g.Expect(podInfoDeployment.Spec.Replicas).To(PointTo(Equal(int32(2))))
 	}).Should(Succeed())
 
 	By("Updating plugin preset with cluster option override")
@@ -252,9 +252,9 @@ func PluginControllerNginxByPreset(ctx context.Context, adminClient, remoteClien
 
 	By("Check replicas in deployment")
 	Eventually(func(g Gomega) {
-		err = remoteClient.Get(ctx, client.ObjectKeyFromObject(ngInxDeployment), ngInxDeployment)
+		err = remoteClient.Get(ctx, client.ObjectKeyFromObject(podInfoDeployment), podInfoDeployment)
 		g.Expect(err).NotTo(HaveOccurred())
-		g.Expect(ngInxDeployment.Spec.Replicas).To(PointTo(Equal(int32(3))))
+		g.Expect(podInfoDeployment.Spec.Replicas).To(PointTo(Equal(int32(3))))
 	}).Should(Succeed())
 
 	By("Deleting the plugin preset")
@@ -270,7 +270,7 @@ func PluginControllerNginxByPreset(ctx context.Context, adminClient, remoteClien
 
 	By("Check that the deployment is deleted")
 	Eventually(func(g Gomega) {
-		err = remoteClient.Get(ctx, client.ObjectKeyFromObject(ngInxDeployment), ngInxDeployment)
+		err = remoteClient.Get(ctx, client.ObjectKeyFromObject(podInfoDeployment), podInfoDeployment)
 		g.Expect(apierrors.IsNotFound(err)).To(BeTrue(), "the error should be NotFound")
 	}).Should(Succeed(), "deployment should be deleted")
 
