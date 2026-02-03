@@ -24,7 +24,7 @@ jobs:
     steps:
       - name: Generate GitHub App Token
         id: github-app-token
-        uses: actions/create-github-app-token@29824e69f54612133e76f7eaac726eef6c875baf # v2
+        uses: actions/create-github-app-token@29824e69f54612133e76f7eaac726eef6c875baf # v2.2.1
         with:
           app-id: ${{ secrets.CLOUDOPERATOR_APP_ID }}
           private-key: ${{ secrets.CLOUDOPERATOR_APP_PRIVATE_KEY }}
@@ -43,7 +43,7 @@ jobs:
           make generate-all
 
       - name: Apply Changes
-        uses: EndBug/add-and-commit@a94899bca583c204427a224a7af87c02f9b325d5 # v9
+        uses: EndBug/add-and-commit@a94899bca583c204427a224a7af87c02f9b325d5 # v9.1.4
         with:
           author_name: cloud-operator-bot[bot]
           author_email: 224791424+cloud-operator-bot[bot]@users.noreply.github.com
