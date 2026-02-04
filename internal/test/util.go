@@ -59,10 +59,9 @@ func MustSetAnnotations(ctx context.Context, c client.Client, o client.Object, a
 func MustRemoveAnnotation(ctx context.Context, c client.Client, o client.Object, key string) {
 	GinkgoHelper()
 	Eventually(func(g Gomega) {
-		base := o.DeepCopyObject().(client.Object) //nolint:errcheck
 		g.Expect(c.Get(ctx, client.ObjectKeyFromObject(o), o)).To(Succeed(), "there must be no error getting the object")
 		delete(o.GetAnnotations(), key)
-		g.Expect(c.Patch(ctx, o, client.MergeFrom(base))).To(Succeed(), "there must be no error updating the object")
+		g.Expect(c.Update(ctx, o)).To(Succeed(), "there must be no error updating the object")
 	}).Should(Succeed(), "there should be no error removing the annotation")
 }
 
