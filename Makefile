@@ -355,12 +355,17 @@ cert-manager: kustomize
 	-$(KUSTOMIZE) build config/samples/cert-manager | kubectl apply -f -
 
 .PHONY: flux
-flux: kustomize
+flux: kustomize registry
 	-$(KUSTOMIZE) build config/samples/flux | kubectl apply -f -
 
 .PHONY: license
 license:
 	docker run --rm -v $(shell pwd):/github/workspace $(IMG_LICENSE_EYE) -c .github/licenserc.yaml header fix
+
+.PHONY: registry
+registry: kustomize
+	kubectl create namespace flux-system --dry-run=client -o yaml | kubectl apply -f -
+	-$(KUSTOMIZE) build config/samples/registry | kubectl apply -f -
 
 .PHONY: show-e2e-logs
 show-e2e-logs:
