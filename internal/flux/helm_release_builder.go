@@ -202,6 +202,9 @@ func (b *helmReleaseBuilder) WithTest(test *helmv2.Test) *helmReleaseBuilder {
 			Timeout: &metav1.Duration{Duration: DefaultTimeout},
 		}
 	}
+	if !test.Enable {
+		return b
+	}
 	b.spec.Test = test
 	return b
 }
