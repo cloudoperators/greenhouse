@@ -78,7 +78,6 @@ func PredicatePluginWithStatusReadyChange() predicate.Predicate {
 			}
 			return oldReadyCondition.Status != newReadyCondition.Status
 		},
-		DeleteFunc:  func(_ event.DeleteEvent) bool { return false },
 		GenericFunc: func(_ event.GenericEvent) bool { return false },
 	}
 }
