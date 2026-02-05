@@ -23,7 +23,7 @@ replace (
 	k8s.io/client-go => k8s.io/client-go v0.34.3
 	k8s.io/component-base => k8s.io/component-base v0.34.3
 	k8s.io/kubectl => k8s.io/kubectl v0.34.3
-	sigs.k8s.io/controller-runtime => sigs.k8s.io/controller-runtime v0.22.4
+	sigs.k8s.io/controller-runtime => sigs.k8s.io/controller-runtime v0.22.5
 )
 
 require (
@@ -61,7 +61,7 @@ require (
 	k8s.io/cli-runtime v0.34.3
 	k8s.io/client-go v0.34.3
 	k8s.io/utils v0.0.0-20251222233032-718f0e51e6d2
-	sigs.k8s.io/controller-runtime v0.22.4
+	sigs.k8s.io/controller-runtime v0.22.5
 	sigs.k8s.io/kind v0.31.0
 	sigs.k8s.io/yaml v1.6.0
 )
